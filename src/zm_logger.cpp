@@ -28,9 +28,6 @@
 #include <string.h>
 #include <sys/time.h>
 #include <syslog.h>
-#ifdef HAVE_SYSCALL_H
-#include <syscall.h>
-#endif // HAVE_SYSCALL_H
 #include <signal.h>
 #include <stdarg.h>
 #include <errno.h>

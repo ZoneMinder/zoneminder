@@ -5,31 +5,24 @@ class EventsController extends AppController {
     public $components = array('Paginator');
 
 public function index() {
-
-	$this->loadModel('Monitor');
+  $this->loadModel('Monitor');
 	$this->loadModel('Frame');
 	$conditions = array();
 
 	$this->set('thumb_width', Configure::read('ZM_WEB_LIST_THUMB_WIDTH'));
 
-  $named = $this->extractNamedParams(
-	  array('MonitorId', 'StartTime' )
-  );
-
-  if ($named) {
-	  foreach ($named as $key => $value) {
-		  switch ($key) {
-		  case "StartTime":
-			  $StartTime = array("$key BETWEEN FROM_UNIXTIME($value[0]) and FROM_UNIXTIME($value[1])");
-			  array_push($conditions, $StartTime);
-			  break;
-		  case "MonitorId":
-			  $$key = array($key => $value);
-			  array_push($conditions, $$key);
-			  break;
-		  }
-	  }
-  };
+  if (isset($this->params['url']['data'])) {
+    $params = $this->params['url']['data'];
+    if (isset($params['StartDate']) ) {
+      $params['StartDate'] = strtotime($params['StartDate']);
+      if ($params['StartDate'] > 0) {array_push($conditions, array('UNIX_TIMESTAMP(Event.StartTime) >= '.$params['StartDate']));}
+    }
+    
+    if (isset($params['EndDate']) ) {
+      $params['EndDate'] = strtotime($params['EndDate']);
+      if ($params['EndDate'] > 0) {array_push($conditions, array('UNIX_TIMESTAMP(Event.EndTime) <= '.$params['EndDate']));}
+    }
+  }
 
 	$this->paginate = array(
     'fields' => array('Event.Name', 'Event.Length', 'Event.MonitorId', 'Event.Id', 'Monitor.Name', 'Event.MaxScore', 'Event.Width', 'Event.Height', 'Event.StartTime', 'Event.TotScore', 'Event.AvgScore', 'Event.Cause', 'Event.Videoed', 'Event.AlarmFrames', 'TIMESTAMPDIFF (SECOND, Event.StartTime, Event.EndTime) AS Duration' ),
@@ -40,19 +33,12 @@ public function index() {
 	$data = $this->paginate('Event');
 	$this->set('events', $data);
 
-	$this->set('monitors', $this->Monitor->find('all', array('fields' => array('Monitor.Name') )));
+	$this->set('monitors', $this->Monitor->find('all', array('fields' => array('Monitor.Name'))));
 
     foreach ($data as $key => $value) {
         $thumbData[$key] = $this->Frame->createListThumbnail($value['Event']);
         $this->set('thumbData', $thumbData);
   }
-
-$prepend = array('00','01','02','03','04','05','06','07','08','09');
-$hours     = array_merge($prepend,range(10, 23));
-$minutes     = array_merge($prepend,range(10, 59));
-$seconds     = $minutes; 
-$this->set('hours', $hours);
-$this->set('minutes', $minutes);
 }
 
   public function view($id = null) {

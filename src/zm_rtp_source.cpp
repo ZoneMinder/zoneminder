@@ -253,15 +253,57 @@ bool RtpSource::handlePacket( const unsigned char *packet, size_t packetLen )
 {
     const RtpDataHeader *rtpHeader;
     rtpHeader = (RtpDataHeader *)packet;
+    bool fragmentEnd = false;
+
+    // Each RTP packet delivers only one NAL. It can be either the Single NAL
+    // ( in that case it must be in one packet ) or the Fragmentation NALs
+    // that delivers large single NAL...  
 
     if ( updateSeq( ntohs(rtpHeader->seqN) ) )
     {
         Hexdump( 4, packet+sizeof(RtpDataHeader), 16 );
+        if ( ((packet[sizeof(RtpDataHeader)] & 0x1f) == 28 && 
+              (packet[sizeof(RtpDataHeader)+1] & 0x80)) ||
+             ((packet[sizeof(RtpDataHeader)] & 0x1f) != 28 && 
+              prevM && rtpHeader->m) )
+	    mFrameGood = true; // This means that if packet is in sequence
+			       // and is single NAL with mark set (and prev packet
+			       // was NAL with mark set or it is Fragmentation NAL with
+			       // Start bit set then we assume that sequence
+			       // was restored and we can handle packet
         if ( mFrameGood )
+        {
+    	    // check if there fragmentation NAL
+    	    if ( (packet[sizeof(RtpDataHeader)] & 0x1f) == 28 )
+    	    {
+    		// is this NAL the first NAL in fragmentation sequence
+    		if ( packet[sizeof(RtpDataHeader)+1] & 0x80 )
+    		{
+    		    // if there is any data in frame then we must
+    		    // discard it because that frame was incomplete
+    		    if ( mFrame.size() )
+    			mFrame.clear();
+    		    // Now we will form new header of frame
+    		    mFrame.append("\x0\x0\x1\x0",4);
+    		    *(mFrame+3) = (packet[sizeof(RtpDataHeader)+1] & 0x1f) |
+    		                  (packet[sizeof(RtpDataHeader)] & 0x60);
+    		}
+    		else
+    		    if ( packet[sizeof(RtpDataHeader)+1] & 0x40 )
+    			fragmentEnd = true;
+		mFrame.append(packet+sizeof(RtpDataHeader)+2, packetLen-sizeof(RtpDataHeader)-2);
+    	    }
+    	    else
+    	    {
+//    		mframe.clear();
+    		if ( !mFrame.size() )
+    		    mFrame.append("\x0\x0\x1",3);
             mFrame.append( packet+sizeof(RtpDataHeader), packetLen-sizeof(RtpDataHeader) ); 
+	    }
+        }
         Hexdump( 4, mFrame.head(), 16 );
 
-        if ( rtpHeader->m )
+        if ( rtpHeader->m || fragmentEnd )
         {
             if ( mFrameGood )
             {
@@ -297,10 +339,13 @@ bool RtpSource::handlePacket( const unsigned char *packet, size_t packetLen )
         mFrameGood = false;
         mFrame.clear();
     }
-    if ( rtpHeader->m )
+    if ( rtpHeader->m || fragmentEnd )
     {
         mFrameGood = true;
+        prevM = true;
     }
+    else
+		prevM = false;
 
     updateJitter( rtpHeader );
 

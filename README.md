@@ -1,5 +1,4 @@
 ZoneMinder H264 Patch
-==========
 
 [![Build Status](https://travis-ci.org/ZoneMinder/ZoneMinder.png?branch=feature-h264-videostorage)](https://travis-ci.org/ZoneMinder/ZoneMinder)
 

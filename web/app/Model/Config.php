@@ -3,7 +3,8 @@ class Config extends AppModel {
   public $useTable = 'Config';
   public $primaryKey = 'Name';
 
-	public function getWebOption($name, $zmBandwidth) {
+	public function getWebOption($name) {
+		$zmBandwidth = Configure::read('zmBandwidth');
 		$name_begin = substr($name, 0, 7);
 		$name_end   = substr($name, 6);
 		$bandwidth_short = strtoupper($zmBandwidth[0]);
@@ -15,6 +16,22 @@ class Config extends AppModel {
 		));
 
 		return($ZM_OPTIONS['Config']['Value']);
+	}
+
+	public function writeConfig() {
+		$configFile =  "/usr/local/etc/zm.conf";
+		$lines = file($configFile);
+		foreach ($lines as $linenum => $line) {
+			if ( preg_match( '/^\s*([^=\s]+)\s*=\s*(.+?)\s*$/', $line, $matches )) {
+				Configure::write($matches[1], $matches[2]);
+			}
+		}
+
+		$options = $this->find('list', array('fields' => array('Name', 'Value')));
+		foreach ($options as $key => $value) {
+			Configure::write($key, $value);
+		}
+    		Configure::write('SCALE_BASE', 100);
 	}
 }
 ?>

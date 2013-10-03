@@ -1,0 +1,12 @@
+configure
+config.h.in
+autom4te.cache
+aclocal.m4
+depcomp
+install-sh
+missing
+mkinstalldirs
+stamp-h1
+stamp-h.in
+scripts/ZoneMinder/blib
+Makefile.in

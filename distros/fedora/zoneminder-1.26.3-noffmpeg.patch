@@ -1,0 +1,26 @@
+--- configure.ac	2013-09-10 12:42:56.000000000 -0500
++++ configure.ac.noffmpeg	2013-09-14 17:25:41.988388970 -0500
+@@ -284,15 +284,15 @@
+ AC_CHECK_LIB(pcre,pcre_compile,,AC_MSG_WARN(libpcre.a may be required for remote/network camera support))
+ AC_CHECK_LIB(z,zlibVersion)
+ AC_CHECK_LIB(x264,x264_predict_16x16_init)
+-AC_CHECK_LIB(avutil,av_malloc,,AC_MSG_WARN(libavutil.a may be required for MPEG streaming))
++dnl AC_CHECK_LIB(avutil,av_malloc,,AC_MSG_WARN(libavutil.a may be required for MPEG streaming))
+ # Don't bother to warn about this one
+-AC_CHECK_LIB(avcore,av_image_copy,,)
+-AC_CHECK_LIB(avcodec,avcodec_version,,AC_MSG_WARN(libavcodec.a is required for MPEG streaming))
+-AC_CHECK_LIB(avformat,avformat_version,,AC_MSG_WARN(libavformat.a is required for MPEG streaming))
+-#AC_CHECK_LIB(avcodec,avcodec_open,,AC_MSG_WARN(libavcodec.a is required for MPEG streaming))
+-#AC_CHECK_LIB(avformat,av_new_stream,,AC_MSG_WARN(libavformat.a is required for MPEG streaming))
+-AC_CHECK_LIB(avdevice,avdevice_register_all,,AC_MSG_WARN(libavdevice.a may be required for MPEG streaming))
+-AC_CHECK_LIB(swscale,sws_scale,,,-lswscale)
++dnl AC_CHECK_LIB(avcore,av_image_copy,,)
++dnl AC_CHECK_LIB(avcodec,avcodec_version,,AC_MSG_WARN(libavcodec.a is required for MPEG streaming))
++dnl AC_CHECK_LIB(avformat,avformat_version,,AC_MSG_WARN(libavformat.a is required for MPEG streaming))
++dnl AC_CHECK_LIB(avcodec,avcodec_open,,AC_MSG_WARN(libavcodec.a is required for MPEG streaming))
++dnl AC_CHECK_LIB(avformat,av_new_stream,,AC_MSG_WARN(libavformat.a is required for MPEG streaming))
++dnl AC_CHECK_LIB(avdevice,avdevice_register_all,,AC_MSG_WARN(libavdevice.a may be required for MPEG streaming))
++dnl AC_CHECK_LIB(swscale,sws_scale,,,-lswscale)
+ AC_CHECK_LIB(bz2,BZ2_bzCompress,,AC_MSG_WARN(zm requires libbz2.a for recent versions of ffmpeg))
+ AC_CHECK_LIB(z,compress,,)
+ 

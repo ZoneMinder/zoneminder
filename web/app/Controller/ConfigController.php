@@ -2,6 +2,7 @@
 	class ConfigController extends AppController {
   
 		public function index() {
+			$this->layout = 'nosidebar'; 
 			// Get a list of categories
 			$categories = $this->Config->find('all', array('fields' => array('Category'), 'group' => array('Category'), 'conditions' => array('Category !=' => 'hidden')));
 			$this->set('categories', $categories);

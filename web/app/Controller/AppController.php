@@ -39,27 +39,14 @@ class AppController extends Controller {
 		'Form' => array('className' => 'BoostCake.BoostCakeForm'),
 		'Paginator' => array('className' => 'BoostCake.BoostCakePaginator'),
 	);
-  public $components = array('Cookie', 'Session', 'RequestHandler');
+  public $components = array('Session', 'RequestHandler');
 
   public function beforeFilter() {
     parent::beforeFilter();
 	$this->loadModel('Config');
 	$this->loadModel('AppModel');
-  $this->Cookie->name = 'ZoneMinder';
+	$this->Config->writeConfig();
 
-	$configFile =  "/usr/local/etc/zm.conf";
-	$lines = file($configFile);
-	foreach ($lines as $linenum => $line) {
-		if ( preg_match( '/^\s*([^=\s]+)\s*=\s*(.+?)\s*$/', $line, $matches )) {
-			Configure::write($matches[1], $matches[2]);
-		}
-	}
-
-	$options = $this->Config->find('list', array('fields' => array('Name', 'Value')));
-	foreach ($options as $key => $value) {
-		Configure::write($key, $value);
-    }
-    Configure::write('SCALE_BASE', 100);
 	if ($this->AppModel->daemonStatus()) {
 		$this->set('daemonStatusHtml', ('<span class="alert alert-success">Running</span>'));
 	} else {
@@ -79,14 +66,6 @@ class AppController extends Controller {
     $this->set('zmVersion', $zmVersion);
   }
 
-  public function beforeRender() {
-    parent::beforeRender();
-    if (!$this->Cookie->read('zmBandwidth')) {
-      $this->Cookie->write('zmBandwidth', 'low', false);
-    }
-    $this->set('zmBandwidth', $this->Cookie->read('zmBandwidth'));
-  }
-  
   function extractNamedParams($mandatory, $optional = array()) {
     $params = $this->params['named'];
 

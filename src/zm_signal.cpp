@@ -110,7 +110,7 @@ RETSIGTYPE zm_die_handler( int signal )
 	char **messages = backtrace_symbols( trace, trace_size );
     if ( size_t offset = strcspn( messages[trace_size-1], " " ) )
     {
-        snprintf( cmd_ptr, sizeof(cmd)-(cmd_ptr-cmd), messages[trace_size-1] );
+        snprintf( cmd_ptr, sizeof(cmd)-(cmd_ptr-cmd), "%s", messages[trace_size-1] );
         cmd_ptr += offset;
     }
     else

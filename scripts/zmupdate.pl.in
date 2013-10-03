@@ -1024,27 +1024,35 @@ if ( $version )
         	}
 
 		$cascade = !undef;
+		$version = '1.26.0';
 	}
-    if ( $cascade || $version le "1.26.1" )
-    {
-        # Patch the database
-        patchDB( $dbh, "1.26.1" );
-        $cascade = !undef;
-    }
 
-    if ( $cascade || $version le "1.26.2" )
-    {
-        # Patch the database
-        patchDB( $dbh, "1.26.2" );
-        $cascade = !undef;
-    }
+	if ( $version ge '1.26.0' ) {
 
-    if ( $cascade || $version le "1.26.3" )
-    {
-        # Patch the database
-        patchDB( $dbh, "1.26.3" );
-        $cascade = !undef;
-    }
+		my @files;
+		$updateDir = ZM_PATH_BUILD."/db" if ! $updateDir;
+		opendir( my $dh, $updateDir ) || die "Can't open updateDir $!";
+		@files = sort grep { (!/^\./) && /^zm_update\-[\d\.]+\.sql$/ && -f "$updateDir/$_" } readdir($dh);
+		closedir $dh;
+        if ( ! @files ) {
+            die "Should have found upgrade scripts at $updateDir\n";
+        } # end if
+		
+		$dbh->{'AutoCommit'} = 0;
+		foreach my $patch ( @files ) {
+			my ( $v ) = $patch =~ /^zm_update\-([\d\.]+)\.sql$/;
+			if ( $v gt $version ) {
+				print( "Upgrading DB to $v from $version\n" );
+				patchDB( $dbh, $v );
+				if ( $dbh->errstr() ) {
+					$dbh->rollback();
+					die "Error: " . $dbh->errstr(). ".  Rolled back.\n";		
+				} # end if error
+			} # end if
+		} # end foreach patchfile
+		$dbh->{'AutoCommit'} = 1;
+		$cascade = !undef;
+	} # end if
 
     if ( $cascade )
     {

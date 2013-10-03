@@ -23,13 +23,16 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <unistd.h>
+#ifdef HAVE_SYS_SYSCALL_H
+#include <sys/syscall.h>
+#endif // HAVE_SYS_SYSCALL_H
 #include "zm_exception.h"
 #include "zm_utils.h"
 
 class ThreadException : public Exception
 {
 public:
-    ThreadException( const std::string &message ) : Exception( stringtf( "(%d) "+message, (long int)syscall(224) ) )
+    ThreadException( const std::string &message ) : Exception( stringtf( "(%d) "+message, (long int)syscall(SYS_gettid) ) )
     {
     }
 };
@@ -202,7 +205,7 @@ protected:
 
     pid_t id() const
     {
-        return( (pid_t)syscall(224) );
+        return( (pid_t)syscall(SYS_gettid) );
     }
     void exit( int status = 0 )
     {

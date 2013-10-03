@@ -1,6 +1,8 @@
 ZoneMinder
 ==========
 
+[![Build Status](https://travis-ci.org/ZoneMinder/ZoneMinder.png)](https://travis-ci.org/ZoneMinder/ZoneMinder)
+
 All documentation for ZoneMinder is now online at http://www.zoneminder.com/wiki/index.php/Documentation
 
 ## Overview

@@ -74,6 +74,7 @@ check_include_file("linux/videodev2.h" HAVE_LINUX_VIDEODEV2_H)
 check_include_file("execinfo.h" HAVE_EXECINFO_H)
 check_include_file("sys/sendfile.h" HAVE_SYS_SENDFILE_H)
 check_include_file("sys/syscall.h" HAVE_SYS_SYSCALL_H)
+check_function_exists("syscall" HAVE_SYSCALL)
 check_function_exists("sendfile" HAVE_SENDFILE)
 check_function_exists("backtrace" HAVE_DECL_BACKTRACE)
 check_function_exists("posix_memalign" HAVE_POSIX_MEMALIGN)
@@ -83,6 +84,7 @@ check_type_size("siginfo_t" SIGINFO_T)
 check_type_size("ucontext_t" UCONTEXT_T)
 check_type_size("struct sigcontext" STRUCT_SIGCONTEXT)
 check_struct_has_member("struct sigcontext" eip signal.h HAVE_STRUCT_SIGCONTEXT_EIP)
+check_struct_has_member("struct sigcontext" rip signal.h HAVE_STRUCT_SIGCONTEXT_RIP)
 
 # *** LIBRARY CHECKS ***
 
@@ -330,7 +332,7 @@ set(WEB_PREFIX "${ZM_WEBDIR}")
 set(CGI_PREFIX "${ZM_CGIDIR}")
 set(WEB_USER "${ZM_WEB_USER}")
 set(WEB_GROUP "${ZM_WEB_GROUP}")
-set(EXTRA_PERL_LIB "use lib '${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/zoneminder/perl5';")
+set(EXTRA_PERL_LIB "use lib '${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/perl5';")
 
 # Generate files from the .in files
 configure_file(zoneminder-config.cmake config.h @ONLY)

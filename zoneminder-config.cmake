@@ -9,6 +9,7 @@
 #cmakedefine HAVE_EXECINFO_H 1
 #cmakedefine HAVE_SYS_SENDFILE_H 1
 #cmakedefine HAVE_SYS_SYSCALL_H 1
+#cmakedefine HAVE_SYSCALL 1
 #cmakedefine HAVE_SENDFILE 1
 #cmakedefine HAVE_DECL_BACKTRACE 1
 #cmakedefine HAVE_POSIX_MEMALIGN 1
@@ -18,9 +19,9 @@
 #cmakedefine HAVE_UCONTEXT_T 1
 #cmakedefine HAVE_STRUCT_SIGCONTEXT 1
 #cmakedefine HAVE_STRUCT_SIGCONTEXT_EIP 1
+#cmakedefine HAVE_STRUCT_SIGCONTEXT_RIP 1
 
 /* Library checks and their header files */
-
 #cmakedefine HAVE_LIBZLIB 1
 #cmakedefine HAVE_ZLIB_H 1
 #cmakedefine HAVE_LIBJPEG 1
@@ -52,6 +53,8 @@
 #cmakedefine HAVE_LIBSWSCALE_SWSCALE_H 1
 
 /* Authenication checks */
+#cmakedefine HAVE_MD5_OPENSSL 1
+#cmakedefine HAVE_MD5_GNUTLS 1
 #cmakedefine HAVE_DECL_MD5 1
 #cmakedefine HAVE_DECL_GNUTLS_FINGERPRINT 1
 

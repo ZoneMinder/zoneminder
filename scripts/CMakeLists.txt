@@ -21,4 +21,4 @@ configure_file(zmx10.pl.in ${CMAKE_CURRENT_SOURCE_DIR}/zmx10.pl @ONLY)
 #configure_file(zmeventdump.in ${CMAKE_CURRENT_SOURCE_DIR}/zmeventdump @ONLY)
 
 # Install the perl scripts
-install(FILES zmaudit.pl zmcontrol.pl zmdc.pl zmfilter.pl zmpkg.pl zmtrack.pl zmtrigger.pl zmupdate.pl zmvideo.pl zmwatch.pl zmx10.pl DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}" FILE_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+install(FILES zmaudit.pl zmcontrol.pl zmdc.pl zmfilter.pl zmpkg.pl zmtrack.pl zmtrigger.pl zmupdate.pl zmvideo.pl zmwatch.pl zmx10.pl DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)

@@ -1,4 +1,10 @@
-zoneminder (1.25.1-1) unstable; urgency=low
+zoneminder (1.26.4-1ubuntu1) precise; urgency=low
+
+  * improvements to zmupdate.pl
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Thu, 12 Sep 2013 14:40:32 -0400
+
+zoneminder (1.26.4-1)  precise; urgency=low
 
   * Initial Version.
 

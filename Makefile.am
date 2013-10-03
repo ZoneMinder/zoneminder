@@ -21,12 +21,11 @@ EXTRA_DIST = \
 # Yes, you are correct. This is a HACK!
 install-data-hook:
 	( cd $(DESTDIR)$(sysconfdir); chown $(webuser):$(webgroup) $(sysconf_DATA); chmod 600 $(sysconf_DATA) )
-	( if ! test -e $(ZM_RUNDIR); then mkdir -p $(ZM_RUNDIR); fi; if test "$(ZM_RUNDIR)" != "/var/run"; then chown $(webuser):$(webgroup) $(ZM_RUNDIR); chmod u+w $(ZM_RUNDIR); fi )
-	( if ! test -e $(ZM_TMPDIR); then mkdir -m 700 -p $(ZM_TMPDIR); fi; if test "$(ZM_TMPDIR)" != "/tmp"; then chown $(webuser):$(webgroup) $(ZM_TMPDIR); chmod u+w $(ZM_TMPDIR); fi )
-	( if ! test -e $(ZM_LOGDIR); then mkdir -p $(ZM_LOGDIR); fi; if test "$(ZM_LOGDIR)" != "/var/log"; then chown $(webuser):$(webgroup) $(ZM_LOGDIR); chmod u+w $(ZM_LOGDIR); fi )
+	( if ! test -e $(DESTDIR)$(ZM_RUNDIR); then mkdir -p $(DESTDIR)$(ZM_RUNDIR); fi; if test "$(DESTDIR)$(ZM_RUNDIR)" != "/var/run"; then chown $(webuser):$(webgroup) $(DESTDIR)$(ZM_RUNDIR); chmod u+w $(DESTDIR)$(ZM_RUNDIR); fi )
+	( if ! test -e $(DESTDIR)$(ZM_TMPDIR); then mkdir -m 700 -p $(DESTDIR)$(ZM_TMPDIR); fi; if test "$(DESTDIR)$(ZM_TMPDIR)" != "/tmp"; then chown $(webuser):$(webgroup) $(DESTDIR)$(ZM_TMPDIR); chmod u+w $(DESTDIR)$(ZM_TMPDIR); fi )
 
 uninstall-hook:
 	@-( cd $(DESTDIR)$(webdir); rm -rf events graphics images sounds temp )
-	@-( if test "$(ZM_RUNDIR)" != "/var/run"; then rm -rf $(ZM_RUNDIR); fi )
-	@-( if test "$(ZM_TMPDIR)" != "/tmp"; then rm -rf $(ZM_TMPDIR); fi )
-	@-( if test "$(ZM_LOGDIR)" != "/var/log"; then rm -rf $(ZM_LOGDIR); fi )
+	@-( if test "$(DESTDIR)$(ZM_RUNDIR)" != "/var/run"; then rm -rf $(DESTDIR)$(ZM_RUNDIR); fi )
+	@-( if test "$(DESTDIR)$(ZM_TMPDIR)" != "/tmp"; then rm -rf $(DESTDIR)$(ZM_TMPDIR); fi )
+	@-( if test "$(DESTDIR)$(ZM_LOGDIR)" != "/var/log"; then rm -rf $(DESTDIR)$(ZM_LOGDIR); fi )

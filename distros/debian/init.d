@@ -18,11 +18,13 @@
 prog=ZoneMinder
 ZM_PATH_BIN="/usr/bin"
 RUNDIR=/var/run/zm
+TMPDIR=/tmp/zm
 command="$ZM_PATH_BIN/zmpkg.pl"
 
 start() {
 	echo -n "Starting $prog: "
-	mkdir -p $RUNDIR
+	mkdir -p $RUNDIR && chown www-data:www-data $RUNDIR
+	mkdir -p $TMPDIR && chown www-data:www-data $TMPDIR
     zmfix -a
 	$command start
 	RETVAL=$?

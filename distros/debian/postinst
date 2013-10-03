@@ -2,7 +2,7 @@
 
 set -e
 
-VERSION=1.26.3
+VERSION=1.26.4
 
 if [ "$1" = "configure" ]; then
 	if [ -z "$2" ]; then

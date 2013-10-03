@@ -576,13 +576,15 @@ int RtspThread::run()
                 {
                     if ( buffer[0] == '$' )
                     {
+                	if ( buffer.size() < 4 )
+                	    break;
                         unsigned char channel = buffer[1];
                         unsigned short len = ntohs( *((unsigned short *)(buffer+2)) );
 
                         Debug( 4, "Got %d bytes left, expecting %d byte packet on channel %d", buffer.size(), len, channel );
                         if ( (unsigned short)buffer.size() < (len+4) )
                         {
-                            Debug( 4, "Missing %zd bytes, rereading", (len+4)-nBytes );
+                            Debug( 4, "Missing %d bytes, rereading", (len+4)-buffer.size() );
                             break;
                         }
                         if ( channel == remoteChannels[0] )
@@ -594,8 +596,10 @@ int RtspThread::run()
                         }
                         else if ( channel == remoteChannels[1] )
                         {
-                            len = ntohs( *((unsigned short *)(buffer+2)) );
-                            Debug( 4, "Got %zd bytes on control channel %d", nBytes, channel );
+//                            len = ntohs( *((unsigned short *)(buffer+2)) );
+//                            Debug( 4, "Got %d bytes on control channel %d", nBytes, channel );
+                            Debug( 4, "Got %d bytes on control channel %d, packet length is %d", buffer.size(), channel, len );
+                            Hexdump( 4, (char *)buffer, 16 );
                             rtpCtrlThread.recvPackets( buffer+4, len );
                         }
                         else

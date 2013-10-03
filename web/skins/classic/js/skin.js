@@ -38,7 +38,7 @@ var popupSizes = {
     'events':       { 'width': 760, 'height': 480 },
     'export':       { 'width': 400, 'height': 340 },
     'filter':       { 'width': 720, 'height': 360 },
-    'filtersave':   { 'width': 560, 'height': 120 },
+    'filtersave':   { 'width': 560, 'height': 160 },
     'frame':        { 'addWidth': 32, 'minWidth': 384, 'addHeight': 100 },
     'frames':       { 'width': 500, 'height': 300 },
     'function':     { 'width': 248, 'height': 92 },

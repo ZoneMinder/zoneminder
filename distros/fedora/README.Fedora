@@ -24,7 +24,7 @@ New installs
    introduce an obvious security issue.  The following should set this up:
 
      mysql -u root -p
-     grant select,insert,update,delete on zm.* to 'zmuser'@localhost identified by 'zmpass';
+     grant select,insert,update,delete,alter on zm.* to 'zmuser'@localhost identified by 'zmpass';
 
    Obviously, change at least zmpass to an actual, secure password or
    passphrase.  You can change zmuser as well if you like.

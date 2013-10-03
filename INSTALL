@@ -9,6 +9,7 @@ cmake is an alternative to the autotools collection (libtool, autoconf, automake
 * Newer than autotools and is being actively developed.
 * Generates colored makefiles with progress indicator.
 * Slightly faster because its based on C and not bash.
+* Lots of documentation, unlike autotools: http://www.cmake.org/cmake/help/cmake2.6docs.html
 
 At this point, its still possible to use autotools for the ZoneMinder project. Choosing cmake or autotools is now a matter of preference.
 Hopefully in the future, cmake will become the default way to install ZoneMinder.

@@ -81,6 +81,10 @@ sub zmMemAttach( $$ )
 	if ( !defined($monitor->{MMapAddr}) )
 	{
         my $mmap_file = ZM_PATH_MAP."/zm.mmap.".$monitor->{Id};
+		if ( -s $mmap_file < $size ) {
+			Error( sprintf( "Memory map file '%s' should have been %d but was instead %d", $mmap_file, $size, -s $mmap_file ) );
+			return ( undef );
+		} 
         if ( !open( MMAP, "+<".$mmap_file ) )
         {
     		Error( sprintf( "Can't open memory map file '%s': $!\n", $mmap_file ) );

@@ -239,5 +239,5 @@ else
 	Info( "Video file $video_file already exists for event $event->{Id}\n" );
 }
 #print( STDOUT $event->{MonitorId}.'/'.$event->{Id}.'/'.$video_file."\n" );
-print( STDOUT $video_file."\n" );
+print( STDOUT $event_path . '/' . $video_file ."\n" );
 exit( 0 );

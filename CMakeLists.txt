@@ -11,7 +11,7 @@
 cmake_minimum_required (VERSION 2.6)
 project (ZoneMinder)
 # ZoneMinder version
-set(ZoneMinder_VERSION "1.26.3")
+set(ZoneMinder_VERSION "1.26.4")
 # Default build type. To change the build type, use the CMAKE_BUILD_TYPE configuration option.
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type: Release or Debug" FORCE)

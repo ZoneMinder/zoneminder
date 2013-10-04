@@ -30,7 +30,7 @@ Patch1:     zoneminder-1.26.3-dbinstall.patch
 Patch2:     zoneminder-1.24.3-runlevel.patch
 #Patch3:     zoneminder-1.26.3-noffmpeg.patch
 Patch10:    zoneminder-1.24.4-installfix.patch
-Patch11:    zoneminder-1.26.3-gcc48.patch
+#Patch11:    zoneminder-1.26.3-gcc48.patch
 #Patch12:    zoneminder-1.25.0-gcrypt.patch
 #Patch13:    zoneminder-1.25.0-kernel35.patch
 #Patch14:    zoneminder-1.26.3-ffmpeg.patch
@@ -87,7 +87,7 @@ popd
 %patch2 -p0 -b .runlevel
 #%patch3 -p0 -b .noffmpeg
 %patch10 -p0 -b .installfix
-%patch11 -p0 -b .gcc47
+#%patch11 -p0 -b .gcc47
 #%patch12 -p0 -b .gcrypt
 #%patch13 -p0 -b .kernel35
 #%patch14 -p0 -b .ffmpeg

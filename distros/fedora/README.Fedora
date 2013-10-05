@@ -15,7 +15,8 @@ New installs
 	mysql_secure_installation
 
 2. Using the password for the root account set during the previous step, you
-   will need to create the ZoneMinder database, assuming your database server is local:
+   will need to create the ZoneMinder database, assuming your database server
+   is local:
 
      mysql -u root -p < /usr/share/zoneminder/db/zm_create.sql
      mysqladmin reload
@@ -24,7 +25,8 @@ New installs
    introduce an obvious security issue.  The following should set this up:
 
      mysql -u root -p
-     grant select,insert,update,delete,alter on zm.* to 'zmuser'@localhost identified by 'zmpass';
+     grant select,insert,update,delete,alter on zm.* to 
+     'zmuser'@localhost identified by 'zmpass';
 
    Obviously, change at least zmpass to an actual, secure password or
    passphrase.  You can change zmuser as well if you like.
@@ -53,22 +55,22 @@ New installs
    The httpd.conf file included with this version of Fedora processes the conf.d
    folder after the default ScriptAlias directive in the httpd.conf file.
    Previously, the conf.d folder was processed before the default ScriptAlias
-   directive. This causes a ScriptAlias overlap and breaks Zoneminder's streaming
-   abilities.
+   directive. This causes a ScriptAlias overlap and breaks Zoneminder's
+   streaming abilities.
 
    Reference: http://httpd.apache.org/docs/2.4/mod/mod_alias.html#order
    Bug Report: https://bugzilla.redhat.com/show_bug.cgi?id=973067
 
    WORKAROUND #1
-   If you are running zoneminder on a dedicated server then the simplest solution
-   may be to simply comment out the line in httpd.conf that reads:
+   If you are running zoneminder on a dedicated server then the simplest
+   solution may be to simply comment out the line in httpd.conf that reads:
 
 	ScriptAlias /cgi-bin/ "/var/www/cgi-bin/"
 
    WORKAROUND #2
-   If you need both the default cgi-bin folder & the zoneminder cgi-bin folder then
-   a solution might be to move the following line before the default ScriptAlias
-   directive in the httpd.conf file:
+   If you need both the default cgi-bin folder & the zoneminder cgi-bin folder
+   then a solution might be to move the following line before the default
+   ScriptAlias directive in the httpd.conf file:
 
 	IncludeOptional conf.d/*.conf
 
@@ -84,7 +86,8 @@ New installs
    b) check OPT_USE_AUTH.
    c) set AUTH_HASH_SECRET to a random string.
    d) click Save and refresh the main browser window.
-   e) You should be prompted to log in; the default username/password is admin/admin.
+   e) You should be prompted to log in; 
+      the default username/password is admin/admin.
    f) Open Options again, choose the newly visible Users tab.
    g) click the admin user and set a password.
    h) enable OPT_CONTROL on the Ssytem tab to enable ptz camera control.

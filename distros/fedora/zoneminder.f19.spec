@@ -1,10 +1,14 @@
+%define cambrev 0.931
+%define moorev 1.3.2.1
+%define jscrev 1.0
+
 %define zmuid $(id -un)
 %define zmgid $(id -gn)
 %define zmuid_final apache
 %define zmgid_final apache
 
 Name:       zoneminder
-Version:    1.26.3
+Version:    1.26.4
 Release:    1%{?dist}
 Summary:    A camera monitoring and analysis tool
 Group:      System Environment/Daemons
@@ -13,27 +17,24 @@ Group:      System Environment/Daemons
 License:    GPLv2+ and LGPLv2+ and MIT 
 URL:        http://www.zoneminder.com/
 
-#Source:     http://www2.zoneminder.com/downloads/ZoneMinder-%{version}.tar.gz
+#Source:     https://github.com/ZoneMinder/ZoneMinder/archive/v%{version}.tar.gz
 Source:     ZoneMinder-%{version}.tar.gz
-Source2:    zoneminder.conf
-Source3:    redalert.wav
-Source4:    README.Fedora
-Source5:    http://downloads.sourceforge.net/jscalendar/jscalendar-1.0.zip
-Source6:    zoneminder.service
-Source7:    zoneminder.logrotate
+Source2:    jscalendar-%{jscrev}.zip
+#Source2:    http://downloads.sourceforge.net/jscalendar/jscalendar-%{jscrev}.zip
+
 # Need to unravel the proper mootools files to grab from upstream, since the
 # number of them keeps multiplying.  In the meantime, rely on the ones bundled
 # with zoneminder.  As these are javascript, there is no guideline violation
 # here.
-#Source8:    http://mootools.net/download/get/mootools-1.2.3-core-yc.js
-Patch1:     zoneminder-1.26.3-dbinstall.patch
+#Source3:    http://mootools.net/download/get/mootools-core-%{moorev}-full-compat-yc.js
+
+Patch1:     zoneminder-1.26.4-dbinstall.patch
 Patch2:     zoneminder-1.24.3-runlevel.patch
-#Patch3:     zoneminder-1.26.3-noffmpeg.patch
-Patch10:    zoneminder-1.24.4-installfix.patch
-#Patch11:    zoneminder-1.26.3-gcc48.patch
-#Patch12:    zoneminder-1.25.0-gcrypt.patch
-#Patch13:    zoneminder-1.25.0-kernel35.patch
-#Patch14:    zoneminder-1.26.3-ffmpeg.patch
+Patch3:     zoneminder-1.26.0-defaults.patch
+# Enable this patch to disable ffmpeg support
+#Patch4:     zoneminder-1.26.3-noffmpeg.patch
+# No longer needed as of zm 1.26.4
+#Patch10:    zoneminder-1.24.4-installfix.patch
 
 BuildRequires:  automake gnutls-devel systemd-units
 BuildRequires:  libtool bzip2-devel
@@ -45,8 +46,10 @@ BuildRequires:  perl(MIME::Entity) perl(MIME::Lite)
 BuildRequires:  perl(PHP::Serialization) perl(Sys::Mmap)
 BuildRequires:  perl(Time::HiRes) perl(Net::SFTP::Foreign)
 BuildRequires:  perl(Expect) 
-BuildRequires:  gcc gcc-c++ ffmpeg-devel
+BuildRequires:  gcc gcc-c++
 BuildRequires:  autoconf autoconf-archive
+# Comment out for no ffmpeg
+BuildRequires:  ffmpeg-devel
 # Uncomment for X10 support
 #BuildRequires:  perl(X10::ActiveHome) perl(Astro::SunTime)
 
@@ -58,9 +61,10 @@ Requires:   perl(MIME::Entity) perl(MIME::Lite) perl(Net::SMTP) perl(Net::FTP)
 Requires:   perl(LWP::Protocol::https)
 
 Requires(post): systemd-units systemd-sysv
+Requires(post): /usr/bin/gpasswd
+Requires(post): /usr/bin/less
 Requires(preun): systemd-units
 Requires(postun): systemd-units
-
 
 %description
 ZoneMinder is a set of applications which is intended to provide a complete
@@ -71,12 +75,11 @@ attached to BTTV cards, various USB cameras and IP network cameras. It is
 designed to support as many cameras as you can attach to your computer without
 too much degradation of performance.
 
-
 %prep
 %setup -q -n ZoneMinder-%{version}
 
 # Unpack jscalendar and move some files around
-%setup -q -D -T -a 5 -n ZoneMinder-%{version}
+%setup -q -D -T -a 2 -n ZoneMinder-%{version}
 mkdir jscalendar-doc
 pushd jscalendar-1.0
 mv *html *php doc/* README ../jscalendar-doc
@@ -85,15 +88,11 @@ popd
 
 %patch1 -p0 -b .dbinstall
 %patch2 -p0 -b .runlevel
-#%patch3 -p0 -b .noffmpeg
-%patch10 -p0 -b .installfix
-#%patch11 -p0 -b .gcc47
-#%patch12 -p0 -b .gcrypt
-#%patch13 -p0 -b .kernel35
-#%patch14 -p0 -b .ffmpeg
-cp %{SOURCE4} README.Fedora
-chmod -x src/zm_event.cpp src/zm_user.h
+%patch3 -p0 -b .defaults
+#%patch4 -p0 -b .noffmpeg
+#%patch10 -p0 -b .installfix
 
+chmod -x src/zm_event.cpp src/zm_user.h
 
 %build
 libtoolize --force
@@ -101,15 +100,9 @@ aclocal
 autoheader
 automake --force-missing --add-missing
 autoconf
-#autoreconf
 
 OPTS=""
-#%ifnarch %{ix86} x86_64
-#    OPTS="$OPTS --disable-crashtrace"
-#%endif
 
-export ZM_RUNDIR=/var/run/zoneminder
-export ZM_TMPDIR=/var/lib/zoneminder/temp
 %configure \
     --disable-crashtrace \
     --with-libarch=%{_lib} \
@@ -129,46 +122,35 @@ export ZM_TMPDIR=/var/lib/zoneminder/temp
     --with-extralibs="" \
     $OPTS
 
-# Have to do this now because the configure script wipes out modifications made to this file
-cat <<EOF >> db/zm_create.sql
-# Fedora change:
-# Alter some default paths to match the default URL and selinux expectations
-update Config set Value = '/cgi-bin/zm/nph-zms' where Name = 'ZM_PATH_ZMS';
-update Config set Value = '/var/log/zoneminder' where Name = 'ZM_PATH_LOGS';
-update Config set Value = '/var/log/zoneminder/zm_debug_log+' where Name = 'ZM_EXTRA_DEBUG_LOG';
-update Config set Value = '/var/log/zoneminder/zm_xml.log' where Name = 'ZM_EYEZM_LOG_FILE';
-update Config set Value = '/var/lib/zoneminder/sock' where Name = 'ZM_PATH_SOCKS';
-update Config set Value = '/var/lib/zoneminder/swap' where Name = 'ZM_PATH_SWAP';
-update Config set Value = '/var/spool/zoneminder-upload' where Name = 'ZM_UPLOAD_FTP_LOC_DIR';
-EOF
-
 make %{?_smp_mflags}
 %{__perl} -pi -e 's/(ZM_WEB_USER=).*$/${1}%{zmuid_final}/;' \
           -e 's/(ZM_WEB_GROUP=).*$/${1}%{zmgid_final}/;' zm.conf
-
 
 %install
 install -d %{buildroot}/%{_localstatedir}/run
 make install DESTDIR=%{buildroot} \
     INSTALLDIRS=vendor
 rm -rf %{buildroot}/%{perl_vendorarch} %{buildroot}/%{perl_archlib}
+# Comment out for x10 support
 rm -f %{buildroot}/%{_bindir}/zmx10.pl
 
 install -m 755 -d %{buildroot}/var/log/zoneminder
 for dir in events images temp
 do
     install -m 755 -d %{buildroot}/var/lib/zoneminder/$dir
-    rmdir %{buildroot}/%{_datadir}/zoneminder/www/$dir
+    if [ -d %{buildroot}/%{_datadir}/zoneminder/www/$dir ]; then
+	    rmdir %{buildroot}/%{_datadir}/zoneminder/www/$dir
+    fi
     ln -sf ../../../../var/lib/zoneminder/$dir %{buildroot}/%{_datadir}/zoneminder/www/$dir
 done
 install -m 755 -d %{buildroot}/var/lib/zoneminder/sock
 install -m 755 -d %{buildroot}/var/lib/zoneminder/swap
 install -m 755 -d %{buildroot}/var/spool/zoneminder-upload
 
-install -D -m 644 %{SOURCE2} %{buildroot}/etc/httpd/conf.d/zoneminder.conf
-install -D -m 755 %{SOURCE3} %{buildroot}/%{_datadir}/zoneminder/www/sounds/redalert.wav
-install -D -m 644 %{SOURCE6} %{buildroot}/%{_unitdir}/zoneminder.service
-install -D -m 644 %{SOURCE7} %{buildroot}/etc/logrotate.d/zoneminder
+install -D -m 644 distros/fedora/zoneminder.conf %{buildroot}/etc/httpd/conf.d/zoneminder.conf
+install -D -m 755 distros/fedora/redalert.wav %{buildroot}/%{_datadir}/zoneminder/www/sounds/redalert.wav
+install -D -m 644 distros/fedora/zoneminder.service %{buildroot}/%{_unitdir}/zoneminder.service
+install -D -m 644 distros/fedora/zoneminder.logrotate %{buildroot}/etc/logrotate.d/zoneminder
 
 # Install jscalendar - this really should be in its own package
 install -d -m 755 %{buildroot}/%{_datadir}/%{name}/www/jscalendar
@@ -179,10 +161,15 @@ pushd %{buildroot}/%{_datadir}/zoneminder/www
 ln -s ../../java/cambozola.jar
 popd
 
-install -d -m 755 %{buildroot}/etc/tmpfiles.d
-cat > %{buildroot}/etc/tmpfiles.d/zoneminder.conf <<EOF
-d   /run/zoneminder     0755    %{zmuid_final}  %{zmgid_final}
-EOF
+# Set up mootools
+pushd %{buildroot}/%{_datadir}/%{name}/www
+ln -f -s tools/mootools/mootools-core-%{moorev}-yc.js mootools-core.js
+ln -f -s tools/mootools/mootools-more-%{moorev}-yc.js mootools-more.js
+popd
+
+# Create an entry for tmpfiles.d
+install -D -m 755 distros/fedora/zoneminder.tmpfiles %{buildroot}/etc/tmpfiles.d/zoneminder.conf
+
 install -m 755 -d %{buildroot}/run/zoneminder
 
 
@@ -191,6 +178,12 @@ if [ $1 -eq 1 ] ; then
     # Initial installation 
     /bin/systemctl daemon-reload >/dev/null 2>&1 || :
 fi
+
+# Allow zoneminder access to local video sources
+/usr/bin/gpasswd -a %zmuid_final video
+
+# Display the README for post installation instructions
+/usr/bin/less %{_docdir}/%{name}-%{version}/README.Fedora
 
 %preun
 if [ $1 -eq 0 ] ; then
@@ -219,7 +212,7 @@ fi
 
 %files
 %defattr(-,root,root,-)
-%doc AUTHORS COPYING README.md README.Fedora jscalendar-doc
+%doc AUTHORS COPYING README.md distros/fedora/README.Fedora jscalendar-doc
 %config(noreplace) %attr(640,root,%{zmgid_final}) /etc/zm.conf
 %config(noreplace) %attr(644,root,root) /etc/httpd/conf.d/zoneminder.conf
 %config(noreplace) /etc/tmpfiles.d/zoneminder.conf
@@ -265,8 +258,12 @@ fi
 
 
 %changelog
+* Sat Oct 05 2013 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.26.4
+- Fedora specific path changes have been moved to zoneminder-1.26.0-defaults.patch
+- All files are now part of the zoneminder source tree. Update specfile accordingly.
+
 * Sat Sep 21 2013 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.26.3
-- Initial rebuild for ZoneMinder 1.26.3 release.  
+- Initial rebuild for ZoneMinder 1.26.3 release.
 
 * Fri Feb 15 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.25.0-13
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_19_Mass_Rebuild

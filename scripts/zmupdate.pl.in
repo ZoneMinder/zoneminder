@@ -429,7 +429,7 @@ if ( $version )
         }
         else
         {
-            $command .= ZM_PATH_BUILD."/db";
+            $command .= ZM_PATH_DATA."/db";
         }
         $command .= "/zm_update-".$version.".sql";
 
@@ -1030,7 +1030,7 @@ if ( $version )
 	if ( $version ge '1.26.0' ) {
 
 		my @files;
-		$updateDir = ZM_PATH_BUILD."/db" if ! $updateDir;
+		$updateDir = ZM_PATH_DATA."/db" if ! $updateDir;
 		opendir( my $dh, $updateDir ) || die "Can't open updateDir $!";
 		@files = sort grep { (!/^\./) && /^zm_update\-[\d\.]+\.sql$/ && -f "$updateDir/$_" } readdir($dh);
 		closedir $dh;

@@ -17,7 +17,7 @@ configure_file(zmwatch.pl.in ${CMAKE_CURRENT_SOURCE_DIR}/zmwatch.pl @ONLY)
 configure_file(zmx10.pl.in ${CMAKE_CURRENT_SOURCE_DIR}/zmx10.pl @ONLY)
 #configure_file(zmdbbackup.in ${CMAKE_CURRENT_SOURCE_DIR}/zmdbbackup @ONLY)
 #configure_file(zmdbrestore.in ${CMAKE_CURRENT_SOURCE_DIR}/zmdbrestore @ONLY)
-#configure_file(zm.in ${CMAKE_CURRENT_SOURCE_DIR}/zm @ONLY)
+configure_file(zm.in ${CMAKE_CURRENT_SOURCE_DIR}/zm @ONLY)
 #configure_file(zmeventdump.in ${CMAKE_CURRENT_SOURCE_DIR}/zmeventdump @ONLY)
 
 # Install the perl scripts

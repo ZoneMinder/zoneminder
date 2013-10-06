@@ -8,7 +8,7 @@
 %define zmgid_final apache
 
 Name:       zoneminder
-Version:    1.26.0
+Version:    1.26.4
 Release:    1%{?dist}
 Summary:    A camera monitoring and analysis tool
 Group:      System Environment/Daemons
@@ -18,26 +18,25 @@ Group:      System Environment/Daemons
 License:    GPLv2+ and LGPLv2+ and MIT 
 URL:        http://www.zoneminder.com/
 
-# Some of these sources to be added upstream.  Will edit once that happens.
-Source0:    zoneminder-%{version}.tar.gz
-Source2:    zoneminder.conf
-Source3:    redalert.wav
-Source4:    README.CentOS
-Source5:    jscalendar-%{jscrev}.zip
-#Source5:    http://downloads.sourceforge.net/jscalendar/jscalendar-%{jscrev}.zip
-Source6:    mootools-core-%{moorev}-full-compat-yc.js
-#Source6:    http://mootools.net/download/get/mootools-core-%{moorev}-full-compat-yc.js
-Source7:    zm-init
-Source8:    zm-logrotate_d
-Source9:    local_zoneminder.te
-Source10:   cambozola-%{cambrev}.tar.gz
-#Source10:   http://www.andywilcock.com/code/cambozola/cambozola-%{cambrev}.tar.gz
+#Source0: https://github.com/ZoneMinder/ZoneMinder/archive/v%{version}.tar.gz
+Source0:    ZoneMinder-%{version}.tar.gz
+Source1:    jscalendar-%{jscrev}.zip
+#Source1:    http://downloads.sourceforge.net/jscalendar/jscalendar-%{jscrev}.zip
 
-Patch1:     zoneminder-1.26.0-dbinstall.patch
+# Mootools is currently bundled in the zoneminder tarball
+#Source2:    mootools-core-%{moorev}-full-compat-yc.js
+#Source2:    http://mootools.net/download/get/mootools-core-%{moorev}-full-compat-yc.js
+
+Source3:   cambozola-%{cambrev}.tar.gz
+#Source3:   http://www.andywilcock.com/code/cambozola/cambozola-%{cambrev}.tar.gz
+
+Patch1:     zoneminder-1.26.4-dbinstall.patch
 Patch2:     zoneminder-runlevel.patch
-Patch3:    zoneminder-1.26.0-defaults.patch
+#Patch3:    zoneminder-1.25.0-installfix.patch
+Patch4:    zoneminder-1.26.0-defaults.patch
 
-BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+# BuildRoot is depreciated and ignored in EPEL6
+#BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  automake gnutls-devel bzip2-devel libtool
 BuildRequires:  mysql-devel pcre-devel libjpeg-turbo-devel
@@ -48,18 +47,13 @@ BuildRequires:  perl(MIME::Entity) perl(MIME::Lite)
 BuildRequires:  perl(PHP::Serialization) perl(Sys::Mmap)
 BuildRequires:  perl(Time::HiRes) perl(Net::SFTP::Foreign)
 BuildRequires:  perl(Expect) perl(X10::ActiveHome) perl(Astro::SunTime)
-# Change this for distros compatible newer ffmpeg & gcc
 BuildRequires:  ffmpeg-devel >= 0.4.9
-BuildRequires:  ffmpeg-devel <= 0.6.5
-BuildRequires:  gcc < 4.7
 
 Requires:   httpd php php-mysql mysql-server libjpeg-turbo
 Requires:   perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires:   perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)
 Requires:   perl(MIME::Entity) perl(MIME::Lite) perl(Net::SMTP) perl(Net::FTP)
-# Change this for distros compatible newer ffmpeg
 Requires:   ffmpeg >= 0.4.9
-Requires:   ffmpeg <= 0.6.5
 
 Requires(post): /sbin/chkconfig
 Requires(post): /usr/bin/checkmodule
@@ -84,10 +78,10 @@ too much degradation of performance.
 
 
 %prep
-%setup -q -n zoneminder-%{version}
+%setup -q -n ZoneMinder-%{version}
 
 # Unpack jscalendar and move some files around
-%setup -q -D -T -a 5 -n zoneminder-%{version}
+%setup -q -D -T -a 1 -n ZoneMinder-%{version}
 mkdir jscalendar-doc
 pushd jscalendar-%{jscrev}
 mv *html *php doc/* README ../jscalendar-doc
@@ -95,7 +89,7 @@ rmdir doc
 popd
 
 # Unpack Cambozola and move some files around
-%setup -q -D -T -a 10 -n zoneminder-%{version}
+%setup -q -D -T -a 3 -n ZoneMinder-%{version}
 mkdir cambozola-doc
 pushd cambozola-%{cambrev}
 mv application.properties build.xml dist.sh *html LICENSE testPages/* ../cambozola-doc
@@ -104,10 +98,8 @@ popd
 
 %patch1 -p0 -b .dbinstall
 %patch2 -p0 -b .runlevel
-%patch3 -p0
-
-cp %{SOURCE4} README.CentOS
-cp %{SOURCE9} local_zoneminder.te
+#%patch3 -p0 -b .installfix
+%patch4 -p0
 
 %build
 libtoolize --force
@@ -115,7 +107,6 @@ aclocal
 autoheader
 automake --force-missing --add-missing
 autoconf
-#autoreconf
 
 OPTS=""
 %ifnarch %{ix86} x86_64
@@ -161,7 +152,9 @@ install -m 755 -d %{buildroot}/%{_localstatedir}/log/zoneminder
 for dir in events images temp
 do
     install -m 755 -d %{buildroot}/%{_localstatedir}/lib/zoneminder/$dir
-    rmdir %{buildroot}/%{_datadir}/%{name}/www/$dir
+    if [ -d %{buildroot}/%{_datadir}/zoneminder/www/$dir ]; then
+	    rmdir %{buildroot}/%{_datadir}/%{name}/www/$dir
+    fi
     ln -sf ../../../..%{_localstatedir}/lib/zoneminder/$dir %{buildroot}/%{_datadir}/%{name}/www/$dir
 done
 install -m 755 -d %{buildroot}/%{_localstatedir}/lib/zoneminder/sock
@@ -169,9 +162,9 @@ install -m 755 -d %{buildroot}/%{_localstatedir}/lib/zoneminder/swap
 install -m 755 -d %{buildroot}/%{_localstatedir}/spool/zoneminder-upload
 
 install -D -m 755 scripts/zm %{buildroot}/%{_initrddir}/zoneminder
-install -D -m 644 %{SOURCE2} %{buildroot}/%{_sysconfdir}/httpd/conf.d/zoneminder.conf
-install -D -m 755 %{SOURCE3} %{buildroot}/%{_datadir}/%{name}/www/sounds/redalert.wav
-install %{SOURCE8} $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/%{name}
+install -D -m 644 distros/redhat/zoneminder.conf %{buildroot}/%{_sysconfdir}/httpd/conf.d/zoneminder.conf
+install -D -m 755 distros/redhat/redalert.wav %{buildroot}/%{_datadir}/%{name}/www/sounds/redalert.wav
+install distros/redhat/zm-logrotate_d $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/%{name}
 
 # Install jscalendar
 install -d -m 755 %{buildroot}/%{_datadir}/%{name}/www/jscalendar
@@ -183,8 +176,10 @@ rm -rf cambozola-%{cambrev}
 
 # Install mootools
 pushd %{buildroot}/%{_datadir}/%{name}/www
-install -m 644 %{SOURCE6} mootools-core-%{moorev}-full-compat-yc.js
-ln -s mootools-core-%{moorev}-full-compat-yc.js mootools.js
+#install -m 644 %{Source2} mootools-core-%{moorev}-full-compat-yc.js
+#ln -s mootools-core-%{moorev}-full-compat-yc.js mootools.js
+ln -f -s tools/mootools/mootools-core-%{moorev}-yc.js mootools-core.js
+ln -f -s tools/mootools/mootools-more-%{moorev}.1-yc.js mootools-more.js
 popd
 
 %post
@@ -221,7 +216,7 @@ fi
 
 %files
 %defattr(-,root,root,-)
-%doc AUTHORS BUGS ChangeLog COPYING LICENSE NEWS README.md README.CentOS jscalendar-doc cambozola-doc local_zoneminder.te
+%doc AUTHORS BUGS ChangeLog COPYING LICENSE NEWS README.md distros/redhat/README.CentOS jscalendar-doc cambozola-doc distros/redhat/local_zoneminder.te
 %config(noreplace) %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm.conf
 %config(noreplace) %attr(644,root,root) %{_sysconfdir}/httpd/conf.d/zoneminder.conf
 %config(noreplace) /etc/logrotate.d/%{name}
@@ -264,6 +259,9 @@ fi
 
 
 %changelog
+* Sun Oct 06 2013 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.26.4
+- All files are now part of the zoneminder source tree. Update specfile accordingly.
+
 * Thu Sep 05 2013 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.26.0
 - 1.26.0 Release
 - https://github.com/ZoneMinder/ZoneMinder/archive/v1.26.0.tar.gz

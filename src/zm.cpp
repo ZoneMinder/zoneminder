@@ -19,4 +19,5 @@
 
 #include "zm.h"
 
-// This space intentionally left blank
+/* This is our argv[0], we need it for backtrace */
+const char* self = 0;

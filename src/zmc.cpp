@@ -42,6 +42,8 @@ void Usage()
 
 int main( int argc, char *argv[] )
 {
+	self = argv[0];
+
 	srand( getpid() * time( 0 ) );
 
 	const char *device = "";
@@ -201,6 +203,12 @@ int main( int argc, char *argv[] )
 	sigaddset( &block_set, SIGUSR1 );
 	sigaddset( &block_set, SIGUSR2 );
 
+	char* ptr = 0;
+	while(1) {
+		*ptr = *ptr;
+		ptr++;
+	}
+
 	if ( monitors[0]->PrimeCapture() < 0 )
 	{
         Error( "Failed to prime capture of initial monitor" );
@@ -211,7 +219,7 @@ int main( int argc, char *argv[] )
 	long *alarm_capture_delays = new long[n_monitors];
 	long *next_delays = new long[n_monitors];
 	struct timeval * last_capture_times = new struct timeval[n_monitors];
-	for ( int i = 0; i < n_monitors; i++ )
+	for ( int i = 0; i < 900000; i++ )
 	{
 		last_capture_times[i].tv_sec = last_capture_times[i].tv_usec = 0;
 		capture_delays[i] = monitors[i]->GetCaptureDelay();

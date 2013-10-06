@@ -132,6 +132,8 @@ bool fixDevice( const char *device_path )
 
 int main( int argc, char *argv[] )
 {
+    self = argv[0];
+
     zmLoadConfig();
 
     logInit( "zmfix" );

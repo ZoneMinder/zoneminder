@@ -55,11 +55,15 @@ RETSIGTYPE zm_term_handler( int signal )
 #if HAVE_STRUCT_SIGCONTEXT
 RETSIGTYPE zm_die_handler( int signal, struct sigcontext context )
 #elif ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
-RETSIGTYPE zm_die_handler( int signal, siginfo_t *info, void *context )
+RETSIGTYPE zm_die_handler( int signal, siginfo_t *info, void *ucontext )
 #else
 RETSIGTYPE zm_die_handler( int signal )
 #endif
 {
+    void* cr2 = 0;
+    void* ip = 0;
+
+    // Print signal number and also signal text if available
     if ( signal == SIGABRT )
     {
 #if HAVE_STRSIGNAL
@@ -77,71 +81,76 @@ RETSIGTYPE zm_die_handler( int signal )
 #endif // HAVE_STRSIGNAL
     }
 
-#ifndef ZM_NO_CRASHTRACE
-#if (( HAVE_SIGINFO_T && HAVE_UCONTEXT_T ) || HAVE_STRUCT_SIGCONTEXT )
-	void *trace[TRACE_SIZE];
-	int trace_size = 0;
 
-	trace_size = backtrace( trace, TRACE_SIZE );
+    // Get signal address and instruction pointer if available
+#if (( HAVE_SIGINFO_T && HAVE_UCONTEXT_T ) || HAVE_STRUCT_SIGCONTEXT )
 #if HAVE_STRUCT_SIGCONTEXT
 #if HAVE_STRUCT_SIGCONTEXT_RIP
-	Error( "Signal address is %p, from %p", (void *)context.cr2, (void *)context.rip );
-	// overwrite sigaction with caller's address
-	trace[1] = (void *)context.rip;
+    cr2 = (void*)context.cr2;
+    ip = (void*)context.rip;
 #elif HAVE_STRUCT_SIGCONTEXT_EIP
-	Error( "Signal address is %p, from %p", (void *)context.cr2, (void *)context.eip );
-	// overwrite sigaction with caller's address
-	trace[1] = (void *)context.eip;
+    cr2 = (void*)context.cr2;
+    ip = (void*)context.eip;
 #else
-	Error( "Signal address is %p, no instruction pointer", (void *)context.cr2 );
+    cr2 = (void*)context.cr2;
 #endif // HAVE_STRUCT_SIGCONTEXT_*
 
 #else // HAVE_STRUCT_SIGCONTEXT
-	if ( info && context )
+	if ( info && ucontext )
 	{
-		ucontext_t *uc = (ucontext_t *)context;
+		ucontext_t *uc = (ucontext_t *)ucontext;
 #if defined(__x86_64__)
-		Error( "Signal address is %p, from %p", info->si_addr, uc->uc_mcontext.gregs[REG_RIP] );
-		// overwrite sigaction with caller's address
-		trace[1] = (void *) uc->uc_mcontext.gregs[REG_RIP];
+		cr2 = info->si_addr;
+		ip = (void*)(uc->uc_mcontext.gregs[REG_RIP]);
 #else
-		Error( "Signal address is %p, from %p", info->si_addr, uc->uc_mcontext.gregs[REG_EIP] );
-		// overwrite sigaction with caller's address
-		trace[1] = (void *) uc->uc_mcontext.gregs[REG_EIP];
+		cr2 = info->si_addr;
+		ip = (void*)(uc->uc_mcontext.gregs[REG_EIP]);
 #endif // defined(__x86_64__)
 	}
 #endif // HAVE_STRUCT_SIGCONTEXT
+#endif // (( HAVE_SIGINFO_T && HAVE_UCONTEXT_T ) || HAVE_STRUCT_SIGCONTEXT )
 
-#if ( HAVE_DECL_BACKTRACE && HAVE_DECL_BACKTRACE_SYMBOLS )
+
+    // Print the signal address and instruction pointer if available
+    if ( cr2 ) {
+	if ( ip ) {
+		Error( "Signal address is %p, from %p", cr2, ip );
+	} else {
+		Error( "Signal address is %p, no instruction pointer", cr2);
+	}
+    }
+		
+
+    // Print backtrace if enabled and available
+#if ( !defined(ZM_NO_CRASHTRACE) && HAVE_DECL_BACKTRACE && HAVE_DECL_BACKTRACE_SYMBOLS )
+    void *trace[TRACE_SIZE];
+    int trace_size = 0;
+    trace_size = backtrace( trace, TRACE_SIZE );
+
     char cmd[1024] = "addr2line -e ";
     char *cmd_ptr = cmd+strlen(cmd);
-    // Try and extract the binary path from the last backtrace frame
-	char **messages = backtrace_symbols( trace, trace_size );
-    if ( size_t offset = strcspn( messages[trace_size-1], " " ) )
+
+    char **messages = backtrace_symbols( trace, trace_size );
+    cmd_ptr += snprintf( cmd_ptr, sizeof(cmd)-(cmd_ptr-cmd), "%s", self );
+
+    // Skip the last entries that have no text, they probably point here
+    bool found_last = false;
+    for ( int i=1; i < trace_size; i++ )
     {
-        snprintf( cmd_ptr, sizeof(cmd)-(cmd_ptr-cmd), "%s", messages[trace_size-1] );
-        cmd_ptr += offset;
-    }
-    else
-    {
-        cmd_ptr += snprintf( cmd_ptr, sizeof(cmd)-(cmd_ptr-cmd), "/path/to/%s", logId().c_str() );
-    }
-	// skip first stack frame (points here)
-	for ( int i=1; i < trace_size; i++ )
-    {
+	if ( ( !found_last && messages[i][0] != '[' ) || found_last ) {
+		found_last = true;
 		Error( "Backtrace: %s", messages[i] );
-        cmd_ptr += snprintf( cmd_ptr, sizeof(cmd)-(cmd_ptr-cmd), " %p", trace[i] );
+        	cmd_ptr += snprintf( cmd_ptr, sizeof(cmd)-(cmd_ptr-cmd), " %p", trace[i] );
+	}
+
     }
     Info( "Backtrace complete, please execute the following command for more information" );
     Info( cmd );
-#endif // ( HAVE_DECL_BACKTRACE && HAVE_DECL_BACKTRACE_SYMBOLS )
+#endif // ( !defined(ZM_NO_CRASHTRACE) && HAVE_DECL_BACKTRACE && HAVE_DECL_BACKTRACE_SYMBOLS )
 
-#endif // (( HAVE_SIGINFO_T && HAVE_UCONTEXT_T ) || HAVE_STRUCT_SIGCONTEXT )
-#endif // ZM_NO_CRASHTRACE
 
-	exit( signal );
+    exit( signal );
 }
-
 
 void zmSetHupHandler( SigHandler *handler )
 {

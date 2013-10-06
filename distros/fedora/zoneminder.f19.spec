@@ -1,5 +1,5 @@
 %define cambrev 0.931
-%define moorev 1.3.2.1
+%define moorev 1.3.2
 %define jscrev 1.0
 
 %define zmuid $(id -un)
@@ -164,7 +164,7 @@ popd
 # Set up mootools
 pushd %{buildroot}/%{_datadir}/%{name}/www
 ln -f -s tools/mootools/mootools-core-%{moorev}-yc.js mootools-core.js
-ln -f -s tools/mootools/mootools-more-%{moorev}-yc.js mootools-more.js
+ln -f -s tools/mootools/mootools-more-%{moorev}.1-yc.js mootools-more.js
 popd
 
 # Create an entry for tmpfiles.d

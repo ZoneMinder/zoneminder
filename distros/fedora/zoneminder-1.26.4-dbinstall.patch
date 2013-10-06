@@ -1,0 +1,81 @@
+--- configure.ac	2013-09-05 10:33:08.000000000 -0500
++++ configure.ac.dbinstall	2013-09-05 17:23:28.555553447 -0500
+@@ -1,13 +1,11 @@
+ AC_PREREQ(2.59)
+-AC_INIT(zm,1.26.4,[http://www.zoneminder.com/forums/ - Please check FAQ first],ZoneMinder,http://www.zoneminder.com/downloads.html)
++AC_INIT(zm,1.26.4,[http://www.zoneminder.com/forums/ - Please check FAQ first],zoneminder,http://www.zoneminder.com/downloads.html)
+ AM_INIT_AUTOMAKE
+ AC_CONFIG_SRCDIR(src/zm.h)
+ AC_CONFIG_HEADERS(config.h)
+ 
+ AC_SUBST([AM_CXXFLAGS], [-D__STDC_CONSTANT_MACROS])
+ 
+-PATH_BUILD=`pwd`
+-AC_SUBST(PATH_BUILD)
+ TIME_BUILD=`date +'%s'`
+ AC_SUBST(TIME_BUILD)
+
+@@ -354,6 +352,8 @@ AC_PROG_PERL_MODULES(X10::ActiveHome,,AC
+ 
+ AC_DEFINE_DIR([BINDIR],[bindir],[Expanded binary directory])
+ AC_DEFINE_DIR([LIBDIR],[libdir],[Expanded library directory])
++AC_DEFINE_DIR([DATADIR],[datadir],[Expanded data directory])
++AC_SUBST(PKGDATADIR,"$DATADIR/$PACKAGE")
+ AC_SUBST(ZM_PID,"$ZM_RUNDIR/zm.pid")
+ AC_DEFINE_DIR([SYSCONFDIR],[sysconfdir],[Expanded configuration directory])
+ AC_SUBST(ZM_CONFIG,"$SYSCONFDIR/zm.conf")
+diff -up ./db/Makefile.am.dbinstall ./db/Makefile.am
+--- ./db/Makefile.am.dbinstall	2009-10-14 04:42:46.000000000 -0500
++++ ./db/Makefile.am	2011-03-24 22:50:14.173912137 -0500
+@@ -1,7 +1,16 @@
+ AUTOMAKE_OPTIONS = gnu
+ 
++zmdbdatadir = $(pkgdatadir)/db
++
+ EXTRA_DIST = \
+ 	zm_create.sql.in \
++	$(dbupgrade_scripts)
++
++dist_zmdbdata_DATA = \
++	zm_create.sql \
++	$(dbupgrade_scripts)
++
++dbupgrade_scripts = \
+ 	zm_update-0.0.1.sql \
+ 	zm_update-0.9.7.sql \
+ 	zm_update-0.9.8.sql \
+diff -up ./scripts/zmupdate.pl.in.dbinstall ./scripts/zmupdate.pl.in
+--- scripts/zmupdate.pl.in	2013-10-05 14:46:16.000000000 -0500
++++ scripts/zmupdate.pl.in.dbinstall	2013-10-05 18:56:05.431045910 -0500
+@@ -429,7 +429,7 @@ if ( $version )
+         }
+         else
+         {
+-            $command .= ZM_PATH_BUILD."/db";
++            $command .= ZM_PATH_DATA."/db";
+         }
+         $command .= "/zm_update-".$version.".sql";
+ 
+@@ -1030,7 +1030,7 @@ if ( $version )
+ 	if ( $version ge '1.26.0' ) {
+ 
+ 		my @files;
+-		$updateDir = ZM_PATH_BUILD."/db" if ! $updateDir;
++		$updateDir = ZM_PATH_DATA."/db" if ! $updateDir;
+ 		opendir( my $dh, $updateDir ) || die "Can't open updateDir $!";
+ 		@files = sort grep { (!/^\./) && /^zm_update\-[\d\.]+\.sql$/ && -f "$updateDir/$_" } readdir($dh);
+ 		closedir $dh;
+diff -up ./zm.conf.in.dbinstall ./zm.conf.in
+--- ./zm.conf.in.dbinstall	2008-07-25 04:48:16.000000000 -0500
++++ ./zm.conf.in	2011-03-24 22:50:14.175912077 -0500
+@@ -12,8 +12,8 @@
+ # Current version of ZoneMinder
+ ZM_VERSION=@VERSION@
+ 
+-# Path to build directory, used mostly for finding DB upgrade scripts
+-ZM_PATH_BUILD=@PATH_BUILD@
++# Path to installed data directory, used mostly for finding DB upgrade scripts
++ZM_PATH_DATA=@PKGDATADIR@
+ 
+ # Build time, used to record when to trigger various checks
+ ZM_TIME_BUILD=@TIME_BUILD@

@@ -237,6 +237,7 @@ AC_TYPE_SIGNAL
 AC_CHECK_TYPES(siginfo_t,,,[#include <signal.h>])
 AC_CHECK_TYPES(struct sigcontext,,,[#include <signal.h>])
 AC_CHECK_MEMBERS([struct sigcontext.eip],,,[#include <signal.h>])
+AC_CHECK_MEMBERS([struct sigcontext.rip],,,[#include <signal.h>])
 AC_CHECK_TYPES(ucontext_t,,,[#include <signal.h>])
 
 # Checks for library functions.
@@ -302,6 +303,8 @@ AC_HEADER_STDC
 AC_CHECK_HEADERS([fcntl.h limits.h memory.h stddef.h stdlib.h string.h strings.h sys/param.h sys/time.h syslog.h unistd.h values.h])
 AC_CHECK_HEADERS([netdb.h netinet/in.h arpa/inet.h sys/ioctl.h sys/socket.h sys/un.h glob.h sys/sendfile.h])
 AC_CHECK_HEADERS(execinfo.h,,,)
+AC_CHECK_HEADERS(siginfo.h,,,)
+AC_CHECK_HEADERS(ucontext.h,,,)
 AC_CHECK_HEADERS(sys/syscall.h,,,)
 AC_CHECK_HEADERS(pthread.h,,,)
 AC_CHECK_HEADERS(linux/videodev.h,AC_SUBST(ZM_HAS_V4L1,1),AC_SUBST(ZM_HAS_V4L1,0),)
@@ -345,6 +348,7 @@ AC_CHECK_DECLS(gnutls_fingerprint,,AC_MSG_ERROR([zm requires gnutls/gnutls.h - u
 fi
 fi
 AC_CHECK_DECLS(backtrace,,,[#include <execinfo.h>])
+AC_CHECK_DECLS(backtrace_symbols,,,[#include <execinfo.h>])
 
 AC_SUBST(LDFLAGS)
 

@@ -7,11 +7,14 @@
 #cmakedefine HAVE_LINUX_VIDEODEV_H 1
 #cmakedefine HAVE_LINUX_VIDEODEV2_H 1
 #cmakedefine HAVE_EXECINFO_H 1
+#cmakedefine HAVE_SIGINFO_H 1
+#cmakedefine HAVE_UCONTEXT_H 1
 #cmakedefine HAVE_SYS_SENDFILE_H 1
 #cmakedefine HAVE_SYS_SYSCALL_H 1
 #cmakedefine HAVE_SYSCALL 1
 #cmakedefine HAVE_SENDFILE 1
 #cmakedefine HAVE_DECL_BACKTRACE 1
+#cmakedefine HAVE_DECL_BACKTRACE_SYMBOLS 1
 #cmakedefine HAVE_POSIX_MEMALIGN 1
 #cmakedefine HAVE_STRSIGNAL 1
 #cmakedefine HAVE_DECL_ROUND 1

@@ -111,7 +111,7 @@ Upgrades
    information.  Comparing /etc/zm.conf and /etc/zm.conf.rpmnew should help to
    do this.
 
-2. Add the mysql ALTER permission to the zmuer account:
+2. Add the mysql ALTER permission to the zmuser account:
 
      mysql -u root -p
      grant alter on zm.* to 
@@ -121,7 +121,7 @@ Upgrades
    select, insert, update, and delete permission.
    
 3. You will need to upgrade the ZoneMinder database as described in the
-   manual. Only if the previous step was succesful, you may run zmupdate like so:
+   manual. Only if the previous step was succesful, may you run zmupdate like so:
    
    sudo zmupdate.pl --version=<from version>
    

@@ -1264,7 +1264,8 @@ bool EventStream::sendFrame( int delta_us )
                     img_buffer_size = zip_buffer_size;
                     break;
 #else
-		    Error("zlib is required for zipped images. Falling back to raw image");
+                    Error("zlib is required for zipped images. Falling back to raw image");
+                    type = STREAM_RAW;
 #endif // HAVE_ZLIB_H
                 case STREAM_RAW :
                     img_buffer = (uint8_t*)(send_image->Buffer());

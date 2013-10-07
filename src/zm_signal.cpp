@@ -59,9 +59,11 @@ RETSIGTYPE zm_die_handler(int signal)
 	      info->si_status);
 #endif
 
+
 	// Get signal address and instruction pointer if available
 #if ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
 	if (info && context) {
+
 		ucontext_t *uc = (ucontext_t *) context;
 #if defined(__x86_64__)
 		cr2 = info->si_addr;
@@ -70,18 +72,17 @@ RETSIGTYPE zm_die_handler(int signal)
 		cr2 = info->si_addr;
 		ip = (void *)(uc->uc_mcontext.gregs[REG_EIP]);
 #endif				// defined(__x86_64__)
-	}
-#endif				// ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
 
-	// Print the signal address and instruction pointer if available
-	if (cr2) {
+		// Print the signal address and instruction pointer if available
 		if (ip) {
 			Error("Signal address is %p, from %p", cr2, ip);
 		} else {
-			Error("Signal address is %p, no instruction pointer",
-			      cr2);
+			Error("Signal address is %p, no instruction pointer", cr2);
 		}
 	}
+#endif				// ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
+
+
 	// Print backtrace if enabled and available
 #if ( !defined(ZM_NO_CRASHTRACE) && HAVE_DECL_BACKTRACE && HAVE_DECL_BACKTRACE_SYMBOLS )
 	void *trace[TRACE_SIZE];

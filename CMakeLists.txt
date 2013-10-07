@@ -284,7 +284,9 @@ if((NOT ZM_NO_CRASHTRACE) AND ((NOT HAVE_DECL_BACKTRACE) OR (NOT HAVE_EXECINFO_H
 endif((NOT ZM_NO_CRASHTRACE) AND ((NOT HAVE_DECL_BACKTRACE) OR (NOT HAVE_EXECINFO_H)))
 
 
+set(ZM_MEM_MAPPED 0)
 if(NOT ZM_NO_MMAP)
+	set(ZM_MEM_MAPPED 1)
 	set(ZM_MMAP_PERLPACKAGE "Sys::Mmap")
 endif(NOT ZM_NO_MMAP)
 # Check for Perl. Version checking is removed because its ignored before CMake 2.8.8 and it seems that Perl is being detected as 5.16. instead of 5.6.0 ??

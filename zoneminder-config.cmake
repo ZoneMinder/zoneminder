@@ -58,6 +58,9 @@
 #cmakedefine HAVE_DECL_MD5 1
 #cmakedefine HAVE_DECL_GNUTLS_FINGERPRINT 1
 
+/* Few ZM options that are needed by the source code */
+#cmakedefine ZM_MEM_MAPPED 1
+
 /* Its safe to assume that signal return type is void. This is a fix for zm_signal.h */
 #define RETSIGTYPE void
 

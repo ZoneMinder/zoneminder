@@ -247,15 +247,15 @@ int main( int argc, char *argv[] )
                                 // print some informational messages 
                                 if (bytes_read == 0)
                                 {
-                                        Debug(2,"Image read : Short read %d bytes of %d expected bytes",n_bytes,frame_header.image_length);
+                                        Debug(4,"Image read : Short read %d bytes of %d expected bytes",n_bytes,frame_header.image_length);
                                 }
                                 else if (bytes_read+n_bytes == (int)frame_header.image_length)
                                 {
-                                        Debug(2,"Image read : Read rest of short read: %d bytes read total of %d bytes",n_bytes,frame_header.image_length);
+                                        Debug(5,"Image read : Read rest of short read: %d bytes read total of %d bytes",n_bytes,frame_header.image_length);
                                 }
                                 else
                                 {
-                                        Debug(2,"Image read : continuing, read %d bytes (%d so far)", n_bytes, bytes_read+n_bytes);
+                                        Debug(6,"Image read : continuing, read %d bytes (%d so far)", n_bytes, bytes_read+n_bytes);
                                 }
 			}
                         bytes_read+= n_bytes;

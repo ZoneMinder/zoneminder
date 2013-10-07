@@ -104,7 +104,9 @@ void Usage()
 
 int main( int argc, char *argv[] )
 {
-    srand( getpid() * time( 0 ) );
+	self = argv[0];
+
+	srand( getpid() * time( 0 ) );
 
 	int id = -1;
 

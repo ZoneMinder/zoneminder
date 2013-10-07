@@ -48,7 +48,6 @@ Advanced:
 	ZM_EXTRA_LIBS		A list of optional libraries, separated by semicolons, e.g. ssl;theora
 	ZM_MYSQL_ENGINE		MySQL engine to use with database, default: InnoDB
 	ZM_NO_MMAP		Set to ON to not use mmap shared memory. Shouldn't be enabled unless you experience problems with the shared memory. default: OFF
-	ZM_NO_CRASHTRACE	Set to ON to skip crash trace code. Useful if zm_signal.cpp fails to compile. default: OFF
 
 
 Useful configuration options provided by cmake:

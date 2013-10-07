@@ -32,4 +32,6 @@ double round(double);
 
 #include <stdint.h>
 
+extern const char* self;
+
 #endif // ZM_H

@@ -1,7 +1,16 @@
 AUTOMAKE_OPTIONS = gnu
 
+zmdbdatadir = $(pkgdatadir)/db
+
 EXTRA_DIST = \
 	zm_create.sql.in \
+	$(dbupgrade_scripts)
+
+dist_zmdbdata_DATA = \
+	zm_create.sql \
+	$(dbupgrade_scripts)
+
+dbupgrade_scripts = \
 	zm_update-0.0.1.sql \
 	zm_update-0.9.7.sql \
 	zm_update-0.9.8.sql \

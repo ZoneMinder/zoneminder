@@ -50,19 +50,16 @@ RETSIGTYPE zm_die_handler(int signal)
 	void *cr2 = 0;
 	void *ip = 0;
 
-	// Print signal information
 	Error("Got signal %d (%s), crashing", signal, strsignal(signal));
-#if ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
-	Debug(1,
-	      "Signal information: number %d code %d errno %d pid %d uid %d status %d",
-	      signal, info->si_code, info->si_errno, info->si_pid, info->si_uid,
-	      info->si_status);
-#endif
 
-
-	// Get signal address and instruction pointer if available
+	// Get more information if available
 #if ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
 	if (info && context) {
+
+		Debug(1,
+		      "Signal information: number %d code %d errno %d pid %d uid %d status %d",
+		      signal, info->si_code, info->si_errno, info->si_pid,
+		      info->si_uid, info->si_status);
 
 		ucontext_t *uc = (ucontext_t *) context;
 #if defined(__x86_64__)

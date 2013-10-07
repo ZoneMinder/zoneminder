@@ -25,9 +25,6 @@
 #if HAVE_EXECINFO_H
 #include <execinfo.h>
 #endif
-#if HAVE_SIGINFO_H
-#include <siginfo.h>
-#endif
 #if HAVE_UCONTEXT_H
 #include <ucontext.h>
 #endif
@@ -42,9 +39,7 @@ extern bool zm_terminate;
 
 RETSIGTYPE zmc_hup_handler( int signal );
 RETSIGTYPE zmc_term_handler( int signal );
-#if HAVE_STRUCT_SIGCONTEXT
-RETSIGTYPE zmc_die_handler( int signal, struct sigcontext context );
-#elif ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
+#if ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
 RETSIGTYPE zmc_die_handler( int signal, siginfo_t *info, void *context );
 #else
 RETSIGTYPE zmc_die_handler( int signal );

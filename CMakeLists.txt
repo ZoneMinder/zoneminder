@@ -38,7 +38,7 @@ include (CheckTypeSize)
 include (CheckStructHasMember)
 
 # Default variables for some configuration options
-mark_as_advanced(FORCE ZM_EXTRA_LIBS ZM_MYSQL_ENGINE ZM_NO_MMAP ZM_NO_CRASHTRACE CMAKE_INSTALL_FULL_BINDIR)
+mark_as_advanced(FORCE ZM_EXTRA_LIBS ZM_MYSQL_ENGINE ZM_NO_MMAP CMAKE_INSTALL_FULL_BINDIR)
 set(ZM_RUNDIR "/var/run/zm" CACHE PATH "Location of transient process files, default: /var/run/zm")
 set(ZM_TMPDIR "/tmp/zm" CACHE PATH "Location of temporary files, default: /tmp/zm")
 set(ZM_LOGDIR "/var/log/zm" CACHE PATH "Location of generated log files, default: /var/log/zm")
@@ -57,7 +57,6 @@ set(ZM_WEB_GROUP "" CACHE STRING "The group apache or the local web server runs 
 set(ZM_EXTRA_LIBS "" CACHE STRING "A list of optional libraries, separated by semicolons, e.g. ssl;theora")
 set(ZM_MYSQL_ENGINE "InnoDB" CACHE STRING "MySQL engine to use with database, default: InnoDB")
 set(ZM_NO_MMAP "OFF" CACHE BOOL "Set to ON to not use mmap shared memory. Shouldn't be enabled unless you experience problems with the shared memory. default: OFF")
-set(ZM_NO_CRASHTRACE "OFF" CACHE BOOL "Set to ON to skip crash trace code. Useful if zm_signal.cpp fails to compile. default: OFF")
 # Only required for cmakecacheimport:
 set(CMAKE_INSTALL_FULL_BINDIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}" CACHE PATH "Override default binary directory")
 

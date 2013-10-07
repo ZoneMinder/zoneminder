@@ -195,7 +195,7 @@ our @options =
 	},
 	{
 		name => "ZM_COLOUR_JPEG_FILES",
-		default => "yes",
+		default => "no",
 		description => "Colourise greyscale JPEG files",
 		help => "Cameras that capture in greyscale can write their captured images to jpeg files with a corresponding greyscale colour space. This saves a small amount of disk space over colour ones. However some tools such as ffmpeg either fail to work with this colour space or have to convert it beforehand. Setting this option to yes uses up a little more space but makes creation of MPEG files much faster.",
 		type => $types{boolean},

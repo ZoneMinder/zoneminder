@@ -30,7 +30,7 @@ Source1:    jscalendar-%{jscrev}.zip
 Source3:   cambozola-%{cambrev}.tar.gz
 #Source3:   http://www.andywilcock.com/code/cambozola/cambozola-%{cambrev}.tar.gz
 
-Patch1:     zoneminder-1.26.4-dbinstall.patch
+#Patch1:     zoneminder-1.26.4-dbinstall.patch
 Patch2:     zoneminder-runlevel.patch
 #Patch3:    zoneminder-1.25.0-installfix.patch
 Patch4:    zoneminder-1.26.0-defaults.patch
@@ -96,7 +96,7 @@ mv application.properties build.xml dist.sh *html LICENSE testPages/* ../cambozo
 rmdir testPages
 popd
 
-%patch1 -p0 -b .dbinstall
+#%patch1 -p0 -b .dbinstall
 %patch2 -p0 -b .runlevel
 #%patch3 -p0 -b .installfix
 %patch4 -p0

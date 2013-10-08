@@ -272,12 +272,15 @@ if(HAVE_LIBCRYPTO AND HAVE_OPENSSL_MD5_H AND HAVE_MD5_OPENSSL)
 	set(HAVE_GNUTLS_OPENSSL_H 0)
 endif(HAVE_LIBCRYPTO AND HAVE_OPENSSL_MD5_H AND HAVE_MD5_OPENSSL)
 
-
+# Enable mmap in all components
 set(ZM_MEM_MAPPED 0)
+set(ENABLE_MMAP 0)
 if(NOT ZM_NO_MMAP)
 	set(ZM_MEM_MAPPED 1)
+	set(ENABLE_MMAP 1)
 	set(ZM_MMAP_PERLPACKAGE "Sys::Mmap")
 endif(NOT ZM_NO_MMAP)
+
 # Check for Perl. Version checking is removed because its ignored before CMake 2.8.8 and it seems that Perl is being detected as 5.16. instead of 5.6.0 ??
 find_package(Perl)
 if(NOT PERL_FOUND)

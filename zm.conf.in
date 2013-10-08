@@ -12,7 +12,7 @@
 # Current version of ZoneMinder
 ZM_VERSION=@VERSION@
 
-# Path to build directory, used mostly for finding DB upgrade scripts
+# Path to build directory
 ZM_PATH_BUILD=@PATH_BUILD@
 
 # Path to installed data directory, used mostly for finding DB upgrade scripts

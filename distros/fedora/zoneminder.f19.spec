@@ -28,13 +28,11 @@ Source2:    jscalendar-%{jscrev}.zip
 # here.
 #Source3:    http://mootools.net/download/get/mootools-core-%{moorev}-full-compat-yc.js
 
-Patch1:     zoneminder-1.26.4-dbinstall.patch
+#Patch1:     zoneminder-1.26.4-dbinstall.patch
 Patch2:     zoneminder-1.24.3-runlevel.patch
 Patch3:     zoneminder-1.26.0-defaults.patch
 # Enable this patch to disable ffmpeg support
 #Patch4:     zoneminder-1.26.3-noffmpeg.patch
-# No longer needed as of zm 1.26.4
-#Patch10:    zoneminder-1.24.4-installfix.patch
 
 BuildRequires:  automake gnutls-devel systemd-units
 BuildRequires:  libtool bzip2-devel
@@ -86,11 +84,10 @@ mv *html *php doc/* README ../jscalendar-doc
 rmdir doc
 popd
 
-%patch1 -p0 -b .dbinstall
+#%patch1 -p0 -b .dbinstall
 %patch2 -p0 -b .runlevel
 %patch3 -p0 -b .defaults
 #%patch4 -p0 -b .noffmpeg
-#%patch10 -p0 -b .installfix
 
 chmod -x src/zm_event.cpp src/zm_user.h
 

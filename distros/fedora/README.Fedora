@@ -5,14 +5,14 @@ New installs
    remotely you will need to ensure that the server is installed and secured:
 
 	yum install mysql-community-server
-	--OR--
-	yum install mariadb-server
 
 	sudo systemctl enable mysqld
 
 	sudo system start mysqld
      
 	mysql_secure_installation
+
+   NOTE: The Fedora team currently recommends mysql-community over mariadb
 
 2. Using the password for the root account set during the previous step, you
    will need to create the ZoneMinder database, assuming your database server

@@ -132,7 +132,11 @@ OPTS=""
     ZM_SSL_LIB="gnutls" \
     ZM_RUNDIR=/var/run/zoneminder \
     ZM_TMPDIR=/var/lib/zoneminder/temp \
+%ifarch x86_64
     CXXFLAGS="-D__STDC_CONSTANT_MACROS -msse2" \
+%else
+    CXXFLAGS="-D__STDC_CONSTANT_MACROS" \
+%endif
     --with-extralibs=""
 
 make %{?_smp_mflags}

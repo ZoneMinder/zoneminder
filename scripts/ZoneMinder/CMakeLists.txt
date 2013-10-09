@@ -7,7 +7,7 @@ configure_file(lib/ZoneMinder/Memory.pm.in ${CMAKE_CURRENT_SOURCE_DIR}/lib/ZoneM
 configure_file(lib/ZoneMinder/ConfigData.pm.in ${CMAKE_CURRENT_SOURCE_DIR}/lib/ZoneMinder/ConfigData.pm @ONLY)
 
 # Add build target for the perl modules
-add_custom_target(zmperlmodules ALL perl Makefile.PL FIRST_MAKEFILE=MakefilePerl PREFIX=output LIB="output/${CMAKE_INSTALL_LIBDIR}/perl5" COMMAND make --makefile=MakefilePerl COMMAND make --makefile=MakefilePerl pure_install COMMENT "Building ZoneMinder perl modules")
+add_custom_target(zmperlmodules ALL perl Makefile.PL FIRST_MAKEFILE=MakefilePerl PREFIX=output LIB="output/${ZM_PERL_SUBPREFIX}" COMMAND make --makefile=MakefilePerl COMMAND make --makefile=MakefilePerl pure_install COMMENT "Building ZoneMinder perl modules")
 
 # Add install target for the perl modules
 install(DIRECTORY output/ DESTINATION "${CMAKE_INSTALL_PREFIX}")

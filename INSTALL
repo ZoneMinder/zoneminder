@@ -48,6 +48,8 @@ Advanced:
 	ZM_EXTRA_LIBS		A list of optional libraries, separated by semicolons, e.g. ssl;theora
 	ZM_MYSQL_ENGINE		MySQL engine to use with database, default: InnoDB
 	ZM_NO_MMAP		Set to ON to not use mmap shared memory. Shouldn't be enabled unless you experience problems with the shared memory. default: OFF
+	ZM_PERL_SUBPREFIX	Use a different directory for the zm perl modules. NOTE: This is a subprefix, e.g. lib will be turned into <prefix>/lib, default: <libarch>/perl5
+	ZM_PERL_USE_PATH	Override the include path for zm perl modules. Useful if you are moving the perl modules without using the ZM_PERL_SUBPREFIX option. default: <prefix>/<zmperlprefix>
 
 
 Useful configuration options provided by cmake:

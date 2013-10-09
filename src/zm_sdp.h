@@ -103,6 +103,7 @@ public:
         int mClock;
         int mWidth;
         int mHeight;
+        std::string mSprops;
 
         ConnInfo *mConnInfo;
 
@@ -171,6 +172,14 @@ public:
             return( mHeight );
         }
 
+	void setSprops(const std::string props)
+	{
+		mSprops = props;
+	}
+	const std::string getSprops() const
+	{
+		return ( mSprops );
+	}
         const double getFrameRate() const
         {
             return( mFrameRate );

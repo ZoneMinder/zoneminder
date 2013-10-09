@@ -219,7 +219,7 @@
 #define ZM_EYEZM_SEG_DURATION 215
 
 
-#define ZM_MAX_CFG_ID 220
+#define ZM_MAX_CFG_ID 215
 
 #define ZM_CFG_DECLARE_LIST \
 	const char *lang_default;\

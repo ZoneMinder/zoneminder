@@ -64,9 +64,13 @@ if ( $numSockets === false )
 {
     ajaxError( "socket_select failed: ".socket_strerror(socket_last_error()) );
 }
+else if ( $numSockets < 0 )
+{
+    ajaxError( "Socket closed $remSocketFile"  );
+}
 else if ( $numSockets == 0 )
 {
-    ajaxError( "Timed out waiting for msg"  );
+    ajaxError( "Timed out waiting for msg $remSocketFile"  );
 }
 else if ( $numSockets > 0 )
 {

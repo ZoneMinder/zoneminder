@@ -1,0 +1,18 @@
+zoneminder (1.26.4-2) precise; urgency=high
+
+  * improvements to zmupdate.pl, cleanups
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Thu, 03 Oct 2013 11:40:32 -0400
+
+zoneminder (1.26.3-1) unstable; urgency=low
+
+  * A 'minor' release focusing on performance improvement and bug fixes.
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Sun, 22 Sep 2013 09:36:42 +0800
+
+zoneminder (1.25.1-1) unstable; urgency=low
+
+  * Initial Version.
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Mon, 29 Apr 2013 12:38:00 -0400
+

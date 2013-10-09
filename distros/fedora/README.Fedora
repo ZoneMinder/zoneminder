@@ -18,8 +18,8 @@ New installs
    will need to create the ZoneMinder database, assuming your database server
    is local:
 
-     mysql -u root -p < /usr/share/zoneminder/db/zm_create.sql
-     mysqladmin reload
+     mysql -uroot -p < /usr/share/zoneminder/db/zm_create.sql
+     mysqladmin -uroot -p reload
 
 3. The database needs a user.  One is not created by default because this would
    introduce an obvious security issue.  The following should set this up:

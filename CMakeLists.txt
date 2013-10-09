@@ -287,6 +287,10 @@ if((NOT HAVE_LIBCRYPTO) AND (NOT HAVE_LIBGNUTLS))
 endif((NOT HAVE_LIBCRYPTO) AND (NOT HAVE_LIBGNUTLS))
 
 # Check for V4L header files and enable ZM_HAS_V4L, ZM_HAS_V4L1, ZM_HAS_V4L2 accordingly
+# Setting to zeros first is required because ZM uses #define for these
+set(ZM_HAS_V4L 0)
+set(ZM_HAS_V4L1 0)
+set(ZM_HAS_V4L2 0)
 if(HAVE_LINUX_VIDEODEV_H)
 	set(ZM_HAS_V4L 1)
 	set(ZM_HAS_V4L1 1)
@@ -299,10 +303,12 @@ if((NOT HAVE_LINUX_VIDEODEV_H) AND (NOT HAVE_LINUX_VIDEODEV2_H))
 	message(AUTHOR_WARNING " Video 4 Linux headers weren't found - Analog and USB camera support will not be available")
 endif((NOT HAVE_LINUX_VIDEODEV_H) AND (NOT HAVE_LINUX_VIDEODEV2_H))
 # Check for PCRE and enable ZM_PCRE accordingly
+set(ZM_PCRE 0)
 if(HAVE_LIBPCRE AND HAVE_PCRE_H)
 	set(ZM_PCRE 1)
 endif(HAVE_LIBPCRE AND HAVE_PCRE_H)
-# Check for mmap enable in all components
+# Check for mmap and enable in all components
+set(ZM_MEM_MAPPED 0)
 set(ENABLE_MMAP no)
 if(NOT ZM_NO_MMAP)
 	set(ZM_MEM_MAPPED 1)

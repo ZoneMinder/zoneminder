@@ -11,11 +11,11 @@ ZoneMinder is an integrated set of applications which provide a complete surveil
 
 ## Requirements
 
-If you are installing from a package, that package should provide all of the needed core components.
+If you are installing ZoneMinder from a package, that package should provide all of the needed core components.
 
 ### Packages
 
-If you are compiling from source, the below list contains the packages needed to get ZoneMinder built:
+If you are compiling ZoneMinder from source, the below list contains the packages needed to get ZoneMinder built:
 
 #### Debian / Ubuntu
 

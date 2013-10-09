@@ -431,7 +431,7 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const
         		char *dst = base64packet;
 
         		while (*value && *value != ','
-            	       && (dst - base64packet) < sizeof(base64packet) - 1) {
+            	       && (dst - base64packet) < (long)(sizeof(base64packet)) - 1) {
             	      *dst++ = *value++;
         		}
         		*dst++ = '\0';

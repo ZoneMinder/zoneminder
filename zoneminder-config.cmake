@@ -7,19 +7,17 @@
 #cmakedefine HAVE_LINUX_VIDEODEV_H 1
 #cmakedefine HAVE_LINUX_VIDEODEV2_H 1
 #cmakedefine HAVE_EXECINFO_H 1
+#cmakedefine HAVE_UCONTEXT_H 1
 #cmakedefine HAVE_SYS_SENDFILE_H 1
 #cmakedefine HAVE_SYS_SYSCALL_H 1
 #cmakedefine HAVE_SYSCALL 1
 #cmakedefine HAVE_SENDFILE 1
 #cmakedefine HAVE_DECL_BACKTRACE 1
+#cmakedefine HAVE_DECL_BACKTRACE_SYMBOLS 1
 #cmakedefine HAVE_POSIX_MEMALIGN 1
-#cmakedefine HAVE_STRSIGNAL 1
 #cmakedefine HAVE_DECL_ROUND 1
 #cmakedefine HAVE_SIGINFO_T 1
 #cmakedefine HAVE_UCONTEXT_T 1
-#cmakedefine HAVE_STRUCT_SIGCONTEXT 1
-#cmakedefine HAVE_STRUCT_SIGCONTEXT_EIP 1
-#cmakedefine HAVE_STRUCT_SIGCONTEXT_RIP 1
 
 /* Library checks and their header files */
 #cmakedefine HAVE_LIBZLIB 1
@@ -57,6 +55,9 @@
 #cmakedefine HAVE_MD5_GNUTLS 1
 #cmakedefine HAVE_DECL_MD5 1
 #cmakedefine HAVE_DECL_GNUTLS_FINGERPRINT 1
+
+/* Few ZM options that are needed by the source code */
+#cmakedefine ZM_MEM_MAPPED 1
 
 /* Its safe to assume that signal return type is void. This is a fix for zm_signal.h */
 #define RETSIGTYPE void

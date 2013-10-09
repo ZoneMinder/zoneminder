@@ -46,6 +46,7 @@
 #define ZMS_DEFAULT_BUFFER 1000
 
 int main(int argc, char** argv) {
+    self = argv[0];
     // Set initial values to the default values
     int debug = ZMS_DEFAULT_DEBUG;
     int id = ZMS_DEFAULT_ID;

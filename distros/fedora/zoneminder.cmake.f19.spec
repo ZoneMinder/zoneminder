@@ -34,7 +34,7 @@ Patch3:     zoneminder-1.26.0-defaults.patch
 # Enable this patch to disable ffmpeg support
 #Patch4:     zoneminder-1.26.3-noffmpeg.patch
 
-BuildRequires:  automake gnutls-devel systemd-units
+BuildRequires:  cmake gnutls-devel systemd-units
 BuildRequires:  libtool bzip2-devel
 BuildRequires:  mysql-devel pcre-devel libjpeg-devel
 BuildRequires:  perl(Archive::Tar) perl(Archive::Zip)
@@ -45,7 +45,6 @@ BuildRequires:  perl(PHP::Serialization) perl(Sys::Mmap)
 BuildRequires:  perl(Time::HiRes) perl(Net::SFTP::Foreign)
 BuildRequires:  perl(Expect) 
 BuildRequires:  gcc gcc-c++
-BuildRequires:  autoconf autoconf-archive
 # Comment out for no ffmpeg
 BuildRequires:  ffmpeg-devel
 # Uncomment for X10 support
@@ -89,49 +88,36 @@ popd
 %patch3 -p0 -b .defaults
 #%patch4 -p0 -b .noffmpeg
 
+# verify this is needed
 chmod -x src/zm_event.cpp src/zm_user.h
 
 %build
-libtoolize --force
-aclocal
-autoheader
-automake --force-missing --add-missing
-autoconf
-
-OPTS=""
-
-%configure \
-    --disable-crashtrace \
-    --with-libarch=%{_lib} \
-    --with-mysql=%{_prefix} \
-    --with-ffmpeg=%{_prefix} \
-    --with-webdir=%{_datadir}/%{name}/www \
-    --with-cgidir=%{_libexecdir}/%{name}/cgi-bin \
-    --with-webuser=%{zmuid} \
-    --with-webgroup=%{zmgid} \
-    --enable-mmap=yes \
-    --disable-debug \
-    --with-webhost=zm.local \
-    ZM_SSL_LIB="gnutls" \
-    ZM_RUNDIR=/var/run/zoneminder \
-    ZM_TMPDIR=/var/lib/zoneminder/temp \
-%ifarch x86_64
-    CXXFLAGS="-D__STDC_CONSTANT_MACROS -msse2" \
-%else
-    CXXFLAGS="-D__STDC_CONSTANT_MACROS" \
-%endif
-    --with-extralibs="" \
-    $OPTS
+%cmake .
 
 make %{?_smp_mflags}
-%{__perl} -pi -e 's/(ZM_WEB_USER=).*$/${1}%{zmuid_final}/;' \
-          -e 's/(ZM_WEB_GROUP=).*$/${1}%{zmgid_final}/;' zm.conf
+
+# cmake does this for us
+#%{__perl} -pi -e 's/(ZM_WEB_USER=).*$/${1}%{zmuid_final}/;' 
+#          -e 's/(ZM_WEB_GROUP=).*$/${1}%{zmgid_final}/;' zm.conf
 
 %install
+# TO-DO move much of this section into CMakeLists.txt
 install -d %{buildroot}/%{_localstatedir}/run
-make install DESTDIR=%{buildroot} \
-    INSTALLDIRS=vendor
-rm -rf %{buildroot}/%{perl_vendorarch} %{buildroot}/%{perl_archlib}
+
+export DESTDIR=%{buildroot}
+#export INSTALLDIRS=vendor
+make install
+
+# rm -rf %{buildroot}/%{perl_vendorarch} %{buildroot}/%{perl_archlib}
+
+# Move perl files into rhel compliant locations
+mkdir -p %{buildroot}/%{perl_vendorlib}
+mv %{buildroot}%{perl_archlib}/ZoneMinder* %{buildroot}/%{perl_vendorlib}
+rm -rf %{buildroot}%{_libdir}
+
+# Remove misc folder
+rm -rf %{buildroot}/%{_datadir}/%{name}/misc
+
 # Comment out for x10 support
 rm -f %{buildroot}/%{_bindir}/zmx10.pl
 
@@ -259,6 +245,9 @@ fi
 
 
 %changelog
+* Mon Oct 07 2013 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.26.4
+- Initial cmake build.
+
 * Sat Oct 05 2013 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.26.4
 - Fedora specific path changes have been moved to zoneminder-1.26.0-defaults.patch
 - All files are now part of the zoneminder source tree. Update specfile accordingly.

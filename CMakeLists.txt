@@ -11,7 +11,7 @@
 cmake_minimum_required (VERSION 2.6)
 project (ZoneMinder)
 # ZoneMinder version
-set(ZoneMinder_VERSION "1.26.3")
+set(ZoneMinder_VERSION "1.26.4")
 # Default build type. To change the build type, use the CMAKE_BUILD_TYPE configuration option.
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type: Release or Debug" FORCE)
@@ -38,7 +38,7 @@ include (CheckTypeSize)
 include (CheckStructHasMember)
 
 # Default variables for some configuration options
-mark_as_advanced(FORCE ZM_EXTRA_LIBS ZM_MYSQL_ENGINE ZM_NO_MMAP ZM_NO_CRASHTRACE CMAKE_INSTALL_FULL_BINDIR)
+mark_as_advanced(FORCE ZM_EXTRA_LIBS ZM_MYSQL_ENGINE ZM_NO_MMAP CMAKE_INSTALL_FULL_BINDIR)
 set(ZM_RUNDIR "/var/run/zm" CACHE PATH "Location of transient process files, default: /var/run/zm")
 set(ZM_TMPDIR "/tmp/zm" CACHE PATH "Location of temporary files, default: /tmp/zm")
 set(ZM_LOGDIR "/var/log/zm" CACHE PATH "Location of generated log files, default: /var/log/zm")
@@ -57,7 +57,6 @@ set(ZM_WEB_GROUP "" CACHE STRING "The group apache or the local web server runs 
 set(ZM_EXTRA_LIBS "" CACHE STRING "A list of optional libraries, separated by semicolons, e.g. ssl;theora")
 set(ZM_MYSQL_ENGINE "InnoDB" CACHE STRING "MySQL engine to use with database, default: InnoDB")
 set(ZM_NO_MMAP "OFF" CACHE BOOL "Set to ON to not use mmap shared memory. Shouldn't be enabled unless you experience problems with the shared memory. default: OFF")
-set(ZM_NO_CRASHTRACE "OFF" CACHE BOOL "Set to ON to skip crash trace code. Useful if zm_signal.cpp fails to compile. default: OFF")
 # Only required for cmakecacheimport:
 set(CMAKE_INSTALL_FULL_BINDIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}" CACHE PATH "Override default binary directory")
 
@@ -72,19 +71,17 @@ set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS ON)
 check_include_file("linux/videodev.h" HAVE_LINUX_VIDEODEV_H)
 check_include_file("linux/videodev2.h" HAVE_LINUX_VIDEODEV2_H)
 check_include_file("execinfo.h" HAVE_EXECINFO_H)
+check_include_file("ucontext.h" HAVE_UCONTEXT_H)
 check_include_file("sys/sendfile.h" HAVE_SYS_SENDFILE_H)
 check_include_file("sys/syscall.h" HAVE_SYS_SYSCALL_H)
 check_function_exists("syscall" HAVE_SYSCALL)
 check_function_exists("sendfile" HAVE_SENDFILE)
 check_function_exists("backtrace" HAVE_DECL_BACKTRACE)
+check_function_exists("backtrace_symbols" HAVE_DECL_BACKTRACE_SYMBOLS)
 check_function_exists("posix_memalign" HAVE_POSIX_MEMALIGN)
-check_function_exists("strsignal" HAVE_STRSIGNAL)
 check_prototype_definition("round" "double round (double x)" "0.0" "math.h" HAVE_DECL_ROUND)
-check_type_size("siginfo_t" SIGINFO_T)
-check_type_size("ucontext_t" UCONTEXT_T)
-check_type_size("struct sigcontext" STRUCT_SIGCONTEXT)
-check_struct_has_member("struct sigcontext" eip signal.h HAVE_STRUCT_SIGCONTEXT_EIP)
-check_struct_has_member("struct sigcontext" rip signal.h HAVE_STRUCT_SIGCONTEXT_RIP)
+check_type_size("siginfo_t" HAVE_SIGINFO_T)
+check_type_size("ucontext_t" HAVE_UCONTEXT_T)
 
 # *** LIBRARY CHECKS ***
 
@@ -275,18 +272,15 @@ if(HAVE_LIBCRYPTO AND HAVE_OPENSSL_MD5_H AND HAVE_MD5_OPENSSL)
 	set(HAVE_GNUTLS_OPENSSL_H 0)
 endif(HAVE_LIBCRYPTO AND HAVE_OPENSSL_MD5_H AND HAVE_MD5_OPENSSL)
 
-# Disable backtrace if not available
-if((NOT ZM_NO_CRASHTRACE) AND ((NOT HAVE_DECL_BACKTRACE) OR (NOT HAVE_EXECINFO_H)))
-	message(AUTHOR_WARNING " Backtrace is not available. disabling")
-	set(ZM_NO_CRASHTRACE ON)
-	set(HAVE_EXECINFO_H 0)
-	set(HAVE_DECL_BACKTRACE 0)
-endif((NOT ZM_NO_CRASHTRACE) AND ((NOT HAVE_DECL_BACKTRACE) OR (NOT HAVE_EXECINFO_H)))
-
-
+# Enable mmap in all components
+set(ZM_MEM_MAPPED 0)
+set(ENABLE_MMAP no)
 if(NOT ZM_NO_MMAP)
+	set(ZM_MEM_MAPPED 1)
+	set(ENABLE_MMAP yes)
 	set(ZM_MMAP_PERLPACKAGE "Sys::Mmap")
 endif(NOT ZM_NO_MMAP)
+
 # Check for Perl. Version checking is removed because its ignored before CMake 2.8.8 and it seems that Perl is being detected as 5.16. instead of 5.6.0 ??
 find_package(Perl)
 if(NOT PERL_FOUND)
@@ -324,6 +318,7 @@ set(ZM_PID "${ZM_RUNDIR}/zm.pid")
 set(ZM_CONFIG "/${CMAKE_INSTALL_SYSCONFDIR}/zm.conf")
 set(VERSION "${ZoneMinder_VERSION}")
 set(PATH_BUILD "${PROJECT_SOURCE_DIR}")
+set(PKGDATADIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/zoneminder")
 set(TIME_BUILD "1000000") # Don't have a solution for this one yet
 set(BINDIR "${CMAKE_INSTALL_FULL_BINDIR}")
 set(LIBDIR "${CMAKE_INSTALL_FULL_LIBDIR}")

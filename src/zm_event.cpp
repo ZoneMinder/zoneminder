@@ -1257,14 +1257,19 @@ bool EventStream::sendFrame( int delta_us )
                 case STREAM_JPEG :
                     send_image->EncodeJpeg( img_buffer, &img_buffer_size );
                     break;
-                case STREAM_RAW :
-                    img_buffer = (uint8_t*)(send_image->Buffer());
-                    img_buffer_size = send_image->Size();
-                    break;
                 case STREAM_ZIP :
+#if HAVE_ZLIB_H
                     unsigned long zip_buffer_size;
                     send_image->Zip( img_buffer, &zip_buffer_size );
                     img_buffer_size = zip_buffer_size;
+                    break;
+#else
+                    Error("zlib is required for zipped images. Falling back to raw image");
+                    type = STREAM_RAW;
+#endif // HAVE_ZLIB_H
+                case STREAM_RAW :
+                    img_buffer = (uint8_t*)(send_image->Buffer());
+                    img_buffer_size = send_image->Size();
                     break;
                 default:
                     Fatal( "Unexpected frame type %d", type );

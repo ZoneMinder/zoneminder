@@ -1,5 +1,5 @@
 AC_PREREQ(2.59)
-AC_INIT(zm,1.26.4,[http://www.zoneminder.com/forums/ - Please check FAQ first],ZoneMinder,http://www.zoneminder.com/downloads.html)
+AC_INIT(zm,1.26.4,[http://www.zoneminder.com/forums/ - Please check FAQ first],zoneminder,http://www.zoneminder.com/downloads.html)
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR(src/zm.h)
 AC_CONFIG_HEADERS(config.h)
@@ -235,8 +235,6 @@ AC_STRUCT_TM
 AC_TYPE_SIGNAL
 
 AC_CHECK_TYPES(siginfo_t,,,[#include <signal.h>])
-AC_CHECK_TYPES(struct sigcontext,,,[#include <signal.h>])
-AC_CHECK_MEMBERS([struct sigcontext.eip],,,[#include <signal.h>])
 AC_CHECK_TYPES(ucontext_t,,,[#include <signal.h>])
 
 # Checks for library functions.
@@ -248,7 +246,7 @@ AC_FUNC_STAT
 AC_FUNC_STRFTIME
 AC_FUNC_STRTOD
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS([gethostbyname gethostname gettimeofday memmove memset mkdir munmap posix_memalign putenv select sendfile socket sqrt strcasecmp strchr strcspn strerror strncasecmp strrchr strsignal strspn strstr strtol strtoull])
+AC_CHECK_FUNCS([gethostbyname gethostname gettimeofday memmove memset mkdir munmap posix_memalign putenv select sendfile socket sqrt strcasecmp strchr strcspn strerror strncasecmp strrchr strspn strstr strtol strtoull])
 AC_CHECK_FUNCS([syscall sleep usleep ioctl ioctlsocket sigaction])
 
 # Other programs
@@ -302,6 +300,7 @@ AC_HEADER_STDC
 AC_CHECK_HEADERS([fcntl.h limits.h memory.h stddef.h stdlib.h string.h strings.h sys/param.h sys/time.h syslog.h unistd.h values.h])
 AC_CHECK_HEADERS([netdb.h netinet/in.h arpa/inet.h sys/ioctl.h sys/socket.h sys/un.h glob.h sys/sendfile.h])
 AC_CHECK_HEADERS(execinfo.h,,,)
+AC_CHECK_HEADERS(ucontext.h,,,)
 AC_CHECK_HEADERS(sys/syscall.h,,,)
 AC_CHECK_HEADERS(pthread.h,,,)
 AC_CHECK_HEADERS(linux/videodev.h,AC_SUBST(ZM_HAS_V4L1,1),AC_SUBST(ZM_HAS_V4L1,0),)
@@ -345,6 +344,7 @@ AC_CHECK_DECLS(gnutls_fingerprint,,AC_MSG_ERROR([zm requires gnutls/gnutls.h - u
 fi
 fi
 AC_CHECK_DECLS(backtrace,,,[#include <execinfo.h>])
+AC_CHECK_DECLS(backtrace_symbols,,,[#include <execinfo.h>])
 
 AC_SUBST(LDFLAGS)
 
@@ -378,6 +378,8 @@ AC_PROG_PERL_MODULES(X10::ActiveHome,,AC_MSG_WARN(X10::ActiveHome is required fo
 
 AC_DEFINE_DIR([BINDIR],[bindir],[Expanded binary directory])
 AC_DEFINE_DIR([LIBDIR],[libdir],[Expanded library directory])
+AC_DEFINE_DIR([DATADIR],[datadir],[Expanded data directory])
+AC_SUBST(PKGDATADIR,"$DATADIR/$PACKAGE")
 AC_SUBST(ZM_PID,"$ZM_RUNDIR/zm.pid")
 AC_DEFINE_DIR([SYSCONFDIR],[sysconfdir],[Expanded configuration directory])
 AC_SUBST(ZM_CONFIG,"$SYSCONFDIR/zm.conf")

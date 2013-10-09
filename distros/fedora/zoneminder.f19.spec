@@ -36,10 +36,10 @@ Patch3:     zoneminder-1.26.0-defaults.patch
 
 BuildRequires:  automake gnutls-devel systemd-units
 BuildRequires:  libtool bzip2-devel
-BuildRequires:  mysql-devel pcre-devel libjpeg-devel
+BuildRequires:  community-mysql-devel pcre-devel libjpeg-turbo-devel
 BuildRequires:  perl(Archive::Tar) perl(Archive::Zip)
 BuildRequires:  perl(Date::Manip) perl(DBD::mysql)
-BuildRequires:  perl(ExtUtils::MakeMaker) perl(LWP::UserAgent)
+BuildRequires:  perl(ExtUtils::MakeMaker) perl(LWP::UserAgent::Determined)
 BuildRequires:  perl(MIME::Entity) perl(MIME::Lite)
 BuildRequires:  perl(PHP::Serialization) perl(Sys::Mmap)
 BuildRequires:  perl(Time::HiRes) perl(Net::SFTP::Foreign)

@@ -43,7 +43,7 @@ BuildRequires:  perl(ExtUtils::MakeMaker) perl(LWP::UserAgent::Determined)
 BuildRequires:  perl(MIME::Entity) perl(MIME::Lite)
 BuildRequires:  perl(PHP::Serialization) perl(Sys::Mmap)
 BuildRequires:  perl(Time::HiRes) perl(Net::SFTP::Foreign)
-BuildRequires:  perl(Expect) 
+BuildRequires:  perl(Expect) perl(Sys::Syslog
 BuildRequires:  gcc gcc-c++
 BuildRequires:  autoconf autoconf-archive
 # Comment out for no ffmpeg

@@ -8,7 +8,7 @@ New installs
 
 	sudo systemctl enable mysqld
 
-	sudo system start mysqld
+	systemctl start  mysqld.service
      
 	mysql_secure_installation
 

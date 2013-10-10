@@ -20,47 +20,55 @@
 #ifndef ZM_FFMPEG_H
 #define ZM_FFMPEG_H
 #include <stdint.h>
-#if HAVE_LIBAVCODEC
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+// AVUTIL
 #if HAVE_LIBAVUTIL_AVUTIL_H
 #include <libavutil/avutil.h>
 #include <libavutil/base64.h>
+#include <libavutil/mathematics.h>
 #elif HAVE_FFMPEG_AVUTIL_H
 #include <ffmpeg/avutil.h>
 #include <ffmpeg/base64.h>
-/*#else
-#error "No location for avutils.h found"*/
+#include <ffmpeg/mathematics.h>
 #endif
+
+// AVCODEC
 #if HAVE_LIBAVCODEC_AVCODEC_H
 #include <libavcodec/avcodec.h>
 #elif HAVE_FFMPEG_AVCODEC_H
 #include <ffmpeg/avcodec.h>
-/*#else
-#error "No location for avcodec.h found"*/
 #endif
+
+// AVFORMAT
 #if HAVE_LIBAVFORMAT_AVFORMAT_H
 #include <libavformat/avformat.h>
 #elif HAVE_FFMPEG_AVFORMAT_H
 #include <ffmpeg/avformat.h>
-/*#else
-#error "No location for avformat.h found"*/
 #endif
-#if HAVE_LIBSWSCALE
+
+// AVDEVICE
+#if HAVE_LIBAVDEVICE_AVDEVICE_H
+#include <libavdevice/avdevice.h>
+#elif HAVE_FFMPEG_AVDEVICE_H
+#include <ffmpeg/avdevice.h>
+#endif
+
+// SWSCALE
 #if HAVE_LIBSWSCALE_SWSCALE_H
 #include <libswscale/swscale.h>
-#include <libavutil/mathematics.h> // this is a fix for error: 'av_rescale_q' was not declared in this scope
 #elif HAVE_FFMPEG_SWSCALE_H
 #include <ffmpeg/swscale.h>
-/*#else
-#error "No location for swscale.h found"*/
 #endif
-#endif // HAVE_LIBSWSCALE
+
 #ifdef __cplusplus
 }
 #endif
+
+#if ( HAVE_LIBAVUTIL_AVUTIL_H || HAVE_LIBAVCODEC_AVCODEC_H || HAVE_LIBAVFORMAT_AVFORMAT_H || HAVE_LIBAVDEVICE_AVDEVICE_H )
 
 #if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(53, 4, 0)
  #if defined(AVIO_WRONLY)
@@ -87,7 +95,7 @@ extern "C" {
 #define SWS_CPU_CAPS_SSE2     0x02000000
 #endif
                                
-#endif // HAVE_LIBAVCODEC
+#endif // ( HAVE_LIBAVUTIL_AVUTIL_H || HAVE_LIBAVCODEC_AVCODEC_H || HAVE_LIBAVFORMAT_AVFORMAT_H || HAVE_LIBAVDEVICE_AVDEVICE_H )
 
 #endif // ZM_FFMPEG_H
 

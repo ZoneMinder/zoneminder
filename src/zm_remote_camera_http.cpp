@@ -24,6 +24,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <errno.h>
+#include <netdb.h>
 
 RemoteCameraHttp::RemoteCameraHttp( int p_id, const std::string &p_method, const std::string &p_host, const std::string &p_port, const std::string &p_path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) :
     RemoteCamera( p_id, "http", p_host, p_port, p_path, p_width, p_height, p_colours, p_brightness, p_contrast, p_hue, p_colour, p_capture )
@@ -111,6 +112,7 @@ int RemoteCameraHttp::Disconnect()
 {
     close( sd );
     sd = -1;
+    freeaddrinfo(hp);
     Debug( 3, "Disconnected from host" );
     return( 0 );
 }

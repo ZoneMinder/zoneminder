@@ -63,13 +63,21 @@ void RemoteCamera::Initialise()
 
 	if ( !hp )
 	{
-		if ( !(hp = gethostbyname(host.c_str())) )
+		struct addrinfo hints;
+		memset(&hints, 0, sizeof(hints));
+		hints.ai_family = PF_UNSPEC;
+                hints.ai_flags = AI_PASSIVE;
+                hints.ai_socktype = SOCK_STREAM;
+
+		if ( getaddrinfo(host.c_str(), NULL, &hints, &hp) != 0 )
 		{
 			Fatal( "Can't gethostbyname(%s): %s", host.c_str(), strerror(h_errno) );
 		}
-		memcpy((char *)&sa.sin_addr, (char *)hp->h_addr, hp->h_length);
-		sa.sin_family = hp->h_addrtype;
-		sa.sin_port = htons(atoi(port.c_str()));
+		//memcpy((char *)&sa.sin_addr, (char *)hp->h_addr, hp->h_length);
+		//sa.sin_family = hp->h_addrtype;
+		//sa.sin_port = htons(atoi(port.c_str()));
+		sa = hp->ai_addr;
+		((struct sockaddr_in *)sa)->sin_port = htons(atoi(port.c_str()));
 	}
 }
 

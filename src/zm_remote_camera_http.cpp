@@ -89,14 +89,14 @@ int RemoteCameraHttp::Connect()
 {
     if ( sd < 0 )
     {
-        sd = socket( hp->h_addrtype, SOCK_STREAM, 0 );
+        sd = socket( hp->ai_family, SOCK_STREAM, 0 );
         if ( sd < 0 )
         {
             Error( "Can't create socket: %s", strerror(errno) );
             return( -1 );
         }
 
-        if ( connect( sd, (struct sockaddr *)&sa, sizeof(sa) ) < 0 )
+        if ( connect( sd, (struct sockaddr *)sa, hp->ai_addrlen ) < 0 )
         {
             Error( "Can't connect to remote camera: %s", strerror(errno) );
             Disconnect();

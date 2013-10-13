@@ -4,11 +4,11 @@ New installs
 1. Unless you are already using the MySQL server or you are running it
    remotely you will need to ensure that the server is installed and secured:
 
-	yum install mysql-community-server
+	sudo yum install mysql-community-server
 
 	sudo systemctl enable mysqld
 
-	systemctl start  mysqld.service
+	sudo systemctl start  mysqld.service
      
 	mysql_secure_installation
 

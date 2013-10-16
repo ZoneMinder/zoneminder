@@ -36,14 +36,14 @@ Patch3:     zoneminder-1.26.0-defaults.patch
 
 BuildRequires:  automake gnutls-devel systemd-units
 BuildRequires:  libtool bzip2-devel
-BuildRequires:  mysql-devel pcre-devel libjpeg-devel
+BuildRequires:  community-mysql-devel pcre-devel libjpeg-turbo-devel
 BuildRequires:  perl(Archive::Tar) perl(Archive::Zip)
 BuildRequires:  perl(Date::Manip) perl(DBD::mysql)
-BuildRequires:  perl(ExtUtils::MakeMaker) perl(LWP::UserAgent)
+BuildRequires:  perl(ExtUtils::MakeMaker) perl(LWP::UserAgent::Determined)
 BuildRequires:  perl(MIME::Entity) perl(MIME::Lite)
 BuildRequires:  perl(PHP::Serialization) perl(Sys::Mmap)
 BuildRequires:  perl(Time::HiRes) perl(Net::SFTP::Foreign)
-BuildRequires:  perl(Expect) 
+BuildRequires:  perl(Expect) perl(Sys::Syslog)
 BuildRequires:  gcc gcc-c++
 BuildRequires:  autoconf autoconf-archive
 # Comment out for no ffmpeg
@@ -214,7 +214,7 @@ fi
 %files
 %defattr(-,root,root,-)
 %doc AUTHORS COPYING README.md distros/fedora/README.Fedora jscalendar-doc
-%config(noreplace) %attr(640,root,%{zmgid_final}) /etc/zm.conf
+%config %attr(640,root,%{zmgid_final}) /etc/zm.conf
 %config(noreplace) %attr(644,root,root) /etc/httpd/conf.d/zoneminder.conf
 %config(noreplace) /etc/tmpfiles.d/zoneminder.conf
 %config(noreplace) /etc/logrotate.d/zoneminder

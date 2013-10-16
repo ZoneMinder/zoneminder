@@ -32,10 +32,10 @@ function dbConnect()
 
 	try {
 		#$dbConn = mysql_pconnect( ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS ) or die( "Could not connect to database: ".mysql_error() );
-		$dbConn = new PDO( ZM_DB_TYPE + ':host=' + ZM_DB_HOST + ';dbname='+ZM_DB_NAME, ZM_DB_USER, ZM_DB_PASS ) or die( "Could not connect to database: ".mysql_error() );
+		$dbConn = new PDO( ZM_DB_TYPE . ':host=' . ZM_DB_HOST . ';dbname='.ZM_DB_NAME, ZM_DB_USER, ZM_DB_PASS ) or die( "Could not connect to database: ".mysql_error() );
 		#mysql_select_db( ZM_DB_NAME, $dbConn ) or die( "Could not select database: ".mysql_error() );
 	} catch(PDOException $ex ) {
-		echo "Unable to connect to ZM db.";
+		echo "Unable to connect to ZM db." . $ex->getMessage();
 	}
 }
 
@@ -103,7 +103,7 @@ function dbQuery( $sql )
     global $dbConn;
     if ( dbLog( $sql, true ) )
         return;
-    if (!($result = $dbCon->query( $sql )))
+    if (!($result = $dbConn->query( $sql )))
         dbError( $sql );
     return( $result );
 }

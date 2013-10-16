@@ -460,11 +460,15 @@ class Logger
             {
                 $dbFile = is_null($file)?'NULL':"'".dbEscape($file)."'";
                 $dbLine = is_null($line)?'NULL':dbEscape($line);
-                $sql = "insert into Logs ( TimeKey, Component, Pid, Level, Code, Message, File, Line ) values ( ".sprintf( "%d.%06d", $time['sec'], $time['usec'] ).", '".dbEscape($this->id)."', ".getmypid().", ".dbEscape($level).", '".dbEscape($code)."', '".dbEscape($string)."', ".$dbFile.", ".$dbLine." )";
-                if (!($result = mysql_query( $sql )))
-                {
+		
+				try {
+					global $dbCon;
+					$sql = "INSERT INTO Logs ( TimeKey, Component, Pid, Level, Code, Message, File, Line ) values ( ?, ?, ?, ?, ?, ?, ?, ? )";
+					$stmt = $dbCon->prepare( $sql );
+					$result = $dbCon->execute( array( sprintf( "%d.%06d", $time['sec'], $time['usec'] ), .dbEscape($this->id), getmypid(), dbEscape($level), dbEscape($code), dbEscape($string), $dbFile, $dbLine ) );
+				} catch(PDOException $ex) {
                     $this->databaseLevel = self::NOLOG;
-                    Fatal( "Can't write log entry '$sql': ".mysql_error() );
+                    Fatal( "Can't write log entry '$sql': ". $ex->getMessage() );
                 }
             }
             // This has to be last as trigger_error can be fatal

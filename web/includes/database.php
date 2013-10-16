@@ -29,8 +29,14 @@ $GLOBALS['dbConn'] = false;
 function dbConnect()
 {
     global $dbConn;
-    $dbConn = mysql_pconnect( ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS ) or die( "Could not connect to database: ".mysql_error() );
-    mysql_select_db( ZM_DB_NAME, $dbConn ) or die( "Could not select database: ".mysql_error() );
+
+	try {
+		#$dbConn = mysql_pconnect( ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS ) or die( "Could not connect to database: ".mysql_error() );
+		$dbConn = new PDO( ZM_DB_TYPE + ':host=' + ZM_DB_HOST + ';dbname='+ZM_DB_NAME, ZM_DB_USER, ZM_DB_PASS ) or die( "Could not connect to database: ".mysql_error() );
+		#mysql_select_db( ZM_DB_NAME, $dbConn ) or die( "Could not select database: ".mysql_error() );
+	} catch(PDOException $ex ) {
+		echo "Unable to connect to ZM db.";
+	}
 }
 
 dbConnect();
@@ -94,44 +100,39 @@ function dbEscape( $string )
 
 function dbQuery( $sql )
 {
+    global $dbConn;
     if ( dbLog( $sql, true ) )
         return;
-    if (!($result = mysql_query( $sql )))
+    if (!($result = $dbCon->query( $sql )))
         dbError( $sql );
     return( $result );
 }
 
 function dbFetchOne( $sql, $col=false )
 {
-    dbLog( $sql );
-    if (!($result = mysql_query( $sql )))
-        dbError( $sql );
+	$result = dbQuery( $sql );
 
-    if ( $dbRow = mysql_fetch_assoc( $result ) )
+    if ( $dbRow = $result->fetch( PDO::FETCH_ASSOC ) )
         return( $col?$dbRow[$col]:$dbRow );
     return( false );
 }
 
 function dbFetchAll( $sql, $col=false )
 {
-    dbLog( $sql );
-    if (!($result = mysql_query( $sql )))
-        dbError( $sql );
+	$result = dbQuery( $sql );
 
     $dbRows = array();
-    while( $dbRow = mysql_fetch_assoc( $result ) )
+    while( $dbRow = $result->fetch( PDO::FETCH_ASSOC ) )
         $dbRows[] = $col?$dbRow[$col]:$dbRow;
     return( $dbRows );
 }
 
 function dbFetchAssoc( $sql, $indexCol, $dataCol=false )
 {
-    dbLog( $sql );
-    if (!($result = mysql_query( $sql )))
-        dbError( $sql );
+	$result = dbQuery( $sql );
 
     $dbRows = array();
-    while( $dbRow = mysql_fetch_assoc( $result ) )
+    while( $dbRow = $result->fetch( PDO::FETCH_ASSOC ) )
         $dbRows[$dbRow[$indexCol]] = $dataCol?$dbRow[$dataCol]:$dbRow;
     return( $dbRows );
 }
@@ -143,22 +144,21 @@ function dbFetch( $sql, $col=false )
 
 function dbFetchNext( $result, $col=false )
 {
-    if ( $dbRow = mysql_fetch_assoc( $result ) )
+    if ( $dbRow = $result->fetch( PDO::FETCH_ASSOC ) )
         return( $col?$dbRow[$col]:$dbRow );
     return( false );
 }
 
 function dbNumRows( $sql )
 {
-    dbLog( $sql );
-    if (!($result = mysql_query( $sql )))
-        dbError( $sql );
-    return( mysql_num_rows( $result ) );
+	$result = dbQuery( $sql );
+    return( $result->rowCount() );
 }
 
 function dbInsertId()
 {
-    return( mysql_insert_id() );
+	global $dbCon;
+    return( $dbCon->lastInsertId() );
 }
 
 function getEnumValues( $table, $column )

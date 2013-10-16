@@ -11,6 +11,7 @@ AC_SUBST(PATH_BUILD)
 TIME_BUILD=`date +'%s'`
 AC_SUBST(TIME_BUILD)
 
+AC_ARG_VAR(ZM_DB_TYPE,[Type of the ZoneMinder database, default mysql])
 AC_ARG_VAR(ZM_DB_HOST,[Hostname where ZoneMinder database located, default localhost])
 AC_ARG_VAR(ZM_DB_NAME,[Name of ZoneMinder database, default zm])
 AC_ARG_VAR(ZM_DB_USER,[Name of ZoneMinder database user, default zmuser])
@@ -21,6 +22,9 @@ AC_ARG_VAR(ZM_RUNDIR,[Location of transient process files, default /var/run/zm])
 AC_ARG_VAR(ZM_TMPDIR,[Location of temporary files, default /tmp/zm])
 AC_ARG_VAR(ZM_LOGDIR,[Location of generated log files, default /var/log/zm])
 
+if test "$ZM_DB_TYPE" == ""; then
+	AC_SUBST(ZM_DB_TYPE,[mysql])
+fi
 if test "$ZM_DB_HOST" == ""; then
 	AC_SUBST(ZM_DB_HOST,[localhost])
 fi

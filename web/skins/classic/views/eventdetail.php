@@ -27,7 +27,7 @@ if ( isset($_REQUEST['eid']) )
 {
     $mode = 'single';
     $eid = validInt($_REQUEST['eid']);
-    $sql = "select E.* from Events as E where E.Id = '".dbEscape($eid)."'";
+    $sql = "select E.* from Events as E where E.Id = ".dbEscape($eid);
     $newEvent = dbFetchOne( $sql );
 }
 elseif ( isset($_REQUEST['eids']) )
@@ -37,7 +37,7 @@ elseif ( isset($_REQUEST['eids']) )
     $sqlWhere = array();
     foreach ( $_REQUEST['eids'] as $eid )
     {
-        $sqlWhere[] = "E.Id = '".dbEscape($eid)."'";
+        $sqlWhere[] = "E.Id = ".dbEscape($eid);
     }
     unset( $eid );
     $sql .= join( " or ", $sqlWhere );

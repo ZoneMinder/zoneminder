@@ -31,7 +31,7 @@ $zid = !empty($_REQUEST['zid'])?validInt($_REQUEST['zid']):0;
 
 if ( $zid > 0 )
 {
-   $newZone = dbFetchOne( "select * from Zones where MonitorId = '".dbEscape($mid)."' and Id = '".dbEscape($zid)."'" );
+   $newZone = dbFetchOne( "select * from Zones where MonitorId = ".dbEscape($mid)." and Id = ".dbEscape($zid) );
 } else {
    $view = "error";
    return;
@@ -81,8 +81,8 @@ foreach($pluginOptions as $name => $values)
    {
       $popt=$pluginOptions[$name];
       $sql="INSERT INTO PluginsConfig VALUES 
-         ('','".dbEscape($popt['Name'])."','".dbEscape($popt['Value'])."',
-         '".dbEscape($popt['Type'])."','".dbEscape($popt['Choices'])."','$mid','$zid','$plugin')";
+         ('',".dbEscape($popt['Name']).",".dbEscape($popt['Value']).",
+         ".dbEscape($popt['Type']).",".dbEscape($popt['Choices']).",'$mid','$zid','$plugin')";
       dbQuery($sql);
    }
 }

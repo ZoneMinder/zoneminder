@@ -28,18 +28,18 @@ $eid = validInt($_REQUEST['eid']);
 if ( !empty($_REQUEST['fid']) )
     $fid = validInt($_REQUEST['fid']);
 
-$sql = "select E.*,M.Name as MonitorName,M.DefaultScale from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = '".dbEscape($eid)."'";
+$sql = "select E.*,M.Name as MonitorName,M.DefaultScale from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = ".dbEscape($eid);
 $event = dbFetchOne( $sql );
 
 if ( !empty($fid) )
 {
-    $sql = "select * from Frames where EventId = '".dbEscape($eid)."' and FrameId = '".dbEscape($fid)."'";
+    $sql = "select * from Frames where EventId = ".dbEscape($eid)." and FrameId = ".dbEscape($fid);
     if ( !($frame = dbFetchOne( $sql )) )
         $frame = array( 'FrameId'=>$fid, 'Type'=>'Normal', 'Score'=>0 );
 }
 else
 {
-    $frame = dbFetchOne( "select * from Frames where EventId = '".dbEscape($eid)."' and Score = '".$event['MaxScore']."'" );
+    $frame = dbFetchOne( "select * from Frames where EventId = ".dbEscape($eid)." and Score = ".$event['MaxScore'] );
 }
 
 $maxFid = $event['Frames'];

@@ -24,7 +24,7 @@ if ( !canEdit( 'Monitors' ) )
     return;
 }
 
-$monitor = dbFetchOne( "select C.*,M.* from Monitors as M inner join Controls as C on (M.ControlId = C.Id ) where M.Id = '".dbEscape($_REQUEST['mid'])."'" );
+$monitor = dbFetchOne( "select C.*,M.* from Monitors as M inner join Controls as C on (M.ControlId = C.Id ) where M.Id = ".dbEscape($_REQUEST['mid']) );
 
 $sql = "select * from ControlPresets where MonitorId = '".$monitor['Id']."'";
 $labels = array();

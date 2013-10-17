@@ -27,7 +27,7 @@ if ( !canView( 'Events' ) )
 $eid = validInt($_REQUEST['eid']);
 $fid = validInt($_REQUEST['fid']);
 
-$sql = "select S.*,E.*,Z.Name as ZoneName,Z.Units,Z.Area,M.Name as MonitorName from Stats as S left join Events as E on S.EventId = E.Id left join Zones as Z on S.ZoneId = Z.Id left join Monitors as M on E.MonitorId = M.Id where S.EventId = '".dbEscape($eid)."' and S.FrameId = '".dbEscape($fid)."' order by S.ZoneId";
+$sql = "select S.*,E.*,Z.Name as ZoneName,Z.Units,Z.Area,M.Name as MonitorName from Stats as S left join Events as E on S.EventId = E.Id left join Zones as Z on S.ZoneId = Z.Id left join Monitors as M on E.MonitorId = M.Id where S.EventId = ".dbEscape($eid)." and S.FrameId = ".dbEscape($fid)." order by S.ZoneId";
 $stats = dbFetchAll( $sql );
 
 $focusWindow = true;

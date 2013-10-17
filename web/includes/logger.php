@@ -462,7 +462,7 @@ class Logger
                 $dbLine = is_null($line)?'NULL':dbEscape($line);
 		
 				try {
-					global $dbCon;
+					global $dbConn;
 					$sql = "INSERT INTO Logs ( TimeKey, Component, Pid, Level, Code, Message, File, Line ) values ( ?, ?, ?, ?, ?, ?, ?, ? )";
 					$stmt = $dbConn->prepare( $sql );
 					$result = $stmt->execute( array( sprintf( "%d.%06d", $time['sec'], $time['usec'] ), dbEscape($this->id), getmypid(), dbEscape($level), dbEscape($code), dbEscape($string), $dbFile, $dbLine ) );

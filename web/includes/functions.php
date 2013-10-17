@@ -648,7 +648,7 @@ function buildSelect( $name, $contents, $behaviours=false )
     foreach ( $contents as $contentValue => $contentText )
     {
 ?>
-<option value="<?= $contentValue ?>"<?php if ( $value == $contentValue ) { ?> selected="selected"<? } ?>><?= validHtmlStr($contentText) ?></option>
+<option value="<?= $contentValue ?>"<?php if ( $value == $contentValue ) { ?> selected="selected"<?php } ?>><?= validHtmlStr($contentText) ?></option>
 <?php
     }
 ?>

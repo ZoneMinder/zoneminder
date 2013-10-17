@@ -27,7 +27,7 @@ if ( !canView( 'Stream' ) )
 $groupSql = "";
 if ( !empty($_REQUEST['group']) )
 {
-    $sql = "select * from Groups where Id = '".dbEscape($_REQUEST['group'])."'";
+    $sql = "select * from Groups where Id = ".dbEscape($_REQUEST['group']);
     $row = dbFetchOne( $sql );
     $groupSql = " and find_in_set( Id, '".$row['MonitorIds']."' )";
 }

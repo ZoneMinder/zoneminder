@@ -31,9 +31,7 @@ function dbConnect()
     global $dbConn;
 
 	try {
-		#$dbConn = mysql_pconnect( ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS ) or die( "Could not connect to database: ".mysql_error() );
-		$dbConn = new PDO( ZM_DB_TYPE . ':host=' . ZM_DB_HOST . ';dbname='.ZM_DB_NAME, ZM_DB_USER, ZM_DB_PASS ) or die( "Could not connect to database: ".mysql_error() );
-		#mysql_select_db( ZM_DB_NAME, $dbConn ) or die( "Could not select database: ".mysql_error() );
+		$dbConn = new PDO( ZM_DB_TYPE . ':host=' . ZM_DB_HOST . ';dbname='.ZM_DB_NAME, ZM_DB_USER, ZM_DB_PASS );
 	} catch(PDOException $ex ) {
 		echo "Unable to connect to ZM db." . $ex->getMessage();
 	}
@@ -86,16 +84,17 @@ function dbError( $sql )
 
 function dbEscape( $string )
 {
+	global $dbConn;
     if ( version_compare( phpversion(), "4.3.0", "<") )
         if ( get_magic_quotes_gpc() )
-            return( mysql_escape_string( stripslashes( $string ) ) );
+            return( $dbConn->quote( stripslashes( $string ) ) );
         else
-            return( mysql_escape_string( $string ) );
+            return( $dbConn->quote( $string ) );
     else
         if ( get_magic_quotes_gpc() )
-            return( mysql_real_escape_string( stripslashes( $string ) ) );
+            return( $dbConn->quote( stripslashes( $string ) ) );
         else
-            return( mysql_real_escape_string( $string ) );
+            return( $dbConn->quote( $string ) );
 }
 
 function dbQuery( $sql )

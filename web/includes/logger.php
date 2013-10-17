@@ -464,8 +464,8 @@ class Logger
 				try {
 					global $dbCon;
 					$sql = "INSERT INTO Logs ( TimeKey, Component, Pid, Level, Code, Message, File, Line ) values ( ?, ?, ?, ?, ?, ?, ?, ? )";
-					$stmt = $dbCon->prepare( $sql );
-					$result = $dbCon->execute( array( sprintf( "%d.%06d", $time['sec'], $time['usec'] ), .dbEscape($this->id), getmypid(), dbEscape($level), dbEscape($code), dbEscape($string), $dbFile, $dbLine ) );
+					$stmt = $dbConn->prepare( $sql );
+					$result = $stmt->execute( array( sprintf( "%d.%06d", $time['sec'], $time['usec'] ), dbEscape($this->id), getmypid(), dbEscape($level), dbEscape($code), dbEscape($string), $dbFile, $dbLine ) );
 				} catch(PDOException $ex) {
                     $this->databaseLevel = self::NOLOG;
                     Fatal( "Can't write log entry '$sql': ". $ex->getMessage() );

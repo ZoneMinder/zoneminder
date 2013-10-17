@@ -70,7 +70,7 @@ if ( !isset($newZone) )
 {
     if ( $zid > 0 )
     {
-        $zone = dbFetchOne( "select * from Zones where MonitorId = '".dbEscape($monitor['Id'])."' and Id = '".dbEscape($zid)."'" );
+        $zone = dbFetchOne( "select * from Zones where MonitorId = ".dbEscape($monitor['Id'])." and Id = ".dbEscape($zid) );
     }
     else
     {

@@ -203,7 +203,7 @@ function getTableColumns( $table, $asString=1 )
 
 function getTableAutoInc( $table )
 {
-    $sql = "show table status where Name = '".dbEscape($table)."'";
+    $sql = "show table status where Name = ".dbEscape($table);
     $row = dbFetchOne( $sql );
     return( $row['Auto_increment'] );
 }
@@ -338,12 +338,12 @@ function getTableDescription( $table, $asString=1 )
 
 function dbFetchMonitor( $mid )
 {
-    return( dbFetchOne( "select * from Monitors where Id = '".dbEscape($mid)."'" ) );
+    return( dbFetchOne( "select * from Monitors where Id = ".dbEscape($mid) ) );
 }
 
 function dbFetchGroup( $gid )
 {
-    return( dbFetchOne( "select * from Groups where Id = '".dbEscape($gid)."'" ) );
+    return( dbFetchOne( "select * from Groups where Id = ".dbEscape($gid) ) );
 }
 
 ?>

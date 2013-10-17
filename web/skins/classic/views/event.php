@@ -59,8 +59,10 @@ if ( isset( $_REQUEST['replayMode'] ) )
     $replayMode = validHtmlStr($_REQUEST['replayMode']);
 if ( isset( $_COOKIE['replayMode']) && preg_match('#^[a-z]+$#', $_COOKIE['replayMode']) )
     $replayMode = validHtmlStr($_COOKIE['replayMode']);
- else
-     $replayMode = array_shift( array_keys( $replayModes ) );
+else {
+	$keys = array_keys( $replayModes );
+	$replayMode = array_shift( $keys );
+}
 
 parseSort();
 parseFilter( $_REQUEST['filter'] );

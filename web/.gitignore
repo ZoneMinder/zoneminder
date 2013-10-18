@@ -20,17 +20,3 @@
 Icon?
 ehthumbs.db
 Thumbs.db
-
-# Old web files from the legacy skin #
-
-../autom4te.cache/
-../src/.deps/
-ajax/
-css/
-graphics/
-includes/
-js/
-lang/
-skins/
-tools/
-views/

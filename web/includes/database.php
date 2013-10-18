@@ -97,21 +97,32 @@ function dbEscape( $string )
             return( $dbConn->quote( $string ) );
 }
 
-function dbQuery( $sql )
+function dbQuery( $sql, $params=NULL )
 {
     global $dbConn;
     if ( dbLog( $sql, true ) )
         return;
-    if (!($result = $dbConn->query( $sql )))
-        dbError( $sql );
+    $result = NULL;
+    try {
+        if ( isset($params) ) {
+            $result = $dbConn->prepare( $sql );
+            $result->execute( $params );
+        } else {
+            $result = $dbConn->query( $sql );
+        }
+    } catch(PDOException $e) {
+        dbError( $sql . $e->getMessage() );
+    }
     return( $result );
 }
 
-function dbFetchOne( $sql, $col=false )
+function dbFetchOne( $sql, $col=false, $params=NULL )
 {
-	$result = dbQuery( $sql );
+	$result = dbQuery( $sql, $params );
+	if ( ! $result ) 
+		return false;
 
-    if ( $dbRow = $result->fetch( PDO::FETCH_ASSOC ) )
+    if ( $result && $dbRow = $result->fetch( PDO::FETCH_ASSOC ) )
         return( $col?$dbRow[$col]:$dbRow );
     return( false );
 }

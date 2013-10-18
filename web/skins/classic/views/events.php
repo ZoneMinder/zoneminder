@@ -33,8 +33,9 @@ $countSql = "select count(E.Id) as EventCount from Monitors as M inner join Even
 $eventsSql = "select E.Id,E.MonitorId,M.Name As MonitorName,M.DefaultScale,E.Name,E.Width,E.Height,E.Cause,E.Notes,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived from Monitors as M inner join Events as E on (M.Id = E.MonitorId) where";
 if ( $user['MonitorIds'] )
 {
-    $countSql .= " M.Id in (".join( ",", preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) ).")";
-    $eventsSql .= " M.Id in (".join( ",", preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) ).")";
+	$user_monitor_ids = " M.Id in (".join( ",", preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) ).")";
+    $countSql .= $user_monitor_ids;
+    $eventsSql .= $user_monitor_ids;
 }
 else
 {
@@ -94,7 +95,7 @@ if ( !empty($page) )
 }
 elseif ( !empty( $limit ) )
 {
-    $eventsSql .= " limit 0, ".dbEscape($limit);
+    $eventsSql .= " limit 0, $limit";
 }
 
 $maxWidth = 0;

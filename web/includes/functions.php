@@ -1378,7 +1378,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' )
             if ( isset($filter['terms'][$i]['cnj']) )
             {
                 $filter['query'] .= $querySep."filter[terms][$i][cnj]=".urlencode($filter['terms'][$i]['cnj']);
-                $filter['sql'] .= " ".dbEscape($filter['terms'][$i]['cnj'])." ";
+                $filter['sql'] .= " ".$filter['terms'][$i]['cnj']." ";
                 $filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][cnj]\" value=\"".htmlspecialchars($filter['terms'][$i]['cnj'])."\"/>\n";
             }
             if ( isset($filter['terms'][$i]['obr']) )

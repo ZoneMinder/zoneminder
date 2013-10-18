@@ -71,7 +71,7 @@ $eventCounts = array(
 $running = daemonCheck();
 $status = $running?$SLANG['Running']:$SLANG['Stopped'];
 
-if ( $group = dbFetchOne( "select * from Groups where Id = '".(empty($_COOKIE['zmGroup'])?0:dbEscape($_COOKIE['zmGroup']))."'" ) )
+if ( $group = dbFetchOne( 'select * from Groups where Id = ?', NULL, array(empty($_COOKIE['zmGroup'])?0:$_COOKIE['zmGroup'])) )
     $groupIds = array_flip(explode( ',', $group['MonitorIds'] ));
 
 noCacheHeaders();
@@ -105,7 +105,7 @@ for ( $i = 0; $i < count($monitors); $i++ )
     }
     $monitors[$i]['zmc'] = zmcStatus( $monitors[$i] );
     $monitors[$i]['zma'] = zmaStatus( $monitors[$i] );
-    $monitors[$i]['ZoneCount'] = dbFetchOne( "select count(Id) as ZoneCount from Zones where MonitorId = '".$monitors[$i]['Id']."'", "ZoneCount" );
+    $monitors[$i]['ZoneCount'] = dbFetchOne( 'select count(Id) as ZoneCount from Zones where MonitorId = ?', 'ZoneCount', array($monitors[$i]['Id']) );
     $counts = array();
     for ( $j = 0; $j < count($eventCounts); $j++ )
     {

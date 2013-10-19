@@ -1,6 +1,16 @@
-<h2>Zones</h2>
-<?php $count = 0; ?>
-    <?php foreach ($zones as $zone): ?>
-    <?php $count++; ?>
-    <?php endforeach; ?>
-    <?php unset($zone); ?>
+<?php $this->assign('title', 'Zones'); ?>
+<table class="table">
+<?
+  echo $this->Html->tableHeaders(array('Monitor', 'Zone Name'));
+  foreach ($zones as $zone) {
+    echo $this->Html->tableCells(array(
+      $zone['Monitor']['Name'],
+      $this->Html->link($zone['Zone']['Name'], array(
+        'controller' => 'zones',
+        'action' => 'edit',
+        $zone['Zone']['Id'],
+      ))
+    ));
+  }
+?>
+</table>

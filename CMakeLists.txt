@@ -60,6 +60,7 @@ set(ZM_NO_FFMPEG "OFF" CACHE BOOL "Set to ON to skip ffmpeg checks and force bui
 set(ZM_NO_X10 "OFF" CACHE BOOL "Set to ON to build ZoneMinder without X10 support")
 set(ZM_PERL_SUBPREFIX "${CMAKE_INSTALL_LIBDIR}/perl5" CACHE PATH "Use a different directory for the zm perl modules. NOTE: This is a subprefix, e.g. lib will be turned into <prefix>/lib, default: ${CMAKE_INSTALL_LIBDIR}/perl5")
 set(ZM_PERL_USE_PATH "${CMAKE_INSTALL_PREFIX}/${ZM_PERL_SUBPREFIX}" CACHE PATH "Override the include path for zm perl modules. Useful if you are moving the perl modules without using the ZM_PERL_SUBPREFIX option. default: <prefix>/<zmperlprefix>")
+set(ZM_TARGET_DISTRO "" CACHE STRING "Build ZoneMinder for a specific distribution.  Currently, valid names are: f19, el6")
 # Only required for cmakecacheimport:
 set(CMAKE_INSTALL_FULL_BINDIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}" CACHE PATH "Override default binary directory")
 
@@ -424,6 +425,13 @@ set(WEB_USER "${ZM_WEB_USER}")
 set(WEB_GROUP "${ZM_WEB_GROUP}")
 set(EXTRA_PERL_LIB "use lib '${ZM_PERL_USE_PATH}';")
 
+# Reassign some variables if a target distro has been specified
+if((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "el6"))
+set(ZM_RUNDIR "/var/run/zoneminder")
+set(ZM_TMPDIR "/var/lib/zoneminder/temp")
+set(ZM_LOGDIR "/var/log/zoneminder")
+endif((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "el6"))
+
 # Generate files from the .in files
 configure_file(zoneminder-config.cmake config.h @ONLY)
 configure_file(zm.conf.in zm.conf @ONLY)
@@ -434,8 +442,14 @@ configure_file(zmlinkcontent.sh.in zmlinkcontent.sh @ONLY)
 add_subdirectory(src)
 add_subdirectory(scripts)
 add_subdirectory(db)
-add_subdirectory(misc)
 add_subdirectory(web)
+if(ZM_TARGET_DISTRO STREQUAL "f19")
+add_subdirectory(distros/fedora)
+elseif(ZM_TARGET_DISTRO STREQUAL "el6")
+add_subdirectory(distros/redhat)
+else(ZM_TARGET_DISTRO STREQUAL "el6")
+add_subdirectory(misc)
+endif(ZM_TARGET_DISTRO STREQUAL "f19")
 
 # Print optional libraries detection status
 message(STATUS "Optional libraries found:${optlibsfound}")

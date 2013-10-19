@@ -1,7 +1,3 @@
-%define cambrev 0.931
-%define moorev 1.3.2
-%define jscrev 1.0
-
 %define zmuid $(id -un)
 %define zmgid $(id -gn)
 %define zmuid_final apache
@@ -20,23 +16,10 @@ URL:        http://www.zoneminder.com/
 
 #Source0: https://github.com/ZoneMinder/ZoneMinder/archive/v%{version}.tar.gz
 Source0:    ZoneMinder-%{version}.tar.gz
-Source1:    jscalendar-%{jscrev}.zip
-#Source1:    http://downloads.sourceforge.net/jscalendar/jscalendar-%{jscrev}.zip
 
-# Mootools is currently bundled in the zoneminder tarball
-#Source2:    mootools-core-%{moorev}-full-compat-yc.js
-#Source2:    http://mootools.net/download/get/mootools-core-%{moorev}-full-compat-yc.js
+Patch1:    zoneminder-1.26.0-defaults.patch
 
-Source3:   cambozola-%{cambrev}.tar.gz
-#Source3:   http://www.andywilcock.com/code/cambozola/cambozola-%{cambrev}.tar.gz
-
-Patch1:    zoneminder-runlevel.patch
-Patch2:    zoneminder-1.26.0-defaults.patch
-
-# BuildRoot is depreciated and ignored
-#BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-
-BuildRequires:  automake gnutls-devel bzip2-devel libtool
+BuildRequires:  cmake gnutls-devel bzip2-devel
 BuildRequires:  mysql-devel pcre-devel libjpeg-turbo-devel
 BuildRequires:  perl(Archive::Tar) perl(Archive::Zip)
 BuildRequires:  perl(Date::Manip) perl(DBD::mysql)
@@ -78,85 +61,18 @@ too much degradation of performance.
 %prep
 %setup -q -n ZoneMinder-%{version}
 
-# Unpack jscalendar and move some files around
-%setup -q -D -T -a 1 -n ZoneMinder-%{version}
-mkdir jscalendar-doc
-pushd jscalendar-%{jscrev}
-mv *html *php doc/* README ../jscalendar-doc
-rmdir doc
-popd
-
-# Unpack Cambozola and move some files around
-%setup -q -D -T -a 3 -n ZoneMinder-%{version}
-mkdir cambozola-doc
-pushd cambozola-%{cambrev}
-mv application.properties build.xml dist.sh *html LICENSE testPages/* ../cambozola-doc
-rmdir testPages
-popd
-
-%patch1 -p0 -b .runlevel
-%patch2 -p0
+%patch1 -p0 -b .defaults
 
 %build
 # Have to override CMAKE_INSTALL_LIBDIR for cmake < 2.8.7 due to this bug:
 # https://bugzilla.redhat.com/show_bug.cgi?id=795542
-%cmake -DCMAKE_INSTALL_LIBDIR:PATH=%{_lib} .
+%cmake -DZM_TARGET_DISTRO="el6" -DCMAKE_INSTALL_LIBDIR:PATH=%{_lib} -DZM_PERL_SUBPREFIX="%{perl_vendorlib}" .
 
 make %{?_smp_mflags}
 
-# cmake does this for us
-#%{__perl} -pi -e 's/(ZM_WEB_USER=).*$/${1}%{zmuid_final}/;' 
-#          -e 's/(ZM_WEB_GROUP=).*$/${1}%{zmgid_final}/;' zm.conf
-
 %install
-install -d %{buildroot}/%{_localstatedir}/run
-install -d %{buildroot}/etc/logrotate.d
-
 export DESTDIR=%{buildroot}
-#export INSTALLDIRS=vendor
 make install
-
-# Move perl files into rhel compliant locations
-mkdir -p %{buildroot}/%{perl_vendorlib}
-mv %{buildroot}%{perl_archlib}/ZoneMinder* %{buildroot}/%{perl_vendorlib}
-rm -rf %{buildroot}%{_libdir}
-
-# Remove misc folder
-rm -rf %{buildroot}/%{_datadir}/%{name}/misc
-
-install -m 755 -d %{buildroot}/%{_localstatedir}/log/zoneminder
-for dir in events images temp
-do
-    install -m 755 -d %{buildroot}/%{_localstatedir}/lib/zoneminder/$dir
-    if [ -d %{buildroot}/%{_datadir}/zoneminder/www/$dir ]; then
-	    rmdir %{buildroot}/%{_datadir}/%{name}/www/$dir
-    fi
-    ln -sf ../../../..%{_localstatedir}/lib/zoneminder/$dir %{buildroot}/%{_datadir}/%{name}/www/$dir
-done
-install -m 755 -d %{buildroot}/%{_localstatedir}/lib/zoneminder/sock
-install -m 755 -d %{buildroot}/%{_localstatedir}/lib/zoneminder/swap
-install -m 755 -d %{buildroot}/%{_localstatedir}/spool/zoneminder-upload
-
-install -D -m 755 scripts/zm %{buildroot}/%{_initrddir}/zoneminder
-install -D -m 644 distros/redhat/zoneminder.conf %{buildroot}/%{_sysconfdir}/httpd/conf.d/zoneminder.conf
-install -D -m 755 distros/redhat/redalert.wav %{buildroot}/%{_datadir}/%{name}/www/sounds/redalert.wav
-install distros/redhat/zm-logrotate_d $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/%{name}
-
-# Install jscalendar
-install -d -m 755 %{buildroot}/%{_datadir}/%{name}/www/jscalendar
-cp -rp jscalendar-%{jscrev}/* %{buildroot}/%{_datadir}/%{name}/www/jscalendar
-
-# Install Cambozola
-cp -rp cambozola-%{cambrev}/dist/cambozola.jar %{buildroot}/%{_datadir}/%{name}/www/
-rm -rf cambozola-%{cambrev}
-
-# Install mootools
-pushd %{buildroot}/%{_datadir}/%{name}/www
-#install -m 644 %{Source2} mootools-core-%{moorev}-full-compat-yc.js
-#ln -s mootools-core-%{moorev}-full-compat-yc.js mootools.js
-ln -f -s tools/mootools/mootools-core-%{moorev}-yc.js mootools-core.js
-ln -f -s tools/mootools/mootools-more-%{moorev}.1-yc.js mootools-more.js
-popd
 
 %post
 /sbin/chkconfig --add zoneminder
@@ -194,7 +110,8 @@ rm -rf %{_docdir}/%{name}-%{version}
 
 %files
 %defattr(-,root,root,-)
-%doc AUTHORS BUGS ChangeLog COPYING LICENSE NEWS README.md distros/redhat/README.CentOS jscalendar-doc cambozola-doc distros/redhat/local_zoneminder.te
+%doc AUTHORS BUGS ChangeLog COPYING LICENSE NEWS README.md distros/redhat/README.CentOS distros/redhat/jscalendar-doc
+%doc distros/redhat/cambozola-doc distros/redhat/local_zoneminder.te
 %config(noreplace) %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm.conf
 %config(noreplace) %attr(644,root,root) %{_sysconfdir}/httpd/conf.d/zoneminder.conf
 %config(noreplace) /etc/logrotate.d/%{name}
@@ -219,6 +136,7 @@ rm -rf %{_docdir}/%{name}-%{version}
 %{_bindir}/zmx10.pl
 
 %{perl_vendorlib}/ZoneMinder*
+%{perl_vendorlib}/x86_64-linux-thread-multi/auto/ZoneMinder*
 %{_mandir}/man*/*
 %dir %{_libexecdir}/%{name}
 %{_libexecdir}/%{name}/cgi-bin
@@ -237,6 +155,9 @@ rm -rf %{_docdir}/%{name}-%{version}
 
 
 %changelog
+* Sat Oct 19 2013 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.26.4
+- Streamline the cmake build. Move much code into cmakelist.txt file.
+
 * Mon Oct 07 2013 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.26.4
 - Initial cmake build.
 

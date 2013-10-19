@@ -1,6 +1,6 @@
 #!/bin/sh
 # description: ZoneMinder is the top Linux video camera security and surveillance solution. ZoneMinder is intended for use in single or multi-camera video security applications.Copyright: Philip Coombes, Corey DeLasaux 2003-2008
-# chkconfig: 2345 99 00
+# chkconfig: - 99 00
 # processname: zmpkg.pl
 
 # Source function library.

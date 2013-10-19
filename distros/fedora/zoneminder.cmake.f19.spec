@@ -1,61 +1,46 @@
-%define cambrev 0.931
-%define moorev 1.3.2
-%define jscrev 1.0
-
 %define zmuid $(id -un)
 %define zmgid $(id -gn)
 %define zmuid_final apache
 %define zmgid_final apache
 
-Name:       zoneminder
-Version:    1.26.4
-Release:    1%{?dist}
-Summary:    A camera monitoring and analysis tool
-Group:      System Environment/Daemons
-# jscalendar is LGPL (any version):  http://www.dynarch.com/projects/calendar/
+Name: zoneminder
+Version: 1.26.4
+Release: 1%{?dist}
+Summary: A camera monitoring and analysis tool
+Group: System Environment/Daemons
+# jscalendar is LGPL (any version): http://www.dynarch.com/projects/calendar/
 # Mootools is inder the MIT license: http://mootools.net/
-License:    GPLv2+ and LGPLv2+ and MIT 
-URL:        http://www.zoneminder.com/
+License: GPLv2+ and LGPLv2+ and MIT
+URL: http://www.zoneminder.com/
 
-#Source:     https://github.com/ZoneMinder/ZoneMinder/archive/v%{version}.tar.gz
-Source:     ZoneMinder-%{version}.tar.gz
-Source2:    jscalendar-%{jscrev}.zip
-#Source2:    http://downloads.sourceforge.net/jscalendar/jscalendar-%{jscrev}.zip
+#Source: https://github.com/ZoneMinder/ZoneMinder/archive/v%{version}.tar.gz
+Source: ZoneMinder-%{version}.tar.gz
 
-# Need to unravel the proper mootools files to grab from upstream, since the
-# number of them keeps multiplying.  In the meantime, rely on the ones bundled
-# with zoneminder.  As these are javascript, there is no guideline violation
-# here.
-#Source3:    http://mootools.net/download/get/mootools-core-%{moorev}-full-compat-yc.js
-
-#Patch1:     zoneminder-1.26.4-dbinstall.patch
-Patch2:     zoneminder-1.24.3-runlevel.patch
-Patch3:     zoneminder-1.26.0-defaults.patch
+Patch1: zoneminder-1.26.0-defaults.patch
 # Enable this patch to disable ffmpeg support
-#Patch4:     zoneminder-1.26.3-noffmpeg.patch
+#Patch2: zoneminder-1.26.3-noffmpeg.patch
 
-BuildRequires:  cmake gnutls-devel systemd-units
-BuildRequires:  libtool bzip2-devel
-BuildRequires:  mysql-devel pcre-devel libjpeg-devel
-BuildRequires:  perl(Archive::Tar) perl(Archive::Zip)
-BuildRequires:  perl(Date::Manip) perl(DBD::mysql)
-BuildRequires:  perl(ExtUtils::MakeMaker) perl(LWP::UserAgent)
-BuildRequires:  perl(MIME::Entity) perl(MIME::Lite)
-BuildRequires:  perl(PHP::Serialization) perl(Sys::Mmap)
-BuildRequires:  perl(Time::HiRes) perl(Net::SFTP::Foreign)
-BuildRequires:  perl(Expect) 
-BuildRequires:  gcc gcc-c++
+BuildRequires: cmake gnutls-devel systemd-units bzip2-devel
+BuildRequires: community-mysql-devel pcre-devel libjpeg-turbo-devel
+BuildRequires: perl(Archive::Tar) perl(Archive::Zip)
+BuildRequires: perl(Date::Manip) perl(DBD::mysql)
+BuildRequires: perl(ExtUtils::MakeMaker) perl(LWP::UserAgent)
+BuildRequires: perl(MIME::Entity) perl(MIME::Lite)
+BuildRequires: perl(PHP::Serialization) perl(Sys::Mmap)
+BuildRequires: perl(Time::HiRes) perl(Net::SFTP::Foreign)
+BuildRequires: perl(Expect)
+BuildRequires: gcc gcc-c++
 # Comment out for no ffmpeg
-BuildRequires:  ffmpeg-devel
+BuildRequires: ffmpeg-devel
 # Uncomment for X10 support
-#BuildRequires:  perl(X10::ActiveHome) perl(Astro::SunTime)
+#BuildRequires: perl(X10::ActiveHome) perl(Astro::SunTime)
 
-Requires:   httpd php php-mysql cambozola
-Requires:   libjpeg-turbo ffmpeg
-Requires:   perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
-Requires:   perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)
-Requires:   perl(MIME::Entity) perl(MIME::Lite) perl(Net::SMTP) perl(Net::FTP)
-Requires:   perl(LWP::Protocol::https)
+Requires: httpd php php-mysql cambozola
+Requires: libjpeg-turbo ffmpeg
+Requires: perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
+Requires: perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)
+Requires: perl(MIME::Entity) perl(MIME::Lite) perl(Net::SMTP) perl(Net::FTP)
+Requires: perl(LWP::Protocol::https)
 
 Requires(post): systemd-units systemd-sysv
 Requires(post): /usr/bin/gpasswd
@@ -75,94 +60,21 @@ too much degradation of performance.
 %prep
 %setup -q -n ZoneMinder-%{version}
 
-# Unpack jscalendar and move some files around
-%setup -q -D -T -a 2 -n ZoneMinder-%{version}
-mkdir jscalendar-doc
-pushd jscalendar-1.0
-mv *html *php doc/* README ../jscalendar-doc
-rmdir doc
-popd
-
-#%patch1 -p0 -b .dbinstall
-%patch2 -p0 -b .runlevel
-%patch3 -p0 -b .defaults
-#%patch4 -p0 -b .noffmpeg
-
-# verify this is needed
-chmod -x src/zm_event.cpp src/zm_user.h
+%patch1 -p0 -b .defaults
+#%patch2 -p0 -b .noffmpeg
 
 %build
-%cmake .
+%cmake -DZM_TARGET_DISTRO="f19" -DZM_NO_X10=ON -DZM_NO_FFMPEG=ON -DZM_PERL_SUBPREFIX="%{perl_vendorlib}" .
 
 make %{?_smp_mflags}
 
-# cmake does this for us
-#%{__perl} -pi -e 's/(ZM_WEB_USER=).*$/${1}%{zmuid_final}/;' 
-#          -e 's/(ZM_WEB_GROUP=).*$/${1}%{zmgid_final}/;' zm.conf
-
 %install
-# TO-DO move much of this section into CMakeLists.txt
-install -d %{buildroot}/%{_localstatedir}/run
-
 export DESTDIR=%{buildroot}
-#export INSTALLDIRS=vendor
 make install
-
-# rm -rf %{buildroot}/%{perl_vendorarch} %{buildroot}/%{perl_archlib}
-
-# Move perl files into rhel compliant locations
-mkdir -p %{buildroot}/%{perl_vendorlib}
-mv %{buildroot}%{perl_archlib}/ZoneMinder* %{buildroot}/%{perl_vendorlib}
-rm -rf %{buildroot}%{_libdir}
-
-# Remove misc folder
-rm -rf %{buildroot}/%{_datadir}/%{name}/misc
-
-# Comment out for x10 support
-rm -f %{buildroot}/%{_bindir}/zmx10.pl
-
-install -m 755 -d %{buildroot}/var/log/zoneminder
-for dir in events images temp
-do
-    install -m 755 -d %{buildroot}/var/lib/zoneminder/$dir
-    if [ -d %{buildroot}/%{_datadir}/zoneminder/www/$dir ]; then
-	    rmdir %{buildroot}/%{_datadir}/zoneminder/www/$dir
-    fi
-    ln -sf ../../../../var/lib/zoneminder/$dir %{buildroot}/%{_datadir}/zoneminder/www/$dir
-done
-install -m 755 -d %{buildroot}/var/lib/zoneminder/sock
-install -m 755 -d %{buildroot}/var/lib/zoneminder/swap
-install -m 755 -d %{buildroot}/var/spool/zoneminder-upload
-
-install -D -m 644 distros/fedora/zoneminder.conf %{buildroot}/etc/httpd/conf.d/zoneminder.conf
-install -D -m 755 distros/fedora/redalert.wav %{buildroot}/%{_datadir}/zoneminder/www/sounds/redalert.wav
-install -D -m 644 distros/fedora/zoneminder.service %{buildroot}/%{_unitdir}/zoneminder.service
-install -D -m 644 distros/fedora/zoneminder.logrotate %{buildroot}/etc/logrotate.d/zoneminder
-
-# Install jscalendar - this really should be in its own package
-install -d -m 755 %{buildroot}/%{_datadir}/%{name}/www/jscalendar
-cp -rp jscalendar-1.0/* %{buildroot}/%{_datadir}/zoneminder/www/jscalendar
-
-# Set up cambozola
-pushd %{buildroot}/%{_datadir}/zoneminder/www
-ln -s ../../java/cambozola.jar
-popd
-
-# Set up mootools
-pushd %{buildroot}/%{_datadir}/%{name}/www
-ln -f -s tools/mootools/mootools-core-%{moorev}-yc.js mootools-core.js
-ln -f -s tools/mootools/mootools-more-%{moorev}.1-yc.js mootools-more.js
-popd
-
-# Create an entry for tmpfiles.d
-install -D -m 755 distros/fedora/zoneminder.tmpfiles %{buildroot}/etc/tmpfiles.d/zoneminder.conf
-
-install -m 755 -d %{buildroot}/run/zoneminder
-
 
 %post
 if [ $1 -eq 1 ] ; then
-    # Initial installation 
+    # Initial installation
     /bin/systemctl daemon-reload >/dev/null 2>&1 || :
 fi
 
@@ -199,8 +111,8 @@ fi
 
 %files
 %defattr(-,root,root,-)
-%doc AUTHORS COPYING README.md distros/fedora/README.Fedora jscalendar-doc
-%config(noreplace) %attr(640,root,%{zmgid_final}) /etc/zm.conf
+%doc AUTHORS COPYING README.md distros/fedora/README.Fedora distros/fedora/jscalendar-doc
+%config %attr(640,root,%{zmgid_final}) /etc/zm.conf
 %config(noreplace) %attr(644,root,root) /etc/httpd/conf.d/zoneminder.conf
 %config(noreplace) /etc/tmpfiles.d/zoneminder.conf
 %config(noreplace) /etc/logrotate.d/zoneminder
@@ -223,9 +135,12 @@ fi
 %{_bindir}/zmupdate.pl
 %{_bindir}/zmvideo.pl
 %{_bindir}/zmwatch.pl
+# Uncomment this for x10 support
 #%{_bindir}/zmx10.pl
 
 %{perl_vendorlib}/ZoneMinder*
+%{perl_vendorlib}/x86_64-linux-thread-multi/auto/ZoneMinder*
+#%{perl_archlib}/ZoneMinder*
 %{_mandir}/man*/*
 %dir %{_libexecdir}/zoneminder
 %{_libexecdir}/zoneminder/cgi-bin
@@ -261,7 +176,7 @@ fi
 * Mon Jan 21 2013 Adam Tkac <atkac redhat com> - 1.25.0-12
 - rebuild due to "jpeg8-ABI" feature drop
 
-* Mon Jan  7 2013 Remi Collet <rcollet@redhat.com> - 1.25.0-11
+* Mon Jan 7 2013 Remi Collet <rcollet@redhat.com> - 1.25.0-11
 - fix configuration file for httpd 2.4, #871502
 
 * Fri Dec 21 2012 Adam Tkac <atkac redhat com> - 1.25.0-10
@@ -338,7 +253,7 @@ fi
 - Bump for gnutls update.
 
 * Thu Mar 24 2011 Jason L Tibbitts III <tibbs@math.uh.edu> - 1.24.3-4.20110324svn3310
-- Update to latest 1.24.3 subversion.  Turns out that what upstream was calling
+- Update to latest 1.24.3 subversion. Turns out that what upstream was calling
   1.24.3 is really just an occasionally updated devel snapshot.
 - Rebase various patches.
 
@@ -366,7 +281,7 @@ fi
 * Wed Jun 02 2010 Marcela Maslanova <mmaslano@redhat.com> - 1.24.2-5
 - Mass rebuild with perl-5.12.0
 
-* Fri Dec  4 2009 Stepan Kasal <skasal@redhat.com> - 1.24.2-4
+* Fri Dec 4 2009 Stepan Kasal <skasal@redhat.com> - 1.24.2-4
 - rebuild against perl 5.10.1
 - use Perl vendorarch and archlib variables correctly
 
@@ -406,10 +321,10 @@ fi
 * Fri Jul 11 2008 Jason L Tibbitts III <tibbs@math.uh.edu> - 1.23.3-1
 - Initial attempt at packaging 1.23.
 
-* Tue Jul  1 2008 Martin Ebourne <martin@zepler.org> - 1.22.3-15
+* Tue Jul 1 2008 Martin Ebourne <martin@zepler.org> - 1.22.3-15
 - Add perl module compat dependency, bz #453590
 
-* Tue May  6 2008 Martin Ebourne <martin@zepler.org> - 1.22.3-14
+* Tue May 6 2008 Martin Ebourne <martin@zepler.org> - 1.22.3-14
 - Remove default runlevel, bz #441315
 
 * Mon Apr 28 2008 Jason L Tibbitts III <tibbs@math.uh.edu> - 1.22.3-13
@@ -418,13 +333,13 @@ fi
 * Tue Feb 19 2008 Fedora Release Engineering <rel-eng@fedoraproject.org> - 1.22.3-12
 - Autorebuild for GCC 4.3
 
-* Thu Jan  3 2008 Martin Ebourne <martin@zepler.org> - 1.22.3-11
+* Thu Jan 3 2008 Martin Ebourne <martin@zepler.org> - 1.22.3-11
 - Fix compilation on gcc 4.3
 
-* Thu Dec  6 2007 Martin Ebourne <martin@zepler.org> - 1.22.3-10
+* Thu Dec 6 2007 Martin Ebourne <martin@zepler.org> - 1.22.3-10
 - Rebuild for new openssl
 
-* Thu Aug  2 2007 Martin Ebourne <martin@zepler.org> - 1.22.3-8
+* Thu Aug 2 2007 Martin Ebourne <martin@zepler.org> - 1.22.3-8
 - Fix licence tag
 
 * Thu Jul 12 2007 Martin Ebourne <martin@zepler.org> - 1.22.3-7
@@ -443,7 +358,7 @@ fi
 * Sun Jun 10 2007 Martin Ebourne <martin@zepler.org> - 1.22.3-3
 - Changes recommended in review by Jason Tibbitts
 
-* Mon Apr  2 2007 Martin Ebourne <martin@zepler.org> - 1.22.3-2
+* Mon Apr 2 2007 Martin Ebourne <martin@zepler.org> - 1.22.3-2
 - Standardised on package name of zoneminder
 
 * Thu Dec 28 2006 Martin Ebourne <martin@zepler.org> - 1.22.3-1

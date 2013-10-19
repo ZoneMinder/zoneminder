@@ -65,6 +65,7 @@ $cakeDescription = __d('cake_dev', 'CakePHP: the rapid development php framework
 					<li><?php echo $this->Html->link('Events', '/Events/'); ?></li>
 					<li><?php echo $this->Html->link('Options', array('controller' => 'Config', 'action' => 'index')); ?></li>
 					<li><?php echo $this->Html->link('Logs', array('controller' => 'Logs', 'action' => 'index')); ?></li>
+					<li><?php echo $this->Html->link('Zones', array('controller' => 'Zones', 'action' => 'index')); ?></li>
 				</ul>
 			</div>
 		</div>

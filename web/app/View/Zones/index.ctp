@@ -6,7 +6,7 @@
 ?>
 <table class="table">
 <?
-  echo $this->Html->tableHeaders(array('Monitor', 'Zone Name'));
+  echo $this->Html->tableHeaders(array('Monitor Name', 'Zone Name', 'Zone Type'));
   foreach ($zones as $zone) {
     echo $this->Html->tableCells(array(
       $zone['Monitor']['Name'],
@@ -14,7 +14,8 @@
         'controller' => 'zones',
         'action' => 'edit',
         $zone['Zone']['Id'],
-      ))
+      )),
+	$zone['Zone']['Type']
     ));
   }
 ?>

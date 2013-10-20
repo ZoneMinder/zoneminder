@@ -64,7 +64,7 @@ too much degradation of performance.
 #%patch2 -p0 -b .noffmpeg
 
 %build
-%cmake -DZM_TARGET_DISTRO="f19" -DZM_NO_X10=ON -DZM_NO_FFMPEG=ON -DZM_PERL_SUBPREFIX="%{perl_vendorlib}" .
+%cmake -DZM_TARGET_DISTRO="f19" -DZM_NO_X10=ON -DZM_NO_FFMPEG=ON -DZM_PERL_SUBPREFIX=`x="%{perl_vendorlib}" ; echo ${x#"%{_prefix}"}` .
 
 make %{?_smp_mflags}
 

@@ -1,4 +1,9 @@
-<?php $this->assign('title', 'Zones'); ?>
+<?php
+	$this->assign('title', 'Zones');
+	$this->start('sidebar');
+	echo $this->Form->select("Monitor", $monitors, array('empty' => 'Filter Zones'));
+	$this->end();
+?>
 <table class="table">
 <?
   echo $this->Html->tableHeaders(array('Monitor', 'Zone Name'));

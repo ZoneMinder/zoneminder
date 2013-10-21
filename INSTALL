@@ -71,7 +71,7 @@ To replace the CFLAGS and CXXFLAGS entirely:
 *   For the Debug build type: use CMAKE_C_FLAGS_DEBUG for the CFLAGS and CMAKE_CXX_FLAGS_DEBUG for the CXXFLAGS
 Other important environment variables (such as LDFLAGS) are also supported.
 
-The DESTDIR environment variable is also supported, however it needs to be set by invoking cmake. For example: DESTDIR=mydestdir cmake [extra options] .
+The DESTDIR environment variable is also supported, however it needs to be set before invoking cmake. For example: DESTDIR=mydestdir cmake [extra options] .
 For more information about DESTDIR, see:
 *   http://www.gnu.org/prep/standards/html_node/DESTDIR.html
 

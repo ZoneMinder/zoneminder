@@ -39,7 +39,7 @@ include (CheckTypeSize)
 include (CheckStructHasMember)
 
 # Configuration options
-mark_as_advanced(FORCE ZM_EXTRA_LIBS ZM_MYSQL_ENGINE ZM_NO_MMAP CMAKE_INSTALL_FULL_BINDIR ZM_PERL_SUBPREFIX ZM_PERL_USE_PATH)
+mark_as_advanced(FORCE ZM_EXTRA_LIBS ZM_MYSQL_ENGINE ZM_NO_MMAP CMAKE_INSTALL_FULL_BINDIR ZM_PERL_SUBPREFIX ZM_PERL_USE_PATH ZM_TARGET_DISTRO)
 set(ZM_RUNDIR "/var/run/zm" CACHE PATH "Location of transient process files, default: /var/run/zm")
 set(ZM_TMPDIR "/tmp/zm" CACHE PATH "Location of temporary files, default: /tmp/zm")
 set(ZM_LOGDIR "/var/log/zm" CACHE PATH "Location of generated log files, default: /var/log/zm")
@@ -57,9 +57,9 @@ set(ZM_EXTRA_LIBS "" CACHE STRING "A list of optional libraries, separated by se
 set(ZM_MYSQL_ENGINE "InnoDB" CACHE STRING "MySQL engine to use with database, default: InnoDB")
 set(ZM_NO_MMAP "OFF" CACHE BOOL "Set to ON to not use mmap shared memory. Shouldn't be enabled unless you experience problems with the shared memory. default: OFF")
 set(ZM_NO_FFMPEG "OFF" CACHE BOOL "Set to ON to skip ffmpeg checks and force building ZM without ffmpeg. default: OFF")
-set(ZM_NO_X10 "OFF" CACHE BOOL "Set to ON to build ZoneMinder without X10 support")
+set(ZM_NO_X10 "OFF" CACHE BOOL "Set to ON to build ZoneMinder without X10 support. default: OFF")
 set(ZM_PERL_SUBPREFIX "${CMAKE_INSTALL_LIBDIR}/perl5" CACHE PATH "Use a different directory for the zm perl modules. NOTE: This is a subprefix, e.g. lib will be turned into <prefix>/lib, default: ${CMAKE_INSTALL_LIBDIR}/perl5")
-set(ZM_PERL_USE_PATH "${CMAKE_INSTALL_PREFIX}/${ZM_PERL_SUBPREFIX}" CACHE PATH "Override the include path for zm perl modules. Useful if you are moving the perl modules without using the ZM_PERL_SUBPREFIX option. default: <prefix>/<zmperlprefix>")
+set(ZM_PERL_USE_PATH "${CMAKE_INSTALL_PREFIX}/${ZM_PERL_SUBPREFIX}" CACHE PATH "Override the include path for zm perl modules. Useful if you are moving the perl modules without using the ZM_PERL_SUBPREFIX option. default: <prefix>/<zmperlsubprefix>")
 set(ZM_TARGET_DISTRO "" CACHE STRING "Build ZoneMinder for a specific distribution.  Currently, valid names are: f19, el6")
 # Only required for cmakecacheimport:
 set(CMAKE_INSTALL_FULL_BINDIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}" CACHE PATH "Override default binary directory")
@@ -427,9 +427,9 @@ set(EXTRA_PERL_LIB "use lib '${ZM_PERL_USE_PATH}';")
 
 # Reassign some variables if a target distro has been specified
 if((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "el6"))
-set(ZM_RUNDIR "/var/run/zoneminder")
-set(ZM_TMPDIR "/var/lib/zoneminder/temp")
-set(ZM_LOGDIR "/var/log/zoneminder")
+	set(ZM_RUNDIR "/var/run/zoneminder")
+	set(ZM_TMPDIR "/var/lib/zoneminder/temp")
+	set(ZM_LOGDIR "/var/log/zoneminder")
 endif((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "el6"))
 
 # Generate files from the .in files
@@ -443,12 +443,14 @@ add_subdirectory(src)
 add_subdirectory(scripts)
 add_subdirectory(db)
 add_subdirectory(web)
+
+# Process misc subdirectories
 if(ZM_TARGET_DISTRO STREQUAL "f19")
-add_subdirectory(distros/fedora)
+	add_subdirectory(distros/fedora)
 elseif(ZM_TARGET_DISTRO STREQUAL "el6")
-add_subdirectory(distros/redhat)
+	add_subdirectory(distros/redhat)
 else(ZM_TARGET_DISTRO STREQUAL "el6")
-add_subdirectory(misc)
+	add_subdirectory(misc)
 endif(ZM_TARGET_DISTRO STREQUAL "f19")
 
 # Print optional libraries detection status
@@ -466,4 +468,12 @@ endif(zmconfgen_result EQUAL 0)
 
 # Install zm.conf
 install(FILES zm.conf DESTINATION "/${CMAKE_INSTALL_SYSCONFDIR}")
+
+# Uninstall target
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/cmake/cmake_uninstall.cmake"
+    IMMEDIATE @ONLY)
+add_custom_target(uninstall
+    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake/cmake_uninstall.cmake)
 

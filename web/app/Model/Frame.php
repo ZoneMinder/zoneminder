@@ -10,6 +10,8 @@ class Frame extends AppModel {
   );
 
   public function createListThumbnail( $event, $overwrite=false) {
+    $Config = ClassRegistry::init('Config');
+
     $frame = $this->find('first', array(
       'conditions' => array(
         'EventId' => $event['Id'],
@@ -23,8 +25,10 @@ class Frame extends AppModel {
     }
 
     $frameId = $frame['Frame']['FrameId'];
-    $thumbWidth = Configure::read('ZM_WEB_LIST_THUMB_WIDTH');
-    $thumbHeight = Configure::read('ZM_WEB_LIST_THUMB_HEIGHT');
+    $thumbWidth = $Config->findByName('ZM_WEB_LIST_THUMB_WIDTH');
+    $thumbWidth = $thumbWidth['Config']['Value'];
+    $thumbHeight = $Config->findByName('ZM_WEB_LIST_THUMB_HEIGHT');
+    $thumbHeigh = $thumbHeight['Config']['Value'];
     $scale = Configure::read('SCALE_BASE');
 
     // Should we scale the thumbnail based on the width or height of the image?

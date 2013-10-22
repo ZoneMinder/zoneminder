@@ -11,8 +11,7 @@
 	),
 	'Zone' => array(
 		'className' => 'Zone',
-		'foreignKey' => 'MonitorId',
-		'fields' => 'Zone.Id'
+		'foreignKey' => 'MonitorId'
 	)
 );
 

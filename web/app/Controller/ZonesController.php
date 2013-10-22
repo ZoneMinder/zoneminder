@@ -8,11 +8,14 @@ class ZonesController extends AppController {
     }
 
 	public function edit($zid = null) {
-		$zone = $this->Zone->find('first', array('conditions' => array('Zone.Id' => $zid)));
+		$zone = $this->Zone->findById($zid);
 		$mid = $zone['Monitor']['Id'];
 		$this->Zone->createSnapshot($mid, $zid);
 		$this->set('zoneImage', '/img'.'/Zones'.$mid.'.jpg?'.time());
-
+		$this->set('zone', $zone['Zone']);
+		if (!$this->request->data) {
+			$this->request->data = $zone;
+		}
 	}
 
 }

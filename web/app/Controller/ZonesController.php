@@ -21,6 +21,17 @@ class ZonesController extends AppController {
 		$this->Zone->createSnapshot($mid, $zid);
 		$this->set('zoneImage', '/img'.'/Zones'.$mid.'.jpg?'.time());
 		$this->set('zone', $zone['Zone']);
+
+		if ($this->request->is('put') || $this->request->is('post')) {
+			$this->Zone->id = $zid;
+	        	if ($this->Zone->save($this->request->data)) {
+	        	    $this->Session->setFlash('Your zone has been updated.');
+	        	    $this->redirect(array('action' => 'index'));
+	        	} else {
+	        	    $this->Session->setFlash('Unable to update your zone.');
+	        	}
+		}
+
 		if (!$this->request->data) {
 			$this->request->data = $zone;
 		}

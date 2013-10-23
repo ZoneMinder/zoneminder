@@ -1,4 +1,29 @@
 <?php
+	$optionsCheckMethod = array(
+		'AlarmedPixels' => 'AlarmedPixels',
+		'Blobs' => 'Blobs',
+		'FilteredPixels' => 'FilteredPixels'
+	);
+	$optionsUnits = array(
+		'Pixels' => 'Pixels',
+		'Percent' => 'Percent'
+	);
+	$optionsPreset = array(
+		'Fast, low sensitivity',
+		'Fast, medium sensitivity',
+		'Fast, high sensitivity',
+		'Best, low sensitivity',
+		'Best, medium sensitivity',
+		'Best, high sensitivity'
+	);
+	$optionsType = array(
+		'Inclusive' => 'Inclusive',
+		'Exclusive' => 'Exclusive',
+		'Preclusive' => 'Preclusive',
+		'Active' => 'Active',
+		'Inactive' => 'Inactive'
+	);
+
 	echo $this->Form->create('Zone', array(
 		'inputDefaults' => array(
 			'legend' => false,
@@ -12,10 +37,10 @@
 
 	echo $this->Form->input('Name');
 
-	echo $this->Form->input('Type', array('type' => 'select'));
-	echo $this->Form->input('Preset', array('type' => 'select'));
-	echo $this->Form->input('Units', array('type' => 'select'));
-	echo $this->Form->input('CheckMethod', array('type' => 'select'));
+	echo $this->Form->input('Type', array('type' => 'select', 'options' => $optionsType));
+	echo $this->Form->input('Preset', array('type' => 'select', 'options' => $optionsPreset));
+	echo $this->Form->input('Units', array('type' => 'select', 'options' => $optionsUnits));
+	echo $this->Form->input('CheckMethod', array('type' => 'select', 'options' => $optionsCheckMethod));
 
 	echo $this->Form->input('MinPixelThreshold');
 	echo $this->Form->input('MaxPixelThreshold');

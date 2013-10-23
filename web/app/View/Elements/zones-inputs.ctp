@@ -62,6 +62,8 @@
 
 	echo $this->Form->input('OverloadFrames');
 
-	echo $this->Form->input('id', array('type' => 'hidden'));
+	echo $this->Form->input('Id', array('type' => 'hidden'));
+	echo $this->Form->input('NumCoords', array('type' => 'hidden'));
+	echo $this->Form->input('Coords', array('type' => 'hidden'));
 	echo $this->Form->end(array('label' => 'Save Zone', 'class' => array('btn', 'btn-default')));
 ?>

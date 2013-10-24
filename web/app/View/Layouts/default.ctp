@@ -60,13 +60,7 @@ $cakeDescription = __d('cake_dev', 'CakePHP: the rapid development php framework
 				<a class="navbar-brand" href="#">ZoneMinder</a>
 			</div>
 			<div class="navbar-collapse collapse">
-				<ul class="nav navbar-nav">
-					<li><?php echo $this->Html->link('Dashboard', array('controller' => 'Monitors', 'action' => 'index')); ?></li>
-					<li><?php echo $this->Html->link('Events', '/Events/'); ?></li>
-					<li><?php echo $this->Html->link('Options', array('controller' => 'Config', 'action' => 'index')); ?></li>
-					<li><?php echo $this->Html->link('Logs', array('controller' => 'Logs', 'action' => 'index')); ?></li>
-					<li><?php echo $this->Html->link('Zones', array('controller' => 'Zones', 'action' => 'index')); ?></li>
-				</ul>
+				<?php echo $this->element('navigation'); ?>
 			</div>
 		</div>
 	</div>

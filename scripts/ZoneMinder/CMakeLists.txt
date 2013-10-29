@@ -13,7 +13,7 @@ else(CMAKE_VERBOSE_MAKEFILE)
 endif(CMAKE_VERBOSE_MAKEFILE)
 
 # Add build target for the perl modules
-add_custom_target(zmperlmodules ALL perl Makefile.PL FIRST_MAKEFILE=MakefilePerl PREFIX=output LIB="output/${ZM_PERL_SUBPREFIX}" ${MAKEMAKER_NOECHO_COMMAND} COMMAND make --makefile=MakefilePerl COMMAND make --makefile=MakefilePerl pure_install COMMENT "Building ZoneMinder perl modules")
+add_custom_target(zmperlmodules ALL perl Makefile.PL FIRST_MAKEFILE=MakefilePerl PREFIX=output LIB="output/${ZM_PERL_SUBPREFIX}" INSTALLMAN3DIR="output/${CMAKE_INSTALL_MANDIR}/man3" ${MAKEMAKER_NOECHO_COMMAND} COMMAND make --makefile=MakefilePerl COMMAND make --makefile=MakefilePerl pure_install COMMENT "Building ZoneMinder perl modules")
 
 # Add install target for the perl modules
 install(DIRECTORY output/ DESTINATION "${CMAKE_INSTALL_PREFIX}")

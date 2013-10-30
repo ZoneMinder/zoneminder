@@ -167,7 +167,7 @@ protected:
 #else // ZM_MEM_MAPPED
         int             shm_id;
 #endif // ZM_MEM_MAPPED
-		int				mem_size;
+		long				mem_size;
 		unsigned char	*mem_ptr;
 
 		volatile SharedData	*shared_data;
@@ -263,7 +263,7 @@ protected:
 #else // ZM_MEM_MAPPED
     int             shm_id;
 #endif // ZM_MEM_MAPPED
-	int				mem_size;
+	long				mem_size;
 	unsigned char	*mem_ptr;
 
 	SharedData		*shared_data;

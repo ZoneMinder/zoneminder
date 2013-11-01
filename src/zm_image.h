@@ -187,11 +187,12 @@ public:
 
 	inline void CopyBuffer( const Image &image )
 	{
-		if ( image.size != size )
-        {
-		Panic( "Attempt to copy different size image buffers, expected %d, got %d", size, image.size );
-        }
-		(*fptr_imgbufcpy)(buffer, image.buffer, size);
+		Assign(image);
+	}
+	inline Image &operator=( const Image &image )
+	{
+		Assign(image);
+		return *this;
 	}
 	inline Image &operator=( const unsigned char *new_buffer )
 	{

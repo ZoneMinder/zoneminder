@@ -1092,7 +1092,7 @@ int RemoteCameraHttp::Capture( Image &image )
         Warning( "Unable to capture image, retrying" );
         return( 1 );
     }
-    if ( content_length < 0 )
+    if ( (int)content_length < 0 )
     {
         Error( "Unable to get response" );
         Disconnect();

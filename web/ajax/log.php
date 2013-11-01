@@ -35,7 +35,7 @@ switch ( $_REQUEST['task'] )
         $limit = isset($_POST['limit'])?$_POST['limit']:1000;
         $filter = isset($_POST['filter'])?$_POST['filter']:array();
         $sortField = isset($_POST['sortField'])?$_POST['sortField']:'TimeKey';
-        $sortOrder = isset($_POST['sortOrder'])?$_POST['sortOrder']:'desc';
+        $sortOrder = isset($_POST['sortOrder']) and $_POST['sortOrder'] == 'asc' ? 'asc':'desc';
 
         $filterFields = array( 'Component', 'Pid', 'Level', 'File', 'Line' );
 
@@ -44,6 +44,7 @@ switch ( $_REQUEST['task'] )
         $total = dbFetchOne( $countSql, 'Total' );
         $sql = "select * from Logs";
         $where = array();
+		$values = array();
         if ( $minTime )
             $where[] = "TimeKey > ".dbEscape($minTime);
         elseif ( $maxTime )
@@ -55,7 +56,7 @@ switch ( $_REQUEST['task'] )
                 $where[] = dbEscape($field)." = '".dbEscape($value)."'";
         if ( count($where) )
             $sql.= " where ".join( " and ", $where );
-        $sql .= " order by ".dbEscape($sortField)." ".dbEscape($sortOrder)." limit ".dbEscape($limit);
+        $sql .= " order by ".dbEscape($sortField)." ".$sortOrder." limit ".dbEscape($limit);
         $logs = array();
         foreach ( dbFetchAll( $sql ) as $log )
         {

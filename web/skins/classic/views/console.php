@@ -114,8 +114,8 @@ for ( $i = 0; $i < count($monitors); $i++ )
         $counts[] = "count(if(1".$filter['sql'].",1,NULL)) as EventCount$j";
         $monitors[$i]['eventCounts'][$j]['filter'] = $filter;
     }
-    $sql = "select ".join($counts,", ")." from Events as E where MonitorId = '".$monitors[$i]['Id']."'";
-    $counts = dbFetchOne( $sql );
+    $sql = "select ".join($counts,", ")." from Events as E where MonitorId = ?";
+    $counts = dbFetchOne( $sql, NULL, array($monitors[$i]['Id']) );
     if ( $monitors[$i]['Function'] != 'None' )
     {
         $cycleCount++;
@@ -124,7 +124,7 @@ for ( $i = 0; $i < count($monitors); $i++ )
         if ( $maxWidth < $scaleWidth ) $maxWidth = $scaleWidth;
         if ( $maxHeight < $scaleHeight ) $maxHeight = $scaleHeight;
     }
-    $monitors[$i] = array_merge( $monitors[$i], $counts );
+    if ( $counts ) $monitors[$i] = array_merge( $monitors[$i], $counts );
     $seqIdList[] = $monitors[$i]['Id'];
     $displayMonitors[] = $monitors[$i];
 }

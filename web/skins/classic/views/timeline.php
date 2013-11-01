@@ -382,8 +382,8 @@ foreach( dbFetchAll( $eventsSql ) as $event )
     {
         if ( $startIndex == $endIndex )
         {
-            $framesSql = "select FrameId,Score from Frames where EventId = '".$event['Id']."' and Score > 0 order by Score desc limit 1";
-            $frame = dbFetchOne( $framesSql );
+            $framesSql = "select FrameId,Score from Frames where EventId = ? and Score > 0 order by Score desc limit 1";
+            $frame = dbFetchOne( $framesSql, NULL, array($event['Id']) );
 
             $i = $startIndex;
             if ( !isset($currFrameSlots[$i]) )
@@ -407,8 +407,8 @@ foreach( dbFetchAll( $eventsSql ) as $event )
         }
         else
         {
-            $framesSql = "select FrameId,Delta,unix_timestamp(TimeStamp) as TimeT,Score from Frames where EventId = '".$event['Id']."' and Score > 0";
-            $result = dbQuery( $framesSql );
+            $framesSql = "select FrameId,Delta,unix_timestamp(TimeStamp) as TimeT,Score from Frames where EventId = ? and Score > 0";
+            $result = dbQuery( $framesSql, array( $event['Id'] ) );
             while( $frame = dbFetchNext( $result ) )
             {
                 if ( $frame['Score'] == 0 )
@@ -462,8 +462,8 @@ if ( false )
             {
                 if ( !isset($currFrameSlots[$i]['frame']) )
                 {
-                    $framesSql = "select FrameId,Score from Frames where EventId = '".$currFrameSlots[$i]['event']['Id']."' and Score > 0 order by FrameId limit 1";
-                    $currFrameSlots[$i]['frame'] = dbFetchOne( $framesSql );
+                    $framesSql = "select FrameId,Score from Frames where EventId = ? and Score > 0 order by FrameId limit 1";
+                    $currFrameSlots[$i]['frame'] = dbFetchOne( $framesSql, NULL, array( $currFrameSlots[$i]['event']['Id'] ) );
                 }
             }
         }

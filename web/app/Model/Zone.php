@@ -12,7 +12,7 @@ class Zone extends AppModel {
 		# chdir(Configure::read('ZM_PATH_WEB') . '/' . Configure::read('ZM_DIR_IMAGES'));
 		chdir(WWW_ROOT . '/img');
 		$command = Configure::read('ZM_PATH_BIN');
-                $command .= "/zmu -m $mid -z$zid";
+                $command .= "/zmu -m $mid -z";
 		exec( escapeshellcmd( $command ), $output, $status );
 		return $status;
 	}

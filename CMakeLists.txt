@@ -12,6 +12,11 @@ cmake_minimum_required (VERSION 2.6)
 project (zoneminder)
 set(zoneminder_VERSION "1.26.4")
 
+# CMake does not allow out-of-source build if CMakeCache.exists in the source folder. Abort and notify the user to save him from headache why it doesn't work.
+if((NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)) AND (EXISTS "${CMAKE_SOURCE_DIR}/CMakeCache.txt"))
+	message(FATAL_ERROR " You are attempting to do an out-of-source build, but a cmake cache file for an in-source build exists. Please delete the file CMakeCache.txt from the source folder to proceed.")
+endif((NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)) AND (EXISTS "${CMAKE_SOURCE_DIR}/CMakeCache.txt"))
+
 # Default build type. To change the build type, use the CMAKE_BUILD_TYPE configuration option.
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type: Release or Debug" FORCE)

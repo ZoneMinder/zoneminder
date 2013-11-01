@@ -20,6 +20,8 @@
 # Edit these to suit your configuration
 ZM_CONFIG=@ZM_CONFIG@
 source $ZM_CONFIG
+# ZM_VERSION in the config is now deprecated but will likely still exist in people's config files. This will override it.
+ZM_VERSION=@VERSION@
 
 MYSQLDUMP=/usr/bin/mysqldump
 BACKUP_PATH=/var/lib/zm

@@ -8,11 +8,11 @@
 
 <div class="row">
 
-<div class="col-md-3">
+<div class="col-md-2">
 <?php echo $this->element('zones-inputs'); ?>
 </div>
 
-<div class="col-md-9">
+<div class="col-md-10">
 <?php echo $this->element('zones-canvas'); ?>
 </div>
 

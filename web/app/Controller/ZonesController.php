@@ -2,6 +2,7 @@
 
 class ZonesController extends AppController {
     public function index() {
+	$this->layout = 'nosidebar';
 	$this->loadModel('Monitor');
 	$this->set('zones', $this->Zone->find('all'));
 	$this->set('monitors', $this->Monitor->find('list'));

@@ -19,9 +19,9 @@
 		'id' => $mon['img']['id'],
 		'width' => Configure::read('ZM_WEB_LIST_THUMB_WIDTH')
 	)); ?>
-        </div>
         <div class="caption">
           <p><?php echo $this->Html->link($mon['Monitor']['Function'], array('action' => 'edit', $mon['Monitor']['Id'])); ?></p>
+        </div>
         </div>
       </div>
     </div>

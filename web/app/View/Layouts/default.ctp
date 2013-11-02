@@ -50,48 +50,8 @@ $cakeDescription = __d('cake_dev', 'CakePHP: the rapid development php framework
 	?>
 </head>
 <body>
-  <div id="loadingDiv"><div></div></div>
-	<div id="header" class="navbar navbar-default" role="navigation">
-		<p class="navbar-text navbar-right"><?php echo $daemonStatusHtml; ?></p>
-		<p class="navbar-text navbar-right">Used Event Storage: <?php echo $diskSpace; ?>%</p>
-		<p class="navbar-text navbar-right">CPU Load: <?php echo $systemLoad; ?></p>
-		<div class="container">
-			<div class="navbar-header">
-				<a class="navbar-brand" href="#">ZoneMinder</a>
-			</div>
-			<div class="navbar-collapse collapse">
-				<?php echo $this->element('navigation'); ?>
-			</div>
-		</div>
-	</div>
-	<div id="main-content" class="container">
-    <div class="row">
-      <div class="col-sm-2 col-md-2 col-lg-2 sidebar-offcanvas" id="sidebar">
-        <div class="sidebar-nav">
-          <div class="panel panel-default">
-            <div class="panel-heading"><?php echo $this->fetch('title'); ?></div>
-            <?php echo $this->fetch('sidebar'); ?>
-          </div>
-        </div>
-      </div>
-      <div class="col-sm-10 col-md-10 col-lg-10" id="main-content-body">
-        <?php echo $this->Session->flash(); ?>
-    
-        <?php echo $this->fetch('content'); ?>
-      </div>
-    </div>
-  </div>
-	<div id="footer">
-		<hr />
-		<div class="container">
-			<p>
-				Configured for <?php echo $this->Html->link(Configure::read('zmBandwidth'), array('controller' => 'Bandwidth', 'action' => 'index')); ?> bandwidth.
-				<span id="version">Version <?php echo $this->Html->link($zmVersion, array('controller' => 'Version'), array('escape' => false)); ?></span>
-			</p>
-		</div>
-	</div>
-  <div id="toggle-fullscreen"><span class="glyphicon glyphicon-fullscreen"></span></div>
-<!-- <?php echo $this->element('sql_dump'); ?> -->
-<?php echo $this->Js->writeBuffer(); ?>
+	<?php echo $this->element('header'); ?>
+	<?php echo $this->element('main-content'); ?>
+	<?php echo $this->element('footer'); ?>
 </body>
 </html>

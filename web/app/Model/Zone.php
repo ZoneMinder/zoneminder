@@ -8,7 +8,7 @@ class Zone extends AppModel {
 			'foreignKey' => 'MonitorId')
 		);
 
-	public function createSnapshot($mid = null, $zid = null) {
+	public function createSnapshot($mid = null) {
 		# chdir(Configure::read('ZM_PATH_WEB') . '/' . Configure::read('ZM_DIR_IMAGES'));
 		chdir(WWW_ROOT . '/img');
 		$command = Configure::read('ZM_PATH_BIN');

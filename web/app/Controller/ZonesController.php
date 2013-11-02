@@ -4,8 +4,16 @@ class ZonesController extends AppController {
     public function index() {
 	$this->layout = 'nosidebar';
 	$this->loadModel('Monitor');
-	$this->set('zones', $this->Zone->find('all'));
-	$this->set('monitors', $this->Monitor->find('list'));
+
+	$monitors = $this->Monitor->find('all');
+
+	foreach ($monitors as $key => $monitor) {
+		if ($this->Zone->createSnapshot($monitor['Monitor']['Id']) == 0) {
+			$monitors[$key]['Monitor']['Snapshot'] = '/img/Zones'.$monitor['Monitor']['Id'].'.jpg?'.time();
+		}
+	}
+
+	$this->set('monitors', $monitors);
     }
 
 	public function edit($zid = null) {

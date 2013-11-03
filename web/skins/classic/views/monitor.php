@@ -96,6 +96,7 @@ else
         'AlarmMaxFPS' => "",
         'FPSReportInterval' => 1000,
         'RefBlendPerc' => 12,
+        'AlarmRefBlendPerc' => 6,
         'DefaultView' => 'Events',
         'DefaultRate' => '100',
         'DefaultScale' => '100',
@@ -386,7 +387,17 @@ $deinterlaceopts_v4l2 = array(
     "V4L2: Capture bottom field only"                     => 0x03000000,
     "V4L2: Alternate fields (Bob)"                        => 0x07000000,
     "V4L2: Progressive"                                   => 0x01000000,
-    "V4L2: Interlaced"                                    => 0x04000000,
+    "V4L2: Interlaced"                                    => 0x04000000
+);
+
+$fastblendopts = array(
+    "No blending"                                         => 0,
+    "1.5625%"                                             => 1,
+    "3.125%"                                              => 3,
+    "6.25% (Indoor)"                                      => 6,
+    "12.5% (Outdoor)"                                     => 12,
+    "25%"                                                 => 25,
+    "50%"                                                 => 50
 );
 
 xhtmlHeaders(__FILE__, $SLANG['Monitor']." - ".validHtmlStr($monitor['Name']) );
@@ -444,6 +455,7 @@ if ( $tab != 'general' )
         <input type="hidden" name="newMonitor[Function]" value="<?= validHtmlStr($newMonitor['Function']) ?>"/>
         <input type="hidden" name="newMonitor[Enabled]" value="<?= validHtmlStr($newMonitor['Enabled']) ?>"/>
         <input type="hidden" name="newMonitor[RefBlendPerc]" value="<?= validHtmlStr($newMonitor['RefBlendPerc']) ?>"/>
+        <input type="hidden" name="newMonitor[AlarmRefBlendPerc]" value="<?= validHtmlStr($newMonitor['AlarmRefBlendPerc']) ?>"/>
         <input type="hidden" name="newMonitor[MaxFPS]" value="<?= validHtmlStr($newMonitor['MaxFPS']) ?>"/>
         <input type="hidden" name="newMonitor[AlarmMaxFPS]" value="<?= validHtmlStr($newMonitor['AlarmMaxFPS']) ?>"/>
 <?php
@@ -603,7 +615,20 @@ switch ( $tab )
             </tr>
             <tr><td><?= $SLANG['MaximumFPS'] ?></td><td><input type="text" name="newMonitor[MaxFPS]" value="<?= validHtmlStr($newMonitor['MaxFPS']) ?>" size="6"/></td></tr>
             <tr><td><?= $SLANG['AlarmMaximumFPS'] ?></td><td><input type="text" name="newMonitor[AlarmMaxFPS]" value="<?= validHtmlStr($newMonitor['AlarmMaxFPS']) ?>" size="6"/></td></tr>
+<?php
+	if ( ZM_FAST_IMAGE_BLENDS )
+        {
+?>
+            <tr><td><?= $SLANG['RefImageBlendPct'] ?></td><td><select name="newMonitor[RefBlendPerc]"><?php foreach ( $fastblendopts as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['RefBlendPerc'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
+            <tr><td><?= "Alarm " . $SLANG['RefImageBlendPct'] ?></td><td><select name="newMonitor[AlarmRefBlendPerc]"><?php foreach ( $fastblendopts as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['AlarmRefBlendPerc'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
+<?php
+	} else {
+?>
             <tr><td><?= $SLANG['RefImageBlendPct'] ?></td><td><input type="text" name="newMonitor[RefBlendPerc]" value="<?= validHtmlStr($newMonitor['RefBlendPerc']) ?>" size="4"/></td></tr>
+            <tr><td><?= "Alarm " . $SLANG['RefImageBlendPct'] ?></td><td><input type="text" name="newMonitor[AlarmRefBlendPerc]" value="<?= validHtmlStr($newMonitor['AlarmRefBlendPerc']) ?>" size="4"/></td></tr>
+<?php
+        }
+?>
             <tr><td><?= $SLANG['Triggers'] ?></td><td>
 <?php
         $optTriggers = getSetValues( 'Monitors', 'Triggers' );

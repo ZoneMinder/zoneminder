@@ -255,30 +255,13 @@ function applyZoneUnits()
 
 function limitRange( field, minValue, maxValue )
 {
-    if ( parseInt(field.value) < parseInt(minValue) )
-    {
-        field.value = minValue;
-    }
-    else if ( parseInt(field.value) > parseInt(maxValue) )
-    {
-        field.value = maxValue;
-    }
+    field.value = constrainValue( parseInt(field.value), parseInt(minValue), parseInt(maxValue) );
 }
 
 function limitFilter( field )
 {
-    var minValue = 3;
-    var maxValue = 15;
-
     field.value = (Math.floor((field.value-1)/2)*2) + 1;
-    if ( parseInt(field.value) < minValue )
-    {
-        field.value = minValue;
-    }
-    if ( parseInt(field.value) > maxValue )
-    {
-        field.value = maxValue;
-    }
+    field.value = constrainValue(parseInt(field.value), 3, 15);
 }
 
 function limitArea( field )
@@ -352,11 +335,22 @@ function fixActivePoint( index )
     updateZoneImage();
 }
 
+function constrainValue( value, loVal, hiVal )
+{
+    if ( value < loVal ) {
+        return loVal;
+    }
+    if ( value > hiVal ) {
+        return hiVal;
+    }
+    return value;
+}
+
 function updateActivePoint( index )
 {
     var point = $('point'+index);
-    var x = point.getStyle( 'left' ).toInt();
-    var y = point.getStyle( 'top' ).toInt();
+    var x = constrainValue( point.getStyle( 'left' ).toInt(), 0, maxX );
+    var y = constrainValue( point.getStyle( 'top' ).toInt(), 0, maxY );
 
     $('newZone[Points]['+index+'][x]').value = x;
     $('newZone[Points]['+index+'][y]').value = y;
@@ -387,10 +381,7 @@ function delPoint( index )
 
 function limitPointValue( point, loVal, hiVal )
 {
-    if ( point.value < loVal )
-        point.value = 0;
-    else if ( point.value > hiVal )
-        point.value = hiVal;
+    point.value = constrainValue(point.value, loVal, hiVal)
 }
 
 function updateX( index )

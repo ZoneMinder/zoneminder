@@ -2352,10 +2352,10 @@ void Image::Rotate( int angle )
 			if ( colours == ZM_COLOUR_GRAY8 )
 			{
 				unsigned char *d_ptr;
-				for ( unsigned int i = new_width-1; i >= 0; i-- )
+				for ( unsigned int i = new_width; i > 0; i-- )
 				{
-					d_ptr = rotate_buffer+i;
-					for ( unsigned int j = new_height-1; j >= 0; j-- )
+					d_ptr = rotate_buffer+(i-1);
+					for ( unsigned int j = new_height; j > 0; j-- )
 					{
 						*d_ptr = *s_ptr++;
 						d_ptr += line_bytes;
@@ -2366,10 +2366,10 @@ void Image::Rotate( int angle )
 			{
 				Rgb* s_rptr = (Rgb*)s_ptr;
 				Rgb* d_rptr;
-				for ( unsigned int i = new_width-1; i >= 0; i-- )
+				for ( unsigned int i = new_width; i > 0; i-- )
 				{
-					d_rptr = (Rgb*)(rotate_buffer+(i<<2));
-					for ( unsigned int j = new_height-1; j >= 0; j-- )
+					d_rptr = (Rgb*)(rotate_buffer+((i-1)<<2));
+					for ( unsigned int j = new_height; j > 0; j-- )
 					{
 						*d_rptr = *s_rptr++;
 						d_rptr += new_width;
@@ -2379,10 +2379,10 @@ void Image::Rotate( int angle )
 			else /* Assume RGB24 */
 			{
 				unsigned char *d_ptr;
-				for ( unsigned int i = new_width-1; i >= 0; i-- )
+				for ( unsigned int i = new_width; i > 0; i-- )
 				{
-					d_ptr = rotate_buffer+(3*i);
-					for ( unsigned int j = new_height-1; j >= 0; j-- )
+					d_ptr = rotate_buffer+((i-1)*3);
+					for ( unsigned int j = new_height; j > 0; j-- )
 					{
 						*d_ptr = *s_ptr++;
 						*(d_ptr+1) = *s_ptr++;
@@ -2439,10 +2439,10 @@ void Image::Rotate( int angle )
 			if ( colours == ZM_COLOUR_GRAY8 )
 			{
 				unsigned char *d_ptr;
-				for ( unsigned int i = new_width-1; i >= 0; i-- )
+				for ( unsigned int i = new_width; i > 0; i-- )
 				{
-					d_ptr = rotate_buffer+i;
-					for ( unsigned int j = new_height-1; j >= 0; j-- )
+					d_ptr = rotate_buffer+(i-1);
+					for ( unsigned int j = new_height; j > 0; j-- )
 					{
 						s_ptr--;
 						*d_ptr = *s_ptr;
@@ -2454,10 +2454,10 @@ void Image::Rotate( int angle )
 			{
 				Rgb* s_rptr = (Rgb*)s_ptr;
 				Rgb* d_rptr;
-				for ( int i = new_width-1; i >= 0; i-- )
+				for ( unsigned int i = new_width; i > 0; i-- )
 				{
-					d_rptr = (Rgb*)(rotate_buffer+(i<<2));
-					for ( int j = new_height-1; j >= 0; j-- )
+					d_rptr = (Rgb*)(rotate_buffer+((i-1)<<2));
+					for ( unsigned int j = new_height; j > 0; j-- )
 					{
 						s_rptr--;
 						*d_rptr = *s_rptr;
@@ -2468,10 +2468,10 @@ void Image::Rotate( int angle )
 			else /* Assume RGB24 */
 			{
 				unsigned char *d_ptr;
-				for ( unsigned int i = new_width-1; i >= 0; i-- )
+				for ( unsigned int i = new_width; i > 0; i-- )
 				{
-					d_ptr = rotate_buffer+(3*i);
-					for ( unsigned int j = new_height-1; j >= 0; j-- )
+					d_ptr = rotate_buffer+((i-1)*3);
+					for ( unsigned int j = new_height; j > 0; j-- )
 					{
 						*(d_ptr+2) = *(--s_ptr);
 						*(d_ptr+1) = *(--s_ptr);

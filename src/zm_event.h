@@ -133,6 +133,9 @@ public:
 	void AddFrames( int n_frames, Image **images, struct timeval **timestamps );
 	void AddFrame( Image *image, struct timeval timestamp, int score=0, Image *alarm_frame=NULL );
 
+private:
+	void AddFramesInternal( int n_frames, int start_frame, Image **images, struct timeval **timestamps );
+
 public:
     static const char *getSubPath( struct tm *time )
     {

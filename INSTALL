@@ -19,7 +19,6 @@ Important differences
 * Unlike the autotools way, the cmake way does not require any options. It attempts to detect some things by its own (system directories, libarch, web user and group) and uses defaults for others (installation paths and such).
 * Unlike the autotools way, which links the binaries to a fixed list of libraries, the cmake way only links to libraries that it found on the system. If a library is not found, but required, a fatal error will be shown during the configuration step.
 * Unlike the autotools way, the cmake way does not modify the system in any way it shouldnt. It only does what its supposed to do: Install files to your system. Nothing else and nothing leaks out of the DESTDIR environment variable (if used). This means that depending on your configuration, there might be an extra required step after installation: to link WEB_PATH/events and WEB_PATH/images folders to the correct places.
-* Currently there is no "make uninstall" target for cmake. However, its possible to do this manually. The file install_manifest.txt contains the list of files installed to the system. This can be used in many ways to delete all files installed by cmake, such as: xargs rm < install_manifest.txt
 
 Configuration
 -------------
@@ -48,15 +47,21 @@ Advanced:
 	ZM_EXTRA_LIBS		A list of optional libraries, separated by semicolons, e.g. ssl;theora
 	ZM_MYSQL_ENGINE		MySQL engine to use with database, default: InnoDB
 	ZM_NO_MMAP		Set to ON to not use mmap shared memory. Shouldn't be enabled unless you experience problems with the shared memory. default: OFF
+	ZM_NO_FFMPEG		Set to ON to skip ffmpeg checks and force building ZM without ffmpeg. default: OFF
+	ZM_NO_X10		Set to ON to build ZoneMinder without X10 support. default: OFF
+	ZM_PERL_SUBPREFIX	Use a different directory for the zm perl modules. NOTE: This is a subprefix, e.g. lib will be turned into <prefix>/lib, default: <libarch>/perl5
+	ZM_PERL_USE_PATH	Override the include path for zm perl modules. Useful if you are moving the perl modules without using the ZM_PERL_SUBPREFIX option. default: <prefix>/<zmperlsubprefix>
 
 
 Useful configuration options provided by cmake:
 CMAKE_VERBOSE_MAKEFILE - Set this to ON (default OFF) to see what cmake is doing. Very useful for troubleshooting.
 CMAKE_BUILD_TYPE - Set this to Debug (default Release) to build ZoneMinder with debugging enabled.
 CMAKE_INSTALL_PREFIX - Use this to change the prefix (default /usr/local). This option behaves like --prefix from autoconf. Package maintainers will probably want to set this to "/usr".
-CMAKE_INCLUDE_PATH - Use this to change the include search path.
-CMAKE_LIBRARY_PATH - Use this to change the library search path.
-Also see CMAKE_PREFIX_PATH for overriding both and some others.
+
+Useful environment variables provided by cmake:
+CMAKE_INCLUDE_PATH - Use this to add to the include search path.
+CMAKE_LIBRARY_PATH - Use this to add to the library search path.
+CMAKE_PREFIX_PATH - Use this to add to both include and library search paths. <path>/include will be added to the include search path and <path>/lib to the library search path. Multiple paths can be specified, separated by a : character. For example: export CMAKE_PREFIX_PATH="/opt/libjpeg-turbo:/opt/ffmpeg-from-git"
 
 CFLAGS, CPPFLAGS and other environment variables:
 To append to the CFLAGS and CXXFLAGS, please use the CFLAGS and CXXFLAGS environment variables.
@@ -66,7 +71,7 @@ To replace the CFLAGS and CXXFLAGS entirely:
 *   For the Debug build type: use CMAKE_C_FLAGS_DEBUG for the CFLAGS and CMAKE_CXX_FLAGS_DEBUG for the CXXFLAGS
 Other important environment variables (such as LDFLAGS) are also supported.
 
-The DESTDIR environment variable is also supported.
+The DESTDIR environment variable is also supported, however it needs to be set before invoking make install. For example: DESTDIR=mydestdir make install
 For more information about DESTDIR, see:
 *   http://www.gnu.org/prep/standards/html_node/DESTDIR.html
 
@@ -103,6 +108,11 @@ You can use the zmlinkcontent.sh script for this. For example, if /var/lib/zonem
 By default, the content directory for new installations is /var/lib/zoneminder. This can be overridden in cmake with the ZM_CONTENTDIR option. e.g. cmake -DZM_CONTENTDIR="/some/big/storage/zm" .
 
 5) Run zmupdate.pl to update the database layout to the new version.
+
+Uninstallation:
+---------------
+By default, cmake does not have an uninstall target, however we have added a one. Simply run make uninstall (or DESTDIR=mydestdir make uninstall if a DESTDIR was used) and it will remove all the files that cmake installed.
+It's also possible to do this manually. The file install_manifest.txt contains the list of files installed to the system. This can be used in many ways to delete all files installed by cmake, such as: xargs rm < install_manifest.txt
 
 Contributions:
 --------------

@@ -6,10 +6,6 @@ AC_CONFIG_HEADERS(config.h)
 
 AC_SUBST([AM_CXXFLAGS], [-D__STDC_CONSTANT_MACROS])
 
-PATH_BUILD=`pwd`
-AC_SUBST(PATH_BUILD)
-TIME_BUILD=`date +'%s'`
-AC_SUBST(TIME_BUILD)
 AC_SUBST(VERSION)
 
 AC_ARG_VAR(ZM_DB_HOST,[Hostname where ZoneMinder database located, default localhost])
@@ -22,6 +18,9 @@ AC_ARG_VAR(ZM_RUNDIR,[Location of transient process files, default /var/run/zm])
 AC_ARG_VAR(ZM_TMPDIR,[Location of temporary files, default /tmp/zm])
 AC_ARG_VAR(ZM_LOGDIR,[Location of generated log files, default /var/log/zm])
 
+if test "$ZM_DB_TYPE" == ""; then
+	AC_SUBST(ZM_DB_HOST,[mysql])
+fi
 if test "$ZM_DB_HOST" == ""; then
 	AC_SUBST(ZM_DB_HOST,[localhost])
 fi

@@ -9,11 +9,14 @@
 # or installations.
 #
 
-# Path to build directory, used mostly for finding DB upgrade scripts
+# Path to build directory
 ZM_PATH_BUILD=@PATH_BUILD@
 
 # Build time, used to record when to trigger various checks
 ZM_TIME_BUILD=@TIME_BUILD@
+
+# Path to installed data directory, used mostly for finding DB upgrade scripts
+ZM_PATH_DATA=@PKGDATADIR@
 
 # Path to ZoneMinder binaries
 ZM_PATH_BIN=@BINDIR@

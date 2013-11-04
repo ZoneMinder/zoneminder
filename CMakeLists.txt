@@ -438,10 +438,10 @@ if((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "el6"))
 endif((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "el6"))
 
 # Generate files from the .in files
-configure_file(zoneminder-config.cmake config.h @ONLY)
-configure_file(zm.conf.in zm.conf @ONLY)
-configure_file(zmconfgen.pl.in zmconfgen.pl @ONLY)
-configure_file(zmlinkcontent.sh.in zmlinkcontent.sh @ONLY)
+configure_file(zm.conf.in "${CMAKE_CURRENT_BINARY_DIR}/zm.conf" @ONLY)
+configure_file(zoneminder-config.cmake "${CMAKE_CURRENT_BINARY_DIR}/config.h" @ONLY)
+configure_file(zmconfgen.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmconfgen.pl" @ONLY)
+configure_file(zmlinkcontent.sh.in "${CMAKE_CURRENT_BINARY_DIR}/zmlinkcontent.sh" @ONLY)
 
 # Process subdirectories
 add_subdirectory(src)
@@ -472,7 +472,7 @@ else(zmconfgen_result EQUAL 0)
 endif(zmconfgen_result EQUAL 0)
 
 # Install zm.conf
-install(FILES zm.conf DESTINATION "/${CMAKE_INSTALL_SYSCONFDIR}")
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zm.conf" DESTINATION "/${CMAKE_INSTALL_SYSCONFDIR}")
 
 # Uninstall target
 configure_file(

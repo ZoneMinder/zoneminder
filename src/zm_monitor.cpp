@@ -40,6 +40,9 @@
 #if HAVE_LIBAVFORMAT
 #include "zm_ffmpeg_camera.h"
 #endif // HAVE_LIBAVFORMAT
+#if HAVE_LIBCURL
+#include "zm_curl_camera.h"
+#endif // HAVE_LIBCURL
 
 #if ZM_MEM_MAPPED
 #include <sys/mman.h>

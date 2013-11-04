@@ -25,10 +25,12 @@ static FILE* curldebugfile = NULL; // Remove later
 
 #include "zm_curl_camera.h"
 
-cURLCamera::cURLCamera( int p_id, const std::string &p_path, const std::string &p_username, const std::string &p_password, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) :
+cURLCamera::cURLCamera( int p_id, const std::string &p_path, const std::string &p_user, const std::string &p_pass, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) :
     Camera( p_id, CURL_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture ),
-    mPath( p_path ), mUsername
+    mPath( p_path ), mUser( p_user ), mPass ( p_pass )
 {
+	c = NULL;
+
 	if ( capture )
 	{
 		Initialise();
@@ -53,9 +55,9 @@ cURLCamera::~cURLCamera()
 
 void cURLCamera::Initialise()
 {
-	ret = curl_global_init(CURL_GLOBAL_ALL | CURL_GLOBAL_ACK_EINTR);
+	ret = curl_global_init(CURL_GLOBAL_ALL);
 	if(ret != CURLE_OK) {
-		Fatal("libcurl initialization failed. error %d: ", curl_easy_strerror(ret));
+		Fatal("libcurl initialization failed: ", curl_easy_strerror(ret));
 	}
 
 	Debug(2,"libcurl version: %s",curl_version());
@@ -82,17 +84,19 @@ int cURLCamera::PrimeCapture()
 	if(ret != CURLE_OK)
 		Fatal("Failed setting libcurl URL. error %d: ", curl_easy_strerror(ret));
 	
-	ret = curl_easy_setopt(c, CURLOPT_HEADERFUNCTION, header_callback);
+	ret = curl_easy_setopt(c, CURLOPT_HEADERFUNCTION, &cURLCamera::header_callback);
 	if(ret != CURLE_OK)
 		Fatal("Failed setting libcurl header callback function. error %d: ", curl_easy_strerror(ret));
 
-	ret = curl_easy_setopt(c, CURLOPT_WRITEFUNCTION, data_callback);
+	ret = curl_easy_setopt(c, CURLOPT_WRITEFUNCTION, &cURLCamera::data_callback);
 	if(ret != CURLE_OK)
 		Fatal("Failed setting libcurl header callback function. error %d: ", curl_easy_strerror(ret));
 
 	ret = curl_easy_setopt(c, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
 	if(ret != CURLE_OK)
 		Warning("Failed setting libcurl acceptable http authenication methods. error %d: ", curl_easy_strerror(ret));
+
+	return 0;
 }
 
 int cURLCamera::PreCapture()
@@ -104,7 +108,7 @@ int cURLCamera::PreCapture()
 int cURLCamera::Capture( Image &image )
 {
 	uint8_t* directbuffer;
-	bool frameComplete = false;
+	// bool frameComplete = false;
    
 	/* Request a writeable buffer of the target image */
 	directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
@@ -113,10 +117,9 @@ int cURLCamera::Capture( Image &image )
 		return (-1);
 	}
 
-	success = curl_easy_perform(easyhandle);
+	//success = curl_easy_perform(easyhandle);
     
 
-    }
     return (0);
 }
 
@@ -126,7 +129,12 @@ int cURLCamera::PostCapture()
     return( 0 );
 }
 
-size_t cURLCamera::data_callback(void *buffer, size_t size, size_t nmemb, void *userdata);
-size_t cURLCamera::header_callback( void *buffer, size_t size, size_t nmemb, void *userdata);.
+size_t cURLCamera::data_callback(void *buffer, size_t size, size_t nmemb, void *userdata) {
+	return 0;
+}
+
+size_t cURLCamera::header_callback( void *buffer, size_t size, size_t nmemb, void *userdata) {
+	return 0;
+}
 
 #endif // HAVE_LIBCURL

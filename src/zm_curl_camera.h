@@ -40,7 +40,10 @@ protected:
 	std::string mPath;
 	std::string mUser;
 	std::string mPass;
-	curl* c = NULL;
+
+#if HAVE_LIBCURL
+	CURL* c;
+#endif
 
 public:
 	cURLCamera( int p_id, const std::string &path, const std::string &username, const std::string &password,  int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
@@ -59,11 +62,11 @@ public:
 	int PostCapture();
 
 	size_t data_callback(void *buffer, size_t size, size_t nmemb, void *userdata);
-	size_t header_callback( void *buffer, size_t size, size_t nmemb, void *userdata);.
+	size_t header_callback(void *buffer, size_t size, size_t nmemb, void *userdata);
 	int debug_callback(CURL* handle, curl_infotype type, char* str, size_t strsize, void* data);
 
 private:
-	int ret;
+	CURLcode ret;
 
 };
 

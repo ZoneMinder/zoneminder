@@ -64,6 +64,8 @@ else
         'Host' => "",
         'Path' => "",
         'Port' => "80",
+        'User' => "",
+        'Pass' => "",
         'Colours' => 3,
         'Palette' => 0,
         'Width' => "320",
@@ -174,6 +176,7 @@ $sourceTypes = array(
     'Remote' => $SLANG['Remote'],
     'File'   => $SLANG['File'],
     'Ffmpeg' => $SLANG['Ffmpeg'],
+    'cURL'   => $SLANG['cURL'],
 );
 if ( !ZM_HAS_V4L )
     unset($sourceTypes['Local']);
@@ -684,6 +687,14 @@ switch ( $tab )
         {
 ?>
             <tr><td><?= $SLANG['SourcePath'] ?></td><td><input type="text" name="newMonitor[Path]" value="<?= validHtmlStr($newMonitor['Path']) ?>" size="36"/></td></tr>
+<?php
+        }
+        elseif ( $newMonitor['Type'] == "cURL" )
+        {
+?>
+            <tr><td><?= "Address" ?></td><td><input type="text" name="newMonitor[Path]" value="<?= validHtmlStr($newMonitor['Path']) ?>" size="36"/></td></tr>
+            <tr><td><?= "Username" ?></td><td><input type="text" name="newMonitor[User]" value="<?= validHtmlStr($newMonitor['User']) ?>" size="12"/></td></tr>
+            <tr><td><?= "Password" ?></td><td><input type="text" name="newMonitor[Pass]" value="<?= validHtmlStr($newMonitor['Pass']) ?>" size="12"/></td></tr>
 <?php
         }
 ?>

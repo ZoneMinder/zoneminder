@@ -2404,7 +2404,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
 Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 {
     static char sql[ZM_SQL_MED_BUFSIZ];
-    snprintf( sql, sizeof(sql), "select Id, Name, Type, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Protocol, Method, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Id = %d", id );
+    snprintf( sql, sizeof(sql), "select Id, Name, Type, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Protocol, Method, Host, Port, Path, User, Pass, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Id = %d", id );
     if ( mysql_query( &dbconn, sql ) )
     {
         Error( "Can't run query: %s", mysql_error( &dbconn ) );
@@ -2440,6 +2440,8 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
         std::string host = dbrow[col]; col++;
         std::string port = dbrow[col]; col++;
         std::string path = dbrow[col]; col++;
+        std::string user = dbrow[col]; col++;
+        std::string pass = dbrow[col]; col++;
 
         int width = atoi(dbrow[col]); col++;
         int height = atoi(dbrow[col]); col++;
@@ -2588,6 +2590,27 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 #else // HAVE_LIBAVFORMAT
             Fatal( "You must have ffmpeg libraries installed to use ffmpeg cameras for monitor %d", id );
 #endif // HAVE_LIBAVFORMAT
+        }
+        else if ( type == "cURL" )
+        {
+#if HAVE_LIBCURL
+            camera = new cURLCamera(
+                id,
+                path.c_str(),
+                user.c_str(),
+                pass.c_str(),
+                cam_width,
+                cam_height,
+                colours,
+                brightness,
+                contrast,
+                hue,
+                colour,
+                purpose==CAPTURE
+            );
+#else // HAVE_LIBCURL
+            Fatal( "You must have libcurl installed to use ffmpeg cameras for monitor %d", id );
+#endif // HAVE_LIBCURL
         }
         else
         {

@@ -32,7 +32,7 @@
 class Camera
 {
 protected:
-	typedef enum { LOCAL_SRC, REMOTE_SRC, FILE_SRC, FFMPEG_SRC } SourceType;
+	typedef enum { LOCAL_SRC, REMOTE_SRC, FILE_SRC, FFMPEG_SRC, CURL_SRC } SourceType;
 
     int             id;
 	SourceType		type;

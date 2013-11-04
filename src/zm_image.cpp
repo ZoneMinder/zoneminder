@@ -3000,23 +3000,23 @@ __attribute__((noinline,__target__("sse2"))) void sse2_fastblend(const uint8_t* 
 			// 1.5625% blending
 			divider = 6;
 			clearmask = 0x03030303;
-		} else if(blendpercent >= 2.34375 && blendpercent < 4.6875) {
+		} else if(blendpercent < 4.6875) {
 			// 3.125% blending
 			divider = 5;
 			clearmask = 0x07070707;
-		} else if(blendpercent >= 4.6875 && blendpercent < 9.375) {
+		} else if(blendpercent < 9.375) {
 			// 6.25% blending
 			divider = 4;
 			clearmask = 0x0F0F0F0F;
-		} else if(blendpercent >= 9.375 && blendpercent < 18.75) {
+		} else if(blendpercent < 18.75) {
 			// 12.5% blending
 			divider = 3;
 			clearmask = 0x1F1F1F1F;
-		} else if(blendpercent >= 18.75 && blendpercent < 37.5) {
+		} else if(blendpercent < 37.5) {
 			// 25% blending
 			divider = 2;
 			clearmask = 0x3F3F3F3F;
-		} else if(blendpercent >= 37.5) {
+		} else {
 			// 50% blending
 			divider = 1;
 			clearmask = 0x7F7F7F7F;
@@ -3063,19 +3063,19 @@ __attribute__((noinline)) void std_fastblend(const uint8_t* col1, const uint8_t*
 		if(blendpercent < 2.34375) {
 			// 1.5625% blending
 			divider = 6;
-		} else if(blendpercent >= 2.34375 && blendpercent < 4.6875) {
+		} else if(blendpercent < 4.6875) {
 			// 3.125% blending
 			divider = 5;
-		} else if(blendpercent >= 4.6875 && blendpercent < 9.375) {
+		} else if(blendpercent < 9.375) {
 			// 6.25% blending
 			divider = 4;
-		} else if(blendpercent >= 9.375 && blendpercent < 18.75) {
+		} else if(blendpercent < 18.75) {
 			// 12.5% blending
 			divider = 3;
-		} else if(blendpercent >= 18.75 && blendpercent < 37.5) {
+		} else if(blendpercent < 37.5) {
 			// 25% blending
 			divider = 2;
-		} else if(blendpercent >= 37.5) {
+		} else {
 			// 50% blending
 			divider = 1;
 		}

@@ -9,17 +9,14 @@
 # or installations.
 #
 
-# Current version of ZoneMinder
-ZM_VERSION=@VERSION@
-
 # Path to build directory
 ZM_PATH_BUILD=@PATH_BUILD@
 
-# Path to installed data directory, used mostly for finding DB upgrade scripts
-ZM_PATH_DATA=@PKGDATADIR@
-
 # Build time, used to record when to trigger various checks
 ZM_TIME_BUILD=@TIME_BUILD@
+
+# Path to installed data directory, used mostly for finding DB upgrade scripts
+ZM_PATH_DATA=@PKGDATADIR@
 
 # Path to ZoneMinder binaries
 ZM_PATH_BIN=@BINDIR@
@@ -40,6 +37,9 @@ ZM_PATH_CGI=@CGI_PREFIX@
 ZM_WEB_USER=@WEB_USER@
 ZM_WEB_GROUP=@WEB_GROUP@
 
+# ZoneMinder database type: so far only mysql is supported
+ZM_DB_TYPE=@ZM_DB_TYPE@
+
 # ZoneMinder database hostname or ip address
 ZM_DB_HOST=@ZM_DB_HOST@
 
@@ -51,3 +51,6 @@ ZM_DB_USER=@ZM_DB_USER@
 
 # ZoneMinder database password
 ZM_DB_PASS=@ZM_DB_PASS@
+
+# Host of this machine
+ZM_SERVER_HOST=

@@ -176,7 +176,7 @@ $sourceTypes = array(
     'Remote' => $SLANG['Remote'],
     'File'   => $SLANG['File'],
     'Ffmpeg' => $SLANG['Ffmpeg'],
-    'cURL'   => $SLANG['cURL'],
+    'cURL'   => "cURL",
 );
 if ( !ZM_HAS_V4L )
     unset($sourceTypes['Local']);

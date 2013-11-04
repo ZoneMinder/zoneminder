@@ -34,6 +34,7 @@ function dbConnect()
 		$dbConn = new PDO( ZM_DB_TYPE . ':host=' . ZM_DB_HOST . ';dbname='.ZM_DB_NAME, ZM_DB_USER, ZM_DB_PASS );
 	} catch(PDOException $ex ) {
 		echo "Unable to connect to ZM db." . $ex->getMessage();
+		$dbConn = null;
 	}
 }
 
@@ -42,7 +43,7 @@ dbConnect();
 function dbDisconnect()
 {
     global $dbConn;
-    mysql_close( $dbConn ) or die( "Could not disconnect from database" );
+	$dbConn = null;
 }
 
 function dbLogOff()
@@ -200,7 +201,6 @@ function getUniqueValues( $table, $column, $asString=1 )
 function getTableColumns( $table, $asString=1 )
 {
     $columns = array();
-    $table = dbEscape($table);
     $sql = "describe $table";
     foreach( dbFetchAll( $sql ) as $row )
     {
@@ -214,17 +214,14 @@ function getTableColumns( $table, $asString=1 )
 
 function getTableAutoInc( $table )
 {
-    $sql = "show table status where Name = ".dbEscape($table);
-    $row = dbFetchOne( $sql );
+    $row = dbFetchOne( "show table status where Name=?", NULL, array($table) );
     return( $row['Auto_increment'] );
 }
 
 function getTableDescription( $table, $asString=1 )
 {
     $columns = array();
-    $table = dbEscape($table);
-    $sql = "describe $table";
-    foreach( dbFetchAll( $sql ) as $row )
+    foreach( dbFetchAll( "describe $table" ) as $row )
     {
         $desc = array(
             'name' => $row['Field'],

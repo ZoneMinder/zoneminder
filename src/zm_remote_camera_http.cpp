@@ -1086,13 +1086,13 @@ int RemoteCameraHttp::PreCapture()
 
 int RemoteCameraHttp::Capture( Image &image )
 {
-    unsigned int content_length = GetResponse();
+    int content_length = GetResponse();
     if ( content_length == 0 )
     {
         Warning( "Unable to capture image, retrying" );
         return( 1 );
     }
-    if ( (int)content_length < 0 )
+    if ( content_length < 0 )
     {
         Error( "Unable to get response" );
         Disconnect();
@@ -1112,7 +1112,7 @@ int RemoteCameraHttp::Capture( Image &image )
         }
         case X_RGB :
         {
-            if ( content_length != image.Size() )
+            if ( (unsigned int)content_length != image.Size() )
             {
                 Error( "Image length mismatch, expected %d bytes, content length was %d", image.Size(), content_length );
                 Disconnect();

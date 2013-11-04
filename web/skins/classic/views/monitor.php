@@ -95,8 +95,8 @@ else
         'MaxFPS' => "",
         'AlarmMaxFPS' => "",
         'FPSReportInterval' => 1000,
-        'RefBlendPerc' => 12,
-        'AlarmRefBlendPerc' => 6,
+        'RefBlendPerc' => 6,
+        'AlarmRefBlendPerc' => 3,
         'DefaultView' => 'Events',
         'DefaultRate' => '100',
         'DefaultScale' => '100',
@@ -400,6 +400,16 @@ $fastblendopts = array(
     "50%"                                                 => 50
 );
 
+$fastblendopts_alarm = array(
+    "No blending (Alarm lasts forever)"                   => 0,
+    "1.5625%"                                             => 1,
+    "3.125%"                                              => 3,
+    "6.25%"                                               => 6,
+    "12.5%"                                               => 12,
+    "25%"                                                 => 25,
+    "50% (Alarm lasts a moment)"                          => 50
+);
+
 xhtmlHeaders(__FILE__, $SLANG['Monitor']." - ".validHtmlStr($monitor['Name']) );
 ?>
 <body>
@@ -620,7 +630,7 @@ switch ( $tab )
         {
 ?>
             <tr><td><?= $SLANG['RefImageBlendPct'] ?></td><td><select name="newMonitor[RefBlendPerc]"><?php foreach ( $fastblendopts as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['RefBlendPerc'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
-            <tr><td><?= "Alarm " . $SLANG['RefImageBlendPct'] ?></td><td><select name="newMonitor[AlarmRefBlendPerc]"><?php foreach ( $fastblendopts as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['AlarmRefBlendPerc'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
+            <tr><td><?= "Alarm " . $SLANG['RefImageBlendPct'] ?></td><td><select name="newMonitor[AlarmRefBlendPerc]"><?php foreach ( $fastblendopts_alarm as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['AlarmRefBlendPerc'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
 <?php
 	} else {
 ?>

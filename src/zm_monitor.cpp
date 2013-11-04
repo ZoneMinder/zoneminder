@@ -1607,13 +1607,13 @@ bool Monitor::Analyse()
             shared_data->state = state = IDLE;
             last_section_mod = 0;
         }
-        if ( (!signal_change && signal) && (function == MODECT || function == MOCORD) && state != ALARM )
+        if ( (!signal_change && signal) && (function == MODECT || function == MOCORD) )
         {
-            ref_image.Blend( *snap_image, ref_blend_perc );
-        }
-        else if ( (!signal_change && signal) && (function == MODECT || function == MOCORD) && state == ALARM && config.blend_alarmed_images )
-        {
-            ref_image.Blend( *snap_image, alarm_ref_blend_perc );
+            if ( state == ALARM ) {
+               ref_image.Blend( *snap_image, alarm_ref_blend_perc );
+            } else {
+               ref_image.Blend( *snap_image, ref_blend_perc );
+            }
         }
         last_signal = signal;
     }

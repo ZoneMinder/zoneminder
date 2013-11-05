@@ -5,7 +5,10 @@ $(document).ready(function()
     oCanvas = $('#c1').offset(),
     ctx = canvas.getContext("2d"),
     zone = document.getElementById("imgZone"),
-    vertices = [], coords = $("#ZoneCoords").val().split(" ");
+    vertices = [];
+  if ($("#ZoneCoords").val()) {
+    var coords = $("#ZoneCoords").val().split(" ");
+  }
 
   window.onload = function() {
     drawMonitor();

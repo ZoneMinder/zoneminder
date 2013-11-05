@@ -30,7 +30,8 @@
 			'fieldset' => false,
 			'label' => array('class' => array('control-label')),
 			'div' => array('class' => array('form-group')),
-			'class' => 'form-control'
+			'class' => 'form-control',
+			'required' => true
 		),
 		'class' => 'form-horizontal'
 	));
@@ -63,6 +64,7 @@
 	echo $this->Form->input('OverloadFrames');
 
 	echo $this->Form->input('Id', array('type' => 'hidden'));
+	echo $this->Form->input('MonitorId', array('type' => 'hidden', 'default' => $mid));
 	echo $this->Form->input('NumCoords', array('type' => 'hidden'));
 	echo $this->Form->input('Coords', array('type' => 'hidden'));
 	echo $this->Form->end(array('label' => 'Save Zone', 'class' => array('btn', 'btn-default')));

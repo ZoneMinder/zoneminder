@@ -27,6 +27,7 @@ class ZonesController extends AppController {
 		}
 
 		$mid = $zone['Monitor']['Id'];
+		$this->set('mid', $mid);
 		$this->Zone->createSnapshot($mid, $zid);
 		$this->set('zoneImage', '/img'.'/Zones'.$mid.'.jpg?'.time());
 		$this->set('zone', $zone['Zone']);
@@ -56,6 +57,13 @@ class ZonesController extends AppController {
 		if (!$monitor) {
 			throw new NotFoundException(__('Invalid Monitor'));
 		}
+
+		$mid = $monitor['Monitor']['Id'];
+		$this->set('mid', $mid);
+		$this->Zone->createSnapshot($mid);
+		$this->set('zoneImage', '/img'.'/Zones'.$mid.'.jpg?'.time());
+
+
 
 		if ($this->request->is('post')) {
 			$this->Zone->create();

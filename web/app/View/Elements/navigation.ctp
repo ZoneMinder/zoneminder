@@ -3,7 +3,7 @@
 $views = array(
 	'Monitors',
 	'Events',
-	'Options',
+	'Config',
 	'Logs',
 	'Zones'
 );

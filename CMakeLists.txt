@@ -418,9 +418,7 @@ message(STATUS "Using web group: ${ZM_WEB_GROUP}")
 set(ZM_PID "${ZM_RUNDIR}/zm.pid")
 set(ZM_CONFIG "/${CMAKE_INSTALL_SYSCONFDIR}/zm.conf")
 set(VERSION "${zoneminder_VERSION}")
-set(PATH_BUILD "${PROJECT_SOURCE_DIR}")
 set(PKGDATADIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/zoneminder")
-set(TIME_BUILD "1000000") # Don't have a solution for this one yet
 set(BINDIR "${CMAKE_INSTALL_FULL_BINDIR}")
 set(LIBDIR "${CMAKE_INSTALL_FULL_LIBDIR}")
 set(SYSCONFDIR "/${CMAKE_INSTALL_SYSCONFDIR}")
@@ -428,6 +426,7 @@ set(WEB_PREFIX "${ZM_WEBDIR}")
 set(CGI_PREFIX "${ZM_CGIDIR}")
 set(WEB_USER "${ZM_WEB_USER}")
 set(WEB_GROUP "${ZM_WEB_GROUP}")
+set(ZM_DB_TYPE "mysql")
 set(EXTRA_PERL_LIB "use lib '${ZM_PERL_USE_PATH}';")
 
 # Reassign some variables if a target distro has been specified

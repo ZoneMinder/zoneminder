@@ -49,8 +49,10 @@ $(document).ready(function()
   function drawVertex(vertex) {
     if (vertices.length > 1) {
       ctx.lineTo(vertex[0], vertex[1]);
+      $("#ZoneCoords").val($("#ZoneCoords").val() + ' ' + vertex[0] + ',' + vertex[1])
     } else {
       ctx.moveTo(vertex[0], vertex[1]);
+      $("#ZoneCoords").val(vertex[0] + ',' + vertex[1])
     }
     ctx.strokeStyle = "blue";
     ctx.stroke();

@@ -16,7 +16,7 @@
 					<?php foreach ($monitor['Zone'] as $zone): ?>
 						<li>
 							<?php echo $this->Form->checkbox($zone['Name'], array('value' => $zone['Id'], 'hiddenField' => false)); ?>
-							<?php echo $this->Form->label($zone['Name']); ?>
+							<?php echo $this->Html->link($zone['Name'], array('controller' => 'zones', 'action' => 'edit', $zone['Id'])); ?>
 						</li>
 					<?php endforeach; ?>
 					</ol>

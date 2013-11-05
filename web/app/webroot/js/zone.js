@@ -41,6 +41,8 @@ $(document).ready(function()
     ctx.fillStyle = "rgba(158, 217, 50, 0.5)";
     ctx.fill();
     ctx.stroke();
+    var numcoords = vertices.length;
+    $("#ZoneNumCoords").val(numcoords);
     vertices = [];
   }
 

@@ -46,6 +46,17 @@ class ZonesController extends AppController {
 		}
 	}
 
+	public function add() {
+		if ($this->request->is('post')) {
+			$this->Zone->create();
+			if ($this->Zone->save($this->request->data)) {
+				$this->Session->setFlash(__('Your zone has been saved.'));
+				return $this->redirect(array('action' => 'index'));
+			}
+			$this->Session->setFlash(__('Unable to add your zone.'));
+		}
+	}
+
 }
 
 ?>

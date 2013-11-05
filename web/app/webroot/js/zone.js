@@ -57,7 +57,7 @@ $(document).ready(function()
   }
 
   $(canvas).click(function(e){
-    vertices.push([e.pageX - oCanvas.left, e.pageY - oCanvas.top]); // Add the most recent click to the vertices array
+    vertices.push([Math.round(e.pageX - oCanvas.left), Math.round(e.pageY - oCanvas.top)]); // Add the most recent click to the vertices array
     drawVertex(vertices[vertices.length - 1]); // Draw the most recent click
   });
 

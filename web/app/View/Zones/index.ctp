@@ -1,6 +1,8 @@
-<?php $this->assign('title', 'Zones'); ?>
-
-<?php foreach ($monitors as $key => $monitor): ?>
+<?php
+	$this->assign('title', 'Zones');
+	echo $this->Form->create();
+	foreach ($monitors as $key => $monitor): 
+?>
 
 	<div class="panel panel-default pull-left zone" style="width:<?php echo Configure::read('ZM_WEB_LIST_THUMB_WIDTH'); ?>px;">
 		<div class="panel-heading">
@@ -27,4 +29,7 @@
 		</div>
 	</div>
 
-<?php endforeach; ?>
+<?php
+	endforeach;
+	echo $this->Form->end();
+?>

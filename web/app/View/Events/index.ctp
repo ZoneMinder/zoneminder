@@ -97,9 +97,7 @@ foreach ($events as $key => $value) {
 </tbody>
 </table>
 
-<?
-  echo $this->Form->end();
-?>
+<?php echo $this->Form->end(); ?>
 
 <ul class="pagination">
   <?php echo $this->Paginator->numbers(array('tag' => 'li', 'separator' => false, 'currentClass' => 'active', 'currentTag' => 'span')); ?>

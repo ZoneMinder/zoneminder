@@ -46,7 +46,17 @@ class ZonesController extends AppController {
 		}
 	}
 
-	public function add() {
+	public function add($id = null) {
+		$this->loadModel('Monitor');
+		if (!$id) {
+			throw new NotFoundException(__('Invalid Monitor'));
+		}
+
+		$monitor = $this->Monitor->findById($id);
+		if (!$monitor) {
+			throw new NotFoundException(__('Invalid Monitor'));
+		}
+
 		if ($this->request->is('post')) {
 			$this->Zone->create();
 			if ($this->Zone->save($this->request->data)) {

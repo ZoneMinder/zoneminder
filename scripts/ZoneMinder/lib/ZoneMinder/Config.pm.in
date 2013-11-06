@@ -78,7 +78,11 @@ BEGIN
 	{
 		next if ( $str =~ /^\s*$/ );
 		next if ( $str =~ /^\s*#/ );
-        my ( $name, $value ) = $str =~ /^\s*([^=\s]+)\s*=\s*(.+?)\s*$/;
+        my ( $name, $value ) = $str =~ /^\s*([^=\s]+)\s*=\s*(.*?)\s*$/;
+		if ( ! $name ) {
+			print( STDERR "Warning, bad line in $config_file: $str\n" );
+			next;
+		} # end if
 		$name =~ tr/a-z/A-Z/;
 		*{$name} = sub { $value };
 		push( @EXPORT_CONFIG, $name );

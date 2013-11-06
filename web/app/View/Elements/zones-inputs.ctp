@@ -28,40 +28,39 @@
 		'inputDefaults' => array(
 			'legend' => false,
 			'fieldset' => false,
-			'label' => array('class' => array('control-label')),
-			'div' => array('class' => array('form-group')),
-			'class' => 'form-control',
+			'label' => false,
+			'div' => false,
 			'required' => true
 		),
 		'class' => 'form-horizontal'
 	));
 
-	echo $this->Form->input('Name');
+	echo $this->element('zones-input', array('field'=>'Name'));
 
-	echo $this->Form->input('Type', array('type' => 'select', 'options' => $optionsType));
-	echo $this->Form->input('Preset', array('type' => 'select', 'options' => $optionsPreset));
-	echo $this->Form->input('Units', array('type' => 'select', 'options' => $optionsUnits));
-	echo $this->Form->input('CheckMethod', array('type' => 'select', 'options' => $optionsCheckMethod));
+#	echo $this->element('zones-input', array('Type', array('type' => 'select', 'options' => $optionsType)));
+#	echo $this->element('zones-input', array('Preset', array('type' => 'select', 'options' => $optionsPreset)));
+#	echo $this->element('zones-input', array('Units', array('type' => 'select', 'options' => $optionsUnits)));
+#	echo $this->element('zones-input', array('CheckMethod', array('type' => 'select', 'options' => $optionsCheckMethod)));
 
-	echo $this->Form->input('MinPixelThreshold');
-	echo $this->Form->input('MaxPixelThreshold');
+	echo $this->element('zones-input', array('field'=>'MinPixelThreshold'));
+	echo $this->element('zones-input', array('field'=>'MaxPixelThreshold'));
 
-	echo $this->Form->input('MinAlarmPixels');
-	echo $this->Form->input('MaxAlarmPixels');
+	echo $this->element('zones-input', array('field' => 'MinAlarmPixels'));
+	echo $this->element('zones-input', array('field' => 'MaxAlarmPixels'));
 
-	echo $this->Form->input('FilterX');
-	echo $this->Form->input('FilterY');
+	echo $this->element('zones-input', array('field' => 'FilterX'));
+	echo $this->element('zones-input', array('field' => 'FilterY'));
 
-	echo $this->Form->input('MinFilterPixels');
-	echo $this->Form->input('MaxFilterPixels');
+	echo $this->element('zones-input', array('field' => 'MinFilterPixels'));
+	echo $this->element('zones-input', array('field' => 'MaxFilterPixels'));
 
-	echo $this->Form->input('MinBlobPixels');
-	echo $this->Form->input('MaxBlobPixels');
+	echo $this->element('zones-input', array('field' => 'MinBlobPixels'));
+	echo $this->element('zones-input', array('field' => 'MaxBlobPixels'));
 
-	echo $this->Form->input('MinBlobs');
-	echo $this->Form->input('MaxBlobs');
+	echo $this->element('zones-input', array('field' => 'MinBlobs'));
+	echo $this->element('zones-input', array('field' => 'MaxBlobs'));
 
-	echo $this->Form->input('OverloadFrames');
+	echo $this->element('zones-input', array('field' => 'OverloadFrames'));
 
 	echo $this->Form->input('Id', array('type' => 'hidden'));
 	echo $this->Form->input('MonitorId', array('type' => 'hidden', 'default' => $mid));

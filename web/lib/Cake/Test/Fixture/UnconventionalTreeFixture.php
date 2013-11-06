@@ -15,7 +15,7 @@
  * @link          http://book.cakephp.org/2.0/en/development/testing.html CakePHP(tm) Tests
  * @package       Cake.Test.Fixture
  * @since         CakePHP(tm) v 1.2.0.7879
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 /**
@@ -29,22 +29,15 @@
 class UnconventionalTreeFixture extends CakeTestFixture {
 
 /**
- * name property
- *
- * @var string 'FlagTree'
- */
-	public $name = 'UnconventionalTree';
-
-/**
  * fields property
  *
  * @var array
  */
 	public $fields = array(
-		'id'	=> array('type' => 'integer','key' => 'primary'),
-		'name'	=> array('type' => 'string','null' => false),
+		'id'	=> array('type' => 'integer', 'key' => 'primary'),
+		'name'	=> array('type' => 'string', 'null' => false),
 		'join' => 'integer',
-		'left'	=> array('type' => 'integer','null' => false),
-		'right'	=> array('type' => 'integer','null' => false),
+		'left'	=> array('type' => 'integer', 'null' => false),
+		'right'	=> array('type' => 'integer', 'null' => false),
 	);
 }

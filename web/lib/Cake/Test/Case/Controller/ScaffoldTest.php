@@ -15,8 +15,9 @@
  * @link          http://book.cakephp.org/2.0/en/development/testing.html CakePHP(tm) Tests
  * @package       Cake.Test.Case.Controller
  * @since         CakePHP(tm) v 1.2.0.5436
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
+
 App::uses('Router', 'Routing');
 App::uses('Controller', 'Controller');
 App::uses('Scaffold', 'Controller');
@@ -31,13 +32,6 @@ require_once dirname(dirname(__FILE__)) . DS . 'Model' . DS . 'models.php';
  * @package       Cake.Test.Case.Controller
  */
 class ScaffoldMockController extends Controller {
-
-/**
- * name property
- *
- * @var string 'ScaffoldMock'
- */
-	public $name = 'ScaffoldMock';
 
 /**
  * scaffold property
@@ -57,7 +51,7 @@ class ScaffoldMockControllerWithFields extends Controller {
 /**
  * name property
  *
- * @var string 'ScaffoldMock'
+ * @var string
  */
 	public $name = 'ScaffoldMock';
 
@@ -135,6 +129,7 @@ class ScaffoldTest extends CakeTestCase {
  */
 	public function setUp() {
 		parent::setUp();
+		Configure::write('Config.language', 'eng');
 		$request = new CakeRequest(null, false);
 		$this->Controller = new ScaffoldMockController($request);
 		$this->Controller->response = $this->getMock('CakeResponse', array('_sendHeader'));

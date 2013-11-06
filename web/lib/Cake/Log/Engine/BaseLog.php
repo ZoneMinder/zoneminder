@@ -15,7 +15,7 @@
  * @link          http://www.cakefoundation.org/projects/info/cakephp CakePHP(tm) Project
  * @package       Cake.Log.Engine
  * @since         CakePHP(tm) v 2.2
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('CakeLogInterface', 'Log');
@@ -38,7 +38,6 @@ abstract class BaseLog implements CakeLogInterface {
  * __construct method
  *
  * @param array $config Configuration array
- * @return void
  */
 	public function __construct($config = array()) {
 		$this->config($config);

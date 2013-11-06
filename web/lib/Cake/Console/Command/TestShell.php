@@ -16,7 +16,7 @@
  * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
  * @link          http://book.cakephp.org/2.0/en/development/testing.html
  * @since         CakePHP(tm) v 1.2.0.4433
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('Shell', 'Console');
@@ -171,8 +171,8 @@ class TestShell extends Shell {
  */
 	public function initialize() {
 		$this->_dispatcher = new CakeTestSuiteDispatcher();
-		$sucess = $this->_dispatcher->loadTestFramework();
-		if (!$sucess) {
+		$success = $this->_dispatcher->loadTestFramework();
+		if (!$success) {
 			throw new Exception(__d('cake_dev', 'Please install PHPUnit framework <info>(http://www.phpunit.de)</info>'));
 		}
 	}
@@ -338,7 +338,6 @@ class TestShell extends Shell {
  * @param string $file
  * @param string $category
  * @param boolean $throwOnMissingFile
- * @access protected
  * @return array array(type, case)
  * @throws Exception
  */
@@ -414,7 +413,6 @@ class TestShell extends Shell {
  * For the given file, what category of test is it? returns app, core or the name of the plugin
  *
  * @param string $file
- * @access protected
  * @return string
  */
 	protected function _mapFileToCategory($file) {

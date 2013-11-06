@@ -17,17 +17,17 @@
  * @link          http://cakephp.org CakePHP(tm) Project
  * @package       Cake.View
  * @since         Cake v 0.10.0.1076
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
-App::uses('ThemeView', 'View');
+App::uses('View', 'View');
 
 /**
  * ScaffoldView provides specific view file loading features for scaffolded views.
  *
  * @package       Cake.View
  */
-class ScaffoldView extends ThemeView {
+class ScaffoldView extends View {
 
 /**
  * Override _getViewFileName Appends special scaffolding views in.
@@ -58,7 +58,7 @@ class ScaffoldView extends ThemeView {
 
 		$scaffoldAction = 'scaffold.' . $name;
 
-		if (!is_null($this->subDir)) {
+		if ($this->subDir !== null) {
 			$subDir = strtolower($this->subDir) . DS;
 		} else {
 			$subDir = null;

@@ -1,6 +1,6 @@
 <?php
 /**
- * Basic Cake functionality.
+ * Basic CakePHP functionality.
  *
  * Handles loading of core files needed on every request
  *
@@ -17,8 +17,9 @@
  * @link          http://cakephp.org CakePHP(tm) Project
  * @package       Cake
  * @since         CakePHP(tm) v 0.2.9
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
+
 define('TIME_START', microtime(true));
 
 if (!defined('E_DEPRECATED')) {
@@ -140,8 +141,17 @@ require CAKE . 'basics.php';
 require CAKE . 'Core' . DS . 'App.php';
 require CAKE . 'Error' . DS . 'exceptions.php';
 
+spl_autoload_register(array('App', 'load'));
+
+App::uses('ErrorHandler', 'Error');
+App::uses('Configure', 'Core');
+App::uses('CakePlugin', 'Core');
+App::uses('Cache', 'Cache');
+App::uses('Object', 'Core');
+App::uses('Multibyte', 'I18n');
+
 /**
- * Full url prefix
+ * Full URL prefix
  */
 if (!defined('FULL_BASE_URL')) {
 	$s = null;
@@ -153,18 +163,15 @@ if (!defined('FULL_BASE_URL')) {
 
 	if (isset($httpHost)) {
 		define('FULL_BASE_URL', 'http' . $s . '://' . $httpHost);
+		Configure::write('App.fullBaseUrl', FULL_BASE_URL);
 	}
 	unset($httpHost, $s);
 }
 
-spl_autoload_register(array('App', 'load'));
+Configure::write('App.imageBaseUrl', IMAGES_URL);
+Configure::write('App.cssBaseUrl', CSS_URL);
+Configure::write('App.jsBaseUrl', JS_URL);
 
-App::uses('ErrorHandler', 'Error');
-App::uses('Configure', 'Core');
-App::uses('CakePlugin', 'Core');
-App::uses('Cache', 'Cache');
-App::uses('Object', 'Core');
-App::uses('Multibyte', 'I18n');
 App::$bootstrapping = true;
 
 Configure::bootstrap(isset($boot) ? $boot : true);
@@ -173,6 +180,9 @@ if (function_exists('mb_internal_encoding')) {
 	$encoding = Configure::read('App.encoding');
 	if (!empty($encoding)) {
 		mb_internal_encoding($encoding);
+	}
+	if (!empty($encoding) && function_exists('mb_regex_encoding')) {
+		mb_regex_encoding($encoding);
 	}
 }
 

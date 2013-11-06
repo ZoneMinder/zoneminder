@@ -11,7 +11,7 @@
  * @link          http://cakephp.org CakePHP(tm) Project
  * @package       Cake.View.Helper
  * @since         CakePHP(tm) v 1.3
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('JsBaseEngineHelper', 'View/Helper');
@@ -19,7 +19,7 @@ App::uses('JsBaseEngineHelper', 'View/Helper');
 /**
  * MooTools Engine Helper for JsHelper
  *
- * Provides MooTools specific Javascript for JsHelper.
+ * Provides MooTools specific JavaScript for JsHelper.
  * Assumes that you have the following MooTools packages
  *
  * - Remote, Remote.HTML, Remote.JSON
@@ -144,7 +144,7 @@ class MootoolsEngineHelper extends JsBaseEngineHelper {
  * - 'stop' - Whether you want the event to stopped. (defaults true)
  *
  * @param string $type Type of event to bind to the current dom id
- * @param string $callback The Javascript function you wish to trigger or the function literal
+ * @param string $callback The JavaScript function you wish to trigger or the function literal
  * @param array $options Options for the event.
  * @return string completed event handler
  */
@@ -205,10 +205,10 @@ class MootoolsEngineHelper extends JsBaseEngineHelper {
 		switch ($name) {
 			case 'hide':
 				$effect = 'setStyle("display", "none")';
-			break;
+				break;
 			case 'show':
 				$effect = 'setStyle("display", "")';
-			break;
+				break;
 			case 'fadeIn':
 			case 'fadeOut':
 			case 'slideIn':
@@ -219,7 +219,7 @@ class MootoolsEngineHelper extends JsBaseEngineHelper {
 					$effect .= "set(\"$effectName\", {duration:$speed}).";
 				}
 				$effect .= "$effectName(\"$direction\")";
-			break;
+				break;
 		}
 		return $this->selection . '.' . $effect . ';';
 	}
@@ -308,7 +308,7 @@ class MootoolsEngineHelper extends JsBaseEngineHelper {
 	public function drop($options = array()) {
 		if (empty($options['drag'])) {
 			trigger_error(
-				__d('cake_dev', 'MootoolsEngine::drop() requires a "drag" option to properly function'), E_USER_WARNING
+				__d('cake_dev', '%s requires a "drag" option to properly function'), 'MootoolsEngine::drop()', E_USER_WARNING
 			);
 			return false;
 		}

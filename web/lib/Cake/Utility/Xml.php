@@ -17,12 +17,13 @@
  * @link          http://cakephp.org CakePHP(tm) Project
  * @package       Cake.Utility
  * @since         CakePHP v .0.10.3.1400
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
+
 App::uses('HttpSocket', 'Network/Http');
 
 /**
- * XML handling for Cake.
+ * XML handling for CakePHP.
  *
  * The methods in these classes enable the datasources that use XML to work.
  *
@@ -80,7 +81,7 @@ class Xml {
  *   is disabled by default for security reasons.
  * - If using array as input, you can pass `options` from Xml::fromArray.
  *
- * @param string|array $input XML string, a path to a file, an URL or an array
+ * @param string|array $input XML string, a path to a file, a URL or an array
  * @param array $options The options to use
  * @return SimpleXMLElement|DOMDocument SimpleXMLElement or DOMDocument
  * @throws XmlException
@@ -124,6 +125,7 @@ class Xml {
  * @param string $input The input to load.
  * @param array $options The options to use. See Xml::build()
  * @return SimpleXmlElement|DOMDocument
+ * @throws XmlException
  */
 	protected static function _loadXml($input, $options) {
 		$hasDisable = function_exists('libxml_disable_entity_loader');
@@ -131,16 +133,23 @@ class Xml {
 		if ($hasDisable && !$options['loadEntities']) {
 			libxml_disable_entity_loader(true);
 		}
-		if ($options['return'] === 'simplexml' || $options['return'] === 'simplexmlelement') {
-			$xml = new SimpleXMLElement($input, LIBXML_NOCDATA);
-		} else {
-			$xml = new DOMDocument();
-			$xml->loadXML($input);
+		try {
+			if ($options['return'] === 'simplexml' || $options['return'] === 'simplexmlelement') {
+				$xml = new SimpleXMLElement($input, LIBXML_NOCDATA);
+			} else {
+				$xml = new DOMDocument();
+				$xml->loadXML($input);
+			}
+		} catch (Exception $e) {
+			$xml = null;
 		}
 		if ($hasDisable && !$options['loadEntities']) {
 			libxml_disable_entity_loader(false);
 		}
 		libxml_use_internal_errors($internalErrors);
+		if ($xml === null) {
+			throw new XmlException(__d('cake_dev', 'Xml cannot be read.'));
+		}
 		return $xml;
 	}
 
@@ -150,6 +159,7 @@ class Xml {
  * ### Options
  *
  * - `format` If create childs ('tags') or attributes ('attribute').
+ * - `pretty` Returns formatted Xml when set to `true`. Defaults to `false`
  * - `version` Version of XML document. Default is 1.0.
  * - `encoding` Encoding of XML document. If null remove from XML header. Default is the some of application.
  * - `return` If return object of SimpleXMLElement ('simplexml') or DOMDocument ('domdocument'). Default is SimpleXMLElement.
@@ -197,11 +207,15 @@ class Xml {
 			'format' => 'tags',
 			'version' => '1.0',
 			'encoding' => Configure::read('App.encoding'),
-			'return' => 'simplexml'
+			'return' => 'simplexml',
+			'pretty' => false
 		);
 		$options = array_merge($defaults, $options);
 
 		$dom = new DOMDocument($options['version'], $options['encoding']);
+		if ($options['pretty']) {
+			$dom->formatOutput = true;
+		}
 		self::_fromArray($dom, $dom, $input, $options['format']);
 
 		$options['return'] = strtolower($options['return']);
@@ -301,7 +315,7 @@ class Xml {
 		}
 
 		$child = $dom->createElement($key);
-		if ($childValue) {
+		if ($childValue !== null) {
 			$child->appendChild($dom->createTextNode($childValue));
 		}
 		if ($childNS) {
@@ -360,7 +374,7 @@ class Xml {
 		$asString = trim((string)$xml);
 		if (empty($data)) {
 			$data = $asString;
-		} elseif (!empty($asString)) {
+		} elseif (strlen($asString) > 0) {
 			$data['@'] = $asString;
 		}
 

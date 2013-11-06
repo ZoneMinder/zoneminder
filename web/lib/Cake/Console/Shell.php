@@ -14,7 +14,7 @@
  * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
  * @link          http://cakephp.org CakePHP(tm) Project
  * @since         CakePHP(tm) v 1.2.0.5012
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('TaskCollection', 'Console');
@@ -24,6 +24,7 @@ App::uses('ConsoleInputSubcommand', 'Console');
 App::uses('ConsoleOptionParser', 'Console');
 App::uses('ClassRegistry', 'Utility');
 App::uses('File', 'Utility');
+App::uses('ClassRegistry', 'Utility');
 
 /**
  * Base class for command-line utilities for automating programmer chores.
@@ -121,6 +122,13 @@ class Shell extends Object {
 	public $uses = array();
 
 /**
+ * This shell's primary model class name, the first model in the $uses property
+ *
+ * @var string
+ */
+	public $modelClass = null;
+
+/**
  * Task Collection for the command, used to create Tasks.
  *
  * @var TaskCollection
@@ -178,7 +186,7 @@ class Shell extends Object {
 		if ($this->tasks !== null && $this->tasks !== false) {
 			$this->_mergeVars(array('tasks'), $parent, true);
 		}
-		if ($this->uses !== null && $this->uses !== false) {
+		if (!empty($this->uses)) {
 			$this->_mergeVars(array('uses'), $parent, false);
 		}
 	}
@@ -193,6 +201,7 @@ class Shell extends Object {
  */
 	public function initialize() {
 		$this->_loadModels();
+		$this->loadTasks();
 	}
 
 /**
@@ -224,31 +233,66 @@ class Shell extends Object {
 	}
 
 /**
- * If $uses = true
- * Loads AppModel file and constructs AppModel class
- * makes $this->AppModel available to subclasses
- * If public $uses is an array of models will load those models
+ * If $uses is an array load each of the models in the array
  *
  * @return boolean
  */
 	protected function _loadModels() {
-		if (empty($this->uses)) {
-			return false;
+		if (is_array($this->uses)) {
+			list(, $this->modelClass) = pluginSplit(current($this->uses));
+			foreach ($this->uses as $modelClass) {
+				$this->loadModel($modelClass);
+			}
+		}
+		return true;
+	}
+
+/**
+ * Lazy loads models using the loadModel() method if declared in $uses
+ *
+ * @param string $name
+ * @return void
+ */
+	public function __isset($name) {
+		if (is_array($this->uses)) {
+			foreach ($this->uses as $modelClass) {
+				list(, $class) = pluginSplit($modelClass);
+				if ($name === $class) {
+					return $this->loadModel($modelClass);
+				}
+			}
+		}
+	}
+
+/**
+ * Loads and instantiates models required by this shell.
+ *
+ * @param string $modelClass Name of model class to load
+ * @param mixed $id Initial ID the instanced model class should have
+ * @return mixed true when single model found and instance created, error returned if model not found.
+ * @throws MissingModelException if the model class cannot be found.
+ */
+	public function loadModel($modelClass = null, $id = null) {
+		if ($modelClass === null) {
+			$modelClass = $this->modelClass;
 		}
 
-		$uses = is_array($this->uses) ? $this->uses : array($this->uses);
-
-		$modelClassName = $uses[0];
-		if (strpos($uses[0], '.') !== false) {
-			list($plugin, $modelClassName) = explode('.', $uses[0]);
-		}
-		$this->modelClass = $modelClassName;
-
-		foreach ($uses as $modelClass) {
-			list($plugin, $modelClass) = pluginSplit($modelClass, true);
-			$this->{$modelClass} = ClassRegistry::init($plugin . $modelClass);
+		$this->uses = ($this->uses) ? (array)$this->uses : array();
+		if (!in_array($modelClass, $this->uses)) {
+			$this->uses[] = $modelClass;
 		}
 
+		list($plugin, $modelClass) = pluginSplit($modelClass, true);
+		if (!isset($this->modelClass)) {
+			$this->modelClass = $modelClass;
+		}
+
+		$this->{$modelClass} = ClassRegistry::init(array(
+			'class' => $plugin . $modelClass, 'alias' => $modelClass, 'id' => $id
+		));
+		if (!$this->{$modelClass}) {
+			throw new MissingModelException($modelClass);
+		}
 		return true;
 	}
 
@@ -504,7 +548,7 @@ class Shell extends Object {
 		$result = $this->stdin->read();
 
 		if ($result === false) {
-			$this->_stop(1);
+			return $this->_stop(1);
 		}
 		$result = trim($result);
 
@@ -542,7 +586,7 @@ class Shell extends Object {
  *
  * There are 3 built-in output level. Shell::QUIET, Shell::NORMAL, Shell::VERBOSE.
  * The verbose and quiet output levels, map to the `verbose` and `quiet` output switches
- * present in  most shells. Using Shell::QUIET for a message means it will always display.
+ * present in most shells. Using Shell::QUIET for a message means it will always display.
  * While using Shell::VERBOSE means it will only display when verbose output is toggled.
  *
  * @param string|array $message A string or a an array of strings to output
@@ -618,7 +662,7 @@ class Shell extends Object {
 		if (!empty($message)) {
 			$this->err($message);
 		}
-		$this->_stop(1);
+		return $this->_stop(1);
 	}
 
 /**
@@ -650,13 +694,13 @@ class Shell extends Object {
 
 		$this->out();
 
-		if (is_file($path) && $this->interactive === true) {
+		if (is_file($path) && empty($this->params['force']) && $this->interactive === true) {
 			$this->out(__d('cake_console', '<warning>File `%s` exists</warning>', $path));
 			$key = $this->in(__d('cake_console', 'Do you want to overwrite?'), array('y', 'n', 'q'), 'n');
 
 			if (strtolower($key) === 'q') {
 				$this->out(__d('cake_console', '<error>Quitting</error>.'), 2);
-				$this->_stop();
+				return $this->_stop();
 			} elseif (strtolower($key) !== 'y') {
 				$this->out(__d('cake_console', 'Skip `%s`', $path), 2);
 				return false;
@@ -835,12 +879,12 @@ class Shell extends Object {
 			return;
 		}
 		CakeLog::config('stdout', array(
-			'engine' => 'ConsoleLog',
+			'engine' => 'Console',
 			'types' => array('notice', 'info'),
 			'stream' => $this->stdout,
 		));
 		CakeLog::config('stderr', array(
-			'engine' => 'ConsoleLog',
+			'engine' => 'Console',
 			'types' => array('emergency', 'alert', 'critical', 'error', 'warning', 'debug'),
 			'stream' => $this->stderr,
 		));

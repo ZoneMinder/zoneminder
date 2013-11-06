@@ -11,7 +11,7 @@
  * @link          http://cakephp.org CakePHP(tm) Project
  * @package       Cake.Utility
  * @since         CakePHP(tm) v 0.2.9
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 /**
@@ -516,11 +516,10 @@ class Folder {
 					umask($old);
 					$this->_messages[] = __d('cake_dev', '%s created', $pathname);
 					return true;
-				} else {
-					umask($old);
-					$this->_errors[] = __d('cake_dev', '%s NOT created', $pathname);
-					return false;
 				}
+				umask($old);
+				$this->_errors[] = __d('cake_dev', '%s NOT created', $pathname);
+				return false;
 			}
 		}
 		return false;
@@ -810,9 +809,8 @@ class Folder {
 				if (!empty($newparts)) {
 					array_pop($newparts);
 					continue;
-				} else {
-					return false;
 				}
+				return false;
 			}
 			$newparts[] = $part;
 		}

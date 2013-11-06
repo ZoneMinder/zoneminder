@@ -15,7 +15,7 @@
  * @link          http://cakephp.org CakePHP(tm) Project
  * @package       Cake.View.Helper
  * @since         CakePHP(tm) v 1.2
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('AppHelper', 'View/Helper');
@@ -82,7 +82,7 @@ class JsHelper extends AppHelper {
  * Constructor - determines engine helper
  *
  * @param View $View the view object the helper is attached to.
- * @param array $settings Settings array contains name of engine helper.
+ * @param string|array $settings Settings array contains name of engine helper.
  */
 	public function __construct(View $View, $settings = array()) {
 		$className = 'Jquery';
@@ -285,7 +285,7 @@ class JsHelper extends AppHelper {
  * - `buffer` - Disable the buffering and return a script tag in addition to the link.
  *
  * @param string $title Title for the link.
- * @param string|array $url Mixed either a string URL or an cake url array.
+ * @param string|array $url Mixed either a string URL or a CakePHP URL array.
  * @param array $options Options for both the HTML element and Js::request()
  * @return string Completed link. If buffering is disabled a script tag will be returned as well.
  * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/js.html#JsHelper::link

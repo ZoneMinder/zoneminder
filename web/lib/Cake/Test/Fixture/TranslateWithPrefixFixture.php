@@ -20,21 +20,14 @@
  * @version       $Revision$
  * @modifiedby    $LastChangedBy$
  * @lastmodified  $Date$
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 /**
- * Short description for class.
+ * Class TranslateWithPrefixFixture
  *
  * @package       Cake.Test.Fixture
  */
 class TranslateWithPrefixFixture extends CakeTestFixture {
-
-/**
- * name property
- *
- * @var string 'Translate'
- */
-	public $name = 'TranslateWithPrefix';
 
 /**
  * table property

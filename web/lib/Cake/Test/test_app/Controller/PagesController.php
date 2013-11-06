@@ -17,7 +17,7 @@
  * @link          http://cakephp.org CakePHP(tm) Project
  * @package       Cake.Controller
  * @since         CakePHP(tm) v 0.2.9
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('AppController', 'Controller');
@@ -51,13 +51,15 @@ class PagesController extends AppController {
  *
  * @param mixed What page to display
  * @return void
+ * @throws NotFoundException When the view file could not be found
+ *	or MissingViewException in debug mode.
  */
 	public function display() {
 		$path = func_get_args();
 
 		$count = count($path);
 		if (!$count) {
-			$this->redirect('/');
+			return $this->redirect('/');
 		}
 		$page = $subpage = $titleForLayout = null;
 
@@ -75,7 +77,15 @@ class PagesController extends AppController {
 			'subpage' => $subpage,
 			'title_for_layout' => $titleForLayout
 		));
-		$this->render(implode('/', $path));
+
+		try {
+			$this->render(implode('/', $path));
+		} catch (MissingViewException $e) {
+			if (Configure::read('debug')) {
+				throw $e;
+			}
+			throw new NotFoundException();
+		}
 	}
 
 }

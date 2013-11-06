@@ -14,7 +14,7 @@
  * @link		  http://cakephp.org CakePHP(tm) Project
  * @package		  Cake.Routing
  * @since		  CakePHP(tm) v 2.2
- * @license		  MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('CakeEventListener', 'Event');
@@ -31,7 +31,7 @@ abstract class DispatcherFilter implements CakeEventListener {
 /**
  * Default priority for all methods in this filter
  *
- * @var int
+ * @var integer
  */
 	public $priority = 10;
 
@@ -54,7 +54,7 @@ abstract class DispatcherFilter implements CakeEventListener {
 /**
  * Method called before the controller is instantiated and called to serve a request.
  * If used with default priority, it will be called after the Router has parsed the
- * url and set the routing params into the request object.
+ * URL and set the routing params into the request object.
  *
  * If a CakeResponse object instance is returned, it will be served at the end of the
  * event cycle, not calling any controller as a result. This will also have the effect of

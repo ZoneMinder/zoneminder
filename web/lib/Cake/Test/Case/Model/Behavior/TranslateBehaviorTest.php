@@ -10,7 +10,7 @@
  * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
  * @link          http://book.cakephp.org/2.0/en/development/testing.html CakePHP(tm) Tests
  * @since         CakePHP(tm) v 1.2.0.5669
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('Model', 'Model');
@@ -27,7 +27,7 @@ class TranslateBehaviorTest extends CakeTestCase {
 /**
  * autoFixtures property
  *
- * @var bool false
+ * @var boolean
  */
 	public $autoFixtures = false;
 
@@ -69,13 +69,13 @@ class TranslateBehaviorTest extends CakeTestCase {
 		$this->loadFixtures('TranslateTable', 'Tag', 'TranslatedItem', 'Translate', 'User', 'TranslatedArticle', 'TranslateArticle');
 		$TestModel = new Tag();
 		$TestModel->translateTable = 'another_i18n';
-		$TestModel->Behaviors->attach('Translate', array('title'));
+		$TestModel->Behaviors->load('Translate', array('title'));
 		$translateModel = $TestModel->Behaviors->Translate->translateModel($TestModel);
 		$this->assertEquals('I18nModel', $translateModel->name);
 		$this->assertEquals('another_i18n', $translateModel->useTable);
 
 		$TestModel = new User();
-		$TestModel->Behaviors->attach('Translate', array('title'));
+		$TestModel->Behaviors->load('Translate', array('title'));
 		$translateModel = $TestModel->Behaviors->Translate->translateModel($TestModel);
 		$this->assertEquals('I18nModel', $translateModel->name);
 		$this->assertEquals('i18n', $translateModel->useTable);
@@ -532,6 +532,36 @@ class TranslateBehaviorTest extends CakeTestCase {
 	}
 
 /**
+ * test saving/deleting with an alias, uses the model name.
+ *
+ * @return void
+ */
+	public function testSaveDeleteIgnoreAlias() {
+		$this->loadFixtures('Translate', 'TranslatedItem');
+
+		$TestModel = new TranslatedItem(array('alias' => 'SomethingElse'));
+		$TestModel->locale = 'spa';
+		$data = array(
+			'slug' => 'fourth_translated',
+			'title' => 'Leyenda #4',
+			'content' => 'Contenido #4',
+			'translated_article_id' => 1,
+		);
+		$TestModel->create($data);
+		$TestModel->save();
+		$id = $TestModel->id;
+		$result = $TestModel->read();
+		$expected = array($TestModel->alias => array_merge($data, array('id' => $id, 'locale' => 'spa')));
+		$this->assertEquals($expected, $result);
+
+		$TestModel->delete($id);
+		$result = $TestModel->translateModel()->find('count', array(
+			'conditions' => array('foreign_key' => $id)
+		));
+		$this->assertEquals(0, $result);
+	}
+
+/**
  * test save multiple locales method
  *
  * @return void
@@ -912,6 +942,7 @@ class TranslateBehaviorTest extends CakeTestCase {
  * @return void
  */
 	public function testValidation() {
+		Configure::write('Config.language', 'eng');
 		$this->loadFixtures('Translate', 'TranslatedItem');
 
 		$TestModel = new TranslatedItem();
@@ -958,7 +989,7 @@ class TranslateBehaviorTest extends CakeTestCase {
 		$expected = array('Title', 'Content');
 		$this->assertEquals($expected, $result);
 
-		$TestModel->Behaviors->detach('Translate');
+		$TestModel->Behaviors->unload('Translate');
 		$result = array_keys($TestModel->hasMany);
 		$expected = array();
 		$this->assertEquals($expected, $result);
@@ -972,7 +1003,7 @@ class TranslateBehaviorTest extends CakeTestCase {
 		$result = isset($Behavior->runtime[$TestModel->alias]);
 		$this->assertFalse($result);
 
-		$TestModel->Behaviors->attach('Translate', array('title' => 'Title', 'content' => 'Content'));
+		$TestModel->Behaviors->load('Translate', array('title' => 'Title', 'content' => 'Content'));
 		$result = array_keys($TestModel->hasMany);
 		$expected = array('Title', 'Content');
 		$this->assertEquals($expected, $result);
@@ -1154,9 +1185,9 @@ class TranslateBehaviorTest extends CakeTestCase {
 		$this->loadFixtures('Translate', 'TranslatedItem');
 
 		$TestModel = new TranslatedItem();
-		$TestModel->Behaviors->detach('Translate');
+		$TestModel->Behaviors->unload('Translate');
 		$TestModel->actsAs = array();
-		$TestModel->Behaviors->attach('Translate');
+		$TestModel->Behaviors->load('Translate');
 		$TestModel->bindTranslation(array('title', 'content'), true);
 		$result = $TestModel->unbindTranslation();
 

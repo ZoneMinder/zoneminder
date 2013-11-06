@@ -15,7 +15,7 @@
  * @link          http://cakephp.org CakePHP(tm) Project
  * @package       Cake.TestSuite
  * @since         CakePHP(tm) v 2.0
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 require_once 'PHPUnit/TextUI/Command.php';
@@ -75,24 +75,6 @@ class CakeTestSuiteCommand extends PHPUnit_TextUI_Command {
 			);
 		}
 
-		if (!count($suite)) {
-			$skeleton = new PHPUnit_Util_Skeleton_Test(
-				$suite->getName(),
-				$this->arguments['testFile']
-			);
-
-			$result = $skeleton->generate(true);
-
-			if (!$result['incomplete']) {
-				//@codingStandardsIgnoreStart
-				eval(str_replace(array('<?php', '?>'), '', $result['code']));
-				//@codingStandardsIgnoreEnd
-				$suite = new PHPUnit_Framework_TestSuite(
-					$this->arguments['test'] . 'Test'
-				);
-			}
-		}
-
 		if ($this->arguments['listGroups']) {
 			PHPUnit_TextUI_TestRunner::printVersionString();
 
@@ -122,9 +104,8 @@ class CakeTestSuiteCommand extends PHPUnit_TextUI_Command {
 				exit(PHPUnit_TextUI_TestRunner::SUCCESS_EXIT);
 			} elseif (!isset($result) || $result->errorCount() > 0) {
 				exit(PHPUnit_TextUI_TestRunner::EXCEPTION_EXIT);
-			} else {
-				exit(PHPUnit_TextUI_TestRunner::FAILURE_EXIT);
 			}
+			exit(PHPUnit_TextUI_TestRunner::FAILURE_EXIT);
 		}
 	}
 

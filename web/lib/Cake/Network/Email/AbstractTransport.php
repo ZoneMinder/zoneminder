@@ -15,7 +15,7 @@
  * @link          http://cakephp.org CakePHP(tm) Project
  * @package       Cake.Network.Email
  * @since         CakePHP(tm) v 2.0.0
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 /**
@@ -48,7 +48,7 @@ abstract class AbstractTransport {
  */
 	public function config($config = null) {
 		if (is_array($config)) {
-			$this->_config = $config;
+			$this->_config = $config + $this->_config;
 		}
 		return $this->_config;
 	}

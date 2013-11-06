@@ -11,7 +11,7 @@
  * @link          http://cakephp.org CakePHP(tm) Project
  * @package       Cake.Utility
  * @since         CakePHP(tm) v 0.9.2
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 /**
@@ -203,8 +203,8 @@ class ClassRegistry {
 /**
  * Add $object to the registry, associating it with the name $key.
  *
- * @param string $key		Key for the object in registry
- * @param object $object	Object to store
+ * @param string $key Key for the object in registry
+ * @param object $object Object to store
  * @return boolean True if the object was written, false if $key already exists
  */
 	public static function addObject($key, $object) {
@@ -220,7 +220,7 @@ class ClassRegistry {
 /**
  * Remove object which corresponds to given key.
  *
- * @param string $key	Key of object to remove from registry
+ * @param string $key Key of object to remove from registry
  * @return void
  */
 	public static function removeObject($key) {
@@ -289,7 +289,7 @@ class ClassRegistry {
 		if (empty($param) && is_array($type)) {
 			$param = $type;
 			$type = 'Model';
-		} elseif (is_null($param)) {
+		} elseif ($param === null) {
 			unset($_this->_config[$type]);
 		} elseif (empty($param) && is_string($type)) {
 			return isset($_this->_config[$type]) ? $_this->_config[$type] : null;
@@ -311,7 +311,7 @@ class ClassRegistry {
 		$duplicate = false;
 		if ($this->isKeySet($alias)) {
 			$model = $this->getObject($alias);
-			if (is_object($model) && (is_a($model, $class) || $model->alias === $class)) {
+			if (is_object($model) && ($model instanceof $class || $model->alias === $class)) {
 				$duplicate = $model;
 			}
 			unset($model);

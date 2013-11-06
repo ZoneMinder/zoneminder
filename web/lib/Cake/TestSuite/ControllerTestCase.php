@@ -15,7 +15,7 @@
  * @link          http://book.cakephp.org/2.0/en/development/testing.html CakePHP(tm) Tests
  * @package       Cake.TestSuite
  * @since         CakePHP(tm) v 2.0
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('Dispatcher', 'Routing');
@@ -329,11 +329,12 @@ abstract class ControllerTestCase extends CakeTestCase {
 		), (array)$mocks);
 
 		list($plugin, $name) = pluginSplit($controller);
-		$_controller = $this->getMock($name . 'Controller', $mocks['methods'], array(), '', false);
-		$_controller->name = $name;
+		$controllerObj = $this->getMock($name . 'Controller', $mocks['methods'], array(), '', false);
+		$controllerObj->name = $name;
 		$request = $this->getMock('CakeRequest');
 		$response = $this->getMock('CakeResponse', array('_sendHeader'));
-		$_controller->__construct($request, $response);
+		$controllerObj->__construct($request, $response);
+		$controllerObj->Components->setController($controllerObj);
 
 		$config = ClassRegistry::config('Model');
 		foreach ($mocks['models'] as $model => $methods) {
@@ -363,14 +364,16 @@ abstract class ControllerTestCase extends CakeTestCase {
 					'class' => $componentClass
 				));
 			}
-			$_component = $this->getMock($componentClass, $methods, array(), '', false);
-			$_controller->Components->set($name, $_component);
+			$config = isset($controllerObj->components[$component]) ? $controllerObj->components[$component] : array();
+			$componentObj = $this->getMock($componentClass, $methods, array($controllerObj->Components, $config));
+			$controllerObj->Components->set($name, $componentObj);
+			$controllerObj->Components->enable($name);
 		}
 
-		$_controller->constructClasses();
+		$controllerObj->constructClasses();
 		$this->_dirtyController = false;
 
-		$this->controller = $_controller;
+		$this->controller = $controllerObj;
 		return $this->controller;
 	}
 

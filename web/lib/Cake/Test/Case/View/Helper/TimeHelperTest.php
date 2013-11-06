@@ -15,14 +15,17 @@
  * @link          http://book.cakephp.org/2.0/en/development/testing.html CakePHP(tm) Tests
  * @package       Cake.Test.Case.View.Helper
  * @since         CakePHP(tm) v 1.2.0.4206
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
+
 App::uses('TimeHelper', 'View/Helper');
 App::uses('View', 'View');
 App::uses('CakeTime', 'Utility');
 
 /**
  * TimeHelperTestObject class
+ *
+ * @package       Cake.Test.Case.View.Helper
  */
 class TimeHelperTestObject extends TimeHelper {
 
@@ -38,6 +41,8 @@ class TimeHelperTestObject extends TimeHelper {
 
 /**
  * CakeTimeMock class
+ *
+ * @package       Cake.Test.Case.View.Helper
  */
 class CakeTimeMock {
 }
@@ -82,7 +87,7 @@ class TimeHelperTest extends CakeTestCase {
 			'nice', 'niceShort', 'daysAsSql', 'dayAsSql',
 			'isToday', 'isThisMonth', 'isThisYear', 'wasYesterday',
 			'isTomorrow', 'toQuarter', 'toUnix', 'toAtom', 'toRSS',
-			'timeAgoInWords', 'wasWithinLast', 'gmt', 'format', 'i18nFormat',
+			'wasWithinLast', 'gmt', 'format', 'i18nFormat',
 		);
 		$CakeTime = $this->getMock('CakeTimeMock', $methods);
 		$Time = new TimeHelperTestObject($this->View, array('engine' => 'CakeTimeMock'));
@@ -91,6 +96,12 @@ class TimeHelperTest extends CakeTestCase {
 			$CakeTime->expects($this->at(0))->method($method);
 			$Time->{$method}('who', 'what', 'when', 'where', 'how');
 		}
+
+		$CakeTime = $this->getMock('CakeTimeMock', array('timeAgoInWords'));
+		$Time = new TimeHelperTestObject($this->View, array('engine' => 'CakeTimeMock'));
+		$Time->attach($CakeTime);
+		$CakeTime->expects($this->at(0))->method('timeAgoInWords');
+		$Time->timeAgoInWords('who', array('what'), array('when'), array('where'), array('how'));
 	}
 
 /**

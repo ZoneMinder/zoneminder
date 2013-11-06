@@ -15,7 +15,7 @@
  * @link          http://cakephp.org CakePHP(tm) Project
  * @package       Cake.Test.Case.Controller.Component.Acl
  * @since         CakePHP(tm) v 2.0
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('ComponentCollection', 'Controller');
@@ -35,14 +35,14 @@ class AclNodeTwoTestBase extends AclNode {
 /**
  * useDbConfig property
  *
- * @var string 'test'
+ * @var string
  */
 	public $useDbConfig = 'test';
 
 /**
  * cacheSources property
  *
- * @var bool false
+ * @var boolean
  */
 	public $cacheSources = false;
 }
@@ -57,14 +57,14 @@ class AroTwoTest extends AclNodeTwoTestBase {
 /**
  * name property
  *
- * @var string 'AroTwoTest'
+ * @var string
  */
 	public $name = 'AroTwoTest';
 
 /**
  * useTable property
  *
- * @var string 'aro_twos'
+ * @var string
  */
 	public $useTable = 'aro_twos';
 
@@ -86,14 +86,14 @@ class AcoTwoTest extends AclNodeTwoTestBase {
 /**
  * name property
  *
- * @var string 'AcoTwoTest'
+ * @var string
  */
 	public $name = 'AcoTwoTest';
 
 /**
  * useTable property
  *
- * @var string 'aco_twos'
+ * @var string
  */
 	public $useTable = 'aco_twos';
 
@@ -115,21 +115,21 @@ class PermissionTwoTest extends Permission {
 /**
  * name property
  *
- * @var string 'PermissionTwoTest'
+ * @var string
  */
 	public $name = 'PermissionTwoTest';
 
 /**
  * useTable property
  *
- * @var string 'aros_aco_twos'
+ * @var string
  */
 	public $useTable = 'aros_aco_twos';
 
 /**
  * cacheQueries property
  *
- * @var bool false
+ * @var boolean
  */
 	public $cacheQueries = false;
 
@@ -158,7 +158,6 @@ class DbAclTwoTest extends DbAcl {
 /**
  * construct method
  *
- * @return void
  */
 	public function __construct() {
 		$this->Aro = new AroTwoTest();
@@ -283,7 +282,7 @@ class DbAclTest extends CakeTestCase {
 		$this->assertTrue($this->Acl->check('Samir', 'view', 'read'));
 		$this->assertTrue($this->Acl->check('root/users/Samir', 'ROOT/tpsReports/view', 'update'));
 
-		$this->assertFalse($this->Acl->check('root/users/Samir', 'ROOT/tpsReports/update','*'));
+		$this->assertFalse($this->Acl->check('root/users/Samir', 'ROOT/tpsReports/update', '*'));
 		$this->assertTrue($this->Acl->allow('root/users/Samir', 'ROOT/tpsReports/update', '*'));
 		$this->assertTrue($this->Acl->check('Samir', 'update', 'read'));
 		$this->assertTrue($this->Acl->check('root/users/Samir', 'ROOT/tpsReports/update', 'update'));
@@ -291,6 +290,16 @@ class DbAclTest extends CakeTestCase {
 		$this->assertTrue($this->Acl->check('root/users/Samir', 'ROOT/tpsReports/view', 'update'));
 
 		$this->assertFalse($this->Acl->allow('Lumbergh', 'ROOT/tpsReports/DoesNotExist', 'create'));
+	}
+
+/**
+ * Test that allow() with an invalid permission name triggers an error.
+ *
+ * @expectedException CakeException
+ * @return void
+ */
+	public function testAllowInvalidPermission() {
+		$this->Acl->allow('Micheal', 'tpsReports', 'derp');
 	}
 
 /**
@@ -488,7 +497,7 @@ class DbAclTest extends CakeTestCase {
  * Generates a list of the current aro and aco structures and a grid dump of the permissions that are defined
  * Only designed to work with the db based ACL
  *
- * @param bool $treesToo
+ * @param boolean $treesToo
  * @return void
  */
 	protected function _debug($printTreesToo = false) {
@@ -520,7 +529,7 @@ class DbAclTest extends CakeTestCase {
 		foreach ($permissions as $key => $values) {
 			array_unshift($values, $key);
 			$values = array_map(array(&$this, '_pad'), $values);
-			$permissions[$key] = implode (' ', $values);
+			$permissions[$key] = implode(' ', $values);
 		}
 		$permissions = array_map(array(&$this, '_pad'), $permissions);
 		array_unshift($permissions, 'Current Permissions :');

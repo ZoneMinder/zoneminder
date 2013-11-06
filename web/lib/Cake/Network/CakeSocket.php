@@ -1,6 +1,6 @@
 <?php
 /**
- * Cake Socket connection class.
+ * CakePHP Socket connection class.
  *
  * PHP 5
  *
@@ -15,13 +15,13 @@
  * @link          http://cakephp.org CakePHP(tm) Project
  * @package       Cake.Network
  * @since         CakePHP(tm) v 1.2.0
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('Validation', 'Utility');
 
 /**
- * Cake network socket connection class.
+ * CakePHP network socket connection class.
  *
  * Core base class for network communication.
  *
@@ -184,8 +184,9 @@ class CakeSocket {
  *
  * Instead we need to handle those errors manually.
  *
- * @param int $code
+ * @param integer $code
  * @param string $message
+ * @return void
  */
 	protected function _connectionErrorHandler($code, $message) {
 		$this->_connectionErrors[] = $message;
@@ -382,11 +383,10 @@ class CakeSocket {
 		if ($enableCryptoResult === true) {
 			$this->encrypted = $enable;
 			return true;
-		} else {
-			$errorMessage = __d('cake_dev', 'Unable to perform enableCrypto operation on CakeSocket');
-			$this->setLastError(null, $errorMessage);
-			throw new SocketException($errorMessage);
 		}
+		$errorMessage = __d('cake_dev', 'Unable to perform enableCrypto operation on CakeSocket');
+		$this->setLastError(null, $errorMessage);
+		throw new SocketException($errorMessage);
 	}
 
 }

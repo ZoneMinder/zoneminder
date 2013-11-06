@@ -15,22 +15,15 @@
  * @link          http://book.cakephp.org/2.0/en/development/testing.html CakePHP(tm) Tests
  * @package       Cake.Test.Fixture
  * @since         CakePHP(tm) v 1.2.0.5669
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 /**
- * Short description for class.
+ * Class TranslateFixture
  *
  * @package       Cake.Test.Fixture
  */
 class TranslateFixture extends CakeTestFixture {
-
-/**
- * name property
- *
- * @var string 'Translate'
- */
-	public $name = 'Translate';
 
 /**
  * table property

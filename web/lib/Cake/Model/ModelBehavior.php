@@ -2,7 +2,7 @@
 /**
  * Model behaviors base class.
  *
- * Adds methods and automagic functionality to Cake Models.
+ * Adds methods and automagic functionality to CakePHP Models.
  *
  * PHP 5
  *
@@ -17,7 +17,7 @@
  * @link          http://cakephp.org CakePHP(tm) Project
  * @package       Cake.Model
  * @since         CakePHP(tm) v 1.2.0.0
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 /**
@@ -132,7 +132,7 @@ class ModelBehavior extends Object {
  * @param boolean $primary Whether this model is being queried directly (vs. being queried as an association)
  * @return mixed An array value will replace the value of $results - any other value will be ignored.
  */
-	public function afterFind(Model $model, $results, $primary) {
+	public function afterFind(Model $model, $results, $primary = false) {
 	}
 
 /**
@@ -141,9 +141,11 @@ class ModelBehavior extends Object {
  * will allow you to make the validation fail.
  *
  * @param Model $model Model using this behavior
+ * @param array $options Options passed from Model::save().
  * @return mixed False or null will abort the operation. Any other result will continue.
+ * @see Model::save()
  */
-	public function beforeValidate(Model $model) {
+	public function beforeValidate(Model $model, $options = array()) {
 		return true;
 	}
 
@@ -163,9 +165,11 @@ class ModelBehavior extends Object {
  * will abort the save operation.
  *
  * @param Model $model Model using this behavior
+ * @param array $options Options passed from Model::save().
  * @return mixed False if the operation should abort. Any other result will continue.
+ * @see Model::save()
  */
-	public function beforeSave(Model $model) {
+	public function beforeSave(Model $model, $options = array()) {
 		return true;
 	}
 
@@ -174,9 +178,11 @@ class ModelBehavior extends Object {
  *
  * @param Model $model Model using this behavior
  * @param boolean $created True if this save created a new record
+ * @param array $options Options passed from Model::save().
  * @return boolean
+ * @see Model::save()
  */
-	public function afterSave(Model $model, $created) {
+	public function afterSave(Model $model, $created, $options = array()) {
 		return true;
 	}
 

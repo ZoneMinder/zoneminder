@@ -12,8 +12,9 @@
  * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
  * @link          http://cakephp.org CakePHP(tm) Project
  * @since         CakePHP(tm) v2.1
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
+
 /**
  * ViewBlock implements the concept of Blocks or Slots in the View layer.
  * Slots or blocks are combined with extending views and layouts to afford slots
@@ -130,17 +131,13 @@ class ViewBlock {
  * of the new capturing context will be added to the existing block context.
  *
  * @param string $name Name of the block
- * @param string $value The content for the block
+ * @param mixed $value The content for the block
  * @param string $mode If ViewBlock::APPEND content will be appended to existing content.
  *   If ViewBlock::PREPEND it will be prepended.
  * @return void
- * @throws CakeException when you use non-string values.
  */
 	public function concat($name, $value = null, $mode = ViewBlock::APPEND) {
 		if (isset($value)) {
-			if (!is_string($value)) {
-				throw new CakeException(__d('cake_dev', '$value must be a string.'));
-			}
 			if (!isset($this->_blocks[$name])) {
 				$this->_blocks[$name] = '';
 			}
@@ -165,7 +162,6 @@ class ViewBlock {
  * @param string $name Name of the block
  * @param string $value The content for the block.
  * @return void
- * @throws CakeException when you use non-string values.
  * @deprecated As of 2.3 use ViewBlock::concat() instead.
  */
 	public function append($name, $value = null) {
@@ -177,15 +173,11 @@ class ViewBlock {
  * existing content.
  *
  * @param string $name Name of the block
- * @param string $value The content for the block.
+ * @param mixed $value The content for the block.
  * @return void
- * @throws CakeException when you use non-string values.
  */
 	public function set($name, $value) {
-		if (!is_string($value)) {
-			throw new CakeException(__d('cake_dev', 'Blocks can only contain strings.'));
-		}
-		$this->_blocks[$name] = $value;
+		$this->_blocks[$name] = (string)$value;
 	}
 
 /**

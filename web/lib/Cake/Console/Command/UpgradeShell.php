@@ -15,7 +15,7 @@
  * @link          http://cakephp.org CakePHP(tm) Project
  * @package       Cake.Console.Command
  * @since         CakePHP(tm) v 2.0
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('AppShell', 'Console/Command');
@@ -632,8 +632,8 @@ class UpgradeShell extends AppShell {
 /**
  * Move application php files to where they now should be
  *
- * Find all php files in the folder (honoring recursive) and determine where cake expects the file to be
- * If the file is not exactly where cake expects it - move it.
+ * Find all php files in the folder (honoring recursive) and determine where CakePHP expects the file to be
+ * If the file is not exactly where CakePHP expects it - move it.
  *
  * @param string $path
  * @param array $options array(recursive, checkFolder)

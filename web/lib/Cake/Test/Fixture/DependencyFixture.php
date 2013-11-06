@@ -15,7 +15,7 @@
  * @link          http://cakephp.org CakePHP(tm) Project
  * @package       Cake.Test.Fixture
  * @since         CakePHP(tm) v 1.2.0.6879//Correct version number as needed**
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 /**
@@ -25,13 +25,6 @@
  * @since         CakePHP(tm) v 1.2.0.6879//Correct version number as needed**
  */
 class DependencyFixture extends CakeTestFixture {
-
-/**
- * name property
- *
- * @var string 'Dependency'
- */
-	public $name = 'Dependency';
 
 /**
  * fields property

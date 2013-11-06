@@ -19,7 +19,7 @@ AC_ARG_VAR(ZM_TMPDIR,[Location of temporary files, default /tmp/zm])
 AC_ARG_VAR(ZM_LOGDIR,[Location of generated log files, default /var/log/zm])
 
 if test "$ZM_DB_TYPE" == ""; then
-	AC_SUBST(ZM_DB_HOST,[mysql])
+	AC_SUBST(ZM_DB_TYPE,[mysql])
 fi
 if test "$ZM_DB_HOST" == ""; then
 	AC_SUBST(ZM_DB_HOST,[localhost])

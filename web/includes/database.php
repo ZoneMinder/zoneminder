@@ -168,8 +168,8 @@ function dbNumRows( $sql )
 
 function dbInsertId()
 {
-	global $dbCon;
-    return( $dbCon->lastInsertId() );
+	global $dbConn;
+    return( $dbConn->lastInsertId() );
 }
 
 function getEnumValues( $table, $column )

@@ -112,7 +112,7 @@ function dbQuery( $sql, $params=NULL )
             $result = $dbConn->query( $sql );
         }
     } catch(PDOException $e) {
-        dbError( $sql . $e->getMessage() );
+		Fatal( "SQL-ERR '".$e.getMessage()."', statement was '".$sql."'" );
     }
     return( $result );
 }
@@ -120,8 +120,10 @@ function dbQuery( $sql, $params=NULL )
 function dbFetchOne( $sql, $col=false, $params=NULL )
 {
 	$result = dbQuery( $sql, $params );
-	if ( ! $result ) 
+	if ( ! $result ) {
+		Fatal( "SQL-ERR dbFetchOne no result, statement was '".$sql."'" );
 		return false;
+	}
 
     if ( $result && $dbRow = $result->fetch( PDO::FETCH_ASSOC ) )
         return( $col?$dbRow[$col]:$dbRow );
@@ -131,6 +133,10 @@ function dbFetchOne( $sql, $col=false, $params=NULL )
 function dbFetchAll( $sql, $col=false )
 {
 	$result = dbQuery( $sql );
+	if ( ! $result ) {
+		Fatal( "SQL-ERR dbFetchAll no result, statement was '".$sql."'" );
+		return false;
+	}
 
     $dbRows = array();
     while( $dbRow = $result->fetch( PDO::FETCH_ASSOC ) )

@@ -177,22 +177,6 @@ if test "$ENABLE_DEBUG" != "yes"; then
   AC_DEFINE(ZM_DBG_OFF,1,"Whether debug is switched off and compiled out")
 fi
 
-ENABLE_CRASHTRACE=yes
-AC_ARG_ENABLE(crashtrace,
-    [  --enable-crashtrace=<yes|no> enable or disabled crash tracing, default enabled],
-    [ENABLE_CRASHTRACE=$enable_crashtrace],
-    AC_MSG_WARN([You can call configure with the --enable-crashtrace=<yes|no> or --disable-crashtrace option.
-    This tells configure whether to compile ZoneMinder with crash tracing included. This allows a
-    dump of the stack trace when a ZoneMinder binary crashes or is killed by an unexpected signal.
-    Although this should work on most systems it does rely on un(or loosely) documented features and
-    so should be regarded as experimental. If you experience problems compiling zm_signal.cpp or 
-    ZoneMinder binaries fail to shut down correctly then you should probably disable this feature.
-    e.g. --enable-crashtrace=yes or --disable-crashtrace])
-)
-if test "$ENABLE_CRASHTRACE" != "yes"; then
-  AC_DEFINE(ZM_NO_CRASHTRACE,1,"Whether crash tracing is switched off and compiled out")
-fi
-
 ENABLE_MMAP=yes
 AC_ARG_ENABLE(mmap,
     [  --enable-mmap=<yes|no> enable or disabled mapped memory versus shared memory, default mapped],

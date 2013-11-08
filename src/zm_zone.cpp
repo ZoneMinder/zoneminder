@@ -956,12 +956,16 @@ int Zone::Load( Monitor *monitor, Zone **&zones )
 
 		Debug( 5, "Parsing polygon %s", Coords );
 		Polygon polygon;
-		if ( !ParsePolygonString( Coords, polygon ) )
-			Panic( "Unable to parse polygon string '%s' for zone %d/%s for monitor %s", Coords, Id, Name, monitor->Name() );
+		if ( !ParsePolygonString( Coords, polygon ) ) {
+			Error( "Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring", Coords, Id, Name, monitor->Name() );
+            continue;
+        }
 
 		if ( polygon.LoX() < 0 || polygon.HiX() >= (int)monitor->Width() 
-           || polygon.LoY() < 0 || polygon.HiY() >= (int)monitor->Height() )
-			Panic( "Zone %d/%s for monitor %s extends outside of image dimensions, %d, %d, %d, %d", Id, Name, monitor->Name(), polygon.LoX(), polygon.LoY(), polygon.HiX(), polygon.HiY() );
+           || polygon.LoY() < 0 || polygon.HiY() >= (int)monitor->Height() ) {
+			Error( "Zone %d/%s for monitor %s extends outside of image dimensions, (%d,%d), (%d,%d), ignoring", Id, Name, monitor->Name(), polygon.LoX(), polygon.LoY(), polygon.HiX(), polygon.HiY() );
+            continue;
+        }
 
 		if ( false && !strcmp( Units, "Percent" ) )
 		{

@@ -22,6 +22,8 @@
 // This section contains options substituted by the zmconfig.pl utility, do not edit these directly
 //
 define( "ZM_CONFIG", "@ZM_CONFIG@" );               // Path to config file
+// Define, and override any given in config file
+define( "ZM_VERSION", "@VERSION@" );               // Version
 
 $configFile = ZM_CONFIG;
 $localConfigFile = basename($configFile);

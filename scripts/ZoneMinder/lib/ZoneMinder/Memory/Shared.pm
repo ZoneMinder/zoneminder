@@ -33,6 +33,8 @@ require ZoneMinder::Base;
 
 our @ISA = qw(Exporter ZoneMinder::Base);
 
+eval 'sub IPC_CREAT {0001000}' unless defined &IPC_CREAT;
+
 # Items to export into callers namespace by default. Note: do not export
 # names by default without a very good reason. Use EXPORT_OK instead.
 # Do not simply export all your public functions/methods/constants.
@@ -80,7 +82,7 @@ sub zmMemAttach( $$ )
 	if ( !defined($monitor->{ShmId}) )
 	{
 		my $shm_key = (hex(ZM_SHM_KEY)&0xffff0000)|$monitor->{Id};
-		my $shm_id = shmget( $shm_key, $size, 0 );
+		my $shm_id = shmget( $shm_key, $size, &IPC_CREAT | 0777  );
 		if ( !defined($shm_id) )
 		{
     		Error( sprintf( "Can't get shared memory id '%x', %d: $!\n", $shm_key, $monitor->{Id} ) );

@@ -37,10 +37,10 @@
 
 	echo $this->element('zones-input', array('field'=>'Name'));
 
-#	echo $this->element('zones-input', array('Type', array('type' => 'select', 'options' => $optionsType)));
-#	echo $this->element('zones-input', array('Preset', array('type' => 'select', 'options' => $optionsPreset)));
-#	echo $this->element('zones-input', array('Units', array('type' => 'select', 'options' => $optionsUnits)));
-#	echo $this->element('zones-input', array('CheckMethod', array('type' => 'select', 'options' => $optionsCheckMethod)));
+	echo $this->element('zones-select', array('field' => 'Type', 'options' => $optionsType));
+	echo $this->element('zones-select', array('field' => 'Preset', 'options' => $optionsPreset));
+	echo $this->element('zones-select', array('field' => 'Units', 'options' => $optionsUnits));
+	echo $this->element('zones-select', array('field' => 'CheckMethod', 'options' => $optionsCheckMethod));
 
 	echo $this->element('zones-input', array('field'=>'MinPixelThreshold'));
 	echo $this->element('zones-input', array('field'=>'MaxPixelThreshold'));

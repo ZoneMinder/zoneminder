@@ -1,8 +1,12 @@
 <?php $this->assign('title', 'Monitors'); ?>
 <?php $this->start('sidebar'); ?>
 <ul class="list-group">
-  <li class="list-group-item"><?php echo $this->Html->link( 'Add Monitor', array('controller' => 'monitors', 'action' => 'add')); ?></li>
-  <li class="list-group-item"><?php echo $this->Html->link( 'Delete Monitor', array('controller' => 'monitors', 'action' => 'delete')); ?></li>
+	<li class="list-group-item">
+		<a href="/monitors/add/" class="btn btn-success btn-block" role="button">Add Monitor</a>
+	</li>
+	<li class="list-group-item">
+		<a href="/monitors/delete/" class="btn btn-danger btn-block" role="button">Delete Monitor</a>
+	</li>
 </ul>
 <?php $this->end(); ?>
 

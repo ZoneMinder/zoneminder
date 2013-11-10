@@ -11,8 +11,8 @@ public function index() {
 
 	$this->set('thumb_width', Configure::read('ZM_WEB_LIST_THUMB_WIDTH'));
 
-  if (isset($this->params['url']['data'])) {
-    $params = $this->params['url']['data'];
+  if (isset($this->request->params['url']['data'])) {
+    $params = $this->request->params['url']['data'];
     if (isset($params['StartDate']) ) {
       $params['StartDate'] = strtotime($params['StartDate']);
       if ($params['StartDate'] > 0) {array_push($conditions, array('UNIX_TIMESTAMP(Event.StartTime) >= '.$params['StartDate']));}
@@ -33,7 +33,15 @@ public function index() {
 	$data = $this->paginate('Event');
 	$this->set('events', $data);
 
-	$this->set('monitors', $this->Monitor->find('all', array('fields' => array('Monitor.Name'))));
+	
+	$monitors = $this->Monitor->find('all', array('fields' => array('Monitor.Name', 'Monitor.Id'), 'recursive' => false));
+	foreach ($monitors as $key => $monitor) {
+		$monitors[$key]['Monitor']['EventCount'] = $this->Event->find('count', array(
+			'conditions' => array('Event.MonitorId' => $monitor['Monitor']['Id'])
+		));
+	}
+	$this->set('monitors', $monitors);
+	
 
     foreach ($data as $key => $value) {
         $thumbData[$key] = $this->Frame->createListThumbnail($value['Event']);
@@ -74,7 +82,7 @@ public function index() {
   }
   
   public function deleteSelected() {
-    foreach($this->data['Events'] as $key => $value) {
+    foreach($this->request->data['Events'] as $key => $value) {
       $this->Event->delete($value);
     }
     $this->redirect($this->referer());

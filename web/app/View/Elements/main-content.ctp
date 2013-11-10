@@ -4,10 +4,7 @@
 
       <div class="col-sm-2 col-md-2 col-lg-2 sidebar-offcanvas" id="sidebar">
         <div class="sidebar-nav">
-          <div class="panel panel-default">
-            <div class="panel-heading"><?php echo $this->fetch('title'); ?></div>
-            <?php echo $this->fetch('sidebar'); ?>
-          </div>
+          <?php echo $this->fetch('sidebar'); ?>
         </div>
       </div> <!-- End Sidebar -->
 

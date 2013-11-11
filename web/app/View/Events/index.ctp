@@ -42,6 +42,8 @@
 	<li class="list-group-item"><?php echo $this->Html->link('Delete Selected','#',array('class' => 'btn btn-default', 'onClick' => '$("#EventsDeleteSelectedForm").submit();')); ?></li>
 </ul>
 
+	<?php echo $this->element('events-sidebar-event-totals'); ?>
+
 <?php $this->end(); ?>
 
 <div id="EventsContent">

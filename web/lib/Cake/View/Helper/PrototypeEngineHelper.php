@@ -2,7 +2,7 @@
 /**
  * Prototype Engine Helper for JsHelper
  *
- * Provides Prototype specific Javascript for JsHelper. Requires at least
+ * Provides Prototype specific JavaScript for JsHelper. Requires at least
  * Prototype 1.6
  *
  * PHP 5
@@ -18,7 +18,7 @@
  * @link          http://cakephp.org CakePHP(tm) Project
  * @package       Cake.View.Helper
  * @since         CakePHP(tm) v 1.3
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('JsBaseEngineHelper', 'View/Helper');
@@ -26,7 +26,7 @@ App::uses('JsBaseEngineHelper', 'View/Helper');
 /**
  * Prototype Engine Helper for JsHelper
  *
- * Provides Prototype specific Javascript for JsHelper. Requires at least
+ * Provides Prototype specific JavaScript for JsHelper. Requires at least
  * Prototype 1.6
  *
  * @package       Cake.View.Helper
@@ -142,7 +142,7 @@ class PrototypeEngineHelper extends JsBaseEngineHelper {
  * - `stop` - Whether you want the event to stopped. (defaults true)
  *
  * @param string $type Type of event to bind to the current 946 id
- * @param string $callback The Javascript function you wish to trigger or the function literal
+ * @param string $callback The JavaScript function you wish to trigger or the function literal
  * @param array $options Options for the event.
  * @return string completed event handler
  */
@@ -212,17 +212,17 @@ class PrototypeEngineHelper extends JsBaseEngineHelper {
 			case 'hide':
 			case 'show':
 				$effect = $this->selection . '.' . $name . '();';
-			break;
+				break;
 			case 'slideIn':
 			case 'slideOut':
 				$name = ($name === 'slideIn') ? 'slideDown' : 'slideUp';
 				$effect = 'Effect.' . $name . '(' . $this->selection . $optionString . ');';
-			break;
+				break;
 			case 'fadeIn':
 			case 'fadeOut':
 				$name = ($name === 'fadeIn') ? 'appear' : 'fade';
 				$effect = $this->selection . '.' . $name . '(' . substr($optionString, 2) . ');';
-			break;
+				break;
 		}
 		return $effect;
 	}

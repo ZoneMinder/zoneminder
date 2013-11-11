@@ -14,8 +14,9 @@
  * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
  * @link          http://cakephp.org CakePHP(tm) Project
  * @since         CakePHP(tm) v 2.0
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
+
 App::uses('Hash', 'Utility');
 
 /**
@@ -31,7 +32,7 @@ App::uses('Hash', 'Utility');
 class CakeRequest implements ArrayAccess {
 
 /**
- * Array of parameters parsed from the url.
+ * Array of parameters parsed from the URL.
  *
  * @var array
  */
@@ -61,14 +62,14 @@ class CakeRequest implements ArrayAccess {
 	public $query = array();
 
 /**
- * The url string used for the request.
+ * The URL string used for the request.
  *
  * @var string
  */
 	public $url;
 
 /**
- * Base url path.
+ * Base URL path.
  *
  * @var string
  */
@@ -126,7 +127,7 @@ class CakeRequest implements ArrayAccess {
 /**
  * Constructor
  *
- * @param string $url Trimmed url string to use. Should not contain the application base path.
+ * @param string $url Trimmed URL string to use. Should not contain the application base path.
  * @param boolean $parseEnvironment Set to false to not auto parse the environment. ie. GET, POST and FILES.
  */
 	public function __construct($url = null, $parseEnvironment = true) {
@@ -237,7 +238,7 @@ class CakeRequest implements ArrayAccess {
 			if ($qPosition !== false && strpos($_SERVER['REQUEST_URI'], '://') > $qPosition) {
 				$uri = $_SERVER['REQUEST_URI'];
 			} else {
-				$uri = substr($_SERVER['REQUEST_URI'], strlen(FULL_BASE_URL));
+				$uri = substr($_SERVER['REQUEST_URI'], strlen(Configure::read('App.fullBaseUrl')));
 			}
 		} elseif (isset($_SERVER['PHP_SELF']) && isset($_SERVER['SCRIPT_NAME'])) {
 			$uri = str_replace($_SERVER['SCRIPT_NAME'], '', $_SERVER['PHP_SELF']);
@@ -256,7 +257,15 @@ class CakeRequest implements ArrayAccess {
 			list($uri) = explode('?', $uri, 2);
 		}
 		if (empty($uri) || $uri === '/' || $uri === '//' || $uri === '/index.php') {
-			return '/';
+			$uri = '/';
+		}
+		$endsWithIndex = '/webroot/index.php';
+		$endsWithLength = strlen($endsWithIndex);
+		if (
+			strlen($uri) >= $endsWithLength &&
+			substr($uri, -$endsWithLength) === $endsWithIndex
+		) {
+			$uri = '/';
 		}
 		return $uri;
 	}
@@ -264,7 +273,12 @@ class CakeRequest implements ArrayAccess {
 /**
  * Returns a base URL and sets the proper webroot
  *
+ * If CakePHP is called with index.php in the URL even though
+ * URL Rewriting is activated (and thus not needed) it swallows
+ * the unnecessary part from $base to prevent issue #3318.
+ *
  * @return string Base URL
+ * @link https://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/3318
  */
 	protected function _base() {
 		$dir = $webroot = null;
@@ -282,6 +296,10 @@ class CakeRequest implements ArrayAccess {
 		if (!$baseUrl) {
 			$base = dirname(env('PHP_SELF'));
 
+			$indexPos = strpos($base, '/webroot/index.php');
+			if ($indexPos !== false) {
+				$base = substr($base, 0, $indexPos) . '/webroot';
+			}
 			if ($webroot === 'webroot' && $webroot === basename($base)) {
 				$base = dirname($base);
 			}
@@ -292,8 +310,9 @@ class CakeRequest implements ArrayAccess {
 			if ($base === DS || $base === '.') {
 				$base = '';
 			}
-
+			$base = implode('/', array_map('rawurlencode', explode('/', $base)));
 			$this->webroot = $base . '/';
+
 			return $this->base = $base;
 		}
 
@@ -405,10 +424,7 @@ class CakeRequest implements ArrayAccess {
 			$ref = $forwarded;
 		}
 
-		$base = '';
-		if (defined('FULL_BASE_URL')) {
-			$base = FULL_BASE_URL . $this->webroot;
-		}
+		$base = Configure::read('App.fullBaseUrl') . $this->webroot;
 		if (!empty($ref) && !empty($base)) {
 			if ($local && strpos($ref, $base) === 0) {
 				$ref = substr($ref, strlen($base));
@@ -459,21 +475,28 @@ class CakeRequest implements ArrayAccess {
  * on routing parameters.
  *
  * @param string $name The property being accessed.
- * @return bool Existence
+ * @return boolean Existence
  */
 	public function __isset($name) {
 		return isset($this->params[$name]);
 	}
 
 /**
- * Check whether or not a Request is a certain type. Uses the built in detection rules
- * as well as additional rules defined with CakeRequest::addDetector(). Any detector can be called
+ * Check whether or not a Request is a certain type.
+ *
+ * Uses the built in detection rules as well as additional rules
+ * defined with CakeRequest::addDetector(). Any detector can be called
  * as `is($type)` or `is$Type()`.
  *
- * @param string $type The type of request you want to check.
+ * @param string|array $type The type of request you want to check. If an array
+ *   this method will return true if the request matches any type.
  * @return boolean Whether or not the request is the type you are checking.
  */
 	public function is($type) {
+		if (is_array($type)) {
+			$result = array_map(array($this, 'is'), $type);
+			return count(array_filter($result)) > 0;
+		}
 		$type = strtolower($type);
 		if (!isset($this->_detectors[$type])) {
 			return false;
@@ -500,6 +523,22 @@ class CakeRequest implements ArrayAccess {
 			return call_user_func($detect['callback'], $this);
 		}
 		return false;
+	}
+
+/**
+ * Check that a request matches all the given types.
+ *
+ * Allows you to test multiple types and union the results.
+ * See CakeRequest::is() for how to add additional types and the
+ * built-in types.
+ *
+ * @param array $types The types to check.
+ * @return boolean Success.
+ * @see CakeRequest::is()
+ */
+	public function isAll(array $types) {
+		$result = array_filter(array_map(array($this, 'is'), $types));
+		return count($result) === count($types);
 	}
 
 /**
@@ -540,7 +579,7 @@ class CakeRequest implements ArrayAccess {
  * e.g `addDetector('post', array('param' => 'requested', 'value' => 1)`
  *
  * @param string $name The name of the detector.
- * @param array $options  The options for the detector definition. See above.
+ * @param array $options The options for the detector definition. See above.
  * @return void
  */
 	public function addDetector($name, $options) {
@@ -580,10 +619,10 @@ class CakeRequest implements ArrayAccess {
 	}
 
 /**
- * Get the value of the current requests url. Will include named parameters and querystring arguments.
+ * Get the value of the current requests URL. Will include named parameters and querystring arguments.
  *
  * @param boolean $base Include the base path, set to false to trim the base path off.
- * @return string the current request url including query string args.
+ * @return string the current request URL including query string args.
  */
 	public function here($base = true) {
 		$url = $this->here;
@@ -654,7 +693,7 @@ class CakeRequest implements ArrayAccess {
  *
  * @param integer $tldLength Number of segments your tld contains. For example: `example.com` contains 1 tld.
  *   While `example.co.uk` contains 2.
- * @return array of subdomains.
+ * @return array An array of subdomains.
  */
 	public function subdomains($tldLength = 1) {
 		$segments = explode('.', $this->host());
@@ -738,7 +777,10 @@ class CakeRequest implements ArrayAccess {
 	}
 
 /**
- * Parse Accept* headers with qualifier options
+ * Parse Accept* headers with qualifier options.
+ *
+ * Only qualifiers will be extracted, any other accept extensions will be
+ * discarded as they are not frequently used.
  *
  * @param string $header
  * @return array
@@ -747,14 +789,21 @@ class CakeRequest implements ArrayAccess {
 		$accept = array();
 		$header = explode(',', $header);
 		foreach (array_filter($header) as $value) {
-			$prefPos = strpos($value, ';');
-			if ($prefPos !== false) {
-				$prefValue = substr($value, strpos($value, '=') + 1);
-				$value = trim(substr($value, 0, $prefPos));
-			} else {
-				$prefValue = '1.0';
-				$value = trim($value);
+			$prefValue = '1.0';
+			$value = trim($value);
+
+			$semiPos = strpos($value, ';');
+			if ($semiPos !== false) {
+				$params = explode(';', $value);
+				$value = trim($params[0]);
+				foreach ($params as $param) {
+					$qPos = strpos($param, 'q=');
+					if ($qPos !== false) {
+						$prefValue = substr($param, $qPos + 2);
+					}
+				}
 			}
+
 			if (!isset($accept[$prefValue])) {
 				$accept[$prefValue] = array();
 			}
@@ -768,7 +817,7 @@ class CakeRequest implements ArrayAccess {
 
 /**
  * Provides a read accessor for `$this->query`. Allows you
- * to use a syntax similar to `CakeSession` for reading url query data.
+ * to use a syntax similar to `CakeSession` for reading URL query data.
  *
  * @param string $name Query string variable name
  * @return mixed The value being read
@@ -804,6 +853,20 @@ class CakeRequest implements ArrayAccess {
 			return $this;
 		}
 		return Hash::get($this->data, $name);
+	}
+
+/**
+ * Safely access the values in $this->params.
+ *
+ * @param string $name The name of the parameter to get.
+ * @return mixed The value of the provided parameter. Will
+ *   return false if the parameter doesn't exist or is falsey.
+ */
+	public function param($name) {
+		if (!isset($this->params[$name])) {
+			return false;
+		}
+		return $this->params[$name];
 	}
 
 /**

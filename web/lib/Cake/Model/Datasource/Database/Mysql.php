@@ -15,7 +15,7 @@
  * @link          http://cakephp.org CakePHP(tm) Project
  * @package       Cake.Model.Datasource.Database
  * @since         CakePHP(tm) v 0.10.5.1790
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('DboSource', 'Model/Datasource');
@@ -130,26 +130,45 @@ class Mysql extends DboSource {
 /**
  * Connects to the database using options in the given configuration array.
  *
+ * MySQL supports a few additional options that other drivers do not:
+ *
+ * - `unix_socket` Set to the path of the MySQL sock file. Can be used in place
+ *   of host + port.
+ * - `ssl_key` SSL key file for connecting via SSL. Must be combined with `ssl_cert`.
+ * - `ssl_cert` The SSL certificate to use when connecting via SSL. Must be
+ *   combined with `ssl_key`.
+ * - `ssl_ca` The certificate authority for SSL connections.
+ *
  * @return boolean True if the database could be connected, else false
  * @throws MissingConnectionException
  */
 	public function connect() {
 		$config = $this->config;
 		$this->connected = false;
+
+		$flags = array(
+			PDO::ATTR_PERSISTENT => $config['persistent'],
+			PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true,
+			PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+		);
+
+		if (!empty($config['encoding'])) {
+			$flags[PDO::MYSQL_ATTR_INIT_COMMAND] = 'SET NAMES ' . $config['encoding'];
+		}
+		if (!empty($config['ssl_key']) && !empty($config['ssl_cert'])) {
+			$flags[PDO::MYSQL_ATTR_SSL_KEY] = $config['ssl_key'];
+			$flags[PDO::MYSQL_ATTR_SSL_CERT] = $config['ssl_cert'];
+		}
+		if (!empty($config['ssl_ca'])) {
+			$flags[PDO::MYSQL_ATTR_SSL_CA] = $config['ssl_ca'];
+		}
+		if (empty($config['unix_socket'])) {
+			$dsn = "mysql:host={$config['host']};port={$config['port']};dbname={$config['database']}";
+		} else {
+			$dsn = "mysql:unix_socket={$config['unix_socket']};dbname={$config['database']}";
+		}
+
 		try {
-			$flags = array(
-				PDO::ATTR_PERSISTENT => $config['persistent'],
-				PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true,
-				PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
-			);
-			if (!empty($config['encoding'])) {
-				$flags[PDO::MYSQL_ATTR_INIT_COMMAND] = 'SET NAMES ' . $config['encoding'];
-			}
-			if (empty($config['unix_socket'])) {
-				$dsn = "mysql:host={$config['host']};port={$config['port']};dbname={$config['database']}";
-			} else {
-				$dsn = "mysql:unix_socket={$config['unix_socket']};dbname={$config['database']}";
-			}
 			$this->_connection = new PDO(
 				$dsn,
 				$config['login'],
@@ -157,6 +176,11 @@ class Mysql extends DboSource {
 				$flags
 			);
 			$this->connected = true;
+			if (!empty($config['settings'])) {
+				foreach ($config['settings'] as $key => $value) {
+					$this->_execute("SET $key=$value");
+				}
+			}
 		} catch (PDOException $e) {
 			throw new MissingConnectionException(array(
 				'class' => get_class($this),
@@ -195,17 +219,16 @@ class Mysql extends DboSource {
 		if (!$result) {
 			$result->closeCursor();
 			return array();
-		} else {
-			$tables = array();
-
-			while ($line = $result->fetch(PDO::FETCH_NUM)) {
-				$tables[] = $line[0];
-			}
-
-			$result->closeCursor();
-			parent::listSources($tables);
-			return $tables;
 		}
+		$tables = array();
+
+		while ($line = $result->fetch(PDO::FETCH_NUM)) {
+			$tables[] = $line[0];
+		}
+
+		$result->closeCursor();
+		parent::listSources($tables);
+		return $tables;
 	}
 
 /**
@@ -221,10 +244,10 @@ class Mysql extends DboSource {
 
 		while ($numFields-- > 0) {
 			$column = $results->getColumnMeta($index);
-			if (empty($column['native_type'])) {
-				$type = ($column['len'] == 1) ? 'boolean' : 'string';
+			if ($column['len'] === 1 && (empty($column['native_type']) || $column['native_type'] === 'TINY')) {
+				$type = 'boolean';
 			} else {
-				$type = $column['native_type'];
+				$type = empty($column['native_type']) ? 'string' : $column['native_type'];
 			}
 			if (!empty($column['table']) && strpos($column['name'], $this->virtualFieldSeparator) === false) {
 				$this->map[$index++] = array($column['table'], $column['name'], $type);
@@ -516,13 +539,13 @@ class Mysql extends DboSource {
 								}
 								$colList[] = $alter;
 							}
-						break;
+							break;
 						case 'drop':
 							foreach ($column as $field => $col) {
 								$col['name'] = $field;
 								$colList[] = 'DROP ' . $this->name($field);
 							}
-						break;
+							break;
 						case 'change':
 							foreach ($column as $field => $col) {
 								if (!isset($col['name'])) {
@@ -530,7 +553,7 @@ class Mysql extends DboSource {
 								}
 								$colList[] = 'CHANGE ' . $this->name($field) . ' ' . $this->buildColumn($col);
 							}
-						break;
+							break;
 					}
 				}
 				$colList = array_merge($colList, $this->_alterIndexes($curTable, $indexes));
@@ -654,7 +677,7 @@ class Mysql extends DboSource {
  * @return string Formatted length part of an index field
  */
 	protected function _buildIndexSubPart($lengths, $column) {
-		if (is_null($lengths)) {
+		if ($lengths === null) {
 			return '';
 		}
 		if (!isset($lengths[$column])) {
@@ -679,24 +702,23 @@ class Mysql extends DboSource {
 		if (!$result) {
 			$result->closeCursor();
 			return array();
-		} else {
-			$tables = array();
-			foreach ($result as $row) {
-				$tables[$row['Name']] = (array)$row;
-				unset($tables[$row['Name']]['queryString']);
-				if (!empty($row['Collation'])) {
-					$charset = $this->getCharsetName($row['Collation']);
-					if ($charset) {
-						$tables[$row['Name']]['charset'] = $charset;
-					}
+		}
+		$tables = array();
+		foreach ($result as $row) {
+			$tables[$row['Name']] = (array)$row;
+			unset($tables[$row['Name']]['queryString']);
+			if (!empty($row['Collation'])) {
+				$charset = $this->getCharsetName($row['Collation']);
+				if ($charset) {
+					$tables[$row['Name']]['charset'] = $charset;
 				}
 			}
-			$result->closeCursor();
-			if (is_string($name) && isset($tables[$name])) {
-				return $tables[$name];
-			}
-			return $tables;
 		}
+		$result->closeCursor();
+		if (is_string($name) && isset($tables[$name])) {
+			return $tables[$name];
+		}
+		return $tables;
 	}
 
 /**

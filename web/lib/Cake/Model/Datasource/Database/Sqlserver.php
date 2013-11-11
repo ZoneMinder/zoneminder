@@ -15,7 +15,7 @@
  * @link          http://cakephp.org CakePHP(tm) Project
  * @package       Cake.Model.Datasource.Database
  * @since         CakePHP(tm) v 0.10.5.1790
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('DboSource', 'Model/Datasource');
@@ -117,14 +117,17 @@ class Sqlserver extends DboSource {
 	public function connect() {
 		$config = $this->config;
 		$this->connected = false;
+
+		$flags = array(
+			PDO::ATTR_PERSISTENT => $config['persistent'],
+			PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+		);
+
+		if (!empty($config['encoding'])) {
+			$flags[PDO::SQLSRV_ATTR_ENCODING] = $config['encoding'];
+		}
+
 		try {
-			$flags = array(
-				PDO::ATTR_PERSISTENT => $config['persistent'],
-				PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
-			);
-			if (!empty($config['encoding'])) {
-				$flags[PDO::SQLSRV_ATTR_ENCODING] = $config['encoding'];
-			}
 			$this->_connection = new PDO(
 				"sqlsrv:server={$config['host']};Database={$config['database']}",
 				$config['login'],
@@ -132,6 +135,11 @@ class Sqlserver extends DboSource {
 				$flags
 			);
 			$this->connected = true;
+			if (!empty($config['settings'])) {
+				foreach ($config['settings'] as $key => $value) {
+					$this->_execute("SET $key $value");
+				}
+			}
 		} catch (PDOException $e) {
 			throw new MissingConnectionException(array(
 				'class' => get_class($this),
@@ -167,17 +175,16 @@ class Sqlserver extends DboSource {
 		if (!$result) {
 			$result->closeCursor();
 			return array();
-		} else {
-			$tables = array();
-
-			while ($line = $result->fetch(PDO::FETCH_NUM)) {
-				$tables[] = $line[0];
-			}
-
-			$result->closeCursor();
-			parent::listSources($tables);
-			return $tables;
 		}
+		$tables = array();
+
+		while ($line = $result->fetch(PDO::FETCH_NUM)) {
+			$tables[] = $line[0];
+		}
+
+		$result->closeCursor();
+		parent::listSources($tables);
+		return $tables;
 	}
 
 /**
@@ -313,9 +320,8 @@ class Sqlserver extends DboSource {
 				$result[] = $prepend . $fields[$i];
 			}
 			return $result;
-		} else {
-			return $fields;
 		}
+		return $fields;
 	}
 
 /**
@@ -384,9 +390,9 @@ class Sqlserver extends DboSource {
 			if (!strpos(strtolower($limit), 'top') || strpos(strtolower($limit), 'top') === 0) {
 				$rt = ' TOP';
 			}
-			$rt .= ' ' . $limit;
+			$rt .= sprintf(' %u', $limit);
 			if (is_int($offset) && $offset > 0) {
-				$rt = ' OFFSET ' . intval($offset) . ' ROWS FETCH FIRST ' . intval($limit) . ' ROWS ONLY';
+				$rt = sprintf(' OFFSET %u ROWS FETCH FIRST %u ROWS ONLY', $offset, $limit);
 			}
 			return $rt;
 		}
@@ -532,12 +538,11 @@ class Sqlserver extends DboSource {
 						WHERE _cake_paging_.{$rowCounter} > {$offset}
 						ORDER BY _cake_paging_.{$rowCounter}
 					";
-				} elseif (strpos($limit, 'FETCH') !== false) {
-					return "SELECT {$fields} FROM {$table} {$alias} {$joins} {$conditions} {$group} {$order} {$limit}";
-				} else {
-					return "SELECT {$limit} {$fields} FROM {$table} {$alias} {$joins} {$conditions} {$group} {$order}";
 				}
-			break;
+				if (strpos($limit, 'FETCH') !== false) {
+					return "SELECT {$fields} FROM {$table} {$alias} {$joins} {$conditions} {$group} {$order} {$limit}";
+				}
+				return "SELECT {$limit} {$fields} FROM {$table} {$alias} {$joins} {$conditions} {$group} {$order}";
 			case "schema":
 				extract($data);
 
@@ -567,9 +572,10 @@ class Sqlserver extends DboSource {
  * @return string Quoted and escaped data
  */
 	public function value($data, $column = null) {
-		if (is_array($data) || is_object($data)) {
+		if ($data === null || is_array($data) || is_object($data)) {
 			return parent::value($data, $column);
-		} elseif (in_array($data, array('{$__cakeID__$}', '{$__cakeForeignKey__$}'), true)) {
+		}
+		if (in_array($data, array('{$__cakeID__$}', '{$__cakeForeignKey__$}'), true)) {
 			return $data;
 		}
 
@@ -616,7 +622,7 @@ class Sqlserver extends DboSource {
 					continue;
 				}
 				$resultRow[$table][$column] = $row[$col];
-				if ($type === 'boolean' && !is_null($row[$col])) {
+				if ($type === 'boolean' && $row[$col] !== null) {
 					$resultRow[$table][$column] = $this->boolean($resultRow[$table][$column]);
 				}
 			}

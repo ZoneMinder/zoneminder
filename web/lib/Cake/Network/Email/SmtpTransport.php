@@ -15,7 +15,7 @@
  * @link          http://cakephp.org CakePHP(tm) Project
  * @package       Cake.Network.Email
  * @since         CakePHP(tm) v 2.0.0
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('CakeSocket', 'Network');
@@ -71,9 +71,12 @@ class SmtpTransport extends AbstractTransport {
  * Set the configuration
  *
  * @param array $config
- * @return void
+ * @return array Returns configs
  */
-	public function config($config = array()) {
+	public function config($config = null) {
+		if ($config === null) {
+			return $this->_config;
+		}
 		$default = array(
 			'host' => 'localhost',
 			'port' => 25,
@@ -83,7 +86,8 @@ class SmtpTransport extends AbstractTransport {
 			'client' => null,
 			'tls' => false
 		);
-		$this->_config = $config + $default;
+		$this->_config = array_merge($default, $this->_config, $config);
+		return $this->_config;
 	}
 
 /**
@@ -157,7 +161,10 @@ class SmtpTransport extends AbstractTransport {
  * @throws SocketException
  */
 	protected function _sendRcpt() {
-		$from = $this->_cakeEmail->from();
+		$from = $this->_cakeEmail->returnPath();
+		if (empty($from)) {
+			$from = $this->_cakeEmail->from();
+		}
 		$this->_smtpSend('MAIL FROM:<' . key($from) . '>');
 
 		$to = $this->_cakeEmail->to();
@@ -178,7 +185,7 @@ class SmtpTransport extends AbstractTransport {
 	protected function _sendData() {
 		$this->_smtpSend('DATA', '354');
 
-		$headers = $this->_cakeEmail->getHeaders(array('from', 'sender', 'replyTo', 'readReceipt', 'returnPath', 'to', 'cc', 'subject'));
+		$headers = $this->_cakeEmail->getHeaders(array('from', 'sender', 'replyTo', 'readReceipt', 'to', 'cc', 'subject'));
 		$headers = $this->_headersToString($headers);
 		$lines = $this->_cakeEmail->message();
 		$messages = array();
@@ -224,7 +231,7 @@ class SmtpTransport extends AbstractTransport {
  * @throws SocketException
  */
 	protected function _smtpSend($data, $checkCode = '250') {
-		if (!is_null($data)) {
+		if ($data !== null) {
 			$this->_socket->write($data . "\r\n");
 		}
 		while ($checkCode !== false) {

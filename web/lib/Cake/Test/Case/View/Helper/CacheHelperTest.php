@@ -15,7 +15,7 @@
  * @link          http://book.cakephp.org/2.0/en/development/testing.html CakePHP(tm) Tests
  * @package       Cake.Test.Case.View.Helper
  * @since         CakePHP(tm) v 1.2.0.4206
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('Controller', 'Controller');
@@ -515,7 +515,7 @@ class CacheHelperTest extends CakeTestCase {
  *
  * This test verifies view cache is created correctly when the app name is contained in part of the controller name.
  * (webapp Name) base name is 'cache' controller is 'cacheTest' action is 'cache_name'
- * apps url would look something like http://localhost/cache/cacheTest/cache_name
+ * apps URL would look something like http://localhost/cache/cacheTest/cache_name
  *
  * @return void
  */

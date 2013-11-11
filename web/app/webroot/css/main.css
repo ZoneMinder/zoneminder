@@ -47,3 +47,25 @@
 .monitor{
   margin: 5px;
 }
+
+.zone {
+	margin: 5px;
+}
+
+.eventreport header {
+  text-align:center;
+  font-weight: bold;
+  font-size:110%;
+  border: 1px solid rgb(221, 221, 221);
+  border-bottom: none;
+  margin-bottom: 0;
+  border-top-left-radius:4px;
+  border-top-right-radius:4px;
+}
+.eventreport .list-group-item {
+  padding: 2px 15px;
+}
+
+.eventreport p {
+  margin: 0;
+}

@@ -15,7 +15,7 @@
  * @link          http://cakephp.org CakePHP(tm) Project
  * @package       Cake.View.Helper
  * @since         CakePHP(tm) v 1.1.7.3328
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('AppHelper', 'View/Helper');
@@ -64,7 +64,7 @@ class SessionHelper extends AppHelper {
  * In your view: `$this->Session->error();`
  *
  * @return string last error
- * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/session.html#displaying-notifcations-or-flash-messages
+ * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/session.html#displaying-notifications-or-flash-messages
  */
 	public function error() {
 		return CakeSession::error();

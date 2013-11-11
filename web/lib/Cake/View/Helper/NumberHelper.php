@@ -17,7 +17,7 @@
  * @link          http://cakephp.org CakePHP(tm) Project
  * @package       Cake.View.Helper
  * @since         CakePHP(tm) v 0.10.0.1076
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('CakeNumber', 'Utility');
@@ -68,6 +68,7 @@ class NumberHelper extends AppHelper {
 
 /**
  * Call methods from CakeNumber utility class
+ * @return mixed Whatever is returned by called method, or false on failure
  */
 	public function __call($method, $params) {
 		return call_user_func_array(array($this->_engine, $method), $params);
@@ -76,7 +77,7 @@ class NumberHelper extends AppHelper {
 /**
  * @see CakeNumber::precision()
  *
- * @param float $number	A floating point number.
+ * @param float $number A floating point number.
  * @param integer $precision The precision of the returned number.
  * @return float Formatted float.
  * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/number.html#NumberHelper::precision
@@ -101,18 +102,19 @@ class NumberHelper extends AppHelper {
  *
  * @param float $number A floating point number
  * @param integer $precision The precision of the returned number
+ * @param array $options Options
  * @return string Percentage string
  * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/number.html#NumberHelper::toPercentage
  */
-	public function toPercentage($number, $precision = 2) {
-		return $this->_engine->toPercentage($number, $precision);
+	public function toPercentage($number, $precision = 2, $options = array()) {
+		return $this->_engine->toPercentage($number, $precision, $options);
 	}
 
 /**
  * @see CakeNumber::format()
  *
  * @param float $number A floating point number
- * @param integer $options if int then places, if string then before, if (,.-) then use it
+ * @param integer $options If integer then places, if string then before, if (,.-) then use it
  *   or array with places and before keys
  * @return string formatted number
  * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/number.html#NumberHelper::format

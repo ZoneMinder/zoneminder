@@ -71,15 +71,6 @@ $(document).ready(function() {
 
 	});
 
-	$( "#selectable" ).selectable({
-		stop: function() {
-			$("#selectable input").removeAttr("checked");
-			$(".ui-selected input", this).each(function() {
-				$(this).attr("checked", "checked");
-			})
-		}
-	});
-
 	$("#Events_list").selectable({ appendTo: "#Events_list li", filter: "li" });
 
 	$("#EventsButtonDelete").click(function () {
@@ -165,6 +156,12 @@ $(document).ready(function() {
 			console.log(data);
 		});
 	});
+
+	$(".EventMonitor").click(function() {
+		$(this).toggleClass("active");
+	});
+
+	
     
     // Select All Events //
     $('body').on('click', 'input[type=checkbox].selectAll', function() {

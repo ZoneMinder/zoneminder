@@ -14,7 +14,7 @@
  * @link		  http://cakephp.org CakePHP(tm) Project
  * @package		  Cake.Event
  * @since		  CakePHP(tm) v 2.1
- * @license		  MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('CakeEventListener', 'Event');
@@ -32,7 +32,7 @@ class CakeEventManager {
 /**
  * The default priority queue value for new, attached listeners
  *
- * @var int
+ * @var integer
  */
 	public static $defaultPriority = 10;
 

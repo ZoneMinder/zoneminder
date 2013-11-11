@@ -17,7 +17,7 @@
  * @link          http://cakephp.org CakePHP Project
  * @package       Cake.Test.Case.Console.Command.Task
  * @since         CakePHP v 1.2.0.7726
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('ShellDispatcher', 'Console');
@@ -36,16 +36,8 @@ App::uses('Controller', 'Controller');
  * Test View Task Comment Model
  *
  * @package       Cake.Test.Case.Console.Command.Task
- * @package       Cake.Test.Case.Console.Command.Task
  */
 class ViewTaskComment extends Model {
-
-/**
- * Model name
- *
- * @var string
- */
-	public $name = 'ViewTaskComment';
 
 /**
  * Table name
@@ -71,16 +63,8 @@ class ViewTaskComment extends Model {
  * Test View Task Article Model
  *
  * @package       Cake.Test.Case.Console.Command.Task
- * @package       Cake.Test.Case.Console.Command.Task
  */
 class ViewTaskArticle extends Model {
-
-/**
- * Model name
- *
- * @var string
- */
-	public $name = 'ViewTaskArticle';
 
 /**
  * Table name
@@ -94,16 +78,8 @@ class ViewTaskArticle extends Model {
  * Test View Task Comments Controller
  *
  * @package       Cake.Test.Case.Console.Command.Task
- * @package       Cake.Test.Case.Console.Command.Task
  */
 class ViewTaskCommentsController extends Controller {
-
-/**
- * Controller name
- *
- * @var string
- */
-	public $name = 'ViewTaskComments';
 
 /**
  * Testing public controller action
@@ -127,16 +103,8 @@ class ViewTaskCommentsController extends Controller {
  * Test View Task Articles Controller
  *
  * @package       Cake.Test.Case.Console.Command.Task
- * @package       Cake.Test.Case.Console.Command.Task
  */
 class ViewTaskArticlesController extends Controller {
-
-/**
- * Controller name
- *
- * @var string
- */
-	public $name = 'ViewTaskArticles';
 
 /**
  * Test public controller action

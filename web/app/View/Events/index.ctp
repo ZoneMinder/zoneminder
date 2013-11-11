@@ -1,54 +1,48 @@
 <?php $this->assign('title', 'Events'); ?>
 <?php $this->start('sidebar'); ?>
-<div class="panel-body">
-<div id="sidebar">
-<?php
-echo $this->Form->create('Events', array('action' => 'index', 'default' => false, 'inputDefaults' => array(
-	'legend' => false,
-	'label' => false,
-	'div' => false,
-	'fieldset' => false
-)));
-?>
+<?php echo $this->Form->create('Events', array(
+	'action' => 'index',
+	'default' => false, 'inputDefaults' => array(
+		'legend' => false,
+		'label' => false,
+		'div' => false,
+		'fieldset' => false
+	)
+)); ?>
 
-<div class="panel panel-default">
-  <div class="panel-heading">Filter by Monitor</div>
-  <div class="panel-body">
-<div id="events_monitors">
-<?
-  foreach ($monitors as $monitor) {
-    echo $this->Form->input($monitor['Monitor']['Name'], array('type' => 'checkbox', 'label' => $monitor['Monitor']['Name']));
-  }
-?>
-</div>
-</div>
-</div>
+<ul class="list-group">
+	<? foreach ($monitors as $monitor) : ?>
+	<li class="list-group-item EventMonitor">
+		<?php echo $this->Form->checkbox($monitor['Monitor']['Name'], array(
+			'value' => $monitor['Monitor']['Id'],
+			'class' => 'sr-only'
+		)); ?>
+		<?php echo $this->Form->label($monitor['Monitor']['Name']); ?>
+		<span class="badge"><?php echo $monitor['Monitor']['EventCount']; ?></span>
+	</li>
+	<?php endforeach; ?>
 
-<div class="panel panel-default">
-  <div class="panel-heading">Filter by Date & Time</div>
-  <div class="panel-body">
-    Start Date
-    <div class="form-group">
-      <div class="input-group date datetime">
-        <input type="text" class="form-control" id="EventStartDate" name="data[StartDate]">
-        <span class="input-group-addon"><span class="glyphicon glyphicon-calendar"></span></span>
-      </div>
-    </div>
-    End Date
-    <div class="form-group">
-      <div class="input-group date datetime">
-        <input type="text" class="form-control" id="EventEndDate" name="data[EndDate]">
-        <span class="input-group-addon"><span class="glyphicon glyphicon-calendar"></span></span>
-      </div>
-    </div>  
-  </div>
-</div>
+	<li class="list-group-item">
+		<label class="sr-only" for="EventStartDate">Start Date</label>
+		<div class="input-group date datetime">
+			<input type="datetime" class="form-control" id="EventStartDate" name="data[StartDate]" placeholder="Start Date" />
+			<span class="input-group-addon"><span class="glyphicon glyphicon-calendar"></span></span>
+		</div>
+	</li>
 
-<?php echo $this->Form->end(array('label' => 'Search', 'class' => 'btn btn-default')); ?>
-<?php echo $this->Html->link('Delete Selected','#',array('class' => 'btn btn-default', 'onClick' => '$("#EventsDeleteSelectedForm").submit();')); ?>
+	<li class="list-group-item">
+		<label class="sr-only" for="EventEndDate">End Date</label>
+		<div class="input-group date datetime">
+			<input type="datetime" class="form-control" id="EventEndDate" name="data[EndDate]" placeholder="End Date" />
+			<span class="input-group-addon"><span class="glyphicon glyphicon-calendar"></span></span>
+		</div>
+	</li>  
 
-</div>
-</div>
+	<li class="list-group-item"><?php echo $this->Form->end(array('label' => 'Search', 'class' => 'btn btn-default')); ?></li>
+	<li class="list-group-item"><?php echo $this->Html->link('Delete Selected','#',array('class' => 'btn btn-default', 'onClick' => '$("#EventsDeleteSelectedForm").submit();')); ?></li>
+</ul>
+
+	<?php echo $this->element('events-sidebar-event-totals'); ?>
 
 <?php $this->end(); ?>
 
@@ -97,9 +91,7 @@ foreach ($events as $key => $value) {
 </tbody>
 </table>
 
-<?
-  echo $this->Form->end();
-?>
+<?php echo $this->Form->end(); ?>
 
 <ul class="pagination">
   <?php echo $this->Paginator->numbers(array('tag' => 'li', 'separator' => false, 'currentClass' => 'active', 'currentTag' => 'span')); ?>

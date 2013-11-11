@@ -16,7 +16,7 @@
  * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
  * @link          http://cakephp.org CakePHP(tm) Project
  * @since         CakePHP(tm) v 2.0
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  * @package Cake.TestSuite
  */
 
@@ -42,7 +42,7 @@ class CakeTestLoader extends PHPUnit_Runner_StandardTestSuiteLoader {
 	}
 
 /**
- * Convert path fragments used by Cake's test runner to absolute paths that can be fed to PHPUnit.
+ * Convert path fragments used by CakePHP's test runner to absolute paths that can be fed to PHPUnit.
  *
  * @param string $filePath
  * @param string $params

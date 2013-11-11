@@ -16,7 +16,7 @@
  * @link          http://www.cakephp.org
  * @package       Cake.Test.Fixture
  * @since         1.2
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 /**
@@ -25,13 +25,6 @@
  * @package       Cake.Test.Fixture
  */
 class CampaignFixture extends CakeTestFixture {
-
-/**
- * name property
- *
- * @var string 'Campaign'
- */
-	public $name = 'Campaign';
 
 /**
  * fields property

@@ -11,14 +11,14 @@
  * @link          http://cakephp.org CakePHP(tm) Project
  * @package       Cake.Utility
  * @since         CakePHP(tm) v 0.2.9
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 /**
  * Pluralize and singularize English words.
  *
  * Inflector pluralizes and singularizes English nouns.
- * Used by Cake's naming conventions throughout the framework.
+ * Used by CakePHP's naming conventions throughout the framework.
  *
  * @package       Cake.Utility
  * @link          http://book.cakephp.org/2.0/en/core-utility-libraries/inflector.html
@@ -40,7 +40,7 @@ class Inflector {
 			'/(x|ch|ss|sh)$/i' => '\1es',
 			'/([^aeiouy]|qu)y$/i' => '\1ies',
 			'/(hive)$/i' => '\1s',
-			'/(?:([^f])fe|([lr])f)$/i' => '\1\2ves',
+			'/(?:([^f])fe|([lre])f)$/i' => '\1\2ves',
 			'/sis$/i' => 'ses',
 			'/([ti])um$/i' => '\1a',
 			'/(p)erson$/i' => '\1eople',
@@ -61,6 +61,7 @@ class Inflector {
 		'irregular' => array(
 			'atlas' => 'atlases',
 			'beef' => 'beefs',
+			'brief' => 'briefs',
 			'brother' => 'brothers',
 			'cafe' => 'cafes',
 			'child' => 'children',
@@ -90,7 +91,12 @@ class Inflector {
 			'soliloquy' => 'soliloquies',
 			'testis' => 'testes',
 			'trilby' => 'trilbys',
-			'turf' => 'turfs'
+			'turf' => 'turfs',
+			'potato' => 'potatoes',
+			'hero' => 'heroes',
+			'tooth' => 'teeth',
+			'goose' => 'geese',
+			'foot' => 'feet'
 		)
 	);
 
@@ -120,11 +126,11 @@ class Inflector {
 			'/(m)ovies$/i' => '\1\2ovie',
 			'/(s)eries$/i' => '\1\2eries',
 			'/([^aeiouy]|qu)ies$/i' => '\1y',
-			'/([lr])ves$/i' => '\1f',
 			'/(tive)s$/i' => '\1',
 			'/(hive)s$/i' => '\1',
 			'/(drive)s$/i' => '\1',
-			'/([^fo])ves$/i' => '\1fe',
+			'/([le])ves$/i' => '\1f',
+			'/([^rfo])ves$/i' => '\1fe',
 			'/(^analy)ses$/i' => '\1sis',
 			'/(analy|diagno|^ba|(p)arenthe|(p)rogno|(s)ynop|(t)he)ses$/i' => '\1\2sis',
 			'/([ti])a$/i' => '\1um',
@@ -142,7 +148,6 @@ class Inflector {
 		'irregular' => array(
 			'foes' => 'foe',
 			'waves' => 'wave',
-			'curves' => 'curve'
 		)
 	);
 
@@ -204,10 +209,10 @@ class Inflector {
 		'/ò|ó|ô|õ|ō|ŏ|ǒ|ő|ơ|ø|ǿ|º/' => 'o',
 		'/Ŕ|Ŗ|Ř/' => 'R',
 		'/ŕ|ŗ|ř/' => 'r',
-		'/Ś|Ŝ|Ş|Š/' => 'S',
-		'/ś|ŝ|ş|š|ſ/' => 's',
-		'/Ţ|Ť|Ŧ/' => 'T',
-		'/ţ|ť|ŧ/' => 't',
+		'/Ś|Ŝ|Ş|Ș|Š/' => 'S',
+		'/ś|ŝ|ş|ș|š|ſ/' => 's',
+		'/Ţ|Ț|Ť|Ŧ/' => 'T',
+		'/ţ|ț|ť|ŧ/' => 't',
 		'/Ù|Ú|Û|Ũ|Ū|Ŭ|Ů|Ű|Ų|Ư|Ǔ|Ǖ|Ǘ|Ǚ|Ǜ/' => 'U',
 		'/ù|ú|û|ũ|ū|ŭ|ů|ű|ų|ư|ǔ|ǖ|ǘ|ǚ|ǜ/' => 'u',
 		'/Ý|Ÿ|Ŷ/' => 'Y',
@@ -308,7 +313,7 @@ class Inflector {
 				} else {
 					self::$_transliteration = $rules + self::$_transliteration;
 				}
-			break;
+				break;
 
 			default:
 				foreach ($rules as $rule => $pattern) {
@@ -334,7 +339,6 @@ class Inflector {
 					}
 				}
 				self::${$var}['rules'] = $rules + self::${$var}['rules'];
-			break;
 		}
 	}
 

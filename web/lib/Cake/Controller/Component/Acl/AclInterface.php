@@ -11,7 +11,7 @@
  * @link          http://cakephp.org CakePHP(tm) Project
  * @package       Cake.Controller.Component.Acl
  * @since         CakePHP(tm) v 0.10.0.1076
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 /**
@@ -28,6 +28,7 @@ interface AclInterface {
  * @param string $aro ARO The requesting object identifier.
  * @param string $aco ACO The controlled object identifier.
  * @param string $action Action (defaults to *)
+ * @return boolean Success
  */
 	public function check($aro, $aco, $action = "*");
 
@@ -65,6 +66,7 @@ interface AclInterface {
  * Initialization method for the Acl implementation
  *
  * @param AclComponent $component
+ * @return void
  */
 	public function initialize(Component $component);
 

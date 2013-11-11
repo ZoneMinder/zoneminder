@@ -14,7 +14,7 @@
  * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
  * @link          http://cakephp.org CakePHP(tm) Project
  * @since         CakePHP(tm) v 1.3
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('AppShell', 'Console/Command');
@@ -279,7 +279,7 @@ class TestTask extends BakeTask {
  */
 	public function buildTestSubject($type, $class) {
 		ClassRegistry::flush();
-		App::import($type, $class);
+		App::uses($class, $type);
 		$class = $this->getRealClassName($type, $class);
 		if (strtolower($type) === 'model') {
 			$instance = ClassRegistry::init($class);
@@ -374,9 +374,9 @@ class TestTask extends BakeTask {
  */
 	public function generateFixtureList($subject) {
 		$this->_fixtures = array();
-		if (is_a($subject, 'Model')) {
+		if ($subject instanceof Model) {
 			$this->_processModel($subject);
-		} elseif (is_a($subject, 'Controller')) {
+		} elseif ($subject instanceof Controller) {
 			$this->_processController($subject);
 		}
 		return array_values($this->_fixtures);
@@ -563,9 +563,15 @@ class TestTask extends BakeTask {
 				)
 			))->addArgument('name', array(
 				'help' => __d('cake_console', 'An existing class to bake tests for.')
+			))->addOption('theme', array(
+				'short' => 't',
+				'help' => __d('cake_console', 'Theme to use when baking code.')
 			))->addOption('plugin', array(
 				'short' => 'p',
 				'help' => __d('cake_console', 'CamelCased name of the plugin to bake tests for.')
+			))->addOption('force', array(
+				'short' => 'f',
+				'help' => __d('cake_console', 'Force overwriting existing files without prompting.')
 			))->epilog(__d('cake_console', 'Omitting all arguments and options will enter into an interactive mode.'));
 	}
 

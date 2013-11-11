@@ -15,7 +15,7 @@
  * @link          http://cakephp.org CakePHP Project
  * @package       Cake.Test.Case.Console.Command
  * @since         CakePHP v 1.2.0.7726
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('ConsoleOutput', 'Console');
@@ -44,7 +44,7 @@ class ApiShellTest extends CakeTestCase {
 		$this->Shell = $this->getMock(
 			'ApiShell',
 			array('in', 'out', 'createFile', 'hr', '_stop'),
-			array(	$out, $out, $in)
+			array($out, $out, $in)
 		);
 	}
 

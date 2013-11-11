@@ -14,7 +14,7 @@
  * @link          http://cakephp.org CakePHP(tm) Project
  * @package       Cake.View
  * @since         CakePHP(tm) v 2.0
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('ObjectCollection', 'Utility');
@@ -113,7 +113,7 @@ class HelperCollection extends ObjectCollection implements CakeEventListener {
  * @throws MissingHelperException when the helper could not be found
  */
 	public function load($helper, $settings = array()) {
-		if (is_array($settings) && isset($settings['className'])) {
+		if (isset($settings['className'])) {
 			$alias = $helper;
 			$helper = $settings['className'];
 		}

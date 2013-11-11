@@ -15,7 +15,7 @@
  * @link          http://cakephp.org CakePHP(tm) Project
  * @package       Cake.Model
  * @since         CakePHP(tm) v 1.2.0.5550
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('Model', 'Model');
@@ -476,7 +476,7 @@ class CakeSchema extends Object {
 				continue;
 			}
 			if (!array_key_exists($table, $old)) {
-				$tables[$table]['add'] = $fields;
+				$tables[$table]['create'] = $fields;
 			} else {
 				$diff = $this->_arrayDiffAssoc($fields, $old[$table]);
 				if (!empty($diff)) {
@@ -551,7 +551,7 @@ class CakeSchema extends Object {
 				continue;
 			}
 			$correspondingValue = $array2[$key];
-			if (is_null($value) !== is_null($correspondingValue)) {
+			if (($value === null) !== ($correspondingValue === null)) {
 				$difference[$key] = $value;
 				continue;
 			}

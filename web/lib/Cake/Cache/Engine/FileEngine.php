@@ -18,7 +18,7 @@
  * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
  * @link          http://cakephp.org CakePHP(tm) Project
  * @since         CakePHP(tm) v 1.2.0.4933
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 /**
@@ -210,7 +210,10 @@ class FileEngine extends CacheEngine {
 		}
 		$path = $this->_File->getRealPath();
 		$this->_File = null;
-		return unlink($path);
+
+		//@codingStandardsIgnoreStart
+		return @unlink($path);
+		//@codingStandardsIgnoreEnd
 	}
 
 /**
@@ -223,40 +226,80 @@ class FileEngine extends CacheEngine {
 		if (!$this->_init) {
 			return false;
 		}
-		$dir = dir($this->settings['path']);
+		$this->_File = null;
+
+		$threshold = $now = false;
 		if ($check) {
 			$now = time();
 			$threshold = $now - $this->settings['duration'];
 		}
+
+		$this->_clearDirectory($this->settings['path'], $now, $threshold);
+
+		$directory = new RecursiveDirectoryIterator($this->settings['path']);
+		$contents = new RecursiveIteratorIterator($directory, RecursiveIteratorIterator::SELF_FIRST);
+		$cleared = array();
+		foreach ($contents as $path) {
+			if ($path->isFile()) {
+				continue;
+			}
+
+			$path = $path->getRealPath() . DS;
+			if (!in_array($path, $cleared)) {
+				$this->_clearDirectory($path, $now, $threshold);
+				$cleared[] = $path;
+			}
+		}
+		return true;
+	}
+
+/**
+ * Used to clear a directory of matching files.
+ *
+ * @param string $path The path to search.
+ * @param integer $now The current timestamp
+ * @param integer $threshold Any file not modified after this value will be deleted.
+ * @return void
+ */
+	protected function _clearDirectory($path, $now, $threshold) {
 		$prefixLength = strlen($this->settings['prefix']);
+
+		if (!is_dir($path)) {
+			return;
+		}
+
+		$dir = dir($path);
 		while (($entry = $dir->read()) !== false) {
 			if (substr($entry, 0, $prefixLength) !== $this->settings['prefix']) {
 				continue;
 			}
-			if ($this->_setKey($entry) === false) {
+			$filePath = $path . $entry;
+			if (!file_exists($filePath) || is_dir($filePath)) {
 				continue;
 			}
-			if ($check) {
-				$mtime = $this->_File->getMTime();
+			$file = new SplFileObject($path . $entry, 'r');
+
+			if ($threshold) {
+				$mtime = $file->getMTime();
 
 				if ($mtime > $threshold) {
 					continue;
 				}
-
-				$expires = (int)$this->_File->current();
+				$expires = (int)$file->current();
 
 				if ($expires > $now) {
 					continue;
 				}
 			}
-			$path = $this->_File->getRealPath();
-			$this->_File = null;
-			if (file_exists($path)) {
-				unlink($path);
+			if ($file->isFile()) {
+				$filePath = $file->getRealPath();
+				$file = null;
+
+				//@codingStandardsIgnoreStart
+				@unlink($filePath);
+				//@codingStandardsIgnoreEnd
 			}
 		}
-		$dir->close();
-		return true;
 	}
 
 /**
@@ -299,7 +342,7 @@ class FileEngine extends CacheEngine {
 		$dir = $this->settings['path'] . $groups;
 
 		if (!is_dir($dir)) {
-			mkdir($dir, 0777, true);
+			mkdir($dir, 0775, true);
 		}
 		$path = new SplFileInfo($dir . $key);
 
@@ -332,6 +375,12 @@ class FileEngine extends CacheEngine {
  */
 	protected function _active() {
 		$dir = new SplFileInfo($this->settings['path']);
+		if (Configure::read('debug')) {
+			$path = $dir->getPathname();
+			if (!is_dir($path)) {
+				mkdir($path, 0775, true);
+			}
+		}
 		if ($this->_init && !($dir->isDir() && $dir->isWritable())) {
 			$this->_init = false;
 			trigger_error(__d('cake_dev', '%s is not writable', $this->settings['path']), E_USER_WARNING);
@@ -351,7 +400,7 @@ class FileEngine extends CacheEngine {
 			return false;
 		}
 
-		$key = Inflector::underscore(str_replace(array(DS, '/', '.'), '_', strval($key)));
+		$key = Inflector::underscore(str_replace(array(DS, '/', '.', '<', '>', '?', ':', '|', '*', '"'), '_', strval($key)));
 		return $key;
 	}
 
@@ -361,15 +410,23 @@ class FileEngine extends CacheEngine {
  * @return boolean success
  */
 	public function clearGroup($group) {
+		$this->_File = null;
 		$directoryIterator = new RecursiveDirectoryIterator($this->settings['path']);
 		$contents = new RecursiveIteratorIterator($directoryIterator, RecursiveIteratorIterator::CHILD_FIRST);
 		foreach ($contents as $object) {
 			$containsGroup = strpos($object->getPathName(), DS . $group . DS) !== false;
-			if ($object->isFile() && $containsGroup) {
-				unlink($object->getPathName());
+			$hasPrefix = true;
+			if (strlen($this->settings['prefix']) !== 0) {
+				$hasPrefix = strpos($object->getBaseName(), $this->settings['prefix']) === 0;
+			}
+			if ($object->isFile() && $containsGroup && $hasPrefix) {
+				$path = $object->getPathName();
+				$object = null;
+				//@codingStandardsIgnoreStart
+				@unlink($path);
+				//@codingStandardsIgnoreEnd
 			}
 		}
-		$this->_File = null;
 		return true;
 	}
 }

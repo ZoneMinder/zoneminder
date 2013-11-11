@@ -15,7 +15,7 @@
  * @link          http://cakephp.org CakePHP(tm) Project
  * @package       Cake.Core
  * @since         CakePHP(tm) v 2.0.0
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 /**
@@ -228,7 +228,7 @@ class CakePlugin {
  * @return void
  */
 	public static function unload($plugin = null) {
-		if (is_null($plugin)) {
+		if ($plugin === null) {
 			self::$_plugins = array();
 		} else {
 			unset(self::$_plugins[$plugin]);

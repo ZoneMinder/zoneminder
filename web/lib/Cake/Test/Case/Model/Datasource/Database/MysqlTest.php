@@ -15,8 +15,9 @@
  * @link          http://cakephp.org CakePHP(tm) Project
  * @package       Cake.Test.Case.Model.Datasource.Database
  * @since         CakePHP(tm) v 1.2.0
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
+
 App::uses('Model', 'Model');
 App::uses('AppModel', 'Model');
 App::uses('Mysql', 'Model/Datasource/Database');
@@ -34,7 +35,7 @@ class MysqlTest extends CakeTestCase {
 /**
  * autoFixtures property
  *
- * @var bool false
+ * @var boolean
  */
 	public $autoFixtures = false;
 
@@ -61,6 +62,7 @@ class MysqlTest extends CakeTestCase {
  *
  */
 	public function setUp() {
+		parent::setUp();
 		$this->Dbo = ConnectionManager::getDataSource('test');
 		if (!($this->Dbo instanceof Mysql)) {
 			$this->markTestSkipped('The MySQL extension is not available.');
@@ -75,6 +77,7 @@ class MysqlTest extends CakeTestCase {
  *
  */
 	public function tearDown() {
+		parent::tearDown();
 		unset($this->model);
 		ClassRegistry::flush();
 		Configure::write('debug', $this->_debug);
@@ -149,7 +152,8 @@ class MysqlTest extends CakeTestCase {
 		$this->skipIf(DS === '\\', 'The locale is not supported in Windows and affect the others tests.');
 
 		$restore = setlocale(LC_NUMERIC, 0);
-		setlocale(LC_NUMERIC, 'de_DE');
+
+		$this->skipIf(setlocale(LC_NUMERIC, 'de_DE') === false, "The German locale isn't available.");
 
 		$result = $this->Dbo->value(3.141593);
 		$this->assertEquals('3.141593', $result);
@@ -209,19 +213,19 @@ class MysqlTest extends CakeTestCase {
 
 		$this->assertTrue((bool)$this->model->save(array('bool' => 5, 'small_int' => 5)));
 		$result = $this->model->find('first');
-		$this->assertSame($result['Tinyint']['bool'], true);
+		$this->assertTrue($result['Tinyint']['bool']);
 		$this->assertSame($result['Tinyint']['small_int'], '5');
 		$this->model->deleteAll(true);
 
 		$this->assertTrue((bool)$this->model->save(array('bool' => 0, 'small_int' => 100)));
 		$result = $this->model->find('first');
-		$this->assertSame($result['Tinyint']['bool'], false);
+		$this->assertFalse($result['Tinyint']['bool']);
 		$this->assertSame($result['Tinyint']['small_int'], '100');
 		$this->model->deleteAll(true);
 
 		$this->assertTrue((bool)$this->model->save(array('bool' => true, 'small_int' => 0)));
 		$result = $this->model->find('first');
-		$this->assertSame($result['Tinyint']['bool'], true);
+		$this->assertTrue($result['Tinyint']['bool']);
 		$this->assertSame($result['Tinyint']['small_int'], '0');
 		$this->model->deleteAll(true);
 
@@ -983,7 +987,7 @@ class MysqlTest extends CakeTestCase {
 			'primary_flag_has_index' => array(
 				'id' => array('type' => 'integer', 'null' => false, 'key' => 'primary'),
 				'data' => array('type' => 'integer', 'null' => false),
-				'indexes' => array (
+				'indexes' => array(
 					'some_index' => array('column' => 'data', 'unique' => 1)
 				),
 			)
@@ -1194,7 +1198,7 @@ class MysqlTest extends CakeTestCase {
 		$this->assertRegExp('/^SELECT\s+`TestModel4`\.`id`, `TestModel4`\.`name`, `TestModel4`\.`created`, `TestModel4`\.`updated`, `TestModel4Parent`\.`id`, `TestModel4Parent`\.`name`, `TestModel4Parent`\.`created`, `TestModel4Parent`\.`updated`\s+/', $result);
 		$this->assertRegExp('/FROM\s+\S+`test_model4` AS `TestModel4`\s+LEFT JOIN\s+\S+`test_model4` AS `TestModel4Parent`/', $result);
 		$this->assertRegExp('/\s+ON\s+\(`TestModel4`.`parent_id` = `TestModel4Parent`.`id`\)\s+WHERE/', $result);
-		$this->assertRegExp('/\s+WHERE\s+1 = 1\s+$/', $result);
+		$this->assertRegExp('/\s+WHERE\s+1 = 1$/', $result);
 
 		$params['assocData']['type'] = 'INNER';
 		$this->Model->belongsTo['TestModel4Parent']['type'] = 'INNER';
@@ -2404,7 +2408,7 @@ class MysqlTest extends CakeTestCase {
 		$this->assertEquals($expected, $result);
 
 		$result = $this->Dbo->conditions(array(
-			'NOT' => array('Course.id' => null, 'Course.vet' => 'N', 'level_of_education_id' => array(912,999)),
+			'NOT' => array('Course.id' => null, 'Course.vet' => 'N', 'level_of_education_id' => array(912, 999)),
 			'Enrollment.yearcompleted >' => '0')
 		);
 		$this->assertRegExp('/^\s*WHERE\s+\(NOT\s+\(`Course`\.`id` IS NULL\)\s+AND NOT\s+\(`Course`\.`vet`\s+=\s+\'N\'\)\s+AND NOT\s+\(`level_of_education_id` IN \(912, 999\)\)\)\s+AND\s+`Enrollment`\.`yearcompleted`\s+>\s+\'0\'\s*$/', $result);
@@ -2507,7 +2511,7 @@ class MysqlTest extends CakeTestCase {
 /**
  * Test that array conditions with only one element work.
  *
- * @return
+ * @return void
  */
 	public function testArrayConditionsOneElement() {
 		$conditions = array('id' => array(1));
@@ -3264,7 +3268,7 @@ class MysqlTest extends CakeTestCase {
 		$expected = '(1 + 1) = 2';
 		$this->assertEquals($expected, $result);
 
-		$conditions = array('this_moment BETWEEN ? AND ?' => array(1,2));
+		$conditions = array('this_moment BETWEEN ? AND ?' => array(1, 2));
 		$expected = 'NOW() BETWEEN 1 AND 2';
 		$result = $this->Dbo->conditions($conditions, true, false, $Article);
 		$this->assertEquals($expected, $result);

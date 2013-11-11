@@ -15,8 +15,9 @@
  * @link          http://book.cakephp.org/2.0/en/development/testing.html CakePHP(tm) Tests
  * @package       Cake.TestSuite
  * @since         CakePHP(tm) v 1.2.0.4667
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
+
 App::uses('CakeFixtureManager', 'TestSuite/Fixture');
 App::uses('CakeTestFixture', 'TestSuite/Fixture');
 
@@ -72,7 +73,7 @@ abstract class CakeTestCase extends PHPUnit_Framework_TestCase {
  * If no TestResult object is passed a new one will be created.
  * This method is run for each test method in this class
  *
- * @param  PHPUnit_Framework_TestResult $result
+ * @param PHPUnit_Framework_TestResult $result
  * @return PHPUnit_Framework_TestResult
  * @throws InvalidArgumentException
  */
@@ -688,17 +689,21 @@ abstract class CakeTestCase extends PHPUnit_Framework_TestCase {
  *
  * @param string $model
  * @param mixed $methods
- * @param mixed $config
+ * @param array $config
+ * @throws MissingModelException
  * @return Model
  */
-	public function getMockForModel($model, $methods = array(), $config = null) {
-		if (is_null($config)) {
-			$config = ClassRegistry::config('Model');
-		}
+	public function getMockForModel($model, $methods = array(), $config = array()) {
+		$config += ClassRegistry::config('Model');
 
 		list($plugin, $name) = pluginSplit($model, true);
 		App::uses($name, $plugin . 'Model');
 		$config = array_merge((array)$config, array('name' => $name));
+
+		if (!class_exists($name)) {
+			throw new MissingModelException(array($model));
+		}
+
 		$mock = $this->getMock($name, $methods, array($config));
 		ClassRegistry::removeObject($name);
 		ClassRegistry::addObject($name, $mock);

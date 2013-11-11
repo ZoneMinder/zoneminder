@@ -15,7 +15,7 @@
  * @link          http://cakephp.org CakePHP(tm) Project
  * @package       Cake.Test.Case.Routing.Route
  * @since         CakePHP(tm) v 2.0
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('CakeRoute', 'Routing/Route');
@@ -485,6 +485,40 @@ class CakeRouteTest extends CakeTestCase {
 	}
 
 /**
+ * test persist with a non array value
+ *
+ * @return void
+ */
+	public function testPersistParamsNonArray() {
+		$url = array('controller' => 'posts', 'action' => 'index');
+		$params = array('lang' => 'en', 'color' => 'blue');
+
+		$route = new CakeRoute(
+			'/:lang/:color/blog/:action',
+			array('controller' => 'posts')
+			// No persist options
+		);
+		$result = $route->persistParams($url, $params);
+		$this->assertEquals($url, $result);
+
+		$route = new CakeRoute(
+			'/:lang/:color/blog/:action',
+			array('controller' => 'posts'),
+			array('persist' => false)
+		);
+		$result = $route->persistParams($url, $params);
+		$this->assertEquals($url, $result);
+
+		$route = new CakeRoute(
+			'/:lang/:color/blog/:action',
+			array('controller' => 'posts'),
+			array('persist' => 'derp')
+		);
+		$result = $route->persistParams($url, $params);
+		$this->assertEquals($url, $result);
+	}
+
+/**
  * test the parse method of CakeRoute.
  *
  * @return void
@@ -870,7 +904,7 @@ class CakeRouteTest extends CakeTestCase {
  * @return void
  */
 	public function testParseTrailingUTF8() {
-		$route = new CakeRoute('/category/**', array('controller' => 'categories','action' => 'index'));
+		$route = new CakeRoute('/category/**', array('controller' => 'categories', 'action' => 'index'));
 		$result = $route->parse('/category/%D9%85%D9%88%D8%A8%D8%A7%DB%8C%D9%84');
 		$expected = array(
 			'controller' => 'categories',
@@ -889,7 +923,7 @@ class CakeRouteTest extends CakeTestCase {
 	public function testUTF8PatternOnSection() {
 		$route = new CakeRoute(
 			'/:section',
-			array('plugin' => 'blogs', 'controller' => 'posts' , 'action' => 'index' ),
+			array('plugin' => 'blogs', 'controller' => 'posts', 'action' => 'index'),
 			array(
 				'persist' => array('section'),
 				'section' => 'آموزش|weblog'

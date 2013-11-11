@@ -15,22 +15,15 @@
  * @link          http://book.cakephp.org/2.0/en/development/testing.html CakePHP(tm) Tests
  * @package       Cake.Test.Fixture
  * @since         CakePHP(tm) v 1.2.0.4667
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 /**
- * Short description for class.
+ * Class SessionFixture
  *
  * @package       Cake.Test.Fixture
  */
 class SessionFixture extends CakeTestFixture {
-
-/**
- * name property
- *
- * @var string 'Session'
- */
-	public $name = 'Session';
 
 /**
  * fields property
@@ -39,7 +32,7 @@ class SessionFixture extends CakeTestFixture {
  */
 	public $fields = array(
 		'id' => array('type' => 'string', 'length' => 128, 'key' => 'primary'),
-		'data' => array('type' => 'text','null' => true),
+		'data' => array('type' => 'text', 'null' => true),
 		'expires' => array('type' => 'integer', 'length' => 11, 'null' => true)
 	);
 

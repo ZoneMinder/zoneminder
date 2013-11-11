@@ -11,10 +11,14 @@
  * @link          http://cakephp.org CakePHP(tm) Project
  * @package       Cake.Core
  * @since         CakePHP(tm) v 0.2.9
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
+App::uses('CakeLog', 'Log');
+App::uses('Dispatcher', 'Routing');
+App::uses('Router', 'Routing');
 App::uses('Set', 'Utility');
+App::uses('CakeLog', 'Log');
 
 /**
  * Object class provides a few generic methods used in several subclasses.
@@ -57,8 +61,8 @@ class Object {
  * POST and GET data can be simulated in requestAction. Use `$extra['url']` for
  * GET data. The `$extra['data']` parameter allows POST data simulation.
  *
- * @param string|array $url String or array-based url. Unlike other url arrays in CakePHP, this
- *    url will not automatically handle passed and named arguments in the $url parameter.
+ * @param string|array $url String or array-based URL. Unlike other URL arrays in CakePHP, this
+ *    URL will not automatically handle passed and named arguments in the $url parameter.
  * @param array $extra if array includes the key "return" it sets the AutoRender to true. Can
  *    also be used to submit GET/POST data, and named/passed arguments.
  * @return mixed Boolean true or false on success/failure, or contents
@@ -68,7 +72,6 @@ class Object {
 		if (empty($url)) {
 			return false;
 		}
-		App::uses('Dispatcher', 'Routing');
 		if (($index = array_search('return', $extra)) !== false) {
 			$extra['return'] = 0;
 			$extra['autoRender'] = 1;
@@ -85,8 +88,8 @@ class Object {
 		$data = isset($extra['data']) ? $extra['data'] : null;
 		unset($extra['data']);
 
-		if (is_string($url) && strpos($url, FULL_BASE_URL) === 0) {
-			$url = Router::normalize(str_replace(FULL_BASE_URL, '', $url));
+		if (is_string($url) && strpos($url, Router::fullBaseUrl()) === 0) {
+			$url = Router::normalize(str_replace(Router::fullBaseUrl(), '', $url));
 		}
 		if (is_string($url)) {
 			$request = new CakeRequest($url);
@@ -109,9 +112,9 @@ class Object {
  * Calls a method on this object with the given parameters. Provides an OO wrapper
  * for `call_user_func_array`
  *
- * @param string $method  Name of the method to call
- * @param array $params  Parameter list to use when calling $method
- * @return mixed  Returns the result of the method call
+ * @param string $method Name of the method to call
+ * @param array $params Parameter list to use when calling $method
+ * @return mixed Returns the result of the method call
  */
 	public function dispatchMethod($method, $params = array()) {
 		switch (count($params)) {
@@ -151,12 +154,12 @@ class Object {
  * @param integer $type Error type constant. Defined in app/Config/core.php.
  * @return boolean Success of log write
  */
-	public function log($msg, $type = LOG_ERR) {
-		App::uses('CakeLog', 'Log');
+	public function log($msg, $type = LOG_ERR, $scope = null) {
 		if (!is_string($msg)) {
 			$msg = print_r($msg, true);
 		}
-		return CakeLog::write($type, $msg);
+
+		return CakeLog::write($type, $msg, $scope);
 	}
 
 /**

@@ -11,10 +11,16 @@
  * @link          http://cakephp.org CakePHP(tm) Project
  * @package       Cake.Utility
  * @since         CakePHP(tm) v 2.2.0
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
+
 App::uses('Hash', 'Utility');
 
+/**
+ * Class HashTest
+ *
+ * @package       Cake.Utility
+ */
 class HashTest extends CakeTestCase {
 
 	public static function articleData() {
@@ -587,6 +593,12 @@ class HashTest extends CakeTestCase {
 		);
 		$this->assertTrue(Hash::contains($b, $a));
 		$this->assertFalse(Hash::contains($a, $b));
+
+		$a = array(0 => 'test', 'string' => null);
+		$this->assertTrue(Hash::contains($a, array('string' => null)));
+
+		$a = array(0 => 'test', 'string' => null);
+		$this->assertTrue(Hash::contains($a, array('test')));
 	}
 
 /**
@@ -1036,7 +1048,7 @@ class HashTest extends CakeTestCase {
 			1 => array('Person' => array('name' => 'Jeff')),
 		);
 		$a = Hash::sort($a, '{n}.Person.name', 'ASC', 'STRING');
-		$this->assertEquals($a, $b);
+		$this->assertSame($a, $b);
 
 		$names = array(
 			array('employees' => array(
@@ -1059,7 +1071,38 @@ class HashTest extends CakeTestCase {
 			array('employees' => array(array('name' => array()))),
 			array('employees' => array(array('name' => array())))
 		);
-		$this->assertEquals($expected, $result);
+		$this->assertSame($expected, $result);
+
+		$a = array(
+			'SU' => array(
+				'total_fulfillable' => 2
+			),
+			'AA' => array(
+				'total_fulfillable' => 1
+			),
+			'LX' => array(
+				'total_fulfillable' => 0
+			),
+			'BL' => array(
+				'total_fulfillable' => 3
+			),
+		);
+		$expected = array(
+			'LX' => array(
+				'total_fulfillable' => 0
+			),
+			'AA' => array(
+				'total_fulfillable' => 1
+			),
+			'SU' => array(
+				'total_fulfillable' => 2
+			),
+			'BL' => array(
+				'total_fulfillable' => 3
+			),
+		);
+		$result = Hash::sort($a, '{s}.total_fulfillable', 'asc');
+		$this->assertSame($expected, $result);
 	}
 
 /**
@@ -2203,7 +2246,7 @@ class HashTest extends CakeTestCase {
 				)
 			)
 		);
-		$this->assertEquals($result, $expected);
+		$this->assertEquals($expected, $result);
 
 		$data = array('a.b.100.a' => null, 'a.b.200.a' => null);
 		$expected = array(

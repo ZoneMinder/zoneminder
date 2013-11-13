@@ -335,6 +335,49 @@ if ( $freshen )
     loadConfigFromDB();
     saveConfigToDB();
 }
+
+sub getMyISAMTables {
+	my $dbh = shift;
+	my $sql = "SELECT table_name FROM INFORMATION_SCHEMA.TABLES WHERE table_schema='zm' AND engine = 'MyISAM'";
+	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+
+	my @dbTables;
+	while( my $dbTable = $sth->fetchrow() ) {
+		push( @dbTables, $dbTable );
+	}
+	$sth->finish();
+} # end sub getInnoDBTables
+
+sub toInnoDB {
+	my ( $dbh, @dbTables ) = @_;
+	if (@dbTables) {
+		print "\nConverting MyISAM tables to InnoDB. Please wait.\n";
+		foreach (@dbTables) {
+			my $sql = "ALTER TABLE $_ ENGINE = InnoDB";
+			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+			my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+			$sth->finish();
+		}
+	} else {
+		print "\nNo MyISAM tables found. Skipping...\n";
+	}
+} # end sub toInnoDB
+
+# Now check for MyISAM Tables
+my $dbh = zmDbConnect();
+my @Tables = getMyISAMTables( $dbh );
+if ( @Tables ) {
+	print( "\nPrevious versions of ZoneMinder used the MyISAM database engine.\nHowever, the recommended database engine is InnoDB.\n");
+	print( "\nHint: InnoDB tables are much less likely to be corrupted during an unclean shutdown.\n\nPress 'y' to convert your tables to InnoDB or 'n' to skip : ");
+	my $response = <STDIN>;
+	chomp( $response );
+	if ( $response =~ /^[yY]$/ ) {
+		toInnoDB($dbh);
+	}
+}
+$dbh->disconnect();
+
 if ( $version )
 {
     my ( $detaint_version ) = $version =~ /^([\w.]+)$/;
@@ -454,34 +497,6 @@ if ( $version )
         }
     }
 
-    sub toInnoDB
-    {
-	my $dbh = shift;
-	my $sql = "SELECT table_name FROM INFORMATION_SCHEMA.TABLES WHERE table_schema='zm' AND engine = 'MyISAM'";
-	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
-
-	my @dbTables;
-		while( my $dbTable = $sth->fetchrow() )
-		{
-	        push( @dbTables, $dbTable );
-        	}
-	$sth->finish();
-
-	if (@dbTables)
-	{
-		print "\nConverting MyISAM tables to InnoDB. Please wait.\n";
-	    	foreach (@dbTables)
-			{
-			my $sql = "ALTER TABLE $_ ENGINE = InnoDB";
-			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-			my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
-			}
-	        $sth->finish();
-	} else {
-		print "\nNo MyISAM tables found. Skipping...\n";
-	}
-    }
 
     print( "\nUpgrading database to version ".ZM_VERSION."\n" );
 
@@ -1014,14 +1029,6 @@ if ( $version )
 		} # end if
 		$sth->finish();
 
-		print( "\nPrevious versions of ZoneMinder used the MyISAM database engine.\nHowever, the recommended database engine is InnoDB.\n");
-		print( "\nHint: InnoDB tables are much less likely to be corrupted during an unclean shutdown.\n\nPress 'y' to convert your tables to InnoDB or 'n' to skip : ");
-        	my $response = <STDIN>;
-        	chomp( $response );
-        	if ( $response =~ /^[yY]$/ )
-        	{
-        	    toInnoDB($dbh);
-        	}
 
 		$cascade = !undef;
 		$version = '1.26.0';

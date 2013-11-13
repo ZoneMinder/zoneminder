@@ -32,3 +32,11 @@ else(NOT mtmorelist)
 		message(WARNING " Failed creating the required symlinks for mootools-more. Exit code: ${mtmoreresult}")
 	endif(mtmoreresult)
 endif(NOT mtmorelist)
+
+# If this is an out-of-source build, copy the mootools files we picked to the binary directory
+# This is required to fix a cmake bug regarding installing symlinks pointing to nonexistent files
+if(NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR))
+	execute_process(COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/${mtcorelatest}" "${CMAKE_CURRENT_BINARY_DIR}/${mtcorelatest}")
+	execute_process(COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/${mtmorelatest}" "${CMAKE_CURRENT_BINARY_DIR}/${mtmorelatest}")
+endif(NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR))
+

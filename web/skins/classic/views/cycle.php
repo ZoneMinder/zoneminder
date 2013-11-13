@@ -45,7 +45,11 @@ if ( !empty($_REQUEST['group']) )
     $groupSql = " and find_in_set( Id, '".$row['MonitorIds']."' )";
 }
 
-$sql = "select * from Monitors where Function != 'None'$groupSql order by Sequence";
+$sql = "select * from Monitors where Function != 'None'$groupSql";
+if ( ''+ZM_SERVER_HOST ) {
+	$sql .= " and ServerHost='".ZM_SERVER_HOST."'";
+}
+$sql .= " order by Sequence";
 $monitors = array();
 $monIdx = 0;
 foreach( dbFetchAll( $sql ) as $row )

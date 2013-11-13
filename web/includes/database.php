@@ -121,7 +121,7 @@ function dbFetchOne( $sql, $col=false, $params=NULL )
 {
 	$result = dbQuery( $sql, $params );
 	if ( ! $result ) {
-		Fatal( "SQL-ERR dbFetchOne no result, statement was '".$sql."'" );
+		Fatal( "SQL-ERR dbFetchOne no result, statement was '".$sql."'" . ( $params ? 'params: ' . join(',',$params) : '' ) );
 		return false;
 	}
 
@@ -130,11 +130,11 @@ function dbFetchOne( $sql, $col=false, $params=NULL )
     return( false );
 }
 
-function dbFetchAll( $sql, $col=false )
+function dbFetchAll( $sql, $col=false, $params=NULL )
 {
-	$result = dbQuery( $sql );
+	$result = dbQuery( $sql, $params );
 	if ( ! $result ) {
-		Fatal( "SQL-ERR dbFetchAll no result, statement was '".$sql."'" );
+		Fatal( "SQL-ERR dbFetchAll no result, statement was '".$sql."'" . ( $params ? 'params: ' .join(',', $params) : '' ) );
 		return false;
 	}
 

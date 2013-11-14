@@ -101,7 +101,6 @@ if ( !GetOptions( 'check'=>\$check, 'freshen'=>\$freshen, 'rename'=>\$rename, 'z
 my $dbh = zmDbConnect();
 *ZoneMinder::Database::ZM_DB_USER = sub { $dbUser } if ZoneMinder::Database::ZM_DB_USER ne $dbUser;
 *ZoneMinder::Database::ZM_DB_PASS = sub { $dbPass } if ZoneMinder::Database::ZM_DB_PASS ne $dbPass;
-zmDbDisconnect();
 
 if ( ! ($check || $freshen || $rename || $zoneFix || $migrateEvents || $version) )
 {
@@ -126,8 +125,6 @@ if ( $check && ZM_CHECK_FOR_UPDATES )
 {
     print( "Update agent starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 
-    my $dbh = zmDbConnect();
-
     my $currVersion = ZM_DYN_CURR_VERSION;
     my $lastVersion = ZM_DYN_LAST_VERSION;
     my $lastCheck = ZM_DYN_LAST_CHECK;
@@ -140,15 +137,12 @@ if ( $check && ZM_CHECK_FOR_UPDATES )
         my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
         my $res = $sth->execute( "$currVersion" ) or die( "Can't execute: ".$sth->errstr() );
     }
-    zmDbDisconnect();
 
     while( 1 )
     {
         my $now = time();
         if ( !$lastVersion || !$lastCheck || (($now-$lastCheck) > CHECK_INTERVAL) )
         {
-            $dbh = zmDbConnect();
-
             Info( "Checking for updates\n" );
 
             use LWP::UserAgent;
@@ -186,7 +180,6 @@ if ( $check && ZM_CHECK_FOR_UPDATES )
             {
                 Error( "Error check failed: '".$res->status_line()."'\n" );
             }
-            zmDbDisconnect();
         }
         sleep( 3600 );
     }
@@ -222,9 +215,6 @@ if ( $rename )
 }
 if ( $zoneFix )
 {
-    require DBI;
-
-    my $dbh = zmDbConnect();
 
     my $sql = "select Z.*, M.Width as MonitorWidth, M.Height as MonitorHeight from Zones as Z inner join Monitors as M on Z.MonitorId = M.Id where Z.Units = 'Percent'";
     my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
@@ -287,7 +277,6 @@ if ( $migrateEvents )
         print( "Converting all events to deep storage.\n" );
 
         chdir( ZM_PATH_WEB );
-        my $dbh = zmDbConnect();
         my $sql = "select *, unix_timestamp(StartTime) as UnixStartTime from Events";
         my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
         my $res = $sth->execute();
@@ -335,6 +324,34 @@ if ( $freshen )
     loadConfigFromDB();
     saveConfigToDB();
 }
+
+# Now check for MyISAM Tables
+my @MyISAM_Tables;
+my $sql = "SELECT table_name FROM INFORMATION_SCHEMA.TABLES WHERE table_schema='zm' AND engine = 'MyISAM'";
+my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+
+while( my $dbTable = $sth->fetchrow() ) {
+	push @MyISAM_Tables, $dbTable;
+}
+$sth->finish();
+
+if ( @MyISAM_Tables ) {
+	print( "\nPrevious versions of ZoneMinder used the MyISAM database engine.\nHowever, the recommended database engine is InnoDB.\n");
+	print( "\nHint: InnoDB tables are much less likely to be corrupted during an unclean shutdown.\n\nPress 'y' to convert your tables to InnoDB or 'n' to skip : ");
+	my $response = <STDIN>;
+	chomp( $response );
+	if ( $response =~ /^[yY]$/ ) {
+		print "\nConverting MyISAM tables to InnoDB. Please wait.\n";
+		foreach (@MyISAM_Tables) {
+			my $sql = "ALTER TABLE $_ ENGINE = InnoDB";
+			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+			my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+			$sth->finish();
+		}
+	}
+}
+
 if ( $version )
 {
     my ( $detaint_version ) = $version =~ /^([\w.]+)$/;
@@ -454,42 +471,12 @@ if ( $version )
         }
     }
 
-    sub toInnoDB
-    {
-	my $dbh = shift;
-	my $sql = "SELECT table_name FROM INFORMATION_SCHEMA.TABLES WHERE table_schema='zm' AND engine = 'MyISAM'";
-	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
-
-	my @dbTables;
-		while( my $dbTable = $sth->fetchrow() )
-		{
-	        push( @dbTables, $dbTable );
-        	}
-	$sth->finish();
-
-	if (@dbTables)
-	{
-		print "\nConverting MyISAM tables to InnoDB. Please wait.\n";
-	    	foreach (@dbTables)
-			{
-			my $sql = "ALTER TABLE $_ ENGINE = InnoDB";
-			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-			my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
-			}
-	        $sth->finish();
-	} else {
-		print "\nNo MyISAM tables found. Skipping...\n";
-	}
-    }
 
     print( "\nUpgrading database to version ".ZM_VERSION."\n" );
 
     # Update config first of all
     loadConfigFromDB();
     saveConfigToDB();
-
-    my $dbh = zmDbConnect();
 
     my $cascade = undef;
     if ( $cascade || $version eq "1.19.0" )
@@ -518,8 +505,6 @@ if ( $version )
     }
     if ( $cascade || $version eq "1.19.4" )
     {
-        require DBI;
-
         # Rename the event directories and create a new symlink for the names
         chdir( EVENT_PATH );
 
@@ -1014,14 +999,6 @@ if ( $version )
 		} # end if
 		$sth->finish();
 
-		print( "\nPrevious versions of ZoneMinder used the MyISAM database engine.\nHowever, the recommended database engine is InnoDB.\n");
-		print( "\nHint: InnoDB tables are much less likely to be corrupted during an unclean shutdown.\n\nPress 'y' to convert your tables to InnoDB or 'n' to skip : ");
-        	my $response = <STDIN>;
-        	chomp( $response );
-        	if ( $response =~ /^[yY]$/ )
-        	{
-        	    toInnoDB($dbh);
-        	}
 
 		$cascade = !undef;
 		$version = '1.26.0';
@@ -1061,13 +1038,13 @@ if ( $version )
         my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
         my $res = $sth->execute( "$installed_version", "ZM_DYN_DB_VERSION" ) or die( "Can't execute: ".$sth->errstr() );
         $res = $sth->execute( "$installed_version", "ZM_DYN_CURR_VERSION" ) or die( "Can't execute: ".$sth->errstr() );
-        $dbh->disconnect();
     }
     else
     {
-        $dbh->disconnect();
+		zmDbDisconnect();
         die( "Can't find upgrade from version '$version'" );
     }
     print( "\nDatabase upgrade to version ".ZM_VERSION." successful.\n\n" );
 }
+zmDbDisconnect();
 exit( 0 );

@@ -225,6 +225,8 @@ else(MYSQLCLIENT_LIBRARIES)
 	message(FATAL_ERROR "zm requires mysqlclient but it was not found on your system")
 endif(MYSQLCLIENT_LIBRARIES)
 
+set(PATH_FFMPEG "")
+set(OPT_FFMPEG "no")
 # Do not check for ffmpeg if ZM_NO_FFMPEG is on
 if(NOT ZM_NO_FFMPEG)
 	# avformat (using find_library and find_path)
@@ -312,6 +314,15 @@ if(NOT ZM_NO_FFMPEG)
 	else(SWSCALE_LIBRARIES)
 		set(optlibsnotfound "${optlibsnotfound} SWScale")
 	endif(SWSCALE_LIBRARIES)
+
+	# Find the path to the ffmpeg executable
+	find_program(FFMPEG_EXECUTABLE ffmpeg PATH_SUFFIXES ffmpeg)
+	if(FFMPEG_EXECUTABLE)
+		set(PATH_FFMPEG "${FFMPEG_EXECUTABLE}")
+		set(OPT_FFMPEG "yes")
+		mark_as_advanced(FFMPEG_EXECUTABLE)
+	endif(FFMPEG_EXECUTABLE)
+
 endif(NOT ZM_NO_FFMPEG)
 
 # *** END OF LIBRARY CHECKS ***

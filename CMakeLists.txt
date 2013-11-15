@@ -85,7 +85,6 @@ check_function_exists("sendfile" HAVE_SENDFILE)
 check_function_exists("backtrace" HAVE_DECL_BACKTRACE)
 check_function_exists("backtrace_symbols" HAVE_DECL_BACKTRACE_SYMBOLS)
 check_function_exists("posix_memalign" HAVE_POSIX_MEMALIGN)
-check_prototype_definition("round" "double round (double x)" "0.0" "math.h" HAVE_DECL_ROUND)
 check_type_size("siginfo_t" HAVE_SIGINFO_T)
 check_type_size("ucontext_t" HAVE_UCONTEXT_T)
 

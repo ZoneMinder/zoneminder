@@ -314,7 +314,6 @@ AC_CHECK_HEADERS(sys/shm.h,,,)
 fi
 AC_CHECK_HEADERS(zlib.h,,,)
 
-AC_CHECK_DECLS(round,,,[#include <math.h>])
 if test "$ZM_SSL_LIB" == "openssl"; then
 AC_CHECK_DECLS(MD5,,AC_MSG_ERROR([zm requires openssl/md5.h - use ZM_SSL_LIB option to select gnutls instead]),[#include <stdlib.h>
 #include <openssl/md5.h>])

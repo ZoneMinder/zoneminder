@@ -11,6 +11,8 @@ install(DIRECTORY ajax css graphics includes js lang skins tools views DESTINATI
 install(FILES index.php README.md DESTINATION "${ZM_WEBDIR}")
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/includes/config.php" DESTINATION "${ZM_WEBDIR}/includes")
 
-# Install the mootools symlinks
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/tools/mootools/mootools-core.js" DESTINATION "${ZM_WEBDIR}/tools/mootools")
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/tools/mootools/mootools-more.js" DESTINATION "${ZM_WEBDIR}/tools/mootools")
+# Install the mootools symlinks (if its not in the source directory)
+if(NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR))
+	install(FILES "${CMAKE_CURRENT_BINARY_DIR}/tools/mootools/mootools-core.js" DESTINATION "${ZM_WEBDIR}/tools/mootools")
+	install(FILES "${CMAKE_CURRENT_BINARY_DIR}/tools/mootools/mootools-more.js" DESTINATION "${ZM_WEBDIR}/tools/mootools")
+endif(NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR))

@@ -360,7 +360,7 @@ if ( $version )
     if ( ZM_VERSION eq $version )
     {
         print( "\nDatabase already at version $version, update aborted.\n\n" );
-        exit( -1 );
+        exit( 0 );
     }
 
     print( "\nInitiating database upgrade to version ".ZM_VERSION." from version $version\n" );

@@ -26,7 +26,7 @@ root@host:~# aptitude install -y apache2 mysql-server php5 php5-mysql build-esse
 
 root@host:~# git clone https://github.com/ZoneMinder/ZoneMinder.git zoneminder;
 root@host:~# cd zoneminder;
-root@host:~# ln -s distros/ubuntu1204;
+root@host:~# ln -s distros/ubuntu1204 debian;
 root@host:~# dpkg-checkbuilddeps;
 root@host:~# dpkg-buildpackage;
 ```

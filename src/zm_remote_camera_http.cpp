@@ -88,22 +88,34 @@ void RemoteCameraHttp::Initialise()
 
 int RemoteCameraHttp::Connect()
 {
-    if ( sd < 0 )
+    struct addrinfo *p;
+
+    for(p = hp; p != NULL; p = p->ai_next)
     {
-        sd = socket( hp->ai_family, SOCK_STREAM, 0 );
+        sd = socket( p->ai_family, p->ai_socktype, p->ai_protocol );
         if ( sd < 0 )
         {
-            Error( "Can't create socket: %s", strerror(errno) );
-            return( -1 );
+            Warning("Can't create socket: %s", strerror(errno) );
+            continue;
         }
 
-        if ( connect( sd, (struct sockaddr *)sa, hp->ai_addrlen ) < 0 )
+        if ( connect( sd, p->ai_addr, p->ai_addrlen ) < 0 )
         {
-            Error( "Can't connect to remote camera: %s", strerror(errno) );
-            Disconnect();
-            return( -1 );
+            close(sd);
+            sd = -1;
+            Warning("Can't connect to remote camera: %s", strerror(errno) );
+            continue;
         }
+
+	/* If we got here, we must have connected successfully */
+	break;
     }
+
+    if(p == NULL) {
+	    Error("Unable to connect to the remote camera, aborting");
+	    return( -1 );
+    }
+
     Debug( 3, "Connected to host, socket = %d", sd );
     return( sd );
 }
@@ -112,7 +124,6 @@ int RemoteCameraHttp::Disconnect()
 {
     close( sd );
     sd = -1;
-    freeaddrinfo(hp);
     Debug( 3, "Disconnected from host" );
     return( 0 );
 }

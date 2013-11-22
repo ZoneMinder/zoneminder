@@ -35,6 +35,10 @@ RemoteCamera::RemoteCamera( int p_id, const std::string &p_protocol, const std::
 
 RemoteCamera::~RemoteCamera()
 {
+	if(hp != NULL) {
+    		freeaddrinfo(hp);
+		hp = NULL;
+	}
 }
 
 void RemoteCamera::Initialise()
@@ -61,23 +65,15 @@ void RemoteCamera::Initialise()
 		auth64 = base64Encode( auth );
 	}
 
-	if ( !hp )
-	{
-		struct addrinfo hints;
-		memset(&hints, 0, sizeof(hints));
-		hints.ai_family = PF_UNSPEC;
-                hints.ai_flags = AI_PASSIVE;
-                hints.ai_socktype = SOCK_STREAM;
+	struct addrinfo hints;
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
 
-		if ( getaddrinfo(host.c_str(), NULL, &hints, &hp) != 0 )
-		{
-			Fatal( "Can't gethostbyname(%s): %s", host.c_str(), strerror(h_errno) );
-		}
-		//memcpy((char *)&sa.sin_addr, (char *)hp->h_addr, hp->h_length);
-		//sa.sin_family = hp->h_addrtype;
-		//sa.sin_port = htons(atoi(port.c_str()));
-		sa = hp->ai_addr;
-		((struct sockaddr_in *)sa)->sin_port = htons(atoi(port.c_str()));
+	int ret = getaddrinfo(host.c_str(), port.c_str(), &hints, &hp);
+	if ( ret != 0 )
+	{
+		Fatal( "Can't getaddrinfo(%s port %s): %s", host.c_str(), port.c_str(), gai_strerror(ret) );
 	}
 }
 

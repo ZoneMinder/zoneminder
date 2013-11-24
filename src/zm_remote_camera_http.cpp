@@ -441,7 +441,7 @@ int RemoteCameraHttp::GetResponse()
 
                     if ( content_length )
                     {
-                        while ( buffer.size() < (unsigned int)content_length )
+                        while ( (long)buffer.size() < content_length )
                         {
                             int buffer_len = ReadData( buffer );
                             if ( buffer_len == 0 )
@@ -973,7 +973,7 @@ int RemoteCameraHttp::GetResponse()
 
                     if ( content_length )
                     {
-                        while ( buffer.size() < (unsigned int)content_length )
+                        while ( (long)buffer.size() < content_length )
                         {
                             //int buffer_len = ReadData( buffer, content_length-buffer.size() );
                             int buffer_len = ReadData( buffer );
@@ -1125,7 +1125,7 @@ int RemoteCameraHttp::Capture( Image &image )
         }
         case X_RGB :
         {
-            if ( (unsigned int)content_length != image.Size() )
+            if ( content_length != (long)image.Size() )
             {
                 Error( "Image length mismatch, expected %d bytes, content length was %d", image.Size(), content_length );
                 Disconnect();

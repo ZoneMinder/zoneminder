@@ -20,6 +20,8 @@
 #ifndef ZM_FFMPEG_H
 #define ZM_FFMPEG_H
 #include <stdint.h>
+#include "zm.h"
+#include "zm_image.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -94,7 +96,38 @@ extern "C" {
 #ifndef SWS_CPU_CAPS_SSE2
 #define SWS_CPU_CAPS_SSE2     0x02000000
 #endif
-                               
+
+
+#if HAVE_LIBAVUTIL
+enum PixelFormat GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subpixelorder);
+#endif // HAVE_LIBAVUTIL
+
+
+/* SWScale wrapper class to make our life easier and reduce code reuse */
+#if HAVE_LIBSWSCALE && HAVE_LIBAVUTIL
+class SWScale {
+public:
+	SWScale();
+	~SWScale();
+	int SetDefaults(enum PixelFormat in_pf, enum PixelFormat out_pf, unsigned int width, unsigned int height);
+	int ConvertDefaults(const Image* img, uint8_t* out_buffer, const size_t out_buffer_size);
+	int ConvertDefaults(const uint8_t* in_buffer, const size_t in_buffer_size, uint8_t* out_buffer, const size_t out_buffer_size);
+	int Convert(const Image* img, uint8_t* out_buffer, const size_t out_buffer_size, enum PixelFormat in_pf, enum PixelFormat out_pf, unsigned int width, unsigned int height);
+	int Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint8_t* out_buffer, const size_t out_buffer_size, enum PixelFormat in_pf, enum PixelFormat out_pf, unsigned int width, unsigned int height);
+
+protected:
+	bool gotdefaults;
+	struct SwsContext* swscale_ctx;
+	AVFrame* input_avframe;
+	AVFrame* output_avframe;
+	enum PixelFormat default_input_pf;
+	enum PixelFormat default_output_pf;
+	unsigned int default_width;
+	unsigned int default_height;
+};
+#endif // HAVE_LIBSWSCALE && HAVE_LIBAVUTIL
+                   
+            
 #endif // ( HAVE_LIBAVUTIL_AVUTIL_H || HAVE_LIBAVCODEC_AVCODEC_H || HAVE_LIBAVFORMAT_AVFORMAT_H || HAVE_LIBAVDEVICE_AVDEVICE_H )
 
 #endif // ZM_FFMPEG_H

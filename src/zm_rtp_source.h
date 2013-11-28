@@ -88,7 +88,7 @@ private:
     uint32_t mLostPackets;
     uint8_t  mLostFraction;
 
-    _AVCODECID mCodecId
+    _AVCODECID mCodecId;
 
     Buffer mFrame;
     int mFrameCount;

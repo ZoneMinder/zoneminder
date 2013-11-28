@@ -68,6 +68,9 @@ RtpSource::RtpSource( int id, const std::string &localHost, int localPortBase, c
     mLastSrTimeReal = tvZero();
     mLastSrTimeNtp = tvZero();
     mLastSrTimeRtp = 0;
+    
+    if(mCodecId != CODEC_ID_MPEG4 && mCodecId != CODEC_ID_MPEG4)
+        Warning( "The device is using a codec that may not be supported. Do not be surprised if things don't work." );
 }
 
 void RtpSource::init( uint16_t seq )
@@ -307,9 +310,8 @@ bool RtpSource::handlePacket( const unsigned char *packet, size_t packetLen )
                 else
                 {
                     if ( nalType < 1 || nalType > 23 )
-                        Error( "Unsupported NAL packet type recieved. Passing to decoder anyway." )
+                        Warning( "Unsupported NAL packet type recieved. Passing to decoder anyway." )
                     
-                    //mFrame.clear();
                     if ( !mFrame.size() )
                         mFrame.append( "\x0\x0\x1", 3 );
                     mFrame.append( packet+rtpHeaderSize, packetLen-rtpHeaderSize ); 
@@ -318,8 +320,8 @@ bool RtpSource::handlePacket( const unsigned char *packet, size_t packetLen )
         }
         else if( mCodecId == CODEC_ID_MPEG4 )
         {
-            if( rtpHeader->m )
-                mFrame.append( "\x0\x0\x1",3 );
+            if( rtpHeader->m && !prevM )
+                mFrame.append( "\x0\x0\x1", 3 );
             mFrame.append( packet+rtpHeaderSize, packetLen-rtpHeaderSize );
         }
         else

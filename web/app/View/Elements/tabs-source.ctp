@@ -122,6 +122,11 @@ case 'Local':
 
 case 'File':
 	break;
+
+
+case 'Ffmpeg':
+	echo $this->Form->input('Path');
+	break;
 }
 
 echo $this->Form->input('Colours', array(

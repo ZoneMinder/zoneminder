@@ -1,7 +1,7 @@
 <?php
 	class MonitorsController extends AppController {
     public $helpers = array('Js'=>array('Jquery'));
-  
+
 		public function index() {
       $monitoroptions = array('fields' => array('Name', 'Id', 'Function', 'Enabled', 'Sequence', 'Function', 'Width', 'StreamReplayBuffer'), 'order' => 'Sequence ASC', 'recursive' => -1);
       $monitors = $this->Monitor->find('all', $monitoroptions);
@@ -43,6 +43,19 @@
 	
 	    if ($this->request->is('put') || $this->request->is('post')) {
 	        $this->Monitor->id = $id;
+
+	        $oldFunction = $monitor['Monitor']['Function'];
+	        $newFunction = $this->request->data['Monitor']['Function'];
+	        $oldEnabled = $monitor['Monitor']['Enabled'];
+	        $newEnabled = $this->request->data['Monitor']['Enabled'];
+
+	        if( $oldFunction != $newFunction || $newEnabled != $oldEnabled ) {
+				$restart = ($oldFunction == 'None') || ($newFunction == 'None') || ($newEnabled != $oldEnabled);
+                $this->zmaControl( $this->request->data['Monitor'], "stop" );
+                $this->zmcControl( $this->request->data['Monitor'], $restart?"restart":"" );
+                $this->zmaControl( $this->request->data['Monitor'], "start" );
+	        }
+
 	        if ($this->Monitor->save($this->request->data)) {
 	            $this->Session->setFlash('Your monitor has been updated.');
 	            $this->redirect(array('action' => 'index'));
@@ -77,5 +90,60 @@
       exit();
     }
 
+    public function daemonControl( $command, $daemon=false, $args=false ){
+		$string = Configure::read('ZM_PATH_BIN')."/zmdc.pl $command";
+		if ( $daemon )
+		{
+			$string .= " $daemon";
+			if ( $args )
+			{
+				$string .= " $args";
+			}
+		}
+		$string .= " 2>/dev/null >&- <&- >/dev/null";
+		error_log($string);
+		exec( $string );
 	}
+
+    public function zmcControl( $monitor, $mode=false ) {
+		if ( $monitor['Type'] == "Local" )
+		{
+			$zmcArgs = "-d ".$monitor['Device'];
+		}
+		else
+		{
+			$zmcArgs = "-m ".$monitor['Id'];
+		}
+
+		if (  $monitor['Function'] == 'None' || !$monitor['Enabled'] || $mode == "stop" )
+		{
+			$this->daemonControl( "stop", "zmc", $zmcArgs );
+		}
+		else
+		{
+			if ( $mode == "restart" )
+			{
+				$this->daemonControl( "stop", "zmc", $zmcArgs );
+			}
+			$this->daemonControl( "start", "zmc", $zmcArgs );
+		}
+	}
+
+	public function zmaControl( $monitor, $mode=false ) {
+		if ( $monitor['Function'] == 'None' || $monitor['Function'] == 'Monitor' || !$monitor['Enabled'] || $mode == "stop" ){
+			$this->daemonControl( "stop", "zma", "-m ".$monitor['Id'] );
+		} else {
+			if ( $mode == "restart" ) {
+				$this->daemonControl( "stop", "zma", "-m ".$monitor['Id'] );
+			}
+			$this->daemonControl( "start", "zma", "-m ".$monitor['Id'] );
+
+			if ( $mode == "reload" )
+			{
+				$this->daemonControl( "reload", "zma", "-m ".$monitor['Id'] );
+			}
+		}
+	}
+
+}
 ?>

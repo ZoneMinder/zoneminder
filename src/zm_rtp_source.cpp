@@ -318,17 +318,10 @@ bool RtpSource::handlePacket( const unsigned char *packet, size_t packetLen )
                 }
             }
         }
-        else if( mCodecId == CODEC_ID_MPEG4 )
-        {
-            if( rtpHeader->m && !prevM )
-                mFrame.append( "\x0\x0\x1", 3 );
-            mFrame.append( packet+rtpHeaderSize, packetLen-rtpHeaderSize );
-        }
         else
-        {
-            // Let's just hope this works
+            // Works for mpeg4 and hopefully anything else that come its way
             mFrame.append( packet+rtpHeaderSize, packetLen-rtpHeaderSize );
-        }
+
         Hexdump( 4, mFrame.head(), 16 );
 
         if ( rtpHeader->m || fragmentEnd )

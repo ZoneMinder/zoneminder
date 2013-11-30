@@ -245,6 +245,24 @@ function probeVivotek( $ip )
     return( $camera );
 }
 
+function probeWansview( $ip )
+{
+    $camera = array(
+        'model'   => "Wansview Camera",
+        'monitor' => array(
+            'Type'     => 'Remote',
+            'Protocol' => 'http',
+            'Host'     => 'admin:123456@'.$ip,
+            'Port'     => 80,
+            'Path'     => 'videostream.cgi',
+            'Width'    => 640,
+            'Height'   => 480,
+            'Palette'  => 3 
+        ),
+    );
+    return( $camera );
+}
+
 $monitors = array();
 foreach ( dbFetchAll( "select Id, Name, Host from Monitors where Type = 'Remote' order by Host" ) as $monitor )
 {
@@ -264,6 +282,7 @@ $macBases = array(
     '00:80:f0' => array( 'type'=>'Panasonic','probeFunc'=>'probePana' ),
     '00:0f:7c' => array( 'type'=>'ACTi','probeFunc'=>'probeACTi' ),
     '00:02:d1' => array( 'type'=>'Vivotek','probeFunc'=>'probeVivotek' ),
+    '7c:dd:90' => array( 'type'=>'Wansview','probeFunc'=>'probeWansview' )
 );
 
 unset($output);

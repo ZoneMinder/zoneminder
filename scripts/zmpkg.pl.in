@@ -57,9 +57,9 @@ if ( !$command || $command !~ /^(?:start|stop|restart|status|logrot)$/ )
 	if ( $command )
 	{
 		# Check to see if it's a valid run state
-		my $sql = "select * from States where Name = '$command'";
+		my $sql = 'select * from States where Name = ?';
 		my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-		my $res = $sth->execute() or Fatal( "Can't execute: ".$sth->errstr() );
+		my $res = $sth->execute( $command ) or Fatal( "Can't execute: ".$sth->errstr() );
 		if ( $state = $sth->fetchrow_hashref() )
 		{
 			$state->{Name} = $command;
@@ -138,7 +138,7 @@ if ( $command =~ /^(?:stop|restart)$/ )
 	}
 }
 
-runCommand( "zmupdate.pl -f" );
+#runCommand( "zmupdate.pl -f" );
 
 if ( $command =~ /^(?:start|restart)$/ )
 {

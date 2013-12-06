@@ -89,6 +89,8 @@ Parameters are :-
 -u<dbuser>, --user=<dbuser>      - Alternate DB user with privileges to alter DB
 -p<dbpass>, --pass=<dbpass>      - Password of alternate DB user with privileges to alter DB
 -d<dir>,--dir=<dir>              - Directory containing update files if not in default build location
+-interactive					 - interact with the user
+-nointeractive                   - do not interact with the user
 ");
     exit( -1 );
 }
@@ -325,32 +327,35 @@ if ( $freshen )
     saveConfigToDB();
 }
 
-# Now check for MyISAM Tables
-my @MyISAM_Tables;
-my $sql = "SELECT table_name FROM INFORMATION_SCHEMA.TABLES WHERE table_schema='zm' AND engine = 'MyISAM'";
-my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+# Don't do innoDB upgrade if not interactive
+if ( $interactive ) {
+	# Now check for MyISAM Tables
+	my @MyISAM_Tables;
+	my $sql = "SELECT table_name FROM INFORMATION_SCHEMA.TABLES WHERE table_schema='zm' AND engine = 'MyISAM'";
+	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
 
-while( my $dbTable = $sth->fetchrow() ) {
-	push @MyISAM_Tables, $dbTable;
-}
-$sth->finish();
+	while( my $dbTable = $sth->fetchrow() ) {
+		push @MyISAM_Tables, $dbTable;
+	}
+	$sth->finish();
 
-if ( @MyISAM_Tables ) {
-	print( "\nPrevious versions of ZoneMinder used the MyISAM database engine.\nHowever, the recommended database engine is InnoDB.\n");
-	print( "\nHint: InnoDB tables are much less likely to be corrupted during an unclean shutdown.\n\nPress 'y' to convert your tables to InnoDB or 'n' to skip : ");
-	my $response = <STDIN>;
-	chomp( $response );
-	if ( $response =~ /^[yY]$/ ) {
-		print "\nConverting MyISAM tables to InnoDB. Please wait.\n";
-		foreach (@MyISAM_Tables) {
-			my $sql = "ALTER TABLE $_ ENGINE = InnoDB";
-			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-			my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
-			$sth->finish();
+	if ( @MyISAM_Tables ) {
+		print( "\nPrevious versions of ZoneMinder used the MyISAM database engine.\nHowever, the recommended database engine is InnoDB.\n");
+		print( "\nHint: InnoDB tables are much less likely to be corrupted during an unclean shutdown.\n\nPress 'y' to convert your tables to InnoDB or 'n' to skip : ");
+		my $response = <STDIN>;
+		chomp( $response );
+		if ( $response =~ /^[yY]$/ ) {
+			print "\nConverting MyISAM tables to InnoDB. Please wait.\n";
+			foreach (@MyISAM_Tables) {
+				my $sql = "ALTER TABLE $_ ENGINE = InnoDB";
+				my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+				my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+				$sth->finish();
+			}
 		}
 	}
-}
+} # end if interactive
 
 if ( $version )
 {

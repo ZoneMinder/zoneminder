@@ -352,12 +352,12 @@ function getTableDescription( $table, $asString=1 )
 
 function dbFetchMonitor( $mid )
 {
-    return( dbFetchOne( "select * from Monitors where Id = ".dbEscape($mid) ) );
+    return( dbFetchOne( "select * from Monitors where Id = ?", NULL, array($mid) ) );
 }
 
 function dbFetchGroup( $gid )
 {
-    return( dbFetchOne( "select * from Groups where Id = ".dbEscape($gid) ) );
+    return( dbFetchOne( "select * from Groups where Id = ?", NULL, array($gid) ) );
 }
 
 ?>

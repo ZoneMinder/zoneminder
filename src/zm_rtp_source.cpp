@@ -264,6 +264,9 @@ bool RtpSource::handlePacket( const unsigned char *packet, size_t packetLen )
     const RtpDataHeader *rtpHeader;
     rtpHeader = (RtpDataHeader *)packet;
 	int rtpHeaderSize = 12 + rtpHeader->cc * 4;
+    // No need to check for nal type as non fragmented packets already have 001 start sequence appended
+    bool h264FragmentEnd = (mCodecId == CODEC_ID_H264) && (packet[rtpHeaderSize+1] & 0x40);
+    bool thisM = rtpHeader->m || h264FragmentEnd;
 
     if ( updateSeq( ntohs(rtpHeader->seqN) ) )
     {
@@ -316,7 +319,7 @@ bool RtpSource::handlePacket( const unsigned char *packet, size_t packetLen )
 
         Hexdump( 4, mFrame.head(), 16 );
 
-        if ( rtpHeader->m )
+        if ( thisM )
         {
             if ( mFrameGood )
             {
@@ -352,7 +355,7 @@ bool RtpSource::handlePacket( const unsigned char *packet, size_t packetLen )
         mFrameGood = false;
         mFrame.clear();
     }
-    if ( rtpHeader->m )
+    if ( thisM )
     {
         mFrameGood = true;
         prevM = true;

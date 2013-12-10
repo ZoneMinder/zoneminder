@@ -306,7 +306,7 @@ if ( ZM_HAS_V4L2 )
         //"YVU410" =>   fourcc('Y','V','U','9'), /*  9  YVU 4:1:0     */
         //"YVU420" =>   fourcc('Y','V','1','2'), /* 12  YVU 4:2:0     */
 
-        //"UYVY" =>     fourcc('U','Y','V','Y'), /* 16  YUV 4:2:2     */
+        "*UYVY" =>     fourcc('U','Y','V','Y'), /* 16  YUV 4:2:2     */
         "*YUV422P" =>  fourcc('4','2','2','P'), /* 16  YVU422 planar */
         "*YUV411P" =>  fourcc('4','1','1','P'), /* 16  YVU411 planar */
         //"Y41P" =>     fourcc('Y','4','1','P'), /* 12  YUV 4:1:1     */

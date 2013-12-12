@@ -275,6 +275,7 @@ AC_CHECK_LIB(avformat,avformat_version,,AC_MSG_WARN(libavformat.a is required fo
 #AC_CHECK_LIB(avformat,av_new_stream,,AC_MSG_WARN(libavformat.a is required for MPEG streaming))
 AC_CHECK_LIB(avdevice,avdevice_register_all,,AC_MSG_WARN(libavdevice.a may be required for MPEG streaming))
 AC_CHECK_LIB(swscale,sws_scale,,,-lswscale)
+AC_CHECK_LIB(vlc,libvlc_new,,AC_MSG_WARN(libvlc.a may be required for streaming))
 AC_CHECK_LIB(bz2,BZ2_bzCompress,,AC_MSG_WARN(zm requires libbz2.a for recent versions of ffmpeg))
 AC_CHECK_LIB(z,compress,,)
 

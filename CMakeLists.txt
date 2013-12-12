@@ -62,6 +62,7 @@ set(ZM_EXTRA_LIBS "" CACHE STRING "A list of optional libraries, separated by se
 set(ZM_MYSQL_ENGINE "InnoDB" CACHE STRING "MySQL engine to use with database, default: InnoDB")
 set(ZM_NO_MMAP "OFF" CACHE BOOL "Set to ON to not use mmap shared memory. Shouldn't be enabled unless you experience problems with the shared memory. default: OFF")
 set(ZM_NO_FFMPEG "OFF" CACHE BOOL "Set to ON to skip ffmpeg checks and force building ZM without ffmpeg. default: OFF")
+set(ZM_NO_LIBVLC "OFF" CACHE BOOL "Set to ON to skip libvlc checks and force building ZM without libvlc. default: OFF")
 set(ZM_NO_X10 "OFF" CACHE BOOL "Set to ON to build ZoneMinder without X10 support. default: OFF")
 set(ZM_PERL_SUBPREFIX "${CMAKE_INSTALL_LIBDIR}/perl5" CACHE PATH "Use a different directory for the zm perl modules. NOTE: This is a subprefix, e.g. lib will be turned into <prefix>/lib, default: <libdir>/perl5")
 set(ZM_PERL_USE_PATH "${CMAKE_INSTALL_PREFIX}/${ZM_PERL_SUBPREFIX}" CACHE PATH "Override the include path for zm perl modules. Useful if you are moving the perl modules without using the ZM_PERL_SUBPREFIX option. default: <prefix>/<zmperlsubprefix>")
@@ -323,6 +324,26 @@ if(NOT ZM_NO_FFMPEG)
 	endif(FFMPEG_EXECUTABLE)
 
 endif(NOT ZM_NO_FFMPEG)
+
+# Do not check for libvlc if ZM_NO_LIBVLC is on
+if(NOT ZM_NO_LIBVLC)
+	# libvlc (using find_library and find_path)
+	find_library(LIBVLC_LIBRARIES vlc)
+	if(LIBVLC_LIBRARIES)
+		set(HAVE_LIBVLC 1)
+		list(APPEND ZM_BIN_LIBS "${LIBVLC_LIBRARIES}")
+		find_path(LIBVLC_INCLUDE_DIR "vlc/vlc.h")
+		if(LIBVLC_INCLUDE_DIR)
+			include_directories("${LIBVLC_INCLUDE_DIR}")
+			set(CMAKE_REQUIRED_INCLUDES "${LIBVLC_INCLUDE_DIR}")
+		endif(LIBVLC_INCLUDE_DIR)
+		mark_as_advanced(FORCE LIBVLC_LIBRARIES LIBVLC_INCLUDE_DIR)
+		check_include_file("vlc/vlc.h" HAVE_LIBVLC_VLC_H)
+		set(optlibsfound "${optlibsfound} libVLC")
+	else(LIBVLC_LIBRARIES)
+		set(optlibsnotfound "${optlibsnotfound} libVLC")
+	endif(LIBVLC_LIBRARIES)
+endif(NOT ZM_NO_LIBVLC)
 
 # *** END OF LIBRARY CHECKS ***
 

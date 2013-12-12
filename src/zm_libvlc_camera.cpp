@@ -34,7 +34,7 @@ void LibvlcUnlockBuffer(void* opaque, void* picture, void *const *planes)
 {
     LibvlcPrivateData* data = (LibvlcPrivateData*)opaque;
     data->mutex.unlock();
-    data->newImage.updateValueBroadcast(true);
+    data->newImage.updateValueSignal(true);
 }
 
 LibvlcCamera::LibvlcCamera( int p_id, const std::string &p_path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) :
@@ -137,7 +137,7 @@ int LibvlcCamera::PreCapture()
 // Should not return -1 as cancels capture. Always wait for image if available.
 int LibvlcCamera::Capture( Image &image )
 {   
-    while(!mLibvlcData.newImage.getValue())
+    while(!mLibvlcData.newImage.getValueImmediate())
         mLibvlcData.newImage.getUpdatedValue(1);
 
     mLibvlcData.mutex.lock();

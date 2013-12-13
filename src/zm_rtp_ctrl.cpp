@@ -143,8 +143,13 @@ int RtpCtrlThread::recvPacket( const unsigned char *packet, ssize_t packetLen )
             mStop = true;
             break;
         }
-        case RTCP_RR :
         case RTCP_APP :
+        {
+            // Ignoring as per RFC 3550
+            Debug( 5, "Received RTCP_APP packet, ignoring.");
+            break;
+        }
+        case RTCP_RR :
         default :
         {
             Error( "Received unexpected packet type %d, ignoring", pt );

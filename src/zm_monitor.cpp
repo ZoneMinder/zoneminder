@@ -293,7 +293,8 @@ Monitor::Monitor(
     Rgb p_signal_check_colour,
     Purpose p_purpose,
     int p_n_zones,
-    Zone *p_zones[]
+    Zone *p_zones[],
+	unsigned int p_storage_id
 ) : id( p_id ),
     function( (Function)p_function ),
     enabled( p_enabled ),
@@ -321,7 +322,8 @@ Monitor::Monitor(
     purpose( p_purpose ),
     camera( p_camera ),
     n_zones( p_n_zones ),
-    zones( p_zones )
+    zones( p_zones ),
+	storage_id( p_storage_id )
 {
     strncpy( name, p_name, sizeof(name) );
 
@@ -511,6 +513,8 @@ Monitor::Monitor(
     Debug( 1, "Monitor %s LBF = '%s', LBX = %d, LBY = %d", name, label_format, label_coord.X(), label_coord.Y() );
     Debug( 1, "Monitor %s IBC = %d, WUC = %d, pEC = %d, PEC = %d, EAF = %d, FRI = %d, RBP = %d, FM = %d", name, image_buffer_count, warmup_count, pre_event_count, post_event_count, alarm_frame_count, fps_report_interval, ref_blend_perc, track_motion );
 
+	storage = new Storage( storage_id );
+
     if ( purpose == ANALYSIS )
     {
         static char path[PATH_MAX];
@@ -586,6 +590,7 @@ Monitor::~Monitor()
     delete[] zones;
 
     delete camera;
+	delete storage;
 
     if ( purpose == ANALYSIS )
     {

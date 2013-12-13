@@ -30,6 +30,7 @@
 #include "zm_zone.h"
 #include "zm_event.h"
 #include "zm_camera.h"
+#include "zm_storage.h"
 
 #include "zm_image_analyser.h"
 
@@ -267,6 +268,7 @@ protected:
 #endif // ZM_MEM_MAPPED
 	unsigned long				mem_size;
 	unsigned char	*mem_ptr;
+	Storage			*storage;
 
 	SharedData		*shared_data;
 	TriggerData		*trigger_data;

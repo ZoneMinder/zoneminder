@@ -21,6 +21,7 @@ bin_PROGRAMS = \
 	zmfix
 
 zm_SOURCES = \
+	zm_storage.cpp \
 	zm_box.cpp \
 	zm_buffer.cpp \
 	zm_camera.cpp \
@@ -70,6 +71,7 @@ zmfix_SOURCES = zmfix.cpp zm_config.cpp zm_regexp.cpp zm_logger.cpp zm_utils.cpp
 
 noinst_HEADERS = \
 	jinclude.h \
+	zm_storage.h \
 	zm_box.h \
 	zm_buffer.h \
 	zm_camera.h \

@@ -41,6 +41,8 @@ protected:
 	int rtcp_sd;
 
 	Buffer buffer;
+    Buffer lastSps;
+    Buffer lastPps;
 
     RtspThread::RtspMethod method;
 

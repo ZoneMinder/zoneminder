@@ -47,16 +47,16 @@ LibvlcCamera::LibvlcCamera( int p_id, const std::string &p_path, int p_width, in
 
 	/* Has to be located inside the constructor so other components such as zma will receive correct colours and subpixel order */
 	if(colours == ZM_COLOUR_RGB32) {
-		subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+		subpixelorder = ZM_SUBPIX_ORDER_BGRA;
         mTargetChroma = "RV32";
         mBpp = 4;
 	} else if(colours == ZM_COLOUR_RGB24) {
-        subpixelorder = ZM_SUBPIX_ORDER_RGB;
+        subpixelorder = ZM_SUBPIX_ORDER_BGR;
         mTargetChroma = "RV24";
         mBpp = 3;
 	} else if(colours == ZM_COLOUR_GRAY8) {
 		subpixelorder = ZM_SUBPIX_ORDER_NONE;
-        mTargetChroma = "RGB8";
+        mTargetChroma = "GREY";
         mBpp = 1;
 	} else {
 		Panic("Unexpected colours: %d",colours);

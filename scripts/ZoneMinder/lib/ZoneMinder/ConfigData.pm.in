@@ -332,14 +332,6 @@ our @options =
 		category => "config",
 	},
 	{
-		name => "ZM_BLEND_ALARMED_IMAGES",
-		default => "yes",
-		description => "Blend alarmed images to update the reference image",
-		help => "To detect alarms ZoneMinder compares an image with a reference image which is formed from a composite of the previous images. This option determines whether images that cause events are included in this process. Doing so may increase the precision of the alarmed region but can cause problems if wholescale lighting changes cause alarms as this would not get fed back into the image and an alarm may persist indefinately. A better way to achive the same effect in most cases is to lower substantially the reference blend percentage in specific monitors.",
-		type => $types{boolean},
-		category => "config",
-	},
-	{
 		name => "ZM_MAX_SUSPEND_TIME",
 		default => "30",
 		description => "Maximum time that a monitor may have motion detection suspended",

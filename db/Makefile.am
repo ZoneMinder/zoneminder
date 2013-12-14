@@ -54,4 +54,5 @@ dbupgrade_scripts = \
 	zm_update-1.26.0.sql \
 	zm_update-1.26.1.sql \
 	zm_update-1.26.2.sql \
-	zm_update-1.26.3.sql
+	zm_update-1.26.3.sql \
+	zm_update-1.26.5.sql

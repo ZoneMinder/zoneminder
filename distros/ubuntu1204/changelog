@@ -1,9 +1,3 @@
-zoneminder (1.26.4+1-SNAPSHOT2013120601) precise; urgency=high
-
-  * Today's snapshot of master
-
- -- Isaac Connor <iconnor@connortechnology.com>  Fri, 06 Dec 2013 14:05:46 -0500
-
 zoneminder (1.26.4-2) precise; urgency=high
 
   * improvements to zmupdate.pl, cleanups

@@ -136,7 +136,7 @@ rm -rf %{_docdir}/%{name}-%{version}
 %{_bindir}/zmx10.pl
 
 %{perl_vendorlib}/ZoneMinder*
-%{perl_vendorlib}/x86_64-linux-thread-multi/auto/ZoneMinder*
+%{perl_vendorlib}/%{_arch}-linux-thread-multi/auto/ZoneMinder*
 %{_mandir}/man*/*
 %dir %{_libexecdir}/%{name}
 %{_libexecdir}/%{name}/cgi-bin

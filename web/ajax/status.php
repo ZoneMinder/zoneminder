@@ -332,32 +332,32 @@ switch( $_REQUEST['layout'] )
 
 function getFrameImage()
 {
-    $eventId = dbEscape($_REQUEST['id'][0]);
-    $frameId = dbEscape($_REQUEST['id'][1]);
+    $eventId = $_REQUEST['id'][0];
+    $frameId = $_REQUEST['id'][1];
 
-    $sql = "select * from Frames where EventId = '".$eventId."' and FrameId = '".$frameId."'";
-    if ( !($frame = dbFetchOne( $sql )) )
+    $sql = 'select * from Frames where EventId = ? and FrameId = ?';
+    if ( !($frame = dbFetchOne( $sql, NULL, array( $eventID, $frameId ) )) )
     {
         $frame = array();
         $frame['EventId'] = $eventId;
         $frame['FrameId'] = $frameId;
         $frame['Type'] = "Virtual";
     }
-    $event = dbFetchOne( "select * from Events where Id = '".$frame['EventId']."'" );
+    $event = dbFetchOne( 'select * from Events where Id = ?', NULL, array( $frame['EventId'] ) );
     $frame['Image'] = getImageSrc( $event, $frame, SCALE_BASE );
     return( $frame );
 }
 
 function getNearFrame()
 {
-    $eventId = dbEscape($_REQUEST['id'][0]);
-    $frameId = dbEscape($_REQUEST['id'][1]);
+    $eventId = $_REQUEST['id'][0];
+    $frameId = $_REQUEST['id'][1];
 
-    $sql = "select FrameId from Frames where EventId = '".$eventId."' and FrameId <= '".$frameId."' order by FrameId desc limit 1";
-    if ( !$nearFrameId = dbFetchOne( $sql, 'FrameId' ) )
+    $sql = 'select FrameId from Frames where EventId = ? and FrameId <= ? order by FrameId desc limit 1';
+    if ( !$nearFrameId = dbFetchOne( $sql, 'FrameId', array( $eventId, $frameId ) ) )
     {
-        $sql = "select * from Frames where EventId = '".$eventId."' and FrameId > '".$frameId."' order by FrameId asc limit 1";
-        if ( !$nearFrameId = dbFetchOne( $sql, 'FrameId' ) )
+        $sql = 'select * from Frames where EventId = ? and FrameId > ? order by FrameId asc limit 1';
+        if ( !$nearFrameId = dbFetchOne( $sql, 'FrameId', array( $eventId, $frameId ) ) )
         {
             return( array() );
         }
@@ -371,8 +371,8 @@ function getNearEvents()
 {
     global $user, $sortColumn, $sortOrder;
 
-    $eventId = dbEscape($_REQUEST['id']);
-    $event = dbFetchOne( "select * from Events where Id = '".$eventId."'" );
+    $eventId = $_REQUEST['id'];
+    $event = dbFetchOne( 'select * from Events where Id = ?', NULL, array( $eventId ) );
 
     parseFilter( $_REQUEST['filter'] );
     parseSort();

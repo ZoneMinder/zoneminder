@@ -116,7 +116,7 @@ The ZoneMinder::Config module is used to import the ZoneMinder configuration fro
 
 Once the configuration has been imported then configuration variables are defined as constants and can be accessed directory by name, e.g.
 
- $lang = ZM_LANG_DEFAULT;
+ $lang = $Config{ZM_LANG_DEFAULT};
 
 =head2 EXPORT
 

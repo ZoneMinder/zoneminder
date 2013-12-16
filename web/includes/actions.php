@@ -40,6 +40,12 @@ if ( ZM_OPT_USE_AUTH && ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST[
     }
 }
 
+if ( ZM_AUTH_TYPE == 'remote' && empty($user) && !empty($_SERVER['REMOTE_USER']) )
+{
+    userLogin($_SERVER['REMOTE_USER']);
+}
+
+
 if ( !empty($action) )
 {
     // General scope actions

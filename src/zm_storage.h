@@ -33,6 +33,7 @@ protected:
 public:
 	Storage();
 	Storage( MYSQL_ROW &dbrow );
+	Storage( unsigned int p_id );
 	~Storage();
 
 	unsigned int	getId() const { return( id ); }

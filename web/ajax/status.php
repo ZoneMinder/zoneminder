@@ -336,7 +336,7 @@ function getFrameImage()
     $frameId = $_REQUEST['id'][1];
 
     $sql = 'select * from Frames where EventId = ? and FrameId = ?';
-    if ( !($frame = dbFetchOne( $sql, NULL, array( $eventID, $frameId ) )) )
+    if ( !($frame = dbFetchOne( $sql, NULL, array( $eventId, $frameId ) )) )
     {
         $frame = array();
         $frame['EventId'] = $eventId;

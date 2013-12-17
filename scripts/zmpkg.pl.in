@@ -146,7 +146,7 @@ if ( $command =~ /^(?:start|restart)$/ )
 
 	if ( $status eq "stopped" )
 	{
-        if ( $Config{ZM_DYN_DB_VERSION} and ( $Config{ZM_DYN_DB_VERSION} ne $Config{ZM_VERSION} ) )
+        if ( $Config{ZM_DYN_DB_VERSION} and ( $Config{ZM_DYN_DB_VERSION} ne ZM_VERSION ) )
         {
             Fatal( "Version mismatch, system is version ".ZM_VERSION.", database is ".$Config{ZM_DYN_DB_VERSION}.", please run zmupdate.pl to update." );
             exit( -1 );

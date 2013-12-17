@@ -246,12 +246,16 @@ function collectData()
             {
                 $index = 0;
                 $where = array();
+				$values = array();
                 foreach( $entitySpec['selector'] as $selector )
                 {
-                    if ( is_array( $selector ) )
-                        $where[] = $selector['selector']." = ".dbEscape($id[$index]);
-                    else
-                        $where[] = $selector." = ".dbEscape($id[$index]);
+                    if ( is_array( $selector ) ) {
+                        $where[] = $selector['selector'].' = ?';
+						$values[] = $id[$index];
+                    } else {
+                        $where[] = $selector.' = ?';
+						$values[] = $id[$index];
+					}
                     $index++;
                 }
                 $sql .= " where ".join( " and ", $where );
@@ -259,27 +263,22 @@ function collectData()
             if ( $groupSql )
                 $sql .= " group by ".join( ",", array_unique( $groupSql ) );
             if ( !empty($_REQUEST['sort']) )
-                $sql .= " order by ".dbEscape($_REQUEST['sort']);
+                $sql .= " order by ".$_REQUEST['sort'];
             if ( !empty($entitySpec['limit']) )
                 $limit = $entitySpec['limit'];
             elseif ( !empty($_REQUEST['count']) )
-                $limit = dbEscape($_REQUEST['count']);
+                $limit = $_REQUEST['count'];
             if ( !empty( $limit ) )
                 $sql .= " limit ".$limit;
-            if ( isset($limit) && $limit == 1 )
-            {
-                if ( $sqlData = dbFetchOne( $sql ) )
-                {
+            if ( isset($limit) && $limit == 1 ) {
+                if ( $sqlData = dbFetchOne( $sql, NULL, $values ) ) {
                     foreach ( $postFuncs as $element=>$func )
                         $sqlData[$element] = eval( 'return( '.$func.'( $sqlData ) );' );
                     $data = array_merge( $data, $sqlData );
                 }
-            }
-            else
-            {
+            } else {
                 $count = 0;
-                foreach( dbFetchAll( $sql ) as $sqlData )
-                {
+                foreach( dbFetchAll( $sql, NULL, $values ) as $sqlData ) {
                     foreach ( $postFuncs as $element=>$func )
                         $sqlData[$element] = eval( 'return( '.$func.'( $sqlData ) );' );
                     $data[] = $sqlData;

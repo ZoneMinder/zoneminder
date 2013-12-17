@@ -314,7 +314,7 @@ if ( !empty($action) )
 
             if ( !empty($zid) )
             {
-                $zone = dbFetchOne( "SELECT * FROM Zones WHERE MonitorId=? AND Id=?", array( $mid, $zid ) );
+                $zone = dbFetchOne( "SELECT * FROM Zones WHERE MonitorId=? AND Id=?", NULL, array( $mid, $zid ) );
             }
             else
             {

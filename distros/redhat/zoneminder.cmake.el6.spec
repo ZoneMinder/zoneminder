@@ -4,7 +4,7 @@
 %define zmgid_final apache
 
 Name:       zoneminder
-Version:    1.26.4
+Version:    1.26.5
 Release:    1%{?dist}
 Summary:    A camera monitoring and analysis tool
 Group:      System Environment/Daemons
@@ -136,7 +136,7 @@ rm -rf %{_docdir}/%{name}-%{version}
 %{_bindir}/zmx10.pl
 
 %{perl_vendorlib}/ZoneMinder*
-%{perl_vendorlib}/x86_64-linux-thread-multi/auto/ZoneMinder*
+%{perl_vendorlib}/%{_arch}-linux-thread-multi/auto/ZoneMinder*
 %{_mandir}/man*/*
 %dir %{_libexecdir}/%{name}
 %{_libexecdir}/%{name}/cgi-bin
@@ -155,6 +155,10 @@ rm -rf %{_docdir}/%{name}-%{version}
 
 
 %changelog
+* Mon Dec 16 2013 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.26.5
+- This is a bug fixe release
+- RTSP fixes, cmake enhancements, couple other misc fixes
+
 * Sat Oct 19 2013 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.26.4
 - Streamline the cmake build. Move much code into cmakelist.txt file.
 

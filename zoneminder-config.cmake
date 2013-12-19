@@ -40,6 +40,8 @@
 #cmakedefine HAVE_LIBX264 1
 #cmakedefine HAVE_X264_H 1
 #cmakedefine HAVE_LIBMP4V2 1
+#cmakedefine HAVE_MP4V2_MP4V2_H 1
+#cmakedefine HAVE_MP4V2_H 1
 #cmakedefine HAVE_MP4_H 1
 #cmakedefine HAVE_LIBAVFORMAT 1
 #cmakedefine HAVE_LIBAVFORMAT_AVFORMAT_H 1

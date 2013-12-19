@@ -246,13 +246,32 @@ find_library(MP4V2_LIBRARIES mp4v2)
 if(MP4V2_LIBRARIES)
 	set(HAVE_LIBMP4V2 1)
 	list(APPEND ZM_BIN_LIBS "${MP4V2_LIBRARIES}")
+
+        # mp4v2/mp4v2.h
+	find_path(MP4V2_INCLUDE_DIR mp4v2/mp4v2.h)
+	if(MP4V2_INCLUDE_DIR)
+		include_directories("${MP4V2_INCLUDE_DIR}")
+		set(CMAKE_REQUIRED_INCLUDES "${MP4V2_INCLUDE_DIR}")
+	endif(MP4V2_INCLUDE_DIR)
+	check_include_file("mp4v2/mp4v2.h" HAVE_MP4V2_MP4V2_H)
+
+        # mp4v2.h
+	find_path(MP4V2_INCLUDE_DIR mp4v2.h)
+	if(MP4V2_INCLUDE_DIR)
+		include_directories("${MP4V2_INCLUDE_DIR}")
+		set(CMAKE_REQUIRED_INCLUDES "${MP4V2_INCLUDE_DIR}")
+	endif(MP4V2_INCLUDE_DIR)
+	check_include_file("mp4v2.h" HAVE_MP4V2_H)
+
+	# mp4.h
 	find_path(MP4V2_INCLUDE_DIR mp4.h)
 	if(MP4V2_INCLUDE_DIR)
 		include_directories("${MP4V2_INCLUDE_DIR}")
 		set(CMAKE_REQUIRED_INCLUDES "${MP4V2_INCLUDE_DIR}")
 	endif(MP4V2_INCLUDE_DIR)
-	mark_as_advanced(FORCE MP4V2_LIBRARIES MP4V2_INCLUDE_DIR)
 	check_include_file("mp4.h" HAVE_MP4_H)
+
+	mark_as_advanced(FORCE MP4V2_LIBRARIES MP4V2_INCLUDE_DIR)
 	set(optlibsfound "${optlibsfound} mp4v2")
 else(MP4V2_LIBRARIES)
 	set(optlibsnotfound "${optlibsnotfound} mp4v2")

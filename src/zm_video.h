@@ -29,6 +29,12 @@
 #define HAVE_MP4_H 1
 */
 
+#if HAVE_MP4V2_MP4V2_H
+#include <mp4v2/mp4v2.h>
+#endif
+#if HAVE_MP4V2_H
+#include <mp4v2.h>
+#endif
 #if HAVE_MP4_H
 #include <mp4.h>
 #endif

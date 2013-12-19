@@ -22,10 +22,16 @@
 
 #if HAVE_LIBVLC
 
+// Do all the buffer checking work here to avoid unnecessary locking 
 void* LibvlcLockBuffer(void* opaque, void** planes)
 {
     LibvlcPrivateData* data = (LibvlcPrivateData*)opaque;
     data->mutex.lock();
+    
+    uint8_t* buffer = data->buffer;
+    data->buffer = data->prevBuffer;
+    data->prevBuffer = buffer;
+    
     *planes = data->buffer;
     return NULL;
 }
@@ -33,8 +39,23 @@ void* LibvlcLockBuffer(void* opaque, void** planes)
 void LibvlcUnlockBuffer(void* opaque, void* picture, void *const *planes)
 {
     LibvlcPrivateData* data = (LibvlcPrivateData*)opaque;
+    
+    bool newFrame = false;
+    for(uint32_t i = 0; i < data->bufferSize; i++)
+    {
+        if(data->buffer[i] != data->prevBuffer[i])
+            break;
+    }
     data->mutex.unlock();
-    data->newImage.updateValueSignal(true);
+    
+    time_t now;
+    time(&now);
+    // Return frames slightly faster than 1fps (if time() supports greater than one second resolution)
+    if(newFrame || difftime(now, data->prevTime) >= 0.8)
+    {
+        data->prevTime = now;
+        data->newImage.updateValueSignal(true);
+    }
 }
 
 LibvlcCamera::LibvlcCamera( int p_id, const std::string &p_path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) :
@@ -100,6 +121,7 @@ void LibvlcCamera::Terminate()
     libvlc_media_player_stop(mLibvlcMediaPlayer);
     
     zm_freealigned(mLibvlcData.buffer);
+    zm_freealigned(mLibvlcData.prevBuffer);
 }
 
 int LibvlcCamera::PrimeCapture()
@@ -121,7 +143,11 @@ int LibvlcCamera::PrimeCapture()
 	libvlc_video_set_format(mLibvlcMediaPlayer, mTargetChroma.c_str(), width, height, width * mBpp);
     libvlc_video_set_callbacks(mLibvlcMediaPlayer, &LibvlcLockBuffer, &LibvlcUnlockBuffer, NULL, &mLibvlcData);
 
-    mLibvlcData.buffer = (uint8_t*)zm_mallocaligned(32, width * height * mBpp);
+    mLibvlcData.bufferSize = width * height * mBpp;
+    // Libvlc wants 32 byte alignment for images (should in theory do this for all image lines)
+    mLibvlcData.buffer = (uint8_t*)zm_mallocaligned(32, mLibvlcData.bufferSize);
+    mLibvlcData.prevBuffer = (uint8_t*)zm_mallocaligned(32, mLibvlcData.bufferSize);
+    
     mLibvlcData.newImage.setValueImmediate(false);
 
     libvlc_media_player_play(mLibvlcMediaPlayer);

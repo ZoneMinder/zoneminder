@@ -163,7 +163,12 @@ if ( !GetOptions( 'filter=s'=>\$filter_parm ) )
     Usage();
 }
 
-chdir( $Config{EVENT_PATH} );
+if ( ! EVENT_PATH ) {
+    Error( "No event path defined. Config was $Config{ZM_DIR_EVENTS}\n" );
+    die;
+}
+
+chdir( EVENT_PATH );
 
 my $dbh = zmDbConnect();
 
@@ -178,7 +183,7 @@ else
 
 if ( !$filter_parm )
 {
-    sleep( $Config{START_DELAY} );
+    sleep( START_DELAY );
 }
 
 my $filters;

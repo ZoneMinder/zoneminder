@@ -114,6 +114,7 @@ noinst_HEADERS = \
 	zm_timer.h \
 	zm_user.h \
 	zm_utils.h \
+	zm_video.h \
 	zm_zone.h
 
 EXTRA_DIST = \

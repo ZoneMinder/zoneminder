@@ -239,6 +239,11 @@ protected:
 	bool			track_motion;		    // Whether this monitor tries to track detected motion 
     Rgb             signal_check_colour;    // The colour that the camera will emit when no video signal detected
 
+	int savejpegspref;
+	int videowriterpref;
+	std::string encoderparams;
+	std::vector<EncoderParameter_t> encoderparamsvec;
+
 	double			fps;
 	Image			delta_image;
 	Image			ref_image;
@@ -288,7 +293,7 @@ protected:
 public:
 // OurCheckAlarms seems to be unused. Check it on zm_monitor.cpp for more info.
 //bool OurCheckAlarms( Zone *zone, const Image *pImage );
-	Monitor( int p_id, const char *p_name, int p_function, bool p_enabled, const char *p_linked_monitors, Camera *p_camera, int p_orientation, unsigned int p_deinterlacing, const char *p_event_prefix, const char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_stream_replay_buffer, int p_alarm_frame_count, int p_section_length, int p_frame_skip, int p_capture_delay, int p_alarm_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, int p_alarm_ref_blend_perc, bool p_track_motion, Rgb p_signal_check_colour, Purpose p_purpose, int p_n_zones=0, Zone *p_zones[]=0 );
+	Monitor( int p_id, const char *p_name, int p_function, bool p_enabled, const char *p_linked_monitors, Camera *p_camera, int p_orientation, unsigned int p_deinterlacing, int p_savejpegs, int p_videowriter, std::string p_encoderparams, const char *p_event_prefix, const char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_stream_replay_buffer, int p_alarm_frame_count, int p_section_length, int p_frame_skip, int p_capture_delay, int p_alarm_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, int p_alarm_ref_blend_perc, bool p_track_motion, Rgb p_signal_check_colour, Purpose p_purpose, int p_n_zones=0, Zone *p_zones[]=0 );
 	~Monitor();
 
 	void AddZones( int p_n_zones, Zone *p_zones[] );
@@ -337,7 +342,10 @@ public:
 	unsigned int Height() const { return( height ); }
 	unsigned int Colours() const { return( camera->Colours() ); }
 	unsigned int SubpixelOrder() const { return( camera->SubpixelOrder() ); }
-      
+
+	int GetOptSaveJPEGs() const { return( savejpegspref ); }
+	int GetOptVideoWriter() const { return( videowriterpref ); }
+	const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return( &encoderparamsvec ); }      
  
 	State GetState() const;
 	int GetImage( int index=-1, int scale=100 ) const;

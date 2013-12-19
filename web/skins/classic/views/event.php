@@ -125,6 +125,7 @@ if ( canEdit( 'Events' ) )
         <div id="framesEvent"><a href="#" onclick="showEventFrames()"><?= $SLANG['Frames'] ?></a></div>
         <div id="streamEvent"<?php if ( $streamMode == 'stream' ) { ?> class="hidden"<?php } ?>><a href="#" onclick="showStream()"><?= $SLANG['Stream'] ?></a></div>
         <div id="stillsEvent"<?php if ( $streamMode == 'still' ) { ?> class="hidden"<?php } ?>><a href="#" onclick="showStills()"><?= $SLANG['Stills'] ?></a></div>
+        <div id="videoEvent"<?php if ( $streamMode == 'video' ) { ?> class="hidden"<?php } ?>><a href="#" onclick="showVideo()">HTML5Video</a></div>
 <?php
 if ( ZM_OPT_FFMPEG )
 {
@@ -183,6 +184,19 @@ else
         }
 ?>
         </div>
+      </div>
+     <div id="eventVideo" class="hidden">
+		<div id="videoFeed">
+			<video id="videoobj" width="<?= $event['Width'] ?>" height="<?= $event['Height'] ?>" controls autoplay>
+			<source src="<?= getEventDefaultVideoPath($event) ?>" type="video/mp4">
+			Your browser does not support the video tag.
+			</video>
+		</div>
+	    <div id="videoBar1">
+			<div id="prevEvent"><a href="#" onclick="prevEvent()">Previous Event</a></div>
+			<div id="dlEvent"><a id="downloadlink" href="<?= getEventDefaultVideoPath($event) ?>" download>Download Video</a></div>		
+			<div id="nextEvent"><a href="#" onclick="nextEvent()">Next Event</a></div>
+	    </div>
       </div>
       <div id="eventStills" class="hidden">
         <div id="eventThumbsPanel">

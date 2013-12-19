@@ -27,6 +27,7 @@ if ( !canView( 'Monitors' ) )
 $tabs = array();
 $tabs["general"] = $SLANG['General'];
 $tabs["source"] = $SLANG['Source'];
+$tabs["storage"] = "Storage";
 $tabs["timestamp"] = $SLANG['Timestamp'];
 $tabs["buffers"] = $SLANG['Buffers'];
 if ( ZM_OPT_CONTROL && canView( 'Control' ) )
@@ -70,6 +71,9 @@ else
         'Height' => "240",
         'Orientation' => "0",
         'Deinterlacing' => 0,
+        'SaveJPEGs' => "3",
+        'VideoWriter' => "0",
+        'EncoderParameters' => "# Lines beginning with # are a comment \n# For changing quality, use the crf option\n# 1 is best, 51 is worst quality\n#crf=23\n",
         'LabelFormat' => '%N - %d/%m/%y %H:%M:%S',
         'LabelX' => 0,
         'LabelY' => 0,
@@ -410,6 +414,19 @@ $fastblendopts_alarm = array(
     "50% (Alarm lasts a moment)"                          => 50
 );
 
+$savejpegopts = array(
+    "Disabled"                                            => 0,
+    "Frames only"                                         => 1,
+    "Analysis images only (if available)"                 => 2,
+    "Frames + analysis images (if available)"             => 3         
+);
+
+$videowriteropts = array(
+    "Disabled"                                            => 0,
+    "X264 : MP4V2"                                        => 1,
+    "H264 Passthrough : MP4V2 (not implemented)"          => 2          
+);
+
 xhtmlHeaders(__FILE__, $SLANG['Monitor']." - ".validHtmlStr($monitor['Name']) );
 ?>
 <body>
@@ -516,6 +533,14 @@ if ( $tab != 'source' )
     <input type="hidden" name="newMonitor[Height]" value="<?= validHtmlStr($newMonitor['Height']) ?>"/>
     <input type="hidden" name="newMonitor[Orientation]" value="<?= validHtmlStr($newMonitor['Orientation']) ?>"/>
     <input type="hidden" name="newMonitor[Deinterlacing]" value="<?= validHtmlStr($newMonitor['Deinterlacing']) ?>"/>
+<?php
+}
+if ( $tab != 'storage' )
+{
+?>
+    <input type="hidden" name="newMonitor[SaveJPEGs]" value="<?= validHtmlStr($newMonitor['SaveJPEGs']) ?>"/>
+    <input type="hidden" name="newMonitor[VideoWriter]" value="<?= validHtmlStr($newMonitor['VideoWriter']) ?>"/>
+    <input type="hidden" name="newMonitor[EncoderParameters]" value="<?= validHtmlStr($newMonitor['EncoderParameters']) ?>"/>
 <?php
 }
 if ( $tab != 'timestamp' )
@@ -742,6 +767,13 @@ switch ( $tab )
 <?php
         break;
     }
+    case 'storage'   :
+?>
+            <tr><td>Save as JPEGs</td><td><select name="newMonitor[SaveJPEGs]"><?php foreach ( $savejpegopts as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['SaveJPEGs'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
+            <tr><td>Video writer</td><td><select name="newMonitor[VideoWriter]"><?php foreach ( $videowriteropts as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['VideoWriter'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
+            <tr><td>Optional encoder parameters</td><td><textarea name="newMonitor[EncoderParameters]" rows="4" cols="36"><?= validHtmlStr($newMonitor['EncoderParameters']) ?></textarea></td></tr>
+<?php
+        break;
     case 'timestamp' :
     {
 ?>

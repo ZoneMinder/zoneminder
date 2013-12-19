@@ -497,6 +497,9 @@ function getEventPath( $event )
     return( $eventPath );
 }
 
+function getEventDefaultVideoPath( $event ) {
+	return ZM_DIR_EVENTS . "/" . getEventPath($event) . "/" . $event['DefaultVideo'];
+}
 
 function deletePath( $path )
 {

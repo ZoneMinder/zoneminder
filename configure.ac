@@ -266,6 +266,7 @@ fi
 AC_CHECK_LIB(pcre,pcre_compile,,AC_MSG_WARN(libpcre.a may be required for remote/network camera support))
 AC_CHECK_LIB(z,zlibVersion)
 AC_CHECK_LIB(x264,x264_predict_16x16_init)
+AC_CHECK_LIB(mp4v2,MP4AddH264VideoTrack)
 AC_CHECK_LIB(avutil,av_malloc,,AC_MSG_WARN(libavutil.a may be required for MPEG streaming))
 # Don't bother to warn about this one
 AC_CHECK_LIB(avcore,av_image_copy,,)
@@ -313,6 +314,8 @@ AC_CHECK_HEADERS(sys/ipc.h,,,)
 AC_CHECK_HEADERS(sys/shm.h,,,)
 fi
 AC_CHECK_HEADERS(zlib.h,,,)
+AC_CHECK_HEADERS(x264.h,,,)
+AC_CHECK_HEADERS(mp4.h,,,)
 
 if test "$ZM_SSL_LIB" == "openssl"; then
 AC_CHECK_DECLS(MD5,,AC_MSG_ERROR([zm requires openssl/md5.h - use ZM_SSL_LIB option to select gnutls instead]),[#include <stdlib.h>

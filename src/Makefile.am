@@ -58,6 +58,7 @@ zm_SOURCES = \
 	zm_timer.cpp \
 	zm_user.cpp \
 	zm_utils.cpp \
+	zm_video.cpp \
 	zm_zone.cpp
 
 zmc_SOURCES = zmc.cpp $(zm_SOURCES)

@@ -51,7 +51,7 @@ use Date::Manip;
 use Getopt::Long;
 use Data::Dumper;
 
-use constant EVENT_PATH => (ZM_DIR_EVENTS=~m|/|)?ZM_DIR_EVENTS:(ZM_PATH_WEB.'/'.ZM_DIR_EVENTS);
+use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)?$Config{ZM_DIR_EVENTS}:($Config{ZM_PATH_WEB}.'/'.$Config{ZM_DIR_EVENTS});
 
 logInit();
 logSetSignal();

@@ -876,7 +876,7 @@ sub substituteTags
         $sth->finish();
     }
 
-    my $url = ZM_URL;
+    my $url = $Config{ZM_URL};
     $text =~ s/%ZP%/$url/g;
     $text =~ s/%MN%/$event->{MonitorName}/g;
     $text =~ s/%MET%/$monitor->{EventCount}/g;

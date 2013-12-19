@@ -65,6 +65,8 @@ LibvlcCamera::LibvlcCamera( int p_id, const std::string &p_path, int p_width, in
 	mLibvlcInstance = NULL;
     mLibvlcMedia = NULL;
 	mLibvlcMediaPlayer = NULL;
+    mLibvlcData.buffer = NULL;
+    mLibvlcData.prevBuffer = NULL;
 
 	/* Has to be located inside the constructor so other components such as zma will receive correct colours and subpixel order */
 	if(colours == ZM_COLOUR_RGB32) {
@@ -119,9 +121,14 @@ void LibvlcCamera::Initialise()
 void LibvlcCamera::Terminate()
 {
     libvlc_media_player_stop(mLibvlcMediaPlayer);
-    
-    zm_freealigned(mLibvlcData.buffer);
-    zm_freealigned(mLibvlcData.prevBuffer);
+    if(mLibvlcData.buffer != NULL)
+    {
+        zm_freealigned(mLibvlcData.buffer);
+    }
+    if(mLibvlcData.prevBuffer != NULL)
+    {
+        zm_freealigned(mLibvlcData.prevBuffer);
+    }
 }
 
 int LibvlcCamera::PrimeCapture()
@@ -130,15 +137,15 @@ int LibvlcCamera::PrimeCapture()
 	 
     mLibvlcInstance = libvlc_new (0, NULL);
     if(mLibvlcInstance == NULL)
-        Fatal("Unable to create libvlc instance due to: %s", strerror(errno));
+        Fatal("Unable to create libvlc instance due to: %s", libvlc_errmsg());
      
     mLibvlcMedia = libvlc_media_new_location(mLibvlcInstance, mPath.c_str());
     if(mLibvlcMedia == NULL)
-        Fatal( "Unable to open input %s due to: %s", mPath.c_str(), strerror(errno) );
+        Fatal("Unable to open input %s due to: %s", mPath.c_str(), libvlc_errmsg());
 	
     mLibvlcMediaPlayer = libvlc_media_player_new_from_media(mLibvlcMedia);
     if(mLibvlcMediaPlayer == NULL)
-        Fatal( "Unable to create player for %s due to: %s", mPath.c_str(), strerror(errno) );
+        Fatal("Unable to create player for %s due to: %s", mPath.c_str(), libvlc_errmsg());
 
 	libvlc_video_set_format(mLibvlcMediaPlayer, mTargetChroma.c_str(), width, height, width * mBpp);
     libvlc_video_set_callbacks(mLibvlcMediaPlayer, &LibvlcLockBuffer, &LibvlcUnlockBuffer, NULL, &mLibvlcData);

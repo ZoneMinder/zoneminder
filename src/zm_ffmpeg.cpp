@@ -161,7 +161,7 @@ int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint
 	}
 
 	/* Get the context */
-	swscale_ctx = sws_getCachedContext( NULL, width, height, in_pf, width, height, out_pf, SWS_FAST_BILINEAR, NULL, NULL, NULL );
+	swscale_ctx = sws_getCachedContext( swscale_ctx, width, height, in_pf, width, height, out_pf, SWS_FAST_BILINEAR, NULL, NULL, NULL );
 	if(swscale_ctx == NULL) {
 		Error("Failed getting swscale context");
 		return -6;

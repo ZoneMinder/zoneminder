@@ -25,7 +25,10 @@
 #include "zm_thread.h"
 
 #if HAVE_LIBVLC
+
+#if HAVE_VLC_VLC_H
 #include "vlc/vlc.h"
+#endif
 
 // Used by libvlc callbacks
 struct LibvlcPrivateData

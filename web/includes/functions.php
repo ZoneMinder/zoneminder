@@ -916,13 +916,6 @@ function canStream()
     return( canStreamNative() | canStreamApplet() );
 }
 
-function fixDevices()
-{
-    $string = ZM_PATH_BIN."/zmfix";
-    $string .= " 2>/dev/null >&- <&- >/dev/null";
-    exec( $string );
-}
-
 function packageControl( $command )
 {
     $string = ZM_PATH_BIN.'/zmpkg.pl '.escapeshellarg( $command );

@@ -38,10 +38,17 @@ VideoWriter::~VideoWriter() {
 
 }
 
-int VideoWriter::Reset() {
+int VideoWriter::Reset(const char* new_path) {
 	/* Common variables reset */
 
+	/* If there is a new path, use it */
+	if(new_path != NULL) {
+		path = new_path;
+	}
+
+	/* Reset frame counter */
 	frame_count = 0;
+
 	return 0;
 }
 
@@ -90,8 +97,6 @@ X264MP4Writer::~X264MP4Writer() {
 
 	if(bOpen)
 		Close();
-
-	//x264_picture_clean(&x264picout);
 	
 }
 
@@ -184,9 +189,9 @@ int X264MP4Writer::Close() {
 	return 0;
 }
 
-int X264MP4Writer::Reset() {
+int X264MP4Writer::Reset(const char* new_path) {
 
-	VideoWriter::Reset();
+	VideoWriter::Reset(new_path);
 	
 	/* Close the encoder and file */
 	if(bOpen)
@@ -345,6 +350,8 @@ void X264MP4Writer::x264encodeloop(bool bFlush) {
 		/* Handle the previous frame */
 		if(!bFirstFrame) {
 
+			buffer.clear();
+
 			/* Process the NALs for the previous frame */
 			for(unsigned int i=0; i < prevnals.size(); i++) {
 				Debug(9,"Processing NAL: Type %d Size %d",prevnals[i].i_type,prevnals[i].i_payload);
@@ -393,10 +400,10 @@ void X264MP4Writer::x264encodeloop(bool bFlush) {
 			/* Update the payload pointers */
 			/* This is done in a separate loop because the previous loop might reallocate memory when appending,
 			   making the pointers invalid */
-			unsigned int payload_head = 0;
+			unsigned int payload_offset = 0;
 			for(unsigned int i=0;i<prevnals.size();i++) {
-				prevnals[i].p_payload = prevpayload.head() + payload_head;
-				payload_head += nals[i].i_payload;
+				prevnals[i].p_payload = prevpayload.head() + payload_offset;
+				payload_offset += nals[i].i_payload;
 			}
 
 			/* We need this for the next frame */
@@ -426,6 +433,8 @@ int ParseEncoderParameters(const char* str, std::vector<EncoderParameter_t>* vec
 		return -2;
 	}
 
+	vec->clear();
+
 	if(str[0] == 0) {
 		/* Empty */
 		return 0;
@@ -437,8 +446,6 @@ int ParseEncoderParameters(const char* str, std::vector<EncoderParameter_t>* vec
 	size_t valuelen;
 	unsigned int lineno = 0;
 	EncoderParameter_t param;
-
-	vec->clear();
 
 	while(std::getline(ss, line) ) {
 		lineno++;

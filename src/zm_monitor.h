@@ -216,6 +216,12 @@ protected:
 	unsigned int    height;				    // Normally the same as the camera, but not if partly rotated
 	Orientation		orientation;		    // Whether the image has to be rotated at all
 	unsigned int	deinterlacing;
+
+	int savejpegspref;
+	int videowriterpref;
+	std::string encoderparams;
+	std::vector<EncoderParameter_t> encoderparamsvec;
+
 	int				brightness;			    // The statically saved brightness of the camera
 	int				contrast;			    // The statically saved contrast of the camera
 	int				hue;				    // The statically saved hue of the camera
@@ -238,11 +244,6 @@ protected:
 	int				alarm_ref_blend_perc;		    // Percentage of new image going into reference image during alarm.
 	bool			track_motion;		    // Whether this monitor tries to track detected motion 
     Rgb             signal_check_colour;    // The colour that the camera will emit when no video signal detected
-
-	int savejpegspref;
-	int videowriterpref;
-	std::string encoderparams;
-	std::vector<EncoderParameter_t> encoderparamsvec;
 
 	double			fps;
 	Image			delta_image;

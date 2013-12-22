@@ -256,9 +256,9 @@ classid="CLSID:22D6F312-B0F6-11D0-94AB-0080C74C7E95"
 codebase="http://activex.microsoft.com/activex/controls/mplayer/en/nsmp2inf.cab#Version=6,0,02,902"
 standby="Loading Microsoft Windows Media Player components..."
 type="<?= $mimeType ?>">
-<param name="FileName" value="<?= $src ?>">
-<param name="autoStart" value="1">
-<param name="showControls" value="0">
+<param name="FileName" value="<?= $src ?>"/>
+<param name="autoStart" value="1"/>
+<param name="showControls" value="0"/>
 <embed type="<?= $mimeType ?>"
 pluginspage="http://www.microsoft.com/Windows/MediaPlayer/"
 src="<?= $src ?>"
@@ -281,9 +281,9 @@ showcontrols="0">
 classid="clsid:02BF25D5-8C17-4B23-BC80-D3488ABDDC6B"
 codebase="http://www.apple.com/qtactivex/qtplugin.cab"
 type="<?= $mimeType ?>">
-<param name="src" value="<?= $src ?>">
-<param name="autoplay" VALUE="true">
-<param name="controller" VALUE="false">
+<param name="src" value="<?= $src ?>"/>
+<param name="autoplay" VALUE="true"/>
+<param name="controller" VALUE="false"/>
 <embed type="<?= $mimeType ?>"
 src="<?= $src ?>"
 pluginspage="http://www.apple.com/quicktime/download/"
@@ -291,7 +291,7 @@ name="<?= validHtmlStr($title) ?>"
 width="<?= validInt($width) ?>"
 height="<?= validInt($height) ?>"
 autoplay="true"
-controller="true"
+controller="true">
 </embed>
 </object>
 <?php
@@ -305,9 +305,9 @@ controller="true"
 classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000"
 codebase="http://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=6,0,40,0"
 type="<?= $mimeType ?>">
-<param name="movie" value="<?= $src ?>">
-<param name=quality value="high">
-<param name=bgcolor value="#ffffff">
+<param name="movie" value="<?= $src ?>"/>
+<param name="quality" value="high"/>
+<param name="bgcolor" value="#ffffff"/>
 <embed type="<?= $mimeType ?>"
 pluginspage="http://www.macromedia.com/go/getflashplayer"
 src="<?= $src ?>"
@@ -315,7 +315,7 @@ name="<?= validHtmlStr($title) ?>"
 width="<?= validInt($width) ?>"
 height="<?= validInt($height) ?>"
 quality="high"
-bgcolor="#ffffff"
+bgcolor="#ffffff">
 </embed>
 </object>
 <?php

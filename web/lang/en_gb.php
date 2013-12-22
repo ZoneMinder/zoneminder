@@ -376,6 +376,7 @@ $SLANG = array(
     'Language'              => 'Language',
     'Last'                  => 'Last',
     'Layout'                => 'Layout',
+    'Libvlc'                => 'Libvlc',
     'LimitResultsPost'      => 'results only', // This is used at the end of the phrase 'Limit to first N results only'
     'LimitResultsPre'       => 'Limit to first', // This is used at the beginning of the phrase 'Limit to first N results only'
     'LinkedMonitors'        => 'Linked Monitors',

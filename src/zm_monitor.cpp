@@ -40,6 +40,9 @@
 #if HAVE_LIBAVFORMAT
 #include "zm_ffmpeg_camera.h"
 #endif // HAVE_LIBAVFORMAT
+#if HAVE_LIBVLC
+#include "zm_libvlc_camera.h"
+#endif // HAVE_LIBVLC
 
 #if ZM_MEM_MAPPED
 #include <sys/mman.h>
@@ -2604,6 +2607,25 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 #else // HAVE_LIBAVFORMAT
             Fatal( "You must have ffmpeg libraries installed to use ffmpeg cameras for monitor %d", id );
 #endif // HAVE_LIBAVFORMAT
+        }
+        else if (type == "Libvlc")
+        {
+#if HAVE_LIBVLC
+            camera = new LibvlcCamera(
+                id,
+                path.c_str(),
+                cam_width,
+                cam_height,
+                colours,
+                brightness,
+                contrast,
+                hue,
+                colour,
+                purpose==CAPTURE
+            );
+#else // HAVE_LIBVLC
+            Fatal( "You must have vlc libraries installed to use vlc cameras for monitor %d", id );
+#endif // HAVE_LIBVLC
         }
         else
         {

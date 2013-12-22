@@ -35,6 +35,7 @@ zm_SOURCES = \
 	zm_ffmpeg_camera.cpp \
 	zm_image.cpp \
 	zm_jpeg.cpp \
+    zm_libvlc_camera.cpp \
 	zm_local_camera.cpp \
 	zm_monitor.cpp \
 	zm_ffmpeg.cpp \
@@ -87,6 +88,7 @@ noinst_HEADERS = \
 	zm.h \
 	zm_image.h \
 	zm_jpeg.h \
+    zm_libvlc_camera.h \
 	zm_local_camera.h \
 	zm_mem_utils.h \
 	zm_monitor.h \

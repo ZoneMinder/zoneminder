@@ -345,7 +345,7 @@ switch ( $tab )
 ?>
             <tr><th scope="row"><?= $SLANG['Name'] ?></th><td><input type="text" name="newControl[Name]" value="<?= validHtmlStr($newControl['Name']) ?>" size="24"/></td></tr>
 <?php
-        $types = array( 'Local'=>$SLANG['Local'], 'Remote'=>$SLANG['Remote'], 'Ffmpeg'=>$SLANG['Ffmpeg'] );
+        $types = array( 'Local'=>$SLANG['Local'], 'Remote'=>$SLANG['Remote'], 'Ffmpeg'=>$SLANG['Ffmpeg'], 'Libvlc'=>$SLANG['Libvlc'] );
 ?>
             <tr><th scope="row"><?= $SLANG['Type'] ?></th><td><?= buildSelect( "newControl[Type]", $types ); ?></td></tr>
             <tr><th scope="row"><?= $SLANG['Protocol'] ?></th><td><input type="text" name="newControl[Protocol]" value="<?= validHtmlStr($newControl['Protocol']) ?>" size="24"/></td></tr>

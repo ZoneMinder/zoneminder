@@ -134,6 +134,7 @@ function changeScale()
         streamImg.style.width = newWidth + "px";
         streamImg.style.height = newHeight + "px";
     }
+    Cookie.write( 'zmMontageScale', scale, { duration: 10*365 } );
 }
 
 var monitors = new Array();

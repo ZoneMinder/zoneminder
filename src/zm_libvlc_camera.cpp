@@ -44,7 +44,10 @@ void LibvlcUnlockBuffer(void* opaque, void* picture, void *const *planes)
     for(uint32_t i = 0; i < data->bufferSize; i++)
     {
         if(data->buffer[i] != data->prevBuffer[i])
+        {
+            newFrame = true;
             break;
+        }
     }
     data->mutex.unlock();
     

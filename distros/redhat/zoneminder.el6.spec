@@ -190,9 +190,10 @@ popd
 /sbin/chkconfig --add zoneminder
 /sbin/chkconfig zoneminder on
 
-# Allow zoneminder access to local video sources
+# Allow zoneminder access to local video sources, serial ports, and x10
 echo
-/usr/bin/gpasswd -a apache video
+/usr/bin/gpasswd -a %{zmuid_final} video
+/usr/bin/gpasswd -a %{zmuid_final} dialout
 
 # Create and load zoneminder selinux policy module
 echo -e "\nCreating and installing a ZoneMinder SELinux policy module. Please wait.\n"
@@ -233,6 +234,8 @@ fi
 %{_bindir}/zmdc.pl
 %{_bindir}/zmf
 %{_bindir}/zmfilter.pl
+# zmfix removed from zoneminder 1.26.6
+#%attr(4755,root,root) %{_bindir}/zmfix
 %{_bindir}/zmpkg.pl
 %{_bindir}/zmstreamer
 %{_bindir}/zmtrack.pl

@@ -78,8 +78,9 @@ if [ $1 -eq 1 ] ; then
     /bin/systemctl daemon-reload >/dev/null 2>&1 || :
 fi
 
-# Allow zoneminder access to local video sources
-/usr/bin/gpasswd -a %zmuid_final video
+# Allow zoneminder access to local video sources, serial ports, and x10
+/usr/bin/gpasswd -a %{zmuid_final} video
+/usr/bin/gpasswd -a %{zmuid_final} dialout
 
 # Display the README for post installation instructions
 /usr/bin/less %{_docdir}/%{name}-%{version}/README.Fedora
@@ -126,6 +127,8 @@ fi
 %{_bindir}/zmdc.pl
 %{_bindir}/zmf
 %{_bindir}/zmfilter.pl
+# zmfix removed from zoneminder 1.26.6
+#%attr(4755,root,root) %{_bindir}/zmfix
 %{_bindir}/zmpkg.pl
 %{_bindir}/zmstreamer
 %{_bindir}/zmtrack.pl

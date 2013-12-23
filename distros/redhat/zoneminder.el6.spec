@@ -233,7 +233,6 @@ fi
 %{_bindir}/zmdc.pl
 %{_bindir}/zmf
 %{_bindir}/zmfilter.pl
-%attr(4755,root,root) %{_bindir}/zmfix
 %{_bindir}/zmpkg.pl
 %{_bindir}/zmstreamer
 %{_bindir}/zmtrack.pl

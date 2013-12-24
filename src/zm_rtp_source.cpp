@@ -17,6 +17,8 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
+#if HAVE_LIBAVCODEC
+
 #include "zm_rtp_source.h"
 
 #include "zm_time.h"
@@ -386,3 +388,5 @@ bool RtpSource::getFrame( Buffer &buffer )
 }
 
 #undef _AVCODECID
+
+#endif // HAVE_LIBAVCODEC

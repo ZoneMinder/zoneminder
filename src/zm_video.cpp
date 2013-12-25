@@ -118,20 +118,14 @@ int X264MP4Writer::Open() {
 		return -2;
 	}
 	
-	/* Search for AVC Information and write SPS & PPS */
+	/* Search SPS NAL for AVC information */
 	for(int i=0;i<i_nals;i++) {
 		if(nals[i].i_type == NAL_SPS) {
-			/* AVC Information */
 			x264_profleindication = nals[i].p_payload[5];
 			x264_profilecompat = nals[i].p_payload[6];
 			x264_levelindication = nals[i].p_payload[7];
 			bGotH264AVCInfo = true;
-
-			/* Write SPS */
-			MP4AddH264SequenceParameterSet(mp4h, mp4vtid, nals[i].p_payload+4, nals[i].i_payload-4);
-		} else if (nals[i].i_type == NAL_PPS) {
-			/* Write PPS */
-			MP4AddH264PictureParameterSet(mp4h, mp4vtid, nals[i].p_payload+4, nals[i].i_payload-4);
+			break;
 		}
 	}
 	if(!bGotH264AVCInfo) {
@@ -162,6 +156,17 @@ int X264MP4Writer::Open() {
 	if(mp4vtid == MP4_INVALID_TRACK_ID) {
 		Error("Failed adding H264 video track");
 		return -12;
+	}
+
+	/* Write SPS & PPS */
+	for(int i=0;i<i_nals;i++) {
+		if(nals[i].i_type == NAL_SPS) {
+			/* Write SPS */
+			MP4AddH264SequenceParameterSet(mp4h, mp4vtid, nals[i].p_payload+4, nals[i].i_payload-4);
+		} else if (nals[i].i_type == NAL_PPS) {
+			/* Write PPS */
+			MP4AddH264PictureParameterSet(mp4h, mp4vtid, nals[i].p_payload+4, nals[i].i_payload-4);
+		}
 	}
 	
 	bOpen = true;

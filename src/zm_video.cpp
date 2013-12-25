@@ -118,14 +118,20 @@ int X264MP4Writer::Open() {
 		return -2;
 	}
 	
-	/* Search SPS NAL for AVC information */
+	/* Search for AVC Information and write SPS & PPS */
 	for(int i=0;i<i_nals;i++) {
 		if(nals[i].i_type == NAL_SPS) {
+			/* AVC Information */
 			x264_profleindication = nals[i].p_payload[5];
 			x264_profilecompat = nals[i].p_payload[6];
 			x264_levelindication = nals[i].p_payload[7];
 			bGotH264AVCInfo = true;
-			break;
+
+			/* Write SPS */
+			MP4AddH264SequenceParameterSet(mp4h, mp4vtid, nals[i].p_payload+4, nals[i].i_payload-4);
+		} else if (nals[i].i_type == NAL_PPS) {
+			/* Write PPS */
+			MP4AddH264PictureParameterSet(mp4h, mp4vtid, nals[i].p_payload+4, nals[i].i_payload-4);
 		}
 	}
 	if(!bGotH264AVCInfo) {
@@ -266,16 +272,37 @@ int X264MP4Writer::Encode(const Image* img, const unsigned int frame_time) {
 int X264MP4Writer::x264config() {
 	/* Sets up the encoder configuration */
 
-	/* Set the defaults and enable the superfast preset and the stillimage tune */
-	if(x264_param_default_preset(&x264params,"veryfast","stillimage") != 0) {
-		Error("Failed setting x264 preset and tune");
-		return -1;
+	int x264ret;
+
+	/* Defaults */
+	const char* preset = "veryfast";
+	const char* tune = "stillimage";
+	const char* profile = "main";
+
+	/* Search the user parameters for preset, tune and profile */
+	for(unsigned int i=0; i < user_params.size(); i++) {
+		if(strcmp(user_params[i].pname, "preset") == 0) {
+			/* Got preset */
+			preset = user_params[i].pvalue;
+		} else if(strcmp(user_params[i].pname, "tune") == 0) {
+			/* Got tune */
+			tune = user_params[i].pvalue;
+		} else if(strcmp(user_params[i].pname, "profile") == 0) {
+			/* Got profile */
+			profile = user_params[i].pvalue;
+		}
+	}
+
+	/* Set the defaults and preset and tune */
+	x264ret = x264_param_default_preset(&x264params, preset, tune);
+	if(x264ret != 0) {
+		Error("Failed setting x264 preset %s and tune %s : %d",preset,tune,x264ret);
 	}
 	
-	/* Set profile */
-	if(x264_param_apply_profile(&x264params, "main") != 0) {
-		Error("Failed setting x264 profile");
-		return -2;
+	/* Set the profile */
+	x264ret = x264_param_apply_profile(&x264params, profile);
+	if(x264ret != 0) {
+		Error("Failed setting x264 profile %s : %d",profile,x264ret);
 	}
 	
 	/* Input format */
@@ -304,27 +331,24 @@ int X264MP4Writer::x264config() {
 	/* TODO: Setup error handler */
 	//x264params.i_log_level = X264_LOG_DEBUG;
 
-	/* Process user parameters */
-	x264userparams();
-	
-	return 0;
-}
-
-int X264MP4Writer::x264userparams() {
-	/* Passes user parameters (for the encoder) to x264 */
-	int x264ret;
-
+	/* Process user parameters (excluding preset, tune and profile) */
 	for(unsigned int i=0; i < user_params.size(); i++) {
+		/* Skip preset, tune and profile */
+		if( (strcmp(user_params[i].pname, "preset") == 0) || (strcmp(user_params[i].pname, "tune") == 0) || (strcmp(user_params[i].pname, "profile") == 0) ) {
+			continue;
+		}
+
+		/* Pass the name and value to x264 */
 		x264ret = x264_param_parse(&x264params, user_params[i].pname, user_params[i].pvalue);
 
 		/* Error checking */
 		if(x264ret != 0) {
 			if(x264ret == X264_PARAM_BAD_NAME) {
-				Error("Failed parsing x264 user parameter %s=%s : Bad name", user_params[i].pname, user_params[i].pvalue);
+				Error("Failed processing x264 user parameter %s=%s : Bad name", user_params[i].pname, user_params[i].pvalue);
 			} else if(x264ret == X264_PARAM_BAD_VALUE) {
-				Error("Failed parsing x264 user parameter %s=%s : Bad value", user_params[i].pname, user_params[i].pvalue);
+				Error("Failed processing x264 user parameter %s=%s : Bad value", user_params[i].pname, user_params[i].pvalue);
 			} else	{
-				Error("Failed parsing x264 user parameter %s=%s : Unknown error (%d)", user_params[i].pname, user_params[i].pvalue, x264ret);
+				Error("Failed processing x264 user parameter %s=%s : Unknown error (%d)", user_params[i].pname, user_params[i].pvalue, x264ret);
 			}	
 		}
 	}

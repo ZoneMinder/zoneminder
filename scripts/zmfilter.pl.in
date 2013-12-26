@@ -51,7 +51,7 @@ use Date::Manip;
 use Getopt::Long;
 use Data::Dumper;
 
-use constant EVENT_PATH => (ZM_DIR_EVENTS=~m|/|)?ZM_DIR_EVENTS:(ZM_PATH_WEB.'/'.ZM_DIR_EVENTS);
+use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)?$Config{ZM_DIR_EVENTS}:($Config{ZM_PATH_WEB}.'/'.$Config{ZM_DIR_EVENTS});
 
 logInit();
 logSetSignal();
@@ -163,7 +163,12 @@ if ( !GetOptions( 'filter=s'=>\$filter_parm ) )
     Usage();
 }
 
-chdir( $Config{EVENT_PATH} );
+if ( ! EVENT_PATH ) {
+    Error( "No event path defined. Config was $Config{ZM_DIR_EVENTS}\n" );
+    die;
+}
+
+chdir( EVENT_PATH );
 
 my $dbh = zmDbConnect();
 
@@ -178,7 +183,7 @@ else
 
 if ( !$filter_parm )
 {
-    sleep( $Config{START_DELAY} );
+    sleep( START_DELAY );
 }
 
 my $filters;
@@ -876,7 +881,7 @@ sub substituteTags
         $sth->finish();
     }
 
-    my $url = ZM_URL;
+    my $url = $Config{ZM_URL};
     $text =~ s/%ZP%/$url/g;
     $text =~ s/%MN%/$event->{MonitorName}/g;
     $text =~ s/%MET%/$monitor->{EventCount}/g;

@@ -25,7 +25,6 @@ start() {
 	echo -n "Starting $prog: "
 	mkdir -p $RUNDIR && chown www-data:www-data $RUNDIR
 	mkdir -p $TMPDIR && chown www-data:www-data $TMPDIR
-    zmfix -a
 	$command start
 	RETVAL=$?
 	[ $RETVAL = 0 ] && echo success

@@ -110,7 +110,7 @@ sub open
     $self->loadMonitor();
     use LWP::UserAgent;
     $self->{ua} = LWP::UserAgent->new;
-    $self->{ua}->agent( "ZoneMinder Control Agent/".ZOneMinder::Base::ZM_VERSION );
+    $self->{ua}->agent( "ZoneMinder Control Agent/".ZoneMinder::Base::ZM_VERSION );
     $self->{state} = 'open';
 }
 

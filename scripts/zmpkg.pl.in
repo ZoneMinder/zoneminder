@@ -166,7 +166,6 @@ if ( $command =~ /^(?:start|restart)$/ )
             }
         }
 		zmMemTidy();
-		runCommand( "zmfix" );
 		runCommand( "zmdc.pl startup" );
 
 		my $sql = "select * from Monitors";

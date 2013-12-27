@@ -59,6 +59,7 @@ public:
 	bool IsFile() const { return( type == FILE_SRC ); }
 	bool IsFfmpeg() const { return( type == FFMPEG_SRC ); }
     bool IsLibvlc() const { return( type == LIBVLC_SRC ); }
+	bool IscURL() const { return( type == CURL_SRC ); }
 	unsigned int Width() const { return( width ); }
 	unsigned int Height() const { return( height ); }
 	unsigned int Colours() const { return( colours ); }

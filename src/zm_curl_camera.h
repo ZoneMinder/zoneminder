@@ -25,10 +25,17 @@
 #include "zm_buffer.h"
 #include "zm_regexp.h"
 #include "zm_utils.h"
+#include "zm_signal.h"
+#include <string>
+#include <deque>
 
 #if HAVE_CURL_CURL_H
 #include <curl/curl.h>
 #endif
+
+#define MODE_UNSET 0
+#define MODE_SINGLE 1
+#define MODE_STREAM 2
 
 //
 // Class representing 'remote' cameras, i.e. those which are
@@ -44,6 +51,18 @@ protected:
 #if HAVE_LIBCURL
 	CURL* c;
 #endif
+
+	/* Shared data */
+	bool bTerminate;
+	int mode;
+	Buffer databuffer;
+	std::deque<size_t> single_offsets;
+
+	/* pthread objects */
+	pthread_t thread;
+	pthread_mutex_t shareddata_mutex;
+	pthread_cond_t data_available_cond;
+	pthread_cond_t request_complete_cond;
 
 public:
 	cURLCamera( int p_id, const std::string &path, const std::string &username, const std::string &password,  int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
@@ -63,11 +82,22 @@ public:
 
 	size_t data_callback(void *buffer, size_t size, size_t nmemb, void *userdata);
 	size_t header_callback(void *buffer, size_t size, size_t nmemb, void *userdata);
+	int progress_callback(void *userdata, double dltotal, double dlnow, double ultotal, double ulnow);	
 	int debug_callback(CURL* handle, curl_infotype type, char* str, size_t strsize, void* data);
+	void* thread_func();
+	int lock();
+	int unlock();
 
 private:
-	CURLcode ret;
+	int nRet;
+	CURLcode cRet;
 
 };
+
+/* Dispatchers */
+size_t header_callback_dispatcher(void *buffer, size_t size, size_t nmemb, void *userdata);
+size_t data_callback_dispatcher(void *buffer, size_t size, size_t nmemb, void *userdata);
+int progress_callback_dispatcher(void *userdata, double dltotal, double dlnow, double ultotal, double ulnow);
+void* thread_func_dispatcher(void* object);
 
 #endif // ZM_CURL_CAMERA_H

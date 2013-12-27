@@ -120,7 +120,7 @@ if(NOT ZM_NO_CURL)
 	else(CURL_FOUND)
 		set(optlibsnotfound "${optlibsnotfound} cURL")
 	endif(CURL_FOUND)
-endif(ZM_NO_CURL)
+endif(NOT ZM_NO_CURL)
 
 # jpeg
 find_package(JPEG)

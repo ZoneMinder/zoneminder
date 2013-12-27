@@ -56,7 +56,7 @@ my $fps = '';
 my $size = '';
 my $overwrite = 0;
 
-my @formats = split( /\s+/, ZM_FFMPEG_FORMATS );
+my @formats = split( /\s+/, $Config{ZM_FFMPEG_FORMATS} );
 for ( my $i = 0; $i < @formats; $i++ )
 {
 	if ( $i =~ /^(.+)\*$/ )
@@ -92,7 +92,7 @@ if ( !$event_id || $event_id < 0 )
 	Usage();
 }
 
-if ( !ZM_OPT_FFMPEG )
+if ( ! $Config{ZM_OPT_FFMPEG} )
 {
 	print( STDERR "Mpeg encoding is not currently enabled\n" );
 	exit(-1);
@@ -221,7 +221,7 @@ if ( $overwrite || !-s $video_file )
         $video_size = $size;
     }
 
-    my $command = ZM_PATH_FFMPEG." -y -r $frame_rate ".ZM_FFMPEG_INPUT_OPTIONS." -i %0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg -s $video_size ".ZM_FFMPEG_OUTPUT_OPTIONS." '$video_file' > ffmpeg.log 2>&1";
+    my $command = $Config{ZM_PATH_FFMPEG}." -y -r $frame_rate ".$Config{ZM_FFMPEG_INPUT_OPTIONS}." -i %0".$Config{ZM_EVENT_IMAGE_DIGITS}."d-capture.jpg -s $video_size ".$Config{ZM_FFMPEG_OUTPUT_OPTIONS}." '$video_file' > ffmpeg.log 2>&1";
     Debug( $command."\n" );
     my $output = qx($command);
 

@@ -261,6 +261,31 @@ int RemoteCameraRtsp::Capture( Image &image )
             if ( !buffer.size() )
                 return( -1 );
 
+            if(mCodecContext->codec_id == CODEC_ID_H264)
+            {
+                // SPS and PPS frames should be saved and appended to IDR frames
+                int nalType = (buffer.head()[3] & 0x1f);
+                
+                // SPS
+                if(nalType == 7)
+                {
+                    lastSps = buffer;
+                    continue;
+                }
+                // PPS
+                else if(nalType == 8)
+                {
+                    lastPps = buffer;
+                    continue;
+                }
+                // IDR
+                else if(nalType == 5)
+                {
+                    buffer += lastSps;
+                    buffer += lastPps;
+                }
+            }
+
             av_init_packet( &packet );
             
 	    while ( !frameComplete && buffer.size() > 0 )

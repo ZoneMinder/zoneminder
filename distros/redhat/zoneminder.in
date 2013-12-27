@@ -26,7 +26,8 @@ command="$ZM_PATH_BIN/zmpkg.pl"
 
 start()
 {
-	zmupdate || return $?
+# Commenting out as it is not needed. Leaving as a placeholder for future use.
+#	zmupdate || return $?
 	loadconf || return $?
 	#Make sure the directory for our PID folder exists or create one.
 	[ ! -d $pidfile ] \

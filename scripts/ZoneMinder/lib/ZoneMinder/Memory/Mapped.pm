@@ -80,7 +80,7 @@ sub zmMemAttach( $$ )
 	my $size = shift;
 	if ( !defined($monitor->{MMapAddr}) )
 	{
-        my $mmap_file = ZM_PATH_MAP."/zm.mmap.".$monitor->{Id};
+        my $mmap_file = $Config{ZM_PATH_MAP}."/zm.mmap.".$monitor->{Id};
 		if ( -s $mmap_file < $size ) {
 			Error( sprintf( "Memory map file '%s' should have been %d but was instead %d", $mmap_file, $size, -s $mmap_file ) );
 			return ( undef );
@@ -160,7 +160,7 @@ sub zmMemPut( $$$$ )
 sub zmMemClean
 {
 	Debug( "Removing memory map files\n" );
-    my $mapPath = ZM_PATH_MAP."/zm.mmap.*";
+    my $mapPath = $Config{ZM_PATH_MAP}."/zm.mmap.*";
     foreach my $mapFile( glob( $mapPath ) )
     {
         ( $mapFile ) = $mapFile =~ /^(.+)$/;

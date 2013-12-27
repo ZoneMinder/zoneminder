@@ -23,13 +23,6 @@
 #include "zm_config.h"
 #include "zm_logger.h"
 
-extern "C"
-{
-#if !HAVE_DECL_ROUND
-double round(double);
-#endif
-}
-
 #include <stdint.h>
 
 extern const char* self;

@@ -15,7 +15,7 @@
 
      mysql -uroot -p
 	mysql> create database zm;
-	mysql> grant select,insert,update,delete,alter on zm.* to
+	mysql> grant select,insert,update,delete,lock tables,alter on zm.* to
                'zmuser'@localhost identified by 'zmpass';
 	mysql> exit;
      mysql -uroot -p < /usr/share/zoneminder/db/zm_create.sql

@@ -1,4 +1,4 @@
-zoneminder (1.26.4-2) precise; urgency=high
+zoneminder (1.26.5-1) precise; urgency=high
 
   * improvements to zmupdate.pl, cleanups
 

@@ -71,3 +71,7 @@ override_dh_fixperms:
 
 override_dh_auto_test:
 	# do not run tests...
+
+.PHONY: override_dh_strip
+override_dh_strip:
+        dh_strip --dbg-package=zoneminder-dbg

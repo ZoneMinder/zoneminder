@@ -9,17 +9,17 @@ function updateButtons( element )
         var canExecute = false;
         if ( form.elements['autoArchive'].checked )
             canExecute = true;
-        if ( form.elements['autoVideo'].checked )
+        else if ( form.elements['autoVideo'].checked )
             canExecute = true;
-        if ( form.elements['autoUpload'].checked )
+        else if ( form.elements['autoUpload'] && form.elements['autoUpload'].checked )
             canExecute = true;
-        if ( form.elements['autoEmail'].checked )
+        else if ( form.elements['autoEmail'].checked )
             canExecute = true;
-        if ( form.elements['autoMessage'].checked )
+        else if ( form.elements['autoMessage'].checked )
             canExecute = true;
-        if ( form.elements['autoExecute'].checked && form.elements['autoExecuteCmd'].value != '' )
+        else if ( form.elements['autoExecute'].checked && form.elements['autoExecuteCmd'].value != '' )
             canExecute = true;
-        if ( form.elements['autoDelete'].checked )
+        else if ( form.elements['autoDelete'].checked )
             canExecute = true;
         form.elements['executeButton'].disabled = !canExecute;
     }

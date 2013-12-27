@@ -8,7 +8,7 @@
 %define zmgid_final apache
 
 Name:       zoneminder
-Version:    1.26.4
+Version:    1.26.5
 Release:    1%{?dist}
 Summary:    A camera monitoring and analysis tool
 Group:      System Environment/Daemons
@@ -228,7 +228,6 @@ fi
 %{_bindir}/zmdc.pl
 %{_bindir}/zmf
 %{_bindir}/zmfilter.pl
-%attr(4755,root,root) %{_bindir}/zmfix
 %{_bindir}/zmpkg.pl
 %{_bindir}/zmstreamer
 %{_bindir}/zmtrack.pl
@@ -259,6 +258,10 @@ fi
 
 
 %changelog
+* Mon Dec 16 2013 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.26.5
+- This is a bug fixe release
+- RTSP fixes, cmake enhancements, couple other misc fixes
+
 * Sat Oct 05 2013 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.26.4
 - Fedora specific path changes have been moved to zoneminder-1.26.0-defaults.patch
 - All files are now part of the zoneminder source tree. Update specfile accordingly.

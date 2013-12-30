@@ -20,9 +20,6 @@
 #
 # ==========================================================================
 #
-# This module contains the implementation of the Foscam FI8908W / FI8918W IP camera control
-# protocol
-#
 package ZoneMinder::Control::FI8908W;
 
 use 5.006;
@@ -33,8 +30,6 @@ require ZoneMinder::Base;
 require ZoneMinder::Control;
 
 our @ISA = qw(ZoneMinder::Control);
-
-our $VERSION = $ZoneMinder::Base::VERSION;
 
 # ==========================================================================
 #
@@ -47,16 +42,11 @@ use ZoneMinder::Config qw(:all);
 
 use Time::HiRes qw( usleep );
 
-# To rotate camera one needs "operator" privileges:
-our $user = 'operator';
-our $pass = 'secretpassword';
-
 sub new
 { 
 	my $class = shift;
 	my $id = shift;
 	my $self = ZoneMinder::Control->new( $id );
-	my $logindetails = "";
 	bless( $self, $class );
 	srand( time() );
 	return $self;
@@ -85,7 +75,7 @@ sub open
 
 	use LWP::UserAgent;
 	$self->{ua} = LWP::UserAgent->new;
-	$self->{ua}->agent( "ZoneMinder Control Agent/".ZM_VERSION );
+	$self->{ua}->agent( "ZoneMinder Control Agent/".ZoneMinder::Base::ZM_VERSION );
 
 	$self->{state} = 'open';
 }
@@ -110,6 +100,17 @@ sub sendCmd
 	my $self = shift;
 	my $cmd = shift;
 	my $result = undef;
+
+	my ($user, $password) = split /:/, $self->{Monitor}->{ControlDevice};
+
+	if ( !defined $password ) {
+		# If value of "Control device" does not consist of two parts, then only password is given and we fallback to default user:
+		$password = $user;
+		$user = 'admin';
+	}
+
+	$cmd .= "user=$user&pwd=$password";
+
 	printMsg( $cmd, "Tx" );
 
 	my $req = HTTP::Request->new( GET=>"http://".$self->{Monitor}->{ControlAddress}."/$cmd" );
@@ -121,7 +122,7 @@ sub sendCmd
 	}
 	else
 	{
-		Error( "Error check failed:'".$res->status_line()."'" );
+		Error( "Error check failed: '".$res->status_line()."' for URL ".$req->uri() );
 	}
 
 	return( $result );
@@ -131,8 +132,7 @@ sub reset
 {
 	my $self = shift;
 	Debug( "Camera Reset" );
-	my $cmd = "reboot.cgi?user=$user&pwd=$pass";
-	$self->sendCmd( $cmd );
+	$self->sendCmd( 'reboot.cgi?' );
 }
 
 #Up Arrow
@@ -140,8 +140,7 @@ sub moveConUp
 {
 	my $self = shift;
 	Debug( "Move Up" );
-	my $cmd = "decoder_control.cgi?command=0&user=$user&pwd=$pass";
-	$self->sendCmd( $cmd );
+	$self->sendCmd( 'decoder_control.cgi?command=0&' );
 }
 
 #Down Arrow
@@ -149,8 +148,7 @@ sub moveConDown
 {
 	my $self = shift;
 	Debug( "Move Down" );
-	my $cmd = "decoder_control.cgi?command=2&user=$user&pwd=$pass";
-	$self->sendCmd( $cmd );
+	$self->sendCmd( 'decoder_control.cgi?command=2&' );
 }
 
 #Left Arrow
@@ -158,8 +156,7 @@ sub moveConLeft
 {
 	my $self = shift;
 	Debug( "Move Left" );
-	my $cmd = "decoder_control.cgi?command=6&user=$user&pwd=$pass";
-	$self->sendCmd( $cmd );
+	$self->sendCmd( 'decoder_control.cgi?command=6&' );
 }
 
 #Right Arrow
@@ -167,8 +164,7 @@ sub moveConRight
 {
 	my $self = shift;
 	Debug( "Move Right" );
-	my $cmd = "decoder_control.cgi?command=4&user=$user&pwd=$pass";
-	$self->sendCmd( $cmd );
+	$self->sendCmd( 'decoder_control.cgi?command=4&' );
 }
 
 #Diagonally Up Right Arrow
@@ -176,8 +172,7 @@ sub moveConUpRight
 {
 	my $self = shift;
 	Debug( "Move Diagonally Up Right" );
-	my $cmd = "decoder_control.cgi?command=90&user=$user&pwd=$pass";
-	$self->sendCmd( $cmd );
+	$self->sendCmd( 'decoder_control.cgi?command=90&' );
 }
 
 #Diagonally Down Right Arrow
@@ -185,8 +180,7 @@ sub moveConDownRight
 {
 	my $self = shift;
 	Debug( "Move Diagonally Down Right" );
-	my $cmd = "decoder_control.cgi?command=92&user=$user&pwd=$pass";
-	$self->sendCmd( $cmd );
+	$self->sendCmd( 'decoder_control.cgi?command=92&' );
 }
 
 #Diagonally Up Left Arrow
@@ -194,8 +188,7 @@ sub moveConUpLeft
 {
 	my $self = shift;
 	Debug( "Move Diagonally Up Left" );
-	my $cmd = "decoder_control.cgi?command=91&user=$user&pwd=$pass";
-	$self->sendCmd( $cmd );
+	$self->sendCmd( 'decoder_control.cgi?command=91&' );
 }
 
 #Diagonally Down Left Arrow
@@ -203,8 +196,7 @@ sub moveConDownLeft
 {
 	my $self = shift;
 	Debug( "Move Diagonally Down Left" );
-	my $cmd = "decoder_control.cgi?command=93&user=$user&pwd=$pass";
-	$self->sendCmd( $cmd );
+	$self->sendCmd( 'decoder_control.cgi?command=93&' );
 }
 
 #Stop
@@ -212,8 +204,7 @@ sub moveStop
 {
 	my $self = shift;
 	Debug( "Move Stop" );
-	my $cmd = "decoder_control.cgi?user=$user&pwd=$pass&command=1";
-	$self->sendCmd( $cmd );
+	$self->sendCmd( 'decoder_control.cgi?command=1&' );
 }
 
 #Move Camera to Home Position
@@ -221,8 +212,20 @@ sub presetHome
 {
 	my $self = shift;
 	Debug( "Home Preset" );
-	my $cmd = "decoder_control.cgi?command=25&user=$user&pwd=$pass";
-	$self->sendCmd( $cmd );
+	$self->sendCmd( 'decoder_control.cgi?command=25&' );
 }
 
 1;
+
+__END__
+=pod
+
+=head1 DESCRIPTION
+
+This module contains the implementation of the Foscam FI8908W / FI8918W IP camera control
+protocol.
+
+The module uses "Control Device" value to retrieve user and password. User and password should
+be separated by colon, e.g. user:password. If colon is not provided, then "admin" is used
+as a fallback value for the user.
+=cut

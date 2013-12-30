@@ -158,17 +158,6 @@ int X264MP4Writer::Open() {
 		return -12;
 	}
 
-	/* Write SPS & PPS */
-	for(int i=0;i<i_nals;i++) {
-		if(nals[i].i_type == NAL_SPS) {
-			/* Write SPS */
-			MP4AddH264SequenceParameterSet(mp4h, mp4vtid, nals[i].p_payload+4, nals[i].i_payload-4);
-		} else if (nals[i].i_type == NAL_PPS) {
-			/* Write PPS */
-			MP4AddH264PictureParameterSet(mp4h, mp4vtid, nals[i].p_payload+4, nals[i].i_payload-4);
-		}
-	}
-	
 	bOpen = true;
 	
 	return 0;

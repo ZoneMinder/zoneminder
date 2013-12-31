@@ -20,6 +20,8 @@
 #ifndef ZM_CURL_CAMERA_H
 #define ZM_CURL_CAMERA_H
 
+#if HAVE_LIBCURL
+
 #include "zm_camera.h"
 #include "zm_ffmpeg.h"
 #include "zm_buffer.h"
@@ -33,10 +35,6 @@
 #include <curl/curl.h>
 #endif
 
-#define MODE_UNSET 0
-#define MODE_SINGLE 1
-#define MODE_STREAM 2
-
 //
 // Class representing 'remote' cameras, i.e. those which are
 // accessed over a network connection.
@@ -44,17 +42,19 @@
 class cURLCamera : public Camera
 {
 protected:
+	typedef enum {MODE_UNSET, MODE_SINGLE, MODE_STREAM} mode_t;
+
 	std::string mPath;
 	std::string mUser;
 	std::string mPass;
 
-#if HAVE_LIBCURL
+	/* cURL object(s) */
 	CURL* c;
-#endif
 
 	/* Shared data */
-	bool bTerminate;
-	int mode;
+	volatile bool bTerminate;
+	volatile bool bReset;
+	volatile mode_t mode;
 	Buffer databuffer;
 	std::deque<size_t> single_offsets;
 
@@ -99,5 +99,7 @@ size_t header_callback_dispatcher(void *buffer, size_t size, size_t nmemb, void 
 size_t data_callback_dispatcher(void *buffer, size_t size, size_t nmemb, void *userdata);
 int progress_callback_dispatcher(void *userdata, double dltotal, double dlnow, double ultotal, double ulnow);
 void* thread_func_dispatcher(void* object);
+
+#endif // HAVE_LIBCURL
 
 #endif // ZM_CURL_CAMERA_H

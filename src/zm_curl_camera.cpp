@@ -23,6 +23,8 @@
 #if HAVE_LIBCURL
 
 #define CURL_MAXRETRY 5
+#define CURL_BUFFER_INITIAL_SIZE 65536
+
 const char* content_length_match = "Content-Length:";
 const char* content_type_match = "Content-Type:";
 size_t content_length_match_len;
@@ -52,6 +54,8 @@ void cURLCamera::Initialise()
 {
 	content_length_match_len = strlen(content_length_match);
 	content_type_match_len = strlen(content_type_match);
+
+	databuffer.expand(CURL_BUFFER_INITIAL_SIZE);
 
 	/* cURL initialization */
 	cRet = curl_global_init(CURL_GLOBAL_ALL);
@@ -135,9 +139,28 @@ int cURLCamera::Capture( Image &image )
 		return (-1);
 	}
 
+	/* Grab the mutex to ensure exclusive access to the shared data */
+	lock();
+
 	while (!frameComplete) {
 
-		lock();
+		/* If the work thread did a reset, reset our local variables */
+		if(bReset) {
+			SubHeadersParsingComplete = false;
+			frame_content_length = 0;
+			frame_content_type.clear();
+			need_more_data = false;
+			bReset = false;
+		}
+
+		if(mode == MODE_UNSET) {
+			/* Don't have a mode yet. Sleep while waiting for data */
+			nRet = pthread_cond_wait(&data_available_cond,&shareddata_mutex);
+			if(nRet != 0) {
+				Error("Failed waiting for available data condition variable: %s",strerror(nRet));
+				return -20;
+			}
+		}
 
 		if(mode == MODE_STREAM) {
 
@@ -146,6 +169,13 @@ int cURLCamera::Capture( Image &image )
 
 				size_t crlf_start, crlf_end, crlf_size;
 				std::string subheader;
+
+				/* Check if the buffer contains something */
+				if(databuffer.empty()) {
+					/* Empty buffer, wait for data */
+					need_more_data = true;
+					break;
+				}
 		 
 				/* Find crlf start */
 				crlf_start = memcspn(databuffer,"\r\n",databuffer.size());
@@ -268,11 +298,15 @@ int cURLCamera::Capture( Image &image )
 					return -19;
 				}
 			}
-		} /* MODE_SINGLE */
-
-		unlock();
+		} else {
+			/* This shouldn't happen */
+			Fatal("Unknown mode");
+		} /* mode */
 
 	} /* frameComplete loop */
+
+	/* Release the mutex */
+	unlock();
 
 	if(!frameComplete)
 		return -1;
@@ -404,7 +438,7 @@ void* cURLCamera::thread_func()
 
 
 	/* Work loop */
-	for(unsigned int attempt=0;attempt<CURL_MAXRETRY;attempt++) {
+	for(int attempt=0;attempt<CURL_MAXRETRY;attempt++) {
 		tRet = 0;
 		while(!bTerminate) {
 			/* Do the work */
@@ -424,8 +458,10 @@ void* cURLCamera::thread_func()
 				/* Push the size into our offsets array */
 				if(dSize > 0) {
 					single_offsets.push_back(dSize);
+				} else {
+					Fatal("Unable to get the size of the image");
 				}
-				/* Signal the request completed condition variable */
+				/* Signal the request complete condition variable */
 				tRet = pthread_cond_signal(&request_complete_cond);
 				if(tRet != 0) {
 					Error("Failed signaling request completed condition variable: %s",strerror(tRet));
@@ -440,11 +476,20 @@ void* cURLCamera::thread_func()
 
 		/* Return value checking */
 		if(cRet == CURLE_ABORTED_BY_CALLBACK || bTerminate) {
+			/* Aborted */
 			break;
 		} else if (cRet != CURLE_OK) {
+			/* Some error */
 			Error("cURL Request failed: %s",curl_easy_strerror(cRet));
-			if(attempt<4) {
+			if(attempt < (CURL_MAXRETRY-1)) {
 				Error("Retrying.. Attempt %d of %d: %s",attempt+1,CURL_MAXRETRY);
+				/* Do a reset */
+				lock();
+				databuffer.clear();
+				single_offsets.clear();
+				mode = MODE_UNSET;
+				bReset = true;
+				unlock();
 			}
 			tRet = -50;
 		}

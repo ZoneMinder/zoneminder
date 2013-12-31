@@ -43,7 +43,7 @@ override_dh_clean:
 
 override_dh_install:
 	# Add here commands to install the package into debian/zm.
-	$(MAKE) install DESTDIR=$(CURDIR)/debian/zoneminder RUNDIR=$(CURDIR)/debian/zoneminder/var/run ZM_RUNDIR=$(CURDIR)/debian/zoneminder/var/run
+	$(MAKE) install DESTDIR=$(CURDIR)/debian/zoneminder
 	install -D -m 0644 db/zm_create.sql		$(CURDIR)/debian/zoneminder/usr/share/zoneminder/db
 	install -D -m 0644 db/zm_update-*.sql $(CURDIR)/debian/zoneminder/usr/share/zoneminder/db
 	install -D -m 0644 debian/apache.conf  $(CURDIR)/debian/zoneminder/etc/zm

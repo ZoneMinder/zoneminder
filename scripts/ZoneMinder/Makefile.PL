@@ -28,6 +28,7 @@ WriteMakefile(
 		'lib/ZoneMinder/Control/SkyIPCam7xx.pm' => '$(INST_LIBDIR)/ZoneMinder/Control/SkyIPCam7xx.pm',
 		'lib/ZoneMinder/Control/FI8608W_Y2k.pm' => '$(INST_LIBDIR)/ZoneMinder/Control/FI8608W_Y2k.pm',
 		'lib/ZoneMinder/Control/FI8620_Y2k.pm' => '$(INST_LIBDIR)/ZoneMinder/Control/FI8620_Y2k.pm',
+		'lib/ZoneMinder/Control/FI8908W.pm' => '$(INST_LIBDIR)/ZoneMinder/Control/FI8908W.pm',
 		'lib/ZoneMinder/Control/FI9821W_Y2k.pm' => '$(INST_LIBDIR)/ZoneMinder/Control/FI9821W_Y2k.pm',
 		'lib/ZoneMinder/Control/LoftekSentinel.pm' => '$(INST_LIBDIR)/ZoneMinder/Control/LoftekSentinel.pm',
 		'lib/ZoneMinder/Trigger/Channel.pm' => '$(INST_LIBDIR)/ZoneMinder/Trigger/Channel.pm',

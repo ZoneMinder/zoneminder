@@ -24,6 +24,8 @@
 
 #include <arpa/inet.h>
 
+#if HAVE_LIBAVCODEC
+
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54,25,0)
     #define _AVCODECID AVCodecID
 #else
@@ -386,3 +388,5 @@ bool RtpSource::getFrame( Buffer &buffer )
 }
 
 #undef _AVCODECID
+
+#endif // HAVE_LIBAVCODEC

@@ -46,3 +46,4 @@ after_success:
   - mysql -uzmuser -pzmpass < db/zm_create.sql
   - mysql -uzmuser -pzmpass zm < db/test.monitor.sql
   - sudo zmpkg.pl start
+  - sudo zmfilter.pl -f purgewhenfull

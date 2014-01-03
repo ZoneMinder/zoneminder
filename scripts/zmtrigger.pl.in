@@ -437,4 +437,7 @@ sub handleMessage
 	{
 		Error( "Unrecognised action '$action' in message '$message'\n" );
 	}
-}
+} # end sub handleMessage
+
+1;
+__END__

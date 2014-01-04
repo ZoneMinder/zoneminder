@@ -248,7 +248,6 @@ sub getLoad
 
 sub getFilters
 {
-   exit(1);
     my $filter_name = shift;
 
     my @filters;

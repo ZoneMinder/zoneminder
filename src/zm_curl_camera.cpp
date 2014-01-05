@@ -32,7 +32,7 @@ size_t content_type_match_len;
 
 cURLCamera::cURLCamera( int p_id, const std::string &p_path, const std::string &p_user, const std::string &p_pass, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) :
     Camera( p_id, CURL_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture ),
-    mPath( p_path ), mUser( p_user ), mPass ( p_pass ), bTerminate( false ), mode ( MODE_UNSET )
+    mPath( p_path ), mUser( p_user ), mPass ( p_pass ), bTerminate( false ), bReset( false ), mode ( MODE_UNSET )
 {
 
 	if ( capture )
@@ -110,8 +110,7 @@ void cURLCamera::Terminate()
 
 int cURLCamera::PrimeCapture()
 {
-	Info( "Priming capture from %s", mPath.c_str() );
-
+	//Info( "Priming capture from %s", mPath.c_str() );
 	return 0;
 }
 
@@ -369,8 +368,6 @@ size_t cURLCamera::header_callback( void *buffer, size_t size, size_t nmemb, voi
 		} else if(content_type.compare(0, strlen(image_jpeg_match), image_jpeg_match) == 0) {
 			Debug(7,"Content type matched as image/jpeg");
 			mode = MODE_SINGLE;
-		} else {
-			Fatal("Unknown Content-Type: %s", content_type.c_str());
 		}
 
 		unlock();

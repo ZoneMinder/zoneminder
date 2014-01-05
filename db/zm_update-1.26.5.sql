@@ -14,10 +14,12 @@ SET @s = (SELECT IF(
 	AND column_name = 'AlarmRefBlendPerc'
 	) > 0,
 "SELECT 1",
-"ALTER TABLE `Monitors` ADD `AlarmRefBlendPerc` TINYINT(3) UNSIGNED NOT NULL DEFAULT '3' AFTER `RefBlendPerc`"
+"ALTER TABLE `Monitors` ADD `AlarmRefBlendPerc` TINYINT(3) UNSIGNED NOT NULL DEFAULT '6' AFTER `RefBlendPerc`"
 ));
 
 PREPARE stmt FROM @s;
 EXECUTE stmt;
+
+UPDATE `Monitors` SET `AlarmRefBlendPerc` = `RefBlendPerc`;
 
 

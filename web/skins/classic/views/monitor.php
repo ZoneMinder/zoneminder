@@ -96,7 +96,7 @@ else
         'AlarmMaxFPS' => "",
         'FPSReportInterval' => 1000,
         'RefBlendPerc' => 6,
-        'AlarmRefBlendPerc' => 3,
+        'AlarmRefBlendPerc' => 6,
         'DefaultView' => 'Events',
         'DefaultRate' => '100',
         'DefaultScale' => '100',

@@ -228,6 +228,7 @@ function parseFilterToTree( $filter )
                         case 'MonitorName':
                         case 'Name':
                         case 'Cause':
+                        case 'Notes':
                             $value = "'$value'";
                             break;
                         case 'DateTime':

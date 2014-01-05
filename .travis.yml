@@ -33,16 +33,16 @@ before_script:
   - if [ "$ZM_BUILDMETHOD" = "autotools" ]; then autoheader; fi
   - if [ "$ZM_BUILDMETHOD" = "autotools" ]; then automake --force-missing --add-missing; fi
   - if [ "$ZM_BUILDMETHOD" = "autotools" ]; then autoconf; fi
+  - mysql -uroot -e "CREATE DATABASE IF NOT EXISTS zm"
+  - mysql -uroot -e "GRANT ALL ON zm.* TO 'zmuser'@'localhost' IDENTIFIED BY 'zmpass'";
+  - mysql -uroot -e "FLUSH PRIVILEGES"
 script:
   - if [ "$ZM_BUILDMETHOD" = "autotools" ]; then ./configure --prefix=/usr --with-libarch=lib/$DEB_HOST_GNU_TYPE --host=$DEB_HOST_GNU_TYPE --build=$DEB_BUILD_GNU_TYPE --with-mysql=/usr --with-ffmpeg=/usr --with-webdir=/usr/share/zoneminder/www --with-cgidir=/usr/libexec/zoneminder/cgi-bin --with-webuser=www-data --with-webgroup=www-data --enable-crashtrace=yes --disable-debug --enable-mmap=yes ZM_SSL_LIB=openssl; fi
   - if [ "$ZM_BUILDMETHOD" = "cmake" ]; then cmake -DCMAKE_INSTALL_PREFIX="/usr"; fi
   - make
   - sudo make install
-after_success:
   - if [ "$ZM_BUILDMETHOD" = "cmake" ]; then sudo ./zmlinkcontent.sh; fi
-  - mysql -uroot -e "CREATE DATABASE IF NOT EXISTS zm"
-  - mysql -uroot -e "GRANT ALL ON zm.* TO 'zmuser'@'localhost' IDENTIFIED BY 'zmpass'";
-  - mysql -uroot -e "FLUSH PRIVILEGES"
   - mysql -uzmuser -pzmpass < db/zm_create.sql
   - mysql -uzmuser -pzmpass zm < db/test.monitor.sql
   - sudo zmpkg.pl start
+  - sudo zmfilter.pl -f purgewhenfull

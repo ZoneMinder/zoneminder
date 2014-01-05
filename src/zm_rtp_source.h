@@ -28,6 +28,8 @@
 #include <stdint.h>
 #include <string>
 
+#if HAVE_LIBAVCODEC
+
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54,25,0)
     #define _AVCODECID AVCodecID
 #else
@@ -188,5 +190,7 @@ public:
 };
 
 #undef _AVCODECID
+
+#endif // HAVE_LIBAVCODEC
 
 #endif // ZM_RTP_SOURCE_H

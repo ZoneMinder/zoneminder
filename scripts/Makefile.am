@@ -62,6 +62,7 @@ EXTRA_DIST = \
 	ZoneMinder/lib/ZoneMinder/Control/SkyIPCam7xx.pm \
 	ZoneMinder/lib/ZoneMinder/Control/FI8608W_Y2k.pm \
 	ZoneMinder/lib/ZoneMinder/Control/FI8620_Y2k.pm \
+	ZoneMinder/lib/ZoneMinder/Control/FI8908W.pm \
 	ZoneMinder/lib/ZoneMinder/Control/FI9821W_Y2k.pm \
 	ZoneMinder/lib/ZoneMinder/Control/LoftekSentinel.pm \
 	ZoneMinder/lib/ZoneMinder/Trigger/Channel.pm \

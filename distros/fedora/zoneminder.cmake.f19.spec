@@ -3,6 +3,10 @@
 %define zmuid_final apache
 %define zmgid_final apache
 
+### Delete the lines below to build with ffmpeg and/or x10
+%define _without_ffmpeg 1
+%define _without_x10 1
+
 Name: zoneminder
 Version: 1.26.5
 Release: 1%{?dist}
@@ -17,8 +21,6 @@ URL: http://www.zoneminder.com/
 Source: ZoneMinder-%{version}.tar.gz
 
 Patch1: zoneminder-1.26.0-defaults.patch
-# Enable this patch to disable ffmpeg support
-#Patch2: zoneminder-1.26.3-noffmpeg.patch
 
 BuildRequires: cmake gnutls-devel systemd-units bzip2-devel
 BuildRequires: community-mysql-devel pcre-devel libjpeg-turbo-devel
@@ -28,19 +30,18 @@ BuildRequires: perl(ExtUtils::MakeMaker) perl(LWP::UserAgent)
 BuildRequires: perl(MIME::Entity) perl(MIME::Lite)
 BuildRequires: perl(PHP::Serialization) perl(Sys::Mmap)
 BuildRequires: perl(Time::HiRes) perl(Net::SFTP::Foreign)
-BuildRequires: perl(Expect)
+BuildRequires: perl(Expect) perl(Sys::Syslog)
 BuildRequires: gcc gcc-c++
-# Comment out for no ffmpeg
-BuildRequires: ffmpeg-devel
-# Uncomment for X10 support
-#BuildRequires: perl(X10::ActiveHome) perl(Astro::SunTime)
+%{!?_without_ffmpeg:BuildRequires: ffmpeg-devel}
+%{!?_without_x10:BuildRequires: perl(X10::ActiveHome) perl(Astro::SunTime)}
 
 Requires: httpd php php-mysql cambozola
-Requires: libjpeg-turbo ffmpeg
+Requires: libjpeg-turbo
 Requires: perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires: perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)
 Requires: perl(MIME::Entity) perl(MIME::Lite) perl(Net::SMTP) perl(Net::FTP)
 Requires: perl(LWP::Protocol::https)
+%{!?_without_ffmpeg:Requires: ffmpeg}
 
 Requires(post): systemd-units systemd-sysv
 Requires(post): /usr/bin/gpasswd
@@ -64,7 +65,12 @@ too much degradation of performance.
 #%patch2 -p0 -b .noffmpeg
 
 %build
-%cmake -DZM_TARGET_DISTRO="f19" -DZM_NO_X10=ON -DZM_NO_FFMPEG=ON -DZM_PERL_SUBPREFIX=`x="%{perl_vendorlib}" ; echo ${x#"%{_prefix}"}` .
+%cmake \
+	-DZM_TARGET_DISTRO="f19" \
+	-DZM_PERL_SUBPREFIX=`x="%{perl_vendorlib}" ; echo ${x#"%{_prefix}"}` \
+%{?_without_ffmpeg:-DZM_NO_FFMPEG=ON} \
+%{?_without_x10:-DZM_NO_X10=ON} \
+	.
 
 make %{?_smp_mflags}
 
@@ -78,8 +84,9 @@ if [ $1 -eq 1 ] ; then
     /bin/systemctl daemon-reload >/dev/null 2>&1 || :
 fi
 
-# Allow zoneminder access to local video sources
-/usr/bin/gpasswd -a %zmuid_final video
+# Allow zoneminder access to local video sources, serial ports, and x10
+/usr/bin/gpasswd -a %{zmuid_final} video
+/usr/bin/gpasswd -a %{zmuid_final} dialout
 
 # Display the README for post installation instructions
 /usr/bin/less %{_docdir}/%{name}-%{version}/README.Fedora
@@ -126,6 +133,8 @@ fi
 %{_bindir}/zmdc.pl
 %{_bindir}/zmf
 %{_bindir}/zmfilter.pl
+# zmfix removed from zoneminder 1.26.6
+#%attr(4755,root,root) %{_bindir}/zmfix
 %{_bindir}/zmpkg.pl
 %{_bindir}/zmstreamer
 %{_bindir}/zmtrack.pl
@@ -134,8 +143,7 @@ fi
 %{_bindir}/zmupdate.pl
 %{_bindir}/zmvideo.pl
 %{_bindir}/zmwatch.pl
-# Uncomment this for x10 support
-#%{_bindir}/zmx10.pl
+%{!?_without_x10:%{_bindir}/zmx10.pl}
 
 %{perl_vendorlib}/ZoneMinder*
 %{perl_vendorlib}/%{_arch}-linux-thread-multi/auto/ZoneMinder*

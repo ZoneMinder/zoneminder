@@ -76,8 +76,11 @@ sub zmMemKey( $ )
 
 sub zmMemAttach( $$ )
 {
-	my $monitor = shift;
-	my $size = shift;
+	my ( $monitor, $size ) = @_;
+	if ( ! $size ) {
+		Error( "No size passed to zmMemAttach for monitor $$monitor{Id}\n" );
+		return( undef );
+	}
 	if ( !defined($monitor->{MMapAddr}) )
 	{
         my $mmap_file = $Config{ZM_PATH_MAP}."/zm.mmap.".$monitor->{Id};
@@ -95,6 +98,7 @@ sub zmMemAttach( $$ )
         if ( !$mmap_addr || !$mmap )
         {
     		Error( sprintf( "Can't mmap to file '%s': $!\n", $mmap_file ) );
+			close( MMAP );
 			return( undef );
         }
 		$monitor->{MMapHandle} = \*MMAP;
@@ -110,7 +114,9 @@ sub zmMemDetach( $ )
 
     if ( $monitor->{MMap} )
     {
-        munmap( ${$monitor->{MMap}} );
+        if ( ! munmap( ${$monitor->{MMap}} ) ) {
+			Warn( "Unable to munmap for monitor $$monitor{Id}\n");
+		} 
 	    delete $monitor->{MMap};
     }
     if ( $monitor->{MMapAddr} )

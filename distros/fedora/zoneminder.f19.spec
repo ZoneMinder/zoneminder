@@ -7,6 +7,10 @@
 %define zmuid_final apache
 %define zmgid_final apache
 
+### Delete the lines below to build with ffmpeg and/or x10
+%define _without_ffmpeg 1
+%define _without_x10 1
+
 Name:       zoneminder
 Version:    1.26.5
 Release:    1%{?dist}
@@ -28,11 +32,9 @@ Source2:    jscalendar-%{jscrev}.zip
 # here.
 #Source3:    http://mootools.net/download/get/mootools-core-%{moorev}-full-compat-yc.js
 
-#Patch1:     zoneminder-1.26.4-dbinstall.patch
-Patch2:     zoneminder-1.24.3-runlevel.patch
-Patch3:     zoneminder-1.26.0-defaults.patch
-# Enable this patch to disable ffmpeg support
-#Patch4:     zoneminder-1.26.3-noffmpeg.patch
+Patch1:     zoneminder-1.24.3-runlevel.patch
+Patch2:     zoneminder-1.26.0-defaults.patch
+%{?_without_ffmpeg:Patch3:	zoneminder-1.26.3-noffmpeg.patch}
 
 BuildRequires:  automake gnutls-devel systemd-units
 BuildRequires:  libtool bzip2-devel
@@ -46,10 +48,8 @@ BuildRequires:  perl(Time::HiRes) perl(Net::SFTP::Foreign)
 BuildRequires:  perl(Expect) perl(Sys::Syslog)
 BuildRequires:  gcc gcc-c++
 BuildRequires:  autoconf autoconf-archive
-# Comment out for no ffmpeg
-BuildRequires:  ffmpeg-devel
-# Uncomment for X10 support
-#BuildRequires:  perl(X10::ActiveHome) perl(Astro::SunTime)
+%{!?_without_ffmpeg:BuildRequires: ffmpeg-devel}
+%{!?_without_x10:BuildRequires: perl(X10::ActiveHome) perl(Astro::SunTime)}
 
 Requires:   httpd php php-mysql cambozola
 Requires:   libjpeg-turbo ffmpeg
@@ -84,10 +84,9 @@ mv *html *php doc/* README ../jscalendar-doc
 rmdir doc
 popd
 
-#%patch1 -p0 -b .dbinstall
-%patch2 -p0 -b .runlevel
-%patch3 -p0 -b .defaults
-#%patch4 -p0 -b .noffmpeg
+%patch1 -p0 -b .runlevel
+%patch2 -p0 -b .defaults
+%{?_without_ffmpeg:%patch3 -p0 -b .noffmpeg}
 
 chmod -x src/zm_event.cpp src/zm_user.h
 
@@ -132,8 +131,7 @@ install -d %{buildroot}/%{_localstatedir}/run
 make install DESTDIR=%{buildroot} \
     INSTALLDIRS=vendor
 rm -rf %{buildroot}/%{perl_vendorarch} %{buildroot}/%{perl_archlib}
-# Comment out for x10 support
-rm -f %{buildroot}/%{_bindir}/zmx10.pl
+%{?_without_x10:%{__rm} -f %{buildroot}/%{_bindir}/zmx10.pl}
 
 install -m 755 -d %{buildroot}/var/log/zoneminder
 for dir in events images temp
@@ -159,7 +157,7 @@ cp -rp jscalendar-1.0/* %{buildroot}/%{_datadir}/zoneminder/www/jscalendar
 
 # Set up cambozola
 pushd %{buildroot}/%{_datadir}/zoneminder/www
-ln -s ../../java/cambozola.jar
+%{__ln_s} ../../java/cambozola.jar
 popd
 
 # Set up mootools
@@ -180,8 +178,9 @@ if [ $1 -eq 1 ] ; then
     /bin/systemctl daemon-reload >/dev/null 2>&1 || :
 fi
 
-# Allow zoneminder access to local video sources
-/usr/bin/gpasswd -a %zmuid_final video
+# Allow zoneminder access to local video sources, serial ports, and x10
+/usr/bin/gpasswd -a %{zmuid_final} video
+/usr/bin/gpasswd -a %{zmuid_final} dialout
 
 # Display the README for post installation instructions
 /usr/bin/less %{_docdir}/%{name}-%{version}/README.Fedora
@@ -228,6 +227,8 @@ fi
 %{_bindir}/zmdc.pl
 %{_bindir}/zmf
 %{_bindir}/zmfilter.pl
+# zmfix removed from zoneminder 1.26.6
+#%attr(4755,root,root) %{_bindir}/zmfix
 %{_bindir}/zmpkg.pl
 %{_bindir}/zmstreamer
 %{_bindir}/zmtrack.pl
@@ -236,7 +237,7 @@ fi
 %{_bindir}/zmupdate.pl
 %{_bindir}/zmvideo.pl
 %{_bindir}/zmwatch.pl
-#%{_bindir}/zmx10.pl
+%{!?_without_x10:%{_bindir}/zmx10.pl}
 
 %{perl_vendorlib}/ZoneMinder*
 %{_mandir}/man*/*

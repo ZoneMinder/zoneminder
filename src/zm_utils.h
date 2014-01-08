@@ -35,6 +35,9 @@ StringVector split( const std::string &string, const std::string chars, int limi
 
 const std::string base64Encode( const std::string &inString );
 
+int split(const char* string, const char delim, std::vector<std::string>& items);
+int pairsplit(const char* string, const char delim, std::string& name, std::string& value);
+
 inline int max( int a, int b )
 {
     return( a>=b?a:b );

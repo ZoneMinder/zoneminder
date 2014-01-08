@@ -152,6 +152,47 @@ const std::string base64Encode( const std::string &inString )
     return( outString );
 }
 
+int split(const char* string, const char delim, std::vector<std::string>& items) {
+	if(string == NULL)
+		return -1;
+
+	if(string[0] == 0)
+		return -2;
+
+	std::string str(string);
+	size_t pos;
+	
+	while(true) {
+		pos = str.find(delim);
+		items.push_back(str.substr(0, pos));
+		str.erase(0, pos+1);
+
+		if(pos == std::string::npos)
+			break;
+	}
+
+	return items.size();
+}
+
+int pairsplit(const char* string, const char delim, std::string& name, std::string& value) {
+	if(string == NULL)
+		return -1;
+
+	if(string[0] == 0)
+		return -2;
+
+	std::string str(string);
+	size_t pos = str.find(delim);
+
+	if(pos == std::string::npos || pos == 0 || pos >= str.length())
+		return -3;
+
+	name = str.substr(0, pos);
+	value = str.substr(pos+1, std::string::npos);
+
+	return 0;
+}
+
 /* Sets sse_version  */
 void ssedetect() {
 #if (defined(__i386__) || defined(__x86_64__))

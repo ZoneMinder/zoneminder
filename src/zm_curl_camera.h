@@ -68,9 +68,9 @@ public:
 	cURLCamera( int p_id, const std::string &path, const std::string &username, const std::string &password,  int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
 	~cURLCamera();
 
-        const std::string &Path() const { return( mPath ); }
-        const std::string &Username() const { return( mUser ); }
-        const std::string &Password() const { return( mPass ); }
+	const std::string &Path() const { return( mPath ); }
+	const std::string &Username() const { return( mUser ); }
+	const std::string &Password() const { return( mPass ); }
 
 	void Initialise();
 	void Terminate();

@@ -298,8 +298,8 @@ int cURLCamera::Capture( Image &image )
 				}
 			}
 		} else {
-			/* This shouldn't happen */
-			Fatal("Unknown mode");
+			/* Failed to match content-type */
+			Fatal("Unable to match Content-Type. Check URL, username and password");
 		} /* mode */
 
 	} /* frameComplete loop */
@@ -349,8 +349,13 @@ size_t cURLCamera::header_callback( void *buffer, size_t size, size_t nmemb, voi
 	Debug(4,"Got header: %s",header.c_str());
 
 	/* Check Content-Type header */	
-	if(strncasecmp(header.c_str(),content_type_match,content_type_match_len) == 0) {
-		size_t pos = header.find(' ');
+	if(strncasecmp(header.c_str(),content_type_match,content_type_match_len) == 0) {		
+		size_t pos = header.find(';');
+		if(pos != std::string::npos) {
+			header.erase(pos, std::string::npos);
+		}
+
+		pos = header.rfind(' ');
 		if(pos == std::string::npos) {
 			pos = header.find(':');
 		}
@@ -409,6 +414,9 @@ void* cURLCamera::thread_func()
 		Fatal("Failed setting libcurl data callback object: %s", curl_easy_strerror(cRet));
 
 	/* Progress callback */
+	cRet = curl_easy_setopt(c, CURLOPT_NOPROGRESS, 1);
+	if(cRet != CURLE_OK)
+		Fatal("Failed enabling libcurl progress callback function: %s", curl_easy_strerror(cRet));	
 	cRet = curl_easy_setopt(c, CURLOPT_PROGRESSFUNCTION, &progress_callback_dispatcher);
 	if(cRet != CURLE_OK)
 		Fatal("Failed setting libcurl progress callback function: %s", curl_easy_strerror(cRet));
@@ -435,7 +443,7 @@ void* cURLCamera::thread_func()
 
 
 	/* Work loop */
-	for(int attempt=0;attempt<CURL_MAXRETRY;attempt++) {
+	for(int attempt=1;attempt<=CURL_MAXRETRY;attempt++) {
 		tRet = 0;
 		while(!bTerminate) {
 			/* Do the work */
@@ -478,8 +486,8 @@ void* cURLCamera::thread_func()
 		} else if (cRet != CURLE_OK) {
 			/* Some error */
 			Error("cURL Request failed: %s",curl_easy_strerror(cRet));
-			if(attempt < (CURL_MAXRETRY-1)) {
-				Error("Retrying.. Attempt %d of %d: %s",attempt+1,CURL_MAXRETRY);
+			if(attempt < CURL_MAXRETRY) {
+				Error("Retrying.. Attempt %d of %d",attempt,CURL_MAXRETRY);
 				/* Do a reset */
 				lock();
 				databuffer.clear();

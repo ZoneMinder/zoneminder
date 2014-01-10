@@ -178,7 +178,7 @@ $sourceTypes = array(
     'File'   => $SLANG['File'],
     'Ffmpeg' => $SLANG['Ffmpeg'],
     'Libvlc' => $SLANG['Libvlc'],
-    'cURL'   => "cURL"
+    'cURL'   => "cURL (HTTP only)"
 );
 if ( !ZM_HAS_V4L )
     unset($sourceTypes['Local']);

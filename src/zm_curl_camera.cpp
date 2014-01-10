@@ -414,7 +414,7 @@ void* cURLCamera::thread_func()
 		Fatal("Failed setting libcurl data callback object: %s", curl_easy_strerror(cRet));
 
 	/* Progress callback */
-	cRet = curl_easy_setopt(c, CURLOPT_NOPROGRESS, 1);
+	cRet = curl_easy_setopt(c, CURLOPT_NOPROGRESS, 0);
 	if(cRet != CURLE_OK)
 		Fatal("Failed enabling libcurl progress callback function: %s", curl_easy_strerror(cRet));	
 	cRet = curl_easy_setopt(c, CURLOPT_PROGRESSFUNCTION, &progress_callback_dispatcher);

@@ -1270,7 +1270,7 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
 
                 if ( vidioctl( vid_fd, VIDIOC_ENUMSTD, &standard ) < 0 )
                 {
-                    if ( errno == EINVAL )
+                    if ( errno == EINVAL || errno == ENODATA )
                     {
                         standardIndex = -1;
                         break;

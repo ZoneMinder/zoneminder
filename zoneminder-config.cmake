@@ -21,6 +21,8 @@
 /* Library checks and their header files */
 #cmakedefine HAVE_LIBZLIB 1
 #cmakedefine HAVE_ZLIB_H 1
+#cmakedefine HAVE_LIBCURL 1
+#cmakedefine HAVE_CURL_CURL_H 1
 #cmakedefine HAVE_LIBJPEG 1
 #cmakedefine HAVE_JPEGLIB_H 1
 #cmakedefine HAVE_LIBOPENSSL 1

@@ -26,6 +26,7 @@ zm_SOURCES = \
 	zm_comms.cpp \
 	zm_config.cpp \
 	zm_coord.cpp \
+	zm_curl_camera.cpp \
 	zm.cpp \
 	zm_db.cpp \
 	zm_logger.cpp \
@@ -76,6 +77,7 @@ noinst_HEADERS = \
 	zm_config_defines.h \
 	zm_config.h \
 	zm_coord.h \
+	zm_curl_camera.h \
 	zm_db.h \
 	zm_logger.h \
 	zm_event.h \

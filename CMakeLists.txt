@@ -63,6 +63,7 @@ set(ZM_MYSQL_ENGINE "InnoDB" CACHE STRING "MySQL engine to use with database, de
 set(ZM_NO_MMAP "OFF" CACHE BOOL "Set to ON to not use mmap shared memory. Shouldn't be enabled unless you experience problems with the shared memory. default: OFF")
 set(ZM_NO_FFMPEG "OFF" CACHE BOOL "Set to ON to skip ffmpeg checks and force building ZM without ffmpeg. default: OFF")
 set(ZM_NO_LIBVLC "OFF" CACHE BOOL "Set to ON to skip libvlc checks and force building ZM without libvlc. default: OFF")
+set(ZM_NO_CURL "OFF" CACHE BOOL "Set to ON to skip cURL checks and force building ZM without cURL. default: OFF")
 set(ZM_NO_X10 "OFF" CACHE BOOL "Set to ON to build ZoneMinder without X10 support. default: OFF")
 set(ZM_PERL_SUBPREFIX "${CMAKE_INSTALL_LIBDIR}/perl5" CACHE PATH "Use a different directory for the zm perl modules. NOTE: This is a subprefix, e.g. lib will be turned into <prefix>/lib, default: <libdir>/perl5")
 set(ZM_PERL_USE_PATH "${CMAKE_INSTALL_PREFIX}/${ZM_PERL_SUBPREFIX}" CACHE PATH "Override the include path for zm perl modules. Useful if you are moving the perl modules without using the ZM_PERL_SUBPREFIX option. default: <prefix>/<zmperlsubprefix>")
@@ -104,6 +105,22 @@ if(ZLIB_FOUND)
 else(ZLIB_FOUND)
 	set(optlibsnotfound "${optlibsnotfound} zlib")
 endif(ZLIB_FOUND)
+
+# Do not check for cURL if ZM_NO_CURL is on
+if(NOT ZM_NO_CURL)
+	# cURL
+	find_package(CURL)
+	if(CURL_FOUND)
+		set(HAVE_LIBCURL 1)
+		list(APPEND ZM_BIN_LIBS ${CURL_LIBRARIES})
+		include_directories(${CURL_INCLUDE_DIRS})
+		set(CMAKE_REQUIRED_INCLUDES ${CURL_INCLUDE_DIRS})
+		check_include_file("curl/curl.h" HAVE_CURL_CURL_H)
+		set(optlibsfound "${optlibsfound} cURL")
+	else(CURL_FOUND)
+		set(optlibsnotfound "${optlibsnotfound} cURL")
+	endif(CURL_FOUND)
+endif(NOT ZM_NO_CURL)
 
 # jpeg
 find_package(JPEG)

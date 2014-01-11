@@ -278,6 +278,7 @@ AC_CHECK_LIB(swscale,sws_scale,,,-lswscale)
 AC_CHECK_LIB(vlc,libvlc_new,,AC_MSG_WARN(libvlc.a may be required for streaming))
 AC_CHECK_LIB(bz2,BZ2_bzCompress,,AC_MSG_WARN(zm requires libbz2.a for recent versions of ffmpeg))
 AC_CHECK_LIB(z,compress,,)
+AC_CHECK_LIB(curl,curl_global_init,,)
 
 # Checks for header files.
 AC_FUNC_ALLOCA
@@ -315,6 +316,7 @@ AC_CHECK_HEADERS(sys/shm.h,,,)
 fi
 AC_CHECK_HEADERS(zlib.h,,,)
 AC_CHECK_HEADERS(vlc/vlc.h,,,)
+AC_CHECK_HEADERS(curl/curl.h,,,)
 
 if test "$ZM_SSL_LIB" == "openssl"; then
 AC_CHECK_DECLS(MD5,,AC_MSG_ERROR([zm requires openssl/md5.h - use ZM_SSL_LIB option to select gnutls instead]),[#include <stdlib.h>

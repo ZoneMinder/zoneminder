@@ -313,6 +313,8 @@ foreach( $displayMonitors as $monitor )
     $shortpath = $domain ? $domain : preg_replace( '/^.*\//', '', $monitor['Path'] );
 ?>
             <td class="colSource"><?= makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.$shortpath.'</span>', canEdit( 'Monitors' ) ) ?></td>
+<?php } elseif ( $monitor['Type'] == "cURL" ) { ?>
+            <td class="colSource"><?= makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.preg_replace( '/^.*\//', '', $monitor['Path'] ).'</span>', canEdit( 'Monitors' ) ) ?></td>
 <?php } else { ?>
             <td class="colSource">&nbsp;</td>
 <?php } ?>

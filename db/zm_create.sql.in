@@ -262,6 +262,8 @@ CREATE TABLE `Groups` (
 --
 -- Table structure for table `Logs`
 --
+
+DROP TABLE IF EXISTS `Logs`;
 CREATE TABLE `Logs` (
   `TimeKey` decimal(16,6) NOT NULL,
   `Component` varchar(32) NOT NULL,

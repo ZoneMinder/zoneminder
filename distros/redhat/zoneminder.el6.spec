@@ -244,6 +244,7 @@ fi
 %{_bindir}/zmupdate.pl
 %{_bindir}/zmvideo.pl
 %{_bindir}/zmwatch.pl
+%{_bindir}/zmcamtool.pl
 %{_bindir}/zmx10.pl
 
 %{perl_vendorlib}/ZoneMinder*

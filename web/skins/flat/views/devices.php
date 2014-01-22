@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder web devices file, $Date: 2009-10-16 18:09:16 +0100 (Fri, 16 Oct 2009) $, $Revision: 2982 $
+// ZoneMinder web devices file, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
 //
 // This program is free software; you can redistribute it and/or

@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder HTML configuration file, $Date: 2010-11-03 16:36:03 +0000 (Wed, 03 Nov 2010) $, $Revision: 3166 $
+// ZoneMinder HTML configuration file, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
 //
 // This program is free software; you can redistribute it and/or

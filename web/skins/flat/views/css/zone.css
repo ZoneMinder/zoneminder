@@ -33,9 +33,13 @@
     position: relative;
 }
 
+/* NB: The size of the imageFrame determines the area within which the markers
+ * may be moved.  When adjusting the padding and margins of the imageFrame and
+ * the DIVs within it, test that the markers behave sensibly when dragged to
+ * the extreme edges of the imageFrame. */
 #imageFrame {
     position: relative;
-    padding: 0 6px 6px 0; /* Double margin of points below */
+    padding: 0 3px 3px 0; /* Compensate for negative margins in the markers just below. */
 }
 
 #imageFrame div {

@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder web events view file, $Date: 2010-02-23 09:12:12 +0000 (Tue, 23 Feb 2010) $, $Revision: 3031 $
+// ZoneMinder web events view file, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
 //
 // This program is free software; you can redistribute it and/or
@@ -30,7 +30,7 @@ if ( !empty($_REQUEST['execute']) )
 }
 
 $countSql = "select count(E.Id) as EventCount from Monitors as M inner join Events as E on (M.Id = E.MonitorId) where";
-$eventsSql = "select E.Id,E.MonitorId,M.Name As MonitorName,M.Width,M.Height,M.DefaultScale,E.Name,E.Cause,E.Notes,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived from Monitors as M inner join Events as E on (M.Id = E.MonitorId) where";
+$eventsSql = "select E.Id,E.MonitorId,M.Name As MonitorName,M.DefaultScale,E.Name,E.Width,E.Height,E.Cause,E.Notes,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived from Monitors as M inner join Events as E on (M.Id = E.MonitorId) where";
 if ( $user['MonitorIds'] )
 {
     $countSql .= " M.Id in (".join( ",", preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) ).")";

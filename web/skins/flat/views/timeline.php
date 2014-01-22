@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder web timeline view file, $Date: 2011-02-06 15:28:49 +0000 (Sun, 06 Feb 2011) $, $Revision: 3277 $
+// ZoneMinder web timeline view file, $Date$, $Revision$
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License

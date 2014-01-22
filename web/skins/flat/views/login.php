@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder web login view file, $Date: 2008-09-26 10:47:20 +0100 (Fri, 26 Sep 2008) $, $Revision: 2632 $
+// ZoneMinder web login view file, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
 //
 // This program is free software; you can redistribute it and/or

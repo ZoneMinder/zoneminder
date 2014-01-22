@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder web event view file, $Date: 2010-11-03 15:49:46 +0000 (Wed, 03 Nov 2010) $, $Revision: 3159 $
+// ZoneMinder web event view file, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
 //
 // This program is free software; you can redistribute it and/or
@@ -32,7 +32,7 @@ if ( $user['MonitorIds'] )
 else
     $midSql = '';
 
-$sql = "select E.*,M.Name as MonitorName,M.Width,M.Height,M.DefaultRate,M.DefaultScale from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = '".dbEscape($eid)."'".$midSql;
+$sql = "select E.*,M.Name as MonitorName,M.DefaultRate,M.DefaultScale from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = '".dbEscape($eid)."'".$midSql;
 $event = dbFetchOne( $sql );
 
 if ( isset( $_REQUEST['rate'] ) )
@@ -59,8 +59,10 @@ if ( isset( $_REQUEST['replayMode'] ) )
     $replayMode = validHtmlStr($_REQUEST['replayMode']);
 if ( isset( $_COOKIE['replayMode']) && preg_match('#^[a-z]+$#', $_COOKIE['replayMode']) )
     $replayMode = validHtmlStr($_COOKIE['replayMode']);
- else
-     $replayMode = array_shift( array_keys( $replayModes ) );
+else {
+	$keys = array_keys( $replayModes );
+	$replayMode = array_shift( $keys );
+}
 
 parseSort();
 parseFilter( $_REQUEST['filter'] );

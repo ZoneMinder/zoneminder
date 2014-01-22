@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder web control capabilities view file, $Date: 2009-01-30 17:43:29 +0000 (Fri, 30 Jan 2009) $, $Revision: 2737 $
+// ZoneMinder web control capabilities view file, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
 //
 // This program is free software; you can redistribute it and/or
@@ -345,7 +345,7 @@ switch ( $tab )
 ?>
             <tr><th scope="row"><?= $SLANG['Name'] ?></th><td><input type="text" name="newControl[Name]" value="<?= validHtmlStr($newControl['Name']) ?>" size="24"/></td></tr>
 <?php
-        $types = array( 'Local'=>$SLANG['Local'], 'Remote'=>$SLANG['Remote'] );
+        $types = array( 'Local'=>$SLANG['Local'], 'Remote'=>$SLANG['Remote'], 'Ffmpeg'=>$SLANG['Ffmpeg'], 'Libvlc'=>$SLANG['Libvlc'], 'cURL'=>"cURL");
 ?>
             <tr><th scope="row"><?= $SLANG['Type'] ?></th><td><?= buildSelect( "newControl[Type]", $types ); ?></td></tr>
             <tr><th scope="row"><?= $SLANG['Protocol'] ?></th><td><input type="text" name="newControl[Protocol]" value="<?= validHtmlStr($newControl['Protocol']) ?>" size="24"/></td></tr>

@@ -1,5 +1,5 @@
 //
-// ZoneMinder base static javascript file, $Date: 2011-06-21 10:19:10 +0100 (Tue, 21 Jun 2011) $, $Revision: 3459 $
+// ZoneMinder base static javascript file, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
 //
 // This program is free software; you can redistribute it and/or
@@ -38,7 +38,7 @@ var popupSizes = {
     'events':       { 'width': 760, 'height': 480 },
     'export':       { 'width': 400, 'height': 340 },
     'filter':       { 'width': 720, 'height': 360 },
-    'filtersave':   { 'width': 560, 'height': 120 },
+    'filtersave':   { 'width': 560, 'height': 160 },
     'frame':        { 'addWidth': 32, 'minWidth': 384, 'addHeight': 100 },
     'frames':       { 'width': 500, 'height': 300 },
     'function':     { 'width': 248, 'height': 92 },
@@ -54,7 +54,7 @@ var popupSizes = {
     'monitorselect':{ 'width': 160, 'height': 200 },
     'montage':      { 'width': -1, 'height': -1 },
     'optionhelp':   { 'width': 400, 'height': 320 },
-    'options':      { 'width': 920, 'height': 620 },
+    'options':      { 'width': 960, 'height': 620 },
     'preset':       { 'width': 300, 'height': 120 },
     'settings':     { 'width': 200, 'height': 225 },
     'state':        { 'width': 240, 'height': 124 },
@@ -82,52 +82,52 @@ function getPopupSize( tag, width, height )
     var popupSize = Object.clone( popupSizes[tag] );
     if ( !popupSize )
     {
-        console.error( "Can't find window size for tag '"+tag+"'" );
+        Error( "Can't find window size for tag '"+tag+"'" );
         return( { 'width': 0, 'height': 0 } );
     }
     if ( popupSize.width && popupSize.height )
     {
         if ( width || height )
-            console.warn( "Ignoring passed dimensions "+width+"x"+height+" when getting popup size for tag '"+tag+"'"  );
+            Warning( "Ignoring passed dimensions "+width+"x"+height+" when getting popup size for tag '"+tag+"'"  );
         return( popupSize );
     }
     if ( popupSize.addWidth )
     {
         popupSize.width = popupSize.addWidth;
         if ( !width )
-            console.error( "Got addWidth but no passed width when getting popup size for tag '"+tag+"'" );
+            Error( "Got addWidth but no passed width when getting popup size for tag '"+tag+"'" );
         else
             popupSize.width += parseInt(width);
     }
     else if ( width )
     {
         popupSize.width = width;
-        console.error( "Got passed width but no addWidth when getting popup size for tag '"+tag+"'" );
+        Error( "Got passed width but no addWidth when getting popup size for tag '"+tag+"'" );
     }
     if ( popupSize.minWidth && popupSize.width < popupSize.minWidth )
     {
-        console.warn( "Adjusting to minimum width when getting popup size for tag '"+tag+"'" );
+        Warning( "Adjusting to minimum width when getting popup size for tag '"+tag+"'" );
         popupSize.width = popupSize.minWidth;
     }
     if ( popupSize.addHeight )
     {
         popupSize.height = popupSize.addHeight;
         if ( !height )
-            console.error( "Got addHeight but no passed height when getting popup size for tag '"+tag+"'" );
+            Error( "Got addHeight but no passed height when getting popup size for tag '"+tag+"'" );
         else
             popupSize.height += parseInt(height);
     }
     else if ( height )
     {
         popupSize.height = height;
-        console.error( "Got passed height but no addHeight when getting popup size for tag '"+tag+"'" );
+        Error( "Got passed height but no addHeight when getting popup size for tag '"+tag+"'" );
     }
     if ( popupSize.minHeight && popupSize.height < popupSize.minHeight )
     {
-        console.warn( "Adjusting to minimum height when getting popup size for tag '"+tag+"'" );
+        Warning( "Adjusting to minimum height when getting popup size for tag '"+tag+"'" );
         popupSize.height = popupSize.minHeight;
     }
-    console.debug( popupSize );
+    Debug( popupSize );
     return( popupSize );
 }
 
@@ -200,12 +200,12 @@ function checkStreamForErrors( funcName, streamObj )
 {
     if ( !streamObj )
     {
-        console.error( funcName+": stream object was null" );
+        Error( funcName+": stream object was null" );
         return true;
     }
     if ( streamObj.result == "Error" )
     {
-        console.error( funcName+" stream error: "+streamObj.message );
+        Error( funcName+" stream error: "+streamObj.message );
         return true;
     }
     return false;

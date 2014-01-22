@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder web console file, $Date: 2011-06-21 10:19:10 +0100 (Tue, 21 Jun 2011) $, $Revision: 3459 $
+// ZoneMinder web console file, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
 //
 // This program is free software; you can redistribute it and/or
@@ -307,6 +307,13 @@ foreach( $displayMonitors as $monitor )
 <?php } elseif ( $monitor['Type'] == "File" ) { ?>
             <td class="colSource"><?= makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.preg_replace( '/^.*\//', '', $monitor['Path'] ).'</span>', canEdit( 'Monitors' ) ) ?></td>
 <?php } elseif ( $monitor['Type'] == "Ffmpeg" ) { ?>
+            <td class="colSource"><?= makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.preg_replace( '/^.*\//', '', $monitor['Path'] ).'</span>', canEdit( 'Monitors' ) ) ?></td>
+<?php } elseif ( $monitor['Type'] == "Libvlc" ) {
+    $domain = parse_url( $monitor['Path'], PHP_URL_HOST );
+    $shortpath = $domain ? $domain : preg_replace( '/^.*\//', '', $monitor['Path'] );
+?>
+            <td class="colSource"><?= makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.$shortpath.'</span>', canEdit( 'Monitors' ) ) ?></td>
+<?php } elseif ( $monitor['Type'] == "cURL" ) { ?>
             <td class="colSource"><?= makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.preg_replace( '/^.*\//', '', $monitor['Path'] ).'</span>', canEdit( 'Monitors' ) ) ?></td>
 <?php } else { ?>
             <td class="colSource">&nbsp;</td>

@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder web null view file, $Date: 2008-09-01 13:39:24 +0100 (Mon, 01 Sep 2008) $, $Revision: 2616 $
+// ZoneMinder web null view file, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
 //
 // This program is free software; you can redistribute it and/or

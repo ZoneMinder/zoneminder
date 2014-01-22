@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder web video view file, $Date: 2011-02-06 16:52:10 +0000 (Sun, 06 Feb 2011) $, $Revision: 3288 $
+// ZoneMinder web video view file, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
 //
 // This program is free software; you can redistribute it and/or
@@ -29,7 +29,7 @@ if ( !empty($user['MonitorIds']) )
 else
     $midSql = '';
 
-$sql = "select E.*,M.Name as MonitorName,M.Width,M.Height,M.DefaultRate,M.DefaultScale from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = ".dbEscape($_REQUEST['eid']).$midSql;
+$sql = "select E.*,M.Name as MonitorName,M.DefaultRate,M.DefaultScale from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = ".dbEscape($_REQUEST['eid']).$midSql;
 $event = dbFetchOne( $sql );
 
 if ( isset( $_REQUEST['rate'] ) )

@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder web montage view file, $Date: 2010-11-03 16:39:47 +0000 (Wed, 03 Nov 2010) $, $Revision: 3168 $
+// ZoneMinder web montage view file, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
 //
 // This program is free software; you can redistribute it and/or
@@ -44,8 +44,11 @@ foreach( dbFetchAll( $sql ) as $row )
     {
         continue;
     }
+    
     if ( isset( $_REQUEST['scale'] ) )
         $scale = validInt($_REQUEST['scale']);
+    else if ( isset( $_COOKIE['zmMontageScale'] ) )
+        $scale = $_COOKIE['zmMontageScale'];
     else
         $scale = reScale( SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
 

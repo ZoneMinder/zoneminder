@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder web option help view file, $Date: 2011-01-20 18:38:24 +0000 (Thu, 20 Jan 2011) $, $Revision: 3229 $
+// ZoneMinder web option help view file, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
 //
 // This program is free software; you can redistribute it and/or

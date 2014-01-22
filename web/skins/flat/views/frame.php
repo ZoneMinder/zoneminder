@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder web frame view file, $Date: 2010-02-23 09:12:12 +0000 (Tue, 23 Feb 2010) $, $Revision: 3031 $
+// ZoneMinder web frame view file, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
 //
 // This program is free software; you can redistribute it and/or
@@ -28,7 +28,7 @@ $eid = validInt($_REQUEST['eid']);
 if ( !empty($_REQUEST['fid']) )
     $fid = validInt($_REQUEST['fid']);
 
-$sql = "select E.*,M.Name as MonitorName,M.Width,M.Height,M.DefaultScale from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = '".dbEscape($eid)."'";
+$sql = "select E.*,M.Name as MonitorName,M.DefaultScale from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = '".dbEscape($eid)."'";
 $event = dbFetchOne( $sql );
 
 if ( !empty($fid) )

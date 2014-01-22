@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder web donate view file, $Date: 2008-10-07 10:02:17 +0100 (Tue, 07 Oct 2008) $, $Revision: 2651 $
+// ZoneMinder web donate view file, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
 //
 // This program is free software; you can redistribute it and/or

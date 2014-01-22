@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder web run state view file, $Date: 2009-09-28 15:16:17 +0100 (Mon, 28 Sep 2009) $, $Revision: 2958 $
+// ZoneMinder web run state view file, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
 //
 // This program is free software; you can redistribute it and/or

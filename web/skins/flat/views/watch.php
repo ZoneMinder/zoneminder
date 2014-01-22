@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder web watch feed view file, $Date: 2011-02-06 16:04:11 +0000 (Sun, 06 Feb 2011) $, $Revision: 3281 $
+// ZoneMinder web watch feed view file, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
 //
 // This program is free software; you can redistribute it and/or
@@ -55,6 +55,7 @@ else
 {
     $streamMode = "single";
     $streamSrc = getStreamSrc( array( "mode=".$streamMode, "monitor=".$monitor['Id'], "scale=".$scale ) );
+    Info( "The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.");
 }
 
 $showDvrControls = ( $streamMode == 'jpeg' && $monitor['StreamReplayBuffer'] != 0 );

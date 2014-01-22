@@ -62,8 +62,9 @@ function xhtmlHeaders( $file, $title )
 <?php
     }
 ?>
-  <script type="text/javascript" src="/javascript/mootools/mootools-core-nc.js"></script>
-  <script type="text/javascript" src="/javascript/mootools/mootools-more-nc.js"></script>
+  <script type="text/javascript" src="tools/mootools/mootools-core.js"></script>
+  <script type="text/javascript" src="tools/mootools/mootools-more.js"></script>
+  <script type="text/javascript" src="js/mootools.ext.js"></script>
   <script type="text/javascript" src="js/logger.js"></script>
   <script type="text/javascript" src="js/overlay.js"></script>
 <?php

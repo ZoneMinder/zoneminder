@@ -1,0 +1,15 @@
+#contentTable + input {
+    margin-top: 6px;
+}
+
+#contentTable th, #contentTable td {
+    white-space: nowrap;
+}
+
+#exportProgress {
+    margin: 8px auto 4px;
+}
+
+#downloadLink {
+    margin-top: 8px;
+}

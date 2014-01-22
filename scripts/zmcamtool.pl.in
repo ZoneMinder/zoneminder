@@ -127,14 +127,13 @@ PARAMETERS:
 }
 
 # Subroutine that checks if a name already exists in a sql table
-# Not currently in-use b/c it requires a call to zmdbconnect each time (expensive)
 sub checkName
 {
+	my $dbh = shift;
 	my $sqltable = shift;
 	my $sqlname = shift;
 	my $result = 0;	
 
-	my $dbh = zmDbConnect();
 	my $sql = "select count(*) from $sqltable where Name = ?";
 	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 	my $res = $sth->execute($sqlname) or die( "Can't execute: ".$sth->errstr() );
@@ -188,14 +187,7 @@ sub importsql
 
 	my $dbh = zmDbConnect();
 	foreach (keys %controls) {
-		my $sql = "select count(*) from Controls where Name = ?";
-		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-		my $res = $sth->execute($_) or die( "Can't execute: ".$sth->errstr() );
-
-		my $rows = $sth->fetchrow_arrayref();
-		$sth->finish();
-
-		if ($rows->[0] == 0) {
+		if (!checkName($dbh,"Controls",$_)) {
 			# No existing Control was found.  Add new control to dB.
 			$sql = $controls{$_};
 			$sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
@@ -219,14 +211,7 @@ sub importsql
 	}
 
 	foreach (keys %monitorpresets) {
-		my $sql = "select count(*) from MonitorPresets where Name = ?";
-		my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-		my $res = $sth->execute($_) or die( "Can't execute: ".$sth->errstr() );
-
-		my $rows = $sth->fetchrow_arrayref();
-		$sth->finish();
-
-		if ($rows->[0] == 0) {
+		if (!checkName($dbh,"MonitorPresets",$_)) {
 			# No existing MonitorPreset was found.  Add new MonitorPreset to dB.
 			$sql = $monitorpresets{$_};
 			$sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
@@ -324,17 +309,7 @@ sub toPreset
 	# TO-DO - Add code that tries to intelligently replace certain values with generic ones e.g. <ip>, <user>, <pwd>, etc.
 	#
 
-	# Check that we don't already have a record with the same name
-#	my $nameexists = checkName("MonitorPresets",$data[0]);
-
-	$sql = "select count(*) from MonitorPresets where Name = ?";
-	$sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-	$res = $sth->execute($data[0]) or die( "Can't execute: ".$sth->errstr() );
-
-	my $rows = $sth->fetchrow_arrayref();
-	$sth->finish();
-
-	if ($rows->[0] == 0) {
+	if (!checkName($dbh,"MonitorPresets",$data[0])) {
 		# No existing Preset was found.  Add new Preset to dB.
 		print "Adding new preset: $data[0]\n";
 		$sql = "insert into MonitorPresets values (NULL,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";

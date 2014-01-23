@@ -1,0 +1,30 @@
+#monitors {
+    width: 100%;
+    margin: 0 auto;
+    text-align: center;
+}
+
+#monitors .monitorFrame {
+    padding: 1px;
+    float: left;
+}
+
+#monitors .monitor {
+}
+
+#monitorFrame0, #monitorFrame2, #monitorFrame4, #monitorFrame6, #monitorFrame8, #monitorFrame10, #monitorFrame12, #monitorFrame14 {
+    width: 49%;
+    clear: both;
+}
+
+#monitor0, #monitor2, #monitor4, #monitor6, #monitor8, #monitor10, #monitor12, #monitor14 {
+    float: right;
+}
+
+#monitorFrame1, #monitorFrame3, #monitorFrame5, #monitorFrame7, #monitorFrame9, #monitorFrame11, #monitorFrame13, #monitorFrame15 {
+    width: 49%;
+}
+
+#monitor1, #monitor3, #monitor5, #monitor7, #monitor9, #monitor11, #monitor13, #monitor15 {
+    float: left;
+}

@@ -80,6 +80,11 @@ if ( ($export)&&($overwrite) ) {
 	print "Warning: Overwrite parameter ignored during an export.\n";
 }
 
+if ( ($topreset)&&(!$ARGV[0]) ) {
+	print( STDERR qq/Parameter "topreset" requires a monitor ID.\n/ );
+	Usage();
+}
+
 # Call the appropriate subroutine based on the params given on the commandline
 if ($help) {
 	Usage();
@@ -126,7 +131,17 @@ PARAMETERS:
 \n");
 }
 
-# Subroutine that checks if a name already exists in a sql table
+# Exectute a pre-built sql statement
+sub runQuery
+{
+	my $dbh = shift;
+	my $sql = shift;
+	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+	$sth->finish();
+}
+
+# Checks if a name already exists in a sql table
 sub checkName
 {
 	my $dbh = shift;
@@ -148,7 +163,7 @@ sub checkName
 	return $result;
 }
 
-# Subroutine that deletes a name from a sql table
+# Delete a name from a sql table
 sub rmName
 {
 	my $dbh = shift;
@@ -163,7 +178,7 @@ sub rmName
 	return $res;
 }
 
-# Subroutine to import camera control & presets into the zoneminder dB
+# Import camera control & presets into the zoneminder dB
 sub importsql 
 {
 	my @newcontrols;
@@ -204,17 +219,12 @@ sub importsql
 	foreach (keys %controls) {
 		if (!checkName($dbh,"Controls",$_)) {
 			# No existing Control was found.  Add new control to dB.
-			my $sql = $controls{$_};
-			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-			my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+			runQuery($dbh,$controls{$_});
 			push @newcontrols, $_;
 		} elsif ($overwrite) {
 			# An existing Control was found and the overwrite flag is set.  Overwrite the control.
 			rmName($dbh,"Controls",$_);
-			my $sql = $controls{$_};
-			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-			my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
-			$sth->finish();
+			runQuery($dbh,$controls{$_});
 			push @overwritecontrols, $_;
 		} else {
 			# An existing Control was found and the overwrite flag was not set. Do nothing.
@@ -225,17 +235,12 @@ sub importsql
 	foreach (keys %monitorpresets) {
 		if (!checkName($dbh,"MonitorPresets",$_)) {
 			# No existing MonitorPreset was found.  Add new MonitorPreset to dB.
-			my $sql = $monitorpresets{$_};
-			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-			my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+			runQuery($dbh,$monitorpresets{$_});
 			push @newpresets, $_;
 		} elsif ($overwrite) {
 			# An existing MonitorPreset was found and the overwrite flag is set.  Overwrite the MonitorPreset.
 			rmName($dbh,"MonitorPresets",$_);
-			my $sql = $monitorpresets{$_};
-			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-			my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
-			$sth->finish();
+			runQuery($dbh,$monitorpresets{$_});
 			push @overwritepresets, $_;
 		} else {
 			# An existing MonitorPreset was found and the overwrite flag was not set. Do nothing.
@@ -264,7 +269,7 @@ sub importsql
 	}
 }
 
-# Subroutine to export camera control & presets from the zoneminder dB to STDOUT
+# Export camera controls & presets from the zoneminder dB to STDOUT
 sub exportsql
 {
 
@@ -327,10 +332,7 @@ sub toPreset
 	} elsif ($overwrite) {
 		# An existing Control was found and the overwrite flag is set.  Overwrite the control.
 		print "Existing preset $data[0] dedected.\nOverwriting...\n";
-		$sql = "delete from MonitorPresets where Name = ?";
-		$sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-		$res = $sth->execute($data[0]) or die( "Can't execute: ".$sth->errstr() );
-		$sth->finish();
+		rmName($dbh,"MonitorPresets",$data[0]);
 		$sql = "insert into MonitorPresets values (NULL,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 		$sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 		$res = $sth->execute(@data) or die( "Can't execute: ".$sth->errstr() );

@@ -148,6 +148,21 @@ sub checkName
 	return $result;
 }
 
+# Subroutine that deletes a name from a sql table
+sub rmName
+{
+	my $dbh = shift;
+	my $sqltable = shift;
+	my $sqlname = shift;
+
+	my $sql = "delete from $sqltable where Name = ?";
+	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute($sqlname) or die( "Can't execute: ".$sth->errstr() );
+	$sth->finish();
+
+	return $res;
+}
+
 # Subroutine to import camera control & presets into the zoneminder dB
 sub importsql 
 {
@@ -189,49 +204,43 @@ sub importsql
 	foreach (keys %controls) {
 		if (!checkName($dbh,"Controls",$_)) {
 			# No existing Control was found.  Add new control to dB.
-			$sql = $controls{$_};
-			$sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-			$res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+			my $sql = $controls{$_};
+			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+			my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
 			push @newcontrols, $_;
 		} elsif ($overwrite) {
 			# An existing Control was found and the overwrite flag is set.  Overwrite the control.
-			$sql = "delete from Controls where Name = ?";
-			$sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-			$res = $sth->execute($_) or die( "Can't execute: ".$sth->errstr() );
+			rmName($dbh,"Controls",$_);
+			my $sql = $controls{$_};
+			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+			my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
 			$sth->finish();
-			$sql = $controls{$_};
-			$sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-			$res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
 			push @overwritecontrols, $_;
 		} else {
 			# An existing Control was found and the overwrite flag was not set. Do nothing.
 			push @skippedcontrols, $_;
-		}
-		$sth->finish();
+		}	
 	}
 
 	foreach (keys %monitorpresets) {
 		if (!checkName($dbh,"MonitorPresets",$_)) {
 			# No existing MonitorPreset was found.  Add new MonitorPreset to dB.
-			$sql = $monitorpresets{$_};
-			$sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-			$res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+			my $sql = $monitorpresets{$_};
+			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+			my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
 			push @newpresets, $_;
 		} elsif ($overwrite) {
 			# An existing MonitorPreset was found and the overwrite flag is set.  Overwrite the MonitorPreset.
-			$sql = "delete from MonitorPresets where Name = ?";
-			$sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-			$res = $sth->execute($_) or die( "Can't execute: ".$sth->errstr() );
+			rmName($dbh,"MonitorPresets",$_);
+			my $sql = $monitorpresets{$_};
+			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+			my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
 			$sth->finish();
-			$sql = $monitorpresets{$_};
-			$sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-			$res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
 			push @overwritepresets, $_;
 		} else {
 			# An existing MonitorPreset was found and the overwrite flag was not set. Do nothing.
 			push @skippedpresets, $_;
 		}
-		$sth->finish();
 	}
 
 	if (@newcontrols) {

@@ -1,6 +1,6 @@
 AUTOMAKE_OPTIONS = gnu
 
-webdir = @WEB_PREFIX@/skins/classic
+webdir = @WEB_PREFIX@/skins/flat
 
 SUBDIRS = \
 	ajax \

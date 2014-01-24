@@ -10,6 +10,7 @@ MAINTAINER Kyle Johnson <kjohnson@gnulnx.net>
 ENV DEBIAN_FRONTEND noninteractive
 
 # Resynchronize the package index files 
+RUN echo "deb http://archive.ubuntu.com/ubuntu precise main universe" > /etc/apt/sources.list
 RUN apt-get update
 
 # Install the MySQL server

@@ -6,6 +6,9 @@
 FROM ubuntu
 MAINTAINER Kyle Johnson <kjohnson@gnulnx.net>
 
+# Let the conatiner know that there is no tty
+ENV DEBIAN_FRONTEND noninteractive
+
 # Resynchronize the package index files 
 RUN apt-get update
 

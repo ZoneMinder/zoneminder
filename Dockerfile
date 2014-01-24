@@ -9,8 +9,14 @@ MAINTAINER Kyle Johnson <kjohnson@gnulnx.net>
 # Resynchronize the package index files 
 RUN apt-get update
 
+# Install the MySQL server
+RUN apt-get install -y mysql-server
+
+# Install apache and php
+RUN apt-get install -y apache2 php5 php5-mysql apache2-mpm-prefork libapache2-mod-php5 php5-cli
+
 # Install the prerequisites required to build ZoneMinder and ffmpeg
-RUN apt-get install -y apache2 mysql-server php5 php5-mysql build-essential libmysqlclient-dev libssl-dev libbz2-dev libpcre3-dev libdbi-perl libarchive-zip-perl libdate-manip-perl libdevice-serialport-perl libmime-perl libpcre3 libwww-perl libdbd-mysql-perl libsys-mmap-perl yasm subversion automake autoconf libjpeg-turbo8-dev libjpeg-turbo8 apache2-mpm-prefork libapache2-mod-php5 php5-cli libtheora-dev libvorbis-dev libvpx-dev libx264-dev libmp4v2-dev ffmpeg git
+RUN apt-get install -y build-essential libmysqlclient-dev libssl-dev libbz2-dev libpcre3-dev libdbi-perl libarchive-zip-perl libdate-manip-perl libdevice-serialport-perl libmime-perl libpcre3 libwww-perl libdbd-mysql-perl libsys-mmap-perl yasm subversion automake autoconf libjpeg-turbo8-dev libjpeg-turbo8 libtheora-dev libvorbis-dev libvpx-dev libx264-dev libmp4v2-dev ffmpeg git
 
 # Grab the latest ZoneMinder code
 RUN git clone https://github.com/ZoneMinder/ZoneMinder.git

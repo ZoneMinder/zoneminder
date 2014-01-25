@@ -30,16 +30,17 @@ use strict;
 use bytes;
 
 @EXTRA_PERL_LIB@
-use ZoneMinder::Base qw(:all);
+# TO-DO verify the commented statements below are not needed
+#use ZoneMinder::Base qw(:all);
 use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
-use ZoneMinder::General qw(:all);
+#use ZoneMinder::General qw(:all);
 use ZoneMinder::Database qw(:all);
-use ZoneMinder::ConfigAdmin qw( :functions );
-use POSIX;
-use DBI;
+#use ZoneMinder::ConfigAdmin qw( :functions );
+#use POSIX;
+#use DBI;
 use Getopt::Long;
-use Data::Dumper;
+#use Data::Dumper;
 
 $ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
@@ -78,8 +79,8 @@ if ( ($export)&&($overwrite) ) {
 	print "Warning: Overwrite parameter ignored during an export.\n";
 }
 
-if ( ($topreset)&&(!$ARGV[0]) ) {
-	print( STDERR qq/Parameter "topreset" requires a monitor ID.\n/ );
+if ( ($topreset)&&($ARGV[0] !~ /\d\d*/) ) {
+	print( STDERR qq/Parameter "topreset" requires a valid monitor ID.\n/ );
 	Usage();
 }
 
@@ -115,17 +116,17 @@ zmcamtool.pl [--user=<dbuser> --pass=<dbpass>]
 	     [--topreset monitor id]
 
 PARAMETERS:
---export        - Export all camera controls and presets to STDOUT.
-		  Optionally specify a control or preset name.
---import        - Import new camera controls and presets found in
-		  zm_create.sql into the ZoneMinder dB.
-		  Optionally specify an alternate sql file to read from.
---topreset      - Copy a monitor to a Camera Preset given the monitor id.
---overwrite     - Overwrite any existing controls or presets.
-		  with the same name as the new controls or presets.
---help		- Print usage information
---user=<dbuser> - Alternate dB user with privileges to alter dB.
---pass=<dbpass> - Password of alternate dB user with privileges to alter dB.
+--export            - Export all camera controls and presets to STDOUT.
+		      Optionally specify a control or preset name.
+--import [file.sql] - Import new camera controls and presets found in
+		      zm_create.sql into the ZoneMinder dB.
+		      Optionally specify an alternate sql file to read from.
+--topreset [id]     - Copy a monitor to a Camera Preset given the monitor id.
+--overwrite         - Overwrite any existing controls or presets.
+		      with the same name as the new controls or presets.
+--help		    - Print usage information
+--user=<dbuser>     - Alternate dB user with privileges to alter dB.
+--pass=<dbpass>     - Password of alternate dB user with privileges to alter dB.
 \n");
 }
 
@@ -228,7 +229,7 @@ sub importsql
 		$sqlfile = $Config{ZM_PATH_DATA}.'/db/zm_create.sql';
 	}
 
-	open(SQLFILE, $sqlfile) or die "Can't Open file: $!\n";
+	open(SQLFILE, $sqlfile) or die( "Can't Open file: $!\n" );
 
 	# Find and extract ptz control and monitor preset records
 	while (<SQLFILE>) {
@@ -242,7 +243,7 @@ sub importsql
 	close SQLFILE;
 
 	if ( ! (%controls || %monitorpresets) ) {
-		die "Error: No relevant data found in $sqlfile.\n";
+		die( "Error: No relevant data found in $sqlfile.\n" );
 	}
 
 	# Now that we've got what we were looking for, compare to what is already in the dB
@@ -367,16 +368,20 @@ sub toPreset
 		from Monitors where Id = ?";
 	my @data = selectQuery($dbh,$sql,$monitorid);
 
+	if (!@data) {
+		die( "Error: Monitor Id $monitorid does not appear to exist in the database.\n" );
+	}
+
 	# Attempt to search for and replace system specific values such as ip addresses, ports, usernames, etc. with generic placeholders
 	foreach (@data) {
 
 		s/\b(?:\d{1,3}\.){3}\d{1,3}\b/<ip-address>/; # ip address
 		s/<ip-address>:(6553[0-5]|655[0-2]\d|65[0-4]\d\d|6[0-4]\d{3}|[1-5]\d{4}|[1-9]\d{0,3}|0)$/<ip-address>:<port>/; # tcpip port
 		s/\/\/.*:.*@/\/\/<username>:<pwd>@/; # user & pwd preceeding an ip address
-		s/(&|\?)(user|username)=\w*(&|\?)/$1$2=<username>$3/i; # username embeded in url
-		s/(&|\?)(pwd|password)=\w*(&|\?)/$1$2=<pwd>$3/i; # password embeded in url
-		s/\w*:\w*/<username>:<pwd>/; # user & pwd in their own field
-		s/\/dev\/video\d\d?/\/dev\/video<?>/; # local video devices
+		s/(&|\?)(user|username)=\w\w*(&|\?)/$1$2=<username>$3/i; # username embeded in url
+		s/(&|\?)(pwd|password)=\w\w*(&|\?)/$1$2=<pwd>$3/i; # password embeded in url
+		s/\w\w*:\w\w*/<username>:<pwd>/; # user & pwd in their own field
+		s/\/dev\/video\d\d*/\/dev\/video<?>/; # local video devices
 
 	}
 

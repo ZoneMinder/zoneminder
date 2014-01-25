@@ -41,12 +41,10 @@ use DBI;
 use Getopt::Long;
 use Data::Dumper;
 
-# TO-DO - Figure out if "detainting" the environment is really necessary for this script
 $ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
-# TO-DO - Decide what, if anything, should be passed to the zoneminder logger
 my $web_uid = (getpwnam( $Config{ZM_WEB_USER} ))[2];
 my $use_log = (($> == 0) || ($> == $web_uid));
 
@@ -131,7 +129,23 @@ PARAMETERS:
 \n");
 }
 
-# Exectute a pre-built sql statement
+# Execute a pre-built sql select query
+sub selectQuery
+{
+	my $dbh = shift;
+	my $sql = shift;
+	my $monitorid = shift;
+
+	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute($monitorid) or die( "Can't execute: ".$sth->errstr() );
+
+	my @data = $sth->fetchrow_array();
+	$sth->finish();
+
+	return @data;
+}
+
+# Exectute a pre-built sql query
 sub runQuery
 {
 	my $dbh = shift;
@@ -139,10 +153,43 @@ sub runQuery
 	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
 	$sth->finish();
+
+	return $res;
 }
 
-# Checks if a name already exists in a sql table
-sub checkName
+# Build and execute a sql insert query
+sub insertQuery
+{
+	my $dbh = shift;
+	my $tablename = shift;
+	my @data = @_;
+
+	my $sql = "insert into $tablename values (NULL,".(join ", ", ("?") x @data).")"; # Add "?" for each array element
+
+	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute(@data) or die( "Can't execute: ".$sth->errstr() );
+	$sth->finish();
+
+	return $res;
+}
+
+# Build and execute a sql delete query
+sub deleteQuery
+{
+	my $dbh = shift;
+	my $sqltable = shift;
+	my $sqlname = shift;
+
+	my $sql = "delete from $sqltable where Name = ?";
+	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute($sqlname) or die( "Can't execute: ".$sth->errstr() );
+	$sth->finish();
+
+	return $res;
+}
+
+# Build and execute a sql select count query
+sub checkExists
 {
 	my $dbh = shift;
 	my $sqltable = shift;
@@ -161,21 +208,6 @@ sub checkName
 	}
 
 	return $result;
-}
-
-# Delete a name from a sql table
-sub rmName
-{
-	my $dbh = shift;
-	my $sqltable = shift;
-	my $sqlname = shift;
-
-	my $sql = "delete from $sqltable where Name = ?";
-	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-	my $res = $sth->execute($sqlname) or die( "Can't execute: ".$sth->errstr() );
-	$sth->finish();
-
-	return $res;
 }
 
 # Import camera control & presets into the zoneminder dB
@@ -217,13 +249,13 @@ sub importsql
 
 	my $dbh = zmDbConnect();
 	foreach (keys %controls) {
-		if (!checkName($dbh,"Controls",$_)) {
+		if (!checkExists($dbh,"Controls",$_)) {
 			# No existing Control was found.  Add new control to dB.
 			runQuery($dbh,$controls{$_});
 			push @newcontrols, $_;
 		} elsif ($overwrite) {
 			# An existing Control was found and the overwrite flag is set.  Overwrite the control.
-			rmName($dbh,"Controls",$_);
+			deleteQuery($dbh,"Controls",$_);
 			runQuery($dbh,$controls{$_});
 			push @overwritecontrols, $_;
 		} else {
@@ -233,13 +265,13 @@ sub importsql
 	}
 
 	foreach (keys %monitorpresets) {
-		if (!checkName($dbh,"MonitorPresets",$_)) {
+		if (!checkExists($dbh,"MonitorPresets",$_)) {
 			# No existing MonitorPreset was found.  Add new MonitorPreset to dB.
 			runQuery($dbh,$monitorpresets{$_});
 			push @newpresets, $_;
 		} elsif ($overwrite) {
 			# An existing MonitorPreset was found and the overwrite flag is set.  Overwrite the MonitorPreset.
-			rmName($dbh,"MonitorPresets",$_);
+			deleteQuery($dbh,"MonitorPresets",$_);
 			runQuery($dbh,$monitorpresets{$_});
 			push @overwritepresets, $_;
 		} else {
@@ -291,14 +323,13 @@ $command .= " zm Controls MonitorPresets";
 
 my $output = qx($command);
 my $status = $? >> 8;
-# TO-DO - This does not seem necessary
-#if ( $status || logDebugging() ) {
-#	chomp( $output );
-#	print( "Output: $output\n" );
-#}
+if ( $status || logDebugging() ) {
+	chomp( $output );
+	print( "Output: $output\n" );
+}
 if ( $status ) {
 	die( "Command '$command' exited with status: $status\n" );
-	} else {
+} else {
 	# NULLify the primary keys before printing the output to STDOUT
 	$output =~ s/VALUES \((.*?),'/VALUES \(NULL,'/ig;
 	print $output;
@@ -309,37 +340,58 @@ sub toPreset
 {
 	my $dbh = zmDbConnect();
 	my $monitorid = $ARGV[0];
-	my @data;
 
-	# Grap the appropriate fields from the Monitors table
-	my $sql = "select Name, Type, Device, Channel, Format, Protocol, Method, Host, Port, Path, SubPath, Width, Height, Palette, MaxFPS, Controllable, ControlId, ControlDevice, ControlAddress, DefaultRate, DefaultScale from Monitors where Id = ?";
-	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-	my $res = $sth->execute($monitorid) or die( "Can't execute: ".$sth->errstr() );
+	# Grap the following fields from the Monitors table
+	my $sql = "select 
+			Name, 
+			Type, 
+			Device, 
+			Channel, 
+			Format, 
+			Protocol, 
+			Method, 
+			Host, 
+			Port, 
+			Path, 
+			SubPath, 
+			Width, 
+			Height, 
+			Palette, 
+			MaxFPS, 
+			Controllable, 
+			ControlId, 
+			ControlDevice, 
+			ControlAddress, 
+			DefaultRate, 
+			DefaultScale 
+		from Monitors where Id = ?";
+	my @data = selectQuery($dbh,$sql,$monitorid);
 
-	@data = $sth->fetchrow_array();
-	$sth->finish();
+	# Attempt to search for and replace system specific values such as ip addresses, ports, usernames, etc. with generic placeholders
+	foreach (@data) {
 
-	#
-	# TO-DO - Add code that tries to intelligently replace certain values with generic ones e.g. <ip>, <user>, <pwd>, etc.
-	#
+		s/\b(?:\d{1,3}\.){3}\d{1,3}\b/<ip-address>/; # ip address
+		s/<ip-address>:(6553[0-5]|655[0-2]\d|65[0-4]\d\d|6[0-4]\d{3}|[1-5]\d{4}|[1-9]\d{0,3}|0)$/<ip-address>:<port>/; # tcpip port
+		s/\/\/.*:.*@/\/\/<username>:<pwd>@/; # user & pwd preceeding an ip address
+		s/(&|\?)(user|username)=\w*(&|\?)/$1$2=<username>$3/i; # username embeded in url
+		s/(&|\?)(pwd|password)=\w*(&|\?)/$1$2=<pwd>$3/i; # password embeded in url
+		s/\w*:\w*/<username>:<pwd>/; # user & pwd in their own field
+		s/\/dev\/video\d\d?/\/dev\/video<?>/; # local video devices
 
-	if (!checkName($dbh,"MonitorPresets",$data[0])) {
+	}
+
+	if (!checkExists($dbh,"MonitorPresets",$data[0])) {
 		# No existing Preset was found.  Add new Preset to dB.
 		print "Adding new preset: $data[0]\n";
-		$sql = "insert into MonitorPresets values (NULL,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
-		$sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-		$res = $sth->execute(@data) or die( "Can't execute: ".$sth->errstr() );
+		insertQuery($dbh,"MonitorPresets",@data);
 	} elsif ($overwrite) {
 		# An existing Control was found and the overwrite flag is set.  Overwrite the control.
 		print "Existing preset $data[0] dedected.\nOverwriting...\n";
-		rmName($dbh,"MonitorPresets",$data[0]);
-		$sql = "insert into MonitorPresets values (NULL,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
-		$sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-		$res = $sth->execute(@data) or die( "Can't execute: ".$sth->errstr() );
+		deleteQuery($dbh,"MonitorPresets",$data[0]);
+		insertQuery($dbh,"MonitorPresets",@data);
 	} else {
 		# An existing Control was found and the overwrite flag was not set. Do nothing.
 		print "Existing preset $data[0] detected and overwrite flag not set.\nSkipping...\n";
 	}
-	$sth->finish();
 }
 

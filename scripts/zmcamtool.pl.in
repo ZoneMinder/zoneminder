@@ -121,7 +121,7 @@ PARAMETERS:
 --import [file.sql] - Import new camera controls and presets found in
 		      zm_create.sql into the ZoneMinder dB.
 		      Optionally specify an alternate sql file to read from.
---topreset [id]     - Copy a monitor to a Camera Preset given the monitor id.
+--topreset id       - Copy a monitor to a Camera Preset given the monitor id.
 --overwrite         - Overwrite any existing controls or presets.
 		      with the same name as the new controls or presets.
 --help		    - Print usage information
@@ -229,10 +229,10 @@ sub importsql
 		$sqlfile = $Config{ZM_PATH_DATA}.'/db/zm_create.sql';
 	}
 
-	open(SQLFILE, $sqlfile) or die( "Can't Open file: $!\n" );
+	open(my $SQLFILE,"<",$sqlfile) or die( "Can't Open file: $!\n" );
 
 	# Find and extract ptz control and monitor preset records
-	while (<SQLFILE>) {
+	while (<$SQLFILE>) {
 		# Our regex replaces the primary key with NULL
 		if (s/^(INSERT INTO .*?Controls.*? VALUES \().*?(,')(.*?)(',.*)/$1NULL$2$3$4/i) {	
 			$controls{$3} = $_;
@@ -240,7 +240,7 @@ sub importsql
 			$monitorpresets{$3} = $_;
 		}
 	}
-	close SQLFILE;
+	close $SQLFILE;
 
 	if ( ! (%controls || %monitorpresets) ) {
 		die( "Error: No relevant data found in $sqlfile.\n" );

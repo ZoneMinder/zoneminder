@@ -46,7 +46,7 @@ BuildRequires:  perl(MIME::Entity) perl(MIME::Lite)
 BuildRequires:  perl(PHP::Serialization) perl(Sys::Mmap)
 BuildRequires:  perl(Time::HiRes) perl(Net::SFTP::Foreign)
 BuildRequires:  perl(Expect) perl(Sys::Syslog)
-BuildRequires:  gcc gcc-c++
+BuildRequires:  gcc gcc-c++ vlc-devel
 BuildRequires:  autoconf autoconf-archive
 %{!?_without_ffmpeg:BuildRequires: ffmpeg-devel}
 %{!?_without_x10:BuildRequires: perl(X10::ActiveHome) perl(Astro::SunTime)}

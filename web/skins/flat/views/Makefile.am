@@ -4,7 +4,7 @@ SUBDIRS = \
 	css \
 	js
 
-webdir = @WEB_PREFIX@/skins/classic/views
+webdir = @WEB_PREFIX@/skins/flat/views
 
 dist_web_DATA = \
 	bandwidth.php \

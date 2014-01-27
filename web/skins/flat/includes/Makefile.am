@@ -1,6 +1,6 @@
 AUTOMAKE_OPTIONS = gnu
 
-webdir = @WEB_PREFIX@/skins/classic/includes
+webdir = @WEB_PREFIX@/skins/flat/includes
 
 dist_web_DATA = \
 	init.php \

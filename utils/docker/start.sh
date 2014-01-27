@@ -18,3 +18,7 @@ service apache2 restart
 
 # Start ZoneMinder
 /usr/local/bin/zmpkg.pl start
+
+# Start SSHD
+mkdir /var/run/sshd
+/usr/sbin/sshd -D

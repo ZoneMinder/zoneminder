@@ -33,10 +33,13 @@ RUN make
 RUN make install
 
 # Adding the start script
-ADD start.sh /tmp/start.sh
+ADD utils/docker/start.sh /tmp/start.sh
 
 # Make start script executable
 RUN chmod 755 /tmp/start.sh
+
+# Set the root passwd
+RUN echo 'root:root' | chpasswd
 
 # Expose ssh and http ports
 EXPOSE 80

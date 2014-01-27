@@ -1,6 +1,6 @@
 AUTOMAKE_OPTIONS = gnu
 
-webdir = @WEB_PREFIX@/skins/classic/graphics
+webdir = @WEB_PREFIX@/skins/flat/graphics
 
 dist_web_DATA =  \
 	arrow-d.gif \

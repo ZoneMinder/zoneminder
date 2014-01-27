@@ -44,7 +44,7 @@ RUN make install
 RUN mysql -u root < db/zm_create.sql
 
 # Create the ZoneMinder database user
-RUN mysql -u root -e "grant insert,select,update,delete on zm.* to 'zm'@'localhost' identified by 'zmpass'"
+RUN mysql -u root -e "grant insert,select,update,delete,lock tables,alter on zm.* to 'zm'@'localhost' identified by 'zmpass'"
 
 # Install the ZoneMinder apache vhost file
 RUN wget https://raw.github.com/kylejohnson/puppet-zoneminder/master/files/zoneminder -O /etc/apache2/sites-enabled/000-default

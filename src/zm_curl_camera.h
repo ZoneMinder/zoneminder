@@ -36,8 +36,8 @@
 #endif
 
 //
-// Class representing 'remote' cameras, i.e. those which are
-// accessed over a network connection.
+// Class representing 'curl' cameras, i.e. those which are
+// accessed using the curl library
 //
 class cURLCamera : public Camera
 {

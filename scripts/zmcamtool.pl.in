@@ -30,17 +30,11 @@ use strict;
 use bytes;
 
 @EXTRA_PERL_LIB@
-# TO-DO verify the commented statements below are not needed
-#use ZoneMinder::Base qw(:all);
 use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
-#use ZoneMinder::General qw(:all);
 use ZoneMinder::Database qw(:all);
-#use ZoneMinder::ConfigAdmin qw( :functions );
-#use POSIX;
-#use DBI;
+use DBI;
 use Getopt::Long;
-#use Data::Dumper;
 
 $ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
@@ -57,12 +51,13 @@ my $import = 0;
 my $overwrite = 0;
 my $help = 0;
 my $topreset = 0;
+my $noregex = 0;
 my $sqlfile = '';
 my $dbUser = $Config{ZM_DB_USER};
 my $dbPass = $Config{ZM_DB_PASS};
 
 # Process commandline parameters with getopt long
-if ( !GetOptions( 'export'=>\$export, 'import'=>\$import, 'overwrite'=>\$overwrite, 'help'=>\$help, 'topreset'=>\$topreset, 'user:s'=>\$dbUser, 'pass:s'=>\$dbPass ) ) {
+if ( !GetOptions( 'export'=>\$export, 'import'=>\$import, 'overwrite'=>\$overwrite, 'help'=>\$help, 'topreset'=>\$topreset, 'noregex'=>\$noregex, 'user:s'=>\$dbUser, 'pass:s'=>\$dbPass ) ) {
 	Usage();
 }
 
@@ -76,7 +71,11 @@ if ( ((!$help) && ($import + $export + $topreset) != 1 )) {
 }
 
 if ( ($export)&&($overwrite) ) {
-	print "Warning: Overwrite parameter ignored during an export.\n";
+	print( "Warning: Overwrite parameter ignored during an export.\n");
+}
+
+if ( ($noregex)&&(!$topreset) ) {
+	print( qq/Warning: Noregex parameter only applies when "topreset" parameter is also set. Ignoring.\n/);
 }
 
 if ( ($topreset)&&($ARGV[0] !~ /\d\d*/) ) {
@@ -111,9 +110,9 @@ sub Usage
 die("
 USAGE: 
 zmcamtool.pl [--user=<dbuser> --pass=<dbpass>]
-	     [[--overwrite] --import [file.sql]]
+	     [--import [file.sql] [--overwrite]]
 	     [--export [name]]
-	     [--topreset monitor id]
+	     [--topreset id [--noregex]]
 
 PARAMETERS:
 --export            - Export all camera controls and presets to STDOUT.
@@ -121,10 +120,13 @@ PARAMETERS:
 --import [file.sql] - Import new camera controls and presets found in
 		      zm_create.sql into the ZoneMinder dB.
 		      Optionally specify an alternate sql file to read from.
---topreset id       - Copy a monitor to a Camera Preset given the monitor id.
 --overwrite         - Overwrite any existing controls or presets.
 		      with the same name as the new controls or presets.
---help		    - Print usage information
+--topreset id       - Copy a monitor to a Camera Preset given the monitor id.
+--noregex	    - Do not try to find and replace fields such as usernames,
+		      passwords, ip addresses, etc with generic placeholders
+		      when converting a monitor to a preset.
+--help		    - Print usage information.
 --user=<dbuser>     - Alternate dB user with privileges to alter dB.
 --pass=<dbpass>     - Password of alternate dB user with privileges to alter dB.
 \n");
@@ -373,16 +375,16 @@ sub toPreset
 	}
 
 	# Attempt to search for and replace system specific values such as ip addresses, ports, usernames, etc. with generic placeholders
-	foreach (@data) {
-
-		s/\b(?:\d{1,3}\.){3}\d{1,3}\b/<ip-address>/; # ip address
-		s/<ip-address>:(6553[0-5]|655[0-2]\d|65[0-4]\d\d|6[0-4]\d{3}|[1-5]\d{4}|[1-9]\d{0,3}|0)$/<ip-address>:<port>/; # tcpip port
-		s/\/\/.*:.*@/\/\/<username>:<pwd>@/; # user & pwd preceeding an ip address
-		s/(&|\?)(user|username)=\w\w*(&|\?)/$1$2=<username>$3/i; # username embeded in url
-		s/(&|\?)(pwd|password)=\w\w*(&|\?)/$1$2=<pwd>$3/i; # password embeded in url
-		s/\w\w*:\w\w*/<username>:<pwd>/; # user & pwd in their own field
-		s/\/dev\/video\d\d*/\/dev\/video<?>/; # local video devices
-
+	if (!$noregex) {
+		foreach (@data) {
+			s/\b(?:\d{1,3}\.){3}\d{1,3}\b/<ip-address>/; # ip address
+			s/<ip-address>:(6553[0-5]|655[0-2]\d|65[0-4]\d\d|6[0-4]\d{3}|[1-5]\d{4}|[1-9]\d{0,3}|0)$/<ip-address>:<port>/; # tcpip port
+			s/\/\/.*:.*@/\/\/<username>:<pwd>@/; # user & pwd preceeding an ip address
+			s/(&|\?)(user|username)=\w\w*(&|\?)/$1$2=<username>$3/i; # username embeded in url
+			s/(&|\?)(pwd|password)=\w\w*(&|\?)/$1$2=<pwd>$3/i; # password embeded in url
+			s/\w\w*:\w\w*/<username>:<pwd>/; # user & pwd in their own field
+			s/\/dev\/video\d\d*/\/dev\/video<?>/; # local video devices
+		}
 	}
 
 	if (!checkExists($dbh,"MonitorPresets",$data[0])) {
@@ -391,7 +393,7 @@ sub toPreset
 		insertQuery($dbh,"MonitorPresets",@data);
 	} elsif ($overwrite) {
 		# An existing Control was found and the overwrite flag is set.  Overwrite the control.
-		print "Existing preset $data[0] dedected.\nOverwriting...\n";
+		print "Existing preset $data[0] detected.\nOverwriting...\n";
 		deleteQuery($dbh,"MonitorPresets",$data[0]);
 		insertQuery($dbh,"MonitorPresets",@data);
 	} else {

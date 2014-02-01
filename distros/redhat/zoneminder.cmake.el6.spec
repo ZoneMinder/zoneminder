@@ -4,7 +4,7 @@
 %define zmgid_final apache
 
 Name:       zoneminder
-Version:    1.26.5
+Version:    1.27
 Release:    1%{?dist}
 Summary:    A camera monitoring and analysis tool
 Group:      System Environment/Daemons
@@ -158,6 +158,9 @@ rm -rf %{_docdir}/%{name}-%{version}
 
 
 %changelog
+* Sat Feb 01 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.27
+- Add zmcamtool.pl. Bump version for 1.27 release. 
+
 * Mon Dec 16 2013 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.26.5
 - This is a bug fixe release
 - RTSP fixes, cmake enhancements, couple other misc fixes

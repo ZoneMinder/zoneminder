@@ -28,13 +28,13 @@ BuildRequires:  perl(MIME::Entity) perl(MIME::Lite)
 BuildRequires:  perl(PHP::Serialization) perl(Sys::Mmap)
 BuildRequires:  perl(Time::HiRes) perl(Net::SFTP::Foreign)
 BuildRequires:  perl(Expect) perl(X10::ActiveHome) perl(Astro::SunTime)
-BuildRequires:  libcurl-devel ffmpeg-devel >= 0.4.9
+BuildRequires:  libcurl-devel vlc-devel ffmpeg-devel >= 0.4.9
 
 Requires:   httpd php php-mysql mysql-server libjpeg-turbo
 Requires:   perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires:   perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)
 Requires:   perl(MIME::Entity) perl(MIME::Lite) perl(Net::SMTP) perl(Net::FTP)
-Requires:   libcurl vlc-devel ffmpeg >= 0.4.9
+Requires:   libcurl vlc-core ffmpeg >= 0.4.9
 
 Requires(post): /sbin/chkconfig
 Requires(post): /usr/bin/checkmodule

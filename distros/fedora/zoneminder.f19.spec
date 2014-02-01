@@ -52,7 +52,7 @@ BuildRequires:  autoconf autoconf-archive
 %{!?_without_x10:BuildRequires: perl(X10::ActiveHome) perl(Astro::SunTime)}
 
 Requires:   httpd php php-mysql cambozola
-Requires:   libjpeg-turbo libcurl ffmpeg
+Requires:   libjpeg-turbo libcurl vlc-core ffmpeg
 Requires:   perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires:   perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)
 Requires:   perl(MIME::Entity) perl(MIME::Lite) perl(Net::SMTP) perl(Net::FTP)

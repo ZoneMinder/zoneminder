@@ -53,7 +53,7 @@ Requires:   httpd php php-mysql mysql-server libjpeg-turbo
 Requires:   perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires:   perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)
 Requires:   perl(MIME::Entity) perl(MIME::Lite) perl(Net::SMTP) perl(Net::FTP)
-Requires:   libcurl ffmpeg >= 0.4.9
+Requires:   libcurl vlc-core ffmpeg >= 0.4.9
 
 Requires(post): /sbin/chkconfig
 Requires(post): /usr/bin/checkmodule

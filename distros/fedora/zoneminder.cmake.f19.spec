@@ -31,12 +31,12 @@ BuildRequires: perl(MIME::Entity) perl(MIME::Lite)
 BuildRequires: perl(PHP::Serialization) perl(Sys::Mmap)
 BuildRequires: perl(Time::HiRes) perl(Net::SFTP::Foreign)
 BuildRequires: perl(Expect) perl(Sys::Syslog)
-BuildRequires: gcc gcc-c++ vlc-devel
+BuildRequires: gcc gcc-c++ vlc-devel libcurl-devel
 %{!?_without_ffmpeg:BuildRequires: ffmpeg-devel}
 %{!?_without_x10:BuildRequires: perl(X10::ActiveHome) perl(Astro::SunTime)}
 
 Requires: httpd php php-mysql cambozola
-Requires: libjpeg-turbo
+Requires: libjpeg-turbo libcurl
 Requires: perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires: perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)
 Requires: perl(MIME::Entity) perl(MIME::Lite) perl(Net::SMTP) perl(Net::FTP)

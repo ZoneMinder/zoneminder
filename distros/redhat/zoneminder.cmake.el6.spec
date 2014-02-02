@@ -113,7 +113,7 @@ rm -rf %{_docdir}/%{name}-%{version}
 %defattr(-,root,root,-)
 %doc AUTHORS BUGS ChangeLog COPYING LICENSE NEWS README.md distros/redhat/README.CentOS distros/redhat/jscalendar-doc
 %doc distros/redhat/cambozola-doc distros/redhat/local_zoneminder.te
-%config(noreplace) %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm.conf
+%config %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm.conf
 %config(noreplace) %attr(644,root,root) %{_sysconfdir}/httpd/conf.d/zoneminder.conf
 %config(noreplace) /etc/logrotate.d/%{name}
 %attr(755,root,root) %{_initrddir}/zoneminder

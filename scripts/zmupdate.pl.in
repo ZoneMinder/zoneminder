@@ -338,10 +338,12 @@ if ( @MyISAM_Tables ) {
 	if ( $response =~ /^[yY]$/ ) {
 		print "\nConverting MyISAM tables to InnoDB. Please wait.\n";
 		foreach (@MyISAM_Tables) {
+			$dbh->do(q|SET sql_mode='traditional'|); # Elevate warnings to errors
 			my $sql = "ALTER TABLE $_ ENGINE = InnoDB";
 			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 			my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
 			$sth->finish();
+			$dbh->do(q|SET sql_mode=''|); # Set mode back to default
 		}
 	}
 }

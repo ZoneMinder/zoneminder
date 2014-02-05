@@ -133,7 +133,7 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
 	/* add the video streams using the default format codecs
 	   and initialize the codecs */
 	ost = NULL;
-	if (of->video_codec != CODEC_ID_NONE)
+	if (of->video_codec != AV_CODEC_ID_NONE)
 	{
 #if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(53, 4, 0)
 		ost = av_new_stream(ofc, 0);

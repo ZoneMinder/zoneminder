@@ -9,7 +9,8 @@ use Getopt::Long;
 
 my @files = (
 	"../version",
-	"../configure.ac"
+	"../configure.ac",
+	"../CMakeLists.txt"
 );
 
 

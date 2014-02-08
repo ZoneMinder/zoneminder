@@ -113,7 +113,7 @@ Once those are added, install the following:
 sudo yum install automake bzip2-devel ffmpeg ffmpeg-devel gnutls-devel httpd libjpeg-turbo libjpeg-turbo-devel mysql-devel mysql-server pcre-devel \
 perl-Archive-Tar perl-Archive-Zip perl-Convert-BinHex perl-Date-Manip perl-DBD-MySQL perl-DBI perl-Device-SerialPort perl-Email-Date-Format perl-IO-stringy \
 perl-IO-Zlib perl-MailTools perl-MIME-Lite perl-MIME-tools perl-MIME-Types perl-Module-Load perl-Package-Constants perl-Sys-Mmap perl-Time-HiRes \
-perl-TimeDate perl-YAML-Syck php php-cli php-mysql subversion x264
+perl-TimeDate perl-YAML-Syck php php-cli php-mysql subversion x264 vlc-devel vlc-core libcurl-devel vlc-devel
 ```
 
 ### ffmpeg

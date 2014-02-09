@@ -152,19 +152,32 @@ if ( $command =~ /^(?:start|restart)$/ )
             exit( -1 );
         }
 
-        # Recreate the temporary directory if it's been wiped
-        if ( !-e "@ZM_TMPDIR@" )
-        {
-            Debug( "Recreating temporary directory '@ZM_TMPDIR@'" );
-            mkdir( "@ZM_TMPDIR@", 0700 ) or Fatal( "Can't create missing temporary directory '@ZM_TMPDIR@': $!" );
-            my ( $runName ) = getpwuid( $> );
-            if ( $runName ne $Config{ZM_WEB_USER} )
-            {
-                # Not running as web user, so should be root in whch case chown the temporary directory
-                my ( $webName, $webPass, $webUid, $webGid ) = getpwnam( $Config{ZM_WEB_USER} ) or Fatal( "Can't get user details for web user '".$Config{ZM_WEB_USER}."': $!" );
-                chown( $webUid, $webGid, "@ZM_TMPDIR@" ) or Fatal( "Can't change ownership of temporary directory '@ZM_TMPDIR@' to '".$Config{ZM_WEB_USER}.":".$Config{ZM_WEB_GROUP}."': $!" );
-            }
-        }
+	my @zm_dirs_check = ('@ZM_TMPDIR@', $Config{ZM_PATH_SOCKS}, $Config{ZM_PATH_SWAP});
+	my @zm_dirs_missing;
+
+	# Check for some key directories for existance and recreate before we surrender root privileges
+	foreach (@zm_dirs_check)
+	{
+		Debug("Checking for $_");
+		push @zm_dirs_missing,$_ if (!-e $_ );
+	}
+
+	# Remove duplicates
+	my %temphash = map { $_, 1 } @zm_dirs_missing;
+	@zm_dirs_missing = keys %temphash;
+
+	foreach (@zm_dirs_missing)
+	{
+		Debug( "Recreating directory '$_'" );
+		mkdir( $_, 0700 ) or Fatal( "Can't create missing directory $_: $!" );
+		my ( $runName ) = getpwuid( $> );
+		if ( $runName ne $Config{ZM_WEB_USER} )
+		{
+                	# Not running as web user, so should be root in whch case chown the directory
+                	my ( $webName, $webPass, $webUid, $webGid ) = getpwnam( $Config{ZM_WEB_USER} ) or Fatal( "Can't get user details for web user '".$Config{ZM_WEB_USER}."': $!" );
+                	chown( $webUid, $webGid, $_ ) or Fatal( "Can't change ownership of directory $_ to '".$Config{ZM_WEB_USER}.":".$Config{ZM_WEB_GROUP}."': $!" );
+		}
+	}
 		zmMemTidy();
 		runCommand( "zmdc.pl startup" );
 

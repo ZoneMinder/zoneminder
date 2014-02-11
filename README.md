@@ -119,3 +119,7 @@ perl-TimeDate perl-YAML-Syck php php-cli php-mysql subversion x264
 ### ffmpeg
 
 This release of ZoneMinder has been tested on and works with ffmpeg version N-55540-g93f4277.
+
+
+
+[![Analytics](https://ga-beacon.appspot.com/UA-15147273-6/ZoneMinder/README.md)](https://github.com/igrigorik/ga-beacon)

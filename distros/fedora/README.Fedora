@@ -46,11 +46,12 @@ New installs
    may be necessary to disable SELinux for httpd, or even completely for
    ZoneMinder to function. This will be addressed in a later release.  Run
 
-     setenforce 0
+     sudo setenforce 0
 
    for testing, and edit /etc/sysconfig/selinux to disable it at boot time.
 
-7. IMPORTANT: Edit /etc/httpd/conf.d/zoneminder.conf and/or /etc/httpd/conf.
+7. IMPORTANT: Edit /etc/httpd/conf.d/zoneminder.conf and/or 
+   /etc/httpd/conf/httpd.conf.
 
    The httpd.conf file included with this version of Fedora processes the conf.d
    folder after the default ScriptAlias directive in the httpd.conf file.

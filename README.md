@@ -103,12 +103,24 @@ root@host:~# gdebi /root/zoneminder_1.26.4-1_amd64.deb;
 
 #### CentOS / RHEL
 
-Two additional repositories must be added before one can build zoneminder on CentOS or RHEL:
+Additional repositories must be added before one can build zoneminder on CentOS or RHEL:
 
 1. RepoForge (formerly RPMForge) http://repoforge.org/use/
 2. EPEL https://fedoraproject.org/wiki/EPEL
+3. Optional RPMFusion: http://rpmfusion.org/ [SEE NOTE]
+ 
+[NOTE]<br>
+The RPMFusion repo contains significantly newer versions of ffmpeg and vlc. This leads to significantly better camera support. However, the RPMFusion repo contains packages that conflict with the other two repos. In order to resolve this, one must also install the yum priorities pacakge and use that to prioritize your repos in the following order:
 
-Once those are added, install the following:
+1. Base
+2. RPMFusion
+3. EPEL
+4. RPMForge
+
+For instructions on yum priorities, visit this page:
+http://wiki.centos.org/PackageManagement/Yum/Priorities
+
+Once your repos are in order, install the following:
 ```bash
 sudo yum install automake bzip2-devel ffmpeg ffmpeg-devel gnutls-devel httpd libjpeg-turbo libjpeg-turbo-devel mysql-devel mysql-server pcre-devel \
 perl-Archive-Tar perl-Archive-Zip perl-Convert-BinHex perl-Date-Manip perl-DBD-MySQL perl-DBI perl-Device-SerialPort perl-Email-Date-Format perl-IO-stringy \

@@ -708,6 +708,7 @@ $SLANG = array(
     'ZoneMinMaxPixelThres' => 'Min/Max Pixel Threshold (0-255)',
     'ZoneMinderLog'        => 'ZoneMinder Log',         // Added - 2011-06-17
     'ZoneOverloadFrames'   => 'Overload Frame Ignore Count',
+    'ZoneExtendAlarmFrames' => 'Extend Alarm Frame Count',
     'Zones'                => 'אזורים',
     'Zoom'                 => 'זום',
     'ZoomIn'               => 'זום פנימה',

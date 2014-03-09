@@ -713,6 +713,7 @@ $SLANG = array(
     'ZoneMinMaxPixelThres' => 'Min/Max Soglia Pixel (0-255)',
     'ZoneMinderLog'        => 'ZoneMinder Log',         // Added - 2011-06-17
     'ZoneOverloadFrames'   => 'Overload Frame Ignore Count',
+    'ZoneExtendAlarmFrames' => 'Extend Alarm Frame Count',
     'Zones'                => 'Zone',
     'Zoom'                 => 'Zoom',
     'ZoomIn'               => 'Ingrandisci',

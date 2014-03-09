@@ -96,6 +96,7 @@ if ( !isset($newZone) )
             'MinBlobs' => '',
             'MaxBlobs' => '',
             'OverloadFrames' => '',
+            'ExtendAlarmFrames' => '',
         );
     }
     $zone['Points'] = coordsToPoints( $zone['Coords'] );
@@ -206,6 +207,10 @@ xhtmlHeaders(__FILE__, $SLANG['Zone'] );
               <tr>
                 <th scope="row"><?= $SLANG['ZoneOverloadFrames'] ?></th>
                 <td colspan="2"><input type="text" name="newZone[OverloadFrames]" value="<?= $newZone['OverloadFrames'] ?>" size="4"/></td>
+              </tr>
+              <tr>
+                <th scope="row"><?= $SLANG['ZoneExtendAlarmFrames'] ?></th>
+                <td colspan="2"><input type="text" name="newZone[ExtendAlarmFrames]" value="<?= $newZone['ExtendAlarmFrames'] ?>" size="4"/></td>
               </tr>
             </tbody>
           </table>

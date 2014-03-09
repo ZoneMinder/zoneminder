@@ -715,6 +715,7 @@ $SLANG = array(
     'ZoneMinMaxPixelThres' => 'Min/Max képpont változási<br>küszöb (0-255)',
     'ZoneMinderLog'        => 'ZoneMinder Napló',
     'ZoneOverloadFrames'   => 'Túlterhelés esetén<br>ennyi képkocka hagyható ki',
+    'ZoneExtendAlarmFrames' => 'Extend Alarm Frame Count',
     'Zones'                => 'Zónák',
     'Zoom'                 => 'Zoom',
     'ZoomIn'               => 'Zoom be',

@@ -3131,7 +3131,9 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
     for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
     {
         Zone *zone = zones[n_zone];
-        zone->ClearAlarm();
+        // need previous alarmed state for preclusive zone, so don't clear just yet
+        if (!zone->IsPreclusive())
+            zone->ClearAlarm();
         if ( !zone->IsInactive() )
         {
             continue;
@@ -3148,14 +3150,31 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
         {
             continue;
         }
-        Debug( 3, "Checking preclusive zone %s", zone->Label() );
+        int old_zone_score = zone->Score();
+        bool old_zone_alarmed = zone->Alarmed();
+        Debug( 3, "Checking preclusive zone %s - old score: %d, state: %s", zone->Label(),old_zone_score, zone->Alarmed()?"alarmed":"quiet" );
         if ( zone->CheckAlarms( &delta_image ) )
         {
             alarm = true;
             score += zone->Score();
+            zone->SetAlarm();
             Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
             zoneSet.insert( zone->Label() );
             //zone->ResetStats();
+        } else {
+            // check if end of alarm
+            if (old_zone_alarmed) {
+                Debug(3, "Preclusive Zone %s alarm Ends. Prevíous score: %d", zone->Label(), old_zone_score);
+                if (old_zone_score > 0) {
+                    zone->SetExtendAlarmCount(zone->GetExtendAlarmFrames());
+                }
+                if (zone->CheckExtendAlarmCount()) {
+                    alarm=true;
+		    zone->SetAlarm();
+                } else {
+                    zone->ClearAlarm();
+                }
+            } 
         }
     }
 
@@ -3173,7 +3192,7 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
         for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
         {
             Zone *zone = zones[n_zone];
-            if ( !zone->IsActive() )
+            if ( !zone->IsActive() || zone->IsPreclusive())
             {
                 continue;
             }

@@ -1,3 +1,9 @@
+zoneminder (1.27.0-1) precise; urgency=high
+
+  * Add preclusive Zone Alarm extension feature
+
+ -- Martin Bene <hub@bene.priv.at>  Sun, 09 Mar 2014 17:00:12 -0200
+
 zoneminder (1.26.5-1) precise; urgency=high
 
   * improvements to zmupdate.pl, cleanups

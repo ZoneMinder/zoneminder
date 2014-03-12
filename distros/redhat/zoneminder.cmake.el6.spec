@@ -30,7 +30,7 @@ BuildRequires:  perl(Time::HiRes) perl(Net::SFTP::Foreign)
 BuildRequires:  perl(Expect) perl(X10::ActiveHome) perl(Astro::SunTime)
 BuildRequires:  libcurl-devel vlc-devel ffmpeg-devel httpd
 
-Requires:   php php-mysql mysql-server libjpeg-turbo
+Requires:   httpd php php-mysql mysql-server libjpeg-turbo
 Requires:   perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires:   perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)
 Requires:   perl(MIME::Entity) perl(MIME::Lite) perl(Net::SMTP) perl(Net::FTP)

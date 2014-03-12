@@ -37,7 +37,7 @@ BuildRequires: gcc gcc-c++ vlc-devel libcurl-devel httpd
 %{!?_without_ffmpeg:BuildRequires: ffmpeg-devel}
 %{!?_without_x10:BuildRequires: perl(X10::ActiveHome) perl(Astro::SunTime)}
 
-Requires: php php-mysql cambozola
+Requires: httpd php php-mysql cambozola
 Requires: libjpeg-turbo vlc-core libcurl
 Requires: perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires: perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)

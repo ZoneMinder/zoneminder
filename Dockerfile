@@ -12,13 +12,16 @@ RUN apt-get update
 RUN apt-get upgrade -y
 
 # Install the prerequisites
-RUN apt-get install -y build-essential libmysqlclient-dev libssl-dev libbz2-dev libpcre3-dev libdbi-perl libarchive-zip-perl libdate-manip-perl libdevice-serialport-perl libmime-perl libpcre3 libwww-perl libdbd-mysql-perl libsys-mmap-perl yasm subversion automake autoconf libjpeg-turbo8-dev libjpeg-turbo8 libtheora-dev libvorbis-dev libvpx-dev libx264-dev libmp4v2-dev ffmpeg git wget mysql-client apache2 php5 php5-mysql apache2-mpm-prefork libapache2-mod-php5 php5-cli openssh-server mysql-server
+RUN apt-get install -y build-essential libmysqlclient-dev libssl-dev libbz2-dev libpcre3-dev libdbi-perl libarchive-zip-perl libdate-manip-perl libdevice-serialport-perl libmime-perl libpcre3 libwww-perl libdbd-mysql-perl libsys-mmap-perl yasm subversion automake autoconf libjpeg-turbo8-dev libjpeg-turbo8 libtheora-dev libvorbis-dev libvpx-dev libx264-dev libmp4v2-dev ffmpeg git wget mysql-client apache2 php5 php5-mysql apache2-mpm-prefork libapache2-mod-php5 php5-cli openssh-server mysql-server libvlc-dev libvlc5 libvlccore-dev libvlccore5 vlc-data vlc
 
-# Grab the latest ZoneMinder code
-RUN git clone https://github.com/ZoneMinder/ZoneMinder.git
+# Grab the latest ZoneMinder code in master
+RUN git clone https://github.com/kylejohnson/ZoneMinder.git
 
 # Change into the ZoneMinder directory
 WORKDIR ZoneMinder
+
+# Check out the release-1.27 branch
+RUN git checkout release-1.27
 
 # Setup the ZoneMinder build environment
 RUN aclocal && autoheader && automake --force-missing --add-missing && autoconf

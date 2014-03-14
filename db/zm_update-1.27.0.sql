@@ -15,3 +15,9 @@ ALTER TABLE Monitors modify column Type enum('Local','Remote','File','Ffmpeg','L
 --
 ALTER TABLE `Monitors` ADD `User` VARCHAR(32) NOT NULL AFTER `SubPath`;
 ALTER TABLE `Monitors` ADD `Pass` VARCHAR(32) NOT NULL AFTER `User`;
+
+--
+-- Add default zone preset
+--
+INSERT INTO ZonePresets VALUES (NULL,'Default','Active','Percent','Blobs',25,NULL,3,75,3,3,3,75,2,NULL,1,NULL,0);
+

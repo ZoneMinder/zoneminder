@@ -46,7 +46,7 @@ xhtmlHeaders(__FILE__, $SLANG['Function']." - ".validHtmlStr($monitor['Name']) )
 foreach ( getEnumValues( 'Monitors', 'Function' ) as $optFunction )
 {
 ?>
-            <option value="<?= $optFunction ?>"<?php if ( $optFunction == $monitor['Function'] ) { ?> selected="selected"<?php } ?>><?= $optFunction ?></option>
+            <option value="<?= $optFunction ?>"<?php if ( $optFunction == $monitor['Function'] ) { ?> selected="selected"<?php } ?>><?= $SLANG['Fn'.$optFunction] ?></option>
 <?php
 }
 ?>

@@ -7,6 +7,8 @@
 %define zmuid_final apache
 %define zmgid_final apache
 
+%global _hardened_build 1
+
 ### Delete the lines below to build with ffmpeg and/or x10
 %define _without_ffmpeg 1
 %define _without_x10 1

@@ -3,6 +3,8 @@
 %define zmuid_final apache
 %define zmgid_final apache
 
+%global _hardened_build 1
+
 ### Delete the lines below to build with ffmpeg and/or x10
 %define _without_ffmpeg 1
 %define _without_x10 1
@@ -34,6 +36,9 @@ BuildRequires: perl(Expect) perl(Sys::Syslog)
 BuildRequires: gcc gcc-c++ vlc-devel libcurl-devel
 %{!?_without_ffmpeg:BuildRequires: ffmpeg-devel}
 %{!?_without_x10:BuildRequires: perl(X10::ActiveHome) perl(Astro::SunTime)}
+# cmake needs the following installed at build time due to the way it auto-detects certain parameters
+BuildRequires:  httpd
+%{!?_without_ffmpeg:BuildRequires: ffmpeg}
 
 Requires: httpd php php-mysql cambozola
 Requires: libjpeg-turbo vlc-core libcurl
@@ -168,6 +173,9 @@ fi
 
 
 %changelog
+* Fri Mar 14 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.27 
+- Tweak build requirements for cmake
+
 * Sat Feb 01 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.27
 - Add zmcamtool.pl. Bump version for 1.27 release. 
 

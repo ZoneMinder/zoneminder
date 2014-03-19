@@ -1,0 +1,49 @@
+--- CMakeLists.txt.orig	2014-03-06 20:29:40.041817163 +0000
++++ CMakeLists.txt	2014-03-10 16:03:05.169663558 +0000
+@@ -65,7 +65,23 @@
+ set(ZM_NO_X10 "OFF" CACHE BOOL "Set to ON to build ZoneMinder without X10 support. default: OFF")
+ set(ZM_PERL_SUBPREFIX "${CMAKE_INSTALL_LIBDIR}/perl5" CACHE PATH "Use a different directory for the zm perl modules. NOTE: This is a subprefix, e.g. lib will be turned into <prefix>/lib, default: <libdir>/perl5")
+ set(ZM_PERL_USE_PATH "${CMAKE_INSTALL_PREFIX}/${ZM_PERL_SUBPREFIX}" CACHE PATH "Override the include path for zm perl modules. Useful if you are moving the perl modules without using the ZM_PERL_SUBPREFIX option. default: <prefix>/<zmperlsubprefix>")
+-set(ZM_TARGET_DISTRO "" CACHE STRING "Build ZoneMinder for a specific distribution.  Currently, valid names are: f19, el6")
++set(ZM_TARGET_DISTRO "" CACHE STRING "Build ZoneMinder for a specific distribution.  Currently, valid names are: f19, el6, OS13")
++
++# Reassign some variables if a target distro has been specified
++if((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "el6"))
++	set(ZM_RUNDIR "/var/run/zoneminder")
++	set(ZM_TMPDIR "/var/lib/zoneminder/temp")
++	set(ZM_LOGDIR "/var/log/zoneminder")
++elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
++	set(ZM_RUNDIR "/var/run/zoneminder")
++	set(ZM_TMPDIR "/var/run/zoneminder")
++	set(ZM_CONTENTDIR "/var/run/zoneminder")
++	set(ZM_LOGDIR "/var/log/zoneminder")
++	set(ZM_WEB_USER "wwwrun")
++	set(ZM_WEB_GROUP "www")
++	set(ZM_WEBDIR "/srv/www/htdocs/zoneminder")
++	set(ZM_CGIDIR "/srv/www/cgi-bin")
++endif((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "el6"))
+ 
+ # Required for certain checks to work
+ set(CMAKE_EXTRA_INCLUDE_FILES ${CMAKE_EXTRA_INCLUDE_FILES} stdio.h stdlib.h math.h signal.h)
+@@ -437,12 +453,6 @@
+ set(ZM_DB_TYPE "mysql")
+ set(EXTRA_PERL_LIB "use lib '${ZM_PERL_USE_PATH}';")
+ 
+-# Reassign some variables if a target distro has been specified
+-if((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "el6"))
+-	set(ZM_RUNDIR "/var/run/zoneminder")
+-	set(ZM_TMPDIR "/var/lib/zoneminder/temp")
+-	set(ZM_LOGDIR "/var/log/zoneminder")
+-endif((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "el6"))
+ 
+ # Generate files from the .in files
+ configure_file(zm.conf.in "${CMAKE_CURRENT_BINARY_DIR}/zm.conf" @ONLY)
+@@ -461,6 +471,8 @@
+ 	add_subdirectory(distros/fedora)
+ elseif(ZM_TARGET_DISTRO STREQUAL "el6")
+ 	add_subdirectory(distros/redhat)
++elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
++	add_subdirectory(distros/opensuse)
+ else(ZM_TARGET_DISTRO STREQUAL "el6")
+ 	add_subdirectory(misc)
+ endif(ZM_TARGET_DISTRO STREQUAL "f19")

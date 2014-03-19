@@ -59,8 +59,6 @@ require ZoneMinder::Control;
 
 our @ISA = qw(ZoneMinder::Control);
 
-our $VERSION = $ZoneMinder::Base::VERSION;
-
 # ==========================================================================
 #
 # Wanscam Control Protocol

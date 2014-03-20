@@ -115,6 +115,7 @@ function applyZoneType()
         form.elements['newZone[MinBlobs]'].disabled = true;
         form.elements['newZone[MaxBlobs]'].disabled = true;
         form.elements['newZone[OverloadFrames]'].disabled = true;
+        form.elements['newZone[ExtendAlarmFrames]'].disabled = true;
     }
     else if ( form.elements['newZone[Type]'].value == 'Preclusive' )
     {
@@ -128,6 +129,7 @@ function applyZoneType()
         form.elements['newZone[MinAlarmPixels]'].disabled = false;
         form.elements['newZone[MaxAlarmPixels]'].disabled = false;
         form.elements['newZone[OverloadFrames]'].disabled = false;
+        form.elements['newZone[ExtendAlarmFrames]'].disabled = false;
         applyCheckMethod();
     }
     else
@@ -142,6 +144,7 @@ function applyZoneType()
         form.elements['newZone[MinAlarmPixels]'].disabled = false;
         form.elements['newZone[MaxAlarmPixels]'].disabled = false;
         form.elements['newZone[OverloadFrames]'].disabled = false;
+        form.elements['newZone[ExtendAlarmFrames]'].disabled = true;
         applyCheckMethod(); 
     }
 }
@@ -208,6 +211,7 @@ function applyPreset()
         form.elements['newZone[MinBlobs]'].value = preset['MinBlobs'];
         form.elements['newZone[MaxBlobs]'].value = preset['MaxBlobs'];
         form.elements['newZone[OverloadFrames]'].value = preset['OverloadFrames'];
+        form.elements['newZone[ExtendAlarmFrames]'].value = preset['ExtendAlarmFrames'];
 
         applyCheckMethod();
         form.elements['newZone[TempArea]'].value = 100;

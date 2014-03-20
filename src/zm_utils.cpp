@@ -200,11 +200,20 @@ void ssedetect() {
 	uint32_t r_edx, r_ecx;
 	
 	__asm__ __volatile__(
+#if defined(__i386__)
+        "pushl %%ebx;\n\t"
+#endif
 	"mov $0x1,%%eax\n\t"
 	"cpuid\n\t"
+#if defined(__i386__)
+        "popl %%ebx;\n\t"
+#endif
 	: "=d" (r_edx), "=c" (r_ecx)
 	:
-	: "%eax", "%ebx"
+	: "%eax"
+#if !defined(__i386__)
+             , "%ebx"
+#endif
 	);
 	
 	if (r_ecx & 0x00000200) {
@@ -233,7 +242,10 @@ void ssedetect() {
 
 /* SSE2 aligned memory copy. Useful for big copying of aligned memory like image buffers in ZM */
 /* For platforms without SSE2 we will use standard x86 asm memcpy or glibc's memcpy() */
-__attribute__((noinline,__target__("sse2"))) void* sse2_aligned_memcpy(void* dest, const void* src, size_t bytes) {
+#if defined(__i386__) || defined(__x86_64__)
+__attribute__((noinline,__target__("sse2")))
+#endif
+void* sse2_aligned_memcpy(void* dest, const void* src, size_t bytes) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))
 	if(bytes > 128) {
 		unsigned int remainder = bytes % 128;

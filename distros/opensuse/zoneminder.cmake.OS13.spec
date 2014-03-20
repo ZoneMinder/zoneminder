@@ -1,16 +1,18 @@
 %define zmuid $(id -un)
 %define zmgid $(id -gn)
-%define zmuid_final apache
-%define zmgid_final apache
-
-%global _hardened_build 1
-
-### Delete the lines below to build with ffmpeg and/or x10
-%define _without_ffmpeg 1
-%define _without_x10 1
+%define zmuid_final wwwrun
+%define zmgid_final www
+# definitions for OpenSuse
+%define zm_tmpdir /var/run/zoneminder
+%define zm_instdir /opt/zoneminder
+%define zm_rundir %{zm_instdir}/bin
+# OpenSuse seems to have its web services in a different
+# directory structure to some other distros
+%define webroot /srv/www/htdocs
+%define webcgi /srv/www/cgi-bin
 
 Name: zoneminder
-Version: 1.27
+Version: 1.26.5
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -19,40 +21,33 @@ Group: System Environment/Daemons
 License: GPLv2+ and LGPLv2+ and MIT
 URL: http://www.zoneminder.com/
 
-#Source: https://github.com/ZoneMinder/ZoneMinder/archive/v%{version}.tar.gz
 Source: ZoneMinder-%{version}.tar.gz
 
-Patch1: zoneminder-1.26.0-defaults.patch
+Patch1: zoneminder-1.26.5-opensuse.patch
 
-BuildRequires: cmake gnutls-devel systemd-units bzip2-devel
-BuildRequires: community-mysql-devel pcre-devel libjpeg-turbo-devel
-BuildRequires: perl(Archive::Tar) perl(Archive::Zip)
-BuildRequires: perl(Date::Manip) perl(DBD::mysql)
-BuildRequires: perl(ExtUtils::MakeMaker) perl(LWP::UserAgent)
-BuildRequires: perl(MIME::Entity) perl(MIME::Lite)
-BuildRequires: perl(PHP::Serialization) perl(Sys::Mmap)
-BuildRequires: perl(Time::HiRes) perl(Net::SFTP::Foreign)
-BuildRequires: perl(Expect) perl(Sys::Syslog)
-BuildRequires: gcc gcc-c++ vlc-devel libcurl-devel
-%{!?_without_ffmpeg:BuildRequires: ffmpeg-devel}
-%{!?_without_x10:BuildRequires: perl(X10::ActiveHome) perl(Astro::SunTime)}
-# cmake needs the following installed at build time due to the way it auto-detects certain parameters
-BuildRequires:  httpd
-%{!?_without_ffmpeg:BuildRequires: ffmpeg}
+BuildRequires: cmake 
+BuildRequires: perl-DBI perl-DBD-mysql perl-Date-Manip perl-Sys-Mmap 
+BuildRequires: libjpeg62 libjpeg62-devel libmysqld-devel libSDL-devel libgcrypt-devel libgnutls-devel
+BuildRequires: libffmpeg-devel x264
+BuildRequires: pcre-devel w32codec-all  
 
-Requires: httpd php php-mysql cambozola
-Requires: libjpeg-turbo vlc-core libcurl
+Requires: apache2 apache2-mod_php5 mysql 
+Requires: ffmpeg libavformat55
+Requires: php php-mysql 
 Requires: perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
-Requires: perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)
-Requires: perl(MIME::Entity) perl(MIME::Lite) perl(Net::SMTP) perl(Net::FTP)
-Requires: perl(LWP::Protocol::https)
-%{!?_without_ffmpeg:Requires: ffmpeg}
+Requires: perl-Sys-Mmap perl-Date-Manip perl-DBD-mysql
+Requires: perl-Archive-Tar perl-Archive-Zip
+# Can't find suitable package for OpenSuse and not sure if needed
+#Requires: perl-MIME-Entity perl-Net-SMTP perl-Net-FTP
+Requires: perl-MIME-Lite 
+Requires: perl-LWP-Protocol-https 
 
-Requires(post): systemd-units systemd-sysv
+# can't find systemd-units or systemd-sysv in OpenSuse
+#Requires(post): systemd-units systemd-sysv
 Requires(post): /usr/bin/gpasswd
-Requires(post): /usr/bin/less
-Requires(preun): systemd-units
-Requires(postun): systemd-units
+Requires(post): /usr/bin/more
+#Requires(preun): systemd-units
+#Requires(postun): systemd-units
 
 %description
 ZoneMinder is a set of applications which is intended to provide a complete
@@ -65,23 +60,29 @@ too much degradation of performance.
 
 %prep
 %setup -q -n ZoneMinder-%{version}
-
-%patch1 -p0 -b .defaults
-#%patch2 -p0 -b .noffmpeg
+cp -R /home/makerpm/rpmbuild/SOURCES/opensuse distros
+%patch1 -p0 -b .opensuse
 
 %build
-%cmake \
-	-DZM_TARGET_DISTRO="f19" \
-	-DZM_PERL_SUBPREFIX=`x="%{perl_vendorlib}" ; echo ${x#"%{_prefix}"}` \
-%{?_without_ffmpeg:-DZM_NO_FFMPEG=ON} \
-%{?_without_x10:-DZM_NO_X10=ON} \
-	.
+# For OpenSuse 13.1 we need to set DENABLE_MMAP to yes to vercome a problem 
+# where tthe perl modules don't have shared memory enabled
+%cmake  \
+	-DCMAKE_INSTALL_PREFIX=/opt/zoneminder \
+	-DZM_TARGET_DISTRO="OS13" \
+	-DZM_NO_X10=ON \
+	-DENABLE_MMAP=yes
 
-make %{?_smp_mflags}
+make 
+# There doesn't seem to be any point in using the next make as the
+# makefiles for cmake don't seem to support multiple streams	
+#make %{?_smp_mflags}
 
 %install
 export DESTDIR=%{buildroot}
-make install
+# don't understand why but the built system appears in build under BUILDROOT
+cd build
+make install prefix=\${RPM_BUILD_ROOT}
+cd ..
 
 %post
 if [ $1 -eq 1 ] ; then
@@ -89,12 +90,16 @@ if [ $1 -eq 1 ] ; then
     /bin/systemctl daemon-reload >/dev/null 2>&1 || :
 fi
 
-# Allow zoneminder access to local video sources, serial ports, and x10
-/usr/bin/gpasswd -a %{zmuid_final} video
-/usr/bin/gpasswd -a %{zmuid_final} dialout
+# Allow zoneminder access to local video sources
+/usr/bin/gpasswd -a %zmuid_final video
+
+# Make sure that the temporary directory exists 
+#mkdir -p %{zm_tmpdir}
 
 # Display the README for post installation instructions
-/usr/bin/less %{_docdir}/%{name}-%{version}/README.Fedora
+#/usr/bin/less %{_docdir}/%{name}-%{version}/README.OpenSuse
+# both less and more scroll straight off the end of the file
+/usr/bin/more %{_docdir}/%{name}/README.OpenSuse
 
 %preun
 if [ $1 -eq 0 ] ; then
@@ -110,78 +115,50 @@ if [ $1 -ge 1 ] ; then
     /bin/systemctl try-restart zoneminder.service >/dev/null 2>&1 || :
 fi
 
-%triggerun -- zoneminder < 1.25.0-4
+# Next section removed for OpenSuse as the install starts
+# at 1.26.5 for this rpm
+# %triggerun -- zoneminder < 1.25.0-4
 # Save the current service runlevel info
 # User must manually run systemd-sysv-convert --apply zoneminder
 # to migrate them to systemd targets
-/usr/bin/systemd-sysv-convert --save zoneminder >/dev/null 2>&1 ||:
+# /usr/bin/systemd-sysv-convert --save zoneminder >/dev/null 2>&1 ||:
 
 # Run these because the SysV package being removed won't do them
-/sbin/chkconfig --del zoneminder >/dev/null 2>&1 || :
-/bin/systemctl try-restart zoneminder.service >/dev/null 2>&1 || :
+# /sbin/chkconfig --del zoneminder >/dev/null 2>&1 || :
+# /bin/systemctl try-restart zoneminder.service >/dev/null 2>&1 || :
 
 
 %files
 %defattr(-,root,root,-)
-%doc AUTHORS COPYING README.md distros/fedora/README.Fedora distros/fedora/jscalendar-doc
+%doc AUTHORS COPYING README.md distros/opensuse/README.OpenSuse distros/opensuse/jscalendar-doc
+%docdir /opt/zoneminder/share/man
 %config %attr(640,root,%{zmgid_final}) /etc/zm.conf
-%config(noreplace) %attr(644,root,root) /etc/httpd/conf.d/zoneminder.conf
-%config(noreplace) /etc/tmpfiles.d/zoneminder.conf
-%config(noreplace) /etc/logrotate.d/zoneminder
+%config(noreplace) %attr(644,root,root) /etc/apache2/conf.d/zoneminder.conf
+%config(noreplace) %attr(644,root,root) /etc/tmpfiles.d/zoneminder.conf
+%config(noreplace) %attr(644,root,root) /etc/logrotate.d/zoneminder
 
 %{_unitdir}/zoneminder.service
 
-%{_bindir}/zma
-%{_bindir}/zmaudit.pl
-%{_bindir}/zmc
-%{_bindir}/zmcontrol.pl
-%{_bindir}/zmdc.pl
-%{_bindir}/zmf
-%{_bindir}/zmfilter.pl
-# zmfix removed from zoneminder 1.26.6
-#%attr(4755,root,root) %{_bindir}/zmfix
-%{_bindir}/zmpkg.pl
-%{_bindir}/zmstreamer
-%{_bindir}/zmtrack.pl
-%{_bindir}/zmtrigger.pl
-%{_bindir}/zmu
-%{_bindir}/zmupdate.pl
-%{_bindir}/zmvideo.pl
-%{_bindir}/zmwatch.pl
-%{_bindir}/zmcamtool.pl
-%{!?_without_x10:%{_bindir}/zmx10.pl}
+# not sure why this is necessary but leaving in for compatibility
+%attr(4755,root,root) %{zm_rundir}/zmfix
 
-%{perl_vendorlib}/ZoneMinder*
-%{perl_vendorlib}/%{_arch}-linux-thread-multi/auto/ZoneMinder*
-#%{perl_archlib}/ZoneMinder*
-%{_mandir}/man*/*
-%dir %{_libexecdir}/zoneminder
-%{_libexecdir}/zoneminder/cgi-bin
-%dir %{_datadir}/zoneminder
-%{_datadir}/zoneminder/db
-%{_datadir}/zoneminder/www
 
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) /var/lib/zoneminder
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) /var/lib/zoneminder/events
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) /var/lib/zoneminder/images
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) /var/lib/zoneminder/sock
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) /var/lib/zoneminder/swap
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) /var/lib/zoneminder/temp
+%{zm_instdir}
+%{webcgi}/nph-zms
+%{webcgi}/zms
+%{webroot}/zoneminder
+%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{webcgi}
+%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{zm_tmpdir}
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) /var/log/zoneminder
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) /var/spool/zoneminder-upload
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) /run/zoneminder
 
 
 %changelog
-* Fri Mar 14 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.27 
-- Tweak build requirements for cmake
+* Tue Mar 18 2014 David Wilcox <david.wilcox@cloverbeen.com> - 1.26.5
+- Latest update for Opensuse 13.1 - work is still in progress
 
-* Sat Feb 01 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.27
-- Add zmcamtool.pl. Bump version for 1.27 release. 
-
-* Mon Dec 16 2013 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.26.5
-- This is a bug fixe release
-- RTSP fixes, cmake enhancements, couple other misc fixes
+* Thu Feb 06 2014 David Wilcox <david.wilcox@cloverbeen.com> - 1.26.5
+- Initial build for OpenSuse 13.1 - based on Fedora 19 build
 
 * Mon Oct 07 2013 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.26.4
 - Initial cmake build.

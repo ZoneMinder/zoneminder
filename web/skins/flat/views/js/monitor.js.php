@@ -9,7 +9,9 @@ var controlOptions = new Object();
 <?php
     global $controlTypes;
     $controlTypes = array( ''=>$SLANG['None'] );
-    $sql = "select * from Controls where Type = '".$newMonitor['Type']."'";
+# Temporary workaround to show all ptz control types regardless of monitor source type
+#    $sql = "select * from Controls where Type = '".$newMonitor['Type']."'";
+    $sql = "select * from Controls";
     foreach( dbFetchAll( $sql ) as $row )
     {
         $controlTypes[$row['Id']] = $row['Name'];

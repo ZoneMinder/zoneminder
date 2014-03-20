@@ -2988,7 +2988,10 @@ void Image::Deinterlace_4Field(const Image* next_image, unsigned int threshold)
 /************************************************* BLEND FUNCTIONS *************************************************/
 
 
-__attribute__((noinline,__target__("sse2"))) void sse2_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent) {
+#if defined(__i386__) || defined(__x86_64__)
+__attribute__((noinline,__target__("sse2")))
+#endif
+void sse2_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
 	static uint32_t divider = 0;
 	static uint32_t clearmask = 0;
@@ -3330,7 +3333,10 @@ __attribute__((noinline)) void std_delta8_abgr(const uint8_t* col1, const uint8_
 }
 
 /* Grayscale SSE2 */
-__attribute__((noinline,__target__("sse2"))) void sse2_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+#if defined(__i386__) || defined(__x86_64__)
+__attribute__((noinline,__target__("sse2")))
+#endif
+void sse2_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
 
 	__asm__ __volatile__ (
@@ -3358,7 +3364,10 @@ __attribute__((noinline,__target__("sse2"))) void sse2_delta8_gray8(const uint8_
 }
 
 /* RGB32: RGBA SSE2 */
-__attribute__((noinline,__target__("sse2"))) void sse2_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+#if defined(__i386__) || defined(__x86_64__)
+__attribute__((noinline,__target__("sse2")))
+#endif
+void sse2_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
   
 	__asm__ __volatile__ (
@@ -3413,7 +3422,10 @@ __attribute__((noinline,__target__("sse2"))) void sse2_delta8_rgba(const uint8_t
 }
 
 /* RGB32: BGRA SSE2 */
-__attribute__((noinline,__target__("sse2"))) void sse2_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+#if defined(__i386__) || defined(__x86_64__)
+__attribute__((noinline,__target__("sse2")))
+#endif
+void sse2_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
   
 	__asm__ __volatile__ (
@@ -3468,7 +3480,10 @@ __attribute__((noinline,__target__("sse2"))) void sse2_delta8_bgra(const uint8_t
 }
 
 /* RGB32: ARGB SSE2 */
-__attribute__((noinline,__target__("sse2"))) void sse2_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+#if defined(__i386__) || defined(__x86_64__)
+__attribute__((noinline,__target__("sse2")))
+#endif
+void sse2_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
   
 	__asm__ __volatile__ (
@@ -3524,7 +3539,10 @@ __attribute__((noinline,__target__("sse2"))) void sse2_delta8_argb(const uint8_t
 }
 
 /* RGB32: ABGR SSE2 */
-__attribute__((noinline,__target__("sse2"))) void sse2_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+#if defined(__i386__) || defined(__x86_64__)
+__attribute__((noinline,__target__("sse2")))
+#endif
+void sse2_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
   
 	__asm__ __volatile__ (
@@ -3580,7 +3598,10 @@ __attribute__((noinline,__target__("sse2"))) void sse2_delta8_abgr(const uint8_t
 }
 
 /* RGB32: RGBA SSSE3 */
-__attribute__((noinline,__target__("ssse3"))) void ssse3_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+#if defined(__i386__) || defined(__x86_64__)
+__attribute__((noinline,__target__("ssse3")))
+#endif
+void ssse3_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
 	
 	__asm__ __volatile__ (
@@ -3632,7 +3653,10 @@ __attribute__((noinline,__target__("ssse3"))) void ssse3_delta8_rgba(const uint8
 }
 
 /* RGB32: BGRA SSSE3 */
-__attribute__((noinline,__target__("ssse3"))) void ssse3_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+#if defined(__i386__) || defined(__x86_64__)
+__attribute__((noinline,__target__("ssse3")))
+#endif
+void ssse3_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
 	
 	__asm__ __volatile__ (
@@ -3684,7 +3708,10 @@ __attribute__((noinline,__target__("ssse3"))) void ssse3_delta8_bgra(const uint8
 }
 
 /* RGB32: ARGB SSSE3 */
-__attribute__((noinline,__target__("ssse3"))) void ssse3_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+#if defined(__i386__) || defined(__x86_64__)
+__attribute__((noinline,__target__("ssse3")))
+#endif
+void ssse3_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
 	
 	__asm__ __volatile__ (
@@ -3737,7 +3764,10 @@ __attribute__((noinline,__target__("ssse3"))) void ssse3_delta8_argb(const uint8
 }
 
 /* RGB32: ABGR SSSE3 */
-__attribute__((noinline,__target__("ssse3"))) void ssse3_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+#if defined(__i386__) || defined(__x86_64__)
+__attribute__((noinline,__target__("ssse3")))
+#endif
+void ssse3_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
 	
 	__asm__ __volatile__ (
@@ -3989,7 +4019,10 @@ __attribute__((noinline)) void std_convert_yuyv_gray8(const uint8_t* col1, uint8
 }
 
 /* RGBA to grayscale SSSE3 */
-__attribute__((noinline,__target__("ssse3"))) void ssse3_convert_rgba_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
+#if defined(__i386__) || defined(__x86_64__)
+__attribute__((noinline,__target__("ssse3")))
+#endif
+void ssse3_convert_rgba_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
 
 	__asm__ __volatile__ (
@@ -4035,7 +4068,10 @@ __attribute__((noinline,__target__("ssse3"))) void ssse3_convert_rgba_gray8(cons
 }
 
 /* Converts a YUYV image into grayscale by extracting the Y channel */
-__attribute__((noinline,__target__("ssse3"))) void ssse3_convert_yuyv_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
+#if defined(__i386__) || defined(__x86_64__)
+__attribute__((noinline,__target__("ssse3")))
+#endif
+void ssse3_convert_yuyv_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
 	unsigned long i = 0;
   
@@ -4652,7 +4688,10 @@ __attribute__((noinline)) void std_deinterlace_4field_abgr(uint8_t* col1, uint8_
 }
 
 /* Grayscale SSSE3 */
-__attribute__((noinline,__target__("ssse3"))) void ssse3_deinterlace_4field_gray8(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height) {
+#if defined(__i386__) || defined(__x86_64__)
+__attribute__((noinline,__target__("ssse3")))
+#endif
+void ssse3_deinterlace_4field_gray8(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height) {
 
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))
 	union {
@@ -4785,7 +4824,10 @@ __attribute__((noinline,__target__("ssse3"))) void ssse3_deinterlace_4field_gray
 }
 
 /* RGBA SSSE3 */
-__attribute__((noinline,__target__("ssse3"))) void ssse3_deinterlace_4field_rgba(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height) {
+#if defined(__i386__) || defined(__x86_64__)
+__attribute__((noinline,__target__("ssse3")))
+#endif
+void ssse3_deinterlace_4field_rgba(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))
 	__attribute__((aligned(16))) static const uint8_t movemask2[16] = {1,1,1,1,1,0,0,2,9,9,9,9,9,8,8,10};
 
@@ -4965,7 +5007,10 @@ __attribute__((noinline,__target__("ssse3"))) void ssse3_deinterlace_4field_rgba
 }
 
 /* BGRA SSSE3 */
-__attribute__((noinline,__target__("ssse3"))) void ssse3_deinterlace_4field_bgra(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height) {
+#if defined(__i386__) || defined(__x86_64__)
+__attribute__((noinline,__target__("ssse3")))
+#endif
+void ssse3_deinterlace_4field_bgra(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))
 	__attribute__((aligned(16))) static const uint8_t movemask2[16] = {1,1,1,1,1,2,2,0,9,9,9,9,9,10,10,8};
 
@@ -5145,7 +5190,10 @@ __attribute__((noinline,__target__("ssse3"))) void ssse3_deinterlace_4field_bgra
 }
 
 /* ARGB SSSE3 */
-__attribute__((noinline,__target__("ssse3"))) void ssse3_deinterlace_4field_argb(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height) {
+#if defined(__i386__) || defined(__x86_64__)
+__attribute__((noinline,__target__("ssse3")))
+#endif
+void ssse3_deinterlace_4field_argb(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))
 	__attribute__((aligned(16))) static const uint8_t movemask2[16] = {2,2,2,2,2,1,1,3,10,10,10,10,10,9,9,11};
 
@@ -5325,7 +5373,10 @@ __attribute__((noinline,__target__("ssse3"))) void ssse3_deinterlace_4field_argb
 }
 
 /* ABGR SSSE3 */
-__attribute__((noinline,__target__("ssse3"))) void ssse3_deinterlace_4field_abgr(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height) {
+#if defined(__i386__) || defined(__x86_64__)
+__attribute__((noinline,__target__("ssse3")))
+#endif
+void ssse3_deinterlace_4field_abgr(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))
 	__attribute__((aligned(16))) static const uint8_t movemask2[16] = {2,2,2,2,2,3,3,1,10,10,10,10,10,11,11,9};
 

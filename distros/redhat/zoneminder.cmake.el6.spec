@@ -28,13 +28,15 @@ BuildRequires:  perl(MIME::Entity) perl(MIME::Lite)
 BuildRequires:  perl(PHP::Serialization) perl(Sys::Mmap)
 BuildRequires:  perl(Time::HiRes) perl(Net::SFTP::Foreign)
 BuildRequires:  perl(Expect) perl(X10::ActiveHome) perl(Astro::SunTime)
-BuildRequires:  libcurl-devel vlc-devel ffmpeg-devel >= 0.4.9
+BuildRequires:  libcurl-devel vlc-devel ffmpeg-devel
+# cmake needs the following installed at build time due to the way it auto-detects certain parameters
+BuildRequires:  httpd ffmpeg
 
 Requires:   httpd php php-mysql mysql-server libjpeg-turbo
 Requires:   perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires:   perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)
 Requires:   perl(MIME::Entity) perl(MIME::Lite) perl(Net::SMTP) perl(Net::FTP)
-Requires:   libcurl vlc-core ffmpeg >= 0.4.9
+Requires:   libcurl vlc-core ffmpeg
 
 Requires(post): /sbin/chkconfig
 Requires(post): /usr/bin/checkmodule
@@ -158,6 +160,9 @@ rm -rf %{_docdir}/%{name}-%{version}
 
 
 %changelog
+* Fri Mar 14 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.27 
+- Tweak build requirements for cmake
+
 * Sat Feb 01 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.27
 - Add zmcamtool.pl. Bump version for 1.27 release. 
 

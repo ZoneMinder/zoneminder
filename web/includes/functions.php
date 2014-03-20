@@ -33,23 +33,19 @@ function userLogin( $username, $password="", $passwordHashed=false )
 {
     global $user, $cookies;
 
-    $dbUsername = dbEscape($username);
-    $dbPassword = dbEscape($password);
-
+	$sql = "select * from Users where Enabled = 1";
+	$sql_values = NULL;
     if ( ZM_AUTH_TYPE == "builtin" )
     {
-        if ( $passwordHashed )
-        {
-            $sql = "select * from Users where Username = '".$dbUsername."' and Password = '".$dbPassword."' and Enabled = 1";
+        if ( $passwordHashed ) {
+            $sql .= " AND Username=? AND Password=?";
+        } else {
+            $sql .= " AND Username=? AND Password=password(?)";
         }
-        else
-        {
-            $sql = "select * from Users where Username = '".$dbUsername."' and Password = password('".$dbPassword."') and Enabled = 1";
-        }
-    }
-    else
-    {
-        $sql = "select * from Users where Username = '".$dbUsername."' and Enabled = 1";
+		$sql_values = array( $username, $password );
+    } else {
+        $sql .= "AND Username = ?";
+		$sql_values = array( $username );
     }
     $_SESSION['username'] = $username;
     if ( ZM_AUTH_RELAY == "plain" )
@@ -58,7 +54,7 @@ function userLogin( $username, $password="", $passwordHashed=false )
         $_SESSION['password'] = $password;
     }
     $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
-    if ( $dbUser = dbFetchOne( $sql ) )
+    if ( $dbUser = dbFetchOne( $sql, NULL, $sql_values ) )
     {
         $_SESSION['user'] = $user = $dbUser;
         if ( ZM_AUTH_TYPE == "builtin" )
@@ -516,14 +512,13 @@ function deleteEvent( $eid, $mid=false )
 
     if ( !$mid )
         $mid = '*';
-    $eid = dbEscape($eid);
     if ( $user['Events'] == 'Edit' && !empty($eid) )
     {
-        dbQuery( "delete from Events where Id = '$eid'" );
+        dbQuery( 'delete from Events where Id = ?', array($eid) );
         if ( !ZM_OPT_FAST_DELETE )
         {
-            dbQuery( "delete from Stats where EventId = '$eid'" );
-            dbQuery( "delete from Frames where EventId = '$eid'" );
+            dbQuery( 'delete from Stats where EventId = ?', array($eid) );
+            dbQuery( 'delete from Frames where EventId = ?', array($eid) );
             if ( ZM_USE_DEEP_STORAGE )
             {
                 if ( $id_files = glob( ZM_DIR_EVENTS.'/'.$mid.'/*/*/*/.'.$eid ) )
@@ -681,7 +676,7 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false )
                 {
                     if ( join(',',$newValues[$key]) != $values[$key] )
                     {
-                        $changes[$key] = "$key = '".dbEscape(join(',',$newValues[$key]))."'";
+                        $changes[$key] = "$key = ".dbEscape(join(',',$newValues[$key]));
                     }
                 }
                 elseif ( $values[$key] )
@@ -701,12 +696,12 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false )
                     $changes[$key.'Size'] = $key."Size = ".$newValues[$key]['size'];
                     ob_start();
                     readfile( $newValues[$key]['tmp_name'] );
-                    $changes[$key] = $key." = '".dbEscape( ob_get_contents() )."'";
+                    $changes[$key] = $key." = ".dbEscape( ob_get_contents() );
                     ob_end_clean();
                 }
                 else
                 {
-                    $changes[$key] = "$key = '".dbEscape($value)."'";
+                    $changes[$key] = "$key = ".dbEscape($value);
                 }
                 break;
             }
@@ -719,18 +714,18 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false )
                     $changes[$key.'Size'] = $key."Size = ".$newValues[$key]['size'];
                     ob_start();
                     readfile( $newValues[$key]['tmp_name'] );
-                    $changes[$key] = $key." = '".dbEscape( ob_get_contents() )."'";
+                    $changes[$key] = $key." = ".dbEscape( ob_get_contents() );
                     ob_end_clean();
                 }
                 else
                 {
-                    $changes[$key] = "$key = '".dbEscape($value)."'";
+                    $changes[$key] = "$key = ".dbEscape($value);
                 }
                 break;
             }
             case 'file' :
             {
-                $changes[$key.'Type'] = $key."Type = '".dbEscape($newValues[$key]['type'])."'";
+                $changes[$key.'Type'] = $key."Type = ".dbEscape($newValues[$key]['type']);
                 $changes[$key.'Size'] = $key."Size = ".dbEscape($newValues[$key]['size']);
                 ob_start();
                 readfile( $newValues[$key]['tmp_name'] );
@@ -750,7 +745,7 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false )
             {
                 if ( !isset($values[$key]) || ($values[$key] != $value) )
                 {
-                    $changes[$key] = "$key = '".dbEscape($value)."'";
+                    $changes[$key] = "$key = ".dbEscape($value);
                 }
                 break;
             }
@@ -940,17 +935,17 @@ function daemonControl( $command, $daemon=false, $args=false )
 
 function zmcControl( $monitor, $mode=false )
 {
+	$row = NULL;
     if ( $monitor['Type'] == "Local" )
     {
-        $sql = "select count(if(Function!='None',1,NULL)) as ActiveCount from Monitors where Device = '".$monitor['Device']."'";
+		$row = dbFetchOne( "select count(if(Function!='None',1,NULL)) as ActiveCount from Monitors where Device = ?", NULL, array($monitor['Device']) );
         $zmcArgs = "-d ".$monitor['Device'];
     }
     else
     {
-        $sql = "select count(if(Function!='None',1,NULL)) as ActiveCount from Monitors where Id = '".$monitor['Id']."'";
+		$row = dbFetchOne( "select count(if(Function!='None',1,NULL)) as ActiveCount from Monitors where Id = ?", NULL, array($monitor['Id']) );
         $zmcArgs = "-m ".$monitor['Id'];
     }
-    $row = dbFetchOne( $sql );
     $activeCount = $row['ActiveCount'];
 
     if ( !$activeCount || $mode == "stop" )
@@ -971,8 +966,7 @@ function zmaControl( $monitor, $mode=false )
 {
     if ( !is_array( $monitor ) )
     {
-        $sql = "select C.*, M.* from Monitors as M left join Controls as C on (M.ControlId = C.Id ) where M.Id = '".dbEscape($monitor)."'";
-        $monitor = dbFetchOne( $sql );
+        $monitor = dbFetchOne( "select C.*, M.* from Monitors as M left join Controls as C on (M.ControlId = C.Id ) where M.Id=?", NULL, array($monitor) );
     }
     if ( !$monitor || $monitor['Function'] == 'None' || $monitor['Function'] == 'Monitor' || $mode == "stop" )
     {
@@ -1207,8 +1201,7 @@ function viewImagePath( $path, $querySep='&amp;' )
 
 function createListThumbnail( $event, $overwrite=false )
 {
-    $sql = "select * from Frames where EventId = '".$event['Id']."' and Score = '".$event['MaxScore']."' order by FrameId limit 1";
-    if ( !($frame = dbFetchOne( $sql )) )
+    if ( !($frame = dbFetchOne( "SELECT * FROM Frames WHERE EventId=? AND Score=? ORDER BY FrameId LIMIT 1", NULL, array( $event['Id'], $event['MaxScore'] ) )) )
         return( false );
 
     $frameId = $frame['FrameId'];
@@ -1371,7 +1364,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' )
             if ( isset($filter['terms'][$i]['cnj']) )
             {
                 $filter['query'] .= $querySep."filter[terms][$i][cnj]=".urlencode($filter['terms'][$i]['cnj']);
-                $filter['sql'] .= " ".dbEscape($filter['terms'][$i]['cnj'])." ";
+                $filter['sql'] .= " ".$filter['terms'][$i]['cnj']." ";
                 $filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][cnj]\" value=\"".htmlspecialchars($filter['terms'][$i]['cnj'])."\"/>\n";
             }
             if ( isset($filter['terms'][$i]['obr']) )
@@ -1387,7 +1380,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' )
                 switch ( $filter['terms'][$i]['attr'] )
                 {
                     case 'MonitorName':
-                        $filter['sql'] .= 'M.'.dbEscape(preg_replace( '/^Monitor/', '', $filter['terms'][$i]['attr'] ));
+                        $filter['sql'] .= dbEscape('M.'.preg_replace( '/^Monitor/', '', $filter['terms'][$i]['attr'] ));
                         break;
                     case 'DateTime':
                         $filter['sql'] .= "E.StartTime";
@@ -1413,7 +1406,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' )
                     case 'Cause':
                     case 'Notes':
                     case 'Archived':
-                        $filter['sql'] .= "E.".dbEscape($filter['terms'][$i]['attr']);
+                        $filter['sql'] .= dbEscape('E.'.$filter['terms'][$i]['attr']);
                         break;
                     case 'DiskPercent':
                         $filter['sql'] .= getDiskPercent();
@@ -1434,7 +1427,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' )
                         case 'Name':
                         case 'Cause':
                         case 'Notes':
-                            $value = "'".dbEscape($value)."'";
+                            $value = dbEscape($value);
                             break;
                         case 'DateTime':
                             $value = "'".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."'";
@@ -1460,7 +1453,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' )
                     case '>' :
                     case '<' :
                     case '<=' :
-                        $filter['sql'] .= " ".dbEscape($filter['terms'][$i]['op'])." $value";
+                        $filter['sql'] .= " ".$filter['terms'][$i]['op']." $value";
                         break;
                     case '=~' :
                         $filter['sql'] .= " regexp ".$value;
@@ -1686,8 +1679,7 @@ function fixSequences()
     {
         if ( $monitor['Sequence'] != $sequence )
         {
-            $sql2 = "update Monitors set Sequence = '".$sequence."' where Id = '".$monitor['Id']."'";
-            dbQuery( $sql2 );
+            dbQuery( 'update Monitors set Sequence = ? WHERE Id=?', array( $sequence, $monitor['Id'] ) );
         }
         $sequence++;
     }

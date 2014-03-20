@@ -41,12 +41,15 @@ $groupSql = '';
 if ( !empty($_REQUEST['group']) )
 {
     $group = validInt($_REQUEST['group']);
-    $sql = "select * from Groups where Id = '".dbEscape($group)."'";
-    $row = dbFetchOne( $sql );
+    $row = dbFetchOne( 'select * from Groups where Id = ?', NULL, array( $group) );
     $groupSql = " and find_in_set( Id, '".$row['MonitorIds']."' )";
 }
 
-$sql = "select * from Monitors where Function != 'None'$groupSql order by Sequence";
+$sql = "select * from Monitors where Function != 'None'$groupSql";
+if ( ''+ZM_SERVER_HOST ) {
+	$sql .= " and ServerHost='".ZM_SERVER_HOST."'";
+}
+$sql .= " order by Sequence";
 $monitors = array();
 $monIdx = 0;
 foreach( dbFetchAll( $sql ) as $row )

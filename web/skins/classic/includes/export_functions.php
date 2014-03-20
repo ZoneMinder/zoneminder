@@ -146,8 +146,8 @@ function exportEventFrames( $event, $exportDetail, $exportImages )
 {
     global $SLANG;
 
-    $sql = "select *, unix_timestamp( TimeStamp ) as UnixTimeStamp from Frames where EventID = '".dbEscape($event['Id'])."' order by FrameId";
-    $frames = dbFetchAll( $sql );
+    $sql = "SELECT *, unix_timestamp( TimeStamp ) AS UnixTimeStamp FROM Frames WHERE EventID = ? ORDER BY FrameId";
+    $frames = dbFetchAll( $sql, NULL, array( $event['Id'] ) );
 
     ob_start();
     exportHeader( $SLANG['Frames']." ".$event['Id'] );
@@ -622,8 +622,8 @@ function exportEventImagesMaster( $eids )
 <?php
 	foreach ($eids as $eid) {
 		//get monitor id and event id
-		$sql = "select E.MonitorId from Monitors as M inner join Events as E on (M.Id = E.MonitorId) where E.Id = '".dbEscape($eid)."'";
-		$event = dbFetchOne( $sql );
+		$sql = 'SELECT E.MonitorId FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId) WHERE E.Id = ?';
+		$event = dbFetchOne( $sql, NULL, array( $eid ) );
 		$eventMonitorId[$eid] = $event['MonitorId'];
 	}
 	
@@ -783,8 +783,8 @@ function exportFileList( $eid, $exportDetail, $exportFrames, $exportImages, $exp
 
     if ( canView( 'Events' ) && $eid )
     {
-        $sql = "select E.Id,E.MonitorId,M.Name As MonitorName,M.Width,M.Height,E.Name,E.Cause,E.Notes,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived from Monitors as M inner join Events as E on (M.Id = E.MonitorId) where E.Id = '".dbEscape($eid)."'";
-        $event = dbFetchOne( $sql );
+        $sql = 'SELECT E.Id,E.MonitorId,M.Name AS MonitorName,M.Width,M.Height,E.Name,E.Cause,E.Notes,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId) WHERE E.Id = ?';
+        $event = dbFetchOne( $sql, NULL, array( $eid ) );
 		$eventPath =  mygetEventPath( $event );
         $files = array();
         if ( $dir = opendir( $eventPath ) )

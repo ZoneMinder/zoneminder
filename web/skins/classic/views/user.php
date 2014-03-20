@@ -25,9 +25,7 @@ if ( !canEdit( 'System' ) && !$selfEdit )
     $view = "error";
     return;
 }
-$sql = "select * from Users where Id = '".dbEscape($_REQUEST['uid'])."'";
-if ( !($newUser = dbFetchOne( $sql )) )
-{
+if ( !($newUser = dbFetchOne( 'SELECT * FROM Users WHERE Id = ?', NULL, $_REQUEST['uid']) ) ); {
     $newUser = array();
     $newUser['Username'] = $SLANG['NewUser'];
     $newUser['Enabled'] = 1;

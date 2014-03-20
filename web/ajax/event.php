@@ -1,32 +1,21 @@
 <?php
 
-if ( empty($_REQUEST['id']) && empty($_REQUEST['eids']) )
-{
+if ( empty($_REQUEST['id']) && empty($_REQUEST['eids']) ) {
     ajaxError( "No event id(s) supplied" );
 }
 
-if ( canView( 'Events' ) )
-{
-    switch ( $_REQUEST['action'] )
-    {
-        case "video" :
-        {
-            if ( empty($_REQUEST['videoFormat']) )
-            {
+if ( canView( 'Events' ) ) {
+    switch ( $_REQUEST['action'] ) {
+        case "video" : {
+            if ( empty($_REQUEST['videoFormat']) ) {
                 ajaxError( "Video Generation Failure, no format given" );
-            }
-            elseif ( empty($_REQUEST['rate']) )
-            {
+            } elseif ( empty($_REQUEST['rate']) ) {
                 ajaxError( "Video Generation Failure, no rate given" );
-            }
-            elseif ( empty($_REQUEST['scale']) )
-            {
+            } elseif ( empty($_REQUEST['scale']) ) {
                 ajaxError( "Video Generation Failure, no scale given" );
-            }
-            else
-            {
-                $sql = "select E.*,M.Name as MonitorName,M.DefaultRate,M.DefaultScale from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = ".dbEscape($_REQUEST['id']).monitorLimitSql();
-                if ( !($event = dbFetchOne( $sql )) )
+            } else {
+                $sql = 'select E.*,M.Name as MonitorName,M.DefaultRate,M.DefaultScale from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = ?'.monitorLimitSql();
+                if ( !($event = dbFetchOne( $sql, NULL, array( $_REQUEST['id'] ) )) )
                     ajaxError( "Video Generation Failure, can't load event" );
                 else
                     if ( $videoFile = createVideo( $event, $_REQUEST['videoFormat'], $_REQUEST['rate'], $_REQUEST['scale'], !empty($_REQUEST['overwrite']) ) )
@@ -90,7 +79,7 @@ if ( canEdit( 'Events' ) )
         case "rename" :
         {
             if ( !empty($_REQUEST['eventName']) )
-                dbQuery( "update Events set Name = '".dbEscape($_REQUEST['eventName'])."' where Id = '".dbEscape($_REQUEST['id'])."'" );
+                dbQuery( 'UPDATE Events SET Name = ? WHERE Id = ?', array( $_REQUEST['eventName'], $_REQUEST['id'] ) );
             else
                 ajaxError( "No new event name supplied" );
             ajaxResponse( array( 'refreshEvent'=>true, 'refreshParent'=>true ) );
@@ -98,7 +87,7 @@ if ( canEdit( 'Events' ) )
         }
         case "eventdetail" :
         {
-            dbQuery( "update Events set Cause = '".dbEscape($_REQUEST['newEvent']['Cause'])."', Notes = '".dbEscape($_REQUEST['newEvent']['Notes'])."' where Id = '".dbEscape($_REQUEST['id'])."'" );
+            dbQuery( 'UPDATE Events SET Cause = ?, Notes = ? WHERE Id = ?', array( $_REQUEST['newEvent']['Cause'], $_REQUEST['newEvent']['Notes'], $_REQUEST['id'] ) );
             ajaxResponse( array( 'refreshEvent'=>true, 'refreshParent'=>true ) );
             break;
         }
@@ -106,13 +95,13 @@ if ( canEdit( 'Events' ) )
         case "unarchive" :
         {
             $archiveVal = ($_REQUEST['action'] == "archive")?1:0;
-            dbQuery( "update Events set Archived = ".$archiveVal." where Id = '".dbEscape($_REQUEST['id'])."'" );
+            dbQuery( 'UPDATE Events SET Archived = ? WHERE Id = ?', array( $archiveVal, $_REQUEST['id']) );
             ajaxResponse( array( 'refreshEvent'=>true, 'refreshParent'=>false ) );
             break;
         }
         case "delete" :
         {
-            deleteEvent( dbEscape($_REQUEST['id']) );
+            deleteEvent( $_REQUEST['id'] );
             ajaxResponse( array( 'refreshEvent'=>false, 'refreshParent'=>true ) );
             break;
         }

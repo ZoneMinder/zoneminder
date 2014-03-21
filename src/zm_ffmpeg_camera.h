@@ -56,7 +56,6 @@ protected:
     bool mIsOpening;
     bool mCanCapture;
     int mOpenStart;
-    int mOpenTimeout;
 #endif // HAVE_LIBAVFORMAT
 
 #if HAVE_LIBSWSCALE

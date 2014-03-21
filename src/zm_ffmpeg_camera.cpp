@@ -42,7 +42,6 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, int p_width, in
     mIsOpening = false;
     mCanCapture = false;
     mOpenStart = 0;
-    mOpenTimeout = 10;
 	
 #if HAVE_LIBSWSCALE    
 	mConvertContext = NULL;
@@ -353,8 +352,8 @@ int FfmpegCamera::FfmpegInterruptCallback(void *ctx)
     FfmpegCamera* camera = reinterpret_cast<FfmpegCamera*>(ctx);
     if (camera->mIsOpening){
         int now = time(NULL);
-        if ((now - camera->mOpenStart) > camera->mOpenTimeout) {
-            Error ( "Open video took more than %d seconds.", camera->mOpenTimeout );
+        if ((now - camera->mOpenStart) > config.ffmpeg_open_timeout) {
+            Error ( "Open video took more than %d seconds.", config.ffmpeg_open_timeout );
             return 1;
         }
     }
@@ -371,7 +370,7 @@ void *FfmpegCamera::ReopenFfmpegThreadCallback(void *ctx){
     camera->CloseFfmpeg();
 
     // Sleep if neccessary to not reconnect too fast.
-    int wait = camera->mOpenTimeout - (time(NULL) - camera->mOpenStart);
+    int wait = config.ffmpeg_open_timeout - (time(NULL) - camera->mOpenStart);
     wait = wait < 0 ? 0 : wait;
     if (wait > 0){
         Debug( 1, "Sleeping %d seconds before reopening stream.", wait );

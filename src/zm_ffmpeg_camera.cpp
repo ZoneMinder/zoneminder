@@ -344,8 +344,8 @@ int FfmpegCamera::ReopenFfmpeg() {
     mCanCapture = false;
     pthread_t thread1;
     if (pthread_create( &thread1, NULL, ReopenFfmpegThreadCallback, (void*) this) != 0){
-        Error( "ReopenFfmpeg failed to create worker thread." );
-        return -1;
+        // Log a fatal error and exit the process.
+        Fatal( "ReopenFfmpeg failed to create worker thread." );
     }
 
     return 0;

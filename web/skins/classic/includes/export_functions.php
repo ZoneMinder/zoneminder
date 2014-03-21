@@ -437,22 +437,6 @@ function rewind() {
 
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 //---------------------------------+
 //  CARPE  S l i d e r        1.3  |
 //  2005 - 12 - 10                 |
@@ -590,14 +574,8 @@ function slideManual(val,length,from,to) {
 	if (yMax == 0) carpeLeft(sliderid, pos) // Snap horizontal slider to corresponding display position.
 }
 
-
-
-
-
-
 if (ie||dom) start_slider();
 else if (document.layers) window.onload=start_slider;
-
 
 </script>
 

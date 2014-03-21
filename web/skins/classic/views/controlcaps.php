@@ -24,8 +24,7 @@ if ( !canView( 'Control' ) )
     return;
 }
 
-$sql = "select * from Controls order by Id";
-$controls = dbFetchAll( $sql );
+$controls = dbFetchAll( 'SELECT * FROM Controls ORDER BY Id' );
 
 $focusWindow = true;
 

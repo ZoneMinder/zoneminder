@@ -24,10 +24,8 @@ if ( !canEdit( 'Devices' ) )
     return;
 }
 if ( !empty($_REQUEST['did']) ) {
-    $newDevice = dbFetchOne( 'SELECT * FROM Devices WHERE Id = ?', NULL, ARRAY($_REQUEST['did']) );
-}
-else
-{
+    $newDevice = dbFetchOne( 'SELECT * FROM Devices WHERE Id = ?', NULL, array($_REQUEST['did']) );
+} else {
     $newDevice = array(
         "Id" => "",
         "Name" => "New Device",

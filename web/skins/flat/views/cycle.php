@@ -41,7 +41,7 @@ $groupSql = '';
 if ( !empty($_REQUEST['group']) )
 {
     $group = validInt($_REQUEST['group']);
-    $row = dbFetchOne( 'SELECT * FROM Groups WHERE Id = ?', NULL, ARRAY($group) );
+    $row = dbFetchOne( 'SELECT * FROM Groups WHERE Id = ?', NULL, array($group) );
     $groupSql = " and find_in_set( Id, '".$row['MonitorIds']."' )";
 }
 

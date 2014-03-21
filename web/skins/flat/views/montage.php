@@ -27,12 +27,12 @@ if ( !canView( 'Stream' ) )
 $groupSql = "";
 if ( !empty($_REQUEST['group']) )
 {
-    $sql = "select * from Groups where Id = '".dbEscape($_REQUEST['group'])."'";
-    $row = dbFetchOne( $sql );
-    $groupSql = " and find_in_set( Id, '".$row['MonitorIds']."' )";
+    $row = dbFetchOne( 'select * from Groups where Id = ?', NULL, array($_REQUEST['group']) );
+	$sql = "select * from Monitors where Function != 'None' and find_in_set( Id, '".$row['MonitorIds']."' ) order by Sequence";
+} else { 
+	$sql = "select * from Monitors where Function != 'None' order by Sequence";
 }
 
-$sql = "select * from Monitors where Function != 'None'$groupSql order by Sequence";
 $maxWidth = 0;
 $maxHeight = 0;
 $showControl = false;
@@ -70,11 +70,11 @@ foreach( dbFetchAll( $sql ) as $row )
 $focusWindow = true;
 
 $layouts = array(
-    'montage_freeform.css' => 'Default',
-    'montage_2wide.css' => '2-wide grid',
-    'montage_3wide.css' => '3-wide grid',
-    'montage_4wide.css' => '4-wide grid',
-    'montage_3wide50enlarge.css' => '3-wide grid, scaled, enlarge on alarm',
+    'montage_freeform.css' => $SLANG['MtgDefault'],
+    'montage_2wide.css' => $SLANG['Mtg2widgrd'],
+    'montage_3wide.css' => $SLANG['Mtg3widgrd'],
+    'montage_4wide.css' => $SLANG['Mtg4widgrd'],
+    'montage_3wide50enlarge.css' => $SLANG['Mtg3widgrx'],
 );
 
 if ( isset($_COOKIE['zmMontageLayout']) )

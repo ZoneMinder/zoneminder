@@ -29,17 +29,14 @@ if ( !empty($_REQUEST['fid']) )
     $fid = validInt($_REQUEST['fid']);
 
 $sql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultScale FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = ?';
-$event = dbFetchOne( $sql, NULL, array( $eid ) );
+$event = dbFetchOne( $sql, NULL, array($eid) );
 
-if ( !empty($fid) )
-{
+if ( !empty($fid) ) {
     $sql = 'SELECT * FROM Frames WHERE EventId = ? AND FrameId = ?';
-    if ( !($frame = dbFetchOne( $sql, NULL, array( $eid, $fid ) )) )
+    if ( !($frame = dbFetchOne( $sql, NULL, array($eid, $fid) )) )
         $frame = array( 'FrameId'=>$fid, 'Type'=>'Normal', 'Score'=>0 );
-}
-else
-{
-    $frame = dbFetchOne( 'SELECT * FROM Frames WHERE EventId = ? AND Score = ?', null, array( $eid, $event['MaxScore'] ) );
+} else {
+    $frame = dbFetchOne( 'SELECT * FROM Frames WHERE EventId = ? AND Score = ?', NULL, array( $eid, $event['MaxScore'] ) );
 }
 
 $maxFid = $event['Frames'];

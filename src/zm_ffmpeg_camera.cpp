@@ -124,16 +124,20 @@ int FfmpegCamera::Capture( Image &image )
         int avResult = av_read_frame( mFormatContext, &packet );
         if ( avResult < 0 )
         {
-            if (avResult == AVERROR_EOF || (mFormatContext->pb && mFormatContext->pb->eof_reached))
+            char errbuf[AV_ERROR_MAX_STRING_SIZE];
+            av_strerror(avResult, errbuf, AV_ERROR_MAX_STRING_SIZE);
+            if (
+                // Check if EOF.
+                (avResult == AVERROR_EOF || (mFormatContext->pb && mFormatContext->pb->eof_reached)) ||
+                // Check for Connection failure.
+                (avResult == -110)
+            )
             {
-                Info( "av_read_frame returned EOF. Reopening stream." );
+                Info( "av_read_frame returned \"%s\". Reopening stream.", errbuf);
                 ReopenFfmpeg();
-            } else if (avResult == -110) {
-                Info( "av_read_frame returned \"%s\". Reopening stream.", av_err2str(avResult)) ;
-                ReopenFfmpeg();
-            } else {
-                Error( "Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, avResult, av_err2str(avResult) );
             }
+
+            Error( "Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, avResult, errbuf );
             return( -1 );
         }
         Debug( 5, "Got packet from stream %d", packet.stream_index );

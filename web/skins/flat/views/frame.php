@@ -28,18 +28,15 @@ $eid = validInt($_REQUEST['eid']);
 if ( !empty($_REQUEST['fid']) )
     $fid = validInt($_REQUEST['fid']);
 
-$sql = "select E.*,M.Name as MonitorName,M.DefaultScale from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = '".dbEscape($eid)."'";
-$event = dbFetchOne( $sql );
+$sql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultScale FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = ?';
+$event = dbFetchOne( $sql, NULL, array($eid) );
 
-if ( !empty($fid) )
-{
-    $sql = "select * from Frames where EventId = '".dbEscape($eid)."' and FrameId = '".dbEscape($fid)."'";
-    if ( !($frame = dbFetchOne( $sql )) )
+if ( !empty($fid) ) {
+    $sql = 'SELECT * FROM Frames WHERE EventId = ? AND FrameId = ?';
+    if ( !($frame = dbFetchOne( $sql, NULL, array($eid, $fid) )) )
         $frame = array( 'FrameId'=>$fid, 'Type'=>'Normal', 'Score'=>0 );
-}
-else
-{
-    $frame = dbFetchOne( "select * from Frames where EventId = '".dbEscape($eid)."' and Score = '".$event['MaxScore']."'" );
+} else {
+    $frame = dbFetchOne( 'SELECT * FROM Frames WHERE EventId = ? AND Score = ?', NULL, array( $eid, $event['MaxScore'] ) );
 }
 
 $maxFid = $event['Frames'];

@@ -24,7 +24,7 @@ if ( !canView( 'Devices' ) )
      return;
 }
 
-$sql = "select * from Devices where Type = 'X10' order by Name";
+$sql = "SELECT * FROM Devices WHERE Type = 'X10' ORDER BY Name";
 $devices = array();
 foreach( dbFetchAll( $sql ) as $row )
 {

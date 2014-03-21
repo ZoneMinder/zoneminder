@@ -23,10 +23,8 @@ if ( !canEdit( 'Devices' ) )
     $view = "error";
     return;
 }
-if ( !empty($_REQUEST['did']) )
-{
-    $sql = "select * from Devices where Id = '".dbEscape($_REQUEST['did'])."'";
-    $newDevice = dbFetchOne( $sql );
+if ( !empty($_REQUEST['did']) ) {
+    $newDevice = dbFetchOne( 'SELECT * FROM Devices WHERE Id = ?', NULL, ARRAY($_REQUEST['did']) );
 }
 else
 {

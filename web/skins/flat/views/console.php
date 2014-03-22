@@ -71,6 +71,7 @@ $eventCounts = array(
 $running = daemonCheck();
 $status = $running?$SLANG['Running']:$SLANG['Stopped'];
 
+$group = NULL;
 if ( ! empty($_COOKIE['zmGroup']) ) {
 	if ( $group = dbFetchOne( 'SELECT * FROM Groups WHERE Id = ?', NULL, ARRAY($_COOKIE['zmGroup']) ) )
 		$groupIds = array_flip(explode( ',', $group['MonitorIds'] ));

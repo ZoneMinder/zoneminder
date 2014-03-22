@@ -71,8 +71,12 @@ $eventCounts = array(
 $running = daemonCheck();
 $status = $running?$SLANG['Running']:$SLANG['Stopped'];
 
-if ( $group = dbFetchOne( 'select * from Groups where Id = ?', NULL, array(empty($_COOKIE['zmGroup'])?0:$_COOKIE['zmGroup'])) )
-    $groupIds = array_flip(explode( ',', $group['MonitorIds'] ));
+$group = NULL;
+if ( ! empty($_COOKIE['zmGroup']) ) {
+	if ( $group = dbFetchOne( 'select * from Groups where Id = ?', NULL, array($_COOKIE['zmGroup'])) )
+		$groupIds = array_flip(explode( ',', $group['MonitorIds'] ));
+	}
+}
 
 noCacheHeaders();
 

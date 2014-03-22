@@ -19,6 +19,10 @@
 
 #include "zm.h"
 
+#ifndef AV_ERROR_MAX_STRING_SIZE
+#define AV_ERROR_MAX_STRING_SIZE 64
+#endif
+
 #if HAVE_LIBAVFORMAT
 
 #include "zm_ffmpeg_camera.h"

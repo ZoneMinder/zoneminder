@@ -75,7 +75,6 @@ $group = NULL;
 if ( ! empty($_COOKIE['zmGroup']) ) {
 	if ( $group = dbFetchOne( 'select * from Groups where Id = ?', NULL, array($_COOKIE['zmGroup'])) )
 		$groupIds = array_flip(explode( ',', $group['MonitorIds'] ));
-	}
 }
 
 noCacheHeaders();

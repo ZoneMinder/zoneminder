@@ -87,23 +87,23 @@ if ( !empty($action) )
                     $_REQUEST['filter']['sort_field'] = validStr($_REQUEST['sort_field']);
                     $_REQUEST['filter']['sort_asc'] = validStr($_REQUEST['sort_asc']);
                     $_REQUEST['filter']['limit'] = validInt($_REQUEST['limit']);
-                    $sql = "replace into Filters set Name = '".dbEscape($filterName)."', Query = '".dbEscape(jsonEncode($_REQUEST['filter']))."'";
+                    $sql = "replace into Filters set Name = ".dbEscape($filterName).", Query = ".dbEscape(jsonEncode($_REQUEST['filter']));
                     if ( !empty($_REQUEST['autoArchive']) )
-                        $sql .= ", AutoArchive = '".dbEscape($_REQUEST['autoArchive'])."'";
+                        $sql .= ", AutoArchive = ".dbEscape($_REQUEST['autoArchive']);
                     if ( !empty($_REQUEST['autoVideo']) )
-                        $sql .= ", AutoVideo = '".dbEscape($_REQUEST['autoVideo'])."'";
+                        $sql .= ", AutoVideo = ".dbEscape($_REQUEST['autoVideo']);
                     if ( !empty($_REQUEST['autoUpload']) )
-                        $sql .= ", AutoUpload = '".dbEscape($_REQUEST['autoUpload'])."'";
+                        $sql .= ", AutoUpload = ".dbEscape($_REQUEST['autoUpload']);
                     if ( !empty($_REQUEST['autoEmail']) )
-                        $sql .= ", AutoEmail = '".dbEscape($_REQUEST['autoEmail'])."'";
+                        $sql .= ", AutoEmail = ".dbEscape($_REQUEST['autoEmail']);
                     if ( !empty($_REQUEST['autoMessage']) )
-                        $sql .= ", AutoMessage = '".dbEscape($_REQUEST['autoMessage'])."'";
+                        $sql .= ", AutoMessage = ".dbEscape($_REQUEST['autoMessage']);
                     if ( !empty($_REQUEST['autoExecute']) && !empty($_REQUEST['autoExecuteCmd']) )
-                        $sql .= ", AutoExecute = '".dbEscape($_REQUEST['autoExecute'])."', AutoExecuteCmd = '".dbEscape($_REQUEST['autoExecuteCmd'])."'";
+                        $sql .= ", AutoExecute = ".dbEscape($_REQUEST['autoExecute']).", AutoExecuteCmd = ".dbEscape($_REQUEST['autoExecuteCmd']);
                     if ( !empty($_REQUEST['autoDelete']) )
-                        $sql .= ", AutoDelete = '".dbEscape($_REQUEST['autoDelete'])."'";
+                        $sql .= ", AutoDelete = ".dbEscape($_REQUEST['autoDelete']);
                     if ( !empty($_REQUEST['background']) )
-                        $sql .= ", Background = '".dbEscape($_REQUEST['background'])."'";
+                        $sql .= ", Background = ".dbEscape($_REQUEST['background']);
                     dbQuery( $sql );
                     $refreshParent = true;
                 }
@@ -116,20 +116,20 @@ if ( !empty($action) )
     {
         if ( $action == "rename" && isset($_REQUEST['eventName']) && !empty($_REQUEST['eid']) )
         {
-            dbQuery( "update Events set Name = '".dbEscape($_REQUEST['eventName'])."' where Id = '".dbEscape($_REQUEST['eid'])."'" );
+            dbQuery( 'UPDATE Events SET Name=? WHERE Id=?', array( $_REQUEST['eventName'], $_REQUEST['eid'] ) );
         }
         else if ( $action == "eventdetail" )
         {
             if ( !empty($_REQUEST['eid']) )
             {
-                dbQuery( "update Events set Cause = '".dbEscape($_REQUEST['newEvent']['Cause'])."', Notes = '".dbEscape($_REQUEST['newEvent']['Notes'])."' where Id = '".dbEscape($_REQUEST['eid'])."'" );
+                dbQuery( 'UPDATE Events SET Cause=?, Notes=? WHERE Id=?', array( $_REQUEST['newEvent']['Cause'], $_REQUEST['newEvent']['Notes'], $_REQUEST['eid'] ) );
                 $refreshParent = true;
             }
             else
             {
                 foreach( getAffectedIds( 'markEid' ) as $markEid )
                 {
-                    dbQuery( "update Events set Cause = '".dbEscape($_REQUEST['newEvent']['Cause'])."', Notes = '".dbEscape($_REQUEST['newEvent']['Notes'])."' where Id = '".dbEscape($markEid)."'" );
+					dbQuery( 'UPDATE Events SET Cause=?, Notes=? WHERE Id=?', array( $_REQUEST['newEvent']['Cause'], $_REQUEST['newEvent']['Notes'], $markEid ) );
                     $refreshParent = true;
                 }
             }
@@ -139,13 +139,13 @@ if ( !empty($action) )
             $archiveVal = ($action == "archive")?1:0;
             if ( !empty($_REQUEST['eid']) )
             {
-                dbQuery( "update Events set Archived = $archiveVal where Id = '".dbEscape($_REQUEST['eid'])."'" );
+                dbQuery( 'UPDATE Events SET Archived=? WHERE Id=?', array( $archiveVal, $_REQUEST['eid']) );
             }
             else
             {
                 foreach( getAffectedIds( 'markEid' ) as $markEid )
                 {
-                    dbQuery( "update Events set Archived = $archiveVal where Id = '".dbEscape($markEid)."'" );
+					dbQuery( 'UPDATE Events SET Archived=? WHERE Id=?', array( $archiveVal, $markEid ) );
                     $refreshParent = true;
                 }
             }
@@ -159,7 +159,7 @@ if ( !empty($action) )
             }
             if ( !empty($_REQUEST['fid']) )
             {
-                dbQuery( "delete from Filters where Name = '".dbEscape($_REQUEST['fid'])."'" );
+                dbQuery( 'DELETE FROM Filters WHERE Name=?', array( $_REQUEST['fid'] ) );
                 //$refreshParent = true;
             }
         }
@@ -172,7 +172,7 @@ if ( !empty($action) )
         $mid = validInt($_REQUEST['mid']);
         if ( $action == "control" )
         {
-            $monitor = dbFetchOne( "select C.*,M.* from Monitors as M inner join Controls as C on (M.ControlId = C.Id) where M.Id = '".dbEscape($mid)."'" );
+            $monitor = dbFetchOne( "select C.*,M.* from Monitors as M inner join Controls as C on (M.ControlId = C.Id) where M.Id = ?", NULL, array($mid) );
 
             $ctrlCommand = buildControlCommand( $monitor );
 
@@ -226,7 +226,7 @@ if ( !empty($action) )
         {
             if ( !empty($_REQUEST['cid']) )
             {
-                $control = dbFetchOne( "select * from Controls where Id = '".dbEscape($_REQUEST['cid'])."'" );
+                $control = dbFetchOne( "select * from Controls where Id = ?", NULL, array($_REQUEST['cid']) );
             }
             else
             {
@@ -252,7 +252,7 @@ if ( !empty($action) )
             {
                 if ( !empty($_REQUEST['cid']) )
                 {
-                    dbQuery( "update Controls set ".implode( ", ", $changes )." where Id = '".dbEscape($_REQUEST['cid'])."'" );
+                    dbQuery( "update Controls set ".implode( ", ", $changes )." where Id = ?", array($_REQUEST['cid']) );
                 }
                 else
                 {
@@ -269,8 +269,8 @@ if ( !empty($action) )
             {
                 foreach( $_REQUEST['markCids'] as $markCid )
                 {
-                    dbQuery( "delete from Controls where Id = '".dbEscape($markCid)."'" );
-                    dbQuery( "update Monitors set Controllable = 0, ControlId = 0 where ControlId = '".dbEscape($markCid)."'" );
+                    dbQuery( "delete from Controls where Id = ?", array($markCid) );
+                    dbQuery( "update Monitors set Controllable = 0, ControlId = 0 where ControlId = ?", array($markCid) );
                     $refreshParent = true;
                 }
             }
@@ -283,7 +283,7 @@ if ( !empty($action) )
         $mid = validInt($_REQUEST['mid']);
         if ( $action == "function" )
         {
-            $monitor = dbFetchOne( "select * from Monitors where Id = '".$mid."'" );
+            $monitor = dbFetchOne( "SELECT * FROM Monitors WHERE Id=?", NULL, array($mid) );
 
             $newFunction = validStr($_REQUEST['newFunction']);
             $newEnabled = validStr($_REQUEST['newEnabled']);
@@ -292,7 +292,7 @@ if ( !empty($action) )
             $oldEnabled = $monitor['Enabled'];
             if ( $newFunction != $oldFunction || $newEnabled != $oldEnabled )
             {
-                dbQuery( "update Monitors set Function = '".dbEscape($newFunction)."', Enabled = '".$newEnabled."' where Id = '".$mid."'" );
+                dbQuery( "update Monitors set Function=?, Enabled=? where Id=?", array( $newFunction, $newEnabled, $mid ) );
 
                 $monitor['Function'] = $newFunction;
                 $monitor['Enabled'] = $newEnabled;
@@ -310,11 +310,11 @@ if ( !empty($action) )
         elseif ( $action == "zone" && isset( $_REQUEST['zid'] ) )
         {
             $zid = validInt($_REQUEST['zid']);
-            $monitor = dbFetchOne( "select * from Monitors where Id = '".dbEscape($mid)."'" );
+            $monitor = dbFetchOne( "SELECT * FROM Monitors WHERE Id=?", NULL, array($mid) );
 
             if ( !empty($zid) )
             {
-                $zone = dbFetchOne( "select * from Zones where MonitorId = '".dbEscape($mid)."' and Id = '".dbEscape($zid)."'" );
+                $zone = dbFetchOne( "SELECT * FROM Zones WHERE MonitorId=? AND Id=?", NULL, array( $mid, $zid ) );
             }
             else
             {
@@ -343,13 +343,12 @@ if ( !empty($action) )
             {
                 if ( $zid > 0 )
                 {
-                    $sql = "update Zones set ".implode( ", ", $changes )." where MonitorId = '".dbEscape($mid)."' and Id = '".dbEscape($zid)."'";
+                dbQuery( "UPDATE Zones SET ".implode( ", ", $changes )." WHERE MonitorId=? AND Id=?", array( $mid, $zid) );
                 }
                 else
                 {
-                    $sql = "insert into Zones set MonitorId = '".dbEscape($mid)."', ".implode( ", ", $changes );
+                dbQuery( "INSERT INTO Zones SET MonitorId=?, ".implode( ", ", $changes ), array( $mid ) );
                 }
-                dbQuery( $sql );
                 //if ( $cookies ) session_write_close();
                 if ( daemonCheck() )
                 {
@@ -361,17 +360,15 @@ if ( !empty($action) )
         }
         elseif ( $action == "plugin" && isset($_REQUEST['pl']))
         {
-           $plugin=dbEscape($_REQUEST['pl']);
-           $zid=validInt($_REQUEST['zid']);
-           $sql="SELECT * FROM PluginsConfig WHERE MonitorId='".dbEscape($mid)."' AND ZoneId='".$zid."' AND pluginName='".$plugin."'";
-           $pconfs=dbFetchAll( $sql );
+           $sql="SELECT * FROM PluginsConfig WHERE MonitorId=? AND ZoneId=? AND pluginName=?";
+           $pconfs=dbFetchAll( $sql, NULL, array( $mid, $_REQUEST['zid'], $_REQUEST['pl'] ) );
            $changes=0;
            foreach( $pconfs as $pconf )
            {
               $value=$_REQUEST['pluginOpt'][$pconf['Name']];
               if(array_key_exists($pconf['Name'], $_REQUEST['pluginOpt']) && ($pconf['Value']!=$value))
               {
-                 dbQuery("UPDATE PluginsConfig SET Value='".dbEscape($value)."' WHERE id='".$pconf['Id']."'");
+                 dbQuery("UPDATE PluginsConfig SET Value=? WHERE id=?", array( $value, $pconf['Id'] ) );
                  $changes++;
               }
            }
@@ -388,11 +385,11 @@ if ( !empty($action) )
         elseif ( $action == "sequence" && isset($_REQUEST['smid']) )
         {
             $smid = validInt($_REQUEST['smid']);
-            $monitor = dbFetchOne( "select * from Monitors where Id = '".dbEscape($mid)."'" );
-            $smonitor = dbFetchOne( "select * from Monitors where Id = '".dbEscape($smid)."'" );
+            $monitor = dbFetchOne( "select * from Monitors where Id = ?", NULL, array($mid) );
+            $smonitor = dbFetchOne( "select * from Monitors where Id = ?", NULL, array($smid) );
 
-            dbQuery( "update Monitors set Sequence = '".$smonitor['Sequence']."' where Id = '".$monitor['Id']."'" );
-            dbQuery( "update Monitors set Sequence = '".$monitor['Sequence']."' where Id = '".$smonitor['Id']."'" );
+            dbQuery( "update Monitors set Sequence=? where Id=?", array( $smonitor['Sequence'], $monitor['Id'] ) );
+            dbQuery( "update Monitors set Sequence=? WHERE Id=?", array( $monitor['Sequence'], $smonitor['Id'] ) );
 
             $refreshParent = true;
             fixSequences();
@@ -404,7 +401,7 @@ if ( !empty($action) )
                 $deletedZid = 0;
                 foreach( $_REQUEST['markZids'] as $markZid )
                 {
-                    dbQuery( "delete from Zones where MonitorId = '".dbEscape($mid)."' && Id = '".dbEscape($markZid)."'" );
+                    dbQuery( "delete from Zones WHERE MonitorId=? AND Id=?", array( $mid, $markZid) );
                     $deletedZid = 1;
                 }
                 if ( $deletedZid )
@@ -427,11 +424,11 @@ if ( !empty($action) )
             if ( !empty($_REQUEST['mid']) )
             {
                 $mid = validInt($_REQUEST['mid']);
-                $monitor = dbFetchOne( "select * from Monitors where Id = '".dbEscape($mid)."'" );
+                $monitor = dbFetchOne( "select * from Monitors where Id = ?", NULL, array($mid) );
 
                 if ( ZM_OPT_X10 )
                 {
-                    $x10Monitor = dbFetchOne( "select * from TriggersX10 where MonitorId = '".dbEscape($mid)."'" );
+                    $x10Monitor = dbFetchOne( "select * from TriggersX10 where MonitorId=?", NULL, array($mid) );
                     if ( !$x10Monitor )
                         $x10Monitor = array();
                 }
@@ -462,8 +459,7 @@ if ( !empty($action) )
                 if ( !empty($_REQUEST['mid']) )
                 {
                     $mid = validInt($_REQUEST['mid']);
-                    $sql = "update Monitors set ".implode( ", ", $changes )." where Id = '".dbEscape($mid)."'";
-                    dbQuery( $sql );
+                    dbQuery( "update Monitors set ".implode( ", ", $changes )." where Id =?", array($mid) );
                     if ( isset($changes['Name']) )
                     {
                         exec( escapeshellcmd( "mv ".ZM_DIR_EVENTS."/".$monitor['Name']." ".ZM_DIR_EVENTS."/".$_REQUEST['newMonitor']['Name'] ) );
@@ -477,7 +473,7 @@ if ( !empty($action) )
                         $oldH = $monitor['Height'];
                         $oldA = $oldW * $oldH;
 
-                        $zones = dbFetchAll( "select * from Zones where MonitorId = '".dbEscape($mid)."'" );
+                        $zones = dbFetchAll( "select * from Zones where MonitorId=?", NULL, array($mid) );
                         foreach ( $zones as $zone )
                         {
                             $newZone = $zone;
@@ -500,27 +496,27 @@ if ( !empty($action) )
 
                             if ( count( $changes ) )
                             {
-                                dbQuery( "update Zones set ".implode( ", ", $changes )." where MonitorId = '".dbEscape($mid)."' and Id = '".$zone['Id']."'" );
+                                dbQuery( "update Zones set ".implode( ", ", $changes )." WHERE MonitorId=? AND Id=?", array( $mid, $zone['Id'] ) );
                             }
                         }
                     }
                 }
                 elseif ( !$user['MonitorIds'] )
                 {
+					# FIXME This is actually a race condition. Should lock the table.
                     $maxSeq = dbFetchOne( "select max(Sequence) as MaxSequence from Monitors", "MaxSequence" );
                     $changes[] = "Sequence = ".($maxSeq+1);
 
                     dbQuery( "insert into Monitors set ".implode( ", ", $changes ) );
                     $mid = dbInsertId();
                     $zoneArea = $_REQUEST['newMonitor']['Width'] * $_REQUEST['newMonitor']['Height'];
-                    dbQuery( "insert into Zones set MonitorId = ".dbEscape($mid).", Name = 'All', Type = 'Active', Units = 'Percent', NumCoords = 4, Coords = '".sprintf( "%d,%d %d,%d %d,%d %d,%d", 0, 0, $_REQUEST['newMonitor']['Width']-1, 0, $_REQUEST['newMonitor']['Width']-1, $_REQUEST['newMonitor']['Height']-1, 0, $_REQUEST['newMonitor']['Height']-1 )."', Area = ".$zoneArea.", AlarmRGB = 0xff0000, CheckMethod = 'Blobs', MinPixelThreshold = 25, MinAlarmPixels = ".intval(($zoneArea*3)/100).", MaxAlarmPixels = ".intval(($zoneArea*75)/100).", FilterX = 3, FilterY = 3, MinFilterPixels = ".intval(($zoneArea*3)/100).", MaxFilterPixels = ".intval(($zoneArea*75)/100).", MinBlobPixels = ".intval(($zoneArea*2)/100).", MinBlobs = 1" );
+                    dbQuery( "insert into Zones set MonitorId = ?, Name = 'All', Type = 'Active', Units = 'Percent', NumCoords = 4, Coords = ?, Area=?, AlarmRGB = 0xff0000, CheckMethod = 'Blobs', MinPixelThreshold = 25, MinAlarmPixels=?, MaxAlarmPixels=?, FilterX = 3, FilterY = 3, MinFilterPixels=?, MaxFilterPixels=?, MinBlobPixels=?, MinBlobs = 1", array( $mid, sprintf( "%d,%d %d,%d %d,%d %d,%d", 0, 0, $_REQUEST['newMonitor']['Width']-1, 0, $_REQUEST['newMonitor']['Width']-1, $_REQUEST['newMonitor']['Height']-1, 0, $_REQUEST['newMonitor']['Height']-1 ), $zoneArea, intval(($zoneArea*3)/100), intval(($zoneArea*75)/100), intval(($zoneArea*3)/100), intval(($zoneArea*75)/100), intval(($zoneArea*2)/100)  ) );
                     //$view = 'none';
                     mkdir( ZM_DIR_EVENTS.'/'.$mid, 0755 );
                     symlink( $mid, ZM_DIR_EVENTS.'/'.$_REQUEST['newMonitor']['Name'] );
                     if ( isset($_COOKIE['zmGroup']) )
                     {
-                        $sql = "update Groups set MonitorIds = concat(MonitorIds,',".$mid."') where Id = '".dbEscape($_COOKIE['zmGroup'])."'";
-                        dbQuery( $sql );
+                        dbQuery( "UPDATE Groups SET MonitorIds = concat(MonitorIds,',".$mid."') WHERE Id=?", array($_COOKIE['zmGroup']) );
                     }
                 }
                 $restart = true;
@@ -534,17 +530,17 @@ if ( !empty($action) )
                 {
                     if ( $x10Monitor && isset($_REQUEST['newX10Monitor']) )
                     {
-                        dbQuery( "update TriggersX10 set ".implode( ", ", $x10Changes )." where MonitorId = '".dbEscape($mid)."'" );
+                        dbQuery( "update TriggersX10 set ".implode( ", ", $x10Changes )." where MonitorId=?", array($mid) );
                     }
                     elseif ( !$user['MonitorIds'] )
                     {
                         if ( !$x10Monitor )
                         {
-                            dbQuery( "insert into TriggersX10 set MonitorId = '".dbEscape($mid)."', ".implode( ", ", $x10Changes ) );
+                            dbQuery( "insert into TriggersX10 set MonitorId = ?".implode( ", ", $x10Changes ), array( $mid ) );
                         }
                         else
                         {
-                            dbQuery( "delete from TriggersX10 where MonitorId = '".dbEscape($mid)."'" );
+                            dbQuery( "delete from TriggersX10 where MonitorId = ?", array($mid) );
                         }
                     }
                     $restart = true;
@@ -553,7 +549,8 @@ if ( !empty($action) )
 
             if ( $restart )
             {
-                $monitor = dbFetchOne( "select * from Monitors where Id = '".dbEscape($mid)."'" );
+                $monitor = dbFetchOne( "select * from Monitors where Id = ?", NULL, array($mid) );
+                fixDevices();
                 //if ( $cookies )
                     //session_write_close();
                 if ( daemonCheck() )
@@ -575,8 +572,7 @@ if ( !empty($action) )
                 {
                     if ( canEdit( 'Monitors', $markMid ) )
                     {
-                        $sql = "select * from Monitors where Id = '".dbEscape($markMid)."'";
-                        if ( $monitor = dbFetchOne( $sql ) )
+                        if ( $monitor = dbFetchOne( "select * from Monitors where Id = ?", NULL, array($markMid) ) )
                         {
                             if ( daemonCheck() )
                             {
@@ -585,10 +581,10 @@ if ( !empty($action) )
                             }
 
                             // This is the important stuff
-                            dbQuery( "delete from Monitors where Id = '".dbEscape($markMid)."'" );
-                            dbQuery( "delete from Zones where MonitorId = '".dbEscape($markMid)."'" );
+                            dbQuery( "delete from Monitors where Id = ?", array($markMid) );
+                            dbQuery( "delete from Zones where MonitorId = ?", array($markMid) );
                             if ( ZM_OPT_X10 )
-                                dbQuery( "delete from TriggersX10 where MonitorId = '".dbEscape($markMid)."'" );
+                                dbQuery( "delete from TriggersX10 where MonitorId=?", array($markMid) );
 
                             fixSequences();
 
@@ -597,8 +593,7 @@ if ( !empty($action) )
                             // well time out before completing, in which case zmaudit will still tidy up
                             if ( !ZM_OPT_FAST_DELETE )
                             {
-                                $sql = "select Id from Events where MonitorId = '".dbEscape($markMid)."'";
-                                $markEids = dbFetchAll( $sql, 'Id' );
+                                $markEids = dbFetchAll( "select Id from Events where MonitorId=?", 'Id', array($markMid) );
                                 foreach( $markEids as $markEid )
                                     deleteEvent( $markEid );
 
@@ -625,11 +620,11 @@ if ( !empty($action) )
             {
                 if ( isset($_REQUEST['did']) )
                 {
-                    dbQuery( "update Devices set Name = '".dbEscape($_REQUEST['newDevice']['Name'])."', KeyString = '".dbEscape($_REQUEST['newDevice']['KeyString'])."' where Id = '".dbEscape($_REQUEST['did'])."'" );
+                    dbQuery( "update Devices set Name=?, KeyString=? where Id=?", array($_REQUEST['newDevice']['Name'], $_REQUEST['newDevice']['KeyString'], $_REQUEST['did']) );
                 }
                 else
                 {
-                    dbQuery( "insert into Devices set Name = '".dbEscape($_REQUEST['newDevice']['Name'])."', KeyString = '".dbEscape($_REQUEST['newDevice']['KeyString'])."'" );
+                    dbQuery( "insert into Devices set Name=?, KeyString=?", array( $_REQUEST['newDevice']['Name'], $_REQUEST['newDevice']['KeyString'] ) );
                 }
                 $refreshParent = true;
                 $view = 'none';
@@ -641,7 +636,7 @@ if ( !empty($action) )
             {
                 foreach( $_REQUEST['markDids'] as $markDid )
                 {
-                    dbQuery( "delete from Devices where Id = '".dbEscape($markDid)."'" );
+                    dbQuery( "delete from Devices where Id=?", array($markDid) );
                     $refreshParent = true;
                 }
             }
@@ -767,7 +762,7 @@ if ( !empty($action) )
 
                 if ( isset($newValue) && ($newValue != $value['Value']) )
                 {
-                    dbQuery( "update Config set Value = '".$newValue."' where Name = '".$name."'" );
+                    dbQuery( 'UPDATE Config SET Value=? WHERE Name=?', array( $newValue, $name ) );
                     $changed = true;
                 }
             }
@@ -801,7 +796,7 @@ if ( !empty($action) )
         elseif ( $action == "user" )
         {
             if ( !empty($_REQUEST['uid']) )
-                $dbUser = dbFetchOne( "select * from Users where Id = '".dbEscape($_REQUEST['uid'])."'" );
+                $dbUser = dbFetchOne( "SELECT * FROM Users WHERE Id=?", NULL, array($_REQUEST['uid']) );
             else
                 $dbUser = array();
 
@@ -809,7 +804,7 @@ if ( !empty($action) )
             $changes = getFormChanges( $dbUser, $_REQUEST['newUser'], $types );
 
             if ( $_REQUEST['newUser']['Password'] )
-                $changes['Password'] = "Password = password('".dbEscape($_REQUEST['newUser']['Password'])."')";
+                $changes['Password'] = "Password = password(".dbEscape($_REQUEST['newUser']['Password']).")";
             else
                 unset( $changes['Password'] );
 
@@ -817,13 +812,12 @@ if ( !empty($action) )
             {
                 if ( !empty($_REQUEST['uid']) )
                 {
-                    $sql = "update Users set ".implode( ", ", $changes )." where Id = '".dbEscape($_REQUEST['uid'])."'";
+                    dbQuery( "update Users set ".implode( ", ", $changes )." where Id = ?", array($_REQUEST['uid']) );
                 }
                 else
                 {
-                    $sql = "insert into Users set ".implode( ", ", $changes );
+					dbQuery( "insert into Users set ".implode( ", ", $changes ) );
                 }
-                dbQuery( $sql );
                 $refreshParent = true;
                 if ( $dbUser['Username'] == $user['Username'] )
                     userLogin( $dbUser['Username'], $dbUser['Password'] );
@@ -852,38 +846,37 @@ if ( !empty($action) )
                 $definition = join( ',', $definitions );
                 if ( $_REQUEST['newState'] )
                     $_REQUEST['runState'] = $_REQUEST['newState'];
-                dbQuery( "replace into States set Name = '".dbEscape($_REQUEST['runState'])."', Definition = '".dbEscape($definition)."'" );
+                dbQuery( "replace into States set Name=?, Definition=?", array( $_REQUEST['runState'],$definition) );
             }
         }
         elseif ( $action == "group" )
         {
             if ( !empty($_REQUEST['gid']) )
             {
-                $sql = "update Groups set Name = '".dbEscape($_REQUEST['newGroup']['Name'])."', MonitorIds = '".dbEscape(join(',',$_REQUEST['newGroup']['MonitorIds']))."' where Id = '".dbEscape($_REQUEST['gid'])."'";
+            dbQuery( "update Groups set Name=?, MonitorIds=? WHERE Id=?", array($_REQUEST['newGroup']['Name'], join(',',$_REQUEST['newGroup']['MonitorIds']), $_REQUEST['gid']) );
             }
             else
             {
-                $sql = "insert into Groups set Name = '".dbEscape($_REQUEST['newGroup']['Name'])."', MonitorIds = '".dbEscape(join(',',$_REQUEST['newGroup']['MonitorIds']))."'";
+            dbQuery( "insert into Groups set Name=?, MonitorIds=?", array( $_REQUEST['newGroup']['Name'], join(',',$_REQUEST['newGroup']['MonitorIds'])) );
             }
-            dbQuery( $sql );
             $refreshParent = true;
             $view = 'none';
         }
         elseif ( $action == "delete" )
         {
             if ( isset($_REQUEST['runState']) )
-                dbQuery( "delete from States where Name = '".dbEscape($_REQUEST['runState'])."'" );
+                dbQuery( "delete from States where Name=?", array($_REQUEST['runState']) );
 
             if ( isset($_REQUEST['markUids']) )
             {
                 foreach( $_REQUEST['markUids'] as $markUid )
-                    dbQuery( "delete from Users where Id = '".dbEscape($markUid)."'" );
+                    dbQuery( "delete from Users where Id = ?", array($markUid) );
                 if ( $markUid == $user['Id'] )
                     userLogout();
             }
             if ( !empty($_REQUEST['gid']) )
             {
-                dbQuery( "delete from Groups where Id = '".dbEscape($_REQUEST['gid'])."'" );
+                dbQuery( "delete from Groups where Id = ?", array($_REQUEST['gid']) );
                 if ( isset($_COOKIE['zmGroup']) )
                 {
                     if ( $_REQUEST['gid'] == $_COOKIE['zmGroup'] )
@@ -902,19 +895,18 @@ if ( !empty($action) )
         {
             $uid = $user['Id'];
 
-            $dbUser = dbFetchOne( "select Id, Password, Language from Users where Id = '".dbEscape($uid)."'" );
+            $dbUser = dbFetchOne( "select Id, Password, Language from Users where Id = ?", NULL, array($uid) );
 
             $types = array();
             $changes = getFormChanges( $dbUser, $_REQUEST['newUser'], $types );
 
             if ( !empty($_REQUEST['newUser']['Password']) )
-                $changes['Password'] = "Password = password('".dbEscape($_REQUEST['newUser']['Password'])."')";
+                $changes['Password'] = "Password = password(".dbEscape($_REQUEST['newUser']['Password']).")";
             else
                 unset( $changes['Password'] );
             if ( count( $changes ) )
             {
-                $sql = "update Users set ".implode( ", ", $changes )." where Id = '".dbEscape($uid)."'";
-                dbQuery( $sql );
+                dbQuery( "update Users set ".implode( ", ", $changes )." where Id=?", array($uid) );
                 $refreshParent = true;
             }
             $view = 'none';

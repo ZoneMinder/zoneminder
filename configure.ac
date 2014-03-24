@@ -8,6 +8,7 @@ AC_SUBST([AM_CXXFLAGS], [-D__STDC_CONSTANT_MACROS])
 
 AC_SUBST(VERSION)
 
+AC_ARG_VAR(ZM_DB_TYPE,[Type of the ZoneMinder database, default mysql])
 AC_ARG_VAR(ZM_DB_HOST,[Hostname where ZoneMinder database located, default localhost])
 AC_ARG_VAR(ZM_DB_NAME,[Name of ZoneMinder database, default zm])
 AC_ARG_VAR(ZM_DB_USER,[Name of ZoneMinder database user, default zmuser])

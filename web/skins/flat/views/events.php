@@ -29,15 +29,13 @@ if ( !empty($_REQUEST['execute']) )
     executeFilter( $tempFilterName );
 }
 
-$countSql = "select count(E.Id) as EventCount from Monitors as M inner join Events as E on (M.Id = E.MonitorId) where";
-$eventsSql = "select E.Id,E.MonitorId,M.Name As MonitorName,M.DefaultScale,E.Name,E.Width,E.Height,E.Cause,E.Notes,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived from Monitors as M inner join Events as E on (M.Id = E.MonitorId) where";
-if ( $user['MonitorIds'] )
-{
-    $countSql .= " M.Id in (".join( ",", preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) ).")";
-    $eventsSql .= " M.Id in (".join( ",", preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) ).")";
-}
-else
-{
+$countSql = 'SELECT count(E.Id) AS EventCount FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId) WHERE';
+$eventsSql = 'SELECT E.Id,E.MonitorId,M.Name AS MonitorName,M.DefaultScale,E.Name,E.Width,E.Height,E.Cause,E.Notes,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId) WHERE';
+if ( $user['MonitorIds'] ) {
+	$user_monitor_ids = " M.Id in (".join( ",", preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) ).")";
+	$countSql .= $user_monitor_ids;
+	$eventsSql .= $user_monitor_ids;
+} else {
     $countSql .= " 1";
     $eventsSql .= " 1";
 }
@@ -51,7 +49,7 @@ if ( $_REQUEST['filter']['sql'] )
     $countSql .= $_REQUEST['filter']['sql'];
     $eventsSql .= $_REQUEST['filter']['sql'];
 }
-$eventsSql .= " order by $sortColumn $sortOrder";
+$eventsSql .= " ORDER BY $sortColumn $sortOrder";
 
 if ( isset($_REQUEST['page']) )
     $page = validInt($_REQUEST['page']);
@@ -68,18 +66,15 @@ if ( !empty($limit) && $nEvents > $limit )
     $nEvents = $limit;
 }
 $pages = (int)ceil($nEvents/ZM_WEB_EVENTS_PER_PAGE);
-if ( $pages > 1 )
-{
-    if ( !empty($page) )
-    {
+if ( $pages > 1 ) {
+    if ( !empty($page) ) {
         if ( $page < 0 )
             $page = 1;
         if ( $page > $pages )
             $page = $pages;
     }
 }
-if ( !empty($page) )
-{
+if ( !empty($page) ) {
     $limitStart = (($page-1)*ZM_WEB_EVENTS_PER_PAGE);
     if ( empty( $limit ) )
     {
@@ -91,10 +86,8 @@ if ( !empty($page) )
         $limitAmount = ($limitLeft>ZM_WEB_EVENTS_PER_PAGE)?ZM_WEB_EVENTS_PER_PAGE:$limitLeft;
     }
     $eventsSql .= " limit $limitStart, $limitAmount";
-}
-elseif ( !empty( $limit ) )
-{
-    $eventsSql .= " limit 0, ".dbEscape($limit);
+} elseif ( !empty( $limit ) ) {
+    $eventsSql .= " limit 0, ".$limit;
 }
 
 $maxWidth = 0;

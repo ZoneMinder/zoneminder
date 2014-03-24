@@ -23,11 +23,11 @@ if ( !canView( 'Events' ) )
     $view = "error";
     return;
 }
-$sql = "select E.*,M.Name as MonitorName from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = '".dbEscape($_REQUEST['eid'])."'";
-$event = dbFetchOne( $sql );
+$sql = 'SELECT E.*,M.Name AS MonitorName FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = ?';
+$event = dbFetchOne( $sql, NULL, array($_REQUEST['eid']) );
 
-$sql = "select *, unix_timestamp( TimeStamp ) as UnixTimeStamp from Frames where EventID = '".dbEscape($_REQUEST['eid'])."' order by FrameId";
-$frames = dbFetchAll( $sql );
+$sql = 'SELECT *, unix_timestamp( TimeStamp ) AS UnixTimeStamp FROM Frames WHERE EventID = ? ORDER BY FrameId';
+$frames = dbFetchAll( $sql, NULL, array( $_REQUEST['eid'] ) );
 
 $focusWindow = true;
 

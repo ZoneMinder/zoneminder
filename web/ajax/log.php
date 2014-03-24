@@ -32,53 +32,66 @@ switch ( $_REQUEST['task'] )
 
         $minTime = isset($_POST['minTime'])?$_POST['minTime']:NULL;
         $maxTime = isset($_POST['maxTime'])?$_POST['maxTime']:NULL;
-        $limit = isset($_POST['limit'])?$_POST['limit']:1000;
+        $limit = isset($_POST['limit'])?$_POST['limit']:100;
         $filter = isset($_POST['filter'])?$_POST['filter']:array();
         $sortField = isset($_POST['sortField'])?$_POST['sortField']:'TimeKey';
-        $sortOrder = isset($_POST['sortOrder'])?$_POST['sortOrder']:'desc';
+        $sortOrder = isset($_POST['sortOrder']) and $_POST['sortOrder'] == 'asc' ? 'asc':'desc';
 
         $filterFields = array( 'Component', 'Pid', 'Level', 'File', 'Line' );
 
         //$filterSql = $filter?' where 
-        $countSql = "select count(*) as Total from Logs";
-        $total = dbFetchOne( $countSql, 'Total' );
+        $total = dbFetchOne( "select count(*) as Total from Logs", 'Total' );
         $sql = "select * from Logs";
         $where = array();
-        if ( $minTime )
-            $where[] = "TimeKey > ".dbEscape($minTime);
-        elseif ( $maxTime )
-            $where[] = "TimeKey < ".dbEscape($maxTime);
-        foreach ( $filter as $field=>$value )
-            if ( $field == 'Level' )
-                $where[] = dbEscape($field)." <= ".dbEscape($value);
-            else
-                $where[] = dbEscape($field)." = '".dbEscape($value)."'";
+		$values = array();
+        if ( $minTime ) {
+            $where[] = "TimeKey > ?";
+			$values[] = $minTime;
+        } elseif ( $maxTime ) {
+            $where[] = "TimeKey < ?";
+			$values[] = $maxTime;
+		}
+        foreach ( $filter as $field=>$value ) {
+            if ( $field == 'Level' ){
+                $where[] = $field." <= ?";
+				$values[] = $value;
+            } else {
+                $where[] = $field." = ?";
+				$values[] = $value;
+			}
+		}
         if ( count($where) )
             $sql.= " where ".join( " and ", $where );
-        $sql .= " order by ".dbEscape($sortField)." ".dbEscape($sortOrder)." limit ".dbEscape($limit);
+        $sql .= " order by ".$sortField." ".$sortOrder." limit ".$limit;
         $logs = array();
-        foreach ( dbFetchAll( $sql ) as $log )
+        foreach ( dbFetchAll( $sql, NULL, $values ) as $log )
         {
             $log['DateTime'] = preg_replace( '/^\d+/', strftime( "%Y-%m-%d %H:%M:%S", intval($log['TimeKey']) ), $log['TimeKey'] );
             $logs[] = $log;
         }
         $options = array();
         $where = array();
-        foreach( $filter as $field=>$value )
-            if ( $field == 'Level' )
-                $where[$field] = dbEscape($field)." <= ".dbEscape($value);
-            else
-                $where[$field] = dbEscape($field)." = '".dbEscape($value)."'";
+		$values = array();
+        foreach( $filter as $field=>$value ) {
+            if ( $field == 'Level' ) {
+                $where[$field] = $field." <= ?";
+				$values[$field] = $value;
+            } else {
+                $where[$field] = $field." = ?";
+				$values[$field] = $value;
+			} 
+		}
         foreach( $filterFields as $field )
         {
             $sql = "select distinct $field from Logs where not isnull($field)";
             $fieldWhere = array_diff_key( $where, array( $field=>true ) );
+			$fieldValues = array_diff_key( $values, array( $field=>true ) );
             if ( count($fieldWhere) )
                 $sql.= " and ".join( " and ", $fieldWhere );
             $sql.= " order by $field asc";
             if ( $field == 'Level' )
             {
-                foreach( dbFetchAll( $sql, $field ) as $value )
+                foreach( dbFetchAll( $sql, $field, $fieldValues ) as $value )
                     if ( $value <= Logger::INFO )
                         $options[$field][$value] = Logger::$codes[$value];
                     else
@@ -94,7 +107,7 @@ switch ( $_REQUEST['task'] )
         if ( count($filter) )
         {
             $sql = "select count(*) as Available from Logs where ".join( " and ", $where );
-            $available = dbFetchOne( $sql, 'Available' );
+            $available = dbFetchOne( $sql, 'Available', $values );
         }
         ajaxResponse( array(
             'updated' => preg_match( '/%/', DATE_FMT_CONSOLE_LONG )?strftime( DATE_FMT_CONSOLE_LONG ):date( DATE_FMT_CONSOLE_LONG ), 
@@ -126,27 +139,35 @@ switch ( $_REQUEST['task'] )
 
         $sql = "select * from Logs";
         $where = array();
+		$values = array();
         if ( $minTime )
         {
             preg_match( '/(.+)(\.\d+)/', $minTime, $matches );
             $minTime = strtotime($matches[1]).$matches[2];
-            $where[] = "TimeKey >= ".$minTime;
+            $where[] = "TimeKey >= ?";
+			$values[] = $minTime;
         }
         if ( $maxTime )
         {
             preg_match( '/(.+)(\.\d+)/', $maxTime, $matches );
             $maxTime = strtotime($matches[1]).$matches[2];
-            $where[] = "TimeKey <= ".$maxTime;
+            $where[] = "TimeKey <= ?";
+			$values[] = $maxTime;
         }
-        foreach ( $filter as $field=>$value )
-            if ( $value != '' )
-                if ( $field == 'Level' )
-                    $where[] = dbEscape($field)." <= ".dbEscape($value);
-                else
-                    $where[] = dbEscape($field)." = '".dbEscape($value)."'";
+        foreach ( $filter as $field=>$value ) {
+            if ( $value != '' ) {
+                if ( $field == 'Level' ) {
+                    $where[] = $field." <= ?";
+					$values[] = $value;
+                } else {
+                    $where[] = $field." = ?'";
+					$values[] = $value;
+				}
+			}
+		}
         if ( count($where) )
             $sql.= " where ".join( " and ", $where );
-        $sql .= " order by ".dbEscape($sortField)." ".dbEscape($sortOrder);
+        $sql .= " order by ".$sortField." ".$sortOrder;
         //$sql .= " limit ".dbEscape($limit);
         $format = isset($_POST['format'])?$_POST['format']:'text';
         switch( $format )
@@ -172,7 +193,7 @@ switch ( $_REQUEST['task'] )
         if ( !($exportFP = fopen( $exportPath, "w" )) )
             Fatal( "Unable to open log export file $exportFile" );
         $logs = array();
-        foreach ( dbFetchAll( $sql ) as $log )
+        foreach ( dbFetchAll( $sql, NULL, $values ) as $log )
         {
             $log['DateTime'] = preg_replace( '/^\d+/', strftime( "%Y-%m-%d %H:%M:%S", intval($log['TimeKey']) ), $log['TimeKey'] );
             $logs[] = $log;

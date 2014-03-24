@@ -24,8 +24,8 @@ if ( !canView( 'Stream' ) )
     return;
 }
 
-$sql = "select C.*, M.* from Monitors as M left join Controls as C on (M.ControlId = C.Id ) where M.Id = '".dbEscape($_REQUEST['mid'])."'";
-$monitor = dbFetchOne( $sql );
+$sql = 'SELECT C.*, M.* FROM Monitors AS M LEFT JOIN Controls AS C ON (M.ControlId = C.Id ) WHERE M.Id = ?';
+$monitor = dbFetchOne( $sql, NULL, array($_REQUEST['mid']) );
 
 if ( isset($_REQUEST['showControls']) )
     $showControls = validInt($_REQUEST['showControls']);

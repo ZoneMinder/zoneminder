@@ -23,25 +23,22 @@ if ( !canEdit( 'Events' ) )
     $view = "error";
     return;
 }
-if ( isset($_REQUEST['eid']) )
-{
+if ( isset($_REQUEST['eid']) ) {
     $mode = 'single';
     $eid = validInt($_REQUEST['eid']);
-    $sql = "select E.* from Events as E where E.Id = '".dbEscape($eid)."'";
-    $newEvent = dbFetchOne( $sql );
-}
-elseif ( isset($_REQUEST['eids']) )
-{
+    $newEvent = dbFetchOne( 'SELECT E.* FROM Events AS E WHERE E.Id = ?', NULL, array($eid) );
+} elseif ( isset($_REQUEST['eids']) ) {
     $mode = 'multi';
-    $sql = "select E.* from Events as E where ";
+    $sql = 'SELECT E.* FROM Events AS E WHERE ';
     $sqlWhere = array();
-    foreach ( $_REQUEST['eids'] as $eid )
-    {
-        $sqlWhere[] = "E.Id = '".dbEscape($eid)."'";
+	$sqlValues = array();
+    foreach ( $_REQUEST['eids'] as $eid ) {
+        $sqlWhere[] = 'E.Id = ?';
+		$sqlValues[] = $eid;
     }
     unset( $eid );
     $sql .= join( " or ", $sqlWhere );
-    foreach( dbFetchAll( $sql ) as $row )
+    foreach( dbFetchAll( $sql, NULL, $sqlValues ) as $row )
     {
         if ( !isset($newEvent) )
         {

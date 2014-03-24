@@ -136,16 +136,16 @@ function loadConfig( $defineConsts=true )
 {
     global $config;
     global $configCats;
+	global $dbConn;
 
     $config = array();
     $configCat = array();
 
-    $sql = "select * from Config order by Id asc";
-    $result = mysql_query( $sql );
+    $result = $dbConn->query( 'select * from Config order by Id asc' );
     if ( !$result )
         echo mysql_error();
     $monitors = array();
-    while( $row = mysql_fetch_assoc( $result ) )
+    while( $row = dbFetchNext( $result ) )
     {
         if ( $defineConsts )
             define( $row['Name'], $row['Value'] );

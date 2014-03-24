@@ -232,7 +232,7 @@ function parseFilterToTree( $filter )
                             $value = "'$value'";
                             break;
                         case 'DateTime':
-                            $value = "'".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."'";
+                            $value = strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) );
                             break;
                         case 'Date':
                             $value = "to_days( '".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."' )";

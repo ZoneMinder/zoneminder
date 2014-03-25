@@ -221,6 +221,7 @@ protected:
 protected:
     StreamMode mode;
     bool forceEventChange;
+    bool keep_curr_frame_id;
 
 protected:
     int curr_frame_id;

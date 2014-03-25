@@ -1168,10 +1168,9 @@ void EventStream::checkEventLoaded()
                 loadEventData( event_id );
 
                 Debug( 2, "Current frame id = %d", curr_frame_id );
-//		When loading a new event, always set the current frame id to the first frame rather than the last
-//                if ( curr_frame_id <= 0 )
-//                    curr_frame_id = event_data->frame_count;
-//                else
+                if ( curr_frame_id <= 0 )
+                    curr_frame_id = event_data->frame_count;
+                else
                     curr_frame_id = 1;
                 Debug( 2, "New frame id = %d", curr_frame_id );
             }

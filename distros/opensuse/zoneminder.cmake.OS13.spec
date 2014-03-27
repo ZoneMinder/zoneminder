@@ -12,18 +12,19 @@
 %define webcgi /srv/www/cgi-bin
 
 Name: zoneminder
-Version: 1.26.5
+Version: 1.27.0
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
 # jscalendar is LGPL (any version): http://www.dynarch.com/projects/calendar/
-# Mootools is inder the MIT license: http://mootools.net/
+# Mootools is under the MIT license: http://mootools.net/
 License: GPLv2+ and LGPLv2+ and MIT
 URL: http://www.zoneminder.com/
 
 Source: ZoneMinder-%{version}.tar.gz
 
-Patch1: zoneminder-1.26.5-opensuse.patch
+# patch no longer necessary as OpenSuse now in standard build
+# Patch1: zoneminder-1.26.5-opensuse.patch
 
 BuildRequires: cmake 
 BuildRequires: perl-DBI perl-DBD-mysql perl-Date-Manip perl-Sys-Mmap 
@@ -37,17 +38,17 @@ Requires: php php-mysql
 Requires: perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires: perl-Sys-Mmap perl-Date-Manip perl-DBD-mysql
 Requires: perl-Archive-Tar perl-Archive-Zip
-# Can't find suitable package for OpenSuse and not sure if needed
-#Requires: perl-MIME-Entity perl-Net-SMTP perl-Net-FTP
-Requires: perl-MIME-Lite 
-Requires: perl-LWP-Protocol-https 
+Requires: perl-MIME-Lite perl-LWP-Protocol-https
 
-# can't find systemd-units or systemd-sysv in OpenSuse
-#Requires(post): systemd-units systemd-sysv
+# Can't find suitable packages for OpenSuse for 
+# perl-MIME-Entity perl-Net-SMTP perl-Net-FTP so installing using cpanm
+# cpanm needs make
+# Am installing perl(MIME::Tools), perl(Net::SMTP) and perl(Net::FTP) 
+# MIME::Tools provides MIME::Entity
+
+Requires: make cpanm
+
 Requires(post): /usr/bin/gpasswd
-Requires(post): /usr/bin/more
-#Requires(preun): systemd-units
-#Requires(postun): systemd-units
 
 %description
 ZoneMinder is a set of applications which is intended to provide a complete
@@ -60,14 +61,15 @@ too much degradation of performance.
 
 %prep
 %setup -q -n ZoneMinder-%{version}
-cp -R /home/makerpm/rpmbuild/SOURCES/opensuse distros
-%patch1 -p0 -b .opensuse
+# cp and patch no longer necessary as opensuse distro now in standard build from 1.27.0 on
+# cp -R /home/makerpm/rpmbuild/SOURCES/opensuse distros
+# %patch1 -p0 -b .opensuse
 
 %build
 # For OpenSuse 13.1 we need to set DENABLE_MMAP to yes to vercome a problem 
-# where tthe perl modules don't have shared memory enabled
+# where the perl modules don't have shared memory enabled
 %cmake  \
-	-DCMAKE_INSTALL_PREFIX=/opt/zoneminder \
+	-DCMAKE_INSTALL_PREFIX=%{zm_instdir} \
 	-DZM_TARGET_DISTRO="OS13" \
 	-DZM_NO_X10=ON \
 	-DENABLE_MMAP=yes
@@ -93,13 +95,22 @@ fi
 # Allow zoneminder access to local video sources
 /usr/bin/gpasswd -a %zmuid_final video
 
-# Make sure that the temporary directory exists 
-#mkdir -p %{zm_tmpdir}
 
 # Display the README for post installation instructions
 #/usr/bin/less %{_docdir}/%{name}-%{version}/README.OpenSuse
 # both less and more scroll straight off the end of the file
-/usr/bin/more %{_docdir}/%{name}/README.OpenSuse
+# so we'll output info with echo
+
+echo Installing additional perl modules
+cpanm MIME::Tools
+cpanm Net::SMTP
+cpanm Net::FTP
+echo \***********************************************
+echo \*****         For further information 
+echo \*****         please refer to 
+echo \*****  %{_docdir}/%{name}/README.OpenSuse
+echo \*****
+echo \***********************************************
 
 %preun
 if [ $1 -eq 0 ] ; then
@@ -139,8 +150,8 @@ fi
 
 %{_unitdir}/zoneminder.service
 
-# not sure why this is necessary but leaving in for compatibility
-%attr(4755,root,root) %{zm_rundir}/zmfix
+# zmfix removed from zoneminder 1.26.6
+# %attr(4755,root,root) %{zm_rundir}/zmfix
 
 
 %{zm_instdir}
@@ -154,6 +165,10 @@ fi
 
 
 %changelog
+* Mon Mar 24 2014 David Wilcox <david.wilcox@cloverbeen.com> - 1.27.0
+- Update to zm 1.27.0
+- Remove patch which brought opensuse into distros as it is now included
+
 * Tue Mar 18 2014 David Wilcox <david.wilcox@cloverbeen.com> - 1.26.5
 - Latest update for Opensuse 13.1 - work is still in progress
 
@@ -257,7 +272,7 @@ fi
   1.24.3 is really just an occasionally updated devel snapshot.
 - Rebase various patches.
 
-* Wed Mar 23 2011 Dan Horák <dan@danny.cz> - 1.24.3-3
+* Wed Mar 23 2011 Dan HorÃ¡k <dan@danny.cz> - 1.24.3-3
 - rebuilt for mysql 5.5.10 (soname bump in libmysqlclient)
 
 * Tue Feb 08 2011 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.24.3-2
@@ -312,7 +327,7 @@ fi
 * Wed Feb 25 2009 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.23.3-4
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_11_Mass_Rebuild
 
-* Sat Jan 24 2009 Caolán McNamara <caolanm@redhat.com> - 1.23.3-3
+* Sat Jan 24 2009 CaolÃ¡n McNamara <caolanm@redhat.com> - 1.23.3-3
 - rebuild for dependencies
 
 * Mon Dec 15 2008 Martin Ebourne <martin@zepler.org> - 1.23.3-2

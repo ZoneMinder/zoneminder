@@ -1048,13 +1048,9 @@ void EventStream::processCommand( const CmdMsg *msg )
         {
             Debug( 1, "Got PREV command" );
             if ( replay_rate >= 0 )
-		{
                 curr_frame_id = 0;
-		if ( mode == MODE_ALL_GAPLESS )
-			keep_curr_frame_id = true;
-		}
             else
-                curr_frame_id = event_data->frame_count-1;
+                curr_frame_id = event_data->frame_count+1;
             paused = false;
             forceEventChange = true;
             break;
@@ -1063,13 +1059,9 @@ void EventStream::processCommand( const CmdMsg *msg )
         {
             Debug( 1, "Got NEXT command" );
             if ( replay_rate >= 0 )
-                curr_frame_id = event_data->frame_count-1;
+                curr_frame_id = event_data->frame_count+1;
             else
-		{
                 curr_frame_id = 0;
-		if ( mode == MODE_ALL_GAPLESS )
-			keep_curr_frame_id = true;
-		}
             paused = false;
             forceEventChange = true;
             break;
@@ -1176,7 +1168,7 @@ void EventStream::checkEventLoaded()
                 loadEventData( event_id );
 
                 Debug( 2, "Current frame id = %d", curr_frame_id );
-                if ( curr_frame_id <= 0  && !keep_curr_frame_id )
+                if ( replay_rate < 0 )
                     curr_frame_id = event_data->frame_count;
                 else
                     curr_frame_id = 1;
@@ -1192,7 +1184,6 @@ void EventStream::checkEventLoaded()
             }
             mysql_free_result( result );
             forceEventChange = false;
-	    keep_curr_frame_id = false;
         }
         else
         {

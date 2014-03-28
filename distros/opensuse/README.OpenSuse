@@ -1,22 +1,36 @@
+OpenSuse Notes
+===============
+
+1. OpenSuse, along with other distros, now use systemd for task control.  
+   One of the capabilties of systemd is to use private space for /tmp to reduce
+   the possibility of cross talk between applications.  The default settings 
+   for zoneminder use /tmp for a number of files.  When you start/stop 
+   zoneminder from a web page /tmp will be in private space but when the 
+   start/stop script zmpkg.pl is run from a shell it will be looking in the 
+   real /tmp.  This can result in two instances of zoneminder running at 
+   the same time.
+   
+   In order to remove this problem the OpenSuse rpm defaults the temporary 
+   directory to /var/run/zoneminder.  For a new install this will not be a 
+   problem but if you use the rpm to upgrade you may have to make database 
+   changes.  
+   
+   Note: the location is held both within the database an explicitly within some
+   scripts.  It is therefore essential that the database conforms to the values
+   used in the scripts.  Please see information in the Upgrades section of this 
+   document.
+
+2. OpenSuse prefers mariadb to mysql.  mariadb is a direct replacement for mysql
+   and all mysql functions work in the same way.  These notes assumes that you 
+   are running mariadb.
+   
 New installs
 ============
 
-This needs to be updated for OpenSuse
-
 1. Unless you are already using the MySQL server or you are running it
    remotely you will need to ensure that the server is installed and secured:
-   
-   NOTE: the default database for OpenSuse is mariadb, which is a direct 
-   replacement for mysql
-   
-   IMPORTANT: mariadb defaults to strict mode of operation which will cause 
-   some zoneminder database writes to fail.  
-   In order to turn this off - which will be for the whole database you will 
-   need to edit /etc/my.cnf and comment out the record 
-   
-   sql_mode=NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES .
-   
-   To install the database issue the following commands as root:
+       
+   To install the database issue the following commands (as root):
 
 	zypper in mariadb
 
@@ -26,6 +40,12 @@ This needs to be updated for OpenSuse
      
 	mysql_secure_installation
    
+   IMPORTANT: mariadb defaults to strict mode of operation which will cause 
+   some zoneminder database writes to fail.  In order to turn this off - 
+   which will be for the whole database - you will need to edit 
+   /etc/my.cnf and comment out the record 
+   
+   sql_mode=NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES.
    
 2. Using the password for the root account set during the previous step, you
    will need to create the ZoneMinder database, assuming your database server
@@ -63,36 +83,10 @@ This needs to be updated for OpenSuse
 
    for testing, and edit /etc/sysconfig/selinux to disable it at boot time.
 
-7. IMPORTANT: Edit /etc/httpd/conf.d/zoneminder.conf and/or /etc/httpd/conf.
+7. Now start the web server (as root):
 
-***********	This needs checking for OpenSuse
-
-   The httpd.conf file included with this version of Fedora processes the conf.d
-   folder after the default ScriptAlias directive in the httpd.conf file.
-   Previously, the conf.d folder was processed before the default ScriptAlias
-   directive. This causes a ScriptAlias overlap and breaks Zoneminder's
-   streaming abilities.
-
-   Reference: http://httpd.apache.org/docs/2.4/mod/mod_alias.html#order
-   Bug Report: https://bugzilla.redhat.com/show_bug.cgi?id=973067
-
-   WORKAROUND #1
-   If you are running zoneminder on a dedicated server then the simplest
-   solution may be to simply comment out the line in httpd.conf that reads:
-
-	ScriptAlias /cgi-bin/ "/var/www/cgi-bin/"
-
-   WORKAROUND #2
-   If you need both the default cgi-bin folder & the zoneminder cgi-bin folder
-   then a solution might be to move the following line before the default
-   ScriptAlias directive in the httpd.conf file:
-
-	IncludeOptional conf.d/*.conf
-
-8. Now start the web server:
-
-	sudo systemctl enable apache2.service
-	sudo systemctl start apache2.service
+	systemctl enable apache2.service
+	systemctl start apache2.service
 
 9. You should immediately visit http://localhost/zm and secure the system if
    it is network facing.  To do this:
@@ -107,19 +101,16 @@ This needs to be updated for OpenSuse
    g) click the admin user and set a password.
    h) enable OPT_CONTROL on the Ssytem tab to enable ptz camera control.
 
-10. ************ Check for OpenSuse
+10. You should be able to start zoneminder by issuing the commands (as root):
 
-The zoneminder.service file fails at present but the zmpkg.pl script
-    can be run as root to start zoneminder.
+	systemctl enable zoneminder
+	systemctl start zoneminder
+	
+    If zoneminder fails to start using the service you may also start it
+    with this command:
 
-	sudo zmpkg.pl start
+	/opt/zoneminder/bin/zmpkg.pl start
 
-    To start zoneminder automatically, create /etc/rc.d/rc.local and place the 
-    following inside it:
-	#!/bin/sh
-	/usr/bin/zmpkg.pl start 
-
-    The rc.local file must be made executable.
 
 Upgrades
 ========
@@ -131,29 +122,46 @@ Upgrades
 2. Add the mysql ALTER permission to the zmuser account:
 
      mysql -u root -p
-     grant alter on zm.* to 
-     'zmuser'@localhost identified by 'zmpass';
+     use zm
+     grant alter, lock tables on zm.* to 'zmuser'@localhost;
 
    Since this is an upgrade, the assumption is that the zmuser account already
    has select, insert, update, and delete permission.
    
 3. You will need to upgrade the ZoneMinder database as described in the
    manual. Only if the previous step was succesful, may you run zmupdate like
-   so:
+   so (as root):
+     
+     /opt/zoneminder/bin/zmupdate.pl 
    
-   sudo /opt/zoneminder/bin/zmupdate.pl --version=<from version>
+      
+4. As mentioned in the OpenSuse notes you may need to change database values.
+   These steps may be run at any time (as root):
    
+     stop the current instance of zoneminder - systemctl stop zoneminder
+     
+     	ensure that all zoneminder processes have terminated:
+     	
+     	ps -ef|grep zm
+     	if you find any process still running issue a kill -9 for each
+     	
+     mysql -u root
+     use zm
+     update Config set DefaultValue = '/var/run/zoneminder' 
+     	where name = 'ZM_PATH_LOGS';
+     update Config set Value = '/var/run/zoneminder' 
+     	where name = 'ZM_PATH_LOGS';
+     update Config set DefaultValue = '/var/run/zoneminder' 
+     	where name = 'ZM_PATH_SOCKS';
+     update Config set Value = '/var/run/zoneminder' 
+     	where name = 'ZM_PATH_SOCKS';
+     update Config set DefaultValue = '/var/run/zoneminder' 
+     	where name = 'ZM_PATH_LOGS';
+     update Config set Value = '/var/run/zoneminder' 
+     	where name = 'ZM_PATH_SWAP';
+     commit;
+     exit	
+        
    
-   If unsure then run it this way:
-
-   sudo zmupdate.pl --user=root --pass=<mysql_root_pwd> --version=<from version>
-   
-4. To overcome a problem when applications my use private /tmp space when systemd is used
-   the OpenSuse rpm has changed the default directory for temporary files from /tmp to 
-   /var/run/zoneminder. Whilst this change is directly inside the scripts, it does not, 
-   at present, change the values held in the database.  
-   You must therefore manually modify the database as follows:
-   
-   **** needs more information
-   
-   
+     You can then restart zoneminder - systemctl start zoneminder
+     

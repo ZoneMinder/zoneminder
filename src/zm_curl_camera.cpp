@@ -232,11 +232,11 @@ int cURLCamera::Capture( Image &image )
 				Debug(8,"Got subheader data: %s",subheader_data.c_str());
 
 				/* Check the header */
-				if(subheader.compare(0,content_length_match_len,content_length_match,content_length_match_len) == 0) {
+				if(strncasecmp(subheader.c_str(),content_length_match,content_length_match_len) == 0) {	
 					/* Found the content-length header */
 					frame_content_length = atoi(subheader_data.c_str());
 					Debug(6,"Got content-length subheader: %d",frame_content_length);
-				} else if(subheader.compare(0,content_type_match_len,content_type_match,content_type_match_len) == 0) {
+				} else if(strncasecmp(subheader.c_str(),content_type_match,content_type_match_len) == 0) { 
 					/* Found the content-type header */
 					frame_content_type = subheader_data;
 					Debug(6,"Got content-type subheader: %s",frame_content_type.c_str());
@@ -367,10 +367,10 @@ size_t cURLCamera::header_callback( void *buffer, size_t size, size_t nmemb, voi
 
 		const char* multipart_match = "multipart/x-mixed-replace";
 		const char* image_jpeg_match = "image/jpeg";
-		if(content_type.compare(0, strlen(multipart_match), multipart_match) == 0) {
+		if(strncasecmp(content_type.c_str(),multipart_match,strlen(multipart_match)) == 0) {	
 			Debug(7,"Content type matched as multipart/x-mixed-replace");
 			mode = MODE_STREAM;
-		} else if(content_type.compare(0, strlen(image_jpeg_match), image_jpeg_match) == 0) {
+		} else if(strncasecmp(content_type.c_str(),image_jpeg_match,strlen(image_jpeg_match)) == 0) {
 			Debug(7,"Content type matched as image/jpeg");
 			mode = MODE_SINGLE;
 		}

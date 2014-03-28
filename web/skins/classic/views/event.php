@@ -33,7 +33,7 @@ else
     $midSql = '';
 
 $sql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultRate,M.DefaultScale FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = ?'.$midSql;
-$event = dbFetchOne( $sql, NULL, array( $eid ) );
+$event = dbFetchOne( $sql, NULL, array($eid) );
 
 if ( isset( $_REQUEST['rate'] ) )
     $rate = validInt($_REQUEST['rate']);

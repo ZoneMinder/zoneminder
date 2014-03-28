@@ -44,7 +44,7 @@ if ( !empty($_REQUEST['mid']) )
 {
     $monitor = dbFetchMonitor( $_REQUEST['mid'] );
     if ( ZM_OPT_X10 )
-        $x10Monitor = dbFetchOne( "select * from TriggersX10 where MonitorId = '".dbEscape($_REQUEST['mid'])."'" );
+        $x10Monitor = dbFetchOne( 'SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['mid']) );
 }
 else
 {
@@ -143,7 +143,7 @@ if ( $newMonitor['AlarmMaxFPS'] == '0.00' )
 
 if ( !empty($_REQUEST['preset']) )
 {
-    $preset = dbFetchOne( "select Type, Device, Channel, Format, Protocol, Method, Host, Port, Path, Width, Height, Palette, MaxFPS, Controllable, ControlId, ControlDevice, ControlAddress, DefaultRate, DefaultScale from MonitorPresets where Id = '".dbEscape($_REQUEST['preset'])."'" );
+    $preset = dbFetchOne( 'SELECT Type, Device, Channel, Format, Protocol, Method, Host, Port, Path, Width, Height, Palette, MaxFPS, Controllable, ControlId, ControlDevice, ControlAddress, DefaultRate, DefaultScale FROM MonitorPresets WHERE Id = ?', NULL, array($_REQUEST['preset']) );
     foreach ( $preset as $name=>$value )
     {
         if ( isset($value) )

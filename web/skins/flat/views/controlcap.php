@@ -48,7 +48,7 @@ else
 {
     if ( !empty($_REQUEST['cid']) )
     {
-        $control = dbFetchOne( 'SELECT * FROM Controls WHERE Id = ?', NULL, ARRAY($_REQUEST['cid']) );
+        $control = dbFetchOne( 'SELECT * FROM Controls WHERE Id = ?', NULL, array($_REQUEST['cid']) );
     }
     else
     {

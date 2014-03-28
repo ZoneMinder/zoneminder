@@ -32,9 +32,8 @@ chdir( $wd );
 
 $monitor = dbFetchMonitor( $mid );
 
-$sql = "select * from Zones where MonitorId = '".$mid."' order by Area desc";
 $zones = array();
-foreach( dbFetchAll( $sql ) as $row )
+foreach( dbFetchAll( 'select * from Zones where MonitorId = ? order by Area desc', NULL, array($mid) ) as $row )
 {
     if ( $row['Points'] = coordsToPoints( $row['Coords'] ) )
     {

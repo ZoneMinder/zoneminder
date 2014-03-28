@@ -25,15 +25,14 @@ if ( !canView( 'Control' ) )
 }
 
 $groupSql = "";
-if ( !empty($_REQUEST['group']) )
-{
+if ( !empty($_REQUEST['group']) ) {
     $row = dbFetchOne( 'SELECT * FROM Groups WHERE Id = ?', NULL, array($_REQUEST['group']) );
     $groupSql = " and find_in_set( Id, '".$row['MonitorIds']."' )";
 }
 
 $mid = validInt($_REQUEST['mid']);
 
-$sql = "select * from Monitors where Function != 'None' and Controllable = 1$groupSql order by Sequence";
+$sql = "SELECT * FROM Monitors WHERE Function != 'None' AND Controllable = 1$groupSql ORDER BY Sequence";
 $mids = array();
 foreach( dbFetchAll( $sql ) as $row )
 {
@@ -50,7 +49,7 @@ foreach ( getSkinIncludes( 'includes/control_functions.php' ) as $includeFile )
     require_once $includeFile;
 
 $sql = 'SELECT C.*,M.* FROM Monitors AS M INNER JOIN Controls AS C ON (M.ControlId = C.Id ) WHERE M.Id = ?';
-$monitor = dbFetchOne( $sql, NULL, $mid );
+$monitor = dbFetchOne( $sql, NULL, array( $mid ) );
 
 $focusWindow = true;
 

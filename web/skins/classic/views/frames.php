@@ -27,7 +27,7 @@ $sql = 'SELECT E.*,M.Name AS MonitorName FROM Events AS E INNER JOIN Monitors AS
 $event = dbFetchOne( $sql, NULL, array($_REQUEST['eid']) );
 
 $sql = 'SELECT *, unix_timestamp( TimeStamp ) AS UnixTimeStamp FROM Frames WHERE EventID = ? ORDER BY FrameId';
-$frames = dbFetchAll( $sql, NULL, array( $_REQUEST['eid']) );
+$frames = dbFetchAll( $sql, NULL, array( $_REQUEST['eid'] ) );
 
 $focusWindow = true;
 

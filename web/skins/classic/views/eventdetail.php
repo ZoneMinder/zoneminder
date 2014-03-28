@@ -26,7 +26,7 @@ if ( !canEdit( 'Events' ) )
 if ( isset($_REQUEST['eid']) ) {
     $mode = 'single';
     $eid = validInt($_REQUEST['eid']);
-    $newEvent = dbFetchOne( 'SELECT E.* FROM Events AS E WHERE E.Id = ?', NULL, array( $eid ) );
+    $newEvent = dbFetchOne( 'SELECT E.* FROM Events AS E WHERE E.Id = ?', NULL, array($eid) );
 } elseif ( isset($_REQUEST['eids']) ) {
     $mode = 'multi';
     $sql = 'SELECT E.* FROM Events AS E WHERE ';

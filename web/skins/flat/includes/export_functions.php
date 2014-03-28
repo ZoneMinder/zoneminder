@@ -596,8 +596,8 @@ function exportEventImagesMaster( $eids )
 <?php
 	foreach ($eids as $eid) {
 		//get monitor id and event id
-		$sql = 'SELECT E.MonitorId FROM Monitors as M INNER JOIN Events AS E ON (M.Id = E.MonitorId) WHERE E.Id = ?';
-		$event = dbFetchOne( $sql, NULL, ARRAY( $eid ) );
+		$sql = 'SELECT E.MonitorId FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId) WHERE E.Id = ?';
+		$event = dbFetchOne( $sql, NULL, array( $eid ) );
 		$eventMonitorId[$eid] = $event['MonitorId'];
 	}
 	
@@ -758,7 +758,7 @@ function exportFileList( $eid, $exportDetail, $exportFrames, $exportImages, $exp
     if ( canView( 'Events' ) && $eid )
     {
         $sql = 'SELECT E.Id,E.MonitorId,M.Name AS MonitorName,M.Width,M.Height,E.Name,E.Cause,E.Notes,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId) WHERE E.Id = ?';
-        $event = dbFetchOne( $sql, NULL, ARRAY($eid) );
+        $event = dbFetchOne( $sql, NULL, array($eid) );
 		$eventPath = mygetEventPath( $event );
         $files = array();
         if ( $dir = opendir( $eventPath ) )

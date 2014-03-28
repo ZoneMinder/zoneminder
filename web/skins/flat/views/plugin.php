@@ -29,15 +29,14 @@ $mid = validInt($_REQUEST['mid']);
 $zid = !empty($_REQUEST['zid'])?validInt($_REQUEST['zid']):0;
 
 
-if ( $zid > 0 )
-{
-   $newZone = dbFetchOne( "select * from Zones where MonitorId = '".dbEscape($mid)."' and Id = '".dbEscape($zid)."'" );
+if ( $zid > 0 ) {
+   $newZone = dbFetchOne( 'SELECT * FROM Zones WHERE MonitorId = ? AND Id = ?', NULL, array( $mid, $zid) );
 } else {
    $view = "error";
    return;
 }
 $monitor = dbFetchMonitor ( $mid );
-$plugin = dbEscape($_REQUEST['pl']);
+$plugin = $_REQUEST['pl'];
 
 $plugin_path = dirname(ZM_PLUGINS_CONFIG_PATH)."/".$plugin;
 
@@ -61,8 +60,8 @@ if(file_exists($plugin_path."/config.php"))
    include_once($plugin_path."/config.php");
 } 
 
-$sql="SELECT * FROM PluginsConfig WHERE MonitorId=$mid AND ZoneId=$zid AND pluginName='$plugin'";
-foreach( dbFetchAll( $sql ) as $popt )
+$sql='SELECT * FROM PluginsConfig WHERE MonitorId=? AND ZoneId=? AND pluginName=?';
+foreach( dbFetchAll( $sql, NULL, array( $mid, $zid, $plugin ) ) as $popt )
 {
    if(array_key_exists($popt['Name'], $pluginOptions) 
       && $popt['Type']==$pluginOptions[$popt['Name']]['Type']
@@ -72,7 +71,7 @@ foreach( dbFetchAll( $sql ) as $popt )
       $pluginOptions[$popt['Name']]=$popt;
       array_push($optionNames, $popt['Name']);
    } else {
-      dbQuery("DELETE from PluginsConfig WHERE Id=".$popt['Id']);
+      dbQuery('DELETE FROM PluginsConfig WHERE Id=?', array( $popt['Id'] ) );
    }
 }
 foreach($pluginOptions as $name => $values)
@@ -80,10 +79,8 @@ foreach($pluginOptions as $name => $values)
    if(!in_array($name, $optionNames))
    {
       $popt=$pluginOptions[$name];
-      $sql="INSERT INTO PluginsConfig VALUES 
-         ('','".dbEscape($popt['Name'])."','".dbEscape($popt['Value'])."',
-         '".dbEscape($popt['Type'])."','".dbEscape($popt['Choices'])."','$mid','$zid','$plugin')";
-      dbQuery($sql);
+      $sql="INSERT INTO PluginsConfig VALUES ('',?,?,?,?,?,?,?)";
+      dbQuery($sql, array( $popt['Name'], $popt['Value'], $popt['Type'], $popt['Choices'], $mid, $zid, $plugin ) );
    }
 }
 

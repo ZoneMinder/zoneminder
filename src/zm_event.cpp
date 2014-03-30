@@ -877,6 +877,11 @@ void EventStream::processCommand( const CmdMsg *msg )
                 // Clear paused flag
                 paused = false;
             }
+
+	    // If we are in single event mode and at the last frame, replay the current event
+	    if ( (mode == MODE_SINGLE) && (curr_frame_id == event_data->frame_count) )
+		curr_frame_id = 1;
+
             replay_rate = ZM_RATE_BASE;
             break;
         }

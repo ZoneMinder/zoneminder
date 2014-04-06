@@ -20,6 +20,11 @@
 
 if ( empty($_COOKIE['zmBandwidth']) )
 	    $_COOKIE['zmBandwidth'] = "low";
+//ini_set( "magic_quotes_gpc", "Off" );
+
+// Uncomment if there are language overrides
+//if ( $skinLangFile = loadLanguage( ZM_SKIN_PATH ) )
+    //require_once( $skinLangFile );
 
 foreach ( getSkinIncludes( 'includes/config.php' ) as $includeFile )
     require_once $includeFile;
@@ -30,11 +35,13 @@ foreach ( getSkinIncludes( 'includes/functions.php' ) as $includeFile )
 if ( empty($view) )
 	$view = 'console';
 
-if ( !isset($user) && ZM_OPT_USE_AUTH )
+if ( !isset($user) && ZM_OPT_USE_AUTH && ZM_AUTH_TYPE == "remote" && !empty( $_SERVER['REMOTE_USER']) )
 {
-	echo "Invalid Login";
-	exit;
+     $view = "postlogin";
+     $action = "login";
+     $_REQUEST['username'] = $_SERVER['REMOTE_USER'];
 }
+
 /* Get version info from client */
 updateClientVer();
 /* Store some logging information in session variables

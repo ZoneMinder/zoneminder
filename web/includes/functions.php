@@ -788,6 +788,11 @@ function getBrowser( &$browser, &$version )
             $version = $logVersion[1];
             $browser = 'ie';
         }
+        elseif ( preg_match( '/Trident\/7.0; rv:([0-9.]+)/', $_SERVER['HTTP_USER_AGENT'], $logVersion) )
+        {
+            $version = $logVersion[1];
+            $browser = 'ie';
+        }
         elseif ( preg_match( '/Chrome\/([0-9.]+)/', $_SERVER['HTTP_USER_AGENT'], $logVersion) )
         {
             $version = $logVersion[1];

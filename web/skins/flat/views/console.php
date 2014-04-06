@@ -152,8 +152,8 @@ foreach ( array_reverse($seqIdList) as $seqId )
     $lastId = $seqId;
 }
 
-$cycleWidth = $maxWidth;
-$cycleHeight = $maxHeight;
+$cycleWidth = $maxWidth + 10;
+$cycleHeight = $maxHeight +20;
 
 $eventsView = ZM_WEB_EVENTS_VIEW;
 $eventsWindow = 'zm'.ucfirst(ZM_WEB_EVENTS_VIEW);

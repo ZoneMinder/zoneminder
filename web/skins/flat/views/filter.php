@@ -160,7 +160,7 @@ xhtmlHeaders(__FILE__, $SLANG['EventFilter'] );
         <table id="fieldsTable" class="filterTable" cellspacing="0">
           <tbody>
 <?php
-for ( $i = 0; $i < count($_REQUEST['filter']['terms']); $i++ )
+for ( $i = 0; isset($_REQUEST['filter']) && $i < count($_REQUEST['filter']['terms']); $i++ )
 {
 ?>
             <tr>

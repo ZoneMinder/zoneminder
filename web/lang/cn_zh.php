@@ -724,6 +724,7 @@ $SLANG = array(
     'ZoneMinMaxPixelThres'  => '最小/最大像素阈值(0-255)',
     'ZoneMinderLog'        => 'ZoneMinder Log',         // Added - 2011-06-17
     'ZoneOverloadFrames'    => '忽略过载帪数',
+    'ZoneExtendAlarmFrames' => 'Extend Alarm Frame Count',
     'Zones'                 => '区域',
     'Zoom'                  => '缩放',
     'ZoomIn'                => '放大',

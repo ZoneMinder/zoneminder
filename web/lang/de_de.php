@@ -724,6 +724,7 @@ $SLANG = array(
     'ZoneMinMaxPixelThres' => 'Min./max. Pixelschwellwert',
     'ZoneMinderLog'        => 'ZoneMinder Log',         // Added - 2011-06-17
     'ZoneOverloadFrames'   => 'Bildauslassrate bei System&uuml;berlastung',
+    'ZoneExtendAlarmFrames' => 'Alarmstatus nach Ende f&uuml;r Frames aufrechterhalten',
     'Zones'                => 'Zonen',
     'Zoom'                 => 'Zoom',
     'ZoomIn'               => 'Hineinzoomen',

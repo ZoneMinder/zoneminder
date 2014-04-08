@@ -725,6 +725,7 @@ $SLANG = array(
     'ZoneMinMaxFiltArea'    => 'Min/Max Filtered Area',
     'ZoneMinMaxPixelThres'  => 'Min/Max Pixel Threshold (0-255)',
     'ZoneOverloadFrames'    => 'Overload Frame Ignore Count',
+    'ZoneExtendAlarmFrames' => 'Extend Alarm Frame Count',
     'Zones'                 => 'Zones',
     'Zone'                  => 'Zone',
     'ZoomIn'                => 'Zoom In',

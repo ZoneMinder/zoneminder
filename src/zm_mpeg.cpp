@@ -239,7 +239,7 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
 		c->codec_type = codec->type;
 
 		c->pix_fmt = strcmp( "mjpeg", ofc->oformat->name ) == 0 ? PIX_FMT_YUVJ422P : PIX_FMT_YUV420P;
-		if ( bitrate < 100 )
+		if ( bitrate <= 100 )
 		{
 			// Quality based bitrate control (VBR). Scale is 1..31 where 1 is best.
 			// This gets rid of artifacts in the beginning of the movie; and well, even quality.

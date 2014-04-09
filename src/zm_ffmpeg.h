@@ -47,8 +47,10 @@ extern "C" {
 	
 #if defined(HAVE_LIBAVCODEC_AVCODEC_H) && LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54,25,0)
     #define _AVCODECID AVCodecID
+    #define _AVCODECID_NONE AV_CODEC_ID_NONE
 #else
     #define _AVCODECID CodecID
+    #define _AVCODECID_NONE CODEC_ID_NONE
 #endif
 
 // AVFORMAT

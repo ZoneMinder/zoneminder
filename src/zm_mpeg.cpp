@@ -179,29 +179,25 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
 	_AVCODECID codec_id = of->video_codec;
 	if ( codec_name )
 	{
-#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(52, 45, 0)
-		AVOutputFormat* context_for_codec = av_guess_format( codec_name, NULL, NULL );
-#else
-		AVOutputFormat* context_for_codec = guess_format( codec_name, NULL, NULL );
-#endif
-		if ( context_for_codec )
-		{
-			codec_id = context_for_codec->video_codec;
-		}
-		else
-		{
+            AVCodec *a = avcodec_find_encoder_by_name(codec_name);
+            if ( a )
+            {
+                codec_id = a->id;
+            }
+            else
+            {
 #if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(53, 11, 0)
-			Debug( 1, "Could not find codec \"%s\". Using default \"%s\"", codec_name, avcodec_get_name( codec_id ) );
+                    Debug( 1, "Could not find codec \"%s\". Using default \"%s\"", codec_name, avcodec_get_name( codec_id ) );
 #else
-			Debug( 1, "Could not find codec \"%s\". Using default \"%d\"", codec_name, codec_id );
+                    Debug( 1, "Could not find codec \"%s\". Using default \"%d\"", codec_name, codec_id );
 #endif
-		}
+            }
 	}
 
 	/* add the video streams using the default format codecs
 	   and initialize the codecs */
 	ost = NULL;
-	if ( codec_id != CODEC_ID_NONE )
+	if ( codec_id != _AVCODECID_NONE )
 	{
 		codec = avcodec_find_encoder( codec_id );
 		if ( !codec )
@@ -633,6 +629,11 @@ double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size,
 	{
 		opicture_ptr->pts = c->frame_number;
 		opicture_ptr->quality = c->global_quality;
+                
+                if ( opicture_ptr->pts != 0 )
+                {
+                    opicture_ptr->pts += buffer_frames_before_start - 1;
+                }
 
 #if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(54, 0, 0)
 		int got_packet;
@@ -689,7 +690,7 @@ double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size,
 		// Increase the packet index to use the next buffered packet to contain the next frame.
 		av_packet_index++;
 
-		Debug( 1, "Pre-buffered frame %d", av_packet_index );
+		Debug( 2, "Pre-buffered packet %d: pkt.pts=%d, pkt.dts=%d, pkt.duration=%d", av_packet_index, pkt->pts, pkt->dts, pkt->duration );
 	}
 	return ( opicture_ptr->pts);
 }
@@ -723,7 +724,7 @@ void VideoStream::SendPackets() {
 					Fatal( "Error %d while writing pre-buffered video frame: %s", ret, av_err2str( errno ) );
 				}
 
-				Debug( 1, "Sent pre-buffered frame %d", index + 1 );
+                                Debug( 2, "Sent pre-buffered packet %d: pkt.pts=%d, pkt.dts=%d, pkt.duration=%d", index + 1, pkt->pts, pkt->dts, pkt->duration );
 
 				// Release resources used by the packet.
 				av_free_packet( pkt );
@@ -740,11 +741,11 @@ void VideoStream::SendPackets() {
 	}
 	else
 	{
-		//Debug( 1, "About to write packet: pkt.pts=%d, pkt.dts=%d, pkt.duration=%d", av_packets[0]->pts, av_packets[0]->dts, av_packets[0]->duration );
-
 		AVPacket *pkt = av_packets[0];
 		ret = av_write_frame( ofc, pkt );
 		av_free_packet( pkt );
+                
+                Debug( 3, "Sent packet: pkt.pts=%d, pkt.dts=%d, pkt.duration=%d", pkt->pts, pkt->dts, pkt->duration );
 	}
 
 	if ( ret != 0 )

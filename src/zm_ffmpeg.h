@@ -44,6 +44,12 @@ extern "C" {
 #elif HAVE_FFMPEG_AVCODEC_H
 #include <ffmpeg/avcodec.h>
 #endif
+	
+#if defined(HAVE_LIBAVCODEC_AVCODEC_H) && LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54,25,0)
+    #define _AVCODECID AVCodecID
+#else
+    #define _AVCODECID CodecID
+#endif
 
 // AVFORMAT
 #if HAVE_LIBAVFORMAT_AVFORMAT_H
@@ -80,18 +86,6 @@ extern "C" {
  #endif
 #endif
 
-#if FFMPEG_VERSION_INT == 0x000408
-#define ZM_FFMPEG_048	1
-#elif FFMPEG_VERSION_INT == 0x000409
-#if LIBAVCODEC_VERSION_INT < ((50<<16)+(0<<8)+0)
-#define ZM_FFMPEG_049	1
-#else // LIBAVCODEC_VERSION_INT
-#define ZM_FFMPEG_SVN	1
-#endif // LIBAVCODEC_VERSION_INT
-#else // FFMPEG_VERSION_INT
-#define ZM_FFMPEG_SVN	1
-#endif // FFMPEG_VERSION_INT
-
 /* Fix for not having SWS_CPU_CAPS_SSE2 defined */
 #ifndef SWS_CPU_CAPS_SSE2
 #define SWS_CPU_CAPS_SSE2     0x02000000
@@ -126,7 +120,36 @@ protected:
 	unsigned int default_height;
 };
 #endif // HAVE_LIBSWSCALE && HAVE_LIBAVUTIL
-                   
+
+/*
+ * Some versions of libav does not contain this definition.
+ */
+#ifndef AV_ERROR_MAX_STRING_SIZE
+#define AV_ERROR_MAX_STRING_SIZE 64
+#endif
+
+/*
+ * C++ friendly version of av_err2str taken from http://libav-users.943685.n4.nabble.com/Libav-user-g-4-7-2-fails-to-compile-av-err2str-td4656417.html.
+ * Newer g++ versions fail with "error: taking address of temporary array" when using native libav version.
+ */
+#ifdef  __cplusplus
+
+    inline static const std::string av_make_error_string(int errnum)
+    {
+        char errbuf[AV_ERROR_MAX_STRING_SIZE];
+#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(50, 12, 13)
+        av_strerror(errnum, errbuf, AV_ERROR_MAX_STRING_SIZE);
+#else
+		snprintf(errbuf, AV_ERROR_MAX_STRING_SIZE, "libav error %d", errnum);
+#endif
+        return (std::string)errbuf;
+    }
+	
+    #undef av_err2str
+    #define av_err2str(errnum) av_make_error_string(errnum).c_str()
+
+    #endif // __cplusplus 
+
             
 #endif // ( HAVE_LIBAVUTIL_AVUTIL_H || HAVE_LIBAVCODEC_AVCODEC_H || HAVE_LIBAVFORMAT_AVFORMAT_H || HAVE_LIBAVDEVICE_AVDEVICE_H )
 

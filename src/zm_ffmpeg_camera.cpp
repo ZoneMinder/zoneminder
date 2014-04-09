@@ -18,14 +18,11 @@
 // 
 
 #include "zm.h"
+#include <sys/socket.h>
 
 #if HAVE_LIBAVFORMAT
 
 #include "zm_ffmpeg_camera.h"
-
-#ifndef AV_ERROR_MAX_STRING_SIZE
-#define AV_ERROR_MAX_STRING_SIZE 64
-#endif
 
 FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) :
     Camera( p_id, FFMPEG_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture ),
@@ -84,6 +81,9 @@ void FfmpegCamera::Initialise()
         av_log_set_level( AV_LOG_QUIET ); 
 
     av_register_all();
+#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(53, 13, 0)
+	avformat_network_init();
+#endif
 }
 
 void FfmpegCamera::Terminate()
@@ -128,8 +128,7 @@ int FfmpegCamera::Capture( Image &image )
         int avResult = av_read_frame( mFormatContext, &packet );
         if ( avResult < 0 )
         {
-            char errbuf[AV_ERROR_MAX_STRING_SIZE];
-            av_strerror(avResult, errbuf, AV_ERROR_MAX_STRING_SIZE);
+            const char* errbuf = av_err2str(avResult);
             if (
                 // Check if EOF.
                 (avResult == AVERROR_EOF || (mFormatContext->pb && mFormatContext->pb->eof_reached)) ||
@@ -147,8 +146,12 @@ int FfmpegCamera::Capture( Image &image )
         Debug( 5, "Got packet from stream %d", packet.stream_index );
         if ( packet.stream_index == mVideoStreamId )
         {
-            if ( avcodec_decode_video2( mCodecContext, mRawFrame, &frameComplete, &packet ) < 0 )
-                Fatal( "Unable to decode frame at frame %d", frameCount );
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 25, 0)
+			if ( avcodec_decode_video2( mCodecContext, mRawFrame, &frameComplete, &packet ) < 0 )
+#else
+			if ( avcodec_decode_video( mCodecContext, mRawFrame, &frameComplete, packet.data, packet.size ) < 0 )
+#endif
+				Fatal( "Unable to decode frame at frame %d", frameCount );
 
             Debug( 4, "Decoded video packet at frame %d", frameCount );
 
@@ -199,16 +202,20 @@ int FfmpegCamera::OpenFfmpeg() {
     // Open the input, not necessarily a file
 #if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(53, 4, 0)
     Debug ( 1, "Calling av_open_input_file" );
-    if ( av_open_input_file( &mFormatContext, mPath.c_str(), NULL, 0, NULL ) !=0 )
+    int ret = av_open_input_file( &mFormatContext, mPath.c_str(), NULL, 0, NULL );
 #else
     Debug ( 1, "Calling avformat_open_input" );
 
     mFormatContext = avformat_alloc_context( );
+	
+#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(53, 14, 0)
     mFormatContext->interrupt_callback.callback = FfmpegInterruptCallback;
     mFormatContext->interrupt_callback.opaque = this;
-
-    if ( avformat_open_input( &mFormatContext, mPath.c_str(), NULL, NULL ) !=0 )
 #endif
+
+    int ret = avformat_open_input( &mFormatContext, mPath.c_str(), NULL, NULL );
+#endif
+    if (ret != 0)
     {
         mIsOpening = false;
         Error( "Unable to open input %s due to: %s", mPath.c_str(), strerror(errno) );
@@ -288,7 +295,9 @@ int FfmpegCamera::OpenFfmpeg() {
     Debug ( 1, "Validated imagesize" );
     
 #if HAVE_LIBSWSCALE
-    Debug ( 1, "Calling sws_isSupportedInput" );
+	
+#if LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(0, 8, 0)
+	Debug ( 1, "Calling sws_isSupportedInput" );
     if(!sws_isSupportedInput(mCodecContext->pix_fmt)) {
         Fatal("swscale does not support the codec format: %c%c%c%c",(mCodecContext->pix_fmt)&0xff,((mCodecContext->pix_fmt>>8)&0xff),((mCodecContext->pix_fmt>>16)&0xff),((mCodecContext->pix_fmt>>24)&0xff));
     }
@@ -296,6 +305,7 @@ int FfmpegCamera::OpenFfmpeg() {
     if(!sws_isSupportedOutput(imagePixFormat)) {
         Fatal("swscale does not support the target format: %c%c%c%c",(imagePixFormat)&0xff,((imagePixFormat>>8)&0xff),((imagePixFormat>>16)&0xff),((imagePixFormat>>24)&0xff));
     }
+#endif
     
 #else // HAVE_LIBSWSCALE
     Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
@@ -344,10 +354,10 @@ int FfmpegCamera::CloseFfmpeg(){
     }
     if ( mFormatContext )
     {
-#if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(53, 4, 0)
-        av_close_input_file( mFormatContext );
-#else
+#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(53, 17, 0)
         avformat_close_input( &mFormatContext );
+#else
+        av_close_input_file( mFormatContext );
 #endif
         mFormatContext = NULL;
     }

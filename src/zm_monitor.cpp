@@ -329,10 +329,10 @@ Monitor::Monitor(
     delta_image( width, height, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE ),
     ref_image( width, height, p_camera->Colours(), p_camera->SubpixelOrder() ),
     purpose( p_purpose ),
+    last_motion_score(0),
     camera( p_camera ),
     n_zones( p_n_zones ),
-    zones( p_zones ),
-    last_motion_score(0)
+    zones( p_zones )
 {
     strncpy( name, p_name, sizeof(name) );
 

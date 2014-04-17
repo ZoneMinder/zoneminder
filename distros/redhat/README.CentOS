@@ -55,10 +55,10 @@
 				UPGRADES
 ================================================================================
 
-1. Add the mysql ALTER permission to the zmuser account:
+1. Add additional permissions to the zmuser account:
 
      mysql -u root -p
-     grant alter on zm.* to
+     grant lock tables,alter on zm.* to
      'zmuser'@localhost identified by 'zmpass';
 
    Since this is an upgrade, the assumption is that the zmuser account exists

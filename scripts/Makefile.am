@@ -17,7 +17,8 @@ bin_SCRIPTS = \
 	zmupdate.pl \
 	zmvideo.pl \
 	zmcontrol.pl \
-	zmtrack.pl
+	zmtrack.pl \
+	zmcamtool.pl
 
 SUBDIRS = \
 	. \
@@ -35,6 +36,7 @@ EXTRA_DIST = \
 	zmvideo.pl.in \
 	zmcontrol.pl.in \
 	zmtrack.pl.in \
+	zmcamtool.pl.in \
 	ZoneMinder/Makefile.PL \
 	ZoneMinder/README \
 	ZoneMinder/Changes \
@@ -53,18 +55,7 @@ EXTRA_DIST = \
 	ZoneMinder/lib/ZoneMinder/ConfigAdmin.pm \
 	ZoneMinder/lib/ZoneMinder/ConfigData.pm.in \
 	ZoneMinder/lib/ZoneMinder/Control.pm \
-	ZoneMinder/lib/ZoneMinder/Control/PelcoD.pm \
-	ZoneMinder/lib/ZoneMinder/Control/AxisV2.pm \
-	ZoneMinder/lib/ZoneMinder/Control/PanasonicIP.pm \
-	ZoneMinder/lib/ZoneMinder/Control/Visca.pm \
-	ZoneMinder/lib/ZoneMinder/Control/Ncs370.pm \
-	ZoneMinder/lib/ZoneMinder/Control/mjpgStreamer.pm \
-	ZoneMinder/lib/ZoneMinder/Control/SkyIPCam7xx.pm \
-	ZoneMinder/lib/ZoneMinder/Control/FI8608W_Y2k.pm \
-	ZoneMinder/lib/ZoneMinder/Control/FI8620_Y2k.pm \
-	ZoneMinder/lib/ZoneMinder/Control/FI8908W.pm \
-	ZoneMinder/lib/ZoneMinder/Control/FI9821W_Y2k.pm \
-	ZoneMinder/lib/ZoneMinder/Control/LoftekSentinel.pm \
+	ZoneMinder/lib/ZoneMinder/Control \ # Grab all ptz control skips under the Control folder
 	ZoneMinder/lib/ZoneMinder/Trigger/Channel.pm \
 	ZoneMinder/lib/ZoneMinder/Trigger/Channel/Handle.pm \
 	ZoneMinder/lib/ZoneMinder/Trigger/Channel/Spawning.pm \

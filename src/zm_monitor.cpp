@@ -44,6 +44,9 @@
 #if HAVE_LIBVLC
 #include "zm_libvlc_camera.h"
 #endif // HAVE_LIBVLC
+#if HAVE_LIBCURL
+#include "zm_curl_camera.h"
+#endif // HAVE_LIBCURL
 
 #if ZM_MEM_MAPPED
 #include <sys/mman.h>
@@ -2464,7 +2467,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
 Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 {
     static char sql[ZM_SQL_MED_BUFSIZ];
-    snprintf( sql, sizeof(sql), "select Id, Name, Type, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Protocol, Method, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, SaveJPEGs, VideoWriter, EncoderParameters, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Id = %d", id );
+    snprintf( sql, sizeof(sql), "select Id, Name, Type, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Protocol, Method, Host, Port, Path, User, Pass, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, SaveJPEGs, VideoWriter, EncoderParameters, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Id = %d", id );
     if ( mysql_query( &dbconn, sql ) )
     {
         Error( "Can't run query: %s", mysql_error( &dbconn ) );
@@ -2500,6 +2503,8 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
         std::string host = dbrow[col]; col++;
         std::string port = dbrow[col]; col++;
         std::string path = dbrow[col]; col++;
+        std::string user = dbrow[col]; col++;
+        std::string pass = dbrow[col]; col++;
 
         int width = atoi(dbrow[col]); col++;
         int height = atoi(dbrow[col]); col++;
@@ -2673,6 +2678,27 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 #else // HAVE_LIBVLC
             Fatal( "You must have vlc libraries installed to use vlc cameras for monitor %d", id );
 #endif // HAVE_LIBVLC
+        }
+        else if ( type == "cURL" )
+        {
+#if HAVE_LIBCURL
+            camera = new cURLCamera(
+                id,
+                path.c_str(),
+                user.c_str(),
+                pass.c_str(),
+                cam_width,
+                cam_height,
+                colours,
+                brightness,
+                contrast,
+                hue,
+                colour,
+                purpose==CAPTURE
+            );
+#else // HAVE_LIBCURL
+            Fatal( "You must have libcurl installed to use ffmpeg cameras for monitor %d", id );
+#endif // HAVE_LIBCURL
         }
         else
         {
@@ -3155,7 +3181,9 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
     for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
     {
         Zone *zone = zones[n_zone];
-        zone->ClearAlarm();
+        // need previous alarmed state for preclusive zone, so don't clear just yet
+        if (!zone->IsPreclusive())
+            zone->ClearAlarm();
         if ( !zone->IsInactive() )
         {
             continue;
@@ -3172,14 +3200,31 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
         {
             continue;
         }
-        Debug( 3, "Checking preclusive zone %s", zone->Label() );
+        int old_zone_score = zone->Score();
+        bool old_zone_alarmed = zone->Alarmed();
+        Debug( 3, "Checking preclusive zone %s - old score: %d, state: %s", zone->Label(),old_zone_score, zone->Alarmed()?"alarmed":"quiet" );
         if ( zone->CheckAlarms( &delta_image ) )
         {
             alarm = true;
             score += zone->Score();
+            zone->SetAlarm();
             Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
             zoneSet.insert( zone->Label() );
             //zone->ResetStats();
+        } else {
+            // check if end of alarm
+            if (old_zone_alarmed) {
+                Debug(3, "Preclusive Zone %s alarm Ends. Prevíous score: %d", zone->Label(), old_zone_score);
+                if (old_zone_score > 0) {
+                    zone->SetExtendAlarmCount(zone->GetExtendAlarmFrames());
+                }
+                if (zone->CheckExtendAlarmCount()) {
+                    alarm=true;
+		    zone->SetAlarm();
+                } else {
+                    zone->ClearAlarm();
+                }
+            } 
         }
     }
 
@@ -3197,7 +3242,7 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
         for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
         {
             Zone *zone = zones[n_zone];
-            if ( !zone->IsActive() )
+            if ( !zone->IsActive() || zone->IsPreclusive())
             {
                 continue;
             }

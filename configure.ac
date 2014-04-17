@@ -1,5 +1,5 @@
 AC_PREREQ(2.59)
-AC_INIT(zm,1.26.5,[http://www.zoneminder.com/forums/ - Please check FAQ first],zoneminder,http://www.zoneminder.com/downloads.html)
+AC_INIT(zm,1.27,[http://www.zoneminder.com/forums/ - Please check FAQ first],zoneminder,http://www.zoneminder.com/downloads.html)
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR(src/zm.h)
 AC_CONFIG_HEADERS(config.h)
@@ -8,6 +8,7 @@ AC_SUBST([AM_CXXFLAGS], [-D__STDC_CONSTANT_MACROS])
 
 AC_SUBST(VERSION)
 
+AC_ARG_VAR(ZM_DB_TYPE,[Type of the ZoneMinder database, default mysql])
 AC_ARG_VAR(ZM_DB_HOST,[Hostname where ZoneMinder database located, default localhost])
 AC_ARG_VAR(ZM_DB_NAME,[Name of ZoneMinder database, default zm])
 AC_ARG_VAR(ZM_DB_USER,[Name of ZoneMinder database user, default zmuser])
@@ -279,6 +280,7 @@ AC_CHECK_LIB(swscale,sws_scale,,,-lswscale)
 AC_CHECK_LIB(vlc,libvlc_new,,AC_MSG_WARN(libvlc.a may be required for streaming))
 AC_CHECK_LIB(bz2,BZ2_bzCompress,,AC_MSG_WARN(zm requires libbz2.a for recent versions of ffmpeg))
 AC_CHECK_LIB(z,compress,,)
+AC_CHECK_LIB(curl,curl_global_init,,)
 
 # Checks for header files.
 AC_FUNC_ALLOCA
@@ -318,6 +320,7 @@ AC_CHECK_HEADERS(zlib.h,,,)
 AC_CHECK_HEADERS(x264.h,,,)
 AC_CHECK_HEADERS([mp4v2/mp4v2.h mp4v2.h mp4.h],,,)
 AC_CHECK_HEADERS(vlc/vlc.h,,,)
+AC_CHECK_HEADERS(curl/curl.h,,,)
 
 if test "$ZM_SSL_LIB" == "openssl"; then
 AC_CHECK_DECLS(MD5,,AC_MSG_ERROR([zm requires openssl/md5.h - use ZM_SSL_LIB option to select gnutls instead]),[#include <stdlib.h>
@@ -386,7 +389,7 @@ fi
 AC_SUBST(PERL_MM_PARMS)
 AC_SUBST(EXTRA_PERL_LIB)
 
-AC_CONFIG_FILES([Makefile zm.conf zmconfgen.pl db/Makefile db/zm_create.sql misc/Makefile misc/apache.conf misc/logrotate.conf misc/syslog.conf scripts/Makefile scripts/zm scripts/zmaudit.pl scripts/zmcontrol.pl scripts/zmdc.pl scripts/zmfilter.pl scripts/zmpkg.pl scripts/zmtrack.pl scripts/zmtrigger.pl scripts/zmupdate.pl scripts/zmvideo.pl scripts/zmwatch.pl scripts/zmx10.pl scripts/zmdbbackup scripts/zmdbrestore scripts/zmeventdump scripts/zmlogrotate.conf scripts/ZoneMinder/lib/ZoneMinder/Base.pm scripts/ZoneMinder/lib/ZoneMinder/Config.pm scripts/ZoneMinder/lib/ZoneMinder/Memory.pm scripts/ZoneMinder/lib/ZoneMinder/ConfigData.pm src/Makefile src/zm_config.h web/Makefile web/ajax/Makefile web/css/Makefile web/graphics/Makefile web/includes/Makefile web/includes/config.php web/js/Makefile web/lang/Makefile web/skins/Makefile web/skins/classic/Makefile web/skins/classic/ajax/Makefile web/skins/classic/css/Makefile web/skins/classic/graphics/Makefile web/skins/classic/includes/Makefile web/skins/classic/js/Makefile web/skins/classic/lang/Makefile web/skins/classic/views/Makefile web/skins/classic/views/css/Makefile web/skins/classic/views/js/Makefile web/skins/mobile/Makefile web/skins/mobile/ajax/Makefile web/skins/mobile/css/Makefile web/skins/mobile/graphics/Makefile web/skins/mobile/includes/Makefile web/skins/mobile/lang/Makefile web/skins/mobile/views/Makefile web/skins/mobile/views/css/Makefile web/tools/Makefile web/tools/mootools/Makefile web/views/Makefile web/skins/xml/Makefile web/skins/xml/views/Makefile web/skins/xml/includes/Makefile])
+AC_CONFIG_FILES([Makefile zm.conf zmconfgen.pl db/Makefile db/zm_create.sql misc/Makefile misc/apache.conf misc/logrotate.conf misc/syslog.conf scripts/Makefile scripts/zm scripts/zmaudit.pl scripts/zmcontrol.pl scripts/zmdc.pl scripts/zmfilter.pl scripts/zmpkg.pl scripts/zmtrack.pl scripts/zmcamtool.pl scripts/zmtrigger.pl scripts/zmupdate.pl scripts/zmvideo.pl scripts/zmwatch.pl scripts/zmx10.pl scripts/zmdbbackup scripts/zmdbrestore scripts/zmeventdump scripts/zmlogrotate.conf scripts/ZoneMinder/lib/ZoneMinder/Base.pm scripts/ZoneMinder/lib/ZoneMinder/Config.pm scripts/ZoneMinder/lib/ZoneMinder/Memory.pm scripts/ZoneMinder/lib/ZoneMinder/ConfigData.pm src/Makefile src/zm_config.h web/Makefile web/ajax/Makefile web/css/Makefile web/graphics/Makefile web/includes/Makefile web/includes/config.php web/js/Makefile web/lang/Makefile web/skins/Makefile web/skins/classic/Makefile web/skins/classic/ajax/Makefile web/skins/classic/css/Makefile web/skins/classic/graphics/Makefile web/skins/classic/includes/Makefile web/skins/classic/js/Makefile web/skins/classic/lang/Makefile web/skins/classic/views/Makefile web/skins/classic/views/css/Makefile web/skins/classic/views/js/Makefile web/skins/mobile/Makefile web/skins/mobile/ajax/Makefile web/skins/mobile/css/Makefile web/skins/mobile/graphics/Makefile web/skins/mobile/includes/Makefile web/skins/mobile/lang/Makefile web/skins/mobile/views/Makefile web/skins/mobile/views/css/Makefile web/tools/Makefile web/tools/mootools/Makefile web/views/Makefile web/skins/xml/Makefile web/skins/xml/views/Makefile web/skins/xml/includes/Makefile web/skins/flat/Makefile web/skins/flat/ajax/Makefile web/skins/flat/css/Makefile web/skins/flat/graphics/Makefile web/skins/flat/includes/Makefile web/skins/flat/js/Makefile web/skins/flat/lang/Makefile web/skins/flat/views/Makefile web/skins/flat/views/css/Makefile web/skins/flat/views/js/Makefile])
 
 # Create the definitions for compilation and defaults for the database
 AC_CONFIG_COMMANDS([src/zm_config_defines.h],[perl ./zmconfgen.pl])

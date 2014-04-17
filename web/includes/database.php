@@ -29,8 +29,13 @@ $GLOBALS['dbConn'] = false;
 function dbConnect()
 {
     global $dbConn;
-    $dbConn = mysql_pconnect( ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS ) or die( "Could not connect to database: ".mysql_error() );
-    mysql_select_db( ZM_DB_NAME, $dbConn ) or die( "Could not select database: ".mysql_error() );
+
+	try {
+		$dbConn = new PDO( ZM_DB_TYPE . ':host=' . ZM_DB_HOST . ';dbname='.ZM_DB_NAME, ZM_DB_USER, ZM_DB_PASS );
+	} catch(PDOException $ex ) {
+		echo "Unable to connect to ZM db." . $ex->getMessage();
+		$dbConn = null;
+	}
 }
 
 dbConnect();
@@ -38,7 +43,7 @@ dbConnect();
 function dbDisconnect()
 {
     global $dbConn;
-    mysql_close( $dbConn ) or die( "Could not disconnect from database" );
+	$dbConn = null;
 }
 
 function dbLogOff()
@@ -80,58 +85,71 @@ function dbError( $sql )
 
 function dbEscape( $string )
 {
+	global $dbConn;
     if ( version_compare( phpversion(), "4.3.0", "<") )
         if ( get_magic_quotes_gpc() )
-            return( mysql_escape_string( stripslashes( $string ) ) );
+            return( $dbConn->quote( stripslashes( $string ) ) );
         else
-            return( mysql_escape_string( $string ) );
+            return( $dbConn->quote( $string ) );
     else
         if ( get_magic_quotes_gpc() )
-            return( mysql_real_escape_string( stripslashes( $string ) ) );
+            return( $dbConn->quote( stripslashes( $string ) ) );
         else
-            return( mysql_real_escape_string( $string ) );
+            return( $dbConn->quote( $string ) );
 }
 
-function dbQuery( $sql )
+function dbQuery( $sql, $params=NULL )
 {
+    global $dbConn;
     if ( dbLog( $sql, true ) )
         return;
-    if (!($result = mysql_query( $sql )))
-        dbError( $sql );
+    $result = NULL;
+    try {
+        if ( isset($params) ) {
+            $result = $dbConn->prepare( $sql );
+            $result->execute( $params );
+        } else {
+            $result = $dbConn->query( $sql );
+        }
+    } catch(PDOException $e) {
+		Fatal( "SQL-ERR '".$e.getMessage()."', statement was '".$sql."'" );
+    }
     return( $result );
 }
 
-function dbFetchOne( $sql, $col=false )
+function dbFetchOne( $sql, $col=false, $params=NULL )
 {
-    dbLog( $sql );
-    if (!($result = mysql_query( $sql )))
-        dbError( $sql );
+	$result = dbQuery( $sql, $params );
+	if ( ! $result ) {
+		Fatal( "SQL-ERR dbFetchOne no result, statement was '".$sql."'" . ( $params ? 'params: ' . join(',',$params) : '' ) );
+		return false;
+	}
 
-    if ( $dbRow = mysql_fetch_assoc( $result ) )
+    if ( $result && $dbRow = $result->fetch( PDO::FETCH_ASSOC ) )
         return( $col?$dbRow[$col]:$dbRow );
     return( false );
 }
 
-function dbFetchAll( $sql, $col=false )
+function dbFetchAll( $sql, $col=false, $params=NULL )
 {
-    dbLog( $sql );
-    if (!($result = mysql_query( $sql )))
-        dbError( $sql );
+	$result = dbQuery( $sql, $params );
+	if ( ! $result ) {
+		Fatal( "SQL-ERR dbFetchAll no result, statement was '".$sql."'" . ( $params ? 'params: ' .join(',', $params) : '' ) );
+		return false;
+	}
 
     $dbRows = array();
-    while( $dbRow = mysql_fetch_assoc( $result ) )
+    while( $dbRow = $result->fetch( PDO::FETCH_ASSOC ) )
         $dbRows[] = $col?$dbRow[$col]:$dbRow;
     return( $dbRows );
 }
 
 function dbFetchAssoc( $sql, $indexCol, $dataCol=false )
 {
-    dbLog( $sql );
-    if (!($result = mysql_query( $sql )))
-        dbError( $sql );
+	$result = dbQuery( $sql );
 
     $dbRows = array();
-    while( $dbRow = mysql_fetch_assoc( $result ) )
+    while( $dbRow = $result->fetch( PDO::FETCH_ASSOC ) )
         $dbRows[$dbRow[$indexCol]] = $dataCol?$dbRow[$dataCol]:$dbRow;
     return( $dbRows );
 }
@@ -143,22 +161,21 @@ function dbFetch( $sql, $col=false )
 
 function dbFetchNext( $result, $col=false )
 {
-    if ( $dbRow = mysql_fetch_assoc( $result ) )
+    if ( $dbRow = $result->fetch( PDO::FETCH_ASSOC ) )
         return( $col?$dbRow[$col]:$dbRow );
     return( false );
 }
 
 function dbNumRows( $sql )
 {
-    dbLog( $sql );
-    if (!($result = mysql_query( $sql )))
-        dbError( $sql );
-    return( mysql_num_rows( $result ) );
+	$result = dbQuery( $sql );
+    return( $result->rowCount() );
 }
 
 function dbInsertId()
 {
-    return( mysql_insert_id() );
+	global $dbConn;
+    return( $dbConn->lastInsertId() );
 }
 
 function getEnumValues( $table, $column )
@@ -190,7 +207,6 @@ function getUniqueValues( $table, $column, $asString=1 )
 function getTableColumns( $table, $asString=1 )
 {
     $columns = array();
-    $table = dbEscape($table);
     $sql = "describe $table";
     foreach( dbFetchAll( $sql ) as $row )
     {
@@ -204,17 +220,14 @@ function getTableColumns( $table, $asString=1 )
 
 function getTableAutoInc( $table )
 {
-    $sql = "show table status where Name = '".dbEscape($table)."'";
-    $row = dbFetchOne( $sql );
+    $row = dbFetchOne( "show table status where Name=?", NULL, array($table) );
     return( $row['Auto_increment'] );
 }
 
 function getTableDescription( $table, $asString=1 )
 {
     $columns = array();
-    $table = dbEscape($table);
-    $sql = "describe $table";
-    foreach( dbFetchAll( $sql ) as $row )
+    foreach( dbFetchAll( "describe $table" ) as $row )
     {
         $desc = array(
             'name' => $row['Field'],
@@ -339,12 +352,12 @@ function getTableDescription( $table, $asString=1 )
 
 function dbFetchMonitor( $mid )
 {
-    return( dbFetchOne( "select * from Monitors where Id = '".dbEscape($mid)."'" ) );
+    return( dbFetchOne( "select * from Monitors where Id = ?", NULL, array($mid) ) );
 }
 
 function dbFetchGroup( $gid )
 {
-    return( dbFetchOne( "select * from Groups where Id = '".dbEscape($gid)."'" ) );
+    return( dbFetchOne( "select * from Groups where Id = ?", NULL, array($gid) ) );
 }
 
 ?>

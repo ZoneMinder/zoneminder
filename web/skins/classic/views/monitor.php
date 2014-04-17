@@ -45,7 +45,7 @@ if ( !empty($_REQUEST['mid']) )
 {
     $monitor = dbFetchMonitor( $_REQUEST['mid'] );
     if ( ZM_OPT_X10 )
-        $x10Monitor = dbFetchOne( "select * from TriggersX10 where MonitorId = '".dbEscape($_REQUEST['mid'])."'" );
+        $x10Monitor = dbFetchOne( 'SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array( $_REQUEST['mid']) );
 }
 else
 {
@@ -65,6 +65,8 @@ else
         'Host' => "",
         'Path' => "",
         'Port' => "80",
+        'User' => "",
+        'Pass' => "",
         'Colours' => 3,
         'Palette' => 0,
         'Width' => "320",
@@ -143,9 +145,8 @@ if ( $newMonitor['MaxFPS'] == '0.00' )
 if ( $newMonitor['AlarmMaxFPS'] == '0.00' )
     $newMonitor['AlarmMaxFPS'] = '';
 
-if ( !empty($_REQUEST['preset']) )
-{
-    $preset = dbFetchOne( "select Type, Device, Channel, Format, Protocol, Method, Host, Port, Path, Width, Height, Palette, MaxFPS, Controllable, ControlId, ControlDevice, ControlAddress, DefaultRate, DefaultScale from MonitorPresets where Id = '".dbEscape($_REQUEST['preset'])."'" );
+if ( !empty($_REQUEST['preset']) ) {
+    $preset = dbFetchOne( 'SELECT Type, Device, Channel, Format, Protocol, Method, Host, Port, Path, Width, Height, Palette, MaxFPS, Controllable, ControlId, ControlDevice, ControlAddress, DefaultRate, DefaultScale FROM MonitorPresets WHERE Id = ?', NULL, array($_REQUEST['preset']) );
     foreach ( $preset as $name=>$value )
     {
         if ( isset($value) )
@@ -180,6 +181,7 @@ $sourceTypes = array(
     'File'   => $SLANG['File'],
     'Ffmpeg' => $SLANG['Ffmpeg'],
     'Libvlc' => $SLANG['Libvlc'],
+    'cURL'   => "cURL (HTTP only)"
 );
 if ( !ZM_HAS_V4L )
     unset($sourceTypes['Local']);
@@ -520,10 +522,12 @@ if ( $tab != 'source' || ($newMonitor['Type'] != 'Local' && $newMonitor['Type'] 
     <input type="hidden" name="newMonitor[Method]" value="<?= validHtmlStr($newMonitor['Method']) ?>"/>
 <?php
 }
-if ( $tab != 'source' || ($newMonitor['Type'] != 'Remote' && $newMonitor['Type'] != 'File' && $newMonitor['Type'] != 'Ffmpeg' && $newMonitor['Type'] != 'Libvlc') )
+if ( $tab != 'source' || ($newMonitor['Type'] != 'Remote' && $newMonitor['Type'] != 'File' && $newMonitor['Type'] != 'Ffmpeg' && $newMonitor['Type'] != 'Libvlc' && $newMonitor['Type'] != 'cURL') )
 {
 ?>
     <input type="hidden" name="newMonitor[Path]" value="<?= validHtmlStr($newMonitor['Path']) ?>"/>
+    <input type="hidden" name="newMonitor[User]" value="<?= validHtmlStr($newMonitor['User']) ?>"/>
+    <input type="hidden" name="newMonitor[Pass]" value="<?= validHtmlStr($newMonitor['Pass']) ?>"/>
 <?php
 }
 if ( $tab != 'source' )
@@ -620,7 +624,7 @@ switch ( $tab )
         foreach ( getEnumValues( 'Monitors', 'Function' ) as $optFunction )
         {
 ?>
-              <option value="<?= $optFunction ?>"<?php if ( $optFunction == $newMonitor['Function'] ) { ?> selected="selected"<?php } ?>><?= $optFunction ?></option>
+              <option value="<?= $optFunction ?>"<?php if ( $optFunction == $newMonitor['Function'] ) { ?> selected="selected"<?php } ?>><?= $SLANG['Fn'.$optFunction] ?></option>
 <?php
         }
 ?>
@@ -745,6 +749,14 @@ switch ( $tab )
         {
 ?>
             <tr><td><?= $SLANG['SourcePath'] ?></td><td><input type="text" name="newMonitor[Path]" value="<?= validHtmlStr($newMonitor['Path']) ?>" size="36"/></td></tr>
+<?php
+        }
+        elseif ( $newMonitor['Type'] == "cURL" )
+        {
+?>
+            <tr><td><?= "Address" ?></td><td><input type="text" name="newMonitor[Path]" value="<?= validHtmlStr($newMonitor['Path']) ?>" size="36"/></td></tr>
+            <tr><td><?= "Username" ?></td><td><input type="text" name="newMonitor[User]" value="<?= validHtmlStr($newMonitor['User']) ?>" size="12"/></td></tr>
+            <tr><td><?= "Password" ?></td><td><input type="text" name="newMonitor[Pass]" value="<?= validHtmlStr($newMonitor['Pass']) ?>" size="12"/></td></tr>
 <?php
         }
 ?>

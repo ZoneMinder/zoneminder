@@ -4,7 +4,7 @@
 %define zmgid_final apache
 
 Name:       zoneminder
-Version:    1.26.5
+Version:    1.27
 Release:    1%{?dist}
 Summary:    A camera monitoring and analysis tool
 Group:      System Environment/Daemons
@@ -28,13 +28,15 @@ BuildRequires:  perl(MIME::Entity) perl(MIME::Lite)
 BuildRequires:  perl(PHP::Serialization) perl(Sys::Mmap)
 BuildRequires:  perl(Time::HiRes) perl(Net::SFTP::Foreign)
 BuildRequires:  perl(Expect) perl(X10::ActiveHome) perl(Astro::SunTime)
-BuildRequires:  ffmpeg-devel >= 0.4.9
+BuildRequires:  libcurl-devel vlc-devel ffmpeg-devel
+# cmake needs the following installed at build time due to the way it auto-detects certain parameters
+BuildRequires:  httpd ffmpeg
 
 Requires:   httpd php php-mysql mysql-server libjpeg-turbo
 Requires:   perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires:   perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)
 Requires:   perl(MIME::Entity) perl(MIME::Lite) perl(Net::SMTP) perl(Net::FTP)
-Requires:   ffmpeg >= 0.4.9
+Requires:   libcurl vlc-core ffmpeg
 
 Requires(post): /sbin/chkconfig
 Requires(post): /usr/bin/checkmodule
@@ -113,7 +115,7 @@ rm -rf %{_docdir}/%{name}-%{version}
 %defattr(-,root,root,-)
 %doc AUTHORS BUGS ChangeLog COPYING LICENSE NEWS README.md distros/redhat/README.CentOS distros/redhat/jscalendar-doc
 %doc distros/redhat/cambozola-doc distros/redhat/local_zoneminder.te
-%config(noreplace) %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm.conf
+%config %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm.conf
 %config(noreplace) %attr(644,root,root) %{_sysconfdir}/httpd/conf.d/zoneminder.conf
 %config(noreplace) /etc/logrotate.d/%{name}
 %attr(755,root,root) %{_initrddir}/zoneminder
@@ -135,6 +137,7 @@ rm -rf %{_docdir}/%{name}-%{version}
 %{_bindir}/zmupdate.pl
 %{_bindir}/zmvideo.pl
 %{_bindir}/zmwatch.pl
+%{_bindir}/zmcamtool.pl
 %{_bindir}/zmx10.pl
 
 %{perl_vendorlib}/ZoneMinder*
@@ -157,6 +160,12 @@ rm -rf %{_docdir}/%{name}-%{version}
 
 
 %changelog
+* Fri Mar 14 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.27 
+- Tweak build requirements for cmake
+
+* Sat Feb 01 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.27
+- Add zmcamtool.pl. Bump version for 1.27 release. 
+
 * Mon Dec 16 2013 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.26.5
 - This is a bug fixe release
 - RTSP fixes, cmake enhancements, couple other misc fixes

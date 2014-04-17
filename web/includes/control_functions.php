@@ -939,21 +939,17 @@ function buildControlCommand( $monitor )
         elseif ( $_REQUEST['control'] == "presetGoto" && !empty($_REQUEST['preset']) )
         {
             $ctrlCommand .= " --preset=".$_REQUEST['preset'];
-        }
-        elseif ( $_REQUEST['control'] == "presetSet" )
-        {
-            if ( canEdit( 'Control' ) )
-            {
+        } elseif ( $_REQUEST['control'] == "presetSet" ) {
+            if ( canEdit( 'Control' ) ) {
                 $preset = validInt($_REQUEST['preset']);
                 $newLabel = validJsStr($_REQUEST['newLabel']);
-                $row = dbFetchOne( "select * from ControlPresets where MonitorId = '".$monitor['Id']."' and Preset = '".dbEscape($preset)."'" );
-                if ( $newLabel != $row['Label'] )
-                {
-                    if ( $newLabel )
-                        $sql = "replace into ControlPresets ( MonitorId, Preset, Label ) values ( '".$monitor['Id']."', '".dbEscape($preset)."', '".dbEscape($newLabel)."' )";
-                    else
-                        $sql = "delete from ControlPresets where MonitorId = '".$monitor['Id']."' and Preset = '".dbEscape($preset)."'";
-                    dbQuery( $sql );
+                $row = dbFetchOne( 'SELECT * FROM ControlPresets WHERE MonitorId = ? AND Preset = ?', NULL, array( $monitor['Id'], $preset ) );
+                if ( $newLabel != $row['Label'] ) {
+                    if ( $newLabel ) {
+						dbQuery( 'REPLACE INTO ControlPresets ( MonitorId, Preset, Label ) VALUES ( ?, ?, ? )', array( $monitor['Id'], $preset, $newLabel ) );
+                    } else {
+                        dbQuery( 'DELETE FROM ControlPresets WHERE MonitorId = ? AND Preset = ?', array( $monitor['Id'], $preset ) );
+					}
                 }
                 $ctrlCommand .= " --preset=".$preset;
             }

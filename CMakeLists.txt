@@ -10,7 +10,7 @@
 #
 cmake_minimum_required (VERSION 2.6)
 project (zoneminder)
-set(zoneminder_VERSION "1.26.5")
+set(zoneminder_VERSION "1.27")
 
 # CMake does not allow out-of-source build if CMakeCache.exists in the source folder. Abort and notify the user to save him from headache why it doesn't work.
 if((NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)) AND (EXISTS "${CMAKE_SOURCE_DIR}/CMakeCache.txt"))
@@ -63,10 +63,27 @@ set(ZM_MYSQL_ENGINE "InnoDB" CACHE STRING "MySQL engine to use with database, de
 set(ZM_NO_MMAP "OFF" CACHE BOOL "Set to ON to not use mmap shared memory. Shouldn't be enabled unless you experience problems with the shared memory. default: OFF")
 set(ZM_NO_FFMPEG "OFF" CACHE BOOL "Set to ON to skip ffmpeg checks and force building ZM without ffmpeg. default: OFF")
 set(ZM_NO_LIBVLC "OFF" CACHE BOOL "Set to ON to skip libvlc checks and force building ZM without libvlc. default: OFF")
+set(ZM_NO_CURL "OFF" CACHE BOOL "Set to ON to skip cURL checks and force building ZM without cURL. default: OFF")
 set(ZM_NO_X10 "OFF" CACHE BOOL "Set to ON to build ZoneMinder without X10 support. default: OFF")
 set(ZM_PERL_SUBPREFIX "${CMAKE_INSTALL_LIBDIR}/perl5" CACHE PATH "Use a different directory for the zm perl modules. NOTE: This is a subprefix, e.g. lib will be turned into <prefix>/lib, default: <libdir>/perl5")
 set(ZM_PERL_USE_PATH "${CMAKE_INSTALL_PREFIX}/${ZM_PERL_SUBPREFIX}" CACHE PATH "Override the include path for zm perl modules. Useful if you are moving the perl modules without using the ZM_PERL_SUBPREFIX option. default: <prefix>/<zmperlsubprefix>")
-set(ZM_TARGET_DISTRO "" CACHE STRING "Build ZoneMinder for a specific distribution.  Currently, valid names are: f19, el6")
+set(ZM_TARGET_DISTRO "" CACHE STRING "Build ZoneMinder for a specific distribution.  Currently, valid names are: f19, el6, OS13")
+
+# Reassign some variables if a target distro has been specified
+if((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "el6"))
+	set(ZM_RUNDIR "/var/run/zoneminder")
+	set(ZM_TMPDIR "/var/lib/zoneminder/temp")
+	set(ZM_LOGDIR "/var/log/zoneminder")
+elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
+	set(ZM_RUNDIR "/var/run/zoneminder")
+	set(ZM_TMPDIR "/var/run/zoneminder")
+	set(ZM_CONTENTDIR "/var/run/zoneminder")
+	set(ZM_LOGDIR "/var/log/zoneminder")
+	set(ZM_WEB_USER "wwwrun")
+	set(ZM_WEB_GROUP "www")
+	set(ZM_WEBDIR "/srv/www/htdocs/zoneminder")
+	set(ZM_CGIDIR "/srv/www/cgi-bin")
+endif((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "el6"))
 
 # Required for certain checks to work
 set(CMAKE_EXTRA_INCLUDE_FILES ${CMAKE_EXTRA_INCLUDE_FILES} stdio.h stdlib.h math.h signal.h)
@@ -104,6 +121,22 @@ if(ZLIB_FOUND)
 else(ZLIB_FOUND)
 	set(optlibsnotfound "${optlibsnotfound} zlib")
 endif(ZLIB_FOUND)
+
+# Do not check for cURL if ZM_NO_CURL is on
+if(NOT ZM_NO_CURL)
+	# cURL
+	find_package(CURL)
+	if(CURL_FOUND)
+		set(HAVE_LIBCURL 1)
+		list(APPEND ZM_BIN_LIBS ${CURL_LIBRARIES})
+		include_directories(${CURL_INCLUDE_DIRS})
+		set(CMAKE_REQUIRED_INCLUDES ${CURL_INCLUDE_DIRS})
+		check_include_file("curl/curl.h" HAVE_CURL_CURL_H)
+		set(optlibsfound "${optlibsfound} cURL")
+	else(CURL_FOUND)
+		set(optlibsnotfound "${optlibsnotfound} cURL")
+	endif(CURL_FOUND)
+endif(NOT ZM_NO_CURL)
 
 # jpeg
 find_package(JPEG)
@@ -511,13 +544,6 @@ set(WEB_GROUP "${ZM_WEB_GROUP}")
 set(ZM_DB_TYPE "mysql")
 set(EXTRA_PERL_LIB "use lib '${ZM_PERL_USE_PATH}';")
 
-# Reassign some variables if a target distro has been specified
-if((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "el6"))
-	set(ZM_RUNDIR "/var/run/zoneminder")
-	set(ZM_TMPDIR "/var/lib/zoneminder/temp")
-	set(ZM_LOGDIR "/var/log/zoneminder")
-endif((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "el6"))
-
 # Generate files from the .in files
 configure_file(zm.conf.in "${CMAKE_CURRENT_BINARY_DIR}/zm.conf" @ONLY)
 configure_file(zoneminder-config.cmake "${CMAKE_CURRENT_BINARY_DIR}/config.h" @ONLY)
@@ -535,6 +561,8 @@ if(ZM_TARGET_DISTRO STREQUAL "f19")
 	add_subdirectory(distros/fedora)
 elseif(ZM_TARGET_DISTRO STREQUAL "el6")
 	add_subdirectory(distros/redhat)
+elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
+	add_subdirectory(distros/opensuse)
 else(ZM_TARGET_DISTRO STREQUAL "el6")
 	add_subdirectory(misc)
 endif(ZM_TARGET_DISTRO STREQUAL "f19")

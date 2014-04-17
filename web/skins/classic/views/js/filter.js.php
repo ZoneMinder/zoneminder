@@ -1,9 +1,8 @@
 var deleteSavedFilterString = "<?= $SLANG['DeleteSavedFilter'] ?>";
-
 function validateForm( form )
 {
 <?php
-if ( count($_REQUEST['filter']['terms']) > 2 )
+if ( isset ($_REQUEST['filter']) && count($_REQUEST['filter']['terms']) > 2 )
 {
 ?>
     var bracket_count = 0;
@@ -27,7 +26,7 @@ for ( $i = 0; $i < count($_REQUEST['filter']['terms']); $i++ )
 }
 ?>
 <?php
-for ( $i = 0; $i < count($_REQUEST['filter']['terms']); $i++ )
+for ( $i = 0; isset($_REQUEST['filter']) && $i < count($_REQUEST['filter']['terms']); $i++ )
 {
 ?>
     var val = form.elements['filter[terms][<?= $i ?>][val]'];

@@ -46,11 +46,12 @@ New installs
    may be necessary to disable SELinux for httpd, or even completely for
    ZoneMinder to function. This will be addressed in a later release.  Run
 
-     setenforce 0
+     sudo setenforce 0
 
    for testing, and edit /etc/sysconfig/selinux to disable it at boot time.
 
-7. IMPORTANT: Edit /etc/httpd/conf.d/zoneminder.conf and/or /etc/httpd/conf.
+7. IMPORTANT: Edit /etc/httpd/conf.d/zoneminder.conf and/or 
+   /etc/httpd/conf/httpd.conf.
 
    The httpd.conf file included with this version of Fedora processes the conf.d
    folder after the default ScriptAlias directive in the httpd.conf file.
@@ -111,10 +112,10 @@ Upgrades
    information.  Comparing /etc/zm.conf and /etc/zm.conf.rpmnew should help to
    do this.
 
-2. Add the mysql ALTER permission to the zmuser account:
+2. Add additional permissions to the zmuser account:
 
      mysql -u root -p
-     grant alter on zm.* to 
+     grant lock tables,alter on zm.* to 
      'zmuser'@localhost identified by 'zmpass';
 
    Since this is an upgrade, the assumption is that the zmuser account already

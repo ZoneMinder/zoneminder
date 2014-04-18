@@ -54,7 +54,7 @@ static PixelFormat getFfPixFormatFromV4lPalette( int v4l_version, int palette )
     {
         switch( palette )
         {
-#ifdef V4L2_PIX_FMT_RGB444
+#if defined(V4L2_PIX_FMT_RGB444) && defined(PIX_FMT_RGB444)
             case V4L2_PIX_FMT_RGB444 :
                 pixFormat = PIX_FMT_RGB444;
                 break;
@@ -423,6 +423,7 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 				Panic("Unexpected colours: %d",colours);
 			}
 			if( capture ) {
+#if LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(0, 8, 0)
 				if(!sws_isSupportedInput(capturePixFormat)) {
 					Error("swscale does not support the used capture format: %c%c%c%c",(capturePixFormat)&0xff,((capturePixFormat>>8)&0xff),((capturePixFormat>>16)&0xff),((capturePixFormat>>24)&0xff));
 					conversion_type = 2; /* Try ZM format conversions */
@@ -431,6 +432,7 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 					Error("swscale does not support the target format: %c%c%c%c",(imagePixFormat)&0xff,((imagePixFormat>>8)&0xff),((imagePixFormat>>16)&0xff),((imagePixFormat>>24)&0xff));
 					conversion_type = 2; /* Try ZM format conversions */
 				}
+#endif
 			}
 #else
 			/* Don't have swscale, see what we can do */

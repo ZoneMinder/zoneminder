@@ -30,12 +30,6 @@
 
 #if HAVE_LIBAVCODEC
 
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54,25,0)
-    #define _AVCODECID AVCodecID
-#else
-    #define _AVCODECID CodecID
-#endif
-
 struct RtpDataHeader;
 
 class RtpSource
@@ -188,8 +182,6 @@ public:
         return( ((mLastSrTimeNtpSecs&0xffff)<<16)|(mLastSrTimeNtpFrac>>16) );
     }
 };
-
-#undef _AVCODECID
 
 #endif // HAVE_LIBAVCODEC
 

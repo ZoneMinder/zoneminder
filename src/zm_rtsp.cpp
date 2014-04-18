@@ -331,11 +331,7 @@ int RtspThread::run()
     uint32_t rtpClock = 0;
     std::string trackUrl = mUrl;
     
-    #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54,25,0)
-    enum AVCodecID codecId;
-    #else
-    enum CodecID codecId;
-    #endif
+    _AVCODECID codecId;
     
     if ( mFormatContext->nb_streams >= 1 )
     {

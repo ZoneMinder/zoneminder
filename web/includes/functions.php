@@ -44,7 +44,7 @@ function userLogin( $username, $password="", $passwordHashed=false )
         }
 		$sql_values = array( $username, $password );
     } else {
-        $sql .= "AND Username = ?";
+        $sql .= " AND Username = ?";
 		$sql_values = array( $username );
     }
     $_SESSION['username'] = $username;

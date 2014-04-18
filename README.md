@@ -128,6 +128,12 @@ perl-IO-Zlib perl-MailTools perl-MIME-Lite perl-MIME-tools perl-MIME-Types perl-
 perl-TimeDate perl-YAML-Syck php php-cli php-mysql subversion x264 vlc-devel vlc-core libcurl libcurl-devel
 ```
 
+#### Docker
+
+Docker is a system to run applications inside isolated containers. ZoneMinder, and the ZM webserver, will run using the 
+Dockerfile contained in this repository. However, there is still work needed to ensure that the main ZM features work 
+properly and are documented. 
+
 ### ffmpeg
 
 This release of ZoneMinder has been tested on and works with ffmpeg version N-55540-g93f4277.

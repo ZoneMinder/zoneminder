@@ -448,13 +448,13 @@ function drawZonePoints()
         cell.inject( row );
 
         cell = new Element( 'td' );
-        var input = new Element( 'input', { 'id': 'newZone[Points]['+i+'][x]', 'name': 'newZone[Points]['+i+'][x]', 'value': zone['Points'][i].x, 'size': 5 } );
+        var input = new Element( 'input', { 'type': 'text', 'id': 'newZone[Points]['+i+'][x]', 'name': 'newZone[Points]['+i+'][x]', 'value': zone['Points'][i].x, 'size': 5 } );
         input.addEvent( 'change', updateX.pass( i ) );
         input.inject( cell );
         cell.inject( row );
 
         cell = new Element( 'td' );
-        input = new Element( 'input', { 'id': 'newZone[Points]['+i+'][y]', 'name': 'newZone[Points]['+i+'][y]', 'value': zone['Points'][i].y, 'size': 5 } );
+        input = new Element( 'input', { 'type': 'text', 'id': 'newZone[Points]['+i+'][y]', 'name': 'newZone[Points]['+i+'][y]', 'value': zone['Points'][i].y, 'size': 5 } );
         input.addEvent( 'change', updateY.pass( i ) );
         input.inject( cell );
         cell.inject( row );

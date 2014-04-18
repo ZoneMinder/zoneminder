@@ -287,7 +287,7 @@ $macBases = array(
 );
 
 unset($output);
-$command = "arp -a";
+$command = "/usr/sbin/arp -a";
 $result = exec( escapeshellcmd($command), $output, $status );
 if ( $status )
     Fatal( "Unable to probe network cameras, status is '$status'" );

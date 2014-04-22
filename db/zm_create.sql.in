@@ -353,6 +353,7 @@ CREATE TABLE `Monitors` (
   `AlarmFrameCount` smallint(5) unsigned NOT NULL default '1',
   `SectionLength` int(10) unsigned NOT NULL default '600',
   `FrameSkip` smallint(5) unsigned NOT NULL default '0',
+  `MotionFrameSkip` smallint(5) unsigned NOT NULL default '0',
   `MaxFPS` decimal(5,2) default NULL,
   `AlarmMaxFPS` decimal(5,2) default NULL,
   `FPSReportInterval` smallint(5) unsigned NOT NULL default '250',

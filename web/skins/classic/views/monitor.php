@@ -93,6 +93,7 @@ else
         'ReturnDelay' => "",
         'SectionLength' => 600,
         'FrameSkip' => 0,
+        'MotionFrameSkip' => 0,
         'EventPrefix' => 'Event-',
         'MaxFPS' => "",
         'AlarmMaxFPS' => "",
@@ -570,6 +571,7 @@ if ( $tab != 'misc' )
     <input type="hidden" name="newMonitor[EventPrefix]" value="<?= validHtmlStr($newMonitor['EventPrefix']) ?>"/>
     <input type="hidden" name="newMonitor[SectionLength]" value="<?= validHtmlStr($newMonitor['SectionLength']) ?>"/>
     <input type="hidden" name="newMonitor[FrameSkip]" value="<?= validHtmlStr($newMonitor['FrameSkip']) ?>"/>
+    <input type="hidden" name="newMonitor[MotionFrameSkip]" value="<?= validHtmlStr($newMonitor['MotionFrameSkip']) ?>"/>
     <input type="hidden" name="newMonitor[FPSReportInterval]" value="<?= validHtmlStr($newMonitor['FPSReportInterval']) ?>"/>
     <input type="hidden" name="newMonitor[DefaultView]" value="<?= validHtmlStr($newMonitor['DefaultView']) ?>"/>
     <input type="hidden" name="newMonitor[DefaultRate]" value="<?= validHtmlStr($newMonitor['DefaultRate']) ?>"/>
@@ -813,6 +815,7 @@ switch ( $tab )
             <tr><td><?= $SLANG['EventPrefix'] ?></td><td><input type="text" name="newMonitor[EventPrefix]" value="<?= validHtmlStr($newMonitor['EventPrefix']) ?>" size="24"/></td></tr>
             <tr><td><?= $SLANG['Sectionlength'] ?></td><td><input type="text" name="newMonitor[SectionLength]" value="<?= validHtmlStr($newMonitor['SectionLength']) ?>" size="6"/></td></tr>
             <tr><td><?= $SLANG['FrameSkip'] ?></td><td><input type="text" name="newMonitor[FrameSkip]" value="<?= validHtmlStr($newMonitor['FrameSkip']) ?>" size="6"/></td></tr>
+            <tr><td><?= $SLANG['MotionFrameSkip'] ?></td><td><input type="text" name="newMonitor[MotionFrameSkip]" value="<?= validHtmlStr($newMonitor['MotionFrameSkip']) ?>" size="6"/></td></tr>
             <tr><td><?= $SLANG['FPSReportInterval'] ?></td><td><input type="text" name="newMonitor[FPSReportInterval]" value="<?= validHtmlStr($newMonitor['FPSReportInterval']) ?>" size="6"/></td></tr>
             <tr><td><?= $SLANG['DefaultView'] ?></td><td><select name="newMonitor[DefaultView]">
 <?php

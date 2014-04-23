@@ -25,6 +25,7 @@
  */
 	Router::mapResources('monitors');
 	Router::mapResources('zones');
+	Router::mapResources('configs');
 	Router::parseExtensions();
 
 /**

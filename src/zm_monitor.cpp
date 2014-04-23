@@ -2759,7 +2759,9 @@ int Monitor::Capture()
     {
         // Unable to capture image for temporary reason
         // Fake a signal loss image
-        capture_image->Fill( signal_check_colour );
+        Rgb signalcolor;
+        signalcolor = rgb_convert(signal_check_colour, ZM_SUBPIX_ORDER_BGR); /* HTML colour code is actually BGR in memory, we want RGB */
+        capture_image->Fill(signalcolor);
         captureResult = 0;
     } else { 
         captureResult = 1;

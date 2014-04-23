@@ -24,6 +24,7 @@
  * Load the API / REST routes
  */
 	Router::mapResources('monitors');
+	Router::mapResources('zones');
 	Router::parseExtensions();
 
 /**

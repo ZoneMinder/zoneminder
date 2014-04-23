@@ -38,11 +38,16 @@ class MonitorsController extends AppController {
  * @return void
  */
 	public function view($id = null) {
+		$this->Monitor->recursive = 0;
 		if (!$this->Monitor->exists($id)) {
 			throw new NotFoundException(__('Invalid monitor'));
 		}
 		$options = array('conditions' => array('Monitor.' . $this->Monitor->primaryKey => $id));
-		$this->set('monitor', $this->Monitor->find('first', $options));
+		$monitor = $this->Monitor->find('first', $options);
+		$this->set(array(
+			'monitor' => $monitor,
+			'_serialize' => array('monitor')
+		));
 	}
 
 /**

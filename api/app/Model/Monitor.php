@@ -71,7 +71,7 @@ class Monitor extends AppModel {
 		'Zone' => array(
 			'className' => 'Zone',
 			'foreignKey' => 'MonitorId',
-			'dependent' => false,
+			'dependent' => true,
 			'conditions' => '',
 			'fields' => '',
 			'order' => '',

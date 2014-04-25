@@ -85,7 +85,7 @@ class MonitorsController extends AppController {
 		}
 
 		$this->set(array(
-			'message' => $this->request->data,
+			'message' => $message,
 			'_serialize' => array('message')
 		));
 	}

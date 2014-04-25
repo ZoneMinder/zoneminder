@@ -55,6 +55,8 @@ class ConfigsController extends AppController {
  * @return void
  */
 	public function edit($id = null) {
+		$this->Config->id = $id;
+
 		if (!$this->Config->exists($id)) {
 			throw new NotFoundException(__('Invalid config'));
 		}

@@ -72,17 +72,22 @@ class MonitorsController extends AppController {
  * @return void
  */
 	public function edit($id = null) {
+		$this->Monitor->id = $id;
+
 		if (!$this->Monitor->exists($id)) {
 			throw new NotFoundException(__('Invalid monitor'));
 		}
-		if ($this->request->is(array('post', 'put'))) {
-			if ($this->Monitor->save($this->request->data)) {
-				return $this->flash(__('The monitor has been saved.'), array('action' => 'index'));
-			}
+
+		if ($this->Monitor->save($this->request->data)) {
+			$message = 'Saved';
 		} else {
-			$options = array('conditions' => array('Monitor.' . $this->Monitor->primaryKey => $id));
-			$this->request->data = $this->Monitor->find('first', $options);
+			$message = 'Error';
 		}
+
+		$this->set(array(
+			'message' => $this->request->data,
+			'_serialize' => array('message')
+		));
 	}
 
 /**

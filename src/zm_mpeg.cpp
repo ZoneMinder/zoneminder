@@ -600,8 +600,6 @@ double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size,
 		memcpy( opicture->data[0], buffer, buffer_size );
 	}
 	AVFrame *opicture_ptr = opicture;
-
-	int ret = 0;
 	
 	AVPacket pkt = { 0 };
 	av_init_packet( &pkt );
@@ -624,7 +622,7 @@ double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size,
 		opicture_ptr->quality = c->global_quality;
 
 #if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(54, 0, 0)
-		ret = avcodec_encode_video2( c, &pkt, opicture_ptr, &got_packet );
+		int ret = avcodec_encode_video2( c, &pkt, opicture_ptr, &got_packet );
 		if ( ret != 0 )
 		{
 			Fatal( "avcodec_encode_video2 failed with errorcode %d \"%s\"", ret, av_err2str( ret ) );
@@ -646,11 +644,11 @@ double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size,
 #endif
 			}
 
-			if ( pkt.pts != AV_NOPTS_VALUE )
+			if ( pkt.pts != (int64_t)AV_NOPTS_VALUE )
 			{
 				pkt.pts = av_rescale_q( pkt.pts, c->time_base, ost->time_base );
 			}
-			if ( pkt.dts != AV_NOPTS_VALUE )
+			if ( pkt.dts != (int64_t)AV_NOPTS_VALUE )
 			{
 				pkt.dts = av_rescale_q( pkt.dts, c->time_base, ost->time_base );
 			}

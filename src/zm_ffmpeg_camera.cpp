@@ -79,10 +79,10 @@ FfmpegCamera::~FfmpegCamera()
     }
     if ( mFormatContext )
     {
-#if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(53, 4, 0)
-        av_close_input_file( mFormatContext );
-#else
+#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(53, 17, 0)
         avformat_close_input( &mFormatContext );
+#else
+        av_close_input_file( mFormatContext );
 #endif
         mFormatContext = NULL;
     }
@@ -173,6 +173,7 @@ int FfmpegCamera::PrimeCapture()
 	}
 	
 #if HAVE_LIBSWSCALE
+#if LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(0, 8, 0)
 	if(!sws_isSupportedInput(mCodecContext->pix_fmt)) {
 		Fatal("swscale does not support the codec format: %c%c%c%c",(mCodecContext->pix_fmt)&0xff,((mCodecContext->pix_fmt>>8)&0xff),((mCodecContext->pix_fmt>>16)&0xff),((mCodecContext->pix_fmt>>24)&0xff));
 	}
@@ -180,6 +181,7 @@ int FfmpegCamera::PrimeCapture()
 	if(!sws_isSupportedOutput(imagePixFormat)) {
 		Fatal("swscale does not support the target format: %c%c%c%c",(imagePixFormat)&0xff,((imagePixFormat>>8)&0xff),((imagePixFormat>>16)&0xff),((imagePixFormat>>24)&0xff));
 	}
+#endif
 	
 #else // HAVE_LIBSWSCALE
     Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
@@ -218,7 +220,11 @@ int FfmpegCamera::Capture( Image &image )
         Debug( 5, "Got packet from stream %d", packet.stream_index );
         if ( packet.stream_index == mVideoStreamId )
         {
-            if ( avcodec_decode_video2( mCodecContext, mRawFrame, &frameComplete, &packet ) < 0 )
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 25, 0)
+			if ( avcodec_decode_video2( mCodecContext, mRawFrame, &frameComplete, &packet ) < 0 )
+#else
+			if ( avcodec_decode_video( mCodecContext, mRawFrame, &frameComplete, packet.data, packet.size ) < 0 )
+#endif
                 Fatal( "Unable to decode frame at frame %d", frameCount );
 
             Debug( 4, "Decoded video packet at frame %d", frameCount );

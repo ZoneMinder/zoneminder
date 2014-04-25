@@ -68,3 +68,10 @@ Delete event 1
 This command will delete Event 1, and any Frames which depend on it.
 
 ``curl -XDELETE http://zmdevapi/events/1.json``
+
+Edit config 121
+^^^^^^^^^^^^^^^
+
+This command will change the 'Value' field of Config 121 to 901.
+
+``curl -XPUT http://zmdevapi/configs/121.json -d "Config[Value]=901"``

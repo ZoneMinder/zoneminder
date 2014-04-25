@@ -31,6 +31,22 @@ Retrieve monitor 1
 ^^^^^^^^^^^^^^^^^^
 ``curl -XGET http://zmdevapi/monitors/1.json``
 
+Add a monitor
+^^^^^^^^^^^^^
+
+This command will add a new http monitor.
+
+``curl -XPOST http://zmdevapi/monitors.js -d "Monitor[Name]=Cliff-Burton \
+&Monitor[Function]=Modect \
+&Monitor[Protocol]=http \
+&Monitor[Method]=simple \
+&Monitor[Host]=ussr:pass@192.168.11.20 \
+&Monitor[Port]=80 \
+&Monitor[Path]=/mjpg/video.mjpg \
+&Monitor[Width]=704 \
+&Monitor[Height]=480 \
+&Monitor[Colours]=4"``
+
 Edit monitor 1
 ^^^^^^^^^^^^^^
 

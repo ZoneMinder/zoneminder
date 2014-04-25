@@ -91,3 +91,28 @@ Edit config 121
 This command will change the 'Value' field of Config 121 to 901.
 
 ``curl -XPUT http://zmdevapi/configs/121.json -d "Config[Value]=901"``
+
+Create a Zone
+^^^^^^^^^^^^^
+
+``curl -XPOST http://zmdevapi/zones.json -d "Zone[Name]=Jason-Newsted \
+&Zone[MonitorId]=3 \
+&Zone[Type]=Active \
+&Zone[Units]=Percent \
+&Zone[NumCoords]=4 \
+&Zone[Coords]=0,0 639,0 639,479 0,479 \
+&Zone[AlarmRGB]=16711680 \
+&Zone[CheckMethod]=Blobs \
+&Zone[MinPixelThreshold]=25 \
+&Zone[MaxPixelThreshold]= \
+&Zone[MinAlarmPixels]=9216 \
+&Zone[MaxAlarmPixels]= \
+&Zone[FilterX]=3 \
+&Zone[FilterY]=3 \
+&Zone[MinFilterPixels]=9216 \
+&Zone[MaxFilterPixels]=230400 \
+&Zone[MinBlobPixels]=6144 \
+&Zone[MaxBlobPixels]= \
+&Zone[MinBlobs]=1 \
+&Zone[MaxBlobs]= \
+&Zone[OverloadFrames]=0"``

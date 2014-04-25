@@ -72,19 +72,22 @@ class EventsController extends AppController {
  * @return void
  */
 	public function edit($id = null) {
+		$this->Event->id = $id;
+
 		if (!$this->Event->exists($id)) {
 			throw new NotFoundException(__('Invalid event'));
 		}
-		if ($this->request->is(array('post', 'put'))) {
-			if ($this->Event->save($this->request->data)) {
-				return $this->flash(__('The event has been saved.'), array('action' => 'index'));
-			}
+
+		if ($this->Event->save($this->request->data)) {
+			$message = 'Saved';
 		} else {
-			$options = array('conditions' => array('Event.' . $this->Event->primaryKey => $id));
-			$this->request->data = $this->Event->find('first', $options);
+			$message = 'Error';
 		}
-		$monitors = $this->Event->Monitor->find('list');
-		$this->set(compact('monitors'));
+
+		$this->set(array(
+			'message' => $message,
+			'_serialize' => array('message')
+		));
 	}
 
 /**

@@ -73,6 +73,8 @@ class ZonesController extends AppController {
  * @return void
  */
 	public function edit($id = null) {
+		$this->Zone->id = $id;
+
 		if (!$this->Zone->exists($id)) {
 			throw new NotFoundException(__('Invalid zone'));
 		}

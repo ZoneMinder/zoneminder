@@ -1,4 +1,12 @@
 # CMakeLists.txt for the OpenSuse Target Distro.
+# Amended Apr 02 2014 David Wilcox
+# Add named variables so that if destinations change it will be easier
+# temp directory was not being installed
+
+SET(zmuid_final wwwrun)
+SET(zmgid_final www)
+SET(webroot /srv/www/htdocs)
+SET(zm_webdir ${webroot}/zoneminder)
 
 # Download jscalendar & move files into position
 file(DOWNLOAD http://downloads.sourceforge.net/jscalendar/jscalendar-1.0.zip ${CMAKE_CURRENT_SOURCE_DIR}/jscalendar-1.0.zip STATUS download_jsc)
@@ -19,13 +27,13 @@ file(MAKE_DIRECTORY sock swap zoneminder zoneminder-upload events images temp)
 install(DIRECTORY zoneminder DESTINATION /var/log DIRECTORY_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 install(DIRECTORY zoneminder DESTINATION /var/run DIRECTORY_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 install(DIRECTORY zoneminder-upload DESTINATION /var/spool DIRECTORY_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-install(DIRECTORY zoneminder DESTINATION /srv/www/htdocs DIRECTORY_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-install(DIRECTORY events images DESTINATION /srv/www/htdocs/zoneminder DIRECTORY_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+install(DIRECTORY zoneminder DESTINATION ${webroot} DIRECTORY_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+install(DIRECTORY events images temp DESTINATION ${zm_webdir} DIRECTORY_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 
 # Create symlinks
-install(CODE "execute_process(COMMAND ln -sf ../../../../srv/www/htdocs/zoneminder/events \"\$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/events\")")
-install(CODE "execute_process(COMMAND ln -sf ../../../../srv/www/htdocs/zoneminder/images \"\$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/images\")")
-install(CODE "execute_process(COMMAND ln -sf ../../../../srv/www/htdocs/zoneminder/temp \"\$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/temp\")")
+install(CODE "execute_process(COMMAND ln -sf ../../../../${zm_webdir}/events \"\$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/events\")")
+install(CODE "execute_process(COMMAND ln -sf ../../../../${zm_webdir}/images \"\$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/images\")")
+install(CODE "execute_process(COMMAND ln -sf ../../../../${zm_webdir}/temp \"\$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/temp\")")
 
 # Opensuse cambazola? requires cambozola as a separate package so just link to it
 #install(CODE "execute_process(COMMAND ln -sf ../../java/cambozola.jar \"\$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/www/cambozola.jar\")")

@@ -56,7 +56,7 @@ class Event extends AppModel {
 		'Frame' => array(
 			'className' => 'Frame',
 			'foreignKey' => 'EventId',
-			'dependent' => false,
+			'dependent' => true,
 			'conditions' => '',
 			'fields' => '',
 			'order' => '',

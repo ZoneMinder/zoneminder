@@ -27,6 +27,7 @@
 	Router::mapResources('zones');
 	Router::mapResources('configs');
 	Router::mapResources('events');
+	Router::mapResources('frames');
 	Router::parseExtensions();
 
 /**

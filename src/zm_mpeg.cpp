@@ -169,7 +169,7 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
 		// Not sure what this value should be really...
 		ofc->packet_size = width*height;
 		
-		if ( of->video_codec ==  CODEC_ID_NONE)
+		if ( of->video_codec ==  _AVCODECID_NONE)
 		{
 			// RTP does not have a default codec in ffmpeg <= 0.8.
 			of->video_codec = CODEC_ID_MPEG4;
@@ -268,7 +268,7 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
 	}
 	else
 	{
-		Fatal( "of->video_codec == CODEC_ID_NONE" );
+		Fatal( "of->video_codec == _AVCODECID_NONE" );
 	}
 }
 

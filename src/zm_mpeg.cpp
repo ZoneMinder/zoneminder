@@ -611,7 +611,7 @@ double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size,
 #if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51, 2, 1)
 		pkt.flags |= AV_PKT_FLAG_KEY;
 #else
-		pkt->flags |= PKT_FLAG_KEY;
+		pkt.flags |= PKT_FLAG_KEY;
 #endif
 		pkt.stream_index = ost->index;
 		pkt.data = (uint8_t *)opicture_ptr;
@@ -642,7 +642,7 @@ double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size,
 #if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
 				pkt.flags |= AV_PKT_FLAG_KEY;
 #else
-				pkt->flags |= PKT_FLAG_KEY;
+				pkt.flags |= PKT_FLAG_KEY;
 #endif
 			}
 

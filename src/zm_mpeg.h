@@ -61,6 +61,9 @@ protected:
 	pthread_mutex_t *buffer_copy_lock;
 	int buffer_copy_size;
 	int buffer_copy_used;
+    AVPacket** packet_buffers;
+    int packet_index;
+    int SendPacket(AVPacket *packet);
     static void* StreamingThreadCallback(void *ctx);
 
 protected:

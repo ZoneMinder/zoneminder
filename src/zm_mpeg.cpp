@@ -419,7 +419,8 @@ VideoStream::VideoStream( const char *in_filename, const char *in_format, int bi
 		do_streaming(true),
 		buffer_copy(NULL),
 		buffer_copy_lock(new pthread_mutex_t),
-		buffer_copy_used(0)
+		buffer_copy_used(0),
+        packet_index(0)
 {
 	if ( !initialised )
 	{
@@ -443,6 +444,12 @@ VideoStream::VideoStream( const char *in_filename, const char *in_format, int bi
 	SetupFormat( );
 	SetupCodec( colours, subpixelorder, width, height, bitrate, frame_rate );
 	SetParameters( );
+    
+    // Allocate buffered packets.
+    packet_buffers = new AVPacket*[2];
+    packet_buffers[0] = new AVPacket();
+    packet_buffers[1] = new AVPacket();
+    packet_index = 0;
 	
 	// Initialize mutex used by streaming thread.
 	if ( pthread_mutex_init( buffer_copy_lock, NULL ) != 0 )
@@ -471,6 +478,7 @@ VideoStream::~VideoStream( )
 	{
 		av_free( buffer_copy );
 	}
+    
 	if ( buffer_copy_lock )
 	{
 		if ( pthread_mutex_destroy( buffer_copy_lock ) != 0 )
@@ -479,6 +487,12 @@ VideoStream::~VideoStream( )
 		}
 		delete buffer_copy_lock;
 	}
+    
+    if (packet_buffers) {
+        delete packet_buffers[0];
+        delete packet_buffers[1];
+        delete packet_buffers;
+    }
 	
 	/* close each codec */
 	if ( ost )
@@ -601,19 +615,19 @@ double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size,
 	}
 	AVFrame *opicture_ptr = opicture;
 	
-	AVPacket pkt = { 0 };
-	av_init_packet( &pkt );
+	AVPacket *pkt = packet_buffers[packet_index];
+	av_init_packet( pkt );
     int got_packet = 0;
 	if ( of->flags & AVFMT_RAWPICTURE )
 	{
 #if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51, 2, 1)
-		pkt.flags |= AV_PKT_FLAG_KEY;
+		pkt->flags |= AV_PKT_FLAG_KEY;
 #else
-		pkt.flags |= PKT_FLAG_KEY;
+		pkt->flags |= PKT_FLAG_KEY;
 #endif
-		pkt.stream_index = ost->index;
-		pkt.data = (uint8_t *)opicture_ptr;
-		pkt.size = sizeof (AVPicture);
+		pkt->stream_index = ost->index;
+		pkt->data = (uint8_t *)opicture_ptr;
+		pkt->size = sizeof (AVPicture);
         got_packet = 1;
 	}
 	else
@@ -622,7 +636,7 @@ double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size,
 		opicture_ptr->quality = c->global_quality;
 
 #if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(54, 0, 0)
-		int ret = avcodec_encode_video2( c, &pkt, opicture_ptr, &got_packet );
+		int ret = avcodec_encode_video2( c, pkt, opicture_ptr, &got_packet );
 		if ( ret != 0 )
 		{
 			Fatal( "avcodec_encode_video2 failed with errorcode %d \"%s\"", ret, av_err2str( ret ) );
@@ -630,44 +644,45 @@ double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size,
 #else
 		int out_size = avcodec_encode_video( c, video_outbuf, video_outbuf_size, opicture_ptr );
 		got_packet = out_size > 0 ? 1 : 0;
-		pkt.data = got_packet ? video_outbuf : NULL;
-		pkt.size = got_packet ? out_size : 0;
+		pkt->data = got_packet ? video_outbuf : NULL;
+		pkt->size = got_packet ? out_size : 0;
 #endif
 		if ( got_packet )
 		{
 			if ( c->coded_frame->key_frame )
 			{
 #if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
-				pkt.flags |= AV_PKT_FLAG_KEY;
+				pkt->flags |= AV_PKT_FLAG_KEY;
 #else
-				pkt.flags |= PKT_FLAG_KEY;
+				pkt->flags |= PKT_FLAG_KEY;
 #endif
 			}
 
-			if ( pkt.pts != (int64_t)AV_NOPTS_VALUE )
+			if ( pkt->pts != (int64_t)AV_NOPTS_VALUE )
 			{
-				pkt.pts = av_rescale_q( pkt.pts, c->time_base, ost->time_base );
+				pkt->pts = av_rescale_q( pkt->pts, c->time_base, ost->time_base );
 			}
-			if ( pkt.dts != (int64_t)AV_NOPTS_VALUE )
+			if ( pkt->dts != (int64_t)AV_NOPTS_VALUE )
 			{
-				pkt.dts = av_rescale_q( pkt.dts, c->time_base, ost->time_base );
+				pkt->dts = av_rescale_q( pkt->dts, c->time_base, ost->time_base );
 			}
-			pkt.duration = av_rescale_q( pkt.duration, c->time_base, ost->time_base );
-			pkt.stream_index = ost->index;
+			pkt->duration = av_rescale_q( pkt->duration, c->time_base, ost->time_base );
+			pkt->stream_index = ost->index;
 		}
 	}
-
-	if ( got_packet )
-	{
-		int ret = av_write_frame( ofc, &pkt );
-        if ( ret != 0 )
-        {
-            Fatal( "Error %d while writing video frame: %s", ret, av_err2str( errno ) );
-        }
-	}
     
-    av_free_packet(&pkt);
 	return ( opicture_ptr->pts);
+}
+
+int VideoStream::SendPacket(AVPacket *packet) {
+    
+    int ret = av_write_frame( ofc, packet );
+    if ( ret != 0 )
+    {
+        Fatal( "Error %d while writing video frame: %s", ret, av_err2str( errno ) );
+    }
+    av_free_packet(packet);
+    return ret;
 }
 
 void *VideoStream::StreamingThreadCallback(void *ctx){
@@ -697,7 +712,21 @@ void *VideoStream::StreamingThreadCallback(void *ctx){
 			// It's not time to render a frame yet.
 			usleep( (target_ns - current_time_ns) * 0.001 );
 		}
-		
+        
+        // By sending the last rendered frame we deliver frames to the client more accurate.
+        // If we're encoding the frame before sending it there will be lag.
+        // Since this lag is not constant the client may skip frames.
+        
+        // Get the last rendered packet.
+        AVPacket *packet = videoStream->packet_buffers[videoStream->packet_index];
+        if (packet->size) {
+            videoStream->SendPacket(packet);
+        }
+        av_free_packet(packet);
+        videoStream->packet_index = videoStream->packet_index ? 0 : 1;
+        
+		// Lock buffer and render next frame.
+        
 		if ( pthread_mutex_lock( videoStream->buffer_copy_lock ) != 0 )
 		{
 			Fatal( "StreamingThreadCallback: pthread_mutex_lock failed." );
@@ -705,7 +734,7 @@ void *VideoStream::StreamingThreadCallback(void *ctx){
 		
 		if ( videoStream->buffer_copy )
 		{
-			// Encode and transmit frame.
+			// Encode next frame.
 			videoStream->ActuallyEncodeFrame( videoStream->buffer_copy, videoStream->buffer_copy_used, videoStream->add_timestamp, videoStream->timestamp );
 		}
 	

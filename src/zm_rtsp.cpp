@@ -313,6 +313,7 @@ int RtspThread::run()
 			// für requested authentication method
 			if (respCode == 401 && !authTried) {
 				mNeedAuth = true;
+				checkAuthResponse(response);
 			}
 			
 		} while (respCode == 401 && !authTried);  

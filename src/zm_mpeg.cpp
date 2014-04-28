@@ -491,7 +491,7 @@ VideoStream::~VideoStream( )
     if (packet_buffers) {
         delete packet_buffers[0];
         delete packet_buffers[1];
-        delete packet_buffers;
+        delete[] packet_buffers;
     }
 	
 	/* close each codec */

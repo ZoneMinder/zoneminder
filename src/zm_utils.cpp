@@ -27,6 +27,25 @@
 
 unsigned int sseversion = 0;
 
+std::string trimSet(std::string str, std::string trimset) {
+    // Trim Both leading and trailing sets
+    size_t startpos = str.find_first_not_of(trimset); // Find the first character position after excluding leading blank spaces
+    size_t endpos = str.find_last_not_of(trimset); // Find the first character position from reverse af
+ 
+    // if all spaces or empty return an empty string
+    if(( std::string::npos == startpos ) || ( std::string::npos == endpos))
+    {
+        return std::string("");
+    }
+    else
+        return str.substr( startpos, endpos-startpos+1 );
+}
+
+std::string trimSpaces(std::string str)
+{
+    return trimSet(str, " \t");
+}
+
 const std::string stringtf( const char *format, ... )
 {
     va_list ap;

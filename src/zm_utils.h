@@ -27,6 +27,9 @@
 
 typedef std::vector<std::string> StringVector;
 
+std::string trimSpaces(std::string str);
+std::string trimSet(std::string str, std::string trimset);
+
 const std::string stringtf( const char *format, ... );
 const std::string stringtf( const std::string &format, ... );
 

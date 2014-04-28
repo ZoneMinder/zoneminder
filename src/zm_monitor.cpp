@@ -56,21 +56,6 @@
 #endif // ZM_MEM_MAPPED
 
 //=============================================================================
-std::string trimSpaces(std::string str)
-{
-    // Trim Both leading and trailing spaces
-    size_t startpos = str.find_first_not_of(" \t"); // Find the first character position after excluding leading blank spaces
-    size_t endpos = str.find_last_not_of(" \t"); // Find the first character position from reverse af
- 
-    // if all spaces or empty return an empty string
-    if(( std::string::npos == startpos ) || ( std::string::npos == endpos))
-    {
-        return std::string("");
-    }
-    else
-        return str.substr( startpos, endpos-startpos+1 );
-}
-
 std::vector<std::string> split(const std::string &s, char delim) {
     std::vector<std::string> elems;
     std::stringstream ss(s);

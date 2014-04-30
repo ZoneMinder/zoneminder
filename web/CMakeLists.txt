@@ -1,5 +1,7 @@
 # CMakeLists.txt for the ZoneMinder web files
 
+# Process the api subdirectory
+add_subdirectory(api)
 # Process the tools/mootools subdirectory
 add_subdirectory(tools/mootools)
 
@@ -7,9 +9,15 @@ add_subdirectory(tools/mootools)
 configure_file(includes/config.php.in "${CMAKE_CURRENT_BINARY_DIR}/includes/config.php" @ONLY)
 
 # Install the web files
-install(DIRECTORY ajax css graphics includes js lang skins tools views DESTINATION "${ZM_WEBDIR}" PATTERN "*.in" EXCLUDE PATTERN "*Make*" EXCLUDE PATTERN "*cmake*" EXCLUDE)
+install(DIRECTORY api ajax css graphics includes js lang skins tools views DESTINATION "${ZM_WEBDIR}" PATTERN "*.in" EXCLUDE PATTERN "*Make*" EXCLUDE PATTERN "*cmake*" EXCLUDE)
 install(FILES index.php DESTINATION "${ZM_WEBDIR}")
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/includes/config.php" DESTINATION "${ZM_WEBDIR}/includes")
+
+# Install the api config files (if its not in the source directory)
+if(NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR))
+	install(FILES "${CMAKE_CURRENT_BINARY_DIR}/api/app/Config/core.php" DESTINATION "${ZM_WEBDIR}/api/app/Config/core.php")
+	install(FILES "${CMAKE_CURRENT_BINARY_DIR}/api/app/Config/database.php" DESTINATION "${ZM_WEBDIR}/api/app/Config/database.php")
+endif(NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR))
 
 # Install the mootools symlinks (if its not in the source directory)
 if(NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR))

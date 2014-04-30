@@ -39,7 +39,6 @@ public:
     Authenticator(std::string &username, std::string password);
     virtual ~Authenticator();
     void reset();
-    void setRealmAndNonce(std::string &realm, std::string &nonce);
 
     std::string realm() { return fRealm; }
     std::string nonce() { return fNonce; }
@@ -56,6 +55,7 @@ private:
   std::string fNonce;
   std::string fUsername; 
   std::string fPassword;
+  std::string quote( std::string src );
 };
 
 #endif // ZM_RTSP_AUTH_H

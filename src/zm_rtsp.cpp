@@ -279,6 +279,7 @@ int RtspThread::run()
 				message += mAuthenticator->getAuthHeader("GET", mPath);
 				authTried = true;
 			}
+		    message += "Accept: application/x-rtsp-tunnelled\r\n";
 			message += "\r\n";
 			Debug( 2, "Sending HTTP message: %s", message.c_str() );
 			if ( mRtspSocket.send( message.c_str(), message.size() ) != (int)message.length() )
@@ -309,11 +310,16 @@ int RtspThread::run()
 				}
 				return( -1 );
 			}
-			// IF Server requests authentication, check WWW-AUthenticate header and fill required fields
-			// für requested authentication method
+			// If Server requests authentication, check WWW-Authenticate header and fill required fields
+			// for requested authentication method
 			if (respCode == 401 && !authTried) {
 				mNeedAuth = true;
 				checkAuthResponse(response);
+				Debug(2, "Processed 401 response");
+				mRtspSocket.close();
+			    if ( !mRtspSocket.connect( mHost.c_str(), strtol( mPort.c_str(), NULL, 10 ) ) )
+			        Fatal( "Unable to reconnect RTSP socket" );
+			    Debug(2, "connection should be reopened now");
 			}
 			
 		} while (respCode == 401 && !authTried);  

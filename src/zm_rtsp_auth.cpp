@@ -52,11 +52,6 @@ void Authenticator::reset() {
 	fAuthMethod = AUTH_UNDEFINED;
 }
 
-void Authenticator::setRealmAndNonce(std::string &realm, std::string &nonce) {
-	fRealm = realm;
-	fNonce = nonce;
-}
-
 void Authenticator::authHandleHeader(std::string headerData) 
 {
     const char* basic_match = "Basic ";
@@ -93,6 +88,11 @@ void Authenticator::authHandleHeader(std::string headerData)
     }
 }
 
+std::string Authenticator::quote(std::string src)
+{
+    return replaceAll(replaceAll(src, "\\", "\\\\"), "\"", "\\\"");
+}
+
 std::string Authenticator::getAuthHeader(std::string method, std::string uri) 
 {
     std::string result = "Authorization: ";
@@ -103,9 +103,10 @@ std::string Authenticator::getAuthHeader(std::string method, std::string uri)
     else if (fAuthMethod == AUTH_DIGEST)
     {
         result += std::string("Digest ") + 
-        		  "username=\"" + username() + "\", realm=\"" + realm() + "\", " +
-                  "nonce=\"" + nonce() + "\", uri=\"" + uri + "\", " + 
+        		  "username=\"" + quote(username()) + "\", realm=\"" + quote(realm()) + "\", " +
+                  "nonce=\"" + quote(nonce()) + "\", uri=\"" + quote(uri) + "\", " + 
                   "response=\"" + computeDigestResponse(method, uri) + "\"";
+                  
         //Authorization: Digest username="zm",
         //                      realm="NC-336PW-HD-1080P",
         //                      nonce="de8859d97609a6fcc16eaba490dcfd80",

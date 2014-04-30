@@ -67,10 +67,10 @@ class DATABASE_CONFIG {
 	public $default = array(
 		'datasource' => 'Database/Mysql',
 		'persistent' => false,
-		'host' => 'localhost',
-		'login' => 'user',
-		'password' => 'password',
-		'database' => 'database_name',
+		'host' => '@ZM_DB_HOST@',
+		'login' => '@ZM_DB_USER@',
+		'password' => '@ZM_DB_PASS@',
+		'database' => '@ZM_DB_NAME@',
 		'prefix' => '',
 		//'encoding' => 'utf8',
 	);

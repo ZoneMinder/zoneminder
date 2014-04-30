@@ -83,7 +83,7 @@ $eventCounts = array(
 $running = daemonCheck();
 $status = $running?$SLANG['Running']:$SLANG['Stopped'];
 
-if ( $group = dbFetchOne( "select * from Groups where Id = '".(empty($_COOKIE['zmGroup'])?0:dbEscape($_COOKIE['zmGroup']))."'" ) )
+if ( $group = dbFetchOne( 'SELECT * FROM Groups WHERE Id = ?', NULL, array(empty($_COOKIE['zmGroup'])?0:$_COOKIE['zmGroup']) ) ) 
     $groupIds = array_flip(split( ',', $group['MonitorIds'] ));
 
 $maxWidth = 0;
@@ -120,7 +120,7 @@ for ( $i = 0; $i < count($monitors); $i++ )
 	    $monitors[$i]['zmc'] = zmcStatus( $monitors[$i] );
 	    $monitors[$i]['zma'] = zmaStatus( $monitors[$i] );
     }
-    $monitors[$i]['ZoneCount'] = dbFetchOne( "select count(Id) as ZoneCount from Zones where MonitorId = '".$monitors[$i]['Id']."'", "ZoneCount" );
+    $monitors[$i]['ZoneCount'] = dbFetchOne( 'select count(Id) as ZoneCount from Zones where MonitorId = ?', 'ZoneCount', array($monitors[$i]['Id']) );
     $counts = array();
     for ( $j = 0; $j < count($eventCounts); $j++ )
     {
@@ -129,8 +129,8 @@ for ( $i = 0; $i < count($monitors); $i++ )
         $counts[] = "count(if(1".$filter['sql'].",1,NULL)) as EventCount$j";
         $monitors[$i]['eventCounts'][$j]['filter'] = $filter;
     }
-    $sql = "select ".join($counts,", ")." from Events as E where MonitorId = '".$monitors[$i]['Id']."'";
-    $counts = dbFetchOne( $sql );
+    $sql = 'SELECT '.join($counts,", ").' from Events as E where MonitorId = ?';
+    $counts = dbFetchOne( $sql, NULL, array( $monitors[$i]['Id'] ) );
     if ( $monitors[$i]['Function'] != 'None' )
     {
         $cycleCount++;
@@ -205,7 +205,7 @@ foreach( $displayMonitors as $monitor )
 	$offset = 0;
 	if (isset($_GET['numEvents'])) {
 		$numEvents = validInteger($_GET['numEvents']);
-		$eventsSql = "select E.Id,E.MonitorId,M.Name As MonitorName,E.Cause,E.Name,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived from Monitors as M inner join Events as E on (M.Id = E.MonitorId) and ( E.MonitorId = ".$monitor['Id']." ) order by E.StartTime desc";
+		$eventsSql = "select E.Id,E.MonitorId,M.Name As MonitorName,E.Cause,E.Name,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived from Monitors as M inner join Events as E on (M.Id = E.MonitorId) and ( E.MonitorId = ? ) order by E.StartTime desc";
 		$eventsSql .= " limit ".$numEvents;
 		/* If there is an pageOff<x> tag for this monitor, then retrieve the offset. Otherwise, don't specify offset */
 		if (isset($_GET['pageOff'.$monitor['Id']])) {
@@ -224,7 +224,7 @@ foreach( $displayMonitors as $monitor )
 	xml_tag_val("PAGEOFF", $pageOffset);
 	xml_tag_sec("EVENTS",1);
 	if (canView('Events') && isset($eventsSql)) {
-		foreach ( dbFetchAll( escapeSql($eventsSql) ) as $event )
+		foreach ( dbFetchAll( $eventsSql, NULL, array($monitor['Id']) ) as $event )
 		{
 			xml_tag_sec("EVENT",1);
 			xml_tag_val("ID",$event['Id']);
@@ -241,8 +241,8 @@ foreach( $displayMonitors as $monitor )
 			$fridx = 1;
 			$alarmFrames = 1;
 			if ($event['AlarmFrames']) {
-				$framesSql = "select FrameId from Frames where (Type = 'Alarm') and (EventId = ".$event['Id'].") order by Score desc limit 1";
-				$fr = dbFetchOne($framesSql);
+				$framesSql = "SELECT FrameId FROM Frames WHERE (Type = 'Alarm') and (EventId = ?) ORDER BY Score DESC LIMIT 1";
+				$fr = dbFetchOne($framesSql, NULL, array( $event['Id'] ) );
 				$fridx = $fr['FrameId'];
 				$alarmFrames = $event['AlarmFrames'];
 			}

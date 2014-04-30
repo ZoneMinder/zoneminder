@@ -24,7 +24,7 @@
 
 // Javascript window sizes
 var popupSizes = {
-    'bandwidth':    { 'width': 260, 'height': 130 },
+    'bandwidth':    { 'width': 280, 'height': 160 },
     'console':      { 'width': 750, 'height': 312 },
     'control':      { 'width': 380, 'height': 480 },
     'controlcaps':  { 'width': 780, 'height': 320 },
@@ -34,33 +34,33 @@ var popupSizes = {
     'devices':      { 'width': 400, 'height': 240 },
     'donate':       { 'width': 500, 'height': 280 },
     'event':        { 'addWidth': 108, 'minWidth': 496, 'addHeight': 200, minHeight: 540 },
-    'eventdetail':  { 'width': 400, 'height': 220 },
-    'events':       { 'width': 760, 'height': 480 },
+    'eventdetail':  { 'width': 560, 'height': 290 },
+    'events':       { 'width': 1020, 'height': 480 },
     'export':       { 'width': 400, 'height': 340 },
-    'filter':       { 'width': 720, 'height': 360 },
+    'filter':       { 'width': 740, 'height': 390 },
     'filtersave':   { 'width': 560, 'height': 160 },
     'frame':        { 'addWidth': 32, 'minWidth': 384, 'addHeight': 100 },
     'frames':       { 'width': 500, 'height': 300 },
-    'function':     { 'width': 248, 'height': 92 },
+    'function':     { 'width': 248, 'height': 130 },
     'group':        { 'width': 360, 'height': 180 },
     'groups':       { 'width': 460, 'height': 220 },
     'image':        { 'addWidth': 48, 'addHeight': 80 },
     'log':          { 'width': 980, 'height': 720 },
     'login':        { 'width': 720, 'height': 480 },
     'logout':       { 'width': 240, 'height': 100 },
-    'monitor':      { 'width': 480, 'height': 364 },
-    'monitorpreset':{ 'width': 400, 'height': 200 },
+    'monitor':      { 'width': 500, 'height': 620 },
+    'monitorpreset':{ 'width': 400, 'height': 250 },
     'monitorprobe': { 'width': 500, 'height': 240 },
     'monitorselect':{ 'width': 160, 'height': 200 },
     'montage':      { 'width': -1, 'height': -1 },
     'optionhelp':   { 'width': 400, 'height': 320 },
-    'options':      { 'width': 1300, 'height': 620 },
+    'options':      { 'width': 1370, 'height': 620 },
     'preset':       { 'width': 300, 'height': 120 },
     'settings':     { 'width': 200, 'height': 225 },
     'state':        { 'width': 400, 'height': 154 },
     'stats':        { 'width': 740, 'height': 200 },
     'timeline':     { 'width': 760, 'height': 540 },
-    'user':         { 'width': 320, 'height': 420 },
+    'user':         { 'width': 340, 'height': 680 },
     'version':      { 'width': 440, 'height': 160 },
     'video':        { 'width': 420, 'height': 360 },
     'videoview':    { 'addWidth': 48, 'addHeight': 80 },
@@ -146,6 +146,7 @@ function createPopup( url, name, tag, width, height )
     if ( popupSize.height > 0 )
         popupDimensions += ",height="+popupSize.height;
     var popup = window.open( url, name, popupOptions+popupDimensions );
+    popup.focus();
 }
 
 function createEventPopup( eventId, eventFilter, width, height )

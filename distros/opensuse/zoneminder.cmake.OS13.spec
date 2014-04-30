@@ -46,7 +46,7 @@ Requires: perl-MIME-Lite perl-LWP-Protocol-https
 # Am installing perl(MIME::Tools), perl(Net::SMTP) and perl(Net::FTP) 
 # MIME::Tools provides MIME::Entity
 
-Requires: make cpanm
+Requires(post): make cpanm
 
 Requires(post): /usr/bin/gpasswd
 
@@ -102,9 +102,9 @@ fi
 # so we'll output info with echo
 
 echo Installing additional perl modules
-cpanm MIME::Tools
-cpanm Net::SMTP
-cpanm Net::FTP
+/usr/bin/cpanm MIME::Tools
+/usr/bin/cpanm Net::SMTP
+/usr/bin/cpanm Net::FTP
 echo \***********************************************
 echo \*****         For further information 
 echo \*****         please refer to 
@@ -158,6 +158,9 @@ fi
 %{webcgi}/nph-zms
 %{webcgi}/zms
 %{webroot}/zoneminder
+%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{webroot}/zoneminder/events
+%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{webroot}/zoneminder/images
+%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{webroot}/zoneminder/temp
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{webcgi}
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{zm_tmpdir}
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) /var/log/zoneminder
@@ -165,6 +168,11 @@ fi
 
 
 %changelog
+* Wed Apr 02 2014 David Wilcox <david.wilcox@cloverbeen.com> - 1.27.0
+- Correct requires for cpanm and make as they should be post
+- change cpanm call to be full path name
+- correct permissions on events, images and temp
+
 * Mon Mar 24 2014 David Wilcox <david.wilcox@cloverbeen.com> - 1.27.0
 - Update to zm 1.27.0
 - Remove patch which brought opensuse into distros as it is now included
@@ -272,7 +280,7 @@ fi
   1.24.3 is really just an occasionally updated devel snapshot.
 - Rebase various patches.
 
-* Wed Mar 23 2011 Dan HorÃ¡k <dan@danny.cz> - 1.24.3-3
+* Wed Mar 23 2011 Dan HorÃƒÂ¡k <dan@danny.cz> - 1.24.3-3
 - rebuilt for mysql 5.5.10 (soname bump in libmysqlclient)
 
 * Tue Feb 08 2011 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.24.3-2
@@ -327,7 +335,7 @@ fi
 * Wed Feb 25 2009 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.23.3-4
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_11_Mass_Rebuild
 
-* Sat Jan 24 2009 CaolÃ¡n McNamara <caolanm@redhat.com> - 1.23.3-3
+* Sat Jan 24 2009 CaolÃƒÂ¡n McNamara <caolanm@redhat.com> - 1.23.3-3
 - rebuild for dependencies
 
 * Mon Dec 15 2008 Martin Ebourne <martin@zepler.org> - 1.23.3-2

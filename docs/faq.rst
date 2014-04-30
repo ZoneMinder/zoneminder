@@ -24,3 +24,11 @@ To Manage Users
 ^^^^^^^^^^^^^^^
 
 1. In main console, go to Options->Users.
+
+The "Zones" view for a Monitor is blank (I can't see / setup a Zone)
+====================================================================
+
+Snapshots and Zones images are stored in the `images` directory in your webroot.
+Ensure that the `images` directory is writable by the user which ZoneMinder is
+running as.  If the `images` directory is a symlink, ensure that your web server
+has access to that directory as well.

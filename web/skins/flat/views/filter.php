@@ -160,7 +160,7 @@ xhtmlHeaders(__FILE__, $SLANG['EventFilter'] );
         <table id="fieldsTable" class="filterTable" cellspacing="0">
           <tbody>
 <?php
-for ( $i = 0; $i < count($_REQUEST['filter']['terms']); $i++ )
+for ( $i = 0; isset($_REQUEST['filter']) && $i < count($_REQUEST['filter']['terms']); $i++ )
 {
 ?>
             <tr>
@@ -194,14 +194,14 @@ for ( $i = 0; $i < count($_REQUEST['filter']['terms']); $i++ )
         {
 ?>
               <td><?= buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
-              <td><input name="filter[terms][<?= $i ?>][val]" id="filter[terms][<?= $i ?>][val]" value="<?= isset($_REQUEST['filter']['terms'][$i]['val'])?validHtmlStr($_REQUEST['filter']['terms'][$i]['val']):'' ?>"/><?php if ( $hasCal ) { ?><script type="text/javascript">Calendar.setup( { inputField: "filter[terms][<?= $i ?>][val]", ifFormat: "%Y-%m-%d %H:%M", showsTime: true, timeFormat: "24", showOthers: true, weekNumbers: false });</script><?php } ?></td>
+              <td><input type="text" name="filter[terms][<?= $i ?>][val]" id="filter[terms][<?= $i ?>][val]" value="<?= isset($_REQUEST['filter']['terms'][$i]['val'])?validHtmlStr($_REQUEST['filter']['terms'][$i]['val']):'' ?>"/><?php if ( $hasCal ) { ?><script type="text/javascript">Calendar.setup( { inputField: "filter[terms][<?= $i ?>][val]", ifFormat: "%Y-%m-%d %H:%M", showsTime: true, timeFormat: "24", showOthers: true, weekNumbers: false });</script><?php } ?></td>
 <?php
         }
         elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "Date" )
         {
 ?>
               <td><?= buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
-              <td><input name="filter[terms][<?= $i ?>][val]" id="filter[terms][<?= $i ?>][val]" value="<?= isset($_REQUEST['filter']['terms'][$i]['val'])?validHtmlStr($_REQUEST['filter']['terms'][$i]['val']):'' ?>"/><?php if ( $hasCal ) { ?><script type="text/javascript">Calendar.setup( { inputField: "filter[terms][<?= $i ?>][val]", ifFormat: "%Y-%m-%d", showOthers: true, weekNumbers: false });</script><?php } ?></td>
+              <td><input type="text" name="filter[terms][<?= $i ?>][val]" id="filter[terms][<?= $i ?>][val]" value="<?= isset($_REQUEST['filter']['terms'][$i]['val'])?validHtmlStr($_REQUEST['filter']['terms'][$i]['val']):'' ?>"/><?php if ( $hasCal ) { ?><script type="text/javascript">Calendar.setup( { inputField: "filter[terms][<?= $i ?>][val]", ifFormat: "%Y-%m-%d", showOthers: true, weekNumbers: false });</script><?php } ?></td>
 <?php
         }
         elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "Weekday" )
@@ -230,7 +230,7 @@ for ( $i = 0; $i < count($_REQUEST['filter']['terms']); $i++ )
         {
 ?>
               <td><?= buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
-              <td><input name="filter[terms][<?= $i ?>][val]" value="<?= $_REQUEST['filter']['terms'][$i]['val'] ?>"/></td>
+              <td><input type="text" name="filter[terms][<?= $i ?>][val]" value="<?= $_REQUEST['filter']['terms'][$i]['val'] ?>"/></td>
 <?php
         }
     }
@@ -238,7 +238,7 @@ for ( $i = 0; $i < count($_REQUEST['filter']['terms']); $i++ )
     {
 ?>
               <td><?= buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
-              <td><input name="filter[terms][<?= $i ?>][val]" value="<?= isset($_REQUEST['filter']['terms'][$i]['val'])?$_REQUEST['filter']['terms'][$i]['val']:'' ?>"/></td>
+              <td><input type="text" name="filter[terms][<?= $i ?>][val]" value="<?= isset($_REQUEST['filter']['terms'][$i]['val'])?$_REQUEST['filter']['terms'][$i]['val']:'' ?>"/></td>
 <?php
     }
 ?>

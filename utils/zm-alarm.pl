@@ -13,7 +13,7 @@ use Switch;
 $| = 1;
 
 my @monitors;
-my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS ) or die "Could not connect to the database.\n";
+my $dbh = zmDbConnect();
 my $sql = "SELECT * FROM Monitors";
 my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 my $res = $sth->execute() or die( "Can't execute '$sql': ".$sth->errstr() );

@@ -18,7 +18,8 @@ presets[<?= $preset['Id'] ?>] = {
     'MaxBlobPixels': '<?= $preset['MaxBlobPixels'] ?>',
     'MinBlobs': '<?= $preset['MinBlobs'] ?>',
     'MaxBlobs': '<?= $preset['MaxBlobs'] ?>',
-    'OverloadFrames': '<?= $preset['OverloadFrames'] ?>'
+    'OverloadFrames': '<?= $preset['OverloadFrames'] ?>',
+    'ExtendAlarmFrames': '<?= $preset['ExtendAlarmFrames'] ?>'
 };
 <?php
 }

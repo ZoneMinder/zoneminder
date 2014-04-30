@@ -24,16 +24,16 @@ if ( !canView( 'Events' ) )
     return;
 }
 
-$sql = "select E.*,M.Name as MonitorName,M.DefaultScale from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = '".dbEscape($_REQUEST['eid'])."'";
-$event = dbFetchOne( $sql );
+$sql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultScale FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = ?';
+$event = dbFetchOne( $sql, NULL, array( $_REQUEST['eid'] ) );
 
 if ( !empty($_REQUEST['fid']) )
 {
-    $frame = dbFetchOne( "select * from Frames where EventID = '".dbEscape($_REQUEST['eid'])."' and FrameId = '".dbEscape($_REQUEST['fid'])."'" );
+    $frame = dbFetchOne( 'SELECT * FROM Frames WHERE EventID = ? AND FrameId = ?', NULL, array( $_REQUEST['eid'], $_REQUEST['fid'] ) );
 }
 else
 {
-    $frame = dbFetchOne( "select * from Frames where EventID = '".dbEscape($_REQUEST['eid'])."' and Score = '".$event['MaxScore']."'" );
+    $frame = dbFetchOne( 'SELECT * FROM Frames WHERE EventID = ? AND Score = ?', NULL, array( $_REQUEST['eid'], $event['MaxScore'] ) );
 }
 
 $maxFid = $event['Frames'];

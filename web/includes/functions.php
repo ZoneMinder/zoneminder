@@ -44,7 +44,7 @@ function userLogin( $username, $password="", $passwordHashed=false )
         }
 		$sql_values = array( $username, $password );
     } else {
-        $sql .= "AND Username = ?";
+        $sql .= " AND Username = ?";
 		$sql_values = array( $username );
     }
     $_SESSION['username'] = $username;
@@ -1406,7 +1406,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' )
                     case 'Cause':
                     case 'Notes':
                     case 'Archived':
-                        $filter['sql'] .= dbEscape('E.'.$filter['terms'][$i]['attr']);
+                        $filter['sql'] .= "E.".$filter['terms'][$i]['attr'];
                         break;
                     case 'DiskPercent':
                         $filter['sql'] .= getDiskPercent();

@@ -115,6 +115,7 @@ function applyZoneType()
         form.elements['newZone[MinBlobs]'].disabled = true;
         form.elements['newZone[MaxBlobs]'].disabled = true;
         form.elements['newZone[OverloadFrames]'].disabled = true;
+        form.elements['newZone[ExtendAlarmFrames]'].disabled = true;
     }
     else if ( form.elements['newZone[Type]'].value == 'Preclusive' )
     {
@@ -128,6 +129,7 @@ function applyZoneType()
         form.elements['newZone[MinAlarmPixels]'].disabled = false;
         form.elements['newZone[MaxAlarmPixels]'].disabled = false;
         form.elements['newZone[OverloadFrames]'].disabled = false;
+        form.elements['newZone[ExtendAlarmFrames]'].disabled = false;
         applyCheckMethod();
     }
     else
@@ -142,6 +144,7 @@ function applyZoneType()
         form.elements['newZone[MinAlarmPixels]'].disabled = false;
         form.elements['newZone[MaxAlarmPixels]'].disabled = false;
         form.elements['newZone[OverloadFrames]'].disabled = false;
+        form.elements['newZone[ExtendAlarmFrames]'].disabled = true;
         applyCheckMethod(); 
     }
 }
@@ -208,6 +211,7 @@ function applyPreset()
         form.elements['newZone[MinBlobs]'].value = preset['MinBlobs'];
         form.elements['newZone[MaxBlobs]'].value = preset['MaxBlobs'];
         form.elements['newZone[OverloadFrames]'].value = preset['OverloadFrames'];
+        form.elements['newZone[ExtendAlarmFrames]'].value = preset['ExtendAlarmFrames'];
 
         applyCheckMethod();
         form.elements['newZone[TempArea]'].value = 100;
@@ -444,13 +448,13 @@ function drawZonePoints()
         cell.inject( row );
 
         cell = new Element( 'td' );
-        var input = new Element( 'input', { 'id': 'newZone[Points]['+i+'][x]', 'name': 'newZone[Points]['+i+'][x]', 'value': zone['Points'][i].x, 'size': 5 } );
+        var input = new Element( 'input', { 'type': 'text', 'id': 'newZone[Points]['+i+'][x]', 'name': 'newZone[Points]['+i+'][x]', 'value': zone['Points'][i].x, 'size': 5 } );
         input.addEvent( 'change', updateX.pass( i ) );
         input.inject( cell );
         cell.inject( row );
 
         cell = new Element( 'td' );
-        input = new Element( 'input', { 'id': 'newZone[Points]['+i+'][y]', 'name': 'newZone[Points]['+i+'][y]', 'value': zone['Points'][i].y, 'size': 5 } );
+        input = new Element( 'input', { 'type': 'text', 'id': 'newZone[Points]['+i+'][y]', 'name': 'newZone[Points]['+i+'][y]', 'value': zone['Points'][i].y, 'size': 5 } );
         input.addEvent( 'change', updateY.pass( i ) );
         input.inject( cell );
         cell.inject( row );

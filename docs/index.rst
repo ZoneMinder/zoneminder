@@ -13,6 +13,7 @@ Contents:
 
    api
    faq
+   contributing
 
 
 

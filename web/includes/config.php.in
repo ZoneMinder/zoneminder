@@ -114,11 +114,6 @@ define( "SCALE_BASE", 100 );                            // The additional scalin
 define( "STRF_FMT_DATETIME_DB", "%Y-%m-%d %H:%M:%S" );      // Strftime format for database queries, don't change
 define( "MYSQL_FMT_DATETIME_SHORT", "%y/%m/%d %H:%i:%S" );  // MySQL date_format shorter format for dates with time
 
-//
-// zmSkin Cookie validity
-//
-define ( "ZMSKIN_COOKIE_EXPIRES",  2147483647 );
-
 require_once( 'database.php' );
 loadConfig();
 

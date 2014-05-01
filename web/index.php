@@ -79,7 +79,7 @@ session_start();
 if ( !isset($_SESSION['skin']) || isset($_REQUEST['skin']) )
 {
     $_SESSION['skin'] = $skin;
-    setcookie( "zmSkin", $skin );
+    setcookie( "zmSkin", $skin, ZMSKIN_COOKIE_EXPIRES );
 }
 
 require_once( 'includes/config.php' );

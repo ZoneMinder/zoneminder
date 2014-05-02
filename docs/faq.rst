@@ -34,7 +34,7 @@ running as.  If the `images` directory is a symlink, ensure that your web server
 has access to that directory as well.
 
 How do the 3 AlarmCheckMethods interact?
-========================================
+----------------------------------------
 
 In example, if I set the alarm % to 5-10% and the filtered and blob to 1-100%,
 what happens?

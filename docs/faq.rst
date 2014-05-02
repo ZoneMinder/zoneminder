@@ -41,11 +41,10 @@ In example, if I set the alarm % to 5-10% and the filtered and blob to 1-100%, w
 1. If any of the min/max values is 0, the check that the value is applied to is skipped.
 2. If you have a min-alarmed area and you're below that, then it quits.
 3. If you have a max-alarmed area and you're above that, then it quits.
-4. If you're on filtered or blob's 
+4. If you're on filtered or blobs
 
   1. and have a min filtered area that you're below then it quits
-  2. If you're on filtered or blob's and have a max filtered area that you're
-     above then it quits
+  2. and have a max filtered area that you're above then it quits
 
 5. If you're on blobs
 
@@ -54,7 +53,7 @@ In example, if I set the alarm % to 5-10% and the filtered and blob to 1-100%, w
   3. If there are less remaining blobs than the minimum-blobs, then it quits.
   4. If there are more remaining blobs than the maximum-blobs, then it quits.
 
-If AlarmedPixels is seleted, you can only enter min/max pixel threshold and
+If AlarmedPixels is selected, you can only enter min/max pixel threshold and
 min/max alarmed area.  If FilteredPixels is selected, the Blob options are
 disabled.  The Blob check method allows you to specify all options.  Filtered
 adds more checks than alarmed, and blobs adds more checks than filtered.  The

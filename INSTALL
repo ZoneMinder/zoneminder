@@ -1,6 +1,6 @@
 Installing in ReadyNAS 6.1.7 Debian Wheezy
 ---------------------------------------
-Change acordingly this cmake command line :
+Instructions d'installation :
 
 1. Cloner la source depuis GitHub
     # cd /opt
@@ -106,7 +106,17 @@ Change acordingly this cmake command line :
         ou
     # checkinstall
 
-13. C'est bon, ouvrir Chrome et aller à http://<IP du serveur>:64080/
+13. Copier le script de démarrage "zm" dans /etc/init.d :
+    # cp /opt/ZoneMinder/scripts/zm /etc/init.d/
+    # cd /etc/init.d && update-rc.d zm defaults
+
+14. C'est bon, ouvrir Chrome et se rendre à http://<IP du serveur>:64080/
+
+15. Pour mettre à jour ZoneMinder depuis le GitHub de Aztazt :
+    # cd /opt/ZoneMinder && git pull
+
+16. Pour mettre à jour le GitHub Aztazt avec l'original ZoneMinder / Zoneminder :
+    ???
 
 
 Installing ZoneMinder with cmake

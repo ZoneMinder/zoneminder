@@ -1,3 +1,8 @@
+Installing in ReadyNAS 6.1.7 Debian Wheezy
+---------------------------------------
+Change acordingly this cmake command line :
+cmake -DZM_DB_HOST=localhost -DZM_DB_NAME=zm -DZM_DB_USER=zmuser -DZM_DB_PASS=zmpass -DZM_LOGDIR=/var/log/zm -DZM_WEB_USER=admin -DZM_WEB_GROUP=admin .
+
 Installing ZoneMinder with cmake
 --------------------------------
 Starting with ZoneMinder 1.26.4, ZoneMinder can now be installed using cmake. This requires cmake version 2.6 or newer.

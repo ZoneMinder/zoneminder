@@ -116,7 +116,21 @@ Instructions d'installation :
     # cd /opt/ZoneMinder && git pull
 
 16. Pour mettre à jour le GitHub Aztazt avec l'original ZoneMinder / Zoneminder :
-    ???
+	-> https://help.github.com/articles/syncing-a-fork :
+
+		git remote -v
+		git remote add upstream https://github.com/ZoneMinder/ZoneMinder.git
+		git remote -v
+		git fetch upstream
+		git branch -va
+		git checkout master
+		git merge upstream/master
+
+	puis on remonte le tout dans notre Repo GitHub :
+	-> https://help.github.com/articles/pushing-to-a-remote
+
+		git push origin master
+
 
 
 Installing ZoneMinder with cmake

@@ -286,7 +286,7 @@ void Image::Initialise()
 		b_u_table[i] = (1772*(i-128))/1000;
 	}
 	
-	initialised = true;
+	initialised = TRUE;
 }
 
 /* Requests a writeable buffer to the image. This is safer than buffer() because this way we can gurantee that a buffer of required size exists */
@@ -514,10 +514,10 @@ Image *Image::HighlightEdges( Rgb colour, unsigned int p_colours, unsigned int p
 				bool edge = false;
 				if ( *p )
 				{
-					if ( !edge && x > 0 && !*(p-1) ) edge = true;
-					if ( !edge && x < (width-1) && !*(p+1) ) edge = true;
-					if ( !edge && y > 0 && !*(p-width) ) edge = true;
-					if ( !edge && y < (height-1) && !*(p+width) ) edge = true;
+					if ( !edge && x > 0 && !*(p-1) ) edge = TRUE;
+					if ( !edge && x < (width-1) && !*(p+1) ) edge = TRUE;
+					if ( !edge && y > 0 && !*(p-width) ) edge = TRUE;
+					if ( !edge && y < (height-1) && !*(p+width) ) edge = TRUE;
 				}
 				if ( edge )
 				{
@@ -537,10 +537,10 @@ Image *Image::HighlightEdges( Rgb colour, unsigned int p_colours, unsigned int p
 				bool edge = false;
 				if ( *p )
 				{
-					if ( !edge && x > 0 && !*(p-1) ) edge = true;
-					if ( !edge && x < (width-1) && !*(p+1) ) edge = true;
-					if ( !edge && y > 0 && !*(p-width) ) edge = true;
-					if ( !edge && y < (height-1) && !*(p+width) ) edge = true;
+					if ( !edge && x > 0 && !*(p-1) ) edge = TRUE;
+					if ( !edge && x < (width-1) && !*(p+1) ) edge = TRUE;
+					if ( !edge && y > 0 && !*(p-width) ) edge = TRUE;
+					if ( !edge && y < (height-1) && !*(p+width) ) edge = TRUE;
 				}
 				if ( edge )
 				{
@@ -562,10 +562,10 @@ Image *Image::HighlightEdges( Rgb colour, unsigned int p_colours, unsigned int p
 				bool edge = false;
 				if ( *p )
 				{
-					if ( !edge && x > 0 && !*(p-1) ) edge = true;
-					if ( !edge && x < (width-1) && !*(p+1) ) edge = true;
-					if ( !edge && y > 0 && !*(p-width) ) edge = true;
-					if ( !edge && y < (height-1) && !*(p+width) ) edge = true;
+					if ( !edge && x > 0 && !*(p-1) ) edge = TRUE;
+					if ( !edge && x < (width-1) && !*(p+1) ) edge = TRUE;
+					if ( !edge && y > 0 && !*(p-width) ) edge = TRUE;
+					if ( !edge && y < (height-1) && !*(p+width) ) edge = TRUE;
 				}
 				if ( edge )
 				{
@@ -608,7 +608,7 @@ bool Image::ReadRaw( const char *filename )
 
 	fclose( infile );
 
-	return( true );
+	return( TRUE );
 }
 
 bool Image::WriteRaw( const char *filename ) const
@@ -628,7 +628,7 @@ bool Image::WriteRaw( const char *filename ) const
 
 	fclose( outfile );
 
-	return( true );
+	return( TRUE );
 }
 
 bool Image::ReadJpeg( const char *filename, unsigned int p_colours, unsigned int p_subpixelorder)
@@ -766,7 +766,7 @@ bool Image::ReadJpeg( const char *filename, unsigned int p_colours, unsigned int
 
 	fclose( infile );
 
-	return( true );
+	return( TRUE );
 }
 
 bool Image::WriteJpeg( const char *filename, int quality_override ) const
@@ -881,7 +881,7 @@ bool Image::WriteJpeg( const char *filename, int quality_override ) const
 
 	fclose( outfile );
 
-	return( true );
+	return( TRUE );
 }
 
 bool Image::DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size, unsigned int p_colours, unsigned int p_subpixelorder)
@@ -1007,7 +1007,7 @@ bool Image::DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size, unsigned int 
 
 	jpeg_finish_decompress( cinfo );
 
-	return( true );
+	return( TRUE );
 }
 
 bool Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_override ) const
@@ -1108,7 +1108,7 @@ bool Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_over
 
 	jpeg_finish_compress( cinfo );
 
-	return( true );
+	return( TRUE );
 }
 
 #if HAVE_ZLIB_H
@@ -1126,7 +1126,7 @@ bool Image::Unzip( const Bytef *inbuffer, unsigned long inbuffer_size )
 		Error( "Unzip failed, size mismatch, expected %d bytes, got %ld", size, zip_size );
 		return( false );
 	}
-	return( true );
+	return( TRUE );
 }
 
 bool Image::Zip( Bytef *outbuffer, unsigned long *outbuffer_size, int compression_level ) const
@@ -1137,7 +1137,7 @@ bool Image::Zip( Bytef *outbuffer, unsigned long *outbuffer_size, int compressio
 		Error( "Zip failed, result = %d", result );
 		return( false );
 	}
-	return( true );
+	return( TRUE );
 }
 #endif // HAVE_ZLIB_H
 
@@ -1159,7 +1159,7 @@ bool Image::Crop( unsigned int lo_x, unsigned int lo_y, unsigned int hi_x, unsig
 
 	if ( new_width == width && new_height == height )
 	{
-		return( true );
+		return( TRUE );
 	}
 
 	unsigned int new_size = new_width*new_height*colours;
@@ -1175,7 +1175,7 @@ bool Image::Crop( unsigned int lo_x, unsigned int lo_y, unsigned int hi_x, unsig
 
 	AssignDirect(new_width, new_height, colours, subpixelorder, new_buffer, new_size, ZM_BUFTYPE_ZM);
 
-	return( true );
+	return( TRUE );
 }
 
 bool Image::Crop( const Box &limits )

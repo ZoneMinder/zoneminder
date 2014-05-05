@@ -45,7 +45,8 @@ class LibvlcCamera : public Camera
 {
 protected:
     std::string mPath;
-
+    std::string mOptions;
+    unisgned char **mOptArgV;
 	LibvlcPrivateData mLibvlcData;
     std::string mTargetChroma;
     uint8_t mBpp;
@@ -55,10 +56,11 @@ protected:
     libvlc_media_player_t *mLibvlcMediaPlayer;
 
 public:
-	LibvlcCamera( int p_id, const std::string &path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
+	LibvlcCamera( int p_id, const std::string &path, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
 	~LibvlcCamera();
 
     const std::string &Path() const { return( mPath ); }
+    const std::string &Options() const { return( mOptions ); }
 
 	void Initialise();
 	void Terminate();

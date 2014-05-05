@@ -157,7 +157,7 @@ PREPARE stmt FROM @s;
 EXECUTE stmt;
 
 --
--- Add Monitor Options field; used for specifying Ffmpeg AVoptions like rtsp_transport tcp
+-- Add Monitor Options field; used for specifying Ffmpeg AVoptions like rtsp_transport http or libVLC options
 --
 SET @s = (SELECT IF(
 	(SELECT COUNT(*)

@@ -34,6 +34,7 @@ class FfmpegCamera : public Camera
 {
 protected:
     std::string         mPath;
+    std::string			mOptions;
 
     int frameCount;    
 
@@ -52,10 +53,11 @@ protected:
 #endif
 
 public:
-	FfmpegCamera( int p_id, const std::string &path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
+	FfmpegCamera( int p_id, const std::string &path, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
 	~FfmpegCamera();
 
     const std::string &Path() const { return( mPath ); }
+    const std::string &Options() const { return( mOptions ); } 
 
 	void Initialise();
 	void Terminate();

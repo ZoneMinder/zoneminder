@@ -46,7 +46,7 @@ class LibvlcCamera : public Camera
 protected:
     std::string mPath;
     std::string mOptions;
-    unisgned char **mOptArgV;
+    char **mOptArgV;
 	LibvlcPrivateData mLibvlcData;
     std::string mTargetChroma;
     uint8_t mBpp;

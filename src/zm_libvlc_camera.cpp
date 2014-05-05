@@ -147,12 +147,15 @@ int LibvlcCamera::PrimeCapture()
 
     if (opVect.size() > 0) 
     {
-    	mOptArgV = new char*[opVect.size()];cmd
-    	for (int i=0; i< opVect.size(); i++)
-    		mOptArgV[i] = opVect[i].c_str();
+    	mOptArgV = new char*[opVect.size()];
+    	Debug(2, "Size of Option Array: %d",opVect.size());
+    	for (size_t i=0; i< opVect.size(); i++) {
+    		mOptArgV[i] = (char *)opVect[i].c_str();
+    		Debug(2, "set option %d to %s", i,  opVect[i].c_str());
+    	}
     }
 
-    mLibvlcInstance = libvlc_new (opVect.size(), optArgV);
+    mLibvlcInstance = libvlc_new (opVect.size(), (const char* const*)mOptArgV);
     if(mLibvlcInstance == NULL)
         Fatal("Unable to create libvlc instance due to: %s", libvlc_errmsg());
      

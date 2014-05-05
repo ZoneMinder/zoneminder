@@ -661,7 +661,7 @@ bool Image::ReadJpeg( const char *filename, unsigned int p_colours, unsigned int
 
 	jpeg_stdio_src( cinfo, infile );
 
-	jpeg_read_header( cinfo, true );
+	jpeg_read_header( cinfo, TRUE );
 
 	if ( cinfo->num_components != 1 && cinfo->num_components != 3 )
 	{
@@ -863,7 +863,7 @@ bool Image::WriteJpeg( const char *filename, int quality_override ) const
 	jpeg_set_quality( cinfo, quality, FALSE );
 	cinfo->dct_method = JDCT_FASTEST;
 
-	jpeg_start_compress( cinfo, true );
+	jpeg_start_compress( cinfo, TRUE );
 	if ( config.add_jpeg_comments && text[0] )
 	{
 		jpeg_write_marker( cinfo, JPEG_COM, (const JOCTET *)text, strlen(text) );
@@ -906,7 +906,7 @@ bool Image::DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size, unsigned int 
 
 	zm_jpeg_mem_src( cinfo, inbuffer, inbuffer_size );
 
-	jpeg_read_header( cinfo, true );
+	jpeg_read_header( cinfo, TRUE );
 
 	if ( cinfo->num_components != 1 && cinfo->num_components != 3 )
 	{
@@ -1096,7 +1096,7 @@ bool Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_over
 	jpeg_set_quality( cinfo, quality, FALSE );
 	cinfo->dct_method = JDCT_FASTEST;
 
-	jpeg_start_compress( cinfo, true );
+	jpeg_start_compress( cinfo, TRUE );
 
 	JSAMPROW row_pointer;	/* pointer to a single row */
 	int row_stride = cinfo->image_width * colours; /* physical row width in buffer */

@@ -776,7 +776,7 @@ bool EventStream::loadEventData( int event_id )
         else
             snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%ld", staticConfig.PATH_WEB.c_str(), config.dir_events, event_data->monitor_id, event_data->event_id );
     }
-    event_data->frame_count = dbrow[2] == NULL ? NULL : atoi(dbrow[2]);
+    event_data->frame_count = dbrow[2] == NULL ? 0 : atoi(dbrow[2]);
     event_data->duration = atof(dbrow[4]);
 
     updateFrameRate( (double)event_data->frame_count/event_data->duration );

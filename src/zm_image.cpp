@@ -25,7 +25,7 @@
 #include <sys/stat.h>
 #include <errno.h>
 
-bool Image::initialised = FALSE;
+bool Image::initialised = false;
 static unsigned char *y_table;
 static signed char *uv_table;
 static short *r_v_table;
@@ -286,7 +286,7 @@ void Image::Initialise()
 		b_u_table[i] = (1772*(i-128))/1000;
 	}
 	
-	initialised = TRUE;
+	initialised = true;
 }
 
 /* Requests a writeable buffer to the image. This is safer than buffer() because this way we can gurantee that a buffer of required size exists */
@@ -511,13 +511,13 @@ Image *Image::HighlightEdges( Rgb colour, unsigned int p_colours, unsigned int p
 			uint8_t* phigh = high_buff + (y * width) + lo_x;
 			for ( unsigned int x = lo_x; x <= hi_x; x++, p++, phigh++ )
 			{
-				bool edge = FALSE;
+				bool edge = false;
 				if ( *p )
 				{
-					if ( !edge && x > 0 && !*(p-1) ) edge = TRUE;
-					if ( !edge && x < (width-1) && !*(p+1) ) edge = TRUE;
-					if ( !edge && y > 0 && !*(p-width) ) edge = TRUE;
-					if ( !edge && y < (height-1) && !*(p+width) ) edge = TRUE;
+					if ( !edge && x > 0 && !*(p-1) ) edge = true;
+					if ( !edge && x < (width-1) && !*(p+1) ) edge = true;
+					if ( !edge && y > 0 && !*(p-width) ) edge = true;
+					if ( !edge && y < (height-1) && !*(p+width) ) edge = true;
 				}
 				if ( edge )
 				{
@@ -534,13 +534,13 @@ Image *Image::HighlightEdges( Rgb colour, unsigned int p_colours, unsigned int p
 			uint8_t* phigh = high_buff + (((y * width) + lo_x) * 3);
 			for ( unsigned int x = lo_x; x <= hi_x; x++, p++, phigh += 3 )
 			{
-				bool edge = FALSE;
+				bool edge = false;
 				if ( *p )
 				{
-					if ( !edge && x > 0 && !*(p-1) ) edge = TRUE;
-					if ( !edge && x < (width-1) && !*(p+1) ) edge = TRUE;
-					if ( !edge && y > 0 && !*(p-width) ) edge = TRUE;
-					if ( !edge && y < (height-1) && !*(p+width) ) edge = TRUE;
+					if ( !edge && x > 0 && !*(p-1) ) edge = true;
+					if ( !edge && x < (width-1) && !*(p+1) ) edge = true;
+					if ( !edge && y > 0 && !*(p-width) ) edge = true;
+					if ( !edge && y < (height-1) && !*(p+width) ) edge = true;
 				}
 				if ( edge )
 				{
@@ -559,13 +559,13 @@ Image *Image::HighlightEdges( Rgb colour, unsigned int p_colours, unsigned int p
 			Rgb* phigh = (Rgb*)(high_buff + (((y * width) + lo_x) * 4));
 			for ( unsigned int x = lo_x; x <= hi_x; x++, p++, phigh++ )
 			{
-				bool edge = FALSE;
+				bool edge = false;
 				if ( *p )
 				{
-					if ( !edge && x > 0 && !*(p-1) ) edge = TRUE;
-					if ( !edge && x < (width-1) && !*(p+1) ) edge = TRUE;
-					if ( !edge && y > 0 && !*(p-width) ) edge = TRUE;
-					if ( !edge && y < (height-1) && !*(p+width) ) edge = TRUE;
+					if ( !edge && x > 0 && !*(p-1) ) edge = true;
+					if ( !edge && x < (width-1) && !*(p+1) ) edge = true;
+					if ( !edge && y > 0 && !*(p-width) ) edge = true;
+					if ( !edge && y < (height-1) && !*(p+width) ) edge = true;
 				}
 				if ( edge )
 				{
@@ -584,31 +584,31 @@ bool Image::ReadRaw( const char *filename )
 	if ( (infile = fopen( filename, "rb" )) == NULL )
 	{
 		Error( "Can't open %s: %s", filename, strerror(errno) );
-		return( FALSE );
+		return( false );
 	}
 
 	struct stat statbuf;
 	if ( fstat( fileno(infile), &statbuf ) < 0 )
 	{
 		Error( "Can't fstat %s: %s", filename, strerror(errno) );
-		return( FALSE );
+		return( false );
 	}
 
 	if ( statbuf.st_size != size )
 	{
 		Error( "Raw file size mismatch, expected %d bytes, found %ld", size, statbuf.st_size );
-		return( FALSE );
+		return( false );
 	}
 
 	if ( fread( buffer, size, 1, infile ) < 1 )
     {
         Fatal( "Unable to read from '%s': %s", filename, strerror(errno) );
-        return( FALSE );
+        return( false );
     }
 
 	fclose( infile );
 
-	return( TRUE );
+	return( true );
 }
 
 bool Image::WriteRaw( const char *filename ) const
@@ -617,18 +617,18 @@ bool Image::WriteRaw( const char *filename ) const
 	if ( (outfile = fopen( filename, "wb" )) == NULL )
 	{
 		Error( "Can't open %s: %s", filename, strerror(errno) );
-		return( FALSE );
+		return( false );
 	}
 
 	if ( fwrite( buffer, size, 1, outfile ) != 1 )
     {
         Error( "Unable to write to '%s': %s", filename, strerror(errno) );
-        return( FALSE );
+        return( false );
     }
 
 	fclose( outfile );
 
-	return( TRUE );
+	return( true );
 }
 
 bool Image::ReadJpeg( const char *filename, unsigned int p_colours, unsigned int p_subpixelorder)
@@ -649,26 +649,26 @@ bool Image::ReadJpeg( const char *filename, unsigned int p_colours, unsigned int
 	if ( (infile = fopen( filename, "rb" )) == NULL )
 	{
 		Error( "Can't open %s: %s", filename, strerror(errno) );
-		return( FALSE );
+		return( false );
 	}
 
 	if ( setjmp( jpg_err.setjmp_buffer ) )
 	{
 		jpeg_abort_decompress( cinfo );
 		fclose( infile );
-		return( FALSE );
+		return( false );
 	}
 
 	jpeg_stdio_src( cinfo, infile );
 
-	jpeg_read_header( cinfo, TRUE );
+	jpeg_read_header( cinfo, true );
 
 	if ( cinfo->num_components != 1 && cinfo->num_components != 3 )
 	{
 		Error( "Unexpected colours when reading jpeg image: %d", colours );
 		jpeg_abort_decompress( cinfo );
 		fclose( infile );
-		return( FALSE );
+		return( false );
 	}
 	
 	/* Check if the image has at least one huffman table defined. If not, use the standard ones */
@@ -749,7 +749,7 @@ bool Image::ReadJpeg( const char *filename, unsigned int p_colours, unsigned int
 		Error("Failed requesting writeable buffer for reading JPEG image.");
 		jpeg_abort_decompress( cinfo );
 		fclose( infile );
-		return( FALSE );
+		return( false );
 	}
 
 	jpeg_start_decompress( cinfo );
@@ -766,7 +766,7 @@ bool Image::ReadJpeg( const char *filename, unsigned int p_colours, unsigned int
 
 	fclose( infile );
 
-	return( TRUE );
+	return( true );
 }
 
 bool Image::WriteJpeg( const char *filename, int quality_override ) const
@@ -795,7 +795,7 @@ bool Image::WriteJpeg( const char *filename, int quality_override ) const
 	if ( (outfile = fopen( filename, "wb" )) == NULL )
 	{
 		Error( "Can't open %s: %s", filename, strerror(errno) );
-		return( FALSE );
+		return( false );
 	}
 	jpeg_stdio_dest( cinfo, outfile );
 
@@ -827,7 +827,7 @@ bool Image::WriteJpeg( const char *filename, int quality_override ) const
 	    Error("libjpeg-turbo is required for JPEG encoding directly from RGB32 source");
 	    jpeg_abort_compress( cinfo );
 	    fclose(outfile);
-	    return(FALSE);
+	    return(false);
 #endif
 	    break;
 	  }
@@ -842,7 +842,7 @@ bool Image::WriteJpeg( const char *filename, int quality_override ) const
 	      Error("libjpeg-turbo is required for JPEG encoding directly from BGR24 source");
 	      jpeg_abort_compress( cinfo );
 	      fclose(outfile);
-	      return(FALSE);                                                                                  
+	      return(false);                                                                                  
 #endif
 	    } else {
 	      /* Assume RGB */
@@ -863,7 +863,7 @@ bool Image::WriteJpeg( const char *filename, int quality_override ) const
 	jpeg_set_quality( cinfo, quality, FALSE );
 	cinfo->dct_method = JDCT_FASTEST;
 
-	jpeg_start_compress( cinfo, TRUE );
+	jpeg_start_compress( cinfo, true );
 	if ( config.add_jpeg_comments && text[0] )
 	{
 		jpeg_write_marker( cinfo, JPEG_COM, (const JOCTET *)text, strlen(text) );
@@ -881,7 +881,7 @@ bool Image::WriteJpeg( const char *filename, int quality_override ) const
 
 	fclose( outfile );
 
-	return( TRUE );
+	return( true );
 }
 
 bool Image::DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size, unsigned int p_colours, unsigned int p_subpixelorder)
@@ -901,18 +901,18 @@ bool Image::DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size, unsigned int 
 	if ( setjmp( jpg_err.setjmp_buffer ) )
 	{
 		jpeg_abort_decompress( cinfo );
-		return( FALSE );
+		return( false );
 	}
 
 	zm_jpeg_mem_src( cinfo, inbuffer, inbuffer_size );
 
-	jpeg_read_header( cinfo, TRUE );
+	jpeg_read_header( cinfo, true );
 
 	if ( cinfo->num_components != 1 && cinfo->num_components != 3 )
 	{
 		Error( "Unexpected colours when reading jpeg image: %d", colours );
 		jpeg_abort_decompress( cinfo );
-		return( FALSE );
+		return( false );
 	}
 	
 	/* Check if the image has at least one huffman table defined. If not, use the standard ones */
@@ -992,7 +992,7 @@ bool Image::DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size, unsigned int 
 	if(WriteBuffer(new_width, new_height, new_colours, new_subpixelorder) == NULL) {
 		Error("Failed requesting writeable buffer for reading JPEG image.");
 		jpeg_abort_decompress( cinfo );
-		return( FALSE );
+		return( false );
 	}
 
 	jpeg_start_decompress( cinfo );
@@ -1007,7 +1007,7 @@ bool Image::DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size, unsigned int 
 
 	jpeg_finish_decompress( cinfo );
 
-	return( TRUE );
+	return( true );
 }
 
 bool Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_override ) const
@@ -1061,7 +1061,7 @@ bool Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_over
 #else
 	    Error("libjpeg-turbo is required for JPEG encoding directly from RGB32 source");
 	    jpeg_abort_compress( cinfo );
-	    return(FALSE);
+	    return(false);
 #endif
 	    break;
 	  }
@@ -1075,7 +1075,7 @@ bool Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_over
 #else
 	      Error("libjpeg-turbo is required for JPEG encoding directly from BGR24 source");
 	      jpeg_abort_compress( cinfo );
-	      return(FALSE);                                                                                  
+	      return(false);                                                                                  
 #endif
 	    } else {
 	      /* Assume RGB */
@@ -1096,7 +1096,7 @@ bool Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_over
 	jpeg_set_quality( cinfo, quality, FALSE );
 	cinfo->dct_method = JDCT_FASTEST;
 
-	jpeg_start_compress( cinfo, TRUE );
+	jpeg_start_compress( cinfo, true );
 
 	JSAMPROW row_pointer;	/* pointer to a single row */
 	int row_stride = cinfo->image_width * colours; /* physical row width in buffer */
@@ -1108,7 +1108,7 @@ bool Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_over
 
 	jpeg_finish_compress( cinfo );
 
-	return( TRUE );
+	return( true );
 }
 
 #if HAVE_ZLIB_H
@@ -1119,14 +1119,14 @@ bool Image::Unzip( const Bytef *inbuffer, unsigned long inbuffer_size )
 	if ( result != Z_OK )
 	{
 		Error( "Unzip failed, result = %d", result );
-		return( FALSE );
+		return( false );
 	}
 	if ( zip_size != (unsigned int)size )
 	{
 		Error( "Unzip failed, size mismatch, expected %d bytes, got %ld", size, zip_size );
-		return( FALSE );
+		return( false );
 	}
-	return( TRUE );
+	return( true );
 }
 
 bool Image::Zip( Bytef *outbuffer, unsigned long *outbuffer_size, int compression_level ) const
@@ -1135,9 +1135,9 @@ bool Image::Zip( Bytef *outbuffer, unsigned long *outbuffer_size, int compressio
 	if ( result != Z_OK )
 	{
 		Error( "Zip failed, result = %d", result );
-		return( FALSE );
+		return( false );
 	}
-	return( TRUE );
+	return( true );
 }
 #endif // HAVE_ZLIB_H
 
@@ -1149,17 +1149,17 @@ bool Image::Crop( unsigned int lo_x, unsigned int lo_y, unsigned int hi_x, unsig
 	if ( lo_x > hi_x || lo_y > hi_y )
 	{
 		Error( "Invalid or reversed crop region %d,%d -> %d,%d", lo_x, lo_y, hi_x, hi_y );
-		return( FALSE );
+		return( false );
 	}
 	if ( lo_x < 0 || hi_x > (width-1) || ( lo_y < 0 || hi_y > (height-1) ) )
 	{
 		Error( "Attempting to crop outside image, %d,%d -> %d,%d not in %d,%d", lo_x, lo_y, hi_x, hi_y, width-1, height-1 );
-		return( FALSE );
+		return( false );
 	}
 
 	if ( new_width == width && new_height == height )
 	{
-		return( TRUE );
+		return( true );
 	}
 
 	unsigned int new_size = new_width*new_height*colours;
@@ -1175,7 +1175,7 @@ bool Image::Crop( unsigned int lo_x, unsigned int lo_y, unsigned int hi_x, unsig
 
 	AssignDirect(new_width, new_height, colours, subpixelorder, new_buffer, new_size, ZM_BUFTYPE_ZM);
 
-	return( TRUE );
+	return( true );
 }
 
 bool Image::Crop( const Box &limits )

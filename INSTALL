@@ -1,3 +1,138 @@
+Installing in ReadyNAS 6.1.7 Debian Wheezy
+---------------------------------------
+Instructions d'installation :
+
+1. Cloner la source depuis GitHub
+    # cd /opt
+    # git clone https://github.com/aztazt/ZoneMinder.git
+
+
+2. Crée la base de données et l'utilisateur 'zmuser'@'localhost'
+    # mysql -u root -p
+        DROP USER 'zmuser'@'localhost';
+        DROP DATABASE 'zm';
+        CREATE USER 'zmuser'@'localhost' IDENTIFIED BY 'zmpassword';
+        CREATE DATABASE 'zm';
+        GRANT ALL PRIVILEGES ON zm.* TO 'zmuser'@'localhost' IDENTIFIED BY 'zmpassword';
+        EXIT;
+    # service mysql stop && service mysql start
+
+3. Crée le dossier de logs s'il n'existe pas
+    # mkdir -p /var/log/zm
+
+4. Installe les dépendances
+    # apt-get install apache2 mysql-server php5 php5-mysql build-essential libmysqlclient-dev libssl-dev libpcre3-dev libdbi-perl libpcre3 libwww-perl libdbd-mysql-perl automake autoconf libjpeg8 apache2-mpm-prefork libapache2-mod-php5 php5-cli libgnutls-dev libavcodec-dev libavformat-dev libswscale-dev libavutil-dev libtool ffmpeg libavdevice-dev curl php5-curl libcurl4-openssl-dev libvlc-dev
+    # perl -MCPAN -e shell
+        install YAML PHP::Serialization Module::Load X10::ActiveHome
+        exit
+    # perl -MCPAN -e shell
+        install Sys::Mmap
+        install DBI
+        install DBD::mysql
+        install Date::Manip
+        install PHP::Serialization
+        exit
+
+5. Pour connaître l'utilisateur et le groupe avec lequel est exécuté apache pour mettre dans la commande cmake
+    # cat /etc/apache2/envvars | grep "APACHE_RUN_USER=" | cut -d '=' -f 2
+    # cat /etc/apache2/envvars | grep "APACHE_RUN_GROUP=" | cut -d '=' -f 2
+
+6. Compilation (1/3) - Cmake
+    # cd ZoneMinder
+    # cmake -DZM_DB_HOST=localhost -DZM_DB_NAME=zm -DZM_DB_USER=zmuser -DZM_DB_PASS=zmpassword -DZM_LOGDIR=/var/log/zm -DZM_WEB_USER=admin -DZM_WEB_GROUP=admin -DZM_NO_MMAP=ON .
+
+7. Préparation de la base de données ZM :
+    # mysql zm < /opt/ZoneMinder/db/zm_create.sql
+
+8. Ajout de la configuration du VirtualHost ZM dans la config apache2 :
+    # ln -s /opt/ZoneMinder/misc/apache.conf /etc/apache2/conf.d/zoneminder.conf
+
+9. Editer /etc/apache2/conf.d/zoneminder.conf pour qu'il soit comme ceci (chgts signalés par ->):
+    ->  <VirtualHost *:64080>
+
+        DocumentRoot "/usr/local/share/zoneminder/www"
+        <Directory "/usr/local/share/zoneminder/www">
+            Options FollowSymLinks
+            AllowOverride All
+    ->      Order allow,deny
+    ->      Allow from all
+        </Directory>
+
+        ScriptAlias /cgi-bin/ "/usr/local/libexec/zoneminder/cgi-bin"
+        <Directory "/usr/local/libexec/zoneminder/cgi-bin">
+            Options +ExecCGI -MultiViews +SymLinksIfOwnerMatch
+            AllowOverride All
+        </Directory>
+
+        # Use the first option to have Apache logs written to the general log
+        # directory, or the second to have them written to the regular Apache
+        # directory (you may have to change the path to that used on your system)
+        ErrorLog /var/log/zm/apache-error.log
+    ->  #ErrorLog /var/log/httpd/zm-error.log
+    
+        # Possible values include: debug, info, notice, warn, error, crit,
+        # alert, emerg.
+        LogLevel warn
+
+        # Use the first option to have Apache logs written to the general log
+        # directory, or the second to have them written to the regular Apache
+        # directory (you may have to change the path to that used on your system)
+        CustomLog /var/log/zm/apache-access.log combined
+    ->  #CustomLog /var/log/httpd/zm-access.log combined
+
+    </VirtualHost>
+
+10. Ajouter la ligne "Listen 64080" au fichier /etc/apache2/ports.conf
+    NameVirtualHost *:80
+    Listen 80
+    Listen 64080
+
+    <IfModule mod_ssl.c>
+        NameVirtualHost *:443
+        Listen 443
+    </IfModule>
+
+    <IfModule mod_gnutls.c>
+        Listen 443
+    </IfModule>
+
+11. Compilation (2/3) - Make
+    # cd /opt/ZoneMinder
+    # make
+    // Quelques warning durant la compilation mais pas d'erreur si toutes les dépendances sont installées
+
+12. Compilation (3/3) - make install
+    # makeinstall
+        ou
+    # checkinstall
+
+13. Copier le script de démarrage "zm" dans /etc/init.d :
+    # cp /opt/ZoneMinder/scripts/zm /etc/init.d/
+    # cd /etc/init.d && update-rc.d zm defaults
+
+14. C'est bon, ouvrir Chrome et se rendre à http://<IP du serveur>:64080/
+
+15. Pour mettre à jour ZoneMinder depuis le GitHub de Aztazt :
+    # cd /opt/ZoneMinder && git pull
+
+16. Pour mettre à jour le GitHub Aztazt avec l'original ZoneMinder / Zoneminder :
+	-> https://help.github.com/articles/syncing-a-fork :
+
+		git remote -v
+		git remote add upstream https://github.com/ZoneMinder/ZoneMinder.git
+		git remote -v
+		git fetch upstream
+		git branch -va
+		git checkout master
+		git merge upstream/master
+
+	puis on remonte le tout dans notre Repo GitHub :
+	-> https://help.github.com/articles/pushing-to-a-remote
+
+		git push origin master
+
+
+
 Installing ZoneMinder with cmake
 --------------------------------
 Starting with ZoneMinder 1.26.4, ZoneMinder can now be installed using cmake. This requires cmake version 2.6 or newer.

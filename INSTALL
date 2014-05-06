@@ -39,7 +39,7 @@ Instructions d'installation :
 
 6. Compilation (1/3) - Cmake
     # cd ZoneMinder
-    # cmake -DZM_DB_HOST=localhost -DZM_DB_NAME=zm -DZM_DB_USER=zmuser -DZM_DB_PASS=zmpassword -DZM_LOGDIR=/var/log/zm -DZM_WEB_USER=admin -DZM_WEB_GROUP=admin 6DZM_NO_MMAP=ON .
+    # cmake -DZM_DB_HOST=localhost -DZM_DB_NAME=zm -DZM_DB_USER=zmuser -DZM_DB_PASS=zmpassword -DZM_LOGDIR=/var/log/zm -DZM_WEB_USER=admin -DZM_WEB_GROUP=admin -DZM_NO_MMAP=ON .
 
 7. Préparation de la base de données ZM :
     # mysql zm < /opt/ZoneMinder/db/zm_create.sql

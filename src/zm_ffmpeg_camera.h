@@ -41,6 +41,7 @@ protected:
 #if HAVE_LIBAVFORMAT
     AVFormatContext     *mFormatContext;
     int                 mVideoStreamId;
+    int                 mAudioStreamId;
     AVCodecContext      *mCodecContext;
     AVCodec             *mCodec;
     AVFrame             *mRawFrame; 
@@ -51,12 +52,14 @@ protected:
     bool                wasRecording;
     VideoStore          *videoStore;
     char                oldDirectory[4096];
-    AVPacket            lastKeyframePkt;
+    //AVPacket            lastKeyframePkt;
 
 #if HAVE_LIBSWSCALE
 	struct SwsContext   *mConvertContext;
 #endif
 
+    int64_t             startTime;
+    
 public:
 	FfmpegCamera( int p_id, const std::string &path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
 	~FfmpegCamera();

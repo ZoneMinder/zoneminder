@@ -19,7 +19,7 @@ class Event extends AppModel {
   function createVideo( $event, $format, $rate, $scale, $overwrite=false ) {
   	
   	  if ($event['Videoed']){
-  	  	$videoSrc = "/events/" . $this->getEventPath($event) . "/event.mp4";
+  	  	$videoSrc = "/events/" . $this->getEventPath($event) . "/event.mkv";
   	  	return $videoSrc;
   	  }else{
 		  $command = Configure::read('ZM_PATH_BIN')."/zmvideo.pl -e ".$event['Id']." -f ".$format." -r ".sprintf( "%.2F", ($rate/100) );

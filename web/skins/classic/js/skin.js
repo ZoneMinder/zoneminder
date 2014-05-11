@@ -146,6 +146,7 @@ function createPopup( url, name, tag, width, height )
     if ( popupSize.height > 0 )
         popupDimensions += ",height="+popupSize.height;
     var popup = window.open( url, name, popupOptions+popupDimensions );
+    return popup;
 }
 
 function createEventPopup( eventId, eventFilter, width, height )

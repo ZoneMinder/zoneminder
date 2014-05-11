@@ -137,6 +137,20 @@ if ( ZM_OPT_FFMPEG )
       <div id="eventStream">
         <div id="imageFeed">
 <?php
+if(file_exists(ZM_PATH_WEB."/events/".getEventPath($event)."/event.mkv")){
+?>
+<video id="vid1" width="100%" controls> <!-- <?php echo $event['Width']; ?>" height="<?php echo $event['Height']; ?>" controls> -->
+  <source src="<?php echo "/zm/events/".getEventPath($event)."/event.mkv#t=".$fid/($event['Frames']/$event['Length'])?>" type="video/mp4"> 
+Your browser does not support the video tag.
+</video>
+<button value="FF" onClick="fastForward();"/>
+ <script>
+       //document.getElementById('vid1').addEventListener('loadedmetadata', function() {  this.currentTime = <?php echo $fid/25?>;}, false);
+//       document.getElementById('vid1').oncanplay = function(){this.currentTime = <?php echo $fid/25?>;}
+   </script> 
+
+<?php
+}else{
 if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT )
 {
     $streamSrc = getStreamSrc( array( "source=event", "mode=mpeg", "event=".$eid, "frame=".$fid, "scale=".$scale, "rate=".$rate, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_REPLAY_FORMAT, "replay=".$replayMode ) );
@@ -153,6 +167,7 @@ else
     {
         outputHelperStream( "evtStream", $streamSrc, reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ) );
     }
+}
 }
 ?>
         </div>

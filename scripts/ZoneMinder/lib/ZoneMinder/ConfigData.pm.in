@@ -443,6 +443,15 @@ our @options =
 		category => "images",
 	},
 	{
+		name => "ZM_FFMPEG_OPEN_TIMEOUT",
+		default => "10",
+		description => "Timeout in seconds when opening a stream.",
+		help => "When Ffmpeg is opening a stream, it can take a long time before failing; certain circumstances even seem to be able to lock indefinitely. This option allows you to set a maximum time in seconds to pass before closing the stream and trying to reopen it again.",
+		requires => [ { name=>"ZM_OPT_FFMPEG", value=>"yes" } ],
+		type => $types{integer},
+		category => "images",
+	},
+	{
 		name => "ZM_LOG_LEVEL_SYSLOG",
 		default => "0",
 		description => "Save logging output to the system log",

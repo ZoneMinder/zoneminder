@@ -107,7 +107,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in, AVStream 
     
     keyframeMessage = false;
     keyframeSkipNumber = 0;
-
+    char szErr[1024];
 
 	Info("Opening video storage stream %s\n", filename);
     
@@ -163,8 +163,8 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in, AVStream 
             video_st->avg_frame_rate.den = 1;
             video_st->avg_frame_rate.num = m_fps;
             //video_st->duration = (m_out_end_time - m_out_start_time)*1000;//FIXME what the hell do i put here*/
-        } else
-            Fatal("Unable to copy video context %s\n", av_err2str(ret));
+        } else 
+            Fatal("Unable to copy video context %s\n", av_make_error_string(szErr,1024,ret));
         video_st->codec->codec_tag = 0;
         if (oc->oformat->flags & AVFMT_GLOBALHEADER)
             video_st->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
@@ -183,7 +183,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in, AVStream 
                 audio_st->time_base.num = inpaud_st->time_base.num;
                 audio_st->time_base.den = inpaud_st->time_base.den;*/
             } else
-                Fatal("Unable to copy audio context %s\n", av_err2str(ret));
+                Fatal("Unable to copy audio context %s\n", av_make_error_string(szErr,1024,ret));
             audio_st->codec->codec_tag = 0;
             if (oc->oformat->flags & AVFMT_GLOBALHEADER)
                 audio_st->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
@@ -199,14 +199,14 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in, AVStream 
     if (!(fmt->flags & AVFMT_NOFILE)) {
         ret = avio_open2(&oc->pb, filename, AVIO_FLAG_WRITE,NULL,NULL);
         if (ret < 0) {
-            Fatal("Could not open '%s': %s\n", filename, av_err2str(ret));
+            Fatal("Could not open '%s': %s\n", filename, av_make_error_string(szErr,1024,ret));
         }
     }
     
 	/* Write the stream header, if any. */
 	ret = avformat_write_header(oc, NULL);
 	if (ret < 0) {
-		Fatal("Error occurred when opening output file: %s\n", av_err2str(ret));
+		Fatal("Error occurred when opening output file: %s\n", av_make_error_string(szErr,1024,ret));
 	}
     
     startPts = 0;
@@ -258,6 +258,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st){//, AV
             startDts = 0;
     }*/
      
+    char szErr[1024];
     int64_t ost_tb_start_time = av_rescale_q(startTime, AV_TIME_BASE_Q, video_st->time_base);
      
     AVPacket opkt;
@@ -354,7 +355,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st){//, AV
     int ret;
     ret = av_interleaved_write_frame(oc, &opkt);
     if(ret<0){
-        Fatal("Error encoding video frame packet: %s\n", av_err2str(ret));
+        Fatal("Error encoding video frame packet: %s\n", av_make_error_string(szErr,1024,ret));
     }
     
     av_free_packet(&opkt);
@@ -372,6 +373,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt, AVStream *input_st){
     /*if(!keyframeMessage)
         return -1;*/
         
+    char szErr[1024];
     int64_t ost_tb_start_time = av_rescale_q(startTime, AV_TIME_BASE_Q, video_st->time_base);
         
     AVPacket opkt;
@@ -421,7 +423,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt, AVStream *input_st){
     int ret;
     ret = av_interleaved_write_frame(oc, &opkt);
     if(ret<0){
-        Fatal("Error encoding audio frame packet: %s\n", av_err2str(ret));
+        Fatal("Error encoding audio frame packet: %s\n", av_make_error_string(szErr,1024,ret));
     }
     
     av_free_packet(&opkt);

@@ -148,7 +148,7 @@ int LibvlcCamera::PrimeCapture()
     if (opVect.size() > 0) 
     {
     	mOptArgV = new char*[opVect.size()];
-    	Debug(2, "Size of Option Array: %d",opVect.size());
+    	Debug(2, "Number of Options: %d",opVect.size());
     	for (size_t i=0; i< opVect.size(); i++) {
     		mOptArgV[i] = (char *)opVect[i].c_str();
     		Debug(2, "set option %d to %s", i,  opVect[i].c_str());

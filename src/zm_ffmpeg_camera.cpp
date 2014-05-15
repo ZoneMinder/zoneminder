@@ -121,11 +121,20 @@ int FfmpegCamera::PrimeCapture()
     // Handle options
     AVDictionary *opts = 0;
     StringVector opVect = split(Options(), ",");
+  	Debug(2, "Number of Options: %d",opVect.size());
     for (size_t i=0; i<opVect.size(); i++)
     {
     	StringVector parts = split(opVect[i],"=");
-    	if (parts.size() > 1)
-    		av_dict_set(&opts, trimSpaces(parts[0]).c_str(), trimSpaces(parts[1]).c_str(), 0);
+    	if (parts.size() > 1) {
+    	    if (av_dict_set(&opts, trimSpaces(parts[0]).c_str(), trimSpaces(parts[1]).c_str(), 0)) {
+    	        Debug(2, "set option %d to %s", i,  trimSpaces(parts[1]).c_str());
+    	    }
+    	    else
+    	    {
+    	        Warning( "Error trying to set option %s to '%s'", i, trimSpaces(parts[1]).c_str() );
+    	    }
+    		  
+    	}
     }
     if ( avformat_open_input( &mFormatContext, mPath.c_str(), NULL, &opts ) !=0 )
 #endif

@@ -127,7 +127,7 @@ int FfmpegCamera::PrimeCapture()
     	StringVector parts = split(opVect[i],"=");
     	if (parts.size() > 1) {
     	    if (av_dict_set(&opts, trimSpaces(parts[0]).c_str(), trimSpaces(parts[1]).c_str(), 0)) {
-    	        Debug(2, "set option %d to %s", i,  trimSpaces(parts[1]).c_str());
+    	        Debug(2, "set option %d to '%s'", i,  trimSpaces(parts[1]).c_str());
     	    }
     	    else
     	    {

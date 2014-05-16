@@ -914,7 +914,9 @@ function canStream()
 
 function packageControl( $command )
 {
-    $string = ZM_PATH_BIN.'/zmpkg.pl '.escapeshellarg( $command );
+    // restrict command to a single word of only letters, in case zmpkg.pl has security flaws
+    $saferCommand = preg_replace("/[^A-Za-z]/", "", $command);
+    $string = ZM_PATH_BIN.'/zmpkg.pl '.$saferCommand;
     $string .= " 2>/dev/null >&- <&- >/dev/null";
     exec( $string );
 }

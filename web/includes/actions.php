@@ -468,7 +468,7 @@ if ( !empty($action) )
                     dbQuery( "update Monitors set ".implode( ", ", $changes )." where Id =?", array($mid) );
                     if ( isset($changes['Name']) )
                     {
-                        exec( escapeshellcmd( "mv ".ZM_DIR_EVENTS."/".$monitor['Name']." ".ZM_DIR_EVENTS."/".$_REQUEST['newMonitor']['Name'] ) );
+                        rename( ZM_DIR_EVENTS."/".$monitor['Name'], ZM_DIR_EVENTS."/".$_REQUEST['newMonitor']['Name']);
                     }
                     if ( isset($changes['Width']) || isset($changes['Height']) )
                     {

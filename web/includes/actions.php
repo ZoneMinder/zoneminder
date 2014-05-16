@@ -606,8 +606,10 @@ if ( !empty($action) )
                                 foreach( $markEids as $markEid )
                                     deleteEvent( $markEid );
 
-                                deletePath( ZM_DIR_EVENTS."/".$monitor['Name'] );
-                                deletePath( ZM_DIR_EVENTS."/".$monitor['Id'] );
+                                $saferName = basename($monitor['Name']);
+                                $saferId = basename($monitor['Id']); // although I'm doubtful this could ever be dangerous
+                                deletePath( ZM_DIR_EVENTS."/".$saferName );
+                                deletePath( ZM_DIR_EVENTS."/".$saferId );
                             }
                         }
                     }

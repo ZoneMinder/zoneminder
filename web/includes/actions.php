@@ -212,10 +212,16 @@ if ( !empty($action) )
         }
         elseif ( $action == "settings" )
         {
-            $zmuCommand = getZmuCommand( " -m ".$mid." -B".$_REQUEST['newBrightness']." -C".$_REQUEST['newContrast']." -H".$_REQUEST['newHue']." -O".$_REQUEST['newColour'] );
-            $zmuOutput = exec( escapeshellcmd( $zmuCommand ) );
+            $args = " -m " . escapeshellarg($mid);
+            $args .= " -B" . escapeshellarg($_REQUEST['newBrightness']);
+            $args .= " -C" . escapeshellarg($_REQUEST['newContrast']);
+            $args .= " -H" . escapeshellarg($_REQUEST['newHue']);
+            $args .= " -O" . escapeshellarg($_REQUEST['newColour']);
+            $zmuCommand = getZmuCommand( $args );
+            $zmuOutput = exec( $zmuCommand );
             list( $brightness, $contrast, $hue, $colour ) = explode( ' ', $zmuOutput );
-            dbQuery( "update Monitors set Brightness = '".$brightness."', Contrast = '".$contrast."', Hue = '".$hue."', Colour = '".$colour."' where Id = '".$mid."'" );
+            dbQuery( "update Monitors set Brightness = ?, Contrast = ?, Hue = ?, Colour = ? where Id = ?",
+                             array($brightness, $contrast, $hue, $colour, $mid));
         }
     }
 

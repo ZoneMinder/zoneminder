@@ -148,11 +148,11 @@ int LibvlcCamera::PrimeCapture()
     
     // Set transport method as specified by method field, rtpUni is default
     if ( Method() == "rtpMulti" )
-    	opVect.add("--rtsp-mcast");
+    	opVect.push_back("--rtsp-mcast");
     else if ( Method() == "rtpRtsp" )
-        opVect.add("--rtsp-tcp");
+        opVect.push_back("--rtsp-tcp");
     else if ( Method() == "rtpRtspHttp" )
-        opVect.add("--rtsp-http");
+        opVect.push_back("--rtsp-http");
 
     if (opVect.size() > 0) 
     {

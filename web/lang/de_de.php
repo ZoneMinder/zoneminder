@@ -861,17 +861,17 @@ function zmVlang( $langVarArray, $count )
 // So for example, to override the help text for ZM_LANG_DEFAULT do
 $OLANG = array(
 	'OPTIONS_FFMPEG' => array(
-		'Help' => "Im Feld Optionen können Parameter angegeben werden, die direkt an FFmpeg weitergegeben werden. Mehrere Parameter können mit , getrennt werden. ".
-		          "Einige Bespiele: (Anführungszeichen nicht eingeben)~~~~".
-		          "\"rtsp_transport=tcp\" Verwenden von TCP statt UDP für die Übermittlung des Datenstroms von der Kamera~~~~".
-		          "\"rtsp_transport=http\" Verwenden von http tunneling für die Übermittlung des Datenstroms von der Kamera~~~~".
-		          "\"loglevel=debug\" Gibt an wie viele Status/Debug Meldungen angezeigt werden sollen (quiet, panic, fatal, error, warning, info, verbose, debug)"
+		'Help' => "Parameters in this field are passwd on to FFmpeg. Multiple parameters can be separated by ,~~ ".
+		          "Examples (do not enter quotes)~~~~".
+		          "\"allowed_media_types=video\" Set datatype to request fromcam (audio, video, data)~~~~".
+		          "\"reorder_queue_size=nnn\" Set number of packets to buffer for handling of reordered packets~~~~".
+		          "\"loglevel=debug\" Set verbosiy of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
 	),
 	'OPTIONS_LIBVLC' => array(
-		'Help' => "Im Feld Optionen können Parameter angegeben werden, die direkt an Libvlc weitergegeben werden. Mehrere Parameter können mit , getrennt werden. ".
-		          "Einige Bespiele: (Anführungszeichen nicht eingeben)~~~~".
-		          "\"--rtsp-tcp\" Verwenden von TCP statt UDP für die Übermittlung des Datenstroms von der Kamera~~~~". 
-		          "\"--verbose=2\" Gibt an wie viele Status/Debug Meldungen angezeigt werden sollen"
+		'Help' => "Parameters in this field are passwd on to libVLC. Multiple parameters can be separated by ,~~ ".
+		          "Examples (do not enter quotes)~~~~".
+		          "\"--rtp-client-port=nnn\" Set local port to use for rtp data~~~~". 
+		          "\"--verbose=2\" Set verbosity of libVLC"
 	),
 	
 //    'LANG_DEFAULT' => array(

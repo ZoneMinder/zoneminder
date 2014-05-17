@@ -125,11 +125,11 @@ int FfmpegCamera::PrimeCapture()
     
     // Set transport method as specified by method field, rtpUni is default
     if ( Method() == "rtpMulti" )
-    	opVect.add("rtsp_transport=udp_multicast");
+    	opVect.push_back("rtsp_transport=udp_multicast");
     else if ( Method() == "rtpRtsp" )
-        opVect.add("rtsp_transport=tcp");
+        opVect.push_back("rtsp_transport=tcp");
     else if ( Method() == "rtpRtspHttp" )
-        opVect.add("rtsp_transport=http");
+        opVect.push_back("rtsp_transport=http");
     
   	Debug(2, "Number of Options: %d",opVect.size());
     for (size_t i=0; i<opVect.size(); i++)

@@ -1,7 +1,7 @@
 <?php
 //
 // ZoneMinder web monitor view file, $Date$, $Revision$
-// Copyright (C) 2001-2008 Philip CoombesMethod
+// Copyright (C) 2001-2008 Philip Coombes
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License

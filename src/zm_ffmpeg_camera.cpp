@@ -23,9 +23,10 @@
 
 #include "zm_ffmpeg_camera.h"
 
-FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) :
+FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::string &p_method, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) :
     Camera( p_id, FFMPEG_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture ),
     mPath( p_path ),
+    mMethod( p_method ),
     mOptions( p_options )
 {
 	if ( capture )
@@ -121,6 +122,15 @@ int FfmpegCamera::PrimeCapture()
     // Handle options
     AVDictionary *opts = 0;
     StringVector opVect = split(Options(), ",");
+    
+    // Set transport method as specified by method field, rtpUni is default
+    if ( Method() == "rtpMulti" )
+    	opVect.add("rtsp_transport=udp_multicast");
+    else if ( Method() == "rtpRtsp" )
+        opVect.add("rtsp_transport=tcp");
+    else if ( Method() == "rtpRtspHttp" )
+        opVect.add("rtsp_transport=http");
+    
   	Debug(2, "Number of Options: %d",opVect.size());
     for (size_t i=0; i<opVect.size(); i++)
     {
@@ -138,6 +148,7 @@ int FfmpegCamera::PrimeCapture()
     		  
     	}
     }
+
     if ( avformat_open_input( &mFormatContext, mPath.c_str(), NULL, &opts ) !=0 )
 #endif
         Fatal( "Unable to open input %s due to: %s", mPath.c_str(), strerror(errno) );

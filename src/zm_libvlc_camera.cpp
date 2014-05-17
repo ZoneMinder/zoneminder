@@ -61,9 +61,10 @@ void LibvlcUnlockBuffer(void* opaque, void* picture, void *const *planes)
     }
 }
 
-LibvlcCamera::LibvlcCamera( int p_id, const std::string &p_path, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) :
+LibvlcCamera::LibvlcCamera( int p_id, const std::string &p_path, const std::string &p_method, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) :
     Camera( p_id, LIBVLC_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture ),
     mPath( p_path ),
+    mMethod( p_method ),
     mOptions( p_options )
 {	
 	mLibvlcInstance = NULL;
@@ -144,6 +145,14 @@ int LibvlcCamera::PrimeCapture()
     Info("Priming capture from %s", mPath.c_str());
     
     StringVector opVect = split(Options(), ",");
+    
+    // Set transport method as specified by method field, rtpUni is default
+    if ( Method() == "rtpMulti" )
+    	opVect.add("--rtsp-mcast");
+    else if ( Method() == "rtpRtsp" )
+        opVect.add("--rtsp-tcp");
+    else if ( Method() == "rtpRtspHttp" )
+        opVect.add("--rtsp-http");
 
     if (opVect.size() > 0) 
     {

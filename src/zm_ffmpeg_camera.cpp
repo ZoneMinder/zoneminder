@@ -126,12 +126,14 @@ int FfmpegCamera::PrimeCapture()
     {
     	StringVector parts = split(opVect[i],"=");
     	if (parts.size() > 1) {
-    	    if ( av_dict_set(&opts, trimSpaces(parts[0]).c_str(), trimSpaces(parts[1]).c_str(), 0) == 0 ) {
-    	        Debug(2, "set option %d '%s' to '%s'", i,  trimSpaces(parts[0]).c_str(), trimSpaces(parts[1]).c_str());
+    		parts[0] = trimSpaces(parts[0]);
+    		parts[1] = trimSpaces(parts[1]);
+    	    if ( av_dict_set(&opts, parts[0].c_str(), parts[1].c_str(), 0) == 0 ) {
+    	        Debug(2, "set option %d '%s' to '%s'", i,  parts[0].c_str(), parts[1].c_str());
     	    }
     	    else
     	    {
-    	        Warning( "Error trying to set option %d '%s' to '%s'", i, trimSpaces(parts[0]).c_str(), trimSpaces(parts[1]).c_str() );
+    	        Warning( "Error trying to set option %d '%s' to '%s'", i, parts[0].c_str(), parts[1].c_str() );
     	    }
     		  
     	}

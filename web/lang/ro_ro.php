@@ -350,6 +350,7 @@ $SLANG = array(
     'Last'                 => 'Ultim',
     'Layout'               => 'Layout',                 // Added - 2009-02-08
     'Level'                => 'Level',                  // Added - 2011-06-16
+    'Libvlc'               => 'Libvlc',
     'LimitResultsPost'     => 'rezultate',
     'LimitResultsPre'      => 'Limiteaz&#259; la primele',
     'Line'                 => 'Line',                   // Added - 2011-06-16
@@ -1296,6 +1297,22 @@ $OLANG = array(
         'Prompt' => "C&#226;t de des (&#238;n secunde) se vor schimba imaginile &#238;n ciclul de monitorizare.",
         'Help' => "Ciclul de monitorizare este metoda de schimbare continu&#259; a imaginilor monitoarelor. Aceast&#259; op&#355;iune determin&#259; c&#226;t de des va fi actulizat cu o nou&#259; imagine."
     ),
+    
+// Options on Monitor view
+	'OPTIONS_FFMPEG' => array(
+		'Help' => "Parameters in this field are passwd on to FFmpeg. Multiple parameters can be separated by ,~~ ".
+		          "Examples (do not enter quotes)~~~~".
+		          "\"rtsp_transport=tcp\" Use TCP instead of UDP for the data stream from the camera~~~~".
+		          "\"rtsp_transport=http\" Use http tunneling for the data stream from the camera~~~~".
+		          "\"loglevel=debug\" Set verbosiy of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
+	),
+	'OPTIONS_LIBVLC' => array(
+		'Help' => "Parameters in this field are passwd on to libVLC. Multiple parameters can be separated by ,~~ ".
+		          "Examples (do not enter quotes)~~~~".
+		          "\"--rtsp-tcp\" Use TCP instead of UDP for the data stream from the camera~~~~". 
+		          "\"--verbose=2\" Set verbosity of libVLC"
+	),
+
 // End of Phone Bandwidth tab
 //
 );

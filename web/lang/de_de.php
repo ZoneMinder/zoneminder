@@ -379,6 +379,7 @@ $SLANG = array(
     'Last'                 => 'Letztes',
     'Layout'               => 'Layout',                 // Added - 2009-02-08
     'Level'                => 'Level',                  // Added - 2011-06-16
+    'Libvlc'               => 'Libvlc',
     'LimitResultsPost'     => 'Ergebnisse;', // This is used at the end of the phrase 'Limit to first N results only'
     'LimitResultsPre'      => 'Begrenze nur auf die ersten', // This is used at the beginning of the phrase 'Limit to first N results only'
     'Line'                 => 'Line',                   // Added - 2011-06-16
@@ -859,6 +860,20 @@ function zmVlang( $langVarArray, $count )
 // These overrides are in the form show below where the array key represents the option name minus the initial ZM_
 // So for example, to override the help text for ZM_LANG_DEFAULT do
 $OLANG = array(
+	'OPTIONS_FFMPEG' => array(
+		'Help' => "Im Feld Optionen können Parameter angegeben werden, die direkt an FFmpeg weitergegeben werden. Mehrere Parameter können mit , getrennt werden. ".
+		          "Einige Bespiele: (Anführungszeichen nicht eingeben)~~~~".
+		          "\"rtsp_transport=tcp\" Verwenden von TCP statt UDP für die Übermittlung des Datenstroms von der Kamera~~~~".
+		          "\"rtsp_transport=http\" Verwenden von http tunneling für die Übermittlung des Datenstroms von der Kamera~~~~".
+		          "\"loglevel=debug\" Gibt an wie viele Status/Debug Meldungen angezeigt werden sollen (quiet, panic, fatal, error, warning, info, verbose, debug)"
+	),
+	'OPTIONS_LIBVLC' => array(
+		'Help' => "Im Feld Optionen können Parameter angegeben werden, die direkt an Libvlc weitergegeben werden. Mehrere Parameter können mit , getrennt werden. ".
+		          "Einige Bespiele: (Anführungszeichen nicht eingeben)~~~~".
+		          "\"--rtsp-tcp\" Verwenden von TCP statt UDP für die Übermittlung des Datenstroms von der Kamera~~~~". 
+		          "\"--verbose=2\" Gibt an wie viele Status/Debug Meldungen angezeigt werden sollen"
+	),
+	
 //    'LANG_DEFAULT' => array(
 //        'Prompt' => "This is a new prompt for this option",
 //        'Help' => "This is some new help for this option which will be displayed in the popup window when the ? is clicked"

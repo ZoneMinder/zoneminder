@@ -864,6 +864,20 @@ $OLANG = array(
         'Prompt' => "Välj språk för ZoneMinder",
         'Help' => "ZoneMinder kan använda annat språk än engelska i menyer och texter. Välj här det språk du vill använda till ZoneMinder."
     ),
+	'OPTIONS_FFMPEG' => array(
+		'Help' => "Parameters in this field are passwd on to FFmpeg. Multiple parameters can be separated by ,~~ ".
+		          "Examples (do not enter quotes)~~~~".
+		          "\"rtsp_transport=tcp\" Use TCP instead of UDP for the data stream from the camera~~~~".
+		          "\"rtsp_transport=http\" Use http tunneling for the data stream from the camera~~~~".
+		          "\"loglevel=debug\" Set verbosiy of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
+	),
+	'OPTIONS_LIBVLC' => array(
+		'Help' => "Parameters in this field are passwd on to libVLC. Multiple parameters can be separated by ,~~ ".
+		          "Examples (do not enter quotes)~~~~".
+		          "\"--rtsp-tcp\" Use TCP instead of UDP for the data stream from the camera~~~~". 
+		          "\"--verbose=2\" Set verbosity of libVLC"
+	),
+	
 );
 
 ?>

@@ -19,7 +19,7 @@
 //
 
 $optionHelpIndex = preg_replace( '/^ZM_/', '', $_REQUEST['option'] );
-$optionHelpText = !empty($OLANG[$optionHelpIndex])?$OLANG[$optionHelpIndex]:$config[$_REQUEST['option']]['Help'];
+$optionHelpText = !empty($OLANG[$optionHelpIndex])?$OLANG[$optionHelpIndex]['Help']:$config[$_REQUEST['option']]['Help'];
 $optionHelpText = validHtmlStr($optionHelpText);
 $optionHelpText = preg_replace( "/~~/", "<br/>", $optionHelpText );
 

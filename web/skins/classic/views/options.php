@@ -210,7 +210,7 @@ else
     foreach ( $configCat as $name=>$value )
     {
         $shortName = preg_replace( '/^ZM_/', '', $name );
-        $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]:$value['Prompt'];
+        $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]['Prompt']:$value['Prompt'];
 ?>
             <tr>
               <td><?= $shortName ?></td>

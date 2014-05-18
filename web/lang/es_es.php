@@ -376,6 +376,7 @@ $SLANG = array(
     'Last'                  => 'Último',
     'Layout'                => 'Diseño',
     'Level'                 => 'Nivel',
+    'Libvlc'               => 'Libvlc',
     'LimitResultsPost'      => 'Sólo resultados', // This is used at the end of the phrase 'Limit to first N results only'
     'LimitResultsPre'       => 'Limitar al primero', // This is used at the beginning of the phrase 'Limit to first N results only'
     'Line'                  => 'Línea',
@@ -760,6 +761,20 @@ function zmVlang( $langVarArray, $count )
 
 
 $OLANG = array(
+	'OPTIONS_FFMPEG' => array(
+		'Help' => "Parameters in this field are passwd on to FFmpeg. Multiple parameters can be separated by ,~~ ".
+		          "Examples (do not enter quotes)~~~~".
+		          "\"allowed_media_types=video\" Set datatype to request fromcam (audio, video, data)~~~~".
+		          "\"reorder_queue_size=nnn\" Set number of packets to buffer for handling of reordered packets~~~~".
+		          "\"loglevel=debug\" Set verbosiy of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
+	),
+	'OPTIONS_LIBVLC' => array(
+		'Help' => "Parameters in this field are passwd on to libVLC. Multiple parameters can be separated by ,~~ ".
+		          "Examples (do not enter quotes)~~~~".
+		          "\"--rtp-client-port=nnn\" Set local port to use for rtp data~~~~". 
+		          "\"--verbose=2\" Set verbosity of libVLC"
+	),
+	
 );
 
 ?>

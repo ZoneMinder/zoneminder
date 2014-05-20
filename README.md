@@ -7,5 +7,9 @@ Second attempt at contact: Monday, May 19th, posting in Zoneminder forums.  http
 
 Third attempt at contact: Monday, May 19th, directly mailing security@zoneminder.com
 
-Fourth attempt at contact: Monday, MAy 19th, sent a PM to likely maintainer as indicated on forums.
+Fourth attempt at contact: Monday, May 19th, sent a PM to likely maintainer as indicated on forums.
+
+Was told by that contact to make an issue on GitHub.  Okay.
+
+
 

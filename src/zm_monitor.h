@@ -181,7 +181,7 @@ protected:
 #else // ZM_MEM_MAPPED
         int             shm_id;
 #endif // ZM_MEM_MAPPED
-		int				mem_size;
+		unsigned long				mem_size;
 		unsigned char	*mem_ptr;
 
 		volatile SharedData	*shared_data;
@@ -245,11 +245,13 @@ protected:
 	int				stream_replay_buffer;   // How many frames to store to support DVR functions, IGNORED from this object, passed directly into zms now
 	int				section_length;		    // How long events should last in continuous modes
 	int				frame_skip;			    // How many frames to skip in continuous modes
+	int				motion_frame_skip;		    // How many frames to skip in motion detection
 	int				capture_delay;		    // How long we wait between capture frames
 	int				alarm_capture_delay;    // How long we wait between capture frames when in alarm state
 	int				alarm_frame_count;	    // How many alarm frames are required before an event is triggered
 	int				fps_report_interval;    // How many images should be captured/processed between reporting the current FPS
 	int				ref_blend_perc;		    // Percentage of new image going into reference image.
+	int				alarm_ref_blend_perc;		    // Percentage of new image going into reference image during alarm.
 	bool			track_motion;		    // Whether this monitor tries to track detected motion 
     Rgb             signal_check_colour;    // The colour that the camera will emit when no video signal detected
 
@@ -269,6 +271,7 @@ protected:
 	time_t			start_time;
 	time_t			last_fps_time;
 	time_t			auto_resume_time;
+        unsigned int            last_motion_score;
 
     EventCloseMode  event_close_mode;
 
@@ -278,7 +281,7 @@ protected:
 #else // ZM_MEM_MAPPED
     int             shm_id;
 #endif // ZM_MEM_MAPPED
-	int				mem_size;
+	unsigned long				mem_size;
 	unsigned char	*mem_ptr;
 
 	SharedData		*shared_data;
@@ -303,7 +306,7 @@ protected:
 public:
 // OurCheckAlarms seems to be unused. Check it on zm_monitor.cpp for more info.
 //bool OurCheckAlarms( Zone *zone, const Image *pImage );
-	Monitor( int p_id, const char *p_name, int p_function, bool p_enabled, const char *p_linked_monitors, Camera *p_camera, int p_orientation, unsigned int p_deinterlacing, const char *p_event_prefix, const char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_stream_replay_buffer, int p_alarm_frame_count, int p_section_length, int p_frame_skip, int p_capture_delay, int p_alarm_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, bool p_track_motion, Rgb p_signal_check_colour, Purpose p_purpose, int p_n_zones=0, Zone *p_zones[]=0 );
+	Monitor( int p_id, const char *p_name, int p_function, bool p_enabled, const char *p_linked_monitors, Camera *p_camera, int p_orientation, unsigned int p_deinterlacing, const char *p_event_prefix, const char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_stream_replay_buffer, int p_alarm_frame_count, int p_section_length, int p_frame_skip, int p_motion_frame_skip, int p_capture_delay, int p_alarm_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, int p_alarm_ref_blend_perc, bool p_track_motion, Rgb p_signal_check_colour, Purpose p_purpose, int p_n_zones=0, Zone *p_zones[]=0 );
 	~Monitor();
 
 	void AddZones( int p_n_zones, Zone *p_zones[] );

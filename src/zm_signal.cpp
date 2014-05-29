@@ -24,174 +24,154 @@
 #include <string.h>
 #include <stdlib.h>
 
-bool zm_reload = false;
+#define TRACE_SIZE 16
 
-RETSIGTYPE zm_hup_handler( int signal )
+bool zm_reload = false;
+bool zm_terminate = false;
+
+RETSIGTYPE zm_hup_handler(int signal)
 {
-#if HAVE_STRSIGNAL
-	Info( "Got signal %d (%s), reloading", signal, strsignal(signal) );
-#else // HAVE_STRSIGNAL
-	Info( "Got HUP signal, reloading" );
-#endif // HAVE_STRSIGNAL
+	Info("Got signal %d (%s), reloading", signal, strsignal(signal));
 	zm_reload = true;
 }
 
-bool zm_terminate = false;
-
-RETSIGTYPE zm_term_handler( int signal )
+RETSIGTYPE zm_term_handler(int signal)
 {
-#if HAVE_STRSIGNAL
-	Info( "Got signal %d (%s), exiting", signal, strsignal(signal) );
-#else // HAVE_STRSIGNAL
-	Info( "Got TERM signal, exiting" );
-#endif // HAVE_STRSIGNAL
+	Info("Got signal %d (%s), exiting", signal, strsignal(signal));
 	zm_terminate = true;
 }
 
-#define TRACE_SIZE 16
-
-#if HAVE_STRUCT_SIGCONTEXT
-RETSIGTYPE zm_die_handler( int signal, struct sigcontext context )
-#elif ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
-#include <ucontext.h>
-RETSIGTYPE zm_die_handler( int signal, siginfo_t *info, void *context )
+#if ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
+RETSIGTYPE zm_die_handler(int signal, siginfo_t * info, void *context)
 #else
-RETSIGTYPE zm_die_handler( int signal )
+RETSIGTYPE zm_die_handler(int signal)
 #endif
 {
-    if ( signal == SIGABRT )
-    {
-#if HAVE_STRSIGNAL
-	    Info( "Got signal %d (%s), exiting and forcing backtrace", signal, strsignal(signal) );
-#else // HAVE_STRSIGNAL
-	    Error( "Got signal %d, exiting and forcing backtrace", signal );
-#endif // HAVE_STRSIGNAL
-    }
-    else
-    {
-#if HAVE_STRSIGNAL
-	    Info( "Got signal %d (%s), crashing", signal, strsignal(signal) );
-#else // HAVE_STRSIGNAL
-	    Error( "Got signal %d, crashing", signal );
-#endif // HAVE_STRSIGNAL
-    }
+#if (defined(__i386__) || defined(__x86_64__))
+	void *cr2 = 0;
+	void *ip = 0;
+#endif
+	Error("Got signal %d (%s), crashing", signal, strsignal(signal));
 
-#ifndef ZM_NO_CRASHTRACE
-#if ( ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T ) || HAVE_STRUCT_SIGCONTEXT )
+#if (defined(__i386__) || defined(__x86_64__))
+	// Get more information if available
+#if ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
+	if (info && context) {
+
+		Debug(1,
+		      "Signal information: number %d code %d errno %d pid %d uid %d status %d",
+		      signal, info->si_code, info->si_errno, info->si_pid,
+		      info->si_uid, info->si_status);
+
+		ucontext_t *uc = (ucontext_t *) context;
+#if defined(__x86_64__)
+		cr2 = info->si_addr;
+		ip = (void *)(uc->uc_mcontext.gregs[REG_RIP]);
+#else
+		cr2 = info->si_addr;
+		ip = (void *)(uc->uc_mcontext.gregs[REG_EIP]);
+#endif				// defined(__x86_64__)
+
+		// Print the signal address and instruction pointer if available
+		if (ip) {
+			Error("Signal address is %p, from %p", cr2, ip);
+		} else {
+			Error("Signal address is %p, no instruction pointer", cr2);
+		}
+	}
+#endif				// ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
+
+
+	// Print backtrace if enabled and available
+#if ( !defined(ZM_NO_CRASHTRACE) && HAVE_DECL_BACKTRACE && HAVE_DECL_BACKTRACE_SYMBOLS )
 	void *trace[TRACE_SIZE];
 	int trace_size = 0;
+	trace_size = backtrace(trace, TRACE_SIZE);
 
-#if HAVE_STRUCT_SIGCONTEXT_EIP
-	Error( "Signal address is %p, from %p", (void *)context.cr2, (void *)context.eip );
+	char cmd[1024] = "addr2line -e ";
+	char *cmd_ptr = cmd + strlen(cmd);
+	cmd_ptr += snprintf(cmd_ptr, sizeof(cmd) - (cmd_ptr - cmd), "%s", self);
 
-	trace_size = backtrace( trace, TRACE_SIZE );
-	// overwrite sigaction with caller's address
-	trace[1] = (void *)context.eip;
-#elif HAVE_STRUCT_SIGCONTEXT
-	Error( "Signal address is %p, no eip", (void *)context.cr2 );
-
-	trace_size = backtrace( trace, TRACE_SIZE );
-#else // HAVE_STRUCT_SIGCONTEXT
-	if ( info && context )
-	{
-		ucontext_t *uc = (ucontext_t *)context;
-
-		Error( "Signal address is %p, from %p", info->si_addr, uc->uc_mcontext.gregs[REG_EIP] );
-
-		trace_size = backtrace( trace, TRACE_SIZE );
-		// overwrite sigaction with caller's address
-		trace[1] = (void *) uc->uc_mcontext.gregs[REG_EIP];
+	char **messages = backtrace_symbols(trace, trace_size);
+	// Print the full backtrace
+	for (int i = 0; i < trace_size; i++) {
+		Error("Backtrace %u: %s", i, messages[i]);
+		cmd_ptr +=
+		    snprintf(cmd_ptr, sizeof(cmd) - (cmd_ptr - cmd), " %p",
+			     trace[i]);
 	}
-#endif // HAVE_STRUCT_SIGCONTEXT
-#if HAVE_DECL_BACKTRACE
-    char cmd[1024] = "addr2line -e ";
-    char *cmd_ptr = cmd+strlen(cmd);
-    // Try and extract the binary path from the last backtrace frame
-	char **messages = backtrace_symbols( trace, trace_size );
-    if ( size_t offset = strcspn( messages[trace_size-1], " " ) )
-    {
-        snprintf( cmd_ptr, sizeof(cmd)-(cmd_ptr-cmd), "%s", messages[trace_size-1] );
-        cmd_ptr += offset;
-    }
-    else
-    {
-        cmd_ptr += snprintf( cmd_ptr, sizeof(cmd)-(cmd_ptr-cmd), "/path/to/%s", logId().c_str() );
-    }
-	// skip first stack frame (points here)
-	for ( int i=1; i < trace_size; i++ )
-    {
-		Error( "Backtrace: %s", messages[i] );
-        cmd_ptr += snprintf( cmd_ptr, sizeof(cmd)-(cmd_ptr-cmd), " %p", trace[i] );
-    }
-	Info( "Backtrace complete, please execute the following command for more information" );
-    Info( cmd );
-#endif // HAVE_DECL_BACKTRACE
-#endif // ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T ) || HAVE_STRUCT_SIGCONTEXT
-#endif // ZM_NO_CRASHTRACE
+	free(messages);
 
-	exit( signal );
+	Info("Backtrace complete, please execute the following command for more information");
+	Info(cmd);
+#endif				// ( !defined(ZM_NO_CRASHTRACE) && HAVE_DECL_BACKTRACE && HAVE_DECL_BACKTRACE_SYMBOLS )
+#endif                          // (defined(__i386__) || defined(__x86_64__)
+	exit(signal);
 }
 
-void zmSetHupHandler( SigHandler *handler )
+void zmSetHupHandler(SigHandler * handler)
 {
 	sigset_t block_set;
-	sigemptyset( &block_set );
+	sigemptyset(&block_set);
 	struct sigaction action, old_action;
 
-	action.sa_handler = (SigHandler *)handler;
+	action.sa_handler = (SigHandler *) handler;
 	action.sa_mask = block_set;
-	action.sa_flags = 0;
-	sigaction( SIGHUP, &action, &old_action );
+	action.sa_flags = SA_RESTART;
+	sigaction(SIGHUP, &action, &old_action);
 }
 
-void zmSetTermHandler( SigHandler *handler )
+void zmSetTermHandler(SigHandler * handler)
 {
 	sigset_t block_set;
-	sigemptyset( &block_set );
+	sigemptyset(&block_set);
 	struct sigaction action, old_action;
 
-	action.sa_handler = (SigHandler *)handler;
+	action.sa_handler = (SigHandler *) handler;
 	action.sa_mask = block_set;
-	action.sa_flags = 0;
-	sigaction( SIGTERM, &action, &old_action );
+	action.sa_flags = SA_RESTART;
+	sigaction(SIGTERM, &action, &old_action);
+	sigaction(SIGINT, &action, &old_action);
+	sigaction(SIGQUIT, &action, &old_action);
 }
 
-void zmSetDieHandler( SigHandler *handler )
+void zmSetDieHandler(SigHandler * handler)
 {
 	sigset_t block_set;
-	sigemptyset( &block_set );
+	sigemptyset(&block_set);
 	struct sigaction action, old_action;
 
-	action.sa_handler = (SigHandler *)handler;
 	action.sa_mask = block_set;
+#if ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
+	action.sa_sigaction = (void (*)(int, siginfo_t *, void *))handler;
+	action.sa_flags = SA_SIGINFO;
+#else
+	action.sa_handler = (SigHandler *) handler;
 	action.sa_flags = 0;
+#endif
 
-	sigaction( SIGBUS, &action, &old_action );
-	sigaction( SIGSEGV, &action, &old_action );
-	sigaction( SIGABRT, &action, &old_action );
-	sigaction( SIGILL, &action, &old_action );
-	sigaction( SIGFPE, &action, &old_action );
+	sigaction(SIGBUS, &action, &old_action);
+	sigaction(SIGSEGV, &action, &old_action);
+	sigaction(SIGABRT, &action, &old_action);
+	sigaction(SIGILL, &action, &old_action);
+	sigaction(SIGFPE, &action, &old_action);
 }
 
 void zmSetDefaultHupHandler()
 {
-	zmSetHupHandler( (SigHandler *)zm_hup_handler );
+	zmSetHupHandler((SigHandler *) zm_hup_handler);
 }
 
 void zmSetDefaultTermHandler()
 {
-	zmSetTermHandler( (SigHandler *)zm_term_handler );
+	zmSetTermHandler((SigHandler *) zm_term_handler);
 }
 
 void zmSetDefaultDieHandler()
 {
-    if ( config.dump_cores )
-    {
-        // Do nothing
-    }
-    else
-    {
-	    zmSetDieHandler( (SigHandler *)zm_die_handler );
-    }
+	if (config.dump_cores) {
+		// Do nothing
+	} else {
+		zmSetDieHandler((SigHandler *) zm_die_handler);
+	}
 }
-

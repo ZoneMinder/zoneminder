@@ -95,7 +95,7 @@ sub getCmdFormat()
     Debug( "Testing valid shell syntax\n" );
 
     my ( $name ) = getpwuid( $> );
-    if ( $name eq ZM_WEB_USER )
+    if ( $name eq $Config{ZM_WEB_USER} )
     {
         Debug( "Running as '$name', su commands not needed\n" );
         return( "" );
@@ -103,7 +103,7 @@ sub getCmdFormat()
 
     my $null_command = "true";
 
-    my $prefix = "sudo -u ".ZM_WEB_USER." ";
+    my $prefix = "sudo -u ".$Config{ZM_WEB_USER}." ";
     my $suffix = "";
     my $command = $prefix.$null_command.$suffix;
     Debug( "Testing \"$command\"\n" );
@@ -120,7 +120,7 @@ sub getCmdFormat()
         chomp( $output );
         Debug( "Test failed, '$output'\n" );
 
-        $prefix = "su ".ZM_WEB_USER." --shell=/bin/sh --command='";
+        $prefix = "su ".$Config{ZM_WEB_USER}." --shell=/bin/sh --command='";
         $suffix = "'";
         $command = $prefix.$null_command.$suffix;
         Debug( "Testing \"$command\"\n" );
@@ -136,7 +136,7 @@ sub getCmdFormat()
             chomp( $output );
             Debug( "Test failed, '$output'\n" );
 
-            $prefix = "su ".ZM_WEB_USER." -c '";
+            $prefix = "su ".$Config{ZM_WEB_USER}." -c '";
             $suffix = "'";
             $command = $prefix.$null_command.$suffix;
             Debug( "Testing \"$command\"\n" );
@@ -172,7 +172,7 @@ sub runCommand( $ )
     }
 
     my $command = shift;
-    $command = ZM_PATH_BIN."/".$command;
+    $command = $Config{ZM_PATH_BIN}."/".$command;
     if ( $cmdPrefix )
     {
         $command = $cmdPrefix.$command.$cmdSuffix;
@@ -201,15 +201,15 @@ sub getEventPath( $ )
     my $event = shift;
 
     my $event_path = "";
-    if ( ZM_USE_DEEP_STORAGE )
+    if ( $Config{ZM_USE_DEEP_STORAGE} )
     {
-        $event_path = ZM_DIR_EVENTS.'/'.$event->{MonitorId}.'/'.strftime( "%y/%m/%d/%H/%M/%S", localtime($event->{Time}) );
+        $event_path = $Config{ZM_DIR_EVENTS}.'/'.$event->{MonitorId}.'/'.strftime( "%y/%m/%d/%H/%M/%S", localtime($event->{Time}) );
     }
     else
     {
-        $event_path = ZM_DIR_EVENTS.'/'.$event->{MonitorId}.'/'.$event->{Id};
+        $event_path = $Config{ZM_DIR_EVENTS}.'/'.$event->{MonitorId}.'/'.$event->{Id};
     }
-    $event_path = ZM_PATH_WEB.'/'.$event_path if ( index(ZM_DIR_EVENTS,'/') != 0 );
+    $event_path = $Config{ZM_PATH_WEB}.'/'.$event_path if ( index($Config{ZM_DIR_EVENTS},'/') != 0 );
     return( $event_path );
 }
 
@@ -219,10 +219,10 @@ sub createEventPath( $ )
     # WARNING assumes running from events directory
     #
     my $event = shift;
-    my $eventRootPath = (ZM_DIR_EVENTS=~m|/|)?ZM_DIR_EVENTS:(ZM_PATH_WEB.'/'.ZM_DIR_EVENTS);
+    my $eventRootPath = ($Config{ZM_DIR_EVENTS}=~m|/|)?$Config{ZM_DIR_EVENTS}:($Config{ZM_PATH_WEB}.'/'.$Config{ZM_DIR_EVENTS});
     my $eventPath = $eventRootPath.'/'.$event->{MonitorId};
 
-    if ( ZM_USE_DEEP_STORAGE )
+    if ( $Config{ZM_USE_DEEP_STORAGE} )
     {
         my @startTime = localtime( $event->{StartTime} );
 
@@ -277,10 +277,10 @@ sub _checkProcessOwner()
     if ( !defined($_setFileOwner) )
     {
         my ( $processOwner ) = getpwuid( $> );
-        if ( $processOwner ne ZM_WEB_USER )
+        if ( $processOwner ne $Config{ZM_WEB_USER} )
         {
             # Not running as web user, so should be root in whch case chown the temporary directory
-            ( my $ownerName, my $ownerPass, $_ownerUid, $_ownerGid ) = getpwnam( ZM_WEB_USER ) or Fatal( "Can't get user details for web user '".ZM_WEB_USER."': $!" );
+            ( my $ownerName, my $ownerPass, $_ownerUid, $_ownerGid ) = getpwnam( $Config{ZM_WEB_USER} ) or Fatal( "Can't get user details for web user '".$Config{ZM_WEB_USER}."': $!" );
             $_setFileOwner = 1;
         }
         else
@@ -297,7 +297,7 @@ sub setFileOwner( $ )
 
     if ( _checkProcessOwner() )
     {
-        chown( $_ownerUid, $_ownerGid, $file ) or Fatal( "Can't change ownership of file '$file' to '".ZM_WEB_USER.":".ZM_WEB_GROUP."': $!" );
+        chown( $_ownerUid, $_ownerGid, $file ) or Fatal( "Can't change ownership of file '$file' to '".$Config{ZM_WEB_USER}.":".$Config{ZM_WEB_GROUP}."': $!" );
     }
 }
 
@@ -434,12 +434,12 @@ sub createEvent( $;$ )
         #$frame->{FrameId} = $dbh->{mysql_insertid};
         if ( $frame->{imagePath} )
         {
-            $frame->{capturePath} = sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $eventPath, $frame->{FrameId} );
+            $frame->{capturePath} = sprintf( "%s/%0".$Config{ZM_EVENT_IMAGE_DIGITS}."d-capture.jpg", $eventPath, $frame->{FrameId} );
             rename( $frame->{imagePath}, $frame->{capturePath} ) or Fatal( "Can't copy ".$frame->{imagePath}." to ".$frame->{capturePath}.": $!" );
             setFileOwner( $frame->{capturePath} );
-            if ( 0 && ZM_CREATE_ANALYSIS_IMAGES )
+            if ( 0 && $Config{ZM_CREATE_ANALYSIS_IMAGES} )
             {
-                $frame->{analysePath} = sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-analyse.jpg", $eventPath, $frame->{FrameId} );
+                $frame->{analysePath} = sprintf( "%s/%0".$Config{ZM_EVENT_IMAGE_DIGITS}."d-analyse.jpg", $eventPath, $frame->{FrameId} );
                 link( $frame->{capturePath}, $frame->{analysePath} ) or Fatal( "Can't link ".$frame->{capturePath}." to ".$frame->{analysePath}.": $!" );
                 setFileOwner( $frame->{analysePath} );
             }
@@ -497,7 +497,7 @@ sub deleteEventFiles( $;$ )
     my $monitor_id = shift;
     $monitor_id = '*' if ( !defined($monitor_id) );
 
-    if ( ZM_USE_DEEP_STORAGE )
+    if ( $Config{ZM_USE_DEEP_STORAGE} )
     {
         my $link_path = $monitor_id."/*/*/*/.".$event_id;
         #Debug( "LP1:$link_path" );

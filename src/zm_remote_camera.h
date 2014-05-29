@@ -23,6 +23,8 @@
 #include "zm_camera.h"
 
 #include <string>
+#include <sys/types.h>
+#include <sys/socket.h>
 #include <netdb.h>
 
 //
@@ -40,8 +42,7 @@ protected:
 	std::string	auth64;
 
 protected:
-    struct hostent *hp;
-    struct sockaddr_in sa;
+	struct addrinfo *hp;
 
 public:
 	RemoteCamera( int p_id, const std::string &p_proto, const std::string &p_host, const std::string &p_port, const std::string &p_path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );

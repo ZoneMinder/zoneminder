@@ -104,9 +104,11 @@ static PixelFormat getFfPixFormatFromV4lPalette( int v4l_version, int palette )
             case V4L2_PIX_FMT_MJPEG :
                 pixFormat = PIX_FMT_YUVJ444P;
                 break;
+            case V4L2_PIX_FMT_UYVY :
+                pixFormat = PIX_FMT_UYVY422;
+                break;
             // These don't seem to have ffmpeg equivalents
             // See if you can match any of the ones in the default clause below!?
-            case V4L2_PIX_FMT_UYVY :
             case V4L2_PIX_FMT_RGB332 :
             case V4L2_PIX_FMT_RGB555X :
             case V4L2_PIX_FMT_RGB565X :
@@ -1268,7 +1270,7 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
 
                 if ( vidioctl( vid_fd, VIDIOC_ENUMSTD, &standard ) < 0 )
                 {
-                    if ( errno == EINVAL )
+                    if ( errno == EINVAL || errno == ENODATA )
                     {
                         standardIndex = -1;
                         break;

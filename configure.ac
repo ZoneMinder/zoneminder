@@ -1,16 +1,14 @@
 AC_PREREQ(2.59)
-AC_INIT(zm,1.26.4,[http://www.zoneminder.com/forums/ - Please check FAQ first],ZoneMinder,http://www.zoneminder.com/downloads.html)
+AC_INIT(zm,1.27,[http://www.zoneminder.com/forums/ - Please check FAQ first],zoneminder,http://www.zoneminder.com/downloads.html)
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR(src/zm.h)
 AC_CONFIG_HEADERS(config.h)
 
 AC_SUBST([AM_CXXFLAGS], [-D__STDC_CONSTANT_MACROS])
 
-PATH_BUILD=`pwd`
-AC_SUBST(PATH_BUILD)
-TIME_BUILD=`date +'%s'`
-AC_SUBST(TIME_BUILD)
+AC_SUBST(VERSION)
 
+AC_ARG_VAR(ZM_DB_TYPE,[Type of the ZoneMinder database, default mysql])
 AC_ARG_VAR(ZM_DB_HOST,[Hostname where ZoneMinder database located, default localhost])
 AC_ARG_VAR(ZM_DB_NAME,[Name of ZoneMinder database, default zm])
 AC_ARG_VAR(ZM_DB_USER,[Name of ZoneMinder database user, default zmuser])
@@ -21,6 +19,9 @@ AC_ARG_VAR(ZM_RUNDIR,[Location of transient process files, default /var/run/zm])
 AC_ARG_VAR(ZM_TMPDIR,[Location of temporary files, default /tmp/zm])
 AC_ARG_VAR(ZM_LOGDIR,[Location of generated log files, default /var/log/zm])
 
+if test "$ZM_DB_TYPE" == ""; then
+	AC_SUBST(ZM_DB_TYPE,[mysql])
+fi
 if test "$ZM_DB_HOST" == ""; then
 	AC_SUBST(ZM_DB_HOST,[localhost])
 fi
@@ -177,22 +178,6 @@ if test "$ENABLE_DEBUG" != "yes"; then
   AC_DEFINE(ZM_DBG_OFF,1,"Whether debug is switched off and compiled out")
 fi
 
-ENABLE_CRASHTRACE=yes
-AC_ARG_ENABLE(crashtrace,
-    [  --enable-crashtrace=<yes|no> enable or disabled crash tracing, default enabled],
-    [ENABLE_CRASHTRACE=$enable_crashtrace],
-    AC_MSG_WARN([You can call configure with the --enable-crashtrace=<yes|no> or --disable-crashtrace option.
-    This tells configure whether to compile ZoneMinder with crash tracing included. This allows a
-    dump of the stack trace when a ZoneMinder binary crashes or is killed by an unexpected signal.
-    Although this should work on most systems it does rely on un(or loosely) documented features and
-    so should be regarded as experimental. If you experience problems compiling zm_signal.cpp or 
-    ZoneMinder binaries fail to shut down correctly then you should probably disable this feature.
-    e.g. --enable-crashtrace=yes or --disable-crashtrace])
-)
-if test "$ENABLE_CRASHTRACE" != "yes"; then
-  AC_DEFINE(ZM_NO_CRASHTRACE,1,"Whether crash tracing is switched off and compiled out")
-fi
-
 ENABLE_MMAP=yes
 AC_ARG_ENABLE(mmap,
     [  --enable-mmap=<yes|no> enable or disabled mapped memory versus shared memory, default mapped],
@@ -235,8 +220,6 @@ AC_STRUCT_TM
 AC_TYPE_SIGNAL
 
 AC_CHECK_TYPES(siginfo_t,,,[#include <signal.h>])
-AC_CHECK_TYPES(struct sigcontext,,,[#include <signal.h>])
-AC_CHECK_MEMBERS([struct sigcontext.eip],,,[#include <signal.h>])
 AC_CHECK_TYPES(ucontext_t,,,[#include <signal.h>])
 
 # Checks for library functions.
@@ -248,7 +231,7 @@ AC_FUNC_STAT
 AC_FUNC_STRFTIME
 AC_FUNC_STRTOD
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS([gethostbyname gethostname gettimeofday memmove memset mkdir munmap posix_memalign putenv select sendfile socket sqrt strcasecmp strchr strcspn strerror strncasecmp strrchr strsignal strspn strstr strtol strtoull])
+AC_CHECK_FUNCS([gethostbyname gethostname gettimeofday memmove memset mkdir munmap posix_memalign putenv select sendfile socket sqrt strcasecmp strchr strcspn strerror strncasecmp strrchr strspn strstr strtol strtoull])
 AC_CHECK_FUNCS([syscall sleep usleep ioctl ioctlsocket sigaction])
 
 # Other programs
@@ -293,8 +276,10 @@ AC_CHECK_LIB(avformat,avformat_version,,AC_MSG_WARN(libavformat.a is required fo
 #AC_CHECK_LIB(avformat,av_new_stream,,AC_MSG_WARN(libavformat.a is required for MPEG streaming))
 AC_CHECK_LIB(avdevice,avdevice_register_all,,AC_MSG_WARN(libavdevice.a may be required for MPEG streaming))
 AC_CHECK_LIB(swscale,sws_scale,,,-lswscale)
+AC_CHECK_LIB(vlc,libvlc_new,,AC_MSG_WARN(libvlc.a may be required for streaming))
 AC_CHECK_LIB(bz2,BZ2_bzCompress,,AC_MSG_WARN(zm requires libbz2.a for recent versions of ffmpeg))
 AC_CHECK_LIB(z,compress,,)
+AC_CHECK_LIB(curl,curl_global_init,,)
 
 # Checks for header files.
 AC_FUNC_ALLOCA
@@ -302,6 +287,7 @@ AC_HEADER_STDC
 AC_CHECK_HEADERS([fcntl.h limits.h memory.h stddef.h stdlib.h string.h strings.h sys/param.h sys/time.h syslog.h unistd.h values.h])
 AC_CHECK_HEADERS([netdb.h netinet/in.h arpa/inet.h sys/ioctl.h sys/socket.h sys/un.h glob.h sys/sendfile.h])
 AC_CHECK_HEADERS(execinfo.h,,,)
+AC_CHECK_HEADERS(ucontext.h,,,)
 AC_CHECK_HEADERS(sys/syscall.h,,,)
 AC_CHECK_HEADERS(pthread.h,,,)
 AC_CHECK_HEADERS(linux/videodev.h,AC_SUBST(ZM_HAS_V4L1,1),AC_SUBST(ZM_HAS_V4L1,0),)
@@ -330,8 +316,9 @@ AC_CHECK_HEADERS(sys/ipc.h,,,)
 AC_CHECK_HEADERS(sys/shm.h,,,)
 fi
 AC_CHECK_HEADERS(zlib.h,,,)
+AC_CHECK_HEADERS(vlc/vlc.h,,,)
+AC_CHECK_HEADERS(curl/curl.h,,,)
 
-AC_CHECK_DECLS(round,,,[#include <math.h>])
 if test "$ZM_SSL_LIB" == "openssl"; then
 AC_CHECK_DECLS(MD5,,AC_MSG_ERROR([zm requires openssl/md5.h - use ZM_SSL_LIB option to select gnutls instead]),[#include <stdlib.h>
 #include <openssl/md5.h>])
@@ -345,6 +332,7 @@ AC_CHECK_DECLS(gnutls_fingerprint,,AC_MSG_ERROR([zm requires gnutls/gnutls.h - u
 fi
 fi
 AC_CHECK_DECLS(backtrace,,,[#include <execinfo.h>])
+AC_CHECK_DECLS(backtrace_symbols,,,[#include <execinfo.h>])
 
 AC_SUBST(LDFLAGS)
 
@@ -378,6 +366,8 @@ AC_PROG_PERL_MODULES(X10::ActiveHome,,AC_MSG_WARN(X10::ActiveHome is required fo
 
 AC_DEFINE_DIR([BINDIR],[bindir],[Expanded binary directory])
 AC_DEFINE_DIR([LIBDIR],[libdir],[Expanded library directory])
+AC_DEFINE_DIR([DATADIR],[datadir],[Expanded data directory])
+AC_SUBST(PKGDATADIR,"$DATADIR/$PACKAGE")
 AC_SUBST(ZM_PID,"$ZM_RUNDIR/zm.pid")
 AC_DEFINE_DIR([SYSCONFDIR],[sysconfdir],[Expanded configuration directory])
 AC_SUBST(ZM_CONFIG,"$SYSCONFDIR/zm.conf")
@@ -396,7 +386,7 @@ fi
 AC_SUBST(PERL_MM_PARMS)
 AC_SUBST(EXTRA_PERL_LIB)
 
-AC_CONFIG_FILES([Makefile zm.conf zmconfgen.pl db/Makefile db/zm_create.sql misc/Makefile misc/apache.conf misc/logrotate.conf misc/syslog.conf scripts/Makefile scripts/zm scripts/zmaudit.pl scripts/zmcontrol.pl scripts/zmdc.pl scripts/zmfilter.pl scripts/zmpkg.pl scripts/zmtrack.pl scripts/zmtrigger.pl scripts/zmupdate.pl scripts/zmvideo.pl scripts/zmwatch.pl scripts/zmx10.pl scripts/zmdbbackup scripts/zmdbrestore scripts/zmeventdump scripts/zmlogrotate.conf scripts/ZoneMinder/lib/ZoneMinder/Base.pm scripts/ZoneMinder/lib/ZoneMinder/Config.pm scripts/ZoneMinder/lib/ZoneMinder/Memory.pm scripts/ZoneMinder/lib/ZoneMinder/ConfigData.pm src/Makefile src/zm_config.h])
+AC_CONFIG_FILES([Makefile zm.conf zmconfgen.pl db/Makefile db/zm_create.sql misc/Makefile misc/apache.conf misc/logrotate.conf misc/syslog.conf scripts/Makefile scripts/zm scripts/zmaudit.pl scripts/zmcontrol.pl scripts/zmdc.pl scripts/zmfilter.pl scripts/zmpkg.pl scripts/zmtrack.pl scripts/zmcamtool.pl scripts/zmtrigger.pl scripts/zmupdate.pl scripts/zmvideo.pl scripts/zmwatch.pl scripts/zmx10.pl scripts/zmdbbackup scripts/zmdbrestore scripts/zmeventdump scripts/zmlogrotate.conf scripts/ZoneMinder/lib/ZoneMinder/Base.pm scripts/ZoneMinder/lib/ZoneMinder/Config.pm scripts/ZoneMinder/lib/ZoneMinder/Memory.pm scripts/ZoneMinder/lib/ZoneMinder/ConfigData.pm src/Makefile src/zm_config.h web/Makefile web/ajax/Makefile web/css/Makefile web/graphics/Makefile web/includes/Makefile web/includes/config.php web/js/Makefile web/lang/Makefile web/skins/Makefile web/skins/classic/Makefile web/skins/classic/ajax/Makefile web/skins/classic/css/Makefile web/skins/classic/graphics/Makefile web/skins/classic/includes/Makefile web/skins/classic/js/Makefile web/skins/classic/lang/Makefile web/skins/classic/views/Makefile web/skins/classic/views/css/Makefile web/skins/classic/views/js/Makefile web/skins/mobile/Makefile web/skins/mobile/ajax/Makefile web/skins/mobile/css/Makefile web/skins/mobile/graphics/Makefile web/skins/mobile/includes/Makefile web/skins/mobile/lang/Makefile web/skins/mobile/views/Makefile web/skins/mobile/views/css/Makefile web/tools/Makefile web/tools/mootools/Makefile web/views/Makefile web/skins/xml/Makefile web/skins/xml/views/Makefile web/skins/xml/includes/Makefile web/skins/flat/Makefile web/skins/flat/ajax/Makefile web/skins/flat/css/Makefile web/skins/flat/graphics/Makefile web/skins/flat/includes/Makefile web/skins/flat/js/Makefile web/skins/flat/lang/Makefile web/skins/flat/views/Makefile web/skins/flat/views/css/Makefile web/skins/flat/views/js/Makefile])
 
 # Create the definitions for compilation and defaults for the database
 AC_CONFIG_COMMANDS([src/zm_config_defines.h],[perl ./zmconfgen.pl])

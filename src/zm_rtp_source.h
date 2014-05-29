@@ -21,11 +21,20 @@
 #define ZM_RTP_SOURCE_H
 
 #include "zm_buffer.h"
+#include "zm_ffmpeg.h"
 #include "zm_thread.h"
 
 #include <sys/time.h>
 #include <stdint.h>
 #include <string>
+
+#if HAVE_LIBAVCODEC
+
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54,25,0)
+    #define _AVCODECID AVCodecID
+#else
+    #define _AVCODECID CodecID
+#endif
 
 struct RtpDataHeader;
 
@@ -81,6 +90,8 @@ private:
     uint32_t mLostPackets;
     uint8_t  mLostFraction;
 
+    _AVCODECID mCodecId;
+
     Buffer mFrame;
     int mFrameCount;
     bool mFrameGood;
@@ -92,7 +103,8 @@ private:
     void init( uint16_t seq );
 
 public:
-    RtpSource( int id, const std::string &localHost, int localPortBase, const std::string &remoteHost, int remotePortBase, uint32_t ssrc, uint16_t seq, uint32_t rtpClock, uint32_t rtpTime );
+    RtpSource( int id, const std::string &localHost, int localPortBase, const std::string &remoteHost, int remotePortBase, uint32_t ssrc, uint16_t seq, uint32_t rtpClock, uint32_t rtpTime, _AVCODECID codecId );
+    
     bool updateSeq( uint16_t seq );
     void updateJitter( const RtpDataHeader *header );
     void updateRtcpData( uint32_t ntpTimeSecs, uint32_t ntpTimeFrac, uint32_t rtpTime );
@@ -176,5 +188,9 @@ public:
         return( ((mLastSrTimeNtpSecs&0xffff)<<16)|(mLastSrTimeNtpFrac>>16) );
     }
 };
+
+#undef _AVCODECID
+
+#endif // HAVE_LIBAVCODEC
 
 #endif // ZM_RTP_SOURCE_H

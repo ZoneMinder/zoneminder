@@ -1,3 +1,9 @@
+zoneminder (1.27.1-1) precise; urgency=low
+
+  * Convert from php mysql ext to PDO
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Wed, 16 Oct 2013 15:51:39 -0400
+
 zoneminder (1.26.4-2) precise; urgency=high
 
   * improvements to zmupdate.pl, cleanups

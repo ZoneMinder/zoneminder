@@ -203,7 +203,7 @@ our @options =
 	},
 	{
 		name => "ZM_COLOUR_JPEG_FILES",
-		default => "yes",
+		default => "no",
 		description => "Colourise greyscale JPEG files",
 		help => "Cameras that capture in greyscale can write their captured images to jpeg files with a corresponding greyscale colour space. This saves a small amount of disk space over colour ones. However some tools such as ffmpeg either fail to work with this colour space or have to convert it beforehand. Setting this option to yes uses up a little more space but makes creation of MPEG files much faster.",
 		type => $types{boolean},
@@ -340,14 +340,6 @@ our @options =
 		category => "config",
 	},
 	{
-		name => "ZM_BLEND_ALARMED_IMAGES",
-		default => "yes",
-		description => "Blend alarmed images to update the reference image",
-		help => "To detect alarms ZoneMinder compares an image with a reference image which is formed from a composite of the previous images. This option determines whether images that cause events are included in this process. Doing so may increase the precision of the alarmed region but can cause problems if wholescale lighting changes cause alarms as this would not get fed back into the image and an alarm may persist indefinately. A better way to achive the same effect in most cases is to lower substantially the reference blend percentage in specific monitors.",
-		type => $types{boolean},
-		category => "config",
-	},
-	{
 		name => "ZM_MAX_SUSPEND_TIME",
 		default => "30",
 		description => "Maximum time that a monitor may have motion detection suspended",
@@ -376,9 +368,9 @@ our @options =
 	},
 	{
 		name => "ZM_HTTP_VERSION",
-		default => "1.1",
+		default => "1.0",
 		description => "The version of HTTP that ZoneMinder will use to connect",
-		help => "ZoneMinder can communicate with network cameras using either of the HTTP/1.1 or HTTP/1.0 standard. A server will normally fall back to the version it supports iwht no problem so this should usually by left at the default. However it can be changed to HTTP/1.0 if necessary to resolve particular issues.",
+		help => "ZoneMinder can communicate with network cameras using either of the HTTP/1.1 or HTTP/1.0 standard. A server will normally fall back to the version it supports with no problem so this should usually by left at the default. However it can be changed to HTTP/1.0 if necessary to resolve particular issues.",
 		type => { db_type=>"string", hint=>"1.1|1.0", pattern=>qr|^(1\.[01])$|, format=>q( $1?$1:"" ) },
 		category => "network",
 	},
@@ -1224,7 +1216,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	},
 	{
 		name => "ZM_EVENT_IMAGE_DIGITS",
-		default => "3",
+		default => "5",
 		description => "How many significant digits are used in event image numbering",
 		help => "As event images are captured they are stored to the filesystem with a numerical index. By default this index has three digits so the numbers start 001, 002 etc. This works works for most scenarios as events with more than 999 frames are rarely captured. However if you have extremely long events and use external applications then you may wish to increase this to ensure correct sorting of images in listings etc. Warning, increasing this value on a live system may render existing events unviewable as the event will have been saved with the previous scheme. Decreasing this value should have no ill effects.",
 		type => $types{integer},
@@ -1373,7 +1365,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	},
 	{
 		name => "ZM_WEB_H_REFRESH_MAIN",
-		default => "300",
+		default => "60",
 		introduction => "There are now a number of options that are grouped into bandwidth categories, this allows you to configure the ZoneMinder client to work optimally over the various access methods you might to access the client.\n\nThe next few options control what happens when the client is running in 'high' bandwidth mode. You should set these options for when accessing the ZoneMinder client over a local network or high speed link. In most cases the default values will be suitable as a starting point.",
 		description => "How often (in seconds) the main console window should refresh itself",
 		help => "The main console window lists a general status and the event totals for all monitors. This is not a trivial task and should not be repeated too frequently or it may affect the performance of the rest of the system.",
@@ -1390,7 +1382,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	},
 	{
 		name => "ZM_WEB_H_REFRESH_IMAGE",
-		default => "5",
+		default => "3",
 		description => "How often (in seconds) the watched image is refreshed (if not streaming)",
 		help => "The live images from a monitor can be viewed in either streamed or stills mode. This option determines how often a stills image is refreshed, it has no effect if streaming is selected.",
 		type => $types{integer},
@@ -1398,7 +1390,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	},
 	{
 		name => "ZM_WEB_H_REFRESH_STATUS",
-		default => "3",
+		default => "1",
 		description => "How often (in seconds) the status refreshes itself in the watch window",
 		help => "The monitor window is actually made from several frames. The one in the middle merely contains a monitor status which needs to refresh fairly frequently to give a true indication. This option determines that frequency.",
 		type => $types{integer},
@@ -1406,7 +1398,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	},
 	{
 		name => "ZM_WEB_H_REFRESH_EVENTS",
-		default => "30",
+		default => "5",
 		description => "How often (in seconds) the event listing is refreshed in the watch window",
 		help => "The monitor window is actually made from several frames. The lower framme contains a listing of the last few events for easy access. This option determines how often this is refreshed.",
 		type => $types{integer},
@@ -1454,7 +1446,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
 	},
 	{
 		name => "ZM_WEB_H_VIDEO_MAXFPS",
-		default => "15",
+		default => "30",
 		description => "What the maximum frame rate for streamed video should be",
 		help => "When using streamed video the main control is the bitrate which determines how much data can be transmitted. However a lower bitrate at high frame rates results in a lower quality image. This option allows you to limit the maximum frame rate to ensure that video quality is maintained. An additional advantage is that encoding video at high frame rates is a processor intensive task when for the most part a very high frame rate offers little perceptible improvement over one that has a more manageable resource requirement. Note, this option is implemented as a cap beyond which binary reduction takes place. So if you have a device capturing at 15fps and set this option to 10fps then the video is not produced at 10fps, but rather at 7.5fps (15 divided by 2) as the final frame rate must be the original divided by a power of 2.",
 		type => $types{integer},

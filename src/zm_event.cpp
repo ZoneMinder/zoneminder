@@ -491,10 +491,17 @@ void Event::updateNotes( const StringSetMap &newNoteSetMap )
 
 void Event::AddFrames( int n_frames, Image **images, struct timeval **timestamps )
 {
+    for (int i = 0; i < n_frames; i += ZM_SQL_BATCH_SIZE) {
+        AddFramesInternal(n_frames, i, images, timestamps);
+    }
+}
+
+void Event::AddFramesInternal( int n_frames, int start_frame, Image **images, struct timeval **timestamps )
+{
     static char sql[ZM_SQL_LGE_BUFSIZ];
     strncpy( sql, "insert into Frames ( EventId, FrameId, TimeStamp, Delta ) values ", sizeof(sql) );
     int frameCount = 0;
-    for ( int i = 0; i < n_frames; i++ )
+    for ( int i = start_frame; i < n_frames && i - start_frame < ZM_SQL_BATCH_SIZE; i++ )
     {
         if ( !timestamps[i]->tv_sec )
         {
@@ -792,7 +799,7 @@ bool EventStream::loadEventData( int event_id )
         else
             snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%ld", staticConfig.PATH_WEB.c_str(), config.dir_events, event_data->monitor_id, event_data->event_id );
     }
-    event_data->frame_count = atoi(dbrow[2]);
+    event_data->frame_count = dbrow[2] == NULL ? 0 : atoi(dbrow[2]);
     event_data->duration = atof(dbrow[4]);
 
     updateFrameRate( (double)event_data->frame_count/event_data->duration );
@@ -1280,14 +1287,19 @@ bool EventStream::sendFrame( int delta_us )
                 case STREAM_JPEG :
                     send_image->EncodeJpeg( img_buffer, &img_buffer_size );
                     break;
-                case STREAM_RAW :
-                    img_buffer = (uint8_t*)(send_image->Buffer());
-                    img_buffer_size = send_image->Size();
-                    break;
                 case STREAM_ZIP :
+#if HAVE_ZLIB_H
                     unsigned long zip_buffer_size;
                     send_image->Zip( img_buffer, &zip_buffer_size );
                     img_buffer_size = zip_buffer_size;
+                    break;
+#else
+                    Error("zlib is required for zipped images. Falling back to raw image");
+                    type = STREAM_RAW;
+#endif // HAVE_ZLIB_H
+                case STREAM_RAW :
+                    img_buffer = (uint8_t*)(send_image->Buffer());
+                    img_buffer_size = send_image->Size();
                     break;
                 default:
                     Fatal( "Unexpected frame type %d", type );

@@ -28,8 +28,8 @@
 #include "zm_videostore.h"
 
 //
-// Class representing 'remote' cameras, i.e. those which are
-// accessed over a network connection.
+// Class representing 'ffmpeg' cameras, i.e. those which are
+// accessed using ffmpeg multimedia framework
 //
 class FfmpegCamera : public Camera
 {

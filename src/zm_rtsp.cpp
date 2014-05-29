@@ -330,6 +330,13 @@ int RtspThread::run()
 
     uint32_t rtpClock = 0;
     std::string trackUrl = mUrl;
+    
+    #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54,25,0)
+    enum AVCodecID codecId;
+    #else
+    enum CodecID codecId;
+    #endif
+    
     if ( mFormatContext->nb_streams >= 1 )
     {
         for ( unsigned int i = 0; i < mFormatContext->nb_streams; i++ )
@@ -343,6 +350,7 @@ int RtspThread::run()
             {
                 trackUrl += "/"+mediaDesc->getControlUrl();
                 rtpClock = mediaDesc->getClock();
+                codecId = mFormatContext->streams[i]->codec->codec_id;
                 // Hackery pokery
                 //rtpClock = mFormatContext->streams[i]->codec->sample_rate;
                 break;
@@ -500,7 +508,7 @@ int RtspThread::run()
     {
         case RTP_UNICAST :
         {
-            RtpSource *source = new RtpSource( mId, "", localPorts[0], mHost, remotePorts[0], ssrc, seq, rtpClock, rtpTime );
+            RtpSource *source = new RtpSource( mId, "", localPorts[0], mHost, remotePorts[0], ssrc, seq, rtpClock, rtpTime, codecId );
             mSources[ssrc] = source;
             RtpDataThread rtpDataThread( *this, *source );
             RtpCtrlThread rtpCtrlThread( *this, *source );
@@ -545,7 +553,7 @@ int RtspThread::run()
         case RTP_RTSP :
         case RTP_RTSP_HTTP :
         {
-            RtpSource *source = new RtpSource( mId, "", remoteChannels[0], mHost, remoteChannels[0], ssrc, seq, rtpClock, rtpTime );
+            RtpSource *source = new RtpSource( mId, "", remoteChannels[0], mHost, remoteChannels[0], ssrc, seq, rtpClock, rtpTime, codecId );
             mSources[ssrc] = source;
             // These never actually run
             RtpDataThread rtpDataThread( *this, *source );
@@ -673,7 +681,7 @@ int RtspThread::run()
         }
         case RTP_MULTICAST :
         {
-            RtpSource *source = new RtpSource( mId, localHost, localPorts[0], mHost, remotePorts[0], ssrc, seq, rtpClock, rtpTime );
+            RtpSource *source = new RtpSource( mId, localHost, localPorts[0], mHost, remotePorts[0], ssrc, seq, rtpClock, rtpTime, codecId );
             mSources[ssrc] = source;
             RtpDataThread rtpDataThread( *this, *source );
             RtpCtrlThread rtpCtrlThread( *this, *source );

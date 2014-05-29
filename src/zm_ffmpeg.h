@@ -20,46 +20,57 @@
 #ifndef ZM_FFMPEG_H
 #define ZM_FFMPEG_H
 #include <stdint.h>
-#if HAVE_LIBAVCODEC
+#include "zm.h"
+#include "zm_image.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+// AVUTIL
 #if HAVE_LIBAVUTIL_AVUTIL_H
 #include <libavutil/avutil.h>
 #include <libavutil/base64.h>
+#include <libavutil/mathematics.h>
 #elif HAVE_FFMPEG_AVUTIL_H
 #include <ffmpeg/avutil.h>
 #include <ffmpeg/base64.h>
-/*#else
-#error "No location for avutils.h found"*/
+#include <ffmpeg/mathematics.h>
 #endif
+
+// AVCODEC
 #if HAVE_LIBAVCODEC_AVCODEC_H
 #include <libavcodec/avcodec.h>
-#if LIBAVCODEC_VERSION_MAJOR < 54
-#include <libavcodec/opt.h>
+#elif HAVE_FFMPEG_AVCODEC_H
+#include <ffmpeg/avcodec.h>
 #endif
-#endif
+
+// AVFORMAT
 #if HAVE_LIBAVFORMAT_AVFORMAT_H
 #include <libavformat/avformat.h>
 #elif HAVE_FFMPEG_AVFORMAT_H
 #include <ffmpeg/avformat.h>
-/*#else
-#error "No location for avformat.h found"*/
 #endif
-#if HAVE_LIBSWSCALE
+
+// AVDEVICE
+#if HAVE_LIBAVDEVICE_AVDEVICE_H
+#include <libavdevice/avdevice.h>
+#elif HAVE_FFMPEG_AVDEVICE_H
+#include <ffmpeg/avdevice.h>
+#endif
+
+// SWSCALE
 #if HAVE_LIBSWSCALE_SWSCALE_H
 #include <libswscale/swscale.h>
-#include <libavutil/mathematics.h> // this is a fix for error: 'av_rescale_q' was not declared in this scope
 #elif HAVE_FFMPEG_SWSCALE_H
 #include <ffmpeg/swscale.h>
-/*#else
-#error "No location for swscale.h found"*/
 #endif
-#endif // HAVE_LIBSWSCALE
+
 #ifdef __cplusplus
 }
 #endif
+
+#if ( HAVE_LIBAVUTIL_AVUTIL_H || HAVE_LIBAVCODEC_AVCODEC_H || HAVE_LIBAVFORMAT_AVFORMAT_H || HAVE_LIBAVDEVICE_AVDEVICE_H )
 
 #if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(53, 4, 0)
  #if defined(AVIO_WRONLY)
@@ -85,8 +96,58 @@ extern "C" {
 #ifndef SWS_CPU_CAPS_SSE2
 #define SWS_CPU_CAPS_SSE2     0x02000000
 #endif
-                               
-#endif // HAVE_LIBAVCODEC
+
+
+#if HAVE_LIBAVUTIL
+enum PixelFormat GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subpixelorder);
+#endif // HAVE_LIBAVUTIL
+
+
+/* SWScale wrapper class to make our life easier and reduce code reuse */
+#if HAVE_LIBSWSCALE && HAVE_LIBAVUTIL
+class SWScale {
+public:
+	SWScale();
+	~SWScale();
+	int SetDefaults(enum PixelFormat in_pf, enum PixelFormat out_pf, unsigned int width, unsigned int height);
+	int ConvertDefaults(const Image* img, uint8_t* out_buffer, const size_t out_buffer_size);
+	int ConvertDefaults(const uint8_t* in_buffer, const size_t in_buffer_size, uint8_t* out_buffer, const size_t out_buffer_size);
+	int Convert(const Image* img, uint8_t* out_buffer, const size_t out_buffer_size, enum PixelFormat in_pf, enum PixelFormat out_pf, unsigned int width, unsigned int height);
+	int Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint8_t* out_buffer, const size_t out_buffer_size, enum PixelFormat in_pf, enum PixelFormat out_pf, unsigned int width, unsigned int height);
+
+protected:
+	bool gotdefaults;
+	struct SwsContext* swscale_ctx;
+	AVFrame* input_avframe;
+	AVFrame* output_avframe;
+	enum PixelFormat default_input_pf;
+	enum PixelFormat default_output_pf;
+	unsigned int default_width;
+	unsigned int default_height;
+};
+#endif // HAVE_LIBSWSCALE && HAVE_LIBAVUTIL
+
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 25, 0)
+#define AV_CODEC_ID_NONE CODEC_ID_NONE
+#define AV_CODEC_ID_PCM_MULAW CODEC_ID_PCM_MULAW
+#define AV_CODEC_ID_PCM_ALAW CODEC_ID_PCM_ALAW
+#define AV_CODEC_ID_PCM_S16BE CODEC_ID_PCM_S16BE
+#define AV_CODEC_ID_QCELP CODEC_ID_QCELP
+#define AV_CODEC_ID_MP2 CODEC_ID_MP2
+#define AV_CODEC_ID_MP3 CODEC_ID_MP3
+#define AV_CODEC_ID_MJPEG CODEC_ID_MJPEG
+#define AV_CODEC_ID_H261 CODEC_ID_H261
+#define AV_CODEC_ID_MPEG1VIDEO CODEC_ID_MPEG1VIDEO
+#define AV_CODEC_ID_MPEG2VIDEO CODEC_ID_MPEG2VIDEO
+#define AV_CODEC_ID_MPEG2TS CODEC_ID_MPEG2TS
+#define AV_CODEC_ID_H263 CODEC_ID_H263
+#define AV_CODEC_ID_H264 CODEC_ID_H264
+#define AV_CODEC_ID_MPEG4 CODEC_ID_MPEG4
+#define AV_CODEC_ID_AAC CODEC_ID_AAC
+#define AV_CODEC_ID_AMR_NB CODEC_ID_AMR_NB
+#endif
+
+#endif // ( HAVE_LIBAVUTIL_AVUTIL_H || HAVE_LIBAVCODEC_AVCODEC_H || HAVE_LIBAVFORMAT_AVFORMAT_H || HAVE_LIBAVDEVICE_AVDEVICE_H )
 
 #endif // ZM_FFMPEG_H
 

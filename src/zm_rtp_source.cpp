@@ -24,12 +24,21 @@
 
 #include <arpa/inet.h>
 
-RtpSource::RtpSource( int id, const std::string &localHost, int localPortBase, const std::string &remoteHost, int remotePortBase, uint32_t ssrc, uint16_t seq, uint32_t rtpClock, uint32_t rtpTime ) :
+#if HAVE_LIBAVCODEC
+
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54,25,0)
+    #define _AVCODECID AVCodecID
+#else
+    #define _AVCODECID CodecID
+#endif
+
+RtpSource::RtpSource( int id, const std::string &localHost, int localPortBase, const std::string &remoteHost, int remotePortBase, uint32_t ssrc, uint16_t seq, uint32_t rtpClock, uint32_t rtpTime, _AVCODECID codecId ) :
     mId( id ),
     mSsrc( ssrc ),
     mLocalHost( localHost ),
     mRemoteHost( remoteHost ),
     mRtpClock( rtpClock ),
+    mCodecId( codecId ),
     mFrame( 65536 ),
     mFrameCount( 0 ),
     mFrameGood( true ),
@@ -61,6 +70,9 @@ RtpSource::RtpSource( int id, const std::string &localHost, int localPortBase, c
     mLastSrTimeReal = tvZero();
     mLastSrTimeNtp = tvZero();
     mLastSrTimeRtp = 0;
+    
+    if(mCodecId != AV_CODEC_ID_H264 && mCodecId != AV_CODEC_ID_MPEG4)
+        Warning( "The device is using a codec that may not be supported. Do not be surprised if things don't work." );
 }
 
 void RtpSource::init( uint16_t seq )
@@ -253,57 +265,63 @@ bool RtpSource::handlePacket( const unsigned char *packet, size_t packetLen )
 {
     const RtpDataHeader *rtpHeader;
     rtpHeader = (RtpDataHeader *)packet;
-    bool fragmentEnd = false;
-
-    // Each RTP packet delivers only one NAL. It can be either the Single NAL
-    // ( in that case it must be in one packet ) or the Fragmentation NALs
-    // that delivers large single NAL...  
+	int rtpHeaderSize = 12 + rtpHeader->cc * 4;
+    // No need to check for nal type as non fragmented packets already have 001 start sequence appended
+    bool h264FragmentEnd = (mCodecId == AV_CODEC_ID_H264) && (packet[rtpHeaderSize+1] & 0x40);
+    bool thisM = rtpHeader->m || h264FragmentEnd;
 
     if ( updateSeq( ntohs(rtpHeader->seqN) ) )
     {
-        Hexdump( 4, packet+sizeof(RtpDataHeader), 16 );
-        if ( ((packet[sizeof(RtpDataHeader)] & 0x1f) == 28 && 
-              (packet[sizeof(RtpDataHeader)+1] & 0x80)) ||
-             ((packet[sizeof(RtpDataHeader)] & 0x1f) != 28 && 
-              prevM && rtpHeader->m) )
-	    mFrameGood = true; // This means that if packet is in sequence
-			       // and is single NAL with mark set (and prev packet
-			       // was NAL with mark set or it is Fragmentation NAL with
-			       // Start bit set then we assume that sequence
-			       // was restored and we can handle packet
+        Hexdump( 4, packet+rtpHeaderSize, 16 );
+
         if ( mFrameGood )
         {
-    	    // check if there fragmentation NAL
-    	    if ( (packet[sizeof(RtpDataHeader)] & 0x1f) == 28 )
-    	    {
-    		// is this NAL the first NAL in fragmentation sequence
-    		if ( packet[sizeof(RtpDataHeader)+1] & 0x80 )
-    		{
-    		    // if there is any data in frame then we must
-    		    // discard it because that frame was incomplete
-    		    if ( mFrame.size() )
-    			mFrame.clear();
-    		    // Now we will form new header of frame
-    		    mFrame.append("\x0\x0\x1\x0",4);
-    		    *(mFrame+3) = (packet[sizeof(RtpDataHeader)+1] & 0x1f) |
-    		                  (packet[sizeof(RtpDataHeader)] & 0x60);
-    		}
-    		else
-    		    if ( packet[sizeof(RtpDataHeader)+1] & 0x40 )
-    			fragmentEnd = true;
-		mFrame.append(packet+sizeof(RtpDataHeader)+2, packetLen-sizeof(RtpDataHeader)-2);
-    	    }
-    	    else
-    	    {
-//    		mframe.clear();
-    		if ( !mFrame.size() )
-    		    mFrame.append("\x0\x0\x1",3);
-            mFrame.append( packet+sizeof(RtpDataHeader), packetLen-sizeof(RtpDataHeader) ); 
-	    }
+            int extraHeader = 0;
+            
+            if( mCodecId == AV_CODEC_ID_H264 )
+            {
+                int nalType = (packet[rtpHeaderSize] & 0x1f);
+                
+                switch (nalType)
+                {
+                    case 24:
+                    {
+                        extraHeader = 2;
+                        break;
+                    }
+                    case 25: case 26: case 27:
+                    {
+                        extraHeader = 3;
+                        break;
+                    }
+                    // FU-A and FU-B
+                    case 28: case 29:
+                    {
+                        // Is this NAL the first NAL in fragmentation sequence
+                        if ( packet[rtpHeaderSize+1] & 0x80 )
+                        {
+                            // Now we will form new header of frame
+                            mFrame.append( "\x0\x0\x1\x0", 4 );
+                            // Reconstruct NAL header from FU headers
+                            *(mFrame+3) = (packet[rtpHeaderSize+1] & 0x1f) |
+                                          (packet[rtpHeaderSize] & 0xe0);
+                        }
+                    
+                        extraHeader = 2;
+                        break;
+                    }
+                }
+                
+                // Append NAL frame start code
+                if ( !mFrame.size() )
+                    mFrame.append( "\x0\x0\x1", 3 );
+            }
+            mFrame.append( packet+rtpHeaderSize+extraHeader, packetLen-rtpHeaderSize-extraHeader ); 
         }
+
         Hexdump( 4, mFrame.head(), 16 );
 
-        if ( rtpHeader->m || fragmentEnd )
+        if ( thisM )
         {
             if ( mFrameGood )
             {
@@ -339,7 +357,7 @@ bool RtpSource::handlePacket( const unsigned char *packet, size_t packetLen )
         mFrameGood = false;
         mFrame.clear();
     }
-    if ( rtpHeader->m || fragmentEnd )
+    if ( thisM )
     {
         mFrameGood = true;
         prevM = true;
@@ -368,3 +386,7 @@ bool RtpSource::getFrame( Buffer &buffer )
     Debug( 3, "Copied %d bytes", buffer.size() );
     return( true );
 }
+
+#undef _AVCODECID
+
+#endif // HAVE_LIBAVCODEC

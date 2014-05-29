@@ -1,0 +1,74 @@
+#monitors {
+    width: 100%;
+    margin: 0 auto;
+    text-align: center;
+}
+
+#monitors .monitorFrame {
+    float: left;
+    padding: 1px;
+}
+
+#monitors .monitor {
+    text-align: center;
+}
+
+#monitorFrame0, #monitorFrame3, #monitorFrame6, #monitorFrame9, #monitorFrame12, #monitorFrame15 {
+    width: 32%;
+    text-align: right;
+    clear: both;
+}
+
+#monitor0, #monitor3, #monitor6, #monitor9, #monitor12, #monitor15 {
+    margin-left: auto;
+    margin-right: 0;
+}
+
+#monitorFrame1, #monitorFrame4, #monitorFrame7, #monitorFrame10, #monitorFrame13, #monitorFrame16 {
+    width: 32%;
+    text-align: center;
+}
+
+#monitor1, #monitor4, #monitor7, #monitor10, #monitor13, #monitor16 {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#monitorFrame2, #monitorFrame5, #monitorFrame8, #monitorFrame11, #monitorFrame14, #monitorFrame17 {
+    width: 32%;
+    text-align: left;
+}
+
+#monitor2, #monitor5, #monitor8, #monitor11, #monitor14, #monitor17 {
+    margin-left: 0;
+    margin-right: auto;
+}
+
+#monitors .imageFeed img {
+    width: 100%;
+    height: 100%;
+}
+
+#monitors .monitorFrame > div.alarm, #monitors .monitorFrame > div.alert {
+    position: absolute;
+    width: 96%;
+    left: 2%;
+    top: 72px;
+}
+
+#monitors .monitorFrame > div.alert {
+    z-index: 100;
+}
+
+#monitors .monitorFrame > div.alarm {
+    z-index: 200;
+}
+
+#monitors .monitorFrame div.alarm, #monitors .monitorFrame div.alert {
+    font-size: 140%;
+    line-height: 160%;
+}
+
+#monitors .monitorFrame div.monitorState {
+    text-align: center;
+}

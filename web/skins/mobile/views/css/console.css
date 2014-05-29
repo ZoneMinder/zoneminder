@@ -1,0 +1,16 @@
+#systemTime {
+    float: left;
+}
+
+#systemState {
+    margin: 0 auto;
+    text-align: center;
+}
+
+#systemStats {
+    float: right;
+}
+
+td.colEvents {
+    text-align: right;
+}

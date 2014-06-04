@@ -103,7 +103,7 @@ if ( isset($_REQUEST['request']) )
     $request = detaintPath($_REQUEST['request']);
 
 if ( isset($_REQUEST['action']) )
-    $action = detaintPath($_REQUEST['action']);
+    $action = detaintPath($_POST['action']);
 
 foreach ( getSkinIncludes( 'skin.php' ) as $includeFile )
     require_once $includeFile;

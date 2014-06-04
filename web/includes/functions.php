@@ -438,6 +438,7 @@ function outputControlStill( $src, $width, $height, $monitor, $scale, $target )
 <?php
 }
 
+// Incoming args are shell-escaped. This function must escape any further arguments it cannot guarantee.
 function getZmuCommand( $args )
 {
     $zmuCommand = ZMU_PATH;
@@ -450,11 +451,11 @@ function getZmuCommand( $args )
         }
         elseif ( ZM_AUTH_RELAY == "plain" )
         {
-            $zmuCommand .= " -U ".$_SESSION['username']." -P ".$_SESSION['password'];
+            $zmuCommand .= " -U " .escapeshellarg($_SESSION['username'])." -P ".escapeshellarg($_SESSION['password']);
         }
         elseif ( ZM_AUTH_RELAY == "none" )
         {
-            $zmuCommand .= " -U ".$_SESSION['username'];
+            $zmuCommand .= " -U ".escapeshellarg($_SESSION['username']);
         }
     }
 
@@ -913,7 +914,9 @@ function canStream()
 
 function packageControl( $command )
 {
-    $string = ZM_PATH_BIN.'/zmpkg.pl '.escapeshellarg( $command );
+    // restrict command to a single word of only letters, in case zmpkg.pl has security flaws
+    $saferCommand = preg_replace("/[^A-Za-z]/", "", $command);
+    $string = ZM_PATH_BIN.'/zmpkg.pl '.$saferCommand;
     $string .= " 2>/dev/null >&- <&- >/dev/null";
     exec( $string );
 }

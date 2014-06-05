@@ -469,7 +469,9 @@ if ( !empty($action) )
                     dbQuery( "update Monitors set ".implode( ", ", $changes )." where Id =?", array($mid) );
                     if ( isset($changes['Name']) )
                     {
-						rename( ZM_DIR_EVENTS."/".$monitor['Name'], ZM_DIR_EVENTS."/".$_REQUEST['newMonitor']['Name']);
+						$saferOldName = basename( $monitor['Name'] );
+						$saferNewName = basename( $_REQUEST['newMonitor']['Name'] );
+						rename( ZM_DIR_EVENTS."/".$saferOldName, ZM_DIR_EVENTS."/".$saferNewName);
                     }
                     if ( isset($changes['Width']) || isset($changes['Height']) )
                     {

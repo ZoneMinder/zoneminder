@@ -607,8 +607,8 @@ if ( !empty($action) )
                                 foreach( $markEids as $markEid )
                                     deleteEvent( $markEid );
 
-                                deletePath( ZM_DIR_EVENTS."/".$monitor['Name'] );
-                                deletePath( ZM_DIR_EVENTS."/".$monitor['Id'] );
+                                deletePath( ZM_DIR_EVENTS."/".basename($monitor['Name']) );
+                                deletePath( ZM_DIR_EVENTS."/".$monitor['Id'] ); // I'm trusting the Id.  
                             }
                         }
                     }

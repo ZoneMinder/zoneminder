@@ -87,7 +87,7 @@ if($tab == 'skins') {
 	if (isset($_GET['skin-choice'])) {
 		setcookie('zmSkin',$_GET['skin-choice']);
 		//header("Location: index.php?view=options&tab=skins&reset_parent=1");
-		echo '<script type="text/javascript">window.opener.location.reload();window.location.reload();</script>';
+		echo "<script type=\"text/javascript\">window.opener.location.reload();window.location.href=\"{$_SERVER['PHP_SELF']}?view={$view}&tab={$tab}\"</script>";
 	}
 
 ?>
@@ -210,7 +210,7 @@ else
     foreach ( $configCat as $name=>$value )
     {
         $shortName = preg_replace( '/^ZM_/', '', $name );
-        $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]:$value['Prompt'];
+        $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]['Prompt']:$value['Prompt'];
 ?>
             <tr>
               <td><?= $shortName ?></td>

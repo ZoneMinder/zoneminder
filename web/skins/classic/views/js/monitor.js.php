@@ -123,6 +123,8 @@ function validateForm( form )
         errors[errors.length] = "<?= $SLANG['BadFPSReportInterval'] ?>";
     if ( !form.elements['newMonitor[FrameSkip]'].value || !(parseInt(form.elements['newMonitor[FrameSkip]'].value) >= 0 ) )
         errors[errors.length] = "<?= $SLANG['BadFrameSkip'] ?>";
+    if ( !form.elements['newMonitor[MotionFrameSkip]'].value || !(parseInt(form.elements['newMonitor[MotionFrameSkip]'].value) >= 0 ) )
+        errors[errors.length] = "<?= $SLANG['BadMotionFrameSkip'] ?>";
     if ( form.elements['newMonitor[Type]'].value == 'Local' )
         if ( !form.elements['newMonitor[SignalCheckColour]'].value || !form.elements['newMonitor[SignalCheckColour]'].value.match( /^[#0-9a-zA-Z]+$/ ) )
             errors[errors.length] = "<?= $SLANG['BadSignalCheckColour'] ?>";

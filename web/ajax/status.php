@@ -51,6 +51,7 @@ $statusData = array(
             "AlarmFrameCount" => true,
             "SectionLength" => true,
             "FrameSkip" => true,
+            "MotionFrameSkip" => true,
             "MaxFPS" => true,
             "AlarmMaxFPS" => true,
             "FPSReportInterval" => true,

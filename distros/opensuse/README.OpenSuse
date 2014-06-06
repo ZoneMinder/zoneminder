@@ -23,16 +23,29 @@ OpenSuse Notes
 2. OpenSuse prefers mariadb to mysql.  mariadb is a direct replacement for mysql
    and all mysql functions work in the same way.  These notes assumes that you 
    are running mariadb.
+
+3. It is necessary to add repositories to allow the zoneminder rpm to install.
+   These can be added using commands (as root):
+   zypper ar -f http://packman.inode.at/suse/openSUSE_13.1/ packman
+   zypper ar -f -n perl-modules http://download.opensuse.org/repositories/devel:/languages:/perl/openSUSE_13.1 perl-modules
    
+   The first time the repositories are accessed a prompt will be issued 
+   asking if the key is to be trusted.  We suggest that you a(lways) trust
+   this repository
+
+4. There may be a prompt about the version of libavcodec.s0.55 and a change
+   of vendor for libavutil52.  In order to allow zoneminder to run correctly 
+   this solution change vendro should be accepted.
+
 New installs
 ============
 
 1. Unless you are already using the MySQL server or you are running it
    remotely you will need to ensure that the server is installed and secured:
        
-   To install the database issue the following commands (as root):
-
-	zypper in mariadb
+   The rpm install should ensure that the database is installed.  To ensure
+   that it is running at boot time and scure for zoneminder run the 
+   following commands (as root):
 
 	systemctl enable mysql
 
@@ -45,7 +58,8 @@ New installs
    which will be for the whole database - you will need to edit 
    /etc/my.cnf and comment out the record 
    
-   sql_mode=NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES.
+   sql_mode=NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES and restart the
+   server
    
 2. Using the password for the root account set during the previous step, you
    will need to create the ZoneMinder database, assuming your database server
@@ -106,11 +120,6 @@ New installs
 	systemctl enable zoneminder
 	systemctl start zoneminder
 	
-    If zoneminder fails to start using the service you may also start it
-    with this command:
-
-	/opt/zoneminder/bin/zmpkg.pl start
-
 
 Upgrades
 ========

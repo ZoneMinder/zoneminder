@@ -10,7 +10,7 @@
 #
 cmake_minimum_required (VERSION 2.6)
 project (zoneminder)
-set(zoneminder_VERSION "1.27")
+set(zoneminder_VERSION "1.27.1")
 
 # CMake does not allow out-of-source build if CMakeCache.exists in the source folder. Abort and notify the user to save him from headache why it doesn't work.
 if((NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)) AND (EXISTS "${CMAKE_SOURCE_DIR}/CMakeCache.txt"))

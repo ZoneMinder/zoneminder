@@ -133,6 +133,7 @@ $SLANG = array(
     'BadFPSReportInterval' => 'Buffern för ramintervallrapporten måste vara ett heltal på minst 0 eller högre',
     'BadFormat'            => 'Formatet måste vara ett heltal, noll eller högre',
     'BadFrameSkip'         => 'Värdet för ramöverhopp måste vara ett heltal på 0 eller högre',
+    'BadMotionFrameSkip'   => 'Motion Frame skip count must be an integer of zero or more',
     'BadHeight'            => 'Höjden måste sättas till ett giltigt värde',
     'BadHost'              => 'Detta fält ska innehålla en giltig ip-adress eller värdnamn, inkludera inte http://',
     'BadImageBufferCount'  => 'Bufferstorleken för avbilden måste vara ett heltal på minst 10 eller högre',
@@ -335,6 +336,7 @@ $SLANG = array(
     'FrameId'              => 'Ram id',
     'FrameRate'            => 'Ram hastighet',
     'FrameSkip'            => 'Hoppa över ram',
+    'MotionFrameSkip'      => 'Motion Frame Skip',
     'Frames'               => 'Ramar',
     'Func'                 => 'Funk',
     'Function'             => 'Funktion',
@@ -378,6 +380,7 @@ $SLANG = array(
     'Last'                 => 'Sist',
     'Layout'               => 'Layout',                 // Added - 2009-02-08
     'Level'                => 'Level',                  // Added - 2011-06-16
+    'Libvlc'               => 'Libvlc',
     'LimitResultsPost'     => 'resultaten;', // This is used at the end of the phrase 'Limit to first N results only'
     'LimitResultsPre'      => 'Begränsa till första', // This is used at the beginning of the phrase 'Limit to first N results only'
     'Line'                 => 'Line',                   // Added - 2011-06-16
@@ -861,6 +864,20 @@ $OLANG = array(
         'Prompt' => "Välj språk för ZoneMinder",
         'Help' => "ZoneMinder kan använda annat språk än engelska i menyer och texter. Välj här det språk du vill använda till ZoneMinder."
     ),
+	'OPTIONS_FFMPEG' => array(
+		'Help' => "Parameters in this field are passwd on to FFmpeg. Multiple parameters can be separated by ,~~ ".
+		          "Examples (do not enter quotes)~~~~".
+		          "\"allowed_media_types=video\" Set datatype to request fromcam (audio, video, data)~~~~".
+		          "\"reorder_queue_size=nnn\" Set number of packets to buffer for handling of reordered packets~~~~".
+		          "\"loglevel=debug\" Set verbosiy of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
+	),
+	'OPTIONS_LIBVLC' => array(
+		'Help' => "Parameters in this field are passwd on to libVLC. Multiple parameters can be separated by ,~~ ".
+		          "Examples (do not enter quotes)~~~~".
+		          "\"--rtp-client-port=nnn\" Set local port to use for rtp data~~~~". 
+		          "\"--verbose=2\" Set verbosity of libVLC"
+	),
+	
 );
 
 ?>

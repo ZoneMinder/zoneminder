@@ -64,6 +64,7 @@ else
         'Method' => "",
         'Host' => "",
         'Path' => "",
+        'Options' => "",
         'Port' => "80",
         'User' => "",
         'Pass' => "",
@@ -97,6 +98,7 @@ else
         'ReturnDelay' => "",
         'SectionLength' => 600,
         'FrameSkip' => 0,
+        'MotionFrameSkip' => 0,
         'EventPrefix' => 'Event-',
         'MaxFPS' => "",
         'AlarmMaxFPS' => "",
@@ -181,7 +183,7 @@ $sourceTypes = array(
     'File'   => $SLANG['File'],
     'Ffmpeg' => $SLANG['Ffmpeg'],
     'Libvlc' => $SLANG['Libvlc'],
-    'cURL'   => "cURL (HTTP only)"
+    'cURL'   => "cURL (HTTP(S) only)"
 );
 if ( !ZM_HAS_V4L )
     unset($sourceTypes['Local']);
@@ -516,10 +518,16 @@ if ( $tab != 'source' || $newMonitor['Type'] != 'Remote' )
     <input type="hidden" name="newMonitor[Port]" value="<?= validHtmlStr($newMonitor['Port']) ?>"/>
 <?php
 }
-if ( $tab != 'source' || ($newMonitor['Type'] != 'Local' && $newMonitor['Type'] != 'Remote') )
+if ( $tab != 'source' || ($newMonitor['Type'] != 'Local' && $newMonitor['Type'] != 'Remote' && $newMonitor['Type'] != 'Ffmpeg' && $newMonitor['Type'] != 'Libvlc') )
 {
 ?>
     <input type="hidden" name="newMonitor[Method]" value="<?= validHtmlStr($newMonitor['Method']) ?>"/>
+<?php
+}
+if ( $tab != 'source' || ($newMonitor['Type'] != 'Ffmpeg' && $newMonitor['Type'] != 'Libvlc' ))
+{
+?>
+    <input type="hidden" name="newMonitor[Options]" value="<?= validHtmlStr($newMonitor['Options']) ?>"/>
 <?php
 }
 if ( $tab != 'source' || ($newMonitor['Type'] != 'Remote' && $newMonitor['Type'] != 'File' && $newMonitor['Type'] != 'Ffmpeg' && $newMonitor['Type'] != 'Libvlc' && $newMonitor['Type'] != 'cURL') )
@@ -595,6 +603,7 @@ if ( $tab != 'misc' )
     <input type="hidden" name="newMonitor[EventPrefix]" value="<?= validHtmlStr($newMonitor['EventPrefix']) ?>"/>
     <input type="hidden" name="newMonitor[SectionLength]" value="<?= validHtmlStr($newMonitor['SectionLength']) ?>"/>
     <input type="hidden" name="newMonitor[FrameSkip]" value="<?= validHtmlStr($newMonitor['FrameSkip']) ?>"/>
+    <input type="hidden" name="newMonitor[MotionFrameSkip]" value="<?= validHtmlStr($newMonitor['MotionFrameSkip']) ?>"/>
     <input type="hidden" name="newMonitor[FPSReportInterval]" value="<?= validHtmlStr($newMonitor['FPSReportInterval']) ?>"/>
     <input type="hidden" name="newMonitor[DefaultView]" value="<?= validHtmlStr($newMonitor['DefaultView']) ?>"/>
     <input type="hidden" name="newMonitor[DefaultRate]" value="<?= validHtmlStr($newMonitor['DefaultRate']) ?>"/>
@@ -745,7 +754,7 @@ switch ( $tab )
             <tr><td><?= $SLANG['RemoteHostPath'] ?></td><td><input type="text" name="newMonitor[Path]" value="<?= validHtmlStr($newMonitor['Path']) ?>" size="36"/></td></tr>
 <?php
         }
-        elseif ( $newMonitor['Type'] == "File" || $newMonitor['Type'] == "Ffmpeg" || $newMonitor['Type'] == "Libvlc" )
+        elseif ( $newMonitor['Type'] == "File" )
         {
 ?>
             <tr><td><?= $SLANG['SourcePath'] ?></td><td><input type="text" name="newMonitor[Path]" value="<?= validHtmlStr($newMonitor['Path']) ?>" size="36"/></td></tr>
@@ -754,9 +763,17 @@ switch ( $tab )
         elseif ( $newMonitor['Type'] == "cURL" )
         {
 ?>
-            <tr><td><?= "Address" ?></td><td><input type="text" name="newMonitor[Path]" value="<?= validHtmlStr($newMonitor['Path']) ?>" size="36"/></td></tr>
+            <tr><td><?= "URL" ?></td><td><input type="text" name="newMonitor[Path]" value="<?= validHtmlStr($newMonitor['Path']) ?>" size="36"/></td></tr>
             <tr><td><?= "Username" ?></td><td><input type="text" name="newMonitor[User]" value="<?= validHtmlStr($newMonitor['User']) ?>" size="12"/></td></tr>
             <tr><td><?= "Password" ?></td><td><input type="text" name="newMonitor[Pass]" value="<?= validHtmlStr($newMonitor['Pass']) ?>" size="12"/></td></tr>
+<?php
+        }
+        elseif ( $newMonitor['Type'] == "Ffmpeg" || $newMonitor['Type'] == "Libvlc")
+        {
+?>
+			<tr><td><?= $SLANG['SourcePath'] ?></td><td><input type="text" name="newMonitor[Path]" value="<?= validHtmlStr($newMonitor['Path']) ?>" size="36"/></td></tr>
+            <tr><td><?= $SLANG['RemoteMethod'] ?></td><td><?= buildSelect( "newMonitor[Method]", $rtspMethods ); ?></td></tr>
+			<tr><td><?= $SLANG['Options'] ?>&nbsp;(<?= makePopupLink( '?view=optionhelp&amp;option=OPTIONS_'.strtoupper($newMonitor['Type']), 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td><td><input type="text" name="newMonitor[Options]" value="<?= validHtmlStr($newMonitor['Options']) ?>" size="36"/></td></tr>
 <?php
         }
 ?>
@@ -845,6 +862,7 @@ switch ( $tab )
             <tr><td><?= $SLANG['EventPrefix'] ?></td><td><input type="text" name="newMonitor[EventPrefix]" value="<?= validHtmlStr($newMonitor['EventPrefix']) ?>" size="24"/></td></tr>
             <tr><td><?= $SLANG['Sectionlength'] ?></td><td><input type="text" name="newMonitor[SectionLength]" value="<?= validHtmlStr($newMonitor['SectionLength']) ?>" size="6"/></td></tr>
             <tr><td><?= $SLANG['FrameSkip'] ?></td><td><input type="text" name="newMonitor[FrameSkip]" value="<?= validHtmlStr($newMonitor['FrameSkip']) ?>" size="6"/></td></tr>
+            <tr><td><?= $SLANG['MotionFrameSkip'] ?></td><td><input type="text" name="newMonitor[MotionFrameSkip]" value="<?= validHtmlStr($newMonitor['MotionFrameSkip']) ?>" size="6"/></td></tr>
             <tr><td><?= $SLANG['FPSReportInterval'] ?></td><td><input type="text" name="newMonitor[FPSReportInterval]" value="<?= validHtmlStr($newMonitor['FPSReportInterval']) ?>" size="6"/></td></tr>
             <tr><td><?= $SLANG['DefaultView'] ?></td><td><select name="newMonitor[DefaultView]">
 <?php

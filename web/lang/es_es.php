@@ -130,6 +130,7 @@ $SLANG = array(
     'BadFPSReportInterval'  => 'El registro de intervalo de recuento búfer de MPS debe ser un entero de 100 o más',
     'BadFormat'             => 'El formato debe tener un valor válido',
     'BadFrameSkip'          => 'El número de omisión de marcos debe ser un entero de cero o más',
+    'BadMotionFrameSkip'    => 'Motion Frame skip count must be an integer of zero or more',
     'BadHeight'             => 'La altura debe tener un valor válido',
     'BadHost'               => 'El host debe tener una dirección ip o nombre de host válidos, no incluir http://',
     'BadImageBufferCount'   => 'El tamaño de búfer de imagen debe serun entero de 10 o más',
@@ -331,6 +332,7 @@ $SLANG = array(
     'FrameId'               => 'Id del marco',
     'FrameRate'             => 'Ratío del marco',
     'FrameSkip'             => 'Omisión de marcos',
+    'MotionFrameSkip'       => 'Motion Frame Skip',
     'Frames'                => 'Marcos',
     'Func'                  => 'Func',
     'Function'              => 'Función',
@@ -374,6 +376,7 @@ $SLANG = array(
     'Last'                  => 'Último',
     'Layout'                => 'Diseño',
     'Level'                 => 'Nivel',
+    'Libvlc'               => 'Libvlc',
     'LimitResultsPost'      => 'Sólo resultados', // This is used at the end of the phrase 'Limit to first N results only'
     'LimitResultsPre'       => 'Limitar al primero', // This is used at the beginning of the phrase 'Limit to first N results only'
     'Line'                  => 'Línea',
@@ -758,6 +761,20 @@ function zmVlang( $langVarArray, $count )
 
 
 $OLANG = array(
+	'OPTIONS_FFMPEG' => array(
+		'Help' => "Parameters in this field are passwd on to FFmpeg. Multiple parameters can be separated by ,~~ ".
+		          "Examples (do not enter quotes)~~~~".
+		          "\"allowed_media_types=video\" Set datatype to request fromcam (audio, video, data)~~~~".
+		          "\"reorder_queue_size=nnn\" Set number of packets to buffer for handling of reordered packets~~~~".
+		          "\"loglevel=debug\" Set verbosiy of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
+	),
+	'OPTIONS_LIBVLC' => array(
+		'Help' => "Parameters in this field are passwd on to libVLC. Multiple parameters can be separated by ,~~ ".
+		          "Examples (do not enter quotes)~~~~".
+		          "\"--rtp-client-port=nnn\" Set local port to use for rtp data~~~~". 
+		          "\"--verbose=2\" Set verbosity of libVLC"
+	),
+	
 );
 
 ?>

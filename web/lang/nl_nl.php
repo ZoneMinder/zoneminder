@@ -130,6 +130,7 @@ $SLANG = array(
     'BadFPSReportInterval' => 'FPS rapport interval buffer en aantal moet een nummer groter dan nul zijn',
     'BadFormat'            => 'Formaat moet een nummer nul of groter zijn',
     'BadFrameSkip'         => 'Frame skip aantal moet een nummer nul of groter zijn',
+    'BadMotionFrameSkip'   => 'Motion Frame skip count must be an integer of zero or more',
     'BadHeight'            => 'Hoogte moet een geldige waarde zijn',
     'BadHost'              => 'Host moet een juiste address or hostname zijn, laat http:// weg ',
     'BadImageBufferCount'  => 'Foto buffer groote moet een nummer 10 of groter zijn',
@@ -331,6 +332,7 @@ $SLANG = array(
     'FrameId'              => 'Frame id',
     'FrameRate'            => 'Frame rate',
     'FrameSkip'            => 'Frame overgeslagen',
+    'MotionFrameSkip'      => 'Motion Frame Skip',
     'Frames'               => 'Frames',
     'Func'                 => 'Func',
     'Function'             => 'Functie',
@@ -374,6 +376,7 @@ $SLANG = array(
     'Last'                 => 'Laatste',
     'Layout'               => 'Layout',                 // Added - 2009-02-08
     'Level'                => 'Nivo',                  // Added - 2011-06-16
+    'Libvlc'               => 'Libvlc',
     'LimitResultsPost'     => 'resultaten;', // This is used at the end of the phrase 'Limit to first N results only'
     'LimitResultsPre'      => 'beperk tot eerste', // This is used at the beginning of the phrase 'Limit to first N results only'
     'Line'                 => 'Lijn',                   // Added - 2011-06-16
@@ -851,6 +854,20 @@ function zmVlang( $langVarArray, $count )
 // These overrides are in the form show below where the array key represents the option name minus the initial ZM_
 // So for example, to override the help text for ZM_LANG_DEFAULT do
 $OLANG = array(
+	'OPTIONS_FFMPEG' => array(
+		'Help' => "Parameters in this field are passwd on to FFmpeg. Multiple parameters can be separated by ,~~ ".
+		          "Examples (do not enter quotes)~~~~".
+		          "\"allowed_media_types=video\" Set datatype to request fromcam (audio, video, data)~~~~".
+		          "\"reorder_queue_size=nnn\" Set number of packets to buffer for handling of reordered packets~~~~".
+		          "\"loglevel=debug\" Set verbosiy of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
+	),
+	'OPTIONS_LIBVLC' => array(
+		'Help' => "Parameters in this field are passwd on to libVLC. Multiple parameters can be separated by ,~~ ".
+		          "Examples (do not enter quotes)~~~~".
+		          "\"--rtp-client-port=nnn\" Set local port to use for rtp data~~~~". 
+		          "\"--verbose=2\" Set verbosity of libVLC"
+	),
+	
 //    'LANG_DEFAULT' => array(
 //        'Prompt' => "This is a new prompt for this option",
 //        'Help' => "This is some new help for this option which will be displayed in the popup window when the ? is clicked"

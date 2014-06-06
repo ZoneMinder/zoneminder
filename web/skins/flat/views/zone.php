@@ -247,8 +247,8 @@ for ( $i = 0; $i < $pointCols; $i++ )
 ?>
                       <tr id="row<?= $j ?>" onmouseover="highlightOn( <?= $j ?> )" onmouseout="highlightOff( <?= $j ?> )" onclick="setActivePoint( <?= $j ?> )">
                         <td><?= $j+1 ?></td>
-                        <td><input name="newZone[Points][<?= $j ?>][x]" id="newZone[Points][<?= $j ?>][x]" size="5" value="<?= $newZone['Points'][$j]['x'] ?>" onchange="updateX( this, <?= $j ?> )"<?php if ( canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></td>
-                        <td><input name="newZone[Points][<?= $j ?>][y]" id="newZone[Points][<?= $j ?>][y]" size="5" value="<?= $newZone['Points'][$j]['y'] ?>" onchange="updateY( this, <?= $j ?> )"<?php if ( canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></td>
+                        <td><input type="text" name="newZone[Points][<?= $j ?>][x]" id="newZone[Points][<?= $j ?>][x]" size="5" value="<?= $newZone['Points'][$j]['x'] ?>" onchange="updateX( this, <?= $j ?> )"<?php if ( canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></td>
+                        <td><input type="text" name="newZone[Points][<?= $j ?>][y]" id="newZone[Points][<?= $j ?>][y]" size="5" value="<?= $newZone['Points'][$j]['y'] ?>" onchange="updateY( this, <?= $j ?> )"<?php if ( canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></td>
                         <td><a href="#" onclick="addPoint( this, <?= $j ?> ); return( false );">+</a><?php if ( count($newZone['Points']) > 3 ) { ?>&nbsp;<a id="delete<?= $j ?>" href="#" onclick="delPoint( this, <?= $j ?> ); return(false);">&ndash;</a><?php } ?>&nbsp;<a id="cancel<?= $j ?>" href="#" onclick="unsetActivePoint( <?= $j ?> ); return( false );">X</a></td>
                       </tr>
 <?php

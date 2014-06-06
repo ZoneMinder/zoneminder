@@ -61,9 +61,11 @@ void LibvlcUnlockBuffer(void* opaque, void* picture, void *const *planes)
     }
 }
 
-LibvlcCamera::LibvlcCamera( int p_id, const std::string &p_path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) :
+LibvlcCamera::LibvlcCamera( int p_id, const std::string &p_path, const std::string &p_method, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) :
     Camera( p_id, LIBVLC_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture ),
-    mPath( p_path )
+    mPath( p_path ),
+    mMethod( p_method ),
+    mOptions( p_options )
 {	
 	mLibvlcInstance = NULL;
     mLibvlcMedia = NULL;
@@ -115,6 +117,10 @@ LibvlcCamera::~LibvlcCamera()
         libvlc_release(mLibvlcInstance);
         mLibvlcInstance = NULL;
     }
+    if (mOptArgV != NULL)
+    {
+    	delete[] mOptArgV;
+    }
 }
 
 void LibvlcCamera::Initialise()
@@ -137,8 +143,29 @@ void LibvlcCamera::Terminate()
 int LibvlcCamera::PrimeCapture()
 {
     Info("Priming capture from %s", mPath.c_str());
-	 
-    mLibvlcInstance = libvlc_new (0, NULL);
+    
+    StringVector opVect = split(Options(), ",");
+    
+    // Set transport method as specified by method field, rtpUni is default
+    if ( Method() == "rtpMulti" )
+    	opVect.push_back("--rtsp-mcast");
+    else if ( Method() == "rtpRtsp" )
+        opVect.push_back("--rtsp-tcp");
+    else if ( Method() == "rtpRtspHttp" )
+        opVect.push_back("--rtsp-http");
+
+    if (opVect.size() > 0) 
+    {
+    	mOptArgV = new char*[opVect.size()];
+    	Debug(2, "Number of Options: %d",opVect.size());
+    	for (size_t i=0; i< opVect.size(); i++) {
+    		opVect[i] = trimSpaces(opVect[i]);
+    		mOptArgV[i] = (char *)opVect[i].c_str();
+    		Debug(2, "set option %d to '%s'", i,  opVect[i].c_str());
+    	}
+    }
+
+    mLibvlcInstance = libvlc_new (opVect.size(), (const char* const*)mOptArgV);
     if(mLibvlcInstance == NULL)
         Fatal("Unable to create libvlc instance due to: %s", libvlc_errmsg());
      

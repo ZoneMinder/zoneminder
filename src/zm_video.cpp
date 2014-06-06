@@ -190,14 +190,15 @@ int X264MP4Writer::Close() {
 }
 
 int X264MP4Writer::Reset(const char* new_path) {
-
-	VideoWriter::Reset(new_path);
 	
 	/* Close the encoder and file */
 	if(bOpen)
 		Close();
 
-	/* Reset variables */
+	/* Reset common variables */
+	VideoWriter::Reset(new_path);
+
+	/* Reset local variables */
 	bFirstFrame = true;
 	bGotH264AVCInfo = false;
 	prevnals.clear();

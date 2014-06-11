@@ -145,7 +145,7 @@ This release of ZoneMinder has been tested on and works with ffmpeg version N-55
 * Report issues/questions/feature requests on [GitHub Issues](https://github.com/ZoneMinder/ZoneMinder/issues)
 
 Pull requests are very welcome!  If you would like to contribute, please follow
-the following steps.
+the following steps.  While step 3 is optional, it is preferred.
 
 1. Fork the repo
 2. Open an issue at our [GitHub Issues Tracker](https://github.com/ZoneMinder/ZoneMinder/issues).

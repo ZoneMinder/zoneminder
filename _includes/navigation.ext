@@ -1,0 +1,32 @@
+<!--<div class="navbar navbar-default" role="navigation">
+	<div class="container-fluid">
+		<div class="navbar-header">
+			<button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+				<span class="sr-only">Toggle navigation</span>
+				<span class="icon-bar"></span>
+				<span class="icon-bar"></span>
+				<span class="icon-bar"></span>
+			</button>
+			<a class="navbar-brand" href="/">ZoneMinder</a>
+		</div>
+
+		<div class="navbar-collapse collapse">
+			<ul class="nav navbar-nav">
+			{% assign navs = site.data.navigation | sort: 'text' %}
+			{% for nav in navs %}
+				<li><a href="{{ nav.link }}">{{ nav.text }}</a></li>
+			{% endfor %}
+			</ul>
+		</div>
+	</div>
+</div>-->
+
+<div class="container">
+			<ul class="nav navbar-nav">
+				<li><a href="/" class="navbar-brand">ZoneMinder</a></li>
+			{% assign navs = site.data.navigation | sort: 'text' %}
+			{% for nav in navs %}
+				<li><a href="{{ nav.link }}">{{ nav.text }}</a></li>
+			{% endfor %}
+			</ul>
+</div>

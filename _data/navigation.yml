@@ -1,0 +1,17 @@
+- text: Home
+  link: '/'
+
+- text: Documentation
+  link: 'http://zoneminder.readthedocs.org/en/latest/'
+
+- text: Forum
+  link: 'http://www.zoneminder.com/forums'
+
+- text: Screenshots
+  link: '/screenshots'
+
+- text: About
+  link: '/about'
+
+- text: News
+  link: '/news'

@@ -1,7 +1,10 @@
 <div class="jumbotron">
+<div class="container">
 	<h1>ZoneMinder</1>
 
-	<p class="lead"> ZoneMinder is a free, open source <abbr title="Closed-Circuit TeleVision">CCTV</abbr> Linux application which supports monitoring, alerting and recording of IP, USB and analog camears.</p>
+	<p class="lead"> ZoneMinder is a free, open source <abbr title="Closed-Circuit TeleVision">CCTV</abbr> Linux application which supports monitoring, alerting and recording of IP, USB and analog cameras.  Use it with just about any camera to monitor your home, business, crib, or anything else, for free.</p>
 
+	<p><a href="/about" class="btn btn-primary btn-lg" role="button">Learn more</a></p>
 	
+</div>
 </div>

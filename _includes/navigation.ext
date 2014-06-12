@@ -1,4 +1,4 @@
-<!--<div class="navbar navbar-default" role="navigation">
+<div class="navbar navbar-default" role="navigation">
 	<div class="container-fluid">
 		<div class="navbar-header">
 			<button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
@@ -19,14 +19,4 @@
 			</ul>
 		</div>
 	</div>
-</div>-->
-
-<div class="container">
-			<ul class="nav navbar-nav">
-				<li><a href="/" class="navbar-brand">ZoneMinder</a></li>
-			{% assign navs = site.data.navigation | sort: 'text' %}
-			{% for nav in navs %}
-				<li><a href="{{ nav.link }}">{{ nav.text }}</a></li>
-			{% endfor %}
-			</ul>
 </div>

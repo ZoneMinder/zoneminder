@@ -1,0 +1,19 @@
+<div class="panel panel-default">
+	<div class="panel-heading"> <h3 class="panel-title">Latest Releases</h3> </div>
+	<div class="panel-body">
+		<p>Stable:  <a href="https://github.com/ZoneMinder/ZoneMinder/releases/latest">ZM 1.27 "Battery"</a></p>
+		<p>Release Date: March 15th, 2014</p>
+
+		<div class="btn-group">
+			<a href="https://github.com/ZoneMinder/ZoneMinder/archive/v1.27.0.tar.gz" class="btn btn-default">
+				<span class="glyphicon glyphicon-download"></span>
+				Source (.tar.gz)
+			</a>
+			<a href="https://github.com/ZoneMinder/ZoneMinder/archive/v1.27.0.zip" class="btn btn-default">
+				<span class="glyphicon glyphicon-download"></span>
+				Source (.zip)
+			</a>
+		</div>
+
+	</div>
+</div>

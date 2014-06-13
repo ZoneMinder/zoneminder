@@ -20,7 +20,9 @@
 
 	{% include navigation.ext %}
 
-	{% include jumbo.ext %}
+	{% if page.title == 'Home' %}
+		{% include jumbo.ext %}
+	{% endif %}
 
 	<div class="container-fluid">
 

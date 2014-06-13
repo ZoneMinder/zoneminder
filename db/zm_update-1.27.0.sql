@@ -13,11 +13,39 @@ ALTER TABLE Monitors modify column Type enum('Local','Remote','File','Ffmpeg','L
 --
 -- Add required fields for cURL authenication
 --
-ALTER TABLE `Monitors` ADD `User` VARCHAR(32) NOT NULL AFTER `SubPath`;
-ALTER TABLE `Monitors` ADD `Pass` VARCHAR(32) NOT NULL AFTER `User`;
+
+SET @s = (SELECT IF(
+    (SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE table_name = 'Monitors'
+    AND table_schema = DATABASE()
+    AND column_name = 'User'
+    ) > 0,
+"SELECT 'Column User exists in Monitors'",
+"ALTER TABLE `Monitors` ADD `User` VARCHAR(32) NOT NULL AFTER `SubPath`"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+
+SET @s = (SELECT IF(
+    (SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE table_name = 'Monitors'
+    AND table_schema = DATABASE()
+    AND column_name = 'Pass'
+    ) > 0,
+"SELECT 'Column Pass exists in Monitors'",
+"ALTER TABLE `Monitors` ADD `Pass` VARCHAR(32) NOT NULL AFTER `User`"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
 
 --
 -- Add default zone preset
 --
+
 INSERT INTO ZonePresets VALUES (NULL,'Default','Active','Percent','Blobs',25,NULL,3,75,3,3,3,75,2,NULL,1,NULL,0);
+
 

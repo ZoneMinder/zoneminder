@@ -1,0 +1,12 @@
+<div class="panel panel-default">
+	<div class="panel-heading"> <h3 class="panel-title">News Entries</h3> </div>
+	<div class="panel-body">
+		<ul>
+		  {% for post in site.posts %}
+		    <li>
+		      <a href="{{ post.url }}">{{ post.title }}</a>
+		    </li>
+		  {% endfor %}
+		</ul>
+</div>
+</div>

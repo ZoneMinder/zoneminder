@@ -1,10 +1,10 @@
 # Site settings
-name: Dat site title tho
-title: Your awesome title
+name: ZoneMinder
+title: Linux video camera security and surveillance solution.
 email: your-email@domain.com
-description: "Write an awesome description for your new site here. You can edit this line in _config.yml. It will appear in your document head meta (for Google search results) and in your feed.xml site description."
+description: "ZoneMinder is a free, open source CCTV Linux application which supports monitoring, alerting and recording of IP, USB and analog cameras. Use it with just about any camera to monitor your home, business, crib, or anything else."
 baseurl: ""
-url: "http://yourdomain.com"
+url: "http://zoneminder.com"
 
 # Build settings
 markdown: kramdown

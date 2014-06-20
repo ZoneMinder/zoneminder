@@ -23,9 +23,11 @@
 
 #include "zm_ffmpeg_camera.h"
 
-FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) :
+FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::string &p_method, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) :
     Camera( p_id, FFMPEG_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture ),
-    mPath( p_path )
+    mPath( p_path ),
+    mMethod( p_method ),
+    mOptions( p_options )
 {
 	if ( capture )
 	{
@@ -110,12 +112,44 @@ void FfmpegCamera::Terminate()
 int FfmpegCamera::PrimeCapture()
 {
     Info( "Priming capture from %s", mPath.c_str() );
+    
+
 
     // Open the input, not necessarily a file
 #if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(53, 4, 0)
     if ( av_open_input_file( &mFormatContext, mPath.c_str(), NULL, 0, NULL ) !=0 )
 #else
-    if ( avformat_open_input( &mFormatContext, mPath.c_str(), NULL, NULL ) !=0 )
+    // Handle options
+    AVDictionary *opts = 0;
+    StringVector opVect = split(Options(), ",");
+    
+    // Set transport method as specified by method field, rtpUni is default
+    if ( Method() == "rtpMulti" )
+    	opVect.push_back("rtsp_transport=udp_multicast");
+    else if ( Method() == "rtpRtsp" )
+        opVect.push_back("rtsp_transport=tcp");
+    else if ( Method() == "rtpRtspHttp" )
+        opVect.push_back("rtsp_transport=http");
+    
+  	Debug(2, "Number of Options: %d",opVect.size());
+    for (size_t i=0; i<opVect.size(); i++)
+    {
+    	StringVector parts = split(opVect[i],"=");
+    	if (parts.size() > 1) {
+    		parts[0] = trimSpaces(parts[0]);
+    		parts[1] = trimSpaces(parts[1]);
+    	    if ( av_dict_set(&opts, parts[0].c_str(), parts[1].c_str(), 0) == 0 ) {
+    	        Debug(2, "set option %d '%s' to '%s'", i,  parts[0].c_str(), parts[1].c_str());
+    	    }
+    	    else
+    	    {
+    	        Warning( "Error trying to set option %d '%s' to '%s'", i, parts[0].c_str(), parts[1].c_str() );
+    	    }
+    		  
+    	}
+    }
+
+    if ( avformat_open_input( &mFormatContext, mPath.c_str(), NULL, &opts ) !=0 )
 #endif
         Fatal( "Unable to open input %s due to: %s", mPath.c_str(), strerror(errno) );
 

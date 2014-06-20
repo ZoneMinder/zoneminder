@@ -155,3 +155,21 @@ SET @s = (SELECT IF(
 
 PREPARE stmt FROM @s;
 EXECUTE stmt;
+
+--
+-- Add Monitor Options field; used for specifying Ffmpeg AVoptions like rtsp_transport http or libVLC options
+--
+SET @s = (SELECT IF(
+	(SELECT COUNT(*)
+	FROM INFORMATION_SCHEMA.COLUMNS
+	WHERE table_name = 'Monitors'
+	AND table_schema = DATABASE()
+	AND column_name = 'Options'
+	) > 0,
+"SELECT 'Column Options already exists in Monitors'",
+"ALTER TABLE `Monitors` ADD `Options` varchar(255) not null default '' AFTER `Path`"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+

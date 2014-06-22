@@ -15,3 +15,6 @@
 
 - text: News
   link: '/news'
+
+- text: Downloads
+  link: '/downloads'

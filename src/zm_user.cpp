@@ -100,10 +100,12 @@ bool User::canAccess( int monitor_id )
 User *zmLoadUser( const char *username, const char *password )
 {
     char sql[ZM_SQL_SML_BUFSIZ] = "";
-    char safer_username[200];
-    char safer_password[200];
-    mysql_real_escape_string(&dbconn, safer_username, username, sizeof safer_username);
-    mysql_real_escape_string(&dbconn, safer_password, password, sizeof safer_password);
+    char safer_username[65]; // current db username size is 32
+    char safer_password[129]; // current db password size is 64
+	
+	// According to docs, size of safer_whatever must be 2*length+1 due to unicode conversions + null terminator.
+    mysql_real_escape_string(&dbconn, safer_username, username, 32 );
+    mysql_real_escape_string(&dbconn, safer_password, password, 64 );
 
 	if ( password )
 	{

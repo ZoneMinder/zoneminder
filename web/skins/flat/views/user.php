@@ -25,7 +25,7 @@ if ( !canEdit( 'System' ) && !$selfEdit )
     $view = "error";
     return;
 }
-if ( !($newUser = dbFetchOne( 'SELECT * FROM Users WHERE Id = ?', NULL, $_REQUEST['uid']) ) ); {
+if ( !($newUser = dbFetchOne( 'SELECT * FROM Users WHERE Id = ?', NULL, ARRAY($_REQUEST['uid'])) ) ); {
     $newUser = array();
     $newUser['Username'] = $SLANG['NewUser'];
     $newUser['Enabled'] = 1;

@@ -782,16 +782,22 @@ sub killAll
 {
     my $delay = shift;
     sleep( $delay );
+	my $killall;
+	if ( '@HOST_OS@' eq 'BSD' ) {
+		$killall = 'killall -';
+	} else {
+		$killall = 'killall -q -s ';
+	}
+    foreach my $daemon ( @daemons ) {
+
+		my $cmd = $killall ."TERM $daemon";
+		Debug( $cmd );
+		qx( $cmd );
+	}
+	sleep( $delay );
     foreach my $daemon ( @daemons )
     {
-        my $cmd = "killall --quiet --signal TERM $daemon";
-        Debug( $cmd );
-        qx( $cmd );
-    }
-    sleep( $delay );
-    foreach my $daemon ( @daemons )
-    {
-        my $cmd = "killall --quiet --signal KILL $daemon";
+        my $cmd = $killall."KILL $daemon";
         Debug( $cmd );
         qx( $cmd );
     }

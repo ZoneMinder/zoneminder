@@ -784,14 +784,14 @@ sub killAll
     sleep( $delay );
     foreach my $daemon ( @daemons )
     {
-        my $cmd = "killall --quiet --signal TERM $daemon";
+        my $cmd = "killall -q -s TERM $daemon";
         Debug( $cmd );
         qx( $cmd );
     }
     sleep( $delay );
     foreach my $daemon ( @daemons )
     {
-        my $cmd = "killall --quiet --signal KILL $daemon";
+        my $cmd = "killall -q -s KILL $daemon";
         Debug( $cmd );
         qx( $cmd );
     }

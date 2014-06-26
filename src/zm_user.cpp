@@ -104,8 +104,8 @@ User *zmLoadUser( const char *username, const char *password )
     char safer_password[129]; // current db password size is 64
 
 	// According to docs, size of safer_whatever must be 2*length+1 due to unicode conversions + null terminator.
-    mysql_real_escape_string(&dbconn, safer_username, username, sizeof( username ) );
-    mysql_real_escape_string(&dbconn, safer_password, password, sizeof( password ) );
+    mysql_real_escape_string(&dbconn, safer_username, username, strlen( username ) );
+    mysql_real_escape_string(&dbconn, safer_password, password, strlen( password ) );
 
 	if ( password )
 	{

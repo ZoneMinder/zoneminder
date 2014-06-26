@@ -4,48 +4,55 @@ title: Downloads
 permalink: /downloads/
 ---
 
-<div class="media well">
-	<a class="pull-left" href="#">
-		<img src="#" alt="Source Code" />
-	</a>
+<p class="lead">
+The latest code is always available via <a href="https://github.com/ZoneMinder/ZoneMinder/">our github repository</a>.  If your distro of choice has an out-of-date ZoneMinder package, you'll want to compile from our source code.
+</p>
 
-	<div class="media-body">
-		<h4 class="media-heading">Source Code</h4>
-		<a href="https://github.com/ZoneMinder/ZoneMinder/archive/v1.27.0.tar.gz">Tarball</a>
+<div class="row well">
+	<div class="col-md-2"> <img src="http://git-scm.com/images/logos/downloads/Git-Logo-2Color.png" class="img-responsive" alt="Source Code" /> </div>
+
+	<div class="col-md-10">
+		<h3 class="media-heading">Source Code</h3>
+
+		<p>You can clone our code repository with git, over HTTPS or over SSH, and then build the code locally:</p>
+
+{% highlight bash %}
+# without keys, over https
+git clone https://github.com/ZoneMinder/ZoneMinder.git
+# with keys, over ssh
+git clone git@github.com:ZoneMinder/ZoneMinder.git
+{% endhighlight %}
+
+		<p>You can also download the source code in a <a href="https://github.com/ZoneMinder/ZoneMinder/archive/v1.27.0.tar.gz">tarball</a>.</p>
+	</div>
+
+</div>
+
+<div class="row well">
+	<div class="col-md-2"> <img src="http://design.ubuntu.com/wp-content/uploads/logo-ubuntu_su-orange-hex.png" class="img-responsive" alt="Ubuntu" /></div>
+
+	<div class="col-md-10">
+		<h3 class="media-heading">Ubuntu</h3>
+		<p> If you are an Ubuntu user, Isaac Connor is <a href="https://launchpad.net/~iconnor/+archive/zoneminder" target="_blank">maintaining a PPA</a> with an up-to-date ZoneMinder package.  The packages included in the default Ubuntu repos are out of date.</p>
 	</div>
 </div>
 
-<div class="media well">
-  <a class="pull-left" href="#">
-	<img src="http://design.ubuntu.com/wp-content/uploads/logo-ubuntu_su-orange-hex.png" width="140px" alt="Ubuntu" />
-  </a>
 
-  <div class="media-body">
-    <h4 class="media-heading">Package</h4>
-	<p> If you are an Ubuntu user, Isaac Connor is <a href="https://launchpad.net/~iconnor/+archive/zoneminder" target="_blank">maintaining a PPA</a> with an up-to-date ZoneMinder package.</p>
-  </div>
-</div>
+<div class="row well">
+	<div class="col-md-2"> <img src="https://www.gentoo.org/images/powered-small.png" class="img-responsive" alt="Gentoo" /></div>
 
-
-<div class="media well">
-	<a class="pull-left" href="#">
-		<img src="https://www.gentoo.org/images/powered-small.png" width="140px" alt="Gentoo" />
-	</a>
-
-	<div class="media-body">
-		<h4 class="media-heading">Gentoo</h4>
+	<div class="col-md-10">
+		<h3 class="media-heading">Gentoo</h3>
 		<p>If you are a Gentoo user, ZoneMinder is available just by typing 'emerge zoneminder'. Thanks to the Gentoo web-apps team for making this available.</p>
 	</div>
 </div>
 
 
-<div class="media well">
-	<a class="pull-left" href="#">
-		<img src="https://www.debian.org/logos/openlogo-100.png" alt="Debian" />
-	</a>
+<div class="row well">
+	<div class="col-md-2"> <img src="https://www.debian.org/logos/openlogo-100.png" class="img-responsive" alt="Debian" /></div>
 
-	<div class="media-body">
-		<h4 class="media-heading">Debian</h4>
+	<div class="col-md-10">
+		<h3 class="media-heading">Debian</h3>
 		<p>If you are a Debian user, Zoneminder is available in the "unstable" distribution. Thanks to Peter Howard for his considerable efforts in achieving this.</p>
 	</div>
 </div>

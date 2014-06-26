@@ -1,9 +1,10 @@
----
-layout: default
----
-<div class="post">
+{% include head.html %}  
 
-  <header class="post-header">
+	{% include navigation.ext %}
+
+<div class="container">
+
+<header class="post-header">
     <h2>{{ page.title }}</h2>
   </header>
 
@@ -12,3 +13,5 @@ layout: default
   </article>
 
 </div>
+
+{% include footer.html %}

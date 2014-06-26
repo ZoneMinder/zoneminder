@@ -14,7 +14,7 @@
 			<ul class="nav navbar-nav">
 			{% assign navs = site.data.navigation | sort: 'text' %}
 			{% for nav in navs %}
-				<li><a href="{{ nav.link }}">{{ nav.text }}</a></li>
+				<li><a href="{{ nav.link }}" target="{{ nav.target }}">{{ nav.text }}</a></li>
 			{% endfor %}
 			</ul>
 		</div>

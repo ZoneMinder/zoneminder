@@ -46,6 +46,4 @@ EXECUTE stmt;
 -- Add default zone preset
 --
 
-INSERT INTO ZonePresets VALUES (NULL,'Default','Active','Percent','Blobs',25,NULL,3,75,3,3,3,75,2,NULL,1,NULL,0);
-
-
+INSERT INTO ZonePresets VALUES (NULL,'Default','Active','Percent','Blobs',25,NULL,3,75,3,3,3,75,2,NULL,1,NULL,0,0);

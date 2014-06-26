@@ -425,7 +425,6 @@ Monitor::Monitor(
         }
     }
 
-	// Will this not happen everytime a monitor is instantiated?  Seems like all the calls to the Monitor constructor pass a zero for n_zones, then load zones after..
     if ( !n_zones ) {
 		Debug( 1, "Monitor %s has no zones, adding one.", name );
         n_zones = 1;
@@ -501,15 +500,12 @@ bool Monitor::connect() {
 
     struct stat map_stat;
     if ( fstat( map_fd, &map_stat ) < 0 )
-        Fatal( "Can't stat memory map file %s: %s, is the zmc process for this monitor running?", mem_file, strerror(errno) );
+        Fatal( "Can't stat memory map file %s: %s", mem_file, strerror(errno) );
     if ( map_stat.st_size != mem_size && purpose == CAPTURE ) {
         // Allocate the size
         if ( ftruncate( map_fd, mem_size ) < 0 ) {
             Fatal( "Can't extend memory map file %s to %d bytes: %s", mem_file, mem_size, strerror(errno) );
-		}
-    } else if ( map_stat.st_size == 0 ) {
-        Error( "Got empty memory map file size %ld, is the zmc process for this monitor running?", map_stat.st_size, mem_size );
-		return false;
+		    }
     } else if ( map_stat.st_size != mem_size ) {
         Error( "Got unexpected memory map file size %ld, expected %d", map_stat.st_size, mem_size );
 		return false;
@@ -606,6 +602,7 @@ Monitor::~Monitor()
 			memset( mem_ptr, 0, mem_size );
 		}
 
+	if ( mem_ptr ) {
 #if ZM_MEM_MAPPED
 		if ( msync( mem_ptr, mem_size, MS_SYNC ) < 0 )
 			Error( "Can't msync: %s", strerror(errno) );
@@ -3014,7 +3011,7 @@ bool Monitor::closeEvent()
 /*
 bool Monitor::OurCheckAlarms( Zone *zone, const Image *pImage )
 {
-    Info("Entering OurCheckAlarms >>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+    Info("Entering OurCheckAlarms >>>>>>>>>>>>>>>>>>>>>");
     unsigned char black_thr = 23;
     int min_alarm_score = 10;
     int max_alarm_score = 99;

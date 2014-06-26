@@ -1,17 +1,23 @@
 - text: Documentation
   link: 'http://zoneminder.readthedocs.org/en/latest/'
+  target: '_blank'
 
 - text: Forum
   link: 'http://www.zoneminder.com/forums'
+  target: '_blank'
 
 - text: Screenshots
   link: '/screenshots'
+  target: '_self'
 
 - text: About
   link: '/about'
+  target: '_self'
 
 - text: News
   link: '/news'
+  target: '_self'
 
 - text: Downloads
   link: '/downloads'
+  target: '_self'

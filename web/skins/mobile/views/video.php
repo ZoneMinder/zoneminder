@@ -110,29 +110,29 @@ xhtmlHeaders( __FILE__, $SLANG['Video'].' - '.$event['Name'] );
 <body>
   <div id="page">
     <div id="content">
-      <form method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
+      <form method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <div class="hidden">
           <fieldset>
-            <input type="hidden" name="view" value="<?= $_REQUEST['view'] ?>"/>
-            <input type="hidden" name="eid" value="<?= $_REQUEST['eid'] ?>"/>
+            <input type="hidden" name="view" value="<?php echo $_REQUEST['view'] ?>"/>
+            <input type="hidden" name="eid" value="<?php echo $_REQUEST['eid'] ?>"/>
             <input type="hidden" name="generate" value="1"/>
           </fieldset>
         </div>
         <table id="contentTable" class="minor">
           <tr>
-            <th scope="row"><?= $SLANG['VideoFormat'] ?></th>
-            <td><?= buildSelect( "videoFormat", $videoFormats ) ?></td>
+            <th scope="row"><?php echo $SLANG['VideoFormat'] ?></th>
+            <td><?php echo buildSelect( "videoFormat", $videoFormats ) ?></td>
           </tr>
           <tr>
-            <th scope="row"><?= $SLANG['FrameRate'] ?></th>
-            <td><?= buildSelect( "rate", $rates ) ?></td>
+            <th scope="row"><?php echo $SLANG['FrameRate'] ?></th>
+            <td><?php echo buildSelect( "rate", $rates ) ?></td>
           </tr>
           <tr>
-            <th scope="row"><?= $SLANG['OverwriteExisting'] ?></th>
+            <th scope="row"><?php echo $SLANG['OverwriteExisting'] ?></th>
             <td><input type="checkbox" name="overwrite" value="1"<?php if ( isset($overwrite) ) { ?> checked="checked"<?php } ?>/></td>
           </tr>
         </table>
-        <div id="contentButtons"><input type="submit" value="<?= $SLANG['GenerateVideo'] ?>"/></div>
+        <div id="contentButtons"><input type="submit" value="<?php echo $SLANG['GenerateVideo'] ?>"/></div>
       </form>
 <?php
     if ( isset($videoFile) )
@@ -140,13 +140,13 @@ xhtmlHeaders( __FILE__, $SLANG['Video'].' - '.$event['Name'] );
         if ( $videoFile )
         {
 ?>
-      <p class="infoText"><?= $SLANG['VideoGenSucceeded'] ?></p>
+      <p class="infoText"><?php echo $SLANG['VideoGenSucceeded'] ?></p>
 <?php
         }
         else
         {
 ?>
-      <p class="errorText"><?= $SLANG['VideoGenFailed'] ?></p>
+      <p class="errorText"><?php echo $SLANG['VideoGenFailed'] ?></p>
 <?php
         }
     }
@@ -163,14 +163,14 @@ xhtmlHeaders( __FILE__, $SLANG['Video'].' - '.$event['Name'] );
     if ( count($videoFiles) )
     {
 ?>
-      <h3><?= $SLANG['VideoGenFiles'] ?></h3>
+      <h3><?php echo $SLANG['VideoGenFiles'] ?></h3>
       <table class="major">
         <tr>
-          <th><?= $SLANG['Format'] ?></th>
-          <th><?= $SLANG['Size'] ?></th>
-          <th><?= $SLANG['Rate'] ?></th>
-          <th><?= $SLANG['Scale'] ?></th>
-          <th><?= $SLANG['Action'] ?></th>
+          <th><?php echo $SLANG['Format'] ?></th>
+          <th><?php echo $SLANG['Size'] ?></th>
+          <th><?php echo $SLANG['Rate'] ?></th>
+          <th><?php echo $SLANG['Scale'] ?></th>
+          <th><?php echo $SLANG['Action'] ?></th>
         </tr>
 <?php
         if ( count($videoFiles) > 0 )
@@ -199,11 +199,11 @@ xhtmlHeaders( __FILE__, $SLANG['Video'].' - '.$event['Name'] );
                 }
 ?>
         <tr>
-          <td><?= $matches[4] ?></td>
-          <td><?= filesize( $file ) ?></td>
-          <td><?= $rateText ?></td>
-          <td><?= $scaleText ?></td>
-          <td><a href="?view=<?= $_REQUEST['view'] ?>&amp;eid=<?= $_REQUEST['eid'] ?>&amp;download=<?= $index ?>"><?= $SLANG['View'] ?></a>&nbsp;/&nbsp;<a href="?view=<?= $_REQUEST['view'] ?>&amp;eid=<?= $_REQUEST['eid'] ?>&amp;delete=<?= $index ?>"><?= $SLANG['Delete'] ?></a></td>
+          <td><?php echo $matches[4] ?></td>
+          <td><?php echo filesize( $file ) ?></td>
+          <td><?php echo $rateText ?></td>
+          <td><?php echo $scaleText ?></td>
+          <td><a href="?view=<?php echo $_REQUEST['view'] ?>&amp;eid=<?php echo $_REQUEST['eid'] ?>&amp;download=<?php echo $index ?>"><?php echo $SLANG['View'] ?></a>&nbsp;/&nbsp;<a href="?view=<?php echo $_REQUEST['view'] ?>&amp;eid=<?php echo $_REQUEST['eid'] ?>&amp;delete=<?php echo $index ?>"><?php echo $SLANG['Delete'] ?></a></td>
         </tr>
 <?php
                 $index++;
@@ -216,7 +216,7 @@ xhtmlHeaders( __FILE__, $SLANG['Video'].' - '.$event['Name'] );
     else
     {
 ?>
-      <p class="warnText"><?= $SLANG['VideoGenNoFiles'] ?></p>
+      <p class="warnText"><?php echo $SLANG['VideoGenNoFiles'] ?></p>
 <?php
     }
 ?>

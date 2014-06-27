@@ -36,20 +36,20 @@ xhtmlHeaders(__FILE__, $SLANG['Frames']." - ".$event['Id'] );
 <body>
   <div id="page">
     <div id="header">
-      <div id="headerButtons"><a href="#" onclick="closeWindow();"><?= $SLANG['Close'] ?></a></div>
-      <h2><?= $SLANG['Frames'] ?> - <?= $event['Id'] ?></h2>
+      <div id="headerButtons"><a href="#" onclick="closeWindow();"><?php echo $SLANG['Close'] ?></a></div>
+      <h2><?php echo $SLANG['Frames'] ?> - <?php echo $event['Id'] ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="get" action="<?= $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="none"/>
         <table id="contentTable" class="major" cellspacing="0">
           <thead>
             <tr>
-              <th class="colId"><?= $SLANG['FrameId'] ?></th>
-              <th class="colType"><?= $SLANG['Type'] ?></th>
-              <th class="colTimeStamp"><?= $SLANG['TimeStamp'] ?></th>
-              <th class="colTimeDelta"><?= $SLANG['TimeDelta'] ?></th>
-              <th class="colScore"><?= $SLANG['Score'] ?></th>
+              <th class="colId"><?php echo $SLANG['FrameId'] ?></th>
+              <th class="colType"><?php echo $SLANG['Type'] ?></th>
+              <th class="colTimeStamp"><?php echo $SLANG['TimeStamp'] ?></th>
+              <th class="colTimeDelta"><?php echo $SLANG['TimeDelta'] ?></th>
+              <th class="colScore"><?php echo $SLANG['Score'] ?></th>
             </tr>
           </thead>
           <tbody>
@@ -60,22 +60,22 @@ if ( count($frames) )
     {
         $class = strtolower($frame['Type']);
 ?>
-            <tr class="<?= $class ?>">
-              <td class="colId"><?= makePopupLink( '?view=frame&amp;eid='.$event['Id'].'&amp;fid='.$frame['FrameId'], 'zmImage', array( 'image', $event['Width'], $event['Height'] ), $frame['FrameId'] ) ?></td>
-              <td class="colType"><?= $frame['Type'] ?></td>
-              <td class="colTimeStamp"><?= strftime( STRF_FMT_TIME, $frame['UnixTimeStamp'] ) ?></td>
-              <td class="colTimeDelta"><?= number_format( $frame['Delta'], 2 ) ?></td>
+            <tr class="<?php echo $class ?>">
+              <td class="colId"><?php echo makePopupLink( '?view=frame&amp;eid='.$event['Id'].'&amp;fid='.$frame['FrameId'], 'zmImage', array( 'image', $event['Width'], $event['Height'] ), $frame['FrameId'] ) ?></td>
+              <td class="colType"><?php echo $frame['Type'] ?></td>
+              <td class="colTimeStamp"><?php echo strftime( STRF_FMT_TIME, $frame['UnixTimeStamp'] ) ?></td>
+              <td class="colTimeDelta"><?php echo number_format( $frame['Delta'], 2 ) ?></td>
 <?php
         if ( ZM_RECORD_EVENT_STATS && ($frame['Type'] == 'Alarm') )
         {
 ?>
-              <td class="colScore"><?= makePopupLink( '?view=stats&amp;eid='.$event['Id'].'&amp;fid='.$frame['FrameId'], 'zmStats', 'stats', $frame['Score'] ) ?></td>
+              <td class="colScore"><?php echo makePopupLink( '?view=stats&amp;eid='.$event['Id'].'&amp;fid='.$frame['FrameId'], 'zmStats', 'stats', $frame['Score'] ) ?></td>
 <?php
         }
         else
         {
 ?> 
-              <td class="colScore"><?= $frame['Score'] ?></td>
+              <td class="colScore"><?php echo $frame['Score'] ?></td>
 <?php
         }
 ?> 
@@ -87,7 +87,7 @@ else
 {
 ?>
             <tr>
-              <td colspan="5"><?= $SLANG['NoFramesRecorded'] ?></td>
+              <td colspan="5"><?php echo $SLANG['NoFramesRecorded'] ?></td>
             </tr>
 <?php
 }

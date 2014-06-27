@@ -52,7 +52,7 @@ xhtmlHeaders( __FILE__, $SLANG['Montage'] );
   <div id="page">
     <div id="header">
       <div id="headerButtons">
-        <a href="?view=<?= $_REQUEST['view'] ?>"><?= $SLANG['Refresh'] ?></a>
+        <a href="?view=<?php echo $_REQUEST['view'] ?>"><?php echo $SLANG['Refresh'] ?></a>
       </div>
     </div>
     <div id="content">
@@ -63,12 +63,12 @@ foreach( $monitors as $monitor )
     $scale = getDeviceScale( $monitor['Width'], $monitor['Height'], $imagesPerLine*1.1 );
     $imagePath = getStreamSrc( array( "mode=single", "monitor=".$monitor['Id'], "scale=".$scale ), '&amp;' );
 ?>
-        <a href="?view=watch&amp;mid=<?= $monitor['Id'] ?>"><img src="<?= viewImagePath( $imagePath ) ?>" alt="<?= $monitor['Name'] ?>"/></a>
+        <a href="?view=watch&amp;mid=<?php echo $monitor['Id'] ?>"><img src="<?php echo viewImagePath( $imagePath ) ?>" alt="<?php echo $monitor['Name'] ?>"/></a>
 <?php
 }
 ?>
       </div>
-      <div id="contentButtons"><a href="?view=console"><?= $SLANG['Console'] ?></a></div>
+      <div id="contentButtons"><a href="?view=console"><?php echo $SLANG['Console'] ?></a></div>
     </div>
   </div>
 </body>

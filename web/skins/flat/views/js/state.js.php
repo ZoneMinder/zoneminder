@@ -1,2 +1,2 @@
-var running = <?= $running?'true':'false' ?>;
-var applying = <?= !empty($_REQUEST['apply'])?'true':'false' ?>;
+var running = <?php echo $running?'true':'false' ?>;
+var applying = <?php echo !empty($_REQUEST['apply'])?'true':'false' ?>;

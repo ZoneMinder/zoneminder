@@ -131,94 +131,94 @@ xhtmlHeaders(__FILE__, $SLANG['Zone'] );
 <body>
   <div id="page">
     <div id="header">
-      <h2><?= $SLANG['Monitor'] ?> <?= $monitor['Name'] ?> - <?= $SLANG['Zone'] ?> <?= $newZone['Name'] ?></h2>
+      <h2><?php echo $SLANG['Monitor'] ?> <?php echo $monitor['Name'] ?> - <?php echo $SLANG['Zone'] ?> <?php echo $newZone['Name'] ?></h2>
     </div>
     <div id="content">
-      <form name="zoneForm" id="zoneForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
-        <input type="hidden" name="view" value="<?= $view ?>"/>
+      <form name="zoneForm" id="zoneForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+        <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value="zone"/>
-        <input type="hidden" name="mid" value="<?= $mid ?>"/>
-        <input type="hidden" name="zid" value="<?= $zid ?>"/>
-        <input type="hidden" name="newZone[NumCoords]" value="<?= count($newZone['Points']) ?>"/>
-        <input type="hidden" name="newZone[Coords]" value="<?= $newZone['Coords'] ?>"/>
-        <input type="hidden" name="newZone[Area]" value="<?= $newZone['Area'] ?>"/>
+        <input type="hidden" name="mid" value="<?php echo $mid ?>"/>
+        <input type="hidden" name="zid" value="<?php echo $zid ?>"/>
+        <input type="hidden" name="newZone[NumCoords]" value="<?php echo count($newZone['Points']) ?>"/>
+        <input type="hidden" name="newZone[Coords]" value="<?php echo $newZone['Coords'] ?>"/>
+        <input type="hidden" name="newZone[Area]" value="<?php echo $newZone['Area'] ?>"/>
         <input type="hidden" name="newZone[AlarmRGB]" value=""/>
         <div id="settingsPanel">
           <table id="zoneSettings" cellspacing="0">
             <tbody>
               <tr>
-                <th scope="row"><?= $SLANG['Name'] ?></th>
-                <td colspan="2"><input type="text" name="newZone[Name]" value="<?= $newZone['Name'] ?>" size="12"/></td>
+                <th scope="row"><?php echo $SLANG['Name'] ?></th>
+                <td colspan="2"><input type="text" name="newZone[Name]" value="<?php echo $newZone['Name'] ?>" size="12"/></td>
               </tr>
               <tr>
-                <th scope="row"><?= $SLANG['Type'] ?></th>
-                <td colspan="2"><?= buildSelect( "newZone[Type]", $optTypes, 'applyZoneType()' ) ?></td>
+                <th scope="row"><?php echo $SLANG['Type'] ?></th>
+                <td colspan="2"><?php echo buildSelect( "newZone[Type]", $optTypes, 'applyZoneType()' ) ?></td>
               </tr>
               <tr>
-                <th scope="row"><?= $SLANG['Preset'] ?></th>
-                <td colspan="2"><?= buildSelect( "presetSelector", $presetNames, array( "onchange"=>"applyPreset()", "onblur"=>"this.selectedIndex=0" ) ) ?></td>
+                <th scope="row"><?php echo $SLANG['Preset'] ?></th>
+                <td colspan="2"><?php echo buildSelect( "presetSelector", $presetNames, array( "onchange"=>"applyPreset()", "onblur"=>"this.selectedIndex=0" ) ) ?></td>
               </tr>
               <tr>
-                <th scope="row"><?= $SLANG['Units'] ?></th>
-                <td colspan="2"><?= buildSelect( "newZone[Units]", $optUnits, 'applyZoneUnits()' ) ?></td>
+                <th scope="row"><?php echo $SLANG['Units'] ?></th>
+                <td colspan="2"><?php echo buildSelect( "newZone[Units]", $optUnits, 'applyZoneUnits()' ) ?></td>
               </tr>
               <tr>
-                <th scope="row"><?= $SLANG['ZoneAlarmColour'] ?></th>
-                <td colspan="2"><input type="text" name="newAlarmRgbR" value="<?= ($newZone['AlarmRGB']>>16)&0xff ?>" size="3" onchange="limitRange( this, 0, 255 )"/>&nbsp;/&nbsp;<input type="text" name="newAlarmRgbG" value="<?= ($newZone['AlarmRGB']>>8)&0xff ?>" size="3" onchange="limitRange( this, 0, 255 )"/>&nbsp;/&nbsp;<input type="text" name="newAlarmRgbB" value="<?= $newZone['AlarmRGB']&0xff ?>" size="3" onchange="limitRange( this, 0, 255 )"/></td>
+                <th scope="row"><?php echo $SLANG['ZoneAlarmColour'] ?></th>
+                <td colspan="2"><input type="text" name="newAlarmRgbR" value="<?php echo ($newZone['AlarmRGB']>>16)&0xff ?>" size="3" onchange="limitRange( this, 0, 255 )"/>&nbsp;/&nbsp;<input type="text" name="newAlarmRgbG" value="<?php echo ($newZone['AlarmRGB']>>8)&0xff ?>" size="3" onchange="limitRange( this, 0, 255 )"/>&nbsp;/&nbsp;<input type="text" name="newAlarmRgbB" value="<?php echo $newZone['AlarmRGB']&0xff ?>" size="3" onchange="limitRange( this, 0, 255 )"/></td>
               </tr>
               <tr>
-                <th scope="row"><?= $SLANG['CheckMethod'] ?></th>
-                <td colspan="2"><?= buildSelect( "newZone[CheckMethod]", $optCheckMethods, 'applyCheckMethod()' ) ?></td>
+                <th scope="row"><?php echo $SLANG['CheckMethod'] ?></th>
+                <td colspan="2"><?php echo buildSelect( "newZone[CheckMethod]", $optCheckMethods, 'applyCheckMethod()' ) ?></td>
               </tr>
               <tr>
-                <th scope="row"><?= $SLANG['ZoneMinMaxPixelThres'] ?></th>
-                <td><input type="text" name="newZone[MinPixelThreshold]" value="<?= $newZone['MinPixelThreshold'] ?>" size="4" onchange="limitRange( this, 0, 255 )"/></td>
-                <td><input type="text" name="newZone[MaxPixelThreshold]" value="<?= $newZone['MaxPixelThreshold'] ?>" size="4" onchange="limitRange( this, 0, 255 )"/></td>
+                <th scope="row"><?php echo $SLANG['ZoneMinMaxPixelThres'] ?></th>
+                <td><input type="text" name="newZone[MinPixelThreshold]" value="<?php echo $newZone['MinPixelThreshold'] ?>" size="4" onchange="limitRange( this, 0, 255 )"/></td>
+                <td><input type="text" name="newZone[MaxPixelThreshold]" value="<?php echo $newZone['MaxPixelThreshold'] ?>" size="4" onchange="limitRange( this, 0, 255 )"/></td>
               </tr>
               <tr>
-                <th scope="row"><?= $SLANG['ZoneFilterSize'] ?></th>
-                <td><input type="text" name="newZone[FilterX]" value="<?= $newZone['FilterX'] ?>" size="4" onchange="limitFilter( this )"/></td>
-                <td><input type="text" name="newZone[FilterY]" value="<?= $newZone['FilterY'] ?>" size="4" onchange="limitFilter( this )"/></td>
+                <th scope="row"><?php echo $SLANG['ZoneFilterSize'] ?></th>
+                <td><input type="text" name="newZone[FilterX]" value="<?php echo $newZone['FilterX'] ?>" size="4" onchange="limitFilter( this )"/></td>
+                <td><input type="text" name="newZone[FilterY]" value="<?php echo $newZone['FilterY'] ?>" size="4" onchange="limitFilter( this )"/></td>
               </tr>
               <tr>
-                <th scope="row"><?= $SLANG['ZoneArea'] ?></th>
-                <td colspan="2"><input type="text" name="newZone[TempArea]" value="<?= $newZone['Area'] ?>" size="7" disabled="disabled"/></td>
+                <th scope="row"><?php echo $SLANG['ZoneArea'] ?></th>
+                <td colspan="2"><input type="text" name="newZone[TempArea]" value="<?php echo $newZone['Area'] ?>" size="7" disabled="disabled"/></td>
               </tr>
               <tr>
-                <th scope="row"><?= $SLANG['ZoneMinMaxAlarmArea'] ?></th>
-                <td><input type="text" name="newZone[MinAlarmPixels]" value="<?= $newZone['MinAlarmPixels'] ?>" size="6" onchange="limitArea(this)"/></td>
-                <td><input type="text" name="newZone[MaxAlarmPixels]" value="<?= $newZone['MaxAlarmPixels'] ?>" size="6" onchange="limitArea(this)"/></td>
+                <th scope="row"><?php echo $SLANG['ZoneMinMaxAlarmArea'] ?></th>
+                <td><input type="text" name="newZone[MinAlarmPixels]" value="<?php echo $newZone['MinAlarmPixels'] ?>" size="6" onchange="limitArea(this)"/></td>
+                <td><input type="text" name="newZone[MaxAlarmPixels]" value="<?php echo $newZone['MaxAlarmPixels'] ?>" size="6" onchange="limitArea(this)"/></td>
               </tr>
               <tr>
-                <th scope="row"><?= $SLANG['ZoneMinMaxFiltArea'] ?></th>
-                <td><input type="text" name="newZone[MinFilterPixels]" value="<?= $newZone['MinFilterPixels'] ?>" size="6" onchange="limitArea(this)"/></td>
-                <td><input type="text" name="newZone[MaxFilterPixels]" value="<?= $newZone['MaxFilterPixels'] ?>" size="6" onchange="limitArea(this)"/></td>
+                <th scope="row"><?php echo $SLANG['ZoneMinMaxFiltArea'] ?></th>
+                <td><input type="text" name="newZone[MinFilterPixels]" value="<?php echo $newZone['MinFilterPixels'] ?>" size="6" onchange="limitArea(this)"/></td>
+                <td><input type="text" name="newZone[MaxFilterPixels]" value="<?php echo $newZone['MaxFilterPixels'] ?>" size="6" onchange="limitArea(this)"/></td>
               </tr>
               <tr>
-                <th scope="row"><?= $SLANG['ZoneMinMaxBlobArea'] ?></th>
-                <td><input type="text" name="newZone[MinBlobPixels]" value="<?= $newZone['MinBlobPixels'] ?>" size="6"/></td>
-                <td><input type="text" name="newZone[MaxBlobPixels]" value="<?= $newZone['MaxBlobPixels'] ?>" size="6"/></td>
+                <th scope="row"><?php echo $SLANG['ZoneMinMaxBlobArea'] ?></th>
+                <td><input type="text" name="newZone[MinBlobPixels]" value="<?php echo $newZone['MinBlobPixels'] ?>" size="6"/></td>
+                <td><input type="text" name="newZone[MaxBlobPixels]" value="<?php echo $newZone['MaxBlobPixels'] ?>" size="6"/></td>
               </tr>
               <tr>
-                <th scope="row"><?= $SLANG['ZoneMinMaxBlobs'] ?></th>
-                <td><input type="text" name="newZone[MinBlobs]" value="<?= $newZone['MinBlobs'] ?>" size="4"/></td>
-                <td><input type="text" name="newZone[MaxBlobs]" value="<?= $newZone['MaxBlobs'] ?>" size="4"/></td>
+                <th scope="row"><?php echo $SLANG['ZoneMinMaxBlobs'] ?></th>
+                <td><input type="text" name="newZone[MinBlobs]" value="<?php echo $newZone['MinBlobs'] ?>" size="4"/></td>
+                <td><input type="text" name="newZone[MaxBlobs]" value="<?php echo $newZone['MaxBlobs'] ?>" size="4"/></td>
               </tr>
               <tr>
-                <th scope="row"><?= $SLANG['ZoneOverloadFrames'] ?></th>
-                <td colspan="2"><input type="text" name="newZone[OverloadFrames]" value="<?= $newZone['OverloadFrames'] ?>" size="4"/></td>
+                <th scope="row"><?php echo $SLANG['ZoneOverloadFrames'] ?></th>
+                <td colspan="2"><input type="text" name="newZone[OverloadFrames]" value="<?php echo $newZone['OverloadFrames'] ?>" size="4"/></td>
               </tr>
               <tr>
-                <th scope="row"><?= $SLANG['ZoneExtendAlarmFrames'] ?></th>
-                <td colspan="2"><input type="text" name="newZone[ExtendAlarmFrames]" value="<?= $newZone['ExtendAlarmFrames'] ?>" size="4"/></td>
+                <th scope="row"><?php echo $SLANG['ZoneExtendAlarmFrames'] ?></th>
+                <td colspan="2"><input type="text" name="newZone[ExtendAlarmFrames]" value="<?php echo $newZone['ExtendAlarmFrames'] ?>" size="4"/></td>
               </tr>
             </tbody>
           </table>
         </div>
         <div id="definitionPanel">
           <div id="imagePanel">
-            <div id="imageFrame" style="width: <?= reScale( $monitor['Width'], $scale ) ?>px; height: <?= reScale( $monitor['Height'], $scale ) ?>px;">
-              <img name="zoneImage" id="zoneImage" src="<?= $zoneImage ?>" width="<?= reScale( $monitor['Width'], $scale ) ?>" height="<?= reScale( $monitor['Height'], $scale ) ?>" alt="Zone Image"/>
+            <div id="imageFrame" style="width: <?php echo reScale( $monitor['Width'], $scale ) ?>px; height: <?php echo reScale( $monitor['Height'], $scale ) ?>px;">
+              <img name="zoneImage" id="zoneImage" src="<?php echo $zoneImage ?>" width="<?php echo reScale( $monitor['Width'], $scale ) ?>" height="<?php echo reScale( $monitor['Height'], $scale ) ?>" alt="Zone Image"/>
             </div>
           </div>
           <table id="zonePoints" cellspacing="0">
@@ -233,10 +233,10 @@ for ( $i = 0; $i < $pointCols; $i++ )
                   <table cellspacing="0">
                     <thead>
                       <tr>
-                        <th><?= $SLANG['Point'] ?></th>
-                        <th><?= $SLANG['X'] ?></th>
-                        <th><?= $SLANG['Y'] ?></th>
-                        <th><?= $SLANG['Action'] ?></th>
+                        <th><?php echo $SLANG['Point'] ?></th>
+                        <th><?php echo $SLANG['X'] ?></th>
+                        <th><?php echo $SLANG['Y'] ?></th>
+                        <th><?php echo $SLANG['Action'] ?></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -245,11 +245,11 @@ for ( $i = 0; $i < $pointCols; $i++ )
     for ( $j = $i; $j < count($newZone['Points']); $j += 2 )
     {
 ?>
-                      <tr id="row<?= $j ?>" onmouseover="highlightOn( <?= $j ?> )" onmouseout="highlightOff( <?= $j ?> )" onclick="setActivePoint( <?= $j ?> )">
-                        <td><?= $j+1 ?></td>
-                        <td><input type="text" name="newZone[Points][<?= $j ?>][x]" id="newZone[Points][<?= $j ?>][x]" size="5" value="<?= $newZone['Points'][$j]['x'] ?>" onchange="updateX( this, <?= $j ?> )"<?php if ( canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></td>
-                        <td><input type="text" name="newZone[Points][<?= $j ?>][y]" id="newZone[Points][<?= $j ?>][y]" size="5" value="<?= $newZone['Points'][$j]['y'] ?>" onchange="updateY( this, <?= $j ?> )"<?php if ( canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></td>
-                        <td><a href="#" onclick="addPoint( this, <?= $j ?> ); return( false );">+</a><?php if ( count($newZone['Points']) > 3 ) { ?>&nbsp;<a id="delete<?= $j ?>" href="#" onclick="delPoint( this, <?= $j ?> ); return(false);">&ndash;</a><?php } ?>&nbsp;<a id="cancel<?= $j ?>" href="#" onclick="unsetActivePoint( <?= $j ?> ); return( false );">X</a></td>
+                      <tr id="row<?php echo $j ?>" onmouseover="highlightOn( <?php echo $j ?> )" onmouseout="highlightOff( <?php echo $j ?> )" onclick="setActivePoint( <?php echo $j ?> )">
+                        <td><?php echo $j+1 ?></td>
+                        <td><input type="text" name="newZone[Points][<?php echo $j ?>][x]" id="newZone[Points][<?php echo $j ?>][x]" size="5" value="<?php echo $newZone['Points'][$j]['x'] ?>" onchange="updateX( this, <?php echo $j ?> )"<?php if ( canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></td>
+                        <td><input type="text" name="newZone[Points][<?php echo $j ?>][y]" id="newZone[Points][<?php echo $j ?>][y]" size="5" value="<?php echo $newZone['Points'][$j]['y'] ?>" onchange="updateY( this, <?php echo $j ?> )"<?php if ( canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></td>
+                        <td><a href="#" onclick="addPoint( this, <?php echo $j ?> ); return( false );">+</a><?php if ( count($newZone['Points']) > 3 ) { ?>&nbsp;<a id="delete<?php echo $j ?>" href="#" onclick="delPoint( this, <?php echo $j ?> ); return(false);">&ndash;</a><?php } ?>&nbsp;<a id="cancel<?php echo $j ?>" href="#" onclick="unsetActivePoint( <?php echo $j ?> ); return( false );">X</a></td>
                       </tr>
 <?php
     }
@@ -269,7 +269,7 @@ for ( $i = 0; $i < $pointCols; $i++ )
               </tr>
             </tbody>
           </table>
-          <input type="submit" id="submitBtn" name="submitBtn" value="<?= $SLANG['Save'] ?>" onclick="return saveChanges( this )"<?php if (!canEdit( 'Monitors' ) || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?= $SLANG['Cancel'] ?>" onclick="closeWindow()"/>
+          <input type="submit" id="submitBtn" name="submitBtn" value="<?php echo $SLANG['Save'] ?>" onclick="return saveChanges( this )"<?php if (!canEdit( 'Monitors' ) || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo $SLANG['Cancel'] ?>" onclick="closeWindow()"/>
         </div>
       </form>
     </div>

@@ -38,20 +38,20 @@ xhtmlHeaders(__FILE__, $SLANG['MonitorPreset'] );
 <body>
   <div id="page">
     <div id="header">
-      <h2><?= $SLANG['MonitorPreset'] ?></h2>
+      <h2><?php echo $SLANG['MonitorPreset'] ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="none"/>
-        <input type="hidden" name="mid" value="<?= validNum($_REQUEST['mid']) ?>"/>
+        <input type="hidden" name="mid" value="<?php echo validNum($_REQUEST['mid']) ?>"/>
         <p>
-          <?= $SLANG['MonitorPresetIntro'] ?>
+          <?php echo $SLANG['MonitorPresetIntro'] ?>
         </p>
         <p>
-          <label for="preset"><?= $SLANG['Preset'] ?></label><?= buildSelect( "preset", $presets, 'configureButtons( this )' ); ?>
+          <label for="preset"><?php echo $SLANG['Preset'] ?></label><?php echo buildSelect( "preset", $presets, 'configureButtons( this )' ); ?>
         </p>
         <div id="contentButtons">
-          <input type="submit" name="saveBtn" value="<?= $SLANG['Save'] ?>" onclick="submitPreset( this )" disabled="disabled"/><input type="button" value="<?= $SLANG['Cancel'] ?>" onclick="closeWindow()"/>
+          <input type="submit" name="saveBtn" value="<?php echo $SLANG['Save'] ?>" onclick="submitPreset( this )" disabled="disabled"/><input type="button" value="<?php echo $SLANG['Cancel'] ?>" onclick="closeWindow()"/>
         </div>
       </form>
     </div>

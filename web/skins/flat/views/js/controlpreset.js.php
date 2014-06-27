@@ -3,7 +3,7 @@ var labels = new Array();
 foreach ( $labels as $index=>$label )
 {
 ?>
-labels[<?= validInt($index) ?>] = "<?= validJsStr($label) ?>";
+labels[<?php echo validInt($index) ?>] = "<?php echo validJsStr($label) ?>";
 <?php
 }
 ?>

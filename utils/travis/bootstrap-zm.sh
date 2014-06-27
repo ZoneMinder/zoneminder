@@ -9,9 +9,10 @@ with_timestamps() {
 	done
 }
 
-cd $TRAVIS_BUILD_DIR
 
 bootstrap_zm() {
+
+	cd $TRAVIS_BUILD_DIR
 
 	if [ "$ZM_BUILDMETHOD" = "autotools" ]; then libtoolize --force; fi
 	if [ "$ZM_BUILDMETHOD" = "autotools" ]; then aclocal; fi

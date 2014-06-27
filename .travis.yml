@@ -24,6 +24,4 @@ before_script:
   - bash $TRAVIS_BUILD_DIR/utils/travis/bootstrap-zm.sh
 script:
   - bash $TRAVIS_BUILD_DIR/utils/travis/build-zm.sh
-  - mysql -uzmuser -pzmpass zm < db/test.monitor.sql
-  - sudo zmpkg.pl start
-  - sudo zmfilter.pl -f purgewhenfull
+  - bash $TRAVIS_BUILD_DIR/utils/travis/run-tests.sh

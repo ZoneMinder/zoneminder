@@ -10,7 +10,7 @@ with_timestamps() {
 }
 
 run_tests() {
-	mysql -uzmuser -pzmpass zm < db/test.monitor.sql
+	mysql -uzmuser -pzmpass zm < ../../db/test.monitor.sql
 	sudo zmpkg.pl start
 	sudo zmfilter.pl -f purgewhenfull
 }

@@ -8,3 +8,8 @@
 .navbar-default .navbar-nav > li > a {
   color: #016C9C;
 }
+
+h2 {
+  color: #016C9C;
+  border-bottom: solid 1px #369;
+}

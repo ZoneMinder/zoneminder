@@ -97,6 +97,7 @@ bool User::canAccess( int monitor_id )
 }
 
 // Function to load a user from username and password
+// Please note that in auth relay mode = none, password is NULL
 User *zmLoadUser( const char *username, const char *password )
 {
     char sql[ZM_SQL_SML_BUFSIZ] = "";
@@ -105,14 +106,11 @@ User *zmLoadUser( const char *username, const char *password )
 
 	// According to docs, size of safer_whatever must be 2*length+1 due to unicode conversions + null terminator.
     mysql_real_escape_string(&dbconn, safer_username, username, strlen( username ) );
-    mysql_real_escape_string(&dbconn, safer_password, password, strlen( password ) );
 
-	if ( password )
-	{
+	if ( password ) {
+		mysql_real_escape_string(&dbconn, safer_password, password, strlen( password ) );
 		snprintf( sql, sizeof(sql), "select Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds from Users where Username = '%s' and Password = password('%s') and Enabled = 1", safer_username, safer_password );
-	}
-	else
-	{
+	} else {
 		snprintf( sql, sizeof(sql), "select Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds from Users where Username = '%s' and Enabled = 1", safer_username );
 	}
 

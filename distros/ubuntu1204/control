@@ -2,12 +2,12 @@ Source: zoneminder
 Section: net
 Priority: optional
 Maintainer: Isaac Connor <iconnor@connortechnology.com>
-Build-Depends: debhelper (>= 7.0.50), autoconf, automake, dpatch, libphp-serialization-perl, libgnutls-dev, libmysqlclient-dev, libdbd-mysql-perl, libdate-manip-perl, libwww-perl, libjpeg8-dev, libpcre3-dev, libavcodec-dev, libavformat-dev (>= 3:0.svn20090204), libswscale-dev (>= 3:0.svn20090204), libavutil-dev, libv4l-dev (>= 0.8.3), libbz2-dev, libtool, libsys-mmap-perl, ffmpeg, libnetpbm10-dev, libavdevice-dev, libdevice-serialport-perl, libpcre3, libarchive-zip-perl, libmime-lite-perl, libjpeg8, dh-autoreconf
+Build-Depends: debhelper (>= 7.0.50), autoconf, automake, dpatch, libphp-serialization-perl, libgnutls-dev, libmysqlclient-dev, libdbd-mysql-perl, libdate-manip-perl, libwww-perl, libjpeg8-dev, libpcre3-dev, libavcodec-dev, libavformat-dev (>= 3:0.svn20090204), libswscale-dev (>= 3:0.svn20090204), libavutil-dev, libv4l-dev (>= 0.8.3), libbz2-dev, libtool, libsys-mmap-perl, ffmpeg | libav-tools, libnetpbm10-dev, libavdevice-dev, libdevice-serialport-perl, libpcre3, libarchive-zip-perl, libmime-lite-perl, libjpeg8, dh-autoreconf
 Standards-Version: 3.9.2
 
 Package: zoneminder
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}, apache2, libapache2-mod-php5, php5, php5-mysql, libphp-serialization-perl, libdate-manip-perl, libmime-lite-perl, libmime-lite-perl, mysql-client, libwww-perl, libarchive-tar-perl, libarchive-zip-perl, libdevice-serialport-perl, libpcre3, ffmpeg, rsyslog | system-log-daemon, libmodule-load-perl, libsys-mmap-perl, libjson-any-perl, netpbm, libavdevice53, libjpeg8, zip, libnet-sftp-foreign-perl
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}, apache2, libapache2-mod-php5, php5, php5-mysql, libphp-serialization-perl, libdate-manip-perl, libmime-lite-perl, libmime-lite-perl, mysql-client, libwww-perl, libarchive-tar-perl, libarchive-zip-perl, libdevice-serialport-perl, libpcre3, ffmpeg | libav-tools, rsyslog | system-log-daemon, libmodule-load-perl, libsys-mmap-perl, libjson-any-perl, netpbm, libavdevice53, libjpeg8, zip, libnet-sftp-foreign-perl, libio-pty-perl, libexpect-perl
 SUggests: mysql-server
 Description: A video camera security and surveillance solution
  ZoneMinder is intended for use in single or multi-camera video security 

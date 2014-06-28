@@ -123,20 +123,12 @@ int cURLCamera::PreCapture()
 int cURLCamera::Capture( Image &image )
 {
 	bool frameComplete = false;
-	uint8_t* directbuffer;
 
 	/* MODE_STREAM specific variables */
 	bool SubHeadersParsingComplete = false;
 	unsigned int frame_content_length = 0;
 	std::string frame_content_type;
 	bool need_more_data = false;
-
-	/* Request a writeable buffer of the target image */
-	directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
-	if(directbuffer == NULL) {
-		Error("Failed requesting writeable buffer for the captured image");
-		return (-1);
-	}
 
 	/* Grab the mutex to ensure exclusive access to the shared data */
 	lock();
@@ -384,7 +376,7 @@ size_t cURLCamera::header_callback( void *buffer, size_t size, size_t nmemb, voi
 
 void* cURLCamera::thread_func()
 {
-	int tRet;
+	long tRet;
 	double dSize;
 
 	c = curl_easy_init();

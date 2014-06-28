@@ -1,6 +1,6 @@
 ZoneMinder H264 Patch
 
-[![Build Status](https://travis-ci.org/ZoneMinder/ZoneMinder.png?branch=feature-h264-videostorage)](https://travis-ci.org/ZoneMinder/ZoneMinder)
+[![Build Status](https://travis-ci.org/ZoneMinder/ZoneMinder.png?branch=feature-h264-videostorage)](https://travis-ci.org/ZoneMinder/ZoneMinder)  [![Bountysource](https://api.bountysource.com/badge/team?team_id=204&style=bounties_received)](https://www.bountysource.com/teams/zoneminder/issues?utm_source=ZoneMinder&utm_medium=shield&utm_campaign=bounties_received)
 
 ##Information about this branch
 This branch aims to support direct recording of H264 cameras into MP4 format as well as allowing analogue or remote cameras to be transcoded into H264 video on the fly. This branch tracks the modern branch as the new WebUI is where all the viewing functionality will sit. If you encounter any issues, please open an issue on GitHub and attach it to the H264 Milestone. @chriswiggins is leading this project and welcomes all help!
@@ -136,5 +136,31 @@ perl-TimeDate perl-YAML-Syck php php-cli php-mysql x264 vlc-devel vlc-core libcu
 This release of ZoneMinder has been tested on and works with ffmpeg version N-55540-g93f4277.
 
 
+## Contribution Model and  Development
+
+* Source hosted at [GitHub](https://github.com/ZoneMinder/ZoneMinder/)
+* Report issues/questions/feature requests on [GitHub Issues](https://github.com/ZoneMinder/ZoneMinder/issues)
+
+Pull requests are very welcome!  If you would like to contribute,
+please follow the following steps.  Also please create a feature branch
+for what you are working on.
+
+1. Fork the repo
+2. Open an issue at our [GitHub Issues](https://github.com/ZoneMinder/ZoneMinder/issues) page and jot down the issue number (e.g. 456)
+3. Create your feature branch (`git checkout -b 456-my-new-feature`)
+4. Commit your changes (`git commit -am 'Added some feature'`)
+5. Push to the branch (`git push origin 456-my-new-feature`)
+6. Create new Pull Request
+7. The team will then review your changes
+
+If you are instead working on a bug - not a feature - please do the following:
+
+1. Fork the repo
+2. Open an issue at our [GitHub Issues](https://github.com/ZoneMinder/ZoneMinder/issues) page and jot down the issue number (e.g. 123)
+3. Create your feature branch (`git checkout -b 123-short-description `)
+4. Commit your changes (`git commit -am 'Added some feature.  Fixes #123'`)
+5. Push to the branch (`git push origin 123-short-description`)
+6. Create new Pull Request
+7. The team will then review your changes
 
 [![Analytics](https://ga-beacon.appspot.com/UA-15147273-6/ZoneMinder/README.md)](https://github.com/igrigorik/ga-beacon)

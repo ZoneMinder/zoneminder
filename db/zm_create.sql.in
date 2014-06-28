@@ -329,6 +329,7 @@ CREATE TABLE `Monitors` (
   `Port` varchar(8) NOT NULL default '',
   `SubPath` varchar(64) NOT NULL default '',
   `Path` varchar(255) NOT NULL default '',
+  `Options` varchar(255) not null default '',
   `User` varchar(64) NOT NULL default '',
   `Pass` varchar(64) NOT NULL default '',
   `Width` smallint(5) unsigned NOT NULL default '0',

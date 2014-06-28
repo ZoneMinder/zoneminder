@@ -212,10 +212,17 @@ if ( !empty($action) )
         }
         elseif ( $action == "settings" )
         {
-            $zmuCommand = getZmuCommand( " -m ".$mid." -B".$_REQUEST['newBrightness']." -C".$_REQUEST['newContrast']." -H".$_REQUEST['newHue']." -O".$_REQUEST['newColour'] );
-            $zmuOutput = exec( escapeshellcmd( $zmuCommand ) );
+            $args = " -m " . escapeshellarg($mid);
+            $args .= " -B" . escapeshellarg($_REQUEST['newBrightness']);
+            $args .= " -C" . escapeshellarg($_REQUEST['newContrast']);
+            $args .= " -H" . escapeshellarg($_REQUEST['newHue']);
+            $args .= " -O" . escapeshellarg($_REQUEST['newColour']);
+
+            $zmuCommand = getZmuCommand( $args );
+
+            $zmuOutput = exec( $zmuCommand );
             list( $brightness, $contrast, $hue, $colour ) = explode( ' ', $zmuOutput );
-            dbQuery( "update Monitors set Brightness = '".$brightness."', Contrast = '".$contrast."', Hue = '".$hue."', Colour = '".$colour."' where Id = '".$mid."'" );
+			dbQuery( "update Monitors set Brightness = ?, Contrast = ?, Hue = ?, Colour = ? where Id = ?", array($brightness, $contrast, $hue, $colour, $mid));
         }
     }
 
@@ -462,7 +469,9 @@ if ( !empty($action) )
                     dbQuery( "update Monitors set ".implode( ", ", $changes )." where Id =?", array($mid) );
                     if ( isset($changes['Name']) )
                     {
-                        exec( escapeshellcmd( "mv ".ZM_DIR_EVENTS."/".$monitor['Name']." ".ZM_DIR_EVENTS."/".$_REQUEST['newMonitor']['Name'] ) );
+						$saferOldName = basename( $monitor['Name'] );
+						$saferNewName = basename( $_REQUEST['newMonitor']['Name'] );
+						rename( ZM_DIR_EVENTS."/".$saferOldName, ZM_DIR_EVENTS."/".$saferNewName);
                     }
                     if ( isset($changes['Width']) || isset($changes['Height']) )
                     {
@@ -513,7 +522,8 @@ if ( !empty($action) )
                     dbQuery( "insert into Zones set MonitorId = ?, Name = 'All', Type = 'Active', Units = 'Percent', NumCoords = 4, Coords = ?, Area=?, AlarmRGB = 0xff0000, CheckMethod = 'Blobs', MinPixelThreshold = 25, MinAlarmPixels=?, MaxAlarmPixels=?, FilterX = 3, FilterY = 3, MinFilterPixels=?, MaxFilterPixels=?, MinBlobPixels=?, MinBlobs = 1", array( $mid, sprintf( "%d,%d %d,%d %d,%d %d,%d", 0, 0, $_REQUEST['newMonitor']['Width']-1, 0, $_REQUEST['newMonitor']['Width']-1, $_REQUEST['newMonitor']['Height']-1, 0, $_REQUEST['newMonitor']['Height']-1 ), $zoneArea, intval(($zoneArea*3)/100), intval(($zoneArea*75)/100), intval(($zoneArea*3)/100), intval(($zoneArea*75)/100), intval(($zoneArea*2)/100)  ) );
                     //$view = 'none';
                     mkdir( ZM_DIR_EVENTS.'/'.$mid, 0755 );
-                    symlink( $mid, ZM_DIR_EVENTS.'/'.$_REQUEST['newMonitor']['Name'] );
+					$saferName = basename($_REQUEST['newMonitor']['Name']);
+					symlink( $mid, ZM_DIR_EVENTS.'/'.$saferName );
                     if ( isset($_COOKIE['zmGroup']) )
                     {
                         dbQuery( "UPDATE Groups SET MonitorIds = concat(MonitorIds,',".$mid."') WHERE Id=?", array($_COOKIE['zmGroup']) );
@@ -597,8 +607,8 @@ if ( !empty($action) )
                                 foreach( $markEids as $markEid )
                                     deleteEvent( $markEid );
 
-                                deletePath( ZM_DIR_EVENTS."/".$monitor['Name'] );
-                                deletePath( ZM_DIR_EVENTS."/".$monitor['Id'] );
+                                deletePath( ZM_DIR_EVENTS."/".basename($monitor['Name']) );
+                                deletePath( ZM_DIR_EVENTS."/".$monitor['Id'] ); // I'm trusting the Id.  
                             }
                         }
                     }

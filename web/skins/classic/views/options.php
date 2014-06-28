@@ -43,8 +43,7 @@ $tabs['medband'] = $SLANG['MediumBW'];
 $tabs['lowband'] = $SLANG['LowBW'];
 $tabs['phoneband'] = $SLANG['PhoneBW'];
 $tabs['eyeZm'] = "eyeZm";
-if ( ZM_OPT_USE_AUTH )
-    $tabs['users'] = $SLANG['Users'];
+$tabs['users'] = $SLANG['Users'];
 
 if ( isset($_REQUEST['tab']) )
     $tab = validHtmlStr($_REQUEST['tab']);
@@ -210,7 +209,7 @@ else
     foreach ( $configCat as $name=>$value )
     {
         $shortName = preg_replace( '/^ZM_/', '', $name );
-        $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]:$value['Prompt'];
+        $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]['Prompt']:$value['Prompt'];
 ?>
             <tr>
               <td><?= $shortName ?></td>

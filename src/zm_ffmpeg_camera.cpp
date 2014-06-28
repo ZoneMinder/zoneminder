@@ -126,9 +126,6 @@ int FfmpegCamera::PrimeCapture()
     mVideoStreamId = -1;
     mAudioStreamId = -1;
     Info( "Priming capture from %s", mPath.c_str() );
-
-    AVDictionary *opts = 0;
-    av_dict_set(&opts, "rtsp_transport", "tcp", 0);//FIXME do i need to free this
     
     // Open the input, not necessarily a file
 #if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(53, 4, 0)

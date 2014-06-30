@@ -311,6 +311,13 @@ int cURLCamera::PostCapture()
     return( 0 );
 }
 
+int cURLCamera::CaptureAndRecord( Image &image, bool recording, char* event_directory )
+{
+    // Nothing to do here
+    return( 0 );
+}
+
+
 size_t cURLCamera::data_callback(void *buffer, size_t size, size_t nmemb, void *userdata)
 {
 	lock();

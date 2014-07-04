@@ -9,13 +9,13 @@ function updateButtons( element )
         var canExecute = false;
         if ( form.elements['autoArchive'].checked )
             canExecute = true;
-        else if ( form.elements['autoVideo'].checked )
+        else if ( typeof ZM_OPT_FFMPEG !== "undefined" && form.elements['autoVideo'].checked )
             canExecute = true;
-        else if ( form.elements['autoUpload'] && form.elements['autoUpload'].checked )
+        else if ( typeof ZM_OPT_UPLOAD !== "undefined" && form.elements['autoUpload'].checked )
             canExecute = true;
-        else if ( form.elements['autoEmail'].checked )
+        else if ( typeof ZM_OPT_EMAIL !== "undefined" && form.elements['autoEmail'].checked )
             canExecute = true;
-        else if ( form.elements['autoMessage'].checked )
+        else if ( typeof ZM_OPT_MESSAGE !== "undefined" && form.elements['autoMessage'].checked )
             canExecute = true;
         else if ( form.elements['autoExecute'].checked && form.elements['autoExecuteCmd'].value != '' )
             canExecute = true;

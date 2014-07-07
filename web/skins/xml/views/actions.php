@@ -202,8 +202,8 @@ if (isset($_GET['action'])) {
 		}
 		/* Grab event from the database */
 		$eid = validInteger($_GET['eid']);
-		$eventsSql = "select E.Id, E.MonitorId, E.Name, E.StartTime, E.Length, E.Frames from Events as E where (E.Id = ".$eid.")";
-		$event = dbFetchOne(escapeSql($eventsSql));
+		$eventsSql = "select E.Id, E.MonitorId, E.Name, E.StartTime, E.Length, E.Frames from Events as E where E.Id = ?";
+		$event = dbFetchOne($eventsSql, NULL, array( $eid ) );
 		/* Check if exists */
 		if (!$event) {
 			logxmlErr("Requested event ID ".$eid." does not exist");
@@ -272,8 +272,8 @@ if (isset($_GET['action'])) {
 		}
 		$eid = validInteger($_GET['eid']);
 		$frame = validInteger($_GET['frame']);
-		$eventsSql = "select E.Id, E.MonitorId, E.Name, E.StartTime, E.Length, E.Frames from Events as E where (E.Id = ".$eid.")";
-		$event = dbFetchOne(escapeSql($eventsSql));
+		$eventsSql = "select E.Id, E.MonitorId, E.Name, E.StartTime, E.Length, E.Frames from Events as E where E.Id = ?";
+		$event = dbFetchOne($eventsSql, NULL, array( $eid ) );
 		$qty = validInteger(getset('qty', 100));
 		if ($qty > 100) $qty = 100;
 		$scale = validInteger(getset('scale', 100));
@@ -284,10 +284,9 @@ if (isset($_GET['action'])) {
 		/* Figure out the frame number. If 'alarm' is not set, this is just equal to the <frame> parameter.
 		 * If 'alarm' is set, need to query DB and grab the <frame>-th item */
 		if (isset($_GET['alarm'])) {
-			$frameSql = escapeSql("select * from Frames as F where (F.EventId = ".$eid.") ");
-			$frameSql .= " and (F.Type = 'Alarm') order by F.FrameId";
+			$frameSql = "select * from Frames as F where F.EventId=? and (F.Type = 'Alarm') order by F.FrameId";
 			$i=0;
-			foreach (dbFetchAll($frameSql) as $dbframe) {
+			foreach (dbFetchAll($frameSql, NULL, array($eid) ) as $dbframe) {
 				if ($i == $frame) {
 					$frame = $dbframe['FrameId'];
 					break;

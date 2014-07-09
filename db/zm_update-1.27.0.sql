@@ -46,4 +46,4 @@ EXECUTE stmt;
 -- Add default zone preset
 --
 
-INSERT INTO ZonePresets VALUES (NULL,'Default','Active','Percent','Blobs',25,NULL,3,75,3,3,3,75,2,NULL,1,NULL,0,0);
+INSERT INTO ZonePresets (Name,Type,Units,CheckMethod, MinPixelThreshold, MaxPixelThreshold, MinAlarmPixels, MaxAlarmPixels, FilterX, FilterY, MinFilterPixels, MaxFilterPixels, MinBlobPixels, MaxBlobPixels, MinBlobs, MaxBlobs, OverloadFrames ) VALUES ('Default','Active','Percent','Blobs',25,NULL,3,75,3,3,3,75,2,NULL,1,NULL,0);

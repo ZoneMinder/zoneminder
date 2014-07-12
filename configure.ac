@@ -197,6 +197,21 @@ else
 fi
 AC_SUBST(ENABLE_MMAP)
 
+ENABLE_SYSTEMD=no
+AC_ARG_ENABLE(systemd,
+    [  --enable-systemd=<yes|no>    enable or disable support for systemd, default disable],
+    [ENABLE_SYSTEMD=$enable_systemd],
+    AC_MSG_WARN([You can call configure with the --enable-systemd=<yes|no> or --disable-systemd option.
+    This tells configure whether to compile ZoneMinder with support for systemd. Systemd replaces the
+    standard init system and is becoming the defacto standard for many modern linux distros.
+    e.g. --enable-ssytemd=yes or --disable-systemd])
+)
+if test "$ENABLE_SYSTEMD" == "yes"; then
+  AC_DEFINE(ZM_SYSTEMD,1,"Whether systemd is switched on and compiled in")
+else
+  AC_DEFINE(ZM_SYSTEMD,0,"Whether systemd is switched on and compiled in")
+fi
+
 # Compiler
 AC_LANG_CPLUSPLUS
 

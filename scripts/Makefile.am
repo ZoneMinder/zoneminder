@@ -18,7 +18,8 @@ bin_SCRIPTS = \
 	zmvideo.pl \
 	zmcontrol.pl \
 	zmtrack.pl \
-	zmcamtool.pl
+	zmcamtool.pl \
+	zmsystemctl.pl
 
 SUBDIRS = \
 	. \

@@ -57,6 +57,7 @@ set(ZM_DB_USER "zmuser" CACHE STRING "Name of ZoneMinder database user, default:
 set(ZM_DB_PASS "zmpass" CACHE STRING "Password of ZoneMinder database user, default: zmpass")
 set(ZM_WEB_USER "" CACHE STRING "The user apache or the local web server runs on. Leave empty for automatic detection. If that fails, you can use this variable to force")
 set(ZM_WEB_GROUP "" CACHE STRING "The group apache or the local web server runs on, Leave empty to be the same as the web user")
+set(ZM_SYSTEMD "OFF" CACHE BOOL "Set to ON to build ZoneMinder with support for systemd. default: OFF")
 # Advanced
 set(ZM_EXTRA_LIBS "" CACHE STRING "A list of optional libraries, separated by semicolons, e.g. ssl;theora")
 set(ZM_MYSQL_ENGINE "InnoDB" CACHE STRING "MySQL engine to use with database, default: InnoDB")

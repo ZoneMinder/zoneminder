@@ -1837,7 +1837,7 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
     }
     else
     {
-        snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, Method, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Function != 'None' and Type = 'Local' and Device = '%s' order by Channel", device );
+        snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LCapturesPerFrame, Method, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Function != 'None' and Type = 'Local' and Device = '%s' order by Channel", device );
     }
     if ( mysql_query( &dbconn, sql ) )
     {
@@ -1868,26 +1868,8 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
         const char *device = dbrow[col]; col++;
         int channel = atoi(dbrow[col]); col++;
         int format = atoi(dbrow[col]); col++;
-		bool v4l_multi_buffer;
-		if ( dbrow[col] ) {
-			if (*dbrow[col] == '0' ) {
-				v4l_multi_buffer = false;
-			} else if ( *dbrow[col] == '1' ) {
-				v4l_multi_buffer = true;
-			} 
-		} else {
-			v4l_multi_buffer = config.v4l_multi_buffer;
-		}
-		col++;
-		
-		int v4l_captures_per_frame = 0;
-		if ( dbrow[col] ) {
-			 v4l_captures_per_frame = atoi(dbrow[col]);
-		} else {
-			v4l_captures_per_frame = config.captures_per_frame;
-		}
-Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
-		col++;
+		    bool v4l_multi_buffer = atoi(dbrow[col]); col++;
+		    int v4l_captures_per_frame = atoi(dbrow[col]); col++;
         const char *method = dbrow[col]; col++;
 
         int width = atoi(dbrow[col]); col++;
@@ -2488,6 +2470,8 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
         std::string device = dbrow[col]; col++;
         int channel = atoi(dbrow[col]); col++;
         int format = atoi(dbrow[col]); col++;
+		bool v4l_multi_buffer = atoi(dbrow[col]); col++;
+		int v4l_captures_per_frame = atoi(dbrow[col]); col++;
 
         bool v4l_multi_buffer;
         if ( dbrow[col] ) {

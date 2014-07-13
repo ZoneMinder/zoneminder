@@ -783,9 +783,8 @@ void LocalCamera::Initialise()
         Debug( 3, "Setting up request buffers" );
        
         memset( &v4l2_data.reqbufs, 0, sizeof(v4l2_data.reqbufs) );
-        if ( channel_count > 1 ) {
-			Debug( 3, "Channel count is %d", channel_count );
-            if ( v4l_multi_buffer ){
+        if ( channel_count > 1 )
+            if ( v4l_multi_buffer )
                 v4l2_data.reqbufs.count = 2*channel_count;
             } else {
                 v4l2_data.reqbufs.count = 1;
@@ -1982,11 +1981,6 @@ int LocalCamera::Capture( Image &image )
 	int captures_per_frame = 1;
 	if ( channel_count > 1 )
 		captures_per_frame = v4l_captures_per_frame;
-	if ( captures_per_frame <= 0 ) {
-		captures_per_frame = 1;
-		Warning( "Invalid Captures Per Frame setting: %d", captures_per_frame );
-	} 
-	
 	
     // Do the capture, unless we are the second or subsequent camera on a channel, in which case just reuse the buffer
     if ( channel_prime )

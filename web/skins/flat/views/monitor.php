@@ -34,6 +34,7 @@ if ( ZM_OPT_CONTROL && canView( 'Control' ) )
 if ( ZM_OPT_X10 )
     $tabs["x10"] = $SLANG['X10'];
 $tabs["misc"] = $SLANG['Misc'];
+$tabs["v4l"] = $SLANG['V4L'];
 
 if ( isset($_REQUEST['tab']) )
     $tab = validHtmlStr($_REQUEST['tab']);
@@ -709,15 +710,8 @@ switch ( $tab )
 <?php
             }
 ?>
-			<tr><td><?= $SLANG['V4LMultiBuffer'] ?></td><td>
-				<input type="radio" name="newMonitor[V4LMultiBuffer]" id="newMonitor[V4LMultiBuffer]1" value="1" <?php echo ( $newMonitor['V4LMultiBuffer'] == 1 ? 'checked="checked"' : '' ) ?>/>
-				<label for="newMonitor[V4LMultiBuffer]1">Yes</label>
-				<input type="radio" name="newMonitor[V4LMultiBuffer]" id="newMonitor[V4LMultiBuffer]0" value="0" <?php echo ( $newMonitor['V4LMultiBuffer'] == 0 ? 'checked="checked"' : '' ) ?>/>
-				<label for="newMonitor[V4LMultiBuffer]0">No</label>
-				<input type="radio" name="newMonitor[V4LMultiBuffer]" id="newMonitor[V4LMultiBuffer]" value="" <?php echo ( empty($newMonitor['V4LMultiBuffer']) ? 'checked="checked"' : '' ) ?>/>
-				<label for="newMonitor[V4LMultiBuffer]">Use Config Value</label>
-			</td></tr>
-			<tr><td><?= $SLANG['V4LCapturesPerFrame'] ?></td><td><input type="number" name="newMonitor[V4LCapturesPerFrame]" value="<?php echo $newMonitor['V4LCapturesPerFrame'] ?>"/></td></tr>
+			<tr><td><?= $SLANG['V4LMultiBuffer'] ?></td><td><input type="checkbox" name="V4LMultiBuffer" value="1" <?php echo $newMonitor['V4LMultiBuffer'] ? 'checked="checked"' : '' ?>/></td></tr>
+			<tr><td><?= $SLANG['V4LCapturesPerFrame'] ?></td><td><input type="number" name="V4LCapturesPerFrame" value="<?= $newMonitor['V4LCapturesPerFrame'] ?>"/></td></tr>
 <?php
         }
         elseif ( $newMonitor['Type'] == "Remote" )

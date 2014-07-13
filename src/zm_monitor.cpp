@@ -1827,11 +1827,11 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
     static char sql[ZM_SQL_MED_BUFSIZ];
     if ( !device[0] )
     {
-        strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Method, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Function != 'None' and Type = 'Local' order by Device, Channel", sizeof(sql) );
+        strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, Method, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Function != 'None' and Type = 'Local' order by Device, Channel", sizeof(sql) );
     }
     else
     {
-        snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Method, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Function != 'None' and Type = 'Local' and Device = '%s' order by Channel", device );
+        snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LCapturesPerFrame, Method, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Function != 'None' and Type = 'Local' and Device = '%s' order by Channel", device );
     }
     if ( mysql_query( &dbconn, sql ) )
     {
@@ -1862,6 +1862,8 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
         const char *device = dbrow[col]; col++;
         int channel = atoi(dbrow[col]); col++;
         int format = atoi(dbrow[col]); col++;
+		bool v4l_multi_buffer = atoi(dbrow[col]); col++;
+		int v4l_captures_per_frame = atoi(dbrow[col]); col++;
         const char *method = dbrow[col]; col++;
 
         int width = atoi(dbrow[col]); col++;
@@ -1914,6 +1916,8 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
             device,
             channel,
             format,
+			v4l_multi_buffer,
+			v4l_captures_per_frame,
             method,
             cam_width,
             cam_height,
@@ -2430,7 +2434,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
 Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 {
     static char sql[ZM_SQL_MED_BUFSIZ];
-    snprintf( sql, sizeof(sql), "select Id, Name, Type, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Protocol, Method, Host, Port, Path, Options, User, Pass, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Id = %d", id );
+    snprintf( sql, sizeof(sql), "select Id, Name, Type, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, Protocol, Method, Host, Port, Path, Options, User, Pass, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Id = %d", id );
     if ( mysql_query( &dbconn, sql ) )
     {
         Error( "Can't run query: %s", mysql_error( &dbconn ) );
@@ -2460,6 +2464,8 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
         std::string device = dbrow[col]; col++;
         int channel = atoi(dbrow[col]); col++;
         int format = atoi(dbrow[col]); col++;
+		bool v4l_multi_buffer = atoi(dbrow[col]); col++;
+		int v4l_captures_per_frame = atoi(dbrow[col]); col++;
 
         std::string protocol = dbrow[col]; col++;
         std::string method = dbrow[col]; col++;
@@ -2523,6 +2529,8 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
                 device.c_str(),
                 channel,
                 format,
+				v4l_multi_buffer,
+				v4l_captures_per_frame,
                 method,
                 cam_width,
                 cam_height,

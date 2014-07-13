@@ -34,20 +34,18 @@ if ( ZM_OPT_CONTROL && canView( 'Control' ) )
 if ( ZM_OPT_X10 )
     $tabs["x10"] = $SLANG['X10'];
 $tabs["misc"] = $SLANG['Misc'];
+$tabs["v4l"] = $SLANG['V4L'];
 
 if ( isset($_REQUEST['tab']) )
     $tab = validHtmlStr($_REQUEST['tab']);
 else
     $tab = "general";
 
-if ( !empty($_REQUEST['mid']) )
-{
+if ( ! empty($_REQUEST['mid']) ) {
     $monitor = dbFetchMonitor( $_REQUEST['mid'] );
     if ( ZM_OPT_X10 )
         $x10Monitor = dbFetchOne( 'SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['mid']) );
-}
-else
-{
+} else {
     $nextId = getTableAutoInc( 'Monitors' );
     $monitor = array(
         'Id' => 0,
@@ -107,6 +105,8 @@ else
         'SignalCheckColour' => '#0000c0',
         'WebColour' => 'red',
         'Triggers' => "",
+		'V4LMultiBuffer'	=>	'',
+		'V4LCapturesPerFrame'	=>	1,
     );
 }
 
@@ -706,6 +706,10 @@ switch ( $tab )
             <tr><td><?= $SLANG['CapturePalette'] ?></td><td><select name="newMonitor[Palette]"><?php foreach ( $v4l2LocalPalettes as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['Palette'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
 <?php
             }
+?>
+			<tr><td><?= $SLANG['V4LMultiBuffer'] ?></td><td><input type="checkbox" name="V4LMultiBuffer" value="1" <?php echo $newMonitor['V4LMultiBuffer'] ? 'checked="checked"' : '' ?>/></td></tr>
+			<tr><td><?= $SLANG['V4LCapturesPerFrame'] ?></td><td><input type="number" name="V4LCapturesPerFrame" value="<?= $newMonitor['V4LCapturesPerFrame'] ?>"/></td></tr>
+<?php
         }
         elseif ( $newMonitor['Type'] == "Remote" )
         {

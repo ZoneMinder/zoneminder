@@ -740,7 +740,7 @@ switch ( $tab )
             }
 ?>
 			<tr><td><?= $SLANG['V4LMultiBuffer'] ?></td><td><input type="checkbox" name="V4LMultiBuffer" value="1" <?php echo $newMonitor['V4LMultiBuffer'] ? 'checked="checked"' : '' ?>/></td></tr>
-			<tr><td><?= $SLANG['V4LCapturesPerFrame'] ?></td><td><input type="number" name="V4LCapturesPerFrame" value="<?= $newMonitor['V4LCapturesPerFrame'] ?>"/></td></tr>
+			<tr><td><?= $SLANG['V4LCapturesPerFrame'] ?></td><td><input type="number" name="V4LCapturesPerFrame" value="<?php echo $newMonitor['V4LCapturesPerFrame'] ?>"/></td></tr>
 <?php
         }
         elseif ( $newMonitor['Type'] == "Remote" )

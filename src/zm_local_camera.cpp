@@ -1978,6 +1978,10 @@ int LocalCamera::Capture( Image &image )
 	int captures_per_frame = 1;
 	if ( channel_count > 1 )
 		captures_per_frame = v4l_captures_per_frame;
+	if ( captures_per_frame <= 0 ) {
+		captures_per_frame = 1;
+		Warning( "Invalid Captures Per Frame setting: %d", captures_per_frame );
+	} 
 	
 	
     // Do the capture, unless we are the second or subsequent camera on a channel, in which case just reuse the buffer

@@ -10,4 +10,5 @@ stamp-h1
 stamp-h.in
 scripts/ZoneMinder/blib
 Makefile.in
+Makefile
 docs/_build

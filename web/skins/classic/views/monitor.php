@@ -426,6 +426,7 @@ if ( canEdit( 'Monitors' ) )
 ?>
       <div id="headerButtons">
         <a href="#" onclick="createPopup( '?view=monitorprobe&amp;mid=<?= $monitor['Id'] ?>', 'zmMonitorProbe<?= $monitor['Id'] ?>', 'monitorprobe' ); return( false );"><?= $SLANG['Probe'] ?></a>
+        <a href="#" onclick="createPopup( '?view=onvifprobe&amp;mid=<?= $monitor['Id'] ?>', 'zmOnvifProbe<?= $monitor['Id'] ?>', 'onvifprobe' ); return( false );"><?= $SLANG['OnvifProbe'] ?></a>
         <a href="#" onclick="createPopup( '?view=monitorpreset&amp;mid=<?= $monitor['Id'] ?>', 'zmMonitorPreset<?= $monitor['Id'] ?>', 'monitorpreset' ); return( false );"><?= $SLANG['Presets'] ?></a>
       </div>
 <?php

@@ -1862,7 +1862,7 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
         const char *device = dbrow[col]; col++;
         int channel = atoi(dbrow[col]); col++;
         int format = atoi(dbrow[col]); col++;
-		bool v4l_multi_buffer = atoi(dbrow[col]); col++;
+		bool v4l_multi_buffer = (*dbrow[col] == 48 ? false : true); col++;
 		int v4l_captures_per_frame = atoi(dbrow[col]); col++;
         const char *method = dbrow[col]; col++;
 
@@ -2464,7 +2464,7 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
         std::string device = dbrow[col]; col++;
         int channel = atoi(dbrow[col]); col++;
         int format = atoi(dbrow[col]); col++;
-		bool v4l_multi_buffer = atoi(dbrow[col]); col++;
+		bool v4l_multi_buffer = (*dbrow[col] == 48 ? false : true); col++;
 		int v4l_captures_per_frame = atoi(dbrow[col]); col++;
 
         std::string protocol = dbrow[col]; col++;

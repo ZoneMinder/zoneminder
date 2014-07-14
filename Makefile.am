@@ -12,7 +12,8 @@ SUBDIRS = \
 	web \
 	scripts \
 	db \
-	misc
+	misc \
+ 	onvif
 
 EXTRA_DIST = \
 	zm.conf.in \

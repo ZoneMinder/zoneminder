@@ -1,9 +1,13 @@
 AC_PREREQ(2.59)
 <<<<<<< HEAD
+<<<<<<< HEAD
 AC_INIT(zm,1.28.0,[http://www.zoneminder.com/forums/ - Please check FAQ first],zoneminder,http://www.zoneminder.com/downloads.html)
 =======
 AC_INIT(zm,1.27,[http://www.zoneminder.com/forums/ - Please check FAQ first],zoneminder,http://www.zoneminder.com/downloads.html)
 >>>>>>> Added basic ONVIF support
+=======
+AC_INIT(zm,1.27.1,[http://www.zoneminder.com/forums/ - Please check FAQ first],zoneminder,http://www.zoneminder.com/downloads.html)
+>>>>>>> Revert unintended changes
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR(src/zm.h)
 AC_CONFIG_HEADERS(config.h)
@@ -39,6 +43,7 @@ esac
 
 AC_SUBST(HOST_OS)
 
+AC_ARG_VAR(ZM_DB_TYPE,[Type of the ZoneMinder database, default mysql])
 AC_ARG_VAR(ZM_DB_HOST,[Hostname where ZoneMinder database located, default localhost])
 AC_ARG_VAR(ZM_DB_NAME,[Name of ZoneMinder database, default zm])
 AC_ARG_VAR(ZM_DB_USER,[Name of ZoneMinder database user, default zmuser])

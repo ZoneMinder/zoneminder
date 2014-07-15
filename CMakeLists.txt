@@ -502,6 +502,7 @@ add_subdirectory(src)
 add_subdirectory(scripts)
 add_subdirectory(db)
 add_subdirectory(web)
+add_subdirectory(onvif)
 
 # Process misc subdirectories
 if(ZM_TARGET_DISTRO STREQUAL "f19")

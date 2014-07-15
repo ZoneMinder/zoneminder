@@ -1,17 +1,5 @@
 AC_PREREQ(2.59)
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
 AC_INIT(zm,1.28.0,[http://www.zoneminder.com/forums/ - Please check FAQ first],zoneminder,http://www.zoneminder.com/downloads.html)
-=======
-AC_INIT(zm,1.27,[http://www.zoneminder.com/forums/ - Please check FAQ first],zoneminder,http://www.zoneminder.com/downloads.html)
->>>>>>> Added basic ONVIF support
-=======
-AC_INIT(zm,1.27.1,[http://www.zoneminder.com/forums/ - Please check FAQ first],zoneminder,http://www.zoneminder.com/downloads.html)
->>>>>>> Revert unintended changes
-=======
-AC_INIT(zm,1.27.99.0,[http://www.zoneminder.com/forums/ - Please check FAQ first],zoneminder,http://www.zoneminder.com/downloads.html)
->>>>>>> tweaks to make debian build with support for mariadb, update version and start using a fourth version digit set
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR(src/zm.h)
 AC_CONFIG_HEADERS(config.h)

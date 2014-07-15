@@ -515,6 +515,7 @@ add_subdirectory(scripts)
 add_subdirectory(db)
 add_subdirectory(web)
 add_subdirectory(misc)
+add_subdirectory(onvif)
 
 # Process distro subdirectories
 if((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "f20"))

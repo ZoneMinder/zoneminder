@@ -209,6 +209,7 @@ AC_ARG_ENABLE(systemd,
 AM_CONDITIONAL([SYSTEMD], [test "$ENABLE_SYSTEMD" = "yes"])
 if test "$ENABLE_SYSTEMD" == "yes"; then
   ZM_SYSTEMD=1
+  PKG_CHECK_MODULES(POLKIT, polkit-gobject-1)
 else
   ZM_SYSTEMD=0
 fi

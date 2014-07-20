@@ -479,6 +479,14 @@ endif(NOT ZM_WEB_GROUP)
 message(STATUS "Using web user: ${ZM_WEB_USER}")
 message(STATUS "Using web group: ${ZM_WEB_GROUP}")
 
+# Check for polkit if systemd flag is set
+if(ZM_SYSTEMD)
+	find_package(Polkit)
+	if(NOT POLKIT_FOUND)
+		message(FATAL_ERROR "Distributions using systemd require polkit")
+	endif(NOT POLKIT_FOUND)
+endif(ZM_SYSTEMD)
+
 # Some variables that zm expects
 set(ZM_PID "${ZM_RUNDIR}/zm.pid")
 set(ZM_CONFIG "/${CMAKE_INSTALL_SYSCONFDIR}/zm.conf")

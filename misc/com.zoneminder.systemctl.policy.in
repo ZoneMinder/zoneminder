@@ -9,7 +9,7 @@
 
   <action id="com.zoneminder.policykit.pkexec.run-zmsystemctl">
     <description>Allow the ZoneMinder webuser to run zmsystemctl.pl</description>
-    <message>The ZoneMinder webuser is trusted to run zmsytemctl.pl</message>
+    <message>The ZoneMinder webuser is trusted to run zmsystemctl.pl</message>
     <defaults>
       <allow_any>yes</allow_any>
       <allow_inactive>yes</allow_inactive>

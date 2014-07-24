@@ -323,6 +323,8 @@ CREATE TABLE `Monitors` (
   `Device` varchar(64) NOT NULL default '',
   `Channel` tinyint(3) unsigned NOT NULL default '0',
   `Format` int(10) unsigned NOT NULL default '0',
+  `V4LMultiBuffer`	tinyint(1) unsigned NOT NULL default '0',
+  `V4LCapturesPerFrame`	tinyint(3) unsigned NOT NULL default '1',
   `Protocol` varchar(16) NOT NULL default '',
   `Method` varchar(16) NOT NULL default '',
   `Host` varchar(64) NOT NULL default '',

@@ -215,6 +215,8 @@ protected:
 	bool			enabled;			    // Whether the monitor is enabled or asleep
 	unsigned int    width;				    // Normally the same as the camera, but not if partly rotated
 	unsigned int    height;				    // Normally the same as the camera, but not if partly rotated
+	bool			v4l_multi_buffer;
+	unsigned int	v4l_captures_per_frame;
 	Orientation		orientation;		    // Whether the image has to be rotated at all
 	unsigned int	deinterlacing;
 	int				brightness;			    // The statically saved brightness of the camera

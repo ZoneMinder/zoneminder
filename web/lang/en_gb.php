@@ -700,6 +700,7 @@ $SLANG = array(
     'ViewEvent'             => 'View Event',
     'ViewPaged'             => 'View Paged',
     'View'                  => 'View',
+	'V4L'					=> 'V4L',
 	'V4LCapturesPerFrame'	=> 'Captures Per Frame',
 	'V4LMultiBuffer'		=> 'Multi Buffering',
     'Wake'                  => 'Wake',

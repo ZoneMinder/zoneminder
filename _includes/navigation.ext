@@ -17,6 +17,11 @@
 				<li><a href="{{ nav.link }}" target="{{ nav.target }}">{{ nav.text }}</a></li>
 			{% endfor %}
 			</ul>
+			<div class="pull-right">
+				<a href="http://www.facebook.com/zoneminder"><img src="/images/social/facebook.png" class="navbar-btn" /></a>
+				<a href="https://twitter.com/zoneminder"><img src="/images/social/twitter.png" class="navbar-btn" /></a>
+				<a href="https://github.com/ZoneMinder/ZoneMinder/"><img src="/images/social/Octocat.png" class="navbar-btn" /></a>
+			</div>
 		</div>
 	</div>
 </div>

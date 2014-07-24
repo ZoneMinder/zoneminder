@@ -1,0 +1,27 @@
+---
+layout: post
+title: "Release 1.27.0 - Battery"
+date: 2014-03-15 12:00:00
+---
+
+This is an exciting release as we are fixing a number of bugs, as well as releasing a few new features. Notable notables include:
+
+<h4>A new skin!</h4>
+
+<img src="/images/console.png" alt="Flat ZoneMinder Console Skin" class='img-responsive img-thumbnail' />
+
+This is the initial release of the 'flat' skin, courteously of Justin Lawrence (@justinlawrence). If you'd like to give it a try, you can do so by changing the ZM_SKIN variable in the options menu, or by appending ?skin=flat to your URL. Please report any bugs with this skin if you choose to use it.
+
+<h4>zmcamtool.pl</h4>
+
+Previously, there was no easy way to bring in new ptz controls and camera presets into an existing ZoneMinder system. For the non-technical, programming the same camera into a different system usually meant typing everything in by hand again. This new tool makes it possible to import and export these settings to or from a sql file. You can also use this tool to import any new controls or presets into your existing database, which were added to a new version of ZoneMinder. Execute "zmcamtool.pl --help" from the command line for further details.
+
+<h4>Docker</h4>
+
+This release contains an inital ZoneMinder Dockerfile. Docker, and Dockerfiles, allow you to spin up disposable 'containers', which are essentially self-contained linux virtual machines, each with a specific purpose (such as running ZoneMinder). This feature is an attempt to speed up testing of features and bugs.
+
+This is still in early stages, however more information can be found here.
+
+<h4>A new camera source type, libvlc.</h4>
+
+Courtesy of @ebarnard! Yes, you can probably guess what this means. If the optional libvlc libraries are installed on your system, ZoneMinder will theoretically be able to stream from any camera the popular VLC media player can stream from. If you own an IP camera that previous versions of ZoneMinder did not support then try this new method. More information is here.

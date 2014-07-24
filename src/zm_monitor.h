@@ -168,7 +168,7 @@ protected:
 #else // ZM_MEM_MAPPED
         int             shm_id;
 #endif // ZM_MEM_MAPPED
-		unsigned long				mem_size;
+		unsigned long	mem_size;
 		unsigned char	*mem_ptr;
 
 		volatile SharedData	*shared_data;
@@ -298,6 +298,7 @@ public:
 
 	void AddZones( int p_n_zones, Zone *p_zones[] );
 
+	bool connect();
 	inline int ShmValid() const
 	{
 		return( shared_data->valid );

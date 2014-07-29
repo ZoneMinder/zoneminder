@@ -500,12 +500,15 @@ bool Monitor::connect() {
 
     struct stat map_stat;
     if ( fstat( map_fd, &map_stat ) < 0 )
-        Fatal( "Can't stat memory map file %s: %s", mem_file, strerror(errno) );
+        Fatal( "Can't stat memory map file %s: %s, is the zmc process for this monitor running?", mem_file, strerror(errno) );
     if ( map_stat.st_size != mem_size && purpose == CAPTURE ) {
         // Allocate the size
         if ( ftruncate( map_fd, mem_size ) < 0 ) {
             Fatal( "Can't extend memory map file %s to %d bytes: %s", mem_file, mem_size, strerror(errno) );
 		}
+    } else if ( map_stat.st_size == 0 ) {
+        Error( "Got empty memory map file size %ld, is the zmc process for this monitor running?", map_stat.st_size, mem_size );
+		return false;
     } else if ( map_stat.st_size != mem_size ) {
         Error( "Got unexpected memory map file size %ld, expected %d", map_stat.st_size, mem_size );
 		return false;

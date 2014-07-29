@@ -1,6 +1,7 @@
 AC_PREREQ(2.59)
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 AC_INIT(zm,1.28.0,[http://www.zoneminder.com/forums/ - Please check FAQ first],zoneminder,http://www.zoneminder.com/downloads.html)
 =======
 AC_INIT(zm,1.27,[http://www.zoneminder.com/forums/ - Please check FAQ first],zoneminder,http://www.zoneminder.com/downloads.html)
@@ -8,6 +9,9 @@ AC_INIT(zm,1.27,[http://www.zoneminder.com/forums/ - Please check FAQ first],zon
 =======
 AC_INIT(zm,1.27.1,[http://www.zoneminder.com/forums/ - Please check FAQ first],zoneminder,http://www.zoneminder.com/downloads.html)
 >>>>>>> Revert unintended changes
+=======
+AC_INIT(zm,1.27.99.0,[http://www.zoneminder.com/forums/ - Please check FAQ first],zoneminder,http://www.zoneminder.com/downloads.html)
+>>>>>>> tweaks to make debian build with support for mariadb, update version and start using a fourth version digit set
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR(src/zm.h)
 AC_CONFIG_HEADERS(config.h)
@@ -117,6 +121,7 @@ MYSQL_CFLAGS="-I${MYSQL_PREFIX}/include"
 AC_SUBST(MYSQL_LIBS)
 AC_SUBST(MYSQL_CFLAGS)
 LDFLAGS="$LDFLAGS ${MYSQL_LIBS}"
+<<<<<<< HEAD
 
 
 MARIADB_PREFIX=/usr
@@ -144,6 +149,26 @@ This tells configure where to place the polkit policy files.])
 )
 AC_SUBST(POLKIT_PREFIX)
 PKG_CHECK_MODULES(POLKIT, polkit-gobject-1)
+=======
+
+
+MARIADB_PREFIX=/usr
+AC_ARG_WITH(mariadb,
+    [  --with-mariadb=<path>        prefix of MariaDB installation, default /usr],
+    [MYSQL_PREFIX=$with_mariadb],
+    AC_MSG_WARN([You can call configure with the --with-mariadb option.
+    This tells configure where to find the mariaDB C library and headers if configure cannot
+    locate them automatically.
+    e.g. --with-mariadb=/usr/local or --with-mariadb=/usr])
+)
+AC_SUBST(MARIADB_PREFIX)
+MARIADB_LIBS="-L${MARIADB_PREFIX}/${LIB_ARCH}/mariadb"
+MARIADB_CFLAGS="-I${MARIADB_PREFIX}/include"
+AC_SUBST(MARIADB_LIBS)
+AC_SUBST(MARIADB_CFLAGS)
+LDFLAGS="$LDFLAGS ${MARIADB_LIBS}"
+
+>>>>>>> tweaks to make debian build with support for mariadb, update version and start using a fourth version digit set
 
 FFMPEG_PREFIX=/usr
 AC_ARG_WITH(ffmpeg,

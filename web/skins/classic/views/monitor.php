@@ -34,7 +34,6 @@ if ( ZM_OPT_CONTROL && canView( 'Control' ) )
 if ( ZM_OPT_X10 )
     $tabs["x10"] = $SLANG['X10'];
 $tabs["misc"] = $SLANG['Misc'];
-$tabs["v4l"] = $SLANG['V4L'];
 
 if ( isset($_REQUEST['tab']) )
     $tab = validHtmlStr($_REQUEST['tab']);

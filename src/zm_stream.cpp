@@ -44,6 +44,7 @@ bool StreamBase::loadMonitor( int monitor_id )
         Fatal( "Unable to load monitor id %d for streaming", monitor_id );
         return( false );
     }
+	monitor->connect();
     return( true );
 }
 

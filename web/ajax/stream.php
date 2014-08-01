@@ -46,7 +46,7 @@ switch ( $_REQUEST['command'] )
 }
 
 $remSockFile = ZM_PATH_SOCKS.'/zms-'.sprintf("%06d",$_REQUEST['connkey']).'s.sock';
-$max_socket_tries = 10;
+$max_socket_tries = 3;
 while ( !file_exists($remSockFile) && $max_socket_tries-- ) //sometimes we are too fast for our own good, if it hasn't been setup yet give it a second.
     sleep(1);
 
@@ -66,11 +66,11 @@ if ( $numSockets === false )
 }
 else if ( $numSockets < 0 )
 {
-    ajaxError( "Socket closed $remSockFile"  );
+    ajaxError( "Socket closed $remSocketFile"  );
 }
 else if ( $numSockets == 0 )
 {
-    ajaxError( "Timed out waiting for msg $remSockFile"  );
+    ajaxError( "Timed out waiting for msg $remSocketFile"  );
 }
 else if ( $numSockets > 0 )
 {

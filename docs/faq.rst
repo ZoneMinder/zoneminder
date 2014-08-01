@@ -1,5 +1,5 @@
-Frequently Asked Questions (FAQ)
-================================
+FAQ
+===
 
 This is the FAQ page. Feel free to contribute any FAQs that you think are missing. 
 
@@ -21,7 +21,7 @@ You may also consider to use the web server security, for example, htaccess file
 4. You will immediately be asked to login. The username is 'admin' and the password is 'admin'.
 
 To Manage Users
-^^^^^^^^^^^^^^^
+---------------
 
 1. In main console, go to Options->Users.
 

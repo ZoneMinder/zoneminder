@@ -86,14 +86,13 @@ protected:
 	
 	uint32_t AutoSelectFormat(int p_colours);
 
+protected:
 	static int camera_count;
 	static int channel_count;
 	static int channels[VIDEO_MAX_FRAME];
 	static int standards[VIDEO_MAX_FRAME];
 	static int vid_fd;
 	static int v4l_version;
-	bool	v4l_multi_buffer;
-	unsigned int v4l_captures_per_frame;
 
 #if ZM_HAS_V4L2
 	static V4L2Data         v4l2_data;
@@ -113,7 +112,7 @@ protected:
 	static LocalCamera      *last_camera;
 
 public:
-	LocalCamera( int p_id, const std::string &device, int p_channel, int p_format, bool v4lmultibuffer, unsigned int v4lcapturesperframe, const std::string &p_method, int p_width, int p_height, int p_colours, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, unsigned int p_extras = 0);
+	LocalCamera( int p_id, const std::string &device, int p_channel, int p_format, const std::string &p_method, int p_width, int p_height, int p_colours, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, unsigned int p_extras = 0);
 	~LocalCamera();
 
 	void Initialise();

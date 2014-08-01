@@ -416,11 +416,6 @@ int main( int argc, char *argv[] )
 			{
 				printf( "Monitor %d(%s)\n", monitor->Id(), monitor->Name() );
 			}
-			if ( ! monitor->connect() ) {
-				Error( "Can't connect to capture daemon: %d %s", monitor->Id(), monitor->Name() );
-				exit( -1 );
-			} 
-
 			char separator = ' ';
 			bool have_output = false;
 			if ( function & ZMU_STATE )

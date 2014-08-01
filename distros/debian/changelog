@@ -1,18 +1,12 @@
-zoneminder (1.26.5-1) unstable; urgency=low
+zoneminder (1.27.99+1-trusty-SNAPSHOT2014072901) trusty; urgency=medium
 
-  * improvements to zmupdate.pl, cleanups
+  * improve error messages
+  * Make zmupdate re-run the most recent patch so that people running the daily builds get their db updates
 
- -- Isaac Connor <iconnor@connortechnology.com>  Thu, 03 Oct 2013 11:40:32 -0400
+ -- Isaac Connor <iconnor@connortechnology.com>  Tue, 29 Jul 2014 14:50:20 -0400
 
-zoneminder (1.26.3-1) unstable; urgency=low
+zoneminder (1.27.0+1-trusty-v4ltomonitor-1) trusty; urgency=high
 
-  * A 'minor' release focusing on performance improvement and bug fixes.
+  * Snapshot release - 
 
- -- Isaac Connor <iconnor@connortechnology.com>  Sun, 22 Sep 2013 09:36:42 +0800
-
-zoneminder (1.25.1-1) unstable; urgency=low
-
-  * Initial Version.
-
- -- Isaac Connor <iconnor@connortechnology.com>  Mon, 29 Apr 2013 12:38:00 -0400
-
+ -- Isaac Connor <iconnor@connortechnology.com>  Wed, 09 Jul 2014 21:35:29 -0400

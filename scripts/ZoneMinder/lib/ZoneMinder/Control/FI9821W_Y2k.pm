@@ -109,7 +109,7 @@ sub printMsg
 }
 
 sub sendCmd
-{
+{ 
     my $self = shift;
     my $cmd = shift;
     my $result = undef;
@@ -135,13 +135,13 @@ sub reset
    my $cmd = "setOSDSetting%26isEnableTimeStamp%3D0%26isEnableDevName%3D1%26dispPos%3D0%26isEnabledOSDMask%3D0";
    $self->sendCmd( $cmd );
    # Setup For Stream=0 Resolution=720p Bandwith=4M FPS=30 KeyFrameInterval/GOP=100 VBR=ON
-   $cmd = "setVideoStreamParam%26streamType%3D0%26resolution%3D0%26bitRate%3D4194304%26frameRate%3D30%26GOP%3D100%26isVBR%3D1";
+   my $cmd = "setVideoStreamParam%26streamType%3D0%26resolution%3D0%26bitRate%3D4194304%26frameRate%3D30%26GOP%3D100%26isVBR%3D1";
    $self->sendCmd( $cmd );
    # Setup For Infrared AUTO
-   $cmd = "setInfraLedConfig%26Mode%3D1";
+   my $cmd = "setInfraLedConfig%26Mode%3D1";
    $self->sendCmd( $cmd );
    # Reset image settings
-   $cmd = "resetImageSetting";
+   my $cmd = "resetImageSetting";
    $self->sendCmd( $cmd );
 }
 
@@ -150,10 +150,10 @@ sub moveStop
    my $self = shift;
    Debug( "Move Stop" );
         my $cmd = "ptzStopRun";
-   $self->sendCmd( $cmd );
-        $cmd = "setDevName%26devName%3D.";
+   $self->sendCmd( $cmd );      
+        my $cmd = "setDevName%26devName%3D.";
         $self->sendCmd( $cmd );
-   $cmd = "setOSDSetting%26isEnableDevName%3D1";
+   my $cmd = "setOSDSetting%26isEnableDevName%3D1";
    $self->sendCmd( $cmd );
 }
 
@@ -184,7 +184,7 @@ sub moveConUp
     if ( $tiltspeed < 0 ) {
             $tiltspeed = 0;
                 }
-    Debug( "Move Up" );
+    Debug( "Move Up" );   
     if ( $osd eq "on" )
    {
     my $cmd = "setDevName%26devName%3DMove Up $tiltspeed";
@@ -192,7 +192,7 @@ sub moveConUp
         }
     my $cmd = "setPTZSpeed%26speed%3D$tiltspeed";
     $self->sendCmd( $cmd );
-    $cmd = "ptzMoveUp";
+    my $cmd = "ptzMoveUp";
     $self->sendCmd( $cmd );
     $self->autoStop( $self->{Monitor}->{AutoStopTimeout} );
 }
@@ -219,7 +219,7 @@ sub moveConDown
         }
     my $cmd = "setPTZSpeed%26speed%3D$tiltspeed";
     $self->sendCmd( $cmd );
-    $cmd = "ptzMoveDown";
+    my $cmd = "ptzMoveDown";
     $self->sendCmd( $cmd );
     $self->autoStop( $self->{Monitor}->{AutoStopTimeout} );
 }
@@ -244,7 +244,7 @@ sub moveConLeft
         }
     my $cmd = "setPTZSpeed%26speed%3D$panspeed";
     $self->sendCmd( $cmd );
-    $cmd = "ptzMoveLeft";
+    my $cmd = "ptzMoveLeft";
     $self->sendCmd( $cmd );
     $self->autoStop( $self->{Monitor}->{AutoStopTimeout} );
 }
@@ -272,7 +272,7 @@ sub moveConRight
         }
     my $cmd = "setPTZSpeed%26speed%3D$panspeed";
     $self->sendCmd( $cmd );
-    $cmd = "ptzMoveRight";
+    my $cmd = "ptzMoveRight";
     $self->sendCmd( $cmd );
     $self->autoStop( $self->{Monitor}->{AutoStopTimeout} );
 }
@@ -299,7 +299,7 @@ sub moveConUpLeft
         }
     my $cmd = "setPTZSpeed%26speed%3D$tiltspeed";
     $self->sendCmd( $cmd );
-    $cmd = "ptzMoveTopLeft";
+    my $cmd = "ptzMoveTopLeft";
     $self->sendCmd( $cmd );
     $self->autoStop( $self->{Monitor}->{AutoStopTimeout} );
 }
@@ -326,7 +326,7 @@ sub moveConUpRight
         }
     my $cmd = "setPTZSpeed%26speed%3D$tiltspeed";
     $self->sendCmd( $cmd );
-    $cmd = "ptzMoveTopRight";
+    my $cmd = "ptzMoveTopRight";
     $self->sendCmd( $cmd );
     $self->autoStop( $self->{Monitor}->{AutoStopTimeout} );
 }
@@ -353,7 +353,7 @@ sub moveConDownLeft
         }
     my $cmd = "setPTZSpeed%26speed%3D$tiltspeed";
     $self->sendCmd( $cmd );
-    $cmd = "ptzMoveBottomLeft";
+    my $cmd = "ptzMoveBottomLeft";
     $self->sendCmd( $cmd );
     $self->autoStop( $self->{Monitor}->{AutoStopTimeout} );
 }
@@ -380,7 +380,7 @@ sub moveConDownRight
         }
     my $cmd = "setPTZSpeed%26speed%3D$tiltspeed";
     $self->sendCmd( $cmd );
-    $cmd = "ptzMoveBottomRight";
+    my $cmd = "ptzMoveBottomRight";
     $self->sendCmd( $cmd );
     $self->autoStop( $self->{Monitor}->{AutoStopTimeout} );
 }
@@ -396,7 +396,7 @@ sub zoomConTele
         }
     my $cmd = "setInfraLedConfig%26mode%3D1";
     $self->sendCmd( $cmd );
-    $cmd = "openInfraLed";
+    my $cmd = "openInfraLed";
     $self->sendCmd( $cmd );
 }
 
@@ -411,7 +411,7 @@ sub zoomConWide
         }
     my $cmd = "setInfraLedConfig%26mode%3D1";
     $self->sendCmd( $cmd );
-    $cmd = "closeInfraLed";
+    my $cmd = "closeInfraLed";
     $self->sendCmd( $cmd );
 }
 
@@ -425,7 +425,7 @@ sub wake
          $self->sendCmd( $cmd );
         }
     my $cmd = "setInfraLedConfig%26mode%3D0";
-    $self->sendCmd( $cmd );
+    $self->sendCmd( $cmd );       
 }
 
 sub focusConNear
@@ -445,7 +445,7 @@ sub focusConNear
    {
          my $cmd = "setDevName%26devName%3DSharpness $speed";
          $self->sendCmd( $cmd );
-         $cmd = "setOSDSetting%26isEnableDevName%3D1";
+         my $cmd = "setOSDSetting%26isEnableDevName%3D1";
     $self->sendCmd( $cmd );
         }
     my $cmd = "setSharpness%26sharpness%3D$speed";
@@ -668,7 +668,7 @@ sub presetSet
                                     my $cmd = "setDevName%26devName%3DSet Preset $preset";
                                        $self->sendCmd( $cmd );
                       }
-                                                  $cmd = "ptzAddPresetPoint%26name%3D$preset";
+                                                  my $cmd = "ptzAddPresetPoint%26name%3D$preset";
                                                   $self->sendCmd( $cmd );
                         }
 }
@@ -687,7 +687,7 @@ sub presetGoto
                       }
                    my $cmd = "setPTZSpeed%26speed%3D0";
                         $self->sendCmd( $cmd );
-                        $cmd = "ptzGotoPresetPoint%26name%3D$preset";
+                        my $cmd = "ptzGotoPresetPoint%26name%3D$preset";
                         $self->sendCmd( $cmd );
                        }
 }
@@ -744,4 +744,3 @@ at your option, any later version of Perl 5 you may have available.
 
 
 =cut
-

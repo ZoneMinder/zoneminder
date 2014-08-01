@@ -283,7 +283,7 @@ AVFrame **LocalCamera::capturePictures = 0;
 
 LocalCamera *LocalCamera::last_camera = NULL;
 
-LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, int p_standard, bool p_v4l_multi_buffer, unsigned int p_v4l_captures_per_frame, const std::string &p_method, int p_width, int p_height, int p_colours, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, unsigned int p_extras) :
+LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, int p_standard, const std::string &p_method, int p_width, int p_height, int p_colours, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, unsigned int p_extras) :
     Camera( p_id, LOCAL_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture ),
     device( p_device ),
     channel( p_channel ),
@@ -296,8 +296,6 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
     // do the initial opening etc
     device_prime = (camera_count++ == 0);
     v4l_version = (p_method=="v4l2"?2:1);
-	v4l_multi_buffer = p_v4l_multi_buffer;
-	v4l_captures_per_frame = p_v4l_captures_per_frame;
     
     if ( capture )
     {
@@ -365,13 +363,15 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 			if ( width != last_camera->width || height != last_camera->height )
 				Warning( "Different capture sizes defined for monitors sharing same device, results may be unpredictable or completely wrong" );
 		}
+	}
 	
 #if HAVE_LIBSWSCALE
+	if( capture ) {
 		/* Get ffmpeg pixel format based on capture palette and endianness */
 		capturePixFormat = getFfPixFormatFromV4lPalette( v4l_version, palette );
 		imagePixFormat = PIX_FMT_NONE;
-#endif // HAVE_LIBSWSCALE   
 	}
+#endif // HAVE_LIBSWSCALE   
 
 	/* V4L2 format matching */
 #if ZM_HAS_V4L2
@@ -781,16 +781,13 @@ void LocalCamera::Initialise()
         Debug( 3, "Setting up request buffers" );
        
         memset( &v4l2_data.reqbufs, 0, sizeof(v4l2_data.reqbufs) );
-        if ( channel_count > 1 ) {
-            if ( v4l_multi_buffer ){
+        if ( channel_count > 1 )
+            if ( config.v4l_multi_buffer )
                 v4l2_data.reqbufs.count = 2*channel_count;
-            } else {
+            else
                 v4l2_data.reqbufs.count = 1;
-			}
-        } else {
+        else
             v4l2_data.reqbufs.count = 8;
-		}
-
         v4l2_data.reqbufs.type = v4l2_data.fmt.type;
         v4l2_data.reqbufs.memory = V4L2_MEMORY_MMAP;
 
@@ -806,10 +803,10 @@ void LocalCamera::Initialise()
             }
         }
 
-        if ( v4l2_data.reqbufs.count < (v4l_multi_buffer?2:1) )
+        if ( v4l2_data.reqbufs.count < (config.v4l_multi_buffer?2:1) )
             Fatal( "Insufficient buffer memory %d on video device", v4l2_data.reqbufs.count );
 
-		Debug( 3, "Setting up data buffers: Channels %d MultiBuffer %d Buffers: %s", channel_count, v4l_multi_buffer, v4l2_data.reqbufs.count );
+        Debug( 3, "Setting up %d data buffers", v4l2_data.reqbufs.count );
 
         v4l2_data.buffers = new V4L2MappedBuffer[v4l2_data.reqbufs.count];
 #if HAVE_LIBSWSCALE
@@ -970,7 +967,7 @@ void LocalCamera::Initialise()
         Debug( 3, "Setting up request buffers" );
         if ( ioctl( vid_fd, VIDIOCGMBUF, &v4l1_data.frames ) < 0 )
             Fatal( "Failed to setup memory: %s", strerror(errno) );
-        if ( channel_count > 1 && !v4l_multi_buffer )
+        if ( channel_count > 1 && !config.v4l_multi_buffer )
             v4l1_data.frames.frames = 1;
         v4l1_data.buffers = new video_mmap[v4l1_data.frames.frames];
         Debug( 4, "vmb.frames = %d", v4l1_data.frames.frames );
@@ -1977,11 +1974,7 @@ int LocalCamera::Capture( Image &image )
 	
 	int captures_per_frame = 1;
 	if ( channel_count > 1 )
-		captures_per_frame = v4l_captures_per_frame;
-	if ( captures_per_frame <= 0 ) {
-		captures_per_frame = 1;
-		Warning( "Invalid Captures Per Frame setting: %d", captures_per_frame );
-	} 
+		captures_per_frame = config.captures_per_frame;
 	
 	
     // Do the capture, unless we are the second or subsequent camera on a channel, in which case just reuse the buffer

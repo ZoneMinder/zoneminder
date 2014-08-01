@@ -17,14 +17,6 @@ function validString( $input )
 {
     return( strip_tags( $input ) );
 }
-/*
- * Escape an SQL string, with optional parameters for max. length 
- */
-function escapeSql($str, $maxlen = 0) {
-	if (!$maxlen) $maxlen = 512;
-	$string = substr($str, 0, $maxlen);
-	return (get_magic_quotes_gpc())?mysql_real_escape_string(stripslashes($string)):mysql_real_escape_string($string);
-}
 /* There appears to be some discrepancy btw. 1.24.1/2 and .3 for EventPaths, to escape them here */
 function getEventPathSafe($event)
 {
@@ -221,8 +213,8 @@ function getFfmpeg264Str($width, $height, $br, $fin, $fout)
 /** Returns true when monitor exists */
 function isMonitor($monitor)
 {
-	$query = "select Id from Monitors where Id = ".$monitor;
-	$res = dbFetchOne(escapeSql($query));
+	$query = "select Id from Monitors where Id = ?";
+	$res = dbFetchOne($query, NULL, array($monitor));
 	if ($res) return TRUE;
 	logXml("Monitor ID ".$monitor." does not exist");	
 	return FALSE;
@@ -230,8 +222,8 @@ function isMonitor($monitor)
 /** Returns the width and height of a monitor */
 function getMonitorDims($monitor)
 {
-	$query = "select Width,Height from Monitors where Id = ".$monitor;
-	$res = dbFetchOne(escapeSql($query));
+	$query = "select Width,Height from Monitors where Id = ?";
+	$res = dbFetchOne($query, NULL, array( $monitor ) );
 	return $res;
 }
 /** Returns the temp directory for H264 encoding */

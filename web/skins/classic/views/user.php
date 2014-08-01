@@ -25,11 +25,17 @@ if ( !canEdit( 'System' ) && !$selfEdit )
     $view = "error";
     return;
 }
-if ( !($newUser = dbFetchOne( 'SELECT * FROM Users WHERE Id = ?', NULL, ARRAY($_REQUEST['uid'])) ) ); {
-    $newUser = array();
-    $newUser['Username'] = $SLANG['NewUser'];
-    $newUser['Enabled'] = 1;
-    $newUser['MonitorIds'] = '';
+
+if ( $_REQUEST['uid'] ) {
+	if ( !($newUser = dbFetchOne( 'SELECT * FROM Users WHERE Id = ?', NULL, ARRAY($_REQUEST['uid'])) ) ) {
+		$view = "error";
+		return;
+	}
+} else {
+	$newUser = array();
+	$newUser['Username'] = $SLANG['NewUser'];
+	$newUser['Enabled'] = 1;
+	$newUser['MonitorIds'] = '';
 }
 
 $monitorIds = array_flip(explode( ',', $newUser['MonitorIds'] ));

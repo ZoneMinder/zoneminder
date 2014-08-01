@@ -157,6 +157,7 @@ function createEventPopup( eventId, eventFilter, width, height )
     var name = 'zmEvent';
     var popupSize = getPopupSize( 'event', width, height );
     var popup = window.open( url, name, popupOptions+",width="+popupSize.width+",height="+popupSize.height );
+    popup.focus();
 }
 
 function createFramesPopup( eventId, width, height )
@@ -165,6 +166,7 @@ function createFramesPopup( eventId, width, height )
     var name = 'zmFrames';
     var popupSize = getPopupSize( 'frames', width, height );
     var popup = window.open( url, name, popupOptions+",width="+popupSize.width+",height="+popupSize.height );
+    popup.focus();
 }
 
 function createFramePopup( eventId, frameId, width, height )
@@ -173,6 +175,7 @@ function createFramePopup( eventId, frameId, width, height )
     var name = 'zmFrame';
     var popupSize = getPopupSize( 'frame', width, height );
     var popup = window.open( url, name, popupOptions+",width="+popupSize.width+",height="+popupSize.height );
+    popup.focus();
 }
 
 function windowToFront()

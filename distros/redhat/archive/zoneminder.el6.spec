@@ -247,8 +247,12 @@ fi
 %{_bindir}/zmcamtool.pl
 %{_bindir}/zmsystemctl.pl
 %{_bindir}/zmx10.pl
+%{_bindir}/zmonvif-probe.pl
 
 %{perl_vendorlib}/ZoneMinder*
+%{perl_vendorlib}/ONVIF*
+%{perl_vendorlib}/WSDiscovery*
+%{perl_vendorlib}/WSSecurity*
 %{_mandir}/man*/*
 %dir %{_libexecdir}/%{name}
 %{_libexecdir}/%{name}/cgi-bin
@@ -270,6 +274,9 @@ fi
 
 
 %changelog
+* Sun Aug 03 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.27 
+- Include ONVIF support files
+
 * Sat Feb 01 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.27
 - Add zmcamtool.pl. Bump version for 1.27 release. 
 

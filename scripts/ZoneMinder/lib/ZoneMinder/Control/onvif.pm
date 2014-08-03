@@ -28,9 +28,6 @@ use strict;
 use warnings;
 
 require ZoneMinder::Control;
-require ONVIF::Device;
-require ONVIF::Media;
-require ONVIF::PTZ;
 
 our @ISA = qw(ZoneMinder::Control);
 

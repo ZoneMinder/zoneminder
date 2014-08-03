@@ -21,7 +21,7 @@
 #
 # This module contains the implementation of the ONVIF device control protocol
 #
-package ZoneMinder::Control::ONVIF;
+package ZoneMinder::Control::onvif;
 
 use 5.006;
 use strict;

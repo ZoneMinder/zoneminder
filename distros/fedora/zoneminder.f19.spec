@@ -241,8 +241,12 @@ fi
 %{_bindir}/zmwatch.pl
 %{_bindir}/zmcamtool.pl
 %{!?_without_x10:%{_bindir}/zmx10.pl}
+%{_bindir}/zmonvif-probe.pl
 
 %{perl_vendorlib}/ZoneMinder*
+%{perl_vendorlib}/ONVIF*
+%{perl_vendorlib}/WSDiscovery*
+%{perl_vendorlib}/WSSecurity*
 %{_mandir}/man*/*
 %dir %{_libexecdir}/zoneminder
 %{_libexecdir}/zoneminder/cgi-bin

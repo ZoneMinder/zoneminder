@@ -21,16 +21,13 @@
 #
 # This module contains the implementation of the ONVIF device control protocol
 #
-package ZoneMinder::Control::ONVIF;
+package ZoneMinder::Control::onvif;
 
 use 5.006;
 use strict;
 use warnings;
 
 require ZoneMinder::Control;
-require ONVIF::Device;
-require ONVIF::Media;
-require ONVIF::PTZ;
 
 our @ISA = qw(ZoneMinder::Control);
 

@@ -914,8 +914,16 @@ function canStream()
 
 function packageControl( $command )
 {
+if ( ZM_SYSTEMD && ( $command == "start" || $command == "stop" || $command == "restart" ))
+{
+    $string = ZM_PATH_BIN.'/zmsystemctl.pl '.$command;
+}
+else
+{
     $string = ZM_PATH_BIN.'/zmpkg.pl '.escapeshellarg( $command );
     $string .= " 2>/dev/null >&- <&- >/dev/null";
+}   
+Info("executing command: $string");		
     exec( $string );
 }
 

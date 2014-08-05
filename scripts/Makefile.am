@@ -20,6 +20,10 @@ bin_SCRIPTS = \
 	zmtrack.pl \
 	zmcamtool.pl
 
+if SYSTEMD
+bin_SCRIPTS += zmsystemctl.pl
+endif
+
 SUBDIRS = \
 	. \
     ZoneMinder
@@ -70,3 +74,7 @@ EXTRA_DIST = \
 	zmdbrestore.in \
 	zmeventdump.in \
 	zmlogrotate.conf.in
+
+if SYSTEMD
+EXTRA_DIST += zmsystemctl.pl
+endif

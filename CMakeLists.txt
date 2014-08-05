@@ -57,6 +57,7 @@ set(ZM_DB_USER "zmuser" CACHE STRING "Name of ZoneMinder database user, default:
 set(ZM_DB_PASS "zmpass" CACHE STRING "Password of ZoneMinder database user, default: zmpass")
 set(ZM_WEB_USER "" CACHE STRING "The user apache or the local web server runs on. Leave empty for automatic detection. If that fails, you can use this variable to force")
 set(ZM_WEB_GROUP "" CACHE STRING "The group apache or the local web server runs on, Leave empty to be the same as the web user")
+set(ZM_SYSTEMD "OFF" CACHE BOOL "Set to ON to build ZoneMinder with support for systemd. default: OFF")
 # Advanced
 set(ZM_EXTRA_LIBS "" CACHE STRING "A list of optional libraries, separated by semicolons, e.g. ssl;theora")
 set(ZM_MYSQL_ENGINE "InnoDB" CACHE STRING "MySQL engine to use with database, default: InnoDB")
@@ -74,6 +75,7 @@ if((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "el6"))
 	set(ZM_RUNDIR "/var/run/zoneminder")
 	set(ZM_TMPDIR "/var/lib/zoneminder/temp")
 	set(ZM_LOGDIR "/var/log/zoneminder")
+	set(ZM_SYSTEMD "ON")
 elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
 	set(ZM_RUNDIR "/var/run/zoneminder")
 	set(ZM_TMPDIR "/var/run/zoneminder")
@@ -83,6 +85,7 @@ elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
 	set(ZM_WEB_GROUP "www")
 	set(ZM_WEBDIR "/srv/www/htdocs/zoneminder")
 	set(ZM_CGIDIR "/srv/www/cgi-bin")
+	set(ZM_SYSTEMD "ON")
 endif((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "el6"))
 
 # Required for certain checks to work
@@ -475,6 +478,14 @@ if(NOT ZM_WEB_GROUP)
 endif(NOT ZM_WEB_GROUP)
 message(STATUS "Using web user: ${ZM_WEB_USER}")
 message(STATUS "Using web group: ${ZM_WEB_GROUP}")
+
+# Check for polkit if systemd flag is set
+if(ZM_SYSTEMD)
+	find_package(Polkit)
+	if(NOT POLKIT_FOUND)
+		message(FATAL_ERROR "Distributions using systemd require polkit")
+	endif(NOT POLKIT_FOUND)
+endif(ZM_SYSTEMD)
 
 # Some variables that zm expects
 set(ZM_PID "${ZM_RUNDIR}/zm.pid")

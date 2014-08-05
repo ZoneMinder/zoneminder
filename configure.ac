@@ -243,6 +243,24 @@ else
 fi
 AC_SUBST(ENABLE_MMAP)
 
+ENABLE_SYSTEMD=no
+AC_ARG_ENABLE(systemd,
+    [  --enable-systemd=<yes|no>    enable or disable support for systemd, default disable],
+    [ENABLE_SYSTEMD=$enable_systemd],
+    AC_MSG_WARN([You can call configure with the --enable-systemd=<yes|no> or --disable-systemd option.
+    This tells configure whether to compile ZoneMinder with support for systemd. Systemd replaces the
+    standard init system and is becoming the defacto standard for many modern linux distros.
+    e.g. --enable-ssytemd=yes or --disable-systemd])
+)
+AM_CONDITIONAL([SYSTEMD], [test "$ENABLE_SYSTEMD" = "yes"])
+if test "$ENABLE_SYSTEMD" == "yes"; then
+  ZM_SYSTEMD=1
+  PKG_CHECK_MODULES(POLKIT, polkit-gobject-1)
+else
+  ZM_SYSTEMD=0
+fi
+AC_SUBST(ZM_SYSTEMD)
+
 # Compiler
 AC_LANG_CPLUSPLUS
 
@@ -433,7 +451,7 @@ AC_SUBST(PERL_MM_PARMS)
 AC_SUBST(EXTRA_PERL_LIB)
 
 
-AC_CONFIG_FILES([Makefile zm.conf zmconfgen.pl db/Makefile db/zm_create.sql misc/Makefile misc/apache.conf misc/logrotate.conf misc/syslog.conf scripts/Makefile scripts/zm scripts/zmaudit.pl scripts/zmcontrol.pl scripts/zmdc.pl scripts/zmfilter.pl scripts/zmpkg.pl scripts/zmtrack.pl scripts/zmcamtool.pl scripts/zmtrigger.pl scripts/zmupdate.pl scripts/zmvideo.pl scripts/zmwatch.pl scripts/zmx10.pl scripts/zmdbbackup scripts/zmdbrestore scripts/zmeventdump scripts/zmlogrotate.conf scripts/ZoneMinder/lib/ZoneMinder/Base.pm scripts/ZoneMinder/lib/ZoneMinder/Config.pm scripts/ZoneMinder/lib/ZoneMinder/Memory.pm scripts/ZoneMinder/lib/ZoneMinder/ConfigData.pm src/Makefile src/zm_config.h web/Makefile web/ajax/Makefile web/css/Makefile web/graphics/Makefile web/includes/Makefile web/includes/config.php web/js/Makefile web/lang/Makefile web/skins/Makefile web/skins/classic/Makefile web/skins/classic/ajax/Makefile web/skins/classic/css/Makefile web/skins/classic/graphics/Makefile web/skins/classic/includes/Makefile web/skins/classic/js/Makefile web/skins/classic/lang/Makefile web/skins/classic/views/Makefile web/skins/classic/views/css/Makefile web/skins/classic/views/js/Makefile web/skins/mobile/Makefile web/skins/mobile/ajax/Makefile web/skins/mobile/css/Makefile web/skins/mobile/graphics/Makefile web/skins/mobile/includes/Makefile web/skins/mobile/lang/Makefile web/skins/mobile/views/Makefile web/skins/mobile/views/css/Makefile web/tools/Makefile web/tools/mootools/Makefile web/views/Makefile web/skins/xml/Makefile web/skins/xml/views/Makefile web/skins/xml/includes/Makefile web/skins/flat/Makefile web/skins/flat/ajax/Makefile web/skins/flat/css/Makefile web/skins/flat/graphics/Makefile web/skins/flat/includes/Makefile web/skins/flat/js/Makefile web/skins/flat/lang/Makefile web/skins/flat/views/Makefile web/skins/flat/views/css/Makefile web/skins/flat/views/js/Makefile])
+AC_CONFIG_FILES([Makefile zm.conf zmconfgen.pl db/Makefile db/zm_create.sql misc/Makefile misc/apache.conf misc/logrotate.conf misc/syslog.conf misc/com.zoneminder.systemctl.policy misc/com.zoneminder.systemctl.rules scripts/Makefile scripts/zm scripts/zmaudit.pl scripts/zmcontrol.pl scripts/zmdc.pl scripts/zmfilter.pl scripts/zmpkg.pl scripts/zmtrack.pl scripts/zmcamtool.pl scripts/zmtrigger.pl scripts/zmupdate.pl scripts/zmvideo.pl scripts/zmwatch.pl scripts/zmx10.pl scripts/zmdbbackup scripts/zmdbrestore scripts/zmeventdump scripts/zmlogrotate.conf scripts/ZoneMinder/lib/ZoneMinder/Base.pm scripts/ZoneMinder/lib/ZoneMinder/Config.pm scripts/ZoneMinder/lib/ZoneMinder/Memory.pm scripts/ZoneMinder/lib/ZoneMinder/ConfigData.pm src/Makefile src/zm_config.h web/Makefile web/ajax/Makefile web/css/Makefile web/graphics/Makefile web/includes/Makefile web/includes/config.php web/js/Makefile web/lang/Makefile web/skins/Makefile web/skins/classic/Makefile web/skins/classic/ajax/Makefile web/skins/classic/css/Makefile web/skins/classic/graphics/Makefile web/skins/classic/includes/Makefile web/skins/classic/js/Makefile web/skins/classic/lang/Makefile web/skins/classic/views/Makefile web/skins/classic/views/css/Makefile web/skins/classic/views/js/Makefile web/skins/mobile/Makefile web/skins/mobile/ajax/Makefile web/skins/mobile/css/Makefile web/skins/mobile/graphics/Makefile web/skins/mobile/includes/Makefile web/skins/mobile/lang/Makefile web/skins/mobile/views/Makefile web/skins/mobile/views/css/Makefile web/tools/Makefile web/tools/mootools/Makefile web/views/Makefile web/skins/xml/Makefile web/skins/xml/views/Makefile web/skins/xml/includes/Makefile web/skins/flat/Makefile web/skins/flat/ajax/Makefile web/skins/flat/css/Makefile web/skins/flat/graphics/Makefile web/skins/flat/includes/Makefile web/skins/flat/js/Makefile web/skins/flat/lang/Makefile web/skins/flat/views/Makefile web/skins/flat/views/css/Makefile web/skins/flat/views/js/Makefile])
 
 # Create the definitions for compilation and defaults for the database
 AC_CONFIG_COMMANDS([src/zm_config_defines.h],[perl ./zmconfgen.pl])

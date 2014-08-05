@@ -53,6 +53,7 @@ fclose( $cfg );
 // This section is options normally derived from other options or configuration
 //
 define( "ZMU_PATH", ZM_PATH_BIN."/zmu" );               // Local path to the ZoneMinder Utility
+define( "ZM_SYSTEMD", "@ZM_SYSTEMD@" );			// systemd support
 
 //
 // If setup supports Video 4 Linux v2 and/or v1

@@ -112,18 +112,22 @@ No other rights are granted by implication, estoppel or otherwise.
       <xs:element name="import" type="wsdl:tImport" />
       <xs:element name="types" type="wsdl:tTypes" />                     
       <xs:element name="message"  type="wsdl:tMessage" >
+<!--
         <xs:unique name="part" >
           <xs:selector xpath="wsdl:part" />
           <xs:field xpath="@name" />
         </xs:unique>
+-->
       </xs:element>
       <xs:element name="portType" type="wsdl:tPortType" />
       <xs:element name="binding"  type="wsdl:tBinding" />
       <xs:element name="service"  type="wsdl:tService" >
+<!--
         <xs:unique name="port" >
           <xs:selector xpath="wsdl:port" />
           <xs:field xpath="@name" />
         </xs:unique>
+-->
 	  </xs:element>
     </xs:choice>
   </xs:group>

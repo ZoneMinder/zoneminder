@@ -94,13 +94,14 @@ This document and the information contained herein is provided on an "AS IS" bas
           <xsd:element name="MessagePattern" 
                        type="wstop:QueryExpressionType" 
                        minOccurs="0" maxOccurs="1" />
-          <xsd:element name="Topic" type="wstop:TopicType" 
-                       minOccurs="0" maxOccurs="unbounded">
+              <xsd:any minOccurs="0"/>
+<!--          <xsd:element name="Topic" type="wstop:TopicType" 
+                       minOccurs="0" maxOccurs="unbounded"> 
             <xsd:unique name="childTopicUniqueness">
               <xsd:selector xpath="wstop:topic"/>
               <xsd:field xpath="@name"/>
             </xsd:unique>
-          </xsd:element>
+          </xsd:element> -->
           <xsd:any namespace="##other" minOccurs="0" 
                                        maxOccurs="unbounded"/>
         </xsd:sequence>

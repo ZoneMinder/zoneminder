@@ -31,10 +31,10 @@ This document and the information contained herein is provided on an "AS IS" bas
   />
 
   <xsd:import namespace="http://docs.oasis-open.org/wsrf/bf-2"
-              schemaLocation="http://docs.oasis-open.org/wsrf/bf-2.xsd" 
-  />
+              schemaLocation="file:wsdl/bf-2.xsd"/>
+<!--              schemaLocation="http://docs.oasis-open.org/wsrf/bf-2.xsd"  /> -->
   <xsd:import namespace="http://docs.oasis-open.org/wsn/t-1"
-              schemaLocation="file:t-1.xsd" 
+              schemaLocation="file:wsdl/t-1.xsd" 
   />
   
 <!-- ===================== Misc. Helper Types ===================== -->

@@ -66,7 +66,8 @@ This document and the information contained herein is provided on an "AS IS" bas
         <xsd:complexType>
           <xsd:simpleContent>
             <xsd:extension base="xsd:string">
-              <xsd:attribute ref="xml:lang" use="optional"/>
+              <xsd:attribute ref="xml:lang" use="optional"/> 
+        <!--      <xsd:anyAttribute processContents="lax" />-->
             </xsd:extension>
           </xsd:simpleContent>
         </xsd:complexType>

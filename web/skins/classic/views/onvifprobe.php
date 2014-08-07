@@ -30,7 +30,7 @@ $cameras[0] = $SLANG['ChooseDetectedCamera'];
 
 function execONVIF( $cmd )
 {
-  exec( escapeshellcmd("/usr/bin/perl /usr/local/bin/zmonvif-probe.pl $cmd"), $output, $status );
+  exec( escapeshellcmd(ZM_PATH_BIN . "/zmonvif-probe.pl $cmd"), $output, $status );
  
   if ( $status )
     Fatal( "Unable to probe network cameras, status is '$status'" );

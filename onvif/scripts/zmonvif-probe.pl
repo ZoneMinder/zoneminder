@@ -1,3 +1,5 @@
+#!/usr/bin/perl -w
+#
 # ==========================================================================
 #
 # ZoneMinder ONVIF Control Protocol Module
@@ -138,7 +140,7 @@ sub metadata
   die $result if not $result;
   print $result . "\n";
 
-  my $result = $client->get_endpoint('media')->GetVideoAnalyticsConfigurations( { } ,, );
+  $result = $client->get_endpoint('media')->GetVideoAnalyticsConfigurations( { } ,, );
   die $result if not $result;
   print $result . "\n";
 

@@ -48,3 +48,6 @@ ZM_DB_PASS=@ZM_DB_PASS@
 
 # Host of this machine
 ZM_SERVER_HOST=
+
+# Service name if running with systemd
+ZM_SERVICE_NAME=@ZM_SERVICE_NAME@

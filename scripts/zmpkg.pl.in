@@ -52,6 +52,26 @@ my $state;
 
 my $dbh = zmDbConnect();
 
+# Additions for systemd control
+my $service = 0;
+my $systemd = 0;
+
+my $servicename = $Config{ZM_SERVICE_NAME};
+if ( defined $servicename  )
+{
+        if ( $servicename ne "" )
+        {
+                $service = 1;
+                my $ppid = getppid();
+                my $ps = `ps --no-headers -o cmd $ppid`;
+                $systemd = index($ps,"systemd");
+        }
+}
+# If there is a servicename in the confguration file
+# then $service is set to 1 and we check if we've been called
+# by systemd - if so $systemd is set to 1 otherwise it will be -1
+
+
 if ( !$command || $command !~ /^(?:start|stop|restart|status|logrot)$/ )
 {
 	if ( $command )
@@ -122,6 +142,34 @@ if ( $command eq "state" )
 
 	$command = "restart";
 }
+
+# This is the other part of the addition for systemd control
+# If the command is stop, start or restart AND
+# we have a service name defined AND
+# we haven't been called by systemd THEN
+# pass the command on to zmsystemctl which will then
+# pass it on to systemctl
+# Then this instance will exit as it will be called by systemd
+# from the service file and this time we will be in the
+# systemd context so we drop through to the original code
+if ( $command =~ /^(?:stop|restart|start)$/ && $service == 1 && $systemd == -1)
+{
+        printf "%s\n","Sending command to systemctl";
+        if ( $command eq "start" )
+        {
+                runCommand( "zmsystemctl start" );
+        }
+        elsif ( $command eq "stop" )
+        {
+                runCommand( "zmsystemctl stop" );
+        }
+        else
+        {
+                runCommand( "zmsystemctl restart" );
+        }
+        exit ( 0 );
+}
+
 
 if ( $command =~ /^(?:stop|restart)$/ )
 {

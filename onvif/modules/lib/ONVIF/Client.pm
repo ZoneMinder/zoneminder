@@ -51,7 +51,9 @@ my %namespace_map = (
   'http://www.onvif.org/ver20/analytics/wsdl'   => 'analytics',
   'http://www.onvif.org/ver10/deviceIO/wsdl'    => 'deviceio', 
   'http://www.onvif.org/ver10/ptz/wsdl'         => 'ptz',
-  'http://www.onvif.org/ver10/events/wsdl'      => 'events',
+  'http://www.onvif.org/ver10/events/wsdl'      => 'events', 
+  'http://www.onvif.org/ver10/recording.wsdl'   => 'recording',
+  'http://www.onvif.org/ver10/search.wsdl'      => 'search',
 );
 
 # ========================================================================

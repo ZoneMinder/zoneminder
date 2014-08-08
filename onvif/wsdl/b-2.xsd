@@ -56,6 +56,12 @@ This document and the information contained herein is provided on an "AS IS" bas
 
   <xsd:complexType name="FilterType">
     <xsd:sequence>
+<!-- extension for zonemider ONVIF -->
+      <xsd:element ref="wsnt:TopicExpression"        
+                   minOccurs="0" maxOccurs="unbounded" />
+      <xsd:element ref="wsnt:MessageContent"        
+                   minOccurs="0" maxOccurs="unbounded" />
+<!-- end extension -->
       <xsd:any minOccurs="0" maxOccurs="unbounded"/>
     </xsd:sequence>
   </xsd:complexType>

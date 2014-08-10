@@ -26,13 +26,13 @@ Source: ZoneMinder-%{version}.tar.gz
 # patch no longer necessary as OpenSuse now in standard build
 # Patch1: zoneminder-1.26.5-opensuse.patch
 
-BuildRequires: cmake 
+BuildRequires: cmake polkit-devel
 BuildRequires: perl-DBI perl-DBD-mysql perl-Date-Manip perl-Sys-Mmap 
 BuildRequires: libjpeg62 libjpeg62-devel libmysqld-devel libSDL-devel libgcrypt-devel libgnutls-devel
 BuildRequires: libffmpeg-devel x264
 BuildRequires: pcre-devel w32codec-all  
 
-Requires: apache2 apache2-mod_php5 mysql 
+Requires: apache2 apache2-mod_php5 mysql polkit
 Requires: ffmpeg libavformat55
 Requires: php php-mysql 
 Requires: perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
@@ -158,6 +158,10 @@ fi
 %{webcgi}/nph-zms
 %{webcgi}/zms
 %{webroot}/zoneminder
+
+%{_datadir}/polkit-1/actions/com.zoneminder.systemctl.policy
+%{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
+
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{webroot}/zoneminder/events
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{webroot}/zoneminder/images
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{webroot}/zoneminder/temp

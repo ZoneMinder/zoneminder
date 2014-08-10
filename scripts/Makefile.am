@@ -18,7 +18,8 @@ bin_SCRIPTS = \
 	zmvideo.pl \
 	zmcontrol.pl \
 	zmtrack.pl \
-	zmcamtool.pl
+	zmcamtool.pl \
+	zmsystemctl.pl
 
 SUBDIRS = \
 	. \
@@ -70,3 +71,4 @@ EXTRA_DIST = \
 	zmdbrestore.in \
 	zmeventdump.in \
 	zmlogrotate.conf.in
+

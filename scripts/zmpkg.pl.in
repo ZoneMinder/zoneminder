@@ -123,6 +123,18 @@ if ( $command eq "state" )
 	$command = "restart";
 }
 
+# Check if we are running systemd and if we have been called by the system
+if ( $command =~ /^(start|stop|restart)$/ )
+{
+	# We have to detaint to keep perl from complaining
+	$command = $1;
+
+	if ( systemdRunning() && !calledBysystem() ) {
+		qx(@BINDIR@/zmsystemctl.pl $command);
+		$command = "";
+	}
+}
+
 if ( $command =~ /^(?:stop|restart)$/ )
 {
 	my $status = runCommand( "zmdc.pl check" );
@@ -245,4 +257,32 @@ if ( $command eq "logrot" )
 
 exit( $retval );
 
+sub systemdRunning
+{
+	my $result = 0;
+
+	my $output = qx(ps -o comm="" 1);
+	chomp( $output );
+
+	if ($output =~ /systemd/) {
+		$result = 1;
+	}
+
+	return $result;
+}
+
+sub calledBysystem
+{
+	my $result = 0;
+	my $ppid = getppid();
+
+	my $output = qx(ps -o comm="" $ppid);
+	chomp( $output );
+
+	if ($output =~ /^(?:systemd|init)$/) {
+		$result = 1;
+	}
+
+	return $result;
+}
 __END__

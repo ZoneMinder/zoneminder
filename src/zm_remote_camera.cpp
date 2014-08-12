@@ -56,7 +56,7 @@ void RemoteCamera::Initialise()
 		//Fatal( "No path specified for remote camera" );
 
 	// Cache as much as we can to speed things up
-    std::string::size_type authIndex = host.find( '@' );
+    std::string::size_type authIndex = host.rfind( '@' );
 
 	if ( authIndex != std::string::npos )
 	{

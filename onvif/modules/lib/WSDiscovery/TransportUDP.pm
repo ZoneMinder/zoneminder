@@ -31,9 +31,9 @@ use Time::HiRes qw( usleep );
 
 use version; our $VERSION = qv('1.00.00');
 
-# 50 times 100 msec = 5sec timeout
-use constant WAIT_TIME => 100;
-use constant WAIT_COUNT => 50;
+# 20 times 200 msec = 4sec timeout
+use constant WAIT_TIME => 200.0;
+use constant WAIT_COUNT => 20;
 
 SOAP::WSDL::Factory::Transport->register( 'soap.udp' => __PACKAGE__ );
 
@@ -51,6 +51,13 @@ SUBFACTORY: {
     foreach my $method ( qw(code message status is_success) ) {
         *{ $method } = *{ "get_$method" };
     }
+}
+
+# override to receive more than one response
+sub _notify_response
+{
+#  my ($transport, $response) = @_;
+  
 }
 
 sub send_multi() {
@@ -74,9 +81,14 @@ sub receive_multi() {
       LocalPort=>$port, ReuseAddr=>1);
 	$socket->mcast_add($address);
   
-  $socket->recv($data, 9999);
+  my $readbits = '';
+  vec($readbits, $socket->fileno, 1) = 1;
   
-  return $data;
+  if(select($readbits, undef, undef, WAIT_TIME/1000)) {
+     $socket->recv($data, 9999);
+     return $data;
+  }
+  return undef;
 }
 
 sub receive_uni() {
@@ -88,9 +100,14 @@ sub receive_uni() {
       
 	$socket->mcast_add($address);
   
-  $socket->recv($data, 9999);
+  my $readbits = '';
+  vec($readbits, $socket->fileno, 1) = 1;
   
-  return $data;
+  if(select($readbits, undef, undef, WAIT_TIME/1000)) {
+     $socket->recv($data, 9999);
+     return $data;
+  }
+  return undef;
 }
  
 sub send_receive {
@@ -107,22 +124,24 @@ sub send_receive {
 
     my $localaddr = $self->get_local_addr();
 
-    my $response;
+    my ($response, $last_response);
     my $wait = WAIT_COUNT;
-    while ($wait) {
+    while ( $wait >= 0 ) {
       if($localaddr) {
         if($response = $self->receive_uni($address, $port, $localaddr)) {
-          last;
+          $last_response = $response;
+          $self->_notify_response($response);
         }
+        $wait --;
       }
       if($response = $self->receive_multi($address, $port)) {
-        last;
+        $last_response = $response;
+        $self->_notify_response($response);
       }
-      msleep(WAIT_TIME);
       $wait --;
     }
     
-    if($response) {
+    if($last_response) {
       $self->code();
       $self->message();
       $self->is_success(1);
@@ -134,7 +153,7 @@ sub send_receive {
       $self->is_success(0);
       $self->status('TIMEOUT');
     }
-    return $response;
+    return $last_response;
 }
 
 1;

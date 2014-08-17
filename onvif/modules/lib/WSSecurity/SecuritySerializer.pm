@@ -30,18 +30,24 @@ use Digest::SHA1;
 use MIME::Base64;
 
 
-use base qw( SOAP::WSDL::Serializer::XSD );
+use base qw( ONVIF::Serializer::Base );
 
 use version; our $VERSION = qv('1.00.00');
 
-my $SOAP_NS = 'http://schemas.xmlsoap.org/soap/envelope/';
-my $XML_INSTANCE_NS = 'http://www.w3.org/2001/XMLSchema-instance';
-
+use constant    URI_SOAP11_ENV         => "http://schemas.xmlsoap.org/soap/envelope/";
+use constant    URI_SOAP12_ENV         => "http://www.w3.org/2003/05/soap-envelope";
 
 #SOAP::WSDL::Factory::Serializer->register( '1.1' , __PACKAGE__ );
 
 my %username_of :ATTR(:name<username>       :default<()>);
 my %password_of :ATTR(:name<password>       :default<()>);
+
+#sub BUILD
+#{
+#  my ($self, $ident, $args_ref) = @_;
+#  $soapversion_of{ $ident } = '1.2';
+#}
+
 
 SUBFACTORY: {
     for (qw(username password)) {
@@ -121,6 +127,11 @@ sub security_header {
 
 sub serialize_header() {
     my ($self, $method, $data, $opt) = @_;
+
+    my $SOAP_NS = URI_SOAP11_ENV;
+    if($self->soap_version() eq '1.2') {
+      $SOAP_NS = URI_SOAP12_ENV;
+    }
 
     # header is optional. Leave out if there's no header data
     return join ( q{},

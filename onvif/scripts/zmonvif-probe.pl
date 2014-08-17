@@ -32,17 +32,126 @@ require WSDiscovery::Elements::Scopes;
 
 require WSDiscovery::TransportUDP;
 
-#
+# 
 # ========================================================================
 # Globals
 
 my $client;
 
 # =========================================================================
+# internal functions 
+
+sub deserialize_message
+{
+  my ($wsdl_client, $response) = @_;
+
+  # copied and adapted from SOAP::WSDL::Client
+
+    # get deserializer
+    my $deserializer = $wsdl_client->get_deserializer();
+
+    if(! $deserializer) {
+      $deserializer = SOAP::WSDL::Factory::Deserializer->get_deserializer({
+        soap_version => $wsdl_client->get_soap_version(),
+        %{ $wsdl_client->get_deserializer_args() },
+      });
+    }
+    # set class resolver if serializer supports it
+    $deserializer->set_class_resolver( $wsdl_client->get_class_resolver() )
+        if ( $deserializer->can('set_class_resolver') );
+          
+    # Try deserializing response - there may be some,
+    # even if transport did not succeed (got a 500 response)
+    if ( $response ) {
+        # as our faults are false, returning a success marker is the only
+        # reliable way of determining whether the deserializer succeeded.
+        # Custom deserializers may return an empty list, or undef,
+        # and $@ is not guaranteed to be undefined.
+        my ($success, $result_body, $result_header) = eval {
+            (1, $deserializer->deserialize( $response ));
+        };
+        if (defined $success) {
+            return wantarray
+                ? ($result_body, $result_header)
+                : $result_body;
+        }
+        elsif (blessed $@) { #}&& $@->isa('SOAP::WSDL::SOAP::Typelib::Fault11')) {
+            return $@;
+        }
+        else {
+            return $deserializer->generate_fault({
+                code => 'soap:Server',
+                role => 'urn:localhost',
+                message => "Error deserializing message: $@. \n"
+                    . "Message was: \n$response"
+            });
+        }
+    };
+}
+
+
+sub interpret_messages
+{
+  my ($svc_discover, @responses, %services) = @_;
+
+  foreach my $response ( @responses ) {
+
+    my $result = deserialize_message($svc_discover, $response);
+    next if not $result;
+
+    my $xaddr;  
+    foreach my $l_xaddr (split ' ', $result->get_ProbeMatch()->get_XAddrs()) {
+  #   find IPv4 address
+      if($l_xaddr =~ m|//[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/|) { 
+        $xaddr = $l_xaddr;
+        last;
+      }
+    }
+
+    # ignore multiple responses from one service
+    next if defined $services{$xaddr};
+    $services{$xaddr} = 1;
+
+    print "$xaddr, " . $svc_discover->get_soap_version() . ", ";
+
+    print "(";
+    my $scopes = $result->get_ProbeMatch()->get_Scopes();
+    my $count = 0;
+    foreach my $scope(split ' ', $scopes) {
+      if($scope =~ m|onvif://www\.onvif\.org/(.+)/(.*)|) {
+        my ($attr, $value) = ($1,$2);
+        if( 0 < $count ++) {
+          print ", ";
+        }
+        print $attr . "=\'" . $value . "\'";
+      }
+    }
+    print ")\n";
+  }
+}
+
+# =========================================================================
+# functions 
 
 sub discover
 {
-  my $svc_discover = WSDiscovery::Interfaces::WSDiscovery::WSDiscoveryPort->new();
+  ## collect all responses
+  my @responses = ();
+
+  no warnings 'redefine';
+
+  *WSDiscovery::TransportUDP::_notify_response = sub {
+    my ($transport, $response) = @_;
+    push @responses, $response;
+  };
+
+  ## try both soap versions
+  my %services;
+
+  my $svc_discover = WSDiscovery::Interfaces::WSDiscovery::WSDiscoveryPort->new({ 
+#    no_dispatch => '1',
+  });
+  $svc_discover->set_soap_version('1.1');
 
   my $result = $svc_discover->ProbeOp(
     { # WSDiscovery::Types::ProbeType
@@ -50,30 +159,25 @@ sub discover
       Scopes =>  { value => '' },
     },, 
   );
-  die $result if not $result;
-#  print $result;
+#  print $result . "\n";
 
-  foreach my $xaddr (split ' ', $result->get_ProbeMatch()->get_XAddrs()) {
-#   find IPv4 address
-    if($xaddr =~ m|//[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/|) {    
-      print $xaddr . ", ";
-      last;
-    }
-  }
-  
-  print "(";
-  my $scopes = $result->get_ProbeMatch()->get_Scopes();
-  my $count = 0;
-  foreach my $scope(split ' ', $scopes) {
-    if($scope =~ m|onvif://www\.onvif\.org/(.+)/(.*)|) {
-      my ($attr, $value) = ($1,$2);
-      if( 0 < $count ++) {
-        print ", ";
-      }
-      print $attr . "=\'" . $value . "\'";
-    }
-  }
-  print ")\n";
+  interpret_messages($svc_discover, \@responses, \%services);
+  @responses = ();
+
+  $svc_discover = WSDiscovery::Interfaces::WSDiscovery::WSDiscoveryPort->new({
+#    no_dispatch => '1',
+  });
+  $svc_discover->set_soap_version('1.2');
+
+  $result = $svc_discover->ProbeOp(
+    { # WSDiscovery::Types::ProbeType
+      Types => { 'dn:NetworkVideoTransmitter', 'tds:Device' }, # QNameListType
+      Scopes =>  { value => '' },
+    },, 
+  );
+#  print $result . "\n";
+
+  interpret_messages($svc_discover, @responses, \%services);
 }
 
 
@@ -144,11 +248,10 @@ sub metadata
   die $result if not $result;
   print $result . "\n";
 
-  $result = $client->get_endpoint('analytics')->GetServiceCapabilities( { } ,, );
-  die $result if not $result;
-  print $result . "\n";
-  
-  
+#  $result = $client->get_endpoint('analytics')->GetServiceCapabilities( { } ,, );
+#  die $result if not $result;
+#  print $result . "\n";
+   
 }
 
 # ========================================================================
@@ -162,10 +265,13 @@ if($action eq "probe") {
 else {
 # all other actions need URI and credentials
   my $url_svc_device = shift;
+  my $soap_version = shift;
   my $username = shift;
   my $password = shift;
 
-  $client = ONVIF::Client->new( { 'url_svc_device' => $url_svc_device } );
+  $client = ONVIF::Client->new( { 
+      'url_svc_device' => $url_svc_device, 
+      'soap_version' => $soap_version } );
 
   $client->set_credentials($username, $password, 1);
   

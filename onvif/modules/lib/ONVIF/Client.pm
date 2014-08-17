@@ -29,10 +29,18 @@ use Class::Std::Fast;
 
 use version; our $VERSION = qv('1.00.00');
 
+## Transport
 require SOAP::WSDL::Transport::HTTP;
 
+## Serializer
+require ONVIF::Serializer::SOAP11;
+require ONVIF::Serializer::SOAP12;
 require WSSecurity::SecuritySerializer;
 
+## Deserializer
+require ONVIF::Deserializer::XSD;
+
+## ONVIF APIs
 require ONVIF::Device::Interfaces::Device::DevicePort;
 require ONVIF::Media::Interfaces::Media::MediaPort;
 require ONVIF::PTZ::Interfaces::PTZ::PTZPort;
@@ -61,6 +69,7 @@ my %namespace_map = (
 my %services_of      :ATTR(:default<{}>);
 
 my %serializer_of    :ATTR();
+my %soap_version_of  :ATTR(:default<('1.1')>);
 
 # =========================================================================
 # private methods
@@ -89,6 +98,20 @@ sub set_serializer
   $serializer_of{ident $self} = $serializer;
 }
 
+sub soap_version
+{
+  my ($self) = @_;
+  $soap_version_of{ident $self};
+}
+
+sub set_soap_version
+{
+  my ($self, $soap_version) = @_;
+  $soap_version_of{ident $self} = $soap_version;
+
+  # setting the soap version invalidates the serializer
+  delete $serializer_of{ ident $self };
+}
 
 sub get_service_urls
 {
@@ -139,10 +162,20 @@ sub BUILD
   my ($self,  $ident, $args_ref) = @_;
   
   my $url_svc_device = $args_ref->{'url_svc_device'};
+  my $soap_version = $args_ref->{'soap_version'};
+  if(! $soap_version) {
+    $soap_version = '1.1';
+  }
+  $self->set_soap_version($soap_version);
+  
+  my $serializer = ONVIF::Serializer::Base->new();
+  $serializer->set_soap_version($soap_version);
 
   my $svc_device = ONVIF::Device::Interfaces::Device::DevicePort->new({
    proxy => $url_svc_device,
-   deserializer_args => { strict => 0 }
+   serializer => $serializer,
+#   "strict => 0" does not work with SOAP header
+#   deserializer_args => { strict => 0 }
   });
 
   $services_of{$ident}{'device'} = { url => $url_svc_device, ep => $svc_device };
@@ -195,7 +228,8 @@ sub set_credentials
   }
   
   ## from here on use authorization
-  $self->set_serializer(WSSecurity::SecuritySerializer->new());
+  $self->set_serializer( WSSecurity::SecuritySerializer->new() );
+  $self->serializer()->set_soap_version($self->soap_version());
   $self->serializer()->set_username($username);
   $self->serializer()->set_password($password);
 

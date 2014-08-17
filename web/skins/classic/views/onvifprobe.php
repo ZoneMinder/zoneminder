@@ -47,18 +47,20 @@ function probeCameras( $localIp )
         foreach ( $lines as $line )
         {
            $line = rtrim( $line );
-            if ( preg_match( '|^(.+),\s\((.*)\)$|', $line, $matches ) )
+            if ( preg_match( '|^(.+),(.+),\s\((.*)\)$|', $line, $matches ) )
             {
                 $device_ep = $matches[1];
+                $soapversion = $matches[2];
                 $camera = array(
                     'model'   => "Unknown ONVIF Camera",
                     'monitor' => array(
                         'Function' => "Monitor",
                         'Type'     => 'Ffmpeg',
                         'Host'     => $device_ep,
+                        'SOAP'     => $soapversion,
                     ),
                 );
-                foreach ( preg_split('|,\s*|', $matches[2]) as $attr_val ) {
+                foreach ( preg_split('|,\s*|', $matches[3]) as $attr_val ) {
                   if( preg_match( '|(.+)=\'(.*)\'|', $attr_val, $tokens ) )
                   {
                     if($tokens[1] == "hardware") {
@@ -80,11 +82,11 @@ function probeCameras( $localIp )
     return( $cameras );
 }
 
-function probeProfiles( $device_ep, $username, $password )
+function probeProfiles( $device_ep, $soapversion, $username, $password )
 {
     $profiles = array();
     $count = 0;
-    if ( $lines = @execONVIF( "profiles $device_ep $username $password" ) )
+    if ( $lines = @execONVIF( "profiles $device_ep $soapversion $username $password" ) )
     {
         foreach ( $lines as $line )
         {
@@ -230,7 +232,7 @@ else if($_REQUEST['step'] == "2")
 
   //print $monitor['Host'].", ".$_REQUEST['username'].", ".$_REQUEST['password']."<br/>";
 
-  $detprofiles = probeProfiles( $monitor['Host'], $_REQUEST['username'], $_REQUEST['password']);
+  $detprofiles = probeProfiles( $monitor['Host'], $monitor['SOAP'], $_REQUEST['username'], $_REQUEST['password']);
   foreach ( $detprofiles as $profile )
   {
        $monitor = $camera['monitor'];

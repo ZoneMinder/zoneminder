@@ -36,6 +36,7 @@ require WSDiscovery::TransportUDP;
 # ========================================================================
 # Globals
 
+my $verbose = 0;
 my $client;
 
 # =========================================================================
@@ -96,8 +97,17 @@ sub interpret_messages
 
   foreach my $response ( @responses ) {
 
+    if($verbose) {
+      print "Received message:\n" . $response . "\n";
+    }
+
     my $result = deserialize_message($svc_discover, $response);
-    next if not $result;
+    if(not $result) {
+      if($verbose) {
+        print "Error deserializing message:\n" . $result . "\n";
+      }
+      next;
+    }
 
     my $xaddr;  
     foreach my $l_xaddr (split ' ', $result->get_ProbeMatch()->get_XAddrs()) {
@@ -148,6 +158,9 @@ sub discover
   ## try both soap versions
   my %services;
 
+  if($verbose) {
+    print "Probing for SOAP 1.1\n"
+  }
   my $svc_discover = WSDiscovery::Interfaces::WSDiscovery::WSDiscoveryPort->new({ 
 #    no_dispatch => '1',
   });
@@ -164,6 +177,9 @@ sub discover
   interpret_messages($svc_discover, \@responses, \%services);
   @responses = ();
 
+  if($verbose) {
+    print "Probing for SOAP 1.2\n"
+  }
   $svc_discover = WSDiscovery::Interfaces::WSDiscovery::WSDiscoveryPort->new({
 #    no_dispatch => '1',
   });
@@ -189,7 +205,9 @@ sub profiles
 
   my $result = $client->get_endpoint('media')->GetProfiles( { } ,, );
   die $result if not $result;
-#  print $result . "\n";
+  if($verbose) {
+    print "Received message:\n" . $result . "\n";
+  }
 
  my $profiles = $result->get_Profiles();
 
@@ -258,6 +276,11 @@ sub metadata
 # MAIN
 
 my $action = shift;
+
+if($ARGV[0] eq "-v") {
+  shift;
+  $verbose = 1;
+}
 
 if($action eq "probe") {
   discover();

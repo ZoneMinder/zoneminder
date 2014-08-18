@@ -35,7 +35,7 @@ switch ( $_REQUEST['task'] )
         $limit = isset($_POST['limit'])?$_POST['limit']:100;
         $filter = isset($_POST['filter'])?$_POST['filter']:array();
         $sortField = isset($_POST['sortField'])?$_POST['sortField']:'TimeKey';
-        $sortOrder = isset($_POST['sortOrder']) and $_POST['sortOrder'] == 'asc' ? 'asc':'desc';
+        $sortOrder = (isset($_POST['sortOrder']) and $_POST['sortOrder']) == 'asc' ? 'asc':'desc';
 
         $filterFields = array( 'Component', 'Pid', 'Level', 'File', 'Line' );
 

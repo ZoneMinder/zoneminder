@@ -1,0 +1,18 @@
+.grid {
+	display: flex;
+	flex-wrap: wrap;
+	margin:0px;
+	padding: 0px;
+}
+
+.grid-cell {
+	-moz-box-flex: 1;
+	flex: 1 1 0%;
+	margin: 0 5px;
+	border: 1px solid #CCC;
+	border-radius: 6px;
+}
+
+.monitor img {
+	border-radius:6px 6px 0 0;
+}

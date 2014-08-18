@@ -1,0 +1,12 @@
+<div id="monitors" ng-controller="MonitorController">
+	<div class="grid">
+
+		<div class="grid-cell monitor" ng-repeat="monitor in monitors" id="Monitor{{ monitor.Monitor.Id }}">
+			<img ng-src="/cgi-bin/nph-zms/?mode=jpeg&amp;monitor={{ monitor.Monitor.Id }}&amp;scale=100&amp;buffer=1000&amp;maxfps=5" alt="{{ monitor.Monitor.Name }}" title="{{ monitor.Monitor.Name }}" class="img-rounded img-responsive" />
+
+			<p>{{ monitor.Monitor.Name }} </p>
+			<p>{{ monitor.Monitor.Function }} </p>
+		</div> <!-- End .monitor -->
+
+	</div> <!-- End .grid -->
+</div> <!-- End #monitors -->

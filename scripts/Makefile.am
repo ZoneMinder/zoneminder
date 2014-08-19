@@ -38,6 +38,7 @@ EXTRA_DIST = \
 	zmcontrol.pl.in \
 	zmtrack.pl.in \
 	zmcamtool.pl.in \
+	zmsystemctl.pl.in \
 	ZoneMinder/Makefile.PL \
 	ZoneMinder/README \
 	ZoneMinder/Changes \

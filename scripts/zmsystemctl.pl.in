@@ -29,6 +29,8 @@
 use warnings;
 use strict;
 use bytes;
+
+@EXTRA_PERL_LIB@
 use ZoneMinder::Logger qw(:all);
 
 my $command = $ARGV[0];

@@ -425,6 +425,7 @@ Monitor::Monitor(
         }
     }
 
+	// Will this not happen everytime a monitor is instantiated?  Seems like all the calls to the Monitor constructor pass a zero for n_zones, then load zones after..
     if ( !n_zones ) {
 		Debug( 1, "Monitor %s has no zones, adding one.", name );
         n_zones = 1;
@@ -592,19 +593,19 @@ Monitor::~Monitor()
 
     delete camera;
 
-    if ( purpose == ANALYSIS )
-    {
-        shared_data->state = state = IDLE;
-        shared_data->last_read_index = image_buffer_count;
-        shared_data->last_read_time = 0;
-    }
-    else if ( purpose == CAPTURE )
-    {
-        shared_data->valid = false;
-        memset( mem_ptr, 0, mem_size );
-    }
-
 	if ( mem_ptr ) {
+		if ( purpose == ANALYSIS )
+		{
+			shared_data->state = state = IDLE;
+			shared_data->last_read_index = image_buffer_count;
+			shared_data->last_read_time = 0;
+		}
+		else if ( purpose == CAPTURE )
+		{
+			shared_data->valid = false;
+			memset( mem_ptr, 0, mem_size );
+		}
+
 #if ZM_MEM_MAPPED
 		if ( msync( mem_ptr, mem_size, MS_SYNC ) < 0 )
 			Error( "Can't msync: %s", strerror(errno) );

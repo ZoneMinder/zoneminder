@@ -42,43 +42,43 @@ xhtmlHeaders( __FILE__, $SLANG['Event'].' - '.$_REQUEST['eid'] );
     <div id="content">
       <table id="contentTable" class="major">
         <tr>
-          <th scope="row"><?= $SLANG['Name'] ?></th>
-          <td><?= htmlentities($event['Name']) ?><?= $event['Archived']?("(".$SLANG['Archived'].")"):"" ?></td>
+          <th scope="row"><?php echo $SLANG['Name'] ?></th>
+          <td><?php echo htmlentities($event['Name']) ?><?php echo $event['Archived']?("(".$SLANG['Archived'].")"):"" ?></td>
         </tr>
         <tr>
-          <th scope="row"><?= $SLANG['Time'] ?></th>
-          <td><?= htmlentities(strftime("%b %d, %H:%M",strtotime($event['StartTime']))) ?></td>
+          <th scope="row"><?php echo $SLANG['Time'] ?></th>
+          <td><?php echo htmlentities(strftime("%b %d, %H:%M",strtotime($event['StartTime']))) ?></td>
         </tr>
         <tr>
-          <th scope="row"><?= $SLANG['Duration'] ?></th>
-          <td><?= htmlentities($event['Length']) ?>s</td>
+          <th scope="row"><?php echo $SLANG['Duration'] ?></th>
+          <td><?php echo htmlentities($event['Length']) ?>s</td>
         </tr>
         <tr>
-          <th scope="row"><?= $SLANG['Cause'] ?></th>
-          <td><?= htmlentities($event['Cause']) ?></td>
+          <th scope="row"><?php echo $SLANG['Cause'] ?></th>
+          <td><?php echo htmlentities($event['Cause']) ?></td>
         </tr>
         <?php if ( !empty($event['Notes']) ) { ?>
         <tr>
-          <th scope="row"><?= $SLANG['Notes'] ?></th>
-          <td><?= htmlentities($event['Notes']) ?></td>
+          <th scope="row"><?php echo $SLANG['Notes'] ?></th>
+          <td><?php echo htmlentities($event['Notes']) ?></td>
         </tr>
         <?php } ?>
         <tr>
-          <th scope="row"><?= $SLANG['Frames'] ?></th>
-          <td><?= $event['Frames'] ?> (<?= $event['AlarmFrames'] ?>)</td>
+          <th scope="row"><?php echo $SLANG['Frames'] ?></th>
+          <td><?php echo $event['Frames'] ?> (<?php echo $event['AlarmFrames'] ?>)</td>
         </tr>
         <tr>
-          <th scope="row"><?= $SLANG['Score'] ?></th>
-          <td><?= $event['TotScore'] ?>/<?= $event['AvgScore'] ?>/<?= $event['MaxScore'] ?></td>
+          <th scope="row"><?php echo $SLANG['Score'] ?></th>
+          <td><?php echo $event['TotScore'] ?>/<?php echo $event['AvgScore'] ?>/<?php echo $event['MaxScore'] ?></td>
         </tr>
       </table>
       <div id="eventImages">
-        <a href="?view=frame&amp;eid=<?= $_REQUEST['eid'] ?>&amp;fid=1"><img src="<?= viewImagePath( $image1['thumbPath'] ) ?>" alt="1"/></a>
-        <a href="?view=frame&amp;eid=<?= $_REQUEST['eid'] ?>&amp;fid=<?= $frame['FrameId'] ?>"><img src="<?= viewImagePath( $image2['thumbPath'] ) ?>" alt="<?= $frame['FrameId'] ?>"/></a>
+        <a href="?view=frame&amp;eid=<?php echo $_REQUEST['eid'] ?>&amp;fid=1"><img src="<?php echo viewImagePath( $image1['thumbPath'] ) ?>" alt="1"/></a>
+        <a href="?view=frame&amp;eid=<?php echo $_REQUEST['eid'] ?>&amp;fid=<?php echo $frame['FrameId'] ?>"><img src="<?php echo viewImagePath( $image2['thumbPath'] ) ?>" alt="<?php echo $frame['FrameId'] ?>"/></a>
       </div>
       <div id="contenButtons">
-        <a href="?view=event&amp;eid=<?= $_REQUEST['eid'] ?>&amp;page=1"><?= $SLANG['Frames'] ?></a>
-        <a href="?view=video&amp;eid=<?= $_REQUEST['eid'] ?>"><?= $SLANG['Video'] ?></a>
+        <a href="?view=event&amp;eid=<?php echo $_REQUEST['eid'] ?>&amp;page=1"><?php echo $SLANG['Frames'] ?></a>
+        <a href="?view=video&amp;eid=<?php echo $_REQUEST['eid'] ?>"><?php echo $SLANG['Video'] ?></a>
       </div>
     </div>
   </div>

@@ -23,10 +23,10 @@ xhtmlHeaders(__FILE__, $SLANG['LoggingIn'] );
 <body>
   <div id="page">
     <div id="header">
-      <h1>ZoneMinder <?= $SLANG['Login'] ?></h1>
+      <h1>ZoneMinder <?php echo $SLANG['Login'] ?></h1>
     </div>
     <div id="content">
-      <h2><?= $SLANG['LoggingIn'] ?></h2>
+      <h2><?php echo $SLANG['LoggingIn'] ?></h2>
     </div>
   </div>
 </body>

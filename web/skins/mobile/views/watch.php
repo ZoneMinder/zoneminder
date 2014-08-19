@@ -104,7 +104,7 @@ xhtmlHeaders( __FILE__, $monitor['Name'].' - '.$SLANG['Watch'] );
 <body>
   <div id="page">
     <div id="content">
-      <p class="<?= $class ?>"><?= makeLink( "?view=events&amp;page=1&amp;view=events&amp;page=1&amp;filter%5Bterms%5D%5B0%5D%5Battr%5D%3DMonitorId&amp;filter%5Bterms%5D%5B0%5D%5Bop%5D%3D%3D&amp;filter%5Bterms%5D%5B0%5D%5Bval%5D%3D".$monitor['Id']."&amp;sort_field=Id&amp;sort_desc=1", $monitor['Name'], canView( 'Events' ) ) ?>:&nbsp;<?= $statusString ?>&nbsp;-&nbsp;<?= $fpsString ?>&nbsp;fps</p>
+      <p class="<?php echo $class ?>"><?php echo makeLink( "?view=events&amp;page=1&amp;view=events&amp;page=1&amp;filter%5Bterms%5D%5B0%5D%5Battr%5D%3DMonitorId&amp;filter%5Bterms%5D%5B0%5D%5Bop%5D%3D%3D&amp;filter%5Bterms%5D%5B0%5D%5Bval%5D%3D".$monitor['Id']."&amp;sort_field=Id&amp;sort_desc=1", $monitor['Name'], canView( 'Events' ) ) ?>:&nbsp;<?php echo $statusString ?>&nbsp;-&nbsp;<?php echo $fpsString ?>&nbsp;fps</p>
       <p>
 <?php
 if ( $streamMode == "mpeg" )
@@ -121,7 +121,7 @@ elseif ( $streamMode == "jpeg" )
 else
 {
 ?>
-        <a href="?view=<?= $_REQUEST['view'] ?>&amp;mid=<?= $monitor['Id'] ?>"><?= outputImageStill( "liveStream", $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), $monitor['Name'] ); ?></a>
+        <a href="?view=<?php echo $_REQUEST['view'] ?>&amp;mid=<?php echo $monitor['Id'] ?>"><?php echo outputImageStill( "liveStream", $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), $monitor['Name'] ); ?></a>
 <?php
 }
 ?>
@@ -133,7 +133,7 @@ if ( $showPtzControls )
         require_once $includeFile;
 ?>
       <div id="ptzControls">
-        <?= ptzControls( $monitor ) ?>
+        <?php echo ptzControls( $monitor ) ?>
       </div>
 <?php
 }
@@ -141,9 +141,9 @@ if ( $nextMid != $monitor['Id'] || $prevMid != $monitor['Id'] )
 {
 ?>
       <div id="contentButtons">
-        <a href="?view=<?= $_REQUEST['view'] ?>&amp;mid=<?= $prevMid ?>"><?= $SLANG['Prev'] ?></a>
-        <a href="?view=console"><?= $SLANG['Console'] ?></a>
-        <a href="?view=<?= $_REQUEST['view'] ?>&amp;mid=<?= $nextMid ?>"><?= $SLANG['Next'] ?></a>
+        <a href="?view=<?php echo $_REQUEST['view'] ?>&amp;mid=<?php echo $prevMid ?>"><?php echo $SLANG['Prev'] ?></a>
+        <a href="?view=console"><?php echo $SLANG['Console'] ?></a>
+        <a href="?view=<?php echo $_REQUEST['view'] ?>&amp;mid=<?php echo $nextMid ?>"><?php echo $SLANG['Next'] ?></a>
       </div>
 <?php
 }

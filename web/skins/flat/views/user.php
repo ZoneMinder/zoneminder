@@ -60,14 +60,14 @@ xhtmlHeaders(__FILE__, $SLANG['User']." - ".$newUser['Username'] );
 <body>
   <div id="page">
     <div id="header">
-      <h2><?= $SLANG['User']." - ".$newUser['Username'] ?></h2>
+      <h2><?php echo $SLANG['User']." - ".$newUser['Username'] ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>" onsubmit="return validateForm( this, <?= empty($newUser['Password'])?'true':'false' ?> )">
-        <input type="hidden" name="view" value="<?= $view ?>"/>
+      <form name="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" onsubmit="return validateForm( this, <?php echo empty($newUser['Password'])?'true':'false' ?> )">
+        <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value="user"/>
-        <input type="hidden" name="uid" value="<?= validHtmlStr($_REQUEST['uid']) ?>"/>
-        <input type="hidden" name="newUser[MonitorIds]" value="<?= $newUser['MonitorIds'] ?>"/>
+        <input type="hidden" name="uid" value="<?php echo validHtmlStr($_REQUEST['uid']) ?>"/>
+        <input type="hidden" name="newUser[MonitorIds]" value="<?php echo $newUser['MonitorIds'] ?>"/>
         <table id="contentTable" class="major" cellspacing="0">
           <tbody>
 <?php
@@ -75,58 +75,58 @@ if ( canEdit( 'System' ) )
 {
 ?>
             <tr>
-              <th scope="row"><?= $SLANG['Username'] ?></th>
-              <td><input type="text" name="newUser[Username]" value="<?= $newUser['Username'] ?>"/></td>
+              <th scope="row"><?php echo $SLANG['Username'] ?></th>
+              <td><input type="text" name="newUser[Username]" value="<?php echo $newUser['Username'] ?>"/></td>
             </tr>
 <?php
 }
 ?>
             <tr>
-              <th scope="row"><?= $SLANG['NewPassword'] ?></th>
+              <th scope="row"><?php echo $SLANG['NewPassword'] ?></th>
               <td><input type="password" name="newUser[Password]" value=""/></td>
             </tr>
             <tr>
-              <th scope="row"><?= $SLANG['ConfirmPassword'] ?></th>
+              <th scope="row"><?php echo $SLANG['ConfirmPassword'] ?></th>
               <td><input type="password" name="conf_password" value=""/></td>
             </tr>
             <tr>
-              <th scope="row"><?= $SLANG['Language'] ?></th>
-              <td><?= buildSelect( "newUser[Language]", $langs ) ?></td>
+              <th scope="row"><?php echo $SLANG['Language'] ?></th>
+              <td><?php echo buildSelect( "newUser[Language]", $langs ) ?></td>
             </tr>
 <?php
 if ( canEdit( 'System' ) )
 {
 ?>
             <tr>
-              <th scope="row"><?= $SLANG['Enabled'] ?></th>
-              <td><?= buildSelect( "newUser[Enabled]", $yesno ) ?></td>
+              <th scope="row"><?php echo $SLANG['Enabled'] ?></th>
+              <td><?php echo buildSelect( "newUser[Enabled]", $yesno ) ?></td>
             </tr>
             <tr>
-              <th scope="row"><?= $SLANG['Stream'] ?></th>
-              <td><?= buildSelect( "newUser[Stream]", $nv ) ?></td>
+              <th scope="row"><?php echo $SLANG['Stream'] ?></th>
+              <td><?php echo buildSelect( "newUser[Stream]", $nv ) ?></td>
             </tr>
             <tr>
-              <th scope="row"><?= $SLANG['Events'] ?></th>
-              <td><?= buildSelect( "newUser[Events]", $nve ) ?></td>
+              <th scope="row"><?php echo $SLANG['Events'] ?></th>
+              <td><?php echo buildSelect( "newUser[Events]", $nve ) ?></td>
             </tr>
             <tr>
-              <th scope="row"><?= $SLANG['Control'] ?></th>
-              <td><?= buildSelect( "newUser[Control]", $nve ) ?></td>
+              <th scope="row"><?php echo $SLANG['Control'] ?></th>
+              <td><?php echo buildSelect( "newUser[Control]", $nve ) ?></td>
             </tr>
             <tr>
-              <th scope="row"><?= $SLANG['Monitors'] ?></th>
-              <td><?= buildSelect( "newUser[Monitors]", $nve ) ?></td>
+              <th scope="row"><?php echo $SLANG['Monitors'] ?></th>
+              <td><?php echo buildSelect( "newUser[Monitors]", $nve ) ?></td>
             </tr>
             <tr>
-              <th scope="row"><?= $SLANG['System'] ?></th>
-              <td><?= buildSelect( "newUser[System]", $nve ) ?></td>
+              <th scope="row"><?php echo $SLANG['System'] ?></th>
+              <td><?php echo buildSelect( "newUser[System]", $nve ) ?></td>
             </tr>
             <tr>
-              <th scope="row"><?= $SLANG['MaxBandwidth'] ?></th>
-              <td><?= buildSelect( "newUser[MaxBandwidth]", $bandwidths ) ?></td>
+              <th scope="row"><?php echo $SLANG['MaxBandwidth'] ?></th>
+              <td><?php echo buildSelect( "newUser[MaxBandwidth]", $bandwidths ) ?></td>
             </tr>
             <tr>
-              <th scope="row"><?= $SLANG['RestrictedMonitors'] ?></th>
+              <th scope="row"><?php echo $SLANG['RestrictedMonitors'] ?></th>
               <td>
                 <select name="monitorIds" size="4" multiple="multiple">
 <?php
@@ -135,7 +135,7 @@ if ( canEdit( 'System' ) )
         if ( visibleMonitor( $monitor['Id'] ) )
         {
 ?>
-                  <option value="<?= $monitor['Id'] ?>"<?php if ( array_key_exists( $monitor['Id'], $monitorIds ) ) { ?> selected="selected"<?php } ?>><?= htmlentities($monitor['Name']) ?></option>
+                  <option value="<?php echo $monitor['Id'] ?>"<?php if ( array_key_exists( $monitor['Id'], $monitorIds ) ) { ?> selected="selected"<?php } ?>><?php echo htmlentities($monitor['Name']) ?></option>
 <?php
         }
     }
@@ -149,7 +149,7 @@ if ( canEdit( 'System' ) )
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="submit" value="<?= $SLANG['Save'] ?>"/><input type="button" value="<?= $SLANG['Cancel'] ?>" onclick="closeWindow()"/>
+          <input type="submit" value="<?php echo $SLANG['Save'] ?>"/><input type="button" value="<?php echo $SLANG['Cancel'] ?>" onclick="closeWindow()"/>
         </div>
       </form>
     </div>

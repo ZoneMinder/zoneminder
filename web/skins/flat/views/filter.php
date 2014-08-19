@@ -140,14 +140,14 @@ xhtmlHeaders(__FILE__, $SLANG['EventFilter'] );
   <div id="page">
     <div id="header">
       <div id="headerButtons">
-        <a href="#" onclick="closeWindow();"><?= $SLANG['Close'] ?></a>
+        <a href="#" onclick="closeWindow();"><?php echo $SLANG['Close'] ?></a>
       </div>
-      <h2><?= $SLANG['EventFilter'] ?></h2>
+      <h2><?php echo $SLANG['EventFilter'] ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="get" action="<?= $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="filter"/>
-        <input type="hidden" name="page" value="<?= requestVar( 'page' ) ?>"/>
+        <input type="hidden" name="page" value="<?php echo requestVar( 'page' ) ?>"/>
         <input type="hidden" name="reload" value="0"/>
         <input type="hidden" name="execute" value="0"/>
         <input type="hidden" name="action" value=""/>
@@ -155,7 +155,7 @@ xhtmlHeaders(__FILE__, $SLANG['EventFilter'] );
         <input type="hidden" name="line" value=""/>
         <input type="hidden" name="fid" value=""/>
         <hr/>
-        <div id="filterSelector"><label for="<?= $selectName ?>"><?= $SLANG['UseFilter'] ?></label><?php if ( count($filterNames) > 1 ) { echo buildSelect( $selectName, $filterNames, "submitToFilter( this, 1 );" ); } else { ?><select disabled="disabled"><option><?= $SLANG['NoSavedFilters'] ?></option></select><?php } ?><?= $backgroundStr ?></div>
+        <div id="filterSelector"><label for="<?php echo $selectName ?>"><?php echo $SLANG['UseFilter'] ?></label><?php if ( count($filterNames) > 1 ) { echo buildSelect( $selectName, $filterNames, "submitToFilter( this, 1 );" ); } else { ?><select disabled="disabled"><option><?php echo $SLANG['NoSavedFilters'] ?></option></select><?php } ?><?php echo $backgroundStr ?></div>
         <hr/>
         <table id="fieldsTable" class="filterTable" cellspacing="0">
           <tbody>
@@ -174,41 +174,41 @@ for ( $i = 0; isset($_REQUEST['filter']) && $i < count($_REQUEST['filter']['term
     else
     {
 ?>
-              <td><?= buildSelect( "filter[terms][$i][cnj]", $conjunctionTypes ); ?></td>
+              <td><?php echo buildSelect( "filter[terms][$i][cnj]", $conjunctionTypes ); ?></td>
 <?php
     }
 ?>
               <td><?php if ( count($_REQUEST['filter']['terms']) > 2 ) { echo buildSelect( "filter[terms][$i][obr]", $obracketTypes ); } else { ?>&nbsp;<?php } ?></td>
-              <td><?= buildSelect( "filter[terms][$i][attr]", $attrTypes, "clearValue( this, $i ); submitToFilter( this, 0 );" ); ?></td>
+              <td><?php echo buildSelect( "filter[terms][$i][attr]", $attrTypes, "clearValue( this, $i ); submitToFilter( this, 0 );" ); ?></td>
 <?php
     if ( isset($_REQUEST['filter']['terms'][$i]['attr']) )
     {
         if ( $_REQUEST['filter']['terms'][$i]['attr'] == "Archived" )
         {
 ?>
-              <td><?= $SLANG['OpEq'] ?><input type="hidden" name="filter[terms][<?= $i ?>][op]" value="="/></td>
-              <td><?= buildSelect( "filter[terms][$i][val]", $archiveTypes ); ?></td>
+              <td><?php echo $SLANG['OpEq'] ?><input type="hidden" name="filter[terms][<?php echo $i ?>][op]" value="="/></td>
+              <td><?php echo buildSelect( "filter[terms][$i][val]", $archiveTypes ); ?></td>
 <?php
         }
         elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "DateTime" )
         {
 ?>
-              <td><?= buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
-              <td><input type="text" name="filter[terms][<?= $i ?>][val]" id="filter[terms][<?= $i ?>][val]" value="<?= isset($_REQUEST['filter']['terms'][$i]['val'])?validHtmlStr($_REQUEST['filter']['terms'][$i]['val']):'' ?>"/><?php if ( $hasCal ) { ?><script type="text/javascript">Calendar.setup( { inputField: "filter[terms][<?= $i ?>][val]", ifFormat: "%Y-%m-%d %H:%M", showsTime: true, timeFormat: "24", showOthers: true, weekNumbers: false });</script><?php } ?></td>
+              <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
+              <td><input type="text" name="filter[terms][<?php echo $i ?>][val]" id="filter[terms][<?php echo $i ?>][val]" value="<?php echo isset($_REQUEST['filter']['terms'][$i]['val'])?validHtmlStr($_REQUEST['filter']['terms'][$i]['val']):'' ?>"/><?php if ( $hasCal ) { ?><script type="text/javascript">Calendar.setup( { inputField: "filter[terms][<?php echo $i ?>][val]", ifFormat: "%Y-%m-%d %H:%M", showsTime: true, timeFormat: "24", showOthers: true, weekNumbers: false });</script><?php } ?></td>
 <?php
         }
         elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "Date" )
         {
 ?>
-              <td><?= buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
-              <td><input type="text" name="filter[terms][<?= $i ?>][val]" id="filter[terms][<?= $i ?>][val]" value="<?= isset($_REQUEST['filter']['terms'][$i]['val'])?validHtmlStr($_REQUEST['filter']['terms'][$i]['val']):'' ?>"/><?php if ( $hasCal ) { ?><script type="text/javascript">Calendar.setup( { inputField: "filter[terms][<?= $i ?>][val]", ifFormat: "%Y-%m-%d", showOthers: true, weekNumbers: false });</script><?php } ?></td>
+              <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
+              <td><input type="text" name="filter[terms][<?php echo $i ?>][val]" id="filter[terms][<?php echo $i ?>][val]" value="<?php echo isset($_REQUEST['filter']['terms'][$i]['val'])?validHtmlStr($_REQUEST['filter']['terms'][$i]['val']):'' ?>"/><?php if ( $hasCal ) { ?><script type="text/javascript">Calendar.setup( { inputField: "filter[terms][<?php echo $i ?>][val]", ifFormat: "%Y-%m-%d", showOthers: true, weekNumbers: false });</script><?php } ?></td>
 <?php
         }
         elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "Weekday" )
         {
 ?>
-              <td><?= buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
-              <td><?= buildSelect( "filter[terms][$i][val]", $weekdays ); ?></td>
+              <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
+              <td><?php echo buildSelect( "filter[terms][$i][val]", $weekdays ); ?></td>
 <?php
         }
         elseif ( false && $_REQUEST['filter']['terms'][$i]['attr'] == "MonitorName" )
@@ -222,28 +222,28 @@ for ( $i = 0; isset($_REQUEST['filter']) && $i < count($_REQUEST['filter']['term
                 }
             }
 ?>
-              <td><?= buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
-              <td><?= buildSelect( "filter[terms][$i][val]", $monitors ); ?></td>
+              <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
+              <td><?php echo buildSelect( "filter[terms][$i][val]", $monitors ); ?></td>
 <?php
         }
         else
         {
 ?>
-              <td><?= buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
-              <td><input type="text" name="filter[terms][<?= $i ?>][val]" value="<?= $_REQUEST['filter']['terms'][$i]['val'] ?>"/></td>
+              <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
+              <td><input type="text" name="filter[terms][<?php echo $i ?>][val]" value="<?php echo $_REQUEST['filter']['terms'][$i]['val'] ?>"/></td>
 <?php
         }
     }
     else
     {
 ?>
-              <td><?= buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
-              <td><input type="text" name="filter[terms][<?= $i ?>][val]" value="<?= isset($_REQUEST['filter']['terms'][$i]['val'])?$_REQUEST['filter']['terms'][$i]['val']:'' ?>"/></td>
+              <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
+              <td><input type="text" name="filter[terms][<?php echo $i ?>][val]" value="<?php echo isset($_REQUEST['filter']['terms'][$i]['val'])?$_REQUEST['filter']['terms'][$i]['val']:'' ?>"/></td>
 <?php
     }
 ?>
               <td><?php if ( count($_REQUEST['filter']['terms']) > 2 ) { echo buildSelect( "filter[terms][$i][cbr]", $cbracketTypes ); } else { ?>&nbsp;<?php } ?></td>
-              <td><input type="button" onclick="addTerm( this, <?= $i+1 ?> )" value="+"/><?php if ( $_REQUEST['filter']['terms'] > 1 ) { ?><input type="button" onclick="delTerm( this, <?= $i ?> )" value="-"/><?php } ?></td>
+              <td><input type="button" onclick="addTerm( this, <?php echo $i+1 ?> )" value="+"/><?php if ( $_REQUEST['filter']['terms'] > 1 ) { ?><input type="button" onclick="delTerm( this, <?php echo $i ?> )" value="-"/><?php } ?></td>
             </tr>
 <?php
 }
@@ -254,8 +254,8 @@ for ( $i = 0; isset($_REQUEST['filter']) && $i < count($_REQUEST['filter']['term
         <table id="sortTable" class="filterTable" cellspacing="0">
           <tbody>
             <tr>
-              <td><label for="sort_field"><?= $SLANG['SortBy'] ?></label><?= buildSelect( "sort_field", $sort_fields ); ?><?= buildSelect( "sort_asc", $sort_dirns ); ?></td>
-              <td><label for="limit"><?= $SLANG['LimitResultsPre'] ?></label><input type="text" size="6" id="limit" name="limit" value="<?= isset($_REQUEST['limit'])?validInt($_REQUEST['limit']):"" ?>"/><?= $SLANG['LimitResultsPost'] ?></td>
+              <td><label for="sort_field"><?php echo $SLANG['SortBy'] ?></label><?php echo buildSelect( "sort_field", $sort_fields ); ?><?php echo buildSelect( "sort_asc", $sort_dirns ); ?></td>
+              <td><label for="limit"><?php echo $SLANG['LimitResultsPre'] ?></label><input type="text" size="6" id="limit" name="limit" value="<?php echo isset($_REQUEST['limit'])?validInt($_REQUEST['limit']):"" ?>"/><?php echo $SLANG['LimitResultsPost'] ?></td>
             </tr>
           </tbody>
         </table>
@@ -263,7 +263,7 @@ for ( $i = 0; isset($_REQUEST['filter']) && $i < count($_REQUEST['filter']['term
         <table id="actionsTable" class="filterTable" cellspacing="0">
           <tbody>
             <tr>
-              <td><?= $SLANG['FilterArchiveEvents'] ?></td>
+              <td><?php echo $SLANG['FilterArchiveEvents'] ?></td>
               <td><input type="checkbox" name="autoArchive" value="1"<?php if ( !empty($dbFilter['AutoArchive']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
             </tr>
 <?php
@@ -271,7 +271,7 @@ if ( ZM_OPT_FFMPEG )
 {
 ?>
             <tr>
-              <td><?= $SLANG['FilterVideoEvents'] ?></td>
+              <td><?php echo $SLANG['FilterVideoEvents'] ?></td>
               <td><input type="checkbox" name="autoVideo" value="1"<?php if ( !empty($dbFilter['AutoVideo']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
             </tr>
 <?php
@@ -280,7 +280,7 @@ if ( ZM_OPT_UPLOAD )
 {
 ?>
             <tr>
-              <td><?= $SLANG['FilterUploadEvents'] ?></td>
+              <td><?php echo $SLANG['FilterUploadEvents'] ?></td>
               <td><input type="checkbox" name="autoUpload" value="1"<?php if ( !empty($dbFilter['AutoUpload']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
             </tr>
 <?php
@@ -289,7 +289,7 @@ if ( ZM_OPT_EMAIL )
 {
 ?>
             <tr>
-              <td><?= $SLANG['FilterEmailEvents'] ?></td>
+              <td><?php echo $SLANG['FilterEmailEvents'] ?></td>
               <td><input type="checkbox" name="autoEmail" value="1"<?php if ( !empty($dbFilter['AutoEmail']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
             </tr>
 <?php
@@ -298,31 +298,31 @@ if ( ZM_OPT_MESSAGE )
 {
 ?>
             <tr>
-              <td><?= $SLANG['FilterMessageEvents'] ?></td>
+              <td><?php echo $SLANG['FilterMessageEvents'] ?></td>
               <td><input type="checkbox" name="autoMessage" value="1"<?php if ( !empty($dbFilter['AutoMessage']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
             </tr>
 <?php
 }
 ?>
             <tr>
-              <td><?= $SLANG['FilterExecuteEvents'] ?></td>
-              <td><input type="checkbox" name="autoExecute" value="1"<?php if ( !empty($dbFilter['AutoExecute']) ) { ?> checked="checked"<?php } ?>/><input type="text" name="autoExecuteCmd" value="<?= isset($dbFilter['AutoExecuteCmd'])?$dbFilter['AutoExecuteCmd']:"" ?>" size="32" maxlength="255" onchange="updateButtons( this )"/></td>
+              <td><?php echo $SLANG['FilterExecuteEvents'] ?></td>
+              <td><input type="checkbox" name="autoExecute" value="1"<?php if ( !empty($dbFilter['AutoExecute']) ) { ?> checked="checked"<?php } ?>/><input type="text" name="autoExecuteCmd" value="<?php echo isset($dbFilter['AutoExecuteCmd'])?$dbFilter['AutoExecuteCmd']:"" ?>" size="32" maxlength="255" onchange="updateButtons( this )"/></td>
             </tr>
             <tr>
-              <td><?= $SLANG['FilterDeleteEvents'] ?></td>
+              <td><?php echo $SLANG['FilterDeleteEvents'] ?></td>
               <td colspan="2"><input type="checkbox" name="autoDelete" value="1"<?php if ( !empty($dbFilter['AutoDelete']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
             </tr>
           </tbody>
         </table>
         <hr/>
         <div id="contentButtons">
-          <input type="submit" value="<?= $SLANG['Submit'] ?>" onclick="submitToEvents( this );"/>
-          <input type="button" name="executeButton" id="executeButton" value="<?= $SLANG['Execute'] ?>" onclick="executeFilter( this );"/>
+          <input type="submit" value="<?php echo $SLANG['Submit'] ?>" onclick="submitToEvents( this );"/>
+          <input type="button" name="executeButton" id="executeButton" value="<?php echo $SLANG['Execute'] ?>" onclick="executeFilter( this );"/>
 <?php if ( canEdit( 'Events' ) ) { ?>
-          <input type="button" value="<?= $SLANG['Save'] ?>" onclick="saveFilter( this );"/><?php } ?>
+          <input type="button" value="<?php echo $SLANG['Save'] ?>" onclick="saveFilter( this );"/><?php } ?>
 <?php if ( canEdit( 'Events' ) && isset($dbFilter) ) { ?>
-          <input type="button" value="<?= $SLANG['Delete'] ?>" onclick="deleteFilter( this, '<?= $dbFilter['Name'] ?>' );"/><?php } ?>
-          <input type="button" value="<?= $SLANG['Reset'] ?>" onclick="submitToFilter( this, 1 );"/>
+          <input type="button" value="<?php echo $SLANG['Delete'] ?>" onclick="deleteFilter( this, '<?php echo $dbFilter['Name'] ?>' );"/><?php } ?>
+          <input type="button" value="<?php echo $SLANG['Reset'] ?>" onclick="submitToFilter( this, 1 );"/>
         </div>
       </form>
     </div>

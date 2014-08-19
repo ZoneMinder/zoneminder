@@ -23,11 +23,11 @@ xhtmlHeaders( __FILE__, $SLANG['Error'] );
 <body>
   <div id="page">
     <div id="header">
-      <h1>ZoneMinder <?= $SLANG['Error'] ?></h1>
+      <h1>ZoneMinder <?php echo $SLANG['Error'] ?></h1>
     </div>
     <div id="content">
-      <p><strong><?= $SLANG['YouNoPerms'] ?></p>
-      <p><?= $SLANG['ContactAdmin'] ?></p>
+      <p><strong><?php echo $SLANG['YouNoPerms'] ?></p>
+      <p><?php echo $SLANG['ContactAdmin'] ?></p>
     </div>
   </div>
 </body>

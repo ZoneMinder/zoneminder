@@ -425,6 +425,7 @@ Monitor::Monitor(
         }
     }
 
+	// Will this not happen everytime a monitor is instantiated?  Seems like all the calls to the Monitor constructor pass a zero for n_zones, then load zones after..
     if ( !n_zones ) {
 		Debug( 1, "Monitor %s has no zones, adding one.", name );
         n_zones = 1;
@@ -605,7 +606,6 @@ Monitor::~Monitor()
 			memset( mem_ptr, 0, mem_size );
 		}
 
-	if ( mem_ptr ) {
 #if ZM_MEM_MAPPED
 		if ( msync( mem_ptr, mem_size, MS_SYNC ) < 0 )
 			Error( "Can't msync: %s", strerror(errno) );

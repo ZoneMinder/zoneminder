@@ -138,26 +138,19 @@ This release of ZoneMinder has been tested on and works with ffmpeg version N-55
 * Source hosted at [GitHub](https://github.com/ZoneMinder/ZoneMinder/)
 * Report issues/questions/feature requests on [GitHub Issues](https://github.com/ZoneMinder/ZoneMinder/issues)
 
-Pull requests are very welcome!  If you would like to contribute,
-please follow the following steps.  Also please create a feature branch
-for what you are working on.
+Pull requests are very welcome!  If you would like to contribute, please follow
+the following steps.
 
 1. Fork the repo
-2. Open an issue at our [GitHub Issues](https://github.com/ZoneMinder/ZoneMinder/issues) page and jot down the issue number (e.g. 456)
+2. Open an issue at our [GitHub Issues Tracker](https://github.com/ZoneMinder/ZoneMinder/issues).
+   Describe the bug that you've found, or the feature which you're asking for.
+   Jot down the issue number (e.g. 456)
 3. Create your feature branch (`git checkout -b 456-my-new-feature`)
 4. Commit your changes (`git commit -am 'Added some feature'`)
-5. Push to the branch (`git push origin 456-my-new-feature`)
+   It is preferred that you 'commit early and often' instead of bunching all
+   changes into a single commit.
+5. Push your branch to your fork on github (`git push origin 456-my-new-feature`)
 6. Create new Pull Request
-7. The team will then review your changes
-
-If you are instead working on a bug - not a feature - please do the following:
-
-1. Fork the repo
-2. Open an issue at our [GitHub Issues](https://github.com/ZoneMinder/ZoneMinder/issues) page and jot down the issue number (e.g. 123)
-3. Create your feature branch (`git checkout -b 123-short-description `)
-4. Commit your changes (`git commit -am 'Added some feature.  Fixes #123'`)
-5. Push to the branch (`git push origin 123-short-description`)
-6. Create new Pull Request
-7. The team will then review your changes
+7. The team will then review, discuss and hopefully merge your changes.
 
 [![Analytics](https://ga-beacon.appspot.com/UA-15147273-6/ZoneMinder/README.md)](https://github.com/igrigorik/ga-beacon)

@@ -297,7 +297,9 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
     device_prime = (camera_count++ == 0);
     v4l_version = (p_method=="v4l2"?2:1);
 	v4l_multi_buffer = p_v4l_multi_buffer;
+	if ( v4l_multi_buffer == '' ) v4l_multi_buffer = config.v4l_multi_buffer;
 	v4l_captures_per_frame = p_v4l_captures_per_frame;
+	if ( v4l_captures_per_frame = '' ) v4l_captures_per_frame = config.captures_per_frame;
     
     if ( capture )
     {

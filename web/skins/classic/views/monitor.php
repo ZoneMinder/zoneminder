@@ -491,6 +491,8 @@ if ( ZM_HAS_V4L && ($tab != 'source' || $newMonitor['Type'] != 'Local') )
     <input type="hidden" name="newMonitor[Channel]" value="<?= validHtmlStr($newMonitor['Channel']) ?>"/>
     <input type="hidden" name="newMonitor[Format]" value="<?= validHtmlStr($newMonitor['Format']) ?>"/>
     <input type="hidden" name="newMonitor[Palette]" value="<?= validHtmlStr($newMonitor['Palette']) ?>"/>
+    <input type="hidden" name="newMonitor[V4LMultiBuffer]" value="<?= validHtmlStr($newMonitor['V4LMultiBuffer']) ?>"/>
+    <input type="hidden" name="newMonitor[V4LCapturesPerFrame]" value="<?= validHtmlStr($newMonitor['V4LCapturesPerFrame']) ?>"/>
 <?php
 }
 if ( $tab != 'source' || $newMonitor['Type'] != 'Remote' )

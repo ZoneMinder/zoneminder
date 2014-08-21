@@ -17,7 +17,8 @@ bin_PROGRAMS = \
 	zmu \
 	zms \
 	zmf \
-	zmstreamer
+	zmstreamer \
+	zmsystemctl
 
 zm_SOURCES = \
 	zm_box.cpp \
@@ -67,6 +68,7 @@ zms_SOURCES = zms.cpp $(zm_SOURCES)
 zmu_SOURCES = zmu.cpp $(zm_SOURCES)
 zmf_SOURCES = zmf.cpp $(zm_SOURCES)
 zmstreamer_SOURCES = zmstreamer.cpp $(zm_SOURCES)
+zmsystemctl_SOURCES = zmsystemctl.cpp $(zm_SOURCES)
 
 noinst_HEADERS = \
 	jinclude.h \
@@ -128,6 +130,7 @@ dist-hook:
 install-exec-hook:
 	( cd $(DESTDIR)@bindir@; mkdir -p $(DESTDIR)$(cgidir); mv zms $(DESTDIR)$(cgidir) )
 	( cd $(DESTDIR)$(cgidir); chown $(webuser):$(webgroup) zms; ln -f zms nph-zms )
+	( cd $(DESTDIR)@bindir@; chmod u+s zmsystemctl )
 
 uninstall-hook:
 	( cd $(DESTDIR)$(cgidir); rm -f zms nph-zms )

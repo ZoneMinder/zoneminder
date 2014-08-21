@@ -51,7 +51,7 @@ Advanced:
 	ZM_NO_X10		Set to ON to build ZoneMinder without X10 support. default: OFF
 	ZM_PERL_SUBPREFIX	Use a different directory for the zm perl modules. NOTE: This is a subprefix, e.g. lib will be turned into <prefix>/lib, default: <libarch>/perl5
 	ZM_PERL_USE_PATH	Override the include path for zm perl modules. Useful if you are moving the perl modules without using the ZM_PERL_SUBPREFIX option. default: <prefix>/<zmperlsubprefix>
-
+        ZM_SERVICE_NAME         The systemd service name.  This is only required on an OS which uses systemd.  It has the effect of intercepting start/stop/restart calls to zmpkg.pl and passing them on to systemctl
 
 Useful configuration options provided by cmake:
 CMAKE_VERBOSE_MAKEFILE - Set this to ON (default OFF) to see what cmake is doing. Very useful for troubleshooting.
@@ -90,6 +90,22 @@ NOTE: The database server, database name, user and password can be different and
 8) Create an apache virtual host for ZoneMinder. Make sure to use the same paths as ZM_WEBDIR and ZM_CGIDIR in /etc/zm.conf
 9) Create other config if desired (e.g. rsyslog, logrotate and such). Some of this can be found in <prefix>/share/zoneminder/misc or project/misc directory
 10) Setup an init script for your system. Its also possible to use "zmpkg.pl start" and "zmpkg.pl stop" if you can't find a one.
+11) If the OS uses systemd you may wish to create a zoneminder.service file in /usr/lib/systemd/system.  Example of the content of such a file:
+[Unit]
+Description=Video security and surveillance system
+After=mysqld.service
+
+[Service]
+Type=forking
+ExecStart=/opt/zoneminder/bin/zmpkg.pl start
+ExecStop=/opt/zoneminder/bin/zmpkg.pl stop
+ExecReload=/opt/zoneminder/bin/zmpkg.pl reload
+PIDFile=/var/run/zoneminder/zm.pid
+
+[Install]
+WantedBy=multi-user.target
+
+If you want to use the systemd service control mechanism and not run into problems when stopping/starting zoneminder from teh console then you need to include the ZM_SERVICE_NAME option when you compile.
 
 Basic steps for upgrading ZoneMinder
 ------------------------------------

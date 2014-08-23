@@ -1,0 +1,21 @@
+<div class="col-md-12" id="config" ng-controller="ConfigController">
+	<ul class="nav nav-tabs" role="tablist">
+		<li ng-repeat="category in categories">
+			<button type="button" class="btn btn-link" role="tab" ng-href="#{{ category.Config.Category }}" data-toggle="tab">
+				{{ category.Config.Category | uppercase }}
+			</button>
+		</li>
+	</ul>
+
+	<form>
+
+		<div class="tab-content">
+			<div class="tab-pane" ng-repeat="category in categories" id="{{category.Config.Category}}">
+				{{ system }}
+			</div>
+
+
+			<button type="button" class="btn btn-default">Update Config</button>
+		</div>
+	</form>
+</div>

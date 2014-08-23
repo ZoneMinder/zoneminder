@@ -1,0 +1,265 @@
+<form role="form" id="addMonitor" style="width:340px;" class="center-block">
+
+	<fieldset id="monitorGeneral">
+		<legend>General</legend>
+
+		<div class="form-group">
+			<label for="monitorName">Name</label>
+			<input type="text" class="form-control" id="monitorName" placeholder="Monitor-Fubar" required>
+		</div>
+
+		<div class="form-group">
+			<label for="monitorSourceType">Source Type</label>
+			<select class="form-control" id="monitorSourceType">
+				<option value="Local" selected="selected">Local</option>
+				<option value="Remote">Remote</option>
+				<option value="File">File</option>
+				<option value="Ffmpeg">Ffmpeg</option>
+				<option value="Libvlc">Libvlc</option>
+				<option value="cURL">cURL (HTTP(S) only)</option>
+			</select>
+		</div>
+
+		<div class="form-group">
+			<label for="monitorFunction">Function</label>
+			<select class="form-control" id="monitorFunction">
+				<option value="None">None</option>
+				<option value="Monitor" selected="selected">Monitor</option>
+				<option value="Modect">Modect</option>
+				<option value="Record">Record</option>
+				<option value="Mocord">Mocord</option>
+				<option value="Nodect">Nodect</option>
+			</select>
+		</div>
+
+		<div class="checkbox">
+			<label>
+				<input type="checkbox" id="monitorEnabled" checked="checked" value="1"> Enable
+			</label>
+		</div>
+
+		<div class="form-group">
+			<label for="monitorMaxFPS">Maximum FPS</label>
+			<input type="number" min="1" max="1000" step="1" class="form-control" id="monitorMaxFPS" placeholder="Disabled on source type != local">
+		</div>
+
+		<div class="form-group">
+			<label for="monitorAlarmMaxFPS">Alarm Maximum FPS</label>
+			<input type="number" min="1" max="1000" step="1" class="form-control" id="monitorAlarmMaxFPS" placeholder="Disable on source type != local">
+		</div>
+	</fieldset>
+
+	<fieldset>
+		<legend>Source</legend>
+
+		<div class="form-group">
+			<label for="monitorColour">Target Colorspace</label>
+			<select class="form-control" id="monitorColour">
+				<option value="1">8 bit grayscale</option>
+				<option value="3" selected="selected">24 bit color</option>
+				<option value="4">32 bit color</option>
+			</select>
+		</div>
+
+		<div class="form-group">
+			<label for="monitorWidth">Width</label>
+			<input type="number" min="0" step="1" class="form-control" id="monitorWidth" value="0">
+			<p class="help-text">The width of the image.</p>
+		</div>
+
+		<div class="form-group">
+			<label for="monitorHeigh">Height</label>
+			<input type="number" min="0" step="1" class="form-control" id="monitorHeight" value="0">
+			<p class="help-text">The height of the image.</p>
+		</div>
+
+		<div class="form-group">
+			<label for="monitorOrientation">Orientation</label>
+			<select class="form-control" id="monitorOrientation">
+				<option value="0" selected="selected">Normal</option>
+				<option value="90">Rotate Right</option>
+				<option value="180">Inverted</option>
+				<option value="270">Rotate Left</option>
+				<option value="hori">Flipped Horizontally</option>
+				<option value="vert">Flipped Vertically</option>
+			</select>
+		</div>
+
+		<div class="form-group">
+			<label for="monitorDeinterlacing">Deinterlacing</label>
+			<select class="form-control" id="monitorDeinterlacing">
+				<option value="0" selected="selected">Disabled</option>
+				<option value="7684">Four field motion adaptive - Soft</option>
+				<option value="5124">Four field motion adaptive - Medium</option>
+				<option value="2564">Four field motion adaptive - Hard</option>
+				<option value="1">Discard</option>
+				<option value="2">Linear</option>
+				<option value="3">Blend</option>
+				<option value="517">Blend (25%)</option>
+			</select>
+		</div>
+	</fieldset>
+
+
+	<fieldset>
+		<legend>Timestamp</legend>
+
+		<div class="form-group">
+			<label for="monitorTimestampLabelFormat">Timestamp Label Format</label>
+			<input type="text" class="form-control" id="monitorTimestampLabelFormat" value="%N - %d/%m/%y %H:%M:%S">
+		</div>
+
+		<div class="form-group">
+			<label for="monitorTimestampLabelX">Timestamp Label X</label>
+			<input type="number" min="0" step="1" class="form-control" id="monitorTimestampLabelX" value="0">
+		</div>
+
+		<div class="form-group">
+			<label for="monitorTimestampLabelY">Timestamp Label Y</label>
+			<input type="number" min="0" step"1" class="form-control" id="monitorTimestampLabelY" value="0">
+		</div>
+	</fieldset>
+
+
+	<fieldset>
+		<legend>Buffers</legend>
+
+		<div class="form-group">
+			<label for="monitorBufferSize">Buffer Size</label>
+			<input type="number" min="1" max="1000" step="1" class="form-control" id="monitorBufferSize" value="100">
+			<p class="help-block">How many frames are held in the ring buffer at any one time.</p>
+		</div>
+
+		<div class="form-group">
+			<label for="monitorWarmupFrames">Warmup Frames</label>
+			<input type="number" class="form-control" id="monitorWarmupFrames" value="25">
+			<p class="help-block">How many frames the analysis daemon should process but not examine when it starts. This allows it to generate an accurate reference image from a series of images before looking too carefully for any changes.</p>
+		</div>
+
+		<div class="form-group">
+			<label for="monitorPreEventImageCount">Pre Event Image Count</label>
+			<input type="number" class="form-control" id="monitorPreEventImageCount" value="25">
+			<p class="help-block">See what occured before the event.  Should not exceed half of the Buffer Size.</p>
+		</div>
+
+		<div class="form-group">
+			<label for="monitorPostEventImageCount">Post Event Image Count</label>
+			<input type="number" class="form-control" id="monitorPostEventImageCount" value="25">
+			<p class="help-block">If you get lots of short events and would prefer them to run together to form fewer longer ones, increase this value.</p>
+		</div>
+
+		<div class="form-group">
+			<label for="monitorStreamReplayImageBuffer">StreamReplayImageBuffer</label>
+			<input type="number" class="form-control" id="monitorStreamReplayImageBuffer" value="1000">
+		</div>
+
+		<div class="form-group">
+			<label for="monitorAlarmFrameCount">AlarmFrameCount</label>
+			<input type="number" class="form-control" id="monitorAlarmFrameCount" value="1">
+			<p class="help-block">The number of consecutive alarm frames which must occur before an alarm event is generated.</p>
+		</div>
+	</fieldset>
+
+
+	<fieldset disabled>
+		<legend>Control</legend>
+
+		<div class="checkbox">
+			<label>
+				<input type="checkbox" id="monitorcwControllable"> Controllable
+			</label>
+		</div>
+
+		<div class="form-group">
+			<label for="monitorControlType">Control Type</label>
+			<select class="form-control" id="monitorControlType">
+				<option value="" selected="selected">None</option>
+				<option value="1">Pelco-D</option>
+				<option value="2">Pelco-P</option>
+				<option value="3">Sony VISCA</option>
+				<option value="4">Axis API v2</option>
+				<option value="5">Panasonic IP</option>
+				<option value="6">Neu-Fusion NCS370</option>
+				<option value="7">AirLink SkyIPCam 7xx</option>
+				<option value="8">Pelco-D</option>
+				<option value="9">Pelco-P</option>
+				<option value="10">Foscam FI8620</option>
+				<option value="11">Foscam FI8608W</option>
+				<option value="12">Foscam FI8908W</option>
+				<option value="13">Foscam FI9821W</option>
+				<option value="14">Loftek Sentinel</option>
+				<option value="15">Toshiba IK-WB11A</option>
+				<option value="16">WanscamPT</option>
+			</select>
+		</div>
+
+		<div class="form-group">
+			<label for="monitorControlDevice">Control Device</label>
+			<input type="text" class="form-control" id="monitorControlDevice">
+		</div>
+
+		<div class="form-group">
+			<label for="monitorControlAddress">Control Address</label>
+			<input type="text" class="form-control" id="monitorControlAddress">
+		</div>
+
+		<div class="form-group">
+			<label for="monitorAutoStopTimeout">Auto Stop Timeout</label>
+			<input type="number" min="0" step="1" class="form-control" id="monitorAutoStopTimeout">
+		</div>
+
+		<div class="checkbox">
+			<label>
+				<input type="checkbox" id="monitorTrackMotion"> Track Motion
+			</label>
+		</div>
+
+		<div class="form-group">
+			<label for="monitorTrackDelay">Track Delay</label>
+			<input type="number" min="0" class="form-control" id="monitorTrackDelay">
+		</div>
+
+		<div class="form-group">
+			<label for="monitorReturnLocation">Return Location</label>
+			<select class="form-control" id="monitorReturnLocation">
+				<option value="-1" selected="selected">None</option>
+				<option value="0">Home</option>
+				<option value="1">Preset 1</option>
+			</select>
+		</div>
+
+		<div class="form-group">
+			<label for="monitorReturnDelay">Return Delay</label>
+			<input type="number" min="0" step="1" class="form-control" id="monitorReturnDelay">
+		</div>
+
+
+		
+	</fieldset>
+
+
+	<fieldset id="monitorMisc">
+		<legend>Misc</legend>
+
+		<div class="form-group">
+			<label for="monitorTriggers">Triggers</label>
+			<input type="text" class="form-control" id="monitorTriggers" placeholder="Monitor-Fubar">
+		</div>
+
+		<div class="form-group">
+			<label for="monitorLinkedMonitors">LinkedMonitors</label>
+			<input type="text" class="form-control" id="monitorLinkedMonitors" placeholder="Monitor-Fubar">
+		</div>
+
+		<div class="form-group">
+			<label for="monitorReferenceImageBlend">Reference Image Blend</label>
+			<input type="text" class="form-control" id="monitorReferenceImageBlend" placeholder="Monitor-Fubar">
+		</div>
+
+		<div class="form-group">
+			<label for="monitorAlarmReferenceImageBlend">Alarm Reference Image Blend</label>
+			<input type="text" class="form-control" id="monitorAlarmReferenceImageBlend" placeholder="Monitor-Fubar">
+		</div>
+	</fieldset>
+
+</form>

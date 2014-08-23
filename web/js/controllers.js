@@ -6,7 +6,7 @@ function MonitorController($scope, Monitors) {
 	});
 }
 
-function NavigationController($scope) {
+function HeaderController($scope) {
 
 }
 

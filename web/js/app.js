@@ -6,8 +6,14 @@ var ZoneMinder = angular.module('ZoneMinder', [
 ZoneMinder.config(['$routeProvider',
 	function($routeProvider) {
 		$routeProvider.
+			when('/monitor', {
+				templateUrl: 'partials/monitor.html',
+			}).
 			when('/monitors', {
 				templateUrl: 'partials/monitors.html',
+			}).
+			when('/config', {
+				templateUrl: 'partials/config.html',
 			}).
 			otherwise({
 				redirectTo: '/monitors'

@@ -98,11 +98,11 @@ class ConfigsController extends AppController {
  */
 
 	public function categories($category = null) {
-		if (!$this->Config->find('first', array( 'conditions' => array('Config.Category' => $category)))) {
-			throw new NotFoundException(__('Invalid Config Category'));
-		}
-
 		if ($category != null) {
+			if (!$this->Config->find('first', array( 'conditions' => array('Config.Category' => $category)))) {
+				throw new NotFoundException(__('Invalid Config Category'));
+			}
+
 			$config = $this->Config->find('all', array(
 				'conditions' => array('Config.Category' => $category),
 				'recursive' => 0

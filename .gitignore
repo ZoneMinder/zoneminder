@@ -12,3 +12,4 @@ scripts/ZoneMinder/blib
 Makefile.in
 Makefile
 docs/_build
+*.swp

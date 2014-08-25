@@ -41,3 +41,14 @@ ZoneMinder.factory('Config', function($http) {
 		}
 	};
 });
+
+ZoneMinder.filter('range', function() {
+// Thanks to https://stackoverflow.com/questions/11160513/angularjs-ng-options-create-range/11161353#11161353
+	return function(input, min, max) {
+		min = parseInt(min); //Make string input int
+		max = parseInt(max);
+		for (var i=min; i<max; i++)
+			input.push(i);
+		return input;
+	};
+});

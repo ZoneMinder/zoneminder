@@ -27,6 +27,9 @@ ZoneMinder.factory('Monitors', function ($http) {
 	return {
 		getMonitors: function(callback) {
 			$http.get('/api/monitors.json').success(callback);
+		},
+		getSourceTypes: function(callback) {
+			$http.get('/api/monitors/sourceTypes.json').success(callback);
 		}
 	};
 });

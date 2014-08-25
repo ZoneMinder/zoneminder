@@ -1,8 +1,16 @@
 var ZoneMinder = angular.module('ZoneMinderControllers', []);
 
-function MonitorController($scope, Monitors) {
+function MonitorsController($scope, Monitors) {
 	Monitors.getMonitors(function(results) {
 		$scope.monitors = results.monitors;
+	});
+}
+
+function MonitorController($scope, Monitors) {
+	Monitors.getSourceTypes(function(results) {
+		$scope.sourceTypes = results.sourceTypes;
+		$scope.monitorSourceType = $scope.sourceTypes[0];
+		$scope.monitorDeviceChannel = 0;
 	});
 }
 

@@ -18,7 +18,7 @@ function HeaderController($scope) {
 
 }
 
-function ConfigController($scope, $http, Config) {
+function ConfigController($scope, $http, $sce, Config) {
 
 	Config.getCategories(function(results) {
 		// List of category names for the tabs
@@ -34,7 +34,7 @@ function ConfigController($scope, $http, Config) {
 	// Get config options belonging to a given category and push them into categories array
 	function buildCats(cat) {
 		Config.getCategory(cat, function(results) {
-			$scope[cat] = results['config'];
+			$scope[cat] = $sce.trustAsHtml(results['config']);
 		});
 	}
 	

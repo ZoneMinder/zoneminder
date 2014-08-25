@@ -108,4 +108,21 @@ class MonitorsController extends AppController {
 		} else {
 			return $this->flash(__('The monitor could not be deleted. Please, try again.'), array('action' => 'index'));
 		}
-	}}
+	}
+
+	public function sourceTypes() {
+		$sourceTypes = $this->Monitor->query("describe Monitors Type;");
+
+		preg_match('/^enum\((.*)\)$/', $sourceTypes[0]['COLUMNS']['Type'], $matches);
+		foreach( explode(',', $matches[1]) as $value ) {
+			$enum[] = trim( $value, "'" );
+		}
+
+		$this->set(array(
+			'sourceTypes' => $enum,
+			'_serialize' => array('sourceTypes')
+		));
+	}
+
+}
+

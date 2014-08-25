@@ -1,104 +1,305 @@
-<form role="form" id="addMonitor" style="width:340px;" class="center-block">
+<form role="form" id="addMonitor" style="width:640px;" class="center-block" ng-controller="MonitorController">
 
-	<fieldset id="monitorGeneral">
-		<legend>General</legend>
+<div class="row">
+	<div class="col-md-6">
+		<fieldset id="monitorGeneral">
+			<legend>General</legend>
 
-		<div class="form-group">
-			<label for="monitorName">Name</label>
-			<input type="text" class="form-control" id="monitorName" placeholder="Monitor-Fubar" required>
+			<div class="form-group">
+				<label for="monitorName">Name</label>
+				<input type="text" class="form-control" id="monitorName" placeholder="Monitor-Fubar" required>
+			</div>
+
+			<div class="form-group">
+				<label for="monitorSourceType">Source Type</label>
+				<select class="form-control" id="monitorSourceType" ng-model="monitorSourceType" ng-options="sourceType for sourceType in sourceTypes">
+				</select>
+			</div>
+
+			<div class="form-group">
+				<label for="monitorFunction">Function</label>
+				<select class="form-control" id="monitorFunction">
+					<option value="None">None</option>
+					<option value="Monitor" selected="selected">Monitor</option>
+					<option value="Modect">Modect</option>
+					<option value="Record">Record</option>
+					<option value="Mocord">Mocord</option>
+					<option value="Nodect">Nodect</option>
+				</select>
+			</div>
+
+			<div class="checkbox">
+				<label>
+					<input type="checkbox" id="monitorEnabled" checked="checked" value="1"> Enable
+				</label>
+			</div>
+
+			<div class="form-group">
+				<label for="monitorMaxFPS">Maximum FPS</label>
+				<input type="number" min="1" max="1000" step="1" class="form-control" id="monitorMaxFPS" placeholder="Disabled on source type != local">
+			</div>
+
+			<div class="form-group">
+				<label for="monitorAlarmMaxFPS">Alarm Maximum FPS</label>
+				<input type="number" min="1" max="1000" step="1" class="form-control" id="monitorAlarmMaxFPS" placeholder="Disable on source type != local">
+			</div>
+		</fieldset>
+	</div>
+
+	<div class="col-md-6">
+		<fieldset>
+			<legend>Source</legend>
+
+			<div class="animate-switch-container" ng-switch on="monitorSourceType">
+
+				<div id="sourceLocal" class="animate-switch" ng-switch-when="Local">
+					<div class="form-group">
+						<label for="monitorDevicePath">Device Path</label>
+						<input type="text" class="form-control" id="monitorDevicePath" value="/dev/video0" required>
+						<p class="help-text">The path to the local capture card, USB camera, etc.</p>
+					</div>
+
+					<div class="form-group">
+						<label for="monitorDeviceMethod">Device Method</label>
+						<select class="form-control" id="monitorDeviceMethod">
+							<option value="v4l2">Video For Linux version 2</option>
+						</select>
+					</div>
+
+					<div class="form-group">
+						<label for="monitorDeviceChannel">Device Channel</label>
+						<select class="form-control" id="monitorDeviceChannel" ng-model="monitorDeviceChannel"  ng-options="n for n in [] | range:0:31">
+						</select>
+					</div>
+
+					<div class="form-group">
+						<label for="monitorDeviceFormat">Device Format</label>
+						<select class="form-control" id="monitorDeviceFormat">
+							<option value="255" selected="selected">PAL</option>
+							<option value="45056">NTSC</option>
+							<option value="1">PAL B</option>
+							<option value="2">PAL B1</option>
+							<option value="4">PAL G</option>
+							<option value="8">PAL H</option>
+							<option value="16">PAL I</option>
+							<option value="32">PAL D</option>
+							<option value="64">PAL D1</option>
+							<option value="128">PAL K</option>
+							<option value="256">PAL M</option>
+							<option value="512">PAL N</option>
+							<option value="1024">PAL Nc</option>
+							<option value="2048">PAL 60</option>
+							<option value="4096">NTSC M</option>
+							<option value="8192">NTSC M JP</option>
+							<option value="16384">NTSC 443</option>
+							<option value="32768">NTSC M KR</option>
+							<option value="65536">SECAM B</option>
+							<option value="131072">SECAM D</option>
+							<option value="262144">SECAM G</option>
+							<option value="524288">SECAM H</option>
+							<option value="1048576">SECAM K</option>
+							<option value="2097152">SECAM K1</option>
+							<option value="4194304">SECAM L</option>
+							<option value="8388608">SECAM LC</option>
+							<option value="16777216">ATSC 8 VSB</option>
+							<option value="33554432">ATSC 16 VSB</option>
+						</select>
+					</div>
+
+					<div class="form-group">
+						<label for="monitorDevicePalette">Device Palette</label>
+						<select class="form-control" id="monitorDevicePalette">
+							<option value="0" selected="selected">Auto</option>
+							<option value="1497715271">Gray</option>
+							<option value="877807426">BGR32</option>
+							<option value="876758866">RGB32</option>
+							<option value="861030210">BGR24</option>
+							<option value="859981650">RGB24</option>
+							<option value="1448695129">*YUYV</option>
+							<option value="1195724874">*JPEG</option>
+							<option value="1196444237">*MJPEG</option>
+							<option value="875836498">*RGB444</option>
+							<option value="1329743698">*RGB555</option>
+							<option value="1346520914">*RGB565</option>
+							<option value="1498831189">*UYVY</option>
+							<option value="1345466932">*YUV422P</option>
+							<option value="1345401140">*YUV411P</option>
+							<option value="875836505">*YUV444</option>
+							<option value="961959257">*YUV410</option>
+							<option value="842093913">*YUV420</option>
+						</select>
+					</div>
+
+					<div class="checkbox">
+						<label>
+							<input type="checkbox" id="monitorMultiBuffering" checked="checked"> Multi Buffering
+						</label>
+					</div>
+
+					<div class="form-group">
+						<label for="monitorCapturesPerFrame">Captures Per Frame</label>
+						<input type="number" min="1" step="1" class="form-control" id="monitorCapturesPerFrame">
+					</div>
+				</div> <!-- End #sourceLocal -->
+
+				<div id="sourceRemote" class="animate-switch" ng-switch-when="Remote">
+					<div class="form-group">
+						<label for="monitorRemoteProtocol">Remote Protocol</label>
+						<select class="form-control" id="monitorRemoteProtocol">
+							<option value="http" selected="selected">HTTP</option>
+							<option value="rtsp">RTSP</option>
+						</select>
+					</div>
+
+					<div class="form-group">
+						<label for="monitorRemoteMethod">Remote Method</label>
+						<select class="form-control" id="monitorRemoteMethod">
+							<option value="simple" selected="selected">Simple</option>
+							<option value="regexp">Regexp</option>
+						</select>
+					</div>
+
+					<div class="form-group">
+						<label for="monitorRemoteHostName">Remote Host Name</label>
+						<input type="text" class="form-control" id="monitorRemoteHostName" placeholder="username:password@hostname">
+						<p class="help-text">The hostname or IP address of the remote camera.  Include the username and password here, if applicable.</p>
+					</div>
+
+					<div class="form-group">
+						<label for="monitorRemoteHostPort">Remote Host Port</label>
+						<input type="number" min="1" max="65536" step="1" class="form-control" id="monitorRemoteHostPort" value="80">
+						<p class="help-text">The port number which the remote camera is listening on.  Usually 80 for http.</p>
+					</div>
+
+					<div class="form-group">
+						<label for="monitorRemoteHostPath">Remote Host Path</label>
+						<input type="text" class="form-control" id="monitorRemoteHostPath" placeholder="/path/to/stream.mjpg?some=param">
+						<p class="help-text">The path to the video stream which you want to monitor.</p>
+					</div>
+				</div> <!-- End #sourceRemote -->
+
+				<div id="sourceFile" class="animate-switch" ng-switch-when="File">
+					<div class="form-group">
+						<label for="monitorSourcePath">Source Path</label>
+						<input type="text" class="form-control" id="monitorSourcePath" placeholder="/path/to/some.file">
+					</div>
+				</div> <!-- End #sourceFile -->
+
+				<div id="sourceFfmpeg" class="animate-switch" ng-switch-when="Ffmpeg">
+					<div class="form-group">
+						<label for="monitorFfmpegSourcePath">Source Path</label>
+						<input type="text" class="form-control" id="monitorFfmpegSourcePath">
+						<p class="help-text">Enter the full URL of the stream or file.</p>
+					</div>
+
+					<div class="form-group">
+						<label for="monitorFfmpegRemoteMethod">Remote Method</label>
+						<select class="form-control" id="monitorFfmpegRemoteMethod">
+							<option value="rtpUni" selected="selected">RTP/Unicast</option>
+							<option value="rtpMulti">RTP/Multicast</option>
+							<option value="rtpRtsp">RTP/RTSP</option>
+							<option value="rtpRtspHttp">RTP/RTSP/HTTP</option>
+						</select>
+					</div>
+
+					<div class="form-group">
+						<label for="monitorFfmpegOptions">Ffmpeg Options</label>
+						<input type="text" class="form-control" id="monitorFfmpegOptions">
+						<p class="help-text">Parameters in this field are passwd on to FFmpeg. Multiple parameters can be separated by <code>,</code></p>
+					</div>
+				</div> <!-- End #sourceFfmpeg -->
+
+				<div id="sourceLibvlc" class="animate-switch" ng-switch-when="Libvlc">
+					<div class="form-group">
+						<label for="monitorLibvlc">Source Path</label>
+						<input type="text" class="form-control" id="monitorLibvlc">
+						<p class="help-text">Enter the full URL of the stream or file.</p>
+					</div>
+
+					<div class="form-group">
+						<label for="monitorLibvlc">Remote Method</label>
+						<select class="form-control" id="monitorLibvlc">
+							<option value="rtpUni" selected="selected">RTP/Unicast</option>
+							<option value="rtpMulti">RTP/Multicast</option>
+							<option value="rtpRtsp">RTP/RTSP</option>
+							<option value="rtpRtspHttp">RTP/RTSP/HTTP</option>
+						</select>
+					</div>
+
+					<div class="form-group">
+						<label for="monitorLibvlc">Libvlc Options</label>
+						<input type="text" class="form-control" id="monitorLibvlc">
+						<p class="help-text">Parameters in this field are passwd on to libVLC. Multiple parameters can be separated by <code>,</code></p>
+					</div>
+				</div> <!-- End #sourceLibvlc -->
+
+				<div id="sourceCURL" class="animate-switch" ng-switch-when="cURL">
+					<div class="form-group">
+						<label for="monitorCURLURL">URL</label>
+						<input type="text" class="form-control" id="monitorCURLURL">
+					</div>
+
+					<div class="form-group">
+						<label for="monitorCURLUsername">Username</label>
+						<input type="text" class="form-control" id="monitorCURLUsername">
+					</div>
+
+					<div class="form-group">
+						<label for="monitorCURLPassword">Password</label>
+						<input type="password" class="form-control" id="monitorCURLPassword">
+					</div>
+				</div> <!-- End #sourceCURL -->
+			</div> <!-- End ng-switch -->
+
+			<div class="form-group">
+				<label for="monitorColour">Target Colorspace</label>
+				<select class="form-control" id="monitorColour">
+					<option value="1">8 bit grayscale</option>
+					<option value="3" selected="selected">24 bit color</option>
+					<option value="4">32 bit color</option>
+				</select>
+			</div>
+
+			<div class="form-group">
+				<label for="monitorWidth">Width</label>
+				<input type="number" min="0" step="1" class="form-control" id="monitorWidth" value="0">
+				<p class="help-text">The width of the image.</p>
+			</div>
+
+			<div class="form-group">
+				<label for="monitorHeigh">Height</label>
+				<input type="number" min="0" step="1" class="form-control" id="monitorHeight" value="0">
+				<p class="help-text">The height of the image.</p>
+			</div>
+
+			<div class="form-group">
+				<label for="monitorOrientation">Orientation</label>
+				<select class="form-control" id="monitorOrientation">
+					<option value="0" selected="selected">Normal</option>
+					<option value="90">Rotate Right</option>
+					<option value="180">Inverted</option>
+					<option value="270">Rotate Left</option>
+					<option value="hori">Flipped Horizontally</option>
+					<option value="vert">Flipped Vertically</option>
+				</select>
+			</div>
+
+			<div class="form-group">
+				<label for="monitorDeinterlacing">Deinterlacing</label>
+				<select class="form-control" id="monitorDeinterlacing">
+					<option value="0" selected="selected">Disabled</option>
+					<option value="7684">Four field motion adaptive - Soft</option>
+					<option value="5124">Four field motion adaptive - Medium</option>
+					<option value="2564">Four field motion adaptive - Hard</option>
+					<option value="1">Discard</option>
+					<option value="2">Linear</option>
+					<option value="3">Blend</option>
+					<option value="517">Blend (25%)</option>
+				</select>
+			</div>
+		</fieldset>
 		</div>
-
-		<div class="form-group">
-			<label for="monitorSourceType">Source Type</label>
-			<select class="form-control" id="monitorSourceType">
-				<option value="Local" selected="selected">Local</option>
-				<option value="Remote">Remote</option>
-				<option value="File">File</option>
-				<option value="Ffmpeg">Ffmpeg</option>
-				<option value="Libvlc">Libvlc</option>
-				<option value="cURL">cURL (HTTP(S) only)</option>
-			</select>
-		</div>
-
-		<div class="form-group">
-			<label for="monitorFunction">Function</label>
-			<select class="form-control" id="monitorFunction">
-				<option value="None">None</option>
-				<option value="Monitor" selected="selected">Monitor</option>
-				<option value="Modect">Modect</option>
-				<option value="Record">Record</option>
-				<option value="Mocord">Mocord</option>
-				<option value="Nodect">Nodect</option>
-			</select>
-		</div>
-
-		<div class="checkbox">
-			<label>
-				<input type="checkbox" id="monitorEnabled" checked="checked" value="1"> Enable
-			</label>
-		</div>
-
-		<div class="form-group">
-			<label for="monitorMaxFPS">Maximum FPS</label>
-			<input type="number" min="1" max="1000" step="1" class="form-control" id="monitorMaxFPS" placeholder="Disabled on source type != local">
-		</div>
-
-		<div class="form-group">
-			<label for="monitorAlarmMaxFPS">Alarm Maximum FPS</label>
-			<input type="number" min="1" max="1000" step="1" class="form-control" id="monitorAlarmMaxFPS" placeholder="Disable on source type != local">
-		</div>
-	</fieldset>
-
-	<fieldset>
-		<legend>Source</legend>
-
-		<div class="form-group">
-			<label for="monitorColour">Target Colorspace</label>
-			<select class="form-control" id="monitorColour">
-				<option value="1">8 bit grayscale</option>
-				<option value="3" selected="selected">24 bit color</option>
-				<option value="4">32 bit color</option>
-			</select>
-		</div>
-
-		<div class="form-group">
-			<label for="monitorWidth">Width</label>
-			<input type="number" min="0" step="1" class="form-control" id="monitorWidth" value="0">
-			<p class="help-text">The width of the image.</p>
-		</div>
-
-		<div class="form-group">
-			<label for="monitorHeigh">Height</label>
-			<input type="number" min="0" step="1" class="form-control" id="monitorHeight" value="0">
-			<p class="help-text">The height of the image.</p>
-		</div>
-
-		<div class="form-group">
-			<label for="monitorOrientation">Orientation</label>
-			<select class="form-control" id="monitorOrientation">
-				<option value="0" selected="selected">Normal</option>
-				<option value="90">Rotate Right</option>
-				<option value="180">Inverted</option>
-				<option value="270">Rotate Left</option>
-				<option value="hori">Flipped Horizontally</option>
-				<option value="vert">Flipped Vertically</option>
-			</select>
-		</div>
-
-		<div class="form-group">
-			<label for="monitorDeinterlacing">Deinterlacing</label>
-			<select class="form-control" id="monitorDeinterlacing">
-				<option value="0" selected="selected">Disabled</option>
-				<option value="7684">Four field motion adaptive - Soft</option>
-				<option value="5124">Four field motion adaptive - Medium</option>
-				<option value="2564">Four field motion adaptive - Hard</option>
-				<option value="1">Discard</option>
-				<option value="2">Linear</option>
-				<option value="3">Blend</option>
-				<option value="517">Blend (25%)</option>
-			</select>
-		</div>
-	</fieldset>
+	</div>
 
 
 	<fieldset>

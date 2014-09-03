@@ -55,3 +55,16 @@ ZoneMinder.filter('range', function() {
 		return input;
 	};
 });
+
+
+
+ZoneMinder.directive('angularHtmlBind', function($compile) {
+    return function(scope, elm, attrs) {
+        scope.$watch(attrs.angularHtmlBind, function(newValue, oldValue) {
+            if (newValue && newValue !== oldValue) {
+                elm.html(newValue);
+                $compile(elm.contents())(scope);
+            }
+        });
+    };
+});

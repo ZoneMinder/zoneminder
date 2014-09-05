@@ -425,6 +425,7 @@ Monitor::Monitor(
         }
     }
 
+	// Will this not happen everytime a monitor is instantiated?  Seems like all the calls to the Monitor constructor pass a zero for n_zones, then load zones after..
     if ( !n_zones ) {
 		Debug( 1, "Monitor %s has no zones, adding one.", name );
         n_zones = 1;
@@ -592,19 +593,19 @@ Monitor::~Monitor()
 
     delete camera;
 
-    if ( purpose == ANALYSIS )
-    {
-        shared_data->state = state = IDLE;
-        shared_data->last_read_index = image_buffer_count;
-        shared_data->last_read_time = 0;
-    }
-    else if ( purpose == CAPTURE )
-    {
-        shared_data->valid = false;
-        memset( mem_ptr, 0, mem_size );
-    }
-
 	if ( mem_ptr ) {
+		if ( purpose == ANALYSIS )
+		{
+			shared_data->state = state = IDLE;
+			shared_data->last_read_index = image_buffer_count;
+			shared_data->last_read_time = 0;
+		}
+		else if ( purpose == CAPTURE )
+		{
+			shared_data->valid = false;
+			memset( mem_ptr, 0, mem_size );
+		}
+
 #if ZM_MEM_MAPPED
 		if ( msync( mem_ptr, mem_size, MS_SYNC ) < 0 )
 			Error( "Can't msync: %s", strerror(errno) );
@@ -1870,8 +1871,37 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
         const char *device = dbrow[col]; col++;
         int channel = atoi(dbrow[col]); col++;
         int format = atoi(dbrow[col]); col++;
-		bool v4l_multi_buffer = (*dbrow[col] == 48 ? false : true); col++;
-		int v4l_captures_per_frame = atoi(dbrow[col]); col++;
+		bool v4l_multi_buffer;
+Error( "Got %s for v4l_multi_vuffer", dbrow[col] );
+		if (*dbrow[col] == '0' ) {
+Error( "setting false for v4l_multi_vuffer" );
+			v4l_multi_buffer = false;
+		} else if ( *dbrow[col] == '1' ) {
+Error( "setting true for v4l_multi_vuffer" );
+			v4l_multi_buffer = true;
+		} else {
+Error( "setting config for v4l_multi_vuffer" );
+			v4l_multi_buffer = config.v4l_multi_buffer;
+		}
+		if ( v4l_multi_buffer ) {
+Error( "Got true for v4l_multi_vuffer" );
+		} else {
+Error( "Got false for v4l_multi_vuffer" );
+		}
+		col++;
+		
+		int v4l_captures_per_frame;
+Error( "Got %s for v4l_captures", dbrow[col] );
+		if ( ! dbrow[col] ) {
+Error( "Got nothing for v4l_captures" );
+
+		} else if ( dbrow[col][0] == '\0' ) {
+			v4l_captures_per_frame = config.captures_per_frame;
+		} else {
+			 v4l_captures_per_frame = atoi(dbrow[col]);
+		}
+Error( "Got %s for v4l_captures", v4l_captures_per_frame );
+		col++;
         const char *method = dbrow[col]; col++;
 
         int width = atoi(dbrow[col]); col++;

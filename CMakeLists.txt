@@ -476,6 +476,12 @@ endif(NOT ZM_WEB_GROUP)
 message(STATUS "Using web user: ${ZM_WEB_USER}")
 message(STATUS "Using web group: ${ZM_WEB_GROUP}")
 
+# Check for polkit
+find_package(Polkit)
+if(NOT POLKIT_FOUND)
+	message(FATAL_ERROR "Running ZoneMinder requires polkit. Building ZoneMinder requires the polkit development package.")
+endif(NOT POLKIT_FOUND)
+
 # Some variables that zm expects
 set(ZM_PID "${ZM_RUNDIR}/zm.pid")
 set(ZM_CONFIG "/${CMAKE_INSTALL_SYSCONFDIR}/zm.conf")
@@ -502,16 +508,15 @@ add_subdirectory(src)
 add_subdirectory(scripts)
 add_subdirectory(db)
 add_subdirectory(web)
+add_subdirectory(misc)
 
-# Process misc subdirectories
+# Process distro subdirectories
 if(ZM_TARGET_DISTRO STREQUAL "f19")
 	add_subdirectory(distros/fedora)
 elseif(ZM_TARGET_DISTRO STREQUAL "el6")
 	add_subdirectory(distros/redhat)
 elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
 	add_subdirectory(distros/opensuse)
-else(ZM_TARGET_DISTRO STREQUAL "el6")
-	add_subdirectory(misc)
 endif(ZM_TARGET_DISTRO STREQUAL "f19")
 
 # Print optional libraries detection status

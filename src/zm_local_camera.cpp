@@ -2134,13 +2134,13 @@ int LocalCamera::PostCapture()
                     return( -1 );
                 }
             }
-			if ( v4l2_data ) {
-            Debug( 3, "Requeueing buffer %d", v4l2_data.bufptr->index );
-            if ( vidioctl( vid_fd, VIDIOC_QBUF, v4l2_data.bufptr ) < 0 )
-            {
-                Error( "Unable to requeue buffer %d: %s", v4l2_data.bufptr->index, strerror(errno) )
-                return( -1 );
-            }
+			if ( v4l2_data.bufptr ) {
+				Debug( 3, "Requeueing buffer %d", v4l2_data.bufptr->index );
+				if ( vidioctl( vid_fd, VIDIOC_QBUF, v4l2_data.bufptr ) < 0 )
+				{
+					Error( "Unable to requeue buffer %d: %s", v4l2_data.bufptr->index, strerror(errno) )
+						return( -1 );
+				}
 			} else {
                 Error( "Unable to requeue buffer due to not v4l2_data" )
 			}

@@ -2473,8 +2473,27 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
         std::string device = dbrow[col]; col++;
         int channel = atoi(dbrow[col]); col++;
         int format = atoi(dbrow[col]); col++;
-		bool v4l_multi_buffer = (*dbrow[col] == 48 ? false : true); col++;
-		int v4l_captures_per_frame = atoi(dbrow[col]); col++;
+
+        bool v4l_multi_buffer;
+        if ( dbrow[col] ) {
+            if (*dbrow[col] == '0' ) {
+                v4l_multi_buffer = false;
+            } else if ( *dbrow[col] == '1' ) {
+                v4l_multi_buffer = true;
+            }
+        } else {
+            v4l_multi_buffer = config.v4l_multi_buffer;
+        }
+        col++;
+
+        int v4l_captures_per_frame = 0;
+        if ( dbrow[col] ) {
+             v4l_captures_per_frame = atoi(dbrow[col]);
+        } else {
+            v4l_captures_per_frame = config.captures_per_frame;
+        }
+Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
+        col++;
 
         bool v4l_multi_buffer;
         if ( dbrow[col] ) {

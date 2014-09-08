@@ -782,6 +782,7 @@ void LocalCamera::Initialise()
        
         memset( &v4l2_data.reqbufs, 0, sizeof(v4l2_data.reqbufs) );
         if ( channel_count > 1 ) {
+			Debug( 3, "Channel count is %d", channel_count );
             if ( v4l_multi_buffer ){
                 v4l2_data.reqbufs.count = 2*channel_count;
             } else {
@@ -790,6 +791,7 @@ void LocalCamera::Initialise()
         } else {
             v4l2_data.reqbufs.count = 8;
 		}
+		Debug( 3, "Request buffers count is %d", v4l2_data.reqbufs.count );
 
         v4l2_data.reqbufs.type = v4l2_data.fmt.type;
         v4l2_data.reqbufs.memory = V4L2_MEMORY_MMAP;
@@ -809,7 +811,7 @@ void LocalCamera::Initialise()
         if ( v4l2_data.reqbufs.count < (v4l_multi_buffer?2:1) )
             Fatal( "Insufficient buffer memory %d on video device", v4l2_data.reqbufs.count );
 
-		Debug( 3, "Setting up data buffers: Channels %d MultiBuffer %d Buffers: %s", channel_count, v4l_multi_buffer, v4l2_data.reqbufs.count );
+		Debug( 3, "Setting up data buffers: Channels %d MultiBuffer %d Buffers: %d", channel_count, v4l_multi_buffer, v4l2_data.reqbufs.count );
 
         v4l2_data.buffers = new V4L2MappedBuffer[v4l2_data.reqbufs.count];
 #if HAVE_LIBSWSCALE

@@ -1872,37 +1872,24 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
         int channel = atoi(dbrow[col]); col++;
         int format = atoi(dbrow[col]); col++;
 		bool v4l_multi_buffer;
-//Error( "Got %s for v4l_multi_vuffer", dbrow[col] );
-		if (*dbrow[col] == '0' ) {
-//Error( "setting false for v4l_multi_vuffer" );
-			v4l_multi_buffer = false;
-		} else if ( *dbrow[col] == '1' ) {
-//Error( "setting true for v4l_multi_vuffer" );
-			v4l_multi_buffer = true;
+		if ( dbrow[col] ) {
+			if (*dbrow[col] == '0' ) {
+				v4l_multi_buffer = false;
+			} else if ( *dbrow[col] == '1' ) {
+				v4l_multi_buffer = true;
+			} 
 		} else {
-//Error( "setting config for v4l_multi_vuffer" );
 			v4l_multi_buffer = config.v4l_multi_buffer;
-		}
-		if ( v4l_multi_buffer ) {
-//Error( "Got true for v4l_multi_vuffer" );
-		} else {
-//Error( "Got false for v4l_multi_vuffer" );
 		}
 		col++;
 		
 		int v4l_captures_per_frame = 0;
-//Error( "Got %s for v4l_captures", dbrow[col] );
-		if ( ! dbrow[col] ) {
-//Error( "Got nothing for v4l_captures" );
-
-		} else if ( * dbrow[col] == '\0' ) {
-			//Error( "setting to config for v4l_captures " );
-			v4l_captures_per_frame = config.captures_per_frame;
-		} else {
-			//Error( "setting from MOnitor for v4l_captures " );
+		if ( dbrow[col] ) {
 			 v4l_captures_per_frame = atoi(dbrow[col]);
+		} else {
+			v4l_captures_per_frame = config.captures_per_frame;
 		}
-Error( "Got %d for v4l_captures", v4l_captures_per_frame );
+Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
 		col++;
         const char *method = dbrow[col]; col++;
 

@@ -26,7 +26,7 @@ OpenSuse Notes
 
 3. It is necessary to add repositories to allow the zoneminder rpm to install.
    These can be added using commands (as root):
-   zypper ar -f http://packman.inode.at/suse/openSUSE_13.1/ packman
+   zypper ar -f http://packman.inode.at/suse/openSUSE_13.1 packman
    zypper ar -f -n perl-modules http://download.opensuse.org/repositories/devel:/languages:/perl/openSUSE_13.1 perl-modules
    
    The first time the repositories are accessed a prompt will be issued 
@@ -35,7 +35,7 @@ OpenSuse Notes
 
 4. There may be a prompt about the version of libavcodec.s0.55 and a change
    of vendor for libavutil52.  In order to allow zoneminder to run correctly 
-   this solution change vendro should be accepted.
+   this solution change vendor should be accepted.
 
 New installs
 ============
@@ -44,7 +44,7 @@ New installs
    remotely you will need to ensure that the server is installed and secured:
        
    The rpm install should ensure that the database is installed.  To ensure
-   that it is running at boot time and scure for zoneminder run the 
+   that it is running at boot time and secure for zoneminder run the 
    following commands (as root):
 
 	systemctl enable mysql
@@ -87,7 +87,7 @@ New installs
    show up in the zoneminder logging system as errors.
 
    If you are not sure of the proper timezone specification to use, look at
-   http://php.net/date.timezone
+   http://php.net/manual/en/timezones.php
 
 6. This package probably does not work with SELinux enabled at the moment. It
    may be necessary to disable SELinux for httpd, or even completely for

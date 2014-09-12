@@ -28,11 +28,11 @@ BuildRequires:  perl(MIME::Entity) perl(MIME::Lite)
 BuildRequires:  perl(PHP::Serialization) perl(Sys::Mmap)
 BuildRequires:  perl(Time::HiRes) perl(Net::SFTP::Foreign)
 BuildRequires:  perl(Expect) perl(X10::ActiveHome) perl(Astro::SunTime)
-BuildRequires:  libcurl-devel vlc-devel ffmpeg-devel
+BuildRequires:  libcurl-devel vlc-devel ffmpeg-devel polkit-devel
 # cmake needs the following installed at build time due to the way it auto-detects certain parameters
 BuildRequires:  httpd ffmpeg
 
-Requires:   httpd php php-mysql mysql-server libjpeg-turbo
+Requires:   httpd php php-mysql mysql-server libjpeg-turbo polkit
 Requires:   perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires:   perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)
 Requires:   perl(MIME::Entity) perl(MIME::Lite) perl(Net::SMTP) perl(Net::FTP)
@@ -138,6 +138,7 @@ rm -rf %{_docdir}/%{name}-%{version}
 %{_bindir}/zmvideo.pl
 %{_bindir}/zmwatch.pl
 %{_bindir}/zmcamtool.pl
+%{_bindir}/zmsystemctl.pl
 %{_bindir}/zmx10.pl
 %{_bindir}/zmonvif-probe.pl
 
@@ -153,6 +154,9 @@ rm -rf %{_docdir}/%{name}-%{version}
 %dir %{_datadir}/%{name}
 %{_datadir}/%{name}/db
 %{_datadir}/%{name}/www
+
+%{_datadir}/polkit-1/actions/com.zoneminder.systemctl.policy
+%{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
 
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/lib/zoneminder
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/lib/zoneminder/events

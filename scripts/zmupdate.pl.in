@@ -1014,7 +1014,7 @@ if ( $version )
 		$dbh->{'AutoCommit'} = 0;
 		foreach my $patch ( @files ) {
 			my ( $v ) = $patch =~ /^zm_update\-([\d\.]+)\.sql$/;
-			if ( $v gt $version ) {
+			if ( $v ge $version ) {
 				print( "Upgrading DB to $v from $version\n" );
 				patchDB( $dbh, $v );
 				if ( $dbh->errstr() ) {

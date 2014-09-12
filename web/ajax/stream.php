@@ -66,11 +66,11 @@ if ( $numSockets === false )
 }
 else if ( $numSockets < 0 )
 {
-    ajaxError( "Socket closed $remSocketFile"  );
+    ajaxError( "Socket closed $remSockFile"  );
 }
 else if ( $numSockets == 0 )
 {
-    ajaxError( "Timed out waiting for msg $remSocketFile"  );
+    ajaxError( "Timed out waiting for msg $remSockFile"  );
 }
 else if ( $numSockets > 0 )
 {

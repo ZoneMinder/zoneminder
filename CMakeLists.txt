@@ -10,7 +10,7 @@
 #
 cmake_minimum_required (VERSION 2.6)
 project (zoneminder)
-set(zoneminder_VERSION "1.27.1")
+set(zoneminder_VERSION "1.27.99.0")
 
 # CMake does not allow out-of-source build if CMakeCache.exists in the source folder. Abort and notify the user to save him from headache why it doesn't work.
 if((NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)) AND (EXISTS "${CMAKE_SOURCE_DIR}/CMakeCache.txt"))
@@ -476,6 +476,12 @@ endif(NOT ZM_WEB_GROUP)
 message(STATUS "Using web user: ${ZM_WEB_USER}")
 message(STATUS "Using web group: ${ZM_WEB_GROUP}")
 
+# Check for polkit
+find_package(Polkit)
+if(NOT POLKIT_FOUND)
+	message(FATAL_ERROR "Running ZoneMinder requires polkit. Building ZoneMinder requires the polkit development package.")
+endif(NOT POLKIT_FOUND)
+
 # Some variables that zm expects
 set(ZM_PID "${ZM_RUNDIR}/zm.pid")
 set(ZM_CONFIG "/${CMAKE_INSTALL_SYSCONFDIR}/zm.conf")
@@ -502,9 +508,10 @@ add_subdirectory(src)
 add_subdirectory(scripts)
 add_subdirectory(db)
 add_subdirectory(web)
+add_subdirectory(misc)
 add_subdirectory(onvif)
 
-# Process misc subdirectories
+# Process distro subdirectories
 if(ZM_TARGET_DISTRO STREQUAL "f19")
 	add_subdirectory(distros/fedora)
 elseif(ZM_TARGET_DISTRO STREQUAL "el6")

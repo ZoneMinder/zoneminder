@@ -24,6 +24,8 @@
 # This module contains the implementation of the ONVIF capability prober
 #
 
+use Getopt::Std;
+
 require ONVIF::Client;
 
 require WSDiscovery::Interfaces::WSDiscovery::WSDiscoveryPort;
@@ -273,13 +275,52 @@ sub metadata
 }
 
 # ========================================================================
+# options processing
+
+$Getopt::Std::STANDARD_HELP_VERSION = 1;
+
+our ($opt_v);
+
+my $OPTIONS = "v";
+
+sub HELP_MESSAGE
+{
+  my ($fh, $pkg, $ver, $opts) = @_;
+  print $fh "Usage: " . __FILE__ . " [-v] probe \n";
+  print $fh "       " . __FILE__ . " [-v] <command> <device URI> <soap version> <user> <password>\n";
+  print $fh  <<EOF
+  Commands are:
+    probe     - scan for devices on the local network and list them
+    profiles  - print the device's supported stream configurations
+    metadata  - print some of the device's configuration settings
+    move      - move the device (only ptz cameras)
+  Common parameters:
+    -v        - increase verbosity
+  Device access parameters (for all commands but 'probe'):
+    device URL    - the ONVIF Device service URL
+    soap version  - SOAP version (1.1 or 1.2)
+    user          - username of a user with access to the device
+    password      - password for the user
+EOF
+}
+
+# ========================================================================
 # MAIN
+
+if(!getopts($OPTIONS)) {
+  HELP_MESSAGE(\*STDOUT);
+  exit(1);
+}
+
+if(defined $opt_v) {
+  $verbose = 1;
+}
 
 my $action = shift;
 
-if($ARGV[0] eq "-v") {
-  shift;
-  $verbose = 1;
+if(!defined $action) {
+  HELP_MESSAGE(\*STDOUT);
+  exit(1);
 }
 
 if($action eq "probe") {

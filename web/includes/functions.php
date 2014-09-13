@@ -784,7 +784,7 @@ function getBrowser( &$browser, &$version )
     }
     else
     {
-	if (( preg_match( '/MSIE (.*?);/', $_SERVER['HTTP_USER_AGENT'], $logVersion)) || (strpos($_SERVER['HTTP_USER_AGENT'], 'Trident') && preg_match( '/rv:(.*?)\)/', $_SERVER['HTTP_USER_AGENT'], $logVersion)))
+	if (( preg_match( '/MSIE (.*?);/', $_SERVER['HTTP_USER_AGENT'], $logVersion)) || (preg_match( '/.*Trident.*rv:(.*?)(;|\))/', $_SERVER['HTTP_USER_AGENT'], $logVersion)))
         {
             $version = $logVersion[1];
             $browser = 'ie';

@@ -1,0 +1,532 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="../../../ver20/util/onvif-wsdl-viewer.xsl"?>
+<!--
+	Copyright (c) 2008-2012 by ONVIF: Open Network Video Interface Forum. All rights reserved.
+	
+	Recipients of this document may copy, distribute, publish, or display this document so long as this copyright notice, license and disclaimer are retained with all copies of the document. No license is granted to modify this document.
+	
+	THIS DOCUMENT IS PROVIDED "AS IS," AND THE CORPORATION AND ITS MEMBERS AND THEIR AFFILIATES, MAKE NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO, WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, OR TITLE; THAT THE CONTENTS OF THIS DOCUMENT ARE SUITABLE FOR ANY PURPOSE; OR THAT THE IMPLEMENTATION OF SUCH CONTENTS WILL NOT INFRINGE ANY PATENTS, COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS.
+	IN NO EVENT WILL THE CORPORATION OR ITS MEMBERS OR THEIR AFFILIATES BE LIABLE FOR ANY DIRECT, INDIRECT, SPECIAL, INCIDENTAL, PUNITIVE OR CONSEQUENTIAL DAMAGES, ARISING OUT OF OR RELATING TO ANY USE OR DISTRIBUTION OF THIS DOCUMENT, WHETHER OR NOT (1) THE CORPORATION, MEMBERS OR THEIR AFFILIATES HAVE BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES, OR (2) SUCH DAMAGES WERE REASONABLY FORESEEABLE, AND ARISING OUT OF OR RELATING TO ANY USE OR DISTRIBUTION OF THIS DOCUMENT.  THE FOREGOING DISCLAIMER AND LIMITATION ON LIABILITY DO NOT APPLY TO, INVALIDATE, OR LIMIT REPRESENTATIONS AND WARRANTIES MADE BY THE MEMBERS AND THEIR RESPECTIVE AFFILIATES TO THE CORPORATION AND OTHER MEMBERS IN CERTAIN WRITTEN POLICIES OF THE CORPORATION.
+-->
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:tan="http://www.onvif.org/ver20/analytics/wsdl" targetNamespace="http://www.onvif.org/ver20/analytics/wsdl">
+	<wsdl:types>
+		<xs:schema targetNamespace="http://www.onvif.org/ver20/analytics/wsdl" xmlns:tt="http://www.onvif.org/ver10/schema" elementFormDefault="qualified" version="2.2">
+			<xs:import namespace="http://www.onvif.org/ver10/schema" schemaLocation="file:wsdl/onvif-local.xsd"/>
+			<!--  Message Request/Responses elements  -->
+			<!--===============================-->
+			<xs:element name="GetServiceCapabilities">
+				<xs:complexType>
+					<xs:sequence/>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="GetServiceCapabilitiesResponse">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="Capabilities" type="tan:Capabilities">
+							<xs:annotation>
+								<xs:documentation>The capabilities for the analytics service is returned in the Capabilities element.</xs:documentation>
+							</xs:annotation>
+						</xs:element>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+			<!--===============================-->
+			<xs:complexType name="Capabilities">
+				<xs:sequence>
+					<xs:any namespace="##any" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+				</xs:sequence>
+				<xs:attribute name="RuleSupport" type="xs:boolean">
+					<xs:annotation>
+						<xs:documentation>Indication that the device supports the rules interface and the rules syntax.</xs:documentation>
+					</xs:annotation>
+				</xs:attribute>
+				<xs:attribute name="AnalyticsModuleSupport" type="xs:boolean">
+					<xs:annotation>
+						<xs:documentation>Indication that the device supports the scene analytics module interface.</xs:documentation>
+					</xs:annotation>
+				</xs:attribute>
+				<xs:attribute name="CellBasedSceneDescriptionSupported" type="xs:boolean">
+					<xs:annotation>
+						<xs:documentation>Indication that the device produces the cell based scene description</xs:documentation>
+					</xs:annotation>
+				</xs:attribute>
+				<xs:anyAttribute processContents="lax"/>
+			</xs:complexType>
+			<xs:element name="Capabilities" type="tan:Capabilities"/>
+			<!--===============================-->
+			<xs:element name="GetSupportedRules">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="ConfigurationToken" type="tt:ReferenceToken">
+							<xs:annotation>
+								<xs:documentation>
+									References an existing Video Analytics configuration. The list of available tokens can be obtained
+									via the Media service GetVideoAnalyticsConfigurations method.
+								</xs:documentation>
+							</xs:annotation>
+						</xs:element>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="GetSupportedRulesResponse">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="SupportedRules" type="tt:SupportedRules"/>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+			<!--===============================-->
+			<xs:element name="CreateRules">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="ConfigurationToken" type="tt:ReferenceToken">
+							<xs:annotation>
+								<xs:documentation>Reference to an existing VideoAnalyticsConfiguration.</xs:documentation>
+							</xs:annotation>
+						</xs:element>
+						<xs:element name="Rule" type="tt:Config" minOccurs="1" maxOccurs="unbounded"/>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="CreateRulesResponse">
+				<xs:complexType/>
+			</xs:element>
+			<!--===============================-->
+			<xs:element name="DeleteRules">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="ConfigurationToken" type="tt:ReferenceToken">
+							<xs:annotation>
+								<xs:documentation>Reference to an existing VideoAnalyticsConfiguration.</xs:documentation>
+							</xs:annotation>
+						</xs:element>
+						<xs:element name="RuleName" type="xs:string" minOccurs="1" maxOccurs="unbounded">
+							<xs:annotation>
+								<xs:documentation>References the specific rule to be deleted (e.g. "MyLineDetector"). </xs:documentation>
+							</xs:annotation>
+						</xs:element>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="DeleteRulesResponse">
+				<xs:complexType/>
+			</xs:element>
+			<!--===============================-->
+			<xs:element name="ModifyRules">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="ConfigurationToken" type="tt:ReferenceToken">
+							<xs:annotation>
+								<xs:documentation>Reference to an existing VideoAnalyticsConfiguration.</xs:documentation>
+							</xs:annotation>
+						</xs:element>
+						<xs:element name="Rule" type="tt:Config" minOccurs="1" maxOccurs="unbounded"/>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="ModifyRulesResponse">
+				<xs:complexType/>
+			</xs:element>
+			<!--===============================-->
+			<xs:element name="GetRules">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="ConfigurationToken" type="tt:ReferenceToken">
+							<xs:annotation>
+								<xs:documentation>Reference to an existing VideoAnalyticsConfiguration.</xs:documentation>
+							</xs:annotation>
+						</xs:element>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="GetRulesResponse">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="Rule" type="tt:Config" minOccurs="0" maxOccurs="unbounded"/>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+			<!--===============================-->
+			<xs:element name="GetSupportedAnalyticsModules">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="ConfigurationToken" type="tt:ReferenceToken">
+							<xs:annotation>
+								<xs:documentation>Reference to an existing VideoAnalyticsConfiguration.</xs:documentation>
+							</xs:annotation>
+						</xs:element>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="GetSupportedAnalyticsModulesResponse">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="SupportedAnalyticsModules" type="tt:SupportedAnalyticsModules"/>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+			<!--===============================-->
+			<xs:element name="CreateAnalyticsModules">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="ConfigurationToken" type="tt:ReferenceToken">
+							<xs:annotation>
+								<xs:documentation>Reference to an existing VideoAnalyticsConfiguration.</xs:documentation>
+							</xs:annotation>
+						</xs:element>
+						<xs:element name="AnalyticsModule" type="tt:Config" maxOccurs="unbounded"/>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="CreateAnalyticsModulesResponse">
+				<xs:complexType/>
+			</xs:element>
+			<!--===============================-->
+			<xs:element name="DeleteAnalyticsModules">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="ConfigurationToken" type="tt:ReferenceToken">
+							<xs:annotation>
+								<xs:documentation>Reference to an existing Video Analytics configuration.</xs:documentation>
+							</xs:annotation>
+						</xs:element>
+						<xs:element name="AnalyticsModuleName" type="xs:string" maxOccurs="unbounded">
+							<xs:annotation>
+								<xs:documentation>Name of the AnalyticsModule to be deleted.</xs:documentation>
+							</xs:annotation>
+						</xs:element>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="DeleteAnalyticsModulesResponse">
+				<xs:complexType/>
+			</xs:element>
+			<!--===============================-->
+			<xs:element name="ModifyAnalyticsModules">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="ConfigurationToken" type="tt:ReferenceToken">
+							<xs:annotation>
+								<xs:documentation>Reference to an existing VideoAnalyticsConfiguration.</xs:documentation>
+							</xs:annotation>
+						</xs:element>
+						<xs:element name="AnalyticsModule" type="tt:Config" maxOccurs="unbounded"/>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="ModifyAnalyticsModulesResponse">
+				<xs:complexType/>
+			</xs:element>
+			<!--===============================-->
+			<xs:element name="GetAnalyticsModules">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="ConfigurationToken" type="tt:ReferenceToken">
+							<xs:annotation>
+								<xs:documentation>Reference to an existing VideoAnalyticsConfiguration.</xs:documentation>
+							</xs:annotation>
+						</xs:element>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="GetAnalyticsModulesResponse">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="AnalyticsModule" type="tt:Config" minOccurs="0" maxOccurs="unbounded"/>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+			<!--===============================-->
+		</xs:schema>
+	</wsdl:types>
+	<wsdl:message name="GetServiceCapabilitiesRequest">
+		<wsdl:part name="parameters" element="tan:GetServiceCapabilities"/>
+	</wsdl:message>
+	<wsdl:message name="GetServiceCapabilitiesResponse">
+		<wsdl:part name="parameters" element="tan:GetServiceCapabilitiesResponse"/>
+	</wsdl:message>
+	<wsdl:message name="GetSupportedRulesRequest">
+		<wsdl:part name="parameters" element="tan:GetSupportedRules"/>
+	</wsdl:message>
+	<wsdl:message name="GetSupportedRulesResponse">
+		<wsdl:part name="parameters" element="tan:GetSupportedRulesResponse"/>
+	</wsdl:message>
+	<wsdl:message name="CreateRulesRequest">
+		<wsdl:part name="parameters" element="tan:CreateRules"/>
+	</wsdl:message>
+	<wsdl:message name="CreateRulesResponse">
+		<wsdl:part name="parameters" element="tan:CreateRulesResponse"/>
+	</wsdl:message>
+	<wsdl:message name="DeleteRulesRequest">
+		<wsdl:part name="parameters" element="tan:DeleteRules"/>
+	</wsdl:message>
+	<wsdl:message name="DeleteRulesResponse">
+		<wsdl:part name="parameters" element="tan:DeleteRulesResponse"/>
+	</wsdl:message>
+	<wsdl:message name="GetRulesRequest">
+		<wsdl:part name="parameters" element="tan:GetRules"/>
+	</wsdl:message>
+	<wsdl:message name="GetRulesResponse">
+		<wsdl:part name="parameters" element="tan:GetRulesResponse"/>
+	</wsdl:message>
+	<wsdl:message name="GetSupportedAnalyticsModulesResponse">
+		<wsdl:part name="parameters" element="tan:GetSupportedAnalyticsModulesResponse"/>
+	</wsdl:message>
+	<wsdl:message name="GetSupportedAnalyticsModulesRequest">
+		<wsdl:part name="parameters" element="tan:GetSupportedAnalyticsModules"/>
+	</wsdl:message>
+	<wsdl:message name="CreateAnalyticsModulesRequest">
+		<wsdl:part name="parameters" element="tan:CreateAnalyticsModules"/>
+	</wsdl:message>
+	<wsdl:message name="CreateAnalyticsModulesResponse">
+		<wsdl:part name="parameters" element="tan:CreateAnalyticsModulesResponse"/>
+	</wsdl:message>
+	<wsdl:message name="DeleteAnalyticsModulesRequest">
+		<wsdl:part name="parameters" element="tan:DeleteAnalyticsModules"/>
+	</wsdl:message>
+	<wsdl:message name="DeleteAnalyticsModulesResponse">
+		<wsdl:part name="parameters" element="tan:DeleteAnalyticsModulesResponse"/>
+	</wsdl:message>
+	<wsdl:message name="GetAnalyticsModulesRequest">
+		<wsdl:part name="parameters" element="tan:GetAnalyticsModules"/>
+	</wsdl:message>
+	<wsdl:message name="GetAnalyticsModulesResponse">
+		<wsdl:part name="parameters" element="tan:GetAnalyticsModulesResponse"/>
+	</wsdl:message>
+	<wsdl:message name="ModifyRulesRequest">
+		<wsdl:part name="parameters" element="tan:ModifyRules"/>
+	</wsdl:message>
+	<wsdl:message name="ModifyRulesResponse">
+		<wsdl:part name="parameters" element="tan:ModifyRulesResponse"/>
+	</wsdl:message>
+	<wsdl:message name="ModifyAnalyticsModulesRequest">
+		<wsdl:part name="parameters" element="tan:ModifyAnalyticsModules"/>
+	</wsdl:message>
+	<wsdl:message name="ModifyAnalyticsModulesResponse">
+		<wsdl:part name="parameters" element="tan:ModifyAnalyticsModulesResponse"/>
+	</wsdl:message>
+	<wsdl:portType name="RuleEnginePort">
+		<wsdl:operation name="GetSupportedRules">
+			<wsdl:documentation>
+				List all rules that are supported by the given VideoAnalyticsConfiguration.
+				The result of this method may depend on the overall Video analytics configuration of the device,
+				which is available via the current set of profiles. 
+			</wsdl:documentation>
+			<wsdl:input message="tan:GetSupportedRulesRequest"/>
+			<wsdl:output message="tan:GetSupportedRulesResponse"/>
+		</wsdl:operation>
+		<wsdl:operation name="CreateRules">
+			<wsdl:documentation>
+				Add one or more rules to an existing VideoAnalyticsConfiguration.
+				The available supported types can be retrieved via <a href="#op.GetSupportedRules">GetSupportedRules</a>, 
+				where the Name of the supported rule correspond to the type of an rule instance.<br/>
+				Pass unique module names which can be later used as reference. 
+				The Parameters of the rules must match those of the corresponding description.
+				<br/>
+				Although this method is mandatory a device implementation must not support adding rules. 
+				Instead it can provide a fixed set of predefined configurations via the media service function 
+				<a href="media.wsdl#op.GetCompatibleVideoAnalyticsConfigurations">GetCompatibleVideoAnalyticsConfigurations</a>.
+			</wsdl:documentation>
+			<wsdl:input message="tan:CreateRulesRequest"/>
+			<wsdl:output message="tan:CreateRulesResponse"/>
+		</wsdl:operation>
+		<wsdl:operation name="DeleteRules">
+			<wsdl:documentation>
+				Remove one or more rules from a VideoAnalyticsConfiguration.
+			</wsdl:documentation>
+			<wsdl:input message="tan:DeleteRulesRequest"/>
+			<wsdl:output message="tan:DeleteRulesResponse"/>
+		</wsdl:operation>
+		<wsdl:operation name="GetRules">
+			<wsdl:documentation>
+				List the currently assigned set of rules of a VideoAnalyticsConfiguration.
+			</wsdl:documentation>
+			<wsdl:input message="tan:GetRulesRequest"/>
+			<wsdl:output message="tan:GetRulesResponse"/>
+		</wsdl:operation>
+		<wsdl:operation name="ModifyRules">
+			<wsdl:documentation>
+				Modify one or more rules of a VideoAnalyticsConfiguration. The rules are referenced by their names.
+			</wsdl:documentation>
+			<wsdl:input message="tan:ModifyRulesRequest"/>
+			<wsdl:output message="tan:ModifyRulesResponse"/>
+		</wsdl:operation>
+	</wsdl:portType>
+	<wsdl:portType name="AnalyticsEnginePort">
+		<wsdl:operation name="GetServiceCapabilities">
+			<wsdl:documentation>Returns the capabilities of the analytics service. The result is returned in a typed answer.</wsdl:documentation>
+			<wsdl:input message="tan:GetServiceCapabilitiesRequest"/>
+			<wsdl:output message="tan:GetServiceCapabilitiesResponse"/>
+		</wsdl:operation>
+		<wsdl:operation name="GetSupportedAnalyticsModules">
+			<wsdl:documentation>
+				List all analytics modules that are supported by the given VideoAnalyticsConfiguration.
+				The result of this method may depend on the overall Video analytics configuration of the device,
+				which is available via the current set of profiles. 
+			</wsdl:documentation>
+			<wsdl:input message="tan:GetSupportedAnalyticsModulesRequest"/>
+			<wsdl:output message="tan:GetSupportedAnalyticsModulesResponse"/>
+		</wsdl:operation>
+		<wsdl:operation name="CreateAnalyticsModules">
+			<wsdl:documentation>
+				Add one or more analytics modules to an existing VideoAnalyticsConfiguration.
+				The available supported types can be retrieved via <a href="#op.GetSupportedAnalyticsModules">GetSupportedAnalyticsModules</a>, 
+				where the Name of the supported AnalyticsModules correspond to the type of an AnalyticsModule instance.<br/>
+				Pass unique module names which can be later used as reference. The Parameters of the analytics module must match those of the corresponding AnalyticsModuleDescription.
+				<br/>
+				Although this method is mandatory a device implementation must not support adding modules. 
+				Instead it can provide a fixed set of predefined configurations via the media service function 
+				<a href="media.wsdl#op.GetCompatibleVideoAnalyticsConfigurations">GetCompatibleVideoAnalyticsConfigurations</a>.
+				<br/>
+				The device shall ensure that a corresponding analytics engine starts operation when a client
+				subscribes directly or indirectly for events produced by the analytics or rule engine or when a
+				client requests the corresponding scene description stream.
+				An analytics module must be attached to a Video source using the media profiles before it can be used.
+				In case differing analytics configurations are attached to the same profile it is undefined which
+				of the analytics module configuration becomes active if no stream is activated or multiple streams
+				with different profiles are activated at the same time.
+			</wsdl:documentation>
+			<wsdl:input message="tan:CreateAnalyticsModulesRequest"/>
+			<wsdl:output message="tan:CreateAnalyticsModulesResponse"/>
+		</wsdl:operation>
+		<wsdl:operation name="DeleteAnalyticsModules">
+			<wsdl:documentation>
+				Remove one or more analytics modules from a VideoAnalyticsConfiguration referenced by their names.<br/>
+			</wsdl:documentation>
+			<wsdl:input message="tan:DeleteAnalyticsModulesRequest"/>
+			<wsdl:output message="tan:DeleteAnalyticsModulesResponse"/>
+		</wsdl:operation>
+		<wsdl:operation name="GetAnalyticsModules">
+			<wsdl:documentation>
+				List the currently assigned set of analytics modules of a VideoAnalyticsConfiguration.
+			</wsdl:documentation>
+			<wsdl:input message="tan:GetAnalyticsModulesRequest"/>
+			<wsdl:output message="tan:GetAnalyticsModulesResponse"/>
+		</wsdl:operation>
+		<wsdl:operation name="ModifyAnalyticsModules">
+			<wsdl:documentation>
+				Modify the settings of one or more analytics modules of a VideoAnalyticsConfiguration. The modules are referenced by their names.
+				It is allowed to pass only a subset to be modified.
+			</wsdl:documentation>
+			<wsdl:input message="tan:ModifyAnalyticsModulesRequest"/>
+			<wsdl:output message="tan:ModifyAnalyticsModulesResponse"/>
+		</wsdl:operation>
+	</wsdl:portType>
+	<wsdl:binding name="RuleEngineBinding" type="tan:RuleEnginePort">
+		<soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+		<wsdl:operation name="GetSupportedRules">
+			<soap:operation soapAction="http://www.onvif.org/ver20/analytics/wsdl/GetSupportedRules"/>
+			<wsdl:input>
+				<soap:body use="literal"/>
+			</wsdl:input>
+			<wsdl:output>
+				<soap:body use="literal"/>
+			</wsdl:output>
+		</wsdl:operation>
+		<wsdl:operation name="CreateRules">
+			<soap:operation soapAction="http://www.onvif.org/ver20/analytics/wsdl/CreateRules"/>
+			<wsdl:input>
+				<soap:body use="literal"/>
+			</wsdl:input>
+			<wsdl:output>
+				<soap:body use="literal"/>
+			</wsdl:output>
+		</wsdl:operation>
+		<wsdl:operation name="DeleteRules">
+			<soap:operation soapAction="http://www.onvif.org/ver20/analytics/wsdl/DeleteRules"/>
+			<wsdl:input>
+				<soap:body use="literal"/>
+			</wsdl:input>
+			<wsdl:output>
+				<soap:body use="literal"/>
+			</wsdl:output>
+		</wsdl:operation>
+		<wsdl:operation name="GetRules">
+			<soap:operation soapAction="http://www.onvif.org/ver20/analytics/wsdl/GetRules"/>
+			<wsdl:input>
+				<soap:body use="literal"/>
+			</wsdl:input>
+			<wsdl:output>
+				<soap:body use="literal"/>
+			</wsdl:output>
+		</wsdl:operation>
+		<wsdl:operation name="ModifyRules">
+			<soap:operation soapAction="http://www.onvif.org/ver20/analytics/wsdl/ModifyRules"/>
+			<wsdl:input>
+				<soap:body use="literal"/>
+			</wsdl:input>
+			<wsdl:output>
+				<soap:body use="literal"/>
+			</wsdl:output>
+		</wsdl:operation>
+	</wsdl:binding>
+	<wsdl:binding name="AnalyticsEngineBinding" type="tan:AnalyticsEnginePort">
+		<soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+		<wsdl:operation name="GetServiceCapabilities">
+			<soap:operation soapAction="http://www.onvif.org/ver20/analytics/wsdl/GetServiceCapabilities"/>
+			<wsdl:input>
+				<soap:body use="literal"/>
+			</wsdl:input>
+			<wsdl:output>
+				<soap:body use="literal"/>
+			</wsdl:output>
+		</wsdl:operation>
+		<wsdl:operation name="GetSupportedAnalyticsModules">
+			<soap:operation soapAction="http://www.onvif.org/ver20/analytics/wsdl/GetSupportedAnalyticsModules"/>
+			<wsdl:input>
+				<soap:body use="literal"/>
+			</wsdl:input>
+			<wsdl:output>
+				<soap:body use="literal"/>
+			</wsdl:output>
+		</wsdl:operation>
+		<wsdl:operation name="CreateAnalyticsModules">
+			<soap:operation soapAction="http://www.onvif.org/ver20/analytics/wsdl/CreateAnalyticsModules"/>
+			<wsdl:input>
+				<soap:body use="literal"/>
+			</wsdl:input>
+			<wsdl:output>
+				<soap:body use="literal"/>
+			</wsdl:output>
+		</wsdl:operation>
+		<wsdl:operation name="DeleteAnalyticsModules">
+			<soap:operation soapAction="http://www.onvif.org/ver20/analytics/wsdl/DeleteAnalyticsModules"/>
+			<wsdl:input>
+				<soap:body use="literal"/>
+			</wsdl:input>
+			<wsdl:output>
+				<soap:body use="literal"/>
+			</wsdl:output>
+		</wsdl:operation>
+		<wsdl:operation name="GetAnalyticsModules">
+			<soap:operation soapAction="http://www.onvif.org/ver20/analytics/wsdl/GetAnalyticsModules"/>
+			<wsdl:input>
+				<soap:body use="literal"/>
+			</wsdl:input>
+			<wsdl:output>
+				<soap:body use="literal"/>
+			</wsdl:output>
+		</wsdl:operation>
+		<wsdl:operation name="ModifyAnalyticsModules">
+			<soap:operation soapAction="http://www.onvif.org/ver20/analytics/wsdl/ModifyAnalyticsModules"/>
+			<wsdl:input>
+				<soap:body use="literal"/>
+			</wsdl:input>
+			<wsdl:output>
+				<soap:body use="literal"/>
+			</wsdl:output>
+		</wsdl:operation>
+	</wsdl:binding>
+  
+  <wsdl:service name="Analytics">
+    <wsdl:port name="RuleEnginePort" binding="tan:RuleEngineBinding" >
+      <soap:address
+        location="http://www.examples.com/Analytics/" />
+    </wsdl:port>
+    <wsdl:port name="AnalyticsEnginePort" binding="tan:AnalyticsEngineBinding" >
+      <soap:address
+        location="http://www.examples.com/Analytics/" />
+    </wsdl:port>
+  </wsdl:service>
+
+</wsdl:definitions>

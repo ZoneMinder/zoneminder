@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet type="text/xsl" ?>
+
+<wsdl:definitions targetNamespace="http://127.0.0.1"
+  xmlns:wsntw="http://docs.oasis-open.org/wsn/bw-2"
+  xmlns:wsnt="http://docs.oasis-open.org/wsn/b-2"
+  xmlns:wsa="http://www.w3.org/2005/08/addressing" 
+  xmlns:wsrf-rw="http://docs.oasis-open.org/wsrf/rw-2" 
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+  xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+  xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" 
+  xmlns:local="http://127.0.0.1">
+  
+    
+  <wsdl:import namespace="http://docs.oasis-open.org/wsn/bw-2" 
+               location="file:wsdl/bw-2.wsdl"/> 
+  <!--===============================-->
+	<wsdl:binding name="NotificationProducerBinding" type="wsntw:NotificationProducer">
+		<soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+   	<!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+    <wsdl:operation name="Subscribe">
+			<soap:operation soapAction="http://docs.oasis-open.org/wsn/bw-2/Subscribe"/>
+      <wsdl:input>
+        <soap:body parts="SubscribeRequest" use="literal"/>
+			</wsdl:input>         
+      <wsdl:output>
+			 <soap:body parts="SubscribeResponse" use="literal"/>
+		  </wsdl:output>
+         <wsdl:fault  name="ResourceUnknownFault">
+           <soap:fault  name="wsntw:ResourceUnknownFault" use="literal"/>
+         </wsdl:fault> 
+         <wsdl:fault  name="InvalidFilterFault" >
+           <soap:fault  name="wsntw:InvalidFilterFault" use="literal"/>
+         </wsdl:fault> 
+         <wsdl:fault  name="TopicExpressionDialectUnknownFault">
+           <soap:fault  name="wsntw:TopicExpressionDialectUnknownFault" use="literal"/>
+         </wsdl:fault> 
+         <wsdl:fault  name="InvalidTopicExpressionFault"> 
+           <soap:fault name="wsntw:InvalidTopicExpressionFault" use="literal"/>
+         </wsdl:fault> 
+         <wsdl:fault  name="TopicNotSupportedFault">
+           <soap:fault name="wsntw:TopicNotSupportedFault" use="literal"/>
+         </wsdl:fault> 
+         <wsdl:fault  name="InvalidProducerPropertiesExpressionFault" >
+           <soap:fault name="wsntw:InvalidProducerPropertiesExpressionFault" use="literal"/>
+         </wsdl:fault> 
+         <wsdl:fault  name="InvalidMessageContentExpressionFault" >
+           <soap:fault name="wsntw:InvalidMessageContentExpressionFault" use="literal"/>
+         </wsdl:fault> 
+         <wsdl:fault  name="UnacceptableInitialTerminationTimeFault" >
+           <soap:fault name="wsntw:UnacceptableInitialTerminationTimeFault"  use="literal"/>
+         </wsdl:fault> 
+         <wsdl:fault  name="UnrecognizedPolicyRequestFault" >
+           <soap:fault name="wsntw:UnrecognizedPolicyRequestFault" use="literal"/>
+         </wsdl:fault> 
+         <wsdl:fault  name="UnsupportedPolicyRequestFault" >
+           <soap:fault name="wsntw:UnsupportedPolicyRequestFault"  use="literal"/>
+         </wsdl:fault> 
+         <wsdl:fault  name="NotifyMessageNotSupportedFault" >
+           <soap:fault name="wsntw:NotifyMessageNotSupportedFault"  use="literal"/>
+         </wsdl:fault> 
+         <wsdl:fault  name="SubscribeCreationFailedFault" >
+           <soap:fault name="wsntw:SubscribeCreationFailedFault"  use="literal"/>
+         </wsdl:fault> 
+    </wsdl:operation>
+    <wsdl:operation name="GetCurrentMessage">
+			<soap:operation soapAction="http://docs.oasis-open.org/wsn/bw-2/GetCurrentMessage"/>
+      <wsdl:input>
+        <soap:body parts="GetCurrentMessageRequest" use="literal"/>
+			</wsdl:input>         
+      <wsdl:output>
+			  <soap:body parts="GetCurrentMessageResponse" use="literal"/>
+			</wsdl:output>
+    </wsdl:operation>
+  	<!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+	</wsdl:binding>
+	<!--===============================-->
+  <wsdl:binding name="SubscriptionManagerBinding" type="wsntw:SubscriptionManager">
+		<soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+   	<!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+    <wsdl:operation name="Renew">
+			<soap:operation soapAction="http://docs.oasis-open.org/wsn/bw-2/Renew"/>
+      <wsdl:input>
+        <soap:body parts="RenewRequest" use="literal"/>
+			</wsdl:input>         
+      <wsdl:output>
+			  <soap:body parts="RenewResponse" use="literal"/>
+			</wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="Unsubscribe">
+			<soap:operation soapAction="http://docs.oasis-open.org/wsn/bw-2/Unsubscribe"/>
+      <wsdl:input>
+        <soap:body parts="UnsubscribeRequest" use="literal"/>
+			</wsdl:input>         
+      <wsdl:output>
+			  <soap:body parts="UnsubscribeResponse" use="literal"/>
+			</wsdl:output>
+    </wsdl:operation>
+   	<!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+   </wsdl:binding> 
+	<!--===============================-->
+<!-- wsdl2perl.pl does not like operations w/o output 
+  <wsdl:binding name="NotificationConsumerBinding" type="wsntw:NotificationConsumer">
+		<soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="Notify">
+			<soap:operation soapAction="http://docs.oasis-open.org/wsn/bw-2/NotificationConsumer/Notify"/>
+      <wsdl:input>
+        <soap:body parts="parameters" use="literal"/>
+			</wsdl:input>         
+   </wsdl:operation>
+  </wsdl:binding>
+-->
+	<!--===============================-->
+   <wsdl:service name="WSBaseNotificationSender">
+    <wsdl:port name="NotificationProducerPort" binding="local:NotificationProducerBinding" >
+      <soap:address
+        location="http://docs.oasis-open.org/wsn/bw-2" />
+    </wsdl:port>
+    <wsdl:port name="SubscriptionManagerPort" binding="local:SubscriptionManagerBinding" >
+      <soap:address
+        location="http://docs.oasis-open.org/wsn/bw-2" />
+    </wsdl:port>
+  </wsdl:service>
+	<!--===============================-->
+<!-- wsdl2perl.pl does not like operations w/o output 
+   <wsdl:service name="WSBaseNotificationReceiver">
+    <wsdl:port name="NotificationConsumerPort" binding="local:NotificationConsumerBinding" >
+      <soap:address
+        location="http://docs.oasis-open.org/wsn/bw-2" />
+    </wsdl:port>
+  </wsdl:service>
+-->
+	<!--===============================-->
+</wsdl:definitions>

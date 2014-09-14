@@ -26,6 +26,7 @@ if ( !canView( 'Monitors' ) )
 
 $tabs = array();
 $tabs["general"] = $SLANG['General'];
+$tabs["config"] = $SLANG['MetaConfig'];
 $tabs["source"] = $SLANG['Source'];
 $tabs["timestamp"] = $SLANG['Timestamp'];
 $tabs["buffers"] = $SLANG['Buffers'];
@@ -40,11 +41,14 @@ if ( isset($_REQUEST['tab']) )
 else
     $tab = "general";
 
-if ( ! empty($_REQUEST['mid']) ) {
+if ( !empty($_REQUEST['mid']) )
+{
     $monitor = dbFetchMonitor( $_REQUEST['mid'] );
     if ( ZM_OPT_X10 )
-        $x10Monitor = dbFetchOne( 'SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['mid']) );
-} else {
+        $x10Monitor = dbFetchOne( 'SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array( $_REQUEST['mid']) );
+}
+else
+{
     $nextId = getTableAutoInc( 'Monitors' );
     $monitor = array(
         'Id' => 0,
@@ -104,8 +108,9 @@ if ( ! empty($_REQUEST['mid']) ) {
         'SignalCheckColour' => '#0000c0',
         'WebColour' => 'red',
         'Triggers' => "",
-		'V4LMultiBuffer'	=>	'',
-		'V4LCapturesPerFrame'	=>	1,
+        'ConfigType' => "None",
+        'ConfigURL' => "",
+        'ConfigOptions' => "",
     );
 }
 
@@ -142,8 +147,7 @@ if ( $newMonitor['MaxFPS'] == '0.00' )
 if ( $newMonitor['AlarmMaxFPS'] == '0.00' )
     $newMonitor['AlarmMaxFPS'] = '';
 
-if ( !empty($_REQUEST['preset']) )
-{
+if ( !empty($_REQUEST['preset']) ) {
     $preset = dbFetchOne( 'SELECT Type, Device, Channel, Format, Protocol, Method, Host, Port, Path, Width, Height, Palette, MaxFPS, Controllable, ControlId, ControlDevice, ControlAddress, DefaultRate, DefaultScale FROM MonitorPresets WHERE Id = ?', NULL, array($_REQUEST['preset']) );
     foreach ( $preset as $name=>$value )
     {
@@ -214,6 +218,12 @@ if ( !ZM_PCRE )
     unset($httpMethods['regexp']);
 // Currently unsupported
 unset($httpMethods['jpegTags']);
+
+$configTypes = array(
+    'None'  => $SLANG['None'],
+    'ONVIF' => 'ONVIF',
+    'PSIA'  => 'PSIA',
+);
 
 if ( ZM_HAS_V4L1 )
 {
@@ -485,6 +495,16 @@ if ( $tab != 'general' )
         }
     }
 }
+if ( $tab != 'config' )
+{
+?>
+        <input type="hidden" name="newMonitor[ConfigType]" value="<?= validHtmlStr($newMonitor['ConfigType']) ?>"/>
+        <input type="hidden" name="newMonitor[ConfigURL]" value="<?= validHtmlStr($newMonitor['ConfigURL']) ?>"/>
+        <input type="hidden" name="newMonitor[User]" value="<?= validHtmlStr($newMonitor['User']) ?>"/>
+        <input type="hidden" name="newMonitor[Pass]" value="<?= validHtmlStr($newMonitor['Pass']) ?>"/>
+        <input type="hidden" name="newMonitor[ConfigOptions]" value="<?= validHtmlStr($newMonitor['ConfigOptions']) ?>"/>
+<?php
+}
 if ( ZM_HAS_V4L && ($tab != 'source' || $newMonitor['Type'] != 'Local') )
 {
 ?>
@@ -492,8 +512,6 @@ if ( ZM_HAS_V4L && ($tab != 'source' || $newMonitor['Type'] != 'Local') )
     <input type="hidden" name="newMonitor[Channel]" value="<?= validHtmlStr($newMonitor['Channel']) ?>"/>
     <input type="hidden" name="newMonitor[Format]" value="<?= validHtmlStr($newMonitor['Format']) ?>"/>
     <input type="hidden" name="newMonitor[Palette]" value="<?= validHtmlStr($newMonitor['Palette']) ?>"/>
-    <input type="hidden" name="newMonitor[V4LMultiBuffer]" value="<?= validHtmlStr($newMonitor['V4LMultiBuffer']) ?>"/>
-    <input type="hidden" name="newMonitor[V4LCapturesPerFrame]" value="<?= validHtmlStr($newMonitor['V4LCapturesPerFrame']) ?>"/>
 <?php
 }
 if ( $tab != 'source' || $newMonitor['Type'] != 'Remote' )
@@ -611,7 +629,7 @@ switch ( $tab )
         foreach ( getEnumValues( 'Monitors', 'Function' ) as $optFunction )
         {
 ?>
-              <option value="<?= $optFunction ?>"<?php if ( $optFunction == $newMonitor['Function'] ) { ?> selected="selected"<?php } ?>><?= $optFunction ?></option>
+              <option value="<?= $optFunction ?>"<?php if ( $optFunction == $newMonitor['Function'] ) { ?> selected="selected"<?php } ?>><?= $SLANG['Fn'.$optFunction] ?></option>
 <?php
         }
 ?>
@@ -684,6 +702,17 @@ switch ( $tab )
 <?php
         break;
     }
+    case 'config' :
+    {
+?>
+            <tr><td><?= $SLANG['ConfigType'] ?></td><td><?= buildSelect( "newMonitor[ConfigType]", $configTypes, "submitTab( '$tab' )" ); ?></td></tr>
+            <tr><td><?= $SLANG['ConfigURL'] ?></td><td><input type="text" name="newMonitor[ConfigURL]" value="<?= validHtmlStr($newMonitor['ConfigURL']) ?>" size="24"/></td></tr>
+            <tr><td><?= "Username" ?></td><td><input type="text" name="newMonitor[User]" value="<?= validHtmlStr($newMonitor['User']) ?>" size="12"/></td></tr>
+            <tr><td><?= "Password" ?></td><td><input type="text" name="newMonitor[Pass]" value="<?= validHtmlStr($newMonitor['Pass']) ?>" size="12"/></td></tr>
+            <tr><td><?= $SLANG['ConfigOptions'] ?></td><td><input type="text" name="newMonitor[ConfigOptions]" value="<?= validHtmlStr($newMonitor['ConfigOptions']) ?>" size="24"/></td></tr>
+<?php
+        break;
+    }
     case 'source' :
     {
         if ( ZM_HAS_V4L && $newMonitor['Type'] == "Local" )
@@ -708,17 +737,6 @@ switch ( $tab )
             <tr><td><?= $SLANG['CapturePalette'] ?></td><td><select name="newMonitor[Palette]"><?php foreach ( $v4l2LocalPalettes as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['Palette'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
 <?php
             }
-?>
-			<tr><td><?= $SLANG['V4LMultiBuffer'] ?></td><td>
-				<input type="radio" name="newMonitor[V4LMultiBuffer]" id="newMonitor[V4LMultiBuffer]1" value="1" <?php echo ( $newMonitor['V4LMultiBuffer'] == 1 ? 'checked="checked"' : '' ) ?>/>
-				<label for="newMonitor[V4LMultiBuffer]1">Yes</label>
-				<input type="radio" name="newMonitor[V4LMultiBuffer]" id="newMonitor[V4LMultiBuffer]0" value="0" <?php echo ( $newMonitor['V4LMultiBuffer'] == 0 ? 'checked="checked"' : '' ) ?>/>
-				<label for="newMonitor[V4LMultiBuffer]0">No</label>
-				<input type="radio" name="newMonitor[V4LMultiBuffer]" id="newMonitor[V4LMultiBuffer]" value="" <?php echo ( empty($newMonitor['V4LMultiBuffer']) ? 'checked="checked"' : '' ) ?>/>
-				<label for="newMonitor[V4LMultiBuffer]">Use Config Value</label>
-			</td></tr>
-			<tr><td><?= $SLANG['V4LCapturesPerFrame'] ?></td><td><input type="number" name="newMonitor[V4LCapturesPerFrame]" value="<?php echo $newMonitor['V4LCapturesPerFrame'] ?>"/></td></tr>
-<?php
         }
         elseif ( $newMonitor['Type'] == "Remote" )
         {

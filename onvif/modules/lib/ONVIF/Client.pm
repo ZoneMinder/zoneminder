@@ -44,6 +44,10 @@ require ONVIF::Deserializer::XSD;
 require ONVIF::Device::Interfaces::Device::DevicePort;
 require ONVIF::Media::Interfaces::Media::MediaPort;
 require ONVIF::PTZ::Interfaces::PTZ::PTZPort;
+require ONVIF::Analytics::Interfaces::Analytics::AnalyticsEnginePort;
+require ONVIF::Analytics::Interfaces::Analytics::RuleEnginePort;
+
+require WSNotification::Interfaces::WSBaseNotificationSender::NotificationProducerPort;
 
 use Data::Dump qw(dump);
 
@@ -251,6 +255,25 @@ sub create_services
   if(defined $self->service('ptz', 'url'))  {
     $self->set_service('ptz', 'ep', ONVIF::PTZ::Interfaces::PTZ::PTZPort->new({
       proxy => $self->service('ptz', 'url'),
+      serializer => $self->serializer(),
+#      transport => $transport
+    }));
+  }
+  if(defined $self->service('events', 'url'))  {
+    $self->set_service('events', 'ep', WSNotification::Interfaces::WSBaseNotificationSender::NotificationProducerPort->new({
+      proxy => $self->service('events', 'url'),
+      serializer => $self->serializer(),
+#      transport => $transport
+    }));
+  }
+  if(defined $self->service('analytics', 'url'))  {
+    $self->set_service('analytics', 'ep', ONVIF::Analytics::Interfaces::Analytics::AnalyticsEnginePort->new({
+      proxy => $self->service('analytics', 'url'),
+      serializer => $self->serializer(),
+#      transport => $transport
+    }));
+    $self->set_service('rules', 'ep', ONVIF::Analytics::Interfaces::Analytics::RuleEnginePort->new({
+      proxy => $self->service('analytics', 'url'),
       serializer => $self->serializer(),
 #      transport => $transport
     }));

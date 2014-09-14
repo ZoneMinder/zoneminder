@@ -3,18 +3,33 @@ use strict;
 use warnings;
 
 use base qw(SOAP::WSDL::Deserializer::XSD);
+use Data::Dump qw(dump);
 
 use SOAP::WSDL::SOAP::Typelib::Fault11;
 use ONVIF::Deserializer::MessageParser;
 
 use SOAP::WSDL::Factory::Deserializer;
 
+### support for SOAP::Lite #####
+
+=comment
+use overload '%{}' => \&myhash;
+
+my %context_of;
+
+sub myhash {
+  my ($self, $other, $swap) = @_;
+  return { '_context' => $context_of{ident $self} };
+}
+=cut
+
+################################
+
 SOAP::WSDL::Factory::Deserializer->register('1.1', __PACKAGE__ );
 SOAP::WSDL::Factory::Deserializer->register('1.2', __PACKAGE__ );
 
 ## we get the soap version from the message parser
 my %soap_version_of :ATTR( :default<()>);
-
 
 sub soap_version {
   my ($self) = @_;
@@ -34,6 +49,8 @@ sub deserialize {
       });
       $SOAP::WSDL::Deserializer::XSD::parser_of{ ${ $self } } = $parser;
     }
+
+#print "Deserializing:\n";  dump($content);
 
     $parser->class_resolver( 
         $self->SOAP::WSDL::Deserializer::XSD::get_class_resolver() );

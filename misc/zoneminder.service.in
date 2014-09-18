@@ -12,6 +12,7 @@ Type=forking
 ExecStart=@BINDIR@/zmpkg.pl start
 ExecReload=@BINDIR@/zmpkg.pl restart
 ExecStop=/bin/bash -c '[[ "$(@BINDIR@/pgrep zmdc.pl)" > 0 ]] && @BINDIR@/zmpkg.pl stop'
+PIDFile="@ZM_RUNDIR@/zm.pid"
 
 [Install]
 WantedBy=multi-user.target

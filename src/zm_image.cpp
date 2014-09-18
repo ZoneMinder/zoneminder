@@ -2088,10 +2088,10 @@ void Image::Outline( Rgb colour, const Polygon &polygon )
 
 		double grad;
 
-		Debug( 9, "dx: %.2lf, dy: %.2lf", dx, dy );
+		//Debug( 9, "dx: %.2lf, dy: %.2lf", dx, dy );
 		if ( fabs(dx) <= fabs(dy) )
 		{
-			Debug( 9, "dx <= dy" );
+			//Debug( 9, "dx <= dy" );
 			if ( y1 != y2 )
 				grad = dx/dy;
 			else
@@ -2102,10 +2102,10 @@ void Image::Outline( Rgb colour, const Polygon &polygon )
 			grad *= yinc;
 			if ( colours == ZM_COLOUR_GRAY8 )
 			{
-				Debug( 9, "x1:%d, x2:%d, y1:%d, y2:%d, gr:%.2f", x1, x2, y1, y2, grad );
+				//Debug( 9, "x1:%d, x2:%d, y1:%d, y2:%d, gr:%.2f", x1, x2, y1, y2, grad );
 				for ( x = x1, y = y1; y != y2; y += yinc, x += grad )
 				{
-					Debug( 9, "x:%.2f, y:%d", x, y );
+					//Debug( 9, "x:%.2f, y:%d", x, y );
 					buffer[(y*width)+int(round(x))] = colour;
 				}
 			}
@@ -2129,22 +2129,22 @@ void Image::Outline( Rgb colour, const Polygon &polygon )
 		}
 		else
 		{
-			Debug( 9, "dx > dy" );
+			//Debug( 9, "dx > dy" );
 			if ( x1 != x2 )
 				grad = dy/dx;
 			else
 				grad = height;
-			Debug( 9, "grad: %.2lf", grad );
+			//Debug( 9, "grad: %.2lf", grad );
 
 			double y;
 			int x, xinc = (x1<x2)?1:-1;
 			grad *= xinc;
 			if ( colours == ZM_COLOUR_GRAY8 )
 			{
-				Debug( 9, "x1:%d, x2:%d, y1:%d, y2:%d, gr:%.2lf", x1, x2, y1, y2, grad );
+				//Debug( 9, "x1:%d, x2:%d, y1:%d, y2:%d, gr:%.2lf", x1, x2, y1, y2, grad );
 				for ( y = y1, x = x1; x != x2; x += xinc, y += grad )
 				{
-					Debug( 9, "x:%d, y:%.2f", x, y );
+					//Debug( 9, "x:%d, y:%.2f", x, y );
 					buffer[(int(round(y))*width)+x] = colour;
 				}
 			}
@@ -2194,7 +2194,7 @@ void Image::Fill( Rgb colour, int density, const Polygon &polygon )
 		int y1 = p1.Y();
 		int y2 = p2.Y();
 
-		Debug( 9, "x1:%d,y1:%d x2:%d,y2:%d", x1, y1, x2, y2 );
+		//Debug( 9, "x1:%d,y1:%d x2:%d,y2:%d", x1, y1, x2, y2 );
 		if ( y1 == y2 )
 			continue;
 

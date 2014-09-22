@@ -11,61 +11,32 @@ class ConfigParserComponent extends Component {
 		return $string;
 	}
 
-	public function buildString($name, $type) {
-
-	}
-
 	public function parseOptions($configs) {
+			$category = $configs[0]['Config']['Category'];
 			$string = "";
+
 			foreach ($configs as $option) {
 
 				$type = $option['Config']['Type'];
 				$name = $option['Config']['Name'];
 				$value = $option['Config']['Value'];
 				$hint = $option['Config']['Hint'];
+				$id = $option['Config']['Id'];
 
 				switch ($type) {
 					case "boolean":
 						$string .= <<<EOD
-<div class="checkbox">
-	<label>
-		<input type="checkbox" id="$name" value="$value">
-		$name
-	</label>
-</div>
-EOD;
-						break;
-					case "integer":
-						$string .= <<<EOD
 <div class="form-group">
-	<label for="$name">$name</label>
-	<input type="number" class="form-control" id="$name" value="$value">
+	<label for="$name" class="control-label col-sm-4">$name</label>
+	<div class="col-md-6"> <input id="$name" type="checkbox" ng-model="myModel.configData['$name']" ng-true-value="1" ng-false-value="0" ng-change="updateConfig('$id', '$name')"><span class="form-control-feedback"></span></div>
 </div>
 EOD;
 						break;
 					case "text":
-						$string .= $this->buildString($name, 'textbox');
 						$string .= <<<EOD
 <div class="form-group">
-	<label for="$name">$name</label>
-	<textarea class="form-control" rows="3">$value</textarea>
-</div>
-EOD;
-						break;
-					case "hexadecimal":
-						$string .= <<<EOD
-<div class="form-group">
-	<label for="$name">$name</label>
-	<input type="text" class="form-control" id="$name" value="$value">
-</div>
-EOD;
-
-						break;
-					case "decimal":
-						$string .= <<<EOD
-<div class="form-group">
-	<label for="$name">$name</label>
-	<input type="number" class="form-control" id="$name" value="$value">
+	<label for="$name" class="control-label col-sm-4">$name</label>
+	<div class="col-md-6"><textarea ng-change="updateConfig('$id', '$name')" class="form-control" rows="3">$value</textarea><span class="form-control-feedback"></span></div>
 </div>
 EOD;
 						break;
@@ -73,29 +44,40 @@ EOD;
 						if (strpos($hint, '|') === FALSE) {
 							$string .= <<<EOD
 <div class="form-group">
-	<label for="$name">$name</label>
-	<input type="number" class="form-control" id="$name" value="$value">
+	<label for="$name" class="control-label col-sm-4">$name</label>
+	<div class="col-md-6"><input id="$name" type="text" ng-change="updateConfig('$id', '$name')" class="form-control" ng-model="myModel.configData['$name']"><span class="form-control-feedback"></span></div>
 </div>
 EOD;
 						} else {
 							$string .= <<<EOD
 <div class="form-group">
-	<label for="$name">$name</label>
-	<select id="$name" class="form-control">
+	<label for="$name" class="control-label col-sm-4">$name</label>
+	<div class="col-md-6"><select id="$name" ng-change="updateConfig('$id', '$name')" class="form-control" ng-model="myModel.configData['$name']">
 
 EOD;
 							$string .= $this->parseHints($hint);
 							$string .= <<<EOD
 	</select>
+<span class="form-control-feedback"></span>
+	</div>
 </div>
 EOD;
 						}
 						break;
+					default:
+						$string .= <<<EOD
+<div class="form-group">
+	<label for="$name" class="control-label col-sm-4">$name</label>
+	<div class="col-md-6"><input id="$name" type="text" ng-change="updateConfig('$id', '$name')" class="form-control" ng-model="myModel.configData['$name']"><span class="form-control-feedback"></span></div>
+</div>
+EOD;
 				}
 				$string .= "\n";
 			}
-
+		file_put_contents("/tmp/html/$category.html", $string);
 		return $string;
 	}
+
+
 }
 ?>

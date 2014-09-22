@@ -118,6 +118,7 @@ class ConfigsController extends AppController {
 		} else {
 			$categories = $this->Config->find('all', array(
 				'fields' => array('DISTINCT Config.Category'),
+				'conditions' => array('Config.Category !=' => 'hidden'),
 				'recursive' => 0
 			));
 			$this->set(array(

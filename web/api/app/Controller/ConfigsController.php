@@ -124,4 +124,14 @@ class ConfigsController extends AppController {
 		}
 		
 	}
+
+	public function keyValue() {
+		$keyValues = $this->Config->find('list', array(
+			'fields' => array('Config.Name', 'Config.Value')
+		));
+		$this->set(array(
+			'keyValues' => $keyValues,
+			'_serialize' => array('keyValues')
+		));
+	}
 }

@@ -1,66 +1,11 @@
-<div class="col-md-12" ng-controller="ConfigController">
-	<ul class="nav nav-tabs" role="tablist">
-		<li ng-repeat="category in categories">
-			<button type="button" class="btn btn-link" role="tab" ng-href="#{{ category.Config.Category }}" data-toggle="tab">
-				{{ category.Config.Category | uppercase }}
-			</button>
-		</li>
-	</ul>
+<div class="container" ng-controller="ConfigController">
 
-	<form>
+	<tabset vertical="true">
 
-		<div class="tab-content">
-			<div class="tab-pane" id="images">
-				<div ng-bind-html="images"></div>
-			</div>
-			<div class="tab-pane" id="system">
-				<div ng-bind-html="system"></div>
-			</div>
-			<div class="tab-pane" id="config">
-				<div ng-bind-html="config"></div>
-			</div>
-			<div class="tab-pane" id="paths">
-				<div ng-bind-html="paths"></div>
-			</div>
-			<div class="tab-pane" id="logging">
-				<div ng-bind-html="logging"></div>
-			</div>
-			<div class="tab-pane" id="dynamic">
-				<div ng-bind-html="dynamic"></div>
-			</div>
-			<div class="tab-pane" id="mail">
-				<div ng-bind-html="mail"></div>
-			</div>
-			<div class="tab-pane" id="eyeZm">
-				<div ng-bind-html="eyeZm"></div>
-			</div>
-			<div class="tab-pane" id="network">
-				<div ng-bind-html="network"></div>
-			</div>
-			<div class="tab-pane" id="upload">
-				<div ng-bind-html="upload"></div>
-			</div>
-			<div class="tab-pane" id="x10">
-				<div ng-bind-html="x10"></div>
-			</div>
-			<div class="tab-pane" id="web">
-				<div ng-bind-html="web"></div>
-			</div>
-			<div class="tab-pane" id="highband">
-				<div ng-bind-html="highband"></div>
-			</div>
-			<div class="tab-pane" id="lowband">
-				<div ng-bind-html="lowband"></div>
-			</div>
-			<div class="tab-pane" id="medband">
-				<div ng-bind-html="medban"></div>
-			</div>
-			<div class="tab-pane" id="phoneband">
-				<div ng-bind-html="phoneband"></div>
-			</div>
+		<tab ng-repeat="category in categories" heading="{{ category.Config.Category }}" >
+			<div angular-html-bind="{{ category.Config.Category }}"></div>
+		</tab>
 
+	</tabset>
 
-			<button type="button" class="btn btn-default">Update Config</button>
-		</div>
-	</form>
-</div>
+</div> <!-- End ConfigController -->

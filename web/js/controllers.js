@@ -18,29 +18,46 @@ function HeaderController($scope) {
 
 }
 
-function ConfigController($scope, $http, $sce, Config) {
+function ConfigController($scope, $http, Config) {
 
-	Config.getCategories(function(results) {
+  Config.setConfigModel().then(function(results) {
+    $scope.myModel = {configData: results.data.keyValues};
+  }); 
+
+	Config.getCategories().then(function(results) {
 		// List of category names for the tabs
-		$scope.categories = results['categories'];
+		$scope.categories = results.data.categories;
 
 		// For each category, add all config options belonging to it to the categories array
-		for (var key in results['categories']) {
-			var category = results['categories'][key]['Config']['Category'];
-			buildCats(category);
+		for (var key in results.data.categories) {
+			var category = results.data.categories[key].Config.Category;
+
+			catman(category);
 		}
+
 	});
 
-	// Get config options belonging to a given category and push them into categories array
-	function buildCats(cat) {
-		Config.getCategory(cat, function(results) {
-			$scope[cat] = $sce.trustAsHtml(results['config']);
+	function catman(category) {
+			Config.getCategory(category).then(function(results) {
+				$scope[category] = results.data.config;
+			});
+	}
+
+	$scope.updateConfig = function(configId, configName) {
+		var newValue = $scope.myModel.configData[configName];
+		var i = document.getElementById(configName).parentNode.parentNode;
+		var s = i.getElementsByTagName("span");
+		s = s[0];
+
+		Config.updateOption(configId, newValue).then(function(results) {
+			if (results.statusText == 'OK') {
+				i.className = i.className + " has-success has-feedback";
+				s.className = s.className + " glyphicon glyphicon-ok";
+			} else {
+				i.className = i.className + " has-failure has-feedback";
+				s.className = s.className + " glyphicon glyphicon-ok";
+			}
 		});
 	}
-	
 
-
-	$http.get('/api/configs.json').success(function(data, status, headers, config) {
-		$scope.config = data['configs'];
-	});
 }

@@ -1,6 +1,7 @@
 var ZoneMinder = angular.module('ZoneMinder', [
 	'ngRoute',
-	'ZoneMinderControllers'
+	'ZoneMinderControllers',
+	'ui.bootstrap'
 ]);
 
 ZoneMinder.config(['$routeProvider',
@@ -36,11 +37,29 @@ ZoneMinder.factory('Monitors', function ($http) {
 
 ZoneMinder.factory('Config', function($http) {
 	return {
-		getCategories: function(callback) {
-			$http.get('/api/configs/categories.json').success(callback);
+		getCategories: function() {
+			return $http.get('/api/configs/categories.json');
 		},
-		getCategory: function(category, callback) {
-			$http.get('/api/configs/categories/' + category + '.json').success(callback);
+		getCategory: function(category) {
+			return $http.get('/api/configs/categories/' + category + '.json')
+		},
+    setConfigModel: function() {
+			return $http.get('/api/configs/keyValue.json')
+    },
+		updateOption: function(configId, newValue) {
+			var putData = "Config[Value]=" + newValue;
+			//var postData = {Config[Value]: configValue};
+
+
+			return $http({
+				method: 'POST',
+				url: '/api/configs/' + configId + '.json',
+				data: putData,
+				headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+			});
+
+
+			//return $http.post ('/api/configs/' + configId + '.json', postData)
 		}
 	};
 });

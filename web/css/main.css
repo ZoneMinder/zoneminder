@@ -21,3 +21,34 @@
 	margin-bottom:25px;
 }
 
+body {
+	background: none repeat scroll 0% 0% #4E5969;
+}
+
+.nav-tabs {
+//	background-image: linear-gradient(to right, transparent 50%, rgba(0, 0, 0, 0.3) 100%);
+	background-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.3) 100%);
+	padding-right: 0;
+	padding-top: 15px;
+	text-align: right;
+	border: none;
+}
+
+.nav-tabs .active {
+	background: none repeat scroll 0% 0% #4E5969;
+}
+
+.nav-tabs a {
+	color: #FFF;
+}
+
+.nav-tabs li.active a {
+	border: none;
+	color: #FFF;
+	background-color: inherit;
+}
+
+
+label {
+	color: #FFF;
+}

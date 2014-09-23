@@ -74,7 +74,6 @@ EOD;
 				}
 				$string .= "\n";
 			}
-		file_put_contents("/tmp/html/$category.html", $string);
 		return $string;
 	}
 

@@ -11,6 +11,32 @@ class ConfigParserComponent extends Component {
 		return $string;
 	}
 
+	public function getLabel($name) {
+		$width = 'col-md-4';
+
+		$string = '<div class="form-group">';
+		$string .= '<label for="%s" class="control-label %s">%s</label>';
+		$label = sprintf($string, $name, $width, $name);
+		$label .= '<div class="col-md-6">';
+
+		return $label;
+	}
+
+	public function getInput($name, $type, $id)  {
+		if ($type == 'checkbox') {
+			$string = '<input id="%s" type="checkbox" ng-change="updateConfig(\'%s\', \'%s\')" ng-model="myModel.configData[\'%s\']" ng-true-value="1" ng-false-value="0"><span class="form-control-feedback"></span></div>';
+		} elseif ($type == 'text') {
+			$string = '<input id="%s" type="text" ng-change="updateConfig(\'%s\', \'%s\')" ng-model="myModel.configData[\'%s\']" class="form-control"><span class="form-control-feedback"></span></div>';
+		} elseif ($type == 'textarea') {
+			$string = '<textarea id="%s" ng-change="updateConfig(\'%s\', \'%s\')" class="form-control" rows="3" ng-model="myModel.configData[\'%s\']"></textarea><span class="form-control-feedback"></span></div>';
+		} elseif ($type == 'select') {
+			$string = '<select id="%s" ng-change="updateConfig(\'%s\', \'%s\')" class="form-control" ng-model="myModel.configData[\'%s\']">';
+		}
+
+		$input = sprintf($string, $name, $id, $name, $name);
+		return $input;
+	}
+
 	public function parseOptions($configs) {
 			$category = $configs[0]['Config']['Category'];
 			$string = "";
@@ -23,56 +49,28 @@ class ConfigParserComponent extends Component {
 				$hint = $option['Config']['Hint'];
 				$id = $option['Config']['Id'];
 
+				$string .= $this->getLabel($name);
+
 				switch ($type) {
 					case "boolean":
-						$string .= <<<EOD
-<div class="form-group">
-	<label for="$name" class="control-label col-sm-4">$name</label>
-	<div class="col-md-6"> <input id="$name" type="checkbox" ng-model="myModel.configData['$name']" ng-true-value="1" ng-false-value="0" ng-change="updateConfig('$id', '$name')"><span class="form-control-feedback"></span></div>
-</div>
-EOD;
+						$string .= $this->getInput($name, 'checkbox', $id);
 						break;
 					case "text":
-						$string .= <<<EOD
-<div class="form-group">
-	<label for="$name" class="control-label col-sm-4">$name</label>
-	<div class="col-md-6"><textarea ng-change="updateConfig('$id', '$name')" class="form-control" rows="3">$value</textarea><span class="form-control-feedback"></span></div>
-</div>
-EOD;
+						$string .= $this->getInput($name, 'textarea', $id);
 						break;
 					case "string":
 						if (strpos($hint, '|') === FALSE) {
-							$string .= <<<EOD
-<div class="form-group">
-	<label for="$name" class="control-label col-sm-4">$name</label>
-	<div class="col-md-6"><input id="$name" type="text" ng-change="updateConfig('$id', '$name')" class="form-control" ng-model="myModel.configData['$name']"><span class="form-control-feedback"></span></div>
-</div>
-EOD;
+							$string .= $this->getInput($name, 'text', $id);
 						} else {
-							$string .= <<<EOD
-<div class="form-group">
-	<label for="$name" class="control-label col-sm-4">$name</label>
-	<div class="col-md-6"><select id="$name" ng-change="updateConfig('$id', '$name')" class="form-control" ng-model="myModel.configData['$name']">
-
-EOD;
+							$string .= $this->getInput($name, 'select', $id);
 							$string .= $this->parseHints($hint);
-							$string .= <<<EOD
-	</select>
-<span class="form-control-feedback"></span>
-	</div>
-</div>
-EOD;
+							$string .= '</select> <span class="form-control-feedback"></span> </div>';
 						}
 						break;
 					default:
-						$string .= <<<EOD
-<div class="form-group">
-	<label for="$name" class="control-label col-sm-4">$name</label>
-	<div class="col-md-6"><input id="$name" type="text" ng-change="updateConfig('$id', '$name')" class="form-control" ng-model="myModel.configData['$name']"><span class="form-control-feedback"></span></div>
-</div>
-EOD;
+						$string .= $this->getInput($name, 'text', $id);
 				}
-				$string .= "\n";
+				$string .= "</div><!-- End .form-group -->\n";
 			}
 		return $string;
 	}

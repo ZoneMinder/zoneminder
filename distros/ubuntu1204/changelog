@@ -1,9 +1,40 @@
-zoneminder (1.27.99+1-trusty-SNAPSHOT2014072901) trusty; urgency=medium
+zoneminder (1.27.99+1-trusty-SNAPSHOT2014092601) trusty; urgency=medium
+
+  * style updates and db fixes for database logging filters
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Fri, 26 Sep 2014 14:44:45 -0400
+
+zoneminder (1.27.99+1-trusty-SNAPSHOT2014090801) trusty; urgency=medium
+
+  * several segfault fixes for local cameras
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Mon, 08 Sep 2014 16:56:57 -0400
+
+zoneminder (1.27.99+1-trusty-SNAPSHOT2014090701) trusty; urgency=medium
+
+  * Fix segfaults for local cameras, also now includes the systemd support patch
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Sun, 07 Sep 2014 17:19:01 -0400
+
+zoneminder (1.27.99+1-trusty-SNAPSHOT2014082102) trusty; urgency=medium
+
+  * Fix UI inputs for v4l multibuffer and captures per frame
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Thu, 21 Aug 2014 12:03:31 -0400
+
+zoneminder (1.27.99+1-trusty-SNAPSHOT2014082101) trusty; urgency=medium
+
+  * fall back to Config table values for V4l MultiBUffer and Captures Per Frame
+  * add mention of monitor page settings for thse in the config table
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Thu, 21 Aug 2014 10:04:46 -0400
+
+zoneminder (1.27.99+1-precise-SNAPSHOT2014080601) precise; urgency=medium
 
   * improve error messages
   * Make zmupdate re-run the most recent patch so that people running the daily builds get their db updates
 
- -- Isaac Connor <iconnor@connortechnology.com>  Tue, 29 Jul 2014 14:50:20 -0400
+ -- Isaac Connor <iconnor@connortechnology.com>  Wed, 06 Aug 2014 20:20:20 -0400
 
 zoneminder (1.27.0+1-trusty-v4ltomonitor-1) trusty; urgency=high
 

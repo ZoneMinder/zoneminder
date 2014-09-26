@@ -98,8 +98,7 @@ function dbEscape( $string )
             return( $dbConn->quote( $string ) );
 }
 
-function dbQuery( $sql, $params=NULL )
-{
+function dbQuery( $sql, $params=NULL ) {
     global $dbConn;
     if ( dbLog( $sql, true ) )
         return;

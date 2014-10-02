@@ -3,6 +3,7 @@
 # ZoneMinder Foscam FI8908W / FI8918W IP Control Protocol Module, $Date$, $Revision$
 # Copyright (C) 2001-2008 Philip Coombes
 # Modified for use with Foscam FI8908W IP Camera by Dave Harris
+# Modified to add preset, autostop, and IR on/off support by Daniel Rich
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -141,6 +142,7 @@ sub moveConUp
 	my $self = shift;
 	Debug( "Move Up" );
 	$self->sendCmd( 'decoder_control.cgi?command=0&' );
+	$self->autoStop( $self->{Monitor}->{AutoStopTimeout} );
 }
 
 #Down Arrow
@@ -149,6 +151,7 @@ sub moveConDown
 	my $self = shift;
 	Debug( "Move Down" );
 	$self->sendCmd( 'decoder_control.cgi?command=2&' );
+	$self->autoStop( $self->{Monitor}->{AutoStopTimeout} );
 }
 
 #Left Arrow
@@ -157,6 +160,7 @@ sub moveConLeft
 	my $self = shift;
 	Debug( "Move Left" );
 	$self->sendCmd( 'decoder_control.cgi?command=6&' );
+	$self->autoStop( $self->{Monitor}->{AutoStopTimeout} );
 }
 
 #Right Arrow
@@ -165,6 +169,7 @@ sub moveConRight
 	my $self = shift;
 	Debug( "Move Right" );
 	$self->sendCmd( 'decoder_control.cgi?command=4&' );
+	$self->autoStop( $self->{Monitor}->{AutoStopTimeout} );
 }
 
 #Diagonally Up Right Arrow
@@ -173,6 +178,7 @@ sub moveConUpRight
 	my $self = shift;
 	Debug( "Move Diagonally Up Right" );
 	$self->sendCmd( 'decoder_control.cgi?command=90&' );
+	$self->autoStop( $self->{Monitor}->{AutoStopTimeout} );
 }
 
 #Diagonally Down Right Arrow
@@ -181,6 +187,7 @@ sub moveConDownRight
 	my $self = shift;
 	Debug( "Move Diagonally Down Right" );
 	$self->sendCmd( 'decoder_control.cgi?command=92&' );
+	$self->autoStop( $self->{Monitor}->{AutoStopTimeout} );
 }
 
 #Diagonally Up Left Arrow
@@ -189,6 +196,7 @@ sub moveConUpLeft
 	my $self = shift;
 	Debug( "Move Diagonally Up Left" );
 	$self->sendCmd( 'decoder_control.cgi?command=91&' );
+	$self->autoStop( $self->{Monitor}->{AutoStopTimeout} );
 }
 
 #Diagonally Down Left Arrow
@@ -197,6 +205,7 @@ sub moveConDownLeft
 	my $self = shift;
 	Debug( "Move Diagonally Down Left" );
 	$self->sendCmd( 'decoder_control.cgi?command=93&' );
+	$self->autoStop( $self->{Monitor}->{AutoStopTimeout} );
 }
 
 #Stop
@@ -206,6 +215,16 @@ sub moveStop
 	Debug( "Move Stop" );
 	$self->sendCmd( 'decoder_control.cgi?command=1&' );
 }
+sub autoStop
+{
+	my $self = shift;
+	my $autostop = shift;
+	Debug( "Auto Stop" );
+	if ( $autostop ) {
+		usleep( $autostop );
+		$self->sendCmd( 'decoder_control.cgi?command=1&' );
+	}
+}
 
 #Move Camera to Home Position
 sub presetHome
@@ -213,6 +232,44 @@ sub presetHome
 	my $self = shift;
 	Debug( "Home Preset" );
 	$self->sendCmd( 'decoder_control.cgi?command=25&' );
+}
+
+#Set preset position
+sub presetSet
+{
+	my $self = shift;
+	my $params = shift;
+	my $preset = $self->getParam( $params, 'preset' );
+	Debug( "Set Preset $preset" );
+	my $cmdnum = 30 + ($preset*2);
+	$self->sendCmd( 'decoder_control.cgi?command=$cmdnum&' );
+}
+
+#Goto preset position
+sub presetGoto
+{
+	my $self = shift;
+	my $params = shift;
+	my $preset = $self->getParam( $params, 'preset' );
+	Debug( "Goto Preset $preset" );
+	my $cmdnum = 31 + ($preset*2);
+	$self->sendCmd( 'decoder_control.cgi?command=$cmdnum&' );
+}
+
+#Turn IR off
+sub sleep
+{
+	my $self = shift;
+	Debug( "IR Off" );
+	$self->sendCmd( 'decoder_control.cgi?command=94&' );
+}
+
+#Turn IR on
+sub wake
+{
+	my $self = shift;
+	Debug( "IR On" );
+	$self->sendCmd( 'decoder_control.cgi?command=95&' );
 }
 
 1;

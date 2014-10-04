@@ -22,7 +22,7 @@ before_install:
 install:
   - git clone --depth=10 --branch=master git://source.ffmpeg.org/ffmpeg.git 
   - cd ffmpeg
-  - git checkout n2.4 
+  - git checkout tags/n2.4 
   - ./configure --enable-shared --enable-swscale --enable-gpl  --enable-libx264 --enable-libvpx --enable-libvorbis --enable-libtheora 
   - make -j `grep processor /proc/cpuinfo|wc -l` 
   - sudo make install 

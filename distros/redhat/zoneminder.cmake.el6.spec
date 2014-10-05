@@ -4,7 +4,7 @@
 %define zmgid_final apache
 
 Name:       zoneminder
-Version:    1.27
+Version:    1.28.0
 Release:    1%{?dist}
 Summary:    A camera monitoring and analysis tool
 Group:      System Environment/Daemons
@@ -17,7 +17,7 @@ URL:        http://www.zoneminder.com/
 #Source0: https://github.com/ZoneMinder/ZoneMinder/archive/v%{version}.tar.gz
 Source0:    ZoneMinder-%{version}.tar.gz
 
-Patch1:    zoneminder-1.26.0-defaults.patch
+Patch1:    zoneminder-1.28.0-defaults.patch
 
 BuildRequires:  cmake gnutls-devel bzip2-devel
 BuildRequires:  mysql-devel pcre-devel libjpeg-turbo-devel
@@ -127,8 +127,6 @@ rm -rf %{_docdir}/%{name}-%{version}
 %{_bindir}/zmdc.pl
 %{_bindir}/zmf
 %{_bindir}/zmfilter.pl
-# zmfix removed from zoneminder 1.26.6
-#%attr(4755,root,root) %{_bindir}/zmfix
 %{_bindir}/zmpkg.pl
 %{_bindir}/zmstreamer
 %{_bindir}/zmtrack.pl
@@ -162,8 +160,10 @@ rm -rf %{_docdir}/%{name}-%{version}
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/log/zoneminder
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/spool/zoneminder-upload
 
-
 %changelog
+* Sun Oct 5 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.28.0 
+- Bump version for 1.28.0 release.
+
 * Fri Mar 14 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.27 
 - Tweak build requirements for cmake
 

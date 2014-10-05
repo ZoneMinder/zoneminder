@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -ev
 
 
 git clone -b n2.4.1 --depth=1 git://source.ffmpeg.org/ffmpeg.git 

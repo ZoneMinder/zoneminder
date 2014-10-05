@@ -165,18 +165,14 @@ if ( $command =~ /^(?:start|restart)$/ )
         }
 
         # Recreate the temporary directory if it's been wiped
-        if ( !-e "@ZM_TMPDIR@" )
-        {
-            Debug( "Recreating temporary directory '@ZM_TMPDIR@'" );
-            mkdir( "@ZM_TMPDIR@", 0700 ) or Fatal( "Can't create missing temporary directory '@ZM_TMPDIR@': $!" );
-            my ( $runName ) = getpwuid( $> );
-            if ( $runName ne $Config{ZM_WEB_USER} )
-            {
-                # Not running as web user, so should be root in whch case chown the temporary directory
-                my ( $webName, $webPass, $webUid, $webGid ) = getpwnam( $Config{ZM_WEB_USER} ) or Fatal( "Can't get user details for web user '".$Config{ZM_WEB_USER}."': $!" );
-                chown( $webUid, $webGid, "@ZM_TMPDIR@" ) or Fatal( "Can't change ownership of temporary directory '@ZM_TMPDIR@' to '".$Config{ZM_WEB_USER}.":".$Config{ZM_WEB_GROUP}."': $!" );
-            }
-        }
+	verifyFolder("@ZM_TMPDIR@");
+
+        # Recreate the run directory if it's been wiped
+	verifyFolder("@ZM_RUNDIR@");
+
+        # Recreate the sock directory if it's been wiped
+	verifyFolder("@ZM_SOCKDIR@");
+
 		zmMemTidy();
 		runCommand( "zmdc.pl startup" );
 
@@ -284,5 +280,24 @@ sub calledBysystem
 	}
 
 	return $result;
+}
+
+sub verifyFolder
+{
+	my $folder = shift;
+
+        # Recreate the temporary directory if it's been wiped
+        if ( !-e $folder )
+        {
+            Debug( "Recreating directory '$folder'" );
+            mkdir( "$folder", 0774 ) or Fatal( "Can't create missing temporary directory '$folder': $!" );
+            my ( $runName ) = getpwuid( $> );
+            if ( $runName ne $Config{ZM_WEB_USER} )
+            {
+                # Not running as web user, so should be root in which case chown the directory
+                my ( $webName, $webPass, $webUid, $webGid ) = getpwnam( $Config{ZM_WEB_USER} ) or Fatal( "Can't get user details for web user '".$Config{ZM_WEB_USER}."': $!" );
+                chown( $webUid, $webGid, "$folder" ) or Fatal( "Can't change ownership of directory '$folder' to '".$Config{ZM_WEB_USER}.":".$Config{ZM_WEB_GROUP}."': $!" );
+            }
+        }
 }
 __END__

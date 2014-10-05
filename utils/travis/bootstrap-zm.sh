@@ -1,6 +1,6 @@
 #!/bin/bash -x
 
-set -e
+set -ev
 set -o pipefail
 
 with_timestamps() {

@@ -1,8 +1,7 @@
 #!/bin/bash
 
-set -e
+set -ev
 set -o pipefail
-set -x
 
 with_timestamps() {
 	while read -r line; do

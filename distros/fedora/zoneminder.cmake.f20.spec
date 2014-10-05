@@ -67,7 +67,6 @@ too much degradation of performance.
 %setup -q -n ZoneMinder-%{version}
 
 %patch1 -p0 -b .defaults
-#%patch2 -p0 -b .noffmpeg
 
 %build
 %cmake \
@@ -138,8 +137,6 @@ fi
 %{_bindir}/zmdc.pl
 %{_bindir}/zmf
 %{_bindir}/zmfilter.pl
-# zmfix removed from zoneminder 1.26.6
-#%attr(4755,root,root) %{_bindir}/zmfix
 %{_bindir}/zmpkg.pl
 %{_bindir}/zmstreamer
 %{_bindir}/zmtrack.pl

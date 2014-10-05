@@ -513,13 +513,13 @@ add_subdirectory(web)
 add_subdirectory(misc)
 
 # Process distro subdirectories
-if(ZM_TARGET_DISTRO STREQUAL "f19")
+if((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "f20"))
 	add_subdirectory(distros/fedora)
 elseif(ZM_TARGET_DISTRO STREQUAL "el6")
 	add_subdirectory(distros/redhat)
 elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
 	add_subdirectory(distros/opensuse)
-endif(ZM_TARGET_DISTRO STREQUAL "f19")
+endif((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "f20"))
 
 # Print optional libraries detection status
 message(STATUS "Optional libraries found:${optlibsfound}")

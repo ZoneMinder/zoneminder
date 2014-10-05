@@ -2,6 +2,7 @@
 
 set -e
 set -o pipefail
+set -x
 
 with_timestamps() {
 	while read -r line; do

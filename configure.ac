@@ -72,7 +72,7 @@ if test "$ZM_RUNDIR" == ""; then
 	AC_SUBST(ZM_RUNDIR,[/var/run/zm])
 fi
 if test "$ZM_SOCKDIR" == ""; then
-	AC_SUBST(ZM_RUNDIR,[/var/run/zm])
+	AC_SUBST(ZM_SOCKDIR,[/var/run/zm])
 fi
 if test "$ZM_TMPDIR" == ""; then
 	AC_SUBST(ZM_TMPDIR,[/tmp/zm])

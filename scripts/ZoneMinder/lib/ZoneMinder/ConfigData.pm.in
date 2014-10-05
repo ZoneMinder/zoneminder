@@ -510,7 +510,7 @@ our @options =
 	},
 	{
 		name => "ZM_LOG_DEBUG_FILE",
-		default => "@ZM_TMPDIR@/zm_debug.log+",
+		default => "@ZM_LOGDIR@/zm_debug.log+",
 		description => "Where extra debug is output to",
 		help => "This option allows you to specify a different target for debug output. All components have a default log file which will norally be in /tmp or /var/log and this is where debug will be written to if this value is empty. Adding a path here will temporarily redirect debug, and other logging output, to this file. This option is a simple filename and you are debugging several components then they will all try and write to the same file with undesirable consequences. Appending a '+' to the filename will cause the file to be created with a '.<pid>' suffix containing your process id. In this way debug from each run of a component is kept separate. This is the recommended setting as it will also prevent subsequent runs from overwriting the same log. You should ensure that permissions are set up to allow writing to the file and directory specified here.",
 		requires => [ { name => "ZM_LOG_DEBUG", value => "yes" } ],
@@ -607,7 +607,7 @@ our @options =
 	},
 	{
 		name => "ZM_PATH_SOCKS",
-		default => "@ZM_TMPDIR@",
+		default => "@ZM_SOCKDIR@",
 		description => "Path to the various Unix domain socket files that ZoneMinder uses",
 		help => "ZoneMinder generally uses Unix domain sockets where possible. This reduces the need for port assignments and prevents external applications from possibly compromising the daemons. However each Unix socket requires a .sock file to be created. This option indicates where those socket files go.",
 		type => $types{abs_path},

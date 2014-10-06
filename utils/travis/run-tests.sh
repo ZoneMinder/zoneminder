@@ -10,11 +10,14 @@ with_timestamps() {
 }
 
 run_tests() {
-	printf '%s\n' "${PWD##*/}"
 	mysql -uzmuser -pzmpass < ${TRAVIS_BUILD_DIR}/db/zm_create.sql
 	mysql -uzmuser -pzmpass zm < ${TRAVIS_BUILD_DIR}/db/test.monitor.sql
 	sudo zmpkg.pl start
 	sudo zmfilter.pl -f purgewhenfull
+	sudo cp -f utils/travis/apache-vhost /etc/apache2/sites-enabled/000-default
+	sudo service apache2 restart
+	npm install -g se-interpreter
+
 }
 
 run_tests | with_timestamps

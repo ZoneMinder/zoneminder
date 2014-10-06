@@ -25,8 +25,8 @@ before_install:
 install:
   - travis_retry bash $TRAVIS_BUILD_DIR/utils/travis/install-deps.sh
   - travis_wait bash $TRAVIS_BUILD_DIR/utils/travis/install-ffmpeg.sh
-before_script:
   - bash $TRAVIS_BUILD_DIR/utils/travis/bootstrap-zm.sh
-script:
   - bash $TRAVIS_BUILD_DIR/utils/travis/build-zm.sh
+before_script:
+script:
   - bash $TRAVIS_BUILD_DIR/utils/travis/run-tests.sh

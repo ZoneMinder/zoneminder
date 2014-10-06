@@ -1,0 +1,28 @@
+{
+  "type": "interpreter-config",
+  "configurations": [
+    {
+      "settings": [
+        {
+          "driverOptions": {
+            "host": "ondemand.saucelabs.com",
+            "port": 80
+          },
+          "browserOptions": {
+            "browserName": "${SAUCE_BROWSER}",
+            "build": "${TRAVIS_BUILD_NUMBER}",
+            "tags": [
+              "${TRAVIS_BRANCH}"
+            ],
+            "username": "${SAUCE_USERNAME}",
+            "accessKey": "${SAUCE_ACCESS_KEY}",
+            "tunnel-identifier": "${TRAVIS_JOB_NUMBER}"
+          }
+        }
+      ],
+      "scripts": [
+        "utils/tests/selenium/*"
+      ]
+    }
+  ]
+}

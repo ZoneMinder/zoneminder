@@ -71,6 +71,23 @@ var popupSizes = {
 
 var popupOptions = "resizable,scrollbars,status=no";
 
+function checkSize() {
+    if (window.outerHeight) {
+        var w = window.outerWidth;
+        var prevW = w;
+        var h = window.outerHeight;
+        var prevH = h;
+        if (h > screen.availHeight)
+            h  = screen.availHeight;
+        if (w > screen.availWidth)
+            w  = screen.availWidth;
+        if (w != prevW || h != prevH)
+            window.resizeTo(w,h);
+    }
+}
+
+window.addEvent( 'domready', checkSize);
+
 // Deprecated
 function newWindow( url, name, width, height )
 {

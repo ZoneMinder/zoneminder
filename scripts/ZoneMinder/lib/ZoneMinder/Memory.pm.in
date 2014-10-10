@@ -27,7 +27,6 @@ package ZoneMinder::Memory;
 use 5.006;
 use strict;
 use warnings;
-use Config;
 
 require Exporter;
 require ZoneMinder::Base;
@@ -132,8 +131,8 @@ else
 # The following returned the wrong result on some 32 bit distros running on 64 bit hardware
 #our $arch = int(3.2*length(~0));
 
-# Use selectminbits instead
-our $arch = $Config{selectminbits};
+# New method for determining the bitness
+our $arch = 32 + 32*( qx(uname -m) =~ /64/ );
 
 our $native = $arch/8;
 our $mem_seq = 0;

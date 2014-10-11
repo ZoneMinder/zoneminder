@@ -39,8 +39,11 @@ RtspThread::PortSet  RtspThread::smAssignedPorts;
 
 bool RtspThread::sendCommand( std::string message )
 {
-    if ( !mAuth.empty() )
-        message += stringtf( "Authorization: Basic %s\r\n", mAuth64.c_str() );
+	if ( mNeedAuth ) {
+	    StringVector parts = split( message, " " );
+	    if (parts.size() > 1)
+	    	message += mAuthenticator->getAuthHeader(parts[0], parts[1]);
+	}
     message += stringtf( "User-Agent: ZoneMinder/%s\r\n", ZM_VERSION );
     message += stringtf( "CSeq: %d\r\n\r\n", ++mSeq );
     Debug( 2, "Sending RTSP message: %s", message.c_str() );
@@ -65,13 +68,41 @@ bool RtspThread::sendCommand( std::string message )
     return( true );
 }
 
+// find WWW-Authenticate header, send to Authenticator to extract required subfields
+void RtspThread::checkAuthResponse(std::string &response)
+{
+    std::string authLine;
+    StringVector lines = split( response, "\r\n" );
+    const char* authenticate_match = "WWW-Authenticate:";
+    size_t authenticate_match_len = strlen(authenticate_match);
+    
+    for ( size_t i = 0; i < lines.size(); i++ )
+    {
+    	// stop at end of headers
+        if (lines[i].length()==0)
+            break;
+        
+        if (strncasecmp(lines[i].c_str(),authenticate_match,authenticate_match_len) == 0) 
+        {
+            authLine = lines[i];
+            Debug( 2, "Found auth line at %d", i);
+            break;
+        }
+    }
+    if (!authLine.empty()) 
+    {
+        Debug( 2, "Analyze auth line %s", authLine.c_str());
+        mAuthenticator->authHandleHeader( trimSpaces(authLine.substr(authenticate_match_len,authLine.length()-authenticate_match_len)) );
+    }
+}
+
 bool RtspThread::recvResponse( std::string &response )
 {
     if ( mRtspSocket.recv( response ) < 0 )
         Error( "Recv failed; %s", strerror(errno) );
     Debug( 2, "Received RTSP response: %s (%zd bytes)", response.c_str(), response.size() );
     float respVer = 0;
-    int respCode = -1;
+    respCode = -1;
     char respText[ZM_NETWORK_BUFSIZ];
     if ( sscanf( response.c_str(), "RTSP/%f %3d %[^\r\n]\r\n", &respVer, &respCode, respText ) != 3 )
     {
@@ -87,7 +118,14 @@ bool RtspThread::recvResponse( std::string &response )
         }
         return( false );
     }
-    if ( respCode != 200 )
+    if ( respCode == 401)
+    {
+    	Debug( 2, "Got 401 access denied response code, check WWW-Authenticate header and retry");
+    	checkAuthResponse(response);
+    	mNeedAuth = true;
+    	return( false );
+    } 
+    else if ( respCode != 200 )
     {
         Error( "Unexpected response code %d, text is '%s'", respCode, respText );
         return( false );
@@ -157,14 +195,13 @@ void RtspThread::releasePorts( int port )
         smAssignedPorts.erase( port );
 }
 
-RtspThread::RtspThread( int id, RtspMethod method, const std::string &protocol, const std::string &host, const std::string &port, const std::string &path, const std::string &auth ) :
+RtspThread::RtspThread( int id, RtspMethod method, const std::string &protocol, const std::string &host, const std::string &port, const std::string &path, const std::string &auth) :
     mId( id ),
     mMethod( method ),
     mProtocol( protocol ),
     mHost( host ),
     mPort( port ),
     mPath( path ),
-    mAuth( auth ),
     mFormatContext( 0 ),
     mSeq( 0 ),
     mSession( 0 ),
@@ -188,9 +225,13 @@ RtspThread::RtspThread( int id, RtspMethod method, const std::string &protocol, 
 
     if ( mMethod == RTP_RTSP_HTTP )
         mHttpSession = stringtf( "%d", rand() );
-
-    if ( !mAuth.empty() )
-        mAuth64 = base64Encode( mAuth );
+    
+    mNeedAuth = false;
+    StringVector parts = split(auth,":");
+    if (parts.size() > 1) 
+    	mAuthenticator = new Authenticator(parts[0], parts[1]);
+    else
+    	mAuthenticator = new Authenticator(parts[0], "");
 }
 
 RtspThread::~RtspThread()
@@ -214,6 +255,8 @@ int RtspThread::run()
         //Debug( 4, "Drained %d bytes from RTSP socket", response.size() );
     //}
 
+    
+    bool authTried = false; 
     if ( mMethod == RTP_RTSP_HTTP )
     {
         if ( !mRtspSocket2.connect( mHost.c_str(), strtol( mPort.c_str(), NULL, 10 ) ) )
@@ -225,42 +268,62 @@ int RtspThread::run()
             //mRtspSocket2.recv( response );
             //Debug( 4, "Drained %d bytes from HTTP socket", response.size() );
         //}
-
-        message = "GET "+mPath+" HTTP/1.0\r\n";
-        message += "X-SessionCookie: "+mHttpSession+"\r\n";
-        if ( !mAuth.empty() )
-            message += stringtf( "Authorization: Basic %s\r\n", mAuth64.c_str() );
-        message += "\r\n";
-        Debug( 2, "Sending HTTP message: %s", message.c_str() );
-        if ( mRtspSocket.send( message.c_str(), message.size() ) != (int)message.length() )
-        {
-            Error( "Unable to send message '%s': %s", message.c_str(), strerror(errno) );
-            return( -1 );
-        }
-        if ( mRtspSocket.recv( response ) < 0 )
-        {
-            Error( "Recv failed; %s", strerror(errno) );
-            return( -1 );
-        }
-
-        Debug( 2, "Received HTTP response: %s (%zd bytes)", response.c_str(), response.size() );
-        float respVer = 0;
+        
+        //possibly retry sending the message for authentication 
         int respCode = -1;
         char respText[256];
-        if ( sscanf( response.c_str(), "HTTP/%f %3d %[^\r\n]\r\n", &respVer, &respCode, respText ) != 3 )
-        {
-            if ( isalnum(response[0]) )
-            {
-                Error( "Response parse failure in '%s'", response.c_str() );
-            }
-            else
-            {
-                Error( "Response parse failure, %zd bytes follow", response.size() );
-                if ( response.size() )
-                    Hexdump( Logger::ERROR, response.data(), min(response.size(),16) );
-            }
-            return( -1 );
-        }
+        do {
+			message = "GET "+mPath+" HTTP/1.0\r\n";
+			message += "X-SessionCookie: "+mHttpSession+"\r\n";
+			if ( mNeedAuth ) {
+				message += mAuthenticator->getAuthHeader("GET", mPath);
+				authTried = true;
+			}
+		    message += "Accept: application/x-rtsp-tunnelled\r\n";
+			message += "\r\n";
+			Debug( 2, "Sending HTTP message: %s", message.c_str() );
+			if ( mRtspSocket.send( message.c_str(), message.size() ) != (int)message.length() )
+			{
+				Error( "Unable to send message '%s': %s", message.c_str(), strerror(errno) );
+				return( -1 );
+			}
+			if ( mRtspSocket.recv( response ) < 0 )
+			{
+				Error( "Recv failed; %s", strerror(errno) );
+				return( -1 );
+			}
+		
+			Debug( 2, "Received HTTP response: %s (%zd bytes)", response.c_str(), response.size() );
+			float respVer = 0;
+			respCode = -1;
+			if ( sscanf( response.c_str(), "HTTP/%f %3d %[^\r\n]\r\n", &respVer, &respCode, respText ) != 3 )
+			{
+				if ( isalnum(response[0]) )
+				{
+				Error( "Response parse failure in '%s'", response.c_str() );
+				}
+				else
+				{
+				Error( "Response parse failure, %zd bytes follow", response.size() );
+				if ( response.size() )
+					Hexdump( Logger::ERROR, response.data(), min(response.size(),16) );
+				}
+				return( -1 );
+			}
+			// If Server requests authentication, check WWW-Authenticate header and fill required fields
+			// for requested authentication method
+			if (respCode == 401 && !authTried) {
+				mNeedAuth = true;
+				checkAuthResponse(response);
+				Debug(2, "Processed 401 response");
+				mRtspSocket.close();
+			    if ( !mRtspSocket.connect( mHost.c_str(), strtol( mPort.c_str(), NULL, 10 ) ) )
+			        Fatal( "Unable to reconnect RTSP socket" );
+			    Debug(2, "connection should be reopened now");
+			}
+			
+		} while (respCode == 401 && !authTried);  
+		
         if ( respCode != 200 )
         {
             Error( "Unexpected response code %d, text is '%s'", respCode, respText );
@@ -269,8 +332,8 @@ int RtspThread::run()
 
         message = "POST "+mPath+" HTTP/1.0\r\n";
         message += "X-SessionCookie: "+mHttpSession+"\r\n";
-        if ( !mAuth.empty() )
-            message += stringtf( "Authorization: Basic %s\r\n", mAuth64.c_str() );
+		if ( mNeedAuth )
+			message += mAuthenticator->getAuthHeader("POST", mPath);
         message += "Content-Length: 32767\r\n";
         message += "Content-Type: application/x-rtsp-tunnelled\r\n";
         message += "\r\n";
@@ -290,9 +353,16 @@ int RtspThread::run()
     //recvResponse( response );
 
     message = "DESCRIBE "+mUrl+" RTSP/1.0\r\n";
-    sendCommand( message );
-    sleep( 1 );
-    recvResponse( response );
+	bool res;
+	do {
+		if (mNeedAuth)
+			authTried = true;
+		sendCommand( message );
+		sleep( 1 );
+		res = recvResponse( response );
+		if (!res && respCode==401)
+			mNeedAuth = true;
+	} while (!res && respCode==401 && !authTried);
 
     const std::string endOfHeaders = "\r\n\r\n";
     size_t sdpStart = response.find( endOfHeaders );

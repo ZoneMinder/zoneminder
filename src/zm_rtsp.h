@@ -25,6 +25,7 @@
 #include "zm_comms.h"
 #include "zm_thread.h"
 #include "zm_rtp_source.h"
+#include "zm_rtsp_auth.h"
 
 #include <set>
 #include <map>
@@ -54,8 +55,16 @@ private:
     std::string mPort;
     std::string mPath;
     std::string mUrl;
-    std::string mAuth;
-    std::string mAuth64;
+    
+    // Reworked authentication system
+    // First try without authentication, even if we have a username and password
+    // on receiving a 401 response, select authentication method (basic or digest)
+    // fill required fields and set needAuth
+    // subsequent requests can set the required authentication header.
+    bool mNeedAuth;
+    int respCode;
+    Authenticator* mAuthenticator;
+
 
     std::string mHttpSession;           ///< Only for RTSP over HTTP sessions
 
@@ -81,9 +90,10 @@ private:
 private:
     bool sendCommand( std::string message );
     bool recvResponse( std::string &response );
+    void checkAuthResponse(std::string &response);    
 
 public:
-    RtspThread( int id, RtspMethod method, const std::string &protocol, const std::string &host, const std::string &port, const std::string &path, const std::string &auth );
+    RtspThread( int id, RtspMethod method, const std::string &protocol, const std::string &host, const std::string &port, const std::string &path, const std::string &auth);
     ~RtspThread();
 
 public:

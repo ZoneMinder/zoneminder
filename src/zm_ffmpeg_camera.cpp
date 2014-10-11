@@ -48,6 +48,7 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::stri
     mIsOpening = false;
     mCanCapture = false;
     mOpenStart = 0;
+    mReopenThread = 0;
 	
 #if HAVE_LIBSWSCALE    
 	mConvertContext = NULL;
@@ -112,6 +113,20 @@ int FfmpegCamera::Capture( Image &image )
 {
     if (!mCanCapture){
         return -1;
+    }
+    
+    // If the reopen thread has a value, but mCanCapture != 0, then we have just reopened the connection to the ffmpeg device, and we can clean up the thread.
+    if (mReopenThread != 0) {
+        void *retval = 0;
+        int ret;
+        
+        ret = pthread_tryjoin_np(mReopenThread, &retval);
+        if (ret != 0){
+            Error("Could not join reopen thread.");
+        }
+        
+        Info( "Successfully reopened stream." );
+        mReopenThread = 0;
     }
 
 	AVPacket packet;
@@ -346,8 +361,7 @@ int FfmpegCamera::ReopenFfmpeg() {
     Debug(2, "ReopenFfmpeg called.");
 
     mCanCapture = false;
-    pthread_t thread1;
-    if (pthread_create( &thread1, NULL, ReopenFfmpegThreadCallback, (void*) this) != 0){
+    if (pthread_create( &mReopenThread, NULL, ReopenFfmpegThreadCallback, (void*) this) != 0){
         // Log a fatal error and exit the process.
         Fatal( "ReopenFfmpeg failed to create worker thread." );
     }
@@ -409,22 +423,22 @@ void *FfmpegCamera::ReopenFfmpegThreadCallback(void *ctx){
 
     FfmpegCamera* camera = reinterpret_cast<FfmpegCamera*>(ctx);
 
-    // Close current stream.
-    camera->CloseFfmpeg();
+    while (1){
+        // Close current stream.
+        camera->CloseFfmpeg();
 
-    // Sleep if neccessary to not reconnect too fast.
-    int wait = config.ffmpeg_open_timeout - (time(NULL) - camera->mOpenStart);
-    wait = wait < 0 ? 0 : wait;
-    if (wait > 0){
-        Debug( 1, "Sleeping %d seconds before reopening stream.", wait );
-        sleep(wait);
-    }
-    
-    if (camera->OpenFfmpeg() != 0){
-        camera->ReopenFfmpeg();
-    }
+        // Sleep if neccessary to not reconnect too fast.
+        int wait = config.ffmpeg_open_timeout - (time(NULL) - camera->mOpenStart);
+        wait = wait < 0 ? 0 : wait;
+        if (wait > 0){
+            Debug( 1, "Sleeping %d seconds before reopening stream.", wait );
+            sleep(wait);
+        }
 
-    return NULL;
+        if (camera->OpenFfmpeg() == 0){
+            return NULL;
+        }
+    }
 }
 
 #endif // HAVE_LIBAVFORMAT

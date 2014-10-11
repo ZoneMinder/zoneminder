@@ -56,6 +56,7 @@ protected:
     bool mIsOpening;
     bool mCanCapture;
     int mOpenStart;
+    pthread_t mReopenThread;
 #endif // HAVE_LIBAVFORMAT
 
 #if HAVE_LIBSWSCALE

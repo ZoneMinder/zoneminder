@@ -45,10 +45,12 @@ extern "C" {
 #include <ffmpeg/avcodec.h>
 #endif
 	
-#if defined(HAVE_LIBAVCODEC_AVCODEC_H) && LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54,25,0)
+#if defined(HAVE_LIBAVCODEC_AVCODEC_H)
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54,25,0)
     #define _AVCODECID AVCodecID
 #else
     #define _AVCODECID CodecID
+#endif
 #endif
 
 // AVFORMAT

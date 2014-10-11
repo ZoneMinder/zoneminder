@@ -1,3 +1,4 @@
+# Hello World
 AC_PREREQ(2.59)
 AC_INIT(zm,1.27.99.0,[http://www.zoneminder.com/forums/ - Please check FAQ first],zoneminder,http://www.zoneminder.com/downloads.html)
 AM_INIT_AUTOMAKE

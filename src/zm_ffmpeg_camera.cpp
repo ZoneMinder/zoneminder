@@ -222,7 +222,7 @@ int FfmpegCamera::OpenFfmpeg() {
     Debug ( 1, "Calling av_open_input_file" );
     if ( av_open_input_file( &mFormatContext, mPath.c_str(), NULL, 0, NULL ) !=0 )
 #else
-	    // Handle options
+    // Handle options
     AVDictionary *opts = 0;
     StringVector opVect = split(Options(), ",");
     
@@ -257,7 +257,7 @@ int FfmpegCamera::OpenFfmpeg() {
     mFormatContext->interrupt_callback.callback = FfmpegInterruptCallback;
     mFormatContext->interrupt_callback.opaque = this;
 
-    if ( avformat_open_input( &mFormatContext, mPath.c_str(), NULL, NULL ) !=0 )
+    if ( avformat_open_input( &mFormatContext, mPath.c_str(), NULL, &opts ) !=0 )
 #endif
     {
         mIsOpening = false;

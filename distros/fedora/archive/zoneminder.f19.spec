@@ -49,11 +49,11 @@ BuildRequires:  perl(PHP::Serialization) perl(Sys::Mmap)
 BuildRequires:  perl(Time::HiRes) perl(Net::SFTP::Foreign)
 BuildRequires:  perl(Expect) perl(Sys::Syslog)
 BuildRequires:  gcc gcc-c++ vlc-devel libcurl-devel
-BuildRequires:  autoconf autoconf-archive
+BuildRequires:  autoconf autoconf-archive polkit-devel
 %{!?_without_ffmpeg:BuildRequires: ffmpeg-devel}
 %{!?_without_x10:BuildRequires: perl(X10::ActiveHome) perl(Astro::SunTime)}
 
-Requires:   httpd php php-mysql cambozola
+Requires:   httpd php php-mysql cambozola polkit
 Requires:   libjpeg-turbo libcurl vlc-core ffmpeg
 Requires:   perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires:   perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)
@@ -240,6 +240,7 @@ fi
 %{_bindir}/zmvideo.pl
 %{_bindir}/zmwatch.pl
 %{_bindir}/zmcamtool.pl
+%{_bindir}/zmsystemctl.pl
 %{!?_without_x10:%{_bindir}/zmx10.pl}
 
 %{perl_vendorlib}/ZoneMinder*
@@ -249,6 +250,9 @@ fi
 %dir %{_datadir}/zoneminder
 %{_datadir}/zoneminder/db
 %{_datadir}/zoneminder/www
+
+%{_datadir}/polkit-1/actions/com.zoneminder.systemctl.policy
+%{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
 
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) /var/lib/zoneminder
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) /var/lib/zoneminder/events

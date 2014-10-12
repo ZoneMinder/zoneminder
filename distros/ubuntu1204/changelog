@@ -1,24 +1,43 @@
-zoneminder (1.27.1-1) precise; urgency=low
+zoneminder (1.27.99+1-trusty-SNAPSHOT2014092601) trusty; urgency=medium
 
-  * Convert from php mysql ext to PDO
+  * style updates and db fixes for database logging filters
 
- -- Isaac Connor <iconnor@connortechnology.com>  Wed, 16 Oct 2013 15:51:39 -0400
+ -- Isaac Connor <iconnor@connortechnology.com>  Fri, 26 Sep 2014 14:44:45 -0400
 
-zoneminder (1.26.4-2) precise; urgency=high
+zoneminder (1.27.99+1-trusty-SNAPSHOT2014090801) trusty; urgency=medium
 
-  * improvements to zmupdate.pl, cleanups
+  * several segfault fixes for local cameras
 
- -- Isaac Connor <iconnor@connortechnology.com>  Thu, 03 Oct 2013 11:40:32 -0400
+ -- Isaac Connor <iconnor@connortechnology.com>  Mon, 08 Sep 2014 16:56:57 -0400
 
-zoneminder (1.26.3-1) unstable; urgency=low
+zoneminder (1.27.99+1-trusty-SNAPSHOT2014090701) trusty; urgency=medium
 
-  * A 'minor' release focusing on performance improvement and bug fixes.
+  * Fix segfaults for local cameras, also now includes the systemd support patch
 
- -- Isaac Connor <iconnor@connortechnology.com>  Sun, 22 Sep 2013 09:36:42 +0800
+ -- Isaac Connor <iconnor@connortechnology.com>  Sun, 07 Sep 2014 17:19:01 -0400
 
-zoneminder (1.25.1-1) unstable; urgency=low
+zoneminder (1.27.99+1-trusty-SNAPSHOT2014082102) trusty; urgency=medium
 
-  * Initial Version.
+  * Fix UI inputs for v4l multibuffer and captures per frame
 
- -- Isaac Connor <iconnor@connortechnology.com>  Mon, 29 Apr 2013 12:38:00 -0400
+ -- Isaac Connor <iconnor@connortechnology.com>  Thu, 21 Aug 2014 12:03:31 -0400
 
+zoneminder (1.27.99+1-trusty-SNAPSHOT2014082101) trusty; urgency=medium
+
+  * fall back to Config table values for V4l MultiBUffer and Captures Per Frame
+  * add mention of monitor page settings for thse in the config table
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Thu, 21 Aug 2014 10:04:46 -0400
+
+zoneminder (1.27.99+1-precise-SNAPSHOT2014080601) precise; urgency=medium
+
+  * improve error messages
+  * Make zmupdate re-run the most recent patch so that people running the daily builds get their db updates
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Wed, 06 Aug 2014 20:20:20 -0400
+
+zoneminder (1.27.0+1-trusty-v4ltomonitor-1) trusty; urgency=high
+
+  * Snapshot release - 
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Wed, 09 Jul 2014 21:35:29 -0400

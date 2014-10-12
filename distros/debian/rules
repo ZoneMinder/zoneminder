@@ -9,9 +9,6 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
-UPSTREAM_VERSION := $(shell dpkg-parsechangelog | egrep '^Version:' | cut -f 2 -d ' ' | cut -d - -f 1)
-POSTINST_VERSION := $(shell egrep ^VERSION= debian/postinst | cut -d = -f 2)
-
 # These are used for cross-compiling and for saving the configure script
 # from having to guess our platform (since we know it already)
 DEB_HOST_GNU_TYPE   ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
@@ -31,19 +28,16 @@ endif
 	dh $@ --with autoreconf
 
 override_dh_auto_configure:
-	CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)" ./configure --host=$(DEB_HOST_GNU_TYPE) --build=$(DEB_BUILD_GNU_TYPE) --sysconfdir=/etc/zm --prefix=/usr --mandir=\$${prefix}/share/man --infodir=\$${prefix}/share/info --with-mysql=/usr  --with-webdir=/usr/share/zoneminder --with-ffmpeg=/usr --with-cgidir=/usr/lib/cgi-bin --with-webuser=www-data --with-webgroup=www-data --enable-crashtrace=no --enable-mmap=yes
+	CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)" ./configure --host=$(DEB_HOST_GNU_TYPE) --build=$(DEB_BUILD_GNU_TYPE) --sysconfdir=/etc/zm --prefix=/usr --mandir=\$${prefix}/share/man --infodir=\$${prefix}/share/info --with-mysql=/usr --with-mariadb=/usr --with-webdir=/usr/share/zoneminder --with-ffmpeg=/usr --with-cgidir=/usr/lib/cgi-bin --with-webuser=www-data --with-webgroup=www-data --enable-crashtrace=no --enable-mmap=yes
 
 override_dh_clean:
-	# check to make sure that postinst contains the correct upstream version
-	[ $(UPSTREAM_VERSION) = $(POSTINST_VERSION) ]
-
 	# Add here commands to clean up after the build process.
 	[ ! -f Makefile ] || $(MAKE) distclean
 	dh_clean
 
 override_dh_install:
 	# Add here commands to install the package into debian/zm.
-	$(MAKE) install DESTDIR=$(CURDIR)/debian/zoneminder
+	$(MAKE) install DESTDIR=$(CURDIR)/debian/zoneminder RUNDIR=$(CURDIR)/debian/zoneminder/var/run ZM_RUNDIR=$(CURDIR)/debian/zoneminder/var/run
 	install -D -m 0644 db/zm_create.sql		$(CURDIR)/debian/zoneminder/usr/share/zoneminder/db
 	install -D -m 0644 db/zm_update-*.sql $(CURDIR)/debian/zoneminder/usr/share/zoneminder/db
 	install -D -m 0644 debian/apache.conf  $(CURDIR)/debian/zoneminder/etc/zm
@@ -74,4 +68,4 @@ override_dh_auto_test:
 
 .PHONY: override_dh_strip
 override_dh_strip:
-        dh_strip --dbg-package=zoneminder-dbg
+		dh_strip --dbg-package=zoneminder-dbg

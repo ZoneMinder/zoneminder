@@ -48,7 +48,7 @@ var popupSizes = {
     'log':          { 'width': 980, 'height': 720 },
     'login':        { 'width': 720, 'height': 480 },
     'logout':       { 'width': 240, 'height': 100 },
-    'monitor':      { 'width': 500, 'height': 620 },
+    'monitor':      { 'width': 500, 'height': 660 },
     'monitorpreset':{ 'width': 400, 'height': 250 },
     'monitorprobe': { 'width': 500, 'height': 240 },
     'monitorselect':{ 'width': 160, 'height': 200 },
@@ -70,6 +70,23 @@ var popupSizes = {
 };
 
 var popupOptions = "resizable,scrollbars,status=no";
+
+function checkSize() {
+    if (window.outerHeight) {
+        var w = window.outerWidth;
+        var prevW = w;
+        var h = window.outerHeight;
+        var prevH = h;
+        if (h > screen.availHeight)
+            h  = screen.availHeight;
+        if (w > screen.availWidth)
+            w  = screen.availWidth;
+        if (w != prevW || h != prevH)
+            window.resizeTo(w,h);
+    }
+}
+
+window.addEvent( 'domready', checkSize);
 
 // Deprecated
 function newWindow( url, name, width, height )
@@ -157,6 +174,7 @@ function createEventPopup( eventId, eventFilter, width, height )
     var name = 'zmEvent';
     var popupSize = getPopupSize( 'event', width, height );
     var popup = window.open( url, name, popupOptions+",width="+popupSize.width+",height="+popupSize.height );
+    popup.focus();
 }
 
 function createFramesPopup( eventId, width, height )
@@ -165,6 +183,7 @@ function createFramesPopup( eventId, width, height )
     var name = 'zmFrames';
     var popupSize = getPopupSize( 'frames', width, height );
     var popup = window.open( url, name, popupOptions+",width="+popupSize.width+",height="+popupSize.height );
+    popup.focus();
 }
 
 function createFramePopup( eventId, frameId, width, height )
@@ -173,6 +192,7 @@ function createFramePopup( eventId, frameId, width, height )
     var name = 'zmFrame';
     var popupSize = getPopupSize( 'frame', width, height );
     var popup = window.open( url, name, popupOptions+",width="+popupSize.width+",height="+popupSize.height );
+    popup.focus();
 }
 
 function windowToFront()

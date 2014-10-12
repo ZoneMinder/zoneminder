@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-*/ 
+ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -25,27 +25,11 @@
 #include "zm_mpeg.h"
 
 #if HAVE_LIBAVCODEC
-extern "C" {
-#include <libavutil/mathematics.h>
-}
-
-#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(54, 1, 0)
-static int encode_frame(AVCodecContext *c, AVFrame *frame)
+extern "C"
 {
-    AVPacket pkt = { 0 };
-    int ret, got_output;
-
-    av_init_packet(&pkt);
-    av_init_packet(&pkt);
-    ret = avcodec_encode_video2(c, &pkt, frame, &got_output);
-    if (ret < 0)
-        return ret;
-
-    ret = pkt.size;
-    av_free_packet(&pkt);
-    return ret;
+#include <libavutil/mathematics.h>
+#include <libavcodec/avcodec.h>
 }
-#endif
 
 bool VideoStream::initialised = false;
 
@@ -53,41 +37,90 @@ VideoStream::MimeData VideoStream::mime_data[] = {
 	{ "asf", "video/x-ms-asf" },
 	{ "swf", "application/x-shockwave-flash" },
 	{ "flv", "video/x-flv" },
-	{ "mp4", "video/mp4" },
-	{ "move", "video/quicktime" }
+	{ "mov", "video/quicktime" }
 };
 
-void VideoStream::Initialise()
+void VideoStream::Initialise( )
 {
-	av_register_all();
+	if ( logDebugging() )
+        av_log_set_level( AV_LOG_DEBUG ); 
+    else
+        av_log_set_level( AV_LOG_QUIET ); 
+	
+	av_register_all( );
+#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(53, 13, 0)
+	avformat_network_init();
+#endif
 	initialised = true;
 }
 
-void VideoStream::SetupFormat( const char *p_filename, const char *p_format )
+void VideoStream::SetupFormat( )
 {
-	filename = p_filename;
-	format = p_format;
-
-	/* auto detect the output format from the name. default is mpeg. */
-	of = av_guess_format( format, NULL, NULL);
-	if ( !of )
+	/* allocate the output media context */
+	ofc = NULL;
+#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(53, 5, 0)
+	avformat_alloc_output_context2( &ofc, NULL, format, filename );
+#else
+	AVFormatContext *s= avformat_alloc_context();
+	if(!s) 
 	{
-		Warning( "Could not deduce output format from file extension: using mpeg" );
-		of = av_guess_format("mpeg", NULL, NULL);
-	}
-	if ( !of )
-	{
-		Fatal( "Could not find suitable output format" );
+		Fatal( "avformat_alloc_context failed %d \"%s\"", (size_t)ofc, av_err2str((size_t)ofc) );
 	}
 	
-	/* allocate the output media context */
-	ofc = (AVFormatContext *)av_mallocz(sizeof(AVFormatContext));
+	AVOutputFormat *oformat;
+	if (format) {
+#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(52, 45, 0)
+		oformat = av_guess_format(format, NULL, NULL);
+#else
+		oformat = guess_format(format, NULL, NULL);
+#endif
+		if (!oformat) {
+			Fatal( "Requested output format '%s' is not a suitable output format", format );
+		}
+	} else {
+#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(52, 45, 0)
+		oformat = av_guess_format(NULL, filename, NULL);
+#else
+		oformat = guess_format(NULL, filename, NULL);
+#endif
+		if (!oformat) {
+			Fatal( "Unable to find a suitable output format for '%s'", format );
+		}
+	}
+	s->oformat = oformat;
+	
+	if (s->oformat->priv_data_size > 0) {
+		s->priv_data = av_mallocz(s->oformat->priv_data_size);
+		if (!s->priv_data)
+		{
+			Fatal( "Could not allocate private data for output format." );
+		}
+#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51, 10, 0)
+		if (s->oformat->priv_class) {
+			*(const AVClass**)s->priv_data = s->oformat->priv_class;
+			av_opt_set_defaults(s->priv_data);
+		}
+#endif
+	} 
+	else
+	{
+		s->priv_data = NULL;
+	}
+	
+	if(filename)
+	{
+		snprintf( s->filename, sizeof(s->filename), filename );
+	}
+	
+	ofc = s;
+#endif
 	if ( !ofc )
 	{
-		Panic( "Memory error" );
+		Fatal( "avformat_alloc_..._context failed: %d", ofc );
 	}
-	ofc->oformat = of;
-	snprintf( ofc->filename, sizeof(ofc->filename), "%s", filename );
+
+	of = ofc->oformat;
+	Debug( 1, "Using output format: %s (%s)", of->name, of->long_name );
 }
 
 void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int height, int bitrate, double frame_rate )
@@ -130,139 +163,178 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
 	    break;
 	}
 
+	if ( strcmp( "rtp", of->name ) == 0 )
+	{
+		// RTP must have a packet_size.
+		// Not sure what this value should be really...
+		ofc->packet_size = width*height;
+		
+		if ( of->video_codec ==  AV_CODEC_ID_NONE)
+		{
+			// RTP does not have a default codec in ffmpeg <= 0.8.
+			of->video_codec = CODEC_ID_MPEG4;
+		}
+	}
+	
+	_AVCODECID codec_id = of->video_codec;
+	if ( codec_name )
+	{
+            AVCodec *a = avcodec_find_encoder_by_name(codec_name);
+            if ( a )
+            {
+                codec_id = a->id;
+            }
+            else
+            {
+#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(53, 11, 0)
+                    Debug( 1, "Could not find codec \"%s\". Using default \"%s\"", codec_name, avcodec_get_name( codec_id ) );
+#else
+                    Debug( 1, "Could not find codec \"%s\". Using default \"%d\"", codec_name, codec_id );
+#endif
+            }
+	}
+
 	/* add the video streams using the default format codecs
 	   and initialize the codecs */
 	ost = NULL;
-	if (of->video_codec != AV_CODEC_ID_NONE)
+	if ( codec_id != AV_CODEC_ID_NONE )
 	{
-#if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(53, 4, 0)
-		ost = av_new_stream(ofc, 0);
-#else
-      ost = avformat_new_stream(ofc, 0);
-#endif
-		if (!ost)
+		codec = avcodec_find_encoder( codec_id );
+		if ( !codec )
 		{
-			Panic( "Could not alloc stream" );
+#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(53, 11, 0)
+			Fatal( "Could not find encoder for '%s'", avcodec_get_name( codec_id ) );
+#else
+			Fatal( "Could not find encoder for '%d'", codec_id );
+#endif
 		}
+
+#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(53, 11, 0)
+		Debug( 1, "Found encoder for '%s'", avcodec_get_name( codec_id ) );
+#else
+		Debug( 1, "Found encoder for '%d'", codec_id );
+#endif
+
+#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(53, 10, 0)		
+		ost = avformat_new_stream( ofc, codec );
+#else
+		ost = av_new_stream( ofc, 0 );
+#endif
 		
-#if ZM_FFMPEG_SVN
+		if ( !ost )
+		{
+			Fatal( "Could not alloc stream" );
+		}
+		ost->id = ofc->nb_streams - 1;
+
+		Debug( 1, "Allocated stream" );
+
 		AVCodecContext *c = ost->codec;
-#else
-		AVCodecContext *c = &ost->codec;
-#endif
 
-		c->codec_id = of->video_codec;
-#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
-		c->codec_type = AVMEDIA_TYPE_VIDEO;
-#else
-		c->codec_type = CODEC_TYPE_VIDEO;
-#endif
+		c->codec_id = codec->id;
+		c->codec_type = codec->type;
 
-		/* put sample parameters */
-		c->bit_rate = bitrate;
-		c->pix_fmt = PIX_FMT_YUV420P;
+		c->pix_fmt = strcmp( "mjpeg", ofc->oformat->name ) == 0 ? PIX_FMT_YUVJ422P : PIX_FMT_YUV420P;
+		if ( bitrate <= 100 )
+		{
+			// Quality based bitrate control (VBR). Scale is 1..31 where 1 is best.
+			// This gets rid of artifacts in the beginning of the movie; and well, even quality.
+			c->flags |= CODEC_FLAG_QSCALE;
+			c->global_quality = FF_QP2LAMBDA * (31 - (31 * (bitrate / 100.0)));
+		}
+		else
+		{
+			c->bit_rate = bitrate;
+		}
+
 		/* resolution must be a multiple of two */
 		c->width = width;
 		c->height = height;
-#if ZM_FFMPEG_SVN
 		/* time base: this is the fundamental unit of time (in seconds) in terms
 		   of which frame timestamps are represented. for fixed-fps content,
 		   timebase should be 1/framerate and timestamp increments should be
 		   identically 1. */
-		//c->time_base.den = (int)(frame_rate*100);
-		//c->time_base.num = 100;
 		c->time_base.den = frame_rate;
 		c->time_base.num = 1;
-#else
-		/* frames per second */
-		c->frame_rate = frame_rate;
-		c->frame_rate_base = 1;
-#endif
-		//c->gop_size = frame_rate/2; /* emit one intra frame every half second or so */
-		c->gop_size = 12;
-		if ( c->gop_size < 3 )
-			c->gop_size = 3;
+		
+		Debug( 1, "Will encode in %d fps.", c->time_base.den );
+		
+		/* emit one intra frame every second */
+		c->gop_size = frame_rate;
+
 		// some formats want stream headers to be seperate
-		if(!strcmp(ofc->oformat->name, "mp4") || !strcmp(ofc->oformat->name, "mov") || !strcmp(ofc->oformat->name, "3gp"))
+		if ( of->flags & AVFMT_GLOBALHEADER )
 			c->flags |= CODEC_FLAG_GLOBAL_HEADER;
 	}
-}
-
-void VideoStream::SetParameters()
-{
-	/* set the output parameters (must be done even if no
-	   parameters). */
-#if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(53, 4, 0)
-	if ( av_set_parameters(ofc, NULL) < 0 )
-#else
-	if ( avformat_write_header(ofc, NULL) < 0 )
-#endif
+	else
 	{
-		Panic( "Invalid output format parameters" );
+		Fatal( "of->video_codec == AV_CODEC_ID_NONE" );
 	}
-	//dump_format(ofc, 0, filename, 1);
 }
 
-const char *VideoStream::MimeType() const
+void VideoStream::SetParameters( )
 {
-	for ( unsigned int i = 0; i < sizeof(mime_data)/sizeof(*mime_data); i++ )
+}
+
+const char *VideoStream::MimeType( ) const
+{
+	for ( unsigned int i = 0; i < sizeof (mime_data) / sizeof (*mime_data); i++ )
 	{
 		if ( strcmp( format, mime_data[i].format ) == 0 )
 		{
-			return( mime_data[i].mime_type );
+			Debug( 1, "MimeType is \"%s\"", mime_data[i].mime_type );
+			return ( mime_data[i].mime_type);
 		}
 	}
 	const char *mime_type = of->mime_type;
 	if ( !mime_type )
 	{
-		mime_type = "video/mpeg";
+		std::string mime = "video/";
+		mime = mime.append( format );
+		mime_type = mime.c_str( );
 		Warning( "Unable to determine mime type for '%s' format, using '%s' as default", format, mime_type );
 	}
 
-	return( mime_type );
+	Debug( 1, "MimeType is \"%s\"", mime_type );
+
+	return ( mime_type);
 }
 
-void VideoStream::OpenStream()
+void VideoStream::OpenStream( )
 {
+	int avRet;
+
 	/* now that all the parameters are set, we can open the 
 	   video codecs and allocate the necessary encode buffers */
 	if ( ost )
 	{
-#if ZM_FFMPEG_SVN
 		AVCodecContext *c = ost->codec;
-#else
-		AVCodecContext *c = &ost->codec;
-#endif
-
-		/* find the video encoder */
-		AVCodec *codec = avcodec_find_encoder(c->codec_id);
-		if ( !codec )
-		{
-			Panic( "codec not found" );
-		}
-
+		
 		/* open the codec */
 #if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(53, 7, 0)
-		if ( avcodec_open(c, codec) < 0 )
+		if ( (avRet = avcodec_open( c, codec )) < 0 )
 #else
-      if ( avcodec_open2(c, codec, 0) < 0 )
+		if ( (avRet = avcodec_open2( c, codec, 0 )) < 0 )
 #endif
 		{
-			Panic( "Could not open codec" );
+			Fatal( "Could not open codec. Error code %d \"%s\"", avRet, av_err2str( avRet ) );
 		}
 
+		Debug( 1, "Opened codec" );
+
 		/* allocate the encoded raw picture */
-		opicture = avcodec_alloc_frame();
+		opicture = avcodec_alloc_frame( );
 		if ( !opicture )
 		{
 			Panic( "Could not allocate opicture" );
 		}
-		int size = avpicture_get_size( c->pix_fmt, c->width, c->height);
-		uint8_t *opicture_buf = (uint8_t *)av_malloc(size);
+		
+		int size = avpicture_get_size( c->pix_fmt, c->width, c->height );
+		uint8_t *opicture_buf = (uint8_t *)av_malloc( size );
 		if ( !opicture_buf )
 		{
-			av_free(opicture);
-			Panic( "Could not allocate opicture" );
+			av_free( opicture );
+			Panic( "Could not allocate opicture_buf" );
 		}
 		avpicture_fill( (AVPicture *)opicture, opicture_buf, c->pix_fmt, c->width, c->height );
 
@@ -272,17 +344,17 @@ void VideoStream::OpenStream()
 		tmp_opicture = NULL;
 		if ( c->pix_fmt != pf )
 		{
-			tmp_opicture = avcodec_alloc_frame();
+			tmp_opicture = avcodec_alloc_frame( );
 			if ( !tmp_opicture )
 			{
-				Panic( "Could not allocate temporary opicture" );
+				Panic( "Could not allocate tmp_opicture" );
 			}
-			int size = avpicture_get_size( pf, c->width, c->height);
-			uint8_t *tmp_opicture_buf = (uint8_t *)av_malloc(size);
-			if (!tmp_opicture_buf)
+			int size = avpicture_get_size( pf, c->width, c->height );
+			uint8_t *tmp_opicture_buf = (uint8_t *)av_malloc( size );
+			if ( !tmp_opicture_buf )
 			{
 				av_free( tmp_opicture );
-				Panic( "Could not allocate temporary opicture" );
+				Panic( "Could not allocate tmp_opicture_buf" );
 			}
 			avpicture_fill( (AVPicture *)tmp_opicture, tmp_opicture_buf, pf, c->width, c->height );
 		}
@@ -291,127 +363,250 @@ void VideoStream::OpenStream()
 	/* open the output file, if needed */
 	if ( !(of->flags & AVFMT_NOFILE) )
 	{
-#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
-		if ( avio_open(&ofc->pb, filename, AVIO_FLAG_WRITE) < 0 )
+		int ret;
+#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(53, 14, 0)
+		ret = avio_open2( &ofc->pb, filename, AVIO_FLAG_WRITE, NULL, NULL );
+#elif LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(52, 102, 0)
+		ret = avio_open( &ofc->pb, filename, AVIO_FLAG_WRITE );
 #else
-		if ( url_fopen(&ofc->pb, filename, AVIO_FLAG_WRITE) < 0 )
+		ret = url_fopen( &ofc->pb, filename, AVIO_FLAG_WRITE );
 #endif
+		if ( ret < 0 )
 		{
 			Fatal( "Could not open '%s'", filename );
 		}
+
+		Debug( 1, "Opened output \"%s\"", filename );
+	}
+	else
+	{
+		Fatal( "of->flags & AVFMT_NOFILE" );
 	}
 
 	video_outbuf = NULL;
-	if ( !(ofc->oformat->flags & AVFMT_RAWPICTURE) )
+	if ( !(of->flags & AVFMT_RAWPICTURE) )
 	{
 		/* allocate output buffer */
 		/* XXX: API change will be done */
-		video_outbuf_size = 200000;
-		video_outbuf = (uint8_t *)malloc(video_outbuf_size);
+		// TODO: Make buffer dynamic.
+		video_outbuf_size = 4000000;
+		video_outbuf = (uint8_t *)malloc( video_outbuf_size );
 	}
-
-	/* write the stream header, if any */
-#if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(53, 4, 0)
-	av_write_header(ofc);
+	
+#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(52, 100, 1)
+	av_dump_format(ofc, 0, filename, 1);
 #else
-	avformat_write_header(ofc, NULL);
+	dump_format(ofc, 0, filename, 1);
 #endif
+    
+#if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(53, 4, 0)
+    int ret = av_write_header( ofc );
+#else
+    int ret = avformat_write_header( ofc, NULL );
+#endif
+    
+    if ( ret < 0 )
+    {
+        Fatal( "?_write_header failed with error %d \"%s\"", ret, av_err2str( ret ) );
+    }
 }
 
-VideoStream::VideoStream( const char *filename, const char *format, int bitrate, double frame_rate, int colours, int subpixelorder, int width, int height )
+VideoStream::VideoStream( const char *in_filename, const char *in_format, int bitrate, double frame_rate, int colours, int subpixelorder, int width, int height ) :
+		filename(in_filename),
+		format(in_format),
+		last_pts( -1 ),
+		streaming_thread(0),
+		do_streaming(true),
+		buffer_copy(NULL),
+		buffer_copy_lock(new pthread_mutex_t),
+		buffer_copy_used(0),
+        packet_index(0)
 {
 	if ( !initialised )
 	{
-		Initialise();
+		Initialise( );
+	}
+	
+	if ( format )
+	{
+		int length = strlen(format);
+		codec_and_format = new char[length+1];;
+		strcpy( codec_and_format, format );
+		format = codec_and_format;
+		char *f = strchr(codec_and_format, '/');
+		if (f != NULL)
+		{
+			*f = 0;
+			codec_name = f+1;
+		}
 	}
 
-	SetupFormat( filename, format );
+	SetupFormat( );
 	SetupCodec( colours, subpixelorder, width, height, bitrate, frame_rate );
-	SetParameters();
+	SetParameters( );
+    
+    // Allocate buffered packets.
+    packet_buffers = new AVPacket*[2];
+    packet_buffers[0] = new AVPacket();
+    packet_buffers[1] = new AVPacket();
+    packet_index = 0;
+	
+	// Initialize mutex used by streaming thread.
+	if ( pthread_mutex_init( buffer_copy_lock, NULL ) != 0 )
+	{
+		Fatal("pthread_mutex_init failed");
+	}
 }
 
-VideoStream::~VideoStream()
+VideoStream::~VideoStream( )
 {
-	/* close each codec */
-	if (ost)
+	Debug( 1, "VideoStream destructor." );
+	
+	// Stop streaming thread.
+	if ( streaming_thread )
 	{
-#if ZM_FFMPEG_SVN
-		avcodec_close(ost->codec);
-#else
-		avcodec_close(&ost->codec);
-#endif
-		av_free(opicture->data[0]);
-		av_free(opicture);
-		if (tmp_opicture)
+		do_streaming = false;
+		void* thread_exit_code;
+		
+		Debug( 1, "Asking streaming thread to exit." );
+		
+		// Wait for thread to exit.
+		pthread_join(streaming_thread, &thread_exit_code);
+	}
+	
+	if ( buffer_copy != NULL )
+	{
+		av_free( buffer_copy );
+	}
+    
+	if ( buffer_copy_lock )
+	{
+		if ( pthread_mutex_destroy( buffer_copy_lock ) != 0 )
 		{
-			av_free(tmp_opicture->data[0]);
-			av_free(tmp_opicture);
+			Error( "pthread_mutex_destroy failed" );
 		}
-		av_free(video_outbuf);
+		delete buffer_copy_lock;
+	}
+    
+    if (packet_buffers) {
+        delete packet_buffers[0];
+        delete packet_buffers[1];
+        delete[] packet_buffers;
+    }
+	
+	/* close each codec */
+	if ( ost )
+	{
+		avcodec_close( ost->codec );
+		av_free( opicture->data[0] );
+		av_free( opicture );
+		if ( tmp_opicture )
+		{
+			av_free( tmp_opicture->data[0] );
+			av_free( tmp_opicture );
+		}
+		av_free( video_outbuf );
 	}
 
 	/* write the trailer, if any */
-	av_write_trailer(ofc);
-	
+	av_write_trailer( ofc );
+
 	/* free the streams */
-	for( unsigned int i = 0; i < ofc->nb_streams; i++)
+	for ( unsigned int i = 0; i < ofc->nb_streams; i++ )
 	{
-		av_freep(&ofc->streams[i]);
+		av_freep( &ofc->streams[i] );
 	}
 
-	if (!(of->flags & AVFMT_NOFILE))
+	if ( !(of->flags & AVFMT_NOFILE) )
 	{
 		/* close the output file */
-#if ZM_FFMPEG_SVN
 #if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
-		avio_close(ofc->pb);
+		avio_close( ofc->pb );
 #else
-		url_fclose(ofc->pb);
-#endif
-#else
-		url_fclose(&ofc->pb);
+		url_fclose( ofc->pb );
 #endif
 	}
 
 	/* free the stream */
-	av_free(ofc);
+	av_free( ofc );
+	
+	/* free format and codec_name data. */
+	if ( codec_and_format )
+	{
+		delete codec_and_format;
+	}
 }
 
-double VideoStream::EncodeFrame( const uint8_t *buffer, int buffer_size, bool add_timestamp, unsigned int timestamp )
+double VideoStream::EncodeFrame( const uint8_t *buffer, int buffer_size, bool _add_timestamp, unsigned int _timestamp )
+{
+	if ( pthread_mutex_lock( buffer_copy_lock ) != 0 )
+	{
+		Fatal( "EncodeFrame: pthread_mutex_lock failed." );
+	}
+	
+	if (buffer_copy_size < buffer_size)
+	{
+		if ( buffer_copy )
+		{
+			av_free( buffer_copy );
+		}
+		
+		// Allocate a buffer to store source images for the streaming thread to encode.
+		buffer_copy = (uint8_t *)av_malloc( buffer_size );
+		if ( !buffer_copy )
+		{
+			Panic( "Could not allocate buffer_copy" );
+		}
+		buffer_copy_size = buffer_size;
+	}
+	
+	add_timestamp = _add_timestamp;
+	timestamp = _timestamp;
+	buffer_copy_used = buffer_size;
+	memcpy(buffer_copy, buffer, buffer_size);
+	
+	if ( pthread_mutex_unlock( buffer_copy_lock ) != 0 )
+	{
+		Fatal( "EncodeFrame: pthread_mutex_unlock failed." );
+	}
+	
+	if ( streaming_thread == 0 )
+	{
+		Debug( 1, "Starting streaming thread" );
+		
+		// Start a thread for streaming encoded video.
+		if (pthread_create( &streaming_thread, NULL, StreamingThreadCallback, (void*) this) != 0){
+			// Log a fatal error and exit the process.
+			Fatal( "VideoStream failed to create streaming thread." );
+		}
+	}
+	
+	//return ActuallyEncodeFrame( buffer, buffer_size, add_timestamp, timestamp);
+	
+	return _timestamp;
+}
+
+double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size, bool add_timestamp, unsigned int timestamp )
 {
 #ifdef HAVE_LIBSWSCALE
-    static struct SwsContext *img_convert_ctx = 0;
+	static struct SwsContext *img_convert_ctx = 0;
 #endif // HAVE_LIBSWSCALE
-	double pts = 0.0;
 
-
-	if (ost)
-	{
-#if ZM_FFMPEG_048
-		pts = (double)ost->pts.val * ofc->pts_num / ofc->pts_den;
-#else
-		pts = (double)ost->pts.val * ost->time_base.num / ost->time_base.den;
-#endif
-	}
-
-#if ZM_FFMPEG_SVN
 	AVCodecContext *c = ost->codec;
-#else
-	AVCodecContext *c = &ost->codec;
-#endif
+
 	if ( c->pix_fmt != pf )
 	{
 		memcpy( tmp_opicture->data[0], buffer, buffer_size );
 #ifdef HAVE_LIBSWSCALE
-        if ( !img_convert_ctx )
-        {
-            img_convert_ctx = sws_getCachedContext( NULL, c->width, c->height, pf, c->width, c->height, c->pix_fmt, SWS_BICUBIC, NULL, NULL, NULL );
-            if ( !img_convert_ctx )
-                Panic( "Unable to initialise image scaling context" );
-        }
-        sws_scale( img_convert_ctx, tmp_opicture->data, tmp_opicture->linesize, 0, c->height, opicture->data, opicture->linesize );
+		if ( !img_convert_ctx )
+		{
+			img_convert_ctx = sws_getCachedContext( NULL, c->width, c->height, pf, c->width, c->height, c->pix_fmt, SWS_BICUBIC, NULL, NULL, NULL );
+			if ( !img_convert_ctx )
+				Panic( "Unable to initialise image scaling context" );
+		}
+		sws_scale( img_convert_ctx, tmp_opicture->data, tmp_opicture->linesize, 0, c->height, opicture->data, opicture->linesize );
 #else // HAVE_LIBSWSCALE
-		Fatal("swscale is required for MPEG mode");
+		Fatal( "swscale is required for MPEG mode" );
 #endif // HAVE_LIBSWSCALE
 	}
 	else
@@ -419,70 +614,139 @@ double VideoStream::EncodeFrame( const uint8_t *buffer, int buffer_size, bool ad
 		memcpy( opicture->data[0], buffer, buffer_size );
 	}
 	AVFrame *opicture_ptr = opicture;
-
-	int ret = 0;
-	if ( ofc->oformat->flags & AVFMT_RAWPICTURE )
+	
+	AVPacket *pkt = packet_buffers[packet_index];
+	av_init_packet( pkt );
+    int got_packet = 0;
+	if ( of->flags & AVFMT_RAWPICTURE )
 	{
-#if ZM_FFMPEG_048
-		ret = av_write_frame( ofc, ost->index, (uint8_t *)opicture_ptr, sizeof(AVPicture) );
+#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51, 2, 1)
+		pkt->flags |= AV_PKT_FLAG_KEY;
 #else
-		AVPacket pkt;
-		av_init_packet( &pkt );
-
-#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
-		pkt.flags |= AV_PKT_FLAG_KEY;
-#else
-		pkt.flags |= PKT_FLAG_KEY;
+		pkt->flags |= PKT_FLAG_KEY;
 #endif
-		pkt.stream_index = ost->index;
-		pkt.data = (uint8_t *)opicture_ptr;
-		pkt.size = sizeof(AVPicture);
-
-		ret = av_write_frame(ofc, &pkt);
-#endif
+		pkt->stream_index = ost->index;
+		pkt->data = (uint8_t *)opicture_ptr;
+		pkt->size = sizeof (AVPicture);
+        got_packet = 1;
 	}
 	else
 	{
-		if ( add_timestamp )
-			ost->pts.val = timestamp;
-#if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(54, 1, 0) // NEXTIME
-		int out_size = avcodec_encode_video(c, video_outbuf, video_outbuf_size, opicture_ptr);
-#else
-      int out_size = encode_frame(c, opicture_ptr);
+		opicture_ptr->pts = c->frame_number;
+		opicture_ptr->quality = c->global_quality;
 
-#endif
-		if ( out_size > 0 )
+#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(54, 0, 0)
+		int ret = avcodec_encode_video2( c, pkt, opicture_ptr, &got_packet );
+		if ( ret != 0 )
 		{
-#if ZM_FFMPEG_048
-			ret = av_write_frame(ofc, ost->index, video_outbuf, out_size);
+			Fatal( "avcodec_encode_video2 failed with errorcode %d \"%s\"", ret, av_err2str( ret ) );
+		}
 #else
-			AVPacket pkt;
-			av_init_packet(&pkt);
-
-#if ZM_FFMPEG_049
-			pkt.pts = c->coded_frame->pts;
-#else
-			pkt.pts= av_rescale_q( c->coded_frame->pts, c->time_base, ost->time_base );
+		int out_size = avcodec_encode_video( c, video_outbuf, video_outbuf_size, opicture_ptr );
+		got_packet = out_size > 0 ? 1 : 0;
+		pkt->data = got_packet ? video_outbuf : NULL;
+		pkt->size = got_packet ? out_size : 0;
 #endif
-			if(c->coded_frame->key_frame)
+		if ( got_packet )
+		{
+			if ( c->coded_frame->key_frame )
+			{
 #if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
-				pkt.flags |= AV_PKT_FLAG_KEY;
+				pkt->flags |= AV_PKT_FLAG_KEY;
 #else
-				pkt.flags |= PKT_FLAG_KEY;
+				pkt->flags |= PKT_FLAG_KEY;
 #endif
-			pkt.stream_index = ost->index;
-			pkt.data = video_outbuf;
-			pkt.size = out_size;
+			}
 
-			ret = av_write_frame( ofc, &pkt );
-#endif
+			if ( pkt->pts != (int64_t)AV_NOPTS_VALUE )
+			{
+				pkt->pts = av_rescale_q( pkt->pts, c->time_base, ost->time_base );
+			}
+			if ( pkt->dts != (int64_t)AV_NOPTS_VALUE )
+			{
+				pkt->dts = av_rescale_q( pkt->dts, c->time_base, ost->time_base );
+			}
+			pkt->duration = av_rescale_q( pkt->duration, c->time_base, ost->time_base );
+			pkt->stream_index = ost->index;
 		}
 	}
-	if ( ret != 0 )
+    
+	return ( opicture_ptr->pts);
+}
+
+int VideoStream::SendPacket(AVPacket *packet) {
+    
+    int ret = av_write_frame( ofc, packet );
+    if ( ret != 0 )
+    {
+        Fatal( "Error %d while writing video frame: %s", ret, av_err2str( errno ) );
+    }
+    av_free_packet(packet);
+    return ret;
+}
+
+void *VideoStream::StreamingThreadCallback(void *ctx){
+	
+	Debug( 1, "StreamingThreadCallback started" );
+	
+    if (ctx == NULL) return NULL;
+
+    VideoStream* videoStream = reinterpret_cast<VideoStream*>(ctx);
+	
+	const uint64_t nanosecond_multiplier = 1000000000;
+	
+	uint64_t target_interval_ns = nanosecond_multiplier * ( ((double)videoStream->ost->codec->time_base.num) / (videoStream->ost->codec->time_base.den) );
+	uint64_t frame_count = 0;
+	timespec start_time;
+	clock_gettime(CLOCK_MONOTONIC, &start_time);
+	uint64_t start_time_ns = (start_time.tv_sec*nanosecond_multiplier) + start_time.tv_nsec;
+	while(videoStream->do_streaming)
 	{
-		Fatal( "Error %d while writing video frame: %s", ret, strerror( errno ) );
+		timespec current_time;
+		clock_gettime(CLOCK_MONOTONIC, &current_time);
+		uint64_t current_time_ns = (current_time.tv_sec*nanosecond_multiplier) + current_time.tv_nsec;
+		uint64_t target_ns = start_time_ns + (target_interval_ns * frame_count);
+		
+		if ( current_time_ns < target_ns )
+		{
+			// It's not time to render a frame yet.
+			usleep( (target_ns - current_time_ns) * 0.001 );
+		}
+        
+        // By sending the last rendered frame we deliver frames to the client more accurate.
+        // If we're encoding the frame before sending it there will be lag.
+        // Since this lag is not constant the client may skip frames.
+        
+        // Get the last rendered packet.
+        AVPacket *packet = videoStream->packet_buffers[videoStream->packet_index];
+        if (packet->size) {
+            videoStream->SendPacket(packet);
+        }
+        av_free_packet(packet);
+        videoStream->packet_index = videoStream->packet_index ? 0 : 1;
+        
+		// Lock buffer and render next frame.
+        
+		if ( pthread_mutex_lock( videoStream->buffer_copy_lock ) != 0 )
+		{
+			Fatal( "StreamingThreadCallback: pthread_mutex_lock failed." );
+		}
+		
+		if ( videoStream->buffer_copy )
+		{
+			// Encode next frame.
+			videoStream->ActuallyEncodeFrame( videoStream->buffer_copy, videoStream->buffer_copy_used, videoStream->add_timestamp, videoStream->timestamp );
+		}
+	
+		if ( pthread_mutex_unlock( videoStream->buffer_copy_lock ) != 0 )
+		{
+			Fatal( "StreamingThreadCallback: pthread_mutex_unlock failed." );
+		}
+		
+		frame_count++;
 	}
-	return( pts );
+	
+	return 0;
 }
 
 #endif // HAVE_LIBAVCODEC

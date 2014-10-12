@@ -374,64 +374,11 @@ Monitor::Monitor(
              + 64; /* Padding used to permit aligning the images buffer to 16 byte boundary */
 
     Debug( 1, "mem.size=%d", mem_size );
-#if ZM_MEM_MAPPED
-    snprintf( mem_file, sizeof(mem_file), "%s/zm.mmap.%d", config.path_map, id );
-    map_fd = open( mem_file, O_RDWR|O_CREAT, (mode_t)0600 );
-    if ( map_fd < 0 )
-        Fatal( "Can't open memory map file %s, probably not enough space free: %s", mem_file, strerror(errno) );
-        struct stat map_stat;
-    if ( fstat( map_fd, &map_stat ) < 0 )
-        Fatal( "Can't stat memory map file %s: %s", mem_file, strerror(errno) );
-    if ( map_stat.st_size != mem_size && purpose == CAPTURE )
-    {
-        // Allocate the size
-        if ( ftruncate( map_fd, mem_size ) < 0 )
-            Fatal( "Can't extend memory map file %s to %d bytes: %s", mem_file, mem_size, strerror(errno) );
-    }
-    else if ( map_stat.st_size != mem_size )
-    {
-        Error( "Got unexpected memory map file size %ld, expected %d", map_stat.st_size, mem_size );
-    }
+	mem_ptr = NULL;
 
-    mem_ptr = (unsigned char *)mmap( NULL, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_LOCKED, map_fd, 0 );
-    if ( mem_ptr == MAP_FAILED )
-        if ( errno == EAGAIN )
-        {
-            Debug( 1, "Unable to map file %s (%d bytes) to locked memory, trying unlocked", mem_file, mem_size );
-            mem_ptr = (unsigned char *)mmap( NULL, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED, map_fd, 0 );
-        }
-    if ( mem_ptr == MAP_FAILED )
-        Fatal( "Can't map file %s (%d bytes) to memory: %s(%d)", mem_file, mem_size, strerror(errno), errno );
-#else // ZM_MEM_MAPPED
-    shm_id = shmget( (config.shm_key&0xffff0000)|id, mem_size, IPC_CREAT|0700 );
-    if ( shm_id < 0 )
-    {
-        Error( "Can't shmget, probably not enough shared memory space free: %s", strerror(errno));
-        exit( -1 );
-    }
-    mem_ptr = (unsigned char *)shmat( shm_id, 0, 0 );
-    if ( mem_ptr < 0 )
-    {
-        Error( "Can't shmat: %s", strerror(errno));
-        exit( -1 );
-    }
-#endif // ZM_MEM_MAPPED
-
-    shared_data = (SharedData *)mem_ptr;
-    trigger_data = (TriggerData *)((char *)shared_data + sizeof(SharedData));
-    video_store_data = (VideoStoreData *)((char *)trigger_data + sizeof(TriggerData));
-    struct timeval *shared_timestamps = (struct timeval *)((char *)video_store_data + sizeof(VideoStoreData));
-    unsigned char *shared_images = (unsigned char *)((char *)shared_timestamps + (image_buffer_count*sizeof(struct timeval)));
-    
-    if(((unsigned long)shared_images % 16) != 0) {
-	/* Align images buffer to nearest 16 byte boundary */
-	Debug(3,"Aligning shared memory images to the next 16 byte boundary");
-	shared_images = (uint8_t*)((unsigned long)shared_images + (16 - ((unsigned long)shared_images % 16)));
-    }
-    
-
-    if ( purpose == CAPTURE )
-    {
+    if ( purpose == CAPTURE ) {
+		this->connect();
+		if ( ! mem_ptr ) exit(-1);
         memset( mem_ptr, 0, mem_size );
         shared_data->size = sizeof(SharedData);
         shared_data->active = enabled;
@@ -461,17 +408,16 @@ Monitor::Monitor(
         snprintf(video_store_data->event_directory, sizeof(video_store_data->event_directory), "nothing");
         video_store_data->size = sizeof(VideoStoreData);
         //video_store_data->frameNumber = 0;
-    }
-    else if ( purpose == ANALYSIS )
-    {
+    } else if ( purpose == ANALYSIS ) {
+		this->connect();
+		if ( ! mem_ptr ) exit(-1);
         shared_data->state = IDLE;
         shared_data->last_read_time = 0;
         shared_data->alarm_x = -1;
         shared_data->alarm_y = -1;
     }
-    
 
-    if ( !shared_data->valid )
+    if ( ( ! mem_ptr ) || ! shared_data->valid )
     {
         if ( purpose != QUERY )
         {
@@ -484,22 +430,9 @@ Monitor::Monitor(
         }
     }
 
-    image_buffer = new Snapshot[image_buffer_count];
-    for ( int i = 0; i < image_buffer_count; i++ )
-    {
-        image_buffer[i].timestamp = &(shared_timestamps[i]);
-        image_buffer[i].image = new Image( width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*camera->ImageSize()]) );
-        image_buffer[i].image->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
-    }
-    if ( (deinterlacing & 0xff) == 4)
-    {
-        /* Four field motion adaptive deinterlacing in use */
-        /* Allocate a buffer for the next image */
-        next_buffer.image = new Image( width, height, camera->Colours(), camera->SubpixelOrder());
-        next_buffer.timestamp = new struct timeval;
-    }
-    if ( !n_zones )
-    {
+	// Will this not happen everytime a monitor is instantiated?  Seems like all the calls to the Monitor constructor pass a zero for n_zones, then load zones after..
+    if ( !n_zones ) {
+		Debug( 1, "Monitor %s has no zones, adding one.", name );
         n_zones = 1;
         zones = new Zone *[1];
         Coord coords[4] = { Coord( 0, 0 ), Coord( width-1, 0 ), Coord( width-1, height-1 ), Coord( 0, height-1 ) };
@@ -564,22 +497,98 @@ Monitor::Monitor(
     }
 }
 
-Monitor::~Monitor()
-{
-    if ( event )
-        Info( "%s: %03d - Closing event %d, shutting down", name, image_count, event->Id() );
-    closeEvent();
+bool Monitor::connect() {
+#if ZM_MEM_MAPPED
+    snprintf( mem_file, sizeof(mem_file), "%s/zm.mmap.%d", config.path_map, id );
+    map_fd = open( mem_file, O_RDWR|O_CREAT, (mode_t)0600 );
+    if ( map_fd < 0 )
+        Fatal( "Can't open memory map file %s, probably not enough space free: %s", mem_file, strerror(errno) );
 
-    if ( (deinterlacing & 0xff) == 4)
-    {
-        delete next_buffer.image;
-        delete next_buffer.timestamp;
+    struct stat map_stat;
+    if ( fstat( map_fd, &map_stat ) < 0 )
+        Fatal( "Can't stat memory map file %s: %s, is the zmc process for this monitor running?", mem_file, strerror(errno) );
+    if ( map_stat.st_size != mem_size && purpose == CAPTURE ) {
+        // Allocate the size
+        if ( ftruncate( map_fd, mem_size ) < 0 ) {
+            Fatal( "Can't extend memory map file %s to %d bytes: %s", mem_file, mem_size, strerror(errno) );
+		}
+    } else if ( map_stat.st_size == 0 ) {
+        Error( "Got empty memory map file size %ld, is the zmc process for this monitor running?", map_stat.st_size, mem_size );
+		return false;
+    } else if ( map_stat.st_size != mem_size ) {
+        Error( "Got unexpected memory map file size %ld, expected %d", map_stat.st_size, mem_size );
+		return false;
+	} else {
+		mem_ptr = (unsigned char *)mmap( NULL, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_LOCKED, map_fd, 0 );
+		if ( mem_ptr == MAP_FAILED ) {
+			if ( errno == EAGAIN ) {
+				Debug( 1, "Unable to map file %s (%d bytes) to locked memory, trying unlocked", mem_file, mem_size );
+				mem_ptr = (unsigned char *)mmap( NULL, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED, map_fd, 0 );
+				Debug( 1, "Mapped file %s (%d bytes) to locked memory, unlocked", mem_file, mem_size );
+			}
+		}
+		if ( mem_ptr == MAP_FAILED )
+			Fatal( "Can't map file %s (%d bytes) to memory: %s(%d)", mem_file, mem_size, strerror(errno), errno );
     }
+#else // ZM_MEM_MAPPED
+    shm_id = shmget( (config.shm_key&0xffff0000)|id, mem_size, IPC_CREAT|0700 );
+    if ( shm_id < 0 ) {
+        Error( "Can't shmget, probably not enough shared memory space free: %s", strerror(errno));
+        exit( -1 );
+    }
+    mem_ptr = (unsigned char *)shmat( shm_id, 0, 0 );
+    if ( mem_ptr < 0 )
+    {
+        Error( "Can't shmat: %s", strerror(errno));
+        exit( -1 );
+    }
+#endif // ZM_MEM_MAPPED
+    shared_data = (SharedData *)mem_ptr;
+    trigger_data = (TriggerData *)((char *)shared_data + sizeof(SharedData));
+    struct timeval *shared_timestamps = (struct timeval *)((char *)trigger_data + sizeof(TriggerData));
+    unsigned char *shared_images = (unsigned char *)((char *)shared_timestamps + (image_buffer_count*sizeof(struct timeval)));
+    
+    if(((unsigned long)shared_images % 16) != 0) {
+		/* Align images buffer to nearest 16 byte boundary */
+		Debug(3,"Aligning shared memory images to the next 16 byte boundary");
+		shared_images = (uint8_t*)((unsigned long)shared_images + (16 - ((unsigned long)shared_images % 16)));
+    }
+    image_buffer = new Snapshot[image_buffer_count];
     for ( int i = 0; i < image_buffer_count; i++ )
     {
-        delete image_buffer[i].image;
+        image_buffer[i].timestamp = &(shared_timestamps[i]);
+        image_buffer[i].image = new Image( width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*camera->ImageSize()]) );
+        image_buffer[i].image->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
     }
-    delete[] image_buffer;
+    if ( (deinterlacing & 0xff) == 4)
+    {
+        /* Four field motion adaptive deinterlacing in use */
+        /* Allocate a buffer for the next image */
+        next_buffer.image = new Image( width, height, camera->Colours(), camera->SubpixelOrder());
+        next_buffer.timestamp = new struct timeval;
+    }
+	return true;
+}
+
+Monitor::~Monitor()
+{
+	if ( mem_ptr ) {
+		if ( event )
+			Info( "%s: %03d - Closing event %d, shutting down", name, image_count, event->Id() );
+		closeEvent();
+
+		if ( (deinterlacing & 0xff) == 4)
+		{
+			delete next_buffer.image;
+			delete next_buffer.timestamp;
+		}
+		for ( int i = 0; i < image_buffer_count; i++ )
+		{
+			delete image_buffer[i].image;
+		}
+		delete[] image_buffer;
+
+	} // end if mem_ptr
 
     for ( int i = 0; i < n_zones; i++ )
     {
@@ -589,40 +598,39 @@ Monitor::~Monitor()
 
     delete camera;
 
-    if ( purpose == ANALYSIS )
-    {
-        shared_data->state = state = IDLE;
-        shared_data->last_read_index = image_buffer_count;
-        shared_data->last_read_time = 0;
-    }
-    else if ( purpose == CAPTURE )
-    {
-        shared_data->valid = false;
-        memset( mem_ptr, 0, mem_size );
-    }
+	if ( mem_ptr ) {
+		if ( purpose == ANALYSIS )
+		{
+			shared_data->state = state = IDLE;
+			shared_data->last_read_index = image_buffer_count;
+			shared_data->last_read_time = 0;
+		}
+		else if ( purpose == CAPTURE )
+		{
+			shared_data->valid = false;
+			memset( mem_ptr, 0, mem_size );
+		}
 
 #if ZM_MEM_MAPPED
-    if ( msync( mem_ptr, mem_size, MS_SYNC ) < 0 )
-        Error( "Can't msync: %s", strerror(errno) );
-    if ( munmap( mem_ptr, mem_size ) < 0 )
-        Fatal( "Can't munmap: %s", strerror(errno) );
-    close( map_fd );
+		if ( msync( mem_ptr, mem_size, MS_SYNC ) < 0 )
+			Error( "Can't msync: %s", strerror(errno) );
+		if ( munmap( mem_ptr, mem_size ) < 0 )
+			Fatal( "Can't munmap: %s", strerror(errno) );
+		close( map_fd );
 #else // ZM_MEM_MAPPED
-    struct shmid_ds shm_data;
-    if ( shmctl( shm_id, IPC_STAT, &shm_data ) < 0 )
-    {
-        Error( "Can't shmctl: %s", strerror(errno) );
-        exit( -1 );
-    }
-    if ( shm_data.shm_nattch <= 1 )
-    {
-        if ( shmctl( shm_id, IPC_RMID, 0 ) < 0 )
-        {
-            Error( "Can't shmctl: %s", strerror(errno) );
-            exit( -1 );
-        }
-    }
+		struct shmid_ds shm_data;
+		if ( shmctl( shm_id, IPC_STAT, &shm_data ) < 0 ) {
+			Error( "Can't shmctl: %s", strerror(errno) );
+			exit( -1 );
+		}
+		if ( shm_data.shm_nattch <= 1 ) {
+			if ( shmctl( shm_id, IPC_RMID, 0 ) < 0 ) {
+				Error( "Can't shmctl: %s", strerror(errno) );
+				exit( -1 );
+			}
+		}
 #endif // ZM_MEM_MAPPED
+	} // end if mem_ptr
 }
 
 void Monitor::AddZones( int p_n_zones, Zone *p_zones[] )
@@ -1403,7 +1411,6 @@ bool Monitor::Analyse()
                         snprintf(video_store_data->event_directory, sizeof(video_store_data->event_directory), "%s", event->getEventDirectory());
                         video_store_data->recording = true;
                         
-                        
                         Info( "%s: %03d - Opening new event %d, section start", name, image_count, event->Id() );
 
                         /* To prevent cancelling out an existing alert\prealarm\alarm state */
@@ -1411,7 +1418,30 @@ bool Monitor::Analyse()
                         {
                             shared_data->state = state = TAPE;
                         }
-                        
+
+                        //if ( config.overlap_timed_events )
+                        if ( false )
+                        {
+                            int pre_index = ((index+image_buffer_count)-pre_event_count)%image_buffer_count;
+                            int pre_event_images = pre_event_count;
+                            while ( pre_event_images && !image_buffer[pre_index].timestamp->tv_sec )
+                            {
+                                pre_index = (pre_index+1)%image_buffer_count;
+                                pre_event_images--;
+                            }
+
+                            if ( pre_event_images )
+                            {
+                                for ( int i = 0; i < pre_event_images; i++ )
+                                {
+                                    timestamps[i] = image_buffer[pre_index].timestamp;
+                                    images[i] = image_buffer[pre_index].image;
+
+                                    pre_index = (pre_index+1)%image_buffer_count;
+                                }
+                                event->AddFrames( pre_event_images, images, timestamps );
+                            }
+                        }
                     }
                 }
                 if ( score )
@@ -1595,7 +1625,11 @@ bool Monitor::Analyse()
                                     event->AddFrame( snap_image, *timestamp );
                                 }
                             }
-
+                            else
+                            {
+                                event->AddFrame( snap_image, *timestamp );
+                            }
+                        }
                     }
                 }
             }
@@ -1831,11 +1865,11 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
     static char sql[ZM_SQL_MED_BUFSIZ];
     if ( !device[0] )
     {
-        strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Method, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Function != 'None' and Type = 'Local' order by Device, Channel", sizeof(sql) );
+        strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, Method, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Function != 'None' and Type = 'Local' order by Device, Channel", sizeof(sql) );
     }
     else
     {
-        snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Method, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Function != 'None' and Type = 'Local' and Device = '%s' order by Channel", device );
+        snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, Method, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Function != 'None' and Type = 'Local' and Device = '%s' order by Channel", device );
     }
     if ( mysql_query( &dbconn, sql ) )
     {
@@ -1866,6 +1900,26 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
         const char *device = dbrow[col]; col++;
         int channel = atoi(dbrow[col]); col++;
         int format = atoi(dbrow[col]); col++;
+		bool v4l_multi_buffer;
+		if ( dbrow[col] ) {
+			if (*dbrow[col] == '0' ) {
+				v4l_multi_buffer = false;
+			} else if ( *dbrow[col] == '1' ) {
+				v4l_multi_buffer = true;
+			} 
+		} else {
+			v4l_multi_buffer = config.v4l_multi_buffer;
+		}
+		col++;
+		
+		int v4l_captures_per_frame = 0;
+		if ( dbrow[col] ) {
+			 v4l_captures_per_frame = atoi(dbrow[col]);
+		} else {
+			v4l_captures_per_frame = config.captures_per_frame;
+		}
+Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
+		col++;
         const char *method = dbrow[col]; col++;
 
         int width = atoi(dbrow[col]); col++;
@@ -1918,6 +1972,8 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
             device,
             channel,
             format,
+			v4l_multi_buffer,
+			v4l_captures_per_frame,
             method,
             cam_width,
             cam_height,
@@ -2434,7 +2490,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
 Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 {
     static char sql[ZM_SQL_MED_BUFSIZ];
-    snprintf( sql, sizeof(sql), "select Id, Name, Type, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, Protocol, Method, Host, Port, Path, Options, User, Pass, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Id = %d", id );
+    snprintf( sql, sizeof(sql), "select Id, Name, Type, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, Protocol, Method, Host, Port, Path, Options, User, Pass, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Id = %d", id );
     if ( mysql_query( &dbconn, sql ) )
     {
         Error( "Can't run query: %s", mysql_error( &dbconn ) );
@@ -2464,6 +2520,27 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
         std::string device = dbrow[col]; col++;
         int channel = atoi(dbrow[col]); col++;
         int format = atoi(dbrow[col]); col++;
+
+        bool v4l_multi_buffer;
+        if ( dbrow[col] ) {
+            if (*dbrow[col] == '0' ) {
+                v4l_multi_buffer = false;
+            } else if ( *dbrow[col] == '1' ) {
+                v4l_multi_buffer = true;
+            }
+        } else {
+            v4l_multi_buffer = config.v4l_multi_buffer;
+        }
+        col++;
+
+        int v4l_captures_per_frame = 0;
+        if ( dbrow[col] ) {
+             v4l_captures_per_frame = atoi(dbrow[col]);
+        } else {
+            v4l_captures_per_frame = config.captures_per_frame;
+        }
+Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
+        col++;
 
         std::string protocol = dbrow[col]; col++;
         std::string method = dbrow[col]; col++;
@@ -2527,6 +2604,8 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
                 device.c_str(),
                 channel,
                 format,
+				v4l_multi_buffer,
+				v4l_captures_per_frame,
                 method,
                 cam_width,
                 cam_height,

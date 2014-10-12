@@ -146,7 +146,7 @@ function exportEventFrames( $event, $exportDetail, $exportImages )
 {
     global $SLANG;
 
-    $frames = dbFetchAll( 'SELECT *, unix_timestamp(TimeStamp) AS UnixTimeStamp FROM Frames WHERE EventID = ? ORDER BY FrameId', NULL, ARRAY(event['Id']) );
+    $frames = dbFetchAll( 'SELECT *, unix_timestamp(TimeStamp) AS UnixTimeStamp FROM Frames WHERE EventID = ? ORDER BY FrameId', NULL, ARRAY( $event['Id'] ) );
 
     ob_start();
     exportHeader( $SLANG['Frames']." ".$event['Id'] );

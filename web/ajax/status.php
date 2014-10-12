@@ -248,14 +248,13 @@ function collectData()
                 $index = 0;
                 $where = array();
 				$values = array();
-                foreach( $entitySpec['selector'] as $selector )
-                {
+                foreach( $entitySpec['selector'] as $selector ) {
                     if ( is_array( $selector ) ) {
                         $where[] = $selector['selector'].' = ?';
-						$values[] = $id[$index];
+						$values[] = validInt($id[$index]);
                     } else {
                         $where[] = $selector.' = ?';
-						$values[] = $id[$index];
+						$values[] = validInt($id[$index]);
 					}
                     $index++;
                 }
@@ -268,9 +267,12 @@ function collectData()
             if ( !empty($entitySpec['limit']) )
                 $limit = $entitySpec['limit'];
             elseif ( !empty($_REQUEST['count']) )
-                $limit = $_REQUEST['count'];
-            if ( !empty( $limit ) )
-                $sql .= " limit ".$limit;
+                $limit = validInt($_REQUEST['count']);
+			$limit_offset="";
+			if ( !empty($_REQUEST['offset']) )
+				$limit_offset = validInt($_REQUEST['offset']) . ", ";
+			if ( !empty( $limit ) )
+                $sql .= " limit ".$limit_offset.$limit;
             if ( isset($limit) && $limit == 1 ) {
                 if ( $sqlData = dbFetchOne( $sql, NULL, $values ) ) {
                     foreach ( $postFuncs as $element=>$func )

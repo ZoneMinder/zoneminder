@@ -1611,23 +1611,19 @@ bool Monitor::Analyse()
                     else if ( state == TAPE )
                     {
                         //Video Storage: activate only for supported cameras. Event::AddFrame knows whether or not we are recording video and saves frames accordingly
-                        if(config.use_mkv_storage && camera->SupportsNativeVideo()){
+                        if(config.use_mkv_storage && camera->SupportsNativeVideo())
+                        {
                             video_store_data->recording = true;
                         }
-                            if ( !(image_count%(frame_skip+1)) )
+                        if ( !(image_count%(frame_skip+1)) )
+                        {
+                        	if ( config.bulk_frame_interval > 1 )
                             {
-                                if ( config.bulk_frame_interval > 1 )
-                                {
-                                    event->AddFrame( snap_image, *timestamp, (event->Frames()<pre_event_count?0:-1) );
-                                }
-                                else
-                                {
-                                    event->AddFrame( snap_image, *timestamp );
-                                }
+                        		event->AddFrame( snap_image, *timestamp, (event->Frames()<pre_event_count?0:-1) );
                             }
                             else
                             {
-                                event->AddFrame( snap_image, *timestamp );
+                            	event->AddFrame( snap_image, *timestamp );
                             }
                         }
                     }

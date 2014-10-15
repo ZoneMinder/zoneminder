@@ -433,6 +433,7 @@ VideoStream::VideoStream( const char *in_filename, const char *in_format, int bi
 		codec_and_format = new char[length+1];;
 		strcpy( codec_and_format, format );
 		format = codec_and_format;
+		codec_name = NULL;
 		char *f = strchr(codec_and_format, '/');
 		if (f != NULL)
 		{

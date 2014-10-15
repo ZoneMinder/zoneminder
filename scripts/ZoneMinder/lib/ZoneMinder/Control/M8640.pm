@@ -21,6 +21,11 @@
 #
 # This module contains the implementation of the M8640 API camera control
 # protocol
+# URL's are as follows:
+# /cgi-bin/getLed.cgi
+# /cgi-bin/setGPIO.cgi command:6, duration: 0|1 for led on/off
+# /cgi-bin/reboot.cgi
+# /cgi-bin/restore.cgi
 #
 package ZoneMinder::Control::M8640;
 

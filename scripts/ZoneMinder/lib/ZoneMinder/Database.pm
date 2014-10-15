@@ -90,6 +90,7 @@ sub zmDbConnect( ;$ )
 		    $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}.";host=".$Config{ZM_DB_HOST}, $Config{ZM_DB_USER}, $Config{ZM_DB_PASS} );
         }
         $dbh->trace( 0 );
+        $dbh->{mysql_auto_reconnect} = 1;
 	}
 	return( $dbh );
 }

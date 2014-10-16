@@ -13,28 +13,9 @@ sub __get_attr_class {
     return $XML_ATTRIBUTE_CLASS;
 }
 
-use Class::Std::Fast::Storable constructor => 'none';
-use base qw(SOAP::WSDL::XSD::Typelib::ComplexType);
-
-Class::Std::initialize();
-
-{ # BLOCK to scope variables
-
-
-__PACKAGE__->_factory(
-    [ qw(
-    ) ],
-    {
-    },
-    {
-    },
-    {
-
-    }
-);
-
-} # end BLOCK
-
+use base qw(
+    SOAP::WSDL::XSD::Typelib::ComplexType
+    SOAP::WSDL::XSD::Typelib::Builtin::string);
 
 
 

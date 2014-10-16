@@ -24,6 +24,11 @@
 # This module contains the implementation of the ONVIF event watcher
 #
 
+## SETUP:
+##    chmod g+rw /dev/shm/zm*
+##    chgrp users /dev/shm/zm*
+##    systemctl stop iptables
+
 use ZoneMinder;
 use DBI;
 
@@ -40,6 +45,7 @@ use SOAP::Transport::HTTP;
 
 use Time::HiRes qw( usleep );
 use Data::Dump qw(dump);
+use Carp;
 
 # ========================================================================
 # Constants
@@ -53,17 +59,18 @@ use constant MONITOR_RELOAD_INTERVAL => 300;
 # Globals
 
 my $verbose = 0;
-my $client;
 my $daemon_pid;
 my $dbh;
 
 my %monitors;
 my $monitor_reload_time = 0;
 
+# this does not work on all architectures
 my @EXTRA_SOCK_OPTS = (
     'ReuseAddr' => '1',
     'ReusePort' => '1'
 );
+
 
 # =========================================================================
 # signal handling
@@ -71,6 +78,7 @@ my @EXTRA_SOCK_OPTS = (
 sub handler { # 1st argument is signal name
   my($sig) = @_;
   print "Caught a SIG$sig -- shutting down\n";
+  confess();
   if(defined $daemon_pid){
     kill($daemon_pid);
   }
@@ -132,7 +140,8 @@ sub loadMonitors
 
 	my %new_monitors = ();
 
-	my $sql = "select * from Monitors where find_in_set( Function, 'Modect,Mocord,Nodect' ) and ConfigType='ONVIF'";
+#	my $sql = "select * from Monitors where find_in_set( Function, 'Modect,Mocord,Nodect' )>0 and ConfigType='ONVIF'";
+	my $sql = "select * from Monitors where ConfigType='ONVIF'";
 	my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
 	my $res = $sth->execute() or Fatal( "Can't execute: ".$sth->errstr() );
 	while( my $monitor = $sth->fetchrow_hashref() )
@@ -155,11 +164,43 @@ sub loadMonitors
 		{
 			$monitor->{LastEvent} = zmGetLastEvent( $monitor );
 		}
+    
+    print "URL: " .$monitor->{ConfigURL}. "\n";
+    
+    ## set up ONVIF client for monitor
+    next if( ! $monitor->{ConfigURL} );
+
+    my $soap_version;
+    if($monitor->{ConfigOptions} =~ /SOAP1([12])/) {
+      $soap_version = "1.$1";
+    }
+    else {
+      $soap_version = "1.1";
+    }
+    my $client = ONVIF::Client->new( { 
+      'url_svc_device' => $monitor->{ConfigURL}, 
+      'soap_version' => $soap_version } );
+
+    if($monitor->{User}) {
+      $client->set_credentials($monitor->{User}, $monitor->{Pass}, 0);
+    }
+    
+    $client->create_services();
+    $monitor->{onvif_client} = $client;
+
 		$new_monitors{$monitor->{Id}} = $monitor;
 	}
 	%monitors = %new_monitors;
 }
 
+sub freeMonitors
+{
+	foreach my $monitor ( values(%monitors) )
+  {
+    # Free up any used memory handle
+    zmMemInvalidate( $monitor );
+  }
+}
 
 # =========================================================================
 ### (experimental) send email
@@ -271,15 +312,9 @@ require WSNotification::Elements::Subscribe;
 
 sub subscribe
 {
-  my ($localaddr, $topic_str, $duration) = @_;
-  
-#  my $topic = WSNotification::Types::TopicExpressionType->new( 
-#    xmlattr => { 
-#      Dialect => "http://www.onvif.org/ver10/tev/topicExpression/ConcreteSet",
-#    },
-#    value => $topic_str
-#  );
+  my ($client, $localaddr, $topic_str, $duration) = @_;
 
+# for debugging:  
 #  $client->get_endpoint('events')->no_dispatch(1);
 
   my $result = $client->get_endpoint('events')->Subscribe( {
@@ -290,16 +325,16 @@ sub subscribe
 #      Metadata =>  { # WSNotification::Types::MetadataType
 #      },
     },
-#    Filter =>  { # WSNotification::Types::FilterType
-#       TopicExpression => { # WSNotification::Types::TopicExpressionType
-#         xmlattr => { 
-#           Dialect => "http://www.onvif.org/ver10/tev/topicExpression/ConcreteSet",
-#        },
-#        value => "tns1:RuleEngine//.",
-#      },
+    Filter =>  { # WSNotification::Types::FilterType
+       TopicExpression => { # WSNotification::Types::TopicExpressionType
+         xmlattr => { 
+           Dialect => "http://www.onvif.org/ver10/tev/topicExpression/ConcreteSet",
+        },
+        value => $topic_str,
+      },
 #      MessageContent =>  { # WSNotification::Types::QueryExpressionType
 #      },      
-#    },
+    },
     InitialTerminationTime => xs_duration($duration), # AbsoluteOrRelativeTimeType
 #    SubscriptionPolicy =>  {
 #    },
@@ -346,16 +381,12 @@ sub events
 {
   my ($localip, $localport) = @_;
 
-  Info( "Trigger daemon starting\n" );
+  Info( "ONVIF Trigger daemon starting\n" );
 
   if(!defined $localip) {
     $localip = '192.168.0.2';
     $localport = '0';
   }
-
-
-  
-    my $event_svc = $client->get_endpoint('events');
 
     # re-use local address/port
 #   @LWP::Protocol::http::EXTRA_SOCK_OPTS =
@@ -378,39 +409,52 @@ sub events
     $port =~ s|/.*$||;
     $localaddr = $localip . ':' . $port;
     
-    
-#    ReuseAddr, ReusePort
-    
-#    print "Contact to SOAP server at ", $daemon->url, "\n";
-    print "Server using local address " . $localaddr . "\n";
+    print "Daemon uses local address " . $localaddr . "\n";
 
     # This value is passed as the LocalAddr argument to IO::Socket::INET.
     my $transport = SOAP::Transport::HTTP::Client->new( 
-      'local_address' => $localaddr );
-    
-#    dump( $transport );
-    
-    $event_svc->set_transport($transport);
-    print "Sending from local address " . 
-      $event_svc->get_transport()->local_address . "\n";
+#      'local_address' => $localaddr );     ## REUSE port
+       'local_address' => $localip );    
 
-#print xs_duration(89);
-#exit(1);
-
-    my $submgr_svc = subscribe($localaddr, 'tns1:RuleEngine//.', SUBSCRIPTION_RENEW_INTERVAL);
     
-    if(!$submgr_svc) {
-      exit;
+    loadMonitors();
+    
+    foreach $monitor (values(%monitors)) {
+    
+      my $client = $monitor->{onvif_client};
+      my $event_svc = $client->get_endpoint('events');
+      $event_svc->set_transport($transport);
+#      print "Sending from local address " . 
+#        $event_svc->get_transport()->local_address . "\n";
+
+      my $submgr_svc = subscribe($client, $localaddr, 'tns1:RuleEngine//.', SUBSCRIPTION_RENEW_INTERVAL);
+    
+      if(!$submgr_svc) {
+        print "Subscription failed\n";
+        next;
+      }
+    
+      $monitor->{submgr_svc} = $submgr_svc;
     }
-
+    
     while(1) {
       print "Sleeping for " . (SUBSCRIPTION_RENEW_INTERVAL - SUBSCRIPTION_RENEW_EARLY) . " seconds\n";
       sleep(SUBSCRIPTION_RENEW_INTERVAL - SUBSCRIPTION_RENEW_EARLY);
       print "Renewal\n";
-      renew($submgr_svc, SUBSCRIPTION_RENEW_INTERVAL + SUBSCRIPTION_RENEW_EARLY);
+      foreach $monitor (%monitors) {
+        if(defined $monitor->{submgr_svc}) {
+          renew($monitor->{submgr_svc}, SUBSCRIPTION_RENEW_INTERVAL + SUBSCRIPTION_RENEW_EARLY);
+        }
+      }
     };
     
-    unsubscribe($submgr_svc);
+    Info( "ONVIF Trigger daemon exited\n" );
+    
+    foreach $monitor (values(%monitors)) {
+      if(defined $monitor->{submgr_svc}) {
+         unsubscribe($monitor->{submgr_svc});
+      }
+    }
 }
 
 # =========================================================================
@@ -462,47 +506,26 @@ sub metadata
 sub HELP_MESSAGE
 {
   my ($fh, $pkg, $ver, $opts) = @_;
-  print $fh "Usage: " . __FILE__ . " [-v] <command> <device URI> <soap version> <user> <password>\n";
+  print $fh "Usage: " . __FILE__ . " <parameters>\n";
   print $fh  <<EOF
-  Commands are:
-    metadata  - print some of the device's configuration settings
-    events    - listen for events
-  Common parameters:
-    -v        - increase verbosity
-  Device access parameters (for all commands):
-    device URL    - the ONVIF Device service URL
-    soap version  - SOAP version (1.1 or 1.2)
-    user          - username of a user with access to the device
-    password      - password for the user
+  Parameters:
+    -v              - increase verbosity
+    -l|local-addr   - listen on address (host[:port])
 EOF
 }
 
 # ========================================================================
 # MAIN
   
-my $action;
-my $url_svc_device;
-my $soap_version;
-my ($username, $password);
 my ($localaddr, $localip, $localport);
 
 logInit();
 logSetSignal();
 
 if(!GetOptions(
-      'command|c=s'       => \$action,
-      'device|d=s'        => \$url_svc_device,
-      'soap-version|s=s'  => \$soap_version,
-      'username|u=s'      => \$username,
-      'password|p=s'      => \$password,
       'local-addr|l=s'    => \$localaddr,
       'verbose|v=s'       => \$verbose,
       )) {
-  HELP_MESSAGE(\*STDOUT);
-  exit(1);
-}
-
-if(!defined $action) {
   HELP_MESSAGE(\*STDOUT);
   exit(1);
 }
@@ -520,24 +543,5 @@ if(defined $localaddr) {
 {
   initZm();
 
-# all actions need URI and credentials
-  $client = ONVIF::Client->new( { 
-      'url_svc_device' => $url_svc_device, 
-      'soap_version' => $soap_version } );
-
-  $client->set_credentials($username, $password, 1);
-  
-  $client->create_services();
-  
-  if($action eq "metadata") {
-    metadata();
-  }
-  elsif($action eq "events") {
-    
-    events($localip, $localport);
-  }
-  else {
-    print("Error: Unknown command\"$action\"");
-    exit(1);
-  }
+  events($localip, $localport);
 }

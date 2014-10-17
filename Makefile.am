@@ -9,6 +9,7 @@ sysconf_DATA = \
 
 SUBDIRS = \
 	src \
+	web \
 	scripts \
 	db \
 	misc

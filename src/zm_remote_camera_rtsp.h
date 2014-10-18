@@ -28,8 +28,9 @@
 #include "zm_ffmpeg.h"
 
 //
-// Class representing 'remote' cameras, i.e. those which are
-// accessed over a network connection.
+// Class representing 'rtsp' cameras, i.e. those which are
+// accessed over a network connection using rtsp protocol
+// (Real Time Streaming Protocol)
 //
 class RemoteCameraRtsp : public RemoteCamera
 {
@@ -41,6 +42,8 @@ protected:
 	int rtcp_sd;
 
 	Buffer buffer;
+    Buffer lastSps;
+    Buffer lastPps;
 
     RtspThread::RtspMethod method;
 

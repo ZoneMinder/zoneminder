@@ -49,7 +49,7 @@ sub Usage
     print( "
 Usage: zmcontrol.pl --id <monitor_id> --command=<command> <various options>
 ");
-    exit( -1 );
+    exit();
 }
 
 logInit();
@@ -88,7 +88,7 @@ if ( !$id || !$options{command} )
 
 Debug( $arg_string );
 
-my $sock_file = ZM_PATH_SOCKS.'/zmcontrol-'.$id.'.sock';
+my $sock_file = $Config{ZM_PATH_SOCKS}.'/zmcontrol-'.$id.'.sock';
 
 socket( CLIENT, PF_UNIX, SOCK_STREAM, 0 ) or Fatal( "Can't open socket: $!" );
 

@@ -24,6 +24,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <errno.h>
+#include <netdb.h>
 
 RemoteCameraHttp::RemoteCameraHttp( int p_id, const std::string &p_method, const std::string &p_host, const std::string &p_port, const std::string &p_path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) :
     RemoteCamera( p_id, "http", p_host, p_port, p_path, p_width, p_height, p_colours, p_brightness, p_contrast, p_hue, p_colour, p_capture )
@@ -87,22 +88,34 @@ void RemoteCameraHttp::Initialise()
 
 int RemoteCameraHttp::Connect()
 {
-    if ( sd < 0 )
+    struct addrinfo *p;
+
+    for(p = hp; p != NULL; p = p->ai_next)
     {
-        sd = socket( hp->h_addrtype, SOCK_STREAM, 0 );
+        sd = socket( p->ai_family, p->ai_socktype, p->ai_protocol );
         if ( sd < 0 )
         {
-            Error( "Can't create socket: %s", strerror(errno) );
-            return( -1 );
+            Warning("Can't create socket: %s", strerror(errno) );
+            continue;
         }
 
-        if ( connect( sd, (struct sockaddr *)&sa, sizeof(sa) ) < 0 )
+        if ( connect( sd, p->ai_addr, p->ai_addrlen ) < 0 )
         {
-            Error( "Can't connect to remote camera: %s", strerror(errno) );
-            Disconnect();
-            return( -1 );
+            close(sd);
+            sd = -1;
+            Warning("Can't connect to remote camera: %s", strerror(errno) );
+            continue;
         }
+
+	/* If we got here, we must have connected successfully */
+	break;
     }
+
+    if(p == NULL) {
+	    Error("Unable to connect to the remote camera, aborting");
+	    return( -1 );
+    }
+
     Debug( 3, "Connected to host, socket = %d", sd );
     return( sd );
 }
@@ -428,7 +441,7 @@ int RemoteCameraHttp::GetResponse()
 
                     if ( content_length )
                     {
-                        while ( buffer.size() < (unsigned int)content_length )
+                        while ( (long)buffer.size() < content_length )
                         {
                             int buffer_len = ReadData( buffer );
                             if ( buffer_len == 0 )
@@ -960,7 +973,7 @@ int RemoteCameraHttp::GetResponse()
 
                     if ( content_length )
                     {
-                        while ( buffer.size() < (unsigned int)content_length )
+                        while ( (long)buffer.size() < content_length )
                         {
                             //int buffer_len = ReadData( buffer, content_length-buffer.size() );
                             int buffer_len = ReadData( buffer );
@@ -1086,7 +1099,7 @@ int RemoteCameraHttp::PreCapture()
 
 int RemoteCameraHttp::Capture( Image &image )
 {
-    unsigned int content_length = GetResponse();
+    int content_length = GetResponse();
     if ( content_length == 0 )
     {
         Warning( "Unable to capture image, retrying" );
@@ -1112,7 +1125,7 @@ int RemoteCameraHttp::Capture( Image &image )
         }
         case X_RGB :
         {
-            if ( content_length != image.Size() )
+            if ( content_length != (long)image.Size() )
             {
                 Error( "Image length mismatch, expected %d bytes, content length was %d", image.Size(), content_length );
                 Disconnect();

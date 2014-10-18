@@ -54,7 +54,7 @@ use DBI;
 use Getopt::Long;
 use Data::Dumper;
 
-use constant EVENT_PATH => (ZM_DIR_EVENTS=~m|/|)?ZM_DIR_EVENTS:(ZM_PATH_WEB.'/'.ZM_DIR_EVENTS);
+use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)?$Config{ZM_DIR_EVENTS}:($Config{ZM_PATH_WEB}.'/'.$Config{ZM_DIR_EVENTS});
 
 $| = 1;
 
@@ -62,7 +62,7 @@ $ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
-my $web_uid = (getpwnam( ZM_WEB_USER ))[2];
+my $web_uid = (getpwnam( $Config{ZM_WEB_USER} ))[2];
 my $use_log = (($> == 0) || ($> == $web_uid));
 
 logInit( toFile=>$use_log?DEBUG:NOLOG );
@@ -75,8 +75,8 @@ my $rename = 0;
 my $zoneFix = 0;
 my $migrateEvents = 0;
 my $version = '';
-my $dbUser = ZM_DB_USER;
-my $dbPass = ZM_DB_PASS;
+my $dbUser = $Config{ZM_DB_USER};
+my $dbPass = $Config{ZM_DB_PASS};
 my $updateDir = '';
 sub Usage
 {
@@ -99,15 +99,14 @@ if ( !GetOptions( 'check'=>\$check, 'freshen'=>\$freshen, 'rename'=>\$rename, 'z
 }
 
 my $dbh = zmDbConnect();
-*ZoneMinder::Database::ZM_DB_USER = sub { $dbUser } if ZoneMinder::Database::ZM_DB_USER ne $dbUser;
-*ZoneMinder::Database::ZM_DB_PASS = sub { $dbPass } if ZoneMinder::Database::ZM_DB_PASS ne $dbPass;
-zmDbDisconnect();
+$Config{ZM_DB_USER} = $dbUser;
+$Config{ZM_DB_PASS} = $dbPass;
 
 if ( ! ($check || $freshen || $rename || $zoneFix || $migrateEvents || $version) )
 {
-    if ( ZM_DYN_DB_VERSION )
+    if ( $Config{ZM_DYN_DB_VERSION} )
     {
-        $version = ZM_DYN_DB_VERSION;
+        $version = $Config{ZM_DYN_DB_VERSION};
     }
     else
     {
@@ -122,48 +121,37 @@ if ( ($check + $freshen + $rename + $zoneFix + $migrateEvents + ($version?1:0)) 
     Usage();
 }
 
-if ( $check && ZM_CHECK_FOR_UPDATES )
+if ( $check && $Config{ZM_CHECK_FOR_UPDATES} )
 {
     print( "Update agent starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 
-    my $dbh = zmDbConnect();
-
-    my $currVersion = ZM_DYN_CURR_VERSION;
-    my $lastVersion = ZM_DYN_LAST_VERSION;
-    my $lastCheck = ZM_DYN_LAST_CHECK;
+    my $currVersion = $Config{ZM_DYN_CURR_VERSION};
+    my $lastVersion = $Config{ZM_DYN_LAST_VERSION};
+    my $lastCheck = $Config{ZM_DYN_LAST_CHECK};
 
     if ( !$currVersion )
     {
-        $currVersion = ZM_VERSION;
+        $currVersion = $Config{ZM_VERSION};
 
         my $sql = "update Config set Value = ? where Name = 'ZM_DYN_CURR_VERSION'";
         my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
         my $res = $sth->execute( "$currVersion" ) or die( "Can't execute: ".$sth->errstr() );
     }
-    zmDbDisconnect();
 
     while( 1 )
     {
         my $now = time();
         if ( !$lastVersion || !$lastCheck || (($now-$lastCheck) > CHECK_INTERVAL) )
         {
-            $dbh = zmDbConnect();
-
             Info( "Checking for updates\n" );
 
             use LWP::UserAgent;
             my $ua = LWP::UserAgent->new;
             $ua->agent( "ZoneMinder Update Agent/".ZM_VERSION );
-            if ( eval('defined(ZM_UPDATE_CHECK_PROXY)') )
-            {
-                no strict 'subs';
-                if ( ZM_UPDATE_CHECK_PROXY )
-                {
-                    $ua->proxy( "http", ZM_UPDATE_CHECK_PROXY );
-                }
-                use strict 'subs';
+            if ( $Config{ZM_UPDATE_CHECK_PROXY} ) {
+				$ua->proxy( "http", $Config{ZM_UPDATE_CHECK_PROXY} );
             }
-            my $req = HTTP::Request->new( GET=>'https://raw.github.com/ZoneMinder/ZoneMinder/master/version' );
+            my $req = HTTP::Request->new( GET=>'http://zoneminder.github.io/ZoneMinder/version.txt' );
             my $res = $ua->request($req);
 
             if ( $res->is_success )
@@ -186,7 +174,6 @@ if ( $check && ZM_CHECK_FOR_UPDATES )
             {
                 Error( "Error check failed: '".$res->status_line()."'\n" );
             }
-            zmDbDisconnect();
         }
         sleep( 3600 );
     }
@@ -222,9 +209,6 @@ if ( $rename )
 }
 if ( $zoneFix )
 {
-    require DBI;
-
-    my $dbh = zmDbConnect();
 
     my $sql = "select Z.*, M.Width as MonitorWidth, M.Height as MonitorHeight from Zones as Z inner join Monitors as M on Z.MonitorId = M.Id where Z.Units = 'Percent'";
     my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
@@ -257,12 +241,12 @@ if ( $zoneFix )
 }
 if ( $migrateEvents )
 {
-    my $webUid = (getpwnam( ZM_WEB_USER ))[2];
-    my $webGid = (getgrnam( ZM_WEB_USER ))[2];
+    my $webUid = (getpwnam( $Config{ZM_WEB_USER} ))[2];
+    my $webGid = (getgrnam( $Config{ZM_WEB_USER} ))[2];
 
     if ( !(($> == 0) || ($> == $webUid)) )
     {
-        print( "Error, migrating events can only be done as user root or ".ZM_WEB_USER.".\n" );
+        print( "Error, migrating events can only be done as user root or ".$Config{ZM_WEB_USER}.".\n" );
         exit( -1 );
     }
 
@@ -286,8 +270,7 @@ if ( $migrateEvents )
     {
         print( "Converting all events to deep storage.\n" );
 
-        chdir( ZM_PATH_WEB );
-        my $dbh = zmDbConnect();
+        chdir( $Config{ZM_PATH_WEB} );
         my $sql = "select *, unix_timestamp(StartTime) as UnixStartTime from Events";
         my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
         my $res = $sth->execute();
@@ -298,7 +281,7 @@ if ( $migrateEvents )
 
         while( my $event = $sth->fetchrow_hashref() )
         {
-            my $oldEventPath = ZM_DIR_EVENTS.'/'.$event->{MonitorId}.'/'.$event->{Id};
+            my $oldEventPath = $Config{ZM_DIR_EVENTS}.'/'.$event->{MonitorId}.'/'.$event->{Id};
 
             if ( !-d $oldEventPath )
             {
@@ -307,11 +290,11 @@ if ( $migrateEvents )
             }
 
             print( "Converting event ".$event->{Id}."\n" );
-            my $newDatePath = ZM_DIR_EVENTS.'/'.$event->{MonitorId}.'/'.strftime( "%y/%m/%d", localtime($event->{UnixStartTime}) );
+            my $newDatePath = $Config{ZM_DIR_EVENTS}.'/'.$event->{MonitorId}.'/'.strftime( "%y/%m/%d", localtime($event->{UnixStartTime}) );
             my $newTimePath = strftime( "%H/%M/%S", localtime($event->{UnixStartTime}) );
             my $newEventPath = $newDatePath.'/'.$newTimePath;
             ( my $truncEventPath = $newEventPath ) =~ s|/\d+$||;
-            makePath( $truncEventPath, ZM_PATH_WEB );
+            makePath( $truncEventPath, $Config{ZM_PATH_WEB} );
             my $idLink = $newDatePath.'/.'.$event->{Id};
             symlink( $newTimePath, $idLink ) or die( "Can't symlink $newTimePath -> $idLink: $!" );
             rename( $oldEventPath, $newEventPath ) or die( "Can't move $oldEventPath -> $newEventPath: $!" );
@@ -335,6 +318,36 @@ if ( $freshen )
     loadConfigFromDB();
     saveConfigToDB();
 }
+
+# Now check for MyISAM Tables
+my @MyISAM_Tables;
+my $sql = "SELECT table_name FROM INFORMATION_SCHEMA.TABLES WHERE table_schema='zm' AND engine = 'MyISAM'";
+my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+
+while( my $dbTable = $sth->fetchrow() ) {
+	push @MyISAM_Tables, $dbTable;
+}
+$sth->finish();
+
+if ( @MyISAM_Tables ) {
+	print( "\nPrevious versions of ZoneMinder used the MyISAM database engine.\nHowever, the recommended database engine is InnoDB.\n");
+	print( "\nHint: InnoDB tables are much less likely to be corrupted during an unclean shutdown.\n\nPress 'y' to convert your tables to InnoDB or 'n' to skip : ");
+	my $response = <STDIN>;
+	chomp( $response );
+	if ( $response =~ /^[yY]$/ ) {
+		print "\nConverting MyISAM tables to InnoDB. Please wait.\n";
+		foreach (@MyISAM_Tables) {
+			$dbh->do(q|SET sql_mode='traditional'|); # Elevate warnings to errors
+			my $sql = "ALTER TABLE $_ ENGINE = InnoDB";
+			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+			my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+			$sth->finish();
+			$dbh->do(q|SET sql_mode=''|); # Set mode back to default
+		}
+	}
+}
+
 if ( $version )
 {
     my ( $detaint_version ) = $version =~ /^([\w.]+)$/;
@@ -343,15 +356,15 @@ if ( $version )
     if ( ZM_VERSION eq $version )
     {
         print( "\nDatabase already at version $version, update aborted.\n\n" );
-        exit( -1 );
+        exit( 0 );
     }
 
     print( "\nInitiating database upgrade to version ".ZM_VERSION." from version $version\n" );
     if ( $interactive )
     {
-        if ( ZM_DYN_DB_VERSION && ZM_DYN_DB_VERSION ne $version )
+        if ( $Config{ZM_DYN_DB_VERSION} && $Config{ZM_DYN_DB_VERSION} ne $version )
         {
-            print( "\nWARNING - You have specified an upgrade from version $version but the database version found is ".ZM_DYN_DB_VERSION.". Is this correct?\nPress enter to continue or ctrl-C to abort : " );
+            print( "\nWARNING - You have specified an upgrade from version $version but the database version found is ".$Config{ZM_DYN_DB_VERSION}.". Is this correct?\nPress enter to continue or ctrl-C to abort : " );
             my $response = <STDIN>;
         }
 
@@ -370,7 +383,7 @@ if ( $version )
 
         if ( $response =~ /^[yY]$/ )
         {
-            my ( $host, $port ) = ( ZM_DB_HOST =~ /^([^:]+)(?::(.+))?$/ );
+            my ( $host, $port ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
             my $command = "mysqldump -h".$host;
             $command .= " -P".$port if defined($port);
             if ( $dbUser )
@@ -381,8 +394,8 @@ if ( $version )
                     $command .= " -p".$dbPass;
                 }
             }
-            my $backup = "@ZM_TMPDIR@/".ZM_DB_NAME."-".$version.".dump";
-            $command .= " --add-drop-table --databases ".ZM_DB_NAME." > ".$backup;
+            my $backup = "@ZM_TMPDIR@/".$Config{ZM_DB_NAME}."-".$version.".dump";
+            $command .= " --add-drop-table --databases ".$Config{ZM_DB_NAME}." > ".$backup;
             print( "Creating backup to $backup. This may take several minutes.\n" );
             print( "Executing '$command'\n" ) if ( logDebugging() );
             my $output = qx($command);
@@ -411,7 +424,7 @@ if ( $version )
         my $dbh = shift;
         my $version = shift;
 
-        my ( $host, $port ) = ( ZM_DB_HOST =~ /^([^:]+)(?::(.+))?$/ );
+        my ( $host, $port ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
         my $command = "mysql -h".$host;
         $command .= " -P".$port if defined($port);
         if ( $dbUser )
@@ -422,14 +435,14 @@ if ( $version )
                 $command .= " -p".$dbPass;
             }
         }
-        $command .= " ".ZM_DB_NAME." < ";
+        $command .= " ".$Config{ZM_DB_NAME}." < ";
         if ( $updateDir )
         {
             $command .= $updateDir;
         }
         else
         {
-            $command .= ZM_PATH_BUILD."/db";
+            $command .= $Config{ZM_PATH_DATA}."/db";
         }
         $command .= "/zm_update-".$version.".sql";
 
@@ -447,49 +460,19 @@ if ( $version )
         }
         else
         {
-            print( "\nDatabase successfully upgraded from version $version.\n" );
+            print( "\nDatabase successfully upgraded to version $version.\n" );
             my $sql = "update Config set Value = ? where Name = 'ZM_DYN_DB_VERSION'";
             my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
             my $res = $sth->execute( $version ) or die( "Can't execute: ".$sth->errstr() );
         }
     }
 
-    sub toInnoDB
-    {
-	my $dbh = shift;
-	my $sql = "SELECT table_name FROM INFORMATION_SCHEMA.TABLES WHERE table_schema='zm' AND engine = 'MyISAM'";
-	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
-
-	my @dbTables;
-		while( my $dbTable = $sth->fetchrow() )
-		{
-	        push( @dbTables, $dbTable );
-        	}
-	$sth->finish();
-
-	if (@dbTables)
-	{
-		print "\nConverting MyISAM tables to InnoDB. Please wait.\n";
-	    	foreach (@dbTables)
-			{
-			my $sql = "ALTER TABLE $_ ENGINE = InnoDB";
-			my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-			my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
-			}
-	        $sth->finish();
-	} else {
-		print "\nNo MyISAM tables found. Skipping...\n";
-	}
-    }
 
     print( "\nUpgrading database to version ".ZM_VERSION."\n" );
 
     # Update config first of all
     loadConfigFromDB();
     saveConfigToDB();
-
-    my $dbh = zmDbConnect();
 
     my $cascade = undef;
     if ( $cascade || $version eq "1.19.0" )
@@ -518,8 +501,6 @@ if ( $version )
     }
     if ( $cascade || $version eq "1.19.4" )
     {
-        require DBI;
-
         # Rename the event directories and create a new symlink for the names
         chdir( EVENT_PATH );
 
@@ -742,7 +723,7 @@ if ( $version )
             my ( $sql, $sth, $res );
             if ( defined(&ZM_EMAIL_TEXT) && &ZM_EMAIL_TEXT )
             {
-                my ( $email_subject, $email_body ) = ZM_EMAIL_TEXT =~ /subject\s*=\s*"([^\n]*)".*body\s*=\s*"(.*)"?$/ms;
+                my ( $email_subject, $email_body ) = $Config{ZM_EMAIL_TEXT} =~ /subject\s*=\s*"([^\n]*)".*body\s*=\s*"(.*)"?$/ms;
                 $sql = "replace into Config set Id = 0, Name = 'ZM_EMAIL_SUBJECT', Value = '".$email_subject."', Type = 'string', DefaultValue = 'ZoneMinder: Alarm - %MN%-%EI% (%ESM% - %ESA% %EFA%)', Hint = 'string', Pattern = '(?-xism:^(.+)\$)', Format = ' \$1 ', Prompt = 'The subject of the email used to send matching event details', Help = 'This option is used to define the subject of the email that is sent for any events that match the appropriate filters.', Category = 'mail', Readonly = '0', Requires = 'ZM_OPT_EMAIL=1'";
                 $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
                 $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
@@ -752,7 +733,7 @@ if ( $version )
             }
             if ( defined(&ZM_MESSAGE_TEXT) && &ZM_MESSAGE_TEXT )
             {
-                my ( $message_subject, $message_body ) = ZM_MESSAGE_TEXT =~ /subject\s*=\s*"([^\n]*)".*body\s*=\s*"(.*)"?$/ms;
+                my ( $message_subject, $message_body ) = $Config{ZM_MESSAGE_TEXT} =~ /subject\s*=\s*"([^\n]*)".*body\s*=\s*"(.*)"?$/ms;
                 $sql = "replace into Config set Id = 0, Name = 'ZM_MESSAGE_SUBJECT', Value = '".$message_subject."', Type = 'string', DefaultValue = 'ZoneMinder: Alarm - %MN%-%EI%', Hint = 'string', Pattern = '(?-xism:^(.+)\$)', Format = ' \$1 ', Prompt = 'The subject of the message used to send matching event details', Help = 'This option is used to define the subject of the message that is sent for any events that match the appropriate filters.', Category = 'mail', Readonly = '0', Requires = 'ZM_OPT_MESSAGE=1'";
                 $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
                 $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
@@ -886,7 +867,7 @@ if ( $version )
 
             my $sql = "update Config set Value = ? where Name = 'ZM_JPEG_STREAM_QUALITY'";
             my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-            my $res = $sth->execute( ZM_JPEG_IMAGE_QUALITY ) or die( "Can't execute: ".$sth->errstr() );
+            my $res = $sth->execute( $Config{ZM_JPEG_IMAGE_QUALITY} ) or die( "Can't execute: ".$sth->errstr() );
         }
         $cascade = !undef;
     }
@@ -1014,14 +995,6 @@ if ( $version )
 		} # end if
 		$sth->finish();
 
-		print( "\nPrevious versions of ZoneMinder used the MyISAM database engine.\nHowever, the recommended database engine is InnoDB.\n");
-		print( "\nHint: InnoDB tables are much less likely to be corrupted during an unclean shutdown.\n\nPress 'y' to convert your tables to InnoDB or 'n' to skip : ");
-        	my $response = <STDIN>;
-        	chomp( $response );
-        	if ( $response =~ /^[yY]$/ )
-        	{
-        	    toInnoDB($dbh);
-        	}
 
 		$cascade = !undef;
 		$version = '1.26.0';
@@ -1030,7 +1003,7 @@ if ( $version )
 	if ( $version ge '1.26.0' ) {
 
 		my @files;
-		$updateDir = ZM_PATH_BUILD."/db" if ! $updateDir;
+		$updateDir = $Config{ZM_PATH_DATA}."/db" if ! $updateDir;
 		opendir( my $dh, $updateDir ) || die "Can't open updateDir $!";
 		@files = sort grep { (!/^\./) && /^zm_update\-[\d\.]+\.sql$/ && -f "$updateDir/$_" } readdir($dh);
 		closedir $dh;
@@ -1041,7 +1014,7 @@ if ( $version )
 		$dbh->{'AutoCommit'} = 0;
 		foreach my $patch ( @files ) {
 			my ( $v ) = $patch =~ /^zm_update\-([\d\.]+)\.sql$/;
-			if ( $v gt $version ) {
+			if ( $v ge $version ) {
 				print( "Upgrading DB to $v from $version\n" );
 				patchDB( $dbh, $v );
 				if ( $dbh->errstr() ) {
@@ -1061,13 +1034,13 @@ if ( $version )
         my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
         my $res = $sth->execute( "$installed_version", "ZM_DYN_DB_VERSION" ) or die( "Can't execute: ".$sth->errstr() );
         $res = $sth->execute( "$installed_version", "ZM_DYN_CURR_VERSION" ) or die( "Can't execute: ".$sth->errstr() );
-        $dbh->disconnect();
     }
     else
     {
-        $dbh->disconnect();
+		zmDbDisconnect();
         die( "Can't find upgrade from version '$version'" );
     }
     print( "\nDatabase upgrade to version ".ZM_VERSION." successful.\n\n" );
 }
+zmDbDisconnect();
 exit( 0 );

@@ -68,7 +68,7 @@ use Carp;
 sub loadConfigFromDB
 {
 	print( "Loading config from DB\n" );
-	my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
+	my $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}.";host=".$Config{ZM_DB_HOST}, $Config{ZM_DB_USER}, $Config{ZM_DB_PASS} );
 	
 	if ( !$dbh )
 	{
@@ -111,13 +111,19 @@ sub loadConfigFromDB
 sub saveConfigToDB
 {
 	print( "Saving config to DB\n" );
-	my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
+	my $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}.";host=".$Config{ZM_DB_HOST}, $Config{ZM_DB_USER}, $Config{ZM_DB_PASS} );
 
 	if ( !$dbh )
 	{
 		print( "Error: unable to save options to database: $DBI::errstr\n" );
 		return( 0 );
 	}
+
+    my $ac = $dbh->{AutoCommit};
+    $dbh->{AutoCommit} = 0;
+
+    $dbh->do('LOCK TABLE Config WRITE') or croak( "Can't lock Config table: " . $dbh->errstr() );
+
 	my $sql = "delete from Config";
 	my $res = $dbh->do( $sql ) or croak( "Can't do '$sql': ".$dbh->errstr() );
 
@@ -149,6 +155,10 @@ sub saveConfigToDB
 		my $res = $sth->execute( $option->{id}, $option->{name}, $option->{db_value}, $option->{db_type}, $option->{default}, $option->{db_hint}, $option->{db_pattern}, $option->{db_format}, $option->{description}, $option->{help}, $option->{category}, $option->{readonly}?1:0, $option->{db_requires} ) or croak( "Can't execute: ".$sth->errstr() );
 	}
 	$sth->finish();
+
+    $dbh->do('UNLOCK TABLES');
+    $dbh->{AutoCommit} = $ac;
+
 	$dbh->disconnect();
 }
 

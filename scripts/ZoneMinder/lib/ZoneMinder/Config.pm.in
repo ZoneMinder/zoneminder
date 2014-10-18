@@ -33,6 +33,7 @@ require ZoneMinder::Base;
 
 our @ISA = qw(Exporter ZoneMinder::Base);
 
+use vars qw( %Config );
 # Items to export into callers namespace by default. Note: do not export
 # names by default without a very good reason. Use EXPORT_OK instead.
 # Do not simply export all your public functions/methods/constants.
@@ -40,7 +41,7 @@ our @ISA = qw(Exporter ZoneMinder::Base);
 # This allows declaration	use ZoneMinder ':all';
 # If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
 # will save memory.
-our @EXPORT_CONFIG; # Get populated by BEGIN
+our @EXPORT_CONFIG = qw( %Config ); # Get populated by BEGIN
 
 our %EXPORT_TAGS = (
 	'constants' => [ qw(
@@ -64,11 +65,9 @@ use Carp;
 # Load the config from the database into the symbol table
 BEGIN
 {
-	no strict 'refs';
-
 	my $config_file = ZM_CONFIG;
 	( my $local_config_file = $config_file ) =~ s|^.*/|./|;
-	if ( -s $local_config_file && -r $local_config_file )
+	if ( -s $local_config_file and -r $local_config_file )
 	{
 		print( STDERR "Warning, overriding installed $local_config_file file with local copy\n" );
 		$config_file = $local_config_file;
@@ -78,25 +77,26 @@ BEGIN
 	{
 		next if ( $str =~ /^\s*$/ );
 		next if ( $str =~ /^\s*#/ );
-        my ( $name, $value ) = $str =~ /^\s*([^=\s]+)\s*=\s*(.+?)\s*$/;
+        my ( $name, $value ) = $str =~ /^\s*([^=\s]+)\s*=\s*(.*?)\s*$/;
+		if ( ! $name ) {
+			print( STDERR "Warning, bad line in $config_file: $str\n" );
+			next;
+		} # end if
 		$name =~ tr/a-z/A-Z/;
-		*{$name} = sub { $value };
-		push( @EXPORT_CONFIG, $name );
+		$Config{$name} = $value;
 	}
 	close( CONFIG );
 
 	use DBI;
-	my $dbh = DBI->connect( "DBI:mysql:database=".&ZM_DB_NAME.";host=".&ZM_DB_HOST, &ZM_DB_USER, &ZM_DB_PASS );
-	my $sql = "select * from Config";
+	my $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}.";host=".$Config{ZM_DB_HOST}, $Config{ZM_DB_USER}, $Config{ZM_DB_PASS} ) or croak( "Can't connect to db" );
+	my $sql = 'select * from Config';
 	my $sth = $dbh->prepare_cached( $sql ) or croak( "Can't prepare '$sql': ".$dbh->errstr() );
 	my $res = $sth->execute() or croak( "Can't execute: ".$sth->errstr() );
-	while( my $config = $sth->fetchrow_hashref() )
-	{
-		*{$config->{Name}} = sub { $config->{Value} };
-		push( @EXPORT_CONFIG, $config->{Name} );
+	while( my $config = $sth->fetchrow_hashref() ) {
+		$Config{$config->{Name}} = $config->{Value};
 	}
 	$sth->finish();
-	$dbh->disconnect();
+	#$dbh->disconnect();
 }
 
 1;
@@ -116,7 +116,7 @@ The ZoneMinder::Config module is used to import the ZoneMinder configuration fro
 
 Once the configuration has been imported then configuration variables are defined as constants and can be accessed directory by name, e.g.
 
- $lang = ZM_LANG_DEFAULT;
+ $lang = $Config{ZM_LANG_DEFAULT};
 
 =head2 EXPORT
 

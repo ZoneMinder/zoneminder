@@ -202,7 +202,7 @@ fi
 # change ownership for the images folder. do it recursively unless -q is used
 if [ -n "$QUICK" ]; then
 	echo -n "Changing ownership of the images folder to ${ZM_WEB_USER} ${ZM_WEB_GROUP}... "
-	chown ${ZM_WEB_USER}:${ZM_WEB_GROUP} "$ZM_PATH_WEB/images"
+	chown ${ZM_WEB_USER}:${ZM_WEB_GROUP} "$ZM_PATH_CONTENT/images"
 	if [ "$?" = "0" ]; then
 		echo "OK"
 	else
@@ -211,7 +211,7 @@ if [ -n "$QUICK" ]; then
 	fi
 else
 	echo -n "Changing ownership of the images folder recursively to ${ZM_WEB_USER} ${ZM_WEB_GROUP}... "
-	chown -R ${ZM_WEB_USER}:${ZM_WEB_GROUP} "$ZM_PATH_WEB/images"
+	chown -R ${ZM_WEB_USER}:${ZM_WEB_GROUP} "$ZM_PATH_CONTENT/images"
 	if [ "$?" = "0" ]; then
 		echo "OK"
 	else
@@ -223,7 +223,7 @@ fi
 # change ownership for the events folder. do it recursively unless -q is used
 if [ -n "$QUICK" ]; then
 	echo -n "Changing ownership of the events folder to ${ZM_WEB_USER} ${ZM_WEB_GROUP}... "
-	chown ${ZM_WEB_USER}:${ZM_WEB_GROUP} "$ZM_PATH_WEB/events"
+	chown ${ZM_WEB_USER}:${ZM_WEB_GROUP} "$ZM_PATH_CONTENT/events"
 	if [ "$?" = "0" ]; then
 		echo "OK"
 	else
@@ -232,7 +232,7 @@ if [ -n "$QUICK" ]; then
 	fi
 else
 	echo -n "Changing ownership of the events folder recursively to ${ZM_WEB_USER} ${ZM_WEB_GROUP}... "
-	chown -R ${ZM_WEB_USER}:${ZM_WEB_GROUP} "$ZM_PATH_WEB/events"
+	chown -R ${ZM_WEB_USER}:${ZM_WEB_GROUP} "$ZM_PATH_CONTENT/events"
 	if [ "$?" = "0" ]; then
 		echo "OK"
 	else
@@ -243,7 +243,7 @@ fi
 
 # Change directory permissions for the images folder
 echo -n "Changing permissions of the images folder to 775... "
-chmod 775 "$ZM_PATH_WEB/images"
+chmod 775 "$ZM_PATH_CONTENT/images"
 if [ "$?" = "0" ]; then
 	echo "OK"
 else
@@ -254,7 +254,7 @@ fi
 
 # Change directory permissions for the events folder
 echo -n "Changing permissions of the events folder to 775... "
-chmod 775 "$ZM_PATH_WEB/events"
+chmod 775 "$ZM_PATH_CONTENT/events"
 if [ "$?" = "0" ]; then
 	echo "OK"
 else

@@ -57,8 +57,8 @@ use File::Find;
 use Time::HiRes qw/gettimeofday/;
 use Getopt::Long;
 
-use constant IMAGE_PATH => ZM_PATH_WEB.'/'.ZM_DIR_IMAGES;
-use constant EVENT_PATH => (ZM_DIR_EVENTS=~m|/|)?ZM_DIR_EVENTS:(ZM_PATH_WEB.'/'.ZM_DIR_EVENTS);
+use constant IMAGE_PATH => $Config{ZM_PATH_WEB}.'/'.$Config{ZM_DIR_IMAGES};
+use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)?$Config{ZM_DIR_EVENTS}:($Config{ZM_PATH_WEB}.'/'.$Config{ZM_DIR_EVENTS});
 
 $| = 1;
 
@@ -107,13 +107,24 @@ chdir( EVENT_PATH );
 my $max_image_age = 6/24; # 6 hours
 my $max_swap_age = 24/24; # 24 hours
 my $image_path = IMAGE_PATH;
-my $swap_image_path = ZM_PATH_SWAP;
+my $swap_image_path = $Config{ZM_PATH_SWAP};
 
 my $loop = 1;
 my $cleaned = 0;
-MAIN: while( $loop )
-{
-    my $db_monitors;
+MAIN: while( $loop ) {
+	while ( ! ( $dbh and $dbh->ping() ) ) {
+		$dbh = zmDbConnect();
+
+		last if $dbh;
+		if ( $continuous ) {
+			# if we are running continuously, then just skip to the next interval, otherwise we are a one off run, so wait a second and retry until someone kills us.
+			sleep( $Config{ZM_AUDIT_CHECK_INTERVAL} );
+		} else {
+			sleep 1;
+		} # end if
+	} # end while can't connect to the db
+
+	my $db_monitors;
     my $monitorSelectSql = "select Id from Monitors order by Id";
     my $monitorSelectSth = $dbh->prepare_cached( $monitorSelectSql ) or Fatal( "Can't prepare '$monitorSelectSql': ".$dbh->errstr() );
     my $eventSelectSql = "select Id, (unix_timestamp() - unix_timestamp(StartTime)) as Age from Events where MonitorId = ? order by Id";
@@ -142,7 +153,7 @@ MAIN: while( $loop )
         my $fs_events = $fs_monitors->{$monitor} = {};
         ( my $monitor_dir ) = ( $monitor =~ /^(.*)$/ ); # De-taint
 
-        if ( ZM_USE_DEEP_STORAGE )
+        if ( $Config{ZM_USE_DEEP_STORAGE} )
         {
             foreach my $day_dir ( <$monitor_dir/*/*/*> )
             {
@@ -399,9 +410,9 @@ MAIN: while( $loop )
     File::Find::find( { wanted=>\&deleteSwapImage, untaint=>1 }, $swap_image_root );
 
     # Prune the Logs table if required
-    if ( ZM_LOG_DATABASE_LIMIT )
+    if ( $Config{ZM_LOG_DATABASE_LIMIT} )
     {
-        if ( ZM_LOG_DATABASE_LIMIT =~ /^\d+$/ )
+        if ( $Config{ZM_LOG_DATABASE_LIMIT} =~ /^\d+$/ )
         {
             # Number of rows
             my $selectLogRowCountSql = "select count(*) as Rows from Logs";
@@ -410,18 +421,18 @@ MAIN: while( $loop )
             my $row = $selectLogRowCountSth->fetchrow_hashref();
             my $logRows = $row->{Rows};
             $selectLogRowCountSth->finish();
-            if ( $logRows > ZM_LOG_DATABASE_LIMIT )
+            if ( $logRows > $Config{ZM_LOG_DATABASE_LIMIT} )
             {
                 my $deleteLogByRowsSql = "delete low_priority from Logs order by TimeKey asc limit ?";
                 my $deleteLogByRowsSth = $dbh->prepare_cached( $deleteLogByRowsSql ) or Fatal( "Can't prepare '$deleteLogByRowsSql': ".$dbh->errstr() );
-                $res = $deleteLogByRowsSth->execute( $logRows - ZM_LOG_DATABASE_LIMIT ) or Fatal( "Can't execute: ".$deleteLogByRowsSth->errstr() );
+                $res = $deleteLogByRowsSth->execute( $logRows - $Config{ZM_LOG_DATABASE_LIMIT} ) or Fatal( "Can't execute: ".$deleteLogByRowsSth->errstr() );
                 aud_print( "Deleted ".$deleteLogByRowsSth->rows()." log table entries by count\n" ) if ( $deleteLogByRowsSth->rows() );
             }
         }
         else
         {
             # Time of record
-            my $deleteLogByTimeSql = "delete low_priority from Logs where TimeKey < unix_timestamp(now() - interval ".ZM_LOG_DATABASE_LIMIT.")";
+            my $deleteLogByTimeSql = "delete low_priority from Logs where TimeKey < unix_timestamp(now() - interval ".$Config{ZM_LOG_DATABASE_LIMIT}.")";
             my $deleteLogByTimeSth = $dbh->prepare_cached( $deleteLogByTimeSql ) or Fatal( "Can't prepare '$deleteLogByTimeSql': ".$dbh->errstr() );
             $res = $deleteLogByTimeSth->execute() or Fatal( "Can't execute: ".$deleteLogByTimeSth->errstr() );
             aud_print( "Deleted ".$deleteLogByTimeSth->rows()." log table entries by time\n" ) if ( $deleteLogByTimeSth->rows() );
@@ -429,7 +440,7 @@ MAIN: while( $loop )
     }
     $loop = $continuous;
 
-    sleep( ZM_AUDIT_CHECK_INTERVAL ) if ( $continuous );
+    sleep( $Config{ZM_AUDIT_CHECK_INTERVAL} ) if $continuous;
 };
 
 exit( 0 );

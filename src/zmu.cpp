@@ -138,7 +138,9 @@ bool ValidateAccess( User *user, int mon_id, int function )
 
 int main( int argc, char *argv[] )
 {
-    srand( getpid() * time( 0 ) );
+	self = argv[0];
+
+	srand( getpid() * time( 0 ) );
 
 	static struct option long_options[] = {
 		{"device", 2, 0, 'd'},
@@ -414,6 +416,11 @@ int main( int argc, char *argv[] )
 			{
 				printf( "Monitor %d(%s)\n", monitor->Id(), monitor->Name() );
 			}
+			if ( ! monitor->connect() ) {
+				Error( "Can't connect to capture daemon: %d %s", monitor->Id(), monitor->Name() );
+				exit( -1 );
+			} 
+
 			char separator = ' ';
 			bool have_output = false;
 			if ( function & ZMU_STATE )

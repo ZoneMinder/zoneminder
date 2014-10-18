@@ -1,0 +1,121 @@
+#!/bin/sh
+# description: ZoneMinder is the top Linux video camera security and surveillance solution. ZoneMinder is intended for use in single or multi-camera video security applications.Copyright: Philip Coombes, Corey DeLasaux 2003-2008
+# chkconfig: - 99 00
+# processname: zmpkg.pl
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+prog=ZoneMinder
+ZM_CONFIG="@ZM_CONFIG@"
+pidfile="@ZM_RUNDIR@"
+LOCKFILE=/var/lock/subsys/zm
+
+loadconf()
+{
+	if [ -f $ZM_CONFIG ]; then
+		. $ZM_CONFIG
+	else
+		echo "ERROR: $ZM_CONFIG not found."
+		return 1
+	fi
+}
+
+loadconf
+command="$ZM_PATH_BIN/zmpkg.pl"
+
+start()
+{
+# Commenting out as it is not needed. Leaving as a placeholder for future use.
+#	zmupdate || return $?
+	loadconf || return $?
+	#Make sure the directory for our PID folder exists or create one.
+	[ ! -d $pidfile ] \
+		&& mkdir -m 774 $pidfile \
+		&& chown $ZM_WEB_USER:$ZM_WEB_GROUP $pidfile
+	#Make sure the folder for the socks file exists or create one
+	GetPath="select Value from Config where Name='ZM_PATH_SOCKS'"
+    dbHost=`echo $ZM_DB_HOST | cut -d: -f1`
+    dbPort=`echo $ZM_DB_HOST | cut -d: -s -f2`
+    if [ "$dbPort" = "" ]
+    then
+	    ZM_PATH_SOCK=`echo $GetPath | mysql -B -h$ZM_DB_HOST -u$ZM_DB_USER -p$ZM_DB_PASS $ZM_DB_NAME | grep -v '^Value'`
+    else
+	    ZM_PATH_SOCK=`echo $GetPath | mysql -B -h$dbHost -P$dbPort -u$ZM_DB_USER -p$ZM_DB_PASS $ZM_DB_NAME | grep -v '^Value'`
+    fi 
+	[ ! -d $ZM_PATH_SOCK ] \
+		&& mkdir -m 774 $ZM_PATH_SOCK \
+		&& chown $ZM_WEB_USER:$ZM_WEB_GROUP $ZM_PATH_SOCK
+	echo -n $"Starting $prog: "
+	$command start
+	RETVAL=$?
+	[ $RETVAL = 0 ] && success || failure
+	echo
+	[ $RETVAL = 0 ] && touch $LOCKFILE
+	return $RETVAL
+}
+
+stop()
+{
+	loadconf
+	echo -n $"Stopping $prog: "
+	$command stop
+	RETVAL=$?
+	[ $RETVAL = 0 ] && success || failure
+	echo
+	[ $RETVAL = 0 ] && rm -f $LOCKFILE
+}
+
+zmstatus()
+{
+	loadconf
+	result=`$command status`
+	if [ "$result" = "running" ]; then
+		echo "ZoneMinder is running"
+		$ZM_PATH_BIN/zmu -l
+		RETVAL=0
+	else
+		echo "ZoneMinder is stopped"
+		RETVAL=1
+	fi
+}
+
+zmupdate()
+{
+	if [ -x $ZM_PATH_BIN/zmupdate.pl ]; then
+		$ZM_PATH_BIN/zmupdate.pl -f
+	fi
+}
+
+
+case "$1" in
+	'start')
+		start
+		;;
+	'stop')
+		stop
+		;;
+	'restart')
+		stop
+		start
+		;;
+	'condrestart')
+		loadconf
+		result=`$ZM_PATH_BIN/zmdc.pl check`
+		if [ "$result" = "running" ]; then
+			$ZM_PATH_BIN/zmdc.pl shutdown > /dev/null
+			rm -f $LOCKFILE
+			start
+		fi
+		;;
+	'status')
+		status httpd
+		status mysqld
+		zmstatus
+		;;
+	*)
+		echo "Usage: $0 { start | stop | restart | condrestart | status }"
+		RETVAL=1
+		;;
+esac
+exit $RETVAL

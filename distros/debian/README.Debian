@@ -20,18 +20,18 @@ would silently revert the changes and cause event loss - refer
 bug #608793).
 
 If you do want to change the location, here are a couple of suggestions.
-(thanks to vagrant@freegeek.org):
 
-These lines in fstab could allow you to bind-mount an alternate location
+These lines would mount /dev/sdX1 to /video_storage, and then 'link' /video_storage
+to the locations that ZoneMinder expects them to be at.
 
-         /dev/sdX1 /otherdrive ext3 defaults 0 2
-         /otherdrive/zoneminder/images /var/cache/zoneminder/images bind defaults 0 2
-         /otherdrive/zoneminder/events /var/cache/zoneminder/events bind defaults 0 2
+         /dev/sdX1 /video_storage ext4 defaults 0 2
+         /video_storage/zoneminder/images /var/cache/zoneminder/images none bind 0 2
+         /video_storage/zoneminder/events /var/cache/zoneminder/events none bind 0 2
 
         or if you have a separate partition for each:
 
-         /dev/sdX1 /var/cache/zoneminder/images ext3 defaults 0 2
-         /dev/sdX2 /var/cache/zoneminder/events ext3 defaults 0 2
+         /dev/sdX1 /var/cache/zoneminder/images ext4 defaults 0 2
+         /dev/sdX2 /var/cache/zoneminder/events ext4 defaults 0 2
 
 
 

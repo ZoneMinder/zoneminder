@@ -79,15 +79,15 @@ sub zmDbConnect( ;$ )
 	}
 	if ( !defined( $dbh ) )
 	{
-        my ( $host, $port ) = ( ZM_DB_HOST =~ /^([^:]+)(?::(.+))?$/ );
+        my ( $host, $port ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
 
         if ( defined($port) )
         {
-		    $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".$host.";port=".$port, ZM_DB_USER, ZM_DB_PASS );
+		    $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}.";host=".$host.";port=".$port, $Config{ZM_DB_USER}, $Config{ZM_DB_PASS} );
         }
         else
         {
-		    $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
+		    $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}.";host=".$Config{ZM_DB_HOST}, $Config{ZM_DB_USER}, $Config{ZM_DB_PASS} );
         }
         $dbh->trace( 0 );
 	}

@@ -1,0 +1,404 @@
+#!/usr/bin/perl -w
+#
+# ==========================================================================
+#
+# ZoneMinder Update Script, $Date$, $Revision$
+# Copyright (C) 2001-2008 Philip Coombes
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+#
+# ==========================================================================
+#
+# This script provides a way to import new ptz camera controls & camera presets
+# into existing zoneminder systems. This script also provides a way to export
+# ptz camera controls & camera presets from an existing zoneminder system into
+# a sql file, which can then be easily imported to another zoneminder system.
+#
+use strict;
+use bytes;
+
+@EXTRA_PERL_LIB@
+use ZoneMinder::Config qw(:all);
+use ZoneMinder::Logger qw(:all);
+use ZoneMinder::Database qw(:all);
+use DBI;
+use Getopt::Long;
+
+$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
+$ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
+delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
+
+my $web_uid = (getpwnam( $Config{ZM_WEB_USER} ))[2];
+my $use_log = (($> == 0) || ($> == $web_uid));
+
+logInit( toFile=>$use_log?DEBUG:NOLOG );
+logSetSignal();
+
+my $export = 0;
+my $import = 0;
+my $overwrite = 0;
+my $help = 0;
+my $topreset = 0;
+my $noregex = 0;
+my $sqlfile = '';
+my $dbUser = $Config{ZM_DB_USER};
+my $dbPass = $Config{ZM_DB_PASS};
+
+# Process commandline parameters with getopt long
+if ( !GetOptions( 'export'=>\$export, 'import'=>\$import, 'overwrite'=>\$overwrite, 'help'=>\$help, 'topreset'=>\$topreset, 'noregex'=>\$noregex, 'user:s'=>\$dbUser, 'pass:s'=>\$dbPass ) ) {
+	Usage();
+}
+
+$Config{ZM_DB_USER} = $dbUser;
+$Config{ZM_DB_PASS} = $dbPass;
+
+# Check to make sure commandline params make sense
+if ( ((!$help) && ($import + $export + $topreset) != 1 )) {
+	print( STDERR qq/Please give only one of the following: "import", "export", or "topreset".\n/ );
+	Usage();
+}
+
+if ( ($export)&&($overwrite) ) {
+	print( "Warning: Overwrite parameter ignored during an export.\n");
+}
+
+if ( ($noregex)&&(!$topreset) ) {
+	print( qq/Warning: Noregex parameter only applies when "topreset" parameter is also set. Ignoring.\n/);
+}
+
+if ( ($topreset)&&($ARGV[0] !~ /\d\d*/) ) {
+	print( STDERR qq/Parameter "topreset" requires a valid monitor ID.\n/ );
+	Usage();
+}
+
+# Call the appropriate subroutine based on the params given on the commandline
+if ($help) {
+	Usage();
+}
+
+if ($export) {
+	exportsql();
+}
+
+if ($import) {
+	importsql();
+}
+
+if ($topreset) {
+	toPreset();
+}
+
+###############
+# SUBROUTINES #
+###############
+
+# Usage subroutine help text
+sub Usage
+{
+die("
+USAGE: 
+zmcamtool.pl [--user=<dbuser> --pass=<dbpass>]
+	     [--import [file.sql] [--overwrite]]
+	     [--export [name]]
+	     [--topreset id [--noregex]]
+
+PARAMETERS:
+--export            - Export all camera controls and presets to STDOUT.
+		      Optionally specify a control or preset name.
+--import [file.sql] - Import new camera controls and presets found in
+		      zm_create.sql into the ZoneMinder dB.
+		      Optionally specify an alternate sql file to read from.
+--overwrite         - Overwrite any existing controls or presets.
+		      with the same name as the new controls or presets.
+--topreset id       - Copy a monitor to a Camera Preset given the monitor id.
+--noregex	    - Do not try to find and replace fields such as usernames,
+		      passwords, ip addresses, etc with generic placeholders
+		      when converting a monitor to a preset.
+--help		    - Print usage information.
+--user=<dbuser>     - Alternate dB user with privileges to alter dB.
+--pass=<dbpass>     - Password of alternate dB user with privileges to alter dB.
+\n");
+}
+
+# Execute a pre-built sql select query
+sub selectQuery
+{
+	my $dbh = shift;
+	my $sql = shift;
+	my $monitorid = shift;
+
+	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute($monitorid) or die( "Can't execute: ".$sth->errstr() );
+
+	my @data = $sth->fetchrow_array();
+	$sth->finish();
+
+	return @data;
+}
+
+# Exectute a pre-built sql query
+sub runQuery
+{
+	my $dbh = shift;
+	my $sql = shift;
+	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+	$sth->finish();
+
+	return $res;
+}
+
+# Build and execute a sql insert query
+sub insertQuery
+{
+	my $dbh = shift;
+	my $tablename = shift;
+	my @data = @_;
+
+	my $sql = "insert into $tablename values (NULL,".(join ", ", ("?") x @data).")"; # Add "?" for each array element
+
+	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute(@data) or die( "Can't execute: ".$sth->errstr() );
+	$sth->finish();
+
+	return $res;
+}
+
+# Build and execute a sql delete query
+sub deleteQuery
+{
+	my $dbh = shift;
+	my $sqltable = shift;
+	my $sqlname = shift;
+
+	my $sql = "delete from $sqltable where Name = ?";
+	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute($sqlname) or die( "Can't execute: ".$sth->errstr() );
+	$sth->finish();
+
+	return $res;
+}
+
+# Build and execute a sql select count query
+sub checkExists
+{
+	my $dbh = shift;
+	my $sqltable = shift;
+	my $sqlname = shift;
+	my $result = 0;	
+
+	my $sql = "select count(*) from $sqltable where Name = ?";
+	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+	my $res = $sth->execute($sqlname) or die( "Can't execute: ".$sth->errstr() );
+
+	my $rows = $sth->fetchrow_arrayref();
+	$sth->finish();
+
+	if ($rows->[0] > 0) {
+		$result = 1;
+	}
+
+	return $result;
+}
+
+# Import camera control & presets into the zoneminder dB
+sub importsql 
+{
+	my @newcontrols;
+	my @overwritecontrols;
+	my @skippedcontrols;
+	my @newpresets;
+	my @overwritepresets;
+	my @skippedpresets;
+	my %controls;
+	my %monitorpresets;
+
+	if ($ARGV[0]) {
+		$sqlfile = $ARGV[0];
+	} else {
+		$sqlfile = $Config{ZM_PATH_DATA}.'/db/zm_create.sql';
+	}
+
+	open(my $SQLFILE,"<",$sqlfile) or die( "Can't Open file: $!\n" );
+
+	# Find and extract ptz control and monitor preset records
+	while (<$SQLFILE>) {
+		# Our regex replaces the primary key with NULL
+		if (s/^(INSERT INTO .*?Controls.*? VALUES \().*?(,')(.*?)(',.*)/$1NULL$2$3$4/i) {	
+			$controls{$3} = $_;
+		} elsif (s/^(INSERT INTO .*?MonitorPresets.*? VALUES \().*?(,')(.*?)(',.*)/$1NULL$2$3$4/i) {
+			$monitorpresets{$3} = $_;
+		}
+	}
+	close $SQLFILE;
+
+	if ( ! (%controls || %monitorpresets) ) {
+		die( "Error: No relevant data found in $sqlfile.\n" );
+	}
+
+	# Now that we've got what we were looking for, compare to what is already in the dB
+
+	my $dbh = zmDbConnect();
+	foreach (keys %controls) {
+		if (!checkExists($dbh,"Controls",$_)) {
+			# No existing Control was found.  Add new control to dB.
+			runQuery($dbh,$controls{$_});
+			push @newcontrols, $_;
+		} elsif ($overwrite) {
+			# An existing Control was found and the overwrite flag is set.  Overwrite the control.
+			deleteQuery($dbh,"Controls",$_);
+			runQuery($dbh,$controls{$_});
+			push @overwritecontrols, $_;
+		} else {
+			# An existing Control was found and the overwrite flag was not set. Do nothing.
+			push @skippedcontrols, $_;
+		}	
+	}
+
+	foreach (keys %monitorpresets) {
+		if (!checkExists($dbh,"MonitorPresets",$_)) {
+			# No existing MonitorPreset was found.  Add new MonitorPreset to dB.
+			runQuery($dbh,$monitorpresets{$_});
+			push @newpresets, $_;
+		} elsif ($overwrite) {
+			# An existing MonitorPreset was found and the overwrite flag is set.  Overwrite the MonitorPreset.
+			deleteQuery($dbh,"MonitorPresets",$_);
+			runQuery($dbh,$monitorpresets{$_});
+			push @overwritepresets, $_;
+		} else {
+			# An existing MonitorPreset was found and the overwrite flag was not set. Do nothing.
+			push @skippedpresets, $_;
+		}
+	}
+
+	if (@newcontrols) {
+		print "Number of ptz camera controls added: ".scalar(@newcontrols)."\n";
+	}
+	if (@overwritecontrols) {
+		print "Number of existing ptz camera controls overwritten: ".scalar(@overwritecontrols)."\n";
+	}
+	if (@skippedcontrols) {
+		print "Number of existing ptz camera controls skipped: ".scalar(@skippedcontrols)."\n";
+	}
+
+	if (@newpresets) {
+		print "Number of monitor presets added: ".scalar(@newpresets)."\n";
+	}
+	if (@overwritepresets) {
+		print "Number of existing monitor presets overwritten: ".scalar(@overwritepresets)."\n";
+	}
+	if (@skippedpresets) {
+		print "Number of existing presets skipped: ".scalar(@skippedpresets)."\n";
+	}
+}
+
+# Export camera controls & presets from the zoneminder dB to STDOUT
+sub exportsql
+{
+
+my ( $host, $port ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
+my $command = "mysqldump -t --skip-opt --compact -h".$host;
+$command .= " -P".$port if defined($port);
+if ( $dbUser ) {
+	$command .= " -u".$dbUser;
+	if ( $dbPass ) {
+		$command .= " -p".$dbPass;
+		}
+	}
+
+if ($ARGV[0]) {
+	$command .= qq( --where="Name = '$ARGV[0]'");
+}
+
+$command .= " zm Controls MonitorPresets";
+
+my $output = qx($command);
+my $status = $? >> 8;
+if ( $status || logDebugging() ) {
+	chomp( $output );
+	print( "Output: $output\n" );
+}
+if ( $status ) {
+	die( "Command '$command' exited with status: $status\n" );
+} else {
+	# NULLify the primary keys before printing the output to STDOUT
+	$output =~ s/VALUES \((.*?),'/VALUES \(NULL,'/ig;
+	print $output;
+	}
+}
+
+sub toPreset
+{
+	my $dbh = zmDbConnect();
+	my $monitorid = $ARGV[0];
+
+	# Grap the following fields from the Monitors table
+	my $sql = "select 
+			Name, 
+			Type, 
+			Device, 
+			Channel, 
+			Format, 
+			Protocol, 
+			Method, 
+			Host, 
+			Port, 
+			Path, 
+			SubPath, 
+			Width, 
+			Height, 
+			Palette, 
+			MaxFPS, 
+			Controllable, 
+			ControlId, 
+			ControlDevice, 
+			ControlAddress, 
+			DefaultRate, 
+			DefaultScale 
+		from Monitors where Id = ?";
+	my @data = selectQuery($dbh,$sql,$monitorid);
+
+	if (!@data) {
+		die( "Error: Monitor Id $monitorid does not appear to exist in the database.\n" );
+	}
+
+	# Attempt to search for and replace system specific values such as ip addresses, ports, usernames, etc. with generic placeholders
+	if (!$noregex) {
+		foreach (@data) {
+			s/\b(?:\d{1,3}\.){3}\d{1,3}\b/<ip-address>/; # ip address
+			s/<ip-address>:(6553[0-5]|655[0-2]\d|65[0-4]\d\d|6[0-4]\d{3}|[1-5]\d{4}|[1-9]\d{0,3}|0)$/<ip-address>:<port>/; # tcpip port
+			s/\/\/.*:.*@/\/\/<username>:<pwd>@/; # user & pwd preceeding an ip address
+			s/(&|\?)(user|username)=\w\w*(&|\?)/$1$2=<username>$3/i; # username embeded in url
+			s/(&|\?)(pwd|password)=\w\w*(&|\?)/$1$2=<pwd>$3/i; # password embeded in url
+			s/\w\w*:\w\w*/<username>:<pwd>/; # user & pwd in their own field
+			s/\/dev\/video\d\d*/\/dev\/video<?>/; # local video devices
+		}
+	}
+
+	if (!checkExists($dbh,"MonitorPresets",$data[0])) {
+		# No existing Preset was found.  Add new Preset to dB.
+		print "Adding new preset: $data[0]\n";
+		insertQuery($dbh,"MonitorPresets",@data);
+	} elsif ($overwrite) {
+		# An existing Control was found and the overwrite flag is set.  Overwrite the control.
+		print "Existing preset $data[0] detected.\nOverwriting...\n";
+		deleteQuery($dbh,"MonitorPresets",$data[0]);
+		insertQuery($dbh,"MonitorPresets",@data);
+	} else {
+		# An existing Control was found and the overwrite flag was not set. Do nothing.
+		print "Existing preset $data[0] detected and overwrite flag not set.\nSkipping...\n";
+	}
+}
+

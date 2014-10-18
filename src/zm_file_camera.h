@@ -28,7 +28,7 @@
 
 //
 // Class representing 'file' cameras, i.e. those which are
-// accessed over a network connection.
+// accessed using a single file which contains the latest jpeg data
 //
 class FileCamera : public Camera
 {

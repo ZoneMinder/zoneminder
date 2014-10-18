@@ -23,9 +23,15 @@
 
 #include "zm_ffmpeg_camera.h"
 
-FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) :
+extern "C"{
+#include "libavutil/time.h"
+}
+
+FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::string &p_method, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) :
     Camera( p_id, FFMPEG_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture ),
-    mPath( p_path )
+    mPath( p_path ),
+    mMethod( p_method ),
+    mOptions( p_options )
 {
 	if ( capture )
 	{
@@ -34,11 +40,13 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, int p_width, in
 	
 	mFormatContext = NULL;
 	mVideoStreamId = -1;
+    mAudioStreamId = -1;
 	mCodecContext = NULL;
 	mCodec = NULL;
 	mRawFrame = NULL;
 	mFrame = NULL;
 	frameCount = 0;
+    startTime=0;
     
     wasRecording = false;
 	
@@ -85,10 +93,10 @@ FfmpegCamera::~FfmpegCamera()
     }
     if ( mFormatContext )
     {
-#if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(53, 4, 0)
-        av_close_input_file( mFormatContext );
-#else
+#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(53, 17, 0)
         avformat_close_input( &mFormatContext );
+#else
+        av_close_input_file( mFormatContext );
 #endif
         mFormatContext = NULL;
     }
@@ -115,16 +123,54 @@ void FfmpegCamera::Terminate()
 
 int FfmpegCamera::PrimeCapture()
 {
+    mVideoStreamId = -1;
+    mAudioStreamId = -1;
     Info( "Priming capture from %s", mPath.c_str() );
-
+    
     // Open the input, not necessarily a file
 #if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(53, 4, 0)
     if ( av_open_input_file( &mFormatContext, mPath.c_str(), NULL, 0, NULL ) !=0 )
 #else
-    if ( avformat_open_input( &mFormatContext, mPath.c_str(), NULL, NULL ) !=0 )
+    // Handle options
+    AVDictionary *opts = 0;
+    StringVector opVect = split(Options(), ",");
+    
+    // Set transport method as specified by method field, rtpUni is default
+    if ( Method() == "rtpMulti" )
+    	opVect.push_back("rtsp_transport=udp_multicast");
+    else if ( Method() == "rtpRtsp" )
+        opVect.push_back("rtsp_transport=tcp");
+    else if ( Method() == "rtpRtspHttp" )
+        opVect.push_back("rtsp_transport=http");
+    
+  	Debug(2, "Number of Options: %d",opVect.size());
+    for (size_t i=0; i<opVect.size(); i++)
+    {
+    	StringVector parts = split(opVect[i],"=");
+    	if (parts.size() > 1) {
+    		parts[0] = trimSpaces(parts[0]);
+    		parts[1] = trimSpaces(parts[1]);
+    	    if ( av_dict_set(&opts, parts[0].c_str(), parts[1].c_str(), 0) == 0 ) {
+    	        Debug(2, "set option %d '%s' to '%s'", i,  parts[0].c_str(), parts[1].c_str());
+    	    }
+    	    else
+    	    {
+    	        Warning( "Error trying to set option %d '%s' to '%s'", i, parts[0].c_str(), parts[1].c_str() );
+    	    }
+    		  
+    	}
+    }
+
+    if ( avformat_open_input( &mFormatContext, mPath.c_str(), NULL, &opts ) !=0 )
 #endif
         Fatal( "Unable to open input %s due to: %s", mPath.c_str(), strerror(errno) );
 
+    Info( "Stream open %s", mPath.c_str() );
+    startTime=av_gettime();//FIXME here or after find_Stream_info
+    
+    //FIXME can speed up initial analysis but need sensible parameters...
+    //mFormatContext->probesize = 32;
+    //mFormatContext->max_analyze_duration = 32;
     // Locate stream info from input
 #if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(53, 4, 0)
     if ( av_find_stream_info( mFormatContext ) < 0 )
@@ -133,18 +179,32 @@ int FfmpegCamera::PrimeCapture()
 #endif
         Fatal( "Unable to find stream info from %s due to: %s", mPath.c_str(), strerror(errno) );
     
+    Info( "Find stream info complete %s", mPath.c_str() );
+    
     // Find first video stream present
-    mVideoStreamId = -1;
     for (unsigned int i=0; i < mFormatContext->nb_streams; i++ )
     {
-#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
-        if ( mFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO )
-#else
-        if ( mFormatContext->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO )
-#endif
+        if(mVideoStreamId == -1)
         {
-            mVideoStreamId = i;
-            break;
+#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
+		    if ( mFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO )
+#else
+		    if ( mFormatContext->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO )
+#endif
+		    {
+		        mVideoStreamId = i;
+		    }
+        }
+        if(mAudioStreamId == -1) //FIXME best way to copy all other streams?
+        {
+#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
+		    if ( mFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO )
+#else
+		    if ( mFormatContext->streams[i]->codec->codec_type == CODEC_TYPE_AUDIO )
+#endif
+		    {
+                mAudioStreamId = i;
+		    }
         }
     }
     if ( mVideoStreamId == -1 )
@@ -179,6 +239,7 @@ int FfmpegCamera::PrimeCapture()
 	}
 	
 #if HAVE_LIBSWSCALE
+#if LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(0, 8, 0)
 	if(!sws_isSupportedInput(mCodecContext->pix_fmt)) {
 		Fatal("swscale does not support the codec format: %c%c%c%c",(mCodecContext->pix_fmt)&0xff,((mCodecContext->pix_fmt>>8)&0xff),((mCodecContext->pix_fmt>>16)&0xff),((mCodecContext->pix_fmt>>24)&0xff));
 	}
@@ -186,10 +247,13 @@ int FfmpegCamera::PrimeCapture()
 	if(!sws_isSupportedOutput(imagePixFormat)) {
 		Fatal("swscale does not support the target format: %c%c%c%c",(imagePixFormat)&0xff,((imagePixFormat>>8)&0xff),((imagePixFormat>>16)&0xff),((imagePixFormat>>24)&0xff));
 	}
+#endif
 	
 #else // HAVE_LIBSWSCALE
     Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
 #endif // HAVE_LIBSWSCALE
+
+    Info( "Primed capture from %s, video=%d, audio=%d", mPath.c_str(), mVideoStreamId, mAudioStreamId);
 
     return( 0 );
 }
@@ -224,7 +288,11 @@ int FfmpegCamera::Capture( Image &image )
         Debug( 5, "Got packet from stream %d", packet.stream_index );
         if ( packet.stream_index == mVideoStreamId )
         {
-            if ( avcodec_decode_video2( mCodecContext, mRawFrame, &frameComplete, &packet ) < 0 )
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 25, 0)
+			if ( avcodec_decode_video2( mCodecContext, mRawFrame, &frameComplete, &packet ) < 0 )
+#else
+			if ( avcodec_decode_video( mCodecContext, mRawFrame, &frameComplete, packet.data, packet.size ) < 0 )
+#endif
                 Fatal( "Unable to decode frame at frame %d", frameCount );
 
             Debug( 4, "Decoded video packet at frame %d", frameCount );
@@ -281,7 +349,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_di
         if ( avResult < 0 )
         {
             Error( "Unable to read packet from stream %d: error %d", packet.stream_index, avResult );
-            return( -1 );
+            return( -1 );//FIXME do we need to free packet
         }
         Debug( 5, "Got packet from stream %d", packet.stream_index );
         if ( packet.stream_index == mVideoStreamId )
@@ -298,15 +366,16 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_di
                 avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height);
 
                 //Keep the last keyframe so we can establish immediate video
-                if(packet.flags & AV_PKT_FLAG_KEY)
-                    av_copy_packet(&lastKeyframePkt, &packet);
+                /*if(packet.flags & AV_PKT_FLAG_KEY)
+                    av_copy_packet(&lastKeyframePkt, &packet);*/
+                //TODO I think we need to store the key frame location for seeking as part of the event
                 
                 //Video recording
                 if(recording && !wasRecording){
                     //Instanciate the video storage module
                     char fileName[4096];
-                    snprintf(fileName, sizeof(fileName), "%s/event.mp4", event_directory);
-                    videoStore = new VideoStore((const char *)fileName, "matroska", mFormatContext->streams[mVideoStreamId]);
+                    snprintf(fileName, sizeof(fileName), "%s/event.mkv", event_directory);//no audio support for mp4?...ffmpeg is choking when writing the header probably some unsupported audio options for the stream doesn't like it when called from shell either using ffmpeg binary
+                    videoStore = new VideoStore((const char *)fileName, "matroska", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime);
                     wasRecording = true;
                     strcpy(oldDirectory, event_directory);
                     
@@ -317,23 +386,25 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_di
                 }
                 
                 //The directory we are recording to is no longer tied to the current event. Need to re-init the videostore with the correct directory and start recording again
-                if(recording && wasRecording && (strcmp(oldDirectory, event_directory)!=0) ){
+                if(recording && wasRecording && (strcmp(oldDirectory, event_directory)!=0) && (packet.flags & AV_PKT_FLAG_KEY) ){ //don't open new vs until we're on a key frame..would this require an offset adjustment for the event as a result?...if we store our key frame location with the even will that be enough?
                     Info("Re-starting video storage module");
                     if(videoStore){
                         delete videoStore;
                         videoStore = NULL;
                     }
                     char fileName[4096];
-                    snprintf(fileName, sizeof(fileName), "%s/event.mp4", event_directory);
-                    videoStore = new VideoStore((const char *)fileName, "matroska", mFormatContext->streams[mVideoStreamId]);
+                    snprintf(fileName, sizeof(fileName), "%s/event.mkv", event_directory);//no audio support for mp4?
+                    videoStore = new VideoStore((const char *)fileName, "matroska", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime);
                     strcpy(oldDirectory, event_directory);
                 }
                 
                 if(videoStore && recording){
                     //Write the packet to our video store
-                    int ret = videoStore->writeVideoFramePacket(&packet, mFormatContext->streams[mVideoStreamId], &lastKeyframePkt);
-                    if(ret<0)//Less than zero and we skipped a frame
-                        return 0;
+                    int ret = videoStore->writeVideoFramePacket(&packet, mFormatContext->streams[mVideoStreamId]);//, &lastKeyframePkt);
+                    if(ret<0){//Less than zero and we skipped a frame
+                        av_free_packet( &packet );
+                        return 0;//FIXME av_free_packet not called
+                    }
                 }
                 
 #if HAVE_LIBSWSCALE
@@ -354,6 +425,15 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_di
 #endif // HAVE_LIBSWSCALE
                 
                 frameCount++;
+            }
+        }else if(packet.stream_index == mAudioStreamId){//FIXME best way to copy all other streams
+            if(videoStore && recording){
+                //Write the packet to our video store
+                int ret = videoStore->writeAudioFramePacket(&packet, mFormatContext->streams[packet.stream_index]); //FIXME no relevance of last key frame
+                /*if(ret<0){//Less than zero and we skipped a frame
+                    av_free_packet( &packet );
+                    return 0;  //FIXME av_free_packet not called      
+                }*/
             }
         }
         av_free_packet( &packet );

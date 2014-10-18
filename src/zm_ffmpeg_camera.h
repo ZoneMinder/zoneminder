@@ -28,19 +28,22 @@
 #include "zm_videostore.h"
 
 //
-// Class representing 'remote' cameras, i.e. those which are
-// accessed over a network connection.
+// Class representing 'ffmpeg' cameras, i.e. those which are
+// accessed using ffmpeg multimedia framework
 //
 class FfmpegCamera : public Camera
 {
 protected:
     std::string         mPath;
+    std::string			mMethod;
+    std::string			mOptions;
 
     int frameCount;    
 
 #if HAVE_LIBAVFORMAT
     AVFormatContext     *mFormatContext;
     int                 mVideoStreamId;
+    int                 mAudioStreamId;
     AVCodecContext      *mCodecContext;
     AVCodec             *mCodec;
     AVFrame             *mRawFrame; 
@@ -51,17 +54,21 @@ protected:
     bool                wasRecording;
     VideoStore          *videoStore;
     char                oldDirectory[4096];
-    AVPacket            lastKeyframePkt;
+    //AVPacket            lastKeyframePkt;
 
 #if HAVE_LIBSWSCALE
 	struct SwsContext   *mConvertContext;
 #endif
 
+    int64_t             startTime;
+    
 public:
-	FfmpegCamera( int p_id, const std::string &path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
+	FfmpegCamera( int p_id, const std::string &path, const std::string &p_method, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
 	~FfmpegCamera();
 
     const std::string &Path() const { return( mPath ); }
+    const std::string &Options() const { return( mOptions ); } 
+    const std::string &Method() const { return( mMethod ); }
 
 	void Initialise();
 	void Terminate();

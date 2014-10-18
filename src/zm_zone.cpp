@@ -23,7 +23,7 @@
 #include "zm_image.h"
 #include "zm_monitor.h"
 
-void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Polygon &p_polygon, const Rgb p_alarm_rgb, CheckMethod p_check_method, int p_min_pixel_threshold, int p_max_pixel_threshold, int p_min_alarm_pixels, int p_max_alarm_pixels, const Coord &p_filter_box, int p_min_filter_pixels, int p_max_filter_pixels, int p_min_blob_pixels, int p_max_blob_pixels, int p_min_blobs, int p_max_blobs, int p_overload_frames )
+void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Polygon &p_polygon, const Rgb p_alarm_rgb, CheckMethod p_check_method, int p_min_pixel_threshold, int p_max_pixel_threshold, int p_min_alarm_pixels, int p_max_alarm_pixels, const Coord &p_filter_box, int p_min_filter_pixels, int p_max_filter_pixels, int p_min_blob_pixels, int p_max_blob_pixels, int p_min_blobs, int p_max_blobs, int p_overload_frames, int p_extend_alarm_frames )
 {
 	monitor = p_monitor;
 
@@ -46,8 +46,9 @@ void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_
 	min_blobs = p_min_blobs;
 	max_blobs = p_max_blobs;
 	overload_frames = p_overload_frames;
+        extend_alarm_frames = p_extend_alarm_frames;
 
-	Debug( 1, "Initialised zone %d/%s - %d - %dx%d - Rgb:%06x, CM:%d, MnAT:%d, MxAT:%d, MnAP:%d, MxAP:%d, FB:%dx%d, MnFP:%d, MxFP:%d, MnBS:%d, MxBS:%d, MnB:%d, MxB:%d, OF: %d", id, label, type, polygon.Width(), polygon.Height(), alarm_rgb, check_method, min_pixel_threshold, max_pixel_threshold, min_alarm_pixels, max_alarm_pixels, filter_box.X(), filter_box.Y(), min_filter_pixels, max_filter_pixels, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs, overload_frames );
+	Debug( 1, "Initialised zone %d/%s - %d - %dx%d - Rgb:%06x, CM:%d, MnAT:%d, MxAT:%d, MnAP:%d, MxAP:%d, FB:%dx%d, MnFP:%d, MxFP:%d, MnBS:%d, MxBS:%d, MnB:%d, MxB:%d, OF: %d, AF: %d", id, label, type, polygon.Width(), polygon.Height(), alarm_rgb, check_method, min_pixel_threshold, max_pixel_threshold, min_alarm_pixels, max_alarm_pixels, filter_box.X(), filter_box.Y(), min_filter_pixels, max_filter_pixels, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs, overload_frames, extend_alarm_frames );
 
 	alarmed = false;
 	pixel_diff = 0;
@@ -61,6 +62,7 @@ void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_
 	score = 0;
 
 	overload_count = 0;
+	extend_alarm_count = 0;
 
 	pg_image = new Image( monitor->Width(), monitor->Height(), 1, ZM_SUBPIX_ORDER_NONE);
 	pg_image->Clear();
@@ -161,6 +163,35 @@ int Zone::GetOverloadFrames()
 {
     return overload_frames;
 }
+
+int Zone::GetExtendAlarmCount()
+{
+    return extend_alarm_count;
+}
+
+void Zone::SetExtendAlarmCount(int nExtendAlarmCount)
+{
+    extend_alarm_count = nExtendAlarmCount;
+}
+
+int Zone::GetExtendAlarmFrames()
+{
+    return extend_alarm_frames;
+}
+
+bool Zone::CheckExtendAlarmCount()
+{
+    Info("ExtendAlarm count: %d, ExtendAlarm frames: %d", extend_alarm_count, extend_alarm_frames);
+    if ( extend_alarm_count )
+    {
+            Debug( 3, "In extend mode, %d frames of %d remaining", extend_alarm_count, extend_alarm_frames );
+            extend_alarm_count--;
+            return( true );
+    }
+    return false;
+}
+
+
 //===========================================================================
 
 
@@ -908,8 +939,8 @@ bool Zone::ParseZoneString( const char *zone_string, int &zone_id, int &colour, 
 
 int Zone::Load( Monitor *monitor, Zone **&zones )
 {
-   static char sql[ZM_SQL_MED_BUFSIZ];
-	snprintf( sql, sizeof(sql), "select Id,Name,Type+0,Units,Coords,AlarmRGB,CheckMethod+0,MinPixelThreshold,MaxPixelThreshold,MinAlarmPixels,MaxAlarmPixels,FilterX,FilterY,MinFilterPixels,MaxFilterPixels,MinBlobPixels,MaxBlobPixels,MinBlobs,MaxBlobs,OverloadFrames from Zones where MonitorId = %d order by Type, Id", monitor->Id() );
+	static char sql[ZM_SQL_MED_BUFSIZ];
+	snprintf( sql, sizeof(sql), "select Id,Name,Type+0,Units,Coords,AlarmRGB,CheckMethod+0,MinPixelThreshold,MaxPixelThreshold,MinAlarmPixels,MaxAlarmPixels,FilterX,FilterY,MinFilterPixels,MaxFilterPixels,MinBlobPixels,MaxBlobPixels,MinBlobs,MaxBlobs,OverloadFrames,ExtendAlarmFrames from Zones where MonitorId = %d order by Type, Id", monitor->Id() );
 	if ( mysql_query( &dbconn, sql ) )
 	{
 		Error( "Can't run query: %s", mysql_error( &dbconn ) );
@@ -950,18 +981,23 @@ int Zone::Load( Monitor *monitor, Zone **&zones )
 		int MinBlobs = dbrow[col]?atoi(dbrow[col]):0; col++;
 		int MaxBlobs = dbrow[col]?atoi(dbrow[col]):0; col++;
 		int OverloadFrames = dbrow[col]?atoi(dbrow[col]):0; col++;
+		int ExtendAlarmFrames = dbrow[col]?atoi(dbrow[col]):0; col++;
 		
 		/* HTML colour code is actually BGR in memory, we want RGB */
 		AlarmRGB = rgb_convert(AlarmRGB, ZM_SUBPIX_ORDER_BGR);
 
 		Debug( 5, "Parsing polygon %s", Coords );
 		Polygon polygon;
-		if ( !ParsePolygonString( Coords, polygon ) )
-			Panic( "Unable to parse polygon string '%s' for zone %d/%s for monitor %s", Coords, Id, Name, monitor->Name() );
+		if ( !ParsePolygonString( Coords, polygon ) ) {
+			Error( "Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring", Coords, Id, Name, monitor->Name() );
+            continue;
+        }
 
 		if ( polygon.LoX() < 0 || polygon.HiX() >= (int)monitor->Width() 
-           || polygon.LoY() < 0 || polygon.HiY() >= (int)monitor->Height() )
-			Panic( "Zone %d/%s for monitor %s extends outside of image dimensions, %d, %d, %d, %d", Id, Name, monitor->Name(), polygon.LoX(), polygon.LoY(), polygon.HiX(), polygon.HiY() );
+           || polygon.LoY() < 0 || polygon.HiY() >= (int)monitor->Height() ) {
+			Error( "Zone %d/%s for monitor %s extends outside of image dimensions, (%d,%d), (%d,%d), ignoring", Id, Name, monitor->Name(), polygon.LoX(), polygon.LoY(), polygon.HiX(), polygon.HiY() );
+            continue;
+        }
 
 		if ( false && !strcmp( Units, "Percent" ) )
 		{
@@ -979,7 +1015,7 @@ int Zone::Load( Monitor *monitor, Zone **&zones )
 		}
 		else
 		{
-			zones[i] = new Zone( monitor, Id, Name, (Zone::ZoneType)Type, polygon, AlarmRGB, (Zone::CheckMethod)CheckMethod, MinPixelThreshold, MaxPixelThreshold, MinAlarmPixels, MaxAlarmPixels, Coord( FilterX, FilterY ), MinFilterPixels, MaxFilterPixels, MinBlobPixels, MaxBlobPixels, MinBlobs, MaxBlobs, OverloadFrames );
+			zones[i] = new Zone( monitor, Id, Name, (Zone::ZoneType)Type, polygon, AlarmRGB, (Zone::CheckMethod)CheckMethod, MinPixelThreshold, MaxPixelThreshold, MinAlarmPixels, MaxAlarmPixels, Coord( FilterX, FilterY ), MinFilterPixels, MaxFilterPixels, MinBlobPixels, MaxBlobPixels, MinBlobs, MaxBlobs, OverloadFrames, ExtendAlarmFrames );
 		}
 	}
 	if ( mysql_errno( &dbconn ) )

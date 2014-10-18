@@ -1,3 +1,9 @@
+zoneminder (1.27.99+1-trusty-SNAPSHOT2014101401) trusty; urgency=medium
+
+  * Several PR merges in big push for 1.28.0
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Tue, 14 Oct 2014 09:28:29 -0400
+
 zoneminder (1.27.99+1-trusty-SNAPSHOT2014092601) trusty; urgency=medium
 
   * style updates and db fixes for database logging filters

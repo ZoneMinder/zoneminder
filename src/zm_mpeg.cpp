@@ -58,7 +58,7 @@ void VideoStream::SetupFormat( )
 {
 	/* allocate the output media context */
 	ofc = NULL;
-#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(53, 5, 0)
+#if ((LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(53, 5, 0)) && (LIBAVFORMAT_VERSION_MICRO >= 100))
 	avformat_alloc_output_context2( &ofc, NULL, format, filename );
 #else
 	AVFormatContext *s= avformat_alloc_context();
@@ -95,7 +95,7 @@ void VideoStream::SetupFormat( )
 		{
 			Fatal( "Could not allocate private data for output format." );
 		}
-#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51, 10, 0)
+#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(52, 92, 0)
 		if (s->oformat->priv_class) {
 			*(const AVClass**)s->priv_data = s->oformat->priv_class;
 			av_opt_set_defaults(s->priv_data);
@@ -172,7 +172,7 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
 		if ( of->video_codec ==  AV_CODEC_ID_NONE)
 		{
 			// RTP does not have a default codec in ffmpeg <= 0.8.
-			of->video_codec = CODEC_ID_MPEG4;
+			of->video_codec = AV_CODEC_ID_MPEG4;
 		}
 	}
 	
@@ -186,7 +186,7 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
             }
             else
             {
-#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(53, 11, 0)
+#if ((LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(53, 11, 0)) && (LIBAVFORMAT_VERSION_MICRO >= 100))
                     Debug( 1, "Could not find codec \"%s\". Using default \"%s\"", codec_name, avcodec_get_name( codec_id ) );
 #else
                     Debug( 1, "Could not find codec \"%s\". Using default \"%d\"", codec_name, codec_id );
@@ -202,14 +202,14 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
 		codec = avcodec_find_encoder( codec_id );
 		if ( !codec )
 		{
-#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(53, 11, 0)
+#if ((LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(53, 11, 0)) && (LIBAVFORMAT_VERSION_MICRO >= 100))
 			Fatal( "Could not find encoder for '%s'", avcodec_get_name( codec_id ) );
 #else
 			Fatal( "Could not find encoder for '%d'", codec_id );
 #endif
 		}
 
-#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(53, 11, 0)
+#if ((LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(53, 11, 0)) && (LIBAVFORMAT_VERSION_MICRO >= 100))
 		Debug( 1, "Found encoder for '%s'", avcodec_get_name( codec_id ) );
 #else
 		Debug( 1, "Found encoder for '%d'", codec_id );
@@ -433,6 +433,7 @@ VideoStream::VideoStream( const char *in_filename, const char *in_format, int bi
 		codec_and_format = new char[length+1];;
 		strcpy( codec_and_format, format );
 		format = codec_and_format;
+		codec_name = NULL;
 		char *f = strchr(codec_and_format, '/');
 		if (f != NULL)
 		{

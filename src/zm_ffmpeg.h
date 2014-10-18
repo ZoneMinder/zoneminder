@@ -32,10 +32,16 @@ extern "C" {
 #include <libavutil/avutil.h>
 #include <libavutil/base64.h>
 #include <libavutil/mathematics.h>
+#if LIBAVUTIL_VERSION_INT > AV_VERSION_INT(50, 28, 0)
+#include <libavutil/opt.h>
+#else
+#include <libavcodec/opt.h>
+#endif
 #elif HAVE_FFMPEG_AVUTIL_H
 #include <ffmpeg/avutil.h>
 #include <ffmpeg/base64.h>
 #include <ffmpeg/mathematics.h>
+#include <ffmpeg/opt.h>
 #endif
 
 // AVCODEC

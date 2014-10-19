@@ -1,3 +1,9 @@
+zoneminder (1.28.0-trusty) trusty; urgency=medium
+
+  * Release
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Fri, 17 Oct 2014 09:25:55 -0400
+
 zoneminder (1.27.99+1-trusty-SNAPSHOT2014101401) trusty; urgency=medium
 
   * Several PR merges in big push for 1.28.0

@@ -48,7 +48,7 @@ use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
 
 use Time::HiRes qw( usleep );
-use URI::Encode qw();
+use URI::Escape qw(uri_escape);
 
 sub new {
     my $class = shift;
@@ -115,8 +115,7 @@ sub sendCmd {
 		$url = 'http://'.$self->{Monitor}->{ControlAddress}.'/cgi-bin/setGPIO.cgi?preventCache='.time;
 	} # en dif
 	Error("Url: $url  $cmd");
-    my $uri     = URI::Encode->new( { encode_reserved => 0 } );
-    my $encoded = $uri->encode( $cmd );
+    my $encoded = uri_escape( $cmd );
     my $res = $self->{ua}->post( $url, Content=>"data=$encoded" );
 
     if ( $res->is_success ) {

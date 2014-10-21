@@ -93,7 +93,7 @@ fi
 /usr/bin/gpasswd -a %{zmuid_final} dialout
 
 # Display the README for post installation instructions
-/usr/bin/less %{_docdir}/%{name}-%{version}/README.Fedora
+/usr/bin/less %{_docdir}/%{name}/README.Fedora
 
 %preun
 if [ $1 -eq 0 ] ; then

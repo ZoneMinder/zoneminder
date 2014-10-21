@@ -38,8 +38,6 @@ require ZoneMinder::Control;
 
 our @ISA = qw(ZoneMinder::Control);
 
-our $VERSION = $ZoneMinder::Base::VERSION;
-
 # ==========================================================================
 #
 # Axis V2 Control Protocol
@@ -50,10 +48,9 @@ use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
 
 use Time::HiRes qw( usleep );
-use URI::Encode qw();
+use URI::Escape qw(uri_escape);
 
-sub new
-{
+sub new {
     my $class = shift;
     my $id = shift;
     my $self = ZoneMinder::Control->new( $id );
@@ -64,8 +61,7 @@ sub new
 
 our $AUTOLOAD;
 
-sub AUTOLOAD
-{
+sub AUTOLOAD {
     my $self = shift;
     my $class = ref($self) || croak( "$self not object" );
     my $name = $AUTOLOAD;
@@ -111,10 +107,15 @@ sub sendCmd {
     printMsg( $cmd, "Tx" );
     #print( "http://$address/$cmd\n" );
     #my $req = HTTP::Request->new( GET=>"http://".$self->{Monitor}->{ControlAddress}."/$cmd" );
-	my $url = 'http://'.$self->{Monitor}->{ControlAddress}.'/cgi-bin/setGPIO.cgi?preventCache='.time;
-	Debug("Url: $url  $cmd");
-    my $uri     = URI::Encode->new( { encode_reserved => 0 } );
-    my $encoded = $uri->encode( $cmd );
+	
+	my $url;
+	if ( $self->{Monitor}->{ControlAddress} =~ /^http/ ) {
+		$url = $self->{Monitor}->{ControlAddress}.'/cgi-bin/setGPIO.cgi?preventCache='.time;
+	} else {
+		$url = 'http://'.$self->{Monitor}->{ControlAddress}.'/cgi-bin/setGPIO.cgi?preventCache='.time;
+	} # en dif
+	Error("Url: $url  $cmd");
+    my $encoded = uri_escape( $cmd );
     my $res = $self->{ua}->post( $url, Content=>"data=$encoded" );
 
     if ( $res->is_success ) {

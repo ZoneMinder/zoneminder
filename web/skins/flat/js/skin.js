@@ -86,7 +86,6 @@ function checkSize() {
     }
 }
 
-
 // Deprecated
 function newWindow( url, name, width, height )
 {

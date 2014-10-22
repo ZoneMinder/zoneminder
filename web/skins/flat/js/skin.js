@@ -86,7 +86,6 @@ function checkSize() {
     }
 }
 
-window.addEvent( 'domready', checkSize);
 
 // Deprecated
 function newWindow( url, name, width, height )
@@ -308,3 +307,5 @@ if ( focusWindow )
 {
     windowToFront();
 }
+
+window.addEvent( 'domready', checkSize);

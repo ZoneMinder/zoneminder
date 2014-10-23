@@ -76,7 +76,7 @@ public:
 	int PrimeCapture();
 	int PreCapture();
 	int Capture( Image &image );
-    int CaptureAndRecord( Image &image, bool recording, char* event_directory );
+        int CaptureAndRecord( Image &image, bool recording, char* event_directory );
 	int PostCapture();
 };
 

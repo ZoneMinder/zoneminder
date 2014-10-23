@@ -715,7 +715,7 @@ int main( int argc, char *argv[] )
 					if ( function > 1 )
 					{
 						Monitor *monitor = Monitor::Load( mon_id, false, Monitor::QUERY );
-						if ( monitor )
+						if ( monitor && monitor->connect() )
 						{
 							struct timeval tv = monitor->GetTimestamp();
 							printf( "%4d%5d%6d%9d%11ld.%02ld%6d%6d%8d%8.2f\n",

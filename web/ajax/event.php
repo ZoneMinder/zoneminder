@@ -14,7 +14,7 @@ if ( canView( 'Events' ) ) {
             } elseif ( empty($_REQUEST['scale']) ) {
                 ajaxError( "Video Generation Failure, no scale given" );
             } else {
-                $sql = 'select E.*,M.Name as MonitorName,M.DefaultRate,M.DefaultScale from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = ?'.monitorLimitSql();
+                $sql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultRate,M.DefaultScale FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = ?'.monitorLimitSql();
                 if ( !($event = dbFetchOne( $sql, NULL, array( $_REQUEST['id'] ) )) )
                     ajaxError( "Video Generation Failure, can't load event" );
                 else

@@ -185,7 +185,7 @@ SET @s = (SELECT IF(
     AND column_name = 'V4LMultiBuffer'
     ) > 0,
 "SELECT 'Column V4LMultiBuffer exists in Monitors'",
-"ALTER TABLE `Monitors` ADD `V4LMultiBuffer` tinyint(1) unsigned not null default 0 AFTER `Format`"
+"ALTER TABLE `Monitors` ADD `V4LMultiBuffer` tinyint(1) unsigned AFTER `Format`"
 ));
 
 PREPARE stmt FROM @s;
@@ -198,8 +198,8 @@ SET @s = (SELECT IF(
     AND table_schema = DATABASE()
     AND column_name = 'V4LCapturesPerFrame'
     ) > 0,
-"SELECT 'Column CapturesPerFrame exists in Monitors'",
-"ALTER TABLE `Monitors` ADD `V4LCapturesPerFrame` tinyint(3) unsigned not null default 0 AFTER `V4LMultiBuffer`"
+"SELECT 'Column V4LCapturesPerFrame exists in Monitors'",
+"ALTER TABLE `Monitors` ADD `V4LCapturesPerFrame` tinyint(3) unsigned AFTER `V4LMultiBuffer`"
 ));
 
 PREPARE stmt FROM @s;

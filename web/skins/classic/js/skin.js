@@ -48,7 +48,7 @@ var popupSizes = {
     'log':          { 'width': 1080, 'height': 720 },
     'login':        { 'width': 720, 'height': 480 },
     'logout':       { 'width': 260, 'height': 100 },
-    'monitor':      { 'width': 450, 'height': 400 },
+    'monitor':      { 'width': 450, 'height': 440 },
     'monitorpreset':{ 'width': 440, 'height': 200 },
     'monitorprobe': { 'width': 500, 'height': 240 },
     'monitorselect':{ 'width': 160, 'height': 200 },
@@ -70,6 +70,21 @@ var popupSizes = {
 };
 
 var popupOptions = "resizable,scrollbars,status=no";
+
+function checkSize() {
+    if (window.outerHeight) {
+        var w = window.outerWidth;
+        var prevW = w;
+        var h = window.outerHeight;
+        var prevH = h;
+        if (h > screen.availHeight)
+            h  = screen.availHeight;
+        if (w > screen.availWidth)
+            w  = screen.availWidth;
+        if (w != prevW || h != prevH)
+            window.resizeTo(w,h);
+    }
+}
 
 // Deprecated
 function newWindow( url, name, width, height )
@@ -291,3 +306,5 @@ if ( focusWindow )
 {
     windowToFront();
 }
+window.addEvent( 'domready', checkSize);
+

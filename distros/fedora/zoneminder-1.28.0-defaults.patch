@@ -1,0 +1,47 @@
+--- scripts/ZoneMinder/lib/ZoneMinder/ConfigData.pm.in	2013-08-01 18:14:45.175241378 -0500
++++ scripts/ZoneMinder/lib/ZoneMinder/ConfigData.pm.in.defaults	2013-08-07 18:57:42.525006149 -0500
+@@ -187,7 +187,7 @@
+ 	},
+ 	{
+ 		name => "ZM_PATH_ZMS",
+-		default => "/cgi-bin/nph-zms",
++		default => "/cgi-bin/zm/nph-zms",
+ 		description => "Web path to zms streaming server",
+ 		help => "The ZoneMinder streaming server is required to send streamed images to your browser. It will be installed into the cgi-bin path given at configuration time. This option determines what the web path to the server is rather than the local path on your machine. Ordinarily the streaming server runs in parser-header mode however if you experience problems with streaming you can change this to non-parsed-header (nph) mode by changing 'zms' to 'nph-zms'.",
+ 		type => $types{rel_path},
+@@ -276,7 +276,7 @@
+ 	},
+ 	{
+ 		name => "ZM_OPT_CAMBOZOLA",
+-		default => "no",
++		default => "yes",
+ 		description => "Is the (optional) cambozola java streaming client installed",
+ 		help => "Cambozola is a handy low fat cheese flavoured Java applet that ZoneMinder uses to view image streams on browsers such as Internet Explorer that don't natively support this format. If you use this browser it is highly recommended to install this from http://www.charliemouse.com/code/cambozola/  however if it is not installed still images at a lower refresh rate can still be viewed.",
+ 		type => $types{boolean},
+@@ -639,7 +639,7 @@
+ 	},
+ 	{
+ 		name => "ZM_PATH_SWAP",
+-		default => "@ZM_TMPDIR@",
++		default => "/dev/shm",
+ 		description => "Path to location for temporary swap images used in streaming",
+ 		help => "Buffered playback requires temporary swap images to be stored for each instance of the streaming daemons. This option determines where these images will be stored. The images will actually be stored in sub directories beneath this location and will be automatically cleaned up after a period of time.",
+ 		type => $types{abs_path},
+@@ -902,7 +902,7 @@
+ 	},
+ 	{
+ 		name => "ZM_UPLOAD_FTP_LOC_DIR",
+-		default => "@ZM_TMPDIR@",
++		default => "/var/spool/zoneminder-upload",
+ 		description => "The local directory in which to create upload files",
+ 		help => "You can use filters to instruct ZoneMinder to upload events to a remote ftp server. This option indicates the local directory that ZoneMinder should use for temporary upload files. These are files that are created from events, uploaded and then deleted.",
+ 		requires => [ { name => "ZM_OPT_UPLOAD", value => "yes" } ],
+@@ -1258,7 +1258,7 @@
+ 	},
+ 	{
+ 		name => "ZM_OPT_CONTROL",
+-		default => "no",
++		default => "yes",
+ 		description => "Support controllable (e.g. PTZ) cameras",
+ 		help => "ZoneMinder includes limited support for controllable cameras. A number of sample protocols are included and others can easily be added. If you wish to control your cameras via ZoneMinder then select this option otherwise if you only have static cameras or use other control methods then leave this option off.",
+ 		type => $types{boolean},

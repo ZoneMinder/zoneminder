@@ -17,11 +17,32 @@ env:
 compiler:
   - gcc
 before_install:
+  - sudo apt-get update -qq
+  - sudo apt-get install -y -qq libpolkit-gobject-1-dev zlib1g-dev apache2 mysql-server php5 php5-mysql build-essential libmysqlclient-dev libssl-dev libbz2-dev libpcre3-dev libdbi-perl libarchive-zip-perl libdate-manip-perl libdevice-serialport-perl libmime-perl libwww-perl libdbd-mysql-perl libsys-mmap-perl yasm automake autoconf cmake libjpeg-turbo8-dev apache2-mpm-prefork libapache2-mod-php5 php5-cli libtheora-dev libvorbis-dev libvpx-dev libx264-dev libvlccore-dev libvlc-dev libvlccore5 libvlc5 2>&1 > /dev/null 
 install:
-  - travis_retry bash $TRAVIS_BUILD_DIR/utils/travis/install-deps.sh
-  - travis_wait bash $TRAVIS_BUILD_DIR/utils/travis/install-ffmpeg.sh
+  - git clone -b n2.4.2 --depth=1 git://source.ffmpeg.org/ffmpeg.git
+  - cd ffmpeg
+  - ./configure --enable-shared --enable-swscale --enable-gpl  --enable-libx264 --enable-libvpx --enable-libvorbis --enable-libtheora 
+  - make -j `grep processor /proc/cpuinfo|wc -l` 
+  - sudo make install 
+  - sudo make install-libs
 before_script:
-  - bash $TRAVIS_BUILD_DIR/utils/travis/bootstrap-zm.sh
+  - cd $TRAVIS_BUILD_DIR
+  - if [ "$ZM_BUILDMETHOD" = "autotools" ]; then libtoolize --force; fi
+  - if [ "$ZM_BUILDMETHOD" = "autotools" ]; then aclocal; fi
+  - if [ "$ZM_BUILDMETHOD" = "autotools" ]; then autoheader; fi
+  - if [ "$ZM_BUILDMETHOD" = "autotools" ]; then automake --force-missing --add-missing; fi
+  - if [ "$ZM_BUILDMETHOD" = "autotools" ]; then autoconf; fi
+  - mysql -uroot -e "CREATE DATABASE IF NOT EXISTS zm"
+  - mysql -uroot -e "GRANT ALL ON zm.* TO 'zmuser'@'localhost' IDENTIFIED BY 'zmpass'";
+  - mysql -uroot -e "FLUSH PRIVILEGES"
 script:
-  - bash $TRAVIS_BUILD_DIR/utils/travis/build-zm.sh
-  - bash $TRAVIS_BUILD_DIR/utils/travis/run-tests.sh
+  - if [ "$ZM_BUILDMETHOD" = "autotools" ]; then ./configure --prefix=/usr --with-libarch=lib/$DEB_HOST_GNU_TYPE --host=$DEB_HOST_GNU_TYPE --build=$DEB_BUILD_GNU_TYPE --with-mysql=/usr --with-ffmpeg=/usr --with-webdir=/usr/share/zoneminder/www --with-cgidir=/usr/libexec/zoneminder/cgi-bin --with-webuser=www-data --with-webgroup=www-data --enable-crashtrace=yes --disable-debug --enable-mmap=yes ZM_SSL_LIB=openssl; fi
+  - if [ "$ZM_BUILDMETHOD" = "cmake" ]; then cmake -DCMAKE_INSTALL_PREFIX="/usr"; fi
+  - make
+  - sudo make install
+  - if [ "$ZM_BUILDMETHOD" = "cmake" ]; then sudo ./zmlinkcontent.sh; fi
+  - mysql -uzmuser -pzmpass < db/zm_create.sql
+  - mysql -uzmuser -pzmpass zm < db/test.monitor.sql
+  - sudo zmpkg.pl start
+  - sudo zmfilter.pl -f purgewhenfull

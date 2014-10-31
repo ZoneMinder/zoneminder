@@ -784,7 +784,7 @@ function getBrowser( &$browser, &$version )
     }
     else
     {
-        if ( preg_match( '/MSIE (.*?);/', $_SERVER['HTTP_USER_AGENT'], $logVersion) )
+	if (( preg_match( '/MSIE (.*?);/', $_SERVER['HTTP_USER_AGENT'], $logVersion)) || (preg_match( '/.*Trident.*rv:(.*?)(;|\))/', $_SERVER['HTTP_USER_AGENT'], $logVersion)))
         {
             $version = $logVersion[1];
             $browser = 'ie';
@@ -1381,7 +1381,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' )
                 switch ( $filter['terms'][$i]['attr'] )
                 {
                     case 'MonitorName':
-                        $filter['sql'] .= dbEscape('M.'.preg_replace( '/^Monitor/', '', $filter['terms'][$i]['attr'] ));
+                        $filter['sql'] .= 'M.'.preg_replace( '/^Monitor/', '', $filter['terms'][$i]['attr'] );
                         break;
                     case 'DateTime':
                         $filter['sql'] .= "E.StartTime";
@@ -1407,7 +1407,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' )
                     case 'Cause':
                     case 'Notes':
                     case 'Archived':
-                        $filter['sql'] .= "E.".$filter['terms'][$i]['attr'];
+                        $filter['sql'] .= 'E.'.$filter['terms'][$i]['attr'];
                         break;
                     case 'DiskPercent':
                         $filter['sql'] .= getDiskPercent();

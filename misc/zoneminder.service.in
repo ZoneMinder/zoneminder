@@ -1,0 +1,19 @@
+# ZoneMinder systemd unit file
+# This file is intended to work with all Linux distributions
+
+[Unit]
+Description=ZoneMinder CCTV recording and security system
+After=network.target mysqld.service httpd.service
+Requires=mysqld.service httpd.service
+
+[Service]
+User=@WEB_USER@
+Type=forking
+ExecStart=@BINDIR@/zmpkg.pl start
+ExecReload=@BINDIR@/zmpkg.pl restart
+ExecStop=/bin/bash -c '[[ "$(@BINDIR@/pgrep zmdc.pl)" > 0 ]] && @BINDIR@/zmpkg.pl stop'
+PIDFile="@ZM_RUNDIR@/zm.pid"
+
+[Install]
+WantedBy=multi-user.target
+

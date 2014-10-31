@@ -10,7 +10,7 @@
 #
 cmake_minimum_required (VERSION 2.6)
 project (zoneminder)
-set(zoneminder_VERSION "1.27.99.0")
+set(zoneminder_VERSION "1.28.0")
 
 # CMake does not allow out-of-source build if CMakeCache.exists in the source folder. Abort and notify the user to save him from headache why it doesn't work.
 if((NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)) AND (EXISTS "${CMAKE_SOURCE_DIR}/CMakeCache.txt"))
@@ -46,7 +46,8 @@ include (CheckStructHasMember)
 # Configuration options
 mark_as_advanced(FORCE ZM_EXTRA_LIBS ZM_MYSQL_ENGINE ZM_NO_MMAP CMAKE_INSTALL_FULL_BINDIR ZM_PERL_SUBPREFIX ZM_PERL_USE_PATH ZM_TARGET_DISTRO)
 set(ZM_RUNDIR "/var/run/zm" CACHE PATH "Location of transient process files, default: /var/run/zm")
-set(ZM_TMPDIR "/tmp/zm" CACHE PATH "Location of temporary files, default: /tmp/zm")
+set(ZM_SOCKDIR "/var/run/zm" CACHE PATH "Location of Unix domain socket files, default /var/run/zm")
+set(ZM_TMPDIR "/var/tmp/zm" CACHE PATH "Location of temporary files, default: /tmp/zm")
 set(ZM_LOGDIR "/var/log/zm" CACHE PATH "Location of generated log files, default: /var/log/zm")
 set(ZM_WEBDIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/zoneminder/www" CACHE PATH "Location of the web files, default: <prefix>/${CMAKE_INSTALL_DATADIR}/zoneminder/www")
 set(ZM_CGIDIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBEXECDIR}/zoneminder/cgi-bin" CACHE PATH "Location of the cgi-bin files, default: <prefix>/${CMAKE_INSTALL_LIBEXECDIR}/zoneminder/cgi-bin")
@@ -67,11 +68,12 @@ set(ZM_NO_CURL "OFF" CACHE BOOL "Set to ON to skip cURL checks and force buildin
 set(ZM_NO_X10 "OFF" CACHE BOOL "Set to ON to build ZoneMinder without X10 support. default: OFF")
 set(ZM_PERL_SUBPREFIX "${CMAKE_INSTALL_LIBDIR}/perl5" CACHE PATH "Use a different directory for the zm perl modules. NOTE: This is a subprefix, e.g. lib will be turned into <prefix>/lib, default: <libdir>/perl5")
 set(ZM_PERL_USE_PATH "${CMAKE_INSTALL_PREFIX}/${ZM_PERL_SUBPREFIX}" CACHE PATH "Override the include path for zm perl modules. Useful if you are moving the perl modules without using the ZM_PERL_SUBPREFIX option. default: <prefix>/<zmperlsubprefix>")
-set(ZM_TARGET_DISTRO "" CACHE STRING "Build ZoneMinder for a specific distribution.  Currently, valid names are: f19, el6, OS13")
+set(ZM_TARGET_DISTRO "" CACHE STRING "Build ZoneMinder for a specific distribution.  Currently, valid names are: f19, f20, el6, OS13")
 
 # Reassign some variables if a target distro has been specified
-if((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "el6"))
+if((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "f20") OR (ZM_TARGET_DISTRO STREQUAL "el6"))
 	set(ZM_RUNDIR "/var/run/zoneminder")
+	set(ZM_SOCKDIR "/var/lib/zoneminder/sock")
 	set(ZM_TMPDIR "/var/lib/zoneminder/temp")
 	set(ZM_LOGDIR "/var/log/zoneminder")
 elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
@@ -83,7 +85,7 @@ elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
 	set(ZM_WEB_GROUP "www")
 	set(ZM_WEBDIR "/srv/www/htdocs/zoneminder")
 	set(ZM_CGIDIR "/srv/www/cgi-bin")
-endif((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "el6"))
+endif((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "f20") OR (ZM_TARGET_DISTRO STREQUAL "el6"))
 
 # Required for certain checks to work
 set(CMAKE_EXTRA_INCLUDE_FILES ${CMAKE_EXTRA_INCLUDE_FILES} stdio.h stdlib.h math.h signal.h)
@@ -476,6 +478,12 @@ endif(NOT ZM_WEB_GROUP)
 message(STATUS "Using web user: ${ZM_WEB_USER}")
 message(STATUS "Using web group: ${ZM_WEB_GROUP}")
 
+# Check for polkit
+find_package(Polkit)
+if(NOT POLKIT_FOUND)
+	message(FATAL_ERROR "Running ZoneMinder requires polkit. Building ZoneMinder requires the polkit development package.")
+endif(NOT POLKIT_FOUND)
+
 # Some variables that zm expects
 set(ZM_PID "${ZM_RUNDIR}/zm.pid")
 set(ZM_CONFIG "/${CMAKE_INSTALL_SYSCONFDIR}/zm.conf")
@@ -502,17 +510,16 @@ add_subdirectory(src)
 add_subdirectory(scripts)
 add_subdirectory(db)
 add_subdirectory(web)
+add_subdirectory(misc)
 
-# Process misc subdirectories
-if(ZM_TARGET_DISTRO STREQUAL "f19")
+# Process distro subdirectories
+if((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "f20"))
 	add_subdirectory(distros/fedora)
 elseif(ZM_TARGET_DISTRO STREQUAL "el6")
 	add_subdirectory(distros/redhat)
 elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
 	add_subdirectory(distros/opensuse)
-else(ZM_TARGET_DISTRO STREQUAL "el6")
-	add_subdirectory(misc)
-endif(ZM_TARGET_DISTRO STREQUAL "f19")
+endif((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "f20"))
 
 # Print optional libraries detection status
 message(STATUS "Optional libraries found:${optlibsfound}")

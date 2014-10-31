@@ -87,7 +87,7 @@ sub write()
 	my $nbytes = syswrite( $self->{handle}, $buffer );
 	if ( !defined( $nbytes) || $nbytes < length($buffer) )
 	{
-		Error( "Unable to write buffer '".$buffer.", expected ".length($buffer)." bytes, sent ".$nbytes.": $!\n" );
+		Error( "Unable to write buffer '".$buffer.", expected ".length($buffer)." bytes, sent ".($nbytes?$nbytes:'undefined').": $!\n" );
 		return( undef );
 	}
 	Debug( "Wrote '$buffer' ($nbytes bytes)\n" );

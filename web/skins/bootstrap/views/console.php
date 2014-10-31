@@ -181,7 +181,7 @@ $versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText'
 xhtmlHeaders( __FILE__, $SLANG['Console'] );
 ?>
 <body>
-  <div id="page">
+  <div class="container-fluid">
     <form name="monitorForm" method="get" action="<?= $_SERVER['PHP_SELF'] ?>">
     <input type="hidden" name="view" value="<?= $view ?>"/>
     <input type="hidden" name="action" value=""/>

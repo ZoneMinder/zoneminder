@@ -349,10 +349,6 @@ th.table-th-sort-rev span.table-th-sort-span {
  * Primary layout styles
  */
 
-#page {
-    width: 100%;
-}
-
 #header {
     width: 96%;
     line-height: 24px;

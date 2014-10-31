@@ -348,39 +348,6 @@ th.table-th-sort-rev span.table-th-sort-span {
  * Primary layout styles
  */
 
-#header {
-    width: 96%;
-    line-height: 24px;
-    margin: 8px auto;
-    text-align: left;
-}
-
-#header h2 {
-    left: 0;
-}
-
-#header h2.floating {
-    float: left;
-}
-
-#headerControl {
-    width: 50%;
-    text-align: center;
-    margin: 0 auto;
-}
-
-#headerButtons {
-    float: right;
-}
-
-#headerButtons a {
-    margin-left: 8px;
-}
-
-#headerButtons input {
-    margin-left: 4px;
-}
-
 #content {
     width: 96%;
     margin: 8px auto;
@@ -428,7 +395,8 @@ th.table-th-sort-rev span.table-th-sort-span {
 }
 
 #footer {
-    width: 96%;
-    margin: 8px auto;
+	position: absolute;
+	bottom: 0px;
+	width: 100%;
+	background-color: #F5F5F5;
 }
-

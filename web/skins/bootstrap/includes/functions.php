@@ -25,6 +25,9 @@ function xhtmlHeaders( $file, $title )
     $skinJsFile = getSkinFile( 'js/skin.js' );
     $skinJsPhpFile = getSkinFile( 'js/skin.js.php' );
 
+		$bootstrapCssFile = getSkinFile( 'css/bootstrap.css' );
+		$bootstrapJsFile = getSkinFile( 'js/bootstrap.min.js' );
+
     $basename = basename( $file, '.php' );
     $viewCssFile = getSkinFile( 'views/css/'.$basename.'.css' );
     $viewCssPhpFile = getSkinFile( 'views/css/'.$basename.'.css.php' );
@@ -41,6 +44,7 @@ function xhtmlHeaders( $file, $title )
   <link rel="shortcut icon" href="graphics/favicon.ico"/>
   <link rel="stylesheet" href="css/reset.css" type="text/css"/>
   <link rel="stylesheet" href="css/overlay.css" type="text/css"/>
+  <link rel="stylesheet" href="<?= $bootstrapCssFile ?>" type="text/css" media="screen"/>
   <link rel="stylesheet" href="<?= $skinCssFile ?>" type="text/css" media="screen"/>
 <?php
     if ( $viewCssFile )
@@ -62,6 +66,7 @@ function xhtmlHeaders( $file, $title )
 <?php
     }
 ?>
+  <script type="text/javascript" src="<?= bootstrapJsFile ?>"></script>
   <script type="text/javascript" src="tools/mootools/mootools-core.js"></script>
   <script type="text/javascript" src="tools/mootools/mootools-more.js"></script>
   <script type="text/javascript" src="js/mootools.ext.js"></script>

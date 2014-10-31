@@ -1,0 +1,439 @@
+/*
+ * ZoneMinder Base Stylesheet, $Date$, $Revision$
+ * Copyright (C) 2001-2008 Philip Coombes
+ * 
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) input[type=password], any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ */ 
+
+/*
+ * Primary look and feel styles
+ */
+
+body {
+    font-family: Verdana, Arial, Helvetica, sans-serif;
+    font-size: 10px;
+    color: #333333;
+    font-weight: normal;
+    text-align: center;
+}
+
+h1 {
+    font-family: inherit;
+    font-size: 120%;
+    color: #000066;
+    font-weight: bold;
+    text-align: center;
+}
+
+h2 {
+    font-family: inherit;
+    font-size: 110%;
+    color: #000066;
+    font-weight: bold;
+}
+
+h3 {
+    font-family: inherit;
+    font-size: 100%;
+    color: #016A9d;
+    font-weight: bold;
+}
+
+h4 {
+    font-family: inherit;
+    font-size: 100%;
+    color: #016A9d;
+}
+
+p {
+    font-family: inherit;
+    font-size: 100%;
+    color: #333333;
+    font-weight: normal;
+}
+
+th {
+    font-weight: bold;
+    color: #016A9d;
+}
+
+a:link {
+    color: #7f7fb2;
+    text-decoration: none;
+}
+
+a:visited {
+    color: #7f7fb2;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #666699;
+    text-decoration: underline;
+}
+
+label {
+    margin-right: 4px;
+}
+
+input,textarea,select,button {
+    border: 1px #7f7fb2 solid;
+    font-family: inherit;
+    font-size: 100%;
+    color: #333333;
+}
+
+input[type=text], input[type=password], textarea {
+    padding: 1px;
+}
+
+input.noborder {
+    border: 0;
+}
+
+input[disabled] {
+    color: #888888;
+}
+
+img.normal {
+    border: white solid 1px;
+}
+
+img.alarm {
+    border: red solid 1px;
+}
+
+hr {
+    height: 1px;
+    width: 100%;
+    border: 0;
+    color: #7f7fb2;
+    background-color: #7f7fb2;
+}
+
+/*
+ * Tabbed headings
+ */
+ul.tabList {
+    float: left;
+    list-style: none;
+    padding: 0;
+    margin: 0 0 -4px 0;
+    white-space: nowrap;
+    text-align: left;
+}
+
+ul.tabList li {
+    float: left;
+    border: 1px solid;
+    color: #333333;
+    border: #7f7fb2 solid 1px;
+    border-bottom-width: 0;
+    margin: 0 2px 0 0;
+    background: #dddddd;
+    text-align: center;
+    padding: 3px 4px;
+}
+
+ul.tabList li a {
+    text-decoration: none;
+}
+
+ul.tabList li:hover {
+    background-color: #eeeeee;
+}
+
+ul.tabList li.active {
+    background-color: #ffffff;
+    border-bottom: #7f7fb2 dotted 1px;
+}
+
+ul.tabList li.active a {
+    font-weight: bold;
+}
+
+/*
+ * Major league table for multiple inputs or presentation
+ */
+
+#content table.major {
+    margin: 4px auto;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#content table.major tr.highlight {
+    background-color: #eeeeee;
+}
+
+#content table.major thead tr th {
+    padding-top: 6px;
+    padding-bottom: 6px;
+    vertical-align: middle;
+}
+
+#content table.major tfoot td {
+    padding-top: 6px;
+    padding-bottom: 6px;
+    vertical-align: middle;
+}
+
+#content table.major th, #content table.major td {
+    border: 1px solid #7f7fb2;
+    padding: 3px;
+    text-align: left;
+}
+
+#content table.major th {
+    vertical-align: bottom;
+}
+
+#content table.major td {
+    vertical-align: middle;
+}
+
+#content table.major th[scope=row] {
+    padding: 4px 3px 3px;
+    vertical-align: top;
+}
+
+#content table.major .colMark, #content table.major .colSelect {
+    text-align: center;
+}
+/*
+ * Lesser table for very simple forms
+ */
+
+#content table.minor {
+    width: 280px;
+    margin: 0 auto;
+}
+
+#content table.minor td {
+    padding: 4px;
+}
+
+#content table.minor .colLeft {
+    width: 50%;
+    text-align: right;
+}
+
+#content table.minor .colRight {
+    width: 50%;
+    text-align: left;
+}
+
+#content table.minor input[type=submit]
+{
+    margin-top: 8px;
+    padding: 0 2px;
+    font-size: 120%;
+}
+
+.overlay {
+    font-size: 11px;
+}
+
+.overlay fieldset {
+    background-color: #f8f8f8;
+}
+
+.validation-advice {
+    padding: 4px;
+    color: #dc143c;
+}
+
+fieldset {
+    border: 1px solid black;
+    padding: 4px;
+    margin-bottom: 8px;
+    border-radius: 2px;
+    -moz-border-radius: 2px;
+    -webkit-border-radius: 2px;
+}
+
+fieldset > legend {
+    padding: 0 2px;
+}
+
+/*
+ * Behavior classes
+ */
+.alarm, .errorText {
+    color: #dc143c;
+}
+
+.alert, .warnText {
+    color: #ff8c00;
+}
+
+.ok, .infoText {
+    color: #688e23;
+}
+
+.fakelink {
+    color: #7f7fb2;
+    cursor: pointer;
+}
+
+.fakelink:hover {
+    color: #336699;
+    text-decoration: none;
+}
+
+/*
+ * Generic useful classes, especially with mootools
+ */
+
+.hidden {
+    display: none;
+}
+
+.invisible {
+    visibility: hidden;
+}
+
+.nowrap {
+    white-space: nowrap;
+}
+
+div.clear {
+    clear: both;
+}
+
+/*
+.table-th-sort {
+    font-style:italic;
+}
+
+td.table-td-sort {
+    font-style:italic;
+}
+*/
+
+th.table-th-sort {
+    margin-right: 12px;
+}
+
+th.table-th-sort span.table-th-sort-span {
+    float: right;
+    width: 12px;
+    height: 12px;
+    background: url("../graphics/arrow-s-u.gif") no-repeat 0 0;
+}
+
+th.table-th-sort-rev span.table-th-sort-span {
+    float: right;
+    width: 12px;
+    height: 12px;
+    background: url("../graphics/arrow-s-d.gif") no-repeat 0 0;
+}
+
+.table-tr-odd {
+    background-color: #f8f8f8;
+}
+
+/*
+ * Primary layout styles
+ */
+
+#page {
+    width: 100%;
+}
+
+#header {
+    width: 96%;
+    line-height: 24px;
+    margin: 8px auto;
+    text-align: left;
+}
+
+#header h2 {
+    left: 0;
+}
+
+#header h2.floating {
+    float: left;
+}
+
+#headerControl {
+    width: 50%;
+    text-align: center;
+    margin: 0 auto;
+}
+
+#headerButtons {
+    float: right;
+}
+
+#headerButtons a {
+    margin-left: 8px;
+}
+
+#headerButtons input {
+    margin-left: 4px;
+}
+
+#content {
+    width: 96%;
+    margin: 8px auto;
+    line-height: 130%;
+    text-align: center;
+}
+
+#content p {
+    margin-top: 4px;
+}
+
+#content p.textblock {
+    text-align: justify;
+    padding: 4px;
+}
+
+#content p.textblock br {
+    margin-bottom: 8px;
+}
+
+/*
+#contentDiv {
+    margin: 0 auto 8px;
+    line-height: 140%;
+    text-align: center;
+}
+*/
+
+#content > input[type=submit], #content > input[type=button], #content > button {
+    margin-top: 8px;
+}
+
+#content table input[type=submit], #content table input[type=button], #content table button {
+    margin-top: 0;
+}
+
+#contentButtons {
+    margin-top: 8px;
+    float: right;
+}
+
+#contentButtons input {
+    margin-left: 8px;
+    margin-bottom: 4px;
+}
+
+#footer {
+    width: 96%;
+    margin: 8px auto;
+}
+

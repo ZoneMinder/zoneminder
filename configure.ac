@@ -252,6 +252,19 @@ else
 fi
 AC_SUBST(ENABLE_MMAP)
 
+ENABLE_ONVIF=no
+AC_ARG_ENABLE(onvif,
+    [  --enable-onvif=<yes|no> enable or disable basic onvif support, default disabled],
+    [ENABLE_ONVIF=$enable_onvif],
+    AC_MSG_WARN([You can call configure with the --enable-onvif=<yes|no> or --enable-onvif option.
+    This tells configure whether to compile ZoneMinder with basic ONVIF support. This feature will
+    probe for ONVIF compliant cameras on your network and allow you the option to auto-configure them as
+    monitors in zoneminder. This option is EXPERIMENTAL and may not work with all cameras that claim to 
+    be ONVIF compliant.
+    e.g. --enable-debug=yes or --disable-debug])
+)
+AM_CONDITIONAL([COND_ONVIF], [test "$enable_onvif" = yes])
+
 # Compiler
 AC_LANG_CPLUSPLUS
 

@@ -65,6 +65,7 @@ set(ZM_NO_FFMPEG "OFF" CACHE BOOL "Set to ON to skip ffmpeg checks and force bui
 set(ZM_NO_LIBVLC "OFF" CACHE BOOL "Set to ON to skip libvlc checks and force building ZM without libvlc. default: OFF")
 set(ZM_NO_CURL "OFF" CACHE BOOL "Set to ON to skip cURL checks and force building ZM without cURL. default: OFF")
 set(ZM_NO_X10 "OFF" CACHE BOOL "Set to ON to build ZoneMinder without X10 support. default: OFF")
+set(ZM_ONVIF "OFF" CACHE BOOL "Set to ON to enable basic ONVIF support. This is EXPERIMENTAL and may not work with all cameras claiming to be ONVIF compliant. default: OFF")
 set(ZM_PERL_SUBPREFIX "${CMAKE_INSTALL_LIBDIR}/perl5" CACHE PATH "Use a different directory for the zm perl modules. NOTE: This is a subprefix, e.g. lib will be turned into <prefix>/lib, default: <libdir>/perl5")
 set(ZM_PERL_USE_PATH "${CMAKE_INSTALL_PREFIX}/${ZM_PERL_SUBPREFIX}" CACHE PATH "Override the include path for zm perl modules. Useful if you are moving the perl modules without using the ZM_PERL_SUBPREFIX option. default: <prefix>/<zmperlsubprefix>")
 set(ZM_TARGET_DISTRO "" CACHE STRING "Build ZoneMinder for a specific distribution.  Currently, valid names are: f19, el6, OS13")
@@ -509,7 +510,11 @@ add_subdirectory(scripts)
 add_subdirectory(db)
 add_subdirectory(web)
 add_subdirectory(misc)
-add_subdirectory(onvif)
+
+# Enable ONVIF support
+if (ZM_ONVIF)
+	add_subdirectory(onvif)
+endif (ZM_ONVIF)
 
 # Process distro subdirectories
 if(ZM_TARGET_DISTRO STREQUAL "f19")

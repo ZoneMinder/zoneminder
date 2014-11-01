@@ -7,13 +7,17 @@ webgroup = @WEB_GROUP@
 sysconf_DATA = \
 	zm.conf
 
+if COND_ONVIF
+   MAYBE_ONVIF = onvif
+endif
+
 SUBDIRS = \
 	src \
 	web \
 	scripts \
 	db \
 	misc \
- 	onvif
+ 	$(MAYBE_ONVIF)
 
 EXTRA_DIST = \
 	zm.conf.in \

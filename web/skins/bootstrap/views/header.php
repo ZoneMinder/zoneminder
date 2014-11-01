@@ -4,6 +4,7 @@
 					<span class="glyphicon glyphicon-off"></span>
 				</a>
 				<ul class="nav navbar-nav pull-right">
+					<li><a href="?view=console"><?= $SLANG['Console']; ?></a></li>
       		<li>
 						<?= makePopupLink( '?view=options', 'zmOptions', 'options', $SLANG['Options'] ) ?>
 					</li>

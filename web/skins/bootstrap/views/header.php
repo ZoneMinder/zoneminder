@@ -18,8 +18,10 @@
 					<?php if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
 						<li><?= makePopupLink( '?view=devices', 'zmDevices', 'devices', $SLANG['Devices'] ) ?></li>
 					<?php } ?>
-      		<li><?= makePopupLink( '?view=cycle&amp;group='.$cycleGroup, 'zmCycle'.$cycleGroup, array( 'cycle', $cycleWidth, $cycleHeight ), $SLANG['Cycle'], $running ) ?></li>
-					<li><?= makePopupLink( '?view=montage&amp;group='.$cycleGroup, 'zmMontage'.$cycleGroup, 'montage', $SLANG['Montage'], $running ) ?></li>
+					<?php if ($running) ?>
+						<li><a href="?view=cycle&amp;group=<?= $cycleGroup ?>"><?= $SLANG['Cycle'] ?></a></li>
+						<li><a href="?view=montage&amp;group=<?= $cycleGroup ?>"><?= $SLANG['Montage'] ?></a></li>
+					<?php ?>
 				</ul>
 			</div>
     </nav>

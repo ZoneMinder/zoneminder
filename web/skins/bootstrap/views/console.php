@@ -214,7 +214,12 @@ xhtmlHeaders( __FILE__, $SLANG['Console'] );
 				</ul>
 			</div>
     </nav>
+
     <div id="content" class="container-fluid">
+			<div class="row">
+				<div class="col-md-2"><?php include("sidebar.php"); ?></div>
+
+				<div class="col-md-10">
       <table id="consoleTable" class="table table-striped">
         <thead>
           <tr>
@@ -244,9 +249,6 @@ if ( canEdit('Monitors') )
         <tfoot>
           <tr>
             <td class="colLeftButtons" colspan="3">
-              <input class="btn btn-default" type="button" value="<?= $SLANG['Refresh'] ?>" onclick="location.reload(true);"/>
-              <?= makePopupButton( '?view=monitor', 'zmMonitor0', 'monitor', $SLANG['AddNewMonitor'], (canEdit( 'Monitors' ) && !$user['MonitorIds']) ) ?>
-              <?= makePopupButton( '?view=filter&amp;filter[terms][0][attr]=DateTime&amp;filter[terms][0][op]=%3c&amp;filter[terms][0][val]=now', 'zmFilter', 'filter', $SLANG['Filters'], canView( 'Events' ) ) ?>
             </td>
 <?php
 for ( $i = 0; $i < count($eventCounts); $i++ )
@@ -258,7 +260,7 @@ for ( $i = 0; $i < count($eventCounts); $i++ )
 }
 ?>
             <td class="colZones"><?= $zoneCount ?></td>
-            <td class="colRightButtons" colspan="<?= canEdit('Monitors')?2:1 ?>"><input class="btn btn-default" type="button" name="editBtn" value="<?= $SLANG['Edit'] ?>" onclick="editMonitor( this )" disabled="disabled"/><input class="btn btn-default" type="button" name="deleteBtn" value="<?= $SLANG['Delete'] ?>" onclick="deleteMonitor( this )" disabled="disabled"/></td>
+            <td class="colRightButtons" colspan="<?= canEdit('Monitors')?2:1 ?>"></td>
           </tr>
         </tfoot>
         <tbody>
@@ -331,25 +333,12 @@ foreach( $displayMonitors as $monitor )
 ?>
         </tbody>
       </table>
-    </div>
-			<div id="footer">
-				<div class="container-fluid">
-						<p class="pull-right text-muted"><?= $SLANG['Load'] ?>: <?= getLoad() ?> - 
-						<?= $SLANG['Disk'] ?>: <?= getDiskPercent() ?>% -
-						<?= makePopupLink( '?view=version', 'zmVersion', 'version', 'v' . ZM_VERSION, canEdit( 'System' ) ) ?> -
-      <?php
-if ( ZM_OPT_USE_AUTH )
-{
-?><?= $SLANG['LoggedInAs'] ?> <?= makePopupLink( '?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == "builtin") ) ?>, <?= strtolower( $SLANG['ConfiguredFor'] ) ?><?php
-}
-else
-{
-?><?= $SLANG['ConfiguredFor'] ?><?php
-}
-?>&nbsp;<?= makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', $bwArray[$_COOKIE['zmBandwidth']], ($user && $user['MaxBandwidth'] != 'low' ) ) ?> <?= $SLANG['BandwidthHead'] ?>
-					</p>
-				</div>
-			</div>
+			</div> <!-- End .col-md-10 -->
+
+
+				</div> <!-- End .row -->
+			</div> <!-- End #content .container-fluid -->
+		<?php include("footer.php"); ?>
     </form>
 </body>
 </html>

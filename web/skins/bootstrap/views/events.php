@@ -118,6 +118,9 @@ xhtmlHeaders(__FILE__, $SLANG['Events'] );
 
 ?>
 <body>
+
+	<?php include("header.php"); ?>
+
   <div id="page">
     <div id="header">
       <div id="headerButtons">
@@ -138,7 +141,6 @@ if ( $pages > 1 )
     }
 }
 ?>
-        <a href="#" onclick="closeWindows();"><?= $SLANG['Close'] ?></a>
       </div>
       <h2><?= sprintf( $CLANG['EventCount'], $nEvents, zmVlang( $VLANG['Event'], $nEvents ) ) ?></h2>
     </div>

@@ -29,16 +29,57 @@ $focusWindow = true;
 xhtmlHeaders(__FILE__, $SLANG['SystemLog'] );
 ?>
 <body>
-  <div id="page">
-    <div id="header">
-      <div id="headerButtons">
-          <input type="button" value="<?= $SLANG['More'] ?>" onclick="expandLog()"/>
-          <input type="button" value="<?= $SLANG['Clear'] ?>" onclick="clearLog()"/>
-          <input type="button" value="<?= $SLANG['Refresh'] ?>" onclick="refreshLog()"/>
-          <input type="button" value="<?= $SLANG['Export'] ?>" onclick="exportLog()"/>
-          <input type="button" value="<?= $SLANG['Close'] ?>" onclick="closeWindow()"/>
+
+	<?php include("header.php"); ?>
+
+  <div class="container-fluid">
+		<div class="row">
+
+
+		<div class="col-md-2">
+
+			<div id="filter-buttons">
+				<div class="btn-group btn-group-justified">
+					<div class="btn-group"><input class="btn btn-default btn-block" type="button" value="<?= $SLANG['More'] ?>" onclick="expandLog()"/></div>
+					<div class="btn-group"><input class="btn btn-default btn-block" type="button" value="<?= $SLANG['Clear'] ?>" onclick="clearLog()"/></div>
+				</div>
+				<div class="btn-group btn-group-justified">
+					<div class="btn-group"><input class="btn btn-default btn-block" type="button" value="<?= $SLANG['Refresh'] ?>" onclick="refreshLog()"/></div>
+					<div class="btn-group"><input class="btn btn-default btn-block" type="button" value="<?= $SLANG['Export'] ?>" onclick="exportLog()"/></div>
+				</div>
+			</div>
+
+      <div id="filters">
+				<div class="form-group">
+        	<label class="sr-only" for="filter[Component]">Component</label>
+					<select class="form-control" id="filter[Component]" onchange="filterLog(this)"><option value="">Component</option></select>
+				</div>
+
+				<div class="form-group">
+					<label class="sr-only" for="filter[Pid]">PID</label>
+					<select class="form-control" id="filter[Pid]" onchange="filterLog(this)"><option value="">PID</option></select>
+				</div>
+
+				<div class="form-group">
+					<label class="sr-only" for="filter[Level]">Level</label>
+					<select class="form-control" id="filter[Level]" onchange="filterLog(this)"><option value="">Level</option></select>
+				</div>
+
+				<div class="form-group">
+					<label class="sr-only" for="filter[File]">File</label>
+					<select class="form-control" id="filter[File]" onchange="filterLog(this)"><option value="">File</option></select>
+				</div>
+
+				<div class="form-group">
+					<label class="sr-only" for="filter[Line]">Line</label>
+					<select class="form-control" id="filter[Line]" onchange="filterLog(this)"><option value="">Line</option></select>
+				</div>
+
+        <input class="btn btn-default" type="reset" value="<?= $SLANG['Reset'] ?>" onclick="resetLog()"/>
       </div>
-      <h2 class="floating"><?= $SLANG['SystemLog'] ?></h2>
+		</div>
+
+    <div class="col-md-10">
       <div id="headerControl">
         <table id="logSummary" cellspacing="0">
           <tr>
@@ -50,19 +91,11 @@ xhtmlHeaders(__FILE__, $SLANG['SystemLog'] );
           </tr>
         </table>
       </div>
-    </div>
-    <div id="content">
-      <div id="filters">Filter log -
-        Component <select id="filter[Component]" onchange="filterLog(this)"><option value="">-----</option></select>
-        PID <select id="filter[Pid]" onchange="filterLog(this)"><option value="">-----</option></select>
-        Level <select id="filter[Level]" onchange="filterLog(this)"><option value="">---</option></select>
-        File <select id="filter[File]" onchange="filterLog(this)"><option value="">------</option></select>
-        Line <select id="filter[Line]" onchange="filterLog(this)"><option value="">----</option></select>
-        <input type="reset" value="<?= $SLANG['Reset'] ?>" onclick="resetLog()"/>
-      </div>
+
+
       <form name="logForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="<?= $view ?>"/>
-        <table id="logTable" class="major" cellspacing="0">
+        <table class="table" id="logTable">
           <thead>
             <tr>
               <th><?= $SLANG['DateTime'] ?></th>
@@ -110,6 +143,7 @@ xhtmlHeaders(__FILE__, $SLANG['SystemLog'] );
         </form>
       </div>
     </div>
+		</div>
   </div>
 </body>
 </html>

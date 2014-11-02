@@ -20,7 +20,7 @@
 					<li><a href="?view=filter&amp;filter[terms][0][attr]=DateTime&amp;filter[terms][0][op]=%3c&amp;filter[terms][0][val]=now"><?= $SLANG['Filters'] ?></a></li>
       		<li><a href="?view=options"><?= $SLANG['Options'] ?></a></li>
 					<?php if ( logToDatabase() > Logger::NOLOG ) { ?>
-						<li><a href="?view=log"><?= $SLANG['Log'] ?></a></li>
+						<li><a href="?view=log"><span class="<?= logState(); ?>"><?= $SLANG['Log'] ?></span></a></li>
 					<?php } ?>
       		<li><a href="?view=groups"><?= sprintf( $CLANG['MonitorCount'], count($displayMonitors), zmVlang( $VLANG['Monitor'], count($displayMonitors) ) ).($group?' ('.$group['Name'].')':'')?></a></li>
 					<?php if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>

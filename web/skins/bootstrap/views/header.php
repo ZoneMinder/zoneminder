@@ -9,6 +9,8 @@
 ?>
     <nav class="navbar navbar-default" role="navigation">
 			<div class="container-fluid">
+				<span class="navbar-brand">ZoneMinder</span>
+
 				<a href="?view=state" class="btn btn-<?= $statusClass ?> btn-md navbar-btn pull-right" onclick="createPopup( '?view=state', 'zmState', 'state' ); return( false );">
 					<span class="glyphicon glyphicon-off"></span>
 				</a>

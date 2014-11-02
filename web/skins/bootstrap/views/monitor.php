@@ -418,7 +418,10 @@ $fastblendopts_alarm = array(
 xhtmlHeaders(__FILE__, $SLANG['Monitor']." - ".validHtmlStr($monitor['Name']) );
 ?>
 <body>
-  <div id="page">
+
+	<?php include("header.php"); ?>
+
+  <div class="container-fluid">
     <div id="header">
 <?php
 if ( canEdit( 'Monitors' ) )

@@ -1,3 +1,12 @@
+<?php
+	$running = daemonCheck();
+	$status = $running?$SLANG['Running']:$SLANG['Stopped'];
+	if ($status == 'Running') {
+		$statusClass = 'success';
+	} else {
+	  $statusClass = 'danger';
+	}
+?>
     <nav class="navbar navbar-default" role="navigation">
 			<div class="container-fluid">
 				<a href="?view=state" class="btn btn-<?= $statusClass ?> btn-md navbar-btn pull-right" onclick="createPopup( '?view=state', 'zmState', 'state' ); return( false );">

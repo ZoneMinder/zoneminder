@@ -68,13 +68,6 @@ $eventCounts = array(
     ),
 );
 
-$running = daemonCheck();
-$status = $running?$SLANG['Running']:$SLANG['Stopped'];
-if ($status == 'Running') {
-	$statusClass = 'success';
-} else {
-  $statusClass = 'danger';
-}
 
 $group = NULL;
 if ( ! empty($_COOKIE['zmGroup']) ) {

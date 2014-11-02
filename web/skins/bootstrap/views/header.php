@@ -14,19 +14,14 @@
 				</a>
 				<ul class="nav navbar-nav pull-right">
 					<li><a href="?view=console"><?= $SLANG['Console']; ?></a></li>
-      		<li>
-						<?= makePopupLink( '?view=options', 'zmOptions', 'options', $SLANG['Options'] ) ?>
-					</li>
+					<li><a href="?view=filter&amp;filter[terms][0][attr]=DateTime&amp;filter[terms][0][op]=%3c&amp;filter[terms][0][val]=now"><?= $SLANG['Filters'] ?></a></li>
+      		<li><a href="?view=options"><?= $SLANG['Options'] ?></a></li>
 					<?php if ( logToDatabase() > Logger::NOLOG ) { ?>
-						<li>
-							<?= makePopupLink( '?view=log', 'zmLog', 'log', '<span class="'.logState().'">'.$SLANG['Log'].'</span>' ) ?>
-						</li>
+						<li><a href="?view=log"><?= $SLANG['Log'] ?></a></li>
 					<?php } ?>
-      		<li>
-						<?= makePopupLink( '?view=groups', 'zmGroups', 'groups', sprintf( $CLANG['MonitorCount'], count($displayMonitors), zmVlang( $VLANG['Monitor'], count($displayMonitors) ) ).($group?' ('.$group['Name'].')':''), canView( 'System' ) ); ?>
-					</li>
+      		<li><a href="?view=groups"><?= sprintf( $CLANG['MonitorCount'], count($displayMonitors), zmVlang( $VLANG['Monitor'], count($displayMonitors) ) ).($group?' ('.$group['Name'].')':'')?></a></li>
 					<?php if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
-						<li><?= makePopupLink( '?view=devices', 'zmDevices', 'devices', $SLANG['Devices'] ) ?></li>
+						<li><a href="?view=devices"><?= $SLANG['Devices'] ?></a></li>
 					<?php } ?>
 					<?php if ($running) ?>
 						<li><a href="?view=cycle&amp;group=<?= $cycleGroup ?>"><?= $SLANG['Cycle'] ?></a></li>

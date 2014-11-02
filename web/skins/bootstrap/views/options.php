@@ -55,10 +55,10 @@ $focusWindow = true;
 xhtmlHeaders( __FILE__, $SLANG['Options'] );
 ?>
 <body>
-  <div id="page">
-    <div id="header">
-      <h2><?= $SLANG['Options'] ?></h2>
-    </div>
+
+	<?php include("header.php"); ?>
+
+  <div class="container-fluid">
     <div id="content">
       <ul class="tabList">
 <?php

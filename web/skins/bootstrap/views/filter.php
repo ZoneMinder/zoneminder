@@ -137,13 +137,10 @@ $focusWindow = true;
 xhtmlHeaders(__FILE__, $SLANG['EventFilter'] );
 ?>
 <body>
-  <div id="page">
-    <div id="header">
-      <div id="headerButtons">
-        <a href="#" onclick="closeWindow();"><?= $SLANG['Close'] ?></a>
-      </div>
-      <h2><?= $SLANG['EventFilter'] ?></h2>
-    </div>
+
+	<?php include("header.php"); ?>
+
+  <div class="container-fluid">
     <div id="content">
       <form name="contentForm" id="contentForm" method="get" action="<?= $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="filter"/>

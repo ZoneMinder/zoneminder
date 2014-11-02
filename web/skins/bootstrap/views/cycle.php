@@ -90,6 +90,9 @@ $focusWindow = true;
 xhtmlHeaders(__FILE__, $SLANG['CycleWatch'] );
 ?>
 <body>
+
+	<?php include("header.php"); ?>
+
   <div id="page">
     <div id="header">
       <div id="headerButtons">
@@ -98,9 +101,7 @@ xhtmlHeaders(__FILE__, $SLANG['CycleWatch'] );
 <?php } else { ?>
         <a href="?view=<?= $view ?>&amp;mode=stream&amp;group=<?= $group ?>&amp;mid=<?= $monitor['Id'] ?>"><?= $SLANG['Stream'] ?></a>
 <?php } ?>
-        <a href="#" onclick="closeWindow(); return( false );"><?= $SLANG['Close'] ?></a>
       </div>
-      <h2><?= $SLANG['Cycle'] ?> - <?= validHtmlStr($monitor['Name']) ?></h2>
     </div>
     <div id="content">
       <div id="imageFeed">

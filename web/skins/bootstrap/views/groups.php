@@ -44,10 +44,10 @@ foreach( dbFetchAll( $sql ) as $row )
 xhtmlHeaders(__FILE__, $SLANG['Groups'] );
 ?>
 <body>
+
+	<?php include("header.php"); ?>
+
   <div id="page">
-    <div id="header">
-      <h2><?= $SLANG['Groups'] ?></h2>
-    </div>
     <div id="content">
       <form name="groupsForm" method="get" action="<?= $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="none"/>

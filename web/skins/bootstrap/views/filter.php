@@ -134,7 +134,14 @@ $hasCal = file_exists( 'tools/jscalendar/calendar.js' );
 
 $focusWindow = true;
 
+xhtmlHeaders(__FILE__, $SLANG['EventFilter'] );
 ?>
+<body>
+
+	<?php include("header.php"); ?>
+
+  <div class="container-fluid">
+    <div id="content">
       <form name="contentForm" id="contentForm" method="get" action="<?= $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="filter"/>
         <input type="hidden" name="page" value="<?= requestVar( 'page' ) ?>"/>
@@ -315,3 +322,7 @@ if ( ZM_OPT_MESSAGE )
           <input type="button" value="<?= $SLANG['Reset'] ?>" onclick="submitToFilter( this, 1 );"/>
         </div>
       </form>
+    </div>
+  </div>
+</body>
+</html>

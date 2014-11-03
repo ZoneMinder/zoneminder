@@ -3,13 +3,9 @@ Ubuntu
 
 PPA Install
 -----------
-Follow these instructions to install current release version on Ubuntu 13.04 or under.:
+Follow these instructions to install current release version on Ubuntu.:
 
   sudo apt-add-repository ppa:iconnor/zoneminder
-
-Or Ubuntu 14.10 you will need to install the Snapshot PPA from the master branch instead.:
-
-  sudo apt-add-repository ppa:iconnor/zoneminder-master
 
 Once you have updated the repository then update and install the package.:
   

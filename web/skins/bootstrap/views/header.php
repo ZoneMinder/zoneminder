@@ -17,7 +17,6 @@
 				<ul class="nav navbar-nav pull-right">
 					<li><a href="?view=console"><?= $SLANG['Console']; ?></a></li>
 					<li><a href="?view=events"><?= $SLANG['Events']; ?></a></li>
-					<li><a href="?view=filter&amp;filter[terms][0][attr]=DateTime&amp;filter[terms][0][op]=%3c&amp;filter[terms][0][val]=now"><?= $SLANG['Filters'] ?></a></li>
       		<li><a href="?view=options"><?= $SLANG['Options'] ?></a></li>
 					<?php if ( logToDatabase() > Logger::NOLOG ) { ?>
 						<li><a href="?view=log"><span class="<?= logState(); ?>"><?= $SLANG['Log'] ?></span></a></li>

@@ -32,7 +32,7 @@ use ZoneMinder;
 use Getopt::Long;
 use POSIX qw/strftime EPIPE/;
 use Socket;
-use Data::Dumper;
+#use Data::Dumper;
 use Module::Load;
 
 use constant MAX_CONNECT_DELAY => 10;

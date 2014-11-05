@@ -1,3 +1,9 @@
+zoneminder (1.28.0-wheezy) wheezy; urgency=medium
+
+  * Release
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Fri, 17 Oct 2014 09:27:22 -0400
+
 zoneminder (1.27.99+1-testing-SNAPSHOT2014072901) testing; urgency=medium
 
   * improve error messages

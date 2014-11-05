@@ -126,6 +126,17 @@ StringVector split( const std::string &string, const std::string chars, int limi
     return( stringVector );
 }
 
+const std::string join(const StringVector v, const char * delim ) {
+	std::stringstream ss;
+
+	for(size_t i = 0; i < v.size(); ++i) {
+		if(i != 0)
+			ss << ",";
+		ss << v[i];
+	}
+	return ss.str();
+}
+
 const std::string base64Encode( const std::string &inString )
 {
 	static char base64_table[64] = { '\0' };

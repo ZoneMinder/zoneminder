@@ -106,11 +106,11 @@ __END__
 
 =head1 NAME
 
-ZoneMinder::Database - Perl extension for blah blah blah
+ZoneMinder::Trigger::Channel::Handle - Perl extension for blah blah blah
 
 =head1 SYNOPSIS
 
-  use ZoneMinder::Database;
+  use ZoneMinder::Trigger::Channel::Handle;
   blah blah blah
 
 =head1 DESCRIPTION

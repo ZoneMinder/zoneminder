@@ -414,7 +414,16 @@ int RtspThread::run()
             if ( mFormatContext->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO )
 #endif
             {
-                trackUrl += "/"+mediaDesc->getControlUrl();
+                // Check if control Url is absolute or relative
+                std::string controlUrl = mediaDesc->getControlUrl();
+                if (std::equal(trackUrl.begin(), trackUrl.end(), controlUrl.begin()))
+                {
+                    trackUrl = controlUrl;
+                }
+                else
+                {
+                    trackUrl += "/" + controlUrl;
+                }
                 rtpClock = mediaDesc->getClock();
                 codecId = mFormatContext->streams[i]->codec->codec_id;
                 // Hackery pokery

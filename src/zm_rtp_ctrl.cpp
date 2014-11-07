@@ -175,13 +175,13 @@ int RtpCtrlThread::generateRr( const unsigned char *packet, ssize_t packetLen )
 
     mRtpSource.updateRtcpStats();
 
-    Debug( 5, "Ssrc = %d", mRtspThread.getSsrc() );
+    Debug( 5, "Ssrc = %d", mRtspThread.getSsrc()+1 );
     Debug( 5, "Ssrc_1 = %d", mRtpSource.getSsrc() );
     Debug( 5, "Last Seq = %d", mRtpSource.getMaxSeq() );
     Debug( 5, "Jitter = %d", mRtpSource.getJitter() );
     Debug( 5, "Last SR = %d", mRtpSource.getLastSrTimestamp() );
 
-    rtcpPacket->body.rr.ssrcN = htonl(mRtspThread.getSsrc());
+    rtcpPacket->body.rr.ssrcN = htonl(mRtspThread.getSsrc()+1);
     rtcpPacket->body.rr.rr[0].ssrcN = htonl(mRtpSource.getSsrc());
     rtcpPacket->body.rr.rr[0].lost = mRtpSource.getLostPackets();
     rtcpPacket->body.rr.rr[0].fraction = mRtpSource.getLostFraction();
@@ -208,7 +208,7 @@ int RtpCtrlThread::generateSdes( const unsigned char *packet, ssize_t packetLen 
     rtcpPacket->header.count = 1;
     rtcpPacket->header.lenN = htons(wordLen-1);
 
-    rtcpPacket->body.sdes.srcN = htonl(mRtpSource.getSsrc());
+    rtcpPacket->body.sdes.srcN = htonl(mRtpSource.getSsrc()+1);
     rtcpPacket->body.sdes.item[0].type = RTCP_SDES_CNAME;
     rtcpPacket->body.sdes.item[0].len = cname.size();
     memcpy( rtcpPacket->body.sdes.item[0].data, cname.data(), cname.size() );

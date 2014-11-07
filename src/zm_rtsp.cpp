@@ -348,9 +348,23 @@ int RtspThread::run()
     std::string localHost = "";
     int localPorts[2] = { 0, 0 };
 
-    //message = "OPTIONS * RTSP/1.0\r\n";
-    //sendCommand( message );
-    //recvResponse( response );
+    // Request supported RTSP commands by the server
+    message = "OPTIONS * RTSP/1.0\r\n";
+    if ( !sendCommand( message ) )
+        return( -1 );
+    if ( !recvResponse( response ) )
+        return( -1 );
+
+    char publicLine[256] = "";
+    StringVector lines = split( response, "\r\n" );
+    for ( size_t i = 0; i < lines.size(); i++ )
+        sscanf( lines[i].c_str(), "Public: %[^\r\n]\r\n", publicLine );
+
+    // Check if the server supports the GET_PARAMETER command
+    // If yes, it is likely that the server will request this command as a keepalive message
+    bool sendKeepalive = false;
+    if ( publicLine[0] && strstr(publicLine, "GET_PARAMETER") )
+        sendKeepalive = true;
 
     message = "DESCRIBE "+mUrl+" RTSP/1.0\r\n";
 	bool res;
@@ -466,7 +480,7 @@ int RtspThread::run()
     if ( !recvResponse( response ) )
         return( -1 );
 
-    StringVector lines = split( response, "\r\n" );
+    lines = split( response, "\r\n" );
     char *session = 0;
     int timeout = 0;
     char transport[256] = "";
@@ -579,6 +593,9 @@ int RtspThread::run()
     Debug( 2, "RTSP Seq is %d", seq );
     Debug( 2, "RTSP Rtptime is %ld", rtpTime );
 
+    time_t lastKeepalive = time(NULL);
+    message = "GET_PARAMETER "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
+
     switch( mMethod )
     {
         case RTP_UNICAST :
@@ -593,6 +610,13 @@ int RtspThread::run()
 
             while( !mStop )
             {
+                // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
+                if ( sendKeepalive && (timeout > 0) && ((time(NULL)-lastKeepalive) > (timeout-5)) )
+                {
+                    if ( !sendCommand( message ) )
+                        return( -1 );
+                    lastKeepalive = time(NULL);
+                }
                 usleep( 100000 );
             }
 #if 0
@@ -638,7 +662,6 @@ int RtspThread::run()
             select.addReader( &mRtspSocket );
 
             Buffer buffer( ZM_NETWORK_BUFSIZ );
-            time_t lastKeepalive = time(NULL);
             std::string keepaliveMessage = "OPTIONS * RTSP/1.0\r\n";
             std::string keepaliveResponse = "RTSP/1.0 200 OK\r\n";
             while ( !mStop && select.wait() >= 0 )
@@ -728,7 +751,9 @@ int RtspThread::run()
                         }
                     }
                 }
-                if ( (timeout > 0) && ((time(NULL)-lastKeepalive) > (timeout-5)) )
+                // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
+                // FIXME: Is this really necessary when using tcp ?
+                if ( sendKeepalive && (timeout > 0) && ((time(NULL)-lastKeepalive) > (timeout-5)) )
                 {
                     if ( !sendCommand( message ) )
                         return( -1 );
@@ -766,6 +791,13 @@ int RtspThread::run()
 
             while( !mStop )
             {
+                // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
+                if ( sendKeepalive && (timeout > 0) && ((time(NULL)-lastKeepalive) > (timeout-5)) )
+                {
+                    if ( !sendCommand( message ) )
+                        return( -1 );
+                    lastKeepalive = time(NULL);
+                }
                 usleep( 100000 );
             }
 #if 0

@@ -545,7 +545,8 @@ bool Monitor::connect() {
 #endif // ZM_MEM_MAPPED
     shared_data = (SharedData *)mem_ptr;
     trigger_data = (TriggerData *)((char *)shared_data + sizeof(SharedData));
-    struct timeval *shared_timestamps = (struct timeval *)((char *)trigger_data + sizeof(TriggerData));
+    video_store_data = (VideoStoreData *)((char *)trigger_data + sizeof(TriggerData));
+    struct timeval *shared_timestamps = (struct timeval *)((char *)video_store_data + sizeof(VideoStoreData));
     unsigned char *shared_images = (unsigned char *)((char *)shared_timestamps + (image_buffer_count*sizeof(struct timeval)));
     
     if(((unsigned long)shared_images % 16) != 0) {

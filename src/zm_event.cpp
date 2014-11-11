@@ -210,6 +210,16 @@ void Event::createNotes( std::string &notes )
     }
 }
 
+void Event::AddCause( const std::string new_cause )
+{
+    if ( cause.find( new_cause )  == std::string::npos )
+    {
+        if ( cause.length() )
+            cause += ", ";
+        cause += new_cause;
+    }
+}
+
 int Event::sd = -1;
 
 bool Event::OpenFrameSocket( int monitor_id )

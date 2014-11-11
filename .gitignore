@@ -59,6 +59,7 @@ src/.libs/
 src/*.la
 src/*.lo
 src/*.o
+src/libzmplugins.pc
 src/zm_config.h
 src/zm_config_defines.h
 src/zma

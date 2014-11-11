@@ -1,6 +1,9 @@
 AC_PREREQ(2.59)
 AC_INIT(zm,1.28.0,[http://www.zoneminder.com/forums/ - Please check FAQ first],zoneminder,http://www.zoneminder.com/downloads.html)
 AM_INIT_AUTOMAKE
+LT_PREREQ([2.4.2])
+LT_INIT([dlopen])
+AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR(src/zm.h)
 AC_CONFIG_HEADERS(config.h)
 

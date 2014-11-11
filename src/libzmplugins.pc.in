@@ -1,0 +1,17 @@
+prefix=@prefix@
+exec_prefix=${prefix}
+libdir=@libdir@
+pkglibdir = @PLUGINSLIBDIR@
+includedir=@includedir@
+sysconfdir = @PLUGINSCONFDIR@
+webdir = @PLUGINSWEBDIR@
+
+Name: : ZoneMinder convenience library for plugin development.
+Description: ZoneMinder convenience library for plugin development.
+Version: @PACKAGE_VERSION@
+Requires:
+Requires.private:
+Conflicts:
+Libs: -L${libdir} -lzmplugins @LIBS@
+Libs.private :
+Cflags: -I${includedir}/@PACKAGE@

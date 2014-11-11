@@ -55,6 +55,9 @@ scripts/zmvideo.pl
 scripts/zmwatch.pl
 scripts/zmx10.pl
 src/.deps/
+src/.libs/
+src/*.la
+src/*.lo
 src/*.o
 src/zm_config.h
 src/zm_config_defines.h

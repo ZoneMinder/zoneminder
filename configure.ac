@@ -308,10 +308,18 @@ fi
 AC_SEARCH_LIBS(mysql_init,[mysqlclient mariadbclient],,AC_MSG_ERROR(zm requires libmysqlclient.a or libmariadbclient.a))
 AC_CHECK_LIB(jpeg,jpeg_start_compress,,AC_MSG_ERROR(zm requires libjpeg.a))
 AC_CHECK_LIB(pthread,pthread_create,,AC_MSG_ERROR(zm requires libpthread.a))
-AC_CHECK_LIB(dl,dlsym,,AC_MSG_ERROR(zm requires libdl.a))
+AC_CHECK_LIB([dl],
+    [dlsym],
+    [AC_SUBST([DL_LIBS],["-ldl"])AC_DEFINE([HAVE_LIBDL],[1],[Define to 1 if you have the 'dl' library (-ldl).])],
+    [AC_MSG_ERROR(zm requires libdl.a)]
+)
 if test "$ZM_SSL_LIB" == "openssl"; then
 AC_CHECK_HEADERS(openssl/md5.h,,AC_MSG_WARN(zm requires openssl/md5.h header to be installed for openssl),)
-AC_CHECK_LIB(crypto,MD5,,AC_MSG_WARN([libcrypto.a is required for authenticated streaming - use ZM_SSL_LIB option to select gnutls instead]))
+AC_CHECK_LIB([crypto],
+    [MD5],
+    [AC_SUBST([CRYPTO_LIBS],["-lcrypto"])AC_DEFINE([HAVE_LIBCRYPTO],[1],[Define to 1 if you have the 'crypto' library (-lcrypto).])],
+    [AC_MSG_WARN([libcrypto.a is required for authenticated streaming - use ZM_SSL_LIB option to select gnutls instead])]
+)
 else
 AC_CHECK_HEADERS(gnutls/openssl.h,AC_SUBST(ZM_HAS_GNUTLS_OPENSSL,1),AC_SUBST(ZM_HAS_GNUTLS_OPENSSL,0),)
 AC_CHECK_HEADERS(gnutls/gnutls.h,AC_SUBST(ZM_HAS_GNUTLS,1),AC_SUBST(ZM_HAS_GNUTLS,0),)
@@ -319,28 +327,80 @@ if test "$ZM_HAS_GNUTLS_OPENSSL" == "0" && test "$ZM_HAS_GNUTLS" == "0"; then
 AC_MSG_WARN(gnutls is required for authenticated streaming - use ZM_SSL_LIB option to select openssl instead)
 fi
 AC_CHECK_HEADERS(gcrypt.h,,AC_MSG_WARN(zm requires libgcrypt headers to be installed for gnutls),)
-AC_CHECK_LIB(gcrypt,gcry_check_version,,AC_MSG_WARN([libgcrypt.a is required for authenticated streaming - use ZM_SSL_LIB option to select openssl instead]))
-AC_CHECK_LIB(gnutls,gnutls_fingerprint,,AC_MSG_WARN([libgnutls.a is required for authenticated streaming - use ZM_SSL_LIB option to select openssl instead]))
+AC_CHECK_LIB([gcrypt],
+    [gcry_check_version],
+    [AC_SUBST([GCRYPT_LIBS],["-lgcrypt"])AC_DEFINE([HAVE_LIBGCRYPT],[1],[Define to 1 if you have the 'gcrypt' library (-lgcrypt).])],
+    [AC_MSG_WARN([libgcrypt.a is required for authenticated streaming - use ZM_SSL_LIB option to select openssl instead])]
+)
+AC_CHECK_LIB([gnutls],
+    [gnutls_fingerprint],
+    [AC_SUBST([GNUTLS_LIBS],["-lgnutls"])AC_DEFINE([HAVE_LIBGNUTLS],[1],[Define to 1 if you have the 'gnutls' library (-lgnutls).])],
+    [AC_MSG_WARN([libgnutls.a is required for authenticated streaming - use ZM_SSL_LIB option to select openssl instead])]
+)
 if test "$ZM_HAS_GNUTLS_OPENSSL" == "1"; then
-AC_CHECK_LIB(gnutls-openssl,MD5,,AC_MSG_WARN([libgnutls.a is required for authenticated streaming - use ZM_SSL_LIB option to select openssl instead]))
+AC_CHECK_LIB([gnutls-openssl],
+    [MD5],
+    [AC_SUBST([GNUTLS_OPENSSL_LIBS],["-lgnutls-openssl"])AC_DEFINE([HAVE_LIBGNUTLS_OPENSSL],[1],[Define to 1 if you have the 'gnutls-openssl' library (-lgnutls-openssl).])],
+    [AC_MSG_WARN([libgnutls.a is required for authenticated streaming - use ZM_SSL_LIB option to select openssl instead])]
+)
 fi
 fi
-AC_CHECK_LIB(pcre,pcre_compile,,AC_MSG_WARN(libpcre.a may be required for remote/network camera support))
+AC_CHECK_LIB([pcre],
+    [pcre_compile],
+    [AC_SUBST([PCRE_LIBS],["-lpcre"])AC_DEFINE([HAVE_LIBPCRE],[1],[Define to 1 if you have the 'pcre' library (-lpcre).])],
+    [AC_MSG_WARN([libpcre.a may be required for remote/network camera support])]
+)
 AC_CHECK_LIB(z,zlibVersion)
-AC_CHECK_LIB(x264,x264_predict_16x16_init)
-AC_CHECK_LIB(avutil,av_malloc,,AC_MSG_WARN(libavutil.a may be required for MPEG streaming))
+AC_CHECK_LIB([x264],
+    [x264_predict_16x16_init],
+    [AC_SUBST([X264_LIBS],["-lx264"])AC_DEFINE([HAVE_LIBX264],[1],[Define to 1 if you have the 'x264' library (-lx264).])],
+)
+AC_CHECK_LIB([avutil],
+    [av_malloc],
+    [AC_SUBST([AVUTIL_LIBS],["-lavutil"])AC_DEFINE([HAVE_LIBAVUTIL],[1],[Define to 1 if you have the 'avutil' library (-lavutil).])],
+    [AC_MSG_WARN([libavutil.a may be required for MPEG streaming])]
+)
 # Don't bother to warn about this one
-AC_CHECK_LIB(avcore,av_image_copy,,)
-AC_CHECK_LIB(avcodec,avcodec_version,,AC_MSG_WARN(libavcodec.a is required for MPEG streaming))
-AC_CHECK_LIB(avformat,avformat_version,,AC_MSG_WARN(libavformat.a is required for MPEG streaming))
+AC_CHECK_LIB([avcore],
+    [av_image_copy],
+    [AC_SUBST([AVCORE_LIBS],["-lavcore"])AC_DEFINE([HAVE_LIBAVCORE],[1],[Define to 1 if you have the 'avcore' library (-lavcore).])]
+)
+AC_CHECK_LIB([avcodec],
+    [avcodec_version],
+    [AC_SUBST([AVCODEC_LIBS],["-lavcodec"])AC_DEFINE([HAVE_LIBAVCODEC],[1],[Define to 1 if you have the 'avcodec' library (-lavcodec).])],
+    [AC_MSG_WARN([libavcodec.a is required for MPEG streaming])]
+)
+AC_CHECK_LIB([avformat],
+    [avformat_version],
+    [AC_SUBST([AVFORMAT_LIBS],["-lavformat"])AC_DEFINE([HAVE_LIBAVFORMAT],[1],[Define to 1 if you have the 'avformat' library (-lavformat).])],
+    [AC_MSG_WARN([libavformat.a is required for MPEG streaming])]
+)
 #AC_CHECK_LIB(avcodec,avcodec_open,,AC_MSG_WARN(libavcodec.a is required for MPEG streaming))
 #AC_CHECK_LIB(avformat,av_new_stream,,AC_MSG_WARN(libavformat.a is required for MPEG streaming))
-AC_CHECK_LIB(avdevice,avdevice_register_all,,AC_MSG_WARN(libavdevice.a may be required for MPEG streaming))
-AC_CHECK_LIB(swscale,sws_scale,,,-lswscale)
-AC_CHECK_LIB(vlc,libvlc_new,,AC_MSG_WARN(libvlc.a may be required for streaming))
-AC_CHECK_LIB(bz2,BZ2_bzCompress,,AC_MSG_WARN(zm requires libbz2.a for recent versions of ffmpeg))
+AC_CHECK_LIB([avdevice],
+    [avdevice_register_all],
+    [AC_SUBST([AVDEVICE_LIBS],["-lavdevice"])AC_DEFINE([HAVE_LIBAVDEVICE],[1],[Define to 1 if you have the 'avdevice' library (-lavdevice).])],
+    [AC_MSG_WARN([libavdevice.a may be required for MPEG streaming])]
+)
+AC_CHECK_LIB([swscale],
+    [sws_scale],
+    [AC_SUBST([SWSCALE_LIBS],["-lswscale"])AC_DEFINE([HAVE_LIBSWSCALE],[1],[Define to 1 if you have the 'swscale' library (-lswscale).])]
+)
+AC_CHECK_LIB([vlc],
+    [libvlc_new],
+    [AC_SUBST([VLC_LIBS],["-lvlc"])AC_DEFINE([HAVE_LIBVLC],[1],[Define to 1 if you have the 'vlc' library (-lvlc).])],
+    [AC_MSG_WARN([libvlc.a may be required for streaming])]
+)
+AC_CHECK_LIB([bz2],
+    [BZ2_bzCompress],
+    [AC_SUBST([BZ2_LIBS],["-lbz2"])AC_DEFINE([HAVE_LIBBZ2],[1],[Define to 1 if you have the 'bz2' library (-lbz2).])],
+    [AC_MSG_WARN([zm requires libbz2.a for recent versions of ffmpeg])]
+)
 AC_CHECK_LIB(z,compress,,)
-AC_CHECK_LIB(curl,curl_global_init,,)
+AC_CHECK_LIB([curl],
+    [curl_global_init],
+    [AC_SUBST([CURL_LIBS],["-lcurl"])AC_DEFINE([HAVE_LIBCURL],[1],[Define to 1 if you have the 'curl' library (-lcurl).])]
+)
 
 # Checks for header files.
 AC_FUNC_ALLOCA

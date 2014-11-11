@@ -69,6 +69,20 @@ zmu_SOURCES = zmu.cpp $(zm_SOURCES)
 zmf_SOURCES = zmf.cpp $(zm_SOURCES)
 zmstreamer_SOURCES = zmstreamer.cpp $(zm_SOURCES)
 
+# These libraries are linked only to zm binaries in order to avoid detection
+# of unwanted dependencies during plugin packaging
+zm_LDADD = @DL_LIBS@ @PCRE_LIBS@ @CURL_LIBS@ @BZ2_LIBS@ @X264_LIBS@  \
+	@SWSCALE_LIBS@ @AVFORMAT_LIBS@ @AVCODEC_LIBS@ @AVUTIL_LIBS@ \
+	@AVDEVICE_LIBS@ @AVCORE_LIBS@ @VLC_LIBS@ @CRYPTO_LIBS@ @GCRYPT_LIBS@ \
+	@GNUTLS_LIBS@ @GNUTLS_OPENSSL_LIBS@
+
+zmc_LDADD = $(zm_LDADD)
+zma_LDADD = $(zm_LDADD)
+zms_LDADD = $(zm_LDADD)
+zmu_LDADD = $(zm_LDADD)
+zmf_LDADD = $(zm_LDADD)
+zmstreamer_LDADD = $(zm_LDADD)
+
 noinst_HEADERS = \
 	jinclude.h \
 	zm_box.h \

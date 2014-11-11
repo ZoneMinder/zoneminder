@@ -121,31 +121,24 @@ xhtmlHeaders(__FILE__, $SLANG['Events'] );
 
 	<?php include("header.php"); ?>
 
-  <div id="page">
-    <div id="header">
-      <div id="headerButtons">
-<?php
-if ( $pages > 1 )
-{
-    if ( !empty($page) )
-    {
-?>
-        <a href="?view=<?= $view ?>&amp;page=0<?= $filterQuery ?><?= $sortQuery ?>&amp;limit=<?= $limit ?>"><?= $SLANG['ViewAll'] ?></a>
-<?php
-    }
-    else
-    {
-?>
-        <a href="?view=<?= $view ?>&amp;page=1<?= $filterQuery ?><?= $sortQuery ?>&amp;limit=<?= $limit ?>"><?= $SLANG['ViewPaged'] ?></a>
-<?php
-    }
-}
-?>
-      </div>
-      <h2><?= sprintf( $CLANG['EventCount'], $nEvents, zmVlang( $VLANG['Event'], $nEvents ) ) ?></h2>
-    </div>
-    <div id="content">
+  <div class="container-fluid">
+    <div class="row">
       <form name="contentForm" id="contentForm" method="post" action="">
+			<div class="col-md-2">
+      <h2><?= sprintf( $CLANG['EventCount'], $nEvents, zmVlang( $VLANG['Event'], $nEvents ) ) ?></h2>
+<?php if ( true || canEdit( 'Events' ) ) { ?>
+        <div id="contentButtons">
+          <input class="btn btn-defaut" type="button" name="viewBtn" value="<?= $SLANG['View'] ?>" onclick="viewEvents( this, 'markEids' );" disabled="disabled"/>
+          <input class="btn btn-defaut" type="button" name="archiveBtn" value="<?= $SLANG['Archive'] ?>" onclick="archiveEvents( this, 'markEids' )" disabled="disabled"/>
+          <input class="btn btn-defaut" type="button" name="unarchiveBtn" value="<?= $SLANG['Unarchive'] ?>" onclick="unarchiveEvents( this, 'markEids' );" disabled="disabled"/>
+          <input class="btn btn-defaut" type="button" name="editBtn" value="<?= $SLANG['Edit'] ?>" onclick="editEvents( this, 'markEids' )" disabled="disabled"/>
+          <input class="btn btn-defaut" type="button" name="exportBtn" value="<?= $SLANG['Export'] ?>" onclick="exportEvents( this, 'markEids' )" disabled="disabled"/>
+          <input class="btn btn-defaut" type="button" name="deleteBtn" value="<?= $SLANG['Delete'] ?>" onclick="deleteEvents( this, 'markEids' );" disabled="disabled"/>
+        </div>
+<?php } ?>
+			</div>
+
+			<div class="col-md-10">
         <input type="hidden" name="view" value="<?= $view ?>"/>
         <input type="hidden" name="action" value=""/>
         <input type="hidden" name="page" value="<?= $page ?>"/>
@@ -157,15 +150,11 @@ if ( $pages > 1 )
 if ( $pagination )
 {
 ?>
-        <h3 class="pagination"><?= $pagination ?></h3>
+        <ul class="pagination"><?= $pagination ?></ul>
 <?php
 }
 ?>
-        <p id="controls">
-          <a id="refreshLink" href="#" onclick="location.reload(true);"><?= $SLANG['Refresh'] ?></a>
-          <a id="filterLink" href="#" onclick="createPopup( '?view=filter&amp;page=<?= $page ?><?= $filterQuery ?>', 'zmFilter', 'filter' );"><?= $SLANG['ShowFilterWindow'] ?></a>
-        </p>
-        <table id="contentTable" class="major" cellspacing="0">
+        <table class="table">
           <tbody>
 <?php
 $count = 0;
@@ -236,28 +225,11 @@ foreach ( $events as $event )
 ?>
           </tbody>
         </table>
-<?php
-if ( $pagination )
-{
-?>
-        <h3 class="pagination"><?= $pagination ?></h3>
-<?php
-}
-if ( true || canEdit( 'Events' ) )
-{
-?>
-        <div id="contentButtons">
-          <input type="button" name="viewBtn" value="<?= $SLANG['View'] ?>" onclick="viewEvents( this, 'markEids' );" disabled="disabled"/>
-          <input type="button" name="archiveBtn" value="<?= $SLANG['Archive'] ?>" onclick="archiveEvents( this, 'markEids' )" disabled="disabled"/>
-          <input type="button" name="unarchiveBtn" value="<?= $SLANG['Unarchive'] ?>" onclick="unarchiveEvents( this, 'markEids' );" disabled="disabled"/>
-          <input type="button" name="editBtn" value="<?= $SLANG['Edit'] ?>" onclick="editEvents( this, 'markEids' )" disabled="disabled"/>
-          <input type="button" name="exportBtn" value="<?= $SLANG['Export'] ?>" onclick="exportEvents( this, 'markEids' )" disabled="disabled"/>
-          <input type="button" name="deleteBtn" value="<?= $SLANG['Delete'] ?>" onclick="deleteEvents( this, 'markEids' );" disabled="disabled"/>
-        </div>
-<?php
-}
-?>
+<?php if ( $pagination ) { ?>
+        <ul class="pagination"><?= $pagination ?></ul>
+<?php } ?>
       </form>
+			</div>
     </div>
   </div>
 </body>

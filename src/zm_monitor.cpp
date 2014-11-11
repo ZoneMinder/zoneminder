@@ -4413,3 +4413,36 @@ void Monitor::SingleImageZip( int scale)
     fprintf( stdout, "Content-Type: image/x-rgbz\r\n\r\n" );
     fwrite( img_buffer, img_buffer_size, 1, stdout );
 }
+
+#if ZM_PLUGINS_ON
+void Monitor::DumpPluginStatus()
+{
+    map<string,pGenConf> mapPluginGenConf;
+    unsigned int nNumPlugins = ThePluginManager.getPluginsGenConf(mapPluginGenConf);
+    bool bDoNativeDet = !config.turnoff_native_analysis && iDoNativeMotDet;
+
+    if ( nNumPlugins == 0)
+    {
+        printf("No plugin found\n");
+        return;
+    }
+    printf("%79sNATIVE DETECTION\n", " ");
+    printf("PLUGIN NAME%*sREGISTERED CONFIGURED  ZONE  ENABLED  ACTIVE  REQUIRE INCLUDE REINIT\n", 19, " ");
+    for (map<string,pGenConf>::iterator it = mapPluginGenConf.begin() ; it != mapPluginGenConf.end(); ++it)
+    {
+        PluginZoneConf mapPluginZoneConf;
+        ThePluginManager.getPluginZoneConf( it->first, mapPluginZoneConf );
+        int padLen = 34 - it->first.length();
+        if(padLen < 0) padLen = 0;
+        printf("%s%*s%d%*s%d%*s", it->first.c_str(), padLen, " ", it->second.Registered, 10, " ", it->second.Configured, 8, " ");
+        for (PluginZoneConf::iterator it2 = mapPluginZoneConf.begin() ; it2 != mapPluginZoneConf.end(); ++it2)
+        {
+            if (it2 != mapPluginZoneConf.begin())
+                printf("%*s", 54, " ");
+            bool bIsActive = it2->second.Enabled && ( !it2->second.RequireNatDet || ( it2->second.RequireNatDet && bDoNativeDet ) );
+            printf("%d%*s%d%*s%d%*s%d%*s%d%*s%d\n", it2->first, 7, " ", it2->second.Enabled, 7, " ", bIsActive, 8, " ", it2->second.RequireNatDet, 7, " ", it2->second.IncludeNatDet, 6, " ", it2->second.ReInitNatDet);
+        }
+    }
+    ThePluginManager.getImageAnalyser().cleanupPlugins();
+}
+#endif // ZM_PLUGINS_ON

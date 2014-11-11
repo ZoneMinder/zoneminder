@@ -410,6 +410,8 @@ public:
 	bool DumpSettings( char *output, bool verbose );
 	void DumpZoneImage( const char *zone_string=0 );
 
+	void DumpPluginStatus();
+
 #if ZM_HAS_V4L
 	static int LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose purpose );
 #endif // ZM_HAS_V4L

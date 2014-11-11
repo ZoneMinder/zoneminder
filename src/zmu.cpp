@@ -68,7 +68,9 @@ void Usage( int status=-1 )
 	fprintf( stderr, "  -U, --username <username>      : When running in authenticated mode the username and\n" );
 	fprintf( stderr, "  -P, --password <password>      : password combination of the given user\n" );
 	fprintf( stderr, "  -A, --auth <authentication>    : Pass authentication hash string instead of user details\n" );
-
+#if ZM_PLUGINS_ON
+	fprintf( stderr, "  -p, --plugin-status            : Display the status of detected plugins\n" );
+#endif // ZM_PLUGINS_ON
 	exit( status );
 }
 
@@ -96,6 +98,7 @@ typedef enum {
 	ZMU_SUSPEND    = 0x00400000,
 	ZMU_RESUME     = 0x00800000,
 	ZMU_LIST       = 0x10000000,
+	ZMU_LIST_PLUG  = 0x20000000
 } Function;
 
 bool ValidateAccess( User *user, int mon_id, int function )
@@ -111,7 +114,7 @@ bool ValidateAccess( User *user, int mon_id, int function )
 		if ( user->getEvents() < User::PERM_VIEW )
 			allowed = false;
 	}
-	if ( function & (ZMU_ZONES|ZMU_QUERY|ZMU_LIST) )
+	if ( function & (ZMU_ZONES|ZMU_QUERY|ZMU_LIST|ZMU_LIST_PLUG) )
 	{
 		if ( user->getMonitors() < User::PERM_VIEW )
 			allowed = false;
@@ -174,6 +177,9 @@ int main( int argc, char *argv[] )
 		{"version", 1, 0, 'V'},
 		{"help", 0, 0, 'h'},
 		{"list", 0, 0, 'l'},
+#if ZM_PLUGINS_ON
+		{"list_plugins", 0, 0, 'p'},
+#endif // ZM_PLUGINS_ON
 		{0, 0, 0, 0}
 	};
 
@@ -203,7 +209,7 @@ int main( int argc, char *argv[] )
 	{
 		int option_index = 0;
 
-		int c = getopt_long (argc, argv, "d:m:vsEDLurwei::S:t::fz::ancqhlB::C::H::O::U:P:A:V:", long_options, &option_index);
+		int c = getopt_long (argc, argv, "d:m:vsEDLurwei::S:t::fz::ancqhlpB::C::H::O::U:P:A:V:", long_options, &option_index);
 		if (c == -1)
 		{
 			break;
@@ -321,6 +327,11 @@ int main( int argc, char *argv[] )
 			case 'l':
 				function |= ZMU_LIST;
 				break;
+#if ZM_PLUGINS_ON
+			case 'p':
+				function |= ZMU_LIST_PLUG;
+				break;
+#endif // ZM_PLUGINS_ON
 			case '?':
 				Usage();
 				break;
@@ -409,7 +420,7 @@ int main( int argc, char *argv[] )
 
 	if ( mon_id > 0 )
 	{
-		Monitor *monitor = Monitor::Load( mon_id, function&(ZMU_QUERY|ZMU_ZONES), Monitor::QUERY );
+		Monitor *monitor = Monitor::Load( mon_id, function&(ZMU_QUERY|ZMU_ZONES|ZMU_LIST_PLUG), Monitor::QUERY );
 		if ( monitor )
 		{
 			if ( verbose )
@@ -649,6 +660,12 @@ int main( int argc, char *argv[] )
 					have_output = true;
 				}
 			}
+#if ZM_PLUGINS_ON
+			if ( function & ZMU_LIST_PLUG )
+			{
+				monitor->DumpPluginStatus();
+			}
+#endif // ZM_PLUGINS_ON
 			if ( have_output )
 			{
 				printf( "\n" );

@@ -46,6 +46,7 @@ AC_ARG_VAR(ZM_RUNDIR,[Location of transient process files, default /var/run/zm])
 AC_ARG_VAR(ZM_SOCKDIR,[Location of Unix domain socket files, default /var/run/zm])
 AC_ARG_VAR(ZM_TMPDIR,[Location of temporary files, default /var/tmp/zm])
 AC_ARG_VAR(ZM_LOGDIR,[Location of generated log files, default /var/log/zm])
+AC_ARG_VAR(ZM_CONFIG_DIR,[Location of ZoneMinder configuration, default system config directory])
 
 if test "$ZM_DB_TYPE" == ""; then
 	AC_SUBST(ZM_DB_TYPE,[mysql])
@@ -79,6 +80,10 @@ if test "$ZM_TMPDIR" == ""; then
 fi
 if test "$ZM_LOGDIR" == ""; then
 	AC_SUBST(ZM_LOGDIR,[/var/log/zm])
+fi
+AC_DEFINE_DIR([SYSCONFDIR],[sysconfdir],[Expanded configuration directory])
+if test "$ZM_CONFIG_DIR" == ""; then
+	AC_SUBST(ZM_CONFIG_DIR,[$SYSCONFDIR])
 fi
 
 LIB_ARCH=lib
@@ -428,8 +433,9 @@ AC_DEFINE_DIR([LIBDIR],[libdir],[Expanded library directory])
 AC_DEFINE_DIR([DATADIR],[datadir],[Expanded data directory])
 AC_SUBST(PKGDATADIR,"$DATADIR/$PACKAGE")
 AC_SUBST(ZM_PID,"$ZM_RUNDIR/zm.pid")
-AC_DEFINE_DIR([SYSCONFDIR],[sysconfdir],[Expanded configuration directory])
-AC_SUBST(ZM_CONFIG,"$SYSCONFDIR/zm.conf")
+#AC_DEFINE_DIR([SYSCONFDIR],[sysconfdir],[Expanded configuration directory])
+#AC_SUBST(ZM_CONFIG,"$SYSCONFDIR/zm.conf")
+AC_SUBST(ZM_CONFIG,"$ZM_CONFIG_DIR/zm.conf")
 
 # Slight hack for non-standard perl install paths
 if test "$prefix" != "NONE"; then

@@ -1,0 +1,13 @@
+# Zoneminder global configuration file for plugins
+# Add here a section for each plugins or add separated configuration files
+# under @PLUGINSCONFDIR@
+#
+# Syntax:
+# [plugin_name_A]
+# parameter1 = value1
+# parameter2 = value2
+# ...
+# [plugin_name_B]
+# parameter1 = value1
+# parameter2 = value2
+# ...

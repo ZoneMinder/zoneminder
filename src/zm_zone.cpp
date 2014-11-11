@@ -60,9 +60,19 @@ void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_
 	max_blob_size = 0;
 	image = 0;
 	score = 0;
+	text = "";
+	post_proc_enabled = false;
+	post_proc_in_progress = false;
+	include_nat_det = true;
+	reinit_nat_det = false;
 
 	overload_count = 0;
 	extend_alarm_count = 0;
+
+	delta_image = Image( monitor->Width(), monitor->Height(), ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE );
+	ref_image = Image( monitor->Width(), monitor->Height(), monitor->Colours(), monitor->SubpixelOrder());
+	bl_image = Image( monitor->Width(), monitor->Height(), monitor->Colours(), monitor->SubpixelOrder());
+	bl_image.Fill( RGB_BLACK );
 
 	pg_image = new Image( monitor->Width(), monitor->Height(), 1, ZM_SUBPIX_ORDER_NONE);
 	pg_image->Clear();
@@ -91,14 +101,10 @@ void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_
 			}
 		}
 	}
-	
-	if ( config.record_diag_images )
+	if ( config.record_diag_images && (id > 0))
 	{
 		static char diag_path[PATH_MAX] = "";
-		if ( !diag_path[0] )
-		{
-			snprintf( diag_path, sizeof(diag_path), "%s/%s/diag-%d-poly.jpg", config.dir_events, monitor->Name(), id);
-		}
+		snprintf( diag_path, sizeof(diag_path), "%s/%s/diag-%d-poly.jpg", config.dir_events, monitor->Name(), id);
 		pg_image->WriteJpeg( diag_path );
 	}
 }
@@ -142,11 +148,52 @@ void Zone::SetScore(unsigned int nScore)
     score = nScore;
 }
 
+void Zone::SetText(std::string sText)
+{
+    text = "[Zone ";
+    text += label;
+    text += "]\n" + sText;
+}
+
+void Zone::AssignRefImage( unsigned int p_width, unsigned int p_height, unsigned int p_colours, unsigned int p_subpixelorder, const uint8_t* new_buffer, const size_t buffer_size )
+{
+    ref_image.Assign( p_width, p_height, p_colours, p_subpixelorder, new_buffer, buffer_size);
+}
+
+void Zone::SetRefImage(const Image &srcImage)
+{
+    ref_image = srcImage;
+}
+
+void Zone::BlendRefImage( const Image &srcImage, int transparency )
+{
+    ref_image.Blend( srcImage, transparency );
+}
+
+void Zone::SetDeltaImage( const Image &srcImage )
+{
+    ref_image.Delta( srcImage, &delta_image );
+}
+
+void Zone::FillDeltaImage( Rgb colour )
+{
+    delta_image.Fill( colour, polygon);
+}
 
 void Zone::SetAlarmImage(const Image* srcImage)
 {
     delete image;
     image = new Image(*srcImage);
+}
+
+bool Zone::WriteRefImage( const char *filename, int quality_override ) const
+{
+    return ref_image.WriteJpeg( filename, quality_override );
+}
+
+bool Zone::WriteDeltaImage( const char *filename, int quality_override ) const
+{
+    return delta_image.WriteJpeg( filename, quality_override );
 }
 
 int Zone::GetOverloadCount()
@@ -194,9 +241,33 @@ bool Zone::CheckExtendAlarmCount()
 
 //===========================================================================
 
+void Zone::SetConfig( zConf zone_conf )
+{
+    post_proc_enabled = zone_conf.RequireNatDet;
+    include_nat_det = zone_conf.IncludeNatDet;
+    reinit_nat_det = zone_conf.ReInitNatDet;
+
+    if ( post_proc_enabled ) {
+        std::string sMessage;
+        if ( include_nat_det ) {
+            sMessage = "(native detection included";
+        }
+        if ( reinit_nat_det ) {
+            if (sMessage.empty()) {
+                sMessage = "(native detection will be reinitialized";
+            } else {
+                sMessage += ", reinitialization is required";
+            }
+        }
+        if (!sMessage.empty()) {
+            sMessage += ")";
+        }
+        Info("Post processing enabled for zone '%s' %s", label, sMessage.c_str());
+    }
+}
 
 
-bool Zone::CheckAlarms( const Image *delta_image )
+bool Zone::CheckAlarms( const Image *comp_image )
 {
 	ResetStats();
 
@@ -205,12 +276,13 @@ bool Zone::CheckAlarms( const Image *delta_image )
 		Info( "In overload mode, %d frames of %d remaining", overload_count, overload_frames );
 		Debug( 4, "In overload mode, %d frames of %d remaining", overload_count, overload_frames );
 		overload_count--;
+		post_proc_in_progress = false;
 		return( false );
 	}
 
 	delete image;
 	// Get the difference image
-	Image *diff_image = image = new Image( *delta_image );
+	Image *diff_image = image = new Image( delta_image );
 	int diff_width = diff_image->Width();
 	uint8_t* diff_buff = (uint8_t*)diff_image->Buffer();
 	uint8_t* pdiff;
@@ -245,10 +317,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 	if ( config.record_diag_images )
 	{
 		static char diag_path[PATH_MAX] = "";
-		if ( !diag_path[0] )
-		{
-			snprintf( diag_path, sizeof(diag_path), "%s/%s/diag-%d-%d.jpg", config.dir_events, monitor->Name(), id, 1 );
-		}
+		snprintf( diag_path, sizeof(diag_path), "%s/%s/diag-%d-%d.jpg", config.dir_events, monitor->Name(), id, 1 );
 		diff_image->WriteJpeg( diag_path );
 	}
 	
@@ -259,14 +328,17 @@ bool Zone::CheckAlarms( const Image *delta_image )
 	if( alarm_pixels ) {
 		if( min_alarm_pixels && (alarm_pixels < (unsigned int)min_alarm_pixels) ) {
 			/* Not enough pixels alarmed */
+			post_proc_in_progress = false;
 			return (false);
 		} else if( max_alarm_pixels && (alarm_pixels > (unsigned int)max_alarm_pixels) ) {
 			/* Too many pixels alarmed */
 			overload_count = overload_frames;
+			post_proc_in_progress = false;
 			return (false);
 		}
 	} else {
 		/* No alarmed pixels */
+		post_proc_in_progress = false;
 		return (false);
 	}
 	
@@ -342,10 +414,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 		if ( config.record_diag_images )
 		{
 			static char diag_path[PATH_MAX] = "";
-			if ( !diag_path[0] )
-			{
-				snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-%d-%d.jpg", config.dir_events, monitor->Id(), id, 2 );
-			}
+			snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-%d-%d.jpg", config.dir_events, monitor->Id(), id, 2 );
 			diff_image->WriteJpeg( diag_path );
 		}
 		
@@ -354,14 +423,17 @@ bool Zone::CheckAlarms( const Image *delta_image )
 		if( alarm_filter_pixels ) {
 			if( min_filter_pixels && (alarm_filter_pixels < min_filter_pixels) ) {
 				/* Not enough pixels alarmed */
+				post_proc_in_progress = false;
 				return (false);
 			} else if( max_filter_pixels && (alarm_filter_pixels > max_filter_pixels) ) {
 				/* Too many pixels alarmed */
 				overload_count = overload_frames;
+				post_proc_in_progress = false;
 				return (false);
 			}
 		} else {
 			/* No filtered pixels */
+			post_proc_in_progress = false;
 			return (false);
 		}
 		
@@ -583,15 +655,13 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			if ( config.record_diag_images )
 			{
 				static char diag_path[PATH_MAX] = "";
-				if ( !diag_path[0] )
-				{
-					snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-%d-%d.jpg", config.dir_events, monitor->Id(), id, 3 );
-				}
+				snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-%d-%d.jpg", config.dir_events, monitor->Id(), id, 3 );
 				diff_image->WriteJpeg( diag_path );
 			}
 
 			if ( !alarm_blobs )
 			{
+				post_proc_in_progress = false;
 				return( false );
 			}
 			
@@ -642,10 +712,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			if ( config.record_diag_images )
 			{
 				static char diag_path[PATH_MAX] = "";
-				if ( !diag_path[0] )
-				{
-					snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-%d-%d.jpg", config.dir_events, monitor->Id(), id, 4 );
-				}
+				snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-%d-%d.jpg", config.dir_events, monitor->Id(), id, 4 );
 				diff_image->WriteJpeg( diag_path );
 			}
 			Debug( 5, "Got %d blob pixels, %d blobs, need %d -> %d, %d -> %d", alarm_blob_pixels, alarm_blobs, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs );           
@@ -653,14 +720,17 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			if( alarm_blobs ) {
 				if( min_blobs && (alarm_blobs < min_blobs) ) {
 					/* Not enough pixels alarmed */
+					post_proc_in_progress = false;
 					return (false);
 				} else if(max_blobs && (alarm_blobs > max_blobs) ) {
 					/* Too many pixels alarmed */
 					overload_count = overload_frames;
+					post_proc_in_progress = false;
 					return (false);
 				}
 			} else {
 				/* No blobs */
+				post_proc_in_progress = false;
 				return (false);
 			}
 			
@@ -797,13 +867,23 @@ bool Zone::CheckAlarms( const Image *delta_image )
 					}
 				}
 			}
-			
-			if( monitor->Colours() == ZM_COLOUR_GRAY8 ) {
-				image = diff_image->HighlightEdges( alarm_rgb, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB, &polygon.Extent() );
-			} else {
-				image = diff_image->HighlightEdges( alarm_rgb, monitor->Colours(), monitor->SubpixelOrder(), &polygon.Extent() );
+			if ( post_proc_enabled ) {
+				post_proc_in_progress = true;
 			}
-			
+			if ( include_nat_det ) {
+				if( monitor->Colours() == ZM_COLOUR_GRAY8 ) {
+					image = diff_image->HighlightEdges( alarm_rgb, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB, &polygon.Extent() );
+				} else {
+					image = diff_image->HighlightEdges( alarm_rgb, monitor->Colours(), monitor->SubpixelOrder(), &polygon.Extent() );
+				}
+			} else {
+				score = 0;
+				image = new Image( bl_image );
+			}
+			// Update reference image if required
+			if ( reinit_nat_det ) {
+				ref_image = *comp_image;
+			}
 			// Only need to delete this when 'image' becomes detached and points somewhere else
 			delete diff_image;
 		}

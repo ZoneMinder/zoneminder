@@ -244,8 +244,6 @@ protected:
     Rgb             signal_check_colour;    // The colour that the camera will emit when no video signal detected
 
 	double			fps;
-	Image			delta_image;
-	Image			ref_image;
 
 	Purpose			purpose;			    // What this monitor has been created to do
 	int				event_count;
@@ -385,6 +383,7 @@ public:
 	}
 
 	unsigned int DetectMotion( const Image &comp_image, Event::StringSet &zoneSet );
+	unsigned int DetectMotion( const Image &comp_image, Event::StringSet &zoneSet, unsigned int &score );
    // DetectBlack seems to be unused. Check it on zm_monitor.cpp for more info.
    //unsigned int DetectBlack( const Image &comp_image, Event::StringSet &zoneSet );
 	bool CheckSignal( const Image *image );

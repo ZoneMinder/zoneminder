@@ -311,8 +311,6 @@ Monitor::Monitor(
     alarm_ref_blend_perc( p_alarm_ref_blend_perc ),
     track_motion( p_track_motion ),
     signal_check_colour( p_signal_check_colour ),
-    delta_image( width, height, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE ),
-    ref_image( width, height, p_camera->Colours(), p_camera->SubpixelOrder() ),
     purpose( p_purpose ),
     last_motion_score(0),
     camera( p_camera ),
@@ -484,7 +482,6 @@ Monitor::Monitor(
             Warning( "Waiting for capture daemon" );
             sleep( 1 );
         }
-        ref_image.Assign( width, height, camera->Colours(), camera->SubpixelOrder(), image_buffer[shared_data->last_write_index].image->Buffer(), camera->ImageSize());
 
         n_linked_monitors = 0;
         linked_monitors = 0;
@@ -1217,7 +1214,10 @@ bool Monitor::Analyse()
             {
                 Info( "Received resume indication at count %d", image_count );
                 shared_data->active = true;
-                ref_image = *snap_image;
+                for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
+                {
+                    zones[n_zone]->SetRefImage(*snap_image);
+                }
                 ready_count = image_count+(warmup_count/2);
                 shared_data->alarm_x = shared_data->alarm_y = -1;
             }
@@ -1228,7 +1228,10 @@ bool Monitor::Analyse()
     {
         Info( "Auto resuming at count %d", image_count );
         shared_data->active = true;
-        ref_image = *snap_image;
+        for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
+        {
+            zones[n_zone]->SetRefImage(*snap_image);
+        }
         ready_count = image_count+(warmup_count/2);
         auto_resume_time = 0;
     }
@@ -1300,32 +1303,36 @@ bool Monitor::Analyse()
                     noteSetMap[SIGNAL_CAUSE] = noteSet;
                     shared_data->state = state = IDLE;
                     shared_data->active = signal;
-                    ref_image = *snap_image;
+                    for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
+                    {
+                        zones[n_zone]->SetRefImage(*snap_image);
+                    }
                 }
                 else if ( signal && Active() && (function == MODECT || function == MOCORD) )
                 {
                     Event::StringSet zoneSet;
-                    int motion_score = last_motion_score;
+                    unsigned int motion_score = last_motion_score;
+                    bool alarm = false;
                     if ( !(image_count % (motion_frame_skip+1) ) )
                     {
                         // Get new score.
-                        motion_score = last_motion_score = DetectMotion( *snap_image, zoneSet );
+                        alarm = DetectMotion( *snap_image, zoneSet, motion_score );
+                        last_motion_score = motion_score;
                     }
                     //int motion_score = DetectBlack( *snap_image, zoneSet );
-                    if ( motion_score )
+                    if ( alarm )
                     {
-                        if ( !event )
+                        if ( motion_score )
                         {
                             score += motion_score;
-                            if ( cause.length() )
-                                cause += ", ";
-                            cause += MOTION_CAUSE;
+                            if ( !event )
+                            {
+                                if ( cause.length() )
+                                    cause += ", ";
+                                cause += MOTION_CAUSE;
+                            }
+                            noteSetMap[MOTION_CAUSE] = zoneSet;
                         }
-                        else
-                        {
-                            score += motion_score;
-                        }
-                        noteSetMap[MOTION_CAUSE] = zoneSet;
 
                     }
                     shared_data->active = signal;
@@ -1617,10 +1624,10 @@ bool Monitor::Analyse()
         }
         if ( (!signal_change && signal) && (function == MODECT || function == MOCORD) )
         {
-            if ( state == ALARM ) {
-               ref_image.Blend( *snap_image, alarm_ref_blend_perc );
-            } else {
-               ref_image.Blend( *snap_image, ref_blend_perc );
+            int ref_blend = ( state == ALARM ) ? alarm_ref_blend_perc : ref_blend_perc;
+            for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
+            {
+                zones[n_zone]->BlendRefImage( *snap_image, ref_blend );
             }
         }
         last_signal = signal;
@@ -3166,33 +3173,31 @@ unsigned int Monitor::DetectBlack(const Image &comp_image, Event::StringSet &zon
 
 
 
-unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &zoneSet )
+unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &zoneSet, unsigned int &score )
 {
     bool alarm = false;
-    unsigned int score = 0;
+    score = 0;
 
     if ( n_zones <= 0 ) return( alarm );
 
-    if ( config.record_diag_images )
+    for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
     {
-        static char diag_path[PATH_MAX] = "";
-        if ( !diag_path[0] )
+        Zone *zone = zones[n_zone];
+        if ( config.record_diag_images )
         {
-            snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-r.jpg", config.dir_events, id );
+            static char diag_path[PATH_MAX] = "";
+            snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-%d-r.jpg", config.dir_events, id, zone->Id() );
+            zone->WriteRefImage( diag_path );
         }
-        ref_image.WriteJpeg( diag_path );
-    }
 
-    ref_image.Delta( comp_image, &delta_image);
+        zone->SetDeltaImage( comp_image );
 
-    if ( config.record_diag_images )
-    {
-        static char diag_path[PATH_MAX] = "";
-        if ( !diag_path[0] )
+        if ( config.record_diag_images )
         {
-            snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-d.jpg", config.dir_events, id );
+            static char diag_path[PATH_MAX] = "";
+            snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-%d-d.jpg", config.dir_events, id, zone->Id() );
+            zone->WriteDeltaImage( diag_path );
         }
-        delta_image.WriteJpeg( diag_path );
     }
 
     // Blank out all exclusion zones
@@ -3207,7 +3212,7 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
             continue;
         }
         Debug( 3, "Blanking inactive zone %s", zone->Label() );
-        delta_image.Fill( RGB_BLACK, zone->GetPolygon() );
+        zone->FillDeltaImage( RGB_BLACK );
     }
 
     // Check preclusive zones first
@@ -3221,13 +3226,16 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
         int old_zone_score = zone->Score();
         bool old_zone_alarmed = zone->Alarmed();
         Debug( 3, "Checking preclusive zone %s - old score: %d, state: %s", zone->Label(),old_zone_score, zone->Alarmed()?"alarmed":"quiet" );
-        if ( zone->CheckAlarms( &delta_image ) )
+        if ( zone->CheckAlarms( &comp_image ) )
         {
             alarm = true;
             score += zone->Score();
-            zone->SetAlarm();
-            Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
-            zoneSet.insert( zone->Label() );
+            if ( !zone->IsPostProcEnabled() )
+            {
+                zone->SetAlarm();
+                Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
+                zoneSet.insert( ("[Zone " + std::string(zone->Label()) + "]\n").c_str() );
+            }
             //zone->ResetStats();
         } else {
             // check if end of alarm
@@ -3265,24 +3273,26 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
                 continue;
             }
             Debug( 3, "Checking active zone %s", zone->Label() );
-            if ( zone->CheckAlarms( &delta_image ) )
+            if ( zone->CheckAlarms( &comp_image ) )
             {
                 alarm = true;
-                score += zone->Score();
                 zone->SetAlarm();
-                Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
-                zoneSet.insert( zone->Label() );
-                if ( config.opt_control && track_motion )
+                score += zone->Score();
+                if ( !zone->IsPostProcEnabled() )
                 {
-                    if ( (int)zone->Score() > top_score )
+                    Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
+                    zoneSet.insert( ("[Zone " + std::string(zone->Label()) + "]\n").c_str() );
+                    if ( config.opt_control && track_motion )
                     {
-                        top_score = zone->Score();
-                        alarm_centre = zone->GetAlarmCentre();
+                        if ( (int)zone->Score() > top_score )
+                        {
+                            top_score = zone->Score();
+                            alarm_centre = zone->GetAlarmCentre();
+                        }
                     }
                 }
             }
         }
-
         if ( alarm )
         {
             for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
@@ -3293,19 +3303,22 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
                     continue;
                 }
                 Debug( 3, "Checking inclusive zone %s", zone->Label() );
-                if ( zone->CheckAlarms( &delta_image ) )
+                if ( zone->CheckAlarms( &comp_image ) )
                 {
                     alarm = true;
-                    score += zone->Score();
                     zone->SetAlarm();
-                    Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
-                    zoneSet.insert( zone->Label() );
-                    if ( config.opt_control && track_motion )
+                    score += zone->Score();
+                    if ( !zone->IsPostProcEnabled() )
                     {
-                        if ( zone->Score() > (unsigned int)top_score )
+                        Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
+                        zoneSet.insert( ("[Zone " + std::string(zone->Label()) + "]\n").c_str() );
+                        if ( config.opt_control && track_motion )
                         {
-                            top_score = zone->Score();
-                            alarm_centre = zone->GetAlarmCentre();
+                            if ( zone->Score() > (unsigned int)top_score )
+                            {
+                                top_score = zone->Score();
+                                alarm_centre = zone->GetAlarmCentre();
+                            }
                         }
                     }
                 }
@@ -3322,13 +3335,16 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
                     continue;
                 }
                 Debug( 3, "Checking exclusive zone %s", zone->Label() );
-                if ( zone->CheckAlarms( &delta_image ) )
+                if ( zone->CheckAlarms( &comp_image ) )
                 {
                     alarm = true;
-                    score += zone->Score();
                     zone->SetAlarm();
-                    Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
-                    zoneSet.insert( zone->Label() );
+                    score += zone->Score();
+                    if ( !zone->IsPostProcEnabled() )
+                    {
+                        Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
+                        zoneSet.insert( ("[Zone " + std::string(zone->Label()) + "]\n").c_str() );
+                    }
                 }
             }
         }
@@ -3346,9 +3362,8 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
         shared_data->alarm_x = shared_data->alarm_y = -1;
     }
 
-    // This is a small and innocent hack to prevent scores of 0 being returned in alarm state
-    return( score?score:alarm );
-} 
+    return alarm;
+}
 
 bool Monitor::DumpSettings( char *output, bool verbose )
 {

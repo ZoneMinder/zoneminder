@@ -1,7 +1,9 @@
 AUTOMAKE_OPTIONS = gnu
 
 AM_CPPFLAGS = @MYSQL_CFLAGS@ @MARIADB_CFLAGS@ @FFMPEG_CFLAGS@ -Wall -finline-functions -fomit-frame-pointer
-#AM_CXXFLAGS = -frepo
+# Compile zm binaries with -rdynamic to enable visiblily of global static
+# variables in shared libraries (plugins)
+AM_CXXFLAGS = -rdynamic
 
 CLEANFILES = *.rpo
 
@@ -24,24 +26,18 @@ zm_SOURCES = \
 	zm_buffer.cpp \
 	zm_camera.cpp \
 	zm_comms.cpp \
-	zm_config.cpp \
 	zm_coord.cpp \
 	zm_curl_camera.cpp \
 	zm.cpp \
-	zm_db.cpp \
-	zm_logger.cpp \
 	zm_event.cpp \
 	zm_exception.cpp \
 	zm_file_camera.cpp \
 	zm_ffmpeg_camera.cpp \
-	zm_image.cpp \
-	zm_jpeg.cpp \
     zm_libvlc_camera.cpp \
 	zm_local_camera.cpp \
 	zm_monitor.cpp \
 	zm_ffmpeg.cpp \
 	zm_mpeg.cpp \
-	zm_poly.cpp \
 	zm_regexp.cpp \
 	zm_remote_camera.cpp \
 	zm_remote_camera_http.cpp \
@@ -55,12 +51,46 @@ zm_SOURCES = \
 	zm_sdp.cpp \
 	zm_signal.cpp \
 	zm_stream.cpp \
-	zm_thread.cpp \
 	zm_time.cpp \
 	zm_timer.cpp \
 	zm_user.cpp \
+	$(SOURCES_common)
+
+# These source files are used both for zm binaries and the libzmplugins
+# convenience library
+SOURCES_common = \
+	zm_config.cpp \
+	zm_db.cpp \
+	zm_image.cpp \
+	zm_jpeg.cpp \
+	zm_logger.cpp \
+	zm_poly.cpp \
 	zm_utils.cpp \
+	zm_thread.cpp \
 	zm_zone.cpp
+
+# These header files are used both for zm binaries and the libzmplugins
+# convenience library
+HEADERS_common = \
+	jinclude.h \
+	zm.h \
+	zm_box.h \
+	zm_config_defines.h \
+	zm_config.h \
+	zm_coord.h \
+	zm_db.h \
+	zm_event.h \
+	zm_ffmpeg.h \
+	zm_image.h \
+	zm_jpeg.h \
+	zm_logger.h \
+	zm_mem_utils.h \
+	zm_mpeg.h \
+	zm_poly.h \
+	zm_rgb.h \
+	zm_stream.h \
+	zm_utils.h \
+	zm_zone.h
 
 zmc_SOURCES = zmc.cpp $(zm_SOURCES)
 zma_SOURCES = zma.cpp $(zm_SOURCES)
@@ -84,39 +114,22 @@ zmf_LDADD = $(zm_LDADD)
 zmstreamer_LDADD = $(zm_LDADD)
 
 noinst_HEADERS = \
-	jinclude.h \
-	zm_box.h \
 	zm_buffer.h \
 	zm_camera.h \
 	zm_comms.h \
-	zm_config_defines.h \
-	zm_config.h \
-	zm_coord.h \
 	zm_curl_camera.h \
-	zm_db.h \
-	zm_logger.h \
-	zm_event.h \
 	zm_exception.h \
 	zmf.h \
 	zm_file_camera.h \
 	zm_ffmpeg_camera.h \
 	zm_font.h \
-	zm_font.h \
-	zm.h \
-	zm_image.h \
-	zm_jpeg.h \
     zm_libvlc_camera.h \
 	zm_local_camera.h \
-	zm_mem_utils.h \
 	zm_monitor.h \
-	zm_ffmpeg.h \
-	zm_mpeg.h \
-	zm_poly.h \
 	zm_regexp.h \
 	zm_remote_camera.h \
 	zm_remote_camera_http.h \
 	zm_remote_camera_rtsp.h \
-	zm_rgb.h \
 	zm_rtp_ctrl.h \
 	zm_rtp_data.h \
 	zm_rtp.h \
@@ -124,13 +137,48 @@ noinst_HEADERS = \
 	zm_rtsp.h \
 	zm_sdp.h \
 	zm_signal.h \
-	zm_stream.h \
 	zm_thread.h \
 	zm_time.h \
 	zm_timer.h \
-	zm_user.h \
-	zm_utils.h \
-	zm_zone.h
+	zm_user.h
+
+if ZM_HAS_PLUGIN_SUPPORT
+# Add objects to zm binaries for plugins management
+zm_SOURCES += \
+	zm_detector.cpp \
+	zm_image_analyser.cpp \
+	zm_plugin.cpp \
+	zm_plugin_manager.cpp
+
+# Build a convenience library for plugin development
+noinst_LTLIBRARIES = libzmplugins.la
+libzmplugins_la_SOURCES = zm_detector.cpp $(SOURCES_common)
+
+# A hack to avoid conflicts between objects created both with libtool
+# and without (objects will be prefixed with "libzmplugins_la")
+libzmplugins_la_CPPFLAGS = $(AM_CPPFLAGS)
+
+# Install the necessary headers for plugin development
+pkginclude_HEADERS = \
+	zm_detector.h \
+	zm_image_analyser.h \
+	zm_plugin.h \
+	zm_plugin_manager.h \
+	$(HEADERS_common)
+
+# Install a pkg-config file for a proper handling of the libzmplugins
+# convenience library
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = libzmplugins.pc
+else
+# Don't intall plugin headers if no support
+noinst_HEADERS += \
+	zm_detector.h \
+	zm_plugin.h \
+	zm_plugin_manager.h \
+	zm_image_analyser.h \
+	$(HEADERS_common)
+endif
 
 EXTRA_DIST = \
 	zm_config.h.in \
@@ -140,10 +188,14 @@ dist-hook:
 	@( rm $(distdir)/zm_config.h )
 
 # Yes, you are correct. This is a HACK!
+# And the manual installation of libzmplugins.a is necessary because libtool has
+# no option to force installation of convenience libraries.
 install-exec-hook:
 	( cd $(DESTDIR)@bindir@; mkdir -p $(DESTDIR)$(cgidir); mv zms $(DESTDIR)$(cgidir) )
 	( cd $(DESTDIR)$(cgidir); chown $(webuser):$(webgroup) zms; ln -f zms nph-zms )
+	install -D -m 644 .libs/libzmplugins.a $(DESTDIR)$(libdir)/libzmplugins.a
 
 uninstall-hook:
 	( cd $(DESTDIR)$(cgidir); rm -f zms nph-zms )
+	( cd $(DESTDIR)$(libdir); rm -f libzmplugins.a )
 

@@ -195,6 +195,50 @@ AC_ARG_WITH(cgidir,
 )
 AC_SUBST(CGI_PREFIX)
 
+ENABLE_PLUGIN_SUPPORT=no
+AC_ARG_ENABLE([plugin-support],
+    [  --enable-plugin-support=<yes|no>  enable or disable plugin support, default disabled],
+    [ENABLE_PLUGIN_SUPPORT=$enable_plugin_support],
+    [AC_MSG_WARN([You can call configure with the --enable-plugin-support=<yes|no>
+    or --disable-plugin-support option.
+    This tells configure whether to compile ZoneMinder with plugin support.
+    e.g. --enable-plugin-support=yes or --disable-plugin-support])]
+)
+
+if test "$ENABLE_PLUGIN_SUPPORT" == "yes"; then
+  if test "$enable_shared" = "no"; then
+    AC_MSG_ERROR([Plugin support is enabled and shared library are disabled.
+      If you really want plugin support you must not call configure with
+      --enable-shared=no or --disabled-shared])
+  fi
+  AC_ARG_WITH(pluginsdir,
+      [  --with-pluginsdir=<path>   plugins directory (requires --enable-plugin-support=yes)],
+      [PLUGINSLIBDIR=$with_pluginsdir],
+      AC_MSG_ERROR([Plugin support is enabled.
+      You must call configure with the --with-pluginsdir options.
+      This tells configure where to install plugin library files.
+      e.g. --with-pluginsdir=/usr/lib/zoneminder/plugins])
+  )
+  AC_SUBST(PLUGINSLIBDIR)
+  PLUGINSCONFDIR="${sysconfdir}/plugins.d"
+  AC_ARG_WITH(pluginsconfdir,
+      [  --with-pluginsconfdir=<path>   directory of plugin configuration files (requires --enable-plugin-support=yes)],
+      [PLUGINSCONFDIR=$with_pluginsconfdir],
+      AC_MSG_WARN([You can call configure with the --with-pluginsconfdir options.
+      This tells configure where to install the plugin configuration files.
+      The default is "${PLUGINSCONFDIR}".
+      e.g. --with-pluginsconfdir=/etc/zm/plugins.d])
+  )
+  AC_SUBST(PLUGINSCONFDIR)
+  PLUGINSWEBDIR="$WEB_PREFIX/plugins"
+  AC_SUBST(PLUGINSWEBDIR)
+  AC_DEFINE(ZM_PLUGINS_ON,1,"Whether plugin support is switched on and compiled")
+  PLUGINSEXT=".so"
+  AC_SUBST(PLUGINSEXT)
+  AC_DEFINE_UNQUOTED(DEFAULT_PLUGIN_EXT,"${PLUGINSEXT}",[File extension to detect plugins])
+fi
+AM_CONDITIONAL([ZM_HAS_PLUGIN_SUPPORT], [test "x$ENABLE_PLUGIN_SUPPORT" = xyes])
+
 WEB_USER=apache
 AC_ARG_WITH(webuser,
     [  --with-webuser=<user>      name of web user, default apache],

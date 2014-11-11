@@ -127,7 +127,7 @@ xhtmlHeaders(__FILE__, $SLANG['Events'] );
 			<div class="col-md-2">
       <h2><?= sprintf( $CLANG['EventCount'], $nEvents, zmVlang( $VLANG['Event'], $nEvents ) ) ?></h2>
 <?php if ( true || canEdit( 'Events' ) ) { ?>
-        <div id="contentButtons">
+        <div class="btn-group-vertical">
           <input class="btn btn-default" type="button" name="viewBtn" value="<?= $SLANG['View'] ?>" onclick="viewEvents( this, 'markEids' );" disabled="disabled"/>
           <input class="btn btn-default" type="button" name="archiveBtn" value="<?= $SLANG['Archive'] ?>" onclick="archiveEvents( this, 'markEids' )" disabled="disabled"/>
           <input class="btn btn-default" type="button" name="unarchiveBtn" value="<?= $SLANG['Unarchive'] ?>" onclick="unarchiveEvents( this, 'markEids' );" disabled="disabled"/>

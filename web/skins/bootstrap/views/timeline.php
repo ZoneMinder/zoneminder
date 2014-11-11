@@ -802,7 +802,10 @@ $focusWindow = true;
 xhtmlHeaders(__FILE__, $SLANG['Timeline'] );
 ?>
 <body>
-  <div id="page">
+
+	<?php include("header.php"); ?>
+
+  <div class="container-fluid">
     <div id="header">
       <div id="headerButtons">
         <?= makePopupLink( '?view=events&amp;page=1'.htmlspecialchars($filterQuery), 'zmEvents', 'events', $SLANG['List'], canView( 'Events' ) ) ?>

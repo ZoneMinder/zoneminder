@@ -67,7 +67,7 @@ apache2-mpm-prefork libapache2-mod-php5 php5-cli
 A fresh build based on master branch running Debian 7 (wheezy):
 
 ```bash
-root@host:~# aptitude install -y libapache2-mod-php5 mysql-server php5-mysqlnd build-essential cmake debhelper libphp-serialization-perl libgnutls-dev libmysqlclient-dev libdbd-mysql-perl libdate-manip-perl libwww-perl libjpeg8-dev libpcre3-dev libavcodec-dev libavformat-dev libswscale-dev libavutil-dev libv4l-dev libbz2-dev libsys-mmap-perl libav-tools libnetpbm10-dev libavdevice-dev libdevice-serialport-perl libarchive-zip-perl libmime-lite-perl libvlccore-dev libvlc-dev libcurl4-gnutls-dev libgcrypt11-dev libpolkit-gobject-1-dev;
+root@host:~# aptitude install -y apache2 mysql-server php5 php5-mysql build-essential libmysqlclient-dev libssl-dev libbz2-dev libpcre3-dev libdbi-perl libarchive-zip-perl libdate-manip-perl libdevice-serialport-perl libmime-perl libpcre3 libwww-perl libdbd-mysql-perl libsys-mmap-perl yasm automake autoconf libjpeg8-dev libjpeg8 apache2-mpm-prefork libapache2-mod-php5 php5-cli libphp-serialization-perl libgnutls-dev libjpeg8-dev libavcodec-dev libavformat-dev libswscale-dev libavutil-dev libv4l-dev libtool ffmpeg libnetpbm10-dev libavdevice-dev libmime-lite-perl dh-autoreconf dpatch;
 
 root@host:~# git clone https://github.com/ZoneMinder/ZoneMinder.git zoneminder;
 root@host:~# cd zoneminder;

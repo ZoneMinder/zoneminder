@@ -23,12 +23,10 @@ command="$ZM_PATH_BIN/zmpkg.pl"
 
 start() {
 	echo -n "Starting $prog: "
-	mkdir -p $RUNDIR && chown www-data:www-data $RUNDIR
-	mkdir -p $TMPDIR && chown www-data:www-data $TMPDIR
+	mkdir -p $RUNDIR $TMPDIR && chown www-data:www-data $RUNDIR $TMPDIR
 	$command start
 	RETVAL=$?
-	[ $RETVAL = 0 ] && echo success
-	[ $RETVAL != 0 ] && echo failure
+	[ $RETVAL = 0 ] && echo success || echo failure
 	echo
 	[ $RETVAL = 0 ] && touch /var/lock/zm
 	return $RETVAL
@@ -51,8 +49,7 @@ stop() {
 	else
 		$command stop
 		RETVAL=$?
-		[ $RETVAL = 0 ] && echo success
-		[ $RETVAL != 0 ] && echo failure
+		[ $RETVAL = 0 ] && echo success || echo failure
 		echo
 		[ $RETVAL = 0 ] && rm -f /var/lock/zm
 	fi

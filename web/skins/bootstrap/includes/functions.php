@@ -27,7 +27,6 @@ function xhtmlHeaders( $file, $title )
 
 		$bootstrapCssFile = getSkinFile( 'css/bootstrap.css' );
 		$bootstrapJsFile = getSkinFile( 'js/bootstrap.min.js' );
-		$chartJsFile = getSkinFile( 'js/Chart.min.js' );
 
     $basename = basename( $file, '.php' );
     $viewCssFile = getSkinFile( 'views/css/'.$basename.'.css' );
@@ -68,7 +67,6 @@ function xhtmlHeaders( $file, $title )
     }
 ?>
   <script type="text/javascript" src="<?= $bootstrapJsFile ?>"></script>
-  <script type="text/javascript" src="<?= $chartJsFile ?>"></script>
   <script type="text/javascript" src="tools/mootools/mootools-core.js"></script>
   <script type="text/javascript" src="tools/mootools/mootools-more.js"></script>
   <script type="text/javascript" src="js/mootools.ext.js"></script>

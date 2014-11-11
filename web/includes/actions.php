@@ -372,11 +372,14 @@ if ( !empty($action) )
            $changes=0;
            foreach( $pconfs as $pconf )
            {
-              $value=$_REQUEST['pluginOpt'][$pconf['Name']];
-              if(array_key_exists($pconf['Name'], $_REQUEST['pluginOpt']) && ($pconf['Value']!=$value))
+              if(isset($_REQUEST['pluginOpt'][$pconf['Name']]))
               {
-                 dbQuery("UPDATE PluginsConfig SET Value=? WHERE id=?", array( $value, $pconf['Id'] ) );
-                 $changes++;
+                 $value=$_REQUEST['pluginOpt'][$pconf['Name']];
+                 if(array_key_exists($pconf['Name'], $_REQUEST['pluginOpt']) && ($pconf['Value']!=$value))
+                 {
+                    dbQuery("UPDATE PluginsConfig SET Value=? WHERE id=?", array( $value, $pconf['Id'] ) );
+                    $changes++;
+                 }
               }
            }
            if($changes>0)
@@ -409,6 +412,7 @@ if ( !empty($action) )
                 foreach( $_REQUEST['markZids'] as $markZid )
                 {
                     dbQuery( "delete from Zones WHERE MonitorId=? AND Id=?", array( $mid, $markZid) );
+                    dbQuery( "delete from PluginsConfig WHERE MonitorId=? AND ZoneId=?", array( $mid, $markZid) );
                     $deletedZid = 1;
                 }
                 if ( $deletedZid )
@@ -593,6 +597,7 @@ if ( !empty($action) )
                             // This is the important stuff
                             dbQuery( "delete from Monitors where Id = ?", array($markMid) );
                             dbQuery( "delete from Zones where MonitorId = ?", array($markMid) );
+                            dbQuery( "delete from PluginsConfig where MonitorId = ?", array($markMid) );
                             if ( ZM_OPT_X10 )
                                 dbQuery( "delete from TriggersX10 where MonitorId=?", array($markMid) );
 

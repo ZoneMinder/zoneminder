@@ -212,6 +212,60 @@ xhtmlHeaders(__FILE__, $SLANG['Zone'] );
                 <th scope="row"><?= $SLANG['ZoneExtendAlarmFrames'] ?></th>
                 <td colspan="2"><input type="text" name="newZone[ExtendAlarmFrames]" value="<?= $newZone['ExtendAlarmFrames'] ?>" size="4"/></td>
               </tr>
+<?php
+if ($zid > 0)
+{
+    // Get plugin status from zmu command line
+    exec(escapeshellcmd(getZmuCommand(" -p -m".$mid)), $cmdOutput, $retval);
+    if($retval == 0)
+    {
+        echo "<tr><th scope=\"row\">".$SLANG['Plugins']."</th><td colspan=2>\n";
+        $plName = "";
+        $plReg = "0";
+        $plConf = "0";
+        foreach($cmdOutput as $key => $line)
+        {
+            // Skip header lines or "No plugin found"
+            if($key < 2) continue;
+            // Parse line
+            $pl = preg_split ('/[\s]+/ ', trim($line));
+            $offset = 0;
+            if(sizeof($pl) == 9)
+            {
+                $plName = $pl[0];
+                $plReg  = $pl[1];
+                $plConf = $pl[2];
+                $offset = 3;
+            }
+            // Skip line if zone mismatch
+            if($pl[$offset] != $zid) continue;
+            // Select class and set display setting
+            $class = '';
+            $dspPlConf = true;
+            if(!ZM_LOAD_PLUGINS) {
+                $class = " class=\"pluginNotEnabled\"";
+                $dspPlConf = false;
+            } else if($plReg == "0" || (($plReg == "1") && ($plConf == "0"))) {
+                $class = " class=\"pluginError\"";
+                $dspPlConf = false;
+            } else if(($pl[1 + $offset] == "1") && ($pl[2 + $offset] == "0")) {
+                $class = " class=\"pluginNotActive\"";
+            } else if($pl[2 + $offset] == "1") {
+                $class = " class=\"pluginActive\"";
+            }
+            // Display plugin name and enable link
+            if($dspPlConf)
+                echo "<a".$class." href='?view=plugin&amp;mid=".$monitor['Id']."&amp;zid=".
+                    $zid."&amp;pl=".urlencode($plName)."' onclick=\"createPopup('?view=plugin&amp;mid=".
+                    $monitor['Id']."&amp;zid=".$zid."&amp;pl=".urlencode($plName)."','plugin','plugin',".
+                    "500,400); return(false)\">".$plName."</a><br>\n";
+            else
+                echo "<a".$class.">".$plName."</a><br>\n";
+        }
+        echo "</td></tr>\n";
+    }
+}
+?>
             </tbody>
           </table>
         </div>

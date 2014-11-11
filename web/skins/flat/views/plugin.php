@@ -38,67 +38,200 @@ if ( $zid > 0 ) {
 $monitor = dbFetchMonitor ( $mid );
 $plugin = $_REQUEST['pl'];
 
-$plugin_path = dirname(ZM_PLUGINS_CONFIG_PATH)."/".$plugin;
+$plugin_path = dirname($_SERVER['SCRIPT_FILENAME'])."/plugins/".$plugin;
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['Plugin'] );
+$generalOptions=array(
+   'Enabled'=>array(
+      'Type'=>'select',
+      'Name'=>'Enabled',
+      'Choices'=>'Yes,No',
+      'Value'=>'No'
+   ),
+   'RequireNatDet'=>array(
+      'Type'=>'select',
+      'Name'=>'RequireNatDet',
+      'Choices'=>'Yes,No',
+      'Value'=>'No',
+      'Require'=>array(
+         array(
+            'Name'=>'Enabled',
+            'Value'=>'Yes'
+         )
+      )
+   ),
+   'IncludeNatDet'=>array(
+      'Type'=>'select',
+      'Name'=>'IncludeNatDet',
+      'Choices'=>'Yes,No',
+      'Value'=>'No',
+      'Require'=>array(
+         array(
+            'Name'=>'Enabled',
+            'Value'=>'Yes'
+         ),
+         array(
+            'Name'=>'RequireNatDet',
+            'Value'=>'Yes'
+         )
+      )
+   ),
+   'ReInitNatDet'=>array(
+      'Type'=>'select',
+      'Name'=>'ReInitNatDet',
+      'Choices'=>'Yes,No',
+      'Value'=>'No',
+      'Require'=>array(
+         array(
+            'Name'=>'Enabled',
+            'Value'=>'Yes'
+         ),
+         array(
+            'Name'=>'RequireNatDet',
+            'Value'=>'Yes'
+         )
+      )
+   ),
+   'AlarmeScore'=>array(
+      'Type'=>'integer',
+      'Name'=>'AlarmeScore',
+      'Min'=>'1',
+      'Max'=>'100',
+      'Value'=>'99',
+      'Require'=>array(
+         array(
+            'Name'=>'Enabled',
+            'Value'=>'Yes'
+         )
+      )
+   )
+);
 
-
-$pluginOptions=array(
-    'Enabled'=>array(
-          'Type'=>'select',
-          'Name'=>'Enabled',
-          'Choices'=>'yes,no',
-          'Value'=>'no'
-          )
-     );
-
+$options=$generalOptions;
 $optionNames=array();
 if(file_exists($plugin_path."/config.php"))
 {
    include_once($plugin_path."/config.php");
-} 
+   if(isset($pluginOptions))
+      foreach( $pluginOptions as $optionKey => $optionValue )
+      {
+         // Set default dependency information if not set in configuration file
+         if(!isset($optionValue['Require']))
+            $optionValue['Require'] = array (
+               array(
+                  'Name'=>'Enabled',
+                  'Value'=>'Yes'
+               )
+            );
+         $options[$optionKey]=$optionValue;
+      }
+}
 
 $sql='SELECT * FROM PluginsConfig WHERE MonitorId=? AND ZoneId=? AND pluginName=?';
 foreach( dbFetchAll( $sql, NULL, array( $mid, $zid, $plugin ) ) as $popt )
 {
-   if(array_key_exists($popt['Name'], $pluginOptions) 
-      && $popt['Type']==$pluginOptions[$popt['Name']]['Type']
-      && $popt['Choices']==$pluginOptions[$popt['Name']]['Choices']
-      )
+   if(array_key_exists($popt['Name'], $options)
+      && $popt['Type']==$options[$popt['Name']]['Type'])
    {
-      $pluginOptions[$popt['Name']]=$popt;
       array_push($optionNames, $popt['Name']);
+
+      // Backup dependency information
+      $require = '';
+      if(isset($options[$popt['Name']]['Require']))
+         $require = $options[$popt['Name']]['Require'];
+
+      // Set value from database
+      $options[$popt['Name']]=$popt;
+
+      // Restore dependancy information from backup
+      if(!empty($require))
+         $options[$popt['Name']]['Require'] = $require;
+
+      // Set default dependancy information if not set in configuration
+      else if($popt['Name'] != 'Enabled')
+         $options[$popt['Name']]['Require'] = array (
+            array(
+               'Name'=>'Enabled',
+               'Value'=>'Yes'
+            )
+         );
    } else {
       dbQuery('DELETE FROM PluginsConfig WHERE Id=?', array( $popt['Id'] ) );
    }
 }
-foreach($pluginOptions as $name => $values)
+
+foreach($options as $name => $values)
 {
    if(!in_array($name, $optionNames))
    {
-      $popt=$pluginOptions[$name];
-      $sql="INSERT INTO PluginsConfig VALUES ('',?,?,?,?,?,?,?)";
-      dbQuery($sql, array( $popt['Name'], $popt['Value'], $popt['Type'], $popt['Choices'], $mid, $zid, $plugin ) );
+      $popt=$options[$name];
+      switch($popt['Type'])
+      {
+        case "select":
+            $sql="INSERT INTO PluginsConfig VALUES ('',?,?,?,?,'','',?,?,?)";
+            dbQuery($sql, array( $popt['Name'], $popt['Value'], $popt['Type'], $popt['Choices'], $mid, $zid, $plugin ) );
+        break;
+        case "integer":
+            $sql="INSERT INTO PluginsConfig VALUES ('',?,?,?,'',?,?,?,?,?)";
+            dbQuery($sql, array( $popt['Name'], $popt['Value'], $popt['Type'], $popt['Min'], $popt['Max'], $mid, $zid, $plugin ) );
+        break;
+        case "checkbox":
+        case "text":
+        default:
+            $sql="INSERT INTO PluginsConfig VALUES ('',?,?,?,'','','',?,?,?)";
+            dbQuery($sql, array( $popt['Name'], $popt['Value'], $popt['Type'], $mid, $zid, $plugin ) );
+      }
    }
 }
 
 $PLANG=array();
-if(file_exists($plugin_path."/lang/".$user['Language'].".php")) {
-   include_once($plugin_path."/lang/".$user['Language'].".php");
+$lang_path = $plugin_path."/lang";
+$userLangFile = $lang_path."/".$user['Language'].".php";
+if (isset($user['Language']) && file_exists($userLangFile)) {
+    include_once($userLangFile);
+} else {
+    $systemLangFile = $lang_path."/".ZM_LANG_DEFAULT.".php";
+    if (file_exists($systemLangFile)) {
+        include_once($systemLangFile);
+    } else {
+        $fallbackLangFile = $lang_path."/en_gb.php";
+        if (file_exists($fallbackLangFile)) {
+            include_once($fallbackLangFile);
+        }
+    }
 }
 
 function pLang($name)
 {
+   global $SLANG;
    global $PLANG;
-   if(array_key_exists($name, $PLANG))
+   if(array_key_exists($name, $SLANG))
+      return $SLANG[$name];
+   else if(array_key_exists($name, $PLANG))
       return $PLANG[$name];
    else
       return $name;
 }
 
+function isEnabled($param)
+{
+   global $options;
+   $option = $options[$param];
+   if (!isset($option['Require']))
+       return true;
+   foreach($option['Require'] as $req_couple)
+   {
+      $name = $req_couple['Name'];
+      if (!array_key_exists($name, $options))
+         continue;
+      if ($req_couple['Value'] != $options[$name]['Value'])
+         return false;
+   }
+   return true;
+}
 
+xhtmlHeaders(__FILE__, $SLANG['Plugin'] );
 ?>
 <body>
   <div id="page">
@@ -117,21 +250,23 @@ function pLang($name)
           <table id="pluginSettings" cellspacing="0">
             <tbody>
 <?
-foreach($pluginOptions as $name => $popt)
+foreach($options as $name => $popt)
 {
-   ?>
-            <tr><th scope="row"><?= pLang($name) ?></th>     
-   <?
+?>
+            <tr><th scope="row"><?= pLang($name) ?></th>
+<?
    switch($popt['Type'])
    {
       case "checkbox":
-         echo "CHECKBOX";
+            ?>
+               <td><input type="checkbox" name="pluginOpt[<?= $popt['Name'] ?>]" id="pluginOpt[<?= $popt['Name'] ?>]" <? if ($popt['Value']) echo 'checked="checked"'; if (!isEnabled($popt['Name'])) echo 'disabled="disabled"'; ?>></td>
+            <?
          break;
       case "select":
          $pchoices=explode(',',$popt['Choices']);
             ?>
                <td colspan="2">
-                  <select name="pluginOpt[<?= $popt['Name'] ?>]" id="pluginOpt[<?= $popt['Name'] ?>]">
+                  <select name="pluginOpt[<?= $popt['Name'] ?>]" id="pluginOpt[<?= $popt['Name'] ?>]" <? if (!isEnabled($popt['Name'])) echo 'disabled="disabled"'; ?> onchange="applyDependencies()" >
             <?
             foreach($pchoices as $pchoice)
             {
@@ -143,13 +278,22 @@ foreach($pluginOptions as $name => $popt)
                <?
             }
             ?>
-               </td>
                   </select>
+               </td>
          <?
          break;
       case "text":
+            ?>
+                <td><input type="text" name="pluginOpt[<?= $popt['Name'] ?>]" id="pluginOpt[<?= $popt['Name'] ?>]" value="<?= $popt['Value'] ?>" <? if (!isEnabled($popt['Name'])) echo 'disabled="disabled"'; ?>></td>
+            <?
+         break;
+      case "integer":
+            ?>
+                <td><input type="text" name="pluginOpt[<?= $popt['Name'] ?>]" id="pluginOpt[<?= $popt['Name'] ?>]" onchange="limitRange( this, <?= $popt['Min'] ?>, <?= $popt['Max'] ?> )" value="<?= $popt['Value'] ?>" size="4" <? if (!isEnabled($popt['Name'])) echo 'disabled="disabled"'; ?>></td>
+            <?
+         break;
       default:
-         echo "DEFAULT";
+         echo "Type '".$popt['Type']."' is not implemented<br>";
    }
    ?>
             </tr>

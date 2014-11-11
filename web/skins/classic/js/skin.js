@@ -55,6 +55,7 @@ var popupSizes = {
     'montage':      { 'width': -1, 'height': -1 },
     'optionhelp':   { 'width': 400, 'height': 320 },
     'options':      { 'width': 1000, 'height': 660 },
+    'plugin':       { 'addWidth': 16, 'addHeight': 48 },
     'preset':       { 'width': 300, 'height': 120 },
     'settings':     { 'width': 220, 'height': 225 },
     'state':        { 'width': 370, 'height': 134 },

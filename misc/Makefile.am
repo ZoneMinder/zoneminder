@@ -15,3 +15,5 @@ dist_polkit_action_DATA = com.zoneminder.systemctl.policy
 polkit_rulesdir = @POLKIT_PREFIX@/share/polkit-1/rules.d
 dist_polkit_rules_DATA = com.zoneminder.systemctl.rules
 
+sysconf_DATA = plugins.conf
+

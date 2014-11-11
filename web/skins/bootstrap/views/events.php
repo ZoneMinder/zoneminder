@@ -164,7 +164,6 @@ if ( $pagination )
         <p id="controls">
           <a id="refreshLink" href="#" onclick="location.reload(true);"><?= $SLANG['Refresh'] ?></a>
           <a id="filterLink" href="#" onclick="createPopup( '?view=filter&amp;page=<?= $page ?><?= $filterQuery ?>', 'zmFilter', 'filter' );"><?= $SLANG['ShowFilterWindow'] ?></a>
-          <a id="timelineLink" href="#" onclick="createPopup( '?view=timeline<?= $filterQuery ?>', 'zmTimeline', 'timeline' );"><?= $SLANG['ShowTimeline'] ?></a>
         </p>
         <table id="contentTable" class="major" cellspacing="0">
           <tbody>

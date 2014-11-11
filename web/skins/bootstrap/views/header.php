@@ -17,6 +17,7 @@
 				<ul class="nav navbar-nav pull-right">
 					<li><a href="?view=console"><?= $SLANG['Console']; ?></a></li>
 					<li><a href="?view=events"><?= $SLANG['Events']; ?></a></li>
+					<li><a href="?view=timeline"><?= $SLANG['Timeline']; ?></a></li>
       		<li><a href="?view=options"><?= $SLANG['Options'] ?></a></li>
 					<?php if ( logToDatabase() > Logger::NOLOG ) { ?>
 						<li><a href="?view=log"><span class="<?= logState(); ?>"><?= $SLANG['Log'] ?></span></a></li>

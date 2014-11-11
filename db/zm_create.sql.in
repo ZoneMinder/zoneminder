@@ -377,6 +377,7 @@ CREATE TABLE `Monitors` (
   `SignalCheckColour` varchar(32) NOT NULL default '#0000BE',
   `WebColour` varchar(32) NOT NULL default 'red',
   `Sequence` smallint(5) unsigned default NULL,
+  `DoNativeMotDet` tinyint(3) unsigned NOT NULL default '1',
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
@@ -514,6 +515,25 @@ CREATE TABLE `Zones` (
   `ExtendAlarmFrames` smallint(5) unsigned not null default 0,
   PRIMARY KEY (`Id`),
   KEY `MonitorId` (`MonitorId`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
+DROP TABLE IF EXISTS `PluginsConfig`;
+CREATE TABLE `PluginsConfig` (
+  `Id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `Name` varchar(32) NOT NULL DEFAULT '',
+  `Value` text NOT NULL,
+  `Type` tinytext NOT NULL,
+  `Choices` text default NULL,
+  `Min` int(10) unsigned NULL default NULL,
+  `Max` int(10) unsigned NULL default NULL,
+  `MonitorId` int(10) unsigned NOT NULL,
+  `ZoneId` int(10) unsigned NOT NULL,
+  `pluginName` tinytext NOT NULL,
+  PRIMARY KEY (`Id`),
+  KEY `ZoneId` (`ZoneId`),
+  KEY `MonitorId` (`MonitorId`),
+  KEY `Name` (`Name`),
+  KEY `pluginName` (`pluginName`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;

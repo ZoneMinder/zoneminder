@@ -224,7 +224,11 @@ else(GCRYPT_LIBRARIES)
 endif(GCRYPT_LIBRARIES)
 
 # gnutls (using find_library and find_path)
-find_library(GNUTLS_LIBRARIES gnutls)
+find_library(GNUTLS_LIBRARIES gnutls-openssl)
+if(NOT GNUTLS_LIBRARIES)
+    find_library(GNUTLS_LIBRARIES gnutls)
+endif(NOT GNUTLS_LIBRARIES)
+
 if(GNUTLS_LIBRARIES)
 	set(HAVE_LIBGNUTLS 1)
 	list(APPEND ZM_BIN_LIBS "${GNUTLS_LIBRARIES}")

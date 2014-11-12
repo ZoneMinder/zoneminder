@@ -1,0 +1,53 @@
+#! /bin/sh
+
+set -e
+
+if [ "$1" = "configure" ]; then
+	if [ -e "/etc/init.d/mysql" ]; then 
+		#
+		# Get mysql started if it isn't
+		#
+		if ! $(/etc/init.d/mysql status >/dev/null 2>&1); then
+				invoke-rc.d mysql start
+		fi
+		if $(/etc/init.d/mysql status >/dev/null 2>&1); then
+			mysqladmin --defaults-file=/etc/mysql/debian.cnf -f reload
+			# test if database if already present...
+			if ! $(echo quit | mysql --defaults-file=/etc/mysql/debian.cnf zm > /dev/null 2> /dev/null) ; then
+				cat /usr/share/zoneminder/db/zm_create.sql | mysql --defaults-file=/etc/mysql/debian.cnf
+				echo 'grant lock tables, alter,select,insert,update,delete on zm.* to 'zmuser'@localhost identified by "zmpass";' | mysql --defaults-file=/etc/mysql/debian.cnf mysql
+			fi
+
+			invoke-rc.d zoneminder stop || true
+			zmupdate.pl --nointeractive
+
+		else
+			echo 'NOTE: mysql not running, please start mysql and run dpkg-reconfigure zoneminder when it is running.'
+		fi
+	else 
+		echo 'mysql not found, assuming remote server.'
+	fi
+	chown www-data:www-data /var/log/zm
+	chown www-data:www-data /var/lib/zm/
+	if [ -z "$2" ]; then
+			chown www-data:www-data -R /var/cache/zoneminder
+	fi
+fi
+# Ensure zoneminder is stopped...
+if [ -x "/etc/init.d/zoneminder" ]; then
+        if invoke-rc.d zoneminder status ; then
+                invoke-rc.d zoneminder stop || exit $?
+        fi
+fi
+
+if [ "$1" = "configure" ]; then
+	if [ -z "$2" ]; then
+		chown www-data:www-data /var/log/zm
+		chown www-data:www-data /var/lib/zm/
+		chown www-data:www-data -R /var/cache/zoneminder
+    else
+		chown www-data:www-data /var/log/zm
+		zmupdate.pl
+	fi
+fi
+#DEBHELPER#

@@ -64,3 +64,14 @@ void zmDbConnect()
     zmDbConnected = true;
 }
 
+void zmDbClose()
+{
+    if ( zmDbConnected )
+    {
+        mysql_close( &dbconn );
+        // mysql_init() call implicitly mysql_library_init() but
+        // mysql_close() does not call mysql_library_end()
+        mysql_library_end();
+        zmDbConnected = false;
+    }
+}

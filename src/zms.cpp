@@ -223,6 +223,8 @@ int main( int argc, const char *argv[] )
 		if ( !user )
 		{
 			Error( "Unable to authenticate user" );
+			logTerm();
+			zmDbClose();
 			return( -1 );
 		}
 		ValidateAccess( user, monitor_id );
@@ -286,6 +288,8 @@ int main( int argc, const char *argv[] )
 #else // HAVE_LIBAVCODEC
             Error( "MPEG streaming of '%s' attempted while disabled", query );
             fprintf( stderr, "MPEG streaming is disabled.\nYou should configure with the --with-ffmpeg option and rebuild to use this functionality.\n" );
+            logTerm();
+            zmDbClose();
             return( -1 );
 #endif // HAVE_LIBAVCODEC
         }
@@ -320,10 +324,16 @@ int main( int argc, const char *argv[] )
 #else // HAVE_LIBAVCODEC
             Error( "MPEG streaming of '%s' attempted while disabled", query );
             fprintf( stderr, "MPEG streaming is disabled.\nYou should ensure the ffmpeg libraries are installed and detected and rebuild to use this functionality.\n" );
+            logTerm();
+            zmDbClose();
             return( -1 );
 #endif // HAVE_LIBAVCODEC
         }
         stream.runStream();
     }
+
+    logTerm();
+    zmDbClose();
+
 	return( 0 );
 }

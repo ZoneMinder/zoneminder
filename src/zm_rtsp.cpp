@@ -26,7 +26,6 @@
 #include "zm_rtp_data.h"
 #include "zm_rtp_ctrl.h"
 #include "zm_db.h"
-#include "zm_sdp.h"
 
 #include <sys/time.h>
 #include <signal.h>
@@ -171,6 +170,7 @@ int RtspThread::requestPorts()
             nMonitors = 1;
             position = 0;
         }
+        mysql_free_result(result);
         int portRange = int(((config.max_rtp_port-config.min_rtp_port)+1)/nMonitors);
         smMinDataPort = config.min_rtp_port + (position * portRange);
         smMaxDataPort = smMinDataPort + portRange - 1;
@@ -202,6 +202,7 @@ RtspThread::RtspThread( int id, RtspMethod method, const std::string &protocol, 
     mHost( host ),
     mPort( port ),
     mPath( path ),
+    mSessDesc( 0 ),
     mFormatContext( 0 ),
     mSeq( 0 ),
     mSession( 0 ),
@@ -236,6 +237,17 @@ RtspThread::RtspThread( int id, RtspMethod method, const std::string &protocol, 
 
 RtspThread::~RtspThread()
 {
+    if ( mFormatContext )
+    {
+        avformat_free_context( mFormatContext );
+        mFormatContext = NULL;
+    }
+    if ( mSessDesc )
+    {
+        delete mSessDesc;
+        mSessDesc = NULL;
+    }
+    delete mAuthenticator;
 }
 
 int RtspThread::run()
@@ -387,11 +399,10 @@ int RtspThread::run()
     std::string sdp = response.substr( sdpStart );
     Debug( 1, "Processing SDP '%s'", sdp.c_str() );
 
-    SessionDescriptor *sessDesc = 0;
     try
     {
-        sessDesc = new SessionDescriptor( mUrl, sdp );
-        mFormatContext = sessDesc->generateFormatContext();
+        mSessDesc = new SessionDescriptor( mUrl, sdp );
+        mFormatContext = mSessDesc->generateFormatContext();
     }
     catch( const Exception &e )
     {
@@ -421,7 +432,7 @@ int RtspThread::run()
     {
         for ( unsigned int i = 0; i < mFormatContext->nb_streams; i++ )
         {
-            SessionDescriptor::MediaDescriptor *mediaDesc = sessDesc->getStream( i );
+            SessionDescriptor::MediaDescriptor *mediaDesc = mSessDesc->getStream( i );
 #if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
             if ( mFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO )
 #else
@@ -481,20 +492,26 @@ int RtspThread::run()
         return( -1 );
 
     lines = split( response, "\r\n" );
-    char *session = 0;
+    std::string session;
     int timeout = 0;
     char transport[256] = "";
 
     for ( size_t i = 0; i < lines.size(); i++ )
     {
-        sscanf( lines[i].c_str(), "Session: %a[0-9a-fA-F]; timeout=%d", &session, &timeout );
+        if ( ( lines[i].size() > 8 ) && ( lines[i].substr( 0, 8 ) == "Session:" ) )
+        {
+            StringVector sessionLine = split( lines[i].substr(9), ";" );
+            session = trimSpaces( sessionLine[0] );
+            if ( sessionLine.size() == 2 )
+                sscanf( trimSpaces( sessionLine[1] ).c_str(), "timeout=%d", &timeout );
+        }
         sscanf( lines[i].c_str(), "Transport: %s", transport );
     }
 
-    if ( !session )
+    if ( session.empty() )
         Fatal( "Unable to get session identifier from response '%s'", response.c_str() );
 
-    Debug( 2, "Got RTSP session %s, timeout %d secs", session, timeout );
+    Debug( 2, "Got RTSP session %s, timeout %d secs", session.c_str(), timeout );
 
     if ( !transport[0] )
         Fatal( "Unable to get transport details from response '%s'", response.c_str() );
@@ -562,20 +579,21 @@ int RtspThread::run()
         return( -1 );
 
     lines = split( response, "\r\n" );
-    char *rtpInfo = 0;
+    std::string rtpInfo;
     for ( size_t i = 0; i < lines.size(); i++ )
     {
-        sscanf( lines[i].c_str(), "RTP-Info: %as", &rtpInfo );
+        if ( ( lines[i].size() > 9 ) && ( lines[i].substr( 0, 9 ) == "RTP-Info:" ) )
+            rtpInfo = trimSpaces( lines[i].substr( 9 ) );
     }
 
-    if ( !rtpInfo )
+    if ( rtpInfo.empty() )
         Fatal( "Unable to get RTP Info identifier from response '%s'", response.c_str() );
 
-    Debug( 2, "Got RTP Info %s", rtpInfo );
+    Debug( 2, "Got RTP Info %s", rtpInfo.c_str() );
 
     int seq = 0;
     unsigned long rtpTime = 0;
-    parts = split( rtpInfo, ";" );
+    parts = split( rtpInfo.c_str(), ";" );
     for ( size_t i = 0; i < parts.size(); i++ )
     {
         if ( startsWith( parts[i], "seq=" ) )

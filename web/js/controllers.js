@@ -61,3 +61,10 @@ function ConfigController($scope, $http, Config) {
 	}
 
 }
+
+function EventsController($scope, $http, Events) {
+	Events.getEvents().then(function(results) {
+		console.log(results.data.events);
+		$scope.events = results.data.events;
+	})
+};

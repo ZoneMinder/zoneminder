@@ -16,6 +16,9 @@ ZoneMinder.config(['$routeProvider',
 			when('/config', {
 				templateUrl: 'partials/config.html',
 			}).
+			when('/events', {
+				templateUrl: 'partials/events.html',
+			}).
 			otherwise({
 				redirectTo: '/monitors'
 			});
@@ -60,6 +63,14 @@ ZoneMinder.factory('Config', function($http) {
 
 
 			//return $http.post ('/api/configs/' + configId + '.json', postData)
+		}
+	};
+});
+
+ZoneMinder.factory('Events', function($http) {
+	return {
+		getEvents: function() {
+			return $http.get('/api/events.json')
 		}
 	};
 });

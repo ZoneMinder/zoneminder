@@ -1,0 +1,11 @@
+<div class="container" ng-controller="EventsController">
+
+
+	<div ng-repeat="event in events" class="event panel panel-default">
+		<div class="panel panel-heading">
+			<p class="pull-right">{{ event.Event.Id }}</p>
+			<p>{{ event.Event.MonitorId }}</p>
+		</div>
+	</div>
+
+</div> <!-- End EventController -->

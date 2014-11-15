@@ -24,8 +24,9 @@ function xhtmlHeaders( $file, $title )
     $skinCssPhpFile = getSkinFile( 'css/skin.css.php' );
     $skinJsFile = getSkinFile( 'js/skin.js' );
     $skinJsPhpFile = getSkinFile( 'js/skin.js.php' );
-
 		$jqueryJsFile = getSkinFile( 'js/jquery-2.1.1.min.js');
+    $statePhpFile = getSkinFile( 'views/js/state.js.php' );
+		$stateJsFile = getSkinFile( 'views/js/state.js');
 		$bootstrapCssFile = getSkinFile( 'css/bootstrap.css' );
 		$bootstrapJsFile = getSkinFile( 'js/bootstrap.min.js' );
 
@@ -89,6 +90,7 @@ function xhtmlHeaders( $file, $title )
   <!--
 <?php
     require_once( $skinJsPhpFile );
+    require_once( $statePhpFile );
 ?>
   //-->
   //]]>
@@ -119,6 +121,7 @@ function xhtmlHeaders( $file, $title )
 <?php
     }
 ?>
+  <script type="text/javascript" src="<?= $stateJsFile ?>"></script>
 </head>
 <?php
 }

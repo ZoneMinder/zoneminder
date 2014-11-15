@@ -17,8 +17,6 @@ URL:        http://www.zoneminder.com/
 #Source0: https://github.com/ZoneMinder/ZoneMinder/archive/v%{version}.tar.gz
 Source0:    ZoneMinder-%{version}.tar.gz
 
-Patch1:    zoneminder-1.28.0-defaults.patch
-
 BuildRequires:  cmake gnutls-devel bzip2-devel
 BuildRequires:  mysql-devel pcre-devel libjpeg-turbo-devel
 BuildRequires:  perl(Archive::Tar) perl(Archive::Zip)
@@ -63,7 +61,12 @@ too much degradation of performance.
 %prep
 %setup -q -n ZoneMinder-%{version}
 
-%patch1 -p0 -b .defaults
+# Change the following default values
+./utils/zmeditconfigdata.sh ZM_PATH_ZMS /cgi-bin/zm/nph-zms
+./utils/zmeditconfigdata.sh ZM_OPT_CAMBOZOLA yes
+./utils/zmeditconfigdata.sh ZM_PATH_SWAP /dev/shm
+./utils/zmeditconfigdata.sh ZM_UPLOAD_FTP_LOC_DIR /var/spool/zoneminder-upload
+./utils/zmeditconfigdata.sh ZM_OPT_CONTROL yes
 
 %build
 # Have to override CMAKE_INSTALL_LIBDIR for cmake < 2.8.7 due to this bug:

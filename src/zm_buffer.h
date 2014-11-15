@@ -151,17 +151,11 @@ public:
         {
             if ( mSize == 0 )
                 mHead = mTail = mStorage;
-            else if ( level >= 1 )
+            else if ( level )
             {
                 if ( (mHead-mStorage) > mSize )
                 {
                     memcpy( mStorage, mHead, mSize );
-                    mHead = mStorage;
-                    mTail = mHead + mSize;
-                }
-                else if ( level >= 2 )
-                {
-                    memmove( mStorage, mHead, mSize );
                     mHead = mStorage;
                     mTail = mHead + mSize;
                 }

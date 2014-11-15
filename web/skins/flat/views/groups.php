@@ -18,11 +18,6 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-if ( !canView( 'System' ) )
-{
-    $view = "error";
-    return;
-}
 
 $sql = "select * from Groups order by Name";
 $groups = array();
@@ -66,18 +61,13 @@ xhtmlHeaders(__FILE__, $SLANG['Groups'] );
               <td class="colIds"><?= $SLANG['All'] ?></td>
               <td class="colSelect"><input type="radio" name="gid" value="0"<?= !$selected?' checked="checked"':'' ?> onclick="configureButtons( this );"/></td>
             </tr>
-<?php
-foreach ( $groups as $group )
-{
-?>
+<?php foreach ( $groups as $group ) { ?>
             <tr>
               <td class="colName"><?= validHtmlStr($group['Name']) ?></td>
               <td class="colIds"><?= monitorIdsToNames( $group['MonitorIds'], 30 ) ?></td>
               <td class="colSelect"><input type="radio" name="gid" value="<?= $group['Id'] ?>"<?= $group['selected']?' checked="checked"':'' ?> onclick="configureButtons( this );"/></td>
             </tr>
-<?php
-}
-?>
+<?php } ?>
           </tbody>
         </table>
         <div id="contentButtons">

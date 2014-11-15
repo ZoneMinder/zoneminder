@@ -25,7 +25,7 @@
 #include "zm_comms.h"
 #include "zm_thread.h"
 #include "zm_rtp_source.h"
-#include "zm_rtsp_auth.h"
+#include "zm_Authenticator.h"
 
 #include <set>
 #include <map>

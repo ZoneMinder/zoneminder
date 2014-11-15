@@ -51,7 +51,7 @@ zm_SOURCES = \
 	zm_rtp_data.cpp \
 	zm_rtp_source.cpp \
 	zm_rtsp.cpp \
-	zm_rtsp_auth.cpp \
+	zm_Authenticator.cpp \
 	zm_sdp.cpp \
 	zm_signal.cpp \
 	zm_stream.cpp \

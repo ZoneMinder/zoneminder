@@ -18,7 +18,7 @@
 
 #include "zm.h"
 #include "zm_utils.h"
-#include "zm_rtsp_auth.h"
+#include "zm_Authenticator.h"
 
 #include <stdio.h>
 #include <stdlib.h>

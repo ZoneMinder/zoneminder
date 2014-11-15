@@ -37,7 +37,7 @@ function xhtmlHeaders( $file, $title )
     extract( $GLOBALS, EXTR_OVERWRITE );
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" ng-app="ZoneMinder">
 <head>
   <title><?= ZM_WEB_TITLE_PREFIX ?> - <?= validHtmlStr($title) ?></title>
 	<meta charset="utf-8">
@@ -69,6 +69,9 @@ function xhtmlHeaders( $file, $title )
 <?php
     }
 ?>
+	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.2/angular.min.js"></script>
+	<script src="<?= getSkinFile('js/app.js'); ?>"></script>
+	<script src="<?= getSkinFile('js/controllers.js'); ?>"></script>
   <script type="text/javascript" src="<?= $bootstrapJsFile ?>"></script>
   <script type="text/javascript" src="tools/mootools/mootools-core.js"></script>
   <script type="text/javascript" src="tools/mootools/mootools-more.js"></script>

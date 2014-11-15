@@ -8,7 +8,7 @@
 	}
 ?>
 
-    <nav class="navbar navbar-default" role="navigation">
+    <nav class="navbar navbar-default" role="navigation" ng-controller="HeaderController">
 			<div class="container-fluid">
 				<a href="?view=console"><span class="navbar-brand">ZoneMinder</span></a>
 

@@ -164,9 +164,9 @@ Many of the ZoneMinder configration variable default values are not configurable
 
 For example, let's say I have created a new ZoneMinder package that contains the cambolzola javascript file.  However, by default cambozola support is turned off.  To fix that, add this to the pacakging script:
 ```bash
-./zmeditconfigdata.sh ZM_OPT_CAMBOZOLA yes
+./utils/zmeditconfigdata.sh ZM_OPT_CAMBOZOLA yes
 ```
 
-Note that zmeditconfigdata.sh is intended to be called prior to running cmake or configure.
+Note that zmeditconfigdata.sh is intended to be called, from the root build folder, prior to running cmake or configure.
 
 [![Analytics](https://ga-beacon.appspot.com/UA-15147273-6/ZoneMinder/README.md)](https://github.com/igrigorik/ga-beacon)

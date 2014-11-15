@@ -10,14 +10,13 @@
 
     <nav class="navbar navbar-default" role="navigation">
 			<div class="container-fluid">
-				<span class="navbar-brand">ZoneMinder</span>
+				<a href="?view=console"><span class="navbar-brand">ZoneMinder</span></a>
 
 				<button type="button" class="btn btn-<?= $statusClass ?> btn-md navbar-btn pull-right" data-toggle="modal" data-target="#myModal">
 					<span class="glyphicon glyphicon-off"></span>
 				</button>
 
 				<ul class="nav navbar-nav pull-right">
-					<li><a href="?view=console"><?= $SLANG['Console']; ?></a></li>
 					<li><a href="?view=events&amp;page=1"><?= $SLANG['Events']; ?></a></li>
 					<li><a href="?view=timeline"><?= $SLANG['Timeline']; ?></a></li>
       		<li><a href="?view=options"><?= $SLANG['Options'] ?></a></li>

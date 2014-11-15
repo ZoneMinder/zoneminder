@@ -611,7 +611,7 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 #if HAVE_LIBSWSCALE
 	/* Initialize swscale stuff */
 	if(capture && conversion_type == 1) {
-		tmpPicture = avcodec_alloc_frame();
+		tmpPicture = av_frame_alloc();
 		if ( !tmpPicture )
 			Fatal( "Could not allocate temporary picture" );
 		
@@ -841,7 +841,7 @@ void LocalCamera::Initialise()
                 Fatal( "Can't map video buffer %d (%d bytes) to memory: %s(%d)", i, vid_buf.length, strerror(errno), errno );
 
 #if HAVE_LIBSWSCALE
-		capturePictures[i] = avcodec_alloc_frame();
+		capturePictures[i] = av_frame_alloc();
 		if ( !capturePictures[i] )
 			Fatal( "Could not allocate picture" );
 		avpicture_fill( (AVPicture *)capturePictures[i], (uint8_t*)v4l2_data.buffers[i].start, capturePixFormat, v4l2_data.fmt.fmt.pix.width, v4l2_data.fmt.fmt.pix.height );
@@ -995,7 +995,7 @@ void LocalCamera::Initialise()
             v4l1_data.buffers[i].height = height;
             v4l1_data.buffers[i].format = palette;
 
-            capturePictures[i] = avcodec_alloc_frame();
+            capturePictures[i] = av_frame_alloc();
             if ( !capturePictures[i] )
                 Fatal( "Could not allocate picture" );
             avpicture_fill( (AVPicture *)capturePictures[i], (unsigned char *)v4l1_data.bufptr+v4l1_data.frames.offsets[i], capturePixFormat, width, height );

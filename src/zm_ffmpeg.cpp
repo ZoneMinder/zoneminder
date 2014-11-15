@@ -76,13 +76,13 @@ SWScale::SWScale() : gotdefaults(false), swscale_ctx(NULL), input_avframe(NULL),
 	Debug(4,"SWScale object created");
 
 	/* Allocate AVFrame for the input */
-	input_avframe = avcodec_alloc_frame();
+	input_avframe = av_frame_alloc();
 	if(input_avframe == NULL) {
 		Fatal("Failed allocating AVFrame for the input");
 	}
 
 	/* Allocate AVFrame for the output */
-	output_avframe = avcodec_alloc_frame();
+	output_avframe = av_frame_alloc();
 	if(output_avframe == NULL) {
 		Fatal("Failed allocating AVFrame for the output");
 	}

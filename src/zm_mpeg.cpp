@@ -323,7 +323,7 @@ void VideoStream::OpenStream( )
 		Debug( 1, "Opened codec" );
 
 		/* allocate the encoded raw picture */
-		opicture = avcodec_alloc_frame( );
+		opicture = av_frame_alloc( );
 		if ( !opicture )
 		{
 			Panic( "Could not allocate opicture" );
@@ -344,7 +344,7 @@ void VideoStream::OpenStream( )
 		tmp_opicture = NULL;
 		if ( c->pix_fmt != pf )
 		{
-			tmp_opicture = avcodec_alloc_frame( );
+			tmp_opicture = av_frame_alloc( );
 			if ( !tmp_opicture )
 			{
 				Panic( "Could not allocate tmp_opicture" );

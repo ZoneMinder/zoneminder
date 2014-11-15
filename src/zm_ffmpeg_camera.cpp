@@ -193,10 +193,10 @@ int FfmpegCamera::PrimeCapture()
         Fatal( "Unable to open codec for video stream from %s", mPath.c_str() );
 
     // Allocate space for the native video frame
-    mRawFrame = avcodec_alloc_frame();
+    mRawFrame = av_frame_alloc();
 
     // Allocate space for the converted video frame
-    mFrame = avcodec_alloc_frame();
+    mFrame = av_frame_alloc();
     
 	if(mRawFrame == NULL || mFrame == NULL)
 		Fatal( "Unable to allocate frame for %s", mPath.c_str() );

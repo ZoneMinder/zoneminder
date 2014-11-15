@@ -22,9 +22,7 @@
       		<li><a href="?view=options"><?= $SLANG['Options'] ?></a></li>
 					<?php if ( logToDatabase() > Logger::NOLOG ) { ?>
 						<li><a href="?view=log"><span class="<?= logState(); ?>"><?= $SLANG['Log'] ?></span></a></li>
-					<?php } ?>
-      		<li><a href="?view=groups"><?= sprintf( $CLANG['MonitorCount'], count($displayMonitors), zmVlang( $VLANG['Monitor'], count($displayMonitors) ) ).($group?' ('.$group['Name'].')':'')?></a></li>
-					<?php if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
+					<?php } if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
 						<li><a href="?view=devices"><?= $SLANG['Devices'] ?></a></li>
 					<?php } ?>
 					<?php if ($running) ?>

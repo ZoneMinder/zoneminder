@@ -108,11 +108,10 @@ Additional repositories must be added before one can build zoneminder on CentOS 
 1. Zmrepo [ZoneMinder WiKi](http://www.zoneminder.com/wiki/index.php/CentOS#Zmrepo_-_A_ZoneMinder_repository_for_RPM_based_distros)
 2. EPEL https://fedoraproject.org/wiki/EPEL
 3. RPMFusion: http://rpmfusion.org/
- 
-[NOTE]<br>
+
 When adding third party repositories, it is highly recommended that the user also install and configure yum priorities as documented in the [CentOS WiKi](http://wiki.centos.org/PackageManagement/Yum/Priorities)
 
-Prioritize the repositories:
+Prioritize the repositories
 1. Base
 2. EPEL
 3. RPMFusion

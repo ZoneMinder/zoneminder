@@ -80,23 +80,23 @@ xhtmlHeaders(__FILE__, $SLANG['Event'] );
 ?>
 <body>
   <div id="page">
-    <div id="content">
+    <div id="content" ng-controller="EventController">
       <div id="dataBar">
         <table id="dataTable" class="major" cellspacing="0">
           <tr>
-            <td><span id="dataId" title="<?= $SLANG['Id'] ?>"><?= $event['Id'] ?></span></td>
-            <td><span id="dataCause" title="<?= $event['Notes']?validHtmlStr($event['Notes']):$SLANG['AttrCause'] ?>"><?= validHtmlStr($event['Cause']) ?></span></td>
-            <td><span id="dataTime" title="<?= $SLANG['Time'] ?>"><?= strftime( STRF_FMT_DATETIME_SHORT, strtotime($event['StartTime'] ) ) ?></span></td>
-            <td><span id="dataDuration" title="<?= $SLANG['Duration'] ?>"><?= $event['Length'] ?></span>s</td>
-            <td><span id="dataFrames" title="<?= $SLANG['AttrFrames']."/".$SLANG['AttrAlarmFrames'] ?>"><?= $event['Frames'] ?>/<?= $event['AlarmFrames'] ?></span></td>
-            <td><span id="dataScore" title="<?= $SLANG['AttrTotalScore']."/".$SLANG['AttrAvgScore']."/".$SLANG['AttrMaxScore'] ?>"><?= $event['TotScore'] ?>/<?= $event['AvgScore'] ?>/<?= $event['MaxScore'] ?></span></td>
+            <td><span ng-bind="eventId"></span></td>
+            <td><span ng-bind="cause"></span></td>
+            <td><span ng-bind="startTime"></span></td>
+            <td><span ng-bind="length"></span>s</td>
+            <td><span>{{ frames }} / {{ alarmFrames }}</span></td>
+            <td><span>{{ totScore }} / {{ avgScore }} / {{ maxScore }}</span></td>
           </tr>
         </table>
       </div>
       <div id="menuBar1">
         <div id="scaleControl"><label for="scale"><?= $SLANG['Scale'] ?></label><?= buildSelect( "scale", $scales, "changeScale();" ); ?></div>
         <div id="replayControl"><label for="replayMode"><?= $SLANG['Replay'] ?></label><?= buildSelect( "replayMode", $replayModes, "changeReplayMode();" ); ?></div>
-        <div id="nameControl"><input type="text" id="eventName" name="eventName" value="<?= validHtmlStr($event['Name']) ?>" size="16"/><input type="button" value="<?= $SLANG['Rename'] ?>" onclick="renameEvent()"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>/></div>
+        <div id="nameControl"><input type="text" id="eventName" name="eventName" ng-value="name" size="16"/><input type="button" value="<?= $SLANG['Rename'] ?>" onclick="renameEvent()"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>/></div>
       </div>
       <div id="menuBar2">
         <div id="closeWindow"><a href="#" onclick="closeWindow();"><?= $SLANG['Close'] ?></a></div>
@@ -139,12 +139,12 @@ if ( ZM_OPT_FFMPEG )
 <?php
 if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT )
 {
-    $streamSrc = getStreamSrc( array( "source=event", "mode=mpeg", "event=".$eid, "frame=".$fid, "scale=".$scale, "rate=".$rate, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_REPLAY_FORMAT, "replay=".$replayMode ) );
+    $streamSrc = getStreamSrc( array( "source=event", "mode=mpeg", "event={{eventId}}", "frame=".$fid, "scale=".$scale, "rate=".$rate, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_REPLAY_FORMAT, "replay=".$replayMode ) );
     outputVideoStream( "evtStream", $streamSrc, reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ), ZM_MPEG_LIVE_FORMAT );
 }
 else
 {
-    $streamSrc = getStreamSrc( array( "source=event", "mode=jpeg", "event=".$eid, "frame=".$fid, "scale=".$scale, "rate=".$rate, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "replay=".$replayMode) );
+    $streamSrc = getStreamSrc( array( "source=event", "mode=jpeg", "event={{eventId}}", "frame=".$fid, "scale=".$scale, "rate=".$rate, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "replay=".$replayMode) );
     if ( canStreamNative() )
     {
         outputImageStream( "evtStream", $streamSrc, reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ), validHtmlStr($event['Name']) );

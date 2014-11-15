@@ -111,7 +111,8 @@ Additional repositories must be added before one can build zoneminder on CentOS 
 
 When adding third party repositories, it is highly recommended that the user also install and configure yum priorities as documented in the [CentOS WiKi](http://wiki.centos.org/PackageManagement/Yum/Priorities)
 
-Prioritize the repositories
+Prioritize the repositories:
+
 1. Base
 2. EPEL
 3. RPMFusion
@@ -123,8 +124,19 @@ sudo yum install cmake bzip2-devel ffmpeg ffmpeg-devel gnutls-devel httpd libjpe
 perl-Archive-Tar perl-Archive-Zip perl-Convert-BinHex perl-Date-Manip perl-DBD-MySQL perl-DBI perl-Device-SerialPort perl-Email-Date-Format perl-IO-stringy \
 perl-IO-Zlib perl-MailTools perl-MIME-Lite perl-MIME-tools perl-MIME-Types perl-Module-Load perl-Package-Constants perl-Sys-Mmap perl-Time-HiRes \
 perl-TimeDate perl-YAML-Syck perl-X10 perl-URI-Encode php php-cli php-mysql x264 vlc-devel vlc-core \
-libcurl libcurl-devel polkit-devel 
+libcurl libcurl-devel polkit-devel git
 ```
+
+To build from the master branch:
+```bash
+git clone https://github.com/ZoneMinder/ZoneMinder.git
+cd ZoneMinder
+cmake .
+make
+sudo make install
+```
+
+IMPORTANT: Don't forget the trailing "." when calling cmake
 
 #### Docker
 

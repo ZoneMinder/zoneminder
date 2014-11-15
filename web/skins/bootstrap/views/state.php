@@ -23,84 +23,64 @@ if ( !canEdit( 'System' ) )
     $view = "error";
     return;
 }
-$running = daemonCheck();
-
 $states = dbFetchAll( "select * from States" );
 
-$focusWindow = true;
+?>
+<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+	<div class="modal-dialog">
+    <div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+				<p class="modal-title">State</p>
+			</div>
 
-xhtmlHeaders(__FILE__, $SLANG['RunState'] );
-?>
-<body>
-  <div id="page">
-    <div id="header">
-      <h2><?= $SLANG['RunState'] ?></h2>
-    </div>
-    <div id="content">
+
+			<div class="row">
+			<div class="col-md-6">
       <form name="contentForm" id="contentForm" method="get" action="<?= $_SERVER['PHP_SELF'] ?>">
-<?php
-if ( empty($_REQUEST['apply']) )
-{
-?>
+<?php if ( empty($_REQUEST['apply']) ) { ?>
         <input type="hidden" name="view" value="<?= $view ?>"/>
-        <input type="hidden" name="action" value=""/>
+        <input type="hidden" name="action" value="state"/>
         <input type="hidden" name="apply" value="1"/>
-        <p>
-          <select name="runState" onchange="checkState( this );">
-<?php
-    if ( $running )
-    {
-?>
+				<div class="form-group">
+					<label for="runState">Change State</label>
+          <select class="form-control" name="runState" id="runState" onchange="checkState( this );">
+<?php if ( $running ) { ?>
             <option value="stop" selected="selected"><?= $SLANG['Stop'] ?></option>
             <option value="restart"><?= $SLANG['Restart'] ?></option>
-<?php
-    }
-    else
-    {
-?>
+<?php } else { ?>
             <option value="start" selected="selected"><?= $SLANG['Start'] ?></option>
-<?php
-    }
-?>
-<?php
-    foreach ( $states as $state )
-    {
-?>
+<?php } ?>
+<?php foreach ( $states as $state ) { ?>
             <option value="<?= $state['Name'] ?>"><?= $state['Name'] ?></option>
-<?php
-    }
-?>
+<?php } ?>
           </select>
-        </p>
-        <table id="contentTable" class="minor" cellspacing="0">
-          <tbody>
-            <tr>
-              <th scope="row"><?= $SLANG['NewState'] ?></th>
-              <td><input type="text" name="newState" value="" size="16" onchange="checkState( this );"/></td>
-            </tr>
-          </tbody>
-        </table>
-        <div id="contentButtons">
-          <input type="submit" value="<?= $SLANG['Apply'] ?>"/>
-          <input type="button" name="saveBtn" value="<?= $SLANG['Save'] ?>" disabled="disabled" onclick="saveState( this );"/>
-          <input type="button" name="deleteBtn" value="<?= $SLANG['Delete'] ?>" disabled="disabled" onclick="deleteState( this );"/>
-          <input type="button" value="<?= $SLANG['Cancel'] ?>" onclick="closeWindow()"/>
+				</div>
+			</div>
+
+			<div class="col-md-6">
+				<div class="form-group">
+					<label for="newState"> <?= $SLANG['NewState'] ?></label>
+					<input class="form-control" type="text" id="newState" name="newState" value="" size="16" onchange="checkState( this );"/>
+				</div>
+			</div>
+		</div>
+
+        <div class="modal-footer">
+          <input type="submit"  class="btn btn-default" value="<?= $SLANG['Apply'] ?>" id="btnStateApply" data-loading-text="Applying..." />
+          <input type="button"  class="btn btn-default" name="deleteBtn" value="<?= $SLANG['Delete'] ?>" disabled="disabled" onclick="deleteState( this );"/>
+					<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          <input type="button"  class="btn btn-default" name="saveBtn" value="<?= $SLANG['Save'] ?>" disabled="disabled" onclick="saveState( this );"/>
         </div>
-<?php
-}
-else
-{
-?>
+
+<?php } else { ?>
         <input type="hidden" name="view" value="none"/>
         <input type="hidden" name="action" value="state"/>
         <input type="hidden" name="runState" value="<?= validHtmlStr($_REQUEST['runState']) ?>"/>
         <p><?= $SLANG['ApplyingStateChange'] ?></p>
         <p><?= $SLANG['PleaseWait'] ?></p>
-<?php
-}
-?>
+<?php } ?>
       </form>
     </div>
-  </div>
-</body>
-</html>
+	</div>
+</div>

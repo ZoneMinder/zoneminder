@@ -25,6 +25,7 @@ function xhtmlHeaders( $file, $title )
     $skinJsFile = getSkinFile( 'js/skin.js' );
     $skinJsPhpFile = getSkinFile( 'js/skin.js.php' );
 
+		$jqueryJsFile = getSkinFile( 'js/jquery-2.1.1.min.js');
 		$bootstrapCssFile = getSkinFile( 'css/bootstrap.css' );
 		$bootstrapJsFile = getSkinFile( 'js/bootstrap.min.js' );
 
@@ -72,6 +73,7 @@ function xhtmlHeaders( $file, $title )
 	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.2/angular.min.js"></script>
 	<script src="<?= getSkinFile('js/app.js'); ?>"></script>
 	<script src="<?= getSkinFile('js/controllers.js'); ?>"></script>
+  <script type="text/javascript" src="<?= $jqueryJsFile ?>"></script>
   <script type="text/javascript" src="<?= $bootstrapJsFile ?>"></script>
   <script type="text/javascript" src="tools/mootools/mootools-core.js"></script>
   <script type="text/javascript" src="tools/mootools/mootools-more.js"></script>

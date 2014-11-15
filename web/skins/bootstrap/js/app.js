@@ -13,3 +13,12 @@ ZoneMinder.factory('Header', function($http) {
 		}
 	};
 });
+
+ZoneMinder.factory('Event', function($http) {
+	return {
+		getEvent: function(eventId) {
+			return $http.get('/api/events/'+ eventId +'.json');
+		}
+	};
+});
+

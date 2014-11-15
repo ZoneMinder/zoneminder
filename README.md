@@ -159,4 +159,14 @@ the following steps.
 6. Create new Pull Request
 7. The team will then review, discuss and hopefully merge your changes.
 
+### Package Maintainters
+Many of the ZoneMinder configration variable default values are not configurable at build time through autotools or cmake.  A new tool called *zmeditconfigdata.sh* has been added to allow package maintainers to manipulate any variable stored in ConfigData.pm without patching the source. 
+
+For example, let's say I have created a new ZoneMinder package that contains the cambolzola javascript file.  However, by default cambozola support is turned off.  To fix that, add this to the pacakging script:
+```bash
+./zmeditconfigdata.sh ZM_OPT_CAMBOZOLA yes
+```
+
+Note that zmeditconfigdata.sh is intended to be called prior to running cmake or configure.
+
 [![Analytics](https://ga-beacon.appspot.com/UA-15147273-6/ZoneMinder/README.md)](https://github.com/igrigorik/ga-beacon)

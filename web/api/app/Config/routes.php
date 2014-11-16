@@ -28,6 +28,7 @@
 	Router::mapResources('configs');
 	Router::mapResources('events');
 	Router::mapResources('frames');
+	Router::mapResources('host');
 	Router::parseExtensions();
 
 /**

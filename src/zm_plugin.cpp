@@ -18,7 +18,7 @@ Plugin::Plugin(const std::string &sFilename)
 
     if(!m_hDLL) // if library hasn't been loaded successfully
     {
-        throw runtime_error(string("Could not load '") + sFilename + "'");
+        throw runtime_error("Could not load '" + sFilename + "' (" + dlerror() + ")");
     }
 
     // Locate the plugin's exported functions
@@ -30,7 +30,7 @@ Plugin::Plugin(const std::string &sFilename)
         // If the functions aren't found, we're going to assume this is
         // a plain simple DLL and not one of our plugins
         if(!m_pfnGetEngineVersion || ! m_pfnRegisterPlugin)
-            throw runtime_error(string("'") + sFilename + "' is not a valid plugin");
+            throw runtime_error("'" + sFilename + "' is not a valid plugin");
 
         // Initialize a new DLL reference counter
         m_pDLLRefCount = new size_t(1);
@@ -43,7 +43,7 @@ Plugin::Plugin(const std::string &sFilename)
     catch(...)
     {
         dlclose(m_hDLL);
-        throw runtime_error(string("Unknown exception while loading plugin '") + sFilename + string("'"));
+        throw runtime_error("Unknown exception while loading plugin '" + sFilename + "'");
     }
 }
 

@@ -73,7 +73,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
         gettimeofday( &start_time, 0 );
     }
 
-    static char sql[ZM_SQL_MED_BUFSIZ];
+    static char sql[ZM_SQL_LGE_BUFSIZ];
 
     struct tm *stime = localtime( &start_time.tv_sec );
     snprintf( sql, sizeof(sql), "insert into Events ( MonitorId, Name, StartTime, Width, Height, Cause, Notes ) values ( %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s' )", monitor->Id(), start_time.tv_sec, monitor->Width(), monitor->Height(), cause.c_str(), escapedNotes );

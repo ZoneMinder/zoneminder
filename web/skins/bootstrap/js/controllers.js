@@ -4,6 +4,12 @@ ZoneMinder.controller('HeaderController', function($scope, Header) {
 	Header.getLogState(function(results) {
 		console.log(results);
 	});
+
+	Header.getDaemonStatus(function(results) {
+		if (results.result == 1) {
+			$scope.isRunning = true;
+		} 
+	});
 });
 
 ZoneMinder.controller('EventController', function($scope, $location, Event) {

@@ -12,7 +12,7 @@
 			<div class="container-fluid">
 				<a href="?view=console"><span class="navbar-brand">ZoneMinder</span></a>
 
-				<button type="button" class="btn btn-<?= $statusClass ?> btn-md navbar-btn pull-right" data-toggle="modal" data-target="#myModal">
+				<button type="button" class="btn btn-md navbar-btn pull-right" ng-class="isRunning ? 'btn-success' : 'btn-danger'" data-toggle="modal" data-target="#myModal">
 					<span class="glyphicon glyphicon-off"></span>
 				</button>
 

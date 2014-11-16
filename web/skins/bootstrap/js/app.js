@@ -10,6 +10,9 @@ ZoneMinder.factory('Header', function($http) {
 	return {
 		getLogState: function(callback) {
 			$http.get('/api/monitors.json').success(callback);
+		},
+		getDaemonStatus: function(callback) {
+			$http.get('/api/host/daemonCheck.json').success(callback);
 		}
 	};
 });

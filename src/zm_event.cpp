@@ -63,7 +63,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
 
     std::string notes;
     createNotes( notes );
-    static char escapedNotes[ZM_NOTES_MAX_SIZE + 1];
+    static char escapedNotes[ZM_NOTES_MAX_SIZE*2 + 1];
     mysql_real_escape_string( &dbconn, escapedNotes, notes.c_str(), notes.length() );
 
     bool untimedEvent = false;
@@ -212,10 +212,10 @@ void Event::createNotes( std::string &notes )
             notes += *setIter;
         }
     }
-    if (notes.size() > ZM_NOTES_MAX_SIZE)
+    if (notes.length() > ZM_NOTES_MAX_SIZE)
     {
         std::string sTrunc = "... (content truncated)";
-        notes = notes.substr(0, (ZM_NOTES_MAX_SIZE - sTrunc.size()));
+        notes = notes.substr(0, (ZM_NOTES_MAX_SIZE - sTrunc.length()));
         notes += sTrunc;
     }
 }
@@ -495,7 +495,7 @@ void Event::updateNotes( const StringSetMap &newNoteSetMap )
             Fatal( "Unable to execute sql '%s': %s", sql, mysql_stmt_error(stmt) );
         }
 #else
-        static char escapedNotes[ZM_NOTES_MAX_SIZE];
+        static char escapedNotes[ZM_NOTES_MAX_SIZE*2 + 1];
 
         mysql_real_escape_string( &dbconn, escapedNotes, notes.c_str(), notes.length() );
 

@@ -121,7 +121,7 @@ bool RtspThread::recvResponse( std::string &response )
     if ( respCode == 401)
     {
     	Debug( 2, "Got 401 access denied response code, check WWW-Authenticate header and retry");
-    	checkAuthResponse(response);
+    	mAuthenticator->checkAuthResponse(response);
     	mNeedAuth = true;
     	return( false );
     } 
@@ -314,7 +314,7 @@ int RtspThread::run()
 			// for requested authentication method
 			if (respCode == 401 && !authTried) {
 				mNeedAuth = true;
-				checkAuthResponse(response);
+				mAuthenticator->checkAuthResponse(response);
 				Debug(2, "Processed 401 response");
 				mRtspSocket.close();
 			    if ( !mRtspSocket.connect( mHost.c_str(), strtol( mPort.c_str(), NULL, 10 ) ) )

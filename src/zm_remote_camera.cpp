@@ -65,6 +65,9 @@ void RemoteCamera::Initialise()
 		auth64 = base64Encode( auth );
 	}
 
+    mNeedAuth = false;
+	mAuthenticator = new Authenticator(username,password);
+
 	struct addrinfo hints;
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_UNSPEC;

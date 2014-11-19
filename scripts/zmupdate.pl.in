@@ -347,8 +347,8 @@ if ( $interactive ) {
 				my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 				my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
 				$sth->finish();
-				$dbh->do(q|SET sql_mode=''|); # Set mode back to default
 			}
+			$dbh->do(q|SET sql_mode=''|); # Set mode back to default
 		}
 	}
 } # end if interactive

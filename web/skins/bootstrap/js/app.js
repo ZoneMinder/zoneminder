@@ -25,3 +25,11 @@ ZoneMinder.factory('Event', function($http) {
 	};
 });
 
+ZoneMinder.factory('Console', function($http) {
+	return {
+		getConsoleEvents: function(interval) {
+			return $http.get('/api/events/consoleEvents/'+interval+'.json');
+		}
+	};
+});
+

@@ -18,57 +18,6 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-$eventCounts = array(
-    array(
-        "title" => $SLANG['Events'],
-        "filter" => array(
-            "terms" => array(
-            )
-        ),
-    ),
-    array(
-        "title" => $SLANG['Hour'],
-        "filter" => array(
-            "terms" => array(
-                array( "attr" => "DateTime", "op" => ">=", "val" => "-1 hour" ),
-            )
-        ),
-    ),
-    array(
-        "title" => $SLANG['Day'],
-        "filter" => array(
-            "terms" => array(
-                array( "attr" => "DateTime", "op" => ">=", "val" => "-1 day" ),
-            )
-        ),
-    ),
-    array(
-        "title" => $SLANG['Week'],
-        "filter" => array(
-            "terms" => array(
-                array( "attr" => "DateTime", "op" => ">=", "val" => "-7 day" ),
-            )
-        ),
-    ),
-    array(
-        "title" => $SLANG['Month'],
-        "filter" => array(
-            "terms" => array(
-                array( "attr" => "DateTime", "op" => ">=", "val" => "-1 month" ),
-            )
-        ),
-    ),
-    array(
-        "title" => $SLANG['Archived'],
-        "filter" => array(
-            "terms" => array(
-                array( "attr" => "Archived", "op" => "=", "val" => "1" ),
-            )
-        ),
-    ),
-);
-
-
 $group = NULL;
 if ( ! empty($_COOKIE['zmGroup']) ) {
 	if ( $group = dbFetchOne( 'select * from Groups where Id = ?', NULL, array($_COOKIE['zmGroup'])) )
@@ -107,16 +56,6 @@ for ( $i = 0; $i < count($monitors); $i++ )
     $monitors[$i]['zmc'] = zmcStatus( $monitors[$i] );
     $monitors[$i]['zma'] = zmaStatus( $monitors[$i] );
     $monitors[$i]['ZoneCount'] = dbFetchOne( 'select count(Id) as ZoneCount from Zones where MonitorId = ?', 'ZoneCount', array($monitors[$i]['Id']) );
-    $counts = array();
-    for ( $j = 0; $j < count($eventCounts); $j++ )
-    {
-        $filter = addFilterTerm( $eventCounts[$j]['filter'], count($eventCounts[$j]['filter']['terms']), array( "cnj" => "and", "attr" => "MonitorId", "op" => "=", "val" => $monitors[$i]['Id'] ) );
-        parseFilter( $filter );
-        $counts[] = "count(if(1".$filter['sql'].",1,NULL)) as EventCount$j";
-        $monitors[$i]['eventCounts'][$j]['filter'] = $filter;
-    }
-    $sql = "select ".join($counts,", ")." from Events as E where MonitorId = ?";
-    $counts = dbFetchOne( $sql, NULL, array($monitors[$i]['Id']) );
     if ( $monitors[$i]['Function'] != 'None' )
     {
         $cycleCount++;
@@ -125,7 +64,6 @@ for ( $i = 0; $i < count($monitors); $i++ )
         if ( $maxWidth < $scaleWidth ) $maxWidth = $scaleWidth;
         if ( $maxHeight < $scaleHeight ) $maxHeight = $scaleHeight;
     }
-    if ( $counts ) $monitors[$i] = array_merge( $monitors[$i], $counts );
     $seqIdList[] = $monitors[$i]['Id'];
     $displayMonitors[] = $monitors[$i];
 }
@@ -190,125 +128,46 @@ xhtmlHeaders( __FILE__, $SLANG['Console'] );
 				<div class="col-md-2"><?php include("sidebar.php"); ?></div>
 
 				<div class="col-md-10">
-      <table id="consoleTable" class="table table-striped">
-        <thead>
-          <tr>
-            <th class="colName"><?= $SLANG['Name'] ?></th>
-            <th class="colFunction"><?= $SLANG['Function'] ?></th>
-            <th class="colSource"><?= $SLANG['Source'] ?></th>
-<?php
-for ( $i = 0; $i < count($eventCounts); $i++ )
-{
-?>
-            <th class="colEvents"><?= $eventCounts[$i]['title'] ?></th>
-<?php
-}
-?>
-            <th class="colZones"><?= $SLANG['Zones'] ?></th>
-<?php
-if ( canEdit('Monitors') )
-{
-?>
-            <th class="colOrder"><?= $SLANG['Order'] ?></th>
-<?php
-}
-?>
-            <th class="colMark"><?= $SLANG['Mark'] ?></th>
-          </tr>
-        </thead>
-        <tfoot>
-          <tr>
-            <td class="colLeftButtons" colspan="3">
-            </td>
-<?php
-for ( $i = 0; $i < count($eventCounts); $i++ )
-{
-    parseFilter( $eventCounts[$i]['filter'] );
-?>
-            <td class="colEvents"><?= makePopupLink( '?view='.$eventsView.'&amp;page=1'.$eventCounts[$i]['filter']['query'], $eventsWindow, $eventsView, $eventCounts[$i]['total'], canView( 'Events' ) ) ?></td>
-<?php
-}
-?>
-            <td class="colZones"><?= $zoneCount ?></td>
-            <td class="colRightButtons" colspan="<?= canEdit('Monitors')?2:1 ?>"></td>
-          </tr>
-        </tfoot>
-        <tbody>
-<?php
-foreach( $displayMonitors as $monitor )
-{
-?>
-          <tr>
-<?php
+
+	<div ng-controller="ConsoleController">
+<div class="row">
+<?php foreach( $displayMonitors as $monitor ) {
     if ( !$monitor['zmc'] )
-        $dclass = "errorText";
+        $dclass = "danger";
     else
     {
         if ( !$monitor['zma'] )
-            $dclass = "warnText";
+            $dclass = "warning";
         else
-            $dclass = "infoText";
+            $dclass = "info";
     }
-    if ( $monitor['Function'] == 'None' )
-        $fclass = "errorText";
-    elseif ( $monitor['Function'] == 'Monitor' )
-        $fclass = "warnText";
-    else
-        $fclass = "infoText";
-    if ( !$monitor['Enabled'] )
-        $fclass .= " disabledText";
-    $scale = max( reScale( SCALE_BASE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
 ?>
-            <td class="colName"><?= makePopupLink( '?view=watch&amp;mid='.$monitor['Id'], 'zmWatch'.$monitor['Id'], array( 'watch', reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ) ), $monitor['Name'], $running && ($monitor['Function'] != 'None') && canView( 'Stream' ) ) ?></td>
-            <td class="colFunction"><?= makePopupLink( '?view=function&amp;mid='.$monitor['Id'], 'zmFunction', 'function', '<span class="'.$fclass.'">'.$SLANG['Fn'.$monitor['Function']].( empty($monitor['Enabled']) ? ', disabled' : '' ) .'</span>', canEdit( 'Monitors' ) ) ?></td>
-<?php if ( $monitor['Type'] == "Local" ) { ?>
-            <td class="colSource"><?= makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.$monitor['Device'].' ('.$monitor['Channel'].')</span>', canEdit( 'Monitors' ) ) ?></td>
-<?php } elseif ( $monitor['Type'] == "Remote" ) { ?>
-            <td class="colSource"><?= makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.preg_replace( '/^.*@/', '', $monitor['Host'] ).'</span>', canEdit( 'Monitors' ) ) ?></td>
-<?php } elseif ( $monitor['Type'] == "File" ) { ?>
-            <td class="colSource"><?= makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.preg_replace( '/^.*\//', '', $monitor['Path'] ).'</span>', canEdit( 'Monitors' ) ) ?></td>
-<?php } elseif ( $monitor['Type'] == "Ffmpeg" ) { ?>
-            <td class="colSource"><?= makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.preg_replace( '/^.*\//', '', $monitor['Path'] ).'</span>', canEdit( 'Monitors' ) ) ?></td>
-<?php } elseif ( $monitor['Type'] == "Libvlc" ) {
-    $domain = parse_url( $monitor['Path'], PHP_URL_HOST );
-    $shortpath = $domain ? $domain : preg_replace( '/^.*\//', '', $monitor['Path'] );
-?>
-            <td class="colSource"><?= makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.$shortpath.'</span>', canEdit( 'Monitors' ) ) ?></td>
-<?php } elseif ( $monitor['Type'] == "cURL" ) { ?>
-            <td class="colSource"><?= makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.preg_replace( '/^.*\//', '', $monitor['Path'] ).'</span>', canEdit( 'Monitors' ) ) ?></td>
-<?php } else { ?>
-            <td class="colSource">&nbsp;</td>
+<div class="col-md-3">
+	<div class="panel panel-<?= $dclass ?>">
+		<div class="panel-heading">
+			<input class="pull-right btn btn-default" type="checkbox" name="markMids[]" value="<?= $monitor['Id'] ?>" onclick="setButtonStates( this )"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
+			<h2 class="text-left panel-title"><?= $monitor['Name'] ?> <small>(<?= $monitor['Id'] ?>)</small></h2>
+		</div>
+
+		<div class="panel-body center-block">
+			<img src="http://placehold.it/120&text=<?= $monitor['Name'] ?>!" />
+
+			<p><span ng-bind="Counts<?= $monitor['Id'] ?>"></span> recent events</p>
+		</div>
+	</div>
+</div>
 <?php } ?>
-<?php
-    for ( $i = 0; $i < count($eventCounts); $i++ )
-    {
-?>
-            <td class="colEvents"><?= makePopupLink( '?view='.$eventsView.'&amp;page=1'.$monitor['eventCounts'][$i]['filter']['query'], $eventsWindow, $eventsView, $monitor['EventCount'.$i], canView( 'Events' ) ) ?></td>
-<?php
-    }
-?>
-            <td class="colZones"><?= makePopupLink( '?view=zones&amp;mid='.$monitor['Id'], 'zmZones', array( 'zones', $monitor['Width'], $monitor['Height'] ), $monitor['ZoneCount'], canView( 'Monitors' ) ) ?></td>
-<?php
-    if ( canEdit('Monitors') )
-    {
-?>
-            <td class="colOrder"><?= makeLink( '?view='.$view.'&amp;action=sequence&amp;mid='.$monitor['Id'].'&amp;smid='.$seqIdUpList[$monitor['Id']], '<img src="'.$seqUpFile.'" alt="Up"/>', $monitor['Sequence']>$minSequence ) ?><?= makeLink( '?view='.$view.'&amp;action=sequence&amp;mid='.$monitor['Id'].'&amp;smid='.$seqIdDownList[$monitor['Id']], '<img src="'.$seqDownFile.'" alt="Down"/>', $monitor['Sequence']<$maxSequence ) ?></td>
-<?php
-    }
-?>
-            <td class="colMark"><input class="btn btn-default" type="checkbox" name="markMids[]" value="<?= $monitor['Id'] ?>" onclick="setButtonStates( this )"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></td>
-          </tr>
-<?php
-}
-?>
-        </tbody>
-      </table>
+</div>
+	</div>
+
+
+
 			</div> <!-- End .col-md-10 -->
 
 
 				</div> <!-- End .row -->
 			</div> <!-- End #content .container-fluid -->
-		<?php include("footer.php"); ?>
     </form>
+		<?php include("footer.php"); ?>
 </body>
 </html>

@@ -2,7 +2,6 @@ var ZoneMinder = angular.module('ZoneMinderControllers', []);
 
 ZoneMinder.controller('HeaderController', function($scope, Header) {
 	Header.getLogState(function(results) {
-		console.log(results);
 	});
 
 	Header.getDaemonStatus(function(results) {
@@ -32,5 +31,17 @@ ZoneMinder.controller('EventController', function($scope, $location, Event) {
 		$scope.notes				= results.data.event.Event.Notes;
 
 
+	});
+});
+
+ZoneMinder.controller('ConsoleController', function($scope, Console) {
+	// Ask the API for events that have happened in the last week
+	Console.getConsoleEvents('1 week').then(function(results) {
+		// For each result, assign it to $scope[Counts$monitorId]
+		for (var key in results['data']['results']) {
+			var mid = key;
+			var count = results['data']['results'][key];
+			$scope['Counts' + mid] = count;
+		}
 	});
 });

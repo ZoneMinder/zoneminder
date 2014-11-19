@@ -441,7 +441,7 @@ void Event::updateNotes( const StringSetMap &newNoteSetMap )
         std::string notes;
         createNotes( notes );
 
-        Debug( 2, "Updating notes for event %d, '%s'", id, notes.c_str() );
+        Debug( 2, "Updating notes for event %d", id );
         static char sql[ZM_SQL_LGE_BUFSIZ];
 #if USE_PREPARED_SQL
         static MYSQL_STMT *stmt = 0;

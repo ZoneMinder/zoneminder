@@ -10,7 +10,7 @@
 #
 cmake_minimum_required (VERSION 2.6)
 project (zoneminder)
-set(zoneminder_VERSION "1.26.4")
+set(zoneminder_VERSION "1.28.0")
 
 # CMake does not allow out-of-source build if CMakeCache.exists in the source folder. Abort and notify the user to save him from headache why it doesn't work.
 if((NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)) AND (EXISTS "${CMAKE_SOURCE_DIR}/CMakeCache.txt"))
@@ -46,7 +46,8 @@ include (CheckStructHasMember)
 # Configuration options
 mark_as_advanced(FORCE ZM_EXTRA_LIBS ZM_MYSQL_ENGINE ZM_NO_MMAP CMAKE_INSTALL_FULL_BINDIR ZM_PERL_SUBPREFIX ZM_PERL_USE_PATH ZM_TARGET_DISTRO)
 set(ZM_RUNDIR "/var/run/zm" CACHE PATH "Location of transient process files, default: /var/run/zm")
-set(ZM_TMPDIR "/tmp/zm" CACHE PATH "Location of temporary files, default: /tmp/zm")
+set(ZM_SOCKDIR "/var/run/zm" CACHE PATH "Location of Unix domain socket files, default /var/run/zm")
+set(ZM_TMPDIR "/var/tmp/zm" CACHE PATH "Location of temporary files, default: /tmp/zm")
 set(ZM_LOGDIR "/var/log/zm" CACHE PATH "Location of generated log files, default: /var/log/zm")
 set(ZM_WEBDIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/zoneminder/www" CACHE PATH "Location of the web files, default: <prefix>/${CMAKE_INSTALL_DATADIR}/zoneminder/www")
 set(ZM_CGIDIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBEXECDIR}/zoneminder/cgi-bin" CACHE PATH "Location of the cgi-bin files, default: <prefix>/${CMAKE_INSTALL_LIBEXECDIR}/zoneminder/cgi-bin")
@@ -62,10 +63,29 @@ set(ZM_EXTRA_LIBS "" CACHE STRING "A list of optional libraries, separated by se
 set(ZM_MYSQL_ENGINE "InnoDB" CACHE STRING "MySQL engine to use with database, default: InnoDB")
 set(ZM_NO_MMAP "OFF" CACHE BOOL "Set to ON to not use mmap shared memory. Shouldn't be enabled unless you experience problems with the shared memory. default: OFF")
 set(ZM_NO_FFMPEG "OFF" CACHE BOOL "Set to ON to skip ffmpeg checks and force building ZM without ffmpeg. default: OFF")
+set(ZM_NO_LIBVLC "OFF" CACHE BOOL "Set to ON to skip libvlc checks and force building ZM without libvlc. default: OFF")
+set(ZM_NO_CURL "OFF" CACHE BOOL "Set to ON to skip cURL checks and force building ZM without cURL. default: OFF")
 set(ZM_NO_X10 "OFF" CACHE BOOL "Set to ON to build ZoneMinder without X10 support. default: OFF")
 set(ZM_PERL_SUBPREFIX "${CMAKE_INSTALL_LIBDIR}/perl5" CACHE PATH "Use a different directory for the zm perl modules. NOTE: This is a subprefix, e.g. lib will be turned into <prefix>/lib, default: <libdir>/perl5")
 set(ZM_PERL_USE_PATH "${CMAKE_INSTALL_PREFIX}/${ZM_PERL_SUBPREFIX}" CACHE PATH "Override the include path for zm perl modules. Useful if you are moving the perl modules without using the ZM_PERL_SUBPREFIX option. default: <prefix>/<zmperlsubprefix>")
-set(ZM_TARGET_DISTRO "" CACHE STRING "Build ZoneMinder for a specific distribution.  Currently, valid names are: f19, el6")
+set(ZM_TARGET_DISTRO "" CACHE STRING "Build ZoneMinder for a specific distribution.  Currently, valid names are: f19, f20, el6, OS13")
+
+# Reassign some variables if a target distro has been specified
+if((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "f20") OR (ZM_TARGET_DISTRO STREQUAL "el6"))
+	set(ZM_RUNDIR "/var/run/zoneminder")
+	set(ZM_SOCKDIR "/var/lib/zoneminder/sock")
+	set(ZM_TMPDIR "/var/lib/zoneminder/temp")
+	set(ZM_LOGDIR "/var/log/zoneminder")
+elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
+	set(ZM_RUNDIR "/var/run/zoneminder")
+	set(ZM_TMPDIR "/var/run/zoneminder")
+	set(ZM_CONTENTDIR "/var/run/zoneminder")
+	set(ZM_LOGDIR "/var/log/zoneminder")
+	set(ZM_WEB_USER "wwwrun")
+	set(ZM_WEB_GROUP "www")
+	set(ZM_WEBDIR "/srv/www/htdocs/zoneminder")
+	set(ZM_CGIDIR "/srv/www/cgi-bin")
+endif((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "f20") OR (ZM_TARGET_DISTRO STREQUAL "el6"))
 
 # Required for certain checks to work
 set(CMAKE_EXTRA_INCLUDE_FILES ${CMAKE_EXTRA_INCLUDE_FILES} stdio.h stdlib.h math.h signal.h)
@@ -103,6 +123,22 @@ if(ZLIB_FOUND)
 else(ZLIB_FOUND)
 	set(optlibsnotfound "${optlibsnotfound} zlib")
 endif(ZLIB_FOUND)
+
+# Do not check for cURL if ZM_NO_CURL is on
+if(NOT ZM_NO_CURL)
+	# cURL
+	find_package(CURL)
+	if(CURL_FOUND)
+		set(HAVE_LIBCURL 1)
+		list(APPEND ZM_BIN_LIBS ${CURL_LIBRARIES})
+		include_directories(${CURL_INCLUDE_DIRS})
+		set(CMAKE_REQUIRED_INCLUDES ${CURL_INCLUDE_DIRS})
+		check_include_file("curl/curl.h" HAVE_CURL_CURL_H)
+		set(optlibsfound "${optlibsfound} cURL")
+	else(CURL_FOUND)
+		set(optlibsnotfound "${optlibsnotfound} cURL")
+	endif(CURL_FOUND)
+endif(NOT ZM_NO_CURL)
 
 # jpeg
 find_package(JPEG)
@@ -188,7 +224,11 @@ else(GCRYPT_LIBRARIES)
 endif(GCRYPT_LIBRARIES)
 
 # gnutls (using find_library and find_path)
-find_library(GNUTLS_LIBRARIES gnutls)
+find_library(GNUTLS_LIBRARIES gnutls-openssl)
+if(NOT GNUTLS_LIBRARIES)
+    find_library(GNUTLS_LIBRARIES gnutls)
+endif(NOT GNUTLS_LIBRARIES)
+
 if(GNUTLS_LIBRARIES)
 	set(HAVE_LIBGNUTLS 1)
 	list(APPEND ZM_BIN_LIBS "${GNUTLS_LIBRARIES}")
@@ -324,6 +364,26 @@ if(NOT ZM_NO_FFMPEG)
 
 endif(NOT ZM_NO_FFMPEG)
 
+# Do not check for libvlc if ZM_NO_LIBVLC is on
+if(NOT ZM_NO_LIBVLC)
+	# libvlc (using find_library and find_path)
+	find_library(LIBVLC_LIBRARIES vlc)
+	if(LIBVLC_LIBRARIES)
+		set(HAVE_LIBVLC 1)
+		list(APPEND ZM_BIN_LIBS "${LIBVLC_LIBRARIES}")
+		find_path(LIBVLC_INCLUDE_DIR "vlc/vlc.h")
+		if(LIBVLC_INCLUDE_DIR)
+			include_directories("${LIBVLC_INCLUDE_DIR}")
+			set(CMAKE_REQUIRED_INCLUDES "${LIBVLC_INCLUDE_DIR}")
+		endif(LIBVLC_INCLUDE_DIR)
+		mark_as_advanced(FORCE LIBVLC_LIBRARIES LIBVLC_INCLUDE_DIR)
+		check_include_file("vlc/vlc.h" HAVE_VLC_VLC_H)
+		set(optlibsfound "${optlibsfound} libVLC")
+	else(LIBVLC_LIBRARIES)
+		set(optlibsnotfound "${optlibsnotfound} libVLC")
+	endif(LIBVLC_LIBRARIES)
+endif(NOT ZM_NO_LIBVLC)
+
 # *** END OF LIBRARY CHECKS ***
 
 # Check for gnutls or crypto
@@ -422,6 +482,12 @@ endif(NOT ZM_WEB_GROUP)
 message(STATUS "Using web user: ${ZM_WEB_USER}")
 message(STATUS "Using web group: ${ZM_WEB_GROUP}")
 
+# Check for polkit
+find_package(Polkit)
+if(NOT POLKIT_FOUND)
+	message(FATAL_ERROR "Running ZoneMinder requires polkit. Building ZoneMinder requires the polkit development package.")
+endif(NOT POLKIT_FOUND)
+
 # Some variables that zm expects
 set(ZM_PID "${ZM_RUNDIR}/zm.pid")
 set(ZM_CONFIG "/${CMAKE_INSTALL_SYSCONFDIR}/zm.conf")
@@ -437,13 +503,6 @@ set(WEB_GROUP "${ZM_WEB_GROUP}")
 set(ZM_DB_TYPE "mysql")
 set(EXTRA_PERL_LIB "use lib '${ZM_PERL_USE_PATH}';")
 
-# Reassign some variables if a target distro has been specified
-if((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "el6"))
-	set(ZM_RUNDIR "/var/run/zoneminder")
-	set(ZM_TMPDIR "/var/lib/zoneminder/temp")
-	set(ZM_LOGDIR "/var/log/zoneminder")
-endif((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "el6"))
-
 # Generate files from the .in files
 configure_file(zm.conf.in "${CMAKE_CURRENT_BINARY_DIR}/zm.conf" @ONLY)
 configure_file(zoneminder-config.cmake "${CMAKE_CURRENT_BINARY_DIR}/config.h" @ONLY)
@@ -455,15 +514,16 @@ add_subdirectory(src)
 add_subdirectory(scripts)
 add_subdirectory(db)
 add_subdirectory(web)
+add_subdirectory(misc)
 
-# Process misc subdirectories
-if(ZM_TARGET_DISTRO STREQUAL "f19")
+# Process distro subdirectories
+if((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "f20"))
 	add_subdirectory(distros/fedora)
 elseif(ZM_TARGET_DISTRO STREQUAL "el6")
 	add_subdirectory(distros/redhat)
-else(ZM_TARGET_DISTRO STREQUAL "el6")
-	add_subdirectory(misc)
-endif(ZM_TARGET_DISTRO STREQUAL "f19")
+elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
+	add_subdirectory(distros/opensuse)
+endif((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "f20"))
 
 # Print optional libraries detection status
 message(STATUS "Optional libraries found:${optlibsfound}")

@@ -133,6 +133,7 @@ $SLANG = array(
     'BadFPSReportInterval' => 'Buffern för ramintervallrapporten måste vara ett heltal på minst 0 eller högre',
     'BadFormat'            => 'Formatet måste vara ett heltal, noll eller högre',
     'BadFrameSkip'         => 'Värdet för ramöverhopp måste vara ett heltal på 0 eller högre',
+    'BadMotionFrameSkip'   => 'Motion Frame skip count must be an integer of zero or more',
     'BadHeight'            => 'Höjden måste sättas till ett giltigt värde',
     'BadHost'              => 'Detta fält ska innehålla en giltig ip-adress eller värdnamn, inkludera inte http://',
     'BadImageBufferCount'  => 'Bufferstorleken för avbilden måste vara ett heltal på minst 10 eller högre',
@@ -153,6 +154,7 @@ $SLANG = array(
     'BadWebColour'         => 'Webbfärgen måste vara en giltig sträng för webbfärg',
     'BadWidth'             => 'Bredden måste sättas til ett giltigt värde',
     'Bandwidth'            => 'Bandbredd',
+    'BandwidthHead'         => 'Bandwidth',	// This is the end of the bandwidth status on the top of the console, different in many language due to phrasing
     'BlobPx'               => 'Blob Px',
     'BlobSizes'            => 'Blobstorlek',
     'Blobs'                => 'Blobbar',
@@ -321,6 +323,12 @@ $SLANG = array(
     'First'                => 'Först',
     'FlippedHori'          => 'Vänd horisontellt',
     'FlippedVert'          => 'Vänd vertikalt',
+    'FnNone'                => 'None',            // Added 2013.08.16.
+    'FnMonitor'             => 'Monitor',            // Added 2013.08.16.
+    'FnModect'              => 'Modect',            // Added 2013.08.16.
+    'FnRecord'              => 'Record',            // Added 2013.08.16.
+    'FnMocord'              => 'Mocord',            // Added 2013.08.16.
+    'FnNodect'              => 'Nodect',            // Added 2013.08.16.
     'Focus'                => 'Fokus',
     'ForceAlarm'           => 'Tvinga larm',
     'Format'               => 'Format',
@@ -328,6 +336,7 @@ $SLANG = array(
     'FrameId'              => 'Ram id',
     'FrameRate'            => 'Ram hastighet',
     'FrameSkip'            => 'Hoppa över ram',
+    'MotionFrameSkip'      => 'Motion Frame Skip',
     'Frames'               => 'Ramar',
     'Func'                 => 'Funk',
     'Function'             => 'Funktion',
@@ -371,6 +380,7 @@ $SLANG = array(
     'Last'                 => 'Sist',
     'Layout'               => 'Layout',                 // Added - 2009-02-08
     'Level'                => 'Level',                  // Added - 2011-06-16
+    'Libvlc'               => 'Libvlc',
     'LimitResultsPost'     => 'resultaten;', // This is used at the end of the phrase 'Limit to first N results only'
     'LimitResultsPre'      => 'Begränsa till första', // This is used at the beginning of the phrase 'Limit to first N results only'
     'Line'                 => 'Line',                   // Added - 2011-06-16
@@ -464,6 +474,11 @@ $SLANG = array(
     'Month'                => 'Månad',
     'More'                 => 'More',                   // Added - 2011-06-16
     'Move'                 => 'Flytta',
+    'MtgDefault'           => 'Default',              // Added 2013.08.15.
+    'Mtg2widgrd'           => '2-wide grid',              // Added 2013.08.15.
+    'Mtg3widgrd'           => '3-wide grid',              // Added 2013.08.15.
+    'Mtg4widgrd'           => '4-wide grid',              // Added 2013.08.15.
+    'Mtg3widgrx'           => '3-wide grid, scaled, enlarge on alarm',              // Added 2013.08.15.
     'MustBeGe'             => 'måste vara större än eller lika med',
     'MustBeLe'             => 'måste vara mindre än eller lika med',
     'MustConfirmPassword'  => 'Du måste bekräfta lösenordet',
@@ -632,6 +647,10 @@ $SLANG = array(
     'TimeDelta'            => 'tidsdelta',
     'TimeStamp'            => 'Tidsstämpel',
     'Timeline'             => 'Tidslinje',
+    'TimelineTip1'          => 'Pass your mouse over the graph to view a snapshot image and event details.',              // Added 2013.08.15.
+    'TimelineTip2'          => 'Click on the coloured sections of the graph, or the image, to view the event.',              // Added 2013.08.15.
+    'TimelineTip3'          => 'Click on the background to zoom in to a smaller time period based around your click.',              // Added 2013.08.15.
+    'TimelineTip4'          => 'Use the controls below to zoom out or navigate back and forward through the time range.',              // Added 2013.08.15.
     'Timestamp'            => 'Tidsstämpel',
     'TimestampLabelFormat' => 'Format på tidsstämpel',
     'TimestampLabelX'      => 'Värde på tidsstämpel X',
@@ -709,6 +728,7 @@ $SLANG = array(
     'ZoneMinMaxPixelThres' => 'Min/Max pixel Threshold (0-255)',
     'ZoneMinderLog'        => 'ZoneMinder Log',         // Added - 2011-06-17
     'ZoneOverloadFrames'   => 'Overload Frame Ignore Count',
+    'ZoneExtendAlarmFrames' => 'Extend Alarm Frame Count',
     'Zones'                => 'Zoner',
     'Zoom'                 => 'Zoom',
     'ZoomIn'               => 'Zooma in',
@@ -844,6 +864,20 @@ $OLANG = array(
         'Prompt' => "Välj språk för ZoneMinder",
         'Help' => "ZoneMinder kan använda annat språk än engelska i menyer och texter. Välj här det språk du vill använda till ZoneMinder."
     ),
+	'OPTIONS_FFMPEG' => array(
+		'Help' => "Parameters in this field are passwd on to FFmpeg. Multiple parameters can be separated by ,~~ ".
+		          "Examples (do not enter quotes)~~~~".
+		          "\"allowed_media_types=video\" Set datatype to request fromcam (audio, video, data)~~~~".
+		          "\"reorder_queue_size=nnn\" Set number of packets to buffer for handling of reordered packets~~~~".
+		          "\"loglevel=debug\" Set verbosiy of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
+	),
+	'OPTIONS_LIBVLC' => array(
+		'Help' => "Parameters in this field are passwd on to libVLC. Multiple parameters can be separated by ,~~ ".
+		          "Examples (do not enter quotes)~~~~".
+		          "\"--rtp-client-port=nnn\" Set local port to use for rtp data~~~~". 
+		          "\"--verbose=2\" Set verbosity of libVLC"
+	),
+	
 );
 
 ?>

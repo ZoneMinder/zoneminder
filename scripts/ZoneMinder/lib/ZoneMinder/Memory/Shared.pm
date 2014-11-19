@@ -81,7 +81,7 @@ sub zmMemAttach( $$ )
 	my $size = shift;
 	if ( !defined($monitor->{ShmId}) )
 	{
-		my $shm_key = (hex(ZM_SHM_KEY)&0xffff0000)|$monitor->{Id};
+		my $shm_key = (hex($Config{ZM_SHM_KEY})&0xffff0000)|$monitor->{Id};
 		my $shm_id = shmget( $shm_key, $size, &IPC_CREAT | 0777  );
 		if ( !defined($shm_id) )
 		{
@@ -141,7 +141,7 @@ sub zmMemClean
 {
     Debug( "Removing shared memory\n" );
     # Find ZoneMinder shared memory
-    my $command = "ipcs -m | grep '^".substr( sprintf( "0x%x", hex(ZM_SHM_KEY) ), 0, -2 )."'";
+    my $command = "ipcs -m | grep '^".substr( sprintf( "0x%x", hex($Config{ZM_SHM_KEY}) ), 0, -2 )."'";
     Debug( "Checking for shared memory with '$command'\n" );
     open( CMD, "$command |" ) or Fatal( "Can't execute '$command': $!" );
     while( <CMD> )

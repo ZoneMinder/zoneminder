@@ -32,7 +32,7 @@ foreach ( dbFetchAll( $sql ) as $row )
 
 if ( isset($_REQUEST['filterName']) )
 {
-    $dbFilter = dbFetchOne( "select * from Filters where Name = '".dbEscape($_REQUEST['filterName'])."'" );
+    $dbFilter = dbFetchOne( 'SELECT * FROM Filters WHERE Name = ?', NULL, array($_REQUEST['filterName']) );
     $_REQUEST['filter'] = jsonDecode( $dbFilter['Query'] );
     $_REQUEST['sort_field'] = isset($_REQUEST['filter']['sort_field'])?$_REQUEST['filter']['sort_field']:"DateTime";
     $_REQUEST['sort_asc'] = isset($_REQUEST['filter']['sort_asc'])?$_REQUEST['filter']['sort_asc']:"1";

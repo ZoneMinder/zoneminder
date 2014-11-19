@@ -1,6 +1,6 @@
 AUTOMAKE_OPTIONS = gnu
 
-AM_CPPFLAGS = @MYSQL_CFLAGS@ @FFMPEG_CFLAGS@ -Wall -finline-functions -fomit-frame-pointer
+AM_CPPFLAGS = @MYSQL_CFLAGS@ @MARIADB_CFLAGS@ @FFMPEG_CFLAGS@ -Wall -finline-functions -fomit-frame-pointer
 #AM_CXXFLAGS = -frepo
 
 CLEANFILES = *.rpo
@@ -17,8 +17,7 @@ bin_PROGRAMS = \
 	zmu \
 	zms \
 	zmf \
-	zmstreamer \
-	zmfix
+	zmstreamer
 
 zm_SOURCES = \
 	zm_box.cpp \
@@ -27,6 +26,7 @@ zm_SOURCES = \
 	zm_comms.cpp \
 	zm_config.cpp \
 	zm_coord.cpp \
+	zm_curl_camera.cpp \
 	zm.cpp \
 	zm_db.cpp \
 	zm_logger.cpp \
@@ -36,6 +36,7 @@ zm_SOURCES = \
 	zm_ffmpeg_camera.cpp \
 	zm_image.cpp \
 	zm_jpeg.cpp \
+    zm_libvlc_camera.cpp \
 	zm_local_camera.cpp \
 	zm_monitor.cpp \
 	zm_ffmpeg.cpp \
@@ -50,6 +51,7 @@ zm_SOURCES = \
 	zm_rtp_data.cpp \
 	zm_rtp_source.cpp \
 	zm_rtsp.cpp \
+	zm_rtsp_auth.cpp \
 	zm_sdp.cpp \
 	zm_signal.cpp \
 	zm_stream.cpp \
@@ -66,7 +68,6 @@ zms_SOURCES = zms.cpp $(zm_SOURCES)
 zmu_SOURCES = zmu.cpp $(zm_SOURCES)
 zmf_SOURCES = zmf.cpp $(zm_SOURCES)
 zmstreamer_SOURCES = zmstreamer.cpp $(zm_SOURCES)
-zmfix_SOURCES = zmfix.cpp zm_config.cpp zm_regexp.cpp zm_logger.cpp zm_utils.cpp zm_db.cpp zm.cpp
 
 noinst_HEADERS = \
 	jinclude.h \
@@ -77,6 +78,7 @@ noinst_HEADERS = \
 	zm_config_defines.h \
 	zm_config.h \
 	zm_coord.h \
+	zm_curl_camera.h \
 	zm_db.h \
 	zm_logger.h \
 	zm_event.h \
@@ -89,6 +91,7 @@ noinst_HEADERS = \
 	zm.h \
 	zm_image.h \
 	zm_jpeg.h \
+    zm_libvlc_camera.h \
 	zm_local_camera.h \
 	zm_mem_utils.h \
 	zm_monitor.h \
@@ -126,7 +129,6 @@ dist-hook:
 install-exec-hook:
 	( cd $(DESTDIR)@bindir@; mkdir -p $(DESTDIR)$(cgidir); mv zms $(DESTDIR)$(cgidir) )
 	( cd $(DESTDIR)$(cgidir); chown $(webuser):$(webgroup) zms; ln -f zms nph-zms )
-	( cd $(DESTDIR)@bindir@; chmod u+s zmfix )
 
 uninstall-hook:
 	( cd $(DESTDIR)$(cgidir); rm -f zms nph-zms )

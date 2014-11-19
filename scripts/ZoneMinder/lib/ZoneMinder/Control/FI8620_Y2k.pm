@@ -41,7 +41,6 @@ require ZoneMinder::Base;
 require ZoneMinder::Control;
 
 our @ISA = qw(ZoneMinder::Control);
-our $VERSION = $ZoneMinder::Base::VERSION;
 # ===================================================================================================================================
 #
 # FI8620 FOSCAM Dome PTZ H264 Control Protocol
@@ -117,7 +116,7 @@ sub open
     $self->loadMonitor();
     use LWP::UserAgent;
     $self->{ua} = LWP::UserAgent->new;
-    $self->{ua}->agent( "ZoneMinder Control Agent/".ZM_VERSION );
+    $self->{ua}->agent( "ZoneMinder Control Agent/".ZoneMinder::Base::ZM_VERSION );
     $self->{state} = 'open';
 }
 

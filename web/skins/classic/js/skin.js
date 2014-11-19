@@ -24,43 +24,43 @@
 
 // Javascript window sizes
 var popupSizes = {
-    'bandwidth':    { 'width': 200, 'height': 120 },
+    'bandwidth':    { 'width': 300, 'height': 120 },
     'console':      { 'width': 750, 'height': 312 },
     'control':      { 'width': 380, 'height': 480 },
     'controlcaps':  { 'width': 780, 'height': 320 },
     'controlcap':   { 'width': 400, 'height': 400 },
-    'cycle':        { 'addWidth': 16, 'minWidth': 384, 'addHeight': 48 },
+    'cycle':        { 'addWidth': 32, 'minWidth': 384, 'addHeight': 62 },
     'device':       { 'width': 260, 'height': 150 },
     'devices':      { 'width': 400, 'height': 240 },
     'donate':       { 'width': 500, 'height': 280 },
-    'event':        { 'addWidth': 108, 'minWidth': 496, 'addHeight': 200, minHeight: 540 },
-    'eventdetail':  { 'width': 400, 'height': 220 },
-    'events':       { 'width': 760, 'height': 480 },
+    'event':        { 'addWidth': 108, 'minWidth': 496, 'addHeight': 230, minHeight: 540 },
+    'eventdetail':  { 'width': 600, 'height': 220 },
+    'events':       { 'width': 960, 'height': 780 },
     'export':       { 'width': 400, 'height': 340 },
     'filter':       { 'width': 720, 'height': 360 },
-    'filtersave':   { 'width': 560, 'height': 160 },
+    'filtersave':   { 'width': 610, 'height': 120 },
     'frame':        { 'addWidth': 32, 'minWidth': 384, 'addHeight': 100 },
-    'frames':       { 'width': 500, 'height': 300 },
-    'function':     { 'width': 248, 'height': 92 },
+    'frames':       { 'width': 500, 'height': 600 },
+    'function':     { 'width': 300, 'height': 92 },
     'group':        { 'width': 360, 'height': 180 },
-    'groups':       { 'width': 400, 'height': 220 },
+    'groups':       { 'width': 440, 'height': 220 },
     'image':        { 'addWidth': 48, 'addHeight': 80 },
-    'log':          { 'width': 980, 'height': 720 },
+    'log':          { 'width': 1080, 'height': 720 },
     'login':        { 'width': 720, 'height': 480 },
-    'logout':       { 'width': 240, 'height': 100 },
-    'monitor':      { 'width': 380, 'height': 364 },
-    'monitorpreset':{ 'width': 400, 'height': 200 },
+    'logout':       { 'width': 260, 'height': 100 },
+    'monitor':      { 'width': 450, 'height': 440 },
+    'monitorpreset':{ 'width': 440, 'height': 200 },
     'monitorprobe': { 'width': 500, 'height': 240 },
     'monitorselect':{ 'width': 160, 'height': 200 },
     'montage':      { 'width': -1, 'height': -1 },
     'optionhelp':   { 'width': 400, 'height': 320 },
-    'options':      { 'width': 960, 'height': 620 },
+    'options':      { 'width': 1000, 'height': 660 },
     'preset':       { 'width': 300, 'height': 120 },
-    'settings':     { 'width': 200, 'height': 225 },
-    'state':        { 'width': 240, 'height': 124 },
-    'stats':        { 'width': 740, 'height': 200 },
+    'settings':     { 'width': 220, 'height': 225 },
+    'state':        { 'width': 370, 'height': 134 },
+    'stats':        { 'width': 840, 'height': 200 },
     'timeline':     { 'width': 760, 'height': 540 },
-    'user':         { 'width': 320, 'height': 420 },
+    'user':         { 'width': 360, 'height': 420 },
     'version':      { 'width': 360, 'height': 140 },
     'video':        { 'width': 420, 'height': 360 },
     'videoview':    { 'addWidth': 48, 'addHeight': 80 },
@@ -70,6 +70,21 @@ var popupSizes = {
 };
 
 var popupOptions = "resizable,scrollbars,status=no";
+
+function checkSize() {
+    if (window.outerHeight) {
+        var w = window.outerWidth;
+        var prevW = w;
+        var h = window.outerHeight;
+        var prevH = h;
+        if (h > screen.availHeight)
+            h  = screen.availHeight;
+        if (w > screen.availWidth)
+            w  = screen.availWidth;
+        if (w != prevW || h != prevH)
+            window.resizeTo(w,h);
+    }
+}
 
 // Deprecated
 function newWindow( url, name, width, height )
@@ -146,6 +161,7 @@ function createPopup( url, name, tag, width, height )
     if ( popupSize.height > 0 )
         popupDimensions += ",height="+popupSize.height;
     var popup = window.open( url, name, popupOptions+popupDimensions );
+    popup.focus();
 }
 
 function createEventPopup( eventId, eventFilter, width, height )
@@ -156,6 +172,7 @@ function createEventPopup( eventId, eventFilter, width, height )
     var name = 'zmEvent';
     var popupSize = getPopupSize( 'event', width, height );
     var popup = window.open( url, name, popupOptions+",width="+popupSize.width+",height="+popupSize.height );
+    popup.focus();
 }
 
 function createFramesPopup( eventId, width, height )
@@ -164,6 +181,7 @@ function createFramesPopup( eventId, width, height )
     var name = 'zmFrames';
     var popupSize = getPopupSize( 'frames', width, height );
     var popup = window.open( url, name, popupOptions+",width="+popupSize.width+",height="+popupSize.height );
+    popup.focus();
 }
 
 function createFramePopup( eventId, frameId, width, height )
@@ -172,6 +190,7 @@ function createFramePopup( eventId, frameId, width, height )
     var name = 'zmFrame';
     var popupSize = getPopupSize( 'frame', width, height );
     var popup = window.open( url, name, popupOptions+",width="+popupSize.width+",height="+popupSize.height );
+    popup.focus();
 }
 
 function windowToFront()
@@ -287,3 +306,5 @@ if ( focusWindow )
 {
     windowToFront();
 }
+window.addEvent( 'domready', checkSize);
+

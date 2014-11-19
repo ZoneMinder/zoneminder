@@ -1,0 +1,176 @@
+OpenSuse Notes
+===============
+
+1. OpenSuse, along with other distros, now use systemd for task control.  
+   One of the capabilties of systemd is to use private space for /tmp to reduce
+   the possibility of cross talk between applications.  The default settings 
+   for zoneminder use /tmp for a number of files.  When you start/stop 
+   zoneminder from a web page /tmp will be in private space but when the 
+   start/stop script zmpkg.pl is run from a shell it will be looking in the 
+   real /tmp.  This can result in two instances of zoneminder running at 
+   the same time.
+   
+   In order to remove this problem the OpenSuse rpm defaults the temporary 
+   directory to /var/run/zoneminder.  For a new install this will not be a 
+   problem but if you use the rpm to upgrade you may have to make database 
+   changes.  
+   
+   Note: the location is held both within the database an explicitly within some
+   scripts.  It is therefore essential that the database conforms to the values
+   used in the scripts.  Please see information in the Upgrades section of this 
+   document.
+
+2. OpenSuse prefers mariadb to mysql.  mariadb is a direct replacement for mysql
+   and all mysql functions work in the same way.  These notes assumes that you 
+   are running mariadb.
+
+3. It is necessary to add repositories to allow the zoneminder rpm to install.
+   These can be added using commands (as root):
+   zypper ar -f http://packman.inode.at/suse/openSUSE_13.1 packman
+   zypper ar -f -n perl-modules http://download.opensuse.org/repositories/devel:/languages:/perl/openSUSE_13.1 perl-modules
+   
+   The first time the repositories are accessed a prompt will be issued 
+   asking if the key is to be trusted.  We suggest that you a(lways) trust
+   this repository
+
+4. There may be a prompt about the version of libavcodec.s0.55 and a change
+   of vendor for libavutil52.  In order to allow zoneminder to run correctly 
+   this solution change vendor should be accepted.
+
+New installs
+============
+
+1. Unless you are already using the MySQL server or you are running it
+   remotely you will need to ensure that the server is installed and secured:
+       
+   The rpm install should ensure that the database is installed.  To ensure
+   that it is running at boot time and secure for zoneminder run the 
+   following commands (as root):
+
+	systemctl enable mysql
+
+	systemctl start mysql.service
+     
+	mysql_secure_installation
+   
+   IMPORTANT: mariadb defaults to strict mode of operation which will cause 
+   some zoneminder database writes to fail.  In order to turn this off - 
+   which will be for the whole database - you will need to edit 
+   /etc/my.cnf and comment out the record 
+   
+   sql_mode=NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES and restart the
+   server
+   
+2. Using the password for the root account set during the previous step, you
+   will need to create the ZoneMinder database, assuming your database server
+   is local:
+
+     mysql -uroot -p < /opt/zoneminder/share/zoneminder/db/zm_create.sql
+     mysqladmin -uroot -p reload
+
+3. The database needs a user.  One is not created by default because this would
+   introduce an obvious security issue.  The following should set this up:
+
+     mysqladmin -uroot -p reload
+     grant select,insert,update,delete,alter on zm.* to 
+     'zmuser'@localhost identified by 'zmpass';
+
+   Obviously, change at least zmpass to an actual, secure password or
+   passphrase.  You can change zmuser as well if you like.
+
+4. Edit /etc/zm.conf and, at the bottom, change ZM_DB_PASS and perhaps
+   ZM_DB_USER to match.
+
+5. Edit /etc/php5/apache2/php.ini, uncomment the date.timezone line, and add 
+   your local timezone.  For whatever reason, PHP will complain loudly if 
+   this is not set, or if it is set incorrectly, and these complaints will 
+   show up in the zoneminder logging system as errors.
+
+   If you are not sure of the proper timezone specification to use, look at
+   http://php.net/manual/en/timezones.php
+
+6. This package probably does not work with SELinux enabled at the moment. It
+   may be necessary to disable SELinux for httpd, or even completely for
+   ZoneMinder to function. This will be addressed in a later release.  Run
+
+     setenforce 0
+
+   for testing, and edit /etc/sysconfig/selinux to disable it at boot time.
+
+7. Now start the web server (as root):
+
+	systemctl enable apache2.service
+	systemctl start apache2.service
+
+9. You should immediately visit http://localhost/zm and secure the system if
+   it is network facing.  To do this:
+
+   a) click Options, then System.
+   b) check OPT_USE_AUTH.
+   c) set AUTH_HASH_SECRET to a random string.
+   d) click Save and refresh the main browser window.
+   e) You should be prompted to log in; 
+      the default username/password is admin/admin.
+   f) Open Options again, choose the newly visible Users tab.
+   g) click the admin user and set a password.
+   h) enable OPT_CONTROL on the Ssytem tab to enable ptz camera control.
+
+10. You should be able to start zoneminder by issuing the commands (as root):
+
+	systemctl enable zoneminder
+	systemctl start zoneminder
+	
+
+Upgrades
+========
+
+1. Update /etc/zm.conf.  Check for any new settings and update the version
+   information.  Comparing /etc/zm.conf and /etc/zm.conf.rpmnew should help to
+   do this.
+
+2. Add the mysql ALTER permission to the zmuser account:
+
+     mysql -u root -p
+     use zm
+     grant alter, lock tables on zm.* to 'zmuser'@localhost;
+
+   Since this is an upgrade, the assumption is that the zmuser account already
+   has select, insert, update, and delete permission.
+   
+3. You will need to upgrade the ZoneMinder database as described in the
+   manual. Only if the previous step was succesful, may you run zmupdate like
+   so (as root):
+     
+     /opt/zoneminder/bin/zmupdate.pl 
+   
+      
+4. As mentioned in the OpenSuse notes you may need to change database values.
+   These steps may be run at any time (as root):
+   
+     stop the current instance of zoneminder - systemctl stop zoneminder
+     
+     	ensure that all zoneminder processes have terminated:
+     	
+     	ps -ef|grep zm
+     	if you find any process still running issue a kill -9 for each
+     	
+     mysql -u root
+     use zm
+     update Config set DefaultValue = '/var/run/zoneminder' 
+     	where name = 'ZM_PATH_LOGS';
+     update Config set Value = '/var/run/zoneminder' 
+     	where name = 'ZM_PATH_LOGS';
+     update Config set DefaultValue = '/var/run/zoneminder' 
+     	where name = 'ZM_PATH_SOCKS';
+     update Config set Value = '/var/run/zoneminder' 
+     	where name = 'ZM_PATH_SOCKS';
+     update Config set DefaultValue = '/var/run/zoneminder' 
+     	where name = 'ZM_PATH_LOGS';
+     update Config set Value = '/var/run/zoneminder' 
+     	where name = 'ZM_PATH_SWAP';
+     commit;
+     exit	
+        
+   
+     You can then restart zoneminder - systemctl start zoneminder
+     

@@ -103,6 +103,7 @@ $SLANG = array(
     'BadFPSReportInterval' => 'FPS report interval buffer count must be an integer of 0 or more',
     'BadFormat'            => 'Format must be set to an integer of zero or more',
     'BadFrameSkip'         => 'Frame skip count must be an integer of zero or more',
+    'BadMotionFrameSkip'   => 'Motion Frame skip count must be an integer of zero or more',
     'BadHeight'            => 'Height must be set to a valid value',
     'BadHost'              => 'Host must be set to a valid ip address or hostname, do not include http://',
     'BadImageBufferCount'  => 'Image buffer size must be an integer of 10 or more',
@@ -123,6 +124,7 @@ $SLANG = array(
     'BadWebColour'         => 'Web colour must be a valid web colour string',
     'BadWidth'             => 'Width must be set to a valid value',
     'Bandwidth'            => 'La&#355;ime de band&#259;',
+    'BandwidthHead'         => 'Bandwidth',	// This is the end of the bandwidth status on the top of the console, different in many language due to phrasing
     'BlobPx'               => 'Blob Px',
     'BlobSizes'            => 'Blob Sizes',
     'Blobs'                => 'Blobs',
@@ -291,6 +293,12 @@ $SLANG = array(
     'First'                => 'First',
     'FlippedHori'          => 'Flipped Horizontally',
     'FlippedVert'          => 'Flipped Vertically',
+    'FnNone'                => 'None',            // Added 2013.08.16.
+    'FnMonitor'             => 'Monitor',            // Added 2013.08.16.
+    'FnModect'              => 'Modect',            // Added 2013.08.16.
+    'FnRecord'              => 'Record',            // Added 2013.08.16.
+    'FnMocord'              => 'Mocord',            // Added 2013.08.16.
+    'FnNodect'              => 'Nodect',            // Added 2013.08.16.
     'Focus'                => 'Focalizare',
     'ForceAlarm'           => 'Alarm&#259; for&#355;at&#259;',
     'Format'               => 'Format',
@@ -298,6 +306,7 @@ $SLANG = array(
     'FrameId'              => 'Nr. cadru',
     'FrameRate'            => 'Frecv. cadre',
     'FrameSkip'            => 'Omite cadre',
+    'MotionFrameSkip'      => 'Motion Frame Skip',
     'Frames'               => 'Cadre',
     'Func'                 => 'Func',
     'Function'             => 'Func&#355;ie',
@@ -341,6 +350,7 @@ $SLANG = array(
     'Last'                 => 'Ultim',
     'Layout'               => 'Layout',                 // Added - 2009-02-08
     'Level'                => 'Level',                  // Added - 2011-06-16
+    'Libvlc'               => 'Libvlc',
     'LimitResultsPost'     => 'rezultate',
     'LimitResultsPre'      => 'Limiteaz&#259; la primele',
     'Line'                 => 'Line',                   // Added - 2011-06-16
@@ -434,6 +444,11 @@ $SLANG = array(
     'Month'                => 'Luna',
     'More'                 => 'More',                   // Added - 2011-06-16
     'Move'                 => 'Mi&#351;care',
+    'MtgDefault'           => 'Default',              // Added 2013.08.15.
+    'Mtg2widgrd'           => '2-wide grid',              // Added 2013.08.15.
+    'Mtg3widgrd'           => '3-wide grid',              // Added 2013.08.15.
+    'Mtg4widgrd'           => '4-wide grid',              // Added 2013.08.15.
+    'Mtg3widgrx'           => '3-wide grid, scaled, enlarge on alarm',              // Added 2013.08.15.
     'MustBeGe'             => 'trebuie sa fie mai mare sau egal cu',
     'MustBeLe'             => 'trebuie sa fie mai mic sau egal cu',
     'MustConfirmPassword'  => 'Trebuie sa confirmati parola',
@@ -602,6 +617,10 @@ $SLANG = array(
     'TimeDelta'            => 'Time Delta',
     'TimeStamp'            => 'Format timp',
     'Timeline'             => 'Timeline',
+    'TimelineTip1'          => 'Pass your mouse over the graph to view a snapshot image and event details.',              // Added 2013.08.15.
+    'TimelineTip2'          => 'Click on the coloured sections of the graph, or the image, to view the event.',              // Added 2013.08.15.
+    'TimelineTip3'          => 'Click on the background to zoom in to a smaller time period based around your click.',              // Added 2013.08.15.
+    'TimelineTip4'          => 'Use the controls below to zoom out or navigate back and forward through the time range.',              // Added 2013.08.15.
     'Timestamp'            => 'Format&nbsp;timp',
     'TimestampLabelFormat' => 'Format eticheta format timp',
     'TimestampLabelX'      => 'Format timp eticheta X',
@@ -679,6 +698,7 @@ $SLANG = array(
     'ZoneMinMaxPixelThres' => 'Min/Max Pixel Threshold (0-255)',
     'ZoneMinderLog'        => 'ZoneMinder Log',         // Added - 2011-06-17
     'ZoneOverloadFrames'   => 'Overload Frame Ignore Count',
+    'ZoneExtendAlarmFrames' => 'Extend Alarm Frame Count',
     'Zones'                => 'Zona',
     'Zoom'                 => 'Zoom',
     'ZoomIn'               => 'Zoom In',
@@ -1277,6 +1297,23 @@ $OLANG = array(
         'Prompt' => "C&#226;t de des (&#238;n secunde) se vor schimba imaginile &#238;n ciclul de monitorizare.",
         'Help' => "Ciclul de monitorizare este metoda de schimbare continu&#259; a imaginilor monitoarelor. Aceast&#259; op&#355;iune determin&#259; c&#226;t de des va fi actulizat cu o nou&#259; imagine."
     ),
+    
+// Options on Monitor view
+	'OPTIONS_FFMPEG' => array(
+		'Help' => "Parameters in this field are passwd on to FFmpeg. Multiple parameters can be separated by ,~~ ".
+		          "Examples (do not enter quotes)~~~~".
+		          "\"allowed_media_types=video\" Set datatype to request fromcam (audio, video, data)~~~~".
+		          "\"reorder_queue_size=nnn\" Set number of packets to buffer for handling of reordered packets~~~~".
+		          "\"loglevel=debug\" Set verbosiy of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
+	),
+	'OPTIONS_LIBVLC' => array(
+		'Help' => "Parameters in this field are passwd on to libVLC. Multiple parameters can be separated by ,~~ ".
+		          "Examples (do not enter quotes)~~~~".
+		          "\"--rtp-client-port=nnn\" Set local port to use for rtp data~~~~". 
+		          "\"--verbose=2\" Set verbosity of libVLC"
+	),
+
+
 // End of Phone Bandwidth tab
 //
 );

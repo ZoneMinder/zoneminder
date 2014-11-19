@@ -83,18 +83,11 @@ foreach ( getSkinIncludes( 'includes/functions.php' ) as $includeFile )
 if ( empty($view) )
     $view = isset($user)?'console':'login';
 
-if ( !isset($user) && ZM_OPT_USE_AUTH )
+if ( !isset($user) && ZM_OPT_USE_AUTH && ZM_AUTH_TYPE == "remote" && !empty( $_SERVER['REMOTE_USER']) )
 {
-    if ( ZM_AUTH_TYPE == "remote" && !empty( $_SERVER['REMOTE_USER'] ) )
-    {
-        $view = "postlogin";
-        $action = "login";
-        $_REQUEST['username'] = $_SERVER['REMOTE_USER'];
-    }
-    else
-    {
-        $view = "login";
-    }
+     $view = "postlogin";
+     $action = "login";
+     $_REQUEST['username'] = $_SERVER['REMOTE_USER'];
 }
 
 // If there are additional actions

@@ -25,7 +25,7 @@ New installs
    introduce an obvious security issue.  The following should set this up:
 
      mysql -u root -p
-     grant select,insert,update,delete,alter on zm.* to 
+     grant select,insert,update,delete,lock tables,alter on zm.* to 
      'zmuser'@localhost identified by 'zmpass';
 
    Obviously, change at least zmpass to an actual, secure password or
@@ -46,11 +46,12 @@ New installs
    may be necessary to disable SELinux for httpd, or even completely for
    ZoneMinder to function. This will be addressed in a later release.  Run
 
-     setenforce 0
+     sudo setenforce 0
 
    for testing, and edit /etc/sysconfig/selinux to disable it at boot time.
 
-7. IMPORTANT: Edit /etc/httpd/conf.d/zoneminder.conf and/or /etc/httpd/conf.
+7. IMPORTANT: Edit /etc/httpd/conf.d/zoneminder.conf and/or 
+   /etc/httpd/conf/httpd.conf.
 
    The httpd.conf file included with this version of Fedora processes the conf.d
    folder after the default ScriptAlias directive in the httpd.conf file.
@@ -79,30 +80,10 @@ New installs
 	sudo systemctl enable httpd.service
 	sudo systemctl start httpd.service
 
-9. You should immediately visit http://localhost/zm and secure the system if
-   it is network facing.  To do this:
+9. Now start zoneminder:
 
-   a) click Options, then System.
-   b) check OPT_USE_AUTH.
-   c) set AUTH_HASH_SECRET to a random string.
-   d) click Save and refresh the main browser window.
-   e) You should be prompted to log in; 
-      the default username/password is admin/admin.
-   f) Open Options again, choose the newly visible Users tab.
-   g) click the admin user and set a password.
-   h) enable OPT_CONTROL on the Ssytem tab to enable ptz camera control.
-
-10. The zoneminder.service file fails at present but the zmpkg.pl script
-    can be run as root to start zoneminder.
-
-	sudo zmpkg.pl start
-
-    To start zoneminder automatically, create /etc/rc.d/rc.local and place the 
-    following inside it:
-	#!/bin/sh
-	/usr/bin/zmpkg.pl start 
-
-    The rc.local file must be made executable.
+	sudo systemctl enable zoneminder.service
+	sudo systemctl start zoneminder.service
 
 Upgrades
 ========
@@ -111,10 +92,10 @@ Upgrades
    information.  Comparing /etc/zm.conf and /etc/zm.conf.rpmnew should help to
    do this.
 
-2. Add the mysql ALTER permission to the zmuser account:
+2. Add additional permissions to the zmuser account:
 
      mysql -u root -p
-     grant alter on zm.* to 
+     grant lock tables,alter on zm.* to 
      'zmuser'@localhost identified by 'zmpass';
 
    Since this is an upgrade, the assumption is that the zmuser account already

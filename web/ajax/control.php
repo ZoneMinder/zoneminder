@@ -7,7 +7,7 @@ if ( empty($_REQUEST['id']) )
 
 if ( canView( 'Control', $_REQUEST['id'] ) )
 {
-    $monitor = dbFetchOne( "select C.*,M.* from Monitors as M inner join Controls as C on (M.ControlId = C.Id ) where M.Id = '".dbEscape($_REQUEST['id'])."'" );
+    $monitor = dbFetchOne( 'select C.*,M.* from Monitors as M inner join Controls as C on (M.ControlId = C.Id ) where M.Id = ?', NULL, array($_REQUEST['id']) );
 
     $ctrlCommand = buildControlCommand( $monitor );
 

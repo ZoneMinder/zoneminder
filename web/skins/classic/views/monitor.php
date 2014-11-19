@@ -40,14 +40,11 @@ if ( isset($_REQUEST['tab']) )
 else
     $tab = "general";
 
-if ( !empty($_REQUEST['mid']) )
-{
+if ( ! empty($_REQUEST['mid']) ) {
     $monitor = dbFetchMonitor( $_REQUEST['mid'] );
     if ( ZM_OPT_X10 )
-        $x10Monitor = dbFetchOne( "select * from TriggersX10 where MonitorId = '".dbEscape($_REQUEST['mid'])."'" );
-}
-else
-{
+        $x10Monitor = dbFetchOne( 'SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['mid']) );
+} else {
     $nextId = getTableAutoInc( 'Monitors' );
     $monitor = array(
         'Id' => 0,
@@ -63,7 +60,10 @@ else
         'Method' => "",
         'Host' => "",
         'Path' => "",
+        'Options' => "",
         'Port' => "80",
+        'User' => "",
+        'Pass' => "",
         'Colours' => 3,
         'Palette' => 0,
         'Width' => "320",
@@ -91,17 +91,21 @@ else
         'ReturnDelay' => "",
         'SectionLength' => 600,
         'FrameSkip' => 0,
+        'MotionFrameSkip' => 0,
         'EventPrefix' => 'Event-',
         'MaxFPS' => "",
         'AlarmMaxFPS' => "",
         'FPSReportInterval' => 1000,
-        'RefBlendPerc' => 12,
+        'RefBlendPerc' => 6,
+        'AlarmRefBlendPerc' => 6,
         'DefaultView' => 'Events',
         'DefaultRate' => '100',
         'DefaultScale' => '100',
         'SignalCheckColour' => '#0000c0',
         'WebColour' => 'red',
         'Triggers' => "",
+		'V4LMultiBuffer'	=>	'',
+		'V4LCapturesPerFrame'	=>	1,
     );
 }
 
@@ -140,7 +144,7 @@ if ( $newMonitor['AlarmMaxFPS'] == '0.00' )
 
 if ( !empty($_REQUEST['preset']) )
 {
-    $preset = dbFetchOne( "select Type, Device, Channel, Format, Protocol, Method, Host, Port, Path, Width, Height, Palette, MaxFPS, Controllable, ControlId, ControlDevice, ControlAddress, DefaultRate, DefaultScale from MonitorPresets where Id = '".dbEscape($_REQUEST['preset'])."'" );
+    $preset = dbFetchOne( 'SELECT Type, Device, Channel, Format, Protocol, Method, Host, Port, Path, Width, Height, Palette, MaxFPS, Controllable, ControlId, ControlDevice, ControlAddress, DefaultRate, DefaultScale FROM MonitorPresets WHERE Id = ?', NULL, array($_REQUEST['preset']) );
     foreach ( $preset as $name=>$value )
     {
         if ( isset($value) )
@@ -174,6 +178,8 @@ $sourceTypes = array(
     'Remote' => $SLANG['Remote'],
     'File'   => $SLANG['File'],
     'Ffmpeg' => $SLANG['Ffmpeg'],
+    'Libvlc' => $SLANG['Libvlc'],
+    'cURL'   => "cURL (HTTP(S) only)"
 );
 if ( !ZM_HAS_V4L )
     unset($sourceTypes['Local']);
@@ -306,7 +312,7 @@ if ( ZM_HAS_V4L2 )
         //"YVU410" =>   fourcc('Y','V','U','9'), /*  9  YVU 4:1:0     */
         //"YVU420" =>   fourcc('Y','V','1','2'), /* 12  YVU 4:2:0     */
 
-        //"UYVY" =>     fourcc('U','Y','V','Y'), /* 16  YUV 4:2:2     */
+        "*UYVY" =>     fourcc('U','Y','V','Y'), /* 16  YUV 4:2:2     */
         "*YUV422P" =>  fourcc('4','2','2','P'), /* 16  YVU422 planar */
         "*YUV411P" =>  fourcc('4','1','1','P'), /* 16  YVU411 planar */
         //"Y41P" =>     fourcc('Y','4','1','P'), /* 12  YUV 4:1:1     */
@@ -386,7 +392,27 @@ $deinterlaceopts_v4l2 = array(
     "V4L2: Capture bottom field only"                     => 0x03000000,
     "V4L2: Alternate fields (Bob)"                        => 0x07000000,
     "V4L2: Progressive"                                   => 0x01000000,
-    "V4L2: Interlaced"                                    => 0x04000000,
+    "V4L2: Interlaced"                                    => 0x04000000
+);
+
+$fastblendopts = array(
+    "No blending"                                         => 0,
+    "1.5625%"                                             => 1,
+    "3.125%"                                              => 3,
+    "6.25% (Indoor)"                                      => 6,
+    "12.5% (Outdoor)"                                     => 12,
+    "25%"                                                 => 25,
+    "50%"                                                 => 50
+);
+
+$fastblendopts_alarm = array(
+    "No blending (Alarm lasts forever)"                   => 0,
+    "1.5625%"                                             => 1,
+    "3.125%"                                              => 3,
+    "6.25%"                                               => 6,
+    "12.5%"                                               => 12,
+    "25%"                                                 => 25,
+    "50% (Alarm lasts a moment)"                          => 50
 );
 
 xhtmlHeaders(__FILE__, $SLANG['Monitor']." - ".validHtmlStr($monitor['Name']) );
@@ -444,6 +470,7 @@ if ( $tab != 'general' )
         <input type="hidden" name="newMonitor[Function]" value="<?= validHtmlStr($newMonitor['Function']) ?>"/>
         <input type="hidden" name="newMonitor[Enabled]" value="<?= validHtmlStr($newMonitor['Enabled']) ?>"/>
         <input type="hidden" name="newMonitor[RefBlendPerc]" value="<?= validHtmlStr($newMonitor['RefBlendPerc']) ?>"/>
+        <input type="hidden" name="newMonitor[AlarmRefBlendPerc]" value="<?= validHtmlStr($newMonitor['AlarmRefBlendPerc']) ?>"/>
         <input type="hidden" name="newMonitor[MaxFPS]" value="<?= validHtmlStr($newMonitor['MaxFPS']) ?>"/>
         <input type="hidden" name="newMonitor[AlarmMaxFPS]" value="<?= validHtmlStr($newMonitor['AlarmMaxFPS']) ?>"/>
 <?php
@@ -464,6 +491,8 @@ if ( ZM_HAS_V4L && ($tab != 'source' || $newMonitor['Type'] != 'Local') )
     <input type="hidden" name="newMonitor[Channel]" value="<?= validHtmlStr($newMonitor['Channel']) ?>"/>
     <input type="hidden" name="newMonitor[Format]" value="<?= validHtmlStr($newMonitor['Format']) ?>"/>
     <input type="hidden" name="newMonitor[Palette]" value="<?= validHtmlStr($newMonitor['Palette']) ?>"/>
+    <input type="hidden" name="newMonitor[V4LMultiBuffer]" value="<?= validHtmlStr($newMonitor['V4LMultiBuffer']) ?>"/>
+    <input type="hidden" name="newMonitor[V4LCapturesPerFrame]" value="<?= validHtmlStr($newMonitor['V4LCapturesPerFrame']) ?>"/>
 <?php
 }
 if ( $tab != 'source' || $newMonitor['Type'] != 'Remote' )
@@ -474,16 +503,24 @@ if ( $tab != 'source' || $newMonitor['Type'] != 'Remote' )
     <input type="hidden" name="newMonitor[Port]" value="<?= validHtmlStr($newMonitor['Port']) ?>"/>
 <?php
 }
-if ( $tab != 'source' || ($newMonitor['Type'] != 'Local' && $newMonitor['Type'] != 'Remote') )
+if ( $tab != 'source' || ($newMonitor['Type'] != 'Local' && $newMonitor['Type'] != 'Remote' && $newMonitor['Type'] != 'Ffmpeg' && $newMonitor['Type'] != 'Libvlc') )
 {
 ?>
     <input type="hidden" name="newMonitor[Method]" value="<?= validHtmlStr($newMonitor['Method']) ?>"/>
 <?php
 }
-if ( $tab != 'source' || ($newMonitor['Type'] != 'Remote' && $newMonitor['Type'] != 'File' && $newMonitor['Type'] != 'Ffmpeg') )
+if ( $tab != 'source' || ($newMonitor['Type'] != 'Ffmpeg' && $newMonitor['Type'] != 'Libvlc' ))
+{
+?>
+    <input type="hidden" name="newMonitor[Options]" value="<?= validHtmlStr($newMonitor['Options']) ?>"/>
+<?php
+}
+if ( $tab != 'source' || ($newMonitor['Type'] != 'Remote' && $newMonitor['Type'] != 'File' && $newMonitor['Type'] != 'Ffmpeg' && $newMonitor['Type'] != 'Libvlc' && $newMonitor['Type'] != 'cURL') )
 {
 ?>
     <input type="hidden" name="newMonitor[Path]" value="<?= validHtmlStr($newMonitor['Path']) ?>"/>
+    <input type="hidden" name="newMonitor[User]" value="<?= validHtmlStr($newMonitor['User']) ?>"/>
+    <input type="hidden" name="newMonitor[Pass]" value="<?= validHtmlStr($newMonitor['Pass']) ?>"/>
 <?php
 }
 if ( $tab != 'source' )
@@ -543,6 +580,7 @@ if ( $tab != 'misc' )
     <input type="hidden" name="newMonitor[EventPrefix]" value="<?= validHtmlStr($newMonitor['EventPrefix']) ?>"/>
     <input type="hidden" name="newMonitor[SectionLength]" value="<?= validHtmlStr($newMonitor['SectionLength']) ?>"/>
     <input type="hidden" name="newMonitor[FrameSkip]" value="<?= validHtmlStr($newMonitor['FrameSkip']) ?>"/>
+    <input type="hidden" name="newMonitor[MotionFrameSkip]" value="<?= validHtmlStr($newMonitor['MotionFrameSkip']) ?>"/>
     <input type="hidden" name="newMonitor[FPSReportInterval]" value="<?= validHtmlStr($newMonitor['FPSReportInterval']) ?>"/>
     <input type="hidden" name="newMonitor[DefaultView]" value="<?= validHtmlStr($newMonitor['DefaultView']) ?>"/>
     <input type="hidden" name="newMonitor[DefaultRate]" value="<?= validHtmlStr($newMonitor['DefaultRate']) ?>"/>
@@ -603,7 +641,20 @@ switch ( $tab )
             </tr>
             <tr><td><?= $SLANG['MaximumFPS'] ?></td><td><input type="text" name="newMonitor[MaxFPS]" value="<?= validHtmlStr($newMonitor['MaxFPS']) ?>" size="6"/></td></tr>
             <tr><td><?= $SLANG['AlarmMaximumFPS'] ?></td><td><input type="text" name="newMonitor[AlarmMaxFPS]" value="<?= validHtmlStr($newMonitor['AlarmMaxFPS']) ?>" size="6"/></td></tr>
+<?php
+	if ( ZM_FAST_IMAGE_BLENDS )
+        {
+?>
+            <tr><td><?= $SLANG['RefImageBlendPct'] ?></td><td><select name="newMonitor[RefBlendPerc]"><?php foreach ( $fastblendopts as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['RefBlendPerc'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
+            <tr><td><?= "Alarm " . $SLANG['RefImageBlendPct'] ?></td><td><select name="newMonitor[AlarmRefBlendPerc]"><?php foreach ( $fastblendopts_alarm as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['AlarmRefBlendPerc'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
+<?php
+	} else {
+?>
             <tr><td><?= $SLANG['RefImageBlendPct'] ?></td><td><input type="text" name="newMonitor[RefBlendPerc]" value="<?= validHtmlStr($newMonitor['RefBlendPerc']) ?>" size="4"/></td></tr>
+            <tr><td><?= "Alarm " . $SLANG['RefImageBlendPct'] ?></td><td><input type="text" name="newMonitor[AlarmRefBlendPerc]" value="<?= validHtmlStr($newMonitor['AlarmRefBlendPerc']) ?>" size="4"/></td></tr>
+<?php
+        }
+?>
             <tr><td><?= $SLANG['Triggers'] ?></td><td>
 <?php
         $optTriggers = getSetValues( 'Monitors', 'Triggers' );
@@ -656,6 +707,17 @@ switch ( $tab )
             <tr><td><?= $SLANG['CapturePalette'] ?></td><td><select name="newMonitor[Palette]"><?php foreach ( $v4l2LocalPalettes as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['Palette'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></td></tr>
 <?php
             }
+?>
+			<tr><td><?= $SLANG['V4LMultiBuffer'] ?></td><td>
+				<input type="radio" name="newMonitor[V4LMultiBuffer]" id="newMonitor[V4LMultiBuffer]1" value="1" <?php echo ( $newMonitor['V4LMultiBuffer'] == 1 ? 'checked="checked"' : '' ) ?>/>
+				<label for="newMonitor[V4LMultiBuffer]1">Yes</label>
+				<input type="radio" name="newMonitor[V4LMultiBuffer]" id="newMonitor[V4LMultiBuffer]0" value="0" <?php echo ( $newMonitor['V4LMultiBuffer'] == 0 ? 'checked="checked"' : '' ) ?>/>
+				<label for="newMonitor[V4LMultiBuffer]0">No</label>
+				<input type="radio" name="newMonitor[V4LMultiBuffer]" id="newMonitor[V4LMultiBuffer]" value="" <?php echo ( empty($newMonitor['V4LMultiBuffer']) ? 'checked="checked"' : '' ) ?>/>
+				<label for="newMonitor[V4LMultiBuffer]">Use Config Value</label>
+			</td></tr>
+			<tr><td><?= $SLANG['V4LCapturesPerFrame'] ?></td><td><input type="number" name="newMonitor[V4LCapturesPerFrame]" value="<?php echo $newMonitor['V4LCapturesPerFrame'] ?>"/></td></tr>
+<?php
         }
         elseif ( $newMonitor['Type'] == "Remote" )
         {
@@ -680,10 +742,26 @@ switch ( $tab )
             <tr><td><?= $SLANG['RemoteHostPath'] ?></td><td><input type="text" name="newMonitor[Path]" value="<?= validHtmlStr($newMonitor['Path']) ?>" size="36"/></td></tr>
 <?php
         }
-        elseif ( $newMonitor['Type'] == "File" || $newMonitor['Type'] == "Ffmpeg" )
+        elseif ( $newMonitor['Type'] == "File" )
         {
 ?>
             <tr><td><?= $SLANG['SourcePath'] ?></td><td><input type="text" name="newMonitor[Path]" value="<?= validHtmlStr($newMonitor['Path']) ?>" size="36"/></td></tr>
+<?php
+        }
+        elseif ( $newMonitor['Type'] == "cURL" )
+        {
+?>
+            <tr><td><?= "URL" ?></td><td><input type="text" name="newMonitor[Path]" value="<?= validHtmlStr($newMonitor['Path']) ?>" size="36"/></td></tr>
+            <tr><td><?= "Username" ?></td><td><input type="text" name="newMonitor[User]" value="<?= validHtmlStr($newMonitor['User']) ?>" size="12"/></td></tr>
+            <tr><td><?= "Password" ?></td><td><input type="text" name="newMonitor[Pass]" value="<?= validHtmlStr($newMonitor['Pass']) ?>" size="12"/></td></tr>
+<?php
+        }
+        elseif ( $newMonitor['Type'] == "Ffmpeg" || $newMonitor['Type'] == "Libvlc")
+        {
+?>
+			<tr><td><?= $SLANG['SourcePath'] ?></td><td><input type="text" name="newMonitor[Path]" value="<?= validHtmlStr($newMonitor['Path']) ?>" size="36"/></td></tr>
+            <tr><td><?= $SLANG['RemoteMethod'] ?></td><td><?= buildSelect( "newMonitor[Method]", $rtspMethods ); ?></td></tr>
+			<tr><td><?= $SLANG['Options'] ?>&nbsp;(<?= makePopupLink( '?view=optionhelp&amp;option=OPTIONS_'.strtoupper($newMonitor['Type']), 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td><td><input type="text" name="newMonitor[Options]" value="<?= validHtmlStr($newMonitor['Options']) ?>" size="36"/></td></tr>
 <?php
         }
 ?>
@@ -765,6 +843,7 @@ switch ( $tab )
             <tr><td><?= $SLANG['EventPrefix'] ?></td><td><input type="text" name="newMonitor[EventPrefix]" value="<?= validHtmlStr($newMonitor['EventPrefix']) ?>" size="24"/></td></tr>
             <tr><td><?= $SLANG['Sectionlength'] ?></td><td><input type="text" name="newMonitor[SectionLength]" value="<?= validHtmlStr($newMonitor['SectionLength']) ?>" size="6"/></td></tr>
             <tr><td><?= $SLANG['FrameSkip'] ?></td><td><input type="text" name="newMonitor[FrameSkip]" value="<?= validHtmlStr($newMonitor['FrameSkip']) ?>" size="6"/></td></tr>
+            <tr><td><?= $SLANG['MotionFrameSkip'] ?></td><td><input type="text" name="newMonitor[MotionFrameSkip]" value="<?= validHtmlStr($newMonitor['MotionFrameSkip']) ?>" size="6"/></td></tr>
             <tr><td><?= $SLANG['FPSReportInterval'] ?></td><td><input type="text" name="newMonitor[FPSReportInterval]" value="<?= validHtmlStr($newMonitor['FPSReportInterval']) ?>" size="6"/></td></tr>
             <tr><td><?= $SLANG['DefaultView'] ?></td><td><select name="newMonitor[DefaultView]">
 <?php

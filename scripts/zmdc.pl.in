@@ -51,7 +51,7 @@ use Socket;
 use IO::Handle;
 use Data::Dumper;
 
-use constant SOCK_FILE => ZM_PATH_SOCKS.'/zmdc.sock';
+use constant SOCK_FILE => $Config{ZM_PATH_SOCKS}.'/zmdc.sock';
 
 $| = 1;
 
@@ -437,7 +437,7 @@ sub start
 
         if ( $daemon =~ /^${daemon_patt}$/ )
         {
-            $daemon = ZM_PATH_BIN.'/'.$1;
+            $daemon = $Config{ZM_PATH_BIN}.'/'.$1;
         }
         else
         {
@@ -645,7 +645,7 @@ sub reaper
 
         if ( $process->{keepalive} )
         {
-            if ( !$process->{delay} || ($process->{runtime} > ZM_MAX_RESTART_DELAY) )
+            if ( !$process->{delay} || ($process->{runtime} > $Config{ZM_MAX_RESTART_DELAY} ) )
             {
                 #start( $process->{daemon}, @{$process->{args}} );
                 # Schedule for immediate restart
@@ -659,9 +659,9 @@ sub reaper
                 $process->{pending} = $process->{stopped}+$process->{delay};
                 $process->{delay} *= 2;
                 # Limit the start delay to 15 minutes max
-                if ( $process->{delay} > ZM_MAX_RESTART_DELAY )
+                if ( $process->{delay} > $Config{ZM_MAX_RESTART_DELAY} )
                 {
-                    $process->{delay} = ZM_MAX_RESTART_DELAY;
+                    $process->{delay} = $Config{ZM_MAX_RESTART_DELAY};
                 }
             }
         }
@@ -782,16 +782,22 @@ sub killAll
 {
     my $delay = shift;
     sleep( $delay );
+	my $killall;
+	if ( '@HOST_OS@' eq 'BSD' ) {
+		$killall = 'killall -';
+	} else {
+		$killall = 'killall -q -s ';
+	}
+    foreach my $daemon ( @daemons ) {
+
+		my $cmd = $killall ."TERM $daemon";
+		Debug( $cmd );
+		qx( $cmd );
+	}
+	sleep( $delay );
     foreach my $daemon ( @daemons )
     {
-        my $cmd = "killall --quiet --signal TERM $daemon";
-        Debug( $cmd );
-        qx( $cmd );
-    }
-    sleep( $delay );
-    foreach my $daemon ( @daemons )
-    {
-        my $cmd = "killall --quiet --signal KILL $daemon";
+        my $cmd = $killall."KILL $daemon";
         Debug( $cmd );
         qx( $cmd );
     }

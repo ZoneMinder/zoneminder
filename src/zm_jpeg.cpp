@@ -399,12 +399,12 @@ void zm_use_std_huff_tables( j_decompress_ptr cinfo ) {
 	static const JHUFF_TBL dclumin = {
 	  { /* 0-base */ 0, 0, 1, 5, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0 },
 	  { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 },
-	  0
+	  FALSE
 	};
 	static const JHUFF_TBL dcchrome = {
 	  { /* 0-base */ 0, 0, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0 },
 	  { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 },
-	  0
+	  FALSE
 	};
 	static const JHUFF_TBL aclumin = {
 	  { /* 0-base */ 0, 0, 2, 1, 3, 3, 2, 4, 3, 5, 5, 4, 4, 0, 0, 1, 0x7d },
@@ -429,7 +429,7 @@ void zm_use_std_huff_tables( j_decompress_ptr cinfo ) {
 	    0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9, 0xea,
 	    0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8,
 	    0xf9, 0xfa },
-	  0
+	  FALSE
 	};
 	static const JHUFF_TBL acchrome = {
 	  { /* 0-base */ 0, 0, 2, 1, 2, 4, 4, 3, 4, 7, 5, 4, 4, 0, 1, 2, 0x77 },
@@ -454,7 +454,7 @@ void zm_use_std_huff_tables( j_decompress_ptr cinfo ) {
 	    0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9,
 	    0xea, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8,
 	    0xf9, 0xfa },
-	  0
+	  FALSE
 	};
 	
 	cinfo->dc_huff_tbl_ptrs[0] = (JHUFF_TBL*)&dclumin;

@@ -15,7 +15,7 @@
 
      mysql -uroot -p
 	mysql> create database zm;
-	mysql> grant select,insert,update,delete,alter on zm.* to
+	mysql> grant select,insert,update,delete,lock tables,alter on zm.* to
                'zmuser'@localhost identified by 'zmpass';
 	mysql> exit;
      mysql -uroot -p < /usr/share/zoneminder/db/zm_create.sql
@@ -41,9 +41,20 @@
      sudo chkconfig httpd on
      sudo service httpd start
 
-7. This package has automatically configured and installed an SELinux policy
+7. This package will automatically configure and install an SELinux policy
    called local_zoneminder. A copy of this policy is in the documentation
    folder.
+   
+   Unfortunately, this has not resolved all the SELinux issues so
+   most will want to disable SELinux permanently by editing the following:
+   
+   /etc/selinux/conf
+   
+   Change SELINUX line from "enforcing" to "disabled". This change will not
+   take effect until a reboot, however. To avoid a reboot, execute the
+   following from the commandline:
+   
+   sudo setenforce 0
 
 8. Finally, you may start the ZoneMinder service:
 
@@ -55,10 +66,10 @@
 				UPGRADES
 ================================================================================
 
-1. Add the mysql ALTER permission to the zmuser account:
+1. Add additional permissions to the zmuser account:
 
      mysql -u root -p
-     grant alter on zm.* to
+     grant lock tables,alter on zm.* to
      'zmuser'@localhost identified by 'zmpass';
 
    Since this is an upgrade, the assumption is that the zmuser account exists

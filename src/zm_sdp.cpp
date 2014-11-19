@@ -25,44 +25,44 @@
 
 #if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
 SessionDescriptor::StaticPayloadDesc SessionDescriptor::smStaticPayloads[] = {
-    { 0, "PCMU",   AVMEDIA_TYPE_AUDIO,   CODEC_ID_PCM_MULAW,  8000,  1 },
-    { 3, "GSM",    AVMEDIA_TYPE_AUDIO,   CODEC_ID_NONE,       8000,  1 },
-    { 4, "G723",   AVMEDIA_TYPE_AUDIO,   CODEC_ID_NONE,       8000,  1 },
-    { 5, "DVI4",   AVMEDIA_TYPE_AUDIO,   CODEC_ID_NONE,       8000,  1 },
-    { 6, "DVI4",   AVMEDIA_TYPE_AUDIO,   CODEC_ID_NONE,       16000, 1 },
-    { 7, "LPC",    AVMEDIA_TYPE_AUDIO,   CODEC_ID_NONE,       8000,  1 },
-    { 8, "PCMA",   AVMEDIA_TYPE_AUDIO,   CODEC_ID_PCM_ALAW,   8000,  1 },
-    { 9, "G722",   AVMEDIA_TYPE_AUDIO,   CODEC_ID_NONE,       8000,  1 },
-    { 10, "L16",   AVMEDIA_TYPE_AUDIO,   CODEC_ID_PCM_S16BE,  44100, 2 },
-    { 11, "L16",   AVMEDIA_TYPE_AUDIO,   CODEC_ID_PCM_S16BE,  44100, 1 },
-    { 12, "QCELP", AVMEDIA_TYPE_AUDIO,   CODEC_ID_QCELP,      8000,  1 },
-    { 13, "CN",    AVMEDIA_TYPE_AUDIO,   CODEC_ID_NONE,       8000,  1 },
-    { 14, "MPA",   AVMEDIA_TYPE_AUDIO,   CODEC_ID_MP2,        -1,    -1 },
-    { 14, "MPA",   AVMEDIA_TYPE_AUDIO,   CODEC_ID_MP3,        -1,    -1 },
-    { 15, "G728",  AVMEDIA_TYPE_AUDIO,   CODEC_ID_NONE,       8000,  1 },
-    { 16, "DVI4",  AVMEDIA_TYPE_AUDIO,   CODEC_ID_NONE,       11025, 1 },
-    { 17, "DVI4",  AVMEDIA_TYPE_AUDIO,   CODEC_ID_NONE,       22050, 1 },
-    { 18, "G729",  AVMEDIA_TYPE_AUDIO,   CODEC_ID_NONE,       8000,  1 },
-    { 25, "CelB",  AVMEDIA_TYPE_VIDEO,   CODEC_ID_NONE,       90000, -1 },
-    { 26, "JPEG",  AVMEDIA_TYPE_VIDEO,   CODEC_ID_MJPEG,      90000, -1 },
-    { 28, "nv",    AVMEDIA_TYPE_VIDEO,   CODEC_ID_NONE,       90000, -1 },
-    { 31, "H261",  AVMEDIA_TYPE_VIDEO,   CODEC_ID_H261,       90000, -1 },
-    { 32, "MPV",   AVMEDIA_TYPE_VIDEO,   CODEC_ID_MPEG1VIDEO, 90000, -1 },
-    { 32, "MPV",   AVMEDIA_TYPE_VIDEO,   CODEC_ID_MPEG2VIDEO, 90000, -1 },
-    { 33, "MP2T",  AVMEDIA_TYPE_DATA,    CODEC_ID_MPEG2TS,    90000, -1 },
-    { 34, "H263",  AVMEDIA_TYPE_VIDEO,   CODEC_ID_H263,       90000, -1 },
-    { -1, "",      AVMEDIA_TYPE_UNKNOWN, CODEC_ID_NONE,       -1,    -1 }
+    { 0, "PCMU",   AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_PCM_MULAW,  8000,  1 },
+    { 3, "GSM",    AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_NONE,       8000,  1 },
+    { 4, "G723",   AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_NONE,       8000,  1 },
+    { 5, "DVI4",   AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_NONE,       8000,  1 },
+    { 6, "DVI4",   AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_NONE,       16000, 1 },
+    { 7, "LPC",    AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_NONE,       8000,  1 },
+    { 8, "PCMA",   AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_PCM_ALAW,   8000,  1 },
+    { 9, "G722",   AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_NONE,       8000,  1 },
+    { 10, "L16",   AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_PCM_S16BE,  44100, 2 },
+    { 11, "L16",   AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_PCM_S16BE,  44100, 1 },
+    { 12, "QCELP", AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_QCELP,      8000,  1 },
+    { 13, "CN",    AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_NONE,       8000,  1 },
+    { 14, "MPA",   AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_MP2,        -1,    -1 },
+    { 14, "MPA",   AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_MP3,        -1,    -1 },
+    { 15, "G728",  AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_NONE,       8000,  1 },
+    { 16, "DVI4",  AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_NONE,       11025, 1 },
+    { 17, "DVI4",  AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_NONE,       22050, 1 },
+    { 18, "G729",  AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_NONE,       8000,  1 },
+    { 25, "CelB",  AVMEDIA_TYPE_VIDEO,   AV_CODEC_ID_NONE,       90000, -1 },
+    { 26, "JPEG",  AVMEDIA_TYPE_VIDEO,   AV_CODEC_ID_MJPEG,      90000, -1 },
+    { 28, "nv",    AVMEDIA_TYPE_VIDEO,   AV_CODEC_ID_NONE,       90000, -1 },
+    { 31, "H261",  AVMEDIA_TYPE_VIDEO,   AV_CODEC_ID_H261,       90000, -1 },
+    { 32, "MPV",   AVMEDIA_TYPE_VIDEO,   AV_CODEC_ID_MPEG1VIDEO, 90000, -1 },
+    { 32, "MPV",   AVMEDIA_TYPE_VIDEO,   AV_CODEC_ID_MPEG2VIDEO, 90000, -1 },
+    { 33, "MP2T",  AVMEDIA_TYPE_DATA,    AV_CODEC_ID_MPEG2TS,    90000, -1 },
+    { 34, "H263",  AVMEDIA_TYPE_VIDEO,   AV_CODEC_ID_H263,       90000, -1 },
+    { -1, "",      AVMEDIA_TYPE_UNKNOWN, AV_CODEC_ID_NONE,       -1,    -1 }
 };
 
 SessionDescriptor::DynamicPayloadDesc SessionDescriptor::smDynamicPayloads[] = {
-    { "MP4V-ES", AVMEDIA_TYPE_VIDEO, CODEC_ID_MPEG4 },
-    { "mpeg4-generic", AVMEDIA_TYPE_AUDIO, CODEC_ID_AAC },
-    { "H264", AVMEDIA_TYPE_VIDEO, CODEC_ID_H264 },
-    { "AMR", AVMEDIA_TYPE_AUDIO, CODEC_ID_AMR_NB }
+    { "MP4V-ES", AVMEDIA_TYPE_VIDEO, AV_CODEC_ID_MPEG4 },
+    { "mpeg4-generic", AVMEDIA_TYPE_AUDIO, AV_CODEC_ID_AAC },
+    { "H264", AVMEDIA_TYPE_VIDEO, AV_CODEC_ID_H264 },
+    { "AMR", AVMEDIA_TYPE_AUDIO, AV_CODEC_ID_AMR_NB }
 };
 #else
 SessionDescriptor::StaticPayloadDesc SessionDescriptor::smStaticPayloads[] = {
-    { 0, "PCMU",   CODEC_TYPE_AUDIO,   CODEC_ID_PCM_MULAW,  8000,  1 },
+    { 0, "PCMU",   CODEC_TYPE_AUDIO,   CODEC_ID_PCM_MULAW,  8001,  1 },
     { 3, "GSM",    CODEC_TYPE_AUDIO,   CODEC_ID_NONE,       8000,  1 },
     { 4, "G723",   CODEC_TYPE_AUDIO,   CODEC_ID_NONE,       8000,  1 },
     { 5, "DVI4",   CODEC_TYPE_AUDIO,   CODEC_ID_NONE,       8000,  1 },
@@ -415,7 +415,7 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const
             stream->codec->width = mediaDesc->getWidth();
         if ( mediaDesc->getHeight() )
             stream->codec->height = mediaDesc->getHeight();
-        if ( stream->codec->codec_id == CODEC_ID_H264 && mediaDesc->getSprops().size())
+        if ( stream->codec->codec_id == AV_CODEC_ID_H264 && mediaDesc->getSprops().size())
         {
     	    uint8_t start_sequence[]= { 0, 0, 1 };
     	    stream->codec->extradata_size= 0;

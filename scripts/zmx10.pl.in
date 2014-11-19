@@ -48,7 +48,7 @@ use Socket;
 use Getopt::Long;
 use Data::Dumper;
 
-use constant SOCK_FILE => ZM_PATH_SOCKS.'/zmx10.sock';
+use constant SOCK_FILE => $Config{ZM_PATH_SOCKS}.'/zmx10.sock';
 
 $| = 1;
 

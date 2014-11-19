@@ -47,11 +47,13 @@ RETSIGTYPE zm_die_handler(int signal, siginfo_t * info, void *context)
 RETSIGTYPE zm_die_handler(int signal)
 #endif
 {
+#if (defined(__i386__) || defined(__x86_64__))
 	void *cr2 = 0;
 	void *ip = 0;
-
+#endif
 	Error("Got signal %d (%s), crashing", signal, strsignal(signal));
 
+#if (defined(__i386__) || defined(__x86_64__))
 	// Get more information if available
 #if ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
 	if (info && context) {
@@ -103,7 +105,7 @@ RETSIGTYPE zm_die_handler(int signal)
 	Info("Backtrace complete, please execute the following command for more information");
 	Info(cmd);
 #endif				// ( !defined(ZM_NO_CRASHTRACE) && HAVE_DECL_BACKTRACE && HAVE_DECL_BACKTRACE_SYMBOLS )
-
+#endif                          // (defined(__i386__) || defined(__x86_64__)
 	exit(signal);
 }
 

@@ -280,6 +280,12 @@ bool Zone::CheckAlarms( const Image *comp_image )
 		return( false );
 	}
 
+	if ( reinit_nat_det )
+	{
+		Debug( 4, "Update reference image of zone %s", label );
+		ref_image = *comp_image;
+	}
+
 	delete image;
 	// Get the difference image
 	Image *diff_image = image = new Image( delta_image );
@@ -879,10 +885,6 @@ bool Zone::CheckAlarms( const Image *comp_image )
 			} else {
 				score = 0;
 				image = new Image( bl_image );
-			}
-			// Update reference image if required
-			if ( reinit_nat_det ) {
-				ref_image = *comp_image;
 			}
 			// Only need to delete this when 'image' becomes detached and points somewhere else
 			delete diff_image;

@@ -686,12 +686,16 @@ void Monitor::AddZones( int p_n_zones, Zone *p_zones[] )
         if ( purpose == ANALYSIS )
         {
             Zone *zone = zones[i];
+            Debug( 4, "Assign reference image of zone %s", zone->Label() );
             zone->AssignRefImage( width, height, camera->Colours(), camera->SubpixelOrder(),
                     image_buffer[shared_data->last_write_index].image->Buffer(), camera->ImageSize() );
 #if ZM_PLUGINS_ON
             zConf zone_conf;
             if ( ThePluginManager.getImageAnalyser().getZoneConfig( i, zone_conf ) )
+            {
+                Debug( 4, "Configure zone %s for plugins", zone->Label() );
                 zone->SetConfig( zone_conf );
+            }
 #endif // ZM_PLUGINS_ON
         }
     }
@@ -1279,6 +1283,7 @@ bool Monitor::Analyse()
                 shared_data->active = true;
                 for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
                 {
+                    Debug( 4, "Set reference image of zone %s", zones[n_zone]->Label() );
                     zones[n_zone]->SetRefImage(*snap_image);
                 }
                 ready_count = image_count+(warmup_count/2);
@@ -1293,6 +1298,7 @@ bool Monitor::Analyse()
         shared_data->active = true;
         for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
         {
+            Debug( 4, "Set reference image of zone %s", zones[n_zone]->Label() );
             zones[n_zone]->SetRefImage(*snap_image);
         }
         ready_count = image_count+(warmup_count/2);
@@ -1372,6 +1378,7 @@ bool Monitor::Analyse()
                     shared_data->active = signal;
                     for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
                     {
+                        Debug( 4, "Set reference image of zone %s", zones[n_zone]->Label() );
                         zones[n_zone]->SetRefImage(*snap_image);
                     }
                 }
@@ -1734,6 +1741,7 @@ bool Monitor::Analyse()
             int ref_blend = ( state == ALARM ) ? alarm_ref_blend_perc : ref_blend_perc;
             for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
             {
+                Debug( 4, "Blend reference image of zone %s", zones[n_zone]->Label() );
                 zones[n_zone]->BlendRefImage( *snap_image, ref_blend );
             }
         }
@@ -3310,6 +3318,7 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
             zone->WriteRefImage( diag_path );
         }
 
+        Debug( 4, "Set delta image of zone %s", zone->Label() );
         zone->SetDeltaImage( comp_image );
 
         if ( config.record_diag_images )

@@ -27,8 +27,8 @@
 #include "zm_utils.h"
 
 //
-// Class representing 'remote' cameras, i.e. those which are
-// accessed over a network connection.
+// Class representing 'http' cameras, i.e. those which are
+// accessed over a network connection using http
 //
 class RemoteCameraHttp : public RemoteCamera
 {

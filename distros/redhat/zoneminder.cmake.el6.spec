@@ -4,7 +4,7 @@
 %define zmgid_final apache
 
 Name:       zoneminder
-Version:    1.26.4
+Version:    1.28.0
 Release:    1%{?dist}
 Summary:    A camera monitoring and analysis tool
 Group:      System Environment/Daemons
@@ -17,8 +17,6 @@ URL:        http://www.zoneminder.com/
 #Source0: https://github.com/ZoneMinder/ZoneMinder/archive/v%{version}.tar.gz
 Source0:    ZoneMinder-%{version}.tar.gz
 
-Patch1:    zoneminder-1.26.0-defaults.patch
-
 BuildRequires:  cmake gnutls-devel bzip2-devel
 BuildRequires:  mysql-devel pcre-devel libjpeg-turbo-devel
 BuildRequires:  perl(Archive::Tar) perl(Archive::Zip)
@@ -28,13 +26,15 @@ BuildRequires:  perl(MIME::Entity) perl(MIME::Lite)
 BuildRequires:  perl(PHP::Serialization) perl(Sys::Mmap)
 BuildRequires:  perl(Time::HiRes) perl(Net::SFTP::Foreign)
 BuildRequires:  perl(Expect) perl(X10::ActiveHome) perl(Astro::SunTime)
-BuildRequires:  ffmpeg-devel >= 0.4.9
+BuildRequires:  libcurl-devel vlc-devel ffmpeg-devel polkit-devel
+# cmake needs the following installed at build time due to the way it auto-detects certain parameters
+BuildRequires:  httpd ffmpeg
 
-Requires:   httpd php php-mysql mysql-server libjpeg-turbo
+Requires:   httpd php php-mysql mysql-server libjpeg-turbo polkit
 Requires:   perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires:   perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)
 Requires:   perl(MIME::Entity) perl(MIME::Lite) perl(Net::SMTP) perl(Net::FTP)
-Requires:   ffmpeg >= 0.4.9
+Requires:   libcurl vlc-core ffmpeg
 
 Requires(post): /sbin/chkconfig
 Requires(post): /usr/bin/checkmodule
@@ -61,7 +61,12 @@ too much degradation of performance.
 %prep
 %setup -q -n ZoneMinder-%{version}
 
-%patch1 -p0 -b .defaults
+# Change the following default values
+./utils/zmeditconfigdata.sh ZM_PATH_ZMS /cgi-bin/zm/nph-zms
+./utils/zmeditconfigdata.sh ZM_OPT_CAMBOZOLA yes
+./utils/zmeditconfigdata.sh ZM_PATH_SWAP /dev/shm
+./utils/zmeditconfigdata.sh ZM_UPLOAD_FTP_LOC_DIR /var/spool/zoneminder-upload
+./utils/zmeditconfigdata.sh ZM_OPT_CONTROL yes
 
 %build
 # Have to override CMAKE_INSTALL_LIBDIR for cmake < 2.8.7 due to this bug:
@@ -78,9 +83,10 @@ make install
 /sbin/chkconfig --add zoneminder
 /sbin/chkconfig zoneminder on
 
-# Allow zoneminder access to local video sources
+# Allow zoneminder access to local video sources, serial ports, and x10
 echo
-/usr/bin/gpasswd -a apache video
+/usr/bin/gpasswd -a %{zmuid_final} video
+/usr/bin/gpasswd -a %{zmuid_final} dialout
 
 # Create and load zoneminder selinux policy module
 echo -e "\nCreating and installing a ZoneMinder SELinux policy module. Please wait.\n"
@@ -112,7 +118,7 @@ rm -rf %{_docdir}/%{name}-%{version}
 %defattr(-,root,root,-)
 %doc AUTHORS BUGS ChangeLog COPYING LICENSE NEWS README.md distros/redhat/README.CentOS distros/redhat/jscalendar-doc
 %doc distros/redhat/cambozola-doc distros/redhat/local_zoneminder.te
-%config(noreplace) %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm.conf
+%config %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm.conf
 %config(noreplace) %attr(644,root,root) %{_sysconfdir}/httpd/conf.d/zoneminder.conf
 %config(noreplace) /etc/logrotate.d/%{name}
 %attr(755,root,root) %{_initrddir}/zoneminder
@@ -124,7 +130,6 @@ rm -rf %{_docdir}/%{name}-%{version}
 %{_bindir}/zmdc.pl
 %{_bindir}/zmf
 %{_bindir}/zmfilter.pl
-%attr(4755,root,root) %{_bindir}/zmfix
 %{_bindir}/zmpkg.pl
 %{_bindir}/zmstreamer
 %{_bindir}/zmtrack.pl
@@ -133,16 +138,21 @@ rm -rf %{_docdir}/%{name}-%{version}
 %{_bindir}/zmupdate.pl
 %{_bindir}/zmvideo.pl
 %{_bindir}/zmwatch.pl
+%{_bindir}/zmcamtool.pl
+%{_bindir}/zmsystemctl.pl
 %{_bindir}/zmx10.pl
 
 %{perl_vendorlib}/ZoneMinder*
-%{perl_vendorlib}/x86_64-linux-thread-multi/auto/ZoneMinder*
+%{perl_vendorlib}/%{_arch}-linux-thread-multi/auto/ZoneMinder*
 %{_mandir}/man*/*
 %dir %{_libexecdir}/%{name}
 %{_libexecdir}/%{name}/cgi-bin
 %dir %{_datadir}/%{name}
 %{_datadir}/%{name}/db
 %{_datadir}/%{name}/www
+
+%{_datadir}/polkit-1/actions/com.zoneminder.systemctl.policy
+%{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
 
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/lib/zoneminder
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/lib/zoneminder/events
@@ -153,8 +163,20 @@ rm -rf %{_docdir}/%{name}-%{version}
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/log/zoneminder
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/spool/zoneminder-upload
 
-
 %changelog
+* Sun Oct 5 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.28.0 
+- Bump version for 1.28.0 release.
+
+* Fri Mar 14 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.27 
+- Tweak build requirements for cmake
+
+* Sat Feb 01 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.27
+- Add zmcamtool.pl. Bump version for 1.27 release. 
+
+* Mon Dec 16 2013 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.26.5
+- This is a bug fixe release
+- RTSP fixes, cmake enhancements, couple other misc fixes
+
 * Sat Oct 19 2013 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.26.4
 - Streamline the cmake build. Move much code into cmakelist.txt file.
 

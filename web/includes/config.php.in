@@ -109,21 +109,10 @@ define( "RATE_BASE", 100 );                             // The additional scalin
 define( "SCALE_BASE", 100 );                            // The additional scaling factor used to help get fractional scales in integer format
 
 //
-// Date and time formats, eventually some of these may end up in the language files
+// Date and time formats, not to be modified by language files
 //
-define( "DATE_FMT_CONSOLE_LONG", "D jS M, g:ia" );      // This is the main console date/time, date() or strftime() format
-define( "DATE_FMT_CONSOLE_SHORT", "%H:%M" );            // This is the xHTML console date/time, date() or strftime() format
-
-define( "STRF_FMT_DATETIME_DB", "%Y-%m-%d %H:%M:%S" );  // Strftime format for database queries, don't change
-
-define( "STRF_FMT_DATETIME", "%c" );                    // Strftime locale aware format for dates with times
-define( "STRF_FMT_DATE", "%x" );                        // Strftime locale aware format for dates without times
-define( "STRF_FMT_TIME", "%X" );                        // Strftime locale aware format for times without dates
-
-define( "STRF_FMT_DATETIME_SHORT", "%y/%m/%d %H:%M:%S" ); // Strftime shorter format for dates with time, not locale aware
-define( "STRF_FMT_DATETIME_SHORTER", "%m/%d %H:%M:%S" ); // Strftime shorter format for dates with time, not locale aware, used where space is tight
-
-define( "MYSQL_FMT_DATETIME_SHORT", "%y/%m/%d %H:%i:%S" ); // MySQL date_format shorter format for dates with time
+define( "STRF_FMT_DATETIME_DB", "%Y-%m-%d %H:%M:%S" );      // Strftime format for database queries, don't change
+define( "MYSQL_FMT_DATETIME_SHORT", "%y/%m/%d %H:%i:%S" );  // MySQL date_format shorter format for dates with time
 
 require_once( 'database.php' );
 loadConfig();
@@ -147,16 +136,16 @@ function loadConfig( $defineConsts=true )
 {
     global $config;
     global $configCats;
+	global $dbConn;
 
     $config = array();
     $configCat = array();
 
-    $sql = "select * from Config order by Id asc";
-    $result = mysql_query( $sql );
+    $result = $dbConn->query( 'select * from Config order by Id asc' );
     if ( !$result )
         echo mysql_error();
     $monitors = array();
-    while( $row = mysql_fetch_assoc( $result ) )
+    while( $row = dbFetchNext( $result ) )
     {
         if ( $defineConsts )
             define( $row['Name'], $row['Value'] );

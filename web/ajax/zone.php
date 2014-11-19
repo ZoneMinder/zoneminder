@@ -26,7 +26,7 @@ if ( canView( 'Monitors' ) )
             $status = exec( escapeshellcmd($command) );
             chdir( $wd );
 
-            $monitor = dbFetchOne( "select * from Monitors where Id = '".dbEscape($_REQUEST['mid'])."'" );
+            $monitor = dbFetchOne( 'SELECT * FROM Monitors WHERE Id = ?', NULL, array($_REQUEST['mid']) );
             $points = coordsToPoints( $_REQUEST['coords'] );
 
             ajaxResponse( array(

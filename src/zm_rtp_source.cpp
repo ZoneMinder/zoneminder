@@ -24,11 +24,7 @@
 
 #include <arpa/inet.h>
 
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54,25,0)
-    #define _AVCODECID AVCodecID
-#else
-    #define _AVCODECID CodecID
-#endif
+#if HAVE_LIBAVCODEC
 
 RtpSource::RtpSource( int id, const std::string &localHost, int localPortBase, const std::string &remoteHost, int remotePortBase, uint32_t ssrc, uint16_t seq, uint32_t rtpClock, uint32_t rtpTime, _AVCODECID codecId ) :
     mId( id ),
@@ -69,7 +65,7 @@ RtpSource::RtpSource( int id, const std::string &localHost, int localPortBase, c
     mLastSrTimeNtp = tvZero();
     mLastSrTimeRtp = 0;
     
-    if(mCodecId != CODEC_ID_H264 && mCodecId != CODEC_ID_MPEG4)
+    if(mCodecId != AV_CODEC_ID_H264 && mCodecId != AV_CODEC_ID_MPEG4)
         Warning( "The device is using a codec that may not be supported. Do not be surprised if things don't work." );
 }
 
@@ -265,7 +261,7 @@ bool RtpSource::handlePacket( const unsigned char *packet, size_t packetLen )
     rtpHeader = (RtpDataHeader *)packet;
 	int rtpHeaderSize = 12 + rtpHeader->cc * 4;
     // No need to check for nal type as non fragmented packets already have 001 start sequence appended
-    bool h264FragmentEnd = (mCodecId == CODEC_ID_H264) && (packet[rtpHeaderSize+1] & 0x40);
+    bool h264FragmentEnd = (mCodecId == AV_CODEC_ID_H264) && (packet[rtpHeaderSize+1] & 0x40);
     bool thisM = rtpHeader->m || h264FragmentEnd;
 
     if ( updateSeq( ntohs(rtpHeader->seqN) ) )
@@ -276,7 +272,7 @@ bool RtpSource::handlePacket( const unsigned char *packet, size_t packetLen )
         {
             int extraHeader = 0;
             
-            if( mCodecId == CODEC_ID_H264 )
+            if( mCodecId == AV_CODEC_ID_H264 )
             {
                 int nalType = (packet[rtpHeaderSize] & 0x1f);
                 
@@ -385,4 +381,4 @@ bool RtpSource::getFrame( Buffer &buffer )
     return( true );
 }
 
-#undef _AVCODECID
+#endif // HAVE_LIBAVCODEC

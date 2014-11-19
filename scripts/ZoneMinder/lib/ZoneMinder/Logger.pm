@@ -150,7 +150,7 @@ sub new
     $this->{hasTerm} = -t STDERR;
 
     ( $this->{fileName} = $0 ) =~ s|^.*/||;
-    $this->{logPath} = ZM_PATH_LOGS;
+    $this->{logPath} = $Config{ZM_PATH_LOGS};
     $this->{logFile} = $this->{logPath}."/".$this->{id}.".log";
 
     $this->{trace} = 0;
@@ -163,7 +163,7 @@ sub BEGIN
 {
     # Fake the config variables that are used in case they are not defined yet
     # Only really necessary to support upgrade from previous version
-    if ( !eval('defined(ZM_LOG_DEBUG)') )
+    if ( !eval('defined($Config{ZM_LOG_DEBUG})') )
     {
         no strict 'subs';
         no strict 'refs';
@@ -221,7 +221,7 @@ sub initialise( @ )
     }
     else
     {
-        $tempDatabaseLevel = ZM_LOG_LEVEL_DATABASE;
+        $tempDatabaseLevel = $Config{ZM_LOG_LEVEL_DATABASE};
     }
     if ( defined($options{fileLevel}) )
     {
@@ -229,7 +229,7 @@ sub initialise( @ )
     }
     else
     {
-        $tempFileLevel = ZM_LOG_LEVEL_FILE;
+        $tempFileLevel = $Config{ZM_LOG_LEVEL_FILE};
     }
     if ( defined($options{syslogLevel}) )
     {
@@ -237,7 +237,7 @@ sub initialise( @ )
     }
     else
     {
-        $tempSyslogLevel = ZM_LOG_LEVEL_SYSLOG;
+        $tempSyslogLevel = $Config{ZM_LOG_LEVEL_SYSLOG};
     }
 
     if ( defined($ENV{'LOG_PRINT'}) )
@@ -253,18 +253,18 @@ sub initialise( @ )
     $tempFileLevel = $level if ( defined($level = $this->getTargettedEnv('LOG_LEVEL_FILE')) );
     $tempSyslogLevel = $level if ( defined($level = $this->getTargettedEnv('LOG_LEVEL_SYSLOG')) );
 
-    if ( ZM_LOG_DEBUG )
+    if ( $Config{ZM_LOG_DEBUG} )
     {
-        foreach my $target ( split( /\|/, ZM_LOG_DEBUG_TARGET ) )
+        foreach my $target ( split( /\|/, $Config{ZM_LOG_DEBUG_TARGET} ) )
         {
             if ( $target eq $this->{id} || $target eq "_".$this->{id} || $target eq $this->{idRoot} || $target eq "_".$this->{idRoot} || $target eq "" )
             {
-                if ( ZM_LOG_DEBUG_LEVEL > NOLOG )
+                if ( $Config{ZM_LOG_DEBUG_LEVEL} > NOLOG )
                 {
-                    $tempLevel = $this->limit( ZM_LOG_DEBUG_LEVEL );
-                    if ( ZM_LOG_DEBUG_FILE ne "" )
+                    $tempLevel = $this->limit( $Config{ZM_LOG_DEBUG_LEVEL} );
+                    if ( $Config{ZM_LOG_DEBUG_FILE} ne "" )
                     {
-                        $tempLogFile = ZM_LOG_DEBUG_FILE;
+                        $tempLogFile = $Config{ZM_LOG_DEBUG_FILE};
                         $tempFileLevel = $tempLevel;
                     }
                 }
@@ -447,20 +447,20 @@ sub databaseLevel( ;$ )
             {
                 if ( !$this->{dbh} )
                 {
-                    my ( $host, $port ) = ( ZM_DB_HOST =~ /^([^:]+)(?::(.+))?$/ );
+                    my ( $host, $port ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
 
                     if ( defined($port) )
                     {
-                        $this->{dbh} = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".$host.";port=".$port, ZM_DB_USER, ZM_DB_PASS );
+                        $this->{dbh} = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}.";host=".$host.";port=".$port, $Config{ZM_DB_USER}, $Config{ZM_DB_PASS} );
                     }
                     else
                     {
-                        $this->{dbh} = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
+                        $this->{dbh} = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}.";host=".$Config{ZM_DB_HOST}, $Config{ZM_DB_USER}, $Config{ZM_DB_PASS} );
                     }
                     if ( !$this->{dbh} )
                     {
                         $databaseLevel = NOLOG;
-                        Error( "Unable to write log entries to DB, can't connect to database '".ZM_DB_NAME."' on host '".ZM_DB_HOST."'" );
+                        Error( "Unable to write log entries to DB, can't connect to database '".$Config{ZM_DB_NAME}."' on host '".$Config{ZM_DB_HOST}."'" );
                     }
                     else
                     {
@@ -553,8 +553,8 @@ sub openFile()
     {
         LOGFILE->autoflush() if ( $this->{autoFlush} );
 
-        my $webUid = (getpwnam( ZM_WEB_USER ))[2];
-        my $webGid = (getgrnam( ZM_WEB_GROUP ))[2];
+        my $webUid = (getpwnam( $Config{ZM_WEB_USER} ))[2];
+        my $webGid = (getgrnam( $Config{ZM_WEB_GROUP} ))[2];
         if ( $> == 0 )
         {
             chown( $webUid, $webGid, $this->{logFile} ) or Fatal( "Can't change permissions on log file '".$this->{logFile}."': $!" )

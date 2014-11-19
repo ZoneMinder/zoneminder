@@ -79,7 +79,7 @@ session_start();
 if ( !isset($_SESSION['skin']) || isset($_REQUEST['skin']) )
 {
     $_SESSION['skin'] = $skin;
-    setcookie( "zmSkin", $skin );
+    setcookie( "zmSkin", $skin, time()+3600*24*30*12*10 );
 }
 
 require_once( 'includes/config.php' );
@@ -105,10 +105,10 @@ if ( isset($_REQUEST['request']) )
 if ( isset($_REQUEST['action']) )
     $action = detaintPath($_REQUEST['action']);
 
-require_once( 'includes/actions.php' );
-
 foreach ( getSkinIncludes( 'skin.php' ) as $includeFile )
     require_once $includeFile;
+
+require_once( 'includes/actions.php' );
 
 if ( isset( $_REQUEST['request'] ) )
 {

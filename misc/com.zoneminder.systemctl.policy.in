@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<policyconfig>
+
+  <vendor>The ZoneMinder Project</vendor>
+  <vendor_url>http://www.zoneminder.com/</vendor_url>
+
+  <action id="com.zoneminder.policykit.pkexec.run-zmsystemctl">
+    <description>Allow the ZoneMinder webuser to run zmsystemctl.pl</description>
+    <message>The ZoneMinder webuser is trusted to run zmsystemctl.pl</message>
+    <defaults>
+      <allow_any>yes</allow_any>
+      <allow_inactive>yes</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/bin/perl</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">@BINDIR@/zmsystemctl.pl</annotate>
+  </action>
+
+</policyconfig>

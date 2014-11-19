@@ -30,16 +30,16 @@ if ( $user['MonitorIds'] )
     $midSql = " and MonitorId in (".join( ",", preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) ).")";
 }
 
-$sql = "select E.*,M.Name as MonitorName from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = '".dbEscape($_REQUEST['eid'])."'".$midSql;
-$event = dbFetchOne( $sql );
+$sql = 'select E.*,M.Name as MonitorName from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = ?'.$midSql;
+$event = dbFetchOne( $sql, NULL, array($_REQUEST['eid']) );
 
 if ( !empty($_REQUEST['fid']) )
 {
-    $frame = dbFetchOne( "select * from Frames where EventID = '".dbEscape($_REQUEST['eid'])."' and FrameId = '".dbEscape($_REQUEST['fid'])."'" );
+    $frame = dbFetchOne( 'SELECT * FROM Frames WHERE EventID = ? AND FrameId = ?', NULL, array($_REQUEST['eid'],$_REQUEST['fid']) );
 }
 elseif ( isset($_REQUEST['fid']) )
 {
-    $frame = dbFetchOne( "select * from Frames where EventID = '".dbEscape($_REQUEST['eid'])."' and Score = '".$event['MaxScore']."'" );
+    $frame = dbFetchOne( 'SELECT * FROM Frames WHERE EventID = ? AND Score = ?', NULL, array($_REQUEST['eid'],$event['MaxScore']) );
     $_REQUEST['fid'] = $frame['FrameId'];
 }
 
@@ -47,8 +47,12 @@ parseSort( true, '&amp;' );
 parseFilter( $_REQUEST['filter'], true, '&amp;' );
 $filterQuery = $_REQUEST['filter']['query'];
 
-$sql = "select E.* from Events as E inner join Monitors as M on E.MonitorId = M.Id where $sortColumn ".($sortOrder=='asc'?'<=':'>=')." '".$event[$_REQUEST['sort_field']]."'".$_REQUEST['filter']['sql'].$midSql." order by $sortColumn ".($sortOrder=='asc'?'desc':'asc');
-$result = dbQuery( $sql );
+if ( $sortOrder=='asc' ) {
+	$sql = "select E.* from Events as E inner join Monitors as M on E.MonitorId = M.Id where $sortColumn <= ?".$_REQUEST['filter']['sql'].$midSql." order by $sortColumn desc";
+} else {
+	$sql = "select E.* from Events as E inner join Monitors as M on E.MonitorId = M.Id where $sortColumn >= ?".$_REQUEST['filter']['sql'].$midSql." order by $sortColumn asc";
+} 
+$result = dbQuery( $sql, array( $event[$_REQUEST['sort_field']] ) );
 while ( $row = dbFetchNext( $result ) )
 {
     if ( $row['Id'] == $_REQUEST['eid'] )
@@ -58,8 +62,8 @@ while ( $row = dbFetchNext( $result ) )
     }
 }
 
-$sql = "select E.* from Events as E inner join Monitors as M on E.MonitorId = M.Id where $sortColumn ".($sortOrder=='asc'?'>=':'<=')." '".$event[$_REQUEST['sort_field']]."'".$_REQUEST['filter']['sql'].$midSql." order by $sortColumn $sortOrder";
-$result = dbQuery( $sql );
+$sql = "select E.* from Events as E inner join Monitors as M on E.MonitorId = M.Id where $sortColumn ".($sortOrder=='asc'?'>=':'<=').' ?'.$_REQUEST['filter']['sql'].$midSql." order by $sortColumn $sortOrder";
+$result = dbQuery( $sql, array($event[$_REQUEST['sort_field']]) );
 while ( $row = dbFetchNext( $result ) )
 {
     if ( $row['Id'] == $_REQUEST['eid'] )
@@ -86,11 +90,11 @@ else
     $hiFrameId = $event['Frames'];
 }
 
-$sql = "select * from Frames where EventID = '".dbEscape($_REQUEST['eid'])."'";
+$sql = 'SELECT * FROM Frames WHERE EventID = ?';
 if ( $paged && !empty($_REQUEST['page']) )
     $sql .= " and FrameId between $loFrameId and $hiFrameId";
 $sql .= " order by FrameId";
-$frames = dbFetchAll( $sql );
+$frames = dbFetchAll( $sql, NULL, array( $_REQUEST['eid'] ) );
 
 $scale = getDeviceScale( $event['Width'], $event['Height'], $framesPerLine+0.3 );
 

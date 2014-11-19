@@ -108,4 +108,23 @@ class EventsController extends AppController {
 		} else {
 			return $this->flash(__('The event could not be deleted. Please, try again.'), array('action' => 'index'));
 		}
-	}}
+	}
+
+
+	public function consoleEvents($interval = null) {
+		$this->Event->recursive = -1;
+		$results = array();
+
+		$query = $this->Event->query("select MonitorId, COUNT(*) AS Count from Events WHERE StartTime >= (DATE_SUB(NOW(), interval $interval)) GROUP BY MonitorId;");
+
+		foreach ($query as $result) {
+			$results[$result['Events']['MonitorId']] = $result[0]['Count'];
+		}
+
+		$this->set(array(
+			'results' => $results,
+			'_serialize' => array('results')
+		));
+	}
+
+}

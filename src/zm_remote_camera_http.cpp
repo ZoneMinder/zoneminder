@@ -130,6 +130,7 @@ int RemoteCameraHttp::Disconnect()
 
 int RemoteCameraHttp::SendRequest()
 {
+	Debug( 2, "Sending request: %s", request.c_str() );
     if ( write( sd, request.data(), request.length() ) < 0 )
     {
         Error( "Can't write: %s", strerror(errno) );
@@ -280,9 +281,31 @@ int RemoteCameraHttp::GetResponse()
                         status_code = atoi( status_expr->MatchString( 2 ) );
                         status_mesg = status_expr->MatchString( 3 );
 
-                        if ( status_code < 200 || status_code > 299 )
-                        {
-                            Error( "Invalid response status %d: %s", status_code, status_mesg );
+						if ( status_code == 401 ) {
+							if ( mNeedAuth ) {
+								Error( "Failed authentication: " );
+								return( -1 );
+							}
+							mNeedAuth = true;
+							std::string Header = header;
+				
+							mAuthenticator->checkAuthResponse(Header);
+							if ( mAuthenticator->auth_method() == AUTH_DIGEST ) {
+								Debug( 2, "Need Digest Authentication" );
+								request = stringtf( "GET %s HTTP/%s\r\n", path.c_str(), config.http_version );
+								request += stringtf( "User-Agent: %s/%s\r\n", config.http_ua, ZM_VERSION );
+								request += stringtf( "Host: %s\r\n", host.c_str());
+								if ( strcmp( config.http_version, "1.0" ) == 0 )
+									request += stringtf( "Connection: Keep-Alive\r\n" );
+								request += mAuthenticator->getAuthHeader( "GET", path.c_str() );
+								request += "\r\n";
+								
+								Debug( 2, "New request header: %s", request.c_str() );
+								return( 0 );
+							} 
+
+                        } else if ( status_code < 200 || status_code > 299 ) {
+                            Error( "Invalid response status %d: %s\n%s", status_code, status_mesg, (char *)buffer );
                             return( -1 );
                         }
                         Debug( 3, "Got status '%d' (%s), http version %s", status_code, status_mesg, http_version );

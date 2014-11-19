@@ -1241,6 +1241,7 @@ bool Monitor::Analyse()
 
     if ( static_undef )
     {
+        static_undef = false;
         timestamps = new struct timeval *[pre_event_count];
         images = new Image *[pre_event_count];
         last_signal = shared_data->signal;
@@ -1623,13 +1624,6 @@ bool Monitor::Analyse()
             }
         }
         last_signal = signal;
-    }
-
-    if ( static_undef )
-    {
-        delete[] timestamps;
-        delete[] images;
-        static_undef = false;
     }
 
     shared_data->last_read_index = index%image_buffer_count;

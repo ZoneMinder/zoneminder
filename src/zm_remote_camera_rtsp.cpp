@@ -261,7 +261,7 @@ int RemoteCameraRtsp::Capture( Image &image )
             if ( !buffer.size() )
                 return( -1 );
 
-            if(mCodecContext->codec_id == CODEC_ID_H264)
+            if(mCodecContext->codec_id == AV_CODEC_ID_H264)
             {
                 // SPS and PPS frames should be saved and appended to IDR frames
                 int nalType = (buffer.head()[3] & 0x1f);
@@ -292,7 +292,11 @@ int RemoteCameraRtsp::Capture( Image &image )
 	    {
 		packet.data = buffer.head();
 		packet.size = buffer.size();
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 25, 0)
 		int len = avcodec_decode_video2( mCodecContext, mRawFrame, &frameComplete, &packet );
+#else
+		int len = avcodec_decode_video( mCodecContext, mRawFrame, &frameComplete, packet.data, packet.size );
+#endif
 		if ( len < 0 )
 		{
 			Error( "Error while decoding frame %d", frameCount );

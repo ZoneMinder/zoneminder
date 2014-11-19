@@ -17,9 +17,9 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
-
+//
 // ZoneMinder Hungarian Translation by szimszon at oregpreshaz dot eu, robi
-// version: 0.8 - 2013.08.15. - frissítés 1.26.0-hoz (robi)
+// version: 0.8 - 2013.08.16. - frissítés 1.26.0-hoz (robi)
 // version: 0.7 - 2013.05.12. - frissítés 1.25.0-hoz (robi)
 // version: 0.6 - 2009.06.21. - frissítés 1.24.2-höz (robi)
 // version: 0.5 - 2007.12.30. - frissítés 1.23.1-hez (robi)
@@ -27,7 +27,25 @@
 // version: 0.3 - 2006.04.27. - fordítás befejezése, elrendezése elféréshez (robi)
 // version: 0.2 - 2006.12.05. - par javitas
 // version: 0.1 - 2006.11.27. - sok typoval es par leforditatlan resszel
-
+//
+// To enable correct Hungarian locales, make sure to install hu_HU locale on your system.
+//
+// On Ubuntu 12.04 do it like this:
+//
+// locale -a
+// - to see what's installed
+//
+// cat /usr/share/i18n/SUPPORTED | grep hu
+// - to check the possibility of installation
+//
+// sudo locale-gen hu_HU
+// sudo locale-gen hu_HU.utf8
+// - to install
+//
+// sudo service apache2 restart
+// - to make PHP aware of it
+//
+//
 // Notes for Translators
 // 0. Get some credit, put your name in the line above (optional)
 // 1. When composing the language tokens in your language you should try and keep to roughly the
@@ -78,8 +96,21 @@ header( "Content-Type: text/html; charset=utf-8" );
 //setlocale( LC_CTYPE, 'hu_HU'); //Character class settings 4.3.0 and after
 //setlocale( LC_TIME, 'hu_HU'); //Date and time formatting 4.3.0 and after
 
-setlocale( LC_CTYPE, 'hu_HU');
-setlocale( LC_TIME, 'hu_HU' );
+setlocale( LC_CTYPE, 'hu_HU.UTF-8');
+setlocale( LC_TIME, 'hu_HU.UTF-8' );
+
+//
+// Date and time formats, specific to this language
+//
+define( "DATE_FMT_CONSOLE_LONG", "%Y. %b. %e. %A, %H:%M" );     // This is the main console date/time, date() or strftime() format
+define( "DATE_FMT_CONSOLE_SHORT", "%H:%M" );                    // This is the xHTML console date/time, date() or strftime() format
+
+define( "STRF_FMT_DATETIME", "%Y. %b. %e., %H:%M" );            // Strftime locale aware format for dates with times
+define( "STRF_FMT_DATE", "%Y. %b. %e." );                       // Strftime locale aware format for dates without times
+define( "STRF_FMT_TIME", "%H:%M:%S" );                          // Strftime locale aware format for times without dates
+
+define( "STRF_FMT_DATETIME_SHORT", "%y/%m/%d %H:%M:%S" );       // Strftime shorter format for dates with time
+define( "STRF_FMT_DATETIME_SHORTER", "%m.%d. %H:%M:%S" );       // Strftime shorter format for dates with time, used where space is tight (events list)
 
 // Simple String Replacements
 $SLANG = array(
@@ -133,7 +164,7 @@ $SLANG = array(
     'AutoStopTimeout'      => 'Auto megállási idő túllépés',
     'Available'            => 'Elérhető',
     'AvgBrScore'           => 'Átlag<br/>érték',
-    'Background'           => 'Háttérben',
+    'Background'           => 'Háttérben futó',
     'BackgroundFilter'     => 'Szűrő automatikus futtatása a háttérben',
     'BadAlarmFrameCount'   => 'Riasztáshoz szükséges képkockák száma legyen legalább 1',
     'BadAlarmMaxFPS'       => 'Maximális FPS riasztott állapotban legyen megadva',
@@ -142,6 +173,7 @@ $SLANG = array(
     'BadFPSReportInterval' => 'Az FPS naplózásának gyakorisága legyen legalább 0',
     'BadFormat'            => 'A típus 0 vagy nagyobb egész szám legyen',
     'BadFrameSkip'         => 'Az eldobott képkockák száma legyen legalább 0',
+    'BadMotionFrameSkip'   => 'Motion Frame skip count must be an integer of zero or more',
     'BadHeight'            => 'A képmagasság legyen érvényes érték képpontban megadva',
     'BadHost'              => 'A hoszt legyen valós IP cím vagy hosztnév http:// nélkül',
     'BadImageBufferCount'  => 'A képkockák száma a pufferben legyen legalább 10',
@@ -161,7 +193,8 @@ $SLANG = array(
     'BadWarmupCount'       => 'Bemelegítő képkockák száma legyen legalább 0',
     'BadWebColour'         => 'Szín az idővonal ablakban legyen egy érvényes HTML szín-kód',
     'BadWidth'             => 'A képszélesség legyen érvényes érték képpontban megadva',
-    'Bandwidth'            => 'sávszélességre',
+    'Bandwidth'            => 'Sávszélesség',
+    'BandwidthHead'        => 'sávszélességre',
     'BlobPx'               => 'Blob képpont',
     'BlobSizes'            => 'Blob méretek',
     'Blobs'                => 'Blob-ok',
@@ -329,6 +362,12 @@ $SLANG = array(
     'First'                => 'Első',
     'FlippedHori'          => 'Vízszintes tükrözés',
     'FlippedVert'          => 'Függőleges tükrözés',
+    'FnNone'               => 'Letiltva',
+    'FnMonitor'            => 'Csak monitorozás',
+    'FnModect'             => 'Mozgásérzékelő',
+    'FnRecord'             => 'Folyamatos felvétel',
+    'FnMocord'             => 'Folyamatos mozgással',
+    'FnNodect'             => 'Külső érzékelő',
     'Focus'                => 'Fókusz',
     'ForceAlarm'           => 'Kézi riasztás',
     'Format'               => 'Formátum',
@@ -336,6 +375,7 @@ $SLANG = array(
     'FrameId'              => 'Képkocka azonosító',
     'FrameRate'            => 'FPS',
     'FrameSkip'            => 'Képkocka kihagyás',
+    'MotionFrameSkip'      => 'Motion Frame Skip',
     'Frames'               => 'Képkocka',
     'Func'                 => 'Funk.',
     'Function'             => 'Funkció',
@@ -379,6 +419,7 @@ $SLANG = array(
     'Last'                 => 'Utolsó',
     'Layout'               => 'Elrendezés',
     'Level'                => 'Szint', 
+    'Libvlc'               => 'Libvlc',
     'LimitResultsPost'     => 'találatra', // This is used at the end of the phrase 'Limit to first N results only'
     'LimitResultsPre'      => 'Csak az első', // This is used at the beginning of the phrase 'Limit to first N results only'
     'Line'                 => 'Sor',
@@ -472,6 +513,11 @@ $SLANG = array(
     'Month'                => 'Hónapban',
     'More'                 => 'Több',
     'Move'                 => 'Mozgás',
+    'MtgDefault'           => 'Böngésző alapértelmezése szerint',
+    'Mtg2widgrd'           => '2 oszlopban',
+    'Mtg3widgrd'           => '3 oszlopban',
+    'Mtg4widgrd'           => '4 oszlopban',
+    'Mtg3widgrx'           => '3 oszlopban skálázva, riasztás esetén kinagyítva',
     'MustBeGe'             => 'nagyobbnak vagy egyenlőnek kell lennie',
     'MustBeLe'             => 'kisebbnek vagy egyenlőnek kell lennie',
     'MustConfirmPassword'  => 'Meg kell erősítenie a jelszót',
@@ -560,7 +606,7 @@ $SLANG = array(
     'RemoteMethod'         => 'Hálózati cím mód',
     'RemoteProtocol'       => 'Hálózati protokoll',
     'Rename'               => 'Átnevezés',
-    'Replay'               => 'Esemény visszajátszás',
+    'Replay'               => 'Események visszajátszása',
     'ReplayAll'            => 'Mindet',
     'ReplayGapless'        => 'Szünet nélkülieket',
     'ReplaySingle'         => 'Egyenként',
@@ -639,6 +685,10 @@ $SLANG = array(
     'TimeDelta'            => 'Idő változás',
     'TimeStamp'            => 'Időbélyeg',
     'Timeline'             => 'Idővonal',
+    'TimelineTip1'         => 'Mozgassa az egeret a grafikon fölött, hogy képet és adatokat láthasson az eseményről.',
+    'TimelineTip2'         => 'Kattintson a grafikon színes részére, vagy a pillanatképre, hogy láthassa a részleteket.',
+    'TimelineTip3'         => 'Kattintson a grafikon hátterére, hogy az időskálába nagyítson tetszőleges időpontban.',
+    'TimelineTip4'         => 'Használja az alábbi gombokat hogy az időskálát csúsztassa, vagy kicsinyítse.',
     'Timestamp'            => 'Időbélyeg',
     'TimestampLabelFormat' => 'Időbélyeg formátuma',
     'TimestampLabelX'      => 'Elhelyezés X pozició',
@@ -649,7 +699,7 @@ $SLANG = array(
     'TotalBrScore'         => 'Össz.<br/>pontszám',
     'TrackDelay'           => 'Késleltetés követése',
     'TrackMotion'          => 'Mozgás követése',
-    'Triggers'             => 'Egyéb előidézők',
+    'Triggers'             => 'Külső érzékelők (triggers)',
     'TurboPanSpeed'        => 'Jobb-bal gyorssebesség',
     'TurboTiltSpeed'       => 'Fel-le gyorssebesség',
     'Type'                 => 'Típus',
@@ -715,6 +765,7 @@ $SLANG = array(
     'ZoneMinMaxPixelThres' => 'Min/Max képpont változási<br>küszöb (0-255)',
     'ZoneMinderLog'        => 'ZoneMinder Napló',
     'ZoneOverloadFrames'   => 'Túlterhelés esetén<br>ennyi képkocka hagyható ki',
+    'ZoneExtendAlarmFrames' => 'Extend Alarm Frame Count',
     'Zones'                => 'Zónák',
     'Zoom'                 => 'Zoom',
     'ZoomIn'               => 'Zoom be',
@@ -847,6 +898,20 @@ function zmVlang( $langVarArray, $count )
 // These overrides are in the form show below where the array key represents the option name minus the initial ZM_
 // So for example, to override the help text for ZM_LANG_DEFAULT do
 $OLANG = array(
+	'OPTIONS_FFMPEG' => array(
+		'Help' => "Parameters in this field are passwd on to FFmpeg. Multiple parameters can be separated by ,~~ ".
+		          "Examples (do not enter quotes)~~~~".
+		          "\"allowed_media_types=video\" Set datatype to request fromcam (audio, video, data)~~~~".
+		          "\"reorder_queue_size=nnn\" Set number of packets to buffer for handling of reordered packets~~~~".
+		          "\"loglevel=debug\" Set verbosiy of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
+	),
+	'OPTIONS_LIBVLC' => array(
+		'Help' => "Parameters in this field are passwd on to libVLC. Multiple parameters can be separated by ,~~ ".
+		          "Examples (do not enter quotes)~~~~".
+		          "\"--rtp-client-port=nnn\" Set local port to use for rtp data~~~~". 
+		          "\"--verbose=2\" Set verbosity of libVLC"
+	),
+	
 //    'LANG_DEFAULT' => array(
 //        'Prompt' => "This is a new prompt for this option",
 //        'Help' => "This is some new help for this option which will be displayed in the popup window when the ? is clicked"

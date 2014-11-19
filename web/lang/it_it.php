@@ -137,6 +137,7 @@ $SLANG = array(
     'BadFPSReportInterval' => 'L\'intervallo di FPS per i report deve essere un numero intero superiore a 0',
     'BadFormat'            => 'Il formato deve essere impostato con un numero intero come 0 o maggiore',
     'BadFrameSkip'         => 'Il numero di Frame da scartare deve essere un intero uguale a 0 o superiore',
+    'BadMotionFrameSkip'   => 'Motion Frame skip count must be an integer of zero or more',
     'BadHeight'            => 'L\'altezza deve essere impostata con un valore valido',
     'BadHost'              => 'L\'host deve essere impostato con un indirizzo ip valido o con un hostname, non includendo http://',
     'BadImageBufferCount'  => 'La dimensione del buffer dell\'immagine deve essere impostata con un numero intero pari a 10 o maggiore',
@@ -157,6 +158,7 @@ $SLANG = array(
     'BadWebColour'         => 'L\'identificativo del colore deve essere una stringa valida', 
     'BadWidth'             => 'La larghezza deve essere impostata con un valore valido',
     'Bandwidth'            => 'Banda',
+    'BandwidthHead'         => 'Bandwidth',	// This is the end of the bandwidth status on the top of the console, different in many language due to phrasing
     'BlobPx'               => 'Blob Px',
     'BlobSizes'            => 'Dimensioni Blob',
     'Blobs'                => 'Blobs',
@@ -325,6 +327,12 @@ $SLANG = array(
     'First'                => 'Primo',
     'FlippedHori'          => 'ribaltato orizzontale',
     'FlippedVert'          => 'ribaltato verticale',
+    'FnNone'                => 'None',            // Added 2013.08.16.
+    'FnMonitor'             => 'Monitor',            // Added 2013.08.16.
+    'FnModect'              => 'Modect',            // Added 2013.08.16.
+    'FnRecord'              => 'Record',            // Added 2013.08.16.
+    'FnMocord'              => 'Mocord',            // Added 2013.08.16.
+    'FnNodect'              => 'Nodect',            // Added 2013.08.16.
     'Focus'                => 'Focus',
     'ForceAlarm'           => 'Forza Allarme',
     'Format'               => 'Formato',
@@ -332,6 +340,7 @@ $SLANG = array(
     'FrameId'              => 'Id Immagine',
     'FrameRate'            => 'Immagini al secondo',
     'FrameSkip'            => 'Immagini saltate',
+    'MotionFrameSkip'      => 'Motion Frame Skip',
     'Frames'               => 'Immagini',
     'Func'                 => 'Funz',
     'Function'             => 'Funzione',
@@ -375,6 +384,7 @@ $SLANG = array(
     'Last'                 => 'Ultimo',
     'Layout'               => 'Layout',                 // Added - 2009-02-08
     'Level'                => 'Level',                  // Added - 2011-06-16
+    'Libvlc'               => 'Libvlc',
     'LimitResultsPost'     => 'risultati;', // This is used at the end of the phrase 'Limit to first N results only'
     'LimitResultsPre'      => 'Limita ai primi', // This is used at the beginning of the phrase 'Limit to first N results only'
     'Line'                 => 'Line',                   // Added - 2011-06-16
@@ -468,6 +478,11 @@ $SLANG = array(
     'Month'                => 'Mese',
     'More'                 => 'More',                   // Added - 2011-06-16
     'Move'                 => 'Sposta',
+    'MtgDefault'           => 'Default',              // Added 2013.08.15.
+    'Mtg2widgrd'           => '2-wide grid',              // Added 2013.08.15.
+    'Mtg3widgrd'           => '3-wide grid',              // Added 2013.08.15.
+    'Mtg4widgrd'           => '4-wide grid',              // Added 2013.08.15.
+    'Mtg3widgrx'           => '3-wide grid, scaled, enlarge on alarm',              // Added 2013.08.15.
     'MustBeGe'             => 'deve essere superiore a',
     'MustBeLe'             => 'deve essere inferiore o pari a',
     'MustConfirmPassword'  => 'Devi confermare la password',
@@ -636,6 +651,10 @@ $SLANG = array(
     'TimeDelta'            => 'Tempo di Delta',
     'TimeStamp'            => 'Time Stamp',
     'Timeline'             => 'Linea Temporale',
+    'TimelineTip1'          => 'Pass your mouse over the graph to view a snapshot image and event details.',              // Added 2013.08.15.
+    'TimelineTip2'          => 'Click on the coloured sections of the graph, or the image, to view the event.',              // Added 2013.08.15.
+    'TimelineTip3'          => 'Click on the background to zoom in to a smaller time period based around your click.',              // Added 2013.08.15.
+    'TimelineTip4'          => 'Use the controls below to zoom out or navigate back and forward through the time range.',              // Added 2013.08.15.
     'Timestamp'            => 'Timestamp',
     'TimestampLabelFormat' => 'Formato etichetta timestamp',
     'TimestampLabelX'      => 'coordinata X etichetta',
@@ -713,6 +732,7 @@ $SLANG = array(
     'ZoneMinMaxPixelThres' => 'Min/Max Soglia Pixel (0-255)',
     'ZoneMinderLog'        => 'ZoneMinder Log',         // Added - 2011-06-17
     'ZoneOverloadFrames'   => 'Overload Frame Ignore Count',
+    'ZoneExtendAlarmFrames' => 'Extend Alarm Frame Count',
     'Zones'                => 'Zone',
     'Zoom'                 => 'Zoom',
     'ZoomIn'               => 'Ingrandisci',
@@ -845,6 +865,21 @@ function zmVlang( $langVarArray, $count )
 // These overrides are in the form show below where the array key represents the option name minus the initial ZM_
 // So for example, to override the help text for ZM_LANG_DEFAULT do
 $OLANG = array(
+	'OPTIONS_FFMPEG' => array(
+		'Help' => "Parameters in this field are passwd on to FFmpeg. Multiple parameters can be separated by ,~~ ".
+		          "Examples (do not enter quotes)~~~~".
+		          "\"allowed_media_types=video\" Set datatype to request fromcam (audio, video, data)~~~~".
+		          "\"reorder_queue_size=nnn\" Set number of packets to buffer for handling of reordered packets~~~~".
+		          "\"loglevel=debug\" Set verbosiy of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
+	),
+	'OPTIONS_LIBVLC' => array(
+		'Help' => "Parameters in this field are passwd on to libVLC. Multiple parameters can be separated by ,~~ ".
+		          "Examples (do not enter quotes)~~~~".
+		          "\"--rtp-client-port=nnn\" Set local port to use for rtp data~~~~". 
+		          "\"--verbose=2\" Set verbosity of libVLC"
+	),
+
+	
 //    'LANG_DEFAULT' => array(
 //        'Prompt' => "This is a new prompt for this option",
 //        'Help' => "This is some new help for this option which will be displayed in the popup window when the ? is clicked"

@@ -27,6 +27,36 @@
 
 unsigned int sseversion = 0;
 
+std::string trimSet(std::string str, std::string trimset) {
+    // Trim Both leading and trailing sets
+    size_t startpos = str.find_first_not_of(trimset); // Find the first character position after excluding leading blank spaces
+    size_t endpos = str.find_last_not_of(trimset); // Find the first character position from reverse af
+ 
+    // if all spaces or empty return an empty string
+    if(( std::string::npos == startpos ) || ( std::string::npos == endpos))
+    {
+        return std::string("");
+    }
+    else
+        return str.substr( startpos, endpos-startpos+1 );
+}
+
+std::string trimSpaces(std::string str)
+{
+    return trimSet(str, " \t");
+}
+
+std::string replaceAll(std::string str, std::string from, std::string to) {
+    if(from.empty())
+        return str;
+    size_t start_pos = 0;
+    while((start_pos = str.find(from, start_pos)) != std::string::npos) {
+        str.replace(start_pos, from.length(), to);
+        start_pos += to.length(); // In case 'to' contains 'from', like replacing 'x' with 'yx'
+    }
+    return str;
+}
+
 const std::string stringtf( const char *format, ... )
 {
     va_list ap;
@@ -96,6 +126,17 @@ StringVector split( const std::string &string, const std::string chars, int limi
     return( stringVector );
 }
 
+const std::string join(const StringVector v, const char * delim ) {
+	std::stringstream ss;
+
+	for(size_t i = 0; i < v.size(); ++i) {
+		if(i != 0)
+			ss << ",";
+		ss << v[i];
+	}
+	return ss.str();
+}
+
 const std::string base64Encode( const std::string &inString )
 {
 	static char base64_table[64] = { '\0' };
@@ -152,6 +193,47 @@ const std::string base64Encode( const std::string &inString )
     return( outString );
 }
 
+int split(const char* string, const char delim, std::vector<std::string>& items) {
+	if(string == NULL)
+		return -1;
+
+	if(string[0] == 0)
+		return -2;
+
+	std::string str(string);
+	size_t pos;
+	
+	while(true) {
+		pos = str.find(delim);
+		items.push_back(str.substr(0, pos));
+		str.erase(0, pos+1);
+
+		if(pos == std::string::npos)
+			break;
+	}
+
+	return items.size();
+}
+
+int pairsplit(const char* string, const char delim, std::string& name, std::string& value) {
+	if(string == NULL)
+		return -1;
+
+	if(string[0] == 0)
+		return -2;
+
+	std::string str(string);
+	size_t pos = str.find(delim);
+
+	if(pos == std::string::npos || pos == 0 || pos >= str.length())
+		return -3;
+
+	name = str.substr(0, pos);
+	value = str.substr(pos+1, std::string::npos);
+
+	return 0;
+}
+
 /* Sets sse_version  */
 void ssedetect() {
 #if (defined(__i386__) || defined(__x86_64__))
@@ -159,11 +241,20 @@ void ssedetect() {
 	uint32_t r_edx, r_ecx;
 	
 	__asm__ __volatile__(
+#if defined(__i386__)
+        "pushl %%ebx;\n\t"
+#endif
 	"mov $0x1,%%eax\n\t"
 	"cpuid\n\t"
+#if defined(__i386__)
+        "popl %%ebx;\n\t"
+#endif
 	: "=d" (r_edx), "=c" (r_ecx)
 	:
-	: "%eax", "%ebx"
+	: "%eax"
+#if !defined(__i386__)
+             , "%ebx"
+#endif
 	);
 	
 	if (r_ecx & 0x00000200) {
@@ -192,7 +283,10 @@ void ssedetect() {
 
 /* SSE2 aligned memory copy. Useful for big copying of aligned memory like image buffers in ZM */
 /* For platforms without SSE2 we will use standard x86 asm memcpy or glibc's memcpy() */
-__attribute__((noinline,__target__("sse2"))) void* sse2_aligned_memcpy(void* dest, const void* src, size_t bytes) {
+#if defined(__i386__) || defined(__x86_64__)
+__attribute__((noinline,__target__("sse2")))
+#endif
+void* sse2_aligned_memcpy(void* dest, const void* src, size_t bytes) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))
 	if(bytes > 128) {
 		unsigned int remainder = bytes % 128;

@@ -3,13 +3,14 @@
 set -e
 
 if [ "$1" = "configure" ]; then
-	#
-	# Get mysql started if it isn't
-	#
-	if ! $(/etc/init.d/mysql status >/dev/null 2>&1); then
-			invoke-rc.d mysql start
-	fi
-	if $(/etc/init.d/mysql status >/dev/null 2>&1); then
+	if [ -e "/etc/init.d/mysql" ]; then 
+		#
+		# Get mysql started if it isn't
+		#
+		if ! $(/etc/init.d/mysql status >/dev/null 2>&1); then
+				invoke-rc.d mysql start
+		fi
+		if $(/etc/init.d/mysql status >/dev/null 2>&1); then
 			mysqladmin --defaults-file=/etc/mysql/debian.cnf -f reload
 			# test if database if already present...
 			if ! $(echo quit | mysql --defaults-file=/etc/mysql/debian.cnf zm > /dev/null 2> /dev/null) ; then
@@ -20,8 +21,11 @@ if [ "$1" = "configure" ]; then
 			invoke-rc.d zoneminder stop || true
 			zmupdate.pl --nointeractive
 
-	else
+		else
 			echo 'NOTE: mysql not running, please start mysql and run dpkg-reconfigure zoneminder when it is running.'
+		fi
+	else 
+		echo 'mysql not found, assuming remote server.'
 	fi
 	chown www-data:www-data /var/log/zm
 	chown www-data:www-data /var/lib/zm/

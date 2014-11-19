@@ -14,6 +14,8 @@ configure_file(zmtrigger.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmtrigger.pl" @ONLY)
 configure_file(zmupdate.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmupdate.pl" @ONLY)
 configure_file(zmvideo.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmvideo.pl" @ONLY)
 configure_file(zmwatch.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmwatch.pl" @ONLY)
+configure_file(zmcamtool.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmcamtool.pl" @ONLY)
+configure_file(zmsystemctl.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmsystemctl.pl" @ONLY)
 if(NOT ZM_NO_X10)
 	configure_file(zmx10.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmx10.pl" @ONLY)
 endif(NOT ZM_NO_X10)
@@ -23,7 +25,8 @@ configure_file(zm.in "${CMAKE_CURRENT_BINARY_DIR}/zm" @ONLY)
 #configure_file(zmeventdump.in zmeventdump @ONLY)
 
 # Install the perl scripts
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zmaudit.pl" "${CMAKE_CURRENT_BINARY_DIR}/zmcontrol.pl" "${CMAKE_CURRENT_BINARY_DIR}/zmdc.pl" "${CMAKE_CURRENT_BINARY_DIR}/zmfilter.pl" "${CMAKE_CURRENT_BINARY_DIR}/zmpkg.pl" "${CMAKE_CURRENT_BINARY_DIR}/zmtrack.pl" "${CMAKE_CURRENT_BINARY_DIR}/zmtrigger.pl" "${CMAKE_CURRENT_BINARY_DIR}/zmupdate.pl" "${CMAKE_CURRENT_BINARY_DIR}/zmvideo.pl" "${CMAKE_CURRENT_BINARY_DIR}/zmwatch.pl" DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zmaudit.pl" "${CMAKE_CURRENT_BINARY_DIR}/zmcontrol.pl" "${CMAKE_CURRENT_BINARY_DIR}/zmdc.pl" "${CMAKE_CURRENT_BINARY_DIR}/zmfilter.pl" "${CMAKE_CURRENT_BINARY_DIR}/zmpkg.pl" "${CMAKE_CURRENT_BINARY_DIR}/zmtrack.pl" "${CMAKE_CURRENT_BINARY_DIR}/zmtrigger.pl" "${CMAKE_CURRENT_BINARY_DIR}/zmupdate.pl" "${CMAKE_CURRENT_BINARY_DIR}/zmvideo.pl" "${CMAKE_CURRENT_BINARY_DIR}/zmwatch.pl" "${CMAKE_CURRENT_BINARY_DIR}/zmcamtool.pl" "${CMAKE_CURRENT_BINARY_DIR}/zmsystemctl.pl" DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 if(NOT ZM_NO_X10)
 	install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zmx10.pl" DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 endif(NOT ZM_NO_X10)
+

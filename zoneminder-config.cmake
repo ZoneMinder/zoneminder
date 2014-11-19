@@ -21,6 +21,8 @@
 /* Library checks and their header files */
 #cmakedefine HAVE_LIBZLIB 1
 #cmakedefine HAVE_ZLIB_H 1
+#cmakedefine HAVE_LIBCURL 1
+#cmakedefine HAVE_CURL_CURL_H 1
 #cmakedefine HAVE_LIBJPEG 1
 #cmakedefine HAVE_JPEGLIB_H 1
 #cmakedefine HAVE_LIBOPENSSL 1
@@ -48,6 +50,8 @@
 #cmakedefine HAVE_LIBAVUTIL_MATHEMATICS_H 1
 #cmakedefine HAVE_LIBSWSCALE 1
 #cmakedefine HAVE_LIBSWSCALE_SWSCALE_H 1
+#cmakedefine HAVE_LIBVLC 1
+#cmakedefine HAVE_VLC_VLC_H 1
 
 /* Authenication checks */
 #cmakedefine HAVE_MD5_OPENSSL 1

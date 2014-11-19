@@ -28,11 +28,7 @@
 #include <stdint.h>
 #include <string>
 
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54,25,0)
-    #define _AVCODECID AVCodecID
-#else
-    #define _AVCODECID CodecID
-#endif
+#if HAVE_LIBAVCODEC
 
 struct RtpDataHeader;
 
@@ -187,6 +183,6 @@ public:
     }
 };
 
-#undef _AVCODECID
+#endif // HAVE_LIBAVCODEC
 
 #endif // ZM_RTP_SOURCE_H

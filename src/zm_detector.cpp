@@ -94,7 +94,7 @@ void Detector::log(int nLogLevel, string sLevel, string sMessage)
  *  \param score is the detection score
  *  \return true if detection is effective
  */
-bool Detector::Detect(const Image &zmImage, Zone** zones, Event::StringSet &zoneSet, unsigned int &score)
+bool Detector::Detect(const Image* zmImage, Zone** zones, Event::StringSet &zoneSet, unsigned int &score)
 {
     bool alarm = false;
     char szMessage[100];
@@ -112,7 +112,7 @@ bool Detector::Detect(const Image &zmImage, Zone** zones, Event::StringSet &zone
             continue;
         sprintf(szMessage, "Checking preclusive zone %s", zone->Label());
         log(LOG_DEBUG, "DEBUG", szMessage);
-        if (checkZone(zone, *it, &zmImage))
+        if (checkZone(zone, *it, *zmImage))
         {
             alarm = true;
             score += zone->Score();
@@ -145,7 +145,7 @@ bool Detector::Detect(const Image &zmImage, Zone** zones, Event::StringSet &zone
                 continue;
             if (zone->IsPostProcEnabled() && !zone->IsPostProcInProgress())
                 continue;
-            if (checkZone(zone, *it, &zmImage))
+            if (checkZone(zone, *it, *zmImage))
             {
                 alarm = true;
                 score += zone->Score();
@@ -176,7 +176,7 @@ bool Detector::Detect(const Image &zmImage, Zone** zones, Event::StringSet &zone
                     continue;
                 sprintf(szMessage, "Checking inclusive zone %s", zone->Label());
                 log(LOG_DEBUG, "DEBUG", szMessage);
-                if (checkZone(zone, *it, &zmImage))
+                if (checkZone(zone, *it, *zmImage))
                 {
                     alarm = true;
                     score += zone->Score();
@@ -207,7 +207,7 @@ bool Detector::Detect(const Image &zmImage, Zone** zones, Event::StringSet &zone
                     continue;
                 sprintf(szMessage, "Checking exclusive zone %s", zone->Label());
                 log(LOG_DEBUG, "DEBUG", szMessage);
-                if (checkZone(zone, *it, &zmImage))
+                if (checkZone(zone, *it, *zmImage))
                 {
                     alarm = true;
                     score += zone->Score();

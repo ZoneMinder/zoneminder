@@ -61,7 +61,7 @@ bool ImageAnalyser::DoDetection(const Image &comp_image, Zone** zones, Event::St
         ++It )
     {
         unsigned int detect_score = 0;
-        if ( (*It)->Detect( comp_image, zones, zoneSet, detect_score ) )
+        if ( (*It)->Detect( &comp_image, zones, zoneSet, detect_score ) )
         {
             alarm = true;
             score += detect_score;

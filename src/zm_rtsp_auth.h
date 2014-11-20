@@ -47,6 +47,7 @@ public:
     std::string computeDigestResponse( std::string &cmd, std::string &url );
     void authHandleHeader( std::string headerData );
     std::string getAuthHeader( std::string method, std::string path );
+	void checkAuthResponse(std::string &response);
     
 private:
   std::string password() { return fPassword; }

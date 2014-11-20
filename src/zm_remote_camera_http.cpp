@@ -62,7 +62,7 @@ void RemoteCameraHttp::Initialise()
     {
         request = stringtf( "GET %s HTTP/%s\r\n", path.c_str(), config.http_version );
         request += stringtf( "User-Agent: %s/%s\r\n", config.http_ua, ZM_VERSION );
-        request += stringtf( "Host: %s\r\n", host .c_str());
+        request += stringtf( "Host: %s\r\n", host.c_str());
         if ( strcmp( config.http_version, "1.0" ) == 0 )
             request += stringtf( "Connection: Keep-Alive\r\n" );
         if ( !auth.empty() )

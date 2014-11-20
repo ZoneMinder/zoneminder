@@ -110,6 +110,31 @@ class EventsController extends AppController {
 		}
 	}
 
+	public function search() {
+		$this->Event->recursive = -1;
+		$conditions = array();
+
+		foreach ($this->params['named'] as $param_name => $value) {
+			// Transform params into mysql
+			if (preg_match("/interval/i", $value, $matches)) {
+				$condition = array("$param_name >= (date_sub(now(), $value))");
+			} else {
+				$condition = array($param_name => $value);
+			}
+			array_push($conditions, $condition);
+		}
+
+		$results = $this->Event->find('all', array(
+			'conditions' => $conditions
+		));
+
+		$this->set(array(
+			'results' => $results,
+			'_serialize' => array('results')
+		));
+
+		
+	}
 
 	public function consoleEvents($interval = null) {
 		$this->Event->recursive = -1;

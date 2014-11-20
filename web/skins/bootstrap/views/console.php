@@ -150,7 +150,12 @@ xhtmlHeaders( __FILE__, $SLANG['Console'] );
 		</div>
 
 		<div class="panel-body center-block">
-			<img src="http://placehold.it/120&text=<?= $monitor['Name'] ?>!" />
+			<div>
+			<?php
+				$streamSrc = getStreamSrc( array( "mode=".$streamMode, "monitor=".$monitor['Id'], "scale=".$scale ) );
+				outputImageStill( "liveStream", $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), $monitor['Name'] );
+			?>
+			</div>
 
 			<p><span ng-bind="Counts<?= $monitor['Id'] ?>"></span> recent events</p>
 		</div>

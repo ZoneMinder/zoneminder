@@ -45,3 +45,12 @@ ZoneMinder.controller('ConsoleController', function($scope, Console) {
 		}
 	});
 });
+
+
+ZoneMinder.controller('ConfigController', function($scope, $http, Config) {
+
+  Config.setConfigModel().then(function(results) {
+    $scope.myModel = {configData: results.data.keyValues};
+  }); 
+
+});

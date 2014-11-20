@@ -33,6 +33,15 @@ ZoneMinder.factory('Console', function($http) {
 	};
 });
 
+
+ZoneMinder.factory('Config', function($http) {
+	return {
+    setConfigModel: function() {
+			return $http.get('/api/configs/keyValue.json')
+    },
+	};
+});
+
 ZoneMinder.directive('angularHtmlBind', function($compile) {
     return function(scope, elm, attrs) {
         scope.$watch(attrs.angularHtmlBind, function(newValue, oldValue) {

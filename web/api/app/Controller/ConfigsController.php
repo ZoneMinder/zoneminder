@@ -12,7 +12,7 @@ class ConfigsController extends AppController {
  *
  * @var array
  */
-	public $components = array('RequestHandler');
+	public $components = array('RequestHandler', 'ConfigParser');
 
 /**
  * index method
@@ -95,6 +95,7 @@ class ConfigsController extends AppController {
  *
  * Either return a list of distinct categories
  * Or all configs under a certain category
+ * If we want only one category, format it as HTML
  */
 
 	public function categories($category = null) {
@@ -107,6 +108,9 @@ class ConfigsController extends AppController {
 				'conditions' => array('Config.Category' => $category),
 				'recursive' => 0
 			));
+
+			$config = $this->ConfigParser->parseOptions($config);
+
 			$this->set(array(
 				'config' => $config,
 				'_serialize' => array('config')
@@ -135,3 +139,4 @@ class ConfigsController extends AppController {
 		));
 	}
 }
+

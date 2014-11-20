@@ -138,6 +138,22 @@ if ( ZM_OPT_FFMPEG )
         <div id="imageFeed">
 <?php
 if(file_exists(ZM_PATH_WEB."/events/".getEventPath($event)."/event.mkv")){
+
+	if(strpos($_SERVER['HTTP_USER_AGENT'], 'MSIE') !== FALSE)
+	   $browser = 'ie';
+	 elseif(strpos($_SERVER['HTTP_USER_AGENT'], 'Trident') !== FALSE) //For Supporting IE 11
+	   $browser = 'ie';
+	 elseif(strpos($_SERVER['HTTP_USER_AGENT'], 'Firefox') !== FALSE)
+	  $browser = 'firefox';
+	 elseif(strpos($_SERVER['HTTP_USER_AGENT'], 'Chrome') !== FALSE)
+	   $browser = 'chrome';
+	 elseif(strpos($_SERVER['HTTP_USER_AGENT'], 'Opera Mini') !== FALSE)
+	   $browser = "opera_mini";
+	 elseif(strpos($_SERVER['HTTP_USER_AGENT'], 'Opera') !== FALSE)
+	   $browser = "opera";
+	 elseif(strpos($_SERVER['HTTP_USER_AGENT'], 'Safari') !== FALSE)
+	   $browser = "safari";
+if ( ZM_MPEG_REPLAY_FORMAT != 'mkv') {
 ?>
 <video id="vid1" width="100%" controls> <!-- <?php echo $event['Width']; ?>" height="<?php echo $event['Height']; ?>" controls> -->
   <source src="<?php echo "/zm/events/".getEventPath($event)."/event.mkv#t=".$fid/($event['Frames']/$event['Length'])?>" type="video/mp4"> 
@@ -150,6 +166,23 @@ Your browser does not support the video tag.
    </script> 
 
 <?php
+} elseif($browser!="ie")  {
+?>
+
+<embed id="vlc" type="application/x-vlc-plugin" pluginspage="http://www.videolan.org" version="VideoLAN.VLCPlugin.2"  width="<?php echo $event['Width']; ?>" height="<?php echo $event['Height']; ?>"   loop="no" autoplay="no" src="<?php echo "/zm/events/".getEventPath($event)."/event.mkv#t=".$fid/($event['Frames']/$event['Length'])?>" /></br>
+<?php
+} else {
+?>
+<OBJECT classid="clsid:9BE31822-FDAD-461B-AD51-BE1D1C159921"
+codebase="http://downloads.videolan.org/pub/videolan/vlc/latest/win32/axvlc.cab"
+   width="<?php echo $event['Width']; ?>" height="<?php echo $event['Height']; ?>" id="vlc" events="True">
+<param name="Src" value="<?php echo "/zm/events/".getEventPath($event)."/event.mkv#t=".$fid/($event['Frames']/$event['Length'])?>" />
+<param name="ShowDisplay" value="True" />
+<param name="AutoLoop" value="False" />
+<param name="AutoPlay" value="False" />
+</OBJECT>
+<?php
+}
 }else{
 if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT )
 {

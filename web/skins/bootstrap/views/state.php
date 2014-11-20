@@ -35,9 +35,9 @@ $states = dbFetchAll( "select * from States" );
 			</div>
 
 
+      <form name="contentForm" id="contentForm" method="get" action="<?= $_SERVER['PHP_SELF'] ?>">
 			<div class="row">
 			<div class="col-md-6">
-      <form name="contentForm" id="contentForm" method="get" action="<?= $_SERVER['PHP_SELF'] ?>">
 <?php if ( empty($_REQUEST['apply']) ) { ?>
         <input type="hidden" name="view" value="<?= $view ?>"/>
         <input type="hidden" name="action" value="state"/>
@@ -55,23 +55,23 @@ $states = dbFetchAll( "select * from States" );
             <option value="<?= $state['Name'] ?>"><?= $state['Name'] ?></option>
 <?php } ?>
           </select>
-				</div>
-			</div>
+				</div> <!-- End .form-group -->
+			</div> <!-- End .col-md-6 -->
 
 			<div class="col-md-6">
 				<div class="form-group">
 					<label for="newState"> <?= $SLANG['NewState'] ?></label>
 					<input class="form-control" type="text" id="newState" name="newState" value="" size="16" onchange="checkState( this );"/>
-				</div>
-			</div>
-		</div>
+				</div> <!-- End .form-group -->
+			</div> <!-- End .col-md-6 -->
+		</div> <!-- End .row -->
 
         <div class="modal-footer">
           <input type="submit"  class="btn btn-default" value="<?= $SLANG['Apply'] ?>" id="btnStateApply" data-loading-text="Applying..." />
           <input type="button"  class="btn btn-default" name="deleteBtn" value="<?= $SLANG['Delete'] ?>" disabled="disabled" onclick="deleteState( this );"/>
 					<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
           <input type="button"  class="btn btn-default" name="saveBtn" value="<?= $SLANG['Save'] ?>" disabled="disabled" onclick="saveState( this );"/>
-        </div>
+        </div> <!-- End .modal-footer -->
 
 <?php } else { ?>
         <input type="hidden" name="view" value="none"/>

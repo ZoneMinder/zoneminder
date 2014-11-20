@@ -33,3 +33,13 @@ ZoneMinder.factory('Console', function($http) {
 	};
 });
 
+ZoneMinder.directive('angularHtmlBind', function($compile) {
+    return function(scope, elm, attrs) {
+        scope.$watch(attrs.angularHtmlBind, function(newValue, oldValue) {
+            if (newValue && newValue !== oldValue) {
+                elm.html(newValue);
+                $compile(elm.contents())(scope);
+            }
+        });
+    };
+});

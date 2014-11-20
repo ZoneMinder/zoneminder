@@ -40,6 +40,8 @@ protected:
 	std::string	port;
 	std::string	path;
 	std::string	auth;
+	std::string	username;
+	std::string	password;
 	std::string	auth64;
 
     // Reworked authentication system
@@ -61,6 +63,8 @@ public:
 	const std::string &Port() const { return( port ); }
 	const std::string &Path() const { return( path ); }
 	const std::string &Auth() const { return( auth ); }
+	const std::string &Username() const { return( username ); }
+	const std::string &Password() const { return( password ); }
 
 	virtual void Initialise();
 	virtual void Terminate() = 0;

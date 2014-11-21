@@ -463,12 +463,12 @@ Monitor::Monitor(
     {
         if ( purpose != QUERY )
         {
-            Error( "Shared data not initialised by capture daemon" );
+            Error( "Shared data not initialised by capture daemon for monitor %s", name );
             exit( -1 );
         }
         else
         {
-            Warning( "Shared data not initialised by capture daemon, some query functions may not be available or produce invalid results" );
+            Warning( "Shared data not initialised by capture daemon, some query functions may not be available or produce invalid results for monitor %s", name );
         }
     }
 

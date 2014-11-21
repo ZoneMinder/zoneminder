@@ -768,10 +768,9 @@ int RtspThread::run()
             if ( !recvResponse( response ) )
                 return( -1 );
 #endif
+            // Send a teardown message but don't expect a response as this may not be implemented on the server when using TCP
             message = "TEARDOWN "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
             if ( !sendCommand( message ) )
-                return( -1 );
-            if ( !recvResponse( response ) )
                 return( -1 );
 
             delete mSources[ssrc];

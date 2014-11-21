@@ -1,5 +1,5 @@
 Options - Network
-=================
+-----------------
 
 .. image:: images/Options_Network.png
 

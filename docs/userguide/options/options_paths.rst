@@ -1,5 +1,5 @@
 Options - Paths
-===============
+---------------
 
 .. image:: images/Options_paths.png
 

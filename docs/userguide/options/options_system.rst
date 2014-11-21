@@ -1,5 +1,5 @@
 Options - System
-================
+----------------
 
 .. image:: images/Options_System.png
 

@@ -1,5 +1,5 @@
 Options - Users
-===============
+---------------
 
 .. image:: images/Options_Users.png
 

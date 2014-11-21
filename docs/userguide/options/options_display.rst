@@ -1,5 +1,5 @@
 Options - Display
-=================
+-----------------
 
 .. image:: images/Options_Display.png
 

@@ -1,5 +1,5 @@
 Options - High, Medium and Low B/W
-==================================
+----------------------------------
 
 .. image:: images/Options_BW.png
 

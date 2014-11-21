@@ -11,6 +11,12 @@ ZoneMinder.controller('HeaderController', function($scope, Header) {
 	});
 });
 
+ZoneMinder.controller('FooterController', function($scope, Footer) {
+	Footer.getLoad(function(load) {
+		$scope.load = load.load;
+	});
+});
+
 ZoneMinder.controller('EventController', function($scope, $location, Event) {
 
 	var eventId = $location.search().eid;

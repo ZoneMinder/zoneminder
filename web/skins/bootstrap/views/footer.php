@@ -1,6 +1,6 @@
-			<div id="footer">
+			<div id="footer" ng-controller="FooterController">
 				<div class="container-fluid">
-						<p class="pull-right text-muted"><?= $SLANG['Load'] ?>: <?= getLoad() ?> - 
+						<p class="pull-right text-muted"><?= $SLANG['Load'] ?>: <span ng-bind="load"></span> -
 						<?= $SLANG['Disk'] ?>: <?= getDiskPercent() ?>% -
 						<?= makePopupLink( '?view=version', 'zmVersion', 'version', 'v' . ZM_VERSION, canEdit( 'System' ) ) ?> -
       <?php

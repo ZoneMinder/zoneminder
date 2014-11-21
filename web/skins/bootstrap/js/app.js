@@ -17,6 +17,14 @@ ZoneMinder.factory('Header', function($http) {
 	};
 });
 
+ZoneMinder.factory('Footer', function($http) {
+	return {
+		getLoad: function(callback) {
+			$http.get('/api/host/getLoad.json').success(callback);
+		}
+	};
+});
+
 ZoneMinder.factory('Event', function($http) {
 	return {
 		getEvent: function(eventId) {

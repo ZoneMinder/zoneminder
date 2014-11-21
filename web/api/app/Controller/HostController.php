@@ -6,7 +6,7 @@ class HostController extends AppController {
 	public $components = array('RequestHandler');
 
 	public function daemonCheck($daemon=false, $args=false) {
-    $string = "`which zmdc.pl` check";
+    $string = Configure::read('ZM_PATH_BIN')."/zmdc.pl check";
     if ( $daemon )
     {
         $string .= " $daemon";

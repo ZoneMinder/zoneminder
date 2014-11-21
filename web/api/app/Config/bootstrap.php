@@ -106,3 +106,6 @@ CakeLog::config('error', array(
 	'types' => array('warning', 'error', 'critical', 'alert', 'emergency'),
 	'file' => 'error',
 ));
+
+Configure::write('ZM_CONFIG',  '@ZM_CONFIG@');
+Configure::write('ZM_VERSION', '@VERSION@');

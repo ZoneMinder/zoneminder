@@ -109,3 +109,31 @@ CakeLog::config('error', array(
 
 Configure::write('ZM_CONFIG',  '@ZM_CONFIG@');
 Configure::write('ZM_VERSION', '@VERSION@');
+
+loadConfigFile();
+
+function loadConfigFile() {
+	$configFile = Configure::read('ZM_CONFIG');	
+	$localConfigFile = basename($configFile);
+	if ( file_exists( $localConfigFile ) && filesize( $localConfigFile ) > 0 )
+	{
+	    if ( php_sapi_name() == 'cli' && empty($_SERVER['REMOTE_ADDR']) )
+	        print( "Warning, overriding installed $localConfigFile file with local copy\n" );
+	    else
+	        error_log( "Warning, overriding installed $localConfigFile file with local copy" );
+	    $configFile = $localConfigFile;
+	}
+	                             
+	$cfg = fopen( $configFile, "r") or die("Could not open config file.");
+	while ( !feof($cfg) )
+	{
+	    $str = fgets( $cfg, 256 );
+	    if ( preg_match( '/^\s*$/', $str ))
+	        continue;
+	    elseif ( preg_match( '/^\s*#/', $str ))
+	        continue;
+	    elseif ( preg_match( '/^\s*([^=\s]+)\s*=\s*(.*?)\s*$/', $str, $matches ))
+					Configure::write("$matches[1]", "$matches[2]");
+	}
+	fclose( $cfg );
+}

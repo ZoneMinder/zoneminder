@@ -69,7 +69,6 @@ ZoneMinder.controller('ConfigController', function($scope, $http, Config) {
 
 		// For each category, add all config options belonging to it to the categories array
 		angular.forEach(results['data']['categories'], function(value, key) {
-			console.log(key);
 			var cat = results.data.categories[key].Config.Category;
 			catman(cat);
 		});

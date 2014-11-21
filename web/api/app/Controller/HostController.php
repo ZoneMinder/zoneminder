@@ -33,4 +33,29 @@ class HostController extends AppController {
 			'_serialize' => array('load')
 		));
 	}
+
+	function getDiskPercent() {
+		$this->loadModel('Config');
+		$zm_dir_events = $this->Config->find('list', array(
+			'conditions' => array('Name' => 'ZM_DIR_EVENTS'),
+			'fields' => array('Name', 'Value')
+		));
+		$zm_dir_events = $zm_dir_events['ZM_DIR_EVENTS' ];
+
+		// Test to see if $zm_dir_events is relative or absolute
+		if ('/' === "" || strrpos($zm_dir_events, '/', -strlen($zm_dir_events)) !== TRUE) {
+			// relative - so add the full path
+			$zm_dir_events = Configure::read('ZM_PATH_WEB') . '/' . $zm_dir_events;
+		}
+
+		$df = shell_exec( 'df '.$zm_dir_events);
+		$space = -1;
+		if ( preg_match( '/\s(\d+)%/ms', $df, $matches ) )
+			$space = $matches[1];
+
+		$this->set(array(
+			'space' => $space,
+			'_serialize' => array('space')
+		));
+	}
 }

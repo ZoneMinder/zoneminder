@@ -15,6 +15,10 @@ ZoneMinder.controller('FooterController', function($scope, Footer) {
 	Footer.getLoad(function(load) {
 		$scope.load = load.load;
 	});
+
+	Footer.getDiskPercent(function(diskPercent) {
+		$scope.diskPercent = diskPercent.space;
+	});
 });
 
 ZoneMinder.controller('EventController', function($scope, $location, Event) {

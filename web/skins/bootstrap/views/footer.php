@@ -1,7 +1,7 @@
 			<div id="footer" ng-controller="FooterController">
 				<div class="container-fluid">
 						<p class="pull-right text-muted"><?= $SLANG['Load'] ?>: <span ng-bind="load"></span> -
-						<?= $SLANG['Disk'] ?>: <?= getDiskPercent() ?>% -
+						<?= $SLANG['Disk'] ?>: <span ng-bind="diskPercent"></span>% -
 						<?= makePopupLink( '?view=version', 'zmVersion', 'version', 'v' . ZM_VERSION, canEdit( 'System' ) ) ?> -
       <?php
 if ( ZM_OPT_USE_AUTH )

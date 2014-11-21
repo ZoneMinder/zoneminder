@@ -21,6 +21,9 @@ ZoneMinder.factory('Footer', function($http) {
 	return {
 		getLoad: function(callback) {
 			$http.get('/api/host/getLoad.json').success(callback);
+		},
+		getDiskPercent: function(callback) {
+			$http.get('/api/host/getDiskPercent.json').success(callback);
 		}
 	};
 });

@@ -1,7 +1,7 @@
 Options - Paths
 ---------------
 
-.. image:: images/Options_paths.png
+.. image:: images/Options_Paths.png
 
 ZM_DIR_EVENTS - This is the path to the events directory where all the event images and other miscellaneous files are stored. CAUTION: The directory you specify here cannot be outside the web root. This is a common mistake. Most users should never change this value. If you intend to record events to a second disk or network share, then you should mount the drive or share directly to the ZoneMinder events folder or follow the instructions in the ZoneMinder Wiki titled Using a dedicated Hard Drive.
 

@@ -12,7 +12,7 @@ User Guide
    controlmonitor
    filterevents
    viewevents
-   options/index
+   options
    cameracontrol
    mobile
    logging

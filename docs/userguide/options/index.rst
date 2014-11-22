@@ -7,6 +7,7 @@
    options_web
    options_images
    options_logging
+   options_network
    options_email
    options_upload
    options_x10

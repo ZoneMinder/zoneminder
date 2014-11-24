@@ -654,21 +654,14 @@ if ( !empty($action) )
     }
 
     // System view actions
-    if ( canView( 'System' ) )
-    {
-        if ( $action == "setgroup" )
-        {
-            if ( !empty($_REQUEST['gid']) )
-            {
-                setcookie( "zmGroup", validInt($_REQUEST['gid']), time()+3600*24*30*12*10 );
-            }
-            else
-            {
-                setcookie( "zmGroup", "", time()-3600*24*2 );
-            }
-            $refreshParent = true;
-        }
-    }
+	if ( $action == "setgroup" ) {
+		if ( !empty($_REQUEST['gid']) ) {
+			setcookie( "zmGroup", validInt($_REQUEST['gid']), time()+3600*24*30*12*10 );
+		} else {
+			setcookie( "zmGroup", "", time()-3600*24*2 );
+		}
+		$refreshParent = true;
+	}
 
     // System edit actions
     if ( canEdit( 'System' ) )
@@ -861,13 +854,10 @@ if ( !empty($action) )
         }
         elseif ( $action == "group" )
         {
-            if ( !empty($_REQUEST['gid']) )
-            {
-            dbQuery( "update Groups set Name=?, MonitorIds=? WHERE Id=?", array($_REQUEST['newGroup']['Name'], join(',',$_REQUEST['newGroup']['MonitorIds']), $_REQUEST['gid']) );
-            }
-            else
-            {
-            dbQuery( "insert into Groups set Name=?, MonitorIds=?", array( $_REQUEST['newGroup']['Name'], join(',',$_REQUEST['newGroup']['MonitorIds'])) );
+            if ( !empty($_POST['gid']) ) {
+				dbQuery( "UPDATE Groups SET Name=?, MonitorIds=? WHERE Id=?", array($_POST['newGroup']['Name'], $_POST['newGroup']['MonitorIds'], $_POST['gid']) );
+            } else {
+				dbQuery( "INSERT INTO Groups SET Name=?, MonitorIds=?", array( $_POST['newGroup']['Name'], empty($_POST['newGroup']['MonitorIds']) ? array() : $_POST['newGroup']['MonitorIds'] ) );
             }
             $refreshParent = true;
             $view = 'none';

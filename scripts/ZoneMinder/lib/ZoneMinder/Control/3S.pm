@@ -1,7 +1,7 @@
 # ==========================================================================
 #
-# ZoneMinder Axis version 2 API Control Protocol Module, $Date$, $Revision$
-# Copyright (C) 2001-2008  Philip Coombes
+# ZoneMinder 3S API Control Protocol Module, $Date: 2014-11-12 08:00:00 +0300 (Tue, 21 Jun 2011) $, $Revision: 1 $
+# Copyright (C) 2014  Juan Manuel Castro
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -19,10 +19,14 @@
 #
 # ==========================================================================
 #
-# This module contains the implementation of the Axis V2 API camera control
+# This module contains the implementation of the 3S camera control
 # protocol
-#
-package ZoneMinder::Control::AxisV2;
+#Model:					N5071
+#Hardware Version:		00
+#Firmware Version:		V1.03_STD-1
+#Firmware Build Time:	Jun 19 2012 15:28:17
+
+package ZoneMinder::Control::3S;
 
 use 5.006;
 use strict;
@@ -33,9 +37,11 @@ require ZoneMinder::Control;
 
 our @ISA = qw(ZoneMinder::Control);
 
+our $VERSION = $ZoneMinder::Base::VERSION;
+
 # ==========================================================================
 #
-# Axis V2 Control Protocol
+# 3S Control Protocol
 #
 # ==========================================================================
 
@@ -77,8 +83,8 @@ sub open
 
     use LWP::UserAgent;
     $self->{ua} = LWP::UserAgent->new;
-    $self->{ua}->agent( "ZoneMinder Control Agent/".ZoneMinder::Base::ZM_VERSION );
-
+    #$self->{ua}->agent( "ZoneMinder Control Agent/".ZM_VERSION );
+    $self->{ua}->agent( "ZoneMinder Control Agent/" . ZoneMinder::Base::ZM_VERSION );
     $self->{state} = 'open';
 }
 
@@ -106,7 +112,7 @@ sub sendCmd
 
     printMsg( $cmd, "Tx" );
 
-    #print( "http://$address/$cmd\n" );
+    #print("http://".$self->{Monitor}->{ControlAddress}."/$cmd");
     my $req = HTTP::Request->new( GET=>"http://".$self->{Monitor}->{ControlAddress}."/$cmd" );
     my $res = $self->{ua}->request($req);
 
@@ -126,15 +132,163 @@ sub cameraReset
 {
     my $self = shift;
     Debug( "Camera Reset" );
-    my $cmd = "/axis-cgi/admin/restart.cgi";
+    my $cmd = "/restart.cgi";
     $self->sendCmd( $cmd );
 }
+
+#Custom#
+#Move X or Y Axis
+sub Up
+{
+    my $self = shift;
+    Debug( "Move Up" );
+    my $cmd = "/ptz.cgi?move=up";
+    $self->sendCmd( $cmd );
+}
+
+sub Down
+{
+    my $self = shift;
+    Debug( "Move Down" );
+    my $cmd = "/ptz.cgi?move=down";
+    $self->sendCmd( $cmd );
+}
+
+sub Left
+{
+    my $self = shift;
+    Debug( "Move Left" );
+    my $cmd = "/ptz.cgi?move=left";
+    $self->sendCmd( $cmd );
+}
+
+sub Right
+{
+    my $self = shift;
+    Debug( "Move Right" );
+    my $cmd = "/ptz.cgi?move=right";
+    $self->sendCmd( $cmd );
+}
+
+##Zoom
+sub Tele
+{
+    my $self = shift;
+    my $params = shift;
+    my $step = $self->getParam( $params, 'step' );
+    Debug( "Zoom Tele" );
+    my $cmd = "/ptz.cgi?rzoom=$step";
+    $self->sendCmd( $cmd );
+}
+
+sub Wide
+{
+    my $self = shift;
+    my $params = shift;
+    my $step = $self->getParam( $params, 'step' );
+    Debug( "Zoom Wide" );
+    my $cmd = "/ptz.cgi?rzoom=-$step";
+    $self->sendCmd( $cmd );
+}
+
+#Move X and Y Axis
+sub UpRight
+{
+    my $self = shift;
+    Debug( "Move Up/Right" );
+    my $cmd = "/ptz.cgi?move=upright";
+    $self->sendCmd( $cmd );
+}
+
+sub UpLeft
+{
+    my $self = shift;
+    Debug( "Move Up/Left" );
+    my $cmd = "/ptz.cgi?move=upleft";
+    $self->sendCmd( $cmd );
+}
+
+sub DownRight
+{
+    my $self = shift;
+    Debug( "Move Down/Right" );
+    my $cmd = "/ptz.cgi?move=downright";
+    $self->sendCmd( $cmd );
+}
+
+sub DownLeft
+{
+    my $self = shift;
+    Debug( "Move Down/Left" );
+    my $cmd = "/ptz.cgi?move=downleft";
+    $self->sendCmd( $cmd );
+}
+
+#Foco
+sub focusAuto
+{
+    my $self = shift;
+    Debug( "Focus Auto" );
+    my $cmd = "/ptz.cgi?Autofocus=on";
+    $self->sendCmd( $cmd );
+}
+
+sub focusMan
+{
+    my $self = shift;
+    Debug( "Focus Manual" );
+    my $cmd = "/ptz.cgi?Autofocus=off";
+    $self->sendCmd( $cmd );
+}
+
+sub Near
+{
+    my $self = shift;
+    my $params = shift;
+    my $step = $self->getParam( $params, 'step' );
+    Debug( "Focus Near" );
+    my $cmd = "/ptz.cgi?rfocus=-$step";
+    $self->sendCmd( $cmd );
+}
+
+sub Far
+{
+    my $self = shift;
+    my $params = shift;
+    my $step = $self->getParam( $params, 'step' );
+    Debug( "Focus Far" );
+    my $cmd = "/ptz.cgi?rfocus=$step";
+    $self->sendCmd( $cmd );
+}
+
+#Iris
+sub Open
+{
+    my $self = shift;
+    my $params = shift;
+    my $step = $self->getParam( $params, 'step' );
+    Debug( "Iris Open" );
+    my $cmd = "/ptz.cgi?riris=$step";
+    $self->sendCmd( $cmd );
+}
+
+sub Close
+{
+    my $self = shift;
+    my $params = shift;
+    my $step = $self->getParam( $params, 'step' );
+    Debug( "Iris Close" );
+    my $cmd = "/ptz.cgi?riris=-$step";
+    $self->sendCmd( $cmd );
+}
+
+#Custom#
 
 sub moveConUp
 {
     my $self = shift;
     Debug( "Move Up" );
-    my $cmd = "/axis-cgi/com/ptz.cgi?move=up";
+    my $cmd = "/ptz.cgi?move=up";
     $self->sendCmd( $cmd );
 }
 
@@ -142,7 +296,7 @@ sub moveConDown
 {
     my $self = shift;
     Debug( "Move Down" );
-    my $cmd = "/axis-cgi/com/ptz.cgi?move=down";
+    my $cmd = "/ptz.cgi?move=down";
     $self->sendCmd( $cmd );
 }
 
@@ -150,7 +304,7 @@ sub moveConLeft
 {
     my $self = shift;
     Debug( "Move Left" );
-    my $cmd = "/axis-cgi/com/ptz.cgi?move=left";
+    my $cmd = "/ptz.cgi?move=left";
     $self->sendCmd( $cmd );
 }
 
@@ -158,7 +312,7 @@ sub moveConRight
 {
     my $self = shift;
     Debug( "Move Right" );
-    my $cmd = "/axis-cgi/com/ptz.cgi?move=right";
+    my $cmd = "/ptz.cgi?move=right";
     $self->sendCmd( $cmd );
 }
 
@@ -166,7 +320,7 @@ sub moveConUpRight
 {
     my $self = shift;
     Debug( "Move Up/Right" );
-    my $cmd = "/axis-cgi/com/ptz.cgi?move=upright";
+    my $cmd = "/ptz.cgi?move=upright";
     $self->sendCmd( $cmd );
 }
 
@@ -174,7 +328,7 @@ sub moveConUpLeft
 {
     my $self = shift;
     Debug( "Move Up/Left" );
-    my $cmd = "/axis-cgi/com/ptz.cgi?move=upleft";
+    my $cmd = "/ptz.cgi?move=upleft";
     $self->sendCmd( $cmd );
 }
 
@@ -182,7 +336,7 @@ sub moveConDownRight
 {
     my $self = shift;
     Debug( "Move Down/Right" );
-    my $cmd = "/axis-cgi/com/ptz.cgi?move=downright";
+    my $cmd = "/ptz.cgi?move=downright";
     $self->sendCmd( $cmd );
 }
 
@@ -190,18 +344,7 @@ sub moveConDownLeft
 {
     my $self = shift;
     Debug( "Move Down/Left" );
-    my $cmd = "/axis-cgi/com/ptz.cgi?move=downleft";
-    $self->sendCmd( $cmd );
-}
-
-sub moveMap
-{
-    my $self = shift;
-    my $params = shift;
-    my $xcoord = $self->getParam( $params, 'xcoord' );
-    my $ycoord = $self->getParam( $params, 'ycoord' );
-    Debug( "Move Map to $xcoord,$ycoord" );
-    my $cmd = "/axis-cgi/com/ptz.cgi?center=$xcoord,$ycoord&imagewidth=".$self->{Monitor}->{Width}."&imageheight=".$self->{Monitor}->{Height};
+    my $cmd = "/ptz.cgi?move=downleft";
     $self->sendCmd( $cmd );
 }
 
@@ -211,7 +354,7 @@ sub moveRelUp
     my $params = shift;
     my $step = $self->getParam( $params, 'tiltstep' );
     Debug( "Step Up $step" );
-    my $cmd = "/axis-cgi/com/ptz.cgi?rtilt=$step";
+    my $cmd = "/ptz.cgi?tilt=$step";
     $self->sendCmd( $cmd );
 }
 
@@ -221,7 +364,7 @@ sub moveRelDown
     my $params = shift;
     my $step = $self->getParam( $params, 'tiltstep' );
     Debug( "Step Down $step" );
-    my $cmd = "/axis-cgi/com/ptz.cgi?rtilt=-$step";
+    my $cmd = "/ptz.cgi?tilt=-$step";
     $self->sendCmd( $cmd );
 }
 
@@ -231,7 +374,7 @@ sub moveRelLeft
     my $params = shift;
     my $step = $self->getParam( $params, 'panstep' );
     Debug( "Step Left $step" );
-    my $cmd = "/axis-cgi/com/ptz.cgi?rpan=-$step";
+    my $cmd = "/ptz.cgi?pan=-$step";
     $self->sendCmd( $cmd );
 }
 
@@ -241,7 +384,7 @@ sub moveRelRight
     my $params = shift;
     my $step = $self->getParam( $params, 'panstep' );
     Debug( "Step Right $step" );
-    my $cmd = "/axis-cgi/com/ptz.cgi?rpan=$step";
+    my $cmd = "/ptz.cgi?pan=$step";
     $self->sendCmd( $cmd );
 }
 
@@ -252,7 +395,7 @@ sub moveRelUpRight
     my $panstep = $self->getParam( $params, 'panstep' );
     my $tiltstep = $self->getParam( $params, 'tiltstep' );
     Debug( "Step Up/Right $tiltstep/$panstep" );
-    my $cmd = "/axis-cgi/com/ptz.cgi?rpan=$panstep&rtilt=$tiltstep";
+    my $cmd = "/ptz.cgi?pan=$panstep&tilt=$tiltstep";
     $self->sendCmd( $cmd );
 }
 
@@ -263,7 +406,7 @@ sub moveRelUpLeft
     my $panstep = $self->getParam( $params, 'panstep' );
     my $tiltstep = $self->getParam( $params, 'tiltstep' );
     Debug( "Step Up/Left $tiltstep/$panstep" );
-    my $cmd = "/axis-cgi/com/ptz.cgi?rpan=-$panstep&rtilt=$tiltstep";
+    my $cmd = "/ptz.cgi?pan=-$panstep&tilt=$tiltstep";
     $self->sendCmd( $cmd );
 }
 
@@ -274,7 +417,7 @@ sub moveRelDownRight
     my $panstep = $self->getParam( $params, 'panstep' );
     my $tiltstep = $self->getParam( $params, 'tiltstep' );
     Debug( "Step Down/Right $tiltstep/$panstep" );
-    my $cmd = "/axis-cgi/com/ptz.cgi?rpan=$panstep&rtilt=-$tiltstep";
+    my $cmd = "/ptz.cgi?pan=$panstep&tilt=-$tiltstep";
     $self->sendCmd( $cmd );
 }
 
@@ -285,7 +428,7 @@ sub moveRelDownLeft
     my $panstep = $self->getParam( $params, 'panstep' );
     my $tiltstep = $self->getParam( $params, 'tiltstep' );
     Debug( "Step Down/Left $tiltstep/$panstep" );
-    my $cmd = "/axis-cgi/com/ptz.cgi?rpan=-$panstep&rtilt=-$tiltstep";
+    my $cmd = "/ptz.cgi?pan=-$panstep&tilt=-$tiltstep";
     $self->sendCmd( $cmd );
 }
 
@@ -295,7 +438,7 @@ sub zoomRelTele
     my $params = shift;
     my $step = $self->getParam( $params, 'step' );
     Debug( "Zoom Tele" );
-    my $cmd = "/axis-cgi/com/ptz.cgi?rzoom=$step";
+    my $cmd = "/ptz.cgi?rzoom=$step";
     $self->sendCmd( $cmd );
 }
 
@@ -305,7 +448,7 @@ sub zoomRelWide
     my $params = shift;
     my $step = $self->getParam( $params, 'step' );
     Debug( "Zoom Wide" );
-    my $cmd = "/axis-cgi/com/ptz.cgi?rzoom=-$step";
+    my $cmd = "/ptz.cgi?rzoom=-$step";
     $self->sendCmd( $cmd );
 }
 
@@ -315,7 +458,7 @@ sub focusRelNear
     my $params = shift;
     my $step = $self->getParam( $params, 'step' );
     Debug( "Focus Near" );
-    my $cmd = "/axis-cgi/com/ptz.cgi?rfocus=-$step";
+    my $cmd = "/ptz.cgi?rfocus=-$step";
     $self->sendCmd( $cmd );
 }
 
@@ -325,7 +468,7 @@ sub focusRelFar
     my $params = shift;
     my $step = $self->getParam( $params, 'step' );
     Debug( "Focus Far" );
-    my $cmd = "/axis-cgi/com/ptz.cgi?rfocus=$step";
+    my $cmd = "/ptz.cgi?rfocus=$step";
     $self->sendCmd( $cmd );
 }
 
@@ -333,7 +476,7 @@ sub focusAuto
 {
     my $self = shift;
     Debug( "Focus Auto" );
-    my $cmd = "/axis-cgi/com/ptz.cgi?autofocus=on";
+    my $cmd = "/ptz.cgi?Autofocus=on";
     $self->sendCmd( $cmd );
 }
 
@@ -341,7 +484,7 @@ sub focusMan
 {
     my $self = shift;
     Debug( "Focus Manual" );
-    my $cmd = "/axis-cgi/com/ptz.cgi?autofocus=off";
+    my $cmd = "/ptz.cgi?Autofocus=off";
     $self->sendCmd( $cmd );
 }
 
@@ -351,7 +494,7 @@ sub irisRelOpen
     my $params = shift;
     my $step = $self->getParam( $params, 'step' );
     Debug( "Iris Open" );
-    my $cmd = "/axis-cgi/com/ptz.cgi?riris=$step";
+    my $cmd = "/ptz.cgi?riris=$step";
     $self->sendCmd( $cmd );
 }
 
@@ -361,7 +504,7 @@ sub irisRelClose
     my $params = shift;
     my $step = $self->getParam( $params, 'step' );
     Debug( "Iris Close" );
-    my $cmd = "/axis-cgi/com/ptz.cgi?riris=-$step";
+    my $cmd = "/ptz.cgi?riris=-$step";
     $self->sendCmd( $cmd );
 }
 
@@ -369,7 +512,7 @@ sub irisAuto
 {
     my $self = shift;
     Debug( "Iris Auto" );
-    my $cmd = "/axis-cgi/com/ptz.cgi?autoiris=on";
+    my $cmd = "/ptz.cgi?autoiris=on";
     $self->sendCmd( $cmd );
 }
 
@@ -377,7 +520,7 @@ sub irisMan
 {
     my $self = shift;
     Debug( "Iris Manual" );
-    my $cmd = "/axis-cgi/com/ptz.cgi?autoiris=off";
+    my $cmd = "/ptz.cgi?autoiris=off";
     $self->sendCmd( $cmd );
 }
 
@@ -387,17 +530,7 @@ sub presetClear
     my $params = shift;
     my $preset = $self->getParam( $params, 'preset' );
     Debug( "Clear Preset $preset" );
-    my $cmd = "/axis-cgi/com/ptz.cgi?removeserverpresetno=$preset";
-    $self->sendCmd( $cmd );
-}
-
-sub presetSet
-{
-    my $self = shift;
-    my $params = shift;
-    my $preset = $self->getParam( $params, 'preset' );
-    Debug( "Set Preset $preset" );
-    my $cmd = "/axis-cgi/com/ptz.cgi?setserverpresetno=$preset";
+    my $cmd = "/ptz.cgi?removeserverpresetno=$preset";
     $self->sendCmd( $cmd );
 }
 
@@ -407,7 +540,7 @@ sub presetGoto
     my $params = shift;
     my $preset = $self->getParam( $params, 'preset' );
     Debug( "Goto Preset $preset" );
-    my $cmd = "/axis-cgi/com/ptz.cgi?gotoserverpresetno=$preset";
+    my $cmd = "/ptz.cgi?gotoserverpresetno=$preset";
     $self->sendCmd( $cmd );
 }
 
@@ -415,7 +548,7 @@ sub presetHome
 {
     my $self = shift;
     Debug( "Home Preset" );
-    my $cmd = "/axis-cgi/com/ptz.cgi?move=home";
+    my $cmd = "/ptz.cgi?move=home";
     $self->sendCmd( $cmd );
 }
 
@@ -459,11 +592,11 @@ If you have a web site set up for your module, mention it here.
 
 =head1 AUTHOR
 
-Philip Coombes, E<lt>philip.coombes@zoneminder.comE<gt>
+Juan Manuel Castro, E<lt>juanmanuel.castro@gmail.comE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2001-2008  Philip Coombes
+Copyright (C) 2014 Juan Manuel Castro
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.3 or,

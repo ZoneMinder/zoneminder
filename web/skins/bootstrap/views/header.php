@@ -28,6 +28,7 @@
 					<?php if ($running) ?>
 						<li><a href="?view=cycle&amp;group=<?= $cycleGroup ?>"><?= $SLANG['Cycle'] ?></a></li>
 						<li><a href="?view=montage&amp;group=<?= $cycleGroup ?>"><?= $SLANG['Montage'] ?></a></li>
+						<li><a href="?view=host&amp;group=<?= $cycleGroup ?>">Host</a></li>
 					<?php ?>
 				</ul>
 			</div>

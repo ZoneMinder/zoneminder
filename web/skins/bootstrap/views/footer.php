@@ -2,7 +2,7 @@
 				<div class="container-fluid">
 						<p class="pull-right text-muted"><?= $SLANG['Load'] ?>: <span ng-bind="load"></span> -
 						<?= $SLANG['Disk'] ?>: <span ng-bind="diskPercent"></span>% -
-						<?= makePopupLink( '?view=version', 'zmVersion', 'version', 'v' . ZM_VERSION, canEdit( 'System' ) ) ?> -
+						<a href="?view=version" target="_blank">v {{ version }}</a>
       <?php
 if ( ZM_OPT_USE_AUTH )
 {

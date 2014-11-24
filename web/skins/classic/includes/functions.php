@@ -20,8 +20,9 @@
 
 function xhtmlHeaders( $file, $title )
 {
-    $skinCssFile = getSkinFile( 'css/skin.css' );
-    $skinCssPhpFile = getSkinFile( 'css/skin.css.php' );
+	global	$css;
+    $skinCssFile = getSkinFile( 'css/'.$css.'/skin.css' );
+    $skinCssPhpFile = getSkinFile( 'css/'.$css.'/skin.css.php' );
     $skinJsFile = getSkinFile( 'js/skin.js' );
     $skinJsPhpFile = getSkinFile( 'js/skin.js.php' );
 

@@ -34,8 +34,16 @@ class HostController extends AppController {
 		));
 	}
 
-	function getDiskPercent() {
+	function getDiskPercent($mid = null) {
 		$this->loadModel('Config');
+		$this->loadModel('Monitor');
+
+		if ($mid) {	
+			if (!$this->Monitor->exists($mid)) {
+				throw new NotFoundException(__('Invalid monitor'));
+			}
+		}
+
 		$zm_dir_events = $this->Config->find('list', array(
 			'conditions' => array('Name' => 'ZM_DIR_EVENTS'),
 			'fields' => array('Name', 'Value')
@@ -48,10 +56,16 @@ class HostController extends AppController {
 			$zm_dir_events = Configure::read('ZM_PATH_WEB') . '/' . $zm_dir_events;
 		}
 
-		$df = shell_exec( 'df '.$zm_dir_events);
 		$space = -1;
-		if ( preg_match( '/\s(\d+)%/ms', $df, $matches ) )
-			$space = $matches[1];
+
+		if ($mid) {
+			// Get disk usage for $mid
+			$space = shell_exec ("du -sh0 $zm_dir_events/$mid | awk '{print $1}'");
+		} else {
+			$space = shell_exec( 'df '.$zm_dir_events);
+			if ( preg_match( '/\s(\d+)%/ms', $space, $matches ) )
+				$space = $matches[1];
+		}
 
 		$this->set(array(
 			'space' => $space,

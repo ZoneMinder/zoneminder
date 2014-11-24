@@ -58,4 +58,13 @@ class HostController extends AppController {
 			'_serialize' => array('space')
 		));
 	}
+
+	function getVersion() {
+		$version = Configure::read('ZM_VERSION');
+
+		$this->set(array(
+			'version' => $version,
+			'_serialize' => array('version')
+		));
+	}
 }

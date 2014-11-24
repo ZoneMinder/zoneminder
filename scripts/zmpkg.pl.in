@@ -275,7 +275,7 @@ sub calledBysystem
 	my $output = qx(ps -o comm="" $ppid);
 	chomp( $output );
 
-	if ($output =~ /^(?:systemd|init)$/) {
+	if ($output =~ /^(?:systemd|init|zoneminder)$/) {
 		$result = 1;
 	}
 

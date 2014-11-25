@@ -30,6 +30,7 @@ function xhtmlHeaders( $file, $title )
 		$bootstrapCssFile = getSkinFile( 'css/bootstrap.css' );
 		$bootstrapJsFile = getSkinFile( 'js/bootstrap.min.js' );
 		$ChartJsFile = getSkinFile( 'js/Chart.min.js' );
+		$tcangularchartjsFile = getSkinFile( 'js/tc-angular-chartjs.min.js' );
     $basename = basename( $file, '.php' );
     $viewCssFile = getSkinFile( 'views/css/'.$basename.'.css' );
     $viewCssPhpFile = getSkinFile( 'views/css/'.$basename.'.css.php' );
@@ -73,11 +74,12 @@ function xhtmlHeaders( $file, $title )
     }
 ?>
 	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.2/angular.min.js"></script>
+  <script type="text/javascript" src="<?= $ChartJsFile ?>"></script>
 	<script src="<?= getSkinFile('js/app.js'); ?>"></script>
 	<script src="<?= getSkinFile('js/controllers.js'); ?>"></script>
+  <script type="text/javascript" src="<?= $tcangularchartjsFile ?>"></script>
   <script type="text/javascript" src="<?= $jqueryJsFile ?>"></script>
   <script type="text/javascript" src="<?= $bootstrapJsFile ?>"></script>
-  <script type="text/javascript" src="<?= $ChartJsFile ?>"></script>
   <script type="text/javascript" src="tools/mootools/mootools-core.js"></script>
   <script type="text/javascript" src="tools/mootools/mootools-more.js"></script>
   <script type="text/javascript" src="js/mootools.ext.js"></script>

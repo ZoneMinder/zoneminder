@@ -401,7 +401,7 @@ title="<?= $title ?>">
 function outputImageStill( $id, $src, $width, $height, $title="" )
 {
 ?>
-<img id="<?= $id ?>" src="<?= $src ?>" alt="<?= $title ?>" width="<?= $width ?>" height="<?= $height ?>"/>
+<img class="img-responsive" id="<?= $id ?>" src="<?= $src ?>" alt="<?= $title ?>" width="<?= $width ?>" height="<?= $height ?>"/>
 <?php
 }
 

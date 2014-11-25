@@ -23,11 +23,8 @@ class HostController extends AppController {
 	}
 
 	function getLoad() {
-		$uptime = shell_exec( 'uptime' );
-		$load = '';
-		if ( preg_match( '/load average: ([\d.]+)/', $uptime, $matches ) )
-			$load = $matches[1];
-	
+		$load = sys_getloadavg();
+
 		$this->set(array(
 			'load' => $load,
 			'_serialize' => array('load')

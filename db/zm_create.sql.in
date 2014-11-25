@@ -19,6 +19,8 @@
 
 CREATE DATABASE /*!32312 IF NOT EXISTS*/ `@ZM_DB_NAME@`;
 
+GRANT select,insert,update,delete,lock tables,alter on zm.* to '@ZM_DB_USER@'@localhost identified by '@ZM_DB_PASS@';
+
 USE `@ZM_DB_NAME@`;
 
 --

@@ -103,3 +103,7 @@ ZoneMinder.controller('ConfigController', function($scope, $http, Config) {
 	}
 
 });
+
+ZoneMinder.controller('HostController', function($scope, Footer) {
+
+});

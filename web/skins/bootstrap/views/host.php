@@ -6,7 +6,7 @@ xhtmlHeaders( __FILE__, 'Host' );
 
 	<?php include("header.php"); ?>
 
-	<div class="container-fluid">
+	<div class="container-fluid" ng-controller="HostController">
 
 	</div>
 

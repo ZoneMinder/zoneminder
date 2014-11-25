@@ -31,10 +31,14 @@ class HostController extends AppController {
 		));
 	}
 
+	// If $mid is set, only return disk usage for that monitor
+  // Else, return an array of total disk usage, and per-monitor
+  // usage.
 	function getDiskPercent($mid = null) {
 		$this->loadModel('Config');
 		$this->loadModel('Monitor');
 
+		// If $mid is passed, see if it is valid
 		if ($mid) {	
 			if (!$this->Monitor->exists($mid)) {
 				throw new NotFoundException(__('Invalid monitor'));
@@ -53,20 +57,32 @@ class HostController extends AppController {
 			$zm_dir_events = Configure::read('ZM_PATH_WEB') . '/' . $zm_dir_events;
 		}
 
-		$space = -1;
-
 		if ($mid) {
 			// Get disk usage for $mid
-			$space = shell_exec ("du -sh0 $zm_dir_events/$mid | awk '{print $1}'");
+			$usage = shell_exec ("du -sh0 $zm_dir_events/$mid | awk '{print $1}'");
 		} else {
-			$space = shell_exec( 'df '.$zm_dir_events);
-			if ( preg_match( '/\s(\d+)%/ms', $space, $matches ) )
-				$space = $matches[1];
+			$monitors = $this->Monitor->find('list');
+			$usage = array();
+
+			// Add each monitor's usage to array
+			foreach ($monitors as $id => $name) {
+				$space = shell_exec ("du -s0 $zm_dir_events/$id | awk '{print $1}'");
+				if ($space == null) {
+					$space = 0;
+				}
+				$space = $space/1024/1024;
+				$usage[$name] = rtrim($space);
+			}
+
+			// Add total usage to array
+			$space = shell_exec( "df $zm_dir_events |tail -n1 | awk '{print $3 }'");
+			$space = $space/1024/1024;
+			$usage['Total'] = rtrim($space);
 		}
 
 		$this->set(array(
-			'space' => $space,
-			'_serialize' => array('space')
+			'usage' => $usage,
+			'_serialize' => array('usage')
 		));
 	}
 

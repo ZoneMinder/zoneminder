@@ -12,10 +12,6 @@ ZoneMinder.controller('HeaderController', function($scope, Header) {
 });
 
 ZoneMinder.controller('FooterController', function($scope, Footer) {
-	Footer.getLoad(function(load) {
-		$scope.load = load.load;
-	});
-
 	Footer.getDiskPercent(function(diskPercent) {
 		$scope.diskPercent = diskPercent.space;
 	});
@@ -104,6 +100,34 @@ ZoneMinder.controller('ConfigController', function($scope, $http, Config) {
 
 });
 
-ZoneMinder.controller('HostController', function($scope, Footer) {
+ZoneMinder.controller('HostController', function($scope, Host, Footer) {
 
+	Host.getLoad(function(load) {
+		$scope.loadData = {
+			labels: ['1 min', '5 min', '15 min'],
+			datasets: [{
+				label: 'CPU Load',
+				fillColor: 'rgba(220,220,220,0.2)',
+				strokeColor: 'rgba(220,220,220,1)',
+				pointColor: 'rgba(220,220,220,1)',
+				pointStrokeColor: '#fff',
+				pointHighlightFill: '#fff',
+				pointHighlightStroke: 'rgba(220,220,220,1)',
+				data: [ load.load[0], load.load[1], load.load[2] ]
+			}]
+		};
+	});
+
+    $scope.doptions =  {
+      responsive: false,
+      segmentShowStroke : true,
+      segmentStrokeColor : '#fff',
+      segmentStrokeWidth : 2,
+      percentageInnerCutout : 50, // This is 0 for Pie charts
+      animationSteps : 1,
+      animationEasing : 'easeOutBounce',
+      animateRotate : false,
+      animateScale : false,
+      legendTemplate : '<ul class="tc-chart-js-legend"><% for (var i=0; i<segments.length; i++){%><li><span style="background-color:<%=segments[i].fillColor%>"></span><%if(segments[i].label){%><%=segments[i].label%><%}%></li><%}%></ul>'
+	};
 });

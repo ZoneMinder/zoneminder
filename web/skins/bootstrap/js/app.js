@@ -18,11 +18,16 @@ ZoneMinder.factory('Header', function($http) {
 	};
 });
 
-ZoneMinder.factory('Footer', function($http) {
+ZoneMinder.factory('Host', function($http) {
 	return {
 		getLoad: function(callback) {
 			$http.get('/api/host/getLoad.json').success(callback);
-		},
+		}
+	};
+});
+
+ZoneMinder.factory('Footer', function($http) {
+	return {
 		getDiskPercent: function(callback) {
 			$http.get('/api/host/getDiskPercent.json').success(callback);
 		},

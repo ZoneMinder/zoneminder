@@ -20,6 +20,9 @@ ZoneMinder.factory('Header', function($http) {
 
 ZoneMinder.factory('Host', function($http) {
 	return {
+		getDiskPercent: function(callback) {
+			$http.get('/api/host/getDiskPercent.json').success(callback);
+		},
 		getLoad: function(callback) {
 			$http.get('/api/host/getLoad.json').success(callback);
 		}
@@ -28,9 +31,6 @@ ZoneMinder.factory('Host', function($http) {
 
 ZoneMinder.factory('Footer', function($http) {
 	return {
-		getDiskPercent: function(callback) {
-			$http.get('/api/host/getDiskPercent.json').success(callback);
-		},
 		getVersion: function(callback) {
 			$http.get('/api/host/getVersion.json').success(callback);
 		}

@@ -12,10 +12,6 @@ ZoneMinder.controller('HeaderController', function($scope, Header) {
 });
 
 ZoneMinder.controller('FooterController', function($scope, Footer) {
-	Footer.getDiskPercent(function(diskPercent) {
-		$scope.diskPercent = diskPercent.space;
-	});
-
 	Footer.getVersion(function(version) {
 		$scope.version = version.version;
 	});
@@ -100,8 +96,8 @@ ZoneMinder.controller('ConfigController', function($scope, $http, Config) {
 
 });
 
-ZoneMinder.controller('HostController', function($scope, Host, Footer) {
-  Footer.getDiskPercent(function(diskPercent) {
+ZoneMinder.controller('HostController', function($scope, Host) {
+  Host.getDiskPercent(function(diskPercent) {
 		var array = [];
 		angular.forEach(diskPercent.usage, function(value, key) {
 			var a = {

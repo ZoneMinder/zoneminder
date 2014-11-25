@@ -54,9 +54,9 @@ override_dh_install:
 	rm -rf debian/zoneminder/usr/share/zoneminder/events
 	rm -rf debian/zoneminder/usr/share/zoneminder/images
 	rm -rf debian/zoneminder/usr/share/zoneminder/temp
-	ln -s /var/cache/zoneminder/events debian/zoneminder/usr/share/zoneminder/
-	ln -s /var/cache/zoneminder/images debian/zoneminder/usr/share/zoneminder/
-	ln -s /var/cache/zoneminder/temp debian/zoneminder/usr/share/zoneminder/
+	dh_link var/cache/zoneminder/events usr/share/zoneminder/events
+	dh_link var/cache/zoneminder/images usr/share/zoneminder/images
+	dh_link var/cache/zoneminder/temp usr/share/zoneminder/temp
 
 	#
 	# This is a slightly lesser kludge; moving the cgi stuff to 
@@ -64,7 +64,7 @@ override_dh_install:
 	# having it just in /usr/lib/cgi-bin breaks another bit of 
 	# behavior.
 	#
-	ln -s /usr/lib/cgi-bin debian/zoneminder/usr/share/zoneminder/
+	dh_link usr/lib/cgi-bin usr/share/zoneminder/cgi-bin
 
 override_dh_fixperms:
 	dh_fixperms

@@ -393,8 +393,8 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_di
                         videoStore = NULL;
                     }
                     char fileName[4096];
-                    snprintf(fileName, sizeof(fileName), "%s/event.mkv", event_directory);//no audio support for mp4?
-                    videoStore = new VideoStore((const char *)fileName, "matroska", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime);
+                    snprintf(fileName, sizeof(fileName), "%s/event.mp4", event_directory);//no audio support for mp4?
+                    videoStore = new VideoStore((const char *)fileName, "mp4", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime);
                     strcpy(oldDirectory, event_directory);
                 }
                 

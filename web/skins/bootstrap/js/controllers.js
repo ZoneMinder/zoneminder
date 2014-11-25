@@ -101,6 +101,19 @@ ZoneMinder.controller('ConfigController', function($scope, $http, Config) {
 });
 
 ZoneMinder.controller('HostController', function($scope, Host, Footer) {
+  Footer.getDiskPercent(function(diskPercent) {
+		var array = [];
+		angular.forEach(diskPercent.usage, function(value, key) {
+			var a = {
+				'value' : Math.floor(value),
+				'label' : key,
+  	    'color' : '#F7464A',
+  	    'highlight'  : '#FFC870',
+			};
+			array.push(a);
+		});
+		$scope.ddata = array;
+  });
 
 	Host.getLoad(function(load) {
 		$scope.loadData = {

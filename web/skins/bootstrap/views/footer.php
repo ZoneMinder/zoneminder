@@ -1,8 +1,6 @@
 			<div id="footer" ng-controller="FooterController">
 				<div class="container-fluid">
-						<p class="pull-right text-muted"><?= $SLANG['Load'] ?>: <span ng-bind="load"></span> -
-						<?= $SLANG['Disk'] ?>: <span ng-bind="diskPercent"></span>% -
-						<a href="?view=version" target="_blank">v {{ version }}</a>
+						<p class="pull-right text-muted"> <a href="?view=version" target="_blank">v {{ version }}</a>
       <?php
 if ( ZM_OPT_USE_AUTH )
 {

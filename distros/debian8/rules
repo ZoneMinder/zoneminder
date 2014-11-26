@@ -24,6 +24,15 @@ else
 	CFLAGS += -O2
 endif
 
+# These are used to get the most recent version of the original sources from github
+UURL = $(shell git config --get remote.origin.url)
+BRANCH = $(shell git rev-parse --abbrev-ref HEAD)
+HEAD = $(shell git rev-parse HEAD)
+PKD  = $(abspath $(dir $(MAKEFILE_LIST)))
+PKG  = $(word 2,$(shell dpkg-parsechangelog -l$(PKD)/changelog | grep ^Source))
+VER ?= $(shell dpkg-parsechangelog -l$(PKD)/changelog | perl -ne 'print $$1 if m{^Version:\s+(?:\d+:)?(\d.*)(?:\-\d+.*)};')
+DTYPE =
+
 %:
 	dh $@ --with quilt,autoreconf,systemd
 
@@ -76,3 +85,27 @@ override_dh_systemd_start:
 .PHONY: override_dh_strip
 override_dh_strip:
 		dh_strip --dbg-package=zoneminder-dbg
+
+# Inspired by https://wiki.debian.org/onlyjob/get-orig-source
+.PHONY: get-orig-source
+get-orig-source: ../$(PKG)_$(VER)$(DTYPE).orig.tar.xz $(info I: $(PKG)_$(VER)$(DTYPE))
+	@
+
+../$(PKG)_$(VER)$(DTYPE).orig.tar.xz:
+	$(if $(wildcard $(PKG)-$(VER)),$(error $(PKG)-$(VER) exist, aborting))
+	@echo "# Cloning repository..."
+	git clone $(UURL) $(PKG)-$(VER) || $(RM) -r $(PKG)-$(VER)
+	@echo "# Checkout origin branch..."
+	cd $(PKG)-$(VER) && git pull origin $(BRANCH)
+	@echo "# Checking local branch..."
+	@if [ $$(cd $(PKG)-$(VER) && git rev-parse HEAD) = $(HEAD) ]; then \
+	  echo "even with origin, ok"; \
+	  true; \
+	else \
+	  echo "not even with origin, aborting"; \
+	  false; \
+	fi
+	@echo "# Packing..."
+	find -L "$(PKG)-$(VER)" -xdev -type f -print | sort \
+	  | XZ_OPT="-6v" tar -caf "../$(PKG)_$(VER)$(DTYPE).orig.tar.xz" -T- --owner=root --group=root --mode=a+rX \
+	  && $(RM) -r "$(PKG)-$(VER)"

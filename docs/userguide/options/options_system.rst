@@ -1,5 +1,9 @@
 Options - System
+<<<<<<< HEAD
 ================
+=======
+----------------
+>>>>>>> fb436fb... Merge pull request #591 from SteveGilvarry/docs-updates
 
 .. image:: images/Options_System.png
 

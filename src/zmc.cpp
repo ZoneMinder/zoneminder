@@ -302,5 +302,8 @@ int main( int argc, char *argv[] )
 	delete [] next_delays;
 	delete [] last_capture_times;
 
+	logTerm();
+	zmDbClose();
+
 	return( result );
 }

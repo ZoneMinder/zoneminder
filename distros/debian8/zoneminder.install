@@ -20,5 +20,3 @@ etc/zm
 db/zm_create.sql usr/share/zoneminder/db
 db/zm_update-*.sql usr/share/zoneminder/db
 debian/apache.conf etc/zm
-debian/zoneminder.service lib/systemd/system
-debian/zoneminder.conf etc/tmpfiles.d

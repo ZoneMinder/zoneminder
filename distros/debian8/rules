@@ -25,7 +25,7 @@ else
 endif
 
 %:
-	dh $@ --with quilt,autoreconf
+	dh $@ --with quilt,autoreconf,systemd
 
 override_dh_auto_configure:
 	CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)" dh_auto_configure -- \
@@ -69,6 +69,9 @@ override_dh_fixperms:
 
 override_dh_auto_test:
 	# do not run tests...
+
+override_dh_systemd_start:
+	dh_systemd_start --restart-after-upgrade
 
 .PHONY: override_dh_strip
 override_dh_strip:

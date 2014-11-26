@@ -91,7 +91,7 @@ RemoteCameraRtsp::~RemoteCameraRtsp()
     if ( mCodecContext )
     {
        avcodec_close( mCodecContext );
-       mCodecContext = NULL; // Freed by av_close_input_file
+       mCodecContext = NULL; // Freed by avformat_free_context in the destructor of RtspThread class
     }
 
 	if ( capture )

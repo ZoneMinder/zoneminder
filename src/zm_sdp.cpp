@@ -184,9 +184,15 @@ SessionDescriptor::SessionDescriptor( const std::string &url, const std::string 
                 mInfo = line;
                 break;
             case 'c' :
+                // This prevent a memory leak if the field appears more than one time
+                if ( mConnInfo )
+                    delete mConnInfo;
                 mConnInfo = new ConnInfo( line );
                 break;
             case 'b' :
+                // This prevent a memory leak if the field appears more than one time
+                if ( mBandInfo )
+                    delete mBandInfo;
                 mBandInfo = new BandInfo( line );
                 break;
             case 't' :
@@ -337,6 +343,16 @@ SessionDescriptor::SessionDescriptor( const std::string &url, const std::string 
             }
         }
     }
+}
+
+SessionDescriptor::~SessionDescriptor()
+{
+    if ( mConnInfo )
+        delete mConnInfo;
+    if ( mBandInfo )
+        delete mBandInfo;
+    for ( unsigned int i = 0; i < mMediaList.size(); i++ )
+        delete mMediaList[i];
 }
 
 AVFormatContext *SessionDescriptor::generateFormatContext() const

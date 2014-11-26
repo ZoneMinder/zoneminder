@@ -26,6 +26,7 @@
 #include "zm_thread.h"
 #include "zm_rtp_source.h"
 #include "zm_rtsp_auth.h"
+#include "zm_sdp.h"
 
 #include <set>
 #include <map>
@@ -73,6 +74,7 @@ private:
 
     SourceMap mSources;
 
+    SessionDescriptor *mSessDesc;
     AVFormatContext *mFormatContext;
 
     uint16_t mSeq;

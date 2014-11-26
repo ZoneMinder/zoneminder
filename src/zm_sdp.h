@@ -213,6 +213,7 @@ protected:
 
 public:
     SessionDescriptor( const std::string &url, const std::string &sdp );
+    ~SessionDescriptor();
 
     const std::string &getUrl() const
     {

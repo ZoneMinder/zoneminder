@@ -49,7 +49,7 @@ override_dh_auto_configure:
 override_dh_clean:
 	# Add here commands to clean up after the build process.
 	[ ! -f Makefile ] || $(MAKE) distclean
-	dh_clean
+	dh_clean src/zm_config_defines.h
 
 override_dh_install:
 	#

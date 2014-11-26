@@ -29,6 +29,8 @@ class Monitor extends AppModel {
  */
 	public $displayField = 'Name';
 
+	public $recursive = -1;
+
 /**
  * Validation rules
  *

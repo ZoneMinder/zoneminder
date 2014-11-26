@@ -307,4 +307,6 @@ int main( int argc, char *argv[] )
 
 		sigprocmask( SIG_UNBLOCK, &block_set, 0 );
 	}
+	logTerm();
+	zmDbClose();
 }

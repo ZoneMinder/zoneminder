@@ -1,6 +1,6 @@
 AUTOMAKE_OPTIONS = gnu
 
-webdir = @WEB_PREFIX@/skins/flat/css
+webdir = @WEB_PREFIX@/skins/classic/css/classic
 
 dist_web_DATA = \
 	skin.css \

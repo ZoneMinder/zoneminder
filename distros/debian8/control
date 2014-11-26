@@ -2,7 +2,7 @@ Source: zoneminder
 Section: net
 Priority: optional
 Maintainer: Isaac Connor <iconnor@connortechnology.com>
-Build-Depends: debhelper (>= 9), dh-systemd (>= 1.5), autoconf, automake, quilt, libphp-serialization-perl, libgnutls28-dev, libmysqlclient-dev | libmariadbclient-dev, libdbd-mysql-perl, libdate-manip-perl, libwww-perl, libjpeg8-dev|libjpeg9-dev|libjpeg62-turbo-dev, libpcre3-dev, libavcodec-dev, libavformat-dev (>= 3:0.svn20090204), libswscale-dev (>= 3:0.svn20090204), libavutil-dev, libv4l-dev (>= 0.8.3), libbz2-dev, libtool, libsys-mmap-perl, ffmpeg | libav-tools, libnetpbm10-dev, libavdevice-dev, libdevice-serialport-perl, libarchive-zip-perl, libmime-lite-perl, dh-autoreconf, libvlccore-dev, libvlc-dev, libcurl4-gnutls-dev | libcurl4-nss-dev | libcurl4-openssl-dev, libgcrypt11-dev|libgcrypt20-dev, libpolkit-gobject-1-dev
+Build-Depends: debhelper (>= 9), dh-systemd (>= 1.5), autoconf, automake, libphp-serialization-perl, libgnutls28-dev, libmysqlclient-dev | libmariadbclient-dev, libdbd-mysql-perl, libdate-manip-perl, libwww-perl, libjpeg8-dev|libjpeg9-dev|libjpeg62-turbo-dev, libpcre3-dev, libavcodec-dev, libavformat-dev (>= 3:0.svn20090204), libswscale-dev (>= 3:0.svn20090204), libavutil-dev, libv4l-dev (>= 0.8.3), libbz2-dev, libtool, libsys-mmap-perl, ffmpeg | libav-tools, libnetpbm10-dev, libavdevice-dev, libdevice-serialport-perl, libarchive-zip-perl, libmime-lite-perl, dh-autoreconf, libvlccore-dev, libvlc-dev, libcurl4-gnutls-dev | libcurl4-nss-dev | libcurl4-openssl-dev, libgcrypt11-dev|libgcrypt20-dev, libpolkit-gobject-1-dev
 Standards-Version: 3.9.6
 
 Package: zoneminder

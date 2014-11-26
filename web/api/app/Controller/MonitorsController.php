@@ -124,5 +124,43 @@ class MonitorsController extends AppController {
 		));
 	}
 
+	// Check if a daemon is running for the monitor id
+	public function daemonStatus() {
+		$id = $this->request->params['named']['id'];
+		$daemon = $this->request->params['named']['daemon'];
+
+		if (!$this->Monitor->exists($id)) {
+			throw new NotFoundException(__('Invalid monitor'));
+		}
+
+		$monitor = $this->Monitor->find('first', array(
+			'fields' => array('Id', 'Type', 'Device'),
+			'conditions' => array('Id' => $id)
+		));
+
+		// Clean up the returned array
+		$monitor = Set::extract('/Monitor/.', $monitor);
+
+		// Pass -d for local, otherwise -m
+		if ($monitor[0]['Type'] == 'Local') {
+			$args = "-d ". $monitor[0]['Device'];	
+		} else {
+			$args = "-m ". $monitor[0]['Id'];
+		}
+
+		// Build the command, and execute it
+		$zm_path_bin = Configure::read('ZM_PATH_BIN');
+		$command = escapeshellcmd("$zm_path_bin/zmdc.pl status $daemon $args");
+		$status = exec( $command );
+
+		// If 'not' is present, the daemon is not running, so return false
+		$status = (strpos($status, 'not')) ? false : true;
+
+		$this->set(array(
+			'status' => $status,
+			'_serialize' => array('status')
+		));
+	}
+
 }
 

@@ -15,10 +15,11 @@
 //Suite 330, Boston, MA 02111-1307, USA. //
 
 // ZoneMinder estonian Translation by Seston seston@gmail.com 
-// Kes viitsiks aidata tõlkida abitekste ja üldse kõike seda.Üksi on kuidagi igav ettevõtmine.
+// Who would care assistance to help to translate texts, and all this at all. Alone is somehow boring business.... 
+//Kes viitsiks aidata tõlkida abitekste ja üldse kõike seda.Üksi on kuidagi igav ettevõtmine....
 
 // ZoneMinder Estonian Translation by Hannes hanzese@gmail.com
-// Mina viitsin, sest ZoneMinder on lahe.....
+// I bother because zoneminder is cool.....    Mina viitsin, sest ZoneMinder on lahe.....
 
 //Notes for Translators
 // 0. Get some credit, put your name in the line above (optional)

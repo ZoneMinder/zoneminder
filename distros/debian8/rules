@@ -99,7 +99,7 @@ get-orig-source: ../$(PKG)_$(VER)$(DTYPE).orig.tar.xz $(info I: $(PKG)_$(VER)$(D
 	  echo "failed to clone repository, aborting..."; \
 	  false; \
 	fi
-	@if [ $(BRANCH) != \"master\" ]; then \
+	@if [ $(BRANCH) != "master" ]; then \
 	  cd $(PKG)-$(VER); \
 	  echo "# Not on master branch, fetching origin branch '$(BRANCH)'..."; \
 	  git fetch origin $(BRANCH):$(BRANCH) || false; \

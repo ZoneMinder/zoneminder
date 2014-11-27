@@ -31,6 +31,7 @@ function xhtmlHeaders( $file, $title )
 		$bootstrapJsFile = getSkinFile( 'js/bootstrap.min.js' );
 		$ChartJsFile = getSkinFile( 'js/Chart.min.js' );
 		$tcangularchartjsFile = getSkinFile( 'js/tc-angular-chartjs.min.js' );
+		$uibootstrapJsFile = getSkinFile( 'js/ui-bootstrap-tpls-0.12.0.min.js' );
     $basename = basename( $file, '.php' );
     $viewCssFile = getSkinFile( 'views/css/'.$basename.'.css' );
     $viewCssPhpFile = getSkinFile( 'views/css/'.$basename.'.css.php' );
@@ -78,6 +79,7 @@ function xhtmlHeaders( $file, $title )
 	<script src="<?= getSkinFile('js/app.js'); ?>"></script>
 	<script src="<?= getSkinFile('js/controllers.js'); ?>"></script>
   <script type="text/javascript" src="<?= $tcangularchartjsFile ?>"></script>
+  <script type="text/javascript" src="<?= $uibootstrapJsFile ?>"></script>
   <script type="text/javascript" src="<?= $jqueryJsFile ?>"></script>
   <script type="text/javascript" src="<?= $bootstrapJsFile ?>"></script>
   <script type="text/javascript" src="tools/mootools/mootools-core.js"></script>

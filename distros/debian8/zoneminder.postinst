@@ -18,7 +18,7 @@ if [ "$1" = "configure" ]; then
 				echo 'grant lock tables, alter,select,insert,update,delete on zm.* to 'zmuser'@localhost identified by "zmpass";' | mysql --defaults-file=/etc/mysql/debian.cnf mysql
 			fi
 
-			invoke-rc.d zoneminder stop || true
+			systemctl stop zoneminder.service || true
 			zmupdate.pl --nointeractive
 
 		else
@@ -34,9 +34,9 @@ if [ "$1" = "configure" ]; then
 	fi
 fi
 # Ensure zoneminder is stopped...
-if [ -x "/etc/init.d/zoneminder" ]; then
-        if invoke-rc.d zoneminder status ; then
-                invoke-rc.d zoneminder stop || exit $?
+if [ -f "/lib/systemd/system/zoneminder.service" ]; then
+        if systemctl status zoneminder.service ; then
+                systemctl stop zoneminder.service || exit $?
         fi
 fi
 

@@ -101,7 +101,7 @@ get-orig-source: ../$(PKG)_$(VER)$(DTYPE).orig.tar.xz $(info I: $(PKG)_$(VER)$(D
 	fi
 	@if [ $(BRANCH) != \"master\" ]; then \
 	  cd $(PKG)-$(VER); \
-	  echo "# Fetching origin branch '$(BRANCH)'..."; \
+	  echo "# Not on master branch, fetching origin branch '$(BRANCH)'..."; \
 	  git fetch origin $(BRANCH):$(BRANCH) || false; \
 	  echo "# Switching to branch '$(BRANCH)'..."; \
 	  git checkout $(BRANCH) || false; \
@@ -114,7 +114,14 @@ get-orig-source: ../$(PKG)_$(VER)$(DTYPE).orig.tar.xz $(info I: $(PKG)_$(VER)$(D
 	  echo "not even with origin, aborting..."; \
 	  false; \
 	fi
+	@echo "# Setting times..."
+	@cd $(PKG)-$(VER) \
+	&& for F in $$(git ls-tree -r --name-only HEAD); do \
+	  touch --no-dereference -d "$$(git log -1 --format="%ai" -- $$F)" "$$F"; \
+	done
+	@echo "# Cleaning-up..."
+	cd $(PKG)-$(VER) && $(RM) -r .git
 	@echo "# Packing..."
-	find -L "$(PKG)-$(VER)" -xdev -type f -print | sort \
+	@find -L "$(PKG)-$(VER)" -xdev -type f -print | sort \
 	| XZ_OPT="-6v" tar -caf "../$(PKG)_$(VER)$(DTYPE).orig.tar.xz" -T- --owner=root --group=root --mode=a+rX \
 	&& $(RM) -r "$(PKG)-$(VER)"

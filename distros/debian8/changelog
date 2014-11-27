@@ -1,4 +1,4 @@
-zoneminder (1.28.0-0.2) testing; urgency=medium
+zoneminder (1.28.0-2) testing; urgency=medium
 
   * Non-maintainer upload.
   * Upstream release for debian jessie

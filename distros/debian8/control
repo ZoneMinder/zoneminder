@@ -22,6 +22,8 @@ Description: A video camera security and surveillance solution
  via X.10 or other protocols.
 
 Package: zoneminder-dbg
+Priority: extra
+Section: debug
 Architecture: any
 Depends: zoneminder (= ${binary:Version}), ${misc:Depends}
 Description: debugging syumbols for zoneminder.

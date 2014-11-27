@@ -1,5 +1,6 @@
 #! /bin/sh
-# set -e # to be reinstated later
+
+set -e
 
 if [ "$1" = "purge" ]; then
     echo 'delete from user where User="zmuser";' | mysql --defaults-file=/etc/mysql/debian.cnf mysql

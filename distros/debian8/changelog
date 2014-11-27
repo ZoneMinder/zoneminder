@@ -1,4 +1,4 @@
-zoneminder (1.28.0-0.1) testing; urgency=medium
+zoneminder (1.28.0-0.2) testing; urgency=medium
 
   * Upstream release for debian jessie
   * Package dependencies updated
@@ -11,7 +11,7 @@ zoneminder (1.28.0-0.1) testing; urgency=medium
 
  -- Emmanuel Papin <manupap01@gmail.com>  Wed, 26 Nov 2014 00:26:01 +0100
 
-zoneminder (1.28.0-wheezy) wheezy; urgency=medium
+zoneminder (1.28.0-0.1-wheezy) stable; urgency=medium
 
   * Release
 

@@ -49,6 +49,9 @@ ZoneMinder.factory('Console', function($http) {
 	return {
 		getConsoleEvents: function(interval) {
 			return $http.get('/api/events/consoleEvents/'+interval+'.json');
+		},
+		daemonStatus: function(id, daemon) {
+			return $http.get('/api/monitors/daemonStatus/id:'+id+'/daemon:'+daemon+'.json');
 		}
 	};
 });

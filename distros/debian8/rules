@@ -32,6 +32,7 @@ PKD  = $(abspath $(dir $(MAKEFILE_LIST)))
 PKG  = $(word 2,$(shell dpkg-parsechangelog -l$(PKD)/changelog | grep ^Source))
 VER ?= $(shell dpkg-parsechangelog -l$(PKD)/changelog | perl -ne 'print $$1 if m{^Version:\s+(?:\d+:)?(\d.*)(?:\-\d+.*)};')
 DTYPE =
+TARBALL = ../$(PKG)_$(VER)$(DTYPE).orig.tar.xz
 
 %:
 	dh $@ --with quilt,autoreconf,systemd
@@ -88,10 +89,10 @@ override_dh_strip:
 
 # Inspired by https://wiki.debian.org/onlyjob/get-orig-source
 .PHONY: get-orig-source
-get-orig-source: ../$(PKG)_$(VER)$(DTYPE).orig.tar.xz $(info I: $(PKG)_$(VER)$(DTYPE))
+get-orig-source: $(TARBALL) $(info I: $(PKG)_$(VER)$(DTYPE))
 	@
 
-../$(PKG)_$(VER)$(DTYPE).orig.tar.xz:
+$(TARBALL):
 	$(if $(wildcard $(PKG)-$(VER)),$(error folder '$(PKG)-$(VER)' exists, aborting...))
 	@echo "# Cloning origin repository..."; \
 	if ! git clone $(UURL) $(PKG)-$(VER); then \
@@ -121,7 +122,7 @@ get-orig-source: ../$(PKG)_$(VER)$(DTYPE).orig.tar.xz $(info I: $(PKG)_$(VER)$(D
 	done
 	@echo "# Cleaning-up..."
 	cd $(PKG)-$(VER) && $(RM) -r .git
-	@echo "# Packing..."
+	@echo "# Packing file '$(TARBALL)'..."
 	@find -L "$(PKG)-$(VER)" -xdev -type f -print | sort \
-	| XZ_OPT="-6v" tar -caf "../$(PKG)_$(VER)$(DTYPE).orig.tar.xz" -T- --owner=root --group=root --mode=a+rX \
+	| XZ_OPT="-6v" tar -caf "$(TARBALL)" -T- --owner=root --group=root --mode=a+rX \
 	&& $(RM) -r "$(PKG)-$(VER)"

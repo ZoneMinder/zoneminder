@@ -116,7 +116,7 @@ get-orig-source: ../$(PKG)_$(VER)$(DTYPE).orig.tar.xz $(info I: $(PKG)_$(VER)$(D
 	fi
 	@echo "# Setting times..."
 	@cd $(PKG)-$(VER) \
-	&& for F in $$(git ls-tree -r --name-only HEAD); do \
+	&& for F in $$(git ls-tree -r --name-only HEAD | sed -e "s/\s/\*/g"); do \
 	  touch --no-dereference -d "$$(git log -1 --format="%ai" -- $$F)" "$$F"; \
 	done
 	@echo "# Cleaning-up..."

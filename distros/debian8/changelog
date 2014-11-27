@@ -1,6 +1,13 @@
 zoneminder (1.28.0-0.1) testing; urgency=medium
 
   * Upstream release for debian jessie
+  * Package dependencies updated
+  * debhelper version upgraded
+  * Standards-Version upgraded
+  * Use debhelper commands instead of standard commands
+  * Install man pages in /usr/share/man
+  * Switch to quilt
+  * Switch to systemd
 
  -- Emmanuel Papin <manupap01@gmail.com>  Wed, 26 Nov 2014 00:26:01 +0100
 

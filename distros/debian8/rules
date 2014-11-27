@@ -51,6 +51,17 @@ override_dh_clean:
 	# Add here commands to clean up after the build process.
 	[ ! -f Makefile ] || $(MAKE) distclean
 	dh_clean src/zm_config_defines.h
+	#
+	# Delete remaining auto-generared Makefile if Makefile.in exists
+	find $(CURDIR)/ -type f -name "Makefile" | while read file; do \
+	  [ -f $$file.in ] && rm -f $$file; \
+	done || true
+	#
+	# Delete remaining auto-generared Makefile.in if Makefile.am exists
+	find $(CURDIR)/ -type f -name "Makefile.in" | while read filein; do \
+	  fileam=`echo $$filein | sed 's/\(.*\)\.in/\1\.am/'`; \
+	  [ -f $$fileam ] && rm -f $$filein; \
+	done || true
 
 override_dh_install:
 	#

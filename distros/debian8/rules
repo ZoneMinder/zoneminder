@@ -92,20 +92,29 @@ get-orig-source: ../$(PKG)_$(VER)$(DTYPE).orig.tar.xz $(info I: $(PKG)_$(VER)$(D
 	@
 
 ../$(PKG)_$(VER)$(DTYPE).orig.tar.xz:
-	$(if $(wildcard $(PKG)-$(VER)),$(error $(PKG)-$(VER) exist, aborting))
-	@echo "# Cloning repository..."
-	git clone $(UURL) $(PKG)-$(VER) || $(RM) -r $(PKG)-$(VER)
-	@echo "# Checkout origin branch..."
-	cd $(PKG)-$(VER) && git pull origin $(BRANCH)
-	@echo "# Checking local branch..."
+	$(if $(wildcard $(PKG)-$(VER)),$(error folder '$(PKG)-$(VER)' exists, aborting...))
+	@echo "# Cloning origin repository..."; \
+	if ! git clone $(UURL) $(PKG)-$(VER); then \
+	  $(RM) -r $(PKG)-$(VER); \
+	  echo "failed to clone repository, aborting..."; \
+	  false; \
+	fi
+	@if [ $(BRANCH) != \"master\" ]; then \
+	  cd $(PKG)-$(VER); \
+	  echo "# Fetching origin branch '$(BRANCH)'..."; \
+	  git fetch origin $(BRANCH):$(BRANCH) || false; \
+	  echo "# Switching to branch '$(BRANCH)'..."; \
+	  git checkout $(BRANCH) || false; \
+	fi
+	@echo "# Checking local source..."
 	@if [ $$(cd $(PKG)-$(VER) && git rev-parse HEAD) = $(HEAD) ]; then \
 	  echo "even with origin, ok"; \
 	  true; \
 	else \
-	  echo "not even with origin, aborting"; \
+	  echo "not even with origin, aborting..."; \
 	  false; \
 	fi
 	@echo "# Packing..."
 	find -L "$(PKG)-$(VER)" -xdev -type f -print | sort \
-	  | XZ_OPT="-6v" tar -caf "../$(PKG)_$(VER)$(DTYPE).orig.tar.xz" -T- --owner=root --group=root --mode=a+rX \
-	  && $(RM) -r "$(PKG)-$(VER)"
+	| XZ_OPT="-6v" tar -caf "../$(PKG)_$(VER)$(DTYPE).orig.tar.xz" -T- --owner=root --group=root --mode=a+rX \
+	&& $(RM) -r "$(PKG)-$(VER)"

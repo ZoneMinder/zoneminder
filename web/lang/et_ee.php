@@ -50,7 +50,7 @@
 // do this by default, uncomment this if required.
 //
 // Example
-header( "Content-Type: text/html; charset=ISO-8859-1" );
+header( "Content-Type: text/html; charset=utf-8' );
 
 // You may need to change your locale here if your default one is incorrect for the
 // language described in this file, or if you have multiple languages supported.

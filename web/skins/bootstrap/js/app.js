@@ -1,6 +1,7 @@
 var ZoneMinder = angular.module('ZoneMinder', [
 	'ZoneMinderControllers',
-	'tc.chartjs'
+	'tc.chartjs',
+	'ui.bootstrap'
 ]);
 
 ZoneMinder.config(['$locationProvider', function($locationProvider){

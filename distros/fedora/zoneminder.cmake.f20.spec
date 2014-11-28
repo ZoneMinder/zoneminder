@@ -10,7 +10,7 @@
 %define _without_x10 1
 
 Name: zoneminder
-Version: 1.27
+Version: 1.28.0
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -21,8 +21,6 @@ URL: http://www.zoneminder.com/
 
 #Source: https://github.com/ZoneMinder/ZoneMinder/archive/v%{version}.tar.gz
 Source: ZoneMinder-%{version}.tar.gz
-
-Patch1: zoneminder-1.26.0-defaults.patch
 
 BuildRequires: cmake gnutls-devel systemd-units bzip2-devel
 BuildRequires: community-mysql-devel pcre-devel libjpeg-turbo-devel
@@ -37,10 +35,10 @@ BuildRequires: gcc gcc-c++ vlc-devel libcurl-devel
 %{!?_without_ffmpeg:BuildRequires: ffmpeg-devel}
 %{!?_without_x10:BuildRequires: perl(X10::ActiveHome) perl(Astro::SunTime)}
 # cmake needs the following installed at build time due to the way it auto-detects certain parameters
-BuildRequires:  httpd
+BuildRequires:  httpd polkit-devel
 %{!?_without_ffmpeg:BuildRequires: ffmpeg}
 
-Requires: httpd php php-mysql cambozola
+Requires: httpd php php-mysql cambozola polkit
 Requires: libjpeg-turbo vlc-core libcurl
 Requires: perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires: perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)
@@ -66,12 +64,18 @@ too much degradation of performance.
 %prep
 %setup -q -n ZoneMinder-%{version}
 
-%patch1 -p0 -b .defaults
-#%patch2 -p0 -b .noffmpeg
+# Change the following default values
+./utils/zmeditconfigdata.sh ZM_PATH_ZMS /cgi-bin/zm/nph-zms
+./utils/zmeditconfigdata.sh ZM_OPT_CAMBOZOLA yes
+./utils/zmeditconfigdata.sh ZM_PATH_SWAP /dev/shm
+./utils/zmeditconfigdata.sh ZM_UPLOAD_FTP_LOC_DIR /var/spool/zoneminder-upload
+./utils/zmeditconfigdata.sh ZM_OPT_CONTROL yes
+./utils/zmeditconfigdata.sh ZM_CHECK_FOR_UPDATES no
+./utils/zmeditconfigdata.sh ZM_DYN_SHOW_DONATE_REMINDER no
 
 %build
 %cmake \
-	-DZM_TARGET_DISTRO="f19" \
+	-DZM_TARGET_DISTRO="f20" \
 	-DZM_PERL_SUBPREFIX=`x="%{perl_vendorlib}" ; echo ${x#"%{_prefix}"}` \
 %{?_without_ffmpeg:-DZM_NO_FFMPEG=ON} \
 %{?_without_x10:-DZM_NO_X10=ON} \
@@ -94,7 +98,7 @@ fi
 /usr/bin/gpasswd -a %{zmuid_final} dialout
 
 # Display the README for post installation instructions
-/usr/bin/less %{_docdir}/%{name}-%{version}/README.Fedora
+/usr/bin/less %{_docdir}/%{name}/README.Fedora
 
 %preun
 if [ $1 -eq 0 ] ; then
@@ -138,8 +142,6 @@ fi
 %{_bindir}/zmdc.pl
 %{_bindir}/zmf
 %{_bindir}/zmfilter.pl
-# zmfix removed from zoneminder 1.26.6
-#%attr(4755,root,root) %{_bindir}/zmfix
 %{_bindir}/zmpkg.pl
 %{_bindir}/zmstreamer
 %{_bindir}/zmtrack.pl
@@ -149,6 +151,7 @@ fi
 %{_bindir}/zmvideo.pl
 %{_bindir}/zmwatch.pl
 %{_bindir}/zmcamtool.pl
+%{_bindir}/zmsystemctl.pl
 %{!?_without_x10:%{_bindir}/zmx10.pl}
 
 %{perl_vendorlib}/ZoneMinder*
@@ -160,6 +163,9 @@ fi
 %dir %{_datadir}/zoneminder
 %{_datadir}/zoneminder/db
 %{_datadir}/zoneminder/www
+
+%{_datadir}/polkit-1/actions/com.zoneminder.systemctl.policy
+%{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
 
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) /var/lib/zoneminder
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) /var/lib/zoneminder/events
@@ -173,6 +179,9 @@ fi
 
 
 %changelog
+* Sun Oct 5 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.28.0 
+- Bump version for 1.28.0 release.
+
 * Fri Mar 14 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.27 
 - Tweak build requirements for cmake
 

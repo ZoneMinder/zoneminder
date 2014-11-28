@@ -105,33 +105,78 @@ root@host:~# gdebi /root/zoneminder_1.26.4-1_amd64.deb;
 
 Additional repositories must be added before one can build zoneminder on CentOS or RHEL:
 
-1. RepoForge (formerly RPMForge) http://repoforge.org/use/
+1. Zmrepo [ZoneMinder WiKi](http://www.zoneminder.com/wiki/index.php/CentOS#Zmrepo_-_A_ZoneMinder_repository_for_RPM_based_distros)
 2. EPEL https://fedoraproject.org/wiki/EPEL
-3. Optional RPMFusion: http://rpmfusion.org/ [SEE NOTE]
- 
-[NOTE]<br>
-The RPMFusion repo contains significantly newer versions of ffmpeg and vlc. This leads to significantly better camera support. However, the RPMFusion repo contains packages that conflict with the other two repos. In order to resolve this, one must also install the yum priorities pacakge and use that to prioritize your repos in the following order:
+3. RPMFusion: http://rpmfusion.org/
+
+When adding third party repositories, it is highly recommended that the user also install and configure yum priorities as documented in the [CentOS WiKi](http://wiki.centos.org/PackageManagement/Yum/Priorities)
+
+Prioritize the repositories:
 
 1. Base
-2. RPMFusion
-3. EPEL
-4. RPMForge
-
-For instructions on yum priorities, visit this page:
-http://wiki.centos.org/PackageManagement/Yum/Priorities
+2. EPEL
+3. RPMFusion
+4. Zmrepo
 
 Once your repos are in order, install the following:
 ```bash
-sudo yum install automake bzip2-devel ffmpeg ffmpeg-devel gnutls-devel httpd libjpeg-turbo libjpeg-turbo-devel mysql-devel mysql-server pcre-devel \
+sudo yum install cmake bzip2-devel ffmpeg ffmpeg-devel gnutls-devel httpd libjpeg-turbo libjpeg-turbo-devel mysql-devel mysql-server pcre-devel \
 perl-Archive-Tar perl-Archive-Zip perl-Convert-BinHex perl-Date-Manip perl-DBD-MySQL perl-DBI perl-Device-SerialPort perl-Email-Date-Format perl-IO-stringy \
 perl-IO-Zlib perl-MailTools perl-MIME-Lite perl-MIME-tools perl-MIME-Types perl-Module-Load perl-Package-Constants perl-Sys-Mmap perl-Time-HiRes \
-perl-TimeDate perl-YAML-Syck php php-cli php-mysql x264 vlc-devel vlc-core libcurl libcurl-devel
+perl-TimeDate perl-YAML-Syck perl-X10 perl-URI-Encode php php-cli php-mysql x264 vlc-devel vlc-core \
+libcurl libcurl-devel polkit-devel git
 ```
+
+To build from the master branch:
+```bash
+git clone https://github.com/ZoneMinder/ZoneMinder.git
+cd ZoneMinder
+cmake .
+make
+sudo make install
+```
+
+IMPORTANT: Don't forget the trailing "." when calling cmake
+
+#### Docker
+
+Docker is a system to run applications inside isolated containers. ZoneMinder, and the ZM webserver, will run using the 
+Dockerfile contained in this repository. However, there is still work needed to ensure that the main ZM features work 
+properly and are documented. 
 
 ### ffmpeg
 
 This release of ZoneMinder has been tested on and works with ffmpeg version N-55540-g93f4277.
 
 
+## Contribution Model and  Development
+
+* Source hosted at [GitHub](https://github.com/ZoneMinder/ZoneMinder/)
+* Report issues/questions/feature requests on [GitHub Issues](https://github.com/ZoneMinder/ZoneMinder/issues)
+
+Pull requests are very welcome!  If you would like to contribute, please follow
+the following steps.
+
+1. Fork the repo
+2. Open an issue at our [GitHub Issues Tracker](https://github.com/ZoneMinder/ZoneMinder/issues).
+   Describe the bug that you've found, or the feature which you're asking for.
+   Jot down the issue number (e.g. 456)
+3. Create your feature branch (`git checkout -b 456-my-new-feature`)
+4. Commit your changes (`git commit -am 'Added some feature'`)
+   It is preferred that you 'commit early and often' instead of bunching all
+   changes into a single commit.
+5. Push your branch to your fork on github (`git push origin 456-my-new-feature`)
+6. Create new Pull Request
+7. The team will then review, discuss and hopefully merge your changes.
+
+### Package Maintainters
+Many of the ZoneMinder configration variable default values are not configurable at build time through autotools or cmake.  A new tool called *zmeditconfigdata.sh* has been added to allow package maintainers to manipulate any variable stored in ConfigData.pm without patching the source. 
+
+For example, let's say I have created a new ZoneMinder package that contains the cambolzola javascript file.  However, by default cambozola support is turned off.  To fix that, add this to the pacakging script:
+```bash
+./utils/zmeditconfigdata.sh ZM_OPT_CAMBOZOLA yes
+```
+
+Note that zmeditconfigdata.sh is intended to be called, from the root build folder, prior to running cmake or configure.
 
 [![Analytics](https://ga-beacon.appspot.com/UA-15147273-6/ZoneMinder/README.md)](https://github.com/igrigorik/ga-beacon)

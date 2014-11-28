@@ -3,24 +3,23 @@
 FROM ubuntu:precise
 MAINTAINER Kyle Johnson <kjohnson@gnulnx.net>
 
-# Let the conatiner know that there is no tty
+# Let the container know that there is no tty
 ENV DEBIAN_FRONTEND noninteractive
 
 # Resynchronize the package index files 
-RUN echo "deb http://archive.ubuntu.com/ubuntu precise main universe" > /etc/apt/sources.list
-RUN apt-get update
+RUN apt-get update && apt-get install -y \
+	libpolkit-gobject-1-dev build-essential libmysqlclient-dev libssl-dev libbz2-dev libpcre3-dev \
+	libdbi-perl libarchive-zip-perl libdate-manip-perl libdevice-serialport-perl libmime-perl libpcre3 \
+	libwww-perl libdbd-mysql-perl libsys-mmap-perl yasm automake autoconf libjpeg-turbo8-dev \
+	libjpeg-turbo8 libtheora-dev libvorbis-dev libvpx-dev libx264-dev libmp4v2-dev ffmpeg mysql-client \
+	apache2 php5 php5-mysql apache2-mpm-prefork libapache2-mod-php5 php5-cli openssh-server \
+	mysql-server libvlc-dev libvlc5 libvlccore-dev libvlccore5 vlc-data vlc libcurl4-openssl-dev
 
-# Install the prerequisites
-RUN apt-get install -y build-essential libmysqlclient-dev libssl-dev libbz2-dev libpcre3-dev libdbi-perl libarchive-zip-perl libdate-manip-perl libdevice-serialport-perl libmime-perl libpcre3 libwww-perl libdbd-mysql-perl libsys-mmap-perl yasm automake autoconf libjpeg-turbo8-dev libjpeg-turbo8 libtheora-dev libvorbis-dev libvpx-dev libx264-dev libmp4v2-dev ffmpeg git wget mysql-client apache2 php5 php5-mysql apache2-mpm-prefork libapache2-mod-php5 php5-cli openssh-server mysql-server libvlc-dev libvlc5 libvlccore-dev libvlccore5 vlc-data vlc libcurl4-openssl-dev
-
-# Grab the latest ZoneMinder code in master
-RUN git clone https://github.com/kylejohnson/ZoneMinder.git
+# Copy local code into our container
+ADD . /ZoneMinder
 
 # Change into the ZoneMinder directory
-WORKDIR ZoneMinder
-
-# Check out the release-1.27 branch
-RUN git checkout release-1.27
+WORKDIR /ZoneMinder
 
 # Setup the ZoneMinder build environment
 RUN aclocal && autoheader && automake --force-missing --add-missing && autoconf
@@ -37,8 +36,15 @@ RUN make install
 # Adding the start script
 ADD utils/docker/start.sh /tmp/start.sh
 
-# Make start script executable
+# Ensure we can run this
+# TODO - Files ADD'ed have 755 already...why do we need this?
 RUN chmod 755 /tmp/start.sh
+
+# Creating SSH privledge escalation dir
+RUN mkdir /var/run/sshd
+
+# Adding apache virtual hosts file
+ADD utils/docker/apache-vhost /etc/apache2/sites-enabled/000-default
 
 # Set the root passwd
 RUN echo 'root:root' | chpasswd
@@ -46,6 +52,5 @@ RUN echo 'root:root' | chpasswd
 # Expose ssh and http ports
 EXPOSE 80
 EXPOSE 22
-
 
 CMD "/tmp/start.sh"

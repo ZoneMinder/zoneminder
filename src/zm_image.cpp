@@ -339,19 +339,21 @@ void Image::AssignDirect( const unsigned int p_width, const unsigned int p_heigh
 		Error("Attempt to directly assign buffer from a NULL pointer");
 		return;
 	}
-	
-	if(buffer_size < (unsigned int)((p_width*p_height)*p_colours)) {
-		Error("Attempt to directly assign buffer from an undersized buffer of size: %zu",buffer_size);
-		return;
-	}
-	
+
 	if(!p_height || !p_width) {
 		Error("Attempt to directly assign buffer with invalid width or height: %d %d",p_width,p_height);
 		return;
 	}
-	
+
 	if(p_colours != ZM_COLOUR_GRAY8 && p_colours != ZM_COLOUR_RGB24 && p_colours != ZM_COLOUR_RGB32) {
 		Error("Attempt to directly assign buffer with unexpected colours per pixel: %d",p_colours);
+		return;
+	}
+
+	unsigned int new_buffer_size = ((p_width*p_height)*p_colours);
+	
+	if(buffer_size < new_buffer_size) {
+		Error("Attempt to directly assign buffer from an undersized buffer of size: %zu, needed %dx%d*%d colours = %zu",buffer_size, p_width, p_height, p_colours );
 		return;
 	}
 	
@@ -365,7 +367,7 @@ void Image::AssignDirect( const unsigned int p_width, const unsigned int p_heigh
 			colours = p_colours;
 			subpixelorder = p_subpixelorder;
 			pixels = height*width;
-			size = pixels*colours;
+			size = new_buffer_size; // was pixels*colours, but we already calculated it above as new_buffer_size
 			
 			/* Copy into the held buffer */
 			if(new_buffer != buffer)
@@ -383,7 +385,7 @@ void Image::AssignDirect( const unsigned int p_width, const unsigned int p_heigh
 		colours = p_colours;
 		subpixelorder = p_subpixelorder;
 		pixels = height*width;
-		size = pixels*colours;
+		size = new_buffer_size; // was pixels*colours, but we already calculated it above as new_buffer_size
 	
 		allocation = buffer_size;
 		buffertype = p_buffertype;
@@ -2088,10 +2090,10 @@ void Image::Outline( Rgb colour, const Polygon &polygon )
 
 		double grad;
 
-		Debug( 9, "dx: %.2lf, dy: %.2lf", dx, dy );
+		//Debug( 9, "dx: %.2lf, dy: %.2lf", dx, dy );
 		if ( fabs(dx) <= fabs(dy) )
 		{
-			Debug( 9, "dx <= dy" );
+			//Debug( 9, "dx <= dy" );
 			if ( y1 != y2 )
 				grad = dx/dy;
 			else
@@ -2102,10 +2104,10 @@ void Image::Outline( Rgb colour, const Polygon &polygon )
 			grad *= yinc;
 			if ( colours == ZM_COLOUR_GRAY8 )
 			{
-				Debug( 9, "x1:%d, x2:%d, y1:%d, y2:%d, gr:%.2f", x1, x2, y1, y2, grad );
+				//Debug( 9, "x1:%d, x2:%d, y1:%d, y2:%d, gr:%.2f", x1, x2, y1, y2, grad );
 				for ( x = x1, y = y1; y != y2; y += yinc, x += grad )
 				{
-					Debug( 9, "x:%.2f, y:%d", x, y );
+					//Debug( 9, "x:%.2f, y:%d", x, y );
 					buffer[(y*width)+int(round(x))] = colour;
 				}
 			}
@@ -2129,22 +2131,22 @@ void Image::Outline( Rgb colour, const Polygon &polygon )
 		}
 		else
 		{
-			Debug( 9, "dx > dy" );
+			//Debug( 9, "dx > dy" );
 			if ( x1 != x2 )
 				grad = dy/dx;
 			else
 				grad = height;
-			Debug( 9, "grad: %.2lf", grad );
+			//Debug( 9, "grad: %.2lf", grad );
 
 			double y;
 			int x, xinc = (x1<x2)?1:-1;
 			grad *= xinc;
 			if ( colours == ZM_COLOUR_GRAY8 )
 			{
-				Debug( 9, "x1:%d, x2:%d, y1:%d, y2:%d, gr:%.2lf", x1, x2, y1, y2, grad );
+				//Debug( 9, "x1:%d, x2:%d, y1:%d, y2:%d, gr:%.2lf", x1, x2, y1, y2, grad );
 				for ( y = y1, x = x1; x != x2; x += xinc, y += grad )
 				{
-					Debug( 9, "x:%d, y:%.2f", x, y );
+					//Debug( 9, "x:%d, y:%.2f", x, y );
 					buffer[(int(round(y))*width)+x] = colour;
 				}
 			}
@@ -2194,7 +2196,7 @@ void Image::Fill( Rgb colour, int density, const Polygon &polygon )
 		int y1 = p1.Y();
 		int y2 = p2.Y();
 
-		Debug( 9, "x1:%d,y1:%d x2:%d,y2:%d", x1, y1, x2, y2 );
+		//Debug( 9, "x1:%d,y1:%d x2:%d,y2:%d", x1, y1, x2, y2 );
 		if ( y1 == y2 )
 			continue;
 

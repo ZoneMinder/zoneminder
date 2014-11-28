@@ -43,8 +43,7 @@ $tabs['medband'] = $SLANG['MediumBW'];
 $tabs['lowband'] = $SLANG['LowBW'];
 $tabs['phoneband'] = $SLANG['PhoneBW'];
 $tabs['eyeZm'] = "eyeZm";
-if ( ZM_OPT_USE_AUTH )
-    $tabs['users'] = $SLANG['Users'];
+$tabs['users'] = $SLANG['Users'];
 
 if ( isset($_REQUEST['tab']) )
     $tab = validHtmlStr($_REQUEST['tab']);
@@ -85,7 +84,7 @@ foreach ( $tabs as $name=>$value )
 if($tab == 'skins') {
 	$current_skin = $_COOKIE['zmSkin'];
 	if (isset($_GET['skin-choice'])) {
-		setcookie('zmSkin',$_GET['skin-choice']);
+		setcookie('zmSkin',$_GET['skin-choice'], time()+3600*24*30*12*10 );
 		//header("Location: index.php?view=options&tab=skins&reset_parent=1");
 		echo "<script type=\"text/javascript\">window.opener.location.reload();window.location.href=\"{$_SERVER['PHP_SELF']}?view={$view}&tab={$tab}\"</script>";
 	}

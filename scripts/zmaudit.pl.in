@@ -111,9 +111,20 @@ my $swap_image_path = $Config{ZM_PATH_SWAP};
 
 my $loop = 1;
 my $cleaned = 0;
-MAIN: while( $loop )
-{
-    my $db_monitors;
+MAIN: while( $loop ) {
+	while ( ! ( $dbh and $dbh->ping() ) ) {
+		$dbh = zmDbConnect();
+
+		last if $dbh;
+		if ( $continuous ) {
+			# if we are running continuously, then just skip to the next interval, otherwise we are a one off run, so wait a second and retry until someone kills us.
+			sleep( $Config{ZM_AUDIT_CHECK_INTERVAL} );
+		} else {
+			sleep 1;
+		} # end if
+	} # end while can't connect to the db
+
+	my $db_monitors;
     my $monitorSelectSql = "select Id from Monitors order by Id";
     my $monitorSelectSth = $dbh->prepare_cached( $monitorSelectSql ) or Fatal( "Can't prepare '$monitorSelectSql': ".$dbh->errstr() );
     my $eventSelectSql = "select Id, (unix_timestamp() - unix_timestamp(StartTime)) as Age from Events where MonitorId = ? order by Id";

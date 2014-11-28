@@ -287,7 +287,15 @@ $macBases = array(
 );
 
 unset($output);
-$command = "arp -a";
+// Calling arp without the full path was reported to fail on some systems
+// Use the builtin unix command "type" to tell us where the command is
+$command = "type -p arp";
+$result = exec( escapeshellcmd($command), $output, $status );
+if ( $status )
+    Fatal( "Unable determine arp path, status is '$status'" );
+// Now that we know where arp is, call it using the full path
+$command = $output[0]." -a";
+unset($output);
 $result = exec( escapeshellcmd($command), $output, $status );
 if ( $status )
     Fatal( "Unable to probe network cameras, status is '$status'" );

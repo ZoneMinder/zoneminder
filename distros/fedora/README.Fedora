@@ -80,30 +80,10 @@ New installs
 	sudo systemctl enable httpd.service
 	sudo systemctl start httpd.service
 
-9. You should immediately visit http://localhost/zm and secure the system if
-   it is network facing.  To do this:
+9. Now start zoneminder:
 
-   a) click Options, then System.
-   b) check OPT_USE_AUTH.
-   c) set AUTH_HASH_SECRET to a random string.
-   d) click Save and refresh the main browser window.
-   e) You should be prompted to log in; 
-      the default username/password is admin/admin.
-   f) Open Options again, choose the newly visible Users tab.
-   g) click the admin user and set a password.
-   h) enable OPT_CONTROL on the Ssytem tab to enable ptz camera control.
-
-10. The zoneminder.service file fails at present but the zmpkg.pl script
-    can be run as root to start zoneminder.
-
-	sudo zmpkg.pl start
-
-    To start zoneminder automatically, create /etc/rc.d/rc.local and place the 
-    following inside it:
-	#!/bin/sh
-	/usr/bin/zmpkg.pl start 
-
-    The rc.local file must be made executable.
+	sudo systemctl enable zoneminder.service
+	sudo systemctl start zoneminder.service
 
 Upgrades
 ========

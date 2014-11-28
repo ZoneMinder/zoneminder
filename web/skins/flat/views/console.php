@@ -73,7 +73,7 @@ $status = $running?$SLANG['Running']:$SLANG['Stopped'];
 
 $group = NULL;
 if ( ! empty($_COOKIE['zmGroup']) ) {
-	if ( $group = dbFetchOne( 'SELECT * FROM Groups WHERE Id = ?', NULL, array($_COOKIE['zmGroup']) ) )
+	if ( $group = dbFetchOne( 'select * from Groups where Id = ?', NULL, array($_COOKIE['zmGroup'])) )
 		$groupIds = array_flip(explode( ',', $group['MonitorIds'] ));
 }
 
@@ -85,7 +85,7 @@ $cycleCount = 0;
 $minSequence = 0;
 $maxSequence = 1;
 $seqIdList = array();
-$monitors = dbFetchAll( 'SELECT * FROM Monitors ORDER BY Sequence ASC' );
+$monitors = dbFetchAll( "select * from Monitors order by Sequence asc" );
 $displayMonitors = array();
 for ( $i = 0; $i < count($monitors); $i++ )
 {
@@ -108,7 +108,7 @@ for ( $i = 0; $i < count($monitors); $i++ )
     }
     $monitors[$i]['zmc'] = zmcStatus( $monitors[$i] );
     $monitors[$i]['zma'] = zmaStatus( $monitors[$i] );
-    $monitors[$i]['ZoneCount'] = dbFetchOne( 'SELECT count(Id) AS ZoneCount FROM Zones WHERE MonitorId = ?', 'ZoneCount', array( $monitors[$i]['Id'] ) );
+    $monitors[$i]['ZoneCount'] = dbFetchOne( 'select count(Id) as ZoneCount from Zones where MonitorId = ?', 'ZoneCount', array($monitors[$i]['Id']) );
     $counts = array();
     for ( $j = 0; $j < count($eventCounts); $j++ )
     {
@@ -117,8 +117,8 @@ for ( $i = 0; $i < count($monitors); $i++ )
         $counts[] = "count(if(1".$filter['sql'].",1,NULL)) as EventCount$j";
         $monitors[$i]['eventCounts'][$j]['filter'] = $filter;
     }
-    $sql = 'SELECT '.join($counts,', ').' FROM Events AS E WHERE MonitorId = ?';
-    $counts = dbFetchOne( $sql, NULL, array( $monitors[$i]['Id'] ) );
+    $sql = "select ".join($counts,", ")." from Events as E where MonitorId = ?";
+    $counts = dbFetchOne( $sql, NULL, array($monitors[$i]['Id']) );
     if ( $monitors[$i]['Function'] != 'None' )
     {
         $cycleCount++;
@@ -190,7 +190,7 @@ xhtmlHeaders( __FILE__, $SLANG['Console'] );
       <h3 id="systemStats"><?= $SLANG['Load'] ?>: <?= getLoad() ?> / <?= $SLANG['Disk'] ?>: <?= getDiskPercent() ?>%</h3>
       <h2 id="title"><a href="http://www.zoneminder.com" target="ZoneMinder">ZoneMinder</a> <?= $SLANG['Console'] ?> - <?= makePopupLink( '?view=state', 'zmState', 'state', $status, canEdit( 'System' ) ) ?> - <?= makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="'.$versionClass.'">v'.ZM_VERSION.'</span>', canEdit( 'System' ) ) ?></h2>
       <div class="clear"></div>
-      <div id="monitorSummary"><?= makePopupLink( '?view=groups', 'zmGroups', 'groups', sprintf( $CLANG['MonitorCount'], count($displayMonitors), zmVlang( $VLANG['Monitor'], count($displayMonitors) ) ).($group?' ('.$group['Name'].')':''), canView( 'System' ) ); ?></div>
+      <div id="monitorSummary"><?= makePopupLink( '?view=groups', 'zmGroups', 'groups', 'Group: ' . ($group?' ('.$group['Name'].')':'All').': '. sprintf( $CLANG['MonitorCount'], count($displayMonitors), zmVlang( $VLANG['Monitor'], count($displayMonitors) ) ) ); ?></div>
 <?php
 if ( ZM_OPT_X10 && canView( 'Devices' ) )
 {
@@ -226,7 +226,7 @@ else
 {
 ?><?= $SLANG['ConfiguredFor'] ?><?php
 }
-?>&nbsp;<?= makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', $bwArray[$_COOKIE['zmBandwidth']], ($user && $user['MaxBandwidth'] != 'low' ) ) ?> <?= $SLANG['Bandwidth'] ?></h3>
+?>&nbsp;<?= makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', $bwArray[$_COOKIE['zmBandwidth']], ($user && $user['MaxBandwidth'] != 'low' ) ) ?> <?= $SLANG['BandwidthHead'] ?></h3>
     </div>
     <div id="content">
       <table id="consoleTable" cellspacing="0">
@@ -302,7 +302,7 @@ foreach( $displayMonitors as $monitor )
     $scale = max( reScale( SCALE_BASE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
 ?>
             <td class="colName"><?= makePopupLink( '?view=watch&amp;mid='.$monitor['Id'], 'zmWatch'.$monitor['Id'], array( 'watch', reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ) ), $monitor['Name'], $running && ($monitor['Function'] != 'None') && canView( 'Stream' ) ) ?></td>
-            <td class="colFunction"><?= makePopupLink( '?view=function&amp;mid='.$monitor['Id'], 'zmFunction', 'function', '<span class="'.$fclass.'">'.$monitor['Function'].'</span>', canEdit( 'Monitors' ) ) ?></td>
+            <td class="colFunction"><?= makePopupLink( '?view=function&amp;mid='.$monitor['Id'], 'zmFunction', 'function', '<span class="'.$fclass.'">'.$SLANG['Fn'.$monitor['Function']].( empty($monitor['Enabled']) ? ', disabled' : '' ) .'</span>', canEdit( 'Monitors' ) ) ?></td>
 <?php if ( $monitor['Type'] == "Local" ) { ?>
             <td class="colSource"><?= makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.$monitor['Device'].' ('.$monitor['Channel'].')</span>', canEdit( 'Monitors' ) ) ?></td>
 <?php } elseif ( $monitor['Type'] == "Remote" ) { ?>

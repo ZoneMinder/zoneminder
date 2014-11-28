@@ -50,9 +50,9 @@ This command will add a new http monitor.
 Edit monitor 1
 ^^^^^^^^^^^^^^
 
-This command will change the 'Name' field of Monitor 1 to 'tits'
+This command will change the 'Name' field of Monitor 1 to 'test1'
 
-``curl -XPUT http://zmdevapi/monitors/1.json -d "Monitor[Name]=tits"``
+``curl -XPUT http://zmdevapi/monitors/1.json -d "Monitor[Name]=test1"``
 
 Delete monitor 1
 ^^^^^^^^^^^^^^^^

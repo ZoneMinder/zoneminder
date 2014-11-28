@@ -1,6 +1,6 @@
 AUTOMAKE_OPTIONS = gnu
 
-AM_CPPFLAGS = @MYSQL_CFLAGS@ @FFMPEG_CFLAGS@ -Wall -finline-functions -fomit-frame-pointer
+AM_CPPFLAGS = @MYSQL_CFLAGS@ @MARIADB_CFLAGS@ @FFMPEG_CFLAGS@ -Wall -finline-functions -fomit-frame-pointer
 #AM_CXXFLAGS = -frepo
 
 CLEANFILES = *.rpo
@@ -51,6 +51,7 @@ zm_SOURCES = \
 	zm_rtp_data.cpp \
 	zm_rtp_source.cpp \
 	zm_rtsp.cpp \
+	zm_rtsp_auth.cpp \
 	zm_sdp.cpp \
 	zm_signal.cpp \
 	zm_stream.cpp \

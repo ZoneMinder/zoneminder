@@ -3,6 +3,9 @@
 # chkconfig: 2345 99 00
 # processname: zmpkg.pl
 
+# This script is intended for use with legacy SysV init environments ONLY
+# For systemd environments, use the ZoneMinder systemd unit file instead
+
 # Source function library.
 . /etc/rc.d/init.d/functions
 

@@ -41,9 +41,20 @@
      sudo chkconfig httpd on
      sudo service httpd start
 
-7. This package has automatically configured and installed an SELinux policy
+7. This package will automatically configure and install an SELinux policy
    called local_zoneminder. A copy of this policy is in the documentation
    folder.
+   
+   Unfortunately, this has not resolved all the SELinux issues so
+   most will want to disable SELinux permanently by editing the following:
+   
+   /etc/selinux/conf
+   
+   Change SELINUX line from "enforcing" to "disabled". This change will not
+   take effect until a reboot, however. To avoid a reboot, execute the
+   following from the commandline:
+   
+   sudo setenforce 0
 
 8. Finally, you may start the ZoneMinder service:
 

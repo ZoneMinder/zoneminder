@@ -60,40 +60,21 @@ xhtmlHeaders( __FILE__, $SLANG['Console'] );
 				<div class="col-md-10">
 
 	<div ng-controller="ConsoleController">
-<div class="row">
-<?php foreach( $displayMonitors as $monitor ) {
-    if ( !$monitor['zmc'] )
-        $dclass = "danger";
-    else
-    {
-        if ( !$monitor['zma'] )
-            $dclass = "warning";
-        else
-            $dclass = "info";
-    }
-?>
-<div class="col-md-3">
-	<div class="panel panel-<?= $dclass ?>">
-		<div class="panel-heading">
-			<input class="pull-right btn btn-default" type="checkbox" name="markMids[]" value="<?= $monitor['Id'] ?>" onclick="setButtonStates( this )"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
-			<h2 class="text-left panel-title"><?= $monitor['Name'] ?> <small>(<?= $monitor['Id'] ?>)</small></h2>
-		</div>
+		<div class="row">
+			<div class="col-md-4" ng-repeat="monitor in monitors">
+				<div class="panel" ng-class="(monitor.alerts.zmc || monitor.alerts.zma) ? 'panel-default' : 'panel-danger'">
+					<div class="panel-heading">
+						<a ng-hide="(monitor.alerts.zmc || monitor.alerts.zma)" class="pull-right" href="#" tooltip="{{ monitor.alert }}"><span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span></a>
+						<h2 class="text-left panel-title">{{ monitor.Name }} <small>({{monitor.Id}})</small></h2>
+					</div>
 
-		<div class="panel-body center-block">
-			<div>
-			<?php
-				$scale = 50;
-				$streamSrc = getStreamSrc( array( "mode=single", "monitor=".$monitor['Id'], "scale=".$scale ) );
-				outputImageStill( "liveStream".$monitor['Id'], $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), $monitor['Name'] );
-			?>
+					<div class="panel-body center-block">
+						<img class="img-responsive img-rounded" ng-src="/cgi-bin/nph-zms?mode=single&monitor={{monitor.Id}}&scale=50" />
+					</div>
+				</div>
 			</div>
-
-			<p><span ng-bind="Counts<?= $monitor['Id'] ?>"></span> recent events</p>
 		</div>
-	</div>
-</div>
-<?php } ?>
-</div>
+
 	</div>
 
 

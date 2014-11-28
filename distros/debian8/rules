@@ -96,7 +96,7 @@ override_dh_systemd_start:
 
 .PHONY: override_dh_strip
 override_dh_strip:
-		dh_strip --dbg-package=zoneminder-dbg
+	dh_strip --dbg-package=zoneminder-dbg
 
 # Inspired by https://wiki.debian.org/onlyjob/get-orig-source
 .PHONY: get-orig-source

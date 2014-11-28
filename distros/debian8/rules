@@ -60,12 +60,12 @@ override_dh_clean:
 	[ ! -f Makefile ] || $(MAKE) distclean
 	dh_clean src/zm_config_defines.h
 	#
-	# Delete remaining auto-generared Makefile if Makefile.in exists
+	# Delete remaining auto-generated Makefile if Makefile.in exists
 	find $(CURDIR)/ -type f -name "Makefile" | while read file; do \
 	  [ -f $$file.in ] && rm -f $$file; \
 	done || true
 	#
-	# Delete remaining auto-generared Makefile.in if Makefile.am exists
+	# Delete remaining auto-generated Makefile.in if Makefile.am exists
 	find $(CURDIR)/ -type f -name "Makefile.in" | while read filein; do \
 	  fileam=`echo $$filein | sed 's/\(.*\)\.in/\1\.am/'`; \
 	  [ -f $$fileam ] && rm -f $$filein; \

@@ -14,14 +14,22 @@
 DEB_HOST_GNU_TYPE   ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
 DEB_BUILD_GNU_TYPE  ?= $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
 
-CFLAGS = -Wall -g
+CFLAGS = -Wall
 CPPFLAGS = -D__STDC_CONSTANT_MACROS
 CXXFLAGS = -DHAVE_LIBCRYPTO
 
-ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
-	CFLAGS += -O0
+ifneq (,$(findstring debug,$(DEB_BUILD_OPTIONS)))
+DEBOPT = --enable-debug
+CFLAGS += -g
+CXXFLAGS += -g
 else
-	CFLAGS += -O2
+DEBOPT =
+endif
+
+ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
+CFLAGS += -O0
+else
+CFLAGS += -O2
 endif
 
 # These are used to get the most recent version of the original sources from github
@@ -45,7 +53,7 @@ override_dh_auto_configure:
 	  --with-mariadb=/usr --with-webdir=/usr/share/zoneminder \
 	  --with-ffmpeg=/usr --with-cgidir=/usr/lib/cgi-bin \
 	  --with-webuser=www-data --with-webgroup=www-data \
-	  --enable-crashtrace=no --enable-mmap=yes
+	  --enable-crashtrace=no --enable-mmap=yes $(DEBOPT)
 
 override_dh_clean:
 	# Add here commands to clean up after the build process.

@@ -61,7 +61,7 @@ if [ "$1" = "configure" ]; then
 	fi
 	apache_install $1
 	if [ -f /etc/init.d/apache2 ] ; then
-		invoke-rc.d reload 3>/dev/null || true
+		invoke-rc.d apache2 reload 3>/dev/null || true
 	fi
 fi
 #DEBHELPER#

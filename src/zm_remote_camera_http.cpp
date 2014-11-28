@@ -217,6 +217,8 @@ int RemoteCameraHttp::ReadData( Buffer &buffer, int bytes_expected )
     }
     while ( total_bytes_to_read );
 
+	Debug( 3, buffer );
+
     return( total_bytes_read );
 }
 
@@ -568,11 +570,13 @@ int RemoteCameraHttp::GetResponse()
         static const char *content_length_match = "Content-length:";
         static const char *content_type_match = "Content-type:";
         static const char *boundary_match = "boundary=";
+		static const char *authenticate_match = "WWW-Authenticate:";
         static int http_match_len = 0;
         static int connection_match_len = 0;
         static int content_length_match_len = 0;
         static int content_type_match_len = 0;
         static int boundary_match_len = 0;
+		static int authenticate_match_len = 0;
 
         if ( !http_match_len )
             http_match_len = strlen( http_match );
@@ -584,6 +588,8 @@ int RemoteCameraHttp::GetResponse()
             content_type_match_len = strlen( content_type_match );
         if ( !boundary_match_len )
             boundary_match_len = strlen( boundary_match );
+        if ( !authenticate_match_len )
+            authenticate_match_len = strlen( authenticate_match );
 
         static int n_headers;
         //static char *headers[32];
@@ -596,6 +602,7 @@ int RemoteCameraHttp::GetResponse()
         static char *content_length_header;
         static char *content_type_header;
         static char *boundary_header;
+		static char *authenticate_header;
         static char subcontent_length_header[32];
         static char subcontent_type_header[64];
     
@@ -619,6 +626,7 @@ int RemoteCameraHttp::GetResponse()
                     connection_header = 0;
                     content_length_header = 0;
                     content_type_header = 0;
+					authenticate_header = 0;
 
                     http_version[0] = '\0';
                     status_code [0]= '\0';
@@ -697,6 +705,12 @@ int RemoteCameraHttp::GetResponse()
                                 content_length_header = header_ptr+content_length_match_len;
                                 Debug( 6, "Got content length header '%s'", header_ptr );
                             }
+
+                            else if ( !authenticate_header && (strncasecmp( header_ptr, authenticate_match, authenticate_match_len) == 0) )
+                            {
+                                authenticate_header = header_ptr;
+                                Debug( 6, "Got authenticate header '%s'", header_ptr );
+                            }
                             else if ( !content_type_header && (strncasecmp( header_ptr, content_type_match, content_type_match_len) == 0) )
                             {
                                 content_type_header = header_ptr+content_type_match_len;
@@ -744,7 +758,36 @@ int RemoteCameraHttp::GetResponse()
                         start_ptr += strspn( start_ptr, " " );
                         strcpy( status_mesg, start_ptr );
 
-                        if ( status < 200 || status > 299 )
+                        if ( status == 401 ) {
+                            if ( mNeedAuth ) {
+                                Error( "Failed authentication: " );
+                                return( -1 );
+                            }
+							if ( ! authenticate_header ) {
+                                Error( "Failed authentication, but don't have an authentication header: " );
+                                return( -1 );
+							}
+                            mNeedAuth = true;
+                            std::string Header = authenticate_header;
+							Debug(2, "Checking for digest auth in %s", authenticate_header );
+
+                            mAuthenticator->checkAuthResponse(Header);
+                            if ( mAuthenticator->auth_method() == AUTH_DIGEST ) {
+                                Debug( 2, "Need Digest Authentication" );
+                                request = stringtf( "GET %s HTTP/%s\r\n", path.c_str(), config.http_version );
+                                request += stringtf( "User-Agent: %s/%s\r\n", config.http_ua, ZM_VERSION );
+                                request += stringtf( "Host: %s\r\n", host.c_str());
+                                if ( strcmp( config.http_version, "1.0" ) == 0 )
+                                    request += stringtf( "Connection: Keep-Alive\r\n" );
+                                request += mAuthenticator->getAuthHeader( "GET", path.c_str() );
+                                request += "\r\n";
+
+                                Debug( 2, "New request header: %s", request.c_str() );
+                                return( 0 );
+							} else {
+                                Debug( 2, "Need some other kind of Authentication" );
+                            }
+                        } else if ( status < 200 || status > 299 )
                         {
                             Error( "Invalid response status %s: %s", status_code, status_mesg );
                             return( -1 );

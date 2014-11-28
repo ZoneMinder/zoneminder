@@ -18,32 +18,6 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-$group = NULL;
-if ( ! empty($_COOKIE['zmGroup']) ) {
-	if ( $group = dbFetchOne( 'select * from Groups where Id = ?', NULL, array($_COOKIE['zmGroup'])) )
-		$groupIds = array_flip(explode( ',', $group['MonitorIds'] ));
-}
-
-$monitors = dbFetchAll( "select * from Monitors order by Sequence asc" );
-$displayMonitors = array();
-for ( $i = 0; $i < count($monitors); $i++ )
-{
-    if ( !visibleMonitor( $monitors[$i]['Id'] ) )
-    {
-        continue;
-    }
-    if ( $group && !empty($groupIds) && !array_key_exists( $monitors[$i]['Id'], $groupIds ) )
-    {
-        continue;
-    }
-    $monitors[$i]['Show'] = true;
-    $monitors[$i]['zmc'] = zmcStatus( $monitors[$i] );
-    $monitors[$i]['zma'] = zmaStatus( $monitors[$i] );
-    $displayMonitors[] = $monitors[$i];
-}
-
-$versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText':'';
-
 xhtmlHeaders( __FILE__, $SLANG['Console'] );
 ?>
 <body>

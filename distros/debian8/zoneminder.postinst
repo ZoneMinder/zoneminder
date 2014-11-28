@@ -4,7 +4,9 @@ set -e
 
 if [ "$1" = "configure" ]; then
 	if [ -e "/etc/init.d/mysql" ]; then
-		if deb-systemd-invoke start mysql.service; then
+		# Get mysql started if it isn't
+		deb-systemd-invoke start mysql.service
+		if deb-systemd-invoke status mysql.service; then
 			mysqladmin --defaults-file=/etc/mysql/debian.cnf -f reload
 			# test if database if already present...
 			if ! $(echo quit | mysql --defaults-file=/etc/mysql/debian.cnf zm > /dev/null 2> /dev/null) ; then

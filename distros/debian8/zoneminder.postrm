@@ -18,11 +18,14 @@ if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
     if [ -f /etc/init.d/apache2 ] ; then
         invoke-rc.d apache2 reload 3>/dev/null || true
     fi
+    rm -rf /var/run/zm
+    rm -rf /tmp/zm
 fi
 
 if [ "$1" = "purge" ]; then
     echo 'delete from user where User="zmuser";' | mysql --defaults-file=/etc/mysql/debian.cnf mysql
     echo 'delete from db where User="zmuser";' | mysql --defaults-file=/etc/mysql/debian.cnf mysql
     mysqladmin --defaults-file=/etc/mysql/debian.cnf -f drop zm
+    rm -rf /tmp/zoneminder_*
 fi
 #DEBHELPER#

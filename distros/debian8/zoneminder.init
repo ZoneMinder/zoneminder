@@ -13,6 +13,8 @@
 #                    more than fixing a lintian error when testing the package
 ### END INIT INFO
 
+. /lib/lsb/init-functions
+
 case "$1" in
     start)
         ;;

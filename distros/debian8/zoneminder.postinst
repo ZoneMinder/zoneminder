@@ -55,11 +55,12 @@ if [ "$1" = "configure" ]; then
 		chown www-data:www-data /var/log/zm
 		chown www-data:www-data /var/lib/zm/
 		chown www-data:www-data -R /var/cache/zoneminder
-    else
+	else
 		chown www-data:www-data /var/log/zm
 		zmupdate.pl
 	fi
 	apache_install $1
+	a2enmod cgi >/dev/null 2>&1
 	if [ -f /etc/init.d/apache2 ] ; then
 		invoke-rc.d apache2 reload 3>/dev/null || true
 	fi

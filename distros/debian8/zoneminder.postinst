@@ -3,6 +3,7 @@
 set -e
 
 if [ "$1" = "configure" ]; then
+	if [ -e "/etc/init.d/mysql" ]; then
 		if deb-systemd-invoke start mysql.service; then
 			mysqladmin --defaults-file=/etc/mysql/debian.cnf -f reload
 			# test if database if already present...
@@ -17,6 +18,9 @@ if [ "$1" = "configure" ]; then
 		else
 			echo 'NOTE: mysql not running, please start mysql and run dpkg-reconfigure zoneminder when it is running.'
 		fi
+	else
+		echo 'mysql not found, assuming remote server.'
+	fi
 	chown www-data:www-data /var/log/zm
 	chown www-data:www-data /var/lib/zm/
 	if [ -z "$2" ]; then

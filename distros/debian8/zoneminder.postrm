@@ -21,8 +21,12 @@ if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
 fi
 
 if [ "$1" = "purge" ]; then
-    echo 'delete from user where User="zmuser";' | mysql --defaults-file=/etc/mysql/debian.cnf mysql
-    echo 'delete from db where User="zmuser";' | mysql --defaults-file=/etc/mysql/debian.cnf mysql
-    mysqladmin --defaults-file=/etc/mysql/debian.cnf -f drop zm
+    if [ -e "/etc/init.d/mysql" ]; then
+        echo 'delete from user where User="zmuser";' | mysql --defaults-file=/etc/mysql/debian.cnf mysql
+        echo 'delete from db where User="zmuser";' | mysql --defaults-file=/etc/mysql/debian.cnf mysql
+        mysqladmin --defaults-file=/etc/mysql/debian.cnf -f drop zm
+    else
+        echo 'mysql not found, assuming remote server.'
+    fi
 fi
 #DEBHELPER#

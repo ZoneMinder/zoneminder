@@ -399,3 +399,19 @@ th.table-th-sort-rev span.table-th-sort-span {
 	width: 100%;
 	background-color: #F5F5F5;
 }
+
+
+
+/*On the flex container*/
+.flexcontainer {
+   display: -webkit-flex;
+   display: flex;
+   -webkit-flex-direction: row;
+   flex-direction: row;
+}
+
+.monitor {
+	width: 240px;
+	height: 240px;
+	margin: 5px;
+}

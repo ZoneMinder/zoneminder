@@ -222,5 +222,7 @@ void Authenticator::checkAuthResponse(std::string &response) {
 	if (!authLine.empty()) {
 		Debug( 2, "Analyze auth line %s", authLine.c_str());
 		authHandleHeader( trimSpaces(authLine.substr(authenticate_match_len,authLine.length()-authenticate_match_len)) );
+	} else {
+		Debug( 2, "Didn't find auth line in %s", authLine.c_str());
 	}
 }

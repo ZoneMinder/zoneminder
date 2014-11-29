@@ -169,6 +169,8 @@ int main(int argc, char** argv) {
         stream.setStreamBitrate(bitrate); // default = 100000 (bitrate)
 #else
         fprintf(stderr, "MPEG streaming is disabled.\nYou should configure with the --with-ffmpeg option and rebuild to use this functionality.\n");
+        logTerm();
+        zmDbClose();
         return EXIT_FAILURE;
 #endif
     }
@@ -191,6 +193,9 @@ int main(int argc, char** argv) {
         stream.runStream();
     }
     if (debug) printf("Done.\n");
+
+    logTerm();
+    zmDbClose();
 
     return (EXIT_SUCCESS);
 }

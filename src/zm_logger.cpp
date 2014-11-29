@@ -236,6 +236,9 @@ void Logger::terminate()
 
     if ( mSyslogLevel > NOLOG )
         closeSyslog();
+
+    if ( mDatabaseLevel > NOLOG )
+        closeDatabase();
 }
 
 bool Logger::boolEnv( const std::string &name, bool defaultValue )
@@ -465,6 +468,15 @@ void Logger::closeFile()
     }
 }
 
+void Logger::closeDatabase()
+{
+    if ( mDbConnected )
+    {
+        mysql_close( &mDbConnection );
+        mDbConnected = false;
+    }
+}
+
 void Logger::openSyslog()
 {
     (void) openlog( mId.c_str(), LOG_PID|LOG_NDELAY, LOG_LOCAL1 );
@@ -601,5 +613,6 @@ void logInit( const char *name, const Logger::Options &options )
 
 void logTerm()
 {
-    Logger::fetch()->terminate();
+    if ( Logger::smInstance )
+        delete Logger::smInstance;
 }

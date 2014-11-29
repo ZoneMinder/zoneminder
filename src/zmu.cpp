@@ -771,5 +771,8 @@ int main( int argc, char *argv[] )
 	}
 	delete user;
 
+	logTerm();
+	zmDbClose();
+
 	return( 0 );
 }

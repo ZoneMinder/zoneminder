@@ -859,11 +859,14 @@ if ( !empty($action) )
         }
         elseif ( $action == "group" )
         {
-            if ( !empty($_POST['gid']) ) {
-				dbQuery( "UPDATE Groups SET Name=?, MonitorIds=? WHERE Id=?", array($_POST['newGroup']['Name'], $_POST['newGroup']['MonitorIds'], $_POST['gid']) );
-            } else {
-				dbQuery( "INSERT INTO Groups SET Name=?, MonitorIds=?", array( $_POST['newGroup']['Name'], empty($_POST['newGroup']['MonitorIds']) ? array() : $_POST['newGroup']['MonitorIds'] ) );
-            }
+			# Should probably verfy that each monitor id is a valid monitor, that we have access to. HOwever at the moment, you have to have System permissions to do this
+			$monitors = empty( $_POST['newGroup']['MonitorIds'] ) ? NULL : implode(',', $_POST['newGroup']['MonitorIds']);
+			if ( !empty($_POST['gid']) ) {
+				dbQuery( "UPDATE Groups SET Name=?, MonitorIds=? WHERE Id=?", array($_POST['newGroup']['Name'], $monitors, $_POST['gid']) );
+			} else {
+				dbQuery( "INSERT INTO Groups SET Name=?, MonitorIds=?", array( $_POST['newGroup']['Name'], $monitors ) );
+			}
+
             $refreshParent = true;
             $view = 'none';
         }

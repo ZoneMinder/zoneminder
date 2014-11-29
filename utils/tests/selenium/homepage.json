@@ -9,7 +9,7 @@
     },
     {
       "type": "verifyTextPresent",
-      "text": "ZoneMinder Console - Running - v1.27"
+      "text": "ZoneMinder Console - Running"
     },
     {
       "type": "clickElement",

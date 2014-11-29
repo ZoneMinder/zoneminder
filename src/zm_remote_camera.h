@@ -21,6 +21,7 @@
 #define ZM_REMOTE_CAMERA_H
 
 #include "zm_camera.h"
+#include "zm_rtsp_auth.h"
 
 #include <string>
 #include <sys/types.h>
@@ -39,8 +40,17 @@ protected:
 	std::string	port;
 	std::string	path;
 	std::string	auth;
+	std::string	username;
+	std::string	password;
 	std::string	auth64;
 
+    // Reworked authentication system
+    // First try without authentication, even if we have a username and password
+    // on receiving a 401 response, select authentication method (basic or digest)
+    // fill required fields and set needAuth
+    // subsequent requests can set the required authentication header.
+    bool mNeedAuth;
+    Authenticator* mAuthenticator;
 protected:
 	struct addrinfo *hp;
 
@@ -53,6 +63,8 @@ public:
 	const std::string &Port() const { return( port ); }
 	const std::string &Path() const { return( path ); }
 	const std::string &Auth() const { return( auth ); }
+	const std::string &Username() const { return( username ); }
+	const std::string &Password() const { return( password ); }
 
 	virtual void Initialise();
 	virtual void Terminate() = 0;

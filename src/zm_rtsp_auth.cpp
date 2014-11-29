@@ -38,6 +38,8 @@ Authenticator::Authenticator(std::string &username, std::string password) {
     fAuthMethod = AUTH_UNDEFINED;
     fUsername = username;
     fPassword = password;
+	nc = 1;
+	fCnonce = "0a4f113b";
 }
 
 Authenticator::~Authenticator() {
@@ -83,8 +85,12 @@ void Authenticator::authHandleHeader(std::string headerData)
                 fNonce = trimSet( kvPair[1], "\"");
                 continue;
             }
+            if (key == "qop") {
+                fQop = trimSet( kvPair[1], "\"");
+                continue;
+            }
         }
-        Debug( 2, "Auth data completed. User: %s, realm: %s, nonce: %s", username().c_str(), fRealm.c_str(), fNonce.c_str());
+        Debug( 2, "Auth data completed. User: %s, realm: %s, nonce: %s, qop: %s", username().c_str(), fRealm.c_str(), fNonce.c_str(), fQop.c_str() );
     }
 }
 
@@ -104,8 +110,13 @@ std::string Authenticator::getAuthHeader(std::string method, std::string uri)
     {
         result += std::string("Digest ") + 
         		  "username=\"" + quote(username()) + "\", realm=\"" + quote(realm()) + "\", " +
-                  "nonce=\"" + quote(nonce()) + "\", uri=\"" + quote(uri) + "\", " + 
-                  "response=\"" + computeDigestResponse(method, uri) + "\"";
+                  "nonce=\"" + quote(nonce()) + "\", uri=\"" + quote(uri) + "\"";
+		if ( ! fQop.empty() ) {
+			result += ", qop=" + fQop;
+			result += ", nc=" + stringtf("%08x",nc);
+			result += ", cnonce=" + fCnonce;
+		}
+		result += ", response=\"" + computeDigestResponse(method, uri) + "\"";
                   
         //Authorization: Digest username="zm",
         //                      realm="NC-336PW-HD-1080P",
@@ -133,6 +144,7 @@ std::string Authenticator::computeDigestResponse(std::string &method, std::strin
     
     // Step 1: md5(<username>:<realm>:<password>)
     std::string ha1Data = username() + ":" + realm() + ":" + password();
+	Debug( 2, "HA1 pre-md5: %s", ha1Data.c_str() );
 #if HAVE_DECL_MD5
     MD5((unsigned char*)ha1Data.c_str(), ha1Data.length(), md5buf);
 #elif HAVE_DECL_GNUTLS_FINGERPRINT
@@ -148,6 +160,7 @@ std::string Authenticator::computeDigestResponse(std::string &method, std::strin
     
     // Step 2: md5(<cmd>:<url>)
     std::string ha2Data = method + ":" + uri;
+	Debug( 2, "HA2 pre-md5: %s", ha2Data.c_str() );
 #if HAVE_DECL_MD5
     MD5((unsigned char*)ha2Data.c_str(), ha2Data.length(), md5buf );
 #elif HAVE_DECL_GNUTLS_FINGERPRINT
@@ -162,7 +175,14 @@ std::string Authenticator::computeDigestResponse(std::string &method, std::strin
     std::string ha2Hash = md5HexBuf;
 
     // Step 3: md5(ha1:<nonce>:ha2)
-    std::string digestData = ha1Hash + ":" + nonce() + ":" + ha2Hash;
+    std::string digestData = ha1Hash + ":" + nonce();
+	if ( ! fQop.empty() ) {
+		digestData += ":" + stringtf("%08x", nc) + ":"+fCnonce + ":" + fQop;
+		nc ++;
+		// if qop was specified, then we have to include t and a cnonce and an nccount
+	}
+	digestData += ":" + ha2Hash;
+	Debug( 2, "pre-md5: %s", digestData.c_str() );
 #if HAVE_DECL_MD5
     MD5((unsigned char*)digestData.c_str(), digestData.length(), md5buf);
 #elif HAVE_DECL_GNUTLS_FINGERPRINT
@@ -180,4 +200,29 @@ std::string Authenticator::computeDigestResponse(std::string &method, std::strin
 	Error( "You need to build with gnutls or openssl installed to use digest authentication" );
 #endif // HAVE_DECL_MD5
     return( 0 );
+}
+
+void Authenticator::checkAuthResponse(std::string &response) {
+	std::string authLine;
+	StringVector lines = split( response, "\r\n" );
+	const char* authenticate_match = "WWW-Authenticate:";
+	size_t authenticate_match_len = strlen(authenticate_match);
+
+	for ( size_t i = 0; i < lines.size(); i++ ) {
+		// stop at end of headers
+		if (lines[i].length()==0)
+			break;
+
+		if (strncasecmp(lines[i].c_str(),authenticate_match,authenticate_match_len) == 0) {
+			authLine = lines[i];
+			Debug( 2, "Found auth line at %d", i);
+			break;
+		}
+	}
+	if (!authLine.empty()) {
+		Debug( 2, "Analyze auth line %s", authLine.c_str());
+		authHandleHeader( trimSpaces(authLine.substr(authenticate_match_len,authLine.length()-authenticate_match_len)) );
+	} else {
+		Debug( 2, "Didn't find auth line in %s", authLine.c_str());
+	}
 }

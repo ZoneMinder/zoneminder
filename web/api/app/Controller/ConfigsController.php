@@ -88,4 +88,50 @@ class ConfigsController extends AppController {
 		} else {
 			return $this->flash(__('The config could not be deleted. Please, try again.'), array('action' => 'index'));
 		}
-	}}
+	}
+
+/**
+ * categories method
+ *
+ * Either return a list of distinct categories
+ * Or all configs under a certain category
+ */
+
+	public function categories($category = null) {
+		if ($category != null) {
+			if (!$this->Config->find('first', array( 'conditions' => array('Config.Category' => $category)))) {
+				throw new NotFoundException(__('Invalid Config Category'));
+			}
+
+			$config = $this->Config->find('all', array(
+				'conditions' => array('Config.Category' => $category),
+				'recursive' => 0
+			));
+			$this->set(array(
+				'config' => $config,
+				'_serialize' => array('config')
+			));
+		} else {
+			$categories = $this->Config->find('all', array(
+				'fields' => array('DISTINCT Config.Category'),
+				'conditions' => array('Config.Category !=' => 'hidden'),
+				'recursive' => 0
+			));
+			$this->set(array(
+				'categories' => $categories,
+				'_serialize' => array('categories')
+			));
+		}
+		
+	}
+
+	public function keyValue() {
+		$keyValues = $this->Config->find('list', array(
+			'fields' => array('Config.Name', 'Config.Value')
+		));
+		$this->set(array(
+			'keyValues' => $keyValues,
+			'_serialize' => array('keyValues')
+		));
+	}
+}

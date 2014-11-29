@@ -67,34 +67,6 @@ bool RtspThread::sendCommand( std::string message )
     return( true );
 }
 
-// find WWW-Authenticate header, send to Authenticator to extract required subfields
-void RtspThread::checkAuthResponse(std::string &response)
-{
-    std::string authLine;
-    StringVector lines = split( response, "\r\n" );
-    const char* authenticate_match = "WWW-Authenticate:";
-    size_t authenticate_match_len = strlen(authenticate_match);
-    
-    for ( size_t i = 0; i < lines.size(); i++ )
-    {
-    	// stop at end of headers
-        if (lines[i].length()==0)
-            break;
-        
-        if (strncasecmp(lines[i].c_str(),authenticate_match,authenticate_match_len) == 0) 
-        {
-            authLine = lines[i];
-            Debug( 2, "Found auth line at %d", i);
-            break;
-        }
-    }
-    if (!authLine.empty()) 
-    {
-        Debug( 2, "Analyze auth line %s", authLine.c_str());
-        mAuthenticator->authHandleHeader( trimSpaces(authLine.substr(authenticate_match_len,authLine.length()-authenticate_match_len)) );
-    }
-}
-
 bool RtspThread::recvResponse( std::string &response )
 {
     if ( mRtspSocket.recv( response ) < 0 )
@@ -120,7 +92,7 @@ bool RtspThread::recvResponse( std::string &response )
     if ( respCode == 401)
     {
     	Debug( 2, "Got 401 access denied response code, check WWW-Authenticate header and retry");
-    	checkAuthResponse(response);
+    	mAuthenticator->checkAuthResponse(response);
     	mNeedAuth = true;
     	return( false );
     } 
@@ -326,7 +298,7 @@ int RtspThread::run()
 			// for requested authentication method
 			if (respCode == 401 && !authTried) {
 				mNeedAuth = true;
-				checkAuthResponse(response);
+				mAuthenticator->checkAuthResponse(response);
 				Debug(2, "Processed 401 response");
 				mRtspSocket.close();
 			    if ( !mRtspSocket.connect( mHost.c_str(), strtol( mPort.c_str(), NULL, 10 ) ) )
@@ -361,7 +333,7 @@ int RtspThread::run()
     int localPorts[2] = { 0, 0 };
 
     // Request supported RTSP commands by the server
-    message = "OPTIONS * RTSP/1.0\r\n";
+    message = "OPTIONS "+mUrl+" RTSP/1.0\r\n";
     if ( !sendCommand( message ) )
         return( -1 );
     if ( !recvResponse( response ) )
@@ -680,7 +652,7 @@ int RtspThread::run()
             select.addReader( &mRtspSocket );
 
             Buffer buffer( ZM_NETWORK_BUFSIZ );
-            std::string keepaliveMessage = "OPTIONS * RTSP/1.0\r\n";
+            std::string keepaliveMessage = "OPTIONS "+mUrl+" RTSP/1.0\r\n";
             std::string keepaliveResponse = "RTSP/1.0 200 OK\r\n";
             while ( !mStop && select.wait() >= 0 )
             {

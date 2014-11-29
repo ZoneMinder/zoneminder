@@ -286,8 +286,11 @@ protected:
 
 	Event			*event;
 
-	int				n_zones;
+	int			n_zones;
 	Zone			**zones;
+
+	struct timeval		**timestamps;
+	Image			**images;
 
 	int			iDoNativeMotDet;
 #if ZM_PLUGINS_ON
@@ -295,8 +298,7 @@ protected:
 #else
 	int			ThePluginManager;
 #endif
-
-	int				n_linked_monitors;
+	int			n_linked_monitors;
 	MonitorLink		**linked_monitors;
 
 public:

@@ -334,6 +334,8 @@ Monitor::Monitor(
     camera( p_camera ),
     n_zones( p_n_zones ),
     zones( p_zones ),
+    timestamps( 0 ),
+    images( 0 ),
     iDoNativeMotDet( p_DoNativeMotDet ),
     ThePluginManager( p_id )
 {
@@ -613,6 +615,14 @@ bool Monitor::connect() {
 
 Monitor::~Monitor()
 {
+	if ( timestamps ) {
+		delete[] timestamps;
+		timestamps = 0;
+	}
+	if ( images ) {
+		delete[] images;
+		images = 0;
+	}
 	if ( mem_ptr ) {
 		if ( event )
 			Info( "%s: %03d - Closing event %d, shutting down", name, image_count, event->Id() );
@@ -1306,8 +1316,6 @@ bool Monitor::Analyse()
     }
 
     static bool static_undef = true;
-    static struct timeval **timestamps;
-    static Image **images;
     static int last_section_mod = 0;
     static bool last_signal;
 

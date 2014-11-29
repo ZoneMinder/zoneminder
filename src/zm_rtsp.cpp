@@ -333,7 +333,7 @@ int RtspThread::run()
     int localPorts[2] = { 0, 0 };
 
     // Request supported RTSP commands by the server
-    message = "OPTIONS * RTSP/1.0\r\n";
+    message = "OPTIONS "+mUrl+" RTSP/1.0\r\n";
     if ( !sendCommand( message ) )
         return( -1 );
     if ( !recvResponse( response ) )
@@ -652,7 +652,7 @@ int RtspThread::run()
             select.addReader( &mRtspSocket );
 
             Buffer buffer( ZM_NETWORK_BUFSIZ );
-            std::string keepaliveMessage = "OPTIONS * RTSP/1.0\r\n";
+            std::string keepaliveMessage = "OPTIONS "+mUrl+" RTSP/1.0\r\n";
             std::string keepaliveResponse = "RTSP/1.0 200 OK\r\n";
             while ( !mStop && select.wait() >= 0 )
             {

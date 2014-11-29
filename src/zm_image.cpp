@@ -140,6 +140,22 @@ Image::Image( const Image &p_image )
 Image::~Image()
 {
 	DumpImgBuffer();
+	if ( initialised )
+	{
+		delete[] y_table;
+		delete[] uv_table;
+		delete[] r_v_table;
+		delete[] g_v_table;
+		delete[] g_u_table;
+		delete[] b_u_table;
+		initialised = false;
+	}
+	if ( jpg_dcinfo )
+	{
+		jpeg_destroy_decompress( jpg_dcinfo );
+		delete jpg_dcinfo;
+		jpg_dcinfo = 0;
+	}
 }
 
 void Image::Initialise()

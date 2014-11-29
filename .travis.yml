@@ -14,11 +14,11 @@ env:
     - secure: fzfeQe67f4wYkszMtEoHwkXLDoNfeu1xzPON6e9hojzgnc3Py4BtQSy9qohaN4neLsxs8nwXOxlTDjY8vaGZfTpfAwpeupdgp5ZZW0ok1caEFdp/qKdJveW7FP2KQUkSezhXdmjBGMotquQooTZiZlCR9aGkA5bBeZGNYsI+o4A=
     - secure: FuO4X2qf/fX5Fp/FRG6Z2s6f10ngsXt/yCgCLUeDD2DDeYHEgXQarbi4eoPv9XzjUvNKDNdnGCV2SjLsDB6EaoK4GmMnqN9lBmi7tP1QYeNBt27V7BfiB6vIxJApkynAwOpDVLoM4wCv7uIsSfSMKL1czfXXtv9iuSi7Y5840RQ=
     - SAUCE_BROWSER=firefox
-addons:
-  sauce_connect:
 matrix:
   - ZM_BUILDMETHOD=cmake
   - ZM_BUILDMETHOD=autotools
+addons:
+  sauce_connect:
 compiler:
   - gcc
 before_install:

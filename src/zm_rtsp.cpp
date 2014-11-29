@@ -332,9 +332,23 @@ int RtspThread::run()
     std::string localHost = "";
     int localPorts[2] = { 0, 0 };
 
-    //message = "OPTIONS * RTSP/1.0\r\n";
-    //sendCommand( message );
-    //recvResponse( response );
+    // Request supported RTSP commands by the server
+    message = "OPTIONS "+mUrl+" RTSP/1.0\r\n";
+    if ( !sendCommand( message ) )
+        return( -1 );
+    if ( !recvResponse( response ) )
+        return( -1 );
+
+    char publicLine[256] = "";
+    StringVector lines = split( response, "\r\n" );
+    for ( size_t i = 0; i < lines.size(); i++ )
+        sscanf( lines[i].c_str(), "Public: %[^\r\n]\r\n", publicLine );
+
+    // Check if the server supports the GET_PARAMETER command
+    // If yes, it is likely that the server will request this command as a keepalive message
+    bool sendKeepalive = false;
+    if ( publicLine[0] && strstr(publicLine, "GET_PARAMETER") )
+        sendKeepalive = true;
 
     message = "DESCRIBE "+mUrl+" RTSP/1.0\r\n";
 	bool res;
@@ -620,7 +634,7 @@ int RtspThread::run()
 
             Buffer buffer( ZM_NETWORK_BUFSIZ );
             time_t lastKeepalive = time(NULL);
-            std::string keepaliveMessage = "OPTIONS * RTSP/1.0\r\n";
+            std::string keepaliveMessage = "OPTIONS "+mUrl+" RTSP/1.0\r\n";
             std::string keepaliveResponse = "RTSP/1.0 200 OK\r\n";
             while ( !mStop && select.wait() >= 0 )
             {

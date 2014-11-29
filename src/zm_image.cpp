@@ -140,6 +140,22 @@ Image::Image( const Image &p_image )
 Image::~Image()
 {
 	DumpImgBuffer();
+	if ( initialised )
+	{
+		delete[] y_table;
+		delete[] uv_table;
+		delete[] r_v_table;
+		delete[] g_v_table;
+		delete[] g_u_table;
+		delete[] b_u_table;
+		initialised = false;
+	}
+	if ( jpg_dcinfo )
+	{
+		jpeg_destroy_decompress( jpg_dcinfo );
+		delete jpg_dcinfo;
+		jpg_dcinfo = 0;
+	}
 }
 
 void Image::Initialise()
@@ -339,19 +355,21 @@ void Image::AssignDirect( const unsigned int p_width, const unsigned int p_heigh
 		Error("Attempt to directly assign buffer from a NULL pointer");
 		return;
 	}
-	
-	if(buffer_size < (unsigned int)((p_width*p_height)*p_colours)) {
-		Error("Attempt to directly assign buffer from an undersized buffer of size: %zu",buffer_size);
-		return;
-	}
-	
+
 	if(!p_height || !p_width) {
 		Error("Attempt to directly assign buffer with invalid width or height: %d %d",p_width,p_height);
 		return;
 	}
-	
+
 	if(p_colours != ZM_COLOUR_GRAY8 && p_colours != ZM_COLOUR_RGB24 && p_colours != ZM_COLOUR_RGB32) {
 		Error("Attempt to directly assign buffer with unexpected colours per pixel: %d",p_colours);
+		return;
+	}
+
+	unsigned int new_buffer_size = ((p_width*p_height)*p_colours);
+	
+	if(buffer_size < new_buffer_size) {
+		Error("Attempt to directly assign buffer from an undersized buffer of size: %zu, needed %dx%d*%d colours = %zu",buffer_size, p_width, p_height, p_colours );
 		return;
 	}
 	
@@ -365,7 +383,7 @@ void Image::AssignDirect( const unsigned int p_width, const unsigned int p_heigh
 			colours = p_colours;
 			subpixelorder = p_subpixelorder;
 			pixels = height*width;
-			size = pixels*colours;
+			size = new_buffer_size; // was pixels*colours, but we already calculated it above as new_buffer_size
 			
 			/* Copy into the held buffer */
 			if(new_buffer != buffer)
@@ -383,7 +401,7 @@ void Image::AssignDirect( const unsigned int p_width, const unsigned int p_heigh
 		colours = p_colours;
 		subpixelorder = p_subpixelorder;
 		pixels = height*width;
-		size = pixels*colours;
+		size = new_buffer_size; // was pixels*colours, but we already calculated it above as new_buffer_size
 	
 		allocation = buffer_size;
 		buffertype = p_buffertype;

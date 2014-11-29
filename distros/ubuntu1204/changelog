@@ -1,3 +1,21 @@
+zoneminder (1.28.0+1-utopic-SNAPSHOT2014112001) utopic; urgency=medium
+
+  * Various fixes and developments since 1.28.0.  Includes Digest-Auth for HTTP and better for RTSP
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Thu, 20 Nov 2014 10:57:57 -0500
+
+zoneminder (1.28.0-trusty) trusty; urgency=medium
+
+  * Release
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Fri, 17 Oct 2014 09:25:55 -0400
+
+zoneminder (1.27.99+1-trusty-SNAPSHOT2014101401) trusty; urgency=medium
+
+  * Several PR merges in big push for 1.28.0
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Tue, 14 Oct 2014 09:28:29 -0400
+
 zoneminder (1.27.99+1-trusty-SNAPSHOT2014092601) trusty; urgency=medium
 
   * style updates and db fixes for database logging filters

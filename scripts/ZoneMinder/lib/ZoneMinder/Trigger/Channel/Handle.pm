@@ -87,7 +87,7 @@ sub write()
 	my $nbytes = syswrite( $self->{handle}, $buffer );
 	if ( !defined( $nbytes) || $nbytes < length($buffer) )
 	{
-		Error( "Unable to write buffer '".$buffer.", expected ".length($buffer)." bytes, sent ".$nbytes.": $!\n" );
+		Error( "Unable to write buffer '".$buffer.", expected ".length($buffer)." bytes, sent ".($nbytes?$nbytes:'undefined').": $!\n" );
 		return( undef );
 	}
 	Debug( "Wrote '$buffer' ($nbytes bytes)\n" );
@@ -106,11 +106,11 @@ __END__
 
 =head1 NAME
 
-ZoneMinder::Database - Perl extension for blah blah blah
+ZoneMinder::Trigger::Channel::Handle - Perl extension for blah blah blah
 
 =head1 SYNOPSIS
 
-  use ZoneMinder::Database;
+  use ZoneMinder::Trigger::Channel::Handle;
   blah blah blah
 
 =head1 DESCRIPTION

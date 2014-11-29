@@ -282,15 +282,15 @@ protected:
 
 	Event			*event;
 
-	int				n_zones;
+	int			n_zones;
 	Zone			**zones;
 
-	struct timeval **timestamps;
-	Image **images;
+	struct timeval		**timestamps;
+	Image			**images;
 
-   int iDoNativeMotDet;
+	int			iDoNativeMotDet;
 
-	int				n_linked_monitors;
+	int			n_linked_monitors;
 	MonitorLink		**linked_monitors;
 
 public:

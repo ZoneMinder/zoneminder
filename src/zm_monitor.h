@@ -285,6 +285,9 @@ protected:
 	int				n_zones;
 	Zone			**zones;
 
+	struct timeval **timestamps;
+	Image **images;
+
    int iDoNativeMotDet;
 
 	int				n_linked_monitors;

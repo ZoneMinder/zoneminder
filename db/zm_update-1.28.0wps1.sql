@@ -22,6 +22,6 @@ CREATE TABLE `PluginsConfig` (
   KEY `MonitorId` (`MonitorId`),
   KEY `Name` (`Name`),
   KEY `pluginName` (`pluginName`)
-) ENGINE=MyISAM;
+) ENGINE=InnoDB;
 
 ALTER TABLE `Monitors` ADD `DoNativeMotDet` tinyint(3) unsigned NOT NULL default '1' AFTER `Sequence`;

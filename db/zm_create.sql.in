@@ -528,7 +528,7 @@ CREATE TABLE `PluginsConfig` (
   `Max` int(10) unsigned NULL default NULL,
   `MonitorId` int(10) unsigned NOT NULL,
   `ZoneId` int(10) unsigned NOT NULL,
-  `pluginName` tinytext NOT NULL,
+  `pluginName` varchar(64) NOT NULL,
   PRIMARY KEY (`Id`),
   KEY `ZoneId` (`ZoneId`),
   KEY `MonitorId` (`MonitorId`),

@@ -9,7 +9,7 @@ with_timestamps() {
 	done
 }
 
-run_tests() 
+run_tests() {
 	mysql -uzmuser -pzmpass < ${TRAVIS_BUILD_DIR}/db/zm_create.sql
 	mysql -uzmuser -pzmpass zm < ${TRAVIS_BUILD_DIR}/db/test.monitor.sql
 	sudo zmpkg.pl start

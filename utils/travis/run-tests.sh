@@ -10,14 +10,15 @@ with_timestamps() {
 }
 
 run_tests() {
-	mysql -uzmuser -pzmpass zm < ../../db/test.monitor.sql
-	sudo zmu -l
-	sudo zmc -m1 &
-	sudo zma -m1 &
-	sudo zmu -l
-	sudo grep ERR /var/log/syslog
+	mysql -uzmuser -pzmpass < ${TRAVIS_BUILD_DIR}/db/zm_create.sql
+	mysql -uzmuser -pzmpass zm < ${TRAVIS_BUILD_DIR}/db/test.monitor.sql
 	sudo zmpkg.pl start
 	sudo zmfilter.pl -f purgewhenfull
+	sudo cp -f utils/travis/apache-vhost /etc/apache2/sites-enabled/000-default
+	sudo service apache2 restart
+	npm install -g se-interpreter
+	se-interpreter --listener= utils/tests/sauce_listener.js utils/tests/interpreter_config.json
+
 }
 
 run_tests | with_timestamps

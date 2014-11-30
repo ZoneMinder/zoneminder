@@ -17,6 +17,7 @@ function Listener(testRun, params, interpreter_module) {
 Listener.prototype.startTestRun = function(testRun, info) {
   this.sessionID = testRun.wd.sessionID;
   this.username = testRun.browserOptions.username;
+  console.log("Listener: User: " + this.username);
   this.accessKey = testRun.browserOptions.accessKey;
   if (this.originalListener) { this.originalListener.startTestRun(testRun, info); }
 };

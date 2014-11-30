@@ -24,10 +24,6 @@
         "type": "link text",
         "value": "Log"
       }
-    },
-    {
-      "type": "verifyTextPresent",
-      "text": "System Log"
     }
   ],
   "data": {

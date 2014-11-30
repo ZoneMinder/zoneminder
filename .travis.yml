@@ -11,7 +11,6 @@ env:
   - DEB_BUILD_GNU_TYPE=$(dpkg-architecture -qDEB_BUILD_GNU_TYPE)
   - CFLAGS="-DZM_FFMPEG_CVS -DHAVE_LIBCRYPTO -I/usr/local/include"
   - CXXFLAGS="$CFLAGS"
-  - SAUCE_BROWSER=firefox
   - secure: g05/pifTl1sEV4sIYsXFUh1/j6Ntz1xGlApW2d2h+JRM3HqnS3Dpl3AJqfyrdO5WBmuu2jU/f0sKocqypuGD0TfrJjoLva4t8sd7owtiZMegB36czb8bUVh6LW4HEqYXmUNxeiq9hMHwH6YKzvT+72cY0U+pTgvdn8e6taV6R18=
   - secure: QRHiG76IliclfB2Fkw4PffPXp/6pcm1iL/AFNSP6kNk+grErDgSMrTsnJlmt4FwvLo8EJxCQ/E1YKsOB7XPx4CzjYqXTHTPHOvXJlWx1MV6mo6nNaOos8J3EU8nAqXcciszsXQ8xpyZYQKgwLoKhUQF7JsSI8qExcI2VavT61Ys=
 
@@ -26,8 +25,9 @@ before_install:
 install:
 - travis_retry bash $TRAVIS_BUILD_DIR/utils/travis/install-deps.sh
 - travis_wait bash $TRAVIS_BUILD_DIR/utils/travis/install-ffmpeg.sh
+before_script:
 - bash $TRAVIS_BUILD_DIR/utils/travis/bootstrap-zm.sh
-- bash $TRAVIS_BUILD_DIR/utils/travis/build-zm.sh
-before_script: 
 script:
+- bash $TRAVIS_BUILD_DIR/utils/travis/build-zm.sh
+after_script:
 - bash $TRAVIS_BUILD_DIR/utils/travis/run-tests.sh

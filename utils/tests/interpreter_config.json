@@ -9,7 +9,7 @@
             "port": 4445
           },
           "browserOptions": {
-            "browserName": "${SAUCE_BROWSER}",
+            "browserName": "firefox",
             "build": "${TRAVIS_BUILD_NUMBER}",
             "tags": [
               "${TRAVIS_BRANCH}"

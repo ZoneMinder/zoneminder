@@ -560,7 +560,11 @@ int RtspThread::run()
 
     int seq = 0;
     unsigned long rtpTime = 0;
-    if ( rtpInfo )
+    if ( rtpInfo.empty() )
+    {
+	Debug( 1, "No RTP Info from Camera. Starting values for Sequence and Rtptime shall be zero.");
+    }
+    else
     {
 	Debug( 2, "Got RTP Info %s", rtpInfo );
 	parts = split( rtpInfo.c_str(), ";" );
@@ -578,8 +582,6 @@ int RtspThread::run()
 	    }
 	}
     }
-    else
-	Debug( 1, "No RTP Info from Camera. Starting values for Sequence and Rtptime shall be zero.");
 
     Debug( 2, "RTSP Seq is %d", seq );
     Debug( 2, "RTSP Rtptime is %ld", rtpTime );

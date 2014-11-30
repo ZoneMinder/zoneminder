@@ -17,7 +17,7 @@ run_tests() {
 	sudo cp -f utils/travis/apache-vhost /etc/apache2/sites-enabled/000-default
 	sudo service apache2 restart
 	npm install -g se-interpreter
-	se-interpreter --listener= utils/tests/sauce_listener.js utils/tests/interpreter_config.json
+	se-interpreter --listener=utils/tests/sauce_listener.js utils/tests/interpreter_config.json
 
 }
 

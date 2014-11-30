@@ -11,12 +11,13 @@ var util = require('util');
 
 function Listener(testRun, params, interpreter_module) {
   this.testRun = testRun;
-  this.originalListener = params.silent ? null : interpreter_module.getInterpreterListener(testRun, params, interpreter_module);
+  this.originalListener = interpreter_module.getInterpreterListener(testRun, params, interpreter_module);
 };
 
 Listener.prototype.startTestRun = function(testRun, info) {
   this.sessionID = testRun.wd.sessionID;
   this.username = testRun.browserOptions.username;
+  console.log("Listener: User: " + this.username);
   this.accessKey = testRun.browserOptions.accessKey;
   if (this.originalListener) { this.originalListener.startTestRun(testRun, info); }
 };

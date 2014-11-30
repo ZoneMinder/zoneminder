@@ -2,6 +2,11 @@
 
 set -e
 
+old_version=$2
+
+# Sourcing this file here ensure that debconf config script is runned
+. /usr/share/debconf/confmodule
+
 apache_install() {
 	mkdir -p /etc/apache2/conf-available
 	ln -sf ../../zm/apache.conf /etc/apache2/conf-available/zoneminder.conf
@@ -14,6 +19,19 @@ apache_install() {
 	elif [ "$COMMON_STATE" = "installed" ] || [ "$COMMON_STATE" = "unpacked" ] ; then
 		[ -d /etc/apache2/conf.d/ ] && [ ! -L /etc/apache2/conf.d/zoneminder.conf ] && ln -s ../conf-available/zoneminder.conf /etc/apache2/conf.d/zoneminder.conf
 	fi
+}
+
+database_default_config() {
+	. /usr/share/dbconfig-common/internal/$dbc_dbtype
+	command_prefix='dbc_'
+	exec_command=${command_prefix}${dbc_dbtype}_exec_command
+
+	# Remove hard-coded default admin account
+	$exec_command "DELETE FROM Users WHERE Username = 'admin';" || true
+
+	# Install custom admin account
+	md5_password="`echo -n $ADMIN_PASSWORD | md5sum | sed -e 's/ *-$//'`"
+	$exec_command "INSERT INTO Users (id, username, password, mail_address) VALUES (1, '$ADMIN_LOGIN', '$md5_password');" || true
 }
 
 if [ "$1" = "configure" ]; then

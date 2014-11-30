@@ -1,0 +1,24 @@
+Template: zoneminder/webserver
+Type: multiselect
+Choices: apache2
+Description: Web server to reconfigure automatically:
+ Please choose the web server that should be automatically configured
+ to run ZoneMinder.
+
+Template: zoneminder/admin_login
+Type: string
+Default: admin
+Description: Administrative user's login:
+ Please enter the login of the administrative user.
+
+Template: zoneminder/admin_password
+Type: password
+Default: admin
+Description: Administrative user's password:
+ Please enter the password of the administrative user.
+
+Template: zoneminder/debconf_install
+Type: boolean
+Default: true
+Description: Configure ZoneMinder automatically?
+ The configuration program for the package can configure automatically ZoneMinder.

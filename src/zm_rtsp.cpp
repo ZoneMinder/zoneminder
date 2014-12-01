@@ -556,6 +556,14 @@ int RtspThread::run()
     {
         if ( ( lines[i].size() > 9 ) && ( lines[i].substr( 0, 9 ) == "RTP-Info:" ) )
             rtpInfo = trimSpaces( lines[i].substr( 9 ) );
+	// Check for a timeout again. Some rtsp devices don't send a timeout until after the PLAY command is sent
+        if ( ( lines[i].size() > 8 ) && ( lines[i].substr( 0, 8 ) == "Session:" ) && ( timeout == 0 ) )
+        {
+            StringVector sessionLine = split( lines[i].substr(9), ";" );
+            if ( sessionLine.size() == 2 )
+                sscanf( trimSpaces( sessionLine[1] ).c_str(), "timeout=%d", &timeout );
+            if ( timeout > 0 )
+                Debug( 2, "Got timeout %d secs from PLAY command response", timeout );
     }
 
     if ( rtpInfo.empty() )

@@ -567,6 +567,8 @@ int RtspThread::run()
         }
     }
 
+    int seq = 0;
+    unsigned long rtpTime = 0;
     if ( rtpInfo.empty() )
     {
         Debug( 1, "RTP Info Empty. Starting values for Sequence and Rtptime shall be zero.");
@@ -575,8 +577,6 @@ int RtspThread::run()
     {
         Debug( 2, "Got RTP Info %s", rtpInfo.c_str() );
 
-        int seq = 0;
-        unsigned long rtpTime = 0;
         parts = split( rtpInfo.c_str(), ";" );
         for ( size_t i = 0; i < parts.size(); i++ )
         {

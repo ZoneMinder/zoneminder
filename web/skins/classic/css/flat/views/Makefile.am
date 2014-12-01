@@ -1,6 +1,6 @@
 AUTOMAKE_OPTIONS = gnu
 
-webdir = @WEB_PREFIX@/skins/flat/views/css
+webdir = @WEB_PREFIX@/skins/classic/css/flat/views
 
 dist_web_DATA = \
 	console.css \

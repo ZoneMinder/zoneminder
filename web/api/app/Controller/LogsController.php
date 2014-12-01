@@ -13,7 +13,11 @@ class LogsController extends AppController {
  *
  * @var array
  */
-	public $components = array('Paginator');
+	public $components = array('Paginator', 'RequestHandler');
+	public $paginate = array(
+		'limit' => 100,
+		'order' => array( 'Log.TimeKey' => 'asc' )
+	);
 
 /**
  * index method
@@ -21,8 +25,15 @@ class LogsController extends AppController {
  * @return void
  */
 	public function index() {
-		$this->Log->recursive = 0;
-		$this->set('logs', $this->Paginator->paginate());
+		$this->Log->recursive = -1;
+		$this->Paginator->settings = $this->paginate;
+
+		$logs = $this->Paginator->paginate('Log');
+
+		$this->set(array(
+			'logs' => $logs,
+			'_serialize' => array('logs')
+		));
 	}
 
 /**

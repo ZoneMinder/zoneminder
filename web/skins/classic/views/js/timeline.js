@@ -125,7 +125,7 @@ function loadEventImage( imagePath, eid, fid, width, height, fps )
     
     //console.log(fid/25.0);
     var vid= $('preview');
-    var newsource=imagePrefix+imagePath.slice(0,imagePath.lastIndexOf('/'))+"/event.mkv";
+    var newsource=imagePrefix+imagePath.slice(0,imagePath.lastIndexOf('/'))+"/event.mp4";
     //console.log(newsource);
     //console.log(sources[0].src.slice(-newsource.length));
     if(newsource!=vid.currentSrc.slice(-newsource.length) || vid.readyState==0)

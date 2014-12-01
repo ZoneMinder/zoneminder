@@ -137,10 +137,10 @@ if ( ZM_OPT_FFMPEG )
       <div id="eventStream">
         <div id="imageFeed">
 <?php
-if(file_exists(ZM_PATH_WEB."/events/".getEventPath($event)."/event.mkv")){
+if(file_exists(ZM_PATH_WEB."/events/".getEventPath($event)."/event.mp4")){
 ?>
 <video id="vid1" width="100%" controls> <!-- <?php echo $event['Width']; ?>" height="<?php echo $event['Height']; ?>" controls> -->
-  <source src="<?php echo "/zm/events/".getEventPath($event)."/event.mkv#t=".$fid/($event['Frames']/$event['Length'])?>" type="video/mp4"> 
+  <source src="<?php echo "/zm/events/".getEventPath($event)."/event.mp4#t=".$fid/($event['Frames']/$event['Length'])?>" type="video/mp4"> 
 Your browser does not support the video tag.
 </video>
 <button value="FF" onClick="fastForward();"/>

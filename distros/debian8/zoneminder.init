@@ -1,0 +1,36 @@
+#!/bin/sh
+#
+### BEGIN INIT INFO
+# Provides:          zoneminder
+# Required-Start:
+# Required-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Do nothing more than fixing a lintian error
+# Description:       This script is provided by the Zoneminder package
+#                    Zomeminder init configuration has been switched to systemd
+#                    This dummy script can be safely deleted; It does nothing
+#                    more than fixing a lintian error when testing the package
+### END INIT INFO
+
+. /lib/lsb/init-functions
+
+case "$1" in
+    start)
+        ;;
+    stop)
+        ;;
+    status)
+        ;;
+    restart|reload)
+        ;;
+    force-reload)
+        ;;
+    *)
+        echo "Usage: ${0:-} {start|stop|status|restart|reload|force-reload}" >&2
+        exit 1
+        ;;
+esac
+
+exit 0
+

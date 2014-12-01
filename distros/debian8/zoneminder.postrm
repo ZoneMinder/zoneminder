@@ -1,0 +1,32 @@
+#! /bin/sh
+
+set -e
+
+apache_remove() {
+    COMMON_STATE=$(dpkg-query -f '${Status}' -W 'apache2.2-common' 2>/dev/null | awk '{print $3}' || true)
+    if [ -e /usr/share/apache2/apache2-maintscript-helper ] ; then
+        . /usr/share/apache2/apache2-maintscript-helper
+        apache2_invoke disconf zoneminder
+    elif [ "$COMMON_STATE" = "installed" ] || [ "$COMMON_STATE" = "unpacked" ] ; then
+        rm -f /etc/apache2/conf.d/zoneminder.conf
+    fi
+    rm -f /etc/apache2/conf-available/zoneminder.conf
+}
+
+if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
+    apache_remove $1
+    if [ -f /etc/init.d/apache2 ] ; then
+        invoke-rc.d apache2 reload 3>/dev/null || true
+    fi
+fi
+
+if [ "$1" = "purge" ]; then
+    if [ -e "/etc/init.d/mysql" ]; then
+        echo 'delete from user where User="zmuser";' | mysql --defaults-file=/etc/mysql/debian.cnf mysql
+        echo 'delete from db where User="zmuser";' | mysql --defaults-file=/etc/mysql/debian.cnf mysql
+        mysqladmin --defaults-file=/etc/mysql/debian.cnf -f drop zm
+    else
+        echo 'mysql not found, assuming remote server.'
+    fi
+fi
+#DEBHELPER#

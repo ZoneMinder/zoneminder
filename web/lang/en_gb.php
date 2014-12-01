@@ -609,6 +609,7 @@ $SLANG = array(
     'SignalCheckColour'     => 'Signal Check Colour',
     'Size'                  => 'Size',
     'SkinDescription'       => 'Change the default skin for this computer',
+    'CSSDescription'        => 'Change the default css for this computer',
     'Sleep'                 => 'Sleep',
     'SortAsc'               => 'Asc',
     'SortBy'                => 'Sort by',

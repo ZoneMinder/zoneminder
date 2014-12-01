@@ -1,0 +1,33 @@
+zoneminder (1.28.0-0.2) testing; urgency=medium
+
+  * Non-maintainer upload.
+  * Upstream release for debian jessie
+  * Package dependencies updated
+  * debhelper version upgraded
+  * Standards-Version upgraded
+  * Use debhelper commands instead of standard commands
+  * Install man pages in /usr/share/man (patch added)
+  * Switch to quilt
+  * Switch to systemd
+  * Some lintian fixes
+
+ -- Emmanuel Papin <manupap01@gmail.com>  Wed, 26 Nov 2014 00:26:01 +0100
+
+zoneminder (1.28.0-0.1) stable; urgency=medium
+
+  * Release
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Fri, 17 Oct 2014 09:27:22 -0400
+
+zoneminder (1.27.99+1-testing-SNAPSHOT2014072901) testing; urgency=medium
+
+  * improve error messages
+  * Make zmupdate re-run the most recent patch so that people running the daily builds get their db updates
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Tue, 29 Jul 2014 14:50:20 -0400
+
+zoneminder (1.27.0+1-testing-v4ltomonitor-1) testing; urgency=high
+
+  * Snapshot release - 
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Wed, 09 Jul 2014 21:35:29 -0400

@@ -1,0 +1,15 @@
+--- a/configure.ac
++++ b/configure.ac
+@@ -437,10 +437,10 @@
+     PERL_SITE_LIB=`perl -V:installsitelib | sed -e "s/.*='\(.*\)';/\1/"`
+     PERL_LIB_PATH=`echo $PERL_SITE_LIB | sed -e "s|^$PERL_SITE_PREFIX||"`
+     EXTRA_PERL_LIB="use lib '$prefix$PERL_LIB_PATH'; # Include custom perl install path"
+-    PERL_MM_PARMS="PREFIX=$prefix"
++    PERL_MM_PARMS="\"PREFIX=$prefix INSTALLDIRS=vendor\""
+ else
+     EXTRA_PERL_LIB="# Include from system perl paths only"
+-    PERL_MM_PARMS=
++    PERL_MM_PARMS="\"INSTALLDIRS=vendor\""
+ fi
+ AC_SUBST(PERL_MM_PARMS)
+ AC_SUBST(EXTRA_PERL_LIB)

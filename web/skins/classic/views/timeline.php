@@ -817,7 +817,7 @@ xhtmlHeaders(__FILE__, $SLANG['Timeline'] );
 <!-- <img id="imageSrc" class="imageWidth" src="graphics/transparent.gif" alt="<?= $SLANG['ViewEvent'] ?>" title="<?= $SLANG['ViewEvent'] ?>"/>-->
 <!-- width="<?php echo $event['Width']; ?>" height="<?php echo $event['Height']; ?>" -->
 <video id="preview" width="100%" controls>
-  <source src="<?php echo "/events/".getEventPath($event)."/event.mkv"; ?>" type="video/mp4">
+  <source src="<?php echo "/events/".getEventPath($event)."/event.mp4"; ?>" type="video/mp4">
 Your browser does not support the video tag.
 </video>
 

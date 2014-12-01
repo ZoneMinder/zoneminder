@@ -1,86 +1,160 @@
 #! /bin/sh
+# postinst maintainer script for zoneminder
+
+CONFIGFILE=/etc/zm/zm.conf
 
 set -e
 
 old_version=$2
 
-# Sourcing this file here ensure that debconf config script is runned
+apache_install() {
+    mkdir -p /etc/apache2/conf-available
+    ln -sf ../../zm/apache.conf /etc/apache2/conf-available/zoneminder.conf
+
+    COMMON_STATE=$(dpkg-query -f '${Status}' -W 'apache2.2-common' 2>/dev/null | awk '{print $3}' || true)
+
+    if [ -e /usr/share/apache2/apache2-maintscript-helper ] ; then
+        . /usr/share/apache2/apache2-maintscript-helper
+        apache2_invoke enconf zoneminder
+    elif [ "$COMMON_STATE" = "installed" ] || [ "$COMMON_STATE" = "unpacked" ] ; then
+        [ -d /etc/apache2/conf.d/ ] && [ ! -L /etc/apache2/conf.d/zoneminder.conf ] && ln -s ../conf-available/zoneminder.conf /etc/apache2/conf.d/zoneminder.conf
+    fi
+
+    # Enable CGI script module in apache(not enabled by default on jessie)
+    a2enmod cgi >/dev/null 2>&1
+
+    # Reload the web server
+    deb-systemd-invoke reload apache2.service || true
+}
+
+mysql_install_admin() {
+    # Source the dbconfig stuff
+    . /usr/share/dbconfig-common/internal/mysql
+
+    # Remove the hard-coded default admin account
+    dbc_mysql_exec_command "DELETE FROM Users WHERE Username = 'admin';" || true
+
+    # Install the new admin account defined with debconf
+    md5_password="`echo -n $ADMIN_PASSWORD | md5sum | sed -e 's/ *-$//'`"
+    dbc_mysql_exec_command "INSERT INTO Users (id, username, password) VALUES (1, '$ADMIN_LOGIN', '$md5_password');" || true
+}
+
+# Source the debconf stuff
 . /usr/share/debconf/confmodule
 
-apache_install() {
-	mkdir -p /etc/apache2/conf-available
-	ln -sf ../../zm/apache.conf /etc/apache2/conf-available/zoneminder.conf
+# Exit if user didn't want to use debconf
+db_get zoneminder/debconf_install
+if [ "$RET" = false ]; then
+    exit 0;
+fi
 
-	COMMON_STATE=$(dpkg-query -f '${Status}' -W 'apache2.2-common' 2>/dev/null | awk '{print $3}' || true)
+# Source the config file if exists
+if [ -e $CONFIGFILE ]; then
+    . $CONFIGFILE || true
+else
+    # Exit with error if no config file
+    exit 1
+fi
 
-	if [ -e /usr/share/apache2/apache2-maintscript-helper ] ; then
-		. /usr/share/apache2/apache2-maintscript-helper
-		apache2_invoke enconf zoneminder
-	elif [ "$COMMON_STATE" = "installed" ] || [ "$COMMON_STATE" = "unpacked" ] ; then
-		[ -d /etc/apache2/conf.d/ ] && [ ! -L /etc/apache2/conf.d/zoneminder.conf ] && ln -s ../conf-available/zoneminder.conf /etc/apache2/conf.d/zoneminder.conf
-	fi
-}
+if [ "$ZM_DB_TYPE" = mysql ]; then
+    if [ ! -e "/usr/sbin/mysqld" ]; then
+        db_get zoneminder/debconf_dbremote
+        if [ "$RET" = false ]; then
+            # Exit silently if the user forgot to install the database server
+            exit 0
+        fi
+    fi
+else
+    # Currently we only support mysql
+    exit 1
+fi
 
-database_default_config() {
-	. /usr/share/dbconfig-common/internal/$dbc_dbtype
-	command_prefix='dbc_'
-	exec_command=${command_prefix}${dbc_dbtype}_exec_command
+if [ -f /usr/share/dbconfig-common/dpkg/postinst ]; then
 
-	# Remove hard-coded default admin account
-	$exec_command "DELETE FROM Users WHERE Username = 'admin';" || true
+    # Set the first version in which dbconfig-common was introduced in the package
+    dbc_first_version="1.28.0"
 
-	# Install custom admin account
-	md5_password="`echo -n $ADMIN_PASSWORD | md5sum | sed -e 's/ *-$//'`"
-	$exec_command "INSERT INTO Users (id, username, password, mail_address) VALUES (1, '$ADMIN_LOGIN', '$md5_password');" || true
-}
+    # Set the database type
+    dbc_dbtypes="$ZM_DB_TYPE"
+
+    # Source the dbconfig-common stuff
+    . /usr/share/dbconfig-common/dpkg/postinst
+fi
+
+if [ "$1" = configure ] || [ "$1" = reconfigure ]; then
+
+    # Create the underlying database and populate it
+    # dbconfig will take care of applying any updates which are newer than the
+    # previously installed version
+    dbc_go zoneminder $@
+
+    # Get the adminitrator login and password from debconf
+    db_get zoneminder/admin_login
+    ADMIN_LOGIN=${RET:-admin}
+    db_get zoneminder/admin_password
+    ADMIN_PASSWORD=${RET:-admin}
+
+    # Update the default admin account
+    mysql_install_admin
+
+    # Retrieve data from dbconfig (inputs from user)
+    . /etc/dbconfig-common/zoneminder.conf
+
+    # ZoneMinder config file handling
+    # Inspired by: http://manpages.ubuntu.com/manpages/lucid/en/man7/debconf-devel.7.html
+
+    # Backup the config file
+    cp -a -f $CONFIGFILE $CONFIGFILE.postinst.bak
+
+    # Redeclare variables if missing in config file
+    test -z $dbc_dbserver || grep -Eq "^ *ZM_DB_HOST=" $CONFIGFILE || echo "ZM_DB_HOST=" >> $CONFIGFILE
+    test -z $dbc_dbname || grep -Eq "^ *ZM_DB_NAME=" $CONFIGFILE || echo "ZM_DB_NAME=" >> $CONFIGFILE
+    test -z $dbc_dbuser || grep -Eq "^ *ZM_DB_USER=" $CONFIGFILE || echo "ZM_DB_USER=" >> $CONFIGFILE
+    test -z $dbc_dbpass || grep -Eq "^ *ZM_DB_PASS=" $CONFIGFILE || echo "ZM_DB_PASS=" >> $CONFIGFILE
+
+    # Prevent ZM_DB_HOST to be empty if user selected the 'unix socket' method
+    if test -z $dbc_dbserver; then
+        dbc_dbserver_override="localhost"
+    else
+        dbc_dbserver_override=$dbc_dbserver
+    fi
+
+    # Update variables in config file
+    sed -e "s/^ *ZM_DB_HOST=.*/ZM_DB_HOST=$dbc_dbserver_override/" \
+        -e "s/^ *ZM_DB_NAME=.*/ZM_DB_NAME=$dbc_dbname/" \
+        -e "s/^ *ZM_DB_USER=.*/ZM_DB_USER=$dbc_dbuser/" \
+        -e "s/^ *ZM_DB_PASS=.*/ZM_DB_PASS=$dbc_dbpass/" \
+        < $CONFIGFILE > $CONFIGFILE.postinst.bak
+
+    # Clean-up backup file
+    mv -f $CONFIGFILE.postinst.bak $CONFIGFILE
+
+
+    # Set some file permissions
+    chown $ZM_WEB_USER:$ZM_WEB_GROUP /var/log/zm
+    chown $ZM_WEB_USER:$ZM_WEB_GROUP /var/lib/zm
+    if [ -z "$2" ]; then
+        chown $ZM_WEB_USER:$ZM_WEB_GROUP -R /var/cache/zoneminder
+    fi
+
+    # Configure the web server
+    db_get zoneminder/webserver
+    webservers="$RET"
+
+    for webserver in $webservers; do
+        webserver=${webserver%,}
+        # Currently we only support apache2
+        if [ "$webserver" = "apache2" ] ; then
+            apache_install
+        fi
+    done
+fi
 
 if [ "$1" = "configure" ]; then
-	if [ -e "/etc/init.d/mysql" ]; then 
-		#
-		# Get mysql started if it isn't
-		#
-		if ! $(/etc/init.d/mysql status >/dev/null 2>&1); then
-				invoke-rc.d mysql start
-		fi
-		if $(/etc/init.d/mysql status >/dev/null 2>&1); then
-			mysqladmin --defaults-file=/etc/mysql/debian.cnf -f reload
-			# test if database if already present...
-			if ! $(echo quit | mysql --defaults-file=/etc/mysql/debian.cnf zm > /dev/null 2> /dev/null) ; then
-				cat /usr/share/zoneminder/db/zm_create.sql | mysql --defaults-file=/etc/mysql/debian.cnf
-				echo 'grant lock tables, alter,select,insert,update,delete on zm.* to 'zmuser'@localhost identified by "zmpass";' | mysql --defaults-file=/etc/mysql/debian.cnf mysql
-			fi
 
-			deb-systemd-invoke stop zoneminder.service || true
-			zmupdate.pl --nointeractive
+    # Ensure zoneminder is stopped
+    deb-systemd-invoke stop zoneminder.service || exit $?
 
-		else
-			echo 'NOTE: mysql not running, please start mysql and run dpkg-reconfigure zoneminder when it is running.'
-		fi
-	else 
-		echo 'mysql not found, assuming remote server.'
-	fi
-	chown www-data:www-data /var/log/zm
-	chown www-data:www-data /var/lib/zm/
-	if [ -z "$2" ]; then
-			chown www-data:www-data -R /var/cache/zoneminder
-	fi
+    # Run the ZoneMinder update tool
+    zmupdate.pl
 fi
-# Ensure zoneminder is stopped...
-deb-systemd-invoke stop zoneminder.service || exit $?
-
-if [ "$1" = "configure" ]; then
-	if [ -z "$2" ]; then
-		chown www-data:www-data /var/log/zm
-		chown www-data:www-data /var/lib/zm/
-		chown www-data:www-data -R /var/cache/zoneminder
-	else
-		chown www-data:www-data /var/log/zm
-		zmupdate.pl
-	fi
-	apache_install $1
-	a2enmod cgi >/dev/null 2>&1
-	if [ -f /etc/init.d/apache2 ] ; then
-		invoke-rc.d apache2 reload 3>/dev/null || true
-	fi
-fi
-#DEBHELPER#

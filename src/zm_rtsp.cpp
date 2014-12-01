@@ -564,27 +564,32 @@ int RtspThread::run()
                 sscanf( trimSpaces( sessionLine[1] ).c_str(), "timeout=%d", &timeout );
             if ( timeout > 0 )
                 Debug( 2, "Got timeout %d secs from PLAY command response", timeout );
+        }
     }
 
     if ( rtpInfo.empty() )
-        Fatal( "Unable to get RTP Info identifier from response '%s'", response.c_str() );
-
-    Debug( 2, "Got RTP Info %s", rtpInfo.c_str() );
-
-    int seq = 0;
-    unsigned long rtpTime = 0;
-    parts = split( rtpInfo.c_str(), ";" );
-    for ( size_t i = 0; i < parts.size(); i++ )
     {
-        if ( startsWith( parts[i], "seq=" ) )
+        Debug( 1, "RTP Info Empty. Starting values for Sequence and Rtptime shall be zero.");
+    }
+    else
+    {
+        Debug( 2, "Got RTP Info %s", rtpInfo.c_str() );
+
+        int seq = 0;
+        unsigned long rtpTime = 0;
+        parts = split( rtpInfo.c_str(), ";" );
+        for ( size_t i = 0; i < parts.size(); i++ )
         {
-            StringVector subparts = split( parts[i], "=" );
-            seq = strtol( subparts[1].c_str(), NULL, 10 );
-        }
-        else if ( startsWith( parts[i], "rtptime=" ) )
-        {
-            StringVector subparts = split( parts[i], "=" );
-            rtpTime = strtol( subparts[1].c_str(), NULL, 10 );
+            if ( startsWith( parts[i], "seq=" ) )
+            {
+                StringVector subparts = split( parts[i], "=" );
+                seq = strtol( subparts[1].c_str(), NULL, 10 );
+            }
+            else if ( startsWith( parts[i], "rtptime=" ) )
+            {
+                StringVector subparts = split( parts[i], "=" );
+                rtpTime = strtol( subparts[1].c_str(), NULL, 10 );
+            }
         }
     }
 

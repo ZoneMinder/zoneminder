@@ -32,7 +32,7 @@ xhtmlHeaders(__FILE__, $SLANG['SystemLog'] );
 
 	<?php include("header.php"); ?>
 
-  <div class="container-fluid">
+  <div class="container-fluid" ng-controller="LogController">
 		<div class="row">
 
 
@@ -92,27 +92,27 @@ xhtmlHeaders(__FILE__, $SLANG['SystemLog'] );
         </table>
       </div>
 
+			<table class="table table-striped table-condensed">
+				<tr>
+					<th><?= $SLANG['DateTime'] ?></th>
+					<th><?= $SLANG['Component'] ?></th>
+					<th><?= $SLANG['Pid'] ?></th>
+					<th><?= $SLANG['Level'] ?></th>
+					<th><?= $SLANG['Message'] ?></th>
+					<th><?= $SLANG['File'] ?></th>
+					<th><?= $SLANG['Line'] ?></th>
+				</tr>
+				<tr ng-repeat="log in logs">
+					<td>{{ log.Log.TimeKey }}</td>
+					<td>{{ log.Log.Component }}</td>
+					<td>{{ log.Log.Pid }}</td>
+					<td>{{ log.Log.Level }}</td>
+					<td>{{ log.Log.Message }}</td>
+					<td>{{ log.Log.File }}</td>
+					<td>{{ log.Log.Line }}</td>
+				</tr>
+			</table>
 
-      <form name="logForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
-        <input type="hidden" name="view" value="<?= $view ?>"/>
-        <table class="table" id="logTable">
-          <thead>
-            <tr>
-              <th><?= $SLANG['DateTime'] ?></th>
-              <th class="table-th-nosort"><?= $SLANG['Component'] ?></th>
-              <th class="table-th-nosort"><?= $SLANG['Pid'] ?></th>
-              <th class="table-th-nosort"><?= $SLANG['Level'] ?></th>
-              <th class="table-th-nosort"><?= $SLANG['Message'] ?></th>
-              <th class="table-th-nosort"><?= $SLANG['File'] ?></th>
-              <th class="table-th-nosort"><?= $SLANG['Line'] ?></th>
-            </tr>
-          </thead>
-          <tbody>
-          </tbody>
-        </table>
-        <div id="contentButtons">
-        </div>
-      </form>
     </div>
   </div>
   <div id="exportLog" class="overlay">

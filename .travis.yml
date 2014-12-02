@@ -11,8 +11,8 @@ env:
   - DEB_BUILD_GNU_TYPE=$(dpkg-architecture -qDEB_BUILD_GNU_TYPE)
   - CFLAGS="-DZM_FFMPEG_CVS -DHAVE_LIBCRYPTO -I/usr/local/include"
   - CXXFLAGS="$CFLAGS"
-  - secure: g05/pifTl1sEV4sIYsXFUh1/j6Ntz1xGlApW2d2h+JRM3HqnS3Dpl3AJqfyrdO5WBmuu2jU/f0sKocqypuGD0TfrJjoLva4t8sd7owtiZMegB36czb8bUVh6LW4HEqYXmUNxeiq9hMHwH6YKzvT+72cY0U+pTgvdn8e6taV6R18=
-  - secure: QRHiG76IliclfB2Fkw4PffPXp/6pcm1iL/AFNSP6kNk+grErDgSMrTsnJlmt4FwvLo8EJxCQ/E1YKsOB7XPx4CzjYqXTHTPHOvXJlWx1MV6mo6nNaOos8J3EU8nAqXcciszsXQ8xpyZYQKgwLoKhUQF7JsSI8qExcI2VavT61Ys=
+  - secure: SxZuhYAnYpwMnitptHGkR6ioiXVaXggV7fNJNUD1pkcX+jfeMM3KxyLALTFp5d0nqxZxASXQRqbcuhjFO1osUednnNkWWBJaeZX+Ww97tnVj3tcqaJuDYEZrmkMuFwfiNWD1nkLl2B6hu79juaY74ch1pvO/B2juIakVw6kyQHc=
+  - secure: c5WUnTdlucNE+CVoeyzjVscG1uV1kM5f9FpYdxnBp95l4ilE7eWXQ1EbEUlInJpTqXMKBfsJzhiM1aGavV5yJ5D+1vKzDQ+Ec2KaO2tG0V9QB9Jt5abfll4UTdq7EIhAIYQOm3onNeRyxfbQPx2PWe2SMKE1f26n8bpUIhJz5xc=
 
   matrix:
   - ZM_BUILDMETHOD=cmake

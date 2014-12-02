@@ -308,7 +308,6 @@ int FfmpegCamera::OpenFfmpeg() {
 			mVideoStreamId = i;
 			break;
 		}
-    }
         if(mAudioStreamId == -1) //FIXME best way to copy all other streams?
         {
 #if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
@@ -442,7 +441,6 @@ int FfmpegCamera::FfmpegInterruptCallback(void *ctx)
             Error ( "Open video took more than %d seconds.", config.ffmpeg_open_timeout );
             return 1;
         }
-        av_free_packet( &packet );
     }
 
     return 0;

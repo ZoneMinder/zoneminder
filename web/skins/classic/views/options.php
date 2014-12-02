@@ -83,11 +83,20 @@ foreach ( $tabs as $name=>$value )
 <?php 
 if($tab == 'skins') {
 	$current_skin = $_COOKIE['zmSkin'];
-	if (isset($_GET['skin-choice'])) {
+	$reload = false;
+	if ( isset($_GET['skin-choice']) && ( $_GET['skin-choice'] != $current_skin ) ) {
 		setcookie('zmSkin',$_GET['skin-choice'], time()+3600*24*30*12*10 );
 		//header("Location: index.php?view=options&tab=skins&reset_parent=1");
-		echo "<script type=\"text/javascript\">window.opener.location.reload();window.location.href=\"{$_SERVER['PHP_SELF']}?view={$view}&tab={$tab}\"</script>";
+		$reload = true;
 	}
+	$current_css = $_COOKIE['zmCSS'];
+	if ( isset($_GET['css-choice']) and ( $_GET['css-choice'] != $current_css ) ) {
+		setcookie('zmCSS',$_GET['css-choice'], time()+3600*24*30*12*10 );
+		//header("Location: index.php?view=options&tab=skins&reset_parent=1");
+		$reload = true;
+	}
+	if ( $reload ) 
+		echo "<script type=\"text/javascript\">window.opener.location.reload();window.location.href=\"{$_SERVER['PHP_SELF']}?view={$view}&tab={$tab}\"</script>";
 
 ?>
 	<form name="optionsForm" method="get" action="<?= $_SERVER['PHP_SELF'] ?>">
@@ -96,17 +105,33 @@ if($tab == 'skins') {
 		<table class="contentTable major optionTable" cellspacing="0">
 			<thead><tr><th><?= $SLANG['Name'] ?></th><th><?= $SLANG['Description'] ?></th> <th><?= $SLANG['Value'] ?></th></tr></thead>
 			<tbody>
-			<td>ZM_SKIN</td>
-			<td><?php echo $SLANG['SkinDescription']; ?></td>
-			<td><select name="skin-choice">
-				<?php
-					foreach(glob('skins/*',GLOB_ONLYDIR) as $dir) {
-						$dir = basename($dir);
-						echo '<option value="'.$dir.'" '.($current_skin==$dir ? 'SELECTED' : '').'>'.$dir.'</option>';
-					}
-				?>
-				</select>
-			</td>
+				<tr>
+					<td>ZM_SKIN</td>
+					<td><?php echo $SLANG['SkinDescription']; ?></td>
+					<td><select name="skin-choice">
+						<?php
+							foreach(glob('skins/*',GLOB_ONLYDIR) as $dir) {
+								$dir = basename($dir);
+								echo '<option value="'.$dir.'" '.($current_skin==$dir ? 'SELECTED' : '').'>'.$dir.'</option>';
+							}
+						?>
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<td>ZM_CSS</td>
+					<td><?php echo $SLANG['CSSDescription']; ?></td>
+					<td><select name="css-choice">
+						<?php
+							foreach(glob('skins/'.$current_css.'/*',GLOB_ONLYDIR) as $dir) {
+								$dir = basename($dir);
+								echo '<option value="'.$dir.'" '.($current_css==$dir ? 'SELECTED' : '').'>'.$dir.'</option>';
+							}
+						?>
+						</select>
+					</td>
+				</tr>
+			</tbody>
 		</table>
         <div id="contentButtons">
           <input type="submit" value="<?= $SLANG['Save'] ?>"<?= $canEdit?'':' disabled="disabled"' ?>/>

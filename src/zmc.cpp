@@ -296,11 +296,14 @@ int main( int argc, char *argv[] )
 	{
 		delete monitors[i];
 	}
-    delete monitors;
+	delete [] monitors;
 	delete [] alarm_capture_delays;
 	delete [] capture_delays;
 	delete [] next_delays;
 	delete [] last_capture_times;
+
+	logTerm();
+	zmDbClose();
 
 	return( result );
 }

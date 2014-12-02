@@ -23,6 +23,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <string>
+#include <sstream>
 #include <vector>
 
 typedef std::vector<std::string> StringVector;
@@ -36,6 +37,7 @@ const std::string stringtf( const std::string &format, ... );
 
 bool startsWith( const std::string &haystack, const std::string &needle );
 StringVector split( const std::string &string, const std::string chars, int limit=0 );
+const std::string join( const StringVector, const char * );
 
 const std::string base64Encode( const std::string &inString );
 

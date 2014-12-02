@@ -4,6 +4,10 @@ notifications:
 branches:
   except:
     - modern
+addons:
+  sauce_connect:
+    username: "zoneminder"
+    access_key: "046ec7c1-c598-4e7e-949a-f86e725d1722"
 env:
   global:
     - LD_LIBRARY_PATH="/usr/local/lib:/opt/libjpeg-turbo/lib:$LD_LIBRARY_PATH"

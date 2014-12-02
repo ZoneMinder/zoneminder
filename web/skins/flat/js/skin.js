@@ -306,8 +306,5 @@ if ( focusWindow )
 {
     windowToFront();
 }
-<<<<<<< HEAD
-=======
 
->>>>>>> release-1.28
 window.addEvent( 'domready', checkSize);

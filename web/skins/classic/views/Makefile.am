@@ -1,7 +1,6 @@
 AUTOMAKE_OPTIONS = gnu
 
 SUBDIRS = \
-	css \
 	js
 
 webdir = @WEB_PREFIX@/skins/classic/views

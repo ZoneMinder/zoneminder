@@ -49,6 +49,16 @@ protected:
     AVFrame             *mRawFrame; 
     AVFrame             *mFrame;
     PixelFormat         imagePixFormat;
+
+    int OpenFfmpeg();
+    int ReopenFfmpeg();
+    int CloseFfmpeg();
+    static int FfmpegInterruptCallback(void *ctx);
+    static void* ReopenFfmpegThreadCallback(void *ctx);
+    bool mIsOpening;
+    bool mCanCapture;
+    int mOpenStart;
+    pthread_t mReopenThread;
 #endif // HAVE_LIBAVFORMAT
     
     bool                wasRecording;

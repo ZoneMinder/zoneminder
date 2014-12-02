@@ -10,7 +10,8 @@ switch ( $_REQUEST['task'] )
             logInit( array( 'id' => "web_js" ) );
 
             $string = $_POST['message'];
-            $file = preg_replace( '/\w+:\/\/\w+\//', '', $_POST['file'] );
+
+            $file = !empty($_POST['file']) ? preg_replace( '/\w+:\/\/\w+\//', '', $_POST['file'] ) : '';
             if ( !empty( $_POST['line'] ) )
                 $line = $_POST['line'];
             else

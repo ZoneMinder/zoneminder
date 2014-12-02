@@ -29,7 +29,6 @@ void zmLoadConfig()
 {
 	FILE *cfg;
 	char line[512];
-	char *val;
 	if ( (cfg = fopen( ZM_CONFIG, "r")) == NULL )
 	{
 		Fatal( "Can't open %s: %s", ZM_CONFIG, strerror(errno) );
@@ -82,19 +81,16 @@ void zmLoadConfig()
 		white_len = strspn( val_ptr, " \t" );
 		val_ptr += white_len;
 
-		val = (char *)malloc( strlen(val_ptr)+1 );
-		strncpy( val, val_ptr, strlen(val_ptr)+1 );
-
 		if ( strcasecmp( name_ptr, "ZM_DB_HOST" ) == 0 )
-            staticConfig.DB_HOST = val;
+            staticConfig.DB_HOST = std::string(val_ptr);
 		else if ( strcasecmp( name_ptr, "ZM_DB_NAME" ) == 0 )
-            staticConfig.DB_NAME = val;
+            staticConfig.DB_NAME = std::string(val_ptr);
 		else if ( strcasecmp( name_ptr, "ZM_DB_USER" ) == 0 )
-            staticConfig.DB_USER = val;
+            staticConfig.DB_USER = std::string(val_ptr);
 		else if ( strcasecmp( name_ptr, "ZM_DB_PASS" ) == 0 )
-            staticConfig.DB_PASS = val;
+            staticConfig.DB_PASS = std::string(val_ptr);
 		else if ( strcasecmp( name_ptr, "ZM_PATH_WEB" ) == 0 )
-            staticConfig.PATH_WEB = val;
+            staticConfig.PATH_WEB = std::string(val_ptr);
 		else
 		{
 			// We ignore this now as there may be more parameters than the

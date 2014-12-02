@@ -63,7 +63,15 @@ void RemoteCamera::Initialise()
         auth = host.substr( 0, authIndex );
         host.erase( 0, authIndex+1 );
 		auth64 = base64Encode( auth );
+
+		authIndex = auth.rfind( ':' );
+		username = auth.substr(0,authIndex);
+		password = auth.substr( authIndex+1, auth.length() );
+
 	}
+
+    mNeedAuth = false;
+	mAuthenticator = new Authenticator(username,password);
 
 	struct addrinfo hints;
 	memset(&hints, 0, sizeof(hints));

@@ -57,8 +57,10 @@ function logReport( level, message, file, line )
     requestParms += "&level="+level+"&message="+encodeURIComponent(message);
     if ( file )
         requestParms += "&file="+file;
-    else
+    else if ( location.search ) {
+		//location.search is the querystring part, so ?blah=blah but there is almost never any value to this
         requestParms += "&file="+location.search;
+	}
     if ( line )
         requestParms += "&line="+line;
     debugReq.send( requestParms );

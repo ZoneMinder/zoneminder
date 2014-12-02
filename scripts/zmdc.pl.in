@@ -49,7 +49,7 @@ use ZoneMinder;
 use POSIX;
 use Socket;
 use IO::Handle;
-use Data::Dumper;
+#use Data::Dumper;
 
 use constant SOCK_FILE => $Config{ZM_PATH_SOCKS}.'/zmdc.sock';
 
@@ -214,7 +214,7 @@ use ZoneMinder;
 use POSIX;
 use Socket;
 use IO::Handle;
-use Data::Dumper;
+#use Data::Dumper;
 
 our %cmd_hash;
 our %pid_hash;

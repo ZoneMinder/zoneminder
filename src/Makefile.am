@@ -60,6 +60,7 @@ zm_SOURCES = \
 	zm_timer.cpp \
 	zm_user.cpp \
 	zm_utils.cpp \
+	zm_video.cpp \
 	zm_videostore.cpp \
 	zm_zone.cpp
 
@@ -117,6 +118,7 @@ noinst_HEADERS = \
 	zm_timer.h \
 	zm_user.h \
 	zm_utils.h \
+	zm_video.h \
 	zm_videostore.h \
 	zm_zone.h
 

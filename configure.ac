@@ -326,6 +326,7 @@ fi
 AC_CHECK_LIB(pcre,pcre_compile,,AC_MSG_WARN(libpcre.a may be required for remote/network camera support))
 AC_CHECK_LIB(z,zlibVersion)
 AC_CHECK_LIB(x264,x264_predict_16x16_init)
+AC_CHECK_LIB(mp4v2,MP4AddH264VideoTrack)
 AC_CHECK_LIB(avutil,av_malloc,,AC_MSG_WARN(libavutil.a may be required for MPEG streaming))
 # Don't bother to warn about this one
 AC_CHECK_LIB(avcore,av_image_copy,,)
@@ -375,6 +376,8 @@ AC_CHECK_HEADERS(sys/ipc.h,,,)
 AC_CHECK_HEADERS(sys/shm.h,,,)
 fi
 AC_CHECK_HEADERS(zlib.h,,,)
+AC_CHECK_HEADERS(x264.h,,,)
+AC_CHECK_HEADERS([mp4v2/mp4v2.h mp4v2.h mp4.h],,,)
 AC_CHECK_HEADERS(vlc/vlc.h,,,)
 AC_CHECK_HEADERS(curl/curl.h,,,)
 

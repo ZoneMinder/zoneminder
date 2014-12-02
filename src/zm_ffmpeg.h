@@ -99,6 +99,8 @@ extern "C" {
 #define SWS_CPU_CAPS_SSE2     0x02000000
 #endif
 
+/* A single function to initialize ffmpeg, to avoid multiple initializations */
+void FFMPEGInit();
 
 #if HAVE_LIBAVUTIL
 enum PixelFormat GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subpixelorder);

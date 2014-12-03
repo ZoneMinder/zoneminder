@@ -145,7 +145,7 @@ if [ "$1" = configure ] || [ "$1" = reconfigure ]; then
         webserver=${webserver%,}
         # Currently we only support apache2
         if [ "$webserver" = "apache2" ] ; then
-            apache_install
+            apache_install $1
         fi
     done
 fi

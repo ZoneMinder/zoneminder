@@ -102,7 +102,7 @@ override_dh_install:
 	  debian/zoneminder/usr/share/dbconfig-common/data/zoneminder/install/mysql
 	#
 	# Install sql update files for dbconfig
-	for sqlfile in db/*; do \
+	for sqlfile in db/zm_update-*.sql; do \
 	  lnk=`echo $$sqlfile | sed "s/^db\/zm_update-\(.*\)\.sql/\1/"`; \
 	  dh_link usr/share/zoneminder/$$sqlfile \
 	    usr/share/dbconfig-common/data/zoneminder/upgrade/mysql/$$lnk; \

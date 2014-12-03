@@ -23,6 +23,16 @@
 
 #if HAVE_LIBAVCODEC || HAVE_LIBAVUTIL || HAVE_LIBSWSCALE
 
+void FFMPEGInit() {
+	static bool bInit = false;
+
+	if(!bInit) {
+		av_register_all();
+		av_log_set_level(AV_LOG_DEBUG);
+		bInit = true;
+	}
+}
+
 #if HAVE_LIBAVUTIL
 enum PixelFormat GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subpixelorder) {
 	enum PixelFormat pf;
@@ -124,10 +134,7 @@ int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint
 		Error("NULL Input or output buffer");
 		return -1;
 	}
-	if(in_pf == 0 || out_pf == 0) {
-		Error("Invalid input or output pixel formats");
-		return -2;
-	}
+
 	if(!width || !height) {
 		Error("Invalid width or height");
 		return -3;
@@ -156,7 +163,7 @@ int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint
 	}
 
 	/* Get the context */
-	swscale_ctx = sws_getCachedContext( NULL, width, height, in_pf, width, height, out_pf, 0, NULL, NULL, NULL );
+	swscale_ctx = sws_getCachedContext( swscale_ctx, width, height, in_pf, width, height, out_pf, SWS_FAST_BILINEAR, NULL, NULL, NULL );
 	if(swscale_ctx == NULL) {
 		Error("Failed getting swscale context");
 		return -6;

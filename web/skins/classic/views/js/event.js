@@ -12,7 +12,13 @@ function changeScale()
     var newWidth = ( baseWidth * scale ) / SCALE_BASE;
     var newHeight = ( baseHeight * scale ) / SCALE_BASE;
 
-    streamScale( scale );
+	if(streamMode == 'video') {
+		var videoid = document.getElementById('videoobj');
+		
+		videoid.style.width = newWidth + "px";
+		videoid.style.height = newHeight + "px";
+	} else {
+		streamScale( scale );
 
     /*Stream could be an applet so can't use moo tools*/ 
     
@@ -217,15 +223,35 @@ function streamFastRev( action )
 function streamPrev( action )
 {
     streamPlay( false );
-    if ( action )
-        streamReq.send( streamParms+"&command="+CMD_PREV );
+	if(streamMode == 'video') {
+		var videoid = document.getElementById('videoobj');
+		videoobj.src = PrevEventDefVideoPath;
+		videoobj.load();
+		updatedownloadlink();
+	} else {
+		if ( action )
+			streamReq.send( streamParms+"&command="+CMD_PREV );
+	}
 }
 
 function streamNext( action )
 {
     streamPlay( false );
-    if ( action )
-        streamReq.send( streamParms+"&command="+CMD_NEXT );
+	if(streamMode == 'video') {
+		var videoid = document.getElementById('videoobj');
+		videoobj.src = NextEventDefVideoPath;
+		videoobj.load();
+		updatedownloadlink();
+	} else {
+		if ( action )
+			streamReq.send( streamParms+"&command="+CMD_NEXT );
+	}
+}
+
+function updatedownloadlink() {
+	var videoid = document.getElementById('videoobj');
+	var link = document.getElementById('downloadlink');
+	link.href = videoid.currentSrc;
 }
 
 function streamZoomIn( x, y )
@@ -316,6 +342,8 @@ function eventQuery( eventId )
 
 var prevEventId = 0;
 var nextEventId = 0;
+var PrevEventDefVideoPath = "";
+var NextEventDefVideoPath = "";
 
 function getNearEventsResponse( respObj, respText )
 {
@@ -323,6 +351,8 @@ function getNearEventsResponse( respObj, respText )
         return;
     prevEventId = respObj.nearevents.PrevEventId;
     nextEventId = respObj.nearevents.NextEventId;
+    PrevEventDefVideoPath = respObj.nearevents.PrevEventDefVideoPath;
+    NextEventDefVideoPath = respObj.nearevents.NextEventDefVideoPath;
 
     $('prevEventBtn').disabled = !prevEventId;
     $('nextEventBtn').disabled = !nextEventId;
@@ -691,18 +721,42 @@ function showStream()
 {
     $('eventStills').addClass( 'hidden' );
     $('eventStream').removeClass( 'hidden' );
+    $('eventVideo').addClass( 'hidden' );
+    
     $('streamEvent').addClass( 'hidden' );
     $('stillsEvent').removeClass( 'hidden' );
+    $('videoEvent').removeClass( 'hidden' );
+    
+    streamMode = 'stream';
+}
 
-    //$(window).removeEvent( 'resize', updateStillsSizes );
+function showVideo()
+{
+    $('eventStills').addClass( 'hidden' );
+    $('eventStream').addClass( 'hidden' );
+    $('eventVideo').removeClass( 'hidden' );
+    
+    $('streamEvent').removeClass( 'hidden' );
+    $('stillsEvent').removeClass( 'hidden' );
+    $('videoEvent').addClass( 'hidden' );
+    
+    streamMode = 'video';
+    
+    var videoid = document.getElementById('videoobj');
 }
 
 function showStills()
 {
-    $('eventStream').addClass( 'hidden' );
     $('eventStills').removeClass( 'hidden' );
-    $('stillsEvent').addClass( 'hidden' );
+    $('eventStream').addClass( 'hidden' );
+    $('eventVideo').addClass( 'hidden' );		
+	
     $('streamEvent').removeClass( 'hidden' );
+    $('stillsEvent').addClass( 'hidden' );
+    $('videoEvent').removeClass( 'hidden' );
+	
+    streamMode = 'stills';
+	
     streamPause( true );
     if ( !scroll )
     {
@@ -819,13 +873,12 @@ function initPage()
         streamCmdTimer = streamQuery.delay( 250 );
         eventQuery.pass( eventData.Id ).delay( 500 );
 
-        if ( canStreamNative )
-        {
-            var streamImg = $('imageFeed').getElement('img');
-            if ( !streamImg )
-                streamImg = $('imageFeed').getElement('object');
-            $(streamImg).addEvent( 'click', function( event ) { handleClick( event ); } );
-        }
+    if ( canStreamNative )
+    {
+        var streamImg = $('imageFeed').getElement('img');
+        if ( !streamImg )
+            streamImg = $('imageFeed').getElement('object');
+        $(streamImg).addEvent( 'click', function( event ) { handleClick( event ); } );
     }
 }
 

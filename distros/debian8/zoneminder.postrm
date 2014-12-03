@@ -1,6 +1,6 @@
 #! /bin/sh
 
-set -e
+set -x
 
 apache_remove() {
     COMMON_STATE=$(dpkg-query -f '${Status}' -W 'apache2.2-common' 2>/dev/null | awk '{print $3}' || true)
@@ -11,22 +11,16 @@ apache_remove() {
         rm -f /etc/apache2/conf.d/zoneminder.conf
     fi
     rm -f /etc/apache2/conf-available/zoneminder.conf
+    # Reload the web server
+    deb-systemd-invoke reload apache2.service || true
 }
 
 if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
+    # Deconfigure the web server
     apache_remove $1
-    if [ -f /etc/init.d/apache2 ] ; then
-        invoke-rc.d apache2 reload 3>/dev/null || true
-    fi
+    # No need to manually remove the zm database and user, dbconfig take care of this
 fi
 
-if [ "$1" = "purge" ]; then
-    if [ -e "/etc/init.d/mysql" ]; then
-        echo 'delete from user where User="zmuser";' | mysql --defaults-file=/etc/mysql/debian.cnf mysql
-        echo 'delete from db where User="zmuser";' | mysql --defaults-file=/etc/mysql/debian.cnf mysql
-        mysqladmin --defaults-file=/etc/mysql/debian.cnf -f drop zm
-    else
-        echo 'mysql not found, assuming remote server.'
-    fi
-fi
 #DEBHELPER#
+
+exit 0

@@ -158,3 +158,7 @@ if [ "$1" = "configure" ]; then
     # Run the ZoneMinder update tool
     zmupdate.pl
 fi
+
+#DEBHELPER#
+
+exit 0

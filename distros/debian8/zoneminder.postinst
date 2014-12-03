@@ -44,7 +44,7 @@ mysql_install_admin() {
 
 # Exit if user didn't want to use debconf
 db_get zoneminder/debconf_install
-if [ "$RET" = false ]; then
+if [ "$RET" = "false" ]; then
     exit 0;
 fi
 
@@ -56,10 +56,10 @@ else
     exit 1
 fi
 
-if [ "$ZM_DB_TYPE" = mysql ]; then
+if [ "$ZM_DB_TYPE" = "mysql" ]; then
     if [ ! -e "/usr/sbin/mysqld" ]; then
         db_get zoneminder/debconf_dbremote
-        if [ "$RET" = false ]; then
+        if [ "$RET" = "false" ]; then
             # Exit silently if the user forgot to install the database server
             exit 0
         fi
@@ -81,7 +81,7 @@ if [ -f /usr/share/dbconfig-common/dpkg/postinst ]; then
     . /usr/share/dbconfig-common/dpkg/postinst
 fi
 
-if [ "$1" = configure ] || [ "$1" = reconfigure ]; then
+if [ "$1" = "configure" ] || [ "$1" = "reconfigure" ]; then
 
     # Create the underlying database and populate it
     # dbconfig will take care of applying any updates which are newer than the

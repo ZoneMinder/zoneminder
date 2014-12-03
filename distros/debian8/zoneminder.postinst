@@ -1,9 +1,12 @@
 #! /bin/sh
 # postinst maintainer script for zoneminder
 
-CONFIGFILE=/etc/zm/zm.conf
+set -x
 
-set -e
+# Source the debconf stuff
+. /usr/share/debconf/confmodule
+
+CONFIGFILE=/etc/zm/zm.conf
 
 old_version=$2
 
@@ -38,9 +41,6 @@ mysql_install_admin() {
     md5_password="`echo -n $ADMIN_PASSWORD | md5sum | sed -e 's/ *-$//'`"
     dbc_mysql_exec_command "INSERT INTO Users (id, username, password) VALUES (1, '$ADMIN_LOGIN', '$md5_password');" || true
 }
-
-# Source the debconf stuff
-. /usr/share/debconf/confmodule
 
 # Exit if user didn't want to use debconf
 db_get zoneminder/debconf_install

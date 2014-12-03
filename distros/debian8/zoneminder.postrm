@@ -16,9 +16,31 @@ apache_remove() {
 }
 
 if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
+
     # Deconfigure the web server
-    apache_remove $1
+    db_get zoneminder/webserver
+
+    webservers="$RET"
+    for webserver in $webservers; do
+        webserver=${webserver%,}
+        # Currently we only support apache2
+        if [ "$webserver" = "apache2" ] ; then
+            apache_remove $1
+        fi
+    done
+
     # No need to manually remove the zm database and user, dbconfig take care of this
+fi
+
+if [ "$1" = "purge" ]; then
+    if [ -e /usr/share/debconf/confmodule ]; then
+        # Source the debconf stuff
+        . /usr/share/debconf/confmodule
+        # Remove all package records in the debconf database
+        db_purge
+    fi
+    # Delete a potential remaining file not managed by debhelper
+    rm -f /etc/zm/zm.conf.postinst.bak
 fi
 
 #DEBHELPER#

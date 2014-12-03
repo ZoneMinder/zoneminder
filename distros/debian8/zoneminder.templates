@@ -21,18 +21,19 @@ Template: zoneminder/debconf_dbremote
 Type: boolean
 Default: true
 Description: Do you want to use a remote database server?
- A MySQL database server is required to run ZoneMinder.
+ A database server is required to run ZoneMinder.
  .
  The database server can be installed either locally on this machine or remotely
  on a machine of your local network.
  .
- The database server seems to not be installed on this machine.
+ Currently ZoneMinder supports MySQL server or MariaDB server but none of them
+ appears to be installed on this machine.
  .
  If this is intentional and you want to use a remote database, please choose Yes.
  The program will continue and you will have to select the TCP/IP connection
  method when asked.
  .
- If you want to install the database server on this machine, please choose No.
+ If you want to install the database server on this machine, please choose 'No'.
  The program will abort so you can install the database and then come back to this
  program by invoking 'sudo dpkg-reconfigure zoneminder' on the command line.
 

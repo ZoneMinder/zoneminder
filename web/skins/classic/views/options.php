@@ -112,7 +112,7 @@ if($tab == 'skins') {
 						<?php
 							foreach(glob('skins/*',GLOB_ONLYDIR) as $dir) {
 								$dir = basename($dir);
-								echo '<option value="'.$dir.'" '.($current_skin==$dir ? 'SELECTED' : '').'>'.$dir.'</option>';
+								echo '<option value="'.$dir.'" '.($current_skin==$dir ? 'SELECTED="SELECTED"' : '').'>'.$dir.'</option>';
 							}
 						?>
 						</select>
@@ -123,9 +123,9 @@ if($tab == 'skins') {
 					<td><?php echo $SLANG['CSSDescription']; ?></td>
 					<td><select name="css-choice">
 						<?php
-							foreach(glob('skins/'.$current_css.'/*',GLOB_ONLYDIR) as $dir) {
+							foreach(glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDIR) as $dir) {
 								$dir = basename($dir);
-								echo '<option value="'.$dir.'" '.($current_css==$dir ? 'SELECTED' : '').'>'.$dir.'</option>';
+								echo '<option value="'.$dir.'" '.($current_css==$dir ? 'SELECTED="SELECTED"' : '').'>'.$dir.'</option>';
 							}
 						?>
 						</select>

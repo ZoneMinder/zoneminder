@@ -140,17 +140,17 @@ function controlFocus( $monitor, $cmds )
     ob_start();
 ?>
 <div class="arrowControl focusControls">
-  <div class="arrowLabel"><?= $SLANG['Near'] ?></div>
-  <div class="longArrowBtn upBtn" onclick="controlCmd('<?= $cmds['FocusNear'] ?>',event,0,-1)"></div>
-  <div class="arrowCenter"<?php if ( $monitor['CanFocusCon'] ) { ?> onclick="controlCmd('<?= $cmds['FocusStop'] ?>')"<?php } ?>><?= $SLANG['Focus'] ?></div>
-  <div class="longArrowBtn downBtn" onclick="controlCmd('<?= $cmds['FocusFar'] ?>',event,0,1)"></div>
-  <div class="arrowLabel"><?= $SLANG['Far'] ?></div>
+  <div class="arrowLabel"><?php echo $SLANG['Near'] ?></div>
+  <div class="longArrowBtn upBtn" onclick="controlCmd('<?php echo $cmds['FocusNear'] ?>',event,0,-1)"></div>
+  <div class="arrowCenter"<?php if ( $monitor['CanFocusCon'] ) { ?> onclick="controlCmd('<?php echo $cmds['FocusStop'] ?>')"<?php } ?>><?php echo $SLANG['Focus'] ?></div>
+  <div class="longArrowBtn downBtn" onclick="controlCmd('<?php echo $cmds['FocusFar'] ?>',event,0,1)"></div>
+  <div class="arrowLabel"><?php echo $SLANG['Far'] ?></div>
 <?php
     if ( $monitor['CanAutoFocus'] )
     {
 ?>
-  <input type="button" class="ptzTextBtn" value="<?= $SLANG['Auto'] ?>" onclick="controlCmd('<?= $cmds['FocusAuto'] ?>')"/>
-  <input type="button" class="ptzTextBtn" value="<?= $SLANG['Man'] ?>" onclick="controlCmd('<?= $cmds['FocusMan'] ?>')"/>
+  <input type="button" class="ptzTextBtn" value="<?php echo $SLANG['Auto'] ?>" onclick="controlCmd('<?php echo $cmds['FocusAuto'] ?>')"/>
+  <input type="button" class="ptzTextBtn" value="<?php echo $SLANG['Man'] ?>" onclick="controlCmd('<?php echo $cmds['FocusMan'] ?>')"/>
 <?php
     }
 ?>
@@ -166,17 +166,17 @@ function controlZoom( $monitor, $cmds )
     ob_start();
 ?>
 <div class="arrowControl zoomControls">
-  <div class="arrowLabel"><?= $SLANG['Tele'] ?></div>
-  <div class="longArrowBtn upBtn" onclick="controlCmd('<?= $cmds['ZoomTele'] ?>',event,0,-1)"></div>
-  <div class="arrowCenter"<?php if ( $monitor['CanZoomCon'] ) { ?> onclick="controlCmd('<?= $cmds['ZoomStop'] ?>')"<?php } ?>><?= $SLANG['Zoom'] ?></div>
-  <div class="longArrowBtn downBtn" onclick="controlCmd('<?= $cmds['ZoomWide'] ?>',event,0,1)"></div>
-  <div class="arrowLabel"><?= $SLANG['Wide'] ?></div>
+  <div class="arrowLabel"><?php echo $SLANG['Tele'] ?></div>
+  <div class="longArrowBtn upBtn" onclick="controlCmd('<?php echo $cmds['ZoomTele'] ?>',event,0,-1)"></div>
+  <div class="arrowCenter"<?php if ( $monitor['CanZoomCon'] ) { ?> onclick="controlCmd('<?php echo $cmds['ZoomStop'] ?>')"<?php } ?>><?php echo $SLANG['Zoom'] ?></div>
+  <div class="longArrowBtn downBtn" onclick="controlCmd('<?php echo $cmds['ZoomWide'] ?>',event,0,1)"></div>
+  <div class="arrowLabel"><?php echo $SLANG['Wide'] ?></div>
 <?php
     if ( $monitor['CanAutoZoom'] )
     {
 ?>
-  <input type="button" class="ptzTextBtn" value="<?= $SLANG['Auto'] ?>" onclick="controlCmd('<?= $cmds['ZoomAuto'] ?>')"/>
-  <input type="button" class="ptzTextBtn" value="<?= $SLANG['Man'] ?>" onclick="controlCmd('<?= $cmds['ZoomMan'] ?>')"/>
+  <input type="button" class="ptzTextBtn" value="<?php echo $SLANG['Auto'] ?>" onclick="controlCmd('<?php echo $cmds['ZoomAuto'] ?>')"/>
+  <input type="button" class="ptzTextBtn" value="<?php echo $SLANG['Man'] ?>" onclick="controlCmd('<?php echo $cmds['ZoomMan'] ?>')"/>
 <?php
     }
 ?>
@@ -191,17 +191,17 @@ function controlIris( $monitor, $cmds )
     ob_start();
 ?>
 <div class="arrowControl irisControls">
-  <div class="arrowLabel"><?= $SLANG['Open'] ?></div>
-  <div class="longArrowBtn upBtn" onclick="controlCmd('<?= $cmds['IrisOpen'] ?>',event,0,-1)"></div>
-  <div class="arrowCenter"<?php if ( $monitor['CanIrisCon'] ) { ?> onclick="controlCmd('<?= $cmds['IrisStop'] ?>')"<?php } ?>><?= $SLANG['Iris'] ?></div>
-  <div class="longArrowBtn downBtn" onclick="controlCmd('<?= $cmds['IrisClose'] ?>',event,0,1)"></div>
-  <div class="arrowLabel"><?= $SLANG['Close'] ?></div>
+  <div class="arrowLabel"><?php echo $SLANG['Open'] ?></div>
+  <div class="longArrowBtn upBtn" onclick="controlCmd('<?php echo $cmds['IrisOpen'] ?>',event,0,-1)"></div>
+  <div class="arrowCenter"<?php if ( $monitor['CanIrisCon'] ) { ?> onclick="controlCmd('<?php echo $cmds['IrisStop'] ?>')"<?php } ?>><?php echo $SLANG['Iris'] ?></div>
+  <div class="longArrowBtn downBtn" onclick="controlCmd('<?php echo $cmds['IrisClose'] ?>',event,0,1)"></div>
+  <div class="arrowLabel"><?php echo $SLANG['Close'] ?></div>
 <?php
     if ( $monitor['CanAutoIris'] )
     {
 ?>
-  <input type="button" class="ptzTextBtn" value="<?= $SLANG['Auto'] ?>" onclick="controlCmd('<?= $cmds['IrisAuto'] ?>')"/>
-  <input type="button" class="ptzTextBtn" value="<?= $SLANG['Man'] ?>" onclick="controlCmd('<?= $cmds['IrisMan'] ?>')"/>
+  <input type="button" class="ptzTextBtn" value="<?php echo $SLANG['Auto'] ?>" onclick="controlCmd('<?php echo $cmds['IrisAuto'] ?>')"/>
+  <input type="button" class="ptzTextBtn" value="<?php echo $SLANG['Man'] ?>" onclick="controlCmd('<?php echo $cmds['IrisMan'] ?>')"/>
 <?php
     }
 ?>
@@ -217,17 +217,17 @@ function controlWhite( $monitor, $cmds )
     ob_start();
 ?>
 <div class="arrowControl whiteControls">
-  <div class="arrowLabel"><?= $SLANG['In'] ?></div>
-  <div class="longArrowBtn upBtn" onclick="controlCmd('<?= $cmds['WhiteIn'] ?>',event,0,-1)"></div>
-  <div class="arrowCenter"<?php if ( $monitor['CanWhiteCon'] ) { ?> onclick="controlCmd('<?= $cmds['WhiteStop'] ?>')"<?php } ?>><?= $SLANG['White'] ?></div>
-  <div class="longArrowBtn downBtn" onclick="controlCmd('<?= $cmds['WhiteOut'] ?>',event,0,1)"></div>
-  <div class="arrowLabel"><?= $SLANG['Out'] ?></div>
+  <div class="arrowLabel"><?php echo $SLANG['In'] ?></div>
+  <div class="longArrowBtn upBtn" onclick="controlCmd('<?php echo $cmds['WhiteIn'] ?>',event,0,-1)"></div>
+  <div class="arrowCenter"<?php if ( $monitor['CanWhiteCon'] ) { ?> onclick="controlCmd('<?php echo $cmds['WhiteStop'] ?>')"<?php } ?>><?php echo $SLANG['White'] ?></div>
+  <div class="longArrowBtn downBtn" onclick="controlCmd('<?php echo $cmds['WhiteOut'] ?>',event,0,1)"></div>
+  <div class="arrowLabel"><?php echo $SLANG['Out'] ?></div>
 <?php
     if ( $monitor['CanAutoWhite'] )
     {
 ?>
-  <input type="button" class="ptzTextBtn" value="<?= $SLANG['Auto'] ?>" onclick="controlCmd('<?= $cmds['WhiteAuto'] ?>')"/>
-  <input type="button" class="ptzTextBtn" value="<?= $SLANG['Man'] ?>" onclick="controlCmd('<?= $cmds['WhiteMan'] ?>')"/>
+  <input type="button" class="ptzTextBtn" value="<?php echo $SLANG['Auto'] ?>" onclick="controlCmd('<?php echo $cmds['WhiteAuto'] ?>')"/>
+  <input type="button" class="ptzTextBtn" value="<?php echo $SLANG['Man'] ?>" onclick="controlCmd('<?php echo $cmds['WhiteMan'] ?>')"/>
 <?php
     }
 ?>
@@ -243,22 +243,22 @@ function controlPanTilt( $monitor, $cmds )
     ob_start();
 ?>
 <div class="pantiltControls">
-  <div class="pantilLabel"><?= $SLANG['PanTilt'] ?></div>
+  <div class="pantilLabel"><?php echo $SLANG['PanTilt'] ?></div>
   <div class="pantiltButtons">
 <?php
     $hasPan = $monitor['CanPan'];
     $hasTilt = $monitor['CanTilt'];
     $hasDiag = $hasPan && $hasTilt && $monitor['CanMoveDiag'];
 ?>
-      <div class="arrowBtn upLeftBtn<?= $hasDiag?'':' invisible' ?>" onclick="controlCmd('<?= $cmds['MoveUpLeft'] ?>',event,-1,-1)"></div>
-      <div class="arrowBtn upBtn<?= $hasTilt?'':' invisible' ?>" onclick="controlCmd('<?= $cmds['MoveUp'] ?>',event,0,-1)"></div>
-      <div class="arrowBtn upRightBtn<?= $hasDiag?'':' invisible' ?>" onclick="controlCmd('<?= $cmds['MoveUpRight'] ?>',event,1,-1)"></div>
-      <div class="arrowBtn leftBtn<?= $hasPan?'':' invisible' ?>" onclick="controlCmd('<?= $cmds['MoveLeft'] ?>',event,1,0)"></div>
-      <div class="arrowBtn centerBtn" onclick="controlCmd('<?= $cmds['Center'] ?>')"></div>
-      <div class="arrowBtn rightBtn<?= $hasPan?'':' invisible' ?>" onclick="controlCmd('<?= $cmds['MoveRight'] ?>',event,1,0)"></div>
-      <div class="arrowBtn downLeftBtn<?= $hasDiag?'':' invisible' ?>" onclick="controlCmd('<?= $cmds['MoveDownLeft'] ?>',event,-1,1)"></div>
-      <div class="arrowBtn downBtn<?= $hasTilt?'':' invisible' ?>" onclick="controlCmd('<?= $cmds['MoveDown'] ?>',event,0,1)"></div>
-      <div class="arrowBtn downRightBtn<?= $hasDiag?'':' invisible' ?>" onclick="controlCmd('<?= $cmds['MoveDownRight'] ?>',event,1,1)"></div>
+      <div class="arrowBtn upLeftBtn<?php echo $hasDiag?'':' invisible' ?>" onclick="controlCmd('<?php echo $cmds['MoveUpLeft'] ?>',event,-1,-1)"></div>
+      <div class="arrowBtn upBtn<?php echo $hasTilt?'':' invisible' ?>" onclick="controlCmd('<?php echo $cmds['MoveUp'] ?>',event,0,-1)"></div>
+      <div class="arrowBtn upRightBtn<?php echo $hasDiag?'':' invisible' ?>" onclick="controlCmd('<?php echo $cmds['MoveUpRight'] ?>',event,1,-1)"></div>
+      <div class="arrowBtn leftBtn<?php echo $hasPan?'':' invisible' ?>" onclick="controlCmd('<?php echo $cmds['MoveLeft'] ?>',event,1,0)"></div>
+      <div class="arrowBtn centerBtn" onclick="controlCmd('<?php echo $cmds['Center'] ?>')"></div>
+      <div class="arrowBtn rightBtn<?php echo $hasPan?'':' invisible' ?>" onclick="controlCmd('<?php echo $cmds['MoveRight'] ?>',event,1,0)"></div>
+      <div class="arrowBtn downLeftBtn<?php echo $hasDiag?'':' invisible' ?>" onclick="controlCmd('<?php echo $cmds['MoveDownLeft'] ?>',event,-1,1)"></div>
+      <div class="arrowBtn downBtn<?php echo $hasTilt?'':' invisible' ?>" onclick="controlCmd('<?php echo $cmds['MoveDown'] ?>',event,0,1)"></div>
+      <div class="arrowBtn downRightBtn<?php echo $hasDiag?'':' invisible' ?>" onclick="controlCmd('<?php echo $cmds['MoveDownRight'] ?>',event,1,1)"></div>
   </div>
 </div>
 <?php
@@ -283,12 +283,12 @@ function controlPresets( $monitor, $cmds )
     ob_start();
 ?>
 <div class="presetControls">
-  <!--<div><?= $SLANG['Presets'] ?></div>-->
+  <!--<div><?php echo $SLANG['Presets'] ?></div>-->
   <div>
 <?php
     for ( $i = 1; $i <= $monitor['NumPresets']; $i++ )
     {
-?><input type="button" class="ptzNumBtn" title="<?= isset($labels[$i])?$labels[$i]:"" ?>" value="<?= $i ?>" onclick="controlCmd('<?= $cmds['PresetGoto'] ?><?= $i ?>');"/><?php
+?><input type="button" class="ptzNumBtn" title="<?php echo isset($labels[$i])?$labels[$i]:"" ?>" value="<?php echo $i ?>" onclick="controlCmd('<?php echo $cmds['PresetGoto'] ?><?php echo $i ?>');"/><?php
         if ( $i && (($i%$presetBreak) == 0) )
         {
 ?><br/><?php
@@ -301,13 +301,13 @@ function controlPresets( $monitor, $cmds )
     if ( $monitor['HasHomePreset'] )
     {
 ?>
-    <input type="button" class="ptzTextBtn" value="<?= $SLANG['Home'] ?>" onclick="controlCmd('<?= $cmds['PresetHome'] ?>');"/>
+    <input type="button" class="ptzTextBtn" value="<?php echo $SLANG['Home'] ?>" onclick="controlCmd('<?php echo $cmds['PresetHome'] ?>');"/>
 <?php
     }
     if ( canEdit( 'Monitors') && $monitor['CanSetPresets'] )
     {
 ?>
-    <input type="button" class="ptzTextBtn" value="<?= $SLANG['Set'] ?>" onclick="createPopup( '?view=controlpreset&amp;mid=<?= $monitor['Id'] ?>', 'zmPreset', 'preset' );"/>
+    <input type="button" class="ptzTextBtn" value="<?php echo $SLANG['Set'] ?>" onclick="createPopup( '?view=controlpreset&amp;mid=<?php echo $monitor['Id'] ?>', 'zmPreset', 'preset' );"/>
 <?php
     }
 ?>
@@ -324,25 +324,25 @@ function controlPower( $monitor, $cmds )
     ob_start();
 ?>
 <div class="powerControls">
-  <div class="powerLabel"><?= $SLANG['Control'] ?></div>
+  <div class="powerLabel"><?php echo $SLANG['Control'] ?></div>
   <div>
 <?php
     if ( $monitor['CanWake'] )
     {
 ?>
-    <input type="button" class="ptzTextBtn" value="<?= $SLANG['Wake'] ?>" onclick="controlCmd('<?= $cmds['Wake'] ?>')"/>
+    <input type="button" class="ptzTextBtn" value="<?php echo $SLANG['Wake'] ?>" onclick="controlCmd('<?php echo $cmds['Wake'] ?>')"/>
 <?php
     }
     if ( $monitor['CanSleep'] )
     {
 ?>
-    <input type="button" class="ptzTextBtn" value="<?= $SLANG['Sleep'] ?>" onclick="controlCmd('<?= $cmds['Sleep'] ?>')"/>
+    <input type="button" class="ptzTextBtn" value="<?php echo $SLANG['Sleep'] ?>" onclick="controlCmd('<?php echo $cmds['Sleep'] ?>')"/>
 <?php
     }
     if ( $monitor['CanReset'] )
     {
 ?>
-    <input type="button" class="ptzTextBtn" value="<?= $SLANG['Reset'] ?>" onclick="controlCmd('<?= $cmds['Reset'] ?>')"/>
+    <input type="button" class="ptzTextBtn" value="<?php echo $SLANG['Reset'] ?>" onclick="controlCmd('<?php echo $cmds['Reset'] ?>')"/>
 <?php
     }
 ?>

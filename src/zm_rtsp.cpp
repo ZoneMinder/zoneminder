@@ -397,6 +397,7 @@ int RtspThread::run()
 
     uint32_t rtpClock = 0;
     std::string trackUrl = mUrl;
+    std::string controlUrl;
     
     _AVCODECID codecId;
     
@@ -412,7 +413,7 @@ int RtspThread::run()
 #endif
             {
                 // Check if control Url is absolute or relative
-                std::string controlUrl = mediaDesc->getControlUrl();
+                controlUrl = mediaDesc->getControlUrl();
                 if (std::equal(trackUrl.begin(), trackUrl.end(), controlUrl.begin()))
                 {
                     trackUrl = controlUrl;
@@ -556,27 +557,51 @@ int RtspThread::run()
     {
         if ( ( lines[i].size() > 9 ) && ( lines[i].substr( 0, 9 ) == "RTP-Info:" ) )
             rtpInfo = trimSpaces( lines[i].substr( 9 ) );
+	// Check for a timeout again. Some rtsp devices don't send a timeout until after the PLAY command is sent
+        if ( ( lines[i].size() > 8 ) && ( lines[i].substr( 0, 8 ) == "Session:" ) && ( timeout == 0 ) )
+        {
+            StringVector sessionLine = split( lines[i].substr(9), ";" );
+            if ( sessionLine.size() == 2 )
+                sscanf( trimSpaces( sessionLine[1] ).c_str(), "timeout=%d", &timeout );
+            if ( timeout > 0 )
+                Debug( 2, "Got timeout %d secs from PLAY command response", timeout );
+        }
     }
-
-    if ( rtpInfo.empty() )
-        Fatal( "Unable to get RTP Info identifier from response '%s'", response.c_str() );
-
-    Debug( 2, "Got RTP Info %s", rtpInfo.c_str() );
 
     int seq = 0;
     unsigned long rtpTime = 0;
-    parts = split( rtpInfo.c_str(), ";" );
-    for ( size_t i = 0; i < parts.size(); i++ )
+    StringVector streams;
+    if ( rtpInfo.empty() )
     {
-        if ( startsWith( parts[i], "seq=" ) )
+        Debug( 1, "RTP Info Empty. Starting values for Sequence and Rtptime shall be zero.");
+    }
+    else
+    {
+        Debug( 2, "Got RTP Info %s", rtpInfo.c_str() );
+        // More than one stream can be included in the RTP Info
+        streams = split( rtpInfo.c_str(), "," );
+        for ( size_t i = 0; i < streams.size(); i++ )
         {
-            StringVector subparts = split( parts[i], "=" );
-            seq = strtol( subparts[1].c_str(), NULL, 10 );
-        }
-        else if ( startsWith( parts[i], "rtptime=" ) )
-        {
-            StringVector subparts = split( parts[i], "=" );
-            rtpTime = strtol( subparts[1].c_str(), NULL, 10 );
+            // We want the stream that matches the trackUrl we are using
+            if ( streams[i].find(controlUrl.c_str()) != std::string::npos )
+            {
+                // Parse the sequence and rtptime values
+                parts = split( streams[i].c_str(), ";" );
+                for ( size_t j = 0; j < parts.size(); j++ )
+                {
+                    if ( startsWith( parts[j], "seq=" ) )
+                    {
+                        StringVector subparts = split( parts[j], "=" );
+                        seq = strtol( subparts[1].c_str(), NULL, 10 );
+                    }
+                    else if ( startsWith( parts[j], "rtptime=" ) )
+                    {
+                        StringVector subparts = split( parts[j], "=" );
+                        rtpTime = strtol( subparts[1].c_str(), NULL, 10 );
+                    }
+                }
+            break;
+            }
         }
     }
 

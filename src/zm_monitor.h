@@ -64,7 +64,8 @@ public:
 		MODECT,
 		RECORD,
 		MOCORD,
-		NODECT
+		NODECT,
+    EXTDECT
 	} Function;
 
 	typedef enum
@@ -372,15 +373,21 @@ public:
 
 	inline int PrimeCapture()
 	{
+    if ( function == EXTDECT )
+			return( 0 );
 		return( camera->PrimeCapture() );
 	}
 	inline int PreCapture()
 	{
+    if ( function == EXTDECT )
+			return( 0 );
 		return( camera->PreCapture() );
 	}
 	int Capture();
 	int PostCapture()
 	{
+    if ( function == EXTDECT )
+			return( 0 );
 		return( camera->PostCapture() );
 	}
 

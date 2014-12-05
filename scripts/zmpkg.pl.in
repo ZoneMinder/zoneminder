@@ -183,14 +183,17 @@ if ( $command =~ /^(?:start|restart)$/ )
 		{
 			if ( $monitor->{Function} ne 'None' )
 			{
-				if ( $monitor->{Type} eq 'Local' )
-				{
-					runCommand( "zmdc.pl start zmc -d $monitor->{Device}" );
-				}
-				else
-				{
-					runCommand( "zmdc.pl start zmc -m $monitor->{Id}" );
-				}
+        if ( $monitor->{Type} ne 'Extdect' )
+        {
+				  if ( $monitor->{Type} eq 'Local' )
+				  {
+					  runCommand( "zmdc.pl start zmc -d $monitor->{Device}" );
+				  }
+				  else
+				  {
+					  runCommand( "zmdc.pl start zmc -m $monitor->{Id}" );
+				  }
+        }
 				if ( $monitor->{Function} ne 'Monitor' )
 				{
 					if ( $Config{ZM_OPT_FRAME_SERVER} )

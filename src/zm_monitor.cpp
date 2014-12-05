@@ -2495,27 +2495,6 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
         col++;
 
-        bool v4l_multi_buffer;
-        if ( dbrow[col] ) {
-            if (*dbrow[col] == '0' ) {
-                v4l_multi_buffer = false;
-            } else if ( *dbrow[col] == '1' ) {
-                v4l_multi_buffer = true;
-            }
-        } else {
-            v4l_multi_buffer = config.v4l_multi_buffer;
-        }
-        col++;
-
-        int v4l_captures_per_frame = 0;
-        if ( dbrow[col] ) {
-             v4l_captures_per_frame = atoi(dbrow[col]);
-        } else {
-            v4l_captures_per_frame = config.captures_per_frame;
-        }
-Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
-        col++;
-
         std::string protocol = dbrow[col]; col++;
         std::string method = dbrow[col]; col++;
         std::string host = dbrow[col]; col++;
@@ -2783,10 +2762,15 @@ int Monitor::Capture()
 {
 	static int FirstCapture = 1;
 	int captureResult;
-	
+
+	if ( function != EXTDECT ) {
+    shared_data->last_write_index ++;
+    return 0;
+  }
+  
 	int index = image_count%image_buffer_count;
 	Image* capture_image = image_buffer[index].image;
-	
+
 	if ( (deinterlacing & 0xff) == 4) {
 		if ( FirstCapture != 1 ) {
 			/* Copy the next image into the shared memory */

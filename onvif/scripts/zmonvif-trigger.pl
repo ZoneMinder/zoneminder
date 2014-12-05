@@ -213,7 +213,7 @@ sub xs_duration
 
 	  my %new_monitors = ();
 
-  #	my $sql = "select * from Monitors where find_in_set( Function, 'Modect,Mocord,Nodect' )>0 and ConfigType='ONVIF'";
+  #	my $sql = "select * from Monitors where find_in_set( Function, 'Modect,Mocord,Nodect,ExtDect' )>0 and ConfigType='ONVIF'";
 	  my $sql = "select * from Monitors where ConfigType='ONVIF'";
 	  my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
 	  my $res = $sth->execute() or Fatal( "Can't execute: ".$sth->errstr() );
@@ -557,6 +557,16 @@ sub events
   my $zm = _ZoneMinder->new();
   $zm->init();
   $zm->loadMonitors();  # call before fork()
+
+  my %monitors = $zm->monitors();
+  my $monitor_count = scalar keys(%monitors);
+  if($monitor_count == 0) {
+    print("No active ONVIF monitors found. Exiting\n");
+    return;
+  }
+  else {
+    Debug( "Found $monitor_count active ONVIF monitors\n" );
+  }
   
   Info( "ONVIF Trigger daemon starting\n" );
 
@@ -592,9 +602,7 @@ sub events
     my $transport = SOAP::Transport::HTTP::Client->new( 
 #      'local_address' => $localaddr );     ## REUSE port
        'local_address' => $localip );    
-
-    my %monitors = $zm->monitors();
-    
+  
     foreach my $monitor (values(%monitors)) {
     
       my $client = $monitor->{onvif_client};

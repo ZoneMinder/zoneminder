@@ -36,8 +36,7 @@ mysql_install_admin() {
     dbc_mysql_exec_command "DELETE FROM Users WHERE Username = 'admin';" || true
 
     # Install the new admin account defined with debconf
-    md5_password="`echo -n $ADMIN_PASSWORD | md5sum | sed -e 's/ *-$//'`"
-    dbc_mysql_exec_command "INSERT INTO Users (id, username, password) VALUES (1, '$ADMIN_LOGIN', '$md5_password');" || true
+    dbc_mysql_exec_command "INSERT INTO Users VALUES (1,'$ADMIN_LOGIN',password('$ADMIN_PASSWORD'),'',1,'View','Edit','Edit','Edit','Edit','Edit','','');" || true
 }
 
 # Exit if user didn't want to use debconf

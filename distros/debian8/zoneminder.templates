@@ -1,9 +1,10 @@
 Template: zoneminder/webserver
 Type: multiselect
 Choices: apache2
+Default: apache2
 Description: Web server to reconfigure automatically:
- Please choose the web server that should be automatically configured
- to run ZoneMinder.
+ Please choose the web server that should be automatically configure to run
+ ZoneMinder.
 
 Template: zoneminder/admin_login
 Type: string
@@ -17,28 +18,59 @@ Default: admin
 Description: Administrative user's password:
  Please enter the password of the administrative user.
 
-Template: zoneminder/debconf_dbremote
-Type: boolean
-Default: true
-Description: Do you want to use a remote database server?
- A database server is required to run ZoneMinder.
+Template: zoneminder/debconf_dbconfigerror
+Type: error
+Description: Remote database servers not allowed:
+ The current configuration of dbconfig-common does not allow installation of
+ databases on remote servers from this assistant.
  .
- The database server can be installed either locally on this machine or remotely
- on a machine of your local network.
+ This program will abort so you can reconfigure dbconfig-common by invoking the
+ command below and the restart the installation of ZoneMinder:
  .
- Currently ZoneMinder supports MySQL server or MariaDB server but none of them
+ sudo dpkg-reconfigure dbconfig-common
+
+Template: zoneminder/debconf_dblocalmissingerror
+Type: error
+Description: Local database server is missing:
+ Currently ZoneMinder supports mysql or mariadb database server but none of them
  appears to be installed on this machine.
  .
- If this is intentional and you want to use a remote database, please choose Yes.
- The program will continue and you will have to select the TCP/IP connection
- method when asked.
+ This program will abort so you can install a database server and then restart
+ the installation of ZoneMinder.
+
+Template: zoneminder/debconf_dbtypeerror
+Type: error
+Description: Wrong database type:
+ The database type specified in the configuration file '/etc/zm/zm.conf' is
+ not set to 'mysql'.
  .
- If you want to install the database server on this machine, please choose 'No'.
- The program will abort so you can install the database and then come back to this
- program by invoking 'sudo dpkg-reconfigure zoneminder' on the command line.
+ This program will abort so you can fix the configuration file and then restart
+ the installation of ZoneMinder.
+
+Template: zoneminder/debconf_confmissingerror
+Type: error
+Description: Configuration file is missing:
+ ZoneMinder installation is corrupted.
+ .
+ The main configuration file '/etc/zm/zm.conf' is missing.
+
+Template: zoneminder/debconf_dblocation
+Type: select
+Choices: local, remote
+Default: local
+Description: Database location:
+ A database server is required to run ZoneMinder. This database can be installed
+ either locally or remotely on a machine of your local network.
+ .
+ Please select the location of your database.
+ .
+ If you choose a remote location, in the next screens, you will have to select
+ the 'tcp/ip' connection method and enter the hostname / ip address of the
+ remote machine.
 
 Template: zoneminder/debconf_install
 Type: boolean
 Default: true
 Description: Configure ZoneMinder automatically?
- The configuration program for the package can configure automatically ZoneMinder.
+ The configuration program for the package can configure automatically
+ ZoneMinder.

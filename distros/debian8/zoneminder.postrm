@@ -1,6 +1,12 @@
 #! /bin/sh
+# postrm maintainer script for zoneminder
 
-set -x
+set -e
+
+# Source the debconf stuff
+if [ -f /usr/share/debconf/confmodule ]; then
+    . /usr/share/debconf/confmodule
+fi
 
 apache_remove() {
     COMMON_STATE=$(dpkg-query -f '${Status}' -W 'apache2.2-common' 2>/dev/null | awk '{print $3}' || true)
@@ -15,25 +21,26 @@ apache_remove() {
     deb-systemd-invoke reload apache2.service || true
 }
 
+# Source the dbconfig stuff
+if [ -f /usr/share/dbconfig-common/dpkg/postrm ]; then
+    . /usr/share/dbconfig-common/dpkg/postrm
+    # Ask the user what do to with dbconfig when removing the package
+    dbc_go zoneminder $@
+fi
+
 if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
 
-    if [ -e /usr/share/debconf/confmodule ]; then
+    # Deconfigure the web server
+    db_get zoneminder/webserver
 
-        # Source the debconf stuff
-        . /usr/share/debconf/confmodule
-
-        # Deconfigure the web server
-        db_get zoneminder/webserver
-
-        webservers="$RET"
-        for webserver in $webservers; do
-            webserver=${webserver%,}
-            # Currently we only support apache2
-            if [ "$webserver" = "apache2" ] ; then
-                apache_remove $1
-            fi
-        done
-    fi
+    webservers="$RET"
+    for webserver in $webservers; do
+        webserver=${webserver%,}
+        # Currently we only support apache2
+        if [ "$webserver" = "apache2" ] ; then
+            apache_remove $1
+        fi
+    done
 
     # No need to manually remove the zm database and user, dbconfig take care of this
 fi
@@ -45,5 +52,8 @@ if [ "$1" = "purge" ]; then
 fi
 
 #DEBHELPER#
+
+# postrm rm may freeze without that
+db_stop
 
 exit 0

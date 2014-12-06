@@ -28,7 +28,7 @@ apache_install() {
     deb-systemd-invoke reload apache2.service || true
 }
 
-mysql_install_admin() {
+mysql_update() {
     # Source the dbconfig stuff
     . /usr/share/dbconfig-common/internal/mysql
 
@@ -37,6 +37,9 @@ mysql_install_admin() {
 
     # Install the new admin account defined with debconf
     dbc_mysql_exec_command "INSERT INTO Users VALUES (1,'$ADMIN_LOGIN',password('$ADMIN_PASSWORD'),'',1,'View','Edit','Edit','Edit','Edit','Edit','','');" || true
+
+    # Update the database version
+    dbc_mysql_exec_command "UPDATE Config SET Value = '$DB_VERSION' WHERE Name = 'ZM_DYN_DB_VERSION';" || true
 }
 
 # Exit if user didn't want to use debconf
@@ -73,8 +76,11 @@ if [ "$1" = "configure" ] || [ "$1" = "reconfigure" ]; then
     db_get zoneminder/admin_password
     ADMIN_PASSWORD=${RET:-admin}
 
-    # Update the default admin account
-    mysql_install_admin
+    # Get the lastest database version from dbconfig upgrade folder
+    DB_VERSION=$(ls -rv /usr/share/dbconfig-common/data/zoneminder/upgrade/$dbctypes | head -1)
+
+    # Update the default admin account and database version
+    mysql_update
 
     # Retrieve data from dbconfig (inputs from user)
     . /etc/dbconfig-common/zoneminder.conf

@@ -1,6 +1,7 @@
 #!/bin/sh
+# preinst maintainer script for zoneminder
 
-set -x
+set -e
 
 abort=false
 if [ -L /usr/share/zoneminder/events ]; then

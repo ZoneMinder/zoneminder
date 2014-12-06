@@ -1,14 +1,12 @@
 #! /bin/sh
 # postinst maintainer script for zoneminder
 
-set -x
+set -e
 
 # Source the debconf stuff
 . /usr/share/debconf/confmodule
 
 CONFIGFILE=/etc/zm/zm.conf
-
-old_version=$2
 
 apache_install() {
     mkdir -p /etc/apache2/conf-available
@@ -49,25 +47,7 @@ if [ "$RET" = "false" ]; then
 fi
 
 # Source the config file if exists
-if [ -e $CONFIGFILE ]; then
-    . $CONFIGFILE || true
-else
-    # Exit with error if no config file
-    exit 1
-fi
-
-if [ "$ZM_DB_TYPE" = "mysql" ]; then
-    if [ ! -e "/usr/sbin/mysqld" ]; then
-        db_get zoneminder/debconf_dbremote
-        if [ "$RET" = "false" ]; then
-            # Exit silently if the user forgot to install the database server
-            exit 0
-        fi
-    fi
-else
-    # Currently we only support mysql
-    exit 1
-fi
+. $CONFIGFILE
 
 if [ -f /usr/share/dbconfig-common/dpkg/postinst ]; then
 

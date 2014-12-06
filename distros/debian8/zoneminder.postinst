@@ -83,7 +83,7 @@ if [ "$1" = "configure" ] || [ "$1" = "reconfigure" ]; then
     ADMIN_PASSWORD=${RET:-admin}
 
     # Get the lastest database version from dbconfig upgrade folder
-    DB_VERSION=$(ls -rv /usr/share/dbconfig-common/data/zoneminder/upgrade/$dbctypes | head -1)
+    DB_VERSION=$(ls -rv /usr/share/dbconfig-common/data/zoneminder/upgrade/$dbc_dbtypes | head -1)
 
     # Update the default admin account and database version
     mysql_update

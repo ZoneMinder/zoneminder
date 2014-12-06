@@ -1,0 +1,147 @@
+.ptzControls {
+    vertical-align: top;
+    margin: 10px auto 0;
+    width: 300px;
+}
+
+.ptzControls input.ptzTextBtn {
+    margin-top: 2px;
+    width: 40px;
+}
+
+.ptzControls .controlsPanel {
+    margin: 0 auto;
+}
+
+.ptzControls input[type=image] {
+    border: 0px;
+}
+
+.ptzControls .controlsPanel .arrowControl {
+    width: 40px;
+    height: 180px;
+    margin: 0 4px;
+}
+
+.ptzControls .controlsPanel .arrowControl input {
+    display: block;
+}
+
+.ptzControls .controlsPanel .longArrowBtn {
+    width: 32px;
+    height: 48px;
+    margin: 0 auto;
+    cursor: pointer;
+}
+
+/*
+ * This is a bit of a hack as these lines should be in the above
+ * section but that messes up layout on IE6
+ */
+/*
+.ptzControls .controlsPanel > div > div.longArrowBtn {
+    left: 50%;
+    margin-left: -16px;
+}
+*/
+
+.ptzControls .controlsPanel .upBtn {
+    background: url("../graphics/arrow-l-u.gif") no-repeat 0 0;
+}
+
+.ptzControls .controlsPanel .downBtn {
+    background: url("../graphics/arrow-l-d.gif") no-repeat 0 0;
+}
+
+.ptzControls .controlsPanel .focusControls {
+    float: left;
+}
+
+.ptzControls .controlsPanel .zoomControls {
+    float: left;
+}
+
+.ptzControls .controlsPanel .irisControls {
+    float: right;
+}
+
+.ptzControls .controlsPanel .whiteControls {
+    float: right;
+}
+
+.ptzControls .controlsPanel .pantiltPanel {
+    margin: 0 auto;
+    height: 180px;
+}
+
+.ptzControls .controlsPanel .pantiltPanel .pantiltControls .pantiltButtons {
+    margin: 5px auto;
+    border: 1px solid #006699;
+    text-align: center;
+    padding: 1px;
+    width: 96px;
+    height: 96px;
+}
+
+.ptzControls .controlsPanel .pantiltPanel .pantiltControls .arrowBtn {
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    float: left;
+}
+
+.ptzControls .controlsPanel .pantiltPanel .pantiltControls .upLeftBtn {
+    background: url("../graphics/arrow-ul.gif") no-repeat 0 0;
+}
+
+.ptzControls .controlsPanel .pantiltPanel .pantiltControls .upBtn {
+    background: url("../graphics/arrow-u.gif") no-repeat 0 0;
+}
+
+.ptzControls .controlsPanel .pantiltPanel .pantiltControls .upRightBtn {
+    background: url("../graphics/arrow-ur.gif") no-repeat 0 0;
+}
+
+.ptzControls .controlsPanel .pantiltPanel .pantiltControls .leftBtn {
+    background: url("../graphics/arrow-l.gif") no-repeat 0 0;
+}
+
+.ptzControls .controlsPanel .pantiltPanel .pantiltControls .centerBtn {
+    background: url("../graphics/center.gif") no-repeat 0 0;
+}
+
+.ptzControls .controlsPanel .pantiltPanel .pantiltControls .rightBtn {
+    background: url("../graphics/arrow-r.gif") no-repeat 0 0;
+}
+
+.ptzControls .controlsPanel .pantiltPanel .pantiltControls .downLeftBtn {
+    background: url("../graphics/arrow-dl.gif") no-repeat 0 0;
+}
+
+.ptzControls .controlsPanel .pantiltPanel .pantiltControls .downBtn {
+    background: url("../graphics/arrow-d.gif") no-repeat 0 0;
+}
+
+.ptzControls .controlsPanel .pantiltPanel .pantiltControls .downRightBtn {
+    background: url("../graphics/arrow-dr.gif") no-repeat 0 0;
+}
+
+.ptzControls .controlsPanel .pantiltPanel .powerControls {
+    margin: 0 auto;
+}
+
+.ptzControls .presetControls {
+    margin: 0 auto;
+}
+
+.ptzControls .presetControls input {
+    margin: 1px;
+}
+
+.ptzControls .presetControls input.ptzNumBtn {
+    padding: 1px 2px;
+    width: 24px;
+    color: #ffffff;
+    text-align: center;
+    background-color: #016A9D;
+}

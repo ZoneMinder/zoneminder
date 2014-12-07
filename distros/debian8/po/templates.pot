@@ -1,0 +1,201 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: zoneminder\n"
+"Report-Msgid-Bugs-To: zoneminder@packages.debian.org\n"
+"POT-Creation-Date: 2014-12-07 01:57+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. Type: multiselect
+#. Description
+#: ../zoneminder.templates:1001
+msgid "Web server to reconfigure automatically:"
+msgstr ""
+
+#. Type: multiselect
+#. Description
+#: ../zoneminder.templates:1001
+msgid ""
+"Please choose the web server that should be automatically configure to run "
+"ZoneMinder."
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../zoneminder.templates:2001
+msgid "Administrative user's login:"
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../zoneminder.templates:2001
+msgid "Please enter the login of the administrative user."
+msgstr ""
+
+#. Type: password
+#. Description
+#: ../zoneminder.templates:3001
+msgid "Administrative user's password:"
+msgstr ""
+
+#. Type: password
+#. Description
+#: ../zoneminder.templates:3001
+msgid "Please enter the password of the administrative user."
+msgstr ""
+
+#. Type: error
+#. Description
+#: ../zoneminder.templates:4001
+msgid "Remote database servers not allowed:"
+msgstr ""
+
+#. Type: error
+#. Description
+#: ../zoneminder.templates:4001
+msgid ""
+"The current configuration of dbconfig-common does not allow installation of "
+"databases on remote servers from this assistant."
+msgstr ""
+
+#. Type: error
+#. Description
+#: ../zoneminder.templates:4001
+msgid ""
+"This program will abort so you can reconfigure dbconfig-common by invoking "
+"the command below and then restart the installation of ZoneMinder:"
+msgstr ""
+
+#. Type: error
+#. Description
+#: ../zoneminder.templates:4001
+msgid "sudo dpkg-reconfigure dbconfig-common"
+msgstr ""
+
+#. Type: error
+#. Description
+#: ../zoneminder.templates:5001
+msgid "Local database server is missing:"
+msgstr ""
+
+#. Type: error
+#. Description
+#: ../zoneminder.templates:5001
+msgid ""
+"Currently ZoneMinder supports mysql or mariadb database server but none of "
+"them appears to be installed on this machine."
+msgstr ""
+
+#. Type: error
+#. Description
+#: ../zoneminder.templates:5001
+msgid ""
+"This program will abort so you can install a database server and then "
+"restart the installation of ZoneMinder."
+msgstr ""
+
+#. Type: error
+#. Description
+#: ../zoneminder.templates:6001
+msgid "Wrong database type:"
+msgstr ""
+
+#. Type: error
+#. Description
+#: ../zoneminder.templates:6001
+msgid ""
+"The database type specified in the configuration file '/etc/zm/zm.conf' is "
+"not set to 'mysql'."
+msgstr ""
+
+#. Type: error
+#. Description
+#: ../zoneminder.templates:6001
+msgid ""
+"This program will abort so you can fix the configuration file and then "
+"restart the installation of ZoneMinder."
+msgstr ""
+
+#. Type: error
+#. Description
+#: ../zoneminder.templates:7001
+msgid "Configuration file is missing:"
+msgstr ""
+
+#. Type: error
+#. Description
+#: ../zoneminder.templates:7001
+msgid "ZoneMinder installation is corrupted."
+msgstr ""
+
+#. Type: error
+#. Description
+#: ../zoneminder.templates:7001
+msgid "The main configuration file '/etc/zm/zm.conf' is missing."
+msgstr ""
+
+#. Type: select
+#. Choices
+#: ../zoneminder.templates:8001
+msgid "local"
+msgstr ""
+
+#. Type: select
+#. Choices
+#: ../zoneminder.templates:8001
+msgid "remote"
+msgstr ""
+
+#. Type: select
+#. Description
+#: ../zoneminder.templates:8002
+msgid "Database location:"
+msgstr ""
+
+#. Type: select
+#. Description
+#: ../zoneminder.templates:8002
+msgid ""
+"A database server is required to run ZoneMinder. The database can be "
+"installed either locally or remotely on a machine of your network."
+msgstr ""
+
+#. Type: select
+#. Description
+#: ../zoneminder.templates:8002
+msgid "Please select the location of your database."
+msgstr ""
+
+#. Type: select
+#. Description
+#: ../zoneminder.templates:8002
+msgid ""
+"If you choose a remote location, you will have to select the 'tcp/ip' "
+"connection method and enter the hostname or ip address of the remote machine "
+"in the next configuration screens."
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../zoneminder.templates:9001
+msgid "Configure ZoneMinder automatically?"
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../zoneminder.templates:9001
+msgid ""
+"This configuration assistant allows you to perform automatically the basic "
+"configuration of ZoneMinder."
+msgstr ""

@@ -130,6 +130,9 @@ if [ "$1" = "configure" ] || [ "$1" = "reconfigure" ]; then
     if [ -z "$2" ]; then
         chown $ZM_WEB_USER:$ZM_WEB_GROUP -R /var/cache/zoneminder
     fi
+    # As requested by the Debian Webapps Policy Manual §3.2.1
+    chown root:$ZM_WEB_GROUP /etc/zm/zm.conf
+    chmod 640 /etc/zm/zm.conf
 
     # Configure the web server
     db_get zoneminder/webserver

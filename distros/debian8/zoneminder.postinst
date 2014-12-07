@@ -50,11 +50,10 @@ mysql_update() {
 
 # Exit if user didn't want to use debconf
 db_get zoneminder/debconf_install
-if [ "$RET" = "false" ]; then
-    exit 0;
-fi
+[ "$RET" = "false" ] && exit 0
 
 # Source the config file if exists
+[ ! -e $CONFIGFILE ] && exit 0
 . $CONFIGFILE
 
 if [ -f /usr/share/dbconfig-common/dpkg/postinst ]; then
@@ -152,8 +151,15 @@ if [ "$1" = "configure" ]; then
     # Ensure zoneminder is stopped
     deb-systemd-invoke stop zoneminder.service || exit $?
 
-    # Run the ZoneMinder update tool
-    zmupdate.pl
+    # If mysql server exists and is running
+    if [ -e "/usr/sbin/mysqld" ] && deb-systemd-invoke start mysql.service; then
+        # Run the ZoneMinder update tool
+        zmupdate.pl
+    else
+        # Otherwise exit without error (mysql server may not be available on
+        # this machine)
+        exit 0;
+    fi
 fi
 
 #DEBHELPER#

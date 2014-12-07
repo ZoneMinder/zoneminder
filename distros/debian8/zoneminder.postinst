@@ -23,7 +23,7 @@ apache_install() {
         [ -d /etc/apache2/conf.d/ ] && [ ! -L /etc/apache2/conf.d/zoneminder.conf ] && ln -s ../conf-available/zoneminder.conf /etc/apache2/conf.d/zoneminder.conf
     fi
 
-    # Enable CGI script module in apache(not enabled by default on jessie)
+    # Enable CGI script module in apache (not enabled by default on jessie)
     a2enmod cgi >/dev/null 2>&1
 
     # Reload the web server
@@ -94,7 +94,7 @@ if [ "$1" = "configure" ] || [ "$1" = "reconfigure" ]; then
         . /etc/dbconfig-common/zoneminder.conf
 
         # ZoneMinder config file handling
-        # Inspired by: http://manpages.ubuntu.com/manpages/lucid/en/man7/debconf-devel.7.html
+        # Inspired by: http://manpages.debian.org/cgi-bin/man.cgi?query=debconf-devel&sektion=7
 
         # Backup the config file
         cp -a -f $CONFIGFILE $CONFIGFILE.postinst.bak

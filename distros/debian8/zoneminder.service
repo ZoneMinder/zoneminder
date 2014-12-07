@@ -4,7 +4,7 @@
 [Unit]
 Description=ZoneMinder CCTV recording and security system
 After=network.target mysql.service apache2.service
-Requires=mysql.service apache2.service
+Requires=apache2.service
 
 [Service]
 User=www-data

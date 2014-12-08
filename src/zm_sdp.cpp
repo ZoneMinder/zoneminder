@@ -58,7 +58,8 @@ SessionDescriptor::DynamicPayloadDesc SessionDescriptor::smDynamicPayloads[] = {
     { "MP4V-ES", AVMEDIA_TYPE_VIDEO, AV_CODEC_ID_MPEG4 },
     { "mpeg4-generic", AVMEDIA_TYPE_AUDIO, AV_CODEC_ID_AAC },
     { "H264", AVMEDIA_TYPE_VIDEO, AV_CODEC_ID_H264 },
-    { "AMR", AVMEDIA_TYPE_AUDIO, AV_CODEC_ID_AMR_NB }
+    { "AMR", AVMEDIA_TYPE_AUDIO, AV_CODEC_ID_AMR_NB },
+    { "vnd.onvif.metadata", AVMEDIA_TYPE_DATA, AV_CODEC_ID_NONE }
 };
 #else
 SessionDescriptor::StaticPayloadDesc SessionDescriptor::smStaticPayloads[] = {
@@ -95,7 +96,8 @@ SessionDescriptor::DynamicPayloadDesc SessionDescriptor::smDynamicPayloads[] = {
     { "MP4V-ES", CODEC_TYPE_VIDEO, CODEC_ID_MPEG4 },
     { "mpeg4-generic", CODEC_TYPE_AUDIO, CODEC_ID_AAC },
     { "H264", CODEC_TYPE_VIDEO, CODEC_ID_H264 },
-    { "AMR", CODEC_TYPE_AUDIO, CODEC_ID_AMR_NB }
+    { "AMR", CODEC_TYPE_AUDIO, CODEC_ID_AMR_NB },
+    { "vnd.onvif.metadata", CODEC_TYPE_DATA, CODEC_ID_NONE }
 };
 #endif
 
@@ -184,9 +186,15 @@ SessionDescriptor::SessionDescriptor( const std::string &url, const std::string 
                 mInfo = line;
                 break;
             case 'c' :
+                // This prevent a memory leak if the field appears more than one time
+                if ( mConnInfo )
+                    delete mConnInfo;
                 mConnInfo = new ConnInfo( line );
                 break;
             case 'b' :
+                // This prevent a memory leak if the field appears more than one time
+                if ( mBandInfo )
+                    delete mBandInfo;
                 mBandInfo = new BandInfo( line );
                 break;
             case 't' :
@@ -320,7 +328,7 @@ SessionDescriptor::SessionDescriptor( const std::string &url, const std::string 
                 if ( tokens.size() < 4 )
                     throw Exception( "Can't parse SDP media description '"+line+"'" );
                 std::string mediaType = tokens[0];
-                if ( mediaType != "audio" && mediaType != "video" )
+                if ( mediaType != "audio" && mediaType != "video"  && mediaType != "application" )
                     throw Exception( "Unsupported media type '"+mediaType+"' in SDP media attribute '"+line+"'" );
                 StringVector portTokens = split( tokens[1], "/" );
                 int mediaPort = atoi(portTokens[0].c_str());
@@ -337,6 +345,16 @@ SessionDescriptor::SessionDescriptor( const std::string &url, const std::string 
             }
         }
     }
+}
+
+SessionDescriptor::~SessionDescriptor()
+{
+    if ( mConnInfo )
+        delete mConnInfo;
+    if ( mBandInfo )
+        delete mBandInfo;
+    for ( unsigned int i = 0; i < mMediaList.size(); i++ )
+        delete mMediaList[i];
 }
 
 AVFormatContext *SessionDescriptor::generateFormatContext() const
@@ -367,11 +385,15 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const
             stream->codec->codec_type = AVMEDIA_TYPE_VIDEO;
         else if ( mediaDesc->getType() == "audio" )
             stream->codec->codec_type = AVMEDIA_TYPE_AUDIO;
+        else if ( mediaDesc->getType() == "application" )
+            stream->codec->codec_type = AVMEDIA_TYPE_DATA;
 #else
         if ( mediaDesc->getType() == "video" )
             stream->codec->codec_type = CODEC_TYPE_VIDEO;
         else if ( mediaDesc->getType() == "audio" )
             stream->codec->codec_type = CODEC_TYPE_AUDIO;
+        else if ( mediaDesc->getType() == "application" )
+            stream->codec->codec_type = CODEC_TYPE_DATA;
 #endif
 
         if ( mediaDesc->getPayloadType() < PAYLOAD_TYPE_DYNAMIC )

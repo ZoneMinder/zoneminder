@@ -20,14 +20,16 @@
 
 function xhtmlHeaders( $file, $title )
 {
-    $skinCssFile = getSkinFile( 'css/skin.css' );
-    $skinCssPhpFile = getSkinFile( 'css/skin.css.php' );
+    global  $css;
+    $skinCssFile = getSkinFile( 'css/'.$css.'/skin.css' );
+    $skinCssPhpFile = getSkinFile( 'css/'.$css.'/skin.css.php' );
+
     $skinJsFile = getSkinFile( 'js/skin.js' );
     $skinJsPhpFile = getSkinFile( 'js/skin.js.php' );
 
     $basename = basename( $file, '.php' );
-    $viewCssFile = getSkinFile( 'views/css/'.$basename.'.css' );
-    $viewCssPhpFile = getSkinFile( 'views/css/'.$basename.'.css.php' );
+    $viewCssFile = getSkinFile( '/css/'.$css.'/views/'.$basename.'.css' );
+    $viewCssPhpFile = getSkinFile( '/css/'.$css.'/views/'.$basename.'.css.php' );
     $viewJsFile = getSkinFile( 'views/js/'.$basename.'.js' );
     $viewJsPhpFile = getSkinFile( 'views/js/'.$basename.'.js.php' );
 
@@ -36,17 +38,17 @@ function xhtmlHeaders( $file, $title )
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-  <title><?= ZM_WEB_TITLE_PREFIX ?> - <?= validHtmlStr($title) ?></title>
+  <title><?php echo ZM_WEB_TITLE_PREFIX ?> - <?php echo validHtmlStr($title) ?></title>
   <link rel="icon" type="image/ico" href="graphics/favicon.ico"/>
   <link rel="shortcut icon" href="graphics/favicon.ico"/>
   <link rel="stylesheet" href="css/reset.css" type="text/css"/>
   <link rel="stylesheet" href="css/overlay.css" type="text/css"/>
-  <link rel="stylesheet" href="<?= $skinCssFile ?>" type="text/css" media="screen"/>
+  <link rel="stylesheet" href="<?php echo $skinCssFile ?>" type="text/css" media="screen"/>
 <?php
     if ( $viewCssFile )
     {
 ?>
-  <link rel="stylesheet" href="<?= $viewCssFile ?>" type="text/css" media="screen"/>
+  <link rel="stylesheet" href="<?php echo $viewCssFile ?>" type="text/css" media="screen"/>
 <?php
     }
     if ( $viewCssPhpFile )
@@ -97,12 +99,12 @@ function xhtmlHeaders( $file, $title )
 <?php
     }
 ?>
-  <script type="text/javascript" src="<?= $skinJsFile ?>"></script>
+  <script type="text/javascript" src="<?php echo $skinJsFile ?>"></script>
 <?php
     if ( $viewJsFile )
     {
 ?>
-  <script type="text/javascript" src="<?= $viewJsFile ?>"></script>
+  <script type="text/javascript" src="<?php echo $viewJsFile ?>"></script>
 <?php
     }
 ?>

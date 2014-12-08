@@ -30,6 +30,8 @@ extern MYSQL dbconn;
 extern int zmDbConnected;
 
 void zmDbConnect();
+void zmDbClose();
+
 #ifdef __cplusplus 
 } /* extern "C" */
 #endif 

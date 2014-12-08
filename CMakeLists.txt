@@ -44,7 +44,7 @@ include (CheckTypeSize)
 include (CheckStructHasMember)
 
 # Configuration options
-mark_as_advanced(FORCE ZM_EXTRA_LIBS ZM_MYSQL_ENGINE ZM_NO_MMAP CMAKE_INSTALL_FULL_BINDIR ZM_PERL_SUBPREFIX ZM_PERL_USE_PATH ZM_TARGET_DISTRO)
+mark_as_advanced(FORCE ZM_EXTRA_LIBS ZM_MYSQL_ENGINE ZM_NO_MMAP CMAKE_INSTALL_FULL_BINDIR ZM_PERL_SUBPREFIX ZM_PERL_USE_PATH ZM_TARGET_DISTRO ZM_CONFIG_DIR)
 set(ZM_RUNDIR "/var/run/zm" CACHE PATH "Location of transient process files, default: /var/run/zm")
 set(ZM_SOCKDIR "/var/run/zm" CACHE PATH "Location of Unix domain socket files, default /var/run/zm")
 set(ZM_TMPDIR "/var/tmp/zm" CACHE PATH "Location of temporary files, default: /tmp/zm")
@@ -59,6 +59,7 @@ set(ZM_DB_PASS "zmpass" CACHE STRING "Password of ZoneMinder database user, defa
 set(ZM_WEB_USER "" CACHE STRING "The user apache or the local web server runs on. Leave empty for automatic detection. If that fails, you can use this variable to force")
 set(ZM_WEB_GROUP "" CACHE STRING "The group apache or the local web server runs on, Leave empty to be the same as the web user")
 # Advanced
+set(ZM_CONFIG_DIR "/${CMAKE_INSTALL_SYSCONFDIR}" CACHE PATH "Location of ZoneMinder configuration, default system config directory")
 set(ZM_EXTRA_LIBS "" CACHE STRING "A list of optional libraries, separated by semicolons, e.g. ssl;theora")
 set(ZM_MYSQL_ENGINE "InnoDB" CACHE STRING "MySQL engine to use with database, default: InnoDB")
 set(ZM_NO_MMAP "OFF" CACHE BOOL "Set to ON to not use mmap shared memory. Shouldn't be enabled unless you experience problems with the shared memory. default: OFF")
@@ -486,6 +487,7 @@ endif(NOT POLKIT_FOUND)
 
 # Some variables that zm expects
 set(ZM_PID "${ZM_RUNDIR}/zm.pid")
+set(ZM_CONFIG "${ZM_CONFIG_DIR}/zm.conf")
 set(ZM_CONFIG "/${CMAKE_INSTALL_SYSCONFDIR}/zm.conf")
 set(VERSION "${zoneminder_VERSION}")
 set(PKGDATADIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/zoneminder")
@@ -535,7 +537,7 @@ else(zmconfgen_result EQUAL 0)
 endif(zmconfgen_result EQUAL 0)
 
 # Install zm.conf
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zm.conf" DESTINATION "/${CMAKE_INSTALL_SYSCONFDIR}")
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zm.conf" DESTINATION "${ZM_CONFIG_DIR}")
 
 # Uninstall target
 configure_file(

@@ -3,8 +3,6 @@
 
 set -e
 
-old_version=$2
-
 # Source the debconf stuff
 . /usr/share/debconf/confmodule
 
@@ -35,15 +33,9 @@ mysql_update() {
     # Source the dbconfig stuff
     . /usr/share/dbconfig-common/internal/mysql
 
-    # Only update the admin account at first install
-    if [ -z "$old_version" ]; then
-        if [ ! "$ADMIN_LOGIN" = "admin" ] || [ ! "$ADMIN_PASSWORD" = "admin" ]; then
-            # Remove the hard-coded default admin account
-            dbc_mysql_exec_command "DELETE FROM Users WHERE Username = 'admin' AND Password = password('admin');" || true
-            # Install the new admin account
-            dbc_mysql_exec_command "INSERT INTO Users VALUES (1,'$ADMIN_LOGIN',password('$ADMIN_PASSWORD'),'',1,'View','Edit','Edit','Edit','Edit','Edit','','');" || true
-        fi
-    fi
+    # Update the password of the hard-coded default 'admin' account
+    test -z $ADMIN_PASSWORD || dbc_mysql_exec_command "UPDATE Users SET Password = password('$ADMIN_PASSWORD') WHERE Username = 'admin';" || true
+
     # Update the database version
     dbc_mysql_exec_command "UPDATE Config SET Value = '$DB_VERSION' WHERE Name = 'ZM_DYN_DB_VERSION';" || true
 }
@@ -75,11 +67,10 @@ if [ "$1" = "configure" ] || [ "$1" = "reconfigure" ]; then
     # previously installed version
     dbc_go zoneminder $@
 
-    # Get the adminitrator login and password from debconf
-    db_get zoneminder/admin_login
-    ADMIN_LOGIN=${RET:-admin}
+    # Get the password of ZoneMinder user 'admin' from debconf
     db_get zoneminder/admin_password
-    ADMIN_PASSWORD=${RET:-admin}
+    ADMIN_PASSWORD=$RET
+    db_reset zoneminder/admin_password || true
 
     # Get the lastest database version from dbconfig upgrade folder
     DB_VERSION=$(ls -rv /usr/share/dbconfig-common/data/zoneminder/upgrade/$dbc_dbtypes | head -1)
@@ -87,41 +78,44 @@ if [ "$1" = "configure" ] || [ "$1" = "reconfigure" ]; then
     # Update the default admin account and database version
     mysql_update
 
-    if [ -z "$old_version" ]; then
+    # Retrieve data from dbconfig (inputs from user)
+    . /etc/dbconfig-common/zoneminder.conf
 
-        # Retrieve data from dbconfig (inputs from user)
-        . /etc/dbconfig-common/zoneminder.conf
+    # ZoneMinder config file handling
+    # Inspired by: http://manpages.debian.org/cgi-bin/man.cgi?query=debconf-devel&sektion=7
 
-        # ZoneMinder config file handling
-        # Inspired by: http://manpages.debian.org/cgi-bin/man.cgi?query=debconf-devel&sektion=7
+    # Backup the config file
+    cp -a -f $CONFIGFILE ${CONFIGFILE}.postinst.bak
 
-        # Backup the config file
-        cp -a -f $CONFIGFILE $CONFIGFILE.postinst.bak
+    # Redeclare variables if missing in config file
+    test -z $dbc_dbserver || grep -Eq "^ *ZM_DB_HOST=" $CONFIGFILE \
+      || echo "ZM_DB_HOST=" >> ${CONFIGFILE}.postinst.bak
+    test -z $dbc_dbname || grep -Eq "^ *ZM_DB_NAME=" $CONFIGFILE \
+      || echo "ZM_DB_NAME=" >> ${CONFIGFILE}.postinst.bak
+    test -z $dbc_dbuser || grep -Eq "^ *ZM_DB_USER=" $CONFIGFILE \
+      || echo "ZM_DB_USER=" >> ${CONFIGFILE}.postinst.bak
+    test -z $dbc_dbpass || grep -Eq "^ *ZM_DB_PASS=" $CONFIGFILE \
+      || echo "ZM_DB_PASS=" >> ${CONFIGFILE}.postinst.bak
 
-        # Redeclare variables if missing in config file
-        test -z $dbc_dbserver || grep -Eq "^ *ZM_DB_HOST=" $CONFIGFILE || echo "ZM_DB_HOST=" >> $CONFIGFILE
-        test -z $dbc_dbname || grep -Eq "^ *ZM_DB_NAME=" $CONFIGFILE || echo "ZM_DB_NAME=" >> $CONFIGFILE
-        test -z $dbc_dbuser || grep -Eq "^ *ZM_DB_USER=" $CONFIGFILE || echo "ZM_DB_USER=" >> $CONFIGFILE
-        test -z $dbc_dbpass || grep -Eq "^ *ZM_DB_PASS=" $CONFIGFILE || echo "ZM_DB_PASS=" >> $CONFIGFILE
-
-        # Prevent ZM_DB_HOST to be empty if user selected the 'unix socket' method
-        if test -z $dbc_dbserver; then
-            dbc_dbserver_override="localhost"
-        else
-            dbc_dbserver_override=$dbc_dbserver
-        fi
-
-        # Update variables in config file
-        sed -e "s/^ *ZM_DB_HOST=.*/ZM_DB_HOST=$dbc_dbserver_override/" \
-            -e "s/^ *ZM_DB_NAME=.*/ZM_DB_NAME=$dbc_dbname/" \
-            -e "s/^ *ZM_DB_USER=.*/ZM_DB_USER=$dbc_dbuser/" \
-            -e "s/^ *ZM_DB_PASS=.*/ZM_DB_PASS=$dbc_dbpass/" \
-            < $CONFIGFILE > $CONFIGFILE.postinst.bak
-
-        # Clean-up backup file
-        mv -f $CONFIGFILE.postinst.bak $CONFIGFILE
-
+    # Prevent ZM_DB_HOST to be empty if user selected the 'unix socket' method
+    if test -z $dbc_dbserver; then
+        dbc_dbserver_override="localhost"
+    else
+        dbc_dbserver_override=$dbc_dbserver
     fi
+
+    # Update variables in config file
+    sed -i "s/^ *ZM_DB_HOST=.*/ZM_DB_HOST=$dbc_dbserver_override/" \
+      ${CONFIGFILE}.postinst.bak
+    test -z $dbc_dbname || sed -i "s/^ *ZM_DB_NAME=.*/ZM_DB_NAME=$dbc_dbname/" \
+      ${CONFIGFILE}.postinst.bak
+    test -z $dbc_dbuser || sed -i "s/^ *ZM_DB_USER=.*/ZM_DB_USER=$dbc_dbuser/" \
+      ${CONFIGFILE}.postinst.bak
+    test -z $dbc_dbpass || sed -i "s/^ *ZM_DB_PASS=.*/ZM_DB_PASS=$dbc_dbpass/" \
+      ${CONFIGFILE}.postinst.bak
+
+    # Clean-up backup file
+    mv -f ${CONFIGFILE}.postinst.bak $CONFIGFILE
 
     # Set some file permissions
     chown $ZM_WEB_USER:$ZM_WEB_GROUP /var/log/zm

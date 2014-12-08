@@ -49,6 +49,7 @@ if [ "$1" = "purge" ]; then
 
     # Delete a potential remaining file not managed by debhelper
     rm -f /etc/zm/zm.conf.postinst.bak
+
 fi
 
 #DEBHELPER#

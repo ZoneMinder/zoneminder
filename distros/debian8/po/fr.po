@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zoneminder\n"
 "Report-Msgid-Bugs-To: zoneminder@packages.debian.org\n"
-"POT-Creation-Date: 2014-12-07 01:57+0100\n"
+"POT-Creation-Date: 2014-12-08 00:38+0100\n"
 "PO-Revision-Date: 2014-12-07 00:40+0100\n"
 "Last-Translator: Emmanuel Papin <manupap01@gmail.com>\n"
 "Language-Team: French <debian-l10n-french@lists.debian.org>\n"
@@ -16,83 +16,116 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#. Type: multiselect
+#. Type: boolean
 #. Description
 #: ../zoneminder.templates:1001
-msgid "Web server to reconfigure automatically:"
-msgstr "Serveur web à reconfigurer automatiquement :"
+msgid "Configure ZoneMinder automatically?"
+msgstr "Configurer ZoneMinder automatiquement ?"
 
-#. Type: multiselect
+#. Type: boolean
 #. Description
 #: ../zoneminder.templates:1001
 msgid ""
-"Please choose the web server that should be automatically configure to run "
-"ZoneMinder."
+"This configuration assistant allows you to perform automatically the basic "
+"configuration of ZoneMinder."
 msgstr ""
-"Veuillez choisir le serveur web à reconfigurer automatiquement pour exécuter "
-"ZoneMinder."
+"Cet assistant de configuration vous permet de réaliser automatiquement le "
+"paramétrage de base de ZoneMinder."
 
-#. Type: string
+#. Type: error
 #. Description
 #: ../zoneminder.templates:2001
-msgid "Administrative user's login:"
-msgstr "Identifiant de l'administrateur :"
+msgid "Configuration file is missing:"
+msgstr "Le fichier de configuration est manquant :"
 
-#. Type: string
+#. Type: error
 #. Description
 #: ../zoneminder.templates:2001
-msgid "Please enter the login of the administrative user."
-msgstr "Veuillez entrer l'identifiant de l'administrateur."
+msgid "ZoneMinder installation is corrupted."
+msgstr "L'installation de ZoneMinder est corrompue."
 
-#. Type: password
+#. Type: error
+#. Description
+#: ../zoneminder.templates:2001
+msgid "The main configuration file '/etc/zm/zm.conf' is missing."
+msgstr "Le fichier de configuration principal '/etc/zm/zm.conf' est manquant."
+
+#. Type: error
 #. Description
 #: ../zoneminder.templates:3001
-msgid "Administrative user's password:"
-msgstr "Mot de passe de l'administrateur :"
+msgid "Bad database type:"
+msgstr "Mauvais type de base de données :"
 
-#. Type: password
+#. Type: error
 #. Description
 #: ../zoneminder.templates:3001
-msgid "Please enter the password of the administrative user."
-msgstr "Veuillez entrer le mot de passe de l'administrateur."
-
-#. Type: error
-#. Description
-#: ../zoneminder.templates:4001
-msgid "Remote database servers not allowed:"
-msgstr "Les serveurs de base de données distants ne sont pas autorisés :"
-
-#. Type: error
-#. Description
-#: ../zoneminder.templates:4001
 msgid ""
-"The current configuration of dbconfig-common does not allow installation of "
-"databases on remote servers from this assistant."
+"The database type specified in the configuration file '/etc/zm/zm.conf' is "
+"not set to 'mysql'."
 msgstr ""
-"La configuration actuelle de dbconfig-common ne permet pas l'installation de "
-"bases de données sur des serveurs distants à partir de cet assistant."
+"Le type de base de données spécifié dans le fichier de configuration '/etc/"
+"zm/zm/conf' n'est pas 'mysql'."
 
 #. Type: error
 #. Description
-#: ../zoneminder.templates:4001
+#: ../zoneminder.templates:3001
 msgid ""
-"This program will abort so you can reconfigure dbconfig-common by invoking "
-"the command below and then restart the installation of ZoneMinder:"
+"This program will abort so you can fix the configuration file and then "
+"restart the installation of ZoneMinder."
 msgstr ""
-"Ce programme va s'arrêter afin que vous puissiez reconfigurer dbconfig-"
-"common en invoquant la commande ci-dessous puis veuillez redémarrer "
-"l'installation de ZoneMinder :"
+"Ce programme va s'arrêter afin que vous puissiez corriger le fichier de "
+"configuration puis veuillez redémarrer l'installation de ZoneMinder."
 
-#. Type: error
-#. Description
+#. Type: select
+#. Choices
 #: ../zoneminder.templates:4001
-msgid "sudo dpkg-reconfigure dbconfig-common"
-msgstr "sudo dpkg-reconfigure dbconfig-common"
+msgid "local"
+msgstr "local"
+
+#. Type: select
+#. Choices
+#: ../zoneminder.templates:4001
+msgid "remote"
+msgstr "distant"
+
+#. Type: select
+#. Description
+#: ../zoneminder.templates:4002
+msgid "Database location:"
+msgstr "Emplacement de la base de donnée :"
+
+#. Type: select
+#. Description
+#: ../zoneminder.templates:4002
+msgid ""
+"A database server is required to run ZoneMinder. The database can be "
+"installed either locally or remotely on a machine of your network."
+msgstr ""
+"Un serveur de base de données est requis pour ZoneMinder. La base de donnée "
+"peut être installée localement ou à distance sur une machine de votre réseau."
+
+#. Type: select
+#. Description
+#: ../zoneminder.templates:4002
+msgid "Please select the location of your database."
+msgstr "Veuillez sélectionner l'emplacement de votre base de données."
+
+#. Type: select
+#. Description
+#: ../zoneminder.templates:4002
+msgid ""
+"If you choose a remote location, you will have to select the 'tcp/ip' "
+"connection method and enter the hostname or ip address of the remote machine "
+"in the next configuration screens."
+msgstr ""
+"Si vous choisissez un emplacement distant, vous devrez sélectionner la "
+"méthode de connexion 'tcp/ip' et entrer le nom réseau ou l'adresse ip de la "
+"machine distante dans les écrans de configuration suivants."
 
 #. Type: error
 #. Description
 #: ../zoneminder.templates:5001
-msgid "Local database server is missing:"
+msgid "No local database server is available:"
 msgstr "Aucun serveur local de base de données n'est disponible :"
 
 #. Type: error
@@ -103,120 +136,130 @@ msgid ""
 "them appears to be installed on this machine."
 msgstr ""
 "Actuellement ZoneMinder supporte les serveurs de base de données mysql et "
-"mariadb mais aucun d'entre eux n'est disponible sur cette machine."
+"mariadb mais aucun d'entre eux n'est installé sur cette machine."
 
 #. Type: error
 #. Description
 #: ../zoneminder.templates:5001
 msgid ""
-"This program will abort so you can install a database server and then "
-"restart the installation of ZoneMinder."
+"In order to complete the installation of ZoneMinder, after ending of this "
+"assistant, please install a compatible database server and then restart the "
+"assistant by invoking:"
 msgstr ""
-"Ce programme va s'arrêter afin que vous puissiez installer un serveur de "
-"base de données puis veuillez redémarrer l'installation de ZoneMinder."
+"Afin de compléter l'installation de ZoneMinder, après la fermeture de cet "
+"assitant, veuillez installer un serveur de base de données compatible et "
+"ensuite redémarrez l'assistant en invoquant:"
+
+#. Type: error
+#. Description
+#. Type: error
+#. Description
+#: ../zoneminder.templates:5001 ../zoneminder.templates:6001
+msgid "$ sudo dpkg-reconfigure zoneminder"
+msgstr "$ sudo dpkg-reconfigure zoneminder"
 
 #. Type: error
 #. Description
 #: ../zoneminder.templates:6001
-msgid "Wrong database type:"
-msgstr "Type de base de données incompatible :"
+msgid "Remote database servers are not allowed:"
+msgstr "Les serveurs de base de données distants ne sont pas autorisés :"
 
 #. Type: error
 #. Description
 #: ../zoneminder.templates:6001
 msgid ""
-"The database type specified in the configuration file '/etc/zm/zm.conf' is "
-"not set to 'mysql'."
+"The current configuration of dbconfig-common does not allow installation of "
+"databases on remote servers from this assistant."
 msgstr ""
-"Le type de base de données spécifié dans le fichier de configuration '/etc/"
-"zm/zm/conf' n'est pas 'mysql'."
+"La configuration actuelle de dbconfig-common ne permet pas l'installation de "
+"bases de données sur des serveurs distants à partir de cet assistant."
 
 #. Type: error
 #. Description
 #: ../zoneminder.templates:6001
 msgid ""
-"This program will abort so you can fix the configuration file and then "
-"restart the installation of ZoneMinder."
+"In order to reconfigure dbconfig-common, after ending of this assistant, "
+"please invoke:"
 msgstr ""
-"Ce programme va s'arrêter afin que vous puissiez corriger le fichier de "
-"configuration puis veuillez redémarrer l'installation de ZoneMinder."
+"Afin de reconfigurer dbconfig-common, après la fermeture de cet assitant, "
+"veuillez invoquer:"
 
 #. Type: error
 #. Description
-#: ../zoneminder.templates:7001
-msgid "Configuration file is missing:"
-msgstr "Le fichier de configuration est manquant :"
+#: ../zoneminder.templates:6001
+msgid "$ sudo dpkg-reconfigure dbconfig-common"
+msgstr "$ sudo dpkg-reconfigure dbconfig-common"
 
 #. Type: error
 #. Description
-#: ../zoneminder.templates:7001
-msgid "ZoneMinder installation is corrupted."
-msgstr "L'installation de ZoneMinder est corrompue."
+#: ../zoneminder.templates:6001
+msgid ""
+"Then, to complete the installation of ZoneMinder, please restart this "
+"assistant by invoking:"
+msgstr ""
+"Ensuite, pour compléter l'installation de ZoneMinder, veuillez redémarrer "
+"cet assistant en invoquant :"
 
-#. Type: error
+#. Type: multiselect
 #. Description
 #: ../zoneminder.templates:7001
-msgid "The main configuration file '/etc/zm/zm.conf' is missing."
-msgstr "Le fichier de configuration principal '/etc/zm/zm.conf' est manquant."
+msgid "Web server to reconfigure automatically:"
+msgstr "Serveur web à reconfigurer automatiquement :"
 
-#. Type: select
-#. Choices
+#. Type: multiselect
+#. Description
+#: ../zoneminder.templates:7001
+msgid ""
+"Please choose the web server that should be automatically configure to run "
+"ZoneMinder."
+msgstr ""
+"Veuillez choisir le serveur web à reconfigurer automatiquement pour exécuter "
+"ZoneMinder."
+
+#. Type: password
+#. Description
 #: ../zoneminder.templates:8001
-msgid "local"
-msgstr "local"
+msgid "New password for the ZoneMinder 'admin' user:"
+msgstr "Nouveau mot de passe pour le compte 'admin' de ZoneMinder"
 
-#. Type: select
-#. Choices
+#. Type: password
+#. Description
 #: ../zoneminder.templates:8001
-msgid "remote"
-msgstr "distant"
+msgid "Please enter the password of the default administrative user."
+msgstr "Veuillez entrer le mot de passe du compte administrateur par défault."
 
-#. Type: select
+#. Type: password
 #. Description
-#: ../zoneminder.templates:8002
-msgid "Database location:"
-msgstr "Emplacement de la base de donnée :"
-
-#. Type: select
-#. Description
-#: ../zoneminder.templates:8002
+#: ../zoneminder.templates:8001
 msgid ""
-"A database server is required to run ZoneMinder. The database can be "
-"installed either locally or remotely on a machine of your network."
+"While not mandatory, it is highly recommended that you set a custom password "
+"for the administrative 'admin' user."
 msgstr ""
-"Un serveur de base de données est requis pour ZoneMinder. La base de donnée "
-"peut être installée localement ou à distance sur une machine de votre réseau."
+"Bien que cela ne soit pas obligatoire, il est fortement recommandé de "
+"fournir un mot de passe personnalisé pour le compte administrateur 'admin'."
 
-#. Type: select
+#. Type: password
 #. Description
-#: ../zoneminder.templates:8002
-msgid "Please select the location of your database."
-msgstr "Veuillez sélectionner l'emplacement de votre base de données."
+#: ../zoneminder.templates:8001
+msgid "If this field is left blank, the password will not be changed."
+msgstr "Si le champ est laissé vide, le mot de passe ne sera pas changé."
 
-#. Type: select
-#. Description
-#: ../zoneminder.templates:8002
-msgid ""
-"If you choose a remote location, you will have to select the 'tcp/ip' "
-"connection method and enter the hostname or ip address of the remote machine "
-"in the next configuration screens."
-msgstr ""
-"Si vous choisissez un emplacement distant, vous devrez sélectionner la "
-"méthode de connexion 'tcp/ip' et entrer le nom réseau ou l'adresse ip de la "
-"machine distante dans les écrans de configuration suivants."
-
-#. Type: boolean
+#. Type: password
 #. Description
 #: ../zoneminder.templates:9001
-msgid "Configure ZoneMinder automatically?"
-msgstr "Configurer ZoneMinder automatiquement ?"
+msgid "Repeat password for the ZoneMinder 'admin' user:"
+msgstr "Veuillez répéter le mot de passe pour le compte 'admin' de ZoneMinder"
 
-#. Type: boolean
+#. Type: error
 #. Description
-#: ../zoneminder.templates:9001
-msgid ""
-"This configuration assistant allows you to perform automatically the basic "
-"configuration of ZoneMinder."
+#: ../zoneminder.templates:10001
+msgid "Password input error"
+msgstr "Erreur de mot de passe"
+
+#. Type: error
+#. Description
+#: ../zoneminder.templates:10001
+msgid "The two passwords you entered were not the same. Please try again."
 msgstr ""
-"Cet assistant de configuration vous permet de réaliser automatiquement le "
-"paramétrage de base de ZoneMinder."
+"Les deux mots de passe saisis ne sont pas les mêmes. Veuillez essayer à "
+"nouveau."

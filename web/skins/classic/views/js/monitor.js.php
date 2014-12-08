@@ -1,5 +1,5 @@
-var optControl = <?= ZM_OPT_CONTROL ?>;
-var defaultAspectRatio = '<?= ZM_DEFAULT_ASPECT_RATIO ?>';
+var optControl = <?php echo ZM_OPT_CONTROL ?>;
+var defaultAspectRatio = '<?php echo ZM_DEFAULT_ASPECT_RATIO ?>';
 
 <?php
 if ( ZM_OPT_CONTROL )
@@ -16,24 +16,24 @@ var controlOptions = new Object();
     {
         $controlTypes[$row['Id']] = $row['Name'];
 ?>
-controlOptions[<?= $row['Id'] ?>] = new Array();
+controlOptions[<?php echo $row['Id'] ?>] = new Array();
 <?php
         if ( $row['HasHomePreset'] )
         {
 ?>
-controlOptions[<?= $row['Id'] ?>][0] = '<?= $SLANG['Home'] ?>';
+controlOptions[<?php echo $row['Id'] ?>][0] = '<?php echo $SLANG['Home'] ?>';
 <?php
         }
         else
         {
 ?>
-controlOptions[<?= $row['Id'] ?>][0] = null;
+controlOptions[<?php echo $row['Id'] ?>][0] = null;
 <?php
         }
         for ( $i = 1; $i <= $row['NumPresets']; $i++ )
         {
 ?>
-controlOptions[<?= $row['Id'] ?>][<?= $i ?>] = '<?= $SLANG['Preset'].' '.$i ?>';
+controlOptions[<?php echo $row['Id'] ?>][<?php echo $i ?>] = '<?php echo $SLANG['Preset'].' '.$i ?>';
 <?php
         }
     }
@@ -49,7 +49,7 @@ var monitorNames = new Object();
     foreach ( dbFetchAll( "select Name from Monitors order by Name asc", "Name" ) as $name )
     {
 ?>
-monitorNames['<?= validJsStr($name) ?>'] = true;
+monitorNames['<?php echo validJsStr($name) ?>'] = true;
 <?php
     }
 }
@@ -60,76 +60,76 @@ function validateForm( form )
     var errors = new Array();
 
     if ( form.elements['newMonitor[Name]'].value.search( /[^\w-]/ ) >= 0 )
-        errors[errors.length] = "<?= $SLANG['BadNameChars'] ?>";
+        errors[errors.length] = "<?php echo $SLANG['BadNameChars'] ?>";
     else if ( form.elements.mid.value == 0 && monitorNames[form.elements['newMonitor[Name]'].value] )
-        errors[errors.length] = "<?= $SLANG['DuplicateMonitorName'] ?>";
+        errors[errors.length] = "<?php echo $SLANG['DuplicateMonitorName'] ?>";
         
     if ( form.elements['newMonitor[MaxFPS]'].value && !(parseFloat(form.elements['newMonitor[MaxFPS]'].value) > 0 ) )
-        errors[errors.length] = "<?= $SLANG['BadMaxFPS'] ?>";
+        errors[errors.length] = "<?php echo $SLANG['BadMaxFPS'] ?>";
     if ( form.elements['newMonitor[AlarmMaxFPS]'].value && !(parseFloat(form.elements['newMonitor[AlarmMaxFPS]'].value) > 0 ) )
-        errors[errors.length] = "<?= $SLANG['BadAlarmMaxFPS'] ?>";
+        errors[errors.length] = "<?php echo $SLANG['BadAlarmMaxFPS'] ?>";
     if ( !form.elements['newMonitor[RefBlendPerc]'].value || (parseInt(form.elements['newMonitor[RefBlendPerc]'].value) > 100 ) || (parseInt(form.elements['newMonitor[RefBlendPerc]'].value) < 0 ) )
-        errors[errors.length] = "<?= $SLANG['BadRefBlendPerc'] ?>";
+        errors[errors.length] = "<?php echo $SLANG['BadRefBlendPerc'] ?>";
     if ( form.elements['newMonitor[Type]'].value == 'Local' )
     {
         if ( !form.elements['newMonitor[Palette]'].value || !form.elements['newMonitor[Palette]'].value.match( /^\d+$/ ) )
-            errors[errors.length] = "<?= $SLANG['BadPalette'] ?>";
+            errors[errors.length] = "<?php echo $SLANG['BadPalette'] ?>";
         if ( !form.elements['newMonitor[Device]'].value )
-            errors[errors.length] = "<?= $SLANG['BadDevice'] ?>";
+            errors[errors.length] = "<?php echo $SLANG['BadDevice'] ?>";
         if ( !form.elements['newMonitor[Channel]'].value || !form.elements['newMonitor[Channel]'].value.match( /^\d+$/ ) )
-            errors[errors.length] = "<?= $SLANG['BadChannel'] ?>";
+            errors[errors.length] = "<?php echo $SLANG['BadChannel'] ?>";
         if ( !form.elements['newMonitor[Format]'].value || !form.elements['newMonitor[Format]'].value.match( /^\d+$/ ) )
-            errors[errors.length] = "<?= $SLANG['BadFormat'] ?>";
+            errors[errors.length] = "<?php echo $SLANG['BadFormat'] ?>";
     }
     else if ( form.elements['newMonitor[Type]'].value == 'Remote' )
     {
         if ( !form.elements['newMonitor[Host]'].value || !form.elements['newMonitor[Host]'].value.match( /^[0-9a-zA-Z_.:@-]+$/ ) )
-            errors[errors.length] = "<?= $SLANG['BadHost'] ?>";
+            errors[errors.length] = "<?php echo $SLANG['BadHost'] ?>";
         if ( form.elements['newMonitor[Port]'].value && !form.elements['newMonitor[Port]'].value.match( /^\d+$/ ) )
-            errors[errors.length] = "<?= $SLANG['BadPort'] ?>";
+            errors[errors.length] = "<?php echo $SLANG['BadPort'] ?>";
         //if ( !form.elements['newMonitor[Path]'].value )
-            //errors[errors.length] = "<?= $SLANG['BadPath'] ?>";
+            //errors[errors.length] = "<?php echo $SLANG['BadPath'] ?>";
     }
     else if ( form.elements['newMonitor[Type]'].value == 'File' )
     {
         if ( !form.elements['newMonitor[Path]'].value )
-            errors[errors.length] = "<?= $SLANG['BadPath'] ?>";
+            errors[errors.length] = "<?php echo $SLANG['BadPath'] ?>";
     }
     if ( !form.elements['newMonitor[Colours]'].value || (parseInt(form.elements['newMonitor[Colours]'].value) != 1 && parseInt(form.elements['newMonitor[Colours]'].value) != 3 && parseInt(form.elements['newMonitor[Colours]'].value) != 4 ) )
-        errors[errors.length] = "<?= $SLANG['BadColours'] ?>";
+        errors[errors.length] = "<?php echo $SLANG['BadColours'] ?>";
     if ( !form.elements['newMonitor[Width]'].value || !(parseInt(form.elements['newMonitor[Width]'].value) > 0 ) )
-        errors[errors.length] = "<?= $SLANG['BadWidth'] ?>";
+        errors[errors.length] = "<?php echo $SLANG['BadWidth'] ?>";
     if ( !form.elements['newMonitor[Height]'].value || !(parseInt(form.elements['newMonitor[Height]'].value) > 0 ) )
-        errors[errors.length] = "<?= $SLANG['BadHeight'] ?>";
+        errors[errors.length] = "<?php echo $SLANG['BadHeight'] ?>";
     if ( !form.elements['newMonitor[LabelX]'].value || !(parseInt(form.elements['newMonitor[LabelX]'].value) >= 0 ) )
-        errors[errors.length] = "<?= $SLANG['BadLabelX'] ?>";
+        errors[errors.length] = "<?php echo $SLANG['BadLabelX'] ?>";
     if ( !form.elements['newMonitor[LabelY]'].value || !(parseInt(form.elements['newMonitor[LabelY]'].value) >= 0 ) )
-        errors[errors.length] = "<?= $SLANG['BadLabelY'] ?>";
+        errors[errors.length] = "<?php echo $SLANG['BadLabelY'] ?>";
     if ( !form.elements['newMonitor[ImageBufferCount]'].value || !(parseInt(form.elements['newMonitor[ImageBufferCount]'].value) >= 10 ) )
-        errors[errors.length] = "<?= $SLANG['BadImageBufferCount'] ?>";
+        errors[errors.length] = "<?php echo $SLANG['BadImageBufferCount'] ?>";
     if ( !form.elements['newMonitor[WarmupCount]'].value || !(parseInt(form.elements['newMonitor[WarmupCount]'].value) >= 0 ) )
-        errors[errors.length] = "<?= $SLANG['BadWarmupCount'] ?>";
+        errors[errors.length] = "<?php echo $SLANG['BadWarmupCount'] ?>";
     if ( !form.elements['newMonitor[PreEventCount]'].value || !(parseInt(form.elements['newMonitor[PreEventCount]'].value) > 0 ) || (parseInt(form.elements['newMonitor[PreEventCount]'].value) > parseInt(form.elements['newMonitor[ImageBufferCount]'].value)) )
-        errors[errors.length] = "<?= $SLANG['BadPreEventCount'] ?>";
+        errors[errors.length] = "<?php echo $SLANG['BadPreEventCount'] ?>";
     if ( !form.elements['newMonitor[PostEventCount]'].value || !(parseInt(form.elements['newMonitor[PostEventCount]'].value) >= 0 ) )
-        errors[errors.length] = "<?= $SLANG['BadPostEventCount'] ?>";
+        errors[errors.length] = "<?php echo $SLANG['BadPostEventCount'] ?>";
     if ( !form.elements['newMonitor[StreamReplayBuffer]'].value || !(parseInt(form.elements['newMonitor[StreamReplayBuffer]'].value) >= 0 ) )
-        errors[errors.length] = "<?= $SLANG['BadStreamReplayBuffer'] ?>";
+        errors[errors.length] = "<?php echo $SLANG['BadStreamReplayBuffer'] ?>";
     if ( !form.elements['newMonitor[AlarmFrameCount]'].value || !(parseInt(form.elements['newMonitor[AlarmFrameCount]'].value) > 0 ) )
-        errors[errors.length] = "<?= $SLANG['BadAlarmFrameCount'] ?>";
+        errors[errors.length] = "<?php echo $SLANG['BadAlarmFrameCount'] ?>";
     if ( !form.elements['newMonitor[SectionLength]'].value || !(parseInt(form.elements['newMonitor[SectionLength]'].value) >= 30 ) )
-        errors[errors.length] = "<?= $SLANG['BadSectionLength'] ?>";
+        errors[errors.length] = "<?php echo $SLANG['BadSectionLength'] ?>";
     if ( !form.elements['newMonitor[FPSReportInterval]'].value || !(parseInt(form.elements['newMonitor[FPSReportInterval]'].value) >= 0 ) )
-        errors[errors.length] = "<?= $SLANG['BadFPSReportInterval'] ?>";
+        errors[errors.length] = "<?php echo $SLANG['BadFPSReportInterval'] ?>";
     if ( !form.elements['newMonitor[FrameSkip]'].value || !(parseInt(form.elements['newMonitor[FrameSkip]'].value) >= 0 ) )
-        errors[errors.length] = "<?= $SLANG['BadFrameSkip'] ?>";
+        errors[errors.length] = "<?php echo $SLANG['BadFrameSkip'] ?>";
     if ( !form.elements['newMonitor[MotionFrameSkip]'].value || !(parseInt(form.elements['newMonitor[MotionFrameSkip]'].value) >= 0 ) )
-        errors[errors.length] = "<?= $SLANG['BadMotionFrameSkip'] ?>";
+        errors[errors.length] = "<?php echo $SLANG['BadMotionFrameSkip'] ?>";
     if ( form.elements['newMonitor[Type]'].value == 'Local' )
         if ( !form.elements['newMonitor[SignalCheckColour]'].value || !form.elements['newMonitor[SignalCheckColour]'].value.match( /^[#0-9a-zA-Z]+$/ ) )
-            errors[errors.length] = "<?= $SLANG['BadSignalCheckColour'] ?>";
+            errors[errors.length] = "<?php echo $SLANG['BadSignalCheckColour'] ?>";
     if ( !form.elements['newMonitor[WebColour]'].value || !form.elements['newMonitor[WebColour]'].value.match( /^[#0-9a-zA-Z]+$/ ) )
-        errors[errors.length] = "<?= $SLANG['BadWebColour'] ?>";
+        errors[errors.length] = "<?php echo $SLANG['BadWebColour'] ?>";
 
     if ( errors.length )
     {
@@ -164,8 +164,8 @@ function updateMethods( element )
 foreach( $httpMethods as $value=>$label )
 {
 ?>
-            methodSelector.options[methodSelector.options.length] = new Option( "<?= htmlspecialchars($label) ?>", "<?= $value ?>" );
-            if ( origMethod.value == "<?= $value ?>" )
+            methodSelector.options[methodSelector.options.length] = new Option( "<?php echo htmlspecialchars($label) ?>", "<?php echo $value ?>" );
+            if ( origMethod.value == "<?php echo $value ?>" )
                 methodSelector.selectedIndex = methodSelector.options.length-1;
 <?php
 }
@@ -178,8 +178,8 @@ foreach( $httpMethods as $value=>$label )
 foreach( $rtspMethods as $value=>$label )
 {
 ?>
-            methodSelector.options[methodSelector.options.length] = new Option( "<?= htmlspecialchars($label) ?>", "<?= $value ?>" );
-            if ( origMethod.value == "<?= $value ?>" )
+            methodSelector.options[methodSelector.options.length] = new Option( "<?php echo htmlspecialchars($label) ?>", "<?php echo $value ?>" );
+            if ( origMethod.value == "<?php echo $value ?>" )
                 methodSelector.selectedIndex = form.elements['newMonitor[Method]'].options.length-1;
 <?php
 }

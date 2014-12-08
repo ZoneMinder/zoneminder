@@ -1,42 +1,42 @@
 .chartSize {
-    width: <?= $chart['width'] ?>px;
-    height: <?= $chart['height'] ?>px;
+    width: <?php echo $chart['width'] ?>px;
+    height: <?php echo $chart['height'] ?>px;
 }
 
 .graphSize {
-    width: <?= $chart['graph']['width'] ?>px;
-    height: <?= $chart['graph']['height'] ?>px;
+    width: <?php echo $chart['graph']['width'] ?>px;
+    height: <?php echo $chart['graph']['height'] ?>px;
 }
 
 .graphHeight {
-    height: <?= $chart['graph']['height'] ?>px;
+    height: <?php echo $chart['graph']['height'] ?>px;
 }
 
 .graphWidth {
-    width: <?= $chart['graph']['width'] ?>px;
+    width: <?php echo $chart['graph']['width'] ?>px;
 }
 
 .imageSize {
-    width: <?= $chart['image']['width'] ?>px;
-    height: <?= $chart['image']['height'] ?>px;
+    width: <?php echo $chart['image']['width'] ?>px;
+    height: <?php echo $chart['image']['height'] ?>px;
 }
 
 .imageHeight {
-    height: <?= $chart['image']['height'] ?>px;
+    height: <?php echo $chart['image']['height'] ?>px;
 }
 
 .activitySize {
-    width: <?= $chart['graph']['width'] ?>px;
-    height: <?= $chart['graph']['activityHeight'] ?>px;
+    width: <?php echo $chart['graph']['width'] ?>px;
+    height: <?php echo $chart['graph']['activityHeight'] ?>px;
 }
 
 .eventsSize {
-    width: <?= $chart['graph']['width'] ?>px;
-    height: <?= $chart['graph']['eventBarHeight'] ?>px;
+    width: <?php echo $chart['graph']['width'] ?>px;
+    height: <?php echo $chart['graph']['eventBarHeight'] ?>px;
 }
 
 .eventsHeight {
-    height: <?= $chart['graph']['eventBarHeight'] ?>px;
+    height: <?php echo $chart['graph']['eventBarHeight'] ?>px;
 }
 <?php
 if ( $mode == "overlay" )
@@ -44,8 +44,8 @@ if ( $mode == "overlay" )
     foreach ( array_keys($monitorIds) as $monitorId )
     {
 ?>
-#chartPanel .eventsPos<?= $monitorId ?> {
-    top: <?= $chart['eventBars'][$monitorId]['top'] ?>px;
+#chartPanel .eventsPos<?php echo $monitorId ?> {
+    top: <?php echo $chart['eventBars'][$monitorId]['top'] ?>px;
 }
 <?php
     }
@@ -55,12 +55,12 @@ elseif ( $mode == "split" )
     foreach ( array_keys($monitorIds) as $monitorId )
     {
 ?>
-#chartPanel .activityPos<?= $monitorId ?> {
-    top: <?= $char['activityBars'][$monitorId]['top'] ?>px;
+#chartPanel .activityPos<?php echo $monitorId ?> {
+    top: <?php echo $char['activityBars'][$monitorId]['top'] ?>px;
 }
 
-#chartPanel .eventsPos<?= $monitorId ?> {
-    top: <?= $char['eventBars'][$monitorId]['top'] ?>px;
+#chartPanel .eventsPos<?php echo $monitorId ?> {
+    top: <?php echo $char['eventBars'][$monitorId]['top'] ?>px;
 }
 <?php
     }
@@ -69,8 +69,8 @@ elseif ( $mode == "split" )
 foreach( array_keys($monEventSlots) as $monitorId )
 {
 ?>
-.monitorColour<?= $monitorId ?> {
-    background-color: <?= $monitors[$monitorId]['WebColour'] ?>;
+.monitorColour<?php echo $monitorId ?> {
+    background-color: <?php echo $monitors[$monitorId]['WebColour'] ?>;
 }
 <?php
 }

@@ -119,6 +119,8 @@ function getControlCommands( $monitor )
         {
             $cmds['MoveRoot'] = "moveAbs";
             $cmds['Center'] = $cmds['PresetHome'];
+		} else {
+			$cmds['MoveRoot'] = '';
         }
 
         $cmds['MoveUp'] = $cmds['MoveRoot']."Up";

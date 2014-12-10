@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zoneminder\n"
 "Report-Msgid-Bugs-To: zoneminder@packages.debian.org\n"
-"POT-Creation-Date: 2014-12-08 00:38+0100\n"
+"POT-Creation-Date: 2014-12-10 11:04+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -29,6 +29,23 @@ msgstr ""
 msgid ""
 "This configuration assistant allows you to perform automatically the basic "
 "configuration of ZoneMinder."
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../zoneminder.templates:1001
+msgid "If you choose to leave this assistant, you can resume it by invoking:"
+msgstr ""
+
+#. Type: boolean
+#. Description
+#. Type: error
+#. Description
+#. Type: error
+#. Description
+#: ../zoneminder.templates:1001 ../zoneminder.templates:5001
+#: ../zoneminder.templates:6001
+msgid "$ sudo dpkg-reconfigure zoneminder"
 msgstr ""
 
 #. Type: error
@@ -100,12 +117,6 @@ msgstr ""
 #. Type: select
 #. Description
 #: ../zoneminder.templates:4002
-msgid "Please select the location of your database."
-msgstr ""
-
-#. Type: select
-#. Description
-#: ../zoneminder.templates:4002
 msgid ""
 "If you choose a remote location, you will have to select the 'tcp/ip' "
 "connection method and enter the hostname or ip address of the remote machine "
@@ -133,14 +144,6 @@ msgid ""
 "In order to complete the installation of ZoneMinder, after ending of this "
 "assistant, please install a compatible database server and then restart the "
 "assistant by invoking:"
-msgstr ""
-
-#. Type: error
-#. Description
-#. Type: error
-#. Description
-#: ../zoneminder.templates:5001 ../zoneminder.templates:6001
-msgid "$ sudo dpkg-reconfigure zoneminder"
 msgstr ""
 
 #. Type: error
@@ -235,4 +238,48 @@ msgstr ""
 #. Description
 #: ../zoneminder.templates:10001
 msgid "The two passwords you entered were not the same. Please try again."
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../zoneminder.templates:11001
+msgid "Delete this non empty directory?"
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../zoneminder.templates:11001
+msgid ""
+"A purge of the ZoneMinder package is performed but the directory '/var/cache/"
+"zoneminder' is not empty so it will not be deleted."
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../zoneminder.templates:11001
+msgid ""
+"Please consider that this directory is designed to contain data resulting "
+"from event detection. Therefore, \"proof of evidence\" could be lost!\""
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../zoneminder.templates:11001
+msgid ""
+"If you are not sure of your decision, please do not delete this directory "
+"but perform a manual checkup."
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../zoneminder.templates:12001
+msgid "Deletion confirmed?"
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../zoneminder.templates:12001
+msgid ""
+"You have allowed the deletion of directory '/var/cache/zoneminder' although "
+"it may contain critical data."
 msgstr ""

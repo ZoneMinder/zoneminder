@@ -1,7 +1,7 @@
 #! /bin/sh
 # postrm maintainer script for zoneminder
 
-set -e
+set -ex
 
 # Source the debconf stuff
 if [ -f /usr/share/debconf/confmodule ]; then
@@ -31,7 +31,9 @@ fi
 if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
 
     # Deconfigure the web server
-    db_get zoneminder/webserver
+    # Catch error because zoneminder/webserver does not exist if the user has
+    # skipped the use of debconf
+    db_get zoneminder/webserver || true
 
     webservers="$RET"
     for webserver in $webservers; do
@@ -42,7 +44,7 @@ if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
         fi
     done
 
-    # No need to manually remove the zm database and user, dbconfig take care of this
+    # No need to manually remove the zm database, dbconfig take care of this
 fi
 
 if [ "$1" = "purge" ]; then
@@ -50,6 +52,23 @@ if [ "$1" = "purge" ]; then
     # Delete a potential remaining file not managed by debhelper
     rm -f /etc/zm/zm.conf.postinst.bak
 
+    # Ask the user if we have to remove the cache directory even if not empty
+    if [ -d /var/cache/zoneminder ] \
+      && [ ! $(find /var/cache/zoneminder -maxdepth 0 -type d -empty 2>/dev/null) ]; then
+        RET=""
+        db_input high zoneminder/ask_delete || true
+        db_go || true
+        db_get zoneminder/ask_delete
+        if [ "$RET" = "true" ]; then
+            RET=""
+            db_input high zoneminder/ask_delete_again || true
+            db_go || true
+            db_get zoneminder/ask_delete_again
+            if [ "$RET" = "true" ]; then
+                rm -rf /var/cache/zoneminder
+            fi
+        fi
+    fi
 fi
 
 #DEBHELPER#

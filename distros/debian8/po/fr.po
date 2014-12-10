@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zoneminder\n"
 "Report-Msgid-Bugs-To: zoneminder@packages.debian.org\n"
-"POT-Creation-Date: 2014-12-08 00:38+0100\n"
+"POT-Creation-Date: 2014-12-10 11:04+0100\n"
 "PO-Revision-Date: 2014-12-07 00:40+0100\n"
 "Last-Translator: Emmanuel Papin <manupap01@gmail.com>\n"
 "Language-Team: French <debian-l10n-french@lists.debian.org>\n"
@@ -31,6 +31,24 @@ msgid ""
 msgstr ""
 "Cet assistant de configuration vous permet de réaliser automatiquement le "
 "paramétrage de base de ZoneMinder."
+
+#. Type: boolean
+#. Description
+#: ../zoneminder.templates:1001
+msgid "If you choose to leave this assistant, you can resume it by invoking:"
+msgstr "Si vous choisissez de quitter cet assistant, vous pouvez le reprendre "
+"en invoquant :"
+
+#. Type: boolean
+#. Description
+#. Type: error
+#. Description
+#. Type: error
+#. Description
+#: ../zoneminder.templates:1001 ../zoneminder.templates:5001
+#: ../zoneminder.templates:6001
+msgid "$ sudo dpkg-reconfigure zoneminder"
+msgstr "$ sudo dpkg-reconfigure zoneminder"
 
 #. Type: error
 #. Description
@@ -107,12 +125,6 @@ msgstr ""
 #. Type: select
 #. Description
 #: ../zoneminder.templates:4002
-msgid "Please select the location of your database."
-msgstr "Veuillez sélectionner l'emplacement de votre base de données."
-
-#. Type: select
-#. Description
-#: ../zoneminder.templates:4002
 msgid ""
 "If you choose a remote location, you will have to select the 'tcp/ip' "
 "connection method and enter the hostname or ip address of the remote machine "
@@ -148,15 +160,7 @@ msgid ""
 msgstr ""
 "Afin de compléter l'installation de ZoneMinder, après la fermeture de cet "
 "assitant, veuillez installer un serveur de base de données compatible et "
-"ensuite redémarrez l'assistant en invoquant:"
-
-#. Type: error
-#. Description
-#. Type: error
-#. Description
-#: ../zoneminder.templates:5001 ../zoneminder.templates:6001
-msgid "$ sudo dpkg-reconfigure zoneminder"
-msgstr "$ sudo dpkg-reconfigure zoneminder"
+"ensuite redémarrez l'assistant en invoquant :"
 
 #. Type: error
 #. Description
@@ -182,7 +186,7 @@ msgid ""
 "please invoke:"
 msgstr ""
 "Afin de reconfigurer dbconfig-common, après la fermeture de cet assitant, "
-"veuillez invoquer:"
+"veuillez invoquer :"
 
 #. Type: error
 #. Description
@@ -220,13 +224,13 @@ msgstr ""
 #. Description
 #: ../zoneminder.templates:8001
 msgid "New password for the ZoneMinder 'admin' user:"
-msgstr "Nouveau mot de passe pour le compte 'admin' de ZoneMinder"
+msgstr "Nouveau mot de passe pour le compte 'admin' de ZoneMinder :"
 
 #. Type: password
 #. Description
 #: ../zoneminder.templates:8001
 msgid "Please enter the password of the default administrative user."
-msgstr "Veuillez entrer le mot de passe du compte administrateur par défault."
+msgstr "Veuillez entrer le mot de passe du compte administrateur par défaut."
 
 #. Type: password
 #. Description
@@ -248,7 +252,7 @@ msgstr "Si le champ est laissé vide, le mot de passe ne sera pas changé."
 #. Description
 #: ../zoneminder.templates:9001
 msgid "Repeat password for the ZoneMinder 'admin' user:"
-msgstr "Veuillez répéter le mot de passe pour le compte 'admin' de ZoneMinder"
+msgstr "Répéter le mot de passe pour le compte 'admin' de ZoneMinder :"
 
 #. Type: error
 #. Description
@@ -263,3 +267,56 @@ msgid "The two passwords you entered were not the same. Please try again."
 msgstr ""
 "Les deux mots de passe saisis ne sont pas les mêmes. Veuillez essayer à "
 "nouveau."
+
+#. Type: boolean
+#. Description
+#: ../zoneminder.templates:11001
+msgid "Delete this non empty directory?"
+msgstr "Supprimer ce répertoire non vide ?"
+
+#. Type: boolean
+#. Description
+#: ../zoneminder.templates:11001
+msgid ""
+"A purge of the ZoneMinder package is performed but the directory '/var/cache/"
+"zoneminder' is not empty so it will not be deleted."
+msgstr ""
+"Une purge du paquet ZoneMinder est en cours mais le répertoire '/var/cache/"
+"zoneminder' n'est pas vide et sera donc conservé."
+
+#. Type: boolean
+#. Description
+#: ../zoneminder.templates:11001
+msgid ""
+"Please consider that this directory is designed to contain data resulting "
+"from event detection. Therefore, \"proof of evidence\" could be lost!\""
+msgstr ""
+"Veuillez considérer que ce répertoire est conçu pour contenir des données "
+"résultants de la détection d'événements. Par conséquent, des preuves "
+"pourraient être perdues !"
+
+#. Type: boolean
+#. Description
+#: ../zoneminder.templates:11001
+msgid ""
+"If you are not sure of your decision, please do not delete this directory "
+"but perform a manual checkup."
+msgstr ""
+"Si vous n'êtes pas sûr de votre décision, veuillez conserver ce répertoire "
+"et effectuer une vérification manuelle."
+
+#. Type: boolean
+#. Description
+#: ../zoneminder.templates:12001
+msgid "Deletion confirmed?"
+msgstr "Supression confirmée ?"
+
+#. Type: boolean
+#. Description
+#: ../zoneminder.templates:12001
+msgid ""
+"You have allowed the deletion of directory '/var/cache/zoneminder' although "
+"it may contain critical data."
+msgstr ""
+"Vous avez autorisé la suppression du répertoire '/var/cache/zoneminder' bien "
+"qu'il puisse contenir des données critiques."

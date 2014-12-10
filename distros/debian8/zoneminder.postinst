@@ -1,7 +1,7 @@
 #! /bin/sh
 # postinst maintainer script for zoneminder
 
-set -e
+set -ex
 
 # Source the debconf stuff
 . /usr/share/debconf/confmodule
@@ -42,7 +42,12 @@ mysql_update() {
 
 # Exit if user didn't want to use debconf
 db_get zoneminder/debconf_install
-[ "$RET" = "false" ] && exit 0
+if [ "$RET" = "false" ]; then
+  # Reset the answer otherwise we are stuck here if the user choose to not use
+  # debconf at first install (the question is not asked when reconfiguring)
+  db_reset zoneminder/debconf_install
+  exit 0
+fi
 
 # Source the config file if exists
 [ ! -e $CONFIGFILE ] && exit 0

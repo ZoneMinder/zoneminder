@@ -4,6 +4,10 @@ Default: true
 _Description: Configure ZoneMinder automatically?
  This configuration assistant allows you to perform automatically the basic
  configuration of ZoneMinder.
+ .
+ If you choose to leave this assistant, you can resume it by invoking:
+ .
+ $ sudo dpkg-reconfigure zoneminder
 
 Template: zoneminder/debconf_confmissingerror
 Type: error
@@ -28,8 +32,6 @@ Default: local
 _Description: Database location:
  A database server is required to run ZoneMinder. The database can be installed
  either locally or remotely on a machine of your network.
- .
- Please select the location of your database.
  .
  If you choose a remote location, you will have to select the 'tcp/ip'
  connection method and enter the hostname or ip address of the remote machine
@@ -89,3 +91,23 @@ Template: zoneminder/password_mismatch
 Type: error
 _Description: Password input error
  The two passwords you entered were not the same. Please try again.
+
+Template: zoneminder/ask_delete
+Type: boolean
+Default: false
+_Description: Delete this non empty directory?
+ A purge of the ZoneMinder package is performed but the directory
+ '/var/cache/zoneminder' is not empty so it will not be deleted.
+ .
+ Please consider that this directory is designed to contain data resulting from
+ event detection. Therefore, "proof of evidence" could be lost!"
+ .
+ If you are not sure of your decision, please do not delete this directory but
+ perform a manual checkup.
+
+Template: zoneminder/ask_delete_again
+Type: boolean
+Default: false
+_Description: Deletion confirmed?
+ You have allowed the deletion of directory '/var/cache/zoneminder' although
+ it may contain critical data.

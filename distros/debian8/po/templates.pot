@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zoneminder\n"
 "Report-Msgid-Bugs-To: zoneminder@packages.debian.org\n"
-"POT-Creation-Date: 2014-12-10 11:04+0100\n"
+"POT-Creation-Date: 2014-12-12 12:28+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,98 +17,27 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#. Type: boolean
-#. Description
-#: ../zoneminder.templates:1001
-msgid "Configure ZoneMinder automatically?"
-msgstr ""
-
-#. Type: boolean
-#. Description
-#: ../zoneminder.templates:1001
-msgid ""
-"This configuration assistant allows you to perform automatically the basic "
-"configuration of ZoneMinder."
-msgstr ""
-
-#. Type: boolean
-#. Description
-#: ../zoneminder.templates:1001
-msgid "If you choose to leave this assistant, you can resume it by invoking:"
-msgstr ""
-
-#. Type: boolean
-#. Description
-#. Type: error
-#. Description
-#. Type: error
-#. Description
-#: ../zoneminder.templates:1001 ../zoneminder.templates:5001
-#: ../zoneminder.templates:6001
-msgid "$ sudo dpkg-reconfigure zoneminder"
-msgstr ""
-
-#. Type: error
-#. Description
-#: ../zoneminder.templates:2001
-msgid "Configuration file is missing:"
-msgstr ""
-
-#. Type: error
-#. Description
-#: ../zoneminder.templates:2001
-msgid "ZoneMinder installation is corrupted."
-msgstr ""
-
-#. Type: error
-#. Description
-#: ../zoneminder.templates:2001
-msgid "The main configuration file '/etc/zm/zm.conf' is missing."
-msgstr ""
-
-#. Type: error
-#. Description
-#: ../zoneminder.templates:3001
-msgid "Bad database type:"
-msgstr ""
-
-#. Type: error
-#. Description
-#: ../zoneminder.templates:3001
-msgid ""
-"The database type specified in the configuration file '/etc/zm/zm.conf' is "
-"not set to 'mysql'."
-msgstr ""
-
-#. Type: error
-#. Description
-#: ../zoneminder.templates:3001
-msgid ""
-"This program will abort so you can fix the configuration file and then "
-"restart the installation of ZoneMinder."
-msgstr ""
-
 #. Type: select
 #. Choices
-#: ../zoneminder.templates:4001
+#: ../zoneminder.templates:1001
 msgid "local"
 msgstr ""
 
 #. Type: select
 #. Choices
-#: ../zoneminder.templates:4001
+#: ../zoneminder.templates:1001
 msgid "remote"
 msgstr ""
 
 #. Type: select
 #. Description
-#: ../zoneminder.templates:4002
+#: ../zoneminder.templates:1002
 msgid "Database location:"
 msgstr ""
 
 #. Type: select
 #. Description
-#: ../zoneminder.templates:4002
+#: ../zoneminder.templates:1002
 msgid ""
 "A database server is required to run ZoneMinder. The database can be "
 "installed either locally or remotely on a machine of your network."
@@ -116,7 +45,7 @@ msgstr ""
 
 #. Type: select
 #. Description
-#: ../zoneminder.templates:4002
+#: ../zoneminder.templates:1002
 msgid ""
 "If you choose a remote location, you will have to select the 'tcp/ip' "
 "connection method and enter the hostname or ip address of the remote machine "
@@ -125,13 +54,13 @@ msgstr ""
 
 #. Type: error
 #. Description
-#: ../zoneminder.templates:5001
+#: ../zoneminder.templates:2001
 msgid "No local database server is available:"
 msgstr ""
 
 #. Type: error
 #. Description
-#: ../zoneminder.templates:5001
+#: ../zoneminder.templates:2001
 msgid ""
 "Currently ZoneMinder supports mysql or mariadb database server but none of "
 "them appears to be installed on this machine."
@@ -139,78 +68,86 @@ msgstr ""
 
 #. Type: error
 #. Description
-#: ../zoneminder.templates:5001
+#: ../zoneminder.templates:2001
 msgid ""
-"In order to complete the installation of ZoneMinder, after ending of this "
+"In order to complete ZoneMinder's installation, after ending of this "
 "assistant, please install a compatible database server and then restart the "
 "assistant by invoking:"
 msgstr ""
 
 #. Type: error
 #. Description
-#: ../zoneminder.templates:6001
+#. Type: error
+#. Description
+#: ../zoneminder.templates:2001 ../zoneminder.templates:3001
+msgid "$ sudo dpkg-reconfigure zoneminder"
+msgstr ""
+
+#. Type: error
+#. Description
+#: ../zoneminder.templates:3001
 msgid "Remote database servers are not allowed:"
 msgstr ""
 
 #. Type: error
 #. Description
-#: ../zoneminder.templates:6001
+#: ../zoneminder.templates:3001
 msgid ""
 "The current configuration of dbconfig-common does not allow installation of "
-"databases on remote servers from this assistant."
+"a database on remote servers."
 msgstr ""
 
 #. Type: error
 #. Description
-#: ../zoneminder.templates:6001
+#: ../zoneminder.templates:3001
 msgid ""
-"In order to reconfigure dbconfig-common, after ending of this assistant, "
-"please invoke:"
+"In order to reconfigure dbconfig-common, please invoke the following command "
+"after ending of this assistant:"
 msgstr ""
 
 #. Type: error
 #. Description
-#: ../zoneminder.templates:6001
+#: ../zoneminder.templates:3001
 msgid "$ sudo dpkg-reconfigure dbconfig-common"
 msgstr ""
 
 #. Type: error
 #. Description
-#: ../zoneminder.templates:6001
+#: ../zoneminder.templates:3001
 msgid ""
-"Then, to complete the installation of ZoneMinder, please restart this "
-"assistant by invoking:"
+"Then, to complete ZoneMinder's installation, please restart this assistant "
+"by invoking:"
 msgstr ""
 
 #. Type: multiselect
 #. Description
-#: ../zoneminder.templates:7001
+#: ../zoneminder.templates:4001
 msgid "Web server to reconfigure automatically:"
 msgstr ""
 
 #. Type: multiselect
 #. Description
-#: ../zoneminder.templates:7001
+#: ../zoneminder.templates:4001
 msgid ""
-"Please choose the web server that should be automatically configure to run "
-"ZoneMinder."
+"Please choose the web server that should be automatically configured for "
+"ZoneMinder's web portal access."
 msgstr ""
 
 #. Type: password
 #. Description
-#: ../zoneminder.templates:8001
+#: ../zoneminder.templates:5001
 msgid "New password for the ZoneMinder 'admin' user:"
 msgstr ""
 
 #. Type: password
 #. Description
-#: ../zoneminder.templates:8001
+#: ../zoneminder.templates:5001
 msgid "Please enter the password of the default administrative user."
 msgstr ""
 
 #. Type: password
 #. Description
-#: ../zoneminder.templates:8001
+#: ../zoneminder.templates:5001
 msgid ""
 "While not mandatory, it is highly recommended that you set a custom password "
 "for the administrative 'admin' user."
@@ -218,37 +155,37 @@ msgstr ""
 
 #. Type: password
 #. Description
-#: ../zoneminder.templates:8001
+#: ../zoneminder.templates:5001
 msgid "If this field is left blank, the password will not be changed."
 msgstr ""
 
 #. Type: password
 #. Description
-#: ../zoneminder.templates:9001
+#: ../zoneminder.templates:6001
 msgid "Repeat password for the ZoneMinder 'admin' user:"
 msgstr ""
 
 #. Type: error
 #. Description
-#: ../zoneminder.templates:10001
+#: ../zoneminder.templates:7001
 msgid "Password input error"
 msgstr ""
 
 #. Type: error
 #. Description
-#: ../zoneminder.templates:10001
+#: ../zoneminder.templates:7001
 msgid "The two passwords you entered were not the same. Please try again."
 msgstr ""
 
 #. Type: boolean
 #. Description
-#: ../zoneminder.templates:11001
+#: ../zoneminder.templates:8001
 msgid "Delete this non empty directory?"
 msgstr ""
 
 #. Type: boolean
 #. Description
-#: ../zoneminder.templates:11001
+#: ../zoneminder.templates:8001
 msgid ""
 "A purge of the ZoneMinder package is performed but the directory '/var/cache/"
 "zoneminder' is not empty so it will not be deleted."
@@ -256,7 +193,7 @@ msgstr ""
 
 #. Type: boolean
 #. Description
-#: ../zoneminder.templates:11001
+#: ../zoneminder.templates:8001
 msgid ""
 "Please consider that this directory is designed to contain data resulting "
 "from event detection. Therefore, \"proof of evidence\" could be lost!\""
@@ -264,7 +201,7 @@ msgstr ""
 
 #. Type: boolean
 #. Description
-#: ../zoneminder.templates:11001
+#: ../zoneminder.templates:8001
 msgid ""
 "If you are not sure of your decision, please do not delete this directory "
 "but perform a manual checkup."
@@ -272,13 +209,13 @@ msgstr ""
 
 #. Type: boolean
 #. Description
-#: ../zoneminder.templates:12001
+#: ../zoneminder.templates:9001
 msgid "Deletion confirmed?"
 msgstr ""
 
 #. Type: boolean
 #. Description
-#: ../zoneminder.templates:12001
+#: ../zoneminder.templates:9001
 msgid ""
 "You have allowed the deletion of directory '/var/cache/zoneminder' although "
 "it may contain critical data."

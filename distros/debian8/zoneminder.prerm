@@ -1,7 +1,7 @@
 #!/bin/sh
 # prerm script for zoneminder
 
-set -ex
+set -e
 
 # Source the debconf stuff if file exists
 if [ -f /usr/share/debconf/confmodule ]; then

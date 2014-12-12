@@ -1,14 +1,19 @@
 #! /bin/sh
 # postinst maintainer script for zoneminder
 
-set -ex
+set -e
 
 # Source the debconf stuff
 . /usr/share/debconf/confmodule
 
+# Source the config file if exists
 CONFIGFILE=/etc/zm/zm.conf
+if [ -e $CONFIGFILE ]; then
+    . $CONFIGFILE
+fi
 
 apache_install() {
+
     mkdir -p /etc/apache2/conf-available
     ln -sf ../../zm/apache.conf /etc/apache2/conf-available/zoneminder.conf
 
@@ -40,31 +45,19 @@ mysql_update() {
     dbc_mysql_exec_command "UPDATE Config SET Value = '$DB_VERSION' WHERE Name = 'ZM_DYN_DB_VERSION';" || true
 }
 
-# Exit if user didn't want to use debconf
-db_get zoneminder/debconf_install
-if [ "$RET" = "false" ]; then
-  # Reset the answer otherwise we are stuck here if the user choose to not use
-  # debconf at first install (the question is not asked when reconfiguring)
-  db_reset zoneminder/debconf_install
-  exit 0
-fi
-
-# Source the config file if exists
-[ ! -e $CONFIGFILE ] && exit 0
-. $CONFIGFILE
-
 if [ -f /usr/share/dbconfig-common/dpkg/postinst ]; then
 
     # Set the first version in which dbconfig-common was introduced in the package
     dbc_first_version="1.28.0"
 
     # Set the database type
-    dbc_dbtypes="$ZM_DB_TYPE"
+    dbc_dbtypes="mysql"
 
     # Source the dbconfig-common stuff
     . /usr/share/dbconfig-common/dpkg/postinst
 fi
 
+# Do this when the package is installed, upgraded or reconfigured
 if [ "$1" = "configure" ] || [ "$1" = "reconfigure" ]; then
 
     # Create the underlying database and populate it
@@ -75,7 +68,9 @@ if [ "$1" = "configure" ] || [ "$1" = "reconfigure" ]; then
     # Get the password of ZoneMinder user 'admin' from debconf
     db_get zoneminder/admin_password
     ADMIN_PASSWORD=$RET
-    db_reset zoneminder/admin_password || true
+
+    # Remove the password from debconf database
+    test -z $ADMIN_PASSWORD || db_reset zoneminder/admin_password || true
 
     # Get the lastest database version from dbconfig upgrade folder
     DB_VERSION=$(ls -rv /usr/share/dbconfig-common/data/zoneminder/upgrade/$dbc_dbtypes | head -1)
@@ -122,6 +117,7 @@ if [ "$1" = "configure" ] || [ "$1" = "reconfigure" ]; then
     # Clean-up backup file
     mv -f ${CONFIGFILE}.postinst.bak $CONFIGFILE
 
+
     # Set some file permissions
     chown $ZM_WEB_USER:$ZM_WEB_GROUP /var/log/zm
     chown $ZM_WEB_USER:$ZM_WEB_GROUP /var/lib/zm
@@ -145,20 +141,16 @@ if [ "$1" = "configure" ] || [ "$1" = "reconfigure" ]; then
     done
 fi
 
-if [ "$1" = "configure" ]; then
+# Do this every time the package is installed or upgraded
+# Test for database presence to avoid failure of zmupdate.pl
+if [ "$dbc_install" = "true" ] && [ "$1" = "configure" ]; then
 
     # Ensure zoneminder is stopped
     deb-systemd-invoke stop zoneminder.service || exit $?
 
-    # If mysql server exists and is running
-    if [ -e "/usr/sbin/mysqld" ] && deb-systemd-invoke start mysql.service; then
-        # Run the ZoneMinder update tool
-        zmupdate.pl
-    else
-        # Otherwise exit without error (mysql server may not be available on
-        # this machine)
-        exit 0;
-    fi
+    # Run the ZoneMinder update tool
+    zmupdate.pl
+
 fi
 
 #DEBHELPER#

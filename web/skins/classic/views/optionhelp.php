@@ -31,13 +31,13 @@ xhtmlHeaders(__FILE__, $SLANG['OptionHelp'] );
   <div id="page">
     <div id="header">
       <div id="headerButtons">
-        <a href="#" onclick="closeWindow();"><?= $SLANG['Close'] ?></a>
+        <a href="#" onclick="closeWindow();"><?php echo $SLANG['Close'] ?></a>
       </div>
-      <h2><?= $SLANG['OptionHelp'] ?></h2>
+      <h2><?php echo $SLANG['OptionHelp'] ?></h2>
     </div>
     <div id="content">
-      <h3><?= validHtmlStr($_REQUEST['option']) ?></h3>
-      <p class="textblock"><?= $optionHelpText ?></p>
+      <h3><?php echo validHtmlStr($_REQUEST['option']) ?></h3>
+      <p class="textblock"><?php echo $optionHelpText ?></p>
     </div>
   </div>
 </body>

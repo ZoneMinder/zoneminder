@@ -109,15 +109,15 @@ xhtmlHeaders( __FILE__, $SLANG['Events'] );
 <body>
   <div id="page">
     <div id="header">
-      <div id="headerButtons"><?= makeLink( "?view=filter", empty($_REQUEST['filterName'])?$SLANG['ChooseFilter']:$_REQUEST['filterName'], canView( 'Events' ) ) ?></div>
-      <h2><?= sprintf( $CLANG['EventCount'], $nEvents, zmVlang( $VLANG['Event'], $nEvents ) ) ?></h2>
+      <div id="headerButtons"><?php echo makeLink( "?view=filter", empty($_REQUEST['filterName'])?$SLANG['ChooseFilter']:$_REQUEST['filterName'], canView( 'Events' ) ) ?></div>
+      <h2><?php echo sprintf( $CLANG['EventCount'], $nEvents, zmVlang( $VLANG['Event'], $nEvents ) ) ?></h2>
     </div>
     <div id="content">
 <?php
 if ( $pagination )
 {
 ?>
-      <h3 class="pagination"><?= $pagination ?></h3>
+      <h3 class="pagination"><?php echo $pagination ?></h3>
 <?php
 }
 ?>
@@ -130,27 +130,27 @@ if ( $pagination )
         {
 ?>
         <tr>
-          <th class="colId"><a href="<?= sortHeader( 'Id', '&amp;' ) ?>"><?= substr( $SLANG['Id'], 0, 3 ) ?><?= sortTag( 'Id' ) ?></a></th>
-          <th class="colTime"><a href="<?= sortHeader( 'StartTime', '&amp;' ) ?>"><?= substr( $SLANG['Time'], 0, 3 ) ?><?= sortTag( 'StartTime' ) ?></a></th>
-          <th class="colDuration"><a href="<?= sortHeader( 'Length', '&amp;' ) ?>"><?= substr( $SLANG['Duration'], 0, 3 ) ?><?= sortTag( 'Length' ) ?></a></th>
-          <th class="colFrames"><a href="<?= sortHeader( 'Frames', '&amp;' ) ?>"><?= substr( $SLANG['Frames'], 0, 3 ) ?><?= sortTag( 'Frames' ) ?></a></th>
-          <th class="colScore"><a href="<?= sortHeader( 'TotScore', '&amp;' ) ?>"><?= substr( $SLANG['Score'], 0, 3 ) ?><?= sortTag( 'TotScore' ) ?></a></th>
+          <th class="colId"><a href="<?php echo sortHeader( 'Id', '&amp;' ) ?>"><?php echo substr( $SLANG['Id'], 0, 3 ) ?><?php echo sortTag( 'Id' ) ?></a></th>
+          <th class="colTime"><a href="<?php echo sortHeader( 'StartTime', '&amp;' ) ?>"><?php echo substr( $SLANG['Time'], 0, 3 ) ?><?php echo sortTag( 'StartTime' ) ?></a></th>
+          <th class="colDuration"><a href="<?php echo sortHeader( 'Length', '&amp;' ) ?>"><?php echo substr( $SLANG['Duration'], 0, 3 ) ?><?php echo sortTag( 'Length' ) ?></a></th>
+          <th class="colFrames"><a href="<?php echo sortHeader( 'Frames', '&amp;' ) ?>"><?php echo substr( $SLANG['Frames'], 0, 3 ) ?><?php echo sortTag( 'Frames' ) ?></a></th>
+          <th class="colScore"><a href="<?php echo sortHeader( 'TotScore', '&amp;' ) ?>"><?php echo substr( $SLANG['Score'], 0, 3 ) ?><?php echo sortTag( 'TotScore' ) ?></a></th>
         </tr>
 <?php
         }
 ?>
         <tr>
-          <td class="colId"><a href="?view=eventdetails&amp;eid=<?= $event['Id'] ?>&amp;page=1"><?= $event['Id'] ?><?php if ( $event['Archived'] ) echo "*" ?></a></td>
-          <td class="colTime"><?= strftime( "%d/%H:%M", strtotime($event['StartTime']) ) ?></td>
-          <td class="colDuration"><?= sprintf( "%d", $event['Length'] ) ?></td>
-          <td class="colFrames"><a href="?view=event&amp;eid=<?= $event['Id'] ?>&amp;page=1"><?= $event['AlarmFrames'] ?></a></td>
-          <td class="colScore"><a href="?view=frame&amp;eid=<?= $event['Id'] ?>&amp;fid=0"><?= $event['MaxScore'] ?></a></td>
+          <td class="colId"><a href="?view=eventdetails&amp;eid=<?php echo $event['Id'] ?>&amp;page=1"><?php echo $event['Id'] ?><?php if ( $event['Archived'] ) echo "*" ?></a></td>
+          <td class="colTime"><?php echo strftime( "%d/%H:%M", strtotime($event['StartTime']) ) ?></td>
+          <td class="colDuration"><?php echo sprintf( "%d", $event['Length'] ) ?></td>
+          <td class="colFrames"><a href="?view=event&amp;eid=<?php echo $event['Id'] ?>&amp;page=1"><?php echo $event['AlarmFrames'] ?></a></td>
+          <td class="colScore"><a href="?view=frame&amp;eid=<?php echo $event['Id'] ?>&amp;fid=0"><?php echo $event['MaxScore'] ?></a></td>
         </tr>
 <?php
     }
 ?>
       </table>
-      <p><a href="?view=console"><?= $SLANG['Console'] ?></a></p>
+      <p><a href="?view=console"><?php echo $SLANG['Console'] ?></a></p>
     </div>
   </div>
 </body>

@@ -25,24 +25,24 @@ xhtmlHeaders(__FILE__, $SLANG['Logout'] );
 <body>
   <div id="page">
     <div id="header">
-      <h1>ZoneMinder <?= $SLANG['Logout'] ?></h1>
+      <h1>ZoneMinder <?php echo $SLANG['Logout'] ?></h1>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="action" value="logout"/>
         <input type="hidden" name="view" value="login"/>
-        <p><?= sprintf( $CLANG['CurrentLogin'], $user['Username'] ) ?></p>
+        <p><?php echo sprintf( $CLANG['CurrentLogin'], $user['Username'] ) ?></p>
         <p>
-          <input type="submit" value="<?= $SLANG['Logout'] ?>"/>
+          <input type="submit" value="<?php echo $SLANG['Logout'] ?>"/>
 <?php
 if ( ZM_USER_SELF_EDIT )
 {
 ?>
-          <input type="button" value="<?= $SLANG['Config'] ?>" onclick="createPopup( '?view=user&amp;uid=<?= $user['Id'] ?>', 'zmUser', 'user' );"/>
+          <input type="button" value="<?php echo $SLANG['Config'] ?>" onclick="createPopup( '?view=user&amp;uid=<?php echo $user['Id'] ?>', 'zmUser', 'user' );"/>
 <?php
 }
 ?>
-          <input type="button" value="<?= $SLANG['Cancel'] ?>" onclick="closeWindow();"/>
+          <input type="button" value="<?php echo $SLANG['Cancel'] ?>" onclick="closeWindow();"/>
         </p>
       </form>
     </div>

@@ -19,7 +19,7 @@ ZM_PATH_BIN=@BINDIR@
 ZM_PATH_LIB=@LIBDIR@
 
 # Path to ZoneMinder configuration (this file only at present)
-ZM_PATH_CONF=@SYSCONFDIR@
+ZM_PATH_CONF=@ZM_CONFIG_DIR@
 
 # Path to ZoneMinder web files
 ZM_PATH_WEB=@WEB_PREFIX@

@@ -68,8 +68,8 @@ xhtmlHeaders( __FILE__, $monitor['Name']." - ".$SLANG['Feed'] );
   <div id="page">
     <div id="content">
       <div id="menuBar">
-        <div id="monitorName"><?= $monitor['Name'] ?></div>
-        <div id="closeControl"><a href="#" onclick="closeWindow(); return( false );"><?= $SLANG['Close'] ?></a></div>
+        <div id="monitorName"><?php echo $monitor['Name'] ?></div>
+        <div id="closeControl"><a href="#" onclick="closeWindow(); return( false );"><?php echo $SLANG['Close'] ?></a></div>
         <div id="menuControls">
 <?php
 if ( $showPtzControls )
@@ -77,13 +77,13 @@ if ( $showPtzControls )
     if ( canView( 'Control' ) )
     {
 ?>
-          <div id="controlControl"<?= $showControls?' class="hidden"':'' ?>><a id="controlLink" href="#" onclick="showPtzControls(); return( false );"><?= $SLANG['Control'] ?></a></div>
+          <div id="controlControl"<?php echo $showControls?' class="hidden"':'' ?>><a id="controlLink" href="#" onclick="showPtzControls(); return( false );"><?php echo $SLANG['Control'] ?></a></div>
 <?php
     }
     if ( canView( 'Events' ) )
     {
 ?>
-          <div id="eventsControl"<?= $showControls?'':' class="hidden"' ?>><a id="eventsLink" href="#" onclick="showEvents(); return( false );"><?= $SLANG['Events'] ?></a></div>
+          <div id="eventsControl"<?php echo $showControls?'':' class="hidden"' ?>><a id="eventsLink" href="#" onclick="showEvents(); return( false );"><?php echo $SLANG['Events'] ?></a></div>
 <?php
     }
 }
@@ -92,11 +92,11 @@ if ( $showPtzControls )
 if ( canView( 'Control' ) && $monitor['Type'] == "Local" )
 {
 ?>
-          <div id="settingsControl"><?= makePopupLink( '?view=settings&amp;mid='.$monitor['Id'], 'zmSettings'.$monitor['Id'], 'settings', $SLANG['Settings'], true, 'id="settingsLink"' ) ?></div>
+          <div id="settingsControl"><?php echo makePopupLink( '?view=settings&amp;mid='.$monitor['Id'], 'zmSettings'.$monitor['Id'], 'settings', $SLANG['Settings'], true, 'id="settingsLink"' ) ?></div>
 <?php
 }
 ?>
-          <div id="scaleControl"><?= $SLANG['Scale'] ?>: <?= buildSelect( "scale", $scales, "changeScale( this );" ); ?></div>
+          <div id="scaleControl"><?php echo $SLANG['Scale'] ?>: <?php echo buildSelect( "scale", $scales, "changeScale( this );" ); ?></div>
         </div>
       </div>
       <div id="imageFeed">
@@ -123,29 +123,29 @@ else
 if ( canEdit( 'Monitors' ) )
 {
 ?>
-        <div id="enableDisableAlarms"><a id="enableAlarmsLink" href="#" onclick="cmdEnableAlarms(); return( false );" class="hidden"><?= $SLANG['EnableAlarms'] ?></a><a id="disableAlarmsLink" href="#" onclick="cmdDisableAlarms(); return( false );" class="hidden"><?= $SLANG['DisableAlarms'] ?></a></div>
+        <div id="enableDisableAlarms"><a id="enableAlarmsLink" href="#" onclick="cmdEnableAlarms(); return( false );" class="hidden"><?php echo $SLANG['EnableAlarms'] ?></a><a id="disableAlarmsLink" href="#" onclick="cmdDisableAlarms(); return( false );" class="hidden"><?php echo $SLANG['DisableAlarms'] ?></a></div>
 <?php
 }
 if ( canEdit( 'Monitors' ) )
 {
 ?>
-        <div id="forceCancelAlarm"><a id="forceAlarmLink" href="#" onclick="cmdForceAlarm()" class="hidden"><?= $SLANG['ForceAlarm'] ?></a><a id="cancelAlarmLink" href="#" onclick="cmdCancelForcedAlarm()" class="hidden"><?= $SLANG['CancelForcedAlarm'] ?></a></div>
+        <div id="forceCancelAlarm"><a id="forceAlarmLink" href="#" onclick="cmdForceAlarm()" class="hidden"><?php echo $SLANG['ForceAlarm'] ?></a><a id="cancelAlarmLink" href="#" onclick="cmdCancelForcedAlarm()" class="hidden"><?php echo $SLANG['CancelForcedAlarm'] ?></a></div>
 <?php
 }
 ?>
-        <div id="monitorState"><?= $SLANG['State'] ?>:&nbsp;<span id="stateValue"></span>&nbsp;-&nbsp;<span id="fpsValue"></span>&nbsp;fps</div>
+        <div id="monitorState"><?php echo $SLANG['State'] ?>:&nbsp;<span id="stateValue"></span>&nbsp;-&nbsp;<span id="fpsValue"></span>&nbsp;fps</div>
       </div>
-      <div id="dvrControls"<?= $showDvrControls?'':' class="hidden"' ?>>
-        <input type="button" value="&lt;&lt;" id="fastRevBtn" title="<?= $SLANG['Rewind'] ?>" class="unavail" disabled="disabled" onclick="streamCmdFastRev( true )"/>
-        <input type="button" value="&lt;" id="slowRevBtn" title="<?= $SLANG['StepBack'] ?>" class="unavail" disabled="disabled" onclick="streamCmdSlowRev( true )"/>
-        <input type="button" value="||" id="pauseBtn" title="<?= $SLANG['Pause'] ?>" class="inactive" onclick="streamCmdPause( true )"/>
-        <input type="button" value="[]" id="stopBtn" title="<?= $SLANG['Stop'] ?>" class="unavail" disabled="disabled" onclick="streamCmdStop( true )"/>
-        <input type="button" value="|&gt;" id="playBtn" title="<?= $SLANG['Play'] ?>" class="active" disabled="disabled" onclick="streamCmdPlay( true )"/>
-        <input type="button" value="&gt;" id="slowFwdBtn" title="<?= $SLANG['StepForward'] ?>" class="unavail" disabled="disabled" onclick="streamCmdSlowFwd( true )"/>
-        <input type="button" value="&gt;&gt;" id="fastFwdBtn" title="<?= $SLANG['FastForward'] ?>" class="unavail" disabled="disabled" onclick="streamCmdFastFwd( true )"/>
-        <input type="button" value="&ndash;" id="zoomOutBtn" title="<?= $SLANG['ZoomOut'] ?>" class="avail" onclick="streamCmdZoomOut()"/>
+      <div id="dvrControls"<?php echo $showDvrControls?'':' class="hidden"' ?>>
+        <input type="button" value="&lt;&lt;" id="fastRevBtn" title="<?php echo $SLANG['Rewind'] ?>" class="unavail" disabled="disabled" onclick="streamCmdFastRev( true )"/>
+        <input type="button" value="&lt;" id="slowRevBtn" title="<?php echo $SLANG['StepBack'] ?>" class="unavail" disabled="disabled" onclick="streamCmdSlowRev( true )"/>
+        <input type="button" value="||" id="pauseBtn" title="<?php echo $SLANG['Pause'] ?>" class="inactive" onclick="streamCmdPause( true )"/>
+        <input type="button" value="[]" id="stopBtn" title="<?php echo $SLANG['Stop'] ?>" class="unavail" disabled="disabled" onclick="streamCmdStop( true )"/>
+        <input type="button" value="|&gt;" id="playBtn" title="<?php echo $SLANG['Play'] ?>" class="active" disabled="disabled" onclick="streamCmdPlay( true )"/>
+        <input type="button" value="&gt;" id="slowFwdBtn" title="<?php echo $SLANG['StepForward'] ?>" class="unavail" disabled="disabled" onclick="streamCmdSlowFwd( true )"/>
+        <input type="button" value="&gt;&gt;" id="fastFwdBtn" title="<?php echo $SLANG['FastForward'] ?>" class="unavail" disabled="disabled" onclick="streamCmdFastFwd( true )"/>
+        <input type="button" value="&ndash;" id="zoomOutBtn" title="<?php echo $SLANG['ZoomOut'] ?>" class="avail" onclick="streamCmdZoomOut()"/>
       </div>
-      <div id="replayStatus"<?= $streamMode=="single"?' class="hidden"':'' ?>>
+      <div id="replayStatus"<?php echo $streamMode=="single"?' class="hidden"':'' ?>>
         <span id="mode">Mode: <span id="modeValue"></span></span>
         <span id="rate">Rate: <span id="rateValue"></span>x</span>
         <span id="delay">Delay: <span id="delayValue"></span>s</span>
@@ -158,24 +158,24 @@ if ( $showPtzControls )
     foreach ( getSkinIncludes( 'includes/control_functions.php' ) as $includeFile )
         require_once $includeFile;
 ?>
-      <div id="ptzControls" class="ptzControls<?= $showControls?'':' hidden' ?>">
-<?= ptzControls( $monitor ) ?>
+      <div id="ptzControls" class="ptzControls<?php echo $showControls?'':' hidden' ?>">
+<?php echo ptzControls( $monitor ) ?>
       </div>
 <?php
 }
 if ( canView( 'Events' ) )
 {
 ?>
-      <div id="events"<?= $showControls?' class="hidden"':'' ?>>
+      <div id="events"<?php echo $showControls?' class="hidden"':'' ?>>
         <table id="eventList" cellspacing="0">
           <thead>
             <tr>
-              <th class="colId"><?= $SLANG['Id'] ?></th>
-              <th class="colName"><?= $SLANG['Name'] ?></th>
-              <th class="colTime"><?= $SLANG['Time'] ?></th>
-              <th class="colSecs"><?= $SLANG['Secs'] ?></th>
-              <th class="colFrames"><?= $SLANG['Frames'] ?></th>
-              <th class="colScore"><?= $SLANG['Score'] ?></th>
+              <th class="colId"><?php echo $SLANG['Id'] ?></th>
+              <th class="colName"><?php echo $SLANG['Name'] ?></th>
+              <th class="colTime"><?php echo $SLANG['Time'] ?></th>
+              <th class="colSecs"><?php echo $SLANG['Secs'] ?></th>
+              <th class="colFrames"><?php echo $SLANG['Frames'] ?></th>
+              <th class="colScore"><?php echo $SLANG['Score'] ?></th>
               <th class="colDelete">&nbsp;</th>
             </tr>
           </thead>
@@ -197,12 +197,12 @@ if ( ZM_WEB_SOUND_ON_ALARM )
         <object id="MediaPlayer" width="0" height="0"
           classid="CLSID:22D6F312-B0F6-11D0-94AB-0080C74C7E95"
           codebase="http://activex.microsoft.com/activex/controls/mplayer/en/nsmp2inf.cab#Version=6,0,02,902">
-          <param name="FileName" value="<?= $soundSrc ?>"/>
+          <param name="FileName" value="<?php echo $soundSrc ?>"/>
           <param name="autoStart" value="0"/>
           <param name="loop" value="1"/>
           <param name="hidden" value="1"/>
           <param name="showControls" value="0"/>
-          <embed src="<?= $soundSrc ?>"
+          <embed src="<?php echo $soundSrc ?>"
             autostart="true"
             loop="true"
             hidden="true">
@@ -213,7 +213,7 @@ if ( ZM_WEB_SOUND_ON_ALARM )
     else
     {
 ?>
-        <embed src="<?= $soundSrc ?>"
+        <embed src="<?php echo $soundSrc ?>"
           autostart="true"
           loop="true"
           hidden="true">

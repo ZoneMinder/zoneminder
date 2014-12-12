@@ -60,6 +60,28 @@ fi
 # Do this when the package is installed, upgraded or reconfigured
 if [ "$1" = "configure" ] || [ "$1" = "reconfigure" ]; then
 
+    # Install sql database create file for dbconfig
+    # (needed at first package installation)
+    if [ ! -f /usr/share/dbconfig-common/data/zoneminder/install/mysql ]; then
+        install -m 644 /usr/share/zoneminder/db/zm_create.sql \
+          /usr/share/dbconfig-common/data/zoneminder/install/mysql
+        # Remove unneeded sql requests
+        # dbconfig will create the underlying database
+        sed -i "/^ *CREATE DATABASE /d" \
+          /usr/share/dbconfig-common/data/zoneminder/install/mysql
+        sed -i "/^ *USE /d" \
+          /usr/share/dbconfig-common/data/zoneminder/install/mysql
+    fi
+
+    # Symlink sql update files for dbconfig (needed when upgrading the package)
+    for sqlfile in /usr/share/zoneminder/db/zm_update-*.sql; do
+        lnk=`echo $sqlfile | sed "s/^\/usr\/share\/zoneminder\/db\/zm_update-\(.*\)\.sql/\1/"`
+        if [ ! -L /usr/share/dbconfig-common/data/zoneminder/upgrade/mysql/$lnk ]; then
+            ln -sf $sqlfile \
+              /usr/share/dbconfig-common/data/zoneminder/upgrade/mysql/$lnk
+        fi
+    done || true
+
     # Create the underlying database and populate it
     # dbconfig will take care of applying any updates which are newer than the
     # previously installed version

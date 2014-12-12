@@ -31,12 +31,8 @@ fi
 if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
 
     # Deconfigure the web server
-    # Catch error because zoneminder/webserver does not exist if the user has
-    # skipped the use of debconf
-    db_get zoneminder/webserver || true
-
-    webservers="$RET"
-    for webserver in $webservers; do
+    db_get zoneminder/webserver
+    for webserver in $RET; do
         webserver=${webserver%,}
         # Currently we only support apache2
         if [ "$webserver" = "apache2" ] ; then
@@ -44,12 +40,15 @@ if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
         fi
     done
 
+    # Remove dbconfig stuff added in postinst script
+    rm -rf /usr/share/dbconfig-common/data/zoneminder
+
     # No need to manually remove the zm database, dbconfig take care of this
 fi
 
 if [ "$1" = "purge" ]; then
 
-    # Delete a potential remaining file not managed by debhelper
+    # Delete a potential remaining file used in postinst script
     rm -f /etc/zm/zm.conf.postinst.bak
 
     # Ask the user if we have to remove the cache directory even if not empty

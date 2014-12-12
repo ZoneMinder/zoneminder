@@ -89,24 +89,6 @@ override_dh_install:
 	# behavior.
 	#
 	dh_link usr/lib/cgi-bin usr/share/zoneminder/cgi-bin
-	#
-	# Install sql file for dbconfig (first installation)
-	install -m 644 db/zm_create.sql \
-	  debian/zoneminder/usr/share/dbconfig-common/data/zoneminder/install/mysql
-	#
-	# Remove unneeded sql requests
-	# dbconfig will create the underlying database
-	sed -i "/^ *CREATE DATABASE /d" \
-	  debian/zoneminder/usr/share/dbconfig-common/data/zoneminder/install/mysql
-	sed -i "/^ *USE /d" \
-	  debian/zoneminder/usr/share/dbconfig-common/data/zoneminder/install/mysql
-	#
-	# Symlink sql update files for dbconfig
-	for sqlfile in db/zm_update-*.sql; do \
-	  lnk=`echo $$sqlfile | sed "s/^db\/zm_update-\(.*\)\.sql/\1/"`; \
-	  dh_link usr/share/zoneminder/$$sqlfile \
-	    usr/share/dbconfig-common/data/zoneminder/upgrade/mysql/$$lnk; \
-	done || true
 
 override_dh_fixperms:
 	dh_fixperms

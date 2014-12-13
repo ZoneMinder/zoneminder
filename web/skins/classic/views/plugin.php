@@ -266,7 +266,7 @@ foreach($options as $name => $popt)
          $pchoices=explode(',',$popt['Choices']);
             ?>
                <td colspan="2">
-                  <select name="pluginOpt[<?php echo $popt['Name'] ?>]" id="pluginOpt[<?php echo $popt['Name'] ?>]">
+                  <select name="pluginOpt[<?php echo $popt['Name'] ?>]" id="pluginOpt[<?php echo $popt['Name'] ?>]" <? if (!isEnabled($popt['Name'])) echo 'disabled="disabled"'; ?> onchange="applyDependencies()" >
             <?
             foreach($pchoices as $pchoice)
             {

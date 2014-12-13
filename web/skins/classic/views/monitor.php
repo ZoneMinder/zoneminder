@@ -472,6 +472,7 @@ if ( $tab != 'general' )
         <input type="hidden" name="newMonitor[Enabled]" value="<?php echo validHtmlStr($newMonitor['Enabled']) ?>"/>
         <input type="hidden" name="newMonitor[RefBlendPerc]" value="<?php echo validHtmlStr($newMonitor['RefBlendPerc']) ?>"/>
         <input type="hidden" name="newMonitor[AlarmRefBlendPerc]" value="<?php echo validHtmlStr($newMonitor['AlarmRefBlendPerc']) ?>"/>
+        <input type="hidden" name="newMonitor[DoNativeMotDet]" value="<?php echo validHtmlStr($newMonitor['DoNativeMotDet']) ?>"/>
         <input type="hidden" name="newMonitor[MaxFPS]" value="<?php echo validHtmlStr($newMonitor['MaxFPS']) ?>"/>
         <input type="hidden" name="newMonitor[AlarmMaxFPS]" value="<?php echo validHtmlStr($newMonitor['AlarmMaxFPS']) ?>"/>
 <?php
@@ -656,6 +657,7 @@ switch ( $tab )
 <?php
         }
 ?>
+            <tr><td><?php echo $SLANG['DoNativeMotionDetection'] ?></td><td><input type="checkbox" name="newMonitor[DoNativeMotDet]" value="1"<?php if ( !empty($newMonitor['DoNativeMotDet']) ) { ?> checked="checked"<?php } ?>/></td></tr>
             <tr><td><?php echo $SLANG['Triggers'] ?></td><td>
 <?php
         $optTriggers = getSetValues( 'Monitors', 'Triggers' );

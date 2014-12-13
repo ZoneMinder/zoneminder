@@ -1,0 +1,68 @@
+#! /bin/sh
+
+set -e
+
+apache_install() {
+	mkdir -p /etc/apache2/conf-available
+	ln -sf ../../zm/apache.conf /etc/apache2/conf-available/zoneminder.conf
+
+	COMMON_STATE=$(dpkg-query -f '${Status}' -W 'apache2.2-common' 2>/dev/null | awk '{print $3}' || true)
+
+	if [ -e /usr/share/apache2/apache2-maintscript-helper ] ; then
+		. /usr/share/apache2/apache2-maintscript-helper
+		apache2_invoke enconf zoneminder
+	elif [ "$COMMON_STATE" = "installed" ] || [ "$COMMON_STATE" = "unpacked" ] ; then
+		[ -d /etc/apache2/conf.d/ ] && [ ! -L /etc/apache2/conf.d/zoneminder.conf ] && ln -s ../conf-available/zoneminder.conf /etc/apache2/conf.d/zoneminder.conf
+	fi
+}
+
+if [ "$1" = "configure" ]; then
+	if [ -e "/etc/init.d/mysql" ]; then 
+		#
+		# Get mysql started if it isn't
+		#
+		if ! $(/etc/init.d/mysql status >/dev/null 2>&1); then
+				invoke-rc.d mysql start
+		fi
+		if $(/etc/init.d/mysql status >/dev/null 2>&1); then
+			mysqladmin --defaults-file=/etc/mysql/debian.cnf -f reload
+			# test if database if already present...
+			if ! $(echo quit | mysql --defaults-file=/etc/mysql/debian.cnf zm > /dev/null 2> /dev/null) ; then
+				cat /usr/share/zoneminder/db/zm_create.sql | mysql --defaults-file=/etc/mysql/debian.cnf
+				echo 'grant lock tables, alter,select,insert,update,delete on zm.* to 'zmuser'@localhost identified by "zmpass";' | mysql --defaults-file=/etc/mysql/debian.cnf mysql
+			fi
+
+			deb-systemd-invoke stop zoneminder.service || true
+			zmupdate.pl --nointeractive
+
+		else
+			echo 'NOTE: mysql not running, please start mysql and run dpkg-reconfigure zoneminder when it is running.'
+		fi
+	else 
+		echo 'mysql not found, assuming remote server.'
+	fi
+	chown www-data:www-data /var/log/zm
+	chown www-data:www-data /var/lib/zm/
+	if [ -z "$2" ]; then
+			chown www-data:www-data -R /var/cache/zoneminder
+	fi
+fi
+# Ensure zoneminder is stopped...
+deb-systemd-invoke stop zoneminder.service || exit $?
+
+if [ "$1" = "configure" ]; then
+	if [ -z "$2" ]; then
+		chown www-data:www-data /var/log/zm
+		chown www-data:www-data /var/lib/zm/
+		chown www-data:www-data -R /var/cache/zoneminder
+	else
+		chown www-data:www-data /var/log/zm
+		zmupdate.pl
+	fi
+	apache_install $1
+	a2enmod cgi >/dev/null 2>&1
+	if [ -f /etc/init.d/apache2 ] ; then
+		invoke-rc.d apache2 reload 3>/dev/null || true
+	fi
+fi
+#DEBHELPER#

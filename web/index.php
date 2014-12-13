@@ -63,6 +63,13 @@ elseif ( isset($_COOKIE['zmSkin']) )
 else
     $skin = "classic";
 
+if ( isset($_GET['css']) )
+	$css = $_GET['css'];
+elseif ( isset($_COOKIE['zmCSS']) )
+	$css = $_COOKIE['zmCSS'];
+else
+	$css = "classic";
+
 define( "ZM_BASE_PATH", dirname( $_SERVER['REQUEST_URI'] ) );
 define( "ZM_SKIN_PATH", "skins/$skin" );
 
@@ -80,6 +87,11 @@ if ( !isset($_SESSION['skin']) || isset($_REQUEST['skin']) )
 {
     $_SESSION['skin'] = $skin;
     setcookie( "zmSkin", $skin, time()+3600*24*30*12*10 );
+}
+
+if ( !isset($_SESSION['css']) || isset($_REQUEST['css']) ) {
+	$_SESSION['css'] = $css;
+	setcookie( "zmCSS", $css, time()+3600*24*30*12*10 );
 }
 
 require_once( 'includes/config.php' );

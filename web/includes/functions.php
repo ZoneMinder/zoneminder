@@ -247,20 +247,20 @@ function outputVideoStream( $id, $src, $width, $height, $format, $title="" )
                 if ( isWindows() )
                 {
 ?>
-<object id="<?= $id ?>" width="<?= validNum($width) ?>" height="<?= validNum($height) ?>"
+<object id="<?php echo $id ?>" width="<?php echo validNum($width) ?>" height="<?php echo validNum($height) ?>"
 classid="CLSID:22D6F312-B0F6-11D0-94AB-0080C74C7E95"
 codebase="http://activex.microsoft.com/activex/controls/mplayer/en/nsmp2inf.cab#Version=6,0,02,902"
 standby="Loading Microsoft Windows Media Player components..."
-type="<?= $mimeType ?>">
-<param name="FileName" value="<?= $src ?>"/>
+type="<?php echo $mimeType ?>">
+<param name="FileName" value="<?php echo $src ?>"/>
 <param name="autoStart" value="1"/>
 <param name="showControls" value="0"/>
-<embed type="<?= $mimeType ?>"
+<embed type="<?php echo $mimeType ?>"
 pluginspage="http://www.microsoft.com/Windows/MediaPlayer/"
-src="<?= $src ?>"
-name="<?= validHtmlStr($title) ?>"
-width="<?= validNum($width) ?>"
-height="<?= validInt($height) ?>"
+src="<?php echo $src ?>"
+name="<?php echo validHtmlStr($title) ?>"
+width="<?php echo validNum($width) ?>"
+height="<?php echo validInt($height) ?>"
 autostart="1"
 showcontrols="0">
 </embed>
@@ -273,19 +273,19 @@ showcontrols="0">
             case "video/quicktime" :
             {
 ?>
-<object id="<?= $id ?>" width="<?= $width ?>" height="<?= $height ?>"
+<object id="<?php echo $id ?>" width="<?php echo $width ?>" height="<?php echo $height ?>"
 classid="clsid:02BF25D5-8C17-4B23-BC80-D3488ABDDC6B"
 codebase="http://www.apple.com/qtactivex/qtplugin.cab"
-type="<?= $mimeType ?>">
-<param name="src" value="<?= $src ?>"/>
+type="<?php echo $mimeType ?>">
+<param name="src" value="<?php echo $src ?>"/>
 <param name="autoplay" VALUE="true"/>
 <param name="controller" VALUE="false"/>
-<embed type="<?= $mimeType ?>"
-src="<?= $src ?>"
+<embed type="<?php echo $mimeType ?>"
+src="<?php echo $src ?>"
 pluginspage="http://www.apple.com/quicktime/download/"
-name="<?= validHtmlStr($title) ?>"
-width="<?= validInt($width) ?>"
-height="<?= validInt($height) ?>"
+name="<?php echo validHtmlStr($title) ?>"
+width="<?php echo validInt($width) ?>"
+height="<?php echo validInt($height) ?>"
 autoplay="true"
 controller="true">
 </embed>
@@ -297,19 +297,19 @@ controller="true">
             case "application/x-shockwave-flash" :
             {
 ?>
-<object id="<?= $id ?>" width="<?= $width ?>" height="<?= $height ?>"
+<object id="<?php echo $id ?>" width="<?php echo $width ?>" height="<?php echo $height ?>"
 classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000"
 codebase="http://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=6,0,40,0"
-type="<?= $mimeType ?>">
-<param name="movie" value="<?= $src ?>"/>
+type="<?php echo $mimeType ?>">
+<param name="movie" value="<?php echo $src ?>"/>
 <param name="quality" value="high"/>
 <param name="bgcolor" value="#ffffff"/>
-<embed type="<?= $mimeType ?>"
+<embed type="<?php echo $mimeType ?>"
 pluginspage="http://www.macromedia.com/go/getflashplayer"
-src="<?= $src ?>"
-name="<?= validHtmlStr($title) ?>"
-width="<?= validInt($width) ?>"
-height="<?= validInt($height) ?>"
+src="<?php echo $src ?>"
+name="<?php echo validHtmlStr($title) ?>"
+width="<?php echo validInt($width) ?>"
+height="<?php echo validInt($height) ?>"
 quality="high"
 bgcolor="#ffffff">
 </embed>
@@ -323,11 +323,11 @@ bgcolor="#ffffff">
     if ( !$objectTag )
     {
 ?>
-<embed<?= isset($mimeType)?(' type="'.$mimeType.'"'):"" ?> 
-src="<?= $src ?>"
-name="<?= validHtmlStr($title) ?>"
-width="<?= validInt($width) ?>"
-height="<?= validInt($height) ?>"
+<embed<?php echo isset($mimeType)?(' type="'.$mimeType.'"'):"" ?> 
+src="<?php echo $src ?>"
+name="<?php echo validHtmlStr($title) ?>"
+width="<?php echo validInt($width) ?>"
+height="<?php echo validInt($height) ?>"
 autostart="1"
 autoplay="1"
 showcontrols="0"
@@ -341,11 +341,11 @@ function outputImageStream( $id, $src, $width, $height, $title="" )
 {
    if ( canStreamIframe() ) {
 ?>
-<iframe id="<?= $id ?>" src="<?= $src ?>" alt="<?= validHtmlStr($title) ?>" width="<?= $width ?>" height="<?= $height ?>"/>
+<iframe id="<?php echo $id ?>" src="<?php echo $src ?>" alt="<?php echo validHtmlStr($title) ?>" width="<?php echo $width ?>" height="<?php echo $height ?>"/>
 <?php
    } else {
 ?>
-<img id="<?= $id ?>" src="<?= $src ?>" alt="<?= validHtmlStr($title) ?>" width="<?= $width ?>" height="<?= $height ?>"/>
+<img id="<?php echo $id ?>" src="<?php echo $src ?>" alt="<?php echo validHtmlStr($title) ?>" width="<?php echo $width ?>" height="<?php echo $height ?>"/>
 <?php
    }
 }
@@ -353,9 +353,9 @@ function outputImageStream( $id, $src, $width, $height, $title="" )
 function outputControlStream( $src, $width, $height, $monitor, $scale, $target )
 {
 ?>
-<form name="ctrlForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>" target="<?= $target ?>">
+<form name="ctrlForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" target="<?php echo $target ?>">
 <input type="hidden" name="view" value="blank">
-<input type="hidden" name="mid" value="<?= $monitor['Id'] ?>">
+<input type="hidden" name="mid" value="<?php echo $monitor['Id'] ?>">
 <input type="hidden" name="action" value="control">
 <?php
                 if ( $monitor['CanMoveMap'] ) 
@@ -377,8 +377,8 @@ function outputControlStream( $src, $width, $height, $monitor, $scale, $target )
 <?php
                 }
 ?>
-<input type="hidden" name="scale" value="<?= $scale ?>">
-<input type="image" src="<?= $src ?>" width="<?= $width ?>" height="<?= $height ?>">
+<input type="hidden" name="scale" value="<?php echo $scale ?>">
+<input type="image" src="<?php echo $src ?>" width="<?php echo $width ?>" height="<?php echo $height ?>">
 </form>
 <?php
 }
@@ -386,14 +386,14 @@ function outputControlStream( $src, $width, $height, $monitor, $scale, $target )
 function outputHelperStream( $id, $src, $width, $height, $title="" )
 {
 ?>
-<applet id="<?= $id ?>" code="com.charliemouse.cambozola.Viewer"
-archive="<?= ZM_PATH_CAMBOZOLA ?>"
+<applet id="<?php echo $id ?>" code="com.charliemouse.cambozola.Viewer"
+archive="<?php echo ZM_PATH_CAMBOZOLA ?>"
 align="middle"
-width="<?= $width ?>"
-height="<?= $height ?>"
-title="<?= $title ?>">
+width="<?php echo $width ?>"
+height="<?php echo $height ?>"
+title="<?php echo $title ?>">
 <param name="accessories" value="none"/>
-<param name="url" value="<?= $src ?>"/>
+<param name="url" value="<?php echo $src ?>"/>
 </applet>
 <?php
 }
@@ -401,16 +401,16 @@ title="<?= $title ?>">
 function outputImageStill( $id, $src, $width, $height, $title="" )
 {
 ?>
-<img id="<?= $id ?>" src="<?= $src ?>" alt="<?= $title ?>" width="<?= $width ?>" height="<?= $height ?>"/>
+<img id="<?php echo $id ?>" src="<?php echo $src ?>" alt="<?php echo $title ?>" width="<?php echo $width ?>" height="<?php echo $height ?>"/>
 <?php
 }
 
 function outputControlStill( $src, $width, $height, $monitor, $scale, $target )
 {
 ?>
-<form name="ctrlForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>" target="<?= $target ?>">
+<form name="ctrlForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" target="<?php echo $target ?>">
 <input type="hidden" name="view" value="blank">
-<input type="hidden" name="mid" value="<?= $monitor['Id'] ?>">
+<input type="hidden" name="mid" value="<?php echo $monitor['Id'] ?>">
 <input type="hidden" name="action" value="control">
 <?php
                 if ( $monitor['CanMoveMap'] ) 
@@ -432,8 +432,8 @@ function outputControlStill( $src, $width, $height, $monitor, $scale, $target )
 <?php
                 }
 ?>
-<input type="hidden" name="scale" value="<?= $scale ?>">
-<input type="image" src="<?= $src ?>" width="<?= $width ?>" height="<?= $height ?>">
+<input type="hidden" name="scale" value="<?php echo $scale ?>">
+<input type="image" src="<?php echo $src ?>" width="<?php echo $width ?>" height="<?php echo $height ?>">
 </form>
 <?php
 }
@@ -639,12 +639,12 @@ function buildSelect( $name, $contents, $behaviours=false )
         }
     }
 ?>
-<select name="<?= $name ?>" id="<?= $name ?>"<?= $behaviourText ?>>
+<select name="<?php echo $name ?>" id="<?php echo $name ?>"<?php echo $behaviourText ?>>
 <?php
     foreach ( $contents as $contentValue => $contentText )
     {
 ?>
-<option value="<?= $contentValue ?>"<?php if ( $value == $contentValue ) { ?> selected="selected"<?php } ?>><?= validHtmlStr($contentText) ?></option>
+<option value="<?php echo $contentValue ?>"<?php if ( $value == $contentValue ) { ?> selected="selected"<?php } ?>><?php echo validHtmlStr($contentText) ?></option>
 <?php
     }
 ?>
@@ -1645,7 +1645,7 @@ function sidField()
     {
         list( $sessname, $sessid ) = explode( "=", SID );
 ?>
-<input type="hidden" name="<?= $sessname ?>" value="<?= $sessid ?>"/>
+<input type="hidden" name="<?php echo $sessname ?>" value="<?php echo $sessid ?>"/>
 <?php
     }
 }

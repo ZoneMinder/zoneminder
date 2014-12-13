@@ -72,27 +72,27 @@ else
 if ( $mode == 'single' )
 {
 ?>
-      <h2><?= $SLANG['Event'] ?> <?= $eid ?></h2>
+      <h2><?php echo $SLANG['Event'] ?> <?php echo $eid ?></h2>
 <?php
 }
 else
 {
 ?>
-      <h2><?= $SLANG['Events'] ?></h2>
+      <h2><?php echo $SLANG['Events'] ?></h2>
 <?php
 }
 ?>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="none"/>
 <?php
 if ( $mode == 'single' )
 {
 ?>
-        <input type="hidden" name="view" value="<?= $view ?>"/>
+        <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value="eventdetail"/>
-        <input type="hidden" name="eid" value="<?= $eid ?>"/>
+        <input type="hidden" name="eid" value="<?php echo $eid ?>"/>
 <?php
 }
 elseif ( $mode = 'multi' )
@@ -104,7 +104,7 @@ elseif ( $mode = 'multi' )
     foreach ( $_REQUEST['eids'] as $eid )
     {
 ?>
-        <input type="hidden" name="markEids[]" value="<?= validHtmlStr($eid) ?>"/>
+        <input type="hidden" name="markEids[]" value="<?php echo validHtmlStr($eid) ?>"/>
 <?php
     }
 }
@@ -112,17 +112,17 @@ elseif ( $mode = 'multi' )
         <table id="contentTable" class="major" cellspacing="0">
           <tbody>
             <tr>
-              <th scope="row"><?= $SLANG['Cause'] ?></th>
-              <td><input type="text" name="newEvent[Cause]" value="<?= validHtmlStr($newEvent['Cause']) ?>" size="32"/></td>
+              <th scope="row"><?php echo $SLANG['Cause'] ?></th>
+              <td><input type="text" name="newEvent[Cause]" value="<?php echo validHtmlStr($newEvent['Cause']) ?>" size="32"/></td>
             </tr>
             <tr>
-              <th scope="row"><?= $SLANG['Notes'] ?></th>
-              <td><textarea name="newEvent[Notes]" rows="6" cols="50"><?= validHtmlStr($newEvent['Notes']) ?></textarea></td>
+              <th scope="row"><?php echo $SLANG['Notes'] ?></th>
+              <td><textarea name="newEvent[Notes]" rows="6" cols="50"><?php echo validHtmlStr($newEvent['Notes']) ?></textarea></td>
             </tr>
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="submit" value="<?= $SLANG['Save'] ?>"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?= $SLANG['Cancel'] ?>" onclick="closeWindow()"/>
+          <input type="submit" value="<?php echo $SLANG['Save'] ?>"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo $SLANG['Cancel'] ?>" onclick="closeWindow()"/>
         </div>
       </form>
     </div>

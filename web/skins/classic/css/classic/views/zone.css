@@ -93,3 +93,22 @@
 #zonePoints table a {
     margin: 0 2px;
 }
+
+a.pluginNotEnabled {
+    text-decoration: none;
+    color: grey;
+}
+
+a.pluginError {
+    text-decoration: none;
+    color: red;
+}
+
+a.pluginNotActive {
+    color: orange;
+}
+
+a.pluginActive {
+    color: green;
+}
+

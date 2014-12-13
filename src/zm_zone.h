@@ -28,6 +28,19 @@
 
 class Monitor;
 
+//! A structure to store the post processing configuration for the zone
+struct zConf
+{
+    bool RequireNatDet;
+    bool IncludeNatDet;
+    bool ReInitNatDet;
+    zConf():
+        RequireNatDet(false),
+        IncludeNatDet(false),
+        ReInitNatDet(false)
+    {}
+};
+
 //
 // This describes a 'zone', or an area of an image that has certain
 // detection characteristics.
@@ -87,12 +100,20 @@ protected:
 	Box				alarm_box;
 	Coord			alarm_centre;
 	unsigned int	score;
+	std::string	text;
 	Image			*pg_image;
 	Range			*ranges;
 	Image			*image;
+	Image			delta_image;
+	Image			ref_image;
+	Image			bl_image;
 
     int             overload_count;
     int             extend_alarm_count;
+    bool            post_proc_enabled;
+    bool            include_nat_det;
+    bool            reinit_nat_det;
+    bool            post_proc_in_progress;
 
 protected:
 	void Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Polygon &p_polygon, const Rgb p_alarm_rgb, CheckMethod p_check_method, int p_min_pixel_threshold, int p_max_pixel_threshold, int p_min_alarm_pixels, int p_max_alarm_pixels, const Coord &p_filter_box, int p_min_filter_pixels, int p_max_filter_pixels, int p_min_blob_pixels, int p_max_blob_pixels, int p_min_blobs, int p_max_blobs, int p_overload_frames, int p_extend_alarm_frames );
@@ -130,7 +151,14 @@ public:
 	inline void ClearAlarm() { alarmed = false; }
 	inline Coord GetAlarmCentre() const { return( alarm_centre ); }
 	inline unsigned int Score() const { return( score ); }
-
+	inline std::string Text() const { return( text ); }
+	void SetConfig( zConf zone_conf );
+	inline bool IsPostProcEnabled() const { return post_proc_enabled; }
+	inline bool IsNatDetIncluded() const { return include_nat_det; }
+	inline bool IsNatDetReInitialized() const { return reinit_nat_det; }
+	inline void StartPostProcessing() { post_proc_in_progress = true; }
+	inline void StopPostProcessing() { post_proc_in_progress = false; }
+	inline bool IsPostProcInProgress() { return post_proc_in_progress; }
 	inline void ResetStats()
 	{
 		alarmed = false;
@@ -142,9 +170,10 @@ public:
 		min_blob_size = 0;
 		max_blob_size = 0;
 		score = 0;
+		text = "";
 	}
 	void RecordStats( const Event *event );
-	bool CheckAlarms( const Image *delta_image );
+	bool CheckAlarms( const Image *comp_image );
 	bool DumpSettings( char *output, bool verbose );
 
 	static bool ParsePolygonString( const char *polygon_string, Polygon &polygon );
@@ -161,7 +190,15 @@ public:
     	void SetExtendAlarmCount(int nOverCount);
     	int GetExtendAlarmFrames();
     	void SetScore(unsigned int nScore);
+	void SetText(std::string sText);
     	void SetAlarmImage(const Image* srcImage);
+	void AssignRefImage( unsigned int p_width, unsigned int p_height, unsigned int p_colours, unsigned int p_subpixelorder, const uint8_t* new_buffer, const size_t buffer_size );
+	void SetRefImage( const Image &srcImage);
+	void BlendRefImage( const Image &srcImage, int transparency=12 );
+	void SetDeltaImage( const Image &srcImage );
+	void FillDeltaImage( Rgb colour );
+	bool WriteRefImage( const char *filename, int quality_override=0 ) const;
+	bool WriteDeltaImage( const char *filename, int quality_override=0 ) const;
 
 	inline const Image *getPgImage() const { return( pg_image ); }
 	inline const Range *getRanges() const { return( ranges ); }

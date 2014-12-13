@@ -65,6 +65,23 @@ std::vector<std::string> split(const std::string &s, char delim) {
     }
     return elems;
 }
+
+#if ZM_PLUGINS_ON
+int conf_select(const struct direct *entry)
+{
+    char *ptr;
+
+    if ((strcmp(entry->d_name, ".")== 0) || (strcmp(entry->d_name, "..") == 0))
+        return 0;
+
+    // Check for filename extensions.
+    ptr = rindex((char*)entry->d_name, '.');
+    if ((ptr != NULL) && (strcmp(ptr, ".conf") == 0))
+        return 1;
+    else
+        return 0;
+}
+#endif // ZM_PLUGINS_ON
 //=============================================================================
 
 
@@ -286,7 +303,8 @@ Monitor::Monitor(
     Rgb p_signal_check_colour,
     Purpose p_purpose,
     int p_n_zones,
-    Zone *p_zones[]
+    Zone *p_zones[],
+    int p_DoNativeMotDet
 ) : id( p_id ),
     function( (Function)p_function ),
     enabled( p_enabled ),
@@ -311,15 +329,15 @@ Monitor::Monitor(
     alarm_ref_blend_perc( p_alarm_ref_blend_perc ),
     track_motion( p_track_motion ),
     signal_check_colour( p_signal_check_colour ),
-    delta_image( width, height, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE ),
-    ref_image( width, height, p_camera->Colours(), p_camera->SubpixelOrder() ),
     purpose( p_purpose ),
     last_motion_score(0),
     camera( p_camera ),
     n_zones( p_n_zones ),
     zones( p_zones ),
     timestamps( 0 ),
-    images( 0 )
+    images( 0 ),
+    iDoNativeMotDet( p_DoNativeMotDet ),
+    ThePluginManager( p_id )
 {
     strncpy( name, p_name, sizeof(name) );
 
@@ -414,6 +432,35 @@ Monitor::Monitor(
         shared_data->alarm_y = -1;
     }
 
+#if ZM_PLUGINS_ON
+    if ( purpose == ANALYSIS || purpose == QUERY )
+    {
+        if ( config.load_plugins || purpose == QUERY )
+        {
+            Info("Load plugins from the directory %s ... ", config.path_plugins);
+            ThePluginManager.setPluginExt(std::string(config.plugin_extension));
+            unsigned int nNumPlugLoaded = 0;
+            unsigned int nNumPlugFound = ThePluginManager.findPlugins(
+                    std::string(config.path_plugins), (purpose == ANALYSIS), nNumPlugLoaded );
+            Info("Found %u plugin(s) - %u loaded", nNumPlugFound, nNumPlugLoaded);
+            if (nNumPlugFound > 0)
+            {
+                ThePluginManager.configurePlugins(
+                        std::string(config.plugins_config_path),
+                        (!config.turnoff_native_analysis && iDoNativeMotDet));
+                struct direct **files;
+                int count = scandir(config.plugins_config_dir, &files, conf_select, alphasort);
+                if (count > 0)
+                    Info("Load plugin configuration files from directory %s ... ", config.plugins_config_dir);
+                for (int i = 0; i < count; ++i)
+                    ThePluginManager.configurePlugins(
+                            join_paths(config.plugins_config_dir, files[i]->d_name),
+                            (!config.turnoff_native_analysis && iDoNativeMotDet));
+            }
+        }
+    }
+#endif // ZM_PLUGINS_ON
+
     if ( ( ! mem_ptr ) || ! shared_data->valid )
     {
         if ( purpose != QUERY )
@@ -486,7 +533,6 @@ Monitor::Monitor(
             Warning( "Waiting for capture daemon" );
             sleep( 1 );
         }
-        ref_image.Assign( width, height, camera->Colours(), camera->SubpixelOrder(), image_buffer[shared_data->last_write_index].image->Buffer(), camera->ImageSize());
 
         n_linked_monitors = 0;
         linked_monitors = 0;
@@ -645,6 +691,24 @@ void Monitor::AddZones( int p_n_zones, Zone *p_zones[] )
     delete[] zones;
     n_zones = p_n_zones;
     zones = p_zones;
+    for ( int i = 0; i < n_zones; i++ )
+    {
+        if ( purpose == ANALYSIS )
+        {
+            Zone *zone = zones[i];
+            Debug( 4, "Assign reference image of zone %s", zone->Label() );
+            zone->AssignRefImage( width, height, camera->Colours(), camera->SubpixelOrder(),
+                    image_buffer[shared_data->last_write_index].image->Buffer(), camera->ImageSize() );
+#if ZM_PLUGINS_ON
+            zConf zone_conf;
+            if ( ThePluginManager.getImageAnalyser().getZoneConfig( i, zone_conf ) )
+            {
+                Debug( 4, "Configure zone %s for plugins", zone->Label() );
+                zone->SetConfig( zone_conf );
+            }
+#endif // ZM_PLUGINS_ON
+        }
+    }
 }
 
 Monitor::State Monitor::GetState() const
@@ -1227,7 +1291,11 @@ bool Monitor::Analyse()
             {
                 Info( "Received resume indication at count %d", image_count );
                 shared_data->active = true;
-                ref_image = *snap_image;
+                for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
+                {
+                    Debug( 4, "Set reference image of zone %s", zones[n_zone]->Label() );
+                    zones[n_zone]->SetRefImage(*snap_image);
+                }
                 ready_count = image_count+(warmup_count/2);
                 shared_data->alarm_x = shared_data->alarm_y = -1;
             }
@@ -1238,7 +1306,11 @@ bool Monitor::Analyse()
     {
         Info( "Auto resuming at count %d", image_count );
         shared_data->active = true;
-        ref_image = *snap_image;
+        for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
+        {
+            Debug( 4, "Set reference image of zone %s", zones[n_zone]->Label() );
+            zones[n_zone]->SetRefImage(*snap_image);
+        }
         ready_count = image_count+(warmup_count/2);
         auto_resume_time = 0;
     }
@@ -1276,6 +1348,8 @@ bool Monitor::Analyse()
                             cause += ", ";
                         cause += trigger_data->trigger_cause;
                     }
+                    else
+                        event->AddCause( trigger_data->trigger_cause );
                     Event::StringSet noteSet;
                     noteSet.insert( trigger_data->trigger_text );
                     noteSetMap[trigger_data->trigger_cause] = noteSet;
@@ -1303,39 +1377,85 @@ bool Monitor::Analyse()
                             cause += ", ";
                         cause += SIGNAL_CAUSE;
                     }
+                    else
+                        event->AddCause( SIGNAL_CAUSE );
                     Event::StringSet noteSet;
                     noteSet.insert( signalText );
                     noteSetMap[SIGNAL_CAUSE] = noteSet;
                     shared_data->state = state = IDLE;
                     shared_data->active = signal;
-                    ref_image = *snap_image;
+                    for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
+                    {
+                        Debug( 4, "Set reference image of zone %s", zones[n_zone]->Label() );
+                        zones[n_zone]->SetRefImage(*snap_image);
+                    }
                 }
                 else if ( signal && Active() && (function == MODECT || function == MOCORD) )
                 {
-                    Event::StringSet zoneSet;
-                    int motion_score = last_motion_score;
-                    if ( !(image_count % (motion_frame_skip+1) ) )
+#if ZM_PLUGINS_ON
+                    if ((config.turnoff_native_analysis && !config.load_plugins) || (!config.turnoff_native_analysis && (iDoNativeMotDet || (!iDoNativeMotDet && !config.load_plugins))) )
+#else // ZM_PLUGINS_ON
+                    if (!config.turnoff_native_analysis && iDoNativeMotDet)
+#endif // ZM_PLUGINS_ON
                     {
-                        // Get new score.
-                        motion_score = last_motion_score = DetectMotion( *snap_image, zoneSet );
+                        Event::StringSet zoneSet;
+                        unsigned int motion_score = last_motion_score;
+                        bool alarm = false;
+                        if ( !(image_count % (motion_frame_skip+1) ) )
+                        {
+                            // Get new score.
+                            alarm = DetectMotion( *snap_image, zoneSet, motion_score );
+                            last_motion_score = motion_score;
+                        }
+                        //int motion_score = DetectBlack( *snap_image, zoneSet );
+                        if ( alarm )
+                        {
+                            if ( motion_score )
+                            {
+                                score += motion_score;
+                                if ( !event )
+                                {
+                                    if ( cause.length() )
+                                        cause += ", ";
+                                    cause += MOTION_CAUSE;
+                                }
+                                else
+                                {
+                                    event->AddCause( MOTION_CAUSE );
+                                }
+                                noteSetMap[MOTION_CAUSE] = zoneSet;
+                            }
+                        }
                     }
-                    //int motion_score = DetectBlack( *snap_image, zoneSet );
-                    if ( motion_score )
+                    else
                     {
-                        if ( !event )
+                        for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
                         {
-                            score += motion_score;
-                            if ( cause.length() )
-                                cause += ", ";
-                            cause += MOTION_CAUSE;
+                            zones[n_zone]->ResetStats();
                         }
-                        else
-                        {
-                            score += motion_score;
-                        }
-                        noteSetMap[MOTION_CAUSE] = zoneSet;
-
                     }
+#if ZM_PLUGINS_ON
+                    if (config.load_plugins)
+                    {
+                        std::string det_cause; // detection cause to fill in plugin's detectors
+                        unsigned int plugin_score = 0;
+                        if ( ThePluginManager.getImageAnalyser().DoDetection( *snap_image, zones, noteSetMap, det_cause, plugin_score ) )
+                        {
+                            score += plugin_score;
+                            if ( !event )
+                            {
+                                if ( det_cause.length() )
+                                {
+                                    if ( cause.length() )
+                                        cause += ", ";
+                                    cause +=  det_cause;
+                                }
+                            }
+                            else
+                                 event->AddCause( det_cause );
+                        }
+                    }
+#endif // ZM_PLUGINS_ON
                     shared_data->active = signal;
                 }
                 if ( (!signal_change && signal) && n_linked_monitors > 0 )
@@ -1358,6 +1478,8 @@ bool Monitor::Analyse()
                                         first_link = false;
                                     }
                                 }
+                                else
+                                    event->AddCause( LINKED_CAUSE );
                                 noteSet.insert( linked_monitors[i]->Name() );
                                 score += 50;
                             }
@@ -1457,7 +1579,6 @@ bool Monitor::Analyse()
                                     pre_index = (pre_index+1)%image_buffer_count;
                                     pre_event_images--;
                                 }
-
                                 event = new Event( this, *(image_buffer[pre_index].timestamp), cause, noteSetMap );
                                 shared_data->last_event = event->Id();
 
@@ -1625,10 +1746,11 @@ bool Monitor::Analyse()
         }
         if ( (!signal_change && signal) && (function == MODECT || function == MOCORD) )
         {
-            if ( state == ALARM ) {
-               ref_image.Blend( *snap_image, alarm_ref_blend_perc );
-            } else {
-               ref_image.Blend( *snap_image, ref_blend_perc );
+            int ref_blend = ( state == ALARM ) ? alarm_ref_blend_perc : ref_blend_perc;
+            for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
+            {
+                Debug( 4, "Blend reference image of zone %s", zones[n_zone]->Label() );
+                zones[n_zone]->BlendRefImage( *snap_image, ref_blend );
             }
         }
         last_signal = signal;
@@ -1652,7 +1774,7 @@ void Monitor::Reload()
     closeEvent();
 
     static char sql[ZM_SQL_MED_BUFSIZ];
-    snprintf( sql, sizeof(sql), "select Function+0, Enabled, LinkedMonitors, EventPrefix, LabelFormat, LabelX, LabelY, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Id = '%d'", id );
+    snprintf( sql, sizeof(sql), "select Function+0, Enabled, LinkedMonitors, EventPrefix, LabelFormat, LabelX, LabelY, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, DoNativeMotDet, SignalCheckColour from Monitors where Id = '%d'", id );
 
     if ( mysql_query( &dbconn, sql ) )
     {
@@ -1695,7 +1817,8 @@ void Monitor::Reload()
         ref_blend_perc = atoi(dbrow[index++]);
         alarm_ref_blend_perc = atoi(dbrow[index++]);
         track_motion = atoi(dbrow[index++]);
-        
+
+        iDoNativeMotDet = atoi(dbrow[index++]);
 
         if ( dbrow[index][0] == '#' )
             signal_check_colour = strtol(dbrow[index]+1,0,16);
@@ -1844,11 +1967,11 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
     static char sql[ZM_SQL_MED_BUFSIZ];
     if ( !device[0] )
     {
-        strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, Method, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Function != 'None' and Type = 'Local' order by Device, Channel", sizeof(sql) );
+        strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, Method, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, DoNativeMotDet, SignalCheckColour from Monitors where Function != 'None' and Type = 'Local' order by Device, Channel", sizeof(sql) );
     }
     else
     {
-        snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, Method, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Function != 'None' and Type = 'Local' and Device = '%s' order by Channel", device );
+        snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, Method, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, DoNativeMotDet, SignalCheckColour from Monitors where Function != 'None' and Type = 'Local' and Device = '%s' order by Channel", device );
     }
     if ( mysql_query( &dbconn, sql ) )
     {
@@ -1934,6 +2057,8 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
         int alarm_ref_blend_perc = atoi(dbrow[col]); col++;
         int track_motion = atoi(dbrow[col]); col++;
 
+        int doNativeMotDet = atoi(dbrow[col]); col++;
+
         int signal_check_colour;
         if ( dbrow[col][0] == '#' )
             signal_check_colour = strtol(dbrow[col]+1,0,16);
@@ -1996,7 +2121,8 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
             signal_check_colour,
             purpose,
             0,
-            0
+            0,
+            doNativeMotDet
         );
         Zone **zones = 0;
         int n_zones = Zone::Load( monitors[i], zones );
@@ -2020,11 +2146,11 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
     static char sql[ZM_SQL_MED_BUFSIZ];
     if ( !protocol )
     {
-        strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Protocol, Method, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Remote'", sizeof(sql) );
+        strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Protocol, Method, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, DoNativeMotDet from Monitors where Function != 'None' and Type = 'Remote'", sizeof(sql) );
     }
     else
     {
-        snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Protocol, Method, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Remote' and Protocol = '%s' and Host = '%s' and Port = '%s' and Path = '%s'", protocol, host, port, path );
+        snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Protocol, Method, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, DoNativeMotDet from Monitors where Function != 'None' and Type = 'Remote' and Protocol = '%s' and Host = '%s' and Port = '%s' and Path = '%s'", protocol, host, port, path );
     }
     if ( mysql_query( &dbconn, sql ) )
     {
@@ -2091,6 +2217,7 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
         int alarm_ref_blend_perc = atoi(dbrow[col]); col++;
         int track_motion = atoi(dbrow[col]); col++;
 
+        int doNativeMotDet = atoi(dbrow[col]); col++;
 
         int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
         int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
@@ -2169,8 +2296,8 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
             RGB_WHITE,
             purpose,
             0,
-            0
-
+            0,
+            doNativeMotDet
         );
         Zone **zones = 0;
         int n_zones = Zone::Load( monitors[i], zones );
@@ -2193,11 +2320,11 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
     static char sql[ZM_SQL_MED_BUFSIZ];
     if ( !file[0] )
     {
-        strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'File'", sizeof(sql) );
+        strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, DoNativeMotDet from Monitors where Function != 'None' and Type = 'File'", sizeof(sql) );
     }
     else
     {
-        snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'File' and Path = '%s'", file );
+        snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, DoNativeMotDet from Monitors where Function != 'None' and Type = 'File' and Path = '%s'", file );
     }
     if ( mysql_query( &dbconn, sql ) )
     {
@@ -2260,6 +2387,8 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
         int alarm_ref_blend_perc = atoi(dbrow[col]); col++;
         int track_motion = atoi(dbrow[col]); col++;
 
+        int doNativeMotDet = atoi(dbrow[col]); col++;
+
         int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
         int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
 
@@ -2306,7 +2435,8 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
             RGB_WHITE,
             purpose,
             0,
-            0
+            0,
+            doNativeMotDet
         );
         Zone **zones = 0;
         int n_zones = Zone::Load( monitors[i], zones );
@@ -2330,11 +2460,11 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
     static char sql[ZM_SQL_MED_BUFSIZ];
     if ( !file[0] )
     {
-        strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Path, Method, Options, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Ffmpeg'", sizeof(sql) );
+        strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Path, Method, Options, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, DoNativeMotDet from Monitors where Function != 'None' and Type = 'Ffmpeg'", sizeof(sql) );
     }
     else
     {
-        snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Path, Method, Options, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion from Monitors where Function != 'None' and Type = 'Ffmpeg' and Path = '%s'", file );
+        snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Path, Method, Options, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, DoNativeMotDet from Monitors where Function != 'None' and Type = 'Ffmpeg' and Path = '%s'", file );
     }
     if ( mysql_query( &dbconn, sql ) )
     {
@@ -2399,6 +2529,8 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
         int alarm_ref_blend_perc = atoi(dbrow[col]); col++;
         int track_motion = atoi(dbrow[col]); col++;
 
+        int doNativeMotDet = atoi(dbrow[col]); col++;
+
         int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
         int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
 
@@ -2447,7 +2579,8 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
             RGB_WHITE,
             purpose,
             0,
-            0
+            0,
+            doNativeMotDet
         );
         Zone **zones = 0;
         int n_zones = Zone::Load( monitors[i], zones );
@@ -2469,7 +2602,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
 Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 {
     static char sql[ZM_SQL_MED_BUFSIZ];
-    snprintf( sql, sizeof(sql), "select Id, Name, Type, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, Protocol, Method, Host, Port, Path, Options, User, Pass, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Id = %d", id );
+    snprintf( sql, sizeof(sql), "select Id, Name, Type, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, Protocol, Method, Host, Port, Path, Options, User, Pass, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, DoNativeMotDet, SignalCheckColour from Monitors where Id = %d", id );
     if ( mysql_query( &dbconn, sql ) )
     {
         Error( "Can't run query: %s", mysql_error( &dbconn ) );
@@ -2562,6 +2695,8 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
         int ref_blend_perc = atoi(dbrow[col]); col++;
         int alarm_ref_blend_perc = atoi(dbrow[col]); col++;
         int track_motion = atoi(dbrow[col]); col++;
+
+        int doNativeMotDet = atoi(dbrow[col]); col++;
 
         int signal_check_colour;
         if ( dbrow[col][0] == '#' )
@@ -2760,8 +2895,8 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
             signal_check_colour,
             purpose,
             0,
-            0
-
+            0,
+            doNativeMotDet
         );
 
         int n_zones = 0;
@@ -3174,33 +3309,32 @@ unsigned int Monitor::DetectBlack(const Image &comp_image, Event::StringSet &zon
 
 
 
-unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &zoneSet )
+unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &zoneSet, unsigned int &score )
 {
     bool alarm = false;
-    unsigned int score = 0;
+    score = 0;
 
     if ( n_zones <= 0 ) return( alarm );
 
-    if ( config.record_diag_images )
+    for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
     {
-        static char diag_path[PATH_MAX] = "";
-        if ( !diag_path[0] )
+        Zone *zone = zones[n_zone];
+        if ( config.record_diag_images )
         {
-            snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-r.jpg", config.dir_events, id );
+            static char diag_path[PATH_MAX] = "";
+            snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-%d-r.jpg", config.dir_events, id, zone->Id() );
+            zone->WriteRefImage( diag_path );
         }
-        ref_image.WriteJpeg( diag_path );
-    }
 
-    ref_image.Delta( comp_image, &delta_image);
+        Debug( 4, "Set delta image of zone %s", zone->Label() );
+        zone->SetDeltaImage( comp_image );
 
-    if ( config.record_diag_images )
-    {
-        static char diag_path[PATH_MAX] = "";
-        if ( !diag_path[0] )
+        if ( config.record_diag_images )
         {
-            snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-d.jpg", config.dir_events, id );
+            static char diag_path[PATH_MAX] = "";
+            snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-%d-d.jpg", config.dir_events, id, zone->Id() );
+            zone->WriteDeltaImage( diag_path );
         }
-        delta_image.WriteJpeg( diag_path );
     }
 
     // Blank out all exclusion zones
@@ -3215,7 +3349,7 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
             continue;
         }
         Debug( 3, "Blanking inactive zone %s", zone->Label() );
-        delta_image.Fill( RGB_BLACK, zone->GetPolygon() );
+        zone->FillDeltaImage( RGB_BLACK );
     }
 
     // Check preclusive zones first
@@ -3229,13 +3363,16 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
         int old_zone_score = zone->Score();
         bool old_zone_alarmed = zone->Alarmed();
         Debug( 3, "Checking preclusive zone %s - old score: %d, state: %s", zone->Label(),old_zone_score, zone->Alarmed()?"alarmed":"quiet" );
-        if ( zone->CheckAlarms( &delta_image ) )
+        if ( zone->CheckAlarms( &comp_image ) )
         {
             alarm = true;
             score += zone->Score();
-            zone->SetAlarm();
-            Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
-            zoneSet.insert( zone->Label() );
+            if ( !zone->IsPostProcEnabled() )
+            {
+                zone->SetAlarm();
+                Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
+                zoneSet.insert( ("[Zone " + std::string(zone->Label()) + "]\n").c_str() );
+            }
             //zone->ResetStats();
         } else {
             // check if end of alarm
@@ -3273,24 +3410,26 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
                 continue;
             }
             Debug( 3, "Checking active zone %s", zone->Label() );
-            if ( zone->CheckAlarms( &delta_image ) )
+            if ( zone->CheckAlarms( &comp_image ) )
             {
                 alarm = true;
-                score += zone->Score();
                 zone->SetAlarm();
-                Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
-                zoneSet.insert( zone->Label() );
-                if ( config.opt_control && track_motion )
+                score += zone->Score();
+                if ( !zone->IsPostProcEnabled() )
                 {
-                    if ( (int)zone->Score() > top_score )
+                    Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
+                    zoneSet.insert( ("[Zone " + std::string(zone->Label()) + "]\n").c_str() );
+                    if ( config.opt_control && track_motion )
                     {
-                        top_score = zone->Score();
-                        alarm_centre = zone->GetAlarmCentre();
+                        if ( (int)zone->Score() > top_score )
+                        {
+                            top_score = zone->Score();
+                            alarm_centre = zone->GetAlarmCentre();
+                        }
                     }
                 }
             }
         }
-
         if ( alarm )
         {
             for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
@@ -3301,19 +3440,22 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
                     continue;
                 }
                 Debug( 3, "Checking inclusive zone %s", zone->Label() );
-                if ( zone->CheckAlarms( &delta_image ) )
+                if ( zone->CheckAlarms( &comp_image ) )
                 {
                     alarm = true;
-                    score += zone->Score();
                     zone->SetAlarm();
-                    Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
-                    zoneSet.insert( zone->Label() );
-                    if ( config.opt_control && track_motion )
+                    score += zone->Score();
+                    if ( !zone->IsPostProcEnabled() )
                     {
-                        if ( zone->Score() > (unsigned int)top_score )
+                        Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
+                        zoneSet.insert( ("[Zone " + std::string(zone->Label()) + "]\n").c_str() );
+                        if ( config.opt_control && track_motion )
                         {
-                            top_score = zone->Score();
-                            alarm_centre = zone->GetAlarmCentre();
+                            if ( zone->Score() > (unsigned int)top_score )
+                            {
+                                top_score = zone->Score();
+                                alarm_centre = zone->GetAlarmCentre();
+                            }
                         }
                     }
                 }
@@ -3330,13 +3472,16 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
                     continue;
                 }
                 Debug( 3, "Checking exclusive zone %s", zone->Label() );
-                if ( zone->CheckAlarms( &delta_image ) )
+                if ( zone->CheckAlarms( &comp_image ) )
                 {
                     alarm = true;
-                    score += zone->Score();
                     zone->SetAlarm();
-                    Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
-                    zoneSet.insert( zone->Label() );
+                    score += zone->Score();
+                    if ( !zone->IsPostProcEnabled() )
+                    {
+                        Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
+                        zoneSet.insert( ("[Zone " + std::string(zone->Label()) + "]\n").c_str() );
+                    }
                 }
             }
         }
@@ -3354,9 +3499,8 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
         shared_data->alarm_x = shared_data->alarm_y = -1;
     }
 
-    // This is a small and innocent hack to prevent scores of 0 being returned in alarm state
-    return( score?score:alarm );
-} 
+    return alarm;
+}
 
 bool Monitor::DumpSettings( char *output, bool verbose )
 {
@@ -4286,3 +4430,36 @@ void Monitor::SingleImageZip( int scale)
     fprintf( stdout, "Content-Type: image/x-rgbz\r\n\r\n" );
     fwrite( img_buffer, img_buffer_size, 1, stdout );
 }
+
+#if ZM_PLUGINS_ON
+void Monitor::DumpPluginStatus()
+{
+    map<string,pGenConf> mapPluginGenConf;
+    unsigned int nNumPlugins = ThePluginManager.getPluginsGenConf(mapPluginGenConf);
+    bool bDoNativeDet = !config.turnoff_native_analysis && iDoNativeMotDet;
+
+    if ( nNumPlugins == 0)
+    {
+        printf("No plugin found\n");
+        return;
+    }
+    printf("%79sNATIVE DETECTION\n", " ");
+    printf("PLUGIN NAME%*sREGISTERED CONFIGURED  ZONE  ENABLED  ACTIVE  REQUIRE INCLUDE REINIT\n", 19, " ");
+    for (map<string,pGenConf>::iterator it = mapPluginGenConf.begin() ; it != mapPluginGenConf.end(); ++it)
+    {
+        PluginZoneConf mapPluginZoneConf;
+        ThePluginManager.getPluginZoneConf( it->first, mapPluginZoneConf );
+        int padLen = 34 - it->first.length();
+        if(padLen < 0) padLen = 0;
+        printf("%s%*s%d%*s%d%*s", it->first.c_str(), padLen, " ", it->second.Registered, 10, " ", it->second.Configured, 8, " ");
+        for (PluginZoneConf::iterator it2 = mapPluginZoneConf.begin() ; it2 != mapPluginZoneConf.end(); ++it2)
+        {
+            if (it2 != mapPluginZoneConf.begin())
+                printf("%*s", 54, " ");
+            bool bIsActive = it2->second.Enabled && ( !it2->second.RequireNatDet || ( it2->second.RequireNatDet && bDoNativeDet ) );
+            printf("%d%*s%d%*s%d%*s%d%*s%d%*s%d\n", it2->first, 7, " ", it2->second.Enabled, 7, " ", bIsActive, 8, " ", it2->second.RequireNatDet, 7, " ", it2->second.IncludeNatDet, 6, " ", it2->second.ReInitNatDet);
+        }
+    }
+    ThePluginManager.getImageAnalyser().cleanupPlugins();
+}
+#endif // ZM_PLUGINS_ON

@@ -35,9 +35,6 @@
 bool Logger::smInitialised = false;
 Logger *Logger::smInstance = 0;
 
-Logger::StringMap Logger::smCodes;
-Logger::IntMap Logger::smSyslogPriorities;
-
 #if 0
 static void subtractTime( struct timeval * const tp1, struct timeval * const tp2 )
 {

@@ -33,6 +33,8 @@ dist_web_DATA = \
 	montage.js \
 	montage.js.php \
 	options.js.php \
+	plugin.js \
+	plugin.js.php \
 	postlogin.js \
 	state.js \
 	state.js.php \

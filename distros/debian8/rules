@@ -53,7 +53,8 @@ override_dh_auto_configure:
 	  --with-mariadb=/usr --with-webdir=/usr/share/zoneminder \
 	  --with-ffmpeg=/usr --with-cgidir=/usr/lib/cgi-bin \
 	  --with-webuser=www-data --with-webgroup=www-data \
-	  --enable-crashtrace=no --enable-mmap=yes $(DEBOPT)
+	  --enable-crashtrace=no --enable-mmap=yes $(DEBOPT) \
+	  --enable-plugin-support --with-pluginsdir=/usr/lib/zoneminder/plugins
 
 override_dh_clean:
 	# Add here commands to clean up after the build process.

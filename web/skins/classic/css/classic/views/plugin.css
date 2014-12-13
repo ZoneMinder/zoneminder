@@ -3,6 +3,10 @@
     margin: 0 2px;
 }
 
+#settingsPanel input[type=submit] {
+    margin: 8px 4px;
+}
+
 #pluginSettings {
     border-collapse: collapse;
 }

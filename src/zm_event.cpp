@@ -63,6 +63,8 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
 
     std::string notes;
     createNotes( notes );
+    static char escapedNotes[ZM_NOTES_MAX_SIZE*2 + 1];
+    mysql_real_escape_string( &dbconn, escapedNotes, notes.c_str(), notes.length() );
 
     bool untimedEvent = false;
     if ( !start_time.tv_sec )
@@ -71,10 +73,10 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
         gettimeofday( &start_time, 0 );
     }
 
-    static char sql[ZM_SQL_MED_BUFSIZ];
+    static char sql[ZM_SQL_LGE_BUFSIZ];
 
     struct tm *stime = localtime( &start_time.tv_sec );
-    snprintf( sql, sizeof(sql), "insert into Events ( MonitorId, Name, StartTime, Width, Height, Cause, Notes ) values ( %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s' )", monitor->Id(), start_time.tv_sec, monitor->Width(), monitor->Height(), cause.c_str(), notes.c_str() );
+    snprintf( sql, sizeof(sql), "insert into Events ( MonitorId, Name, StartTime, Width, Height, Cause, Notes ) values ( %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s' )", monitor->Id(), start_time.tv_sec, monitor->Width(), monitor->Height(), cause.c_str(), escapedNotes );
     if ( mysql_query( &dbconn, sql ) )
     {
         Error( "Can't insert event: %s", mysql_error( &dbconn ) );
@@ -185,7 +187,7 @@ Event::~Event()
     struct DeltaTimeval delta_time;
     DELTA_TIMEVAL( delta_time, end_time, start_time, DT_PREC_2 );
 
-    snprintf( sql, sizeof(sql), "update Events set Name='%s%d', EndTime = from_unixtime( %ld ), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d where Id = %d", monitor->EventPrefix(), id, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, frames, alarm_frames, tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score, id );
+    snprintf( sql, sizeof(sql), "update Events set Name='%s%d', Cause='%s', EndTime = from_unixtime( %ld ), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d where Id = %d", monitor->EventPrefix(), id, cause.c_str(), end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, frames, alarm_frames, tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score, id );
     if ( mysql_query( &dbconn, sql ) )
     {
         Error( "Can't update event: %s", mysql_error( &dbconn ) );
@@ -198,15 +200,33 @@ void Event::createNotes( std::string &notes )
     notes.clear();
     for ( StringSetMap::const_iterator mapIter = noteSetMap.begin(); mapIter != noteSetMap.end(); mapIter++ )
     {
-        notes += mapIter->first;
-        notes += ": ";
+        // No need to display the cause inside the note
+        //notes += mapIter->first;
+        //notes += ": ";
         const StringSet &stringSet = mapIter->second;
         for ( StringSet::const_iterator setIter = stringSet.begin(); setIter != stringSet.end(); setIter++ )
         {
-            if ( setIter != stringSet.begin() )
-                notes += ", ";
+            // Don't format here
+            //if ( setIter != stringSet.begin() )
+            //    notes += ", ";
             notes += *setIter;
         }
+    }
+    if (notes.length() > ZM_NOTES_MAX_SIZE)
+    {
+        std::string sTrunc = "... (content truncated)";
+        notes = notes.substr(0, (ZM_NOTES_MAX_SIZE - sTrunc.length()));
+        notes += sTrunc;
+    }
+}
+
+void Event::AddCause( const std::string new_cause )
+{
+    if ( cause.find( new_cause )  == std::string::npos )
+    {
+        if ( cause.length() )
+            cause += ", ";
+        cause += new_cause;
     }
 }
 
@@ -421,12 +441,12 @@ void Event::updateNotes( const StringSetMap &newNoteSetMap )
         std::string notes;
         createNotes( notes );
 
-        Debug( 2, "Updating notes for event %d, '%s'", id, notes.c_str() );
-        static char sql[ZM_SQL_MED_BUFSIZ];
+        Debug( 2, "Updating notes for event %d", id );
+        static char sql[ZM_SQL_LGE_BUFSIZ];
 #if USE_PREPARED_SQL
         static MYSQL_STMT *stmt = 0;
 
-        char notesStr[ZM_SQL_MED_BUFSIZ] = "";
+        char notesStr[ZM_NOTES_MAX_SIZE] = "";
         unsigned long notesLen = 0;
 
         if ( !stmt )
@@ -475,7 +495,7 @@ void Event::updateNotes( const StringSetMap &newNoteSetMap )
             Fatal( "Unable to execute sql '%s': %s", sql, mysql_stmt_error(stmt) );
         }
 #else
-        static char escapedNotes[ZM_SQL_MED_BUFSIZ];
+        static char escapedNotes[ZM_NOTES_MAX_SIZE*2 + 1];
 
         mysql_real_escape_string( &dbconn, escapedNotes, notes.c_str(), notes.length() );
 

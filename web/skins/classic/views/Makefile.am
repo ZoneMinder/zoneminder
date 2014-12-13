@@ -40,6 +40,7 @@ dist_web_DATA = \
 	none.php \
 	optionhelp.php \
 	options.php \
+	plugin.php \
 	postlogin.php \
 	settings.php \
 	state.php \

@@ -25,7 +25,7 @@ else
 endif
 
 %:
-	dh $@ --with autoreconf
+	dh $@ --with quilt,autoreconf
 
 override_dh_auto_configure:
 	CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)" ./configure --host=$(DEB_HOST_GNU_TYPE) --build=$(DEB_BUILD_GNU_TYPE) --sysconfdir=/etc/zm --prefix=/usr --mandir=\$${prefix}/share/man --infodir=\$${prefix}/share/info --with-mysql=/usr --with-mariadb=/usr --with-webdir=/usr/share/zoneminder --with-ffmpeg=/usr --with-cgidir=/usr/lib/cgi-bin --with-webuser=www-data --with-webgroup=www-data --enable-crashtrace=no --enable-mmap=yes

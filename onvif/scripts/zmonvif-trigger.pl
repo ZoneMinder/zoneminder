@@ -69,6 +69,7 @@ use constant MONITOR_RELOAD_INTERVAL => 3600;
 # Globals
 
 my $verbose = 0;
+my $script;
 my $daemon_pid;
 
 my $monitor_reload_time = 0;
@@ -219,11 +220,12 @@ sub xs_duration
 	  my $res = $sth->execute() or Fatal( "Can't execute: ".$sth->errstr() );
 	  while( my $monitor = $sth->fetchrow_hashref() )
 	  {
-		  if ( !zmMemVerify( $monitor ) )  { # Check shared memory ok
-        zmMemInvalidate( $monitor );
-        next if ( !zmMemVerify( $monitor ) );
+      if(!defined $script) {
+		    if ( !zmMemVerify( $monitor ) )  { # Check shared memory ok
+          zmMemInvalidate( $monitor );
+          next if ( !zmMemVerify( $monitor ) );
+        }
       }
-
 #$monitor->{MMapAddr} = undef;
 #memAttach( $monitor, 896 );
 #next if ( !zmMemVerify( $monitor ) );
@@ -275,10 +277,15 @@ sub xs_duration
     print "On: $monitorId, $score, $cause, $text, $showtext\n";
     my %monitors = $self->monitors();
     my $monitor = $monitors{$monitorId};
-    # encode() ensures that no utf-8 is written to mmap'ed memory.
-    zmTriggerEventOn( $monitor, $score, encode("utf-8", $cause), encode("utf-8", $text) );
-    zmTriggerShowtext( $monitor, encode("utf-8", $showtext) ) if defined($showtext);
-#    main::dump_mapped($monitor);
+    if(defined $script) {
+      system($script, 'On', $monitor->{Name}, $monitor->{Path}, $cause);
+    }
+    else {
+      # encode() ensures that no utf-8 is written to mmap'ed memory.
+      zmTriggerEventOn( $monitor, $score, encode("utf-8", $cause), encode("utf-8", $text) );
+      zmTriggerShowtext( $monitor, encode("utf-8", $showtext) ) if defined($showtext);
+#      main::dump_mapped($monitor);
+    }
   }
 
   sub eventOff
@@ -287,19 +294,24 @@ sub xs_duration
     print "Off: $monitorId, $score, $cause, $text, $showtext\n";
     my %monitors = $self->monitors();
     my $monitor = $monitors{$monitorId};
-    my $last_event = zmGetLastEvent( $monitor );
-    zmTriggerEventOff( $monitor );
-    # encode() ensures that no utf-8 is written to mmap'ed memory.
-	  zmTriggerShowtext( $monitor, encode("utf-8", $showtext) ) if defined($showtext);
-  #	Info( "Trigger '$trigger'\n" );
-    # Wait til it's finished
-    while( zmInAlarm( $monitor ) && ($last_event == zmGetLastEvent( $monitor )) )
-    {
-       # Tenth of a second
-       usleep( 100000 );
+    if(defined $script) {
+      system($script, 'Off', $monitor->{Name}, $monitor->{Path}, $cause);
     }
-	  zmTriggerEventCancel( $monitor );
-#    main::dump_mapped($monitor);
+    else {
+      my $last_event = zmGetLastEvent( $monitor );
+      zmTriggerEventOff( $monitor );
+      # encode() ensures that no utf-8 is written to mmap'ed memory.
+	    zmTriggerShowtext( $monitor, encode("utf-8", $showtext) ) if defined($showtext);
+    #	Info( "Trigger '$trigger'\n" );
+      # Wait til it's finished
+      while( zmInAlarm( $monitor ) && ($last_event == zmGetLastEvent( $monitor )) )
+      {
+         # Tenth of a second
+         usleep( 100000 );
+      }
+	    zmTriggerEventCancel( $monitor );
+  #    main::dump_mapped($monitor);
+    }
   }
 
 }
@@ -656,6 +668,7 @@ sub HELP_MESSAGE
   Parameters:
     -v              - increase verbosity
     -l|local-addr   - listen on address (host[:port])
+    -s|script       - run script instead of generating ZM events
 EOF
 }
 
@@ -669,6 +682,7 @@ logSetSignal();
 
 if(!GetOptions(
       'local-addr|l=s'    => \$localaddr,
+      'script|s=s'        => \$script,
       'verbose|v=s'       => \$verbose,
       )) {
   HELP_MESSAGE(\*STDOUT);

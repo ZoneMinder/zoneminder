@@ -25,10 +25,10 @@ else
 endif
 
 %:
-	dh $@ --with autoreconf
+	dh $@ --with quilt,autoreconf
 
 override_dh_auto_configure:
-	CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)" ./configure --host=$(DEB_HOST_GNU_TYPE) --build=$(DEB_BUILD_GNU_TYPE) --sysconfdir=/etc/zm --prefix=/usr --mandir=\$${prefix}/share/man --infodir=\$${prefix}/share/info --with-mysql=/usr --with-mariadb=/usr --with-webdir=/usr/share/zoneminder --with-ffmpeg=/usr --with-cgidir=/usr/lib/cgi-bin --with-webuser=www-data --with-webgroup=www-data --enable-crashtrace=no --enable-mmap=yes
+	CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)" dh_auto_configure -- --host=$(DEB_HOST_GNU_TYPE) --build=$(DEB_BUILD_GNU_TYPE) --sysconfdir=/etc/zm --prefix=/usr --mandir=\$${prefix}/share/man --infodir=\$${prefix}/share/info --with-mysql=/usr --with-mariadb=/usr --with-webdir=/usr/share/zoneminder --with-ffmpeg=/usr --with-cgidir=/usr/lib/cgi-bin --with-webuser=www-data --with-webgroup=www-data --enable-crashtrace=no --enable-mmap=yes
 
 override_dh_clean:
 	# Add here commands to clean up after the build process.
@@ -36,28 +36,23 @@ override_dh_clean:
 	dh_clean
 
 override_dh_install:
-	# Add here commands to install the package into debian/zm.
-	$(MAKE) install DESTDIR=$(CURDIR)/debian/zoneminder RUNDIR=$(CURDIR)/debian/zoneminder/var/run ZM_RUNDIR=$(CURDIR)/debian/zoneminder/var/run
-	install -D -m 0644 db/zm_create.sql		$(CURDIR)/debian/zoneminder/usr/share/zoneminder/db
-	install -D -m 0644 db/zm_update-*.sql $(CURDIR)/debian/zoneminder/usr/share/zoneminder/db
-	install -D -m 0644 debian/apache.conf  $(CURDIR)/debian/zoneminder/etc/zm
+	dh_install --fail-missing
 	#
 	# NOTE: This is a short-term kludge; hopefully changes in the next
 	# upstream version will render this unnecessary.
 	rm -rf debian/zoneminder/usr/share/zoneminder/events
 	rm -rf debian/zoneminder/usr/share/zoneminder/images
 	rm -rf debian/zoneminder/usr/share/zoneminder/temp
-	ln -s /var/cache/zoneminder/events debian/zoneminder/usr/share/zoneminder/
-	ln -s /var/cache/zoneminder/images debian/zoneminder/usr/share/zoneminder/
-	ln -s /var/cache/zoneminder/temp debian/zoneminder/usr/share/zoneminder/
-
+	dh_link var/cache/zoneminder/events usr/share/zoneminder/events
+	dh_link var/cache/zoneminder/images usr/share/zoneminder/images
+	dh_link var/cache/zoneminder/temp usr/share/zoneminder/temp
 	#
-	# This is a slightly lesser kludge; moving the cgi stuff to 
+	# This is a slightly lesser kludge; moving the cgi stuff to
 	# /usr/share/zoneminder/cgi-bin breaks one set of behavior,
-	# having it just in /usr/lib/cgi-bin breaks another bit of 
+	# having it just in /usr/lib/cgi-bin breaks another bit of
 	# behavior.
 	#
-	ln -s /usr/lib/cgi-bin debian/zoneminder/usr/share/zoneminder/
+	dh_link usr/lib/cgi-bin usr/share/zoneminder/cgi-bin
 
 override_dh_fixperms:
 	dh_fixperms

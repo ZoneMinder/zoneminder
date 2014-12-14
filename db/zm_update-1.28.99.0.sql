@@ -14,7 +14,7 @@ SET @s = (SELECT IF(
 	AND column_name = 'ConfigType'
 	) > 0,
 "SELECT 'Column ConfigType already exists in Monitors'",
-"ALTER TABLE `Monitors` ADD COLUMN `ConfigType` ENUM('None','ONVIF','PSIA') NOT NULL DEFAULT '' AFTER `Triggers`"
+"ALTER TABLE `Monitors` ADD COLUMN `ConfigType` ENUM('None','ONVIF','PSIA') NOT NULL DEFAULT 'None' AFTER `Triggers`"
 ));
 
 PREPARE stmt FROM @s;
@@ -31,7 +31,7 @@ SET @s = (SELECT IF(
 	AND column_name = 'ConfigURL'
 	) > 0,
 "SELECT 'Column ConfigURL already exists in Monitors'",
-"ALTER TABLE `Monitors` ADD COLUMN `ConfigURL` VARCHAR(255) NOT NULL DEFAULT 'None' AFTER `ConfigType`"
+"ALTER TABLE `Monitors` ADD COLUMN `ConfigURL` VARCHAR(255) NOT NULL DEFAULT '' AFTER `ConfigType`"
 ));
 
 PREPARE stmt FROM @s;

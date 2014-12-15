@@ -64,11 +64,11 @@ else
     $skin = "classic";
 
 if ( isset($_GET['css']) )
-	$css = $_GET['css'];
+    $css = $_GET['css'];
 elseif ( isset($_COOKIE['zmCSS']) )
-	$css = $_COOKIE['zmCSS'];
+    $css = $_COOKIE['zmCSS'];
 else
-	$css = "classic";
+    $css = "classic";
 
 define( "ZM_BASE_PATH", dirname( $_SERVER['REQUEST_URI'] ) );
 define( "ZM_SKIN_PATH", "skins/$skin" );
@@ -90,8 +90,8 @@ if ( !isset($_SESSION['skin']) || isset($_REQUEST['skin']) )
 }
 
 if ( !isset($_SESSION['css']) || isset($_REQUEST['css']) ) {
-	$_SESSION['css'] = $css;
-	setcookie( "zmCSS", $css, time()+3600*24*30*12*10 );
+    $_SESSION['css'] = $css;
+    setcookie( "zmCSS", $css, time()+3600*24*30*12*10 );
 }
 
 require_once( 'includes/config.php' );
@@ -142,7 +142,18 @@ else
                 Fatal( "View '$view' does not exist" );
             require_once $includeFile;
         }
+        
+        // If the view overrides $view to 'error', and the user is not logged in, then the
+        // issue is probably resolvable by logging in, so provide the opportunity to do so.
+        // The login view should handle redirecting to the correct location afterward.
+        if ($view == 'error' && !isset($user))
+        {
+            foreach ( getSkinIncludes( 'views/login.php', true, true ) as $includeFile )
+                require_once $includeFile;
+        }
     }
+    // If the view is missing or the view still returned error with the user logged in,
+    // then it is not recoverable.
     if ( !$includeFiles || $view == 'error' )
     {
         foreach ( getSkinIncludes( 'views/error.php', true, true ) as $includeFile )

@@ -1,5 +1,9 @@
 <div role="tabpanel" class="tab-pane active" id="general">
 
+<div class="row">
+
+	<div class="col-md-4">
+
 	<div class="form-group">
 		<label for="Name"><?= $SLANG['Name'] ?></label>
 		<input type="text" id="Name" class="form-control" ng-model="Name" placeholder="Monitor-Name" />
@@ -32,14 +36,6 @@
 			Enabled
 		</label>
 	</div>
-	<div class="form-group">
-		<label for="MaxFPS"><?= $SLANG['MaximumFPS'] ?></label>
-		<input type="number" id="MaxFPS" class="form-control" ng-model="newMonitor[MaxFPS]" value="<?= validHtmlStr($newMonitor['MaxFPS']) ?>" />
-	</div>
-	<div class="form-group">
-		<label for="AlarmMaxFPS"><?= $SLANG['AlarmMaximumFPS'] ?></label>
-		<input type="number" id="AlarmMaxFPS" class="form-control" ng-model="newMonitor[AlarmMaxFPS]" value="<?= validHtmlStr($newMonitor['AlarmMaxFPS']) ?>" />
-	</div>
 <?php
 	if ( ZM_FAST_IMAGE_BLENDS )
         {
@@ -64,6 +60,14 @@
 <?php
         }
 ?>
+	<div class="form-group" ng-show="sourceType == 'Local'">
+		<label for="MaxFPS"><?= $SLANG['MaximumFPS'] ?></label>
+		<input type="number" id="MaxFPS" class="form-control" ng-model="MaxFPS" />
+	</div>
+	<div class="form-group" ng-show="sourceType == 'Local'">
+		<label for="AlarmMaxFPS"><?= $SLANG['AlarmMaximumFPS'] ?></label>
+		<input type="number" id="AlarmMaxFPS" class="form-control" ng-model="AlarmMaxFPS" />
+	</div>
 	</div> <!-- End .col-md-6 -->
 
 	<div class="col-md-4">

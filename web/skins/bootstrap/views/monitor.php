@@ -430,7 +430,7 @@ xhtmlHeaders(__FILE__, $SLANG['Monitor']." - ".validHtmlStr($monitor['Name']) );
 
 	<div class="container" ng-controller="MonitorController">
 		<ul class="nav nav-tabs" role="tablist" id="tabMonitorAdd">
-			<li role="presentation"><a href="#general" aria-controls="general" role="tab" data-toggle="tab">General</a></li>
+			<li class="active" role="presentation"><a href="#general" aria-expanded="true" aria-controls="general" role="tab" data-toggle="tab">General</a></li>
 			<li role="presentation"><a href="#source" aria-controls="source" role="tab" data-toggle="tab">Source</a></li>
 			<li role="presentation"><a href="#timestamp" aria-controls="timestamp" role="tab" data-toggle="tab">Timestamps</a></li>
 			<li role="presentation"><a href="#buffers" aria-controls="buffers" role="tab" data-toggle="tab">Buffers</a></li>

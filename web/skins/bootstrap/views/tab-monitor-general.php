@@ -1,4 +1,4 @@
-<div role="tabpanel" class="tab-pane" id="general">
+<div role="tabpanel" class="tab-pane active" id="general">
 
 	<div class="form-group">
 		<label for="Name"><?= $SLANG['Name'] ?></label>

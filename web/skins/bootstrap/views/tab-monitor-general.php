@@ -2,11 +2,11 @@
 
 	<div class="form-group">
 		<label for="Name"><?= $SLANG['Name'] ?></label>
-		<input type="text" id="Name" class="form-control" ng-model="newMonitor[Name]" placeholder="Monitor-Name" />
+		<input type="text" id="Name" class="form-control" ng-model="Name" placeholder="Monitor-Name" />
 	</div>
 	<div class="form-group">
 		<label for="SourceType"><?= $SLANG['SourceType'] ?></label>
-		<select ng-model="newMonitor[Type]" id="SourceType" class="form-control">
+		<select ng-model="sourceType" id="SourceType" class="form-control">
 			<option value="Local">Local</option>
 			<option value="Remote">Remote</option>
 			<option value="File">File</option>
@@ -17,7 +17,7 @@
 	</div>
 	<div class="form-group">
 		<label for="Function"><?= $SLANG['Function'] ?></label>
-		<select class="form-control" id="Function" ng-model="newMonitor[Function]">
+		<select class="form-control" id="Function" ng-model="Function">
 			<option value="None">None</option>
 			<option value="Monitor" selected="selected">Monitor</option>
 			<option value="Modect">Modect</option>
@@ -28,7 +28,7 @@
 	</div>
 	<div class="checkbox">
 		<label>
-			<input type="checkbox" id="Enabled" ng-model="newMonitor[Enabled]" value="1"<?php if ( !empty($newMonitor['Enabled']) ) { ?> checked="checked"<?php } ?>/>
+			<input type="checkbox" id="Enabled" ng-model="Enabled" value="1"<?php if ( !empty($newMonitor['Enabled']) ) { ?> checked="checked"<?php } ?>/>
 			Enabled
 		</label>
 	</div>
@@ -46,18 +46,20 @@
 ?>
 	<div class="form-group">
 		<label for=""><?= $SLANG['RefImageBlendPct'] ?></label>
-<select class="form-control" ng-model="newMonitor[RefBlendPerc]"><?php foreach ( $fastblendopts as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['RefBlendPerc'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></div>
-	<div class="form-group"><?= "Alarm " . $SLANG['RefImageBlendPct'] ?></label>
-<select class="form-control" ng-model="newMonitor[AlarmRefBlendPerc]"><?php foreach ( $fastblendopts_alarm as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['AlarmRefBlendPerc'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></div>
+<select class="form-control" ng-model="RefBlendPerc"><?php foreach ( $fastblendopts as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['RefBlendPerc'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></div>
+	<div class="form-group">
+		<label for=""><?= "Alarm " . $SLANG['RefImageBlendPct'] ?></label>
+<select class="form-control" ng-model="AlarmRefBlendPerc"><?php foreach ( $fastblendopts_alarm as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['AlarmRefBlendPerc'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select></div>
 <?php
 	} else {
 ?>
 	<div class="form-group">
 		<label for=""><?= $SLANG['RefImageBlendPct'] ?></label>
-		<input type="text" class="form-control" ng-model="newMonitor[RefBlendPerc]" value="<?= validHtmlStr($newMonitor['RefBlendPerc']) ?>" />
+		<input type="text" class="form-control" ng-model="RefBlendPerc" value="6" />
 	</div>
-	<div class="form-group"><?= "Alarm " . $SLANG['RefImageBlendPct'] ?></label>
-		<input type="text" class="form-control" ng-model="newMonitor[AlarmRefBlendPerc]" value="<?= validHtmlStr($newMonitor['AlarmRefBlendPerc']) ?>" />
+	<div class="form-group">
+		<label for=""><?= "Alarm " . $SLANG['RefImageBlendPct'] ?></label>
+		<input type="text" class="form-control" ng-model="AlarmRefBlendPerc" value="6" />
 	</div>
 <?php
         }

@@ -1,3 +1,2 @@
-db/zm_create.sql usr/share/zoneminder/db
-db/zm_update-*.sql usr/share/zoneminder/db
+usr/share/zoneminder/db
 etc/zm

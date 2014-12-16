@@ -46,6 +46,13 @@ ZoneMinder.controller('EventController', function($scope, $location, Event) {
 	});
 });
 
+ZoneMinder.controller('MonitorController', function($scope) {
+	$scope.sourceType = 'Local';
+	$scope.RefBlendPerc = 6;
+	$scope.AlarmRefBlendPerc = 6;
+	$scope.Function = 'Monitor';
+});
+
 ZoneMinder.controller('ConsoleController', function($scope, Console) {
 	// Ask the API for events that have happened in the last week
 	Console.getConsoleEvents('1 week').then(function(results) {

@@ -135,7 +135,18 @@ else
                 Fatal( "View '$view' does not exist" );
             require_once $includeFile;
         }
+		// If the view overrides $view to 'error', and the user is not logged in, then the
+		// issue is probably resolvable by logging in, so provide the opportunity to do so.
+		// The login view should handle redirecting to the correct location afterward.
+		if ( $view == 'error' && !isset($user) )
+		{
+			$view = 'login';
+			foreach ( getSkinIncludes( 'views/login.php', true, true ) as $includeFile )
+				require_once $includeFile;
+		}
     }
+	// If the view is missing or the view still returned error with the user logged in,
+	// then it is not recoverable.
     if ( !$includeFiles || $view == 'error' )
     {
         foreach ( getSkinIncludes( 'views/error.php', true, true ) as $includeFile )

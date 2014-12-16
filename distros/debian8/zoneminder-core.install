@@ -1,0 +1,4 @@
+usr/bin
+usr/lib/cgi-bin
+usr/share/polkit-1/actions
+usr/share/polkit-1/rules.d

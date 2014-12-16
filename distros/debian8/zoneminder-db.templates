@@ -38,14 +38,6 @@ _Description: Remote database servers are not allowed:
  .
  $ sudo dpkg-reconfigure zoneminder
 
-Template: zoneminder/webserver
-Type: multiselect
-Choices: apache2
-Default: apache2
-_Description: Web server to reconfigure automatically:
- Please choose the web server that should be automatically configured for
- ZoneMinder's web portal access.
-
 Template: zoneminder/admin_password
 Type: password
 _Description: New password for the ZoneMinder 'admin' user:
@@ -64,23 +56,3 @@ Template: zoneminder/password_mismatch
 Type: error
 _Description: Password input error
  The two passwords you entered were not the same. Please try again.
-
-Template: zoneminder/ask_delete
-Type: boolean
-Default: false
-_Description: Delete this non empty directory?
- A purge of the ZoneMinder package is performed but the directory
- '/var/cache/zoneminder' is not empty so it will not be deleted.
- .
- Please consider that this directory is designed to contain data resulting from
- event detection. Therefore, "proof of evidence" could be lost!"
- .
- If you are not sure of your decision, please do not delete this directory but
- perform a manual checkup.
-
-Template: zoneminder/ask_delete_again
-Type: boolean
-Default: false
-_Description: Deletion confirmed?
- You have allowed the deletion of directory '/var/cache/zoneminder' although
- it may contain critical data.

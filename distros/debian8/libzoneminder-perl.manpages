@@ -1,0 +1,11 @@
+usr/share/man/man3/ZoneMinder.3pm.gz
+usr/share/man/man3/ZoneMinder::Base.3pm.gz
+usr/share/man/man3/ZoneMinder::Config.3pm.gz
+usr/share/man/man3/ZoneMinder::ConfigAdmin.3pm.gz
+usr/share/man/man3/ZoneMinder::ConfigData.3pm.gz
+usr/share/man/man3/ZoneMinder::Control::*
+usr/share/man/man3/ZoneMinder::Database.3pm.gz
+usr/share/man/man3/ZoneMinder::General.3pm.gz
+usr/share/man/man3/ZoneMinder::Logger.3pm.gz
+usr/share/man/man3/ZoneMinder::Memory.3pm.gz
+usr/share/man/man3/ZoneMinder::Trigger::*

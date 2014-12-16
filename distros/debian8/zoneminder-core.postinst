@@ -1,0 +1,18 @@
+#! /bin/sh
+# postinst maintainer script for zoneminder-core package
+
+set -e
+
+# Do this when the package is installed, upgraded or reconfigured
+if [ "$1" = "configure" ] || [ "$1" = "reconfigure" ]; then
+
+    # Set some file permissions
+    chown $ZM_WEB_USER:$ZM_WEB_GROUP /var/log/zm
+    if [ -z "$2" ]; then
+        chown $ZM_WEB_USER:$ZM_WEB_GROUP -R /var/cache/zoneminder
+    fi
+fi
+
+#DEBHELPER#
+
+exit 0

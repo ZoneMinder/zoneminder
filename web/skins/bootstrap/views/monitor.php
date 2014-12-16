@@ -421,31 +421,35 @@ xhtmlHeaders(__FILE__, $SLANG['Monitor']." - ".validHtmlStr($monitor['Name']) );
 
 	<?php include("header.php"); ?>
 
-      <div id="headerButtons">
-        <a href="#" onclick="createPopup( '?view=monitorprobe&amp;mid=<?= $monitor['Id'] ?>', 'zmMonitorProbe<?= $monitor['Id'] ?>', 'monitorprobe' ); return( false );"><?= $SLANG['Probe'] ?></a>
-        <a href="#" onclick="createPopup( '?view=monitorpreset&amp;mid=<?= $monitor['Id'] ?>', 'zmMonitorPreset<?= $monitor['Id'] ?>', 'monitorpreset' ); return( false );"><?= $SLANG['Presets'] ?></a>
-      </div>
-      <h2><?= $SLANG['Monitor'] ?> - <?= validHtmlStr($monitor['Name']) ?><?php if ( !empty($monitor['Id']) ) { ?> (<?= $monitor['Id'] ?>)<?php } ?></h2>
-  <div class="container-fluid">
-
-	<div class="container" ng-controller="MonitorController">
-		<ul class="nav nav-tabs" role="tablist" id="tabMonitorAdd">
-			<li class="active" role="presentation"><a href="#general" aria-expanded="true" aria-controls="general" role="tab" data-toggle="tab">General</a></li>
-			<li role="presentation"><a href="#source" aria-controls="source" role="tab" data-toggle="tab">Source</a></li>
-			<li role="presentation"><a href="#timestamp" aria-controls="timestamp" role="tab" data-toggle="tab">Timestamps</a></li>
-			<li role="presentation"><a href="#buffers" aria-controls="buffers" role="tab" data-toggle="tab">Buffers</a></li>
-			<li role="presentation"><a href="#misc" aria-controls="misc" role="tab" data-toggle="tab">Misc</a></li>
-		</ul> <!-- End tabs -->
-
-		<div class="tab-content">
-			<?php include("tab-monitor-general.php"); ?>
-			<?php include("tab-monitor-source.php"); ?>
-			<?php include("tab-monitor-timestamp.php"); ?>
-			<?php include("tab-monitor-buffers.php"); ?>
-			<?php include("tab-monitor-misc.php"); ?>
-		</div> <!-- End .tab-content -->
+	<div class="container-fluid">
+		<div id="headerButtons">
+			<a href="#" onclick="createPopup( '?view=monitorprobe&amp;mid=<?= $monitor['Id'] ?>', 'zmMonitorProbe<?= $monitor['Id'] ?>', 'monitorprobe' ); return( false );"><?= $SLANG['Probe'] ?></a>
+			<a href="#" onclick="createPopup( '?view=monitorpreset&amp;mid=<?= $monitor['Id'] ?>', 'zmMonitorPreset<?= $monitor['Id'] ?>', 'monitorpreset' ); return( false );"><?= $SLANG['Presets'] ?></a>
+		</div>
+		<h2><?= $SLANG['Monitor'] ?> - <?= validHtmlStr($monitor['Name']) ?><?php if ( !empty($monitor['Id']) ) { ?> (<?= $monitor['Id'] ?>)<?php } ?></h2>
 	</div>
 
-    <div> <! -- End .container-fluid -->
+	<div class="container-fluid">
+
+		<div class="container" ng-controller="MonitorController">
+			<ul class="nav nav-tabs" role="tablist" id="tabMonitorAdd">
+				<li class="active" role="presentation"><a href="#general" aria-expanded="true" aria-controls="general" role="tab" data-toggle="tab">General</a></li>
+				<li role="presentation"><a href="#source" aria-controls="source" role="tab" data-toggle="tab">Source</a></li>
+				<li role="presentation"><a href="#timestamp" aria-controls="timestamp" role="tab" data-toggle="tab">Timestamps</a></li>
+				<li role="presentation"><a href="#buffers" aria-controls="buffers" role="tab" data-toggle="tab">Buffers</a></li>
+				<li role="presentation"><a href="#misc" aria-controls="misc" role="tab" data-toggle="tab">Misc</a></li>
+			</ul> <!-- End tabs -->
+
+			<div class="tab-content">
+				<?php include("tab-monitor-general.php"); ?>
+				<?php include("tab-monitor-source.php"); ?>
+				<?php include("tab-monitor-timestamp.php"); ?>
+				<?php include("tab-monitor-buffers.php"); ?>
+				<?php include("tab-monitor-misc.php"); ?>
+			</div> <!-- End .tab-content -->
+		</div>
+
+	</div> <!-- End .container-fluid -->
+	<?php include("footer.php"); ?>
 </body>
 </html>

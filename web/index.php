@@ -110,6 +110,11 @@ foreach ( getSkinIncludes( 'skin.php' ) as $includeFile )
 
 require_once( 'includes/actions.php' );
 
+# If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
+if ( ZM_OPT_USE_AUTH && ! isset($user) && $view != 'login' ) {
+    $view = 'login';
+}
+
 if ( isset( $_REQUEST['request'] ) )
 {
     foreach ( getSkinIncludes( 'ajax/'.$request.'.php', true, true ) as $includeFile )

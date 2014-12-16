@@ -1,12 +1,12 @@
 <div role="tabpanel" class="form-horizontal tab-pane" id="misc">
 
 
-            <tr><td><?= $SLANG['EventPrefix'] ?></td><td><input type="text" name="newMonitor[EventPrefix]" value="<?= validHtmlStr($newMonitor['EventPrefix']) ?>" size="24"/></td></tr>
-            <tr><td><?= $SLANG['Sectionlength'] ?></td><td><input type="text" name="newMonitor[SectionLength]" value="<?= validHtmlStr($newMonitor['SectionLength']) ?>" size="6"/></td></tr>
-            <tr><td><?= $SLANG['FrameSkip'] ?></td><td><input type="text" name="newMonitor[FrameSkip]" value="<?= validHtmlStr($newMonitor['FrameSkip']) ?>" size="6"/></td></tr>
-            <tr><td><?= $SLANG['MotionFrameSkip'] ?></td><td><input type="text" name="newMonitor[MotionFrameSkip]" value="<?= validHtmlStr($newMonitor['MotionFrameSkip']) ?>" size="6"/></td></tr>
-            <tr><td><?= $SLANG['FPSReportInterval'] ?></td><td><input type="text" name="newMonitor[FPSReportInterval]" value="<?= validHtmlStr($newMonitor['FPSReportInterval']) ?>" size="6"/></td></tr>
-            <tr><td><?= $SLANG['DefaultView'] ?></td><td><select name="newMonitor[DefaultView]">
+            <div class="form-group"><label><?= $SLANG['EventPrefix'] ?></label><input type="text" name="newMonitor[EventPrefix]" value="<?= validHtmlStr($newMonitor['EventPrefix']) ?>" size="24"/></div>
+            <div class="form-group"><label><?= $SLANG['Sectionlength'] ?></label><input type="text" name="newMonitor[SectionLength]" value="<?= validHtmlStr($newMonitor['SectionLength']) ?>" size="6"/></div>
+            <div class="form-group"><label><?= $SLANG['FrameSkip'] ?></label><input type="text" name="newMonitor[FrameSkip]" value="<?= validHtmlStr($newMonitor['FrameSkip']) ?>" size="6"/></div>
+            <div class="form-group"><label><?= $SLANG['MotionFrameSkip'] ?></label><input type="text" name="newMonitor[MotionFrameSkip]" value="<?= validHtmlStr($newMonitor['MotionFrameSkip']) ?>" size="6"/></div>
+            <div class="form-group"><label><?= $SLANG['FPSReportInterval'] ?></label><input type="text" name="newMonitor[FPSReportInterval]" value="<?= validHtmlStr($newMonitor['FPSReportInterval']) ?>" size="6"/></div>
+            <div class="form-group"><label><?= $SLANG['DefaultView'] ?></label><select name="newMonitor[DefaultView]">
 <?php
         foreach ( getEnumValues( 'Monitors', 'DefaultView' ) as $opt_view )
         {
@@ -17,24 +17,23 @@
 <?php
         }
 ?>
-            </select></td></tr>
-            <tr><td><?= $SLANG['DefaultRate'] ?></td><td><?= buildSelect( "newMonitor[DefaultRate]", $rates ); ?></td></tr>
-            <tr><td><?= $SLANG['DefaultScale'] ?></td><td><?= buildSelect( "newMonitor[DefaultScale]", $scales ); ?></td></tr>
+            </select></div>
+            <div class="form-group"><label><?= $SLANG['DefaultRate'] ?></label><?= buildSelect( "newMonitor[DefaultRate]", $rates ); ?></div>
+            <div class="form-group"><label><?= $SLANG['DefaultScale'] ?></label><?= buildSelect( "newMonitor[DefaultScale]", $scales ); ?></div>
 <?php
         if ( ZM_HAS_V4L && $newMonitor['Type'] == "Local" )
         {
 ?>
-            <tr><td><?= $SLANG['SignalCheckColour'] ?></td><td><input type="text" name="newMonitor[SignalCheckColour]" value="<?= validHtmlStr($newMonitor['SignalCheckColour']) ?>" size="10" onchange="$('SignalCheckSwatch').setStyle( 'backgroundColor', this.value )"/><span id="SignalCheckSwatch" class="swatch" style="background-color: <?= $newMonitor['SignalCheckColour'] ?>;">&nbsp;&nbsp;&nbsp;&nbsp;</span></td></tr>
+            <div class="form-group"><label><?= $SLANG['SignalCheckColour'] ?></label><input type="text" name="newMonitor[SignalCheckColour]" value="<?= validHtmlStr($newMonitor['SignalCheckColour']) ?>" size="10" onchange="$('SignalCheckSwatch').setStyle( 'backgroundColor', this.value )"/><span id="SignalCheckSwatch" class="swatch" style="background-color: <?= $newMonitor['SignalCheckColour'] ?>;">&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
 <?php
         }
 ?>
-            <tr><td><?= $SLANG['WebColour'] ?></td><td><input type="text" name="newMonitor[WebColour]" value="<?= validHtmlStr($newMonitor['WebColour']) ?>" size="10" onchange="$('WebSwatch').setStyle( 'backgroundColor', this.value )"/><span id="WebSwatch" class="swatch" style="background-color: <?= validHtmlStr($newMonitor['WebColour']) ?>;">&nbsp;&nbsp;&nbsp;&nbsp;</span></td></tr>
+            <div class="form-group"><label><?= $SLANG['WebColour'] ?></label><input type="text" name="newMonitor[WebColour]" value="<?= validHtmlStr($newMonitor['WebColour']) ?>" size="10" onchange="$('WebSwatch').setStyle( 'backgroundColor', this.value )"/><span id="WebSwatch" class="swatch" style="background-color: <?= validHtmlStr($newMonitor['WebColour']) ?>;">&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
 
 
 
-            <tr>
-              <td><?= $SLANG['LinkedMonitors'] ?></td>
-              <td>
+            <div class="form-group">
+              <label><?= $SLANG['LinkedMonitors'] ?></label>
                 <select name="monitorIds" size="4" multiple="multiple" onchange="updateLinkedMonitors( this )">
 <?php
     $monitors = dbFetchAll( "select Id,Name from Monitors order by Sequence asc" );
@@ -53,9 +52,8 @@
     }
 ?>
                 </select>
-              </td>
-            </tr>
-            <tr><td><?= $SLANG['Triggers'] ?></td><td>
+              </div>>
+            <div class="form-group"><label><?= $SLANG['Triggers'] ?></label>
 <?php
         $optTriggers = getSetValues( 'Monitors', 'Triggers' );
         $breakCount = (int)(ceil(count($optTriggers)));
@@ -79,6 +77,6 @@
 <?php
         }
 ?>
-            </td></tr>
+            </div>
 
 </div>

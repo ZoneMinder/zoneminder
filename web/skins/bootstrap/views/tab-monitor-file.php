@@ -1,2 +1,6 @@
-
-            <tr><td><?= $SLANG['SourcePath'] ?></td><td><input type="text" name="newMonitor[Path]" value="<?= validHtmlStr($newMonitor['Path']) ?>" size="36"/></td></tr>
+<div ng-show="monitor.sourceType == 'file'">            
+	<div class="form-group">
+		<label><?= $SLANG['SourcePath'] ?></label>
+		<input type="text" ng-model="monitor.Path" />
+	</div>
+</div>

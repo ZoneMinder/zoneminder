@@ -46,11 +46,50 @@ ZoneMinder.controller('EventController', function($scope, $location, Event) {
 	});
 });
 
-ZoneMinder.controller('MonitorController', function($scope) {
-	$scope.sourceType = 'Local';
-	$scope.RefBlendPerc = 6;
-	$scope.AlarmRefBlendPerc = 6;
-	$scope.Function = 'Monitor';
+ZoneMinder.controller('MonitorController', function($scope, $http) {
+	$scope.monitor = {};
+	$scope.monitor.sourceType = 'Remote';
+	$scope.monitor.RefBlendPerc = 6;
+	$scope.monitor.AlarmRefBlendPerc = 6;
+	$scope.monitor.Function = 'Monitor';
+	$scope.monitor.ImageBufferCount = 100;
+	$scope.monitor.WarmupCount = 25;
+	$scope.monitor.PreEventCount = 50;
+	$scope.monitor.PostEventCount = 50;
+	$scope.monitor.StreamReplayBuffer = 1000;
+	$scope.monitor.AlarmFrameCount = 1;
+	$scope.monitor.LabelFormat = '%N - %d/%m/%y %H:%M:%S';
+	$scope.monitor.LabelX = 0;
+	$scope.monitor.LabelY = 0;
+	$scope.monitor.Colours = 3;
+	$scope.monitor.Orientation = 0;
+	$scope.monitor.Enabled = true;
+	$scope.monitor.Protocol = 'http';
+	$scope.monitor.SectionLength = 600;
+	$scope.monitor.EventPrefix = 'Event-';
+	$scope.monitor.FrameSkip = 0;
+	$scope.monitor.MotionFrameSkip = 0;
+	$scope.monitor.FPSReportInterval = 1000;
+	$scope.monitor.DefaultView = 'Events';
+	$scope.monitor.DefaultRate = 100;
+	$scope.monitor.DefaultScale = 100;
+	$scope.monitor.SignalCheckColour = '#0000c0';
+	var color =  '#' + (Math.random() * 0xFFFFFF << 0).toString(16);
+	$scope.monitor.WebColour = color;
+
+
+	$scope.submitMonitor = function() {
+	$http({
+        method  : 'POST',
+        url     : '/api/monitors.json',
+        data    : $.param($scope.monitor),
+        headers : { 'Content-Type': 'application/x-www-form-urlencoded' }  // set the headers so angular passing info as form data (not request payload)
+    })
+        .success(function(data) {
+            console.log(data);
+		window.location = "/index.php?view=console";
+        });
+	};
 });
 
 ZoneMinder.controller('ConsoleController', function($scope, Console) {

@@ -426,12 +426,10 @@ xhtmlHeaders(__FILE__, $SLANG['Monitor']." - ".validHtmlStr($monitor['Name']) );
 			<a href="#" onclick="createPopup( '?view=monitorprobe&amp;mid=<?= $monitor['Id'] ?>', 'zmMonitorProbe<?= $monitor['Id'] ?>', 'monitorprobe' ); return( false );"><?= $SLANG['Probe'] ?></a>
 			<a href="#" onclick="createPopup( '?view=monitorpreset&amp;mid=<?= $monitor['Id'] ?>', 'zmMonitorPreset<?= $monitor['Id'] ?>', 'monitorpreset' ); return( false );"><?= $SLANG['Presets'] ?></a>
 		</div>
-		<h2><?= $SLANG['Monitor'] ?> - <?= validHtmlStr($monitor['Name']) ?><?php if ( !empty($monitor['Id']) ) { ?> (<?= $monitor['Id'] ?>)<?php } ?></h2>
 	</div>
 
-	<div class="container-fluid">
-
-		<div class="container" ng-controller="MonitorController">
+	<div class="container-fluid" ng-controller="MonitorController">
+		<form ng-submit="submitMonitor(formMonitor.$valid)" name="formMonitor" novalidate>
 			<ul class="nav nav-tabs" role="tablist" id="tabMonitorAdd">
 				<li class="active" role="presentation"><a href="#general" aria-expanded="true" aria-controls="general" role="tab" data-toggle="tab">General</a></li>
 				<li role="presentation"><a href="#source" aria-controls="source" role="tab" data-toggle="tab">Source</a></li>
@@ -447,8 +445,9 @@ xhtmlHeaders(__FILE__, $SLANG['Monitor']." - ".validHtmlStr($monitor['Name']) );
 				<?php include("tab-monitor-buffers.php"); ?>
 				<?php include("tab-monitor-misc.php"); ?>
 			</div> <!-- End .tab-content -->
-		</div>
 
+			<button type="submit" class="btn btn-success btn-block" ng-disabled="formMonitor.$invalid">Save</button>
+		</form>
 	</div> <!-- End .container-fluid -->
 	<?php include("footer.php"); ?>
 </body>

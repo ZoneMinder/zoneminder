@@ -53,7 +53,7 @@ override_dh_install:
 	# having it just in /usr/lib/cgi-bin breaks another bit of
 	# behavior.
 	#
-	dh_link /usr/lib/cgi-bin usr/share/zoneminder/cgi-bin
+	dh_link usr/lib/cgi-bin usr/share/zoneminder/cgi-bin
 
 override_dh_fixperms:
 	dh_fixperms

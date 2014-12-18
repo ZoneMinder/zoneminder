@@ -81,7 +81,7 @@ foreach ( $tabs as $name=>$value )
       </ul>
       <div class="clear"></div>
 <?php 
-$skin_options = array_map( 'basename' glob('skins/*',GLOB_ONLYDIR) );
+$skin_options = array_map( 'basename', glob('skins/*',GLOB_ONLYDIR) );
 if($tab == 'skins') {
 	$current_skin = $_COOKIE['zmSkin'];
 	$reload = false;
@@ -124,7 +124,7 @@ if($tab == 'skins') {
 					<td><?php echo $SLANG['CSSDescription']; ?></td>
 					<td><select name="css-choice">
 						<?php
-							foreach( array_map( 'basename' glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDIR) ) as $dir) {
+							foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDIR) ) as $dir) {
 								echo '<option value="'.$dir.'" '.($current_css==$dir ? 'SELECTED="SELECTED"' : '').'>'.$dir.'</option>';
 							}
 						?>
@@ -212,7 +212,7 @@ elseif ( $tab == "users" )
     if ( $tab == "system" ) {
         $configCats[$tab]['ZM_LANG_DEFAULT']['Hint'] = join( '|', getLanguages() );
         $configCats[$tab]['ZM_SKIN_DEFAULT']['Hint'] = join( '|', $skin_options );
-        $configCats[$tab]['ZM_CSS_DEFAULT']['Hint'] = join( '|', array_map ( 'basename' glob('skins/'.ZM_SKIN_DEFAULT.'/css/*',GLOB_ONLYDIR) ) );
+        $configCats[$tab]['ZM_CSS_DEFAULT']['Hint'] = join( '|', array_map ( 'basename', glob('skins/'.ZM_SKIN_DEFAULT.'/css/*',GLOB_ONLYDIR) ) );
 
     }
 ?>

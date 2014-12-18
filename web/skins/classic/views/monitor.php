@@ -423,13 +423,14 @@ $savejpegopts = array(
     "Disabled"                                            => 0,
     "Frames only"                                         => 1,
     "Analysis images only (if available)"                 => 2,
-    "Frames + Analysis images (if available)"             => 3         
+    "Frames + Analysis images (if available)"             => 3,
+    "Snapshot Only"                                       => 4          
 );
 
 $videowriteropts = array(
     "Disabled"                                            => 0,
-    "X264 : MP4V2"                                        => 1
-//    "H264 Passthrough : MP4V2 (not implemented)"          => 2          
+    "X264 Encode"                                         => 1
+    "H264 Camera Passthrough"                             => 2          
 );
 
 xhtmlHeaders(__FILE__, $SLANG['Monitor']." - ".validHtmlStr($monitor['Name']) );

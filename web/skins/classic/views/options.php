@@ -81,6 +81,7 @@ foreach ( $tabs as $name=>$value )
       </ul>
       <div class="clear"></div>
 <?php 
+$skin_options = array_map( 'basename' glob('skins/*',GLOB_ONLYDIR) );
 if($tab == 'skins') {
 	$current_skin = $_COOKIE['zmSkin'];
 	$reload = false;
@@ -95,6 +96,7 @@ if($tab == 'skins') {
 		//header("Location: index.php?view=options&tab=skins&reset_parent=1");
 		$reload = true;
 	}
+
 	if ( $reload ) 
 		echo "<script type=\"text/javascript\">window.opener.location.reload();window.location.href=\"{$_SERVER['PHP_SELF']}?view={$view}&tab={$tab}\"</script>";
 
@@ -110,8 +112,7 @@ if($tab == 'skins') {
 					<td><?php echo $SLANG['SkinDescription']; ?></td>
 					<td><select name="skin-choice">
 						<?php
-							foreach(glob('skins/*',GLOB_ONLYDIR) as $dir) {
-								$dir = basename($dir);
+							foreach($skin_options as $dir) {
 								echo '<option value="'.$dir.'" '.($current_skin==$dir ? 'SELECTED="SELECTED"' : '').'>'.$dir.'</option>';
 							}
 						?>
@@ -123,8 +124,7 @@ if($tab == 'skins') {
 					<td><?php echo $SLANG['CSSDescription']; ?></td>
 					<td><select name="css-choice">
 						<?php
-							foreach(glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDIR) as $dir) {
-								$dir = basename($dir);
+							foreach( array_map( 'basename' glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDIR) ) as $dir) {
 								echo '<option value="'.$dir.'" '.($current_css==$dir ? 'SELECTED="SELECTED"' : '').'>'.$dir.'</option>';
 							}
 						?>
@@ -208,12 +208,12 @@ elseif ( $tab == "users" )
         </div>
       </form>
 <?php
-}
-else
-{
-    if ( $tab == "system" )
-    {
+} else {
+    if ( $tab == "system" ) {
         $configCats[$tab]['ZM_LANG_DEFAULT']['Hint'] = join( '|', getLanguages() );
+        $configCats[$tab]['ZM_SKIN_DEFAULT']['Hint'] = join( '|', $skin_options );
+        $configCats[$tab]['ZM_CSS_DEFAULT']['Hint'] = join( '|', array_map ( 'basename' glob('skins/'.ZM_SKIN_DEFAULT.'/css/*',GLOB_ONLYDIR) ) );
+
     }
 ?>
       <form name="optionsForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">

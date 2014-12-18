@@ -3,6 +3,15 @@
 
 set -e
 
+# Source the debconf stuff
+. /usr/share/debconf/confmodule
+
+# Source the config file if exists
+CONFIGFILE=/etc/zm/zm.conf
+if [ -e $CONFIGFILE ]; then
+    . $CONFIGFILE
+fi
+
 # Do this when the package is installed, upgraded or reconfigured
 if [ "$1" = "configure" ] || [ "$1" = "reconfigure" ]; then
 

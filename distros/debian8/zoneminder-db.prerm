@@ -1,5 +1,5 @@
 #!/bin/sh
-# prerm script for zoneminder
+# prerm script for zoneminder-db package
 
 set -e
 

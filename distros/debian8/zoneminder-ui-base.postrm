@@ -1,5 +1,5 @@
 #! /bin/sh
-# postrm maintainer script for zoneminder
+# postrm maintainer script for zoneminder-ui-base package
 
 set -e
 

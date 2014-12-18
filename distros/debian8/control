@@ -7,7 +7,12 @@ Standards-Version: 3.9.6
 
 Package: zoneminder-core
 Architecture: any
-Depends: libzoneminder-perl (= ${source:Version}), zoneminder-db (= ${source:Version}), ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}, debconf, libpcre3, ffmpeg | libav-tools, rsyslog | system-log-daemon, netpbm, libavdevice55, libjpeg8|libjpeg9|libjpeg62-turbo, zip, libvlccore8, libvlc5, libgcrypt11|libgcrypt20, libpolkit-gobject-1-0, policykit-1
+Depends: libzoneminder-perl (= ${source:Version}),
+ zoneminder-db (= ${source:Version}), ${shlibs:Depends}, ${misc:Depends},
+ ${perl:Depends}, debconf, libpcre3, ffmpeg | libav-tools,
+ rsyslog | system-log-daemon, netpbm, libavdevice55,
+ libjpeg8 | libjpeg9 | libjpeg62-turbo, zip, libvlccore8, libvlc5,
+ libgcrypt11 | libgcrypt20, libpolkit-gobject-1-0, policykit-1
 Description: Video camera security and surveillance solution
  ZoneMinder is intended for use in single or multi-camera video security
  applications, including commercial or home CCTV, theft prevention and child
@@ -46,30 +51,33 @@ Description: Database management package for ZoneMinder
  ZoneMinder is a video camera security and surveillance solution.
 
 Package: zoneminder-ui-base
-Architecture: all
-Depends: zoneminder-core (= ${binary:Version}), ${misc:Depends}, debconf, apache2, libapache2-mod-php5 | libapache2-mod-fcgid, php5, php5-mysql | php5-mysqlnd
+Architecture: any
+Depends: zoneminder-core (= ${binary:Version}), ${shlibs:Depends},
+ ${misc:Depends}, debconf, apache2, libapache2-mod-php5 | libapache2-mod-fcgid,
+ php5, php5-mysql | php5-mysqlnd
 Description: Essential files for the web user interface of ZoneMinder
  ZoneMinder is a video camera security and surveillance solution.
 
 Package: zoneminder-ui-classic
 Architecture: all
-Depends: zoneminder-ui-base (= ${source:Version}), ${misc:Depends}
+Depends: zoneminder-ui-base (>= ${source:Version}), ${misc:Depends}
 Description: Classic web user interface for ZoneMinder
  ZoneMinder is a video camera security and surveillance solution.
 
 Package: zoneminder-ui-mobile
 Architecture: all
-Depends: zoneminder-ui-base (= ${source:Version}), ${misc:Depends}
+Depends: zoneminder-ui-base (>= ${source:Version}), ${misc:Depends}
 Description: Mobile web user interface for ZoneMinder
  ZoneMinder is a video camera security and surveillance solution.
 
 Package: zoneminder-ui-xml
 Architecture: all
-Depends: zoneminder-ui-base (= ${source:Version}), ${misc:Depends}
+Depends: zoneminder-ui-base (>= ${source:Version}), ${misc:Depends}
 Description: XML interface for ZoneMinder
  ZoneMinder is a video camera security and surveillance solution.
 
 Package: libzoneminder-perl
+Section: perl
 Architecture: all
 Depends: ${misc:Depends}, ${perl:Depends}, libphp-serialization-perl, libdate-manip-perl, libmime-lite-perl, libmime-tools-perl, libwww-perl, libarchive-tar-perl, libarchive-zip-perl, libdevice-serialport-perl, libmodule-load-perl, libsys-mmap-perl, libjson-any-perl, libnet-sftp-foreign-perl, libio-pty-perl, libexpect-perl, liburi-encode-perl
 Description: Perl libraries for ZoneMinder

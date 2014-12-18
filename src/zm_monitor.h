@@ -295,7 +295,7 @@ protected:
 
 	SharedData		*shared_data;
 	TriggerData		*trigger_data;
-    	VideoStoreData  *video_store_data;
+    	VideoStoreData          *video_store_data;
 
 	Snapshot		*image_buffer;
 	Snapshot		next_buffer; /* Used by four field deinterlacing */

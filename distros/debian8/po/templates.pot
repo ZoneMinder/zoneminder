@@ -63,25 +63,25 @@ msgstr ""
 
 #. Type: select
 #. Choices
-#: ../zoneminder-db.templates:1001
+#: ../zoneminder-database.templates:1001
 msgid "local"
 msgstr ""
 
 #. Type: select
 #. Choices
-#: ../zoneminder-db.templates:1001
+#: ../zoneminder-database.templates:1001
 msgid "remote"
 msgstr ""
 
 #. Type: select
 #. Description
-#: ../zoneminder-db.templates:1002
+#: ../zoneminder-database.templates:1002
 msgid "Database location:"
 msgstr ""
 
 #. Type: select
 #. Description
-#: ../zoneminder-db.templates:1002
+#: ../zoneminder-database.templates:1002
 msgid ""
 "A database server is required to run ZoneMinder. The database can be "
 "installed either locally or remotely on a machine of your network."
@@ -89,7 +89,7 @@ msgstr ""
 
 #. Type: select
 #. Description
-#: ../zoneminder-db.templates:1002
+#: ../zoneminder-database.templates:1002
 msgid ""
 "If you choose a remote location, you will have to select the 'tcp/ip' "
 "connection method and enter the hostname or ip address of the remote machine "
@@ -98,13 +98,13 @@ msgstr ""
 
 #. Type: error
 #. Description
-#: ../zoneminder-db.templates:2001
+#: ../zoneminder-database.templates:2001
 msgid "No local database server is available:"
 msgstr ""
 
 #. Type: error
 #. Description
-#: ../zoneminder-db.templates:2001
+#: ../zoneminder-database.templates:2001
 msgid ""
 "Currently ZoneMinder supports mysql or mariadb database server but none of "
 "them appears to be installed on this machine."
@@ -112,7 +112,7 @@ msgstr ""
 
 #. Type: error
 #. Description
-#: ../zoneminder-db.templates:2001
+#: ../zoneminder-database.templates:2001
 msgid ""
 "In order to complete ZoneMinder's installation, after ending of this "
 "assistant, please install a compatible database server and then restart the "
@@ -123,19 +123,19 @@ msgstr ""
 #. Description
 #. Type: error
 #. Description
-#: ../zoneminder-db.templates:2001 ../zoneminder-db.templates:3001
+#: ../zoneminder-database.templates:2001 ../zoneminder-database.templates:3001
 msgid "$ sudo dpkg-reconfigure zoneminder"
 msgstr ""
 
 #. Type: error
 #. Description
-#: ../zoneminder-db.templates:3001
+#: ../zoneminder-database.templates:3001
 msgid "Remote database servers are not allowed:"
 msgstr ""
 
 #. Type: error
 #. Description
-#: ../zoneminder-db.templates:3001
+#: ../zoneminder-database.templates:3001
 msgid ""
 "The current configuration of dbconfig-common does not allow installation of "
 "a database on remote servers."
@@ -143,7 +143,7 @@ msgstr ""
 
 #. Type: error
 #. Description
-#: ../zoneminder-db.templates:3001
+#: ../zoneminder-database.templates:3001
 msgid ""
 "In order to reconfigure dbconfig-common, please invoke the following command "
 "after ending of this assistant:"
@@ -151,13 +151,13 @@ msgstr ""
 
 #. Type: error
 #. Description
-#: ../zoneminder-db.templates:3001
+#: ../zoneminder-database.templates:3001
 msgid "$ sudo dpkg-reconfigure dbconfig-common"
 msgstr ""
 
 #. Type: error
 #. Description
-#: ../zoneminder-db.templates:3001
+#: ../zoneminder-database.templates:3001
 msgid ""
 "Then, to complete ZoneMinder's installation, please restart this assistant "
 "by invoking:"
@@ -165,19 +165,19 @@ msgstr ""
 
 #. Type: password
 #. Description
-#: ../zoneminder-db.templates:4001
+#: ../zoneminder-database.templates:4001
 msgid "New password for the ZoneMinder 'admin' user:"
 msgstr ""
 
 #. Type: password
 #. Description
-#: ../zoneminder-db.templates:4001
+#: ../zoneminder-database.templates:4001
 msgid "Please enter the password of the default administrative user."
 msgstr ""
 
 #. Type: password
 #. Description
-#: ../zoneminder-db.templates:4001
+#: ../zoneminder-database.templates:4001
 msgid ""
 "While not mandatory, it is highly recommended that you set a custom password "
 "for the administrative 'admin' user."
@@ -185,25 +185,25 @@ msgstr ""
 
 #. Type: password
 #. Description
-#: ../zoneminder-db.templates:4001
+#: ../zoneminder-database.templates:4001
 msgid "If this field is left blank, the password will not be changed."
 msgstr ""
 
 #. Type: password
 #. Description
-#: ../zoneminder-db.templates:5001
+#: ../zoneminder-database.templates:5001
 msgid "Repeat password for the ZoneMinder 'admin' user:"
 msgstr ""
 
 #. Type: error
 #. Description
-#: ../zoneminder-db.templates:6001
+#: ../zoneminder-database.templates:6001
 msgid "Password input error"
 msgstr ""
 
 #. Type: error
 #. Description
-#: ../zoneminder-db.templates:6001
+#: ../zoneminder-database.templates:6001
 msgid "The two passwords you entered were not the same. Please try again."
 msgstr ""
 

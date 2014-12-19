@@ -48,7 +48,7 @@ ZoneMinder.controller('EventController', function($scope, $location, Event) {
 
 ZoneMinder.controller('MonitorController', function($scope, $http) {
 	$scope.monitor = {};
-	$scope.monitor.sourceType = 'Remote';
+	$scope.monitor.Type = 'Remote';
 	$scope.monitor.RefBlendPerc = 6;
 	$scope.monitor.AlarmRefBlendPerc = 6;
 	$scope.monitor.Function = 'Monitor';

@@ -9,8 +9,8 @@
 		<input type="text" id="Name" class="form-control" ng-model="monitor.Name" placeholder="Monitor-Name" required />
 	</div>
 	<div class="form-group">
-		<label for="SourceType"><?= $SLANG['SourceType'] ?></label>
-		<select ng-model="monitor.sourceType" id="SourceType" class="form-control" required>
+		<label for="Type"><?= $SLANG['SourceType'] ?></label>
+		<select ng-model="monitor.Type" id="Type" class="form-control" required>
 			<option value="Local">Local</option>
 			<option value="Remote">Remote</option>
 			<option value="File">File</option>

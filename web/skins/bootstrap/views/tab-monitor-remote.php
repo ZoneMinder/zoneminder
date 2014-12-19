@@ -1,4 +1,4 @@
-		<div ng-show="monitor.sourceType == 'Remote'">
+		<div ng-show="monitor.Type == 'Remote'">
 			<div class="form-group">
 				<label for="newMonitor[Protocol]"><?= $SLANG['RemoteProtocol'] ?></label>
 				<select class="form-control" ng-model="monitor.Protocol" id="newMonitor[Protocol]" ng-required="monitor.sourceType == 'Remote'">

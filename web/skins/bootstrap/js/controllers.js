@@ -74,6 +74,7 @@ ZoneMinder.controller('MonitorController', function($scope, $http) {
 	$scope.monitor.DefaultRate = 100;
 	$scope.monitor.DefaultScale = 100;
 	$scope.monitor.SignalCheckColour = '#0000c0';
+	$scope.monitor.Method = 'simple';
 	var color =  '#' + (Math.random() * 0xFFFFFF << 0).toString(16);
 	$scope.monitor.WebColour = color;
 

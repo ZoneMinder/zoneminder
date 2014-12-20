@@ -1,14 +1,4 @@
 usr/share/perl5/ZoneMinder
 usr/share/perl5/ZoneMinder.pm
 debian/tmp/usr/share/man/man3/ZoneMinder.3pm
-debian/tmp/usr/share/man/man3/ZoneMinder::Base.3pm
-debian/tmp/usr/share/man/man3/ZoneMinder::Config.3pm
-debian/tmp/usr/share/man/man3/ZoneMinder::ConfigAdmin.3pm
-debian/tmp/usr/share/man/man3/ZoneMinder::ConfigData.3pm
-debian/tmp/usr/share/man/man3/ZoneMinder::Control.3pm
-debian/tmp/usr/share/man/man3/ZoneMinder::Control::*
-debian/tmp/usr/share/man/man3/ZoneMinder::Database.3pm
-debian/tmp/usr/share/man/man3/ZoneMinder::General.3pm
-debian/tmp/usr/share/man/man3/ZoneMinder::Logger.3pm
-debian/tmp/usr/share/man/man3/ZoneMinder::Memory.3pm
-debian/tmp/usr/share/man/man3/ZoneMinder::Trigger::*
+debian/tmp/usr/share/man/man3/ZoneMinder::*

@@ -29,6 +29,7 @@ xhtmlHeaders(__FILE__, $SLANG['Login'] );
       <form name="loginForm" id="loginForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="action" value="login"/>
         <input type="hidden" name="view" value="postlogin"/>
+        <input type="hidden" name="postLoginQuery" value="<?php echo $_SERVER['QUERY_STRING'] ?>">
         <table id="loginTable" class="minor" cellspacing="0">
           <tbody>
             <tr>

@@ -96,7 +96,7 @@ public:
 protected:
 
     //! Do detection inside one given zone.
-    virtual bool checkZone(Zone *zone, unsigned int n_zone, const Image &zmImage) = 0;
+    virtual bool checkZone(Zone *zone, unsigned int n_zone, const Image *zmImage) = 0;
 
     //! Log messages to the SYSLOG.
     void log(int, string sLevel, string sMessage);

@@ -1,5 +1,5 @@
 #!/bin/sh
-# preinst maintainer script for zoneminder
+# preinst maintainer script for zoneminder-core package
 
 set -e
 

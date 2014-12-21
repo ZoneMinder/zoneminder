@@ -40,6 +40,15 @@ Description: Perl libraries for ZoneMinder
  This package provides the libraries for the perl scripts, it can be used to
  write custom interfaces as well.
 
+Package: libzoneminder-plugin-dev
+Section: libdevel
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Development library for ZoneMinder plugins
+ ZoneMinder is a video camera security and surveillance solution.
+ .
+ This package provides the necessary files to develop video analysis plugins.
+
 Package: zoneminder-database
 Section: database
 Architecture: all

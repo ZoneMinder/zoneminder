@@ -76,7 +76,7 @@ public:
     Detector& operator=(const Detector& source);
 
     //! Detect (in an image later)
-    bool Detect(const Image* image, Zone** zones, Event::StringSet &zoneSet, unsigned int &score);
+    bool Detect(const Image &image, Zone** zones, Event::StringSet &zoneSet, unsigned int &score);
 
     //! Load detector's parameters.
     virtual int loadConfig(string sConfigFileName, map<unsigned int,map<string,string> > mapPluginConf) = 0;

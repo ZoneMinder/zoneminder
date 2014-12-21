@@ -249,25 +249,25 @@ xhtmlHeaders(__FILE__, $SLANG['Plugin'] );
         <div id="settingsPanel">
           <table id="pluginSettings" cellspacing="0">
             <tbody>
-<?
+<?php
 foreach($options as $name => $popt)
 {
    ?>
             <tr><th scope="row"><?php echo pLang($name) ?></th>     
-   <?
+   <?php
    switch($popt['Type'])
    {
       case "checkbox":
             ?>
-               <td><input type="checkbox" name="pluginOpt[<?= $popt['Name'] ?>]" id="pluginOpt[<?= $popt['Name'] ?>]" <? if ($popt['Value']) echo 'checked="checked"'; if (!isEnabled($popt['Name'])) echo 'disabled="disabled"'; ?>></td>
-            <?
+               <td><input type="checkbox" name="pluginOpt[<?php echo $popt['Name'] ?>]" id="pluginOpt[<?php echo $popt['Name'] ?>]" <?php if ($popt['Value']) echo 'checked="checked"'; if (!isEnabled($popt['Name'])) echo 'disabled="disabled"'; ?>></td>
+            <?php
          break;
       case "select":
          $pchoices=explode(',',$popt['Choices']);
             ?>
                <td colspan="2">
-                  <select name="pluginOpt[<?php echo $popt['Name'] ?>]" id="pluginOpt[<?php echo $popt['Name'] ?>]" <? if (!isEnabled($popt['Name'])) echo 'disabled="disabled"'; ?> onchange="applyDependencies()" >
-            <?
+                  <select name="pluginOpt[<?php echo $popt['Name'] ?>]" id="pluginOpt[<?php echo $popt['Name'] ?>]" <?php if (!isEnabled($popt['Name'])) echo 'disabled="disabled"'; ?> onchange="applyDependencies()" >
+            <?php
             foreach($pchoices as $pchoice)
             {
                $psel="";
@@ -275,29 +275,29 @@ foreach($options as $name => $popt)
                   $psel="selected";
                ?>
                      <option value="<?php echo $pchoice ?>" <?php echo $psel ?>><?php echo pLang($pchoice) ?></option>
-               <?
+               <?php
             }
             ?>
                   </select>
                </td>
-         <?
+         <?php
          break;
       case "text":
             ?>
-                <td><input type="text" name="pluginOpt[<?= $popt['Name'] ?>]" id="pluginOpt[<?= $popt['Name'] ?>]" value="<?= $popt['Value'] ?>" <? if (!isEnabled($popt['Name'])) echo 'disabled="disabled"'; ?>></td>
-            <?
+                <td><input type="text" name="pluginOpt[<?php echo $popt['Name'] ?>]" id="pluginOpt[<?php echo $popt['Name'] ?>]" value="<?php echo $popt['Value'] ?>" <?php if (!isEnabled($popt['Name'])) echo 'disabled="disabled"'; ?>></td>
+            <?php
          break;
       case "integer":
             ?>
-                <td><input type="text" name="pluginOpt[<?= $popt['Name'] ?>]" id="pluginOpt[<?= $popt['Name'] ?>]" onchange="limitRange( this, <?= $popt['Min'] ?>, <?= $popt['Max'] ?> )" value="<?= $popt['Value'] ?>" size="4" <? if (!isEnabled($popt['Name'])) echo 'disabled="disabled"'; ?>></td>
-            <?
+                <td><input type="text" name="pluginOpt[<?php echo $popt['Name'] ?>]" id="pluginOpt[<?php echo $popt['Name'] ?>]" onchange="limitRange( this, <?php echo $popt['Min'] ?>, <?php echo $popt['Max'] ?> )" value="<?php echo $popt['Value'] ?>" size="4" <?php if (!isEnabled($popt['Name'])) echo 'disabled="disabled"'; ?>></td>
+            <?php
          break;
       default:
          echo "Type '".$popt['Type']."' is not implemented<br>";
    }
    ?>
             </tr>
-   <?
+   <?php
 }
 ?>
             </tbody>

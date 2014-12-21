@@ -1,6 +1,6 @@
 --- a/scripts/zmsystemctl.pl.in
 +++ b/scripts/zmsystemctl.pl.in
-@@ -50,5 +50,5 @@ if ( !$path || $status ) {
+@@ -50,5 +50,5 @@
  }
  
  Info( "Redirecting command through systemctl\n" );

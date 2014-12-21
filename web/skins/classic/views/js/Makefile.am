@@ -35,7 +35,7 @@ dist_web_DATA = \
 	options.js.php \
 	plugin.js \
 	plugin.js.php \
-	postlogin.js \
+	postlogin.js.php \
 	state.js \
 	state.js.php \
 	timeline.js \

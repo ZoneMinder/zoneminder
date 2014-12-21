@@ -58,10 +58,11 @@ Section: video
 Architecture: any
 Depends: libzoneminder-perl (= ${source:Version}),
  zoneminder-database (= ${source:Version}), ${shlibs:Depends}, ${misc:Depends},
- ${perl:Depends}, libarchive-zip-perl, libdate-manip-perl, libdbi-perl,
- libmime-lite-perl, libmime-tools-perl, libnet-sftp-foreign-perl,
- libphp-serialization-perl, debconf, ffmpeg | libav-tools,
- rsyslog | system-log-daemon, netpbm, zip, policykit-1
+ ${perl:Depends}, libarchive-tar-perl, libarchive-zip-perl, libdate-manip-perl,
+ libdbi-perl, libmodule-load-conditional-perl, libmime-lite-perl,
+ libmime-tools-perl, libnet-sftp-foreign-perl, libphp-serialization-perl,
+ debconf, ffmpeg | libav-tools, rsyslog | system-log-daemon, netpbm, zip,
+ policykit-1
 Description: Core binaries and perl scripts for ZoneMinder
  ZoneMinder is a video camera security and surveillance solution.
  .

@@ -141,7 +141,7 @@ sub Track
 	my ( $detaint_x ) = $x =~ /^(\d+)$/; $x = $detaint_x;
 	my ( $detaint_y ) = $y =~ /^(\d+)$/; $y = $detaint_y;
 
-    my $ctrlCommand = ZM_PATH_BIN."/zmcontrol.pl -i ".$monitor->{Id};
+    my $ctrlCommand = $Config{ZM_PATH_BIN}."/zmcontrol.pl -i ".$monitor->{Id};
 	$ctrlCommand .= " --command=".($monitor->{CanMoveMap}?"moveMap":"movePseudoMap")." --xcoord=$x --ycoord=$y";
 	executeShellCommand( $ctrlCommand );
 }
@@ -150,7 +150,7 @@ sub Return
 {
 	my $monitor = shift;
 
-    my $ctrlCommand = ZM_PATH_BIN."/zmcontrol.pl -i ".$monitor->{Id};
+    my $ctrlCommand = $Config{ZM_PATH_BIN}."/zmcontrol.pl -i ".$monitor->{Id};
 	if ( $monitor->{ReturnLocation} > 0 )
 	{
 		$ctrlCommand .= " --command=presetGoto --preset=".$monitor->{ReturnLocation};

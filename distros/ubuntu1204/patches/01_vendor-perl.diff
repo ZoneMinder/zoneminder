@@ -1,0 +1,17 @@
+Index: ZoneMinder/configure.ac
+===================================================================
+--- ZoneMinder.orig/configure.ac	2014-12-13 15:10:27.705191682 +0100
++++ ZoneMinder/configure.ac	2014-12-13 16:50:07.101049743 +0100
+@@ -443,10 +443,10 @@
+     PERL_SITE_LIB=`perl -V:installsitelib | sed -e "s/.*='\(.*\)';/\1/"`
+     PERL_LIB_PATH=`echo $PERL_SITE_LIB | sed -e "s|^$PERL_SITE_PREFIX||"`
+     EXTRA_PERL_LIB="use lib '$prefix$PERL_LIB_PATH'; # Include custom perl install path"
+-    PERL_MM_PARMS="PREFIX=$prefix"
++    PERL_MM_PARMS="\"PREFIX=$prefix INSTALLDIRS=vendor\""
+ else
+     EXTRA_PERL_LIB="# Include from system perl paths only"
+-    PERL_MM_PARMS=
++    PERL_MM_PARMS="\"INSTALLDIRS=vendor\""
+ fi
+ AC_SUBST(PERL_MM_PARMS)
+ AC_SUBST(EXTRA_PERL_LIB)

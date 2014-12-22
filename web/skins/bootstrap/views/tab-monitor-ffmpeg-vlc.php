@@ -1,4 +1,4 @@
-<div ng-show="monitor.sourceType == 'Libvlc' || sourceType == 'Ffmpeg'">
+<div ng-show="monitor.Type == 'Libvlc' || monitor.Type == 'Ffmpeg'">
 	<div class="form-group">
 		<label><?= $SLANG['SourcePath'] ?></label>
 		<input class="form-control" type="text" ng-model="monitor.Path" />

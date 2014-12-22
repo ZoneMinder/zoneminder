@@ -1,4 +1,4 @@
-<div ng-show="monitor.sourceType == 'cURL'">
+<div ng-show="monitor.Type == 'cURL'">
 	<div class="form-group">
 		<label><?= "URL" ?></label>
 		<input class="form-control" type="text" ng-model="monitor.Path" />

@@ -20,7 +20,7 @@
             </select></div>
             <div class="form-group"><label><?= $SLANG['DefaultRate'] ?></label><?= buildSelect( "newMonitor[DefaultRate", $rates ); ?></div>
             <div class="form-group"><label><?= $SLANG['DefaultScale'] ?></label><?= buildSelect( "newMonitor[DefaultScale", $scales ); ?></div>
-            <div ng-show="monitor.sourceType == 'Local'" class="form-group"><label><?= $SLANG['SignalCheckColour'] ?></label><input class="form-control" type="text" ng-model="monitor.SignalCheckColour" onchange="$('SignalCheckSwatch').setStyle( 'backgroundColor', this.value )"/><span id="SignalCheckSwatch" class="swatch" style="background-color: <?= $newMonitor['SignalCheckColour'] ?>;">&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+            <div ng-show="monitor.Type == 'Local'" class="form-group"><label><?= $SLANG['SignalCheckColour'] ?></label><input class="form-control" type="text" ng-model="monitor.SignalCheckColour" onchange="$('SignalCheckSwatch').setStyle( 'backgroundColor', this.value )"/><span id="SignalCheckSwatch" class="swatch" style="background-color: <?= $newMonitor['SignalCheckColour'] ?>;">&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
 	<div class="form-group">
 		<label><?= $SLANG['WebColour'] ?></label>
 		<input class="form-control" type="text" ng-model="monitor.WebColour" style="color: {{ monitor.WebColour}};" required />

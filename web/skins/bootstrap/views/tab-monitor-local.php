@@ -1,8 +1,8 @@
-<div ng-show="monitor.sourceType == 'Local'">
+<div ng-show="monitor.Type == 'Local'">
 
 	<div class="form-group">
 		<label for=""><?= $SLANG['DevicePath'] ?></label>
-		<input type="text" class="form-control" ng-model="monitor.Device" ng-required="monitor.sourceType == 'Local'"/>
+		<input type="text" class="form-control" ng-model="monitor.Device" ng-required="monitor.Type == 'Local'"/>
 	</div>
 
 	<div class="form-group">

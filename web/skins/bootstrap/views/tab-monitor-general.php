@@ -60,11 +60,11 @@
 <?php
         }
 ?>
-	<div class="form-group" ng-show="monitor.sourceType == 'Local'">
+	<div class="form-group" ng-show="monitor.Type == 'Local'">
 		<label for="MaxFPS"><?= $SLANG['MaximumFPS'] ?></label>
 		<input type="text" id="MaxFPS" class="form-control" ng-model="monitor.MaxFPS" />
 	</div>
-	<div class="form-group" ng-show="monitor.sourceType == 'Local'">
+	<div class="form-group" ng-show="monitor.Type == 'Local'">
 		<label for="AlarmMaxFPS"><?= $SLANG['AlarmMaximumFPS'] ?></label>
 		<input type="text" id="AlarmMaxFPS" class="form-control" ng-model="monitor.AlarmMaxFPS" />
 	</div>

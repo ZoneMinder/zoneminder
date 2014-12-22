@@ -46,39 +46,57 @@ ZoneMinder.controller('EventController', function($scope, $location, Event) {
 	});
 });
 
-ZoneMinder.controller('MonitorController', function($scope, $http) {
-	$scope.monitor = {};
-	$scope.monitor.Type = 'Remote';
-	$scope.monitor.RefBlendPerc = 6;
-	$scope.monitor.AlarmRefBlendPerc = 6;
-	$scope.monitor.Function = 'Monitor';
-	$scope.monitor.ImageBufferCount = 100;
-	$scope.monitor.WarmupCount = 25;
-	$scope.monitor.PreEventCount = 50;
-	$scope.monitor.PostEventCount = 50;
-	$scope.monitor.StreamReplayBuffer = 1000;
-	$scope.monitor.AlarmFrameCount = 1;
-	$scope.monitor.LabelFormat = '%N - %d/%m/%y %H:%M:%S';
-	$scope.monitor.LabelX = 0;
-	$scope.monitor.LabelY = 0;
-	$scope.monitor.Colours = 3;
-	$scope.monitor.Orientation = 0;
-	$scope.monitor.Enabled = true;
-	$scope.monitor.Protocol = 'http';
-	$scope.monitor.SectionLength = 600;
-	$scope.monitor.EventPrefix = 'Event-';
-	$scope.monitor.FrameSkip = 0;
-	$scope.monitor.MotionFrameSkip = 0;
-	$scope.monitor.FPSReportInterval = 1000;
-	$scope.monitor.DefaultView = 'Events';
-	$scope.monitor.DefaultRate = 100;
-	$scope.monitor.DefaultScale = 100;
-	$scope.monitor.SignalCheckColour = '#0000c0';
-	$scope.monitor.Method = 'simple';
-	var color =  '#' + (Math.random() * 0xFFFFFF << 0).toString(16);
-	$scope.monitor.WebColour = color;
+ZoneMinder.controller('MonitorController', function($scope, $http, $location, Monitor) {
+	// If mid is set, we're editing a monitor.  Else, we're adding one.
+	var mid = $location.search().mid;
+	if (mid) {
+		Monitor.getMonitor(mid).then(function(results) {
+			$scope.monitor = results.data.monitor.Monitor;
+		});
+	} else {
+		// Assign each monitor a random color, as opposed to them all being 'red'
+		var color =  '#' + (Math.random() * 0xFFFFFF << 0).toString(16);
+
+		// This is where the monitor's 'form data' is saved
+		// It is sent to saveMonitor when the save button is clicked
+		$scope.monitor = {
+			// Set default values for a monitor
+			'Type' : 'Remote',
+			'RefBlendPerc' : 6,
+			'AlarmRefBlendPerc' : 6,
+			'Function' : 'Monitor',
+			'ImageBufferCount' : 100,
+			'WarmupCount' : 25,
+			'PreEventCount' : 50,
+			'PostEventCount' : 50,
+			'StreamReplayBuffer' : 1000,
+			'AlarmFrameCount' : 1,
+			'LabelFormat' : '%N - %d/%m/%y %H:%M:%S',
+			'LabelX' : 0,
+			'LabelY' : 0,
+			'Colours' : 3,
+			// Here be a bug!
+			// When retrieving 'Orientation', it comes back and is set a a number
+			// But it mustbe saved as a string (due to mysql enum)
+			'Orientation' : '0',
+			'Enabled' : true,
+			'Protocol' : 'http',
+			'SectionLength' : 600,
+			'EventPrefix' : 'Event-',
+			'FrameSkip' : 0,
+			'MotionFrameSkip' : 0,
+			'FPSReportInterval' : 1000,
+			'DefaultView' : 'Events',
+			'DefaultRate' : 100,
+			'DefaultScale' : 100,
+			'SignalCheckColour' : '#0000c0',
+			'Method' : 'simple',
+			'WebColour' : color
+		};
+	}
 
 
+	// Call Monitor.saveMonitor when the save button is clicked.  Pass along $scope.monitor
 	$scope.submitMonitor = function() {
 	$http({
         method  : 'POST',

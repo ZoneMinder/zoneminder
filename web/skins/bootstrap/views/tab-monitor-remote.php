@@ -25,7 +25,7 @@
 			</div>
 			<div class="form-group">
 				<label for=""><?= $SLANG['RemoteHostPort'] ?></label>
-				<input type="number" class="form-control" ng-model="monitor.Port" placeholder="Usually 80 for http, 554 for rtsp" ng-required="monitor.sourceType == 'Remote'" />
+				<input type="text" class="form-control" ng-model="monitor.Port" placeholder="Usually 80 for http, 554 for rtsp" ng-required="monitor.sourceType == 'Remote'" />
 			</div>
 			<div class="form-group">
 				<label><?= $SLANG['RemoteHostPath'] ?></label>

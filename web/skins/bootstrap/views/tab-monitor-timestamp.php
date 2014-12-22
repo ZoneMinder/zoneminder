@@ -5,10 +5,10 @@
 	</div>
 	<div class="form-group">
 		<label for="labelX"><?= $SLANG['TimestampLabelX'] ?></label>
-		<input type="number" id="labelX" class="form-control" ng-model="monitor.LabelX" required />
+		<input type="text" id="labelX" class="form-control" ng-model="monitor.LabelX" required />
 	</div>
 	<div class="form-group">
 		<label for="labelY"><?= $SLANG['TimestampLabelY'] ?></label>
-		<input type="number" id="labelY" class="form-control" ng-model="monitor.LabelY" required />
+		<input type="text" id="labelY" class="form-control" ng-model="monitor.LabelY" required />
 	</div>
 </div>

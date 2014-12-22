@@ -62,11 +62,11 @@
 ?>
 	<div class="form-group" ng-show="monitor.sourceType == 'Local'">
 		<label for="MaxFPS"><?= $SLANG['MaximumFPS'] ?></label>
-		<input type="number" id="MaxFPS" class="form-control" ng-model="monitor.MaxFPS" />
+		<input type="text" id="MaxFPS" class="form-control" ng-model="monitor.MaxFPS" />
 	</div>
 	<div class="form-group" ng-show="monitor.sourceType == 'Local'">
 		<label for="AlarmMaxFPS"><?= $SLANG['AlarmMaximumFPS'] ?></label>
-		<input type="number" id="AlarmMaxFPS" class="form-control" ng-model="monitor.AlarmMaxFPS" />
+		<input type="text" id="AlarmMaxFPS" class="form-control" ng-model="monitor.AlarmMaxFPS" />
 	</div>
 	</div> <!-- End .col-md-6 -->
 
@@ -80,12 +80,12 @@
 
 		<div class="form-group">
  			<label for=""><?= $SLANG['CaptureWidth'] ?> (<?= $SLANG['Pixels'] ?>)</label>
-			<input class="form-control" type="number" ng-model="monitor.Width" ng-maxlength="4" placeholder="704" />
+			<input class="form-control" type="text" ng-model="monitor.Width" placeholder="704" />
 		</div>
 
 		<div class="form-group">
  			<label for=""><?= $SLANG['CaptureHeight'] ?> (<?= $SLANG['Pixels'] ?>)</label>
-			<input class="form-control" type="number" ng-model="monitor.Height" ng-maxlength="4" placeholder="480" />
+			<input class="form-control" type="text" ng-model="monitor.Height" placeholder="480" />
 		</div>
 
 		<div class="checkbox">
@@ -98,7 +98,12 @@
 		<div class="form-group">
  			<label for=""><?= $SLANG['Orientation'] ?></label>
 			<select class="form-control" ng-model="monitor.Orientation" required>
-				<?php foreach ( $orientations as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['Orientation'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?>
+				<option value="0">Normal</option>
+				<option value="90">Rotate Right</option>
+				<option value="180">Inverted</option>
+				<option value="270">Rotate Left</option>
+				<option value="hori">Flipped Horizontally</option>
+				<option value="vert">Flipped Vertically</option>
 			</select>
 		</div>
 	</div> <!-- End .col-md-6 -->

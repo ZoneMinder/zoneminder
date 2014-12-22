@@ -71,6 +71,6 @@
 
 	<div class="form-group">
 		<label for=""><?= $SLANG['V4LCapturesPerFrame'] ?></label>
-		<input type="number" ng-model="monitor.V4LCapturesPerFrame" value="<?php echo $newMonitor['V4LCapturesPerFrame'] ?>"/>
+		<input type="text" ng-model="monitor.V4LCapturesPerFrame" />
 	</div>
 </div> <!-- End local -->

@@ -98,16 +98,9 @@ ZoneMinder.controller('MonitorController', function($scope, $http, $location, Mo
 
 	// Call Monitor.saveMonitor when the save button is clicked.  Pass along $scope.monitor
 	$scope.submitMonitor = function() {
-	$http({
-        method  : 'POST',
-        url     : '/api/monitors.json',
-        data    : $.param($scope.monitor),
-        headers : { 'Content-Type': 'application/x-www-form-urlencoded' }  // set the headers so angular passing info as form data (not request payload)
-    })
-        .success(function(data) {
-            console.log(data);
-		window.location = "/index.php?view=console";
-        });
+		Monitor.saveMonitor($scope.monitor)
+		// Redirect to the dashboard on success
+	        .success(function(data) { window.location = "/index.php?view=console"; });
 	};
 });
 

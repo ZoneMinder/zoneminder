@@ -8,6 +8,22 @@ ZoneMinder.config(['$locationProvider', function($locationProvider){
     $locationProvider.html5Mode(true);    
 }]);
 
+ZoneMinder.factory('Monitor', function($http) {
+	return {
+		getMonitor: function(mid) {
+			return $http.get('/api/monitors/'+mid+'.json');
+		},
+		saveMonitor: function(monitor) {
+			return $http({
+				method: 'POST',
+				url: '/api/monitors.json',
+				data: $.param(monitor),
+				headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+			});
+		}
+	};
+});
+
 ZoneMinder.factory('Header', function($http) {
 	return {
 		getLogState: function(callback) {

@@ -155,7 +155,7 @@ protected:
 
     //TODO: Technically we can't exclude this struct when people don't have avformat as the Memory.pm module doesn't know about avformat
 #if 1
-    //sizeOf(VideoStoreData) expected to be what??
+    //sizeOf(VideoStoreData) expected to be 4104 bytes on 32bit and 64bit
 	typedef struct
     {
         uint32_t size;

@@ -415,3 +415,24 @@ th.table-th-sort-rev span.table-th-sort-span {
 	height: 240px;
 	margin: 5px;
 }
+
+.event {
+	float: left;
+	width: 184px;
+	margin: 5px;
+}
+
+.over {
+	position: relative;
+}
+
+.info {
+	background: none repeat scroll 0% 0% rgba(0, 0, 0, 0.7);
+	color: #FFF;
+	position: absolute;
+	padding:0 1px;
+	bottom: 5px;
+	font-size: 12px;
+	width: 174px;
+	left: 5px;
+}

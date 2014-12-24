@@ -23,6 +23,14 @@ ZoneMinder.controller('LogController', function($scope, Log) {
 	});
 });
 
+ZoneMinder.controller('EventsController', function($scope, Events) {
+
+	Events.getEvents().then(function(results) {
+		$scope.events = results.data.events;
+	});
+
+});
+
 ZoneMinder.controller('EventController', function($scope, $location, Event) {
 
 	var eventId = $location.search().eid;

@@ -35,5 +35,6 @@
 			</div> <!-- End main .col-md-10 -->
 		</div>
 	</div>
+	<?php include("footer.php"); ?>
 </body>
 </html>

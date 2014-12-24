@@ -12,7 +12,7 @@ class EventsController extends AppController {
  *
  * @var array
  */
-	public $components = array('RequestHandler');
+	public $components = array('RequestHandler', 'Scaler', 'Image');
 
 /**
  * index method
@@ -150,6 +150,76 @@ class EventsController extends AppController {
 			'results' => $results,
 			'_serialize' => array('results')
 		));
+	}
+
+	// Create a thumbnail and return the thumbnail's data for a given event id.
+	public function createThumbnail($id = null) {
+		$this->Event->recursive = -1;
+
+		if (!$this->Event->exists($id)) {
+			throw new NotFoundException(__('Invalid event'));
+		}
+
+		$event = $this->Event->find('first', array(
+			'conditions' => array('Id' => $id)
+		));
+
+		// Find the max Frame for this Event.  Error out otherwise.
+		$this->loadModel('Frame');
+		if (! $frame = $this->Frame->find('first', array(
+			'conditions' => array(
+				'EventId' => $event['Event']['Id'],
+				'Score' => $event['Event']['MaxScore']
+			)
+		))) {
+			throw new NotFoundException(__('Can not find Frame'));
+		}
+
+		$this->loadModel('Config');
+
+		// Get the config options required for reScale and getImageSrc
+		// The $bw, $thumbs and unset() code is a workaround / temporary
+		// until I have a better way of handing per-bandwidth config options
+		$bw = strtoupper(substr($_COOKIE['zmBandwidth'], 0, 1));
+		$thumbs = "ZM_WEB_${bw}_SCALE_THUMBS";
+
+		$config = $this->Config->find('list', array(
+			'conditions' => array('OR' => array(
+				'Name' => array('ZM_WEB_LIST_THUMB_WIDTH',
+				'ZM_WEB_LIST_THUMB_HEIGHT',
+				'ZM_EVENT_IMAGE_DIGITS',
+				'ZM_DIR_IMAGES',
+				"$thumbs",
+				'ZM_DIR_EVENTS'
+				)
+			)),
+			'fields' => array('Name', 'Value')
+		));
+		$config['ZM_WEB_SCALE_THUMBS'] = $config[$thumbs];
+		unset($config[$thumbs]);
+
+		// reScale based on either the width, or the hight, of the event.
+		if ( $config['ZM_WEB_LIST_THUMB_WIDTH'] ) {
+			$thumbWidth = $config['ZM_WEB_LIST_THUMB_WIDTH'];
+			$scale = (100 * $thumbWidth) / $event['Event']['Width'];
+			$thumbHeight = $this->Scaler->reScale( $event['Event']['Height'], $scale );
+		}
+		elseif ( $config['ZM_WEB_LIST_THUMB_HEIGHT'] ) {
+			$thumbHeight = $config['ZM_WEB_LIST_THUMB_HEIGHT'];
+			$scale = (100*$thumbHeight)/$event['Event']['Height'];
+			$thumbWidth = $this->Scaler->reScale( $event['Event']['Width'], $scale );
+		}
+		else {
+			throw new NotFoundException(__('No thumbnail width or height specified, please check in Options->Web'));
+		}
+
+		$imageData = $this->Image->getImageSrc( $event, $frame, $scale, $config );
+		$thumbData['Path'] = $imageData['thumbPath'];
+		$thumbData['Width'] = (int)$thumbWidth;
+		$thumbData['Height'] = (int)$thumbHeight;
+		
+		return( $thumbData );
+
 	}
 
 }

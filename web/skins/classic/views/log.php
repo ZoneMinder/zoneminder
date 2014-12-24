@@ -32,21 +32,21 @@ xhtmlHeaders(__FILE__, $SLANG['SystemLog'] );
   <div id="page">
     <div id="header">
       <div id="headerButtons">
-          <input type="button" value="<?= $SLANG['More'] ?>" onclick="expandLog()"/>
-          <input type="button" value="<?= $SLANG['Clear'] ?>" onclick="clearLog()"/>
-          <input type="button" value="<?= $SLANG['Refresh'] ?>" onclick="refreshLog()"/>
-          <input type="button" value="<?= $SLANG['Export'] ?>" onclick="exportLog()"/>
-          <input type="button" value="<?= $SLANG['Close'] ?>" onclick="closeWindow()"/>
+          <input type="button" value="<?php echo $SLANG['More'] ?>" onclick="expandLog()"/>
+          <input type="button" value="<?php echo $SLANG['Clear'] ?>" onclick="clearLog()"/>
+          <input type="button" value="<?php echo $SLANG['Refresh'] ?>" onclick="refreshLog()"/>
+          <input type="button" value="<?php echo $SLANG['Export'] ?>" onclick="exportLog()"/>
+          <input type="button" value="<?php echo $SLANG['Close'] ?>" onclick="closeWindow()"/>
       </div>
-      <h2 class="floating"><?= $SLANG['SystemLog'] ?></h2>
+      <h2 class="floating"><?php echo $SLANG['SystemLog'] ?></h2>
       <div id="headerControl">
         <table id="logSummary" cellspacing="0">
           <tr>
-            <td><?= $SLANG['Updated'] ?>: <span id="lastUpdate"></span></td>
-            <td><?= $SLANG['State'] ?>: <span id="logState"></span></td>
-            <td><?= $SLANG['Total'] ?>: <span id="totalLogs"></span></td>
-            <td><?= $SLANG['Available'] ?>: <span id="availLogs"></span></td>
-            <td><?= $SLANG['Displaying'] ?>: <span id="displayLogs"></span></td>
+            <td><?php echo $SLANG['Updated'] ?>: <span id="lastUpdate"></span></td>
+            <td><?php echo $SLANG['State'] ?>: <span id="logState"></span></td>
+            <td><?php echo $SLANG['Total'] ?>: <span id="totalLogs"></span></td>
+            <td><?php echo $SLANG['Available'] ?>: <span id="availLogs"></span></td>
+            <td><?php echo $SLANG['Displaying'] ?>: <span id="displayLogs"></span></td>
           </tr>
         </table>
       </div>
@@ -58,20 +58,20 @@ xhtmlHeaders(__FILE__, $SLANG['SystemLog'] );
         Level <select id="filter[Level]" onchange="filterLog(this)"><option value="">---</option></select>
         File <select id="filter[File]" onchange="filterLog(this)"><option value="">------</option></select>
         Line <select id="filter[Line]" onchange="filterLog(this)"><option value="">----</option></select>
-        <input type="reset" value="<?= $SLANG['Reset'] ?>" onclick="resetLog()"/>
+        <input type="reset" value="<?php echo $SLANG['Reset'] ?>" onclick="resetLog()"/>
       </div>
-      <form name="logForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
-        <input type="hidden" name="view" value="<?= $view ?>"/>
+      <form name="logForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+        <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <table id="logTable" class="major" cellspacing="0">
           <thead>
             <tr>
-              <th><?= $SLANG['DateTime'] ?></th>
-              <th class="table-th-nosort"><?= $SLANG['Component'] ?></th>
-              <th class="table-th-nosort"><?= $SLANG['Pid'] ?></th>
-              <th class="table-th-nosort"><?= $SLANG['Level'] ?></th>
-              <th class="table-th-nosort"><?= $SLANG['Message'] ?></th>
-              <th class="table-th-nosort"><?= $SLANG['File'] ?></th>
-              <th class="table-th-nosort"><?= $SLANG['Line'] ?></th>
+              <th><?php echo $SLANG['DateTime'] ?></th>
+              <th class="table-th-nosort"><?php echo $SLANG['Component'] ?></th>
+              <th class="table-th-nosort"><?php echo $SLANG['Pid'] ?></th>
+              <th class="table-th-nosort"><?php echo $SLANG['Level'] ?></th>
+              <th class="table-th-nosort"><?php echo $SLANG['Message'] ?></th>
+              <th class="table-th-nosort"><?php echo $SLANG['File'] ?></th>
+              <th class="table-th-nosort"><?php echo $SLANG['Line'] ?></th>
             </tr>
           </thead>
           <tbody>
@@ -84,29 +84,29 @@ xhtmlHeaders(__FILE__, $SLANG['SystemLog'] );
   </div>
   <div id="exportLog" class="overlay">
     <div class="overlayHeader">
-      <div class="overlayTitle"><?= $SLANG['ExportLog'] ?></div>
+      <div class="overlayTitle"><?php echo $SLANG['ExportLog'] ?></div>
     </div>
     <div class="overlayBody">
       <div class="overlayContent">
         <form id="exportForm" action="" method="post">
           <fieldset>
-            <legend><?= $SLANG['SelectLog'] ?></legend>
+            <legend><?php echo $SLANG['SelectLog'] ?></legend>
             <label for="selectorAll">All</label><input type="radio" id="selectorAll" name="selector" value="all"/>
             <label for="selectorFilter">Filter</label><input type="radio" id="selectorFilter" name="selector" value="filter"/>
-            <label for="selectorCurrent">Current</label><input type="radio" id="selectorCurrent" name="selector" value="current" title="<?= $SLANG['ChooseLogSelection'] ?>" data-validators="validate-one-required"/>
+            <label for="selectorCurrent">Current</label><input type="radio" id="selectorCurrent" name="selector" value="current" title="<?php echo $SLANG['ChooseLogSelection'] ?>" data-validators="validate-one-required"/>
           </fieldset>
           <fieldset>
-            <legend><?= $SLANG['SelectFormat'] ?></legend>
+            <legend><?php echo $SLANG['SelectFormat'] ?></legend>
             <label for="formatText">Text</label><input type="radio" id="formatText" name="format" value="text"/>
             <label for="formatTSV">TSV</label><input type="radio" id="formatTSV" name="format" value="tsv"/>
             <label for="formatXML">HTML</label><input type="radio" id="formatHTML" name="format" value="html"/>
-            <label for="formatXML">XML</label><input type="radio" id="formatXML" name="format" value="xml" title="<?= $SLANG['ChooseLogFormat'] ?>" class="validate-one-required"/>
+            <label for="formatXML">XML</label><input type="radio" id="formatXML" name="format" value="xml" title="<?php echo $SLANG['ChooseLogFormat'] ?>" class="validate-one-required"/>
           </fieldset>
           <div id="exportError">
-            <?= $SLANG['ExportFailed'] ?>: <span id="exportErrorText"></span>
+            <?php echo $SLANG['ExportFailed'] ?>: <span id="exportErrorText"></span>
           </div>
-          <input type="button" id="exportButton" value="<?= $SLANG['Export'] ?>" onclick="exportRequest()"/>
-          <input type="button" value="<?= $SLANG['Cancel'] ?>" class="overlayCloser"/>
+          <input type="button" id="exportButton" value="<?php echo $SLANG['Export'] ?>" onclick="exportRequest()"/>
+          <input type="button" value="<?php echo $SLANG['Cancel'] ?>" class="overlayCloser"/>
         </form>
       </div>
     </div>

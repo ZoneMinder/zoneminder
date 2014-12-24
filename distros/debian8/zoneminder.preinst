@@ -1,4 +1,5 @@
 #!/bin/sh
+# preinst maintainer script for zoneminder
 
 set -e
 
@@ -17,7 +18,7 @@ if [ -L /usr/share/zoneminder/images ]; then
 fi
 
 if [ "$abort" = "true" ]; then
-    cat >&2 << EOF 
+    cat >&2 << EOF
 Aborting installation of zoneminder due to non-default symlinks in
 /usr/share/zoneminder for the images and/or events directory, which could
 result in loss of data. Please move your data in each of these directories to

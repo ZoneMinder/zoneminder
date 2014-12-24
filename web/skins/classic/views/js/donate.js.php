@@ -1,2 +1,2 @@
-var action = '<?= isset($_REQUEST['action'])?validJsStr($_REQUEST['action']):'' ?>';
-var option = '<?= isset($_REQUEST['option'])?validJsStr($_REQUEST['option']):'' ?>';
+var action = '<?php echo isset($_REQUEST['action'])?validJsStr($_REQUEST['action']):'' ?>';
+var option = '<?php echo isset($_REQUEST['option'])?validJsStr($_REQUEST['option']):'' ?>';

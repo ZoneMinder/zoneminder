@@ -49,8 +49,8 @@ xhtmlHeaders(__FILE__, $SLANG['Zones'] );
 <body>
   <div id="page">
     <div id="header">
-      <div id="headerButtons"><a href="#" onclick="closeWindow();"><?= $SLANG['Close'] ?></a></div>
-      <h2><?= $SLANG['Zones'] ?></h2>
+      <div id="headerButtons"><a href="#" onclick="closeWindow();"><?php echo $SLANG['Close'] ?></a></div>
+      <h2><?php echo $SLANG['Zones'] ?></h2>
     </div>
     <div id="content">
       <map name="zoneMap" id="zoneMap">
@@ -58,24 +58,24 @@ xhtmlHeaders(__FILE__, $SLANG['Zones'] );
 foreach( array_reverse($zones) as $zone )
 {
 ?>
-        <area shape="poly" alt="<?= htmlspecialchars($zone['Name']) ?>" coords="<?= $zone['AreaCoords'] ?>" href="#" onclick="createPopup( '?view=zone&amp;mid=<?= $mid ?>&amp;zid=<?= $zone['Id'] ?>', 'zmZone', 'zone', <?= $monitor['Width'] ?>, <?= $monitor['Height'] ?> ); return( false );"/>
+        <area shape="poly" alt="<?php echo htmlspecialchars($zone['Name']) ?>" coords="<?php echo $zone['AreaCoords'] ?>" href="#" onclick="createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>', 'zmZone', 'zone', <?php echo $monitor['Width'] ?>, <?php echo $monitor['Height'] ?> ); return( false );"/>
 <?php
 }
 ?>
         <!--<area shape="default" nohref>-->
       </map>
-      <img src="<?= ZM_DIR_IMAGES.'/'.$image ?>" alt="zones" usemap="#zoneMap" width="<?= $monitor['Width'] ?>" height="<?= $monitor['Height'] ?>" border="0"/>
-      <form name="contentForm" id="contentForm" method="get" action="<?= $_SERVER['PHP_SELF'] ?>">
-        <input type="hidden" name="view" value="<?= $view ?>"/>
+      <img src="<?php echo ZM_DIR_IMAGES.'/'.$image ?>" alt="zones" usemap="#zoneMap" width="<?php echo $monitor['Width'] ?>" height="<?php echo $monitor['Height'] ?>" border="0"/>
+      <form name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+        <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value="delete"/>
-        <input type="hidden" name="mid" value="<?= $mid ?>"/>
+        <input type="hidden" name="mid" value="<?php echo $mid ?>"/>
         <table id="contentTable" class="major" cellspacing="0">
           <thead>
             <tr>
-              <th class="colName"><?= $SLANG['Name'] ?></th>
-              <th class="colType"><?= $SLANG['Type'] ?></th>
-              <th class="colUnits"><?= $SLANG['AreaUnits'] ?></th>
-              <th class="colMark"><?= $SLANG['Mark'] ?></th>
+              <th class="colName"><?php echo $SLANG['Name'] ?></th>
+              <th class="colType"><?php echo $SLANG['Type'] ?></th>
+              <th class="colUnits"><?php echo $SLANG['AreaUnits'] ?></th>
+              <th class="colMark"><?php echo $SLANG['Mark'] ?></th>
             </tr>
           </thead>
           <tbody>
@@ -84,10 +84,10 @@ foreach( $zones as $zone )
 {
 ?>
             <tr>
-              <td class="colName"><a href="#" onclick="createPopup( '?view=zone&amp;mid=<?= $mid ?>&amp;zid=<?= $zone['Id'] ?>', 'zmZone', 'zone', <?= $monitor['Width'] ?>, <?= $monitor['Height'] ?> ); return( false );"><?= $zone['Name'] ?></a></td>
-              <td class="colType"><?= $zone['Type'] ?></td>
-              <td class="colUnits"><?= $zone['Area'] ?>&nbsp;/&nbsp;<?= sprintf( "%.2f", ($zone['Area']*100)/($monitor['Width']*$monitor['Height']) ) ?></td>
-              <td class="colMark"><input type="checkbox" name="markZids[]" value="<?= $zone['Id'] ?>" onclick="configureDeleteButton( this );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></td>
+              <td class="colName"><a href="#" onclick="createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>', 'zmZone', 'zone', <?php echo $monitor['Width'] ?>, <?php echo $monitor['Height'] ?> ); return( false );"><?php echo $zone['Name'] ?></a></td>
+              <td class="colType"><?php echo $zone['Type'] ?></td>
+              <td class="colUnits"><?php echo $zone['Area'] ?>&nbsp;/&nbsp;<?php echo sprintf( "%.2f", ($zone['Area']*100)/($monitor['Width']*$monitor['Height']) ) ?></td>
+              <td class="colMark"><input type="checkbox" name="markZids[]" value="<?php echo $zone['Id'] ?>" onclick="configureDeleteButton( this );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></td>
             </tr>
 <?php
 }
@@ -95,8 +95,8 @@ foreach( $zones as $zone )
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="button" value="<?= $SLANG['AddNewZone'] ?>" onclick="createPopup( '?view=zone&amp;mid=<?= $mid ?>&amp;zid=0', 'zmZone', 'zone', <?= $monitor['Width'] ?>, <?= $monitor['Height'] ?> );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
-          <input type="submit" name="deleteBtn" value="<?= $SLANG['Delete'] ?>" disabled="disabled"/>
+          <input type="button" value="<?php echo $SLANG['AddNewZone'] ?>" onclick="createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=0', 'zmZone', 'zone', <?php echo $monitor['Width'] ?>, <?php echo $monitor['Height'] ?> );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
+          <input type="submit" name="deleteBtn" value="<?php echo $SLANG['Delete'] ?>" disabled="disabled"/>
         </div>
       </form>
     </div>

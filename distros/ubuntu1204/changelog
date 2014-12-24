@@ -1,3 +1,9 @@
+zoneminder (1.28.0+1-trusty-SNAPSHOT2014121201) trusty; urgency=medium
+
+  * Merge of security fixes and a few other things. See github for more info.
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Fri, 12 Dec 2014 16:38:36 -0500
+
 zoneminder (1.28.0+1-utopic-SNAPSHOT2014112001) utopic; urgency=medium
 
   * Various fixes and developments since 1.28.0.  Includes Digest-Auth for HTTP and better for RTSP

@@ -320,7 +320,7 @@ CREATE TABLE `Monitors` (
   `Enabled` tinyint(3) unsigned NOT NULL default '1',
   `LinkedMonitors` varchar(255) NOT NULL default '',
   `Triggers` set('X10') NOT NULL default '',
-  `Device` varchar(64) NOT NULL default '',
+  `Device` tinytext NOT NULL default '',
   `Channel` tinyint(3) unsigned NOT NULL default '0',
   `Format` int(10) unsigned NOT NULL default '0',
   `V4LMultiBuffer`	tinyint(1) unsigned,

@@ -18,10 +18,18 @@ class EventsController extends AppController {
  * index method
  *
  * @return void
+ * This also creates a thumbnail for each event.
  */
 	public function index() {
 		$this->Event->recursive = -1;
 		$events = $this->Event->find('all');
+
+		foreach ($events as $key => $value) {
+			$thumbData = $this->createThumbnail($value['Event']['Id']);
+			$events[$key]['thumbData'] = $thumbData;
+
+		}
+
 		$this->set(array(
 			'events' => $events,
 			'_serialize' => array('events')

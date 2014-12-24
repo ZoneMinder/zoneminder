@@ -124,3 +124,26 @@ ZoneMinder.directive('angularHtmlBind', function($compile) {
         });
     };
 });
+
+ZoneMinder.filter('DateDiff', function() {
+	return function(StartTime, EndTime, format) {
+	var d1 = new Date(StartTime.replace(/-/g,'/'));
+	var d2 = new Date(EndTime.replace(/-/g,'/'));
+	var miliseconds = d2-d1;
+	var seconds = miliseconds/1000;
+	var minutes = seconds/60;
+	var hours = minutes/60;
+	var days = hours/24;
+
+	switch (format) {
+		case "seconds":
+			return seconds;
+		case "hours":
+			return hours;
+		case "minutes":
+			return minutes;
+		case "pretty":
+			return Math.floor(minutes)+'m ' + seconds+'s';
+	}
+	};
+});

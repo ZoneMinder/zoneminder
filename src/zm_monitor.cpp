@@ -1277,7 +1277,7 @@ bool Monitor::Analyse()
         bool signal_change = (signal != last_signal);
         
         //Set video recording flag for event start constructor and easy reference in code
-        bool videoRecording = (config.use_mkv_storage && camera->IsFfmpeg());
+        bool videoRecording = ((GetOptVideoWriter() == 2) && camera->SupportsNativeVideo());
         
         if ( trigger_data->trigger_state != TRIGGER_OFF )
         {
@@ -1630,7 +1630,7 @@ bool Monitor::Analyse()
                     else if ( state == TAPE )
                     {
                         //Video Storage: activate only for supported cameras. Event::AddFrame knows whether or not we are recording video and saves frames accordingly
-                        if(config.use_mkv_storage && camera->SupportsNativeVideo())
+                        if((GetOptVideoWriter() == 2) && camera->SupportsNativeVideo())
                         {
                             video_store_data->recording = true;
                         }
@@ -2877,7 +2877,7 @@ int Monitor::Capture()
 		/* Capture a new next image */
         
         //Check if FFMPEG camera
-        if(config.use_mkv_storage && camera->SupportsNativeVideo()){
+        if((GetOptVideoWriter() == 2) && camera->SupportsNativeVideo()){
             captureResult = camera->CaptureAndRecord(*(next_buffer.image), video_store_data->recording, video_store_data->event_directory);
         }else{
             captureResult = camera->Capture(*(next_buffer.image));
@@ -2891,7 +2891,7 @@ int Monitor::Capture()
 		
 	} else {
         //Check if FFMPEG camera
-        if(config.use_mkv_storage && camera->IsFfmpeg()){
+        if((GetOptVideoWriter() == 2) && camera->SupportsNativeVideo()){
             //Warning("ZMC: Recording: %d", video_store_data->recording);
             captureResult = camera->CaptureAndRecord(*capture_image, video_store_data->recording, video_store_data->event_directory);
         }else{
@@ -2900,7 +2900,7 @@ int Monitor::Capture()
         }
     }
     
-    if(config.use_mkv_storage && captureResult > 0){
+    if((GetOptVideoWriter() == 2) && captureResult > 0){
         //video_store_data->frameNumber = captureResult;
         captureResult = 0;
     }

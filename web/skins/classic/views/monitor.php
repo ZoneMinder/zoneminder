@@ -429,7 +429,7 @@ $savejpegopts = array(
 
 $videowriteropts = array(
     "Disabled"                                            => 0,
-    "X264 Encode"                                         => 1
+    "X264 Encode"                                         => 1,
     "H264 Camera Passthrough"                             => 2          
 );
 

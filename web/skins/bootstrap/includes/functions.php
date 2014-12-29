@@ -37,6 +37,7 @@ function xhtmlHeaders( $file, $title )
     $viewCssPhpFile = getSkinFile( 'views/css/'.$basename.'.css.php' );
     $viewJsFile = getSkinFile( 'views/js/'.$basename.'.js' );
     $viewJsPhpFile = getSkinFile( 'views/js/'.$basename.'.js.php' );
+    $dirPagination = getSkinFile( 'js/dirPagination.js' );
 
     extract( $GLOBALS, EXTR_OVERWRITE );
 ?>
@@ -75,6 +76,7 @@ function xhtmlHeaders( $file, $title )
     }
 ?>
 	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.2/angular.min.js"></script>
+	<script src="<?= $dirPagination ?>"></script>
   <script type="text/javascript" src="<?= $ChartJsFile ?>"></script>
 	<script src="<?= getSkinFile('js/app.js'); ?>"></script>
 	<script src="<?= getSkinFile('js/controllers.js'); ?>"></script>

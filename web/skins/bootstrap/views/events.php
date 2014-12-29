@@ -21,14 +21,16 @@
 			<div class="col-md-10" ng-controller="EventsController">
 				<div class="clearfix">
 					<div class="event" dir-paginate="event in events | itemsPerPage: eventsPerPage" total-items="totalEvents">
-						<img ng-src="/events/{{ event.thumbData.Path }}" class="img-thumbnail" alt="..." />
-						<div class="over">
-							<div class="info">
-								<span>Monitor {{event.Event.MonitorId}}</span>
-								<span>{{ event.Event.StartTime | DateDiff:event.Event.EndTime:'pretty' }}</span>
-								<span>Event {{event.Event.Id}}</span>
-							</div> <!-- End .info -->
-						</div> <!-- End .over -->
+						<a href="/?view=event&amp;eid={{event.Event.Id}}">
+							<img ng-src="/events/{{ event.thumbData.Path }}" class="img-thumbnail" alt="..." />
+							<div class="over">
+								<div class="info">
+									<span>Monitor {{event.Event.MonitorId}}</span>
+									<span>{{ event.Event.StartTime | DateDiff:event.Event.EndTime:'pretty' }}</span>
+									<span>Event {{event.Event.Id}}</span>
+								</div> <!-- End .info -->
+							</div> <!-- End .over -->
+						</a>
 					</div> <!-- End .event -->
 				</div> <!-- End .clearfix -->
 				<dir-pagination-controls on-page-change="pageChanged(newPageNumber)"></dir-pagination-controls>

@@ -1,12 +1,16 @@
 var ZoneMinder = angular.module('ZoneMinder', [
 	'ZoneMinderControllers',
 	'tc.chartjs',
-	'ui.bootstrap'
+	'ui.bootstrap',
+	'angularUtils.directives.dirPagination'
 ]);
 
 ZoneMinder.config(['$locationProvider', function($locationProvider){
     $locationProvider.html5Mode(true);    
 }]);
+ZoneMinder.config(function(paginationTemplateProvider) {
+    paginationTemplateProvider.setPath('skins/bootstrap/js/dirPagination.tpl.html');
+});
 
 ZoneMinder.factory('Monitor', function($http) {
 	return {

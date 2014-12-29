@@ -1,3 +1,9 @@
+zoneminder (1.28.1-utopic) utopic; urgency=medium
+
+  * Release 1.28.1.  See release notes for details.
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Mon, 29 Dec 2014 17:14:01 -0500
+
 zoneminder (1.28.0+1-utopic-SNAPSHOT2014112001) utopic; urgency=medium
 
   * Various fixes and developments since 1.28.0.  Includes Digest-Auth for HTTP and better for RTSP

@@ -1,3 +1,9 @@
+zoneminder (1.28.1-testing) testing; urgency=medium
+
+  * UI fixes, security fixes, RTSP fixes, Digest Auth, language fixes and more.
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Mon, 29 Dec 2014 17:13:00 -0500
+
 zoneminder (1.28.0-testing) testing; urgency=medium
 
   * Release

@@ -275,7 +275,7 @@ sub getFilters
     {
         Debug( "Found filter '$db_filter->{Name}'\n" );
         my $filter_expr = jsonDecode( $db_filter->{Query} );
-        my $sql = "select E.Id,E.MonitorId,M.Name as MonitorName,M.DefaultRate,M.DefaultScale,E.Name,E.Cause,E.Notes,E.StartTime,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived,E.Videoed,E.Uploaded,E.Emailed,E.Messaged,E.Executed from Events as E inner join Monitors as M on M.Id = E.MonitorId where not isnull(E.EndTime)";
+        my $sql = "select E.Id,E.MonitorId,M.Name as MonitorName,M.DefaultRate,M.DefaultScale,E.Name,E.Cause,E.Notes,E.StartTime,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived,E.Videoed,E.Uploaded,E.Emailed,E.Messaged,E.Executed from Events as E inner join Monitors as M on M.Id = E.MonitorId";
         $db_filter->{Sql} = '';
 
         if ( @{$filter_expr->{terms}} )
@@ -414,7 +414,17 @@ sub getFilters
         }
         if ( $db_filter->{Sql} )
         {
-            $sql .= " and ( ".$db_filter->{Sql}." )";
+            if ( $db_filter->{AutoMessage} )
+            {
+                # Include all events, including events that are still ongoing
+                # and have no EndTime yet
+                $sql .= " and ( ".$db_filter->{Sql}." )";
+            }
+            else
+            {
+                # Only include closed events (events with valid EndTime)
+                $sql .= " where not isnull(E.EndTime) and ( ".$db_filter->{Sql}." )";
+            }
         }
         my @auto_terms;
         if ( $db_filter->{AutoArchive} )

@@ -12,7 +12,7 @@ class EventsController extends AppController {
  *
  * @var array
  */
-	public $components = array('RequestHandler', 'Scaler', 'Image');
+	public $components = array('RequestHandler', 'Scaler', 'Image', 'Paginator');
 
 /**
  * index method
@@ -22,18 +22,28 @@ class EventsController extends AppController {
  */
 	public function index() {
 		$this->Event->recursive = -1;
-		$events = $this->Event->find('all');
 
+		// How many events to return 
+		$this->loadModel('Config');
+		$limit = $this->Config->find('list', array(
+			'conditions' => array('Name' => 'ZM_WEB_EVENTS_PER_PAGE'),
+			'fields' => array('Name', 'Value')
+		));
+		$this->Paginator->settings = array(
+			'limit' => $limit['ZM_WEB_EVENTS_PER_PAGE'],
+			'order' => array('StartTime', 'MaxScore'),
+			'paramType' => 'querystring'
+		);
+		$events = $this->Paginator->paginate('Event');
+
+		// For each event, get its thumbnail data (path, width, height)
 		foreach ($events as $key => $value) {
 			$thumbData = $this->createThumbnail($value['Event']['Id']);
 			$events[$key]['thumbData'] = $thumbData;
 
 		}
 
-		$this->set(array(
-			'events' => $events,
-			'_serialize' => array('events')
-		));
+		$this->set(compact('events'));
 	}
 
 /**

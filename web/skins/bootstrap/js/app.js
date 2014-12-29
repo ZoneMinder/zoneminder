@@ -68,8 +68,8 @@ ZoneMinder.factory('Footer', function($http) {
 
 ZoneMinder.factory('Events', function($http) {
 	return {
-		getEvents: function() {
-			return $http.get('/api/events.json');
+		get: function(page) {
+			return $http.get('/api/events.json?page='+page);
 		}
 	};
 });

@@ -24,11 +24,19 @@ ZoneMinder.controller('LogController', function($scope, Log) {
 });
 
 ZoneMinder.controller('EventsController', function($scope, Events) {
+	getEventsPage(1);
 
-	Events.getEvents().then(function(results) {
-		$scope.events = results.data.events;
-	});
+	$scope.pageChanged = function(newPage) {
+		getEventsPage(newPage);
+	};
 
+	function getEventsPage(pageNumber) {
+		Events.get(pageNumber).then(function(results) {
+			$scope.events = results.data.events;
+			$scope.totalEvents = results.data.pagination.count;
+			$scope.eventsPerPage = results.data.pagination.limit;
+		});
+	}
 });
 
 ZoneMinder.controller('EventController', function($scope, $location, Event) {

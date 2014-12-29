@@ -17,7 +17,7 @@
 				</button>
 
 				<ul class="nav navbar-nav pull-right">
-					<li><a href="?view=events&amp;page=1"><?= $SLANG['Events']; ?></a></li>
+					<li><a href="?view=events"><?= $SLANG['Events']; ?></a></li>
 					<li><a href="?view=timeline"><?= $SLANG['Timeline']; ?></a></li>
       		<li><a href="?view=options"><?= $SLANG['Options'] ?></a></li>
 					<?php if ( logToDatabase() > Logger::NOLOG ) { ?>

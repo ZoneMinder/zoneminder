@@ -23,6 +23,10 @@ if ( !canView( 'Stream' ) )
     $view = "error";
     return;
 }
+if ( ! visibleMonitor( $_REQUEST['mid'] ) ) {
+    $view = "error";
+    return;
+}
 
 $sql = 'SELECT C.*, M.* FROM Monitors AS M LEFT JOIN Controls AS C ON (M.ControlId = C.Id ) WHERE M.Id = ?';
 $monitor = dbFetchOne( $sql, NULL, array( $_REQUEST['mid'] ) );

@@ -4,5 +4,5 @@ var/cache/zoneminder/events
 var/cache/zoneminder/images
 var/cache/zoneminder/temp
 usr/share/zoneminder/db
-etc/zm/plugins.d
-usr/share/zoneminder/plugins
+usr/share/dbconfig-common/data/zoneminder/install
+usr/share/dbconfig-common/data/zoneminder/upgrade/mysql

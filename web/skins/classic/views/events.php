@@ -205,7 +205,7 @@ foreach ( $events as $event )
               <td class="colMonitorName"><?php echo $event['MonitorName'] ?></td>
               <td class="colCause"><?php echo makePopupLink( '?view=eventdetail&amp;eid='.$event['Id'], 'zmEventDetail', 'eventdetail', validHtmlStr($event['Cause']), canEdit( 'Events' ), 'title="'.htmlspecialchars($event['Notes']).'"' ) ?></td>
               <td class="colTime"><?php echo strftime( STRF_FMT_DATETIME_SHORTER, strtotime($event['StartTime']) ) ?></td>
-              <td class="colDuration"><?php echo $event['Length'] ?></td>
+              <td class="colDuration"><?php echo gmdate("H:i:s", $event['Length'] ) ?></td>
               <td class="colFrames"><?php echo makePopupLink( '?view=frames&amp;eid='.$event['Id'], 'zmFrames', 'frames', $event['Frames'] ) ?></td>
               <td class="colAlarmFrames"><?php echo makePopupLink( '?view=frames&amp;eid='.$event['Id'], 'zmFrames', 'frames', $event['AlarmFrames'] ) ?></td>
               <td class="colTotScore"><?php echo $event['TotScore'] ?></td>

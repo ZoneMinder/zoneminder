@@ -33,7 +33,7 @@ use Getopt::Long;
 use POSIX qw/strftime EPIPE/;
 use Socket;
 #use Data::Dumper;
-use Module::Load;
+use Module::Load::Conditional qw{can_load};;
 
 use constant MAX_CONNECT_DELAY => 10;
 use constant MAX_COMMAND_WAIT => 1800;
@@ -129,6 +129,10 @@ if ( !$server_up )
     Info( "Starting control server $id/$protocol" );
     close( CLIENT );
 
+	if ( ! can_load( modules => { "ZoneMinder::Control::$protocol" => undef } ) ) {
+		Fatal("Can't load ZoneMinder::Control::$protocol");
+	}
+
     if ( my $cpid = fork() )
     {
         logReinit();
@@ -155,8 +159,6 @@ if ( !$server_up )
         Info( "Control server $id/$protocol starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() ) );
 
         $0 = $0." --id $id";
-
-        load "ZoneMinder::Control::$protocol";
 
         my $control = "ZoneMinder::Control::$protocol"->new( $id );
         my $control_key = $control->getKey();

@@ -73,6 +73,7 @@ override_dh_clean:
 	done || true
 
 override_dh_install:
+	dh_install --fail-missing
 	#
 	# NOTE: This is a short-term kludge; hopefully changes in the next
 	# upstream version will render this unnecessary.
@@ -82,20 +83,20 @@ override_dh_install:
 	dh_link var/cache/zoneminder/events usr/share/zoneminder/events
 	dh_link var/cache/zoneminder/images usr/share/zoneminder/images
 	dh_link var/cache/zoneminder/temp usr/share/zoneminder/temp
-
 	#
-	# This is a slightly lesser kludge; moving the cgi stuff to 
+	# This is a slightly lesser kludge; moving the cgi stuff to
 	# /usr/share/zoneminder/cgi-bin breaks one set of behavior,
-	# having it just in /usr/lib/cgi-bin breaks another bit of 
+	# having it just in /usr/lib/cgi-bin breaks another bit of
 	# behavior.
 	#
 	dh_link usr/lib/cgi-bin usr/share/zoneminder/cgi-bin
 
-	dh_install --fail-missing
-
 override_dh_fixperms:
 	dh_fixperms
-	chown root:root debian/zoneminder/etc/zm/zm.conf
+	#
+	# As requested by the Debian Webapps Policy Manual §3.2.1
+	chown root:www-data debian/zoneminder/etc/zm/zm.conf
+	chmod 640 debian/zoneminder/etc/zm/zm.conf
 
 override_dh_auto_test:
 	# do not run tests...

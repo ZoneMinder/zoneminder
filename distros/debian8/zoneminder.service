@@ -4,14 +4,15 @@
 [Unit]
 Description=ZoneMinder CCTV recording and security system
 After=network.target mysql.service apache2.service
-Requires=mysql.service apache2.service
+Requires=apache2.service
+Wants=mysql.service
 
 [Service]
 User=www-data
 Type=forking
 ExecStart=/usr/bin/zmpkg.pl start
 ExecReload=/usr/bin/zmpkg.pl restart
-ExecStop=/bin/bash -c '[[ "$(/usr/bin/pgrep zmdc.pl)" > 0 ]] && /usr/bin/zmpkg.pl stop'
+ExecStop=/usr/bin/zmpkg.pl stop
 PIDFile=/var/run/zm/zm.pid
 
 [Install]

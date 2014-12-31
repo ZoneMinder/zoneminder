@@ -60,6 +60,8 @@ if ( isset($_GET['skin']) )
     $skin = $_GET['skin'];
 elseif ( isset($_COOKIE['zmSkin']) )
     $skin = $_COOKIE['zmSkin'];
+elseif ( ZM_SKIN_DEFAULT )
+	$skin = ZM_SKIN_DEFAULT;
 else
     $skin = "classic";
 
@@ -67,6 +69,8 @@ if ( isset($_GET['css']) )
 	$css = $_GET['css'];
 elseif ( isset($_COOKIE['zmCSS']) )
 	$css = $_COOKIE['zmCSS'];
+elseif (ZM_CSS_DEFAULT)
+	$css = ZM_CSS_DEFAULT;
 else
 	$css = "classic";
 
@@ -122,6 +126,11 @@ foreach ( getSkinIncludes( 'skin.php' ) as $includeFile )
 
 require_once( 'includes/actions.php' );
 
+# If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
+if ( ZM_OPT_USE_AUTH && ! isset($user) && $view != 'login' ) {
+    $view = 'login';
+}
+
 if ( isset( $_REQUEST['request'] ) )
 {
     foreach ( getSkinIncludes( 'ajax/'.$request.'.php', true, true ) as $includeFile )
@@ -142,7 +151,18 @@ else
                 Fatal( "View '$view' does not exist" );
             require_once $includeFile;
         }
+		// If the view overrides $view to 'error', and the user is not logged in, then the
+		// issue is probably resolvable by logging in, so provide the opportunity to do so.
+		// The login view should handle redirecting to the correct location afterward.
+		if ( $view == 'error' && !isset($user) )
+		{
+			$view = 'login';
+			foreach ( getSkinIncludes( 'views/login.php', true, true ) as $includeFile )
+				require_once $includeFile;
+		}
     }
+	// If the view is missing or the view still returned error with the user logged in,
+	// then it is not recoverable.
     if ( !$includeFiles || $view == 'error' )
     {
         foreach ( getSkinIncludes( 'views/error.php', true, true ) as $includeFile )

@@ -190,7 +190,7 @@ class EventsController extends AppController {
 				'Score' => $event['Event']['MaxScore']
 			)
 		))) {
-			throw new NotFoundException(__('Can not find Frame'));
+			throw new NotFoundException(__("Can not find Frame for Event " . $event['Event']['Id']));
 		}
 
 		$this->loadModel('Config');

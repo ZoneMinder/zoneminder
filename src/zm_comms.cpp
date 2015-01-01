@@ -25,7 +25,12 @@
 #include <fcntl.h>
 #include <stdarg.h>
 //#include <memory.h>
+#if defined(BSD)
+#include <stdlib.h>
+#else
 #include <alloca.h>
+#endif
+
 #include <string.h>
 //#include <unistd.h>
 #include <sys/ioctl.h>

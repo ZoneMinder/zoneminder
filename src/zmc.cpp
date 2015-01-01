@@ -19,7 +19,11 @@
 
 #include <getopt.h>
 #include <signal.h>
+#if defined(BSD)
+#include <limits.h>
+#else
 #include <values.h>
+#endif
 
 #include "zm.h"
 #include "zm_db.h"

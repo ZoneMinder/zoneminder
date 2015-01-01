@@ -426,7 +426,15 @@ int main( int argc, char *argv[] )
 
 	if ( mon_id > 0 )
 	{
-		Monitor *monitor = Monitor::Load( mon_id, function&(ZMU_QUERY|ZMU_ZONES|ZMU_LIST_PLUG), Monitor::QUERY );
+		Monitor *monitor;
+		if ( function & ZMU_LIST_PLUG )
+		{
+			monitor = Monitor::Load( mon_id, false, Monitor::QUERY_PLUGINS );
+		}
+		else
+		{
+			monitor = Monitor::Load( mon_id, function&(ZMU_QUERY|ZMU_ZONES), Monitor::QUERY );
+		}
 		if ( monitor )
 		{
 			if ( verbose )

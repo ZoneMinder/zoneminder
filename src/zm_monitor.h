@@ -59,6 +59,7 @@ public:
 	typedef enum
 	{
 		QUERY=0,
+		QUERY_PLUGINS,
 		CAPTURE,
 		ANALYSIS
 	} Purpose;

@@ -433,37 +433,34 @@ Monitor::Monitor(
     }
 
 #if ZM_PLUGINS_ON
-    if ( purpose == ANALYSIS || purpose == QUERY )
+    if ( config.load_plugins && ( ( purpose == ANALYSIS ) || ( purpose == QUERY_PLUGINS ) ) )
     {
-        if ( config.load_plugins || purpose == QUERY )
+        Info("Load plugins from the directory %s ... ", config.path_plugins);
+        ThePluginManager.setPluginExt(std::string(config.plugin_extension));
+        unsigned int nNumPlugLoaded = 0;
+        unsigned int nNumPlugFound = ThePluginManager.findPlugins(
+                std::string(config.path_plugins), (purpose == ANALYSIS), nNumPlugLoaded );
+        Info("Found %u plugin(s) - %u loaded", nNumPlugFound, nNumPlugLoaded);
+        if (nNumPlugFound > 0)
         {
-            Info("Load plugins from the directory %s ... ", config.path_plugins);
-            ThePluginManager.setPluginExt(std::string(config.plugin_extension));
-            unsigned int nNumPlugLoaded = 0;
-            unsigned int nNumPlugFound = ThePluginManager.findPlugins(
-                    std::string(config.path_plugins), (purpose == ANALYSIS), nNumPlugLoaded );
-            Info("Found %u plugin(s) - %u loaded", nNumPlugFound, nNumPlugLoaded);
-            if (nNumPlugFound > 0)
-            {
+            ThePluginManager.configurePlugins(
+                    std::string(config.plugins_config_path),
+                    (!config.turnoff_native_analysis && iDoNativeMotDet));
+            struct direct **files;
+            int count = scandir(config.plugins_config_dir, &files, conf_select, alphasort);
+            if (count > 0)
+                Info("Load plugin configuration files from directory %s ... ", config.plugins_config_dir);
+            for (int i = 0; i < count; ++i)
                 ThePluginManager.configurePlugins(
-                        std::string(config.plugins_config_path),
+                        join_paths(config.plugins_config_dir, files[i]->d_name),
                         (!config.turnoff_native_analysis && iDoNativeMotDet));
-                struct direct **files;
-                int count = scandir(config.plugins_config_dir, &files, conf_select, alphasort);
-                if (count > 0)
-                    Info("Load plugin configuration files from directory %s ... ", config.plugins_config_dir);
-                for (int i = 0; i < count; ++i)
-                    ThePluginManager.configurePlugins(
-                            join_paths(config.plugins_config_dir, files[i]->d_name),
-                            (!config.turnoff_native_analysis && iDoNativeMotDet));
-            }
         }
     }
 #endif // ZM_PLUGINS_ON
 
     if ( ( ! mem_ptr ) || ! shared_data->valid )
     {
-        if ( purpose != QUERY )
+        if ( ( purpose != QUERY ) && ( purpose != QUERY_PLUGINS ) )
         {
             Error( "Shared data not initialised by capture daemon for monitor %s", name );
             exit( -1 );

@@ -26,15 +26,9 @@
 #include <stdarg.h>
 //#include <memory.h>
 #include <alloca.h>
-#include <string.h>
 //#include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/param.h>
-#if defined(BSD)
-#include <sys/uio.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#endif
 #include <netinet/tcp.h>
 
 int CommsBase::readV( int iovcnt, /* const void *, int, */ ... )

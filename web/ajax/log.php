@@ -187,9 +187,9 @@ switch ( $_REQUEST['task'] )
         }
         $exportKey = substr(md5(rand()),0,8);
         $exportFile = "zm-log.$exportExt";
-        $exportPath = "temp/zm-log-$exportKey.$exportExt";
+        $exportPath = ZM_PATH_SWAP."/zm-log-$exportKey.$exportExt";
         if ( !($exportFP = fopen( $exportPath, "w" )) )
-            Fatal( "Unable to open log export file $exportFile" );
+            Fatal( "Unable to open log export file $exportPath" );
         $logs = array();
         foreach ( dbFetchAll( $sql, NULL, $values ) as $log )
         {

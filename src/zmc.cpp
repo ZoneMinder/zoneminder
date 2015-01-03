@@ -20,9 +20,9 @@
 #include <getopt.h>
 #include <signal.h>
 #if defined(BSD)
-#include <values.h>
-#else
 #include <limits.h>
+#else
+#include <values.h>
 #endif
 
 #include "zm.h"

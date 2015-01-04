@@ -433,7 +433,7 @@ Monitor::Monitor(
     }
 
 #if ZM_PLUGINS_ON
-    if ( config.load_plugins && ( ( purpose == ANALYSIS ) || ( purpose == QUERY_PLUGINS ) ) )
+    if ( ( purpose == QUERY_PLUGINS ) || ( config.load_plugins && ( purpose == ANALYSIS ) ) )
     {
         Info("Load plugins from the directory %s ... ", config.path_plugins);
         ThePluginManager.setPluginExt(std::string(config.plugin_extension));

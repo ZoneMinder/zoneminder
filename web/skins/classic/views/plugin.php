@@ -93,9 +93,9 @@ $generalOptions=array(
          )
       )
    ),
-   'AlarmeScore'=>array(
+   'AlarmScore'=>array(
       'Type'=>'integer',
-      'Name'=>'AlarmeScore',
+      'Name'=>'AlarmScore',
       'Min'=>'1',
       'Max'=>'100',
       'Value'=>'99',

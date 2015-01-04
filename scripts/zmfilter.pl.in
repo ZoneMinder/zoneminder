@@ -278,7 +278,7 @@ sub getFilters
         my $sql = "select E.Id,E.MonitorId,M.Name as MonitorName,M.DefaultRate,M.DefaultScale,E.Name,E.Cause,E.Notes,E.StartTime,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived,E.Videoed,E.Uploaded,E.Emailed,E.Messaged,E.Executed from Events as E inner join Monitors as M on M.Id = E.MonitorId";
         $db_filter->{Sql} = '';
 
-        if ( @{$filter_expr->{terms}} )
+        if ( $filter_expr->{terms} )
         {
             for ( my $i = 0; $i < @{$filter_expr->{terms}}; $i++ )
             {

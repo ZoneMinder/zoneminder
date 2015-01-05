@@ -292,7 +292,7 @@ unset($output);
 $command = "type -p arp";
 $result = exec( escapeshellcmd($command), $output, $status );
 if ( $status )
-    Fatal( "Unable determine arp path, status is '$status'" );
+    Fatal( "Unable to determine path for arp command, type -p arp returned '$status'" );
 // Now that we know where arp is, call it using the full path
 $command = $output[0]." -a";
 unset($output);

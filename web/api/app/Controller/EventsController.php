@@ -22,6 +22,9 @@ class EventsController extends AppController {
  */
 	public function index() {
 		$this->Event->recursive = -1;
+		$this->FilterComponent = $this->Components->load('Filter');
+
+		$conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
 
 		// How many events to return 
 		$this->loadModel('Config');
@@ -32,7 +35,8 @@ class EventsController extends AppController {
 		$this->Paginator->settings = array(
 			'limit' => $limit['ZM_WEB_EVENTS_PER_PAGE'],
 			'order' => array('StartTime', 'MaxScore'),
-			'paramType' => 'querystring'
+			'paramType' => 'querystring',
+			'conditions' => $conditions
 		);
 		$events = $this->Paginator->paginate('Event');
 

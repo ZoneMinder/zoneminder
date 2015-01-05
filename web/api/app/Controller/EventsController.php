@@ -22,9 +22,13 @@ class EventsController extends AppController {
  */
 	public function index() {
 		$this->Event->recursive = -1;
-		$this->FilterComponent = $this->Components->load('Filter');
 
-		$conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+		if ($this->request->params['named']) {	
+			$this->FilterComponent = $this->Components->load('Filter');
+			$conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+		} else {
+			$conditions = array();
+		}
 
 		// How many events to return 
 		$this->loadModel('Config');

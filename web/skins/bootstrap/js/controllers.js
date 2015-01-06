@@ -66,7 +66,7 @@ ZoneMinder.controller('EventsController', function($scope, Events, $modal) {
 
 ZoneMinder.controller('EventController', function($scope, Event, $modalInstance, eventId) {
 
-	Event.getEvent(eventId).then(function(results) {
+	Event.get(eventId).then(function(results) {
 		$scope.eventId			= eventId;
 		$scope.name 				= results.data.event.Event.Name;
 		$scope.cause 				= results.data.event.Event.Cause;

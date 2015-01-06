@@ -23,13 +23,19 @@ ZoneMinder.controller('LogController', function($scope, Log) {
 	});
 });
 
-ZoneMinder.controller('EventsController', function($scope, Events) {
+ZoneMinder.controller('EventsController', function($scope, Events, $modal) {
+	// First thing, get page 1 of the events.
 	getEventsPage(1);
 
+	// If the page is changed, get the new page of events
 	$scope.pageChanged = function(newPage) {
 		getEventsPage(newPage);
 	};
 
+	// Call Events.get and pass it the page number
+	// Set the appropriate scope values with the results.
+	// The events.php file takes over and iterates over events
+	// and the painator uses totalEvents and eventPerPage
 	function getEventsPage(pageNumber) {
 		Events.get(pageNumber).then(function(results) {
 			$scope.events = results.data.events;
@@ -37,11 +43,28 @@ ZoneMinder.controller('EventsController', function($scope, Events) {
 			$scope.eventsPerPage = results.data.pagination.limit;
 		});
 	}
+
+	// This is called when a user clicks on an event.
+	// It fires up a modal and passes it the EventId of the clicked event
+	// EventController takes over from there.
+	$scope.displayEvent = function (eventId) {
+		$scope.eventId = eventId;
+
+		var modalInstance = $modal.open({
+			templateUrl: '/?view=event&skin=bootstrap',
+			controller: 'EventController',
+			resolve: { eventId: function () { return $scope.eventId; } }
+		});
+
+		modalInstance.result.then(function (selectedItem) {
+			}, function () {
+				console.log('Modal dismissed at: ' + new Date());
+			}
+		);
+	};
 });
 
-ZoneMinder.controller('EventController', function($scope, $location, Event) {
-
-	var eventId = $location.search().eid;
+ZoneMinder.controller('EventController', function($scope, Event, $modalInstance, eventId) {
 
 	Event.getEvent(eventId).then(function(results) {
 		$scope.eventId			= eventId;
@@ -57,9 +80,17 @@ ZoneMinder.controller('EventController', function($scope, $location, Event) {
 		$scope.avgScore				= results.data.event.Event.AvgScore;
 		$scope.maxScore				= results.data.event.Event.MaxScore;
 		$scope.notes				= results.data.event.Event.Notes;
-
-
 	});
+
+	$scope.cancel = function () {
+		$modalInstance.dismiss('cancel');
+	};
+
+	$scope.deleteEvent = function() {
+		Event.delete(eventId).then(function(results) {
+			console.log(results);
+		});
+	};
 });
 
 ZoneMinder.controller('MonitorController', function($scope, $http, $location, Monitor) {

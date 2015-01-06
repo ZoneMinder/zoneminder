@@ -4,7 +4,7 @@
 
 	<?php include("header.php"); ?>
 
-	<div class="container-fluid">
+	<div class="container-fluid" ng-controller="EventsController">
 		<div class="row">
 			<div class="col-md-2">
 				<?php if ( true || canEdit( 'Events' ) ) { ?>
@@ -18,7 +18,6 @@
 				<?php } ?>
 			</div> <!-- End sidebar .col-md-2 -->
 
-			<div class="col-md-10" ng-controller="EventsController">
 				<div class="clearfix">
 					<div class="event" dir-paginate="event in events | itemsPerPage: eventsPerPage" total-items="totalEvents">
 						<a href="/?view=event&amp;eid={{event.Event.Id}}">
@@ -31,6 +30,7 @@
 								</div> <!-- End .info -->
 							</div> <!-- End .over -->
 						</a>
+			<div class="col-md-10">
 					</div> <!-- End .event -->
 				</div> <!-- End .clearfix -->
 				<dir-pagination-controls on-page-change="pageChanged(newPageNumber)"></dir-pagination-controls>

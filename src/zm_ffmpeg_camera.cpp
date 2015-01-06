@@ -489,7 +489,8 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_di
         if ( avResult < 0 )
         {
             Error( "Unable to read packet from stream %d: error %d", packet.stream_index, avResult );
-            return( -1 );//FIXME do we need to free packet
+            av_free_packet( &packet );
+            return( -1 );
         }
         Debug( 5, "Got packet from stream %d", packet.stream_index );
         if ( packet.stream_index == mVideoStreamId )
@@ -512,9 +513,9 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_di
                 
                 //Video recording
                 if(recording && !wasRecording){
-                    //Instanciate the video storage module
+                    //Instantiate the video storage module
                     char fileName[4096];
-                    snprintf(fileName, sizeof(fileName), "%s/event.mp4", event_directory);//no audio support for mp4?...ffmpeg is choking when writing the header probably some unsupported audio options for the stream doesn't like it when called from shell either using ffmpeg binary
+                    snprintf(fileName, sizeof(fileName), "%s/event.mp4", event_directory);
                     videoStore = new VideoStore((const char *)fileName, "mp4", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime);
                     wasRecording = true;
                     strcpy(oldDirectory, event_directory);
@@ -526,14 +527,14 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_di
                 }
                 
                 //The directory we are recording to is no longer tied to the current event. Need to re-init the videostore with the correct directory and start recording again
-                if(recording && wasRecording && (strcmp(oldDirectory, event_directory)!=0) && (packet.flags & AV_PKT_FLAG_KEY) ){ //don't open new vs until we're on a key frame..would this require an offset adjustment for the event as a result?...if we store our key frame location with the even will that be enough?
+                if(recording && wasRecording && (strcmp(oldDirectory, event_directory)!=0) && (packet.flags & AV_PKT_FLAG_KEY) ){ //don't open new videostore until we're on a key frame..would this require an offset adjustment for the event as a result?...if we store our key frame location with the event will that be enough?
                     Info("Re-starting video storage module");
                     if(videoStore){
                         delete videoStore;
                         videoStore = NULL;
                     }
                     char fileName[4096];
-                    snprintf(fileName, sizeof(fileName), "%s/event.mp4", event_directory);//no audio support for mp4?
+                    snprintf(fileName, sizeof(fileName), "%s/event.mp4", event_directory);
                     videoStore = new VideoStore((const char *)fileName, "mp4", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime);
                     strcpy(oldDirectory, event_directory);
                 }
@@ -543,7 +544,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_di
                     int ret = videoStore->writeVideoFramePacket(&packet, mFormatContext->streams[mVideoStreamId]);//, &lastKeyframePkt);
                     if(ret<0){//Less than zero and we skipped a frame
                         av_free_packet( &packet );
-                        return 0;//FIXME av_free_packet not called
+                        return 0;
                     }
                 }
                 

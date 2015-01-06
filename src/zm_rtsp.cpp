@@ -464,7 +464,7 @@ int RtspThread::run()
     if ( !recvResponse( response ) )
         return( -1 );
 
-    StringVector lines = split( response, "\r\n" );
+    lines = split( response, "\r\n" );
     std::string session;
     int timeout = 0;
     char transport[256] = "";

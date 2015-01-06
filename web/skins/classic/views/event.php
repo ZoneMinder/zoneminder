@@ -200,7 +200,7 @@ else
 ?>
 				</div>
 			</div>
-<?php if ( $Monitor[VideoWriter} ) { ?>
+<?php if ( $Monitor[VideoWriter] ) { ?>
 	<div id="eventVideo" class="hidden">
 		<div id="videoFeed">
 			<video id="videoobj" width="<?php echo $event['Width'] ?>" height="<?php echo $event['Height'] ?>" controls autoplay>
@@ -248,7 +248,7 @@ else
 			</div>
 		</div>
 	</div>
-<?php } ) ?>
+<?php } ?>
 		</div>
 	</div>
 </body>

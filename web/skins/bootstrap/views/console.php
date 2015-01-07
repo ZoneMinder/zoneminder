@@ -21,6 +21,10 @@
 							<img class="img-responsive img-rounded" ng-src="/cgi-bin/nph-zms?mode=single&monitor={{monitor.Id}}&scale=50" />
 						</div> <!-- End .panel-body -->
 
+						<div class="panel-footer">
+							<button type="button" class="btn btn-danger btn-sm" ng-click="delete($index)">Delete</button>
+						</div>
+
 					</div> <!-- End .monitor -->
 				</div> <!-- End ConsoleController -->
 			</div> <!-- End .col-md-10 -->

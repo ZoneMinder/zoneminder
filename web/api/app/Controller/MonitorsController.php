@@ -59,7 +59,7 @@ class MonitorsController extends AppController {
 		if ($this->request->is('post')) {
 			$this->Monitor->create();
 			if ($this->Monitor->save($this->request->data)) {
-				$this->daemonControl($this->request->data, $this->Monitor->id, 'start');
+				$this->daemonControl($this->Monitor->id, 'start', $this->request->data);
 				return $this->flash(__('The monitor has been saved.'), array('action' => 'index'));
 			}
 		}
@@ -104,6 +104,9 @@ class MonitorsController extends AppController {
 			throw new NotFoundException(__('Invalid monitor'));
 		}
 		$this->request->allowMethod('post', 'delete');
+
+		$this->daemonControl($this->Monitor->id, 'stop');
+
 		if ($this->Monitor->delete()) {
 			return $this->flash(__('The monitor has been deleted.'), array('action' => 'index'));
 		} else {
@@ -163,15 +166,25 @@ class MonitorsController extends AppController {
 		));
 	}
 
-	public function daemonControl($monitor, $id, $command, $daemon=null) {
+	public function daemonControl($id, $command, $monitor=null, $daemon=null) {
 		$args = '';
+		$daemons = array();
+
+		if (!$monitor) {
+			// Need to see if it is local or remote
+			$monitor = $this->Monitor->find('first', array(
+				'fields' => array('Type', 'Function'),
+				'conditions' => array('Id' => $id)
+			));
+			$monitor = $monitor['Monitor'];
+		}
+
 		if ($monitor['Type'] == 'Local') {
 			$args = "-d " . $monitor['Device'];
 		} else {
 			$args = "-m " . $id;
 		}
 
-		$daemons = array();
 		if ($monitor['Function'] == 'Monitor') {
 			array_push($daemons, 'zmc');
 		} else {

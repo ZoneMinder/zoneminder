@@ -95,6 +95,9 @@ ZoneMinder.factory('Console', function($http) {
 		},
 		daemonStatus: function(id, daemon) {
 			return $http.get('/api/monitors/daemonStatus/id:'+id+'/daemon:'+daemon+'.json');
+		},
+		delete: function(id) {
+			return $http.delete('/api/monitors/'+id+'.json');
 		}
 	};
 });

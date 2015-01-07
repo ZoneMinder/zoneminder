@@ -162,6 +162,16 @@ ZoneMinder.controller('ConsoleController', function($scope, Console) {
 		}
 	});
 
+	$scope.delete = function (index) {
+		var monitor = $scope.monitors[index];
+		var id = monitor.Id;
+
+		Console.delete(id).then(function(results) {
+			$scope.monitors.splice(index, 1);
+			console.log(results);
+		});
+	};
+
 	Console.getMonitors().then(function(results) {
 		var monitors = new Array();
 		var daemons = ['zmc', 'zma']; // Daemons to check for each monitor

@@ -59,6 +59,7 @@ class MonitorsController extends AppController {
 		if ($this->request->is('post')) {
 			$this->Monitor->create();
 			if ($this->Monitor->save($this->request->data)) {
+				$this->daemonControl($this->request->data, $this->Monitor->id, 'start');
 				return $this->flash(__('The monitor has been saved.'), array('action' => 'index'));
 			}
 		}
@@ -160,6 +161,29 @@ class MonitorsController extends AppController {
 			'status' => $status,
 			'_serialize' => array('status')
 		));
+	}
+
+	public function daemonControl($monitor, $id, $command, $daemon=null) {
+		$args = '';
+		if ($monitor['Type'] == 'Local') {
+			$args = "-d " . $monitor['Device'];
+		} else {
+			$args = "-m " . $id;
+		}
+
+		$daemons = array();
+		if ($monitor['Function'] == 'Monitor') {
+			array_push($daemons, 'zmc');
+		} else {
+			array_push($daemons, 'zmc', 'zma');
+		}
+		
+		$zm_path_bin = Configure::read('ZM_PATH_BIN');
+
+		foreach ($daemons as $daemon) {
+			$shellcmd = escapeshellcmd("$zm_path_bin/zmdc.pl $command $daemon $args");
+			$status = exec( $shellcmd );
+		}
 	}
 
 }

@@ -55,15 +55,20 @@ my $noregex = 0;
 my $sqlfile = '';
 my $dbUser = $Config{ZM_DB_USER};
 my $dbPass = $Config{ZM_DB_PASS};
+my $version = 0;
 
 # Process commandline parameters with getopt long
-if ( !GetOptions( 'export'=>\$export, 'import'=>\$import, 'overwrite'=>\$overwrite, 'help'=>\$help, 'topreset'=>\$topreset, 'noregex'=>\$noregex, 'user:s'=>\$dbUser, 'pass:s'=>\$dbPass ) ) {
+if ( !GetOptions( 'export'=>\$export, 'import'=>\$import, 'overwrite'=>\$overwrite, 'help'=>\$help, 'topreset'=>\$topreset, 'noregex'=>\$noregex, 'user:s'=>\$dbUser, 'pass:s'=>\$dbPass, 'version'=>\$version ) ) {
 	Usage();
 }
 
 $Config{ZM_DB_USER} = $dbUser;
 $Config{ZM_DB_PASS} = $dbPass;
 
+if ( $version ) {
+	print( ZoneMinder::Base::ZM_VERSION . "\n");
+	exit(0);
+}
 # Check to make sure commandline params make sense
 if ( ((!$help) && ($import + $export + $topreset) != 1 )) {
 	print( STDERR qq/Please give only one of the following: "import", "export", or "topreset".\n/ );

@@ -47,15 +47,20 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 logInit();
 
 my $command = $ARGV[0];
+if ( $command eq 'version' ) {
+	print ZoneMinder::Base::ZM_VERSION . "\n";
+	exit(0);
+}
 
 my $state;
 
-my $dbh = zmDbConnect();
+my $dbh;
 
-if ( !$command || $command !~ /^(?:start|stop|restart|status|logrot)$/ )
+if ( !$command || $command !~ /^(?:start|stop|restart|status|logrot|version)$/ )
 {
 	if ( $command )
 	{
+		$dbh = zmDbConnect();
 		# Check to see if it's a valid run state
 		my $sql = 'select * from States where Name = ?';
 		my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
@@ -78,10 +83,11 @@ if ( !$command || $command !~ /^(?:start|stop|restart|status|logrot)$/ )
 	}
 	if ( !$command )
 	{
-		print( "Usage: zmpkg.pl <start|stop|restart|status|logrot|'state'>\n" );
+		print( "Usage: zmpkg.pl <start|stop|restart|status|logrot|'state'|version>\n" );
 		exit( -1 );
 	}
 }
+$dbh = zmDbConnect() if ! $dbh;
 
 # Move to the right place
 chdir( $Config{ZM_PATH_WEB} ) or Fatal( "Can't chdir to '".$Config{ZM_PATH_WEB}."': $!" );

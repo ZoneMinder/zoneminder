@@ -55,6 +55,7 @@ my $scale = '';
 my $fps = '';
 my $size = '';
 my $overwrite = 0;
+my $version = 0;
 
 my @formats = split( /\s+/, $Config{ZM_FFMPEG_FORMATS} );
 for ( my $i = 0; $i < @formats; $i++ )
@@ -77,13 +78,19 @@ Parameters are :-
 -F<fps>, --fps=<fps>              - Absolute frame rate, in frames per second
 -S<size>, --size=<size>           - Absolute video size, WxH or other specification supported by ffmpeg
 -o, --overwrite                   - Whether to overwrite an existing file, off by default.
+-v, --version                     - Outputs the currently installed version of ZoneMinder
 ");
 	exit( -1 );
 }
 
-if ( !GetOptions( 'event=i'=>\$event_id, 'format|f=s'=>\$format, 'rate|r=f'=>\$rate, 'scale|s=f'=>\$scale, 'fps|F=f'=>\$fps, 'size|S=s'=>\$size, 'overwrite'=>\$overwrite ) )
+if ( !GetOptions( 'event=i'=>\$event_id, 'format|f=s'=>\$format, 'rate|r=f'=>\$rate, 'scale|s=f'=>\$scale, 'fps|F=f'=>\$fps, 'size|S=s'=>\$size, 'overwrite'=>\$overwrite, version=>\$version ) )
 {
 	Usage();
+}
+
+if ( $version ) {
+	print ZoneMinder::Base::ZM_VERSION . "\n";
+	exit(0);
 }
 
 if ( !$event_id || $event_id < 0 )

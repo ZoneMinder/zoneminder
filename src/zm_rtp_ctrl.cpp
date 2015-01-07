@@ -150,10 +150,15 @@ int RtpCtrlThread::recvPacket( const unsigned char *packet, ssize_t packetLen )
             break;
         }
         case RTCP_RR :
+        {
+            Error( "Received RTCP_APP packet." );
+            return( -1 );
+        }
         default :
         {
-            Error( "Received unexpected packet type %d, ignoring", pt );
-            return( -1 );
+            // Ignore unknown packet types. Some cameras do this by design.
+            Debug( 5, "Received unexpected packet type %d, ignoring", pt );
+            break;
         }
     }
     consumed = sizeof(uint32_t)*(len+1);

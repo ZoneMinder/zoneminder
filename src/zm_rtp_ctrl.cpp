@@ -151,7 +151,7 @@ int RtpCtrlThread::recvPacket( const unsigned char *packet, ssize_t packetLen )
         }
         case RTCP_RR :
         {
-            Error( "Received RTCP_APP packet." );
+            Error( "Received RTCP_RR packet." );
             return( -1 );
         }
         default :

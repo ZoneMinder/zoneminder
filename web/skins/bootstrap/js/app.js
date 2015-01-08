@@ -41,8 +41,8 @@ ZoneMinder.factory('Header', function($http) {
 
 ZoneMinder.factory('Log', function($http) {
 	return {
-		getLogs: function(callback) {
-			$http.get('/api/logs.json').success(callback);
+		get: function(page) {
+			return $http.get('/api/logs.json?page='+page);
 		}
 	};
 });

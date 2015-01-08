@@ -16,7 +16,8 @@ class LogsController extends AppController {
 	public $components = array('Paginator', 'RequestHandler');
 	public $paginate = array(
 		'limit' => 100,
-		'order' => array( 'Log.TimeKey' => 'asc' )
+		'order' => array( 'Log.TimeKey' => 'asc' ),
+		'paramType' => 'querystring'
 	);
 
 /**
@@ -29,11 +30,7 @@ class LogsController extends AppController {
 		$this->Paginator->settings = $this->paginate;
 
 		$logs = $this->Paginator->paginate('Log');
-
-		$this->set(array(
-			'logs' => $logs,
-			'_serialize' => array('logs')
-		));
+		$this->set(compact('logs'));
 	}
 
 /**

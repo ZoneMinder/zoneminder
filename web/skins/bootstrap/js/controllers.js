@@ -18,9 +18,19 @@ ZoneMinder.controller('FooterController', function($scope, Footer) {
 });
 
 ZoneMinder.controller('LogController', function($scope, Log) {
-	Log.getLogs(function(results) {
-		$scope.logs = results.logs;
-	});
+	getLogsPage(1);
+
+	$scope.pageChanged = function(newPage) {
+		getLogsPage(newPage);
+	}
+
+	function getLogsPage(pageNumber) {
+		Log.get(pageNumber).then(function(results) {
+			$scope.logs = results.data.logs;
+			$scope.totalLogs = results.data.pagination.count;
+			$scope.logsPerPage = results.data.pagination.limit;
+		});
+	}
 });
 
 ZoneMinder.controller('EventsController', function($scope, Events, $modal) {

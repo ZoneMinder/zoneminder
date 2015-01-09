@@ -20,7 +20,7 @@
 
 			<div class="col-md-10">
 				<div class="clearfix events">
-					<div class="event" dir-paginate="event in events | itemsPerPage: eventsPerPage" total-items="totalEvents" ng-click="displayEvent(event.Event.Id)">
+					<div class="event" dir-paginate="event in events | itemsPerPage: eventsPerPage" total-items="totalEvents" ng-click="displayEvent($index)">
 						<img ng-src="/events/{{ event.thumbData.Path }}" class="img-thumbnail" alt="..."/>
 						<div class="over">
 							<div class="info">

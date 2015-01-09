@@ -57,16 +57,20 @@ ZoneMinder.controller('EventsController', function($scope, Events, $modal) {
 	// This is called when a user clicks on an event.
 	// It fires up a modal and passes it the EventId of the clicked event
 	// EventController takes over from there.
-	$scope.displayEvent = function (eventId) {
-		$scope.eventId = eventId;
+	$scope.displayEvent = function (index) {
+		var event = $scope.events[index];
 
 		var modalInstance = $modal.open({
 			templateUrl: '/?view=event&skin=bootstrap',
 			controller: 'EventController',
-			resolve: { eventId: function () { return $scope.eventId; } }
+			resolve: {
+				eventId: function () { return event.Event.Id; },
+				index: function () { return index; }
+			 }
 		});
 
-		modalInstance.result.then(function (selectedItem) {
+		modalInstance.result.then(function (index) {
+				$scope.events.splice(index, 1);
 			}, function () {
 				console.log('Modal dismissed at: ' + new Date());
 			}
@@ -74,7 +78,7 @@ ZoneMinder.controller('EventsController', function($scope, Events, $modal) {
 	};
 });
 
-ZoneMinder.controller('EventController', function($scope, Event, $modalInstance, eventId) {
+ZoneMinder.controller('EventController', function($scope, Event, $modalInstance, eventId, index) {
 
 	Event.get(eventId).then(function(results) {
 		$scope.eventId			= eventId;
@@ -96,8 +100,9 @@ ZoneMinder.controller('EventController', function($scope, Event, $modalInstance,
 		$modalInstance.dismiss('cancel');
 	};
 
-	$scope.deleteEvent = function() {
+	$scope.delete= function() {
 		Event.delete(eventId).then(function(results) {
+			$modalInstance.close(index);
 			console.log(results);
 		});
 	};

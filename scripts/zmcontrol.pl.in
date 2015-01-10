@@ -192,8 +192,11 @@ if ( !$server_up )
                     #Debug( Dumper( $params ) );
 
                     my $command = $params->{command};
-                    $control->$command( $params );
                     close( CLIENT );
+					if ( $command eq 'quit' ) {
+						last;
+					}
+                    $control->$command( $params );
                 }
                 else
                 {

@@ -289,8 +289,8 @@ $macBases = array(
 unset($output);
 // Calling arp without the full path was reported to fail on some systems
 // Use the builtin unix command "type" to tell us where the command is
-$command = "type -p arp";
-$result = exec( escapeshellcmd($command), $output, $status );
+$command = "which arp";
+$result = exec( $command, $output, $status );
 if ( $status )
     Fatal( "Unable to determine path for arp command, type -p arp returned '$status'" );
 // Now that we know where arp is, call it using the full path

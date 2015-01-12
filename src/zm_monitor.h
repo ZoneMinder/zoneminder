@@ -159,7 +159,7 @@ protected:
 	typedef struct
     {
         uint32_t size;
-        char event_directory[4096];
+        char event_file[4096];
         uint32_t recording; //bool arch dependent so use uint32 instead
         //uint32_t frameNumber;
     

@@ -470,7 +470,7 @@ void *FfmpegCamera::ReopenFfmpegThreadCallback(void *ctx){
 }
 
 //Function to handle capture and store
-int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_directory )
+int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_file )
 {
 	AVPacket packet;
 	uint8_t* directbuffer;
@@ -514,29 +514,27 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_di
                 //Video recording
                 if(recording && !wasRecording){
                     //Instantiate the video storage module
-                    char fileName[4096];
-                    snprintf(fileName, sizeof(fileName), "%s/event.mp4", event_directory);
-                    videoStore = new VideoStore((const char *)fileName, "mp4", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime);
+
+                    videoStore = new VideoStore((const char *)event_file, "mp4", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime);
                     wasRecording = true;
-                    strcpy(oldDirectory, event_directory);
+                    strcpy(oldDirectory, event_file);
                     
                 }else if(!recording && wasRecording && videoStore){
-                    Warning("Deleting videoStore instance");
+                    Info("Deleting videoStore instance");
                     delete videoStore;
                     videoStore = NULL;
                 }
                 
                 //The directory we are recording to is no longer tied to the current event. Need to re-init the videostore with the correct directory and start recording again
-                if(recording && wasRecording && (strcmp(oldDirectory, event_directory)!=0) && (packet.flags & AV_PKT_FLAG_KEY) ){ //don't open new videostore until we're on a key frame..would this require an offset adjustment for the event as a result?...if we store our key frame location with the event will that be enough?
+                if(recording && wasRecording && (strcmp(oldDirectory, event_file)!=0) && (packet.flags & AV_PKT_FLAG_KEY) ){ //don't open new videostore until we're on a key frame..would this require an offset adjustment for the event as a result?...if we store our key frame location with the event will that be enough?
                     Info("Re-starting video storage module");
                     if(videoStore){
                         delete videoStore;
                         videoStore = NULL;
                     }
-                    char fileName[4096];
-                    snprintf(fileName, sizeof(fileName), "%s/event.mp4", event_directory);
-                    videoStore = new VideoStore((const char *)fileName, "mp4", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime);
-                    strcpy(oldDirectory, event_directory);
+
+                    videoStore = new VideoStore((const char *)event_file, "mp4", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime);
+                    strcpy(oldDirectory, event_file);
                 }
                 
                 if(videoStore && recording){

@@ -417,7 +417,7 @@ Monitor::Monitor(
         trigger_data->trigger_showtext[0] = 0;
         shared_data->valid = true;
         video_store_data->recording = false;
-        snprintf(video_store_data->event_directory, sizeof(video_store_data->event_directory), "nothing");
+        snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "nothing");
         video_store_data->size = sizeof(VideoStoreData);
         //video_store_data->frameNumber = 0;
     } else if ( purpose == ANALYSIS ) {
@@ -1397,7 +1397,7 @@ bool Monitor::Analyse()
                     if ( event )
                     {
                         //TODO: We shouldn't have to do this every time. Not sure why it clears itself if this isn't here??
-                        snprintf(video_store_data->event_directory, sizeof(video_store_data->event_directory), "%s", event->getEventDirectory());
+                        snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
                         
                         int section_mod = timestamp->tv_sec%section_length;
                         if ( section_mod < last_section_mod )
@@ -1427,7 +1427,7 @@ bool Monitor::Analyse()
                         event = new Event( this, *timestamp, "Continuous", noteSetMap, videoRecording );
                         shared_data->last_event = event->Id();
                         //set up video store data
-                        snprintf(video_store_data->event_directory, sizeof(video_store_data->event_directory), "%s", event->getEventDirectory());
+                        snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
                         video_store_data->recording = true;
                         
                         Info( "%s: %03d - Opening new event %d, section start", name, image_count, event->Id() );
@@ -1489,7 +1489,7 @@ bool Monitor::Analyse()
                                 event = new Event( this, *(image_buffer[pre_index].timestamp), cause, noteSetMap, videoRecording );
                                 shared_data->last_event = event->Id();
                                 //set up video store data
-                                snprintf(video_store_data->event_directory, sizeof(video_store_data->event_directory), "%s", event->getEventDirectory());
+                                snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
                                 video_store_data->recording = true;
 
                                 Info( "%s: %03d - Opening new event %d, alarm start", name, image_count, event->Id() );
@@ -2862,38 +2862,37 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
 
 int Monitor::Capture()
 {
-	static int FirstCapture = 1;
-	int captureResult;
+    static int FirstCapture = 1;
+    int captureResult;
 	
-	int index = image_count%image_buffer_count;
-	Image* capture_image = image_buffer[index].image;
+    int index = image_count%image_buffer_count;
+    Image* capture_image = image_buffer[index].image;
 	
-	if ( (deinterlacing & 0xff) == 4) {
-		if ( FirstCapture != 1 ) {
-			/* Copy the next image into the shared memory */
-			capture_image->CopyBuffer(*(next_buffer.image)); 
-		}
+    if ( (deinterlacing & 0xff) == 4) {
+	if ( FirstCapture != 1 ) {
+            /* Copy the next image into the shared memory */
+            capture_image->CopyBuffer(*(next_buffer.image)); 
+	}
 		
-		/* Capture a new next image */
+	/* Capture a new next image */
         
         //Check if FFMPEG camera
         if((GetOptVideoWriter() == 2) && camera->SupportsNativeVideo()){
-            captureResult = camera->CaptureAndRecord(*(next_buffer.image), video_store_data->recording, video_store_data->event_directory);
+            captureResult = camera->CaptureAndRecord(*(next_buffer.image), video_store_data->recording, video_store_data->event_file);
         }else{
             captureResult = camera->Capture(*(next_buffer.image));
         }
-		
-		
-		if ( FirstCapture ) {
-			FirstCapture = 0;
-			return 0;
-		}
-		
-	} else {
+
+        if ( FirstCapture ) {
+                    FirstCapture = 0;
+                    return 0;
+            }
+
+    } else {
         //Check if FFMPEG camera
         if((GetOptVideoWriter() == 2) && camera->SupportsNativeVideo()){
             //Warning("ZMC: Recording: %d", video_store_data->recording);
-            captureResult = camera->CaptureAndRecord(*capture_image, video_store_data->recording, video_store_data->event_directory);
+            captureResult = camera->CaptureAndRecord(*capture_image, video_store_data->recording, video_store_data->event_file);
         }else{
             /* Capture directly into image buffer, avoiding the need to memcpy() */
             captureResult = camera->Capture(*capture_image);

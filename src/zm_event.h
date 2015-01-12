@@ -159,8 +159,8 @@ public:
         return( Event::getSubPath( localtime( time ) ) );
     }
 
-    char* getEventDirectory(void){
- 	return path;
+    char* getEventFile(void){
+ 	return video_file;
     }
 
 public:

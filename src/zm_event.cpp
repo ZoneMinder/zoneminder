@@ -167,7 +167,8 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
 	video_name[0] = 0;
 
 	/* Save as video */
-	if ( monitor->GetOptVideoWriter() == 1 ) {
+
+	if ( monitor->GetOptVideoWriter() != 0 ) {
 		int nRet; 
 		snprintf( video_name, sizeof(video_name), "%d-%s", id, "video.mp4" );
 		snprintf( video_file, sizeof(video_file), video_file_format, path, video_name );

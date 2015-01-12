@@ -31,12 +31,9 @@
 #include <alloca.h>
 #endif
 
-#include <string.h>
 //#include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/param.h>
-//#include <sys/socket.h>
-//#include <netinet/in.h>
 #include <netinet/tcp.h>
 
 int CommsBase::readV( int iovcnt, /* const void *, int, */ ... )

@@ -1611,19 +1611,14 @@ function sortTag( $field )
 
 function getLoad()
 {
-    $uptime = shell_exec( 'uptime' );
-    $load = '';
-    if ( preg_match( '/load average: ([\d.]+)/', $uptime, $matches ) )
-        $load = $matches[1];
-    return( $load );
+    $load = sys_getloadavg();
+    return( $load[0] );
 }
 
 function getDiskPercent()
 {
-    $df = shell_exec( 'df '.ZM_DIR_EVENTS );
-    $space = -1;
-    if ( preg_match( '/\s(\d+)%/ms', $df, $matches ) )
-        $space = $matches[1];
+    $total = disk_total_space(ZM_DIR_EVENTS);
+    $space = round(($total - disk_free_space(ZM_DIR_EVENTS)) / $total * 100);
     return( $space );
 }
 

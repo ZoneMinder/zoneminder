@@ -1,6 +1,6 @@
 <?php function xhtmlHeaders( $file, $title ) {
 	extract( $GLOBALS, EXTR_OVERWRITE );
-} ?>
+?>
 <!DOCTYPE html>
 <html lang="en" ng-app="ZoneMinder">
 <head>
@@ -23,3 +23,4 @@
 	<script type="text/javascript" src="skins/bootstrap/js/jquery-2.1.1.min.js"></script>
 	<script type="text/javascript" src="skins/bootstrap/js/bootstrap.min.js"></script>
 </head>
+<?php } ?>

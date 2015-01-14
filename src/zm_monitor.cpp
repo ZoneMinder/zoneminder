@@ -3940,7 +3940,7 @@ void MonitorStream::runStream()
     temp_read_index = temp_image_buffer_count;
     temp_write_index = temp_image_buffer_count;
 
-    char *swap_path;
+    char *swap_path = 0;
     bool buffered_playback = false;
 	int swap_path_length = strlen(config.path_swap)+1; // +1 for NULL terminator
 
@@ -4209,6 +4209,7 @@ void MonitorStream::runStream()
             }
         }
     }
+	if ( swap_path ) free( swap_path );
     closeComms();
 }
 

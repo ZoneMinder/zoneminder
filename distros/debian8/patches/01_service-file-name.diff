@@ -1,9 +1,0 @@
---- a/scripts/zmsystemctl.pl.in
-+++ b/scripts/zmsystemctl.pl.in
-@@ -50,5 +50,5 @@
- }
- 
- Info( "Redirecting command through systemctl\n" );
--exec("$path $command zoneminder");
-+exec("$path $command zoneminder-core");
- 

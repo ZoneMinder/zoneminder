@@ -41,7 +41,25 @@ ImageAnalyser::~ImageAnalyser()
       delete *It;
 }
 
+void ImageAnalyser::onCreateEvent(const Image &comp_image, Zone** zones, Event* event)
+{
+    for ( DetectorsList::iterator It = m_Detectors.begin();
+        It != m_Detectors.end();
+        ++It )
+    {
+        (*It)->_onCreateEvent(const comp_image, zones, event);
+    }
+}
 
+void ImageAnalyser::onCloseEvent(const Image &comp_image, Zone** zones, Event* event)
+{
+    for ( DetectorsList::iterator It = m_Detectors.begin();
+        It != m_Detectors.end();
+        ++It )
+    {
+        (*It)->_onCloseEvent(const comp_image, zones, event);
+    }                               }
+}
 
 /*!\fn ImageAnalyser::DoDetection(const Image &comp_image, Zone** zones, Event::StringSetMap noteSetMap, string& det_cause)
  * \param comp_image is the image to analyse

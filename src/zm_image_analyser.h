@@ -75,6 +75,9 @@ class ImageAnalyser {
         m_Detectors.push_back(Det.release());
     }
 
+    void onCreateEvent(const Image &comp_image, Zone** zones);
+    void onCloseEvent(const Image &comp_image, Zone** zones);
+
     //! Do detection in an image by calling all available detectors.
     bool DoDetection(const Image &comp_image, Zone** zones, Event::StringSetMap& noteSetMap, std::string& det_cause, unsigned int& score);
 

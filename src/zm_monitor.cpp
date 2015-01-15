@@ -1520,7 +1520,10 @@ bool Monitor::Analyse()
                         // Create event
                         event = new Event( this, *timestamp, "Continuous", noteSetMap );
                         shared_data->last_event = event->Id();
-
+#if ZM_PLUGINS_ON
+                        if (config.load_plugins)
+                            ThePluginManager.getImageAnalyser().onCreateEvent( *snap_image, zones, event );
+#endif // ZM_PLUGINS_ON
                         Info( "%s: %03d - Opening new event %d, section start", name, image_count, event->Id() );
 
                         /* To prevent cancelling out an existing alert\prealarm\alarm state */

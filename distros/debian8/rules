@@ -38,12 +38,12 @@ BRANCH = $(shell git rev-parse --abbrev-ref HEAD)
 HEAD = $(shell git rev-parse HEAD)
 PKD  = $(abspath $(dir $(MAKEFILE_LIST)))
 PKG  = $(word 2,$(shell dpkg-parsechangelog -l$(PKD)/changelog | grep ^Source))
-VER ?= $(shell dpkg-parsechangelog -l$(PKD)/changelog | perl -ne 'print $$1 if m{^Version:\s+(?:\d+:)?(\d.*)(?:\-\d+.*)};')
+VER ?= $(shell dpkg-parsechangelog -l$(PKD)/changelog | perl -ne 'print $$1 if m{^Version:\s+(?:\d+:)?(\d.*)(?:\-|\+nmu\d+.*)};')
 DTYPE =
 TARBALL = ../$(PKG)_$(VER)$(DTYPE).orig.tar.xz
 
 %:
-	dh $@ --with quilt,autoreconf,systemd
+	dh $@ --with autoreconf,systemd
 
 override_dh_auto_configure:
 	CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)" dh_auto_configure -- \
@@ -94,6 +94,16 @@ override_dh_install:
 	# The link stuff for /usr/share/zoneminder/cgi-bin has been moved to
 	# zoneminder-ui-base.links file
 
+override_dh_installinit:
+	dh_installinit --package=zoneminder-core --name=zoneminder
+
+override_dh_systemd_start:
+	dh_systemd_start --package=zoneminder-core --name=zoneminder \
+	  --restart-after-upgrade
+
+override_dh_systemd_enable:
+	dh_systemd_enable --package=zoneminder-core --name=zoneminder
+
 override_dh_fixperms:
 	dh_fixperms
 	#
@@ -103,9 +113,6 @@ override_dh_fixperms:
 
 override_dh_auto_test:
 	# do not run tests...
-
-override_dh_systemd_start:
-	dh_systemd_start --restart-after-upgrade
 
 .PHONY: override_dh_strip
 override_dh_strip:

@@ -3119,10 +3119,8 @@ bool Monitor::closeEvent()
         if ( function == RECORD || function == MOCORD )
         {
             gettimeofday( &(event->EndTime()), NULL );
-        }
-        else ( function == ANALYSIS && config.load_plugins )
-        {
-            ThePluginManager.getImageAnalyser().onCloseEvent( zones, event );
+            if ( config.load_plugins )
+                ThePluginManager.getImageAnalyser().onCloseEvent( zones, event );
         }
         delete event;
         event = 0;

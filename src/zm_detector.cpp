@@ -235,12 +235,12 @@ bool Detector::Detect(const Image &zmImage, Zone** zones, Event::StringSet &zone
 void Detector::_onCreateEvent(Zone** zones, Event* event)
 {
     for(std::vector<unsigned int>::iterator it = m_vnPluginZones.begin(); it != m_vnPluginZones.end(); ++it)
-        onCreateEvent(zones[*it], *it, Event* event);
+        onCreateEvent(zones[*it], *it, event);
 }
 
 
 void Detector::_onCloseEvent(Zone** zones, Event* event)
 {
     for(std::vector<unsigned int>::iterator it = m_vnPluginZones.begin(); it != m_vnPluginZones.end(); ++it)
-        onCloseEvent(zones[*it], *it, Event* event);
+        onCloseEvent(zones[*it], *it, event);
 }

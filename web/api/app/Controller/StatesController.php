@@ -93,4 +93,25 @@ public $components = array('RequestHandler');
 		} else {
 			return $this->flash(__('The state could not be deleted. Please, try again.'), array('action' => 'index'));
 		}
-	}}
+	}
+
+	public function change() {
+		$newState = $this->request->params['pass'][0];
+		$blah = $this->packageControl($newState);
+
+		$this->set(array(
+			'blah' => $blah,
+			'_serialize' => array('blah')
+		));
+	}
+
+	public function packageControl( $command ) {
+		$zm_path_bin = Configure::read('ZM_PATH_BIN');
+		$string = $zm_path_bin.'/zmpkg.pl '.escapeshellarg( $command );
+		$status = exec( $string );
+
+		return $status;
+	}
+
+
+}

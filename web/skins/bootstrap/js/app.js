@@ -28,6 +28,17 @@ ZoneMinder.factory('Monitor', function($http) {
 	};
 });
 
+ZoneMinder.factory('State', function($http) {
+	return {
+		get: function(callback) {
+			$http.get('/api/states.json').success(callback);
+		},
+		change: function(state) {
+			return $http.post('/api/states/change/'+state+'.json');
+		}
+	};
+});
+
 ZoneMinder.factory('Header', function($http) {
 	return {
 		getLogState: function(callback) {

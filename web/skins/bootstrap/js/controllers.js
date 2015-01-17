@@ -1,6 +1,24 @@
 var ZoneMinder = angular.module('ZoneMinderControllers', []);
 
-ZoneMinder.controller('HeaderController', function($scope, Header) {
+ZoneMinder.controller('StateController', function($scope, State, Header) {
+	State.get(function(results) {
+		$scope.states = results.states;
+	});
+
+	$scope.changeState = function(newState) {
+		State.change(newState)
+		// Redirect to the dashboard on success
+	        .success(function(data) { window.location = "/index.php?view=console"; });
+	};
+
+	Header.getDaemonStatus(function(results) {
+		if (results.result == 1) {
+			$scope.isRunning = true;
+		} 
+	});
+});
+
+ZoneMinder.controller('HeaderController', function($scope, Header, State) {
 	Header.getLogState(function(results) {
 	});
 

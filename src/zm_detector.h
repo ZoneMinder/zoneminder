@@ -78,9 +78,8 @@ public:
     //! Detect (in an image later)
     bool Detect(const Image &image, Zone** zones, Event::StringSet &zoneSet, unsigned int &score);
 
-
-    void _onCreateEvent(const Image &zmImage, Zone** zones);
-    void _onCloseEvent(const Image &zmImage, Zone** zones);
+    void _onCreateEvent(Zone** zones, Event *event);
+    void _onCloseEvent(Zone** zones, Event *event);
 
     //! Load detector's parameters.
     virtual int loadConfig(string sConfigFileName, map<unsigned int,map<string,string> > mapPluginConf) = 0;
@@ -102,9 +101,8 @@ protected:
     //! Do detection inside one given zone.
     virtual bool checkZone(Zone *zone, unsigned int n_zone, const Image *zmImage) = 0;
 
-
-    virtual void onCreateEvent(Zone *zone, unsigned int n_zone, const Image *zmImage) = 0;
-    virtual void onCloseEvent(Zone *zone, unsigned int n_zone, const Image *zmImage) = 0;
+    virtual void onCreateEvent(Zone *zone, unsigned int n_zone, Event *event) = 0;
+    virtual void onCloseEvent(Zone *zone, unsigned int n_zone, Event *event) = 0;
 
     //! Log messages to the SYSLOG.
     void log(int, string sLevel, string sMessage);

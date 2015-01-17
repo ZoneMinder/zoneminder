@@ -232,15 +232,15 @@ bool Detector::Detect(const Image &zmImage, Zone** zones, Event::StringSet &zone
 }
 
 
-void Detector::_onCreateEvent(const Image &zmImage, Zone** zones)
+void Detector::_onCreateEvent(Zone** zones, Event* event)
 {
     for(std::vector<unsigned int>::iterator it = m_vnPluginZones.begin(); it != m_vnPluginZones.end(); ++it)
-        onCreateEvent(zones[*it], *it, const Image *zmImage);
+        onCreateEvent(zones[*it], *it, Event* event);
 }
 
 
-void Detector::_onCloseEvent(const Image &zmImage, Zone** zones)
+void Detector::_onCloseEvent(Zone** zones, Event* event)
 {
     for(std::vector<unsigned int>::iterator it = m_vnPluginZones.begin(); it != m_vnPluginZones.end(); ++it)
-        onCloseEvent(zones[*it], *it, const Image *zmImage);
+        onCloseEvent(zones[*it], *it, Event* event);
 }

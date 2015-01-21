@@ -51,25 +51,68 @@ ZoneMinder.controller('LogController', function($scope, Log) {
 	}
 });
 
-ZoneMinder.controller('EventsController', function($scope, Events, $modal) {
+ZoneMinder.controller('EventsController', function($scope, Events, Console, $modal) {
 	// First thing, get page 1 of the events.
-	getEventsPage(1);
+	$scope.page = 1;
+	getEvents(null, $scope.page);
+
+	// Get the monitors which popular the sidebar select
+	Console.getMonitors().then(function(results) {
+		$scope.monitors = results.data.monitors;
+	});
+
+	$scope.filter_url = '';
+
+	var now = new Date();
+	var startdate = new Date(now);
+	startdate.setMonth(now.getMonth() - 1);
+	$scope.filter = {
+		'StartTime' : startdate,
+		'EndTime' : new Date()
+	};
 
 	// If the page is changed, get the new page of events
 	$scope.pageChanged = function(newPage) {
-		getEventsPage(newPage);
+		$scope.page = newPage;
+		getEvents($scope.filter_url, newPage);
 	};
 
 	// Call Events.get and pass it the page number
 	// Set the appropriate scope values with the results.
 	// The events.php file takes over and iterates over events
 	// and the painator uses totalEvents and eventPerPage
-	function getEventsPage(pageNumber) {
-		Events.get(pageNumber).then(function(results) {
+	function getEvents(filter, pageNumber) {
+		Events.get(filter, pageNumber).then(function(results) {
 			$scope.events = results.data.events;
 			$scope.totalEvents = results.data.pagination.count;
 			$scope.eventsPerPage = results.data.pagination.limit;
 		});
+	}
+
+	$scope.filterEvents = function() {
+		var filters = new Array();
+		var url = '';
+
+		// Push all of the MonitorId's into the filters array
+		angular.forEach($scope.filter.MonitorId, function(value, key) {
+			filters.push('MonitorId:'+value);
+		});
+
+		var StartTime = $scope.filter.StartTime.toISOString().slice(0, 19).replace('T', ' ');
+		filters.push('StartTime >=:'+StartTime);
+		var EndTime = $scope.filter.EndTime.toISOString().slice(0, 19).replace('T', ' ');
+		filters.push('EndTime <=:'+EndTime);
+
+		console.log(filters);
+
+		angular.forEach(filters, function(value, key) {
+			url = url + value + '/';
+		});
+
+		length = url.length;
+		$scope.filter_url = url.substring(0, length - 1);
+		$scope.page = 1;
+		getEvents($scope.filter_url, 1);
 	}
 
 	// This is called when a user clicks on an event.

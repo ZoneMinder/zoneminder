@@ -6,21 +6,16 @@
 
 	<div class="container-fluid" ng-controller="EventsController">
 		<div class="row">
-			<div class="col-md-2">
-				<?php if ( true || canEdit( 'Events' ) ) { ?>
-				<div class="btn-group-vertical">
-					<input class="btn btn-default" type="button" name="archiveBtn" value="<?= $SLANG['Archive'] ?>" onclick="archiveEvents( this, 'markEids' )" disabled="disabled"/>
-					<input class="btn btn-default" type="button" name="unarchiveBtn" value="<?= $SLANG['Unarchive'] ?>" onclick="unarchiveEvents( this, 'markEids' );" disabled="disabled"/>
-					<input class="btn btn-default" type="button" name="editBtn" value="<?= $SLANG['Edit'] ?>" onclick="editEvents( this, 'markEids' )" disabled="disabled"/>
-					<input class="btn btn-default" type="button" name="exportBtn" value="<?= $SLANG['Export'] ?>" onclick="exportEvents( this, 'markEids' )" disabled="disabled"/>
-					<input class="btn btn-default" type="button" name="deleteBtn" value="<?= $SLANG['Delete'] ?>" onclick="deleteEvents( this, 'markEids' );" disabled="disabled"/>
-				</div>
-				<?php } ?>
-			</div> <!-- End sidebar .col-md-2 -->
 
-			<div class="col-md-10">
+			<div class="col-md-2 sidebar">
+				<div class="container-fluid">
+					<?php include("events_search.html"); ?>
+				</div>
+			</div>
+
+			<div class="col-md-10 col-md-offset-2">
 				<div class="clearfix events">
-					<div class="event" dir-paginate="event in events | itemsPerPage: eventsPerPage" total-items="totalEvents" ng-click="displayEvent($index)">
+					<div class="event" dir-paginate="event in events | itemsPerPage: eventsPerPage" total-items="totalEvents" current-page="page" ng-click="displayEvent($index)">
 						<img ng-src="/events/{{ event.thumbData.Path }}" class="img-thumbnail" alt="..."/>
 						<div class="over">
 							<div class="info">
@@ -35,6 +30,5 @@
 			</div> <!-- End main .col-md-10 -->
 		</div> <!-- End .row -->
 	</div> <!-- End .container-fluid -->
-	<?php include("footer.php"); ?>
 </body>
 </html>

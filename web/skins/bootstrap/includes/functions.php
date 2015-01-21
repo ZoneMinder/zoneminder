@@ -14,6 +14,7 @@
 	<link rel="stylesheet" href="skins/bootstrap/css/bootstrap.css" type="text/css" />
 	<link rel="stylesheet" href="skins/bootstrap/css/datetimepicker.css" type="text/css" />
 	<link rel="stylesheet" href="skins/bootstrap/css/skin.css" type="text/css" />
+	<script type="text/javascript" src="skins/bootstrap/js/moment.min.js"></script>
 	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.8/angular.min.js"></script>
 	<script src="skins/bootstrap/js/dirPagination.js"></script>
 	<script type="text/javascript" src="skins/bootstrap/js/Chart.min.js"></script>

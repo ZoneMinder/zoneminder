@@ -248,4 +248,28 @@ class EventsController extends AppController {
 
 	}
 
+	public function archive($id = null) {
+		$this->Event->recursive = -1;
+		if (!$this->Event->exists($id)) {
+			throw new NotFoundException(__('Invalid event'));
+		}
+
+		// Get the current value of Archive
+		$archived = $this->Event->find('first', array(
+			'fields' => array('Event.Archived'),
+			'conditions' => array('Event.Id' => $id)
+		));
+		// If 0, 1, if 1, 0
+		$archiveVal = (($archived['Event']['Archived'] == 0) ? 1 : 0);
+
+		// Save the new value 
+		$this->Event->id = $id;
+		$this->Event->saveField('Archived', $archiveVal);
+
+		$this->set(array(
+			'archived' => $archiveVal,
+			'_serialize' => array('archived')
+		));
+	}
+
 }

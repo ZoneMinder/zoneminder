@@ -436,3 +436,14 @@ th.table-th-sort-rev span.table-th-sort-span {
 	width: 174px;
 	left: 5px;
 }
+
+.sidebar {
+	position: fixed;
+	top: 51px;
+	bottom: 0px;
+	left: 0px;
+	z-index: 1000;
+	display: block;
+	background-color: #F5F5F5;
+	border-right: 1px solid #EEE;
+}

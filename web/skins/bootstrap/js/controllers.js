@@ -132,6 +132,7 @@ ZoneMinder.controller('EventsController', function($scope, Events, Console, $mod
 
 		modalInstance.result.then(function (index) {
 				$scope.events.splice(index, 1);
+				$scope.totalEvents = $scope.totalEvents - 1;
 			}, function () {
 				console.log('Modal dismissed at: ' + new Date());
 			}

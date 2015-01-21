@@ -2,7 +2,8 @@ var ZoneMinder = angular.module('ZoneMinder', [
 	'ZoneMinderControllers',
 	'tc.chartjs',
 	'ui.bootstrap',
-	'angularUtils.directives.dirPagination'
+	'angularUtils.directives.dirPagination',
+	'ui.bootstrap.datetimepicker'
 ]);
 
 ZoneMinder.config(['$locationProvider', function($locationProvider){
@@ -79,8 +80,12 @@ ZoneMinder.factory('Footer', function($http) {
 
 ZoneMinder.factory('Events', function($http) {
 	return {
-		get: function(page) {
-			return $http.get('/api/events.json?page='+page);
+		get: function(filter, page) {
+			if (filter) {
+				return $http.get('/api/events/index/'+filter+'.json?page='+page);
+			} else {
+				return $http.get('/api/events.json?page='+page);
+			}
 		}
 	};
 });

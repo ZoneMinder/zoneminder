@@ -97,6 +97,9 @@ ZoneMinder.factory('Event', function($http) {
 		},
 		delete: function(eventId) {
 			return $http.delete('/api/events/'+ eventId + '.json');
+		},
+		archive: function(eventId) {
+			return $http.post('/api/events/archive/'+ eventId + '.json');
 		}
 	};
 });

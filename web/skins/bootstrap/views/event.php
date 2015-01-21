@@ -20,6 +20,7 @@
 
 <div class="modal-footer">
 	<span class="pull-right glyphicon glyphicon-chevron-right"><span class="sr-only">Next</span></span>
+	<button type="button" class="btn btn-default" ng-click="archive()">{{ archive_text }}</button>
 	<button type="button" class="btn btn-danger" ng-click="delete()">Delete</button>
 	<button type="button" class="btn btn-warning" ng-click="cancel()">Cancel</button>
 	<span class="pull-left glyphicon glyphicon-chevron-left"><span class="sr-only">Previous</span></span>

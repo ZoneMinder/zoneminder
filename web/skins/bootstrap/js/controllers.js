@@ -157,6 +157,8 @@ ZoneMinder.controller('EventController', function($scope, Event, $modalInstance,
 		$scope.avgScore				= results.data.event.Event.AvgScore;
 		$scope.maxScore				= results.data.event.Event.MaxScore;
 		$scope.notes				= results.data.event.Event.Notes;
+		$scope.archived				= results.data.event.Event.Archived;
+		$scope.archive_text		= $scope.archived == 0 ? 'Archive' : 'Unarchive';
 	});
 
 	$scope.cancel = function () {
@@ -167,6 +169,13 @@ ZoneMinder.controller('EventController', function($scope, Event, $modalInstance,
 		Event.delete(eventId).then(function(results) {
 			$modalInstance.close(index);
 			console.log(results);
+		});
+	};
+
+	$scope.archive = function() {
+		Event.archive(eventId).then(function(results) {
+			$scope.archived = results.data.archived;
+			$scope.archive_text = $scope.archived == 0 ? 'Archive' : 'Unarchive';
 		});
 	};
 });

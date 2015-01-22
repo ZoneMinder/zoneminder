@@ -287,27 +287,26 @@ $macBases = array(
 );
 
 unset($output);
-// Calling arp without the full path was reported to fail on some systems
+// Calling ip without the full path was reported to fail on some systems
 // Use the builtin unix command "type" to tell us where the command is
-$command = "type -p arp";
+$command = "type -p ip";
 $result = exec( escapeshellcmd($command), $output, $status );
 if ( $status )
-    Fatal( "Unable to determine path for arp command, type -p arp returned '$status'" );
-// Now that we know where arp is, call it using the full path
-$command = $output[0]." -a";
+    Fatal( "Unable to determine path for ip command, type -p ip returned '$status'" );
+// Now that we know where ip is, call it using the full path
+$command = $output[0]." neigh";
 unset($output);
 $result = exec( escapeshellcmd($command), $output, $status );
 if ( $status )
     Fatal( "Unable to probe network cameras, status is '$status'" );
 foreach ( $output as $line )
 {
-    if ( !preg_match( '/^(\S+) \(([\d.]+)\) at ([0-9a-f:]+)/', $line, $matches ) )
+    if ( !preg_match( '/^([\d.]+) \S+ \S+ \S+ ([0-9a-f:]+) REACHABLE$/', $line, $matches ) )
         continue;
-    $host = $matches[1];
-    $ip = $matches[2];
-    if ( !$host || $host == '?' )
-        $host = $ip;
-    $mac = $matches[3];
+    $ip = $matches[1];
+	// $host could be assigned by DNS reverse lookup for old behavior
+    $host = $ip;
+    $mac = $matches[2];
     //echo "I:$ip, H:$host, M:$mac<br/>";
     $macRoot = substr($mac,0,8);
     if ( isset($macBases[$macRoot]) )

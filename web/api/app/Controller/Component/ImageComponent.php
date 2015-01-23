@@ -3,7 +3,7 @@ App::uses('Component', 'Controller');
 
 class ImageComponent extends Component {
 	public function getImageSrc( $event, $frame, $scale, $config ) {
-	        $eventPath = $event['Event']['MonitorId'].'/'.strftime( "%y/%m/%d/%H/%M/%S", strtotime($event['Event']['StartTime']) );
+	        $eventPath = $this->getEventPath($event);
 		
 		$captImage = sprintf( "%0".$config['ZM_EVENT_IMAGE_DIGITS']."d-capture.jpg", $frame['Frame']['FrameId'] );
 		$captPath = $eventPath.'/'.$captImage;
@@ -78,6 +78,12 @@ class ImageComponent extends Component {
 
 		return( $imageData );
 
+	}
+
+	// Take the StartTime of an Event and return
+	// the path to its location on the filesystem
+	public function getEventPath( $event ) {
+	        return $event['Event']['MonitorId'].'/'.strftime( "%y/%m/%d/%H/%M/%S", strtotime($event['Event']['StartTime']) );
 	}
 }
 ?>

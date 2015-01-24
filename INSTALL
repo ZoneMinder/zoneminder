@@ -89,7 +89,8 @@ NOTE: The database server, database name, user and password can be different and
 
 8) Create an apache virtual host for ZoneMinder. Make sure to use the same paths as ZM_WEBDIR and ZM_CGIDIR in /etc/zm.conf
 9) Create other config if desired (e.g. rsyslog, logrotate and such). Some of this can be found in <prefix>/share/zoneminder/misc or project/misc directory
-10) Setup an init script for your system. Its also possible to use "zmpkg.pl start" and "zmpkg.pl stop" if you can't find a one.
+10) Setup an appropriate startup script for your system. A generic sys v init script is here: /scripts/zm while a generic systemd service file is here: /misc/zoneminder.service
+You must determine which file to use, verify it is correct, and then copy it to the correct location. Consult your distro's documentation.
 
 Basic steps for upgrading ZoneMinder
 ------------------------------------

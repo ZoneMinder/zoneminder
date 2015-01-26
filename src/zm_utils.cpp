@@ -17,13 +17,17 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
-//#include "zm_logger.h"
+#include "zm_logger.h"
 #include "zm.h"
 #include "zm_utils.h"
 
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <errno.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <stdlib.h>
 
 unsigned int sseversion = 0;
 
@@ -343,5 +347,65 @@ void timespec_diff(struct timespec *start, struct timespec *end, struct timespec
 		diff->tv_sec = end->tv_sec-start->tv_sec;
 		diff->tv_nsec = end->tv_nsec-start->tv_nsec;
 	}
+}
+
+int remove_dir(const char *path, bool force, bool verbose)
+{
+	DIR *d = opendir(path);
+	size_t path_len = strlen(path);
+	int r = -1;
+
+	if (d)
+	{
+		struct dirent *p;
+		r = 0;
+
+		while (!r && (p=readdir(d)))
+		{
+			int r2 = -1;
+			char *buf;
+			size_t len;
+
+			if (!strcmp(p->d_name, ".") || !strcmp(p->d_name, ".."))
+				continue;
+
+			if (!force)
+			{
+				if (verbose)
+					Error("Can't remove directory '%s/%s': (not empty)", path, p->d_name);
+				return r2;
+			}
+
+			len = path_len + strlen(p->d_name) + 2;
+			buf = (char*)malloc(len);
+
+			if (buf)
+			{
+				struct stat statbuf;
+				snprintf(buf, len, "%s/%s", path, p->d_name);
+				if (!stat(buf, &statbuf))
+				{
+					if (S_ISDIR(statbuf.st_mode))
+					{
+						if (((r2 = remove_dir(buf, force)) < 0) && verbose)
+							Error("Can't remove directory '%s': %s", buf, strerror(errno));
+					}
+					else
+					{
+						if (((r2 = unlink(buf)) < 0) && verbose)
+							Error("Can't remove file '%s': %s", buf, strerror(errno));
+					}
+				}
+				free(buf);
+			}
+			r = r2;
+		}
+		closedir(d);
+	}
+
+	if ((!r) && ((r = rmdir(path)) < 0) && verbose)
+		Error("Can't remove directory '%s': %s", path, strerror(errno));
+
+	return r;
 }
 

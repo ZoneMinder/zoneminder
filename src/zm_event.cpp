@@ -35,6 +35,7 @@
 #include "zm_signal.h"
 #include "zm_event.h"
 #include "zm_monitor.h"
+#include "zm_utils.h"
 
 #include "zmf.h"
 
@@ -227,6 +228,106 @@ void Event::AddCause( const std::string new_cause )
         if ( cause.length() )
             cause += ", ";
         cause += new_cause;
+    }
+}
+
+// This is the transcription of JavaScript function DeleteEvent()
+void Event::DeleteEvent()
+{
+    static char sql[ZM_SQL_MED_BUFSIZ];
+
+    snprintf( sql, sizeof(sql), "DELETE FROM `Events` WHERE `Id` = %d;", id );
+    if ( mysql_query( &dbconn, sql) )
+    {
+        Error( "Can't run query: %s", mysql_error( &dbconn ) );
+        exit( mysql_errno( &dbconn ) );
+    }
+
+    if ( !config.opt_fast_delete )
+    {
+        snprintf( sql, sizeof(sql), "DELETE FROM `Stats` WHERE `EventId` = %d;", id );
+        if ( mysql_query( &dbconn, sql ) )
+        {
+            Error( "Can't run query: %s", mysql_error( &dbconn ) );
+            exit( mysql_errno( &dbconn ) );
+        }
+
+        snprintf( sql, sizeof(sql), "DELETE FROM `Frames` WHERE `EventId` = %d;", id );
+        if ( mysql_query( &dbconn, sql ) )
+        {
+            Error( "Can't run query: %s", mysql_error( &dbconn ) );
+            exit( mysql_errno( &dbconn ) );
+        }
+
+        static char dir_events[PATH_MAX] = "";
+        if ( config.dir_events[0] == '/' )
+            snprintf( dir_events, sizeof(dir_events), "%s", config.dir_events );
+        else
+            snprintf( dir_events, sizeof(dir_events), "%s/%s", staticConfig.PATH_WEB.c_str(), config.dir_events );
+
+        if ( config.use_deep_storage )
+        {
+            static char event_glob[PATH_MAX] = "";
+            snprintf( event_glob, sizeof(event_glob), "%s/%d/*/*/*/.%d", dir_events, monitor->Id(), id );
+
+            glob_t pglob;
+            if( glob( event_glob, GLOB_ONLYDIR, 0, &pglob ) == 0 )
+            {
+                char *event_path = pglob.gl_pathv[0];
+                static char link[PATH_MAX] = "";
+
+                ssize_t len;
+                if ( ( len = readlink(event_path, link, sizeof(link)-1 ) ) )
+                {
+                    link[len] = '\0';
+                    int last_slash = strrchr( event_path, '/' ) - event_path;
+
+                    char base_path[PATH_MAX] = "";
+                    strncpy(base_path, event_path, last_slash);
+
+                    static char link_path[PATH_MAX] = "";
+                    snprintf( link_path, sizeof(link_path), "%s/%s", base_path, link );
+
+                    // Delete linked folder (remove_dir is called with second
+                    // argument = true to force deletion of folder content)
+                    if (remove_dir(link_path, true, false) < 0)
+                        return;
+
+                    // Delete symlink
+                    if (unlink(event_path) < 0)
+                        return;
+
+                    // Now we have successfully deleted all files we can do some
+                    // cleaning on the storage directory
+                    // The storage folders are scanned from deep to root and
+                    // deleted if empty
+                    for(size_t i=strlen(link_path)-1; i>strlen(dir_events); i--)
+                    {
+                        if(link_path[i] != '/')
+                            continue;
+
+                        char del_path[PATH_MAX] = "";
+                        strncpy(del_path, link_path, i);
+
+                        // Deletion is stopped at first non empty folder
+                        // encountered
+                        if(remove_dir(del_path, false, false) < 0)
+                            break;
+                    }
+                }
+                else
+                {
+                    // Delete broken symlink
+                    unlink(event_path);
+                }
+            }
+        }
+        else
+        {
+            static char event_path[PATH_MAX] = "";
+            snprintf(event_path, sizeof(event_path), "%s/%d/%d", dir_events, monitor->Id(), id);
+            remove_dir(event_path, true, false);
+        }
     }
 }
 

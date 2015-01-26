@@ -61,23 +61,36 @@ class HostController extends AppController {
 			// Get disk usage for $mid
 			$usage = shell_exec ("du -sh0 $zm_dir_events/$mid | awk '{print $1}'");
 		} else {
-			$monitors = $this->Monitor->find('list');
+			$monitors = $this->Monitor->find('all', array(
+				'fields' => array('Id', 'Name', 'WebColour')
+			));
 			$usage = array();
 
 			// Add each monitor's usage to array
-			foreach ($monitors as $id => $name) {
+			foreach ($monitors as $key => $value) {
+				$id = $value['Monitor']['Id'];
+				$name = $value['Monitor']['Name'];
+				$color = $value['Monitor']['WebColour'];
+
 				$space = shell_exec ("du -s0 $zm_dir_events/$id | awk '{print $1}'");
 				if ($space == null) {
 					$space = 0;
 				}
 				$space = $space/1024/1024;
-				$usage[$name] = rtrim($space);
+
+				$usage[$name] = array(
+					'space' => rtrim($space),
+					'color' => $color
+				);
 			}
 
 			// Add total usage to array
 			$space = shell_exec( "df $zm_dir_events |tail -n1 | awk '{print $3 }'");
 			$space = $space/1024/1024;
-			$usage['Total'] = rtrim($space);
+			$usage['Total'] = array(
+				'space' => rtrim($space),
+				'color' => '#F7464A'
+			);
 		}
 
 		$this->set(array(

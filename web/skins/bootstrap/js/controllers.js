@@ -333,19 +333,31 @@ ZoneMinder.controller('ConfigController', function($scope, $http, Config) {
 });
 
 ZoneMinder.controller('HostController', function($scope, Host) {
-  Host.getDiskPercent(function(diskPercent) {
+	Host.getDiskPercent(function(diskPercent) {
 		var array = [];
 		angular.forEach(diskPercent.usage, function(value, key) {
 			var a = {
-				'value' : Math.floor(value),
+				'value' : Math.floor(value.space),
 				'label' : key,
-  	    'color' : '#F7464A',
-  	    'highlight'  : '#FFC870',
+				'color' : value.color
 			};
 			array.push(a);
 		});
 		$scope.ddata = array;
-  });
+
+		$scope.doptions =  {
+			responsive: false,
+			segmentShowStroke : true,
+			segmentStrokeColor : '#fff',
+			segmentStrokeWidth : 2,
+			percentageInnerCutout : 50, // This is 0 for Pie charts
+			animationSteps : 1,
+			animationEasing : 'easeOutBounce',
+			animateRotate : false,
+			animateScale : false,
+			legendTemplate : '<ul class="list-inline tc-chart-js-legend"><% for (var i=0; i<segments.length; i++){%><li><span style="color:<%=segments[i].fillColor%>"><%if(segments[i].label){%><%=segments[i].label%>: <%=segments[i].value%>Gb <%}%></span></li><%}%></ul>'
+		};
+	});
 
 	Host.getLoad(function(load) {
 		$scope.loadData = {
@@ -363,16 +375,4 @@ ZoneMinder.controller('HostController', function($scope, Host) {
 		};
 	});
 
-    $scope.doptions =  {
-      responsive: false,
-      segmentShowStroke : true,
-      segmentStrokeColor : '#fff',
-      segmentStrokeWidth : 2,
-      percentageInnerCutout : 50, // This is 0 for Pie charts
-      animationSteps : 1,
-      animationEasing : 'easeOutBounce',
-      animateRotate : false,
-      animateScale : false,
-      legendTemplate : '<ul class="tc-chart-js-legend"><% for (var i=0; i<segments.length; i++){%><li><span style="background-color:<%=segments[i].fillColor%>"></span><%if(segments[i].label){%><%=segments[i].label%><%}%></li><%}%></ul>'
-	};
 });

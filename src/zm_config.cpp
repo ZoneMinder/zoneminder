@@ -104,8 +104,6 @@ void zmLoadConfig()
 	config.Assign();
 }
 
-StaticConfig staticConfig;
-
 ConfigItem::ConfigItem( const char *p_name, const char *p_value, const char *const p_type )
 {
 	name = new char[strlen(p_name)+1];

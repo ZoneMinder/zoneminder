@@ -38,6 +38,8 @@
 
 #include "zmf.h"
 
+StaticConfig staticConfig;
+
 int OpenSocket( int monitor_id )
 {
 	int sd = socket( AF_UNIX, SOCK_STREAM, 0);
@@ -165,6 +167,7 @@ int main( int argc, char *argv[] )
 	char log_id_string[16];
 	snprintf( log_id_string, sizeof(log_id_string), "m%d", id );
 
+	StaticConfig staticConfig;
 	zmLoadConfig();
 
 	logInit( "zmf" );

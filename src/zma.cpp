@@ -25,6 +25,8 @@
 #include "zm_signal.h"
 #include "zm_monitor.h"
 
+StaticConfig staticConfig;
+
 void Usage()
 {
 	fprintf( stderr, "zma -m <monitor_id>\n" );

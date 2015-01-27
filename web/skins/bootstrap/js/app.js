@@ -147,6 +147,9 @@ ZoneMinder.factory('Config', function($http) {
 
 
 			//return $http.post ('/api/configs/' + configId + '.json', postData)
+		},
+		findByName: function(name) {
+			return $http.get('/api/configs/viewByName/'+name+'.json')
 		}
 	};
 });

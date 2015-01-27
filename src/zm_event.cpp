@@ -261,9 +261,9 @@ void Event::DeleteEvent()
 
         static char dir_events[PATH_MAX] = "";
         if ( config.dir_events[0] == '/' )
-            snprintf( dir_events, sizeof(dir_events), "%s", config.dir_events );
+            snprintf( dir_events, sizeof(dir_events), "%s/%d", config.dir_events, monitor->Id() );
         else
-            snprintf( dir_events, sizeof(dir_events), "%s/%s", staticConfig.PATH_WEB.c_str(), config.dir_events );
+            snprintf( dir_events, sizeof(dir_events), "%s/%s/%d", staticConfig.PATH_WEB.c_str(), config.dir_events, monitor->Id() );
 
         if ( config.use_deep_storage )
         {
@@ -297,8 +297,8 @@ void Event::DeleteEvent()
                     if (unlink(event_path) < 0)
                         return;
 
-                    // Now we have successfully deleted all files we can do some
-                    // cleaning on the storage directory
+                    // Now we have successfully deleted all files related to the
+                    // event we can do some cleaning on the storage directory
                     // The storage folders are scanned from deep to root and
                     // deleted if empty
                     for(size_t i=strlen(link_path)-1; i>strlen(dir_events); i--)

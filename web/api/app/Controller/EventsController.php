@@ -62,12 +62,23 @@ class EventsController extends AppController {
  * @return void
  */
 	public function view($id = null) {
-		$this->Event->recursive = -1;
+		$this->loadModel('Config');
+		$configs = $this->Config->find('list', array(
+			'fields' => array('Name', 'Value'),
+			'conditions' => array('Name' => array('ZM_DIR_EVENTS'))
+		));
+
+		$this->Event->recursive = 1;
 		if (!$this->Event->exists($id)) {
 			throw new NotFoundException(__('Invalid event'));
 		}
 		$options = array('conditions' => array('Event.' . $this->Event->primaryKey => $id));
 		$event = $this->Event->find('first', $options);
+		
+		$path = $configs['ZM_DIR_EVENTS'].'/'.$this->Image->getEventPath($event).'/';
+
+		$event['Event']['BasePath'] = $path;
+
 		$this->set(array(
 			'event' => $event,
 			'_serialize' => array('event')

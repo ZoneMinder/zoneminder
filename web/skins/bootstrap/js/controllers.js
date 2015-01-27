@@ -190,7 +190,7 @@ ZoneMinder.controller('EventController', function($scope, Event, $modalInstance,
 	};
 
 	$scope.eventView = function() {
-		$scope.eventView_text = 'Stream';
+		$scope.eventView_text = $scope.eventView_text == 'Stream' ? 'Frames' : 'Stream';
 		$scope.stream = $scope.stream == true ? false : true;
 	};
 });

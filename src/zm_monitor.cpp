@@ -1520,7 +1520,10 @@ bool Monitor::Analyse()
                         // Create event
                         event = new Event( this, *timestamp, "Continuous", noteSetMap );
                         shared_data->last_event = event->Id();
-
+#if ZM_PLUGINS_ON
+                        if (config.load_plugins)
+                            ThePluginManager.getImageAnalyser().onCreateEvent( zones, event );
+#endif // ZM_PLUGINS_ON
                         Info( "%s: %03d - Opening new event %d, section start", name, image_count, event->Id() );
 
                         /* To prevent cancelling out an existing alert\prealarm\alarm state */
@@ -1578,7 +1581,10 @@ bool Monitor::Analyse()
                                 }
                                 event = new Event( this, *(image_buffer[pre_index].timestamp), cause, noteSetMap );
                                 shared_data->last_event = event->Id();
-
+#if ZM_PLUGINS_ON
+                                if (config.load_plugins)
+                                    ThePluginManager.getImageAnalyser().onCreateEvent( zones, event );
+#endif // ZM_PLUGINS_ON
                                 Info( "%s: %03d - Opening new event %d, alarm start", name, image_count, event->Id() );
 
                                 if ( pre_event_images )
@@ -3113,6 +3119,10 @@ bool Monitor::closeEvent()
         if ( function == RECORD || function == MOCORD )
         {
             gettimeofday( &(event->EndTime()), NULL );
+        }
+        if ( config.load_plugins && ( purpose == ANALYSIS ) )
+        {
+            ThePluginManager.getImageAnalyser().onCloseEvent( zones, event );
         }
         delete event;
         event = 0;

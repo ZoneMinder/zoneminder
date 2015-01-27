@@ -26,6 +26,8 @@
 #include "zm_monitor.h"
 #include "zm_local_camera.h"
 
+StaticConfig staticConfig;
+
 void Usage( int status=-1 )
 {
 	fprintf( stderr, "zmu <-d device_path> [-v] [function] [-U<username> -P<password>]\n" );

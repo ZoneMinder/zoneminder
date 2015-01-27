@@ -45,6 +45,8 @@
 #define ZMS_DEFAULT_FPS 25.0
 #define ZMS_DEFAULT_BUFFER 1000
 
+StaticConfig staticConfig;
+
 int main(int argc, char** argv) {
     self = argv[0];
     // Set initial values to the default values

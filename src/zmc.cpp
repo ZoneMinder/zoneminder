@@ -31,6 +31,8 @@
 #include "zm_signal.h"
 #include "zm_monitor.h"
 
+StaticConfig staticConfig;
+
 void Usage()
 {
 	fprintf( stderr, "zmc -d <device_path> or -r <proto> -H <host> -P <port> -p <path> or -f <file_path> or -m <monitor_id>\n" );

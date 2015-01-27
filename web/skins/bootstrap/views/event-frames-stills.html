@@ -1,0 +1,17 @@
+<div id="event-frames-stills" ng-hide="stream" class="flexcontainer" >
+	<div ng-repeat="frame in frames" class="frame panel" ng-class="(frame.Type == 'Alarm') ? 'panel-danger' : 'panel-default'">
+		<div class="panel-heading">
+			<span class="pull-right" ng-bind="frame.FrameId"></span>
+			<span ng-bind="frame.TimeStamp"></span>
+		</div>
+		<div class="panel-body">
+			<div class="thumbnail">
+				<img ng-src="{{basePath}}{{ frame.FrameId | zpad:event_image_digits }}-capture.jpg" alt="Frame {{frame.FrameId}}" class="img-responsive" />
+			</div>
+			<ul>
+				<li>Delta: <span ng-bind="frame.Delta"></span></li>
+				<li>Score: <span ng-bind="frame.Score"></span></li>
+			</ul>
+		</div>
+	</div>
+</div>

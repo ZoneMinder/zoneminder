@@ -124,6 +124,7 @@ ZoneMinder.controller('EventsController', function($scope, Events, Console, $mod
 		var modalInstance = $modal.open({
 			templateUrl: '/?view=event&skin=bootstrap',
 			controller: 'EventController',
+			size: 'lg',
 			resolve: {
 				eventId: function () { return event.Event.Id; },
 				index: function () { return index; }
@@ -141,7 +142,9 @@ ZoneMinder.controller('EventsController', function($scope, Events, Console, $mod
 	};
 });
 
-ZoneMinder.controller('EventController', function($scope, Event, $modalInstance, eventId, index) {
+ZoneMinder.controller('EventController', function($scope, Event, $modalInstance, eventId, index, Config) {
+
+	$scope.stream = true;
 
 	Event.get(eventId).then(function(results) {
 		$scope.eventId			= eventId;
@@ -159,6 +162,13 @@ ZoneMinder.controller('EventController', function($scope, Event, $modalInstance,
 		$scope.notes			= results.data.event.Event.Notes;
 		$scope.archived			= results.data.event.Event.Archived;
 		$scope.archive_text		= $scope.archived == 0 ? 'Archive' : 'Unarchive';
+		$scope.eventView_text		= 'Frames';
+		$scope.frames			= results.data.event.Frame;
+		$scope.basePath			= results.data.event.Event.BasePath;
+
+		Config.findByName('ZM_EVENT_IMAGE_DIGITS').then(function(results) {
+			$scope.event_image_digits = results.data.config.Value;
+		});
 	});
 
 	$scope.cancel = function () {
@@ -177,6 +187,11 @@ ZoneMinder.controller('EventController', function($scope, Event, $modalInstance,
 			$scope.archived = results.data.archived;
 			$scope.archive_text = $scope.archived == 0 ? 'Archive' : 'Unarchive';
 		});
+	};
+
+	$scope.eventView = function() {
+		$scope.eventView_text = 'Stream';
+		$scope.stream = $scope.stream == true ? false : true;
 	};
 });
 

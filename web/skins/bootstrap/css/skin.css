@@ -408,6 +408,7 @@ th.table-th-sort-rev span.table-th-sort-span {
    display: flex;
    -webkit-flex-direction: row;
    flex-direction: row;
+	flex-wrap: wrap;
 }
 
 .monitor {
@@ -446,4 +447,32 @@ th.table-th-sort-rev span.table-th-sort-span {
 	display: block;
 	background-color: #F5F5F5;
 	border-right: 1px solid #EEE;
+}
+
+#event-frames-stills {
+	justify-content: center;
+	height: 480px;
+	overflow-y: scroll;
+}
+
+.frame {
+	width: 23%;
+	margin: 5px;
+}
+
+.frame .panel-heading, .frame .panel-body {
+	padding: 5px;
+}
+
+.frame ul {
+	padding-left: 0px;
+	margin-left: -5px;
+	list-style: outside none none;
+	text-align: center;
+}
+
+.frame ul > li {
+	display: inline-block;
+	padding-right: 5px;
+	padding-left: 5px;
 }

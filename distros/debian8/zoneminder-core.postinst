@@ -68,7 +68,7 @@ fi
 if [ "$dbc_install" = "true" ] && [ "$1" = "configure" ]; then
 
     # Ensure zoneminder is stopped
-    deb-systemd-invoke stop zoneminder-core.service || exit $?
+    deb-systemd-invoke stop zoneminder.service || exit $?
 
     # Run the ZoneMinder update tool
     zmupdate.pl --nointeractive

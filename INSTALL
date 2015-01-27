@@ -49,7 +49,7 @@ Advanced:
 	ZM_NO_MMAP		Set to ON to not use mmap shared memory. Shouldn't be enabled unless you experience problems with the shared memory. default: OFF
 	ZM_NO_FFMPEG		Set to ON to skip ffmpeg checks and force building ZM without ffmpeg. default: OFF
 	ZM_NO_X10		Set to ON to build ZoneMinder without X10 support. default: OFF
-	ZM_PERL_SUBPREFIX	Use a different directory for the zm perl modules. NOTE: This is a subprefix, e.g. lib will be turned into <prefix>/lib, default: <libarch>/perl5
+	ZM_PERL_SUBPREFIX	Use a different directory for the zm perl modules. NOTE: This is a subprefix, e.g. /lib will be turned into <prefix>/lib, default: <libarch>/perl5
 	ZM_PERL_USE_PATH	Override the include path for zm perl modules. Useful if you are moving the perl modules without using the ZM_PERL_SUBPREFIX option. default: <prefix>/<zmperlsubprefix>
 
 
@@ -89,7 +89,8 @@ NOTE: The database server, database name, user and password can be different and
 
 8) Create an apache virtual host for ZoneMinder. Make sure to use the same paths as ZM_WEBDIR and ZM_CGIDIR in /etc/zm.conf
 9) Create other config if desired (e.g. rsyslog, logrotate and such). Some of this can be found in <prefix>/share/zoneminder/misc or project/misc directory
-10) Setup an init script for your system. Its also possible to use "zmpkg.pl start" and "zmpkg.pl stop" if you can't find a one.
+10) Setup an appropriate startup script for your system. A generic sys v init script is here: /scripts/zm while a generic systemd service file is here: /misc/zoneminder.service
+You must determine which file to use, verify it is correct, and then copy it to the correct location. Consult your distro's documentation.
 
 Basic steps for upgrading ZoneMinder
 ------------------------------------

@@ -47,6 +47,19 @@ class ConfigsController extends AppController {
 		));
 	}
 
+	public function viewByName($name = null) {
+		$config = $this->Config->findByName($name, array('fields' => 'Value'));
+
+		if (!$config) {
+			throw new NotFoundException(__('Invalid config'));
+		}
+
+		$this->set(array(
+			'config' => $config['Config'],
+			'_serialize' => array('config')
+		));
+	}
+
 /**
  * edit method
  *

@@ -327,6 +327,8 @@ int RtpCtrlThread::run()
 				Error( "RTCP timed out" );
 				break;
 			}
+		} else {
+			timeout = false;
         }
         for ( Select::CommsList::iterator iter = readable.begin(); iter != readable.end(); iter++ )
         {

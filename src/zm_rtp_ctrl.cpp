@@ -302,6 +302,9 @@ int RtpCtrlThread::run()
     select.addReader( &rtpCtrlServer );
 
     unsigned char buffer[ZM_NETWORK_BUFSIZ];
+
+	bool	timeout = false; // used as a flag that we had a timeout, and then sent an RR to see if we wake back up. Real timeout will happen when this is true.
+
     while ( !mStop && select.wait() >= 0 )
     {
         if ( mStop )
@@ -309,8 +312,21 @@ int RtpCtrlThread::run()
         Select::CommsList readable = select.getReadable();
         if ( readable.size() == 0 )
         {
-            Error( "RTCP timed out" );
-            break;
+			if ( ! timeout ) {
+				ssize_t nBytes;
+				unsigned char *bufferPtr = buffer;
+				bufferPtr += generateRr( bufferPtr, sizeof(buffer)-(bufferPtr-buffer) );
+				bufferPtr += generateSdes( bufferPtr, sizeof(buffer)-(bufferPtr-buffer) );
+				Debug( 4, "Sending %zd bytes on sd %d", bufferPtr-buffer, rtpCtrlServer.getWriteDesc() );
+				Debug( 5, "Sending %s", buffer );
+				if ( (nBytes = rtpCtrlServer.send( buffer, bufferPtr-buffer )) < 0 )
+					Error( "Unable to send: %s", strerror( errno ) );
+				timeout = true;
+				continue;
+			} else {
+				Error( "RTCP timed out" );
+				break;
+			}
         }
         for ( Select::CommsList::iterator iter = readable.begin(); iter != readable.end(); iter++ )
         {

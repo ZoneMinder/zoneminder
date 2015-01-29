@@ -317,8 +317,7 @@ int RtpCtrlThread::run()
 				unsigned char *bufferPtr = buffer;
 				bufferPtr += generateRr( bufferPtr, sizeof(buffer)-(bufferPtr-buffer) );
 				bufferPtr += generateSdes( bufferPtr, sizeof(buffer)-(bufferPtr-buffer) );
-				Debug( 4, "Sending %zd bytes on sd %d", bufferPtr-buffer, rtpCtrlServer.getWriteDesc() );
-				Debug( 5, "Sending %s", buffer );
+				Debug( 4, "Preventing timeout by sending %zd bytes on sd %d", bufferPtr-buffer, rtpCtrlServer.getWriteDesc() );
 				if ( (nBytes = rtpCtrlServer.send( buffer, bufferPtr-buffer )) < 0 )
 					Error( "Unable to send: %s", strerror( errno ) );
 				timeout = true;

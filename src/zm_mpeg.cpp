@@ -391,6 +391,9 @@ void VideoStream::OpenStream( )
 		// TODO: Make buffer dynamic.
 		video_outbuf_size = 4000000;
 		video_outbuf = (uint8_t *)malloc( video_outbuf_size );
+		if ( video_outbuf == NULL ) {
+			Fatal("Unable to malloc memory for outbuf");
+		}
 	}
 	
 #if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(52, 100, 1)
@@ -417,6 +420,7 @@ VideoStream::VideoStream( const char *in_filename, const char *in_format, int bi
 		last_pts( -1 ),
 		streaming_thread(0),
 		do_streaming(true),
+		buffer_copy_size(0),
 		buffer_copy(NULL),
 		buffer_copy_lock(new pthread_mutex_t),
 		buffer_copy_used(0),

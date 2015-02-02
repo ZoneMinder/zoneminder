@@ -286,22 +286,19 @@ $macBases = array(
     '78:a5:dd' => array( 'type'=>'Wansview','probeFunc'=>'probeWansview' )
 );
 
-unset($output);
-// Calling ip without the full path was reported to fail on some systems
-// Use the builtin unix command "type" to tell us where the command is
-$command = "type -p ip";
-$result = exec( escapeshellcmd($command), $output, $status );
-if ( $status )
-    Fatal( "Unable to determine path for ip command, type -p ip returned '$status'" );
-// Now that we know where ip is, call it using the full path
-$command = $output[0]." neigh";
+$result = explode( " ", ZM_PATH_ARP );
+if ( !is_executable( $result[0] ) )
+	Fatal( "ARP tool not found. Verify ZM_PATH_ARP points to a valid arp tool, and it is marked executable." );
+
+$command = ZM_PATH_ARP;
+
 unset($output);
 $result = exec( escapeshellcmd($command), $output, $status );
 if ( $status )
     Fatal( "Unable to probe network cameras, status is '$status'" );
 foreach ( $output as $line )
 {
-    if ( !preg_match( '/^([\d.]+) \S+ \S+ \S+ ([0-9a-f:]+) REACHABLE$/', $line, $matches ) )
+    if ( !preg_match( '/^.*([\d.]+).*([0-9a-f:]+).*/', $line, $matches ) )
         continue;
     $ip = $matches[1];
 	// $host could be assigned by DNS reverse lookup for old behavior

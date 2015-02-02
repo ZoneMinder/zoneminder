@@ -655,6 +655,14 @@ our @options =
 		category => "paths",
 	},
 	{
+		name => "ZM_PATH_ARP",
+		default => "/sbin/ip neigh",
+		description => "Path to a supported ARP tool",
+		help => "The camera probe function uses Address Resolution Protocol in order to find known devices on the network. Supply the full path to \"ip neigh\", \"arp -a\", or any other tool on your system that returns ip/mac address pairs.",
+		type => $types{abs_path},
+		category => "paths",
+	},
+	{
 		name => "ZM_WEB_TITLE_PREFIX",
 		default => "ZM",
 		description => "The title prefix displayed on each window",

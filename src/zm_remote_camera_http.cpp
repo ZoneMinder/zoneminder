@@ -217,7 +217,7 @@ int RemoteCameraHttp::ReadData( Buffer &buffer, int bytes_expected )
     }
     while ( total_bytes_to_read );
 
-	Debug( 3, buffer );
+	Debug( 4, buffer );
 
     return( total_bytes_read );
 }

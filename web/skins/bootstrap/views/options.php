@@ -24,7 +24,5 @@
 	</div> <!-- End ConfigController -->
 </div>
 
-<?php include("footer.php"); ?>
-
 </body>
 </html>

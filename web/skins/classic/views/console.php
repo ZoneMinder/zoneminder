@@ -314,6 +314,9 @@ foreach( $displayMonitors as $monitor )
 <?php } elseif ( $monitor['Type'] == "Libvlc" ) {
     $domain = parse_url( $monitor['Path'], PHP_URL_HOST );
     $shortpath = $domain ? $domain : preg_replace( '/^.*\//', '', $monitor['Path'] );
+	if ( $shortpath == '' ) {
+		$shortpath = 'Monitor ' . $monitor['Id'];
+	}
 ?>
             <td class="colSource"><?php echo makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.$shortpath.'</span>', canEdit( 'Monitors' ) ) ?></td>
 <?php } elseif ( $monitor['Type'] == "cURL" ) { ?>

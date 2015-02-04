@@ -446,6 +446,13 @@ int RemoteCameraHttp::GetResponse()
                 }
                 case CONTENT :
                 {
+
+					// if content_type is something like image/jpeg;size=, this will strip the ;size=
+					char * semicolon = strchr( (char *)content_type, ';' );
+					if ( semicolon ) {
+						*semicolon = '\0';
+					}
+
                     if ( !strcasecmp( content_type, "image/jpeg" ) || !strcasecmp( content_type, "image/jpg" ) )
                     {
                         format = JPEG;
@@ -1010,7 +1017,14 @@ int RemoteCameraHttp::GetResponse()
                 }
                 case CONTENT :
                 {
-                    if ( !strcasecmp( content_type, "image/jpeg" ) || !strcasecmp( content_type, "image/jpg" ) )
+
+					// if content_type is something like image/jpeg;size=, this will strip the ;size=
+					char * semicolon = strchr( content_type, ';' );
+					if ( semicolon ) {
+						*semicolon = '\0';
+					}
+
+					if ( !strcasecmp( content_type, "image/jpeg" ) || !strcasecmp( content_type, "image/jpg" ) )
                     {
                         format = JPEG;
                     }

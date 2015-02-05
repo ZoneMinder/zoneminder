@@ -420,9 +420,9 @@ VideoStream::VideoStream( const char *in_filename, const char *in_format, int bi
 		last_pts( -1 ),
 		streaming_thread(0),
 		do_streaming(true),
-		buffer_copy_size(0),
 		buffer_copy(NULL),
 		buffer_copy_lock(new pthread_mutex_t),
+		buffer_copy_size(0),
 		buffer_copy_used(0),
         packet_index(0)
 {

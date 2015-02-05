@@ -308,6 +308,7 @@ PATH_NETPBM=`dirname $PATH_NETPBM`
 fi
 
 # Checks for libraries.
+AC_CHECK_LIB(rt,clock_gettime,,AC_MSG_ERROR(zm requires librt))
 AC_SEARCH_LIBS(mysql_init,[mysqlclient mariadbclient],,AC_MSG_ERROR(zm requires libmysqlclient.a or libmariadbclient.a))
 AC_CHECK_LIB(jpeg,jpeg_start_compress,,AC_MSG_ERROR(zm requires libjpeg.a))
 AC_CHECK_LIB(pthread,pthread_create,,AC_MSG_ERROR(zm requires libpthread.a))

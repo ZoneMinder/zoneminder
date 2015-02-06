@@ -507,42 +507,57 @@ function deletePath( $path )
     }
 }
 
-function deleteEvent( $eid, $mid=false )
-{
+function deleteEvent( $event, $mid=false ) {
+
+	if ( empty($event) ) {
+		Error( "Empty event passed to deleteEvent.");
+		return;
+	}
+
+    if ( gettype($event) != 'array' ) {
+		# $event could be an eid, so turn it into an event hash
+        $event = dbFetchOne( 'SELECT Id, MonitorId, StartTime, EndTime FROM Events WHERE Id=?', NULL, array( $event ) );
+    }
+
     global $user;
 
     if ( !$mid )
-        $mid = '*';
-    if ( $user['Events'] == 'Edit' && !empty($eid) )
-    {
-        dbQuery( 'delete from Events where Id = ?', array($eid) );
-        if ( !ZM_OPT_FAST_DELETE )
-        {
-            dbQuery( 'delete from Stats where EventId = ?', array($eid) );
-            dbQuery( 'delete from Frames where EventId = ?', array($eid) );
-            if ( ZM_USE_DEEP_STORAGE )
-            {
-                if ( $id_files = glob( ZM_DIR_EVENTS.'/'.$mid.'/*/*/*/.'.$eid ) )
-                    $eventPath = preg_replace( "/\.$eid$/", readlink($id_files[0]), $id_files[0] );
+        $mid = $event['MonitorId'];
+
+    if ( $user['Events'] == 'Edit' ) {
+
+        dbQuery( 'DELETE FROM Events WHERE Id = ?', array($event['Id']) );
+        if ( !ZM_OPT_FAST_DELETE ) {
+            dbQuery( 'DELETE FROM Stats WHERE EventId = ?', array($event['Id']) );
+            dbQuery( 'DELETE FROM Frames WHERE EventId = ?', array($event['Id']) );
+            if ( ZM_USE_DEEP_STORAGE ) {
+
+				$start_date = date_parse( $event['StartTime'] );
+
+				# So this is  because ZM creates a link under teh day pointing to the time that the event happened. 
+				$eventlink_path = implode( '/', array( ZM_DIR_EVENTS, $mid, $start_date['year'], $start_date['month'], $start_date['day'], '.'.$event['Id'] ) );
+
+                if ( $id_files = glob( $eventlink_path ) ) {
+					# I know we are using arrays here, but really there can only ever be 1 in the array
+                    $eventPath = preg_replace( "/\.$event$/", readlink($id_files[0]), $id_files[0] );
+					deletePath( $eventPath );
+					deletePath( $id_files[0] );
+					$pathParts = explode(  '/', $eventPath );
+					for ( $i = count($pathParts)-1; $i >= 2; $i-- ) {
+						$deletePath = join( '/', array_slice( $pathParts, 0, $i ) );
+						if ( !glob( $deletePath."/*" ) ) {
+							deletePath( $deletePath );
+						}
+					}
+				} else {
+					Warning( "Found no event files under $eventlink_path" );
+				} # end if found files
+            } else {
+                $eventPath = implode( '/', array( ZM_DIR_EVENTS, $mid, $event['Id'] ) );
                 deletePath( $eventPath );
-                deletePath( $id_files[0] );
-                $pathParts = explode(  '/', $eventPath );
-                for ( $i = count($pathParts)-1; $i >= 2; $i-- )
-                {
-                    $deletePath = join( '/', array_slice( $pathParts, 0, $i ) );
-                    if ( !glob( $deletePath."/*" ) )
-                    {
-                        deletePath( $deletePath );
-                    }
-                }
-            }
-            else
-            {
-                $eventPath = ZM_DIR_EVENTS.'/'.$mid.'/'.$eid;
-                deletePath( $eventPath );
-            }
-        }
-    }
+            } # USE_DEEP_STORAGE OR NOT
+        } # ! ZM_OPT_FAST_DELETE
+    } # CAN EDIT
 }
 
 function makeLink( $url, $label, $condition=1, $options="" )

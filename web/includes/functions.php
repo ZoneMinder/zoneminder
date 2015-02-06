@@ -516,7 +516,7 @@ function deleteEvent( $event, $mid=false ) {
 
     if ( gettype($event) != 'array' ) {
 		# $event could be an eid, so turn it into an event hash
-        $event = dbFetchOne( 'SELECT Id, MonitorId, StartTime, EndTime FROM Events WHERE Id=?', NULL, array( $event ) );
+        $event = dbFetchOne( 'SELECT Id, MonitorId, StartTime FROM Events WHERE Id=?', NULL, array( $event ) );
     }
 
     global $user;

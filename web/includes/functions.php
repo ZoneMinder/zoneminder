@@ -534,13 +534,14 @@ function deleteEvent( $event, $mid=false ) {
 
 				# Assumption: All events haev a start time
 				$start_date = date_parse( $event['StartTime'] );
+				$start_date['year'] = $start_date['year'] % 100;
 
 				# So this is  because ZM creates a link under teh day pointing to the time that the event happened. 
-				$eventlink_path = implode( '/', array( ZM_DIR_EVENTS, $mid, $start_date['year'], $start_date['month'], $start_date['day'], '.'.$event['Id'] ) );
+				$eventlink_path = sprintf('%s/%d/%02d/%02d/%02d/.%d', ZM_DIR_EVENTS, $mid, $start_date['year'], $start_date['month'], $start_date['day'], $event['Id'] );
 
                 if ( $id_files = glob( $eventlink_path ) ) {
 					# I know we are using arrays here, but really there can only ever be 1 in the array
-                    $eventPath = preg_replace( "/\.$event$/", readlink($id_files[0]), $id_files[0] );
+                    $eventPath = preg_replace( '/\.'.$event['Id'].'$/', readlink($id_files[0]), $id_files[0] );
 					deletePath( $eventPath );
 					deletePath( $id_files[0] );
 					$pathParts = explode(  '/', $eventPath );

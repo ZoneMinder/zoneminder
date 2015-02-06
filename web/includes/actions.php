@@ -574,9 +574,10 @@ if ( !empty($action) )
                             // well time out before completing, in which case zmaudit will still tidy up
                             if ( !ZM_OPT_FAST_DELETE )
                             {
-                                $markEids = dbFetchAll( "select Id from Events where MonitorId=?", 'Id', array($markMid) );
+								// Slight hack, we maybe should load *, but we happen to know that the deleteEvent function uses Id and StartTime.
+                                $markEids = dbFetchAll( "SELECT Id,StartTime FROM Events WHERE MonitorId=?", NULL, array($markMid) );
                                 foreach( $markEids as $markEid )
-                                    deleteEvent( $markEid );
+                                    deleteEvent( $markEid, $markMid );
 
                                 deletePath( ZM_DIR_EVENTS."/".basename($monitor['Name']) );
                                 deletePath( ZM_DIR_EVENTS."/".$monitor['Id'] ); // I'm trusting the Id.  

@@ -532,6 +532,7 @@ function deleteEvent( $event, $mid=false ) {
             dbQuery( 'DELETE FROM Frames WHERE EventId = ?', array($event['Id']) );
             if ( ZM_USE_DEEP_STORAGE ) {
 
+				# Assumption: All events haev a start time
 				$start_date = date_parse( $event['StartTime'] );
 
 				# So this is  because ZM creates a link under teh day pointing to the time that the event happened. 

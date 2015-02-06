@@ -260,8 +260,7 @@ if ( !empty($action) )
             $monitor = dbFetchOne( "SELECT * FROM Monitors WHERE Id=?", NULL, array($mid) );
 
             $newFunction = validStr($_REQUEST['newFunction']);
-            $newEnabled = validStr($_REQUEST['newEnabled']);
-            if ($newEnabled != "1") $newEnabled = "0";
+			$newEnabled = isset( $_REQUEST['newEnabled'] ) and $_REQUEST['newEnabled'] != "1" ? "0" : "1";
             $oldFunction = $monitor['Function'];
             $oldEnabled = $monitor['Enabled'];
             if ( $newFunction != $oldFunction || $newEnabled != $oldEnabled )

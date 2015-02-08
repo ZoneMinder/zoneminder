@@ -77,7 +77,7 @@ if((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "f20") OR (ZM
 	set(ZM_SOCKDIR "/var/lib/zoneminder/sock")
 	set(ZM_TMPDIR "/var/lib/zoneminder/temp")
 	set(ZM_LOGDIR "/var/log/zoneminder")
-elseif(ZM_TARGET_DISTRO STREQUAL "EL7")
+elseif(ZM_TARGET_DISTRO STREQUAL "el7")
 	set(ZM_RUNDIR "/var/run/zoneminder")
 	set(ZM_SOCKDIR "/var/lib/zoneminder/sock")
 	set(ZM_TMPDIR "/var/lib/zoneminder/temp")

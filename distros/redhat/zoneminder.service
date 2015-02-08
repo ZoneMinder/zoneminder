@@ -1,0 +1,13 @@
+[Unit]
+Description=Video security and surveillance system
+After=mysqld.service
+
+[Service]
+Type=forking
+ExecStart=/usr/bin/zmpkg.pl start
+ExecReload=/usr/bin/zmpkg.pl reload
+PIDFile=/run/zoneminder/zm.pid
+
+[Install]
+WantedBy=multi-user.target
+

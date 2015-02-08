@@ -1,0 +1,113 @@
+New installs
+============
+
+1. Unless you are already using the MySQL server or you are running it
+   remotely you will need to ensure that the server is installed and secured:
+
+	sudo yum install community-mysql-server
+
+	sudo systemctl enable mysqld
+
+	sudo systemctl start  mysqld.service
+     
+	mysql_secure_installation
+
+   NOTE: The Fedora team currently recommends mysql-community over mariadb
+
+2. Using the password for the root account set during the previous step, you
+   will need to create the ZoneMinder database, assuming your database server
+   is local:
+
+     mysql -uroot -p < /usr/share/zoneminder/db/zm_create.sql
+     mysqladmin -uroot -p reload
+
+3. The database needs a user.  One is not created by default because this would
+   introduce an obvious security issue.  The following should set this up:
+
+     mysql -u root -p
+     grant select,insert,update,delete,lock tables,alter on zm.* to 
+     'zmuser'@localhost identified by 'zmpass';
+
+   Obviously, change at least zmpass to an actual, secure password or
+   passphrase.  You can change zmuser as well if you like.
+
+4. Edit /etc/zm.conf and, at the bottom, change ZM_DB_PASS and perhaps
+   ZM_DB_USER to match.
+
+5. Edit /etc/php.ini, uncomment the date.timezone line, and add your local
+   timezone.  For whatever reason, PHP will complain loudly if this is not set,
+   or if it is set incorrectly, and these complaints will show up in the
+   zoneminder logging system as errors.
+
+   If you are not sure of the proper timezone specification to use, look at
+   http://php.net/date.timezone
+
+6. This package probably does not work with SELinux enabled at the moment. It
+   may be necessary to disable SELinux for httpd, or even completely for
+   ZoneMinder to function. This will be addressed in a later release.  Run
+
+     sudo setenforce 0
+
+   for testing, and edit /etc/sysconfig/selinux to disable it at boot time.
+
+7. IMPORTANT: Edit /etc/httpd/conf.d/zoneminder.conf and/or 
+   /etc/httpd/conf/httpd.conf.
+
+   The httpd.conf file included with this version of Fedora processes the conf.d
+   folder after the default ScriptAlias directive in the httpd.conf file.
+   Previously, the conf.d folder was processed before the default ScriptAlias
+   directive. This causes a ScriptAlias overlap and breaks Zoneminder's
+   streaming abilities.
+
+   Reference: http://httpd.apache.org/docs/2.4/mod/mod_alias.html#order
+   Bug Report: https://bugzilla.redhat.com/show_bug.cgi?id=973067
+
+   WORKAROUND #1
+   If you are running zoneminder on a dedicated server then the simplest
+   solution may be to simply comment out the line in httpd.conf that reads:
+
+	ScriptAlias /cgi-bin/ "/var/www/cgi-bin/"
+
+   WORKAROUND #2
+   If you need both the default cgi-bin folder & the zoneminder cgi-bin folder
+   then a solution might be to move the following line before the default
+   ScriptAlias directive in the httpd.conf file:
+
+	IncludeOptional conf.d/*.conf
+
+8. Now start the web server:
+
+	sudo systemctl enable httpd.service
+	sudo systemctl start httpd.service
+
+9. Now start zoneminder:
+
+	sudo systemctl enable zoneminder.service
+	sudo systemctl start zoneminder.service
+
+Upgrades
+========
+
+1. Update /etc/zm.conf.  Check for any new settings and update the version
+   information.  Comparing /etc/zm.conf and /etc/zm.conf.rpmnew should help to
+   do this.
+
+2. Add additional permissions to the zmuser account:
+
+     mysql -u root -p
+     grant lock tables,alter on zm.* to 
+     'zmuser'@localhost identified by 'zmpass';
+
+   Since this is an upgrade, the assumption is that the zmuser account already
+   has select, insert, update, and delete permission.
+   
+3. You will need to upgrade the ZoneMinder database as described in the
+   manual. Only if the previous step was succesful, may you run zmupdate like
+   so:
+   
+   sudo zmupdate.pl --version=<from version>
+   
+   
+   If unsure then run it this way:
+
+   sudo zmupdate.pl --user=root --pass=<mysql_root_pwd> --version=<from version>

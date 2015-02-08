@@ -527,7 +527,7 @@ add_subdirectory(misc)
 # Process distro subdirectories
 if((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "f20"))
 	add_subdirectory(distros/fedora)
-elseif(ZM_TARGET_DISTRO STREQUAL "el6")
+elseif((ZM_TARGET_DISTRO STREQUAL "el6") OR (ZM_TARGET_DISTRO STREQUAL "el6"))
 	add_subdirectory(distros/redhat)
 elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
 	add_subdirectory(distros/opensuse)

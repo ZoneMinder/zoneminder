@@ -1,1 +1,1 @@
-d @ZM_RUNDIR@ 0755 apache apache
+d @ZM_RUNDIR@ 0755 @WEB_USER@ @WEB_GROUP@

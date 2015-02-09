@@ -68,7 +68,7 @@ too much degradation of performance.
 
 %build
 %cmake \
-	-DZM_TARGET_DISTRO="EL7" \
+	-DZM_TARGET_DISTRO="el7" \
 	-DZM_PERL_SUBPREFIX=`x="%{perl_vendorlib}" ; echo ${x#"%{_prefix}"}` \
 	.
 
@@ -93,6 +93,12 @@ echo -e "\nCreating and installing a ZoneMinder SELinux policy module. Please wa
 /usr/bin/checkmodule -M -m -o %{_docdir}/%{name}-%{version}/local_zoneminder.mod %{_docdir}/%{name}-%{version}/local_zoneminder.te > /dev/null
 /usr/bin/semodule_package -o %{_docdir}/%{name}-%{version}/local_zoneminder.pp -m %{_docdir}/%{name}-%{version}/local_zoneminder.mod > /dev/null
 /usr/sbin/semodule -i %{_docdir}/%{name}-%{version}/local_zoneminder.pp > /dev/null
+
+# Upgrade from a previous version of zoneminder 
+if [ $1 -eq 2 ] ; then
+    # Run zmupdate non-interactively
+    /usr/bin/zmupdate.pl --nointeractive
+fi
 
 # Display the README for post installation instructions
 /usr/bin/less %{_docdir}/%{name}-%{version}/README.Centos7

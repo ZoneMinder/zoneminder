@@ -3,7 +3,7 @@
 # Create the zoneminder service file
 if(ZM_TARGET_DISTRO STREQUAL "el7")
 	configure_file(zoneminder.service.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.service @ONLY)
-else
+else(ZM_TARGET_DISTRO STREQUAL "el7")
 	configure_file(zoneminder.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder @ONLY)
 endif(ZM_TARGET_DISTRO STREQUAL "el7")
 
@@ -50,7 +50,7 @@ if(ZM_TARGET_DISTRO STREQUAL "el7")
 	install(FILES zoneminder.el7.conf DESTINATION /etc/httpd/conf.d RENAME zoneminder.conf PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
 	install(FILES zoneminder.el7.logrotate DESTINATION /etc/logrotate.d RENAME zoneminder PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
 	install(FILES zoneminder.service DESTINATION /usr/lib/systemd/system PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
-else
+else(ZM_TARGET_DISTRO STREQUAL "el7")
 	install(FILES zoneminder.el6.conf DESTINATION /etc/httpd/conf.d RENAME zoneminder.conf PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
 	install(FILES zoneminder.el6.logrotate DESTINATION /etc/logrotate.d RENAME zoneminder PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
 	install(FILES zoneminder DESTINATION /etc/rc.d/init.d PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)

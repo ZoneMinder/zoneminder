@@ -1,0 +1,128 @@
+What's New
+==========
+
+1. The Apache ScriptAlias has been changed from "/cgi-bin/zm/zms" to 
+   "/cgi-bin-zm/zms". This has been to done to avoid this bug:
+   https://bugzilla.redhat.com/show_bug.cgi?id=973067
+
+   IMPORTANT: ZoneMinder will not update this value during an upgrade. You must
+   manually update ZM_PATH_ZMS yourself under Options. This does not affect
+   new installs.
+
+2. ZoneMinder no longer uses PHP short tags.
+
+3. During an rpm package upgrade, zmupdate.pl will now auto-update the database
+   and the zonemidner service will restart automatically.
+
+4. The ZoneMinder config file, zm.conf, has been moved under /etc/zm.
+
+5. Systemd. CentOS 7 uses Systemd instead of the legacy Sys V Init. Under the
+   hood, Systemd does things quite a bit differently. Prepare to go through a
+   learning curve if you have not done so already.
+
+New installs
+============
+
+1. Unless you are already using MariaDB server, you need to ensure that
+   the server is configured to start during boot and properly secured
+   by running:
+
+	sudo systemctl enable mariadb
+	sudo systemctl start mariadb    
+	sudo mysql_secure_installation
+
+2. Using the password for the root account set during the previous step, you
+   will need to create the ZoneMinder database and configure a database
+   account for ZoneMinder to use:
+
+     mysql -u root -p < /usr/share/zoneminder/db/zm_create.sql
+     mysql -u root -p
+         mysql> grant select,insert,update,delete,lock tables,alter on zm.* to
+               'zmuser'@localhost identified by 'zmpass';
+         mysql> exit;
+     mysqladmin -u root -p reload
+
+   The database account credentials, zmuser/zmpass, are arbitrary. Set them to
+   anything that suits your envinroment.
+
+3. If you have chosen to change the zoneminder database account credentials to
+   something other than zmuser/zmpass, you must now edit /etc/zm/zm.conf.
+   Change ZM_DB_USER and ZM_DB_PASS to the values you created in the previous
+   step.
+
+4. Edit /etc/php.ini, uncomment the date.timezone line, and add your local
+   timezone.  For whatever reason, PHP will complain loudly if this is not set,
+   or if it is set incorrectly, and these complaints will show up in the
+   zoneminder logging system as errors.
+
+   If you are not sure of the proper timezone specification to use, look at
+   http://php.net/date.timezone
+
+5. This package will automatically configure and install an SELinux policy
+   called local_zoneminder. A copy of this policy is in the documentation
+   folder.
+   
+   Maintaining an accurate SELinux policy file that does not create issues has
+   been a struggle. If SELinux blocks nortmal ZoneMinder acitivity, or you
+   feel you just don't need it, SELinux can be disabled for the current running
+   session with the following command:
+
+     sudo setenforce 0
+
+   To permanently disable SELinux, edit /etc/selinux/conf and change the
+   SELINUX line from "enforcing" to "disabled". This change will take
+   effect after a reboot.
+
+6. Now start the web server:
+
+	sudo systemctl enable httpd
+	sudo systemctl start httpd
+
+7. Now start zoneminder:
+
+	sudo systemctl enable zoneminder
+	sudo systemctl start zoneminder
+
+Upgrades
+========
+
+1. Verify /etc/zm/zm.conf.
+
+   If zm.conf was manually edited before running the upgrade, the installation
+   may not overwrite it. In this case, it will create the file
+   /etc/zm/zm.conf.rpmnew.
+
+   For example, this will happen if you are using database account credentials
+   other than zmuser/zmpass.
+
+   Compare /etc/zm/zm.conf to /etc/zm/zm.conf.rpmnew. Verify that zm.conf
+   contains any new config settings that may be in zm.conf.rpmnew.
+
+2. Verify permissions of the zmuser account.
+
+   Overtime, the database account permissions required for normal operation
+   have changed. Verify the zmuser database account has been granted select,
+   insert, update, delete, lock tables, and alter permission to the ZoneMinder
+   database:
+
+     mysql -u root -p
+         mysql> show grants for zmuser@localhost;
+         mysql> exit;
+
+3. Verify the database was upgraded automatically.
+
+   From the web console, ZoneMinder should show a status of "Running", and the
+   version number should have incremented.
+
+   If it is not running, then try to start it. The web console will indicate
+   if there is a database version conflict. If this is the case, then you may
+   need to manually update the database from the command line:
+   
+     sudo zmupdate.pl
+
+   Modern versions of ZoneMinder don't require any parameters added to the 
+   zmupdate command. However, if ZoneMinder complains, you may need to call
+   zmupdate in the following manner:
+
+     sudo zmupdate.pl --user=root --pass=<mysql_root_pwd> --version=<from version>
+

@@ -1,0 +1,8 @@
+/var/log/zoneminder/*.log {
+    missingok
+    notifempty
+    sharedscripts
+    postrotate
+        /usr/bin/zmpkg.pl logrot 2> /dev/null > /dev/null || :
+    endscript
+}

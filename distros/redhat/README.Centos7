@@ -5,7 +5,7 @@ What's New
    "/cgi-bin-zm/zms". This has been to done to avoid this bug:
    https://bugzilla.redhat.com/show_bug.cgi?id=973067
 
-   IMPORTANT: ZoneMinder will not update this value on an upgrade. You must
+   IMPORTANT: ZoneMinder will not update this value during an upgrade. You must
    manually update ZM_PATH_ZMS yourself under Options. This does not affect
    new installs.
 
@@ -73,12 +73,12 @@ New installs
    SELINUX line from "enforcing" to "disabled". This change will take
    effect after a reboot.
 
-8. Now start the web server:
+6. Now start the web server:
 
 	sudo systemctl enable httpd
 	sudo systemctl start httpd
 
-9. Now start zoneminder:
+7. Now start zoneminder:
 
 	sudo systemctl enable zoneminder
 	sudo systemctl start zoneminder

@@ -23,13 +23,13 @@ What's New
 New installs
 ============
 
-1. Unless you are already using MySQL server, you need to ensure that
-   the server is confired to start during boot and properly secured
+1. Unless you are already using MariaDB server, you need to ensure that
+   the server is configured to start during boot and properly secured
    by running:
 
 	sudo systemctl enable mariadb
 	sudo systemctl start mariadb    
-	mysql_secure_installation
+	sudo mysql_secure_installation
 
 2. Using the password for the root account set during the previous step, you
    will need to create the ZoneMinder database and configure a database

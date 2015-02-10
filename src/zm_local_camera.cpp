@@ -1122,6 +1122,7 @@ uint32_t LocalCamera::AutoSelectFormat(int p_colours) {
 	memset(&fmtinfo, 0, sizeof(fmtinfo));
 	fmtinfo.index = nIndex;
 	fmtinfo.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	// FIXME This will crash if there are more than 64 formats.
 	while(vidioctl( enum_fd, VIDIOC_ENUM_FMT, &fmtinfo ) >= 0) {
 		/* Got a format. Copy it to the array */
 		strcpy(fmt_desc[nIndex], (const char*)(fmtinfo.description));
@@ -1137,7 +1138,7 @@ uint32_t LocalCamera::AutoSelectFormat(int p_colours) {
 	
 	/* Select format */
 	int nIndexUsed = -1;
-	int n_preferedformats = 0;
+	unsigned int n_preferedformats = 0;
 	const uint32_t* preferedformats;
 	if(p_colours == ZM_COLOUR_RGB32) {
 		/* 32bit */
@@ -1152,12 +1153,15 @@ uint32_t LocalCamera::AutoSelectFormat(int p_colours) {
 		preferedformats = prefered_rgb24_formats;
 		n_preferedformats = sizeof(prefered_rgb24_formats) / sizeof(uint32_t);
 	}
-	for( unsigned int i=0; i < (unsigned int)n_preferedformats && nIndexUsed < 0; i++ ) {
+	for( unsigned int i=0; i < n_preferedformats && nIndexUsed < 0; i++ ) {
 		for( unsigned int j=0; j < nIndex; j++ ) {
 			if( preferedformats[i] == fmt_fcc[j] ) {
+				Debug(6, "Choosing format: %s (%c%c%c%c) at index %d",fmt_desc[j],fmt_fcc[j]&0xff, (fmt_fcc[j]>>8)&0xff, (fmt_fcc[j]>>16)&0xff, (fmt_fcc[j]>>24)&0xff ,j);
 				/* Found a format! */
 				nIndexUsed = j;
 				break;
+			} else {
+				Debug(6, "No match for format: %s (%c%c%c%c) at index %d",fmt_desc[j],fmt_fcc[j]&0xff, (fmt_fcc[j]>>8)&0xff, (fmt_fcc[j]>>16)&0xff, (fmt_fcc[j]>>24)&0xff ,j);
 			}
 		}
 	}

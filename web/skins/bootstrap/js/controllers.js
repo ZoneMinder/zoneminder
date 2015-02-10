@@ -254,6 +254,9 @@ ZoneMinder.controller('MonitorController', function($scope, $http, $location, Mo
 });
 
 ZoneMinder.controller('ConsoleController', function($scope, Console) {
+	$scope.grid = true;
+	$scope.gridButton = 'glyphicon-th';
+
 	// Ask the API for events that have happened in the last week
 	Console.getConsoleEvents('1 week').then(function(results) {
 		// For each result, assign it to $scope[Counts$monitorId]
@@ -268,39 +271,54 @@ ZoneMinder.controller('ConsoleController', function($scope, Console) {
 		var monitor = $scope.monitors[index];
 		var id = monitor.Id;
 
-		Console.delete(id).then(function(results) {
-			$scope.monitors.splice(index, 1);
-			console.log(results);
-		});
+		if (monitor.deleteText == 'Are you sure?') {
+			monitor.deleteText = 'Deleting...';
+			Console.delete(id).then(function(results) {
+				$scope.monitors.splice(index, 1);
+			});
+		}
+
+		monitor.deleteText = 'Are you sure?'
 	};
 
 	Console.getMonitors().then(function(results) {
-		var monitors = new Array();
-		var daemons = ['zmc', 'zma']; // Daemons to check for each monitor
+		if (results.data.monitors.length == 0) {
+			$scope.fresh = true;
+		} else {
+			var monitors = new Array();
+			var daemons = ['zmc', 'zma']; // Daemons to check for each monitor
 
-		// For each monitor
-		angular.forEach(results['data']['monitors'], function(value, key) {
-			var id = value.Monitor.Id;
-			var alerts = value.Monitor.alerts = new Array();
+			// For each monitor
+			angular.forEach(results['data']['monitors'], function(value, key) {
+				var id = value.Monitor.Id;
+				var alerts = value.Monitor.alerts = new Array();
 
-			// Check if the above daemons are running for it
-			angular.forEach(daemons, function(daemon) {
-				// Ask the API for the daemonStatus of the id 
-				Console.daemonStatus(id, daemon).then(function(results) {
-					value.Monitor.alerts[daemon] = results.data.status;
+				// Check if the above daemons are running for it
+				angular.forEach(daemons, function(daemon) {
+					// Ask the API for the daemonStatus of the id 
+					Console.daemonStatus(id, daemon).then(function(results) {
+						value.Monitor.alerts[daemon] = results.data.status;
 
-					// If there is a failed daemon, set a generic error
-					if (daemon) {
-						value.Monitor.alert = 'zma or zmc is not running';
-					}
+						// If there is a failed daemon, set a generic error
+						if (daemon) {
+							value.Monitor.alert = 'zma or zmc is not running';
+						}
+					});
 				});
+
+				value.Monitor.deleteText = 'Delete';
+				monitors.push(value.Monitor);
+
 			});
 
-			monitors.push(value.Monitor);
-		});
-
-		$scope.monitors = monitors;
+			$scope.monitors = monitors;
+		}
 	});
+
+	$scope.consoleView = function() {
+		$scope.gridButton = $scope.gridButton == 'glyphicon-th' ? 'glyphicon-th-list' : 'glyphicon-th';
+		$scope.grid = $scope.grid == true ? false : true;
+	};
 });
 
 

@@ -1,9 +1,3 @@
-<?php xhtmlHeaders(__FILE__, $SLANG['Options'] ); ?>
-<body>
-
-<?php include("header.php"); ?>
-
-
 <div class="container-fluid">
 	<div class="container" ng-controller="ConfigController">
 		<div class="row">
@@ -23,6 +17,3 @@
 		</div> <!-- End .row -->
 	</div> <!-- End ConfigController -->
 </div>
-
-</body>
-</html>

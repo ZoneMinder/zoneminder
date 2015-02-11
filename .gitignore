@@ -92,3 +92,4 @@ web/tools/mootools/cmake_install.cmake
 web/tools/mootools/mootools-core.js
 web/tools/mootools/mootools-more.js
 zmlinkcontent.sh
+web/events

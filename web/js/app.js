@@ -11,16 +11,16 @@ ZoneMinder.config(['$routeProvider', '$locationProvider', function($routeProvide
     $locationProvider.html5Mode(true);    
 
 	$routeProvider
-		.when('/skins/bootstrap/', {
-			templateUrl: '/skins/bootstrap/views/console.html'
+		.when('/', {
+			templateUrl: '/views/console.html'
 		})
 
-		.when('/#events', {
-			templateUrl: '/skins/bootstrap/views/events.html'
+		.when('/events', {
+			templateUrl: '/views/events.html'
 		});
 }]);
 ZoneMinder.config(function(paginationTemplateProvider) {
-    paginationTemplateProvider.setPath('skins/bootstrap/js/dirPagination.tpl.html');
+    paginationTemplateProvider.setPath('/js/dirPagination.tpl.html');
 });
 
 ZoneMinder.factory('Monitor', function($http) {

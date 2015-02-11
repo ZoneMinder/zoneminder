@@ -8,7 +8,7 @@ ZoneMinder.controller('StateController', function($scope, State, Header) {
 	$scope.changeState = function(newState) {
 		State.change(newState)
 		// Redirect to the dashboard on success
-	        .success(function(data) { window.location = "/index.php?view=console"; });
+	        .success(function(data) { window.location = "/"; });
 	};
 
 	Header.getDaemonStatus(function(results) {
@@ -122,7 +122,7 @@ ZoneMinder.controller('EventsController', function($scope, Events, Console, $mod
 		var event = $scope.events[index];
 
 		var modalInstance = $modal.open({
-			templateUrl: '/skins/bootstrap/views/event.html',
+			templateUrl: '/views/event.html',
 			controller: 'EventController',
 			size: 'lg',
 			resolve: {
@@ -249,7 +249,7 @@ ZoneMinder.controller('MonitorController', function($scope, $http, $location, Mo
 	$scope.submitMonitor = function() {
 		Monitor.saveMonitor($scope.monitor)
 		// Redirect to the dashboard on success
-	        .success(function(data) { window.location = "/index.php?view=console"; });
+	        .success(function(data) { window.location = "/"; });
 	};
 });
 

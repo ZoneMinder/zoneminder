@@ -3,7 +3,7 @@
 
 			<div class="col-md-2 sidebar">
 				<div class="container-fluid">
-					<?php include("events_search.html"); ?>
+					<section ng-include="'events_search.html'"></section>
 				</div>
 			</div>
 

@@ -122,7 +122,7 @@ ZoneMinder.controller('EventsController', function($scope, Events, Console, $mod
 		var event = $scope.events[index];
 
 		var modalInstance = $modal.open({
-			templateUrl: '/?view=event&skin=bootstrap',
+			templateUrl: '/skins/bootstrap/views/event.html',
 			controller: 'EventController',
 			size: 'lg',
 			resolve: {

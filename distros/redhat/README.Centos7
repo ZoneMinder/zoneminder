@@ -9,14 +9,12 @@ What's New
    manually update ZM_PATH_ZMS yourself under Options. This does not affect
    new installs.
 
-2. ZoneMinder no longer uses PHP short tags.
-
-3. During an rpm package upgrade, zmupdate.pl will now auto-update the database
+2. During an rpm package upgrade, zmupdate.pl will now auto-update the database
    and the zonemidner service will restart automatically.
 
-4. The ZoneMinder config file, zm.conf, has been moved under /etc/zm.
+3. The ZoneMinder config file, zm.conf, has been moved under /etc/zm.
 
-5. Systemd. CentOS 7 uses Systemd instead of the legacy Sys V Init. Under the
+4. Systemd. CentOS 7 uses Systemd instead of the legacy Sys V Init. Under the
    hood, Systemd does things quite a bit differently. Prepare to go through a
    learning curve if you have not done so already.
 

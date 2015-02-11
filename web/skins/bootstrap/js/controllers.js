@@ -256,8 +256,19 @@ ZoneMinder.controller('MonitorController', function($scope, $http, $location, Mo
 ZoneMinder.controller('ConsoleController', function($scope, Console) {
 	$scope.grid = true;
 	$scope.gridButton = 'glyphicon-th';
+	$scope.consoleLayout = 4;
 
+
+	$scope.updateLayout = function () {
+		var rows = [];
+		var monitors = $scope.monitors;
+		for (var i = 0; i < monitors.length; i++) {
+			if (i % $scope.consoleLayout == 0) rows.push([]);
+			rows[rows.length-1].push(monitors[i]);
 		}
+		$scope.columnSize = Math.floor(12 / $scope.consoleLayout);
+		return $scope.rows = rows;
+	};
 
 	$scope.delete = function (index) {
 		var monitor = $scope.monitors[index];
@@ -304,6 +315,7 @@ ZoneMinder.controller('ConsoleController', function($scope, Console) {
 			});
 
 			$scope.monitors = monitors;
+			$scope.updateLayout();
 		}
 	});
 

@@ -8,35 +8,49 @@
 		</div>
 
 		<div class="row" ng-hide="fresh">
-			<div class="col-md-12">
-				<div class="btn-toolbar pull-right">
-					<button ng-click="consoleView()" class="btn btn-default btn-lg" type="button">
-						<span class="glyphicon" ng-class="gridButton"></span>
-					</button>
-				</div>
+			<div class="col-md-1 col-md-offset-10">
+				<select ng-model="consoleLayout" ng-show="grid" ng-change="updateLayout()">
+					<option value="1">1 per row</option>
+					<option value="2">2 per row</option>
+					<option value="3">3 per row</option>
+					<option value="4">4 per row</option>
+					<option value="5">5 per row</option>
+					<option value="6">6 per row</option>
+					<option value="7">7 per row</option>
+					<option value="8">8 per row</option>
+					<option value="9">9 per row</option>
+					<option value="10">10 per row</option>
+					<option value="11">11 per row</option>
+					<option value="12">12 per row</option>
+				</select>
+			</div>
+			<div class="col-md-1 text-right">
+				<button ng-click="consoleView()" class="btn btn-default btn-lg" type="button">
+					<span class="glyphicon" ng-class="gridButton"></span>
+				</button>
 			</div>
 		</div>
 
-		<div class="row" ng-show="grid" ng-hide="fresh">
-			<div class="col-md-12">
-				<div class="flexcontainer">
-					<div ng-repeat="monitor in monitors" class="monitor panel" ng-class="(monitor.alerts.zmc || monitor.alerts.zma) ? 'panel-default' : 'panel-danger'">
+		<div ng-show="grid" ng-hide="fresh">
+			<div class="row" ng-repeat="monitors in rows">
+				<div ng-repeat="monitor in monitors" class="col-md-{{columnSize}}">
+				<div  class="monitor panel" ng-class="(monitor.alerts.zmc || monitor.alerts.zma) ? 'panel-default' : 'panel-danger'">
 
-						<div class="panel-heading">
-							<a ng-hide="(monitor.alerts.zmc || monitor.alerts.zma)" class="pull-right" href="#" tooltip="{{ monitor.alert }}">
-								<span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
-							</a>
-							<h2 class="text-left panel-title">{{ monitor.Name }}</h2>
-						</div> <!-- End .panel-heading -->
-						
-						<div class="panel-body center-block">
-							<img class="img-responsive img-rounded" ng-src="/cgi-bin/nph-zms?mode=single&monitor={{monitor.Id}}&scale=50" />
-						</div> <!-- End .panel-body -->
+					<div class="panel-heading">
+						<a ng-hide="(monitor.alerts.zmc || monitor.alerts.zma)" class="pull-right" href="#" tooltip="{{ monitor.alert }}">
+							<span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+						</a>
+						<h2 class="text-left panel-title">{{ monitor.Name }}</h2>
+					</div> <!-- End .panel-heading -->
+					
+					<div class="panel-body center-block">
+						<img class="img-responsive img-rounded" ng-src="/cgi-bin/nph-zms?mode=single&monitor={{monitor.Id}}" />
+					</div> <!-- End .panel-body -->
 
-					</div> <!-- End .monitor -->
-				</div> <!-- End .flexcontainer -->
+				</div> <!-- End .monitor -->
+				</div>
 			</div>
-		</div> <!-- End .row -->
+		</div>
 
 
 		<div class="row" ng-hide="grid">

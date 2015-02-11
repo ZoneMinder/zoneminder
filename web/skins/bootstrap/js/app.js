@@ -3,11 +3,21 @@ var ZoneMinder = angular.module('ZoneMinder', [
 	'tc.chartjs',
 	'ui.bootstrap',
 	'angularUtils.directives.dirPagination',
-	'ui.bootstrap.datetimepicker'
+	'ui.bootstrap.datetimepicker',
+	'ngRoute'
 ]);
 
-ZoneMinder.config(['$locationProvider', function($locationProvider){
+ZoneMinder.config(['$routeProvider', '$locationProvider', function($routeProvider, $locationProvider) {
     $locationProvider.html5Mode(true);    
+
+	$routeProvider
+		.when('/skins/bootstrap/', {
+			templateUrl: '/skins/bootstrap/views/console.html'
+		})
+
+		.when('/#events', {
+			templateUrl: '/skins/bootstrap/views/events.html'
+		});
 }]);
 ZoneMinder.config(function(paginationTemplateProvider) {
     paginationTemplateProvider.setPath('skins/bootstrap/js/dirPagination.tpl.html');

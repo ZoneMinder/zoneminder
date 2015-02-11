@@ -1,9 +1,3 @@
-<?php xhtmlHeaders(__FILE__, $SLANG['Events'] ); ?>
-
-<body>
-
-	<?php include("header.php"); ?>
-
 	<div class="container-fluid" ng-controller="EventsController">
 		<div class="row">
 
@@ -30,5 +24,3 @@
 			</div> <!-- End main .col-md-10 -->
 		</div> <!-- End .row -->
 	</div> <!-- End .container-fluid -->
-</body>
-</html>

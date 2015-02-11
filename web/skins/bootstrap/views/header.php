@@ -23,4 +23,4 @@
 				</ul>
 			</div>
     </nav>
-<?php include("state.html"); ?>
+<div ng-include="'/skins/bootstrap/views/state.html'"></div>

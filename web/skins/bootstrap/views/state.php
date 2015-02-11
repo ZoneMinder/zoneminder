@@ -24,7 +24,7 @@
 
 						<div class="col-md-6">
 							<div class="form-group">
-								<label for="newState"> <?= $SLANG['NewState'] ?></label>
+								<label for="newState">New State</label>
 								<input class="form-control" type="text" id="newState" name="newState" value="" size="16" />
 							</div> <!-- end .form-group -->
 						</div> <!-- end .col-md-6 -->

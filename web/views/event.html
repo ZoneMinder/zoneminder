@@ -7,13 +7,6 @@
 
 	<div id="eventStream" ng-show="stream">
 		<img class="img-responsive" ng-src="/cgi-bin/nph-zms?source=event&mode=jpeg&event={{eventId}}&frame=1&scale=100&rate=100&maxfps=30&replay=single" />
-
-		<div>
-			<span class="pull-right">{{ startTime | DateDiff:endTime:'pretty' }}</span>
-			<div id="controls" class="text-center">
-				Start || Pause
-			</div>
-		</div>
 	</div>
 	<div ng-include="'/views/event-frames-stills.html'"></div>
 </div>

@@ -23,4 +23,4 @@
 				</ul>
 			</div>
     </nav>
-<?php include("state.php"); ?>
+<?php include("state.html"); ?>

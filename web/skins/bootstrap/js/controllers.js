@@ -257,15 +257,7 @@ ZoneMinder.controller('ConsoleController', function($scope, Console) {
 	$scope.grid = true;
 	$scope.gridButton = 'glyphicon-th';
 
-	// Ask the API for events that have happened in the last week
-	Console.getConsoleEvents('1 week').then(function(results) {
-		// For each result, assign it to $scope[Counts$monitorId]
-		for (var key in results['data']['results']) {
-			var mid = key;
-			var count = results['data']['results'][key];
-			$scope['Counts' + mid] = count;
 		}
-	});
 
 	$scope.delete = function (index) {
 		var monitor = $scope.monitors[index];

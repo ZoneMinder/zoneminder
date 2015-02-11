@@ -55,7 +55,7 @@
 
 					<tr ng-repeat="monitor in monitors">
 						<td ng-bind="monitor.Id"></td>
-						<td ng-bind="monitor.Name"></td>
+						<td><a ng-href="/?view=monitor&mid={{ monitor.Id }}">{{ monitor.Name}} </a></td>
 						<td ng-bind="monitor.Function"></td>
 						<td ng-bind="monitor.Type"></td>
 						<td ng-bind="monitor.Enabled"></td>

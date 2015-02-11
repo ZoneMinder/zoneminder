@@ -7,19 +7,12 @@
 				</button>
 
 				<ul class="nav navbar-nav pull-right">
-					<li><a href="?view=events"><?= $SLANG['Events']; ?></a></li>
-					<li><a href="?view=timeline"><?= $SLANG['Timeline']; ?></a></li>
-      		<li><a href="?view=options"><?= $SLANG['Options'] ?></a></li>
-					<?php if ( logToDatabase() > Logger::NOLOG ) { ?>
-						<li><a href="?view=log"><span class="<?= logState(); ?>"><?= $SLANG['Log'] ?></span></a></li>
-					<?php } if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
-						<li><a href="?view=devices"><?= $SLANG['Devices'] ?></a></li>
-					<?php } ?>
-					<?php if ($running) ?>
-						<li><a href="?view=cycle&amp;group=<?= $cycleGroup ?>"><?= $SLANG['Cycle'] ?></a></li>
-						<li><a href="?view=montage&amp;group=<?= $cycleGroup ?>"><?= $SLANG['Montage'] ?></a></li>
-						<li><a href="?view=host">Host</a></li>
-					<?php ?>
+					<li><a href="?view=events">Events</a></li>
+					<li><a href="?view=timeline">Timeline</a></li>
+					<li><a href="?view=options">Options</a></li>
+					<li><a href="?view=log">Logs</span></a></li>
+					<li><a href="?view=devices">Devices</a></li>
+					<li><a href="?view=host">Host</a></li>
 				</ul>
 			</div>
     </nav>

@@ -6,7 +6,7 @@
 <div class="modal-body">
 
 	<div id="eventStream" ng-show="stream">
-		<img class="img-responsive" ng-src="/cgi-bin/nph-zms?source=event&mode=jpeg&event={{eventId}}&frame=1&scale=100&rate=100&maxfps=30&replay=single&connkey=736818&rand=1419877749" />
+		<img class="img-responsive" ng-src="/cgi-bin/nph-zms?source=event&mode=jpeg&event={{eventId}}&frame=1&scale=100&rate=100&maxfps=30&replay=single" />
 
 		<div>
 			<span class="pull-right">{{ startTime | DateDiff:endTime:'pretty' }}</span>
@@ -15,9 +15,8 @@
 			</div>
 		</div>
 	</div>
+	<div ng-include="'/skins/bootstrap/views/event-frames-stills.html'"></div>
 </div>
-
-	<?php include("event-frames-stills.html"); ?>
 
 <div class="modal-footer">
 	<span class="pull-right glyphicon glyphicon-chevron-right"><span class="sr-only">Next</span></span>

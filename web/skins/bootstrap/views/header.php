@@ -1,13 +1,3 @@
-<?php
-	$running = daemonCheck();
-	$status = $running?$SLANG['Running']:$SLANG['Stopped'];
-	if ($status == 'Running') {
-		$statusClass = 'success';
-	} else {
-	  $statusClass = 'danger';
-	}
-?>
-
     <nav class="navbar navbar-default" role="navigation" ng-controller="HeaderController">
 			<div class="container-fluid">
 				<a href="?view=console"><span class="navbar-brand">ZoneMinder</span></a>

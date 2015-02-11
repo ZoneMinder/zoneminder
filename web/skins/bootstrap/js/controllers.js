@@ -253,7 +253,7 @@ ZoneMinder.controller('MonitorController', function($scope, $http, $location, Mo
 	};
 });
 
-ZoneMinder.controller('ConsoleController', function($scope, Console) {
+ZoneMinder.controller('ConsoleController', function($scope, Console, Monitor) {
 	$scope.grid = true;
 	$scope.gridButton = 'glyphicon-th';
 	$scope.consoleLayout = 4;
@@ -322,6 +322,15 @@ ZoneMinder.controller('ConsoleController', function($scope, Console) {
 	$scope.consoleView = function() {
 		$scope.gridButton = $scope.gridButton == 'glyphicon-th' ? 'glyphicon-th-list' : 'glyphicon-th';
 		$scope.grid = $scope.grid == true ? false : true;
+	};
+
+	$scope.saveMonitor = function(monitor) {
+		var i = document.getElementById('function'+monitor.Id).parentNode.parentNode;
+		Monitor.saveMonitor(monitor)
+		.success(function(data) {
+                                i.className = i.className + " has-success has-feedback";
+
+		 });
 	};
 });
 

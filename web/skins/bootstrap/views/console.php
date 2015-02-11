@@ -55,12 +55,11 @@
 
 		<div class="row" ng-hide="grid">
 			<div class="col-md-12">
-
 				<table class="table table-striped">
 					<tr>
 						<th>Id</th>
 						<th>Name</th>
-						<th>Function</th>
+						<th class="col-md-1">Function</th>
 						<th>Source</th>
 						<th>Enabled</th>
 						<th>Zones</th>
@@ -70,7 +69,17 @@
 					<tr ng-repeat="monitor in monitors">
 						<td ng-bind="monitor.Id"></td>
 						<td><a ng-href="/?view=monitor&mid={{ monitor.Id }}">{{ monitor.Name}} </a></td>
-						<td ng-bind="monitor.Function"></td>
+						<td class="col-md-1">
+							<label class="sr-only">Function</label>
+							<select id="function{{monitor.Id}}" ng-model="monitor.Function" class="form-control" ng-change="saveMonitor(monitor)">
+								<option value="None">None</option>
+								<option value="Monitor">Monitor</option>
+								<option value="Modect">Modect</option>
+								<option value="Record">Record</option>
+								<option value="Mocord">Mocord</option>
+								<option value="Nodect">Nodect</option>
+							</select>
+						</td>
 						<td ng-bind="monitor.Type"></td>
 						<td ng-bind="monitor.Enabled"></td>
 						<td ng-bind="monitor.Zones"></td>

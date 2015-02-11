@@ -1,7 +1,3 @@
-<?php xhtmlHeaders( __FILE__, $SLANG['Console'] ); ?>
-<body>
-	<?php include("header.php"); ?>
-
 	<div class="container-fluid" ng-controller="ConsoleController">
 		<div ng-show="fresh" class="alert alert-warning">
 			<p><strong>Uh-oh!</strong>  You have no monitors!  Why not <a class="alert-link" href="/?view=monitor">add</a> one?</p>
@@ -96,5 +92,3 @@
 		</div>
 
 	</div> <!-- .container-fluid -->
-</body>
-</html>

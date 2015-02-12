@@ -9,11 +9,11 @@
 			</ul> <!-- End tabs -->
 
 			<div class="tab-content">
-				<section ng-include="/views/tab-monitor-general.php"></section>
-				<section ng-include="/views/tab-monitor-source.php"></section>
-				<section ng-include="/views/tab-monitor-timestamp.php"></section>
-				<section ng-include="/views/tab-monitor-buffers.php"></section>
-				<section ng-include="/views/tab-monitor-misc.php"></section>
+				<section ng-include="'/views/tab-monitor-general.html'"></section>
+				<section ng-include="'/views/tab-monitor-source.html'"></section>
+				<section ng-include="'/views/tab-monitor-timestamp.html'"></section>
+				<section ng-include="'/views/tab-monitor-buffers.html'"></section>
+				<section ng-include="'/views/tab-monitor-misc.html'"></section>
 			</div> <!-- End .tab-content -->
 
 			<button type="submit" class="btn btn-success btn-block" ng-disabled="formMonitor.$invalid">Save</button>

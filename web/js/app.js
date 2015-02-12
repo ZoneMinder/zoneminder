@@ -19,6 +19,10 @@ ZoneMinder.config(function($stateProvider, $urlRouterProvider) {
 			url: '/',
 			templateUrl: '/views/console.html'
 		})
+		.state('monitor', {
+			url: '/monitor',
+			templateUrl: '/views/monitor.html'
+		})
 		.state('events', {
 			url: '/events',
 			templateUrl: '/views/events.html'

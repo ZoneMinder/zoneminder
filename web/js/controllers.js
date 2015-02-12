@@ -142,7 +142,7 @@ ZoneMinder.controller('EventsController', function($scope, Events, Console, $mod
 	};
 });
 
-ZoneMinder.controller('EventController', function($scope, Event, $modalInstance, eventId, index, Config) {
+ZoneMinder.controller('EventController', function($scope, Event, $modalInstance, eventId, index, Config, $filter) {
 
 	$scope.stream = true;
 
@@ -163,12 +163,20 @@ ZoneMinder.controller('EventController', function($scope, Event, $modalInstance,
 		$scope.archived			= results.data.event.Event.Archived;
 		$scope.archive_text		= $scope.archived == 0 ? 'Archive' : 'Unarchive';
 		$scope.eventView_text		= 'Frames';
-		$scope.frames			= results.data.event.Frame;
 		$scope.basePath			= results.data.event.Event.BasePath;
+		var frames			= results.data.event.Frame;
 
 		Config.findByName('ZM_EVENT_IMAGE_DIGITS').then(function(results) {
-			$scope.event_image_digits = results.data.config.Value;
+			var event_image_digits = results.data.config.Value;
+
+			angular.forEach(frames, function(frame, key) {
+				var id = $filter('zpad')(frame.FrameId, event_image_digits);
+				frames[key].Path = $scope.basePath + id + '-capture.jpg';
+			});
+
+			$scope.frames			= frames;
 		});
+
 	});
 
 	$scope.cancel = function () {

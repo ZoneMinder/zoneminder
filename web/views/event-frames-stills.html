@@ -6,7 +6,7 @@
 		</div>
 		<div class="panel-body">
 			<div class="thumbnail">
-				<img ng-src="{{basePath}}{{ frame.FrameId | zpad:event_image_digits }}-capture.jpg" alt="Frame {{frame.FrameId}}" class="img-responsive" />
+				<img ng-src="{{ frame.Path }}" alt="Frame {{frame.FrameId}}" class="img-responsive" />
 			</div>
 			<ul>
 				<li>Delta: <span ng-bind="frame.Delta"></span></li>

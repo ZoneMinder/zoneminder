@@ -1,4 +1,5 @@
 <div class="modal-header">
+	<button type="button" class="pull-right close" aria-label="Close" ng-click="cancel()"><span aria-hidden="true">&times;</span></button>
 	<span class="pull-right modal-title">Event {{eventId}}</span>
 	<span ng-bind="startTime"></span>
 </div>
@@ -16,6 +17,5 @@
 	<button type="button" class="btn btn-default" ng-click="eventView()">{{ eventView_text }}</button>
 	<button type="button" class="btn btn-default" ng-click="archive()">{{ archive_text }}</button>
 	<button type="button" class="btn btn-danger" ng-click="delete()">Delete</button>
-	<button type="button" class="btn btn-warning" ng-click="cancel()">Cancel</button>
 	<span class="pull-left glyphicon glyphicon-chevron-left"><span class="sr-only">Previous</span></span>
 </div>

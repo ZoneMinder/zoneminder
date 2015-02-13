@@ -68,7 +68,7 @@ New installs
 
      sudo setenforce 0
 
-   To permanently disable SELinux, edit /etc/selinux/conf and change the
+   To permanently disable SELinux, edit /etc/selinux/config and change the
    SELINUX line from "enforcing" to "disabled". This change will take
    effect after a reboot.
 

@@ -498,7 +498,6 @@ endif(NOT POLKIT_FOUND)
 # Some variables that zm expects
 set(ZM_PID "${ZM_RUNDIR}/zm.pid")
 set(ZM_CONFIG "${ZM_CONFIG_DIR}/zm.conf")
-set(ZM_CONFIG "/${CMAKE_INSTALL_SYSCONFDIR}/zm.conf")
 set(VERSION "${zoneminder_VERSION}")
 set(PKGDATADIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/zoneminder")
 set(BINDIR "${CMAKE_INSTALL_FULL_BINDIR}")

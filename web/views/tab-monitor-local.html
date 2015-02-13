@@ -1,76 +1,56 @@
 <div ng-show="monitor.Type == 'Local'">
 
 	<div class="form-group">
-		<label for=""><?= $SLANG['DevicePath'] ?></label>
+		<label for="">DevicePath</label>
 		<input type="text" class="form-control" ng-model="monitor.Device" ng-required="monitor.Type == 'Local'"/>
 	</div>
 
 	<div class="form-group">
-		<label for=""><?= $SLANG['CaptureMethod'] ?></label>
-		<?= buildSelect( "newMonitor[Method]", $localMethods, "submitTab( '$tab' )" ); ?>
+		<label for="">CaptureMethod</label>
+		<select class="form-control">
+			<option value="v4l2">Video for Linux 2</option>
+			<option value="v4l1">Video for Linux 1</option>
+		</select>
 	</div>
-<?php
-            if ( ZM_HAS_V4L1 && $newMonitor['Method'] == 'v4l1' )
-            {
-?>
 
 <div class="form-group">
-            <label for=""><?= $SLANG['DeviceChannel'] ?></label>
-	<select ng-model="monitor.Channel"><?php foreach ( $v4l1DeviceChannels as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['Channel'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select>
+	<label for="">DeviceChannel</label>
+	<select ng-model="monitor.Channel">
+	</select>
 </div>
 
 <div class="form-group">
-            <label for=""><?= $SLANG['DeviceFormat'] ?></label>
-	<select ng-model="monitor.Format"><?php foreach ( $v4l1DeviceFormats as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['Format'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select>
+	<label for="">DeviceFormat</label>
+	<select ng-model="monitor.Format">
+	</select>
 </div>
 
 <div class="form-group">
-            <label for=""><?= $SLANG['CapturePalette'] ?></label>
-	<select ng-model="monitor.Palette"><?php foreach ( $v4l1LocalPalettes as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['Palette'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select>
-</div>
-<?php
-            }
-            else
-            {
-?>
-
-<div class="form-group">
-            <label for=""><?= $SLANG['DeviceChannel'] ?></label>
-	<select ng-model="monitor.Channel"><?php foreach ( $v4l2DeviceChannels as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['Channel'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select>
+	<label for="">CapturePalette</label>
+	<select ng-model="monitor.Palette">
+	</select>
 </div>
 
-<div class="form-group">
-            <label for=""><?= $SLANG['DeviceFormat'] ?></label>
-	<select ng-model="monitor.Format"><?php foreach ( $v4l2DeviceFormats as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['Format'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select>
-</div>
-
-<div class="form-group">
-            <label for=""><?= $SLANG['CapturePalette'] ?></label>
-	<select ng-model="monitor.Palette"><?php foreach ( $v4l2LocalPalettes as $name => $value ) { ?><option value="<?= $value ?>"<?php if ( $value == $newMonitor['Palette'] ) { ?> selected="selected"<?php } ?>><?= $name ?></option><?php } ?></select>
-</div>
-<?php
-            }
-?>
 			<div class="radio">
-			<?= $SLANG['V4LMultiBuffer'] ?>
+			V4LMultiBuffer
 
 		<label>
-			<input type="radio" ng-model="monitor.V4LMultiBuffer" id="newMonitor[V4LMultiBuffer]1" value="1" <?php echo ( $newMonitor['V4LMultiBuffer'] == 1 ? 'checked="checked"' : '' ) ?>/>
+			<input type="radio" ng-model="monitor.V4LMultiBuffer" id="newMonitor[V4LMultiBuffer]1" value="1" />
 			Yes
 		</label>
 		<label>
-			<input type="radio" ng-model="monitor.V4LMultiBuffer" id="newMonitor[V4LMultiBuffer]0" value="0" <?php echo ( $newMonitor['V4LMultiBuffer'] == 0 ? 'checked="checked"' : '' ) ?>/>
+			<input type="radio" ng-model="monitor.V4LMultiBuffer" id="newMonitor[V4LMultiBuffer]0" value="0" />
 			No
 		</label>
 		<label>
-			<input type="radio" ng-model="monitor.V4LMultiBuffer" id="newMonitor[V4LMultiBuffer]" value="" <?php echo ( empty($newMonitor['V4LMultiBuffer']) ? 'checked="checked"' : '' ) ?>/>
+			<input type="radio" ng-model="monitor.V4LMultiBuffer" id="newMonitor[V4LMultiBuffer]" value="" />
 			Use Config Value
 		</label>
 			</div>
 			
 
 	<div class="form-group">
-		<label for=""><?= $SLANG['V4LCapturesPerFrame'] ?></label>
+		<label for="">V4LCapturesPerFrame</label>
 		<input type="text" ng-model="monitor.V4LCapturesPerFrame" />
 	</div>
 </div> <!-- End local -->

@@ -1,17 +1,22 @@
 <div ng-show="monitor.Type == 'Libvlc' || monitor.Type == 'Ffmpeg'">
 	<div class="form-group">
-		<label><?= $SLANG['SourcePath'] ?></label>
+		<label>SourcePath</label>
 		<input class="form-control" type="text" ng-model="monitor.Path" />
 	</div>
 
 	<div class="form-group">
-		<label><?= $SLANG['RemoteMethod'] ?></label>
-		<?= buildSelect( "newMonitor[Method]", $rtspMethods ); ?>
+		<label>RemoteMethod</label>
+		<select ng-mdoel="monitor.Method">
+			<option value="rtpUni">RTP/Unicast</option>
+			<option value="rtpMulti">RTP/Multicast</option>
+			<option value="rtpRtsp">RTP/RTSP</option>
+			<option value="rtpRtspHttp">RTP/RTSP/HTTP</option>
+		</select>
 	</div>
 
 
 	<div class="form-group">
-		<label><?= $SLANG['Options'] ?>&nbsp;(<?= makePopupLink( '?view=optionhelp&amp;option=OPTIONS_'.strtoupper($newMonitor['Type']), 'zmOptionHelp', 'optionhelp', '?' ) ?>)</label>
+		<label>Options</label>
 		<input class="form-control" type="text" ng-model="monitor.Options" />
 	</div>
 </div>

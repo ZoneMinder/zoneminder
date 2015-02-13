@@ -1,3 +1,4 @@
+
 What's New
 ==========
 
@@ -122,5 +123,5 @@ Upgrades
    zmupdate command. However, if ZoneMinder complains, you may need to call
    zmupdate in the following manner:
 
-     sudo zmupdate.pl --user=root --pass=<mysql_root_pwd> --version=<from version>
+   sudo zmupdate.pl --user=root --pass=<mysql_root_pwd> --version=<from version>
 

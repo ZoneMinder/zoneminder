@@ -179,7 +179,7 @@ fi
 
 
 %changelog
-* Sat Fed 14 2015 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.28.1 
+* Sat Feb 14 2015 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.28.1 
 - Bump version for 1.28.1 release on Fedora 21.
 
 * Sun Oct 5 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.28.0 

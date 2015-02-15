@@ -1,8 +1,8 @@
-/var/log/zoneminder/*.log {
+@ZM_LOGDIR@/*.log {
     missingok
     notifempty
     sharedscripts
     postrotate
-        /usr/bin/zmpkg.pl logrot 2> /dev/null > /dev/null || :
+        @BINDIR@/zmpkg.pl logrot 2> /dev/null > /dev/null || :
     endscript
 }

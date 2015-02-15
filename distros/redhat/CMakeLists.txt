@@ -7,8 +7,12 @@ message([STATUS] "Starting RHEL Build Options" ...)
 if(ZM_TARGET_DISTRO STREQUAL "el7")
 	configure_file(zoneminder.service.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.service @ONLY)
 	configure_file(zoneminder.el7.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.el7.conf @ONLY)
+	configure_file(zoneminder.tmpfiles.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.tmpfiles @ONLY)
+	configure_file(zoneminder.el7.logrotate.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.el7.logrotate @ONLY)
 else(ZM_TARGET_DISTRO STREQUAL "el7")
 	configure_file(zm.in ${CMAKE_CURRENT_SOURCE_DIR}/zm @ONLY)
+	configure_file(zoneminder.el6.logrotate.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.el6.logrotate @ONLY)
+	configure_file(zoneminder.el6.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.el6.conf @ONLY)
 endif(ZM_TARGET_DISTRO STREQUAL "el7")
 
 # Download jscalendar & move files into position

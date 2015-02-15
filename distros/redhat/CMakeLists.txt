@@ -3,6 +3,7 @@
 # Create the zoneminder service file
 if(ZM_TARGET_DISTRO STREQUAL "el7")
 	configure_file(zoneminder.service.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.service @ONLY)
+	configure_file(zoneminder.el7.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.el7.conf @ONLY)
 else(ZM_TARGET_DISTRO STREQUAL "el7")
 	configure_file(zoneminder.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder @ONLY)
 endif(ZM_TARGET_DISTRO STREQUAL "el7")

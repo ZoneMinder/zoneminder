@@ -499,7 +499,7 @@ void ImageAnalyser::cleanupPlugins()
 
     if ( mysql_query( &dbconn, sql ) )
     {
-        Error( "Can't delete plugint: %s", mysql_error( &dbconn ) );
+        Error( "Can't delete plugin: %s", mysql_error( &dbconn ) );
         exit( mysql_errno( &dbconn ) );
     }
 }

@@ -114,9 +114,10 @@ std::string Authenticator::getAuthHeader(std::string method, std::string uri)
 		if ( ! fQop.empty() ) {
 			result += ", qop=" + fQop;
 			result += ", nc=" + stringtf("%08x",nc);
-			result += ", cnonce=" + fCnonce;
+			result += ", cnonce=\"" + fCnonce + "\"";
 		}
 		result += ", response=\"" + computeDigestResponse(method, uri) + "\"";
+		result += ", algorithm=\"MD5\"";
                   
         //Authorization: Digest username="zm",
         //                      realm="NC-336PW-HD-1080P",

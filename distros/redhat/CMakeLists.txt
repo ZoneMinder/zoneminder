@@ -1,5 +1,8 @@
 # CMakeLists.txt for the Redhat/CentOS Target Distro.
 
+# Display a message to show the RHEL build options are being processed.
+message([STATUS] "Starting RHEL Build Options" ...)
+
 # Create the zoneminder service file
 if(ZM_TARGET_DISTRO STREQUAL "el7")
 	configure_file(zoneminder.service.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.service @ONLY)

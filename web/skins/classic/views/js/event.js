@@ -12,28 +12,15 @@ function changeScale()
     var newWidth = ( baseWidth * scale ) / SCALE_BASE;
     var newHeight = ( baseHeight * scale ) / SCALE_BASE;
 
-	if(streamMode == 'video') {
-		var videoid = document.getElementById('videoobj');
-		
-		videoid.style.width = newWidth + "px";
-		videoid.style.height = newHeight + "px";
+	if(vid) {
+		vid.width = newWidth;
+		vid.height = newHeight;
 	} else {
-		streamScale( scale );
-
-    /*Stream could be an applet so can't use moo tools*/ 
-    
-    var vid1=$('vid1');
-    if(vid1)
-    {
-        vid1.style.width = newWidth + "px";
-        vid1.style.height = newHeight + "px";
-    }
-    else
-    {
-        var streamImg = document.getElementById('evtStream');
-        streamImg.style.width = newWidth + "px";
-        streamImg.style.height = newHeight + "px";
-    }
+        	streamScale( scale );
+		var streamImg = document.getElementById('evtStream');
+		streamImg.style.width = newWidth + "px";
+		streamImg.style.height = newHeight + "px";
+	}
 }
 
 function changeReplayMode()
@@ -102,157 +89,81 @@ function streamPause( action )
     setButtonState( $('slowFwdBtn'), 'inactive' );
     setButtonState( $('slowRevBtn'), 'inactive' );
     setButtonState( $('fastRevBtn'), 'unavail' );
-    var vid1=$('vid1');
-    if(vid1)
-        vid1.pause();
-    else if ( action )
-        streamReq.send( streamParms+"&command="+CMD_PAUSE );
+    streamReq.send( streamParms+"&command="+CMD_PAUSE );
 }
 
 function streamPlay( action )
 {
-    var vid1=$('vid1');
     setButtonState( $('pauseBtn'), 'inactive' );
     if (streamStatus)
         setButtonState( $('playBtn'), streamStatus.rate==1?'active':'inactive' );
     setButtonState( $('fastFwdBtn'), 'inactive' );
-    setButtonState( $('slowFwdBtn'), vid1?'inactive':'unavail' );
-    setButtonState( $('slowRevBtn'), vid1?'inactive':'unavail' );
+    setButtonState( $('slowFwdBtn'), 'unavail' );
+    setButtonState( $('slowRevBtn'), 'unavail' );
     setButtonState( $('fastRevBtn'), 'inactive' );
-    if(vid1)
-    {
-        vid1.playbackRate=1.0;
-        vid1.play();
-        setButtonState( $('playBtn'), 'active' );
-    }
-    else if ( action )
-    {
-        streamReq.send( streamParms+"&command="+CMD_PLAY );
-    }
+    streamReq.send( streamParms+"&command="+CMD_PLAY );
 }
 
 function streamFastFwd( action )
 {
-    var vid1=$('vid1');
     setButtonState( $('pauseBtn'), 'inactive' );
     setButtonState( $('playBtn'), 'inactive' );
     setButtonState( $('fastFwdBtn'), 'inactive' );
-    setButtonState( $('slowFwdBtn'), vid1?'inactive':'unavail' );
+    setButtonState( $('slowFwdBtn'), 'unavail' );
     setButtonState( $('slowRevBtn'), 'unavail' );
     setButtonState( $('fastRevBtn'), 'inactive' );
-    var vid1=$('vid1');
-    if(vid1)
-    {
-        if(vid1.playbackRate<0)
-            vid1.playbackRate=1.0;
-        else
-            vid1.playbackRate=vid1.playbackRate*2.0;
-    }
-    else if ( action )
-        streamReq.send( streamParms+"&command="+CMD_FASTFWD );
+    streamReq.send( streamParms+"&command="+CMD_FASTFWD );
 }
 
 function streamSlowFwd( action )
 {
-    var vid1=$('vid1');
     setButtonState( $('pauseBtn'), 'inactive' );
     setButtonState( $('playBtn'), 'inactive' );
-    setButtonState( $('fastFwdBtn'), vid1 && !vid1.paused?'inactive':'unavail' );
+    setButtonState( $('fastFwdBtn'), 'unavail' );
     setButtonState( $('slowFwdBtn'), 'active' );
     setButtonState( $('slowRevBtn'), 'inactive' );
     setButtonState( $('fastRevBtn'), 'unavail' );
-    if(vid1)
-    {
-        if(vid1.paused)
-            vid1.currentTime=vid1.currentTime+(eventData.Frames/eventData.Length);//1/25;
-        else if(vid1.playbackRate<0)
-            vid1.playbackRate=0.5;
-        else
-            vid1.playbackRate=vid1.playbackRate/2.0;
-    }
-    else if ( action )
-        streamReq.send( streamParms+"&command="+CMD_SLOWFWD );
-    setButtonState( $('pauseBtn'), !vid1 || vid1.paused?'active':'inactive' );
+    streamReq.send( streamParms+"&command="+CMD_SLOWFWD );
+    setButtonState( $('pauseBtn'), 'inactive' );
     setButtonState( $('slowFwdBtn'), 'inactive' );
 }
 
 function streamSlowRev( action )
 {
-    var vid1=$('vid1');
     setButtonState( $('pauseBtn'), 'inactive' );
     setButtonState( $('playBtn'), 'inactive' );
     setButtonState( $('fastFwdBtn'), 'unavail' );
     setButtonState( $('slowFwdBtn'), 'inactive' );
     setButtonState( $('slowRevBtn'), 'active' );
-    setButtonState( $('fastRevBtn'), vid1 && !vid1.paused?'inactive':'unavail' );
-    if(vid1)
-    {
-        if(vid1.paused)
-            vid1.currentTime=vid1.currentTime-(eventData.Frames/eventData.Length);//1/25;
-        else if(vid1.playbackRate>0)
-            vid1.playbackRate=-0.5;//not currently implemented in chrome
-        else
-            vid1.playbackRate=vid1.playbackRate/2.0;
-    }
-    else if ( action )
-        streamReq.send( streamParms+"&command="+CMD_SLOWREV );
-    setButtonState( $('pauseBtn'), !vid1 || vid1.paused?'active':'inactive' );
+    setButtonState( $('fastRevBtn'), 'unavail' );
+    streamReq.send( streamParms+"&command="+CMD_SLOWREV );
+    setButtonState( $('pauseBtn'), 'inactive' );
     setButtonState( $('slowRevBtn'), 'inactive' );
 }
 
 function streamFastRev( action )
 {
-    var vid1=$('vid1');
     setButtonState( $('pauseBtn'), 'inactive' );
     setButtonState( $('playBtn'), 'inactive' );
     setButtonState( $('fastFwdBtn'), 'inactive' );
     setButtonState( $('slowFwdBtn'), 'unavail' );
-    setButtonState( $('slowRevBtn'), vid1?'inactive':'unavail' );
+    setButtonState( $('slowRevBtn'), 'unavail' );
     setButtonState( $('fastRevBtn'), 'inactive' );
-    if(vid1)
-    {
-        if(vid1.playbackRate>0)
-            vid1.playbackRate=-1.0;//not currently implemented in chrome
-        else
-            vid1.playbackRate=vid1.playbackRate*2.0;
-    }
-    else if ( action )
-        streamReq.send( streamParms+"&command="+CMD_FASTREV );
+    streamReq.send( streamParms+"&command="+CMD_FASTREV );
 }
 
 function streamPrev( action )
 {
-    streamPlay( false );
-	if(streamMode == 'video') {
-		var videoid = document.getElementById('videoobj');
-		videoobj.src = PrevEventDefVideoPath;
-		videoobj.load();
-		updatedownloadlink();
-	} else {
-		if ( action )
-			streamReq.send( streamParms+"&command="+CMD_PREV );
-	}
+	if ( action )
+		streamReq.send( streamParms+"&command="+CMD_PREV );
 }
 
 function streamNext( action )
 {
-    streamPlay( false );
-	if(streamMode == 'video') {
-		var videoid = document.getElementById('videoobj');
-		videoobj.src = NextEventDefVideoPath;
-		videoobj.load();
-		updatedownloadlink();
-	} else {
-		if ( action )
-			streamReq.send( streamParms+"&command="+CMD_NEXT );
-	}
+	if ( action )
+		streamReq.send( streamParms+"&command="+CMD_NEXT );
 }
 
-function updatedownloadlink() {
-	var videoid = document.getElementById('videoobj');
-	var link = document.getElementById('downloadlink');
-	link.href = videoid.currentSrc;
-}
 
 function streamZoomIn( x, y )
 {
@@ -717,41 +628,23 @@ function showEventFrames()
     createPopup( '?view=frames&eid='+eventData.Id, 'zmFrames', 'frames' );
 }
 
-function showStream()
-{
-    $('eventStills').addClass( 'hidden' );
-    $('eventStream').removeClass( 'hidden' );
-    $('eventVideo').addClass( 'hidden' );
-    
-    $('streamEvent').addClass( 'hidden' );
-    $('stillsEvent').removeClass( 'hidden' );
-    $('videoEvent').removeClass( 'hidden' );
-    
-    streamMode = 'stream';
-}
-
 function showVideo()
 {
     $('eventStills').addClass( 'hidden' );
-    $('eventStream').addClass( 'hidden' );
     $('eventVideo').removeClass( 'hidden' );
     
-    $('streamEvent').removeClass( 'hidden' );
     $('stillsEvent').removeClass( 'hidden' );
     $('videoEvent').addClass( 'hidden' );
     
     streamMode = 'video';
     
-    var videoid = document.getElementById('videoobj');
 }
 
 function showStills()
 {
     $('eventStills').removeClass( 'hidden' );
-    $('eventStream').addClass( 'hidden' );
     $('eventVideo').addClass( 'hidden' );		
 	
-    $('streamEvent').removeClass( 'hidden' );
     $('stillsEvent').addClass( 'hidden' );
     $('videoEvent').removeClass( 'hidden' );
 	
@@ -778,10 +671,6 @@ function showFrameStats()
     createPopup( '?view=stats&eid='+eventData.Id+'&fid='+fid, 'zmStats', 'stats', eventData.Width, eventData.Height );
 }
 
-function videoEvent()
-{
-    createPopup( '?view=video&eid='+eventData.Id, 'zmVideo', 'video', eventData.Width, eventData.Height );
-}
 
 function drawProgressBar()
 {
@@ -846,39 +735,138 @@ function handleClick( event )
     else
         streamZoomIn( x, y );
 }
+function setupListener()
+{
+
+	// Buttons
+	var playButton = document.getElementById("play-pause");
+	var muteButton = document.getElementById("mute");
+	var fullScreenButton = document.getElementById("full-screen");
+
+	// Sliders
+	var seekBar = document.getElementById("seekbar");
+	var volumeBar = document.getElementById("volume-bar");
+
+
+	// Event listener for the play/pause button
+	playButton.addEventListener("click", function() {
+		if (vid.paused == true) {
+			// Play the video
+			vid.play();
+
+			// Update the button text to 'Pause'
+			playButton.innerHTML = "Pause";
+		} else {
+			// Pause the video
+			vid.pause();
+
+			// Update the button text to 'Play'
+			playButton.innerHTML = "Play";
+		}
+	});
+
+
+	// Event listener for the mute button
+	muteButton.addEventListener("click", function() {
+		if (vid.muted == false) {
+			// Mute the video
+			vid.muted = true;
+
+			// Update the button text
+			muteButton.innerHTML = "Unmute";
+		} else {
+			// Unmute the video
+			vid.muted = false;
+
+			// Update the button text
+			muteButton.innerHTML = "Mute";
+		}
+	});
+
+
+	// Event listener for the full-screen button
+	fullScreenButton.addEventListener("click", function() {
+		if (vid.requestFullscreen) {
+			vid.requestFullscreen();
+		} else if (vid.mozRequestFullScreen) {
+			vid.mozRequestFullScreen(); // Firefox
+		} else if (vid.webkitRequestFullscreen) {
+			vid.webkitRequestFullscreen(); // Chrome and Safari
+		}
+	});
+
+
+	// Event listener for the seek bar
+	seekBar.addEventListener("change", function() {
+		// Calculate the new time
+		var time = vid.duration * (seekBar.value / 100);
+
+		// Update the video time
+		vid.currentTime = time;
+	});
+
+	
+	// Update the seek bar as the video plays
+	vid.addEventListener("timeupdate", function() {
+		// Calculate the slider value
+		var value = (100 / vid.duration) * vid.currentTime;
+
+		// Update the slider value
+		seekBar.value = value;
+	});
+
+	// Pause the video when the seek handle is being dragged
+	seekBar.addEventListener("mousedown", function() {
+		vid.pause();
+	});
+
+	// Play the video when the seek handle is dropped
+	seekBar.addEventListener("mouseup", function() {
+		vid.play();
+	});
+
+	// Event listener for the volume bar
+	volumeBar.addEventListener("change", function() {
+		// Update the video volume
+		vid.volume = volumeBar.value;
+	});
+}
 
 function initPage()
 {
     //FIXME prevent blocking...not sure what is happening or best way to unblock
-    if(window.vid)
+	vid=$('videoobj');
+        if (vid)
     {
-       // var vid1=$('vid1');
-       /* window.vid.oncanplay=null;
-        window.vid.currentTime=window.vid.currentTime-1;
-        window.vid.currentTime=window.vid.currentTime+1;//may not be symetrical of course
+	/*setupListener();
+	vid.removeAttribute("controls");
+       /* window.videoobj.oncanplay=null;
+        window.videoobj.currentTime=window.videoobj.currentTime-1;
+        window.videoobj.currentTime=window.videoobj.currentTime+1;//may not be symetrical of course
         
-        vid1.onstalled=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;} 
-        vid1.onwaiting=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;}
-        vid1.onloadstart=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;}
-        vid1.onplay=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;}
-        vid1.onplaying=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;}*/
+        vid.onstalled=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;} 
+        vid.onwaiting=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;}
+        vid.onloadstart=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;}
+        vid.onplay=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;}
+        vid.onplaying=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;}
         //window.vid.hide();//does not help
-        var sources = window.vid.getElementsByTagName('source');
+        var sources = window.videoobj.getElementsByTagName('source');
         sources[0].src=null;
-        window.vid.load();
-        streamPlay();    
+        window.videoobj.load();
+        streamPlay();    */
     }
     else
     {
         streamCmdTimer = streamQuery.delay( 250 );
         eventQuery.pass( eventData.Id ).delay( 500 );
 
-    if ( canStreamNative )
-    {
-        var streamImg = $('imageFeed').getElement('img');
-        if ( !streamImg )
-            streamImg = $('imageFeed').getElement('object');
-        $(streamImg).addEvent( 'click', function( event ) { handleClick( event ); } );
+        if ( canStreamNative )
+        {
+            var streamImg = $('imageFeed').getElement('img');
+            if ( !streamImg )
+                streamImg = $('imageFeed').getElement('object');
+            $(streamImg).addEvent( 'click', function( event ) { handleClick( event ); } );
+        }
     }
 }
 

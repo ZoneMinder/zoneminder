@@ -63,6 +63,7 @@ Usage: zmx10.pl -c <command>,--command=<command> [-u <unit code>,--unit-code=<un
 Parameters are :-
 -c <command>, --command=<command>       - Command to issue, one of 'on','off','dim','bright','status','shutdown'
 -u <unit code>, --unit-code=<unit code> - Unit code to act on required for all commands except 'status' (optional) and 'shutdown'
+-v, --verison                           - Pirnts the currently installed version of ZoneMinder
 ");
 	exit( -1 );
 }
@@ -72,10 +73,15 @@ logSetSignal();
 
 my $command;
 my $unit_code;
+my $version;
 
-if ( !GetOptions( 'command=s'=>\$command, 'unit-code=i'=>\$unit_code ) )
+if ( !GetOptions( 'command=s'=>\$command, 'unit-code=i'=>\$unit_code, version=>\$version ) )
 {
     Usage();
+}
+if ( $version ) {
+	print ZoneMinder::Base::ZM_VERSION;
+	exit(0);
 }
 
 die( "No command given" ) unless( $command );

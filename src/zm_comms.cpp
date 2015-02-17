@@ -25,13 +25,15 @@
 #include <fcntl.h>
 #include <stdarg.h>
 //#include <memory.h>
+#if defined(BSD)
+#include <stdlib.h>
+#else
 #include <alloca.h>
-#include <string.h>
+#endif
+
 //#include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/param.h>
-//#include <sys/socket.h>
-//#include <netinet/in.h>
 #include <netinet/tcp.h>
 
 int CommsBase::readV( int iovcnt, /* const void *, int, */ ... )

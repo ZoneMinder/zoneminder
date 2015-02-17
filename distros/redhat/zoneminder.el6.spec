@@ -30,7 +30,7 @@ BuildRequires:  libcurl-devel vlc-devel ffmpeg-devel polkit-devel
 # cmake needs the following installed at build time due to the way it auto-detects certain parameters
 BuildRequires:  httpd ffmpeg
 
-Requires:   httpd php php-mysql mysql-server libjpeg-turbo polkit
+Requires:   httpd php php-mysql mysql-server libjpeg-turbo polkit net-tools
 Requires:   perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires:   perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)
 Requires:   perl(MIME::Entity) perl(MIME::Lite) perl(Net::SMTP) perl(Net::FTP)

@@ -308,6 +308,7 @@ PATH_NETPBM=`dirname $PATH_NETPBM`
 fi
 
 # Checks for libraries.
+AC_CHECK_LIB(rt,clock_gettime,,AC_MSG_ERROR(zm requires librt))
 AC_SEARCH_LIBS(mysql_init,[mysqlclient mariadbclient],,AC_MSG_ERROR(zm requires libmysqlclient.a or libmariadbclient.a))
 AC_CHECK_LIB(jpeg,jpeg_start_compress,,AC_MSG_ERROR(zm requires libjpeg.a))
 AC_CHECK_LIB(pthread,pthread_create,,AC_MSG_ERROR(zm requires libpthread.a))
@@ -446,10 +447,10 @@ if test "$prefix" != "NONE"; then
     PERL_SITE_LIB=`perl -V:installsitelib | sed -e "s/.*='\(.*\)';/\1/"`
     PERL_LIB_PATH=`echo $PERL_SITE_LIB | sed -e "s|^$PERL_SITE_PREFIX||"`
     EXTRA_PERL_LIB="use lib '$prefix$PERL_LIB_PATH'; # Include custom perl install path"
-    PERL_MM_PARMS="PREFIX=$prefix"
+    PERL_MM_PARMS="\"PREFIX=$prefix INSTALLDIRS=vendor\""
 else
     EXTRA_PERL_LIB="# Include from system perl paths only"
-    PERL_MM_PARMS=
+    PERL_MM_PARMS="\"INSTALLDIRS=vendor\""
 fi
 AC_SUBST(PERL_MM_PARMS)
 AC_SUBST(EXTRA_PERL_LIB)

@@ -92,6 +92,22 @@ our %types =
 
 our @options =
 (
+    {
+        name => "ZM_SKIN_DEFAULT",
+        default => "classic",
+        description => "Default skin used by web interface",
+        help => "ZoneMinder allows the use of many different web interfaces. This option allows you to set the default skin used by the website.  Users can change their skin later, this merely sets the default.",
+        type => $types{string},
+        category => "system",
+    },
+    {
+        name => "ZM_CSS_DEFAULT",
+        default => "classic",
+        description => "Default set of css files used by web interface",
+        help => "ZoneMinder allows the use of many different web interfaces, and some skins allow the use of different set of CSS files to control the appearance. This option allows you to set the default set of css files used by the website.  Users can change their css later, this merely sets the default.",
+        type => $types{string},
+        category => "system",
+    },
 	{
 		name => "ZM_LANG_DEFAULT",
 		default => "en_gb",

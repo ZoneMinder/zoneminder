@@ -27,11 +27,15 @@ cmake by default does not require any parameters, but its possible to override t
 Configuration can be done in 4 ways:
 1) As a command line parameter, e.g. cmake -DCMAKE_VERBOSE_MAKEFILE=ON .
 2) Using cmake-gui
-4) Providing cmake with an initial cache file with the -C option
+3) Providing cmake with an initial cache file with the -C option
+   IMPORTANT: Do not use the -C option if any major part of your system, excluding the version of zoneminder, has changed.
+   For example, do not use this option if: you have upgraded your distro to a new version, have gone from 32 to 64 bits,
+   or have migrated from one machine to another.
 4) By editing the cache file CMakeCache.txt (after it has been generated) - Not recommended
 
 Possible configuration options: 
 	ZM_RUNDIR		Location of transient process files, default: /var/run/zm
+	ZM_SOCKDIR		Location of Unix domain socket files, default /var/run/zm
 	ZM_TMPDIR		Location of temporary files, default: /tmp/zm
 	ZM_LOGDIR 		Location of generated log files, default: /var/log/zm
 	ZM_WEBDIR		Location of the web files, default: <prefix>/share/zoneminder/www
@@ -49,9 +53,8 @@ Advanced:
 	ZM_NO_MMAP		Set to ON to not use mmap shared memory. Shouldn't be enabled unless you experience problems with the shared memory. default: OFF
 	ZM_NO_FFMPEG		Set to ON to skip ffmpeg checks and force building ZM without ffmpeg. default: OFF
 	ZM_NO_X10		Set to ON to build ZoneMinder without X10 support. default: OFF
-	ZM_PERL_SUBPREFIX	Use a different directory for the zm perl modules. NOTE: This is a subprefix, e.g. lib will be turned into <prefix>/lib, default: <libarch>/perl5
+	ZM_PERL_SUBPREFIX	Use a different directory for the zm perl modules. NOTE: This is a subprefix, e.g. /lib will be turned into <prefix>/lib, default: <libarch>/perl5
 	ZM_PERL_USE_PATH	Override the include path for zm perl modules. Useful if you are moving the perl modules without using the ZM_PERL_SUBPREFIX option. default: <prefix>/<zmperlsubprefix>
-
 
 Useful configuration options provided by cmake:
 CMAKE_VERBOSE_MAKEFILE - Set this to ON (default OFF) to see what cmake is doing. Very useful for troubleshooting.
@@ -89,7 +92,9 @@ NOTE: The database server, database name, user and password can be different and
 
 8) Create an apache virtual host for ZoneMinder. Make sure to use the same paths as ZM_WEBDIR and ZM_CGIDIR in /etc/zm.conf
 9) Create other config if desired (e.g. rsyslog, logrotate and such). Some of this can be found in <prefix>/share/zoneminder/misc or project/misc directory
-10) Setup an init script for your system. Its also possible to use "zmpkg.pl start" and "zmpkg.pl stop" if you can't find a one.
+10) Setup an appropriate startup script for your system. A generic sys v init script is here: /scripts/zm while a generic systemd service file is here: /misc/zoneminder.service
+You must determine which file to use, verify it is correct, and then copy it to the correct location. Consult your distro's documentation.  Note that distros using systemd also
+require /misc/zoneminder-tmpfiles.conf to be copied into the system's tmpfiles.d folder.
 
 Basic steps for upgrading ZoneMinder
 ------------------------------------

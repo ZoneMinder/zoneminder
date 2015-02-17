@@ -98,8 +98,8 @@ if ( $showControl )
       </div>
       <h2><?php echo $SLANG['Montage'] ?></h2>
       <div id="headerControl">
-        <span id="scaleControl"><?php echo $SLANG['Scale'] ?>: <?php echo buildSelect( "scale", $scales, "changeScale( this );" ); ?></span> 
-        <label for="layout"><?php echo $SLANG['Layout'] ?>:</label><?php echo buildSelect( "layout", $layouts, 'selectLayout( this )' )?>
+        <span id="scaleControl"><?php echo $SLANG['Scale'] ?>: <?php echo buildSelect( 'scale', $scales, 'changeScale(this);' ); ?></span> 
+        <label for="layout"><?php echo $SLANG['Layout'] ?>:</label><?php echo buildSelect( 'layout', $layouts, 'selectLayout(this);' )?>
       </div>
     </div>
     <div id="content">

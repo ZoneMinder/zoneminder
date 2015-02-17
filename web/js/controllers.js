@@ -203,7 +203,7 @@ ZoneMinder.controller('EventController', function($scope, Event, $modalInstance,
 	};
 });
 
-ZoneMinder.controller('MonitorController', function($scope, $http, $location, Monitor) {
+ZoneMinder.controller('MonitorController', function($scope, $http, $location, Monitor, Console) {
 	// If mid is set, we're editing a monitor.  Else, we're adding one.
 	var mid = $location.search().mid;
 	if (mid) {
@@ -259,9 +259,7 @@ ZoneMinder.controller('MonitorController', function($scope, $http, $location, Mo
 		// Redirect to the dashboard on success
 	        .success(function(data) { window.location = "/"; });
 	};
-});
 
-ZoneMinder.controller('ConsoleController', function($scope, Console, Monitor) {
 	$scope.grid = true;
 	$scope.gridButton = 'glyphicon-th';
 	$scope.consoleLayout = 4;

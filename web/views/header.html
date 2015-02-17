@@ -1,12 +1,13 @@
     <nav class="navbar navbar-default" role="navigation" ng-controller="HeaderController">
 			<div class="container-fluid">
-				<a ui-sref="/"><span class="navbar-brand">ZoneMinder</span></a>
+				<a ui-sref="home"><span class="navbar-brand">ZoneMinder</span></a>
 
 				<button type="button" class="btn btn-md navbar-btn pull-right" ng-class="isRunning ? 'btn-success' : 'btn-danger'" data-toggle="modal" data-target="#myModal">
 					<span class="glyphicon glyphicon-off"></span>
 				</button>
 
 				<ul class="nav navbar-nav pull-right">
+					<li><a ui-sref="monitor.list">Monitors</a></li>
 					<li><a ui-sref="events">Events</a></li>
 					<li><a href="?view=timeline">Timeline</a></li>
 					<li><a ui-sref="options">Options</a></li>

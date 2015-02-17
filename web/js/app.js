@@ -12,17 +12,77 @@ ZoneMinder.config(['$locationProvider', function($locationProvider) {
 }]);
 
 ZoneMinder.config(function($stateProvider, $urlRouterProvider) {
-	$urlRouterProvider.otherwise('/');
+	$urlRouterProvider
+		.when ('/', '/monitor')
+		.otherwise('/');
 
 	$stateProvider
-		.state('/', {
-			url: '/',
-			templateUrl: '/views/console.html'
-		})
+
+		///////////////////////////////////////////////////
+		// Monitor Grid and List View (main monitor page //
+		///////////////////////////////////////////////////
+
+		// This page lets you view the monitors as either a grid, or a list.
+		// The grid or list is chosen by clicking on the button on the top-right of the page
 		.state('monitor', {
+			// State can not be explicitly activated - only implicitly by one of its children
+			abstract: true,
+			// This abstract will prepend '/monitor' onto the urls of all its children
 			url: '/monitor',
+			// As a top level state, this template will be loaded into index.html's ui-view
 			templateUrl: '/views/monitor.html'
 		})
+
+		.state('monitor.list', {
+			url: '',
+			templateUrl: '/views/monitor.list.html'
+		})
+
+		//////////////////////
+		// Monitor > Detail //
+		//////////////////////
+
+		// 'detail' is a child of 'monitor' and as such will be loaded into monitor.html's ui-view
+		// The 'detail' state will be the first 'tab' in the 'detail' view, which is 'General'
+		.state('monitor.detail', {
+			// monitor.detail can not be loaded directly
+			abstract: true,
+			// This state is a child of 'monitor'.  The URL will end up being like:
+			// '/monitor/{mid:[0-9]{1,4}}'.  When the URL becomes something like '/monitor/7',
+			// this state will become active.
+			url: '/{mid:[0-9]{1,4}}',
+			templateUrl: '/views/monitor.detail.html'
+		})
+
+		////////////////////////////
+		// Monitor > Detail > Tab //
+		////////////////////////////
+
+		// Each 'tab' gets its own state.  As these are all children of 'detail', they are lodaed
+		// into detail's ui-view
+
+		.state('monitor.detail.general', {
+			url: '',
+			templateUrl: '/views/monitor.detail.general.html'
+		})
+		.state('monitor.detail.source', {
+			url: '',
+			templateUrl: '/views/monitor.detail.source.html'
+		})
+		.state('monitor.detail.timestamps', {
+			url: '',
+			templateUrl: '/views/monitor.detail.timestamps.html'
+		})
+		.state('monitor.detail.buffers', {
+			url: '',
+			templateUrl: '/views/monitor.detail.buffers.html'
+		})
+		.state('monitor.detail.misc', {
+			url: '',
+			templateUrl: '/views/monitor.detail.misc.html'
+		})
+
+
 		.state('events', {
 			url: '/events',
 			templateUrl: '/views/events.html'
@@ -39,6 +99,9 @@ ZoneMinder.config(function(paginationTemplateProvider) {
 
 ZoneMinder.factory('Monitor', function($http) {
 	return {
+		getMonitors: function() {
+			return $http.get('/api/monitors.json');
+		},
 		getMonitor: function(mid) {
 			return $http.get('/api/monitors/'+mid+'.json');
 		},

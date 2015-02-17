@@ -255,11 +255,10 @@ protected:
 	int				last_alarm_count;
 	int				buffer_count;
 	int				prealarm_count;
-	State			state;
 	time_t			start_time;
 	time_t			last_fps_time;
 	time_t			auto_resume_time;
-        unsigned int            last_motion_score;
+	unsigned int	last_motion_score;
 
     EventCloseMode  event_close_mode;
 

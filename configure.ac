@@ -46,6 +46,7 @@ AC_ARG_VAR(ZM_RUNDIR,[Location of transient process files, default /var/run/zm])
 AC_ARG_VAR(ZM_SOCKDIR,[Location of Unix domain socket files, default /var/run/zm])
 AC_ARG_VAR(ZM_TMPDIR,[Location of temporary files, default /var/tmp/zm])
 AC_ARG_VAR(ZM_LOGDIR,[Location of generated log files, default /var/log/zm])
+AC_ARG_VAR(ZM_CONFIG_DIR,[Location of ZoneMinder configuration, default system config directory])
 
 if test "$ZM_DB_TYPE" == ""; then
 	AC_SUBST(ZM_DB_TYPE,[mysql])
@@ -79,6 +80,10 @@ if test "$ZM_TMPDIR" == ""; then
 fi
 if test "$ZM_LOGDIR" == ""; then
 	AC_SUBST(ZM_LOGDIR,[/var/log/zm])
+fi
+AC_DEFINE_DIR([SYSCONFDIR],[sysconfdir],[Expanded configuration directory])
+if test "$ZM_CONFIG_DIR" == ""; then
+	AC_SUBST(ZM_CONFIG_DIR,[$SYSCONFDIR])
 fi
 
 LIB_ARCH=lib
@@ -303,6 +308,7 @@ PATH_NETPBM=`dirname $PATH_NETPBM`
 fi
 
 # Checks for libraries.
+AC_CHECK_LIB(rt,clock_gettime,,AC_MSG_ERROR(zm requires librt))
 AC_SEARCH_LIBS(mysql_init,[mysqlclient mariadbclient],,AC_MSG_ERROR(zm requires libmysqlclient.a or libmariadbclient.a))
 AC_CHECK_LIB(jpeg,jpeg_start_compress,,AC_MSG_ERROR(zm requires libjpeg.a))
 AC_CHECK_LIB(pthread,pthread_create,,AC_MSG_ERROR(zm requires libpthread.a))
@@ -431,8 +437,9 @@ AC_DEFINE_DIR([LIBDIR],[libdir],[Expanded library directory])
 AC_DEFINE_DIR([DATADIR],[datadir],[Expanded data directory])
 AC_SUBST(PKGDATADIR,"$DATADIR/$PACKAGE")
 AC_SUBST(ZM_PID,"$ZM_RUNDIR/zm.pid")
-AC_DEFINE_DIR([SYSCONFDIR],[sysconfdir],[Expanded configuration directory])
-AC_SUBST(ZM_CONFIG,"$SYSCONFDIR/zm.conf")
+#AC_DEFINE_DIR([SYSCONFDIR],[sysconfdir],[Expanded configuration directory])
+#AC_SUBST(ZM_CONFIG,"$SYSCONFDIR/zm.conf")
+AC_SUBST(ZM_CONFIG,"$ZM_CONFIG_DIR/zm.conf")
 
 # Slight hack for non-standard perl install paths
 if test "$prefix" != "NONE"; then
@@ -440,16 +447,16 @@ if test "$prefix" != "NONE"; then
     PERL_SITE_LIB=`perl -V:installsitelib | sed -e "s/.*='\(.*\)';/\1/"`
     PERL_LIB_PATH=`echo $PERL_SITE_LIB | sed -e "s|^$PERL_SITE_PREFIX||"`
     EXTRA_PERL_LIB="use lib '$prefix$PERL_LIB_PATH'; # Include custom perl install path"
-    PERL_MM_PARMS="PREFIX=$prefix"
+    PERL_MM_PARMS="\"PREFIX=$prefix INSTALLDIRS=vendor\""
 else
     EXTRA_PERL_LIB="# Include from system perl paths only"
-    PERL_MM_PARMS=
+    PERL_MM_PARMS="\"INSTALLDIRS=vendor\""
 fi
 AC_SUBST(PERL_MM_PARMS)
 AC_SUBST(EXTRA_PERL_LIB)
 
 
-AC_CONFIG_FILES([Makefile zm.conf zmconfgen.pl db/Makefile db/zm_create.sql misc/Makefile misc/apache.conf misc/logrotate.conf misc/syslog.conf misc/com.zoneminder.systemctl.policy misc/com.zoneminder.systemctl.rules scripts/Makefile scripts/zm scripts/zmaudit.pl scripts/zmcontrol.pl scripts/zmdc.pl scripts/zmfilter.pl scripts/zmpkg.pl scripts/zmtrack.pl scripts/zmcamtool.pl scripts/zmsystemctl.pl scripts/zmtrigger.pl scripts/zmupdate.pl scripts/zmvideo.pl scripts/zmwatch.pl scripts/zmx10.pl scripts/zmdbbackup scripts/zmdbrestore scripts/zmeventdump scripts/zmlogrotate.conf scripts/ZoneMinder/lib/ZoneMinder/Base.pm scripts/ZoneMinder/lib/ZoneMinder/Config.pm scripts/ZoneMinder/lib/ZoneMinder/Memory.pm scripts/ZoneMinder/lib/ZoneMinder/ConfigData.pm src/Makefile src/zm_config.h web/Makefile web/ajax/Makefile web/css/Makefile web/graphics/Makefile web/includes/Makefile web/includes/config.php web/js/Makefile web/lang/Makefile web/skins/Makefile web/skins/classic/Makefile web/skins/classic/ajax/Makefile web/skins/classic/css/Makefile web/skins/classic/css/classic/Makefile web/skins/classic/css/classic/views/Makefile web/skins/classic/graphics/Makefile web/skins/classic/includes/Makefile web/skins/classic/js/Makefile web/skins/classic/lang/Makefile web/skins/classic/views/Makefile web/skins/classic/views/js/Makefile web/skins/mobile/Makefile web/skins/mobile/ajax/Makefile web/skins/mobile/css/Makefile web/skins/mobile/graphics/Makefile web/skins/mobile/includes/Makefile web/skins/mobile/lang/Makefile web/skins/mobile/views/Makefile web/skins/mobile/views/css/Makefile web/tools/Makefile web/tools/mootools/Makefile web/views/Makefile web/skins/xml/Makefile web/skins/xml/views/Makefile web/skins/xml/includes/Makefile web/skins/flat/Makefile web/skins/flat/ajax/Makefile web/skins/flat/css/Makefile web/skins/flat/graphics/Makefile web/skins/flat/includes/Makefile web/skins/flat/js/Makefile web/skins/flat/lang/Makefile web/skins/flat/views/Makefile web/skins/flat/views/css/Makefile web/skins/flat/views/js/Makefile])
+AC_CONFIG_FILES([Makefile zm.conf zmconfgen.pl db/Makefile db/zm_create.sql misc/Makefile misc/apache.conf misc/logrotate.conf misc/syslog.conf misc/com.zoneminder.systemctl.policy misc/com.zoneminder.systemctl.rules scripts/Makefile scripts/zm scripts/zmaudit.pl scripts/zmcontrol.pl scripts/zmdc.pl scripts/zmfilter.pl scripts/zmpkg.pl scripts/zmtrack.pl scripts/zmcamtool.pl scripts/zmsystemctl.pl scripts/zmtrigger.pl scripts/zmupdate.pl scripts/zmvideo.pl scripts/zmwatch.pl scripts/zmx10.pl scripts/zmdbbackup scripts/zmdbrestore scripts/zmeventdump scripts/zmlogrotate.conf scripts/ZoneMinder/lib/ZoneMinder/Base.pm scripts/ZoneMinder/lib/ZoneMinder/Config.pm scripts/ZoneMinder/lib/ZoneMinder/Memory.pm scripts/ZoneMinder/lib/ZoneMinder/ConfigData.pm src/Makefile src/zm_config.h web/Makefile web/ajax/Makefile web/css/Makefile web/graphics/Makefile web/includes/Makefile web/includes/config.php web/js/Makefile web/lang/Makefile web/skins/Makefile web/skins/classic/Makefile web/skins/classic/ajax/Makefile web/skins/classic/css/Makefile web/skins/classic/css/classic/Makefile web/skins/classic/css/classic/views/Makefile web/skins/classic/css/flat/Makefile web/skins/classic/css/flat/views/Makefile web/skins/classic/graphics/Makefile web/skins/classic/includes/Makefile web/skins/classic/js/Makefile web/skins/classic/lang/Makefile web/skins/classic/views/Makefile web/skins/classic/views/js/Makefile web/skins/mobile/Makefile web/skins/mobile/ajax/Makefile web/skins/mobile/css/Makefile web/skins/mobile/graphics/Makefile web/skins/mobile/includes/Makefile web/skins/mobile/lang/Makefile web/skins/mobile/views/Makefile web/skins/mobile/views/css/Makefile web/tools/Makefile web/tools/mootools/Makefile web/views/Makefile web/skins/xml/Makefile web/skins/xml/views/Makefile web/skins/xml/includes/Makefile])
 
 # Create the definitions for compilation and defaults for the database
 AC_CONFIG_COMMANDS([src/zm_config_defines.h],[perl ./zmconfgen.pl])

@@ -115,11 +115,12 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 my $delay = $Config{ZM_FILTER_EXECUTE_INTERVAL};
 my $event_id = 0;
 my $filter_parm = "";
+my $version = 0;
 
 sub Usage
 {
     print( "
-Usage: zmfilter.pl [-f <filter name>,--filter=<filter name>]
+Usage: zmfilter.pl [-f <filter name>,--filter=<filter name>] | -v, --version
 Parameters are :-
 -f<filter name>, --filter=<filter name>  - The name of a specific filter to run
 ");
@@ -158,9 +159,13 @@ sub DateTimeToSQL
     return( strftime( "%Y-%m-%d %H:%M:%S", localtime( $dt_val ) ) );
 }
 
-if ( !GetOptions( 'filter=s'=>\$filter_parm ) )
+if ( !GetOptions( 'filter=s'=>\$filter_parm, version=>\$version ) )
 {
     Usage();
+}
+if ( $version ) {
+	print ZoneMinder::Base::ZM_VERSION . "\n";
+	exit(0);
 }
 
 if ( ! EVENT_PATH ) {
@@ -191,10 +196,11 @@ my $last_action = 0;
 
 while( 1 )
 {
-    if ( (time() - $last_action) > $Config{ZM_FILTER_RELOAD_DELAY} )
+	my $now = time;
+    if ( ($now - $last_action) > $Config{ZM_FILTER_RELOAD_DELAY} )
     {
         Debug( "Reloading filters\n" );
-        $last_action = time();
+        $last_action = $now;
         $filters = getFilters( $filter_parm );
     }
 
@@ -275,10 +281,10 @@ sub getFilters
     {
         Debug( "Found filter '$db_filter->{Name}'\n" );
         my $filter_expr = jsonDecode( $db_filter->{Query} );
-        my $sql = "select E.Id,E.MonitorId,M.Name as MonitorName,M.DefaultRate,M.DefaultScale,E.Name,E.Cause,E.Notes,E.StartTime,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived,E.Videoed,E.Uploaded,E.Emailed,E.Messaged,E.Executed from Events as E inner join Monitors as M on M.Id = E.MonitorId where not isnull(E.EndTime)";
+        my $sql = "select E.Id,E.MonitorId,M.Name as MonitorName,M.DefaultRate,M.DefaultScale,E.Name,E.Cause,E.Notes,E.StartTime,unix_timestamp(E.StartTime) as Time,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived,E.Videoed,E.Uploaded,E.Emailed,E.Messaged,E.Executed from Events as E inner join Monitors as M on M.Id = E.MonitorId";
         $db_filter->{Sql} = '';
 
-        if ( @{$filter_expr->{terms}} )
+        if ( $filter_expr->{terms} )
         {
             for ( my $i = 0; $i < @{$filter_expr->{terms}}; $i++ )
             {
@@ -414,7 +420,17 @@ sub getFilters
         }
         if ( $db_filter->{Sql} )
         {
-            $sql .= " and ( ".$db_filter->{Sql}." )";
+            if ( $db_filter->{AutoMessage} )
+            {
+                # Include all events, including events that are still ongoing
+                # and have no EndTime yet
+                $sql .= " and ( ".$db_filter->{Sql}." )";
+            }
+            else
+            {
+                # Only include closed events (events with valid EndTime)
+                $sql .= " where not isnull(E.EndTime) and ( ".$db_filter->{Sql}." )";
+            }
         }
         my @auto_terms;
         if ( $db_filter->{AutoArchive} )
@@ -617,7 +633,7 @@ sub checkFilter
         {
             if ( $delete_ok )
             {
-                Info( "Deleting event $event->{Id}\n" );
+                Info( "Deleting event $event->{Id} from Monitor $event->{MonitorId}\n" );
                 # Do it individually to avoid locking up the table for new events
                 my $sql = "delete from Events where Id = ?";
                 my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );

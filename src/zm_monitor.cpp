@@ -417,7 +417,7 @@ Monitor::Monitor(
         trigger_data->trigger_showtext[0] = 0;
         shared_data->valid = true;
         video_store_data->recording = false;
-        snprintf(video_store_data->event_directory, sizeof(video_store_data->event_directory), "nothing");
+        snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "nothing");
         video_store_data->size = sizeof(VideoStoreData);
         //video_store_data->frameNumber = 0;
     } else if ( purpose == ANALYSIS ) {
@@ -1277,7 +1277,7 @@ bool Monitor::Analyse()
         bool signal_change = (signal != last_signal);
         
         //Set video recording flag for event start constructor and easy reference in code
-        bool videoRecording = (config.use_mkv_storage && camera->IsFfmpeg());
+        bool videoRecording = ((GetOptVideoWriter() == 2) && camera->SupportsNativeVideo());
         
         if ( trigger_data->trigger_state != TRIGGER_OFF )
         {
@@ -1397,7 +1397,7 @@ bool Monitor::Analyse()
                     if ( event )
                     {
                         //TODO: We shouldn't have to do this every time. Not sure why it clears itself if this isn't here??
-                        snprintf(video_store_data->event_directory, sizeof(video_store_data->event_directory), "%s", event->getEventDirectory());
+                        snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
                         
                         int section_mod = timestamp->tv_sec%section_length;
                         if ( section_mod < last_section_mod )
@@ -1427,7 +1427,7 @@ bool Monitor::Analyse()
                         event = new Event( this, *timestamp, "Continuous", noteSetMap, videoRecording );
                         shared_data->last_event = event->Id();
                         //set up video store data
-                        snprintf(video_store_data->event_directory, sizeof(video_store_data->event_directory), "%s", event->getEventDirectory());
+                        snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
                         video_store_data->recording = true;
                         
                         Info( "%s: %03d - Opening new event %d, section start", name, image_count, event->Id() );
@@ -1489,7 +1489,7 @@ bool Monitor::Analyse()
                                 event = new Event( this, *(image_buffer[pre_index].timestamp), cause, noteSetMap, videoRecording );
                                 shared_data->last_event = event->Id();
                                 //set up video store data
-                                snprintf(video_store_data->event_directory, sizeof(video_store_data->event_directory), "%s", event->getEventDirectory());
+                                snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
                                 video_store_data->recording = true;
 
                                 Info( "%s: %03d - Opening new event %d, alarm start", name, image_count, event->Id() );
@@ -1630,7 +1630,7 @@ bool Monitor::Analyse()
                     else if ( state == TAPE )
                     {
                         //Video Storage: activate only for supported cameras. Event::AddFrame knows whether or not we are recording video and saves frames accordingly
-                        if(config.use_mkv_storage && camera->SupportsNativeVideo())
+                        if((GetOptVideoWriter() == 2) && camera->SupportsNativeVideo())
                         {
                             video_store_data->recording = true;
                         }
@@ -2862,45 +2862,44 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
 
 int Monitor::Capture()
 {
-	static int FirstCapture = 1;
-	int captureResult;
+    static int FirstCapture = 1;
+    int captureResult;
 	
-	int index = image_count%image_buffer_count;
-	Image* capture_image = image_buffer[index].image;
+    int index = image_count%image_buffer_count;
+    Image* capture_image = image_buffer[index].image;
 	
-	if ( (deinterlacing & 0xff) == 4) {
-		if ( FirstCapture != 1 ) {
-			/* Copy the next image into the shared memory */
-			capture_image->CopyBuffer(*(next_buffer.image)); 
-		}
+    if ( (deinterlacing & 0xff) == 4) {
+	if ( FirstCapture != 1 ) {
+            /* Copy the next image into the shared memory */
+            capture_image->CopyBuffer(*(next_buffer.image)); 
+	}
 		
-		/* Capture a new next image */
+	/* Capture a new next image */
         
         //Check if FFMPEG camera
-        if(config.use_mkv_storage && camera->SupportsNativeVideo()){
-            captureResult = camera->CaptureAndRecord(*(next_buffer.image), video_store_data->recording, video_store_data->event_directory);
+        if((GetOptVideoWriter() == 2) && camera->SupportsNativeVideo()){
+            captureResult = camera->CaptureAndRecord(*(next_buffer.image), video_store_data->recording, video_store_data->event_file);
         }else{
             captureResult = camera->Capture(*(next_buffer.image));
         }
-		
-		
-		if ( FirstCapture ) {
-			FirstCapture = 0;
-			return 0;
-		}
-		
-	} else {
+
+        if ( FirstCapture ) {
+                    FirstCapture = 0;
+                    return 0;
+            }
+
+    } else {
         //Check if FFMPEG camera
-        if(config.use_mkv_storage && camera->IsFfmpeg()){
+        if((GetOptVideoWriter() == 2) && camera->SupportsNativeVideo()){
             //Warning("ZMC: Recording: %d", video_store_data->recording);
-            captureResult = camera->CaptureAndRecord(*capture_image, video_store_data->recording, video_store_data->event_directory);
+            captureResult = camera->CaptureAndRecord(*capture_image, video_store_data->recording, video_store_data->event_file);
         }else{
             /* Capture directly into image buffer, avoiding the need to memcpy() */
             captureResult = camera->Capture(*capture_image);
         }
     }
     
-    if(config.use_mkv_storage && captureResult > 0){
+    if((GetOptVideoWriter() == 2) && captureResult > 0){
         //video_store_data->frameNumber = captureResult;
         captureResult = 0;
     }
@@ -4035,38 +4034,38 @@ void MonitorStream::runStream()
     temp_read_index = temp_image_buffer_count;
     temp_write_index = temp_image_buffer_count;
 
-    char swap_path[PATH_MAX] = "";
+    char *swap_path = 0;
     bool buffered_playback = false;
+	int swap_path_length = strlen(config.path_swap)+1; // +1 for NULL terminator
 
-    if ( connkey && playback_buffer > 0 )
-    {
-        Debug( 2, "Checking swap image location" );
-        Debug( 3, "Checking swap image path" );
-        strncpy( swap_path, config.path_swap, sizeof(swap_path) );
-        if ( checkSwapPath( swap_path, false ) )
-        {
-            snprintf( &(swap_path[strlen(swap_path)]), sizeof(swap_path)-strlen(swap_path), "/zmswap-m%d", monitor->Id() );
-            if ( checkSwapPath( swap_path, true ) )
-            {
-                snprintf( &(swap_path[strlen(swap_path)]), sizeof(swap_path)-strlen(swap_path), "/zmswap-q%06d", connkey );
-                if ( checkSwapPath( swap_path, true ) )
-                {
-                    buffered_playback = true;
-                }
-            }
-        }
+	if ( connkey && playback_buffer > 0 ) {
 
-        if ( !buffered_playback )
-        {
-            Error( "Unable to validate swap image path, disabling buffered playback" );
-        }
-        else
-        {
-            Debug( 2, "Assigning temporary buffer" );
-            temp_image_buffer = new SwapImage[temp_image_buffer_count];
-            memset( temp_image_buffer, 0, sizeof(*temp_image_buffer)*temp_image_buffer_count );
-            Debug( 2, "Assigned temporary buffer" );
-        }
+		if ( swap_path_length + 15 > PATH_MAX ) {
+			// 15 is for /zmswap-whatever, assuming max 6 digits for monitor id
+			Error( "Swap Path is too long. %d > %d ", swap_path_length+15, PATH_MAX );
+		} else {
+			swap_path = (char *)malloc( swap_path_length+15 );
+			Debug( 3, "Checking swap image path %s", config.path_swap );
+			strncpy( swap_path, config.path_swap, swap_path_length );
+			if ( checkSwapPath( swap_path, false ) ) {
+				snprintf( &(swap_path[swap_path_length]), sizeof(swap_path)-swap_path_length, "/zmswap-m%d", monitor->Id() );
+				if ( checkSwapPath( swap_path, true ) ) {
+					snprintf( &(swap_path[swap_path_length]), sizeof(swap_path)-swap_path_length, "/zmswap-q%06d", connkey );
+					if ( checkSwapPath( swap_path, true ) ) {
+						buffered_playback = true;
+					}
+				}
+			}
+
+			if ( !buffered_playback ) {
+				Error( "Unable to validate swap image path, disabling buffered playback" );
+			} else {
+				Debug( 2, "Assigning temporary buffer" );
+				temp_image_buffer = new SwapImage[temp_image_buffer_count];
+				memset( temp_image_buffer, 0, sizeof(*temp_image_buffer)*temp_image_buffer_count );
+				Debug( 2, "Assigned temporary buffer" );
+			}
+		}
     }
 
     float max_secs_since_last_sent_frame = 10.0; //should be > keep alive amount (5 secs)
@@ -4304,6 +4303,7 @@ void MonitorStream::runStream()
             }
         }
     }
+	if ( swap_path ) free( swap_path );
     closeComms();
 }
 

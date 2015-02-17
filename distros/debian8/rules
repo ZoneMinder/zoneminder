@@ -38,12 +38,12 @@ BRANCH = $(shell git rev-parse --abbrev-ref HEAD)
 HEAD = $(shell git rev-parse HEAD)
 PKD  = $(abspath $(dir $(MAKEFILE_LIST)))
 PKG  = $(word 2,$(shell dpkg-parsechangelog -l$(PKD)/changelog | grep ^Source))
-VER ?= $(shell dpkg-parsechangelog -l$(PKD)/changelog | perl -ne 'print $$1 if m{^Version:\s+(?:\d+:)?(\d.*)(?:\-\d+.*)};')
+VER ?= $(shell dpkg-parsechangelog -l$(PKD)/changelog | perl -ne 'print $$1 if m{^Version:\s+(?:\d+:)?(\d.*)(?:\-|\+nmu\d+.*)};')
 DTYPE =
 TARBALL = ../$(PKG)_$(VER)$(DTYPE).orig.tar.xz
 
 %:
-	dh $@ --with quilt,autoreconf,systemd
+	dh $@ --with autoreconf,systemd
 
 override_dh_auto_configure:
 	CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)" dh_auto_configure -- \
@@ -72,39 +72,46 @@ override_dh_clean:
 	done || true
 
 override_dh_install:
+	dh_install --fail-missing
 	#
 	# NOTE: This is a short-term kludge; hopefully changes in the next
 	# upstream version will render this unnecessary.
 	rm -rf debian/zoneminder/usr/share/zoneminder/events
 	rm -rf debian/zoneminder/usr/share/zoneminder/images
 	rm -rf debian/zoneminder/usr/share/zoneminder/temp
-	dh_link var/cache/zoneminder/events usr/share/zoneminder/events
-	dh_link var/cache/zoneminder/images usr/share/zoneminder/images
-	dh_link var/cache/zoneminder/temp usr/share/zoneminder/temp
-
+	# The link stuff for these folders has been moved to
+	# zoneminder-core.links file
 	#
-	# This is a slightly lesser kludge; moving the cgi stuff to 
+	# This is a slightly lesser kludge; moving the cgi stuff to
 	# /usr/share/zoneminder/cgi-bin breaks one set of behavior,
-	# having it just in /usr/lib/cgi-bin breaks another bit of 
+	# having it just in /usr/lib/cgi-bin breaks another bit of
 	# behavior.
-	#
-	dh_link usr/lib/cgi-bin usr/share/zoneminder/cgi-bin
+	# The link stuff for /usr/share/zoneminder/cgi-bin has been moved to
+	# zoneminder-ui-base.links file
 
-	dh_install --fail-missing
+override_dh_installinit:
+	dh_installinit --package=zoneminder-core --name=zoneminder
+
+override_dh_systemd_start:
+	dh_systemd_start --package=zoneminder-core --name=zoneminder \
+	  --restart-after-upgrade
+
+override_dh_systemd_enable:
+	dh_systemd_enable --package=zoneminder-core --name=zoneminder
 
 override_dh_fixperms:
 	dh_fixperms
-	chown root:root debian/zoneminder/etc/zm/zm.conf
+	#
+	# As requested by the Debian Webapps Policy Manual §3.2.1
+	chown root:www-data debian/zoneminder-core/etc/zm/zm.conf
+	chmod 640 debian/zoneminder-core/etc/zm/zm.conf
 
 override_dh_auto_test:
 	# do not run tests...
 
-override_dh_systemd_start:
-	dh_systemd_start --restart-after-upgrade
-
 .PHONY: override_dh_strip
 override_dh_strip:
-	dh_strip --dbg-package=zoneminder-dbg
+	dh_strip --dbg-package=zoneminder-core-dbg
 
 # Inspired by https://wiki.debian.org/onlyjob/get-orig-source
 .PHONY: get-orig-source

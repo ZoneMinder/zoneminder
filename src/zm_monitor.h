@@ -155,11 +155,11 @@ protected:
 
     //TODO: Technically we can't exclude this struct when people don't have avformat as the Memory.pm module doesn't know about avformat
 #if 1
-    //sizeOf(VideoStoreData) expected to be what??
+    //sizeOf(VideoStoreData) expected to be 4104 bytes on 32bit and 64bit
 	typedef struct
     {
         uint32_t size;
-        char event_directory[4096];
+        char event_file[4096];
         uint32_t recording; //bool arch dependent so use uint32 instead
         //uint32_t frameNumber;
     
@@ -295,7 +295,7 @@ protected:
 
 	SharedData		*shared_data;
 	TriggerData		*trigger_data;
-    	VideoStoreData  *video_store_data;
+    	VideoStoreData          *video_store_data;
 
 	Snapshot		*image_buffer;
 	Snapshot		next_buffer; /* Used by four field deinterlacing */

@@ -69,6 +69,7 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 my $report = 0;
 my $interactive = 0;
 my $continuous = 0;
+my $version;
 
 sub usage
 {
@@ -78,6 +79,7 @@ Parameters are :-
 -r, --report                    - Just report don't actually do anything
 -i, --interactive               - Ask before applying any changes
 -c, --continuous                - Run continuously
+-v, --version					- Print the installed version of ZoneMinder
 ");
     exit( -1 );
 }
@@ -89,14 +91,18 @@ sub deleteSwapImage();
 logInit();
 logSetSignal();
 
-if ( !GetOptions( 'report'=>\$report, 'interactive'=>\$interactive, 'continuous'=>\$continuous ) )
+if ( !GetOptions( report=>\$report, interactive=>\$interactive, continuous=>\$continuous, version=>\$version ) )
 {
     usage();
 }
 
+if ( $version ) {
+	print( ZoneMinder::Base::ZM_VERSION . "\n");
+	exit(0);
+}
 if ( ($report + $interactive + $continuous) > 1 )
 {
-    print( STDERR "Error, only option may be specified\n" );
+    print( STDERR "Error, only one option may be specified\n" );
     usage();
 }
 
@@ -142,9 +148,7 @@ MAIN: while( $loop ) {
             $db_events->{$event->{Id}} = $event->{Age};
         }
         Debug( "Got ".int(keys(%$db_events))." events\n" );
-        $eventSelectSth->finish();
     }
-    $monitorSelectSth->finish();
 
     my $fs_monitors;
     foreach my $monitor ( <[0-9]*> )
@@ -326,7 +330,6 @@ MAIN: while( $loop ) {
             $cleaned = 1;
         }
     }
-    $selectOrphanedEventsSth->finish();
     redo MAIN if ( $cleaned );
 
     # Remove empty events (with no frames)
@@ -343,7 +346,6 @@ MAIN: while( $loop ) {
             $cleaned = 1;
         }
     }
-    $selectEmptyEventsSth->finish();
     redo MAIN if ( $cleaned );
 
     # Remove orphaned frame records
@@ -360,7 +362,6 @@ MAIN: while( $loop ) {
             $cleaned = 1;
         }
     }
-    $selectOrphanedFramesSth->finish();
     redo MAIN if ( $cleaned );
 
     # Remove orphaned stats records
@@ -377,7 +378,6 @@ MAIN: while( $loop ) {
             $cleaned = 1;
         }
     }
-    $selectOrphanedStatsSth->finish();
     redo MAIN if ( $cleaned );
 
     # New audit to close any events that were left open for longer than MIN_AGE seconds
@@ -394,7 +394,6 @@ MAIN: while( $loop ) {
             $res = $updateUnclosedEventsSth->execute( sprintf( "%s%d%s", $event->{Prefix}, $event->{Id}, RECOVER_TAG ), $event->{EndTime}, $event->{Length}, $event->{Frames}, $event->{AlarmFrames}, $event->{TotScore}, $event->{AlarmFrames}?int($event->{TotScore}/$event->{AlarmFrames}):0, $event->{MaxScore}, RECOVER_TEXT, $event->{Id} ) or Fatal( "Can't execute: ".$updateUnclosedEventsSth->errstr() );
         }
     }
-    $selectUnclosedEventsSth->finish();
 
     # Now delete any old image files
     if ( my @old_files = grep { -M > $max_image_age } <$image_path/*.{jpg,gif,wbmp}> )
@@ -420,7 +419,6 @@ MAIN: while( $loop ) {
             $res = $selectLogRowCountSth->execute() or Fatal( "Can't execute: ".$selectLogRowCountSth->errstr() );
             my $row = $selectLogRowCountSth->fetchrow_hashref();
             my $logRows = $row->{Rows};
-            $selectLogRowCountSth->finish();
             if ( $logRows > $Config{ZM_LOG_DATABASE_LIMIT} )
             {
                 my $deleteLogByRowsSql = "delete low_priority from Logs order by TimeKey asc limit ?";

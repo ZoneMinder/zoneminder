@@ -34,15 +34,15 @@ xhtmlHeaders(__FILE__, $SLANG['RunState'] );
 <body>
   <div id="page">
     <div id="header">
-      <h2><?= $SLANG['RunState'] ?></h2>
+      <h2><?php echo $SLANG['RunState'] ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="get" action="<?= $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
 <?php
 if ( empty($_REQUEST['apply']) )
 {
 ?>
-        <input type="hidden" name="view" value="<?= $view ?>"/>
+        <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value=""/>
         <input type="hidden" name="apply" value="1"/>
         <p>
@@ -51,14 +51,14 @@ if ( empty($_REQUEST['apply']) )
     if ( $running )
     {
 ?>
-            <option value="stop" selected="selected"><?= $SLANG['Stop'] ?></option>
-            <option value="restart"><?= $SLANG['Restart'] ?></option>
+            <option value="stop" selected="selected"><?php echo $SLANG['Stop'] ?></option>
+            <option value="restart"><?php echo $SLANG['Restart'] ?></option>
 <?php
     }
     else
     {
 ?>
-            <option value="start" selected="selected"><?= $SLANG['Start'] ?></option>
+            <option value="start" selected="selected"><?php echo $SLANG['Start'] ?></option>
 <?php
     }
 ?>
@@ -66,7 +66,7 @@ if ( empty($_REQUEST['apply']) )
     foreach ( $states as $state )
     {
 ?>
-            <option value="<?= $state['Name'] ?>"><?= $state['Name'] ?></option>
+            <option value="<?php echo $state['Name'] ?>"><?php echo $state['Name'] ?></option>
 <?php
     }
 ?>
@@ -75,16 +75,16 @@ if ( empty($_REQUEST['apply']) )
         <table id="contentTable" class="minor" cellspacing="0">
           <tbody>
             <tr>
-              <th scope="row"><?= $SLANG['NewState'] ?></th>
+              <th scope="row"><?php echo $SLANG['NewState'] ?></th>
               <td><input type="text" name="newState" value="" size="16" onchange="checkState( this );"/></td>
             </tr>
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="submit" value="<?= $SLANG['Apply'] ?>"/>
-          <input type="button" name="saveBtn" value="<?= $SLANG['Save'] ?>" disabled="disabled" onclick="saveState( this );"/>
-          <input type="button" name="deleteBtn" value="<?= $SLANG['Delete'] ?>" disabled="disabled" onclick="deleteState( this );"/>
-          <input type="button" value="<?= $SLANG['Cancel'] ?>" onclick="closeWindow()"/>
+          <input type="submit" value="<?php echo $SLANG['Apply'] ?>"/>
+          <input type="button" name="saveBtn" value="<?php echo $SLANG['Save'] ?>" disabled="disabled" onclick="saveState( this );"/>
+          <input type="button" name="deleteBtn" value="<?php echo $SLANG['Delete'] ?>" disabled="disabled" onclick="deleteState( this );"/>
+          <input type="button" value="<?php echo $SLANG['Cancel'] ?>" onclick="closeWindow()"/>
         </div>
 <?php
 }
@@ -93,9 +93,9 @@ else
 ?>
         <input type="hidden" name="view" value="none"/>
         <input type="hidden" name="action" value="state"/>
-        <input type="hidden" name="runState" value="<?= validHtmlStr($_REQUEST['runState']) ?>"/>
-        <p><?= $SLANG['ApplyingStateChange'] ?></p>
-        <p><?= $SLANG['PleaseWait'] ?></p>
+        <input type="hidden" name="runState" value="<?php echo validHtmlStr($_REQUEST['runState']) ?>"/>
+        <p><?php echo $SLANG['ApplyingStateChange'] ?></p>
+        <p><?php echo $SLANG['PleaseWait'] ?></p>
 <?php
 }
 ?>

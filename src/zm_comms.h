@@ -22,6 +22,7 @@
 
 #include "zm_exception.h"
 
+#include <string.h>
 #include <unistd.h>
 #include <netdb.h>
 #include <errno.h>
@@ -29,6 +30,12 @@
 
 #include <set>
 #include <vector>
+
+#if defined(BSD)
+#include <sys/uio.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#endif
 
 class CommsException : public Exception
 {

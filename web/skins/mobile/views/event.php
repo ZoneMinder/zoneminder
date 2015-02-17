@@ -114,19 +114,19 @@ if ( canEdit( 'Events' ) )
 {
 ?>
       <div id="headerButtons">
-        <a href="?view=events&amp;action=delete&amp;mark_eid=<?= $_REQUEST['eid'] ?><?= $filterQuery ?><?= $sortQuery ?>&amp;limit=<?= $_REQUEST['limit'] ?>&amp;page=<?= $_REQUEST['page'] ?>"><?= $SLANG['Delete'] ?></a>
+        <a href="?view=events&amp;action=delete&amp;mark_eid=<?php echo $_REQUEST['eid'] ?><?php echo $filterQuery ?><?php echo $sortQuery ?>&amp;limit=<?php echo $_REQUEST['limit'] ?>&amp;page=<?php echo $_REQUEST['page'] ?>"><?php echo $SLANG['Delete'] ?></a>
       </div>
 <?php
 }
 ?>
-      <h2><?= makeLink( '?view=eventdetails&amp;eid='.$_REQUEST['eid'], $event['Name'].($event['Archived']?'*':''), canEdit( 'Events' ) ) ?></h2>
+      <h2><?php echo makeLink( '?view=eventdetails&amp;eid='.$_REQUEST['eid'], $event['Name'].($event['Archived']?'*':''), canEdit( 'Events' ) ) ?></h2>
     </div>
     <div id="content">
 <?php
 if ( $pagination )
 {
 ?>
-      <h3 class="pagination"><?= $pagination ?></h3>
+      <h3 class="pagination"><?php echo $pagination ?></h3>
 <?php
 }
 ?>
@@ -136,7 +136,7 @@ foreach ( $frames as $frame )
 {
     $imageData = getImageSrc( $event, $frame, $scale );
 ?>
-       <a href="?view=frame&amp;eid=<?= $_REQUEST['eid'] ?>&amp;fid=<?= $frame['FrameId'] ?>"><img src="<?= viewImagePath( $imageData['thumbPath'] ) ?>" class="<?= $imageData['imageClass'] ?>" alt="<?= $frame['Type'] ?>/<?= $frame['Type']=='Alarm'?$frame['Score']:0 ?>"/></a>
+       <a href="?view=frame&amp;eid=<?php echo $_REQUEST['eid'] ?>&amp;fid=<?php echo $frame['FrameId'] ?>"><img src="<?php echo viewImagePath( $imageData['thumbPath'] ) ?>" class="<?php echo $imageData['imageClass'] ?>" alt="<?php echo $frame['Type'] ?>/<?php echo $frame['Type']=='Alarm'?$frame['Score']:0 ?>"/></a>
 <?php
 }
 ?>

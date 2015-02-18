@@ -1,93 +1,92 @@
-<h2>Monitor List</h2>
-		<div ng-show="fresh" class="alert alert-warning">
-			<p><strong>Uh-oh!</strong>  You have no monitors!  Why not <a class="alert-link" href="/?view=monitor">add</a> one?</p>
+<div ng-show="fresh">
+	<div class="alert alert-warning">
+		<p><strong>Uh-oh!</strong>  You have no monitors!  Why not <a class="alert-link" href="/?view=monitor">add</a> one?</p>
+	</div>'
+</div> <!-- End ng-show fresh -->
+
+<div ng-hide="fresh">
+	<div class="row">
+		<div class="col-md-1 col-md-offset-10">
+			<select ng-model="consoleLayout" ng-show="grid" ng-change="updateLayout()">
+				<option value="1">1 per row</option>
+				<option value="2">2 per row</option>
+				<option value="3">3 per row</option>
+				<option value="4">4 per row</option>
+				<option value="5">5 per row</option>
+				<option value="6">6 per row</option>
+				<option value="7">7 per row</option>
+				<option value="8">8 per row</option>
+				<option value="9">9 per row</option>
+				<option value="10">10 per row</option>
+				<option value="11">11 per row</option>
+				<option value="12">12 per row</option>
+			</select>
 		</div>
-
-		<div class="row" ng-hide="fresh">
-			<div class="col-md-1 col-md-offset-10">
-				<select ng-model="consoleLayout" ng-show="grid" ng-change="updateLayout()">
-					<option value="1">1 per row</option>
-					<option value="2">2 per row</option>
-					<option value="3">3 per row</option>
-					<option value="4">4 per row</option>
-					<option value="5">5 per row</option>
-					<option value="6">6 per row</option>
-					<option value="7">7 per row</option>
-					<option value="8">8 per row</option>
-					<option value="9">9 per row</option>
-					<option value="10">10 per row</option>
-					<option value="11">11 per row</option>
-					<option value="12">12 per row</option>
-				</select>
-			</div>
-			<div class="col-md-1 text-right">
-				<button ng-click="consoleView()" class="btn btn-default btn-lg" type="button">
-					<span class="glyphicon" ng-class="gridButton"></span>
-				</button>
-			</div>
+		<div class="col-md-1 text-right">
+			<button ng-click="consoleView()" class="btn btn-default btn-lg" type="button">
+				<span class="glyphicon" ng-class="gridButton"></span>
+			</button>
 		</div>
+	</div>
 
-		<div ng-show="grid" ng-hide="fresh">
-			<div class="row" ng-repeat="monitors in rows">
-				<div ng-repeat="monitor in monitors" class="col-md-{{columnSize}}">
-				<div  class="monitor panel" ng-class="(monitor.alerts.zmc || monitor.alerts.zma) ? 'panel-default' : 'panel-danger'">
+	<div ng-show="grid" class="row" ng-repeat="monitors in rows">
+		<div ng-repeat="monitor in monitors" class="col-md-{{columnSize}}">
+			<div  class="monitor panel" ng-class="(monitor.alerts.zmc || monitor.alerts.zma) ? 'panel-default' : 'panel-danger'">
 
-					<div class="panel-heading">
-						<a ng-hide="(monitor.alerts.zmc || monitor.alerts.zma)" class="pull-right" href="#" tooltip="{{ monitor.alert }}">
-							<span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
-						</a>
-						<h2 class="text-left panel-title">{{ monitor.Name }}</h2>
-					</div> <!-- End .panel-heading -->
-					
-					<div class="panel-body center-block">
-						<img class="img-responsive img-rounded" ng-src="/cgi-bin/nph-zms?mode=single&monitor={{monitor.Id}}" />
-					</div> <!-- End .panel-body -->
+				<div class="panel-heading">
+					<a ng-hide="(monitor.alerts.zmc || monitor.alerts.zma)" class="pull-right" href="#" tooltip="{{ monitor.alert }}">
+						<span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+					</a>
+					<h2 class="text-left panel-title">{{ monitor.Name }}</h2>
+				</div> <!-- End .panel-heading -->
+				
+				<div class="panel-body center-block">
+					<img class="img-responsive img-rounded" ng-src="/cgi-bin/nph-zms?mode=single&monitor={{monitor.Id}}" />
+				</div> <!-- End .panel-body -->
 
-				</div> <!-- End .monitor -->
-				</div>
-			</div>
+			</div> <!-- End .monitor -->
 		</div>
+	</div>
 
+	<div class="row" ng-hide="grid">
+		<div class="col-md-12">
+			<table class="table table-striped">
+				<tr>
+					<th>Id</th>
+					<th>Name</th>
+					<th class="col-md-1">Function</th>
+					<th>Source</th>
+					<th>Enabled</th>
+					<th>Zones</th>
+					<th>Delete</th>
+				</tr>
 
-		<div class="row" ng-hide="grid">
-			<div class="col-md-12">
-				<table class="table table-striped">
+				<tr ng-repeat="monitor in monitors">
+					<td ng-bind="monitor.Id"></td>
+					<td><a ui-sref="monitor.detail.general({mid:monitor.Id})">{{monitor.Name}}</a></td>
+					<td class="col-md-1">
+						<label class="sr-only">Function</label>
+						<select id="function{{monitor.Id}}" ng-model="monitor.Function" class="form-control" ng-change="saveMonitor(monitor)">
+							<option value="None">None</option>
+							<option value="Monitor">Monitor</option>
+							<option value="Modect">Modect</option>
+							<option value="Record">Record</option>
+							<option value="Mocord">Mocord</option>
+							<option value="Nodect">Nodect</option>
+						</select>
+					</td>
+					<td ng-bind="monitor.Type"></td>
+					<td ng-bind="monitor.Enabled"></td>
+					<td ng-bind="monitor.Zones"></td>
+					<td><button type="button" class="btn btn-danger btn-sm" ng-click="delete($index)">{{ monitor.deleteText }}</button></td>
+				</tr>
+				<tfoot>
 					<tr>
-						<th>Id</th>
-						<th>Name</th>
-						<th class="col-md-1">Function</th>
-						<th>Source</th>
-						<th>Enabled</th>
-						<th>Zones</th>
-						<th>Delete</th>
+						<td colspan="7"><a ui-sref="monitor.detail.general">Add New Monitor</a></td>
 					</tr>
+				</tfoot>
+			</table>
 
-					<tr ng-repeat="monitor in monitors">
-						<td ng-bind="monitor.Id"></td>
-						<td><a ui-sref="monitor.detail.general({mid:monitor.Id})">{{monitor.Name}}</a></td>
-						<td class="col-md-1">
-							<label class="sr-only">Function</label>
-							<select id="function{{monitor.Id}}" ng-model="monitor.Function" class="form-control" ng-change="saveMonitor(monitor)">
-								<option value="None">None</option>
-								<option value="Monitor">Monitor</option>
-								<option value="Modect">Modect</option>
-								<option value="Record">Record</option>
-								<option value="Mocord">Mocord</option>
-								<option value="Nodect">Nodect</option>
-							</select>
-						</td>
-						<td ng-bind="monitor.Type"></td>
-						<td ng-bind="monitor.Enabled"></td>
-						<td ng-bind="monitor.Zones"></td>
-						<td><button type="button" class="btn btn-danger btn-sm" ng-click="delete($index)">{{ monitor.deleteText }}</button></td>
-					</tr>
-					<tfoot>
-						<tr>
-							<td colspan="7"><a ui-sref="monitor.detail.general">Add New Monitor</a></td>
-						</tr>
-					</tfoot>
-				</table>
-
-			</div>
 		</div>
-
+	</div>
+</div> <!-- end ng-hide fresh -->

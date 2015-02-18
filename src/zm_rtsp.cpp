@@ -211,7 +211,11 @@ RtspThread::~RtspThread()
 {
     if ( mFormatContext )
     {
+#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(52, 96, 0)
         avformat_free_context( mFormatContext );
+#else
+        av_free_format_context( mFormatContext );
+#endif
         mFormatContext = NULL;
     }
     if ( mSessDesc )

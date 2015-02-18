@@ -44,9 +44,6 @@
 			<label for="">Alarm RefImageBlendPct</label>
 			<input type="text" class="form-control" ng-model="monitor.AlarmRefBlendPerc" value="6" />
 		</div>
-		<div class="form-group">
-			<label for="">RefImageBlendPct</label>
-		</div>
 		<div class="form-group" ng-show="monitor.Type == 'Local'">
 			<label for="MaxFPS">MaximumFPS</label>
 			<input type="text" id="MaxFPS" class="form-control" ng-model="monitor.MaxFPS" />
@@ -59,7 +56,7 @@
 
 	<div class="col-md-4">
 		<div class="form-group">
- 			<label for=""><?= "Target Colorspace" ?></label>
+ 			<label for="">Target Colorspace</label>
 			<select required class="form-control" ng-model="monitor.Colours">
 				<option value="1">8 Bit Grey</option>
 				<option value="3">24 Bit Color</option>

@@ -405,7 +405,7 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 		/* Unable to find a solution for the selected palette and target colourspace. Conversion required. Notify the user of performance penalty */
 		} else {
 			if( capture )
-				Info("No direct match for the selected palette and target colorspace. Format conversion is required, performance penalty expected");
+				Info("No direct match for the selected palette (%c%c%c%c) and target colorspace (%d). Format conversion is required, performance penalty expected", (capturePixFormat)&0xff,((capturePixFormat>>8)&0xff),((capturePixFormat>>16)&0xff),((capturePixFormat>>24)&0xff), colours );
 #if HAVE_LIBSWSCALE
 			/* Try using swscale for the conversion */
 			conversion_type = 1; 
@@ -1281,16 +1281,17 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
 
                 if ( vidioctl( vid_fd, VIDIOC_ENUMSTD, &standard ) < 0 )
                 {
-                    if ( errno == EINVAL || errno == ENODATA )
+                    if ( errno == EINVAL || errno == ENODATA || errno == ENOTTY )
                     {
+                        Debug( 6, "Done enumerating standard %d: %d %s", standard.index, errno, strerror(errno) );
                         standardIndex = -1;
                         break;
                     }
                     else
                     {
-                        Error( "Failed to enumerate standard %d: %s", standard.index, strerror(errno) );
+                        Error( "Failed to enumerate standard %d: %d %s", standard.index, errno, strerror(errno) );
                         if ( verbose )
-                            sprintf( output, "Error, failed to enumerate standard %d: %s\n", standard.index, strerror(errno) );
+                            sprintf( output, "Error, failed to enumerate standard %d: %d %s\n", standard.index, errno, strerror(errno) );
                         else
                             sprintf( output, "error%d\n", errno );
                         return( false );

@@ -50,8 +50,9 @@ ZoneMinder.config(function($stateProvider, $urlRouterProvider) {
 			// This state is a child of 'monitor'.  The URL will end up being like:
 			// '/monitor/{mid:[0-9]{1,4}}'.  When the URL becomes something like '/monitor/7',
 			// this state will become active.
-			url: '/{mid:[0-9]{1,4}}',
-			templateUrl: '/views/monitor.detail.html'
+			url: '/detail/{mid:[0-9]{1,4}}',
+			templateUrl: '/views/monitor.detail.html',
+			controller: 'MonitorController'
 		})
 
 		////////////////////////////

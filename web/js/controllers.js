@@ -203,11 +203,9 @@ ZoneMinder.controller('EventController', function($scope, Event, $modalInstance,
 	};
 });
 
-ZoneMinder.controller('MonitorController', function($scope, $http, $location, Monitor, Console) {
-	// If mid is set, we're editing a monitor.  Else, we're adding one.
-	var mid = $location.search().mid;
-	if (mid) {
-		Monitor.getMonitor(mid).then(function(results) {
+ZoneMinder.controller('MonitorController', function($scope, $state, $http, Monitor, Console) {
+	if ($state.params.mid) {
+		Monitor.getMonitor($state.params.mid).then(function(results) {
 			$scope.monitor = results.data.monitor.Monitor;
 		});
 	} else {

@@ -292,7 +292,7 @@ unset($output);
 $arp_command = '';
 $result = exec( 'type -p arp', $output, $status );
 if ( $status ) {
-    Warning( "Unable to determine path for arp command, type -p arp returned '$status'" );
+    Warning( "Unable to determine path for arp command, type -p arp returned '$status' output is: " . implode( "\n", $output ) );
     unset($output);
     $result = exec( 'which arp', $output, $status );
     if ( $status ) {

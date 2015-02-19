@@ -143,9 +143,13 @@ rm -rf %{_docdir}/%{name}-%{version}
 %{_bindir}/zmcamtool.pl
 %{_bindir}/zmsystemctl.pl
 %{_bindir}/zmx10.pl
+%{_bindir}/zmonvif-probe.pl
 
 %{perl_vendorlib}/ZoneMinder*
 %{perl_vendorlib}/%{_arch}-linux-thread-multi/auto/ZoneMinder*
+#%{perl_vendorlib}/ONVIF*
+#%{perl_vendorlib}/WSDiscovery*
+#%{perl_vendorlib}/WSSecurity*
 %{_mandir}/man*/*
 %dir %{_libexecdir}/%{name}
 %{_libexecdir}/%{name}/cgi-bin
@@ -166,6 +170,9 @@ rm -rf %{_docdir}/%{name}-%{version}
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/spool/zoneminder-upload
 
 %changelog
+* Wed Feb 18 2015 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.28.1 
+- Include ONVIF support files
+
 * Sun Oct 5 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.28.0 
 - Bump version for 1.28.0 release.
 

@@ -70,7 +70,7 @@ else
 
 $skins = array_map( 'basename', glob('skins/*',GLOB_ONLYDIR) );
 if ( ! in_array( $skin, $skins ) ) {
-	Fatal( "Invalid skin '$skin'" );
+	Error( "Invalid skin '$skin'" );
 	$skin = 'classic';
 }
 
@@ -85,7 +85,7 @@ else
 
 $css_skins = array_map( 'basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR) );
 if ( ! in_array( $css, $css_skins ) ) {
-	Fatal( "Invalid skin css '$css'" );
+	Error( "Invalid skin css '$css'" );
 	$css = 'classic';
 }
 

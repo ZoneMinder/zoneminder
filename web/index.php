@@ -63,7 +63,7 @@ if ( isset($_GET['skin']) )
     $skin = $_GET['skin'];
 elseif ( isset($_COOKIE['zmSkin']) )
     $skin = $_COOKIE['zmSkin'];
-elseif ( ZM_SKIN_DEFAULT )
+elseif ( defined(ZM_SKIN_DEFAULT) )
 	$skin = ZM_SKIN_DEFAULT;
 else
     $skin = "classic";

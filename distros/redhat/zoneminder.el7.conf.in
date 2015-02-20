@@ -9,20 +9,34 @@
 # internal site which needs no authentication, you need to delete the line
 # marked below and restart Apache.
 
-Alias /zm "/usr/share/zoneminder/www"
-<Directory "/usr/share/zoneminder/www">
-    Options -Indexes MultiViews FollowSymLinks
+Alias /zm "@ZM_WEBDIR@"
+<Directory "@ZM_WEBDIR@">
+    Options -Indexes +MultiViews +FollowSymLinks
     AllowOverride All
-    Order allow,deny
-    Allow from all
+    <IfModule mod_authz_core.c>
+       # Apache 2.4
+       Require all granted
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        # Apache 2.2
+        Order deny,allow
+        Allow from all
+    </IfModule>
     # ZoneMinder no longer uses short tags so this is safe to leave disabled
     # php_value short_open_tag 1
 </Directory>
 
-ScriptAlias /cgi-bin/zm "/usr/libexec/zoneminder/cgi-bin"
-<Directory "/usr/libexec/zoneminder/cgi-bin">
+ScriptAlias /cgi-bin-zm "@ZM_CGIDIR@"
+<Directory "@ZM_CGIDIR@">
     AllowOverride All
     Options ExecCGI
-    Order allow,deny
-    Allow from all
+    <IfModule mod_authz_core.c>
+       # Apache 2.4
+       Require all granted
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        # Apache 2.2
+        Order deny,allow
+        Allow from all
+    </IfModule>
 </Directory>

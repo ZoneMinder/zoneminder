@@ -290,37 +290,42 @@ unset($output);
 // Calling arp without the full path was reported to fail on some systems
 // Use the builtin unix command "type" to tell us where the command is
 $arp_command = '';
-$result = exec( 'type -p arp', $output, $status );
-if ( $status ) {
-    Warning( "Unable to determine path for arp command, type -p arp returned '$status' output is: " . implode( "\n", $output ) );
-    unset($output);
-    $result = exec( 'which arp', $output, $status );
-    if ( $status ) {
-        Warning( "Unable to determine path for arp command, which arp returned '$status'" );
-        if ( file_exists( '/usr/sbin/arp' ) ) {
-            $arp_command = '/usr/sbin/arp';
-        }
-    } else {
-        $arp_command = $output[0];
-    }
+$result = explode( " ", ZM_PATH_ARP );
+if ( !is_executable( $result[0] ) ) {
+	if ( ZM_PATH_ARP ) {
+		Warning( "User assigned ARP tool not found. Verify ZM_PATH_ARP points to a valid arp tool and is executable by the web user account."  );
+	}
+	$result = exec( 'type -p arp', $output, $status );
+	if ( $status ) {
+	    Warning( "Unable to determine path for arp command, type -p arp returned '$status' output is: " . implode( "\n", $output ) );
+	    unset($output);
+	    $result = exec( 'which arp', $output, $status );
+	    if ( $status ) {
+	        Warning( "Unable to determine path for arp command, which arp returned '$status'" );
+	        if ( file_exists( '/usr/sbin/arp' ) ) {
+	            $arp_command = '/usr/sbin/arp -a';
+	        }
+	    } else {
+	        $arp_command = $output[0]." -a";
+	    }
+	} else {
+	    $arp_command = $output[0]." -a";
+	}
 } else {
-    $arp_command = $output[0];
+	$arp_command = ZM_PATH_ARP;
 }
 // Now that we know where arp is, call it using the full path
-$command = $arp_command." -a";
 unset($output);
-$result = exec( escapeshellcmd($command), $output, $status );
+$result = exec( escapeshellcmd($arp_command), $output, $status );
 if ( $status )
     Fatal( "Unable to probe network cameras, status is '$status'" );
 foreach ( $output as $line )
 {
-    if ( !preg_match( '/^(\S+) \(([\d.]+)\) at ([0-9a-f:]+)/', $line, $matches ) )
+    if ( !preg_match( '/^.*([\d.]+).*([0-9a-f:]+).*/', $line, $matches ) )
         continue;
-    $host = $matches[1];
-    $ip = $matches[2];
-    if ( !$host || $host == '?' )
-        $host = $ip;
-    $mac = $matches[3];
+    $ip = $matches[1];
+    $host = $ip;
+    $mac = $matches[2];
     //echo "I:$ip, H:$host, M:$mac<br/>";
     $macRoot = substr($mac,0,8);
     if ( isset($macBases[$macRoot]) )

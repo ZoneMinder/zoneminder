@@ -438,6 +438,12 @@ if(NOT ZM_NO_MMAP)
 	set(ZM_MMAP_PERLPACKAGE "Sys::Mmap")
 endif(NOT ZM_NO_MMAP)
 
+# Check for the ONVIF flag and enable ZM_HAS_ONVIF accordingly
+set(ZM_HAS_ONVIF 0)
+if(ZM_ONVIF)
+	set(ZM_HAS_ONVIF 1)
+endif(ZM_ONVIF)
+
 # Check for authenication functions
 if(HAVE_OPENSSL_MD5_H)
 	set(CMAKE_REQUIRED_LIBRARIES "${OPENSSL_LIBRARIES}")

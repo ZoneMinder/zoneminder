@@ -286,28 +286,24 @@ $macBases = array(
     '78:a5:dd' => array( 'type'=>'Wansview','probeFunc'=>'probeWansview' )
 );
 
-unset($output);
-// Calling arp without the full path was reported to fail on some systems
-// Use the builtin unix command "type" to tell us where the command is
-$command = "type -p arp";
-$result = exec( escapeshellcmd($command), $output, $status );
-if ( $status )
-    Fatal( "Unable to determine path for arp command, type -p arp returned '$status'" );
-// Now that we know where arp is, call it using the full path
-$command = $output[0]." -a";
+$result = explode( " ", ZM_PATH_ARP );
+if ( !is_executable( $result[0] ) )
+	Fatal( "ARP tool not found. Verify ZM_PATH_ARP points to a valid arp tool, and it is marked executable." );
+
+$command = ZM_PATH_ARP;
+
 unset($output);
 $result = exec( escapeshellcmd($command), $output, $status );
 if ( $status )
     Fatal( "Unable to probe network cameras, status is '$status'" );
 foreach ( $output as $line )
 {
-    if ( !preg_match( '/^(\S+) \(([\d.]+)\) at ([0-9a-f:]+)/', $line, $matches ) )
+    if ( !preg_match( '/^.*([\d.]+).*([0-9a-f:]+).*/', $line, $matches ) )
         continue;
-    $host = $matches[1];
-    $ip = $matches[2];
-    if ( !$host || $host == '?' )
-        $host = $ip;
-    $mac = $matches[3];
+    $ip = $matches[1];
+	// $host could be assigned by DNS reverse lookup for old behavior
+    $host = $ip;
+    $mac = $matches[2];
     //echo "I:$ip, H:$host, M:$mac<br/>";
     $macRoot = substr($mac,0,8);
     if ( isset($macBases[$macRoot]) )

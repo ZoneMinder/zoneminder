@@ -276,6 +276,11 @@ AM_CONDITIONAL([COND_ONVIF], [test "$enable_onvif" = yes])
 
 # Compiler
 AC_LANG_CPLUSPLUS
+if test "$ENABLE_ONVIF" == "yes"; then
+  AC_SUBST(ZM_HAS_ONVIF,1)
+else
+  AC_SUBST(ZM_HAS_ONVIF,0)
+fi
 
 # Checks for programs.
 AC_PROG_CXX

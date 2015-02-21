@@ -405,7 +405,11 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 		/* Unable to find a solution for the selected palette and target colourspace. Conversion required. Notify the user of performance penalty */
 		} else {
 			if( capture )
+#if HAVE_LIBSWSCALE
 				Info("No direct match for the selected palette (%c%c%c%c) and target colorspace (%d). Format conversion is required, performance penalty expected", (capturePixFormat)&0xff,((capturePixFormat>>8)&0xff),((capturePixFormat>>16)&0xff),((capturePixFormat>>24)&0xff), colours );
+#else
+				Info("No direct match for the selected palette and target colorspace. Format conversion is required, performance penalty expected");
+#endif
 #if HAVE_LIBSWSCALE
 			/* Try using swscale for the conversion */
 			conversion_type = 1; 

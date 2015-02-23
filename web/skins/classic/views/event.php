@@ -31,7 +31,7 @@ $sql = 'SELECT E.*,M.Name AS MonitorName,M.Width,M.Height,M.DefaultRate,M.Defaul
 $sql_values = array( $eid );
 
 if ( $user['MonitorIds'] ) {
-    $monitor_ids = preg_split( '/,/', $user['MonitorIds'] );
+    $monitor_ids = explode( ',', $user['MonitorIds'] );
     $sql .= ' AND MonitorId IN (' .implode( ',', array_fill(0,count($monitor_ids),'?') ) . ')';
     $sql_values = array_merge( $sql_values, $monitor_ids );
 }

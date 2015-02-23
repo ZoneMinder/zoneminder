@@ -143,7 +143,7 @@ rm -rf %{_docdir}/%{name}-%{version}
 %{_bindir}/zmcamtool.pl
 %{_bindir}/zmsystemctl.pl
 %{_bindir}/zmx10.pl
-%{_bindir}/zmonvif-probe.pl
+#%{_bindir}/zmonvif-probe.pl
 
 %{perl_vendorlib}/ZoneMinder*
 %{perl_vendorlib}/%{_arch}-linux-thread-multi/auto/ZoneMinder*

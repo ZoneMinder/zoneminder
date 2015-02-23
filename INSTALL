@@ -82,6 +82,7 @@ Basic steps for installing ZoneMinder on a fresh system
 -------------------------------------------------------
 1) After installing all the required dependencies, in the project directory, run "cmake [extra options] ."
 This behaves like ./configure. It is also possible to supply configuration options, e.g. cmake -DZM_DB_PASS="mypass" .
+IMPORTANT: Don't forget the dot "." at the end.
 2) Run "make" to compile ZoneMinder
 3) Run "make install" (as root, or use sudo) to install ZoneMinder to your system.
 4) Create a directory for the content and the necessary symlinks by running zmlinkcontent.sh with the directory you want to use. e.g. ./zmlinkcontent.sh /nfs/zm

@@ -24,13 +24,17 @@ if ( !canView( 'Events' ) )
     return;
 }
 
-if ( !empty($user['MonitorIds']) )
-    $midSql = " and MonitorId in (".join( ",", preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) ).")";
-else
-    $midSql = '';
+$eid = validInt($_REQUEST['eid']);
 
-$sql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultRate,M.DefaultScale FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = ?'.$midSql;
-$event = dbFetchOne( $sql, NULL, array( $_REQUEST['eid'] ) );
+$sql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultRate,M.DefaultScale FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = ?';
+$sql_values = array( $eid );
+
+if ( $user['MonitorIds'] ) {
+    $monitor_ids = explode( ',', $user['MonitorIds'] );
+    $sql .= ' AND MonitorId IN (' .implode( ',', array_fill(0,count($monitor_ids),'?') ) . ')';
+    $sql_values = array_merge( $sql_values, $monitor_ids );
+}
+$event = dbFetchOne( $sql, NULL, $sql_values );
 
 if ( isset( $_REQUEST['rate'] ) )
     $rate = validInt($_REQUEST['rate']);

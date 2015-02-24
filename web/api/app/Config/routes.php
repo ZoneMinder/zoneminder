@@ -31,6 +31,7 @@
 	Router::mapResources('host');
 	Router::mapResources('logs');
 	Router::mapResources('states');
+	Router::mapResources('zonepresets');
 	Router::parseExtensions();
 
 /**

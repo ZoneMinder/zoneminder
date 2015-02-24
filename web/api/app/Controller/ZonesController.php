@@ -49,6 +49,23 @@ class ZonesController extends AppController {
 		));
 	}
 
+// Find all zones which belong to a MonitorId
+	public function forMonitor($id = null) {
+		$this->loadModel('Monitor');
+		if (!$this->Monitor->exists($id)) {
+			throw new NotFoundException(__('Invalid monitor'));
+		}
+
+		$this->Zone->recursive = -1;
+
+		$zones = $this->Zone->find('all', array(
+			'conditions' => array('MonitorId' => $id)
+		));
+		$this->set(array(
+			'zones' => $zones,
+			'_serialize' => array('zones')
+		));
+	}
 /**
  * add method
  *

@@ -32,8 +32,20 @@ class Timer
 private:
     class TimerException : public Exception
     {
+    private:
+        pid_t pid() {
+		pid_t tid;
+#ifdef __FreeBSD__
+		long lwpid;
+		thr_self(&lwpid);
+		tid = lwpid;
+#else
+		tid=syscall(SYS_gettid);
+#endif
+		return tid;
+        }
     public:
-        TimerException( const std::string &message ) : Exception( stringtf( "(%d) "+message, (long int)syscall(SYS_gettid) ) )
+        TimerException( const std::string &message ) : Exception( stringtf( "(%d) "+message, (long int)pid() ) )
         {
         }
     };

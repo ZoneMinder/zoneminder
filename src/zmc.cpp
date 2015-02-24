@@ -19,10 +19,14 @@
 
 #include <getopt.h>
 #include <signal.h>
-#if defined(BSD)
+#if defined(__FreeBSD__)
 #include <limits.h>
 #else
 #include <values.h>
+#endif
+
+#if !defined(MAXINT)
+#define MAXINT INT_MAX
 #endif
 
 #include "zm.h"

@@ -23,6 +23,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#ifdef __FreeBSD__
+#include <execinfo.h>
+#endif
 
 #define TRACE_SIZE 16
 

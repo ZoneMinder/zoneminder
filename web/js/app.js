@@ -83,6 +83,38 @@ ZoneMinder.config(function($stateProvider, $urlRouterProvider) {
 			templateUrl: '/views/monitor.detail.misc.html'
 		})
 
+		///////////////////////////
+		// Zones - Edit and List //
+		///////////////////////////
+		.state('zones', {
+			url: '/zones/{mid:[0-9]{1,4}}',
+			templateUrl: '/views/zones.html',
+			resolve: {
+				mid: function($stateParams) {
+					return {  value: $stateParams.mid };
+				},
+				zones: function(Zones, $stateParams) {
+					return Zones.getZones($stateParams.mid);
+				}
+			},
+			controller: function($scope, mid, zones) {
+				$scope.mid = mid.value;
+				$scope.zones = zones.data.zones;
+			}
+		})
+		.state('zones.edit', {
+			url: '/edit/{zid:[0-9]{1,4}}',
+			templateUrl: '/views/zones.edit.html',
+			resolve: {
+				zone: function(Zones, $stateParams) {
+					return Zones.getZone($stateParams.zid);
+				}
+			},
+			controller: function($scope, zone) {
+				$scope.zone = zone.data.zone.Zone;
+			}
+		})
+
 
 		.state('events', {
 			url: '/events',
@@ -238,6 +270,20 @@ ZoneMinder.factory('Config', function($http) {
 		},
 		findByName: function(name) {
 			return $http.get('/api/configs/viewByName/'+name+'.json')
+		}
+	};
+});
+
+ZoneMinder.factory('Zones', function($http) {
+	return {
+		getZones: function(mid) {
+			return $http.get('/api/zones/forMonitor/'+mid+'.json')
+		},
+		getZone: function(zid) {
+			return $http.get('/api/zones/'+zid+'.json')
+		},
+		createZoneImage: function(mid) {
+			return $http.post('/api/zones/createZoneImage/'+mid+'.json');
 		}
 	};
 });

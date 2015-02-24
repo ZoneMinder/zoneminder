@@ -426,3 +426,6 @@ ZoneMinder.controller('HostController', function($scope, Host) {
 	});
 
 });
+
+ZoneMinder.controller('ZonesController', function($scope, Zones) {
+});

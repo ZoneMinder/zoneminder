@@ -1551,8 +1551,19 @@ bool Monitor::Analyse()
                                     }
                                     if ( config.record_event_stats && state == ALARM )
                                     {
-                                        zones[i]->RecordStats( event );
+					std::string note("Alarm");
+					struct timeval * p_timestamp = snap->timestamp;
+                                        zones[i]->RecordStats( event, note, *p_timestamp );
                                     }
+				    else
+				    {
+                                        if ( config.record_event_stats )
+                                        {
+				    	    std::string note("Idle");
+				    	    struct timeval * p_timestamp = snap->timestamp;
+                                            zones[i]->RecordStats( event, note, *p_timestamp );
+                                        }
+				    }
                                 }
                             }
                             if ( got_anal_image )
@@ -1578,7 +1589,18 @@ bool Monitor::Analyse()
                                 {
                                     if ( config.record_event_stats && state == ALARM )
                                     {
-                                        zones[i]->RecordStats( event );
+					std::string note("Alarm");
+					struct timeval * p_timestamp = snap->timestamp;
+                                        zones[i]->RecordStats( event, note, *p_timestamp );
+                                    }
+				    else
+				    {
+                                        if ( config.record_event_stats )
+                                        {
+				    	    std::string note("Idle");
+				    	    struct timeval * p_timestamp = snap->timestamp;
+                                            zones[i]->RecordStats( event, note, *p_timestamp );
+                                        }
                                     }
                                 }
                             }

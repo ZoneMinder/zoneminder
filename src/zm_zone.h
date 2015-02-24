@@ -143,7 +143,7 @@ public:
 		max_blob_size = 0;
 		score = 0;
 	}
-	void RecordStats( const Event *event );
+	void RecordStats( const Event *event, std::string const& note, timeval & timestamp );
 	bool CheckAlarms( const Image *delta_image );
 	bool DumpSettings( char *output, bool verbose );
 

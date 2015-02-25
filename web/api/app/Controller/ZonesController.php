@@ -4,50 +4,8 @@ App::uses('AppController', 'Controller');
  * Zones Controller
  *
  * @property Zone $Zone
- * @property PaginatorComponent $Paginator
  */
 class ZonesController extends AppController {
-
-/**
- * Components
- *
- * @var array
- */
-	public $components = array('Paginator', 'RequestHandler');
-
-/**
- * index method
- *
- * @return void
- */
-	public function index() {
-		$this->Zone->recursive = -1;
-        	$zones = $this->Zone->find('all');
-        	$this->set(array(
-        	    'zones' => $zones,
-        	    '_serialize' => array('zones')
-        	));
-	}
-
-/**
- * view method
- *
- * @throws NotFoundException
- * @param string $id
- * @return void
- */
-	public function view($id = null) {
-		$this->Zone->recursive = -1;
-		if (!$this->Zone->exists($id)) {
-			throw new NotFoundException(__('Invalid zone'));
-		}
-		$options = array('conditions' => array('Zone.' . $this->Zone->primaryKey => $id));
-		$zone = $this->Zone->find('first', $options);
-		$this->set(array(
-			'zone' => $zone,
-			'_serialize' => array('zone')
-		));
-	}
 
 // Find all zones which belong to a MonitorId
 	public function forMonitor($id = null) {

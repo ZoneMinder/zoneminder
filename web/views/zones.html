@@ -1,19 +1,19 @@
-<table class="table-responsive">
-<table class="table table-striped table-condensed">
-	<tr>
-		<th>Name</th>
-		<th>Type</th>
-		<th>Area</th>
-		<th>Delete</th>
-	</tr>
-	<tr ng-repeat="zone in zones">
-		<td><a ui-sref="zones.edit({zid:zone.Zone.Id})">{{ zone.Zone.Name }}</a></td>
-		<td>{{ zone.Zone.Type }}</td>
-		<td>{{ zone.Zone.Area }}</td>
-		<td><button type="button" class="btn btn-sm btn-danger">Delete</button></td>
-	</tr>
-
-</table>
+<div class="table-responsive">
+	<table class="table table-striped table-condensed">
+		<tr>
+			<th>Name</th>
+			<th>Type</th>
+			<th>Area</th>
+			<th>Delete</th>
+		</tr>
+		<tr ng-repeat="zone in zones">
+			<td><a ui-sref="zones.edit({zid:zone.Zone.Id})">{{ zone.Zone.Name }}</a></td>
+			<td>{{ zone.Zone.Type }}</td>
+			<td>{{ zone.Zone.Area }}</td>
+			<td><button type="button" class="btn btn-sm btn-danger">Delete</button></td>
+		</tr>
+	
+	</table>
 </div>
 
 <div ui-view></div>

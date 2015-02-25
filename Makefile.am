@@ -10,12 +10,17 @@ zmconfigdir = @ZM_CONFIG_DIR@
 zmconfig_DATA = \
 	zm.conf
 
+if COND_ONVIF
+   MAYBE_ONVIF = onvif
+endif
+
 SUBDIRS = \
 	src \
 	web \
 	scripts \
 	db \
-	misc
+	misc \
+ 	$(MAYBE_ONVIF)
 
 EXTRA_DIST = \
 	zm.conf.in \

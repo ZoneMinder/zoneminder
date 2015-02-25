@@ -63,19 +63,31 @@ if ( isset($_GET['skin']) )
     $skin = $_GET['skin'];
 elseif ( isset($_COOKIE['zmSkin']) )
     $skin = $_COOKIE['zmSkin'];
-elseif ( ZM_SKIN_DEFAULT )
+elseif ( defined(ZM_SKIN_DEFAULT) )
 	$skin = ZM_SKIN_DEFAULT;
 else
     $skin = "classic";
+
+$skins = array_map( 'basename', glob('skins/*',GLOB_ONLYDIR) );
+if ( ! in_array( $skin, $skins ) ) {
+	Error( "Invalid skin '$skin'" );
+	$skin = 'classic';
+}
 
 if ( isset($_GET['css']) )
 	$css = $_GET['css'];
 elseif ( isset($_COOKIE['zmCSS']) )
 	$css = $_COOKIE['zmCSS'];
-elseif (ZM_CSS_DEFAULT)
+elseif (defined(ZM_CSS_DEFAULT))
 	$css = ZM_CSS_DEFAULT;
 else
 	$css = "classic";
+
+$css_skins = array_map( 'basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR) );
+if ( ! in_array( $css, $css_skins ) ) {
+	Error( "Invalid skin css '$css'" );
+	$css = 'classic';
+}
 
 define( "ZM_BASE_PATH", dirname( $_SERVER['REQUEST_URI'] ) );
 define( "ZM_SKIN_PATH", "skins/$skin" );

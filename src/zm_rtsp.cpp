@@ -211,7 +211,11 @@ RtspThread::~RtspThread()
 {
     if ( mFormatContext )
     {
+#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(52, 96, 0)
         avformat_free_context( mFormatContext );
+#else
+        av_free_format_context( mFormatContext );
+#endif
         mFormatContext = NULL;
     }
     if ( mSessDesc )
@@ -366,6 +370,22 @@ int RtspThread::run()
     size_t sdpStart = response.find( endOfHeaders );
     if( sdpStart == std::string::npos )
         return( -1 );
+
+    std::string DescHeader = response.substr( 0,sdpStart );
+    Debug( 1, "Processing DESCRIBE response header '%s'", DescHeader.c_str() );
+
+    lines = split( DescHeader, "\r\n" );
+    for ( size_t i = 0; i < lines.size(); i++ )
+    	{
+    		// If the device sends us a url value for Content-Base in the response header, we should use that instead
+    		if ( ( lines[i].size() > 13 ) && ( lines[i].substr( 0, 13 ) == "Content-Base:" ) )
+    			{
+    				mUrl = trimSpaces( lines[i].substr( 13 ) );
+    				Info("Recieved new Content-Base in DESCRIBE reponse header. Updated device Url to: '%s'", mUrl.c_str() );
+    				break;
+    			}
+    	}
+
     sdpStart += endOfHeaders.length();
 
     std::string sdp = response.substr( sdpStart );

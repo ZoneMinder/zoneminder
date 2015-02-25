@@ -1,6 +1,12 @@
-zoneminder (1.28.0+1-trusty-SNAPSHOT2014121201) trusty; urgency=medium
+zoneminder (1.28.0+1-trusty-SNAPSHOT2015021201) trusty; urgency=medium
 
-  * Merge of security fixes and a few other things. See github for more info.
+  * add mysql-client-5.6 as a dependency instaed of mysql-client.  
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Fri, 13 Feb 2015 09:35:13 -0500
+
+zoneminder (1.28.0+1-trusty-SNAPSHOT2015011101) trusty; urgency=medium
+
+  * small changes
 
  -- Isaac Connor <iconnor@connortechnology.com>  Fri, 12 Dec 2014 16:38:36 -0500
 

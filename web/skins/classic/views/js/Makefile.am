@@ -32,6 +32,7 @@ dist_web_DATA = \
 	monitorprobe.js \
 	montage.js \
 	montage.js.php \
+  onvifprobe.js \
 	options.js.php \
 	plugin.js \
 	plugin.js.php \

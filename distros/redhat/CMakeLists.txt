@@ -1,10 +1,18 @@
 # CMakeLists.txt for the Redhat/CentOS Target Distro.
 
+# Display a message to show the RHEL build options are being processed.
+message([STATUS] "Starting RHEL Build Options" ...)
+
 # Create the zoneminder service file
 if(ZM_TARGET_DISTRO STREQUAL "el7")
 	configure_file(zoneminder.service.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.service @ONLY)
+	configure_file(zoneminder.el7.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.el7.conf @ONLY)
+	configure_file(zoneminder.tmpfiles.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.tmpfiles @ONLY)
+	configure_file(zoneminder.el7.logrotate.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.el7.logrotate @ONLY)
 else(ZM_TARGET_DISTRO STREQUAL "el7")
-	configure_file(zoneminder.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder @ONLY)
+	configure_file(zoneminder.sysvinit.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.sysvinit @ONLY)
+	configure_file(zoneminder.el6.logrotate.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.el6.logrotate @ONLY)
+	configure_file(zoneminder.el6.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.el6.conf @ONLY)
 endif(ZM_TARGET_DISTRO STREQUAL "el7")
 
 # Download jscalendar & move files into position
@@ -54,7 +62,7 @@ if(ZM_TARGET_DISTRO STREQUAL "el7")
 else(ZM_TARGET_DISTRO STREQUAL "el7")
 	install(FILES zoneminder.el6.conf DESTINATION /etc/httpd/conf.d RENAME zoneminder.conf PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
 	install(FILES zoneminder.el6.logrotate DESTINATION /etc/logrotate.d RENAME zoneminder PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
-	install(FILES zoneminder DESTINATION /etc/rc.d/init.d PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
+	install(FILES zoneminder.sysvinit DESTINATION /etc/rc.d/init.d RENAME zoneminder PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
 endif(ZM_TARGET_DISTRO STREQUAL "el7")
 
 # Install jscalendar

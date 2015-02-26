@@ -78,3 +78,7 @@ body { padding-top: 70px; }
 	padding-right: 5px;
 	padding-left: 5px;
 }
+
+body {
+	background-color: #F5F5F5;
+}

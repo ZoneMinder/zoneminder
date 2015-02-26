@@ -1,0 +1,175 @@
+<div class="form-group">
+  <label for="ZM_OPT_UPLOAD" class=
+  "control-label col-md-4">ZM_OPT_UPLOAD</label>
+
+  <div class="col-md-6">
+    <input id="ZM_OPT_UPLOAD" type="checkbox" ng-change=
+    "updateConfig('83', 'ZM_OPT_UPLOAD')" ng-model=
+    "myModel.configData['ZM_OPT_UPLOAD']" ng-true-value="'1'"
+    ng-false-value="'0'">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_UPLOAD_ARCH_ANALYSE" class=
+  "control-label col-md-4">ZM_UPLOAD_ARCH_ANALYSE</label>
+
+  <div class="col-md-6">
+    <input id="ZM_UPLOAD_ARCH_ANALYSE" type="checkbox" ng-change=
+    "updateConfig('86', 'ZM_UPLOAD_ARCH_ANALYSE')" ng-model=
+    "myModel.configData['ZM_UPLOAD_ARCH_ANALYSE']" ng-true-value=
+    "'1'" ng-false-value="'0'">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_UPLOAD_ARCH_COMPRESS" class=
+  "control-label col-md-4">ZM_UPLOAD_ARCH_COMPRESS</label>
+
+  <div class="col-md-6">
+    <input id="ZM_UPLOAD_ARCH_COMPRESS" type="checkbox" ng-change=
+    "updateConfig('85', 'ZM_UPLOAD_ARCH_COMPRESS')" ng-model=
+    "myModel.configData['ZM_UPLOAD_ARCH_COMPRESS']" ng-true-value=
+    "'1'" ng-false-value="'0'">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_UPLOAD_ARCH_FORMAT" class=
+  "control-label col-md-4">ZM_UPLOAD_ARCH_FORMAT</label>
+
+  <div class="col-md-6">
+    <select id="ZM_UPLOAD_ARCH_FORMAT" ng-change=
+    "updateConfig('84', 'ZM_UPLOAD_ARCH_FORMAT')" class=
+    "form-control" ng-model=
+    "myModel.configData['ZM_UPLOAD_ARCH_FORMAT']">
+      <option value="tar">
+        tar
+      </option>
+
+      <option value="zip">
+        zip
+      </option>
+    </select>
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_UPLOAD_DEBUG" class=
+  "control-label col-md-4">ZM_UPLOAD_DEBUG</label>
+
+  <div class="col-md-6">
+    <input id="ZM_UPLOAD_DEBUG" type="checkbox" ng-change=
+    "updateConfig('103', 'ZM_UPLOAD_DEBUG')" ng-model=
+    "myModel.configData['ZM_UPLOAD_DEBUG']" ng-true-value="'1'"
+    ng-false-value="'0'">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_UPLOAD_FTP_PASSIVE" class=
+  "control-label col-md-4">ZM_UPLOAD_FTP_PASSIVE</label>
+
+  <div class="col-md-6">
+    <input id="ZM_UPLOAD_FTP_PASSIVE" type="checkbox" ng-change=
+    "updateConfig('101', 'ZM_UPLOAD_FTP_PASSIVE')" ng-model=
+    "myModel.configData['ZM_UPLOAD_FTP_PASSIVE']" ng-true-value=
+    "'1'" ng-false-value="'0'">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_UPLOAD_HOST" class=
+  "control-label col-md-4">ZM_UPLOAD_HOST</label>
+
+  <div class="col-md-6">
+    <input id="ZM_UPLOAD_HOST" type="text" ng-change=
+    "updateConfig('89', 'ZM_UPLOAD_HOST')" ng-model=
+    "myModel.configData['ZM_UPLOAD_HOST']" class="form-control">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_UPLOAD_LOC_DIR" class=
+  "control-label col-md-4">ZM_UPLOAD_LOC_DIR</label>
+
+  <div class="col-md-6">
+    <input id="ZM_UPLOAD_LOC_DIR" type="text" ng-change=
+    "updateConfig('96', 'ZM_UPLOAD_LOC_DIR')" ng-model=
+    "myModel.configData['ZM_UPLOAD_LOC_DIR']" class="form-control">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_UPLOAD_PASS" class=
+  "control-label col-md-4">ZM_UPLOAD_PASS</label>
+
+  <div class="col-md-6">
+    <input id="ZM_UPLOAD_PASS" type="text" ng-change=
+    "updateConfig('94', 'ZM_UPLOAD_PASS')" ng-model=
+    "myModel.configData['ZM_UPLOAD_PASS']" class="form-control">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_UPLOAD_PORT" class=
+  "control-label col-md-4">ZM_UPLOAD_PORT</label>
+
+  <div class="col-md-6">
+    <input id="ZM_UPLOAD_PORT" type="text" ng-change=
+    "updateConfig('90', 'ZM_UPLOAD_PORT')" ng-model=
+    "myModel.configData['ZM_UPLOAD_PORT']" class="form-control">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_UPLOAD_PROTOCOL" class=
+  "control-label col-md-4">ZM_UPLOAD_PROTOCOL</label>
+
+  <div class="col-md-6">
+    <select id="ZM_UPLOAD_PROTOCOL" ng-change=
+    "updateConfig('87', 'ZM_UPLOAD_PROTOCOL')" class="form-control"
+    ng-model="myModel.configData['ZM_UPLOAD_PROTOCOL']">
+      <option value="ftp">
+        ftp
+      </option>
+
+      <option value="sftp">
+        sftp
+      </option>
+    </select>
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_UPLOAD_REM_DIR" class=
+  "control-label col-md-4">ZM_UPLOAD_REM_DIR</label>
+
+  <div class="col-md-6">
+    <input id="ZM_UPLOAD_REM_DIR" type="text" ng-change=
+    "updateConfig('98', 'ZM_UPLOAD_REM_DIR')" ng-model=
+    "myModel.configData['ZM_UPLOAD_REM_DIR']" class="form-control">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_UPLOAD_TIMEOUT" class=
+  "control-label col-md-4">ZM_UPLOAD_TIMEOUT</label>
+
+  <div class="col-md-6">
+    <input id="ZM_UPLOAD_TIMEOUT" type="text" ng-change=
+    "updateConfig('100', 'ZM_UPLOAD_TIMEOUT')" ng-model=
+    "myModel.configData['ZM_UPLOAD_TIMEOUT']" class="form-control">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_UPLOAD_USER" class=
+  "control-label col-md-4">ZM_UPLOAD_USER</label>
+
+  <div class="col-md-6">
+    <input id="ZM_UPLOAD_USER" type="text" ng-change=
+    "updateConfig('92', 'ZM_UPLOAD_USER')" ng-model=
+    "myModel.configData['ZM_UPLOAD_USER']" class="form-control">
+  </div>
+</div><!-- End .form-group -->

@@ -1,0 +1,59 @@
+<div class="container" ng-controller="ConfigController">
+  <div class="row">
+    <div class="col-md-2">
+      <ul class="nav nav-pills nav-stacked" role="tablist">
+        <li role="presentation"><a ui-sref="options.images"
+        aria-controls="images" role="tab">images</a></li>
+
+        <li role="presentation"><a ui-sref="options.system"
+        aria-controls="system" role="tab">system</a></li>
+
+        <li role="presentation"><a ui-sref="options.config"
+        aria-controls="config" role="tab">config</a></li>
+
+        <li role="presentation"><a ui-sref="options.paths"
+        aria-controls="paths" role="tab">paths</a></li>
+
+        <li role="presentation"><a ui-sref="options.logging"
+        aria-controls="logging" role="tab">logging</a></li>
+
+        <li role="presentation"><a ui-sref="options.dynamic"
+        aria-controls="dynamic" role="tab">dynamic</a></li>
+
+        <li role="presentation"><a ui-sref="options.mail"
+        aria-controls="mail" role="tab">mail</a></li>
+
+        <li role="presentation"><a ui-sref="options.eyeZm"
+        aria-controls="eyeZm" role="tab">eyeZm</a></li>
+
+        <li role="presentation"><a ui-sref="options.network"
+        aria-controls="network" role="tab">network</a></li>
+
+        <li role="presentation"><a ui-sref="options.upload"
+        aria-controls="upload" role="tab">upload</a></li>
+
+        <li role="presentation"><a ui-sref="options.x10"
+        aria-controls="x10" role="tab">x10</a></li>
+
+        <li role="presentation"><a ui-sref="options.web"
+        aria-controls="web" role="tab">web</a></li>
+
+        <li role="presentation"><a ui-sref="options.highband"
+        aria-controls="highband" role="tab">highband</a></li>
+
+        <li role="presentation"><a ui-sref="options.lowband"
+        aria-controls="lowband" role="tab">lowband</a></li>
+
+        <li role="presentation"><a ui-sref="options.medband"
+        aria-controls="medband" role="tab">medband</a></li>
+
+        <li role="presentation"><a ui-sref="options.phoneband"
+        aria-controls="phoneband" role="tab">phoneband</a></li>
+      </ul>
+    </div><!-- End .col-md-2 -->
+
+    <div class="col-md-10">
+      <div ui-view class="form-horizontal"></div>
+    </div><!-- End .col-md-10 -->
+  </div><!-- End .row -->
+</div>

@@ -1,0 +1,215 @@
+<div class="form-group">
+  <label for="ZM_BULK_FRAME_INTERVAL" class=
+  "control-label col-md-4">ZM_BULK_FRAME_INTERVAL</label>
+
+  <div class="col-md-6">
+    <input id="ZM_BULK_FRAME_INTERVAL" type="text" ng-change=
+    "updateConfig('124', 'ZM_BULK_FRAME_INTERVAL')" ng-model=
+    "myModel.configData['ZM_BULK_FRAME_INTERVAL']" class=
+    "form-control">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_CAPTURES_PER_FRAME" class=
+  "control-label col-md-4">ZM_CAPTURES_PER_FRAME</label>
+
+  <div class="col-md-6">
+    <input id="ZM_CAPTURES_PER_FRAME" type="text" ng-change=
+    "updateConfig('80', 'ZM_CAPTURES_PER_FRAME')" ng-model=
+    "myModel.configData['ZM_CAPTURES_PER_FRAME']" class=
+    "form-control">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_CPU_EXTENSIONS" class=
+  "control-label col-md-4">ZM_CPU_EXTENSIONS</label>
+
+  <div class="col-md-6">
+    <input id="ZM_CPU_EXTENSIONS" type="checkbox" ng-change=
+    "updateConfig('26', 'ZM_CPU_EXTENSIONS')" ng-model=
+    "myModel.configData['ZM_CPU_EXTENSIONS']" ng-true-value="'1'"
+    ng-false-value="'0'">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_CREATE_ANALYSIS_IMAGES" class=
+  "control-label col-md-4">ZM_CREATE_ANALYSIS_IMAGES</label>
+
+  <div class="col-md-6">
+    <input id="ZM_CREATE_ANALYSIS_IMAGES" type="checkbox"
+    ng-change="updateConfig('127', 'ZM_CREATE_ANALYSIS_IMAGES')"
+    ng-model="myModel.configData['ZM_CREATE_ANALYSIS_IMAGES']"
+    ng-true-value="'1'" ng-false-value="'0'">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_DEFAULT_ASPECT_RATIO" class=
+  "control-label col-md-4">ZM_DEFAULT_ASPECT_RATIO</label>
+
+  <div class="col-md-6">
+    <input id="ZM_DEFAULT_ASPECT_RATIO" type="text" ng-change=
+    "updateConfig('130', 'ZM_DEFAULT_ASPECT_RATIO')" ng-model=
+    "myModel.configData['ZM_DEFAULT_ASPECT_RATIO']" class=
+    "form-control">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_EVENT_CLOSE_MODE" class=
+  "control-label col-md-4">ZM_EVENT_CLOSE_MODE</label>
+
+  <div class="col-md-6">
+    <select id="ZM_EVENT_CLOSE_MODE" ng-change=
+    "updateConfig('125', 'ZM_EVENT_CLOSE_MODE')" class=
+    "form-control" ng-model=
+    "myModel.configData['ZM_EVENT_CLOSE_MODE']">
+      <option value="time">
+        time
+      </option>
+
+      <option value="idle">
+        idle
+      </option>
+
+      <option value="alarm">
+        alarm
+      </option>
+    </select>
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_EVENT_IMAGE_DIGITS" class=
+  "control-label col-md-4">ZM_EVENT_IMAGE_DIGITS</label>
+
+  <div class="col-md-6">
+    <input id="ZM_EVENT_IMAGE_DIGITS" type="text" ng-change=
+    "updateConfig('129', 'ZM_EVENT_IMAGE_DIGITS')" ng-model=
+    "myModel.configData['ZM_EVENT_IMAGE_DIGITS']" class=
+    "form-control">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_FAST_IMAGE_BLENDS" class=
+  "control-label col-md-4">ZM_FAST_IMAGE_BLENDS</label>
+
+  <div class="col-md-6">
+    <input id="ZM_FAST_IMAGE_BLENDS" type="checkbox" ng-change=
+    "updateConfig('27', 'ZM_FAST_IMAGE_BLENDS')" ng-model=
+    "myModel.configData['ZM_FAST_IMAGE_BLENDS']" ng-true-value=
+    "'1'" ng-false-value="'0'">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_FORCED_ALARM_SCORE" class=
+  "control-label col-md-4">ZM_FORCED_ALARM_SCORE</label>
+
+  <div class="col-md-6">
+    <input id="ZM_FORCED_ALARM_SCORE" type="text" ng-change=
+    "updateConfig('123', 'ZM_FORCED_ALARM_SCORE')" ng-model=
+    "myModel.configData['ZM_FORCED_ALARM_SCORE']" class=
+    "form-control">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_MAX_SUSPEND_TIME" class=
+  "control-label col-md-4">ZM_MAX_SUSPEND_TIME</label>
+
+  <div class="col-md-6">
+    <input id="ZM_MAX_SUSPEND_TIME" type="text" ng-change=
+    "updateConfig('29', 'ZM_MAX_SUSPEND_TIME')" ng-model=
+    "myModel.configData['ZM_MAX_SUSPEND_TIME']" class=
+    "form-control">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_OPT_ADAPTIVE_SKIP" class=
+  "control-label col-md-4">ZM_OPT_ADAPTIVE_SKIP</label>
+
+  <div class="col-md-6">
+    <input id="ZM_OPT_ADAPTIVE_SKIP" type="checkbox" ng-change=
+    "updateConfig('28', 'ZM_OPT_ADAPTIVE_SKIP')" ng-model=
+    "myModel.configData['ZM_OPT_ADAPTIVE_SKIP']" ng-true-value=
+    "'1'" ng-false-value="'0'">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_SIGNAL_CHECK_POINTS" class=
+  "control-label col-md-4">ZM_SIGNAL_CHECK_POINTS</label>
+
+  <div class="col-md-6">
+    <input id="ZM_SIGNAL_CHECK_POINTS" type="text" ng-change=
+    "updateConfig('78', 'ZM_SIGNAL_CHECK_POINTS')" ng-model=
+    "myModel.configData['ZM_SIGNAL_CHECK_POINTS']" class=
+    "form-control">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_STRICT_VIDEO_CONFIG" class=
+  "control-label col-md-4">ZM_STRICT_VIDEO_CONFIG</label>
+
+  <div class="col-md-6">
+    <input id="ZM_STRICT_VIDEO_CONFIG" type="checkbox" ng-change=
+    "updateConfig('77', 'ZM_STRICT_VIDEO_CONFIG')" ng-model=
+    "myModel.configData['ZM_STRICT_VIDEO_CONFIG']" ng-true-value=
+    "'1'" ng-false-value="'0'">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_TIMESTAMP_ON_CAPTURE" class=
+  "control-label col-md-4">ZM_TIMESTAMP_ON_CAPTURE</label>
+
+  <div class="col-md-6">
+    <input id="ZM_TIMESTAMP_ON_CAPTURE" type="checkbox" ng-change=
+    "updateConfig('25', 'ZM_TIMESTAMP_ON_CAPTURE')" ng-model=
+    "myModel.configData['ZM_TIMESTAMP_ON_CAPTURE']" ng-true-value=
+    "'1'" ng-false-value="'0'">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_USER_SELF_EDIT" class=
+  "control-label col-md-4">ZM_USER_SELF_EDIT</label>
+
+  <div class="col-md-6">
+    <input id="ZM_USER_SELF_EDIT" type="checkbox" ng-change=
+    "updateConfig('131', 'ZM_USER_SELF_EDIT')" ng-model=
+    "myModel.configData['ZM_USER_SELF_EDIT']" ng-true-value="'1'"
+    ng-false-value="'0'">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_V4L_MULTI_BUFFER" class=
+  "control-label col-md-4">ZM_V4L_MULTI_BUFFER</label>
+
+  <div class="col-md-6">
+    <input id="ZM_V4L_MULTI_BUFFER" type="checkbox" ng-change=
+    "updateConfig('79', 'ZM_V4L_MULTI_BUFFER')" ng-model=
+    "myModel.configData['ZM_V4L_MULTI_BUFFER']" ng-true-value="'1'"
+    ng-false-value="'0'">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_WEIGHTED_ALARM_CENTRES" class=
+  "control-label col-md-4">ZM_WEIGHTED_ALARM_CENTRES</label>
+
+  <div class="col-md-6">
+    <input id="ZM_WEIGHTED_ALARM_CENTRES" type="checkbox"
+    ng-change="updateConfig('128', 'ZM_WEIGHTED_ALARM_CENTRES')"
+    ng-model="myModel.configData['ZM_WEIGHTED_ALARM_CENTRES']"
+    ng-true-value="'1'" ng-false-value="'0'">
+  </div>
+</div><!-- End .form-group -->

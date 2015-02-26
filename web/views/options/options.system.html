@@ -1,0 +1,279 @@
+<div class="form-group">
+  <label for="ZM_AUDIT_CHECK_INTERVAL" class=
+  "control-label col-md-4">ZM_AUDIT_CHECK_INTERVAL</label>
+
+  <div class="col-md-6">
+    <input id="ZM_AUDIT_CHECK_INTERVAL" type="text" ng-change=
+    "updateConfig('122', 'ZM_AUDIT_CHECK_INTERVAL')" ng-model=
+    "myModel.configData['ZM_AUDIT_CHECK_INTERVAL']" class=
+    "form-control">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_AUTH_HASH_IPS" class=
+  "control-label col-md-4">ZM_AUTH_HASH_IPS</label>
+
+  <div class="col-md-6">
+    <input id="ZM_AUTH_HASH_IPS" type="checkbox" ng-change=
+    "updateConfig('5', 'ZM_AUTH_HASH_IPS')" ng-model=
+    "myModel.configData['ZM_AUTH_HASH_IPS']" ng-true-value="'1'"
+    ng-false-value="'0'">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_AUTH_HASH_LOGINS" class=
+  "control-label col-md-4">ZM_AUTH_HASH_LOGINS</label>
+
+  <div class="col-md-6">
+    <input id="ZM_AUTH_HASH_LOGINS" type="checkbox" ng-change=
+    "updateConfig('6', 'ZM_AUTH_HASH_LOGINS')" ng-model=
+    "myModel.configData['ZM_AUTH_HASH_LOGINS']" ng-true-value="'1'"
+    ng-false-value="'0'">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_AUTH_HASH_SECRET" class=
+  "control-label col-md-4">ZM_AUTH_HASH_SECRET</label>
+
+  <div class="col-md-6">
+    <input id="ZM_AUTH_HASH_SECRET" type="text" ng-change=
+    "updateConfig('4', 'ZM_AUTH_HASH_SECRET')" ng-model=
+    "myModel.configData['ZM_AUTH_HASH_SECRET']" class=
+    "form-control">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_AUTH_RELAY" class=
+  "control-label col-md-4">ZM_AUTH_RELAY</label>
+
+  <div class="col-md-6">
+    <select id="ZM_AUTH_RELAY" ng-change=
+    "updateConfig('3', 'ZM_AUTH_RELAY')" class="form-control"
+    ng-model="myModel.configData['ZM_AUTH_RELAY']">
+      <option value="hashed">
+        hashed
+      </option>
+
+      <option value="plain">
+        plain
+      </option>
+
+      <option value="none">
+        none
+      </option>
+    </select>
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_AUTH_TYPE" class=
+  "control-label col-md-4">ZM_AUTH_TYPE</label>
+
+  <div class="col-md-6">
+    <select id="ZM_AUTH_TYPE" ng-change=
+    "updateConfig('2', 'ZM_AUTH_TYPE')" class="form-control"
+    ng-model="myModel.configData['ZM_AUTH_TYPE']">
+      <option value="builtin">
+        builtin
+      </option>
+
+      <option value="remote">
+        remote
+      </option>
+    </select>
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_CHECK_FOR_UPDATES" class=
+  "control-label col-md-4">ZM_CHECK_FOR_UPDATES</label>
+
+  <div class="col-md-6">
+    <input id="ZM_CHECK_FOR_UPDATES" type="checkbox" ng-change=
+    "updateConfig('136', 'ZM_CHECK_FOR_UPDATES')" ng-model=
+    "myModel.configData['ZM_CHECK_FOR_UPDATES']" ng-true-value=
+    "'1'" ng-false-value="'0'">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_FILTER_EXECUTE_INTERVAL" class=
+  "control-label col-md-4">ZM_FILTER_EXECUTE_INTERVAL</label>
+
+  <div class="col-md-6">
+    <input id="ZM_FILTER_EXECUTE_INTERVAL" type="text" ng-change=
+    "updateConfig('82', 'ZM_FILTER_EXECUTE_INTERVAL')" ng-model=
+    "myModel.configData['ZM_FILTER_EXECUTE_INTERVAL']" class=
+    "form-control">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_FILTER_RELOAD_DELAY" class=
+  "control-label col-md-4">ZM_FILTER_RELOAD_DELAY</label>
+
+  <div class="col-md-6">
+    <input id="ZM_FILTER_RELOAD_DELAY" type="text" ng-change=
+    "updateConfig('81', 'ZM_FILTER_RELOAD_DELAY')" ng-model=
+    "myModel.configData['ZM_FILTER_RELOAD_DELAY']" class=
+    "form-control">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_FRAME_SOCKET_SIZE" class=
+  "control-label col-md-4">ZM_FRAME_SOCKET_SIZE</label>
+
+  <div class="col-md-6">
+    <input id="ZM_FRAME_SOCKET_SIZE" type="text" ng-change=
+    "updateConfig('133', 'ZM_FRAME_SOCKET_SIZE')" ng-model=
+    "myModel.configData['ZM_FRAME_SOCKET_SIZE']" class=
+    "form-control">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_LANG_DEFAULT" class=
+  "control-label col-md-4">ZM_LANG_DEFAULT</label>
+
+  <div class="col-md-6">
+    <input id="ZM_LANG_DEFAULT" type="text" ng-change=
+    "updateConfig('0', 'ZM_LANG_DEFAULT')" ng-model=
+    "myModel.configData['ZM_LANG_DEFAULT']" class="form-control">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_MAX_RESTART_DELAY" class=
+  "control-label col-md-4">ZM_MAX_RESTART_DELAY</label>
+
+  <div class="col-md-6">
+    <input id="ZM_MAX_RESTART_DELAY" type="text" ng-change=
+    "updateConfig('118', 'ZM_MAX_RESTART_DELAY')" ng-model=
+    "myModel.configData['ZM_MAX_RESTART_DELAY']" class=
+    "form-control">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_OPT_CONTROL" class=
+  "control-label col-md-4">ZM_OPT_CONTROL</label>
+
+  <div class="col-md-6">
+    <input id="ZM_OPT_CONTROL" type="checkbox" ng-change=
+    "updateConfig('134', 'ZM_OPT_CONTROL')" ng-model=
+    "myModel.configData['ZM_OPT_CONTROL']" ng-true-value="'1'"
+    ng-false-value="'0'">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_OPT_FAST_DELETE" class=
+  "control-label col-md-4">ZM_OPT_FAST_DELETE</label>
+
+  <div class="col-md-6">
+    <input id="ZM_OPT_FAST_DELETE" type="checkbox" ng-change=
+    "updateConfig('76', 'ZM_OPT_FAST_DELETE')" ng-model=
+    "myModel.configData['ZM_OPT_FAST_DELETE']" ng-true-value="'1'"
+    ng-false-value="'0'">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_OPT_FRAME_SERVER" class=
+  "control-label col-md-4">ZM_OPT_FRAME_SERVER</label>
+
+  <div class="col-md-6">
+    <input id="ZM_OPT_FRAME_SERVER" type="checkbox" ng-change=
+    "updateConfig('132', 'ZM_OPT_FRAME_SERVER')" ng-model=
+    "myModel.configData['ZM_OPT_FRAME_SERVER']" ng-true-value="'1'"
+    ng-false-value="'0'">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_OPT_TRIGGERS" class=
+  "control-label col-md-4">ZM_OPT_TRIGGERS</label>
+
+  <div class="col-md-6">
+    <input id="ZM_OPT_TRIGGERS" type="checkbox" ng-change=
+    "updateConfig('135', 'ZM_OPT_TRIGGERS')" ng-model=
+    "myModel.configData['ZM_OPT_TRIGGERS']" ng-true-value="'1'"
+    ng-false-value="'0'">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_OPT_USE_AUTH" class=
+  "control-label col-md-4">ZM_OPT_USE_AUTH</label>
+
+  <div class="col-md-6">
+    <input id="ZM_OPT_USE_AUTH" type="checkbox" ng-change=
+    "updateConfig('1', 'ZM_OPT_USE_AUTH')" ng-model=
+    "myModel.configData['ZM_OPT_USE_AUTH']" ng-true-value="'1'"
+    ng-false-value="'0'">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_RUN_AUDIT" class=
+  "control-label col-md-4">ZM_RUN_AUDIT</label>
+
+  <div class="col-md-6">
+    <input id="ZM_RUN_AUDIT" type="checkbox" ng-change=
+    "updateConfig('121', 'ZM_RUN_AUDIT')" ng-model=
+    "myModel.configData['ZM_RUN_AUDIT']" ng-true-value="'1'"
+    ng-false-value="'0'">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_SHM_KEY" class=
+  "control-label col-md-4">ZM_SHM_KEY</label>
+
+  <div class="col-md-6">
+    <input id="ZM_SHM_KEY" type="text" ng-change=
+    "updateConfig('138', 'ZM_SHM_KEY')" ng-model=
+    "myModel.configData['ZM_SHM_KEY']" class="form-control">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_UPDATE_CHECK_PROXY" class=
+  "control-label col-md-4">ZM_UPDATE_CHECK_PROXY</label>
+
+  <div class="col-md-6">
+    <input id="ZM_UPDATE_CHECK_PROXY" type="text" ng-change=
+    "updateConfig('137', 'ZM_UPDATE_CHECK_PROXY')" ng-model=
+    "myModel.configData['ZM_UPDATE_CHECK_PROXY']" class=
+    "form-control">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_WATCH_CHECK_INTERVAL" class=
+  "control-label col-md-4">ZM_WATCH_CHECK_INTERVAL</label>
+
+  <div class="col-md-6">
+    <input id="ZM_WATCH_CHECK_INTERVAL" type="text" ng-change=
+    "updateConfig('119', 'ZM_WATCH_CHECK_INTERVAL')" ng-model=
+    "myModel.configData['ZM_WATCH_CHECK_INTERVAL']" class=
+    "form-control">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_WATCH_MAX_DELAY" class=
+  "control-label col-md-4">ZM_WATCH_MAX_DELAY</label>
+
+  <div class="col-md-6">
+    <input id="ZM_WATCH_MAX_DELAY" type="text" ng-change=
+    "updateConfig('120', 'ZM_WATCH_MAX_DELAY')" ng-model=
+    "myModel.configData['ZM_WATCH_MAX_DELAY']" class=
+    "form-control">
+  </div>
+</div><!-- End .form-group -->

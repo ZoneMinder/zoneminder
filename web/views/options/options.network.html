@@ -1,0 +1,62 @@
+<div class="form-group">
+  <label for="ZM_HTTP_TIMEOUT" class=
+  "control-label col-md-4">ZM_HTTP_TIMEOUT</label>
+
+  <div class="col-md-6">
+    <input id="ZM_HTTP_TIMEOUT" type="text" ng-change=
+    "updateConfig('34', 'ZM_HTTP_TIMEOUT')" ng-model=
+    "myModel.configData['ZM_HTTP_TIMEOUT']" class="form-control">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_HTTP_UA" class=
+  "control-label col-md-4">ZM_HTTP_UA</label>
+
+  <div class="col-md-6">
+    <input id="ZM_HTTP_UA" type="text" ng-change=
+    "updateConfig('33', 'ZM_HTTP_UA')" ng-model=
+    "myModel.configData['ZM_HTTP_UA']" class="form-control">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_HTTP_VERSION" class=
+  "control-label col-md-4">ZM_HTTP_VERSION</label>
+
+  <div class="col-md-6">
+    <select id="ZM_HTTP_VERSION" ng-change=
+    "updateConfig('32', 'ZM_HTTP_VERSION')" class="form-control"
+    ng-model="myModel.configData['ZM_HTTP_VERSION']">
+      <option value="1.1">
+        1.1
+      </option>
+
+      <option value="1.0">
+        1.0
+      </option>
+    </select>
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_MAX_RTP_PORT" class=
+  "control-label col-md-4">ZM_MAX_RTP_PORT</label>
+
+  <div class="col-md-6">
+    <input id="ZM_MAX_RTP_PORT" type="text" ng-change=
+    "updateConfig('36', 'ZM_MAX_RTP_PORT')" ng-model=
+    "myModel.configData['ZM_MAX_RTP_PORT']" class="form-control">
+  </div>
+</div><!-- End .form-group -->
+
+<div class="form-group">
+  <label for="ZM_MIN_RTP_PORT" class=
+  "control-label col-md-4">ZM_MIN_RTP_PORT</label>
+
+  <div class="col-md-6">
+    <input id="ZM_MIN_RTP_PORT" type="text" ng-change=
+    "updateConfig('35', 'ZM_MIN_RTP_PORT')" ng-model=
+    "myModel.configData['ZM_MIN_RTP_PORT']" class="form-control">
+  </div>
+</div><!-- End .form-group -->

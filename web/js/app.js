@@ -120,10 +120,77 @@ ZoneMinder.config(function($stateProvider, $urlRouterProvider) {
 			url: '/events',
 			templateUrl: '/views/events.html'
 		})
+
 		.state('options', {
+			abstract: true,
 			url: '/options',
-			templateUrl: '/views/options.html'
+			templateUrl: '/views/options/options.html'
+		})
+		.state('options.images', {
+		        url: '/images',
+		        templateUrl: '/views/options/options.images.html'
+		})
+		.state('options.system', {
+		        url: '/system',
+		        templateUrl: '/views/options/options.system.html'
+		})
+		.state('options.config', {
+		        url: '/config',
+		        templateUrl: '/views/options/options.config.html'
+		})
+		.state('options.paths', {
+		        url: '/paths',
+		        templateUrl: '/views/options/options.paths.html'
+		})
+		.state('options.logging', {
+		        url: '/logging',
+		        templateUrl: '/views/options/options.logging.html'
+		})
+		.state('options.dynamic', {
+		        url: '/dynamic',
+		        templateUrl: '/views/options/options.dynamic.html'
+		})
+		.state('options.mail', {
+		        url: '/mail',
+		        templateUrl: '/views/options/options.mail.html'
+		})
+		.state('options.eyezm', {
+		        url: '/eyezm',
+		        templateUrl: '/views/options/options.eyezm.html'
+		})
+		.state('options.network', {
+		        url: '/network',
+		        templateUrl: '/views/options/options.network.html'
+		})
+		.state('options.upload', {
+		        url: '/upload',
+		        templateUrl: '/views/options/options.upload.html'
+		})
+		.state('options.x10', {
+		        url: '/x10',
+		        templateUrl: '/views/options/options.x10.html'
+		})
+		.state('options.web', {
+		        url: '/web',
+		        templateUrl: '/views/options/options.web.html'
+		})
+		.state('options.highband', {
+		        url: '/highband',
+		        templateUrl: '/views/options/options.highband.html'
+		})
+		.state('options.lowband', {
+		        url: '/lowband',
+		        templateUrl: '/views/options/options.lowband.html'
+		})
+		.state('options.medband', {
+		        url: '/medband',
+		        templateUrl: '/views/options/options.medband.html'
+		})
+		.state('options.phoneband', {
+		        url: '/phoneband',
+		        templateUrl: '/views/options/options.phoneband.html'
 		});
+
 });
 
 ZoneMinder.config(function(paginationTemplateProvider) {

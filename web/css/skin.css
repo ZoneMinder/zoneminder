@@ -1,4 +1,7 @@
-body { padding-top: 70px; }
+body {
+	padding-top: 70px;
+	background-color: #F5F5F5;
+}
 
 #footer {
 	position: absolute;
@@ -79,6 +82,27 @@ body { padding-top: 70px; }
 	padding-left: 5px;
 }
 
-body {
+#optionsView .form-group {
+	margin-bottom: 5px;
+}
+
+.nav-tabs {
+	border-right: 1px solid #DDD;
+	border-bottom: 0;
+}
+
+.nav-tabs > li > a {
+	border-radius: 0;
+	margin-right: -1px;
+}
+
+.nav-tabs > li > a, .nav-tabs > li > a:hover, .nav-tabs > li > a:focus {
+	border-bottom: none;
+	border-right: 1px solid #DDD;
+	background-color: transparent;
+}
+
+.nav-tabs > li.active > a, .nav-tabs > li.active > a:hover, .nav-tabs > li.active > a:focus {
+	border-color: #DDD transparent #DDD #DDD;
 	background-color: #F5F5F5;
 }

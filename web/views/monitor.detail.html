@@ -4,12 +4,12 @@
 <div class="row">
 		<form ng-submit="submitMonitor(formMonitor.$valid)" name="formMonitor" novalidate>
 			<div class="col-md-2">
-				<ul class="nav nav-pills nav-stacked">
-					<li><a ui-sref="monitor.detail.general">General</a></li>
-					<li><a ui-sref="monitor.detail.source">Source</a></li>
-					<li><a ui-sref="monitor.detail.timestamps">Timestamps</a></li>
-					<li><a ui-sref="monitor.detail.buffers">Buffers</a></li>
-					<li><a ui-sref="monitor.detail.misc">Misc</a></li>
+				<ul class="nav nav-tabs nav-stacked">
+					<li ui-sref-active="active"><a ui-sref="monitor.detail.general">General</a></li>
+					<li ui-sref-active="active"><a ui-sref="monitor.detail.source">Source</a></li>
+					<li ui-sref-active="active"><a ui-sref="monitor.detail.timestamps">Timestamps</a></li>
+					<li ui-sref-active="active"><a ui-sref="monitor.detail.buffers">Buffers</a></li>
+					<li ui-sref-active="active"><a ui-sref="monitor.detail.misc">Misc</a></li>
 				</ul>
 
 				<button type="submit" class="btn btn-success btn-block" ng-disabled="formMonitor.$invalid">Save</button>

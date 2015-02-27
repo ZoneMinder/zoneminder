@@ -18,13 +18,13 @@ class Config extends AppModel {
  *
  * @var string
  */
-	public $primaryKey = 'Id';
+	public $primaryKey = 'Name';
 
 /**
  * Display field
  *
  * @var string
  */
-	public $displayField = 'Name';
+	public $displayField = 'Value';
 
 }

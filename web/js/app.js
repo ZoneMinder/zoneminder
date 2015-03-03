@@ -88,6 +88,11 @@ ZoneMinder.config(function($stateProvider, $urlRouterProvider) {
 			templateUrl: '/views/host.html'
 		})
 
+		.state('log', {
+			url: '/log',
+			templateUrl: '/views/log.html'
+		})
+
 		///////////////////////////
 		// Zones - Edit and List //
 		///////////////////////////

@@ -27,4 +27,16 @@ class Config extends AppModel {
  */
 	public $displayField = 'Value';
 
+
+	// Add a find method for returning a hash of the Config table.
+	// This is used for the Options view.
+	public $findMethods = array('hash' =>  true);
+	protected function _findHash($state, $query, $results = array()) {
+		if ($state === 'before') {
+			return $query;
+		}
+		$results = Set::combine($results, '{n}.Config.Name', '{n}.Config');
+		return $results;
+	}
+
 }

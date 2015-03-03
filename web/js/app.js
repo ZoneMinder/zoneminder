@@ -321,6 +321,9 @@ ZoneMinder.factory('Console', function($http) {
 
 ZoneMinder.factory('Config', function($http) {
 	return {
+		get: function() {
+			return $http.get('/api/configs.json');
+		},
 		getCategories: function() {
 			return $http.get('/api/configs/categories.json');
 		},

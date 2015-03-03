@@ -134,7 +134,15 @@ ZoneMinder.config(function($stateProvider, $urlRouterProvider) {
 		.state('options', {
 			abstract: true,
 			url: '/options',
-			templateUrl: '/views/options/options.html'
+			templateUrl: '/views/options/options.html',
+			resolve: {
+				configData: function(Config) {
+					return Config.get();
+				}
+			},
+			controller: function($scope, configData) {
+				$scope.configData = configData.data.config;
+			}
 		})
 		.state('options.images', {
 		        url: '/images',

@@ -7,6 +7,14 @@ AC_CONFIG_HEADERS(config.h)
 AC_SUBST([AM_CXXFLAGS], [-D__STDC_CONSTANT_MACROS])
 
 AC_SUBST(VERSION)
+
+# Used to alert the user they are running a development snapshot
+if test -f ./utils/development.txt; then
+	AC_SUBST(ZM_DEVELOPMENT,"DEVELOPMENT Snapshot built on `date +%D`")
+else
+	AC_SUBST(ZM_DEVELOPMENT,"")
+fi
+
 #
 # Platform specific setup
 #

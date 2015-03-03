@@ -43,6 +43,12 @@ include (CheckPrototypeDefinition_fixed)
 include (CheckTypeSize)
 include (CheckStructHasMember)
 
+# Used to alert the user they are running a development snapshot
+set(ZM_DEVELOPMENT "")
+if(EXISTS "./utils/development.txt")
+	execute_process(COMMAND echo "DEVELOPMENT Snapshot built on "date +%D OUTPUT_VARIABLE ZM_DEVELOPMENT)
+endif()
+
 # Configuration options
 mark_as_advanced(FORCE ZM_EXTRA_LIBS ZM_MYSQL_ENGINE ZM_NO_MMAP CMAKE_INSTALL_FULL_BINDIR ZM_PERL_SUBPREFIX ZM_PERL_USE_PATH ZM_TARGET_DISTRO ZM_CONFIG_DIR)
 set(ZM_RUNDIR "/var/run/zm" CACHE PATH "Location of transient process files, default: /var/run/zm")

@@ -24,6 +24,8 @@
 define( "ZM_CONFIG", "@ZM_CONFIG@" );               // Path to config file
 // Define, and override any given in config file
 define( "ZM_VERSION", "@VERSION@" );               // Version
+// Used to notify the end user they are running a development snapshot
+define( "ZM_DEVELOPMENT", "@ZM_DEVELOPMENT@" );
 
 $configFile = ZM_CONFIG;
 $localConfigFile = basename($configFile);

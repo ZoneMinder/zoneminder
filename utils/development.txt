@@ -1,0 +1,2 @@
+The presence of this file causes zoneminder to enable the DEVELOPMENT notice on the console.
+This file is managed by git-hooks.  DO NOT MANUALLY DELETE.

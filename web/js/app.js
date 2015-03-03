@@ -83,6 +83,11 @@ ZoneMinder.config(function($stateProvider, $urlRouterProvider) {
 			templateUrl: '/views/monitor.detail.misc.html'
 		})
 
+		.state('host', {
+			url: '/host',
+			templateUrl: '/views/host.html'
+		})
+
 		///////////////////////////
 		// Zones - Edit and List //
 		///////////////////////////

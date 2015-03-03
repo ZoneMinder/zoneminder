@@ -190,7 +190,6 @@ xhtmlHeaders( __FILE__, $SLANG['Console'] );
       <h3 id="systemStats"><?php echo $SLANG['Load'] ?>: <?php echo getLoad() ?> / <?php echo $SLANG['Disk'] ?>: <?php echo getDiskPercent() ?>%</h3>
       <h2 id="title"><a href="http://www.zoneminder.com" target="ZoneMinder">ZoneMinder</a> <?php echo $SLANG['Console'] ?> - <?php echo makePopupLink( '?view=state', 'zmState', 'state', $status, canEdit( 'System' ) ) ?> - <?php echo makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="'.$versionClass.'">v'.ZM_VERSION.'</span>', canEdit( 'System' ) ) ?></h2>
 	<?php
-	define( "ZM_DEVELOPMENT", "DEVELOPMENT Snapshot built on 3/2/15" );
 	if ( ZM_DEVELOPMENT )
 	{
 	?>

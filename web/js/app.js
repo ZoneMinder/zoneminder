@@ -135,78 +135,105 @@ ZoneMinder.config(function($stateProvider, $urlRouterProvider) {
 			abstract: true,
 			url: '/options',
 			templateUrl: '/views/options/options.html',
-			resolve: {
-				configData: function(Config) {
-					return Config.get();
-				}
-			},
-			controller: function($scope, configData) {
-				$scope.configData = configData.data.config;
+			controller: function($scope) {
+				$scope.configData = [];
 			}
 		})
 		.state('options.images', {
 		        url: '/images',
-		        templateUrl: '/views/options/options.images.html'
+		        templateUrl: '/views/options/options.images.html',
+			resolve: { config: function(Config) { return Config.getCategory('images'); } },
+			controller: function($scope, config) { $scope.configData['images'] = config.data.data; }
 		})
 		.state('options.system', {
 		        url: '/system',
-		        templateUrl: '/views/options/options.system.html'
+		        templateUrl: '/views/options/options.system.html',
+			resolve: { config: function(Config) { return Config.getCategory('system'); } },
+			controller: function($scope, config) { $scope.configData['system'] = config.data.data; }
 		})
 		.state('options.config', {
 		        url: '/config',
-		        templateUrl: '/views/options/options.config.html'
+		        templateUrl: '/views/options/options.config.html',
+			resolve: { config: function(Config) { return Config.getCategory('config'); } },
+			controller: function($scope, config) { $scope.configData['config'] = config.data.data; }
 		})
 		.state('options.paths', {
 		        url: '/paths',
-		        templateUrl: '/views/options/options.paths.html'
+		        templateUrl: '/views/options/options.paths.html',
+			resolve: { config: function(Config) { return Config.getCategory('paths'); } },
+			controller: function($scope, config) { $scope.configData['paths'] = config.data.data; }
 		})
 		.state('options.logging', {
 		        url: '/logging',
-		        templateUrl: '/views/options/options.logging.html'
+		        templateUrl: '/views/options/options.logging.html',
+			resolve: { config: function(Config) { return Config.getCategory('logging'); } },
+			controller: function($scope, config) { $scope.configData['logging'] = config.data.data; }
 		})
 		.state('options.dynamic', {
 		        url: '/dynamic',
-		        templateUrl: '/views/options/options.dynamic.html'
+		        templateUrl: '/views/options/options.dynamic.html',
+			resolve: { config: function(Config) { return Config.getCategory('dynamic'); } },
+			controller: function($scope, config) { $scope.configData['dynamic'] = config.data.data; }
 		})
 		.state('options.mail', {
 		        url: '/mail',
-		        templateUrl: '/views/options/options.mail.html'
+		        templateUrl: '/views/options/options.mail.html',
+			resolve: { config: function(Config) { return Config.getCategory('mail'); } },
+			controller: function($scope, config) { $scope.configData['mail'] = config.data.data; }
 		})
 		.state('options.eyezm', {
 		        url: '/eyezm',
-		        templateUrl: '/views/options/options.eyezm.html'
+		        templateUrl: '/views/options/options.eyezm.html',
+			resolve: { config: function(Config) { return Config.getCategory('eyezm'); } },
+			controller: function($scope, config) { $scope.configData['eyezm'] = config.data.data; }
 		})
 		.state('options.network', {
 		        url: '/network',
-		        templateUrl: '/views/options/options.network.html'
+		        templateUrl: '/views/options/options.network.html',
+			resolve: { config: function(Config) { return Config.getCategory('network'); } },
+			controller: function($scope, config) { $scope.configData['network'] = config.data.data; }
 		})
 		.state('options.upload', {
 		        url: '/upload',
-		        templateUrl: '/views/options/options.upload.html'
+		        templateUrl: '/views/options/options.upload.html',
+			resolve: { config: function(Config) { return Config.getCategory('upload'); } },
+			controller: function($scope, config) { $scope.configData['upload'] = config.data.data; }
 		})
 		.state('options.x10', {
 		        url: '/x10',
-		        templateUrl: '/views/options/options.x10.html'
+		        templateUrl: '/views/options/options.x10.html',
+			resolve: { config: function(Config) { return Config.getCategory('x10'); } },
+			controller: function($scope, config) { $scope.configData['x10'] = config.data.data; }
 		})
 		.state('options.web', {
 		        url: '/web',
-		        templateUrl: '/views/options/options.web.html'
+		        templateUrl: '/views/options/options.web.html',
+			resolve: { config: function(Config) { return Config.getCategory('web'); } },
+			controller: function($scope, config) { $scope.configData['web'] = config.data.data; }
 		})
 		.state('options.highband', {
 		        url: '/highband',
-		        templateUrl: '/views/options/options.highband.html'
+		        templateUrl: '/views/options/options.highband.html',
+			resolve: { config: function(Config) { return Config.getCategory('highband'); } },
+			controller: function($scope, config) { $scope.configData['highband'] = config.data.data; }
 		})
 		.state('options.lowband', {
 		        url: '/lowband',
-		        templateUrl: '/views/options/options.lowband.html'
+		        templateUrl: '/views/options/options.lowband.html',
+			resolve: { config: function(Config) { return Config.getCategory('lowband'); } },
+			controller: function($scope, config) { $scope.configData['lowband'] = config.data.data; }
 		})
 		.state('options.medband', {
 		        url: '/medband',
-		        templateUrl: '/views/options/options.medband.html'
+		        templateUrl: '/views/options/options.medband.html',
+			resolve: { config: function(Config) { return Config.getCategory('medband'); } },
+			controller: function($scope, config) { $scope.configData['medband'] = config.data.data; }
 		})
 		.state('options.phoneband', {
 		        url: '/phoneband',
-		        templateUrl: '/views/options/options.phoneband.html'
+		        templateUrl: '/views/options/options.phoneband.html',
+			resolve: { config: function(Config) { return Config.getCategory('phoneband'); } },
+			controller: function($scope, config) { $scope.configData['phoneband'] = config.data.data; }
 		});
 
 });
@@ -336,25 +363,14 @@ ZoneMinder.factory('Config', function($http) {
 			return $http.get('/api/configs/categories.json');
 		},
 		getCategory: function(category) {
-			return $http.get('/api/configs/categories/' + category + '.json')
+			return $http.get('/api/configs/category/' + category + '.json')
 		},
-    setConfigModel: function() {
-			return $http.get('/api/configs/keyValue.json')
-    },
-		updateOption: function(configId, newValue) {
-			var putData = "Config[Value]=" + newValue;
-			//var postData = {Config[Value]: configValue};
-
-
 			return $http({
 				method: 'POST',
 				url: '/api/configs/' + configId + '.json',
 				data: putData,
 				headers: {'Content-Type': 'application/x-www-form-urlencoded'}
 			});
-
-
-			//return $http.post ('/api/configs/' + configId + '.json', postData)
 		},
 		findByName: function(name) {
 			return $http.get('/api/configs/viewByName/'+name+'.json')

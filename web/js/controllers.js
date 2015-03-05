@@ -341,35 +341,14 @@ ZoneMinder.controller('MonitorController', function($scope, $state, $http, Monit
 
 ZoneMinder.controller('ConfigController', function($scope, $http, Config) {
 
-  Config.setConfigModel().then(function(results) {
-    $scope.myModel = {configData: results.data.keyValues};
-  }); 
-
-	Config.getCategories().then(function(results) {
-		// List of category names for the tabs
-		$scope.categories = results.data.categories;
-
-		// For each category, add all config options belonging to it to the categories array
-		angular.forEach(results['data']['categories'], function(value, key) {
-			var cat = results.data.categories[key].Config.Category;
-			catman(cat);
-		});
-
-	});
-
-	function catman(category) {
-			Config.getCategory(category).then(function(results) {
-				$scope[category] = results.data.config;
-			});
-	}
-
-	$scope.updateConfig = function(configId, configName) {
-		var newValue = $scope.myModel.configData[configName];
+	$scope.updateConfig = function(id, configName) {
+		var value = $scope.configData[configName].Value;
+		var id  = $scope.configData[configName].Id;
 		var i = document.getElementById(configName).parentNode.parentNode;
 		var s = i.getElementsByTagName("span");
 		s = s[0];
 
-		Config.updateOption(configId, newValue).then(function(results) {
+		Config.updateOption(id, value).then(function(results) {
 			if (results.statusText == 'OK') {
 				i.className = i.className + " has-success has-feedback";
 				s.className = s.className + " glyphicon glyphicon-ok";
@@ -379,6 +358,12 @@ ZoneMinder.controller('ConfigController', function($scope, $http, Config) {
 			}
 		});
 	}
+
+	$scope.submitConfig = function() {
+		Config.save($scope.configData)
+		// Redirect to the dashboard on success
+	        .success(function(data) { window.location = "/"; });
+	};
 
 });
 

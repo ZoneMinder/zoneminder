@@ -41,7 +41,8 @@ class AppController extends Controller {
 				'add'   => 'Crud.Add',
 				'edit'  => 'Crud.Edit',
 				'view'  => 'Crud.View',
-				'keyvalue' => 'Crud.List'
+				'keyvalue' => 'Crud.List',
+				'category' => 'Crud.Category'
 			],
 			'listeners' => ['Api', 'ApiTransformation']
 		]

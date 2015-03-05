@@ -12,23 +12,7 @@ class ConfigsController extends AppController {
  *
  * @var array
  */
-	public $components = array('RequestHandler', 'ConfigParser');
-
-/**
- * index method
- *
- * @return void
- */
-	public function index() {
-		$configs = $this->Config->find('hash', array(
-			'fields' => array('Config.Name', 'Config.Value', 'Config.Hint', 'Config.Id')
-		));
-
-		$this->set(array(
-			'configs' => $configs,
-			'_serialize' => array('configs')
-		));
-	}
+	public $components = array('RequestHandler');
 
 /**
  * view method
@@ -108,40 +92,19 @@ class ConfigsController extends AppController {
 /**
  * categories method
  *
- * Either return a list of distinct categories
- * Or all configs under a certain category
- * If we want only one category, format it as HTML
+ * return a list of distinct categories
  */
 
 	public function categories($category = null) {
-		if ($category != null) {
-			if (!$this->Config->find('first', array( 'conditions' => array('Config.Category' => $category)))) {
-				throw new NotFoundException(__('Invalid Config Category'));
-			}
-
-			$config = $this->Config->find('all', array(
-				'conditions' => array('Config.Category' => $category),
-				'recursive' => 0
-			));
-
-			$config = $this->ConfigParser->parseOptions($config);
-
-			$this->set(array(
-				'config' => $config,
-				'_serialize' => array('config')
-			));
-		} else {
-			$categories = $this->Config->find('all', array(
-				'fields' => array('DISTINCT Config.Category'),
-				'conditions' => array('Config.Category !=' => 'hidden'),
-				'recursive' => 0
-			));
-			$this->set(array(
-				'categories' => $categories,
-				'_serialize' => array('categories')
-			));
-		}
-		
+		$categories = $this->Config->find('all', array(
+			'fields' => array('DISTINCT Config.Category'),
+			'conditions' => array('Config.Category !=' => 'hidden'),
+			'recursive' => 0
+		));
+		$this->set(array(
+			'categories' => $categories,
+			'_serialize' => array('categories')
+		));
 	}
 }
 

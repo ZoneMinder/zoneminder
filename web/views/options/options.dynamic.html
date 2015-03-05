@@ -1,81 +1,9 @@
-<div class="form-group">
-  <label for="ZM_DYN_CURR_VERSION" class=
-  "control-label col-md-4">ZM_DYN_CURR_VERSION</label>
+<div class="form-group" ng-repeat="(key, value) in configData.dynamic">
+	<label for="{{value.Name}}" class="control-label col-md-4" ng-bind="value.Name"></label>
 
-  <div class="col-md-6">
-    <input id="ZM_DYN_CURR_VERSION" type="text" ng-change=
-    "updateConfig('201', 'ZM_DYN_CURR_VERSION')" ng-model=
-    "myModel.configData['ZM_DYN_CURR_VERSION']" class=
-    "form-control">
-  </div>
-</div><!-- End .form-group -->
-
-<div class="form-group">
-  <label for="ZM_DYN_DB_VERSION" class=
-  "control-label col-md-4">ZM_DYN_DB_VERSION</label>
-
-  <div class="col-md-6">
-    <input id="ZM_DYN_DB_VERSION" type="text" ng-change=
-    "updateConfig('202', 'ZM_DYN_DB_VERSION')" ng-model=
-    "myModel.configData['ZM_DYN_DB_VERSION']" class="form-control">
-  </div>
-</div><!-- End .form-group -->
-
-<div class="form-group">
-  <label for="ZM_DYN_DONATE_REMINDER_TIME" class=
-  "control-label col-md-4">ZM_DYN_DONATE_REMINDER_TIME</label>
-
-  <div class="col-md-6">
-    <input id="ZM_DYN_DONATE_REMINDER_TIME" type="text" ng-change=
-    "updateConfig('205', 'ZM_DYN_DONATE_REMINDER_TIME')" ng-model=
-    "myModel.configData['ZM_DYN_DONATE_REMINDER_TIME']" class=
-    "form-control">
-  </div>
-</div><!-- End .form-group -->
-
-<div class="form-group">
-  <label for="ZM_DYN_LAST_CHECK" class=
-  "control-label col-md-4">ZM_DYN_LAST_CHECK</label>
-
-  <div class="col-md-6">
-    <input id="ZM_DYN_LAST_CHECK" type="text" ng-change=
-    "updateConfig('203', 'ZM_DYN_LAST_CHECK')" ng-model=
-    "myModel.configData['ZM_DYN_LAST_CHECK']" class="form-control">
-  </div>
-</div><!-- End .form-group -->
-
-<div class="form-group">
-  <label for="ZM_DYN_LAST_VERSION" class=
-  "control-label col-md-4">ZM_DYN_LAST_VERSION</label>
-
-  <div class="col-md-6">
-    <input id="ZM_DYN_LAST_VERSION" type="text" ng-change=
-    "updateConfig('200', 'ZM_DYN_LAST_VERSION')" ng-model=
-    "myModel.configData['ZM_DYN_LAST_VERSION']" class=
-    "form-control">
-  </div>
-</div><!-- End .form-group -->
-
-<div class="form-group">
-  <label for="ZM_DYN_NEXT_REMINDER" class=
-  "control-label col-md-4">ZM_DYN_NEXT_REMINDER</label>
-
-  <div class="col-md-6">
-    <input id="ZM_DYN_NEXT_REMINDER" type="text" ng-change=
-    "updateConfig('204', 'ZM_DYN_NEXT_REMINDER')" ng-model=
-    "myModel.configData['ZM_DYN_NEXT_REMINDER']" class=
-    "form-control">
-  </div>
-</div><!-- End .form-group -->
-
-<div class="form-group">
-  <label for="ZM_DYN_SHOW_DONATE_REMINDER" class=
-  "control-label col-md-4">ZM_DYN_SHOW_DONATE_REMINDER</label>
-
-  <div class="col-md-6">
-    <input id="ZM_DYN_SHOW_DONATE_REMINDER" type="checkbox"
-    ng-change="updateConfig('206', 'ZM_DYN_SHOW_DONATE_REMINDER')"
-    ng-model="myModel.configData['ZM_DYN_SHOW_DONATE_REMINDER']"
-    ng-true-value="'1'" ng-false-value="'0'">
-  </div>
-</div><!-- End .form-group -->
+	<div class="col-md-4" ng-switch on="value.Type">
+		<input id="{{value.Name}}" ng-switch-when="string" type="text" class="form-control" ng-model="value.Value">
+		<input id="{{value.Name}}" ng-switch-when="boolean" type="checkbox" ng-model="value.Value" ng-false-value="'0'" ng-true-value="'1'">
+		<input id="{{value.Name}}" ng-switch-when="integer" type="number" class="form-control" ng-model="value.Value">
+	</div>
+</div>

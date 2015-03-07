@@ -3117,10 +3117,15 @@ bool Monitor::closeEvent()
         {
             gettimeofday( &(event->EndTime()), NULL );
         }
+
+        // Inform all plugins that we are closing the event
         if ( config.load_plugins && ( purpose == ANALYSIS ) )
         {
             ThePluginManager.getImageAnalyser().onCloseEvent( zones, event );
         }
+
+        event->Close();
+
         delete event;
         event = 0;
         return( true );

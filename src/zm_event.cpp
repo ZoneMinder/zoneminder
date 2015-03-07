@@ -227,8 +227,17 @@ void Event::AddCause( const std::string new_cause )
     }
 }
 
+void Event::Close()
+{
+    if ( ( tot_score == 0 ) && ( alarm_frames == 0 ) )
+    {
+        Info( "Event is empty: Delete data" );
+        DeleteData();
+    }
+}
+
 // This is the transcription of JavaScript function DeleteEvent()
-void Event::DeleteEvent()
+void Event::DeleteData()
 {
     static char sql[ZM_SQL_MED_BUFSIZ];
 

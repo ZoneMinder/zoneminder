@@ -201,15 +201,11 @@ void Event::createNotes( std::string &notes )
     notes.clear();
     for ( StringSetMap::const_iterator mapIter = noteSetMap.begin(); mapIter != noteSetMap.end(); mapIter++ )
     {
-        // No need to display the cause inside the note
-        //notes += mapIter->first;
-        //notes += ": ";
+        notes += mapIter->first;
+        notes += ": ";
         const StringSet &stringSet = mapIter->second;
         for ( StringSet::const_iterator setIter = stringSet.begin(); setIter != stringSet.end(); setIter++ )
         {
-            // Don't format here
-            //if ( setIter != stringSet.begin() )
-            //    notes += ", ";
             notes += *setIter;
         }
     }

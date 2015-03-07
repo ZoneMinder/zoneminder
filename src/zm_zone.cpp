@@ -60,7 +60,6 @@ void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_
 	max_blob_size = 0;
 	image = 0;
 	score = 0;
-	text = "";
 	post_proc_enabled = false;
 	post_proc_in_progress = false;
 	include_nat_det = true;
@@ -146,13 +145,6 @@ bool Zone::CheckOverloadCount()
 void Zone::SetScore(unsigned int nScore)
 {
     score = nScore;
-}
-
-void Zone::SetText(std::string sText)
-{
-    text = "[Zone ";
-    text += label;
-    text += "]\n" + sText;
 }
 
 void Zone::AssignRefImage( unsigned int p_width, unsigned int p_height, unsigned int p_colours, unsigned int p_subpixelorder, const uint8_t* new_buffer, const size_t buffer_size )

@@ -231,7 +231,7 @@ void Event::Close()
 {
     if ( ( tot_score == 0 ) && ( alarm_frames == 0 ) )
     {
-        Info( "Event is empty: Delete data" );
+        Info( "Delete event's data (empty event)" );
         DeleteData();
     }
 }

@@ -3376,11 +3376,11 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
         {
             alarm = true;
             score += zone->Score();
+            zoneSet.insert( ("[Zone " + std::string(zone->Label()) + "]\n").c_str() );
             if ( !zone->IsPostProcEnabled() )
             {
                 zone->SetAlarm();
                 Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
-                zoneSet.insert( ("[Zone " + std::string(zone->Label()) + "]\n").c_str() );
             }
             //zone->ResetStats();
         } else {
@@ -3424,10 +3424,10 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
                 alarm = true;
                 zone->SetAlarm();
                 score += zone->Score();
+                zoneSet.insert( ("[Zone " + std::string(zone->Label()) + "]\n").c_str() );
                 if ( !zone->IsPostProcEnabled() )
                 {
                     Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
-                    zoneSet.insert( ("[Zone " + std::string(zone->Label()) + "]\n").c_str() );
                     if ( config.opt_control && track_motion )
                     {
                         if ( (int)zone->Score() > top_score )
@@ -3454,10 +3454,10 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
                     alarm = true;
                     zone->SetAlarm();
                     score += zone->Score();
+                    zoneSet.insert( ("[Zone " + std::string(zone->Label()) + "]\n").c_str() );
                     if ( !zone->IsPostProcEnabled() )
                     {
                         Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
-                        zoneSet.insert( ("[Zone " + std::string(zone->Label()) + "]\n").c_str() );
                         if ( config.opt_control && track_motion )
                         {
                             if ( zone->Score() > (unsigned int)top_score )
@@ -3486,10 +3486,10 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
                     alarm = true;
                     zone->SetAlarm();
                     score += zone->Score();
+                    zoneSet.insert( ("[Zone " + std::string(zone->Label()) + "]\n").c_str() );
                     if ( !zone->IsPostProcEnabled() )
                     {
                         Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
-                        zoneSet.insert( ("[Zone " + std::string(zone->Label()) + "]\n").c_str() );
                     }
                 }
             }

@@ -88,13 +88,13 @@ void Detector::log(int nLogLevel, string sLevel, string sMessage)
 
 
 
-/*! \fn int Detector::Detect(const Image &image, Event::StringSet &zoneSet)
+/*! \fn int Detector::Detect(const Image &zmImage, Zone** zones, unsigned int &score)
  *  \param zmImage is an image to detect faces on
- *  \param zoneSet is set of zone names (see zm_zone.h)
+ *  \param zones is the array of detection zones
  *  \param score is the detection score
  *  \return true if detection is effective
  */
-bool Detector::Detect(const Image &zmImage, Zone** zones, Event::StringSet &zoneSet, unsigned int &score)
+bool Detector::Detect(const Image &zmImage, Zone** zones, unsigned int &score)
 {
     bool alarm = false;
     char szMessage[100];
@@ -116,7 +116,6 @@ bool Detector::Detect(const Image &zmImage, Zone** zones, Event::StringSet &zone
         {
             alarm = true;
             score += zone->Score();
-            zoneSet.insert(zone->Text());
             if (zone->IsPostProcEnabled())
             {
                 zone->StopPostProcessing();
@@ -149,7 +148,6 @@ bool Detector::Detect(const Image &zmImage, Zone** zones, Event::StringSet &zone
             {
                 alarm = true;
                 score += zone->Score();
-                zoneSet.insert(zone->Text());
                 if (zone->IsPostProcEnabled())
                 {
                     zone->StopPostProcessing();
@@ -180,7 +178,6 @@ bool Detector::Detect(const Image &zmImage, Zone** zones, Event::StringSet &zone
                 {
                     alarm = true;
                     score += zone->Score();
-                    zoneSet.insert(zone->Text());
                     if (zone->IsPostProcEnabled())
                     {
                         zone->StopPostProcessing();
@@ -211,7 +208,6 @@ bool Detector::Detect(const Image &zmImage, Zone** zones, Event::StringSet &zone
                 {
                     alarm = true;
                     score += zone->Score();
-                    zoneSet.insert(zone->Text());
                     if (zone->IsPostProcEnabled())
                     {
                         zone->StopPostProcessing();
@@ -235,12 +231,26 @@ bool Detector::Detect(const Image &zmImage, Zone** zones, Event::StringSet &zone
 void Detector::_onCreateEvent(Zone** zones, Event* event)
 {
     for(std::vector<unsigned int>::iterator it = m_vnPluginZones.begin(); it != m_vnPluginZones.end(); ++it)
+    {
         onCreateEvent(zones[*it], *it, event);
+    }
 }
 
 
 void Detector::_onCloseEvent(Zone** zones, Event* event)
 {
     for(std::vector<unsigned int>::iterator it = m_vnPluginZones.begin(); it != m_vnPluginZones.end(); ++it)
-        onCloseEvent(zones[*it], *it, event);
+    {
+        string noteText = "[Zone ";
+        noteText += zones[*it]->Label();
+        noteText += "]\n";
+
+        onCloseEvent(zones[*it], *it, event, noteText);
+
+        Event::StringSet noteSet;
+        noteSet.insert(noteText);
+        Event::StringSetMap noteSetMap;
+        noteSetMap[m_sDetectionCause] = noteSet;
+        event->updateNotes(noteSetMap);
+    }
 }

@@ -100,7 +100,6 @@ protected:
 	Box				alarm_box;
 	Coord			alarm_centre;
 	unsigned int	score;
-	std::string	text;
 	Image			*pg_image;
 	Range			*ranges;
 	Image			*image;
@@ -151,7 +150,6 @@ public:
 	inline void ClearAlarm() { alarmed = false; }
 	inline Coord GetAlarmCentre() const { return( alarm_centre ); }
 	inline unsigned int Score() const { return( score ); }
-	inline std::string Text() const { return( text ); }
 	void SetConfig( zConf zone_conf );
 	inline bool IsPostProcEnabled() const { return post_proc_enabled; }
 	inline bool IsNatDetIncluded() const { return include_nat_det; }
@@ -170,7 +168,6 @@ public:
 		min_blob_size = 0;
 		max_blob_size = 0;
 		score = 0;
-		text = "";
 	}
 	void RecordStats( const Event *event );
 	bool CheckAlarms( const Image *comp_image );
@@ -190,7 +187,6 @@ public:
     	void SetExtendAlarmCount(int nOverCount);
     	int GetExtendAlarmFrames();
     	void SetScore(unsigned int nScore);
-	void SetText(std::string sText);
     	void SetAlarmImage(const Image* srcImage);
 	void AssignRefImage( unsigned int p_width, unsigned int p_height, unsigned int p_colours, unsigned int p_subpixelorder, const uint8_t* new_buffer, const size_t buffer_size );
 	void SetRefImage( const Image &srcImage);

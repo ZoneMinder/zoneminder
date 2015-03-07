@@ -76,7 +76,7 @@ public:
     Detector& operator=(const Detector& source);
 
     //! Detect (in an image later)
-    bool Detect(const Image &image, Zone** zones, Event::StringSet &zoneSet, unsigned int &score);
+    bool Detect(const Image &image, Zone** zones, unsigned int &score);
 
     void _onCreateEvent(Zone** zones, Event *event);
     void _onCloseEvent(Zone** zones, Event *event);
@@ -102,7 +102,7 @@ protected:
     virtual bool checkZone(Zone *zone, unsigned int n_zone, const Image *zmImage) = 0;
 
     virtual void onCreateEvent(Zone *zone, unsigned int n_zone, Event *event) = 0;
-    virtual void onCloseEvent(Zone *zone, unsigned int n_zone, Event *event) = 0;
+    virtual void onCloseEvent(Zone *zone, unsigned int n_zone, Event *event, string &noteText) = 0;
 
     //! Log messages to the SYSLOG.
     void log(int, string sLevel, string sMessage);

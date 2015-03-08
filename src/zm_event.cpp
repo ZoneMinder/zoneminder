@@ -202,7 +202,7 @@ void Event::createNotes( std::string &notes )
     for ( StringSetMap::const_iterator mapIter = noteSetMap.begin(); mapIter != noteSetMap.end(); mapIter++ )
     {
         notes += mapIter->first;
-        notes += ": ";
+        notes += ":\n";
         const StringSet &stringSet = mapIter->second;
         for ( StringSet::const_iterator setIter = stringSet.begin(); setIter != stringSet.end(); setIter++ )
         {

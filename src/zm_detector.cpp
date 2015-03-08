@@ -241,7 +241,7 @@ void Detector::_onCloseEvent(Zone** zones, Event* event)
 {
     for(std::vector<unsigned int>::iterator it = m_vnPluginZones.begin(); it != m_vnPluginZones.end(); ++it)
     {
-        string noteText = "[Zone ";
+        string noteText = "  [Zone ";
         noteText += zones[*it]->Label();
         noteText += "]\n";
 

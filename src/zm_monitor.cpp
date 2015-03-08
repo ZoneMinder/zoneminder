@@ -3376,7 +3376,7 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
         {
             alarm = true;
             score += zone->Score();
-            zoneSet.insert( ("[Zone " + std::string(zone->Label()) + "]\n").c_str() );
+            zoneSet.insert( ("  [Zone " + std::string(zone->Label()) + "]\n").c_str() );
             if ( !zone->IsPostProcEnabled() )
             {
                 zone->SetAlarm();
@@ -3424,7 +3424,7 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
                 alarm = true;
                 zone->SetAlarm();
                 score += zone->Score();
-                zoneSet.insert( ("[Zone " + std::string(zone->Label()) + "]\n").c_str() );
+                zoneSet.insert( ("  [Zone " + std::string(zone->Label()) + "]\n").c_str() );
                 if ( !zone->IsPostProcEnabled() )
                 {
                     Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
@@ -3454,7 +3454,7 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
                     alarm = true;
                     zone->SetAlarm();
                     score += zone->Score();
-                    zoneSet.insert( ("[Zone " + std::string(zone->Label()) + "]\n").c_str() );
+                    zoneSet.insert( ("  [Zone " + std::string(zone->Label()) + "]\n").c_str() );
                     if ( !zone->IsPostProcEnabled() )
                     {
                         Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
@@ -3486,7 +3486,7 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
                     alarm = true;
                     zone->SetAlarm();
                     score += zone->Score();
-                    zoneSet.insert( ("[Zone " + std::string(zone->Label()) + "]\n").c_str() );
+                    zoneSet.insert( ("  [Zone " + std::string(zone->Label()) + "]\n").c_str() );
                     if ( !zone->IsPostProcEnabled() )
                     {
                         Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );

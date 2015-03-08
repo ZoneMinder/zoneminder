@@ -15,6 +15,7 @@
     border: 1px solid #7f7fb2;
     padding: 3px;
     text-align: left;
+    vertical-align: middle;
 }
 
 #pluginSettings th[scope=row] {

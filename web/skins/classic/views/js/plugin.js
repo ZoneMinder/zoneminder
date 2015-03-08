@@ -5,15 +5,6 @@ function validateForm( form )
 
 function submitForm( form )
 {
-    var cb = form.getElementsByTagName('input');
-    for ( var i = 0; i < cb.length; i++)
-    {
-        if ( cb[i].type == 'checkbox' && !cb[i].checked )  // if this is an unchecked checkbox
-        {
-            cb[i].value = 0; // set the value to "off"
-            cb[i].checked = true; // make sure it submits
-        }
-    }
     form.submit();
 }
 
@@ -28,34 +19,64 @@ function saveChanges( element )
     return( false );
 }
 
-function applyDependencies()
+function applyChanges()
 {
     var form = document.pluginForm;
-    for ( var option in dependencies )
+    for ( var option in pluginOptionList )
     {
-       var enabled = true;
-       for ( var name in dependencies[option] )
-       {
-          if (form.elements['pluginOpt[' + name + ']'].value != dependencies[option][name])
-          {
-             form.elements['pluginOpt[' + option  + ']'].disabled = true;
-             enabled = false;
-             break;
-          }
-
-       }
-       if (enabled)
-          form.elements['pluginOpt[' + option + ']'].disabled = false;
+        // Sync hidden field
+        if ( form.elements['dsp_pluginOpt[' + option + ']'].type == "checkbox" )
+        {
+            if ( form.elements['dsp_pluginOpt[' + option + ']'].checked )
+            {
+                form.elements['pluginOpt[' + option + ']'].value = "Yes";
+            }
+            else
+            {
+                form.elements['pluginOpt[' + option + ']'].value = "No";
+            }
+        }
+        else
+        {
+            form.elements['pluginOpt[' + option + ']'].value = form.elements['dsp_pluginOpt[' + option  + ']'].value;
+        }
+        var enabled = true;
+        // Disable visible field if a dependency is missing
+        for ( var name in pluginOptionList[option] )
+        {
+            if (form.elements['pluginOpt[' + name + ']'].value != pluginOptionList[option][name])
+            {
+                form.elements['dsp_pluginOpt[' + option  + ']'].disabled = true;
+                enabled = false;
+                break;
+            }
+        }
+        // Enable visible field if all dependencies are ok
+        if (enabled)
+        {
+            form.elements['dsp_pluginOpt[' + option + ']'].disabled = false;
+        }
     }
 }
 
 function limitRange( field, minValue, maxValue )
 {
-    if ( parseInt(field.value) < parseInt(minValue) )
+    var intval;
+    if ( +field.value === parseInt(field.value) )
+    {
+        intval = parseInt(field.value);
+    }
+    else
+    {
+        alert("Not and integer!");
+        field.value = minValue;
+        return;
+    }
+    if ( intval < parseInt(minValue) )
     {
         field.value = minValue;
     }
-    else if ( parseInt(field.value) > parseInt(maxValue) )
+    else if ( intval > parseInt(maxValue) )
     {
         field.value = maxValue;
     }

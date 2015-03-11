@@ -61,7 +61,10 @@ if (!defined('APP_DIR')) {
  * The following line differs from its sibling
  * /lib/Cake/Console/Templates/skel/webroot/index.php
  */
-//define('CAKE_CORE_INCLUDE_PATH', ROOT . DS . 'lib');
+define(
+    'CAKE_CORE_INCLUDE_PATH',
+    ROOT . DS . 'vendor' . DS . 'cakephp' . DS . 'cakephp' . DS . 'lib'
+);
 
 /**
  * Editing below this line should NOT be necessary.

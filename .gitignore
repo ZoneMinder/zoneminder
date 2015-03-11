@@ -58,6 +58,8 @@ src/zmf
 src/zms
 src/zmstreamer
 src/zmu
+web/api/composer.lock
+web/api/vendor/
 web/includes/config.php
 zm.conf
 zmconfgen.pl

@@ -13,6 +13,17 @@ The API is built in CakePHP and lives under the ``/api`` directory.  It
 provides a RESTful service and supports CRUD (create, retrieve, update, delete)
 functions for Monitors, Events, Frames, Zones and Config.
 
+Installation
+------------
+
+You will need to install (Composer)[https://getcomposer.org/download/]. Then use Composer to install the required packages:
+
+```
+cd /path/to/zoneminder/web/api
+curl -sS https://getcomposer.org/installer | php
+sudo php composer.phar install
+```
+
 Examples
 --------
 

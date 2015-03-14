@@ -12,7 +12,7 @@ scripts/ZoneMinder/blib
 Makefile.in
 Makefile
 docs/_build
-
+compile
 config.guess
 config.h
 config.log

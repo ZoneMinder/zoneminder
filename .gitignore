@@ -1,5 +1,6 @@
 configure
 config.h.in
+config.h.in~
 autom4te.cache
 aclocal.m4
 depcomp

@@ -29,6 +29,7 @@ onvif/modules/MYMETA.json
 onvif/modules/MYMETA.yml
 onvif/proxy/MYMETA.json
 onvif/proxy/MYMETA.yml
+scripts/ZoneMinder/Makefile.old
 scripts/ZoneMinder/MYMETA.json
 scripts/ZoneMinder/MYMETA.yml
 scripts/ZoneMinder/lib/ZoneMinder/Base.pm

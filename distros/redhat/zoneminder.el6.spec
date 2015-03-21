@@ -4,7 +4,7 @@
 %define zmgid_final apache
 
 Name:       zoneminder
-Version:    1.28.0
+Version:    1.28.1
 Release:    1%{?dist}
 Summary:    A camera monitoring and analysis tool
 Group:      System Environment/Daemons
@@ -30,7 +30,7 @@ BuildRequires:  libcurl-devel vlc-devel ffmpeg-devel polkit-devel
 # cmake needs the following installed at build time due to the way it auto-detects certain parameters
 BuildRequires:  httpd ffmpeg
 
-Requires:   httpd php php-mysql mysql-server libjpeg-turbo polkit net-tools
+Requires:   httpd php php-mysql mysql-server libjpeg-turbo polkit net-tools psmisc
 Requires:   perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires:   perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)
 Requires:   perl(MIME::Entity) perl(MIME::Lite) perl(Net::SMTP) perl(Net::FTP)
@@ -143,9 +143,13 @@ rm -rf %{_docdir}/%{name}-%{version}
 %{_bindir}/zmcamtool.pl
 %{_bindir}/zmsystemctl.pl
 %{_bindir}/zmx10.pl
+#%{_bindir}/zmonvif-probe.pl
 
 %{perl_vendorlib}/ZoneMinder*
 %{perl_vendorlib}/%{_arch}-linux-thread-multi/auto/ZoneMinder*
+#%{perl_vendorlib}/ONVIF*
+#%{perl_vendorlib}/WSDiscovery*
+#%{perl_vendorlib}/WSSecurity*
 %{_mandir}/man*/*
 %dir %{_libexecdir}/%{name}
 %{_libexecdir}/%{name}/cgi-bin
@@ -166,6 +170,9 @@ rm -rf %{_docdir}/%{name}-%{version}
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/spool/zoneminder-upload
 
 %changelog
+* Wed Feb 18 2015 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.28.1 
+- Include ONVIF support files
+
 * Sun Oct 5 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.28.0 
 - Bump version for 1.28.0 release.
 

@@ -663,6 +663,14 @@ our @options =
 		category => "paths",
 	},
 	{
+		name => "ZM_PATH_ARP",
+		default => "",
+		description => "Path to a supported ARP tool",
+		help => "The camera probe function uses Address Resolution Protocol in order to find known devices on the network. Optionally supply the full path to \"ip neigh\", \"arp -a\", or any other tool on your system that returns ip/mac address pairs. If this field is left empty, ZoneMinder will search for the command \"arp\" and attempt to use that.",
+		type => $types{abs_path},
+		category => "paths",
+	},
+	{
 		name => "ZM_WEB_TITLE_PREFIX",
 		default => "ZM",
 		description => "The title prefix displayed on each window",

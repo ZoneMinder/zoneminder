@@ -1,6 +1,25 @@
-zoneminder (1.28.0+1-trusty-SNAPSHOT2014121201) trusty; urgency=medium
+zoneminder (1.28.1+1-trusty-SNAPSHOT2015030201) trusty; urgency=medium
 
-  * Merge of security fixes and a few other things. See github for more info.
+  * maybe fix for RTSP Basic Auth
+  * Also remove dependency on netpbm
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Mon, 02 Mar 2015 11:25:59 -0500
+
+zoneminder (1.28.1+1-utopic-SNAPSHOT2015022301) utopic; urgency=medium
+
+  * Big merge of onvif support and some fixes.
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Mon, 23 Feb 2015 19:45:45 -0500
+
+zoneminder (1.28.0+1-trusty-SNAPSHOT2015021201) trusty; urgency=medium
+
+  * add mysql-client-5.6 as a dependency instaed of mysql-client.  
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Fri, 13 Feb 2015 09:35:13 -0500
+
+zoneminder (1.28.0+1-trusty-SNAPSHOT2015011101) trusty; urgency=medium
+
+  * small changes
 
  -- Isaac Connor <iconnor@connortechnology.com>  Fri, 12 Dec 2014 16:38:36 -0500
 

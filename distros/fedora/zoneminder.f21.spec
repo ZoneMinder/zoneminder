@@ -38,7 +38,7 @@ BuildRequires: gcc gcc-c++ vlc-devel libcurl-devel
 BuildRequires:  httpd polkit-devel
 %{!?_without_ffmpeg:BuildRequires: ffmpeg}
 
-Requires: httpd php php-mysql cambozola polkit net-tools
+Requires: httpd php php-mysql cambozola polkit net-tools psmisc
 Requires: libjpeg-turbo vlc-core libcurl
 Requires: perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires: perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)
@@ -75,7 +75,7 @@ too much degradation of performance.
 
 %build
 %cmake \
-	-DZM_TARGET_DISTRO="f20" \
+	-DZM_TARGET_DISTRO="f21" \
 	-DZM_PERL_SUBPREFIX=`x="%{perl_vendorlib}" ; echo ${x#"%{_prefix}"}` \
 %{?_without_ffmpeg:-DZM_NO_FFMPEG=ON} \
 %{?_without_x10:-DZM_NO_X10=ON} \

@@ -10,7 +10,7 @@
 %define _without_x10 1
 
 Name: zoneminder
-Version: 1.28.0
+Version: 1.28.1
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -38,7 +38,7 @@ BuildRequires: gcc gcc-c++ vlc-devel libcurl-devel
 BuildRequires:  httpd polkit-devel
 %{!?_without_ffmpeg:BuildRequires: ffmpeg}
 
-Requires: httpd php php-mysql cambozola polkit net-tools
+Requires: httpd php php-mysql cambozola polkit net-tools psmisc
 Requires: libjpeg-turbo vlc-core libcurl
 Requires: perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires: perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)

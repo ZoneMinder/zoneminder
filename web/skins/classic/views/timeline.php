@@ -147,7 +147,7 @@ $eventsSql = "select E.Id,E.Name,E.StartTime,E.EndTime,E.Length,E.Frames,E.MaxSc
 
 if ( !empty($user['MonitorIds']) )
 {
-    $monFilterSql = " and M.Id in (".join( ",", preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) ).")";
+    $monFilterSql = ' AND M.Id IN ('.$user['MonitorIds'].')';
 
     $rangeSql .= $monFilterSql;
     $eventsSql .= $monFilterSql;

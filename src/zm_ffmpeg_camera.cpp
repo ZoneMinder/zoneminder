@@ -472,9 +472,27 @@ void *FfmpegCamera::ReopenFfmpegThreadCallback(void *ctx){
 //Function to handle capture and store
 int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_file )
 {
+    if (!mCanCapture){
+        return -1;
+    }
+    
+    // If the reopen thread has a value, but mCanCapture != 0, then we have just reopened the connection to the ffmpeg device, and we can clean up the thread.
+    if (mReopenThread != 0) {
+        void *retval = 0;
+        int ret;
+        
+        ret = pthread_tryjoin_np(mReopenThread, &retval);
+        if (ret != 0){
+            Error("Could not join reopen thread.");
+        }
+        
+        Info( "Successfully reopened stream." );
+        mReopenThread = 0;
+    }
+
 	AVPacket packet;
 	uint8_t* directbuffer;
-    
+   
 	/* Request a writeable buffer of the target image */
 	directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
 	if(directbuffer == NULL) {
@@ -488,18 +506,34 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
         int avResult = av_read_frame( mFormatContext, &packet );
         if ( avResult < 0 )
         {
-            Error( "Unable to read packet from stream %d: error %d", packet.stream_index, avResult );
-            av_free_packet( &packet );
+            char errbuf[AV_ERROR_MAX_STRING_SIZE];
+            av_strerror(avResult, errbuf, AV_ERROR_MAX_STRING_SIZE);
+            if (
+                // Check if EOF.
+                (avResult == AVERROR_EOF || (mFormatContext->pb && mFormatContext->pb->eof_reached)) ||
+                // Check for Connection failure.
+                (avResult == -110)
+            )
+            {
+                Info( "av_read_frame returned \"%s\". Reopening stream.", errbuf);
+                ReopenFfmpeg();
+            }
+
+            Error( "Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, avResult, errbuf );
             return( -1 );
         }
         Debug( 5, "Got packet from stream %d", packet.stream_index );
         if ( packet.stream_index == mVideoStreamId )
         {
-            if ( avcodec_decode_video2( mCodecContext, mRawFrame, &frameComplete, &packet ) < 0 )
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 25, 0)
+			if ( avcodec_decode_video2( mCodecContext, mRawFrame, &frameComplete, &packet ) < 0 )
+#else
+			if ( avcodec_decode_video( mCodecContext, mRawFrame, &frameComplete, packet.data, packet.size ) < 0 )
+#endif
                 Fatal( "Unable to decode frame at frame %d", frameCount );
-            
+
             Debug( 4, "Decoded video packet at frame %d", frameCount );
-            
+
             if ( frameComplete )
             {
                 Debug( 3, "Got frame %d", frameCount );
@@ -547,22 +581,22 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
                 }
                 
 #if HAVE_LIBSWSCALE
-                if(mConvertContext == NULL) {
-                    if(config.cpu_extensions && sseversion >= 20) {
-                        mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC | SWS_CPU_CAPS_SSE2, NULL, NULL, NULL );
-                    } else {
-                        mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
-                    }
-                    if(mConvertContext == NULL)
-                        Fatal( "Unable to create conversion context for %s", mPath.c_str() );
-                }
-                
-                if ( sws_scale( mConvertContext, mRawFrame->data, mRawFrame->linesize, 0, mCodecContext->height, mFrame->data, mFrame->linesize ) < 0 )
-                    Fatal( "Unable to convert raw format %u to target format %u at frame %d", mCodecContext->pix_fmt, imagePixFormat, frameCount );
+		if(mConvertContext == NULL) {
+			if(config.cpu_extensions && sseversion >= 20) {
+				mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC | SWS_CPU_CAPS_SSE2, NULL, NULL, NULL );
+			} else {
+				mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
+			}
+			if(mConvertContext == NULL)
+				Fatal( "Unable to create conversion context for %s", mPath.c_str() );
+		}
+	
+		if ( sws_scale( mConvertContext, mRawFrame->data, mRawFrame->linesize, 0, mCodecContext->height, mFrame->data, mFrame->linesize ) < 0 )
+			Fatal( "Unable to convert raw format %u to target format %u at frame %d", mCodecContext->pix_fmt, imagePixFormat, frameCount );
 #else // HAVE_LIBSWSCALE
-                Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
+		Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
 #endif // HAVE_LIBSWSCALE
-                
+ 
                 frameCount++;
             }
         }else if(packet.stream_index == mAudioStreamId){//FIXME best way to copy all other streams

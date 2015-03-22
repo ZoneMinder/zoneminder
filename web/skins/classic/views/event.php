@@ -27,8 +27,8 @@ if ( !canView( 'Events' ) )
 $eid = validInt( $_REQUEST['eid'] );
 $fid = !empty($_REQUEST['fid'])?validInt($_REQUEST['fid']):1;
 
-$sql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultRate,M.DefaultScale,M.VideoWriter,M.SaveJPEGs FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = ?'.$midSql;
-$event = dbFetchOne( $sql, NULL, array($eid) );
+$sql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultRate,M.DefaultScale,M.VideoWriter,M.SaveJPEGs FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = ?';
+$sql_values = array( $eid );
 
 if ( $user['MonitorIds'] ) {
     $monitor_ids = explode( ',', $user['MonitorIds'] );
@@ -239,8 +239,8 @@ if ($event['SaveJPEGs'] & 3)
 			</div>
 <?php
 }
+}
 ?>
-		</div>
 	</div>
 </body>
 </html>

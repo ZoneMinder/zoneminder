@@ -377,7 +377,6 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt, AVStream *input_st){
     int64_t ost_tb_start_time = av_rescale_q(startTime, AV_TIME_BASE_Q, video_st->time_base);
         
     AVPacket opkt;
-    AVPicture pict;//Not sure how much we need this
     
     av_init_packet(&opkt);
     

@@ -27,7 +27,7 @@ if ( !canView( 'Events' ) )
 $eid = validInt( $_REQUEST['eid'] );
 $fid = !empty($_REQUEST['fid'])?validInt($_REQUEST['fid']):1;
 
-$sql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultRate,M.DefaultScale,M.VideoWriter,M.SaveJPEGs FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = ?';
+$sql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultRate,M.DefaultScale,M.VideoWriter,M.SaveJPEGs,M.Orientation AS Orientation, M.VideoWriter as VideoWriter FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = ?';
 $sql_values = array( $eid );
 
 if ( $user['MonitorIds'] ) {
@@ -134,8 +134,22 @@ if ( $event['VideoWriter'] )
 ?>
 <link href="//vjs.zencdn.net/4.11/video-js.css" rel="stylesheet">
 <script src="//vjs.zencdn.net/4.11/video.js"></script>
+<script src='//raw.githubusercontent.com/xbgmsharp/videojs-rotatezoom/master/src/videojs.zoomrotate.js'></script>
 				<div id="videoFeed">
-					<video id="videoobj" class="video-js vjs-default-skin" width="<?php echo reScale( $event['Width'], $scale ) ?>" height="<?php echo reScale( $event['Height'], $scale ) ?>" data-setup='{ "controls": true, "autoplay": false, "preload": "auto" }' >
+					<video id="videoobj" class="video-js vjs-default-skin" width="<?php echo reScale( $event['Width'], $scale ) ?>" height="<?php echo reScale( $event['Height'], $scale ) ?>" data-setup='{ "controls": true, "autoplay": true, "preload": "auto", "plugins": { "zoomrotate": { "rotate": "<?php 
+if ( $event['VideoWriter'] == "2" ) {
+    echo $event['Orientation'];
+    echo '", "zoom": "';
+    if ( in_array($event['Orientation'],array("90","270"))) 
+        echo $event['Height']/$event['Width'];
+    else
+        echo "1";
+    echo '" } }';
+} else {
+    echo '0';
+    echo '", "zoom": "1" } }';
+}
+?>}' >
 					<source src="<?php echo getEventDefaultVideoPath($event) ?>" type="video/mp4">
 					Your browser does not support the video tag.
 					</video>

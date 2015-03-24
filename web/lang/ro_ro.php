@@ -1144,14 +1144,6 @@ $OLANG = array(
         'Prompt' => "Op&#355;iuni adi&#355;ionale pentru ffmpeg",
         'Help' => "Ffmpeg suport&#259; multe op&#355;iuni pentru controlul calit&#259;&#355;ii secven&#355;ei video produse. Aceast&#259; op&#355;iune v&#259; permite s&#259; specifica&#355;i propriile op&#355;iuni. Citi&#355;i documenta&#355;ia ffmpeg pentru mai multe detalii."
     ),
-    'OPT_NETPBM' => array(
-        'Prompt' => "Sunt instalate utilitarele Netpbm (op&#355;ional)",
-        'Help' => "&#206;n cazul la&#355;imii de band&#259; redus&#259; ZoneMinder va miniaturiza imaginile &#238;nainte de a le direc&#355;iona spre browser pentru a reduce traficul. Pentru aceasta folose&#351;te pachetul Netpbm; aceast&#259; op&#355;iune ar trebuie s&#259; direc&#355;ioneze ZoneMinder spre binarele pachetului. Dac&#259; nu ave&#355;i pachetul Netpbm instalat imaginilor vor fi &#238;ntotdeauna trimise la scar&#259; real&#259; &#351;i redimensionate &#238;n browser."
-    ),
-    'PATH_NETPBM' => array(
-        'Prompt' => "Cale la utilitarele Netpbm (op&#355;ional)",
-        'Help' => "Calea la utilitarele Netpbm (op&#355;ional)"
-    ),
     'OPT_TRIGGERS' => array(
         'Prompt' => "Interac&#355;ioneaz&#259; cu declan&#351;atoare externe via socket sau fi&#351;ierele dispozitivelor",
         'Help' => "ZoneMinder poate interac&#355;iona cu sisteme externe care ac&#355;ioneaz&#259; sau revoc&#259; o alarm&#259;. Acest lucru este realizat prin intermediului script-ului zmtrigger.pl. Aceast&#259; op&#355;iune indic&#259; folosirea declan&#351;atoarelor externe, majoritatea vor alege nu aici."

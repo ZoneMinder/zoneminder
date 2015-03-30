@@ -2012,6 +2012,8 @@ Loads existing configuration from the database (if any) and merges it with the d
 
 Saves configuration held in memory to the database. The act of loading and saving configuration is a convenient way to ensure that the configuration held in the database corresponds with the most recent definitions and that all components are using the same set of configuration.
 
+=back
+
 =head2 EXPORT
 
 None by default.

@@ -66,6 +66,15 @@ else {
 	$replayMode = array_shift( $keys );
 }
 
+// videojs zoomrotate only when direct recording
+$Zoom = 1;
+$Rotation = 0;
+if ( $event['VideoWriter'] == "2" ) {
+    $Rotation = $event['Orientation'];
+    if ( in_array($event['Orientation'],array("90","270"))) 
+        $Zoom = $event['Height']/$event['Width'];
+}
+
 parseSort();
 parseFilter( $_REQUEST['filter'] );
 $filterQuery = $_REQUEST['filter']['query'];
@@ -136,20 +145,7 @@ if ( $event['VideoWriter'] )
 <script src="//vjs.zencdn.net/4.11/video.js"></script>
 <script src='./js/videojs.zoomrotate.js'></script>
 				<div id="videoFeed">
-					<video id="videoobj" class="video-js vjs-default-skin" width="<?php echo reScale( $event['Width'], $scale ) ?>" height="<?php echo reScale( $event['Height'], $scale ) ?>" data-setup='{ "controls": true, "autoplay": true, "preload": "auto", "plugins": { "zoomrotate": { "rotate": "<?php 
-if ( $event['VideoWriter'] == "2" ) {
-    echo $event['Orientation'];
-    echo '", "zoom": "';
-    if ( in_array($event['Orientation'],array("90","270"))) 
-        echo $event['Height']/$event['Width'];
-    else
-        echo "1";
-    echo '" } }';
-} else {
-    echo '0';
-    echo '", "zoom": "1" } }';
-}
-?>}' >
+					<video id="videoobj" class="video-js vjs-default-skin" width="<?php echo reScale( $event['Width'], $scale ) ?>" height="<?php echo reScale( $event['Height'], $scale ) ?>" data-setup='{ "controls": true, "autoplay": true, "preload": "auto", "plugins": { "zoomrotate": { "rotate": "<?php echo $Rotation ?>", "zoom": "<?php echo $Zoom ?>}' >
 					<source src="<?php echo getEventDefaultVideoPath($event) ?>" type="video/mp4">
 					Your browser does not support the video tag.
 					</video>

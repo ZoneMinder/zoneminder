@@ -134,7 +134,7 @@ if ( $event['VideoWriter'] )
 ?>
 <link href="//vjs.zencdn.net/4.11/video-js.css" rel="stylesheet">
 <script src="//vjs.zencdn.net/4.11/video.js"></script>
-<script src='//raw.githubusercontent.com/xbgmsharp/videojs-rotatezoom/master/src/videojs.zoomrotate.js'></script>
+<script src='./js/videojs.zoomrotate.js'></script>
 				<div id="videoFeed">
 					<video id="videoobj" class="video-js vjs-default-skin" width="<?php echo reScale( $event['Width'], $scale ) ?>" height="<?php echo reScale( $event['Height'], $scale ) ?>" data-setup='{ "controls": true, "autoplay": true, "preload": "auto", "plugins": { "zoomrotate": { "rotate": "<?php 
 if ( $event['VideoWriter'] == "2" ) {

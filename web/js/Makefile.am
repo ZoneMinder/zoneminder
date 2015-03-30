@@ -5,4 +5,5 @@ webdir = @WEB_PREFIX@/js
 dist_web_DATA = \
     logger.js \
     overlay.js \
-    mootools.ext.js
+    mootools.ext.js \
+    videojs.zoomrotate.js

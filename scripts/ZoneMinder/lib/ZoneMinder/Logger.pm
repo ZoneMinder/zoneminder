@@ -827,6 +827,8 @@ This method will output a fatal error message and then die if the current debug 
 
 This method will output a panic error message and then die with a stack trace if the current debug level permits it, otherwise does nothing. This message will be tagged with the PNC string in the logs.
 
+=back
+
 =head2 EXPORT
 
 None by default.

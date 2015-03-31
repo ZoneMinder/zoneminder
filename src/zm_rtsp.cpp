@@ -340,8 +340,19 @@ int RtspThread::run()
     message = "OPTIONS "+mUrl+" RTSP/1.0\r\n";
     if ( !sendCommand( message ) )
         return( -1 );
-    if ( !recvResponse( response ) )
-        return( -1 );
+
+	// A negative return here may indicate auth failure, but we will have setup the auth mechanisms so we need to retry.
+    if ( !recvResponse( response ) ) {
+		if ( mNeedAuth ) {
+			Debug( 2, "Resending OPTIONS due to possible auth requirement" );
+			if ( !sendCommand( message ) )
+				return( -1 );
+			if ( !recvResponse( response ) )
+				return( -1 );
+		} else {
+			return( -1 );
+		}
+	} // end if failed response maybe due to auth
 
     char publicLine[256] = "";
     StringVector lines = split( response, "\r\n" );
@@ -440,7 +451,11 @@ int RtspThread::run()
                 }
                 else
                 {
-                    trackUrl += "/" + controlUrl;
+					if ( *trackUrl.rbegin() != '/') {
+						trackUrl += "/" + controlUrl;
+					} else {
+						trackUrl += controlUrl;
+					}
                 }
                 rtpClock = mediaDesc->getClock();
                 codecId = mFormatContext->streams[i]->codec->codec_id;

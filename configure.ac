@@ -327,11 +327,6 @@ AC_CHECK_SENDFILE
 # Other programs
 AC_CHECK_PROG(OPT_FFMPEG,ffmpeg,yes,no)
 AC_PATH_PROG(PATH_FFMPEG,ffmpeg)
-AC_CHECK_PROG(OPT_NETPBM,pnmscale,yes,no)
-AC_PATH_PROG(PATH_NETPBM,pnmscale)
-if test "$OPT_NETPBM" == "yes"; then
-PATH_NETPBM=`dirname $PATH_NETPBM`
-fi
 
 # Checks for libraries.
 AC_CHECK_LIB(rt,clock_gettime,,AC_MSG_ERROR(zm requires librt))

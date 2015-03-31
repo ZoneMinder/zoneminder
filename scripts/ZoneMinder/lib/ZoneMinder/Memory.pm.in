@@ -733,9 +733,9 @@ The core elements of ZoneMinder used mapped memory to allow multiple access to r
 
 All the methods listed below require a 'monitor' parameter. This must be a reference to a hash with at least the 'Id' field set to the monitor id of the mapped memory you wish to access. Using database methods to select the monitor details will also return this kind of data. Some of the mapped memory methods will add and amend new fields to this hash.
 
-=over 4
-
 =head1 METHODS
+
+=over 4
 
 =item zmMemVerify ( $monitor );
 
@@ -809,6 +809,8 @@ Cancel any previous trigger on or off requests. This stops a triggered alarm if 
 
 Indicate that the given text should be displayed in the timestamp annotation on any images captured, if the format of the annotation string defined for the monitor permits.
 
+=back
+
 =head1 DATA
 
 The data fields in mapped memory that may be accessed are as follows. There are two main sections, shared_data which is general data and trigger_data which is used for event triggering. Whilst reading from these fields is harmless, extreme care must be taken when writing to mapped memory, especially in the shared_data section as this is normally written to only by monitor capture and analysis processes.
@@ -844,6 +846,8 @@ The data fields in mapped memory that may be accessed are as follows. There are 
 
 The following constants are used by the methods above, but can also be used by user scripts if required.
 
+=over 4
+
 =item STATE_IDLE STATE_PREALARM STATE_ALARM STATE_ALERT STATE_TAPE
 
 These constants define the state of the monitor with respect to alarms and events. They are used in the shared_data:state field.
@@ -852,9 +856,11 @@ These constants define the state of the monitor with respect to alarms and event
 
 These constants defines the various values that can exist in the shared_data:action field. This is a bitmask which when non-zero defines an action that an executing monitor process should take. ACTION_GET requires that the current values of brightness, contrast, colour and hue are taken from the camera and written to the equivalent mapped memory fields. ACTION_SET implies the reverse, that the values in mapped memory should be written to the camera. ACTION_RELOAD signal that the monitor process should reload itself from the database in case any settings have changed there. ACTION_SUSPEND signals that a monitor should stop exaiming images for motion, though other alarms may still occur. ACTION_RESUME sigansl that a monitor should resume motion detectiom.
 
-=item TRIGGER_CANCEL TRIGGER_ON TRIGGER_OFF 
+=item TRIGGER_CANCEL TRIGGER_ON TRIGGER_OFF
 
 These constants are used in the definition of external triggers. TRIGGER_CANCEL is used to indicated that any previous trigger settings should be cancelled, TRIGGER_ON signals that an alarm should be created (or continued)) as a result of the current trigger and TRIGGER_OFF signals that the trigger should prevent any alarms from being generated. See the trigger methods above for further details.
+
+=back
 
 =head1 EXPORT
 

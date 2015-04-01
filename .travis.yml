@@ -32,10 +32,8 @@ install:
   - sudo make install-libs
 before_script:
   - cd $TRAVIS_BUILD_DIR
-  - ls -l
   - if [ "$ZM_BUILDMETHOD" = "autotools" ]; then libtoolize -v --force; fi
   - if [ "$ZM_BUILDMETHOD" = "autotools" ]; then aclocal -I m4; fi
-  - if [ "$ZM_BUILDMETHOD" = "autotools" ]; then cat aclocal.m4; fi
   - if [ "$ZM_BUILDMETHOD" = "autotools" ]; then autoheader; fi
   - if [ "$ZM_BUILDMETHOD" = "autotools" ]; then automake --force-missing --add-missing; fi
   - if [ "$ZM_BUILDMETHOD" = "autotools" ]; then autoconf; fi

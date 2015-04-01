@@ -1126,7 +1126,11 @@ function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $ov
         $frame = array( 'FrameId'=>$frame, 'Type'=>'' );
 
     //echo "S:$scale, CO:$captureOnly<br>";
-    $captImage = sprintf( "%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $frame['FrameId'] );
+    $currEvent = dbFetchOne( 'SELECT M.SaveJPEGs FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = '.$event['Id'] );
+    if ( $currEvent['SaveJPEGs'] == "4" )
+        $captImage = "snapshot.jpg";
+    else
+        $captImage = sprintf( "%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $frame['FrameId'] );
     $captPath = $eventPath.'/'.$captImage;
     $thumbCaptPath = ZM_DIR_IMAGES.'/'.$event['Id'].'-'.$captImage;
     //echo "CI:$captImage, CP:$captPath, TCP:$thumbCaptPath<br>";

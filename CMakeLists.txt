@@ -42,6 +42,7 @@ include (CheckFunctionExists)
 include (CheckPrototypeDefinition_fixed)
 include (CheckTypeSize)
 include (CheckStructHasMember)
+include (CheckSendfile)
 
 # Configuration options
 mark_as_advanced(FORCE ZM_EXTRA_LIBS ZM_MYSQL_ENGINE ZM_NO_MMAP CMAKE_INSTALL_FULL_BINDIR ZM_PERL_SUBPREFIX ZM_PERL_USE_PATH ZM_TARGET_DISTRO ZM_CONFIG_DIR)

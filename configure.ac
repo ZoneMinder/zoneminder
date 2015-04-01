@@ -4,7 +4,6 @@ AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR(src/zm.h)
 AC_CONFIG_HEADERS(config.h)
 AC_CONFIG_MACRO_DIR([m4])
-AC_CONFIG_MACRO_DIRS([m4])
 
 AC_SUBST([AM_CXXFLAGS], [-D__STDC_CONSTANT_MACROS])
 
@@ -323,8 +322,7 @@ AC_FUNC_STRTOD
 AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([gethostbyname gethostname gettimeofday memmove memset mkdir munmap posix_memalign putenv select sendfile socket sqrt strcasecmp strchr strcspn strerror strncasecmp strrchr strspn strstr strtol strtoull])
 AC_CHECK_FUNCS([syscall sleep usleep ioctl ioctlsocket sigaction])
-# this is required for freebsd to compile
-m4_pattern_allow(AC_CHECK_SENDFILE)
+# this is required for freebsd to compile. Look for it in m4/ac_check_sendfile.m4
 AC_CHECK_SENDFILE
 # Other programs
 AC_CHECK_PROG(OPT_FFMPEG,ffmpeg,yes,no)

@@ -4,7 +4,6 @@
 /* This file is used by cmake to create config.h for ZM */
 
 /* General system checks */
-#cmakedefine HAVE_LINUX_VIDEODEV_H 1
 #cmakedefine HAVE_LINUX_VIDEODEV2_H 1
 #cmakedefine HAVE_EXECINFO_H 1
 #cmakedefine HAVE_UCONTEXT_H 1
@@ -52,6 +51,7 @@
 #cmakedefine HAVE_LIBSWSCALE_SWSCALE_H 1
 #cmakedefine HAVE_LIBVLC 1
 #cmakedefine HAVE_VLC_VLC_H 1
+#cmakedefine HAVE_LIBV4L1_VIDEODEV_H 1
 
 /* Authenication checks */
 #cmakedefine HAVE_MD5_OPENSSL 1

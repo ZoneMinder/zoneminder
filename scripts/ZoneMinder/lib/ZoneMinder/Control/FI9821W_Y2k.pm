@@ -696,9 +696,9 @@ sub presetGoto
 __END__
 # Below is stub documentation for your module. You'd better edit it!
 
-=head1 FI9821W
+=head1 NAME
 
-ZoneMinder::Database - Perl extension for FOSCAM FI9821W
+ZoneMinder::Control::FI9821W - Perl extension for FOSCAM FI9821W
 
 =head1 SYNOPSIS
 

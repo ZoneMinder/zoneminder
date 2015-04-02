@@ -211,7 +211,11 @@ RtspThread::~RtspThread()
 {
     if ( mFormatContext )
     {
+#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(52, 96, 0)
         avformat_free_context( mFormatContext );
+#else
+        av_free_format_context( mFormatContext );
+#endif
         mFormatContext = NULL;
     }
     if ( mSessDesc )
@@ -336,8 +340,19 @@ int RtspThread::run()
     message = "OPTIONS "+mUrl+" RTSP/1.0\r\n";
     if ( !sendCommand( message ) )
         return( -1 );
-    if ( !recvResponse( response ) )
-        return( -1 );
+
+	// A negative return here may indicate auth failure, but we will have setup the auth mechanisms so we need to retry.
+    if ( !recvResponse( response ) ) {
+		if ( mNeedAuth ) {
+			Debug( 2, "Resending OPTIONS due to possible auth requirement" );
+			if ( !sendCommand( message ) )
+				return( -1 );
+			if ( !recvResponse( response ) )
+				return( -1 );
+		} else {
+			return( -1 );
+		}
+	} // end if failed response maybe due to auth
 
     char publicLine[256] = "";
     StringVector lines = split( response, "\r\n" );
@@ -366,6 +381,22 @@ int RtspThread::run()
     size_t sdpStart = response.find( endOfHeaders );
     if( sdpStart == std::string::npos )
         return( -1 );
+
+    std::string DescHeader = response.substr( 0,sdpStart );
+    Debug( 1, "Processing DESCRIBE response header '%s'", DescHeader.c_str() );
+
+    lines = split( DescHeader, "\r\n" );
+    for ( size_t i = 0; i < lines.size(); i++ )
+    	{
+    		// If the device sends us a url value for Content-Base in the response header, we should use that instead
+    		if ( ( lines[i].size() > 13 ) && ( lines[i].substr( 0, 13 ) == "Content-Base:" ) )
+    			{
+    				mUrl = trimSpaces( lines[i].substr( 13 ) );
+    				Info("Recieved new Content-Base in DESCRIBE reponse header. Updated device Url to: '%s'", mUrl.c_str() );
+    				break;
+    			}
+    	}
+
     sdpStart += endOfHeaders.length();
 
     std::string sdp = response.substr( sdpStart );
@@ -420,7 +451,11 @@ int RtspThread::run()
                 }
                 else
                 {
-                    trackUrl += "/" + controlUrl;
+					if ( *trackUrl.rbegin() != '/') {
+						trackUrl += "/" + controlUrl;
+					} else {
+						trackUrl += controlUrl;
+					}
                 }
                 rtpClock = mediaDesc->getClock();
                 codecId = mFormatContext->streams[i]->codec->codec_id;
@@ -609,6 +644,7 @@ int RtspThread::run()
     Debug( 2, "RTSP Rtptime is %ld", rtpTime );
 
     time_t lastKeepalive = time(NULL);
+	time_t now;
     message = "GET_PARAMETER "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
 
     switch( mMethod )
@@ -625,12 +661,14 @@ int RtspThread::run()
 
             while( !mStop )
             {
+				now = time(NULL);
                 // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
-                if ( sendKeepalive && (timeout > 0) && ((time(NULL)-lastKeepalive) > (timeout-5)) )
+Debug(5, "sendkeepalibe %d, timeout %d, now: %d last: %d since: %d", sendKeepalive, timeout, now, lastKeepalive, (now-lastKeepalive) );
+                if ( sendKeepalive && (timeout > 0) && ((now-lastKeepalive) > (timeout-5)) )
                 {
                     if ( !sendCommand( message ) )
                         return( -1 );
-                    lastKeepalive = time(NULL);
+                    lastKeepalive = now;
                 }
                 usleep( 100000 );
             }
@@ -768,11 +806,14 @@ int RtspThread::run()
                 }
                 // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
                 // FIXME: Is this really necessary when using tcp ?
-                if ( sendKeepalive && (timeout > 0) && ((time(NULL)-lastKeepalive) > (timeout-5)) )
+				now = time(NULL);
+                // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
+Debug(5, "sendkeepalibe %d, timeout %d, now: %d last: %d since: %d", sendKeepalive, timeout, now, lastKeepalive, (now-lastKeepalive) );
+                if ( sendKeepalive && (timeout > 0) && ((now-lastKeepalive) > (timeout-5)) )
                 {
                     if ( !sendCommand( message ) )
                         return( -1 );
-                    lastKeepalive = time(NULL);
+                    lastKeepalive = now;
                 }
                 buffer.tidy( 1 );
             }

@@ -220,6 +220,10 @@ sub presetHome
 __END__
 =pod
 
+=head1 NAME
+
+ZoneMinder::Control::FI8908W - Foscam FI8908W camera control
+
 =head1 DESCRIPTION
 
 This module contains the implementation of the Foscam FI8908W / FI8918W IP camera control

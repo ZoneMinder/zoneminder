@@ -1,5 +1,5 @@
 AC_PREREQ(2.59)
-AC_INIT(zm,1.28.0,[http://www.zoneminder.com/forums/ - Please check FAQ first],zoneminder,http://www.zoneminder.com/downloads.html)
+AC_INIT(zm,1.28.1,[http://www.zoneminder.com/forums/ - Please check FAQ first],zoneminder,http://www.zoneminder.com/downloads.html)
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR(src/zm.h)
 AC_CONFIG_HEADERS(config.h)
@@ -261,8 +261,26 @@ else
 fi
 AC_SUBST(ENABLE_MMAP)
 
+ENABLE_ONVIF=no
+AC_ARG_ENABLE(onvif,
+    [  --enable-onvif=<yes|no> enable or disable basic onvif support, default disabled],
+    [ENABLE_ONVIF=$enable_onvif],
+    AC_MSG_WARN([You can call configure with the --enable-onvif=<yes|no> or --enable-onvif option.
+    This tells configure whether to compile ZoneMinder with basic ONVIF support. This feature will
+    probe for ONVIF compliant cameras on your network and allow you the option to auto-configure them as
+    monitors in zoneminder. This option is EXPERIMENTAL and may not work with all cameras that claim to 
+    be ONVIF compliant.
+    e.g. --enable-onvif=yes or --disable-onvif])
+)
+AM_CONDITIONAL([COND_ONVIF], [test "$enable_onvif" = yes])
+
 # Compiler
 AC_LANG_CPLUSPLUS
+if test "$ENABLE_ONVIF" == "yes"; then
+  AC_SUBST(ZM_HAS_ONVIF,1)
+else
+  AC_SUBST(ZM_HAS_ONVIF,0)
+fi
 
 # Checks for programs.
 AC_PROG_CXX
@@ -301,13 +319,9 @@ AC_CHECK_FUNCS([syscall sleep usleep ioctl ioctlsocket sigaction])
 # Other programs
 AC_CHECK_PROG(OPT_FFMPEG,ffmpeg,yes,no)
 AC_PATH_PROG(PATH_FFMPEG,ffmpeg)
-AC_CHECK_PROG(OPT_NETPBM,pnmscale,yes,no)
-AC_PATH_PROG(PATH_NETPBM,pnmscale)
-if test "$OPT_NETPBM" == "yes"; then
-PATH_NETPBM=`dirname $PATH_NETPBM`
-fi
 
 # Checks for libraries.
+AC_CHECK_LIB(rt,clock_gettime,,AC_MSG_ERROR(zm requires librt))
 AC_SEARCH_LIBS(mysql_init,[mysqlclient mariadbclient],,AC_MSG_ERROR(zm requires libmysqlclient.a or libmariadbclient.a))
 AC_CHECK_LIB(jpeg,jpeg_start_compress,,AC_MSG_ERROR(zm requires libjpeg.a))
 AC_CHECK_LIB(pthread,pthread_create,,AC_MSG_ERROR(zm requires libpthread.a))
@@ -451,12 +465,13 @@ fi
 AC_SUBST(PERL_MM_PARMS)
 AC_SUBST(EXTRA_PERL_LIB)
 
-
-AC_CONFIG_FILES([Makefile zm.conf zmconfgen.pl db/Makefile db/zm_create.sql misc/Makefile misc/apache.conf misc/logrotate.conf misc/syslog.conf misc/com.zoneminder.systemctl.policy misc/com.zoneminder.systemctl.rules scripts/Makefile scripts/zm scripts/zmaudit.pl scripts/zmcontrol.pl scripts/zmdc.pl scripts/zmfilter.pl scripts/zmpkg.pl scripts/zmtrack.pl scripts/zmcamtool.pl scripts/zmsystemctl.pl scripts/zmtrigger.pl scripts/zmupdate.pl scripts/zmvideo.pl scripts/zmwatch.pl scripts/zmx10.pl scripts/zmdbbackup scripts/zmdbrestore scripts/zmeventdump scripts/zmlogrotate.conf scripts/ZoneMinder/lib/ZoneMinder/Base.pm scripts/ZoneMinder/lib/ZoneMinder/Config.pm scripts/ZoneMinder/lib/ZoneMinder/Memory.pm scripts/ZoneMinder/lib/ZoneMinder/ConfigData.pm src/Makefile src/zm_config.h web/Makefile web/ajax/Makefile web/css/Makefile web/graphics/Makefile web/includes/Makefile web/includes/config.php web/js/Makefile web/lang/Makefile web/skins/Makefile web/skins/classic/Makefile web/skins/classic/ajax/Makefile web/skins/classic/css/Makefile web/skins/classic/css/classic/Makefile web/skins/classic/css/classic/views/Makefile web/skins/classic/css/flat/Makefile web/skins/classic/css/flat/views/Makefile web/skins/classic/graphics/Makefile web/skins/classic/includes/Makefile web/skins/classic/js/Makefile web/skins/classic/lang/Makefile web/skins/classic/views/Makefile web/skins/classic/views/js/Makefile web/skins/mobile/Makefile web/skins/mobile/ajax/Makefile web/skins/mobile/css/Makefile web/skins/mobile/graphics/Makefile web/skins/mobile/includes/Makefile web/skins/mobile/lang/Makefile web/skins/mobile/views/Makefile web/skins/mobile/views/css/Makefile web/tools/Makefile web/tools/mootools/Makefile web/views/Makefile web/skins/xml/Makefile web/skins/xml/views/Makefile web/skins/xml/includes/Makefile])
+AC_CONFIG_FILES([Makefile zm.conf zmconfgen.pl db/Makefile db/zm_create.sql misc/Makefile misc/apache.conf misc/logrotate.conf misc/syslog.conf misc/com.zoneminder.systemctl.policy misc/com.zoneminder.systemctl.rules onvif/Makefile onvif/scripts/Makefile scripts/Makefile scripts/zm scripts/zmaudit.pl scripts/zmcontrol.pl scripts/zmdc.pl scripts/zmfilter.pl scripts/zmpkg.pl scripts/zmtrack.pl scripts/zmcamtool.pl scripts/zmsystemctl.pl scripts/zmtrigger.pl scripts/zmupdate.pl scripts/zmvideo.pl scripts/zmwatch.pl scripts/zmx10.pl scripts/zmdbbackup scripts/zmdbrestore scripts/zmeventdump scripts/zmlogrotate.conf scripts/ZoneMinder/lib/ZoneMinder/Base.pm scripts/ZoneMinder/lib/ZoneMinder/Config.pm scripts/ZoneMinder/lib/ZoneMinder/Memory.pm scripts/ZoneMinder/lib/ZoneMinder/ConfigData.pm src/Makefile src/zm_config.h web/Makefile web/ajax/Makefile web/css/Makefile web/graphics/Makefile web/includes/Makefile web/includes/config.php web/js/Makefile web/lang/Makefile web/skins/Makefile web/skins/classic/Makefile web/skins/classic/ajax/Makefile web/skins/classic/css/Makefile web/skins/classic/css/classic/Makefile web/skins/classic/css/classic/views/Makefile web/skins/classic/css/flat/Makefile web/skins/classic/css/flat/views/Makefile web/skins/classic/graphics/Makefile web/skins/classic/includes/Makefile web/skins/classic/js/Makefile web/skins/classic/lang/Makefile web/skins/classic/views/Makefile web/skins/classic/views/js/Makefile web/skins/mobile/Makefile web/skins/mobile/ajax/Makefile web/skins/mobile/css/Makefile web/skins/mobile/graphics/Makefile web/skins/mobile/includes/Makefile web/skins/mobile/lang/Makefile web/skins/mobile/views/Makefile web/skins/mobile/views/css/Makefile web/tools/Makefile web/tools/mootools/Makefile web/views/Makefile web/skins/xml/Makefile web/skins/xml/views/Makefile web/skins/xml/includes/Makefile])
 
 # Create the definitions for compilation and defaults for the database
 AC_CONFIG_COMMANDS([src/zm_config_defines.h],[perl ./zmconfgen.pl])
 # Manually generate the perl Makefile maker
 AC_CONFIG_COMMANDS([scripts/ZoneMinder/Makefile],[(cd scripts/ZoneMinder; echo "perl Makefile.PL $PERL_MM_PARMS"; perl Makefile.PL $PERL_MM_PARMS)],[PERL_MM_PARMS=$PERL_MM_PARMS])
+AC_CONFIG_COMMANDS([onvif/modules/Makefile],[(cd onvif/modules; echo "perl Makefile.PL $PERL_MM_PARMS"; perl Makefile.PL $PERL_MM_PARMS)],[PERL_MM_PARMS=$PERL_MM_PARMS])
+AC_CONFIG_COMMANDS([onvif/proxy/Makefile],[(cd onvif/proxy; echo "perl Makefile.PL $PERL_MM_PARMS"; perl Makefile.PL $PERL_MM_PARMS)],[PERL_MM_PARMS=$PERL_MM_PARMS])
 
 AC_OUTPUT

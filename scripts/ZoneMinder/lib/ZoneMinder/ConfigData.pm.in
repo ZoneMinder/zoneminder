@@ -181,7 +181,7 @@ our @options =
 		name => "ZM_USE_DEEP_STORAGE",
 		default => "yes",
 		description => "Use a deep filesystem hierarchy for events",
-		help => "Traditionally ZoneMinder stores all events for a monitor in one directory for that monitor. This is simple and efficient except when you have very large amounts of events. Some filesystems are unable to store more than 32k files in one directory and even without this limitation, large numbers of files in a directory can slow creation and deletion of files. This option allows you to select an alternate method of storing events by year/month/day/hour/min/second which has the effect of separating events out into more directories, resulting in less per directory, and also making it easier to manually navigate to any events that may have happened at a particular time or date.",
+		help => "This option is now the default for new ZoneMinder systems and should not be changed. Previous versions of ZoneMinder stored all events for a monitor under one folder. Enabling USE_DEEP_STORAGE causes ZoneMinder to store events under a folder structure that follows year/month/day/hour/min/second. Storing events this way avoids the limitation of storing more than 32k files in a single folder inherent in some filesystems.  If you are upgrading from a previous version of ZoneMinder, it is important to note that you cannot simply enable this option. You must stop zoneminder, enable USE_DEEP_STORAGE, and then run \"sudo zmupdate.pl --migrate-events\". FAILURE TO DO SO WILL RESULT IN LOSS OF YOUR DATA! Consult the ZoneMinder WiKi for further details.",
 		type => $types{boolean},
 		category => "paths",
 	},

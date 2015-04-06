@@ -39,6 +39,7 @@ configuring upgrades etc, including on the fly upgrades.
 
  -c, --check                      - Check for updated versions of ZoneMinder
  -f, --freshen                    - Freshen the configuration in the database. Equivalent of old zmconfig.pl -noi
+ --migrate-events                 - Update database structures as per USE_DEEP_STORAGE setting.
  -v<version>, --version=<version> - Force upgrade to the current version from <version>
  -u<dbuser>, --user=<dbuser>      - Alternate DB user with privileges to alter DB
  -p<dbpass>, --pass=<dbpass>      - Password of alternate DB user with privileges to alter DB

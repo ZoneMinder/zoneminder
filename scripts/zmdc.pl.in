@@ -20,13 +20,30 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 # ==========================================================================
-#
-# This script is the gateway for controlling the various ZoneMinder
-# daemons. All starting, stopping and restarting goes through here.
-# On the first invocation it starts up a server which subsequently
-# records what's running and what's not. Other invocations just 
-# connect to the server and pass instructions to it.
-#
+
+=head1 NAME
+
+zmdc.pl - ZoneMinder Daemon Control script
+
+=head1 SYNOPSIS
+
+ zmdc.pl {command} [daemon [options]]
+
+=head1 DESCRIPTION
+
+This script is the gateway for controlling the various ZoneMinder
+daemons. All starting, stopping and restarting goes through here.
+On the first invocation it starts up a server which subsequently
+records what's running and what's not. Other invocations just
+connect to the server and pass instructions to it.
+
+=head1 OPTIONS
+
+ {command}           - One of 'startup|shutdown|status|check|logrot' or
+                       'start|stop|restart|reload|version'.
+ [daemon [options]]  - Daemon name and options, required for second group of commands
+
+=cut
 use strict;
 use bytes;
 
@@ -49,6 +66,7 @@ use ZoneMinder;
 use POSIX;
 use Socket;
 use IO::Handle;
+use autouse 'Pod::Usage'=>qw(pod2usage);
 #use Data::Dumper;
 
 use constant SOCK_FILE => $Config{ZM_PATH_SOCKS}.'/zmdc.sock';
@@ -72,23 +90,11 @@ my @daemons = (
     'zmtrack.pl'
 );
 
-sub Usage
-{
-    print( "
-Usage: zmdc.pl <command> [daemon [options]]
-Parameters are :-
-<command>           - One of 'startup|shutdown|status|check|logrot' or
-                      'start|stop|restart|reload|version'.
-[daemon [options]]  - Daemon name and options, required for second group of commands
-");
-    exit( -1 );
-}
-
 my $command = shift @ARGV;
 if( !$command )
 {
     print( STDERR "No command given\n" );
-    Usage();
+    pod2usage(-exitstatus => -1);
 }
 if ( $command eq 'version' ) {
     print ZoneMinder::Base::ZM_VERSION."\n";
@@ -99,7 +105,7 @@ my $daemon = shift( @ARGV );
 if( $needs_daemon && !$daemon )
 {
     print( STDERR "No daemon given\n" );
-    Usage();
+    pod2usage(-exitstatus => -1);
 }
 my @args;
 
@@ -113,7 +119,7 @@ if ( $needs_daemon )
     else
     {
         print( STDERR "Invalid daemon '$daemon' specified" );
-        Usage();
+        pod2usage(-exitstatus => -1);
     }
 }
 

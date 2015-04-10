@@ -20,15 +20,33 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 # ==========================================================================
-#
-# This script checks for consistency between the event filesystem and
-# the database. If events are found in one and not the other they are
-# deleted (optionally). Additionally any monitor event directories that
-# do not correspond to a database monitor are similarly disposed of.
-# However monitors in the database that don't have a directory are left
-# alone as this is valid if they are newly created and have no events
-# yet.
-#
+
+=head1 NAME
+
+zmaudit.pl - ZoneMinder event file system and database consistency checker
+
+=head1 SYNOPSIS
+
+ zmaudit.pl [-r,-report|-i,-interactive]
+
+=head1 DESCRIPTION
+
+This script checks for consistency between the event filesystem and
+the database. If events are found in one and not the other they are
+deleted (optionally). Additionally any monitor event directories that
+do not correspond to a database monitor are similarly disposed of.
+However monitors in the database that don't have a directory are left
+alone as this is valid if they are newly created and have no events
+yet.
+
+=head1 OPTIONS
+
+ -r, --report               - Just report don't actually do anything
+ -i, --interactive          - Ask before applying any changes
+ -c, --continuous           - Run continuously
+ -v, --version              - Print the installed version of ZoneMinder
+
+=cut
 use strict;
 use bytes;
 
@@ -56,6 +74,7 @@ use POSIX;
 use File::Find;
 use Time::HiRes qw/gettimeofday/;
 use Getopt::Long;
+use autouse 'Pod::Usage'=>qw(pod2usage);
 
 use constant IMAGE_PATH => $Config{ZM_PATH_WEB}.'/'.$Config{ZM_DIR_IMAGES};
 use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)?$Config{ZM_DIR_EVENTS}:($Config{ZM_PATH_WEB}.'/'.$Config{ZM_DIR_EVENTS});
@@ -71,19 +90,6 @@ my $interactive = 0;
 my $continuous = 0;
 my $version;
 
-sub usage
-{
-    print( "
-Usage: zmaudit.pl [-r,-report|-i,-interactive]
-Parameters are :-
--r, --report                    - Just report don't actually do anything
--i, --interactive               - Ask before applying any changes
--c, --continuous                - Run continuously
--v, --version					- Print the installed version of ZoneMinder
-");
-    exit( -1 );
-}
-
 sub aud_print( $ );
 sub confirm( ;$$ );
 sub deleteSwapImage();
@@ -91,10 +97,12 @@ sub deleteSwapImage();
 logInit();
 logSetSignal();
 
-if ( !GetOptions( report=>\$report, interactive=>\$interactive, continuous=>\$continuous, version=>\$version ) )
-{
-    usage();
-}
+GetOptions(
+    'report'        =>\$report,
+    'interactive'   =>\$interactive,
+    'continuous'    =>\$continuous,
+    'version'       =>\$version
+) or pod2usage(-exitstatus => -1);
 
 if ( $version ) {
 	print( ZoneMinder::Base::ZM_VERSION . "\n");
@@ -103,7 +111,7 @@ if ( $version ) {
 if ( ($report + $interactive + $continuous) > 1 )
 {
     print( STDERR "Error, only one option may be specified\n" );
-    usage();
+    pod2usage(-exitstatus => -1);
 }
 
 my $dbh = zmDbConnect();

@@ -69,7 +69,6 @@ too much degradation of performance.
 %build
 %cmake \
 	-DZM_TARGET_DISTRO="el7" \
-	-DZM_PERL_SUBPREFIX=`x="%{perl_vendorlib}" ; echo ${x#"%{_prefix}"}` \
 	.
 
 make %{?_smp_mflags}

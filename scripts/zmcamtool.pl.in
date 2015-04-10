@@ -20,12 +20,43 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 # ==========================================================================
-#
-# This script provides a way to import new ptz camera controls & camera presets
-# into existing zoneminder systems. This script also provides a way to export
-# ptz camera controls & camera presets from an existing zoneminder system into
-# a sql file, which can then be easily imported to another zoneminder system.
-#
+
+=head1 NAME
+
+zmcamtool.pl - ZoneMinder tool to import camera controls and presets
+
+=head1 SYNOPSIS
+
+ zmcamtool.pl [--user=<dbuser> --pass=<dbpass>]
+              [--import [file.sql] [--overwrite]]
+              [--export [name]]
+              [--topreset id [--noregex]]
+
+=head1 DESCRIPTION
+
+This script provides a way to import new ptz camera controls & camera presets
+into existing zoneminder systems. This script also provides a way to export
+ptz camera controls & camera presets from an existing zoneminder system into
+a sql file, which can then be easily imported to another zoneminder system.
+
+=head1 OPTIONS
+
+ --export            - Export all camera controls and presets to STDOUT.
+                       Optionally specify a control or preset name.
+ --import [file.sql] - Import new camera controls and presets found in
+                       zm_create.sql into the ZoneMinder dB.
+                       Optionally specify an alternate sql file to read from.
+ --overwrite         - Overwrite any existing controls or presets.
+                       with the same name as the new controls or presets.
+ --topreset id       - Copy a monitor to a Camera Preset given the monitor id.
+ --noregex           - Do not try to find and replace fields such as usernames,
+                       passwords, IP addresses, etc with generic placeholders
+                       when converting a monitor to a preset.
+ --help              - Print usage information.
+ --user=<dbuser>     - Alternate dB user with privileges to alter dB.
+ --pass=<dbpass>     - Password of alternate dB user with privileges to alter dB.
+
+=cut
 use strict;
 use bytes;
 
@@ -35,6 +66,7 @@ use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Database qw(:all);
 use DBI;
 use Getopt::Long;
+use autouse 'Pod::Usage'=>qw(pod2usage);
 
 $ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
@@ -57,10 +89,17 @@ my $dbUser = $Config{ZM_DB_USER};
 my $dbPass = $Config{ZM_DB_PASS};
 my $version = 0;
 
-# Process commandline parameters with getopt long
-if ( !GetOptions( 'export'=>\$export, 'import'=>\$import, 'overwrite'=>\$overwrite, 'help'=>\$help, 'topreset'=>\$topreset, 'noregex'=>\$noregex, 'user:s'=>\$dbUser, 'pass:s'=>\$dbPass, 'version'=>\$version ) ) {
-    Usage();
-}
+GetOptions(
+    'export'        =>\$export,
+    'import'        =>\$import,
+    'overwrite'     =>\$overwrite,
+    'help'          =>\$help,
+    'topreset'      =>\$topreset,
+    'noregex'       =>\$noregex,
+    'user:s'        =>\$dbUser,
+    'pass:s'        =>\$dbPass,
+    'version'       =>\$version
+) or pod2usage(-exitstatus => -1);
 
 $Config{ZM_DB_USER} = $dbUser;
 $Config{ZM_DB_PASS} = $dbPass;
@@ -72,7 +111,7 @@ if ( $version ) {
 # Check to make sure commandline params make sense
 if ( ((!$help) && ($import + $export + $topreset) != 1 )) {
     print( STDERR qq/Please give only one of the following: "import", "export", or "topreset".\n/ );
-    Usage();
+    pod2usage(-exitstatus => -1);
 }
 
 if ( ($export)&&($overwrite) ) {
@@ -85,12 +124,12 @@ if ( ($noregex)&&(!$topreset) ) {
 
 if ( ($topreset)&&($ARGV[0] !~ /\d\d*/) ) {
     print( STDERR qq/Parameter "topreset" requires a valid monitor ID.\n/ );
-    Usage();
+    pod2usage(-exitstatus => -1);
 }
 
 # Call the appropriate subroutine based on the params given on the commandline
 if ($help) {
-    Usage();
+    pod2usage(-exitstatus => -1);
 }
 
 if ($export) {
@@ -108,34 +147,6 @@ if ($topreset) {
 ###############
 # SUBROUTINES #
 ###############
-
-# Usage subroutine help text
-sub Usage
-{
-die("
-USAGE: 
-zmcamtool.pl [--user=<dbuser> --pass=<dbpass>]
-         [--import [file.sql] [--overwrite]]
-         [--export [name]]
-         [--topreset id [--noregex]]
-
-PARAMETERS:
---export            - Export all camera controls and presets to STDOUT.
-              Optionally specify a control or preset name.
---import [file.sql] - Import new camera controls and presets found in
-              zm_create.sql into the ZoneMinder dB.
-              Optionally specify an alternate sql file to read from.
---overwrite         - Overwrite any existing controls or presets.
-              with the same name as the new controls or presets.
---topreset id       - Copy a monitor to a Camera Preset given the monitor id.
---noregex       - Do not try to find and replace fields such as usernames,
-              passwords, ip addresses, etc with generic placeholders
-              when converting a monitor to a preset.
---help          - Print usage information.
---user=<dbuser>     - Alternate dB user with privileges to alter dB.
---pass=<dbpass>     - Password of alternate dB user with privileges to alter dB.
-\n");
-}
 
 # Execute a pre-built sql select query
 sub selectQuery

@@ -155,8 +155,10 @@ sub selectQuery
     my $sql = shift;
     my $monitorid = shift;
 
-    my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-    my $res = $sth->execute($monitorid) or die( "Can't execute: ".$sth->errstr() );
+    my $sth = $dbh->prepare_cached( $sql )
+        or die( "Can't prepare '$sql': ".$dbh->errstr() );
+    my $res = $sth->execute($monitorid)
+        or die( "Can't execute: ".$sth->errstr() );
 
     my @data = $sth->fetchrow_array();
     $sth->finish();
@@ -169,8 +171,10 @@ sub runQuery
 {
     my $dbh = shift;
     my $sql = shift;
-    my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-    my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+    my $sth = $dbh->prepare_cached( $sql )
+        or die( "Can't prepare '$sql': ".$dbh->errstr() );
+    my $res = $sth->execute()
+        or die( "Can't execute: ".$sth->errstr() );
     $sth->finish();
 
     return $res;
@@ -183,10 +187,13 @@ sub insertQuery
     my $tablename = shift;
     my @data = @_;
 
-    my $sql = "insert into $tablename values (NULL,".(join ", ", ("?") x @data).")"; # Add "?" for each array element
+    my $sql = "INSERT INTO $tablename VALUES (NULL,"
+              .(join ", ", ("?") x @data).")"; # Add "?" for each array element
 
-    my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-    my $res = $sth->execute(@data) or die( "Can't execute: ".$sth->errstr() );
+    my $sth = $dbh->prepare_cached( $sql )
+        or die( "Can't prepare '$sql': ".$dbh->errstr() );
+    my $res = $sth->execute(@data)
+        or die( "Can't execute: ".$sth->errstr() );
     $sth->finish();
 
     return $res;
@@ -199,9 +206,11 @@ sub deleteQuery
     my $sqltable = shift;
     my $sqlname = shift;
 
-    my $sql = "delete from $sqltable where Name = ?";
-    my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-    my $res = $sth->execute($sqlname) or die( "Can't execute: ".$sth->errstr() );
+    my $sql = "DELETE FROM $sqltable WHERE Name = ?";
+    my $sth = $dbh->prepare_cached( $sql )
+        or die( "Can't prepare '$sql': ".$dbh->errstr() );
+    my $res = $sth->execute($sqlname)
+        or die( "Can't execute: ".$sth->errstr() );
     $sth->finish();
 
     return $res;
@@ -215,9 +224,11 @@ sub checkExists
     my $sqlname = shift;
     my $result = 0; 
 
-    my $sql = "select count(*) from $sqltable where Name = ?";
-    my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-    my $res = $sth->execute($sqlname) or die( "Can't execute: ".$sth->errstr() );
+    my $sql = "SELECT count(*) FROM $sqltable WHERE Name = ?";
+    my $sth = $dbh->prepare_cached( $sql )
+        or die( "Can't prepare '$sql': ".$dbh->errstr() );
+    my $res = $sth->execute($sqlname)
+        or die( "Can't execute: ".$sth->errstr() );
 
     my $rows = $sth->fetchrow_arrayref();
     $sth->finish();
@@ -247,7 +258,8 @@ sub importsql
         $sqlfile = $Config{ZM_PATH_DATA}.'/db/zm_create.sql';
     }
 
-    open(my $SQLFILE,"<",$sqlfile) or die( "Can't Open file: $!\n" );
+    open(my $SQLFILE,"<",$sqlfile)
+        or die( "Can't Open file: $!\n" );
 
     # Find and extract ptz control and monitor preset records
     while (<$SQLFILE>) {
@@ -264,21 +276,24 @@ sub importsql
         die( "Error: No relevant data found in $sqlfile.\n" );
     }
 
-    # Now that we've got what we were looking for, compare to what is already in the dB
+    # Now that we've got what we were looking for,
+    # compare to what is already in the dB
 
     my $dbh = zmDbConnect();
     foreach (keys %controls) {
         if (!checkExists($dbh,"Controls",$_)) {
-            # No existing Control was found.  Add new control to dB.
+            # No existing Control was found. Add new control to dB.
             runQuery($dbh,$controls{$_});
             push @newcontrols, $_;
         } elsif ($overwrite) {
-            # An existing Control was found and the overwrite flag is set.  Overwrite the control.
+            # An existing Control was found and the overwrite flag is set.
+            # Overwrite the control.
             deleteQuery($dbh,"Controls",$_);
             runQuery($dbh,$controls{$_});
             push @overwritecontrols, $_;
         } else {
-            # An existing Control was found and the overwrite flag was not set. Do nothing.
+            # An existing Control was found and the overwrite flag was not set.
+            # Do nothing.
             push @skippedcontrols, $_;
         }   
     }
@@ -289,34 +304,42 @@ sub importsql
             runQuery($dbh,$monitorpresets{$_});
             push @newpresets, $_;
         } elsif ($overwrite) {
-            # An existing MonitorPreset was found and the overwrite flag is set.  Overwrite the MonitorPreset.
+            # An existing MonitorPreset was found and the overwrite flag is set.
+            # Overwrite the MonitorPreset.
             deleteQuery($dbh,"MonitorPresets",$_);
             runQuery($dbh,$monitorpresets{$_});
             push @overwritepresets, $_;
         } else {
-            # An existing MonitorPreset was found and the overwrite flag was not set. Do nothing.
+            # An existing MonitorPreset was found and the overwrite flag was
+            # not set. Do nothing.
             push @skippedpresets, $_;
         }
     }
 
     if (@newcontrols) {
-        print "Number of ptz camera controls added: ".scalar(@newcontrols)."\n";
+        print "Number of ptz camera controls added: "
+              .scalar(@newcontrols)."\n";
     }
     if (@overwritecontrols) {
-        print "Number of existing ptz camera controls overwritten: ".scalar(@overwritecontrols)."\n";
+        print "Number of existing ptz camera controls overwritten: "
+              .scalar(@overwritecontrols)."\n";
     }
     if (@skippedcontrols) {
-        print "Number of existing ptz camera controls skipped: ".scalar(@skippedcontrols)."\n";
+        print "Number of existing ptz camera controls skipped: "
+              .scalar(@skippedcontrols)."\n";
     }
 
     if (@newpresets) {
-        print "Number of monitor presets added: ".scalar(@newpresets)."\n";
+        print "Number of monitor presets added: "
+              .scalar(@newpresets)."\n";
     }
     if (@overwritepresets) {
-        print "Number of existing monitor presets overwritten: ".scalar(@overwritepresets)."\n";
+        print "Number of existing monitor presets overwritten: "
+              .scalar(@overwritepresets)."\n";
     }
     if (@skippedpresets) {
-        print "Number of existing presets skipped: ".scalar(@skippedpresets)."\n";
+        print "Number of existing presets skipped: "
+              .scalar(@skippedpresets)."\n";
     }
 }
 
@@ -361,7 +384,7 @@ sub toPreset
     my $monitorid = $ARGV[0];
 
     # Grap the following fields from the Monitors table
-    my $sql = "select 
+    my $sql = "SELECT 
             Name, 
             Type, 
             Device, 
@@ -383,14 +406,15 @@ sub toPreset
             ControlAddress, 
             DefaultRate, 
             DefaultScale 
-        from Monitors where Id = ?";
+        FROM Monitors WHERE Id = ?";
     my @data = selectQuery($dbh,$sql,$monitorid);
 
     if (!@data) {
         die( "Error: Monitor Id $monitorid does not appear to exist in the database.\n" );
     }
 
-    # Attempt to search for and replace system specific values such as ip addresses, ports, usernames, etc. with generic placeholders
+    # Attempt to search for and replace system specific values such as
+    # ip addresses, ports, usernames, etc. with generic placeholders
     if (!$noregex) {
         foreach (@data) {
             s/\b(?:\d{1,3}\.){3}\d{1,3}\b/<ip-address>/; # ip address
@@ -408,12 +432,14 @@ sub toPreset
         print "Adding new preset: $data[0]\n";
         insertQuery($dbh,"MonitorPresets",@data);
     } elsif ($overwrite) {
-        # An existing Control was found and the overwrite flag is set.  Overwrite the control.
+        # An existing Control was found and the overwrite flag is set.
+        # Overwrite the control.
         print "Existing preset $data[0] detected.\nOverwriting...\n";
         deleteQuery($dbh,"MonitorPresets",$data[0]);
         insertQuery($dbh,"MonitorPresets",@data);
     } else {
-        # An existing Control was found and the overwrite flag was not set. Do nothing.
+        # An existing Control was found and the overwrite flag was not set.
+        # Do nothing.
         print "Existing preset $data[0] detected and overwrite flag not set.\nSkipping...\n";
     }
 }

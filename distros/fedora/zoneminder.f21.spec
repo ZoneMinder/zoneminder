@@ -154,8 +154,6 @@ fi
 %{!?_without_x10:%{_bindir}/zmx10.pl}
 
 %{perl_vendorlib}/ZoneMinder*
-%{perl_vendorlib}/%{_arch}-linux-thread-multi/auto/ZoneMinder*
-#%{perl_archlib}/ZoneMinder*
 %{_mandir}/man*/*
 %dir %{_libexecdir}/zoneminder
 %{_libexecdir}/zoneminder/cgi-bin

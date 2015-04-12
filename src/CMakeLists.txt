@@ -14,7 +14,7 @@ add_executable(zma zma.cpp)
 add_executable(zmu zmu.cpp)
 add_executable(zmf zmf.cpp)
 add_executable(zms zms.cpp)
-add_executable(nph-zms zms.cpp)
+#add_executable(nph-zms zms.cpp)
 add_executable(zmstreamer zmstreamer.cpp)
 
 target_link_libraries(zmc zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
@@ -22,10 +22,10 @@ target_link_libraries(zma zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
 target_link_libraries(zmu zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
 target_link_libraries(zmf zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
 target_link_libraries(zms zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
-target_link_libraries(nph-zms zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
+#target_link_libraries(nph-zms zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
 target_link_libraries(zmstreamer zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
 
 install(TARGETS zmc zma zmu zmf zmstreamer RUNTIME DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 install(TARGETS zms nph-zms RUNTIME DESTINATION "${ZM_CGIDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-
+install(CODE "execute_process(COMMAND ln -sf zms nph-zms WORKING_DIRECTORY "${ZM_CGIDIR}")")
 

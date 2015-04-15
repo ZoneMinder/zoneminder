@@ -71,7 +71,7 @@ html ul.tabs li.active, html ul.tabs li.active a:hover  {
 }
   -->
   </style>
-   <script type="text/javascript" src="<?php echo ZM_SKIN_PATH; ?>/js/jquery-1.4.2.min.js"></script>
+   <script type="text/javascript" src="<?php echo ZM_SKIN_PATH; ?>/js/jquery.js"></script>
   <script type="text/javascript" language="javascript" charset="utf-8">
 
   /*==========[tab code]==========*/

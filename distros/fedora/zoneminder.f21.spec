@@ -76,7 +76,6 @@ too much degradation of performance.
 %build
 %cmake \
 	-DZM_TARGET_DISTRO="f21" \
-	-DZM_PERL_SUBPREFIX=`x="%{perl_vendorlib}" ; echo ${x#"%{_prefix}"}` \
 %{?_without_ffmpeg:-DZM_NO_FFMPEG=ON} \
 %{?_without_x10:-DZM_NO_X10=ON} \
 	.
@@ -155,8 +154,6 @@ fi
 %{!?_without_x10:%{_bindir}/zmx10.pl}
 
 %{perl_vendorlib}/ZoneMinder*
-%{perl_vendorlib}/%{_arch}-linux-thread-multi/auto/ZoneMinder*
-#%{perl_archlib}/ZoneMinder*
 %{_mandir}/man*/*
 %dir %{_libexecdir}/zoneminder
 %{_libexecdir}/zoneminder/cgi-bin

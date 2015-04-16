@@ -177,33 +177,33 @@ if( !isset($_REQUEST['step']) || ($_REQUEST['step'] == "1")) {
 <body>
   <div id="page">
     <div id="header">
-      <h2><?= $SLANG['MonitorProbe'] ?></h2>
+      <h2><?php echo $SLANG['MonitorProbe'] ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="none"/>
-        <input type="hidden" name="mid" value="<?= validNum($_REQUEST['mid']) ?>"/>
+        <input type="hidden" name="mid" value="<?php echo validNum($_REQUEST['mid']) ?>"/>
         <input type="hidden" name="step" value=""/>
         <p>
-          <?= $SLANG['OnvifProbeIntro'] ?>
+          <?php echo $SLANG['OnvifProbeIntro'] ?>
         </p>
         <p>
-          <label for="probe"><?= $SLANG['DetectedCameras'] ?></label><?= buildSelect( "probe", $cameras, 'configureButtons( this )' ); ?>
+          <label for="probe"><?php echo $SLANG['DetectedCameras'] ?></label><?php echo buildSelect( "probe", $cameras, 'configureButtons( this )' ); ?>
         </p>
         <p>
-          <?= $SLANG['OnvifCredentialsIntro'] ?>
+          <?php echo $SLANG['OnvifCredentialsIntro'] ?>
         </p>
         <p>
-          <label for="username"><?= $SLANG['Username'] ?></label>
+          <label for="username"><?php echo $SLANG['Username'] ?></label>
           <input type="text" name="username" value="" onChange="configureButtons( this )" />
         </p>
         <p>
-          <label for="password"><?= $SLANG['Password'] ?></label>
+          <label for="password"><?php echo $SLANG['Password'] ?></label>
           <input type="password" name="password" value=""onChange="configureButtons( this )" />
         </p>
         <div id="contentButtons">
-          <input type="button" value="<?= $SLANG['Cancel'] ?>" onclick="closeWindow()"/>
-          <input type="submit" name="nextBtn" value="<?= $SLANG['Next'] ?>" onclick="gotoStep2( this )" disabled="disabled"/>
+          <input type="button" value="<?php echo $SLANG['Cancel'] ?>" onclick="closeWindow()"/>
+          <input type="submit" name="nextBtn" value="<?php echo $SLANG['Next'] ?>" onclick="gotoStep2( this )" disabled="disabled"/>
         </div>
       </form>
     </div>
@@ -257,23 +257,23 @@ else if($_REQUEST['step'] == "2")
 <body>
   <div id="page">
     <div id="header">
-      <h2><?= $SLANG['ProfileProbe'] ?></h2>
+      <h2><?php echo $SLANG['ProfileProbe'] ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="none"/>
-        <input type="hidden" name="mid" value="<?= validNum($_REQUEST['mid']) ?>"/>
+        <input type="hidden" name="mid" value="<?php echo validNum($_REQUEST['mid']) ?>"/>
         <input type="hidden" name="step" value=""/>
         <p>
-          <?= $SLANG['ProfileProbeIntro'] ?>
+          <?php echo $SLANG['ProfileProbeIntro'] ?>
         </p>
         <p>
-          <label for="probe"><?= $SLANG['DetectedProfiles'] ?></label><?= buildSelect( "probe", $cameras, 'configureButtons( this )' ); ?>
+          <label for="probe"><?php echo $SLANG['DetectedProfiles'] ?></label><?php echo buildSelect( "probe", $cameras, 'configureButtons( this )' ); ?>
         </p>
         <div id="contentButtons">
-          <input type="button" name="prevBtn" value="<?= $SLANG['Prev'] ?>" onclick="gotoStep1( this )"/>
-          <input type="button" value="<?= $SLANG['Cancel'] ?>" onclick="closeWindow()"/>
-          <input type="submit" name="saveBtn" value="<?= $SLANG['Save'] ?>" onclick="submitCamera( this )" disabled="disabled"/>
+          <input type="button" name="prevBtn" value="<?php echo $SLANG['Prev'] ?>" onclick="gotoStep1( this )"/>
+          <input type="button" value="<?php echo $SLANG['Cancel'] ?>" onclick="closeWindow()"/>
+          <input type="submit" name="saveBtn" value="<?php echo $SLANG['Save'] ?>" onclick="submitCamera( this )" disabled="disabled"/>
         </div>
       </form>
     </div>

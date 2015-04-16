@@ -368,14 +368,26 @@ AC_CHECK_HEADERS(execinfo.h,,,)
 AC_CHECK_HEADERS(ucontext.h,,,)
 AC_CHECK_HEADERS(sys/syscall.h,,,)
 AC_CHECK_HEADERS(pthread.h,,,)
-AC_CHECK_HEADERS(linux/videodev.h,AC_SUBST(ZM_HAS_V4L1,1),AC_SUBST(ZM_HAS_V4L1,0),)
-AC_CHECK_HEADERS(linux/videodev2.h,AC_SUBST(ZM_HAS_V4L2,1),AC_SUBST(ZM_HAS_V4L2,0),)
+
+# Check for Video for Linux 1 Header Files
+ZM_HAS_V4L1=0
+AC_CHECK_HEADERS([libv4l1-videodev.h linux/videodev.h],[ZM_HAS_V4L1=1; break;],,)
+AC_SUBST(ZM_HAS_V4L1)
+
+# Check for Video for Linux 2 Header Files
+ZM_HAS_V4L2=0
+AC_CHECK_HEADERS(linux/videodev2.h,ZM_HAS_V4L2=1,,)
+AC_SUBST(ZM_HAS_V4L2)
+
+# Set global Video for Linux flag
+ZM_HAS_V4L=0
 if test "$ZM_HAS_V4L1" == "1" || test "$ZM_HAS_V4L2" == "1"; then
-AC_SUBST(ZM_HAS_V4L,1)
+ZM_HAS_V4L=1
 else
-AC_SUBST(ZM_HAS_V4L,0)
 AC_MSG_WARN(zm requires Video4Linux or Video4Linux2 to be installed for analog or USB camera support)
 fi
+AC_SUBST(ZM_HAS_V4L)
+
 AC_CHECK_HEADERS(jpeglib.h,,AC_MSG_ERROR(zm requires libjpeg headers to be installed),)
 AC_CHECK_HEADERS(mysql/mysql.h,,AC_MSG_ERROR(zm requires MySQL headers - check that MySQL development packages are installed),)
 AC_LANG_PUSH([C])

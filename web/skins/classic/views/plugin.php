@@ -116,12 +116,12 @@ function pLang($name)
         <div id="settingsPanel">
           <table id="pluginSettings" cellspacing="0">
             <tbody>
-<?
+<?php
 foreach($pluginOptions as $name => $popt)
 {
    ?>
             <tr><th scope="row"><?php echo pLang($name) ?></th>     
-   <?
+   <?php
    switch($popt['Type'])
    {
       case "checkbox":
@@ -132,7 +132,7 @@ foreach($pluginOptions as $name => $popt)
             ?>
                <td colspan="2">
                   <select name="pluginOpt[<?php echo $popt['Name'] ?>]" id="pluginOpt[<?php echo $popt['Name'] ?>]">
-            <?
+            <?php
             foreach($pchoices as $pchoice)
             {
                $psel="";
@@ -140,12 +140,12 @@ foreach($pluginOptions as $name => $popt)
                   $psel="selected";
                ?>
                      <option value="<?php echo $pchoice ?>" <?php echo $psel ?>><?php echo pLang($pchoice) ?></option>
-               <?
+               <?php
             }
             ?>
                </td>
                   </select>
-         <?
+         <?php
          break;
       case "text":
       default:
@@ -153,7 +153,7 @@ foreach($pluginOptions as $name => $popt)
    }
    ?>
             </tr>
-   <?
+   <?php
 }
 ?>
             </tbody>

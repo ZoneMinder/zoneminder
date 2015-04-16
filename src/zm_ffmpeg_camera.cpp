@@ -120,7 +120,7 @@ int FfmpegCamera::Capture( Image &image )
         void *retval = 0;
         int ret;
         
-        ret = pthread_tryjoin_np(mReopenThread, &retval);
+        ret = pthread_join(mReopenThread, &retval);
         if (ret != 0){
             Error("Could not join reopen thread.");
         }

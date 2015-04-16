@@ -250,8 +250,9 @@ sub createEventPath
 
         # Create empty id tag file
         $idFile = sprintf( "%s/.%d", $eventPath, $event->{Id} );
-        open( ID_FP, ">$idFile" ) or Fatal( "Can't open $idFile: $!" );
-        close( ID_FP );
+        open( my $ID_FP, ">", $idFile )
+            or Fatal( "Can't open $idFile: $!" );
+        close( $ID_FP );
         setFileOwner( $idFile );
     }
     else
@@ -260,8 +261,9 @@ sub createEventPath
         $eventPath .= '/'.$event->{Id};
 
         my $idFile = sprintf( "%s/.%d", $eventPath, $event->{Id} );
-        open( ID_FP, ">$idFile" ) or Fatal( "Can't open $idFile: $!" );
-        close( ID_FP );
+        open( my $ID_FP, ">", $idFile )
+            or Fatal( "Can't open $idFile: $!" );
+        close( $ID_FP );
         setFileOwner( $idFile );
     }
     return( $eventPath );

@@ -96,7 +96,7 @@ sub zmMemAttach
 			Error( sprintf( "Memory map file '%s' should have been %d but was instead %d", $mmap_file, $size, $mmap_file_size ) );
 			return ( undef );
 		} 
-        if ( !open( MMAP, "+<".$mmap_file ) )
+        if ( !open( MMAP, "+<", $mmap_file ) )
         {
     		Error( sprintf( "Can't open memory map file '%s': $!\n", $mmap_file ) );
 			return( undef );

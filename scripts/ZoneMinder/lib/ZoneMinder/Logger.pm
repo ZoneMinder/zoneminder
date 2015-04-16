@@ -549,15 +549,16 @@ sub logFile
 sub openFile
 {
     my $this = shift;
-    if ( open( LOGFILE, ">>".$this->{logFile} ) )
+    if ( open( $LOGFILE, ">>", $this->{logFile} ) )
     {
-        LOGFILE->autoflush() if ( $this->{autoFlush} );
+        $LOGFILE->autoflush() if ( $this->{autoFlush} );
 
         my $webUid = (getpwnam( $Config{ZM_WEB_USER} ))[2];
         my $webGid = (getgrnam( $Config{ZM_WEB_GROUP} ))[2];
         if ( $> == 0 )
         {
-            chown( $webUid, $webGid, $this->{logFile} ) or Fatal( "Can't change permissions on log file '".$this->{logFile}."': $!" )
+            chown( $webUid, $webGid, $this->{logFile} )
+                or Fatal( "Can't change permissions on log file '".$this->{logFile}."': $!" )
         }
     }
     else
@@ -570,7 +571,7 @@ sub openFile
 sub closeFile
 {
     my $this = shift;
-    close( LOGFILE ) if ( fileno(LOGFILE) );
+    close( $LOGFILE ) if ( fileno($LOGFILE) );
 }
 
 sub logPrint
@@ -596,7 +597,7 @@ sub logPrint
             $message = $message."\n";
         }
         syslog( $priorities{$level}, $code." [%s]", $string ) if ( $level <= $this->{syslogLevel} );
-        print( LOGFILE $message ) if ( $level <= $this->{fileLevel} );
+        print( $LOGFILE $message ) if ( $level <= $this->{fileLevel} );
         if ( $level <= $this->{databaseLevel} )
         {
             my $sql = "insert into Logs ( TimeKey, Component, Pid, Level, Code, Message, File, Line ) values ( ?, ?, ?, ?, ?, ?, ?, NULL )";

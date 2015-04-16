@@ -143,8 +143,9 @@ sub zmMemClean
     # Find ZoneMinder shared memory
     my $command = "ipcs -m | grep '^".substr( sprintf( "0x%x", hex($Config{ZM_SHM_KEY}) ), 0, -2 )."'";
     Debug( "Checking for shared memory with '$command'\n" );
-    open( CMD, "$command |" ) or Fatal( "Can't execute '$command': $!" );
-    while( <CMD> )
+    open( my $CMD, '<', "$command |" )
+        or Fatal( "Can't execute '$command': $!" );
+    while( <$CMD> )
     {
         chomp;
         my ( $key, $id ) = split( /\s+/ );
@@ -156,7 +157,7 @@ sub zmMemClean
             qx( $command );
         }
     }
-    close( CMD );
+    close( $CMD );
 }
 
 1;

@@ -57,7 +57,7 @@ use constant START_DELAY => 30; # To give everything else time to start
 use ZoneMinder;
 use POSIX;
 use DBI;
-use Data::Dumper;
+use autouse 'Data::Dumper'=>qw(Dumper);
 
 $| = 1;
 

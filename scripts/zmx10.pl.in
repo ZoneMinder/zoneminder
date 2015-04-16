@@ -65,7 +65,7 @@ use POSIX;
 use Socket;
 use Getopt::Long;
 use autouse 'Pod::Usage'=>qw(pod2usage);
-use Data::Dumper;
+use autouse 'Data::Dumper'=>qw(Dumper);
 
 use constant SOCK_FILE => $Config{ZM_PATH_SOCKS}.'/zmx10.sock';
 
@@ -169,7 +169,7 @@ use POSIX;
 use DBI;
 use Socket;
 use X10::ActiveHome;
-use Data::Dumper;
+use autouse 'Data::Dumper'=>qw(Dumper);
 
 our $dbh;
 our $x10;

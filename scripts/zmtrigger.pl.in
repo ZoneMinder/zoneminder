@@ -85,7 +85,7 @@ push( @connections,
 
 use DBI;
 #use Socket;
-use Data::Dumper;
+use autouse 'Data::Dumper'=>qw(Dumper);
 use POSIX qw( EINTR );
 use Time::HiRes qw( usleep );
 

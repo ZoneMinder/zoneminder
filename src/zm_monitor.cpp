@@ -251,7 +251,6 @@ bool Monitor::MonitorLink::hasAlarmed()
     else if( shared_data->last_event != (unsigned int)last_event )
     {
         last_event = shared_data->last_event;
-        return( true );
     }
     return( false );
 }

@@ -57,7 +57,7 @@ sub new
 	return $self;
 }
 
-sub open()
+sub open
 {
 	my $self = shift;
 	local *sfh;
@@ -70,7 +70,7 @@ sub open()
 	$self->{handle} = *sfh;
 }
 
-sub _spawn( $ )
+sub _spawn
 {
 	my $self = shift;
 	my $new_handle = shift;
@@ -80,7 +80,7 @@ sub _spawn( $ )
 	return( $clone );
 }
 
-sub accept()
+sub accept
 {
 	my $self = shift;
 	local *cfh;

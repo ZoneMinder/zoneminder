@@ -59,7 +59,7 @@ sub spawns
     return( undef );
 }
 
-sub close()
+sub close
 {
 	my $self = shift;
 	close( $self->{handle} );
@@ -67,7 +67,7 @@ sub close()
 	$self->{handle} = undef;
 }
 
-sub read()
+sub read
 {
 	my $self = shift;
 	my $buffer;
@@ -80,7 +80,7 @@ sub read()
 	return( $buffer );
 }
 
-sub write()
+sub write
 {
 	my $self = shift;
 	my $buffer = shift;
@@ -94,7 +94,7 @@ sub write()
 	return( !undef );
 }
 
-sub fileno()
+sub fileno
 {
 	my $self = shift;
 	return( defined($self->{handle})?fileno($self->{handle}):-1 );

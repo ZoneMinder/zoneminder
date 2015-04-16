@@ -71,7 +71,7 @@ sub spawns
     return( $self->{channel}->spawns() );
 }
 
-sub _spawn( $ )
+sub _spawn
 {
 	my $self = shift;
 	my $new_channel = shift;
@@ -80,50 +80,50 @@ sub _spawn( $ )
 	return( $clone );
 }
 
-sub accept()
+sub accept
 {
 	my $self = shift;
 	my $new_channel = $self->{channel}->accept();
 	return( $self->_spawn( $new_channel ) );
 }
 
-sub open()
+sub open
 {
 	my $self = shift;
 	return( $self->{channel}->open() );
 }
 
-sub close()
+sub close
 {
 	my $self = shift;
 	return( $self->{channel}->close() );
 }
 
-sub fileno()
+sub fileno
 {
 	my $self = shift;
 	return( $self->{channel}->fileno() );
 }
 
-sub isOpen()
+sub isOpen
 {
 	my $self = shift;
 	return( $self->{channel}->isOpen() );
 }
 
-sub isConnected()
+sub isConnected
 {
 	my $self = shift;
 	return( $self->{channel}->isConnected() );
 }
 
-sub canRead()
+sub canRead
 {
 	my $self = shift;
 	return( $self->{input} && $self->isConnected() );
 }
 
-sub canWrite()
+sub canWrite
 {
 	my $self = shift;
 	return( $self->{output} && $self->isConnected() );

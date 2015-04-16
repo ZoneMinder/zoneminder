@@ -290,7 +290,7 @@ sub initialise( @ )
     Debug( "LogOpts: level=".$codes{$this->{level}}."/".$codes{$this->{effectiveLevel}}.", screen=".$codes{$this->{termLevel}}.", database=".$codes{$this->{databaseLevel}}.", logfile=".$codes{$this->{fileLevel}}."->".$this->{logFile}.", syslog=".$codes{$this->{syslogLevel}} );
 }
 
-sub terminate()
+sub terminate
 {
     my $this = shift;
     return unless ( $this->{initialised} );
@@ -300,7 +300,7 @@ sub terminate()
     $this->termLevel( NOLOG );
 }
 
-sub reinitialise()
+sub reinitialise
 {
     my $this = shift;
 
@@ -322,7 +322,7 @@ sub reinitialise()
     $this->databaseLevel( $databaseLevel ) if ( $databaseLevel > NOLOG );
 }
 
-sub limit( $ )
+sub limit
 {
     my $this = shift;
     my $level = shift;
@@ -331,7 +331,7 @@ sub limit( $ )
     return( $level );
 }
 
-sub getTargettedEnv( $ )
+sub getTargettedEnv
 {
     my $this = shift;
     my $name = shift;
@@ -354,7 +354,7 @@ sub getTargettedEnv( $ )
     return( $value );
 }
 
-sub fetch()
+sub fetch
 {
     if ( !$logger )
     {
@@ -364,7 +364,7 @@ sub fetch()
     return( $logger );
 }
 
-sub id( ;$ )
+sub id
 {
     my $this = shift;
     my $id = shift;
@@ -388,7 +388,7 @@ sub id( ;$ )
     return( $this->{id} );
 }
 
-sub level( ;$ )
+sub level
 {
     my $this = shift;
     my $level = shift;
@@ -405,20 +405,20 @@ sub level( ;$ )
     return( $this->{level} );
 }
 
-sub debugOn()
+sub debugOn
 {
     my $this = shift;
     return( $this->{effectiveLevel} >= DEBUG );
 }
 
-sub trace( ;$ )
+sub trace
 {
     my $this = shift;
     $this->{trace} = $_[0] if ( @_ );
     return( $this->{trace} );
 }
 
-sub termLevel( ;$ )
+sub termLevel
 {
     my $this = shift;
     my $termLevel = shift;
@@ -434,7 +434,7 @@ sub termLevel( ;$ )
     return( $this->{termLevel} );
 }
 
-sub databaseLevel( ;$ )
+sub databaseLevel
 {
     my $this = shift;
     my $databaseLevel = shift;
@@ -486,7 +486,7 @@ sub databaseLevel( ;$ )
     return( $this->{databaseLevel} );
 }
 
-sub fileLevel( ;$ )
+sub fileLevel
 {
     my $this = shift;
     my $fileLevel = shift;
@@ -503,7 +503,7 @@ sub fileLevel( ;$ )
     return( $this->{fileLevel} );
 }
 
-sub syslogLevel( ;$ )
+sub syslogLevel
 {
     my $this = shift;
     my $syslogLevel = shift;
@@ -520,19 +520,19 @@ sub syslogLevel( ;$ )
     return( $this->{syslogLevel} );
 }
 
-sub openSyslog()
+sub openSyslog
 {
     my $this = shift;
     openlog( $this->{id}, "pid", "local1" );
 }
 
-sub closeSyslog()
+sub closeSyslog
 {
     my $this = shift;
     #closelog();
 }
 
-sub logFile( $ )
+sub logFile
 {
     my $this = shift;
     my $logFile = shift;
@@ -546,7 +546,7 @@ sub logFile( $ )
     }
 }
 
-sub openFile()
+sub openFile
 {
     my $this = shift;
     if ( open( LOGFILE, ">>".$this->{logFile} ) )
@@ -567,13 +567,13 @@ sub openFile()
     }
 }
 
-sub closeFile()
+sub closeFile
 {
     my $this = shift;
     close( LOGFILE ) if ( fileno(LOGFILE) );
 }
 
-sub logPrint( $;$ )
+sub logPrint
 {
     my $this = shift;
     my $level = shift;
@@ -624,7 +624,7 @@ sub logInit( ;@ )
     $logger->initialise( %options );
 }
 
-sub logReinit()
+sub logReinit
 {
     fetch()->reinitialise();
 }
@@ -636,7 +636,7 @@ sub logTerm
     $logger = undef;
 }
 
-sub logHupHandler()
+sub logHupHandler
 {
     my $savedErrno = $!;
     return unless( $logger );
@@ -645,47 +645,47 @@ sub logHupHandler()
     $! = $savedErrno;
 }
 
-sub logSetSignal()
+sub logSetSignal
 {
     $SIG{HUP} = \&logHupHandler;
 }
 
-sub logClearSignal()
+sub logClearSignal
 {
     $SIG{HUP} = 'DEFAULT';
 }
 
-sub logLevel( ;$ )
+sub logLevel
 {
     return( fetch()->level( @_ ) );
 }
 
-sub logDebugging()
+sub logDebugging
 {
     return( fetch()->debugOn() );
 }
 
-sub logTermLevel( ;$ )
+sub logTermLevel
 {
     return( fetch()->termLevel( @_ ) );
 }
 
-sub logDatabaseLevel( ;$ )
+sub logDatabaseLevel
 {
     return( fetch()->databaseLevel( @_ ) );
 }
 
-sub logFileLevel( ;$ )
+sub logFileLevel
 {
     return( fetch()->fileLevel( @_ ) );
 }
 
-sub logSyslogLevel( ;$ )
+sub logSyslogLevel
 {
     return( fetch()->syslogLevel( @_ ) );
 }
 
-sub Mark( ;$$ )
+sub Mark
 {
     my $level = shift;
     $level = DEBUG unless( defined($level) );
@@ -693,7 +693,7 @@ sub Mark( ;$$ )
     fetch()->logPrint( $level, $tag );
 }
 
-sub Dump( \$;$ )
+sub Dump
 {
     my $var = shift;
     my $label = shift;

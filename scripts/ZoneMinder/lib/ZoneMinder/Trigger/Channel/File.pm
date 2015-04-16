@@ -56,7 +56,7 @@ sub new
 	return $self;
 }
 
-sub open()
+sub open
 {
 	my $self = shift;
 	local *sfh;

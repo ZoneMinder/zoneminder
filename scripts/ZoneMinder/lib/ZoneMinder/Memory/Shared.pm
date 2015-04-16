@@ -69,13 +69,13 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
 
-sub zmMemKey( $ )
+sub zmMemKey
 {
 	my $monitor = shift;
 	return( defined($monitor->{ShmKey})?$monitor->{ShmKey}:undef );
 }
 
-sub zmMemAttach( $$ )
+sub zmMemAttach
 {
 	my $monitor = shift;
 	my $size = shift;
@@ -94,14 +94,14 @@ sub zmMemAttach( $$ )
 	return( !undef );
 }
 
-sub zmMemDetach( $ )
+sub zmMemDetach
 {
 	my $monitor = shift;
 
 	delete $monitor->{ShmId};
 }
 
-sub zmMemGet( $$$ )
+sub zmMemGet
 {
 	my $monitor = shift;
 	my $offset = shift;
@@ -119,7 +119,7 @@ sub zmMemGet( $$$ )
 	return( $data );
 }
 
-sub zmMemPut( $$$$ )
+sub zmMemPut
 {
 	my $monitor = shift;
 	my $offset = shift;

@@ -63,33 +63,33 @@ sub clone
 	bless $clone, ref $self;
 }
 
-sub open()
+sub open
 {
 	my $self = shift;
 	my $class = ref($self) or croak( "Can't get class for non object $self" );
 	croak( "Abstract base class method called for object of class $class" );
 }
 
-sub close()
+sub close
 {
 	my $self = shift;
 	my $class = ref($self) or croak( "Can't get class for non object $self" );
 	croak( "Abstract base class method called for object of class $class" );
 }
 
-sub getState()
+sub getState
 {
 	my $self = shift;
 	return( $self->{state} );
 }
 
-sub isOpen()
+sub isOpen
 {
 	my $self = shift;
 	return( $self->{state} eq "open" );
 }
 
-sub isConnected()
+sub isConnected
 {
 	my $self = shift;
 	return( $self->{state} eq "connected" );

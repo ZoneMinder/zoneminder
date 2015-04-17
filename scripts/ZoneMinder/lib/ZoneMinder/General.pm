@@ -76,7 +76,7 @@ use ZoneMinder::Database qw(:all);
 use POSIX;
 
 # For running general shell commands
-sub executeShellCommand( $ )
+sub executeShellCommand
 {
     my $command = shift;
     my $output = qx( $command );
@@ -90,7 +90,7 @@ sub executeShellCommand( $ )
     return( $status );
 }
 
-sub getCmdFormat()
+sub getCmdFormat
 {
     Debug( "Testing valid shell syntax\n" );
 
@@ -162,7 +162,7 @@ our $testedShellSyntax = 0;
 our ( $cmdPrefix, $cmdSuffix );
 
 # For running ZM daemons etc
-sub runCommand( $ )
+sub runCommand
 {
     if ( !$testedShellSyntax )
     {
@@ -196,7 +196,7 @@ sub runCommand( $ )
     return( $output );
 }
 
-sub getEventPath( $ )
+sub getEventPath
 {
     my $event = shift;
 
@@ -213,7 +213,7 @@ sub getEventPath( $ )
     return( $event_path );
 }
 
-sub createEventPath( $ )
+sub createEventPath
 {
     #
     # WARNING assumes running from events directory
@@ -250,8 +250,9 @@ sub createEventPath( $ )
 
         # Create empty id tag file
         $idFile = sprintf( "%s/.%d", $eventPath, $event->{Id} );
-        open( ID_FP, ">$idFile" ) or Fatal( "Can't open $idFile: $!" );
-        close( ID_FP );
+        open( my $ID_FP, ">", $idFile )
+            or Fatal( "Can't open $idFile: $!" );
+        close( $ID_FP );
         setFileOwner( $idFile );
     }
     else
@@ -260,8 +261,9 @@ sub createEventPath( $ )
         $eventPath .= '/'.$event->{Id};
 
         my $idFile = sprintf( "%s/.%d", $eventPath, $event->{Id} );
-        open( ID_FP, ">$idFile" ) or Fatal( "Can't open $idFile: $!" );
-        close( ID_FP );
+        open( my $ID_FP, ">", $idFile )
+            or Fatal( "Can't open $idFile: $!" );
+        close( $ID_FP );
         setFileOwner( $idFile );
     }
     return( $eventPath );
@@ -272,7 +274,7 @@ use Data::Dumper;
 our $_setFileOwner = undef;
 our ( $_ownerUid, $_ownerGid );
 
-sub _checkProcessOwner()
+sub _checkProcessOwner
 {
     if ( !defined($_setFileOwner) )
     {
@@ -291,7 +293,7 @@ sub _checkProcessOwner()
     return( $_setFileOwner );
 }
 
-sub setFileOwner( $ )
+sub setFileOwner
 {
     my $file = shift;
 
@@ -303,7 +305,7 @@ sub setFileOwner( $ )
 
 our $_hasImageInfo = undef;
 
-sub _checkForImageInfo()
+sub _checkForImageInfo
 {
     if ( !defined($_hasImageInfo) )
     {
@@ -317,7 +319,7 @@ sub _checkForImageInfo()
     return( $_hasImageInfo );
 }
 
-sub createEvent( $;$ )
+sub createEvent
 {
     my $event = shift;
 
@@ -447,7 +449,7 @@ sub createEvent( $;$ )
     }
 }
 
-sub addEventImage( $$ )
+sub addEventImage
 {
     my $event = shift;
     my $frame = shift;
@@ -455,7 +457,7 @@ sub addEventImage( $$ )
     # TBD
 }
 
-sub updateEvent( $ )
+sub updateEvent
 {
     my $event = shift;
 
@@ -488,7 +490,7 @@ sub updateEvent( $ )
     my $res = $sth->execute( @values ) or Fatal( "Can't execute sql '$sql': ".$sth->errstr() );
 }
 
-sub deleteEventFiles( $;$ )
+sub deleteEventFiles
 {
     #
     # WARNING assumes running from events directory
@@ -541,7 +543,7 @@ sub deleteEventFiles( $;$ )
     }
 }
 
-sub makePath( $;$ )
+sub makePath
 {
     my $path = shift;
     my $root = shift;
@@ -585,7 +587,7 @@ sub _testJSON
     $hasJSONAny = 1 if ( $result );
 }
 
-sub _getJSONType( $ )
+sub _getJSONType
 {
     my $value = shift;
     return( 'null' ) unless( defined($value) );
@@ -596,9 +598,9 @@ sub _getJSONType( $ )
     return( 'string' );
 }
 
-sub jsonEncode( $ );
+sub jsonEncode;
 
-sub jsonEncode( $ )
+sub jsonEncode
 {
     my $value = shift;
 
@@ -649,7 +651,7 @@ sub jsonEncode( $ )
     }
 }
 
-sub jsonDecode( $ )
+sub jsonDecode
 {
     my $value = shift;
 

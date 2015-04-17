@@ -56,13 +56,13 @@ sub new
 	return $self;
 }
 
-sub open()
+sub open
 {
 	my $self = shift;
 	local *sfh;
 	#sysopen( *sfh, $conn->{path}, O_NONBLOCK|O_RDONLY ) or croak( "Can't sysopen: $!" );
 	#open( *sfh, "<".$conn->{path} ) or croak( "Can't open: $!" );
-	open( *sfh, "+<".$self->{path} ) or croak( "Can't open: $!" );
+	open( *sfh, "+<", $self->{path} ) or croak( "Can't open: $!" );
 	$self->{state} = 'open';
 	$self->{handle} = *sfh;
 }

@@ -126,6 +126,7 @@ our %priorities = (
 );
 
 our $logger;
+our $LOGFILE;
 
 sub new
 {

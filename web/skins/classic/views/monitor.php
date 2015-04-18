@@ -659,7 +659,7 @@ switch ( $tab )
 	} else {
 ?>
             <tr><td><?php echo $SLANG['RefImageBlendPct'] ?></td><td><input type="text" name="newMonitor[RefBlendPerc]" value="<?php echo validHtmlStr($newMonitor['RefBlendPerc']) ?>" size="4"/></td></tr>
-            <tr><td><?php echo $SLANG['AlmRefImageBlendPct'] ?></td><td><input type="text" name="newMonitor[AlarmRefBlendPerc]" value="<?php echo validHtmlStr($newMonitor['AlarmRefBlendPerc']) ?>" size="4"/></td></tr>
+            <tr><td><?php echo $SLANG['AlarmRefImageBlendPct'] ?></td><td><input type="text" name="newMonitor[AlarmRefBlendPerc]" value="<?php echo validHtmlStr($newMonitor['AlarmRefBlendPerc']) ?>" size="4"/></td></tr>
 <?php
         }
 ?>

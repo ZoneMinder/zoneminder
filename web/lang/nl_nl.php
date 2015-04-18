@@ -70,7 +70,6 @@
 // setlocale( LC_TIME, 'en_GB' ); Date and time formatting 4.3.0 and after
 
 // Simple String Replacements
-
 $SLANG = array(
     '24BitColour'          => '24 bits kleuren',
     '32BitColour'          => '32 bit colour',          // Added - 2015-04-18

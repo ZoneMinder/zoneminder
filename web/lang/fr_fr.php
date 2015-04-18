@@ -69,6 +69,12 @@
 // setlocale( LC_CTYPE, 'en_GB' ); Character class settings 4.3.0 and after
 // setlocale( LC_TIME, 'en_GB' ); Date and time formatting 4.3.0 and after
 
+// Set date and time format (example: sam. 18 avril, 19h02)
+setlocale(LC_ALL, "fr_FR.UTF-8");
+define("DATE_FMT_CONSOLE_LONG", "%a %d %b, %Hh%M");
+define( "STRF_FMT_DATETIME_SHORT", "%d/%m/%y %H:%M:%S" );
+define( "STRF_FMT_DATETIME_SHORTER", "%d/%m %H:%M:%S" );
+
 // Simple String Replacements
 $SLANG = array(
     '24BitColour'          => 'Couleur 24 bits',

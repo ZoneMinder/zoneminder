@@ -255,7 +255,7 @@ static PixelFormat getFfPixFormatFromV4lPalette( int v4l_version, int palette )
 
 #if ZM_HAS_V4L2
 static char palette_desc[32];
-/* Automatic format selection prefered formats */
+/* Automatic format selection preferred formats */
 static const uint32_t prefered_rgb32_formats[] = {V4L2_PIX_FMT_BGR32, V4L2_PIX_FMT_RGB32, V4L2_PIX_FMT_BGR24, V4L2_PIX_FMT_RGB24, V4L2_PIX_FMT_YUYV, V4L2_PIX_FMT_UYVY, V4L2_PIX_FMT_JPEG, V4L2_PIX_FMT_MJPEG, V4L2_PIX_FMT_YUV422P, V4L2_PIX_FMT_YUV420};
 static const uint32_t prefered_rgb24_formats[] = {V4L2_PIX_FMT_BGR24, V4L2_PIX_FMT_RGB24, V4L2_PIX_FMT_YUYV, V4L2_PIX_FMT_UYVY, V4L2_PIX_FMT_JPEG, V4L2_PIX_FMT_MJPEG, V4L2_PIX_FMT_YUV422P, V4L2_PIX_FMT_YUV420};
 static const uint32_t prefered_gray8_formats[] = {V4L2_PIX_FMT_GREY, V4L2_PIX_FMT_YUYV, V4L2_PIX_FMT_UYVY, V4L2_PIX_FMT_JPEG, V4L2_PIX_FMT_MJPEG, V4L2_PIX_FMT_YUV422P, V4L2_PIX_FMT_YUV420};

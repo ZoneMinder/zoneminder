@@ -68,7 +68,11 @@ use Carp;
 sub loadConfigFromDB
 {
     print( "Loading config from DB\n" );
-    my $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}.";host=".$Config{ZM_DB_HOST}, $Config{ZM_DB_USER}, $Config{ZM_DB_PASS} );
+    my $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
+                           .";host=".$Config{ZM_DB_HOST}
+                           ,$Config{ZM_DB_USER}
+                           ,$Config{ZM_DB_PASS}
+    );
 
     if ( !$dbh )
     {
@@ -76,8 +80,10 @@ sub loadConfigFromDB
         return( 0 );
     }
     my $sql = "select * from Config";
-    my $sth = $dbh->prepare_cached( $sql ) or croak( "Can't prepare '$sql': ".$dbh->errstr() );
-    my $res = $sth->execute() or croak( "Can't execute: ".$sth->errstr() );
+    my $sth = $dbh->prepare_cached( $sql )
+        or croak( "Can't prepare '$sql': ".$dbh->errstr() );
+    my $res = $sth->execute()
+        or croak( "Can't execute: ".$sth->errstr() );
     my $option_count = 0;
     while( my $config = $sth->fetchrow_hashref() )
     {
@@ -111,7 +117,11 @@ sub loadConfigFromDB
 sub saveConfigToDB
 {
     print( "Saving config to DB\n" );
-    my $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}.";host=".$Config{ZM_DB_HOST}, $Config{ZM_DB_USER}, $Config{ZM_DB_PASS} );
+    my $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
+                           .";host=".$Config{ZM_DB_HOST}
+                           ,$Config{ZM_DB_USER}
+                           ,$Config{ZM_DB_PASS}
+    );
 
     if ( !$dbh )
     {
@@ -122,13 +132,16 @@ sub saveConfigToDB
     my $ac = $dbh->{AutoCommit};
     $dbh->{AutoCommit} = 0;
 
-    $dbh->do('LOCK TABLE Config WRITE') or croak( "Can't lock Config table: " . $dbh->errstr() );
+    $dbh->do('LOCK TABLE Config WRITE')
+        or croak( "Can't lock Config table: " . $dbh->errstr() );
 
     my $sql = "delete from Config";
-    my $res = $dbh->do( $sql ) or croak( "Can't do '$sql': ".$dbh->errstr() );
+    my $res = $dbh->do( $sql )
+        or croak( "Can't do '$sql': ".$dbh->errstr() );
 
     $sql = "replace into Config set Id = ?, Name = ?, Value = ?, Type = ?, DefaultValue = ?, Hint = ?, Pattern = ?, Format = ?, Prompt = ?, Help = ?, Category = ?, Readonly = ?, Requires = ?";
-    my $sth = $dbh->prepare_cached( $sql ) or croak( "Can't prepare '$sql': ".$dbh->errstr() );
+    my $sth = $dbh->prepare_cached( $sql )
+        or croak( "Can't prepare '$sql': ".$dbh->errstr() );
     foreach my $option ( @options )
     {
         #next if ( $option->{category} eq 'hidden' );
@@ -139,7 +152,10 @@ sub saveConfigToDB
         $option->{db_format} = $option->{type}->{format};
         if ( $option->{db_type} eq "boolean" )
         {
-            $option->{db_value} = ($option->{value} eq "yes")?"1":"0";
+            $option->{db_value} = ($option->{value} eq "yes")
+                                  ? "1"
+                                  : "0"
+            ;
         }
         else
         {
@@ -147,12 +163,35 @@ sub saveConfigToDB
         }
         if ( my $requires = $option->{requires} )
         {
-            $option->{db_requires} = join( ";", map { my $value = $_->{value}; $value = ($value eq "yes")?1:0 if ( $options_hash{$_->{name}}->{db_type} eq "boolean" ); ( "$_->{name}=$value" ) } @$requires );
+            $option->{db_requires} = join( ";",
+                map {
+                    my $value = $_->{value};
+                    $value = ($value eq "yes")
+                              ? 1
+                              : 0
+                        if ( $options_hash{$_->{name}}->{db_type} eq "boolean" )
+                    ; ( "$_->{name}=$value" )
+                } @$requires
+            );
         }
         else
         {
         }
-        my $res = $sth->execute( $option->{id}, $option->{name}, $option->{db_value}, $option->{db_type}, $option->{default}, $option->{db_hint}, $option->{db_pattern}, $option->{db_format}, $option->{description}, $option->{help}, $option->{category}, $option->{readonly}?1:0, $option->{db_requires} ) or croak( "Can't execute: ".$sth->errstr() );
+        my $res = $sth->execute(
+            $option->{id},
+            $option->{name},
+            $option->{db_value},
+            $option->{db_type},
+            $option->{default},
+            $option->{db_hint},
+            $option->{db_pattern},
+            $option->{db_format},
+            $option->{description},
+            $option->{help},
+            $option->{category},
+            $option->{readonly} ? 1 : 0,
+            $option->{db_requires}
+        ) or croak( "Can't execute: ".$sth->errstr() );
     }
     $sth->finish();
 
@@ -179,9 +218,15 @@ ZoneMinder::ConfigAdmin - ZoneMinder Configuration Administration module
 
 =head1 DESCRIPTION
 
-The ZoneMinder:ConfigAdmin module contains the master definition of the ZoneMinder configuration options as well as helper methods. This module is intended for specialist confguration management and would not normally be used by end users.
+The ZoneMinder:ConfigAdmin module contains the master definition of the
+ZoneMinder configuration options as well as helper methods. This module is
+intended for specialist confguration management and would not normally be
+used by end users.
 
-The configuration held in this module, which was previously in zmconfig.pl, includes the name, default value, description, help text, type and category for each option, as well as a number of additional fields in a small number of cases.
+The configuration held in this module, which was previously in zmconfig.pl,
+includes the name, default value, description, help text, type and category
+for each option, as well as a number of additional fields in a small number
+of cases.
 
 =head1 METHODS
 
@@ -189,11 +234,17 @@ The configuration held in this module, which was previously in zmconfig.pl, incl
 
 =item loadConfigFromDB ();
 
-Loads existing configuration from the database (if any) and merges it with the definitions held in this module. This results in the merging of any new configuration and the removal of any deprecated configuration while preserving the existing values of every else.
+Loads existing configuration from the database (if any) and merges it with
+the definitions held in this module. This results in the merging of any new
+configuration and the removal of any deprecated configuration while
+preserving the existing values of every else.
 
 =item saveConfigToDB ();
 
-Saves configuration held in memory to the database. The act of loading and saving configuration is a convenient way to ensure that the configuration held in the database corresponds with the most recent definitions and that all components are using the same set of configuration.
+Saves configuration held in memory to the database. The act of loading and
+saving configuration is a convenient way to ensure that the configuration
+held in the database corresponds with the most recent definitions and that
+all components are using the same set of configuration.
 
 =back
 

@@ -19,7 +19,7 @@
 #
 # ==========================================================================
 #
-# This module contains the common definitions and functions used by the rest 
+# This module contains the common definitions and functions used by the rest
 # of the ZoneMinder scripts
 #
 package ZoneMinder::Config;
@@ -89,7 +89,11 @@ BEGIN
     close( $CONFIG );
 
     use DBI;
-    my $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}.";host=".$Config{ZM_DB_HOST}, $Config{ZM_DB_USER}, $Config{ZM_DB_PASS} ) or croak( "Can't connect to db" );
+    my $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
+                           .";host=".$Config{ZM_DB_HOST}
+                           , $Config{ZM_DB_USER}
+                           , $Config{ZM_DB_PASS}
+    ) or croak( "Can't connect to db" );
     my $sql = 'select * from Config';
     my $sth = $dbh->prepare_cached( $sql ) or croak( "Can't prepare '$sql': ".$dbh->errstr() );
     my $res = $sth->execute() or croak( "Can't execute: ".$sth->errstr() );
@@ -113,9 +117,16 @@ ZoneMinder::Config - ZoneMinder configuration module.
 
 =head1 DESCRIPTION
 
-The ZoneMinder::Config module is used to import the ZoneMinder configuration from the database. It will do this at compile time in a BEGIN block and require access to the zm.conf file either in the current directory or in its defined location in order to determine database access details, configuration from this file will also be included. If the :all or :config tags are used then this configuration is exported into the namespace of the calling program or module.
+The ZoneMinder::Config module is used to import the ZoneMinder
+configuration from the database. It will do this at compile time in a BEGIN
+block and require access to the zm.conf file either in the current
+directory or in its defined location in order to determine database access
+details, configuration from this file will also be included. If the :all or
+:config tags are used then this configuration is exported into the
+namespace of the calling program or module.
 
-Once the configuration has been imported then configuration variables are defined as constants and can be accessed directory by name, e.g.
+Once the configuration has been imported then configuration variables are
+defined as constants and can be accessed directory by name, e.g.
 
  $lang = $Config{ZM_LANG_DEFAULT};
 

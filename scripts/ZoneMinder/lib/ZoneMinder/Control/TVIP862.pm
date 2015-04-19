@@ -111,7 +111,8 @@ sub open
     my $self = shift;
     $self->loadMonitor();
 
-    my ( $protocol, $username, $password, $address ) = $self->{Monitor}->{ControlAddress} =~ /^(https?:\/\/)?([^:]+):([^\/@]+)@(.*)$/;
+    my ( $protocol, $username, $password, $address )
+       = $self->{Monitor}->{ControlAddress} =~ /^(https?:\/\/)?([^:]+):([^\/@]+)@(.*)$/;
     if ( $username ) {
         $USERNAME = $username;
         $PASSWORD = $password;
@@ -130,7 +131,12 @@ sub open
     $self->{ua}->agent( "ZoneMinder Control Agent/".$ZoneMinder::Base::ZM_VERSION );
     $self->{state} = 'open';
 #   credentials:  ("ip:port" (no prefix!), realm (string), username (string), password (string)
-    Debug ( "sendCmd credentials control address:'".$ADDRESS."'  realm:'" . $REALM . "'  username:'" . $USERNAME . "'  password:'".$PASSWORD."'"); 
+    Debug ( "sendCmd credentials control address:'".$ADDRESS
+            ."'  realm:'" . $REALM
+            . "'  username:'" . $USERNAME
+            . "'  password:'".$PASSWORD
+            ."'"
+    ); 
     $self->{ua}->credentials($ADDRESS,$REALM,$USERNAME,$PASSWORD);
 }
 

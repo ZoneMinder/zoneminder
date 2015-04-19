@@ -204,23 +204,37 @@ sub zmMemInit
         }
         foreach my $member_data ( sort { $a->{seq} <=> $b->{seq} } values( %{$section_data->{contents}} ) )
         {
-            if ( $member_data->{type} eq "long" || $member_data->{type} eq "ulong" || $member_data->{type} eq "size_t")
+            if ( $member_data->{type} eq "long"
+                 || $member_data->{type} eq "ulong"
+                 || $member_data->{type} eq "size_t"
+            )
             {
                 $member_data->{size} = $member_data->{align} = $native;
             }
-            elsif( $member_data->{type} eq "int64" || $member_data->{type} eq "uint64" || $member_data->{type} eq "time_t64")
+            elsif( $member_data->{type} eq "int64"
+                   || $member_data->{type} eq "uint64"
+                   || $member_data->{type} eq "time_t64"
+            )
             {
                 $member_data->{size} = $member_data->{align} = 8;
             }
-            elsif ( $member_data->{type} eq "int32" || $member_data->{type} eq "uint32" || $member_data->{type} eq "bool4" )
+            elsif ( $member_data->{type} eq "int32"
+                    || $member_data->{type} eq "uint32"
+                    || $member_data->{type} eq "bool4"
+            )
             {
                 $member_data->{size} = $member_data->{align} = 4;
             }
-            elsif ($member_data->{type} eq "int16" || $member_data->{type} eq "uint16")
+            elsif ($member_data->{type} eq "int16"
+                   || $member_data->{type} eq "uint16"
+            )
             {
                 $member_data->{size} = $member_data->{align} = 2;
             }
-            elsif ( $member_data->{type} eq "int8" || $member_data->{type} eq "uint8" || $member_data->{type} eq "bool1" )
+            elsif ( $member_data->{type} eq "int8"
+                    || $member_data->{type} eq "uint8"
+                    || $member_data->{type} eq "bool1"
+            )
             {
                 $member_data->{size} = $member_data->{align} = 1;
             }
@@ -231,7 +245,9 @@ sub zmMemInit
             }
             else
             {
-                Fatal( "Unexpected type '".$member_data->{type}."' found in shared data definition." );
+                Fatal( "Unexpected type '".$member_data->{type}
+                      ."' found in shared data definition."
+                );
             }
 
             if ( $member_data->{align} > 1 && ($offset%$member_data->{align}) > 0 )
@@ -265,11 +281,22 @@ sub zmMemVerify
         {
             if ( $sd_size )
             {
-                Error( "Shared data size conflict in shared_data for monitor ".$monitor->{Name}.", expected ".$mem_data->{shared_data}->{size}.", got ".$sd_size );
+                Error( "Shared data size conflict in shared_data for monitor "
+                       .$monitor->{Name}
+                       .", expected "
+                       .$mem_data->{shared_data}->{size}
+                       .", got "
+                       .$sd_size
+                );
             }
             else
             {
-                Debug( "Shared data size conflict in shared_data for monitor ".$monitor->{Name}.", expected ".$mem_data->{shared_data}->{size}.", got ".$sd_size );
+                Debug( "Shared data size conflict in shared_data for monitor "
+                       .$monitor->{Name}
+                       .", expected "
+                       .$mem_data->{shared_data}->{size}
+                       .", got ".$sd_size
+                );
             }
             return( undef );
         }
@@ -278,11 +305,23 @@ sub zmMemVerify
         {
             if ( $td_size )
             {
-                Error( "Shared data size conflict in trigger_data for monitor ".$monitor->{Name}.", expected ".$mem_data->{triggger_data}->{size}.", got ".$td_size );
+                Error( "Shared data size conflict in trigger_data for monitor "
+                      .$monitor->{Name}
+                      .", expected "
+                      .$mem_data->{triggger_data}->{size}
+                      .", got "
+                      .$td_size
+                );
             }
             else
             {
-                Debug( "Shared data size conflict in trigger_data for monitor ".$monitor->{Name}.", expected ".$mem_data->{triggger_data}->{size}.", got ".$td_size );
+                Debug( "Shared data size conflict in trigger_data for monitor "
+                      .$monitor->{Name}
+                      .", expected "
+                      .$mem_data->{triggger_data}->{size}
+                      .", got "
+                      .$td_size
+                );
             }
             return( undef );
         }
@@ -417,7 +456,8 @@ sub zmMemWrite
     while ( my ( $field, $value ) = each( %$field_values ) )
     {
         my ( $section, $element ) = split( /[\/:.]/, $field );
-        Fatal( "Invalid shared data selector '$field'" ) if ( !$section || !$element );
+        Fatal( "Invalid shared data selector '$field'" )
+            if ( !$section || !$element );
 
         my $offset = $mem_data->{$section}->{contents}->{$element}->{offset};
         my $type = $mem_data->{$section}->{contents}->{$element}->{type};
@@ -481,7 +521,9 @@ sub zmMemWrite
 
         if ( !zmMemPut( $monitor, $offset, $size, $data ) )
         {
-            Error( "Unable to write '$value' to '$field' in memory for monitor ".$monitor->{Id} );
+            Error( "Unable to write '$value' to '$field' in memory for monitor "
+                  .$monitor->{Id}
+            );
             zmMemInvalidate( $monitor );
             return( undef );
         }
@@ -556,7 +598,10 @@ sub zmHasAlarmed
     my $monitor = shift;
     my $last_event_id = shift;
 
-    my ( $state, $last_event ) = zmMemRead( $monitor, [ "shared_data:state", "shared_data:last_event" ] );
+    my ( $state, $last_event ) = zmMemRead( $monitor, [ "shared_data:state"
+                                                       ,"shared_data:last_event"
+                                                      ]
+                                          );
 
     if ( $state == STATE_ALARM || $state == STATE_ALERT )
     {
@@ -722,16 +767,29 @@ ZoneMinder::MappedMem - ZoneMinder Mapped Memory access module
     }
   }
 
-  ( $lri, $lwi ) = zmMemRead( $monitor, [ "shared_data:last_read_index", "shared_data:last_write_index" ] );
+  ( $lri, $lwi ) = zmMemRead( $monitor, [ "shared_data:last_read_index",
+                                          "shared_data:last_write_index"
+                                        ]
+                            );
   zmMemWrite( $monitor, { "trigger_data:trigger_showtext" => "Some Text" } );
 
 =head1 DESCRIPTION
 
-The ZoneMinder:MappedMem module contains methods for accessing and writing to mapped memory as well as helper methods for common operations.
+The ZoneMinder:MappedMem module contains methods for accessing and writing
+to mapped memory as well as helper methods for common operations.
 
-The core elements of ZoneMinder used mapped memory to allow multiple access to resources. Although ZoneMinder scripts have used this information before, up until now it was difficult to access and prone to errors. This module introduces a common API for mapped memory access (both reading and writing) making it a lot easier to customise scripts or even create your own.
+The core elements of ZoneMinder used mapped memory to allow multiple access
+to resources. Although ZoneMinder scripts have used this information
+before, up until now it was difficult to access and prone to errors. This
+module introduces a common API for mapped memory access (both reading and
+writing) making it a lot easier to customise scripts or even create your
+own.
 
-All the methods listed below require a 'monitor' parameter. This must be a reference to a hash with at least the 'Id' field set to the monitor id of the mapped memory you wish to access. Using database methods to select the monitor details will also return this kind of data. Some of the mapped memory methods will add and amend new fields to this hash.
+All the methods listed below require a 'monitor' parameter. This must be a
+reference to a hash with at least the 'Id' field set to the monitor id of
+the mapped memory you wish to access. Using database methods to select the
+monitor details will also return this kind of data. Some of the mapped
+memory methods will add and amend new fields to this hash.
 
 =head1 METHODS
 
@@ -739,27 +797,46 @@ All the methods listed below require a 'monitor' parameter. This must be a refer
 
 =item zmMemVerify ( $monitor );
 
-Verify that the mapped memory of the monitor given exists and is valid. It will return an undefined value if it is not valid. You should generally call this method first before using any of the other methods, but most of the remaining methods will also do so if the memory has not already been verified.
+Verify that the mapped memory of the monitor given exists and is valid. It
+will return an undefined value if it is not valid. You should generally
+call this method first before using any of the other methods, but most of
+the remaining methods will also do so if the memory has not already been
+verified.
 
 =item zmMemInvalidate ( $monitor );
 
-Following an error, reset the mapped memory ids and attempt to reverify on the next operation. This is mostly used when a mapped memory segment has gone away and been recreated with a different id.
+Following an error, reset the mapped memory ids and attempt to reverify on
+the next operation. This is mostly used when a mapped memory segment has
+gone away and been recreated with a different id.
 
 =item zmMemRead ( $monitor, $readspec );
 
-This method is used to read data from mapped memory attached to the given monitor. The mapped memory will be verified if it has not already been. The 'readspec' must either be a string of the form "<section>:<field>" or a reference to an array of strings of the same format. In the first case a single value is returned, in the latter case a list of values is return. Errors will cause undefined to be returned. The allowable sections and field names are described below.
+This method is used to read data from mapped memory attached to the given
+monitor. The mapped memory will be verified if it has not already been. The
+'readspec' must either be a string of the form "<section>:<field>" or a
+reference to an array of strings of the same format. In the first case a
+single value is returned, in the latter case a list of values is return.
+Errors will cause undefined to be returned. The allowable sections and
+field names are described below.
 
 =item zmMemWrite ( $monitor, $writespec );
 
-This method is used to write data to mapped memory attached to the given monitor. The mapped memory will be verified if it has not already been. The 'writespec' must be a reference to a hash with keys of the form "<section>:<field>" and values as the data to be written. Errors will cause undefined to be returned, otherwise a non-undefined value will be returned. The allowable sections and field names are described below.
+This method is used to write data to mapped memory attached to the given
+monitor. The mapped memory will be verified if it has not already been. The
+'writespec' must be a reference to a hash with keys of the form
+"<section>:<field>" and values as the data to be written. Errors will cause
+undefined to be returned, otherwise a non-undefined value will be returned.
+The allowable sections and field names are described below.
 
 =item $state = zmGetMonitorState ( $monitor );
 
-Return the current state of the given monitor. This is an integer value and can be compared with the STATE constants given below.
+Return the current state of the given monitor. This is an integer value and
+can be compared with the STATE constants given below.
 
 =item $event_id = zmGetLastEvent ( $monitor );
 
-Return the event id of the last event that the monitor generated, or 0 if no event has been generated by the current monitor process.
+Return the event id of the last event that the monitor generated, or 0 if
+no event has been generated by the current monitor process.
 
 =item zmIsAlarmed ( $monitor );
 
@@ -767,27 +844,38 @@ Return 1 if the monitor given is currently in an alarm state, 0 otherwise.
 
 =item zmInAlarm ( $monitor );
 
-Return 1 if the monitor given is currently in an alarm or alerted state, 0 otherwise.
+Return 1 if the monitor given is currently in an alarm or alerted state, 0
+otherwise.
 
 =item zmHasAlarmed ( $monitor );
 
-Return 1 if the given monitor is in an alarm state, or has been in an alarm state since the last call to this method.
+Return 1 if the given monitor is in an alarm state, or has been in an alarm
+state since the last call to this method.
 
 =item ( $x, $y ) = zmGetAlarmLocation ( $monitor );
 
-Return an x,y pair indicating the image co-ordinates of the centre of the last motion event generated by the given monitor. If no event has been generated by the current monitor process, or the alarm was not motion related, returns -1,-1.
+Return an x,y pair indicating the image co-ordinates of the centre of the
+last motion event generated by the given monitor. If no event has been
+generated by the current monitor process, or the alarm was not motion
+related, returns -1,-1.
 
 =item zmGetLastWriteTime ( $monitor );
 
-Returns the time (in utc seconds) since the last image was captured by the given monitor and written to shared memory, or 0 otherwise.
+Returns the time (in utc seconds) since the last image was captured by the
+given monitor and written to shared memory, or 0 otherwise.
 
 =item zmGetLastReadTime ( $monitor );
 
-Returns the time (in utc seconds) since the last image was read from shared memory by the analysis daemon of the given monitor, or 0 otherwise or if the monitor is in monitor only mode.
+Returns the time (in utc seconds) since the last image was read from shared
+memory by the analysis daemon of the given monitor, or 0 otherwise or if
+the monitor is in monitor only mode.
 
 =item zmMonitorSuspend ( $monitor );
 
-Suspend the given monitor from generating events caused by motion. This method can be used to prevent camera actions such as panning or zooming from causing events. If configured to do so, the monitor may automatically resume after a defined period.
+Suspend the given monitor from generating events caused by motion. This
+method can be used to prevent camera actions such as panning or zooming
+from causing events. If configured to do so, the monitor may automatically
+resume after a defined period.
 
 =item zmMonitorResume ( $monitor );
 
@@ -795,25 +883,43 @@ Allow the given monitor to resume generating events caused by motion.
 
 =item zmTriggerEventOn ( $monitor, $score, $cause [, $text, $showtext ] );
 
-Trigger the given monitor to generate an event. You must supply an event score and a cause string indicating the reason for the event. You may also supply a text string containing further details about the event and a showtext string which may be included in the timestamp annotation on any images captured during the event, if configured to do so.
+Trigger the given monitor to generate an event. You must supply an event
+score and a cause string indicating the reason for the event. You may also
+supply a text string containing further details about the event and a
+showtext string which may be included in the timestamp annotation on any
+images captured during the event, if configured to do so.
 
 =item zmTriggerEventOff ( $monitor );
 
-Trigger the given monitor to not generate any events. This method does not cancel zmTriggerEventOn, but is exclusive to it. This method is intended to allow external triggers to prevent normal events being generated by monitors in the same way as zmMonitorSuspend but applies to all events and not just motion, and is intended for longer timescales than are appropriate for suspension.
+Trigger the given monitor to not generate any events. This method does not
+cancel zmTriggerEventOn, but is exclusive to it. This method is intended to
+allow external triggers to prevent normal events being generated by
+monitors in the same way as zmMonitorSuspend but applies to all events and
+not just motion, and is intended for longer timescales than are appropriate
+for suspension.
 
 =item zmTriggerEventCancel ( $monitor );
 
-Cancel any previous trigger on or off requests. This stops a triggered alarm if it exists from a previous 'on' and allows events to be generated once more following a previous 'off'.
+Cancel any previous trigger on or off requests. This stops a triggered
+alarm if it exists from a previous 'on' and allows events to be generated
+once more following a previous 'off'.
 
 =item zmTriggerShowtext ( $monitor, $showtest );
 
-Indicate that the given text should be displayed in the timestamp annotation on any images captured, if the format of the annotation string defined for the monitor permits.
+Indicate that the given text should be displayed in the timestamp
+annotation on any images captured, if the format of the annotation string
+defined for the monitor permits.
 
 =back
 
 =head1 DATA
 
-The data fields in mapped memory that may be accessed are as follows. There are two main sections, shared_data which is general data and trigger_data which is used for event triggering. Whilst reading from these fields is harmless, extreme care must be taken when writing to mapped memory, especially in the shared_data section as this is normally written to only by monitor capture and analysis processes.
+The data fields in mapped memory that may be accessed are as follows. There
+are two main sections, shared_data which is general data and trigger_data
+which is used for event triggering. Whilst reading from these fields is
+harmless, extreme care must be taken when writing to mapped memory,
+especially in the shared_data section as this is normally written to only
+by monitor capture and analysis processes.
 
   shared_data         The general mapped memory section
     size              The size, in bytes, of this section
@@ -844,21 +950,38 @@ The data fields in mapped memory that may be accessed are as follows. There are 
 
 =head1 CONSTANTS
 
-The following constants are used by the methods above, but can also be used by user scripts if required.
+The following constants are used by the methods above, but can also be used
+by user scripts if required.
 
 =over 4
 
 =item STATE_IDLE STATE_PREALARM STATE_ALARM STATE_ALERT STATE_TAPE
 
-These constants define the state of the monitor with respect to alarms and events. They are used in the shared_data:state field.
+These constants define the state of the monitor with respect to alarms and
+events. They are used in the shared_data:state field.
 
 =item ACTION_GET ACTION_SET ACTION_RELOAD ACTION_SUSPEND ACTION_RESUME
 
-These constants defines the various values that can exist in the shared_data:action field. This is a bitmask which when non-zero defines an action that an executing monitor process should take. ACTION_GET requires that the current values of brightness, contrast, colour and hue are taken from the camera and written to the equivalent mapped memory fields. ACTION_SET implies the reverse, that the values in mapped memory should be written to the camera. ACTION_RELOAD signal that the monitor process should reload itself from the database in case any settings have changed there. ACTION_SUSPEND signals that a monitor should stop exaiming images for motion, though other alarms may still occur. ACTION_RESUME sigansl that a monitor should resume motion detectiom.
+These constants defines the various values that can exist in the
+shared_data:action field. This is a bitmask which when non-zero defines an
+action that an executing monitor process should take. ACTION_GET requires
+that the current values of brightness, contrast, colour and hue are taken
+from the camera and written to the equivalent mapped memory fields.
+ACTION_SET implies the reverse, that the values in mapped memory should be
+written to the camera. ACTION_RELOAD signal that the monitor process should
+reload itself from the database in case any settings have changed there.
+ACTION_SUSPEND signals that a monitor should stop exaiming images for
+motion, though other alarms may still occur. ACTION_RESUME sigansl that a
+monitor should resume motion detectiom.
 
 =item TRIGGER_CANCEL TRIGGER_ON TRIGGER_OFF
 
-These constants are used in the definition of external triggers. TRIGGER_CANCEL is used to indicated that any previous trigger settings should be cancelled, TRIGGER_ON signals that an alarm should be created (or continued)) as a result of the current trigger and TRIGGER_OFF signals that the trigger should prevent any alarms from being generated. See the trigger methods above for further details.
+These constants are used in the definition of external triggers.
+TRIGGER_CANCEL is used to indicated that any previous trigger settings
+should be cancelled, TRIGGER_ON signals that an alarm should be created (or
+continued)) as a result of the current trigger and TRIGGER_OFF signals that
+the trigger should prevent any alarms from being generated. See the trigger
+methods above for further details.
 
 =back
 

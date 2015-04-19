@@ -151,7 +151,13 @@ sub putMessages
         $buffer .= "\n";
         if ( !$self->{channel}->write( $buffer ) )
         {
-            Error( "Unable to write buffer '".$buffer." to connection ".$self->{name}." (".$self->fileno().")\n" );
+            Error( "Unable to write buffer '".$buffer
+                  ." to connection "
+                  .$self->{name}
+                  ." ("
+                  .$self->fileno()
+                  .")\n"
+            );
         }
     }
     return( undef );

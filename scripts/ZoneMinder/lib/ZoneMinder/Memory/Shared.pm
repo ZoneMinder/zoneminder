@@ -85,7 +85,11 @@ sub zmMemAttach
         my $shm_id = shmget( $shm_key, $size, &IPC_CREAT | 0777  );
         if ( !defined($shm_id) )
         {
-            Error( sprintf( "Can't get shared memory id '%x', %d: $!\n", $shm_key, $monitor->{Id} ) );
+            Error( sprintf( "Can't get shared memory id '%x', %d: $!\n"
+                            , $shm_key
+                            , $monitor->{Id}
+                          )
+            );
             return( undef );
         }
         $monitor->{ShmKey} = $shm_key;
@@ -113,7 +117,11 @@ sub zmMemGet
     my $data;
     if ( !shmread( $shm_id, $data, $offset, $size ) )
     {
-        Error( sprintf( "Can't read from shared memory '%x/%d': $!", $shm_key, $shm_id ) );
+        Error( sprintf( "Can't read from shared memory '%x/%d': $!"
+                        , $shm_key
+                        , $shm_id
+                      )
+        );
         return( undef );
     }
     return( $data );
@@ -131,7 +139,11 @@ sub zmMemPut
 
     if ( !shmwrite( $shm_id, $data, $offset, $size ) )
     {
-        Error( sprintf( "Can't write to shared memory '%x/%d': $!", $shm_key, $shm_id ) );
+        Error( sprintf( "Can't write to shared memory '%x/%d': $!"
+                        , $shm_key
+                        , $shm_id
+                      )
+        );
         return( undef );
     }
     return( !undef );
@@ -141,7 +153,10 @@ sub zmMemClean
 {
     Debug( "Removing shared memory\n" );
     # Find ZoneMinder shared memory
-    my $command = "ipcs -m | grep '^".substr( sprintf( "0x%x", hex($Config{ZM_SHM_KEY}) ), 0, -2 )."'";
+    my $command = "ipcs -m | grep '^"
+                  .substr( sprintf( "0x%x", hex($Config{ZM_SHM_KEY}) ), 0, -2 )
+                  ."'"
+    ;
     Debug( "Checking for shared memory with '$command'\n" );
     open( my $CMD, '<', "$command |" )
         or Fatal( "Can't execute '$command': $!" );

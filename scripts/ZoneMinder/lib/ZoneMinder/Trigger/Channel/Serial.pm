@@ -99,7 +99,13 @@ sub write
     $self->{device}->write_drain();
     if ( !defined( $nbytes) || $nbytes < length($buffer) )
     {
-        Error( "Unable to write buffer '".$buffer.", expected ".length($buffer)." bytes, sent ".$nbytes.": $!\n" );
+        Error( "Unable to write buffer '".$buffer
+               .", expected "
+               .length($buffer)
+               ." bytes, sent "
+               .$nbytes
+               .": $!\n"
+        );
         return( undef );
     }
     Debug( "Wrote '$buffer' ($nbytes bytes)\n" );

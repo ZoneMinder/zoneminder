@@ -110,9 +110,13 @@ sub sendCmd {
 
     my $url;
     if ( $self->{Monitor}->{ControlAddress} =~ /^http/ ) {
-        $url = $self->{Monitor}->{ControlAddress}.'/cgi-bin/setGPIO.cgi?preventCache='.time;
+        $url = $self->{Monitor}->{ControlAddress}
+            .'/cgi-bin/setGPIO.cgi?preventCache='.time
+        ;
     } else {
-        $url = 'http://'.$self->{Monitor}->{ControlAddress}.'/cgi-bin/setGPIO.cgi?preventCache='.time;
+        $url = 'http://'.$self->{Monitor}->{ControlAddress}
+            .'/cgi-bin/setGPIO.cgi?preventCache='.time
+        ;
     } # en dif
     Error("Url: $url  $cmd");
     my $uri     = URI::Encode->new( { encode_reserved => 0 } );
@@ -203,7 +207,11 @@ sub moveMap
     my $xcoord = $self->getParam( $params, 'xcoord' );
     my $ycoord = $self->getParam( $params, 'ycoord' );
     Debug( "Move Map to $xcoord,$ycoord" );
-    my $cmd = "/axis-cgi/com/ptz.cgi?center=$xcoord,$ycoord&imagewidth=".$self->{Monitor}->{Width}."&imageheight=".$self->{Monitor}->{Height};
+    my $cmd = "/axis-cgi/com/ptz.cgi?center=$xcoord,$ycoord&imagewidth="
+              .$self->{Monitor}->{Width}
+              ."&imageheight="
+              .$self->{Monitor}->{Height}
+    ;
     $self->sendCmd( $cmd );
 }
 

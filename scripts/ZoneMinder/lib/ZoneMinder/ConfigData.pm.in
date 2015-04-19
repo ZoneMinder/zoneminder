@@ -73,21 +73,103 @@ sub INIT
 # Types
 our %types =
 (
-    string => { db_type=>"string", hint=>"string", pattern=>qr|^(.+)$|, format=>q( $1 ) },
-    alphanum => { db_type=>"string", hint=>"alphanumeric", pattern=>qr|^([a-zA-Z0-9-_]+)$|, format=>q( $1 ) },
-    text => { db_type=>"text", hint=>"free text", pattern=>qr|^(.+)$|, format=>q( $1 ) },
-    boolean => { db_type=>"boolean", hint=>"yes|no", pattern=>qr|^([yn])|i, check=>q( $1 ), format=>q( ($1 =~ /^y/) ? "yes" : "no" ) },
-    integer => { db_type=>"integer", hint=>"integer", pattern=>qr|^(\d+)$|, format=>q( $1 ) },
-    decimal => { db_type=>"decimal", hint=>"decimal", pattern=>qr|^(\d+(?:\.\d+)?)$|, format=>q( $1 ) },
-    hexadecimal => { db_type=>"hexadecimal", hint=>"hexadecimal", pattern=>qr|^(?:0x)?([0-9a-f]{1,8})$|, format=>q( "0x".$1 ) },
-    tristate => { db_type=>"string", hint=>"auto|yes|no", pattern=>qr|^([ayn])|i, check=>q( $1 ), format=>q( ($1 =~ /^y/) ? "yes" : ($1 =~ /^n/ ? "no" : "auto" ) ) },
-    abs_path => { db_type=>"string", hint=>"/absolute/path/to/somewhere", pattern=>qr|^((?:/[^/]*)+?)/?$|, format=>q( $1 ) },
-    rel_path => { db_type=>"string", hint=>"relative/path/to/somewhere", pattern=>qr|^((?:[^/].*)?)/?$|, format=>q( $1 ) },
-    directory => { db_type=>"string", hint=>"directory", pattern=>qr|^([a-zA-Z0-9-_.]+)$|, format=>q( $1 ) },
-    file => { db_type=>"string", hint=>"filename", pattern=>qr|^([a-zA-Z0-9-_.]+)$|, format=>q( $1 ) },
-    hostname => { db_type=>"string", hint=>"host.your.domain", pattern=>qr|^([a-zA-Z0-9_.-]+)$|, format=>q( $1 ) },
-    url => { db_type=>"string", hint=>"http://host.your.domain/", pattern=>qr|^(?:http://)?(.+)$|, format=>q( "http://".$1 ) },
-    email => { db_type=>"string", hint=>"your.name\@your.domain", pattern=>qr|^([a-zA-Z0-9_.-]+)\@([a-zA-Z0-9_.-]+)$|, format=>q( $1\@$2 ) },
+    string => {
+        db_type     =>"string",
+        hint        =>"string",
+        pattern     =>qr|^(.+)$|,
+        format      =>q( $1 )
+    },
+    alphanum => {
+        db_type     =>"string",
+        hint        =>"alphanumeric",
+        pattern     =>qr|^([a-zA-Z0-9-_]+)$|,
+        format      =>q( $1 )
+    },
+    text => {
+        db_type     =>"text",
+        hint        =>"free text",
+        pattern     =>qr|^(.+)$|,
+        format      =>q( $1 )
+    },
+    boolean => {
+        db_type     =>"boolean",
+        hint        =>"yes|no",
+        pattern     =>qr|^([yn])|i,
+        check       =>q( $1 ),
+        format      =>q( ($1 =~ /^y/)
+                          ? "yes"
+                          : "no"
+                       )
+    },
+    integer => {
+        db_type     =>"integer",
+        hint        =>"integer",
+        pattern     =>qr|^(\d+)$|,
+        format      =>q( $1 )
+    },
+    decimal => {
+        db_type     =>"decimal",
+        hint        =>"decimal",
+        pattern     =>qr|^(\d+(?:\.\d+)?)$|,
+        format      =>q( $1 )
+    },
+    hexadecimal => {
+        db_type     =>"hexadecimal",
+        hint        =>"hexadecimal",
+        pattern     =>qr|^(?:0x)?([0-9a-f]{1,8})$|,
+        format      =>q( "0x".$1 )
+    },
+    tristate => {
+        db_type     =>"string",
+        hint        =>"auto|yes|no",
+        pattern     =>qr|^([ayn])|i, check=>q( $1 ),
+        format      =>q( ($1 =~ /^y/)
+                         ? "yes"
+                         : ($1 =~ /^n/ ? "no" : "auto" )
+                       )
+    },
+    abs_path => {
+        db_type     =>"string",
+        hint        =>"/absolute/path/to/somewhere",
+        pattern     =>qr|^((?:/[^/]*)+?)/?$|,
+        format      =>q( $1 )
+    },
+    rel_path => {
+        db_type     =>"string",
+        hint        =>"relative/path/to/somewhere",
+        pattern     =>qr|^((?:[^/].*)?)/?$|,
+        format      =>q( $1 )
+    },
+    directory => {
+        db_type     =>"string",
+        hint        =>"directory",
+        pattern     =>qr|^([a-zA-Z0-9-_.]+)$|,
+        format      =>q( $1 )
+    },
+    file => {
+        db_type     =>"string",
+        hint        =>"filename",
+        pattern     =>qr|^([a-zA-Z0-9-_.]+)$|,
+        format      =>q( $1 )
+    },
+    hostname => {
+        db_type     =>"string",
+        hint        =>"host.your.domain",
+        pattern     =>qr|^([a-zA-Z0-9_.-]+)$|,
+        format      =>q( $1 )
+    },
+    url => {
+        db_type     =>"string",
+        hint        =>"http://host.your.domain/",
+        pattern     =>qr|^(?:http://)?(.+)$|,
+        format      =>q( "http://".$1 )
+    },
+    email => {
+        db_type     =>"string",
+        hint        =>"your.name\@your.domain",
+        pattern     =>qr|^([a-zA-Z0-9_.-]+)\@([a-zA-Z0-9_.-]+)$|,
+        format      =>q( $1\@$2 )
+    },
 );
 
 our @options =
@@ -1996,9 +2078,15 @@ ZoneMinder::ConfigData - ZoneMinder Configuration Data module
 
 =head1 DESCRIPTION
 
-The ZoneMinder:ConfigData module contains the master definition of the ZoneMinder configuration options as well as helper methods. This module is intended for specialist confguration management and would not normally be used by end users.
+The ZoneMinder:ConfigData module contains the master definition of the
+ZoneMinder configuration options as well as helper methods. This module is
+intended for specialist confguration management and would not normally be
+used by end users.
 
-The configuration held in this module, which was previously in zmconfig.pl, includes the name, default value, description, help text, type and category for each option, as well as a number of additional fields in a small number of cases.
+The configuration held in this module, which was previously in zmconfig.pl,
+includes the name, default value, description, help text, type and category
+for each option, as well as a number of additional fields in a small number
+of cases.
 
 =head1 METHODS
 
@@ -2006,11 +2094,17 @@ The configuration held in this module, which was previously in zmconfig.pl, incl
 
 =item loadConfigFromDB ();
 
-Loads existing configuration from the database (if any) and merges it with the definitions held in this module. This results in the merging of any new configuration and the removal of any deprecated configuration while preserving the existing values of every else.
+Loads existing configuration from the database (if any) and merges it with
+the definitions held in this module. This results in the merging of any new
+configuration and the removal of any deprecated configuration while
+preserving the existing values of every else.
 
 =item saveConfigToDB ();
 
-Saves configuration held in memory to the database. The act of loading and saving configuration is a convenient way to ensure that the configuration held in the database corresponds with the most recent definitions and that all components are using the same set of configuration.
+Saves configuration held in memory to the database. The act of loading and
+saving configuration is a convenient way to ensure that the configuration
+held in the database corresponds with the most recent definitions and that
+all components are using the same set of configuration.
 
 =back
 

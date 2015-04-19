@@ -83,11 +83,20 @@ sub zmDbConnect
 
         if ( defined($port) )
         {
-            $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}.";host=".$host.";port=".$port, $Config{ZM_DB_USER}, $Config{ZM_DB_PASS} );
+            $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
+                                .";host=".$host
+                                .";port=".$port
+                                , $Config{ZM_DB_USER}
+                                , $Config{ZM_DB_PASS}
+            );
         }
         else
         {
-            $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}.";host=".$Config{ZM_DB_HOST}, $Config{ZM_DB_USER}, $Config{ZM_DB_PASS} );
+            $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
+                                .";host=".$Config{ZM_DB_HOST}
+                                , $Config{ZM_DB_USER}
+                                , $Config{ZM_DB_PASS}
+            );
         }
         $dbh->trace( 0 );
     }
@@ -140,8 +149,10 @@ sub zmDbGetMonitors
             $sql .= " where Function = 'Nodect'";
         }
     }
-    my $sth = $dbh->prepare_cached( $sql ) or croak( "Can't prepare '$sql': ".$dbh->errstr() );
-    my $res = $sth->execute() or croak( "Can't execute '$sql': ".$sth->errstr() );
+    my $sth = $dbh->prepare_cached( $sql )
+        or croak( "Can't prepare '$sql': ".$dbh->errstr() );
+    my $res = $sth->execute()
+        or croak( "Can't execute '$sql': ".$sth->errstr() );
 
     my @monitors;
     while( my $monitor = $sth->fetchrow_hashref() )
@@ -161,8 +172,10 @@ sub zmDbGetMonitor
     return( undef ) if ( !defined($id) );
 
     my $sql = "select * from Monitors where Id = ?";
-    my $sth = $dbh->prepare_cached( $sql ) or croak( "Can't prepare '$sql': ".$dbh->errstr() );
-    my $res = $sth->execute( $id ) or croak( "Can't execute '$sql': ".$sth->errstr() );
+    my $sth = $dbh->prepare_cached( $sql )
+        or croak( "Can't prepare '$sql': ".$dbh->errstr() );
+    my $res = $sth->execute( $id )
+        or croak( "Can't execute '$sql': ".$sth->errstr() );
     my $monitor = $sth->fetchrow_hashref();
 
     return( $monitor );
@@ -176,9 +189,15 @@ sub zmDbGetMonitorAndControl
 
     return( undef ) if ( !defined($id) );
 
-    my $sql = "select C.*,M.*,C.Protocol from Monitors as M inner join Controls as C on (M.ControlId = C.Id) where M.Id = ?";
-    my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-    my $res = $sth->execute( $id ) or Fatal( "Can't execute '$sql': ".$sth->errstr() );
+    my $sql = "SELECT C.*,M.*,C.Protocol
+               FROM Monitors as M
+               INNER JOIN Controls as C on (M.ControlId = C.Id)
+               WHERE M.Id = ?"
+    ;
+    my $sth = $dbh->prepare_cached( $sql )
+        or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+    my $res = $sth->execute( $id )
+        or Fatal( "Can't execute '$sql': ".$sth->errstr() );
     my $monitor = $sth->fetchrow_hashref();
 
     return( $monitor );

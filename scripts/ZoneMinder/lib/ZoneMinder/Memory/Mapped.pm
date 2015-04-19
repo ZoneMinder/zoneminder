@@ -86,14 +86,22 @@ sub zmMemAttach
 
         my $mmap_file = $Config{ZM_PATH_MAP}."/zm.mmap.".$monitor->{Id};
         if ( ! -e $mmap_file ) {
-            Error( sprintf( "Memory map file '%s' does not exist.  zmc might not be running.", $mmap_file ) );
+            Error( sprintf( "Memory map file '%s' does not exist.  zmc might not be running."
+                            , $mmap_file
+                          )
+            );
             return ( undef );
         }
 
         my $mmap_file_size = -s $mmap_file;
 
         if ( $mmap_file_size < $size ) {
-            Error( sprintf( "Memory map file '%s' should have been %d but was instead %d", $mmap_file, $size, $mmap_file_size ) );
+            Error( sprintf( "Memory map file '%s' should have been %d but was instead %d"
+                            , $mmap_file
+                            , $size
+                            , $mmap_file_size
+                          )
+            );
             return ( undef );
         }
         if ( !open( MMAP, "+<", $mmap_file ) )
@@ -147,7 +155,10 @@ sub zmMemGet
     my $mmap = $monitor->{MMap};
     if ( !$mmap || !$$mmap )
     {
-        Error( sprintf( "Can't read from mapped memory for monitor '%d', gone away?", $monitor->{Id} ) );
+        Error( sprintf( "Can't read from mapped memory for monitor '%d', gone away?"
+                        , $monitor->{Id}
+                      )
+        );
         return( undef );
     }
     my $data = substr( $$mmap, $offset, $size );
@@ -164,7 +175,10 @@ sub zmMemPut
     my $mmap = $monitor->{MMap};
     if ( !$mmap || !$$mmap )
     {
-        Error( sprintf( "Can't write mapped memory for monitor '%d', gone away?", $monitor->{Id} ) );
+        Error( sprintf( "Can't write mapped memory for monitor '%d', gone away?"
+                        , $monitor->{Id}
+                      )
+        );
         return( undef );
     }
     substr( $$mmap, $offset, $size ) = $data;

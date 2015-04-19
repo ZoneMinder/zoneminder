@@ -226,10 +226,11 @@ ZoneMinder::Control::FI8908W - Foscam FI8908W camera control
 
 =head1 DESCRIPTION
 
-This module contains the implementation of the Foscam FI8908W / FI8918W IP camera control
-protocol.
+This module contains the implementation of the Foscam FI8908W / FI8918W IP
+camera control protocol.
 
-The module uses "Control Device" value to retrieve user and password. User and password should
-be separated by colon, e.g. user:password. If colon is not provided, then "admin" is used
-as a fallback value for the user.
+The module uses "Control Device" value to retrieve user and password. User
+and password should be separated by colon, e.g. user:password. If colon is
+not provided, then "admin" is used as a fallback value for the user.
+
 =cut

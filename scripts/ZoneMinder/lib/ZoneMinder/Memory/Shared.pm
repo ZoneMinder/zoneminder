@@ -19,7 +19,7 @@
 #
 # ==========================================================================
 #
-# This module contains the common definitions and functions used by the rest 
+# This module contains the common definitions and functions used by the rest
 # of the ZoneMinder scripts
 #
 package ZoneMinder::Memory::Shared;
@@ -39,18 +39,18 @@ eval 'sub IPC_CREAT {0001000}' unless defined &IPC_CREAT;
 # names by default without a very good reason. Use EXPORT_OK instead.
 # Do not simply export all your public functions/methods/constants.
 
-# This allows declaration	use ZoneMinder ':all';
+# This allows declaration   use ZoneMinder ':all';
 # If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
 # will save memory.
 our %EXPORT_TAGS = (
-	'functions' => [ qw(
+    'functions' => [ qw(
         zmMemKey
         zmMemAttach
         zmMemDetach
         zmMemGet
         zmMemPut
         zmMemClean
-	) ],
+    ) ],
 );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
 
@@ -71,70 +71,70 @@ use ZoneMinder::Logger qw(:all);
 
 sub zmMemKey
 {
-	my $monitor = shift;
-	return( defined($monitor->{ShmKey})?$monitor->{ShmKey}:undef );
+    my $monitor = shift;
+    return( defined($monitor->{ShmKey})?$monitor->{ShmKey}:undef );
 }
 
 sub zmMemAttach
 {
-	my $monitor = shift;
-	my $size = shift;
-	if ( !defined($monitor->{ShmId}) )
-	{
-		my $shm_key = (hex($Config{ZM_SHM_KEY})&0xffff0000)|$monitor->{Id};
-		my $shm_id = shmget( $shm_key, $size, &IPC_CREAT | 0777  );
-		if ( !defined($shm_id) )
-		{
-    		Error( sprintf( "Can't get shared memory id '%x', %d: $!\n", $shm_key, $monitor->{Id} ) );
-			return( undef );
-		}
-		$monitor->{ShmKey} = $shm_key;
-		$monitor->{ShmId} = $shm_id;
-	}
-	return( !undef );
+    my $monitor = shift;
+    my $size = shift;
+    if ( !defined($monitor->{ShmId}) )
+    {
+        my $shm_key = (hex($Config{ZM_SHM_KEY})&0xffff0000)|$monitor->{Id};
+        my $shm_id = shmget( $shm_key, $size, &IPC_CREAT | 0777  );
+        if ( !defined($shm_id) )
+        {
+            Error( sprintf( "Can't get shared memory id '%x', %d: $!\n", $shm_key, $monitor->{Id} ) );
+            return( undef );
+        }
+        $monitor->{ShmKey} = $shm_key;
+        $monitor->{ShmId} = $shm_id;
+    }
+    return( !undef );
 }
 
 sub zmMemDetach
 {
-	my $monitor = shift;
+    my $monitor = shift;
 
-	delete $monitor->{ShmId};
+    delete $monitor->{ShmId};
 }
 
 sub zmMemGet
 {
-	my $monitor = shift;
-	my $offset = shift;
-	my $size = shift;
+    my $monitor = shift;
+    my $offset = shift;
+    my $size = shift;
 
-	my $shm_key = $monitor->{ShmKey};
-	my $shm_id = $monitor->{ShmId};
-	
+    my $shm_key = $monitor->{ShmKey};
+    my $shm_id = $monitor->{ShmId};
+
     my $data;
     if ( !shmread( $shm_id, $data, $offset, $size ) )
     {
         Error( sprintf( "Can't read from shared memory '%x/%d': $!", $shm_key, $shm_id ) );
         return( undef );
     }
-	return( $data );
+    return( $data );
 }
 
 sub zmMemPut
 {
-	my $monitor = shift;
-	my $offset = shift;
-	my $size = shift;
-	my $data = shift;
+    my $monitor = shift;
+    my $offset = shift;
+    my $size = shift;
+    my $data = shift;
 
-	my $shm_key = $monitor->{ShmKey};
-	my $shm_id = $monitor->{ShmId};
-	
+    my $shm_key = $monitor->{ShmKey};
+    my $shm_id = $monitor->{ShmId};
+
     if ( !shmwrite( $shm_id, $data, $offset, $size ) )
     {
         Error( sprintf( "Can't write to shared memory '%x/%d': $!", $shm_key, $shm_id ) );
         return( undef );
     }
-	return( !undef );
+    return( !undef );
 }
 
 sub zmMemClean

@@ -19,7 +19,7 @@
 #
 # ==========================================================================
 #
-# This module contains the debug definitions and functions used by the rest 
+# This module contains the debug definitions and functions used by the rest
 # of the ZoneMinder scripts
 #
 package ZoneMinder::Logger;
@@ -287,7 +287,7 @@ sub initialise( @ )
     $this->{autoFlush} = $ENV{'LOG_FLUSH'}?1:0 if ( defined($ENV{'LOG_FLUSH'}) );
 
     $this->{initialised} = !undef;
-    
+
     Debug( "LogOpts: level=".$codes{$this->{level}}."/".$codes{$this->{effectiveLevel}}.", screen=".$codes{$this->{termLevel}}.", database=".$codes{$this->{databaseLevel}}.", logfile=".$codes{$this->{fileLevel}}."->".$this->{logFile}.", syslog=".$codes{$this->{syslogLevel}} );
 }
 

@@ -19,7 +19,7 @@
 #
 # ==========================================================================
 #
-# This module contains the common definitions and functions used by the rest 
+# This module contains the common definitions and functions used by the rest
 # of the ZoneMinder scripts
 #
 package ZoneMinder::General;

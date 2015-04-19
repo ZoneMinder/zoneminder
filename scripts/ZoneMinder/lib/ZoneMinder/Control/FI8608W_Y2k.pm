@@ -129,7 +129,7 @@ sub printMsg
 }
 
 sub sendCmd
-{ 
+{
     my $self = shift;
     my $cmd = shift;
     my $result = undef;
@@ -211,7 +211,7 @@ sub moveConUp
     if ( $tiltspeed < 10 ) {
              $tiltspeed = 1;
                  }
-    Debug( "Move Up" );   
+    Debug( "Move Up" );
     if ( $osd eq "on" )
    {
          my $cmd = "param.cgi?cmd=setoverlayattr&-region=1&-show=1&-name=Move Up $tiltspeed";

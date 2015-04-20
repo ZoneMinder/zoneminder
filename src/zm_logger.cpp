@@ -538,7 +538,12 @@ void Logger::logPrint( bool hex, const char * const file, const int line, const 
         if (tid < 0 ) // Thread/Process id
 #else
 #ifdef HAVE_SYSCALL
+	#ifdef __FreeBSD_kernel__
+        if ( (syscall(SYS_thr_self, &tid)) < 0 ) // Thread/Process id
+
+	# else
         if ( (tid = syscall(SYS_gettid)) < 0 ) // Thread/Process id
+	#endif
 #endif // HAVE_SYSCALL
 #endif
         tid = getpid(); // Process id

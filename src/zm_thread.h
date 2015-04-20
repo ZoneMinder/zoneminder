@@ -36,15 +36,19 @@ class ThreadException : public Exception
 {
 private:
 pid_t pid() {
-pid_t tid; 
+    pid_t tid; 
 #ifdef __FreeBSD__ 
-long lwpid; 
-thr_self(&lwpid); 
-tid = lwpid; 
+    long lwpid; 
+    thr_self(&lwpid); 
+    tid = lwpid; 
 #else 
-tid=syscall(SYS_gettid); 
+    #ifdef __FreeBSD_kernel__
+        if ( (syscall(SYS_thr_self, &tid)) < 0 ) // Thread/Process id
+    # else
+        tid=syscall(SYS_gettid); 
+    #endif
 #endif
-return tid;
+    return tid;
 }	
 public:
     ThreadException( const std::string &message ) : Exception( stringtf( "(%d) "+message, (long int)pid() ) ) {
@@ -219,13 +223,18 @@ protected:
 
     pid_t id() const
     {
-pid_t tid; 
+        pid_t tid; 
 #ifdef __FreeBSD__ 
-long lwpid; 
-thr_self(&lwpid); 
-tid = lwpid; 
+        long lwpid; 
+        thr_self(&lwpid); 
+        tid = lwpid; 
 #else 
-tid=syscall(SYS_gettid); 
+    #ifdef __FreeBSD_kernel__
+        if ( (syscall(SYS_thr_self, &tid)) < 0 ) // Thread/Process id
+
+    #else
+        tid=syscall(SYS_gettid); 
+    #endif
 #endif
 return tid;
     }

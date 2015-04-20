@@ -143,6 +143,10 @@ if ( ZM_OPT_USE_AUTH && ! isset($user) && $view != 'login' ) {
     $view = 'login';
 }
 
+# Only one request can open the session file at a time, so let's close the session here to improve concurrency.
+# Any file/page that uses the session must re-open it.
+session_write_close();
+
 if ( isset( $_REQUEST['request'] ) )
 {
     foreach ( getSkinIncludes( 'ajax/'.$request.'.php', true, true ) as $includeFile )

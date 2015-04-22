@@ -1428,8 +1428,10 @@ void EventStream::runStream()
             if ( ((curr_frame_id-1)%frame_mod) == 0 )
             {
                 delta_us = (unsigned int)(frame_data->delta * 1000000);
-                if ( effective_fps < base_fps )
-                    delta_us = (unsigned int)((delta_us * base_fps)/effective_fps);
+                // if effective > base we should speed up frame delivery
+                delta_us = (unsigned int)((delta_us * base_fps)/effective_fps);
+                // but must not exceed maxfps
+                delta_us = max(delta_us, 1000000 / maxfps); 
                 send_frame = true;
             }
         }

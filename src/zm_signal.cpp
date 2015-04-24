@@ -72,7 +72,11 @@ RETSIGTYPE zm_die_handler(int signal)
 		ip = (void *)(uc->uc_mcontext.gregs[REG_RIP]);
 	#endif
 #else
+	#ifdef __FreeBSD_kernel__
+		ip = (void *)(uc->uc_mcontext.mc_eip);
+	#else
 		ip = (void *)(uc->uc_mcontext.gregs[REG_EIP]);
+	#endif
 #endif				// defined(__x86_64__)
 
 		// Print the signal address and instruction pointer if available

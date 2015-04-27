@@ -1,5 +1,5 @@
 <?php
-require_once( 'includes/control_functions.php' );
+require_once( '../includes/control_functions.php' );
 
 // Monitor control actions, require a monitor id and control view permissions for that monitor
 if ( empty($_REQUEST['id']) )

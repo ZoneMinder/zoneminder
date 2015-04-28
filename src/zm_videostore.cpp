@@ -28,75 +28,6 @@ extern "C"{
 #include "libavutil/time.h"
 }
 
-#if LIBAVCODEC_VERSION_MAJOR < 54
-
-#define avformat_alloc_output_context2(x,y,z,a) hacked_up_context2_for_older_ffmpeg(x,y,z,a)
-#define av_err2str(x) ""
-
-int hacked_up_context2_for_older_ffmpeg(AVFormatContext **avctx, AVOutputFormat *oformat,
-                                   const char *format, const char *filename)
-{
-    AVFormatContext *s = avformat_alloc_context();
-    int ret = 0;
-
-    *avctx = NULL;
-    if (!s)
-    {
-	av_log(s, AV_LOG_ERROR, "Out of memory\n");
-	ret = AVERROR(ENOMEM);
-	return ret;
-    }
-
-    if (!oformat) {
-        if (format) {
-            oformat = av_guess_format(format, NULL, NULL);
-            if (!oformat) {
-                av_log(s, AV_LOG_ERROR, "Requested output format '%s' is not a suitable output format\n", format);
-                ret = AVERROR(EINVAL);
-            }
-        } else {
-            oformat = av_guess_format(NULL, filename, NULL);
-            if (!oformat) {
-                ret = AVERROR(EINVAL);
-                av_log(s, AV_LOG_ERROR, "Unable to find a suitable output format for '%s'\n",
-                       filename);
-            }
-        }
-    }
-
-    if (ret)
-    {
-	avformat_free_context(s);
-	return ret;
-    } else
-    {
-	s->oformat = oformat;
-	if (s->oformat->priv_data_size > 0) {
-	    s->priv_data = av_mallocz(s->oformat->priv_data_size);
-        if (s->priv_data)
-        {
-	    if (s->oformat->priv_class) {
-		*(const AVClass**)s->priv_data= s->oformat->priv_class;
-		av_opt_set_defaults(s->priv_data);
-	    }
-	} else
-	{
-	    av_log(s, AV_LOG_ERROR, "Out of memory\n");
-	    ret = AVERROR(ENOMEM);
-	   return ret;
-	}
-        s->priv_data = NULL;
-    }
-
-
-    if (filename)
-        strncpy(s->filename, filename, sizeof(s->filename));
-    *avctx = s;
-    return 0;
-   }
-}
-#endif
-
 VideoStore::VideoStore(const char *filename_in, const char *format_in, AVStream *input_st, AVStream *inpaud_st, int64_t nStartTime){
     
     //see http://stackoverflow.com/questions/17592120/ffmpeg-how-to-copy-codec-video-and-audio-from-mp4-container-to-ts-cont
@@ -107,7 +38,6 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in, AVStream 
     
     keyframeMessage = false;
     keyframeSkipNumber = 0;
-    char szErr[1024];
 
 	Info("Opening video storage stream %s\n", filename);
     
@@ -164,7 +94,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in, AVStream 
             video_st->avg_frame_rate.num = m_fps;
             //video_st->duration = (m_out_end_time - m_out_start_time)*1000;//FIXME what the hell do i put here*/
         } else 
-            Fatal("Unable to copy video context %s\n", av_make_error_string(szErr,1024,ret));
+            Fatal("Unable to copy video context %s\n", av_make_error_string(ret).c_str());
         video_st->codec->codec_tag = 0;
         if (oc->oformat->flags & AVFMT_GLOBALHEADER)
             video_st->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
@@ -183,7 +113,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in, AVStream 
                 audio_st->time_base.num = inpaud_st->time_base.num;
                 audio_st->time_base.den = inpaud_st->time_base.den;*/
             } else
-                Fatal("Unable to copy audio context %s\n", av_make_error_string(szErr,1024,ret));
+                Fatal("Unable to copy audio context %s\n", av_make_error_string(ret).c_str());
             audio_st->codec->codec_tag = 0;
             if (oc->oformat->flags & AVFMT_GLOBALHEADER)
                 audio_st->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
@@ -199,14 +129,14 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in, AVStream 
     if (!(fmt->flags & AVFMT_NOFILE)) {
         ret = avio_open2(&oc->pb, filename, AVIO_FLAG_WRITE,NULL,NULL);
         if (ret < 0) {
-            Fatal("Could not open '%s': %s\n", filename, av_make_error_string(szErr,1024,ret));
+            Fatal("Could not open '%s': %s\n", filename, av_make_error_string(ret).c_str());
         }
     }
     
 	/* Write the stream header, if any. */
 	ret = avformat_write_header(oc, NULL);
 	if (ret < 0) {
-		Fatal("Error occurred when opening output file: %s\n", av_make_error_string(szErr,1024,ret));
+		Fatal("Error occurred when opening output file: %s\n", av_make_error_string(ret).c_str());
 	}
     
     startPts = 0;
@@ -258,7 +188,6 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st){//, AV
             startDts = 0;
     }*/
      
-    char szErr[1024];
     int64_t ost_tb_start_time = av_rescale_q(startTime, AV_TIME_BASE_Q, video_st->time_base);
      
     AVPacket opkt;
@@ -355,7 +284,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st){//, AV
     int ret;
     ret = av_interleaved_write_frame(oc, &opkt);
     if(ret<0){
-        Fatal("Error encoding video frame packet: %s\n", av_make_error_string(szErr,1024,ret));
+        Fatal("Error encoding video frame packet: %s\n", av_make_error_string(ret).c_str());
     }
     
     av_free_packet(&opkt);
@@ -373,7 +302,6 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt, AVStream *input_st){
     /*if(!keyframeMessage)
         return -1;*/
         
-    char szErr[1024];
     int64_t ost_tb_start_time = av_rescale_q(startTime, AV_TIME_BASE_Q, video_st->time_base);
         
     AVPacket opkt;
@@ -402,6 +330,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt, AVStream *input_st){
              duration = input_st->codec->frame_size;
              
         //FIXME where to get filter_in_rescale_delta_last
+		//FIXME av_rescale_delta doesn't exist in ubuntu vivid libavtools
         opkt.dts = opkt.pts = av_rescale_delta(input_st->time_base, ipkt->dts,
                                                 (AVRational){1, input_st->codec->sample_rate}, duration, &filter_in_rescale_delta_last,
                                                 audio_st->time_base) - ost_tb_start_time;
@@ -422,7 +351,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt, AVStream *input_st){
     int ret;
     ret = av_interleaved_write_frame(oc, &opkt);
     if(ret<0){
-        Fatal("Error encoding audio frame packet: %s\n", av_make_error_string(szErr,1024,ret));
+        Fatal("Error encoding audio frame packet: %s\n", av_make_error_string(ret).c_str());
     }
     
     av_free_packet(&opkt);
@@ -474,7 +403,11 @@ void saveFrame(const AVFrame* frame, int width, int height, int frameNumber)
 int main()
 {
     av_register_all();
+#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(56, 1, 0)
+    AVFrame* frame =av_frame_alloc(); 
+#else
     AVFrame* frame = avcodec_alloc_frame();
+#endif
     if (!frame)
     {
         return 1;

@@ -26,7 +26,7 @@ function xhtmlHeaders( $file, $title )
 
     $skinJsFile = getSkinFile( 'js/skin.js' );
     $skinJsPhpFile = getSkinFile( 'js/skin.js.php' );
-    $cssJsFile = getSkinFile( 'js/'.$css.'/skin.js' );
+    $cssJsFile = getSkinFile( 'js/'.$css.'.js' );
 
     $basename = basename( $file, '.php' );
     $viewCssFile = getSkinFile( '/css/'.$css.'/views/'.$basename.'.css' );

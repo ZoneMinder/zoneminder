@@ -26,6 +26,7 @@ function xhtmlHeaders( $file, $title )
 
     $skinJsFile = getSkinFile( 'js/skin.js' );
     $skinJsPhpFile = getSkinFile( 'js/skin.js.php' );
+    $cssJsFile = getSkinFile( 'js/'.$css.'/skin.js' );
 
     $basename = basename( $file, '.php' );
     $viewCssFile = getSkinFile( '/css/'.$css.'/views/'.$basename.'.css' );
@@ -98,7 +99,10 @@ function xhtmlHeaders( $file, $title )
   </script>
 <?php
     }
+	if ( $cssJsFile ) {
 ?>
+  <script type="text/javascript" src="<?php echo $cssJsFile ?>"></script>
+<?php } ?>
   <script type="text/javascript" src="<?php echo $skinJsFile ?>"></script>
 <?php
     if ( $viewJsFile )

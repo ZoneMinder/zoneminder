@@ -3,6 +3,7 @@ AC_INIT(zm,1.28.1,[http://www.zoneminder.com/forums/ - Please check FAQ first],z
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR(src/zm.h)
 AC_CONFIG_HEADERS(config.h)
+AC_CONFIG_MACRO_DIR([m4])
 
 AC_SUBST([AM_CXXFLAGS], [-D__STDC_CONSTANT_MACROS])
 
@@ -26,6 +27,12 @@ case $host_os in
    *BSD*)
         # Do something specific for BSD
 		HOST_OS='BSD'
+		AC_DEFINE(BSD,1,"This is a BSD system")
+        ;;
+   *bsd*)
+        # Do something specific for BSD
+		HOST_OS='BSD'
+		AC_DEFINE(BSD,1,"This is a BSD system")
         ;;
     *)
         #Default Case
@@ -315,7 +322,8 @@ AC_FUNC_STRTOD
 AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([gethostbyname gethostname gettimeofday memmove memset mkdir munmap posix_memalign putenv select sendfile socket sqrt strcasecmp strchr strcspn strerror strncasecmp strrchr strspn strstr strtol strtoull])
 AC_CHECK_FUNCS([syscall sleep usleep ioctl ioctlsocket sigaction])
-
+# this is required for freebsd to compile. Look for it in m4/ac_check_sendfile.m4
+AC_CHECK_SENDFILE
 # Other programs
 AC_CHECK_PROG(OPT_FFMPEG,ffmpeg,yes,no)
 AC_PATH_PROG(PATH_FFMPEG,ffmpeg)
@@ -325,7 +333,9 @@ AC_CHECK_LIB(rt,clock_gettime,,AC_MSG_ERROR(zm requires librt))
 AC_SEARCH_LIBS(mysql_init,[mysqlclient mariadbclient],,AC_MSG_ERROR(zm requires libmysqlclient.a or libmariadbclient.a))
 AC_CHECK_LIB(jpeg,jpeg_start_compress,,AC_MSG_ERROR(zm requires libjpeg.a))
 AC_CHECK_LIB(pthread,pthread_create,,AC_MSG_ERROR(zm requires libpthread.a))
+if test "$BSD" == "0"; then
 AC_CHECK_LIB(dl,dlsym,,AC_MSG_ERROR(zm requires libdl.a))
+fi
 if test "$ZM_SSL_LIB" == "openssl"; then
 AC_CHECK_HEADERS(openssl/md5.h,,AC_MSG_WARN(zm requires openssl/md5.h header to be installed for openssl),)
 AC_CHECK_LIB(crypto,MD5,,AC_MSG_WARN([libcrypto.a is required for authenticated streaming - use ZM_SSL_LIB option to select gnutls instead]))
@@ -368,14 +378,26 @@ AC_CHECK_HEADERS(execinfo.h,,,)
 AC_CHECK_HEADERS(ucontext.h,,,)
 AC_CHECK_HEADERS(sys/syscall.h,,,)
 AC_CHECK_HEADERS(pthread.h,,,)
-AC_CHECK_HEADERS(linux/videodev.h,AC_SUBST(ZM_HAS_V4L1,1),AC_SUBST(ZM_HAS_V4L1,0),)
-AC_CHECK_HEADERS(linux/videodev2.h,AC_SUBST(ZM_HAS_V4L2,1),AC_SUBST(ZM_HAS_V4L2,0),)
+
+# Check for Video for Linux 1 Header Files
+ZM_HAS_V4L1=0
+AC_CHECK_HEADERS([libv4l1-videodev.h linux/videodev.h],[ZM_HAS_V4L1=1; break;],,)
+AC_SUBST(ZM_HAS_V4L1)
+
+# Check for Video for Linux 2 Header Files
+ZM_HAS_V4L2=0
+AC_CHECK_HEADERS(linux/videodev2.h,ZM_HAS_V4L2=1,,)
+AC_SUBST(ZM_HAS_V4L2)
+
+# Set global Video for Linux flag
+ZM_HAS_V4L=0
 if test "$ZM_HAS_V4L1" == "1" || test "$ZM_HAS_V4L2" == "1"; then
-AC_SUBST(ZM_HAS_V4L,1)
+ZM_HAS_V4L=1
 else
-AC_SUBST(ZM_HAS_V4L,0)
 AC_MSG_WARN(zm requires Video4Linux or Video4Linux2 to be installed for analog or USB camera support)
 fi
+AC_SUBST(ZM_HAS_V4L)
+
 AC_CHECK_HEADERS(jpeglib.h,,AC_MSG_ERROR(zm requires libjpeg headers to be installed),)
 AC_CHECK_HEADERS(mysql/mysql.h,,AC_MSG_ERROR(zm requires MySQL headers - check that MySQL development packages are installed),)
 AC_LANG_PUSH([C])

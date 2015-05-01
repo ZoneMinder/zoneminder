@@ -71,7 +71,7 @@ html ul.tabs li.active, html ul.tabs li.active a:hover  {
 }
   -->
   </style>
-   <script type="text/javascript" src="<?php echo ZM_SKIN_PATH; ?>/js/jquery-1.4.2.min.js"></script>
+   <script type="text/javascript" src="<?php echo ZM_SKIN_PATH; ?>/js/jquery.js"></script>
   <script type="text/javascript" language="javascript" charset="utf-8">
 
   /*==========[tab code]==========*/
@@ -181,7 +181,7 @@ function exportEventFrames( $event, $exportDetail, $exportImages )
 <?php
     if ( count($frames) )
     {
-        $eventPath = mygetEventPath( $event );
+        $eventPath = ZM_DIR_EVENTS.'/'.mygetEventPath( $event );
         foreach ( $frames as $frame )
         {
             $imageFile = sprintf( "%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $frame['FrameId'] );
@@ -600,9 +600,13 @@ function exportEventImagesMaster( $eids )
 <?php
 	foreach ($eids as $eid) {
 		//get monitor id and event id
-		$sql = 'SELECT E.MonitorId FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId) WHERE E.Id = ?';
+		$sql = 'SELECT E.MonitorId, E.StartTime, E.Id
+			FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId)
+			WHERE E.Id = ?
+		';
 		$event = dbFetchOne( $sql, NULL, array( $eid ) );
 		$eventMonitorId[$eid] = $event['MonitorId'];
+		$eventPath[$eid] = mygetEventPath( $event );
 	}
 	
 	$monitors = array_values(array_flip(array_flip($eventMonitorId))); //unique monitors and reindex the array
@@ -644,7 +648,7 @@ function exportEventImagesMaster( $eids )
 	<?php foreach($eids as $eid) 
 	{
 	?>
-		<div><a href="javascript:switchevent('<?php echo   $eventMonitorId[$eid].'/' . $eid; ?>/zmEventImages.html');"><?php echo$eid?></a></div>
+		<div><a href="javascript:switchevent('<?php echo   $eventPath[$eid]; ?>/zmEventImages.html');"><?php echo$eid?></a></div>
 		<?php
 	} 
 	?>
@@ -660,7 +664,7 @@ function exportEventImagesMaster( $eids )
 				if ($eventMonitorId[$eid] == $monitor)
 				{
 				?>	
-				<div><a href="javascript:switchevent('<?php echo   $eventMonitorId[$eid].'/' . $eid; ?>/zmEventImages.html');"><?php echo$eid?></a></div>	
+				<div><a href="javascript:switchevent('<?php echo   $eventPath[$eid]; ?>/zmEventImages.html');"><?php echo$eid?></a></div>
 				<?php
 				}
 			}
@@ -763,7 +767,7 @@ function exportFileList( $eid, $exportDetail, $exportFrames, $exportImages, $exp
     {
         $sql = 'SELECT E.Id,E.MonitorId,M.Name AS MonitorName,M.Width,M.Height,E.Name,E.Cause,E.Notes,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId) WHERE E.Id = ?';
         $event = dbFetchOne( $sql, NULL, array( $eid ) );
-		$eventPath =  mygetEventPath( $event );
+		$eventPath =  ZM_DIR_EVENTS.'/'.mygetEventPath( $event );
         $files = array();
         if ( $dir = opendir( $eventPath ) )
         {
@@ -956,8 +960,8 @@ function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $expo
 function mygetEventPath( $event )
 {
     if ( ZM_USE_DEEP_STORAGE )
-        $eventPath = ZM_DIR_EVENTS.'/'.$event['MonitorId'].'/'.strftime( "%y/%m/%d/%H/%M/%S", strtotime($event['StartTime']) );
+        $eventPath = $event['MonitorId'].'/'.strftime( "%y/%m/%d/%H/%M/%S", strtotime($event['StartTime']) );
     else
-        $eventPath = ZM_DIR_EVENTS.'/'.$event['MonitorId'].'/'.$event['Id'];
+        $eventPath = $event['MonitorId'].'/'.$event['Id'];
     return( $eventPath );
 }

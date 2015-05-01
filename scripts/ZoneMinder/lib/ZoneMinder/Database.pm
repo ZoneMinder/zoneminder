@@ -70,7 +70,7 @@ use Carp;
 
 our $dbh = undef;
 
-sub zmDbConnect( ;$ )
+sub zmDbConnect
 {
 	my $force = shift;
 	if ( $force )
@@ -94,7 +94,7 @@ sub zmDbConnect( ;$ )
 	return( $dbh );
 }
 
-sub zmDbDisconnect()
+sub zmDbDisconnect
 {
 	if ( defined( $dbh ) )
 	{
@@ -110,7 +110,7 @@ use constant DB_MON_MOTION => 3; # All monitors that are doing motion detection
 use constant DB_MON_RECORD => 4; # All monitors that are doing unconditional recording
 use constant DB_MON_PASSIVE => 5; # All monitors that are in nodect state
 
-sub zmDbGetMonitors( ;$ )
+sub zmDbGetMonitors
 {
 	zmDbConnect();
 
@@ -152,7 +152,7 @@ sub zmDbGetMonitors( ;$ )
 	return( \@monitors );
 }
 
-sub zmDbGetMonitor( $ )
+sub zmDbGetMonitor
 {
 	zmDbConnect();
 
@@ -168,7 +168,7 @@ sub zmDbGetMonitor( $ )
 	return( $monitor );
 }
 
-sub zmDbGetMonitorAndControl( $ )
+sub zmDbGetMonitorAndControl
 {
 	zmDbConnect();
 

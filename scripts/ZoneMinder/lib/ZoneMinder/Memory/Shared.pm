@@ -69,13 +69,13 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
 
-sub zmMemKey( $ )
+sub zmMemKey
 {
 	my $monitor = shift;
 	return( defined($monitor->{ShmKey})?$monitor->{ShmKey}:undef );
 }
 
-sub zmMemAttach( $$ )
+sub zmMemAttach
 {
 	my $monitor = shift;
 	my $size = shift;
@@ -94,14 +94,14 @@ sub zmMemAttach( $$ )
 	return( !undef );
 }
 
-sub zmMemDetach( $ )
+sub zmMemDetach
 {
 	my $monitor = shift;
 
 	delete $monitor->{ShmId};
 }
 
-sub zmMemGet( $$$ )
+sub zmMemGet
 {
 	my $monitor = shift;
 	my $offset = shift;
@@ -119,7 +119,7 @@ sub zmMemGet( $$$ )
 	return( $data );
 }
 
-sub zmMemPut( $$$$ )
+sub zmMemPut
 {
 	my $monitor = shift;
 	my $offset = shift;
@@ -143,8 +143,9 @@ sub zmMemClean
     # Find ZoneMinder shared memory
     my $command = "ipcs -m | grep '^".substr( sprintf( "0x%x", hex($Config{ZM_SHM_KEY}) ), 0, -2 )."'";
     Debug( "Checking for shared memory with '$command'\n" );
-    open( CMD, "$command |" ) or Fatal( "Can't execute '$command': $!" );
-    while( <CMD> )
+    open( my $CMD, '<', "$command |" )
+        or Fatal( "Can't execute '$command': $!" );
+    while( <$CMD> )
     {
         chomp;
         my ( $key, $id ) = split( /\s+/ );
@@ -156,7 +157,7 @@ sub zmMemClean
             qx( $command );
         }
     }
-    close( CMD );
+    close( $CMD );
 }
 
 1;

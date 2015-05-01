@@ -170,10 +170,10 @@ else
           <input type="button" value="+&gt;" id="nextBtn" title="<?php echo $SLANG['Next'] ?>" class="inactive" onclick="streamNext( true )"/>
         </p>
         <div id="replayStatus">
-          <span id="mode">Mode: <span id="modeValue">&nbsp;</span></span>
-          <span id="rate">Rate: <span id="rateValue"></span>x</span>
-          <span id="progress">Progress: <span id="progressValue"></span>s</span>
-          <span id="zoom">Zoom: <span id="zoomValue"></span>x</span>
+          <span id="mode"><?php echo $SLANG['Mode'] ?>: <span id="modeValue">&nbsp;</span></span>
+          <span id="rate"><?php echo $SLANG['Rate'] ?>: <span id="rateValue"></span>x</span>
+          <span id="progress"><?php echo $SLANG['Progress'] ?>: <span id="progressValue"></span>s</span>
+          <span id="zoom"><?php echo $SLANG['Zoom'] ?>: <span id="zoomValue"></span>x</span>
         </div>
         <div id="progressBar" class="invisible">
 <?php
@@ -197,7 +197,7 @@ else
             <div id="eventImageBar">
               <div id="eventImageClose"><input type="button" value="<?php echo $SLANG['Close'] ?>" onclick="hideEventImage()"/></div>
               <div id="eventImageStats" class="hidden"><input type="button" value="<?php echo $SLANG['Stats'] ?>" onclick="showFrameStats()"/></div>
-              <div id="eventImageData">Frame <span id="eventImageNo"></span></div>
+              <div id="eventImageData"><?php echo $SLANG['Frame'] ?> <span id="eventImageNo"></span></div>
             </div>
           </div>
         </div>

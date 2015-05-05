@@ -87,6 +87,7 @@ $SLANG = array(
     'AlarmLimits'           => 'Límites de alarma',
     'AlarmMaximumFPS'       => 'Máximos MPS alarma',
     'AlarmPx'               => 'Px alarma',
+    'AlarmRefImageBlendPct' => 'Alarm Reference Image Blend %ge', // Added - 2015-04-18
     'AlarmRGBUnset'         => 'Debe establecer un color RGB para alarma',
     'AlarmScore'            => 'Alarm Score',
     'Alert'                 => 'Alerta',
@@ -558,12 +559,8 @@ $SLANG = array(
     'Play'                  => 'Reproducir',
     'PlayAll'               => 'Reproducir rodo',
     'PleaseWait'            => 'Espere por favor',
-<<<<<<< HEAD
     'Plugin'                => 'Plugin',
-    'Plugins'               => 'Plugins',
-=======
     'Plugins'              => 'Plugins',                // Added - 2015-04-18
->>>>>>> master
     'Point'                 => 'Punto',
     'PostEventImageBuffer'  => 'Cuenta de imagen post evento',
     'PreEventImageBuffer'   => 'Cuenta de imagen pre evento',

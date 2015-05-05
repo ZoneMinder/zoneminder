@@ -87,6 +87,7 @@ $SLANG = array(
     'AlarmLimits'           => '报警限制',
     'AlarmMaximumFPS'       => '报警最大帧率FPS',
     'AlarmPx'               => '报警像素',
+    'AlarmRefImageBlendPct' => 'Alarm Reference Image Blend %ge', // Added - 2015-04-18
     'AlarmRGBUnset'         => '你必须设置一个报警颜色(RGB)',
     'AlarmScore'            => 'Alarm Score',
     'Alert'                 => '警报',

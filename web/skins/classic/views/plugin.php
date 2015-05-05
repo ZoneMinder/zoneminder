@@ -269,7 +269,6 @@ foreach($pluginOptions as $name => $popt)
          $pchoices=explode(',',$popt['Choices']);
             ?>
                <td colspan="2">
-<<<<<<< HEAD
                   <select name="dsp_pluginOpt[<?php echo $popt['Name'] ?>]" id="dsp_pluginOpt[<?php echo $popt['Name']; ?>]" <?php if (!isEnabled($popt['Name'])) echo 'disabled="disabled"'; ?> onchange="applyChanges();">
             <?php
             foreach($pchoices as $pchoice) {
@@ -279,26 +278,11 @@ foreach($pluginOptions as $name => $popt)
             ?>
                      <option value="<?php echo $pchoice ?>" <?php echo $psel ?>><?php echo pLang($pchoice); ?></option>
             <?php
-=======
-                  <select name="pluginOpt[<?php echo $popt['Name'] ?>]" id="pluginOpt[<?php echo $popt['Name'] ?>]">
-            <?php
-            foreach($pchoices as $pchoice)
-            {
-               $psel="";
-               if($popt['Value']==$pchoice)
-                  $psel="selected";
-               ?>
-                     <option value="<?php echo $pchoice ?>" <?php echo $psel ?>><?php echo pLang($pchoice) ?></option>
-               <?php
->>>>>>> master
             }
             ?>
                   </select>
-<<<<<<< HEAD
                   <input type="hidden" name="pluginOpt[<?php echo $popt['Name'] ?>]" id="pluginOpt[<?php echo $popt['Name']; ?>]" value="<?php echo $popt['Value']; ?>" />
                </td>
-=======
->>>>>>> master
          <?php
          break;
       case "text":

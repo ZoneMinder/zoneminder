@@ -88,6 +88,7 @@ $SLANG = array(
     'AlarmLimits'           => 'Alarmi limiidid',
     'AlarmMaximumFPS'       => 'Alarmi Maksimaalne FPS',
     'AlarmPx'               => 'Alarm Px',
+    'AlarmRefImageBlendPct' => 'Alarm Reference Image Blend %ge', // Added - 2015-04-18
     'AlarmRGBUnset'         => 'Sa pead panema alarmi RGB värvi',
     'AlarmScore'            => 'Alarm Score',
     'Alert'                 => 'Hoiatus',

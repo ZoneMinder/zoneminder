@@ -93,7 +93,8 @@ $SLANG = array(
     'AlarmLimits'          => 'Limites alarme',
     'AlarmMaximumFPS'      => 'i/s maximum pendant alarme',
     'AlarmPx'              => 'Px Alarme',
-    'AlarmRGBUnset'        => 'You must set an alarm RGB colour',
+    'AlarmRGBUnset'        => 'Vous devez définir une couleur RVB pour l\'alarme',
+    'AlarmRefImageBlendPct'=> '% fusion image référence en alarme', // Added - 2015-04-18
     'AlarmScore'           => 'Score alarme',
     'Alert'                => 'Alerte',
     'All'                  => 'Tous',
@@ -386,10 +387,7 @@ $SLANG = array(
     'Images'               => 'Images',
     'In'                   => 'Dans',
     'Include'              => 'Inclure',
-<<<<<<< HEAD
     'IncludeNatDet'        => 'Inclure détection native',
-=======
->>>>>>> master
     'Inverted'             => 'Inversé',
     'Iris'                 => 'Iris',
     'KeyString'            => 'Chaîne clé',
@@ -567,12 +565,8 @@ $SLANG = array(
     'Play'                 => 'Lire',
     'PlayAll'              => 'Tout lire',
     'PleaseWait'           => 'Attendez',
-<<<<<<< HEAD
-    'Plugin'               => 'Plugin',
-    'Plugins'              => 'Plugins',
-=======
+    'Plugin'               => 'Greffon',
     'Plugins'              => 'Greffons',
->>>>>>> master
     'Point'                => 'Point',
     'PostEventImageBuffer' => 'Nb d\'image(s) post-événement',
     'PreEventImageBuffer'  => 'Nb d\'image(s) pré-événement',
@@ -588,36 +582,9 @@ $SLANG = array(
     'Rate'                 => 'Vitesse',
     'Real'                 => 'Réel',
     'Record'               => 'Enregistrer',
-<<<<<<< HEAD
-    'RefImageBlendPct'     => 'Reference Image Blend %ge',
-    'Refresh'              => 'Rafraîchir',
-    'ReInitNatDet'         => 'Réinit. détection native',
-    'Remote'               => 'Remote',
-    'RemoteHostName'       => 'Remote Host Name',
-    'RemoteHostPath'       => 'Remote Host Path',
-    'RemoteHostPort'       => 'Remote Host Port',
-    'RemoteHostSubPath'    => 'Remote Host SubPath',    // Added - 2009-02-08
-    'RemoteImageColours'   => 'Remote Image Colours',
-    'RemoteMethod'         => 'Remote Method',          // Added - 2009-02-08
-    'RemoteProtocol'       => 'Remote Protocol',        // Added - 2009-02-08
-    'Rename'               => 'Renommer',
-    'Replay'               => 'Replay',
-    'ReplayAll'            => 'All Events',
-    'ReplayGapless'        => 'Gapless Events',
-    'ReplaySingle'         => 'Single Event',
-    'RequireNatDet'        => 'Détection native requise',
-    'Reset'                => 'Reset',
-    'ResetEventCounts'     => 'Rem. à 0 comptage des évts',
-    'Restart'              => 'Redémarrer',
-    'Restarting'           => 'Redémarrage',
-    'RestrictedCameraIds'  => 'N° caméras confid.',
-    'RestrictedMonitors'   => 'Restricted Monitors',
-    'ReturnDelay'          => 'Return Delay',
-    'ReturnLocation'       => 'Return Location',
-    'Rewind'               => 'Rembobiner',
-=======
     'RefImageBlendPct'     => '% fusion image référence',
     'Refresh'              => 'Rafraîchir',
+    'ReInitNatDet'         => 'Réinit. détection native',
     'Remote'               => 'Distant',
     'RemoteHostName'       => 'Nom d\'hôte',
     'RemoteHostPath'       => 'Chemin',
@@ -631,6 +598,7 @@ $SLANG = array(
     'ReplayAll'            => 'Tous les événements',
     'ReplayGapless'        => 'Rejouer sans blancs',
     'ReplaySingle'         => 'Rejouer seul',
+    'RequireNatDet'        => 'Détection native requise',
     'Reset'                => 'RàZ',
     'ResetEventCounts'     => 'RàZ compteur évts',
     'Restart'              => 'Redémarrer',
@@ -640,7 +608,6 @@ $SLANG = array(
     'ReturnDelay'          => 'Délai de retour',
     'ReturnLocation'       => 'Position de retour',
     'Rewind'               => 'Reculer',
->>>>>>> master
     'RotateLeft'           => 'Rotation g.',
     'RotateRight'          => 'Rotation d.',
     'RunLocalUpdate'       => 'Veuillez éxecuter zmupdate.pl pour mettre à jour', // Added - 2011-05-25

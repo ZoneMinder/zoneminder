@@ -28,6 +28,7 @@ misc/com.zoneminder.systemctl.policy
 misc/com.zoneminder.systemctl.rules
 misc/logrotate.conf
 misc/syslog.conf
+misc/plugins.conf
 onvif/modules/MYMETA.json
 onvif/modules/MYMETA.yml
 onvif/proxy/MYMETA.json

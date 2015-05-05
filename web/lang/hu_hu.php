@@ -601,12 +601,8 @@ $SLANG = array(
     'Play'                 => 'Lejátszás',
     'PlayAll'              => 'Mind lejátszása',
     'PleaseWait'           => 'Kérlek várj...',
-<<<<<<< HEAD
     'Plugin'               => 'Plugin',
-    'Plugins'              => 'Plugins',
-=======
     'Plugins'              => 'Plugins',                // Added - 2015-04-18
->>>>>>> master
     'Point'                => 'Pont',
     'PostEventImageBuffer' => 'Esemény utáni képkockák a pufferben',
     'PreEventImageBuffer'  => 'Esemény elötti képkockák a pufferben',

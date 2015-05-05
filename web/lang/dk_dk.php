@@ -88,6 +88,7 @@ $SLANG = array(
     'AlarmLimits'          => 'Alarm Begrændsing',
     'AlarmMaximumFPS'      => 'Alarm Maximum FPS',
     'AlarmPx'              => 'Alarm Px',
+    'AlarmRefImageBlendPct'=> 'Alarm Reference Image Blend %ge', // Added - 2015-04-18
     'AlarmRGBUnset'        => 'You must set an alarm RGB colour',
     'AlarmScore'           => 'Alarm Score',
     'Alert'                => 'Alarm',

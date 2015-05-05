@@ -380,6 +380,11 @@ AC_CHECK_LIB(rt,clock_gettime,,AC_MSG_ERROR(zm requires librt))
 AC_SEARCH_LIBS(mysql_init,[mysqlclient mariadbclient],,AC_MSG_ERROR(zm requires libmysqlclient.a or libmariadbclient.a))
 AC_CHECK_LIB(jpeg,jpeg_start_compress,,AC_MSG_ERROR(zm requires libjpeg.a))
 AC_CHECK_LIB(pthread,pthread_create,,AC_MSG_ERROR(zm requires libpthread.a))
+AC_CHECK_LIB([dl],
+    [dlsym],
+    [AC_SUBST([DL_LIBS],["-ldl"])AC_DEFINE([HAVE_LIBDL],[1],[Define to 1 if you have the 'dl' library (-ldl).])],
+    [AC_MSG_ERROR(zm requires libdl.a)]
+)
 if test "$BSD" == "0"; then
 AC_CHECK_LIB(dl,dlsym,,AC_MSG_ERROR(zm requires libdl.a))
 fi

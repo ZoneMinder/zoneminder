@@ -27,7 +27,7 @@ BuildRequires: perl(MIME::Entity) perl(MIME::Lite)
 BuildRequires: perl(PHP::Serialization) perl(Sys::Mmap)
 BuildRequires: perl(Time::HiRes) perl(Net::SFTP::Foreign)
 BuildRequires: perl(Expect) perl(Sys::Syslog)
-BuildRequires: gcc gcc-c++ vlc-devel libcurl-devel
+BuildRequires: gcc gcc-c++ vlc-devel libcurl-devel libv4l-devel
 BuildRequires: ffmpeg ffmpeg-devel perl(X10::ActiveHome) perl(Astro::SunTime)
 # cmake needs the following installed at build time due to the way it auto-detects certain parameters
 BuildRequires:  httpd polkit-devel
@@ -69,7 +69,6 @@ too much degradation of performance.
 %build
 %cmake \
 	-DZM_TARGET_DISTRO="el7" \
-	-DZM_PERL_SUBPREFIX=`x="%{perl_vendorlib}" ; echo ${x#"%{_prefix}"}` \
 	.
 
 make %{?_smp_mflags}

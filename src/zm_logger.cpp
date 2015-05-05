@@ -31,6 +31,9 @@
 #include <signal.h>
 #include <stdarg.h>
 #include <errno.h>
+#ifdef __FreeBSD__
+#include <sys/thr.h>
+#endif
 
 bool Logger::smInitialised = false;
 Logger *Logger::smInstance = 0;
@@ -524,9 +527,17 @@ void Logger::logPrint( bool hex, const char * const file, const int line, const 
     #endif
 
         pid_t tid;
+#ifdef __FreeBSD__
+       long lwpid;
+       thr_self(&lwpid);
+       tid = lwpid;
+
+        if (tid < 0 ) // Thread/Process id
+#else
 #ifdef HAVE_SYSCALL
         if ( (tid = syscall(SYS_gettid)) < 0 ) // Thread/Process id
 #endif // HAVE_SYSCALL
+#endif
         tid = getpid(); // Process id
 
         char *logPtr = logString;

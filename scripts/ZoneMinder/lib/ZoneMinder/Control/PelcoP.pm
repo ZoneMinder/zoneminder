@@ -22,7 +22,7 @@
 # This module contains the implementation of the Pelco-P camera control
 # protocol
 #
-package ZoneMinder::Control::PelcoD;
+package ZoneMinder::Control::PelcoP;
 
 use 5.006;
 use strict;

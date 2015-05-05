@@ -656,12 +656,12 @@ switch ( $tab )
         {
 ?>
             <tr><td><?php echo $SLANG['RefImageBlendPct'] ?></td><td><select name="newMonitor[RefBlendPerc]"><?php foreach ( $fastblendopts as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['RefBlendPerc'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
-            <tr><td><?php echo "Alarm " . $SLANG['RefImageBlendPct'] ?></td><td><select name="newMonitor[AlarmRefBlendPerc]"><?php foreach ( $fastblendopts_alarm as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['AlarmRefBlendPerc'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
+            <tr><td><?php echo $SLANG['AlmRefImageBlendPct'] ?></td><td><select name="newMonitor[AlarmRefBlendPerc]"><?php foreach ( $fastblendopts_alarm as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['AlarmRefBlendPerc'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
 <?php
 	} else {
 ?>
             <tr><td><?php echo $SLANG['RefImageBlendPct'] ?></td><td><input type="text" name="newMonitor[RefBlendPerc]" value="<?php echo validHtmlStr($newMonitor['RefBlendPerc']) ?>" size="4"/></td></tr>
-            <tr><td><?php echo "Alarm " . $SLANG['RefImageBlendPct'] ?></td><td><input type="text" name="newMonitor[AlarmRefBlendPerc]" value="<?php echo validHtmlStr($newMonitor['AlarmRefBlendPerc']) ?>" size="4"/></td></tr>
+            <tr><td><?php echo $SLANG['AlarmRefImageBlendPct'] ?></td><td><input type="text" name="newMonitor[AlarmRefBlendPerc]" value="<?php echo validHtmlStr($newMonitor['AlarmRefBlendPerc']) ?>" size="4"/></td></tr>
 <?php
         }
 ?>
@@ -776,7 +776,7 @@ switch ( $tab )
 <?php
         }
 ?>
-            <tr><td><?php echo "Target Colorspace" ?></td><td><select name="newMonitor[Colours]"><?php foreach ( $Colours as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['Colours'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
+            <tr><td><?php echo $SLANG['TargetColorspace'] ?></td><td><select name="newMonitor[Colours]"><?php foreach ( $Colours as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['Colours'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
             <tr><td><?php echo $SLANG['CaptureWidth'] ?> (<?php echo $SLANG['Pixels'] ?>)</td><td><input type="text" name="newMonitor[Width]" value="<?php echo validHtmlStr($newMonitor['Width']) ?>" size="4" onkeyup="updateMonitorDimensions(this);"/></td></tr>
             <tr><td><?php echo $SLANG['CaptureHeight'] ?> (<?php echo $SLANG['Pixels'] ?>)</td><td><input type="text" name="newMonitor[Height]" value="<?php echo validHtmlStr($newMonitor['Height']) ?>" size="4" onkeyup="updateMonitorDimensions(this);"/></td></tr>
             <tr><td><?php echo $SLANG['PreserveAspect'] ?></td><td><input type="checkbox" name="preserveAspectRatio" value="1"/></td></tr> 
@@ -785,11 +785,11 @@ switch ( $tab )
         if ( $newMonitor['Type'] == "Local" )
         {
 ?>
-            <tr><td><?php echo "Deinterlacing" ?></td><td><select name="newMonitor[Deinterlacing]"><?php foreach ( $deinterlaceopts_v4l2 as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['Deinterlacing'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
+            <tr><td><?php echo $SLANG['Deinterlacing'] ?></td><td><select name="newMonitor[Deinterlacing]"><?php foreach ( $deinterlaceopts_v4l2 as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['Deinterlacing'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
 <?php
         } else {
 ?>
-            <tr><td><?php echo "Deinterlacing" ?></td><td><select name="newMonitor[Deinterlacing]"><?php foreach ( $deinterlaceopts as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['Deinterlacing'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
+            <tr><td><?php echo $SLANG['Deinterlacing'] ?></td><td><select name="newMonitor[Deinterlacing]"><?php foreach ( $deinterlaceopts as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['Deinterlacing'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
 <?php
         }
 ?>

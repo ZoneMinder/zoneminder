@@ -72,8 +72,9 @@ BEGIN
 		print( STDERR "Warning, overriding installed $local_config_file file with local copy\n" );
 		$config_file = $local_config_file;
 	}
-	open( CONFIG, "<".$config_file ) or croak( "Can't open config file '$config_file': $!" );
-	foreach my $str ( <CONFIG> )
+	open( my $CONFIG, "<", $config_file )
+        or croak( "Can't open config file '$config_file': $!" );
+	foreach my $str ( <$CONFIG> )
 	{
 		next if ( $str =~ /^\s*$/ );
 		next if ( $str =~ /^\s*#/ );
@@ -85,7 +86,7 @@ BEGIN
 		$name =~ tr/a-z/A-Z/;
 		$Config{$name} = $value;
 	}
-	close( CONFIG );
+	close( $CONFIG );
 
 	use DBI;
 	my $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}.";host=".$Config{ZM_DB_HOST}, $Config{ZM_DB_USER}, $Config{ZM_DB_PASS} ) or croak( "Can't connect to db" );

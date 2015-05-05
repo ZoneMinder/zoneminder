@@ -20,11 +20,34 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 # ==========================================================================
-#
-# This script just checks what the most recent release of ZoneMinder is
-# at the the moment. It will eventually be responsible for applying and
-# configuring upgrades etc, including on the fly upgrades.
-#
+
+=head1 NAME
+
+zmupdate.pl - check and upgrade Zoneminer database
+
+=head1 SYNOPSIS
+
+ zmupdate.pl -c,--check | -f,--freshen | -v<version>,--version=<version> [-u<dbuser> -p<dbpass>]
+
+=head1 DESCRIPTION
+
+This script just checks what the most recent release of ZoneMinder is
+at the the moment. It will eventually be responsible for applying and
+configuring upgrades etc, including on the fly upgrades.
+
+=head1 OPTIONS
+
+ -c, --check                      - Check for updated versions of ZoneMinder
+ -f, --freshen                    - Freshen the configuration in the database. Equivalent of old zmconfig.pl -noi
+ --migrate-events                 - Update database structures as per USE_DEEP_STORAGE setting.
+ -v<version>, --version=<version> - Force upgrade to the current version from <version>
+ -u<dbuser>, --user=<dbuser>      - Alternate DB user with privileges to alter DB
+ -p<dbpass>, --pass=<dbpass>      - Password of alternate DB user with privileges to alter DB
+ -d<dir>,--dir=<dir>              - Directory containing update files if not in default build location
+ -interactive                     - interact with the user
+ -nointeractive                   - do not interact with the user
+
+=cut
 use strict;
 use bytes;
 
@@ -52,7 +75,8 @@ use ZoneMinder::ConfigAdmin qw( :functions );
 use POSIX;
 use DBI;
 use Getopt::Long;
-use Data::Dumper;
+use autouse 'Pod::Usage'=>qw(pod2usage);
+use autouse 'Data::Dumper'=>qw(Dumper);
 
 use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)?$Config{ZM_DIR_EVENTS}:($Config{ZM_PATH_WEB}.'/'.$Config{ZM_DIR_EVENTS});
 
@@ -78,27 +102,19 @@ my $version = '';
 my $dbUser = $Config{ZM_DB_USER};
 my $dbPass = $Config{ZM_DB_PASS};
 my $updateDir = '';
-sub Usage
-{
-    print( "
-Usage: zmupdate.pl <-c,--check|-f,--freshen|-v<version>,--version=<version>> [-u<dbuser> -p<dbpass>]>
-Parameters are :-
--c, --check                      - Check for updated versions of ZoneMinder
--f, --freshen                    - Freshen the configuration in the database. Equivalent of old zmconfig.pl -noi
--v<version>, --version=<version> - Force upgrade to the current version from <version>
--u<dbuser>, --user=<dbuser>      - Alternate DB user with privileges to alter DB
--p<dbpass>, --pass=<dbpass>      - Password of alternate DB user with privileges to alter DB
--d<dir>,--dir=<dir>              - Directory containing update files if not in default build location
--interactive					 - interact with the user
--nointeractive                   - do not interact with the user
-");
-    exit( -1 );
-}
 
-if ( !GetOptions( 'check'=>\$check, 'freshen'=>\$freshen, 'rename'=>\$rename, 'zone-fix'=>\$zoneFix, 'migrate-events'=>\$migrateEvents, 'version=s'=>\$version, 'interactive!'=>\$interactive, 'user:s'=>\$dbUser, 'pass:s'=>\$dbPass, 'dir:s'=>\$updateDir ) )
-{
-    Usage();
-}
+GetOptions(
+    'check'          =>\$check,
+    'freshen'        =>\$freshen,
+    'rename'         =>\$rename,
+    'zone-fix'       =>\$zoneFix,
+    'migrate-events' =>\$migrateEvents,
+    'version=s'      =>\$version,
+    'interactive!'   =>\$interactive,
+    'user:s'         =>\$dbUser,
+    'pass:s'         =>\$dbPass,
+    'dir:s'          =>\$updateDir
+) or pod2usage(-exitstatus => -1);
 
 my $dbh = zmDbConnect();
 $Config{ZM_DB_USER} = $dbUser;
@@ -113,14 +129,14 @@ if ( ! ($check || $freshen || $rename || $zoneFix || $migrateEvents || $version)
     else
     {
         print( STDERR "Please give a valid option\n" );
-        Usage();
+        pod2usage(-exitstatus => -1);
     }
 }
 
 if ( ($check + $freshen + $rename + $zoneFix + $migrateEvents + ($version?1:0)) > 1 )
 {
     print( STDERR "Please give only one option\n" );
-    Usage();
+    pod2usage(-exitstatus => -1);
 }
 
 if ( $check && $Config{ZM_CHECK_FOR_UPDATES} )

@@ -68,13 +68,13 @@ use ZoneMinder::Logger qw(:all);
 
 use Sys::Mmap;
 
-sub zmMemKey( $ )
+sub zmMemKey
 {
 	my $monitor = shift;
     return( defined($monitor->{MMapAddr})?$monitor->{MMapAddr}:undef );
 }
 
-sub zmMemAttach( $$ )
+sub zmMemAttach
 {
 	my ( $monitor, $size ) = @_;
 	if ( ! $size ) {
@@ -96,7 +96,7 @@ sub zmMemAttach( $$ )
 			Error( sprintf( "Memory map file '%s' should have been %d but was instead %d", $mmap_file, $size, $mmap_file_size ) );
 			return ( undef );
 		} 
-        if ( !open( MMAP, "+<".$mmap_file ) )
+        if ( !open( MMAP, "+<", $mmap_file ) )
         {
     		Error( sprintf( "Can't open memory map file '%s': $!\n", $mmap_file ) );
 			return( undef );
@@ -116,7 +116,7 @@ sub zmMemAttach( $$ )
 	return( !undef );
 }
 
-sub zmMemDetach( $ )
+sub zmMemDetach
 {
 	my $monitor = shift;
 
@@ -138,7 +138,7 @@ sub zmMemDetach( $ )
     }
 }
 
-sub zmMemGet( $$$ )
+sub zmMemGet
 {
 	my $monitor = shift;
 	my $offset = shift;
@@ -154,7 +154,7 @@ sub zmMemGet( $$$ )
     return( $data );
 }
 
-sub zmMemPut( $$$$ )
+sub zmMemPut
 {
 	my $monitor = shift;
 	my $offset = shift;

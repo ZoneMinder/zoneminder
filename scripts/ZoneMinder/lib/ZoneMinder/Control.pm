@@ -75,7 +75,7 @@ sub AUTOLOAD
 	croak( "Can't access $name member of object of class $class" );
 }
 
-sub getKey()
+sub getKey
 {
 	my $self = shift;
     return( $self->{id} );
@@ -145,7 +145,7 @@ sub executeCommand
     &{$self->{$command}}( $self, $params );
 }
 
-sub printMsg()
+sub printMsg
 {
 	my $self = shift;
     Fatal( "No printMsg method defined for protocol ".$self->{name} );

@@ -249,7 +249,7 @@ sub zmMemInit
 
 &zmMemInit();
 
-sub zmMemVerify( $ )
+sub zmMemVerify
 {
 	my $monitor = shift;
 	if ( !zmMemAttach( $monitor, $mem_size ) )
@@ -291,7 +291,7 @@ sub zmMemVerify( $ )
 	return( !undef );
 }
 
-sub zmMemRead( $$;$ )
+sub zmMemRead
 {
 	my $monitor = shift;
 	my $fields = shift;
@@ -387,7 +387,7 @@ sub zmMemRead( $$;$ )
 	return( $values[0] );
 }
 
-sub zmMemInvalidate( $ )
+sub zmMemInvalidate
 {
 	my $monitor = shift;
     my $mem_key = zmMemKey($monitor);
@@ -398,12 +398,12 @@ sub zmMemInvalidate( $ )
     }
 }
 
-sub zmMemTidy()
+sub zmMemTidy
 {
     zmMemClean();
 }
 
-sub zmMemWrite( $$;$ )
+sub zmMemWrite
 {
 	my $monitor = shift;
 	my $field_values = shift;
@@ -489,21 +489,21 @@ sub zmMemWrite( $$;$ )
 	return( !undef );
 }
 
-sub zmGetMonitorState( $ )
+sub zmGetMonitorState
 {
 	my $monitor = shift;
 
 	return( zmMemRead( $monitor, "shared_data:state" ) );
 }
 
-sub zmGetAlarmLocation( $ )
+sub zmGetAlarmLocation
 {
 	my $monitor = shift;
 
 	return( zmMemRead( $monitor, [ "shared_data:alarm_x", "shared_data:alarm_y" ] ) );
 }
 
-sub zmSetControlState( $$ )
+sub zmSetControlState
 {
 	my $monitor = shift;
 	my $control_state = shift;
@@ -511,14 +511,14 @@ sub zmSetControlState( $$ )
 	zmMemWrite( $monitor, { "shared_data:control_state" => $control_state } );
 }
 
-sub zmGetControlState( $ )
+sub zmGetControlState
 {
 	my $monitor = shift;
 
 	return( zmMemRead( $monitor, "shared_data:control_state" ) );
 }
 
-sub zmSaveControlState( $$ )
+sub zmSaveControlState
 {
 	my $monitor = shift;
 	my $control_state = shift;
@@ -526,14 +526,14 @@ sub zmSaveControlState( $$ )
 	zmSetControlState( $monitor, freeze( $control_state ) );
 }
 
-sub zmRestoreControlState( $ )
+sub zmRestoreControlState
 {
 	my $monitor = shift;
 
 	return( thaw( zmGetControlState( $monitor ) ) );
 }
 
-sub zmIsAlarmed( $ )
+sub zmIsAlarmed
 {
 	my $monitor = shift;
 
@@ -542,7 +542,7 @@ sub zmIsAlarmed( $ )
 	return( $state == STATE_ALARM );
 }
 
-sub zmInAlarm( $ )
+sub zmInAlarm
 {
 	my $monitor = shift;
 
@@ -551,7 +551,7 @@ sub zmInAlarm( $ )
 	return( $state == STATE_ALARM || $state == STATE_ALERT );
 }
 
-sub zmHasAlarmed( $$ )
+sub zmHasAlarmed
 {
 	my $monitor = shift;
 	my $last_event_id = shift;
@@ -569,35 +569,35 @@ sub zmHasAlarmed( $$ )
 	return( undef );
 }
 
-sub zmGetLastEvent( $ )
+sub zmGetLastEvent
 {
 	my $monitor = shift;
 
 	return( zmMemRead( $monitor, "shared_data:last_event" ) );
 }
 
-sub zmGetLastWriteTime( $ )
+sub zmGetLastWriteTime
 {
 	my $monitor = shift;
 
 	return( zmMemRead( $monitor, "shared_data:last_write_time" ) );
 }
 
-sub zmGetLastReadTime( $ )
+sub zmGetLastReadTime
 {
 	my $monitor = shift;
 
 	return( zmMemRead( $monitor, "shared_data:last_read_time" ) );
 }
 
-sub zmGetMonitorActions( $ )
+sub zmGetMonitorActions
 {
 	my $monitor = shift;
 
 	return( zmMemRead( $monitor, "shared_data:action" ) );
 }
 
-sub zmMonitorEnable( $ )
+sub zmMonitorEnable
 {
 	my $monitor = shift;
 
@@ -606,7 +606,7 @@ sub zmMonitorEnable( $ )
 	zmMemWrite( $monitor, { "shared_data:action" => $action } );
 }
 
-sub zmMonitorDisable( $ )
+sub zmMonitorDisable
 {
 	my $monitor = shift;
 
@@ -615,7 +615,7 @@ sub zmMonitorDisable( $ )
 	zmMemWrite( $monitor, { "shared_data:action" => $action } );
 }
 
-sub zmMonitorSuspend( $ )
+sub zmMonitorSuspend
 {
 	my $monitor = shift;
 
@@ -624,7 +624,7 @@ sub zmMonitorSuspend( $ )
 	zmMemWrite( $monitor, { "shared_data:action" => $action } );
 }
 
-sub zmMonitorResume( $ )
+sub zmMonitorResume
 {
 	my $monitor = shift;
 
@@ -633,14 +633,14 @@ sub zmMonitorResume( $ )
 	zmMemWrite( $monitor, { "shared_data:action" => $action } );
 }
 
-sub zmGetTriggerState( $ )
+sub zmGetTriggerState
 {
 	my $monitor = shift;
 
 	return( zmMemRead( $monitor, "trigger_data:trigger_state" ) );
 }
 
-sub zmTriggerEventOn( $$$;$$ )
+sub zmTriggerEventOn
 {
 	my $monitor = shift;
 	my $score = shift;
@@ -659,7 +659,7 @@ sub zmTriggerEventOn( $$$;$$ )
 	zmMemWrite( $monitor, $values );
 }
 
-sub zmTriggerEventOff( $ )
+sub zmTriggerEventOff
 {
 	my $monitor = shift;
 
@@ -674,7 +674,7 @@ sub zmTriggerEventOff( $ )
 	zmMemWrite( $monitor, $values );
 }
 
-sub zmTriggerEventCancel( $ )
+sub zmTriggerEventCancel
 {
 	my $monitor = shift;
 
@@ -689,7 +689,7 @@ sub zmTriggerEventCancel( $ )
 	zmMemWrite( $monitor, $values );
 }
 
-sub zmTriggerShowtext( $$ )
+sub zmTriggerShowtext
 {
 	my $monitor = shift;
 	my $showtext = shift;
@@ -733,9 +733,9 @@ The core elements of ZoneMinder used mapped memory to allow multiple access to r
 
 All the methods listed below require a 'monitor' parameter. This must be a reference to a hash with at least the 'Id' field set to the monitor id of the mapped memory you wish to access. Using database methods to select the monitor details will also return this kind of data. Some of the mapped memory methods will add and amend new fields to this hash.
 
-=over 4
-
 =head1 METHODS
+
+=over 4
 
 =item zmMemVerify ( $monitor );
 
@@ -809,6 +809,8 @@ Cancel any previous trigger on or off requests. This stops a triggered alarm if 
 
 Indicate that the given text should be displayed in the timestamp annotation on any images captured, if the format of the annotation string defined for the monitor permits.
 
+=back
+
 =head1 DATA
 
 The data fields in mapped memory that may be accessed are as follows. There are two main sections, shared_data which is general data and trigger_data which is used for event triggering. Whilst reading from these fields is harmless, extreme care must be taken when writing to mapped memory, especially in the shared_data section as this is normally written to only by monitor capture and analysis processes.
@@ -844,6 +846,8 @@ The data fields in mapped memory that may be accessed are as follows. There are 
 
 The following constants are used by the methods above, but can also be used by user scripts if required.
 
+=over 4
+
 =item STATE_IDLE STATE_PREALARM STATE_ALARM STATE_ALERT STATE_TAPE
 
 These constants define the state of the monitor with respect to alarms and events. They are used in the shared_data:state field.
@@ -852,9 +856,11 @@ These constants define the state of the monitor with respect to alarms and event
 
 These constants defines the various values that can exist in the shared_data:action field. This is a bitmask which when non-zero defines an action that an executing monitor process should take. ACTION_GET requires that the current values of brightness, contrast, colour and hue are taken from the camera and written to the equivalent mapped memory fields. ACTION_SET implies the reverse, that the values in mapped memory should be written to the camera. ACTION_RELOAD signal that the monitor process should reload itself from the database in case any settings have changed there. ACTION_SUSPEND signals that a monitor should stop exaiming images for motion, though other alarms may still occur. ACTION_RESUME sigansl that a monitor should resume motion detectiom.
 
-=item TRIGGER_CANCEL TRIGGER_ON TRIGGER_OFF 
+=item TRIGGER_CANCEL TRIGGER_ON TRIGGER_OFF
 
 These constants are used in the definition of external triggers. TRIGGER_CANCEL is used to indicated that any previous trigger settings should be cancelled, TRIGGER_ON signals that an alarm should be created (or continued)) as a result of the current trigger and TRIGGER_OFF signals that the trigger should prevent any alarms from being generated. See the trigger methods above for further details.
+
+=back
 
 =head1 EXPORT
 

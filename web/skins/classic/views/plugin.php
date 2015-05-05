@@ -108,7 +108,7 @@ $generalOptions=array(
    )
 );
 
-$options=$generalOptions;
+$pluginOptions=$generalOptions;
 $optionNames=array();
 if(file_exists($plugin_path."/config.php"))
 {
@@ -124,33 +124,33 @@ if(file_exists($plugin_path."/config.php"))
                   'Value'=>'Yes'
                )
             );
-         $options[$optionKey]=$optionValue;
+         $pluginOptions[$optionKey]=$optionValue;
       }
 }
 
 $sql='SELECT * FROM PluginsConfig WHERE MonitorId=? AND ZoneId=? AND pluginName=?';
 foreach( dbFetchAll( $sql, NULL, array( $mid, $zid, $plugin ) ) as $popt )
 {
-   if(array_key_exists($popt['Name'], $options)
-      && $popt['Type']==$options[$popt['Name']]['Type'])
+   if(array_key_exists($popt['Name'], $pluginOptions)
+      && $popt['Type']==$pluginOptions[$popt['Name']]['Type'])
    {
       array_push($optionNames, $popt['Name']);
 
       // Backup dependency information
       $require = '';
-      if(isset($options[$popt['Name']]['Require']))
-         $require = $options[$popt['Name']]['Require'];
+      if(isset($pluginOptions[$popt['Name']]['Require']))
+         $require = $pluginOptions[$popt['Name']]['Require'];
 
       // Set value from database
-      $options[$popt['Name']]=$popt;
+      $pluginOptions[$popt['Name']]=$popt;
 
       // Restore dependancy information from backup
       if(!empty($require))
-         $options[$popt['Name']]['Require'] = $require;
+         $pluginOptions[$popt['Name']]['Require'] = $require;
 
       // Set default dependancy information if not set in configuration
       else if($popt['Name'] != 'Enabled')
-         $options[$popt['Name']]['Require'] = array (
+         $pluginOptions[$popt['Name']]['Require'] = array (
             array(
                'Name'=>'Enabled',
                'Value'=>'Yes'
@@ -161,11 +161,11 @@ foreach( dbFetchAll( $sql, NULL, array( $mid, $zid, $plugin ) ) as $popt )
    }
 }
 
-foreach($options as $name => $values)
+foreach($pluginOptions as $name => $values)
 {
    if(!in_array($name, $optionNames))
    {
-      $popt=$options[$name];
+      $popt=$pluginOptions[$name];
       switch($popt['Type'])
       {
         case "select":
@@ -216,16 +216,16 @@ function pLang($name)
 
 function isEnabled($param)
 {
-   global $options;
-   $option = $options[$param];
+   global $pluginOptions;
+   $option = $pluginOptions[$param];
    if (!isset($option['Require']))
        return true;
    foreach($option['Require'] as $req_couple)
    {
       $name = $req_couple['Name'];
-      if (!array_key_exists($name, $options))
+      if (!array_key_exists($name, $pluginOptions))
          continue;
-      if ($req_couple['Value'] != $options[$name]['Value'])
+      if ($req_couple['Value'] != $pluginOptions[$name]['Value'])
          return false;
    }
    return true;
@@ -250,7 +250,7 @@ xhtmlHeaders(__FILE__, $SLANG['Plugin'] );
           <table id="pluginSettings" cellspacing="0">
             <tbody>
 <?php
-foreach($options as $name => $popt)
+foreach($pluginOptions as $name => $popt)
 {
    ?>
             <tr><th scope="row"><?php echo pLang($name) ?></th>
@@ -269,6 +269,7 @@ foreach($options as $name => $popt)
          $pchoices=explode(',',$popt['Choices']);
             ?>
                <td colspan="2">
+<<<<<<< HEAD
                   <select name="dsp_pluginOpt[<?php echo $popt['Name'] ?>]" id="dsp_pluginOpt[<?php echo $popt['Name']; ?>]" <?php if (!isEnabled($popt['Name'])) echo 'disabled="disabled"'; ?> onchange="applyChanges();">
             <?php
             foreach($pchoices as $pchoice) {
@@ -278,11 +279,26 @@ foreach($options as $name => $popt)
             ?>
                      <option value="<?php echo $pchoice ?>" <?php echo $psel ?>><?php echo pLang($pchoice); ?></option>
             <?php
+=======
+                  <select name="pluginOpt[<?php echo $popt['Name'] ?>]" id="pluginOpt[<?php echo $popt['Name'] ?>]">
+            <?php
+            foreach($pchoices as $pchoice)
+            {
+               $psel="";
+               if($popt['Value']==$pchoice)
+                  $psel="selected";
+               ?>
+                     <option value="<?php echo $pchoice ?>" <?php echo $psel ?>><?php echo pLang($pchoice) ?></option>
+               <?php
+>>>>>>> master
             }
             ?>
                   </select>
+<<<<<<< HEAD
                   <input type="hidden" name="pluginOpt[<?php echo $popt['Name'] ?>]" id="pluginOpt[<?php echo $popt['Name']; ?>]" value="<?php echo $popt['Value']; ?>" />
                </td>
+=======
+>>>>>>> master
          <?php
          break;
       case "text":

@@ -1,8 +1,6 @@
 AUTOMAKE_OPTIONS = foreign
 ACLOCAL_AMFLAGS = -I m4
 
-ACLOCAL_AMFLAGS = -I m4
-
 # And these to the user and group of your webserver
 webuser = @WEB_USER@
 webgroup = @WEB_GROUP@

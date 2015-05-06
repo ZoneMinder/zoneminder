@@ -1,6 +1,6 @@
 var pluginOptionList = {};
 <?php
-foreach ( $options as $option )
+foreach ( $pOptions as $option )
 {
 ?>
 pluginOptionList['<?= $option['Name'] ?>'] = {};

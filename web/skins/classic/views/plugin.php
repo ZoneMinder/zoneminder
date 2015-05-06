@@ -108,7 +108,7 @@ $generalOptions=array(
    )
 );
 
-$pluginOptions=$generalOptions;
+$pOptions=$generalOptions;
 $optionNames=array();
 if(file_exists($plugin_path."/config.php"))
 {
@@ -124,33 +124,33 @@ if(file_exists($plugin_path."/config.php"))
                   'Value'=>'Yes'
                )
             );
-         $pluginOptions[$optionKey]=$optionValue;
+         $pOptions[$optionKey]=$optionValue;
       }
 }
 
 $sql='SELECT * FROM PluginsConfig WHERE MonitorId=? AND ZoneId=? AND pluginName=?';
 foreach( dbFetchAll( $sql, NULL, array( $mid, $zid, $plugin ) ) as $popt )
 {
-   if(array_key_exists($popt['Name'], $pluginOptions)
-      && $popt['Type']==$pluginOptions[$popt['Name']]['Type'])
+   if(array_key_exists($popt['Name'], $pOptions)
+      && $popt['Type']==$pOptions[$popt['Name']]['Type'])
    {
       array_push($optionNames, $popt['Name']);
 
       // Backup dependency information
       $require = '';
-      if(isset($pluginOptions[$popt['Name']]['Require']))
-         $require = $pluginOptions[$popt['Name']]['Require'];
+      if(isset($pOptions[$popt['Name']]['Require']))
+         $require = $pOptions[$popt['Name']]['Require'];
 
       // Set value from database
-      $pluginOptions[$popt['Name']]=$popt;
+      $pOptions[$popt['Name']]=$popt;
 
       // Restore dependancy information from backup
       if(!empty($require))
-         $pluginOptions[$popt['Name']]['Require'] = $require;
+         $pOptions[$popt['Name']]['Require'] = $require;
 
       // Set default dependancy information if not set in configuration
       else if($popt['Name'] != 'Enabled')
-         $pluginOptions[$popt['Name']]['Require'] = array (
+         $pOptions[$popt['Name']]['Require'] = array (
             array(
                'Name'=>'Enabled',
                'Value'=>'Yes'
@@ -161,11 +161,11 @@ foreach( dbFetchAll( $sql, NULL, array( $mid, $zid, $plugin ) ) as $popt )
    }
 }
 
-foreach($pluginOptions as $name => $values)
+foreach($pOptions as $name => $values)
 {
    if(!in_array($name, $optionNames))
    {
-      $popt=$pluginOptions[$name];
+      $popt=$pOptions[$name];
       switch($popt['Type'])
       {
         case "select":
@@ -216,16 +216,16 @@ function pLang($name)
 
 function isEnabled($param)
 {
-   global $pluginOptions;
-   $option = $pluginOptions[$param];
+   global $pOptions;
+   $option = $pOptions[$param];
    if (!isset($option['Require']))
        return true;
    foreach($option['Require'] as $req_couple)
    {
       $name = $req_couple['Name'];
-      if (!array_key_exists($name, $pluginOptions))
+      if (!array_key_exists($name, $pOptions))
          continue;
-      if ($req_couple['Value'] != $pluginOptions[$name]['Value'])
+      if ($req_couple['Value'] != $pOptions[$name]['Value'])
          return false;
    }
    return true;
@@ -250,7 +250,7 @@ xhtmlHeaders(__FILE__, $SLANG['Plugin'] );
           <table id="pluginSettings" cellspacing="0">
             <tbody>
 <?php
-foreach($pluginOptions as $name => $popt)
+foreach($pOptions as $name => $popt)
 {
    ?>
             <tr><th scope="row"><?php echo pLang($name) ?></th>

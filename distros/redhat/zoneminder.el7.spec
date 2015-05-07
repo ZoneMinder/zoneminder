@@ -156,7 +156,8 @@ fi
 %{_bindir}/zmx10.pl
 
 %{perl_vendorlib}/ZoneMinder*
-%{perl_vendorlib}/%{_arch}-linux-thread-multi/auto/ZoneMinder*
+%{perl_vendorarch}/auto/ZoneMinder/.packlist
+#%{perl_vendorlib}/%{_arch}-linux-thread-multi/auto/ZoneMinder*
 #%{perl_archlib}/ZoneMinder*
 %{_mandir}/man*/*
 %dir %{_libexecdir}/zoneminder

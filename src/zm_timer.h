@@ -40,7 +40,11 @@ private:
 		thr_self(&lwpid);
 		tid = lwpid;
 #else
+    #ifdef __FreeBSD_kernel__
+                if ( (syscall(SYS_thr_self, &tid)) < 0 ) // Thread/Process id
+    #else
 		tid=syscall(SYS_gettid);
+    #endif
 #endif
 		return tid;
         }

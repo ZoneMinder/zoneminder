@@ -32,6 +32,13 @@
 #include <stdlib.h>
 #include <limits.h>
 
+/* Workaround for GNU/kFreeBSD */
+#if defined(__FreeBSD_kernel__)
+#ifndef ENODATA
+#define ENODATA ENOATTR
+#endif
+#endif
+
 static unsigned int BigEndian;
 
 static int vidioctl( int fd, int request, void *arg )

@@ -60,16 +60,16 @@ our @ISA = qw(ZoneMinder::Control);
 
 #
 #  ********  YOU MUST CHANGE THE FOLLOWING LINES TO MATCH YOUR CAMERA!  **********
-#  
+#
 #  I assume that "TV-IP672WI" would work for the TV-IP672WI, but can't test since I don't own one.
-#  
+#
 #  TV-IP672PI works for the PI version, of course.
 #
 #  Finally, the username is the username you'd like to authenticate as.
 #
 our $REALM = 'TV-IP862IC';
 our $USERNAME = 'admin';
-our	$PASSWORD = '';
+our $PASSWORD = '';
 our $ADDRESS = '';
 
 # ==========================================================================
@@ -111,26 +111,32 @@ sub open
     my $self = shift;
     $self->loadMonitor();
 
-	my ( $protocol, $username, $password, $address ) = $self->{Monitor}->{ControlAddress} =~ /^(https?:\/\/)?([^:]+):([^\/@]+)@(.*)$/;
-	if ( $username ) {
-		$USERNAME = $username;
-		$PASSWORD = $password;
-		$ADDRESS = $address;
-	} else {
-		Error( "Failed to parse auth from address");
-		$ADDRESS = $self->{Monitor}->{ControlAddress};
-	}
-	if ( ! $ADDRESS =~ /:/ ) {
-		Error( "You generally need to also specify the port.  I will append :80" );
-		$ADDRESS .= ':80';
-	}
+    my ( $protocol, $username, $password, $address )
+       = $self->{Monitor}->{ControlAddress} =~ /^(https?:\/\/)?([^:]+):([^\/@]+)@(.*)$/;
+    if ( $username ) {
+        $USERNAME = $username;
+        $PASSWORD = $password;
+        $ADDRESS = $address;
+    } else {
+        Error( "Failed to parse auth from address");
+        $ADDRESS = $self->{Monitor}->{ControlAddress};
+    }
+    if ( ! $ADDRESS =~ /:/ ) {
+        Error( "You generally need to also specify the port.  I will append :80" );
+        $ADDRESS .= ':80';
+    }
 
     use LWP::UserAgent;
     $self->{ua} = LWP::UserAgent->new;
     $self->{ua}->agent( "ZoneMinder Control Agent/".$ZoneMinder::Base::ZM_VERSION );
     $self->{state} = 'open';
-#	credentials:  ("ip:port" (no prefix!), realm (string), username (string), password (string)
-    Debug ( "sendCmd credentials control address:'".$ADDRESS."'  realm:'" . $REALM . "'  username:'" . $USERNAME . "'  password:'".$PASSWORD."'"); 
+#   credentials:  ("ip:port" (no prefix!), realm (string), username (string), password (string)
+    Debug ( "sendCmd credentials control address:'".$ADDRESS
+            ."'  realm:'" . $REALM
+            . "'  username:'" . $USERNAME
+            . "'  password:'".$PASSWORD
+            ."'"
+    ); 
     $self->{ua}->credentials($ADDRESS,$REALM,$USERNAME,$PASSWORD);
 }
 
@@ -159,29 +165,29 @@ sub sendCmd
 
     my $result = undef;
 
-	my $url = "http://".$ADDRESS."/cgi/ptdc.cgi?command=".$cmd;
+    my $url = "http://".$ADDRESS."/cgi/ptdc.cgi?command=".$cmd;
     my $req = HTTP::Request->new( GET=>$url );
 
     Debug ("sendCmd command: " . $url );
-    
+
     my $res = $self->{ua}->request($req);
 
     if ( $res->is_success ) {
         $result = !undef;
     } else {
-		if ( $res->status_line() eq '401 Unauthorized' ) {
-			Error( "Error check failed, trying again: USERNAME: $USERNAME realm: $REALM password: " . $PASSWORD );
-			Error("Content was " . $res->content() );
-			my $res = $self->{ua}->request($req);
-			if ( $res->is_success ) {
-				$result = !undef;
-			} else {
-				Error("Content was " . $res->content() );
-			}
-		} 
-		if ( ! $result ) {
-			Error( "Error check failed: '".$res->status_line()."' cmd:'".$cmd."'" );
-		}
+        if ( $res->status_line() eq '401 Unauthorized' ) {
+            Error( "Error check failed, trying again: USERNAME: $USERNAME realm: $REALM password: " . $PASSWORD );
+            Error("Content was " . $res->content() );
+            my $res = $self->{ua}->request($req);
+            if ( $res->is_success ) {
+                $result = !undef;
+            } else {
+                Error("Content was " . $res->content() );
+            }
+        }
+        if ( ! $result ) {
+            Error( "Error check failed: '".$res->status_line()."' cmd:'".$cmd."'" );
+        }
     }
 
     return( $result );
@@ -203,10 +209,10 @@ sub sendCmdPost
     my $result = undef;
 
     if ($url eq undef)
-	{
-		Error ("url passed to sendCmdPost is undefined.");
-		return(-1);
-	}
+    {
+        Error ("url passed to sendCmdPost is undefined.");
+        return(-1);
+    }
 
     Debug ("sendCmdPost url: " . $url . " cmd: " . $cmd);
 
@@ -215,7 +221,7 @@ sub sendCmdPost
     $req->content($cmd);
 
     Debug ( "sendCmdPost credentials control address:'".$ADDRESS."'  realm:'" . $REALM . "'  username:'" . $USERNAME . "' password:'".$PASSWORD."'");
-    
+
     my $res = $self->{ua}->request($req);
 
     if ( $res->is_success )
@@ -225,11 +231,11 @@ sub sendCmdPost
     else
     {
         Error( "sendCmdPost Error check failed: '".$res->status_line()."' cmd:'".$cmd."'" );
-		if ( $res->status_line() eq '401 Unauthorized' ) {
-			Error( "sendCmdPost Error check failed: USERNAME: $USERNAME realm: $REALM password: " . $PASSWORD );
-		} else {
-			Error( "sendCmdPost Error check failed: USERNAME: $USERNAME realm: $REALM password: " . $PASSWORD );
-		} # endif
+        if ( $res->status_line() eq '401 Unauthorized' ) {
+            Error( "sendCmdPost Error check failed: USERNAME: $USERNAME realm: $REALM password: " . $PASSWORD );
+        } else {
+            Error( "sendCmdPost Error check failed: USERNAME: $USERNAME realm: $REALM password: " . $PASSWORD );
+        } # endif
     }
 
     return( $result );

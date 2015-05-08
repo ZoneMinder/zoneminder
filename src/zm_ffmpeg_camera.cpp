@@ -427,7 +427,7 @@ void *FfmpegCamera::ReopenFfmpegThreadCallback(void *ctx){
         // Close current stream.
         camera->CloseFfmpeg();
 
-        // Sleep if neccessary to not reconnect too fast.
+        // Sleep if necessary to not reconnect too fast.
         int wait = config.ffmpeg_open_timeout - (time(NULL) - camera->mOpenStart);
         wait = wait < 0 ? 0 : wait;
         if (wait > 0){

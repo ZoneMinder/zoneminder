@@ -262,7 +262,7 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
 		/* emit one intra frame every second */
 		c->gop_size = frame_rate;
 
-		// some formats want stream headers to be seperate
+		// some formats want stream headers to be separate
 		if ( of->flags & AVFMT_GLOBALHEADER )
 			c->flags |= CODEC_FLAG_GLOBAL_HEADER;
 	}

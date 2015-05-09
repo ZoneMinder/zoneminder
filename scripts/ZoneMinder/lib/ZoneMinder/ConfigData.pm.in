@@ -173,8 +173,8 @@ our %types =
 );
 
 sub qqq {    ## Un-pad paragraph of text.
-    local $_=shift;
-    s{\n?^\s*}{}mg;
+    local $_ = shift;
+    s{\n?^\s*}{ }mg;
     return $_;
 }
 

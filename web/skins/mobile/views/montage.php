@@ -46,13 +46,13 @@ foreach( dbFetchAll( $sql ) as $row )
     $monitors[] = $row;
 }
 
-xhtmlHeaders( __FILE__, $SLANG['Montage'] );
+xhtmlHeaders( __FILE__, translate('Montage') );
 ?>
 <body>
   <div id="page">
     <div id="header">
       <div id="headerButtons">
-        <a href="?view=<?php echo $_REQUEST['view'] ?>"><?php echo $SLANG['Refresh'] ?></a>
+        <a href="?view=<?php echo $_REQUEST['view'] ?>"><?php echo translate('Refresh') ?></a>
       </div>
     </div>
     <div id="content">
@@ -68,7 +68,7 @@ foreach( $monitors as $monitor )
 }
 ?>
       </div>
-      <div id="contentButtons"><a href="?view=console"><?php echo $SLANG['Console'] ?></a></div>
+      <div id="contentButtons"><a href="?view=console"><?php echo translate('Console') ?></a></div>
     </div>
   </div>
 </body>

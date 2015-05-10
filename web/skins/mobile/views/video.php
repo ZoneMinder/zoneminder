@@ -105,7 +105,7 @@ if ( isset($_REQUEST['download']) )
     exit;
 }
 
-xhtmlHeaders( __FILE__, $SLANG['Video'].' - '.$event['Name'] );
+xhtmlHeaders( __FILE__, translate('Video').' - '.$event['Name'] );
 ?>
 <body>
   <div id="page">
@@ -120,19 +120,19 @@ xhtmlHeaders( __FILE__, $SLANG['Video'].' - '.$event['Name'] );
         </div>
         <table id="contentTable" class="minor">
           <tr>
-            <th scope="row"><?php echo $SLANG['VideoFormat'] ?></th>
+            <th scope="row"><?php echo translate('VideoFormat') ?></th>
             <td><?php echo buildSelect( "videoFormat", $videoFormats ) ?></td>
           </tr>
           <tr>
-            <th scope="row"><?php echo $SLANG['FrameRate'] ?></th>
+            <th scope="row"><?php echo translate('FrameRate') ?></th>
             <td><?php echo buildSelect( "rate", $rates ) ?></td>
           </tr>
           <tr>
-            <th scope="row"><?php echo $SLANG['OverwriteExisting'] ?></th>
+            <th scope="row"><?php echo translate('OverwriteExisting') ?></th>
             <td><input type="checkbox" name="overwrite" value="1"<?php if ( isset($overwrite) ) { ?> checked="checked"<?php } ?>/></td>
           </tr>
         </table>
-        <div id="contentButtons"><input type="submit" value="<?php echo $SLANG['GenerateVideo'] ?>"/></div>
+        <div id="contentButtons"><input type="submit" value="<?php echo translate('GenerateVideo') ?>"/></div>
       </form>
 <?php
     if ( isset($videoFile) )
@@ -140,13 +140,13 @@ xhtmlHeaders( __FILE__, $SLANG['Video'].' - '.$event['Name'] );
         if ( $videoFile )
         {
 ?>
-      <p class="infoText"><?php echo $SLANG['VideoGenSucceeded'] ?></p>
+      <p class="infoText"><?php echo translate('VideoGenSucceeded') ?></p>
 <?php
         }
         else
         {
 ?>
-      <p class="errorText"><?php echo $SLANG['VideoGenFailed'] ?></p>
+      <p class="errorText"><?php echo translate('VideoGenFailed') ?></p>
 <?php
         }
     }
@@ -163,14 +163,14 @@ xhtmlHeaders( __FILE__, $SLANG['Video'].' - '.$event['Name'] );
     if ( count($videoFiles) )
     {
 ?>
-      <h3><?php echo $SLANG['VideoGenFiles'] ?></h3>
+      <h3><?php echo translate('VideoGenFiles') ?></h3>
       <table class="major">
         <tr>
-          <th><?php echo $SLANG['Format'] ?></th>
-          <th><?php echo $SLANG['Size'] ?></th>
-          <th><?php echo $SLANG['Rate'] ?></th>
-          <th><?php echo $SLANG['Scale'] ?></th>
-          <th><?php echo $SLANG['Action'] ?></th>
+          <th><?php echo translate('Format') ?></th>
+          <th><?php echo translate('Size') ?></th>
+          <th><?php echo translate('Rate') ?></th>
+          <th><?php echo translate('Scale') ?></th>
+          <th><?php echo translate('Action') ?></th>
         </tr>
 <?php
         if ( count($videoFiles) > 0 )
@@ -203,7 +203,7 @@ xhtmlHeaders( __FILE__, $SLANG['Video'].' - '.$event['Name'] );
           <td><?php echo filesize( $file ) ?></td>
           <td><?php echo $rateText ?></td>
           <td><?php echo $scaleText ?></td>
-          <td><a href="?view=<?php echo $_REQUEST['view'] ?>&amp;eid=<?php echo $_REQUEST['eid'] ?>&amp;download=<?php echo $index ?>"><?php echo $SLANG['View'] ?></a>&nbsp;/&nbsp;<a href="?view=<?php echo $_REQUEST['view'] ?>&amp;eid=<?php echo $_REQUEST['eid'] ?>&amp;delete=<?php echo $index ?>"><?php echo $SLANG['Delete'] ?></a></td>
+          <td><a href="?view=<?php echo $_REQUEST['view'] ?>&amp;eid=<?php echo $_REQUEST['eid'] ?>&amp;download=<?php echo $index ?>"><?php echo translate('View') ?></a>&nbsp;/&nbsp;<a href="?view=<?php echo $_REQUEST['view'] ?>&amp;eid=<?php echo $_REQUEST['eid'] ?>&amp;delete=<?php echo $index ?>"><?php echo translate('Delete') ?></a></td>
         </tr>
 <?php
                 $index++;
@@ -216,7 +216,7 @@ xhtmlHeaders( __FILE__, $SLANG['Video'].' - '.$event['Name'] );
     else
     {
 ?>
-      <p class="warnText"><?php echo $SLANG['VideoGenNoFiles'] ?></p>
+      <p class="warnText"><?php echo translate('VideoGenNoFiles') ?></p>
 <?php
     }
 ?>

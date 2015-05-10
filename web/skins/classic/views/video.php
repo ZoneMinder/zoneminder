@@ -107,15 +107,15 @@ if ( isset($_REQUEST['downloadIndex']) )
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['Video'] );
+xhtmlHeaders(__FILE__, translate('Video') );
 ?>
 <body>
   <div id="page">
     <div id="header">
       <div id="headerButtons">
-        <a href="#" onclick="closeWindow()"><?php echo $SLANG['Close'] ?></a>
+        <a href="#" onclick="closeWindow()"><?php echo translate('Close') ?></a>
       </div>
-      <h2><?php echo $SLANG['Video'] ?></h2>
+      <h2><?php echo translate('Video') ?></h2>
     </div>
     <div id="content">
 <?php
@@ -138,45 +138,45 @@ else
         <table id="contentTable" class="minor" cellspacing="0">
           <tbody>
             <tr>
-              <th scope="row"><?php echo $SLANG['VideoFormat'] ?></th>
+              <th scope="row"><?php echo translate('VideoFormat') ?></th>
               <td><?php echo buildSelect( "videoFormat", $videoFormats ) ?></td>
             </tr>
             <tr>
-              <th scope="row"><?php echo $SLANG['FrameRate'] ?></th>
+              <th scope="row"><?php echo translate('FrameRate') ?></th>
               <td><?php echo buildSelect( "rate", $rates ) ?></td>
             </tr>
             <tr>
-              <th scope="row"><?php echo $SLANG['VideoSize'] ?></th>
+              <th scope="row"><?php echo translate('VideoSize') ?></th>
               <td><?php echo buildSelect( "scale", $scales ) ?></td>
             </tr>
             <tr>
-              <th scope="row"><?php echo $SLANG['OverwriteExisting'] ?></th>
+              <th scope="row"><?php echo translate('OverwriteExisting') ?></th>
               <td><input type="checkbox" name="overwrite" value="1"<?php if ( !empty($_REQUEST['overwrite']) ) { ?> checked="checked"<?php } ?>/></td>
             </tr>
           </tbody>
         </table>
-        <input type="button" value="<?php echo $SLANG['GenerateVideo'] ?>" onclick="generateVideo( this.form );"<?php if ( !ZM_OPT_FFMPEG ) { ?> disabled="disabled"<?php } ?>/>
+        <input type="button" value="<?php echo translate('GenerateVideo') ?>" onclick="generateVideo( this.form );"<?php if ( !ZM_OPT_FFMPEG ) { ?> disabled="disabled"<?php } ?>/>
       </form>
 <?php
     if ( isset($_REQUEST['generated']) )
     {
 ?>
-      <h2 id="videoProgress" class="<?php echo $_REQUEST['generated']?'infoText':'errorText' ?>"><span id="videoProgressText"><?php echo $_REQUEST['generated']?$SLANG['VideoGenSucceeded']:$SLANG['VideoGenFailed'] ?></span><span id="videoProgressTicker"></span></h2>
+      <h2 id="videoProgress" class="<?php echo $_REQUEST['generated']?'infoText':'errorText' ?>"><span id="videoProgressText"><?php echo $_REQUEST['generated']?translate('VideoGenSucceeded'):translate('VideoGenFailed') ?></span><span id="videoProgressTicker"></span></h2>
 <?php
     }
     else
     {
 ?>
-      <h2 id="videoProgress" class="hidden warnText"><span id="videoProgressText"><?php echo $SLANG['GeneratingVideo'] ?></span><span id="videoProgressTicker"></span></h2>
+      <h2 id="videoProgress" class="hidden warnText"><span id="videoProgressText"><?php echo translate('GeneratingVideo') ?></span><span id="videoProgressTicker"></span></h2>
 <?php
     }
 ?>
-      <h2 id="videoFilesHeader"><?php echo $SLANG['VideoGenFiles'] ?></h2>
+      <h2 id="videoFilesHeader"><?php echo translate('VideoGenFiles') ?></h2>
 <?php
     if ( count($videoFiles) == 0 )
     {
 ?>
-      <h3 id="videoNoFiles"><?php echo $SLANG['VideoGenNoFiles'] ?></h3>
+      <h3 id="videoNoFiles"><?php echo translate('VideoGenNoFiles') ?></h3>
 <?php
     }
     else
@@ -185,11 +185,11 @@ else
       <table id="videoTable" class="major" cellspacing="0">
         <thead>
           <tr>
-            <th scope="row"><?php echo $SLANG['Format'] ?></th>
-            <th scope="row"><?php echo $SLANG['Size'] ?></th>
-            <th scope="row"><?php echo $SLANG['Rate'] ?></th>
-            <th scope="row"><?php echo $SLANG['Scale'] ?></th>
-            <th scope="row"><?php echo $SLANG['Action'] ?></th>
+            <th scope="row"><?php echo translate('Format') ?></th>
+            <th scope="row"><?php echo translate('Size') ?></th>
+            <th scope="row"><?php echo translate('Rate') ?></th>
+            <th scope="row"><?php echo translate('Scale') ?></th>
+            <th scope="row"><?php echo translate('Action') ?></th>
           </tr>
         </thead>
         <tbody>
@@ -226,7 +226,7 @@ else
           <td><?php echo filesize( $file ) ?></td>
           <td><?php echo $rateText ?></td>
           <td><?php echo $scaleText ?></td>
-          <td><?php echo makePopupLink( '?view='.$view.'&amp;eid='.$event['Id'].'&amp;width='.$width.'&amp;height='.$height.'&amp;showIndex='.$index, 'zmVideo'.$event['Id'].'-'.$scale, array( 'videoview', $width, $height ), $SLANG['View'] ); ?>&nbsp;/&nbsp;<a href="<?php echo substr( $file, strlen(ZM_DIR_EVENTS)+1 ) ?>" onclick="downloadVideo( <?php echo $index ?> ); return( false );"><?php echo $SLANG['Download'] ?></a>&nbsp;/&nbsp;<a href="#" onclick="deleteVideo( <?php echo $index ?> ); return( false );"><?php echo $SLANG['Delete'] ?></a></td>
+          <td><?php echo makePopupLink( '?view='.$view.'&amp;eid='.$event['Id'].'&amp;width='.$width.'&amp;height='.$height.'&amp;showIndex='.$index, 'zmVideo'.$event['Id'].'-'.$scale, array( 'videoview', $width, $height ), translate('View') ); ?>&nbsp;/&nbsp;<a href="<?php echo substr( $file, strlen(ZM_DIR_EVENTS)+1 ) ?>" onclick="downloadVideo( <?php echo $index ?> ); return( false );"><?php echo translate('Download') ?></a>&nbsp;/&nbsp;<a href="#" onclick="deleteVideo( <?php echo $index ?> ); return( false );"><?php echo translate('Delete') ?></a></td>
         </tr>
 <?php
                 $index++;

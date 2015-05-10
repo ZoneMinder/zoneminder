@@ -31,13 +31,13 @@ $frames = dbFetchAll( $sql, NULL, array( $_REQUEST['eid'] ) );
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['Frames']." - ".$event['Id'] );
+xhtmlHeaders(__FILE__, translate('Frames')." - ".$event['Id'] );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <div id="headerButtons"><a href="#" onclick="closeWindow();"><?php echo $SLANG['Close'] ?></a></div>
-      <h2><?php echo $SLANG['Frames'] ?> - <?php echo $event['Id'] ?></h2>
+      <div id="headerButtons"><a href="#" onclick="closeWindow();"><?php echo translate('Close') ?></a></div>
+      <h2><?php echo translate('Frames') ?> - <?php echo $event['Id'] ?></h2>
     </div>
     <div id="content">
       <form name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
@@ -45,11 +45,11 @@ xhtmlHeaders(__FILE__, $SLANG['Frames']." - ".$event['Id'] );
         <table id="contentTable" class="major" cellspacing="0">
           <thead>
             <tr>
-              <th class="colId"><?php echo $SLANG['FrameId'] ?></th>
-              <th class="colType"><?php echo $SLANG['Type'] ?></th>
-              <th class="colTimeStamp"><?php echo $SLANG['TimeStamp'] ?></th>
-              <th class="colTimeDelta"><?php echo $SLANG['TimeDelta'] ?></th>
-              <th class="colScore"><?php echo $SLANG['Score'] ?></th>
+              <th class="colId"><?php echo translate('FrameId') ?></th>
+              <th class="colType"><?php echo translate('Type') ?></th>
+              <th class="colTimeStamp"><?php echo translate('TimeStamp') ?></th>
+              <th class="colTimeDelta"><?php echo translate('TimeDelta') ?></th>
+              <th class="colScore"><?php echo translate('Score') ?></th>
             </tr>
           </thead>
           <tbody>
@@ -87,7 +87,7 @@ else
 {
 ?>
             <tr>
-              <td colspan="5"><?php echo $SLANG['NoFramesRecorded'] ?></td>
+              <td colspan="5"><?php echo translate('NoFramesRecorded') ?></td>
             </tr>
 <?php
 }

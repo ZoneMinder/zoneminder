@@ -120,11 +120,7 @@ Prioritize the repositories:
 
 Once your repos are in order, install the following:
 ```bash
-sudo yum install cmake bzip2-devel ffmpeg ffmpeg-devel gnutls-devel httpd libjpeg-turbo libjpeg-turbo-devel mysql-devel mysql-server pcre-devel \
-perl-Archive-Tar perl-Archive-Zip perl-Convert-BinHex perl-Date-Manip perl-DBD-MySQL perl-DBI perl-Device-SerialPort perl-Email-Date-Format perl-IO-stringy \
-perl-IO-Zlib perl-MailTools perl-MIME-Lite perl-MIME-tools perl-MIME-Types perl-Module-Load perl-Package-Constants perl-Sys-Mmap perl-Time-HiRes \
-perl-TimeDate perl-YAML-Syck perl-X10 perl-URI-Encode php php-cli php-mysql x264 vlc-devel vlc-core \
-libcurl libcurl-devel polkit-devel git
+bzip2-devel cmake ffmpeg ffmpeg-devel gcc-c++ git gnutls-devel httpd libcurl libcurl-devel libjpeg turbo libjpeg-turbo-devel mysql-devel mysql-server pcre-devel perl-Archive-Tar perl-Archive-Zip perl-Convert-BinHex perl-DBD-MySQL perl-DBI perl-Date-Manip perl-Device-SerialPort perl-Email-Date-Format perl-ExtUtils-MakeMaker perl-ExtUtils-MakeMaker-Coverage perl-Getopt-Long-Descriptiveperl-DBD-MySQL perl-IO-Zlib perl-IO-stringy perl-LWP-Authen-Negotiate perl-MIME-Lite perl-MIME-Types perl-MIME-tools perl-MailTools perl-Module-Load perl-Package-Constants perl-Sys-Mmap perl-Time-HiRes perl-TimeDate perl-URI-Encode perl-X10 perl-YAML-Syck perl-core php php-cli php-mysql polkit-devel vlc-core vlc-devel x264
 ```
 
 To build from the master branch:

@@ -102,7 +102,6 @@ sub close
 
 sub printMsg
 {
-    my $self = shift;
     my $msg = shift;
     my $msg_len = length($msg);
     Debug( $msg."[".$msg_len."]" );
@@ -113,9 +112,24 @@ sub sendCmd
     my $self = shift;
     my $cmd = shift;
     my $result = undef;
+
+	my ($user, $password) = split /:/, $self->{Monitor}->{ControlDevice};
+	$user = 'admin' if ! $user;
+	$password = 'pwd' if ! $password;
+
+	$cmd .= "&usr=$user&pwd=$password";
+
     printMsg( $cmd, "Tx" );
-    my $temps = time();
-    my $req = HTTP::Request->new( GET=>"http://".$self->{Monitor}->{ControlAddress}."/cgi-bin/CGIProxy.fcgi?usr%3Dadmin%26pwd%3D".$self->{Monitor}->{ControlDevice}."%26cmd%3D".$cmd."%26".$temps );
+    my $url;
+    if ( $self->{Monitor}->{ControlAddress} =~ /^http/ ) {
+        $url = $self->{Monitor}->{ControlAddress};
+    } else {
+        $url = "http://".$self->{Monitor}->{ControlAddress};
+    }
+	$url .= "/cgi-bin/CGIProxy.fcgi?cmd=$cmd%26".time;
+    printMsg( $url, "Tx" );
+
+    my $req = HTTP::Request->new( GET=>$url );
     my $res = $self->{ua}->request($req);
     if ( $res->is_success )
     {

@@ -13,7 +13,9 @@ RUN apt-get update && apt-get install -y \
 	libwww-perl libdbd-mysql-perl libsys-mmap-perl yasm automake autoconf libjpeg-turbo8-dev \
 	libjpeg-turbo8 libtheora-dev libvorbis-dev libvpx-dev libx264-dev libmp4v2-dev ffmpeg mysql-client \
 	apache2 php5 php5-mysql apache2-mpm-prefork libapache2-mod-php5 php5-cli openssh-server \
-	mysql-server libvlc-dev libvlc5 libvlccore-dev libvlccore5 vlc-data vlc libcurl4-openssl-dev
+	mysql-server libvlc-dev libvlc5 libvlccore-dev libvlccore5 vlc-data vlc libcurl4-openssl-dev \
+	libavformat-dev libswscale-dev libavutil-dev libv4l-dev libtool libnetpbm10-dev libavdevice-dev \
+	libmime-lite-perl dh-autoreconf dpatch
 
 # Copy local code into our container
 ADD . /ZoneMinder

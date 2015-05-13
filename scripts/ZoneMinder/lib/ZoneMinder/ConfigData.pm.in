@@ -2368,7 +2368,6 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
         category    => "system",
     },
     {
-
         name        => "ZM_AUDIT_CHECK_INTERVAL",
         default     => "900",
         description => "How often to check database and filesystem consistency",
@@ -2386,6 +2385,19 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
             to make this interval much larger to reduce the impact on your
             system. This option determines how often these checks are
             performed.
+        "),
+        type        => $types{integer},
+        category    => "system",
+    },
+    {
+        name        => "ZM_AUDIT_MIN_AGE",
+        default     => "86400",
+        description => "The minimum age in seconds event data must be in order to be deleted.",
+        help        => qqq("
+            The zmaudit daemon exists to check that the saved information
+            in the database and on the filesystem match and are consistent
+            with each other. Event files or db records that are younger than
+            this setting will not be deleted and a warning will be given.
         "),
         type        => $types{integer},
         category    => "system",

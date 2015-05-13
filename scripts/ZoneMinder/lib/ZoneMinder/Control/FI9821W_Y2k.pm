@@ -114,6 +114,10 @@ sub sendCmd
     my $result = undef;
 
 	my ($user, $password) = split /:/, $self->{Monitor}->{ControlDevice};
+	if ( ! $password ) {
+		$password = $user;
+		$user = 'admin';
+	}
 	$user = 'admin' if ! $user;
 	$password = 'pwd' if ! $password;
 

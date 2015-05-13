@@ -138,6 +138,10 @@ MAIN: while( $loop ) {
         } # end if
     } # end while can't connect to the db
 
+	if ( ! exists $Config{ZM_AUDIT_MIN_AGE} ) {
+        Fatal("ZM_AUDIT_MIN_AGE is not set in config.");
+    }
+
     my $db_monitors;
     my $monitorSelectSql = "select Id from Monitors order by Id";
     my $monitorSelectSth = $dbh->prepare_cached( $monitorSelectSql )

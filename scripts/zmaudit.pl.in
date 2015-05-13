@@ -56,6 +56,7 @@ use bytes;
 #
 # ==========================================================================
 
+use constant MIN_AGE => 300; # Minimum age when we will delete anything
 use constant MAX_AGED_DIRS => 10; # Number of event dirs to check age on
 use constant RECOVER_TAG => "(r)"; # Tag to append to event name when recovered
 use constant RECOVER_TEXT => "Recovered."; # Text to append to event notes when recovered
@@ -245,7 +246,7 @@ MAIN: while( $loop ) {
             {
                 while ( my ( $fs_event, $age ) = each(%$fs_events ) )
                 {
-                    if ( !defined($db_events->{$fs_event}) && ($age < 0 || ($age > $Config{ZM_AUDIT_MIN_AGE})) )
+                    if ( !defined($db_events->{$fs_event}) && ($age < 0 || ($age > MIN_AGE)) )
                     {
                         aud_print( "Filesystem event '$fs_monitor/$fs_event' does not exist in database" );
                         if ( confirm() )
@@ -307,28 +308,26 @@ MAIN: while( $loop ) {
             {
                 while ( my ( $db_event, $age ) = each(%$db_events ) )
                 {
-                    if ( !defined($fs_events->{$db_event}) ) {
-						if ( $age > $Config{ZM_AUDIT_MIN_AGE} ) {
-							aud_print( "Database event '$db_monitor/$db_event' does not exist in filesystem" );
-							if ( confirm() ) {
-								my $res = $deleteEventSth->execute( $db_event )
-									or Fatal( "Can't execute: ".$deleteEventSth->errstr() );
-								$res = $deleteFramesSth->execute( $db_event )
-									or Fatal( "Can't execute: ".$deleteFramesSth->errstr() );
-								$res = $deleteStatsSth->execute( $db_event )
-									or Fatal( "Can't execute: ".$deleteStatsSth->errstr() );
-								$cleaned = 1;
-							}
-						} else {
-							aud_print( "Database event '$db_monitor/$db_event' does not exist in filesystem but too young to delete." );
-						}
+                    if ( !defined($fs_events->{$db_event}) && ($age > MIN_AGE) )
+                    {
+                        aud_print( "Database event '$db_monitor/$db_event' does not exist in filesystem" );
+                        if ( confirm() )
+                        {
+                            my $res = $deleteEventSth->execute( $db_event )
+                                or Fatal( "Can't execute: ".$deleteEventSth->errstr() );
+                            $res = $deleteFramesSth->execute( $db_event )
+                                or Fatal( "Can't execute: ".$deleteFramesSth->errstr() );
+                            $res = $deleteStatsSth->execute( $db_event )
+                                or Fatal( "Can't execute: ".$deleteStatsSth->errstr() );
+                            $cleaned = 1;
+                        }
                     }
                 }
             }
         }
         else
         {
-            aud_print( "Database monitor '$db_monitor' does not exist in filesystem" );
+            #aud_print( "Database monitor '$db_monitor' does not exist in filesystem" );
             #if ( confirm() )
             #{
                 # We don't actually do this in case it's new
@@ -364,7 +363,7 @@ MAIN: while( $loop ) {
     # Remove empty events (with no frames)
     $cleaned = 0;
     my $selectEmptyEventsSql = "SELECT * FROM Events as E LEFT JOIN Frames as F ON (E.Id = F.EventId)
-                                WHERE isnull(F.EventId) AND now() - interval ".$Config{ZM_AUDIT_MIN_AGE}." second > E.StartTime";
+                                WHERE isnull(F.EventId) AND now() - interval ".MIN_AGE." second > E.StartTime";
     my $selectEmptyEventsSth = $dbh->prepare_cached( $selectEmptyEventsSql )
         or Fatal( "Can't prepare '$selectEmptyEventsSql': ".$dbh->errstr() );
     $res = $selectEmptyEventsSth->execute()
@@ -435,7 +434,7 @@ MAIN: while( $loop ) {
         LEFT JOIN Monitors as M on E.MonitorId = M.Id
         INNER JOIN Frames as F on E.Id = F.EventId
         WHERE isnull(E.Frames) or isnull(E.EndTime)
-        GROUP BY E.Id HAVING EndTime < (now() - interval ".$Config{ZM_AUDIT_MIN_AGE}." second)"
+        GROUP BY E.Id HAVING EndTime < (now() - interval ".MIN_AGE." second)"
     ;
     my $selectUnclosedEventsSth = $dbh->prepare_cached( $selectUnclosedEventsSql )
         or Fatal( "Can't prepare '$selectUnclosedEventsSql': ".$dbh->errstr() );

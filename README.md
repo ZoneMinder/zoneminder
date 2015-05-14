@@ -15,7 +15,7 @@ ZoneMinder is an integrated set of applications which provide a complete surveil
 
 Historically, installing ZoneMinder onto your system required building from source code by issuing the traditional configure, make, make install commands.  To get ZoneMinder to build, all of its dependencies had to be determined and installed beforehand. Init and logrotate scripts had to be manually copied into place following the build.  Optional packages such as jscalendar and Cambozola had to be manually installed. Uninstalls could leave stale files around, which could cause problems during an upgrade.  Speaking of upgrades, when it comes time to upgrade all these manual steps must be repeated again.
 
-Better methods exist today that do much of this for you. The current development team has taken great strides in providing the resources necessary to avoid building from source.  
+Better methods exist today that do much of this for you. The current development team, along with other volunteers, have taken great strides in providing the resources necessary to avoid building from source.  
 
 ### Install from a Package Repository
 

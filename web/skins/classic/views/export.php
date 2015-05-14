@@ -24,6 +24,9 @@ if ( !canView( 'Events' ) )
     return;
 }
 
+# Must re-start session because we close it now in index.php to improve concurrency
+session_start();
+
 if ( isset($_SESSION['export']) )
 {
     if ( isset($_SESSION['export']['detail']) )

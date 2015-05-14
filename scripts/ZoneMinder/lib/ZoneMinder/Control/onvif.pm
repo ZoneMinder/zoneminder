@@ -36,7 +36,7 @@ our %CamParams = ();
 # ==========================================================================
 #
 # ONVIF Control Protocol
-# 
+#
 # On ControlAddress use the format :
 #   USERNAME:PASSWORD@ADDRESS:PORT
 #   eg : admin:@10.1.2.1:80
@@ -50,7 +50,7 @@ use ZoneMinder::Config qw(:all);
 use Time::HiRes qw( usleep );
 
 sub new
-{ 
+{
 
     my $class = shift;
     my $id = shift;
@@ -90,7 +90,7 @@ sub open
 }
 
 sub close
-{ 
+{
     my $self = shift;
     $self->{state} = 'closed';
 }
@@ -133,7 +133,7 @@ sub getCamParams
     my $req = HTTP::Request->new( GET=>"http://".$self->{Monitor}->{ControlAddress}."/get_camera_params.cgi" );
     my $res = $self->{ua}->request($req);
 
-    if ( $res->is_success ) 
+    if ( $res->is_success )
     {
         # Parse results setting values in %FCParams
         my $content = $res->decoded_content;
@@ -141,7 +141,7 @@ sub getCamParams
         while ($content =~ s/var\s+([^=]+)=([^;]+);//ms) {
             $CamParams{$1} = $2;
         }
-    } 
+    }
     else
     {
         Error( "Error check failed:'".$res->status_line()."'" );

@@ -21,11 +21,11 @@ Better methods exist today that do much of this for you. The current development
 
 This is the recommended method to install ZoneMinder onto your system. ZoneMinder packages are maintained for the following distros:
 
-- Ubuntu via Iconnor's PPA: https://launchpad.net/~iconnor/+archive/ubuntu/zoneminder
-- Debian from their default repository: https://packages.debian.org/search?searchon=names&keywords=zoneminder
-- RHEL/CentOS and clones: http://zmrepo.zoneminder.com/
-- Fedora: http://zmrepo.zoneminder.com/
-- OpenSuse via third party repository: http://www.zoneminder.com/wiki/index.php/Installing_using_ZoneMinder_RPMs_for_SuSE
+- Ubuntu via [Iconnor's PPA](https://launchpad.net/~iconnor/+archive/ubuntu/zoneminder)
+- Debian from their [default repository](https://packages.debian.org/search?searchon=names&keywords=zoneminder) 
+- RHEL/CentOS and clones via [zmrepo](http://zmrepo.zoneminder.com/)
+- Fedora via [zmrepo](http://zmrepo.zoneminder.com/)
+- OpenSuse via [third party repository](http://www.zoneminder.com/wiki/index.php/Installing_using_ZoneMinder_RPMs_for_SuSE)
 - Maegia from their default repository
 
 If a repository that hosts ZoneMinder packages is not available for your distro, then you are encouraged to build your own package, rather than build from source.  While each distro is different in ways that set it apart from all the others, they are often similar enough to allow you to adapt another distro's package building instructions to your own.

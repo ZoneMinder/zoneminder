@@ -23,3 +23,22 @@
     vertical-align: top;
     white-space: nowrap;
 }
+
+table.listSetting {
+    border-spacing: 3px!important;
+    border-collapse: separate!important;
+}
+
+table.listSetting td {
+    vertical-align: top!important;
+    border: 0px!important;
+    padding: 0px!important
+}
+
+table.listSetting input[type=text] {
+    width: 96px
+}
+
+table.listSetting select {
+    width: 100px;
+}

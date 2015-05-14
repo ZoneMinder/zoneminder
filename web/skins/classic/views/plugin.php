@@ -45,13 +45,11 @@ $focusWindow = true;
 $generalOptions=array(
    'Enabled'=>array(
       'Type'=>'select',
-      'Name'=>'Enabled',
       'Choices'=>'Yes,No',
       'Value'=>'No'
    ),
    'RequireNatDet'=>array(
       'Type'=>'select',
-      'Name'=>'RequireNatDet',
       'Choices'=>'Yes,No',
       'Value'=>'No',
       'Require'=>array(
@@ -63,7 +61,6 @@ $generalOptions=array(
    ),
    'IncludeNatDet'=>array(
       'Type'=>'select',
-      'Name'=>'IncludeNatDet',
       'Choices'=>'Yes,No',
       'Value'=>'No',
       'Require'=>array(
@@ -79,7 +76,6 @@ $generalOptions=array(
    ),
    'ReInitNatDet'=>array(
       'Type'=>'select',
-      'Name'=>'ReInitNatDet',
       'Choices'=>'Yes,No',
       'Value'=>'No',
       'Require'=>array(
@@ -95,7 +91,6 @@ $generalOptions=array(
    ),
    'AlarmScore'=>array(
       'Type'=>'integer',
-      'Name'=>'AlarmScore',
       'Min'=>'1',
       'Max'=>'100',
       'Value'=>'99',
@@ -118,12 +113,26 @@ if(file_exists($plugin_path."/config.php"))
       {
          // Set default dependency information if not set in configuration file
          if(!isset($optionValue['Require']))
+         {
             $optionValue['Require'] = array (
                array(
                   'Name'=>'Enabled',
                   'Value'=>'Yes'
                )
             );
+         }
+         elseif(is_array($optionValue['Require']))
+         {
+            $optionValue['Require'][] = array (
+               'Name'=>'Enabled',
+               'Value'=>'Yes'
+            );
+         }
+         else
+         {
+            // Wrong type
+            continue;
+         }
          $pOptions[$optionKey]=$optionValue;
       }
 }
@@ -171,11 +180,15 @@ foreach($pOptions as $name => $values)
         case "select":
             $sql="INSERT INTO PluginsConfig VALUES ('',?,?,?,?,'','',?,?,?)";
             dbQuery($sql, array( $popt['Name'], $popt['Value'], $popt['Type'], $popt['Choices'], $mid, $zid, $plugin ) );
-        break;
+            break;
         case "integer":
             $sql="INSERT INTO PluginsConfig VALUES ('',?,?,?,'',?,?,?,?,?)";
             dbQuery($sql, array( $popt['Name'], $popt['Value'], $popt['Type'], $popt['Min'], $popt['Max'], $mid, $zid, $plugin ) );
-        break;
+            break;
+        case "list":
+            $sql="INSERT INTO PluginsConfig VALUES ('',?,'',?,'','','',?,?,?)";
+            dbQuery($sql, array( $popt['Name'], $popt['Type'], $mid, $zid, $plugin ) );
+            break;
         case "checkbox":
         case "text":
         default:
@@ -299,6 +312,41 @@ foreach($pOptions as $name => $popt)
                   <input type="text" name="dsp_pluginOpt[<?php echo $popt['Name'] ?>]" id="dsp_pluginOpt[<?php echo $popt['Name']; ?>]" onchange="limitRange( this, <?php echo $popt['Min'] ?>, <?php echo $popt['Max']; ?> ); applyChanges();" value="<?php echo $popt['Value']; ?>" size="4" <?php if (!isEnabled($popt['Name'])) echo 'disabled="disabled"'; ?>>
                   <input type="hidden" name="pluginOpt[<?php echo $popt['Name'] ?>]" id="pluginOpt[<?php echo $popt['Name']; ?>]" value="<?php echo $popt['Value']; ?>" />
                 </td>
+            <?php
+         break;
+      case "list":
+         $nbopt = 0;
+         $pvalues=explode(',',$popt['Value']);
+            ?>
+                <td style="padding:0px;"><table class="listSetting">
+                  <tr>
+                    <td>
+                      <input type="text" name="dsp_input_pluginOpt[<?php echo $popt['Name'] ?>]" id="dsp_input_pluginOpt[<?php echo $popt['Name']; ?>]" <?php if (!isEnabled($popt['Name'])) echo 'disabled="disabled"'; ?> onkeyup="updateAddBtn('<?php echo $popt['Name'] ?>');" />
+                    </td>
+                    <td>
+                      <input type="button" name="addBtn[<?php echo $popt['Name'] ?>]" id="addBtn[<?php echo $popt['Name'] ?>]" value="<?php echo $SLANG['Add'] ?>" onclick="addOption('<?php echo $popt['Name'] ?>');" disabled="disabled" />
+                    </td>
+                  </tr><tr>
+                    <td>
+                      <select multiple="multiple" name="dsp_pluginOpt[<?php echo $popt['Name'] ?>]" id="dsp_pluginOpt[<?php echo $popt['Name']; ?>]" <?php if (!isEnabled($popt['Name'])) echo 'disabled="disabled"'; ?>>
+            <?php
+            foreach($pvalues as $pvalue) {
+               if(!empty($pvalue)) {
+                  $nbopt++;
+            ?>
+                        <option value="<?php echo $pvalue; ?>"><?php echo $pvalue; ?></option>
+            <?php
+               }
+            }
+            ?>
+                      </select>
+                      <input type="hidden" name="pluginOpt[<?php echo $popt['Name'] ?>]" id="pluginOpt[<?php echo $popt['Name']; ?>]" value="<?php echo $popt['Value']; ?>" />
+                    </td>
+                    <td>
+                      <input type="button" name="removeBtn[<?php echo $popt['Name'] ?>]" id="removeBtn[<?php echo $popt['Name'] ?>]" value="<?php echo $SLANG['Remove'] ?>" onclick="removeOptionSelected('<?php echo $popt['Name'] ?>');" <?php if ($nbopt == 0) echo 'disabled="disabled"'; ?> />
+                    </td>
+                  </tr>
+                </table></td>
             <?php
          break;
       default:

@@ -40,7 +40,7 @@ Description: Perl libraries for ZoneMinder
  This package provides the libraries for the perl scripts, it can be used to
  write custom interfaces as well.
 
-Package: libzoneminder-plugin-dev
+Package: libzoneminder-dev
 Section: libdevel
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}

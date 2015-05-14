@@ -119,7 +119,6 @@ chdir( EVENT_PATH );
 my $max_image_age = 6/24; # 6 hours
 my $max_swap_age = 24/24; # 24 hours
 my $image_path = IMAGE_PATH;
-my $swap_image_path = $Config{ZM_PATH_SWAP};
 
 my $loop = 1;
 my $cleaned = 0;
@@ -498,7 +497,7 @@ MAIN: while( $loop ) {
     }
 
     # Now delete any old swap files
-    ( my $swap_image_root ) = ( $swap_image_path =~ /^(.*)$/ ); # De-taint
+    ( my $swap_image_root ) = ( $Config{ZM_PATH_SWAP} =~ /^(.*)$/ ); # De-taint
     File::Find::find( { wanted=>\&deleteSwapImage, untaint=>1 }, $swap_image_root );
 
     # Prune the Logs table if required

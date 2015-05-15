@@ -42,52 +42,52 @@ $plugin_path = dirname($_SERVER['SCRIPT_FILENAME'])."/plugins/".$plugin;
 
 $focusWindow = true;
 
-$generalOptions=array(
-   'Enabled'=>array(
-      'Type'=>'select',
-      'Choices'=>'Yes,No',
-      'Value'=>'No'
+$generalOptions = array(
+   'Enabled' => array(
+      'Type' => 'select',
+      'Choices' => 'Yes,No',
+      'Value' => 'No',
    ),
-   'RequireNatDet'=>array(
-      'Type'=>'select',
-      'Choices'=>'Yes,No',
-      'Value'=>'No',
-      'Require'=>array(
+   'RequireNatDet' => array(
+      'Type' => 'select',
+      'Choices' => 'Yes,No',
+      'Value' => 'No',
+      'Require' => array(
          array(
-            'Name'=>'Enabled',
-            'Value'=>'Yes'
-         )
-      )
+            'Name' => 'Enabled',
+            'Value' => 'Yes',
+         ),
+      ),
    ),
-   'IncludeNatDet'=>array(
-      'Type'=>'select',
-      'Choices'=>'Yes,No',
-      'Value'=>'No',
-      'Require'=>array(
+   'IncludeNatDet' => array(
+      'Type' => 'select',
+      'Choices' => 'Yes,No',
+      'Value' => 'No',
+      'Require' => array(
          array(
-            'Name'=>'Enabled',
-            'Value'=>'Yes'
+            'Name' => 'Enabled',
+            'Value' => 'Yes',
          ),
          array(
-            'Name'=>'RequireNatDet',
-            'Value'=>'Yes'
-         )
-      )
+            'Name' => 'RequireNatDet',
+            'Value' => 'Yes',
+         ),
+      ),
    ),
-   'ReInitNatDet'=>array(
-      'Type'=>'select',
-      'Choices'=>'Yes,No',
-      'Value'=>'No',
-      'Require'=>array(
+   'ReInitNatDet' => array(
+      'Type' => 'select',
+      'Choices' => 'Yes,No',
+      'Value' => 'No',
+      'Require' => array(
          array(
-            'Name'=>'Enabled',
-            'Value'=>'Yes'
+            'Name' => 'Enabled',
+            'Value' => 'Yes',
          ),
          array(
-            'Name'=>'RequireNatDet',
-            'Value'=>'Yes'
-         )
-      )
+            'Name' => 'RequireNatDet',
+            'Value' => 'Yes',
+         ),
+      ),
    ),
    'AlarmScore'=>array(
       'Type'=>'integer',
@@ -96,11 +96,11 @@ $generalOptions=array(
       'Value'=>'99',
       'Require'=>array(
          array(
-            'Name'=>'Enabled',
-            'Value'=>'Yes'
-         )
-      )
-   )
+            'Name' => 'Enabled',
+            'Value' => 'Yes',
+         ),
+      ),
+   ),
 );
 
 $pOptions=$generalOptions;
@@ -116,16 +116,16 @@ if(file_exists($plugin_path."/config.php"))
          {
             $optionValue['Require'] = array (
                array(
-                  'Name'=>'Enabled',
-                  'Value'=>'Yes'
-               )
+                  'Name' => 'Enabled',
+                  'Value' => 'Yes',
+               ),
             );
          }
          elseif(is_array($optionValue['Require']))
          {
             $optionValue['Require'][] = array (
-               'Name'=>'Enabled',
-               'Value'=>'Yes'
+               'Name' => 'Enabled',
+               'Value' => 'Yes',
             );
          }
          else
@@ -161,9 +161,9 @@ foreach( dbFetchAll( $sql, NULL, array( $mid, $zid, $plugin ) ) as $popt )
       else if($popt['Name'] != 'Enabled')
          $pOptions[$popt['Name']]['Require'] = array (
             array(
-               'Name'=>'Enabled',
-               'Value'=>'Yes'
-            )
+               'Name' => 'Enabled',
+               'Value' => 'Yes',
+            ),
          );
    } else {
       dbQuery('DELETE FROM PluginsConfig WHERE Id=?', array( $popt['Id'] ) );

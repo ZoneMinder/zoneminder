@@ -18,4 +18,6 @@ pluginOptionList['<?php echo $key; ?>']['<?php echo $req_couple['Name']; ?>'] = 
 
 var onlyAlphaCharString = '<?php echo addslashes($SLANG['OnlyAlphaChars']) ?>';
 var alreadyInList = '<?php echo addslashes($SLANG['AlreadyInList']) ?>';
+var configError = '<?php echo addslashes($SLANG['ConfigError']) ?>';
+var isNotAValidOption = '<?php echo addslashes($SLANG['IsNotAValidOption']) ?>';
 var onlyIntegerString = '<?php echo addslashes($SLANG['OnlyIntegers']) ?>';

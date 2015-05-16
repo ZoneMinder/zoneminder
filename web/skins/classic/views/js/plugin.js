@@ -9,9 +9,9 @@ function addOption( name )
         return;
     }
     // Raise an error and exit of non alphanumeric characters in string
-    if ( !str.match(/^[0-9a-zA-Z]+$/) )
+    if ( !str.match( /^[0-9a-zA-Z]+$/ ) )
     {
-        alert(onlyAlphaCharString);
+        alert( onlyAlphaCharString );
         return;
     }
     var hidden = form.elements['pluginOpt[' + name + ']'];
@@ -19,11 +19,11 @@ function addOption( name )
     var list = hidden.value.split( "," );
     if ( list.indexOf( str ) != -1 )
     {
-        alert(alreadyInList);
+        alert( alreadyInList );
         return;
     }
     // Add option to the list
-    select.options[select.options.length] = new Option(str, str);
+    select.options[select.options.length] = new Option( str, str );
     // Synchronize hidden field
     if ( hidden.value.length > 0 )
     {
@@ -43,7 +43,7 @@ function removeOptionSelected( name )
     {
         if ( select.options[i].selected )
         {
-          select.remove(i);
+          select.remove( i );
         }
     }
     // Synchronize hidden field
@@ -68,7 +68,7 @@ function updateAddBtn( name )
 {
     var form = document.pluginForm;
     // Disable add button if the text input is empty
-    if ( form.elements['dsp_input_pluginOpt[' + name + ']'].value === "")
+    if ( form.elements['dsp_input_pluginOpt[' + name + ']'].value === "" )
     {
         form.elements['addBtn[' + name + ']'].disabled = true;
     }
@@ -102,6 +102,7 @@ function saveChanges( element )
 function applyChanges()
 {
     var form = document.pluginForm;
+    var errorMsg = "";
     // Synchronize hidden fields
     for ( var option in pluginOptionList )
     {
@@ -131,23 +132,30 @@ function applyChanges()
         for ( var name in pluginOptionList[option] )
         {
             //console.log("form.elements['pluginOpt[" + name + "]'].value=" + form.elements['pluginOpt[' + name + ']'].value + " pluginOptionList[" + option + "][" + name + "]=" + pluginOptionList[option][name]);
-            if (form.elements['pluginOpt[' + name + ']'].value != pluginOptionList[option][name])
+            if ( typeof form.elements['pluginOpt[' + name + ']'] !== "undefined" )
             {
-                form.elements['dsp_pluginOpt[' + option  + ']'].disabled = true;
-                // Handle additionnal controls for list option
-                if ( typeof form.elements['dsp_input_pluginOpt[' + option  + ']'] !== "undefined" )
+                if ( form.elements['pluginOpt[' + name + ']'].value != pluginOptionList[option][name] )
                 {
-                    form.elements['dsp_input_pluginOpt[' + option  + ']'].disabled = true;
-                    form.elements['dsp_input_pluginOpt[' + option  + ']'].value = "";
-                    form.elements['addBtn[' + option  + ']'].disabled = true;
-                    form.elements['removeBtn[' + option  + ']'].disabled = true;
+                    form.elements['dsp_pluginOpt[' + option  + ']'].disabled = true;
+                    // Handle additionnal controls for list option
+                    if ( typeof form.elements['dsp_input_pluginOpt[' + option  + ']'] !== "undefined" )
+                    {
+                        form.elements['dsp_input_pluginOpt[' + option  + ']'].disabled = true;
+                        form.elements['dsp_input_pluginOpt[' + option  + ']'].value = "";
+                        form.elements['addBtn[' + option  + ']'].disabled = true;
+                        form.elements['removeBtn[' + option  + ']'].disabled = true;
+                    }
+                    enabled = false;
+                    break;
                 }
-                enabled = false;
-                break;
+            }
+            else
+            {
+                errorMsg += "'" + name + "' " + isNotAValidOption + "\n";
             }
         }
         // Enable visible field if all dependencies are ok
-        if (enabled)
+        if ( enabled )
         {
             form.elements['dsp_pluginOpt[' + option + ']'].disabled = false;
             // Handle additionnal controls for list option
@@ -161,26 +169,30 @@ function applyChanges()
             }
         }
     }
+    if ( errorMsg.length !== 0 )
+    {
+        alert( configError + "\n" + errorMsg );
+    }
 }
 
 function limitRange( field, minValue, maxValue )
 {
     var intval;
-    if ( +field.value === parseInt(field.value) )
+    if ( +field.value === parseInt( field.value ) )
     {
-        intval = parseInt(field.value);
+        intval = parseInt( field.value );
     }
     else
     {
-        alert(onlyIntegerString);
+        alert( onlyIntegerString );
         field.value = field.defaultValue;
         return;
     }
-    if ( intval < parseInt(minValue) )
+    if ( intval < parseInt( minValue ) )
     {
         field.value = minValue;
     }
-    else if ( intval > parseInt(maxValue) )
+    else if ( intval > parseInt( maxValue ) )
     {
         field.value = maxValue;
     }

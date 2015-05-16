@@ -9,13 +9,46 @@ All documentation for ZoneMinder is now online at http://www.zoneminder.com/wiki
 
 ZoneMinder is an integrated set of applications which provide a complete surveillance solution allowing capture, analysis, recording and monitoring of any CCTV or security cameras attached to a Linux based machine. It is designed to run on distributions which support the Video For Linux (V4L) interface and has been tested with video cameras attached to BTTV cards, various USB cameras and also supports most IP network cameras. 
 
-## Requirements
+## Installation Methods
 
-If you are installing ZoneMinder from a package, that package should provide all of the needed core components.
+### Building from Source is Discouraged
 
-### Packages
+Historically, installing ZoneMinder onto your system required building from source code by issuing the traditional configure, make, make install commands.  To get ZoneMinder to build, all of its dependencies had to be determined and installed beforehand. Init and logrotate scripts had to be manually copied into place following the build.  Optional packages such as jscalendar and Cambozola had to be manually installed. Uninstalls could leave stale files around, which could cause problems during an upgrade.  Speaking of upgrades, when it comes time to upgrade all these manual steps must be repeated again.
 
-If you are compiling ZoneMinder from source, the below list contains the packages needed to get ZoneMinder built:
+Better methods exist today that do much of this for you. The current development team, along with other volunteers, have taken great strides in providing the resources necessary to avoid building from source.  
+
+### Install from a Package Repository
+
+This is the recommended method to install ZoneMinder onto your system. ZoneMinder packages are maintained for the following distros:
+
+- Ubuntu via [Iconnor's PPA](https://launchpad.net/~iconnor/+archive/ubuntu/zoneminder)
+- Debian from their [default repository](https://packages.debian.org/search?searchon=names&keywords=zoneminder) 
+- RHEL/CentOS and clones via [zmrepo](http://zmrepo.zoneminder.com/)
+- Fedora via [zmrepo](http://zmrepo.zoneminder.com/)
+- OpenSuse via [third party repository](http://www.zoneminder.com/wiki/index.php/Installing_using_ZoneMinder_RPMs_for_SuSE)
+- Maegia from their default repository
+
+If a repository that hosts ZoneMinder packages is not available for your distro, then you are encouraged to build your own package, rather than build from source.  While each distro is different in ways that set it apart from all the others, they are often similar enough to allow you to adapt another distro's package building instructions to your own.
+
+### Building a ZoneMinder Package
+
+Building ZoneMinder into a package is not any harder than building from source.  As a matter of fact, if you have successfully built ZoneMinder from source in the past, then you may find these steps to be easier. 
+
+When building a package, it is best to do this work in a separate environment, dedicated to development purposes. This could be as simple as creating a virtual machine, using Docker, or using mock.  All it takes is one “Oops” to regret doing this work on your production server.
+
+Lastly, if you desire to build a development snapshot from the master branch, it is recommended you first build your package using an official release of ZoneMinder. This will help identify whether any problems you may encounter are caused by the build process or is a new issue in the master branch.
+
+What follows are instructions for various distros to build ZoneMinder into a package.
+
+### Package Maintainters
+Many of the ZoneMinder configration variable default values are not configurable at build time through autotools or cmake.  A new tool called *zmeditconfigdata.sh* has been added to allow package maintainers to manipulate any variable stored in ConfigData.pm without patching the source. 
+
+For example, let's say I have created a new ZoneMinder package that contains the cambolzola javascript file.  However, by default cambozola support is turned off.  To fix that, add this to the pacakging script:
+```bash
+./utils/zmeditconfigdata.sh ZM_OPT_CAMBOZOLA yes
+```
+
+Note that zmeditconfigdata.sh is intended to be called, from the root build folder, prior to running cmake or configure.
 
 #### Ubuntu
 
@@ -103,6 +136,8 @@ root@host:~# gdebi /root/zoneminder_1.26.4-1_amd64.deb;
 
 #### CentOS / RHEL
 
+DEPRECIATED.  The steps below are depreciated. I am in the middle of rewriting this entire section.
+
 Additional repositories must be added before one can build zoneminder on CentOS or RHEL:
 
 1. Zmrepo [ZoneMinder WiKi](http://www.zoneminder.com/wiki/index.php/CentOS#Zmrepo_-_A_ZoneMinder_repository_for_RPM_based_distros)
@@ -144,11 +179,6 @@ Docker is a system to run applications inside isolated containers. ZoneMinder, a
 Dockerfile contained in this repository. However, there is still work needed to ensure that the main ZM features work 
 properly and are documented. 
 
-### ffmpeg
-
-This release of ZoneMinder has been tested on and works with ffmpeg version N-55540-g93f4277.
-
-
 ## Contribution Model and  Development
 
 * Source hosted at [GitHub](https://github.com/ZoneMinder/ZoneMinder/)
@@ -168,15 +198,5 @@ the following steps.
 5. Push your branch to your fork on github (`git push origin 456-my-new-feature`)
 6. Create new Pull Request
 7. The team will then review, discuss and hopefully merge your changes.
-
-### Package Maintainters
-Many of the ZoneMinder configration variable default values are not configurable at build time through autotools or cmake.  A new tool called *zmeditconfigdata.sh* has been added to allow package maintainers to manipulate any variable stored in ConfigData.pm without patching the source. 
-
-For example, let's say I have created a new ZoneMinder package that contains the cambolzola javascript file.  However, by default cambozola support is turned off.  To fix that, add this to the pacakging script:
-```bash
-./utils/zmeditconfigdata.sh ZM_OPT_CAMBOZOLA yes
-```
-
-Note that zmeditconfigdata.sh is intended to be called, from the root build folder, prior to running cmake or configure.
 
 [![Analytics](https://ga-beacon.appspot.com/UA-15147273-6/ZoneMinder/README.md)](https://github.com/igrigorik/ga-beacon)

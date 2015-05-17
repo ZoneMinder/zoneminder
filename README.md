@@ -177,7 +177,7 @@ Add your user account to the group mock:
 sudo gpasswd -a {your account name} mock
 ```
 
-Your build is environment is now set up.  
+Your build environment is now set up.  
 
 ##### Build from SRPM
 To continue, you need a ZoneMinder SRPM.  For starters, let's use one of the SRPMS from zmrepo.  Go browse the [Zmrepo](http://zmrepo.zoneminder.com/) site and choose an appropriate SRPM and place it into the ~/rpmbuild/SRPMS folder.  

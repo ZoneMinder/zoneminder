@@ -134,44 +134,84 @@ root@host:~# aptitude install -y gdebi;
 root@host:~# gdebi /root/zoneminder_1.26.4-1_amd64.deb;
 ```
 
-#### CentOS / RHEL
+#### Fedora / CentOS / RHEL
 
-DEPRECIATED.  The steps below are depreciated. I am in the middle of rewriting this entire section.
+***DRAFT* ** Needs Testing
 
-Additional repositories must be added before one can build zoneminder on CentOS or RHEL:
+##### Background
+The following method documents how to build ZoneMinder into an RPM package, compatible with Fedora, Redhat, CentOS, and other compatible clones. This is exactly how the RPMS in zmrepo are built.
 
-1. Zmrepo [ZoneMinder WiKi](http://www.zoneminder.com/wiki/index.php/CentOS#Zmrepo_-_A_ZoneMinder_repository_for_RPM_based_distros)
-2. EPEL https://fedoraproject.org/wiki/EPEL
-3. RPMFusion: http://rpmfusion.org/
+The method documented below was chosen because:
+- All of ZoneMinder's dependencies are downloaded and installed automatically
+- Cross platform capable. The build host does not have to be the same distro or release version as the target.
+- Once your build environment is set up, very few steps are required to run the build again in the future.
 
-When adding third party repositories, it is highly recommended that the user also install and configure yum priorities as documented in the [CentOS WiKi](http://wiki.centos.org/PackageManagement/Yum/Priorities)
+***IMPORTANT***
+Certain commands in these instructions require root privileges while other commands do not. Pay close attention to this. If the instructions below state to issue a command without a “sudo” prefix, then you should *not* be root while issuing the command. Getting this incorrect will result in a failed build.
 
-Prioritize the repositories:
+##### Set Up Your Environment
+Before you begin, set up an rpmbuild environment by following [this guide](http://wiki.centos.org/HowTos/SetupRpmBuildEnvironment) by the CentOS developers.
 
-1. Base
-2. EPEL
-3. RPMFusion
-4. Zmrepo
+Next, navigate to [Zmrepo](http://zmrepo.zoneminder.com/), and follow the instructions to enable zmrepo on your system.  
 
-Once your repos are in order, install the following:
-```bash
-sudo yum install cmake bzip2-devel ffmpeg ffmpeg-devel gnutls-devel httpd libjpeg-turbo libjpeg-turbo-devel mysql-devel mysql-server pcre-devel \
-perl-Archive-Tar perl-Archive-Zip perl-Convert-BinHex perl-Date-Manip perl-DBD-MySQL perl-DBI perl-Device-SerialPort perl-Email-Date-Format perl-IO-stringy \
-perl-IO-Zlib perl-MailTools perl-MIME-Lite perl-MIME-tools perl-MIME-Types perl-Module-Load perl-Package-Constants perl-Sys-Mmap perl-Time-HiRes \
-perl-TimeDate perl-YAML-Syck perl-X10 perl-URI-Encode php php-cli php-mysql x264 vlc-devel vlc-core \
-libcurl libcurl-devel polkit-devel git
+With zmrepo enabled, issue the following command:
+````bash
+sudo yum install zmrepo-mock-configs mock
 ```
 
-To build from the master branch:
+As an alternative to enabling zmrepo, you may simply browse for and download the latest version of the “zmrepo-mock-configs” rpm.  
+
+On CentOS 7 for example:
 ```bash
-git clone https://github.com/ZoneMinder/ZoneMinder.git
-cd ZoneMinder
-cmake .
-make
-sudo make install
+wget http://zmrepo.zoneminder.com/el/7/x86_64/zmrepo-mock-configs-1.0-1.el7.centos.noarch.rpm
+```
+Then install it:
+```bash
+sudo yum install zmrepo-mock-configs-1.0-1.el7.centos.noarch.rpm
+```
+Add your user account to the group mock:
+```bash
+sudo gpasswd -a {your account name} mock
 ```
 
-IMPORTANT: Don't forget the trailing "." when calling cmake
+Your build is environment is now set up.  
+
+##### Build from SRPM
+To continue, you need a ZoneMinder SRPM.  For starters, let's use one of the SRPMS from zmrepo.  Go browse the [Zmrepo](http://zmrepo.zoneminder.com/) site and choose an appropriate SRPM and place it into the ~/rpmbuild/SRPMS folder.  
+
+For CentOS 7, I have chosen the following SRPM:
+```bash
+wget -P ~/rpmbuild/SRPMS http://zmrepo.zoneminder.com/el/7/SRPMS/zoneminder-1.28.1-2.el7.centos.src.rpm
+```
+
+Now comes the fun part. To build ZoneMinder, issue the following command:
+```bash
+buildzm.sh zmrepo-el7-x86_64 ~/rpmbuild/SRPMS/zoneminder-1.28.1-2.el7.centos.src.rpm
+```
+
+Want to build ZoneMinder for Fedora, instead of CentOS, from the same host?  Once you download the Fedora SRPM, issue the following:
+```bash
+buildzm.sh zmrepo-f21-x86_64 ~/rpmbuild/SRPMS/zoneminder-1.28.1-1.fc21.src.rpm
+```
+Notice that the buildzm.sh tool requires the following parameters:
+```bash
+buildzm.sh MOCKCONFIG ZONEMINDER_SRPM
+```
+The list of available Mock config files are available here:
+```bash
+ls /etc/mock/zmrepo*.cfg
+```
+
+You choose the config file based on the desired distro (e.g. el6, el7, f20, f21) and basearch (e.g. x86, x86_64, arhmhfp).
+
+##### Installation
+Once the build completes, you will get a folder listing of the RPM's that were built.  Copy the newly built ZoneMinder RPM to the desired system, enable zmrepo, and then install the rpm by issuing the appropriate yum install command.   
+
+Finally, you may want to consider editing the zmrepo repo file under /etc/yum.repos.d and placing an “exclude=zoneminder*” line into the config file.  This will prevent your system from overwriting your manually built RPM with the ZoneMinder RPM found in the repo.
+
+##### How to Modify the Source Prior to Build
+UP NEXT (TO-DO)
+How to modify the source files before building
 
 #### Docker
 

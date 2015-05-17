@@ -208,7 +208,7 @@ ls /etc/mock/zmrepo*.cfg
 You choose the config file based on the desired distro (e.g. el6, el7, f20, f21) and basearch (e.g. x86, x86_64, arhmhfp). Notice that, when specifying the Mock config as a commandline parameter, you should leave off the ".cfg" filename extension.
 
 ##### Installation
-Once the build completes, you will be presented with a folder containing the RPM's that were built.  Copy the newly built ZoneMinder RPM to the desired system, enable zmrepo, and then install the rpm by issuing the appropriate yum install command.   
+Once the build completes, you will be presented with a folder containing the RPM's that were built.  Copy the newly built ZoneMinder RPM to the desired system, enable zmrepo per the instruction on the [Zmrepo](http://zmrepo.zoneminder.com/) website, and then install the rpm by issuing the appropriate yum install command. Finish the installation by following the zoneminder setup instructions in the distro specific readme file, named README.{distroname}, which will be installed into the /usr/share/doc/zoneminder* folder. 
 
 Finally, you may want to consider editing the zmrepo repo file under /etc/yum.repos.d and placing an “exclude=zoneminder*” line into the config file.  This will prevent your system from overwriting your manually built RPM with the ZoneMinder RPM found in the repo.
 

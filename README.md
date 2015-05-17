@@ -146,6 +146,8 @@ The method documented below was chosen because:
 - Cross platform capable. The build host does not have to be the same distro or release version as the target.
 - Once your build environment is set up, very few steps are required to run the build again in the future.
 
+The build instructions below make use of a custom script called "buildzm.sh". Advanced users are encouraged to view the contents of this script. Notice that the script doesn't really do a whole lot. It's goal is simply to make the process a littel easier for the first time user. Once you become familar with the build process, you can issue the mock commands found in the buildzm.sh script yourself if you so desire.
+
 ***IMPORTANT***
 Certain commands in these instructions require root privileges while other commands do not. Pay close attention to this. If the instructions below state to issue a command without a “sudo” prefix, then you should *not* be root while issuing the command. Getting this incorrect will result in a failed build.
 
@@ -205,7 +207,7 @@ ls /etc/mock/zmrepo*.cfg
 You choose the config file based on the desired distro (e.g. el6, el7, f20, f21) and basearch (e.g. x86, x86_64, arhmhfp).
 
 ##### Installation
-Once the build completes, you will get a folder listing of the RPM's that were built.  Copy the newly built ZoneMinder RPM to the desired system, enable zmrepo, and then install the rpm by issuing the appropriate yum install command.   
+Once the build completes, you will be presented with a folder containing the RPM's that were built.  Copy the newly built ZoneMinder RPM to the desired system, enable zmrepo, and then install the rpm by issuing the appropriate yum install command.   
 
 Finally, you may want to consider editing the zmrepo repo file under /etc/yum.repos.d and placing an “exclude=zoneminder*” line into the config file.  This will prevent your system from overwriting your manually built RPM with the ZoneMinder RPM found in the repo.
 

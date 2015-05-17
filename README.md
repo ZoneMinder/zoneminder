@@ -144,7 +144,8 @@ The following method documents how to build ZoneMinder into an RPM package, comp
 The method documented below was chosen because:
 - All of ZoneMinder's dependencies are downloaded and installed automatically
 - Cross platform capable. The build host does not have to be the same distro or release version as the target.
-- Once your build environment is set up, very few steps are required to run the build again in the future.
+- Once your build environment is set up, few steps are required to run the build again in the future.
+- Troubleshooting becomes easier if we are all building ZoneMinder the same way.
 
 The build instructions below make use of a custom script called "buildzm.sh". Advanced users are encouraged to view the contents of this script. Notice that the script doesn't really do a whole lot. The goal of the script is to simply make the process a little easier for the first time user. Once you become familar with the build process, you can issue the mock commands found in the buildzm.sh script yourself if you so desire.
 

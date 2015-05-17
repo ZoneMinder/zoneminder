@@ -215,7 +215,7 @@ Finally, you may want to consider editing the zmrepo repo file under /etc/yum.re
 ##### How to Modify the Source Prior to Build
 ** UNFINISHED **
 
-Before attempting this part of the instructions, make sure and follow the previous instructions for building one of the unmodified SRPMS from zmrepo. Knowing this part works will assist in troubleshooting should somethint go wrong.
+Before attempting this part of the instructions, make sure and follow the previous instructions for building one of the unmodified SRPMS from zmrepo. Knowing this part works will assist in troubleshooting should something go wrong.
 
 These instructions may vary depending on what exactly you want to do.  The following example assumes you want to build a development snapshot from the master branch.
 

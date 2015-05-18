@@ -162,16 +162,6 @@ With zmrepo enabled, issue the following command:
 sudo yum install zmrepo-mock-configs mock
 ```
 
-As an alternative to enabling zmrepo, you may simply browse for and download the latest version of the “zmrepo-mock-configs” rpm.  
-
-On CentOS 7 for example:
-```bash
-wget http://zmrepo.zoneminder.com/el/7/x86_64/zmrepo-mock-configs-1.0-1.el7.centos.noarch.rpm
-```
-Then install it:
-```bash
-sudo yum install zmrepo-mock-configs-1.0-1.el7.centos.noarch.rpm
-```
 Add your user account to the group mock:
 ```bash
 sudo gpasswd -a {your account name} mock

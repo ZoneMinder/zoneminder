@@ -35,6 +35,7 @@
 class ThreadException : public Exception
 {
 private:
+#ifndef SOLARIS
 pid_t pid() {
     pid_t tid; 
 #ifdef __FreeBSD__ 
@@ -50,6 +51,9 @@ pid_t pid() {
 #endif
     return tid;
 }	
+#else
+pthread_t pid() { return( pthread_self() ); }
+#endif
 public:
     ThreadException( const std::string &message ) : Exception( stringtf( "(%d) "+message, (long int)pid() ) ) {
     }
@@ -213,7 +217,11 @@ protected:
 
     Mutex mThreadMutex;
     Condition mThreadCondition;
+#ifndef SOLARIS
     pid_t mPid;
+#else
+    pthread_t mPid;
+#endif
     bool  mStarted;
     bool  mRunning;
 
@@ -221,6 +229,7 @@ protected:
     Thread();
     virtual ~Thread();
 
+#ifndef SOLARIS
     pid_t id() const
     {
         pid_t tid; 
@@ -238,6 +247,12 @@ protected:
 #endif
 return tid;
     }
+#else
+    pthread_t id() const
+    {
+        return( pthread_self() );
+    }
+#endif
     void exit( int status = 0 )
     {
         //INFO( "Exiting" );

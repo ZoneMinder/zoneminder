@@ -189,7 +189,7 @@ if ( $command =~ /^(?:start|restart)$/ )
     if ( $status eq "stopped" )
     {
         if ( $Config{ZM_DYN_DB_VERSION}
-             and ( $Config{ZM_DYN_DB_VERSION} ne ZM_VERSION )
+             and ( $Config{ZM_DYN_DB_VERSION} ne $Config{ZM_VERSION} )
         )
         {
             Fatal( "Version mismatch, system is version ".ZM_VERSION
@@ -294,7 +294,12 @@ sub systemdRunning
 {
     my $result = 0;
 
-    my $output = qx(ps -o comm="" 1);
+	my $output;
+	if ( '@HOST_OS@' eq 'solaris' ) {
+	    $output = qx(ps -o comm="" -p 1);
+	} else {
+	    $output = qx(ps -o comm="" 1);
+	}
     chomp( $output );
 
     if ($output =~ /systemd/) {
@@ -309,7 +314,12 @@ sub calledBysystem
     my $result = 0;
     my $ppid = getppid();
 
-    my $output = qx(ps -o comm="" $ppid);
+	my $output;
+	if ( '@HOST_OS@' eq 'solaris' ) {
+	    $output = qx(ps -o comm="" -p $ppid);
+	} else {
+	    $output = qx(ps -o comm="" $ppid);
+	}
     chomp( $output );
 
     if ($output =~ /^(?:systemd|init)$/) {

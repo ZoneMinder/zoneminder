@@ -22,8 +22,6 @@
 // This section contains options substituted by the zmconfig.pl utility, do not edit these directly
 //
 define( "ZM_CONFIG", "@ZM_CONFIG@" );               // Path to config file
-// Define, and override any given in config file
-define( "ZM_VERSION", "@VERSION@" );               // Version
 
 $configFile = ZM_CONFIG;
 $localConfigFile = basename($configFile);
@@ -48,6 +46,13 @@ while ( !feof($cfg) )
         define( $matches[1], $matches[2] );
 }
 fclose( $cfg );
+  
+// Define, and override any given in config file
+// 	to override, must be done AFTER asignment, cripes
+// 	@VERSION@ hasn't been defined in tests, perhaps configure.ac needs fix?
+if (!defined("ZM_VERSION")) {	// avoid double definition warning
+    define( "ZM_VERSION", "@VERSION@" );               // Version
+}
 
 //
 // This section is options normally derived from other options or configuration

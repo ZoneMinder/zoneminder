@@ -305,7 +305,7 @@ void Image::Initialise()
 	initialised = true;
 }
 
-/* Requests a writeable buffer to the image. This is safer than buffer() because this way we can gurantee that a buffer of required size exists */
+/* Requests a writeable buffer to the image. This is safer than buffer() because this way we can guarantee that a buffer of required size exists */
 uint8_t* Image::WriteBuffer(const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder) {
 	unsigned int newsize;
   
@@ -1593,7 +1593,7 @@ Image *Image::Highlight( unsigned int n_images, Image *images[], const Rgb thres
 	return( result );
 }
 
-/* New function to allow buffer re-using instead of allocationg memory for the delta image everytime */
+/* New function to allow buffer re-using instead of allocationg memory for the delta image every time */
 void Image::Delta( const Image &image, Image* targetimage) const
 {
 #ifdef ZM_IMAGE_PROFILING

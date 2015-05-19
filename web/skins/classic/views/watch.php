@@ -150,11 +150,11 @@ if ( canEdit( 'Monitors' ) )
         <input type="button" value="&ndash;" id="zoomOutBtn" title="<?php echo $SLANG['ZoomOut'] ?>" class="avail" onclick="streamCmdZoomOut()"/>
       </div>
       <div id="replayStatus"<?php echo $streamMode=="single"?' class="hidden"':'' ?>>
-        <span id="mode">Mode: <span id="modeValue"></span></span>
-        <span id="rate">Rate: <span id="rateValue"></span>x</span>
-        <span id="delay">Delay: <span id="delayValue"></span>s</span>
-        <span id="level">Buffer: <span id="levelValue"></span>%</span>
-        <span id="zoom">Zoom: <span id="zoomValue"></span>x</span>
+        <span id="mode"><?php echo $SLANG['Mode'] ?>: <span id="modeValue"></span></span>
+        <span id="rate"><?php echo $SLANG['Rate'] ?>: <span id="rateValue"></span>x</span>
+        <span id="delay"><?php echo $SLANG['Delay'] ?>: <span id="delayValue"></span>s</span>
+        <span id="level"><?php echo $SLANG['Buffer'] ?>: <span id="levelValue"></span>%</span>
+        <span id="zoom"><?php echo $SLANG['Zoom'] ?>: <span id="zoomValue"></span>x</span>
       </div>
 <?php
 if ( $showPtzControls )

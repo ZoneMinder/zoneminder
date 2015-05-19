@@ -45,6 +45,7 @@ include (CheckFunctionExists)
 include (CheckPrototypeDefinition_fixed)
 include (CheckTypeSize)
 include (CheckStructHasMember)
+include (CheckSendfile)
 
 # Configuration options
 mark_as_advanced( 
@@ -52,8 +53,8 @@ mark_as_advanced(
     ZM_MYSQL_ENGINE 
     ZM_NO_MMAP 
     CMAKE_INSTALL_FULL_BINDIR 
-    ZM_PERL_SUBPREFIX 
-    ZM_PERL_USE_PATH 
+    ZM_PERL_MM_PARMS 
+    ZM_PERL_SEARCH_PATH 
     ZM_TARGET_DISTRO 
     ZM_CONFIG_DIR)
 
@@ -106,13 +107,16 @@ set(ZM_NO_X10 "OFF" CACHE BOOL
 set(ZM_ONVIF "OFF" CACHE BOOL 
     "Set to ON to enable basic ONVIF support. This is EXPERIMENTAL and may not 
     work with all cameras claiming to be ONVIF compliant. default: OFF")
-set(ZM_PERL_SUBPREFIX "${CMAKE_INSTALL_LIBDIR}/perl5" CACHE PATH 
-    "Use a different directory for the zm perl modules. 
-    NOTE: This is a subprefix, e.g. lib will be turned into <prefix>/lib, 
-    default: <libdir>/perl5")
-set(ZM_PERL_USE_PATH "${CMAKE_INSTALL_PREFIX}/${ZM_PERL_SUBPREFIX}" CACHE PATH 
-    "Override the include path for zm perl modules. Useful if you are moving the 
-    perl modules without using the ZM_PERL_SUBPREFIX option. default: <prefix>/<zmperlsubprefix>")
+set(ZM_PERL_MM_PARMS INSTALLDIRS=vendor NO_PACKLIST=1 NO_PERLLOCAL=1 CACHE STRING 
+	"By default, ZoneMinder's Perl modules are installed into the Vendor folders, 
+	as defined by your installation of Perl. You can change that here. Consult Perl's 
+	MakeMaker documentation for a definition of acceptable parameters. If you set this 
+	to something that causes the modules to be installed outside Perl's normal search 
+	path, then you will also need to set ZM_PERL_SEARCH_PATH accordingly.")
+set(ZM_PERL_SEARCH_PATH "" CACHE PATH 
+	"Use to add a folder to your Perl's search path. This will need to be set in cases 
+	where ZM_PERL_MM_PARMS has been modified such that ZoneMinder's Perl modules are 
+	installed outside Perl's default search path.")
 set(ZM_TARGET_DISTRO "" CACHE STRING 
     "Build ZoneMinder for a specific distribution.  Currently, valid names are: f21, f20, el6, OS13")
 
@@ -611,7 +615,11 @@ set(CGI_PREFIX "${ZM_CGIDIR}")
 set(WEB_USER "${ZM_WEB_USER}")
 set(WEB_GROUP "${ZM_WEB_GROUP}")
 set(ZM_DB_TYPE "mysql")
-set(EXTRA_PERL_LIB "use lib '${ZM_PERL_USE_PATH}';")
+if(ZM_PERL_SEARCH_PATH)
+	set(EXTRA_PERL_LIB "use lib '${ZM_PERL_SEARCH_PATH}'; # Include custom perl install path")
+else(ZM_PERL_SEARCH_PATH)
+	set(EXTRA_PERL_LIB "# Include from system perl paths only")
+endif(ZM_PERL_SEARCH_PATH)
 
 # Generate files from the .in files
 configure_file(zm.conf.in "${CMAKE_CURRENT_BINARY_DIR}/zm.conf" @ONLY)

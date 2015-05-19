@@ -36,6 +36,12 @@
 #include "zm_event.h"
 #include "zm_monitor.h"
 
+// sendfile tricks
+extern "C"
+{
+#include "zm_sendfile.h"
+}
+
 #include "zmf.h"
 
 #if HAVE_SYS_SENDFILE_H
@@ -1309,7 +1315,7 @@ bool EventStream::sendFrame( int delta_us )
 	if(send_raw) {
 #if HAVE_SENDFILE  
 		fprintf( stdout, "Content-Length: %d\r\n\r\n", (int)filestat.st_size );
-		if(sendfile(fileno(stdout), fileno(fdj), 0, (int)filestat.st_size) != (int)filestat.st_size) {
+		if(zm_sendfile(fileno(stdout), fileno(fdj), 0, (int)filestat.st_size) != (int)filestat.st_size) {
 			/* sendfile() failed, use standard way instead */
 			img_buffer_size = fread( img_buffer, 1, sizeof(temp_img_buffer), fdj );
 			if ( fwrite( img_buffer, img_buffer_size, 1, stdout ) != 1 ) {
@@ -1422,8 +1428,10 @@ void EventStream::runStream()
             if ( ((curr_frame_id-1)%frame_mod) == 0 )
             {
                 delta_us = (unsigned int)(frame_data->delta * 1000000);
-                if ( effective_fps < base_fps )
-                    delta_us = (unsigned int)((delta_us * base_fps)/effective_fps);
+                // if effective > base we should speed up frame delivery
+                delta_us = (unsigned int)((delta_us * base_fps)/effective_fps);
+                // but must not exceed maxfps
+                delta_us = max(delta_us, 1000000 / maxfps); 
                 send_frame = true;
             }
         }

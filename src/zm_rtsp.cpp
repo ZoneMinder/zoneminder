@@ -392,7 +392,7 @@ int RtspThread::run()
     		if ( ( lines[i].size() > 13 ) && ( lines[i].substr( 0, 13 ) == "Content-Base:" ) )
     			{
     				mUrl = trimSpaces( lines[i].substr( 13 ) );
-    				Info("Recieved new Content-Base in DESCRIBE reponse header. Updated device Url to: '%s'", mUrl.c_str() );
+    				Info("Received new Content-Base in DESCRIBE response header. Updated device Url to: '%s'", mUrl.c_str() );
     				break;
     			}
     	}

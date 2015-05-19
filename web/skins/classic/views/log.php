@@ -52,12 +52,12 @@ xhtmlHeaders(__FILE__, $SLANG['SystemLog'] );
       </div>
     </div>
     <div id="content">
-      <div id="filters">Filter log -
-        Component <select id="filter[Component]" onchange="filterLog(this)"><option value="">-----</option></select>
-        PID <select id="filter[Pid]" onchange="filterLog(this)"><option value="">-----</option></select>
-        Level <select id="filter[Level]" onchange="filterLog(this)"><option value="">---</option></select>
-        File <select id="filter[File]" onchange="filterLog(this)"><option value="">------</option></select>
-        Line <select id="filter[Line]" onchange="filterLog(this)"><option value="">----</option></select>
+      <div id="filters"><?php echo $SLANG['FilterLog'] ?> -
+        <?php echo $SLANG['Component'] ?> <select id="filter[Component]" onchange="filterLog(this)"><option value="">-----</option></select>
+        <?php echo $SLANG['Pid'] ?> <select id="filter[Pid]" onchange="filterLog(this)"><option value="">-----</option></select>
+        <?php echo $SLANG['Level'] ?> <select id="filter[Level]" onchange="filterLog(this)"><option value="">---</option></select>
+        <?php echo $SLANG['File'] ?> <select id="filter[File]" onchange="filterLog(this)"><option value="">------</option></select>
+        <?php echo $SLANG['Line'] ?> <select id="filter[Line]" onchange="filterLog(this)"><option value="">----</option></select>
         <input type="reset" value="<?php echo $SLANG['Reset'] ?>" onclick="resetLog()"/>
       </div>
       <form name="logForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
@@ -91,13 +91,13 @@ xhtmlHeaders(__FILE__, $SLANG['SystemLog'] );
         <form id="exportForm" action="" method="post">
           <fieldset>
             <legend><?php echo $SLANG['SelectLog'] ?></legend>
-            <label for="selectorAll">All</label><input type="radio" id="selectorAll" name="selector" value="all"/>
-            <label for="selectorFilter">Filter</label><input type="radio" id="selectorFilter" name="selector" value="filter"/>
-            <label for="selectorCurrent">Current</label><input type="radio" id="selectorCurrent" name="selector" value="current" title="<?php echo $SLANG['ChooseLogSelection'] ?>" data-validators="validate-one-required"/>
+            <label for="selectorAll"><?php echo $SLANG['All'] ?></label><input type="radio" id="selectorAll" name="selector" value="all"/>
+            <label for="selectorFilter"><?php echo $SLANG['Filter'] ?></label><input type="radio" id="selectorFilter" name="selector" value="filter"/>
+            <label for="selectorCurrent"><?php echo $SLANG['Current'] ?></label><input type="radio" id="selectorCurrent" name="selector" value="current" title="<?php echo $SLANG['ChooseLogSelection'] ?>" data-validators="validate-one-required"/>
           </fieldset>
           <fieldset>
             <legend><?php echo $SLANG['SelectFormat'] ?></legend>
-            <label for="formatText">Text</label><input type="radio" id="formatText" name="format" value="text"/>
+            <label for="formatText">TXT</label><input type="radio" id="formatText" name="format" value="text"/>
             <label for="formatTSV">TSV</label><input type="radio" id="formatTSV" name="format" value="tsv"/>
             <label for="formatXML">HTML</label><input type="radio" id="formatHTML" name="format" value="html"/>
             <label for="formatXML">XML</label><input type="radio" id="formatXML" name="format" value="xml" title="<?php echo $SLANG['ChooseLogFormat'] ?>" class="validate-one-required"/>

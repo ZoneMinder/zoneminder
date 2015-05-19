@@ -165,7 +165,7 @@ if ( $check && $Config{ZM_CHECK_FOR_UPDATES} )
 
             use LWP::UserAgent;
             my $ua = LWP::UserAgent->new;
-            $ua->agent( "ZoneMinder Update Agent/".$Config{ZM_VERSION} );
+            $ua->agent( "ZoneMinder Update Agent/".ZM_VERSION );
             if ( $Config{ZM_UPDATE_CHECK_PROXY} ) {
 				$ua->proxy( "http", $Config{ZM_UPDATE_CHECK_PROXY} );
             }
@@ -374,13 +374,13 @@ if ( $version )
     my ( $detaint_version ) = $version =~ /^([\w.]+)$/;
     $version = $detaint_version;
 
-    if ( $Config{ZM_VERSION} eq $version )
+    if ( ZM_VERSION eq $version )
     {
         print( "\nDatabase already at version $version, update aborted.\n\n" );
         exit( 0 );
     }
 
-    print( "\nInitiating database upgrade to version ".$Config{ZM_VERSION}." from version $version\n" );
+    print( "\nInitiating database upgrade to version ".ZM_VERSION." from version $version\n" );
     if ( $interactive )
     {
         if ( $Config{ZM_DYN_DB_VERSION} && $Config{ZM_DYN_DB_VERSION} ne $version )
@@ -489,7 +489,7 @@ if ( $version )
     }
 
 
-    print( "\nUpgrading database to version ".$Config{ZM_VERSION}."\n" );
+    print( "\nUpgrading database to version ".ZM_VERSION."\n" );
 
     # Update config first of all
     loadConfigFromDB();
@@ -1050,7 +1050,7 @@ if ( $version )
 
     if ( $cascade )
     {
-        my $installed_version = $Config{ZM_VERSION};
+        my $installed_version = ZM_VERSION;
         my $sql = "update Config set Value = ? where Name = ?";
         my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
         my $res = $sth->execute( "$installed_version", "ZM_DYN_DB_VERSION" ) or die( "Can't execute: ".$sth->errstr() );
@@ -1061,7 +1061,7 @@ if ( $version )
 		zmDbDisconnect();
         die( "Can't find upgrade from version '$version'" );
     }
-    print( "\nDatabase upgrade to version ".$Config{ZM_VERSION}." successful.\n\n" );
+    print( "\nDatabase upgrade to version ".ZM_VERSION." successful.\n\n" );
 }
 zmDbDisconnect();
 exit( 0 );

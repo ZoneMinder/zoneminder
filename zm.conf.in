@@ -48,6 +48,3 @@ ZM_DB_PASS=@ZM_DB_PASS@
 
 # Host of this machine
 ZM_SERVER_HOST=
- 
-# Version of zoneminder - must be set
-ZM_VERSION=1.28.1

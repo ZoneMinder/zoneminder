@@ -542,7 +542,10 @@ void Logger::logPrint( bool hex, const char * const file, const int line, const 
         if ( (syscall(SYS_thr_self, &tid)) < 0 ) // Thread/Process id
 
 	# else
+	// SOLARIS doesn't have SYS_gettid; don't assume
+        #ifdef SYS_gettid
         if ( (tid = syscall(SYS_gettid)) < 0 ) // Thread/Process id
+        #endif // SYS_gettid
 	#endif
 #endif // HAVE_SYSCALL
 #endif

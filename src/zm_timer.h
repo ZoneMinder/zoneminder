@@ -33,6 +33,7 @@ private:
     class TimerException : public Exception
     {
     private:
+#ifndef SOLARIS
         pid_t pid() {
 		pid_t tid;
 #ifdef __FreeBSD__
@@ -48,6 +49,9 @@ private:
 #endif
 		return tid;
         }
+#else
+	pthread_t pid() { return( pthread_self() ); }
+#endif
     public:
         TimerException( const std::string &message ) : Exception( stringtf( "(%d) "+message, (long int)pid() ) )
         {

@@ -33,7 +33,7 @@
 #include "zm_stream.h"
 
 // Possible command-line options
-#define OPTIONS "e:o:u:f:s:b:m:d:i:?"
+#define OPTIONS "e:o:u:f:s:b:m:d:i:?:h:v"
 
 // Default ZMS values
 #define ZMS_DEFAULT_DEBUG 0
@@ -87,6 +87,7 @@ int main(int argc, char** argv) {
             case 'd':
                 debug = atoi(optarg);
                 break;
+            case 'h':
             case 'i':
             case '?':
                 printf("-e <mode> : Specify output mode: mpeg/jpg/zip/single/raw. Default = %s\n", ZMS_DEFAULT_MODE);
@@ -97,8 +98,12 @@ int main(int argc, char** argv) {
                 printf("-b <bitrate in bps> : Specify bitrate. Default = %d\n", ZMS_DEFAULT_BITRATE);
                 printf("-m <monitor id> : Specify monitor id. Default = %d\n", ZMS_DEFAULT_ID);
                 printf("-d <debug mode> : 0 = off, 1 = no streaming, 2 = with streaming. Default = 0\n");
-                printf("-i or -? : This information\n");
+                printf("-i or -? or -h: This information\n");
+                printf("-v : This installed version of ZoneMinder\n");
                 return EXIT_SUCCESS;
+            case 'v':
+                cout << ZM_VERSION << "\n";
+                exit(0);
         }
     }
 

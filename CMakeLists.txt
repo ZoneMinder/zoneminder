@@ -10,7 +10,7 @@
 #
 cmake_minimum_required (VERSION 2.6)
 project (zoneminder)
-set(zoneminder_VERSION "1.28.0")
+set(zoneminder_VERSION "1.28.1")
 
 # CMake does not allow out-of-source build if CMakeCache.exists in the source folder. Abort and notify the user to save him from headache why it doesn't work.
 if((NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)) AND (EXISTS "${CMAKE_SOURCE_DIR}/CMakeCache.txt"))
@@ -42,9 +42,10 @@ include (CheckFunctionExists)
 include (CheckPrototypeDefinition_fixed)
 include (CheckTypeSize)
 include (CheckStructHasMember)
+include (CheckSendfile)
 
 # Configuration options
-mark_as_advanced(FORCE ZM_EXTRA_LIBS ZM_MYSQL_ENGINE ZM_NO_MMAP CMAKE_INSTALL_FULL_BINDIR ZM_PERL_SUBPREFIX ZM_PERL_USE_PATH ZM_TARGET_DISTRO)
+mark_as_advanced(FORCE ZM_EXTRA_LIBS ZM_MYSQL_ENGINE ZM_NO_MMAP CMAKE_INSTALL_FULL_BINDIR ZM_PERL_MM_PARMS ZM_PERL_SEARCH_PATH ZM_TARGET_DISTRO ZM_CONFIG_DIR)
 set(ZM_RUNDIR "/var/run/zm" CACHE PATH "Location of transient process files, default: /var/run/zm")
 set(ZM_SOCKDIR "/var/run/zm" CACHE PATH "Location of Unix domain socket files, default /var/run/zm")
 set(ZM_TMPDIR "/var/tmp/zm" CACHE PATH "Location of temporary files, default: /tmp/zm")
@@ -59,6 +60,7 @@ set(ZM_DB_PASS "zmpass" CACHE STRING "Password of ZoneMinder database user, defa
 set(ZM_WEB_USER "" CACHE STRING "The user apache or the local web server runs on. Leave empty for automatic detection. If that fails, you can use this variable to force")
 set(ZM_WEB_GROUP "" CACHE STRING "The group apache or the local web server runs on, Leave empty to be the same as the web user")
 # Advanced
+set(ZM_CONFIG_DIR "/${CMAKE_INSTALL_SYSCONFDIR}" CACHE PATH "Location of ZoneMinder configuration, default system config directory")
 set(ZM_EXTRA_LIBS "" CACHE STRING "A list of optional libraries, separated by semicolons, e.g. ssl;theora")
 set(ZM_MYSQL_ENGINE "InnoDB" CACHE STRING "MySQL engine to use with database, default: InnoDB")
 set(ZM_NO_MMAP "OFF" CACHE BOOL "Set to ON to not use mmap shared memory. Shouldn't be enabled unless you experience problems with the shared memory. default: OFF")
@@ -66,16 +68,32 @@ set(ZM_NO_FFMPEG "OFF" CACHE BOOL "Set to ON to skip ffmpeg checks and force bui
 set(ZM_NO_LIBVLC "OFF" CACHE BOOL "Set to ON to skip libvlc checks and force building ZM without libvlc. default: OFF")
 set(ZM_NO_CURL "OFF" CACHE BOOL "Set to ON to skip cURL checks and force building ZM without cURL. default: OFF")
 set(ZM_NO_X10 "OFF" CACHE BOOL "Set to ON to build ZoneMinder without X10 support. default: OFF")
-set(ZM_PERL_SUBPREFIX "${CMAKE_INSTALL_LIBDIR}/perl5" CACHE PATH "Use a different directory for the zm perl modules. NOTE: This is a subprefix, e.g. lib will be turned into <prefix>/lib, default: <libdir>/perl5")
-set(ZM_PERL_USE_PATH "${CMAKE_INSTALL_PREFIX}/${ZM_PERL_SUBPREFIX}" CACHE PATH "Override the include path for zm perl modules. Useful if you are moving the perl modules without using the ZM_PERL_SUBPREFIX option. default: <prefix>/<zmperlsubprefix>")
-set(ZM_TARGET_DISTRO "" CACHE STRING "Build ZoneMinder for a specific distribution.  Currently, valid names are: f19, f20, el6, OS13")
+set(ZM_ONVIF "OFF" CACHE BOOL "Set to ON to enable basic ONVIF support. This is EXPERIMENTAL and may not work with all cameras claiming to be ONVIF compliant. default: OFF")
+set(ZM_PERL_MM_PARMS INSTALLDIRS=vendor NO_PACKLIST=1 NO_PERLLOCAL=1 CACHE STRING "By default, ZoneMinder's Perl modules are installed into the Vendor folders, as defined by your installation of Perl. You can change that here. Consult Perl's MakeMaker documentation for a definition of acceptable parameters. If you set this to something that causes the modules to be installed outside Perl's normal search path, then you will also need to set ZM_PERL_SEARCH_PATH accordingly.")
+set(ZM_PERL_SEARCH_PATH "" CACHE PATH "Use to add a folder to your Perl's search path. This will need to be set in cases where ZM_PERL_MM_PARMS has been modified such that ZoneMinder's Perl modules are installed outside Perl's default search path.")
+set(ZM_TARGET_DISTRO "" CACHE STRING "Build ZoneMinder for a specific distribution.  Currently, valid names are: f21, f20, el6, OS13")
 
 # Reassign some variables if a target distro has been specified
-if((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "f20") OR (ZM_TARGET_DISTRO STREQUAL "el6"))
+if((ZM_TARGET_DISTRO STREQUAL "f21") OR (ZM_TARGET_DISTRO STREQUAL "f20"))
 	set(ZM_RUNDIR "/var/run/zoneminder")
 	set(ZM_SOCKDIR "/var/lib/zoneminder/sock")
 	set(ZM_TMPDIR "/var/lib/zoneminder/temp")
 	set(ZM_LOGDIR "/var/log/zoneminder")
+elseif(ZM_TARGET_DISTRO STREQUAL "el6")
+	set(ZM_RUNDIR "/var/run/zoneminder")
+	set(ZM_SOCKDIR "/var/lib/zoneminder/sock")
+	set(ZM_TMPDIR "/var/lib/zoneminder/temp")
+	set(ZM_LOGDIR "/var/log/zoneminder")
+	set(ZM_WEBDIR "/usr/share/zoneminder/www")
+	set(ZM_CGIDIR "/usr/libexec/zoneminder/cgi-bin")
+elseif(ZM_TARGET_DISTRO STREQUAL "el7")
+	set(ZM_RUNDIR "/var/run/zoneminder")
+	set(ZM_SOCKDIR "/var/lib/zoneminder/sock")
+	set(ZM_TMPDIR "/var/lib/zoneminder/temp")
+	set(ZM_LOGDIR "/var/log/zoneminder")
+	set(ZM_CONFIG_DIR "/etc/zm")
+	set(ZM_WEBDIR "/usr/share/zoneminder/www")
+	set(ZM_CGIDIR "/usr/libexec/zoneminder/cgi-bin")
 elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
 	set(ZM_RUNDIR "/var/run/zoneminder")
 	set(ZM_TMPDIR "/var/run/zoneminder")
@@ -85,7 +103,7 @@ elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
 	set(ZM_WEB_GROUP "www")
 	set(ZM_WEBDIR "/srv/www/htdocs/zoneminder")
 	set(ZM_CGIDIR "/srv/www/cgi-bin")
-endif((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "f20") OR (ZM_TARGET_DISTRO STREQUAL "el6"))
+endif((ZM_TARGET_DISTRO STREQUAL "f21") OR (ZM_TARGET_DISTRO STREQUAL "f20"))
 
 # Required for certain checks to work
 set(CMAKE_EXTRA_INCLUDE_FILES ${CMAKE_EXTRA_INCLUDE_FILES} stdio.h stdlib.h math.h signal.h)
@@ -95,7 +113,10 @@ include_directories("${CMAKE_BINARY_DIR}")
 set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS ON)
 
 # System checks
-check_include_file("linux/videodev.h" HAVE_LINUX_VIDEODEV_H)
+check_include_file("libv4l1-videodev.h" HAVE_LIBV4L1_VIDEODEV_H)
+if(NOT HAVE_LIBV4L1_VIDEODEV_H)
+	check_include_file("linux/videodev.h" HAVE_LINUX_VIDEODEV_H)
+endif(NOT HAVE_LIBV4L1_VIDEODEV_H)
 check_include_file("linux/videodev2.h" HAVE_LINUX_VIDEODEV2_H)
 check_include_file("execinfo.h" HAVE_EXECINFO_H)
 check_include_file("ucontext.h" HAVE_UCONTEXT_H)
@@ -396,17 +417,17 @@ endif((NOT HAVE_LIBCRYPTO) AND (NOT HAVE_LIBGNUTLS))
 set(ZM_HAS_V4L 0)
 set(ZM_HAS_V4L1 0)
 set(ZM_HAS_V4L2 0)
-if(HAVE_LINUX_VIDEODEV_H)
+if(HAVE_LINUX_VIDEODEV_H OR HAVE_LIBV4L1_VIDEODEV_H)
 	set(ZM_HAS_V4L 1)
 	set(ZM_HAS_V4L1 1)
-endif(HAVE_LINUX_VIDEODEV_H)
+endif(HAVE_LINUX_VIDEODEV_H OR HAVE_LIBV4L1_VIDEODEV_H)
 if(HAVE_LINUX_VIDEODEV2_H)
 	set(ZM_HAS_V4L 1)
 	set(ZM_HAS_V4L2 1)
 endif(HAVE_LINUX_VIDEODEV2_H)
-if((NOT HAVE_LINUX_VIDEODEV_H) AND (NOT HAVE_LINUX_VIDEODEV2_H))
+if((NOT HAVE_LINUX_VIDEODEV_H) AND (NOT HAVE_LIBV4L1_VIDEODEV_H) AND (NOT HAVE_LINUX_VIDEODEV2_H))
 	message(AUTHOR_WARNING " Video 4 Linux headers weren't found - Analog and USB camera support will not be available")
-endif((NOT HAVE_LINUX_VIDEODEV_H) AND (NOT HAVE_LINUX_VIDEODEV2_H))
+endif((NOT HAVE_LINUX_VIDEODEV_H) AND (NOT HAVE_LIBV4L1_VIDEODEV_H) AND (NOT HAVE_LINUX_VIDEODEV2_H))
 # Check for PCRE and enable ZM_PCRE accordingly
 set(ZM_PCRE 0)
 if(HAVE_LIBPCRE AND HAVE_PCRE_H)
@@ -420,6 +441,12 @@ if(NOT ZM_NO_MMAP)
 	set(ENABLE_MMAP yes)
 	set(ZM_MMAP_PERLPACKAGE "Sys::Mmap")
 endif(NOT ZM_NO_MMAP)
+
+# Check for the ONVIF flag and enable ZM_HAS_ONVIF accordingly
+set(ZM_HAS_ONVIF 0)
+if(ZM_ONVIF)
+	set(ZM_HAS_ONVIF 1)
+endif(ZM_ONVIF)
 
 # Check for authenication functions
 if(HAVE_OPENSSL_MD5_H)
@@ -490,7 +517,7 @@ endif(NOT POLKIT_FOUND)
 
 # Some variables that zm expects
 set(ZM_PID "${ZM_RUNDIR}/zm.pid")
-set(ZM_CONFIG "/${CMAKE_INSTALL_SYSCONFDIR}/zm.conf")
+set(ZM_CONFIG "${ZM_CONFIG_DIR}/zm.conf")
 set(VERSION "${zoneminder_VERSION}")
 set(PKGDATADIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/zoneminder")
 set(BINDIR "${CMAKE_INSTALL_FULL_BINDIR}")
@@ -501,7 +528,11 @@ set(CGI_PREFIX "${ZM_CGIDIR}")
 set(WEB_USER "${ZM_WEB_USER}")
 set(WEB_GROUP "${ZM_WEB_GROUP}")
 set(ZM_DB_TYPE "mysql")
-set(EXTRA_PERL_LIB "use lib '${ZM_PERL_USE_PATH}';")
+if(ZM_PERL_SEARCH_PATH)
+	set(EXTRA_PERL_LIB "use lib '${ZM_PERL_SEARCH_PATH}'; # Include custom perl install path")
+else(ZM_PERL_SEARCH_PATH)
+	set(EXTRA_PERL_LIB "# Include from system perl paths only")
+endif(ZM_PERL_SEARCH_PATH)
 
 # Generate files from the .in files
 configure_file(zm.conf.in "${CMAKE_CURRENT_BINARY_DIR}/zm.conf" @ONLY)
@@ -516,14 +547,19 @@ add_subdirectory(db)
 add_subdirectory(web)
 add_subdirectory(misc)
 
+# Enable ONVIF support
+if(ZM_ONVIF)
+	add_subdirectory(onvif)
+endif(ZM_ONVIF)
+
 # Process distro subdirectories
-if((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "f20"))
+if((ZM_TARGET_DISTRO STREQUAL "f21") OR (ZM_TARGET_DISTRO STREQUAL "f20"))
 	add_subdirectory(distros/fedora)
-elseif(ZM_TARGET_DISTRO STREQUAL "el6")
+elseif((ZM_TARGET_DISTRO STREQUAL "el6") OR (ZM_TARGET_DISTRO STREQUAL "el7"))
 	add_subdirectory(distros/redhat)
 elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
 	add_subdirectory(distros/opensuse)
-endif((ZM_TARGET_DISTRO STREQUAL "f19") OR (ZM_TARGET_DISTRO STREQUAL "f20"))
+endif((ZM_TARGET_DISTRO STREQUAL "f21") OR (ZM_TARGET_DISTRO STREQUAL "f20"))
 
 # Print optional libraries detection status
 message(STATUS "Optional libraries found:${optlibsfound}")
@@ -539,7 +575,7 @@ else(zmconfgen_result EQUAL 0)
 endif(zmconfgen_result EQUAL 0)
 
 # Install zm.conf
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zm.conf" DESTINATION "/${CMAKE_INSTALL_SYSCONFDIR}")
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zm.conf" DESTINATION "${ZM_CONFIG_DIR}")
 
 # Uninstall target
 configure_file(

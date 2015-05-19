@@ -120,7 +120,7 @@ int FfmpegCamera::Capture( Image &image )
         void *retval = 0;
         int ret;
         
-        ret = pthread_tryjoin_np(mReopenThread, &retval);
+        ret = pthread_join(mReopenThread, &retval);
         if (ret != 0){
             Error("Could not join reopen thread.");
         }
@@ -427,7 +427,7 @@ void *FfmpegCamera::ReopenFfmpegThreadCallback(void *ctx){
         // Close current stream.
         camera->CloseFfmpeg();
 
-        // Sleep if neccessary to not reconnect too fast.
+        // Sleep if necessary to not reconnect too fast.
         int wait = config.ffmpeg_open_timeout - (time(NULL) - camera->mOpenStart);
         wait = wait < 0 ? 0 : wait;
         if (wait > 0){

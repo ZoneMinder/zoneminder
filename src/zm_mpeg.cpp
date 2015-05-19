@@ -109,7 +109,7 @@ void VideoStream::SetupFormat( )
 	
 	if(filename)
 	{
-		snprintf( s->filename, sizeof(s->filename), filename );
+		snprintf( s->filename, sizeof(s->filename), "%s", filename );
 	}
 	
 	ofc = s;
@@ -262,7 +262,7 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
 		/* emit one intra frame every second */
 		c->gop_size = frame_rate;
 
-		// some formats want stream headers to be seperate
+		// some formats want stream headers to be separate
 		if ( of->flags & AVFMT_GLOBALHEADER )
 			c->flags |= CODEC_FLAG_GLOBAL_HEADER;
 	}
@@ -391,6 +391,9 @@ void VideoStream::OpenStream( )
 		// TODO: Make buffer dynamic.
 		video_outbuf_size = 4000000;
 		video_outbuf = (uint8_t *)malloc( video_outbuf_size );
+		if ( video_outbuf == NULL ) {
+			Fatal("Unable to malloc memory for outbuf");
+		}
 	}
 	
 #if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(52, 100, 1)
@@ -419,6 +422,7 @@ VideoStream::VideoStream( const char *in_filename, const char *in_format, int bi
 		do_streaming(true),
 		buffer_copy(NULL),
 		buffer_copy_lock(new pthread_mutex_t),
+		buffer_copy_size(0),
 		buffer_copy_used(0),
         packet_index(0)
 {

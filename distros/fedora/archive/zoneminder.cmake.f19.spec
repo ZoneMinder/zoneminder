@@ -72,7 +72,6 @@ too much degradation of performance.
 %build
 %cmake \
 	-DZM_TARGET_DISTRO="f19" \
-	-DZM_PERL_SUBPREFIX=`x="%{perl_vendorlib}" ; echo ${x#"%{_prefix}"}` \
 %{?_without_ffmpeg:-DZM_NO_FFMPEG=ON} \
 %{?_without_x10:-DZM_NO_X10=ON} \
 	.
@@ -151,10 +150,14 @@ fi
 %{_bindir}/zmcamtool.pl
 %{_bindir}/zmsystemctl.pl
 %{!?_without_x10:%{_bindir}/zmx10.pl}
+%{_bindir}/zmonvif-probe.pl
 
 %{perl_vendorlib}/ZoneMinder*
 %{perl_vendorlib}/%{_arch}-linux-thread-multi/auto/ZoneMinder*
-#%{perl_archlib}/ZoneMinder*
+%{perl_vendorlib}/ONVIF*
+%{perl_vendorlib}/WSDiscovery*
+%{perl_vendorlib}/WSSecurity*
+%{perl_vendorlib}/%{_arch}-linux-thread-multi/auto/ONVIF*
 %{_mandir}/man*/*
 %dir %{_libexecdir}/zoneminder
 %{_libexecdir}/zoneminder/cgi-bin
@@ -177,6 +180,9 @@ fi
 
 
 %changelog
+* Sun Aug 03 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.27 
+- Include ONVIF support files
+
 * Fri Mar 14 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.27 
 - Tweak build requirements for cmake
 

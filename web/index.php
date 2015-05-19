@@ -46,6 +46,9 @@ if ( false )
     ob_end_clean();
 }
 
+require_once( 'includes/config.php' );
+require_once( 'includes/logger.php' );
+
 if ( isset($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] == 'on' )
 {
     $protocol = 'https';
@@ -60,8 +63,31 @@ if ( isset($_GET['skin']) )
     $skin = $_GET['skin'];
 elseif ( isset($_COOKIE['zmSkin']) )
     $skin = $_COOKIE['zmSkin'];
+elseif ( defined('ZM_SKIN_DEFAULT') )
+	$skin = ZM_SKIN_DEFAULT;
 else
     $skin = "classic";
+
+$skins = array_map( 'basename', glob('skins/*',GLOB_ONLYDIR) );
+if ( ! in_array( $skin, $skins ) ) {
+	Error( "Invalid skin '$skin' setting to " . $skins[0] );
+	$skin = $skins[0];
+}
+
+if ( isset($_GET['css']) )
+	$css = $_GET['css'];
+elseif ( isset($_COOKIE['zmCSS']) )
+	$css = $_COOKIE['zmCSS'];
+elseif (defined('ZM_CSS_DEFAULT'))
+	$css = ZM_CSS_DEFAULT;
+else
+	$css = "classic";
+
+$css_skins = array_map( 'basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR) );
+if ( ! in_array( $css, $css_skins ) ) {
+	Error( "Invalid skin css '$css' setting to " . $css_skins[0] );
+	$css = $css_skins[0];
+}
 
 define( "ZM_BASE_PATH", dirname( $_SERVER['REQUEST_URI'] ) );
 define( "ZM_SKIN_PATH", "skins/$skin" );
@@ -76,14 +102,16 @@ ini_set( "session.name", "ZMSESSID" );
 
 session_start();
 
-if ( !isset($_SESSION['skin']) || isset($_REQUEST['skin']) )
+if ( !isset($_SESSION['skin']) || isset($_REQUEST['skin']) || !isset($_COOKIE['zmSkin']) || $_COOKIE['zmSkin'] != $skin )
 {
     $_SESSION['skin'] = $skin;
     setcookie( "zmSkin", $skin, time()+3600*24*30*12*10 );
 }
 
-require_once( 'includes/config.php' );
-require_once( 'includes/logger.php' );
+if ( !isset($_SESSION['css']) || isset($_REQUEST['css']) || !isset($_COOKIE['zmCSS']) || $_COOKIE['zmCSS'] != $css ) {
+	$_SESSION['css'] = $css;
+	setcookie( "zmCSS", $css, time()+3600*24*30*12*10 );
+}
 
 if ( ZM_OPT_USE_AUTH )
     if ( isset( $_SESSION['user'] ) )
@@ -110,6 +138,15 @@ foreach ( getSkinIncludes( 'skin.php' ) as $includeFile )
 
 require_once( 'includes/actions.php' );
 
+# If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
+if ( ZM_OPT_USE_AUTH && ! isset($user) && $view != 'login' ) {
+    $view = 'login';
+}
+
+# Only one request can open the session file at a time, so let's close the session here to improve concurrency.
+# Any file/page that uses the session must re-open it.
+session_write_close();
+
 if ( isset( $_REQUEST['request'] ) )
 {
     foreach ( getSkinIncludes( 'ajax/'.$request.'.php', true, true ) as $includeFile )
@@ -130,7 +167,18 @@ else
                 Fatal( "View '$view' does not exist" );
             require_once $includeFile;
         }
+		// If the view overrides $view to 'error', and the user is not logged in, then the
+		// issue is probably resolvable by logging in, so provide the opportunity to do so.
+		// The login view should handle redirecting to the correct location afterward.
+		if ( $view == 'error' && !isset($user) )
+		{
+			$view = 'login';
+			foreach ( getSkinIncludes( 'views/login.php', true, true ) as $includeFile )
+				require_once $includeFile;
+		}
     }
+	// If the view is missing or the view still returned error with the user logged in,
+	// then it is not recoverable.
     if ( !$includeFiles || $view == 'error' )
     {
         foreach ( getSkinIncludes( 'views/error.php', true, true ) as $includeFile )

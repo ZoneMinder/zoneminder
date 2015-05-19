@@ -32,8 +32,9 @@ dist_web_DATA = \
 	monitorprobe.js \
 	montage.js \
 	montage.js.php \
+  onvifprobe.js \
 	options.js.php \
-	postlogin.js \
+	postlogin.js.php \
 	state.js \
 	state.js.php \
 	timeline.js \

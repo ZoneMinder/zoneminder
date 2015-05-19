@@ -13,7 +13,7 @@ with_timestamps() {
 bootstrap_zm() {
 
 	if [ "$ZM_BUILDMETHOD" = "autotools" ]; then libtoolize --force; fi
-	if [ "$ZM_BUILDMETHOD" = "autotools" ]; then aclocal; fi
+	if [ "$ZM_BUILDMETHOD" = "autotools" ]; then aclocal -I m4; fi
 	if [ "$ZM_BUILDMETHOD" = "autotools" ]; then autoheader; fi
 	if [ "$ZM_BUILDMETHOD" = "autotools" ]; then automake --force-missing --add-missing; fi
 	if [ "$ZM_BUILDMETHOD" = "autotools" ]; then autoconf; fi

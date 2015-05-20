@@ -161,8 +161,29 @@ include_directories("${CMAKE_BINARY_DIR}")
 # This is required to enable searching in lib64 (if exists), do not change
 set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS ON)
 
+# Host OS Check
+set(HOST_OS "")
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+	set(HOST_OS "linux")
+endif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+if(${CMAKE_SYSTEM_NAME} MATCHES ".*(SunOS|Solaris).*")
+	set(HOST_OS "solaris")
+	set(SOLARIS 1)
+endif(${CMAKE_SYSTEM_NAME} MATCHES ".*(SunOS|Solaris).*")
+if(${CMAKE_SYSTEM_NAME} MATCHES ".*BSD.*")
+	set(HOST_OS "BSD")
+	set(BSD 1)
+endif(${CMAKE_SYSTEM_NAME} MATCHES ".*BSD.*")
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+	set(HOST_OS "darwin")
+endif(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+if(NOT HOST_OS)
+	message(FATAL_ERROR 
+            "ZoneMinder was unable to deterimine the host OS. Please report this. Value of CMAKE_SYSTEM_NAME: ${CMAKE_SYSTEM_NAME}")
+endif(NOT HOST_OS)
+
 # System checks
-check_include_file("libv4l1-videodev.h" HAVE_LIBV4L1_VIDEODEV_H)
+check_include_file("libv4l1-videodev.h" _H)
 if(NOT HAVE_LIBV4L1_VIDEODEV_H)
 	check_include_file("linux/videodev.h" HAVE_LINUX_VIDEODEV_H)
 endif(NOT HAVE_LIBV4L1_VIDEODEV_H)

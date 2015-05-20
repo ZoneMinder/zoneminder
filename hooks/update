@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# get the branch we are pushing to
+ourbranch=`git rev-parse --abbrev-ref HEAD`
+
+# check if the branch is a release branch
+release=`echo $ourbranch | grep "release-[0-9]\..[0-9]\.[0-9]"`
+
+# if this is a release branch then delete the development.txt file
+if [ -n $release ]; then
+	rm ./utils/development.txt
+fi
+

@@ -189,6 +189,14 @@ xhtmlHeaders( __FILE__, $SLANG['Console'] );
       <h3 id="systemTime"><?php echo preg_match( '/%/', DATE_FMT_CONSOLE_LONG )?strftime( DATE_FMT_CONSOLE_LONG ):date( DATE_FMT_CONSOLE_LONG ) ?></h3>
       <h3 id="systemStats"><?php echo $SLANG['Load'] ?>: <?php echo getLoad() ?> / <?php echo $SLANG['Disk'] ?>: <?php echo getDiskPercent() ?>%</h3>
       <h2 id="title"><a href="http://www.zoneminder.com" target="ZoneMinder">ZoneMinder</a> <?php echo $SLANG['Console'] ?> - <?php echo makePopupLink( '?view=state', 'zmState', 'state', $status, canEdit( 'System' ) ) ?> - <?php echo makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="'.$versionClass.'">v'.ZM_VERSION.'</span>', canEdit( 'System' ) ) ?></h2>
+	<?php
+	if ( ZM_DEVELOPMENT )
+	{
+	?>
+	      <h3 id="development"><center><?php echo ZM_DEVELOPMENT ?></center></h3>
+	<?php
+	}
+	?>
       <div class="clear"></div>
       <div id="monitorSummary"><?php echo makePopupLink( '?view=groups', 'zmGroups', 'groups', $SLANG['Group'] . ': ' . ($group?' ('.$group['Name'].')':'All').': '. sprintf( $CLANG['MonitorCount'], count($displayMonitors), zmVlang( $VLANG['Monitor'], count($displayMonitors) ) ) ); ?></div>
 <?php

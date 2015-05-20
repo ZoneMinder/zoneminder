@@ -47,6 +47,12 @@ include (CheckTypeSize)
 include (CheckStructHasMember)
 include (CheckSendfile)
 
+# Used to alert the user they are running a development snapshot
+set(ZM_DEVELOPMENT "")
+if(EXISTS "./utils/development.txt")
+	execute_process(COMMAND echo "DEVELOPMENT Snapshot built on "date +%D OUTPUT_VARIABLE ZM_DEVELOPMENT)
+endif()
+
 # Configuration options
 mark_as_advanced( 
     FORCE ZM_EXTRA_LIBS 

@@ -183,7 +183,7 @@ if(NOT HOST_OS)
 endif(NOT HOST_OS)
 
 # System checks
-check_include_file("libv4l1-videodev.h" _H)
+check_include_file("libv4l1-videodev.h" HAVE_LIBV4L1_VIDEODEV_H)
 if(NOT HAVE_LIBV4L1_VIDEODEV_H)
 	check_include_file("linux/videodev.h" HAVE_LINUX_VIDEODEV_H)
 endif(NOT HAVE_LIBV4L1_VIDEODEV_H)

@@ -671,8 +671,6 @@ else
 
 function drawXGrid( $chart, $scale, $labelClass, $tickClass, $gridClass, $zoomClass=false )
 {
-    global $SLANG;
-
     ob_start();
     $labelCount = 0;
     $lastTick = 0;

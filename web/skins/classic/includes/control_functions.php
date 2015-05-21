@@ -137,8 +137,6 @@ function getControlCommands( $monitor )
 
 function controlFocus( $monitor, $cmds )
 {
-    global $SLANG;
-
     ob_start();
 ?>
 <div class="arrowControl focusControls">

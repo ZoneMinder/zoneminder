@@ -103,8 +103,6 @@ html ul.tabs li.active, html ul.tabs li.active a:hover  {
 
 function exportEventDetail( $event, $exportFrames, $exportImages )
 {
-    global $SLANG;
-
     ob_start();
     exportHeader( translate('Event')." ".$event['Id'] );
 	

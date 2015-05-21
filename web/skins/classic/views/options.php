@@ -27,7 +27,7 @@ if ( !canView( 'System' ) )
 $canEdit = canEdit( 'System' );
 
 $tabs = array();
-$tabs['skins'] = translate('Display'); // change me to be supported by SLANG...
+$tabs['skins'] = translate('Display');
 $tabs['system'] = translate('System');
 $tabs['config'] = translate('Config');
 $tabs['paths'] = translate('Paths');

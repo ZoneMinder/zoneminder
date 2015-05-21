@@ -1,5 +1,5 @@
 var eventId = '<?php echo $event['Id'] ?>';
 
-var videoGenSuccessString = '<?php echo addslashes($SLANG['VideoGenSucceeded']) ?>';
-var videoGenFailedString = '<?php echo addslashes($SLANG['VideoGenFailed']) ?>';
-var videoGenProgressString = '<?php echo addslashes($SLANG['GeneratingVideo']) ?>';
+var videoGenSuccessString = '<?php echo addslashes(translate('VideoGenSucceeded')) ?>';
+var videoGenFailedString = '<?php echo addslashes(translate('VideoGenFailed')) ?>';
+var videoGenProgressString = '<?php echo addslashes(translate('GeneratingVideo')) ?>';

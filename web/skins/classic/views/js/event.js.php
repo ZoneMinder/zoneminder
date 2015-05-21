@@ -44,5 +44,5 @@ var canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
 //
 // Strings
 //
-var deleteString = "<?php echo $SLANG['Delete'] ?>";
-var causeString = "<?php echo $SLANG['AttrCause'] ?>";
+var deleteString = "<?php echo translate('Delete') ?>";
+var causeString = "<?php echo translate('AttrCause') ?>";

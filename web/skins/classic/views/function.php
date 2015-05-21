@@ -28,12 +28,12 @@ $monitor = dbFetchMonitor( $_REQUEST['mid'] );
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['Function']." - ".validHtmlStr($monitor['Name']) );
+xhtmlHeaders(__FILE__, translate('Function')." - ".validHtmlStr($monitor['Name']) );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?php echo $SLANG['Function']." - ".validHtmlStr($monitor['Name']) ?></h2>
+      <h2><?php echo translate('Function')." - ".validHtmlStr($monitor['Name']) ?></h2>
     </div>
     <div id="content">
       <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
@@ -51,11 +51,11 @@ foreach ( getEnumValues( 'Monitors', 'Function' ) as $optFunction )
 }
 ?>
           </select>
-          <label for="newEnabled"><?php echo $SLANG['Enabled'] ?></label><input type="checkbox" name="newEnabled" id="newEnabled" value="1"<?php if ( !empty($monitor['Enabled']) ) { ?> checked="checked"<?php } ?>/>
+          <label for="newEnabled"><?php echo translate('Enabled') ?></label><input type="checkbox" name="newEnabled" id="newEnabled" value="1"<?php if ( !empty($monitor['Enabled']) ) { ?> checked="checked"<?php } ?>/>
         </p>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo $SLANG['Save'] ?>"/>
-          <input type="button" value="<?php echo $SLANG['Cancel'] ?>" onclick="closeWindow()"/>
+          <input type="submit" value="<?php echo translate('Save') ?>"/>
+          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
         </div>
       </form>
     </div>

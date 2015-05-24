@@ -8,23 +8,23 @@
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 # Short-Description:  Control ZoneMinder as a Service
+# Description: ZoneMinder CCTV recording and surveillance system
 ### END INIT INFO
-# description: Control ZoneMinder as a Service
 # chkconfig: 2345 20 20
 
 # Source function library.
-#. /etc/rc.d/init.d/functions
+. /lib/lsb/init-functions
 
 prog=ZoneMinder
 ZM_PATH_BIN="/usr/bin"
-RUNDIR=/var/run/zm
-TMPDIR=/tmp/zm
+RUNDIR="/var/run/zm"
+TMPDIR="/tmp/zm"
 command="$ZM_PATH_BIN/zmpkg.pl"
 
 start() {
 	echo -n "Starting $prog: "
-	mkdir -p $RUNDIR && chown www-data:www-data $RUNDIR
-	mkdir -p $TMPDIR && chown www-data:www-data $TMPDIR
+	mkdir -p "$RUNDIR" && chown www-data:www-data "$RUNDIR"
+	mkdir -p "$TMPDIR" && chown www-data:www-data "$TMPDIR"
 	$command start
 	RETVAL=$?
 	[ $RETVAL = 0 ] && echo success
@@ -37,11 +37,11 @@ stop() {
 	echo -n "Stopping $prog: "
 	#
 	# Why is this status check being done?
-	# as $command stop returns 1 if zoneminder 
-	# is stopped, which will result in 
-	# this returning 1, which will stuff 
+	# as $command stop returns 1 if zoneminder
+	# is stopped, which will result in
+	# this returning 1, which will stuff
 	# dpkg when it tries to stop zoneminder before
-	# uninstalling . . . 
+	# uninstalling . . .
 	#
 	result=`$command status`
 	if [ ! "$result" = "running" ]; then

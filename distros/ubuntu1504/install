@@ -1,0 +1,12 @@
+usr/bin
+usr/lib/cgi-bin
+usr/share/man
+usr/share/perl5/ZoneMinder
+usr/share/perl5/ZoneMinder.pm
+usr/share/polkit-1/actions
+usr/share/polkit-1/rules.d
+usr/share/zoneminder
+etc/zm
+db/zm_create.sql usr/share/zoneminder/db
+db/zm_update-*.sql usr/share/zoneminder/db
+debian/apache.conf etc/zm

@@ -1,0 +1,67 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+# Sample debian/rules that uses debhelper.
+# This file was originally written by Joey Hess and Craig Small.
+# As a special exception, when this file is copied by dh-make into a
+# dh-make output file, you may use that output file without restriction.
+# This special exception was added by Craig Small in version 0.37 of dh-make.
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+# These are used for cross-compiling and for saving the configure script
+# from having to guess our platform (since we know it already)
+DEB_HOST_GNU_TYPE   ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
+DEB_BUILD_GNU_TYPE  ?= $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
+
+CFLAGS = -Wall -g
+CPPFLAGS = -D__STDC_CONSTANT_MACROS
+CXXFLAGS = -DHAVE_LIBCRYPTO
+
+ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
+	CFLAGS += -O0
+else
+	CFLAGS += -O2
+endif
+
+%:
+	dh $@ --with quilt,autoreconf
+
+override_dh_auto_configure:
+	CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)" dh_auto_configure -- --host=$(DEB_HOST_GNU_TYPE) --build=$(DEB_BUILD_GNU_TYPE) --sysconfdir=/etc/zm --prefix=/usr --mandir=\$${prefix}/share/man --infodir=\$${prefix}/share/info --with-mysql=/usr --with-mariadb=/usr --with-webdir=/usr/share/zoneminder --with-ffmpeg=/usr --with-cgidir=/usr/lib/cgi-bin --with-webuser=www-data --with-webgroup=www-data --enable-crashtrace=no --enable-mmap=yes
+
+override_dh_clean:
+	# Add here commands to clean up after the build process.
+	[ ! -f Makefile ] || $(MAKE) distclean
+	dh_clean
+
+override_dh_install:
+	dh_install --fail-missing
+	#
+	# NOTE: This is a short-term kludge; hopefully changes in the next
+	# upstream version will render this unnecessary.
+	rm -rf debian/zoneminder/usr/share/zoneminder/events
+	rm -rf debian/zoneminder/usr/share/zoneminder/images
+	rm -rf debian/zoneminder/usr/share/zoneminder/temp
+	dh_link var/cache/zoneminder/events usr/share/zoneminder/events
+	dh_link var/cache/zoneminder/images usr/share/zoneminder/images
+	dh_link var/cache/zoneminder/temp usr/share/zoneminder/temp
+
+	#
+	# This is a slightly lesser kludge; moving the cgi stuff to
+	# /usr/share/zoneminder/cgi-bin breaks one set of behavior,
+	# having it just in /usr/lib/cgi-bin breaks another bit of
+	# behavior.
+	#
+	dh_link usr/lib/cgi-bin usr/share/zoneminder/cgi-bin
+
+override_dh_fixperms:
+	dh_fixperms
+	chown root:root debian/zoneminder/etc/zm/zm.conf
+
+override_dh_auto_test:
+	# do not run tests...
+
+.PHONY: override_dh_strip
+override_dh_strip:
+		dh_strip --dbg-package=zoneminder-dbg

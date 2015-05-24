@@ -425,7 +425,9 @@ if(NOT ZM_NO_FFMPEG)
 	endif(SWSCALE_LIBRARIES)
 
 	# Find the path to the ffmpeg executable
-	find_program(FFMPEG_EXECUTABLE ffmpeg PATH_SUFFIXES ffmpeg)
+	find_program(FFMPEG_EXECUTABLE 
+		NAMES ffmpeg avconv
+		PATH_SUFFIXES ffmpeg)
 	if(FFMPEG_EXECUTABLE)
 		set(PATH_FFMPEG "${FFMPEG_EXECUTABLE}")
 		set(OPT_FFMPEG "yes")

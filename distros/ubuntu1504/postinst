@@ -3,14 +3,14 @@
 set -e
 
 if [ "$1" = "configure" ]; then
-	if [ -e "/etc/init.d/mysql" ]; then 
+	if [ -e "/lib/systemd/system/mysql.service" ]; then 
 		#
 		# Get mysql started if it isn't
 		#
-		if ! $(/etc/init.d/mysql status >/dev/null 2>&1); then
-				invoke-rc.d mysql start
+		if ! $(systemctl is-active mysql >/dev/null 2>&1); then
+				systemctl start mysql
 		fi
-		if $(/etc/init.d/mysql status >/dev/null 2>&1); then
+		if $(systemctl is-active mysql >/dev/null 2>&1); then
 			mysqladmin --defaults-file=/etc/mysql/debian.cnf -f reload
 			# test if database if already present...
 			if ! $(echo quit | mysql --defaults-file=/etc/mysql/debian.cnf zm > /dev/null 2> /dev/null) ; then
@@ -18,7 +18,7 @@ if [ "$1" = "configure" ]; then
 				echo 'grant lock tables, alter,select,insert,update,delete on zm.* to 'zmuser'@localhost identified by "zmpass";' | mysql --defaults-file=/etc/mysql/debian.cnf mysql
 			fi
 
-			invoke-rc.d zoneminder stop || true
+			systemctl stop zoneminder || true  #not sure about "|| true"
 			zmupdate.pl --nointeractive
 
 		else
@@ -34,9 +34,9 @@ if [ "$1" = "configure" ]; then
 	fi
 fi
 # Ensure zoneminder is stopped...
-if [ -x "/etc/init.d/zoneminder" ]; then
-        if invoke-rc.d zoneminder status ; then
-                invoke-rc.d zoneminder stop || exit $?
+if [ -e "/lib/systemd/system/zoneminder.service" ]; then  #changed from -x to -e, could be wrong
+        if systemctl is-active zoneminder >/dev/null 2>&1 ; then
+                systemctl stop zoneminder || exit $?
         fi
 fi
 

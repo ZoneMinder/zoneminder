@@ -1,0 +1,19 @@
+Last-Update: 2015-03-29
+Forwarded: not-needed
+Author: Vagrant Cascadian <vagrant@debian.org>
+Description: Default to not checking for updated versions of ZoneMinder, as users should
+             get updates through the package. Also prevents "phoning home" to zoneminder.com.
+
+--- a/scripts/ZoneMinder/lib/ZoneMinder/ConfigData.pm.in
++++ b/scripts/ZoneMinder/lib/ZoneMinder/ConfigData.pm.in
+@@ -1274,9 +1274,9 @@
+ 		category => "system",
+ 	},
+ 	{
+ 		name => "ZM_CHECK_FOR_UPDATES",
+-		default => "yes",
++		default => "no",
+ 		description => "Check with zoneminder.com for updated versions",
+ 		help => "From ZoneMinder version 1.17.0 onwards new versions are expected to be more frequent. To save checking manually for each new version ZoneMinder can check with the zoneminder.com website to determine the most recent release. These checks are infrequent, about once per week, and no personal or system information is transmitted other than your current version number. If you do not wish these checks to take place or your ZoneMinder system has no internet access you can switch these check off with this configuration variable",
+ 		type => $types{boolean},
+ 		category => "system",

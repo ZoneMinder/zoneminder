@@ -1,3 +1,7 @@
 version=3
-http://www.zoneminder.com/downloads.html \
-  .*/ZoneMinder-(.*).tar.gz
+
+opts=\
+repacksuffix=+dfsg,\
+dversionmangle=s{\+dfsg\d*}{},\
+ https://github.com/ZoneMinder/ZoneMinder/releases \
+  .*/ZoneMinder/archive/v(.*).tar.gz

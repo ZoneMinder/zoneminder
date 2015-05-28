@@ -38,6 +38,11 @@ case $host_os in
 		HOST_OS='BSD'
 		AC_DEFINE(BSD,1,"This is a BSD system")
         ;;
+    *solaris*)
+        # Do something specific for Solaris
+		HOST_OS='solaris'
+		AC_DEFINE(SOLARIS,1,"We are running a Solaroid OS [tested on OmniOS]")
+        ;;
     *)
         #Default Case
         AC_MSG_ERROR([Your platform is not currently supported])

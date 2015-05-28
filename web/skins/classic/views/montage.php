@@ -70,17 +70,17 @@ foreach( dbFetchAll( $sql ) as $row )
 $focusWindow = true;
 
 $layouts = array(
-    'montage_freeform.css' => $SLANG['MtgDefault'],
-    'montage_2wide.css' => $SLANG['Mtg2widgrd'],
-    'montage_3wide.css' => $SLANG['Mtg3widgrd'],
-    'montage_4wide.css' => $SLANG['Mtg4widgrd'],
-    'montage_3wide50enlarge.css' => $SLANG['Mtg3widgrx'],
+    'montage_freeform.css' => translate('MtgDefault'),
+    'montage_2wide.css' => translate('Mtg2widgrd'),
+    'montage_3wide.css' => translate('Mtg3widgrd'),
+    'montage_4wide.css' => translate('Mtg4widgrd'),
+    'montage_3wide50enlarge.css' => translate('Mtg3widgrx'),
 );
 
 if ( isset($_COOKIE['zmMontageLayout']) )
     $layout = $_COOKIE['zmMontageLayout'];
 
-xhtmlHeaders(__FILE__, $SLANG['Montage'] );
+xhtmlHeaders(__FILE__, translate('Montage') );
 ?>
 <body>
   <div id="page">
@@ -90,16 +90,16 @@ xhtmlHeaders(__FILE__, $SLANG['Montage'] );
 if ( $showControl )
 {
 ?>
-        <a href="#" onclick="createPopup( '?view=control', 'zmControl', 'control' )"><?php echo $SLANG['Control'] ?></a>
+        <a href="#" onclick="createPopup( '?view=control', 'zmControl', 'control' )"><?php echo translate('Control') ?></a>
 <?php
 }
 ?>
-        <a href="#" onclick="closeWindow()"><?php echo $SLANG['Close'] ?></a>
+        <a href="#" onclick="closeWindow()"><?php echo translate('Close') ?></a>
       </div>
-      <h2><?php echo $SLANG['Montage'] ?></h2>
+      <h2><?php echo translate('Montage') ?></h2>
       <div id="headerControl">
-        <span id="scaleControl"><?php echo $SLANG['Scale'] ?>: <?php echo buildSelect( 'scale', $scales, 'changeScale(this);' ); ?></span> 
-        <label for="layout"><?php echo $SLANG['Layout'] ?>:</label><?php echo buildSelect( 'layout', $layouts, 'selectLayout(this);' )?>
+        <span id="scaleControl"><?php echo translate('Scale') ?>: <?php echo buildSelect( 'scale', $scales, 'changeScale(this);' ); ?></span> 
+        <label for="layout"><?php echo translate('Layout') ?>:</label><?php echo buildSelect( 'layout', $layouts, 'selectLayout(this);' )?>
       </div>
     </div>
     <div id="content">
@@ -138,7 +138,7 @@ else
     if ( !ZM_WEB_COMPACT_MONTAGE )
     {
 ?>
-            <div id="monitorState<?php echo $monitor['index'] ?>" class="monitorState idle"><?php echo $SLANG['State'] ?>:&nbsp;<span id="stateValue<?php echo $monitor['index'] ?>"></span>&nbsp;-&nbsp;<span id="fpsValue<?php echo $monitor['index'] ?>"></span>&nbsp;fps</div>
+            <div id="monitorState<?php echo $monitor['index'] ?>" class="monitorState idle"><?php echo translate('State') ?>:&nbsp;<span id="stateValue<?php echo $monitor['index'] ?>"></span>&nbsp;-&nbsp;<span id="fpsValue<?php echo $monitor['index'] ?>"></span>&nbsp;fps</div>
 <?php
     }
 ?>

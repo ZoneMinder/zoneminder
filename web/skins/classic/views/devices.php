@@ -32,12 +32,12 @@ foreach( dbFetchAll( $sql ) as $row )
     $devices[] = $row;
 }
 
-xhtmlHeaders(__FILE__, $SLANG['Devices'] );
+xhtmlHeaders(__FILE__, translate('Devices') );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?php echo $SLANG['Devices'] ?></h2>
+      <h2><?php echo translate('Devices') ?></h2>
     </div>
     <div id="content">
       <form name="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
@@ -65,8 +65,8 @@ foreach( $devices as $device )
 ?>
             <tr>
               <td><?php echo makePopupLink( '?view=device&amp;did='.$device['Id'], 'zmDevice', 'device', '<span class="'.$fclass.'">'.validHtmlStr($device['Name']).' ('.validHtmlStr($device['KeyString']).')</span>', canEdit( 'Devices' ) ) ?></td>
-              <td><input type="button" value="<?php echo $SLANG['On'] ?>"<?php echo ($device['Status'] != 'ON')?' class="set"':'' ?> onclick="switchDeviceOn( this, '<?php echo validHtmlStr($device['KeyString']) ?>' )"<?php echo canEdit( 'Devices' )?"":' disabled="disabled"' ?>/></td>
-              <td><input type="button" value="<?php echo $SLANG['Off'] ?>"<?php echo ($device['Status'] != 'OFF')?' class="set"':'' ?> onclick="switchDeviceOff( this, '<?php echo validHtmlStr($device['KeyString']) ?>' )"<?php echo canEdit( 'Devices' )?"":' disabled="disabled"' ?>/></td>
+              <td><input type="button" value="<?php echo translate('On') ?>"<?php echo ($device['Status'] != 'ON')?' class="set"':'' ?> onclick="switchDeviceOn( this, '<?php echo validHtmlStr($device['KeyString']) ?>' )"<?php echo canEdit( 'Devices' )?"":' disabled="disabled"' ?>/></td>
+              <td><input type="button" value="<?php echo translate('Off') ?>"<?php echo ($device['Status'] != 'OFF')?' class="set"':'' ?> onclick="switchDeviceOff( this, '<?php echo validHtmlStr($device['KeyString']) ?>' )"<?php echo canEdit( 'Devices' )?"":' disabled="disabled"' ?>/></td>
               <td><input type="checkbox" name="markDids[]" value="<?php echo $device['Id'] ?>" onclick="configureButtons( this, 'markDids' );"<?php if ( !canEdit( 'Devices' ) ) {?> disabled="disabled"<?php } ?>/></td>
             </tr>
 <?php
@@ -75,9 +75,9 @@ foreach( $devices as $device )
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="button" value="<?php echo $SLANG['New'] ?>" onclick="createPopup( '?view=device&amp;did=0', 'zmDevice', 'device' )"<?php echo canEdit('Devices')?'':' disabled="disabled"' ?>/>
-          <input type="button" name="deleteBtn" value="<?php echo $SLANG['Delete'] ?>" onclick="deleteDevice( this )" disabled="disabled"/>
-          <input type="button" value="<?php echo $SLANG['Cancel'] ?>" onclick="closeWindow();"/>
+          <input type="button" value="<?php echo translate('New') ?>" onclick="createPopup( '?view=device&amp;did=0', 'zmDevice', 'device' )"<?php echo canEdit('Devices')?'':' disabled="disabled"' ?>/>
+          <input type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteDevice( this )" disabled="disabled"/>
+          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
         </div>
       </form>
     </div>

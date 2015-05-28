@@ -4,6 +4,8 @@
 /* This file is used by cmake to create config.h for ZM */
 
 /* General system checks */
+#cmakedefine BSD 1
+#cmakedefine SOLARIS 1
 #cmakedefine HAVE_LINUX_VIDEODEV_H 1
 #cmakedefine HAVE_LIBV4L1_VIDEODEV_H 1
 #cmakedefine HAVE_LINUX_VIDEODEV2_H 1

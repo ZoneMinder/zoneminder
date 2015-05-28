@@ -294,7 +294,7 @@ sub systemdRunning
 {
     my $result = 0;
 
-    my $output = qx(ps -o comm="" 1);
+    my $output = qx(ps -o comm="" -p 1);
     chomp( $output );
 
     if ($output =~ /systemd/) {
@@ -309,7 +309,7 @@ sub calledBysystem
     my $result = 0;
     my $ppid = getppid();
 
-    my $output = qx(ps -o comm="" $ppid);
+    my $output = qx(ps -o comm="" -p $ppid);
     chomp( $output );
 
     if ($output =~ /^(?:systemd|init)$/) {

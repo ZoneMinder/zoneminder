@@ -212,7 +212,7 @@ switch ( $_REQUEST['task'] )
             }
             case 'tsv' :
             {
-                fprintf( $exportFP, $SLANG['DateTime']."\t".$SLANG['Component']."\t".$SLANG['Pid']."\t".$SLANG['Level']."\t".$SLANG['Message']."\t".$SLANG['File']."\t".$SLANG['Line']."\n" );
+                fprintf( $exportFP, translate('DateTime')."\t".translate('Component')."\t".translate('Pid')."\t".translate('Level')."\t".translate('Message')."\t".translate('File')."\t".translate('Line')."\n" );
                 foreach ( $logs as $log )
                 {
                     fprintf( $exportFP, "%s\t%s\t%d\t%s\t%s\t%s\t%s\n", $log['DateTime'], $log['Component'], $log['Pid'], $log['Code'], $log['Message'], $log['File'], $log['Line'] );
@@ -225,7 +225,7 @@ switch ( $_REQUEST['task'] )
 '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <title>'.$SLANG['ZoneMinderLog'].'</title>
+    <title>'.translate('ZoneMinderLog').'</title>
     <style type="text/css">
 body, h3, p, table, td {
     font-family: Verdana, Arial, Helvetica, sans-serif;
@@ -260,12 +260,12 @@ tr.log-dbg td {
     </style>
   </head>
   <body>
-    <h3>'.$SLANG['ZoneMinderLog'].'</h3>
+    <h3>'.translate('ZoneMinderLog').'</h3>
     <p>'.htmlspecialchars(preg_match( '/%/', DATE_FMT_CONSOLE_LONG )?strftime( DATE_FMT_CONSOLE_LONG ):date( DATE_FMT_CONSOLE_LONG )).'</p>
-    <p>'.count($logs).' '.$SLANG['Logs'].'</p>
+    <p>'.count($logs).' '.translate('Logs').'</p>
     <table>
       <tbody>
-        <tr><th>'.$SLANG['DateTime'].'</th><th>'.$SLANG['Component'].'</th><th>'.$SLANG['Pid'].'</th><th>'.$SLANG['Level'].'</th><th>'.$SLANG['Message'].'</th><th>'.$SLANG['File'].'</th><th>'.$SLANG['Line'].'</th></tr>
+        <tr><th>'.translate('DateTime').'</th><th>'.translate('Component').'</th><th>'.translate('Pid').'</th><th>'.translate('Level').'</th><th>'.translate('Message').'</th><th>'.translate('File').'</th><th>'.translate('Line').'</th></tr>
 ' );
                 foreach ( $logs as $log )
                 {
@@ -288,7 +288,7 @@ tr.log-dbg td {
             {
                 fwrite( $exportFP,
 '<?xml version="1.0" encoding="utf-8"?>
-<logexport title="'.$SLANG['ZoneMinderLog'].'" date="'.htmlspecialchars(preg_match( '/%/', DATE_FMT_CONSOLE_LONG )?strftime( DATE_FMT_CONSOLE_LONG ):date( DATE_FMT_CONSOLE_LONG )).'">
+<logexport title="'.translate('ZoneMinderLog').'" date="'.htmlspecialchars(preg_match( '/%/', DATE_FMT_CONSOLE_LONG )?strftime( DATE_FMT_CONSOLE_LONG ):date( DATE_FMT_CONSOLE_LONG )).'">
   <selector>'.$_POST['selector'].'</selector>' );
                 foreach ( $filter as $field=>$value )
                     if ( $value != '' )
@@ -298,7 +298,7 @@ tr.log-dbg td {
   </filter>' );
                 fwrite( $exportFP, 
 '  <columns>
-    <column field="datetime">'.$SLANG['DateTime'].'</column><column field="component">'.$SLANG['Component'].'</column><column field="pid">'.$SLANG['Pid'].'</column><column field="level">'.$SLANG['Level'].'</column><column field="message">'.$SLANG['Message'].'</column><column field="file">'.$SLANG['File'].'</column><column field="line">'.$SLANG['Line'].'</column>
+    <column field="datetime">'.translate('DateTime').'</column><column field="component">'.translate('Component').'</column><column field="pid">'.translate('Pid').'</column><column field="level">'.translate('Level').'</column><column field="message">'.translate('Message').'</column><column field="file">'.translate('File').'</column><column field="line">'.translate('Line').'</column>
   </columns>
   <logs count="'.count($logs).'">
 ' );

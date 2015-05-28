@@ -25,7 +25,7 @@ if ( !canEdit( 'Monitors' ) )
 }
 
 $cameras = array();
-$cameras[0] = $SLANG['ChooseDetectedCamera'];
+$cameras[0] = translate('ChooseDetectedCamera');
 
 
 function execONVIF( $cmd )
@@ -124,7 +124,7 @@ function probeProfiles( $device_ep, $soapversion, $username, $password )
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['MonitorProbe'] );
+xhtmlHeaders(__FILE__, translate('MonitorProbe') );
 
 if( !isset($_REQUEST['step']) || ($_REQUEST['step'] == "1")) {
 
@@ -159,7 +159,7 @@ if( !isset($_REQUEST['step']) || ($_REQUEST['step'] == "1")) {
         }
         else
         {
-            $sourceString .= " - ".$SLANG['Available'];
+            $sourceString .= " - ".translate('Available');
         }
         $cameras[$sourceDesc] = $sourceString;
     }
@@ -171,13 +171,13 @@ if( !isset($_REQUEST['step']) || ($_REQUEST['step'] == "1")) {
   }
 
   if ( count($cameras) <= 0 )
-      $cameras[0] = $SLANG['NoDetectedCameras'];
+      $cameras[0] = translate('NoDetectedCameras');
 
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?php echo $SLANG['MonitorProbe'] ?></h2>
+      <h2><?php echo translate('MonitorProbe') ?></h2>
     </div>
     <div id="content">
       <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
@@ -185,25 +185,25 @@ if( !isset($_REQUEST['step']) || ($_REQUEST['step'] == "1")) {
         <input type="hidden" name="mid" value="<?php echo validNum($_REQUEST['mid']) ?>"/>
         <input type="hidden" name="step" value=""/>
         <p>
-          <?php echo $SLANG['OnvifProbeIntro'] ?>
+          <?php echo translate('OnvifProbeIntro') ?>
         </p>
         <p>
-          <label for="probe"><?php echo $SLANG['DetectedCameras'] ?></label><?php echo buildSelect( "probe", $cameras, 'configureButtons( this )' ); ?>
+          <label for="probe"><?php echo translate('DetectedCameras') ?></label><?php echo buildSelect( "probe", $cameras, 'configureButtons( this )' ); ?>
         </p>
         <p>
-          <?php echo $SLANG['OnvifCredentialsIntro'] ?>
+          <?php echo translate('OnvifCredentialsIntro') ?>
         </p>
         <p>
-          <label for="username"><?php echo $SLANG['Username'] ?></label>
+          <label for="username"><?php echo translate('Username') ?></label>
           <input type="text" name="username" value="" onChange="configureButtons( this )" />
         </p>
         <p>
-          <label for="password"><?php echo $SLANG['Password'] ?></label>
+          <label for="password"><?php echo translate('Password') ?></label>
           <input type="password" name="password" value=""onChange="configureButtons( this )" />
         </p>
         <div id="contentButtons">
-          <input type="button" value="<?php echo $SLANG['Cancel'] ?>" onclick="closeWindow()"/>
-          <input type="submit" name="nextBtn" value="<?php echo $SLANG['Next'] ?>" onclick="gotoStep2( this )" disabled="disabled"/>
+          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
+          <input type="submit" name="nextBtn" value="<?php echo translate('Next') ?>" onclick="gotoStep2( this )" disabled="disabled"/>
         </div>
       </form>
     </div>
@@ -251,13 +251,13 @@ else if($_REQUEST['step'] == "2")
   }
 
   if ( count($cameras) <= 0 )
-      $cameras[0] = $SLANG['NoDetectedCameras'];
+      $cameras[0] = translate('NoDetectedCameras');
 
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?php echo $SLANG['ProfileProbe'] ?></h2>
+      <h2><?php echo translate('ProfileProbe') ?></h2>
     </div>
     <div id="content">
       <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
@@ -265,15 +265,15 @@ else if($_REQUEST['step'] == "2")
         <input type="hidden" name="mid" value="<?php echo validNum($_REQUEST['mid']) ?>"/>
         <input type="hidden" name="step" value=""/>
         <p>
-          <?php echo $SLANG['ProfileProbeIntro'] ?>
+          <?php echo translate('ProfileProbeIntro') ?>
         </p>
         <p>
-          <label for="probe"><?php echo $SLANG['DetectedProfiles'] ?></label><?php echo buildSelect( "probe", $cameras, 'configureButtons( this )' ); ?>
+          <label for="probe"><?php echo translate('DetectedProfiles') ?></label><?php echo buildSelect( "probe", $cameras, 'configureButtons( this )' ); ?>
         </p>
         <div id="contentButtons">
-          <input type="button" name="prevBtn" value="<?php echo $SLANG['Prev'] ?>" onclick="gotoStep1( this )"/>
-          <input type="button" value="<?php echo $SLANG['Cancel'] ?>" onclick="closeWindow()"/>
-          <input type="submit" name="saveBtn" value="<?php echo $SLANG['Save'] ?>" onclick="submitCamera( this )" disabled="disabled"/>
+          <input type="button" name="prevBtn" value="<?php echo translate('Prev') ?>" onclick="gotoStep1( this )"/>
+          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
+          <input type="submit" name="saveBtn" value="<?php echo translate('Save') ?>" onclick="submitCamera( this )" disabled="disabled"/>
         </div>
       </form>
     </div>

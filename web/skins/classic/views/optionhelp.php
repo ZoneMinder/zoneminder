@@ -25,15 +25,15 @@ $optionHelpText = preg_replace( "/~~/", "<br/>", $optionHelpText );
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['OptionHelp'] );
+xhtmlHeaders(__FILE__, translate('OptionHelp') );
 ?>
 <body>
   <div id="page">
     <div id="header">
       <div id="headerButtons">
-        <a href="#" onclick="closeWindow();"><?php echo $SLANG['Close'] ?></a>
+        <a href="#" onclick="closeWindow();"><?php echo translate('Close') ?></a>
       </div>
-      <h2><?php echo $SLANG['OptionHelp'] ?></h2>
+      <h2><?php echo translate('OptionHelp') ?></h2>
     </div>
     <div id="content">
       <h3><?php echo validHtmlStr($_REQUEST['option']) ?></h3>

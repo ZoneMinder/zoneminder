@@ -104,12 +104,12 @@ $pages = (int)ceil($nEvents/$deviceLines);
 $maxShortcuts = 3;
 $pagination = getPagination( $pages, $_REQUEST['page'], $maxShortcuts, $filterQuery.$sortQuery.'&amp;limit='.$_REQUEST['limit'], '&amp;' );
 
-xhtmlHeaders( __FILE__, $SLANG['Events'] );
+xhtmlHeaders( __FILE__, translate('Events') );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <div id="headerButtons"><?php echo makeLink( "?view=filter", empty($_REQUEST['filterName'])?$SLANG['ChooseFilter']:$_REQUEST['filterName'], canView( 'Events' ) ) ?></div>
+      <div id="headerButtons"><?php echo makeLink( "?view=filter", empty($_REQUEST['filterName'])?translate('ChooseFilter'):$_REQUEST['filterName'], canView( 'Events' ) ) ?></div>
       <h2><?php echo sprintf( $CLANG['EventCount'], $nEvents, zmVlang( $VLANG['Event'], $nEvents ) ) ?></h2>
     </div>
     <div id="content">
@@ -130,11 +130,11 @@ if ( $pagination )
         {
 ?>
         <tr>
-          <th class="colId"><a href="<?php echo sortHeader( 'Id', '&amp;' ) ?>"><?php echo substr( $SLANG['Id'], 0, 3 ) ?><?php echo sortTag( 'Id' ) ?></a></th>
-          <th class="colTime"><a href="<?php echo sortHeader( 'StartTime', '&amp;' ) ?>"><?php echo substr( $SLANG['Time'], 0, 3 ) ?><?php echo sortTag( 'StartTime' ) ?></a></th>
-          <th class="colDuration"><a href="<?php echo sortHeader( 'Length', '&amp;' ) ?>"><?php echo substr( $SLANG['Duration'], 0, 3 ) ?><?php echo sortTag( 'Length' ) ?></a></th>
-          <th class="colFrames"><a href="<?php echo sortHeader( 'Frames', '&amp;' ) ?>"><?php echo substr( $SLANG['Frames'], 0, 3 ) ?><?php echo sortTag( 'Frames' ) ?></a></th>
-          <th class="colScore"><a href="<?php echo sortHeader( 'TotScore', '&amp;' ) ?>"><?php echo substr( $SLANG['Score'], 0, 3 ) ?><?php echo sortTag( 'TotScore' ) ?></a></th>
+          <th class="colId"><a href="<?php echo sortHeader( 'Id', '&amp;' ) ?>"><?php echo substr( translate('Id'), 0, 3 ) ?><?php echo sortTag( 'Id' ) ?></a></th>
+          <th class="colTime"><a href="<?php echo sortHeader( 'StartTime', '&amp;' ) ?>"><?php echo substr( translate('Time'), 0, 3 ) ?><?php echo sortTag( 'StartTime' ) ?></a></th>
+          <th class="colDuration"><a href="<?php echo sortHeader( 'Length', '&amp;' ) ?>"><?php echo substr( translate('Duration'), 0, 3 ) ?><?php echo sortTag( 'Length' ) ?></a></th>
+          <th class="colFrames"><a href="<?php echo sortHeader( 'Frames', '&amp;' ) ?>"><?php echo substr( translate('Frames'), 0, 3 ) ?><?php echo sortTag( 'Frames' ) ?></a></th>
+          <th class="colScore"><a href="<?php echo sortHeader( 'TotScore', '&amp;' ) ?>"><?php echo substr( translate('Score'), 0, 3 ) ?><?php echo sortTag( 'TotScore' ) ?></a></th>
         </tr>
 <?php
         }
@@ -150,7 +150,7 @@ if ( $pagination )
     }
 ?>
       </table>
-      <p><a href="?view=console"><?php echo $SLANG['Console'] ?></a></p>
+      <p><a href="?view=console"><?php echo translate('Console') ?></a></p>
     </div>
   </div>
 </body>

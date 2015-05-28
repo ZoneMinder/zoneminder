@@ -103,14 +103,12 @@ html ul.tabs li.active, html ul.tabs li.active a:hover  {
 
 function exportEventDetail( $event, $exportFrames, $exportImages )
 {
-    global $SLANG;
-
     ob_start();
-    exportHeader( $SLANG['Event']." ".$event['Id'] );
+    exportHeader( translate('Event')." ".$event['Id'] );
 	
 	$otherlinks = '';
-	if( $exportFrames ) $otherlinks .= '<a href="zmEventFrames.html">'.$SLANG['Frames'].'</a>,';
-	if( $exportImages ) $otherlinks .= '<a href="zmEventImages.html">'.$SLANG['Images'].'</a>,';
+	if( $exportFrames ) $otherlinks .= '<a href="zmEventFrames.html">'.translate('Frames').'</a>,';
+	if( $exportImages ) $otherlinks .= '<a href="zmEventImages.html">'.translate('Images').'</a>,';
 	$otherlinks = substr($otherlinks,0,-1);
 
 
@@ -118,21 +116,21 @@ function exportEventDetail( $event, $exportFrames, $exportImages )
 <body>
   <div id="page">
     <div id="content">
-		<h2><?php echo $SLANG['Event'] ?>: <?php echo validHtmlStr($event['Name']) ?><?php if(!empty($otherlinks)) { ?> (<?php echo$otherlinks?>) <?php } ?></h2>
+		<h2><?php echo translate('Event') ?>: <?php echo validHtmlStr($event['Name']) ?><?php if(!empty($otherlinks)) { ?> (<?php echo$otherlinks?>) <?php } ?></h2>
       <table id="eventDetail">
-        <tr><th scope="row"><?php echo $SLANG['Id'] ?></th><td><?php echo $event['Id'] ?></td></tr>
-        <tr><th scope="row"><?php echo $SLANG['Name'] ?></th><td><?php echo validHtmlStr($event['Name']) ?></td></tr>
-        <tr><th scope="row"><?php echo $SLANG['Monitor'] ?></th><td><?php echo validHtmlStr($event['MonitorName']) ?> (<?php echo $event['MonitorId'] ?>)</td></tr>
-        <tr><th scope="row"><?php echo $SLANG['Cause'] ?></th><td><?php echo validHtmlStr($event['Cause']) ?></td></tr>
-        <tr><th scope="row"><?php echo $SLANG['Notes'] ?></th><td><?php echo validHtmlStr($event['Notes']) ?></td></tr>
-        <tr><th scope="row"><?php echo $SLANG['Time'] ?></th><td><?php echo strftime( STRF_FMT_DATETIME_SHORTER, strtotime($event['StartTime']) ) ?></td></tr>
-        <tr><th scope="row"><?php echo $SLANG['Duration'] ?></th><td><?php echo $event['Length'] ?></td></tr>
-        <tr><th scope="row"><?php echo $SLANG['Frames'] ?></th><td><?php echo $event['Frames'] ?></td></tr>
-        <tr><th scope="row"><?php echo $SLANG['AttrAlarmFrames'] ?></th><td><?php echo $event['AlarmFrames'] ?></td></tr>
-        <tr><th scope="row"><?php echo $SLANG['AttrTotalScore'] ?></th><td><?php echo $event['TotScore'] ?></td></tr>
-        <tr><th scope="row"><?php echo $SLANG['AttrAvgScore'] ?></th><td><?php echo $event['AvgScore'] ?></td></tr>
-        <tr><th scope="row"><?php echo $SLANG['AttrMaxScore'] ?></th><td><?php echo $event['MaxScore'] ?></td></tr>
-        <tr><th scope="row"><?php echo $SLANG['Archived'] ?></th><td><?php echo $event['Archived']?$SLANG['Yes']:$SLANG['No'] ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Id') ?></th><td><?php echo $event['Id'] ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Name') ?></th><td><?php echo validHtmlStr($event['Name']) ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Monitor') ?></th><td><?php echo validHtmlStr($event['MonitorName']) ?> (<?php echo $event['MonitorId'] ?>)</td></tr>
+        <tr><th scope="row"><?php echo translate('Cause') ?></th><td><?php echo validHtmlStr($event['Cause']) ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Notes') ?></th><td><?php echo validHtmlStr($event['Notes']) ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Time') ?></th><td><?php echo strftime( STRF_FMT_DATETIME_SHORTER, strtotime($event['StartTime']) ) ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Duration') ?></th><td><?php echo $event['Length'] ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Frames') ?></th><td><?php echo $event['Frames'] ?></td></tr>
+        <tr><th scope="row"><?php echo translate('AttrAlarmFrames') ?></th><td><?php echo $event['AlarmFrames'] ?></td></tr>
+        <tr><th scope="row"><?php echo translate('AttrTotalScore') ?></th><td><?php echo $event['TotScore'] ?></td></tr>
+        <tr><th scope="row"><?php echo translate('AttrAvgScore') ?></th><td><?php echo $event['AvgScore'] ?></td></tr>
+        <tr><th scope="row"><?php echo translate('AttrMaxScore') ?></th><td><?php echo $event['MaxScore'] ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Archived') ?></th><td><?php echo $event['Archived']?translate('Yes'):translate('No') ?></td></tr>
       </table>
     </div>
   </div>
@@ -150,30 +148,30 @@ function exportEventFrames( $event, $exportDetail, $exportImages )
     $frames = dbFetchAll( $sql, NULL, array( $event['Id'] ) );
 
     ob_start();
-    exportHeader( $SLANG['Frames']." ".$event['Id'] );
+    exportHeader( translate('Frames')." ".$event['Id'] );
 	
 	$otherlinks = '';
-	if( $exportDetail ) $otherlinks .= '<a href="zmEventDetail.html">'.$SLANG['Event'].'</a>,';
-	if( $exportImages ) $otherlinks .= '<a href="zmEventImages.html">'.$SLANG['Images'].'</a>,';
+	if( $exportDetail ) $otherlinks .= '<a href="zmEventDetail.html">'.translate('Event').'</a>,';
+	if( $exportImages ) $otherlinks .= '<a href="zmEventImages.html">'.translate('Images').'</a>,';
 	$otherlinks = substr($otherlinks,0,-1);
 
 ?>
 <body>
   <div id="page">
     <div id="content">
-		<h2><?php echo $SLANG['Frames'] ?>: <?php echo validHtmlStr($event['Name']) ?><?php if(!empty($otherlinks)) { ?> (<?php echo$otherlinks?>) <?php } ?></h2>
+		<h2><?php echo translate('Frames') ?>: <?php echo validHtmlStr($event['Name']) ?><?php if(!empty($otherlinks)) { ?> (<?php echo$otherlinks?>) <?php } ?></h2>
       <table id="eventFrames">
         <tr>
-          <th><?php echo $SLANG['FrameId'] ?></th>
-          <th><?php echo $SLANG['Type'] ?></th>
-          <th><?php echo $SLANG['TimeStamp'] ?></th>
-          <th><?php echo $SLANG['TimeDelta'] ?></th>
-          <th><?php echo $SLANG['Score'] ?></th>
+          <th><?php echo translate('FrameId') ?></th>
+          <th><?php echo translate('Type') ?></th>
+          <th><?php echo translate('TimeStamp') ?></th>
+          <th><?php echo translate('TimeDelta') ?></th>
+          <th><?php echo translate('Score') ?></th>
 <?php
     if ( $exportImages )
     {
 ?>
-          <th><?php echo $SLANG['Image'] ?></th>
+          <th><?php echo translate('Image') ?></th>
 <?php
     }
 ?>
@@ -216,7 +214,7 @@ function exportEventFrames( $event, $exportDetail, $exportImages )
     {
 ?>
         <tr>
-          <td class="monoRow" colspan="<?php echo $exportImages?6:5 ?>"><?php echo $SLANG['NoFramesRecorded'] ?></td>
+          <td class="monoRow" colspan="<?php echo $exportImages?6:5 ?>"><?php echo translate('NoFramesRecorded') ?></td>
         </tr>
 <?php
     }
@@ -235,11 +233,11 @@ function exportEventImages( $event, $exportDetail, $exportFrames, $myfilelist )
     global $SLANG;
 
     ob_start();
-    exportHeader( $SLANG['Images']." ".$event['Id'] );
+    exportHeader( translate('Images')." ".$event['Id'] );
 	
 	$otherlinks = '';
-	if( $exportDetail ) $otherlinks .= '<a href="zmEventDetail.html">'.$SLANG['Event'].'</a>,';
-	if( $exportFrames ) $otherlinks .= '<a href="zmEventFrames.html">'.$SLANG['Frames'].'</a>,';
+	if( $exportDetail ) $otherlinks .= '<a href="zmEventDetail.html">'.translate('Event').'</a>,';
+	if( $exportFrames ) $otherlinks .= '<a href="zmEventFrames.html">'.translate('Frames').'</a>,';
 	$otherlinks = substr($otherlinks,0,-1);
 
 	$filelist = array_keys($myfilelist);
@@ -259,7 +257,7 @@ function exportEventImages( $event, $exportDetail, $exportFrames, $myfilelist )
 .value_display {background-color: #bbb;color: #333;width: 30px;margin: 0 2px;text-align: right;font-size: 8pt;font-face: verdana, arial, helvetica, sans-serif;font-weight: bold;line-height: 12px;border: 0;cursor: default;}
 </style>
 
-<h2><?php echo $SLANG['Images'] ?>: <?php echo validHtmlStr($event['Name']) ?><?php if(!empty($otherlinks)) { ?> (<?php echo$otherlinks?>) <?php } ?></h2>
+<h2><?php echo translate('Images') ?>: <?php echo validHtmlStr($event['Name']) ?><?php if(!empty($otherlinks)) { ?> (<?php echo$otherlinks?>) <?php } ?></h2>
 
 <ilayer id="slidensmain" width=&{slidewidth}; height=&{slideheight}; bgColor=&{slidebgcolor}; visibility=hide>
 <layer id="slidenssub" width=&{slidewidth}; left=auto top=auto></layer>
@@ -593,10 +591,10 @@ function exportEventImagesMaster( $eids )
 {
     global $SLANG;
     ob_start();
-    exportHeader( $SLANG['Images'].' Master' );
+    exportHeader( translate('Images').' Master' );
 ?>
 <body>
-<h2><?php echo $SLANG['Images'] ?> Master</h2>
+<h2><?php echo translate('Images') ?> Master</h2>
 <?php
 	foreach ($eids as $eid) {
 		//get monitor id and event id

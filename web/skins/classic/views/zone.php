@@ -33,7 +33,7 @@ $hicolor = "0x00ff00"; // Green
 
 $presets = array();
 $presetNames = array();
-$presetNames[0] = $SLANG['ChoosePreset'];
+$presetNames[0] = translate('ChoosePreset');
 $sql = "select *, Units-1 as UnitsIndex, CheckMethod-1 as CheckMethodIndex from ZonePresets order by Id asc";
 foreach( dbFetchAll( $sql ) as $preset )
 {
@@ -75,7 +75,7 @@ if ( !isset($newZone) )
     else
     {
         $zone = array(
-            'Name' => $SLANG['New'],
+            'Name' => translate('New'),
             'Id' => 0,
             'MonitorId' => $monitor['Id'],
             'NumCoords' => 4,
@@ -126,12 +126,12 @@ $zoneImage = ZM_DIR_IMAGES.'/Zones'.$monitor['Id'].'.jpg?'.time();
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['Zone'] );
+xhtmlHeaders(__FILE__, translate('Zone') );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?php echo $SLANG['Monitor'] ?> <?php echo $monitor['Name'] ?> - <?php echo $SLANG['Zone'] ?> <?php echo $newZone['Name'] ?></h2>
+      <h2><?php echo translate('Monitor') ?> <?php echo $monitor['Name'] ?> - <?php echo translate('Zone') ?> <?php echo $newZone['Name'] ?></h2>
     </div>
     <div id="content">
       <form name="zoneForm" id="zoneForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
@@ -147,69 +147,69 @@ xhtmlHeaders(__FILE__, $SLANG['Zone'] );
           <table id="zoneSettings" cellspacing="0">
             <tbody>
               <tr>
-                <th scope="row"><?php echo $SLANG['Name'] ?></th>
+                <th scope="row"><?php echo translate('Name') ?></th>
                 <td colspan="2"><input type="text" name="newZone[Name]" value="<?php echo $newZone['Name'] ?>" size="12"/></td>
               </tr>
               <tr>
-                <th scope="row"><?php echo $SLANG['Type'] ?></th>
+                <th scope="row"><?php echo translate('Type') ?></th>
                 <td colspan="2"><?php echo buildSelect( "newZone[Type]", $optTypes, 'applyZoneType()' ) ?></td>
               </tr>
               <tr>
-                <th scope="row"><?php echo $SLANG['Preset'] ?></th>
+                <th scope="row"><?php echo translate('Preset') ?></th>
                 <td colspan="2"><?php echo buildSelect( "presetSelector", $presetNames, array( "onchange"=>"applyPreset()", "onblur"=>"this.selectedIndex=0" ) ) ?></td>
               </tr>
               <tr>
-                <th scope="row"><?php echo $SLANG['Units'] ?></th>
+                <th scope="row"><?php echo translate('Units') ?></th>
                 <td colspan="2"><?php echo buildSelect( "newZone[Units]", $optUnits, 'applyZoneUnits()' ) ?></td>
               </tr>
               <tr>
-                <th scope="row"><?php echo $SLANG['ZoneAlarmColour'] ?></th>
+                <th scope="row"><?php echo translate('ZoneAlarmColour') ?></th>
                 <td colspan="2"><input type="text" name="newAlarmRgbR" value="<?php echo ($newZone['AlarmRGB']>>16)&0xff ?>" size="3" onchange="limitRange( this, 0, 255 )"/>&nbsp;/&nbsp;<input type="text" name="newAlarmRgbG" value="<?php echo ($newZone['AlarmRGB']>>8)&0xff ?>" size="3" onchange="limitRange( this, 0, 255 )"/>&nbsp;/&nbsp;<input type="text" name="newAlarmRgbB" value="<?php echo $newZone['AlarmRGB']&0xff ?>" size="3" onchange="limitRange( this, 0, 255 )"/></td>
               </tr>
               <tr>
-                <th scope="row"><?php echo $SLANG['CheckMethod'] ?></th>
+                <th scope="row"><?php echo translate('CheckMethod') ?></th>
                 <td colspan="2"><?php echo buildSelect( "newZone[CheckMethod]", $optCheckMethods, 'applyCheckMethod()' ) ?></td>
               </tr>
               <tr>
-                <th scope="row"><?php echo $SLANG['ZoneMinMaxPixelThres'] ?></th>
+                <th scope="row"><?php echo translate('ZoneMinMaxPixelThres') ?></th>
                 <td><input type="text" name="newZone[MinPixelThreshold]" value="<?php echo $newZone['MinPixelThreshold'] ?>" size="4" onchange="limitRange( this, 0, 255 )"/></td>
                 <td><input type="text" name="newZone[MaxPixelThreshold]" value="<?php echo $newZone['MaxPixelThreshold'] ?>" size="4" onchange="limitRange( this, 0, 255 )"/></td>
               </tr>
               <tr>
-                <th scope="row"><?php echo $SLANG['ZoneFilterSize'] ?></th>
+                <th scope="row"><?php echo translate('ZoneFilterSize') ?></th>
                 <td><input type="text" name="newZone[FilterX]" value="<?php echo $newZone['FilterX'] ?>" size="4" onchange="limitFilter( this )"/></td>
                 <td><input type="text" name="newZone[FilterY]" value="<?php echo $newZone['FilterY'] ?>" size="4" onchange="limitFilter( this )"/></td>
               </tr>
               <tr>
-                <th scope="row"><?php echo $SLANG['ZoneArea'] ?></th>
+                <th scope="row"><?php echo translate('ZoneArea') ?></th>
                 <td colspan="2"><input type="text" name="newZone[TempArea]" value="<?php echo $newZone['Area'] ?>" size="7" disabled="disabled"/></td>
               </tr>
               <tr>
-                <th scope="row"><?php echo $SLANG['ZoneMinMaxAlarmArea'] ?></th>
+                <th scope="row"><?php echo translate('ZoneMinMaxAlarmArea') ?></th>
                 <td><input type="text" name="newZone[MinAlarmPixels]" value="<?php echo $newZone['MinAlarmPixels'] ?>" size="6" onchange="limitArea(this)"/></td>
                 <td><input type="text" name="newZone[MaxAlarmPixels]" value="<?php echo $newZone['MaxAlarmPixels'] ?>" size="6" onchange="limitArea(this)"/></td>
               </tr>
               <tr>
-                <th scope="row"><?php echo $SLANG['ZoneMinMaxFiltArea'] ?></th>
+                <th scope="row"><?php echo translate('ZoneMinMaxFiltArea') ?></th>
                 <td><input type="text" name="newZone[MinFilterPixels]" value="<?php echo $newZone['MinFilterPixels'] ?>" size="6" onchange="limitArea(this)"/></td>
                 <td><input type="text" name="newZone[MaxFilterPixels]" value="<?php echo $newZone['MaxFilterPixels'] ?>" size="6" onchange="limitArea(this)"/></td>
               </tr>
               <tr>
-                <th scope="row"><?php echo $SLANG['ZoneMinMaxBlobArea'] ?></th>
+                <th scope="row"><?php echo translate('ZoneMinMaxBlobArea') ?></th>
                 <td><input type="text" name="newZone[MinBlobPixels]" value="<?php echo $newZone['MinBlobPixels'] ?>" size="6"/></td>
                 <td><input type="text" name="newZone[MaxBlobPixels]" value="<?php echo $newZone['MaxBlobPixels'] ?>" size="6"/></td>
               </tr>
               <tr>
-                <th scope="row"><?php echo $SLANG['ZoneMinMaxBlobs'] ?></th>
+                <th scope="row"><?php echo translate('ZoneMinMaxBlobs') ?></th>
                 <td><input type="text" name="newZone[MinBlobs]" value="<?php echo $newZone['MinBlobs'] ?>" size="4"/></td>
                 <td><input type="text" name="newZone[MaxBlobs]" value="<?php echo $newZone['MaxBlobs'] ?>" size="4"/></td>
               </tr>
               <tr>
-                <th scope="row"><?php echo $SLANG['ZoneOverloadFrames'] ?></th>
+                <th scope="row"><?php echo translate('ZoneOverloadFrames') ?></th>
                 <td colspan="2"><input type="text" name="newZone[OverloadFrames]" value="<?php echo $newZone['OverloadFrames'] ?>" size="4"/></td>
               </tr>
               <tr>
-                <th scope="row"><?php echo $SLANG['ZoneExtendAlarmFrames'] ?></th>
+                <th scope="row"><?php echo translate('ZoneExtendAlarmFrames') ?></th>
                 <td colspan="2"><input type="text" name="newZone[ExtendAlarmFrames]" value="<?php echo $newZone['ExtendAlarmFrames'] ?>" size="4"/></td>
               </tr>
 <?php
@@ -287,10 +287,10 @@ for ( $i = 0; $i < $pointCols; $i++ )
                   <table cellspacing="0">
                     <thead>
                       <tr>
-                        <th><?php echo $SLANG['Point'] ?></th>
-                        <th><?php echo $SLANG['X'] ?></th>
-                        <th><?php echo $SLANG['Y'] ?></th>
-                        <th><?php echo $SLANG['Action'] ?></th>
+                        <th><?php echo translate('Point') ?></th>
+                        <th><?php echo translate('X') ?></th>
+                        <th><?php echo translate('Y') ?></th>
+                        <th><?php echo translate('Action') ?></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -323,7 +323,7 @@ for ( $i = 0; $i < $pointCols; $i++ )
               </tr>
             </tbody>
           </table>
-          <input type="submit" id="submitBtn" name="submitBtn" value="<?php echo $SLANG['Save'] ?>" onclick="return saveChanges( this )"<?php if (!canEdit( 'Monitors' ) || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo $SLANG['Cancel'] ?>" onclick="closeWindow()"/>
+          <input type="submit" id="submitBtn" name="submitBtn" value="<?php echo translate('Save') ?>" onclick="return saveChanges( this )"<?php if (!canEdit( 'Monitors' ) || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
         </div>
       </form>
     </div>

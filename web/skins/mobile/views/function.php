@@ -25,7 +25,7 @@ if ( !canEdit( 'Monitors' ) )
 }
 $monitor = dbFetchMonitor( $_REQUEST['mid'] );
 
-xhtmlHeaders( __FILE__, $SLANG['Function'].' - '.$monitor['Name'] );
+xhtmlHeaders( __FILE__, translate('Function').' - '.$monitor['Name'] );
 ?>
 <body>
   <div id="page">
@@ -54,10 +54,10 @@ foreach ( getEnumValues( 'Monitors', 'Function' ) as $optFunction )
           </select>
         </div>
         <div>
-          <label for="newEnabled"><?php echo $SLANG['Enabled'] ?></label><input type="checkbox" name="newEnabled" id="newEnabled" value="1"<?php if ( !empty($monitor['Enabled']) ) { ?> checked="checked"<?php } ?>/>
+          <label for="newEnabled"><?php echo translate('Enabled') ?></label><input type="checkbox" name="newEnabled" id="newEnabled" value="1"<?php if ( !empty($monitor['Enabled']) ) { ?> checked="checked"<?php } ?>/>
         </div>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo $SLANG['Save'] ?>"/>
+          <input type="submit" value="<?php echo translate('Save') ?>"/>
         </div>
       </form>
     </div>

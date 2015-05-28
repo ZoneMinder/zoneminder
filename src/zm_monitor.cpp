@@ -55,6 +55,11 @@
 #include <sys/shm.h>
 #endif // ZM_MEM_MAPPED
 
+// SOLARIS - we don't have MAP_LOCKED on openSolaris/illumos
+#ifndef MAP_LOCKED
+#define MAP_LOCKED 0
+#endif
+
 //=============================================================================
 std::vector<std::string> split(const std::string &s, char delim) {
     std::vector<std::string> elems;

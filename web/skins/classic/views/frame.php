@@ -62,29 +62,29 @@ $rImagePath = sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-diag-r.jpg", $eventPath,
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['Frame']." - ".$event['Id']." - ".$frame['FrameId'] );
+xhtmlHeaders(__FILE__, translate('Frame')." - ".$event['Id']." - ".$frame['FrameId'] );
 ?>
 <body>
   <div id="page">
     <div id="header">
       <div id="headerButtons">
-        <?php if ( ZM_RECORD_EVENT_STATS && $alarmFrame ) { echo makePopupLink( '?view=stats&amp;eid='.$event['Id'].'&amp;fid='.$frame['FrameId'], 'zmStats', 'stats', $SLANG['Stats'] ); } ?>
-        <?php if ( canEdit( 'Events' ) ) { ?><a href="?view=none&amp;action=delete&amp;markEid=<?php echo $event['Id'] ?>"><?php echo $SLANG['Delete'] ?></a><?php } ?>
-        <a href="#" onclick="closeWindow(); return( false );"><?php echo $SLANG['Close'] ?></a>
+        <?php if ( ZM_RECORD_EVENT_STATS && $alarmFrame ) { echo makePopupLink( '?view=stats&amp;eid='.$event['Id'].'&amp;fid='.$frame['FrameId'], 'zmStats', 'stats', translate('Stats') ); } ?>
+        <?php if ( canEdit( 'Events' ) ) { ?><a href="?view=none&amp;action=delete&amp;markEid=<?php echo $event['Id'] ?>"><?php echo translate('Delete') ?></a><?php } ?>
+        <a href="#" onclick="closeWindow(); return( false );"><?php echo translate('Close') ?></a>
       </div>
-      <h2><?php echo $SLANG['Frame'] ?> <?php echo $event['Id']."-".$frame['FrameId']." (".$frame['Score'].")" ?></h2>
+      <h2><?php echo translate('Frame') ?> <?php echo $event['Id']."-".$frame['FrameId']." (".$frame['Score'].")" ?></h2>
     </div>
     <div id="content">
       <p id="image"><?php if ( $imageData['hasAnalImage'] ) { ?><a href="?view=frame&amp;eid=<?php echo $event['Id'] ?>&amp;fid=<?php echo $frame['FrameId'] ?>&amp;scale=<?php echo $scale ?>&amp;show=<?php echo $imageData['isAnalImage']?"capt":"anal" ?>"><?php } ?><img src="<?php echo viewImagePath( $imagePath ) ?>" width="<?php echo reScale( $event['Width'], $event['DefaultScale'], $scale ) ?>" height="<?php echo reScale( $event['Height'], $event['DefaultScale'], $scale ) ?>" alt="<?php echo $frame['EventId']."-".$frame['FrameId'] ?>" class="<?php echo $imageData['imageClass'] ?>"/><?php if ( $imageData['hasAnalImage'] ) { ?></a><?php } ?></p>
       <p id="controls">
 <?php if ( $frame['FrameId'] > 1 ) { ?>
-        <a id="firstLink" href="?view=frame&amp;eid=<?php echo $event['Id'] ?>&amp;fid=<?php echo $firstFid ?>&amp;scale=<?php echo $scale ?>"><?php echo $SLANG['First'] ?></a>
+        <a id="firstLink" href="?view=frame&amp;eid=<?php echo $event['Id'] ?>&amp;fid=<?php echo $firstFid ?>&amp;scale=<?php echo $scale ?>"><?php echo translate('First') ?></a>
 <?php } if ( $frame['FrameId'] > 1 ) { ?>
-        <a id="prevLink" href="?view=frame&amp;eid=<?php echo $event['Id'] ?>&amp;fid=<?php echo $prevFid ?>&amp;scale=<?php echo $scale ?>"><?php echo $SLANG['Prev'] ?></a>
+        <a id="prevLink" href="?view=frame&amp;eid=<?php echo $event['Id'] ?>&amp;fid=<?php echo $prevFid ?>&amp;scale=<?php echo $scale ?>"><?php echo translate('Prev') ?></a>
 <?php } if ( $frame['FrameId'] < $maxFid ) { ?>
-        <a id="nextLink" href="?view=frame&amp;eid=<?php echo $event['Id'] ?>&amp;fid=<?php echo $nextFid ?>&amp;scale=<?php echo $scale ?>"><?php echo $SLANG['Next'] ?></a>
+        <a id="nextLink" href="?view=frame&amp;eid=<?php echo $event['Id'] ?>&amp;fid=<?php echo $nextFid ?>&amp;scale=<?php echo $scale ?>"><?php echo translate('Next') ?></a>
 <?php } if ( $frame['FrameId'] < $maxFid ) { ?>
-        <a id="lastLink" href="?view=frame&amp;eid=<?php echo $event['Id'] ?>&amp;fid=<?php echo $lastFid ?>&amp;scale=<?php echo $scale ?>"><?php echo $SLANG['Last'] ?></a>
+        <a id="lastLink" href="?view=frame&amp;eid=<?php echo $event['Id'] ?>&amp;fid=<?php echo $lastFid ?>&amp;scale=<?php echo $scale ?>"><?php echo translate('Last') ?></a>
 <?php } ?>
       </p>
 <?php if (file_exists ($dImagePath)) { ?>

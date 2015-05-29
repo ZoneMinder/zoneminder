@@ -122,11 +122,11 @@ set(ZM_TARGET_DISTRO "" CACHE STRING
 set(ZM_OPENSSL "OFF" CACHE BOOL
     "Set to ON to enable OpenSSL library support. This option is disabled by
     default because some terms of the OpenSSL license are incompatible with
-    the GPL. Therefore linking ZoneMinder libraries or binaries with OpenSSL
-    makes them nonfree and unredistributable")
-set(ZM_NONFREE "OFF" CACHE BOOL
-    "Set to ON to enable nonfree code, the resulting libraries or binaries
-    will be unredistributable")
+    the GPL.")
+set(ZM_NONGPL "OFF" CACHE BOOL
+    "Set to ON to allow the use of non GPL libraries. The resulting binaries
+    will be unredistributable under current ZoneMinder license as long as each of these
+    libraries is not covered by an exception in the copyright file.")
 
 # Reassign some variables if a target distro has been specified
 if((ZM_TARGET_DISTRO STREQUAL "f21") OR (ZM_TARGET_DISTRO STREQUAL "f20"))
@@ -259,10 +259,10 @@ endif(JPEG_FOUND)
 
 # Do not check for OpenSSL if ZM_OPENSSL is off
 if(ZM_OPENSSL)
-	if(NOT ZM_NONFREE)
+	if(NOT ZM_NONGPL)
 		message(FATAL_ERROR
-                    "Some terms of the OpenSSL license are incompatible with ZoneMinder license (GPL). Therefore linking ZoneMinder libraries or binaries with OpenSSL makes them nonfree and unredistributable. Building ZoneMinder with OpenSSL library requires to enable nonfree code with ZM_NONFREE=ON.")
-	endif(NOT ZM_NONFREE)
+                    "Some terms of the OpenSSL license are incompatible with ZoneMinder license (GPL). Therefore linking ZoneMinder libraries or binaries with OpenSSL makes them unredistributable under current ZoneMinder license. Redistribution of ZoneMinder with OpenSSL library requires to add an exception for OpenSSL in the copyright file. Building ZoneMinder with OpenSSL library requires to enable the use of non GPL libraries with ZM_NONGPL=ON")
+	endif(NOT ZM_NONGPL)
 	find_package(OpenSSL)
 	if(OPENSSL_FOUND)
 		set(HAVE_LIBOPENSSL 1)

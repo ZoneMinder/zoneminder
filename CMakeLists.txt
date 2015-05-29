@@ -261,7 +261,7 @@ endif(JPEG_FOUND)
 if(ZM_OPENSSL)
 	if(NOT ZM_NONFREE)
 		message(FATAL_ERROR
-                    "Linking ZoneMinder with OpenSSL library requires to enable nonfree code. The resulting libraries or binaries will be unredistributable.")
+                    "Some terms of the OpenSSL license are incompatible with ZoneMinder license (GPL). Therefore linking ZoneMinder libraries or binaries with OpenSSL makes them nonfree and unredistributable. Building ZoneMinder with OpenSSL library requires to enable nonfree code with ZM_NONFREE=ON.")
 	endif(NOT ZM_NONFREE)
 	find_package(OpenSSL)
 	if(OPENSSL_FOUND)

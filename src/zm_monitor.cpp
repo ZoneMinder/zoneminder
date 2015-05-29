@@ -3125,13 +3125,13 @@ bool Monitor::closeEvent()
         {
             gettimeofday( &(event->EndTime()), NULL );
         }
-
+#if ZM_PLUGINS_ON
         // Inform all plugins that we are closing the event
         if ( config.load_plugins && ( purpose == ANALYSIS ) )
         {
             ThePluginManager.getImageAnalyser().onCloseEvent( zones, event );
         }
-
+#endif
         event->Close();
 
         delete event;

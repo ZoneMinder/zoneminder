@@ -34,6 +34,7 @@ extern "C" {
 #include <libavutil/mathematics.h>
 
 /* LIBAVUTIL_VERSION_CHECK checks for the right version of libav and FFmpeg
+ * The original source is vlc (in modules/codec/avcodec/avcommon_compat.h)
  * a is the major version
  * b and c the minor and micro versions of libav
  * d and e the minor and micro versions of FFmpeg */
@@ -57,7 +58,9 @@ extern "C" {
 #if HAVE_LIBAVCODEC_AVCODEC_H
 #include <libavcodec/avcodec.h>
 
-/* LIBAVCODEC_VERSION_CHECK checks for the right version of libav and FFmpeg
+/*
+ * LIBAVCODEC_VERSION_CHECK checks for the right version of libav and FFmpeg
+ * The original source is vlc (in modules/codec/avcodec/avcommon_compat.h)
  * a is the major version
  * b and c the minor and micro versions of libav
  * d and e the minor and micro versions of FFmpeg */
@@ -82,6 +85,7 @@ extern "C" {
 #include <libavformat/avformat.h>
 
 /* LIBAVFORMAT_VERSION_CHECK checks for the right version of libav and FFmpeg
+ * The original source is vlc (in modules/codec/avcodec/avcommon_compat.h)
  * a is the major version
  * b and c the minor and micro versions of libav
  * d and e the minor and micro versions of FFmpeg */

@@ -43,7 +43,7 @@ Description: Perl libraries for ZoneMinder
 Package: libzoneminder-dev
 Section: libdevel
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${misc:Depends}
 Description: Development library for ZoneMinder plugins
  ZoneMinder is a video camera security and surveillance solution.
  .

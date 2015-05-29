@@ -1,0 +1,3 @@
+usr/include/zoneminder/*
+usr/lib/*/libzm.a
+usr/lib/*/pkgconfig/libzm.pc

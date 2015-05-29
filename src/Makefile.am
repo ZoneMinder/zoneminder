@@ -33,7 +33,7 @@ zm_SOURCES = \
 	zm_exception.cpp \
 	zm_file_camera.cpp \
 	zm_ffmpeg_camera.cpp \
-    zm_libvlc_camera.cpp \
+	zm_libvlc_camera.cpp \
 	zm_local_camera.cpp \
 	zm_monitor.cpp \
 	zm_ffmpeg.cpp \
@@ -56,7 +56,7 @@ zm_SOURCES = \
 	zm_user.cpp \
 	$(SOURCES_common)
 
-# These source files are used both for zm binaries and the libzmplugins
+# These source files are used both for zm binaries and the libzm
 # convenience library
 SOURCES_common = \
 	zm_config.cpp \
@@ -69,7 +69,7 @@ SOURCES_common = \
 	zm_thread.cpp \
 	zm_zone.cpp
 
-# These header files are used both for zm binaries and the libzmplugins
+# These header files are used both for zm binaries and the libzm
 # convenience library
 HEADERS_common = \
 	jinclude.h \
@@ -101,10 +101,12 @@ zmstreamer_SOURCES = zmstreamer.cpp $(zm_SOURCES)
 
 # These libraries are linked only to zm binaries in order to avoid detection
 # of unwanted dependencies during plugin packaging
-zm_LDADD = @DL_LIBS@ @PCRE_LIBS@ @CURL_LIBS@ @BZ2_LIBS@ @X264_LIBS@  \
-	@SWSCALE_LIBS@ @AVFORMAT_LIBS@ @AVCODEC_LIBS@ @AVUTIL_LIBS@ \
-	@AVDEVICE_LIBS@ @AVCORE_LIBS@ @VLC_LIBS@ @CRYPTO_LIBS@ @GCRYPT_LIBS@ \
-	@GNUTLS_LIBS@ @GNUTLS_OPENSSL_LIBS@
+zm_LDADD = @DL_LIBS@ @PCRE_LIBS@ @CURL_LIBS@ @SWSCALE_LIBS@ @AVFORMAT_LIBS@ \
+	@AVCODEC_LIBS@ @AVUTIL_LIBS@ @AVCORE_LIBS@ @VLC_LIBS@ @CRYPTO_LIBS@ \
+	@GCRYPT_LIBS@ @GNUTLS_OPENSSL_LIBS@
+
+# Additionnal libraries to be added manually if required
+# BZ2_LIBS X264_LIBS AVDEVICE_LIBS GNUTLS_LIBS
 
 zmc_LDADD = $(zm_LDADD)
 zma_LDADD = $(zm_LDADD)
@@ -123,7 +125,7 @@ noinst_HEADERS = \
 	zm_file_camera.h \
 	zm_ffmpeg_camera.h \
 	zm_font.h \
-    zm_libvlc_camera.h \
+	zm_libvlc_camera.h \
 	zm_local_camera.h \
 	zm_monitor.h \
 	zm_regexp.h \
@@ -151,12 +153,12 @@ zm_SOURCES += \
 	zm_plugin_manager.cpp
 
 # Build a convenience library for plugin development
-noinst_LTLIBRARIES = libzmplugins.la
-libzmplugins_la_SOURCES = zm_detector.cpp $(SOURCES_common)
+noinst_LTLIBRARIES = libzm.la
+libzm_la_SOURCES = zm_detector.cpp $(SOURCES_common)
 
 # A hack to avoid conflicts between objects created both with libtool
-# and without (objects will be prefixed with "libzmplugins_la")
-libzmplugins_la_CPPFLAGS = $(AM_CPPFLAGS)
+# and without (objects will be prefixed with "libzm_la")
+libzm_la_CPPFLAGS = $(AM_CPPFLAGS)
 
 # Install the necessary headers for plugin development
 pkginclude_HEADERS = \
@@ -165,11 +167,6 @@ pkginclude_HEADERS = \
 	zm_plugin.h \
 	zm_plugin_manager.h \
 	$(HEADERS_common)
-
-# Install a pkg-config file for a proper handling of the libzmplugins
-# convenience library
-pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = libzmplugins.pc
 else
 # Don't intall plugin headers if no support
 noinst_HEADERS += \
@@ -188,14 +185,14 @@ dist-hook:
 	@( rm $(distdir)/zm_config.h )
 
 # Yes, you are correct. This is a HACK!
-# And the manual installation of libzmplugins.a is necessary because libtool has
+# And the manual installation of libzm.a is necessary because libtool has
 # no option to force installation of convenience libraries.
 install-exec-hook:
 	( cd $(DESTDIR)@bindir@; mkdir -p $(DESTDIR)$(cgidir); mv zms $(DESTDIR)$(cgidir) )
 	( cd $(DESTDIR)$(cgidir); chown $(webuser):$(webgroup) zms; ln -f zms nph-zms )
-	install -D -m 644 .libs/libzmplugins.a $(DESTDIR)$(libdir)/libzmplugins.a
+	install -D -m 644 .libs/libzm.a $(DESTDIR)$(libdir)/libzm.a
 
 uninstall-hook:
 	( cd $(DESTDIR)$(cgidir); rm -f zms nph-zms )
-	( cd $(DESTDIR)$(libdir); rm -f libzmplugins.a )
+	( cd $(DESTDIR)$(libdir); rm -f libzm.a )
 

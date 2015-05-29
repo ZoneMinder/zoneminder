@@ -102,7 +102,7 @@ int main(int argc, char** argv) {
                 printf("-v : This installed version of ZoneMinder\n");
                 return EXIT_SUCCESS;
             case 'v':
-                cout << ZM_VERSION << "\n";
+                std::cout << ZM_VERSION << "\n";
                 exit(0);
         }
     }

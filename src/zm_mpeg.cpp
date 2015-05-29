@@ -48,7 +48,7 @@ void VideoStream::Initialise( )
         av_log_set_level( AV_LOG_QUIET ); 
 	
 	av_register_all( );
-#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(53, 13, 0)
+#if LIBAVFORMAT_VERSION_CHECK(53, 13, 0, 19, 0)
 	avformat_network_init();
 #endif
 	initialised = true;
@@ -58,7 +58,7 @@ void VideoStream::SetupFormat( )
 {
 	/* allocate the output media context */
 	ofc = NULL;
-#if ((LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(53, 5, 0)) && (LIBAVFORMAT_VERSION_MICRO >= 100))
+#if LIBAVFORMAT_VERSION_CHECK(53, 2, 0, 2, 0)
 	avformat_alloc_output_context2( &ofc, NULL, format, filename );
 #else
 	AVFormatContext *s= avformat_alloc_context();
@@ -69,7 +69,7 @@ void VideoStream::SetupFormat( )
 	
 	AVOutputFormat *oformat;
 	if (format) {
-#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(52, 45, 0)
+#if LIBAVFORMAT_VERSION_CHECK(52, 45, 0, 45, 0)
 		oformat = av_guess_format(format, NULL, NULL);
 #else
 		oformat = guess_format(format, NULL, NULL);
@@ -78,7 +78,7 @@ void VideoStream::SetupFormat( )
 			Fatal( "Requested output format '%s' is not a suitable output format", format );
 		}
 	} else {
-#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(52, 45, 0)
+#if LIBAVFORMAT_VERSION_CHECK(52, 45, 0, 45, 0)
 		oformat = av_guess_format(NULL, filename, NULL);
 #else
 		oformat = guess_format(NULL, filename, NULL);
@@ -95,7 +95,7 @@ void VideoStream::SetupFormat( )
 		{
 			Fatal( "Could not allocate private data for output format." );
 		}
-#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(52, 92, 0)
+#if LIBAVFORMAT_VERSION_CHECK(52, 92, 0, 92, 0)
 		if (s->oformat->priv_class) {
 			*(const AVClass**)s->priv_data = s->oformat->priv_class;
 			av_opt_set_defaults(s->priv_data);
@@ -186,7 +186,7 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
             }
             else
             {
-#if ((LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(53, 11, 0)) && (LIBAVFORMAT_VERSION_MICRO >= 100))
+#if LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 11, 0)
                     Debug( 1, "Could not find codec \"%s\". Using default \"%s\"", codec_name, avcodec_get_name( codec_id ) );
 #else
                     Debug( 1, "Could not find codec \"%s\". Using default \"%d\"", codec_name, codec_id );
@@ -202,20 +202,20 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
 		codec = avcodec_find_encoder( codec_id );
 		if ( !codec )
 		{
-#if ((LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(53, 11, 0)) && (LIBAVFORMAT_VERSION_MICRO >= 100))
+#if LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 11, 0)
 			Fatal( "Could not find encoder for '%s'", avcodec_get_name( codec_id ) );
 #else
 			Fatal( "Could not find encoder for '%d'", codec_id );
 #endif
 		}
 
-#if ((LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(53, 11, 0)) && (LIBAVFORMAT_VERSION_MICRO >= 100))
+#if LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 11, 0)
 		Debug( 1, "Found encoder for '%s'", avcodec_get_name( codec_id ) );
 #else
 		Debug( 1, "Found encoder for '%d'", codec_id );
 #endif
 
-#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(53, 10, 0)		
+#if LIBAVFORMAT_VERSION_CHECK(53, 10, 0, 17, 0)
 		ost = avformat_new_stream( ofc, codec );
 #else
 		ost = av_new_stream( ofc, 0 );
@@ -311,7 +311,7 @@ void VideoStream::OpenStream( )
 		AVCodecContext *c = ost->codec;
 		
 		/* open the codec */
-#if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(53, 7, 0)
+#if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
 		if ( (avRet = avcodec_open( c, codec )) < 0 )
 #else
 		if ( (avRet = avcodec_open2( c, codec, 0 )) < 0 )
@@ -323,7 +323,11 @@ void VideoStream::OpenStream( )
 		Debug( 1, "Opened codec" );
 
 		/* allocate the encoded raw picture */
+#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
+		opicture = av_frame_alloc( );
+#else
 		opicture = avcodec_alloc_frame( );
+#endif
 		if ( !opicture )
 		{
 			Panic( "Could not allocate opicture" );
@@ -344,7 +348,11 @@ void VideoStream::OpenStream( )
 		tmp_opicture = NULL;
 		if ( c->pix_fmt != pf )
 		{
+#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
+			tmp_opicture = av_frame_alloc( );
+#else
 			tmp_opicture = avcodec_alloc_frame( );
+#endif
 			if ( !tmp_opicture )
 			{
 				Panic( "Could not allocate tmp_opicture" );
@@ -364,9 +372,9 @@ void VideoStream::OpenStream( )
 	if ( !(of->flags & AVFMT_NOFILE) )
 	{
 		int ret;
-#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(53, 14, 0)
+#if LIBAVFORMAT_VERSION_CHECK(53, 15, 0, 21, 0)
 		ret = avio_open2( &ofc->pb, filename, AVIO_FLAG_WRITE, NULL, NULL );
-#elif LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(52, 102, 0)
+#elif LIBAVFORMAT_VERSION_CHECK(52, 102, 0, 102, 0)
 		ret = avio_open( &ofc->pb, filename, AVIO_FLAG_WRITE );
 #else
 		ret = url_fopen( &ofc->pb, filename, AVIO_FLAG_WRITE );
@@ -395,19 +403,19 @@ void VideoStream::OpenStream( )
 			Fatal("Unable to malloc memory for outbuf");
 		}
 	}
-	
-#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(52, 100, 1)
+
+#if LIBAVFORMAT_VERSION_CHECK(52, 101, 0, 101, 0)
 	av_dump_format(ofc, 0, filename, 1);
 #else
 	dump_format(ofc, 0, filename, 1);
 #endif
-    
-#if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(53, 4, 0)
+
+#if !LIBAVFORMAT_VERSION_CHECK(53, 2, 0, 4, 0)
     int ret = av_write_header( ofc );
 #else
     int ret = avformat_write_header( ofc, NULL );
 #endif
-    
+
     if ( ret < 0 )
     {
         Fatal( "?_write_header failed with error %d \"%s\"", ret, av_err2str( ret ) );
@@ -525,7 +533,7 @@ VideoStream::~VideoStream( )
 	if ( !(of->flags & AVFMT_NOFILE) )
 	{
 		/* close the output file */
-#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
+#if LIBAVFORMAT_VERSION_CHECK(52, 105, 0, 105, 0)
 		avio_close( ofc->pb );
 #else
 		url_fclose( ofc->pb );
@@ -625,7 +633,7 @@ double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size,
     int got_packet = 0;
 	if ( of->flags & AVFMT_RAWPICTURE )
 	{
-#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51, 2, 1)
+#if LIBAVCODEC_VERSION_CHECK(52, 30, 2, 30, 2)
 		pkt->flags |= AV_PKT_FLAG_KEY;
 #else
 		pkt->flags |= PKT_FLAG_KEY;
@@ -640,7 +648,7 @@ double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size,
 		opicture_ptr->pts = c->frame_number;
 		opicture_ptr->quality = c->global_quality;
 
-#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(54, 0, 0)
+#if LIBAVFORMAT_VERSION_CHECK(54, 1, 0, 2, 100)
 		int ret = avcodec_encode_video2( c, pkt, opicture_ptr, &got_packet );
 		if ( ret != 0 )
 		{
@@ -656,7 +664,7 @@ double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size,
 		{
 			if ( c->coded_frame->key_frame )
 			{
-#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
+#if LIBAVCODEC_VERSION_CHECK(52, 30, 2, 30, 2)
 				pkt->flags |= AV_PKT_FLAG_KEY;
 #else
 				pkt->flags |= PKT_FLAG_KEY;

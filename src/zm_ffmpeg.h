@@ -32,7 +32,16 @@ extern "C" {
 #include <libavutil/avutil.h>
 #include <libavutil/base64.h>
 #include <libavutil/mathematics.h>
-#if LIBAVUTIL_VERSION_INT > AV_VERSION_INT(50, 28, 0)
+
+/* LIBAVUTIL_VERSION_CHECK checks for the right version of libav and FFmpeg
+ * a is the major version
+ * b and c the minor and micro versions of libav
+ * d and e the minor and micro versions of FFmpeg */
+#define LIBAVUTIL_VERSION_CHECK(a, b, c, d, e) \
+    ( (LIBAVUTIL_VERSION_MICRO <  100 && LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(a, b, c) ) || \
+      (LIBAVUTIL_VERSION_MICRO >= 100 && LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(a, d, e) ) )
+
+#if LIBAVUTIL_VERSION_CHECK(50, 29, 0, 29, 0)
 #include <libavutil/opt.h>
 #else
 #include <libavcodec/opt.h>
@@ -42,43 +51,79 @@ extern "C" {
 #include <ffmpeg/base64.h>
 #include <ffmpeg/mathematics.h>
 #include <ffmpeg/opt.h>
-#endif
+#endif /* HAVE_LIBAVUTIL_AVUTIL_H */
 
 // AVCODEC
 #if HAVE_LIBAVCODEC_AVCODEC_H
 #include <libavcodec/avcodec.h>
+
+/* LIBAVCODEC_VERSION_CHECK checks for the right version of libav and FFmpeg
+ * a is the major version
+ * b and c the minor and micro versions of libav
+ * d and e the minor and micro versions of FFmpeg */
+#define LIBAVCODEC_VERSION_CHECK(a, b, c, d, e) \
+    ( (LIBAVCODEC_VERSION_MICRO <  100 && LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(a, b, c) ) || \
+      (LIBAVCODEC_VERSION_MICRO >= 100 && LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(a, d, e) ) )
+
 #elif HAVE_FFMPEG_AVCODEC_H
 #include <ffmpeg/avcodec.h>
-#endif
-	
+#endif /* HAVE_LIBAVCODEC_AVCODEC_H */
+
 #if defined(HAVE_LIBAVCODEC_AVCODEC_H)
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54,25,0)
+#if LIBAVCODEC_VERSION_CHECK(54, 25, 0, 51, 100)
     #define _AVCODECID AVCodecID
 #else
     #define _AVCODECID CodecID
 #endif
-#endif
+#endif /* HAVE_LIBAVCODEC_AVCODEC_H */
 
 // AVFORMAT
 #if HAVE_LIBAVFORMAT_AVFORMAT_H
 #include <libavformat/avformat.h>
+
+/* LIBAVFORMAT_VERSION_CHECK checks for the right version of libav and FFmpeg
+ * a is the major version
+ * b and c the minor and micro versions of libav
+ * d and e the minor and micro versions of FFmpeg */
+#define LIBAVFORMAT_VERSION_CHECK(a, b, c, d, e) \
+    ( (LIBAVFORMAT_VERSION_MICRO <  100 && LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(a, b, c) ) || \
+      (LIBAVFORMAT_VERSION_MICRO >= 100 && LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(a, d, e) ) )
+
 #elif HAVE_FFMPEG_AVFORMAT_H
 #include <ffmpeg/avformat.h>
-#endif
+#endif /* HAVE_LIBAVFORMAT_AVFORMAT_H */
 
 // AVDEVICE
 #if HAVE_LIBAVDEVICE_AVDEVICE_H
 #include <libavdevice/avdevice.h>
+
+/* LIBAVDEVICE_VERSION_CHECK checks for the right version of libav and FFmpeg
+ * a is the major version
+ * b and c the minor and micro versions of libav
+ * d and e the minor and micro versions of FFmpeg */
+#define LIBAVDEVICE_VERSION_CHECK(a, b, c, d, e) \
+    ( (LIBAVDEVICE_VERSION_MICRO <  100 && LIBAVDEVICE_VERSION_INT >= AV_VERSION_INT(a, b, c) ) || \
+      (LIBAVDEVICE_VERSION_MICRO >= 100 && LIBAVDEVICE_VERSION_INT >= AV_VERSION_INT(a, d, e) ) )
+
 #elif HAVE_FFMPEG_AVDEVICE_H
 #include <ffmpeg/avdevice.h>
-#endif
+#endif /* HAVE_LIBAVDEVICE_AVDEVICE_H */
 
 // SWSCALE
 #if HAVE_LIBSWSCALE_SWSCALE_H
 #include <libswscale/swscale.h>
+
+/* LIBSWSCALE_VERSION_CHECK checks for the right version of libav and FFmpeg
+ * a is the major version
+ * b and c the minor and micro versions of libav
+ * d and e the minor and micro versions of FFmpeg */
+#define LIBSWSCALE_VERSION_CHECK(a, b, c, d, e) \
+    ( (LIBSWSCALE_VERSION_MICRO <  100 && LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(a, b, c) ) || \
+      (LIBSWSCALE_VERSION_MICRO >= 100 && LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(a, d, e) ) )
+
 #elif HAVE_FFMPEG_SWSCALE_H
 #include <ffmpeg/swscale.h>
-#endif
+#endif /* HAVE_LIBSWSCALE_SWSCALE_H */
 
 #ifdef __cplusplus
 }
@@ -86,7 +131,7 @@ extern "C" {
 
 #if ( HAVE_LIBAVUTIL_AVUTIL_H || HAVE_LIBAVCODEC_AVCODEC_H || HAVE_LIBAVFORMAT_AVFORMAT_H || HAVE_LIBAVDEVICE_AVDEVICE_H )
 
-#if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(53, 4, 0)
+#if !LIBAVFORMAT_VERSION_CHECK(52, 107, 0, 107, 0)
  #if defined(AVIO_WRONLY)
    #define AVIO_FLAG_WRITE AVIO_WRONLY
  #else
@@ -129,7 +174,7 @@ protected:
 };
 #endif // HAVE_LIBSWSCALE && HAVE_LIBAVUTIL
 
-#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 25, 0)
+#if LIBAVCODEC_VERSION_CHECK(54, 25, 0, 51, 100)
 #define AV_CODEC_ID_NONE CODEC_ID_NONE
 #define AV_CODEC_ID_PCM_MULAW CODEC_ID_PCM_MULAW
 #define AV_CODEC_ID_PCM_ALAW CODEC_ID_PCM_ALAW
@@ -165,18 +210,18 @@ protected:
     inline static const std::string av_make_error_string(int errnum)
     {
         char errbuf[AV_ERROR_MAX_STRING_SIZE];
-#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(50, 12, 13)
+#if LIBAVUTIL_VERSION_CHECK(50, 13, 0, 13, 0)
         av_strerror(errnum, errbuf, AV_ERROR_MAX_STRING_SIZE);
 #else
 		snprintf(errbuf, AV_ERROR_MAX_STRING_SIZE, "libav error %d", errnum);
 #endif
         return (std::string)errbuf;
     }
-	
+
     #undef av_err2str
     #define av_err2str(errnum) av_make_error_string(errnum).c_str()
 
-    #endif // __cplusplus 
+    #endif // __cplusplus
 
 
 #endif // ( HAVE_LIBAVUTIL_AVUTIL_H || HAVE_LIBAVCODEC_AVCODEC_H || HAVE_LIBAVFORMAT_AVFORMAT_H || HAVE_LIBAVDEVICE_AVDEVICE_H )

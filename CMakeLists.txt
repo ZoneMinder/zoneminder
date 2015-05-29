@@ -119,6 +119,14 @@ set(ZM_PERL_SEARCH_PATH "" CACHE PATH
 	installed outside Perl's default search path.")
 set(ZM_TARGET_DISTRO "" CACHE STRING 
     "Build ZoneMinder for a specific distribution.  Currently, valid names are: f21, f20, el6, OS13")
+set(ZM_OPENSSL "OFF" CACHE BOOL
+    "Set to ON to enable OpenSSL library support. This option is disabled by
+    default because some terms of the OpenSSL license are incompatible with
+    the GPL. Therefore linking ZoneMinder libraries or binaries with OpenSSL
+    makes them nonfree and unredistributable")
+set(ZM_NONFREE "OFF" CACHE BOOL
+    "Set to ON to enable nonfree code, the resulting libraries or binaries
+    will be unredistributable")
 
 # Reassign some variables if a target distro has been specified
 if((ZM_TARGET_DISTRO STREQUAL "f21") OR (ZM_TARGET_DISTRO STREQUAL "f20"))
@@ -249,19 +257,25 @@ else(JPEG_FOUND)
             "ZoneMinder requires jpeg but it was not found on your system")
 endif(JPEG_FOUND)
 
-# OpenSSL
-find_package(OpenSSL)
-if(OPENSSL_FOUND)
-	set(HAVE_LIBOPENSSL 1)
-	set(HAVE_LIBCRYPTO 1)
-	list(APPEND ZM_BIN_LIBS "${OPENSSL_LIBRARIES}")
-	include_directories("${OPENSSL_INCLUDE_DIR}")
-	set(CMAKE_REQUIRED_INCLUDES "${OPENSSL_INCLUDE_DIR}")
-	check_include_file("openssl/md5.h" HAVE_OPENSSL_MD5_H)
-	set(optlibsfound "${optlibsfound} OpenSSL")
-else(OPENSSL_FOUND)
-	set(optlibsnotfound "${optlibsnotfound} OpenSSL")
-endif(OPENSSL_FOUND)
+# Do not check for OpenSSL if ZM_OPENSSL is off
+if(ZM_OPENSSL)
+	if(NOT ZM_NONFREE)
+		message(FATAL_ERROR
+                    "Linking ZoneMinder with OpenSSL library requires to enable nonfree code. The resulting libraries or binaries will be unredistributable.")
+	endif(NOT ZM_NONFREE)
+	find_package(OpenSSL)
+	if(OPENSSL_FOUND)
+		set(HAVE_LIBOPENSSL 1)
+		set(HAVE_LIBCRYPTO 1)
+		list(APPEND ZM_BIN_LIBS "${OPENSSL_LIBRARIES}")
+		include_directories("${OPENSSL_INCLUDE_DIR}")
+		set(CMAKE_REQUIRED_INCLUDES "${OPENSSL_INCLUDE_DIR}")
+		check_include_file("openssl/md5.h" HAVE_OPENSSL_MD5_H)
+		set(optlibsfound "${optlibsfound} OpenSSL")
+	else(OPENSSL_FOUND)
+		set(optlibsnotfound "${optlibsnotfound} OpenSSL")
+	endif(OPENSSL_FOUND)
+endif(ZM_OPENSSL)
 
 # pthread (using find_library and find_path)
 find_library(PTHREAD_LIBRARIES pthread)

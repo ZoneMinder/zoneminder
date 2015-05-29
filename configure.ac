@@ -294,6 +294,16 @@ else
   AC_SUBST(ZM_HAS_ONVIF,0)
 fi
 
+ENABLE_NONFREE=no
+AC_ARG_ENABLE(nonfree,
+    [  --enable-nonfree=<yes|no> enable nonfree code building, default disabled],
+    AC_MSG_WARN([You can call configure with the --enable-nonfree=<yes|no> or --enable-nonfree option.
+    This tells configure whether to enable linking of non GPL libraries that would make ZoneMinder
+    libraries or binaries nonfree and unredistributable.
+    e.g. --enable-nonfree=yes or --disable-nonfree])
+)
+
+
 # Checks for programs.
 AC_PROG_CXX
 AC_PROG_CC
@@ -342,6 +352,11 @@ if test "$BSD" == "0"; then
 AC_CHECK_LIB(dl,dlsym,,AC_MSG_ERROR(zm requires libdl.a))
 fi
 if test "$ZM_SSL_LIB" == "openssl"; then
+    if test "$ENABLE_NONFREE" != "yes"; then
+        AC_MSG_ERROR([Building ZoneMinder with OpenSSL library requires to enable nonfree code.
+        Some terms of the OpenSSL license are incompatible with the GPL. Therefore linking ZoneMinder
+        libraries or binaries with OpenSSL makes them nonfree and unredistributable])
+    fi
 AC_CHECK_HEADERS(openssl/md5.h,,AC_MSG_WARN(zm requires openssl/md5.h header to be installed for openssl),)
 AC_CHECK_LIB(crypto,MD5,,AC_MSG_WARN([libcrypto.a is required for authenticated streaming - use ZM_SSL_LIB option to select gnutls instead]))
 else

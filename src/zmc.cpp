@@ -117,7 +117,7 @@ int main( int argc, char *argv[] )
 				Usage();
 				break;
 			case 'v':
-				cout << ZM_VERSION << "\n";
+				std::cout << ZM_VERSION << "\n";
 				exit(0);
 			default:
 				//fprintf( stderr, "?? getopt returned character code 0%o ??\n", c );

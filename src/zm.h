@@ -33,6 +33,8 @@
 
 #include <stdint.h>
 
+#include <iostream>
+
 extern const char* self;
 
 #endif // ZM_H

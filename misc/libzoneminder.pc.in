@@ -12,6 +12,6 @@ Version: @PACKAGE_VERSION@
 Requires:
 Requires.private:
 Conflicts:
-Libs: -L${libdir} -lzmplugins @LIBS@
+Libs: -L${libdir} -lzoneminder @LIBS@
 Libs.private :
 Cflags: -I${includedir}/@PACKAGE@

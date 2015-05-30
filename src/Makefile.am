@@ -56,7 +56,7 @@ zm_SOURCES = \
 	zm_user.cpp \
 	$(SOURCES_common)
 
-# These source files are used both for zm binaries and the libzm
+# These source files are used both for zm binaries and the libzoneminder
 # convenience library
 SOURCES_common = \
 	zm_config.cpp \
@@ -69,7 +69,7 @@ SOURCES_common = \
 	zm_thread.cpp \
 	zm_zone.cpp
 
-# These header files are used both for zm binaries and the libzm
+# These header files are used both for zm binaries and the libzoneminder
 # convenience library
 HEADERS_common = \
 	jinclude.h \
@@ -153,12 +153,12 @@ zm_SOURCES += \
 	zm_plugin_manager.cpp
 
 # Build a convenience library for plugin development
-noinst_LTLIBRARIES = libzm.la
-libzm_la_SOURCES = zm_detector.cpp $(SOURCES_common)
+noinst_LTLIBRARIES = libzoneminder.la
+libzoneminder_la_SOURCES = zm_detector.cpp $(SOURCES_common)
 
 # A hack to avoid conflicts between objects created both with libtool
-# and without (objects will be prefixed with "libzm_la")
-libzm_la_CPPFLAGS = $(AM_CPPFLAGS)
+# and without (objects will be prefixed with "libzoneminder_la")
+libzoneminder_la_CPPFLAGS = $(AM_CPPFLAGS)
 
 # Install the necessary headers for plugin development
 pkginclude_HEADERS = \
@@ -185,14 +185,14 @@ dist-hook:
 	@( rm $(distdir)/zm_config.h )
 
 # Yes, you are correct. This is a HACK!
-# And the manual installation of libzm.a is necessary because libtool has
+# And the manual installation of libzoneminder.a is necessary because libtool has
 # no option to force installation of convenience libraries.
 install-exec-hook:
 	( cd $(DESTDIR)@bindir@; mkdir -p $(DESTDIR)$(cgidir); mv zms $(DESTDIR)$(cgidir) )
 	( cd $(DESTDIR)$(cgidir); chown $(webuser):$(webgroup) zms; ln -f zms nph-zms )
-	install -D -m 644 .libs/libzm.a $(DESTDIR)$(libdir)/libzm.a
+	install -D -m 644 .libs/libzoneminder.a $(DESTDIR)$(libdir)/libzoneminder.a
 
 uninstall-hook:
 	( cd $(DESTDIR)$(cgidir); rm -f zms nph-zms )
-	( cd $(DESTDIR)$(libdir); rm -f libzm.a )
+	( cd $(DESTDIR)$(libdir); rm -f libzoneminder.a )
 

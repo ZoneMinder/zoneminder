@@ -26,7 +26,7 @@ m4/*
 misc/apache.conf
 misc/com.zoneminder.systemctl.policy
 misc/com.zoneminder.systemctl.rules
-misc/libzm.pc
+misc/libzoneminder.pc
 misc/logrotate.conf
 misc/syslog.conf
 misc/plugins.conf

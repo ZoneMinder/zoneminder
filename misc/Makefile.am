@@ -15,7 +15,7 @@ EXTRA_DIST += plugins.conf.in
 # Install a pkg-config file for a proper handling of the libzm
 # convenience library
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = libzm.pc
+pkgconfig_DATA = libzoneminder.pc
 
 sysconf_DATA = plugins.conf
 endif

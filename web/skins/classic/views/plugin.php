@@ -18,7 +18,6 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-
 if ( !canView( 'Monitors' ) )
 {
     $view = "error";
@@ -41,9 +40,6 @@ $plugin = $_REQUEST['pl'];
 $plugin_path = dirname($_SERVER['SCRIPT_FILENAME'])."/plugins/".$plugin;
 
 $focusWindow = true;
-
-xhtmlHeaders(__FILE__, translate('Plugin') );
-
 
 $generalOptions = array(
    'Enabled' => array(
@@ -247,12 +243,12 @@ function isEnabled($param)
    return true;
 }
 
-xhtmlHeaders(__FILE__, $SLANG['Plugin'] );
+xhtmlHeaders(__FILE__, pLang['Plugin'] );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?php echo translate('Monitor') ?> <?php echo $monitor['Name'] ?> - <?php echo translate('Zone') ?> <?php echo $newZone['Name'] ?> - <?php echo translate('Plugin') ?> <?php echo $plugin ?></h2>
+      <h2><?php echo pLang('Monitor') ?> <?php echo $monitor['Name'] ?> - <?php echo pLang('Zone') ?> <?php echo $newZone['Name'] ?> - <?php echo pLang('Plugin') ?> <?php echo $plugin ?></h2>
     </div>
     <div id="content">
       <form name="pluginForm" id="pluginForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
@@ -327,7 +323,7 @@ foreach($pOptions as $key => $popt)
                       <input type="text" name="dsp_input_pluginOpt[<?php echo $key; ?>]" id="dsp_input_pluginOpt[<?php echo $key; ?>]" <?php if (!isEnabled($key)) echo 'disabled="disabled"'; ?> onkeyup="updateAddBtn('<?php echo $key; ?>');" />
                     </td>
                     <td>
-                      <input type="button" name="addBtn[<?php echo $key; ?>]" id="addBtn[<?php echo $key; ?>]" value="<?php echo $SLANG['Add'] ?>" onclick="addOption('<?php echo $key; ?>');" disabled="disabled" />
+                      <input type="button" name="addBtn[<?php echo $key; ?>]" id="addBtn[<?php echo $key; ?>]" value="<?php echo pLang('Add') ?>" onclick="addOption('<?php echo $key; ?>');" disabled="disabled" />
                     </td>
                   </tr><tr>
                     <td>
@@ -346,7 +342,7 @@ foreach($pOptions as $key => $popt)
                       <input type="hidden" name="pluginOpt[<?php echo $key; ?>]" id="pluginOpt[<?php echo $key; ?>]" value="<?php echo $popt['Value']; ?>" />
                     </td>
                     <td>
-                      <input type="button" name="removeBtn[<?php echo $key; ?>]" id="removeBtn[<?php echo $key; ?>]" value="<?php echo $SLANG['Remove'] ?>" onclick="removeOptionSelected('<?php echo $key; ?>');" <?php if ($nbopt == 0) echo 'disabled="disabled"'; ?> />
+                      <input type="button" name="removeBtn[<?php echo $key; ?>]" id="removeBtn[<?php echo $key; ?>]" value="<?php echo pLang('Remove') ?>" onclick="removeOptionSelected('<?php echo $key; ?>');" <?php if ($nbopt == 0) echo 'disabled="disabled"'; ?> />
                     </td>
                   </tr>
                 </table></td>
@@ -362,7 +358,7 @@ foreach($pOptions as $key => $popt)
 ?>
             </tbody>
           </table>
-          <input type="submit" id="submitBtn" name="submitBtn" value="<?php echo translate('Save') ?>" onclick="return saveChanges( this )"<?php if (!canEdit( 'Monitors' ) || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
+          <input type="submit" id="submitBtn" name="submitBtn" value="<?php echo pLang('Save') ?>" onclick="return saveChanges( this )"<?php if (!canEdit( 'Monitors' ) || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo pLang('Cancel') ?>" onclick="closeWindow()"/>
         </div>
       </form>
     </div>

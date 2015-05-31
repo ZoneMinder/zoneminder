@@ -22,7 +22,9 @@ override_dh_auto_configure:
 		-DZM_CGIDIR=/usr/lib/cgi-bin \
 		-DZM_WEB_USER=www-data \
 		-DZM_WEB_GROUP=www-data \
-		-DCMAKE_INSTALL_SYSCONFDIR=etc/zm
+		-DCMAKE_INSTALL_SYSCONFDIR=etc/zm \
+		-DZM_PLUGIN_SUPPORT=ON \
+		-DZM_PLUGINSPKGLIBDIR=/usr/lib/zoneminder/plugins
 
 override_dh_auto_install:
 	dh_auto_install --buildsystem=cmake

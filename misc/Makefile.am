@@ -9,12 +9,12 @@ EXTRA_DIST = \
 	com.zoneminder.systemctl.policy.in \
 	com.zoneminder.systemctl.rules.in
 
-if ZM_HAS_PLUGIN_SUPPORT
+if ZM_PLUGIN_SUPPORT
 EXTRA_DIST += plugins.conf.in
 
-# Install a pkg-config file for a proper handling of the libzm
+# Install a pkg-config file for a proper handling of the libzoneminder
 # convenience library
-pkgconfigdir = $(libdir)/pkgconfig
+pkgconfigdir = ${libdir}/pkgconfig
 pkgconfig_DATA = libzoneminder.pc
 
 sysconf_DATA = plugins.conf

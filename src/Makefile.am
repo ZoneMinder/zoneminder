@@ -144,7 +144,7 @@ noinst_HEADERS = \
 	zm_timer.h \
 	zm_user.h
 
-if ZM_HAS_PLUGIN_SUPPORT
+if ZM_PLUGIN_SUPPORT
 # Add objects to zm binaries for plugins management
 zm_SOURCES += \
 	zm_detector.cpp \

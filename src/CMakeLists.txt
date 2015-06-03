@@ -10,6 +10,18 @@ if(ZM_PLUGIN_SUPPORT)
 	set(ZM_BIN_SRC_FILES ${ZM_BIN_SRC_FILES} zm_detector.cpp zm_image_analyser.cpp zm_plugin.cpp zm_plugin_manager.cpp)
 endif(ZM_PLUGIN_SUPPORT)
 
+# with -fPIC
+IF(UNIX AND NOT WIN32)
+	FIND_PROGRAM(CMAKE_UNAME uname /bin /usr/bin /usr/local/bin )
+	IF(CMAKE_UNAME)
+		EXEC_PROGRAM(uname ARGS -m OUTPUT_VARIABLE CMAKE_SYSTEM_PROCESSOR)
+		SET(CMAKE_SYSTEM_PROCESSOR ${CMAKE_SYSTEM_PROCESSOR} CACHE INTERNAL "processor type (i386 and x86_64)")
+		IF(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
+			ADD_DEFINITIONS(-fPIC)
+		ENDIF(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
+	ENDIF(CMAKE_UNAME)
+ENDIF(UNIX AND NOT WIN32)
+
 # A fix for cmake recompiling the source files for every target.
 add_library(zoneminder STATIC ${ZM_BIN_SRC_FILES})
 

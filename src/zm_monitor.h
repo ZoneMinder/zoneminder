@@ -246,6 +246,8 @@ protected:
 	double			fps;
 	Image			delta_image;
 	Image			ref_image;
+    Image           alarm_image;    // Used in creating analysis images, will be initialized in Analysis
+    Image           write_image;        // Used when creating snapshot images
 
 	Purpose			purpose;			    // What this monitor has been created to do
 	int				event_count;
@@ -349,7 +351,7 @@ public:
       
  
 	State GetState() const;
-	int GetImage( int index=-1, int scale=100 ) const;
+	int GetImage( int index=-1, int scale=100 );
 	struct timeval GetTimestamp( int index=-1 ) const;
 	int GetCaptureDelay() const { return( capture_delay ); }
 	int GetAlarmCaptureDelay() const { return( alarm_capture_delay ); }

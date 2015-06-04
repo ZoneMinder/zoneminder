@@ -7,6 +7,16 @@ export CFLAGS = -g -O2 -fstack-protector --param=ssp-buffer-size=4 -Wformat -pip
 export CXXFLAGS = -g -O2 -fstack-protector --param=ssp-buffer-size=4 -Wformat -pipe
 INSTDIR = debian/tmp
 
+# These are used to get the most recent version of the original sources from github
+UURL = $(shell git config --get remote.origin.url)
+BRANCH = $(shell git rev-parse --abbrev-ref HEAD)
+HEAD = $(shell git rev-parse HEAD)
+PKD  = $(abspath $(dir $(MAKEFILE_LIST)))
+PKG  = $(word 2,$(shell dpkg-parsechangelog -l$(PKD)/changelog | grep ^Source))
+VER ?= $(shell dpkg-parsechangelog -l$(PKD)/changelog | perl -ne 'print $$1 if m{^Version:\s+(?:\d+:)?(\d.*)(?:\-|\+nmu\d+.*)};')
+DTYPE =
+TARBALL = ../$(PKG)_$(VER)$(DTYPE).orig.tar.xz
+
 %:
 	dh $@ --buildsystem=cmake --parallel --with systemd
 

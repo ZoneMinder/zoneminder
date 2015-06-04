@@ -61,7 +61,7 @@ if ( count($frames) )
         $class = strtolower($frame['Type']);
 ?>
             <tr class="<?php echo $class ?>">
-              <td class="colId"><?php echo makePopupLink( '?view=frame&amp;eid='.$event['Id'].'&amp;fid='.$frame['FrameId'], 'zmImage', array( 'image', $event['Width'], $event['Height'] ), $frame['FrameId'] ) ?></td>
+              <td class="colId"><?php echo makePopupLink( '?view=frame&amp;eid='.$event['Id'].'&amp;fid='.$frame['FrameId'], 'zmImage', array( 'frame', $event['Width'], $event['Height'] ), $frame['FrameId'] ) ?></td>
               <td class="colType"><?php echo $frame['Type'] ?></td>
               <td class="colTimeStamp"><?php echo strftime( STRF_FMT_TIME, $frame['UnixTimeStamp'] ) ?></td>
               <td class="colTimeDelta"><?php echo number_format( $frame['Delta'], 2 ) ?></td>

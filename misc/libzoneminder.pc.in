@@ -1,17 +1,17 @@
-prefix=@prefix@
-exec_prefix=${prefix}
-libdir=@libdir@
-pkglibdir = @PLUGINSLIBDIR@
-includedir=@includedir@
-sysconfdir = @PLUGINSCONFDIR@
-webdir = @PLUGINSWEBDIR@
+prefix = @ZM_PREFIX@
+exec_prefix = ${prefix}
+libdir = @ZM_PLUGINSLIBDIR@
+pkglibdir = @ZM_PLUGINSPKGLIBDIR@
+includedir = ${prefix}/include
+sysconfdir = @ZM_PLUGINSCONFDIR@
+webdir = @ZM_PLUGINSWEBDIR@
 
-Name: : ZoneMinder convenience library for plugin development.
+Name: @ZM_PROJECTNAME@
 Description: ZoneMinder convenience library for plugin development.
-Version: @PACKAGE_VERSION@
+Version: @ZM_VERSION@
 Requires:
 Requires.private:
 Conflicts:
 Libs: -L${libdir} -lzoneminder @LIBS@
-Libs.private :
-Cflags: -I${includedir}/@PACKAGE@
+Libs.private:
+Cflags: -I${includedir}/zoneminder

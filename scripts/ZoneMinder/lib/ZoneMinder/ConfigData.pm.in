@@ -3993,7 +3993,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
     },
     {
         name        => "ZM_PATH_PLUGINS",
-        default     => "@PLUGINSLIBDIR@",
+        default     => "@ZM_PLUGINSPKGLIBDIR@",
         description => "Path to the plugin folder",
         help        => "3d-party plugins have to be placed here.",
         type        => $types{abs_path},
@@ -4001,7 +4001,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
     },
     {
         name        => "ZM_PLUGIN_EXTENSION",
-        default     => "@PLUGINSEXT@",
+        default     => "@ZM_PLUGINSEXT@",
         description => "Default extension of plugins to found.",
         help        => "Default extension of plugins to found.",
         type        => $types{rel_path},
@@ -4017,7 +4017,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
     },
     {
         name        => "ZM_PLUGINS_CONFIG_DIR",
-        default     => "@PLUGINSCONFDIR@",
+        default     => "@ZM_PLUGINSCONFDIR@",
         description => "Path to the config folder for plugins.",
         help        => "Path to the config folder for plugins.",
         type        => $types{abs_path},

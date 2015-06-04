@@ -16,3 +16,12 @@ configure_file(zoneminder-tmpfiles.conf.in "${CMAKE_CURRENT_BINARY_DIR}/zonemind
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/com.zoneminder.systemctl.policy" DESTINATION "${PC_POLKIT_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/polkit-1/actions")
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/com.zoneminder.systemctl.rules" DESTINATION "${PC_POLKIT_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/polkit-1/rules.d")
 
+if(ZM_PLUGIN_SUPPORT)
+	configure_file(plugins.conf.in "${CMAKE_CURRENT_BINARY_DIR}/plugins.conf" @ONLY)
+	install(FILES "${CMAKE_CURRENT_BINARY_DIR}/plugins.conf" DESTINATION "${ZM_CONFIG_DIR}")
+	include(FindPkgConfig QUIET)
+	if(PKG_CONFIG_FOUND)
+	    configure_file(libzoneminder.pc.in "${CMAKE_CURRENT_BINARY_DIR}/libzoneminder.pc" @ONLY)
+	    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libzoneminder.pc" DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
+	endif()
+endif(ZM_PLUGIN_SUPPORT)

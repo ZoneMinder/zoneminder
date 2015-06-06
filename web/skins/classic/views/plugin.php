@@ -243,7 +243,7 @@ function isEnabled($param)
    return true;
 }
 
-xhtmlHeaders(__FILE__, pLang['Plugin'] );
+xhtmlHeaders(__FILE__, pLang('Plugin') );
 ?>
 <body>
   <div id="page">

@@ -23,7 +23,6 @@
 #include <vector>
 #include <sstream>
 
-#include "zm.h"
 #include "zm_coord.h"
 #include "zm_image.h"
 #include "zm_rgb.h"

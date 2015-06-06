@@ -29,9 +29,6 @@
 #include <ucontext.h>
 #endif
 
-
-#include "zm.h"
-
 typedef RETSIGTYPE (SigHandler)( int );
 
 extern bool zm_reload;

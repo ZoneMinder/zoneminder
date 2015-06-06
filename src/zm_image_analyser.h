@@ -1,8 +1,6 @@
 #ifndef ZM_IMAGE_ANALYSER_H
 #define ZM_IMAGE_ANALYSER_H
 
-
-
 #include <list>
 #include <string>
 #include <stdexcept>
@@ -10,17 +8,13 @@
 #include <memory>
 #include <algorithm>
 
-#include "zm.h"
 #include "zm_detector.h"
 #include "zm_image.h"
 #include "zm_zone.h"
 #include "zm_event.h"
 #include "zm_db.h"
 
-
-
 using namespace std;
-
 
 //! List of available detectors.
 typedef std::list<Detector *> DetectorsList;

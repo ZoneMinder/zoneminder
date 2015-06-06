@@ -20,7 +20,6 @@
 #ifndef ZM_RTSP_H
 #define ZM_RTSP_H
 
-#include "zm.h"
 #include "zm_ffmpeg.h"
 #include "zm_comms.h"
 #include "zm_thread.h"

@@ -726,6 +726,11 @@ endif(zmconfgen_result EQUAL 0)
 # Install zm.conf
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zm.conf" DESTINATION "${ZM_CONFIG_DIR}")
 
+if(ZM_PLUGIN_SUPPORT)
+	# Install config.h
+	install(FILES "${CMAKE_CURRENT_BINARY_DIR}/config.h" DESTINATION include/zoneminder)
+endif(ZM_PLUGIN_SUPPORT)
+
 # Uninstall target
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in"

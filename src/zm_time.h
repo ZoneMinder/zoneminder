@@ -20,7 +20,12 @@
 #ifndef ZM_TIME_H
 #define ZM_TIME_H
 
-#include "zm.h"
+#include "zm_config.h"
+#include "zm_logger.h"
+
+#ifdef HAVE_STDDEF_H
+#include <stddef.h>
+#endif
 
 #include <sys/time.h>
 

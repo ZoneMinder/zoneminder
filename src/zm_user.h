@@ -17,7 +17,6 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */  
 
-#include "zm.h"
 #include "zm_db.h"
 
 #ifndef ZM_USER_H

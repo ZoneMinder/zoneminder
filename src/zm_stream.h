@@ -23,7 +23,6 @@
 #include <sys/un.h>
 #include <sys/socket.h>
 
-#include "zm.h"
 #include "zm_mpeg.h"
 
 class Monitor;

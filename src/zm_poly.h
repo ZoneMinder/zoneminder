@@ -20,7 +20,6 @@
 #ifndef ZM_POLY_H
 #define ZM_POLY_H
 
-#include "zm.h"
 #include "zm_coord.h"
 #include "zm_box.h"
 

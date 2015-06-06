@@ -20,7 +20,6 @@
 #ifndef ZM_IMAGE_H
 #define ZM_IMAGE_H
 
-#include "zm.h"
 extern "C"
 {
 #include "zm_jpeg.h"
@@ -31,6 +30,7 @@ extern "C"
 #include "zm_poly.h"
 #include "zm_mem_utils.h"
 #include "zm_utils.h"
+#include "zm_logger.h"
 
 #include <errno.h>
 

@@ -73,7 +73,6 @@ SOURCES_common = \
 # convenience library
 HEADERS_common = \
 	jinclude.h \
-	zm.h \
 	zm_box.h \
 	zm_config_defines.h \
 	zm_config.h \

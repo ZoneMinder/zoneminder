@@ -34,7 +34,6 @@
 #include <set>
 #include <map>
 
-#include "zm.h"
 #include "zm_image.h"
 #include "zm_stream.h"
 

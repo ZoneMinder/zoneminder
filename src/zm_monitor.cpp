@@ -4452,7 +4452,7 @@ void Monitor::SingleImageZip( int scale)
 #if ZM_PLUGINS_ON
 void Monitor::DumpPluginStatus()
 {
-    map<string,pGenConf> mapPluginGenConf;
+    std::map<std::string,pGenConf> mapPluginGenConf;
     unsigned int nNumPlugins = ThePluginManager.getPluginsGenConf(mapPluginGenConf);
     bool bDoNativeDet = !config.turnoff_native_analysis && iDoNativeMotDet;
 
@@ -4463,7 +4463,7 @@ void Monitor::DumpPluginStatus()
     }
     printf("%79sNATIVE DETECTION\n", " ");
     printf("PLUGIN NAME%*sREGISTERED CONFIGURED  ZONE  ENABLED  ACTIVE  REQUIRE INCLUDE REINIT\n", 19, " ");
-    for (map<string,pGenConf>::iterator it = mapPluginGenConf.begin() ; it != mapPluginGenConf.end(); ++it)
+    for (std::map<std::string,pGenConf>::iterator it = mapPluginGenConf.begin() ; it != mapPluginGenConf.end(); ++it)
     {
         PluginZoneConf mapPluginZoneConf;
         ThePluginManager.getPluginZoneConf( it->first, mapPluginZoneConf );

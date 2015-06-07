@@ -1,5 +1,7 @@
 #include "zm_plugin.h"
+#include "zm_config.h"
 
+#include <sstream>
 
 
 /*!\fn Plugin::Plugin(const std::string &sFilename)
@@ -18,7 +20,7 @@ Plugin::Plugin(const std::string &sFilename)
 
     if(!m_hDLL) // if library hasn't been loaded successfully
     {
-        throw runtime_error("Could not load '" + sFilename + "' (" + dlerror() + ")");
+        throw std::runtime_error("Could not load '" + sFilename + "' (" + dlerror() + ")");
     }
 
     // Locate the plugin's exported functions
@@ -30,12 +32,12 @@ Plugin::Plugin(const std::string &sFilename)
         // If the functions aren't found, we're going to assume this is
         // a plain simple DLL and not one of our plugins
         if(!m_pfnGetEngineVersion || ! m_pfnRegisterPlugin)
-            throw runtime_error("'" + sFilename + "' is not a valid plugin");
+            throw std::runtime_error("'" + sFilename + "' is not a valid plugin");
 
         // Initialize a new DLL reference counter
         m_pDLLRefCount = new size_t(1);
     }
-    catch(runtime_error &ex)
+    catch(std::runtime_error &ex)
     {
         dlclose(m_hDLL);
         throw ex;
@@ -43,7 +45,7 @@ Plugin::Plugin(const std::string &sFilename)
     catch(...)
     {
         dlclose(m_hDLL);
-        throw runtime_error("Unknown exception while loading plugin '" + sFilename + "'");
+        throw std::runtime_error("Unknown exception while loading plugin '" + sFilename + "'");
     }
 }
 
@@ -101,5 +103,21 @@ Plugin::~Plugin()
  */
 void Plugin::registerPlugin(PluginManager &K)
 {
-    m_pfnRegisterPlugin(K, m_sPluginFileName);
+    int pluginEngineVersion = m_pfnGetEngineVersion();
+
+    if(pluginEngineVersion == ZM_ENGINE_VERSION)
+        m_pfnRegisterPlugin(K, m_sPluginFileName);
+    else
+    {
+        // Raise an exception to inform the plugin manager that something bad happened
+        std::ostringstream strPluginVersion;
+        std::ostringstream strZMVersion;
+        std::string strError;
+        strPluginVersion << pluginEngineVersion;
+        strZMVersion << ZM_ENGINE_VERSION;
+        strError = "Could not load '" + m_sPluginFileName
+            + "' (engine version mistmatch: ZM=" + strZMVersion.str()
+            + " / plugin=" + strPluginVersion.str() + ")";
+        throw std::logic_error(strError.c_str());
+    }
 }

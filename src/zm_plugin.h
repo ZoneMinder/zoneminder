@@ -1,18 +1,11 @@
 #ifndef ZM_PLUGIN_H
 #define ZM_PLUGIN_H
 
-
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <dlfcn.h>
 
 #include <stdexcept>
-
-
-
-using namespace std;
-
 
 
 class PluginManager;
@@ -23,7 +16,7 @@ class PluginManager;
 typedef int  fnGetEngineVersion();
 
 //! Signature for the plugin's registration function
-typedef void fnRegisterPlugin(PluginManager &, string);
+typedef void fnRegisterPlugin(PluginManager &, std::string);
 
 
 
@@ -57,7 +50,7 @@ public:
 private:
 
     //! Shared file name.
-    string m_sPluginFileName;
+    std::string m_sPluginFileName;
 
     //! DLL handle
     void* m_hDLL;

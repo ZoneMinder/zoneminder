@@ -8,7 +8,7 @@ webdir = @ZM_PLUGINSWEBDIR@
 
 Name: @ZM_PROJECTNAME@
 Description: ZoneMinder convenience library for plugin development.
-Version: @ZM_VERSION@
+Version: @VERSION@
 Requires:
 Requires.private:
 Conflicts:

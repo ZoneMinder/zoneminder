@@ -5,6 +5,7 @@
 cmake_minimum_required (VERSION 2.6)
 project (zoneminder)
 set(zoneminder_VERSION "1.28.1")
+set(ZM_ENGINE_VERSION 28)
 
 # CMake does not allow out-of-source build if CMakeCache.exists 
 # in the source folder. Abort and notify the user
@@ -137,7 +138,6 @@ if(ZM_PLUGIN_SUPPORT)
 	set(ZM_PLUGINSWEBDIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/zoneminder/plugins" CACHE PATH
 	    "Location of the plugin files, default: <prefix>/${CMAKE_INSTALL_DATADIR}/zoneminder/plugins")
 	set(ZM_PROJECTNAME ${CMAKE_PROJECT_NAME})
-	set(ZM_VERSION ${zoneminder_VERSION})
 	set(ZM_PLUGINSEXT ".so" CACHE STRING
 	    "Plugin extension, default: .so")
 	add_definitions(-DDEFAULT_PLUGIN_EXT=\"${ZM_PLUGIN_EXT}\")

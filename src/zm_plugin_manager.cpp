@@ -28,15 +28,15 @@ int file_select(const struct direct *entry)
 
 
 
-/*! \fn join_paths(const string& p1, const string& p2)
+/*! \fn join_paths(const std::string& p1, const std::string& p2)
  *  \param p1 is the first part of desired path
  *  \param p2 is the second part of desired path
  *  \return joined path string.
  */
-string join_paths(const string& p1, const string& p2)
+std::string join_paths(const std::string& p1, const std::string& p2)
 {
     char sep = '/';
-    string tmp = p1;
+    std::string tmp = p1;
 
 #ifdef _WIN32
     sep = '\\';
@@ -53,7 +53,7 @@ string join_paths(const string& p1, const string& p2)
 
 
 
-string PluginManager::m_sPluginExt = DEFAULT_PLUGIN_EXT;
+std::string PluginManager::m_sPluginExt = DEFAULT_PLUGIN_EXT;
 
 
 PluginManager::PluginManager() {}
@@ -67,37 +67,42 @@ PluginManager::PluginManager(
 
 
 
-/*!\fn PluginManager::loadPlugin(const string &sFilename))
+/*!\fn PluginManager::loadPlugin(const std::string &sFilename))
  * \param sFilename is the name of plugin file to load
  */
-bool PluginManager::loadPlugin(const string &sFilename)
+bool PluginManager::loadPlugin(const std::string &sFilename)
 {
     try
     {
         if(m_LoadedPlugins.find(sFilename) == m_LoadedPlugins.end())
             m_LoadedPlugins.insert(PluginMap::value_type(sFilename, Plugin(sFilename))).first->second.registerPlugin(*this);
     }
-    catch(runtime_error &ex)
+    catch(std::runtime_error &ex)
     {
-        Error("Runtime error: %s", ex.what());
+        Error("Runtime error: %s.", ex.what());
+        return false;
+    }
+    catch(std::logic_error &el)
+    {
+        Error("Logic error: %s.", el.what());
         return false;
     }
     catch(...)
     {
-        Error("Unknown exception. Could not load %s.", sFilename.c_str());
+        Error("Unknown error: Could not load %s.", sFilename.c_str());
         return false;
     }
     return true;
 }
 
 
-/*!\fn PluginManager::findPlugins(const string &sPath, bool loadPlugins)
+/*!\fn PluginManager::findPlugins(const std::string &sPath, bool loadPlugins, unsigned int& nNumPlugLoaded)
  * \param sPath is the path to folder to search plugins
  * \param loadPlugins is a flag to allow loading of plugins
  * \param nNumPlugLoaded is the number of loaded plugins
  * \return the number of found plugins
  */
-int PluginManager::findPlugins(const string sPath, bool loadPlugins, unsigned int& nNumPlugLoaded)
+int PluginManager::findPlugins(const std::string sPath, bool loadPlugins, unsigned int& nNumPlugLoaded)
 {
     struct direct **files;
     int count = scandir(sPath.c_str(), &files, file_select, alphasort);
@@ -105,10 +110,10 @@ int PluginManager::findPlugins(const string sPath, bool loadPlugins, unsigned in
 
     for (int i = 0; i < count; ++i)
     {
-        string sFileName = string(files[i]->d_name);
-        string sFullPath = join_paths(sPath, sFileName);
+        std::string sFileName = std::string(files[i]->d_name);
+        std::string sFullPath = join_paths(sPath, sFileName);
         size_t idx = sFileName.rfind('.');
-        if (idx != string::npos)
+        if (idx != std::string::npos)
             sFileName = sFileName.substr(0, idx);
         bool IsPluginRegistered = false;
         if(config.load_plugins || loadPlugins)
@@ -116,45 +121,46 @@ int PluginManager::findPlugins(const string sPath, bool loadPlugins, unsigned in
             Info("Loading plugin %s ... ", sFullPath.c_str());
             IsPluginRegistered = loadPlugin(sFullPath);
         }
-        mapPluginReg.insert( pair<string,bool>(sFileName, IsPluginRegistered) );
+        mapPluginReg.insert( std::pair<std::string,bool>(sFileName, IsPluginRegistered) );
         if (IsPluginRegistered) nNumPlugLoaded++;
     }
     return count;
 }
 
 
-/*!\fn PluginManager::configurePlugins(string sConfigFileName)
+/*!\fn PluginManager::configurePlugins(std::string sConfigFileName, bool bDoNativeDet)
  * \param sConfigFileName is the path to the configuration file, where parameters for all plugins are given.
  * \param bDoNativeDet is true if native detection will be performed
 */
-void PluginManager::configurePlugins(string sConfigFileName, bool bDoNativeDet)
+void PluginManager::configurePlugins(std::string sConfigFileName, bool bDoNativeDet)
 {
     m_ImageAnalyser.configurePlugins(sConfigFileName, bDoNativeDet);
 }
 
 
-/*!\fn PluginManager::getPluginsGenConf(map<string,pGenConf>& mapPluginGenConf)
+/*!\fn PluginManager::getPluginsGenConf(std::map<std::string,pGenConf>& mapPluginGenConf)
  * \param mapPluginGenConf is the map of general settings for the plugins
  * \param mapPluginZoneConf is the map of zone settings for the plugins
  * \return the number of found plugins
  */
-unsigned long PluginManager::getPluginsGenConf(map<string,pGenConf>& mapPluginGenConf)
+unsigned long PluginManager::getPluginsGenConf(std::map<std::string,pGenConf>& mapPluginGenConf)
 {
-    for (map<string,bool>::iterator it = mapPluginReg.begin() ; it != mapPluginReg.end(); ++it)
+    for (std::map<std::string,bool>::iterator it = mapPluginReg.begin() ; it != mapPluginReg.end(); ++it)
     {
         pGenConf plugGenConf;
         m_ImageAnalyser.getRegPluginGenConf( it->first, plugGenConf );
         plugGenConf.Registered = it->second;
-        mapPluginGenConf.insert( pair<string,pGenConf>(it->first, plugGenConf) );
+        mapPluginGenConf.insert( std::pair<std::string,pGenConf>(it->first, plugGenConf) );
     }
     return mapPluginGenConf.size();
 }
 
 
-/*!\fn PluginManager::getPluginZoneConf(string sPluginName, PluginZoneConf& mapPluginZoneConf)
+/*!\fn PluginManager::getPluginZoneConf(std::string sPluginName, PluginZoneConf& mapPluginZoneConf)
+ * \param sPluginName is the plugin name
  * \param mapPluginZoneConf is the map of zone settings for the plugin
  */
-void PluginManager::getPluginZoneConf(string sPluginName, PluginZoneConf& mapPluginZoneConf)
+void PluginManager::getPluginZoneConf(std::string sPluginName, PluginZoneConf& mapPluginZoneConf)
 {
     m_ImageAnalyser.getRegPluginZoneConf( sPluginName, mapPluginZoneConf );
 }

@@ -44,7 +44,7 @@ Detector& Detector::operator=(const Detector& source)
 /*!\fn Detector::getDetectionCause()
  * return detection cause as string
  */
-string Detector::getDetectionCause()
+std::string Detector::getDetectionCause()
 {
     return m_sDetectionCause;
 }
@@ -53,16 +53,16 @@ string Detector::getDetectionCause()
 /*!\fn Detector::getConfigSectionName()
  * return plugin name as string
  */
-string Detector::getPluginName()
+std::string Detector::getPluginName()
 {
     return m_sConfigSectionName;
 }
 
 
-/*!\fn Detector::EnablePlugin(vector<int> zoneList)
+/*!\fn Detector::EnablePlugin(std::vector<int> zoneList)
  * \param vnZoneList is the list of enabled zones for the plugin
  */
-void Detector::EnablePlugin(vector<unsigned int> vnZoneList)
+void Detector::EnablePlugin(std::vector<unsigned int> vnZoneList)
 {
     m_vnPluginZones = vnZoneList;
     m_bIsPluginEnabled = true;
@@ -72,17 +72,17 @@ void Detector::EnablePlugin(vector<unsigned int> vnZoneList)
 /*!\fn Detector::getPluginZones()
  * \return the list of zone which have the plugin enabled
  */
-vector<unsigned int> Detector::getPluginZones()
+std::vector<unsigned int> Detector::getPluginZones()
 {
     return m_vnPluginZones;
 }
 
 
-/*! \fn Detector::log(int nLogLevel, string sLevel, string sMessage)
+/*! \fn Detector::log(int nLogLevel, std::string sLevel, std::string sMessage)
  */
-void Detector::log(int nLogLevel, string sLevel, string sMessage)
+void Detector::log(int nLogLevel, std::string sLevel, std::string sMessage)
 {
-    string sMessageToLog = sLevel + string(" [") + m_sLogPrefix + string(": ") + sMessage + string("]");
+    std::string sMessageToLog = sLevel + std::string(" [") + m_sLogPrefix + std::string(": ") + sMessage + std::string("]");
     syslog(nLogLevel, "%s", sMessageToLog.c_str());
 }
 
@@ -241,7 +241,7 @@ void Detector::_onCloseEvent(Zone** zones, Event* event)
 {
     for(std::vector<unsigned int>::iterator it = m_vnPluginZones.begin(); it != m_vnPluginZones.end(); ++it)
     {
-        string noteText = "  [Zone ";
+        std::string noteText = "  [Zone ";
         noteText += zones[*it]->Label();
         noteText += "]\n";
 

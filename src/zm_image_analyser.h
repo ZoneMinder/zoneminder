@@ -14,7 +14,7 @@
 #include "zm_event.h"
 #include "zm_db.h"
 
-using namespace std;
+
 
 //! List of available detectors.
 typedef std::list<Detector *> DetectorsList;
@@ -75,31 +75,31 @@ class ImageAnalyser {
     bool DoDetection(const Image &comp_image, Zone** zones, Event::StringSetMap& noteSetMap, std::string& det_cause, unsigned int& score);
 
     //! Configure all loaded plugins using given configuration file.
-    void configurePlugins(string sConfigFileName, bool bDoNativeDet = 0);
+    void configurePlugins(std::string sConfigFileName, bool bDoNativeDet = 0);
 
     //! Check if the configuration file contains the right section name
-    bool isValidConfigFile(string sPluginName, string sConfigFileName);
+    bool isValidConfigFile(std::string sPluginName, std::string sConfigFileName);
 
     //! Get index of enabled zones for this monitor (same ordering as in Monitor::Load)
     bool getMonitorZones();
 
     //! Get plugin configuration from database
-    bool getPluginConfig(string sPluginName, vector<unsigned int> vnPluginZones, map<unsigned int,map<string,string> >& mapPluginConf);
+    bool getPluginConfig(std::string sPluginName, std::vector<unsigned int> vnPluginZones, std::map<unsigned int,std::map<std::string,std::string> >& mapPluginConf);
 
     //! Get enabled zones for the plugin
-    bool getEnabledZonesForPlugin(string sPluginName, vector<unsigned int>& vnPluginZones);
+    bool getEnabledZonesForPlugin(std::string sPluginName, std::vector<unsigned int>& vnPluginZones);
 
     //! Get zones configuration from database
-    bool getZonesConfig(string sLoadedPlugins);
+    bool getZonesConfig(std::string sLoadedPlugins);
 
     //! Get Zone configuration from this class
     bool getZoneConfig(unsigned int nZone, zConf& zoneConf);
 
     //! Get the general settings of a registered plugin
-    bool getRegPluginGenConf(string sPluginName, pGenConf& regPluginGenConf);
+    bool getRegPluginGenConf(std::string sPluginName, pGenConf& regPluginGenConf);
 
     //! Get the zone settings of a registered plugin
-    void getRegPluginZoneConf(string sPluginName, PluginZoneConf& regPluginZoneConf);
+    void getRegPluginZoneConf(std::string sPluginName, PluginZoneConf& regPluginZoneConf);
 
     //! Remove from db plugins no longer detected
     void cleanupPlugins();
@@ -121,27 +121,27 @@ class ImageAnalyser {
     //! A structure to store a plugin parameter
     struct zIdName {
         unsigned int zoneId;
-        string name;
+        std::string name;
     };
 
     //! A vector filled with parameters of zones
-    vector<zConf> m_vZonesConfig;
+    std::vector<zConf> m_vZonesConfig;
 
     //! A structure to store basic settings of a zone
     struct zSetting {
         unsigned int id;
-        string name;
-        string type;
+        std::string name;
+        std::string type;
     };
 
     //! A vector filled with settings of zones enabled for the monitor
-    vector<zSetting> m_vMonitorZones;
+    std::vector<zSetting> m_vMonitorZones;
 
     //! A map to store the general configuration of registered plugins
-    map<string,pGenConf> mapRegPluginGenConf;
+    std::map<std::string,pGenConf> mapRegPluginGenConf;
 
     //! A map to store the zone configuration of registered plugins
-    map<string,PluginZoneConf> mapRegPluginZoneConf;
+    std::map<std::string,PluginZoneConf> mapRegPluginZoneConf;
 };
 
 

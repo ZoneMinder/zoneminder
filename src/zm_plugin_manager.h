@@ -1,8 +1,6 @@
 #ifndef ZM_PLUGIN_MANAGER_H
 #define ZM_PLUGIN_MANAGER_H
 
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
@@ -19,12 +17,6 @@
 
 
 
-using namespace std;
-
-
-#define ZM_ENGINE_VERSION 24
-
-
 //! Map of plugins by their associated file names.
 typedef std::map<std::string, Plugin> PluginMap;
 
@@ -38,7 +30,7 @@ int file_select(const struct direct *entry);
 
 
 //! Join two path strings.
-string join_paths(const string& p1, const string& p2);
+std::string join_paths(const std::string& p1, const std::string& p2);
 
 
 
@@ -56,26 +48,26 @@ public:
     ImageAnalyser &getImageAnalyser() {return m_ImageAnalyser;}
 
     //! Loads a plugin.
-    bool loadPlugin(const string &sFilename);
+    bool loadPlugin(const std::string &sFilename);
 
     //! Find all plugins from given directory, load them if required and
     //! return the number of found plugins and the number of loaded plugins
-    int findPlugins(const string sPath, bool loadPlugins, unsigned int& nNumPlugLoaded);
+    int findPlugins(const std::string sPath, bool loadPlugins, unsigned int& nNumPlugLoaded);
 
     //! Get general settings of plugins
-    unsigned long getPluginsGenConf(map<string,pGenConf>& mapPluginGenConf);
+    unsigned long getPluginsGenConf(std::map<std::string,pGenConf>& mapPluginGenConf);
 
     //! Get zone settings of a plugin
-    void getPluginZoneConf(string sPluginName, PluginZoneConf& mapPluginZoneConf);
+    void getPluginZoneConf(std::string sPluginName, PluginZoneConf& mapPluginZoneConf);
 
     //! Configure all loaded plugins using given configuration file.
-    void configurePlugins(string sConfigFileName, bool bDoNativeDet);
+    void configurePlugins(std::string sConfigFileName, bool bDoNativeDet);
 
     //! Set plugin extension.
-    void setPluginExt(string sPluginExt) { m_sPluginExt = sPluginExt; }
+    void setPluginExt(std::string sPluginExt) { m_sPluginExt = sPluginExt; }
 
     //! Extension for zm plugins.
-    static string m_sPluginExt;
+    static std::string m_sPluginExt;
 
 private:
 
@@ -86,7 +78,7 @@ private:
     ImageAnalyser m_ImageAnalyser;
 
     //! Plugin list
-    map<string,bool> mapPluginReg;
+    std::map<std::string,bool> mapPluginReg;
 };
 
 

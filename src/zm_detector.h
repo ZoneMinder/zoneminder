@@ -20,7 +20,6 @@
 #define LOG_LEVEL LOG_NOTICE
 #define DEFAULT_CONFIGFILE_SECTION "libzm_vscvl_plugin"
 
-using namespace std;
 
 
 //! Base class for object detectors, defined in plugins.
@@ -46,17 +45,17 @@ public:
 }
 
     //! Constructor with section name parameter.
-    Detector(string sPluginFileName)
+    Detector(std::string sPluginFileName)
 {
     m_sLogPrefix = DEFAULT_LOG_PREFIX;
 
     char* szPluginFileName = strdup(sPluginFileName.c_str());
 
-    string sPluginFileNameName = string(basename(szPluginFileName));
+    std::string sPluginFileNameName = std::string(basename(szPluginFileName));
 
     size_t idx = sPluginFileNameName.rfind('.');
 
-    if (idx == string::npos)
+    if (idx == std::string::npos)
         m_sConfigSectionName = sPluginFileNameName;
     else
         m_sConfigSectionName = sPluginFileNameName.substr(0, idx);
@@ -82,19 +81,19 @@ public:
     void _onCloseEvent(Zone** zones, Event *event);
 
     //! Load detector's parameters.
-    virtual int loadConfig(string sConfigFileName, map<unsigned int,map<string,string> > mapPluginConf) = 0;
+    virtual int loadConfig(std::string sConfigFileName, std::map<unsigned int,std::map<std::string,std::string> > mapPluginConf) = 0;
 
     //! Returns detection case string.
-    string getDetectionCause();
+    std::string getDetectionCause();
 
     //! Returns plugin name as string.
-    string getPluginName();
+    std::string getPluginName();
 
     //! Enable the plugin for the given zones.
-    void EnablePlugin(vector<unsigned int> zoneList);
+    void EnablePlugin(std::vector<unsigned int> zoneList);
 
     //! Return the list of enabled zones
-    vector<unsigned int> getPluginZones();
+    std::vector<unsigned int> getPluginZones();
 
 protected:
 
@@ -102,13 +101,13 @@ protected:
     virtual bool checkZone(Zone *zone, unsigned int n_zone, const Image *zmImage) = 0;
 
     virtual void onCreateEvent(Zone *zone, unsigned int n_zone, Event *event) = 0;
-    virtual void onCloseEvent(Zone *zone, unsigned int n_zone, Event *event, string &noteText) = 0;
+    virtual void onCloseEvent(Zone *zone, unsigned int n_zone, Event *event, std::string &noteText) = 0;
 
     //! Log messages to the SYSLOG.
-    void log(int, string sLevel, string sMessage);
+    void log(int, std::string sLevel, std::string sMessage);
 
     //! String to be shown as detection cause for event.
-    string m_sDetectionCause;
+    std::string m_sDetectionCause;
 
     //! Minimum score value to consider frame as to be alarmed.
     double m_fMinAlarmScore;
@@ -126,13 +125,13 @@ protected:
     int m_nNewHeight;
 
     //! String prefix for SYSLOG messages.
-    string m_sLogPrefix;
+    std::string m_sLogPrefix;
 
     //! Name of config file section to search parameters.
-    string m_sConfigSectionName;
+    std::string m_sConfigSectionName;
 
     //! List of zones enabled for the plugin
-    vector<unsigned int> m_vnPluginZones;
+    std::vector<unsigned int> m_vnPluginZones;
 
     //! Plugin status regarding zone settings
     bool m_bIsPluginEnabled;

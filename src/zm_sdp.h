@@ -38,7 +38,7 @@ protected:
     {
         int payloadType;
         const char payloadName[6];
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 64, 0)
+#if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
         AVMediaType codecType;
 #else
 		enum CodecType codecType;
@@ -51,7 +51,7 @@ protected:
     struct DynamicPayloadDesc
     {
         const char payloadName[32];
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 64, 0)
+#if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
         AVMediaType codecType;
 #else
 		enum CodecType codecType;

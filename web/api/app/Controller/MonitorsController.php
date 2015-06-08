@@ -158,11 +158,16 @@ class MonitorsController extends AppController {
 		$status = exec( $command );
 
 		// If 'not' is present, the daemon is not running, so return false
+		// https://github.com/ZoneMinder/ZoneMinder/issues/799#issuecomment-108996075
+		// Also sending back the status text so we can check if the monitor is in pending
+		// state which means there may be an error
+		$statustext = $status;
 		$status = (strpos($status, 'not')) ? false : true;
 
 		$this->set(array(
 			'status' => $status,
-			'_serialize' => array('status')
+			'statustext' => $statustext,
+			'_serialize' => array('status','statustext'),
 		));
 	}
 

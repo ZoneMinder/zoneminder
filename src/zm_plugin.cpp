@@ -110,14 +110,10 @@ void Plugin::registerPlugin(PluginManager &K)
     else
     {
         // Raise an exception to inform the plugin manager that something bad happened
-        std::ostringstream strPluginVersion;
-        std::ostringstream strZMVersion;
-        std::string strError;
-        strPluginVersion << pluginEngineVersion;
-        strZMVersion << ZM_ENGINE_VERSION;
-        strError = "Could not load '" + m_sPluginFileName
-            + "' (engine version mistmatch: ZM=" + strZMVersion.str()
-            + " / plugin=" + strPluginVersion.str() + ")";
-        throw std::logic_error(strError.c_str());
+        std::ostringstream strError;
+        strError << "Could not load '" << m_sPluginFileName
+                 << "' (engine version mistmatch: ZM=" << ZM_ENGINE_VERSION
+                 << " / plugin=" << pluginEngineVersion << ")";
+        throw std::logic_error(strError.str().c_str());
     }
 }

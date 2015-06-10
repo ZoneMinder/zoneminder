@@ -41,12 +41,12 @@ $filter = $_REQUEST['filter'];
 
 parseFilter( $filter );
 
-xhtmlHeaders(__FILE__, $SLANG['SaveFilter'] );
+xhtmlHeaders(__FILE__, translate('SaveFilter') );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?php echo $SLANG['SaveFilter'] ?></h2>
+      <h2><?php echo translate('SaveFilter') ?></h2>
     </div>
     <div id="content">
       <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
@@ -66,18 +66,18 @@ xhtmlHeaders(__FILE__, $SLANG['SaveFilter'] );
         <input type="hidden" name="autoDelete" value="<?php echo requestVar( 'autoDelete' ) ?>"/>
 <?php if ( count($filterNames) ) { ?>
         <p>
-          <label for="<?php echo $selectName ?>"><?php echo $SLANG['SaveAs'] ?></label><?php echo buildSelect( $selectName, $filterNames ); ?><label for="<?php echo $newSelectName ?>"><?php echo $SLANG['OrEnterNewName'] ?></label><input type="text" size="32" id="<?php echo $newSelectName ?>" name="<?php echo $newSelectName ?>" value="<?php echo requestVar('filterName') ?>"/>
+          <label for="<?php echo $selectName ?>"><?php echo translate('SaveAs') ?></label><?php echo buildSelect( $selectName, $filterNames ); ?><label for="<?php echo $newSelectName ?>"><?php echo translate('OrEnterNewName') ?></label><input type="text" size="32" id="<?php echo $newSelectName ?>" name="<?php echo $newSelectName ?>" value="<?php echo requestVar('filterName') ?>"/>
         </p>
 <?php } else { ?>
         <p>
-          <label for="<?php echo $newSelectName ?>"><?php echo $SLANG['EnterNewFilterName'] ?></label><input type="text" size="32" id="<?php echo $newSelectName ?>" name="<?php echo $newSelectName ?>" value="">
+          <label for="<?php echo $newSelectName ?>"><?php echo translate('EnterNewFilterName') ?></label><input type="text" size="32" id="<?php echo $newSelectName ?>" name="<?php echo $newSelectName ?>" value="">
         </p>
 <?php } ?>
         <p>
-          <label for="background"><?php echo $SLANG['BackgroundFilter'] ?></label><input type="checkbox" id="background" name="background" value="1"<?php if ( !empty($filterData['Background']) ) { ?> checked="checked"<?php } ?>/>
+          <label for="background"><?php echo translate('BackgroundFilter') ?></label><input type="checkbox" id="background" name="background" value="1"<?php if ( !empty($filterData['Background']) ) { ?> checked="checked"<?php } ?>/>
         </p>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo $SLANG['Save'] ?>"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo $SLANG['Cancel'] ?>" onclick="closeWindow();"/>
+          <input type="submit" value="<?php echo translate('Save') ?>"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
         </div>
       </form>
     </div>

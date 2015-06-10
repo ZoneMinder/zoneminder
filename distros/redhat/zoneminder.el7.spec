@@ -27,7 +27,7 @@ BuildRequires: perl(MIME::Entity) perl(MIME::Lite)
 BuildRequires: perl(PHP::Serialization) perl(Sys::Mmap)
 BuildRequires: perl(Time::HiRes) perl(Net::SFTP::Foreign)
 BuildRequires: perl(Expect) perl(Sys::Syslog)
-BuildRequires: gcc gcc-c++ vlc-devel libcurl-devel
+BuildRequires: gcc gcc-c++ vlc-devel libcurl-devel libv4l-devel
 BuildRequires: ffmpeg ffmpeg-devel perl(X10::ActiveHome) perl(Astro::SunTime)
 # cmake needs the following installed at build time due to the way it auto-detects certain parameters
 BuildRequires:  httpd polkit-devel
@@ -69,7 +69,6 @@ too much degradation of performance.
 %build
 %cmake \
 	-DZM_TARGET_DISTRO="el7" \
-	-DZM_PERL_SUBPREFIX=`x="%{perl_vendorlib}" ; echo ${x#"%{_prefix}"}` \
 	.
 
 make %{?_smp_mflags}
@@ -108,6 +107,8 @@ if [ $1 -eq 0 ] ; then
     # Package removal, not upgrade
     /bin/systemctl --no-reload disable zoneminder.service > /dev/null 2>&1 || :
     /bin/systemctl stop zoneminder.service > /dev/null 2>&1 || :
+    echo -e "\nRemoving ZoneMinder SELinux policy module. Please wait.\n"
+    /usr/sbin/semodule -r local_zoneminder.pp
 fi
 
 %postun
@@ -129,7 +130,8 @@ fi
 
 %files
 %defattr(-,root,root,-)
-%doc AUTHORS COPYING README.md distros/redhat/README.Centos7 distros/redhat/jscalendar-doc
+%doc AUTHORS BUGS ChangeLog COPYING LICENSE NEWS README.md distros/redhat/README.Centos7 distros/redhat/jscalendar-doc
+%doc distros/redhat/cambozola-doc distros/redhat/local_zoneminder.te
 %config %attr(640,root,%{zmgid_final}) /etc/zm/zm.conf
 %config(noreplace) %attr(644,root,root) /etc/httpd/conf.d/zoneminder.conf
 %config(noreplace) /etc/tmpfiles.d/zoneminder.conf
@@ -157,7 +159,8 @@ fi
 %{_bindir}/zmx10.pl
 
 %{perl_vendorlib}/ZoneMinder*
-%{perl_vendorlib}/%{_arch}-linux-thread-multi/auto/ZoneMinder*
+%{perl_vendorarch}/auto/ZoneMinder/.packlist
+#%{perl_vendorlib}/%{_arch}-linux-thread-multi/auto/ZoneMinder*
 #%{perl_archlib}/ZoneMinder*
 %{_mandir}/man*/*
 %dir %{_libexecdir}/zoneminder

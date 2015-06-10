@@ -1,4 +1,4 @@
-var deleteSavedFilterString = "<?php echo $SLANG['DeleteSavedFilter'] ?>";
+var deleteSavedFilterString = "<?php echo translate('DeleteSavedFilter') ?>";
 function validateForm( form )
 {
 <?php
@@ -19,7 +19,7 @@ for ( $i = 0; $i < count($_REQUEST['filter']['terms']); $i++ )
 ?>
     if ( bracket_count )
     {
-        alert( "<?php echo $SLANG['ErrorBrackets'] ?>" );
+        alert( "<?php echo translate('ErrorBrackets') ?>" );
         return( false );
     }
 <?php
@@ -32,7 +32,7 @@ for ( $i = 0; isset($_REQUEST['filter']) && $i < count($_REQUEST['filter']['term
     var val = form.elements['filter[terms][<?php echo $i ?>][val]'];
     if ( val.value == '' )
     {
-        alert( "<?php echo $SLANG['ErrorValidValue'] ?>" );
+        alert( "<?php echo translate('ErrorValidValue') ?>" );
         return( false );
     }
 <?php

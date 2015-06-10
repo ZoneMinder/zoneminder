@@ -1,0 +1,3 @@
+version=3
+http://www.zoneminder.com/downloads.html \
+  .*/ZoneMinder-(.*).tar.gz

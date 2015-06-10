@@ -34,7 +34,7 @@ foreach( dbFetchAll( 'SELECT * FROM ControlPresets WHERE MonitorId = ?', NULL, a
 $presets = array();
 for ( $i = 1; $i <= $monitor['NumPresets']; $i++ )
 {
-    $presets[$i] = $SLANG['Preset']." ".$i;
+    $presets[$i] = translate('Preset')." ".$i;
     if ( !empty($labels[$i]) )
     {
         $presets[$i] .= " (".validHtmlStr($labels[$i]).")";
@@ -44,12 +44,12 @@ for ( $i = 1; $i <= $monitor['NumPresets']; $i++ )
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['SetPreset'] );
+xhtmlHeaders(__FILE__, translate('SetPreset') );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?php echo $SLANG['SetPreset'] ?></h2>
+      <h2><?php echo translate('SetPreset') ?></h2>
     </div>
     <div id="content">
       <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
@@ -59,9 +59,9 @@ xhtmlHeaders(__FILE__, $SLANG['SetPreset'] );
         <input type="hidden" name="control" value="presetSet"/>
         <input type="hidden" name="showControls" value="1"/>
         <p><?php echo buildSelect( "preset", $presets, "updateLabel()" ) ?></p>
-        <p><label for="newLabel"><?php echo $SLANG['NewLabel'] ?></label><input type="text" name="newLabel" id="newLabel" value="" size="16"/></p>
+        <p><label for="newLabel"><?php echo translate('NewLabel') ?></label><input type="text" name="newLabel" id="newLabel" value="" size="16"/></p>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo $SLANG['Save'] ?>"/><input type="button" value="<?php echo $SLANG['Cancel'] ?>" onclick="closeWindow()"/>
+          <input type="submit" value="<?php echo translate('Save') ?>"/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
         </div>
       </form>
     </div>

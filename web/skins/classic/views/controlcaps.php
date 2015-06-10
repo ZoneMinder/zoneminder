@@ -28,15 +28,15 @@ $controls = dbFetchAll( 'SELECT * FROM Controls ORDER BY Id' );
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['ControlCaps'] );
+xhtmlHeaders(__FILE__, translate('ControlCaps') );
 ?>
 <body>
   <div id="page">
     <div id="header">
       <div id="headerButtons">
-        <a href="#" onclick="closeWindow();"><?php echo $SLANG['Close'] ?></a>
+        <a href="#" onclick="closeWindow();"><?php echo translate('Close') ?></a>
       </div>
-      <h2><?php echo $SLANG['ControlCaps'] ?></h2>
+      <h2><?php echo translate('ControlCaps') ?></h2>
     </div>
     <div id="content">
       <form name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>" onsubmit="return( confirmDelete( 'Warning, deleting a control will reset all monitors that use it to be uncontrollable.\nAre you sure you wish to delete?' ) );">
@@ -45,16 +45,16 @@ xhtmlHeaders(__FILE__, $SLANG['ControlCaps'] );
         <table id="contentTable" class="major" cellspacing="0">
           <thead>
             <tr>
-              <th class="colName"><?php echo $SLANG['Name'] ?></th>
-              <th class="colType"><?php echo $SLANG['Type'] ?></th>
-              <th class="colProtocol"><?php echo $SLANG['Protocol'] ?></th>
-              <th class="colCanMove"><?php echo $SLANG['CanMove'] ?></th>
-              <th class="colCanZoom"><?php echo $SLANG['CanZoom'] ?></th>
-              <th class="colCanFocus"><?php echo $SLANG['CanFocus'] ?></th>
-              <th class="colCanIris"><?php echo $SLANG['CanIris'] ?></th>
-              <th class="colCanWhiteBal"><?php echo $SLANG['CanWhiteBal'] ?></th>
-              <th class="colHasPresets"><?php echo $SLANG['HasPresets'] ?></th>
-              <th class="colMark"><?php echo $SLANG['Mark'] ?></th>
+              <th class="colName"><?php echo translate('Name') ?></th>
+              <th class="colType"><?php echo translate('Type') ?></th>
+              <th class="colProtocol"><?php echo translate('Protocol') ?></th>
+              <th class="colCanMove"><?php echo translate('CanMove') ?></th>
+              <th class="colCanZoom"><?php echo translate('CanZoom') ?></th>
+              <th class="colCanFocus"><?php echo translate('CanFocus') ?></th>
+              <th class="colCanIris"><?php echo translate('CanIris') ?></th>
+              <th class="colCanWhiteBal"><?php echo translate('CanWhiteBal') ?></th>
+              <th class="colHasPresets"><?php echo translate('HasPresets') ?></th>
+              <th class="colMark"><?php echo translate('Mark') ?></th>
             </tr>
           </thead>
           <tbody>
@@ -66,11 +66,11 @@ foreach( $controls as $control )
               <td class="colName"><?php echo makePopupLink( '?view=controlcap&amp;cid='.$control['Id'], 'zmControlCap', 'controlcap', $control['Name'], canView( 'Control' ) ) ?></td>
               <td class="colType"><?php echo $control['Type'] ?></td>
               <td class="colProtocol"><?php echo $control['Protocol'] ?></td>
-              <td class="colCanMove"><?php echo $control['CanMove']?$SLANG['Yes']:$SLANG['No'] ?></td>
-              <td class="colCanZoom"><?php echo $control['CanZoom']?$SLANG['Yes']:$SLANG['No'] ?></td>
-              <td class="colCanFocus"><?php echo $control['CanFocus']?$SLANG['Yes']:$SLANG['No'] ?></td>
-              <td class="colCanIris"><?php echo $control['CanIris']?$SLANG['Yes']:$SLANG['No'] ?></td>
-              <td class="colCanWhiteBal"><?php echo $control['CanWhite']?$SLANG['Yes']:$SLANG['No'] ?></td>
+              <td class="colCanMove"><?php echo $control['CanMove']?translate('Yes'):translate('No') ?></td>
+              <td class="colCanZoom"><?php echo $control['CanZoom']?translate('Yes'):translate('No') ?></td>
+              <td class="colCanFocus"><?php echo $control['CanFocus']?translate('Yes'):translate('No') ?></td>
+              <td class="colCanIris"><?php echo $control['CanIris']?translate('Yes'):translate('No') ?></td>
+              <td class="colCanWhiteBal"><?php echo $control['CanWhite']?translate('Yes'):translate('No') ?></td>
               <td class="colHasPresets"><?php echo $control['HasHomePreset']?'H':'' ?><?php echo $control['HasPresets']?$control['NumPresets']:'0' ?></td>
               <td class="colMark"><input type="checkbox" name="markCids[]" value="<?php echo $control['Id'] ?>" onclick="configureDeleteButton( this );"<?php if ( !canEdit( 'Control' ) ) {?> disabled="disabled"<?php } ?>/></td>
             </tr>
@@ -80,7 +80,7 @@ foreach( $controls as $control )
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="button" value="<?php echo $SLANG['AddNewControl'] ?>" onclick="createPopup( '?view=controlcap', 'zmControlCap', 'controlcap' );"<?php if ( !canEdit( 'Control' ) ) {?> disabled="disabled"<?php } ?>/><input type="submit" name="deleteBtn" value="<?php echo $SLANG['Delete'] ?>" disabled="disabled"/>
+          <input type="button" value="<?php echo translate('AddNewControl') ?>" onclick="createPopup( '?view=controlcap', 'zmControlCap', 'controlcap' );"<?php if ( !canEdit( 'Control' ) ) {?> disabled="disabled"<?php } ?>/><input type="submit" name="deleteBtn" value="<?php echo translate('Delete') ?>" disabled="disabled"/>
         </div>
       </form>
     </div>

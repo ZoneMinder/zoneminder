@@ -28,14 +28,14 @@
  */
 $eventCounts = array(
     array(
-        "title" => $SLANG['Events'],
+        "title" => translate('Events'),
         "filter" => array(
             "terms" => array(
             )
         ),
     ),
     array(
-        "title" => $SLANG['Hour'],
+        "title" => translate('Hour'),
         "filter" => array(
             "terms" => array(
                 array( "attr" => "Archived", "op" => "=", "val" => "0" ),
@@ -44,7 +44,7 @@ $eventCounts = array(
         ),
     ),
     array(
-        "title" => $SLANG['Day'],
+        "title" => translate('Day'),
         "filter" => array(
             "terms" => array(
                 array( "attr" => "Archived", "op" => "=", "val" => "0" ),
@@ -53,7 +53,7 @@ $eventCounts = array(
         ),
     ),
     array(
-        "title" => $SLANG['Week'],
+        "title" => translate('Week'),
         "filter" => array(
             "terms" => array(
                 array( "attr" => "Archived", "op" => "=", "val" => "0" ),
@@ -62,7 +62,7 @@ $eventCounts = array(
         ),
     ),
     array(
-        "title" => $SLANG['Month'],
+        "title" => translate('Month'),
         "filter" => array(
             "terms" => array(
                 array( "attr" => "Archived", "op" => "=", "val" => "0" ),
@@ -71,7 +71,7 @@ $eventCounts = array(
         ),
     ),
     array(
-        "title" => $SLANG['Archived'],
+        "title" => translate('Archived'),
         "filter" => array(
             "terms" => array(
                 array( "attr" => "Archived", "op" => "=", "val" => "1" ),
@@ -81,7 +81,7 @@ $eventCounts = array(
 );
 
 $running = daemonCheck();
-$status = $running?$SLANG['Running']:$SLANG['Stopped'];
+$status = $running?translate('Running'):translate('Stopped');
 
 if ( $group = dbFetchOne( 'SELECT * FROM Groups WHERE Id = ?', NULL, array(empty($_COOKIE['zmGroup'])?0:$_COOKIE['zmGroup']) ) ) 
     $groupIds = array_flip(split( ',', $group['MonitorIds'] ));

@@ -135,8 +135,6 @@ function getControlCommands( $monitor )
 
 function controlPresets( $monitor, $cmds )
 {
-    global $SLANG;
-
     define( "MAX_PRESETS", "10" );
 
     $sql = "select * from ControlPresets where MonitorId = '".$monitor['Id']."'";

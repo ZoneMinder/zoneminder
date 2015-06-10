@@ -18,12 +18,12 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-xhtmlHeaders(__FILE__, $SLANG['Login'] );
+xhtmlHeaders(__FILE__, translate('Login') );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h1>ZoneMinder <?php echo $SLANG['Login'] ?></h1>
+      <h1>ZoneMinder <?php echo translate('Login') ?></h1>
     </div>
     <div id="content">
       <form name="loginForm" id="loginForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
@@ -33,16 +33,16 @@ xhtmlHeaders(__FILE__, $SLANG['Login'] );
         <table id="loginTable" class="minor" cellspacing="0">
           <tbody>
             <tr>
-              <td class="colLeft"><?php echo $SLANG['Username'] ?></td>
+              <td class="colLeft"><?php echo translate('Username') ?></td>
               <td class="colRight"><input type="text" name="username" value="<?php echo isset($_REQUEST['username'])?validHtmlStr($_REQUEST['username']):"" ?>" size="12"/></td>
             </tr>
             <tr>
-              <td class="colLeft"><?php echo $SLANG['Password'] ?></td>
+              <td class="colLeft"><?php echo translate('Password') ?></td>
               <td class="colRight"><input type="password" name="password" value="" size="12"/></td>
             </tr>
           </tbody>
         </table>
-        <input type="submit" value="<?php echo $SLANG['Login'] ?>"/>
+        <input type="submit" value="<?php echo translate('Login') ?>"/>
       </form>
     </div>
   </div>

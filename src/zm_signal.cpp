@@ -64,12 +64,19 @@ RETSIGTYPE zm_die_handler(int signal)
 		      info->si_uid, info->si_status);
 
 		ucontext_t *uc = (ucontext_t *) context;
+		cr2 = info->si_addr;
 #if defined(__x86_64__)
-		cr2 = info->si_addr;
+	#ifdef __FreeBSD_kernel__
+		ip = (void *)(uc->uc_mcontext.mc_rip);
+	#else
 		ip = (void *)(uc->uc_mcontext.gregs[REG_RIP]);
+	#endif
 #else
-		cr2 = info->si_addr;
+	#ifdef __FreeBSD_kernel__
+		ip = (void *)(uc->uc_mcontext.mc_eip);
+	#else
 		ip = (void *)(uc->uc_mcontext.gregs[REG_EIP]);
+	#endif
 #endif				// defined(__x86_64__)
 
 		// Print the signal address and instruction pointer if available

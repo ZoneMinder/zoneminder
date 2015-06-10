@@ -19,10 +19,14 @@
 
 #include <getopt.h>
 #include <signal.h>
-#if defined(BSD)
+#if defined(__FreeBSD__)
 #include <limits.h>
 #else
 #include <values.h>
+#endif
+
+#if !defined(MAXINT)
+#define MAXINT INT_MAX
 #endif
 
 #include "zm.h"
@@ -111,7 +115,7 @@ int main( int argc, char *argv[] )
 				Usage();
 				break;
 			case 'v':
-				cout << ZM_VERSION << "\n";
+				std::cout << ZM_VERSION << "\n";
 				exit(0);
 			default:
 				//fprintf( stderr, "?? getopt returned character code 0%o ??\n", c );
@@ -270,21 +274,21 @@ int main( int argc, char *argv[] )
 			{
 				if ( monitors[i]->PreCapture() < 0 )
 				{
-                    Error( "Failed to pre-capture monitor %d (%d/%d)", monitors[i]->Id(), i, n_monitors );
+                    Error( "Failed to pre-capture monitor %d %d (%d/%d)", monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors );
                     zm_terminate = true;
                     result = -1;
                     break;
 				}
 				if ( monitors[i]->Capture() < 0 )
 				{
-                    Error( "Failed to capture image from monitor %d (%d/%d)", monitors[i]->Id(), i, n_monitors );
+                    Error( "Failed to capture image from monitor %d %s (%d/%d)", monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors );
                     zm_terminate = true;
                     result = -1;
                     break;
 				}
 				if ( monitors[i]->PostCapture() < 0 )
 				{
-                    Error( "Failed to post-capture monitor %d (%d/%d)", monitors[i]->Id(), i, n_monitors );
+                    Error( "Failed to post-capture monitor %d %s (%d/%d)", monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors );
                     zm_terminate = true;
                     result = -1;
                     break;

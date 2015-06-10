@@ -20,12 +20,12 @@
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['Logout'] );
+xhtmlHeaders(__FILE__, translate('Logout') );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h1>ZoneMinder <?php echo $SLANG['Logout'] ?></h1>
+      <h1>ZoneMinder <?php echo translate('Logout') ?></h1>
     </div>
     <div id="content">
       <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
@@ -33,16 +33,16 @@ xhtmlHeaders(__FILE__, $SLANG['Logout'] );
         <input type="hidden" name="view" value="login"/>
         <p><?php echo sprintf( $CLANG['CurrentLogin'], $user['Username'] ) ?></p>
         <p>
-          <input type="submit" value="<?php echo $SLANG['Logout'] ?>"/>
+          <input type="submit" value="<?php echo translate('Logout') ?>"/>
 <?php
 if ( ZM_USER_SELF_EDIT )
 {
 ?>
-          <input type="button" value="<?php echo $SLANG['Config'] ?>" onclick="createPopup( '?view=user&amp;uid=<?php echo $user['Id'] ?>', 'zmUser', 'user' );"/>
+          <input type="button" value="<?php echo translate('Config') ?>" onclick="createPopup( '?view=user&amp;uid=<?php echo $user['Id'] ?>', 'zmUser', 'user' );"/>
 <?php
 }
 ?>
-          <input type="button" value="<?php echo $SLANG['Cancel'] ?>" onclick="closeWindow();"/>
+          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
         </p>
       </form>
     </div>

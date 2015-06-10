@@ -108,4 +108,9 @@ SELECT * FROM (SELECT NULL as Id,
 WHERE NOT EXISTS (
     SELECT Name FROM Controls WHERE name = 'ONVIF Camera'
 ) LIMIT 1;
+--
+-- Hide USE_DEEP_STORAGE from user to prevent accidental event loss
+--
+UPDATE `zm`.`Config` SET `Category`='hidden' WHERE `Name`='ZM_USE_DEEP_STORAGE';
+
 

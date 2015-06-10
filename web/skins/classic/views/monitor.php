@@ -823,7 +823,7 @@ switch ( $tab )
 ?>
             <tr><td>translate('SaveJPEGs')</td><td><select name="newMonitor[SaveJPEGs]"><?php foreach ( $savejpegopts as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['SaveJPEGs'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
             <tr><td>translate('VideoWriter')</td><td><select name="newMonitor[VideoWriter]"><?php foreach ( $videowriteropts as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['VideoWriter'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
-            <tr><td>translate('OptionalEncoderParameters')</td><td><textarea name="newMonitor[EncoderParameters]" rows="4" cols="36"><?php echo validHtmlStr($newMonitor['EncoderParameters']) ?></textarea></td></tr>
+            <tr><td>translate('OptionalEncoderParam')</td><td><textarea name="newMonitor[EncoderParameters]" rows="4" cols="36"><?php echo validHtmlStr($newMonitor['EncoderParameters']) ?></textarea></td></tr>
 <?php
         break;
     case 'timestamp' :

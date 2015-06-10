@@ -107,8 +107,8 @@ CakeLog::config('error', array(
 	'file' => 'error',
 ));
 
-Configure::write('ZM_CONFIG',  '/etc/zm.conf');
-Configure::write('ZM_VERSION', '1.28.0');
+Configure::write('ZM_CONFIG',  '@ZM_CONFIG@');
+Configure::write('ZM_VERSION', '@VERSION@');
 
 loadConfigFile();
 

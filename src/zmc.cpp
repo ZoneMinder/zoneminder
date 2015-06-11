@@ -209,7 +209,7 @@ int main( int argc, char *argv[] )
 		exit ( -1 );
 	}
 
-	Info( "Starting Capture" );
+	Info( "Starting Capture version %s", ZM_VERSION );
 
 	zmSetDefaultTermHandler();
 	zmSetDefaultDieHandler();

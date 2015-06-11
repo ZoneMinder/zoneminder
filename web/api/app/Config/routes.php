@@ -32,6 +32,10 @@
 	Router::mapResources('logs');
 	Router::mapResources('states');
 	Router::mapResources('zonepresets');
+
+	/* Add new API to retrieve camera controls - for PTZ */
+	/* refer to https://github.com/ZoneMinder/ZoneMinder/issues/799#issuecomment-105233112 */
+	Router::mapResources('controls'); 
 	Router::parseExtensions();
 
 /**

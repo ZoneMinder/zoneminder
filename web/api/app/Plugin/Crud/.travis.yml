@@ -1,0 +1,38 @@
+language: php
+
+php:
+  - 5.3
+  - 5.4
+  - 5.5
+
+env:
+  global:
+    - PLUGIN_NAME=Crud
+    - REQUIRE="cakephp/debug_kit:2.2.* cakedc/search:dev-develop"
+    - DB=mysql CAKE_VERSION=2.4
+
+  matrix:
+    - DB=mysql CAKE_VERSION=2.4
+    - DB=mysql CAKE_VERSION=2.5
+
+matrix:
+  include:
+    - php: 5.4
+      env:
+        - COVERALLS=1
+    - php: 5.4
+      env:
+        - PHPCS=1 PHPCS_IGNORE="*/Test/*"
+
+before_script:
+  - git clone https://github.com/FriendsOfCake/travis.git --depth 1 ../travis
+  - ../travis/before_script.sh
+
+script:
+  - ../travis/script.sh
+
+after_success:
+  - ../travis/after_success.sh
+
+notifications:
+  email: false

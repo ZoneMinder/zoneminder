@@ -1,0 +1,57 @@
+{
+  "name":"friendsofcake/crud",
+  "version": "3.0.10",
+  "description":"CakePHP Application development on steroids - rapid prototyping / scaffolding & production ready code - XML / JSON APIs and more",
+  "type":"cakephp-plugin",
+  "keywords":[
+    "cakephp",
+    "crud",
+    "create",
+    "retrieve",
+    "update",
+    "delete",
+    "bake",
+    "cake",
+    "scaffold",
+    "scaffolding"
+  ],
+  "homepage":"https://github.com/FriendsOfCake/crud",
+  "license":"MIT",
+  "authors":[
+    {
+      "name":"Christian Winther",
+      "role":"Author",
+      "homepage":"http://cakephp.nu/"
+    },
+    {
+      "name":"José Lorenzo Rodríguez",
+      "role":"Contributor",
+      "homepage":"https://github.com/lorenzo"
+    },
+    {
+      "name":"Andy Dawson",
+      "role":"Contributor",
+      "homepage":"https://github.com/ad7six"
+    },
+    {
+      "name":"ADmad",
+      "role":"Contributor",
+      "homepage":"https://github.com/admad"
+    }
+  ],
+  "suggest":{
+    "cakedc/search":"If you want to use the Search Listener"
+  },
+  "support":{
+    "source":"https://github.com/FriendsOfCake/crud",
+    "issues":"https://github.com/FriendsOfCake/crud/issues",
+    "wiki":"http://cakephp.nu/cakephp-crud/",
+    "irc":"irc://irc.freenode.org/friendsofcake"
+  },
+  "require":{
+    "composer/installers":"*"
+  },
+  "extra": {
+    "installer-name": "Crud"
+  }
+}

@@ -1,0 +1,13 @@
+Package: zoneminder-ui-classic
+Source: zoneminder
+Version: 1.29.0-vivid-38
+Architecture: all
+Maintainer: Isaac Connor <iconnor@connortechnology.com>
+Installed-Size: 996
+Depends: zoneminder-ui-base (>= 1.29.0-vivid-38)
+Section: web
+Priority: optional
+Description: Classic web user interface for ZoneMinder
+ ZoneMinder is a video camera security and surveillance solution.
+ .
+ This package provides the classic web user interface.

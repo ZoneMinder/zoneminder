@@ -1,0 +1,14 @@
+Package: zoneminder-ui-api
+Source: zoneminder
+Version: 1.29.0-vivid-38
+Architecture: all
+Maintainer: Isaac Connor <iconnor@connortechnology.com>
+Installed-Size: 10006
+Depends: zoneminder-ui-base (>= 1.29.0-vivid-38)
+Section: web
+Priority: optional
+Description: API interface for ZoneMinder
+ ZoneMinder is a video camera security and surveillance solution.
+ .
+ This package provides an API interface mainly intended for use with angular-ui
+ or mobile applications, but can be used with any other custom programs as well.

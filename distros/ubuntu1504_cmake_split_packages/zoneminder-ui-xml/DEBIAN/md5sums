@@ -1,0 +1,10 @@
+ee60a32a6eb4cc0af766cddf0aafe6f9  usr/share/doc/zoneminder-ui-xml/changelog.Debian.gz
+722ee23d6e76b10f1eae240ea1a49117  usr/share/doc/zoneminder-ui-xml/copyright
+93ae79dd0774a44eb9002556d47de1bd  usr/share/zoneminder/skins/xml/includes/config.php
+9355288fed99c00c68f8623a3e73280e  usr/share/zoneminder/skins/xml/includes/functions.php
+718d8596a14d123d83afb0d5d6d6fd96  usr/share/zoneminder/skins/xml/includes/init.php
+33d9276165e48e85f9b76d96ceb72c43  usr/share/zoneminder/skins/xml/skin.php
+96a21cecd35ed5d1b732bfe74b1535ef  usr/share/zoneminder/skins/xml/views/actions.php
+98b7bfd5ae1dd98c66770b2e0759fb04  usr/share/zoneminder/skins/xml/views/console.php
+d41d8cd98f00b204e9800998ecf8427e  usr/share/zoneminder/skins/xml/views/none.php
+83f5492302df18de8c7090a9fa8ac3e7  usr/share/zoneminder/skins/xml/views/notfound.png

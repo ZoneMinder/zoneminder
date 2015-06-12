@@ -1,0 +1,9 @@
+<div class="form-group" ng-repeat="(key, value) in configData.network">
+	<label for="{{value.Name}}" class="control-label col-md-4" ng-bind="value.Name"></label>
+
+	<div class="col-md-4" ng-switch on="value.Type">
+		<input id="{{value.Name}}" ng-switch-when="string" type="text" class="form-control" ng-model="value.Value">
+		<input id="{{value.Name}}" ng-switch-when="boolean" type="checkbox" ng-model="value.Value" ng-false-value="'0'" ng-true-value="'1'">
+		<input id="{{value.Name}}" ng-switch-when="integer" type="number" class="form-control" ng-model="value.Value">
+	</div>
+</div>

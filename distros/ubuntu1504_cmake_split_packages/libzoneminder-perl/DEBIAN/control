@@ -1,0 +1,14 @@
+Package: libzoneminder-perl
+Source: zoneminder
+Version: 1.29.0-vivid-38
+Architecture: all
+Maintainer: Isaac Connor <iconnor@connortechnology.com>
+Installed-Size: 734
+Depends: perl, libdbi-perl, libdevice-serialport-perl, libimage-info-perl, libjson-any-perl, libsys-mmap-perl, liburi-encode-perl, libwww-perl
+Section: perl
+Priority: optional
+Description: Perl libraries for ZoneMinder
+ ZoneMinder is a video camera security and surveillance solution.
+ .
+ This package provides the libraries for the perl scripts, it can be used to
+ write custom interfaces as well.

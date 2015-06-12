@@ -1,0 +1,164 @@
+<?php
+//
+// ZoneMinder web montage view file, $Date$, $Revision$
+// Copyright (C) 2001-2008 Philip Coombes
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//
+
+if ( !canView( 'Stream' ) )
+{
+    $view = "error";
+    return;
+}
+
+$sql = "select * from Monitors where Function != 'None'";
+if ( !empty($_REQUEST['group']) )
+{
+    $row = dbFetchOne( 'select * from Groups where Id = ?', NULL, array($_REQUEST['group']) );
+	$sql .= " and find_in_set( Id, '".$row['MonitorIds']."' )";
+} else { 
+}
+$hosts = dbFetchAll( 'SELECT DISTINCT ServerHost FROM Monitors', 'ServerHost' );
+$host = '';
+if ( isset($_COOKIE['zmMontageHost']) and in_array( $_COOKIE['zmMontageHost'], $hosts ) ) {
+    $sql .= " and ServerHost='".$_COOKIE['zmMontageHost']."'";
+	$host = $_COOKIE['zmMontageHost'];
+}
+$sql .= " order by Sequence";
+array_unshift( $hosts, 'All' );
+$hosts = array_combine( $hosts, $hosts );
+
+$maxWidth = 0;
+$maxHeight = 0;
+$showControl = false;
+$index = 0;
+$monitors = array();
+foreach( dbFetchAll( $sql ) as $row )
+{
+    if ( !visibleMonitor( $row['Id'] ) )
+    {
+        continue;
+    }
+    
+    if ( isset( $_REQUEST['scale'] ) )
+        $scale = validInt($_REQUEST['scale']);
+    else if ( isset( $_COOKIE['zmMontageScale'] ) )
+        $scale = $_COOKIE['zmMontageScale'];
+    else
+        $scale = reScale( SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+
+    $scaleWidth = reScale( $row['Width'], $scale );
+    $scaleHeight = reScale( $row['Height'], $scale );
+    if ( $maxWidth < $scaleWidth )
+        $maxWidth = $scaleWidth;
+    if ( $maxHeight < $scaleHeight )
+        $maxHeight = $scaleHeight;
+    if ( ZM_OPT_CONTROL && $row['ControlId'] )
+        $showControl = true;
+    $row['index'] = $index++;
+    $row['scaleWidth'] = $scaleWidth;
+    $row['scaleHeight'] = $scaleHeight;
+    $row['connKey'] = generateConnKey();
+    $monitors[] = $row;
+}
+
+$focusWindow = true;
+
+$layouts = array(
+    'montage_freeform.css' => translate('MtgDefault'),
+    'montage_2wide.css' => translate('Mtg2widgrd'),
+    'montage_3wide.css' => translate('Mtg3widgrd'),
+    'montage_4wide.css' => translate('Mtg4widgrd'),
+    'montage_3wide50enlarge.css' => translate('Mtg3widgrx'),
+);
+
+$layout = 'montage_freeform.css';
+if ( isset($_COOKIE['zmMontageLayout']) )
+    $layout = $_COOKIE['zmMontageLayout'];
+
+xhtmlHeaders(__FILE__, translate('Montage') );
+?>
+<body>
+  <div id="page">
+    <div id="header">
+      <div id="headerButtons">
+<?php
+if ( $showControl )
+{
+?>
+        <a href="#" onclick="createPopup( '?view=control', 'zmControl', 'control' )"><?php echo translate('Control') ?></a>
+<?php
+}
+?>
+        <a href="#" onclick="closeWindow()"><?php echo translate('Close') ?></a>
+      </div>
+      <h2><?php echo translate('Montage') ?></h2>
+      <div id="headerControl">
+        <span id="scaleControl"><?php echo translate('Scale') ?>: <?php echo buildSelect( 'scale', $scales, 'changeScale(this);' ); ?></span> 
+        <label for="layout"><?php echo translate('Layout') ?>:</label><?php echo buildSelect( 'layout', $layouts, 'selectLayout(this);' )?>
+		<label for="Host"><?php echo translate('Host') ?>:</label><?php echo buildSelect( "host", $hosts, 'selectHost(this);', $host ); ?>
+      </div>
+    </div>
+    <div id="content">
+      <div id="monitors">
+<?php
+foreach ( $monitors as $monitor )
+{
+    $connkey = $monitor['connKey']; // Minor hack
+    if ( !isset( $scale ) )
+        $scale = reScale( SCALE_BASE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+?>
+        <div id="monitorFrame<?php echo $monitor['index'] ?>" class="monitorFrame">
+          <div id="monitor<?php echo $monitor['index'] ?>" class="monitor idle">
+            <div id="imageFeed<?php echo $monitor['index'] ?>" class="imageFeed" onclick="createPopup( '?view=watch&amp;mid=<?php echo $monitor['Id'] ?>', 'zmWatch<?php echo $monitor['Id'] ?>', 'watch', <?php echo $monitor['scaleWidth'] ?>, <?php echo $monitor['scaleHeight'] ?> );">
+<?php
+if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT )
+{
+    $streamSrc = getStreamSrc( array( "mode=mpeg", "monitor=".$monitor['Id'], "scale=".$scale, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_LIVE_FORMAT, "recorder" => $monitor['ServerHost'] ) );
+    outputVideoStream( "liveStream".$monitor['Id'], $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), ZM_MPEG_LIVE_FORMAT );
+}
+else
+{
+    $streamSrc = getStreamSrc( array( "mode=jpeg", "monitor=".$monitor['Id'], "scale=".$scale, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "recorder" => $monitor['ServerHost'] ) );
+    if ( canStreamNative() )
+    {
+        outputImageStream( "liveStream".$monitor['Id'], $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), validHtmlStr($monitor['Name']) );
+    }
+    else
+    {
+        outputHelperStream( "liveStream".$monitor['Id'], $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ) );
+    }
+}
+?>
+            </div>
+<?php
+    if ( !ZM_WEB_COMPACT_MONTAGE )
+    {
+?>
+            <div id="monitorState<?php echo $monitor['index'] ?>" class="monitorState idle"><?php echo translate('State') ?>:&nbsp;<span id="stateValue<?php echo $monitor['index'] ?>"></span>&nbsp;-&nbsp;<span id="fpsValue<?php echo $monitor['index'] ?>"></span>&nbsp;fps</div>
+<?php
+    }
+?>
+          </div>
+        </div>
+<?php
+}
+?>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

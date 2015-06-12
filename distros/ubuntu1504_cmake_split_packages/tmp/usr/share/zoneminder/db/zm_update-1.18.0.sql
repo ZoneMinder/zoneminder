@@ -1,0 +1,3 @@
+--
+-- There are no updates from a 1.18.0 database to 1.18.1
+--

@@ -1,0 +1,9 @@
+Template: zoneminder/webserver
+Type: multiselect
+Choices: apache2
+Default: apache2
+Description: Web server to reconfigure automatically:
+ Please choose the web server that should be automatically configured for
+ ZoneMinder's web portal access.
+Description-fr.UTF-8: Serveur web à reconfigurer automatiquement :
+ Veuillez choisir le serveur web à reconfigurer automatiquement pour l'accès au portail web de ZoneMinder.

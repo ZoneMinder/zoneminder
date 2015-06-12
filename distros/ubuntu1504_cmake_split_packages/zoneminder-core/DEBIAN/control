@@ -1,0 +1,15 @@
+Package: zoneminder-core
+Source: zoneminder
+Version: 1.29.0-vivid-38
+Architecture: amd64
+Maintainer: Isaac Connor <iconnor@connortechnology.com>
+Installed-Size: 5490
+Depends: libzoneminder-perl (= 1.29.0-vivid-38), zoneminder-database (= 1.29.0-vivid-38), libavcodec56 (>= 6:11~beta1) | libavcodec-extra-56 (>= 6:11.2), libavformat56 (>= 6:11~beta1), libavutil54 (>= 6:11~beta1), libc6 (>= 2.17), libcurl3 (>= 7.16.2), libgcc1 (>= 1:4.1.1), libjpeg8 (>= 8c), libmp4v2-2, libmysqlclient18, libpcre3, libssl1.0.0 (>= 1.0.0), libstdc++6 (>= 4.1.1), libswscale3 (>= 6:11~beta1), libvlc5 (>= 1.1.1), libx264-142, zlib1g (>= 1:1.1.4), debconf (>= 0.5) | debconf-2.0, perl, libarchive-tar-perl, libarchive-zip-perl, libdate-manip-perl, libdbi-perl, libmodule-load-conditional-perl, libmime-lite-perl, libmime-tools-perl, libnet-sftp-foreign-perl, libphp-serialization-perl, debconf, ffmpeg | libav-tools, rsyslog | system-log-daemon, zip, policykit-1, apache2, libpcre++0
+Section: video
+Priority: optional
+Description: Core binaries and perl scripts for ZoneMinder
+ ZoneMinder is a video camera security and surveillance solution.
+ .
+ This package provides the executable compiled binaries which do the main video
+ processing work and the perl scripts which perform helper and/or external
+ interface tasks.

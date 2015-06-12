@@ -1,0 +1,16 @@
+Package: zoneminder-database
+Source: zoneminder
+Version: 1.29.0-vivid-38
+Architecture: all
+Maintainer: Isaac Connor <iconnor@connortechnology.com>
+Installed-Size: 354
+Depends: debconf (>= 0.5) | debconf-2.0, debconf, dbconfig-common, mysql-client | mariadb-client
+Recommends: mysql-server | mariadb-server
+Section: database
+Priority: optional
+Description: Database management package for ZoneMinder
+ ZoneMinder is a video camera security and surveillance solution.
+ .
+ This package provides the sql files and maintenance scripts to perform all the
+ database operations (installation, upgrade or removal) on a local or a remote
+ server.

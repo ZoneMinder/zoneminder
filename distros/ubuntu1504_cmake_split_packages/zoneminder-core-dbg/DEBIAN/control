@@ -1,0 +1,14 @@
+Package: zoneminder-core-dbg
+Source: zoneminder
+Version: 1.29.0-vivid-38
+Architecture: amd64
+Maintainer: Isaac Connor <iconnor@connortechnology.com>
+Installed-Size: 1378
+Depends: zoneminder-core (= 1.29.0-vivid-38)
+Section: debug
+Priority: extra
+Description: Debugging symbols for ZoneMinder
+ ZoneMinder is a video camera security and surveillance solution.
+ .
+ This package provides the debugging symbols for the executable compiled
+ binaries.

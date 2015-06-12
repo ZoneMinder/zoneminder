@@ -1,0 +1,109 @@
+<div role="tabpanel" class="tab-pane active" id="general">
+
+<div class="row">
+
+	<div class="col-md-4">
+
+		<div class="form-group">
+			<label for="Name">Name</label>
+			<input type="text" id="Name" class="form-control" ng-model="monitor.Name" placeholder="Monitor-Name" required />
+		</div>
+		<div class="form-group">
+			<label for="Type">SourceType</label>
+			<select ng-model="monitor.Type" id="Type" class="form-control" required>
+				<option value="Local">Local</option>
+				<option value="Remote">Remote</option>
+				<option value="File">File</option>
+				<option value="Ffmpeg">Ffmpeg</option>
+				<option value="Libvlc">Libvlc</option>
+				<option value="cURL">cURL (HTTP(S) only)</option>
+			</select>
+		</div>
+		<div class="form-group">
+			<label for="Function">Function</label>
+			<select class="form-control" id="Function" ng-model="monitor.Function" required>
+				<option value="None">None</option>
+				<option value="Monitor" selected="selected">Monitor</option>
+				<option value="Modect">Modect</option>
+				<option value="Record">Record</option>
+				<option value="Mocord">Mocord</option>
+				<option value="Nodect">Nodect</option>
+			</select>
+		</div>
+		<div class="checkbox">
+			<label>
+				<input type="checkbox" id="Enabled" ng-model="monitor.Enabled" value="1">
+				Enabled
+			</label>
+		</div>
+		<div class="form-group">
+			<label for="">RefImageBlendPct</label>
+			<input type="text" class="form-control" ng-model="monitor.RefBlendPerc" value="6" />
+		</div>
+		<div class="form-group">
+			<label for="">Alarm RefImageBlendPct</label>
+			<input type="text" class="form-control" ng-model="monitor.AlarmRefBlendPerc" value="6" />
+		</div>
+		<div class="form-group" ng-show="monitor.Type == 'Local'">
+			<label for="MaxFPS">MaximumFPS</label>
+			<input type="text" id="MaxFPS" class="form-control" ng-model="monitor.MaxFPS" />
+		</div>
+		<div class="form-group" ng-show="monitor.Type == 'Local'">
+			<label for="AlarmMaxFPS">AlarmMaximumFPS</label>
+			<input type="text" id="AlarmMaxFPS" class="form-control" ng-model="monitor.AlarmMaxFPS" />
+		</div>
+	</div> <!-- End .col-md-4 -->
+
+	<div class="col-md-4">
+		<div class="form-group">
+ 			<label for="">Target Colorspace</label>
+			<select required class="form-control" ng-model="monitor.Colours">
+				<option value="1">8 Bit Grey</option>
+				<option value="3">24 Bit Color</option>
+				<option value="4">32 Bit Color</option>
+			</select>
+		</div>
+
+		<div class="form-group">
+ 			<label for="">CaptureWidth (Pixels)</label>
+			<input class="form-control" type="text" ng-model="monitor.Width" placeholder="704" />
+		</div>
+
+		<div class="form-group">
+ 			<label for="">CaptureHeight (Pixels)</label>
+			<input class="form-control" type="text" ng-model="monitor.Height" placeholder="480" />
+		</div>
+
+		<div class="checkbox">
+ 			<label>
+				<input type="checkbox" ng-model="monitor.preserveAspectRatio" value="1"/>
+				PreserveAspect
+			</label>
+		</div>
+
+		<div class="form-group">
+ 			<label for="">Orientation</label>
+			<select class="form-control" ng-model="monitor.Orientation" required>
+				<option value="0">Normal</option>
+				<option value="90">Rotate Right</option>
+				<option value="180">Inverted</option>
+				<option value="270">Rotate Left</option>
+				<option value="hori">Flipped Horizontally</option>
+				<option value="vert">Flipped Vertically</option>
+			</select>
+		</div>
+	</div> <!-- End .col-md-6 -->
+
+	<div class="col-md-4">
+
+
+	<section ng-include="'/views/tab-monitor-local.html'"></section>
+	<section ng-include="'/views/tab-monitor-curl.html'"></section>
+	<section ng-include="'/views/tab-monitor-ffmpeg-vlc.html'"></section>
+	<section ng-include="'/views/tab-monitor-remote.html'"></section>
+
+	</div> <!-- End .col-md-4 -->
+</div> <!-- End .row -->
+
+
+</div>

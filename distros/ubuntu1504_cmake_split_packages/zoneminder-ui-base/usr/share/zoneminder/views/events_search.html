@@ -1,0 +1,54 @@
+<form ng-submit="filterEvents()" name="formEvents" novalidate>
+
+	<div class="row">
+		<h3>Monitors</h3>
+		<select multiple class="form-control" ng-model="filter.MonitorId">
+			<option ng-repeat="monitor in monitors" ng-value="monitor.Monitor.Id">{{monitor.Monitor.Name}}</option>
+		 </select>
+	</div>
+
+	<div class="row">
+	<h3>Date</h3>
+	<div class="container-fluid">
+
+		<div class="row">
+			<div class="form-group">
+				<label for="StartTime">From</label>
+				<div class="dropdown">
+					<a class="dropdown-toggle" id="StartTime" role="button" data-toggle="dropdown" data-target="#" href="#">
+						<div class="input-group"><input type="text" class="form-control" data-ng-model="filter.StartTime"><span class="input-group-addon"><i class="glyphicon glyphicon-calendar"></i></span>
+						</div>
+					</a>
+					<ul class="dropdown-menu" role="menu" aria-labelledby="dLabel">
+						<datetimepicker data-ng-model="filter.StartTime" data-datetimepicker-config="{ dropdownSelector: '#StartTime' }"/>
+					</ul>
+				</div>
+			</div> <!-- End .form-horizontal -->
+		</div> <!-- End .row (from) -->
+
+		<div class="row">
+			<div class="form-group">
+				<label for="EndTime">To</label>
+				<div class="dropdown">
+					<a class="dropdown-toggle" id="EndTime" role="button" data-toggle="dropdown" data-target="#" href="#">
+						<div class="input-group"><input type="text" class="form-control" data-ng-model="filter.EndTime"><span class="input-group-addon"><i class="glyphicon glyphicon-calendar"></i></span>
+						</div>
+					</a>
+					<ul class="dropdown-menu" role="menu" aria-labelledby="dLabel">
+						<datetimepicker data-ng-model="filter.EndTime" data-datetimepicker-config="{ dropdownSelector: '#EndTime' }"/>
+					</ul>
+				</div>
+			</div> <!-- End .form-group -->
+		</div> <!-- End .row (to)  -->
+	</div>
+	</div>
+	<div class="row">
+		<button class="btn btn-default btn-block" type="button" name="archiveBtn">Archive</button>
+		<button class="btn btn-default btn-block" type="button" name="unarchiveBtn">UnArchive</button>
+		<button class="btn btn-default btn-block" type="button" name="exportBtn">Export</button>
+		<button class="btn btn-default btn-block" type="button" name="deleteBtn">Delete</button>
+		<button type="submit" class="btn btn-success btn-block">Find</button>
+	</div>
+
+
+</form>

@@ -1,0 +1,41 @@
+#header {
+    width: 99%;
+}
+
+#layout {
+    margin-right: 10px;
+}
+
+#content {
+    width: 99%;
+}
+
+#monitors .alarm {
+    color: #ff0000;
+}
+
+#monitors .alert {
+    color: #ffa500;
+}
+
+#monitors .imageFeed {
+    text-align: center;
+    vertical-align: middle;
+}
+
+#monitors .imageFeed img.idle {
+    border: 2px solid #ffffff;
+}
+
+#monitors .imageFeed img.alarm {
+    border: 2px solid #ff0000;
+}
+
+#monitors .imageFeed img.alert {
+    border: 2px solid #ffa500;
+}
+
+#monitors .monitorState {
+    margin: 2px auto;
+    text-align: center;
+}

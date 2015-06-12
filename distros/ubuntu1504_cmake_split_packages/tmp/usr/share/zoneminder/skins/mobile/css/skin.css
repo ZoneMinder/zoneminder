@@ -1,0 +1,311 @@
+/*
+ * Primary look and feel styles
+ */
+
+body {
+    font-family: Verdana, Arial, Helvetica, sans-serif;
+    font-size: 100%;
+    color: #333333;
+    font-weight: normal;
+    text-align: center;
+}
+
+h1 {
+    font-family: inherit;
+    font-size: 120%;
+    color: #000066;
+    font-weight: bold;
+}
+
+h2 {
+    font-family: inherit;
+    font-size: 110%;
+    color: #000066;
+    font-weight: bold;
+}
+
+h3 {
+    font-family: inherit;
+    font-size: 100%;
+    color: #016A9D;
+    font-weight: bold;
+}
+
+p {
+    font-family: inherit;
+    font-size: 100%;
+    color: #333333;
+    font-weight: normal;
+}
+
+th {
+    font-weight: bold;
+    color: #016A9D;
+}
+
+a:link {
+    color: #7F7FB2;
+    text-decoration: none;
+}
+
+a:visited {
+    color: #7F7FB2;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #666699;
+    text-decoration: underline;
+}
+
+label {
+    margin-right: 4px;
+}
+
+input,textarea,select {
+    border: 1px #7F7FB2 solid;
+    font-family: inherit;
+    font-size: 100%;
+    color: #333333;
+}
+
+input[type=text], input[type=password], textarea {
+    padding: 1px;
+}
+
+input.noborder {
+    border: 0;
+}
+
+input[disabled] {
+    color: #888888;
+}
+
+img.normal {
+    border: white solid 1px;
+}
+
+img.alarm {
+    border: red solid 1px;
+}
+
+hr {
+    height: 1px;
+    width: 100%;
+    border: 0;
+    color: #7f7fb2;
+    background-color: #7f7fb2;
+}
+
+/*
+ * Major league table for multiple inputs or presentation
+ */
+
+#content table.major {
+    margin: 4px auto;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#content table.major tr.highlight {
+    background-color: #eeeeee;
+}
+
+#content table.major thead tr th {
+    padding-top: 6px;
+    padding-bottom: 6px;
+    vertical-align: middle;
+}
+
+#content table.major tfoot td {
+    padding-top: 6px;
+    padding-bottom: 6px;
+    vertical-align: middle;
+}
+
+#content table.major th, #content table.major td {
+    border: 1px solid #7f7fb2;
+    padding: 3px;
+    text-align: left;
+}
+
+#content table.major th {
+    vertical-align: bottom;
+}
+
+#content table.major td {
+    vertical-align: middle;
+}
+
+#content table.major th[scope=row] {
+    padding: 4px 3px 3px;
+    vertical-align: top;
+    text-align: right;
+}
+
+#content table.major .colMark, #content table.major .colSelect {
+    text-align: center;
+}
+/*
+ * Lesser table for very simple forms
+ */
+
+#content table.minor {
+    width: 200px;
+    margin: 0 auto;
+}
+
+#content table.minor td {
+    padding: 4px;
+}
+
+#content table.minor .colLeft {
+    width: 50%;
+    text-align: right;
+}
+
+#content table.minor .colRight {
+    width: 50%;
+    text-align: left;
+}
+
+#content table.minor input[type=submit]
+{
+    margin-top: 4px;
+    padding: 0 2px;
+    font-size: 120%;
+}
+
+/*
+ * Behavior classes
+ */
+.error {
+    /*font-family: Verdana, Arial, Helvetica, sans-serif;*/
+    font-size: 100%;
+    color: #DC143C;
+    font-weight: bold;
+}
+
+.warn {
+    /*font-family: Verdana, Arial, Helvetica, sans-serif;*/
+    font-size: 100%;
+    color: #FF8C00;
+    font-weight: bold;
+}
+
+.info {
+    /*font-family: Verdana, Arial, Helvetica, sans-serif;*/
+    font-size: 100%;
+    color: #688E23;
+    font-weight: bold;
+}
+
+.errorText {
+    color: #DC143C;
+}
+
+.warnText {
+    color: #FF8C00;
+}
+
+.infoText {
+    color: #688E23;
+}
+
+.disabledText {
+    font-style: italic;
+}
+
+/*
+ * Generic useful classes, especially with mootools
+ */
+
+.hidden {
+    display: none;
+}
+
+.invisible {
+    visibility: hidden;
+}
+
+.nowrap {
+    white-space: nowrap;
+}
+
+div.clear {
+    clear: both;
+}
+
+/*
+ * Primary layout styles
+ */
+
+#page {
+    width: 100%;
+}
+
+#header {
+    width: 98%;
+    line-height: 24px;
+    margin: 4px auto 0;
+    clear: both;
+}
+
+#header h2 {
+    left: 0;
+}
+
+#headerControl {
+}
+
+#headerButtons {
+    float: right;
+}
+
+#headerButtons a {
+    margin-left: 8px;
+}
+
+#content {
+    width: 98%;
+    margin: 4px auto;
+    line-height: 130%;
+    text-align: center;
+    clear: both;
+}
+
+#contentTable {
+    width: 100%;
+}
+
+#content p {
+    margin-top: 4px;
+}
+
+#content p.textblock {
+    text-align: justify;
+    padding: 4px;
+}
+
+#content > input[type=submit], #content > input[type=button] {
+    margin-top: 4px;
+}
+
+#content table input[type=submit], #content table input[type=button] {
+    margin-top: 0;
+}
+
+#contentButtons {
+    margin: 4px auto 0;
+}
+
+#contentButtons input, #contentButtons a {
+    margin: 0 4px;
+}
+
+#footer {
+    width: 98%;
+    margin: 4px auto 0;
+    clear: both;
+}
+

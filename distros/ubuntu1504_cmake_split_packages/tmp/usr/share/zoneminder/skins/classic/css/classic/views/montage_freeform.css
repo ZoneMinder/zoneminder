@@ -1,9 +1,0 @@
-#monitors {
-    margin: 0 auto;
-    text-align: center;
-}
-
-#monitors .monitorFrame {
-    float: left;
-    padding: 1px;
-}

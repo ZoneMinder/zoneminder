@@ -1,3 +1,0 @@
---
--- There are no updates from a 1.19.3 database to 1.19.4
---

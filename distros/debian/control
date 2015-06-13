@@ -26,7 +26,6 @@ Build-Depends: debhelper (>= 9), dh-systemd, python-sphinx | python3-sphinx, apa
               ,libvlc-dev
               ,libwww-perl
 # Unbundled (dh_linktree):
-        ,cakephp (>= 2.6.3), cakephp (<< 3.0.0~)
         ,libjs-jquery
         ,libjs-mootools
 Standards-Version: 3.9.6

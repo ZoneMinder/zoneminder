@@ -101,10 +101,12 @@ class HostController extends AppController {
 
 	function getVersion() {
 		$version = Configure::read('ZM_VERSION');
+		$apiversion = Configure::read('ZM_API_VERSION');
 
 		$this->set(array(
 			'version' => $version,
-			'_serialize' => array('version')
+			'apiversion' => $apiversion,
+			'_serialize' => array('version', 'apiversion')
 		));
 	}
 }

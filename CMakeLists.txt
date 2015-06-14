@@ -5,6 +5,8 @@
 cmake_minimum_required (VERSION 2.6)
 project (zoneminder)
 set(zoneminder_VERSION "1.28.1")
+# make API version a minor of ZM version
+set(zoneminder_API_VERSION "${zoneminder_VERSION}.1")
 
 # CMake does not allow out-of-source build if CMakeCache.exists 
 # in the source folder. Abort and notify the user
@@ -629,6 +631,7 @@ endif(NOT POLKIT_FOUND)
 set(ZM_PID "${ZM_RUNDIR}/zm.pid")
 set(ZM_CONFIG "${ZM_CONFIG_DIR}/zm.conf")
 set(VERSION "${zoneminder_VERSION}")
+set(API_VERSION "${zoneminder_API_VERSION}")
 set(PKGDATADIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/zoneminder")
 set(BINDIR "${CMAKE_INSTALL_FULL_BINDIR}")
 set(LIBDIR "${CMAKE_INSTALL_FULL_LIBDIR}")

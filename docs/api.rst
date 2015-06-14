@@ -83,20 +83,8 @@ and ties into WEB_EVENTS_PER_PAGE in the ZM options menu.
 So the logic to iterate through all events should be something like this (pseudocode):
 (unfortunately there is no way to get pageCount without getting the first page)
 
-``
-data = http://server/zm/api/events.json?page=1 # this returns the first page
-# The json object returned now has a property called data.pagination.pageCount
-count = data.pagination.pageCount;
-for (i=1, i<count, i++)
-{
-   data = http://server/zm/api/events.json?page=i;
-   doStuff(data);
-}
-``
 
-
-``
-data = http://server/zm/api/events.json?page=1 # this returns the first page
+``data = http://server/zm/api/events.json?page=1 # this returns the first page
 # The json object returned now has a property called data.pagination.pageCount
 count = data.pagination.pageCount;
 for (i=1, i<count, i++)
@@ -133,44 +121,37 @@ Note that the same pagination logic applies if the list is too long
 
 Return a list of events for a specific monitor within a specific date/time range
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-```
-"http://server/zm/api/events/events/index/MonitorId:5/StartTime >=:2015-05-15 18:43:56/EndTime <=:2015-05-16 18:43:56.json"
-```
+``http://server/zm/api/events/events/index/MonitorId:5/StartTime >=:2015-05-15 18:43:56/EndTime <=:2015-05-16 18:43:56.json``
+
 To try this in CuRL, you need to URL escape the spaces like so:
-```
-curl -XGET  "http://server/zm/api/events/index/MonitorId:5/StartTime%20>=:2015-05-15%2018:43:56/EndTime%20<=:2015-05-16%2018:43:56.json"
-```
+
+``curl -XGET  "http://server/zm/api/events/index/MonitorId:5/StartTime%20>=:2015-05-15%2018:43:56/EndTime%20<=:2015-05-16%2018:43:56.json"``
 
 Return a list of events for all monitors within a specified date/time range
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-```
-curl -XGET "http://server/zm/api/events/index/StartTime%20>=:2015-05-15%2018:43:56/EndTime%20<=:208:43:56.json"
-```
+``curl -XGET "http://server/zm/api/events/index/StartTime%20>=:2015-05-15%2018:43:56/EndTime%20<=:208:43:56.json"``
 
 
 Configuration Apis
 ^^^^^^^^^^^^^^^^^^
 The APIs allow you to access all the configuration parameters of ZM that you typically set inside the web console.
 This returns the full list of configuration parameters:
-```
-curl -XGET http://server/zm/api/configs.json
-```
+
+``curl -XGET http://server/zm/api/configs.json``
+
 Each configuration parameter has an Id, Name, Value and other fields. Chances are you are likely only going to focus on these 3.
 
 (Example of changing config TBD)
-
 
 Run State Apis
 ^^^^^^^^^^^^^^^^^^
 ZM API can be used to start/stop/restart/list states of  ZM as well
 Examples:
 
-```
-curl -XGET  http://server/zm/api/states.json # returns list of run states
+``curl -XGET  http://server/zm/api/states.json # returns list of run states
 curl -XPOST  http://server/zm/api/states/change/restart.json #restarts ZM
 curl -XPOST  http://server/zm/api/states/change/stop.json #Stops ZM
-curl -XPOST  http://server/zm/api/states/change/start.json #Starts ZM
-```
+curl -XPOST  http://server/zm/api/states/change/start.json #Starts ZM``
 
 
 
@@ -202,9 +183,7 @@ Create a Zone
 Host APIs
 ^^^^^^^^^^
 ZM APIs have various APIs that help you in determining host (aka ZM) daemon status, load etc. Some examples:
-```
-curl -XGET  http://server/zm/api/host/daemonCheck.json # 1 = ZM running 0=not running
-curl -XGET  http://server/zm/api/host/getLoad.json # returns current load of ZM
-curl -XGET  http://server/zm/api/host/getDiskPercent.json # returns in GB (not percentage), disk usage per monitor (that is, space taken to store various event related information,images etc. per monitor) 
 
-```
+``curl -XGET  http://server/zm/api/host/daemonCheck.json # 1 = ZM running 0=not running
+curl -XGET  http://server/zm/api/host/getLoad.json # returns current load of ZM
+curl -XGET  http://server/zm/api/host/getDiskPercent.json # returns in GB (not percentage), disk usage per monitor (that is, space taken to store various event related information,images etc. per monitor) ``

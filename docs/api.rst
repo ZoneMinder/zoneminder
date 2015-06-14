@@ -83,6 +83,11 @@ and ties into WEB_EVENTS_PER_PAGE in the ZM options menu.
 So the logic to iterate through all events should be something like this (pseudocode):
 (unfortunately there is no way to get pageCount without getting the first page)
 
+```
+er\t
+```
+
+
 ``
 data = http://server/zm/api/events.json?page=1 # this returns the first page
 # The json object returned now has a property called data.pagination.pageCount
@@ -91,8 +96,7 @@ for (i=1, i<count, i++)
 {
    data = http://server/zm/api/events.json?page=i;
    doStuff(data);
-}
-``
+}``
 
 Retrieve event Id 1000
 ^^^^^^^^^^^^^^^^^^^^^^

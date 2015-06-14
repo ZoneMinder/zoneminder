@@ -18,7 +18,6 @@ Examples
 
 Here be a list of examples.  Some results may be truncated.
 
-
 You will see each URL ending in either ``.xml`` or ``.json``.  This is the
 format of the request, and it determines the format that any data returned to
 you will be in.  I like json, however you can use xml if you'd like.
@@ -84,7 +83,7 @@ and ties into WEB_EVENTS_PER_PAGE in the ZM options menu.
 So the logic to iterate through all events should be something like this (pseudocode):
 (unfortunately there is no way to get pageCount without getting the first page)
 
- ``data = http://server/zm/api/events.json?page=1 # this returns the first page
+``data = http://server/zm/api/events.json?page=1 # this returns the first page
 # The json object returned now has a property called data.pagination.pageCount
 count = data.pagination.pageCount;
 for (i=1, i<count, i++)

@@ -671,8 +671,6 @@ else
 
 function drawXGrid( $chart, $scale, $labelClass, $tickClass, $gridClass, $zoomClass=false )
 {
-    global $SLANG;
-
     ob_start();
     $labelCount = 0;
     $lastTick = 0;
@@ -725,7 +723,7 @@ function drawXGrid( $chart, $scale, $labelClass, $tickClass, $gridClass, $zoomCl
                     $zoomMinTime = strftime( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($lastTick * $chart['data']['x']['density'])) );
                     $zoomMaxTime = strftime( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($i * $chart['data']['x']['density'])) );
 ?>
-            <div class="<?php echo $zoomClass ?>" style="left: <?php echo $lastTick-1 ?>px; width: <?php echo $i-$lastTick ?>px;" title="<?php echo $SLANG['ZoomIn'] ?>" onclick="tlZoomBounds( '<?php echo $zoomMinTime ?>', '<?php echo $zoomMaxTime ?>' )"></div>
+            <div class="<?php echo $zoomClass ?>" style="left: <?php echo $lastTick-1 ?>px; width: <?php echo $i-$lastTick ?>px;" title="<?php echo translate('ZoomIn') ?>" onclick="tlZoomBounds( '<?php echo $zoomMinTime ?>', '<?php echo $zoomMaxTime ?>' )"></div>
 <?php
                 }
                 $lastTick = $i;
@@ -738,7 +736,7 @@ function drawXGrid( $chart, $scale, $labelClass, $tickClass, $gridClass, $zoomCl
         $zoomMinTime = strftime( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($lastTick * $chart['data']['x']['density'])) );
         $zoomMaxTime = strftime( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($i * $chart['data']['x']['density'])) );
 ?>
-            <div class="<?php echo $zoomClass ?>" style="left: <?php echo $lastTick-1 ?>px; width: <?php echo $i-$lastTick ?>px;" title="<?php echo $SLANG['ZoomIn'] ?>" onclick="tlZoomBounds( '<?php echo $zoomMinTime ?>', '<?php echo $zoomMaxTime ?>' )"></div>
+            <div class="<?php echo $zoomClass ?>" style="left: <?php echo $lastTick-1 ?>px; width: <?php echo $i-$lastTick ?>px;" title="<?php echo translate('ZoomIn') ?>" onclick="tlZoomBounds( '<?php echo $zoomMinTime ?>', '<?php echo $zoomMaxTime ?>' )"></div>
 <?php
     }
 ?>
@@ -799,22 +797,22 @@ function getSlotShowEventBehaviour( $slot )
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['Timeline'] );
+xhtmlHeaders(__FILE__, translate('Timeline') );
 ?>
 <body>
   <div id="page">
     <div id="header">
       <div id="headerButtons">
-        <?php echo makePopupLink( '?view=events&amp;page=1'.htmlspecialchars($filterQuery), 'zmEvents', 'events', $SLANG['List'], canView( 'Events' ) ) ?>
-        <a href="#" onclick="closeWindow();"><?php echo $SLANG['Close'] ?></a>
+        <?php echo makePopupLink( '?view=events&amp;page=1'.htmlspecialchars($filterQuery), 'zmEvents', 'events', translate('List'), canView( 'Events' ) ) ?>
+        <a href="#" onclick="closeWindow();"><?php echo translate('Close') ?></a>
       </div>
-      <h2><?php echo $SLANG['Timeline'] ?></h2>
+      <h2><?php echo translate('Timeline') ?></h2>
     </div>
     <div id="content" class="chartSize">
       <div id="topPanel" class="graphWidth">
         <div id="imagePanel">
           <div id="image" class="imageHeight">
-			<!-- <img id="imageSrc" class="imageWidth" src="graphics/transparent.gif" alt="<?php echo $SLANG['ViewEvent'] ?>" title="<?php echo $SLANG['ViewEvent'] ?>"/>-->
+			<!-- <img id="imageSrc" class="imageWidth" src="graphics/transparent.gif" alt="<?php echo translate('ViewEvent') ?>" title="<?php echo translate('ViewEvent') ?>"/>-->
 			<!-- width="<?php echo $event['Width']; ?>" height="<?php echo $event['Height']; ?>" -->
 			<video id="preview" width="100%" controls>
 				<source src="<?php echo "/events/".getEventPath($event)."/event.mp4"; ?>" type="video/mp4">
@@ -826,18 +824,18 @@ Your browser does not support the video tag.
         <div id="dataPanel">
           <div id="textPanel">
             <div id="instruction">
-              <p><?php echo $SLANG['TimelineTip1'] ?></p>
-              <p><?php echo $SLANG['TimelineTip2'] ?></p>
-              <p><?php echo $SLANG['TimelineTip3'] ?></p>
-              <p><?php echo $SLANG['TimelineTip4'] ?></p>
+              <p><?php echo translate('TimelineTip1') ?></p>
+              <p><?php echo translate('TimelineTip2') ?></p>
+              <p><?php echo translate('TimelineTip3') ?></p>
+              <p><?php echo translate('TimelineTip4') ?></p>
               </div>
             <div id="eventData">
             </div>
           </div>
           <div id="navPanel">
-            <input type="button" title="<?php echo $SLANG['PanLeft'] ?>" value="&lt;&lt;" onclick="tlPan( '<?php echo $minTime ?>', '<?php echo $range ?>' )"/>
-            <input type="button" title="<?php echo $SLANG['ZoomOut'] ?>" value="&ndash;" onclick="tlZoomRange( '<?php echo $midTime ?>', '<?php echo (int)($range*$majXScale['zoomout']) ?>' )"/>
-            <input type="button" title="<?php echo $SLANG['PanRight'] ?>" value="&gt;&gt;" onclick="tlPan( '<?php echo $maxTime ?>', '<?php echo $range ?>' )"/>
+            <input type="button" title="<?php echo translate('PanLeft') ?>" value="&lt;&lt;" onclick="tlPan( '<?php echo $minTime ?>', '<?php echo $range ?>' )"/>
+            <input type="button" title="<?php echo translate('ZoomOut') ?>" value="&ndash;" onclick="tlZoomRange( '<?php echo $midTime ?>', '<?php echo (int)($range*$majXScale['zoomout']) ?>' )"/>
+            <input type="button" title="<?php echo translate('PanRight') ?>" value="&gt;&gt;" onclick="tlPan( '<?php echo $maxTime ?>', '<?php echo $range ?>' )"/>
           </div>
         </div>
       </div>

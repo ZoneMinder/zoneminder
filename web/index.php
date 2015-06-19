@@ -63,30 +63,30 @@ if ( isset($_GET['skin']) )
     $skin = $_GET['skin'];
 elseif ( isset($_COOKIE['zmSkin']) )
     $skin = $_COOKIE['zmSkin'];
-elseif ( defined(ZM_SKIN_DEFAULT) )
+elseif ( defined('ZM_SKIN_DEFAULT') )
 	$skin = ZM_SKIN_DEFAULT;
 else
     $skin = "classic";
 
 $skins = array_map( 'basename', glob('skins/*',GLOB_ONLYDIR) );
 if ( ! in_array( $skin, $skins ) ) {
-	Error( "Invalid skin '$skin'" );
-	$skin = 'classic';
+	Error( "Invalid skin '$skin' setting to " . $skins[0] );
+	$skin = $skins[0];
 }
 
 if ( isset($_GET['css']) )
 	$css = $_GET['css'];
 elseif ( isset($_COOKIE['zmCSS']) )
 	$css = $_COOKIE['zmCSS'];
-elseif (defined(ZM_CSS_DEFAULT))
+elseif (defined('ZM_CSS_DEFAULT'))
 	$css = ZM_CSS_DEFAULT;
 else
 	$css = "classic";
 
 $css_skins = array_map( 'basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR) );
 if ( ! in_array( $css, $css_skins ) ) {
-	Error( "Invalid skin css '$css'" );
-	$css = 'classic';
+	Error( "Invalid skin css '$css' setting to " . $css_skins[0] );
+	$css = $css_skins[0];
 }
 
 define( "ZM_BASE_PATH", dirname( $_SERVER['REQUEST_URI'] ) );
@@ -102,13 +102,13 @@ ini_set( "session.name", "ZMSESSID" );
 
 session_start();
 
-if ( !isset($_SESSION['skin']) || isset($_REQUEST['skin']) )
+if ( !isset($_SESSION['skin']) || isset($_REQUEST['skin']) || !isset($_COOKIE['zmSkin']) || $_COOKIE['zmSkin'] != $skin )
 {
     $_SESSION['skin'] = $skin;
     setcookie( "zmSkin", $skin, time()+3600*24*30*12*10 );
 }
 
-if ( !isset($_SESSION['css']) || isset($_REQUEST['css']) ) {
+if ( !isset($_SESSION['css']) || isset($_REQUEST['css']) || !isset($_COOKIE['zmCSS']) || $_COOKIE['zmCSS'] != $css ) {
 	$_SESSION['css'] = $css;
 	setcookie( "zmCSS", $css, time()+3600*24*30*12*10 );
 }
@@ -142,6 +142,10 @@ require_once( 'includes/actions.php' );
 if ( ZM_OPT_USE_AUTH && ! isset($user) && $view != 'login' ) {
     $view = 'login';
 }
+
+# Only one request can open the session file at a time, so let's close the session here to improve concurrency.
+# Any file/page that uses the session must re-open it.
+session_write_close();
 
 if ( isset( $_REQUEST['request'] ) )
 {

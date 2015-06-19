@@ -36,18 +36,18 @@ our @ISA = qw(Exporter ZoneMinder::Base);
 # names by default without a very good reason. Use EXPORT_OK instead.
 # Do not simply export all your public functions/methods/constants.
 
-# This allows declaration	use ZoneMinder ':all';
+# This allows declaration   use ZoneMinder ':all';
 # If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
 # will save memory.
 our %EXPORT_TAGS = (
-	'functions' => [ qw(
-		zmMemKey
-		zmMemAttach
-		zmMemDetach
-		zmMemGet
-		zmMemPut
-		zmMemClean
-	) ],
+    'functions' => [ qw(
+        zmMemKey
+        zmMemAttach
+        zmMemDetach
+        zmMemGet
+        zmMemPut
+        zmMemClean
+    ) ],
 );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
 
@@ -68,117 +68,131 @@ use ZoneMinder::Logger qw(:all);
 
 use Sys::Mmap;
 
-sub zmMemKey( $ )
+sub zmMemKey
 {
-	my $monitor = shift;
+    my $monitor = shift;
     return( defined($monitor->{MMapAddr})?$monitor->{MMapAddr}:undef );
 }
 
-sub zmMemAttach( $$ )
+sub zmMemAttach
 {
-	my ( $monitor, $size ) = @_;
-	if ( ! $size ) {
-		Error( "No size passed to zmMemAttach for monitor $$monitor{Id}\n" );
-		return( undef );
-	}
-	if ( !defined($monitor->{MMapAddr}) )
-	{
+    my ( $monitor, $size ) = @_;
+    if ( ! $size ) {
+        Error( "No size passed to zmMemAttach for monitor $$monitor{Id}\n" );
+        return( undef );
+    }
+    if ( !defined($monitor->{MMapAddr}) )
+    {
 
         my $mmap_file = $Config{ZM_PATH_MAP}."/zm.mmap.".$monitor->{Id};
-		if ( ! -e $mmap_file ) {
-			Error( sprintf( "Memory map file '%s' does not exist.  zmc might not be running.", $mmap_file ) );
-			return ( undef );
-		} 
+        if ( ! -e $mmap_file ) {
+            Error( sprintf( "Memory map file '%s' does not exist.  zmc might not be running."
+                            , $mmap_file
+                          )
+            );
+            return ( undef );
+        }
 
-		my $mmap_file_size = -s $mmap_file;
+        my $mmap_file_size = -s $mmap_file;
 
-		if ( $mmap_file_size < $size ) {
-			Error( sprintf( "Memory map file '%s' should have been %d but was instead %d", $mmap_file, $size, $mmap_file_size ) );
-			return ( undef );
-		} 
-        if ( !open( MMAP, "+<".$mmap_file ) )
+        if ( $mmap_file_size < $size ) {
+            Error( sprintf( "Memory map file '%s' should have been %d but was instead %d"
+                            , $mmap_file
+                            , $size
+                            , $mmap_file_size
+                          )
+            );
+            return ( undef );
+        }
+        if ( !open( MMAP, "+<", $mmap_file ) )
         {
-    		Error( sprintf( "Can't open memory map file '%s': $!\n", $mmap_file ) );
-			return( undef );
+            Error( sprintf( "Can't open memory map file '%s': $!\n", $mmap_file ) );
+            return( undef );
         }
         my $mmap = undef;
         my $mmap_addr = mmap( $mmap, $size, PROT_READ|PROT_WRITE, MAP_SHARED, \*MMAP );
         if ( !$mmap_addr || !$mmap )
         {
-    		Error( sprintf( "Can't mmap to file '%s': $!\n", $mmap_file ) );
-			close( MMAP );
-			return( undef );
+            Error( sprintf( "Can't mmap to file '%s': $!\n", $mmap_file ) );
+            close( MMAP );
+            return( undef );
         }
-		$monitor->{MMapHandle} = \*MMAP;
-		$monitor->{MMapAddr} = $mmap_addr;
-		$monitor->{MMap} = \$mmap;
-	}
-	return( !undef );
+        $monitor->{MMapHandle} = \*MMAP;
+        $monitor->{MMapAddr} = $mmap_addr;
+        $monitor->{MMap} = \$mmap;
+    }
+    return( !undef );
 }
 
-sub zmMemDetach( $ )
+sub zmMemDetach
 {
-	my $monitor = shift;
+    my $monitor = shift;
 
     if ( $monitor->{MMap} )
     {
         if ( ! munmap( ${$monitor->{MMap}} ) ) {
-			Warn( "Unable to munmap for monitor $$monitor{Id}\n");
-		} 
-	    delete $monitor->{MMap};
+            Warn( "Unable to munmap for monitor $$monitor{Id}\n");
+        }
+        delete $monitor->{MMap};
     }
     if ( $monitor->{MMapAddr} )
     {
-	    delete $monitor->{MMapAddr};
+        delete $monitor->{MMapAddr};
     }
     if ( $monitor->{MMapHandle} )
     {
         close( $monitor->{MMapHandle} );
-	    delete $monitor->{MMapHandle};
+        delete $monitor->{MMapHandle};
     }
 }
 
-sub zmMemGet( $$$ )
+sub zmMemGet
 {
-	my $monitor = shift;
-	my $offset = shift;
-	my $size = shift;
+    my $monitor = shift;
+    my $offset = shift;
+    my $size = shift;
 
-	my $mmap = $monitor->{MMap};
+    my $mmap = $monitor->{MMap};
     if ( !$mmap || !$$mmap )
     {
-        Error( sprintf( "Can't read from mapped memory for monitor '%d', gone away?", $monitor->{Id} ) );
+        Error( sprintf( "Can't read from mapped memory for monitor '%d', gone away?"
+                        , $monitor->{Id}
+                      )
+        );
         return( undef );
     }
-	my $data = substr( $$mmap, $offset, $size );
+    my $data = substr( $$mmap, $offset, $size );
     return( $data );
 }
 
-sub zmMemPut( $$$$ )
+sub zmMemPut
 {
-	my $monitor = shift;
-	my $offset = shift;
-	my $size = shift;
-	my $data = shift;
+    my $monitor = shift;
+    my $offset = shift;
+    my $size = shift;
+    my $data = shift;
 
-	my $mmap = $monitor->{MMap};
+    my $mmap = $monitor->{MMap};
     if ( !$mmap || !$$mmap )
     {
-        Error( sprintf( "Can't write mapped memory for monitor '%d', gone away?", $monitor->{Id} ) );
+        Error( sprintf( "Can't write mapped memory for monitor '%d', gone away?"
+                        , $monitor->{Id}
+                      )
+        );
         return( undef );
     }
-	substr( $$mmap, $offset, $size ) = $data;
-	return( !undef );
+    substr( $$mmap, $offset, $size ) = $data;
+    return( !undef );
 }
 
 sub zmMemClean
 {
-	Debug( "Removing memory map files\n" );
+    Debug( "Removing memory map files\n" );
     my $mapPath = $Config{ZM_PATH_MAP}."/zm.mmap.*";
     foreach my $mapFile( glob( $mapPath ) )
     {
         ( $mapFile ) = $mapFile =~ /^(.+)$/;
-	    Debug( "Removing memory map file '$mapFile'\n" );
+        Debug( "Removing memory map file '$mapFile'\n" );
         unlink( $mapFile );
     }
 }

@@ -32,15 +32,15 @@ $stats = dbFetchAll( $sql, NULL, array( $eid, $fid ) );
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['Stats']." - ".$eid." - ".$fid );
+xhtmlHeaders(__FILE__, translate('Stats')." - ".$eid." - ".$fid );
 ?>
 <body>
   <div id="page">
     <div id="header">
       <div id="headerButtons">
-        <a href="#" onclick="closeWindow(); return( false );"><?php echo $SLANG['Close'] ?></a>
+        <a href="#" onclick="closeWindow(); return( false );"><?php echo translate('Close') ?></a>
       </div>
-      <h2><?php echo $SLANG['Stats'] ?> - <?php echo $eid ?> - <?php echo $fid ?></h2>
+      <h2><?php echo translate('Stats') ?> - <?php echo $eid ?> - <?php echo $fid ?></h2>
     </div>
     <div id="content">
       <form name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
@@ -48,15 +48,15 @@ xhtmlHeaders(__FILE__, $SLANG['Stats']." - ".$eid." - ".$fid );
         <table id="contentTable" class="major" cellspacing="0">
           <thead>
             <tr>
-              <th class="colZone"><?php echo $SLANG['Zone'] ?></th>
-              <th class="colPixelDiff"><?php echo $SLANG['PixelDiff'] ?></th>
-              <th class="colAlarmPx"><?php echo $SLANG['AlarmPx'] ?></th>
-              <th class="colFilterPx"><?php echo $SLANG['FilterPx'] ?></th>
-              <th class="colBlobPx"><?php echo $SLANG['BlobPx'] ?></th>
-              <th class="colBlobs"><?php echo $SLANG['Blobs'] ?></th>
-              <th class="colBlobSizes"><?php echo $SLANG['BlobSizes'] ?></th>
-              <th class="colAlarmLimits"><?php echo $SLANG['AlarmLimits'] ?></th>
-              <th class="colScore"><?php echo $SLANG['Score'] ?></th>
+              <th class="colZone"><?php echo translate('Zone') ?></th>
+              <th class="colPixelDiff"><?php echo translate('PixelDiff') ?></th>
+              <th class="colAlarmPx"><?php echo translate('AlarmPx') ?></th>
+              <th class="colFilterPx"><?php echo translate('FilterPx') ?></th>
+              <th class="colBlobPx"><?php echo translate('BlobPx') ?></th>
+              <th class="colBlobs"><?php echo translate('Blobs') ?></th>
+              <th class="colBlobSizes"><?php echo translate('BlobSizes') ?></th>
+              <th class="colAlarmLimits"><?php echo translate('AlarmLimits') ?></th>
+              <th class="colScore"><?php echo translate('Score') ?></th>
             </tr>
           </thead>
           <tbody>
@@ -97,7 +97,7 @@ else
 {
 ?>
             <tr>
-              <td class="rowNoStats" colspan="9"><?php echo $SLANG['NoStatisticsRecorded'] ?></td>
+              <td class="rowNoStats" colspan="9"><?php echo translate('NoStatisticsRecorded') ?></td>
             </tr>
 <?php
 }

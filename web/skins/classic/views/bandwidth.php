@@ -35,21 +35,21 @@ if ( $user && !empty($user['MaxBandwidth']) )
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['Bandwidth'] );
+xhtmlHeaders(__FILE__, translate('Bandwidth') );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?php echo $SLANG['Bandwidth'] ?></h2>
+      <h2><?php echo translate('Bandwidth') ?></h2>
     </div>
     <div id="content">
       <form name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="none"/>
         <input type="hidden" name="action" value="bandwidth"/>
-        <p><?php echo $SLANG['SetNewBandwidth'] ?></p>
+        <p><?php echo translate('SetNewBandwidth') ?></p>
         <p><?php echo buildSelect( "newBandwidth", $bwArray ) ?></p>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo $SLANG['Save'] ?>"/><input type="button" value="<?php echo $SLANG['Cancel'] ?>" onclick="closeWindow();"/>
+          <input type="submit" value="<?php echo translate('Save') ?>"/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
         </div>
       </form>
     </div>

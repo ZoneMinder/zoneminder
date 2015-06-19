@@ -211,7 +211,7 @@ RtspThread::~RtspThread()
 {
     if ( mFormatContext )
     {
-#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(52, 96, 0)
+#if LIBAVFORMAT_VERSION_CHECK(52, 96, 0, 96, 0)
         avformat_free_context( mFormatContext );
 #else
         av_free_format_context( mFormatContext );
@@ -392,7 +392,7 @@ int RtspThread::run()
     		if ( ( lines[i].size() > 13 ) && ( lines[i].substr( 0, 13 ) == "Content-Base:" ) )
     			{
     				mUrl = trimSpaces( lines[i].substr( 13 ) );
-    				Info("Recieved new Content-Base in DESCRIBE reponse header. Updated device Url to: '%s'", mUrl.c_str() );
+    				Info("Received new Content-Base in DESCRIBE response header. Updated device Url to: '%s'", mUrl.c_str() );
     				break;
     			}
     	}
@@ -437,7 +437,7 @@ int RtspThread::run()
         for ( unsigned int i = 0; i < mFormatContext->nb_streams; i++ )
         {
             SessionDescriptor::MediaDescriptor *mediaDesc = mSessDesc->getStream( i );
-#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
+#if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
             if ( mFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO )
 #else
             if ( mFormatContext->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO )

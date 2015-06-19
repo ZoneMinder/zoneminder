@@ -73,7 +73,7 @@ too much degradation of performance.
 %build
 # Have to override CMAKE_INSTALL_LIBDIR for cmake < 2.8.7 due to this bug:
 # https://bugzilla.redhat.com/show_bug.cgi?id=795542
-%cmake -DZM_TARGET_DISTRO="el6" -DCMAKE_INSTALL_LIBDIR:PATH=%{_lib} -DZM_PERL_SUBPREFIX=`x="%{perl_vendorlib}" ; echo ${x#"%{_prefix}"}` .
+%cmake -DZM_TARGET_DISTRO="el6" -DCMAKE_INSTALL_LIBDIR:PATH=%{_lib} .
 
 make %{?_smp_mflags}
 

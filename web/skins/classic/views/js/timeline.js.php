@@ -13,4 +13,4 @@ monitorNames[<?php echo $monitor['Id'] ?>] = '<?php echo validJsStr($monitor['Na
 }
 ?>
 
-var archivedString = "<?php echo $SLANG['Archived'] ?>";
+var archivedString = "<?php echo translate('Archived') ?>";

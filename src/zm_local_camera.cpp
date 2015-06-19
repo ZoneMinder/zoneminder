@@ -32,6 +32,13 @@
 #include <stdlib.h>
 #include <limits.h>
 
+/* Workaround for GNU/kFreeBSD */
+#if defined(__FreeBSD_kernel__)
+#ifndef ENODATA
+#define ENODATA ENOATTR
+#endif
+#endif
+
 static unsigned int BigEndian;
 
 static int vidioctl( int fd, int request, void *arg )
@@ -255,7 +262,7 @@ static PixelFormat getFfPixFormatFromV4lPalette( int v4l_version, int palette )
 
 #if ZM_HAS_V4L2
 static char palette_desc[32];
-/* Automatic format selection prefered formats */
+/* Automatic format selection preferred formats */
 static const uint32_t prefered_rgb32_formats[] = {V4L2_PIX_FMT_BGR32, V4L2_PIX_FMT_RGB32, V4L2_PIX_FMT_BGR24, V4L2_PIX_FMT_RGB24, V4L2_PIX_FMT_YUYV, V4L2_PIX_FMT_UYVY, V4L2_PIX_FMT_JPEG, V4L2_PIX_FMT_MJPEG, V4L2_PIX_FMT_YUV422P, V4L2_PIX_FMT_YUV420};
 static const uint32_t prefered_rgb24_formats[] = {V4L2_PIX_FMT_BGR24, V4L2_PIX_FMT_RGB24, V4L2_PIX_FMT_YUYV, V4L2_PIX_FMT_UYVY, V4L2_PIX_FMT_JPEG, V4L2_PIX_FMT_MJPEG, V4L2_PIX_FMT_YUV422P, V4L2_PIX_FMT_YUV420};
 static const uint32_t prefered_gray8_formats[] = {V4L2_PIX_FMT_GREY, V4L2_PIX_FMT_YUYV, V4L2_PIX_FMT_UYVY, V4L2_PIX_FMT_JPEG, V4L2_PIX_FMT_MJPEG, V4L2_PIX_FMT_YUV422P, V4L2_PIX_FMT_YUV420};
@@ -427,7 +434,7 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 				Panic("Unexpected colours: %d",colours);
 			}
 			if( capture ) {
-#if LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(0, 8, 0)
+#if LIBSWSCALE_VERSION_CHECK(0, 8, 0, 8, 0)
 				if(!sws_isSupportedInput(capturePixFormat)) {
 					Error("swscale does not support the used capture format: %c%c%c%c",(capturePixFormat)&0xff,((capturePixFormat>>8)&0xff),((capturePixFormat>>16)&0xff),((capturePixFormat>>24)&0xff));
 					conversion_type = 2; /* Try ZM format conversions */
@@ -615,7 +622,11 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 #if HAVE_LIBSWSCALE
 	/* Initialize swscale stuff */
 	if(capture && conversion_type == 1) {
+#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
+		tmpPicture = av_frame_alloc();
+#else
 		tmpPicture = avcodec_alloc_frame();
+#endif
 		if ( !tmpPicture )
 			Fatal( "Could not allocate temporary picture" );
 		
@@ -845,7 +856,11 @@ void LocalCamera::Initialise()
                 Fatal( "Can't map video buffer %d (%d bytes) to memory: %s(%d)", i, vid_buf.length, strerror(errno), errno );
 
 #if HAVE_LIBSWSCALE
+#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
+		capturePictures[i] = av_frame_alloc();
+#else
 		capturePictures[i] = avcodec_alloc_frame();
+#endif
 		if ( !capturePictures[i] )
 			Fatal( "Could not allocate picture" );
 		avpicture_fill( (AVPicture *)capturePictures[i], (uint8_t*)v4l2_data.buffers[i].start, capturePixFormat, v4l2_data.fmt.fmt.pix.width, v4l2_data.fmt.fmt.pix.height );
@@ -999,7 +1014,11 @@ void LocalCamera::Initialise()
             v4l1_data.buffers[i].height = height;
             v4l1_data.buffers[i].format = palette;
 
+#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
+            capturePictures[i] = av_frame_alloc();
+#else
             capturePictures[i] = avcodec_alloc_frame();
+#endif
             if ( !capturePictures[i] )
                 Fatal( "Could not allocate picture" );
             avpicture_fill( (AVPicture *)capturePictures[i], (unsigned char *)v4l1_data.bufptr+v4l1_data.frames.offsets[i], capturePixFormat, width, height );

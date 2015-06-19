@@ -70,6 +70,7 @@ use Time::HiRes qw( usleep );
 # it does not reset the name if a command fails. Net result: Your camera gets a name like "Move Left" which
 # I bet you won't like
 my $osd = "off";
+my $cmd;
 
 sub new
 {

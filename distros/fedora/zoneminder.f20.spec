@@ -24,7 +24,7 @@ Source: ZoneMinder-%{version}.tar.gz
 
 BuildRequires: cmake gnutls-devel systemd-units bzip2-devel
 BuildRequires: community-mysql-devel pcre-devel libjpeg-turbo-devel
-BuildRequires: perl(Archive::Tar) perl(Archive::Zip)
+BuildRequires: perl(Archive::Tar) perl(Archive::Zip) perl-podlators
 BuildRequires: perl(Date::Manip) perl(DBD::mysql)
 BuildRequires: perl(ExtUtils::MakeMaker) perl(LWP::UserAgent)
 BuildRequires: perl(MIME::Entity) perl(MIME::Lite)

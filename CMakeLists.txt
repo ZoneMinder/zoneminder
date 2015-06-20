@@ -653,6 +653,10 @@ configure_file(zoneminder-config.cmake "${CMAKE_CURRENT_BINARY_DIR}/config.h" @O
 configure_file(zmconfgen.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmconfgen.pl" @ONLY)
 configure_file(zmlinkcontent.sh.in "${CMAKE_CURRENT_BINARY_DIR}/zmlinkcontent.sh" @ONLY)
 
+# Create a target for man pages
+include(Pod2Man)
+ADD_MANPAGE_TARGET()
+
 # Process subdirectories
 add_subdirectory(src)
 add_subdirectory(scripts)

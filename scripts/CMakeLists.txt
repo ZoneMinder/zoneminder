@@ -3,8 +3,6 @@
 # Process the perl modules subdirectory
 add_subdirectory(ZoneMinder)
 
-include(Pod2Man)
-
 # Create files from the .in files
 configure_file(zmaudit.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmaudit.pl" @ONLY)
 configure_file(zmcontrol.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmcontrol.pl" @ONLY)
@@ -27,7 +25,6 @@ configure_file(zm.in "${CMAKE_CURRENT_BINARY_DIR}/zm" @ONLY)
 #configure_file(zmeventdump.in zmeventdump @ONLY)
 
 # Generate man files for the perl scripts destined for the bin folder
-ADD_MANPAGE_TARGET()
 file(GLOB perlscripts RELATIVE "${CMAKE_CURRENT_BINARY_DIR}" "*.pl")
 FOREACH(PERLSCRIPT ${perlscripts})
     POD2MAN(${CMAKE_CURRENT_BINARY_DIR}/${PERLSCRIPT} zoneminder-${PERLSCRIPT} 8)

@@ -48,6 +48,14 @@ class ImageComponent extends Component {
 			$imageFile = $config['ZM_DIR_EVENTS']."/".$imagePath;
 			//$thumbFile = ZM_DIR_EVENTS."/".$thumbPath;
 			$thumbFile = $thumbPath;
+			// PP: This segment of code results in errors when trying to get Events API
+			// This actually seems to be generating images for the angular UI web view
+			// and should not be a part of the API anyway
+			// I've commented it so events APIs continue to work
+			// I did ask Kyle about this, but I don't have an answer from him
+			// Either way, it does no harm to remove it -- as the UI of master 
+			// does not use API code anyway
+			/*
 			if ( $overwrite || !file_exists( $thumbFile ) || !filesize( $thumbFile ) )
 			{
 			    // Get new dimensions
@@ -63,6 +71,7 @@ class ImageComponent extends Component {
 			    if ( !imagejpeg( $thumbImage, $thumbFile ) )
 			        Error( "Can't create thumbnail '$thumbPath'" );
 			}
+		      */
 		}
 
 		$imageData = array(

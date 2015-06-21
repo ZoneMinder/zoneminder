@@ -74,6 +74,7 @@ class ImageComponent extends Component {
 		      */
 		}
 
+		/*
 		$imageData = array(
 		    'eventPath' => $eventPath,
 		    'imagePath' => $imagePath,
@@ -86,6 +87,7 @@ class ImageComponent extends Component {
 		);
 
 		return( $imageData );
+	 */
 
 	}
 

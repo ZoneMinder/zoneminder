@@ -219,7 +219,7 @@ package ZMServer;
 use strict;
 use bytes;
 
-use lib '/usr/share/perl/5.20.2'; # Include custom perl install path
+@EXTRA_PERL_LIB@
 use ZoneMinder;
 use POSIX;
 use Socket;
@@ -857,10 +857,10 @@ sub killAll
     my $delay = shift;
     sleep( $delay );
     my $killall;
-    if ( 'linux' eq 'BSD' )
+    if ( '@HOST_OS@' eq 'BSD' )
     {
         $killall = 'killall -';
-    } elsif ( 'linux' eq 'solaris' ) {
+    } elsif ( '@HOST_OS@' eq 'solaris' ) {
         $killall = 'pkill -';
     } else {
         $killall = 'killall -q -s ';

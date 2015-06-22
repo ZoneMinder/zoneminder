@@ -1,3 +1,11 @@
+# Modified by PP to clean up user/auth dependencies inside the script
+# Also, you can specify your auth credentials in the Control tab of the monitor
+# In "ControlDevice" put in 
+# usr=xxxx&pwd=xxx 
+# where xxx is the auth credentials to your foscam camera
+# The Foscam CGI manual referred to was v1.0.10
+# All other notices below may be stale
+#
 # ==========================================================================
 #
 # ZoneMinder FOSCAM version 1.0 API Control Protocol Module, $Date$, $Revision$
@@ -26,6 +34,7 @@
 # My name is Christophe DAPREMONT my email is christophe_y2k@yahoo.fr
 #
 # =========================================================================================
+#
 package ZoneMinder::Control::FI9821W_Y2k;
 
 use 5.006;
@@ -41,7 +50,7 @@ our @ISA = qw(ZoneMinder::Control);
 # FI9821 FOSCAM PT H264 Control Protocol
 # with Firmware version V1.2.1.1 (latest at 09/08/2013)
 # based with the latest buggy CGI doc from FOSCAM ( http://foscam.us/forum/cgi-sdk-for-hd-camera-t6045.html )
-# This IPCAM work under ZoneMinder V1.25 from alternative source of code
+# This IPCAM work under ZoneMinder V1.28.1 from alternative source of code
 # from this svn at https://svn.unixmedia.net/public/zum/trunk/zum/
 # Many Thanks to "MASTERTHEKNIFE" for the excellent speed optimisation ( http://www.zoneminder.com/forums/viewtopic.php?f=9&t=17652 )
 # And to "NEXTIME" for the recent source update and incredible plugins ( http://www.zoneminder.com/forums/viewtopic.php?f=9&t=20587 )
@@ -57,7 +66,11 @@ use Time::HiRes qw( usleep );
 
 # Set $osd to "off" if you wan't disabled OSD i need to place this variable in another script because
 # this script is reload at every command ,if i want the button on/off (Focus MAN) for OSD works...
-my $osd = "on";
+# PP - changed this to off - it achieves OSD by renaming the Device and what happens is at times
+# it does not reset the name if a command fails. Net result: Your camera gets a name like "Move Left" which
+# I bet you won't like
+my $osd = "off";
+my $cmd;
 
 sub new
 {
@@ -90,7 +103,7 @@ sub open
     $self->loadMonitor();
     use LWP::UserAgent;
     $self->{ua} = LWP::UserAgent->new;
-    $self->{ua}->agent( "ZoneMinder Control Agent/".ZoneMinder::Base::ZM_VERSION );
+    $self->{ua}->agent( "ZoneMinder Control Agent/" );
     $self->{state} = 'open';
 }
 
@@ -102,6 +115,7 @@ sub close
 
 sub printMsg
 {
+    my $self = shift;
     my $msg = shift;
     my $msg_len = length($msg);
     Debug( $msg."[".$msg_len."]" );
@@ -112,28 +126,9 @@ sub sendCmd
     my $self = shift;
     my $cmd = shift;
     my $result = undef;
-
-	my ($user, $password) = split /:/, $self->{Monitor}->{ControlDevice};
-	if ( ! $password ) {
-		$password = $user;
-		$user = 'admin';
-	}
-	$user = 'admin' if ! $user;
-	$password = 'pwd' if ! $password;
-
-	$cmd .= "&usr=$user&pwd=$password";
-
     printMsg( $cmd, "Tx" );
-    my $url;
-    if ( $self->{Monitor}->{ControlAddress} =~ /^http/ ) {
-        $url = $self->{Monitor}->{ControlAddress};
-    } else {
-        $url = "http://".$self->{Monitor}->{ControlAddress};
-    }
-	$url .= "/cgi-bin/CGIProxy.fcgi?cmd=$cmd%26".time;
-    printMsg( $url, "Tx" );
-
-    my $req = HTTP::Request->new( GET=>$url );
+    my $temps = time();
+    my $req = HTTP::Request->new( GET=>"http://".$self->{Monitor}->{ControlAddress}."/cgi-bin/CGIProxy.fcgi?cmd=".$cmd."&".$self->{Monitor}->{ControlDevice} );
     my $res = $self->{ua}->request($req);
     if ( $res->is_success )
     {
@@ -148,18 +143,9 @@ sub sendCmd
 
 sub reset
 {   my $self = shift;
-   Debug ( "Reset = setup camera FI9821W" );
-   # Setup OSD
-   my $cmd = "setOSDSetting%26isEnableTimeStamp%3D0%26isEnableDevName%3D1%26dispPos%3D0%26isEnabledOSDMask%3D0";
-   $self->sendCmd( $cmd );
-   # Setup For Stream=0 Resolution=720p Bandwidth=4M FPS=30 KeyFrameInterval/GOP=100 VBR=ON
-   $cmd = "setVideoStreamParam%26streamType%3D0%26resolution%3D0%26bitRate%3D4194304%26frameRate%3D30%26GOP%3D100%26isVBR%3D1";
-   $self->sendCmd( $cmd );
-   # Setup For Infrared AUTO
-   $cmd = "setInfraLedConfig%26Mode%3D1";
-   $self->sendCmd( $cmd );
-   # Reset image settings
-   $cmd = "resetImageSetting";
+   Debug ( "Reboot= setup camera FI9821W" );
+   $cmd = "rebootSystem";
+   Info ("Sending reboot $cmd");
    $self->sendCmd( $cmd );
 }
 
@@ -169,10 +155,13 @@ sub moveStop
    Debug( "Move Stop" );
         my $cmd = "ptzStopRun";
    $self->sendCmd( $cmd );
+   if ($osd eq "on")
+   {
         $cmd = "setDevName%26devName%3D.";
         $self->sendCmd( $cmd );
-   $cmd = "setOSDSetting%26isEnableDevName%3D1";
-   $self->sendCmd( $cmd );
+   	$cmd = "setOSDSetting%26isEnableDevName%3D1";
+   	$self->sendCmd( $cmd );
+   }
 }
 
 sub autoStop
@@ -714,9 +703,9 @@ sub presetGoto
 __END__
 # Below is stub documentation for your module. You'd better edit it!
 
-=head1 NAME
+=head1 FI9821W
 
-ZoneMinder::Control::FI9821W - Perl extension for FOSCAM FI9821W
+ZoneMinder::Database - Perl extension for FOSCAM FI9821W
 
 =head1 SYNOPSIS
 

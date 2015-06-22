@@ -507,10 +507,11 @@ sub start
 
 # Sends the stop signal, without waiting around to see if the process died.
 sub send_stop {
-	my ( $final, $process ) = @_;
+    my ( $final, $process ) = @_;
 
-	my $command = $process->{command};
+    my $command = $process->{command};
     if ( $process->{pending} ) {
+
         delete( $cmd_hash{$command} );
         dPrint( ZoneMinder::Logger::INFO, "Command '$command' removed from pending list at "
             .strftime( '%y/%m/%d %H:%M:%S', localtime() )
@@ -532,43 +533,43 @@ sub send_stop {
     );
     $process->{keepalive} = !$final;
     kill( 'TERM', $pid );
-	return $pid;
+    return $pid;
 } # end sub send_stop
 
 sub kill_until_dead {
-	my ( $process ) = @_;
+    my ( $process ) = @_;
     # Now check it has actually gone away, if not kill -9 it
     my $count = 0;
     while( $process and $$process{pid} and kill( 0, $$process{pid} ) )
     {
         if ( $count++ > 5 )
         {
-    dPrint( ZoneMinder::Logger::WARNING, "'$$process{command}' has not stopped at "
-        .strftime( '%y/%m/%d %H:%M:%S', localtime() )
-        .". Sending KILL to pid $$process{pid}\n"
-    );
+            dPrint( ZoneMinder::Logger::WARNING, "'$$process{command}' has not stopped at "
+                .strftime( '%y/%m/%d %H:%M:%S', localtime() )
+                .". Sending KILL to pid $$process{pid}\n"
+            );
             kill( 'KILL', $$process{pid} );
         }
-		
+        
         sleep( 1 );
     }
 }
 
 sub _stop {
-	my ($final, $process ) = @_;
+    my ($final, $process ) = @_;
 
-	my $pid = send_stop( $final, $process );
-	return if ! $pid;
-
-	kill_until_dead( $process );
     delete( $cmd_hash{$$process{command}} );
+    my $pid = send_stop( $final, $process );
+    return if ! $pid;
+
+    kill_until_dead( $process );
 }
 
 sub stop
 {
-	my ( $daemon, @args ) = @_;
-	my $command = join(' ', $daemon, @args );
-	my $process = $cmd_hash{$command};
+    my ( $daemon, @args ) = @_;
+    my $command = join(' ', $daemon, @args );
+    my $process = $cmd_hash{$command};
     if ( !$process )
     {
         dPrint( ZoneMinder::Logger::WARNING, "Can't find process with command of '$command'\n" );
@@ -654,7 +655,7 @@ sub reaper
         my $exit_signal = $status&0xfe;
         my $core_dumped = $status&0x01;
 
-        my $out_str = "'$process->{daemon} ".join( ' ', @{$process->{args}} )."' ";
+        my $out_str = "'$process->{command}' ";
         if ( $exit_signal )
         {
             if ( $exit_signal == 15 || $exit_signal == 14 ) # TERM or ALRM
@@ -693,17 +694,16 @@ sub reaper
 
         if ( $process->{keepalive} )
         {
+            # Schedule for immediate restart
+            $cmd_hash{$process->{command}} = $process;
             if ( !$process->{delay} || ($process->{runtime} > $Config{ZM_MAX_RESTART_DELAY} ) )
             {
                 #start( $process->{daemon}, @{$process->{args}} );
-                # Schedule for immediate restart
-                $cmd_hash{$process->{command}} = $process;
                 $process->{pending} = $process->{stopped};
                 $process->{delay} = 5;
             }
             else
             {
-                $cmd_hash{$process->{command}} = $process;
                 $process->{pending} = $process->{stopped}+$process->{delay};
                 $process->{delay} *= 2;
                 # Limit the start delay to 15 minutes max
@@ -733,20 +733,20 @@ sub restartPending
 
 sub shutdownAll
 {
-	foreach my $pid ( keys %pid_hash ) {
-		# This is a quick fix because a SIGCHLD can happen and alter pid_hash while we are in here.
-		next if ! $pid_hash{$pid};
-		send_stop( 1, $pid_hash{$pid} );
+    foreach my $pid ( keys %pid_hash ) {
+        # This is a quick fix because a SIGCHLD can happen and alter pid_hash while we are in here.
+        next if ! $pid_hash{$pid};
+        send_stop( 1, $pid_hash{$pid} );
     }
-	foreach my $pid ( keys %pid_hash ) {
-		# This is a quick fix because a SIGCHLD can happen and alter pid_hash while we are in here.
-		next if ! $pid_hash{$pid};
+    foreach my $pid ( keys %pid_hash ) {
+        # This is a quick fix because a SIGCHLD can happen and alter pid_hash while we are in here.
+        next if ! $pid_hash{$pid};
 
-		my $process = $pid_hash{$pid};
+        my $process = $pid_hash{$pid};
 
-		kill_until_dead( $process );
-		delete( $cmd_hash{$$process{command}} );
-		delete( $pid_hash{$pid} );
+        kill_until_dead( $process );
+        delete( $cmd_hash{$$process{command}} );
+        delete( $pid_hash{$pid} );
     }
     killAll( 5 );
     dPrint( ZoneMinder::Logger::INFO, "Server shutdown at "
@@ -860,8 +860,8 @@ sub killAll
     if ( 'linux' eq 'BSD' )
     {
         $killall = 'killall -';
-	} elsif ( 'linux' eq 'solaris' ) {
-	    $killall = 'pkill -';
+    } elsif ( 'linux' eq 'solaris' ) {
+        $killall = 'pkill -';
     } else {
         $killall = 'killall -q -s ';
     }

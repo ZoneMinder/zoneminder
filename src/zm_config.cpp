@@ -104,6 +104,11 @@ void zmLoadConfig()
 	config.Assign();
 }
 
+int zmFreshenConfig()
+{
+	return( system( "zmupdate.pl -f" ) );
+}
+
 StaticConfig staticConfig;
 
 ConfigItem::ConfigItem( const char *p_name, const char *p_value, const char *const p_type )
@@ -164,8 +169,10 @@ bool ConfigItem::BooleanValue() const
 
 	if ( cfg_type != CFG_BOOLEAN )
 	{
-		Error( "Attempt to fetch boolean value for %s, actual type is %s. Try running 'zmupdate.pl -f' to reload config.", name, type );
-		exit( -1 );
+		if ( zmFreshenConfig() ) {
+			Error( "Attempt to fetch boolean value for %s, actual type is %s. Try running 'zmupdate.pl -f' to reload config.", name, type );
+			exit( -1 );
+		}
 	}
 
 	return( cfg_value.boolean_value );
@@ -178,8 +185,10 @@ int ConfigItem::IntegerValue() const
 
 	if ( cfg_type != CFG_INTEGER )
 	{
-		Error( "Attempt to fetch integer value for %s, actual type is %s. Try running 'zmupdate.pl -f' to reload config.", name, type );
-		exit( -1 );
+		if ( zmFreshenConfig() ) {
+			Error( "Attempt to fetch integer value for %s, actual type is %s. Try running 'zmupdate.pl -f' to reload config.", name, type );
+			exit( -1 );
+		}
 	}
 
 	return( cfg_value.integer_value );
@@ -192,8 +201,10 @@ double ConfigItem::DecimalValue() const
 
 	if ( cfg_type != CFG_DECIMAL )
 	{
-		Error( "Attempt to fetch decimal value for %s, actual type is %s. Try running 'zmupdate.pl -f' to reload config.", name, type );
-		exit( -1 );
+		if ( zmFreshenConfig() ) {
+			Error( "Attempt to fetch decimal value for %s, actual type is %s. Try running 'zmupdate.pl -f' to reload config.", name, type );
+			exit( -1 );
+		}
 	}
 
 	return( cfg_value.decimal_value );
@@ -206,8 +217,10 @@ const char *ConfigItem::StringValue() const
 
 	if ( cfg_type != CFG_STRING )
 	{
-		Error( "Attempt to fetch string value for %s, actual type is %s. Try running 'zmupdate.pl -f' to reload config.", name, type );
-		exit( -1 );
+		if ( zmFreshenConfig() ) {
+			Error( "Attempt to fetch string value for %s, actual type is %s. Try running 'zmupdate.pl -f' to reload config.", name, type );
+			exit( -1 );
+		}
 	}
 
 	return( cfg_value.string_value );
@@ -252,8 +265,10 @@ void Config::Load()
 
 	if ( n_items <= ZM_MAX_CFG_ID )
 	{
-		Error( "Config mismatch, expected %d items, read %d. Try running 'zmupdate.pl -f' to reload config.", ZM_MAX_CFG_ID+1, n_items );
-		exit( -1 );
+		if ( zmFreshenConfig() ) {
+			Error( "Config mismatch, expected %d items, read %d. Try running 'zmupdate.pl -f' to reload config.", ZM_MAX_CFG_ID+1, n_items );
+			exit( -1 );
+		}
 	}
 
 	items = new ConfigItem *[n_items];
@@ -279,8 +294,10 @@ const ConfigItem &Config::Item( int id )
 
 	if ( id < 0 || id > ZM_MAX_CFG_ID )
 	{
-		Error( "Attempt to access invalid config, id = %d. Try running 'zmupdate.pl -f' to reload config.", id );
-		exit( -1 );
+		if ( zmFreshenConfig() ) {	
+			Error( "Attempt to access invalid config, id = %d. Try running 'zmupdate.pl -f' to reload config.", id );
+			exit( -1 );
+		}
 	}
 
 	ConfigItem *item = items[id];

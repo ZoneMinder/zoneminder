@@ -660,7 +660,7 @@ Monitor::State Monitor::GetState() const
     return( (State)shared_data->state );
 }
 
-int Monitor::GetImage( int index, int scale ) const
+int Monitor::GetImage( int index, int scale )
 {
     if ( index < 0 || index > image_buffer_count )
     {
@@ -669,21 +669,32 @@ int Monitor::GetImage( int index, int scale ) const
 
     if ( index != image_buffer_count )
     {
-        Snapshot *snap = &image_buffer[index];
-        Image snap_image( *(snap->image) );
+        Image *image;
+		// If we are going to be modifying the snapshot before writing, then we need to copy it
+        if ( ( scale != ZM_SCALE_BASE ) || ( !config.timestamp_on_capture ) ) {
+            Snapshot *snap = &image_buffer[index];
+            Image *snap_image = snap->image;
 
-        if ( scale != ZM_SCALE_BASE )
-        {
-            snap_image.Scale( scale );
+            alarm_image.Assign( *snap_image );
+
+
+            //write_image.Assign( *snap_image );
+
+            if ( scale != ZM_SCALE_BASE ) {
+                alarm_image.Scale( scale );
+            }
+
+            if ( !config.timestamp_on_capture ) {
+                TimestampImage( &alarm_image, snap->timestamp );
+            }
+            image = &alarm_image;
+        } else {
+            image = image_buffer[index].image;
         }
 
         static char filename[PATH_MAX];
         snprintf( filename, sizeof(filename), "Monitor%d.jpg", id );
-        if ( !config.timestamp_on_capture )
-        {
-            TimestampImage( &snap_image, snap->timestamp );
-        }
-        snap_image.WriteJpeg( filename );
+        image->WriteJpeg( filename );
     }
     else
     {
@@ -1547,7 +1558,7 @@ bool Monitor::Analyse()
                         if ( config.create_analysis_images )
                         {
                             bool got_anal_image = false;
-                            Image alarm_image( *snap_image );
+							alarm_image.Assign( *snap_image );
                             for( int i = 0; i < n_zones; i++ )
                             {
                                 if ( zones[i]->Alarmed() )

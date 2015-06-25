@@ -19,7 +19,7 @@
     # use pkg-config to get the directories and then use these values
     # in the FIND_PATH() and FIND_LIBRARY() calls
     find_package(PkgConfig)
-    pkg_search_modules(PC_POLKIT polkit-gobject-1 polkit)
+    pkg_search_module(PC_POLKIT polkit-gobject-1 polkit)
     #pkg_check_modules(PC_POLKIT_AGENT polkit-agent-1)
     set(POLKIT_DEFINITIONS ${PC_POLKIT_CFLAGS_OTHER})
     endif (NOT WIN32)

@@ -68,3 +68,16 @@ src/zmu
 web/includes/config.php
 zm.conf
 zmconfgen.pl
+CMakeFiles/
+CMakeCache.txt
+cmake/cmake_uninstall.cmake
+cmake_install.cmake
+misc/zoneminder-tmpfiles.conf
+misc/zoneminder.service
+web/api/app/Config/core.php
+web/tools/mootools/mootools-core.js
+web/tools/mootools/mootools-more.js
+zmlinkcontent.sh
+scripts/ZoneMinder/MakefilePerl
+scripts/ZoneMinder/output/
+src/libzm.a

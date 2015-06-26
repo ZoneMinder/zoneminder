@@ -324,4 +324,35 @@ WHERE NOT EXISTS (
 --
 UPDATE `zm`.`Config` SET `Category`='hidden' WHERE `Name`='ZM_USE_DEEP_STORAGE';
 
+--
+-- Add Id column to State
+--
 
+SET @s = (SELECT IF(
+    (SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE table_name = 'States'
+    AND table_schema = DATABASE()
+    AND column_name = 'Id'
+    ) > 0,
+"SELECT 'Column Id exists in States'",
+"ALTER TABLE States ALTER Name DROP PRIMARY KEY;ALTER TABLE `States` ADD `Id` int(10) unsigned auto_increment NOT NULL PRIMARY KEY FIRST"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+
+SET @s = (SELECT IF( 
+    (SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.TABLES
+    WHERE table_name = 'Servers'
+    AND table_schema = DATABASE()
+    ) > 0,
+"SELECT 'Servers table exists'",
+"CREATE TABLE `Servers` (
+  `Id` int(10) unsigned NOT NULL auto_increment,
+  `Name` varchar(64) NOT NULL default '',
+  `State_Id`    int(10) unsigned,
+  PRIMARY KEY (`Id`)
+)"
+));

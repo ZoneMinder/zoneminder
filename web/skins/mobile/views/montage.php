@@ -63,7 +63,7 @@ foreach( $monitors as $monitor )
     $scale = getDeviceScale( $monitor['Width'], $monitor['Height'], $imagesPerLine*1.1 );
     $imagePath = getStreamSrc( array( "mode=single", "monitor=".$monitor['Id'], "scale=".$scale ), '&amp;' );
 ?>
-        <a href="?view=watch&amp;mid=<?php echo $monitor['Id'] ?>"><img src="<?php echo viewImagePath( $imagePath ) ?>" alt="<?php echo $monitor['Name'] ?>"/></a>
+        <a href="?view=watch&amp;mid=<?php echo $monitor['Id'] ?>"><img src="<?php echo $imagePath ?>" alt="<?php echo $monitor['Name'] ?>"/></a>
 <?php
 }
 ?>

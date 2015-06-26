@@ -386,11 +386,23 @@ CREATE TABLE `Monitors` (
 
 DROP TABLE IF EXISTS `States`;
 CREATE TABLE `States` (
+  `Id` int(10) unsigned NOT NULL auto_increment,,
   `Name` varchar(64) NOT NULL default '',
   `Definition` text NOT NULL,
-  PRIMARY KEY (`Name`)
+  PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
+--
+-- Table structure for table `Servers`
+--
+
+DROP TABLE IF EXISTS `Servers`;
+CREATE TABLE `Servers` (
+  `Id` int(10) unsigned NOT NULL auto_increment,
+  `Name` varchar(64) NOT NULL default '',
+  `State_Id`	int(10) unsigned,
+  PRIMARY KEY (`Id`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
 --
 -- Table structure for table `Stats`
 --

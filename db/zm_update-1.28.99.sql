@@ -342,6 +342,22 @@ SET @s = (SELECT IF(
 PREPARE stmt FROM @s;
 EXECUTE stmt;
 
+--- The States table will be updated to have a new column called IsActive
+--- used to keep track of which custom state is active (if any)
+SET @s = (SELECT IF(
+	(SELECT COUNT(*)
+	FROM INFORMATION_SCHEMA.COLUMNS
+	WHERE table_name = 'States'
+	AND table_schema = DATABASE()
+	AND column_name = 'IsActive'
+	) > 0,
+"SELECT 'Column IsActive  exists in States'",
+"ALTER TABLE `States` ADD `IsActive` tinyint(3) unsigned not null default 0 AFTER `Definition`"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+
 SET @s = (SELECT IF( 
     (SELECT COUNT(*)
     FROM INFORMATION_SCHEMA.TABLES
@@ -356,3 +372,7 @@ SET @s = (SELECT IF(
   PRIMARY KEY (`Id`)
 )"
 ));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+

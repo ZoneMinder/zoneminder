@@ -342,8 +342,8 @@ SET @s = (SELECT IF(
 PREPARE stmt FROM @s;
 EXECUTE stmt;
 
---- The States table will be updated to have a new column called IsActive
---- used to keep track of which custom state is active (if any)
+-- The States table will be updated to have a new column called IsActive
+-- used to keep track of which custom state is active (if any)
 SET @s = (SELECT IF(
 	(SELECT COUNT(*)
 	FROM INFORMATION_SCHEMA.COLUMNS

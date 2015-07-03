@@ -35,40 +35,40 @@ if ( $frame['Type'] == 'Alarm' )
 else
     $image2 = getImageSrc( $event, intval($event['Frames']/2), $scale );
 
-xhtmlHeaders( __FILE__, $SLANG['Event'].' - '.$_REQUEST['eid'] );
+xhtmlHeaders( __FILE__, translate('Event').' - '.$_REQUEST['eid'] );
 ?>
 <body>
   <div id="page">
     <div id="content">
       <table id="contentTable" class="major">
         <tr>
-          <th scope="row"><?php echo $SLANG['Name'] ?></th>
-          <td><?php echo htmlentities($event['Name']) ?><?php echo $event['Archived']?("(".$SLANG['Archived'].")"):"" ?></td>
+          <th scope="row"><?php echo translate('Name') ?></th>
+          <td><?php echo htmlentities($event['Name']) ?><?php echo $event['Archived']?("(".translate('Archived').")"):"" ?></td>
         </tr>
         <tr>
-          <th scope="row"><?php echo $SLANG['Time'] ?></th>
+          <th scope="row"><?php echo translate('Time') ?></th>
           <td><?php echo htmlentities(strftime("%b %d, %H:%M",strtotime($event['StartTime']))) ?></td>
         </tr>
         <tr>
-          <th scope="row"><?php echo $SLANG['Duration'] ?></th>
+          <th scope="row"><?php echo translate('Duration') ?></th>
           <td><?php echo htmlentities($event['Length']) ?>s</td>
         </tr>
         <tr>
-          <th scope="row"><?php echo $SLANG['Cause'] ?></th>
+          <th scope="row"><?php echo translate('Cause') ?></th>
           <td><?php echo htmlentities($event['Cause']) ?></td>
         </tr>
         <?php if ( !empty($event['Notes']) ) { ?>
         <tr>
-          <th scope="row"><?php echo $SLANG['Notes'] ?></th>
+          <th scope="row"><?php echo translate('Notes') ?></th>
           <td><?php echo htmlentities($event['Notes']) ?></td>
         </tr>
         <?php } ?>
         <tr>
-          <th scope="row"><?php echo $SLANG['Frames'] ?></th>
+          <th scope="row"><?php echo translate('Frames') ?></th>
           <td><?php echo $event['Frames'] ?> (<?php echo $event['AlarmFrames'] ?>)</td>
         </tr>
         <tr>
-          <th scope="row"><?php echo $SLANG['Score'] ?></th>
+          <th scope="row"><?php echo translate('Score') ?></th>
           <td><?php echo $event['TotScore'] ?>/<?php echo $event['AvgScore'] ?>/<?php echo $event['MaxScore'] ?></td>
         </tr>
       </table>
@@ -77,8 +77,8 @@ xhtmlHeaders( __FILE__, $SLANG['Event'].' - '.$_REQUEST['eid'] );
         <a href="?view=frame&amp;eid=<?php echo $_REQUEST['eid'] ?>&amp;fid=<?php echo $frame['FrameId'] ?>"><img src="<?php echo viewImagePath( $image2['thumbPath'] ) ?>" alt="<?php echo $frame['FrameId'] ?>"/></a>
       </div>
       <div id="contenButtons">
-        <a href="?view=event&amp;eid=<?php echo $_REQUEST['eid'] ?>&amp;page=1"><?php echo $SLANG['Frames'] ?></a>
-        <a href="?view=video&amp;eid=<?php echo $_REQUEST['eid'] ?>"><?php echo $SLANG['Video'] ?></a>
+        <a href="?view=event&amp;eid=<?php echo $_REQUEST['eid'] ?>&amp;page=1"><?php echo translate('Frames') ?></a>
+        <a href="?view=video&amp;eid=<?php echo $_REQUEST['eid'] ?>"><?php echo translate('Video') ?></a>
       </div>
     </div>
   </div>

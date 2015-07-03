@@ -25,7 +25,7 @@ if ( !canEdit( 'Monitors' ) )
 }
 
 $cameras = array();
-$cameras[0] = $SLANG['ChooseDetectedCamera'];
+$cameras[0] = translate('ChooseDetectedCamera');
 
 if ( ZM_HAS_V4L2 )
 {
@@ -103,7 +103,7 @@ if ( ZM_HAS_V4L2 )
                     $inputMonitor['SignalCheckColour'] = '#000023';
                 }
                 $inputDesc = base64_encode(serialize($inputMonitor));
-                $inputString = $deviceMatches[1].', chan '.$i.($input['free']?(" - ".$SLANG['Available']):(" (".$monitors[$input['id']]['Name'].")"));
+                $inputString = $deviceMatches[1].', chan '.$i.($input['free']?(" - ".translate('Available')):(" (".$monitors[$input['id']]['Name'].")"));
                 $inputs[] = $input;
                 $cameras[$inputDesc] = $inputString;
             }
@@ -341,36 +341,36 @@ foreach ( $output as $line )
         }
         else
         {
-            $sourceString .= " - ".$SLANG['Available'];
+            $sourceString .= " - ".translate('Available');
         }
         $cameras[$sourceDesc] = $sourceString;
     }
 }
 
 if ( count($cameras) <= 0 )
-    $cameras[0] = $SLANG['NoDetectedCameras'];
+    $cameras[0] = translate('NoDetectedCameras');
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['MonitorProbe'] );
+xhtmlHeaders(__FILE__, translate('MonitorProbe') );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?php echo $SLANG['MonitorProbe'] ?></h2>
+      <h2><?php echo translate('MonitorProbe') ?></h2>
     </div>
     <div id="content">
       <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="none"/>
         <input type="hidden" name="mid" value="<?php echo validNum($_REQUEST['mid']) ?>"/>
         <p>
-          <?php echo $SLANG['MonitorProbeIntro'] ?>
+          <?php echo translate('MonitorProbeIntro') ?>
         </p>
         <p>
-          <label for="probe"><?php echo $SLANG['DetectedCameras'] ?></label><?php echo buildSelect( "probe", $cameras, 'configureButtons( this )' ); ?>
+          <label for="probe"><?php echo translate('DetectedCameras') ?></label><?php echo buildSelect( "probe", $cameras, 'configureButtons( this )' ); ?>
         </p>
         <div id="contentButtons">
-          <input type="submit" name="saveBtn" value="<?php echo $SLANG['Save'] ?>" onclick="submitCamera( this )" disabled="disabled"/><input type="button" value="<?php echo $SLANG['Cancel'] ?>" onclick="closeWindow()"/>
+          <input type="submit" name="saveBtn" value="<?php echo translate('Save') ?>" onclick="submitCamera( this )" disabled="disabled"/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
         </div>
       </form>
     </div>

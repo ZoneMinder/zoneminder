@@ -6,7 +6,6 @@
 #include <list>
 #include <string>
 #include <stdexcept>
-#include <iostream>
 #include <memory>
 
 #include "zm.h"

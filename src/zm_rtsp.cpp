@@ -211,7 +211,7 @@ RtspThread::~RtspThread()
 {
     if ( mFormatContext )
     {
-#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(52, 96, 0)
+#if LIBAVFORMAT_VERSION_CHECK(52, 96, 0, 96, 0)
         avformat_free_context( mFormatContext );
 #else
         av_free_format_context( mFormatContext );
@@ -340,8 +340,19 @@ int RtspThread::run()
     message = "OPTIONS "+mUrl+" RTSP/1.0\r\n";
     if ( !sendCommand( message ) )
         return( -1 );
-    if ( !recvResponse( response ) )
-        return( -1 );
+
+	// A negative return here may indicate auth failure, but we will have setup the auth mechanisms so we need to retry.
+    if ( !recvResponse( response ) ) {
+		if ( mNeedAuth ) {
+			Debug( 2, "Resending OPTIONS due to possible auth requirement" );
+			if ( !sendCommand( message ) )
+				return( -1 );
+			if ( !recvResponse( response ) )
+				return( -1 );
+		} else {
+			return( -1 );
+		}
+	} // end if failed response maybe due to auth
 
     char publicLine[256] = "";
     StringVector lines = split( response, "\r\n" );
@@ -381,7 +392,7 @@ int RtspThread::run()
     		if ( ( lines[i].size() > 13 ) && ( lines[i].substr( 0, 13 ) == "Content-Base:" ) )
     			{
     				mUrl = trimSpaces( lines[i].substr( 13 ) );
-    				Info("Recieved new Content-Base in DESCRIBE reponse header. Updated device Url to: '%s'", mUrl.c_str() );
+    				Info("Received new Content-Base in DESCRIBE response header. Updated device Url to: '%s'", mUrl.c_str() );
     				break;
     			}
     	}
@@ -426,7 +437,7 @@ int RtspThread::run()
         for ( unsigned int i = 0; i < mFormatContext->nb_streams; i++ )
         {
             SessionDescriptor::MediaDescriptor *mediaDesc = mSessDesc->getStream( i );
-#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
+#if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
             if ( mFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO )
 #else
             if ( mFormatContext->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO )
@@ -440,7 +451,11 @@ int RtspThread::run()
                 }
                 else
                 {
-                    trackUrl += "/" + controlUrl;
+					if ( *trackUrl.rbegin() != '/') {
+						trackUrl += "/" + controlUrl;
+					} else {
+						trackUrl += controlUrl;
+					}
                 }
                 rtpClock = mediaDesc->getClock();
                 codecId = mFormatContext->streams[i]->codec->codec_id;
@@ -648,7 +663,7 @@ int RtspThread::run()
             {
 				now = time(NULL);
                 // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
-Debug(5, "sendkeepalibe %d, timeout %d, now: %d last: %d since: %d", sendKeepalive, timeout, now, lastKeepalive, (now-lastKeepalive) );
+Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d", sendKeepalive, timeout, now, lastKeepalive, (now-lastKeepalive) );
                 if ( sendKeepalive && (timeout > 0) && ((now-lastKeepalive) > (timeout-5)) )
                 {
                     if ( !sendCommand( message ) )
@@ -793,7 +808,7 @@ Debug(5, "sendkeepalibe %d, timeout %d, now: %d last: %d since: %d", sendKeepali
                 // FIXME: Is this really necessary when using tcp ?
 				now = time(NULL);
                 // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
-Debug(5, "sendkeepalibe %d, timeout %d, now: %d last: %d since: %d", sendKeepalive, timeout, now, lastKeepalive, (now-lastKeepalive) );
+Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d", sendKeepalive, timeout, now, lastKeepalive, (now-lastKeepalive) );
                 if ( sendKeepalive && (timeout > 0) && ((now-lastKeepalive) > (timeout-5)) )
                 {
                     if ( !sendCommand( message ) )

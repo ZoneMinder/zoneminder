@@ -46,11 +46,11 @@
 */
 
 .ptzControls .controlsPanel .upBtn {
-    background: url("../graphics/arrow-l-u.gif") no-repeat 0 0;
+    background: url("../../graphics/arrow-l-u.gif") no-repeat 0 0;
 }
 
 .ptzControls .controlsPanel .downBtn {
-    background: url("../graphics/arrow-l-d.gif") no-repeat 0 0;
+    background: url("../../graphics/arrow-l-d.gif") no-repeat 0 0;
 }
 
 .ptzControls .controlsPanel .focusControls {

@@ -10,7 +10,7 @@
 %define _without_x10 1
 
 Name: zoneminder
-Version: 1.28.0
+Version: 1.28.1
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -31,14 +31,14 @@ BuildRequires: perl(MIME::Entity) perl(MIME::Lite)
 BuildRequires: perl(PHP::Serialization) perl(Sys::Mmap)
 BuildRequires: perl(Time::HiRes) perl(Net::SFTP::Foreign)
 BuildRequires: perl(Expect) perl(Sys::Syslog)
-BuildRequires: gcc gcc-c++ vlc-devel libcurl-devel
+BuildRequires: gcc gcc-c++ vlc-devel libcurl-devel libv4l-devel
 %{!?_without_ffmpeg:BuildRequires: ffmpeg-devel}
 %{!?_without_x10:BuildRequires: perl(X10::ActiveHome) perl(Astro::SunTime)}
 # cmake needs the following installed at build time due to the way it auto-detects certain parameters
 BuildRequires:  httpd polkit-devel
 %{!?_without_ffmpeg:BuildRequires: ffmpeg}
 
-Requires: httpd php php-mysql cambozola polkit net-tools
+Requires: httpd php php-mysql cambozola polkit net-tools psmisc
 Requires: libjpeg-turbo vlc-core libcurl
 Requires: perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires: perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)
@@ -76,7 +76,6 @@ too much degradation of performance.
 %build
 %cmake \
 	-DZM_TARGET_DISTRO="f20" \
-	-DZM_PERL_SUBPREFIX=`x="%{perl_vendorlib}" ; echo ${x#"%{_prefix}"}` \
 %{?_without_ffmpeg:-DZM_NO_FFMPEG=ON} \
 %{?_without_x10:-DZM_NO_X10=ON} \
 	.

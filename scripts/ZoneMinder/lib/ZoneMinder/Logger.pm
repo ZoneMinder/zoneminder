@@ -19,7 +19,7 @@
 #
 # ==========================================================================
 #
-# This module contains the debug definitions and functions used by the rest 
+# This module contains the debug definitions and functions used by the rest
 # of the ZoneMinder scripts
 #
 package ZoneMinder::Logger;
@@ -126,6 +126,7 @@ our %priorities = (
 );
 
 our $logger;
+our $LOGFILE;
 
 sub new
 {
@@ -257,7 +258,12 @@ sub initialise( @ )
     {
         foreach my $target ( split( /\|/, $Config{ZM_LOG_DEBUG_TARGET} ) )
         {
-            if ( $target eq $this->{id} || $target eq "_".$this->{id} || $target eq $this->{idRoot} || $target eq "_".$this->{idRoot} || $target eq "" )
+            if ( $target eq $this->{id}
+                 || $target eq "_".$this->{id}
+                 || $target eq $this->{idRoot}
+                 || $target eq "_".$this->{idRoot}
+                 || $target eq ""
+            )
             {
                 if ( $Config{ZM_LOG_DEBUG_LEVEL} > NOLOG )
                 {
@@ -286,11 +292,18 @@ sub initialise( @ )
     $this->{autoFlush} = $ENV{'LOG_FLUSH'}?1:0 if ( defined($ENV{'LOG_FLUSH'}) );
 
     $this->{initialised} = !undef;
-    
-    Debug( "LogOpts: level=".$codes{$this->{level}}."/".$codes{$this->{effectiveLevel}}.", screen=".$codes{$this->{termLevel}}.", database=".$codes{$this->{databaseLevel}}.", logfile=".$codes{$this->{fileLevel}}."->".$this->{logFile}.", syslog=".$codes{$this->{syslogLevel}} );
+
+    Debug( "LogOpts: level=".$codes{$this->{level}}
+            ."/".$codes{$this->{effectiveLevel}}
+            .", screen=".$codes{$this->{termLevel}}
+            .", database=".$codes{$this->{databaseLevel}}
+            .", logfile=".$codes{$this->{fileLevel}}
+            ."->".$this->{logFile}
+            .", syslog=".$codes{$this->{syslogLevel}}
+    );
 }
 
-sub terminate()
+sub terminate
 {
     my $this = shift;
     return unless ( $this->{initialised} );
@@ -300,7 +313,7 @@ sub terminate()
     $this->termLevel( NOLOG );
 }
 
-sub reinitialise()
+sub reinitialise
 {
     my $this = shift;
 
@@ -322,7 +335,7 @@ sub reinitialise()
     $this->databaseLevel( $databaseLevel ) if ( $databaseLevel > NOLOG );
 }
 
-sub limit( $ )
+sub limit
 {
     my $this = shift;
     my $level = shift;
@@ -331,7 +344,7 @@ sub limit( $ )
     return( $level );
 }
 
-sub getTargettedEnv( $ )
+sub getTargettedEnv
 {
     my $this = shift;
     my $name = shift;
@@ -354,7 +367,7 @@ sub getTargettedEnv( $ )
     return( $value );
 }
 
-sub fetch()
+sub fetch
 {
     if ( !$logger )
     {
@@ -364,7 +377,7 @@ sub fetch()
     return( $logger );
 }
 
-sub id( ;$ )
+sub id
 {
     my $this = shift;
     my $id = shift;
@@ -388,7 +401,7 @@ sub id( ;$ )
     return( $this->{id} );
 }
 
-sub level( ;$ )
+sub level
 {
     my $this = shift;
     my $level = shift;
@@ -405,20 +418,20 @@ sub level( ;$ )
     return( $this->{level} );
 }
 
-sub debugOn()
+sub debugOn
 {
     my $this = shift;
     return( $this->{effectiveLevel} >= DEBUG );
 }
 
-sub trace( ;$ )
+sub trace
 {
     my $this = shift;
     $this->{trace} = $_[0] if ( @_ );
     return( $this->{trace} );
 }
 
-sub termLevel( ;$ )
+sub termLevel
 {
     my $this = shift;
     my $termLevel = shift;
@@ -434,7 +447,7 @@ sub termLevel( ;$ )
     return( $this->{termLevel} );
 }
 
-sub databaseLevel( ;$ )
+sub databaseLevel
 {
     my $this = shift;
     my $databaseLevel = shift;
@@ -451,23 +464,39 @@ sub databaseLevel( ;$ )
 
                     if ( defined($port) )
                     {
-                        $this->{dbh} = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}.";host=".$host.";port=".$port, $Config{ZM_DB_USER}, $Config{ZM_DB_PASS} );
+                        $this->{dbh} = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
+                                                    .";host=".$host
+                                                    .";port=".$port
+                                                    , $Config{ZM_DB_USER}
+                                                    , $Config{ZM_DB_PASS}
+                        );
                     }
                     else
                     {
-                        $this->{dbh} = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}.";host=".$Config{ZM_DB_HOST}, $Config{ZM_DB_USER}, $Config{ZM_DB_PASS} );
+                        $this->{dbh} = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
+                                                    .";host=".$Config{ZM_DB_HOST}
+                                                    , $Config{ZM_DB_USER}
+                                                    , $Config{ZM_DB_PASS}
+                        );
                     }
                     if ( !$this->{dbh} )
                     {
                         $databaseLevel = NOLOG;
-                        Error( "Unable to write log entries to DB, can't connect to database '".$Config{ZM_DB_NAME}."' on host '".$Config{ZM_DB_HOST}."'" );
+                        Error( "Unable to write log entries to DB, can't connect to database '"
+                               .$Config{ZM_DB_NAME}
+                               ."' on host '"
+                               .$Config{ZM_DB_HOST}
+                               ."'"
+                        );
                     }
                     else
                     {
                         $this->{dbh}->{AutoCommit} = 1;
-                        Fatal( "Can't set AutoCommit on in database connection" ) unless( $this->{dbh}->{AutoCommit} );
+                        Fatal( "Can't set AutoCommit on in database connection" )
+                            unless( $this->{dbh}->{AutoCommit} );
                         $this->{dbh}->{mysql_auto_reconnect} = 1;
-                        Fatal( "Can't set mysql_auto_reconnect on in database connection" ) unless( $this->{dbh}->{mysql_auto_reconnect} );
+                        Fatal( "Can't set mysql_auto_reconnect on in database connection" )
+                            unless( $this->{dbh}->{mysql_auto_reconnect} );
                         $this->{dbh}->trace( 0 );
                     }
                 }
@@ -486,7 +515,7 @@ sub databaseLevel( ;$ )
     return( $this->{databaseLevel} );
 }
 
-sub fileLevel( ;$ )
+sub fileLevel
 {
     my $this = shift;
     my $fileLevel = shift;
@@ -503,7 +532,7 @@ sub fileLevel( ;$ )
     return( $this->{fileLevel} );
 }
 
-sub syslogLevel( ;$ )
+sub syslogLevel
 {
     my $this = shift;
     my $syslogLevel = shift;
@@ -520,19 +549,19 @@ sub syslogLevel( ;$ )
     return( $this->{syslogLevel} );
 }
 
-sub openSyslog()
+sub openSyslog
 {
     my $this = shift;
     openlog( $this->{id}, "pid", "local1" );
 }
 
-sub closeSyslog()
+sub closeSyslog
 {
     my $this = shift;
     #closelog();
 }
 
-sub logFile( $ )
+sub logFile
 {
     my $this = shift;
     my $logFile = shift;
@@ -546,18 +575,21 @@ sub logFile( $ )
     }
 }
 
-sub openFile()
+sub openFile
 {
     my $this = shift;
-    if ( open( LOGFILE, ">>".$this->{logFile} ) )
+    if ( open( $LOGFILE, ">>", $this->{logFile} ) )
     {
-        LOGFILE->autoflush() if ( $this->{autoFlush} );
+        $LOGFILE->autoflush() if ( $this->{autoFlush} );
 
         my $webUid = (getpwnam( $Config{ZM_WEB_USER} ))[2];
         my $webGid = (getgrnam( $Config{ZM_WEB_GROUP} ))[2];
         if ( $> == 0 )
         {
-            chown( $webUid, $webGid, $this->{logFile} ) or Fatal( "Can't change permissions on log file '".$this->{logFile}."': $!" )
+            chown( $webUid, $webGid, $this->{logFile} )
+                or Fatal( "Can't change permissions on log file '"
+                          .$this->{logFile}."': $!"
+                        )
         }
     }
     else
@@ -567,13 +599,13 @@ sub openFile()
     }
 }
 
-sub closeFile()
+sub closeFile
 {
     my $this = shift;
-    close( LOGFILE ) if ( fileno(LOGFILE) );
+    close( $LOGFILE ) if ( fileno($LOGFILE) );
 }
 
-sub logPrint( $;$ )
+sub logPrint
 {
     my $this = shift;
     my $level = shift;
@@ -586,7 +618,17 @@ sub logPrint( $;$ )
         my $code = $codes{$level};
 
         my ($seconds, $microseconds) = gettimeofday();
-        my $message = sprintf( "%s.%06d %s[%d].%s [%s]", strftime( "%x %H:%M:%S", localtime( $seconds ) ), $microseconds, $this->{id}, $$, $code, $string );
+        my $message = sprintf(
+            "%s.%06d %s[%d].%s [%s]"
+            , strftime( "%x %H:%M:%S"
+                        ,localtime( $seconds )
+                      )
+            , $microseconds
+            , $this->{id}
+            , $$
+            , $code
+            , $string
+        );
         if ( $this->{trace} )
         {
             $message = Carp::shortmess( $message );
@@ -595,8 +637,9 @@ sub logPrint( $;$ )
         {
             $message = $message."\n";
         }
-        syslog( $priorities{$level}, $code." [%s]", $string ) if ( $level <= $this->{syslogLevel} );
-        print( LOGFILE $message ) if ( $level <= $this->{fileLevel} );
+        syslog( $priorities{$level}, $code." [%s]", $string )
+            if ( $level <= $this->{syslogLevel} );
+        print( $LOGFILE $message ) if ( $level <= $this->{fileLevel} );
         if ( $level <= $this->{databaseLevel} )
         {
             my $sql = "insert into Logs ( TimeKey, Component, Pid, Level, Code, Message, File, Line ) values ( ?, ?, ?, ?, ?, ?, ?, NULL )";
@@ -606,7 +649,14 @@ sub logPrint( $;$ )
                 $this->{databaseLevel} = NOLOG;
                 Fatal( "Can't prepare log entry '$sql': ".$this->{dbh}->errstr() );
             }
-            my $res = $this->{sth}->execute( $seconds+($microseconds/1000000.0), $this->{id}, $$, $level, $code, $string, $this->{fileName} );
+            my $res = $this->{sth}->execute( $seconds+($microseconds/1000000.0)
+                                            , $this->{id}
+                                            , $$
+                                            , $level
+                                            , $code
+                                            , $string
+                                            , $this->{fileName}
+            );
             if ( !$res )
             {
                 $this->{databaseLevel} = NOLOG;
@@ -624,7 +674,7 @@ sub logInit( ;@ )
     $logger->initialise( %options );
 }
 
-sub logReinit()
+sub logReinit
 {
     fetch()->reinitialise();
 }
@@ -636,7 +686,7 @@ sub logTerm
     $logger = undef;
 }
 
-sub logHupHandler()
+sub logHupHandler
 {
     my $savedErrno = $!;
     return unless( $logger );
@@ -645,47 +695,47 @@ sub logHupHandler()
     $! = $savedErrno;
 }
 
-sub logSetSignal()
+sub logSetSignal
 {
     $SIG{HUP} = \&logHupHandler;
 }
 
-sub logClearSignal()
+sub logClearSignal
 {
     $SIG{HUP} = 'DEFAULT';
 }
 
-sub logLevel( ;$ )
+sub logLevel
 {
     return( fetch()->level( @_ ) );
 }
 
-sub logDebugging()
+sub logDebugging
 {
     return( fetch()->debugOn() );
 }
 
-sub logTermLevel( ;$ )
+sub logTermLevel
 {
     return( fetch()->termLevel( @_ ) );
 }
 
-sub logDatabaseLevel( ;$ )
+sub logDatabaseLevel
 {
     return( fetch()->databaseLevel( @_ ) );
 }
 
-sub logFileLevel( ;$ )
+sub logFileLevel
 {
     return( fetch()->fileLevel( @_ ) );
 }
 
-sub logSyslogLevel( ;$ )
+sub logSyslogLevel
 {
     return( fetch()->syslogLevel( @_ ) );
 }
 
-sub Mark( ;$$ )
+sub Mark
 {
     my $level = shift;
     $level = DEBUG unless( defined($level) );
@@ -693,7 +743,7 @@ sub Mark( ;$$ )
     fetch()->logPrint( $level, $tag );
 }
 
-sub Dump( \$;$ )
+sub Dump
 {
     my $var = shift;
     my $label = shift;
@@ -756,11 +806,19 @@ ZoneMinder::Logger - ZoneMinder Logger module
 
 =head1 DESCRIPTION
 
-The ZoneMinder:Logger module contains the common debug and error reporting routines used by the ZoneMinder scripts.
+The ZoneMinder:Logger module contains the common debug and error reporting
+routines used by the ZoneMinder scripts.
 
-To use debug in your scripts you need to include this module, and call logInit. Thereafter you can sprinkle Debug or Error calls etc throughout the code safe in the knowledge that they will be reported to your error log, and possibly the syslogger, in a meaningful and consistent format.
+To use debug in your scripts you need to include this module, and call
+logInit. Thereafter you can sprinkle Debug or Error calls etc throughout
+the code safe in the knowledge that they will be reported to your error
+log, and possibly the syslogger, in a meaningful and consistent format.
 
-Debug is discussed in terms of levels where 1 and above (currently only 1 for scripts) is considered debug, 0 is considered as informational, -1 is a warning, -2 is an error and -3 is a fatal error or panic. Where levels are mentioned below as thresholds the value given and anything with a lower level (ie. more serious) will be included.
+Debug is discussed in terms of levels where 1 and above (currently only 1
+for scripts) is considered debug, 0 is considered as informational, -1 is a
+warning, -2 is an error and -3 is a fatal error or panic. Where levels are
+mentioned below as thresholds the value given and anything with a lower
+level (ie. more serious) will be included.
 
 =head1 METHODS
 
@@ -768,7 +826,12 @@ Debug is discussed in terms of levels where 1 and above (currently only 1 for sc
 
 =item logInit ( $id, %options );
 
-Initialises the debug and prepares the logging for forthcoming operations. If not called explicitly it will be called by the first debug call in your script, but with default (and probably meaningless) options. The only compulsory arguments are $id which must be a string that will identify debug coming from this script in mixed logs. Other options may be provided as below,
+Initialises the debug and prepares the logging for forthcoming operations.
+If not called explicitly it will be called by the first debug call in your
+script, but with default (and probably meaningless) options. The only
+compulsory arguments are $id which must be a string that will identify
+debug coming from this script in mixed logs. Other options may be provided
+as below,
 
  Option        Default        Description
  ---------     ---------      -----------
@@ -805,27 +868,41 @@ These methods can be used to get and set the current settings as defined in logI
 
 =item Debug( $string );
 
-This method will output a debug message if the current debug level permits it, otherwise does nothing. This message will be tagged with the DBG string in the logs.
+This method will output a debug message if the current debug level permits
+it, otherwise does nothing. This message will be tagged with the DBG string
+in the logs.
 
 =item Info( $string );
 
-This method will output an informational message if the current debug level permits it, otherwise does nothing. This message will be tagged with the INF string in the logs.
+This method will output an informational message if the current debug level
+permits it, otherwise does nothing. This message will be tagged with the
+INF string in the logs.
 
 =item Warning( $string );
 
-This method will output a warning message if the current debug level permits it, otherwise does nothing. This message will be tagged with the WAR string in the logs.
+This method will output a warning message if the current debug level
+permits it, otherwise does nothing. This message will be tagged with the
+WAR string in the logs.
 
 =item Error( $string );
 
-This method will output an error message if the current debug level permits it, otherwise does nothing. This message will be tagged with the ERR string in the logs.
+This method will output an error message if the current debug level permits
+it, otherwise does nothing. This message will be tagged with the ERR string
+in the logs.
 
 =item Fatal( $string );
 
-This method will output a fatal error message and then die if the current debug level permits it, otherwise does nothing. This message will be tagged with the FAT string in the logs.
+This method will output a fatal error message and then die if the current
+debug level permits it, otherwise does nothing. This message will be tagged
+with the FAT string in the logs.
 
 =item Panic( $string );
 
-This method will output a panic error message and then die with a stack trace if the current debug level permits it, otherwise does nothing. This message will be tagged with the PNC string in the logs.
+This method will output a panic error message and then die with a stack
+trace if the current debug level permits it, otherwise does nothing. This
+message will be tagged with the PNC string in the logs.
+
+=back
 
 =head2 EXPORT
 
@@ -841,7 +918,8 @@ The :all tag will export all above symbols.
 Carp
 Sys::Syslog
 
-The ZoneMinder README file Troubleshooting section for an extended discussion on the use and configuration of syslog with ZoneMinder.
+The ZoneMinder README file Troubleshooting section for an extended
+discussion on the use and configuration of syslog with ZoneMinder.
 
 http://www.zoneminder.com
 

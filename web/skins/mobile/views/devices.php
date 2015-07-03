@@ -32,12 +32,12 @@ foreach ( dbFetchAll( $sql ) as $row )
     $devices[] = $row;
 }
 
-xhtmlHeaders( __FILE__, $SLANG['Devices'] );
+xhtmlHeaders( __FILE__, translate('Devices') );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?php echo $SLANG['Devices'] ?></h2>
+      <h2><?php echo translate('Devices') ?></h2>
     </div>
     <div id="content">
       <table id="contentTable" class="major">
@@ -59,14 +59,14 @@ foreach( $devices as $device )
 ?>
         <tr>
           <th scope="row" class="<?php echo $fclass  ?>"><span class="<?php echo $fclass ?>"><?php echo substr( $device['Name'], 0, 16 ) ?></span></th>
-          <td><?php echo makeLink( "?view=".$_REQUEST['view']."&amp;action=device&amp;key=".$device['KeyString']."&amp;command=on", $SLANG['On'], canEdit('Devices') ) ?></td>
-          <td><?php echo makeLink( "?view=".$_REQUEST['view']."&amp;action=device&amp;key=".$device['KeyString']."&amp;command=off", $SLANG['Off'], canEdit('Devices') ) ?></td>
+          <td><?php echo makeLink( "?view=".$_REQUEST['view']."&amp;action=device&amp;key=".$device['KeyString']."&amp;command=on", translate('On'), canEdit('Devices') ) ?></td>
+          <td><?php echo makeLink( "?view=".$_REQUEST['view']."&amp;action=device&amp;key=".$device['KeyString']."&amp;command=off", translate('Off'), canEdit('Devices') ) ?></td>
         </tr>
 <?php
 }
 ?>
       </table>
-      <p><a href="?view=console"><?php echo $SLANG['Console'] ?></a></p>
+      <p><a href="?view=console"><?php echo translate('Console') ?></a></p>
     </div>
   </div>
 </body>

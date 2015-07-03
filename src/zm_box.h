@@ -23,7 +23,11 @@
 #include "zm.h"
 #include "zm_coord.h"
 
+#ifndef SOLARIS
 #include <math.h>
+#else
+#include <cmath>
+#endif
 
 //
 // Class used for storing a box, which is defined as a region

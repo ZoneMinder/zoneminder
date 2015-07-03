@@ -55,6 +55,11 @@
 #include <sys/shm.h>
 #endif // ZM_MEM_MAPPED
 
+// SOLARIS - we don't have MAP_LOCKED on openSolaris/illumos
+#ifndef MAP_LOCKED
+#define MAP_LOCKED 0
+#endif
+
 //=============================================================================
 std::vector<std::string> split(const std::string &s, char delim) {
     std::vector<std::string> elems;
@@ -251,7 +256,6 @@ bool Monitor::MonitorLink::hasAlarmed()
     else if( shared_data->last_event != (unsigned int)last_event )
     {
         last_event = shared_data->last_event;
-        return( true );
     }
     return( false );
 }
@@ -427,7 +431,7 @@ Monitor::Monitor(
         }
     }
 
-	// Will this not happen everytime a monitor is instantiated?  Seems like all the calls to the Monitor constructor pass a zero for n_zones, then load zones after..
+	// Will this not happen every time a monitor is instantiated?  Seems like all the calls to the Monitor constructor pass a zero for n_zones, then load zones after..
     if ( !n_zones ) {
 		Debug( 1, "Monitor %s has no zones, adding one.", name );
         n_zones = 1;
@@ -516,14 +520,18 @@ bool Monitor::connect() {
         Error( "Got unexpected memory map file size %ld, expected %d", map_stat.st_size, mem_size );
 		return false;
 	} else {
+#ifdef MAP_LOCKED
 		mem_ptr = (unsigned char *)mmap( NULL, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_LOCKED, map_fd, 0 );
 		if ( mem_ptr == MAP_FAILED ) {
 			if ( errno == EAGAIN ) {
 				Debug( 1, "Unable to map file %s (%d bytes) to locked memory, trying unlocked", mem_file, mem_size );
+#endif
 				mem_ptr = (unsigned char *)mmap( NULL, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED, map_fd, 0 );
 				Debug( 1, "Mapped file %s (%d bytes) to locked memory, unlocked", mem_file, mem_size );
+#ifdef MAP_LOCKED
 			}
 		}
+#endif
 		if ( mem_ptr == MAP_FAILED )
 			Fatal( "Can't map file %s (%d bytes) to memory: %s(%d)", mem_file, mem_size, strerror(errno), errno );
     }
@@ -652,7 +660,7 @@ Monitor::State Monitor::GetState() const
     return( (State)shared_data->state );
 }
 
-int Monitor::GetImage( int index, int scale ) const
+int Monitor::GetImage( int index, int scale )
 {
     if ( index < 0 || index > image_buffer_count )
     {
@@ -661,21 +669,32 @@ int Monitor::GetImage( int index, int scale ) const
 
     if ( index != image_buffer_count )
     {
-        Snapshot *snap = &image_buffer[index];
-        Image snap_image( *(snap->image) );
+        Image *image;
+		// If we are going to be modifying the snapshot before writing, then we need to copy it
+        if ( ( scale != ZM_SCALE_BASE ) || ( !config.timestamp_on_capture ) ) {
+            Snapshot *snap = &image_buffer[index];
+            Image *snap_image = snap->image;
 
-        if ( scale != ZM_SCALE_BASE )
-        {
-            snap_image.Scale( scale );
+            alarm_image.Assign( *snap_image );
+
+
+            //write_image.Assign( *snap_image );
+
+            if ( scale != ZM_SCALE_BASE ) {
+                alarm_image.Scale( scale );
+            }
+
+            if ( !config.timestamp_on_capture ) {
+                TimestampImage( &alarm_image, snap->timestamp );
+            }
+            image = &alarm_image;
+        } else {
+            image = image_buffer[index].image;
         }
 
         static char filename[PATH_MAX];
         snprintf( filename, sizeof(filename), "Monitor%d.jpg", id );
-        if ( !config.timestamp_on_capture )
-        {
-            TimestampImage( &snap_image, snap->timestamp );
-        }
-        snap_image.WriteJpeg( filename );
+        image->WriteJpeg( filename );
     }
     else
     {
@@ -1539,7 +1558,7 @@ bool Monitor::Analyse()
                         if ( config.create_analysis_images )
                         {
                             bool got_anal_image = false;
-                            Image alarm_image( *snap_image );
+							alarm_image.Assign( *snap_image );
                             for( int i = 0; i < n_zones; i++ )
                             {
                                 if ( zones[i]->Alarmed() )
@@ -3007,7 +3026,7 @@ bool Monitor::closeEvent()
  * comparing it with ZM_COLOUR_RGB24 or ZM_COLOUR_RGB32 is the way ), and then
  * manage che check using RGB_VAL_RED() and so on macros instead of just RED().
  *
- * Be carefull that in 32 bit images we need to check also where the alpha channel is, so,
+ * Be careful that in 32 bit images we need to check also where the alpha channel is, so,
  * (RGBA and BGRA) or (ABGR and ARGB) aren't the same!
  *
  * To check black pixels in 32 bit images i can do a more efficient way using 

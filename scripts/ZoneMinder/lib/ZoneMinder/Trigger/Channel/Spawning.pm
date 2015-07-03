@@ -45,12 +45,12 @@ use ZoneMinder::Logger qw(:all);
 
 sub new
 {
-	my $class = shift;
-	my $port = shift;
-	my $self = ZoneMinder::Trigger::Channel::Handle->new();
-	$self->{spawns} = !undef;
-	bless( $self, $class );
-	return $self;
+    my $class = shift;
+    my $port = shift;
+    my $self = ZoneMinder::Trigger::Channel::Handle->new();
+    $self->{spawns} = !undef;
+    bless( $self, $class );
+    return $self;
 }
 
 sub spawns

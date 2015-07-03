@@ -10,4 +10,4 @@ var sortQuery = '<?php echo isset($sortQuery)?validJsStr($sortQuery):'' ?>';
 var maxWidth = <?php echo $maxWidth?$maxWidth:0 ?>;
 var maxHeight = <?php echo $maxHeight?$maxHeight:0 ?>;
 
-var confirmDeleteEventsString = "<?php echo addslashes($SLANG['ConfirmDeleteEvents']) ?>";
+var confirmDeleteEventsString = "<?php echo addslashes(translate('ConfirmDeleteEvents')) ?>";

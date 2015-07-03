@@ -17,6 +17,75 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
+/*
+
+=head1 NAME
+
+zmc - The ZoneMinder Utility
+
+=head1 SYNOPSIS
+
+ zmu -d device_path [-v] [function] [-U<username> -P<password>]
+ zmu --device device_path [-v] [function] [-U<username> -P<password>]
+
+ zmu -m monitor_id [-v] [function] [-U<username> -P<password>]
+ zmu --monitor monitor_id [-v] [function] [-U<username> -P<password>]
+
+=head1 DESCRIPTION
+
+This binary is a handy command line interface to several useful functions. It’s
+not really meant to be used by anyone except the web page (there's only limited
+'help' in it so far) but can be if necessary, especially for debugging video
+problems. 
+
+=head1 OPTIONS
+
+General options:
+  -v, --verbose                           - Produce more verbose output
+  -l, --list                              - List the current status of active (or all with -v) monitors
+  -h, --help                               - Display usage information
+  -v, --version                            - Print the installed version of ZoneMinder
+
+Options for use with devices:
+  -d, --device [device_path]              - Get the current video device settings for [device_path] or all devices
+  -V, --version <V4L version>             - Set the Video 4 Linux API version to use for the query, use 1 or 2
+  -q, --query                             - Query the current settings for the device
+
+Options for use with monitors:
+  -m, --monitor <monitor_id>              - Specify which monitor to address, default 1 if absent
+  -q, --query                             - Query the current settings for the monitor
+  -s, --state                             - Output the current monitor state, 0 = idle, 1 = prealarm, 2 = alarm,
+                                            3 = alert, 4 = tape
+  -B, --brightness [value]                - Output the current brightness, set to value if given 
+  -C, --contrast [value]                  - Output the current contrast, set to value if given 
+  -H, --hue [value]                       - Output the current hue, set to value if given 
+  -O, --colour [value]                    - Output the current colour, set to value if given 
+  -i, --image [image_index]               - Write captured image to disk as <monitor_name>.jpg, last image captured
+                                            or specified ring buffer index if given.
+  -S, --scale <scale_%%ge>                - With --image specify any scaling (in %%) to be applied to the image
+  -t, --timestamp [image_index]           - Output captured image timestamp, last image captured or specified
+                                            ring buffer index if given
+  -R, --read_index                        - Output ring buffer read index
+  -W, --write_index                       - Output ring buffer write index
+  -e, --event                             - Output last event index
+  -f, --fps                               - Output last Frames Per Second captured reading
+  -z, --zones                             - Write last captured image overlaid with zones to <monitor_name>-Zones.jpg
+  -a, --alarm                             - Force alarm in monitor, this will trigger recording until cancelled with -c
+  -n, --noalarm                           - Force no alarms in monitor, this will prevent alarms until cancelled with -c
+  -c, --cancel                            - Cancel a forced alarm/noalarm in monitor, required after being enabled with -a or -n
+  -L, --reload                            - Signal monitor to reload settings
+  -E, --enable                            - Enable detection, wake monitor up
+  -D, --disable                           - Disable detection, put monitor to sleep
+  -u, --suspend                           - Suspend detection, useful to prevent bogus alarms when panning etc
+  -r, --resume                            - Resume detection after a suspend
+  -U, --username <username>               - When running in authenticated mode the username and
+  -P, --password <password>               - password combination of the given user
+  -A, --auth <authentication>             - Pass authentication hash string instead of user details
+
+=cut
+
+*/
+
 #include <getopt.h>
 
 #include "zm.h"

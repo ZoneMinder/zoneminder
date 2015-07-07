@@ -336,7 +336,7 @@ SET @s = (SELECT IF(
     AND column_name = 'Id'
     ) > 0,
 "SELECT 'Column Id exists in States'",
-"ALTER TABLE States DROP PRIMARY KEY;ALTER TABLE `States` ADD `Id` int(10) unsigned auto_increment NOT NULL PRIMARY KEY FIRST"
+"ALTER TABLE States DROP PRIMARY KEY, ADD `Id` int(10) unsigned auto_increment NOT NULL PRIMARY KEY FIRST"
 ));
 
 PREPARE stmt FROM @s;

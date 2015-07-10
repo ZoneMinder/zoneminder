@@ -25,7 +25,7 @@ target_link_libraries(zmstreamer zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
 
 # Generate man files for the binaries destined for the bin folder
 FOREACH(CBINARY zma.cpp zmc.cpp zmf.cpp zmu.cpp zmstreamer.cpp)
-    POD2MAN(${CMAKE_CURRENT_BINARY_DIR}/${CBINARY} zoneminder-${CBINARY} 8)
+    POD2MAN(${CMAKE_CURRENT_SOURCE_DIR}/${CBINARY} zoneminder-${CBINARY} 8)
 ENDFOREACH(CBINARY zma.cpp zmc.cpp zmf.cpp zmu.cpp zmstreamer.cpp)
 
 install(TARGETS zmc zma zmu zmf zmstreamer RUNTIME DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)

@@ -198,16 +198,21 @@ int RemoteCameraHttp::ReadData( Buffer &buffer, int bytes_expected )
             //Disconnect(); // Disconnect is done outside of ReadData now.
             return( -1 );
         }
-    }
-    Debug( 3, "Expecting %d bytes", total_bytes_to_read );
+
+		// There can be lots of bytes available.  I've seen 4MB or more. This will vastly inflate our buffer size unneccessarily.
+		if ( total_bytes_to_read > ZM_NETWORK_BUFSIZ ) {
+			total_bytes_to_read = ZM_NETWORK_BUFSIZ;
+			Debug(3, "Just getting 32K" );
+		} else {
+			Debug(3, "Just getting %d", total_bytes_to_read );
+		}
+	}
+	Debug( 3, "Expecting %d bytes", total_bytes_to_read );
 
     int total_bytes_read = 0;
     do
     {
-        static unsigned char temp_buffer[ZM_NETWORK_BUFSIZ];
-        int bytes_to_read = (unsigned int)total_bytes_to_read>(unsigned int)sizeof(temp_buffer)?sizeof(temp_buffer):total_bytes_to_read;
-        int bytes_read = read( sd, temp_buffer, bytes_to_read );
-
+		int bytes_read = buffer.read_into( sd, total_bytes_to_read );
         if ( bytes_read < 0)
         {
             Error( "Read error: %s", strerror(errno) );
@@ -219,13 +224,12 @@ int RemoteCameraHttp::ReadData( Buffer &buffer, int bytes_expected )
             //Disconnect(); // Disconnect is done outside of ReadData now.
             return( -1 );
         }
-        else if ( bytes_read < bytes_to_read )
+        else if ( bytes_read < total_bytes_to_read )
         {
-            Error( "Incomplete read, expected %d, got %d", bytes_to_read, bytes_read );
+            Error( "Incomplete read, expected %d, got %d", total_bytes_to_read, bytes_read );
             return( -1 );
         }
         Debug( 3, "Read %d bytes", bytes_read );
-        buffer.append( temp_buffer, bytes_read );
         total_bytes_read += bytes_read;
         total_bytes_to_read -= bytes_read;
     }

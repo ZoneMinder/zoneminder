@@ -55,6 +55,7 @@ use autouse 'Pod::Usage'=>qw(pod2usage);
 $ENV{PATH}  = '/bin:/usr/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
+my $store_state=""; # PP - will remember state name passed
 
 logInit();
 
@@ -90,6 +91,7 @@ if ( !$command || $command !~ /^(?:start|stop|restart|status|logrot|version)$/ )
                       { Id=>$id, Function=>$function, Enabled=>$enabled }
                 );
             }
+ 	    $store_state=$command; # PP - Remember the name that was passed to search in DB
             $command = 'state';
         }
         else
@@ -117,10 +119,10 @@ my $retval = 0;
 if ( $command eq "state" )
 {
     Info( "Updating DB: $state->{Name}\n" );
-    my $sql = "select * from Monitors order by Id asc";
+	my $sql = $Config{ZM_SERVER_ID} ? 'SELECT * FROM Monitors WHERE ServerId=? ORDER BY Id ASC' : 'SELECT * FROM Monitors ORDER BY Id ASC';
     my $sth = $dbh->prepare_cached( $sql )
         or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-    my $res = $sth->execute()
+    my $res = $sth->execute( $Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID}: () )
         or Fatal( "Can't execute: ".$sth->errstr() );
     while( my $monitor = $sth->fetchrow_hashref() )
     {
@@ -149,6 +151,18 @@ if ( $command eq "state" )
         }
     }
     $sth->finish();
+    #PP - lets go ahead and modify States DB
+
+      
+    Debug ("Marking $store_state as Enabled");
+    # PP  - Zero out other states being active
+    resetStates();
+    # PP - Now mark a specific state as active
+    $sql = "update States set IsActive = '1' where Name = ?";
+    $sth = $dbh->prepare_cached( $sql )
+         or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+    $res = $sth->execute( $store_state )
+         or Fatal( "Can't execute: ".$sth->errstr() );
 
     $command = "restart";
 }
@@ -158,6 +172,9 @@ if ( $command =~ /^(start|stop|restart)$/ )
 {
     # We have to detaint to keep perl from complaining
     $command = $1;
+
+    # PP - if we are not switching to a custom state, zero out all isActive
+    resetStates() if (!$store_state); 
 
     if ( systemdRunning() && !calledBysystem() ) {
         qx(@BINDIR@/zmsystemctl.pl $command);
@@ -211,10 +228,10 @@ if ( $command =~ /^(?:start|restart)$/ )
         zmMemTidy();
         runCommand( "zmdc.pl startup" );
 
-        my $sql = "select * from Monitors";
+		my $sql = $Config{ZM_SERVER_ID} ? 'SELECT * FROM Monitors WHERE ServerId=?' : 'SELECT * FROM Monitors';
         my $sth = $dbh->prepare_cached( $sql )
             or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-        my $res = $sth->execute()
+        my $res = $sth->execute( $Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID} : () )
             or Fatal( "Can't execute: ".$sth->errstr() );
         while( my $monitor = $sth->fetchrow_hashref() )
         {
@@ -289,6 +306,19 @@ if ( $command eq "logrot" )
 }
 
 exit( $retval );
+
+# PP - when the system is restarted/started/stopped, it will 
+# not be in a custom state, so lets keep the DB consistent
+sub resetStates
+{
+        $dbh = zmDbConnect() if ! $dbh;
+        my $sql = "update States set IsActive = '0'";
+        my $sth = $dbh->prepare_cached( $sql )
+                or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+                my $res = $sth->execute()
+                or Fatal( "Can't execute: ".$sth->errstr() );
+
+}
 
 sub systemdRunning
 {

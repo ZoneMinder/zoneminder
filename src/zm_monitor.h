@@ -471,9 +471,9 @@ public:
     {
         ttl = p_ttl;
     }
-    void setStreamStart( int monitor_id )
+    bool setStreamStart( int monitor_id )
     {
-        loadMonitor( monitor_id );
+        return loadMonitor( monitor_id );
     }
 	void runStream();
 };

@@ -33,7 +33,7 @@ zmc - The ZoneMinder Utility
 
 =head1 DESCRIPTION
 
-This binary is a handy command line interface to several useful functions. It’s
+This binary is a handy command line interface to several useful functions. It's
 not really meant to be used by anyone except the web page (there's only limited
 'help' in it so far) but can be if necessary, especially for debugging video
 problems. 

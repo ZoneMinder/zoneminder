@@ -1,3 +1,11 @@
+zoneminder (1.28.1+1-vivid-SNAPSHOT2015071501) vivid; urgency=medium
+
+  * fix for issue #586 and #932
+  * fix for db not being upgraded
+  * version upgraded to .100
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Wed, 15 Jul 2015 11:56:28 -0400
+
 zoneminder (1.28.1+1-trusty-SNAPSHOT2015030201) trusty; urgency=medium
 
   * maybe fix for RTSP Basic Auth

@@ -115,7 +115,6 @@ void zmLoadConfig()
 	if ( ! staticConfig.SERVER_ID ) {
 		if ( ! staticConfig.SERVER_NAME.empty() ) {
 
-			
 			std::string sql = stringtf("SELECT Id FROM Servers WHERE Name='%s'", staticConfig.SERVER_NAME.c_str() );
 			if ( MYSQL_ROW dbrow = zmDbFetchOne( sql.c_str() ) ) {
 				staticConfig.SERVER_ID = atoi(dbrow[0]);
@@ -126,30 +125,12 @@ void zmLoadConfig()
 		} // end if has SERVER_NAME
 	} else if ( staticConfig.SERVER_NAME.empty() ) {
 		std::string sql = stringtf("SELECT Name FROM Servers WHERE Id='%d'", staticConfig.SERVER_ID );
-		if ( mysql_query( &dbconn, sql.c_str() ) )
-		{
-			Error( "Can't run query: %s", mysql_error( &dbconn ) );
-			Fatal("Can't get ServerName for Server ID %d", staticConfig.SERVER_ID );
-		}
 		
-		MYSQL_RES *result = mysql_store_result( &dbconn );
-		if ( !result )
-		{
-			Error( "Can't use query result: %s", mysql_error( &dbconn ) );
-			Fatal("Can't get ServerName for Server ID %d", staticConfig.SERVER_ID );
-		}
-		int n_rows = mysql_num_rows( result );
-		if ( n_rows != 1 )
-		{
-			Error( "Bogus number of lines return from Server lookup, %d, returned. Can't reload", n_rows );
-			Fatal("Can't get ServerName for Server ID %d", staticConfig.SERVER_ID );
-		}
-
-		if ( MYSQL_ROW dbrow = mysql_fetch_row( result ) )
-		{
+		if ( MYSQL_ROW dbrow = zmDbFetchOne( sql.c_str() ) ) {
 			staticConfig.SERVER_NAME = std::string(dbrow[0]);
+		} else {
+			Fatal("Can't get ServerName for Server ID %d", staticConfig.SERVER_ID );
 		}
-		mysql_free_result( result );
 	
 	}	
 }

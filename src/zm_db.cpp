@@ -75,3 +75,38 @@ void zmDbClose()
         zmDbConnected = false;
     }
 }
+
+MYSQL_RES * zmDbFetch( const char * query ) {
+	if ( ! zmDbConnected ) {
+		Error( "Not connected." );
+		return NULL;
+	}
+
+	if ( mysql_query( &dbconn, query ) ) {
+		Error( "Can't run query: %s", mysql_error( &dbconn ) );
+		return NULL;
+	}
+	Debug( 4, "Success running query: %s", query );
+	MYSQL_RES *result = mysql_store_result( &dbconn );
+	if ( !result ) {
+		Error( "Can't use query result: %s for query %s", mysql_error( &dbconn ), query );
+		return NULL;
+	}
+	return result;
+} // end MYSQL_RES * zmDbFetch( const char * query );
+
+MYSQL_ROW zmDBFetchOne( const char *query ) {
+	MYSQL_RES *result = zmDbFetch( query );
+	int n_rows = mysql_num_rows( result );
+	if ( n_rows != 1 ) {
+		Error( "Bogus number of lines return from query, %d returned for query %s.", n_rows, query );
+		return NULL;
+	}
+
+	MYSQL_ROW dbrow = mysql_fetch_row( result );
+	if ( ! dbrow ) {
+		Error("Error getting row from query %s. Error is %s", query, mysql_error( &dbconn ) );
+		return NULL;
+	}
+	return dbrow;
+}

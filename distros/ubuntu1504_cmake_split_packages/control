@@ -86,7 +86,7 @@ Section: web
 Architecture: any
 Depends: zoneminder-core (= ${binary:Version}), ${shlibs:Depends},
  ${misc:Depends}, debconf, apache2, libapache2-mod-php5 | libapache2-mod-fcgid,
- php5, php5-mysql | php5-mysqlnd
+ php5, php5-mysql | php5-mysqlnd, php-gd
 Description: Essential files for ZoneMinder's web user interface
  ZoneMinder is a video camera security and surveillance solution.
  .

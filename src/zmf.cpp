@@ -37,7 +37,7 @@ zmf - The ZoneMinder Frame daemon
 This is an optional daemon that can run in concert with the Analysis daemon and
 whose function it is to actually write captured frames to disk. This frees up
 the Analysis daemon to do more analysis (!) and so keep up with the Capture
-daemon better. If it isn’t running or dies then the Analysis daemon just writes
+daemon better. If it isn't running or dies then the Analysis daemon just writes
 them itself. 
 
 =head1 OPTIONS

@@ -558,9 +558,9 @@ sub kill_until_dead {
 sub _stop {
     my ($final, $process ) = @_;
 
-    delete( $cmd_hash{$$process{command}} );
     my $pid = send_stop( $final, $process );
     return if ! $pid;
+    delete( $cmd_hash{$$process{command}} );
 
     kill_until_dead( $process );
 }

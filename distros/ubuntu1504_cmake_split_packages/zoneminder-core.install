@@ -2,4 +2,4 @@ etc/zm
 usr/bin
 usr/share/polkit-1/actions
 usr/share/polkit-1/rules.d
-usr/share/man
+usr/share/man/man8

@@ -521,7 +521,7 @@ sub handleMessage
             Debug( "Added timed event '$action_text', expires at $action_time (+$delay secs)\n" );
         }
     }
-    elsif ( $action =~ /^(on|off)(?:\+(\d+))?$/ )
+    elsif ( $action =~ /^(on|off)(?:[ \+](\d+))?$/ )
     {
         next if ( !$monitor->{Enabled} );
 

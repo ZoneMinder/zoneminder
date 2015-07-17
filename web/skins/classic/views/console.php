@@ -311,9 +311,7 @@ foreach( $displayMonitors as $monitor )
             <td class="colSource"><?php echo makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.preg_replace( '/^.*@/', '', $monitor['Host'] ).'</span>', canEdit( 'Monitors' ) ) ?></td>
 <?php } elseif ( $monitor['Type'] == "File" ) { ?>
             <td class="colSource"><?php echo makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.preg_replace( '/^.*\//', '', $monitor['Path'] ).'</span>', canEdit( 'Monitors' ) ) ?></td>
-<?php } elseif ( $monitor['Type'] == "Ffmpeg" ) { ?>
-            <td class="colSource"><?php echo makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.preg_replace( '/^.*\//', '', $monitor['Path'] ).'</span>', canEdit( 'Monitors' ) ) ?></td>
-<?php } elseif ( $monitor['Type'] == "Libvlc" ) {
+<?php } elseif ( $monitor['Type'] == "Ffmpeg" || $monitor['Type'] == "Libvlc" ) {
     $domain = parse_url( $monitor['Path'], PHP_URL_HOST );
     $shortpath = $domain ? $domain : preg_replace( '/^.*\//', '', $monitor['Path'] );
 	if ( $shortpath == '' ) {

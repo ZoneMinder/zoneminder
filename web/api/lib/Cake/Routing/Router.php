@@ -50,7 +50,7 @@ class Router {
 /**
  * Have routes been loaded
  *
- * @var boolean
+ * @var bool
  */
 	public static $initialized = false;
 
@@ -73,7 +73,7 @@ class Router {
 /**
  * Directive for Router to parse out file extensions for mapping to Content-types.
  *
- * @var boolean
+ * @var bool
  */
 	protected static $_parseExtensions = false;
 
@@ -227,8 +227,7 @@ class Router {
  * @throws RouterException
  */
 	protected static function _validateRouteClass($routeClass) {
-		if (
-			$routeClass !== 'CakeRoute' &&
+		if ($routeClass !== 'CakeRoute' &&
 			(!class_exists($routeClass) || !is_subclass_of($routeClass, 'CakeRoute'))
 		) {
 			throw new RouterException(__d('cake_dev', 'Route class not found, or route class is not a subclass of CakeRoute'));
@@ -290,13 +289,13 @@ class Router {
  *
  * The above shows the use of route parameter defaults, and providing routing parameters for a static route.
  *
- * {{{
+ * ```
  * Router::connect(
  *   '/:lang/:controller/:action/:id',
  *   array(),
  *   array('id' => '[0-9]+', 'lang' => '[a-z]{3}')
  * );
- * }}}
+ * ```
  *
  * Shows connecting a route with custom route parameters as well as providing patterns for those parameters.
  * Patterns for routing parameters do not need capturing groups, as one will be added for each route params.
@@ -355,9 +354,8 @@ class Router {
 				break;
 			}
 		}
-		if (isset($defaults['prefix'])) {
+		if (isset($defaults['prefix']) && !in_array($defaults['prefix'], self::$_prefixes)) {
 			self::$_prefixes[] = $defaults['prefix'];
-			self::$_prefixes = array_keys(array_flip(self::$_prefixes));
 		}
 		$defaults += array('plugin' => null);
 		if (empty($options['action'])) {
@@ -428,37 +426,37 @@ class Router {
  *
  * Do not parse any named parameters:
  *
- * {{{ Router::connectNamed(false); }}}
+ * ``` Router::connectNamed(false); ```
  *
  * Parse only default parameters used for CakePHP's pagination:
  *
- * {{{ Router::connectNamed(false, array('default' => true)); }}}
+ * ``` Router::connectNamed(false, array('default' => true)); ```
  *
  * Parse only the page parameter if its value is a number:
  *
- * {{{ Router::connectNamed(array('page' => '[\d]+'), array('default' => false, 'greedy' => false)); }}}
+ * ``` Router::connectNamed(array('page' => '[\d]+'), array('default' => false, 'greedy' => false)); ```
  *
  * Parse only the page parameter no matter what.
  *
- * {{{ Router::connectNamed(array('page'), array('default' => false, 'greedy' => false)); }}}
+ * ``` Router::connectNamed(array('page'), array('default' => false, 'greedy' => false)); ```
  *
  * Parse only the page parameter if the current action is 'index'.
  *
- * {{{
+ * ```
  * Router::connectNamed(
  *    array('page' => array('action' => 'index')),
  *    array('default' => false, 'greedy' => false)
  * );
- * }}}
+ * ```
  *
  * Parse only the page parameter if the current action is 'index' and the controller is 'pages'.
  *
- * {{{
+ * ```
  * Router::connectNamed(
  *    array('page' => array('action' => 'index', 'controller' => 'pages')),
  *    array('default' => false, 'greedy' => false)
  * );
- * }}}
+ * ```
  *
  * ### Options
  *
@@ -610,11 +608,9 @@ class Router {
 
 		extract(self::_parseExtension($url));
 
-		for ($i = 0, $len = count(self::$routes); $i < $len; $i++) {
-			$route =& self::$routes[$i];
-
+		foreach (self::$routes as $route) {
 			if (($r = $route->parse($url)) !== false) {
-				self::$_currentRoute[] =& $route;
+				self::$_currentRoute[] = $route;
 				$out = $r;
 				break;
 			}
@@ -636,7 +632,7 @@ class Router {
 /**
  * Parses a file extension out of a URL, if Router::parseExtensions() is enabled.
  *
- * @param string $url
+ * @param string $url URL.
  * @return array Returns an array containing the altered URL and the parsed extension.
  */
 	protected static function _parseExtension($url) {
@@ -700,10 +696,10 @@ class Router {
 	}
 
 /**
- * Get the either the current request object, or the first one.
+ * Gets the current request object, or the first one.
  *
- * @param boolean $current Whether you want the request from the top of the stack or the first one.
- * @return CakeRequest or null.
+ * @param bool $current True to get the current request object, or false to get the first one.
+ * @return CakeRequest|null Null if stack is empty.
  */
 	public static function getRequest($current = false) {
 		if ($current) {
@@ -716,7 +712,7 @@ class Router {
 /**
  * Gets parameter information
  *
- * @param boolean $current Get current request parameter, useful when using requestAction
+ * @param bool $current Get current request parameter, useful when using requestAction
  * @return array Parameter information
  */
 	public static function getParams($current = false) {
@@ -733,8 +729,8 @@ class Router {
  * Gets URL parameter by name
  *
  * @param string $name Parameter name
- * @param boolean $current Current parameter, useful when using requestAction
- * @return string Parameter value
+ * @param bool $current Current parameter, useful when using requestAction
+ * @return string|null Parameter value
  */
 	public static function getParam($name = 'controller', $current = false) {
 		$params = Router::getParams($current);
@@ -747,7 +743,7 @@ class Router {
 /**
  * Gets path information
  *
- * @param boolean $current Current parameter, useful when using requestAction
+ * @param bool $current Current parameter, useful when using requestAction
  * @return array
  */
 	public static function getPaths($current = false) {
@@ -783,9 +779,9 @@ class Router {
 /**
  * Promote a route (by default, the last one added) to the beginning of the list
  *
- * @param integer $which A zero-based array index representing the route to move. For example,
+ * @param int $which A zero-based array index representing the route to move. For example,
  *    if 3 routes have been added, the last route would be 2.
- * @return boolean Returns false if no route exists at the position specified by $which.
+ * @return bool Returns false if no route exists at the position specified by $which.
  */
 	public static function promote($which = null) {
 		if ($which === null) {
@@ -823,7 +819,7 @@ class Router {
  *   or an array specifying any of the following: 'controller', 'action',
  *   and/or 'plugin', in addition to named arguments (keyed array elements),
  *   and standard URL arguments (indexed array elements)
- * @param boolean|array $full If (bool) true, the full base URL will be prepended to the result.
+ * @param bool|array $full If (bool) true, the full base URL will be prepended to the result.
  *   If an array accepts the following keys
  *    - escape - used when making URLs embedded in html escapes query string '&'
  *    - full - if true the full base URL will be prepended.
@@ -906,12 +902,12 @@ class Router {
 
 			$match = false;
 
-			for ($i = 0, $len = count(self::$routes); $i < $len; $i++) {
+			foreach (self::$routes as $route) {
 				$originalUrl = $url;
 
-				$url = self::$routes[$i]->persistParams($url, $params);
+				$url = $route->persistParams($url, $params);
 
-				if ($match = self::$routes[$i]->match($url)) {
+				if ($match = $route->match($url)) {
 					$output = trim($match, '/');
 					break;
 				}
@@ -995,12 +991,10 @@ class Router {
 		);
 
 		$keys = array_values(array_diff(array_keys($url), $skip));
-		$count = count($keys);
 
 		// Remove this once parsed URL parameters can be inserted into 'pass'
-		for ($i = 0; $i < $count; $i++) {
-			$key = $keys[$i];
-			if (is_numeric($keys[$i])) {
+		foreach ($keys as $key) {
+			if (is_numeric($key)) {
 				$args[] = $url[$key];
 			} else {
 				$named[$key] = $url[$key];
@@ -1059,7 +1053,7 @@ class Router {
  * @param string|array $q Query string Either a string of already compiled query string arguments or
  *    an array of arguments to convert into a query string.
  * @param array $extra Extra querystring parameters.
- * @param boolean $escape Whether or not to use escaped &
+ * @param bool $escape Whether or not to use escaped &
  * @return array
  */
 	public static function queryString($q, $extra = array(), $escape = false) {
@@ -1103,7 +1097,7 @@ class Router {
  * are used for CakePHP internals and should not normally be part of an output URL.
  *
  * @param CakeRequest|array $params The params array or CakeRequest object that needs to be reversed.
- * @param boolean $full Set to true to include the full URL including the protocol when reversing
+ * @param bool $full Set to true to include the full URL including the protocol when reversing
  *     the URL.
  * @return string The string that is the reversed result of the array
  */
@@ -1206,7 +1200,7 @@ class Router {
 /**
  * Instructs the router to parse out file extensions from the URL.
  *
- * For example, http://example.com/posts.rss would yield an file extension of "rss".
+ * For example, http://example.com/posts.rss would yield a file extension of "rss".
  * The file extension itself is made available in the controller as
  * `$this->params['ext']`, and is used by the RequestHandler component to
  * automatically switch to alternate layouts and templates, and load helpers
@@ -1249,7 +1243,7 @@ class Router {
  * To have the extensions parsed you still need to call `Router::parseExtensions()`
  *
  * @param array $extensions List of extensions to be added as valid extension
- * @param boolean $merge Default true will merge extensions. Set to false to override current extensions
+ * @param bool $merge Default true will merge extensions. Set to false to override current extensions
  * @return array
  */
 	public static function setExtensions($extensions, $merge = true) {

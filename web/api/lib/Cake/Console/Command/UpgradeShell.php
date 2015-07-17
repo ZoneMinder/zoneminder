@@ -18,6 +18,7 @@
 
 App::uses('AppShell', 'Console/Command');
 App::uses('Folder', 'Utility');
+App::uses('CakePlugin', 'Core');
 
 /**
  * A shell class to help developers upgrade applications to CakePHP 2.0
@@ -102,7 +103,7 @@ class UpgradeShell extends AppShell {
 	public function tests() {
 		$this->_paths = array(APP . 'tests' . DS);
 		if (!empty($this->params['plugin'])) {
-			$this->_paths = array(App::pluginPath($this->params['plugin']) . 'tests' . DS);
+			$this->_paths = array(CakePlugin::path($this->params['plugin']) . 'tests' . DS);
 		}
 		$patterns = array(
 			array(
@@ -128,7 +129,7 @@ class UpgradeShell extends AppShell {
 		$cwd = getcwd();
 
 		if (!empty($this->params['plugin'])) {
-			chdir(App::pluginPath($this->params['plugin']));
+			chdir(CakePlugin::path($this->params['plugin']));
 		}
 
 		if (is_dir('plugins')) {
@@ -215,7 +216,7 @@ class UpgradeShell extends AppShell {
 		$this->_paths = array_diff(App::path('views'), App::core('views'));
 
 		if (!empty($this->params['plugin'])) {
-			$this->_paths = array(App::pluginPath($this->params['plugin']) . 'views' . DS);
+			$this->_paths = array(CakePlugin::path($this->params['plugin']) . 'views' . DS);
 		}
 
 		$patterns = array();
@@ -229,7 +230,7 @@ class UpgradeShell extends AppShell {
 			CakePlugin::load($plugin);
 			$pluginHelpers = array_merge(
 				$pluginHelpers,
-				App::objects('helper', App::pluginPath($plugin) . DS . 'views' . DS . 'helpers' . DS, false)
+				App::objects('helper', CakePlugin::path($plugin) . DS . 'views' . DS . 'helpers' . DS, false)
 			);
 		}
 		$helpers = array_merge($pluginHelpers, $helpers);
@@ -260,7 +261,7 @@ class UpgradeShell extends AppShell {
 			APP
 		);
 		if (!empty($this->params['plugin'])) {
-			$this->_paths = array(App::pluginPath($this->params['plugin']));
+			$this->_paths = array(CakePlugin::path($this->params['plugin']));
 		}
 
 		$patterns = array(
@@ -299,7 +300,7 @@ class UpgradeShell extends AppShell {
 			APP
 		);
 		if (!empty($this->params['plugin'])) {
-			$this->_paths = array(App::pluginPath($this->params['plugin']));
+			$this->_paths = array(CakePlugin::path($this->params['plugin']));
 		}
 		$patterns = array(
 			array(
@@ -354,7 +355,7 @@ class UpgradeShell extends AppShell {
 		$this->_paths = array_merge($views, $controllers, $components);
 
 		if (!empty($this->params['plugin'])) {
-			$pluginPath = App::pluginPath($this->params['plugin']);
+			$pluginPath = CakePlugin::path($this->params['plugin']);
 			$this->_paths = array(
 				$pluginPath . 'controllers' . DS,
 				$pluginPath . 'controllers' . DS . 'components' . DS,
@@ -411,7 +412,7 @@ class UpgradeShell extends AppShell {
 			APP
 		);
 		if (!empty($this->params['plugin'])) {
-			$this->_paths = array(App::pluginPath($this->params['plugin']));
+			$this->_paths = array(CakePlugin::path($this->params['plugin']));
 		}
 		$patterns = array(
 			array(
@@ -433,7 +434,7 @@ class UpgradeShell extends AppShell {
 			APP
 		);
 		if (!empty($this->params['plugin'])) {
-			$this->_paths = array(App::pluginPath($this->params['plugin']));
+			$this->_paths = array(CakePlugin::path($this->params['plugin']));
 		}
 		$patterns = array(
 			array(
@@ -554,6 +555,7 @@ class UpgradeShell extends AppShell {
 /**
  * Replace cakeError with built-in exceptions.
  * NOTE: this ignores calls where you've passed your own secondary parameters to cakeError().
+ *
  * @return void
  */
 	public function exceptions() {
@@ -563,7 +565,7 @@ class UpgradeShell extends AppShell {
 		$this->_paths = array_merge($controllers, $components);
 
 		if (!empty($this->params['plugin'])) {
-			$pluginPath = App::pluginPath($this->params['plugin']);
+			$pluginPath = CakePlugin::path($this->params['plugin']);
 			$this->_paths = array(
 				$pluginPath . 'controllers' . DS,
 				$pluginPath . 'controllers' . DS . 'components' . DS,
@@ -609,7 +611,7 @@ class UpgradeShell extends AppShell {
 
 			$new = 'View' . DS . Inflector::camelize($old);
 			$old = 'View' . DS . $old;
-			if ($new == $old) {
+			if ($new === $old) {
 				continue;
 			}
 
@@ -661,7 +663,7 @@ class UpgradeShell extends AppShell {
  * Find all php files in the folder (honoring recursive) and determine where CakePHP expects the file to be
  * If the file is not exactly where CakePHP expects it - move it.
  *
- * @param string $path
+ * @param string $path The path to move files in.
  * @param array $options array(recursive, checkFolder)
  * @return void
  */
@@ -763,7 +765,7 @@ class UpgradeShell extends AppShell {
 /**
  * Searches the paths and finds files based on extension.
  *
- * @param string $extensions
+ * @param string $extensions The extensions to include. Defaults to none.
  * @return void
  */
 	protected function _findFiles($extensions = '') {
@@ -839,8 +841,9 @@ class UpgradeShell extends AppShell {
 		);
 
 		$parser->description(
-			__d('cake_console', "A shell to help automate upgrading from CakePHP 1.3 to 2.0. \n" .
-			"Be sure to have a backup of your application before running these commands."
+			__d('cake_console', "A tool to help automate upgrading an application or plugin " .
+			"from CakePHP 1.3 to 2.0. Be sure to have a backup of your application before " .
+			"running these commands."
 		))->addSubcommand('all', array(
 			'help' => __d('cake_console', 'Run all upgrade commands.'),
 			'parser' => $subcommandParser

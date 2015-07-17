@@ -34,7 +34,7 @@ class PrototypeEngineHelper extends JsBaseEngineHelper {
 /**
  * Is the current selection a multiple selection? or is it just a single element.
  *
- * @var boolean
+ * @var bool
  */
 	protected $_multiple = false;
 
@@ -114,7 +114,7 @@ class PrototypeEngineHelper extends JsBaseEngineHelper {
  * Create javascript selector for a CSS rule
  *
  * @param string $selector The selector that is targeted
- * @return PrototypeEngineHelper instance of $this. Allows chained methods.
+ * @return $this
  */
 	public function get($selector) {
 		$this->_multiple = false;
@@ -228,8 +228,8 @@ class PrototypeEngineHelper extends JsBaseEngineHelper {
 /**
  * Create an Ajax or Ajax.Updater call.
  *
- * @param string|array $url
- * @param array $options
+ * @param string|array $url URL.
+ * @param array $options Options list.
  * @return string The completed ajax call.
  */
 	public function request($url, $options = array()) {

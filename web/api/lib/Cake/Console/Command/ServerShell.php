@@ -34,7 +34,7 @@ class ServerShell extends AppShell {
 /**
  * Default ListenPort
  *
- * @var integer
+ * @var int
  */
 	const DEFAULT_PORT = 80;
 
@@ -91,8 +91,8 @@ class ServerShell extends AppShell {
 			$this->_documentRoot = $this->params['document_root'];
 		}
 
-		// for windows
-		if (substr($this->_documentRoot, -1, 1) == DIRECTORY_SEPARATOR) {
+		// for Windows
+		if (substr($this->_documentRoot, -1, 1) === DIRECTORY_SEPARATOR) {
 			$this->_documentRoot = substr($this->_documentRoot, 0, strlen($this->_documentRoot) - 1);
 		}
 		if (preg_match("/^([a-z]:)[\\\]+(.+)$/i", $this->_documentRoot, $m)) {

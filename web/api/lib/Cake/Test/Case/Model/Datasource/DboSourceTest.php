@@ -33,6 +33,9 @@ require_once dirname(dirname(__FILE__)) . DS . 'models.php';
  */
 class MockPDO extends PDO {
 
+/**
+ * Constructor.
+ */
 	public function __construct() {
 	}
 
@@ -116,7 +119,7 @@ class DboSourceTest extends CakeTestCase {
 /**
  * autoFixtures property
  *
- * @var boolean
+ * @var bool
  */
 	public $autoFixtures = false;
 
@@ -542,7 +545,6 @@ class DboSourceTest extends CakeTestCase {
 	}
 
 /**
- *
  * @expectedException PDOException
  * @return void
  */
@@ -780,6 +782,35 @@ class DboSourceTest extends CakeTestCase {
 		$query = "DROP TABLE {$name};";
 		$result = $this->db->query($query);
 		$this->assertTrue($result, 'Query did not return a boolean');
+	}
+
+/**
+ * Test NOT NULL on ENUM data type with empty string as a value
+ *
+ * @return void
+ */
+	public function testNotNullOnEnum() {
+		if (!$this->db instanceof Mysql) {
+			$this->markTestSkipped('This test can only run on MySQL');
+		}
+		$name = $this->db->fullTableName('enum_tests');
+		$query = "CREATE TABLE {$name} (mood ENUM('','happy','sad','ok') NOT NULL);";
+		$result = $this->db->query($query);
+		$this->assertTrue($result);
+
+		$EnumTest = ClassRegistry::init('EnumTest');
+		$enumResult = $EnumTest->save(array('mood' => ''));
+
+		$query = "DROP TABLE {$name};";
+		$result = $this->db->query($query);
+		$this->assertTrue($result);
+
+		$this->assertEquals(array(
+			'EnumTest' => array(
+				'mood' => '',
+				'id' => '0'
+			)
+		), $enumResult);
 	}
 
 /**
@@ -1199,6 +1230,11 @@ class DboSourceTest extends CakeTestCase {
 				'type' => 'LEFT',
 				'alias' => 'PostsTag',
 				'table' => 'posts_tags',
+			), 'LEFT JOIN cakephp.posts_tags AS PostsTag'),
+			array(array(
+				'type' => 'LEFT',
+				'alias' => 'PostsTag',
+				'table' => 'posts_tags',
 				'conditions' => array('PostsTag.post_id = Post.id')
 			), 'LEFT JOIN cakephp.posts_tags AS PostsTag ON (PostsTag.post_id = Post.id)'),
 			array(array(
@@ -1412,5 +1448,299 @@ class DboSourceTest extends CakeTestCase {
 
 		$result = $db->insertMulti('articles', array_keys($data[0]), $data);
 		$this->assertTrue($result, 'Data was saved');
+	}
+
+/**
+ * Test defaultConditions()
+ *
+ * @return void
+ */
+	public function testDefaultConditions() {
+		$this->loadFixtures('Article');
+		$Article = ClassRegistry::init('Article');
+		$db = $Article->getDataSource();
+
+		// Creates a default set of conditions from the model if $conditions is null/empty.
+		$Article->id = 1;
+		$result = $db->defaultConditions($Article, null);
+		$this->assertEquals(array('Article.id' => 1), $result);
+
+		// $useAlias == false
+		$Article->id = 1;
+		$result = $db->defaultConditions($Article, null, false);
+		$this->assertEquals(array($db->fullTableName($Article, false) . '.id' => 1), $result);
+
+		// If conditions are supplied then they will be returned.
+		$Article->id = 1;
+		$result = $db->defaultConditions($Article, array('Article.title' => 'First article'));
+		$this->assertEquals(array('Article.title' => 'First article'), $result);
+
+		// If a model doesn't exist and no conditions were provided either null or false will be returned based on what was input.
+		$Article->id = 1000000;
+		$result = $db->defaultConditions($Article, null);
+		$this->assertNull($result);
+
+		$Article->id = 1000000;
+		$result = $db->defaultConditions($Article, false);
+		$this->assertFalse($result);
+
+		// Safe update mode
+		$Article->id = 1000000;
+		$Article->__safeUpdateMode = true;
+		$result = $db->defaultConditions($Article, null);
+		$this->assertFalse($result);
+	}
+
+/**
+ * Test that count how many times afterFind is called
+ *
+ * @return void
+ */
+	public function testCountAfterFindCalls() {
+		$this->loadFixtures('Article', 'User', 'Comment', 'Attachment', 'Tag', 'ArticlesTag');
+
+		// Use alias to make testing "primary = true" easy
+		$Primary = $this->getMock('Comment', array('afterFind'), array(array('alias' => 'Primary')), '', true);
+
+		$Article = $this->getMock('Article', array('afterFind'), array(), '', true);
+		$User = $this->getMock('User', array('afterFind'), array(), '', true);
+		$Comment = $this->getMock('Comment', array('afterFind'), array(), '', true);
+		$Tag = $this->getMock('Tag', array('afterFind'), array(), '', true);
+		$Attachment = $this->getMock('Attachment', array('afterFind'), array(), '', true);
+
+		$Primary->Article = $Article;
+		$Primary->Article->User = $User;
+		$Primary->Article->Tag = $Tag;
+		$Primary->Article->Comment = $Comment;
+		$Primary->Attachment = $Attachment;
+		$Primary->Attachment->Comment = $Comment;
+		$Primary->User = $User;
+
+		// primary = true
+		$Primary->expects($this->once())
+			->method('afterFind')->with($this->anything(), $this->isTrue())->will($this->returnArgument(0));
+
+		// primary = false
+		$Article->expects($this->once()) // Primary belongs to 1 Article
+			->method('afterFind')->with($this->anything(), $this->isFalse())->will($this->returnArgument(0));
+		$User->expects($this->exactly(2)) // Article belongs to 1 User and Primary belongs to 1 User
+			->method('afterFind')->with($this->anything(), $this->isFalse())->will($this->returnArgument(0));
+		$Tag->expects($this->exactly(2)) // Article has 2 Tags
+			->method('afterFind')->with($this->anything(), $this->isFalse())->will($this->returnArgument(0));
+		$Comment->expects($this->exactly(3)) // Article has 2 Comments and Attachment belongs to 1 Comment
+			->method('afterFind')->with($this->anything(), $this->isFalse())->will($this->returnArgument(0));
+		$Attachment->expects($this->once()) // Primary has 1 Attachment
+			->method('afterFind')->with($this->anything(), $this->isFalse())->will($this->returnArgument(0));
+
+		$result = $Primary->find('first', array('conditions' => array('Primary.id' => 5), 'recursive' => 2));
+		$this->assertCount(2, $result['Article']['Tag']);
+		$this->assertCount(2, $result['Article']['Comment']);
+
+		// hasMany special case
+		// Both User and Article has many Comments
+		$User = $this->getMock('User', array('afterFind'), array(), '', true);
+		$Article = $this->getMock('Article', array('afterFind'), array(), '', true);
+		$Comment = $this->getMock('Comment', array('afterFind'), array(), '', true);
+
+		$User->bindModel(array('hasMany' => array('Comment', 'Article')));
+		$Article->unbindModel(array('belongsTo' => array('User'), 'hasAndBelongsToMany' => array('Tag')));
+		$Comment->unbindModel(array('belongsTo' => array('User', 'Article'), 'hasOne' => 'Attachment'));
+
+		$User->Comment = $Comment;
+		$User->Article = $Article;
+		$User->Article->Comment = $Comment;
+
+		// primary = true
+		$User->expects($this->once())
+			->method('afterFind')->with($this->anything(), $this->isTrue())->will($this->returnArgument(0));
+
+		$Article->expects($this->exactly(2)) // User has 2 Articles
+			->method('afterFind')->with($this->anything(), $this->isFalse())->will($this->returnArgument(0));
+
+		$Comment->expects($this->exactly(7)) // User1 has 3 Comments, Article[id=1] has 4 Comments and Article[id=3] has 0 Comments
+			->method('afterFind')->with($this->anything(), $this->isFalse())->will($this->returnArgument(0));
+
+		$result = $User->find('first', array('conditions' => array('User.id' => 1), 'recursive' => 2));
+		$this->assertCount(3, $result['Comment']);
+		$this->assertCount(2, $result['Article']);
+		$this->assertCount(4, $result['Article'][0]['Comment']);
+		$this->assertCount(0, $result['Article'][1]['Comment']);
+	}
+
+/**
+ * Test format of $results in afterFind
+ *
+ * @return void
+ */
+	public function testUseConsistentAfterFind() {
+		$this->loadFixtures('Author', 'Post');
+
+		$expected = array(
+			'Author' => array(
+				'id' => '1',
+				'user' => 'mariano',
+				'password' => '5f4dcc3b5aa765d61d8327deb882cf99',
+				'created' => '2007-03-17 01:16:23',
+				'updated' => '2007-03-17 01:18:31',
+				'test' => 'working',
+			),
+			'Post' => array(
+				array(
+					'id' => '1',
+					'author_id' => '1',
+					'title' => 'First Post',
+					'body' => 'First Post Body',
+					'published' => 'Y',
+					'created' => '2007-03-18 10:39:23',
+					'updated' => '2007-03-18 10:41:31',
+				),
+				array(
+					'id' => '3',
+					'author_id' => '1',
+					'title' => 'Third Post',
+					'body' => 'Third Post Body',
+					'published' => 'Y',
+					'created' => '2007-03-18 10:43:23',
+					'updated' => '2007-03-18 10:45:31',
+				),
+			),
+		);
+
+		$Author = new Author();
+		$Post = $this->getMock('Post', array('afterFind'), array(), '', true);
+		$Post->expects($this->at(0))->method('afterFind')->with(array(array('Post' => $expected['Post'][0])), $this->isFalse())->will($this->returnArgument(0));
+		$Post->expects($this->at(1))->method('afterFind')->with(array(array('Post' => $expected['Post'][1])), $this->isFalse())->will($this->returnArgument(0));
+
+		$Author->bindModel(array('hasMany' => array('Post' => array('limit' => 2, 'order' => 'Post.id'))));
+		$Author->Post = $Post;
+
+		$result = $Author->find('first', array('conditions' => array('Author.id' => 1), 'recursive' => 1));
+		$this->assertEquals($expected, $result);
+
+		// Backward compatiblity
+		$Author = new Author();
+		$Post = $this->getMock('Post', array('afterFind'), array(), '', true);
+		$Post->expects($this->once())->method('afterFind')->with($expected['Post'], $this->isFalse())->will($this->returnArgument(0));
+		$Post->useConsistentAfterFind = false;
+
+		$Author->bindModel(array('hasMany' => array('Post' => array('limit' => 2, 'order' => 'Post.id'))));
+		$Author->Post = $Post;
+
+		$result = $Author->find('first', array('conditions' => array('Author.id' => 1), 'recursive' => 1));
+		$this->assertEquals($expected, $result);
+	}
+
+/**
+ * Test that afterFind is called correctly for 'joins'
+ *
+ * @return void
+ */
+	public function testJoinsAfterFind() {
+		$this->loadFixtures('Article', 'User');
+
+		$User = new User();
+		$User->bindModel(array('hasOne' => array('Article')));
+
+		$Article = $this->getMock('Article', array('afterFind'), array(), '', true);
+		$Article->expects($this->once())
+			->method('afterFind')
+			->with(
+				array(
+					0 => array(
+						'Article' => array(
+							'id' => '1',
+							'user_id' => '1',
+							'title' => 'First Article',
+							'body' => 'First Article Body',
+							'published' => 'Y',
+							'created' => '2007-03-18 10:39:23',
+							'updated' => '2007-03-18 10:41:31'
+						)
+					)
+				),
+				$this->isFalse()
+			)
+			->will($this->returnArgument(0));
+
+		$User->Article = $Article;
+		$User->find('first', array(
+			'fields' => array(
+				'Article.id',
+				'Article.user_id',
+				'Article.title',
+				'Article.body',
+				'Article.published',
+				'Article.created',
+				'Article.updated'
+			),
+			'conditions' => array('User.id' => 1),
+			'recursive' => -1,
+			'joins' => array(
+				array(
+					'table' => 'articles',
+					'alias' => 'Article',
+					'type' => 'LEFT',
+					'conditions' => array(
+						'Article.user_id = User.id'
+					),
+				)
+			),
+			'order' => array('Article.id')
+		));
+	}
+
+/**
+ * Test that afterFind is called correctly for 'hasOne' association.
+ *
+ * @return void
+ */
+	public function testHasOneAfterFind() {
+		$this->loadFixtures('Article', 'User', 'Comment');
+
+		$User = new User();
+		$User->bindModel(array('hasOne' => array('Article')));
+
+		$Article = $this->getMock('Article', array('afterFind'), array(), '', true);
+		$Article->unbindModel(array(
+			'belongsTo' => array('User'),
+			'hasMany' => array('Comment'),
+			'hasAndBelongsToMany' => array('Tag')
+		));
+		$Article->bindModel(array(
+			'hasOne' => array('Comment'),
+		));
+		$Article->expects($this->once())
+			->method('afterFind')
+			->with(
+				$this->equalTo(
+					array(
+						0 => array(
+							'Article' => array(
+								'id' => '1',
+								'user_id' => '1',
+								'title' => 'First Article',
+								'body' => 'First Article Body',
+								'published' => 'Y',
+								'created' => '2007-03-18 10:39:23',
+								'updated' => '2007-03-18 10:41:31',
+								'Comment' => array(
+									'id' => '1',
+									'article_id' => '1',
+									'user_id' => '2',
+									'comment' => 'First Comment for First Article',
+									'published' => 'Y',
+									'created' => '2007-03-18 10:45:23',
+									'updated' => '2007-03-18 10:47:31',
+								)
+							)
+						)
+					)
+				),
+				$this->isFalse()
+			)
+			->will($this->returnArgument(0));
+
+		$User->Article = $Article;
+		$User->find('first', array('conditions' => array('User.id' => 1), 'recursive' => 2));
 	}
 }

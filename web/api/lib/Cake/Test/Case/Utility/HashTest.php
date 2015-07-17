@@ -23,6 +23,11 @@ App::uses('Hash', 'Utility');
  */
 class HashTest extends CakeTestCase {
 
+/**
+ * Data provider
+ *
+ * @return array
+ */
 	public static function articleData() {
 		return array(
 			array(
@@ -136,6 +141,11 @@ class HashTest extends CakeTestCase {
 		);
 	}
 
+/**
+ * Data provider
+ *
+ * @return array
+ */
 	public static function userData() {
 		return array(
 			array(
@@ -220,6 +230,29 @@ class HashTest extends CakeTestCase {
 	}
 
 /**
+ * Test get() with an invalid path
+ *
+ * @expectedException InvalidArgumentException
+ * @return void
+ */
+	public function testGetInvalidPath() {
+		Hash::get(array('one' => 'two'), true);
+	}
+
+/**
+ * Test testGetNullPath()
+ *
+ * @return void
+ */
+	public function testGetNullPath() {
+		$result = Hash::get(array('one' => 'two'), null, '-');
+		$this->assertEquals('-', $result);
+
+		$result = Hash::get(array('one' => 'two'), '', '-');
+		$this->assertEquals('-', $result);
+	}
+
+/**
  * Test dimensions.
  *
  * @return void
@@ -255,6 +288,14 @@ class HashTest extends CakeTestCase {
  * @return void
  */
 	public function testMaxDimensions() {
+		$data = array();
+		$result = Hash::maxDimensions($data);
+		$this->assertEquals(0, $result);
+
+		$data = array('a', 'b');
+		$result = Hash::maxDimensions($data);
+		$this->assertEquals(1, $result);
+
 		$data = array('1' => '1.1', '2', '3' => array('3.1' => '3.1.1'));
 		$result = Hash::maxDimensions($data);
 		$this->assertEquals($result, 2);
@@ -796,6 +837,32 @@ class HashTest extends CakeTestCase {
 	}
 
 /**
+ * Test wildcard matcher
+ *
+ * @return void
+ */
+	public function testExtractWildcard() {
+		$data = array(
+			'02000009C5560001' => array('name' => 'Mr. Alphanumeric'),
+			'2300000918020101' => array('name' => 'Mr. Numeric'),
+			'390000096AB30001' => array('name' => 'Mrs. Alphanumeric'),
+			'stuff' => array('name' => 'Ms. Word'),
+			123 => array('name' => 'Mr. Number'),
+			true => array('name' => 'Ms. Bool'),
+		);
+		$result = Hash::extract($data, '{*}.name');
+		$expected = array(
+			'Mr. Alphanumeric',
+			'Mr. Numeric',
+			'Mrs. Alphanumeric',
+			'Ms. Word',
+			'Mr. Number',
+			'Ms. Bool',
+		);
+		$this->assertEquals($expected, $result);
+	}
+
+/**
  * Test the attribute presense selector.
  *
  * @return void
@@ -858,9 +925,18 @@ class HashTest extends CakeTestCase {
 				'active' => false
 			),
 		);
+		$result = Hash::extract($users, '{n}[active=0]');
+		$this->assertCount(1, $result);
+		$this->assertEquals($users[2], $result[0]);
+
 		$result = Hash::extract($users, '{n}[active=false]');
 		$this->assertCount(1, $result);
 		$this->assertEquals($users[2], $result[0]);
+
+		$result = Hash::extract($users, '{n}[active=1]');
+		$this->assertCount(2, $result);
+		$this->assertEquals($users[0], $result[0]);
+		$this->assertEquals($users[1], $result[1]);
 
 		$result = Hash::extract($users, '{n}[active=true]');
 		$this->assertCount(2, $result);
@@ -1021,7 +1097,7 @@ class HashTest extends CakeTestCase {
  * @return void
  */
 	public function testSort() {
-		$result = Hash::sort(array(), '{n}.name', 'asc');
+		$result = Hash::sort(array(), '{n}.name');
 		$this->assertEquals(array(), $result);
 
 		$a = array(
@@ -1044,7 +1120,7 @@ class HashTest extends CakeTestCase {
 				'Friend' => array(array('name' => 'Nate'))
 			)
 		);
-		$a = Hash::sort($a, '{n}.Friend.{n}.name', 'asc');
+		$a = Hash::sort($a, '{n}.Friend.{n}.name');
 		$this->assertEquals($a, $b);
 
 		$b = array(
@@ -1348,6 +1424,13 @@ class HashTest extends CakeTestCase {
 			'pages' => array('name' => array()),
 		);
 		$this->assertEquals($expected, $result);
+
+		$a = array(
+			'foo' => array('bar' => 'baz')
+		);
+		$result = Hash::insert($a, 'some.0123.path', array('foo' => array('bar' => 'baz')));
+		$expected = array('foo' => array('bar' => 'baz'));
+		$this->assertEquals($expected, Hash::get($result, 'some.0123.path'));
 	}
 
 /**
@@ -1461,6 +1544,18 @@ class HashTest extends CakeTestCase {
 				'name' => 'pages'
 			)
 		);
+		$this->assertEquals($expected, $result);
+
+		$array = array(
+			0 => 'foo',
+			1 => array(
+				0 => 'baz'
+			)
+		);
+		$expected = $array;
+		$result = Hash::remove($array, '{n}.part');
+		$this->assertEquals($expected, $result);
+		$result = Hash::remove($array, '{n}.{n}.part');
 		$this->assertEquals($expected, $result);
 	}
 
@@ -1786,6 +1881,11 @@ class HashTest extends CakeTestCase {
 		$this->assertEquals($expected, $result);
 	}
 
+/**
+ * testApply
+ *
+ * @return void
+ */
 	public function testApply() {
 		$data = self::articleData();
 
@@ -1808,8 +1908,8 @@ class HashTest extends CakeTestCase {
 /**
  * testing method for map callbacks.
  *
- * @param mixed $value
- * @return mixed.
+ * @param mixed $value Value
+ * @return mixed
  */
 	public function mapCallback($value) {
 		return $value * 2;
@@ -1818,9 +1918,9 @@ class HashTest extends CakeTestCase {
 /**
  * testing method for reduce callbacks.
  *
- * @param mixed $one
- * @param mixed $two
- * @return mixed.
+ * @param mixed $one First param
+ * @param mixed $two Second param
+ * @return mixed
  */
 	public function reduceCallback($one, $two) {
 		return $one + $two;
@@ -2240,6 +2340,25 @@ class HashTest extends CakeTestCase {
 			}
 		}
 		$this->assertEquals($input, $result);
+	}
+
+/**
+ * Tests that nest() throws an InvalidArgumentException when providing an invalid input.
+ *
+ * @expectedException InvalidArgumentException
+ * @return void
+ */
+	public function testNestInvalid() {
+		$input = array(
+			array(
+				'ParentCategory' => array(
+					'id' => '1',
+					'name' => 'Lorem ipsum dolor sit amet',
+					'parent_id' => '1'
+				)
+			)
+		);
+		Hash::nest($input);
 	}
 
 /**

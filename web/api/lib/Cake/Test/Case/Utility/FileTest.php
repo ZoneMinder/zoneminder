@@ -23,13 +23,14 @@ App::uses('Folder', 'Utility');
  * FileTest class
  *
  * @package       Cake.Test.Case.Utility
+ * @coversDefaultClass File
  */
 class FileTest extends CakeTestCase {
 
 /**
  * File property
  *
- * @var mixed null
+ * @var mixed
  */
 	public $File = null;
 
@@ -62,6 +63,15 @@ class FileTest extends CakeTestCase {
  * testBasic method
  *
  * @return void
+ * @covers ::__construct
+ * @covers ::info
+ * @covers ::ext
+ * @covers ::name
+ * @covers ::md5
+ * @covers ::size
+ * @covers ::owner
+ * @covers ::group
+ * @covers ::Folder
  */
 	public function testBasic() {
 		$file = CAKE . DS . 'LICENSE.txt';
@@ -81,8 +91,7 @@ class FileTest extends CakeTestCase {
 			'filesize' => filesize($file),
 			'mime' => 'text/plain'
 		);
-		if (
-			!function_exists('finfo_open') &&
+		if (!function_exists('finfo_open') &&
 			(!function_exists('mime_content_type') ||
 			function_exists('mime_content_type') &&
 			mime_content_type($this->File->pwd()) === false)
@@ -127,6 +136,7 @@ class FileTest extends CakeTestCase {
  * testPermission method
  *
  * @return void
+ * @covers ::perms
  */
 	public function testPermission() {
 		$this->skipIf(DIRECTORY_SEPARATOR === '\\', 'File permissions tests not supported on Windows.');
@@ -173,6 +183,7 @@ class FileTest extends CakeTestCase {
  * testRead method
  *
  * @return void
+ * @covers ::read
  */
 	public function testRead() {
 		$file = __FILE__;
@@ -204,6 +215,7 @@ class FileTest extends CakeTestCase {
  * testOffset method
  *
  * @return void
+ * @covers ::offset
  */
 	public function testOffset() {
 		$this->File->close();
@@ -236,6 +248,7 @@ class FileTest extends CakeTestCase {
  * testOpen method
  *
  * @return void
+ * @covers ::open
  */
 	public function testOpen() {
 		$this->File->handle = null;
@@ -260,6 +273,7 @@ class FileTest extends CakeTestCase {
  * testClose method
  *
  * @return void
+ * @covers ::close
  */
 	public function testClose() {
 		$this->File->handle = null;
@@ -277,6 +291,9 @@ class FileTest extends CakeTestCase {
  * testCreate method
  *
  * @return void
+ * @covers ::create
+ * @covers ::exists
+ * @covers ::clearStatCache
  */
 	public function testCreate() {
 		$tmpFile = TMP . 'tests' . DS . 'cakephp.file.test.tmp';
@@ -288,6 +305,8 @@ class FileTest extends CakeTestCase {
  * testOpeningNonExistentFileCreatesIt method
  *
  * @return void
+ * @covers ::open
+ * @covers ::create
  */
 	public function testOpeningNonExistentFileCreatesIt() {
 		$someFile = new File(TMP . 'some_file.txt', false);
@@ -301,6 +320,7 @@ class FileTest extends CakeTestCase {
  * testPrepare method
  *
  * @return void
+ * @covers ::prepare
  */
 	public function testPrepare() {
 		$string = "some\nvery\ncool\r\nteststring here\n\n\nfor\r\r\n\n\r\n\nhere";
@@ -321,6 +341,7 @@ class FileTest extends CakeTestCase {
  * testReadable method
  *
  * @return void
+ * @covers ::readable
  */
 	public function testReadable() {
 		$someFile = new File(TMP . 'some_file.txt', false);
@@ -334,6 +355,7 @@ class FileTest extends CakeTestCase {
  * testWritable method
  *
  * @return void
+ * @covers ::writable
  */
 	public function testWritable() {
 		$someFile = new File(TMP . 'some_file.txt', false);
@@ -347,6 +369,7 @@ class FileTest extends CakeTestCase {
  * testExecutable method
  *
  * @return void
+ * @covers ::executable
  */
 	public function testExecutable() {
 		$someFile = new File(TMP . 'some_file.txt', false);
@@ -360,6 +383,7 @@ class FileTest extends CakeTestCase {
  * testLastAccess method
  *
  * @return void
+ * @covers ::lastAccess
  */
 	public function testLastAccess() {
 		$someFile = new File(TMP . 'some_file.txt', false);
@@ -374,6 +398,7 @@ class FileTest extends CakeTestCase {
  * testLastChange method
  *
  * @return void
+ * @covers ::lastChange
  */
 	public function testLastChange() {
 		$someFile = new File(TMP . 'some_file.txt', false);
@@ -392,6 +417,7 @@ class FileTest extends CakeTestCase {
  * testWrite method
  *
  * @return void
+ * @covers ::write
  */
 	public function testWrite() {
 		if (!$tmpFile = $this->_getTmpFile()) {
@@ -422,6 +448,7 @@ class FileTest extends CakeTestCase {
  * testAppend method
  *
  * @return void
+ * @covers ::append
  */
 	public function testAppend() {
 		if (!$tmpFile = $this->_getTmpFile()) {
@@ -458,6 +485,7 @@ class FileTest extends CakeTestCase {
  * testDelete method
  *
  * @return void
+ * @covers ::delete
  */
 	public function testDelete() {
 		if (!$tmpFile = $this->_getTmpFile()) {
@@ -483,6 +511,7 @@ class FileTest extends CakeTestCase {
  * active filehandles open.
  *
  * @return void
+ * @covers ::delete
  */
 	public function testDeleteAfterRead() {
 		if (!$tmpFile = $this->_getTmpFile()) {
@@ -500,6 +529,7 @@ class FileTest extends CakeTestCase {
  * testCopy method
  *
  * @return void
+ * @covers ::copy
  */
 	public function testCopy() {
 		$dest = TMP . 'tests' . DS . 'cakephp.file.test.tmp';
@@ -528,6 +558,7 @@ class FileTest extends CakeTestCase {
  * Test mime()
  *
  * @return void
+ * @covers ::mime
  */
 	public function testMime() {
 		$this->skipIf(!function_exists('finfo_open') && !function_exists('mime_content_type'), 'Not able to read mime type');
@@ -543,7 +574,7 @@ class FileTest extends CakeTestCase {
 /**
  * getTmpFile method
  *
- * @param boolean $paintSkip
+ * @param bool $paintSkip
  * @return void
  */
 	protected function _getTmpFile($paintSkip = true) {
@@ -567,6 +598,7 @@ class FileTest extends CakeTestCase {
  * testReplaceText method
  *
  * @return void
+ * @covers ::replaceText
  */
 	public function testReplaceText() {
 		$TestFile = new File(dirname(__FILE__) . '/../../test_app/Vendor/welcome.php');
@@ -597,5 +629,18 @@ class FileTest extends CakeTestCase {
 		$this->assertContains($expected, $contents);
 
 		$TmpFile->delete();
+	}
+
+/**
+ * Tests that no path is being set for passed file paths that
+ * do not exist.
+ *
+ * @return void
+ * @covers ::pwd
+ */
+	public function testNoPartialPathBeingSetForNonExistentPath() {
+		$tmpFile = new File('/non/existent/file');
+		$this->assertNull($tmpFile->pwd());
+		$this->assertNull($tmpFile->path);
 	}
 }

@@ -167,13 +167,22 @@ function loadConfig( $defineConsts=true )
 }
 
 // For Human-readability, user ZM_SERVER in zm.conf, and convert it here to a ZM_SERVER_ID
-if ( ! defined(ZM_SERVER_ID) and defined(ZM_SERVER) ) {
-    $server_id = dbFetchOne('SELECT Id FROM Servers WHERE Name=?', 'Id', array(ZM_SERVER_NAME));
-    if ( ! $server_id ) {
-        Error("ZM_SERVER_NAME set in config, but not found in Servers table.");
-    } else {
-        define( ZM_SERVER_ID, $server_id );
-    }
+if ( ! defined('ZM_SERVER_ID') ) {
+	if ( defined('ZM_SERVER_NAME') ) {
+		$server_id = dbFetchOne('SELECT Id FROM Servers WHERE Name=?', 'Id', array(ZM_SERVER_NAME));
+		if ( ! $server_id ) {
+			Error("ZM_SERVER_NAME set in config, but not found in Servers table.");
+		} else {
+			define( 'ZM_SERVER_ID', $server_id );
+		}
+	} else if ( defined('ZM_SERVER_HOST') ) {
+		$server_id = dbFetchOne('SELECT Id FROM Servers WHERE Name=?', 'Id', array(ZM_SERVER_HOST));
+		if ( ! $server_id ) {
+			Error("ZM_SERVER_HOST set in config, but not found in Servers table.");
+		} else {
+			define( 'ZM_SERVER_ID', $server_id );
+		}
+	}
 }
 
 

@@ -298,26 +298,6 @@ else
   AC_SUBST(ZM_HAS_ONVIF,0)
 fi
 
-ENABLE_NONGPL=no
-AC_ARG_ENABLE(nongpl,
-    [  --enable-nongpl=<yes|no> enable linking of non GPL libraries, default disabled],
-    [ENABLE_NONGPL=$enable_nongpl],
-    AC_MSG_WARN([You can call configure with the --enable-nongpl=<yes|no> or --enable-nongpl option.
-    This tells configure whether to allow the use of non GPL libraries. If enabled the resulting binaries
-    will be unredistributable under current ZoneMinder license as long as each of these libraries
-    is not covered by an exception in the copyright file.
-    e.g. --enable-nongpl=yes or --disable-nongpl])
-)
-if test "$ENABLE_NONGPL" == "no"; then
-    if test "$ZM_SSL_LIB" == "openssl"; then
-        AC_MSG_ERROR([Some terms of the OpenSSL license are incompatible with ZoneMinder license (GPL).
-        Therefore linking ZoneMinder libraries or binaries with OpenSSL makes them unredistributable under
-        current ZoneMinder license. Redistribution of ZoneMinder with OpenSSL library requires to add an
-        exception for OpenSSL in the copyright file. Building ZoneMinder with OpenSSL library requires
-        to enable the use of non GPL libraries with --enable-nongpl=yes or --enable-nongpl option.])
-    fi
-fi
-
 # Checks for programs.
 AC_PROG_CXX
 AC_PROG_CC

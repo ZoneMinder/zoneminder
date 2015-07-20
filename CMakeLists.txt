@@ -142,14 +142,8 @@ set(ZM_PERL_SEARCH_PATH "" CACHE PATH
 	installed outside Perl's default search path.")
 set(ZM_TARGET_DISTRO "" CACHE STRING 
     "Build ZoneMinder for a specific distribution.  Currently, valid names are: f21, f20, el6, OS13")
-set(ZM_OPENSSL "OFF" CACHE BOOL
-    "Set to ON to enable OpenSSL library support. This option is disabled by
-    default because some terms of the OpenSSL license are incompatible with
-    the GPL.")
-set(ZM_NONGPL "OFF" CACHE BOOL
-    "Set to ON to allow the use of non GPL libraries. The resulting binaries
-    will be unredistributable under current ZoneMinder license as long as each of these
-    libraries is not covered by an exception in the copyright file.")
+set(ZM_SSL_LIB "gnutls" CACHE STRING
+    "Set to openssl to enable OpenSSL library support, default: gnutls")
 
 # Reassign some variables if a target distro has been specified
 if((ZM_TARGET_DISTRO STREQUAL "f21") OR (ZM_TARGET_DISTRO STREQUAL "f20"))
@@ -269,12 +263,7 @@ else(JPEG_FOUND)
             "ZoneMinder requires jpeg but it was not found on your system")
 endif(JPEG_FOUND)
 
-# Do not check for OpenSSL if ZM_OPENSSL is off
-if(ZM_OPENSSL)
-	if(NOT ZM_NONGPL)
-		message(FATAL_ERROR
-                    "Some terms of the OpenSSL license are incompatible with ZoneMinder license (GPL). Therefore linking ZoneMinder libraries or binaries with OpenSSL makes them unredistributable under current ZoneMinder license. Redistribution of ZoneMinder with OpenSSL library requires to add an exception for OpenSSL in the copyright file. Building ZoneMinder with OpenSSL library requires to enable the use of non GPL libraries with ZM_NONGPL=ON")
-	endif(NOT ZM_NONGPL)
+if(ZM_SSL_LIB STREQUAL "openssl")
 	find_package(OpenSSL)
 	if(OPENSSL_FOUND)
 		set(HAVE_LIBOPENSSL 1)
@@ -287,7 +276,7 @@ if(ZM_OPENSSL)
 	else(OPENSSL_FOUND)
 		set(optlibsnotfound "${optlibsnotfound} OpenSSL")
 	endif(OPENSSL_FOUND)
-endif(ZM_OPENSSL)
+endif(ZM_SSL_LIB STREQUAL "openssl")
 
 # pthread (using find_library and find_path)
 find_library(PTHREAD_LIBRARIES pthread)

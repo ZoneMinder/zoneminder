@@ -19,6 +19,52 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
+/*
+
+=head1 NAME
+
+zmstreamer - eyeZM video streamer
+
+=head1 SYNOPSIS
+
+ zmstreamer -e <mode>
+ zmstreamer -o <format>
+ zmstreamer -u <buffer size>
+ zmstreamer -f <maximum fps>
+ zmstreamer -s <scale>
+ zmstreamer -b <bitrate in bps>
+ zmstreamer -m <monitor id>
+ zmstreamer -d <debug mode>
+ zmstreamer -i
+ zmstreamer -?
+ zmstreamer -h
+ zmstreamer -v
+
+=head1 DESCRIPTION
+
+*DEPRECIATED* The xml skin and all files associated with the xml skin are now
+depreciated. Please use the ZoneMinder API instead.
+
+This binary works in conjunction with the XML skin to stream video to iPhones
+running the eyeZm app. 
+
+=head1 OPTIONS
+
+ -e <mode>                        - Specify output mode: mpeg/jpg/zip/single/raw.
+ -o <format>                      - Specify output format.
+ -u <buffer size>                 - Specify buffer size in ms.
+ -f <maximum fps>                 - Specify maximum framerate.
+ -s <scale>                       - Specify scale.
+ -b <bitrate in bps>              - Specify bitrate.
+ -m <monitor id>                  - Specify monitor id.
+ -d <debug mode>                  - 0 = off, 1 = no streaming, 2 = with streaming.
+ -i, -?, -h                       - Display usage information
+ -v                               - Print the installed version of ZoneMinder
+
+=cut
+
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 

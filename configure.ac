@@ -1,5 +1,9 @@
+#
+# Building ZoneMinder via Autotools will be depreciated soon
+# For instructions on building with cmake, please see INSTALL
+#
 AC_PREREQ(2.59)
-AC_INIT(zm,1.28.1,[http://www.zoneminder.com/forums/ - Please check FAQ first],zoneminder,http://www.zoneminder.com/downloads.html)
+AC_INIT(zm,1.28.100,[http://www.zoneminder.com/forums/ - Please check FAQ first],zoneminder,http://www.zoneminder.com/downloads.html)
 AC_CONFIG_AUX_DIR([.])
 AM_INIT_AUTOMAKE
 LT_PREREQ([2.4.2])

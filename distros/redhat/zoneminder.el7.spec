@@ -20,7 +20,7 @@ Source: ZoneMinder-%{version}.tar.gz
 
 BuildRequires: cmake gnutls-devel systemd-units bzip2-devel
 BuildRequires: mariadb-devel pcre-devel libjpeg-turbo-devel
-BuildRequires: perl(Archive::Tar) perl(Archive::Zip)
+BuildRequires: perl(Archive::Tar) perl(Archive::Zip) perl-podlators
 BuildRequires: perl(Date::Manip) perl(DBD::mysql)
 BuildRequires: perl(ExtUtils::MakeMaker) perl(LWP::UserAgent)
 BuildRequires: perl(MIME::Entity) perl(MIME::Lite)
@@ -32,7 +32,7 @@ BuildRequires: ffmpeg ffmpeg-devel perl(X10::ActiveHome) perl(Astro::SunTime)
 # cmake needs the following installed at build time due to the way it auto-detects certain parameters
 BuildRequires:  httpd polkit-devel
 
-Requires: httpd php php-mysql mariadb-server polkit net-tools psmisc
+Requires: httpd php php-gd php-mysql mariadb-server polkit net-tools psmisc
 Requires: libjpeg-turbo vlc-core libcurl
 Requires: perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires: perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)

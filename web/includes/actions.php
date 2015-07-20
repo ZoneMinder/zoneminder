@@ -642,7 +642,35 @@ if ( !empty($action) )
     // System edit actions
     if ( canEdit( 'System' ) )
     {
-        if ( $action == "version" && isset($_REQUEST['option']) )
+		if ( $_REQUEST['object'] == 'server' ) {
+
+			if ( $action == "save" ) {
+				if ( !empty($_REQUEST['id']) )
+					$dbServer = dbFetchOne( "SELECT * FROM Servers WHERE Id=?", NULL, array($_REQUEST['id']) );
+				else
+					$dbServer = array();
+
+				$types = array();
+				$changes = getFormChanges( $dbServer, $_REQUEST['newServer'], $types );
+
+				if ( count( $changes ) ) {
+					if ( !empty($_REQUEST['id']) ) {
+						dbQuery( "UPDATE Servers SET ".implode( ", ", $changes )." WHERE Id = ?", array($_REQUEST['id']) );
+					} else {
+						dbQuery( "INSERT INTO Servers set ".implode( ", ", $changes ) );
+					}
+					$refreshParent = true;
+				}
+				$view = 'none';
+			} else if ( $action == 'delete' ) {
+				if ( !empty($_REQUEST['markIds']) ) {
+					foreach( $_REQUEST['markIds'] as $Id )
+						dbQuery( "DELETE FROM Servers WHERE Id=?", array($Id) );
+				}
+                $refreshParent = true;
+			}
+
+        } else if ( $action == "version" && isset($_REQUEST['option']) )
         {
             $option = $_REQUEST['option'];
             switch( $option )

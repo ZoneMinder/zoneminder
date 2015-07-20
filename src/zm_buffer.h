@@ -203,6 +203,7 @@ public:
     {
         return( (int)mSize );
     }
+	int read_into( int sd, unsigned int bytes );
 };
 
 #endif // ZM_BUFFER_H

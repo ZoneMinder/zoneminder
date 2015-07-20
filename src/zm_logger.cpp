@@ -601,8 +601,7 @@ void Logger::logPrint( bool hex, const char * const file, const int line, const 
             if ( mysql_query( &mDbConnection, sql ) )
             {
                 databaseLevel( NOLOG );
-                Fatal( "Can't insert log entry: %s", mysql_error( &mDbConnection ) );
-                exit( mysql_errno( &mDbConnection ) );
+				Error( "Can't insert log entry: %s", mysql_error( &mDbConnection ) );
             }
         }
         if ( level <= mSyslogLevel )

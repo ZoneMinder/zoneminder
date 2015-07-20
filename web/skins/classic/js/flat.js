@@ -58,7 +58,7 @@ var popupSizes = {
     'options':      { 'width': 1000, 'height': 660 },
     'preset':       { 'width': 300, 'height': 120 },
     'settings':     { 'width': 220, 'height': 225 },
-    'state':        { 'width': 370, 'height': 134 },
+    'state':        { 'width': 400, 'height': 170 },
     'stats':        { 'width': 840, 'height': 200 },
     'timeline':     { 'width': 760, 'height': 540 },
     'user':         { 'width': 360, 'height': 420 },

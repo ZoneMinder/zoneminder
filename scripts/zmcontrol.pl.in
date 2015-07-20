@@ -156,7 +156,7 @@ if ( !$server_up )
         while (!connect( CLIENT, $saddr ))
         {
             $attempts++;
-            Fatal( "Can't connect: $!" ) if ($attempts > MAX_CONNECT_DELAY);
+            Fatal( "Can't connect: $! after $attempts attempts to $sock_file" ) if ($attempts > MAX_CONNECT_DELAY);
             sleep(1);
         }
     }

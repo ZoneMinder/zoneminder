@@ -28,7 +28,82 @@ zmtrigger.pl - ZoneMinder External Trigger Script
 =head1 DESCRIPTION
 
 This script is used to trigger and cancel alarms from external connections
-using an arbitrary text based format
+using an arbitrary text based format.
+
+This script offers generic solution to external triggering of alarms. It
+can handle external connections via either internet socket, unix socket or
+file/device interfaces. You can either use it 'as is' if you can interface
+with the existing format, or override connections and channels to customise
+it to your needs.
+
+If enabled by the OPT_TRIGGERS option, Zoneminder service start
+zmtrigger.pl which listens for control messages on TCP port 6802.
+
+=head1 TRIGGER MESSAGE FORMAT
+
+B<id>|B<action>|B<score>|B<cause>|B<text>|B<showtext>
+
+=over 4
+
+=item B<id>
+
+  is the id number or name of the ZM monitor.
+
+=item B<action>
+
+  Valid actions are 'on', 'off', 'cancel' or 'show' where
+  'on' forces an alarm condition on;
+  'off' forces an alarm condition off;
+  'cancel' negates the previous 'on' or 'off'.
+
+  The 'show' action merely updates some auxiliary text which can optionally
+  be displayed in the images captured by the monitor. Ordinarily you would
+  use 'on' and 'cancel', 'off' would tend to be used to suppress motion
+  based events. Additionally 'on' and 'off' can take an additional time
+  offset, e.g. on+20 which automatically 'cancel's the previous action
+  after that number of seconds.
+
+=item B<score>
+
+  is the score given to the alarm, usually to indicate it's
+  importance. For 'on' triggers it should be non-zero, otherwise it should
+  be zero.
+
+=item B<cause>
+
+  is a 32 char max string indicating the reason for, or source of
+  the alarm e.g. 'Relay 1 open'. This is saved in the 'Cause' field of the
+  event. Ignored for 'off' or 'cancel' messages.
+
+=item B<text>
+
+  is a 256 char max additional info field, which is saved in the
+  'Description' field of an event. Ignored for 'off' or 'cancel' messages.
+
+=item B<showtext>
+
+  is up to 32 characters of text that can be displayed in the
+  timestamp that is added to images. The 'show' action is designed to
+  update this text without affecting alarms but the text is updated, if
+  present, for any of the actions. This is designed to allow external input
+  to appear on the images captured, for instance temperature or personnel
+  identity etc.
+
+=back
+
+Note that multiple messages can be sent at once and should be LF or CRLF
+delimited. This script is not necessarily intended to be a solution in
+itself, but is intended to be used as 'glue' to help ZoneMinder interface
+with other systems. It will almost certainly require some customisation
+before you can make any use of it. If all you want to do is generate alarms
+from external sources then using the ZoneMinder::SharedMem perl module is
+likely to be easier.
+
+=head1 EXAMPLES
+
+  3|on+10|1|motion|text|showtext
+
+Triggers "alarm" on camera #3 for 10 seconds with score=1, cause="motion".
 
 =cut
 use strict;
@@ -446,7 +521,7 @@ sub handleMessage
             Debug( "Added timed event '$action_text', expires at $action_time (+$delay secs)\n" );
         }
     }
-    elsif ( $action =~ /^(on|off)(?:\+(\d+))?$/ )
+    elsif ( $action =~ /^(on|off)(?:[ \+](\d+))?$/ )
     {
         next if ( !$monitor->{Enabled} );
 

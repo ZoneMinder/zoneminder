@@ -5,6 +5,7 @@
 cmake_minimum_required (VERSION 2.6)
 project (zoneminder)
 set(zoneminder_VERSION "1.28.100")
+# Engine version is used for external plugin compilation
 set(ZM_ENGINE_VERSION 29)
 # make API version a minor of ZM version
 set(zoneminder_API_VERSION "${zoneminder_VERSION}.1")
@@ -64,12 +65,14 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 # Modules that we need:
 include (GNUInstallDirs)
 include (CheckIncludeFile)
+include (CheckIncludeFileCXX)
 include (CheckIncludeFiles)
 include (CheckFunctionExists)
 include (CheckPrototypeDefinition_fixed)
 include (CheckTypeSize)
 include (CheckStructHasMember)
 include (CheckSendfile)
+include (FindPkgConfig)
 
 # Configuration options
 mark_as_advanced( 
@@ -82,6 +85,7 @@ mark_as_advanced(
     ZM_TARGET_DISTRO 
     ZM_CONFIG_DIR
     ZM_PLUGIN_SUPPORT
+    ZM_PLUGIN_COMPIL
     ZM_PLUGINSLIBDIR
     ZM_PLUGINSPKGLIBDIR
     ZM_PLUGINSCONFDIR
@@ -149,17 +153,20 @@ set(ZM_PERL_SEARCH_PATH "" CACHE PATH
 set(ZM_TARGET_DISTRO "" CACHE STRING 
     "Build ZoneMinder for a specific distribution.  Currently, valid names are: f21, f20, el6, OS13")
 set(ZM_PLUGIN_SUPPORT "OFF" CACHE BOOL
-    "Set to ON to enable plugins support. This is EXPERIMENTAL. default: OFF")
+    "Set to ON to enable plugin support in ZoneMinder. This is EXPERIMENTAL, default: OFF")
+set(ZM_PLUGIN_COMPIL "OFF" CACHE BOOL
+    "Set to ON to enable compilation of internal plugins. This is EXPERIMENTAL, default: OFF")
+
 if(ZM_PLUGIN_SUPPORT)
 	set(ZM_PREFIX ${CMAKE_INSTALL_PREFIX})
 	set(ZM_PLUGINSLIBDIR "\${prefix}/${CMAKE_INSTALL_LIBDIR}" CACHE PATH
-	    "Location of the plugin files, default: ${CMAKE_INSTALL_LIBDIR}")
+	    "Location of the plugin development library, default: ${CMAKE_INSTALL_LIBDIR}")
 	set(ZM_PLUGINSPKGLIBDIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBEXECDIR}/zoneminder/plugins" CACHE PATH
-	    "Location of the plugin files, default: <prefix>/${CMAKE_INSTALL_LIBEXECDIR}/zoneminder/plugins")
+	    "Location of the plugin file, default: <prefix>/${CMAKE_INSTALL_LIBEXECDIR}/zoneminder/plugins")
 	set(ZM_PLUGINSCONFDIR "/${CMAKE_INSTALL_SYSCONFDIR}/plugins.d" CACHE PATH
-	    "Location of the plugin files, default: /${CMAKE_INSTALL_SYSCONFDIR}/plugins.d")
+	    "Location of the plugin configuration files, default: /${CMAKE_INSTALL_SYSCONFDIR}/plugins.d")
 	set(ZM_PLUGINSWEBDIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/zoneminder/plugins" CACHE PATH
-	    "Location of the plugin files, default: <prefix>/${CMAKE_INSTALL_DATADIR}/zoneminder/plugins")
+	    "Location of the plugin web files, default: <prefix>/${CMAKE_INSTALL_DATADIR}/zoneminder/plugins")
 	set(ZM_PROJECTNAME ${CMAKE_PROJECT_NAME})
 	set(ZM_PLUGINSEXT ".so" CACHE STRING
 	    "Plugin extension, default: .so")
@@ -534,6 +541,29 @@ if(NOT ZM_NO_LIBVLC)
 	endif(LIBVLC_LIBRARIES)
 endif(NOT ZM_NO_LIBVLC)
 
+if(ZM_PLUGIN_COMPIL)
+	if(PKG_CONFIG_FOUND)
+		pkg_search_module(opencv opencv>=2.3.1)
+		if(NOT opencv_FOUND)
+			message(FATAL_ERROR "opencv.pc not found")
+		endif(NOT opencv_FOUND)
+	else(PKG_CONFIG_FOUND)
+		message(FATAL_ERROR "pkg-config not found")
+	endif(PKG_CONFIG_FOUND)
+	find_package(OpenCV COMPONENTS core imgproc highgui objdetect REQUIRED)
+	if(OpenCV_FOUND)
+		include_directories(${OpenCV_INCLUDE_DIR})
+	else(OpenCV_FOUND)
+		message(FATAL_ERROR "Cannot build application without OpenCV. Please set OpenCV_INCLUDE_DIR.")
+	endif(OpenCV_FOUND)
+	find_package(Boost COMPONENTS program_options REQUIRED)
+	if(Boost_FOUND)
+		include_directories(${Boost_INCLUDE_DIR})
+	else(Boost_FOUND)
+		message(FATAL_ERROR "Cannot build application without Boost. Please set Boost_INCLUDE_DIR.")
+	endif(Boost_FOUND)
+endif(ZM_PLUGIN_COMPIL)
+
 # *** END OF LIBRARY CHECKS ***
 
 # Check for gnutls or crypto
@@ -621,6 +651,29 @@ if(HAVE_LIBCRYPTO AND HAVE_OPENSSL_MD5_H AND HAVE_MD5_OPENSSL)
 	set(HAVE_GCRYPT_H 0)
 	set(HAVE_GNUTLS_OPENSSL_H 0)
 endif(HAVE_LIBCRYPTO AND HAVE_OPENSSL_MD5_H AND HAVE_MD5_OPENSSL)
+
+if(ZM_PLUGIN_COMPIL)
+	check_include_file_cxx("alpr.h" HAVE_ALPR_H)
+	if(NOT HAVE_ALPR_H)
+		message(FATAL_ERROR "Missing include file alpr.h")
+	endif(NOT HAVE_ALPR_H)
+	check_include_file_cxx("opencv2/core/core.hpp" HAVE_OPENCV2_CORE_CORE_HPP)
+	if(NOT HAVE_OPENCV2_CORE_CORE_HPP)
+		message(FATAL_ERROR "Missing include file opencv2/core/core.hpp")
+	endif(NOT HAVE_OPENCV2_CORE_CORE_HPP)
+	check_include_file_cxx("opencv2/imgproc/imgproc.hpp" HAVE_OPENCV2_IMGPROC_IMGPROC_HPP)
+	if(NOT HAVE_OPENCV2_IMGPROC_IMGPROC_HPP)
+		message(FATAL_ERROR "Missing include file opencv2/imgproc/imgproc.hpp")
+	endif(NOT HAVE_OPENCV2_IMGPROC_IMGPROC_HPP)
+	check_include_file_cxx("boost/algorithm/string.hpp" HAVE_BOOST_ALGORITHM_STRING_HPP)
+	if(NOT HAVE_BOOST_ALGORITHM_STRING_HPP)
+		message(FATAL_ERROR "Missing include file boost/algorithm/string.hpp")
+	endif(NOT HAVE_BOOST_ALGORITHM_STRING_HPP)
+	check_include_file_cxx("boost/program_options.hpp" HAVE_BOOST_PROGRAM_OPTIONS_HPP)
+	if(NOT HAVE_BOOST_PROGRAM_OPTIONS_HPP)
+		message(FATAL_ERROR "Missing include file boost/program_options.hpp")
+	endif(NOT HAVE_BOOST_PROGRAM_OPTIONS_HPP)
+endif(ZM_PLUGIN_COMPIL)
 
 # Check for Perl
 find_package(Perl)
@@ -717,6 +770,11 @@ add_subdirectory(misc)
 if(ZM_ONVIF)
 	add_subdirectory(onvif)
 endif(ZM_ONVIF)
+
+# Enable compilation of internal plugins
+if(ZM_PLUGIN_COMPIL)
+	add_subdirectory(plugins)
+endif(ZM_PLUGIN_COMPIL)
 
 # Process distro subdirectories
 if((ZM_TARGET_DISTRO STREQUAL "f21") OR (ZM_TARGET_DISTRO STREQUAL "f20"))

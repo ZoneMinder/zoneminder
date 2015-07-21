@@ -221,6 +221,7 @@ AC_ARG_WITH(cgidir,
 AC_SUBST(CGI_PREFIX)
 
 ENABLE_PLUGIN_SUPPORT=no
+ENABLE_PLUGIN_COMPIL=no
 AC_ARG_ENABLE([plugin-support],
     [  --enable-plugin-support=<yes|no>  enable or disable plugin support, default disabled],
     [ENABLE_PLUGIN_SUPPORT=$enable_plugin_support],
@@ -236,6 +237,14 @@ if test "$ENABLE_PLUGIN_SUPPORT" == "yes"; then
       If you really want plugin support you must not call configure with
       --enable-shared=no or --disabled-shared])
   fi
+  AC_ARG_ENABLE([plugin-compilation],
+    [ --enable-plugin-compilation=<yes|no> enable or disable plugin compilation, default disabled],
+    [ENABLE_PLUGIN_COMPIL=$enable_plugin_compilation],
+    [AC_MSG_WARN([You can call configure with the --enable-plugin-compilation=<yes|no>
+    or --disable-plugin-compilation option.
+    This tells configure whether to compile provided plugins.
+    e.g. --enable-plugin-compilation=yes or --disable-plugin-compilation])]
+  )
   ZM_PREFIX="${prefix}"
   AC_SUBST(ZM_PREFIX)
   ZM_PLUGINSLIBDIR="${libdir}"
@@ -269,6 +278,7 @@ if test "$ENABLE_PLUGIN_SUPPORT" == "yes"; then
   AC_DEFINE(ZM_PLUGINS_ON,1,"Whether plugin support is switched on and compiled")
 fi
 AM_CONDITIONAL([ZM_PLUGIN_SUPPORT], [test "x$ENABLE_PLUGIN_SUPPORT" = xyes])
+AM_CONDITIONAL([ZM_PLUGIN_COMPIL], [test "x$ENABLE_PLUGIN_COMPIL" = xyes])
 
 WEB_USER=apache
 AC_ARG_WITH(webuser,
@@ -495,6 +505,44 @@ AC_CHECK_LIB([curl],
     [AC_SUBST([CURL_LIBS],["-lcurl"])AC_DEFINE([HAVE_LIBCURL],[1],[Define to 1 if you have the 'curl' library (-lcurl).])]
 )
 
+if test "$ENABLE_PLUGIN_COMPIL" == "yes"; then
+  AC_CHECK_LIB([boost_program_options],
+    [main],
+    [AC_SUBST([BOOST_PROGRAM_OPTION_LIBS],["-lboost_program_options"])AC_DEFINE([HAVE_BOOST_PROGRAM_OPTION],[1],[Define to 1 if you have the 'boost_program_options' library (-lboost_program_options).])],
+    [AC_MSG_ERROR([libboost_program_options is required for plugin compilation])]
+  )
+  AC_CHECK_LIB([opencv_core],
+    [main],
+    [AC_SUBST([OPENCV_CORE_LIBS],["-lopencv_core"])AC_DEFINE([HAVE_LIBOPENCV_CORE],[1],[Define to 1 if you have the 'opencv_core' library (-lopencv_core).])],
+    [AC_MSG_ERROR([libopencv_core is required for plugin compilation])]
+  )
+  AC_CHECK_LIB([opencv_imgproc],
+    [main],
+    [AC_SUBST([OPENCV_IMGPROC_LIBS],["-lopencv_imgproc"])AC_DEFINE([HAVE_LIBOPENCV_IMGPROC],[1],[Define to 1 if you have the 'opencv_imgproc' library (-lopencv_imgproc).])],
+    [AC_MSG_ERROR([libopencv_imgproc is required for plugin compilation])]
+  )
+  AC_CHECK_LIB([opencv_highgui],
+    [main],
+    [AC_SUBST([OPENCV_HIGHGUI_LIBS],["-lopencv_highgui"])AC_DEFINE([HAVE_LIBOPENCV_HIGHGUI],[1],[Define to 1 if you have the 'opencv_highgui' library (-lopencv_highgui).])],
+    [AC_MSG_ERROR([libopencv_highgui is required for plugin compilation])]
+  )
+  AC_CHECK_LIB([opencv_objdetect],
+    [main],
+    [AC_SUBST([OPENCV_OBJDETECT_LIBS],["-lopencv_objdetect"])AC_DEFINE([HAVE_LIBOPENCV_OBJDETECT],[1],[Define to 1 if you have the 'opencv_objdetect' library (-lopencv_objdetect).])],
+    [AC_MSG_ERROR([libopencv_objdetect is required for plugin compilation])]
+  )
+  PKG_CHECK_MODULES([OPENCV],
+    [opencv >= 2.3.1],
+    ,
+    [AC_MSG_ERROR([${OPENCV_PKG_ERRORS}])]
+  )
+  AC_CHECK_LIB([openalpr],
+    [main],
+    [AC_SUBST([OPENALPR_LIBS],["-lopenalpr"])AC_DEFINE([HAVE_LIBOPENALPR],[1],[Define to 1 if you have the 'openalpr' library (-lopenalpr).])],
+    [AC_MSG_ERROR([libopenalpr is required for plugin compilation])]
+  )
+fi
+
 # Checks for header files.
 AC_FUNC_ALLOCA
 AC_HEADER_STDC
@@ -544,6 +592,15 @@ fi
 AC_CHECK_HEADERS(zlib.h,,,)
 AC_CHECK_HEADERS(vlc/vlc.h,,,)
 AC_CHECK_HEADERS(curl/curl.h,,,)
+
+if test "$ENABLE_PLUGIN_COMPIL" == "yes"; then
+  AC_CHECK_HEADERS(alpr.h,,AC_MSG_ERROR(plugins require openalpr headers - check that development package is installed),)
+  AC_CHECK_HEADERS(boost/algorithm/string.hpp,,AC_MSG_ERROR(plugins require boost string headers - check that development package is installed),)
+  AC_CHECK_HEADERS(boost/program_options.hpp,,AC_MSG_ERROR(plugins require boost program_options headers - check that development package is installed),)
+  AC_CHECK_HEADERS(opencv2/core/core.hpp,,AC_MSG_ERROR(plugins require opencv core headers - check that development package is installed),)
+  AC_CHECK_HEADERS(opencv2/imgproc/imgproc.hpp,,AC_MSG_ERROR(plugins require opencv imgproc headers - check that development package is installed),)
+  AC_CHECK_HEADERS(opencv2/highgui/highgui.hpp,,AC_MSG_ERROR(plugins require opencv highgui headers - check that development package is installed),)
+fi
 
 if test "$ZM_SSL_LIB" == "openssl"; then
 AC_CHECK_DECLS(MD5,,AC_MSG_ERROR([zm requires openssl/md5.h - use ZM_SSL_LIB option to select gnutls instead]),[#include <stdlib.h>
@@ -613,7 +670,7 @@ fi
 AC_SUBST(PERL_MM_PARMS)
 AC_SUBST(EXTRA_PERL_LIB)
 
-AC_CONFIG_FILES([Makefile zm.conf zmconfgen.pl db/Makefile db/zm_create.sql misc/Makefile misc/apache.conf misc/libzoneminder.pc misc/logrotate.conf misc/syslog.conf misc/com.zoneminder.systemctl.policy misc/com.zoneminder.systemctl.rules misc/plugins.conf onvif/Makefile onvif/scripts/Makefile scripts/Makefile scripts/zm scripts/zmaudit.pl scripts/zmcontrol.pl scripts/zmdc.pl scripts/zmfilter.pl scripts/zmpkg.pl scripts/zmtrack.pl scripts/zmcamtool.pl scripts/zmsystemctl.pl scripts/zmtrigger.pl scripts/zmupdate.pl scripts/zmvideo.pl scripts/zmwatch.pl scripts/zmx10.pl scripts/zmdbbackup scripts/zmdbrestore scripts/zmeventdump scripts/zmlogrotate.conf scripts/ZoneMinder/lib/ZoneMinder/Base.pm scripts/ZoneMinder/lib/ZoneMinder/Config.pm scripts/ZoneMinder/lib/ZoneMinder/Memory.pm scripts/ZoneMinder/lib/ZoneMinder/ConfigData.pm src/Makefile src/zm_config.h web/Makefile web/ajax/Makefile web/css/Makefile web/graphics/Makefile web/includes/Makefile web/includes/config.php web/js/Makefile web/lang/Makefile web/skins/Makefile web/skins/classic/Makefile web/skins/classic/ajax/Makefile web/skins/classic/css/Makefile web/skins/classic/css/classic/Makefile web/skins/classic/css/classic/views/Makefile web/skins/classic/css/flat/Makefile web/skins/classic/css/flat/views/Makefile web/skins/classic/graphics/Makefile web/skins/classic/includes/Makefile web/skins/classic/js/Makefile web/skins/classic/lang/Makefile web/skins/classic/views/Makefile web/skins/classic/views/js/Makefile web/skins/mobile/Makefile web/skins/mobile/ajax/Makefile web/skins/mobile/css/Makefile web/skins/mobile/graphics/Makefile web/skins/mobile/includes/Makefile web/skins/mobile/lang/Makefile web/skins/mobile/views/Makefile web/skins/mobile/views/css/Makefile web/tools/Makefile web/tools/mootools/Makefile web/views/Makefile web/skins/xml/Makefile web/skins/xml/views/Makefile web/skins/xml/includes/Makefile])
+AC_CONFIG_FILES([Makefile zm.conf zmconfgen.pl db/Makefile db/zm_create.sql misc/Makefile misc/apache.conf misc/libzoneminder.pc misc/logrotate.conf misc/syslog.conf misc/com.zoneminder.systemctl.policy misc/com.zoneminder.systemctl.rules misc/plugins.conf onvif/Makefile onvif/scripts/Makefile plugins/Makefile plugins/libzm_plugin_openalpr/Makefile plugins/libzm_plugin_openalpr/src/Makefile plugins/libzm_plugin_openalpr/data/Makefile scripts/Makefile scripts/zm scripts/zmaudit.pl scripts/zmcontrol.pl scripts/zmdc.pl scripts/zmfilter.pl scripts/zmpkg.pl scripts/zmtrack.pl scripts/zmcamtool.pl scripts/zmsystemctl.pl scripts/zmtrigger.pl scripts/zmupdate.pl scripts/zmvideo.pl scripts/zmwatch.pl scripts/zmx10.pl scripts/zmdbbackup scripts/zmdbrestore scripts/zmeventdump scripts/zmlogrotate.conf scripts/ZoneMinder/lib/ZoneMinder/Base.pm scripts/ZoneMinder/lib/ZoneMinder/Config.pm scripts/ZoneMinder/lib/ZoneMinder/Memory.pm scripts/ZoneMinder/lib/ZoneMinder/ConfigData.pm src/Makefile src/zm_config.h web/Makefile web/ajax/Makefile web/css/Makefile web/graphics/Makefile web/includes/Makefile web/includes/config.php web/js/Makefile web/lang/Makefile web/skins/Makefile web/skins/classic/Makefile web/skins/classic/ajax/Makefile web/skins/classic/css/Makefile web/skins/classic/css/classic/Makefile web/skins/classic/css/classic/views/Makefile web/skins/classic/css/flat/Makefile web/skins/classic/css/flat/views/Makefile web/skins/classic/graphics/Makefile web/skins/classic/includes/Makefile web/skins/classic/js/Makefile web/skins/classic/lang/Makefile web/skins/classic/views/Makefile web/skins/classic/views/js/Makefile web/skins/mobile/Makefile web/skins/mobile/ajax/Makefile web/skins/mobile/css/Makefile web/skins/mobile/graphics/Makefile web/skins/mobile/includes/Makefile web/skins/mobile/lang/Makefile web/skins/mobile/views/Makefile web/skins/mobile/views/css/Makefile web/tools/Makefile web/tools/mootools/Makefile web/views/Makefile web/skins/xml/Makefile web/skins/xml/views/Makefile web/skins/xml/includes/Makefile])
 
 # Create the definitions for compilation and defaults for the database
 AC_CONFIG_COMMANDS([src/zm_config_defines.h],[perl ./zmconfgen.pl])

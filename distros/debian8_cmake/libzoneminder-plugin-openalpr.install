@@ -1,0 +1,4 @@
+usr/lib/zoneminder/plugins/libzm_plugin_openalpr.so
+usr/share/zoneminder/plugins/libzm_plugin_openalpr/config.php
+usr/share/zoneminder/plugins/libzm_plugin_openalpr/lang/*_*.php
+etc/zm/plugins.d/openalpr.conf

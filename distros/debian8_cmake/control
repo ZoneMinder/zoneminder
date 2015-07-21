@@ -129,3 +129,12 @@ Description: XML interface for ZoneMinder
  .
  This package provides a XML interface mainly intended for use with the eyeZm
  iPhone Application, but can be used with any other custom programs as well.
+
+Package: libzoneminder-plugin-openalpr
+Section: libs
+Architecture: any
+Depends: zoneminder-core (= ${binary:Version}), ${shlibs:Depends},
+ ${misc:Depends}
+Description: License Plate Recognition plugin with openalpr library
+ This plugin add support for recognition of license plate number in zoneminder
+ with the use of the OpenALPR library.

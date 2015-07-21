@@ -13,13 +13,18 @@ if COND_ONVIF
    MAYBE_ONVIF = onvif
 endif
 
+if ZM_PLUGIN_COMPIL
+   MAYBE_PLUGINS = plugins
+endif
+
 SUBDIRS = \
 	src \
 	web \
 	scripts \
 	db \
 	misc \
- 	$(MAYBE_ONVIF)
+	$(MAYBE_ONVIF) \
+	$(MAYBE_PLUGINS)
 
 EXTRA_DIST = \
 	zm.conf.in \

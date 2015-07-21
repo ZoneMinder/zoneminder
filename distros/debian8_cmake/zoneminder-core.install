@@ -1,5 +1,5 @@
-etc/zm/zm.conf
 etc/zm/plugins.conf
+etc/zm/zm.conf
 usr/bin
 usr/share/polkit-1/actions
 usr/share/polkit-1/rules.d

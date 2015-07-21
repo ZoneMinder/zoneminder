@@ -3,17 +3,15 @@ libzm-plugin-openalpr
 
 ## Overview
 
-libzm-plugin-openalpr is a plugin for Automatic Licence Plate Recognition (ALPR) in ZoneMinder.
-It is based on openalpr library (https://github.com/openalpr/openalpr).
+libzm-plugin-openalpr is a plugin for Automatic Licence Plate Recognition (ALPR).
 The recognized license plates are added to Zoneminder's event notes.
 
 ## Requirements
 
-libzoneminder-plugin-openalpr requires:
-- A ZoneMinder installation with the plugin framework
-- The OpenALPR library
+libzm-plugin-openalpr is based on the OpenALPR library.
+Currently this library is not packaged in distributions but it can be built and installed following the instructions on github project page (https://github.com/openalpr/openalpr).
 
-### Configuration
+## Configuration
 
 After installation, please make some adjustments in file `/etc/zm/plugins.d/openalpr.conf`.
 Most of default values can be kept, but if you live in Europe, you can set the `country_code` setting to `eu` to improve reading of plates with EU format
@@ -55,7 +53,7 @@ The next options are specifics to this plugin and can be used to adjust the dete
 
 The configuration is saved to the database and applied when clicking on the `Save` button.
 
-### Using
+## Using
 
 When a license plate is detected, this triggers an event with alarmed frame(s).
 Depending on your configuration settings and video content, an event may contain multiple alarmed frames.

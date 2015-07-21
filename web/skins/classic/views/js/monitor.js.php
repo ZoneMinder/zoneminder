@@ -121,6 +121,8 @@ function validateForm( form )
         errors[errors.length] = "<?php echo translate('BadSectionLength') ?>";
     if ( !form.elements['newMonitor[FPSReportInterval]'].value || !(parseInt(form.elements['newMonitor[FPSReportInterval]'].value) >= 0 ) )
         errors[errors.length] = "<?php echo translate('BadFPSReportInterval') ?>";
+    if ( !form.elements['newMonitor[AnalysisInterval]'].value || !(parseInt(form.elements['newMonitor[AnalysisInterval]'].value) >= 1 ) || (parseInt(form.elements['newMonitor[AnalysisInterval]'].value) > parseInt(form.elements['newMonitor[ImageBufferCount]'].value)) )
+        errors[errors.length] = "<?php echo translate('BadAnalysisInterval') ?>";
     if ( !form.elements['newMonitor[FrameSkip]'].value || !(parseInt(form.elements['newMonitor[FrameSkip]'].value) >= 0 ) )
         errors[errors.length] = "<?php echo translate('BadFrameSkip') ?>";
     if ( !form.elements['newMonitor[MotionFrameSkip]'].value || !(parseInt(form.elements['newMonitor[MotionFrameSkip]'].value) >= 0 ) )

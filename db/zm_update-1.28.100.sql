@@ -20,3 +20,21 @@ SET @s = (SELECT IF(
 PREPARE stmt FROM @s;
 EXECUTE stmt;
 
+--
+-- Add AnalysisInterval column to Monitors
+--
+
+SET @s = (SELECT IF(
+    (SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE table_name = 'Monitors'
+    AND table_schema = DATABASE()
+    AND column_name = 'AnalysisInterval'
+    ) > 0,
+"SELECT 'Column AnalysisInterval exists in Monitors'",
+"ALTER TABLE Monitors ADD `AnalysisInterval` smallint(5) unsigned not null default 1 AFTER `FPSReportInterval`"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+

@@ -361,6 +361,7 @@ CREATE TABLE `Monitors` (
   `MaxFPS` decimal(5,2) default NULL,
   `AlarmMaxFPS` decimal(5,2) default NULL,
   `FPSReportInterval` smallint(5) unsigned NOT NULL default '250',
+  `AnalysisInterval` smallint(5) unsigned NOT NULL default '1',
   `RefBlendPerc` tinyint(3) unsigned NOT NULL default '6',
   `AlarmRefBlendPerc` tinyint(3) unsigned NOT NULL default '6',
   `Controllable` tinyint(3) unsigned NOT NULL default '0',

@@ -1177,10 +1177,10 @@ bool Monitor::Analyse()
     struct timeval now;
     gettimeofday( &now, NULL );
 
-    // Compute the current fps
+    // Compute the current analysis fps
     fps = double( 1 / ( now.tv_sec + now.tv_usec / 1000000.0 - last_analysis_time ) );
 
-    // Skip frame if the current fps is above the requested analysis fps
+    // Skip frame if the current analysis fps is above the requested analysis fps
     if ( ( analysis_fps > 0 ) && ( fps > analysis_fps ) )
     {
         shared_data->last_read_index = shared_data->last_write_index;

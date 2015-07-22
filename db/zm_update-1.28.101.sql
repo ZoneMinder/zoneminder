@@ -3,7 +3,7 @@
 --
 
 --
--- Add ServerId column to Monitors
+-- Add AnalysisFPS column to Monitors
 --
 
 SET @s = (SELECT IF(
@@ -11,10 +11,10 @@ SET @s = (SELECT IF(
     FROM INFORMATION_SCHEMA.COLUMNS
     WHERE table_name = 'Monitors'
     AND table_schema = DATABASE()
-    AND column_name = 'ServerId'
+    AND column_name = 'AnalysisFPS'
     ) > 0,
-"SELECT 'Column ServerId exists in Monitors'",
-"ALTER TABLE Monitors ADD `ServerId` int(10) unsigned AFTER `Name`"
+"SELECT 'Column AnalysisFPS exists in Monitors'",
+"ALTER TABLE Monitors ADD `AnalysisFPS` decimal(5,2) default NULL AFTER `MotionFrameSkip`"
 ));
 
 PREPARE stmt FROM @s;

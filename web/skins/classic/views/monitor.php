@@ -100,10 +100,10 @@ if ( ! empty($_REQUEST['mid']) ) {
         'FrameSkip' => 0,
         'MotionFrameSkip' => 0,
         'EventPrefix' => 'Event-',
+        'AnalysisFPS' => "",
         'MaxFPS' => "",
         'AlarmMaxFPS' => "",
         'FPSReportInterval' => 1000,
-        'AnalysisInterval' => 1,
         'RefBlendPerc' => 6,
         'AlarmRefBlendPerc' => 6,
         'DefaultView' => 'Events',
@@ -489,6 +489,7 @@ if ( $tab != 'general' )
         <input type="hidden" name="newMonitor[Enabled]" value="<?php echo validHtmlStr($newMonitor['Enabled']) ?>"/>
         <input type="hidden" name="newMonitor[RefBlendPerc]" value="<?php echo validHtmlStr($newMonitor['RefBlendPerc']) ?>"/>
         <input type="hidden" name="newMonitor[AlarmRefBlendPerc]" value="<?php echo validHtmlStr($newMonitor['AlarmRefBlendPerc']) ?>"/>
+        <input type="hidden" name="newMonitor[AnalysisFPS]" value="<?php echo validHtmlStr($newMonitor['AnalysisFPS']) ?>"/>
         <input type="hidden" name="newMonitor[MaxFPS]" value="<?php echo validHtmlStr($newMonitor['MaxFPS']) ?>"/>
         <input type="hidden" name="newMonitor[AlarmMaxFPS]" value="<?php echo validHtmlStr($newMonitor['AlarmMaxFPS']) ?>"/>
 <?php
@@ -599,7 +600,6 @@ if ( $tab != 'misc' )
     <input type="hidden" name="newMonitor[SectionLength]" value="<?php echo validHtmlStr($newMonitor['SectionLength']) ?>"/>
     <input type="hidden" name="newMonitor[FrameSkip]" value="<?php echo validHtmlStr($newMonitor['FrameSkip']) ?>"/>
     <input type="hidden" name="newMonitor[MotionFrameSkip]" value="<?php echo validHtmlStr($newMonitor['MotionFrameSkip']) ?>"/>
-    <input type="hidden" name="newMonitor[AnalysisInterval]" value="<?php echo validHtmlStr($newMonitor['AnalysisInterval']) ?>"/>
     <input type="hidden" name="newMonitor[FPSReportInterval]" value="<?php echo validHtmlStr($newMonitor['FPSReportInterval']) ?>"/>
     <input type="hidden" name="newMonitor[DefaultView]" value="<?php echo validHtmlStr($newMonitor['DefaultView']) ?>"/>
     <input type="hidden" name="newMonitor[DefaultRate]" value="<?php echo validHtmlStr($newMonitor['DefaultRate']) ?>"/>
@@ -665,6 +665,7 @@ switch ( $tab )
                 </select>
               </td>
             </tr>
+            <tr><td><?php echo translate('AnalysisFPS') ?></td><td><input type="text" name="newMonitor[AnalysisFPS]" value="<?php echo validHtmlStr($newMonitor['AnalysisFPS']) ?>" size="6"/></td></tr>
             <tr><td><?php echo translate('MaximumFPS') ?></td><td><input type="text" name="newMonitor[MaxFPS]" value="<?php echo validHtmlStr($newMonitor['MaxFPS']) ?>" size="6"/></td></tr>
             <tr><td><?php echo translate('AlarmMaximumFPS') ?></td><td><input type="text" name="newMonitor[AlarmMaxFPS]" value="<?php echo validHtmlStr($newMonitor['AlarmMaxFPS']) ?>" size="6"/></td></tr>
 <?php
@@ -870,7 +871,6 @@ switch ( $tab )
             <tr><td><?php echo translate('Sectionlength') ?></td><td><input type="text" name="newMonitor[SectionLength]" value="<?php echo validHtmlStr($newMonitor['SectionLength']) ?>" size="6"/></td></tr>
             <tr><td><?php echo translate('FrameSkip') ?></td><td><input type="text" name="newMonitor[FrameSkip]" value="<?php echo validHtmlStr($newMonitor['FrameSkip']) ?>" size="6"/></td></tr>
             <tr><td><?php echo translate('MotionFrameSkip') ?></td><td><input type="text" name="newMonitor[MotionFrameSkip]" value="<?php echo validHtmlStr($newMonitor['MotionFrameSkip']) ?>" size="6"/></td></tr>
-            <tr><td><?php echo translate('AnalysisInterval') ?></td><td><input type="text" name="newMonitor[AnalysisInterval]" value="<?php echo validHtmlStr($newMonitor['AnalysisInterval']) ?>" size="6"/></td></tr>
             <tr><td><?php echo translate('FPSReportInterval') ?></td><td><input type="text" name="newMonitor[FPSReportInterval]" value="<?php echo validHtmlStr($newMonitor['FPSReportInterval']) ?>" size="6"/></td></tr>
             <tr><td><?php echo translate('DefaultView') ?></td><td><select name="newMonitor[DefaultView]">
 <?php

@@ -349,27 +349,21 @@ bool Event::SendFrameImage( const Image *image, bool alarm_frame )
 
 bool Event::WriteFrameImage( Image *image, struct timeval timestamp, const char *event_file, bool alarm_frame )
 {
-    if ( config.timestamp_on_capture )
+    Image* ImgToWrite;
+    Image ts_image( *image );
+
+    if ( config.timestamp_on_capture )  // stash the image we plan to use in another pointer regardless if timestamped.
     {
-        if ( !config.opt_frame_server || !SendFrameImage( image, alarm_frame) )
-        {
-            if ( alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality) )
-                image->WriteJpeg( event_file, config.jpeg_alarm_file_quality );
-            else
-                image->WriteJpeg( event_file );
-        }
+        monitor->TimestampImage( &ts_image, &timestamp );
+        ImgToWrite=&ts_image;
     }
     else
+        ImgToWrite=image;
+
+    if ( !config.opt_frame_server || !SendFrameImage(ImgToWrite, alarm_frame) )
     {
-        Image ts_image( *image );
-        monitor->TimestampImage( &ts_image, &timestamp );
-        if ( !config.opt_frame_server || !SendFrameImage( &ts_image, alarm_frame) )
-        {
-            if ( alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality) )
-                ts_image.WriteJpeg( event_file, config.jpeg_alarm_file_quality );
-            else
-                ts_image.WriteJpeg( event_file );
-        }
+        int thisquality = ( alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality) ) ? config.jpeg_alarm_file_quality : 0 ;   // quality to use, zero is default
+        ImgToWrite->WriteJpeg( event_file, thisquality, timestamp );
     }
     return( true );
 }
@@ -885,7 +879,7 @@ void EventStream::processCommand( const CmdMsg *msg )
             }
 
 	    // If we are in single event mode and at the last frame, replay the current event
-	    if ( (mode == MODE_SINGLE) && (curr_frame_id == event_data->frame_count) )
+	    if ( (mode == MODE_SINGLE) && ((unsigned int)curr_frame_id == event_data->frame_count) )
 		curr_frame_id = 1;
 
             replay_rate = ZM_RATE_BASE;

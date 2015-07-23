@@ -1,0 +1,232 @@
+#dataBar {
+    width: 100%;
+    margin: 2px auto;
+    text-align: center;
+}
+
+#dataBar #dataTable {
+    width: 100%;
+}
+
+#dataBar #dataTable td {
+    text-align: center;
+    padding: 2px;
+}
+
+#menuBar1 {
+    width: 100%;
+    height: 1.5em;
+    padding: 3px 0;
+    text-align: center;
+    clear: both;
+}
+
+#menuBar1 #nameControl {
+    float: left;
+}
+
+#menuBar1 #nameControl #eventName {
+    margin-right: 4px;
+}
+
+#menuBar1 #replayControl {
+    float: right;
+    margin-left: 8px;
+}
+
+#menuBar1 #scaleControl {
+    float: right;
+    margin-left: 8px;
+}
+
+#menuBar2 {
+    width: 100%;
+    height: 1.2em;
+    padding: 3px 0;
+    margin-bottom: 4px;
+}
+
+#menuBar2 div {
+    text-align: left;
+    float: left;
+    padding: 0 12px;
+}
+
+#menuBar2 #closeWindow {
+    float: right;
+    text-align: right;
+}
+
+#imageFeed {
+    text-align: center;
+}
+
+#monitorStatus {
+    width: 100%;
+    margin-top: 3px;
+    margin-bottom: 2px;
+    text-align: center;
+}
+
+#monitorStatus #enableAlarms {
+    position: absolute;
+    left: 4px;
+}
+
+#monitorStatus #forceAlarm {
+    position: absolute;
+    right: 4px;
+}
+
+#monitorStatus #monitorState {
+}
+
+#dvrControls {
+    margin-top: 3px;
+    margin-bottom: 2px;
+    text-align: center;
+}
+
+#dvrControls input {
+    height: 20px;
+    width: 28px;
+    padding-bottom: 3px;
+    margin: 0 3px;
+}
+
+#dvrControls input[disabled=disabled] {
+    color: #aaaaaa;
+}
+
+#dvrControls input.active {
+    border: 1px solid blue;
+}
+
+#dvrControls input.inactive {
+    border: 1px solid green;
+}
+
+#dvrControls input.unavail {
+    border: 1px solid red;
+}
+
+#replayStatus {
+    margin: 3px 0 2px;
+    text-align: center;
+    clear: both;
+}
+
+#replayStatus > span {
+    padding: 0 4px;
+}
+
+#progressBar {
+    position: relative;
+    border: 1px solid #666666;
+    height: 15px;
+    margin: 0 auto;
+}
+
+#progressBar .progressBox {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    height: 15px;
+    background: #eeeeee;
+    border-left: 1px solid #999999;
+}
+
+#progressBar .complete {
+    background: #aaaaaa;
+}
+
+#eventStills {
+    width: 100%;
+    position: relative;
+}
+
+#eventThumbsPanel {
+    position: relative;
+    width: 100%;
+    margin: 4px auto;
+    z-index: 1;
+}
+
+#eventThumbs {
+    margin: 0 auto;
+    width: 100%;
+    overflow: hidden;
+    height: 300px;
+}
+
+#eventThumbs img {
+    height: 25px; /* HACK - Although this is pixels it will be interpreted as a scale %ge, so 25px = 25% scaling for thumbnails */
+    margin: 2px;
+    background-color: #dddddd;
+}
+
+#eventThumbs img.placeholder {
+    /* width: 100px; */
+}
+
+#eventThumbs img.selected {
+}
+
+#eventImagePanel {
+    position: absolute;
+    z-index: 10;
+}
+
+#eventImageFrame {
+    border: 2px solid gray;
+    background-color: white;
+    padding: 4px;
+}
+
+#eventImage {
+}
+
+#eventImageBar {
+    margin-top: 2px;
+}
+
+#eventImageStats {
+    float: left;
+}
+
+#eventImageData {
+    margin: 0 auto;
+    padding-top: 2px;
+}
+
+#eventImageClose {
+    float: right;
+}
+
+#eventImageNav {
+    position: relative;
+}
+
+#eventImageNav input {
+    width: 32px;
+    font-size: 16px;
+}
+
+#thumbsSliderPanel {
+    width: 400px;
+    margin: 4px auto 0;
+    background: #888888;
+    padding: 1px;
+}
+
+#thumbsSlider {
+    width: 400px;
+    height: 10px;
+    background: #dddddd;
+}
+
+#thumbsKnob {
+    width: 8px;
+    height: 10px;
+    background-color: #444444;
+}

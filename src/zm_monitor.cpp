@@ -816,12 +816,12 @@ void Monitor::UpdateAdaptiveSkip()
         double capturing_fps = GetFPS();
         if ( adaptive_skip && analysis_fps && ( analysis_fps < capturing_fps ) )
         {
-            Info( "Analysis fps (%.2f) is lower than capturing fps (%.2f), disabling adaptive skip", analysis_fps, capturing_fps );
+            Info( "Analysis fps (%.2f) is lower than capturing fps (%.2f), disabling adaptive skip feature", analysis_fps, capturing_fps );
             adaptive_skip = false;
         }
-        else if ( !adaptive_skip && ( analysis_fps >= capturing_fps ) )
+        else if ( !adaptive_skip && ( !analysis_fps || ( analysis_fps >= capturing_fps ) ) )
         {
-            Info( "Enabling adaptive skip" );
+            Info( "Enabling adaptive skip feature" );
             adaptive_skip = true;
         }
     }

@@ -59,12 +59,6 @@ protected:
 protected:
 	static int		sd;
 
-private:
-        int  UpldCount;
-        char UpldPath[PATH_MAX];
-        int UpldWriteEvery;
-        int UpldWriteEveryAlarm;
-
 public:
     typedef std::set<std::string> StringSet;
     typedef std::map<std::string,StringSet> StringSetMap;

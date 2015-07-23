@@ -147,6 +147,8 @@ else
         $newX10Monitor = $x10Monitor;
 }
 
+if ( $newMonitor['AnalysisFPS'] == '0.00' )
+    $newMonitor['AnalysisFPS'] = '';
 if ( $newMonitor['MaxFPS'] == '0.00' )
     $newMonitor['MaxFPS'] = '';
 if ( $newMonitor['AlarmMaxFPS'] == '0.00' )

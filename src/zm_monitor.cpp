@@ -794,9 +794,14 @@ double Monitor::GetFPS() const
 useconds_t Monitor::GetAnalysisRate()
 {
     double capturing_fps = GetFPS();
-    if ( !analysis_fps || ( analysis_fps > capturing_fps ) )
+    if ( !analysis_fps )
     {
         return( 0 );
+    }
+    else if ( analysis_fps > capturing_fps )
+    {
+        Warning( "Analysis fps (%.2f) is greater than capturing fps (%.2f)", analysis_fps, capturing_fps );
+        return( 0  );
     }
     else
     {

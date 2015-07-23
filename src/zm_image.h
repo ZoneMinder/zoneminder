@@ -204,7 +204,12 @@ public:
 	bool WriteRaw( const char *filename ) const;
 
 	bool ReadJpeg( const char *filename, unsigned int p_colours, unsigned int p_subpixelorder);
-	bool WriteJpeg( const char *filename, int quality_override=0 ) const;
+
+	bool WriteJpeg ( const char *filename) const;
+        bool WriteJpeg ( const char *filename, int quality_override ) const;
+        bool WriteJpeg ( const char *filename, struct timeval timestamp ) const;
+        bool WriteJpeg ( const char *filename, int quality_override, struct timeval timestamp ) const;
+
 	bool DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size, unsigned int p_colours, unsigned int p_subpixelorder);
 	bool EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_override=0 ) const;
 

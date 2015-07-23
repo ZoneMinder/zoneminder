@@ -28,14 +28,34 @@
 // This is very much a preliminary version, very lightly tested, mostly on Firefox, but should work on IE and Chrome (at least)
 // It takes very high bandwidth to the server, and a pretty fast client to keep up with the image rate.  To reduce the rate
 // change the playback slider to 0 and then it does not try to play at the same time it is scrubbing.
-
+//
+// Jul 23 2015 update:
+//          - Correct problem propagating selected playback speed
+//          - Change from blank monitor to specific message about no data in times with no recording
+//          - Enlarge and better center fonts on labels for lines.
+//          - Add support for monitor groups in selecting criteria from console
+//          - Fix some no-update conditions when playback was off but scale changed or refreshed.
+//          - Added translate call around buttons so as to facilitate possible translations later
+//          - Removed range from/to labels on very small graphs to keep from overlapping slider
+//          - Changed initial (from other page) position of slider to be in the middle to be more obvious
+//
 if ( !canView( 'Events' ) )
 {
     $view = "error";
     return;
 }
 
-$monitorsSql = "select *  from Monitors ";
+if ( !empty($_REQUEST['group']) )
+{
+    $group = $_REQUEST['group'];
+    $row = dbFetchOne( 'select * from Groups where Id = ?', NULL, array($_REQUEST['group']) );
+    $monitorsSql = "select * from Monitors where Function != 'None' and find_in_set( Id, '".$row['MonitorIds']."' ) ";
+}
+else
+{
+    $monitorsSql = "select *  from Monitors ";
+    $group = "";
+}
 
 // Note that this finds incomplete events as well, and any frame records written, but still cannot "see" to the end frame
 // if the bulk record has not been written - to get more current reduce bulk frame sizes
@@ -123,23 +143,23 @@ input[type=range]::-ms-tooltip {
     </div>
 
     <div style='display: inline-flex; border: 1px solid black;'>
-        <label style='margin:5px;' for=scaleslider>Scale</label>
+        <label style='margin:5px;' for=scaleslider><?php echo translate('Scale') ?></label>
         <input id=scaleslider type=range min=0.10 max=1.00 value=<?php echo $defaultScale ?> step=0.10 width=20% onchange='changescale(this.value)'/>
         <output style='margin:5px;' id=scaleslideroutput from=scaleslider><?php echo $defaultScale?>x</output>
     </div>
     <div style='display: inline-flex; border: 1px solid black;'>
-        <label style='margin:5px;' for=speedslider>Speed</label>
+        <label style='margin:5px;' for=speedslider><?php echo translate('Speed') ?></label>
         <input id=speedslider type=range min=0 max=50 value=<?php echo $defaultSpeed ?> step=1 wdth=20% onchange='changespeed(this.value)'/>
         <output style='margin:5px;' id=speedslideroutput from=speedslider><?php echo $defaultSpeed ?>x</output>
     </div>
     <div style='display: inline-flex; border: 1px solid black; flex-flow: row wrap;'>
-        <button type='button' id=panleft   onclick='panleft() '>&lt;&nbsp;Pan&nbsp;Left</button>
-        <button type='button' id=zoomin    onclick='zoomin()  '>Zoom&nbsp;In&nbsp;+</button>
-        <button type='button' id=zoomout   onclick='zoomout() '>Zoom&nbsp;Out&nbsp;-</button>
-        <button type='button' id=lasthour  onclick='lasthour()'>LastHour</button>
-        <button type='button' id=allof     onclick='allof()   '>All</button>
-        <button type='button' id=allnon    onclick='allnon()  '>All&nbsp;Non-Archive</button>
-        <button type='button' id=panright  onclick='panright()'>Pan&nbsp;Right&nbsp;&gt;</button>
+        <button type='button' id=panleft   onclick='panleft() '>&lt;&nbsp;<?php echo translate('Pan&nbsp;Left') ?></button>
+        <button type='button' id=zoomin    onclick='zoomin()  '><?php echo translate('Zoom&nbsp;In&nbsp;+') ?></button>
+        <button type='button' id=zoomout   onclick='zoomout() '><?php echo translate('Zoom&nbsp;Out&nbsp;-') ?></button>
+        <button type='button' id=lasthour  onclick='lasthour()'><?php echo translate('Last Hour') ?></button>
+        <button type='button' id=allof     onclick='allof()   '><?php echo translate('All') ?></button>
+        <button type='button' id=allnon    onclick='allnon()  '><?php echo translate('All&nbsp;Non-Archive') ?></button>
+        <button type='button' id=panright  onclick='panright()'><?php echo translate('Pan&nbsp;Right&nbsp;&gt;') ?></button>
     </div>
 
     <div id=timelinediv style='position:relative; width:93%;'>
@@ -166,6 +186,7 @@ foreach( dbFetchAll( $monitorsSql ) as $row )
 // This builds the list of events that are eligible from this range
 
 echo "<script>\n";
+echo "var timeLabelsFractOfRow = 0.9;\n";
 echo "var eventMonitorId = [];\n";
 echo "var eventId = [];\n";
 echo "var eventStartTimeSecs = [];\n";
@@ -302,7 +323,7 @@ echo "var rangeTimeSecs="   . ( $maxTimeSecs - $minTimeSecs + 1) . ";\n";
 if(isset($defaultCurrentTime))
     echo "var currentTimeSecs=" . strtotime($defaultCurrentTime) . ";\n";
 else
-    echo "var currentTimeSecs=" . $minTimeSecs . ";\n";
+    echo "var currentTimeSecs=" . ($minTimeSecs + $maxTimeSecs)/2 . ";\n";
 
 ?>
 
@@ -340,19 +361,24 @@ function SetImageSource(monId,val)
             return img;
         }
     }
-    return "graphics/transparent.gif";
+    return "graphics/NoDataImage.gif";
 }
 
 function imagedone(monId,success)
 {
     monitorCanvasCtx[monId].clearRect(0,0,monitorCanvasObj[monId].width,monitorCanvasObj[monId].height);  // just in case image is no good
     if(success)
-        monitorCanvasCtx[monId].drawImage(monitorImageObject[monId],0,0,monitorCanvasObj[monId].width,monitorCanvasObj[monId].height);   // we ignore errors and just clear the image and keep going
+        monitorCanvasCtx[monId].drawImage(monitorImageObject[monId],0,0,monitorCanvasObj[monId].width,monitorCanvasObj[monId].height); 
     monitorImageObject[monId]=null;
     monitorLoading[monId]=false;
-    if(monitorLoadingStageURL[monId]=="") return;
-    loadImage2Monitor(monId,monitorLoadingStageURL[monId]);
-    monitorLoadingStageURL[monId]="";
+    if(!success) // if we had a failrue queue up the no-data image
+        loadImage2Monitor(monId,"graphics/NoDataImage.gif");  // leave the staged URL if there is one, just ignore it here.
+    else
+    {
+        if(monitorLoadingStageURL[monId]=="") return;
+        loadImage2Monitor(monId,monitorLoadingStageURL[monId]);
+        monitorLoadingStageURL[monId]="";
+    }
     return;
 }
 
@@ -382,6 +408,7 @@ function changescale(newscale)
           }
     }
     document.getElementById('scaleslideroutput').value = newscale.toString() + " x";
+    outputUpdate(currentTimeSecs);
     return;
 }
 var playSecsperSec = 1;
@@ -421,7 +448,7 @@ function drawSliderOnGraph(val)
 
     // Set some sizes
 
-    labelpx = Math.max( 6, Math.min( 20, parseInt(cHeight * 0.6 / (numMonitors+1)) ) );
+    labelpx = Math.max( 6, Math.min( 20, parseInt(cHeight * timeLabelsFractOfRow / (numMonitors+1)) ) );
     labbottom=parseInt(cHeight * 0.2 / (numMonitors+1)).toString() + "px";  // This is positioning same as row labels below, but from bottom so 1-position
     labfont=labelpx + "px Georgia";  // set this like below row labels
 
@@ -470,11 +497,11 @@ function drawSliderOnGraph(val)
     o.style.position="absolute";
     o.style.bottom=labbottom;
     o.style.font=labfont;
-    o.style.left="3px";
+    o.style.left="5px";
     if(numMonitors==0)  // we need a len calculation if we skipped the slider
         len = o.offsetWidth;
     // If the slider will overlay part of this suppress (this is the left side)
-    if(len + 5 > sliderX)
+    if(len + 10 > sliderX || cWidth < len * 5 )  // that last check is for very narrow browsers
         o.style.display="none";
     else
         o.style.display="inline";
@@ -485,8 +512,8 @@ function drawSliderOnGraph(val)
     o.style.bottom=labbottom;
     o.style.font=labfont;
     // If the slider will overlay part of this suppress (this is the right side)
-    o.style.left=(cWidth - len - 5).toString() + "px";
-    if(sliderX > cWidth - len - 10)
+    o.style.left=(cWidth - len - 15).toString() + "px";
+    if(sliderX > cWidth - len - 20 || cWidth < len * 5 )
         o.style.display="none";
     else
         o.style.display="inline";
@@ -534,13 +561,14 @@ function drawGraph()
     {
         if(monitorName[i]>"")
         {
-            ctx.font= parseInt(rowHeight * 0.6).toString() + "px Georgia";
+            ctx.font= parseInt(rowHeight * timeLabelsFractOfRow).toString() + "px Georgia";
             ctx.fillStyle="Black";
             ctx.globalAlpha=1;
-            ctx.fillText(monitorName[i], 0, (monitorIndex[i] + 0.8) * rowHeight);
+            ctx.fillText(monitorName[i], 0, (monitorIndex[i] + 1 - (1 - timeLabelsFractOfRow)/2 ) * rowHeight );  // This should roughly center font in row
         }
     }
     underSlider=undefined;   // flag we don't have a slider cached
+    drawSliderOnGraph(currentTimeSecs);
     return;
 }
 
@@ -613,7 +641,8 @@ function clicknav(minSecs,maxSecs,arch)  // we use the current time if we can
         if(currentTimeSecs > minSecs && currentTimeSecs < maxSecs)  // make sure time is in the new range
         currentStr="&current=" + secs2dbstr(currentTimeSecs);
     }
-    var uri = "?view=" + currentView + minStr + maxStr + currentStr + "&scale=" + document.getElementById("scaleslider").value + "&speed=" + document.getElementById("speedslider").value + "&archive=" + arch;
+    var groupStr=<?php if($group=="") echo '""'; else echo "\"&group=$group\""; fi; ?>;
+    var uri = "?view=" + currentView + groupStr + minStr + maxStr + currentStr + "&scale=" + document.getElementById("scaleslider").value + "&speed=" + document.getElementById("speedslider").value + "&archive=" + arch;
     window.location=uri;
 }
 
@@ -677,6 +706,8 @@ function showOneEvent(monId)  // link out to the normal view of one event's data
 
 // Do this on load implicitly
 drawGraph();
+changespeed(<?php echo $defaultSpeed ?>);  // This makes sure we start at the requested rate
+outputUpdate(currentTimeSecs);
 window.addEventListener("resize",drawGraph);
 
 </script>

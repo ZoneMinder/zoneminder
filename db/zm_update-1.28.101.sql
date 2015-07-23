@@ -33,6 +33,7 @@ SET @s = (SELECT IF(
     ) > 0,
 "SELECT 'Column AnalysisUpdateDelay exists in Monitors'",
 "ALTER TABLE Monitors ADD `AnalysisUpdateDelay` smallint(5) unsigned not null default 0 AFTER `AnalysisFPS`"
+));
 
 PREPARE stmt FROM @s;
 EXECUTE stmt;

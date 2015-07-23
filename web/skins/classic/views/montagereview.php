@@ -21,11 +21,10 @@
 
 // Montage Review -- show all (visible) monitors, and allow to review time ranges easily for all monitors.
 //
-// This is similar to the timeline view, but is NOT linked to events directly, and shows all monitors
+// This is similar to the timeline view, but is NOT linked to events directly, and shows all monitors' images.
 // It also will do a pseudo play function (one second or more at a time, not less than 1 second resolution)
 //
 
-// This is very much a preliminary version, very lightly tested, mostly on Firefox, but should work on IE and Chrome (at least)
 // It takes very high bandwidth to the server, and a pretty fast client to keep up with the image rate.  To reduce the rate
 // change the playback slider to 0 and then it does not try to play at the same time it is scrubbing.
 //
@@ -58,7 +57,7 @@ else
 }
 
 // Note that this finds incomplete events as well, and any frame records written, but still cannot "see" to the end frame
-// if the bulk record has not been written - to get more current reduce bulk frame sizes
+// if the bulk record has not been written - to be able to include more current frames reduce bulk frame sizes (event size can be large)
 
 $eventsSql = "
     select E.Id,E.Name,E.StartTime,max(F.TimeStamp) as CalcEndTime,E.Length,max(F.FrameId) as Frames,E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId
@@ -73,7 +72,7 @@ $frameSql = "
     inner join Frames as F on (F.EventId = E.Id)
     where not isnull(StartTime) and F.Score>0 ";
 
-// This program only calls itself with the time range involved -- it does all monitors (the user can see) all the time
+// This program only calls itself with the time range involved -- it does all monitors (the user can see, in the called group) all the time
 
 if ( !empty($user['MonitorIds']) )
 {
@@ -248,7 +247,8 @@ else
     $maxTimeSecs = strtotime($maxTime);
 }
 
-// If we had any alarms in those events, this builds the list of all alarm frames (thought for later - should these be ranges, so as to minimize list if very long?)
+// If we had any alarms in those events, this builds the list of all alarm frames 
+// thought for later in case people have a LOT of alarms - change these to ranges, built as it loads, so as to minimize list length
 
 echo "var frameMonitorId = [];\n";
 echo "var frameTimeStampSecs = [];\n";

@@ -787,22 +787,7 @@ bool Image::ReadJpeg( const char *filename, unsigned int p_colours, unsigned int
 	return( true );
 }
 
-// Multiple calling formats to permit inclusion (or not) of both quality_override and timestamp (exif), with suitable defaults.
-
-bool Image::WriteJpeg( const char *filename, int quality_override) const
-{
-    return Image::WriteJpeg(filename, quality_override, (timeval){0,0});
-}
-bool Image::WriteJpeg( const char *filename) const
-{
-    return Image::WriteJpeg(filename, 0, (timeval){0,0});
-}
-bool Image::WriteJpeg( const char *filename, struct timeval timestamp ) const
-{
-    return Image::WriteJpeg(filename,0,timestamp);
-}
-
-bool Image::WriteJpeg( const char *filename, int quality_override, struct timeval timestamp  ) const
+bool Image::WriteJpeg( const char *filename, int quality_override ) const
 {
 	if ( config.colour_jpeg_files && colours == ZM_COLOUR_GRAY8 )
 	{
@@ -810,6 +795,7 @@ bool Image::WriteJpeg( const char *filename, int quality_override, struct timeva
 		temp_image.Colourise( ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB );
 		return( temp_image.WriteJpeg( filename, quality_override ) );
 	}
+
 	int quality = quality_override?quality_override:config.jpeg_file_quality;
 
 	struct jpeg_compress_struct *cinfo = jpg_ccinfo[quality];
@@ -900,30 +886,6 @@ bool Image::WriteJpeg( const char *filename, int quality_override, struct timeva
 	{
 		jpeg_write_marker( cinfo, JPEG_COM, (const JOCTET *)text, strlen(text) );
 	}
-
-        if(timestamp.tv_sec)
-        {
-            #define EXIFTIMES_MS_OFFSET 0x36   // three decimal digits for milliseconds
-            #define EXIFTIMES_MS_LEN    0x03
-            #define EXIFTIMES_OFFSET    0x3E   // 19 characters format '2015:07:21 13:14:45' not including quotes
-            #define EXIFTIMES_LEN       0x13   // = 19
-            #define EXIF_CODE           0xE1
-
-            char timebuf[64], msbuf[64];
-            strftime(timebuf, sizeof timebuf, "%Y:%m:%d %H:%M:%S", localtime(&(timestamp.tv_sec)));
-            snprintf(msbuf, sizeof msbuf, "%06d",(int)(timestamp.tv_usec));  // we only use milliseconds because that's all defined in exif, but this is the whole microseconds because we have it
-            unsigned char exiftimes[82] = {
-                 0x45, 0x78, 0x69, 0x66, 0x00, 0x00, 0x49, 0x49, 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00, 0x01, 0x00,
-                 0x69, 0x87, 0x04, 0x00, 0x01, 0x00, 0x00, 0x00, 0x1A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                 0x02, 0x00, 0x03, 0x90, 0x02, 0x00, 0x14, 0x00, 0x00, 0x00, 0x38, 0x00, 0x00, 0x00, 0x91, 0x92,
-                 0x02, 0x00, 0x04, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff,
-                 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-                 0xff, 0x00 };
-            memcpy(&exiftimes[EXIFTIMES_OFFSET],   timebuf,EXIFTIMES_LEN);
-            memcpy(&exiftimes[EXIFTIMES_MS_OFFSET],msbuf  ,EXIFTIMES_MS_LEN); // first character after the decimal point
-            jpeg_write_marker (cinfo, EXIF_CODE, (const JOCTET *)exiftimes, sizeof(exiftimes) );
-
-        }
 
 	JSAMPROW row_pointer;	/* pointer to a single row */
 	int row_stride = cinfo->image_width * colours; /* physical row width in buffer */

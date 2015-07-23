@@ -67,14 +67,6 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     if ( !initialised )
         Initialise();
 
-// >>> Real time image extrat settings <<< these need to go in conf options 
-
-    UpldCount=0;
-    strcpy(UpldPath,"/home/ferguson/ToUpload");
-    UpldWriteEvery=600;
-    UpldWriteEveryAlarm=2;
-
-
     std::string notes;
     createNotes( notes );
 
@@ -357,42 +349,28 @@ bool Event::SendFrameImage( const Image *image, bool alarm_frame )
 
 bool Event::WriteFrameImage( Image *image, struct timeval timestamp, const char *event_file, bool alarm_frame )
 {
-    bool toUpld=false;
-    char UpldFile[PATH_MAX];
-    char UpldFileRename[PATH_MAX];
-    if( ( UpldCount++ % (alarm_frame ? UpldWriteEveryAlarm : UpldWriteEvery) ) == 0)  // notice this grabs frame #1 so it gets the first of every event (zero count = frame 1)
+    if ( config.timestamp_on_capture )
     {
-        toUpld=true;
-        char tmbuf[64], buf[64];
-        strftime(tmbuf, sizeof tmbuf, "%Y-%m-%d-%H-%M-%S", localtime(&(timestamp.tv_sec)));
-        snprintf(buf, sizeof buf, "%s-%06d", tmbuf,(int)(timestamp.tv_usec));
-        snprintf(UpldFile,       sizeof(UpldFile),"%s/%s-%06d_%s_%s.jpg_saving",UpldPath, tmbuf,(int)(timestamp.tv_usec),this->monitor->Name(),alarm_frame?"Alarm":"Periodic");
-        snprintf(UpldFileRename, sizeof(UpldFile),"%s/%s-%06d_%s_%s.jpg",       UpldPath, tmbuf,(int)(timestamp.tv_usec),this->monitor->Name(),alarm_frame?"Alarm":"Periodic");
-    }
-
-    Image* ImgToWrite;
-    Image ts_image( *image );
-
-    if ( config.timestamp_on_capture )  // stash the image we plan to use in another pointer regardless if timestamped.
-    {
-        monitor->TimestampImage( &ts_image, &timestamp );
-        ImgToWrite=&ts_image;
-    }
-    else
-        ImgToWrite=image;
-
-    if ( !config.opt_frame_server || !SendFrameImage( ImgToWrite, alarm_frame) )
-    {
-        int thisquality = ( alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality) ) ? config.jpeg_alarm_file_quality : 0 ;   // quality to use
-        ImgToWrite->WriteJpeg( event_file, thisquality, timestamp );
-        if(toUpld)
-        {   // Because these are for real-time use and may be grabbed as they are being written, write under one name then rename
-            ImgToWrite->WriteJpeg(UpldFile, thisquality, timestamp);
-            if(rename(UpldFile, UpldFileRename)!=0)
-                Error ("Failure to rename real time capture file %s to %s, ignored",UpldFile, UpldFileRename);
+        if ( !config.opt_frame_server || !SendFrameImage( image, alarm_frame) )
+        {
+            if ( alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality) )
+                image->WriteJpeg( event_file, config.jpeg_alarm_file_quality );
+            else
+                image->WriteJpeg( event_file );
         }
     }
-
+    else
+    {
+        Image ts_image( *image );
+        monitor->TimestampImage( &ts_image, &timestamp );
+        if ( !config.opt_frame_server || !SendFrameImage( &ts_image, alarm_frame) )
+        {
+            if ( alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality) )
+                ts_image.WriteJpeg( event_file, config.jpeg_alarm_file_quality );
+            else
+                ts_image.WriteJpeg( event_file );
+        }
+    }
     return( true );
 }
 
@@ -907,7 +885,7 @@ void EventStream::processCommand( const CmdMsg *msg )
             }
 
 	    // If we are in single event mode and at the last frame, replay the current event
-	    if ( (mode == MODE_SINGLE) && ((unsigned int)curr_frame_id == event_data->frame_count) )
+	    if ( (mode == MODE_SINGLE) && (curr_frame_id == event_data->frame_count) )
 		curr_frame_id = 1;
 
             replay_rate = ZM_RATE_BASE;

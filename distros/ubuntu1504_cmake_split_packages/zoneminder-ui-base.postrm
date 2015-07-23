@@ -23,7 +23,7 @@ apache_remove() {
 
 if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
     # Deconfigure the web server
-    db_get zoneminder/webserver
+    db_get zoneminder/webserver || true
     for webserver in $RET; do
         webserver=${webserver%,}
         # Currently we only support apache2

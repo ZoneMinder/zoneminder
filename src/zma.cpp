@@ -164,14 +164,16 @@ int main( int argc, char *argv[] )
 			// Process the next image
 			sigprocmask( SIG_BLOCK, &block_set, 0 );
 
-			cur_time = time( 0 );
-
 			// Some periodic updates are required for variable capturing framerate
-			if ( analysis_update_delay && ( ( cur_time - last_analysis_update_time ) > analysis_update_delay ) )
+			if ( analysis_update_delay )
 			{
-				analysis_rate = monitor->GetAnalysisRate();
-				monitor->UpdateAdaptiveSkip();
-				last_analysis_update_time = cur_time;
+				cur_time = time( 0 );
+				if ( ( cur_time - last_analysis_update_time ) > analysis_update_delay )
+				{
+					analysis_rate = monitor->GetAnalysisRate();
+					monitor->UpdateAdaptiveSkip();
+					last_analysis_update_time = cur_time;
+				}
 			}
 
 			if ( !monitor->Analyse() )

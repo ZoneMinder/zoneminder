@@ -282,7 +282,7 @@ Monitor::Monitor(
     int p_frame_skip,
     int p_motion_frame_skip,
     double p_analysis_fps,
-    int p_analysis_update_delay,
+    unsigned int p_analysis_update_delay,
     int p_capture_delay,
     int p_alarm_capture_delay,
     int p_fps_report_interval,
@@ -1755,8 +1755,8 @@ void Monitor::Reload()
         section_length = atoi(dbrow[index++]);
         frame_skip = atoi(dbrow[index++]);
         motion_frame_skip = atoi(dbrow[index++]);
-        analysis_fps = atof(dbrow[index++]);
-        analysis_update_delay = atoi(dbrow[index++]);
+        analysis_fps = dbrow[index] ? strtod(dbrow[index], NULL) : 0; index++;
+        analysis_update_delay = strtoul(dbrow[index++], NULL, 0);
         capture_delay = (dbrow[index]&&atof(dbrow[index])>0.0)?int(DT_PREC_3/atof(dbrow[index])):0; index++;
         alarm_capture_delay = (dbrow[index]&&atof(dbrow[index])>0.0)?int(DT_PREC_3/atof(dbrow[index])):0; index++;
         fps_report_interval = atoi(dbrow[index++]);
@@ -1995,8 +1995,8 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
         int section_length = atoi(dbrow[col]); col++;
         int frame_skip = atoi(dbrow[col]); col++;
         int motion_frame_skip = atoi(dbrow[col]); col++;
-        double analysis_fps = atof(dbrow[col]); col++;
-        int analysis_update_delay = atoi(dbrow[col]); col++;
+        double analysis_fps = dbrow[col] ? strtod(dbrow[col], NULL) : 0; col++;
+        unsigned int analysis_update_delay = strtoul(dbrow[col++], NULL, 0);
         int capture_delay = (dbrow[col]&&atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
         int alarm_capture_delay = (dbrow[col]&&atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
         int fps_report_interval = atoi(dbrow[col]); col++;
@@ -2156,8 +2156,8 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
         int section_length = atoi(dbrow[col]); col++;
         int frame_skip = atoi(dbrow[col]); col++;
         int motion_frame_skip = atoi(dbrow[col]); col++;
-        double analysis_fps = atof(dbrow[col]); col++;
-        int analysis_update_delay = atoi(dbrow[col]); col++;
+        double analysis_fps = dbrow[col] ? strtod(dbrow[col], NULL) : 0; col++;
+        unsigned int analysis_update_delay = strtoul(dbrow[col++], NULL, 0);
         int capture_delay = (dbrow[col]&&atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
         int alarm_capture_delay = (dbrow[col]&&atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
         int fps_report_interval = atoi(dbrow[col]); col++;
@@ -2329,8 +2329,8 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
         int section_length = atoi(dbrow[col]); col++;
         int frame_skip = atoi(dbrow[col]); col++;
         int motion_frame_skip = atoi(dbrow[col]); col++;
-        double analysis_fps = atof(dbrow[col]); col++;
-        int analysis_update_delay = atoi(dbrow[col]); col++;
+        double analysis_fps = dbrow[col] ? strtod(dbrow[col], NULL) : 0; col++;
+        unsigned int analysis_update_delay = strtoul(dbrow[col++], NULL, 0);
         int capture_delay = (dbrow[col]&&atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
         int alarm_capture_delay = (dbrow[col]&&atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
         int fps_report_interval = atoi(dbrow[col]); col++;
@@ -2472,8 +2472,8 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
         int section_length = atoi(dbrow[col]); col++;
         int frame_skip = atoi(dbrow[col]); col++;
         int motion_frame_skip = atoi(dbrow[col]); col++;
-        double analysis_fps = atof(dbrow[col]); col++;
-        int analysis_update_delay = atoi(dbrow[col]); col++;
+        double analysis_fps = dbrow[col] ? strtod(dbrow[col], NULL) : 0; col++;
+        unsigned int analysis_update_delay = strtoul(dbrow[col++], NULL, 0);
         int capture_delay = (dbrow[col]&&atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
         int alarm_capture_delay = (dbrow[col]&&atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
         int fps_report_interval = atoi(dbrow[col]); col++;
@@ -2640,8 +2640,8 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
         int section_length = atoi(dbrow[col]); col++;
         int frame_skip = atoi(dbrow[col]); col++;
         int motion_frame_skip = atoi(dbrow[col]); col++;
-        double analysis_fps = atof(dbrow[col]); col++;
-        int analysis_update_delay = atoi(dbrow[col]); col++;
+        double analysis_fps = dbrow[col] ? strtod(dbrow[col], NULL) : 0; col++;
+        unsigned int analysis_update_delay = strtoul(dbrow[col++], NULL, 0);
         int capture_delay = (dbrow[col]&&atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
         int alarm_capture_delay = (dbrow[col]&&atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
         int fps_report_interval = atoi(dbrow[col]); col++;

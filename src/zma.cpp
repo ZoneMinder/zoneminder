@@ -154,7 +154,7 @@ int main( int argc, char *argv[] )
 		sigemptyset( &block_set );
 
 		useconds_t analysis_rate = monitor->GetAnalysisRate();
-		int analysis_update_delay = monitor->GetAnalysisUpdateDelay();
+		unsigned int analysis_update_delay = monitor->GetAnalysisUpdateDelay();
 		time_t last_analysis_update_time, cur_time;
 		monitor->UpdateAdaptiveSkip();
 		last_analysis_update_time = time( 0 );

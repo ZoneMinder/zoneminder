@@ -121,4 +121,6 @@ class Frame extends AppModel {
 			'order' => ''
 		)
 	);
+
+	public $recursive = -1;
 }

@@ -30,6 +30,7 @@ $tabs = array();
 $tabs['skins'] = translate('Display');
 $tabs['system'] = translate('System');
 $tabs['config'] = translate('Config');
+$tabs['servers'] = translate('Servers');
 $tabs['paths'] = translate('Paths');
 $tabs['web'] = translate('Web');
 $tabs['images'] = translate('Images');
@@ -207,6 +208,34 @@ elseif ( $tab == "users" )
           <input type="button" value="<?php echo translate('AddNewUser') ?>" onclick="createPopup( '?view=user&amp;uid=0', 'zmUser', 'user' );"<?php if ( !canEdit( 'System' ) ) { ?> disabled="disabled"<?php } ?>/><input type="submit" name="deleteBtn" value="<?php echo translate('Delete') ?>" disabled="disabled"/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
         </div>
       </form>
+<?php
+} else if ( $tab == "servers" ) { ?>
+      <form name="serversForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+        <input type="hidden" name="view" value="<?php echo $view ?>"/>
+        <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
+        <input type="hidden" name="action" value="delete"/>
+        <input type="hidden" name="object" value="server"/>
+        <table id="contentTable" class="major serversTable" cellspacing="0">
+          <thead>
+            <tr>
+              <th class="colName"><?php echo translate('name') ?></th>
+              <th class="colMark"><?php echo translate('Mark') ?></th>
+			</tr>
+          </thead>
+          <tbody>
+<?php foreach( dbFetchAll( 'SELECT * FROM Servers' ) as $row ) { ?>
+            <tr>
+              <td class="colName"><?php echo makePopupLink( '?view=server&amp;id='.$row['Id'], 'zmServer', 'server', validHtmlStr($row['Name']).($user['Name']==$row['Name']?"*":""), $canEdit ) ?></td>
+              <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $row['Id'] ?>" onclick="configureDeleteButton( this );"<?php if ( !$canEdit ) { ?> disabled="disabled"<?php } ?>/></td>
+			</tr>
+<?php } #end foreach Server ?>
+          </tbody>
+        </table>
+        <div id="contentButtons">
+          <input type="button" value="<?php echo translate('AddNewServer') ?>" onclick="createPopup( '?view=server&amp;id=0', 'zmServer', 'server' );"<?php if ( !canEdit( 'System' ) ) { ?> disabled="disabled"<?php } ?>/><input type="submit" name="deleteBtn" value="<?php echo translate('Delete') ?>" disabled="disabled"/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
+        </div>
+      </form>
+
 <?php
 } else {
     if ( $tab == "system" ) {

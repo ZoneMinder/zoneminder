@@ -24,7 +24,7 @@ Source: ZoneMinder-%{version}.tar.gz
 
 BuildRequires: cmake gnutls-devel systemd-units bzip2-devel
 BuildRequires: community-mysql-devel pcre-devel libjpeg-turbo-devel
-BuildRequires: perl(Archive::Tar) perl(Archive::Zip)
+BuildRequires: perl(Archive::Tar) perl(Archive::Zip) perl-podlators
 BuildRequires: perl(Date::Manip) perl(DBD::mysql)
 BuildRequires: perl(ExtUtils::MakeMaker) perl(LWP::UserAgent)
 BuildRequires: perl(MIME::Entity) perl(MIME::Lite)
@@ -38,7 +38,7 @@ BuildRequires: gcc gcc-c++ vlc-devel libcurl-devel libv4l-devel
 BuildRequires:  httpd polkit-devel
 %{!?_without_ffmpeg:BuildRequires: ffmpeg}
 
-Requires: httpd php php-mysql cambozola polkit net-tools psmisc
+Requires: httpd php php-gd php-mysql cambozola polkit net-tools psmisc
 Requires: libjpeg-turbo vlc-core libcurl
 Requires: perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires: perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)

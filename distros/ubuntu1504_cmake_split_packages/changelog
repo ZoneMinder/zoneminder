@@ -1,0 +1,95 @@
+zoneminder (1.28.1+1-trusty-SNAPSHOT2015061201) vivid; urgency=medium
+
+  * translation fixes
+  * Merge angular api
+  * now build using cmake
+  * use split up packaging
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Fri, 12 Jun 2015 11:22:36 -0400
+
+zoneminder (1.28.1+1-trusty-SNAPSHOT2015030201) trusty; urgency=medium
+
+  * maybe fix for RTSP Basic Auth
+  * Also remove dependency on netpbm
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Mon, 02 Mar 2015 11:25:59 -0500
+
+zoneminder (1.28.1+1-utopic-SNAPSHOT2015022301) utopic; urgency=medium
+
+  * Big merge of onvif support and some fixes.
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Mon, 23 Feb 2015 19:45:45 -0500
+
+zoneminder (1.28.0+1-trusty-SNAPSHOT2015021201) trusty; urgency=medium
+
+  * add mysql-client-5.6 as a dependency instaed of mysql-client.  
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Fri, 13 Feb 2015 09:35:13 -0500
+
+zoneminder (1.28.0+1-trusty-SNAPSHOT2015011101) trusty; urgency=medium
+
+  * small changes
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Fri, 12 Dec 2014 16:38:36 -0500
+
+zoneminder (1.28.0+1-utopic-SNAPSHOT2014112001) utopic; urgency=medium
+
+  * Various fixes and developments since 1.28.0.  Includes Digest-Auth for HTTP and better for RTSP
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Thu, 20 Nov 2014 10:57:57 -0500
+
+zoneminder (1.28.0-trusty) trusty; urgency=medium
+
+  * Release
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Fri, 17 Oct 2014 09:25:55 -0400
+
+zoneminder (1.27.99+1-trusty-SNAPSHOT2014101401) trusty; urgency=medium
+
+  * Several PR merges in big push for 1.28.0
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Tue, 14 Oct 2014 09:28:29 -0400
+
+zoneminder (1.27.99+1-trusty-SNAPSHOT2014092601) trusty; urgency=medium
+
+  * style updates and db fixes for database logging filters
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Fri, 26 Sep 2014 14:44:45 -0400
+
+zoneminder (1.27.99+1-trusty-SNAPSHOT2014090801) trusty; urgency=medium
+
+  * several segfault fixes for local cameras
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Mon, 08 Sep 2014 16:56:57 -0400
+
+zoneminder (1.27.99+1-trusty-SNAPSHOT2014090701) trusty; urgency=medium
+
+  * Fix segfaults for local cameras, also now includes the systemd support patch
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Sun, 07 Sep 2014 17:19:01 -0400
+
+zoneminder (1.27.99+1-trusty-SNAPSHOT2014082102) trusty; urgency=medium
+
+  * Fix UI inputs for v4l multibuffer and captures per frame
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Thu, 21 Aug 2014 12:03:31 -0400
+
+zoneminder (1.27.99+1-trusty-SNAPSHOT2014082101) trusty; urgency=medium
+
+  * fall back to Config table values for V4l MultiBUffer and Captures Per Frame
+  * add mention of monitor page settings for thse in the config table
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Thu, 21 Aug 2014 10:04:46 -0400
+
+zoneminder (1.27.99+1-precise-SNAPSHOT2014080601) precise; urgency=medium
+
+  * improve error messages
+  * Make zmupdate re-run the most recent patch so that people running the daily builds get their db updates
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Wed, 06 Aug 2014 20:20:20 -0400
+
+zoneminder (1.27.0+1-trusty-v4ltomonitor-1) trusty; urgency=high
+
+  * Snapshot release - 
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Wed, 09 Jul 2014 21:35:29 -0400

@@ -2599,7 +2599,7 @@ void Image::Scale( unsigned int factor )
 	unsigned int new_width = (width*factor)/ZM_SCALE_BASE;
 	unsigned int new_height = (height*factor)/ZM_SCALE_BASE;
 	
-	size_t scale_buffer_size = new_width * new_height * colours;
+	size_t scale_buffer_size = (new_width+1) * (new_height+1) * colours;
 	
 	uint8_t* scale_buffer = AllocBuffer(scale_buffer_size);
 	

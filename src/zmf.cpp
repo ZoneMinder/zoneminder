@@ -17,6 +17,39 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
+/*
+
+=head1 NAME
+
+zmf - The ZoneMinder Frame daemon
+
+=head1 SYNOPSIS
+
+ zmf -m <monitor_id>
+ zmf --monitor <monitor_id>
+ zmf -h
+ zmf --help
+ zmf -v
+ zmf --version
+
+=head1 DESCRIPTION
+
+This is an optional daemon that can run in concert with the Analysis daemon and
+whose function it is to actually write captured frames to disk. This frees up
+the Analysis daemon to do more analysis (!) and so keep up with the Capture
+daemon better. If it isn't running or dies then the Analysis daemon just writes
+them itself. 
+
+=head1 OPTIONS
+
+ -m, --monitor_id                 - ID of the monitor to use
+ -h, --help                       - Display usage information
+ -v, --version                    - Print the installed version of ZoneMinder
+
+=cut
+
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>

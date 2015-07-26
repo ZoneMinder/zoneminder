@@ -14,7 +14,6 @@ add_executable(zma zma.cpp)
 add_executable(zmu zmu.cpp)
 add_executable(zmf zmf.cpp)
 add_executable(zms zms.cpp)
-add_executable(nph-zms zms.cpp)
 add_executable(zmstreamer zmstreamer.cpp)
 
 target_link_libraries(zmc zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
@@ -22,10 +21,14 @@ target_link_libraries(zma zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
 target_link_libraries(zmu zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
 target_link_libraries(zmf zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
 target_link_libraries(zms zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
-target_link_libraries(nph-zms zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
 target_link_libraries(zmstreamer zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
 
-install(TARGETS zmc zma zmu zmf zmstreamer RUNTIME DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-install(TARGETS zms nph-zms RUNTIME DESTINATION "${ZM_CGIDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+# Generate man files for the binaries destined for the bin folder
+FOREACH(CBINARY zma zmc zmf zmu zmstreamer)
+    POD2MAN(${CMAKE_CURRENT_SOURCE_DIR}/${CBINARY}.cpp zoneminder-${CBINARY} 8)
+ENDFOREACH(CBINARY zma zmc zmf zmu zmstreamer)
 
+install(TARGETS zmc zma zmu zmf zmstreamer RUNTIME DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+install(TARGETS zms RUNTIME DESTINATION "${ZM_CGIDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+install(CODE "execute_process(COMMAND ln -sf zms nph-zms WORKING_DIRECTORY \"\$ENV{DESTDIR}${ZM_CGIDIR}\")")
 

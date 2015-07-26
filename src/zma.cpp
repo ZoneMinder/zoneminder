@@ -17,6 +17,38 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
+/*
+
+=head1 NAME
+
+zma - The ZoneMinder Analysis daemon
+
+=head1 SYNOPSIS
+
+ zma -m <monitor_id>
+ zma --monitor <monitor_id>
+ zma -h
+ zma --help
+ zma -v
+ zma --version
+
+=head1 DESCRIPTION
+
+This is the component that goes through the captured frames and checks them
+for motion which might generate an alarm or event. It generally keeps up with
+the Capture daemon but if very busy may skip some frames to prevent it falling
+behind.
+
+=head1 OPTIONS
+
+ -m, --monitor_id                 - ID of the monitor to analyse
+ -h, --help                       - Display usage information
+ -v, --version                    - Print the installed version of ZoneMinder
+
+=cut
+
+*/
+
 #include <getopt.h>
 #include <signal.h>
 
@@ -70,7 +102,7 @@ int main( int argc, char *argv[] )
 				Usage();
 				break;
 			case 'v':
-				cout << ZM_VERSION << "\n";
+				std::cout << ZM_VERSION << "\n";
 				exit(0);
 			default:
 				//fprintf( stderr, "?? getopt returned character code 0%o ??\n", c );

@@ -25,31 +25,38 @@ if ( !canView( 'Monitors' ) )
 }
 
 $tabs = array();
-$tabs["general"] = $SLANG['General'];
-$tabs["source"] = $SLANG['Source'];
-$tabs["storage"] = "Storage";
-$tabs["timestamp"] = $SLANG['Timestamp'];
-$tabs["buffers"] = $SLANG['Buffers'];
+$tabs["general"] = translate('General');
+$tabs["source"] = translate('Source');
+$tabs["storage"] = translate('Storage');
+$tabs["timestamp"] = translate('Timestamp');
+$tabs["buffers"] = translate('Buffers');
 if ( ZM_OPT_CONTROL && canView( 'Control' ) )
-    $tabs["control"] = $SLANG['Control'];
+    $tabs["control"] = translate('Control');
 if ( ZM_OPT_X10 )
-    $tabs["x10"] = $SLANG['X10'];
-$tabs["misc"] = $SLANG['Misc'];
+    $tabs["x10"] = translate('X10');
+$tabs["misc"] = translate('Misc');
 
 if ( isset($_REQUEST['tab']) )
     $tab = validHtmlStr($_REQUEST['tab']);
 else
     $tab = "general";
 
+    if ( defined( 'ZM_SERVER_ID' ) ) {
+        $Server = dbFetchOne( 'SELECT * FROM Servers WHERE Id=?', NULL, array( ZM_SERVER_ID ) );
+    } else {
+        $Server = array();
+    }
+
 if ( ! empty($_REQUEST['mid']) ) {
     $monitor = dbFetchMonitor( $_REQUEST['mid'] );
     if ( ZM_OPT_X10 )
         $x10Monitor = dbFetchOne( 'SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['mid']) );
 } else {
+
     $nextId = getTableAutoInc( 'Monitors' );
     $monitor = array(
         'Id' => 0,
-        'Name' => $SLANG['Monitor'].'-'.$nextId,
+        'Name' => translate('Monitor').'-'.$nextId,
         'Function' => "Monitor",
         'Enabled' => true,
         'LinkedMonitors' => "",
@@ -110,6 +117,7 @@ if ( ! empty($_REQUEST['mid']) ) {
         'Triggers' => "",
 		'V4LMultiBuffer'	=>	'',
 		'V4LCapturesPerFrame'	=>	1,
+		'ServerId'	=>	$Server['Id'],
     );
 }
 
@@ -178,11 +186,11 @@ if ( !empty($_REQUEST['probe']) )
 }
 
 $sourceTypes = array(
-    'Local'  => $SLANG['Local'],
-    'Remote' => $SLANG['Remote'],
-    'File'   => $SLANG['File'],
-    'Ffmpeg' => $SLANG['Ffmpeg'],
-    'Libvlc' => $SLANG['Libvlc'],
+    'Local'  => translate('Local'),
+    'Remote' => translate('Remote'),
+    'File'   => translate('File'),
+    'Ffmpeg' => translate('Ffmpeg'),
+    'Libvlc' => translate('Libvlc'),
     'cURL'   => "cURL (HTTP(S) only)"
 );
 if ( !ZM_HAS_V4L )
@@ -238,7 +246,7 @@ if ( ZM_HAS_V4L1 )
         $v4l1DeviceChannels["$i"] = $i;
 
     $v4l1LocalPalettes = array(
-        $SLANG['Grey']      => 1,
+        translate('Grey')      => 1,
         "BGR32"             => 5,
         "BGR24"             => 4,
         "*YUYV"              => 8,
@@ -292,7 +300,7 @@ if ( ZM_HAS_V4L2 )
         "Auto" => 0, /* Automatic palette selection */
 
         /*      Pixel format         FOURCC                        depth  Description  */
-        $SLANG['Grey'] =>     fourcc('G','R','E','Y'), /*  8  Greyscale     */
+        translate('Grey') =>     fourcc('G','R','E','Y'), /*  8  Greyscale     */
         "BGR32" =>    fourcc('B','G','R','4'), /* 32  BGR-8-8-8-8   */
         "RGB32" =>    fourcc('R','G','B','4'), /* 32  RGB-8-8-8-8   */
         "BGR24" =>    fourcc('B','G','R','3'), /* 24  BGR-8-8-8     */
@@ -358,18 +366,18 @@ if ( ZM_HAS_V4L2 )
 }
 
 $Colours = array(
-    $SLANG['8BitGrey']    => 1,
-    $SLANG['24BitColour'] => 3,
-    $SLANG['32BitColour'] => 4
+    translate('8BitGrey')    => 1,
+    translate('24BitColour') => 3,
+    translate('32BitColour') => 4
 );
 
 $orientations = array(
-    $SLANG['Normal']      => '0',
-    $SLANG['RotateRight'] => '90',
-    $SLANG['Inverted']    => '180',
-    $SLANG['RotateLeft']  => '270',
-    $SLANG['FlippedHori'] => 'hori',
-    $SLANG['FlippedVert'] => 'vert'
+    translate('Normal')      => '0',
+    translate('RotateRight') => '90',
+    translate('Inverted')    => '180',
+    translate('RotateLeft')  => '270',
+    translate('FlippedHori') => 'hori',
+    translate('FlippedVert') => 'vert'
 );
 
 $deinterlaceopts = array(
@@ -433,7 +441,7 @@ $videowriteropts = array(
     "H264 Camera Passthrough"                             => 2          
 );
 
-xhtmlHeaders(__FILE__, $SLANG['Monitor']." - ".validHtmlStr($monitor['Name']) );
+xhtmlHeaders(__FILE__, translate('Monitor')." - ".validHtmlStr($monitor['Name']) );
 ?>
 <body>
   <div id="page">
@@ -443,21 +451,21 @@ if ( canEdit( 'Monitors' ) )
 {
 ?>
       <div id="headerButtons">
-        <a href="#" onclick="createPopup( '?view=monitorprobe&amp;mid=<?php echo $monitor['Id'] ?>', 'zmMonitorProbe<?php echo $monitor['Id'] ?>', 'monitorprobe' ); return( false );"><?php echo $SLANG['Probe'] ?></a>
+        <a href="#" onclick="createPopup( '?view=monitorprobe&amp;mid=<?php echo $monitor['Id'] ?>', 'zmMonitorProbe<?php echo $monitor['Id'] ?>', 'monitorprobe' ); return( false );"><?php echo translate('Probe') ?></a>
 	<?php
 	if ( ZM_HAS_ONVIF )
 	{
 	?>
-	        <a href="#" onclick="createPopup( '?view=onvifprobe&amp;mid=<?php echo $monitor['Id'] ?>', 'zmOnvifProbe<?php echo $monitor['Id'] ?>', 'onvifprobe' ); return( false );"><?php echo  $SLANG['OnvifProbe'] ?></a>
+	        <a href="#" onclick="createPopup( '?view=onvifprobe&amp;mid=<?php echo $monitor['Id'] ?>', 'zmOnvifProbe<?php echo $monitor['Id'] ?>', 'onvifprobe' ); return( false );"><?php echo  translate('OnvifProbe') ?></a>
 	<?php
 	}
 	?>
-        <a href="#" onclick="createPopup( '?view=monitorpreset&amp;mid=<?php echo $monitor['Id'] ?>', 'zmMonitorPreset<?php echo $monitor['Id'] ?>', 'monitorpreset' ); return( false );"><?php echo $SLANG['Presets'] ?></a>
+        <a href="#" onclick="createPopup( '?view=monitorpreset&amp;mid=<?php echo $monitor['Id'] ?>', 'zmMonitorPreset<?php echo $monitor['Id'] ?>', 'monitorpreset' ); return( false );"><?php echo translate('Presets') ?></a>
       </div>
 <?php
 }
 ?>
-      <h2><?php echo $SLANG['Monitor'] ?> - <?php echo validHtmlStr($monitor['Name']) ?><?php if ( !empty($monitor['Id']) ) { ?> (<?php echo $monitor['Id'] ?>)<?php } ?></h2>
+      <h2><?php echo translate('Monitor') ?> - <?php echo validHtmlStr($monitor['Name']) ?><?php if ( !empty($monitor['Id']) ) { ?> (<?php echo $monitor['Id'] ?>)<?php } ?></h2>
     </div>
     <div id="content">
       <ul class="tabList">
@@ -492,6 +500,7 @@ if ( $tab != 'general' )
 {
 ?>
         <input type="hidden" name="newMonitor[Name]" value="<?php echo validHtmlStr($newMonitor['Name']) ?>"/>
+        <input type="hidden" name="newMonitor[ServerId]" value="<?php echo validHtmlStr($newMonitor['ServerId']) ?>"/>
         <input type="hidden" name="newMonitor[Type]" value="<?php echo validHtmlStr($newMonitor['Type']) ?>"/>
         <input type="hidden" name="newMonitor[Function]" value="<?php echo validHtmlStr($newMonitor['Function']) ?>"/>
         <input type="hidden" name="newMonitor[Enabled]" value="<?php echo validHtmlStr($newMonitor['Enabled']) ?>"/>
@@ -637,9 +646,16 @@ switch ( $tab )
     case 'general' :
     {
 ?>
-            <tr><td><?php echo $SLANG['Name'] ?></td><td><input type="text" name="newMonitor[Name]" value="<?php echo validHtmlStr($newMonitor['Name']) ?>" size="16"/></td></tr>
-            <tr><td><?php echo $SLANG['SourceType'] ?></td><td><?php echo buildSelect( "newMonitor[Type]", $sourceTypes ); ?></td></tr>
-            <tr><td><?php echo $SLANG['Function'] ?></td><td><select name="newMonitor[Function]">
+            <tr><td><?php echo translate('Name') ?></td><td><input type="text" name="newMonitor[Name]" value="<?php echo validHtmlStr($newMonitor['Name']) ?>" size="16"/></td></tr>
+            <tr><td><?php echo translate('Server') ?></td><td>
+<?php 
+	$servers = dbFetchAssoc( 'SELECT Id,Name FROM Servers ORDER BY Name', 'Id', 'Name' ); 
+	array_unshift( $servers, 'None' );
+?>
+	<?php echo buildSelect( "newMonitor[ServerId]", $servers ); ?>
+</td></tr>
+            <tr><td><?php echo translate('SourceType') ?></td><td><?php echo buildSelect( "newMonitor[Type]", $sourceTypes ); ?></td></tr>
+            <tr><td><?php echo translate('Function') ?></td><td><select name="newMonitor[Function]">
 <?php
         foreach ( getEnumValues( 'Monitors', 'Function' ) as $optFunction )
         {
@@ -649,9 +665,9 @@ switch ( $tab )
         }
 ?>
             </select></td></tr>
-            <tr><td><?php echo $SLANG['Enabled'] ?></td><td><input type="checkbox" name="newMonitor[Enabled]" value="1"<?php if ( !empty($newMonitor['Enabled']) ) { ?> checked="checked"<?php } ?>/></td></tr>
+            <tr><td><?php echo translate('Enabled') ?></td><td><input type="checkbox" name="newMonitor[Enabled]" value="1"<?php if ( !empty($newMonitor['Enabled']) ) { ?> checked="checked"<?php } ?>/></td></tr>
             <tr>
-              <td><?php echo $SLANG['LinkedMonitors'] ?></td>
+              <td><?php echo translate('LinkedMonitors') ?></td>
               <td>
                 <select name="monitorIds" size="4" multiple="multiple" onchange="updateLinkedMonitors( this )">
 <?php
@@ -673,23 +689,23 @@ switch ( $tab )
                 </select>
               </td>
             </tr>
-            <tr><td><?php echo $SLANG['MaximumFPS'] ?></td><td><input type="text" name="newMonitor[MaxFPS]" value="<?php echo validHtmlStr($newMonitor['MaxFPS']) ?>" size="6"/></td></tr>
-            <tr><td><?php echo $SLANG['AlarmMaximumFPS'] ?></td><td><input type="text" name="newMonitor[AlarmMaxFPS]" value="<?php echo validHtmlStr($newMonitor['AlarmMaxFPS']) ?>" size="6"/></td></tr>
+            <tr><td><?php echo translate('MaximumFPS') ?></td><td><input type="text" name="newMonitor[MaxFPS]" value="<?php echo validHtmlStr($newMonitor['MaxFPS']) ?>" size="6"/></td></tr>
+            <tr><td><?php echo translate('AlarmMaximumFPS') ?></td><td><input type="text" name="newMonitor[AlarmMaxFPS]" value="<?php echo validHtmlStr($newMonitor['AlarmMaxFPS']) ?>" size="6"/></td></tr>
 <?php
 	if ( ZM_FAST_IMAGE_BLENDS )
         {
 ?>
-            <tr><td><?php echo $SLANG['RefImageBlendPct'] ?></td><td><select name="newMonitor[RefBlendPerc]"><?php foreach ( $fastblendopts as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['RefBlendPerc'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
-            <tr><td><?php echo "Alarm " . $SLANG['RefImageBlendPct'] ?></td><td><select name="newMonitor[AlarmRefBlendPerc]"><?php foreach ( $fastblendopts_alarm as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['AlarmRefBlendPerc'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
+            <tr><td><?php echo translate('RefImageBlendPct') ?></td><td><select name="newMonitor[RefBlendPerc]"><?php foreach ( $fastblendopts as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['RefBlendPerc'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
+            <tr><td><?php echo translate('AlmRefImageBlendPct') ?></td><td><select name="newMonitor[AlarmRefBlendPerc]"><?php foreach ( $fastblendopts_alarm as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['AlarmRefBlendPerc'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
 <?php
 	} else {
 ?>
-            <tr><td><?php echo $SLANG['RefImageBlendPct'] ?></td><td><input type="text" name="newMonitor[RefBlendPerc]" value="<?php echo validHtmlStr($newMonitor['RefBlendPerc']) ?>" size="4"/></td></tr>
-            <tr><td><?php echo "Alarm " . $SLANG['RefImageBlendPct'] ?></td><td><input type="text" name="newMonitor[AlarmRefBlendPerc]" value="<?php echo validHtmlStr($newMonitor['AlarmRefBlendPerc']) ?>" size="4"/></td></tr>
+            <tr><td><?php echo translate('RefImageBlendPct') ?></td><td><input type="text" name="newMonitor[RefBlendPerc]" value="<?php echo validHtmlStr($newMonitor['RefBlendPerc']) ?>" size="4"/></td></tr>
+            <tr><td><?php echo translate('AlarmRefImageBlendPct') ?></td><td><input type="text" name="newMonitor[AlarmRefBlendPerc]" value="<?php echo validHtmlStr($newMonitor['AlarmRefBlendPerc']) ?>" size="4"/></td></tr>
 <?php
         }
 ?>
-            <tr><td><?php echo $SLANG['Triggers'] ?></td><td>
+            <tr><td><?php echo translate('Triggers') ?></td><td>
 <?php
         $optTriggers = getSetValues( 'Monitors', 'Triggers' );
         $breakCount = (int)(ceil(count($optTriggers)));
@@ -709,7 +725,7 @@ switch ( $tab )
         if ( !$optCount )
         {
 ?>
-              <em><?php echo $SLANG['NoneAvailable'] ?></em>
+              <em><?php echo translate('NoneAvailable') ?></em>
 <?php
         }
 ?>
@@ -722,27 +738,27 @@ switch ( $tab )
         if ( ZM_HAS_V4L && $newMonitor['Type'] == "Local" )
         {
 ?>
-            <tr><td><?php echo $SLANG['DevicePath'] ?></td><td><input type="text" name="newMonitor[Device]" value="<?php echo validHtmlStr($newMonitor['Device']) ?>" size="24"/></td></tr>
-            <tr><td><?php echo $SLANG['CaptureMethod'] ?></td><td><?php echo buildSelect( "newMonitor[Method]", $localMethods, "submitTab( '$tab' )" ); ?></td></tr>
+            <tr><td><?php echo translate('DevicePath') ?></td><td><input type="text" name="newMonitor[Device]" value="<?php echo validHtmlStr($newMonitor['Device']) ?>" size="24"/></td></tr>
+            <tr><td><?php echo translate('CaptureMethod') ?></td><td><?php echo buildSelect( "newMonitor[Method]", $localMethods, "submitTab( '$tab' )" ); ?></td></tr>
 <?php
             if ( ZM_HAS_V4L1 && $newMonitor['Method'] == 'v4l1' )
             {
 ?>
-            <tr><td><?php echo $SLANG['DeviceChannel'] ?></td><td><select name="newMonitor[Channel]"><?php foreach ( $v4l1DeviceChannels as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['Channel'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
-            <tr><td><?php echo $SLANG['DeviceFormat'] ?></td><td><select name="newMonitor[Format]"><?php foreach ( $v4l1DeviceFormats as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['Format'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
-            <tr><td><?php echo $SLANG['CapturePalette'] ?></td><td><select name="newMonitor[Palette]"><?php foreach ( $v4l1LocalPalettes as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['Palette'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
+            <tr><td><?php echo translate('DeviceChannel') ?></td><td><select name="newMonitor[Channel]"><?php foreach ( $v4l1DeviceChannels as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['Channel'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
+            <tr><td><?php echo translate('DeviceFormat') ?></td><td><select name="newMonitor[Format]"><?php foreach ( $v4l1DeviceFormats as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['Format'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
+            <tr><td><?php echo translate('CapturePalette') ?></td><td><select name="newMonitor[Palette]"><?php foreach ( $v4l1LocalPalettes as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['Palette'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
 <?php
             }
             else
             {
 ?>
-            <tr><td><?php echo $SLANG['DeviceChannel'] ?></td><td><select name="newMonitor[Channel]"><?php foreach ( $v4l2DeviceChannels as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['Channel'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
-            <tr><td><?php echo $SLANG['DeviceFormat'] ?></td><td><select name="newMonitor[Format]"><?php foreach ( $v4l2DeviceFormats as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['Format'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
-            <tr><td><?php echo $SLANG['CapturePalette'] ?></td><td><select name="newMonitor[Palette]"><?php foreach ( $v4l2LocalPalettes as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['Palette'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
+            <tr><td><?php echo translate('DeviceChannel') ?></td><td><select name="newMonitor[Channel]"><?php foreach ( $v4l2DeviceChannels as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['Channel'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
+            <tr><td><?php echo translate('DeviceFormat') ?></td><td><select name="newMonitor[Format]"><?php foreach ( $v4l2DeviceFormats as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['Format'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
+            <tr><td><?php echo translate('CapturePalette') ?></td><td><select name="newMonitor[Palette]"><?php foreach ( $v4l2LocalPalettes as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['Palette'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
 <?php
             }
 ?>
-			<tr><td><?php echo $SLANG['V4LMultiBuffer'] ?></td><td>
+			<tr><td><?php echo translate('V4LMultiBuffer') ?></td><td>
 				<input type="radio" name="newMonitor[V4LMultiBuffer]" id="newMonitor[V4LMultiBuffer]1" value="1" <?php echo ( $newMonitor['V4LMultiBuffer'] == 1 ? 'checked="checked"' : '' ) ?>/>
 				<label for="newMonitor[V4LMultiBuffer]1">Yes</label>
 				<input type="radio" name="newMonitor[V4LMultiBuffer]" id="newMonitor[V4LMultiBuffer]0" value="0" <?php echo ( $newMonitor['V4LMultiBuffer'] == 0 ? 'checked="checked"' : '' ) ?>/>
@@ -750,36 +766,36 @@ switch ( $tab )
 				<input type="radio" name="newMonitor[V4LMultiBuffer]" id="newMonitor[V4LMultiBuffer]" value="" <?php echo ( empty($newMonitor['V4LMultiBuffer']) ? 'checked="checked"' : '' ) ?>/>
 				<label for="newMonitor[V4LMultiBuffer]">Use Config Value</label>
 			</td></tr>
-			<tr><td><?php echo $SLANG['V4LCapturesPerFrame'] ?></td><td><input type="number" name="newMonitor[V4LCapturesPerFrame]" value="<?php echo $newMonitor['V4LCapturesPerFrame'] ?>"/></td></tr>
+			<tr><td><?php echo translate('V4LCapturesPerFrame') ?></td><td><input type="number" name="newMonitor[V4LCapturesPerFrame]" value="<?php echo $newMonitor['V4LCapturesPerFrame'] ?>"/></td></tr>
 <?php
         }
         elseif ( $newMonitor['Type'] == "Remote" )
         {
 ?>
-            <tr><td><?php echo $SLANG['RemoteProtocol'] ?></td><td><?php echo buildSelect( "newMonitor[Protocol]", $remoteProtocols, "updateMethods( this )" ); ?></td></tr>
+            <tr><td><?php echo translate('RemoteProtocol') ?></td><td><?php echo buildSelect( "newMonitor[Protocol]", $remoteProtocols, "updateMethods( this )" ); ?></td></tr>
 <?php
             if ( empty($newMonitor['Protocol']) || $newMonitor['Protocol'] == "http" )
             {
 ?>
-            <tr><td><?php echo $SLANG['RemoteMethod'] ?></td><td><?php echo buildSelect( "newMonitor[Method]", $httpMethods ); ?></td></tr>
+            <tr><td><?php echo translate('RemoteMethod') ?></td><td><?php echo buildSelect( "newMonitor[Method]", $httpMethods ); ?></td></tr>
 <?php
             }
             else
             {
 ?>
-            <tr><td><?php echo $SLANG['RemoteMethod'] ?></td><td><?php echo buildSelect( "newMonitor[Method]", $rtspMethods ); ?></td></tr>
+            <tr><td><?php echo translate('RemoteMethod') ?></td><td><?php echo buildSelect( "newMonitor[Method]", $rtspMethods ); ?></td></tr>
 <?php
             }
 ?>
-            <tr><td><?php echo $SLANG['RemoteHostName'] ?></td><td><input type="text" name="newMonitor[Host]" value="<?php echo validHtmlStr($newMonitor['Host']) ?>" size="36"/></td></tr>
-            <tr><td><?php echo $SLANG['RemoteHostPort'] ?></td><td><input type="text" name="newMonitor[Port]" value="<?php echo validHtmlStr($newMonitor['Port']) ?>" size="6"/></td></tr>
-            <tr><td><?php echo $SLANG['RemoteHostPath'] ?></td><td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($newMonitor['Path']) ?>" size="36"/></td></tr>
+            <tr><td><?php echo translate('RemoteHostName') ?></td><td><input type="text" name="newMonitor[Host]" value="<?php echo validHtmlStr($newMonitor['Host']) ?>" size="36"/></td></tr>
+            <tr><td><?php echo translate('RemoteHostPort') ?></td><td><input type="text" name="newMonitor[Port]" value="<?php echo validHtmlStr($newMonitor['Port']) ?>" size="6"/></td></tr>
+            <tr><td><?php echo translate('RemoteHostPath') ?></td><td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($newMonitor['Path']) ?>" size="36"/></td></tr>
 <?php
         }
         elseif ( $newMonitor['Type'] == "File" )
         {
 ?>
-            <tr><td><?php echo $SLANG['SourcePath'] ?></td><td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($newMonitor['Path']) ?>" size="36"/></td></tr>
+            <tr><td><?php echo translate('SourcePath') ?></td><td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($newMonitor['Path']) ?>" size="36"/></td></tr>
 <?php
         }
         elseif ( $newMonitor['Type'] == "cURL" )
@@ -793,26 +809,26 @@ switch ( $tab )
         elseif ( $newMonitor['Type'] == "Ffmpeg" || $newMonitor['Type'] == "Libvlc")
         {
 ?>
-			<tr><td><?php echo $SLANG['SourcePath'] ?></td><td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($newMonitor['Path']) ?>" size="36"/></td></tr>
-            <tr><td><?php echo $SLANG['RemoteMethod'] ?></td><td><?php echo buildSelect( "newMonitor[Method]", $rtspMethods ); ?></td></tr>
-			<tr><td><?php echo $SLANG['Options'] ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option=OPTIONS_'.strtoupper($newMonitor['Type']), 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td><td><input type="text" name="newMonitor[Options]" value="<?php echo validHtmlStr($newMonitor['Options']) ?>" size="36"/></td></tr>
+			<tr><td><?php echo translate('SourcePath') ?></td><td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($newMonitor['Path']) ?>" size="36"/></td></tr>
+            <tr><td><?php echo translate('RemoteMethod') ?></td><td><?php echo buildSelect( "newMonitor[Method]", $rtspMethods ); ?></td></tr>
+			<tr><td><?php echo translate('Options') ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option=OPTIONS_'.strtoupper($newMonitor['Type']), 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td><td><input type="text" name="newMonitor[Options]" value="<?php echo validHtmlStr($newMonitor['Options']) ?>" size="36"/></td></tr>
 <?php
         }
 ?>
-            <tr><td><?php echo "Target Colorspace" ?></td><td><select name="newMonitor[Colours]"><?php foreach ( $Colours as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['Colours'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
-            <tr><td><?php echo $SLANG['CaptureWidth'] ?> (<?php echo $SLANG['Pixels'] ?>)</td><td><input type="text" name="newMonitor[Width]" value="<?php echo validHtmlStr($newMonitor['Width']) ?>" size="4" onkeyup="updateMonitorDimensions(this);"/></td></tr>
-            <tr><td><?php echo $SLANG['CaptureHeight'] ?> (<?php echo $SLANG['Pixels'] ?>)</td><td><input type="text" name="newMonitor[Height]" value="<?php echo validHtmlStr($newMonitor['Height']) ?>" size="4" onkeyup="updateMonitorDimensions(this);"/></td></tr>
-            <tr><td><?php echo $SLANG['PreserveAspect'] ?></td><td><input type="checkbox" name="preserveAspectRatio" value="1"/></td></tr> 
-            <tr><td><?php echo $SLANG['Orientation'] ?></td><td><select name="newMonitor[Orientation]"><?php foreach ( $orientations as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['Orientation'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
+            <tr><td><?php echo translate('TargetColorspace') ?></td><td><select name="newMonitor[Colours]"><?php foreach ( $Colours as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['Colours'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
+            <tr><td><?php echo translate('CaptureWidth') ?> (<?php echo translate('Pixels') ?>)</td><td><input type="text" name="newMonitor[Width]" value="<?php echo validHtmlStr($newMonitor['Width']) ?>" size="4" onkeyup="updateMonitorDimensions(this);"/></td></tr>
+            <tr><td><?php echo translate('CaptureHeight') ?> (<?php echo translate('Pixels') ?>)</td><td><input type="text" name="newMonitor[Height]" value="<?php echo validHtmlStr($newMonitor['Height']) ?>" size="4" onkeyup="updateMonitorDimensions(this);"/></td></tr>
+            <tr><td><?php echo translate('PreserveAspect') ?></td><td><input type="checkbox" name="preserveAspectRatio" value="1"/></td></tr> 
+            <tr><td><?php echo translate('Orientation') ?></td><td><select name="newMonitor[Orientation]"><?php foreach ( $orientations as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['Orientation'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
 <?php
         if ( $newMonitor['Type'] == "Local" )
         {
 ?>
-            <tr><td><?php echo "Deinterlacing" ?></td><td><select name="newMonitor[Deinterlacing]"><?php foreach ( $deinterlaceopts_v4l2 as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['Deinterlacing'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
+            <tr><td><?php echo translate('Deinterlacing') ?></td><td><select name="newMonitor[Deinterlacing]"><?php foreach ( $deinterlaceopts_v4l2 as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['Deinterlacing'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
 <?php
         } else {
 ?>
-            <tr><td><?php echo "Deinterlacing" ?></td><td><select name="newMonitor[Deinterlacing]"><?php foreach ( $deinterlaceopts as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['Deinterlacing'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
+            <tr><td><?php echo translate('Deinterlacing') ?></td><td><select name="newMonitor[Deinterlacing]"><?php foreach ( $deinterlaceopts as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['Deinterlacing'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
 <?php
         }
 ?>
@@ -821,72 +837,72 @@ switch ( $tab )
     }
     case 'storage'   :
 ?>
-            <tr><td>Save as JPEGs</td><td><select name="newMonitor[SaveJPEGs]"><?php foreach ( $savejpegopts as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['SaveJPEGs'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
-            <tr><td>Video writer</td><td><select name="newMonitor[VideoWriter]"><?php foreach ( $videowriteropts as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['VideoWriter'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
-            <tr><td>Optional encoder parameters</td><td><textarea name="newMonitor[EncoderParameters]" rows="4" cols="36"><?php echo validHtmlStr($newMonitor['EncoderParameters']) ?></textarea></td></tr>
+            <tr><td>translate('SaveJPEGs')</td><td><select name="newMonitor[SaveJPEGs]"><?php foreach ( $savejpegopts as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['SaveJPEGs'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
+            <tr><td>translate('VideoWriter')</td><td><select name="newMonitor[VideoWriter]"><?php foreach ( $videowriteropts as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['VideoWriter'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
+            <tr><td>translate('OptionalEncoderParam')</td><td><textarea name="newMonitor[EncoderParameters]" rows="4" cols="36"><?php echo validHtmlStr($newMonitor['EncoderParameters']) ?></textarea></td></tr>
 <?php
         break;
     case 'timestamp' :
     {
 ?>
-            <tr><td><?php echo $SLANG['TimestampLabelFormat'] ?></td><td><input type="text" name="newMonitor[LabelFormat]" value="<?php echo validHtmlStr($newMonitor['LabelFormat']) ?>" size="32"/></td></tr>
-            <tr><td><?php echo $SLANG['TimestampLabelX'] ?></td><td><input type="text" name="newMonitor[LabelX]" value="<?php echo validHtmlStr($newMonitor['LabelX']) ?>" size="4"/></td></tr>
-            <tr><td><?php echo $SLANG['TimestampLabelY'] ?></td><td><input type="text" name="newMonitor[LabelY]" value="<?php echo validHtmlStr($newMonitor['LabelY']) ?>" size="4"/></td></tr>
+            <tr><td><?php echo translate('TimestampLabelFormat') ?></td><td><input type="text" name="newMonitor[LabelFormat]" value="<?php echo validHtmlStr($newMonitor['LabelFormat']) ?>" size="32"/></td></tr>
+            <tr><td><?php echo translate('TimestampLabelX') ?></td><td><input type="text" name="newMonitor[LabelX]" value="<?php echo validHtmlStr($newMonitor['LabelX']) ?>" size="4"/></td></tr>
+            <tr><td><?php echo translate('TimestampLabelY') ?></td><td><input type="text" name="newMonitor[LabelY]" value="<?php echo validHtmlStr($newMonitor['LabelY']) ?>" size="4"/></td></tr>
 <?php
         break;
     }
     case 'buffers' :
     {
 ?>
-            <tr><td><?php echo $SLANG['ImageBufferSize'] ?></td><td><input type="text" name="newMonitor[ImageBufferCount]" value="<?php echo validHtmlStr($newMonitor['ImageBufferCount']) ?>" size="6"/></td></tr>
-            <tr><td><?php echo $SLANG['WarmupFrames'] ?></td><td><input type="text" name="newMonitor[WarmupCount]" value="<?php echo validHtmlStr($newMonitor['WarmupCount']) ?>" size="4"/></td></tr>
-            <tr><td><?php echo $SLANG['PreEventImageBuffer'] ?></td><td><input type="text" name="newMonitor[PreEventCount]" value="<?php echo validHtmlStr($newMonitor['PreEventCount']) ?>" size="4"/></td></tr>
-            <tr><td><?php echo $SLANG['PostEventImageBuffer'] ?></td><td><input type="text" name="newMonitor[PostEventCount]" value="<?php echo validHtmlStr($newMonitor['PostEventCount']) ?>" size="4"/></td></tr>
-            <tr><td><?php echo $SLANG['StreamReplayBuffer'] ?></td><td><input type="text" name="newMonitor[StreamReplayBuffer]" value="<?php echo validHtmlStr($newMonitor['StreamReplayBuffer']) ?>" size="6"/></td></tr>
-<tr><td><?php echo $SLANG['AlarmFrameCount'] ?></td><td><input type="text" name="newMonitor[AlarmFrameCount]" value="<?php echo validHtmlStr($newMonitor['AlarmFrameCount']) ?>" size="4"/></td></tr>
+            <tr><td><?php echo translate('ImageBufferSize') ?></td><td><input type="text" name="newMonitor[ImageBufferCount]" value="<?php echo validHtmlStr($newMonitor['ImageBufferCount']) ?>" size="6"/></td></tr>
+            <tr><td><?php echo translate('WarmupFrames') ?></td><td><input type="text" name="newMonitor[WarmupCount]" value="<?php echo validHtmlStr($newMonitor['WarmupCount']) ?>" size="4"/></td></tr>
+            <tr><td><?php echo translate('PreEventImageBuffer') ?></td><td><input type="text" name="newMonitor[PreEventCount]" value="<?php echo validHtmlStr($newMonitor['PreEventCount']) ?>" size="4"/></td></tr>
+            <tr><td><?php echo translate('PostEventImageBuffer') ?></td><td><input type="text" name="newMonitor[PostEventCount]" value="<?php echo validHtmlStr($newMonitor['PostEventCount']) ?>" size="4"/></td></tr>
+            <tr><td><?php echo translate('StreamReplayBuffer') ?></td><td><input type="text" name="newMonitor[StreamReplayBuffer]" value="<?php echo validHtmlStr($newMonitor['StreamReplayBuffer']) ?>" size="6"/></td></tr>
+<tr><td><?php echo translate('AlarmFrameCount') ?></td><td><input type="text" name="newMonitor[AlarmFrameCount]" value="<?php echo validHtmlStr($newMonitor['AlarmFrameCount']) ?>" size="4"/></td></tr>
 <?php
         break;
     }
     case 'control' :
     {
 ?>
-            <tr><td><?php echo $SLANG['Controllable'] ?></td><td><input type="checkbox" name="newMonitor[Controllable]" value="1"<?php if ( !empty($newMonitor['Controllable']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><td><?php echo $SLANG['ControlType'] ?></td><td><?php echo buildSelect( "newMonitor[ControlId]", $controlTypes, 'loadLocations( this )' ); ?><?php if ( canEdit( 'Control' ) ) { ?>&nbsp;<a href="#" onclick="createPopup( '?view=controlcaps', 'zmControlCaps', 'controlcaps' );"><?php echo $SLANG['Edit'] ?></a><?php } ?></td></tr>
-            <tr><td><?php echo $SLANG['ControlDevice'] ?></td><td><input type="text" name="newMonitor[ControlDevice]" value="<?php echo validHtmlStr($newMonitor['ControlDevice']) ?>" size="32"/></td></tr>
-            <tr><td><?php echo $SLANG['ControlAddress'] ?></td><td><input type="text" name="newMonitor[ControlAddress]" value="<?php echo validHtmlStr($newMonitor['ControlAddress']) ?>" size="32"/></td></tr>
-            <tr><td><?php echo $SLANG['AutoStopTimeout'] ?></td><td><input type="text" name="newMonitor[AutoStopTimeout]" value="<?php echo validHtmlStr($newMonitor['AutoStopTimeout']) ?>" size="4"/></td></tr>
-            <tr><td><?php echo $SLANG['TrackMotion'] ?></td><td><input type="checkbox" name="newMonitor[TrackMotion]" value="1"<?php if ( !empty($newMonitor['TrackMotion']) ) { ?> checked="checked"<?php } ?>/></td></tr>
+            <tr><td><?php echo translate('Controllable') ?></td><td><input type="checkbox" name="newMonitor[Controllable]" value="1"<?php if ( !empty($newMonitor['Controllable']) ) { ?> checked="checked"<?php } ?>/></td></tr>
+            <tr><td><?php echo translate('ControlType') ?></td><td><?php echo buildSelect( "newMonitor[ControlId]", $controlTypes, 'loadLocations( this )' ); ?><?php if ( canEdit( 'Control' ) ) { ?>&nbsp;<a href="#" onclick="createPopup( '?view=controlcaps', 'zmControlCaps', 'controlcaps' );"><?php echo translate('Edit') ?></a><?php } ?></td></tr>
+            <tr><td><?php echo translate('ControlDevice') ?></td><td><input type="text" name="newMonitor[ControlDevice]" value="<?php echo validHtmlStr($newMonitor['ControlDevice']) ?>" size="32"/></td></tr>
+            <tr><td><?php echo translate('ControlAddress') ?></td><td><input type="text" name="newMonitor[ControlAddress]" value="<?php echo validHtmlStr($newMonitor['ControlAddress']) ?>" size="32"/></td></tr>
+            <tr><td><?php echo translate('AutoStopTimeout') ?></td><td><input type="text" name="newMonitor[AutoStopTimeout]" value="<?php echo validHtmlStr($newMonitor['AutoStopTimeout']) ?>" size="4"/></td></tr>
+            <tr><td><?php echo translate('TrackMotion') ?></td><td><input type="checkbox" name="newMonitor[TrackMotion]" value="1"<?php if ( !empty($newMonitor['TrackMotion']) ) { ?> checked="checked"<?php } ?>/></td></tr>
 <?php
         $return_options = array(
-            '-1' => $SLANG['None'],
-            '0' => $SLANG['Home'],
-            '1' => $SLANG['Preset']." 1",
+            '-1' => translate('None'),
+            '0' => translate('Home'),
+            '1' => translate('Preset')." 1",
         );
 ?>
-            <tr><td><?php echo $SLANG['TrackDelay'] ?></td><td><input type="text" name="newMonitor[TrackDelay]" value="<?php echo validHtmlStr($newMonitor['TrackDelay']) ?>" size="4"/></td></tr>
-            <tr><td><?php echo $SLANG['ReturnLocation'] ?></td><td><?php echo buildSelect( "newMonitor[ReturnLocation]", $return_options ); ?></td></tr>
-            <tr><td><?php echo $SLANG['ReturnDelay'] ?></td><td><input type="text" name="newMonitor[ReturnDelay]" value="<?php echo validHtmlStr($newMonitor['ReturnDelay']) ?>" size="4"/></td></tr>
+            <tr><td><?php echo translate('TrackDelay') ?></td><td><input type="text" name="newMonitor[TrackDelay]" value="<?php echo validHtmlStr($newMonitor['TrackDelay']) ?>" size="4"/></td></tr>
+            <tr><td><?php echo translate('ReturnLocation') ?></td><td><?php echo buildSelect( "newMonitor[ReturnLocation]", $return_options ); ?></td></tr>
+            <tr><td><?php echo translate('ReturnDelay') ?></td><td><input type="text" name="newMonitor[ReturnDelay]" value="<?php echo validHtmlStr($newMonitor['ReturnDelay']) ?>" size="4"/></td></tr>
 <?php
         break;
     }
     case 'x10' :
     {
 ?>
-            <tr><td><?php echo $SLANG['X10ActivationString'] ?></td><td><input type="text" name="newX10Monitor[Activation]" value="<?php echo validHtmlStr($newX10Monitor['Activation']) ?>" size="20"/></td></tr>
-            <tr><td><?php echo $SLANG['X10InputAlarmString'] ?></td><td><input type="text" name="newX10Monitor[AlarmInput]" value="<?php echo validHtmlStr($newX10Monitor['AlarmInput']) ?>" size="20"/></td></tr>
-            <tr><td><?php echo $SLANG['X10OutputAlarmString'] ?></td><td><input type="text" name="newX10Monitor[AlarmOutput]" value="<?php echo validHtmlStr($newX10Monitor['AlarmOutput']) ?>" size="20"/></td></tr>
+            <tr><td><?php echo translate('X10ActivationString') ?></td><td><input type="text" name="newX10Monitor[Activation]" value="<?php echo validHtmlStr($newX10Monitor['Activation']) ?>" size="20"/></td></tr>
+            <tr><td><?php echo translate('X10InputAlarmString') ?></td><td><input type="text" name="newX10Monitor[AlarmInput]" value="<?php echo validHtmlStr($newX10Monitor['AlarmInput']) ?>" size="20"/></td></tr>
+            <tr><td><?php echo translate('X10OutputAlarmString') ?></td><td><input type="text" name="newX10Monitor[AlarmOutput]" value="<?php echo validHtmlStr($newX10Monitor['AlarmOutput']) ?>" size="20"/></td></tr>
 <?php
         break;
     }
     case 'misc' :
     {
 ?>
-            <tr><td><?php echo $SLANG['EventPrefix'] ?></td><td><input type="text" name="newMonitor[EventPrefix]" value="<?php echo validHtmlStr($newMonitor['EventPrefix']) ?>" size="24"/></td></tr>
-            <tr><td><?php echo $SLANG['Sectionlength'] ?></td><td><input type="text" name="newMonitor[SectionLength]" value="<?php echo validHtmlStr($newMonitor['SectionLength']) ?>" size="6"/></td></tr>
-            <tr><td><?php echo $SLANG['FrameSkip'] ?></td><td><input type="text" name="newMonitor[FrameSkip]" value="<?php echo validHtmlStr($newMonitor['FrameSkip']) ?>" size="6"/></td></tr>
-            <tr><td><?php echo $SLANG['MotionFrameSkip'] ?></td><td><input type="text" name="newMonitor[MotionFrameSkip]" value="<?php echo validHtmlStr($newMonitor['MotionFrameSkip']) ?>" size="6"/></td></tr>
-            <tr><td><?php echo $SLANG['FPSReportInterval'] ?></td><td><input type="text" name="newMonitor[FPSReportInterval]" value="<?php echo validHtmlStr($newMonitor['FPSReportInterval']) ?>" size="6"/></td></tr>
-            <tr><td><?php echo $SLANG['DefaultView'] ?></td><td><select name="newMonitor[DefaultView]">
+            <tr><td><?php echo translate('EventPrefix') ?></td><td><input type="text" name="newMonitor[EventPrefix]" value="<?php echo validHtmlStr($newMonitor['EventPrefix']) ?>" size="24"/></td></tr>
+            <tr><td><?php echo translate('Sectionlength') ?></td><td><input type="text" name="newMonitor[SectionLength]" value="<?php echo validHtmlStr($newMonitor['SectionLength']) ?>" size="6"/></td></tr>
+            <tr><td><?php echo translate('FrameSkip') ?></td><td><input type="text" name="newMonitor[FrameSkip]" value="<?php echo validHtmlStr($newMonitor['FrameSkip']) ?>" size="6"/></td></tr>
+            <tr><td><?php echo translate('MotionFrameSkip') ?></td><td><input type="text" name="newMonitor[MotionFrameSkip]" value="<?php echo validHtmlStr($newMonitor['MotionFrameSkip']) ?>" size="6"/></td></tr>
+            <tr><td><?php echo translate('FPSReportInterval') ?></td><td><input type="text" name="newMonitor[FPSReportInterval]" value="<?php echo validHtmlStr($newMonitor['FPSReportInterval']) ?>" size="6"/></td></tr>
+            <tr><td><?php echo translate('DefaultView') ?></td><td><select name="newMonitor[DefaultView]">
 <?php
         foreach ( getEnumValues( 'Monitors', 'DefaultView' ) as $opt_view )
         {
@@ -898,17 +914,17 @@ switch ( $tab )
         }
 ?>
             </select></td></tr>
-            <tr><td><?php echo $SLANG['DefaultRate'] ?></td><td><?php echo buildSelect( "newMonitor[DefaultRate]", $rates ); ?></td></tr>
-            <tr><td><?php echo $SLANG['DefaultScale'] ?></td><td><?php echo buildSelect( "newMonitor[DefaultScale]", $scales ); ?></td></tr>
+            <tr><td><?php echo translate('DefaultRate') ?></td><td><?php echo buildSelect( "newMonitor[DefaultRate]", $rates ); ?></td></tr>
+            <tr><td><?php echo translate('DefaultScale') ?></td><td><?php echo buildSelect( "newMonitor[DefaultScale]", $scales ); ?></td></tr>
 <?php
         if ( ZM_HAS_V4L && $newMonitor['Type'] == "Local" )
         {
 ?>
-            <tr><td><?php echo $SLANG['SignalCheckColour'] ?></td><td><input type="text" name="newMonitor[SignalCheckColour]" value="<?php echo validHtmlStr($newMonitor['SignalCheckColour']) ?>" size="10" onchange="$('SignalCheckSwatch').setStyle( 'backgroundColor', this.value )"/><span id="SignalCheckSwatch" class="swatch" style="background-color: <?php echo $newMonitor['SignalCheckColour'] ?>;">&nbsp;&nbsp;&nbsp;&nbsp;</span></td></tr>
+            <tr><td><?php echo translate('SignalCheckColour') ?></td><td><input type="text" name="newMonitor[SignalCheckColour]" value="<?php echo validHtmlStr($newMonitor['SignalCheckColour']) ?>" size="10" onchange="$('SignalCheckSwatch').setStyle( 'backgroundColor', this.value )"/><span id="SignalCheckSwatch" class="swatch" style="background-color: <?php echo $newMonitor['SignalCheckColour'] ?>;">&nbsp;&nbsp;&nbsp;&nbsp;</span></td></tr>
 <?php
         }
 ?>
-            <tr><td><?php echo $SLANG['WebColour'] ?></td><td><input type="text" name="newMonitor[WebColour]" value="<?php echo validHtmlStr($newMonitor['WebColour']) ?>" size="10" onchange="$('WebSwatch').setStyle( 'backgroundColor', this.value )"/><span id="WebSwatch" class="swatch" style="background-color: <?php echo validHtmlStr($newMonitor['WebColour']) ?>;">&nbsp;&nbsp;&nbsp;&nbsp;</span></td></tr>
+            <tr><td><?php echo translate('WebColour') ?></td><td><input type="text" name="newMonitor[WebColour]" value="<?php echo validHtmlStr($newMonitor['WebColour']) ?>" size="10" onchange="$('WebSwatch').setStyle( 'backgroundColor', this.value )"/><span id="WebSwatch" class="swatch" style="background-color: <?php echo validHtmlStr($newMonitor['WebColour']) ?>;">&nbsp;&nbsp;&nbsp;&nbsp;</span></td></tr>
 <?php
         break;
     }
@@ -917,7 +933,7 @@ switch ( $tab )
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo $SLANG['Save'] ?>"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo $SLANG['Cancel'] ?>" onclick="closeWindow()"/>
+          <input type="submit" value="<?php echo translate('Save') ?>"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
         </div>
       </form>
     </div>

@@ -30,7 +30,7 @@ BuildRequires:  libcurl-devel vlc-devel ffmpeg-devel polkit-devel
 # cmake needs the following installed at build time due to the way it auto-detects certain parameters
 BuildRequires:  httpd ffmpeg
 
-Requires:   httpd php php-mysql mysql-server libjpeg-turbo polkit net-tools psmisc
+Requires:   httpd php php-gd php-mysql mysql-server libjpeg-turbo polkit net-tools psmisc
 Requires:   perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires:   perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)
 Requires:   perl(MIME::Entity) perl(MIME::Lite) perl(Net::SMTP) perl(Net::FTP)
@@ -73,7 +73,7 @@ too much degradation of performance.
 %build
 # Have to override CMAKE_INSTALL_LIBDIR for cmake < 2.8.7 due to this bug:
 # https://bugzilla.redhat.com/show_bug.cgi?id=795542
-%cmake -DZM_TARGET_DISTRO="el6" -DCMAKE_INSTALL_LIBDIR:PATH=%{_lib} -DZM_PERL_SUBPREFIX=`x="%{perl_vendorlib}" ; echo ${x#"%{_prefix}"}` .
+%cmake -DZM_TARGET_DISTRO="el6" -DCMAKE_INSTALL_LIBDIR:PATH=%{_lib} .
 
 make %{?_smp_mflags}
 

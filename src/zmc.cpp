@@ -17,12 +17,54 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
+/*
+
+=head1 NAME
+
+zmc - The ZoneMinder Capture daemon
+
+=head1 SYNOPSIS
+
+ zmc -d <device_path>
+ zmc --device <device_path>
+ zmc -r <proto> -H <host> -P <port> -p <path>
+ zmc -f <file_path>
+ zmc --file <file_path>
+ zmc -m <monitor_id>
+ zmc --monitor <monitor_id>
+ zmc -h
+ zmc --help
+ zmc -v
+ zmc --version
+
+=head1 DESCRIPTION
+
+This binary's job is to sit on a video device and suck frames off it as fast as
+possible, this should run at more or less constant speed. 
+
+=head1 OPTIONS
+
+ -d, --device <device_path>               - For local cameras, device to access. e.g /dev/video0 etc
+ -r <proto> -H <host> -P <port> -p <path> - For remote cameras
+ -f, --file <file_path>                   - For local images, jpg file to access.
+ -m, --monitor_id                         - ID of the monitor to analyse
+ -h, --help                               - Display usage information
+ -v, --version                            - Print the installed version of ZoneMinder
+
+=cut
+
+*/
+
 #include <getopt.h>
 #include <signal.h>
-#if defined(BSD)
+#if defined(__FreeBSD__)
 #include <limits.h>
 #else
 #include <values.h>
+#endif
+
+#if !defined(MAXINT)
+#define MAXINT INT_MAX
 #endif
 
 #include "zm.h"
@@ -111,7 +153,7 @@ int main( int argc, char *argv[] )
 				Usage();
 				break;
 			case 'v':
-				cout << ZM_VERSION << "\n";
+				std::cout << ZM_VERSION << "\n";
 				exit(0);
 			default:
 				//fprintf( stderr, "?? getopt returned character code 0%o ??\n", c );
@@ -205,7 +247,7 @@ int main( int argc, char *argv[] )
 		exit ( -1 );
 	}
 
-	Info( "Starting Capture" );
+	Info( "Starting Capture version %s", ZM_VERSION );
 
 	zmSetDefaultTermHandler();
 	zmSetDefaultDieHandler();
@@ -270,21 +312,21 @@ int main( int argc, char *argv[] )
 			{
 				if ( monitors[i]->PreCapture() < 0 )
 				{
-                    Error( "Failed to pre-capture monitor %d (%d/%d)", monitors[i]->Id(), i, n_monitors );
+                    Error( "Failed to pre-capture monitor %d %d (%d/%d)", monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors );
                     zm_terminate = true;
                     result = -1;
                     break;
 				}
 				if ( monitors[i]->Capture() < 0 )
 				{
-                    Error( "Failed to capture image from monitor %d (%d/%d)", monitors[i]->Id(), i, n_monitors );
+                    Error( "Failed to capture image from monitor %d %s (%d/%d)", monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors );
                     zm_terminate = true;
                     result = -1;
                     break;
 				}
 				if ( monitors[i]->PostCapture() < 0 )
 				{
-                    Error( "Failed to post-capture monitor %d (%d/%d)", monitors[i]->Id(), i, n_monitors );
+                    Error( "Failed to post-capture monitor %d %s (%d/%d)", monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors );
                     zm_terminate = true;
                     result = -1;
                     break;

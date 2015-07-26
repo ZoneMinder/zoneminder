@@ -42,7 +42,7 @@ $plugin_path = dirname(ZM_PLUGINS_CONFIG_PATH)."/".$plugin;
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['Plugin'] );
+xhtmlHeaders(__FILE__, translate('Plugin') );
 
 
 $pluginOptions=array(
@@ -103,7 +103,7 @@ function pLang($name)
 <body>
   <div id="page">
     <div id="header">
-      <h2><?php echo $SLANG['Monitor'] ?> <?php echo $monitor['Name'] ?> - <?php echo $SLANG['Zone'] ?> <?php echo $newZone['Name'] ?> - <?php echo $SLANG['Plugin'] ?> <?php echo $plugin ?></h2>
+      <h2><?php echo translate('Monitor') ?> <?php echo $monitor['Name'] ?> - <?php echo translate('Zone') ?> <?php echo $newZone['Name'] ?> - <?php echo translate('Plugin') ?> <?php echo $plugin ?></h2>
     </div>
     <div id="content">
       <form name="pluginForm" id="pluginForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
@@ -116,12 +116,12 @@ function pLang($name)
         <div id="settingsPanel">
           <table id="pluginSettings" cellspacing="0">
             <tbody>
-<?
+<?php
 foreach($pluginOptions as $name => $popt)
 {
    ?>
             <tr><th scope="row"><?php echo pLang($name) ?></th>     
-   <?
+   <?php
    switch($popt['Type'])
    {
       case "checkbox":
@@ -132,7 +132,7 @@ foreach($pluginOptions as $name => $popt)
             ?>
                <td colspan="2">
                   <select name="pluginOpt[<?php echo $popt['Name'] ?>]" id="pluginOpt[<?php echo $popt['Name'] ?>]">
-            <?
+            <?php
             foreach($pchoices as $pchoice)
             {
                $psel="";
@@ -140,12 +140,12 @@ foreach($pluginOptions as $name => $popt)
                   $psel="selected";
                ?>
                      <option value="<?php echo $pchoice ?>" <?php echo $psel ?>><?php echo pLang($pchoice) ?></option>
-               <?
+               <?php
             }
             ?>
                </td>
                   </select>
-         <?
+         <?php
          break;
       case "text":
       default:
@@ -153,12 +153,12 @@ foreach($pluginOptions as $name => $popt)
    }
    ?>
             </tr>
-   <?
+   <?php
 }
 ?>
             </tbody>
           </table>
-          <input type="submit" id="submitBtn" name="submitBtn" value="<?php echo $SLANG['Save'] ?>" onclick="return saveChanges( this )"<?php if (!canEdit( 'Monitors' ) || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo $SLANG['Cancel'] ?>" onclick="closeWindow()"/>
+          <input type="submit" id="submitBtn" name="submitBtn" value="<?php echo translate('Save') ?>" onclick="return saveChanges( this )"<?php if (!canEdit( 'Monitors' ) || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
         </div>
       </form>
     </div>

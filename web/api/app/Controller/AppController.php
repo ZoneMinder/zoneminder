@@ -18,8 +18,8 @@
  * @since         CakePHP(tm) v 0.2.9
  * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
-
 App::uses('Controller', 'Controller');
+App::uses('CrudControllerTrait', 'Crud.Lib');
 
 /**
  * Application Controller
@@ -31,4 +31,20 @@ App::uses('Controller', 'Controller');
  * @link		http://book.cakephp.org/2.0/en/controllers.html#the-app-controller
  */
 class AppController extends Controller {
+	use CrudControllerTrait;
+
+	public $components = [
+		'RequestHandler',
+		'Crud.Crud' => [
+			'actions' => [
+				'index' => 'Crud.Index',
+				'add'   => 'Crud.Add',
+				'edit'  => 'Crud.Edit',
+				'view'  => 'Crud.View',
+				'keyvalue' => 'Crud.List',
+				'category' => 'Crud.Category'
+			],
+			'listeners' => ['Api', 'ApiTransformation']
+		]
+	];
 }

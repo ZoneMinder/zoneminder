@@ -30,6 +30,12 @@ extern "C"{
 #define AV_ERROR_MAX_STRING_SIZE 64
 #endif
 
+#ifdef SOLARIS
+#include <sys/errno.h>	// for ESRCH
+#include <signal.h>
+#include <pthread.h>
+#endif
+
 FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::string &p_method, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) :
     Camera( p_id, FFMPEG_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture ),
     mPath( p_path ),
@@ -128,7 +134,7 @@ int FfmpegCamera::Capture( Image &image )
         void *retval = 0;
         int ret;
         
-        ret = pthread_tryjoin_np(mReopenThread, &retval);
+        ret = pthread_join(mReopenThread, &retval);
         if (ret != 0){
             Error("Could not join reopen thread.");
         }
@@ -172,7 +178,7 @@ int FfmpegCamera::Capture( Image &image )
         Debug( 5, "Got packet from stream %d", packet.stream_index );
         if ( packet.stream_index == mVideoStreamId )
         {
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 25, 0)
+#if LIBAVCODEC_VERSION_CHECK(52, 23, 0, 23, 0)
 			if ( avcodec_decode_video2( mCodecContext, mRawFrame, &frameComplete, &packet ) < 0 )
 #else
 			if ( avcodec_decode_video( mCodecContext, mRawFrame, &frameComplete, packet.data, packet.size ) < 0 )
@@ -226,7 +232,7 @@ int FfmpegCamera::OpenFfmpeg() {
     mIsOpening = true;
 
     // Open the input, not necessarily a file
-#if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(53, 4, 0)
+#if !LIBAVFORMAT_VERSION_CHECK(53, 2, 0, 4, 0)
     Debug ( 1, "Calling av_open_input_file" );
     if ( av_open_input_file( &mFormatContext, mPath.c_str(), NULL, 0, NULL ) !=0 )
 #else
@@ -283,7 +289,7 @@ int FfmpegCamera::OpenFfmpeg() {
     //mFormatContext->probesize = 32;
     //mFormatContext->max_analyze_duration = 32;
     // Locate stream info from avformat_open_input
-#if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(53, 4, 0)
+#if !LIBAVFORMAT_VERSION_CHECK(53, 6, 0, 6, 0)
     Debug ( 1, "Calling av_find_stream_info" );
     if ( av_find_stream_info( mFormatContext ) < 0 )
 #else
@@ -291,15 +297,14 @@ int FfmpegCamera::OpenFfmpeg() {
     if ( avformat_find_stream_info( mFormatContext, 0 ) < 0 )
 #endif
         Fatal( "Unable to find stream info from %s due to: %s", mPath.c_str(), strerror(errno) );
-    
-    Info( "Find stream info complete %s", mPath.c_str() );
+
     Debug ( 1, "Got stream info" );
 
     // Find first video stream present
     mVideoStreamId = -1;
     for (unsigned int i=0; i < mFormatContext->nb_streams; i++ )
     {
-#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
+#if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
         if ( mFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO )
 #else
         if ( mFormatContext->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO )
@@ -310,7 +315,7 @@ int FfmpegCamera::OpenFfmpeg() {
 		}
         if(mAudioStreamId == -1) //FIXME best way to copy all other streams?
         {
-#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
+#if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
 		    if ( mFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO )
 #else
 		    if ( mFormatContext->streams[i]->codec->codec_type == CODEC_TYPE_AUDIO )
@@ -334,7 +339,7 @@ int FfmpegCamera::OpenFfmpeg() {
     Debug ( 1, "Found decoder" );
 
     // Open the codec
-#if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(53, 7, 0)
+#if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
     Debug ( 1, "Calling avcodec_open" );
     if ( avcodec_open( mCodecContext, mCodec ) < 0 )
 #else
@@ -346,11 +351,19 @@ int FfmpegCamera::OpenFfmpeg() {
     Debug ( 1, "Opened codec" );
 
     // Allocate space for the native video frame
+#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
+    mRawFrame = av_frame_alloc();
+#else
     mRawFrame = avcodec_alloc_frame();
+#endif
 
     // Allocate space for the converted video frame
+#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
+    mFrame = av_frame_alloc();
+#else
     mFrame = avcodec_alloc_frame();
-    
+#endif
+
     if(mRawFrame == NULL || mFrame == NULL)
         Fatal( "Unable to allocate frame for %s", mPath.c_str() );
 
@@ -377,11 +390,9 @@ int FfmpegCamera::OpenFfmpeg() {
     Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
 #endif // HAVE_LIBSWSCALE
 
-    Info( "Primed capture from %s, video=%d, audio=%d", mPath.c_str(), mVideoStreamId, mAudioStreamId);
+    mCanCapture = true;
 
-	mCanCapture = true;
-
-    return( 0 );
+    return 0;
 }
 
 int FfmpegCamera::ReopenFfmpeg() {
@@ -421,7 +432,7 @@ int FfmpegCamera::CloseFfmpeg(){
     }
     if ( mFormatContext )
     {
-#if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(53, 4, 0)
+#if !LIBAVFORMAT_VERSION_CHECK(53, 17, 0, 25, 0)
         av_close_input_file( mFormatContext );
 #else
         avformat_close_input( &mFormatContext );
@@ -455,7 +466,7 @@ void *FfmpegCamera::ReopenFfmpegThreadCallback(void *ctx){
         // Close current stream.
         camera->CloseFfmpeg();
 
-        // Sleep if neccessary to not reconnect too fast.
+        // Sleep if necessary to not reconnect too fast.
         int wait = config.ffmpeg_open_timeout - (time(NULL) - camera->mOpenStart);
         wait = wait < 0 ? 0 : wait;
         if (wait > 0){
@@ -481,7 +492,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
         void *retval = 0;
         int ret;
         
-        ret = pthread_tryjoin_np(mReopenThread, &retval);
+        ret = pthread_join(mReopenThread, &retval);
         if (ret != 0){
             Error("Could not join reopen thread.");
         }
@@ -525,7 +536,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
         Debug( 5, "Got packet from stream %d", packet.stream_index );
         if ( packet.stream_index == mVideoStreamId )
         {
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 25, 0)
+#if LIBAVCODEC_VERSION_CHECK(52, 23, 0, 23, 0)
 			if ( avcodec_decode_video2( mCodecContext, mRawFrame, &frameComplete, &packet ) < 0 )
 #else
 			if ( avcodec_decode_video( mCodecContext, mRawFrame, &frameComplete, packet.data, packet.size ) < 0 )

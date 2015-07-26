@@ -102,7 +102,6 @@ sub close
 
 sub printMsg
 {
-    my $self = shift;
     my $msg = shift;
     my $msg_len = length($msg);
     Debug( $msg."[".$msg_len."]" );
@@ -113,9 +112,28 @@ sub sendCmd
     my $self = shift;
     my $cmd = shift;
     my $result = undef;
+
+	my ($user, $password) = split /:/, $self->{Monitor}->{ControlDevice};
+	if ( ! $password ) {
+		$password = $user;
+		$user = 'admin';
+	}
+	$user = 'admin' if ! $user;
+	$password = 'pwd' if ! $password;
+
+	$cmd .= "&usr=$user&pwd=$password";
+
     printMsg( $cmd, "Tx" );
-    my $temps = time();
-    my $req = HTTP::Request->new( GET=>"http://".$self->{Monitor}->{ControlAddress}."/cgi-bin/CGIProxy.fcgi?usr%3Dadmin%26pwd%3D".$self->{Monitor}->{ControlDevice}."%26cmd%3D".$cmd."%26".$temps );
+    my $url;
+    if ( $self->{Monitor}->{ControlAddress} =~ /^http/ ) {
+        $url = $self->{Monitor}->{ControlAddress};
+    } else {
+        $url = "http://".$self->{Monitor}->{ControlAddress};
+    }
+	$url .= "/cgi-bin/CGIProxy.fcgi?cmd=$cmd%26".time;
+    printMsg( $url, "Tx" );
+
+    my $req = HTTP::Request->new( GET=>$url );
     my $res = $self->{ua}->request($req);
     if ( $res->is_success )
     {
@@ -134,7 +152,7 @@ sub reset
    # Setup OSD
    my $cmd = "setOSDSetting%26isEnableTimeStamp%3D0%26isEnableDevName%3D1%26dispPos%3D0%26isEnabledOSDMask%3D0";
    $self->sendCmd( $cmd );
-   # Setup For Stream=0 Resolution=720p Bandwith=4M FPS=30 KeyFrameInterval/GOP=100 VBR=ON
+   # Setup For Stream=0 Resolution=720p Bandwidth=4M FPS=30 KeyFrameInterval/GOP=100 VBR=ON
    $cmd = "setVideoStreamParam%26streamType%3D0%26resolution%3D0%26bitRate%3D4194304%26frameRate%3D30%26GOP%3D100%26isVBR%3D1";
    $self->sendCmd( $cmd );
    # Setup For Infrared AUTO
@@ -696,9 +714,9 @@ sub presetGoto
 __END__
 # Below is stub documentation for your module. You'd better edit it!
 
-=head1 FI9821W
+=head1 NAME
 
-ZoneMinder::Database - Perl extension for FOSCAM FI9821W
+ZoneMinder::Control::FI9821W - Perl extension for FOSCAM FI9821W
 
 =head1 SYNOPSIS
 

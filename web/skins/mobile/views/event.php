@@ -104,7 +104,7 @@ if ( !empty($_REQUEST['fid']) )
 
 $pagination = getPagination( $pages, $_REQUEST['page'], $maxShortcuts, '&amp;eid='.$_REQUEST['eid'].$filterQuery.$sortQuery, '&amp;' );
 
-xhtmlHeaders( __FILE__, $SLANG['Event'].' - '.$event['Name'] );
+xhtmlHeaders( __FILE__, translate('Event').' - '.$event['Name'] );
 ?>
 <body>
   <div id="page">
@@ -114,7 +114,7 @@ if ( canEdit( 'Events' ) )
 {
 ?>
       <div id="headerButtons">
-        <a href="?view=events&amp;action=delete&amp;mark_eid=<?php echo $_REQUEST['eid'] ?><?php echo $filterQuery ?><?php echo $sortQuery ?>&amp;limit=<?php echo $_REQUEST['limit'] ?>&amp;page=<?php echo $_REQUEST['page'] ?>"><?php echo $SLANG['Delete'] ?></a>
+        <a href="?view=events&amp;action=delete&amp;mark_eid=<?php echo $_REQUEST['eid'] ?><?php echo $filterQuery ?><?php echo $sortQuery ?>&amp;limit=<?php echo $_REQUEST['limit'] ?>&amp;page=<?php echo $_REQUEST['page'] ?>"><?php echo translate('Delete') ?></a>
       </div>
 <?php
 }

@@ -12,6 +12,10 @@ All documentation for ZoneMinder is now online at http://www.zoneminder.com/wiki
 
 ZoneMinder is an integrated set of applications which provide a complete surveillance solution allowing capture, analysis, recording and monitoring of any CCTV or security cameras attached to a Linux based machine. It is designed to run on distributions which support the Video For Linux (V4L) interface and has been tested with video cameras attached to BTTV cards, various USB cameras and also supports most IP network cameras. 
 
+## Contacting the Developement Team
+Before creating an issue in our github forum, please read our posting rules:
+https://github.com/ZoneMinder/ZoneMinder/wiki/Github-Posting-Rules
+
 ## Installation Methods
 
 ### Building from Source is Discouraged

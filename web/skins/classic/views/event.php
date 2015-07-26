@@ -27,7 +27,7 @@ if ( !canView( 'Events' ) )
 $eid = validInt( $_REQUEST['eid'] );
 $fid = !empty($_REQUEST['fid'])?validInt($_REQUEST['fid']):1;
 
-$sql = 'SELECT E.*,M.Name AS MonitorName,M.Width,M.Height,M.DefaultRate,M.DefaultScale,M.VideoWriter,M.SaveJPEGs FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = ?';
+$sql = 'SELECT E.*,M.Name AS MonitorName,M.Width,M.Height,M.DefaultRate,M.DefaultScale,M.VideoWriter,M.SaveJPEGs,M.Orientation FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = ?';
 $sql_values = array( $eid );
 
 if ( $user['MonitorIds'] ) {
@@ -64,6 +64,15 @@ if ( isset( $_COOKIE['replayMode']) && preg_match('#^[a-z]+$#', $_COOKIE['replay
 else {
 	$keys = array_keys( $replayModes );
 	$replayMode = array_shift( $keys );
+}
+
+// videojs zoomrotate only when direct recording
+$Zoom = 1;
+$Rotation = 0;
+if ( $event['VideoWriter'] == "2" ) {
+    $Rotation = $event['Orientation'];
+    if ( in_array($event['Orientation'],array("90","270"))) 
+        $Zoom = $event['Height']/$event['Width'];
 }
 
 parseSort();
@@ -134,8 +143,9 @@ if ( $event['VideoWriter'] )
 ?>
 <link href="//vjs.zencdn.net/4.11/video-js.css" rel="stylesheet">
 <script src="//vjs.zencdn.net/4.11/video.js"></script>
+<script src='./js/videojs.zoomrotate.js'></script>
 				<div id="videoFeed">
-					<video id="videoobj" class="video-js vjs-default-skin" width="<?php echo reScale( $event['Width'], $scale ) ?>" height="<?php echo reScale( $event['Height'], $scale ) ?>" data-setup='{ "controls": true, "autoplay": false, "preload": "auto" }' >
+					<video id="videoobj" class="video-js vjs-default-skin" width="<?php echo reScale( $event['Width'], $scale ) ?>" height="<?php echo reScale( $event['Height'], $scale ) ?>" data-setup='{ "controls": true, "autoplay": true, "preload": "auto", "plugins": { "zoomrotate": { "rotate": "<?php echo $Rotation ?>", "zoom": "<?php echo $Zoom ?>"}}}'>
 					<source src="<?php echo getEventDefaultVideoPath($event) ?>" type="video/mp4">
 					Your browser does not support the video tag.
 					</video>
@@ -150,20 +160,20 @@ else
 <?php
 if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT )
 {
-    $streamSrc = getStreamSrc( array( "source=event", "mode=mpeg", "event=".$eid, "frame=".$fid, "scale=".$scale, "rate=".$rate, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_REPLAY_FORMAT, "replay=".$replayMode ) );
-    outputVideoStream( "evtStream", $streamSrc, reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ), ZM_MPEG_LIVE_FORMAT );
+		$streamSrc = getStreamSrc( array( "source=event", "mode=mpeg", "event=".$eid, "frame=".$fid, "scale=".$scale, "rate=".$rate, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_REPLAY_FORMAT, "replay=".$replayMode ) );
+		outputVideoStream( "evtStream", $streamSrc, reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ), ZM_MPEG_LIVE_FORMAT );
 }
 else
 {
-    $streamSrc = getStreamSrc( array( "source=event", "mode=jpeg", "event=".$eid, "frame=".$fid, "scale=".$scale, "rate=".$rate, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "replay=".$replayMode) );
-    if ( canStreamNative() )
-    {
-        outputImageStream( "evtStream", $streamSrc, reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ), validHtmlStr($event['Name']) );
-    }
-    else
-    {
-        outputHelperStream( "evtStream", $streamSrc, reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ) );
-    }
+		$streamSrc = getStreamSrc( array( "source=event", "mode=jpeg", "event=".$eid, "frame=".$fid, "scale=".$scale, "rate=".$rate, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "replay=".$replayMode) );
+		if ( canStreamNative() )
+		{
+				outputImageStream( "evtStream", $streamSrc, reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ), validHtmlStr($event['Name']) );
+		}
+		else
+		{
+				outputHelperStream( "evtStream", $streamSrc, reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ) );
+		}
 }
 ?>
         </div>
@@ -193,47 +203,54 @@ else
 <?php
         }
 ?>
-        </div>
-      </div>
+		</div>    
+<?php				    
+}
+?>
+				</div>
+			</div>
 <?php
 if ($event['SaveJPEGs'] & 3)
 {
 ?>
-      <div id="eventStills" class="hidden">
-        <div id="eventThumbsPanel">
-          <div id="eventThumbs">
-          </div>
-        </div>
-        <div id="eventImagePanel">
-          <div id="eventImageFrame">
-            <img id="eventImage" src="graphics/transparent.gif" alt=""/>
-            <div id="eventImageBar">
-              <div id="eventImageClose"><input type="button" value="<?php echo translate('Close') ?>" onclick="hideEventImage()"/></div>
-              <div id="eventImageStats" class="hidden"><input type="button" value="<?php echo translate('Stats') ?>" onclick="showFrameStats()"/></div>
-              <div id="eventImageData"><?php echo translate('Frame') ?> <span id="eventImageNo"></span></div>
-            </div>
-          </div>
-        </div>
-        <div id="eventImageNav">
-          <div id="eventImageButtons">
-            <div id="prevButtonsPanel">
-              <input id="prevEventBtn" type="button" value="&lt;E" onclick="prevEvent()" disabled="disabled"/>
-              <input id="prevThumbsBtn" type="button" value="&lt;&lt;" onclick="prevThumbs()" disabled="disabled"/>
-              <input id="prevImageBtn" type="button" value="&lt;" onclick="prevImage()" disabled="disabled"/>
-              <input id="nextImageBtn" type="button" value="&gt;" onclick="nextImage()" disabled="disabled"/>
-              <input id="nextThumbsBtn" type="button" value="&gt;&gt;" onclick="nextThumbs()" disabled="disabled"/>
-              <input id="nextEventBtn" type="button" value="E&gt;" onclick="nextEvent()" disabled="disabled"/>
-            </div>
-          </div>
-          <div id="thumbsSliderPanel">
-            <div id="thumbsSlider">
-              <div id="thumbsKnob">
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+			<div id="eventStills" class="hidden">
+				<div id="eventThumbsPanel">
+					<div id="eventThumbs">
+					</div>
+				</div>
+				<div id="eventImagePanel">
+					<div id="eventImageFrame">
+						<img id="eventImage" src="graphics/transparent.gif" alt=""/>
+						<div id="eventImageBar">
+							<div id="eventImageClose"><input type="button" value="<?php echo translate('Close') ?>" onclick="hideEventImage()"/></div>
+							<div id="eventImageStats" class="hidden"><input type="button" value="<?php echo translate('Stats') ?>" onclick="showFrameStats()"/></div>
+							<div id="eventImageData"><?php echo translate('Frame') ?> <span id="eventImageNo"></span></div>
+						</div>
+					</div>
+				</div>
+				<div id="eventImageNav">
+					<div id="eventImageButtons">
+						<div id="prevButtonsPanel">
+							<input id="prevEventBtn" type="button" value="&lt;E" onclick="prevEvent()" disabled="disabled"/>
+							<input id="prevThumbsBtn" type="button" value="&lt;&lt;" onclick="prevThumbs()" disabled="disabled"/>
+							<input id="prevImageBtn" type="button" value="&lt;" onclick="prevImage()" disabled="disabled"/>
+							<input id="nextImageBtn" type="button" value="&gt;" onclick="nextImage()" disabled="disabled"/>
+							<input id="nextThumbsBtn" type="button" value="&gt;&gt;" onclick="nextThumbs()" disabled="disabled"/>
+							<input id="nextEventBtn" type="button" value="E&gt;" onclick="nextEvent()" disabled="disabled"/>
+						</div>
+					</div>
+					<div id="thumbsSliderPanel">
+						<div id="thumbsSlider">
+							<div id="thumbsKnob">
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+<?php
+}
+}
+?>
+	</div>
 </body>
 </html>

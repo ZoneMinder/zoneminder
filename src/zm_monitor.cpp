@@ -579,6 +579,21 @@ bool Monitor::connect() {
         next_buffer.image = new Image( width, height, camera->Colours(), camera->SubpixelOrder());
         next_buffer.timestamp = new struct timeval;
     }
+
+    if ( ( purpose == ANALYSIS ) && analysis_fps )
+    {
+        // Size of pre event buffer must be greater than pre_event_count
+        // if alarm_frame_count > 1, because in this case the buffer contains
+        // alarmed images that must be discarded when event is created
+        pre_event_buffer_count = pre_event_count + alarm_frame_count - 1;
+        pre_event_buffer = new Snapshot[pre_event_buffer_count];
+        for ( int i = 0; i < pre_event_buffer_count; i++ )
+        {
+            pre_event_buffer[i].timestamp = new struct timeval;
+            pre_event_buffer[i].image = new Image( width, height, camera->Colours(), camera->SubpixelOrder());
+        }
+    }
+
 	return true;
 }
 
@@ -607,7 +622,6 @@ Monitor::~Monitor()
 			delete image_buffer[i].image;
 		}
 		delete[] image_buffer;
-
 	} // end if mem_ptr
 
     for ( int i = 0; i < n_zones; i++ )
@@ -624,6 +638,16 @@ Monitor::~Monitor()
 			shared_data->state = state = IDLE;
 			shared_data->last_read_index = image_buffer_count;
 			shared_data->last_read_time = 0;
+
+			if ( analysis_fps )
+			{
+				for ( int i = 0; i < pre_event_buffer_count; i++ )
+				{
+					delete pre_event_buffer[i].image;
+					delete pre_event_buffer[i].timestamp;
+				}
+				delete[] pre_event_buffer;
+			}
 		}
 		else if ( purpose == CAPTURE )
 		{
@@ -1479,23 +1503,57 @@ bool Monitor::Analyse()
                         //if ( config.overlap_timed_events )
                         if ( false )
                         {
-                            int pre_index = ((index+image_buffer_count)-pre_event_count)%image_buffer_count;
+                            int pre_index;
                             int pre_event_images = pre_event_count;
-                            while ( pre_event_images && !image_buffer[pre_index].timestamp->tv_sec )
+
+                            if ( analysis_fps )
                             {
-                                pre_index = (pre_index+1)%image_buffer_count;
-                                pre_event_images--;
+                                // If analysis fps is set,
+                                // compute the index for pre event images in the dedicated buffer
+                                pre_index = image_count%pre_event_buffer_count;
+
+                                // Seek forward the next filled slot in to the buffer (oldest data)
+                                // from the current position
+                                while ( pre_event_images && !pre_event_buffer[pre_index].timestamp->tv_sec )
+                                {
+                                    pre_index = (pre_index + 1)%pre_event_buffer_count;
+                                    // Slot is empty, removing image from counter
+                                    pre_event_images--;
+                                }
+                            }
+                            else
+                            {
+                                // If analysis fps is not set (analysis performed at capturing framerate),
+                                // compute the index for pre event images in the capturing buffer
+                                pre_index = ((index + image_buffer_count) - pre_event_count)%image_buffer_count;
+
+                                // Seek forward the next filled slot in to the buffer (oldest data)
+                                // from the current position
+                                while ( pre_event_images && !image_buffer[pre_index].timestamp->tv_sec )
+                                {
+                                    pre_index = (pre_index + 1)%image_buffer_count;
+                                    // Slot is empty, removing image from counter
+                                    pre_event_images--;
+                                }
                             }
 
                             if ( pre_event_images )
                             {
-                                for ( int i = 0; i < pre_event_images; i++ )
-                                {
-                                    timestamps[i] = image_buffer[pre_index].timestamp;
-                                    images[i] = image_buffer[pre_index].image;
+                                if ( analysis_fps )
+                                    for ( int i = 0; i < pre_event_images; i++ )
+                                    {
+                                        timestamps[i] = pre_event_buffer[pre_index].timestamp;
+                                        images[i] = pre_event_buffer[pre_index].image;
+                                        pre_index = (pre_index + 1)%pre_event_buffer_count;
+                                    }
+                                else
+                                    for ( int i = 0; i < pre_event_images; i++ )
+                                    {
+                                        timestamps[i] = image_buffer[pre_index].timestamp;
+                                        images[i] = image_buffer[pre_index].image;
+                                        pre_index = (pre_index + 1)%image_buffer_count;
+                                    }
 
-                                    pre_index = (pre_index+1)%image_buffer_count;
-                                }
                                 event->AddFrames( pre_event_images, images, timestamps );
                             }
                         }
@@ -1512,32 +1570,66 @@ bool Monitor::Analyse()
                             if ( signal_change || (function != MOCORD && state != ALERT) )
                             {
                                 int pre_index;
-                                if ( alarm_frame_count > 1 )
-                                    pre_index = ((index+image_buffer_count)-((alarm_frame_count-1)+pre_event_count))%image_buffer_count;
-                                else
-                                    pre_index = ((index+image_buffer_count)-pre_event_count)%image_buffer_count;
-
                                 int pre_event_images = pre_event_count;
-                                while ( pre_event_images && !image_buffer[pre_index].timestamp->tv_sec )
-                                {
-                                    pre_index = (pre_index+1)%image_buffer_count;
-                                    pre_event_images--;
-                                }
 
-                                event = new Event( this, *(image_buffer[pre_index].timestamp), cause, noteSetMap );
+                                if ( analysis_fps )
+                                {
+                                    // If analysis fps is set,
+                                    // compute the index for pre event images in the dedicated buffer
+                                    pre_index = image_count%pre_event_buffer_count;
+
+                                    // Seek forward the next filled slot in to the buffer (oldest data)
+                                    // from the current position
+                                    while ( pre_event_images && !pre_event_buffer[pre_index].timestamp->tv_sec )
+                                    {
+                                        pre_index = (pre_index + 1)%pre_event_buffer_count;
+                                        // Slot is empty, removing image from counter
+                                        pre_event_images--;
+                                    }
+
+                                    event = new Event( this, *(pre_event_buffer[pre_index].timestamp), cause, noteSetMap );
+                                }
+                                else
+                                {
+                                    // If analysis fps is not set (analysis performed at capturing framerate),
+                                    // compute the index for pre event images in the capturing buffer
+                                    if ( alarm_frame_count > 1 )
+                                        pre_index = ((index + image_buffer_count) - ((alarm_frame_count - 1) + pre_event_count))%image_buffer_count;
+                                    else
+                                        pre_index = ((index + image_buffer_count) - pre_event_count)%image_buffer_count;
+
+                                    // Seek forward the next filled slot in to the buffer (oldest data)
+                                    // from the current position
+                                    while ( pre_event_images && !image_buffer[pre_index].timestamp->tv_sec )
+                                    {
+                                        pre_index = (pre_index + 1)%image_buffer_count;
+                                        // Slot is empty, removing image from counter
+                                        pre_event_images--;
+                                    }
+
+                                    event = new Event( this, *(image_buffer[pre_index].timestamp), cause, noteSetMap );
+                                }
                                 shared_data->last_event = event->Id();
 
                                 Info( "%s: %03d - Opening new event %d, alarm start", name, image_count, event->Id() );
 
                                 if ( pre_event_images )
                                 {
-                                    for ( int i = 0; i < pre_event_images; i++ )
-                                    {
-                                        timestamps[i] = image_buffer[pre_index].timestamp;
-                                        images[i] = image_buffer[pre_index].image;
+                                    if ( analysis_fps )
+                                        for ( int i = 0; i < pre_event_images; i++ )
+                                        {
+                                            timestamps[i] = pre_event_buffer[pre_index].timestamp;
+                                            images[i] = pre_event_buffer[pre_index].image;
+                                            pre_index = (pre_index + 1)%pre_event_buffer_count;
+                                        }
+                                    else
+                                        for ( int i = 0; i < pre_event_images; i++ )
+                                        {
+                                            timestamps[i] = image_buffer[pre_index].timestamp;
+                                            images[i] = image_buffer[pre_index].image;
+                                            pre_index = (pre_index + 1)%image_buffer_count;
+                                        }
 
-                                        pre_index = (pre_index+1)%image_buffer_count;
-                                    }
                                     event->AddFrames( pre_event_images, images, timestamps );
                                 }
                                 if ( alarm_frame_count )
@@ -1703,6 +1795,15 @@ bool Monitor::Analyse()
     shared_data->last_read_index = index%image_buffer_count;
     //shared_data->last_read_time = image_buffer[index].timestamp->tv_sec;
     shared_data->last_read_time = now.tv_sec;
+
+    if ( analysis_fps )
+    {
+        // If analysis fps is set, add analysed image to dedicated pre event buffer
+        int pre_index = image_count%pre_event_buffer_count;
+        pre_event_buffer[pre_index].image->Assign(*snap->image);
+        memcpy( pre_event_buffer[pre_index].timestamp, snap->timestamp, sizeof(struct timeval) );
+    }
+
     image_count++;
 
     return( true );

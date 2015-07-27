@@ -94,7 +94,7 @@ input,textarea,select,button {
     font-family: inherit;
     font-size: 100%;
     color: #eeeeee;
-    background-color: #555555;
+    background-color: #444444;
 }
 
 input[type=text], input[type=password], textarea {
@@ -140,11 +140,11 @@ ul.tabList {
 ul.tabList li {
     float: left;
     border: 1px solid;
-    color: #dddddd;
+    color: #8f8fc2;
     border: #8f8fc2 solid 1px;
     border-bottom-width: 0;
     margin: 0 2px 0 0;
-    background: #555555;
+    background: #444444;
     text-align: center;
     padding: 3px 4px;
 }
@@ -154,11 +154,11 @@ ul.tabList li a {
 }
 
 ul.tabList li:hover {
-    background-color: #eeeeee;
+    background-color: #dddddd;
 }
 
 ul.tabList li.active {
-    background-color: #000000;
+    background-color: #222222;
     border-bottom: #8f8fc2 dotted 1px;
 }
 

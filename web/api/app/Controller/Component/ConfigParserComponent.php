@@ -24,7 +24,7 @@ class ConfigParserComponent extends Component {
 
 	public function getInput($name, $type, $id)  {
 		if ($type == 'checkbox') {
-			$string = '<input id="%s" type="checkbox" ng-change="updateConfig(\'%s\', \'%s\')" ng-model="myModel.configData[\'%s\']" ng-true-value="1" ng-false-value="0"><span class="form-control-feedback"></span></div>';
+			$string = '<input id="%s" type="checkbox" ng-change="updateConfig(\'%s\', \'%s\')" ng-model="myModel.configData[\'%s\']" ng-true-value="\'1\'" ng-false-value="\'0\'"><span class="form-control-feedback"></span></div>';
 		} elseif ($type == 'text') {
 			$string = '<input id="%s" type="text" ng-change="updateConfig(\'%s\', \'%s\')" ng-model="myModel.configData[\'%s\']" class="form-control"><span class="form-control-feedback"></span></div>';
 		} elseif ($type == 'textarea') {

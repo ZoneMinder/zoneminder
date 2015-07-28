@@ -825,11 +825,11 @@ useconds_t Monitor::GetAnalysisRate()
     else if ( analysis_fps > capturing_fps )
     {
         Warning( "Analysis fps (%.2f) is greater than capturing fps (%.2f)", analysis_fps, capturing_fps );
-        return( 0  );
+        return( 0 );
     }
     else
     {
-        return( 1000000 / analysis_fps );
+        return( ( 1000000 / analysis_fps ) - ( 1000000 / capturing_fps ) );
     }
 }
 

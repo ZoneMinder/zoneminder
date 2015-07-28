@@ -145,7 +145,7 @@ if ( $event['VideoWriter'] )
 <script src="//vjs.zencdn.net/4.11/video.js"></script>
 <script src='./js/videojs.zoomrotate.js'></script>
 				<div id="videoFeed">
-					<video id="videoobj" class="video-js vjs-default-skin" width="<?php echo reScale( $event['Width'], $scale ) ?>" height="<?php echo reScale( $event['Height'], $scale ) ?>" data-setup='{ "controls": true, "autoplay": true, "preload": "auto", "plugins": { "zoomrotate": { "rotate": "<?php echo $Rotation ?>", "zoom": "<?php echo $Zoom ?>"}}}'>
+					<video id="videoobj" class="video-js vjs-default-skin" width="<?php echo reScale( $event['Width'], $scale ) ?>" height="<?php echo reScale( $event['Height'], $scale ) ?>" data-setup='{ "controls": true, "playbackRates": [0.5, 1, 1.5, 2, 4, 8, 16, 32, 64, 128, 256], "autoplay": true, "preload": "auto", "plugins": { "zoomrotate": { "rotate": "<?php echo $Rotation ?>", "zoom": "<?php echo $Zoom ?>"}}}'>
 					<source src="<?php echo getEventDefaultVideoPath($event) ?>" type="video/mp4">
 					Your browser does not support the video tag.
 					</video>

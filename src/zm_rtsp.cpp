@@ -663,7 +663,7 @@ int RtspThread::run()
             {
 				now = time(NULL);
                 // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
-Debug(5, "sendkeepalibe %d, timeout %d, now: %d last: %d since: %d", sendKeepalive, timeout, now, lastKeepalive, (now-lastKeepalive) );
+Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d", sendKeepalive, timeout, now, lastKeepalive, (now-lastKeepalive) );
                 if ( sendKeepalive && (timeout > 0) && ((now-lastKeepalive) > (timeout-5)) )
                 {
                     if ( !sendCommand( message ) )
@@ -808,7 +808,7 @@ Debug(5, "sendkeepalibe %d, timeout %d, now: %d last: %d since: %d", sendKeepali
                 // FIXME: Is this really necessary when using tcp ?
 				now = time(NULL);
                 // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
-Debug(5, "sendkeepalibe %d, timeout %d, now: %d last: %d since: %d", sendKeepalive, timeout, now, lastKeepalive, (now-lastKeepalive) );
+Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d", sendKeepalive, timeout, now, lastKeepalive, (now-lastKeepalive) );
                 if ( sendKeepalive && (timeout > 0) && ((now-lastKeepalive) > (timeout-5)) )
                 {
                     if ( !sendCommand( message ) )

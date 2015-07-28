@@ -27,7 +27,7 @@ if ( !canView( 'Events' ) )
 $eid = validInt( $_REQUEST['eid'] );
 $fid = !empty($_REQUEST['fid'])?validInt($_REQUEST['fid']):1;
 
-$sql = 'SELECT E.*,M.Name AS MonitorName,M.Width,M.Height,M.DefaultRate,M.DefaultScale,M.VideoWriter,M.SaveJPEGs FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = ?';
+$sql = 'SELECT E.*,M.Name AS MonitorName,M.Width,M.Height,M.DefaultRate,M.DefaultScale,M.VideoWriter,M.SaveJPEGs,M.Orientation FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = ?';
 $sql_values = array( $eid );
 
 if ( $user['MonitorIds'] ) {
@@ -64,6 +64,15 @@ if ( isset( $_COOKIE['replayMode']) && preg_match('#^[a-z]+$#', $_COOKIE['replay
 else {
 	$keys = array_keys( $replayModes );
 	$replayMode = array_shift( $keys );
+}
+
+// videojs zoomrotate only when direct recording
+$Zoom = 1;
+$Rotation = 0;
+if ( $event['VideoWriter'] == "2" ) {
+    $Rotation = $event['Orientation'];
+    if ( in_array($event['Orientation'],array("90","270"))) 
+        $Zoom = $event['Height']/$event['Width'];
 }
 
 parseSort();
@@ -134,8 +143,9 @@ if ( $event['VideoWriter'] )
 ?>
 <link href="//vjs.zencdn.net/4.11/video-js.css" rel="stylesheet">
 <script src="//vjs.zencdn.net/4.11/video.js"></script>
+<script src='./js/videojs.zoomrotate.js'></script>
 				<div id="videoFeed">
-					<video id="videoobj" class="video-js vjs-default-skin" width="<?php echo reScale( $event['Width'], $scale ) ?>" height="<?php echo reScale( $event['Height'], $scale ) ?>" data-setup='{ "controls": true, "autoplay": false, "preload": "auto" }' >
+					<video id="videoobj" class="video-js vjs-default-skin" width="<?php echo reScale( $event['Width'], $scale ) ?>" height="<?php echo reScale( $event['Height'], $scale ) ?>" data-setup='{ "controls": true, "autoplay": true, "preload": "auto", "plugins": { "zoomrotate": { "rotate": "<?php echo $Rotation ?>", "zoom": "<?php echo $Zoom ?>"}}}'>
 					<source src="<?php echo getEventDefaultVideoPath($event) ?>" type="video/mp4">
 					Your browser does not support the video tag.
 					</video>
@@ -193,8 +203,12 @@ else
 <?php
         }
 ?>
-        </div>
-      </div>
+		</div>    
+<?php				    
+}
+?>
+				</div>
+			</div>
 <?php
 if ($event['SaveJPEGs'] & 3)
 {
@@ -233,7 +247,10 @@ if ($event['SaveJPEGs'] & 3)
           </div>
         </div>
       </div>
-    </div>
+<?php
+}
+}
+?>
   </div>
 </body>
 </html>

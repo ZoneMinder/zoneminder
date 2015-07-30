@@ -33,12 +33,13 @@ class Monitor;
 class StreamBase
 {
 public:
-    typedef enum { STREAM_JPEG, STREAM_RAW, STREAM_ZIP, STREAM_SINGLE, STREAM_MPEG } StreamType;
+    typedef enum { JPEG, RAW, ZIP, MPEG } StreamType;
+	typedef enum { SINGLE, STREAM, ALL, ALL_GAPLESS } StreamMode;
 
 protected:
     static const int MAX_STREAM_DELAY = 5; // Seconds
 
-    static const StreamType DEFAULT_TYPE = STREAM_JPEG;
+    static const StreamType DEFAULT_TYPE = JPEG;
     enum { DEFAULT_RATE=ZM_RATE_BASE };
     enum { DEFAULT_SCALE=ZM_SCALE_BASE };
     enum { DEFAULT_ZOOM=ZM_SCALE_BASE };
@@ -63,7 +64,8 @@ protected:
     Monitor *monitor;
 
     StreamType type;
-    const char *format;
+	StreamMode	mode;
+    const char *format; // used to pass to ffmpeg libs
     int replay_rate;
     int scale;
     int zoom;
@@ -113,6 +115,7 @@ public:
         monitor = 0;
 
         type = DEFAULT_TYPE;
+		mode = STREAM;
         format = "";
         replay_rate = DEFAULT_RATE;
         scale = DEFAULT_SCALE;
@@ -145,6 +148,10 @@ public:
 	void setStreamType( StreamType p_type )
     {
         type = p_type;
+    }
+	void setStreamMode( StreamMode p_mode )
+    {
+        mode = p_mode;
     }
 	void setStreamFormat( const char *p_format )
     {

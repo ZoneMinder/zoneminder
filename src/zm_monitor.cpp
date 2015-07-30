@@ -3788,7 +3788,7 @@ bool MonitorStream::sendFrame( const char *filepath, struct timeval *timestamp )
 {
     bool send_raw = ((scale>=ZM_SCALE_BASE)&&(zoom==ZM_SCALE_BASE));
 
-    if ( type != STREAM_JPEG )
+    if ( type != JPEG )
         send_raw = false;
     if ( !config.timestamp_on_capture && timestamp )
         send_raw = false;
@@ -3856,7 +3856,7 @@ bool MonitorStream::sendFrame( Image *image, struct timeval *timestamp )
         monitor->TimestampImage( send_image, timestamp );
 
 #if HAVE_LIBAVCODEC
-    if ( type == STREAM_MPEG )
+    if ( type == MPEG )
     {
         if ( !vid_stream )
         {
@@ -3886,16 +3886,16 @@ bool MonitorStream::sendFrame( Image *image, struct timeval *timestamp )
         fprintf( stdout, "--ZoneMinderFrame\r\n" );
         switch( type )
         {
-            case STREAM_JPEG :
+            case JPEG :
                 send_image->EncodeJpeg( img_buffer, &img_buffer_size );
                 fprintf( stdout, "Content-Type: image/jpeg\r\n" );
                 break;
-            case STREAM_RAW :
+            case RAW :
                 fprintf( stdout, "Content-Type: image/x-rgb\r\n" );
                 img_buffer = (uint8_t*)send_image->Buffer();
                 img_buffer_size = send_image->Size();
                 break;
-            case STREAM_ZIP :
+            case ZIP :
                 fprintf( stdout, "Content-Type: image/x-rgbz\r\n" );
                 unsigned long zip_buffer_size;
                 send_image->Zip( img_buffer, &zip_buffer_size );
@@ -3924,14 +3924,14 @@ bool MonitorStream::sendFrame( Image *image, struct timeval *timestamp )
             maxfps /= 1.5;
             Error( "Frame send time %d msec too slow, throttling maxfps to %.2f", frameSendTime, maxfps );
         }
-    }
+    } // endif HAVE_LIBAV and type==MPEG
     last_frame_sent = TV_2_FLOAT( now );
     return( true );
 }
 
 void MonitorStream::runStream()
 {
-    if ( type == STREAM_SINGLE )
+    if ( mode == SINGLE )
     {
         // Not yet migrated over to stream class
         monitor->SingleImage( scale );
@@ -3944,7 +3944,7 @@ void MonitorStream::runStream()
 
     updateFrameRate( monitor->GetFPS() );
 
-    if ( type == STREAM_JPEG )
+    if ( type == JPEG )
         fprintf( stdout, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n\r\n" );
 
     int last_read_index = monitor->image_buffer_count;

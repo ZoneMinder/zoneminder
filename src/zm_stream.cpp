@@ -249,7 +249,7 @@ bool StreamBase::sendTextFrame( const char *frame_text )
         image.Scale( scale );
     }
 #if HAVE_LIBAVCODEC
-    if ( type == STREAM_MPEG )
+    if ( type == MPEG )
     {
         if ( !vid_stream )
         {

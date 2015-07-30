@@ -155,24 +155,28 @@ int main(int argc, char** argv) {
 
     // Set stream type
     StreamBase::StreamType streamtype;
+    StreamBase::StreamMode streammode = StreamBase::STREAM;
+
     if (!strcasecmp("raw", mode))
-        streamtype = MonitorStream::STREAM_RAW;
+        streamtype = StreamBase::RAW;
     else if (!strcasecmp("mpeg", mode))
-        streamtype = MonitorStream::STREAM_MPEG;
+        streamtype = StreamBase::MPEG;
     else if (!strcasecmp("jpg", mode))
-        streamtype = MonitorStream::STREAM_JPEG;
+        streamtype = StreamBase::JPEG;
     else if (!strcasecmp("single", mode))
-        streamtype = MonitorStream::STREAM_SINGLE;
+		streammode = StreamBase::SINGLE;
     else if (!strcasecmp("zip", mode))
-        streamtype = MonitorStream::STREAM_ZIP;
+        streamtype = StreamBase::ZIP;
+    else if (!strcasecmp("mpeg", mode))
+        streamtype = StreamBase::MPEG;
     else
-        streamtype = MonitorStream::STREAM_MPEG;
+        streamtype = StreamBase::MPEG;
 
     if (debug) {
         // Show stream parameters
         printf("Stream parameters:\n");
         switch (streamtype) {
-            case MonitorStream::STREAM_MPEG:
+            case StreamBase::MPEG:
                 printf("Output mode (-e) = %s\n", "mpeg");
                 printf("Output format (-o) = %s\n", format);
                 break;
@@ -213,7 +217,7 @@ int main(int argc, char** argv) {
     stream.setStreamBuffer(buffer); // default = 0 (buffer)
     stream.setStreamStart(id); // default = 0 (monitor_id)
     stream.setStreamType(streamtype);
-    if (streamtype == MonitorStream::STREAM_MPEG) {
+    if (streamtype == StreamBase::MPEG) {
 #if HAVE_LIBAVCODEC
         if (debug) printf("HAVE_LIBAVCODEC is set\n");
         stream.setStreamFormat(format); // default = "" (format)

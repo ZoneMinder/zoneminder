@@ -847,7 +847,7 @@ bool EventStream::loadEventData( int event_id )
 
     mysql_free_result( result );
 
-    if ( forceEventChange || mode == MODE_ALL_GAPLESS )
+    if ( forceEventChange || mode == ALL_GAPLESS )
     {
         if ( replay_rate > 0 )
             curr_stream_time = event_data->frames[0].timestamp;
@@ -885,7 +885,7 @@ void EventStream::processCommand( const CmdMsg *msg )
             }
 
 	    // If we are in single event mode and at the last frame, replay the current event
-	    if ( (mode == MODE_SINGLE) && (curr_frame_id == event_data->frame_count) )
+	    if ( (mode == SINGLE) && (curr_frame_id == event_data->frame_count) )
 		curr_frame_id = 1;
 
             replay_rate = ZM_RATE_BASE;
@@ -1148,7 +1148,7 @@ void EventStream::checkEventLoaded()
 
     if ( reload_event )
     {
-        if ( forceEventChange || mode != MODE_SINGLE )
+        if ( forceEventChange || mode != SINGLE )
         {
             //Info( "SQL:%s", sql );
             if ( mysql_query( &dbconn, sql ) )
@@ -1218,7 +1218,7 @@ bool EventStream::sendFrame( int delta_us )
     snprintf( filepath, sizeof(filepath), Event::capture_file_format, event_data->path, curr_frame_id );
 
 #if HAVE_LIBAVCODEC
-    if ( type == STREAM_MPEG )
+    if ( type == MPEG )
     {
         Image image( filepath );
 
@@ -1244,7 +1244,7 @@ bool EventStream::sendFrame( int delta_us )
 
         fprintf( stdout, "--ZoneMinderFrame\r\n" );
 
-        if ( type != STREAM_JPEG )
+        if ( type != JPEG )
             send_raw = false;
 
         if ( send_raw )
@@ -1272,10 +1272,10 @@ bool EventStream::sendFrame( int delta_us )
 
             switch( type )
             {
-                case STREAM_JPEG :
+                case JPEG :
                     send_image->EncodeJpeg( img_buffer, &img_buffer_size );
                     break;
-                case STREAM_ZIP :
+                case ZIP :
 #if HAVE_ZLIB_H
                     unsigned long zip_buffer_size;
                     send_image->Zip( img_buffer, &zip_buffer_size );
@@ -1283,9 +1283,9 @@ bool EventStream::sendFrame( int delta_us )
                     break;
 #else
                     Error("zlib is required for zipped images. Falling back to raw image");
-                    type = STREAM_RAW;
+                    type = RAW;
 #endif // HAVE_ZLIB_H
-                case STREAM_RAW :
+                case RAW :
                     img_buffer = (uint8_t*)(send_image->Buffer());
                     img_buffer_size = send_image->Size();
                     break;
@@ -1297,13 +1297,13 @@ bool EventStream::sendFrame( int delta_us )
 
         switch( type )
         {
-            case STREAM_JPEG :
+            case JPEG :
                 fprintf( stdout, "Content-Type: image/jpeg\r\n" );
                 break;
-            case STREAM_RAW :
+            case RAW :
                 fprintf( stdout, "Content-Type: image/x-rgb\r\n" );
                 break;
-            case STREAM_ZIP :
+            case ZIP :
                 fprintf( stdout, "Content-Type: image/x-rgbz\r\n" );
                 break;
             default :
@@ -1357,7 +1357,7 @@ void EventStream::runStream()
 
     updateFrameRate( (double)event_data->frame_count/event_data->duration );
 
-    if ( type == STREAM_JPEG )
+    if ( mode == STREAM )
         fprintf( stdout, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n\r\n" );
 
     if ( !event_data )
@@ -1462,7 +1462,7 @@ void EventStream::runStream()
         if ( !paused )
         {
             curr_frame_id += replay_rate>0?1:-1;
-            if ( send_frame && type != STREAM_MPEG )
+            if ( send_frame && type != MPEG )
             {
                 Debug( 3, "dUs: %d", delta_us );
                 usleep( delta_us );
@@ -1472,9 +1472,9 @@ void EventStream::runStream()
         {
             usleep( (unsigned long)((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2))) );
         }
-    }
+    } // end while ! terminate
 #if HAVE_LIBAVCODEC
-    if ( type == STREAM_MPEG )
+    if ( type == MPEG )
         delete vid_stream;
 #endif // HAVE_LIBAVCODEC
 

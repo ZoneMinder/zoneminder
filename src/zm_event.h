@@ -190,7 +190,6 @@ public:
 class EventStream : public StreamBase
 {
 public:
-    typedef enum { MODE_SINGLE, MODE_ALL, MODE_ALL_GAPLESS } StreamMode;
 
 protected:
     struct FrameData {
@@ -216,7 +215,7 @@ protected:
 protected:
     static const int STREAM_PAUSE_WAIT = 250000; // Microseconds
 
-    static const StreamMode DEFAULT_MODE = MODE_SINGLE;
+    static const StreamMode DEFAULT_MODE = SINGLE;
 
 protected:
     StreamMode mode;

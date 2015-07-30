@@ -57,8 +57,9 @@ int main( int argc, const char *argv[] )
 	srand( getpid() * time( 0 ) );
 
 	enum { ZMS_MONITOR, ZMS_EVENT } source = ZMS_MONITOR;
-	enum { ZMS_JPEG, ZMS_MPEG, ZMS_RAW, ZMS_ZIP, ZMS_SINGLE } mode = ZMS_JPEG;
-	char format[32] = "";
+	StreamBase::StreamMode mode = StreamBase::STREAM; // When streaming a live view or event, default to STREAM.  If a frame is specified then default to SINGLE>
+	StreamBase::StreamType type = StreamBase::JPEG;
+	char format[32] = ""; //used to specify format to ffmpeg libs
 	int monitor_id = 0;
 	time_t event_time = 0;
 	int event_id = 0;
@@ -68,7 +69,7 @@ int main( int argc, const char *argv[] )
 	double maxfps = 10.0;
 	unsigned int bitrate = 100000;
 	unsigned int ttl = 0;
-    EventStream::StreamMode replay = EventStream::MODE_SINGLE;
+    EventStream::StreamMode replay = EventStream::SINGLE;
 	char username[64] = "";
 	char password[64] = "";
 	char auth[64] = "";
@@ -124,13 +125,36 @@ int main( int argc, const char *argv[] )
 			}
 			else if ( !strcmp( name, "mode" ) )
 			{
-				mode = !strcmp( value, "jpeg" )?ZMS_JPEG:ZMS_MPEG;
-				mode = !strcmp( value, "raw" )?ZMS_RAW:mode;
-				mode = !strcmp( value, "zip" )?ZMS_ZIP:mode;
-				mode = !strcmp( value, "single" )?ZMS_SINGLE:mode;
+				if ( !strcmp( value, "single" ) ) {
+					mode = StreamBase::SINGLE;
+				} else if ( !strcmp( value, "stream" ) ) {
+					mode = StreamBase::STREAM;
+				} else if ( !strcmp( value, "jpeg" ) ) {
+					type = StreamBase::JPEG;
+					// code for STREAM/SINGLE comes later.
+				} else if ( !strcmp( value, "raw" ) ) {
+					type = StreamBase::RAW;
+				
+				} else if ( !strcmp( value, "zip" ) ) {
+					type = StreamBase::ZIP;
+				} else {
+					Warning( "Unsupported mode: (%s) defaulting to ", value );
+				}	
 			}
 			else if ( !strcmp( name, "format" ) )
-				strncpy( format, value, sizeof(format) );
+				if ( !strcmp( value, "jpeg" ) ) {
+                    type = StreamBase::JPEG;
+                } else if ( !strcmp( value, "raw" ) ) {
+                    type = StreamBase::RAW;
+                } else if ( !strcmp( value, "zip" ) ) {
+                    type = StreamBase::ZIP;
+                } else if ( !strcmp( value, "mpeg" ) ) {
+                    type = StreamBase::MPEG;
+					strncpy( format, value, sizeof(format) );
+                } else {
+                    Warning( "Unsupported format: (%s) defaulting to ", value );
+					strncpy( format, value, sizeof(format) );
+                }
 			else if ( !strcmp( name, "monitor" ) )
 				monitor_id = atoi( value );
 			else if ( !strcmp( name, "time" ) )
@@ -151,8 +175,8 @@ int main( int argc, const char *argv[] )
 				ttl = atoi(value);
 			else if ( !strcmp( name, "replay" ) )
 			{
-				replay = !strcmp( value, "gapless" )?EventStream::MODE_ALL_GAPLESS:EventStream::MODE_SINGLE;
-				replay = !strcmp( value, "all" )?EventStream::MODE_ALL:replay;
+				replay = !strcmp( value, "gapless" )?StreamBase::ALL_GAPLESS:StreamBase::SINGLE;
+				replay = !strcmp( value, "all" )?StreamBase::ALL:replay;
 			}
 			else if ( !strcmp( name, "connkey" ) )
 				connkey = atoi(value);
@@ -269,28 +293,15 @@ int main( int argc, const char *argv[] )
             return( -1 );
 		} 
 
-        if ( mode == ZMS_JPEG )
-        {
-            stream.setStreamType( MonitorStream::STREAM_JPEG );
-		}
-		else if ( mode == ZMS_RAW )
-		{
-            stream.setStreamType( MonitorStream::STREAM_RAW );
-		}
-		else if ( mode == ZMS_ZIP )
-		{
-            stream.setStreamType( MonitorStream::STREAM_ZIP );
-		}
-		else if ( mode == ZMS_SINGLE )
-		{
-            stream.setStreamType( MonitorStream::STREAM_SINGLE );
-        }
-        else
+		stream.setStreamMode( mode );
+		stream.setStreamType( type );
+
+		if ( type == StreamBase::MPEG )
         {
 #if HAVE_LIBAVCODEC
             stream.setStreamFormat( format );
             stream.setStreamBitrate( bitrate );
-            stream.setStreamType( MonitorStream::STREAM_MPEG );
+            stream.setStreamType( type );
 #else // HAVE_LIBAVCODEC
             Error( "MPEG streaming of '%s' attempted while disabled", query );
             fprintf( stderr, "MPEG streaming is disabled.\nYou should configure with the --with-ffmpeg option and rebuild to use this functionality.\n" );
@@ -317,16 +328,13 @@ int main( int argc, const char *argv[] )
         {
             stream.setStreamStart( event_id, frame_id );
         }
-        if ( mode == ZMS_JPEG )
-        {
-            stream.setStreamType( EventStream::STREAM_JPEG );
-        }
-        else
+         stream.setStreamMode( mode );
+         stream.setStreamType( type );
+        if ( type == StreamBase::MPEG )
         {
 #if HAVE_LIBAVCODEC
             stream.setStreamFormat( format );
             stream.setStreamBitrate( bitrate );
-            stream.setStreamType( EventStream::STREAM_MPEG );
 #else // HAVE_LIBAVCODEC
             Error( "MPEG streaming of '%s' attempted while disabled", query );
             fprintf( stderr, "MPEG streaming is disabled.\nYou should ensure the ffmpeg libraries are installed and detected and rebuild to use this functionality.\n" );
@@ -334,7 +342,13 @@ int main( int argc, const char *argv[] )
             zmDbClose();
             return( -1 );
 #endif // HAVE_LIBAVCODEC
-        }
+        } else {
+            Error( "Unknown format", query );
+            fprintf( stderr, "Unknown format.\n" );
+            logTerm();
+            zmDbClose();
+            return( -1 );
+		}
         stream.runStream();
     }
 

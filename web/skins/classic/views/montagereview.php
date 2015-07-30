@@ -46,6 +46,13 @@
 //          - Consolidated frame in-memory records to contiguous time rather than individual frame-seconds (still requires a good deal of browser memory)
 //          - Took out a lot of the integral second rounding so that it works better at subsequent replay speeds
 //
+// Jul 30 2015 update
+//          - Smoother adjustment of frame rate, fixed upper/lower limits (caching can cause runaway) (and a display, probably temporary, at the bottom)
+//          - Change to using index.php?view= instead of direct access so image access is authenticated
+//          - Add fractional speed for replay, and non-linear speed slider, and update current setting as slider moves (not when done)
+//          - Experimenting with a black background for monitors (this should be replaced with proper CSS later)
+//
+
 if ( !canView( 'Events' ) )
 {
     $view = "error";
@@ -66,9 +73,10 @@ else
 
 // Note that this finds incomplete events as well, and any frame records written, but still cannot "see" to the end frame
 // if the bulk record has not been written - to be able to include more current frames reduce bulk frame sizes (event size can be large)
+// Note we round up just a bit on the end time as otherwise you get gaps, like 59.78 to 00 in the next second, which can give blank frames when moved through slowly.
 
 $eventsSql = "
-    select E.Id,E.Name,UNIX_TIMESTAMP(E.StartTime) as StartTimeSecs,UNIX_TIMESTAMP(max(DATE_ADD(E.StartTime, Interval Delta Second))) as CalcEndTimeSecs, E.Length,max(F.FrameId) as Frames,E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId
+    select E.Id,E.Name,UNIX_TIMESTAMP(E.StartTime) as StartTimeSecs,UNIX_TIMESTAMP(max(DATE_ADD(E.StartTime, Interval Delta+0.5 Second))) as CalcEndTimeSecs, E.Length,max(F.FrameId) as Frames,E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId
     from Events as E
     inner join Monitors as M on (E.MonitorId = M.Id)
     inner join Frames F on F.EventId=E.Id
@@ -106,17 +114,32 @@ if ( isset($_REQUEST['scale']) )
 else
     $defaultScale=0.3;
 
+$speeds=[0, 0.1, 0.25, 0.5, 0.75, 1.0, 1.5, 2, 3, 5, 10, 20, 50];
+
 if (isset($_REQUEST['speed']) )
     $defaultSpeed=validHtmlStr($_REQUEST['speed']);
 else
     $defaultSpeed=1;
 
+$speedIndex=5; // default to 1x
+for ($i=0; $i<count($speeds); $i++)
+    if($speeds[$i]==$defaultSpeed)
+    {
+        $speedIndex=$i;
+        break;
+    }
+
 if (isset($_REQUEST['current']) )
     $defaultCurrentTime=validHtmlStr($_REQUEST['current']);
+
 
 $initialModeIsLive=0;
 if(isset($_REQUEST['live']) )
     $initialModeIsLive=1;
+
+$initialDisplayInterval=1000;
+if(isset($_REQUEST['displayinterval']))
+    $initialDisplayInterval=validHtmlStr($_REQUEST['displayinterval']);
 
 $archive=1;
 if (isset($_REQUEST['archive']) )
@@ -157,14 +180,14 @@ input[type=range]::-ms-tooltip {
     </div>
 
     <div style='display: inline-flex; border: 1px solid black;'>
-        <label style='margin:5px;' for=scaleslider><?php echo translate('Scale') ?></label>
-        <input id=scaleslider type=range min=0.10 max=1.00 value=<?php echo $defaultScale ?> step=0.10 width=20% onchange='changescale(this.value)'/>
-        <output style='margin:5px;' id=scaleslideroutput from=scaleslider><?php echo $defaultScale?>x</output>
+        <label style='margin:5px;' for=scaleslider><?php echo translate('Scale')?></label>
+        <input id=scaleslider type=range min=0.1 max=1.00 value=<?php echo $defaultScale ?> step=0.10 width=20% onchange='changescale(this.value)' oninput='inputscale(this.value)'/>
+        <output style='margin:5px;' id=scaleslideroutput from=scaleslider><?php echo number_format((float)$defaultScale,2,'.','')?> x</output>
     </div>
     <div id='SpeedDiv' style='display: inline-flex; border: 1px solid black;'>
         <label style='margin:5px;' for=speedslider><?php echo translate('Speed') ?></label>
-        <input id=speedslider type=range min=0 max=50 value=<?php echo $defaultSpeed ?> step=1 wdth=20% onchange='changespeed(this.value)'/>
-        <output style='margin:5px;' id=speedslideroutput from=speedslider><?php echo $defaultSpeed ?> fps</output>
+        <input id=speedslider type=range min=0 max=<?php echo count($speeds)?> value=<?php echo $speedIndex ?> step=1 wdth=20% onchange='changespeed(this.value)' oninput='inputspeed(this.value)'/>
+        <output style='margin:5px;' id=speedslideroutput from=speedslider><?php echo $speeds[$speedIndex] ?> fps</output>
     </div>
     <div style='display: inline-flex; border: 1px solid black; flex-flow: row wrap;'>
         <button type='button' id=panleft   onclick='panleft()  '>&lt;&nbsp;<?php echo translate('Pan&nbsp;Left') ?></button>
@@ -189,8 +212,9 @@ input[type=range]::-ms-tooltip {
 <script>
 var currentScale=<?php echo $defaultScale?>;
 var liveMode=<?php echo $initialModeIsLive?>;
-var currentSpeed=<?php echo $defaultSpeed?>;  // slider scale, which is only for replay and relative to real time
-var currentDisplayInterval=1000; // will be set based on performance, this is the display interval in milliseconds for history, and fps for live, and dynamically determined (in ms)
+var currentSpeed=<?php echo $speeds[$speedIndex]?>;  // slider scale, which is only for replay and relative to real time
+var speedIndex=<?php echo $speedIndex?>;
+var currentDisplayInterval=<?php echo $initialDisplayInterval?>;  // will be set based on performance, this is the display interval in milliseconds for history, and fps for live, and dynamically determined (in ms)
 var playSecsperInterval;         // How many seconds of recorded image we play per refresh determined by speed (replay rate) and display interval;
 var timerInterval;               // milliseconds between interrupts
 var timerObj;               // object to hold timer interval;
@@ -273,8 +297,7 @@ else
     $maxTimeSecs = strtotime($maxTime);
 }
 
-// If we had any alarms in those events, this builds the list of all alarm frames 
-// thought for later in case people have a LOT of alarms - change these to ranges, built as it loads, so as to minimize list length
+// If we had any alarms in those events, this builds the list of all alarm frames, but consolidated down to (nearly) contiguous segments
 
 echo "var frameMonitorId = [];\n";
 echo "var frameTimeStampFromSecs = [];\n";
@@ -329,7 +352,7 @@ if($anyAlarms)
 // Monitor images - these had to be loaded after the monitors used were determined (after loading events)
 
 echo "</script>\n";
-
+echo "<div id='monitors' style='background-color:black;' width='100%' height='100%'>\n";
 foreach ($monitors as $m)
 {
     if(!empty($eventsMonitorsFound[$m['Id']]))  // only save the monitor if it's part of these events
@@ -337,6 +360,8 @@ foreach ($monitors as $m)
           echo "<canvas width='" . $m['Width'] * $defaultScale . "px' height='"  . $m['Height'] * $defaultScale . "px' id='Monitor" . $m['Id'] . "' style='border:3px solid " . $m['WebColour'] . "' onclick='showOneEvent(" . $m['Id'] . ")'>No Canvas Support!!</canvas>\n";
     }
 }
+echo "</div>\n";
+echo "<p id='fps'>evaluating fps</p>\n";
 echo "<script>\n";
 
 echo "var maxScore=$maxScore;\n";  // used to skip frame load if we find no alarms.
@@ -368,6 +393,8 @@ foreach ($monitors as $m)
         echo "  monitorHeight["          . $m['Id'] . "]=" . $m['Height'] . ";";
         echo "  monitorIndex["           . $m['Id'] . "]=" . $numMonitors . ";";
         echo "  monitorName["            . $m['Id'] . "]=\"" . $m['Name'] . "\"; ";
+        echo "  monitorLoadStartTimems[" . $m['Id'] . "]=0; ";
+        echo "  monitorLoadEndTimems["   . $m['Id'] . "]=0; ";
         echo "  monitorCanvasObj["       . $m['Id'] . "]=document.getElementById('Monitor" . $m['Id'] . "');";
         echo "  monitorCanvasCtx["       . $m['Id'] . "]=monitorCanvasObj[" . $m['Id'] . "].getContext('2d');\n";
         $numMonitors += 1;
@@ -382,6 +409,12 @@ if(isset($defaultCurrentTime))
     echo "var currentTimeSecs=" . strtotime($defaultCurrentTime) . ";\n";
 else
     echo "var currentTimeSecs=" . ($minTimeSecs + $maxTimeSecs)/2 . ";\n";
+
+echo "var speeds=[";
+for ($i=0; $i<count($speeds); $i++)
+    echo (($i>0)?", ":"") . $speeds[$i];
+echo "];\n";
+
 
 ?>
 
@@ -420,7 +453,8 @@ function SetImageSource(monId,val)
             if(eventMonitorId[i]==monId && val >= eventStartTimeSecs[i] && val <= eventEndTimeSecs[i])
             {
                 frame=parseInt((val - eventStartTimeSecs[i])/(eventEndTimeSecs[i]-eventStartTimeSecs[i])*eventFrames[i])+1;
-                img = eventPath[i] + zeropad.substr(frame.toString().length) + frame.toString() + "-capture.jpg";
+//                img = eventPath[i] + zeropad.substr(frame.toString().length) + frame.toString() + "-capture.jpg";
+                  img = "index.php?view=image&path=" + eventPath[i].substring(6) + zeropad.substr(frame.toString().length) + frame.toString() + "-capture.jpg";
                 i=eventPath.length+1;  // force loop exit
                return img;
             }
@@ -433,6 +467,7 @@ function evaluateLoadTimes()
 {   // Only consider it a completed event if we load ALL monitors, then zero all and start again
     var start=0;
     var end=0;
+    if(liveMode!=1 && currentSpeed==0) return;  // don't evaluate when we are not moving as we can do nothing really fast.
     for(var i=0; i<monitorIndex.length; i++)
         if( monitorName[i]>"")
         {
@@ -454,21 +489,30 @@ function evaluateLoadTimes()
         avgFrac += freeTimeLastIntervals[i];
     avgFrac = avgFrac / imageLoadTimesEvaluated;
     // The larger this is(positive) the faster we can go
-    if      (avgFrac >= 0.8) currentDisplayInterval = (currentDisplayInterval * 0.5).toFixed(1);  // we can go much faster
-    else if (avgFrac >= 0.5) currentDisplayInterval = (currentDisplayInterval * 0.8).toFixed(1);
-    else if (avgFrac >= 0.3) currentDisplayInterval = (currentDisplayInterval);  // this is a rough target 
-    else if (avgFrac >= 0.1) currentDisplayInterval = (currentDisplayInterval * 1.3).toFixed(1);
-    else currentDisplayInterval = (currentDisplayInterval * 2.0).toFixed(1);
+    if      (avgFrac >= 0.9)  currentDisplayInterval = (currentDisplayInterval * 0.50).toFixed(1);  // we can go much faster
+    else if (avgFrac >= 0.8)  currentDisplayInterval = (currentDisplayInterval * 0.55).toFixed(1);
+    else if (avgFrac >= 0.7)  currentDisplayInterval = (currentDisplayInterval * 0.60).toFixed(1);
+    else if (avgFrac >= 0.6)  currentDisplayInterval = (currentDisplayInterval * 0.65).toFixed(1);
+    else if (avgFrac >= 0.5)  currentDisplayInterval = (currentDisplayInterval * 0.70).toFixed(1);
+    else if (avgFrac >= 0.4)  currentDisplayInterval = (currentDisplayInterval * 0.80).toFixed(1);
+    else if (avgFrac >= 0.35) currentDisplayInterval = (currentDisplayInterval * 0.90).toFixed(1);
+    else if (avgFrac >= 0.3)  currentDisplayInterval = (currentDisplayInterval * 1.00).toFixed(1);
+    else if (avgFrac >= 0.25) currentDisplayInterval = (currentDisplayInterval * 1.20).toFixed(1);
+    else if (avgFrac >= 0.2)  currentDisplayInterval = (currentDisplayInterval * 1.50).toFixed(1);
+    else if (avgFrac >= 0.1)  currentDisplayInterval = (currentDisplayInterval * 2.00).toFixed(1);
+    else currentDisplayInterval                      = (currentDisplayInterval * 2.50).toFixed(1);
+    currentDisplayInterval=Math.min(Math.max(currentDisplayInterval, 30),10000);   // limit this from about 30fps to .1 fps
     imageLoadTimesEvaluated=0;
-    changespeed(currentSpeed);
+    changespeed(speedIndex);
+    document.getElementById("fps").innerHTML="Display refresh rate is " + (1000 / currentDisplayInterval).toFixed(1) + " per second, avgFrac=" + avgFrac.toFixed(3) + ".";
 }
 
 function imagedone(obj, monId, success)
 {
-    monitorCanvasCtx[monId].clearRect(0,0,monitorCanvasObj[monId].width,monitorCanvasObj[monId].height);  // just in case image is no good
+// don't need?     monitorCanvasCtx[monId].clearRect(0,0,monitorCanvasObj[monId].width,monitorCanvasObj[monId].height);  // just in case image is no good
     if(success)
     {
-        monitorCanvasCtx[monId].drawImage(monitorImageObject[monId],0,0,monitorCanvasObj[monId].width,monitorCanvasObj[monId].height); 
+        monitorCanvasCtx[monId].drawImage(monitorImageObject[monId],0,0,monitorCanvasObj[monId].width,monitorCanvasObj[monId].height);
         monitorLoadEndTimems[monId] = new Date().getTime(); // elapsed time to load
         evaluateLoadTimes();
     }
@@ -487,7 +531,7 @@ function imagedone(obj, monId, success)
 
 function loadImage2Monitor(monId,url)
 {
-    if(monitorLoading[monId])
+    if(monitorLoading[monId] && monitorImageObject[monId].src != url )  // never queue the same image twice (if it's loading it has to be defined, right?
     {
        monitorLoadingStageURL[monId]=url;   // we don't care if we are overriting, it means it didn't change fast enough
     }
@@ -500,12 +544,18 @@ function loadImage2Monitor(monId,url)
         monitorImageObject[monId].onload  = function() {imagedone(this, monId,true )};
         monitorImageObject[monId].onerror = function() {imagedone(this, monId,false)};
         monitorImageObject[monId].src=url;  // starts a load but doesn't refresh yet, wait until ready
-        monitorLoading[monId]=true; 
+        monitorLoading[monId]=true;
         monitorLoadStartTimems[monId]=new Date().getTime();
     }
 }
 
-function changescale(newscale)
+function inputscale(newscale) // updates slider only
+{
+    document.getElementById('scaleslideroutput').value = parseFloat(newscale).toFixed(2).toString() + " x";
+    return;
+}
+
+function changescale(newscale) // makes actual change
 {
     for(var i=0; i<monitorIndex.length; i++)
     {
@@ -515,20 +565,25 @@ function changescale(newscale)
             monitorCanvasObj[i].height=monitorHeight[i]*newscale;
           }
     }
-    document.getElementById('scaleslideroutput').value = newscale.toString() + " x";
+    document.getElementById('scaleslideroutput').value = parseFloat(newscale).toFixed(2).toString() + " x";
     outputUpdate(currentTimeSecs);
     currentScale=newscale;
     return;
 }
+function inputspeed(val) // updates slider only
+{
+    document.getElementById('speedslideroutput').innerHTML = parseFloat(speeds[val]).toFixed(2).toString() + " x";
+}
 
-function changespeed(val) // Allow float time so we can do fractions (note this just changes playback rate not display interval
+function changespeed(val)   // Note parameter is the index not the speed
 {
     var t;
     if(liveMode==1) return;  // we shouldn't actually get here but just in case
-    currentSpeed=parseFloat(val);
+    currentSpeed=parseFloat(speeds[val]);
+    speedIndex=val;
     if( timerInterval != currentDisplayInterval && timerInterval == 0)  TimerFire(); // if the timer isn't firing we need to trigger it to update
     playSecsperInterval = currentSpeed * currentDisplayInterval / 1000;
-    document.getElementById('speedslideroutput').innerHTML = currentSpeed.toString() + " x";
+    document.getElementById('speedslideroutput').innerHTML = currentSpeed.toFixed(2).toString() + " x";
 }
 
 function TimerFire()
@@ -777,6 +832,7 @@ function clicknav(minSecs,maxSecs,arch,live)  // we use the current time if we c
         minStr="&minTime=" + secs2dbstr(minSecs);
     if(arch==0)
         archiveStr="&archive=0";
+    var intervalStr="&displayinterval=" + currentDisplayInterval.toString();
     if(minSecs && maxSecs)
     {
         if(currentTimeSecs > minSecs && currentTimeSecs < maxSecs)  // make sure time is in the new range
@@ -786,7 +842,7 @@ function clicknav(minSecs,maxSecs,arch,live)  // we use the current time if we c
     if(live==1)
         liveStr="&live";
     var groupStr=<?php if($group=="") echo '""'; else echo "\"&group=$group\""; fi; ?>;
-    var uri = "?view=" + currentView + groupStr + minStr + maxStr + currentStr + liveStr + "&scale=" + document.getElementById("scaleslider").value + "&speed=" + document.getElementById("speedslider").value + "&archive=" + arch;
+    var uri = "?view=" + currentView + groupStr + minStr + maxStr + currentStr + intervalStr + liveStr + "&scale=" + document.getElementById("scaleslider").value + "&speed=" + speeds[document.getElementById("speedslider").value] + "&archive=" + arch;
     window.location=uri;
 }
 
@@ -852,7 +908,7 @@ function showOneEvent(monId)  // link out to the normal view of one event's data
 liveview(<?php echo $initialModeIsLive?>);
 drawGraph();
 timerObj=setInterval(TimerFire,timerInterval=currentDisplayInterval); //start the timer
-changespeed(<?php echo $defaultSpeed ?>);
+changespeed(<?php echo $speedIndex ?>);
 outputUpdate(currentTimeSecs);
 window.addEventListener("resize",drawGraph);
 

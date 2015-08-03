@@ -528,7 +528,7 @@ function SetImageSource(monId,val)
 {
     if(liveMode==1)
     {
-        var effectiveScale = monitorCanvasObj[monId].width / monitorWidth[monId];
+        var effectiveScale = 100 * monitorCanvasObj[monId].width / monitorWidth[monId];
         return "../cgi-bin/nph-zms?mode=single&monitor=" + monId.toString() + "&scale=" + effectiveScale + "&cachekill=" + Math.random().toString();
     }
     else

@@ -26,6 +26,25 @@
 // It also will do a pseudo play function from history, as well as a live display of images.
 //
 
+// Valid query string:
+//
+//        &maxTime, minTime = string formats (locale) of starting and ending time for history (pass both or none), default = last hour
+//
+//        &current = string format of time, where the slider is positioned first in history mode (normally only used in reloads, default = half scale)
+//
+//        &speed = one of the valid speeds below (see $speeds in php section, default = 1.0)
+//
+//        &scale = image sie scale (.1 to 1.0, or 1.1 = fit, default = fit)
+//
+//        &live=1 whether to start in live mode, 1 = yes, 0 = no
+//
+//        &archive = if "1" then include archive frames, if "0" do not, default "1"
+//
+//        &z1, &z2, etc. = initial monitor specific zoom, numeral is a monitor id, default = 1.0, used in page reloads normally
+//
+//        &group = group number of monitors to display, comes from console if set, default is none (i.e. not limited by group)
+//
+
 // It takes very high bandwidth to the server, and a pretty fast client to keep up with the image rate.  To reduce the rate
 // change the playback slider to 0 and then it does not try to play at the same time it is scrubbing.
 //
@@ -56,6 +75,8 @@
 //          - Add max fit, make it default
 //          - Remove timeline in live mode, and restore when switched back (live button becomes toggle)
 //          - Add +/- zooms to individual monitors so you can adjust size, persist across reload buttons (only)
+//          - Change default to 1 hour and live mode (reduce workload on initial load, let people ask for huge history amounts)
+//          - Since this may be run as a standalone window for shortcuts, etc., add a "console" link to get back to the console
 //
 if ( !canView( 'Events' ) )
 {
@@ -107,11 +128,20 @@ if ( !empty($user['MonitorIds']) )
 // Parse input parameters -- note for future, validate/clean up better in case we don't get called from self.
 // Live overrides all the min/max stuff but it is still processed
 
+// The default (nothing at all specified) is for 1 hour so we do not read the whole database
+
+
+if ( !isset($_REQUEST['minTime']) && !isset($_REQUEST['maxTime']) )
+{
+    $maxTime=strftime("%c",time());
+    $minTime=strftime("%c",time() - 3600);
+}
 if ( isset($_REQUEST['minTime']) )
     $minTime = validHtmlStr($_REQUEST['minTime']);
 
 if ( isset($_REQUEST['maxTime']) )
     $maxTime = validHtmlStr($_REQUEST['maxTime']);
+
 
 if ( isset($_REQUEST['scale']) )
     $defaultScale=validHtmlStr($_REQUEST['scale']);
@@ -137,9 +167,9 @@ if (isset($_REQUEST['current']) )
     $defaultCurrentTime=validHtmlStr($_REQUEST['current']);
 
 
-$initialModeIsLive=0;
-if(isset($_REQUEST['live']) )
-    $initialModeIsLive=1;
+$initialModeIsLive=1;
+if(isset($_REQUEST['live']) && $_REQUEST['live']=='0' )
+    $initialModeIsLive=0;
 
 $initialDisplayInterval=1000;
 if(isset($_REQUEST['displayinterval']))
@@ -192,6 +222,7 @@ input[type=range]::-ms-tooltip {
   <div id="page">
     <div id="header">
       <div id="headerButtons">
+        <a href="./" "><?php echo translate('Console') ?></a>
         <a href="#" onclick="closeWindow();"><?php echo translate('Close') ?></a>
       </div>
       <h2><?php echo translate('Montage Review') ?></h2>
@@ -245,7 +276,7 @@ var liveMode=<?php echo $initialModeIsLive?>;
 var currentSpeed=<?php echo $speeds[$speedIndex]?>;  // slider scale, which is only for replay and relative to real time
 var speedIndex=<?php echo $speedIndex?>;
 var currentDisplayInterval=<?php echo $initialDisplayInterval?>;  // will be set based on performance, this is the display interval in milliseconds for history, and fps for live, and dynamically determined (in ms)
-var playSecsperInterval;         // How many seconds of recorded image we play per refresh determined by speed (replay rate) and display interval;
+var playSecsperInterval=1;         // How many seconds of recorded image we play per refresh determined by speed (replay rate) and display interval; (default=1 if coming from live)
 var timerInterval;               // milliseconds between interrupts
 var timerObj;               // object to hold timer interval;
 var freeTimeLastIntervals=[];    // Percentage of current interval used in loading most recent image
@@ -410,7 +441,7 @@ foreach ($monitors as $m)
     echo "  monitorCanvasCtx["       . $m['Id'] . "]=monitorCanvasObj[" . $m['Id'] . "].getContext('2d'); ";
     echo "  monitorNormalizeScale["  . $m['Id'] . "]=" . ( $m['Width'] * $m['Height'] / $avgArea ) . "; ";
     $zoomScale=1.0;
-    if(isset($_REQUEST[ 'z' . $m[Id] ]) )
+    if(isset($_REQUEST[ 'z' . $m['Id'] ]) )
         $zoomScale = floatval( validHtmlStr($_REQUEST[ 'z' . $m['Id'] ]) );
     echo "  monitorZoomScale["       . $m['Id'] . "]=" . $zoomScale . ";";
     echo "  monitorPtr["         . $numMonitors . "]=" . $m['Id'] . ";\n";
@@ -878,9 +909,9 @@ function clicknav(minSecs,maxSecs,arch,live)  // we use the current time if we c
         if(currentTimeSecs > minSecs && currentTimeSecs < maxSecs)  // make sure time is in the new range
         currentStr="&current=" + secs2dbstr(currentTimeSecs);
     }
-    var liveStr="";
+    var liveStr="&live=0";
     if(live==1)
-        liveStr="&live";
+        liveStr="&live=1";
     var zoomStr="";
     for(var i=0; i<numMonitors; i++)
         if(monitorZoomScale[monitorPtr[i]] < 0.99 || monitorZoomScale[monitorPtr[i]] > 1.01)  // allow for some up/down changes and just treat as 1 of almost 1

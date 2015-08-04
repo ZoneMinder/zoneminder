@@ -425,10 +425,6 @@ Monitor::Monitor(
             Error( "Shared data not initialised by capture daemon for monitor %s", name );
             exit( -1 );
         }
-        else
-        {
-            Warning( "Shared data not initialised by capture daemon, some query functions may not be available or produce invalid results for monitor %s", name );
-        }
     }
 
 	// Will this not happen every time a monitor is instantiated?  Seems like all the calls to the Monitor constructor pass a zero for n_zones, then load zones after..

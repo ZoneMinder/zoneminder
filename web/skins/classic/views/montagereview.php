@@ -142,6 +142,13 @@ if ( isset($_REQUEST['minTime']) )
 if ( isset($_REQUEST['maxTime']) )
     $maxTime = validHtmlStr($_REQUEST['maxTime']);
 
+// AS a special case a "all" is passed in as an exterme interval - if so , clear them here and let the database query find them
+
+if ( (strtotime($maxTime) - strtotime($minTime))/(365*24*3600) > 30 ) // test years
+{
+    $minTime=null;
+    $maxTime=null;
+}
 
 if ( isset($_REQUEST['scale']) )
     $defaultScale=validHtmlStr($_REQUEST['scale']);
@@ -901,6 +908,11 @@ function clicknav(minSecs,maxSecs,arch,live)  // we use the current time if we c
     }
     if(maxSecs>0)
         minStr="&minTime=" + secs2dbstr(minSecs);
+    if(maxSecs==0 && minSecs==0)
+    {
+        minStr="&minTime=01/01/1950 12:00:00";
+        maxStr="&maxTime=12/31/2035 12:00:00";
+    }
     if(arch==0)
         archiveStr="&archive=0";
     var intervalStr="&displayinterval=" + currentDisplayInterval.toString();

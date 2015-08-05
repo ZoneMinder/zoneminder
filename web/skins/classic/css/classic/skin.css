@@ -242,6 +242,11 @@ ul.tabList li.active a {
     font-size: 120%;
 }
 
+#content table > tbody > tr:hover
+{
+    background-color: #EEE;
+}
+
 .overlay {
     font-size: 11px;
 }

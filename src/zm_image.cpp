@@ -17,7 +17,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 #include "zm.h"
-//#include "zm_font.h"
+#include "zm_font.h"
 #include "zm_bigfont.h"
 #include "zm_image.h"
 #include "zm_utils.h"
@@ -1721,6 +1721,10 @@ void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colou
     const Rgb bg_rgb_col = rgb_convert(bg_colour,subpixelorder);
     const bool bg_trans = (bg_colour == RGB_TRANSPARENT);
 
+    int zm_text_size = 0x80;
+    if (ZM_TEXT_SIZE == 2)
+        zm_text_size = 0x8000;
+
     while ( (index < text_len) && (line_len = strcspn( line, "\n" )) )
     {
 
@@ -1760,10 +1764,14 @@ void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colou
                 unsigned char *temp_ptr = ptr;
                 for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ )
                 {
-                    int f = fontdata[(line[c] * CHAR_HEIGHT) + r];
+                    int f;
+                    if (ZM_TEXT_SIZE == 2)
+                        f = bigfontdata[(line[c] * CHAR_HEIGHT) + r];
+                    else
+                        f = fontdata[(line[c] * CHAR_HEIGHT) + r];
                     for ( unsigned int i = 0; i < CHAR_WIDTH && x < hi_line_x; i++, x++, temp_ptr++ )
                     {
-                        if ( f & (0x8000 >> i) )
+                        if ( f & (zm_text_size >> i) )
                         {
                             if ( !fg_trans )
                                 *temp_ptr = fg_bw_col;
@@ -1786,10 +1794,14 @@ void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colou
                 unsigned char *temp_ptr = ptr;
                 for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ )
                 {
-                    int f = fontdata[(line[c] * CHAR_HEIGHT) + r];
+                    int f;
+                    if (ZM_TEXT_SIZE == 2)
+                        f = bigfontdata[(line[c] * CHAR_HEIGHT) + r];
+                    else
+                        f = fontdata[(line[c] * CHAR_HEIGHT) + r];
                     for ( unsigned int i = 0; i < CHAR_WIDTH && x < hi_line_x; i++, x++, temp_ptr += colours )
                     {
-                        if ( f & (0x8000 >> i) )
+                        if ( f & (zm_text_size >> i) )
                         {
                             if ( !fg_trans )
                             {
@@ -1818,10 +1830,14 @@ void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colou
                 Rgb* temp_ptr = (Rgb*)ptr;
                 for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ )
                 {
-                    int f = fontdata[(line[c] * CHAR_HEIGHT) + r];
+                    int f;
+                    if (ZM_TEXT_SIZE == 2)
+                        f = bigfontdata[(line[c] * CHAR_HEIGHT) + r];
+                    else
+                        f = fontdata[(line[c] * CHAR_HEIGHT) + r];
                     for ( unsigned int i = 0; i < CHAR_WIDTH && x < hi_line_x; i++, x++, temp_ptr++ )
                     {
-                        if ( f & (0x8000 >> i) )
+                        if ( f & (zm_text_size >> i) )
                         {
                             if ( !fg_trans )
                             {

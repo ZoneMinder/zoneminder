@@ -43,6 +43,7 @@ extern "C"
 #define ZM_BUFTYPE_NEW 2
 #define ZM_BUFTYPE_AVMALLOC 3
 #define ZM_BUFTYPE_ZM 4
+#define ZM_TEXT_SIZE 2
 
 typedef void (*blend_fptr_t)(const uint8_t*, const uint8_t*, uint8_t*, unsigned long, double);
 typedef void (*delta_fptr_t)(const uint8_t*, const uint8_t*, uint8_t*, unsigned long);
@@ -122,8 +123,7 @@ protected:
 	}
 
 public:
-	/* enum { CHAR_HEIGHT=11, CHAR_WIDTH=6 }; */
-	enum { CHAR_HEIGHT=22, CHAR_WIDTH=14 };
+        enum { CHAR_HEIGHT=11*ZM_TEXT_SIZE, CHAR_WIDTH=6*ZM_TEXT_SIZE };
 	enum { LINE_HEIGHT=CHAR_HEIGHT+0 };
 
 protected:

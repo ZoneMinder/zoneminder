@@ -38,11 +38,11 @@
 //
 //        &live=1 whether to start in live mode, 1 = yes, 0 = no
 //
-//        &archive = if "1" then include archive frames, if "0" do not, default "1"
-//
 //        &z1, &z2, etc. = initial monitor specific zoom, numeral is a monitor id, default = 1.0, used in page reloads normally
 //
 //        &group = group number of monitors to display, comes from console if set, default is none (i.e. not limited by group)
+//
+//        &fit = if present then use fit-mode and ignore scale
 //
 
 // It takes very high bandwidth to the server, and a pretty fast client to keep up with the image rate.  To reduce the rate
@@ -78,6 +78,13 @@
 //          - Change default to 1 hour and live mode (reduce workload on initial load, let people ask for huge history amounts)
 //          - Since this may be run as a standalone window for shortcuts, etc., add a "console" link to get back to the console
 //
+// August 6, 2015 update
+//          - Fix regression on linkage to events when starting and staying in live mode
+//          - Remove zoom/pan buttons in live mode as they are meaningless
+//          - Change "fit" to a button, and remove scale when fit is in use (this means fit/live has no sliders)
+//
+
+
 if ( !canView( 'Events' ) )
 {
     $view = "error";
@@ -150,10 +157,14 @@ if ( (strtotime($maxTime) - strtotime($minTime))/(365*24*3600) > 30 ) // test ye
     $maxTime=null;
 }
 
+$fitMode=1;
+if (isset($_REQUEST['fit']) && $_REQUEST['fit']=='0' )
+    $fitMode=0;
+
 if ( isset($_REQUEST['scale']) )
     $defaultScale=validHtmlStr($_REQUEST['scale']);
 else
-    $defaultScale=1.1; // fit
+    $defaultScale=1;
 
 $speeds=[0, 0.1, 0.25, 0.5, 0.75, 1.0, 1.5, 2, 3, 5, 10, 20, 50];
 
@@ -181,16 +192,6 @@ if(isset($_REQUEST['live']) && $_REQUEST['live']=='0' )
 $initialDisplayInterval=1000;
 if(isset($_REQUEST['displayinterval']))
     $initialDisplayInterval=validHtmlStr($_REQUEST['displayinterval']);
-
-$archive=1;
-if (isset($_REQUEST['archive']) )
-    $archive=validHtmlStr($_REQUEST['archive']);
-
-if ($archive==0)
-{
-    $eventsSql .= " and E.Archived=0 ";
-    $frameSql .= " and E.Archived=0 ";
-}
 
 $eventsSql .= "group by E.Id,E.Name,E.StartTime,E.Length,E.Frames,E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId ";
 
@@ -229,15 +230,14 @@ input[type=range]::-ms-tooltip {
   <div id="page">
     <div id="header">
       <div id="headerButtons">
-        <a href="./" "><?php echo translate('Console') ?></a>
+        <a href="./"><?php echo translate('Console') ?></a>
         <a href="#" onclick="closeWindow();"><?php echo translate('Close') ?></a>
       </div>
       <h2><?php echo translate('Montage Review') ?></h2>
     </div>
-
-    <div style='display: inline-flex; border: 1px solid black;'>
+    <div id='ScaleDiv' style='display: inline-flex; border: 1px solid black;'>
         <label style='margin:5px;' for=scaleslider><?php echo translate('Scale')?></label>
-        <input id=scaleslider type=range min=0.1 max=1.10 value=<?php echo $defaultScale ?> step=0.10 width=20% onchange='setScale(this.value)' oninput='showScale(this.value)'/>
+        <input id=scaleslider type=range min=0.1 max=1.0 value=<?php echo $defaultScale ?> step=0.10 width=20% onchange='setScale(this.value)' oninput='showScale(this.value)'/>
         <span style='margin:5px;' id=scaleslideroutput><?php echo number_format((float)$defaultScale,2,'.','')?> x</span>
     </div>
     <div id='SpeedDiv' style='display: inline-flex; border: 1px solid black;'>
@@ -246,16 +246,16 @@ input[type=range]::-ms-tooltip {
         <span style='margin:5px;' id=speedslideroutput><?php echo $speeds[$speedIndex] ?> fps</span>
     </div>
     <div style='display: inline-flex; border: 1px solid black; flex-flow: row wrap;'>
-        <button type='button' id=panleft   onclick='panleft()          '>&lt; <?php echo translate('Pan Left') ?></button>
-        <button type='button' id=zoomin    onclick='zoomin()           '><?php echo translate('Zoom In +') ?></button>
-        <button type='button' id=zoomout   onclick='zoomout()          '><?php echo translate('Zoom Out -') ?></button>
-        <button type='button' id=lasthour  onclick='lasthour()         '><?php echo translate('Last Hour') ?></button>
+        <button type='button' id=panleft   onclick='panleft()     '>&lt; <?php echo translate('Pan') ?></button>
+        <button type='button' id=zoomin    onclick='zoomin()           '><?php echo translate('In +') ?></button>
+        <button type='button' id=zoomout   onclick='zoomout()          '><?php echo translate('Out -') ?></button>
+        <button type='button' id=lasteight onclick='lastEight()        '><?php echo translate('8 Hour') ?></button>
+        <button type='button' id=lasthour  onclick='lastHour()         '><?php echo translate('1 Hour') ?></button>
         <button type='button' id=allof     onclick='allof()            '><?php echo translate('All Events') ?></button>
-        <button type='button' id=allnon    onclick='allnon()           '><?php echo translate('All Non-Archive') ?></button>
-        <button type='button' id=live      onclick='liveSet(1-liveMode)'><?php echo translate('Live Feed') ?></button>
-        <button type='button' id=panright  onclick='panright()         '><?php echo translate('Pan Right &gt;') ?></button>
+        <button type='button' id=live      onclick='setLive(1-liveMode)'><?php echo translate('Live') ?></button>
+        <button type='button' id=fit       onclick='setFit(1-fitMode)  '><?php echo translate('Fit') ?></button>
+        <button type='button' id=panright  onclick='panright()         '><?php echo translate('Pan') ?> &gt;</button>
     </div>
-
     <div id=timelinediv style='position:relative; width:93%;'>
         <canvas id=timeline style='border:1px solid;' onmousemove='mmove(event)' ontouchmove='tmove(event)' onmousedown='mdown(event)' onmouseup='mup(event)' onmouseout='mout(event)' ></canvas>
         <span id=scrubleft ></span>
@@ -280,6 +280,7 @@ echo "<script>\n";
 
 var currentScale=<?php echo $defaultScale?>;
 var liveMode=<?php echo $initialModeIsLive?>;
+var fitMode=<?php echo $fitMode?>;
 var currentSpeed=<?php echo $speeds[$speedIndex]?>;  // slider scale, which is only for replay and relative to real time
 var speedIndex=<?php echo $speedIndex?>;
 var currentDisplayInterval=<?php echo $initialDisplayInterval?>;  // will be set based on performance, this is the display interval in milliseconds for history, and fps for live, and dynamically determined (in ms)
@@ -520,17 +521,6 @@ function evaluateLoadTimes()
     $(fps).innerHTML="Display refresh rate is " + (1000 / currentDisplayInterval).toFixed(1) + " per second, avgFrac=" + avgFrac.toFixed(3) + ".";
 }
 
-function outputUpdate(val)
-{
-    drawSliderOnGraph(val);
-    for(var i=0; i<numMonitors; i++)
-    {
-            loadImage2Monitor(monitorPtr[i],SetImageSource(monitorPtr[i],val));
-    }
-    var currentTimeMS = new Date(val*1000);
-    currentTimeSecs=val;
-}
-
 function SetImageSource(monId,val)
 {
     if(liveMode==1)
@@ -603,59 +593,6 @@ function loadImage2Monitor(monId,url)
         monitorImageObject[monId].src=url;  // starts a load but doesn't refresh yet, wait until ready
     }
 }
-
-function showScale(newscale) // updates slider only
-{
-    if(newscale == parseFloat($(scaleslider).max))
-        $(scaleslideroutput).innerHTML="Fit";
-    else
-        $(scaleslideroutput).innerHTML = parseFloat(newscale).toFixed(2).toString() + " x";
-    return;
-}
-
-function setScale(newscale) // makes actual change
-{
-    var ret=1;
-    showScale(newscale);
-    if(newscale == parseFloat($(scaleslider).max))
-    {
-        var vh=window.innerHeight;
-        var vw=window.innerWidth;
-        var pos=$(monitors).getPosition();
-        var mh=(vh - pos.y - $(fps).getSize().y);
-        $(monitors).setStyle('height',mh.toString() + "px");  // leave a small gap at bottom
-        ret=maxfit2($(monitors).getSize().x,$(monitors).getSize().y);   /// if we fail to fix we want to bubble up the failure so we can react
-    }
-    else
-    {
-        for(var i=0; i<numMonitors; i++)
-        {
-            monitorCanvasObj[monitorPtr[i]].width=monitorWidth[monitorPtr[i]]*monitorNormalizeScale[monitorPtr[i]]*monitorZoomScale[monitorPtr[i]]*newscale;
-            monitorCanvasObj[monitorPtr[i]].height=monitorHeight[monitorPtr[i]]*monitorNormalizeScale[monitorPtr[i]]*monitorZoomScale[monitorPtr[i]]*newscale;
-            monitorCanvasObj[monitorPtr[i]].style.position="";
-        }
-        $(monitors).setStyle('height',"auto");
-    }
-    outputUpdate(currentTimeSecs);
-    currentScale=newscale;
-    return ret;
-}
-function showSpeed(val) // updates slider only
-{
-    $(speedslideroutput).innerHTML = parseFloat(speeds[val]).toFixed(2).toString() + " x";
-}
-
-function setSpeed(val)   // Note parameter is the index not the speed
-{
-    var t;
-    if(liveMode==1) return;  // we shouldn't actually get here but just in case
-    currentSpeed=parseFloat(speeds[val]);
-    speedIndex=val;
-    playSecsperInterval = currentSpeed * currentDisplayInterval / 1000;
-    showSpeed(val);
-    if( timerInterval != currentDisplayInterval || currentSpeed == 0 )  timerFire(); // if the timer isn't firing we need to trigger it to update
-}
-
 function timerFire()
 {
     // See if we need to reschedule
@@ -821,6 +758,72 @@ function drawGraph()
     return;
 }
 
+function redrawScreen()
+{
+    if(fitMode==0) // if we fit, then monitors were absolutely positioned already (or will be) otherwise release them to float
+    {
+        for(var i=0; i<numMonitors; i++)
+            monitorCanvasObj[monitorPtr[i]].style.position="";
+        $(monitors).setStyle('height',"auto");
+    }
+    if(liveMode==1) // if we are not in live view switch to history -- this has to come before fit in case we re-establish the timeline
+    {
+        $('SpeedDiv').style.display="none";
+        $('timelinediv').style.display="none";
+        $('live').innerHTML="History";
+        $('zoomin').style.display="none";
+        $('zoomout').style.display="none";
+        $('panleft').style.display="none";
+        $('panright').style.display="none";
+
+    }
+    else  // switch out of liveview mode
+    {
+        $('SpeedDiv').style.display="inline-flex";
+        $('timelinediv').style.display=null;
+        $('live').innerHTML="Live";
+        $('zoomin').style.display="inline-flex";
+        $('zoomout').style.display="inline-flex";
+        $('panleft').style.display="inline-flex";
+        $('panright').style.display="inline-flex";
+    }
+
+    if(fitMode==1)
+    {
+        $(ScaleDiv).style.display="none";
+        $(fit).innerHTML="Scale";
+        var vh=window.innerHeight;
+        var vw=window.innerWidth;
+        var pos=$(monitors).getPosition();
+        var mh=(vh - pos.y - $(fps).getSize().y);
+        $(monitors).setStyle('height',mh.toString() + "px");  // leave a small gap at bottom
+        if(maxfit2($(monitors).getSize().x,$(monitors).getSize().y) == 0)   /// if we fail to fix we back out of fit mode -- ??? This may need some better handling
+            fitMode=1-fitMode;
+    }
+    else  // switch out of fit mode
+    {
+        $(ScaleDiv).style.display="inline-flex";
+        $(fit).innerHTML="Fit";
+        setScale(currentScale);
+    }
+    drawGraph();
+    outputUpdate(currentTimeSecs);
+    timerFire();  // force a fire in case it's not timing
+}
+
+
+function outputUpdate(val)
+{
+    drawSliderOnGraph(val);
+    for(var i=0; i<numMonitors; i++)
+    {
+            loadImage2Monitor(monitorPtr[i],SetImageSource(monitorPtr[i],val));
+    }
+    var currentTimeMS = new Date(val*1000);
+    currentTimeSecs=val;
+}
+
+
 /// Found this here: http://stackoverflow.com/questions/55677/how-do-i-get-the-coordinates-of-a-mouse-click-on-a-canvas-element
 function relMouseCoords(event){
     var totalOffsetX = 0;
@@ -846,8 +849,8 @@ HTMLCanvasElement.prototype.relMouseCoords = relMouseCoords;
 
 var mouseisdown=false;
 function mdown(event) {mouseisdown=true; mmove(event)}
-function mup(event) {mouseisdown=false;}
-function mout(event) {mouseisdown=false;} // if we go outside treat it as release
+function mup(event)   {mouseisdown=false;}
+function mout(event)  {mouseisdown=false;} // if we go outside treat it as release
 function tmove(event) {mouseisdown=true; mmove(event);}
 
 function mmove(event)
@@ -865,33 +868,54 @@ function secs2dbstr (s)
     return st;
 }
 
-function liveSet(value)
+function setFit(value)
+{
+    fitMode=value;
+    redrawScreen();
+}
+
+function showScale(newscale) // updates slider only
+{
+    $(scaleslideroutput).innerHTML = parseFloat(newscale).toFixed(2).toString() + " x";
+    return;
+}
+
+function setScale(newscale) // makes actual change
+{
+    showScale(newscale);
+    for(var i=0; i<numMonitors; i++)
+    {
+        monitorCanvasObj[monitorPtr[i]].width=monitorWidth[monitorPtr[i]]*monitorNormalizeScale[monitorPtr[i]]*monitorZoomScale[monitorPtr[i]]*newscale;
+        monitorCanvasObj[monitorPtr[i]].height=monitorHeight[monitorPtr[i]]*monitorNormalizeScale[monitorPtr[i]]*monitorZoomScale[monitorPtr[i]]*newscale;
+    }
+    currentScale=newscale;
+}
+
+function showSpeed(val) // updates slider only
+{
+    $(speedslideroutput).innerHTML = parseFloat(speeds[val]).toFixed(2).toString() + " x";
+}
+
+function setSpeed(val)   // Note parameter is the index not the speed
+{
+    var t;
+    if(liveMode==1) return;  // we shouldn't actually get here but just in case
+    currentSpeed=parseFloat(speeds[val]);
+    speedIndex=val;
+    playSecsperInterval = currentSpeed * currentDisplayInterval / 1000;
+    showSpeed(val);
+    if( timerInterval != currentDisplayInterval || currentSpeed == 0 )  timerFire(); // if the timer isn't firing we need to trigger it to update
+}
+
+function setLive(value)
 {
     liveMode=value;
-    if(liveMode==1) // if we are not in live view switch to
-    {
-        $(SpeedDiv).style.display="none";
-        $(timelinediv).style.display="none";
-        $(live).innerHTML="History";
-
-    }
-    else  // switch out of liveview mode
-    {
-        $(SpeedDiv).style.display="inline-flex";
-        $(timelinediv).style.display=null;
-        $(live).innerHTML="Live";
-    }
     redrawScreen();
-    timerFire();  // force a fire in case it's not timing
 }
-function redrawScreen()
-{
-    drawGraph();
-    return setScale(currentScale);  // this might be bubbling up an error
-}
+
 
 //vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-// The sceond below are to reload this program with new parameters
+// The section below are to reload this program with new parameters
 
 function clicknav(minSecs,maxSecs,arch,live)  // we use the current time if we can
 {
@@ -899,7 +923,6 @@ function clicknav(minSecs,maxSecs,arch,live)  // we use the current time if we c
     var minStr="";
     var maxStr="";
     var currentStr="";
-    var archiveStr="";
     if(minSecs>0)
     {
         if(maxSecs > now)
@@ -913,33 +936,41 @@ function clicknav(minSecs,maxSecs,arch,live)  // we use the current time if we c
         minStr="&minTime=01/01/1950 12:00:00";
         maxStr="&maxTime=12/31/2035 12:00:00";
     }
-    if(arch==0)
-        archiveStr="&archive=0";
     var intervalStr="&displayinterval=" + currentDisplayInterval.toString();
     if(minSecs && maxSecs)
     {
         if(currentTimeSecs > minSecs && currentTimeSecs < maxSecs)  // make sure time is in the new range
         currentStr="&current=" + secs2dbstr(currentTimeSecs);
     }
+
     var liveStr="&live=0";
     if(live==1)
         liveStr="&live=1";
+
+    var fitStr="&fit=0";
+    if(fitMode==1)
+        fitStr="&fit=1";
+
     var zoomStr="";
     for(var i=0; i<numMonitors; i++)
         if(monitorZoomScale[monitorPtr[i]] < 0.99 || monitorZoomScale[monitorPtr[i]] > 1.01)  // allow for some up/down changes and just treat as 1 of almost 1
             zoomStr += "&z" + monitorPtr[i].toString() + "=" + monitorZoomScale[monitorPtr[i]].toFixed(2);
 
     var groupStr=<?php if($group=="") echo '""'; else echo "\"&group=$group\""; ?>;
-    var uri = "?view=" + currentView + groupStr + minStr + maxStr + currentStr + intervalStr + liveStr + zoomStr + "&scale=" + document.getElementById("scaleslider").value + "&speed=" + speeds[document.getElementById("speedslider").value] + "&archive=" + arch;
+    var uri = "?view=" + currentView + fitStr + groupStr + minStr + maxStr + currentStr + intervalStr + liveStr + zoomStr + "&scale=" + document.getElementById("scaleslider").value + "&speed=" + speeds[document.getElementById("speedslider").value];
     window.location=uri;
 }
 
-function lasthour()
+function lastHour()
 {
     var now = new Date() / 1000;
     clicknav(now - 3600 + 1, now,1,0);
 }
-
+function lastEight()
+{
+    var now = new Date() / 1000;
+    clicknav(now - 3600*8 + 1, now,1,0);
+}
 function zoomin()
 {
     rangeTimeSecs = parseInt(rangeTimeSecs / 2);
@@ -1105,19 +1136,18 @@ function maxfit2(divW, divH)
         return 0;
 }
 
-// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ End of handlers for reloading this program ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+// >>>>>>>>>>>>>>>> Handles individual monitor clicks and navigation to the standard event/watch display
 
-function showOneEvent(monId)  // link out to the normal view of one event's data
+function showOneMonitor(monId)  // link out to the normal view of one event's data
 {
     // We know the monitor, need to determine the event based on current time
-    for(var i=0; i<eId.length; i++)  // Display all we loaded
-    {
-        if(eMonId[i]==monId && currentTimeSecs >= eStartSecs[i] && currentTimeSecs <= eEndSecs[i])
-        {
-            var url = '?view=event&eid=' + eId[i] + '&fid=' + parseInt(Math.max(1, Math.min(eventFrames[i], eventFrames[i] * (currentTimeSecs - eStartSecs[i]) / (eEndSecs[i] - eStartSecs[i] + 1) ) ));
-            createPopup(url, 'zmEvent', 'event', monitorWidth[eMonId[i]], monitorHeight[eMonId[i]]);
-        }
-    }
+    var url;
+    if(liveMode!=0) url="?view=watch&mid=" + monId.toString();
+    else
+        for(var i=0; i<eId.length; i++)
+            if(eMonId[i]==monId && currentTimeSecs >= eStartSecs[i] && currentTimeSecs <= eEndSecs[i])
+                url="?view=event&eid=" + eId[i] + '&fid=' + parseInt(Math.max(1, Math.min(eventFrames[i], eventFrames[i] * (currentTimeSecs - eStartSecs[i]) / (eEndSecs[i] - eStartSecs[i] + 1) ) ));
+    createPopup(url, 'zmEvent', 'event', monitorWidth[eMonId[i]], monitorHeight[eMonId[i]]);
 }
 
 function zoom(monId,scale)
@@ -1138,14 +1168,16 @@ function clickMonitor(event,monId)
     var pos_y = event.offsetY ? (event.offsetY) : event.pageY - $("Monitor"+monId.toString()).offsetTop;
     if(pos_x < $("Monitor"+monId.toString()).width/4     && pos_y < $("Monitor"+monId.toString()).height/4) zoom(monId,1.15);
     else if(pos_x > $("Monitor"+monId.toString()).width * 3/4 && pos_y < $("Monitor"+monId.toString()).height/4) zoom(monId,1/1.15);
-    else showOneEvent(monId);
+    else showOneMonitor(monId);
     return;
 }
 
+// >>>>>>>>> Initialization that runs on window load by being at the bottom 
+
 drawGraph();
-setScale(currentScale);
 setSpeed(speedIndex);
-liveSet(liveMode);  // will redraw
+setFit(fitMode);  // will redraw 
+setLive(liveMode);  // will redraw
 window.addEventListener("resize",redrawScreen);
 
 </script>

@@ -122,7 +122,8 @@ protected:
 	}
 
 public:
-	enum { CHAR_HEIGHT=11, CHAR_WIDTH=6 };
+	/* enum { CHAR_HEIGHT=11, CHAR_WIDTH=6 }; */
+	enum { CHAR_HEIGHT=22, CHAR_WIDTH=14 };
 	enum { LINE_HEIGHT=CHAR_HEIGHT+0 };
 
 protected:

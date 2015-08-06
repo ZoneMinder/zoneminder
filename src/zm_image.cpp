@@ -17,7 +17,8 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 #include "zm.h"
-#include "zm_font.h"
+//#include "zm_font.h"
+#include "zm_bigfont.h"
 #include "zm_image.h"
 #include "zm_utils.h"
 #include "zm_rgb.h"
@@ -1762,7 +1763,7 @@ void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colou
                     int f = fontdata[(line[c] * CHAR_HEIGHT) + r];
                     for ( unsigned int i = 0; i < CHAR_WIDTH && x < hi_line_x; i++, x++, temp_ptr++ )
                     {
-                        if ( f & (0x80 >> i) )
+                        if ( f & (0x8000 >> i) )
                         {
                             if ( !fg_trans )
                                 *temp_ptr = fg_bw_col;
@@ -1788,7 +1789,7 @@ void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colou
                     int f = fontdata[(line[c] * CHAR_HEIGHT) + r];
                     for ( unsigned int i = 0; i < CHAR_WIDTH && x < hi_line_x; i++, x++, temp_ptr += colours )
                     {
-                        if ( f & (0x80 >> i) )
+                        if ( f & (0x8000 >> i) )
                         {
                             if ( !fg_trans )
                             {
@@ -1820,7 +1821,7 @@ void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colou
                     int f = fontdata[(line[c] * CHAR_HEIGHT) + r];
                     for ( unsigned int i = 0; i < CHAR_WIDTH && x < hi_line_x; i++, x++, temp_ptr++ )
                     {
-                        if ( f & (0x80 >> i) )
+                        if ( f & (0x8000 >> i) )
                         {
                             if ( !fg_trans )
                             {

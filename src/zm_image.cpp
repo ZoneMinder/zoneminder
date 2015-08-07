@@ -2591,107 +2591,63 @@ void Image::Scale( unsigned int factor )
 		Error( "Bogus scale factor %d found", factor );
 		return;
 	}
-	if ( factor == ZM_SCALE_BASE )
+        // Don't scale if we are really close in size
+        if ( factor <= ZM_SCALE_BASE + 5 and factor >= ZM_SCALE_BASE - 5 )  // within 5%
 	{
 		return;
 	}
 
 	unsigned int new_width = (width*factor)/ZM_SCALE_BASE;
 	unsigned int new_height = (height*factor)/ZM_SCALE_BASE;
-	
 	size_t scale_buffer_size = (new_width+1) * (new_height+1) * colours;
-	
 	uint8_t* scale_buffer = AllocBuffer(scale_buffer_size);
-	
-	if ( factor > ZM_SCALE_BASE )
-	{
-		unsigned char *pd = scale_buffer;
-		unsigned int wc = width*colours;
-		unsigned int nwc = new_width*colours;
-		unsigned int h_count = ZM_SCALE_BASE/2;
-		unsigned int last_h_index = 0;
-		unsigned int last_w_index = 0;
-		unsigned int h_index;
-		for ( unsigned int y = 0; y < height; y++ )
-		{
-			unsigned char *ps = &buffer[y*wc];
-			unsigned int w_count = ZM_SCALE_BASE/2;
-			unsigned int w_index;
-			last_w_index = 0;
-			for ( unsigned int x = 0; x < width; x++ )
-			{
-				w_count += factor;
-				w_index = w_count/ZM_SCALE_BASE;
-				for (unsigned int f = last_w_index; f < w_index; f++ )
-				{
-					for ( unsigned int c = 0; c < colours; c++ )
-					{
-						*pd++ = *(ps+c);
-					}
-				}
-				ps += colours;
-				last_w_index = w_index;
-			}
-			h_count += factor;
-			h_index = h_count/ZM_SCALE_BASE;
-			for ( unsigned int f = last_h_index+1; f < h_index; f++ )
-			{
-				memcpy( pd, pd-nwc, nwc );
-				pd += nwc;
-			}
-			last_h_index = h_index;
-		}
-        new_width = last_w_index;
-        new_height = last_h_index;
-	}
-	else
-	{
-		unsigned char *pd = scale_buffer;
-		unsigned int wc = width*colours;
-		unsigned int xstart = factor/2;
-		unsigned int ystart = factor/2;
-		unsigned int h_count = ystart;
-		unsigned int last_h_index = 0;
-		unsigned int last_w_index = 0;
-		unsigned int h_index;
-		for ( unsigned int y = 0; y < (unsigned int)height; y++ )
-		{
-			h_count += factor;
-			h_index = h_count/ZM_SCALE_BASE;
-			if ( h_index > last_h_index )
-			{
-				unsigned int w_count = xstart;
-				unsigned int w_index;
-				last_w_index = 0;
 
-				unsigned char *ps = &buffer[y*wc];
-				for ( unsigned int x = 0; x < (unsigned int)width; x++ )
-				{
-					w_count += factor;
-					w_index = w_count/ZM_SCALE_BASE;
-					
-					if ( w_index > last_w_index )
-					{
-						for ( unsigned int c = 0; c < colours; c++ )
-						{
-							*pd++ = *ps++;
-						}
-					}
-					else
-					{
-						ps += colours;
-					}
-					last_w_index = w_index;
-				}
-			}
-			last_h_index = h_index;
-		}
-        new_width = last_w_index;
-        new_height = last_h_index;
-	}
-	
+        // Algorithm derived from https://ia802707.us.archive.org/23/items/Lectures_on_Image_Processing/EECE253_12_Resampling.pdf
+
+        float foldXa, foldYa, DeltaoldXa, DeltaoldYa, ffactor;
+        unsigned int oldXa, oldYa, oldXb, oldYb, oldXc, oldYc, oldXd, oldYd;
+        unsigned int oldPtra, oldPtrb, oldPtrc, oldPtrd, newPtra;
+
+        // Use bilinear for both up and down, loop through NEW image, and pull from old
+
+        ffactor = 100.0 / (float)factor;
+        for (unsigned int y = 0; y < new_height; y++)
+        {
+            for (unsigned int x = 0; x < new_width; x++)
+            {
+                // point x and y position of pixels to sample (not offsets)
+
+                foldXa = x * ffactor;
+                foldYa = y * ffactor;
+                oldXa = int(foldXa);                                // The first point can't be negative so is by definition on the old image; do boundary checking on others
+                oldYa = int(foldYa);
+                oldXb = oldXa;                                      // down one same column
+                oldYb = (oldYa + 1)>=height ? height-1 : oldYa+1;
+                oldXc = (oldXa + 1)>=width  ? width-1  : oldXa+1;   // over one same row
+                oldYc = oldYa;
+                oldXd = oldXc;                                      // down and over
+                oldYd = oldYb;
+                // deltas for interpolation
+                DeltaoldXa = foldXa - oldXa;
+                DeltaoldYa = foldYa - oldYa;
+                // Base calculation for this pixel
+                newPtra = (y * new_width + x) * colours;
+                oldPtra = (oldYa * width + oldXa) * colours;
+                oldPtrb = (oldYb * width + oldXb) * colours;
+                oldPtrc = (oldYc * width + oldXc) * colours;
+                oldPtrd = (oldYd * width + oldXd) * colours;
+
+                for (unsigned int c=0; c<colours; c++)
+                {
+                    scale_buffer[newPtra + c] = buffer[oldPtra + c] * (1-DeltaoldYa)* (1-DeltaoldXa) +
+                                                buffer[oldPtrb + c] * DeltaoldYa    * (1-DeltaoldXa) +
+                                                buffer[oldPtrc + c] * (1-DeltaoldYa)* DeltaoldXa +
+                                                buffer[oldPtrd + c] * DeltaoldYa    * DeltaoldXa;
+                }
+            }
+        }
+
 	AssignDirect( new_width, new_height, colours, subpixelorder, scale_buffer, scale_buffer_size, ZM_BUFTYPE_ZM);
-	
 }
 
 void Image::Deinterlace_Discard()

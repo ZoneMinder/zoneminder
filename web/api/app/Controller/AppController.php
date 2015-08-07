@@ -34,6 +34,7 @@ class AppController extends Controller {
 	use CrudControllerTrait;
 
 	public $components = [
+		'Session', // PP - We are going to use SessionHelper to check PHP session vars
 		'RequestHandler',
 		'Crud.Crud' => [
 			'actions' => [
@@ -47,4 +48,21 @@ class AppController extends Controller {
 			'listeners' => ['Api', 'ApiTransformation']
 		]
 	];
+
+	//PP - Global beforeFilter function
+	//Zoneminder sets the username session variable
+	// to the logged in user. If this variable is set
+	// then you are logged in
+	// its pretty simple to extend this to also check
+	// for role and deny API access in future 
+	public function beforeFilter() {
+		if (!$this->Session->Read('username')) 
+		{
+			
+			throw new NotFoundException(__('Not Authenticated'));
+			return;
+		}
+		
+    }
+
 }

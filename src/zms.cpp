@@ -57,7 +57,7 @@ int main( int argc, const char *argv[] )
 	srand( getpid() * time( 0 ) );
 
 	enum { ZMS_MONITOR, ZMS_EVENT } source = ZMS_MONITOR;
-	StreamBase::StreamMode mode = StreamBase::STREAM; // When streaming a live view or event, default to STREAM.  If a frame is specified then default to SINGLE>
+	StreamBase::StreamMode mode; // When streaming a live view or event, default to STREAM.  If a frame is specified then default to SINGLE>
 	StreamBase::StreamType type = StreamBase::JPEG;
 	char format[32] = ""; //used to specify format to ffmpeg libs
 	int monitor_id = 0;
@@ -254,6 +254,19 @@ int main( int argc, const char *argv[] )
 		ValidateAccess( user, monitor_id );
 	}
 
+	if ( ! mode ) {
+		if ( source == ZMS_MONITOR ) {
+			mode = StreamBase::STREAM;
+		} else {
+			// when getting from an event, if a frame_id is specified, then default to single, otherwise stream
+			if ( frame_id ) {
+				mode = StreamBase::SINGLE;
+			} else {
+				mode = StreamBase::STREAM;
+			}
+		}
+	}
+
 	setbuf( stdout, 0 );
 	if ( nph )
 	{
@@ -328,8 +341,8 @@ int main( int argc, const char *argv[] )
         {
             stream.setStreamStart( event_id, frame_id );
         }
-         stream.setStreamMode( mode );
-         stream.setStreamType( type );
+        stream.setStreamMode( mode );
+        stream.setStreamType( type );
         if ( type == StreamBase::MPEG )
         {
 #if HAVE_LIBAVCODEC
@@ -342,13 +355,7 @@ int main( int argc, const char *argv[] )
             zmDbClose();
             return( -1 );
 #endif // HAVE_LIBAVCODEC
-        } else {
-            Error( "Unknown format", query );
-            fprintf( stderr, "Unknown format.\n" );
-            logTerm();
-            zmDbClose();
-            return( -1 );
-		}
+        } 
         stream.runStream();
     }
 

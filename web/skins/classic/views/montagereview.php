@@ -83,6 +83,11 @@
 //          - Remove zoom/pan buttons in live mode as they are meaningless
 //          - Change "fit" to a button, and remove scale when fit is in use (this means fit/live has no sliders)
 //
+// August 8, 2015 update:
+//          - Optimize events query to significantly decrease load times
+//          - Consolidate frames to 10 seconds not 1 for faster load and less memory usage
+//          - Replace graphic image for no-data with text-on-canvas (faster)
+//          - Correct sorting issue related to normalized scale so biggest goes to top left more reliably
 
 
 if ( !canView( 'Events' ) )
@@ -108,11 +113,22 @@ else
 // Note we round up just a bit on the end time as otherwise you get gaps, like 59.78 to 00 in the next second, which can give blank frames when moved through slowly.
 
 $eventsSql = "
-    select E.Id,E.Name,UNIX_TIMESTAMP(E.StartTime) as StartTimeSecs,UNIX_TIMESTAMP(max(DATE_ADD(E.StartTime, Interval Delta+0.5 Second))) as CalcEndTimeSecs, E.Length,max(F.FrameId) as Frames,E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId
-    from Events as E
-    inner join Monitors as M on (E.MonitorId = M.Id)
-    inner join Frames F on F.EventId=E.Id
-    where not isnull(E.Frames) and not isnull(StartTime) ";
+  select E.Id,E.Name,UNIX_TIMESTAMP(E.StartTime) as StartTimeSecs,
+         case when E.EndTime is null then (Select UNIX_TIMESTAMP(DATE_ADD(E.StartTime, Interval max(Delta)+0.5 Second)) from Frames F where F.EventId=E.Id)
+              else UNIX_TIMESTAMP(E.EndTime)
+         end as CalcEndTimeSecs, E.Length,
+         case when E.Frames is null then (Select count(*) from Frames F where F.EventId=E.Id) else E.Frames end as Frames,E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId
+  from Events as E
+  inner join Monitors as M on (E.MonitorId = M.Id)
+  where not isnull(E.Frames) and not isnull(StartTime) ";
+
+
+
+//    select E.Id,E.Name,UNIX_TIMESTAMP(E.StartTime) as StartTimeSecs,UNIX_TIMESTAMP(max(DATE_ADD(E.StartTime, Interval Delta+0.5 Second))) as CalcEndTimeSecs, E.Length,max(F.FrameId) as Frames,E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId
+//    from Events as E
+//    inner join Monitors as M on (E.MonitorId = M.Id)
+//    inner join Frames F on F.EventId=E.Id
+//    where not isnull(E.Frames) and not isnull(StartTime) ";
 
 // Note that the delta value seems more accurate than the time stamp for some reason.
 $frameSql = "
@@ -354,7 +370,8 @@ else
     $maxTimeSecs = strtotime($maxTime);
 }
 
-// If we had any alarms in those events, this builds the list of all alarm frames, but consolidated down to (nearly) contiguous segments
+// If we had any alarms in those events, this builds the list of all alarm frames, but consolidated down to (nearly) contiguous segments 
+// comparison in else governs how aggressively it consolidates
 
 echo "var fMonId = [];\n";
 echo "var fTimeFromSecs = [];\n";
@@ -377,7 +394,7 @@ if($anyAlarms)
             $toSecs=$frame['TimeStampSecs'];
             $maxScore=$frame['Score'];
         }
-        else if ($mId != $frame['MonitorId'] || $frame['TimeStampSecs'] - $toSecs > 1) // dump this one start a new
+        else if ($mId != $frame['MonitorId'] || $frame['TimeStampSecs'] - $toSecs > 10) // dump this one start a new
         {
             $index++;
             echo "  fMonId[$index]=" . $mId . ";";
@@ -447,7 +464,7 @@ foreach ($monitors as $m)
     echo "  monitorLoadEndTimems["   . $m['Id'] . "]=0; ";
     echo "  monitorCanvasObj["       . $m['Id'] . "]=document.getElementById('Monitor" . $m['Id'] . "'); ";
     echo "  monitorCanvasCtx["       . $m['Id'] . "]=monitorCanvasObj[" . $m['Id'] . "].getContext('2d'); ";
-    echo "  monitorNormalizeScale["  . $m['Id'] . "]=" . ( $m['Width'] * $m['Height'] / $avgArea ) . "; ";
+    echo "  monitorNormalizeScale["  . $m['Id'] . "]=" . sqrt($avgArea / ($m['Width'] * $m['Height'] )) . "; ";
     $zoomScale=1.0;
     if(isset($_REQUEST[ 'z' . $m['Id'] ]) )
         $zoomScale = floatval( validHtmlStr($_REQUEST[ 'z' . $m['Id'] ]) );
@@ -525,7 +542,7 @@ function SetImageSource(monId,val)
 {
     if(liveMode==1)
     {
-        var effectiveScale = 100 * monitorCanvasObj[monId].width / monitorWidth[monId];
+        var effectiveScale = (100.0 * monitorCanvasObj[monId].width) / monitorWidth[monId];
         return "../cgi-bin/nph-zms?mode=single&monitor=" + monId.toString() + "&scale=" + effectiveScale + "&cachekill=" + Math.random().toString();
     }
     else
@@ -541,7 +558,7 @@ function SetImageSource(monId,val)
                return img;
             }
         }
-        return "graphics/NoDataImage.gif";
+        return "no data";
     }
 }
 
@@ -588,9 +605,23 @@ function loadImage2Monitor(monId,url)
             monitorImageObject[monId].onload  = function() {imagedone(this, monId,true )};
             monitorImageObject[monId].onerror = function() {imagedone(this, monId,false)};
         }
-        monitorLoading[monId]=true;
-        monitorLoadStartTimems[monId]=new Date().getTime();
-        monitorImageObject[monId].src=url;  // starts a load but doesn't refresh yet, wait until ready
+        if(url=='no data')
+        {
+            monitorCanvasCtx[monId].fillStyle="white";
+            monitorCanvasCtx[monId].fillRect(0,0,monitorCanvasObj[monId].width,monitorCanvasObj[monId].height);
+            var textSize=monitorCanvasObj[monId].width * 0.15;
+            var text="No Data";
+            monitorCanvasCtx[monId].font = "600 " + textSize.toString() + "px Arial";
+            monitorCanvasCtx[monId].fillStyle="black";
+            var textWidth = monitorCanvasCtx[monId].measureText(text).width;
+            monitorCanvasCtx[monId].fillText(text,monitorCanvasObj[monId].width/2 - textWidth/2,monitorCanvasObj[monId].height/2);
+        }
+        else
+        {
+            monitorLoading[monId]=true;
+            monitorLoadStartTimems[monId]=new Date().getTime();
+            monitorImageObject[monId].src=url;  // starts a load but doesn't refresh yet, wait until ready
+        }
     }
 }
 function timerFire()
@@ -1010,8 +1041,8 @@ function allnon()
 
 function compSize(a, b) // sort array by some size parameter  - height seems to work best.  A semi-greedy algorithm
 {
-    if      ( monitorHeight[a] * monitorWidth[a] * monitorNormalizeScale[a] * monitorZoomScale[a] >  monitorHeight[b] * monitorWidth[b] * monitorNormalizeScale[b] * monitorZoomScale[b] ) return -1;
-    else if ( monitorHeight[a] * monitorWidth[a] * monitorNormalizeScale[a] * monitorZoomScale[a] == monitorHeight[b] * monitorWidth[b] * monitorNormalizeScale[b] * monitorZoomScale[b])  return 0;
+    if      ( monitorHeight[a] * monitorWidth[a] * monitorNormalizeScale[a] * monitorZoomScale[a] * monitorNormalizeScale[a] * monitorZoomScale[a] >  monitorHeight[b] * monitorWidth[b] * monitorNormalizeScale[b] * monitorZoomScale[b] * monitorNormalizeScale[b] * monitorZoomScale[b]) return -1;
+    else if ( monitorHeight[a] * monitorWidth[a] * monitorNormalizeScale[a] * monitorZoomScale[a] * monitorNormalizeScale[a] * monitorZoomScale[a] == monitorHeight[b] * monitorWidth[b] * monitorNormalizeScale[b] * monitorZoomScale[b] * monitorNormalizeScale[b] * monitorZoomScale[b])  return 0;
     else return 1;
 }
 

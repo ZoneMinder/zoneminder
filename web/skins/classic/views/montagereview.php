@@ -88,6 +88,7 @@
 //          - Consolidate frames to 10 seconds not 1 for faster load and less memory usage
 //          - Replace graphic image for no-data with text-on-canvas (faster)
 //          - Correct sorting issue related to normalized scale so biggest goes to top left more reliably
+//          - Corrections to Safari which won't support inline-flex (thanks Apple, really?!)
 
 
 if ( !canView( 'Events' ) )
@@ -535,7 +536,7 @@ function evaluateLoadTimes()
     currentDisplayInterval=Math.min(Math.max(currentDisplayInterval, 30),10000);   // limit this from about 30fps to .1 fps
     imageLoadTimesEvaluated=0;
     setSpeed(speedIndex);
-    $(fps).innerHTML="Display refresh rate is " + (1000 / currentDisplayInterval).toFixed(1) + " per second, avgFrac=" + avgFrac.toFixed(3) + ".";
+    $('fps').innerHTML="Display refresh rate is " + (1000 / currentDisplayInterval).toFixed(1) + " per second, avgFrac=" + avgFrac.toFixed(3) + ".";
 }
 
 function SetImageSource(monId,val)
@@ -684,7 +685,7 @@ function drawSliderOnGraph(val)
             ctx.strokeRect(sliderX+sliderLineWidth,sliderLineWidth,sliderWidth - 2*sliderLineWidth, sliderHeight - 2*sliderLineWidth);
             underSliderX=sliderX;
         }
-        var o = $(scruboutput);
+        var o = $('scruboutput');
         if(liveMode==1)
         {
             o.innerHTML="Live Feed @ " + (1000 / currentDisplayInterval).toFixed(1) + " fps";
@@ -712,7 +713,7 @@ function drawSliderOnGraph(val)
     // Because these change widths if the slider is too close, use the slider width as an estimate for the left/right label length (i.e. don't recalculate len from above)
     // If this starts to collide increase some of the extra space
 
-    var o = $(scrubleft);
+    var o = $('scrubleft');
     o.innerHTML=secs2dbstr(minTimeSecs);
     o.style.position="absolute";
     o.style.bottom=labbottom;
@@ -724,9 +725,12 @@ function drawSliderOnGraph(val)
     if(len + 10 > sliderX || cWidth < len * 4 )  // that last check is for very narrow browsers
         o.style.display="none";
     else
+    {
         o.style.display="inline";
+        o.style.display="inline-flex";  // safari won't take this but will just ignore
+    }
 
-    var o = $(scrubright);
+    var o = $('scrubright');
     o.innerHTML=secs2dbstr(maxTimeSecs);
     o.style.position="absolute";
     o.style.bottom=labbottom;
@@ -736,12 +740,15 @@ function drawSliderOnGraph(val)
     if(sliderX > cWidth - len - 20 || cWidth < len * 4 )
         o.style.display="none";
     else
+    {
         o.style.display="inline";
+        o.style.display="inline-flex";
+    }
 }
 
 function drawGraph()
 {
-    var divWidth=$(timelinediv).clientWidth
+    var divWidth=$('timelinediv').clientWidth
     canvas.width = cWidth = divWidth;   // Let it float and determine width (it should be sized a bit smaller percentage of window)
     canvas.height=cHeight = parseInt(window.innerHeight * 0.10);
     if(eId.length==0)
@@ -795,7 +802,7 @@ function redrawScreen()
     {
         for(var i=0; i<numMonitors; i++)
             monitorCanvasObj[monitorPtr[i]].style.position="";
-        $(monitors).setStyle('height',"auto");
+        $('monitors').setStyle('height',"auto");
     }
     if(liveMode==1) // if we are not in live view switch to history -- this has to come before fit in case we re-establish the timeline
     {
@@ -810,31 +817,37 @@ function redrawScreen()
     }
     else  // switch out of liveview mode
     {
+        $('SpeedDiv').style.display="inline";
         $('SpeedDiv').style.display="inline-flex";
         $('timelinediv').style.display=null;
         $('live').innerHTML="Live";
+        $('zoomin').style.display="inline";
         $('zoomin').style.display="inline-flex";
+        $('zoomout').style.display="inline";
         $('zoomout').style.display="inline-flex";
+        $('panleft').style.display="inline";
         $('panleft').style.display="inline-flex";
+        $('panright').style.display="inline";
         $('panright').style.display="inline-flex";
     }
 
     if(fitMode==1)
     {
-        $(ScaleDiv).style.display="none";
-        $(fit).innerHTML="Scale";
+        $('ScaleDiv').style.display="none";
+        $('fit').innerHTML="Scale";
         var vh=window.innerHeight;
         var vw=window.innerWidth;
-        var pos=$(monitors).getPosition();
-        var mh=(vh - pos.y - $(fps).getSize().y);
-        $(monitors).setStyle('height',mh.toString() + "px");  // leave a small gap at bottom
-        if(maxfit2($(monitors).getSize().x,$(monitors).getSize().y) == 0)   /// if we fail to fix we back out of fit mode -- ??? This may need some better handling
+        var pos=$('monitors').getPosition();
+        var mh=(vh - pos.y - $('fps').getSize().y);
+        $('monitors').setStyle('height',mh.toString() + "px");  // leave a small gap at bottom
+        if(maxfit2($('monitors').getSize().x,$('monitors').getSize().y) == 0)   /// if we fail to fix we back out of fit mode -- ??? This may need some better handling
             fitMode=1-fitMode;
     }
     else  // switch out of fit mode
     {
-        $(ScaleDiv).style.display="inline-flex";
-        $(fit).innerHTML="Fit";
+        $('ScaleDiv').style.display="inline";
+        $('ScaleDiv').style.display="inline-flex";
+        $('fit').innerHTML="Fit";
         setScale(currentScale);
     }
     drawGraph();
@@ -907,7 +920,7 @@ function setFit(value)
 
 function showScale(newscale) // updates slider only
 {
-    $(scaleslideroutput).innerHTML = parseFloat(newscale).toFixed(2).toString() + " x";
+    $('scaleslideroutput').innerHTML = parseFloat(newscale).toFixed(2).toString() + " x";
     return;
 }
 
@@ -924,7 +937,7 @@ function setScale(newscale) // makes actual change
 
 function showSpeed(val) // updates slider only
 {
-    $(speedslideroutput).innerHTML = parseFloat(speeds[val]).toFixed(2).toString() + " x";
+    $('speedslideroutput').innerHTML = parseFloat(speeds[val]).toFixed(2).toString() + " x";
 }
 
 function setSpeed(val)   // Note parameter is the index not the speed

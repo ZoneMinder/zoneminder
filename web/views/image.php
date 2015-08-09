@@ -18,6 +18,20 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
+// Calling sequence:   ... /zm/index.php?view=image&path=/monid/path/image.jpg&scale=nnn&width=wwww&height=hhhhh
+//
+//     Path is physical path to the image starting at the monitor id
+//
+//     Scale is optional and between 1 and 400 (percent),
+//          Omitted or 100 = no scaling done, image passed through directly
+//          Scaling will increase response time slightly
+//
+//     width and height are optional, but if one is passed both should be passed (or they will be ignored)
+//          Pixel dimension to returned, scaling up or down
+//
+//     If both scale and width & height are specified, scale is ignored
+//
+
 if ( !canView( 'Events' ) )
 {
     $view = "error";
@@ -51,52 +65,59 @@ else
     }
 }
 
-if ( true )
-{
-    // Simple version
-    if ( $errorText )
-        Error( $errorText );
-    else
-        readfile( ZM_DIR_EVENTS.'/'.$path );
-}
+$scale=100;
+if( !empty($_REQUEST['scale']) )
+    if (is_numeric($_REQUEST['scale']))
+    {
+        $x = $_REQUEST['scale'];
+        if($x >= 1 and $x <= 400)
+            $scale=$x;
+    }
+
+$width=0;
+if( !empty($_REQUEST['width']) )
+    if (is_numeric($_REQUEST['width']))
+    {
+        $x = $_REQUEST['width'];
+        if($x >= 10 and $x <= 8000)
+            $width=$x;
+    }
+$height=0;
+if( !empty($_REQUEST['height']) )
+    if (is_numeric($_REQUEST['height']))
+    {
+        $x = $_REQUEST['height'];
+        if($x >= 10 and $x <= 8000)
+            $height=$x;
+    }
+
+
+if ( $errorText )
+    Error( $errorText );
 else
-{
-    // Not so simple version
-    if ( !function_exists( "imagecreatefromjpeg" ) )
-        Warning( "The imagecreatefromjpeg function is not present, php-gd not installed?" );
-
-    if ( !$errorText )
+    if($scale==100 && ($width==0 || $height==0) )
+        readfile( ZM_DIR_EVENTS.'/'.$path );
+    else
     {
-        if ( !($image = imagecreatefromjpeg( ZM_DIR_EVENTS.'/'.$path )) )
+        $i = imagecreatefromjpeg ( ZM_DIR_EVENTS.'/'.$path );
+        $oldWidth=imagesx($i);
+        $oldHeight=imagesy($i);
+        if($width==0 || $height==0)  // default to scale if either height or width is missing
         {
-            $errorText = "Can't load image";
-            $error = error_get_last();
-            Error( $error['message'] );
+            $width=$oldWidth * $scale / 100.0;
+            $height=$oldHeight * $scale / 100.0;
+        }
+        if($width==$oldWidth && $height==$oldHeight)  // See if we really need to scale
+        {
+            imagejpg($i);
+            imagedestroy($i);
+        }
+        else  // we do need to scale
+        {
+            $iScale = imagescale($i, $width, $height);
+            imagejpeg($iScale);
+            imagedestroy($i);
+            imagedestroy($iScale);
         }
     }
-
-    if ( $errorText )
-    {
-        if ( !($image = imagecreatetruecolor( 160, 120 )) )
-        {
-            $error = error_get_last();
-            Error( $error['message'] );
-        }
-        if ( !($textColor = imagecolorallocate( $image, 255, 0, 0 )) )
-        {
-            $error = error_get_last();
-            Error( $error['message'] );
-        }
-        if ( !imagestring( $image, 1, 20, 60, $errorText, $textColor ) )
-        {
-            $error = error_get_last();
-            Error( $error['message'] );
-        }
-        Fatal( $errorText." - ".$path );
-    }
-
-    imagejpeg( $image );
-
-    imagedestroy( $image );
-}
 ?>

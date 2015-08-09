@@ -545,28 +545,10 @@ function evaluateLoadTimes()
 function SetImageSource(monId,val)
 {
     if(liveMode==1)
-    {
-
-        authstr="<?php
-             $streamSrc = ZM_BASE_URL.ZM_PATH_ZMS;
-             if ( ZM_OPT_USE_AUTH )
-             {
-                 if ( ZM_AUTH_RELAY == "hashed" )
-                 {
-                     echo "&auth=" . generateAuthHash( ZM_AUTH_HASH_IPS );
-                 }
-                 elseif ( ZM_AUTH_RELAY == "plain" )
-                 {
-                     echo "&user=" . $_SESSION['username'] . "&pass=" . $_SESSION['password'];
-                 }
-                 elseif ( ZM_AUTH_RELAY == "none" )
-                 {
-                      echo "&user=" . $_SESSION['username'];
-                 }
-             }
-        ?>";
+    {   // This uses the standard php routine to set up the url and authentication, but because it is called repeatedly the built in random number is not usable, so one is appended below for two total (yuck)
         var effectiveScale = (100.0 * monitorCanvasObj[monId].width) / monitorWidth[monId];
-        return "<?php echo $streamSrc?>?mode=single&monitor=" + monId.toString() + "&scale=" + effectiveScale + authstr + "&cachekill=" + Math.random().toString();
+        var $x =  "<?php echo getStreamSrc( array("mode=single"),"&" )?>" + "&monitor=" + monId.toString() +  "&scale=" + effectiveScale +  Math.random().toString() ;
+        return $x;
     }
     else
     {

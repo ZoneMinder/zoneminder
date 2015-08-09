@@ -26,10 +26,10 @@
 //          Omitted or 100 = no scaling done, image passed through directly
 //          Scaling will increase response time slightly
 //
-//     width and height are optional, but if one is passed both should be passed (or they will be ignored)
-//          Pixel dimension to returned, scaling up or down
+//     width and height are each optional, ideally supply both, but if only one is supplied the other is calculated
+//          These are in pixels
 //
-//     If both scale and width & height are specified, scale is ignored
+//     If both scale and either width or height are specified, scale is ignored
 //
 
 if ( !canView( 'Events' ) )
@@ -95,17 +95,25 @@ if( !empty($_REQUEST['height']) )
 if ( $errorText )
     Error( $errorText );
 else
-    if($scale==100 && ($width==0 || $height==0) )
+    if( $scale==100 && $width==0 && $height==0 )
         readfile( ZM_DIR_EVENTS.'/'.$path );
     else
     {
         $i = imagecreatefromjpeg ( ZM_DIR_EVENTS.'/'.$path );
         $oldWidth=imagesx($i);
         $oldHeight=imagesy($i);
-        if($width==0 || $height==0)  // default to scale if either height or width is missing
+        if($width==0 && $height==0)
         {
             $width=$oldWidth * $scale / 100.0;
             $height=$oldHeight * $scale / 100.0;
+        }
+        elseif ($width==0 && $height!=0)
+        {
+            $width = ($oldWidth / $OldHeight) * $height;
+        }
+        elseif ($width!=0 && $height==0)
+        {
+            $height = ($oldHeight / $oldWidth) * $width;
         }
         if($width==$oldWidth && $height==$oldHeight)  // See if we really need to scale
         {

@@ -65,7 +65,7 @@ else
     }
 }
 
-$scale=100;
+$scale=0;
 if( !empty($_REQUEST['scale']) )
     if (is_numeric($_REQUEST['scale']))
     {
@@ -102,18 +102,18 @@ else
         $i = imagecreatefromjpeg ( ZM_DIR_EVENTS.'/'.$path );
         $oldWidth=imagesx($i);
         $oldHeight=imagesy($i);
-        if($width==0 && $height==0)
+        if($width==0 && $height==0)  // scale has to be set to get here with both zero
         {
-            $width=$oldWidth * $scale / 100.0;
-            $height=$oldHeight * $scale / 100.0;
+            $width = $oldWidth  * $scale / 100.0;
+            $height= $oldHeight * $scale / 100.0;
         }
         elseif ($width==0 && $height!=0)
         {
-            $width = ($oldWidth / $OldHeight) * $height;
+            $width = ($height * $oldWidth) / $oldHeight;
         }
         elseif ($width!=0 && $height==0)
         {
-            $height = ($oldHeight / $oldWidth) * $width;
+            $height = ($width * $oldHeight) / $oldWidth;
         }
         if($width==$oldWidth && $height==$oldHeight)  // See if we really need to scale
         {

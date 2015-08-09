@@ -1,70 +1,88 @@
-configure
-config.h.in
-config.h.in~
-autom4te.cache
-aclocal.m4
-depcomp
-install-sh
-missing
-mkinstalldirs
-stamp-h1
-stamp-h.in
-scripts/ZoneMinder/blib
-Makefile.in
+# Created by https://www.gitignore.io
+
+### Perl ###
+/blib/
+/.build/
+_build/
+cover_db/
+inc/
+Build
+!Build/
+Build.bat
+.last_cover_stats
+/Makefile
+/Makefile.old
+/MANIFEST.bak
+/META.yml
+/META.json
+/MYMETA.*
+nytprof.out
+/pm_to_blib
+*.o
+*.bs
+/_eumm/
+
+
+### C++ ###
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+
+### CMake ###
+CMakeCache.txt
+CMakeFiles
 Makefile
-docs/_build
-compile
-config.guess
-config.h
-config.log
-config.status
-config.sub
-db/zm_create.sql
-misc/apache.conf
-misc/com.zoneminder.systemctl.policy
-misc/com.zoneminder.systemctl.rules
-misc/logrotate.conf
-misc/syslog.conf
-onvif/modules/MYMETA.json
-onvif/modules/MYMETA.yml
-onvif/proxy/MYMETA.json
-onvif/proxy/MYMETA.yml
-scripts/ZoneMinder/Makefile.old
-scripts/ZoneMinder/MYMETA.json
-scripts/ZoneMinder/MYMETA.yml
-scripts/ZoneMinder/lib/ZoneMinder/Base.pm
-scripts/ZoneMinder/lib/ZoneMinder/Config.pm
-scripts/ZoneMinder/lib/ZoneMinder/ConfigData.pm
-scripts/ZoneMinder/lib/ZoneMinder/Memory.pm
-scripts/ZoneMinder/pm_to_blib
-scripts/zm
-scripts/zmaudit.pl
-scripts/zmcamtool.pl
-scripts/zmcontrol.pl
-scripts/zmdbbackup
-scripts/zmdbrestore
-scripts/zmdc.pl
-scripts/zmeventdump
-scripts/zmfilter.pl
-scripts/zmlogrotate.conf
-scripts/zmpkg.pl
-scripts/zmsystemctl.pl
-scripts/zmtrack.pl
-scripts/zmtrigger.pl
-scripts/zmupdate.pl
-scripts/zmvideo.pl
-scripts/zmwatch.pl
-scripts/zmx10.pl
-src/.deps/
-src/*.o
-src/zm_config.h
-src/zm_config_defines.h
-src/zma
-src/zmc
-src/zmf
-src/zms
-src/zmstreamer
-src/zmu
-web/includes/config.php
-zm.conf
-zmconfgen.pl
+cmake_install.cmake
+install_manifest.txt
+
+
+### Vim ###
+[._]*.s[a-w][a-z]
+[._]s[a-w][a-z]
+*.un~
+Session.vim
+.netrwhist
+*~
+
+
+### Autotools ###
+# http://www.gnu.org/software/automake
+
+Makefile.in
+
+# http://www.gnu.org/software/autoconf
+
+/autom4te.cache
+/aclocal.m4
+/compile
+/configure
+/depcomp
+/install-sh
+/missing
+/stamp-h1

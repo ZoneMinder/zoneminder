@@ -584,7 +584,7 @@ function imagedone(obj, monId, success)
     }
     monitorLoading[monId]=false;
     if(!success) // if we had a failrue queue up the no-data image
-        loadImage2Monitor(monId,"graphics/NoDataImage.gif");  // leave the staged URL if there is one, just ignore it here.
+        loadImage2Monitor(monId,"no data");  // leave the staged URL if there is one, just ignore it here.
     else
     {
         if(monitorLoadingStageURL[monId]=="") return;

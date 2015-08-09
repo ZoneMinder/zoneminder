@@ -89,7 +89,10 @@
 //          - Replace graphic image for no-data with text-on-canvas (faster)
 //          - Correct sorting issue related to normalized scale so biggest goes to top left more reliably
 //          - Corrections to Safari which won't support inline-flex (thanks Apple, really?!)
-
+//
+// August 9, 2015 updates:
+//          - Add auth tokens to zms call for those using authorization
+//
 
 if ( !canView( 'Events' ) )
 {
@@ -543,8 +546,27 @@ function SetImageSource(monId,val)
 {
     if(liveMode==1)
     {
+
+        authstr="<?php
+             $streamSrc = ZM_BASE_URL.ZM_PATH_ZMS;
+             if ( ZM_OPT_USE_AUTH )
+             {
+                 if ( ZM_AUTH_RELAY == "hashed" )
+                 {
+                     echo "&auth=" . generateAuthHash( ZM_AUTH_HASH_IPS );
+                 }
+                 elseif ( ZM_AUTH_RELAY == "plain" )
+                 {
+                     echo "&user=" . $_SESSION['username'] . "&pass=" . $_SESSION['password'];
+                 }
+                 elseif ( ZM_AUTH_RELAY == "none" )
+                 {
+                      echo "&user=" . $_SESSION['username'];
+                 }
+             }
+        ?>";
         var effectiveScale = (100.0 * monitorCanvasObj[monId].width) / monitorWidth[monId];
-        return "../cgi-bin/nph-zms?mode=single&monitor=" + monId.toString() + "&scale=" + effectiveScale + "&cachekill=" + Math.random().toString();
+        return "<?php echo $streamSrc?>?mode=single&monitor=" + monId.toString() + "&scale=" + effectiveScale + authstr + "&cachekill=" + Math.random().toString();
     }
     else
     {
@@ -555,7 +577,7 @@ function SetImageSource(monId,val)
             {
                 var frame=parseInt((val - eStartSecs[i])/(eEndSecs[i]-eStartSecs[i])*eventFrames[i])+1;
 //                img = ePath[i] + zeropad.substr(frame.toString().length) + frame.toString() + "-capture.jpg";
-                  img = "index.php?view=image&path=" + ePath[i].substring(6) + zeropad.substr(frame.toString().length) + frame.toString() + "-capture.jpg";
+                  img = "index.php?view=image&path=" + ePath[i].substring(6) + zeropad.substr(frame.toString().length) + frame.toString() + "-capture.jpg" + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
                return img;
             }
         }

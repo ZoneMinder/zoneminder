@@ -56,7 +56,7 @@ class AppController extends Controller {
 	// its pretty simple to extend this to also check
 	// for role and deny API access in future 
 	public function beforeFilter() {
-		if (!$this->Session->Read('username')) 
+		if (!$this->Session->Read('user.Username')) 
 		{
 			
 			throw new NotFoundException(__('Not Authenticated'));

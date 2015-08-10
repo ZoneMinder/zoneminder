@@ -1697,7 +1697,7 @@ const Coord Image::centreCoord( const char *text ) const
 }
 
 /* RGB32 compatible: complete */
-void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colour, const Rgb bg_colour )
+void Image::Annotate( const char *p_text, const Coord &coord, int size, const Rgb fg_colour, const Rgb bg_colour )
 {
 	strncpy( text, p_text, sizeof(text) );
 
@@ -1721,22 +1721,22 @@ void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colou
     const Rgb bg_rgb_col = rgb_convert(bg_colour,subpixelorder);
     const bool bg_trans = (bg_colour == RGB_TRANSPARENT);
 
-    int zm_text_size = 0x80;
-    if (ZM_TEXT_SIZE == 2)
-        zm_text_size = 0x8000;
+    int zm_text_bitmask = 0x80;
+    if (size == 2)
+        zm_text_bitmask = 0x8000;
 
     while ( (index < text_len) && (line_len = strcspn( line, "\n" )) )
     {
 
-        unsigned int line_width = line_len * CHAR_WIDTH;
+        unsigned int line_width = line_len * CHAR_WIDTH * size;
 
         unsigned int lo_line_x = coord.X();
-        unsigned int lo_line_y = coord.Y() + (line_no * LINE_HEIGHT);
+        unsigned int lo_line_y = coord.Y() + (line_no * LINE_HEIGHT * size);
 
         unsigned int min_line_x = 0;
         unsigned int max_line_x = width - line_width;
         unsigned  int min_line_y = 0;
-        unsigned int max_line_y = height - LINE_HEIGHT;
+        unsigned int max_line_y = height - (LINE_HEIGHT * size);
 
         if ( lo_line_x > max_line_x )
             lo_line_x = max_line_x;
@@ -1748,7 +1748,7 @@ void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colou
             lo_line_y = min_line_y;
 
         unsigned int hi_line_x = lo_line_x + line_width;
-        unsigned int hi_line_y = lo_line_y + LINE_HEIGHT;
+        unsigned int hi_line_y = lo_line_y + (LINE_HEIGHT * size);
 
         // Clip anything that runs off the right of the screen
         if ( hi_line_x > width )
@@ -1759,19 +1759,19 @@ void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colou
         if ( colours == ZM_COLOUR_GRAY8 )
         {
             unsigned char *ptr = &buffer[(lo_line_y*width)+lo_line_x];
-            for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < CHAR_HEIGHT; y++, r++, ptr += width )
+            for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < (CHAR_HEIGHT * size); y++, r++, ptr += width )
             {
                 unsigned char *temp_ptr = ptr;
                 for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ )
                 {
                     int f;
-                    if (ZM_TEXT_SIZE == 2)
-                        f = bigfontdata[(line[c] * CHAR_HEIGHT) + r];
+                    if (size == 2)
+                        f = bigfontdata[(line[c] * CHAR_HEIGHT * size) + r];
                     else
                         f = fontdata[(line[c] * CHAR_HEIGHT) + r];
-                    for ( unsigned int i = 0; i < CHAR_WIDTH && x < hi_line_x; i++, x++, temp_ptr++ )
+                    for ( unsigned int i = 0; i < (CHAR_WIDTH * size) && x < hi_line_x; i++, x++, temp_ptr++ )
                     {
-                        if ( f & (zm_text_size >> i) )
+                        if ( f & (zm_text_bitmask >> i) )
                         {
                             if ( !fg_trans )
                                 *temp_ptr = fg_bw_col;
@@ -1789,19 +1789,19 @@ void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colou
             unsigned int wc = width * colours;
 
             unsigned char *ptr = &buffer[((lo_line_y*width)+lo_line_x)*colours];
-            for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < CHAR_HEIGHT; y++, r++, ptr += wc )
+            for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < (CHAR_HEIGHT * size); y++, r++, ptr += wc )
             {
                 unsigned char *temp_ptr = ptr;
                 for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ )
                 {
                     int f;
-                    if (ZM_TEXT_SIZE == 2)
-                        f = bigfontdata[(line[c] * CHAR_HEIGHT) + r];
+                    if (size == 2)
+                        f = bigfontdata[(line[c] * CHAR_HEIGHT * size) + r];
                     else
                         f = fontdata[(line[c] * CHAR_HEIGHT) + r];
-                    for ( unsigned int i = 0; i < CHAR_WIDTH && x < hi_line_x; i++, x++, temp_ptr += colours )
+                    for ( unsigned int i = 0; i < (CHAR_WIDTH * size) && x < hi_line_x; i++, x++, temp_ptr += colours )
                     {
-                        if ( f & (zm_text_size >> i) )
+                        if ( f & (zm_text_bitmask >> i) )
                         {
                             if ( !fg_trans )
                             {
@@ -1825,19 +1825,19 @@ void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colou
             unsigned int wc = width * colours;
 
             uint8_t *ptr = &buffer[((lo_line_y*width)+lo_line_x)<<2];
-            for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < CHAR_HEIGHT; y++, r++, ptr += wc )
+            for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < (CHAR_HEIGHT * size); y++, r++, ptr += wc )
             {
                 Rgb* temp_ptr = (Rgb*)ptr;
                 for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ )
                 {
                     int f;
-                    if (ZM_TEXT_SIZE == 2)
-                        f = bigfontdata[(line[c] * CHAR_HEIGHT) + r];
+                    if (size == 2)
+                        f = bigfontdata[(line[c] * CHAR_HEIGHT * size) + r];
                     else
                         f = fontdata[(line[c] * CHAR_HEIGHT) + r];
-                    for ( unsigned int i = 0; i < CHAR_WIDTH && x < hi_line_x; i++, x++, temp_ptr++ )
+                    for ( unsigned int i = 0; i < (CHAR_WIDTH * size) && x < hi_line_x; i++, x++, temp_ptr++ )
                     {
-                        if ( f & (zm_text_size >> i) )
+                        if ( f & (zm_text_bitmask >> i) )
                         {
                             if ( !fg_trans )
                             {
@@ -1853,7 +1853,7 @@ void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colou
             } 
 	
 	} else {
-		Panic("Annontate called with unexpected colours: %d",colours);
+		Panic("Annotate called with unexpected colours: %d",colours);
 		return;
 	}
 	
@@ -1867,7 +1867,7 @@ void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colou
     }
 }
 
-void Image::Timestamp( const char *label, const time_t when, const Coord &coord )
+void Image::Timestamp( const char *label, const time_t when, const Coord &coord, const int size )
 {
 	char time_text[64];
 	strftime( time_text, sizeof(time_text), "%y/%m/%d %H:%M:%S", localtime( &when ) );
@@ -1875,11 +1875,11 @@ void Image::Timestamp( const char *label, const time_t when, const Coord &coord 
 	if ( label )
 	{
 		snprintf( text, sizeof(text), "%s - %s", label, time_text );
-		Annotate( text, coord );
+		Annotate( text, coord, size );
 	}
 	else
 	{
-		Annotate( time_text, coord );
+		Annotate( time_text, coord, size );
 	}
 }
 

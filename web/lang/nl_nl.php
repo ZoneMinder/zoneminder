@@ -672,7 +672,6 @@ $SLANG = array(
     'TimestampLabelFormat' => 'Tijdstempel Label Format',
     'TimestampLabelX'      => 'Tijdstempel Label X',
     'TimestampLabelY'      => 'Tijdstempel Label Y',
-    'TimestampLabelSize'   => 'Font Size',
     'Today'                => 'Vandaag',
     'Tools'                => 'Gereedschappen',
     'Total'                => 'Totaal',                  // Added - 2011-06-16

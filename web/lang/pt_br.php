@@ -612,7 +612,6 @@ $SLANG = array(
     'TimestampLabelFormat' => 'Formato de etiqueta de tempo',
     'TimestampLabelX'      => 'posição de etiqueta X',
     'TimestampLabelY'      => 'posição de  etiqueta Y',
-    'TimestampLabelSize'   => 'Font Size',
     'Today'                => 'Today',
     'Tools'                => 'Ferramentas',
     'Total'                => 'Total',                  // Added - 2011-06-16

@@ -673,7 +673,6 @@ $SLANG = array(
     'TimestampLabelFormat'  => 'Timestamp Label Format',
     'TimestampLabelX'       => 'Timestamp Label X',
     'TimestampLabelY'       => 'Timestamp Label Y',
-    'TimestampLabelSize'    => 'Font Size',
     'Today'                 => 'Täna',
     'Tools'                 => 'Tööriistad',
     'Total'                 => 'Summa',                  // Added - 2011-06-16

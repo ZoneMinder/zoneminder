@@ -677,7 +677,6 @@ $SLANG = array(
     'TimestampLabelFormat' => 'Formato etichetta timestamp',
     'TimestampLabelX'      => 'coordinata X etichetta',
     'TimestampLabelY'      => 'coordinata Y etichetta',
-    'TimestampLabelSize'   => 'Font Size',
     'Today'                => 'Oggi ',
     'Tools'                => 'Strumenti',
     'Total'                => 'Total',                  // Added - 2011-06-16

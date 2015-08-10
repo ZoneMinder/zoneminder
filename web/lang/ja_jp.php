@@ -672,7 +672,6 @@ $SLANG = array(
     'TimestampLabelFormat' => 'À²Ñ½ÀÝÌß ×ÍÞÙ Ì«°Ï¯Ä',
     'TimestampLabelX'      => 'À²Ñ½ÀÝÌß ×ÍÞÙ X',
     'TimestampLabelY'      => 'À²Ñ½ÀÝÌß ×ÍÞÙ Y',
-    'TimestampLabelSize'   => 'Font Size',
     'Today'                => 'Today',
     'Tools'                => 'Â°Ù',
     'Total'                => 'Total',                  // Added - 2011-06-16

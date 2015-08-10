@@ -676,7 +676,6 @@ $SLANG = array(
     'TimestampLabelFormat' => '時間標示格式',
     'TimestampLabelX'      => '時間標示 X',
     'TimestampLabelY'      => '時間標示 Y',
-    'TimestampLabelSize'   => 'Font Size',
     'Today'                => 'Today',
     'Tools'                => 'Tools',
     'Total'                => 'Total',                  // Added - 2011-06-16

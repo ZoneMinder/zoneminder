@@ -623,6 +623,7 @@ $SLANG = array(
     'TimestampLabelFormat' => 'Formato Etiqueta Hora',
     'TimestampLabelX'      => 'Eje X Etiqueta Hora',
     'TimestampLabelY'      => 'Eje Y Etiqueta Hora',
+    'TimestampLabelSize'   => 'Font Size',
     'Today'                => 'Today',
     'Tools'                => 'Herra.',
     'Total'                => 'Total',                  // Added - 2011-06-16

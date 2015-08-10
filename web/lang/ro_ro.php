@@ -643,6 +643,7 @@ $SLANG = array(
     'TimestampLabelFormat' => 'Format eticheta format timp',
     'TimestampLabelX'      => 'Format timp eticheta X',
     'TimestampLabelY'      => 'Format timp eticheta Y',
+    'TimestampLabelSize'   => 'Font Size',
     'Today'                => 'Azi',
     'Tools'                => 'Unelte',
     'Total'                => 'Total',                  // Added - 2011-06-16

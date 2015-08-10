@@ -715,6 +715,7 @@ $SLANG = array(
     'TimestampLabelFormat' => 'Időbélyeg formátuma',
     'TimestampLabelX'      => 'Elhelyezés X pozició',
     'TimestampLabelY'      => 'Elhelyezés Y pozició',
+    'TimestampLabelSize'   => 'Font Size',
     'Today'                => 'Ma',
     'Tools'                => 'Eszközök',
     'Total'                => 'Összes',

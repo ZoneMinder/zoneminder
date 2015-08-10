@@ -672,6 +672,7 @@ $SLANG = array(
     'TimestampLabelFormat' => 'Формат метки',
     'TimestampLabelX'      => 'X-координата метки',
     'TimestampLabelY'      => 'Y-координата метки',
+    'TimestampLabelSize'   => 'Font Size',
     'Today'                => 'Today',
     'Tools'                => 'Инструменты',
     'Total'                => 'Total',                  // Added - 2011-06-16

@@ -670,6 +670,7 @@ $SLANG = array(
     'TimestampLabelFormat'  => 'Timestamp Label Format',
     'TimestampLabelX'       => 'Timestamp Label X',
     'TimestampLabelY'       => 'Timestamp Label Y',
+    'TimestampLabelSize'    => 'Font Size',
     'Timestamp'             => 'Timestamp',
     'TimeStamp'             => 'Time Stamp',
     'Time'                  => 'Time',

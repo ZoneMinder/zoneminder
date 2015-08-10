@@ -672,6 +672,7 @@ $SLANG = array(
     'TimestampLabelFormat' => 'Formát èasového razítka',
     'TimestampLabelX'      => 'Èasové razítko X',
     'TimestampLabelY'      => 'Èasové razítko Y',
+    'TimestampLabelSize'   => 'Font Size',
     'Today'                => 'Dnes',
     'Tools'                => 'Nástroje',
     'Total'                => 'Total',                  // Added - 2011-06-16

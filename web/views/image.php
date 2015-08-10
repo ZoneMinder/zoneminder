@@ -95,7 +95,7 @@ if( !empty($_REQUEST['height']) )
 if ( $errorText )
     Error( $errorText );
 else
-    if( $scale==0 && $width==0 && $height==0 )
+    if( ($scale==0 || $scale==100) && $width==0 && $height==0 )
         readfile( ZM_DIR_EVENTS.'/'.$path );
     else
     {

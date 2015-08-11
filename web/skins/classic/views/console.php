@@ -70,8 +70,7 @@ $eventCounts = array(
 
 $running = daemonCheck();
 $status = $running?translate('Running'):translate('Stopped');
-$run_state_array = dbFetchOne('select Name from States where  IsActive = 1');
-$run_state  = implode($run_state_array);
+$run_state = dbFetchOne('select Name from States where  IsActive = 1', 'Name' );
 
 $group = NULL;
 if ( ! empty($_COOKIE['zmGroup']) ) {

@@ -817,7 +817,7 @@ switch ( $tab )
         if ( $newMonitor['Type'] == "Remote" )
         {
 ?>
-            <tr><td><?php echo translate('Options') ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option=OPTIONS_'.strtoupper($newMonitor['Type']), 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td><td><input type="text" name="newMonitor[Options]" value="<?php echo validHtmlStr($newMonitor['Options']) ?>" size="36"/></td></tr>
+            <tr><td><?php echo translate('RTSPDescribe') ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option=OPTIONS_RTSPDESCRIBE'), 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td><td><input type="text" name="newMonitor[RTSPDescribe]" value="<?php echo validHtmlStr($newMonitor['RTSPDescribe']) ?>" size="36"/></td></tr>
 <?php
         }
 ?>

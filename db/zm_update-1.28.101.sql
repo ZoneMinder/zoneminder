@@ -9,7 +9,7 @@ SET @s = (SELECT IF(
 	AND table_schema = DATABASE()
 	AND column_name = 'RTSPDescribe'
 	) > 0,
-"SELECT 'Column Options already exists in Monitors'",
+"SELECT 'Column RTSPDescribe already exists in Monitors'",
 "ALTER TABLE `Monitors` ADD `RTSPDescribe` tinyint(1) unsigned NOT NULL default '0' AFTER `Deinterlacing`"
 ));
 

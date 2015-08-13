@@ -98,3 +98,11 @@ You use "less than" to indicate that you want to match events before the specifi
 
 You should always test your filters before enabling any actions based on them to make sure they consistently return the results you want. You can use the submit button to see what events are returned by your query.
 
+Caveat with Relative items
+--------------------------
+
+One thing to remember if you specify relative dates like "now" or "1 minute ago", etc, they are converted to a specific date and time by Zoneminder's filtering process (zmfilter.pl) when the filters are loaded. They are _NOT_ recomputed each time the filter runs. Filters are re-loaded depending on the value specified by FILTER_RELOAD_DELAY variable in  the Zoneminder Web Console->Options->System
+
+This may cause confusion in the following cases, for example:
+Let's say a user specifies that he wants to be notified of events via email the moment the event "DateTime" is "less than" "now" as a filter criteria. When the filter first gets loaded by zmfilter.pl, this will translate to "Match events where Start Time < " + localtime() where local time is the time that is resolved when this filter gets loaded. Now till the time the filter gets reloaded after FILTER_RELOAD_DELAY seconds (which is usually set to 300 seconds, or 5 minutes), that time does not get recomputed, so the filter will not process any new events that occur after that computed date till another 5 minutes, which is probably not what you want.
+

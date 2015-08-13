@@ -250,6 +250,7 @@ $SLANG = array(
     'DefaultScale'         => '預設尺寸',
     'DefaultView'          => 'Default View',
     'Deinterlacing'        => 'Deinterlacing',          // Added - 2015-04-18
+    'RTSPDescribe'         => 'Use RTSP Response Media URL',
     'Delay'                => 'Delay',                  // Added - 2015-04-18
     'Delete'               => '刪除',
     'DeleteAndNext'        => '刪除 &amp; 下一事件',
@@ -900,7 +901,7 @@ $OLANG = array(
 	),
 	'OPTIONS_RTSPDESCRIBE' => array(
 		'Help' => "Sometimes, during the intial RTSP handshake, the camera will send an updated media URL. ".
-		          "Enable this option to tell ZoneMinder to use this URL. Disable this option to ignore the".
+		          "Enable this option to tell ZoneMinder to use this URL. Disable this option to ignore the ".
 		          "value from the camera and use the value as entered in the monitor configuration~~~~". 
 		          "Generally this should be enabled. However, there are cases where the camera can get its".
 		          "own URL incorrect, such as when the camera is streaming through a firewall"

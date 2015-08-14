@@ -571,7 +571,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
     if ( score < 0 )
         score = 0;
 
-    bool db_frame = (score>=0) || ((frames%config.bulk_frame_interval)==0) || !frames;
+    bool db_frame = (strcmp(frame_type,"Bulk") != 0) || ((frames%config.bulk_frame_interval)==0) || !frames;
     if ( db_frame )
     {
 

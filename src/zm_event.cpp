@@ -575,7 +575,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
     if ( db_frame )
     {
 
-        Debug( 1, "Adding frame %d of type \"%s\" to DB", frames );
+        Debug( 1, "Adding frame %d of type \"%s\" to DB", frames, frame_type );
         static char sql[ZM_SQL_MED_BUFSIZ];
         snprintf( sql, sizeof(sql), "insert into Frames ( EventId, FrameId, Type, TimeStamp, Delta, Score ) values ( %d, %d, '%s', from_unixtime( %ld ), %s%ld.%02ld, %d )", id, frames, frame_type, timestamp.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, score );
         if ( mysql_query( &dbconn, sql ) )

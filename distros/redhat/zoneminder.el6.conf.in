@@ -22,7 +22,7 @@ Alias /zm "@ZM_WEBDIR@"
 ScriptAlias /cgi-bin/zm "@ZM_WEBDIR@"
 <Directory "@ZM_WEBDIR@">
     AllowOverride All
-    Options ExecCGI
+    Options ExecCGI FollowSymLinks
     Order allow,deny
     Allow from all
 </Directory>

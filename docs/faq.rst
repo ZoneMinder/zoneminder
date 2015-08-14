@@ -50,8 +50,74 @@ ZM_AUDIT_CHECK_INTERVAL:
 
 The zmaudit daemon exists to check that the saved information in the database and on the files system match and are consistent with each other. If an error occurs or if you are using 'fast deletes' it may be that database records are deleted but files remain. In this case, and similar, zmaudit will remove redundant information to synchronize the two data stores. The default check interval of 900 seconds (15 minutes) is fine for most systems however if you have a very large number of events the process of scanning the database and file system may take a long time and impact performance. In this case you may prefer to make this interval much larger to reduce the impact on your system. This option determines how often these checks are performed.
 
+
+Math for Memory: Making sure you have enough memory to handle your cameras
+---------------------------------------------------------------------------
+One of the most common issues for erratic ZoneMinder behavior is you don't have enough memory to handle all your cameras. Many users often configure multiple HD cameras at full resolution and 15FPS or more and then face various issues about processes failing, blank screens and other completely erratic behavior. The core reason for all of this is you either don't have enough memory or horsepower to handle all your cameras. The solution often is to reduce FPS, reduce cameras or bump up your server capabilities.
+
+Here are some guidelines with examples on how you can figure out how much memory you need. With respect to CPU, you should benchmark your server using standard unix tools like top, iotop and others to make sure your CPU load is manageable. ZoneMinder also shows average load on the top right corner of the Web Console for easy access.
+
+In *general* a good estimate of memory required would be:
+
+::
+
+	Min Memory = 1.2 * ((image-width*image-height*image buffer size*target color space*number of cameras/8/1024/1024 ) 
+
+Where:
+* image-width and image-height are the width and height of images that your camera is configured for (in my case, 1280x960). This value is in the Source tab for each monitor
+* image buffer size is the # of images ZM will keep in memory (this is used by ZM to make sure it has pre and post images before detecting an alarm - very useful because by the time an alarm is detected, the reason for the alarm may move out of view and a buffer is really useful for this, including for analyzing stats/scores). This value is in the buffers tab for each monitor
+* target color space is the color depth - 8bit, 24bit or 32bit. It's again in the source tab of each monitor
+The 1.2 at the start is basically adding 20% on top of the calculation to account for image/stream overheads (this is an estimate)
+
+So let's do the math. If we have 4 cameras running at 1280x960 with 32bit color space and one camera running at 640x480 with 8bit greyscale color space, the system would require:
+
+``1.2 * ((1280*960*50*32*4/8/1024/1024 )  + (640 *480  *50*8/8 /1024/1024))``
+
+Or, around 900MB of memory.
+
+So if you have 2GB of memory, you should be all set. Right? **Not, really**:
+
+	* This is just the base memory required to capture the streams. Remember ZM is always capturing streams irrespective of whether you are actually recording or not - to make sure its image ring buffer is there with pre images when an alarm kicks in.
+	* You also need to account for other processes not related to ZM running in your box
+	* You also need to account for other ZM processes - for example, I noticed the audit daemon takes up a good amount of memory when it runs, DB updates also take up memory
+
+So a good rule of thumb is to make sure you have twice the memory as the calculation above (and if you are using the ZM server for other purposes, please factor in those memory requirements as well)
+
+**Also remember by default ZM only uses 50% of your available memory unless you change it**
+
+As it turns out, ZM uses mapped memory and by default, 50% of your physical memory is what this will grow to. When you reach that limit , ZM breaks down with various errors.
+
+
+(**Note**: Mapped memory is applicable when you install ZoneMinder with mapped memory support, which is the default mode. If you have specifically disabled mapped memory then please see the next FAQ enty on how to increase shared memory)
+
+A good way to know how much memory is allocated to ZM for its operation is to do a ``df -h``
+
+A sample output on Ubuntu:
+
+::
+
+	pp@camerapc:~$ df -h
+	Filesystem                 Size  Used Avail Use% Mounted on
+	/dev/sda1                  226G   96G  119G  45% /
+	none                       4.0K     0  4.0K   0% /sys/fs/cgroup
+	udev                       1.8G  4.0K  1.8G   1% /dev
+	tmpfs                      371M  816K  370M   1% /run
+	none                       5.0M     0  5.0M   0% /run/lock
+	tmpfs                      2.6G  923M  1.7G  36% /run/shm
+	none                       100M     0  100M   0% /run/user
+
+
+The key item here is tmpfs --> the example above shows we have allocated 1.7G of mapped memory space of which 36% is used which is a healthy number. If you are seeing this to go beyond 70% you should probaby increase mapped memory
+
+
+If you want to increase this limit to 70% of your memory, add the following to ``/etc/fstab``
+``tmpfs /run/shm tmpfs defaults,noexec,nosuid,size=70% 0 0``
+
+
 What does a 'Can't shmget: Invalid argument' error in my logs mean? (and my camera does not display at higher resolutions)
 --------------------------------------------------------------------------------------------------------------------------------------
+
+(*Note*: This is applicable for systems that have mapped memory disabled in ZoneMinder. By default, Mapped memory is enabled and unless you have disabled it manually, please refer to the "Math for Memory" question above and how to increase mapped memory limits)
 
 This error is discussed in the README in the following excerpt:-
 ''...this is caused by an attempt to allocate an amount of shared memory greater than your system can handle. The size it requests is based on the following formula, ``ring buffer size x image width x image height x 3 (for 24 bit images) + a bit of overhead``.

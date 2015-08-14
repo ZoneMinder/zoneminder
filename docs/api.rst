@@ -1,5 +1,5 @@
 API
-^^^
+====
 
 This document will provide an overview of ZoneMinder's API. This is work in progress. 
 

@@ -523,21 +523,21 @@ To save a run state you should first configure your monitors for Modect, Record,
 
 Now you can switch between these two states by selecting them from the same dialog you saved them, or from the command line from issue the command ''zmpkg.pl <run state>'', for example ''zmpkg.pl Daytime''.
 
-The final step you need to take, is scheduling the time the changes take effect. For this you can use `cron <http://en.wikipedia.org/wiki/Cron>`. A simple entry to change to the Daylight state at at 8am and to the nighttime state at 8pm would be as follows,
+The final step you need to take, is scheduling the time the changes take effect. For this you can use `cron <http://en.wikipedia.org/wiki/Cron>`__. A simple entry to change to the Daylight state at at 8am and to the nighttime state at 8pm would be as follows,
 
 ::
 
 	0 8 * * * root /usr/local/bin/zmpkg.pl Daytime
-	0 20 * * * root /usr/local/bin/zmpkg.pl Nighttime</pre>
+	0 20 * * * root /usr/local/bin/zmpkg.pl Nighttime
 
 On Ubuntu 7.04 and possibly others, look in /usr/bin not just /usr/local/bin for the zmpkg.pl file.
 
 Although the example above describes changing states at different times of day, the same principle can equally be applied to days of the week or other more arbitrary periods.
 
-For an alternative method of time controlling ZoneMinder, forum user 'voronwe' has created a more interactive calendar style integration. Details of this can be found in this `forum thread <http://www.zoneminder.com/forums/viewtopic.php?t=6519>`__. If you would like to find out more about this contribution please post on this thread.
 
-=== How can I use ZoneMinder to trigger something else when there is an alarm? ===
-ZoneMinder includes a perl API which means you can create a script to interact with the ZM shared memory data and use it in your own scripts to react to ZM alarms or to trigger ZM to generate new alarms. Full details are in the README or by doing 'perldoc ZoneMinder', 'perldoc ZoneMinder::SharedMem' etc.
+How can I use ZoneMinder to trigger something else when there is an alarm?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ZoneMinder includes a perl API which means you can create a script to interact with the ZM shared memory data and use it in your own scripts to react to ZM alarms or to trigger ZM to generate new alarms. Full details are in the README or by doing ``perldoc ZoneMinder``, ``perldoc ZoneMinder::SharedMem`` etc.
 Below is an example script that checks all monitors for alarms and when one occurs, prints a message to the screen. You can add in your own code to make this reaction a little more useful.
 
 ::
@@ -627,9 +627,6 @@ Here are some commands to get information about your hardware. Some commands are
 * ``[[ipcs]] ``  -- Provides information on the ipc facilities for which the calling process has read acccess.
 * ``[[ipcrm]] ``  -- The ipcrm command can be used to remove an IPC object from the kernel.
 * ``cat /proc/interrupts``  -- This will dispaly what interrupts your hardware is using.
-
-Why is it that when monitoring a camera, the top portion of the image is cutoff and appears at the bottom of the image, with a line seperating the top from the bottom?
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Why am I getting a 403 access error with my web browser when trying to access http //localhost/zm?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

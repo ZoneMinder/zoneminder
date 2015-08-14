@@ -325,10 +325,10 @@ Monitor::Monitor(
     timestamps( 0 ),
     images( 0 )
 {
-    strncpy( name, p_name, sizeof(name) );
+    strncpy( name, p_name, sizeof(name)-1 );
 
-    strncpy( event_prefix, p_event_prefix, sizeof(event_prefix) );
-    strncpy( label_format, p_label_format, sizeof(label_format) );
+    strncpy( event_prefix, p_event_prefix, sizeof(event_prefix)-1 );
+    strncpy( label_format, p_label_format, sizeof(label_format)-1 );
 
     // Change \n to actual line feeds
     char *token_ptr = label_format;

@@ -7,10 +7,10 @@ This is the FAQ page. Feel free to contribute any FAQs that you think are missin
 How can I stop ZoneMinder filling up my disk?
 ---------------------------------------------
 
-Recent versions of ZoneMinder come with a filter you can use for this purpose already included. However '''by default it is not enabled for event deletion'''.
+Recent versions of ZoneMinder come with a filter you can use for this purpose already included. 
+The filter is called **PurgeWhenFull** and to find it, choose one of the event counts from the console page, for instance events in the last hour, for one of your monitors. **Note** that this filter is automatically enabled if you do a frresh install of ZoneMinder including creating a new Database. If you already have an existing Database and are upgrading Zoneminder, it will retain the settings of the filter (which in earlier releases was disabled by default). So you may want to check if PurgeWhenFull is enabled and if not, enable it.
 
-The filter is called ''PurgeWhenFull'' and to find it, choose one of the event counts from the console page, for instance events in the last hour, for one of your monitors.
-
+To enable it, go to Web Console, click on any of your Events of any of your monitors.
 This will bring up an event listing and a filter window.
 
 In the filter window there is a drop down select box labeled 'Use Filter', that lets your select a saved filter. Select 'PurgeWhenFull' and it will load that filter.
@@ -61,50 +61,60 @@ This error is discussed in the README in the following excerpt:-
 ''...this is caused by an attempt to allocate an amount of shared memory greater than your system can handle. The size it requests is based on the following formula, ``ring buffer size x image width x image height x 3 (for 24 bit images) + a bit of overhead``.
 
 So, for example:
-<pre>384x288 capture resolution, that makes: 110 592 pixels
-in 24 bit color that's x24 = 2 654 208 bits per frame 
-by 80 frames ring buffer x80 = 212 336 640 bits per camera 
-by 4 cameras x4 = 849 346 560 bits. 
-Plus 10% overhead = 934 281 216 bits 
-That's 116 785 152 bytes, and 
-= 114 048 kB, respectively 111.38 MB. 
-If my shared memory is set to 134 217 728, which is exactly 128MB, 
-that means I shouldn't have any problem.
-(Note that 1 byte = 8 bits and 1kbyte = 1024bytes, 1MB = 1024 kB)</pre>
+
+::
+
+	384x288 capture resolution, that makes: 110 592 pixels
+	in 24 bit color that's x24 = 2 654 208 bits per frame 
+	by 80 frames ring buffer x80 = 212 336 640 bits per camera 
+	by 4 cameras x4 = 849 346 560 bits. 
+	Plus 10% overhead = 934 281 216 bits 
+	That's 116 785 152 bytes, and 
+	= 114 048 kB, respectively 111.38 MB. 
+	If my shared memory is set to 134 217 728, which is exactly 128MB, 
+	that means I shouldn't have any problem.
+	(Note that 1 byte = 8 bits and 1kbyte = 1024bytes, 1MB = 1024 kB)
 
 If for instance you were using 24bit 640x480 then this would come to about 92Mb if you are using the default buffer size of 100. If this is too large then you can either reduce the image or buffer sizes or increase the maximum amount of shared memory available. If you are using RedHat then you can get details on how to change these settings at http://www.redhat.com/docs/manuals/database/RHDB-2.1-Manual/admin_user/kernel-resources.html .  
 
 You should be able to use a similar procedure  with other distributions to modify the shared memory pool without kernel recompilations though in some cases this may be necessary. Note, this error also sometimes occurs if you have an old shared memory segment lying around from a previous run that is too small. Use the ipcs and ipcrm system commands to check and remove it if necessary.'"
 
 You can often find out how many 4KB shared memory pages are available by typing the following :-
-<pre># cat /proc/sys/kernel/shmall
-2097152</pre>
+
+::
+
+	# cat /proc/sys/kernel/shmall
+	2097152
 
 In recent kernels the shmall is set to 2097152 memory pages multiplied by 4096 bytes per page for a total of 8 GB of shared memory available.  You only need to increase the shmall value if you have a computer with more than 8GB of memory and wish to use more of it for shared memory usage, such as large databases.
 
 The most shared memory bytes you can allocate in one go :-
-<pre># cat /proc/sys/kernel/shmmax
-33554432</pre>
+
+::
+
+	# cat /proc/sys/kernel/shmmax
+	33554432
 
 In recent kernels the shmmax is set to 33554432 bytes for only 32 MB of maximum shared memory allocatable at a time, hardly enough for ZoneMinder to go above 320 x 240 x 24-bit resolution at 40 frames in the buffer if it is using the /dev/shm shared memory device, so this value needs to be increased.  If you are using ZoneMinder with the memory mapped (mmap) compile time option then this doesn't affect you.
 
 To change the value to 128 MB temporarily during this kernel execution type (for example) :-
-<pre>echo 536870912 >/proc/sys/kernel/shmmax</pre>
+``echo 536870912 >/proc/sys/kernel/shmmax``
 
-'''Be sure to restart ZoneMinder after this.'''
+*Be sure to restart ZoneMinder after this.*
+
 However be aware that sometimes you will only need to change the shmmax value as shmall is often large enough. Also changing these values in this way is only effective until your machine is rebooted. 
 
 To change them permanently you will need to edit ``/etc/sysctl.conf`` and add the following lines (for example) :-
-<pre>kernel.shmmax = 536870912</pre>
+``kernel.shmmax = 536870912``
 
 Or if your distribution has the ``/etc/sysctl.d/`` folder you can create a file in this folder without modifying the ``/etc/sysctl.d`` so you won't lose the changes during distro upgrades :-
-<pre>echo kernel.shmmax = 536870912 >/etc/sysctl.d/60-kernel-shm.conf</pre>
+```echo kernel.shmmax = 536870912 >/etc/sysctl.d/60-kernel-shm.conf```
 
 To load these settings in the sysctl.conf file type:
-<pre>sysctl -p</pre>
+``sysctl -p``
 
 To check your shared memory settings type:
-<pre>ipcs -l</pre>
+``ipcs -l``
 
 Note that with Megapixel cameras like the Axis 207mw becoming cheaper and more attractive, the above memory settings are not adequate. To get Zoneminder working with a full 1280x1024 resolution camera in full color, increase ``134217728`` (128 MB) to, for example, ``268435456`` (256 MB) and multiple this value by each camera.
 
@@ -113,9 +123,9 @@ These changes will now also be set the next time your machine is restarted.
 Versions 1.24.x of ZoneMinder also allows you to use an alternate method of shared memory allocation, [http://en.wikipedia.org/wiki/Mmap mapped memory]. This requires less configuration and can be simpler to use. Mapped memory allows you to use a special type of file as the placeholder for your memory and this file is 'mapped' into memory space for easy and fast access.
 
 To enable mapped memory in ZoneMinder you need add add the --enable--mmap=yes switch to your configure line. By default mapped memory files are created in /dev/shm which on most distributions is a dedicated pseudo-partition containing memory formatted as a filesystem. If your system uses a different path then this can be changed in ZoneMinder in Options->paths->PATH_MAP. It uses a filesystem type called [http://en.wikipedia.org/wiki/Tmpfs tmpfs]. If you type 'df -h' you should see this area and the size of memory it currently allows. To increase size for tmpfs you need to edit /etc/default/tmpfs. Search for:
-<pre>SHM_SIZE=128M</pre>
+``SHM_SIZE=128M``
 and change to something like
-<pre>SHM_SIZE=1G</pre>
+``SHM_SIZE=1G``
 then reboot the system. You could possibly need to change RUN_SIZE, too.
 
 It is important that you do not use a disk based filesystem for your memory mapped files as this will cause memory access to be extremely slow. ZoneMinder creates files called .zm.mmap.<monitor id> in the mapped memory filesystem.
@@ -198,7 +208,7 @@ This issue is normally down to one of two causes
 
 Once I did this, images started to stream for me.
 
-2) The other common cause for being unable to view streams is that you have installed the ZoneMinder cgi binaries (zms and nph-zms) in a different directory than your web server is expecting. Make sure that the --with-cgidir option you use to the ZoneMinder configure script is the same as the CGI directory configure for your web server. If you are using Apache, which is the most common one, then in your httpd.conf file there should be a line like <pre>ScriptAlias /cgi-bin/ "/var/www/cgi-bin/"</pre> where the last directory in the quotes is the one you have specified. If not then change one or the other to match. Be warned that configuring apache can be complex so changing the one passed to the ZoneMinder configure (and then rebuilding and reinstalling) is recommended in the first instance. If you change the apache config you will need to restart apache for the changes to take effect. If you still cannot see stream reliably then try changing Options->Paths->ZM_PATH_ZMS to just use zms if nph-zms is specified, or vice versa. Also check in your apache error logs.
+2) The other common cause for being unable to view streams is that you have installed the ZoneMinder cgi binaries (zms and nph-zms) in a different directory than your web server is expecting. Make sure that the --with-cgidir option you use to the ZoneMinder configure script is the same as the CGI directory configure for your web server. If you are using Apache, which is the most common one, then in your httpd.conf file there should be a line like ``ScriptAlias /cgi-bin/ "/var/www/cgi-bin/"`` where the last directory in the quotes is the one you have specified. If not then change one or the other to match. Be warned that configuring apache can be complex so changing the one passed to the ZoneMinder configure (and then rebuilding and reinstalling) is recommended in the first instance. If you change the apache config you will need to restart apache for the changes to take effect. If you still cannot see stream reliably then try changing Options->Paths->ZM_PATH_ZMS to just use zms if nph-zms is specified, or vice versa. Also check in your apache error logs.
 
 I have several monitors configured but when I load the Montage view in FireFox why can I only see two? or, Why don't all my cameras display when I use the Montage view in FireFox?
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -209,17 +219,18 @@ You will need to increase the number of allowed connections to use the montage v
 
 To resolve this situation, follow the instructions below:
 
-<pre>Enter about:config in the address bar
+Enter ``about:config`` in the address bar
 
 scroll down to
-browser.cache.check_doc_frequency 3
+``browser.cache.check_doc_frequency 3``
 change the 3 to a 1
 
-browser.cache.disk.enable True -> False
-network.http.max-connections-per-server -> put a value of 100
-network.http.max-persistent-connections-per-proxy -> 100 again
-network.http.max-persistent-connections-per-server -> 100 again
-</pre>
+::
+
+	browser.cache.disk.enable True -> False
+	network.http.max-connections-per-server -> put a value of 100
+	network.http.max-persistent-connections-per-proxy -> 100 again
+	network.http.max-persistent-connections-per-server -> 100 again
 
 Why is ZoneMinder using so much CPU?
 ---------------------------------------
@@ -346,17 +357,21 @@ CentOS 6.4 now has libjpeg-turbo built in as the default jpeg library allowing t
   http://libjpeg-turbo.virtualgl.org/
 
 provides some history on its project page.  If you seek confirmation for which library is in use, you may consider querying e.g. while running on a prior distribution:
-<pre>
-[u@who ~]$ rpm -q --whatprovides libjpeg
-libjpeg-6b-46.fc12.i686
-[u@who ~]$ 
-</pre>
+
+::
+
+	[u@who ~]$ rpm -q --whatprovides libjpeg
+	libjpeg-6b-46.fc12.i686
+	[u@who ~]$ 
+
 and comparing the response to querying when the higher-performance library is available:
-<pre>
-[u@who ~]$ rpm -q --whatprovides libjpeg
-libjpeg-turbo-1.0.1-1.fc14.x86_64
-[u@who ~]$ 
-</pre>
+
+::
+
+	[u@who ~]$ rpm -q --whatprovides libjpeg
+	libjpeg-turbo-1.0.1-1.fc14.x86_64
+	[u@who ~]$ 
+
 As noted in other forum postings, some zoneminder camera and usage configurations may not make much use of jpeg processing (e.g. some webcams), and thus obtain little performance benefit.  Otherwise, you should be able to select one or more of:
 * running more cameras,
 * running existing cameras at higher image resolutions,
@@ -388,9 +403,11 @@ Faster CPU. Simple but effective. Zoneminder also works very well with multiple 
 
 
 Try building Zoneminder with processor specific instructions that are optimised to the system it will be running on, also increasing the optimisation level of GCC beyond -O2 will help.
-<pre>
-./configure CFLAGS="-g -O3 -march=athlon-xp -mtune=athlon-xp" CXXFLAGS="-g -O3 -march=athlon-xp -mtune=athlon-xp"
-</pre>
+
+::
+
+	./configure CFLAGS="-g -O3 -march=athlon-xp -mtune=athlon-xp" CXXFLAGS="-g -O3 -march=athlon-xp -mtune=athlon-xp"
+
 The above command is optimised for an Athlon XP cpu so you will need to use the specific processor tag for your cpu, also the compiler optimisation has been increased to -O3.
 
 You also need to put in your normal ./configure commands as if you were compiling with out this optimisation.
@@ -398,20 +415,19 @@ You also need to put in your normal ./configure commands as if you were compilin
 A further note is that the compile must be performed on the system that Zoneminder will be running on as this optimisation will make it hardware specific code.
 
 Processor specific commands can be found in the GCC manual along with some more options that may increase performanc. 
-<pre>
 http://gcc.gnu.org/onlinedocs/gcc/i386-and-x86_002d64-Options.html#i386-and-x86_002d64-Options
-</pre>
 
 The below command has been used to compile Zoneminder on a Athlon XP system running CentOS 5.5 and along with the libjpeg-turbo modification to reduce the CPU load in half, libjpeg-turbo reduced the load by 1/3 before the processor optimisation.
-<pre>
-./configure --with-webdir=/var/www/html/zm --with-cgidir=/var/www/cgi-bin CFLAGS="-g -O3 -march=athlon-xp -mtune=athlon-xp" CXXFLAGS="-D__STDC_CONSTANT_MACROS -g -O3 -march=athlon-xp -mtune=athlon-xp" --enable-mmap --sysconfdir=/etc/zm
-</pre>
+::
+
+	./configure --with-webdir=/var/www/html/zm --with-cgidir=/var/www/cgi-bin CFLAGS="-g -O3 -march=athlon-xp -mtune=athlon-xp" CXXFLAGS="-D__STDC_CONSTANT_MACROS -g -O3 -march=athlon-xp -mtune=athlon-xp" --enable-mmap --sysconfdir=/etc/zm
 
 The following command has been used to compile Zoneminder 1.25 on a CentOS 6.0 system, the native command should choose the processor automatically during compile time, this needs to be performed on the actual system!!.
 
-<pre>
-CFLAGS="-g -O3 -march=native -mtune=native" CXXFLAGS="-D__STDC_CONSTANT_MACROS -g -O3 -march=native -mtune=native" ./configure  --with-webdir=/var/www/html/zm --with-cgidir=/var/www/cgi-bin --with-webuser=apache --with-webgroup=apache ZM_DB_HOST=localhost ZM_DB_NAME=zm ZM_DB_USER=your_zm_user ZM_DB_PASS=your_zm_password ZM_SSL_LIB=openssl
-</pre>
+::
+
+	CFLAGS="-g -O3 -march=native -mtune=native" CXXFLAGS="-D__STDC_CONSTANT_MACROS -g -O3 -march=native -mtune=native" ./configure  --with-webdir=/var/www/html/zm --with-cgidir=/var/www/cgi-bin --with-webuser=apache --with-webgroup=apache ZM_DB_HOST=localhost ZM_DB_NAME=zm ZM_DB_USER=your_zm_user ZM_DB_PASS=your_zm_password ZM_SSL_LIB=openssl
+
 
 What about disks and bandwidth?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -428,25 +444,25 @@ When running configure I am getting a lot of messages about not being able to co
 
 If you see output from configure that looks like this
 
-<pre>checking libavcodec/avcodec.h usability... no
-checking libavcodec/avcodec.h presence... yes
-configure: WARNING: libavcodec/avcodec.h: present but cannot be compiled
-configure: WARNING: libavcodec/avcodec.h:     check for missing
-prerequisite headers?
-configure: WARNING: libavcodec/avcodec.h: see the Autoconf documentation
-configure: WARNING: libavcodec/avcodec.h:     section "Present But
-Cannot Be Compiled"
-configure: WARNING: libavcodec/avcodec.h: proceeding with the compiler's
-result
-configure: WARNING:     ## ------------------------------------- ##
-configure: WARNING:     ## Report this to support@zoneminder.com ##
-configure: WARNING:     ## ------------------------------------- ##</pre>
+::
 
-then it is caused not by the ZoneMinder build system but ffmpeg itself. However there is a workaround you can use which is to add
+	checking libavcodec/avcodec.h usability... no
+	checking libavcodec/avcodec.h presence... yes
+	configure: WARNING: libavcodec/avcodec.h: present but cannot be compiled
+	configure: WARNING: libavcodec/avcodec.h:     check for missing
+	prerequisite headers?
+	configure: WARNING: libavcodec/avcodec.h: see the Autoconf documentation
+	configure: WARNING: libavcodec/avcodec.h:     section "Present But
+	Cannot Be Compiled"
+	configure: WARNING: libavcodec/avcodec.h: proceeding with the compiler's
+	result
+	configure: WARNING:     ## ------------------------------------- ##
+	configure: WARNING:     ## Report this to support@zoneminder.com ##
+	configure: WARNING:     ## ------------------------------------- ##</pre>
 
-  CPPFLAGS=-D__STDC_CONSTANT_MACROS
+then it is caused not by the ZoneMinder build system but ffmpeg itself. However there is a workaround you can use which is to add ``CPPFLAGS=-D__STDC_CONSTANT_MACROS``
 
-to the ZoneMinder ./configure command which should solve the issue. However this is not a proper 'fix' as such, which can only come from the ffmpeg project itself.
+to the ZoneMinder ``./configure`` command which should solve the issue. However this is not a proper 'fix' as such, which can only come from the ffmpeg project itself.
 
 I cannot build ZoneMinder and am getting lots of undefined C++ template errors
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -475,8 +491,11 @@ To save a run state you should first configure your monitors for Modect, Record,
 Now you can switch between these two states by selecting them from the same dialog you saved them, or from the command line from issue the command ''zmpkg.pl <run state>'', for example ''zmpkg.pl Daytime''.
 
 The final step you need to take, is scheduling the time the changes take effect. For this you can use [http://en.wikipedia.org/wiki/Cron cron]. A simple entry to change to the Daylight state at at 8am and to the nighttime state at 8pm would be as follows,
-<pre>0 8 * * * root /usr/local/bin/zmpkg.pl Daytime
-0 20 * * * root /usr/local/bin/zmpkg.pl Nighttime</pre>
+
+::
+
+	0 8 * * * root /usr/local/bin/zmpkg.pl Daytime
+	0 20 * * * root /usr/local/bin/zmpkg.pl Nighttime</pre>
 
 On Ubuntu 7.04 and possibly others, look in /usr/bin not just /usr/local/bin for the zmpkg.pl file.
 
@@ -607,18 +626,22 @@ In the monitor windows where you see the black screen with a timestamp, select s
 I am getting messages about a backtrace in my logs, what do I do?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 If you are seeing entries in your log like the following
-<pre>Jan 11 20:25:22 localhost zma_m2[19051]: ERR [Backtrace: /lib64/libc.so.6 [0x3347230210]]
-Jan 11 20:25:22 localhost zma_m2[19051]: ERR [Backtrace: /lib64/libc.so.6(memset+0xce) [0x334727684e]]
-Jan 11 20:25:22 localhost zma_m2[19051]: ERR [Backtrace: /usr/local/bin/zma [0x40ee9a]]
-Jan 11 20:25:22 localhost zma_m2[19051]: ERR [Backtrace: /usr/local/bin/zma [0x419946]]
-Jan 11 20:25:22 localhost zma_m2[19051]: ERR [Backtrace: /usr/local/bin/zma [0x4213cf]]
-Jan 11 20:25:22 localhost zma_m2[19051]: ERR [Backtrace: /usr/local/bin/zma(cos+0x35c) [0x404674]]
-Jan 11 20:25:22 localhost zma_m2[19051]: ERR [Backtrace: /lib64/libc.so.6(__libc_start_main+0xf4) [0x334721da44]]
-Jan 11 20:25:22 localhost zma_m2[19051]: ERR [Backtrace: /usr/local/bin/zma(cos+0xd1) [0x4043e9]]
-Jan 11 20:25:22 localhost zma_m2[19051]: INF [Backtrace complete]</pre>
+
+::
+
+	Jan 11 20:25:22 localhost zma_m2[19051]: ERR [Backtrace: /lib64/libc.so.6 [0x3347230210]]
+	Jan 11 20:25:22 localhost zma_m2[19051]: ERR [Backtrace: /lib64/libc.so.6(memset+0xce) [0x334727684e]]
+	Jan 11 20:25:22 localhost zma_m2[19051]: ERR [Backtrace: /usr/local/bin/zma [0x40ee9a]]
+	Jan 11 20:25:22 localhost zma_m2[19051]: ERR [Backtrace: /usr/local/bin/zma [0x419946]]
+	Jan 11 20:25:22 localhost zma_m2[19051]: ERR [Backtrace: /usr/local/bin/zma [0x4213cf]]
+	Jan 11 20:25:22 localhost zma_m2[19051]: ERR [Backtrace: /usr/local/bin/zma(cos+0x35c) [0x404674]]
+	Jan 11 20:25:22 localhost zma_m2[19051]: ERR [Backtrace: /lib64/libc.so.6(__libc_start_main+0xf4) [0x334721da44]]
+	Jan 11 20:25:22 localhost zma_m2[19051]: ERR [Backtrace: /usr/local/bin/zma(cos+0xd1) [0x4043e9]]
+	Jan 11 20:25:22 localhost zma_m2[19051]: INF [Backtrace complete]</pre>
+
 then you can help diagnose the problem by running a special command to translate the hex addresses into helpful information. This command is called addr2line and you can type 'man addr2line' for more information.
 Basically addr2line takes two sets of parameters, the first is the name of the binary file, and the second is a list of addresses. Both of these pieces of information are displayed in the logs. The filename is the first part after the 'Backtrace:' tag, in this case /usr/local/bin/zma, though it may well be different in your case. Some of the lines refer to libraries rather than the zma executable but those can be ignored for now, the important part is noting which ZM binary is involved. The binary file is passed in following the -e flag. The addresses to pass to addr2line are those contained in the '[]' pairs. Again you can ignore those that are on a line that refers to a library but it will not hurt if you include them.
-So in the example above, the command would be <pre>addr2line -e /usr/local/bin/zma 0x40ee9a 0x419946 0x4213cf 0x404674 0x4043e9</pre>
+So in the example above, the command would be ``addr2line -e /usr/local/bin/zma 0x40ee9a 0x419946 0x4213cf 0x404674 0x4043e9``
 This should then dump out a more symbolic list containing source file names and line numbers, and it is this information which will be helpful if posted to the forums. Sometimes addr2line fails to produce useful output. This is usually because either the problem is so severe that it has corrupted the stack and prevented useful information from being displayed, or that you have either compiled ZM without the -g flag for debug, or you have stripped the binaries of symbol information after installation. This this case you would need to rebuild temporarily with debug enabled for the information to be useful.
 
 

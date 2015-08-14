@@ -137,7 +137,7 @@ So, for example:
 	that means I shouldn't have any problem.
 	(Note that 1 byte = 8 bits and 1kbyte = 1024bytes, 1MB = 1024 kB)
 
-If for instance you were using 24bit 640x480 then this would come to about 92Mb if you are using the default buffer size of 100. If this is too large then you can either reduce the image or buffer sizes or increase the maximum amount of shared memory available. If you are using RedHat then you can get details on how to change these settings at http://www.redhat.com/docs/manuals/database/RHDB-2.1-Manual/admin_user/kernel-resources.html .  
+If for instance you were using 24bit 640x480 then this would come to about 92Mb if you are using the default buffer size of 100. If this is too large then you can either reduce the image or buffer sizes or increase the maximum amount of shared memory available. If you are using RedHat then you can get details on how to change these settings `here <http://www.redhat.com/docs/manuals/database/RHDB-2.1-Manual/admin_user/kernel-resources.html>`__
 
 You should be able to use a similar procedure  with other distributions to modify the shared memory pool without kernel recompilations though in some cases this may be necessary. Note, this error also sometimes occurs if you have an old shared memory segment lying around from a previous run that is too small. Use the ipcs and ipcrm system commands to check and remove it if necessary.'"
 
@@ -182,9 +182,9 @@ Note that with Megapixel cameras like the Axis 207mw becoming cheaper and more a
 
 These changes will now also be set the next time your machine is restarted.
 
-Versions 1.24.x of ZoneMinder also allows you to use an alternate method of shared memory allocation, [http://en.wikipedia.org/wiki/Mmap mapped memory]. This requires less configuration and can be simpler to use. Mapped memory allows you to use a special type of file as the placeholder for your memory and this file is 'mapped' into memory space for easy and fast access.
+Versions 1.24.x of ZoneMinder also allows you to use an alternate method of shared memory allocation, `Mmap mapped memory <http://en.wikipedia.org/wiki/Mmap>`__ . This requires less configuration and can be simpler to use. Mapped memory allows you to use a special type of file as the placeholder for your memory and this file is 'mapped' into memory space for easy and fast access.
 
-To enable mapped memory in ZoneMinder you need add add the --enable--mmap=yes switch to your configure line. By default mapped memory files are created in /dev/shm which on most distributions is a dedicated pseudo-partition containing memory formatted as a filesystem. If your system uses a different path then this can be changed in ZoneMinder in Options->paths->PATH_MAP. It uses a filesystem type called [http://en.wikipedia.org/wiki/Tmpfs tmpfs]. If you type 'df -h' you should see this area and the size of memory it currently allows. To increase size for tmpfs you need to edit /etc/default/tmpfs. Search for:
+To enable mapped memory in ZoneMinder you need add add the --enable--mmap=yes switch to your configure line. By default mapped memory files are created in /dev/shm which on most distributions is a dedicated pseudo-partition containing memory formatted as a filesystem. If your system uses a different path then this can be changed in ZoneMinder in Options->paths->PATH_MAP. It uses a filesystem type called `tmpfs <http://en.wikipedia.org/wiki/Tmpfs>`__. If you type ``df -h`` you should see this area and the size of memory it currently allows. To increase size for tmpfs you need to edit /etc/default/tmpfs. Search for:
 ``SHM_SIZE=128M``
 and change to something like
 ``SHM_SIZE=1G``
@@ -194,8 +194,7 @@ It is important that you do not use a disk based filesystem for your memory mapp
 
 Mapped memory is subject to the same limitations in terms of total memory as using more traditional shared memory but does not require any configuration per allocation or chunk. In future versions of ZoneMinder this will be the default shared memory storage method.
 
-Another good article about shared memory settings http://publib.boulder.ibm.com/infocenter/db2luw/v9/index.jsp?topic=/com.ibm.db2.udb.uprun.doc/doc/t0008238.htm . 
-It made a statement that conflicted with those in the Redhat article but they fixed a [http://www.zoneminder.com/forums/viewtopic.php?t=9692 long standing memory issue on FC6], so give them a try. 
+Another good article about shared memory settings can be found `here <http://publib.boulder.ibm.com/infocenter/db2luw/v9/index.jsp?topic=/com.ibm.db2.udb.uprun.doc/doc/t0008238.htm>`__ . 
 
 The essential difference was that the kernel.shmall setting is NOT in a direct memory setting in KB but in pages of memory. it is Max Pages of memory
 
@@ -221,7 +220,9 @@ As above, reload your sysctl.conf with ``sysctl -p`` and check that the settings
 I have enabled motion detection but it is not always being triggered when things happen in the camera view
 ---------------------------------------------------------------------------------------------------------------
 
-ZoneMinder uses zones to examine images for motion detection. When you create the initial zones you can choose from a number of preset values for sensitivity etc. Whilst these are usually a good starting point they are not always suitable for all situations and you will probably need to tweak the values for your specific circumstances. The meanings of the various settings are described in the documentation (http://www.zoneminder.com/wiki/index.php/Documentation#Defining_Zones) however if you believe you have sensible settings configured then there are two diagnostic approaches you can use.
+ZoneMinder uses zones to examine images for motion detection. When you create the initial zones you can choose from a number of preset values for sensitivity etc. Whilst these are usually a good starting point they are not always suitable for all situations and you will probably need to tweak the values for your specific circumstances. The meanings of the various settings are described in the documentation (`here <http://www.zoneminder.com/wiki/index.php/Documentation#Defining_Zones>`__) however if you believe you have sensible settings configured then there are two diagnostic approaches you can use.
+
+Another user contributed illustrated Zone definition guide can be found here: `An illustrated guide to Zones <http://www.zoneminder.com/wiki/index.php/Understanding_ZoneMinder%27s_Zoning_system_for_Dummies>`__
 
 Event Statistics
 ^^^^^^^^^^^^^^^^^
@@ -266,7 +267,9 @@ This issue is normally down to one of two causes
 
 '''NOTE''': If you find that the Cambozola applet loads in IE but the applet just displays the version # of Cambozola and the author's name (as opposed to seeing the streaming images), you may need to chmod (''-rwxrwxr-x'') your (''usr/share/zoneminder/'') cambozola.jar:
 
-  $ sudo chmod 775 cambozola.jar
+::
+
+	sudo chmod 775 cambozola.jar
 
 Once I did this, images started to stream for me.
 
@@ -303,12 +306,12 @@ There are a number of specific reasons why processor loads can be high either by
 
 The main causes are.
 
-# Using a video palette other than greyscale or RGB24. This can cause a relatively minor performace hit, though still significant. Although some cameras and cards require using planar palettes ZM currently doesn't support this format internally and each frame is converted to an RGB representation prior to processing. Unless you have compelling reasons for using YUV or reduced RGB type palettes such as hitting USB transfer limits I would experiment to see if RGB24 or greyscale is quicker. Put your monitors into 'Monitor' mode so that only the capture daemons are running and monitor the process load of these (the 'zmc' processes) using top. Try it with various palettes to see if it makes a difference.
-# Big image sizes. A image of 640x480 requires at least four times the processing of a 320x240 image. Experiment with different sizes to see what effect it may have. Sometimes a large image is just two interlaced smaller frames so has no real benefit anyway. This is especially true for analog cameras/cards as image height over 320 (NTSC) or 352 PAL) are invariably interlaced.
-# Capture frame rates. Unless there's a compelling reason in your case there is often little benefit in running cameras at 25fps when 5-10fps would often get you results just as good. Try changing your monitor settings to limit your cameras to lower frame rates. You can still configure ZM to ignore these limits and capture as fast as possible when motion is detected.
-# Run function. Obviously running in Record or Mocord modes or in Modect with lots of events generates a lot of DB and file activity and so CPU and load will increase.
-# Basic default detection zones. By default when a camera is added one detection zone is added which covers the whole image with a default set of parameters. If your camera covers a view in which various regions are unlikely to generate a valid alarm (ie the sky) then I would experiment with reducing the zone sizes or adding inactive zones to blank out areas you don't want to monitor. Additionally the actual settings of the zone themselves may not be optimal. When doing motion detection the number of changed pixels above a threshold is examined, then this is filter, then contiguous regions are calculated to see if an alarm is generated. If any maximum or minimum threshold is exceeded according to your zone settings at any time the calculation stops. If your settings always result in the calculations going through to the last stage before being failed then additional CPU time is used unnecessarily. Make sure your maximum and minimumzone thresholds are set to sensible values and experiment by switching RECORD_EVENT_STATS on and seeing what the actual values of alarmed pixels etc are during sample events.
-# Optimise your settings. After you've got some settings you're happy with then switching off RECORD_EVENT_STATS will prevent the statistics being written to the database which saves some time. Other settings which might make a difference are ZM_FAST_RGB_DIFFS, ZM_OPT_FRAME_SERVER and the JPEG_xxx_QUALITY ones.
+	* Using a video palette other than greyscale or RGB24. This can cause a relatively minor performace hit, though still significant. Although some cameras and cards require using planar palettes ZM currently doesn't support this format internally and each frame is converted to an RGB representation prior to processing. Unless you have compelling reasons for using YUV or reduced RGB type palettes such as hitting USB transfer limits I would experiment to see if RGB24 or greyscale is quicker. Put your monitors into 'Monitor' mode so that only the capture daemons are running and monitor the process load of these (the 'zmc' processes) using top. Try it with various palettes to see if it makes a difference.
+	* Big image sizes. A image of 640x480 requires at least four times the processing of a 320x240 image. Experiment with different sizes to see what effect it may have. Sometimes a large image is just two interlaced smaller frames so has no real benefit anyway. This is especially true for analog cameras/cards as image height over 320 (NTSC) or 352 PAL) are invariably interlaced.
+	* Capture frame rates. Unless there's a compelling reason in your case there is often little benefit in running cameras at 25fps when 5-10fps would often get you results just as good. Try changing your monitor settings to limit your cameras to lower frame rates. You can still configure ZM to ignore these limits and capture as fast as possible when motion is detected.
+	* Run function. Obviously running in Record or Mocord modes or in Modect with lots of events generates a lot of DB and file activity and so CPU and load will increase.
+	*  Basic default detection zones. By default when a camera is added one detection zone is added which covers the whole image with a default set of parameters. If your camera covers a view in which various regions are unlikely to generate a valid alarm (ie the sky) then I would experiment with reducing the zone sizes or adding inactive zones to blank out areas you don't want to monitor. Additionally the actual settings of the zone themselves may not be optimal. When doing motion detection the number of changed pixels above a threshold is examined, then this is filter, then contiguous regions are calculated to see if an alarm is generated. If any maximum or minimum threshold is exceeded according to your zone settings at any time the calculation stops. If your settings always result in the calculations going through to the last stage before being failed then additional CPU time is used unnecessarily. Make sure your maximum and minimumzone thresholds are set to sensible values and experiment by switching RECORD_EVENT_STATS on and seeing what the actual values of alarmed pixels etc are during sample events.
+	* Optimise your settings. After you've got some settings you're happy with then switching off RECORD_EVENT_STATS will prevent the statistics being written to the database which saves some time. Other settings which might make a difference are ZM_FAST_RGB_DIFFS, ZM_OPT_FRAME_SERVER and the JPEG_xxx_QUALITY ones.
 
 I'm sure there are other things which might make a difference such as what else you have running on the box and memory sizes (make sure there's no swapping going on). Also speed of disk etc will make some difference during event capture and also if you are watching the whole time then you may have a bunch of zms processes running also.
 
@@ -324,15 +327,15 @@ This function has from time to time been corrupted in the SVN release or in the 
 
 How much Hard Disk Space / Bandwidth do I need for ZM?
 ---------------------------------------------------------------
-Please see [http://www.jpwilson.eu/ZM_Utils/ZM%20storage%20calc%20sheet.xls Storage Calc] in excel format
+Please see `this excel sheet <http://www.jpwilson.eu/ZM_Utils/ZM%20storage%20calc%20sheet.xls>`__ or  `this online excel sheet <https://docs.google.com/spreadsheets/d/1G2Er8fZ_lWQv9QV8qf9yGCMkiUG03a-UwgLLxzCL0OY/edit#gid=49279749>`__ (both are user contributed excel sheets)
 
-Or go to [http://www.axis.com/products/video/design_tool/index.htm this link] for the Axis bandwidth calculator. Although this is aimed at Axis cameras it still produces valid results for any kind of IP camera.
+Or go to `this link <http://www.axis.com/products/video/design_tool/index.html>`__ for the Axis bandwidth calculator. Although this is aimed at Axis cameras it still produces valid results for any kind of IP camera.
 
 As a quick guide I have 4 cameras at 320x240 storing 1 fps except during alarm events. After 1 week 60GB of space in the volume where the events are stored (/var/www/html/zm) has been used.
 
 When I try and run ZoneMinder I get lots of audit permission errors in the logs and it won't start
 -------------------------------------------------------------------------------------------------------
-Many Linux distributions nowadays are built with security in mind. One of the latest methods of achieving this is via SELinux (Secure Linux) which controls who is able to run what in a more precise way then traditional accounting and file based permissions ([http://en.wikipedia.org/wiki/Selinux]).
+Many Linux distributions nowadays are built with security in mind. One of the latest methods of achieving this is via SELinux (Secure Linux) which controls who is able to run what in a more precise way then traditional accounting and file based permissions (`link <http://en.wikipedia.org/wiki/Selinux>`__).
 If you are seeing entries in your system log like:
 
    Jun 11 20:44:02 kernel: audit(1150033442.443:226): avc: denied { read } for pid=5068
@@ -345,37 +348,40 @@ Note that SELinux may cause errors other than those listed above. If you are in 
 
 How do I enable ZoneMinder's security?
 -------------------------------------------
-In the console, click on Options. Check the box next to "ZM_OPT_USE_AUTH". You will immediately be asked to login. The username is 'admin' and the password is 'admin'.
+In the console, click on Options. Check the box next to "ZM_OPT_USE_AUTH". You will immediately be asked to login. The default username is 'admin' and the password is 'admin'.
 
-'''To Manage Users:'''<br>
-In main console, go to '''Options->Users'''.
+To Manage Users:
+In main console, go to Options->Users.
 
-* You may also consider to use the web server security, for example, htaccess files under Apache scope; You may even use this as an additional/redundant security on top of Zoneminders built-in security features;
+You may also consider to use the web server security, for example, htaccess files under Apache scope; You may even use this as an additional/redundant security on top of Zoneminders built-in security features;
 
-=== Why does ZM stop recording once I have 32000 events for my monitor? ===
+Why does ZM stop recording once I have 32000 events for my monitor?
+------------------------------------------------------------------------
 Storing more than 32k files in a single folder is a limitation of some filesystems. To avoid this, enable USE_DEEP_STORAGE under Options.
 
 USE_DEEP_STORAGE is now the default for new ZoneMinder systems so this limitation should only apply to users upgrading from a previous version of ZoneMinder.
 
 Versions of ZM from 1.23.0 onwards allow you to have a deeper filesystem with fewer files per individual directory. As well as not being susceptible to the 32k limit, this is also somewhat faster. 
 
-If you have upgraded from a previous version of ZoneMinder and this option is not already enabled, it is very important to follow the steps below to enable it on an existing system. Failure to properly follow these steps WILL RESULT IN LOSS OF YOUR DATA!
+If you have upgraded from a previous version of ZoneMinder and this option is not already enabled, it is very important to follow the steps below to enable it on an existing system. Failure to properly follow these steps **WILL RESULT IN LOSS OF YOUR DATA!**
 
-# Stop ZoneMinder
-# Backup your event data and the dB if you have the available storage
-# Enable USE_DEEP_STORAGE under Options.
-# From the command line, run "sudo zmupdate.pl --migrate-events"
-# Monitor the output for any events that fail to convert.
-# After the conversion completes, you can restart ZoneMinder
+::
+
+	# Stop ZoneMinder
+	# Backup your event data and the dB if you have the available storage
+	# Enable USE_DEEP_STORAGE under Options.
+	# From the command line, run "sudo zmupdate.pl --migrate-events"
+	# Monitor the output for any events that fail to convert.
+	# After the conversion completes, you can restart ZoneMinder
 
 Note that you can re-run the migrate-events command if any error messages scroll off the screen.
 
-You can read about the lack of a limit in the number of sub-directories in the ext4 filesystem at: http://kernelnewbies.org/Ext4
-and see what tools may assist in your use of this filesystem in: http://ext4.wiki.kernel.org/index.php/Ext4_Howto
+You can read about the lack of a limit in the number of sub-directories in the ext4 filesystem at: `this link <http://kernelnewbies.org/Ext4>`__
+and see what tools may assist in your use of this filesystem `here <http://ext4.wiki.kernel.org/index.php/Ext4_Howto>`__
 If you search for ext3 or reiserfs on the forums you will find various threads on this issue with guidance on
 how to convert.
 
-Managing system load ''(with IP Cameras in mind)''
+Managing system load (with IP Cameras in mind)
 ----------------------------------------------------
 
 Introduction
@@ -399,72 +405,37 @@ Zoneminder runs on Linux, Linux measures system load using "load", which is comp
 
 A load of 1.0 means the processor has "just enough to do right now". Also worth noting that a load of 4.0 means exactly the same for a quad processor machine - each number equals a single processor's workload. A very high load can be fine on a computer that has a stacked workload - such as a machine sending out bulk emails, or working its way through a knotty problem; it'll just keep churning away until it's done. However - Zoneminder needs to process information in real time so it can't afford to stack its jobs, it needs to deal with them right away.
 
-For a better and full explanation of Load: http://en.wikipedia.org/wiki/Load_%28computing%29
+For a better and full explanation of Load: `Please read this <http://en.wikipedia.org/wiki/Load_%28computing%29>`__
 
 My load is too high, how can I reduce it?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Zoneminder is /very/ tweakable and it's possible to tune it to compromise. The following are good things to try, in no particular order;
-Change the jpeg libraries. In most distributions Linux uses standard jpeg libraries which although fine for most things, don't use the MMX functions in nearly all modern processors. Check whether your cpu supports mmx by running ``cpuid |grep MMX`` which should give you a line or two along the lines of "MMX instructions". If so, give the libs a try. Most people report their load halves simply by using these libs. You may be able to experience substantial Zoneminder performance boosts now by merely upgrading your operating system, without having to download libraries and compile your own binaries, etc. as described in the forum thread linked below.  Some distributions, e.g. Fedora 14 now include library code to utilize the instruction set extensions available in your processor: 
 
-  http://fedoraproject.org/wiki/Fedora_14_Alpha_release_notes#Faster_JPEG_Compression.2FDecompression
+(The previous documentation explained how to use turbo jpeg libraries as an optimization technique. These libraries have long been part of standard linux distros since that article was authored and hence that section has been removed)
 
-"The replacement of libjpeg with libjpeg-turbo brings speed improvements to a wide range of applications when handling images in JPEG format ..."
+Zoneminder is *very* tweakable and it's possible to tune it to compromise. The following are good things to try, in no particular order;
 
-  http://fedoraproject.org/wiki/Releases/14/Schedule
+	* If your camera allows you to change image size, think whether you can get away with smaller images. Smaller pics = less load. 320x240 is usually ok for close-up corridor shots.
 
-still states "2010-11-02 final release".
+	* Go Black and White. Colour pictures use twice to three times the CPU, memory and diskspace but give little benefit to identification.
 
-CentOS 6.4 now has libjpeg-turbo built in as the default jpeg library allowing the best results out of the box.
+	* Reduce frames per second. Halve the fps, halve the workload. If your camera supports fps throttling (Axis do), try that - saves ZM having to drop frames from a stream. 2-5 fps seems to be widely used.
 
-  http://libjpeg-turbo.virtualgl.org/
+	* Experiment with using jpeg instead of mjpeg. Some users have reported it gives better performance, but YMMV.
 
-provides some history on its project page.  If you seek confirmation for which library is in use, you may consider querying e.g. while running on a prior distribution:
+	* Tweak the zones. Keep them as small and as few as possible. Stick to one zone unless you really need more. Read `this <http://www.zoneminder.com/wiki/index.php/Understanding_ZoneMinder%27s_Zoning_system_for_Dummies>`__ for an easy to understand explanation along with the official Zone guide.
 
-::
+	* Schedule. If you are running a linux system at near capacity, you'll need to think carefully about things like backups and scheduled tasks. updatedb - the process which maintains a file database so that 'locate' works quickly, is normally scheduled to run once a day and if on a busy system can create a heavy increase on the load. The same is true for scheduled backups, especially those which compress the files. Re-schedule these tasks to a time when the cpu is less likely to be busy, if possible - and also use the "nice" command to reduce their priority. (crontab and /etc/cron.daily/ are good places to start)
 
-	[u@who ~]$ rpm -q --whatprovides libjpeg
-	libjpeg-6b-46.fc12.i686
-	[u@who ~]$ 
-
-and comparing the response to querying when the higher-performance library is available:
-
-::
-
-	[u@who ~]$ rpm -q --whatprovides libjpeg
-	libjpeg-turbo-1.0.1-1.fc14.x86_64
-	[u@who ~]$ 
-
-As noted in other forum postings, some zoneminder camera and usage configurations may not make much use of jpeg processing (e.g. some webcams), and thus obtain little performance benefit.  Otherwise, you should be able to select one or more of:
-* running more cameras,
-* running existing cameras at higher image resolutions,
-* running cameras at a faster frame rate,
-* saving MoDect images with higher quality,
-* having more CPU cycles available for any non-Zoneminder workload, etc.
-
-http://www.zoneminder.com/forums/viewtopic.php?t=6419 gives more info on the download-the-library-yourself, compile-your-own-Zoneminder binary, etc. approach if needed. Nobody's posted there to say it broke their system... Yet.
-
-If your camera allows you to change image size, think whether you can get away with smaller images. Smaller pics = less load. 320x240 is usually ok for close-up corridor shots.
-
-Go Black and White. Colour pictures use twice to three times the CPU, memory and diskspace but give little benefit to identification.
-
-Reduce frames per second. Halve the fps, halve the workload. If your camera supports fps throttling (Axis do), try that - saves ZM having to drop frames from a stream. 2-5 fps seems to be widely used.
-
-Experiment with using jpeg instead of mjpeg. Some users have reported it gives better performance, but YMMV.
-
-Tweak the zones. Keep them as small and as few as possible. Stick to one zone unless you really need more.
-
-Schedule. If you are running a linux system at near capacity, you'll need to think carefully about things like backups and scheduled tasks. updatedb - the process which maintains a file database so that 'locate' works quickly, is normally scheduled to run once a day and if on a busy system can create a heavy increase on the load. The same is true for scheduled backups, especially those which compress the files. Re-schedule these tasks to a time when the cpu is less likely to be busy, if possible - and also use the "nice" command to reduce their priority. (crontab and /etc/cron.daily/ are good places to start)
-
-Reduce clutter on your PC. Don't run X unless you really need it, the GUI is a huge overhead in both memory and cpu.
+	* Reduce clutter on your PC. Don't run X unless you really need it, the GUI is a huge overhead in both memory and cpu.
 
 More expensive options:
 
-Increase RAM. If your system is having to use disk swap it will HUGELY impact performance in all areas. Again, htop is a good monitor - but first you need to understand that because Linux is using all the memory, it doesn't mean it needs it all - linux handles ram very differently to Windows/DOS and caches stuff. htop will show cached ram as a different colour in the memory graph. Also check that you're actually using a high memory capable kernel - many kernels don't enable high memory by default. 
+	* Increase RAM. If your system is having to use disk swap it will HUGELY impact performance in all areas. Again, htop is a good monitor - but first you need to understand that because Linux is using all the memory, it doesn't mean it needs it all - linux handles ram very differently to Windows/DOS and caches stuff. htop will show cached ram as a different colour in the memory graph. Also check that you're actually using a high memory capable kernel - many kernels don't enable high memory by default. 
 
-Faster CPU. Simple but effective. Zoneminder also works very well with multiple processor systems out of the box (if SMP is enabled in your kernel). The load of different cameras is spread across the processors.
+	* Faster CPU. Simple but effective. Zoneminder also works very well with multiple processor systems out of the box (if SMP is enabled in your kernel). The load of different cameras is spread across the processors.
 
 
-Try building Zoneminder with processor specific instructions that are optimised to the system it will be running on, also increasing the optimisation level of GCC beyond -O2 will help.
+	* Try building Zoneminder with processor specific instructions that are optimised to the system it will be running on, also increasing the optimisation level of GCC beyond -O2 will help.
 
 ::
 
@@ -477,7 +448,7 @@ You also need to put in your normal ./configure commands as if you were compilin
 A further note is that the compile must be performed on the system that Zoneminder will be running on as this optimisation will make it hardware specific code.
 
 Processor specific commands can be found in the GCC manual along with some more options that may increase performanc. 
-http://gcc.gnu.org/onlinedocs/gcc/i386-and-x86_002d64-Options.html#i386-and-x86_002d64-Options
+`<http://gcc.gnu.org/onlinedocs/gcc/i386-and-x86_002d64-Options.html#i386-and-x86_002d64-Options>`__
 
 The below command has been used to compile Zoneminder on a Athlon XP system running CentOS 5.5 and along with the libjpeg-turbo modification to reduce the CPU load in half, libjpeg-turbo reduced the load by 1/3 before the processor optimisation.
 ::
@@ -552,7 +523,7 @@ To save a run state you should first configure your monitors for Modect, Record,
 
 Now you can switch between these two states by selecting them from the same dialog you saved them, or from the command line from issue the command ''zmpkg.pl <run state>'', for example ''zmpkg.pl Daytime''.
 
-The final step you need to take, is scheduling the time the changes take effect. For this you can use [http://en.wikipedia.org/wiki/Cron cron]. A simple entry to change to the Daylight state at at 8am and to the nighttime state at 8pm would be as follows,
+The final step you need to take, is scheduling the time the changes take effect. For this you can use `cron <http://en.wikipedia.org/wiki/Cron>`. A simple entry to change to the Daylight state at at 8am and to the nighttime state at 8pm would be as follows,
 
 ::
 
@@ -563,7 +534,7 @@ On Ubuntu 7.04 and possibly others, look in /usr/bin not just /usr/local/bin for
 
 Although the example above describes changing states at different times of day, the same principle can equally be applied to days of the week or other more arbitrary periods.
 
-For an alternative method of time controlling ZoneMinder, forum user 'voronwe' has created a more interactive calendar style integration. Details of this can be found in this [http://www.zoneminder.com/forums/viewtopic.php?t=6519 forum thread]. If you would like to find out more about this contribution please post on this thread.
+For an alternative method of time controlling ZoneMinder, forum user 'voronwe' has created a more interactive calendar style integration. Details of this can be found in this `forum thread <http://www.zoneminder.com/forums/viewtopic.php?t=6519>`__. If you would like to find out more about this contribution please post on this thread.
 
 === How can I use ZoneMinder to trigger something else when there is an alarm? ===
 ZoneMinder includes a perl API which means you can create a script to interact with the ZM shared memory data and use it in your own scripts to react to ZM alarms or to trigger ZM to generate new alarms. Full details are in the README or by doing 'perldoc ZoneMinder', 'perldoc ZoneMinder::SharedMem' etc.
@@ -721,10 +692,10 @@ If that does not work then you will have to make sure that ZoneMinder is stopped
 How do I repair the MySQL Database when the cli fails?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 In Ubuntu, the commands listed above do not seem to work.  However, actually doing it by hand from within MySQL does.  (But that is beyond the scope of this document)  But that got me thinking...  And phpmyadmin does work.  Bring up a terminal.
- sudo apt-get install phpmyadmin
+``sudo apt-get install phpmyadmin``
 
 Now go to http://zoneminder_IP/ and stop the ZM service.  Continue to http://zoneminder_IP/phpmyadmin and select the zoneminder database.  Select and tables marked 'in use' and pick the action 'repare' to fix.  Restart the zoneminder service from the web browser.  Remove or disable the phpmyadmin tool, as it is not always the most secure thing around, and opens your database wide to any skilled hacker.
- sudo apt-get remove phpmyadmin
+``sudo apt-get remove phpmyadmin``
 
 I upgraded by distribution and ZM stopped working
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -766,7 +737,7 @@ The ZoneMinder license is described at the end of the documentation and consists
  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
-This means that ZoneMinder is licensed under the terms described [http://www.gnu.org/copyleft/gpl.html here]. There is a comprehensive FAQ covering the GPL at http://www.gnu.org/licenses/gpl-faq.html but in essence you are allowed to redistribute or modify GPL licensed software provided that you release your distribution or modifications freely under the same terms. You are allowed to sell systems based on GPL software. You are not allowed to restrict or reduce the rights of GPL software in your distribution however. Of course if you are just making modifications for your system locally you are not releasing changes so you have no obligations in this case. I recommend reading the GPL FAQ for more in-depth coverage of this issue.
+This means that ZoneMinder is licensed under the terms described `here <http://www.gnu.org/copyleft/gpl.html>`__. There is a comprehensive FAQ covering the GPL at http://www.gnu.org/licenses/gpl-faq.html but in essence you are allowed to redistribute or modify GPL licensed software provided that you release your distribution or modifications freely under the same terms. You are allowed to sell systems based on GPL software. You are not allowed to restrict or reduce the rights of GPL software in your distribution however. Of course if you are just making modifications for your system locally you are not releasing changes so you have no obligations in this case. I recommend reading the GPL FAQ for more in-depth coverage of this issue.
 
 Can I use ZoneMinder as part of my commercial product?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

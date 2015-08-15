@@ -625,14 +625,29 @@ if ( !empty($action) )
     }
 
     // Group view actions
-	if ( canView( 'Groups' ) && $action == "setgroup" ) {
-		if ( !empty($_REQUEST['gid']) ) {
-			setcookie( "zmGroup", validInt($_REQUEST['gid']), time()+3600*24*30*12*10 );
-		} else {
-			setcookie( "zmGroup", "", time()-3600*24*2 );
-		}
-		$refreshParent = true;
-	}
+    if ( canView( 'Groups' ) && $action == "setgroup" ) {
+        if ( !empty($_REQUEST['gid']) ) {
+            setcookie( "zmGroup", validInt($_REQUEST['gid']), time()+3600*24*30*12*10 );
+        } else {
+            setcookie( "zmGroup", "", time()-3600*24*2 );
+        }
+            $refreshParent = true;
+    }
+
+    // Group edit actions
+    if ( canEdit( 'Groups' ) && $action == "group" )
+    {
+        # Should probably verfy that each monitor id is a valid monitor, that we have access to. HOwever at the moment, you have to have System permissions to do this
+        $monitors = empty( $_POST['newGroup']['MonitorIds'] ) ? NULL : implode(',', $_POST['newGroup']['MonitorIds']);
+        if ( !empty($_POST['gid']) ) {
+            dbQuery( "UPDATE Groups SET Name=?, MonitorIds=? WHERE Id=?", array($_POST['newGroup']['Name'], $monitors, $_POST['gid']) );
+        } else {
+            dbQuery( "INSERT INTO Groups SET Name=?, MonitorIds=?", array( $_POST['newGroup']['Name'], $monitors ) );
+        }
+
+        $refreshParent = true;
+        $view = 'none';
+    }
 
     // System edit actions
     if ( canEdit( 'System' ) )
@@ -850,19 +865,6 @@ if ( !empty($action) )
                     $_REQUEST['runState'] = $_REQUEST['newState'];
                 dbQuery( "replace into States set Name=?, Definition=?", array( $_REQUEST['runState'],$definition) );
             }
-        }
-        elseif ( $action == "group" )
-        {
-			# Should probably verfy that each monitor id is a valid monitor, that we have access to. HOwever at the moment, you have to have System permissions to do this
-			$monitors = empty( $_POST['newGroup']['MonitorIds'] ) ? NULL : implode(',', $_POST['newGroup']['MonitorIds']);
-			if ( !empty($_POST['gid']) ) {
-				dbQuery( "UPDATE Groups SET Name=?, MonitorIds=? WHERE Id=?", array($_POST['newGroup']['Name'], $monitors, $_POST['gid']) );
-			} else {
-				dbQuery( "INSERT INTO Groups SET Name=?, MonitorIds=?", array( $_POST['newGroup']['Name'], $monitors ) );
-			}
-
-            $refreshParent = true;
-            $view = 'none';
         }
         elseif ( $action == "delete" )
         {

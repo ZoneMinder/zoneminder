@@ -27,7 +27,9 @@ you will be in.  I like json, however you can use xml if you'd like.
 API Version
 ^^^^^^^^^^^
 To retrieve the API version:
+
 ::
+
   http://server/zm/api/host/getVersion.json
 
 
@@ -41,7 +43,7 @@ Return a list of all monitors
 Retrieve monitor 1
 ^^^^^^^^^^^^^^^^^^^
 
- ::
+::
   
   curl -XGET http://server/zm/api/monitors/1.json
 
@@ -50,6 +52,7 @@ Change State of Monitor 1
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This API changes monitor 1 to Modect and Enabled
+
 ::
 
   curl -XPOST http://server/zm/api/monitors/1.json -d "Monitor[Function]=Modect&Monitor[Enabled]:true"

@@ -461,6 +461,7 @@ CREATE TABLE `Users` (
   `Events` enum('None','View','Edit') NOT NULL default 'None',
   `Control` enum('None','View','Edit') NOT NULL default 'None',
   `Monitors` enum('None','View','Edit') NOT NULL default 'None',
+  `Groups` enum('None','View','Edit') NOT NULL default 'None',
   `Devices` enum('None','View','Edit') NOT NULL default 'None',
   `System` enum('None','View','Edit') NOT NULL default 'None',
   `MaxBandwidth` varchar(16) NOT NULL default '',

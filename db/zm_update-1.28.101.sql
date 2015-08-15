@@ -15,7 +15,7 @@ SET @s = (SELECT IF(
     AND column_name = 'Groups'
     ) > 0,
 "SELECT 'Column Groups exists in Users'",
-"ALTER TABLE Monitors ADD COLUMN `Groups` ENUM('None','View','Edit') NOT NULL DEFAULT 'None' AFTER `Monitors`;
+"ALTER TABLE Monitors ADD COLUMN `Groups` ENUM('None','View','Edit') NOT NULL DEFAULT 'None' AFTER `Monitors`"
 ));
 
 PREPARE stmt FROM @s;

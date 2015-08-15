@@ -195,6 +195,7 @@ elseif ( $tab == "users" )
               <td class="colEvents"><?php echo validHtmlStr($row['Events']) ?></td>
               <td class="colControl"><?php echo validHtmlStr($row['Control']) ?></td>
               <td class="colMonitors"><?php echo validHtmlStr($row['Monitors']) ?></td>
+              <td class="colGroups"><?php echo validHtmlStr($row['Groups']) ?></td>
               <td class="colSystem"><?php echo validHtmlStr($row['System']) ?></td>
               <td class="colBandwidth"><?php echo $row['MaxBandwidth']?$bwArray[$row['MaxBandwidth']]:'&nbsp;' ?></td>
               <td class="colMonitor"><?php echo $row['MonitorIds']?(join( ", ", $userMonitors )):"&nbsp;" ?></td>

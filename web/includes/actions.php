@@ -624,8 +624,8 @@ if ( !empty($action) )
         }
     }
 
-    // System view actions
-	if ( $action == "setgroup" ) {
+    // Group view actions
+	if ( canView( 'Groups' ) && $action == "setgroup" ) {
 		if ( !empty($_REQUEST['gid']) ) {
 			setcookie( "zmGroup", validInt($_REQUEST['gid']), time()+3600*24*30*12*10 );
 		} else {

@@ -27,7 +27,9 @@ you will be in.  I like json, however you can use xml if you'd like.
 API Version
 ^^^^^^^^^^^
 To retrieve the API version:
+
 ::
+
   http://server/zm/api/host/getVersion.json
 
 
@@ -41,7 +43,7 @@ Return a list of all monitors
 Retrieve monitor 1
 ^^^^^^^^^^^^^^^^^^^
 
- ::
+::
   
   curl -XGET http://server/zm/api/monitors/1.json
 

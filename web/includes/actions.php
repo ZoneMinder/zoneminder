@@ -635,18 +635,30 @@ if ( !empty($action) )
     }
 
     // Group edit actions
-    if ( canEdit( 'Groups' ) && $action == "group" )
-    {
-        # Should probably verfy that each monitor id is a valid monitor, that we have access to. HOwever at the moment, you have to have System permissions to do this
-        $monitors = empty( $_POST['newGroup']['MonitorIds'] ) ? NULL : implode(',', $_POST['newGroup']['MonitorIds']);
-        if ( !empty($_POST['gid']) ) {
-            dbQuery( "UPDATE Groups SET Name=?, MonitorIds=? WHERE Id=?", array($_POST['newGroup']['Name'], $monitors, $_POST['gid']) );
-        } else {
-            dbQuery( "INSERT INTO Groups SET Name=?, MonitorIds=?", array( $_POST['newGroup']['Name'], $monitors ) );
-        }
-
-        $refreshParent = true;
+    if ( canEdit( 'Groups' ) ) {
+        if ( $action == "group" ) {
+            # Should probably verfy that each monitor id is a valid monitor, that we have access to. HOwever at the moment, you have to have System permissions to do this
+            $monitors = empty( $_POST['newGroup']['MonitorIds'] ) ? NULL : implode(',', $_POST['newGroup']['MonitorIds']);
+            if ( !empty($_POST['gid']) ) {
+                dbQuery( "UPDATE Groups SET Name=?, MonitorIds=? WHERE Id=?", array($_POST['newGroup']['Name'], $monitors, $_POST['gid']) );
+            } else {
+                dbQuery( "INSERT INTO Groups SET Name=?, MonitorIds=?", array( $_POST['newGroup']['Name'], $monitors ) );
+            }
         $view = 'none';
+        }
+        if ( !empty($_REQUEST['gid']) && $action == "delete" ) {
+            dbQuery( "delete from Groups where Id = ?", array($_REQUEST['gid']) );
+            if ( isset($_COOKIE['zmGroup']) )
+            {
+                if ( $_REQUEST['gid'] == $_COOKIE['zmGroup'] )
+                {
+                    unset( $_COOKIE['zmGroup'] );
+                    setcookie( "zmGroup", "", time()-3600*24*2 );
+                    $refreshParent = true;
+                }
+             }
+        }
+        $refreshParent = true;
     }
 
     // System edit actions
@@ -877,19 +889,6 @@ if ( !empty($action) )
                     dbQuery( "delete from Users where Id = ?", array($markUid) );
                 if ( $markUid == $user['Id'] )
                     userLogout();
-            }
-            if ( !empty($_REQUEST['gid']) )
-            {
-                dbQuery( "delete from Groups where Id = ?", array($_REQUEST['gid']) );
-                if ( isset($_COOKIE['zmGroup']) )
-                {
-                    if ( $_REQUEST['gid'] == $_COOKIE['zmGroup'] )
-                    {
-                        unset( $_COOKIE['zmGroup'] );
-                        setcookie( "zmGroup", "", time()-3600*24*2 );
-                        $refreshParent = true;
-                    }
-                }
             }
         }
     }

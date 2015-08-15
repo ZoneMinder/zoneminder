@@ -56,6 +56,8 @@ Post Install Configuration
 
 We are not done yet. There are some post install steps you need to perform:
 
+.. WARNING:: Why not add sleep to default zoneminder script?
+
 We recommend you add a "sleep" command just after ``start() { `` in ``/etc/init.d/zoneminder``` to make sure mysql starts before ZoneMinder does. To do this,
 simply modify ``/etc/init.d/zoneminder`` at around line 25 (where you will find the start function) to look like this:
 

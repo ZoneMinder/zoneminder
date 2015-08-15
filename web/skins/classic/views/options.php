@@ -159,6 +159,7 @@ elseif ( $tab == "users" )
               <th class="colEvents"><?php echo translate('Events') ?></th>
               <th class="colControl"><?php echo translate('Control') ?></th>
               <th class="colMonitors"><?php echo translate('Monitors') ?></th>
+              <th class="colGroups"><?php echo translate('Groups') ?></th>
               <th class="colSystem"><?php echo translate('System') ?></th>
               <th class="colBandwidth"><?php echo translate('Bandwidth') ?></th>
               <th class="colMonitor"><?php echo translate('Monitor') ?></th>

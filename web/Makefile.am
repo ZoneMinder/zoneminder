@@ -7,6 +7,7 @@ webuser = @WEB_USER@
 webgroup = @WEB_GROUP@
 
 SUBDIRS = \
+	api \
 	ajax \
 	css \
 	graphics \

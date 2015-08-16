@@ -73,11 +73,72 @@ own empty screen.
 
 Adding Monitors
 ^^^^^^^^^^^^^^^
-Now that we have a basic understanding of the web console, lets go about adding a new camera (monitor). For this example, lets assume we have an IP camera that streams RTSP at LAN IP address 192.168.1.17. 
+Now that we have a basic understanding of the web console, lets go about adding a new camera (monitor). For this example, lets assume we have an IP camera that streams RTSP at LAN IP address 192.168.1.33. 
 
-The first thing we will need to know is how to access that camera's video feed.
+The first thing we will need to know is how to access that camera's video feed. You will need to consult your camera's manual or check their forum. Zoneminder community users also have a frequently updated list right `here <http://www.zoneminder.com/wiki/index.php/Hardware_Compatibility_List>`__ that lists information about many cameras. If you don't find your list there and can't seem to find it elsewhere, feel free to register and ask in the `user foums <http://www.zoneminder.com/forums/>`__.
+
+The camera we are using as an example here is a Foscam 9831W which is a 1280x960 RTSP camera, and the URL to access it's feed is *username:password@IPADDRESS:PORT/videoMain*
+
+Let's get started:
+
+Click on the "Add new monitor" button below:
+
+.. image:: images/getting-started-modern-look.png
+
+This brings up the new monitor window:
+
+.. image:: images/getting-started-add-monitor-general.png
+	:width: 800px
+
+* We've given it a name of 'Garage', because, well, its better than Monitor-1 and this is my Garage camera.
+
+* There are various source types. As a brief introduction you'd want to use 'Local' if your camera is physically attached to your ZM server (like a USB camera, for example), and one of 'Remote', 'FFMpeg', 'Libvlc' or 'cURL' for a remote camera (not necessarily, but usually). For this example, let's go with 'Remote'. 
+
+.. NOTE::
+	As a  thumb rule, if you have a camera accessible via IP and it does HTTP or RTSP, 
+	start with Remote, then try FFMpeg and libvlc if it doesn't work (:doc:`/userguide/definemonitor` 
+	covers other modes in more details). If you are wondering what 'File' does, well, ZoneMinder was 
+	built with compatibility in mind. Take a look at `this post 
+	<http://www.zoneminder.com/wiki/index.php/How_to_use_ZoneMinder_with_cameras_it_may_not_directly_support>`__  to see how file can be used for leisure reading.
+
+* Let's leave the Function as 'Monitor' just so we can use this as an example to change it later another way. Practically, feel free to select your mode right now - Modect, Record etc depending on what you want ZoneMinder to do with this camera
+
+* We've put in MaxFPS and AlarmFPS as 20 here. **You can leave this empty too**. Whatever you do here, *it's important to make sure these values are higher than the FPS of the camera*. The reason we've added a value here is that as of Aug 2015, if a camera goes offline, ZoneMinder eats up a lot of CPU  trying to reach it and putting a larger value here than the actual FPS helps in that specific situation. 
+
+.. NOTE::
+	We strongly recommend not putting in a lower FPS here that the one configured inside your camera.
+	Zoneminder should not be used to manage camera frame rate. That always causes many problems. It's
+	much better you set the value directly in-camera and either leave this blank or specify a higher FPS
+	here. In this case, our actual camera FPS is 3 and we've set this value here to 10.
+
+* We are done for the General tab. Let's move to the next tab
+
+.. image:: images/getting-started-add-monitor-source.png
+	:width: 800px
+
+* Let's select a protocol of RTSP and a remote method of RTP/RTSP (this is an RTSP camera)
+* The other boxes are mostly self-explanatory
+
+That's pretty much it. Click on Save. We are not going to explore the other tabs in this simple guide.
+
+You now have a configured monitor:
+
+.. image:: images/getting-started-add-monitor-orange.png
+
+If you want to change its mode from Monitor to say, Modect (Motion Detect), later all you need to do is click on the Function column that says 'Monitor' and change it to 'Modect' like so:
 
 
+.. image:: images/getting-started-add-monitor-modect.png
+
+and we now have:
+
+.. image:: images/getting-started-add-monitor-modect-ready.png
+
+And then, finally, to see if everything works, lets click on the monitor name ('Garage' in this example) and that should bring up a live feed just like this:
+
+.. image:: images/getting-started-add-monitor-live.png
 
 
-
+Conclusion
+^^^^^^^^^^
+This was a quick 'Getting Started' guide where you were introduced to the very basics of how to add a monitor (camera). We've skipped many details to keep this concise. Please refer to :doc:`/userguide/definemonitor` for many other customization details.

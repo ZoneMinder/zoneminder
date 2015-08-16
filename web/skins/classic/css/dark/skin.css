@@ -24,7 +24,8 @@
 body {
     font-family: Verdana, Arial, Helvetica, sans-serif;
     font-size: 10px;
-    color: #333333;
+    color: #dddddd;
+    background-color: #222222;
     font-weight: normal;
     text-align: center;
 }
@@ -32,7 +33,7 @@ body {
 h1 {
     font-family: inherit;
     font-size: 120%;
-    color: #000066;
+    color: #10a4e8;
     font-weight: bold;
     text-align: center;
 }
@@ -40,47 +41,47 @@ h1 {
 h2 {
     font-family: inherit;
     font-size: 110%;
-    color: #000066;
+    color: #10a4e8;
     font-weight: bold;
 }
 
 h3 {
     font-family: inherit;
     font-size: 100%;
-    color: #016A9d;
+    color: #117AAd;
     font-weight: bold;
 }
 
 h4 {
     font-family: inherit;
     font-size: 100%;
-    color: #016A9d;
+    color: #117AAd;
 }
 
 p {
     font-family: inherit;
     font-size: 100%;
-    color: #333333;
+    color: #dddddd;
     font-weight: normal;
 }
 
 th {
     font-weight: bold;
-    color: #016A9d;
+    color: #117AAd;
 }
 
 a:link {
-    color: #7f7fb2;
+    color: #8f8fc2;
     text-decoration: none;
 }
 
 a:visited {
-    color: #7f7fb2;
+    color: #8f8fc2;
     text-decoration: none;
 }
 
 a:hover {
-    color: #666699;
+    color: #7777aa;
     text-decoration: underline;
 }
 
@@ -89,10 +90,11 @@ label {
 }
 
 input,textarea,select,button {
-    border: 1px #7f7fb2 solid;
+    border: 1px #8f8fc2 solid;
     font-family: inherit;
     font-size: 100%;
-    color: #333333;
+    color: #eeeeee;
+    background-color: #444444;
 }
 
 input[type=text], input[type=password], textarea {
@@ -104,11 +106,11 @@ input.noborder {
 }
 
 input[disabled] {
-    color: #888888;
+    color: #777777;
 }
 
 img.normal {
-    border: white solid 1px;
+    border: #cccccc solid 1px;
 }
 
 img.alarm {
@@ -119,8 +121,8 @@ hr {
     height: 1px;
     width: 100%;
     border: 0;
-    color: #7f7fb2;
-    background-color: #7f7fb2;
+    color: #8f8fc2;
+    background-color: #8f8fc2;
 }
 
 /*
@@ -138,11 +140,11 @@ ul.tabList {
 ul.tabList li {
     float: left;
     border: 1px solid;
-    color: #333333;
-    border: #7f7fb2 solid 1px;
+    color: #8f8fc2;
+    border: #8f8fc2 solid 1px;
     border-bottom-width: 0;
     margin: 0 2px 0 0;
-    background: #dddddd;
+    background: #444444;
     text-align: center;
     padding: 3px 4px;
 }
@@ -152,12 +154,12 @@ ul.tabList li a {
 }
 
 ul.tabList li:hover {
-    background-color: #eeeeee;
+    background-color: #dddddd;
 }
 
 ul.tabList li.active {
-    background-color: #ffffff;
-    border-bottom: #7f7fb2 dotted 1px;
+    background-color: #222222;
+    border-bottom: #8f8fc2 dotted 1px;
 }
 
 ul.tabList li.active a {
@@ -175,7 +177,8 @@ ul.tabList li.active a {
 }
 
 #content table.major tr.highlight {
-    background-color: #eeeeee;
+    color: #eeeeee;
+    background-color: #000000;
 }
 
 #content table.major thead tr th {
@@ -191,7 +194,7 @@ ul.tabList li.active a {
 }
 
 #content table.major th, #content table.major td {
-    border: 1px solid #7f7fb2;
+    border: 1px solid #8f8fc2;
     padding: 3px;
     text-align: left;
 }
@@ -244,15 +247,21 @@ ul.tabList li.active a {
 
 #content table > tbody > tr:hover
 {
-    background-color: #EEE;
+    background-color: #333333;
 }
 
 .overlay {
     font-size: 11px;
+    background-color: #222222;
+}
+
+.overlay .overlayHeader {
+    color: #eeeeee;
+    background-color: #070707;
 }
 
 .overlay fieldset {
-    background-color: #f8f8f8;
+    background-color: #222222;
 }
 
 .validation-advice {
@@ -261,7 +270,7 @@ ul.tabList li.active a {
 }
 
 fieldset {
-    border: 1px solid black;
+    border: 1px solid #dddddd;
     padding: 4px;
     margin-bottom: 8px;
     border-radius: 2px;
@@ -285,11 +294,11 @@ fieldset > legend {
 }
 
 .ok, .infoText {
-    color: #688e23;
+    color: #77a328;
 }
 
 .fakelink {
-    color: #7f7fb2;
+    color: #8f8fc2;
     cursor: pointer;
 }
 
@@ -347,7 +356,7 @@ th.table-th-sort-rev span.table-th-sort-span {
 }
 
 .table-tr-odd {
-    background-color: #f8f8f8;
+    background-color: #070707;
 }
 
 /*

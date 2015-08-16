@@ -29,7 +29,7 @@ Alias /zm "@ZM_WEBDIR@"
 ScriptAlias /cgi-bin-zm "@ZM_CGIDIR@"
 <Directory "@ZM_CGIDIR@">
     AllowOverride All
-    Options ExecCGI
+    Options +ExecCGI +FollowSymLinks
     <IfModule mod_authz_core.c>
        # Apache 2.4
        Require all granted

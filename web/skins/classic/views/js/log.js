@@ -81,7 +81,10 @@ function logResponse( respObj )
                             row.tr.addClass( 'log-dbg' );
                         if ( !firstLoad )
                         {
-                            new Fx.Tween( row.tr, { duration: 10000, transition: Fx.Transitions.Sine } ).start( 'color', '#6495ED', '#000000' );
+                            var color = document.defaultView.getComputedStyle(row.tr,null).getPropertyValue('color');
+                            var colorParts = color.match(/^rgb.*\((\d+),\s*(\d+),\s*(\d+)/);
+                            rowOrigColor = '#' + parseInt(colorParts[1]).toString(16) + parseInt(colorParts[2]).toString(16) + parseInt(colorParts[3]).toString(16);
+                            new Fx.Tween( row.tr, { duration: 10000, transition: Fx.Transitions.Sine } ).start( 'color', '#6495ED', rowOrigColor );
                         }
                     }
                 );

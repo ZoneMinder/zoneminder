@@ -238,7 +238,7 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr )
 			{
 				// We have a match
 				User *user = new User( dbrow );
-				Info( "Authenticated user '%s'", user->getUsername() );
+				Debug(1, "Authenticated user '%s'", user->getUsername() );
 				return( user );
 			}
 		}

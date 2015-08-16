@@ -1,0 +1,9 @@
+#contentTable.major .colZone, #contentTable.major .colPixelDiff, #contentTable.major .colAlarmPx, #contentTable.major .colFilterPx, #contentTable.major .colBlobPx, #contentTable.major .colBlobs, #contentTable.major .colBlobSizes, #contentTable.major .colAlarmLimits, #contentTable.major .colScore {
+
+    text-align: center;
+}
+
+#contentTable.major .rowNoStats {
+    text-align: center;
+    padding: 20px;
+}

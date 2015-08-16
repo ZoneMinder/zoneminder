@@ -43,6 +43,7 @@ protected:
 	std::string	username;
 	std::string	password;
 	std::string	auth64;
+        bool rtsp_describe;
 
     // Reworked authentication system
     // First try without authentication, even if we have a username and password

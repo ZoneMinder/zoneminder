@@ -252,6 +252,7 @@ $SLANG = array(
     'DefaultScale'          => 'Default Scale',
     'DefaultView'           => 'Default View',
     'Deinterlacing'         => 'Deinterlacing',
+    'RTSPDescribe'         => 'Use RTSP Response Media URL',
     'Delay'                 => 'Delay',
     'DeleteAndNext'         => 'Delete &amp; Next',
     'DeleteAndPrev'         => 'Delete &amp; Prev',
@@ -893,6 +894,13 @@ $OLANG = array(
 		          "Examples (do not enter quotes)~~~~".
 		          "\"--rtp-client-port=nnn\" Set local port to use for rtp data~~~~". 
 		          "\"--verbose=2\" Set verbosity of libVLC"
+	),
+	'OPTIONS_RTSPDESCRIBE' => array(
+		'Help' => "Sometimes, during the intial RTSP handshake, the camera will send an updated media URL. ".
+		          "Enable this option to tell ZoneMinder to use this URL. Disable this option to ignore the ".
+		          "value from the camera and use the value as entered in the monitor configuration~~~~". 
+		          "Generally this should be enabled. However, there are cases where the camera can get its".
+		          "own URL incorrect, such as when the camera is streaming through a firewall"
 	),
 	
 //    'LANG_DEFAULT' => array(

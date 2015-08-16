@@ -42,6 +42,7 @@ dist_web_DATA = \
 	optionhelp.php \
 	options.php \
 	postlogin.php \
+	server.php \
 	settings.php \
 	state.php \
 	stats.php \

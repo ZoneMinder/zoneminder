@@ -13,10 +13,24 @@ The API is built in CakePHP and lives under the ``/api`` directory.  It
 provides a RESTful service and supports CRUD (create, retrieve, update, delete)
 functions for Monitors, Events, Frames, Zones and Config.
 
-Examples
-^^^^^^^^
+Security
+^^^^^^^^^
+The APIs tie into ZoneMinder's existing security model. This means if you have
+OPT_AUTH enabled, you need to log into ZoneMinder using the same browser you plan to 
+use the APIs from. If you are developing an app that relies on the API, you need 
+to do a POST login from the app into ZoneMinder before you can access the API.
 
-Here be a list of examples.  Some results may be truncated.
+This means if you plan to use cuRL to experiment with these APIs, you first need to do
+
+::
+
+	curl -d "username=XXXX&password=YYYY&action=login&view=console"  http://yourzmip/zm/index.php -c cookies.txt
+
+replacing *XXXX* and *YYYY* with your username and password, respectively.
+Then for each of the examples below, add a ``-c cookies.txt`` at the end of the requests.
+
+Examples (please read security notice above)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You will see each URL ending in either ``.xml`` or ``.json``.  This is the
 format of the request, and it determines the format that any data returned to
@@ -30,7 +44,7 @@ To retrieve the API version:
 
 ::
 
-  http://server/zm/api/host/getVersion.json
+  curl http://server/zm/api/host/getVersion.json
 
 
 Return a list of all monitors
@@ -38,14 +52,14 @@ Return a list of all monitors
 
 ::
   
-  curl -XGET http://server/zm/api/monitors.json
+	curl http://server/zm/api/monitors.json
 
 Retrieve monitor 1
 ^^^^^^^^^^^^^^^^^^^
 
 ::
   
-  curl -XGET http://server/zm/api/monitors/1.json
+  	curl http://server/zm/api/monitors/1.json
 
 
 Change State of Monitor 1
@@ -101,7 +115,7 @@ Return a list of all events
 
 ::
 
-  curl -XGET http://server/zm/api/events.json
+  http://server/zm/api/events.json
 
 
 Note that events list can be quite large and this API (as with all other APIs in ZM)

@@ -56,6 +56,8 @@ Post Install Configuration
 
 We are not done yet. There are some post install steps you need to perform:
 
+Adding a sleep for mysql dependency (Ubuntu 14.x and below only)
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 .. NOTE:: This sleep part is not needed for Ubuntu 15 and above that have moved to systemd
 
 We recommend you add a "sleep" command just after ``start() { `` in ``/etc/init.d/zoneminder``` to make sure mysql starts before ZoneMinder does. To do this,
@@ -67,6 +69,9 @@ simply modify ``/etc/init.d/zoneminder`` at around line 25 (where you will find 
 		echo -n "Making sure mysql started... Sleeping for 10 seconds..."
 		sleep 10
 		echo -n "Starting $prog: "
+
+Making Apache aware of ZoneMinder
+""""""""""""""""""""""""""""""""""""
 
 Next, we need to make sure apache knows about zoneminder's configuration for apache. 
 

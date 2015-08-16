@@ -34,17 +34,6 @@ if ( $_REQUEST['id'] ) {
 	$newServer['Name'] = translate('NewServer');
 }
 
-$yesno = array( 0=>translate('No'), 1=>translate('Yes') );
-$nv = array( 'None'=>translate('None'), 'View'=>translate('View') );
-$nve = array( 'None'=>translate('None'), 'View'=>translate('View'), 'Edit'=>translate('Edit') );
-
-$sql = "select Id,Name from Monitors order by Sequence asc";
-$monitors = array();
-foreach( dbFetchAll( $sql ) as $monitor )
-{
-    $monitors[] = $monitor;
-}
-
 $focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('Server')." - ".$newServer['Name'] );
@@ -59,38 +48,17 @@ xhtmlHeaders(__FILE__, translate('Server')." - ".$newServer['Name'] );
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="object" value="server"/>
         <input type="hidden" name="id" value="<?php echo validHtmlStr($_REQUEST['id']) ?>"/>
-        <input type="hidden" name="newServer[MonitorIds]" value="<?php echo $newServer['MonitorIds'] ?>"/>
         <table id="contentTable" class="major" cellspacing="0">
           <tbody>
             <tr>
               <th scope="row"><?php echo translate('ServerName') ?></th>
               <td><input type="text" name="newServer[Name]" value="<?php echo $newServer['Name'] ?>"/></td>
             </tr>
-			<tr>
-              <th scope="row"><?php echo translate('RestrictedMonitors') ?></th>
-              <td>
-                <select name="monitorIds" size="4" multiple="multiple">
-<?php
-    foreach ( $monitors as $monitor )
-    {
-        if ( visibleMonitor( $monitor['Id'] ) )
-        {
-?>
-                  <option value="<?php echo $monitor['Id'] ?>"<?php if ( array_key_exists( $monitor['Id'], $monitorIds ) ) { ?> selected="selected"<?php } ?>><?php echo htmlentities($monitor['Name']) ?></option>
-<?php
-        }
-    }
-?>
-                </select>
-              </td>
-            </tr>
-<?php
-}
-?>
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('Save') ?>"/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
+          <input type="submit" name="action" value="<?php echo translate('Save') ?>"/>
+          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
         </div>
       </form>
     </div>

@@ -352,6 +352,9 @@ bool Event::WriteFrameImage( Image *image, struct timeval timestamp, const char 
     Image* ImgToWrite;
     Image ts_image( *image );
 
+    // This will be noisy. Delete or modify when finished testing.
+    Info("Embed EXIF flag is set to: %d", monitor->Exif());
+
     if ( config.timestamp_on_capture )  // stash the image we plan to use in another pointer regardless if timestamped.
     {
         monitor->TimestampImage( &ts_image, &timestamp );

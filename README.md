@@ -44,7 +44,7 @@ Lastly, if you desire to build a development snapshot from the master branch, it
 
 What follows are instructions for various distros to build ZoneMinder into a package.
 
-### Package Maintainters
+### Package Maintainers
 Many of the ZoneMinder configration variable default values are not configurable at build time through autotools or cmake.  A new tool called *zmeditconfigdata.sh* has been added to allow package maintainers to manipulate any variable stored in ConfigData.pm without patching the source. 
 
 For example, let's say I have created a new ZoneMinder package that contains the cambolzola javascript file.  However, by default cambozola support is turned off.  To fix that, add this to the pacakging script:

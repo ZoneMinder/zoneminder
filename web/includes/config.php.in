@@ -131,6 +131,7 @@ $GLOBALS['defaultUser'] = array(
     "Events"    => 'Edit',
     "Control"   => 'Edit',
     "Monitors"  => 'Edit',
+    "Groups"    => 'Edit',
     "Devices"   => 'Edit',
     "System"    => 'Edit',
     "MaxBandwidth" => "",

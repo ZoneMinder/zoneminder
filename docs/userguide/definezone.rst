@@ -99,3 +99,7 @@ Overload Frame Ignore Count
   * Number of Blobs > Max Blobs
   The idea is that after a change like a light going on that is considered too big to count as an alarm, it could take a couple of frames for things to settle down again.
 
+Other information
+-----------------
+Refer to `this <http://www.zoneminder.com/wiki/index.php/Understanding_ZoneMinder%27s_Zoning_system_for_Dummies>`__ user contributed Zone guide for additional information will illustrations if you are new to zones and need more help.
+

@@ -103,7 +103,8 @@ class MemcachedEngineTest extends CakeTestCase {
 			'login' => null,
 			'password' => null,
 			'groups' => array(),
-			'serialize' => 'php'
+			'serialize' => 'php',
+			'options' => array()
 		);
 		$this->assertEquals($expecting, $settings);
 	}
@@ -131,6 +132,23 @@ class MemcachedEngineTest extends CakeTestCase {
 		));
 
 		$this->assertTrue($MemcachedCompressed->getMemcached()->getOption(Memcached::OPT_COMPRESSION));
+	}
+
+/**
+ * test setting options
+ *
+ * @return void
+ */
+	public function testOptionsSetting() {
+		$memcached = new TestMemcachedEngine();
+		$memcached->init(array(
+			'engine' => 'Memcached',
+			'servers' => array('127.0.0.1:11211'),
+			'options' => array(
+				Memcached::OPT_BINARY_PROTOCOL => true
+			)
+		));
+		$this->assertEquals(1, $memcached->getMemcached()->getOption(Memcached::OPT_BINARY_PROTOCOL));
 	}
 
 /**
@@ -331,14 +349,7 @@ class MemcachedEngineTest extends CakeTestCase {
 			'password' => 'password'
 		);
 
-		$this->skipIf(
-			method_exists($Memcached->getMemcached(), 'setSaslAuthData'),
-			'Memcached extension is installed with SASL support'
-		);
-
-		$this->setExpectedException(
-			'CacheException', 'Memcached extension is not build with SASL support'
-		);
+		$this->setExpectedException('PHPUnit_Framework_Error_Warning');
 		$Memcached->init($settings);
 	}
 
@@ -387,6 +398,17 @@ class MemcachedEngineTest extends CakeTestCase {
 			)
 		));
 		$this->assertTrue($result);
+	}
+
+/**
+ * test domain starts with u
+ *
+ * @return void
+ */
+	public function testParseServerStringWithU() {
+		$Memcached = new TestMemcachedEngine();
+		$result = $Memcached->parseServerString('udomain.net:13211');
+		$this->assertEquals(array('udomain.net', '13211'), $result);
 	}
 
 /**
@@ -689,6 +711,8 @@ class MemcachedEngineTest extends CakeTestCase {
  * @return void
  */
 	public function testLongDurationEqualToZero() {
+		$this->markTestSkipped('Cannot run as Memcached cannot be reflected');
+
 		$memcached = new TestMemcachedEngine();
 		$memcached->settings['compress'] = false;
 

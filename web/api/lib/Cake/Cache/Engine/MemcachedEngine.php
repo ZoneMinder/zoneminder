@@ -45,6 +45,8 @@ class MemcachedEngine extends CacheEngine {
  *  - serialize = string, default => php. The serializer engine used to serialize data.
  *    Available engines are php, igbinary and json. Beside php, the memcached extension
  *    must be compiled with the appropriate serializer support.
+ *  - options - Additional options for the memcached client. Should be an array of option => value.
+ *    Use the Memcached::OPT_* constants as keys.
  *
  * @var array
  */
@@ -70,7 +72,7 @@ class MemcachedEngine extends CacheEngine {
  * To reinitialize the settings call Cache::engine('EngineName', [optional] settings = array());
  *
  * @param array $settings array of setting for the engine
- * @return boolean True if the engine has been successfully initialized, false if not
+ * @return bool True if the engine has been successfully initialized, false if not
  * @throws CacheException when you try use authentication without Memcached compiled with SASL support
  */
 	public function init($settings = array()) {
@@ -92,7 +94,8 @@ class MemcachedEngine extends CacheEngine {
 			'persistent' => false,
 			'login' => null,
 			'password' => null,
-			'serialize' => 'php'
+			'serialize' => 'php',
+			'options' => array()
 		);
 		parent::init($settings);
 
@@ -104,7 +107,11 @@ class MemcachedEngine extends CacheEngine {
 			return true;
 		}
 
-		$this->_Memcached = new Memcached($this->settings['persistent'] ? (string)$this->settings['persistent'] : null);
+		if (!$this->settings['persistent']) {
+			$this->_Memcached = new Memcached();
+		} else {
+			$this->_Memcached = new Memcached((string)$this->settings['persistent']);
+		}
 		$this->_setOptions();
 
 		if (count($this->_Memcached->getServerList())) {
@@ -126,7 +133,13 @@ class MemcachedEngine extends CacheEngine {
 					__d('cake_dev', 'Memcached extension is not build with SASL support')
 				);
 			}
+			$this->_Memcached->setOption(Memcached::OPT_BINARY_PROTOCOL, true);
 			$this->_Memcached->setSaslAuthData($this->settings['login'], $this->settings['password']);
+		}
+		if (is_array($this->settings['options'])) {
+			foreach ($this->settings['options'] as $opt => $value) {
+				$this->_Memcached->setOption($opt, $value);
+			}
 		}
 
 		return true;
@@ -136,6 +149,7 @@ class MemcachedEngine extends CacheEngine {
  * Settings the memcached instance
  *
  * @throws CacheException when the Memcached extension is not built with the desired serializer engine
+ * @return void
  */
 	protected function _setOptions() {
 		$this->_Memcached->setOption(Memcached::OPT_LIBKETAMA_COMPATIBLE, true);
@@ -171,7 +185,7 @@ class MemcachedEngine extends CacheEngine {
  * @return array Array containing host, port
  */
 	protected function _parseServerString($server) {
-		if ($server[0] === 'u') {
+		if (strpos($server, 'unix://') === 0) {
 			return array($server, 0);
 		}
 		if (substr($server, 0, 1) === '[') {
@@ -198,8 +212,8 @@ class MemcachedEngine extends CacheEngine {
  *
  * @param string $key Identifier for the data
  * @param mixed $value Data to be cached
- * @param integer $duration How long to cache the data, in seconds
- * @return boolean True if the data was successfully cached, false on failure
+ * @param int $duration How long to cache the data, in seconds
+ * @return bool True if the data was successfully cached, false on failure
  * @see http://php.net/manual/en/memcache.set.php
  */
 	public function write($key, $value, $duration) {
@@ -224,7 +238,7 @@ class MemcachedEngine extends CacheEngine {
  * Increments the value of an integer cached key
  *
  * @param string $key Identifier for the data
- * @param integer $offset How much to increment
+ * @param int $offset How much to increment
  * @return New incremented value, false otherwise
  * @throws CacheException when you try to increment with compress = true
  */
@@ -236,7 +250,7 @@ class MemcachedEngine extends CacheEngine {
  * Decrements the value of an integer cached key
  *
  * @param string $key Identifier for the data
- * @param integer $offset How much to subtract
+ * @param int $offset How much to subtract
  * @return New decremented value, false otherwise
  * @throws CacheException when you try to decrement with compress = true
  */
@@ -248,7 +262,7 @@ class MemcachedEngine extends CacheEngine {
  * Delete a key from the cache
  *
  * @param string $key Identifier for the data
- * @return boolean True if the value was successfully deleted, false if it didn't exist or couldn't be removed
+ * @return bool True if the value was successfully deleted, false if it didn't exist or couldn't be removed
  */
 	public function delete($key) {
 		return $this->_Memcached->delete($key);
@@ -257,8 +271,9 @@ class MemcachedEngine extends CacheEngine {
 /**
  * Delete all keys from the cache
  *
- * @param boolean $check
- * @return boolean True if the cache was successfully cleared, false otherwise
+ * @param bool $check If true no deletes will occur and instead CakePHP will rely
+ *   on key TTL values.
+ * @return bool True if the cache was successfully cleared, false otherwise
  */
 	public function clear($check) {
 		if ($check) {
@@ -314,7 +329,8 @@ class MemcachedEngine extends CacheEngine {
  * Increments the group value to simulate deletion of all keys under a group
  * old values will remain in storage until they expire.
  *
- * @return boolean success
+ * @param string $group The group to clear.
+ * @return bool success
  */
 	public function clearGroup($group) {
 		return (bool)$this->_Memcached->increment($this->settings['prefix'] . $group);

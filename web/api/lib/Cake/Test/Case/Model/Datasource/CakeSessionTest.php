@@ -280,7 +280,7 @@ class CakeSessionTest extends CakeTestCase {
  * @return void
  */
 	public function testReadyEmpty() {
-		$this->assertFalse(TestCakeSession::read(''));
+		$this->assertNull(TestCakeSession::read(''));
 	}
 
 /**
@@ -329,6 +329,28 @@ class CakeSessionTest extends CakeTestCase {
 	}
 
 /**
+ * Test consuming session data.
+ *
+ * @return void
+ */
+	public function testConsume() {
+		TestCakeSession::write('Some.string', 'value');
+		TestCakeSession::write('Some.array', array('key1' => 'value1', 'key2' => 'value2'));
+		$this->assertEquals('value', TestCakeSession::read('Some.string'));
+		$value = TestCakeSession::consume('Some.string');
+		$this->assertEquals('value', $value);
+		$this->assertFalse(TestCakeSession::check('Some.string'));
+		$value = TestCakeSession::consume('');
+		$this->assertNull($value);
+		$value = TestCakeSession::consume(null);
+		$this->assertNull($value);
+		$value = TestCakeSession::consume('Some.array');
+		$expected = array('key1' => 'value1', 'key2' => 'value2');
+		$this->assertEquals($expected, $value);
+		$this->assertFalse(TestCakeSession::check('Some.array'));
+	}
+
+/**
  * testId method
  *
  * @return void
@@ -371,9 +393,34 @@ class CakeSessionTest extends CakeTestCase {
 		$this->assertTrue(TestCakeSession::check('Delete'));
 
 		$this->assertTrue(TestCakeSession::write('Clearing.sale', 'everything must go'));
+		$this->assertFalse(TestCakeSession::delete(''));
+		$this->assertTrue(TestCakeSession::check('Clearing.sale'));
+		$this->assertFalse(TestCakeSession::delete(null));
+		$this->assertTrue(TestCakeSession::check('Clearing.sale'));
+
 		$this->assertTrue(TestCakeSession::delete('Clearing'));
 		$this->assertFalse(TestCakeSession::check('Clearing.sale'));
 		$this->assertFalse(TestCakeSession::check('Clearing'));
+	}
+
+/**
+ * testClear method
+ *
+ * @return void
+ */
+	public function testClear() {
+		$this->assertTrue(TestCakeSession::write('Delete.me', 'Clearing out'));
+		TestCakeSession::clear(false);
+		$this->assertFalse(TestCakeSession::check('Delete.me'));
+		$this->assertFalse(TestCakeSession::check('Delete'));
+
+		TestCakeSession::write('Some.string', 'value');
+		TestCakeSession::clear(false);
+		$this->assertNull(TestCakeSession::read('Some'));
+
+		TestCakeSession::write('Some.string.array', array('values'));
+		TestCakeSession::clear(false);
+		$this->assertFalse(TestCakeSession::read());
 	}
 
 /**
@@ -429,7 +476,8 @@ class CakeSessionTest extends CakeTestCase {
  * @return void
  */
 	public function testCheckEmpty() {
-		$this->assertFalse(TestCakeSession::check());
+		$this->assertFalse(TestCakeSession::check(''));
+		$this->assertFalse(TestCakeSession::check(null));
 	}
 
 /**
@@ -663,7 +711,7 @@ class CakeSessionTest extends CakeTestCase {
 		$this->assertEquals($expected, TestCakeSession::id());
 
 		TestCakeSession::renew();
-		$this->assertFalse($expected == TestCakeSession::id());
+		$this->assertFalse($expected === TestCakeSession::id());
 
 		$expected = session_id();
 		$this->assertEquals($expected, TestCakeSession::id());

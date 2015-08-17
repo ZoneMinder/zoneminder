@@ -105,7 +105,7 @@ class PaginatorHelper extends AppHelper {
 /**
  * Before render callback. Overridden to merge passed args with URL options.
  *
- * @param string $viewFile
+ * @param string $viewFile View file name.
  * @return void
  */
 	public function beforeRender($viewFile) {
@@ -128,7 +128,14 @@ class PaginatorHelper extends AppHelper {
 			$model = $this->defaultModel();
 		}
 		if (!isset($this->request->params['paging']) || empty($this->request->params['paging'][$model])) {
-			return null;
+			return array(
+				'prevPage' => false,
+				'nextPage' => true,
+				'paramType' => 'named',
+				'pageCount' => 1,
+				'options' => array(),
+				'page' => 1
+			);
 		}
 		return $this->request->params['paging'][$model];
 	}
@@ -207,7 +214,7 @@ class PaginatorHelper extends AppHelper {
  *
  * @param string $model Optional model name. Uses the default if none is specified.
  * @param array $options Options for pagination links. See #options for list of keys.
- * @return string The name of the key by which the recordset is being sorted, or
+ * @return string|null The name of the key by which the recordset is being sorted, or
  *  null if the results are not currently sorted.
  * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/paginator.html#PaginatorHelper::sortKey
  */
@@ -420,7 +427,7 @@ class PaginatorHelper extends AppHelper {
  * Merges passed URL options with current pagination state to generate a pagination URL.
  *
  * @param array $options Pagination/URL options array
- * @param boolean $asArray Return the URL as an array, or a URI string
+ * @param bool $asArray Return the URL as an array, or a URI string
  * @param string $model Which model to paginate on
  * @return mixed By default, returns a full pagination URL string for use in non-standard contexts (i.e. JavaScript)
  * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/paginator.html#PaginatorHelper::url
@@ -454,7 +461,7 @@ class PaginatorHelper extends AppHelper {
  * Converts the keys being used into the format set by options.paramType
  *
  * @param array $url Array of URL params to convert
- * @param string $type
+ * @param string $type Keys type.
  * @return array converted URL params.
  */
 	protected function _convertUrlKeys($url, $type) {
@@ -476,11 +483,11 @@ class PaginatorHelper extends AppHelper {
 /**
  * Protected method for generating prev/next links
  *
- * @param string $which
- * @param string $title
- * @param array $options
- * @param string $disabledTitle
- * @param array $disabledOptions
+ * @param string $which Link type: 'Prev', 'Next'.
+ * @param string $title Link title.
+ * @param array $options Options list.
+ * @param string $disabledTitle Disabled link title.
+ * @param array $disabledOptions Disabled link options.
  * @return string
  */
 	protected function _pagingLink($which, $title = null, $options = array(), $disabledTitle = null, $disabledOptions = array()) {
@@ -499,9 +506,9 @@ class PaginatorHelper extends AppHelper {
 			if (!empty($disabledTitle) && $disabledTitle !== true) {
 				$title = $disabledTitle;
 			}
-			$options = (array)$disabledOptions + $_defaults;
+			$options = (array)$disabledOptions + array_intersect_key($options, $_defaults) + $_defaults;
 		} elseif (!$this->{$check}($options['model'])) {
-			return null;
+			return '';
 		}
 
 		foreach (array_keys($_defaults) as $key) {
@@ -544,7 +551,7 @@ class PaginatorHelper extends AppHelper {
  * Returns true if the given result set is not at the first page
  *
  * @param string $model Optional model name. Uses the default if none is specified.
- * @return boolean True if the result set is not at the first page.
+ * @return bool True if the result set is not at the first page.
  * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/paginator.html#PaginatorHelper::hasPrev
  */
 	public function hasPrev($model = null) {
@@ -555,7 +562,7 @@ class PaginatorHelper extends AppHelper {
  * Returns true if the given result set is not at the last page
  *
  * @param string $model Optional model name. Uses the default if none is specified.
- * @return boolean True if the result set is not at the last page.
+ * @return bool True if the result set is not at the last page.
  * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/paginator.html#PaginatorHelper::hasNext
  */
 	public function hasNext($model = null) {
@@ -566,8 +573,8 @@ class PaginatorHelper extends AppHelper {
  * Returns true if the given result set has the page number given by $page
  *
  * @param string $model Optional model name. Uses the default if none is specified.
- * @param integer $page The page number - if not set defaults to 1.
- * @return boolean True if the given result set has the specified page number.
+ * @param int $page The page number - if not set defaults to 1.
+ * @return bool True if the given result set has the specified page number.
  * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/paginator.html#PaginatorHelper::hasPage
  */
 	public function hasPage($model = null, $page = 1) {
@@ -583,8 +590,8 @@ class PaginatorHelper extends AppHelper {
  * Does $model have $page in its range?
  *
  * @param string $model Model name to get parameters for.
- * @param integer $page Page number you are checking.
- * @return boolean Whether model has $page
+ * @param int $page Page number you are checking.
+ * @return bool Whether model has $page
  */
 	protected function _hasPage($model, $page) {
 		$params = $this->params($model);
@@ -594,7 +601,7 @@ class PaginatorHelper extends AppHelper {
 /**
  * Gets the default model of the paged sets
  *
- * @return string Model name or null if the pagination isn't initialized.
+ * @return string|null Model name or null if the pagination isn't initialized.
  * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/paginator.html#PaginatorHelper::defaultModel
  */
 	public function defaultModel() {
@@ -621,9 +628,9 @@ class PaginatorHelper extends AppHelper {
  * - `separator` The separator string to use, default to ' of '
  *
  * The `%page%` style placeholders also work, but are deprecated and will be removed in a future version.
+ *
  * @param array $options Options for the counter string. See #options for list of keys.
  * @return string Counter string.
- * @deprecated The %page% style placeholders are deprecated.
  * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/paginator.html#PaginatorHelper::counter
  */
 	public function counter($options = array()) {
@@ -706,8 +713,8 @@ class PaginatorHelper extends AppHelper {
  * - `currentClass` Class for wrapper tag on current active page, defaults to 'current'
  * - `currentTag` Tag to use for current page number, defaults to null
  *
- * @param array $options Options for the numbers, (before, after, model, modulus, separator)
- * @return string numbers string.
+ * @param array|bool $options Options for the numbers, (before, after, model, modulus, separator)
+ * @return string Numbers string.
  * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/paginator.html#PaginatorHelper::numbers
  */
 	public function numbers($options = array()) {
@@ -727,8 +734,8 @@ class PaginatorHelper extends AppHelper {
 		$params = (array)$this->params($options['model']) + array('page' => 1);
 		unset($options['model']);
 
-		if ($params['pageCount'] <= 1) {
-			return false;
+		if (empty($params['pageCount']) || $params['pageCount'] <= 1) {
+			return '';
 		}
 
 		extract($options);
@@ -740,7 +747,7 @@ class PaginatorHelper extends AppHelper {
 		$out = '';
 
 		if ($modulus && $params['pageCount'] > $modulus) {
-			$half = intval($modulus / 2);
+			$half = (int)($modulus / 2);
 			$end = $params['page'] + $half;
 
 			if ($end > $params['pageCount']) {
@@ -846,10 +853,10 @@ class PaginatorHelper extends AppHelper {
  * - `separator` Content between the generated links, defaults to ' | '
  * - `ellipsis` Content for ellipsis, defaults to '...'
  *
- * @param string|integer $first if string use as label for the link. If numeric, the number of page links
+ * @param string|int $first if string use as label for the link. If numeric, the number of page links
  *   you want at the beginning of the range.
  * @param array $options An array of options.
- * @return string numbers string.
+ * @return string Numbers string.
  * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/paginator.html#PaginatorHelper::first
  */
 	public function first($first = '<< first', $options = array()) {
@@ -866,7 +873,7 @@ class PaginatorHelper extends AppHelper {
 		unset($options['model']);
 
 		if ($params['pageCount'] <= 1) {
-			return false;
+			return '';
 		}
 		extract($options);
 		unset($options['tag'], $options['after'], $options['model'], $options['separator'], $options['ellipsis'], $options['class']);
@@ -910,9 +917,9 @@ class PaginatorHelper extends AppHelper {
  * - `separator` Content between the generated links, defaults to ' | '
  * - `ellipsis` Content for ellipsis, defaults to '...'
  *
- * @param string|integer $last if string use as label for the link, if numeric print page numbers
+ * @param string|int $last if string use as label for the link, if numeric print page numbers
  * @param array $options Array of options
- * @return string numbers string.
+ * @return string Numbers string.
  * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/paginator.html#PaginatorHelper::last
  */
 	public function last($last = 'last >>', $options = array()) {
@@ -929,7 +936,7 @@ class PaginatorHelper extends AppHelper {
 		unset($options['model']);
 
 		if ($params['pageCount'] <= 1) {
-			return false;
+			return '';
 		}
 
 		extract($options);
@@ -956,6 +963,52 @@ class PaginatorHelper extends AppHelper {
 			);
 		}
 		return $out;
+	}
+
+/**
+ * Returns the meta-links for a paginated result set.
+ *
+ * `echo $this->Paginator->meta();`
+ *
+ * Echos the links directly, will output nothing if there is neither a previous nor next page.
+ *
+ * `$this->Paginator->meta(array('block' => true));`
+ *
+ * Will append the output of the meta function to the named block - if true is passed the "meta"
+ * block is used.
+ *
+ * ### Options:
+ *
+ * - `model` The model to use defaults to PaginatorHelper::defaultModel()
+ * - `block` The block name to append the output to, or false/absenst to return as a string
+ *
+ * @param array $options Array of options
+ * @return string|void Meta links
+ */
+	public function meta($options = array()) {
+		$model = isset($options['model']) ? $options['model'] : null;
+		$params = $this->params($model);
+		$links = array();
+		if ($this->hasPrev()) {
+			$links[] = $this->Html->meta(array(
+				'rel' => 'prev',
+				'link' => $this->url(array('page' => $params['page'] - 1), true)
+			));
+		}
+		if ($this->hasNext()) {
+			$links[] = $this->Html->meta(array(
+				'rel' => 'next',
+				'link' => $this->url(array('page' => $params['page'] + 1), true)
+			));
+		}
+		$out = implode($links);
+		if (empty($options['block'])) {
+			return $out;
+		}
+		if ($options['block'] === true) {
+			$options['block'] = __FUNCTION__;
+		}
+		$this->_View->append($options['block'], $out);
 	}
 
 }

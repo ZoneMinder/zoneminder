@@ -297,6 +297,30 @@ class ControllerTestCaseTest extends CakeTestCase {
 			'Location' => 'http://cakephp.org'
 		);
 		$this->assertEquals($expected, $results);
+		$this->assertSame(302, $Controller->response->statusCode());
+	}
+
+/**
+ * Test array URLs with testAction()
+ *
+ * @return void
+ */
+	public function testTestActionArrayUrls() {
+		$Controller = $this->Case->generate('TestsApps');
+		$this->Case->testAction(array('controller' => 'tests_apps', 'action' => 'index'));
+		$this->assertInternalType('array', $this->Case->controller->viewVars);
+	}
+
+/**
+ * Test that file responses don't trigger errors.
+ *
+ * @return void
+ */
+	public function testActionWithFile() {
+		$Controller = $this->Case->generate('TestsApps');
+		$this->Case->testAction('/tests_apps/file');
+		$this->assertArrayHasKey('Content-Disposition', $Controller->response->header());
+		$this->assertArrayHasKey('Content-Length', $Controller->response->header());
 	}
 
 /**

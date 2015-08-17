@@ -18,7 +18,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-if ( !canEdit( 'System' ) )
+if ( !canEdit( 'Groups' ) )
 {
     $view = "error";
     return;
@@ -78,7 +78,7 @@ xhtmlHeaders( __FILE__, translate('Group')." - ".$newGroup['Name'] );
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('Save') ?>"<?php if ( !canEdit( 'System' ) ) { ?> disabled="disabled"<?php } ?>/>
+          <input type="submit" value="<?php echo translate('Save') ?>"<?php if ( !canEdit( 'Groups' ) ) { ?> disabled="disabled"<?php } ?>/>
           <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
         </div>
       </form>

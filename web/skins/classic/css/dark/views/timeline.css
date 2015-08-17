@@ -122,8 +122,8 @@
     position: absolute;
     text-align: center;
     left: 0px;
-    background-color: #fcfcfc;
-    border-bottom: 1px solid black;
+    background-color: #000000;
+    border-bottom: 1px solid #cccccc;
 }
 
 #chartPanel .event {

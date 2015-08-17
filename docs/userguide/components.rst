@@ -3,6 +3,8 @@ Components
 
 ZoneMinder is not a single monolithic application but is formed from several components. These components primarily include executable compiled binaries which do the main video processing work, perl scripts which usually perform helper and/or external interface tasks and php web scripts which are used for the web interface.
 
+System Overview
+----------------
 Depicted below is a high level diagram of the ZoneMinder system with key components 
 
 .. image:: images/zm-system-overview.jpg

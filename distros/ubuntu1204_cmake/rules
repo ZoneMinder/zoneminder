@@ -13,7 +13,7 @@ endif
 
 %:
 	dh $@ --parallel --buildsystem=cmake --builddirectory=dbuild \
-            --with systemd,sphinxdoc,apache2,linktree
+            --with sphinxdoc,apache2,linktree
 
 override_dh_auto_configure:
 	dh_auto_configure -- $(ARGS)                  \

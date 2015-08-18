@@ -302,6 +302,7 @@ $SLANG = array(
     'Exclude'               => 'Exclude',
     'Execute'               => 'Execute',
     'ExportDetails'         => 'Export Event Details',
+    'Exif'                  => 'Embed EXIF data into image',
     'Export'                => 'Export',
     'ExportFailed'          => 'Export Failed',
     'ExportFormat'          => 'Export File Format',
@@ -894,6 +895,10 @@ $OLANG = array(
 		          "\"--rtp-client-port=nnn\" Set local port to use for rtp data~~~~". 
 		          "\"--verbose=2\" Set verbosity of libVLC"
 	),
+	'OPTIONS_EXIF' => array(
+		'Help' => "Enable this option to embed EXIF data into each jpeg frame."
+	),
+
 	
 //    'LANG_DEFAULT' => array(
 //        'Prompt' => "This is a new prompt for this option",

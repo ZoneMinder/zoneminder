@@ -363,7 +363,7 @@ bool Event::WriteFrameImage( Image *image, struct timeval timestamp, const char 
     if ( !config.opt_frame_server || !SendFrameImage(ImgToWrite, alarm_frame) )
     {
         int thisquality = ( alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality) ) ? config.jpeg_alarm_file_quality : 0 ;   // quality to use, zero is default
-        ImgToWrite->WriteJpeg( event_file, thisquality, (monitor->Exif() ? timestamp : (timeval){0,0}) );
+        ImgToWrite->WriteJpeg( event_file, thisquality, (monitor->Exif() ? timestamp : (timeval){0,0}) ); // exif is only timestamp at present this switches on or off for write
     }
     return( true );
 }

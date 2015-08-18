@@ -42,8 +42,9 @@ else
 
     if ( defined( 'ZM_SERVER_ID' ) ) {
         $Server = dbFetchOne( 'SELECT * FROM Servers WHERE Id=?', NULL, array( ZM_SERVER_ID ) );
-    } else {
-        $Server = array();
+	}
+	if ( ! $Server ) {
+        $Server = array( 'Id' => '' );
     }
 
 if ( ! empty($_REQUEST['mid']) ) {

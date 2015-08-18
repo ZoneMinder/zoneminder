@@ -462,6 +462,7 @@ CREATE TABLE `Users` (
   `Events` enum('None','View','Edit') NOT NULL default 'None',
   `Control` enum('None','View','Edit') NOT NULL default 'None',
   `Monitors` enum('None','View','Edit') NOT NULL default 'None',
+  `Groups` enum('None','View','Edit') NOT NULL default 'None',
   `Devices` enum('None','View','Edit') NOT NULL default 'None',
   `System` enum('None','View','Edit') NOT NULL default 'None',
   `MaxBandwidth` varchar(16) NOT NULL default '',
@@ -547,7 +548,7 @@ CREATE TABLE `Zones` (
 --
 -- Create a default admin user.
 --
-insert into Users VALUES (NULL,'admin',password('admin'),'',1,'View','Edit','Edit','Edit','Edit','Edit','','');
+insert into Users VALUES (NULL,'admin',password('admin'),'',1,'View','Edit','Edit','Edit','Edit','Edit','Edit','','');
 
 --
 -- Add a sample filter to purge the oldest 100 events when the disk is 95% full

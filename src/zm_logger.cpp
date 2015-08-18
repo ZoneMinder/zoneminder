@@ -235,7 +235,7 @@ void Logger::initialise( const std::string &id, const Options &options )
 
 void Logger::terminate()
 {
-    Info( "Terminating Logger" );
+    Debug(1, "Terminating Logger" );
 
     if ( mFileLevel > NOLOG )
         closeFile();

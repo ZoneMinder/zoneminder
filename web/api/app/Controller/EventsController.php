@@ -37,7 +37,16 @@ class EventsController extends AppController {
 			'fields' => array('Name', 'Value')
 		));
 		$this->Paginator->settings = array(
-			'limit' => $limit['ZM_WEB_EVENTS_PER_PAGE'],
+			// https://github.com/ZoneMinder/ZoneMinder/issues/995
+			// 'limit' => $limit['ZM_WEB_EVENTS_PER_PAGE'],
+			// PP - 25 events per page which is what the above
+			// default is, is way too low for an API
+			// changing this to 100 so we don't kill ZM
+			// with many event APIs. In future, we can
+			// make a nice ZM_API_ITEMS_PER_PAGE for all pagination
+			// API
+		
+			'limit' => '100', 
 			'order' => array('StartTime', 'MaxScore'),
 			'paramType' => 'querystring',
 			'conditions' => $conditions

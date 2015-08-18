@@ -672,6 +672,7 @@ $SLANG = array(
     'TimestampLabelFormat'  => 'Formato de hora multinacional',
     'TimestampLabelX'       => 'Etiqueta de tiempo X',
     'TimestampLabelY'       => 'Etiqueta de tiempo Y',
+    'TimestampLabelSize'    => 'Tamaño de fuente',
     'Today'                 => 'Hoy',
     'Tools'                 => 'Herramientas',
     'Total'                 => 'Total',

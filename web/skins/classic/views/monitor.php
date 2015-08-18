@@ -111,7 +111,7 @@ if ( ! empty($_REQUEST['mid']) ) {
         'DefaultScale' => '100',
         'SignalCheckColour' => '#0000c0',
         'WebColour' => 'red',
-        'Exif' => '',
+        'Exif' => '0',
         'Triggers' => "",
 		'V4LMultiBuffer'	=>	'',
 		'V4LCapturesPerFrame'	=>	1,

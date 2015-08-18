@@ -421,7 +421,8 @@ if ( !empty($action) )
                 'Controllable' => 'toggle',
                 'TrackMotion' => 'toggle',
                 'Enabled' => 'toggle',
-                'DoNativeMotDet' => 'toggle'
+                'DoNativeMotDet' => 'toggle',
+                'Exif' => 'toggle'
             );
 
             $columns = getTableColumns( 'Monitors' );

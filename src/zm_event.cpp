@@ -350,12 +350,13 @@ bool Event::SendFrameImage( const Image *image, bool alarm_frame )
 bool Event::WriteFrameImage( Image *image, struct timeval timestamp, const char *event_file, bool alarm_frame )
 {
     Image* ImgToWrite;
-    Image ts_image( *image );
+    Image* ts_image = NULL;
 
     if ( config.timestamp_on_capture )  // stash the image we plan to use in another pointer regardless if timestamped.
     {
-        monitor->TimestampImage( &ts_image, &timestamp );
-        ImgToWrite=&ts_image;
+        ts_image = new Image(*image);
+        monitor->TimestampImage( ts_image, &timestamp );
+        ImgToWrite=ts_image;
     }
     else
         ImgToWrite=image;
@@ -365,6 +366,7 @@ bool Event::WriteFrameImage( Image *image, struct timeval timestamp, const char 
         int thisquality = ( alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality) ) ? config.jpeg_alarm_file_quality : 0 ;   // quality to use, zero is default
         ImgToWrite->WriteJpeg( event_file, thisquality, (monitor->Exif() ? timestamp : (timeval){0,0}) ); // exif is only timestamp at present this switches on or off for write
     }
+    if(ts_image) delete(ts_image); // clean up if used.
     return( true );
 }
 

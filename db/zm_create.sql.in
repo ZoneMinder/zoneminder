@@ -349,6 +349,7 @@ CREATE TABLE `Monitors` (
   `LabelFormat` varchar(64) NOT NULL default '%N - %y/%m/%d %H:%M:%S',
   `LabelX` smallint(5) unsigned NOT NULL default '0',
   `LabelY` smallint(5) unsigned NOT NULL default '0',
+  `LabelSize` smallint(5) unsigned NOT NULL DEFAULT '1',
   `ImageBufferCount` smallint(5) unsigned NOT NULL default '100',
   `WarmupCount` smallint(5) unsigned NOT NULL default '25',
   `PreEventCount` smallint(5) unsigned NOT NULL default '10',

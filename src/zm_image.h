@@ -231,10 +231,10 @@ public:
 	void Delta( const Image &image, Image* targetimage) const;
 
 	const Coord centreCoord( const char *text ) const;
-	void Annotate( const char *p_text, const Coord &coord,  const Rgb fg_colour=RGB_WHITE, const Rgb bg_colour=RGB_BLACK );
+	void Annotate( const char *p_text, const Coord &coord, const int size=1, const Rgb fg_colour=RGB_WHITE, const Rgb bg_colour=RGB_BLACK );
 	Image *HighlightEdges( Rgb colour, unsigned int p_colours, unsigned int p_subpixelorder, const Box *limits=0 );
 	//Image *HighlightEdges( Rgb colour, const Polygon &polygon );
-	void Timestamp( const char *label, const time_t when, const Coord &coord );
+	void Timestamp( const char *label, const time_t when, const Coord &coord, const int size );
 	void Colourise(const unsigned int p_reqcolours, const unsigned int p_reqsubpixelorder);
 	void DeColourise();
 

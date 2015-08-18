@@ -1,0 +1,3 @@
+apache2.patch
+default_cgi-path.patch
+use_libjs-mootools.patch

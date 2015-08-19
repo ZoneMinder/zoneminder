@@ -229,13 +229,18 @@ protected:
 	Coord			label_coord;		    // The coordinates of the timestamp on the images
 	int			label_size;                 // Size of the timestamp on the images
 	int				image_buffer_count;     // Size of circular image buffer, at least twice the size of the pre_event_count
+	int				pre_event_buffer_count;     // Size of dedicated circular pre event buffer used when analysis is not performed at capturing framerate,
+                                                                    // value is pre_event_count + alarm_frame_count - 1
 	int				warmup_count;		    // How many images to process before looking for events
 	int				pre_event_count;	    // How many images to hold and prepend to an alarm event
 	int				post_event_count;	    // How many unalarmed images must occur before the alarm state is reset
 	int				stream_replay_buffer;   // How many frames to store to support DVR functions, IGNORED from this object, passed directly into zms now
 	int				section_length;		    // How long events should last in continuous modes
+	bool				adaptive_skip;              // Whether to use the newer adaptive algorithm for this monitor
 	int				frame_skip;			    // How many frames to skip in continuous modes
 	int				motion_frame_skip;		    // How many frames to skip in motion detection
+	double				analysis_fps;    // Target framerate for video analysis
+	unsigned int			analysis_update_delay;    //  How long we wait before updating analysis parameters
 	int				capture_delay;		    // How long we wait between capture frames
 	int				alarm_capture_delay;    // How long we wait between capture frames when in alarm state
 	int				alarm_frame_count;	    // How many alarm frames are required before an event is triggered
@@ -282,6 +287,7 @@ protected:
 
 	Snapshot		*image_buffer;
 	Snapshot		next_buffer; /* Used by four field deinterlacing */
+	Snapshot		*pre_event_buffer;
 
 	Camera			*camera;
 
@@ -301,7 +307,7 @@ protected:
 public:
 // OurCheckAlarms seems to be unused. Check it on zm_monitor.cpp for more info.
 //bool OurCheckAlarms( Zone *zone, const Image *pImage );
-	Monitor( int p_id, const char *p_name, unsigned int p_server_id, int p_function, bool p_enabled, const char *p_linked_monitors, Camera *p_camera, int p_orientation, unsigned int p_deinterlacing, const char *p_event_prefix, const char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_stream_replay_buffer, int p_alarm_frame_count, int p_section_length, int p_frame_skip, int p_motion_frame_skip, int p_capture_delay, int p_alarm_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, int p_alarm_ref_blend_perc, bool p_track_motion, Rgb p_signal_check_colour, bool p_embed_exif, Purpose p_purpose, int p_n_zones=0, Zone *p_zones[]=0 );
+	Monitor( int p_id, const char *p_name, unsigned int p_server_id, int p_function, bool p_enabled, const char *p_linked_monitors, Camera *p_camera, int p_orientation, unsigned int p_deinterlacing, const char *p_event_prefix, const char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_stream_replay_buffer, int p_alarm_frame_count, int p_section_length, int p_frame_skip, int p_motion_frame_skip, double p_analysis_fps, unsigned int p_analysis_update_delay, int p_capture_delay, int p_alarm_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, int p_alarm_ref_blend_perc, bool p_track_motion, Rgb p_signal_check_colour, bool p_embed_exif, Purpose p_purpose, int p_n_zones=0, Zone *p_zones[]=0 );
 	~Monitor();
 
 	void AddZones( int p_n_zones, Zone *p_zones[] );
@@ -360,6 +366,9 @@ public:
 	State GetState() const;
 	int GetImage( int index=-1, int scale=100 );
 	struct timeval GetTimestamp( int index=-1 ) const;
+	void UpdateAdaptiveSkip();
+	useconds_t GetAnalysisRate();
+	unsigned int GetAnalysisUpdateDelay() const { return( analysis_update_delay ); }
 	int GetCaptureDelay() const { return( capture_delay ); }
 	int GetAlarmCaptureDelay() const { return( alarm_capture_delay ); }
 	unsigned int GetLastReadIndex() const;

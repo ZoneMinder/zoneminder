@@ -6,7 +6,6 @@
 -- Add Groups column to Users
 --
 
-
 SET @s = (SELECT IF(
     (SELECT COUNT(*)
     FROM INFORMATION_SCHEMA.COLUMNS

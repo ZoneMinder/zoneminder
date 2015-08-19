@@ -428,7 +428,7 @@ our @options =
     },
     {
         name        => "ZM_PATH_ZMS",
-        default     => "/cgi-bin/nph-zms",
+        default     => "/zm/cgi-bin/nph-zms",
         description => "Web path to zms streaming server",
         help        => qqq("
             The ZoneMinder streaming server is required to send streamed

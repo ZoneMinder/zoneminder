@@ -227,6 +227,7 @@ protected:
 	char			event_prefix[64];	    // The prefix applied to event names as they are created
 	char			label_format[64];	    // The format of the timestamp on the images
 	Coord			label_coord;		    // The coordinates of the timestamp on the images
+	int			label_size;                 // Size of the timestamp on the images
 	int				image_buffer_count;     // Size of circular image buffer, at least twice the size of the pre_event_count
 	int				warmup_count;		    // How many images to process before looking for events
 	int				pre_event_count;	    // How many images to hold and prepend to an alarm event
@@ -243,6 +244,7 @@ protected:
 	int				alarm_ref_blend_perc;		    // Percentage of new image going into reference image during alarm.
 	bool			track_motion;		    // Whether this monitor tries to track detected motion 
     Rgb             signal_check_colour;    // The colour that the camera will emit when no video signal detected
+        bool                            embed_exif; // Whether to embed Exif data into each image frame or not
 
 	double			fps;
 	Image			delta_image;
@@ -299,7 +301,7 @@ protected:
 public:
 // OurCheckAlarms seems to be unused. Check it on zm_monitor.cpp for more info.
 //bool OurCheckAlarms( Zone *zone, const Image *pImage );
-	Monitor( int p_id, const char *p_name, unsigned int p_server_id, int p_function, bool p_enabled, const char *p_linked_monitors, Camera *p_camera, int p_orientation, unsigned int p_deinterlacing, const char *p_event_prefix, const char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_stream_replay_buffer, int p_alarm_frame_count, int p_section_length, int p_frame_skip, int p_motion_frame_skip, int p_capture_delay, int p_alarm_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, int p_alarm_ref_blend_perc, bool p_track_motion, Rgb p_signal_check_colour, Purpose p_purpose, int p_n_zones=0, Zone *p_zones[]=0 );
+	Monitor( int p_id, const char *p_name, unsigned int p_server_id, int p_function, bool p_enabled, const char *p_linked_monitors, Camera *p_camera, int p_orientation, unsigned int p_deinterlacing, const char *p_event_prefix, const char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_stream_replay_buffer, int p_alarm_frame_count, int p_section_length, int p_frame_skip, int p_motion_frame_skip, int p_capture_delay, int p_alarm_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, int p_alarm_ref_blend_perc, bool p_track_motion, Rgb p_signal_check_colour, bool p_embed_exif, Purpose p_purpose, int p_n_zones=0, Zone *p_zones[]=0 );
 	~Monitor();
 
 	void AddZones( int p_n_zones, Zone *p_zones[] );
@@ -343,6 +345,10 @@ public:
 		if ( function <= MONITOR )
 			return( false );
 		return( enabled && shared_data->active );
+	}
+	inline bool Exif()
+	{
+		return( embed_exif );
 	}
 
 	unsigned int Width() const { return( width ); }

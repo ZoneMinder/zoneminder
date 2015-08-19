@@ -349,6 +349,7 @@ CREATE TABLE `Monitors` (
   `LabelFormat` varchar(64) NOT NULL default '%N - %y/%m/%d %H:%M:%S',
   `LabelX` smallint(5) unsigned NOT NULL default '0',
   `LabelY` smallint(5) unsigned NOT NULL default '0',
+  `LabelSize` smallint(5) unsigned NOT NULL DEFAULT '1',
   `ImageBufferCount` smallint(5) unsigned NOT NULL default '100',
   `WarmupCount` smallint(5) unsigned NOT NULL default '25',
   `PreEventCount` smallint(5) unsigned NOT NULL default '10',
@@ -377,6 +378,7 @@ CREATE TABLE `Monitors` (
   `DefaultScale` smallint(5) unsigned NOT NULL default '100',
   `SignalCheckColour` varchar(32) NOT NULL default '#0000BE',
   `WebColour` varchar(32) NOT NULL default 'red',
+  `Exif` tinyint(1) unsigned NOT NULL default '0',
   `Sequence` smallint(5) unsigned default NULL,
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
@@ -461,6 +463,7 @@ CREATE TABLE `Users` (
   `Events` enum('None','View','Edit') NOT NULL default 'None',
   `Control` enum('None','View','Edit') NOT NULL default 'None',
   `Monitors` enum('None','View','Edit') NOT NULL default 'None',
+  `Groups` enum('None','View','Edit') NOT NULL default 'None',
   `Devices` enum('None','View','Edit') NOT NULL default 'None',
   `System` enum('None','View','Edit') NOT NULL default 'None',
   `MaxBandwidth` varchar(16) NOT NULL default '',
@@ -546,7 +549,7 @@ CREATE TABLE `Zones` (
 --
 -- Create a default admin user.
 --
-insert into Users VALUES (NULL,'admin',password('admin'),'',1,'View','Edit','Edit','Edit','Edit','Edit','','');
+insert into Users VALUES (NULL,'admin',password('admin'),'',1,'View','Edit','Edit','Edit','Edit','Edit','Edit','','');
 
 --
 -- Add a sample filter to purge the oldest 100 events when the disk is 95% full

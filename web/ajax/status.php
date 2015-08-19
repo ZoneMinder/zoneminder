@@ -44,6 +44,7 @@ $statusData = array(
             "LabelFormat" => true,
             "LabelX" => true,
             "LabelY" => true,
+            "LabelSize" => true,
             "ImageBufferCount" => true,
             "WarmupCount" => true,
             "PreEventCount" => true,

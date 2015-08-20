@@ -5,7 +5,7 @@ function validateForm( form )
     {
         errors[errors.length] = selfIntersectingString;
     }
-    if ( form.elements['newZone[Type]'].value != 'Inactive' && form.elements['newZone[Type]'].value != 'Blacken' )
+    if ( form.elements['newZone[Type]'].value != 'Inactive' && form.elements['newZone[Type]'].value != 'Privacy' )
     {
         if ( !form.newAlarmRgbR.value || !form.newAlarmRgbG.value || !form.newAlarmRgbB.value )
         {
@@ -95,7 +95,7 @@ function submitForm( form )
 function applyZoneType()
 {
     var form = document.zoneForm;
-    if ( form.elements['newZone[Type]'].value == 'Inactive' || form.elements['newZone[Type]'].value == 'Blacken' )
+    if ( form.elements['newZone[Type]'].value == 'Inactive' || form.elements['newZone[Type]'].value == 'Privacy' )
     {
         form.presetSelector.disabled = true;
         form.newAlarmRgbR.disabled = true;

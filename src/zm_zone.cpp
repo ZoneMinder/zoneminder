@@ -1013,7 +1013,7 @@ int Zone::Load( Monitor *monitor, Zone **&zones )
 		{
 			zones[i] = new Zone( monitor, Id, Name, polygon );
 		}
-                else if ( atoi(dbrow[2]) == Zone::BLACKEN )
+                else if ( atoi(dbrow[2]) == Zone::PRIVACY )
                 {
                         zones[i] = new Zone( monitor, Id, Name, (Zone::ZoneType)Type, polygon );
                 }
@@ -1043,7 +1043,7 @@ bool Zone::DumpSettings( char *output, bool /*verbose*/ )
 		type==EXCLUSIVE?"Exclusive":(
 		type==PRECLUSIVE?"Preclusive":(
 		type==INACTIVE?"Inactive":(
-		type==BLACKEN?"Blacken":"Unknown"
+		type==PRIVACY?"Privacy":"Unknown"
 	))))));
 	sprintf( output+strlen(output), "  Shape : %d points\n", polygon.getNumCoords() );
 	for ( int i = 0; i < polygon.getNumCoords(); i++ )

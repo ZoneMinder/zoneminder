@@ -1736,7 +1736,7 @@ const Coord Image::centreCoord( const char *text ) const
 }
 
 /* RGB32 compatible: complete */
-void Image::Blacken( const unsigned char *p_bitmask, const Rgb pixel_colour )
+void Image::MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour )
 {
     const uint8_t pixel_r_col = RED_VAL_RGBA(pixel_colour);
     const uint8_t pixel_g_col = GREEN_VAL_RGBA(pixel_colour);
@@ -1781,7 +1781,7 @@ void Image::Blacken( const unsigned char *p_bitmask, const Rgb pixel_colour )
                 i++;
             }
 	} else {
-		Panic("Blacken called with unexpected colours: %d", colours);
+		Panic("MaskPrivacy called with unexpected colours: %d", colours);
 		return;
 	}
 

@@ -43,7 +43,7 @@ protected:
 	};
 
 public:
-	typedef enum { ACTIVE=1, INCLUSIVE, EXCLUSIVE, PRECLUSIVE, INACTIVE, BLACKEN } ZoneType;
+	typedef enum { ACTIVE=1, INCLUSIVE, EXCLUSIVE, PRECLUSIVE, INACTIVE, PRIVACY } ZoneType;
 	typedef enum { ALARMED_PIXELS=1, FILTERED_PIXELS, BLOBS } CheckMethod;
 
 protected:
@@ -127,7 +127,7 @@ public:
 	inline bool IsExclusive() const { return( type == EXCLUSIVE ); }
 	inline bool IsPreclusive() const { return( type == PRECLUSIVE ); }
 	inline bool IsInactive() const { return( type == INACTIVE ); }
-	inline bool IsBlacken() const { return( type == BLACKEN ); }
+	inline bool IsPrivacy() const { return( type == PRIVACY ); }
 	inline const Image *AlarmImage() const { return( image ); }
 	inline const Polygon &GetPolygon() const { return( polygon ); }
 	inline bool Alarmed() const { return( alarmed ); }

@@ -1735,13 +1735,14 @@ const Coord Image::centreCoord( const char *text ) const
     return( Coord( x, y ) );
 }
 
+/* RGB32 compatible: complete */
 void Image::Blacken( const unsigned char *p_bitmask, const Rgb pixel_colour )
 {
-    //const uint8_t pixel_r_col = RED_VAL_RGBA(pixel_colour);
-    //const uint8_t pixel_g_col = GREEN_VAL_RGBA(pixel_colour);
-    //const uint8_t pixel_b_col = BLUE_VAL_RGBA(pixel_colour);
+    const uint8_t pixel_r_col = RED_VAL_RGBA(pixel_colour);
+    const uint8_t pixel_g_col = GREEN_VAL_RGBA(pixel_colour);
+    const uint8_t pixel_b_col = BLUE_VAL_RGBA(pixel_colour);
     const uint8_t pixel_bw_col = pixel_colour & 0xff;
-    //const Rgb pixel_rgb_col = rgb_convert(pixel_colour,subpixelorder);
+    const Rgb pixel_rgb_col = rgb_convert(pixel_colour,subpixelorder);
 
     unsigned char *ptr = &buffer[0];
     unsigned int i = 0;
@@ -1752,84 +1753,37 @@ void Image::Blacken( const unsigned char *p_bitmask, const Rgb pixel_colour )
         {
             for ( unsigned int x = 0; x < width; x++, ptr++ )
             {
-                unsigned char *temp_ptr = ptr;
                 if ( *ptr & p_bitmask[i] )
-                    *temp_ptr = pixel_bw_col;
+                    *ptr = pixel_bw_col;
                 i++;
             }
         }
-//        else if ( colours == ZM_COLOUR_RGB24 )
-//        {
-//            unsigned int wc = width * colours;
-//
-//            unsigned char *ptr = &buffer[((lo_line_y*width)+lo_line_x)*colours];
-//            for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < (CHAR_HEIGHT * size); y++, r++, ptr += wc )
-//            {
-//                unsigned char *temp_ptr = ptr;
-//                for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ )
-//                {
-//                    int f;
-//                    if (size == 2)
-//                        f = bigfontdata[(line[c] * CHAR_HEIGHT * size) + r];
-//                    else
-//                        f = fontdata[(line[c] * CHAR_HEIGHT) + r];
-//                    for ( unsigned int i = 0; i < (CHAR_WIDTH * size) && x < hi_line_x; i++, x++, temp_ptr += colours )
-//                    {
-//                        if ( f & (zm_text_bitmask >> i) )
-//                        {
-//                            if ( !fg_trans )
-//                            {
-//					            RED_PTR_RGBA(temp_ptr) = fg_r_col;
-//					            GREEN_PTR_RGBA(temp_ptr) = fg_g_col;
-//					            BLUE_PTR_RGBA(temp_ptr) = fg_b_col;
-//                            }
-//                        }
-//                        else if ( !bg_trans )
-//                        {
-//					        RED_PTR_RGBA(temp_ptr) = bg_r_col;
-//					        GREEN_PTR_RGBA(temp_ptr) = bg_g_col;
-//					        BLUE_PTR_RGBA(temp_ptr) = bg_b_col;
-//                        }
-//                    }
-//                }
-//            }
-//        } 
-//        else if ( colours == ZM_COLOUR_RGB32 )
-//	{
-//            unsigned int wc = width * colours;
-//
-//            uint8_t *ptr = &buffer[((lo_line_y*width)+lo_line_x)<<2];
-//            for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < (CHAR_HEIGHT * size); y++, r++, ptr += wc )
-//            {
-//                Rgb* temp_ptr = (Rgb*)ptr;
-//                for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ )
-//                {
-//                    int f;
-//                    if (size == 2)
-//                        f = bigfontdata[(line[c] * CHAR_HEIGHT * size) + r];
-//                    else
-//                        f = fontdata[(line[c] * CHAR_HEIGHT) + r];
-//                    for ( unsigned int i = 0; i < (CHAR_WIDTH * size) && x < hi_line_x; i++, x++, temp_ptr++ )
-//                    {
-//                        if ( f & (zm_text_bitmask >> i) )
-//                        {
-//                            if ( !fg_trans )
-//                            {
-//				*temp_ptr = fg_rgb_col;
-//                            }
-//                        }
-//                        else if ( !bg_trans )
-//                        {
-//			    *temp_ptr = bg_rgb_col;
-//                        }
-//                    }
-//                }
-//            } 
-//	
-//	} else {
-//		Panic("Blacken called with unexpected colours: %d",colours);
-//		return;
-//	}
+        else if ( colours == ZM_COLOUR_RGB24 )
+        {
+            for ( unsigned int x = 0; x < width; x++, ptr += colours )
+            {
+                if ( *ptr & p_bitmask[i] )
+                {
+                    RED_PTR_RGBA(ptr) = pixel_r_col;
+                    GREEN_PTR_RGBA(ptr) = pixel_g_col;
+                    BLUE_PTR_RGBA(ptr) = pixel_b_col;
+                }
+                i++;
+            }
+        }
+        else if ( colours == ZM_COLOUR_RGB32 )
+	{
+            for ( unsigned int x = 0; x < width; x++, ptr += colours )
+            {
+                Rgb *temp_ptr = (Rgb*)ptr;
+                if ( *ptr & p_bitmask[i] )
+                    *temp_ptr = pixel_rgb_col;
+                i++;
+            }
+	} else {
+		Panic("Blacken called with unexpected colours: %d", colours);
+		return;
+	}
 
     }
 }

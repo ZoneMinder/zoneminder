@@ -311,7 +311,7 @@ public:
 	~Monitor();
 
 	void AddZones( int p_n_zones, Zone *p_zones[] );
-	void AddBlackenBitmap( Zone *p_zones[] );
+	void AddBlackenBitmask( Zone *p_zones[] );
 
 	bool connect();
 	inline int ShmValid() const

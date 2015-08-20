@@ -1737,45 +1737,25 @@ const Coord Image::centreCoord( const char *text ) const
 
 void Image::Blacken( const unsigned char *p_bitmask, const Rgb pixel_colour )
 {
-    unsigned int s_width = 200;
-    unsigned int s_height = 100;
-
-    const uint8_t pixel_r_col = RED_VAL_RGBA(pixel_colour);
-    const uint8_t pixel_g_col = GREEN_VAL_RGBA(pixel_colour);
-    const uint8_t pixel_b_col = BLUE_VAL_RGBA(pixel_colour);
+    //const uint8_t pixel_r_col = RED_VAL_RGBA(pixel_colour);
+    //const uint8_t pixel_g_col = GREEN_VAL_RGBA(pixel_colour);
+    //const uint8_t pixel_b_col = BLUE_VAL_RGBA(pixel_colour);
     const uint8_t pixel_bw_col = pixel_colour & 0xff;
-    const Rgb pixel_rgb_col = rgb_convert(pixel_colour,subpixelorder);
+    //const Rgb pixel_rgb_col = rgb_convert(pixel_colour,subpixelorder);
 
-    for ( unsigned int y = 0; y < s_height; y++ )
+    unsigned char *ptr = &buffer[0];
+    unsigned int i = 0;
+
+    for ( unsigned int y = 0; y < height; y++ )
     {
         if ( colours == ZM_COLOUR_GRAY8 )
         {
-            //unsigned char *ptr = &buffer[(lo_line_y*width)+lo_line_x];
-            unsigned char *ptr = &buffer[(y*width)+0];
-            for ( unsigned int x = 0; x < s_width; x++, ptr++ )
+            for ( unsigned int x = 0; x < width; x++, ptr++ )
             {
                 unsigned char *temp_ptr = ptr;
-                *temp_ptr = pixel_bw_col;
-//                for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ )
-//                
-//                    int f;
-//                    if (size == 2)
-//                        f = bigfontdata[(line[c] * CHAR_HEIGHT * size) + r];
-//                    else
-//                        f = fontdata[(line[c] * CHAR_HEIGHT) + r];
-//                    for ( unsigned int i = 0; i < (CHAR_WIDTH * size) && x < hi_line_x; i++, x++, temp_ptr++ )
-//                    {
-//                        if ( f & (zm_text_bitmask >> i) )
-//                        {
-//                            if ( !fg_trans )
-//                                *temp_ptr = fg_bw_col;
-//                        }
-//                        else if ( !bg_trans )
-//                        {
-//                            *temp_ptr = bg_bw_col;
-//                        }
-//                    }
-//                }
+                if ( *ptr & p_bitmask[i] )
+                    *temp_ptr = pixel_bw_col;
+                i++;
             }
         }
 //        else if ( colours == ZM_COLOUR_RGB24 )

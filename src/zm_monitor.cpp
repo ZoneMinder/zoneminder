@@ -691,7 +691,7 @@ void Monitor::AddZones( int p_n_zones, Zone *p_zones[] )
     zones = p_zones;
 }
 
-void Monitor::AddBlackenBitmap( Zone *p_zones[] )
+void Monitor::AddBlackenBitmask( Zone *p_zones[] )
 {
     delete[] blacken_bitmask;
     blacken_bitmask = NULL;
@@ -2205,7 +2205,7 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
         Zone **zones = 0;
         int n_zones = Zone::Load( monitors[i], zones );
         monitors[i]->AddZones( n_zones, zones );
-        monitors[i]->AddBlackenBitmap( zones );
+        monitors[i]->AddBlackenBitmask( zones );
         Debug( 1, "Loaded monitor %d(%s), %d zones", id, name, n_zones );
     }
     if ( mysql_errno( &dbconn ) )
@@ -2387,7 +2387,7 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
         Zone **zones = 0;
         int n_zones = Zone::Load( monitors[i], zones );
         monitors[i]->AddZones( n_zones, zones );
-        monitors[i]->AddBlackenBitmap( zones );
+        monitors[i]->AddBlackenBitmask( zones );
         Debug( 1, "Loaded monitor %d(%s), %d zones", id, name.c_str(), n_zones );
     }
     if ( mysql_errno( &dbconn ) )
@@ -2532,7 +2532,7 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
         Zone **zones = 0;
         int n_zones = Zone::Load( monitors[i], zones );
         monitors[i]->AddZones( n_zones, zones );
-        monitors[i]->AddBlackenBitmap( zones );
+        monitors[i]->AddBlackenBitmask( zones );
         Debug( 1, "Loaded monitor %d(%s), %d zones", id, name, n_zones );
     }
     if ( mysql_errno( &dbconn ) )
@@ -2682,7 +2682,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
         Zone **zones = 0;
         int n_zones = Zone::Load( monitors[i], zones );
         monitors[i]->AddZones( n_zones, zones );
-        monitors[i]->AddBlackenBitmap( zones );
+        monitors[i]->AddBlackenBitmask( zones );
         Debug( 1, "Loaded monitor %d(%s), %d zones", id, name, n_zones );
     }
     if ( mysql_errno( &dbconn ) )
@@ -3010,7 +3010,7 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
             Zone **zones = 0;
             n_zones = Zone::Load( monitor, zones );
             monitor->AddZones( n_zones, zones );
-            monitor->AddBlackenBitmap( zones );
+            monitor->AddBlackenBitmask( zones );
         }
         Debug( 1, "Loaded monitor %d(%s), %d zones", id, name.c_str(), n_zones );
     }

@@ -1753,7 +1753,7 @@ void Image::Blacken( const unsigned char *p_bitmask, const Rgb pixel_colour )
         {
             for ( unsigned int x = 0; x < width; x++, ptr++ )
             {
-                if ( *ptr & p_bitmask[i] )
+                if ( p_bitmask[i] )
                     *ptr = pixel_bw_col;
                 i++;
             }
@@ -1762,7 +1762,7 @@ void Image::Blacken( const unsigned char *p_bitmask, const Rgb pixel_colour )
         {
             for ( unsigned int x = 0; x < width; x++, ptr += colours )
             {
-                if ( *ptr & p_bitmask[i] )
+                if ( p_bitmask[i] )
                 {
                     RED_PTR_RGBA(ptr) = pixel_r_col;
                     GREEN_PTR_RGBA(ptr) = pixel_g_col;
@@ -1776,7 +1776,7 @@ void Image::Blacken( const unsigned char *p_bitmask, const Rgb pixel_colour )
             for ( unsigned int x = 0; x < width; x++, ptr += colours )
             {
                 Rgb *temp_ptr = (Rgb*)ptr;
-                if ( *ptr & p_bitmask[i] )
+                if ( p_bitmask[i] )
                     *temp_ptr = pixel_rgb_col;
                 i++;
             }

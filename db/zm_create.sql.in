@@ -482,7 +482,7 @@ DROP TABLE IF EXISTS `ZonePresets`;
 CREATE TABLE `ZonePresets` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `Name` varchar(64) NOT NULL default '',
-  `Type` enum('Active','Inclusive','Exclusive','Preclusive','Inactive') NOT NULL default 'Active',
+  `Type` enum('Active','Inclusive','Exclusive','Preclusive','Inactive','Blacken') NOT NULL default 'Active',
   `Units` enum('Pixels','Percent') NOT NULL default 'Pixels',
   `CheckMethod` enum('AlarmedPixels','FilteredPixels','Blobs') NOT NULL default 'Blobs',
   `MinPixelThreshold` smallint(5) unsigned default NULL,
@@ -511,7 +511,7 @@ CREATE TABLE `Zones` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `MonitorId` int(10) unsigned NOT NULL default '0',
   `Name` varchar(64) NOT NULL default '',
-  `Type` enum('Active','Inclusive','Exclusive','Preclusive','Inactive') NOT NULL default 'Active',
+  `Type` enum('Active','Inclusive','Exclusive','Preclusive','Inactive','Blacken') NOT NULL default 'Active',
   `Units` enum('Pixels','Percent') NOT NULL default 'Pixels',
   `NumCoords` tinyint(3) unsigned NOT NULL default '0',
   `Coords` tinytext NOT NULL,

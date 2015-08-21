@@ -216,7 +216,8 @@
  *
  */
 	Configure::write('Session', array(
-		'defaults' => 'php'
+		'defaults' => 'php',
+		'cookie'=>'ZMSESSID'
 	));
 
 /**

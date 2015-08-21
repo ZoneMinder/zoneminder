@@ -383,8 +383,6 @@ int RtspThread::run()
     if( sdpStart == std::string::npos )
         return( -1 );
 
-    Info("Value of RTSPDescribe: %d", mRtspDescribe );
-
     if ( mRtspDescribe )
     {
         std::string DescHeader = response.substr( 0,sdpStart );

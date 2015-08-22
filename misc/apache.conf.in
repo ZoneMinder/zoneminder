@@ -18,7 +18,15 @@
     <Directory "@CGI_PREFIX@">
         Options +ExecCGI -MultiViews +SymLinksIfOwnerMatch
         AllowOverride All
-	Require All Granted
+        <IfModule mod_authz_core.c>
+           # Apache 2.4
+           Require all granted
+        </IfModule>
+        <IfModule !mod_authz_core.c>
+            # Apache 2.2
+            Order deny,allow
+            Allow from all
+        </IfModule>
     </Directory>
 
     # Use the first option to have Apache logs written to the general log

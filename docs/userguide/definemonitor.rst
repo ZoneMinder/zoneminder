@@ -20,10 +20,15 @@ Function
     This essentially defines what the monitor is doing. This can be one of the following; 
 
         None – The monitor is currently disabled. No streams can be viewed or events generated. Nothing is recorded.
+        
         Monitor – The monitor is only available for live streaming. No image analysis is done so no alarms or events will be generated, and nothing will be recorded.
+        
         Modect – or MOtion DEteCTtion. All captured images will be analysed and events generated with recorded video where motion is detected.
+        
         Record – The monitor will be continuously recorded. Events of a fixed-length will be generated regardless of motion, analogous to a conventional time-lapse video recorder. No motion detection takes place in this mode.
+        
         Mocord – The monitor will be continuously recorded, with any motion being highlighted within those events.
+        
         Nodect – or No DEteCTtion. This is a special mode designed to be used with external triggers. In Nodect no motion detection takes place but events are recorded if external triggers require it. 
 
     Generally speaking it is best to choose ‘Monitor’ as an initial setting here. 

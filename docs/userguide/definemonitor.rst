@@ -19,12 +19,12 @@ Source Type
 Function 
     This essentially defines what the monitor is doing. This can be one of the following; 
 
-        None – The monitor is currently disabled. No streams can be viewed or events generated. Nothing is recorded.
-        Monitor – The monitor is only available for live streaming. No image analysis is done so no alarms or events will be generated, and nothing will be recorded.
-        Modect – or MOtion DEteCTtion. All captured images will be analysed and events generated with recorded video where motion is detected.
-        Record – The monitor will be continuously recorded. Events of a fixed-length will be generated regardless of motion, analogous to a conventional time-lapse video recorder. No motion detection takes place in this mode.
-        Mocord – The monitor will be continuously recorded, with any motion being highlighted within those events.
-        Nodect – or No DEteCTtion. This is a special mode designed to be used with external triggers. In Nodect no motion detection takes place but events are recorded if external triggers require it. 
+        * None – The monitor is currently disabled. No streams can be viewed or events generated. Nothing is recorded.
+        * Monitor – The monitor is only available for live streaming. No image analysis is done so no alarms or events will be generated, and nothing will be recorded.
+        * Modect – or MOtion DEteCTtion. All captured images will be analysed and events generated with recorded video where motion is detected.
+        * Record – The monitor will be continuously recorded. Events of a fixed-length will be generated regardless of motion, analogous to a conventional time-lapse video recorder. No motion detection takes place in this mode.
+        * Mocord – The monitor will be continuously recorded, with any motion being highlighted within those events.
+        * Nodect – or No DEteCTtion. This is a special mode designed to be used with external triggers. In Nodect no motion detection takes place but events are recorded if external triggers require it. 
 
     Generally speaking it is best to choose ‘Monitor’ as an initial setting here. 
 
@@ -169,12 +169,12 @@ Note: This tab and its options will only appear if you have indicated that your 
 X10 Activation String 
     The contents of this field determine when a monitor starts and/or stops being active when running in ‘Triggered; mode and with X10 triggers. The format of this string is as follows, 
 
-        n : If you simply enter a number then the monitor will be activated when an X10 ON signal for that unit code is detected and will be deactivated when an OFF signal is detected.
-        !n : This inverts the previous mode, e.g. !5 means that the monitor is activated when an OFF signal for unit code 5 is detected and deactivated by an ON.
-        n+ : Entering a unit code followed by + means that the monitor is activated on receipt of a ON signal for that unit code but will ignore the OFF signal and as such will not be deactivated by this instruction. If you prepend a '!' as per the previous definition it similarly inverts the mode, i.e. the ON signal deactivates the monitor.
-        n+<seconds> : As per the previous mode except that the monitor will deactivate itself after the given number of seconds.
-        n- : Entering a unit code followed by - means that the monitor is deactivated on receipt of a OFF signal for that unit code but will ignore the ON signal and as such will not be activated by this instruction. If you prepend a '!' as per the previous definition it similarly inverts the mode, i.e. the OFF signal activates the monitor.
-        n-<seconds> : As per the previous mode except that the monitor will activate itself after the given number of seconds. 
+        * n : If you simply enter a number then the monitor will be activated when an X10 ON signal for that unit code is detected and will be deactivated when an OFF signal is detected.
+        * !n : This inverts the previous mode, e.g. !5 means that the monitor is activated when an OFF signal for unit code 5 is detected and deactivated by an ON.
+        * n+ : Entering a unit code followed by + means that the monitor is activated on receipt of a ON signal for that unit code but will ignore the OFF signal and as such will not be deactivated by this instruction. If you prepend a '!' as per the previous definition it similarly inverts the mode, i.e. the ON signal deactivates the monitor.
+        * n+<seconds> : As per the previous mode except that the monitor will deactivate itself after the given number of seconds.
+        * n- : Entering a unit code followed by - means that the monitor is deactivated on receipt of a OFF signal for that unit code but will ignore the ON signal and as such will not be activated by this instruction. If you prepend a '!' as per the previous definition it similarly inverts the mode, i.e. the OFF signal activates the monitor.
+        * n-<seconds> : As per the previous mode except that the monitor will activate itself after the given number of seconds. 
 
     You can also combine several of these expressions to by separating them with a comma to create multiple circumstances of activation. However for now leave this blank. 
 

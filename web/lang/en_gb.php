@@ -903,7 +903,16 @@ $OLANG = array(
 	'OPTIONS_EXIF' => array(
 		'Help' => "Enable this option to embed EXIF data into each jpeg frame."
 	),
-
+	'OPTIONS_MAXFPS' => array(
+		'Help' => "This field has certain limitations when used for non-local devices.~~ ".
+		          "Failure to adhere to these limitations will cause a delay in live video, irregular frame skipping, ".
+		          "and missed events~~".
+		          "For streaming IP cameras, do not use this field to reduce the frame rate. Set the frame rate in the".
+                          " camera, instead. You can, however, use a value that is slightly higher than the frame rate in the camera. ".
+		          "In this case, this helps keep the cpu from being overtaxed in the event of a network problem.~~". 
+		          "Some, mostly older, IP cameras support snapshot mode. In this case ZoneMinder is actively polling the camera ".
+		          "for new images. In this case, it is safe to use thie field."
+	),
 	
 //    'LANG_DEFAULT' => array(
 //        'Prompt' => "This is a new prompt for this option",

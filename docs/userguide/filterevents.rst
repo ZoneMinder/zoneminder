@@ -1,3 +1,5 @@
+.. WARNING:: Work in progress
+
 Filtering Events
 ================
 

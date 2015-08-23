@@ -97,17 +97,29 @@ For example:
 .. image:: images/filter-choosefilter.png
     :width: 400px
 
+How filters actually work
+--------------------------
+It is useful to know how filters actually work behind the scenes in ZoneMinder, in the event you find your filter not functioning as intended:
+
+* the primary filter processing process in ZoneMinder is a perl file called ``zmfilter.pl`` 
+* zmfilter.pl runs every FILTER_EXECUTE_INTERVAL seconds (default is 20s, can be changed in Options->System)
+* in each run, it goes through all the filters which are marked as "Run in Background" and if the conditions match performs the specified action
+* zmfilter.pl also reloads all the filters every FILTER_RELOAD_DELAY seconds (default is 300s/5mins, can be changed in Options->System)
+	* So if you have just created a new filter, zmfilter will not see it till the next FILTER_RELOAD_DELAY cycle
+	* This is also important if you are using "relative times" like 'now' - see :ref:`relative_caveat`
+
 
 Relative items in date strings
 ------------------------------
 
 Relative items adjust a date (or the current date if none) forward or backward. The effects of relative items accumulate. Here are some examples:
  	
+::
 
-1 year
-1 year ago
-3 years
-2 days
+	1 year
+	1 year ago
+	3 years
+	2 days
 
 The unit of time displacement may be selected by the string ‘year’ or ‘month’ for moving by whole years or months. These are fuzzy units, as years and months are not all of equal duration. More precise units are ‘fortnight’ which is worth 14 days, ‘week’ worth 7 days, ‘day’ worth 24 hours, ‘hour’ worth 60 minutes, ‘minute’ or ‘min’ worth 60 seconds, and ‘second’ or ‘sec’ worth one second. An ‘s’ suffix on these units is accepted and ignored.
 
@@ -121,6 +133,8 @@ When a relative item causes the resulting date to cross a boundary where the clo
 
 The fuzz in units can cause problems with relative items. For example, ‘2003-07-31 -1 month’ might evaluate to 2003-07-01, because 2003-06-31 is an invalid date. To determine the previous month more reliably, you can ask for the month before the 15th of the current month. For example:
  	
+
+::
 
  $ date -R
  Thu, 31 Jul 2003 13:02:39 -0700
@@ -145,6 +159,9 @@ You use "less than" to indicate that you want to match events before the specifi
 
 You should always test your filters before enabling any actions based on them to make sure they consistently return the results you want. You can use the submit button to see what events are returned by your query.
 
+
+.. _relative_caveat:
+
 Caveat with Relative items
 --------------------------
 
@@ -153,3 +170,12 @@ One thing to remember if you specify relative dates like "now" or "1 minute ago"
 This may cause confusion in the following cases, for example:
 Let's say a user specifies that he wants to be notified of events via email the moment the event "DateTime" is "less than" "now" as a filter criteria. When the filter first gets loaded by zmfilter.pl, this will translate to "Match events where Start Time < " + localtime() where local time is the time that is resolved when this filter gets loaded. Now till the time the filter gets reloaded after FILTER_RELOAD_DELAY seconds (which is usually set to 300 seconds, or 5 minutes), that time does not get recomputed, so the filter will not process any new events that occur after that computed date till another 5 minutes, which is probably not what you want.
 
+Troubleshooting tips
+--------------------
+
+If your filter is not working, here are some useful tips:
+
+* Look at Info and Debug logs in Zoneminder 
+* Run ``sudo zmfilter.pl -f <yourfiltername>`` from command line and see the log output
+* Check how long your action is taking - zmfilter.pl will wait for the action to complete before it checks again
+* If you are using relative times like 'now' or '1 year ago' etc. remember that zmfilter converts that relative time to an absolute date only when it reloads filters, which is dictated by the FILTER_RELOAD_DELAY duration. So, for example, if you are wondering why your events are not being detected before intervals of 5 minutes and you have used such a relative condition, this is why

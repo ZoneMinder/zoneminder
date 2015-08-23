@@ -1,16 +1,14 @@
 Ubuntu
 ======
 
+Option A: Install a ready made package
+---------------------------------------
 
-PPA Install
------------
-Follow these instructions to install current release version on Ubuntu.:
+Installation procedure (common for all versions of Ubuntu)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Pre-requisite
-^^^^^^^^^^^^^^^
 It is important that you first apply any system software upgrades first to Ubuntu, especially if you have just created a new image of Ubuntu.
 Not doing this may cause the PPA process to fail and complain about various unmet dependencies.
-
 
 If you also plan to install the database in the same server (which is typically the case), first do:
 
@@ -21,9 +19,46 @@ If you also plan to install the database in the same server (which is typically 
 This will ask you for a user and password to configure for Zoneminder. 
 Note that when you install the PPA, it will also create a  username of zmuser and a password of zmpass irrespective of what you select at this stage
 
+Now add the ppa repository path:
+
+::
+
+  sudo apt-add-repository ppa:iconnor/zoneminder
+
+Once you have updated the repository then update and install the package.:
+  
+::
+
+  sudo apt-get update
+  sudo apt-get install zoneminder
+
+
+
+
+Post Install steps for Ubuntu 15.x or newer (systemd)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+::
+
+	sudo /usr/bin/zmupdate.pl
+	sudo systemctl enable zoneminder
+	sudo a2enconf zoneminder
+	sudo service apache2 reload
+	systemctl restart zoneminder
+
+You should now be able to view the zoneminder interface at ``http://localhost/zm`` (replace localhost with your server IP if you are accessing it remotely)
+
+.. image:: images/zm_first_screen_post_install.png
+
+
+
+
+Post install steps for Ubuntu 14.x or older (SystemV)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 Suggested changes to MySQL (Optional but recommended)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 For most of you Zoneminder will run just fine with the default MySQL settings. There are a couple of settings that may, in time, provide beneficial especially if you have a number of cameras and many events with a lot of files. One setting we recommend is the "innodb_file_per_table" This will be a default setting in MySQL 5.6 but should be added in MySQL 5.5 which comes with Ubuntu 14.04. A description can be found here: http://dev.mysql.com/doc/refman/5.5/en/innodb-multiple-tablespaces.html
 
 To add "innodb_file_per_table" edit the my.cnf file:
@@ -37,30 +72,10 @@ Save and exit.
 Restart MySQL
 ``service mysql restart``
 
-Installing the actual Zoneminder package
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-::
-
-  sudo apt-add-repository ppa:iconnor/zoneminder
-
-Once you have updated the repository then update and install the package.:
-  
-::
-
-  sudo apt-get update
-  sudo apt-get install zoneminder
-
-
-Post Install Configuration
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-We are not done yet. There are some post install steps you need to perform:
-
 Adding a sleep for mysql dependency (Ubuntu 14.x and below only)
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-.. NOTE:: This sleep part is not needed for Ubuntu 15 and above that have moved to systemd
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-We recommend you add a "sleep" command just after ``start() { `` in ``/etc/init.d/zoneminder``` to make sure mysql starts before ZoneMinder does. To do this,
+We recommend you add a "sleep" command just after ``start() {`` in ``/etc/init.d/zoneminder`` to make sure mysql starts before ZoneMinder does. To do this,
 simply modify ``/etc/init.d/zoneminder`` at around line 25 (where you will find the start function) to look like this:
 
 ::
@@ -71,7 +86,7 @@ simply modify ``/etc/init.d/zoneminder`` at around line 25 (where you will find 
 		echo -n "Starting $prog: "
 
 Making Apache aware of ZoneMinder
-""""""""""""""""""""""""""""""""""""
+""""""""""""""""""""""""""""""""""""""""""""
 
 Next, we need to make sure apache knows about zoneminder's configuration for apache. 
 
@@ -79,7 +94,13 @@ Next, we need to make sure apache knows about zoneminder's configuration for apa
 
 	ln -s /etc/zm/apache.conf /etc/apache2/conf-available/zoneminder.conf
 
-Then
+If you are upgrading from an old version:
+
+::
+	
+	sudo /usr/bin/zmupdate.pl
+
+Then look for ``/etc/apache2/conf-enable/zm.conf`` - if you have it, please remove it
 
 ::
 
@@ -87,7 +108,7 @@ Then
 	adduser www-data video
 
 
-Finally, lets make sure we restart apache:
+lets make sure we restart apache:
 
 ::
 
@@ -99,9 +120,11 @@ You should now be able to view the zoneminder interface at ``http://localhost/zm
 .. image:: images/zm_first_screen_post_install.png
 
 
+Finally, in the zoneminder web interface, go to Options->Paths, change PATH_ZMS to ``/zm/cgi-bin/nph-zms``
 
-Build Package From Source
--------------------------
+
+Option B: Build Package From Source
+-------------------------------------------
 
 A fresh build based on master branch running Ubuntu 1204 LTS.  Will likely work for other versions as well.::
 

@@ -3,7 +3,15 @@ Defining Monitors
 
 To use ZoneMinder properly you need to define at least one Monitor. Essentially, a monitor is associated with a camera and can continually check it for motion detection and such like.
 
-There are a small number of camera setups that ZoneMinder knows about and which can be accessed by clicking on the ‘Presets’ link. Selecting one of the presets will fill in the monitor configuration with appropriate values but you will still need to enter others and confirm the preset settings.
+You can access the monitor window by clicking on the "Add New Monitor" button, or by clicking on the "Source" column of a predefined monitor.
+
+.. image:: images/definemonitor-monitor.png
+   :width: 600px
+
+There are a small number of camera setups that ZoneMinder knows about and which can be accessed by clicking on the ‘Presets’ link. Selecting one of the presets will fill in the monitor configuration with appropriate values but you will still need to enter others and confirm the preset settings. Here is an example of the presets window:
+
+.. image:: images/definemonitor-preset.png
+   :width: 600px
 
 The options are divided into a set of tabs to make it easier to edit. You do not have to ‘save’ to change to different tab so you can make all the changes you require and then click ‘Save’ at the end. The individual options are explained in a little more detail below,
 

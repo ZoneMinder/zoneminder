@@ -57,10 +57,10 @@ Relative items in date strings
 Relative items adjust a date (or the current date if none) forward or backward. The effects of relative items accumulate. Here are some examples:
  	
 
-1 year
-1 year ago
-3 years
-2 days
+* 1 year
+* 1 year ago
+* 3 years
+* 2 days
 
 The unit of time displacement may be selected by the string ‘year’ or ‘month’ for moving by whole years or months. These are fuzzy units, as years and months are not all of equal duration. More precise units are ‘fortnight’ which is worth 14 days, ‘week’ worth 7 days, ‘day’ worth 24 hours, ‘hour’ worth 60 minutes, ‘minute’ or ‘min’ worth 60 seconds, and ‘second’ or ‘sec’ worth one second. An ‘s’ suffix on these units is accepted and ignored.
 
@@ -76,10 +76,15 @@ The fuzz in units can cause problems with relative items. For example, ‘2003-0
  	
 
  $ date -R
+ 
  Thu, 31 Jul 2003 13:02:39 -0700
+ 
  $ date --date='-1 month' +'Last month was %B?'
+ 
  Last month was July?
+ 
  $ date --date="$(date +%Y-%m-15) -1 month" +'Last month was %B!'
+ 
  Last month was June!
 
 

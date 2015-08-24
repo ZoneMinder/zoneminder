@@ -1,7 +1,9 @@
 Defining Zones
 ==============
 
-The next important thing to do with a new monitor is set up Zones for it to use. By default you'll already have one generated for you when you created your monitor but you might want to modify it or add others. Click on the Zones column for your monitor and you should see a small popup window appear which contains an image from your camera overlain with a stippled pattern representing your zone. In the default case this will cover the whole image. The colour of the zones appearing here is determined by what type they are. The default zone is Active and so will be red, Inclusive zones are orange, exclusive zones are purple, preclusive zones are blue and inactive zones are white.
+The next important thing to do with a new monitor is set up Zones for it to use. By default you'll already have one generated for you when you created your monitor (the default zone is the full area captured by the monitor) but you might want to modify it or add others. 
+
+Click on the Zones column for your monitor and you should see a small popup window appear which contains an image from your camera overlain with a stippled pattern representing your zone. In the default case this will cover the whole image. The colour of the zones appearing here is determined by what type they are. The default zone is Active and so will be red, Inclusive zones are orange, exclusive zones are purple, preclusive zones are blue and inactive zones are white.
 
 Beneath the zones image will be a table containing a listing of your zones. Clicking on either the relevant bit of the image or on the Id or Name in the table will bring up another window where you can edit the particulars for your Zones. For more information on defining or editing a zone, see Defining Zones.
 
@@ -40,7 +42,11 @@ Units
   * Percentage -  Selecting this option will allow may of the following values to be entered (or viewed) as a percentage.  The sense of the percentage values refers to the area of the zone and not the image as a whole. This makes trying to work out necessary sizes rather easier.
 
 Region points
-  [[File:Zone - Region sample.jpg|frame|right|The sample region shown to the right shows a region defined by 6 control points.  The shape of the region causes the check methods to ignore the sidewalk and areas of the porch wall that receive changing sunlight; two conditions that are not of interest in this zone.]]
+
+.. image:: images/define-zone-region-sample.jpg
+
+The sample region shown to the right shows a region defined by 6 control points.  The shape of the region causes the check methods to ignore the sidewalk and areas of the porch wall that receive changing sunlight; two conditions that are not of interest in this zone.
+
   A region is a part of the captured image that is of interest for this zone.  By default, a region is configured to cover the whole captured image.  Depending on the selected type of this zone, the shape of the region can be adjusted to accommodate multiple effects.  This can be done by dragging the control points in the reference image around, or by altering the coordinates found in the controls below the reference image.  Clicking on a control point in the reference image highlights the coordinates in the table below.  Clicking the + button in a point row adds a control point between this point and the next; clicking the - button removes this control point.  It is possible to accidentally place a control point outside of the valid coordinates of the image.  This will prevent the monitor from working properly.  You can make zones almost any shape you like; except that zones may not self-intersect (i.e. edges crossing over each other).
 
 Alarm Colour
@@ -71,8 +77,13 @@ Min/Max Filtered Area
   Applying the filtering analysis results in an area that is less than or equal to the alarmed area.  Thus the minimum and maximum filtered area parameters for alarm should be equal to or less than the corresponding alarm area parameters, or the FilteredPixels analysis will never trigger an alarm.  In particular, it is useful to raise the minimum alarmed area parameter until false events from image artifacts disappear, and setting a minimum filtered area parameter less the minimum alarmed area parameter by enough to capture small events of interest.
 
 Blobs
-  File:Zone - 1 blob example.jpg|frame|right|This captured frame shows an image with 1 identified blob.  The blob is outlined in the Alarm Colour specified above.
-  When two or more Filtered areas touch or share a boundary, it is sensible to evaluate the regions as one contiguous area instead of separate entities.  A Blob is a contiguous area made up of multiple filtered areas.  Whereas FilteredPixes is useful for excluding parts of the image that are not part of the actual scene, Blob filtering is better suited to disregarding areas of the actual scene that are not of interest. 
+
+.. image:: images/define-zone-blob.jpg
+
+This image shows an image with 1 identified blob.  The blob is outlined in the Alarm Colour specified above.
+
+When two or more Filtered areas touch or share a boundary, it is sensible to evaluate the regions as one contiguous area instead of separate entities.  A Blob is a contiguous area made up of multiple filtered areas.  Whereas FilteredPixes is useful for excluding parts of the image that are not part of the actual scene, Blob filtering is better suited to disregarding areas of the actual scene that are not of interest. 
+
   Selecting the Blobs Alarm Check Method opens up all of the available parameters.  Enabling Blobs adds one more layer of analysis to the AlarmedPixel and FilteredPixel checks in the determination of a valid alarm along along with 2 additional parameter categories for tuning: the size of the blobs, and the number of blobs.  A Blob is not necessarily the whole object that may be of interest.  In the example image, the subject is moving, but only a portion of him is marked as a blob.  This is because as the subject moves, many pixels of the image do not change in value beyond the set threshold.  A pixel that is representing the subject's shoulder in one frame may be representing his back in the next, however, the value of the pixel remains nearly the same. 
 
 Min/Max Blob Area
@@ -87,4 +98,8 @@ Overload Frame Ignore Count
   * Number of filtered pixels > Max Filtered Area or
   * Number of Blobs > Max Blobs
   The idea is that after a change like a light going on that is considered too big to count as an alarm, it could take a couple of frames for things to settle down again.
+
+Other information
+-----------------
+Refer to `this <http://www.zoneminder.com/wiki/index.php/Understanding_ZoneMinder%27s_Zoning_system_for_Dummies>`__ user contributed Zone guide for additional information will illustrations if you are new to zones and need more help.
 

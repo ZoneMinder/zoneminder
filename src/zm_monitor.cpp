@@ -294,8 +294,7 @@ Monitor::Monitor(
     bool p_embed_exif,
     Purpose p_purpose,
     int p_n_zones,
-    Zone *p_zones[],
-    const unsigned char *privacy_bitmask
+    Zone *p_zones[]
 ) : id( p_id ),
     function( (Function)p_function ),
     enabled( p_enabled ),

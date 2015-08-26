@@ -26,7 +26,6 @@ if ( !canEdit( 'System' ) )
 $running = daemonCheck();
 
 $states = dbFetchAll( "select * from States" );
-
 $focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('RunState') );
@@ -76,14 +75,16 @@ if ( empty($_REQUEST['apply']) )
           <tbody>
             <tr>
               <th scope="row"><?php echo translate('NewState') ?></th>
-              <td><input type="text" name="newState" value="" size="16" onchange="checkState( this );"/></td>
+		<!-- PP - added oninput so that changes are detected immediately -->
+		<!-- PP - retained onchange for older browsers -->
+              <td><input type="text" name="newState" value="" size="16" oninput="checkState( this );" onchange="checkState(this);"/></td>
             </tr>
           </tbody>
         </table>
         <div id="contentButtons">
           <input type="submit" value="<?php echo translate('Apply') ?>"/>
           <input type="button" name="saveBtn" value="<?php echo translate('Save') ?>" disabled="disabled" onclick="saveState( this );"/>
-          <input type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" disabled="disabled" onclick="deleteState( this );"/>
+          <input type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" disabled="disabled" onclick="deleteState( this );"/> 
           <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
         </div>
 <?php

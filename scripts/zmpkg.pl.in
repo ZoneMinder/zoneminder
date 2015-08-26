@@ -105,7 +105,7 @@ if ( !$command || $command !~ /^(?:start|stop|restart|status|logrot|version)$/ )
     }
 }
 $dbh = zmDbConnect() if ! $dbh;
- # PP - Sane state check
+# PP - Sane state check
 isActiveSanityCheck();
 
 # Move to the right place
@@ -199,7 +199,7 @@ if ( $command =~ /^(?:stop|restart)$/ )
 
 if ( $command =~ /^(?:start|restart)$/ )
 {
-      my $status = runCommand( "zmdc.pl check" );
+    my $status = runCommand( "zmdc.pl check" );
 
     if ( $status eq "stopped" )
     {
@@ -316,7 +316,7 @@ sub isActiveSanityCheck
 	my $sql = "select Name from States where Name = 'default'";
         my $sth = $dbh->prepare_cached( $sql )
                 or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-                my $res = $sth->execute()
+        my $res = $sth->execute()
                 or Fatal( "Can't execute: ".$sth->errstr() );
 
 	if ($sth->rows != 1) # PP - no row, or too many rows. Either case is an error
@@ -324,16 +324,14 @@ sub isActiveSanityCheck
 		Info( "Fixing States table - either no default state or duplicate default states" );
 		$sql = "delete from States where Name = 'default'";
        		$sth = $dbh->prepare_cached( $sql )
-                or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+             		or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
                 $res = $sth->execute()
-                or Fatal( "Can't execute: ".$sth->errstr() );
-
+               		or Fatal( "Can't execute: ".$sth->errstr() );
 		$sql = "insert into States (Name,Definition,IsActive) VALUES ('default','','1');";
        		$sth = $dbh->prepare_cached( $sql )
-                or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+               		or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
                 $res = $sth->execute()
-                or Fatal( "Can't execute: ".$sth->errstr() );
-
+                	or Fatal( "Can't execute: ".$sth->errstr() );
 	}	
 
 
@@ -341,7 +339,7 @@ sub isActiveSanityCheck
         $sql = "select Name from States where IsActive = '1'";
         $sth = $dbh->prepare_cached( $sql )
                 or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-                $res = $sth->execute()
+        $res = $sth->execute()
                 or Fatal( "Can't execute: ".$sth->errstr() );
 
         if ( $sth->rows != 1 )
@@ -350,9 +348,9 @@ sub isActiveSanityCheck
 		resetStates();
 		$sql = "update States set IsActive='1' WHERE Name='default'";
         	$sth = $dbh->prepare_cached( $sql )
-                or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+        	        or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
                 $res = $sth->execute()
-                or Fatal( "Can't execute: ".$sth->errstr() );
+               		or Fatal( "Can't execute: ".$sth->errstr() );
 
 
 	}
@@ -366,7 +364,7 @@ sub resetStates
         my $sql = "update States set IsActive = '0'";
         my $sth = $dbh->prepare_cached( $sql )
                 or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-                my $res = $sth->execute()
+        my $res = $sth->execute()
                 or Fatal( "Can't execute: ".$sth->errstr() );
 
 }

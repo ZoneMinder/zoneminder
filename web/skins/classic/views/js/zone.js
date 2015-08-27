@@ -420,6 +420,10 @@ function saveChanges( element )
     if ( validateForm( form ) )
     {
         submitForm( form );
+        if ( form.elements['newZone[Type]'].value == 'Privacy' )
+        {
+            alert( 'Capture process for this monitor will be restarted for the Privacy zone changes to take effect.' );
+        }
         return( true );
     }
     return( false );

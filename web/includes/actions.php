@@ -325,8 +325,21 @@ if ( !empty($action) )
                 //if ( $cookies ) session_write_close();
                 if ( daemonCheck() )
                 {
-                    zmaControl( $mid, "restart" );
-                }
+		    if ( $_REQUEST['newZone']['Type'] == 'Privacy' )
+		    {
+			zmaControl( $monitor, "stop" );
+			zmcControl( $monitor, "restart" );
+			zmaControl( $monitor, "start" );
+		    }
+		    else
+		    {
+			zmaControl( $mid, "restart" );
+		    }
+		}
+		if ( $_REQUEST['newZone']['Type'] == 'Privacy' && $monitor['Controllable'] ) {
+		    require_once( 'control_functions.php' );
+		    sendControlCommand( $mid, 'quit' );
+		}
                 $refreshParent = true;
             }
             $view = 'none';

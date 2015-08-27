@@ -3,6 +3,12 @@ Components
 
 ZoneMinder is not a single monolithic application but is formed from several components. These components primarily include executable compiled binaries which do the main video processing work, perl scripts which usually perform helper and/or external interface tasks and php web scripts which are used for the web interface.
 
+System Overview
+----------------
+Depicted below is a high level diagram of the ZoneMinder system with key components 
+
+.. image:: images/zm-system-overview.jpg
+
 A brief description of each of the principle components follows.
 
 Binaries
@@ -26,10 +32,10 @@ As well as this there are the web PHP files in the web directory. Currently thes
   Original ZoneMinder skin
 **Flat**
   An updated version of classic skin, retaining the same layout with a more modern style
-**XMl**
-  Used by eyeZM as an interfacing skin
+**XML**
+  Displays certain views as XML. Used by eyeZM as an interfacing skin (Note that eyeZM no longer seems to work with later versions of Zoneminder). New developers of 3rd party clients should use the API instead (:doc:`../api`)
 **Mobile**
-  [Check status and purpose]
+  A skin that displays views in a more condensed and single page format, likely suitable for smaller mobile devices, should one choose to access the ZoneMinder console using such devices. Note that there are also third party mobile clients one could use (:doc:`mobile`)
 
 Perl
 ----

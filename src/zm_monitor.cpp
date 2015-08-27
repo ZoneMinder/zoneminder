@@ -609,6 +609,10 @@ Monitor::~Monitor()
 		delete[] images;
 		images = 0;
 	}
+        if ( privacy_bitmask ) {
+            delete[] privacy_bitmask;
+            privacy_bitmask = NULL;
+        }
 	if ( mem_ptr ) {
 		if ( event )
 			Info( "%s: %03d - Closing event %d, shutting down", name, image_count, event->Id() );
@@ -686,6 +690,27 @@ void Monitor::AddZones( int p_n_zones, Zone *p_zones[] )
     delete[] zones;
     n_zones = p_n_zones;
     zones = p_zones;
+}
+
+void Monitor::AddPrivacyBitmask( Zone *p_zones[] )
+{
+    delete[] privacy_bitmask;
+    privacy_bitmask = NULL;
+    Image *privacy_image = NULL;
+
+    for ( int i = 0; i < n_zones; i++ )
+        if ( p_zones[i]->IsPrivacy() )
+        {
+            if ( !privacy_image )
+            {
+                privacy_image = new Image( width, height, 1, ZM_SUBPIX_ORDER_NONE);
+                privacy_image->Clear();
+            }
+            privacy_image->Fill( 0xff, p_zones[i]->GetPolygon() );
+            privacy_image->Outline( 0xff, p_zones[i]->GetPolygon() );
+        }
+    if ( privacy_image )
+        privacy_bitmask = privacy_image->Buffer();
 }
 
 Monitor::State Monitor::GetState() const
@@ -2180,6 +2205,7 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
         Zone **zones = 0;
         int n_zones = Zone::Load( monitors[i], zones );
         monitors[i]->AddZones( n_zones, zones );
+        monitors[i]->AddPrivacyBitmask( zones );
         Debug( 1, "Loaded monitor %d(%s), %d zones", id, name, n_zones );
     }
     if ( mysql_errno( &dbconn ) )
@@ -2358,6 +2384,7 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
         Zone **zones = 0;
         int n_zones = Zone::Load( monitors[i], zones );
         monitors[i]->AddZones( n_zones, zones );
+        monitors[i]->AddPrivacyBitmask( zones );
         Debug( 1, "Loaded monitor %d(%s), %d zones", id, name.c_str(), n_zones );
     }
     if ( mysql_errno( &dbconn ) )
@@ -2500,6 +2527,7 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
         Zone **zones = 0;
         int n_zones = Zone::Load( monitors[i], zones );
         monitors[i]->AddZones( n_zones, zones );
+        monitors[i]->AddPrivacyBitmask( zones );
         Debug( 1, "Loaded monitor %d(%s), %d zones", id, name, n_zones );
     }
     if ( mysql_errno( &dbconn ) )
@@ -2647,6 +2675,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
         Zone **zones = 0;
         int n_zones = Zone::Load( monitors[i], zones );
         monitors[i]->AddZones( n_zones, zones );
+        monitors[i]->AddPrivacyBitmask( zones );
         Debug( 1, "Loaded monitor %d(%s), %d zones", id, name, n_zones );
     }
     if ( mysql_errno( &dbconn ) )
@@ -2964,6 +2993,7 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
 		Zone **zones = 0;
 		n_zones = Zone::Load( monitor, zones );
 		monitor->AddZones( n_zones, zones );
+        monitor->AddPrivacyBitmask( zones );
 	}
 	Debug( 1, "Loaded monitor %d(%s), %d zones", id, name.c_str(), n_zones );
     return( monitor );
@@ -3071,6 +3101,9 @@ int Monitor::Capture()
                 shared_data->last_read_index = image_buffer_count;
             }
         }
+
+        if ( privacy_bitmask )
+            capture_image->MaskPrivacy( privacy_bitmask );
 
         gettimeofday( image_buffer[index].timestamp, NULL );
         if ( config.timestamp_on_capture )

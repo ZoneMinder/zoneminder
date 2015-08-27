@@ -387,6 +387,7 @@ if ( !empty($action) )
                 $deletedZid = 0;
                 foreach( $_REQUEST['markZids'] as $markZid )
                 {
+                    $zone = dbFetchOne( "select * from Zones where Id=?", NULL, array($markZid) );
                     dbQuery( "delete from Zones WHERE MonitorId=? AND Id=?", array( $mid, $markZid) );
                     $deletedZid = 1;
                 }
@@ -395,7 +396,16 @@ if ( !empty($action) )
                     //if ( $cookies )
                         //session_write_close();
                     if ( daemonCheck() )
-                        zmaControl( $mid, "restart" );
+                        if ( $zone['Type'] == 'Privacy' )
+                        {
+                            zmaControl( $mid, "stop" );
+                            zmcControl( $mid, "restart" );
+                            zmaControl( $mid, "start" );
+                        }
+                        else
+                        {
+                            zmaControl( $mid, "restart" );
+                        }
                     $refreshParent = true;
                 }
             }

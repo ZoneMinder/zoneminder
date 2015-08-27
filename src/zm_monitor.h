@@ -294,6 +294,7 @@ protected:
 
 	int			n_zones;
 	Zone			**zones;
+	const unsigned char	*privacy_bitmask;
 
 	struct timeval		**timestamps;
 	Image			**images;
@@ -310,6 +311,7 @@ public:
 	~Monitor();
 
 	void AddZones( int p_n_zones, Zone *p_zones[] );
+	void AddPrivacyBitmask( Zone *p_zones[] );
 
 	bool connect();
 	inline int ShmValid() const

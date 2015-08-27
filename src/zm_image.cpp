@@ -1736,6 +1736,59 @@ const Coord Image::centreCoord( const char *text ) const
 }
 
 /* RGB32 compatible: complete */
+void Image::MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour )
+{
+    const uint8_t pixel_r_col = RED_VAL_RGBA(pixel_colour);
+    const uint8_t pixel_g_col = GREEN_VAL_RGBA(pixel_colour);
+    const uint8_t pixel_b_col = BLUE_VAL_RGBA(pixel_colour);
+    const uint8_t pixel_bw_col = pixel_colour & 0xff;
+    const Rgb pixel_rgb_col = rgb_convert(pixel_colour,subpixelorder);
+
+    unsigned char *ptr = &buffer[0];
+    unsigned int i = 0;
+
+    for ( unsigned int y = 0; y < height; y++ )
+    {
+        if ( colours == ZM_COLOUR_GRAY8 )
+        {
+            for ( unsigned int x = 0; x < width; x++, ptr++ )
+            {
+                if ( p_bitmask[i] )
+                    *ptr = pixel_bw_col;
+                i++;
+            }
+        }
+        else if ( colours == ZM_COLOUR_RGB24 )
+        {
+            for ( unsigned int x = 0; x < width; x++, ptr += colours )
+            {
+                if ( p_bitmask[i] )
+                {
+                    RED_PTR_RGBA(ptr) = pixel_r_col;
+                    GREEN_PTR_RGBA(ptr) = pixel_g_col;
+                    BLUE_PTR_RGBA(ptr) = pixel_b_col;
+                }
+                i++;
+            }
+        }
+        else if ( colours == ZM_COLOUR_RGB32 )
+	{
+            for ( unsigned int x = 0; x < width; x++, ptr += colours )
+            {
+                Rgb *temp_ptr = (Rgb*)ptr;
+                if ( p_bitmask[i] )
+                    *temp_ptr = pixel_rgb_col;
+                i++;
+            }
+	} else {
+		Panic("MaskPrivacy called with unexpected colours: %d", colours);
+		return;
+	}
+
+    }
+}
+
+/* RGB32 compatible: complete */
 void Image::Annotate( const char *p_text, const Coord &coord, const int size, const Rgb fg_colour, const Rgb bg_colour )
 {
 	strncpy( text, p_text, sizeof(text) );

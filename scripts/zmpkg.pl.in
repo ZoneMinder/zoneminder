@@ -121,7 +121,7 @@ my $retval = 0;
 if ( $command eq "state" )
 {
     Info( "Updating DB: $state->{Name}\n" );
-	my $sql = $Config{ZM_SERVER_ID} ? 'SELECT * FROM Monitors WHERE ServerId=? ORDER BY Id ASC' : 'SELECT * FROM Monitors ORDER BY Id ASC';
+    my $sql = $Config{ZM_SERVER_ID} ? 'SELECT * FROM Monitors WHERE ServerId=? ORDER BY Id ASC' : 'SELECT * FROM Monitors ORDER BY Id ASC';
     my $sth = $dbh->prepare_cached( $sql )
         or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
     my $res = $sth->execute( $Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID}: () )
@@ -226,7 +226,7 @@ if ( $command =~ /^(?:start|restart)$/ )
         zmMemTidy();
         runCommand( "zmdc.pl startup" );
 
-		my $sql = $Config{ZM_SERVER_ID} ? 'SELECT * FROM Monitors WHERE ServerId=?' : 'SELECT * FROM Monitors';
+        my $sql = $Config{ZM_SERVER_ID} ? 'SELECT * FROM Monitors WHERE ServerId=?' : 'SELECT * FROM Monitors';
         my $sth = $dbh->prepare_cached( $sql )
             or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
         my $res = $sth->execute( $Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID} : () )

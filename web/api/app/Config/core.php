@@ -223,12 +223,12 @@
 /**
  * A random string used in security hashing methods.
  */
-	Configure::write('Security.salt', '4AlwR5ePsf7gY8OxBCp1ftqw5pHhY7bQIJWwSRSB');
+	Configure::write('Security.salt', 'Q0MjGG2xRQEhJVQR85WhFJKI7f2St8RYMlVR7GNQ');
 
 /**
  * A random numeric string (digits only) used to encrypt/decrypt strings.
  */
-	Configure::write('Security.cipherSeed', '65025553361572663298232797852');
+	Configure::write('Security.cipherSeed', '02670120062639232092038865362');
 
 /**
  * Apply timestamps with the last modified time to static assets (js, css, images).

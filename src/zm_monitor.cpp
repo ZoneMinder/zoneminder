@@ -2066,7 +2066,7 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
 
         int id = atoi(dbrow[col]); col++;
         const char *name = dbrow[col]; col++;
-        unsigned int server_id = atoi(dbrow[col]); col++;
+        unsigned int server_id = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
         int function = atoi(dbrow[col]); col++;
         int enabled = atoi(dbrow[col]); col++;
         const char *linked_monitors = dbrow[col]; col++;
@@ -2248,7 +2248,7 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
 
         int id = atoi(dbrow[col]); col++;
         std::string name = dbrow[col]; col++;
-        unsigned int server_id = atoi(dbrow[col]); col++;
+        unsigned int server_id = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
         int function = atoi(dbrow[col]); col++;
         int enabled = atoi(dbrow[col]); col++;
         const char *linked_monitors = dbrow[col]; col++;
@@ -2427,7 +2427,7 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
 
         int id = atoi(dbrow[col]); col++;
         const char *name = dbrow[col]; col++;
-        unsigned int server_id = atoi(dbrow[col]); col++;
+        unsigned int server_id = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
         int function = atoi(dbrow[col]); col++;
         int enabled = atoi(dbrow[col]); col++;
         const char *linked_monitors = dbrow[col]; col++;
@@ -2571,7 +2571,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
 
         int id = atoi(dbrow[col]); col++;
         const char *name = dbrow[col]; col++;
-        unsigned int server_id = atoi(dbrow[col]); col++;
+        unsigned int server_id = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
         int function = atoi(dbrow[col]); col++;
         int enabled = atoi(dbrow[col]); col++;
         const char *linked_monitors = dbrow[col]; col++;
@@ -2704,7 +2704,7 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose )
 
     unsigned int id = atoi(dbrow[col]); col++;
     std::string name = dbrow[col]; col++;
-    unsigned int server_id = atoi(dbrow[col]); col++;
+    unsigned int server_id = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
     std::string type = dbrow[col]; col++;
     int function = atoi(dbrow[col]); col++;
     int enabled = atoi(dbrow[col]); col++;

@@ -387,8 +387,8 @@ CREATE TABLE `Monitors` (
 
 --
 -- Table structure for table `States`
--- Added IsActive to track custom run states
---
+-- PP - Added IsActive to track custom run states
+-- Also made sure Name is unique
 
 DROP TABLE IF EXISTS `States`;
 CREATE TABLE `States` (
@@ -396,8 +396,11 @@ CREATE TABLE `States` (
   `Name` varchar(64) NOT NULL default '',
   `Definition` text NOT NULL,
   `IsActive` tinyint(3) unsigned NOT NULL default '0',
-  PRIMARY KEY (`Id`)
+  PRIMARY KEY (`Id`),
+  UNIQUE KEY (`Name`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
+INSERT INTO States (Name,Definition,IsActive) VALUES ('default','','1');
+
 
 --
 -- Table structure for table `Servers`

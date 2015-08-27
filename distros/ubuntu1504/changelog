@@ -6,24 +6,6 @@ zoneminder (1.28.1+1-vivid-SNAPSHOT2015071501) vivid; urgency=medium
 
  -- Isaac Connor <iconnor@connortechnology.com>  Wed, 15 Jul 2015 11:56:28 -0400
 
-zoneminder (1.28.1+1-vivid-SNAPSHOT2015070402) vivid; urgency=medium
-
-  * Correct PRIMARY KEY update code on States table
-
- -- Isaac Connor <iconnor@connortechnology.com>  Tue, 07 Jul 2015 15:40:21 -0400
-
-zoneminder (1.28.1+1-vivid-SNAPSHOT2015070401) vivid; urgency=medium
-
-  * Bump actual version # so that db upgrade scripts run
-
- -- Isaac Connor <iconnor@connortechnology.com>  Tue, 07 Jul 2015 12:44:55 -0400
-
-zoneminder (1.28.1+1-vivid-SNAPSHOT2015070301) vivid; urgency=medium
-
-  * initial merge of api.  Various other small fixes/improvements.
-
- -- Isaac Connor <iconnor@connortechnology.com>  Mon, 06 Jul 2015 15:59:08 -0400
-
 zoneminder (1.28.1+1-trusty-SNAPSHOT2015030201) trusty; urgency=medium
 
   * maybe fix for RTSP Basic Auth

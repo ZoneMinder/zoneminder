@@ -211,7 +211,7 @@ RtspThread::~RtspThread()
 {
     if ( mFormatContext )
     {
-#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(52, 96, 0)
+#if LIBAVFORMAT_VERSION_CHECK(52, 96, 0, 96, 0)
         avformat_free_context( mFormatContext );
 #else
         av_free_format_context( mFormatContext );
@@ -437,7 +437,7 @@ int RtspThread::run()
         for ( unsigned int i = 0; i < mFormatContext->nb_streams; i++ )
         {
             SessionDescriptor::MediaDescriptor *mediaDesc = mSessDesc->getStream( i );
-#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
+#if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
             if ( mFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO )
 #else
             if ( mFormatContext->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO )
@@ -663,7 +663,7 @@ int RtspThread::run()
             {
 				now = time(NULL);
                 // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
-Debug(5, "sendkeepalibe %d, timeout %d, now: %d last: %d since: %d", sendKeepalive, timeout, now, lastKeepalive, (now-lastKeepalive) );
+Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d", sendKeepalive, timeout, now, lastKeepalive, (now-lastKeepalive) );
                 if ( sendKeepalive && (timeout > 0) && ((now-lastKeepalive) > (timeout-5)) )
                 {
                     if ( !sendCommand( message ) )
@@ -808,7 +808,7 @@ Debug(5, "sendkeepalibe %d, timeout %d, now: %d last: %d since: %d", sendKeepali
                 // FIXME: Is this really necessary when using tcp ?
 				now = time(NULL);
                 // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
-Debug(5, "sendkeepalibe %d, timeout %d, now: %d last: %d since: %d", sendKeepalive, timeout, now, lastKeepalive, (now-lastKeepalive) );
+Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d", sendKeepalive, timeout, now, lastKeepalive, (now-lastKeepalive) );
                 if ( sendKeepalive && (timeout > 0) && ((now-lastKeepalive) > (timeout-5)) )
                 {
                     if ( !sendCommand( message ) )

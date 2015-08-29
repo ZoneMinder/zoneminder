@@ -18,16 +18,16 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-xhtmlHeaders( __FILE__, $SLANG['Error'] );
+xhtmlHeaders( __FILE__, translate('Error') );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h1>ZoneMinder <?php echo $SLANG['Error'] ?></h1>
+      <h1>ZoneMinder <?php echo translate('Error') ?></h1>
     </div>
     <div id="content">
-      <p><strong><?php echo $SLANG['YouNoPerms'] ?></p>
-      <p><?php echo $SLANG['ContactAdmin'] ?></p>
+      <p><strong><?php echo translate('YouNoPerms') ?></p>
+      <p><?php echo translate('ContactAdmin') ?></p>
     </div>
   </div>
 </body>

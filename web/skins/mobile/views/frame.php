@@ -47,12 +47,12 @@ $scale = getDeviceScale( $event['Width'], $event['Height'], 1.1 );
 
 $imageData = getImageSrc( $event, $frame, $scale, (isset($_REQUEST['show'])&&$_REQUEST['show']=="capt") );
 
-xhtmlHeaders( __FILE__, $SLANG['Frame'].' - '.$_REQUEST['eid'].'-'.$frame['FrameId'] );
+xhtmlHeaders( __FILE__, translate('Frame').' - '.$_REQUEST['eid'].'-'.$frame['FrameId'] );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?php echo $SLANG['Frame'] ?> <?php echo $_REQUEST['eid']."-".$frame['FrameId']." (".$frame['Score'].")" ?></h2>
+      <h2><?php echo translate('Frame') ?> <?php echo $_REQUEST['eid']."-".$frame['FrameId']." (".$frame['Score'].")" ?></h2>
     </div>
     <div id="content">
       <?php if ( $imageData['hasAnalImage'] ) { ?><a href="?view=frame&amp;eid=<?php echo $_REQUEST['eid'] ?>&amp;fid=<?php echo $frame['FrameId'] ?>&amp;show=<?php echo $imageData['isAnalImage']?"capt":"anal" ?>"><?php } ?><img src="<?php echo viewImagePath( $imageData['thumbPath'] ) ?>" class="<?php echo $imageData['imageClass'] ?>"/><?php if ( $imageData['hasAnalImage'] ) { ?></a><?php } ?>

@@ -36,8 +36,8 @@ New installs
 
      mysql -u root -p < /usr/share/zoneminder/db/zm_create.sql
      mysql -u root -p
-         mysql> grant select,insert,update,delete,lock tables,alter on zm.* to
-               'zmuser'@localhost identified by 'zmpass';
+         mysql> grant select,insert,update,delete,lock tables,alter, create
+                on zm.* to 'zmuser'@localhost identified by 'zmpass';
          mysql> exit;
      mysqladmin -u root -p reload
 
@@ -101,8 +101,8 @@ Upgrades
 
    Overtime, the database account permissions required for normal operation
    have changed. Verify the zmuser database account has been granted select,
-   insert, update, delete, lock tables, and alter permission to the ZoneMinder
-   database:
+   insert, update, delete, lock tables, alter, and create permission to the
+   ZoneMinder database:
 
      mysql -u root -p
          mysql> show grants for zmuser@localhost;

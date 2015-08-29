@@ -107,7 +107,14 @@ sub sendCmd
 
     printMsg( $cmd, "Tx" );
 
-    my $req = HTTP::Request->new( GET=>"http://".$self->{Monitor}->{ControlAddress}."$cmd" );
+	my $url;
+	if ( $self->{Monitor}->{ControlAddress} =~ /^http/ ) {
+		$url = $self->{Monitor}->{ControlAddress}.$cmd;
+	} else {
+		$url = 'http://'.$self->{Monitor}->{ControlAddress}.$cmd;
+	} # en dif
+	my $req = HTTP::Request->new( GET=>$url );
+
     my $res = $self->{ua}->request($req);
 
     if ( $res->is_success )

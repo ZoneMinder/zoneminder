@@ -76,13 +76,21 @@ SWScale::SWScale() : gotdefaults(false), swscale_ctx(NULL), input_avframe(NULL),
 	Debug(4,"SWScale object created");
 
 	/* Allocate AVFrame for the input */
+#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
+	input_avframe = av_frame_alloc();
+#else
 	input_avframe = avcodec_alloc_frame();
+#endif
 	if(input_avframe == NULL) {
 		Fatal("Failed allocating AVFrame for the input");
 	}
 
 	/* Allocate AVFrame for the output */
+#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
+	output_avframe = av_frame_alloc();
+#else
 	output_avframe = avcodec_alloc_frame();
+#endif
 	if(output_avframe == NULL) {
 		Fatal("Failed allocating AVFrame for the output");
 	}
@@ -133,7 +141,7 @@ int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint
 		return -3;
 	}
 
-#if LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(0, 8, 0)
+#if LIBSWSCALE_VERSION_CHECK(0, 8, 0, 8, 0)
 	/* Warn if the input or output pixelformat is not supported */
 	if(!sws_isSupportedInput(in_pf)) {
 		Warning("swscale does not support the input format: %c%c%c%c",(in_pf)&0xff,((in_pf)&0xff),((in_pf>>16)&0xff),((in_pf>>24)&0xff));

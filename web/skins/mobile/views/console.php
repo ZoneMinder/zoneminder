@@ -40,7 +40,7 @@ $eventCounts = array(
 );
 
 $running = daemonCheck();
-$status = $running?$SLANG['Running']:$SLANG['Stopped'];
+$status = $running?translate('Running'):translate('Stopped');
 
 if ( $group = dbFetchOne( "select * from Groups where Name = 'Mobile'" ) )
     $groupIds = array_flip(explode( ',', $group['MonitorIds'] ));
@@ -81,7 +81,7 @@ for ( $i = 0; $i < count($monitors); $i++ )
     $monitors[$i] = array_merge( $monitors[$i], $counts );
 }
 
-xhtmlHeaders( __FILE__, $SLANG['Console'] );
+xhtmlHeaders( __FILE__, translate('Console') );
 ?>
 <body>
   <div id="page">
@@ -146,7 +146,7 @@ for ( $i = 0; $i < count($eventCounts); $i++ )
 <?php
 if ( ZM_OPT_X10 ) {
 ?>
-          <td><?php echo makeLink( "?view=devices", $SLANG['Devices'], canView('Devices' ) ) ?></td>
+          <td><?php echo makeLink( "?view=devices", translate('Devices'), canView('Devices' ) ) ?></td>
 <?php
 } else {
 ?>
@@ -155,7 +155,7 @@ if ( ZM_OPT_X10 ) {
 }
 if ( $cycleCount > 1 ) {
 ?>
-          <td><?php echo makeLink( "?view=montage", $SLANG['Montage'], $running && canView( 'Stream' ) ) ?></td>
+          <td><?php echo makeLink( "?view=montage", translate('Montage'), $running && canView( 'Stream' ) ) ?></td>
 <?php
 } else {
 ?>

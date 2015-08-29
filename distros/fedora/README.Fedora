@@ -25,8 +25,8 @@ New installs
    introduce an obvious security issue.  The following should set this up:
 
      mysql -u root -p
-     grant select,insert,update,delete,lock tables,alter on zm.* to 
-     'zmuser'@localhost identified by 'zmpass';
+     grant select,insert,update,delete,lock tables,alter,create
+     on zm.* to 'zmuser'@localhost identified by 'zmpass';
 
    Obviously, change at least zmpass to an actual, secure password or
    passphrase.  You can change zmuser as well if you like.
@@ -95,7 +95,7 @@ Upgrades
 2. Add additional permissions to the zmuser account:
 
      mysql -u root -p
-     grant lock tables,alter on zm.* to 
+     grant lock tables,alter,create on zm.* to 
      'zmuser'@localhost identified by 'zmpass';
 
    Since this is an upgrade, the assumption is that the zmuser account already

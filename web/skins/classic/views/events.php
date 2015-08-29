@@ -114,7 +114,7 @@ $pagination = getPagination( $pages, $page, $maxShortcuts, $filterQuery.$sortQue
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['Events'] );
+xhtmlHeaders(__FILE__, translate('Events') );
 
 ?>
 <body>
@@ -127,18 +127,18 @@ if ( $pages > 1 )
     if ( !empty($page) )
     {
 ?>
-        <a href="?view=<?php echo $view ?>&amp;page=0<?php echo $filterQuery ?><?php echo $sortQuery ?>&amp;limit=<?php echo $limit ?>"><?php echo $SLANG['ViewAll'] ?></a>
+        <a href="?view=<?php echo $view ?>&amp;page=0<?php echo $filterQuery ?><?php echo $sortQuery ?>&amp;limit=<?php echo $limit ?>"><?php echo translate('ViewAll') ?></a>
 <?php
     }
     else
     {
 ?>
-        <a href="?view=<?php echo $view ?>&amp;page=1<?php echo $filterQuery ?><?php echo $sortQuery ?>&amp;limit=<?php echo $limit ?>"><?php echo $SLANG['ViewPaged'] ?></a>
+        <a href="?view=<?php echo $view ?>&amp;page=1<?php echo $filterQuery ?><?php echo $sortQuery ?>&amp;limit=<?php echo $limit ?>"><?php echo translate('ViewPaged') ?></a>
 <?php
     }
 }
 ?>
-        <a href="#" onclick="closeWindows();"><?php echo $SLANG['Close'] ?></a>
+        <a href="#" onclick="closeWindows();"><?php echo translate('Close') ?></a>
       </div>
       <h2><?php echo sprintf( $CLANG['EventCount'], $nEvents, zmVlang( $VLANG['Event'], $nEvents ) ) ?></h2>
     </div>
@@ -160,9 +160,9 @@ if ( $pagination )
 }
 ?>
         <p id="controls">
-          <a id="refreshLink" href="#" onclick="location.reload(true);"><?php echo $SLANG['Refresh'] ?></a>
-          <a id="filterLink" href="#" onclick="createPopup( '?view=filter&amp;page=<?php echo $page ?><?php echo $filterQuery ?>', 'zmFilter', 'filter' );"><?php echo $SLANG['ShowFilterWindow'] ?></a>
-          <a id="timelineLink" href="#" onclick="createPopup( '?view=timeline<?php echo $filterQuery ?>', 'zmTimeline', 'timeline' );"><?php echo $SLANG['ShowTimeline'] ?></a>
+          <a id="refreshLink" href="#" onclick="location.reload(true);"><?php echo translate('Refresh') ?></a>
+          <a id="filterLink" href="#" onclick="createPopup( '?view=filter&amp;page=<?php echo $page ?><?php echo $filterQuery ?>', 'zmFilter', 'filter' );"><?php echo translate('ShowFilterWindow') ?></a>
+          <a id="timelineLink" href="#" onclick="createPopup( '?view=timeline<?php echo $filterQuery ?>', 'zmTimeline', 'timeline' );"><?php echo translate('ShowTimeline') ?></a>
         </p>
         <table id="contentTable" class="major" cellspacing="0">
           <tbody>
@@ -174,22 +174,22 @@ foreach ( $events as $event )
     {
 ?>
             <tr>
-              <th class="colId"><a href="<?php echo sortHeader( 'Id' ) ?>"><?php echo $SLANG['Id'] ?><?php echo sortTag( 'Id' ) ?></a></th>
-              <th class="colName"><a href="<?php echo sortHeader( 'Name' ) ?>"><?php echo $SLANG['Name'] ?><?php echo sortTag( 'Name' ) ?></a></th>
-              <th class="colMonitor"><a href="<?php echo sortHeader( 'MonitorName' ) ?>"><?php echo $SLANG['Monitor'] ?><?php echo sortTag( 'MonitorName' ) ?></a></th>
-              <th class="colCause"><a href="<?php echo sortHeader( 'Cause' ) ?>"><?php echo $SLANG['Cause'] ?><?php echo sortTag( 'Cause' ) ?></a></th>
-              <th class="colTime"><a href="<?php echo sortHeader( 'StartTime' ) ?>"><?php echo $SLANG['Time'] ?><?php echo sortTag( 'StartTime' ) ?></a></th>
-              <th class="colDuration"><a href="<?php echo sortHeader( 'Length' ) ?>"><?php echo $SLANG['Duration'] ?><?php echo sortTag( 'Length' ) ?></a></th>
-              <th class="colFrames"><a href="<?php echo sortHeader( 'Frames' ) ?>"><?php echo $SLANG['Frames'] ?><?php echo sortTag( 'Frames' ) ?></a></th>
-              <th class="colAlarmFrames"><a href="<?php echo sortHeader( 'AlarmFrames' ) ?>"><?php echo $SLANG['AlarmBrFrames'] ?><?php echo sortTag( 'AlarmFrames' ) ?></a></th>
-              <th class="colTotScore"><a href="<?php echo sortHeader( 'TotScore' ) ?>"><?php echo $SLANG['TotalBrScore'] ?><?php echo sortTag( 'TotScore' ) ?></a></th>
-              <th class="colAvgScore"><a href="<?php echo sortHeader( 'AvgScore' ) ?>"><?php echo $SLANG['AvgBrScore'] ?><?php echo sortTag( 'AvgScore' ) ?></a></th>
-              <th class="colMaxScore"><a href="<?php echo sortHeader( 'MaxScore' ) ?>"><?php echo $SLANG['MaxBrScore'] ?><?php echo sortTag( 'MaxScore' ) ?></a></th>
+              <th class="colId"><a href="<?php echo sortHeader( 'Id' ) ?>"><?php echo translate('Id') ?><?php echo sortTag( 'Id' ) ?></a></th>
+              <th class="colName"><a href="<?php echo sortHeader( 'Name' ) ?>"><?php echo translate('Name') ?><?php echo sortTag( 'Name' ) ?></a></th>
+              <th class="colMonitor"><a href="<?php echo sortHeader( 'MonitorName' ) ?>"><?php echo translate('Monitor') ?><?php echo sortTag( 'MonitorName' ) ?></a></th>
+              <th class="colCause"><a href="<?php echo sortHeader( 'Cause' ) ?>"><?php echo translate('Cause') ?><?php echo sortTag( 'Cause' ) ?></a></th>
+              <th class="colTime"><a href="<?php echo sortHeader( 'StartTime' ) ?>"><?php echo translate('Time') ?><?php echo sortTag( 'StartTime' ) ?></a></th>
+              <th class="colDuration"><a href="<?php echo sortHeader( 'Length' ) ?>"><?php echo translate('Duration') ?><?php echo sortTag( 'Length' ) ?></a></th>
+              <th class="colFrames"><a href="<?php echo sortHeader( 'Frames' ) ?>"><?php echo translate('Frames') ?><?php echo sortTag( 'Frames' ) ?></a></th>
+              <th class="colAlarmFrames"><a href="<?php echo sortHeader( 'AlarmFrames' ) ?>"><?php echo translate('AlarmBrFrames') ?><?php echo sortTag( 'AlarmFrames' ) ?></a></th>
+              <th class="colTotScore"><a href="<?php echo sortHeader( 'TotScore' ) ?>"><?php echo translate('TotalBrScore') ?><?php echo sortTag( 'TotScore' ) ?></a></th>
+              <th class="colAvgScore"><a href="<?php echo sortHeader( 'AvgScore' ) ?>"><?php echo translate('AvgBrScore') ?><?php echo sortTag( 'AvgScore' ) ?></a></th>
+              <th class="colMaxScore"><a href="<?php echo sortHeader( 'MaxScore' ) ?>"><?php echo translate('MaxBrScore') ?><?php echo sortTag( 'MaxScore' ) ?></a></th>
 <?php
         if ( ZM_WEB_LIST_THUMBS )
         {
 ?>
-              <th class="colThumbnail"><?php echo $SLANG['Thumbnail'] ?></th>
+              <th class="colThumbnail"><?php echo translate('Thumbnail') ?></th>
 <?php
         }
 ?>
@@ -246,12 +246,12 @@ if ( true || canEdit( 'Events' ) )
 {
 ?>
         <div id="contentButtons">
-          <input type="button" name="viewBtn" value="<?php echo $SLANG['View'] ?>" onclick="viewEvents( this, 'markEids' );" disabled="disabled"/>
-          <input type="button" name="archiveBtn" value="<?php echo $SLANG['Archive'] ?>" onclick="archiveEvents( this, 'markEids' )" disabled="disabled"/>
-          <input type="button" name="unarchiveBtn" value="<?php echo $SLANG['Unarchive'] ?>" onclick="unarchiveEvents( this, 'markEids' );" disabled="disabled"/>
-          <input type="button" name="editBtn" value="<?php echo $SLANG['Edit'] ?>" onclick="editEvents( this, 'markEids' )" disabled="disabled"/>
-          <input type="button" name="exportBtn" value="<?php echo $SLANG['Export'] ?>" onclick="exportEvents( this, 'markEids' )" disabled="disabled"/>
-          <input type="button" name="deleteBtn" value="<?php echo $SLANG['Delete'] ?>" onclick="deleteEvents( this, 'markEids' );" disabled="disabled"/>
+          <input type="button" name="viewBtn" value="<?php echo translate('View') ?>" onclick="viewEvents( this, 'markEids' );" disabled="disabled"/>
+          <input type="button" name="archiveBtn" value="<?php echo translate('Archive') ?>" onclick="archiveEvents( this, 'markEids' )" disabled="disabled"/>
+          <input type="button" name="unarchiveBtn" value="<?php echo translate('Unarchive') ?>" onclick="unarchiveEvents( this, 'markEids' );" disabled="disabled"/>
+          <input type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editEvents( this, 'markEids' )" disabled="disabled"/>
+          <input type="button" name="exportBtn" value="<?php echo translate('Export') ?>" onclick="exportEvents( this, 'markEids' )" disabled="disabled"/>
+          <input type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteEvents( this, 'markEids' );" disabled="disabled"/>
         </div>
 <?php
 }

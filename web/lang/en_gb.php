@@ -100,6 +100,8 @@ $SLANG = array(
     'AlarmRGBUnset'         => 'You must set an alarm RGB colour',
     'Alert'                 => 'Alert',
     'All'                   => 'All',
+    'AnalysisFPS'           => 'Analysis FPS',
+    'AnalysisUpdateDelay'   => 'Analysis Update Delay',
     'Apply'                 => 'Apply',
     'ApplyingStateChange'   => 'Applying State Change',
     'ArchArchived'          => 'Archived Only',
@@ -137,6 +139,8 @@ $SLANG = array(
     'BackgroundFilter'      => 'Run filter in background',
     'BadAlarmFrameCount'    => 'Alarm frame count must be an integer of one or more',
     'BadAlarmMaxFPS'        => 'Alarm Maximum FPS must be a positive integer or floating point value',
+    'BadAnalysisFPS'        => 'Analysis FPS must be a positive integer or floating point value',
+    'BadAnalysisUpdateDelay'=> 'Analysis update delay must be set to an integer of zero or more',
     'BadChannel'            => 'Channel must be set to an integer of zero or more',
     'BadDevice'             => 'Device must be set to a valid value',
     'BadFormat'             => 'Format must be set to a valid value',
@@ -302,6 +306,7 @@ $SLANG = array(
     'Exclude'               => 'Exclude',
     'Execute'               => 'Execute',
     'ExportDetails'         => 'Export Event Details',
+    'Exif'                  => 'Embed EXIF data into image',
     'Export'                => 'Export',
     'ExportFailed'          => 'Export Failed',
     'ExportFormat'          => 'Export File Format',
@@ -670,6 +675,7 @@ $SLANG = array(
     'TimestampLabelFormat'  => 'Timestamp Label Format',
     'TimestampLabelX'       => 'Timestamp Label X',
     'TimestampLabelY'       => 'Timestamp Label Y',
+    'TimestampLabelSize'    => 'Font Size',
     'Timestamp'             => 'Timestamp',
     'TimeStamp'             => 'Time Stamp',
     'Time'                  => 'Time',
@@ -894,6 +900,10 @@ $OLANG = array(
 		          "\"--rtp-client-port=nnn\" Set local port to use for rtp data~~~~". 
 		          "\"--verbose=2\" Set verbosity of libVLC"
 	),
+	'OPTIONS_EXIF' => array(
+		'Help' => "Enable this option to embed EXIF data into each jpeg frame."
+	),
+
 	
 //    'LANG_DEFAULT' => array(
 //        'Prompt' => "This is a new prompt for this option",

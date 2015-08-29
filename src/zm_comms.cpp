@@ -36,6 +36,10 @@
 #include <sys/param.h>
 #include <netinet/tcp.h>
 
+#ifdef SOLARIS
+#include <sys/filio.h> // define FIONREAD
+#endif
+
 int CommsBase::readV( int iovcnt, /* const void *, int, */ ... )
 {
 	va_list arg_ptr;

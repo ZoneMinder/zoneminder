@@ -20,6 +20,13 @@
 
 xhtmlHeaders(__FILE__, translate('Login') );
 ?>
+<!-- PP: Add recaptcha script if enabled -->
+<?php 
+	if (ZM_OPT_USE_GOOG_RECAPTCHA)
+	{
+		echo "<head> <script src='https://www.google.com/recaptcha/api.js'></script> </head>";
+	}
+?>
 <body>
   <div id="page">
     <div id="header">
@@ -43,6 +50,13 @@ xhtmlHeaders(__FILE__, translate('Login') );
           </tbody>
         </table>
         <input type="submit" value="<?php echo translate('Login') ?>"/>
+	<!-- PP: Added recaptcha widget if enabled -->
+	<?php
+	if (ZM_OPT_USE_GOOG_RECAPTCHA)
+	{
+	echo "<br/><br/><center> <div class='g-recaptcha'  data-sitekey='".ZM_OPT_GOOG_RECAPTCHA_SITEKEY."'></div> </center>";
+	}
+	?>
       </form>
     </div>
   </div>

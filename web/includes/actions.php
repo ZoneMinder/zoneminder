@@ -42,6 +42,22 @@ if ( ZM_OPT_USE_AUTH && ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST[
 
 if ( !empty($action) )
 {
+    // PP - lets validate reCaptcha if it exists
+	if (ZM_OPT_USE_GOOG_RECAPTCHA)
+	{
+		require_once( 'recaptcha/src/autoload.php' );
+		$secret = ZM_OPT_GOOG_RECAPTCHA_SECRETKEY;
+		$gRecaptchaResponse = $_REQUEST['g-recaptcha-response'];
+		$remoteIp = $_SERVER['REMOTE_ADDR'];
+		$recaptcha = new \ReCaptcha\ReCaptcha($secret);
+		$resp = $recaptcha->verify($gRecaptchaResponse, $remoteIp);
+		if (!$resp->isSuccess()) {
+			userLogout();
+			$view='login';
+			$refreshParent = true;
+		}
+	}
+
     // General scope actions
     if ( $action == "login" && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == "remote" || isset($_REQUEST['password']) ) )
     {

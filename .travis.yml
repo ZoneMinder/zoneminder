@@ -1,6 +1,6 @@
 language: cpp
 notifications:
-  irc: chat.freenode.net#zoneminder-dev
+  irc: "chat.freenode.net#zoneminder-dev"
 branches:
   except:
   - modern

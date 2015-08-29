@@ -341,6 +341,7 @@ CREATE TABLE `Monitors` (
   `Palette` int(10) unsigned NOT NULL default '0',
   `Orientation` enum('0','90','180','270','hori','vert') NOT NULL default '0',
   `Deinterlacing` int(10) unsigned NOT NULL default '0',
+  `RTSPDescribe` tinyint(1) unsigned NOT NULL default '0',
   `Brightness` mediumint(7) NOT NULL default '-1',
   `Contrast` mediumint(7) NOT NULL default '-1',
   `Hue` mediumint(7) NOT NULL default '-1',

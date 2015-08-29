@@ -3,7 +3,11 @@
 # For instructions on building with cmake, please see INSTALL
 #
 AC_PREREQ(2.59)
+<<<<<<< HEAD
 AC_INIT(zm,1.28.105,[http://www.zoneminder.com/forums/ - Please check FAQ first],zoneminder,http://www.zoneminder.com/downloads.html)
+=======
+AC_INIT(zm,1.28.106,[http://www.zoneminder.com/forums/ - Please check FAQ first],zoneminder,http://www.zoneminder.com/downloads.html)
+>>>>>>> 4fdd32b59638dceea568eae8bdefa92493cd72ab
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR(src/zm.h)
 AC_CONFIG_HEADERS(config.h)

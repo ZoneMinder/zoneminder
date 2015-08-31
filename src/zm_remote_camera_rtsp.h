@@ -26,6 +26,7 @@
 #include "zm_utils.h"
 #include "zm_rtsp.h"
 #include "zm_ffmpeg.h"
+#include "zm_videostore.h"
 
 //
 // Class representing 'rtsp' cameras, i.e. those which are
@@ -54,12 +55,17 @@ protected:
 #if HAVE_LIBAVFORMAT
     AVFormatContext     *mFormatContext;
     int                 mVideoStreamId;
+    int                 mAudioStreamId;
     AVCodecContext      *mCodecContext;
     AVCodec             *mCodec;
     AVFrame             *mRawFrame; 
     AVFrame             *mFrame;
     PixelFormat         imagePixFormat;
 #endif // HAVE_LIBAVFORMAT
+    bool                wasRecording;
+    VideoStore          *videoStore;
+    char                oldDirectory[4096];
+    int64_t             startTime;
 
 #if HAVE_LIBSWSCALE
 	struct SwsContext   *mConvertContext;
@@ -78,7 +84,7 @@ public:
 	int PreCapture();
 	int Capture( Image &image );
 	int PostCapture();
-    	int CaptureAndRecord( Image &image, bool recording, char* event_directory ) {return(0);};
+    	int CaptureAndRecord( Image &image, bool recording, char* event_directory );
 };
 
 #endif // ZM_REMOTE_CAMERA_RTSP_H

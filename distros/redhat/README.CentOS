@@ -15,8 +15,8 @@
 
      mysql -uroot -p
 	mysql> create database zm;
-	mysql> grant select,insert,update,delete,lock tables,alter on zm.* to
-               'zmuser'@localhost identified by 'zmpass';
+	mysql> grant select,insert,update,delete,lock tables,alter,create
+                on zm.* to 'zmuser'@localhost identified by 'zmpass';
 	mysql> exit;
      mysql -uroot -p < /usr/share/zoneminder/db/zm_create.sql
      mysqladmin -uroot -p reload
@@ -69,7 +69,7 @@
 1. Add additional permissions to the zmuser account:
 
      mysql -u root -p
-     grant lock tables,alter on zm.* to
+     grant lock tables,alter,create on zm.* to
      'zmuser'@localhost identified by 'zmpass';
 
    Since this is an upgrade, the assumption is that the zmuser account exists

@@ -52,7 +52,7 @@ xhtmlHeaders(__FILE__, translate('Login') );
         <input type="submit" value="<?php echo translate('Login') ?>"/>
 	<!-- PP: Added recaptcha widget if enabled -->
 	<?php
-	if (ZM_OPT_USE_GOOG_RECAPTCHA)
+	if (ZM_OPT_USE_GOOG_RECAPTCHA && ZM_OPT_GOOG_RECAPTCHA_SITEKEY && ZM_OPT_GOOGLE_RECAPTCHA_SECRETKEY)
 	{
 	echo "<br/><br/><center> <div class='g-recaptcha'  data-sitekey='".ZM_OPT_GOOG_RECAPTCHA_SITEKEY."'></div> </center>";
 	}

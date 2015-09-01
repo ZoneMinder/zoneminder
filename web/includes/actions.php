@@ -68,7 +68,7 @@ if ( ZM_OPT_USE_AUTH && ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST[
 if ( !empty($action) )
 {
     // PP - lets validate reCaptcha if it exists
-	if (ZM_OPT_USE_GOOG_RECAPTCHA)
+	if (ZM_OPT_USE_GOOG_RECAPTCHA && ZM_OPT_GOOG_RECAPTCHA_SECRETKEY && ZM_OPT_GOOG_RECAPTCHA_SITEKEY)
 	{
 		$url = 'https://www.google.com/recaptcha/api/siteverify';
 		$fields = array (
@@ -77,30 +77,16 @@ if ( !empty($action) )
 			'remoteip'=> $_SERVER['REMOTE_ADDR']
 
 		);
-		$result = json_decode(do_post_request($url, http_build_query($fields)));
+		$res= do_post_request($url, http_build_query($fields));
+		$result = json_decode($res);
 		if ($result->success != 'true')
-		{	
+		{
 			userLogout();
 			$view='login';
 			$refreshParent = true;
 
 		}
 
-		/* 
-		//PP - this is using google's recaptcha library
-		// keeping this code here incase anyone reports a problem
-		// with the above approach	
-		require_once( 'recaptcha/src/autoload.php' );
-		$secret = ZM_OPT_GOOG_RECAPTCHA_SECRETKEY;
-		$gRecaptchaResponse = $_REQUEST['g-recaptcha-response'];
-		$remoteIp = $_SERVER['REMOTE_ADDR'];
-		$recaptcha = new \ReCaptcha\ReCaptcha($secret);
-		$resp = $recaptcha->verify($gRecaptchaResponse, $remoteIp);
-		if (!$resp->isSuccess()) {
-			userLogout();
-			$view='login';
-			$refreshParent = true;
-		}*/
 	}
 
     // General scope actions

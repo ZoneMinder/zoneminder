@@ -106,8 +106,8 @@ if [ $1 -eq 2 ] ; then
 fi
 
 # Warn the end user to read the README file
-echo -e "/nVERY IMPORTANT: Before starting ZoneMinder, read README.Centos7 to finish the\ninstallation or upgrade!\n"
-echo -e "/nThe README file is located here: %{_docdir}/%{name}-%{version}."
+echo -e "\nVERY IMPORTANT: Before starting ZoneMinder, read README.Centos7 to finish the\ninstallation or upgrade!\n"
+echo -e "\nThe README file is located here: %{_docdir}/%{name}-%{version}.\n"
 
 %preun
 if [ $1 -eq 0 ] ; then

@@ -14,6 +14,8 @@ What's New
 3. This package now requires the HTTPS protocol to access the web portal.
    Requests using HTTP will auto-redirect to HTTPS. See README.https for
    more information.
+   
+4. This package ships with the new ZoneMinder API enabled.
 
 New installs
 ============

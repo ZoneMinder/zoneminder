@@ -1,26 +1,26 @@
-# When using Zoneminder's own authentication, recorded CCTV images are
-# accessible from the web directly without passing the authentication. This
-# means any attacker could see your CCTV images without a password. In order
-# to avoid this you can disable Zoneminder's authentication and configure
-# standard Apache authentication (see the Apache documentation for details on
-# this).
 #
-# If you still wish to use Zoneminder's own authentication, or have an
-# internal site which needs no authentication, you need to delete the line
-# marked below and restart Apache.
+# ZoneMinder Apache configuration file
+# With SSLRequire and HTTPS auto redirect
+# Modify this configuration to suit your requirements
+#
+
+# Auto Redirect HTTP requests to HTTPS
+RewriteEngine On
+RewriteCond %{HTTPS} !=on
+RewriteRule ^/?(zm)(.*) https://%{SERVER_NAME}/$1$2 [R,L]
 
 Alias /zm "@ZM_WEBDIR@"
 <Directory "@ZM_WEBDIR@">
+    SSLRequireSSL
     Options -Indexes MultiViews FollowSymLinks
     AllowOverride All
     Order allow,deny
     Allow from all
-    # ZoneMinder no longer uses short tags so this is safe to leave disabled
-    # php_value short_open_tag 1
 </Directory>
 
 ScriptAlias /cgi-bin/zm "@ZM_WEBDIR@"
 <Directory "@ZM_WEBDIR@">
+    SSLRequireSSL
     AllowOverride All
     Options ExecCGI FollowSymLinks
     Order allow,deny

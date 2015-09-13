@@ -332,7 +332,7 @@ AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([gethostbyname gethostname gettimeofday memmove memset mkdir munmap posix_memalign putenv select sendfile socket sqrt strcasecmp strchr strcspn strerror strncasecmp strrchr strspn strstr strtol strtoull])
 AC_CHECK_FUNCS([syscall sleep usleep ioctl ioctlsocket sigaction])
 # this is required for freebsd to compile. Look for it in m4/ac_check_sendfile.m4
-# AC_CHECK_SENDFILE
+AC_CHECK_SENDFILE
 # Other programs
 AC_CHECK_PROG(OPT_FFMPEG,ffmpeg,yes,no)
 AC_PATH_PROG(PATH_FFMPEG,ffmpeg)

@@ -1,4 +1,4 @@
-<VirtualHost *:80>
+<VirtualHost *:8092>
         DocumentRoot /var/www/zm
         DirectoryIndex index.php
 

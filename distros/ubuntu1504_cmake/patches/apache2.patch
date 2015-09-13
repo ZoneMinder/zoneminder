@@ -1,0 +1,40 @@
+Last-Update: 2015-04-02
+Forwarded: no
+Author: Dmitry Smirnov <onlyjob@member.fsf.org>
+Description: adapt apache2.conf to work out-of-the-box.
+
+--- a/misc/apache.conf.in
++++ b/misc/apache.conf.in
+@@ -13,19 +13,21 @@
+         Options FollowSymLinks
+         AllowOverride All
+     </Directory>
+ 
+-    ScriptAlias /cgi-bin/ "@CGI_PREFIX@"
++    # Remember to enable cgi mod (i.e. "a2enmod cgi").
++    ScriptAlias /cgi-bin "@CGI_PREFIX@"
+     <Directory "@CGI_PREFIX@">
+         Options +ExecCGI -MultiViews +SymLinksIfOwnerMatch
+         AllowOverride All
++        Require all granted
+     </Directory>
+ 
+     # Use the first option to have Apache logs written to the general log
+     # directory, or the second to have them written to the regular Apache
+     # directory (you may have to change the path to that used on your system)
+     ErrorLog @ZM_LOGDIR@/apache-error.log
+-    ErrorLog /var/log/httpd/zm-error.log
++#    ErrorLog /var/log/httpd/zm-error.log
+ 
+     # Possible values include: debug, info, notice, warn, error, crit,
+     # alert, emerg.
+     LogLevel warn
+@@ -33,7 +35,7 @@
+     # Use the first option to have Apache logs written to the general log
+     # directory, or the second to have them written to the regular Apache
+     # directory (you may have to change the path to that used on your system)
+     CustomLog @ZM_LOGDIR@/apache-access.log combined
+-    CustomLog /var/log/httpd/zm-access.log combined
++#    CustomLog /var/log/httpd/zm-access.log combined
+ 
+ </VirtualHost>

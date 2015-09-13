@@ -18,6 +18,15 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
+function translate( $name )
+{
+    global $SLANG;
+    if ( array_key_exists( $name, $SLANG ) )
+        return $SLANG[$name];
+    else
+        return $name;
+}
+
 function loadLanguage( $prefix="" )
 {
     global $user;

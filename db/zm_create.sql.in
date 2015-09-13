@@ -315,6 +315,7 @@ DROP TABLE IF EXISTS `Monitors`;
 CREATE TABLE `Monitors` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `Name` varchar(64) NOT NULL default '',
+  `ServerId` int(10) unsigned,
   `Type` enum('Local','Remote','File','Ffmpeg','Libvlc','cURL') NOT NULL default 'Local',
   `Function` enum('None','Monitor','Modect','Record','Mocord','Nodect') NOT NULL default 'Monitor',
   `Enabled` tinyint(3) unsigned NOT NULL default '1',
@@ -340,6 +341,7 @@ CREATE TABLE `Monitors` (
   `Palette` int(10) unsigned NOT NULL default '0',
   `Orientation` enum('0','90','180','270','hori','vert') NOT NULL default '0',
   `Deinterlacing` int(10) unsigned NOT NULL default '0',
+  `RTSPDescribe` tinyint(1) unsigned NOT NULL default '0',
   `Brightness` mediumint(7) NOT NULL default '-1',
   `Contrast` mediumint(7) NOT NULL default '-1',
   `Hue` mediumint(7) NOT NULL default '-1',
@@ -348,6 +350,7 @@ CREATE TABLE `Monitors` (
   `LabelFormat` varchar(64) NOT NULL default '%N - %y/%m/%d %H:%M:%S',
   `LabelX` smallint(5) unsigned NOT NULL default '0',
   `LabelY` smallint(5) unsigned NOT NULL default '0',
+  `LabelSize` smallint(5) unsigned NOT NULL DEFAULT '1',
   `ImageBufferCount` smallint(5) unsigned NOT NULL default '100',
   `WarmupCount` smallint(5) unsigned NOT NULL default '25',
   `PreEventCount` smallint(5) unsigned NOT NULL default '10',
@@ -357,6 +360,8 @@ CREATE TABLE `Monitors` (
   `SectionLength` int(10) unsigned NOT NULL default '600',
   `FrameSkip` smallint(5) unsigned NOT NULL default '0',
   `MotionFrameSkip` smallint(5) unsigned NOT NULL default '0',
+  `AnalysisFPS` decimal(5,2) default NULL,
+  `AnalysisUpdateDelay` smallint(5) unsigned NOT NULL default '0',
   `MaxFPS` decimal(5,2) default NULL,
   `AlarmMaxFPS` decimal(5,2) default NULL,
   `FPSReportInterval` smallint(5) unsigned NOT NULL default '250',
@@ -376,21 +381,39 @@ CREATE TABLE `Monitors` (
   `DefaultScale` smallint(5) unsigned NOT NULL default '100',
   `SignalCheckColour` varchar(32) NOT NULL default '#0000BE',
   `WebColour` varchar(32) NOT NULL default 'red',
+  `Exif` tinyint(1) unsigned NOT NULL default '0',
   `Sequence` smallint(5) unsigned default NULL,
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --
 -- Table structure for table `States`
---
+-- PP - Added IsActive to track custom run states
+-- Also made sure Name is unique
 
 DROP TABLE IF EXISTS `States`;
 CREATE TABLE `States` (
+  `Id` int(10) unsigned NOT NULL auto_increment,
   `Name` varchar(64) NOT NULL default '',
   `Definition` text NOT NULL,
-  PRIMARY KEY (`Name`)
+  `IsActive` tinyint(3) unsigned NOT NULL default '0',
+  PRIMARY KEY (`Id`),
+  UNIQUE KEY (`Name`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
+INSERT INTO States (Name,Definition,IsActive) VALUES ('default','','1');
 
+
+--
+-- Table structure for table `Servers`
+--
+
+DROP TABLE IF EXISTS `Servers`;
+CREATE TABLE `Servers` (
+  `Id` int(10) unsigned NOT NULL auto_increment,
+  `Name` varchar(64) NOT NULL default '',
+  `State_Id`	int(10) unsigned,
+  PRIMARY KEY (`Id`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
 --
 -- Table structure for table `Stats`
 --
@@ -446,6 +469,7 @@ CREATE TABLE `Users` (
   `Events` enum('None','View','Edit') NOT NULL default 'None',
   `Control` enum('None','View','Edit') NOT NULL default 'None',
   `Monitors` enum('None','View','Edit') NOT NULL default 'None',
+  `Groups` enum('None','View','Edit') NOT NULL default 'None',
   `Devices` enum('None','View','Edit') NOT NULL default 'None',
   `System` enum('None','View','Edit') NOT NULL default 'None',
   `MaxBandwidth` varchar(16) NOT NULL default '',
@@ -462,7 +486,7 @@ DROP TABLE IF EXISTS `ZonePresets`;
 CREATE TABLE `ZonePresets` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `Name` varchar(64) NOT NULL default '',
-  `Type` enum('Active','Inclusive','Exclusive','Preclusive','Inactive') NOT NULL default 'Active',
+  `Type` enum('Active','Inclusive','Exclusive','Preclusive','Inactive','Privacy') NOT NULL default 'Active',
   `Units` enum('Pixels','Percent') NOT NULL default 'Pixels',
   `CheckMethod` enum('AlarmedPixels','FilteredPixels','Blobs') NOT NULL default 'Blobs',
   `MinPixelThreshold` smallint(5) unsigned default NULL,
@@ -491,7 +515,7 @@ CREATE TABLE `Zones` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `MonitorId` int(10) unsigned NOT NULL default '0',
   `Name` varchar(64) NOT NULL default '',
-  `Type` enum('Active','Inclusive','Exclusive','Preclusive','Inactive') NOT NULL default 'Active',
+  `Type` enum('Active','Inclusive','Exclusive','Preclusive','Inactive','Privacy') NOT NULL default 'Active',
   `Units` enum('Pixels','Percent') NOT NULL default 'Pixels',
   `NumCoords` tinyint(3) unsigned NOT NULL default '0',
   `Coords` tinytext NOT NULL,
@@ -531,7 +555,7 @@ CREATE TABLE `Zones` (
 --
 -- Create a default admin user.
 --
-insert into Users VALUES (NULL,'admin',password('admin'),'',1,'View','Edit','Edit','Edit','Edit','Edit','','');
+insert into Users VALUES (NULL,'admin',password('admin'),'',1,'View','Edit','Edit','Edit','Edit','Edit','Edit','','');
 
 --
 -- Add a sample filter to purge the oldest 100 events when the disk is 95% full
@@ -559,6 +583,11 @@ INSERT INTO Controls VALUES (NULL,'Toshiba IK-WB11A','Remote','Toshiba_IK_WB11A'
 INSERT INTO Controls VALUES (NULL,'WanscamPT','Remote','Wanscam',1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,16,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,16,0,0,0,0,0,1,16,1,1,1,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0);
 INSERT INTO Controls VALUES (NULL,'3S Domo N5071', 'Remote', '3S', 0, 0, 1, 1, 0, 1, 1, 0, 0, 9999, 0, 9999, 0, 0, 0, 1, 1, 1, 1, 0, 0, 9999, 20, 9999, 0, 0, 0, 1, 1, 1, 1, 0, 0, 9999, 1, 9999, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 64, 1, 0, 1, 1, 0, 0, 0, 0, 1, -180, 180, 40, 100, 1, 40, 100, 0, 0, 1, -180, 180, 40, 100, 1, 40, 100, 0, 0, 0, 0);
 INSERT INTO Controls VALUES (NULL,'ONVIF Camera','Ffmpeg','onvif',0,0,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,255,16,16,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,6,1,1,0,0,0,1,10,0,1,1,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0);
+INSERT INTO `Controls` VALUES (NULL,'Foscam 9831W','Ffmpeg','FI9831W',0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,16,1,1,1,1,0,0,0,1,1,0,360,0,360,1,0,4,0,0,1,0,90,0,90,0,0,0,0,0,0,0);
+INSERT INTO `Controls` VALUES (NULL,'Foscam FI8918W','Ffmpeg','FI8918W',0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,8,0,1,1,1,0,0,0,1,1,0,360,0,360,1,0,4,0,0,1,0,90,0,90,1,0,4,0,0,0,0);
+
+
+
 
 --
 -- Add some monitor preset values

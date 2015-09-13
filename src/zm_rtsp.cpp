@@ -167,13 +167,14 @@ void RtspThread::releasePorts( int port )
         smAssignedPorts.erase( port );
 }
 
-RtspThread::RtspThread( int id, RtspMethod method, const std::string &protocol, const std::string &host, const std::string &port, const std::string &path, const std::string &auth) :
+RtspThread::RtspThread( int id, RtspMethod method, const std::string &protocol, const std::string &host, const std::string &port, const std::string &path, const std::string &auth, bool rtsp_describe) :
     mId( id ),
     mMethod( method ),
     mProtocol( protocol ),
     mHost( host ),
     mPort( port ),
     mPath( path ),
+    mRtspDescribe( rtsp_describe ),
     mSessDesc( 0 ),
     mFormatContext( 0 ),
     mSeq( 0 ),
@@ -211,7 +212,7 @@ RtspThread::~RtspThread()
 {
     if ( mFormatContext )
     {
-#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(52, 96, 0)
+#if LIBAVFORMAT_VERSION_CHECK(52, 96, 0, 96, 0)
         avformat_free_context( mFormatContext );
 #else
         av_free_format_context( mFormatContext );
@@ -382,20 +383,23 @@ int RtspThread::run()
     if( sdpStart == std::string::npos )
         return( -1 );
 
-    std::string DescHeader = response.substr( 0,sdpStart );
-    Debug( 1, "Processing DESCRIBE response header '%s'", DescHeader.c_str() );
+    if ( mRtspDescribe )
+    {
+        std::string DescHeader = response.substr( 0,sdpStart );
+        Debug( 1, "Processing DESCRIBE response header '%s'", DescHeader.c_str() );
 
-    lines = split( DescHeader, "\r\n" );
-    for ( size_t i = 0; i < lines.size(); i++ )
-    	{
-    		// If the device sends us a url value for Content-Base in the response header, we should use that instead
-    		if ( ( lines[i].size() > 13 ) && ( lines[i].substr( 0, 13 ) == "Content-Base:" ) )
-    			{
-    				mUrl = trimSpaces( lines[i].substr( 13 ) );
-    				Info("Recieved new Content-Base in DESCRIBE reponse header. Updated device Url to: '%s'", mUrl.c_str() );
-    				break;
-    			}
-    	}
+        lines = split( DescHeader, "\r\n" );
+        for ( size_t i = 0; i < lines.size(); i++ )
+    	    {
+                // If the device sends us a url value for Content-Base in the response header, we should use that instead
+                if ( ( lines[i].size() > 13 ) && ( lines[i].substr( 0, 13 ) == "Content-Base:" ) )
+                    {
+                        mUrl = trimSpaces( lines[i].substr( 13 ) );
+                        Info("Received new Content-Base in DESCRIBE response header. Updated device Url to: '%s'", mUrl.c_str() );
+                        break;
+                    }
+            }
+    }
 
     sdpStart += endOfHeaders.length();
 
@@ -437,7 +441,7 @@ int RtspThread::run()
         for ( unsigned int i = 0; i < mFormatContext->nb_streams; i++ )
         {
             SessionDescriptor::MediaDescriptor *mediaDesc = mSessDesc->getStream( i );
-#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
+#if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
             if ( mFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO )
 #else
             if ( mFormatContext->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO )
@@ -663,7 +667,7 @@ int RtspThread::run()
             {
 				now = time(NULL);
                 // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
-Debug(5, "sendkeepalibe %d, timeout %d, now: %d last: %d since: %d", sendKeepalive, timeout, now, lastKeepalive, (now-lastKeepalive) );
+Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d", sendKeepalive, timeout, now, lastKeepalive, (now-lastKeepalive) );
                 if ( sendKeepalive && (timeout > 0) && ((now-lastKeepalive) > (timeout-5)) )
                 {
                     if ( !sendCommand( message ) )
@@ -808,7 +812,7 @@ Debug(5, "sendkeepalibe %d, timeout %d, now: %d last: %d since: %d", sendKeepali
                 // FIXME: Is this really necessary when using tcp ?
 				now = time(NULL);
                 // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
-Debug(5, "sendkeepalibe %d, timeout %d, now: %d last: %d since: %d", sendKeepalive, timeout, now, lastKeepalive, (now-lastKeepalive) );
+Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d", sendKeepalive, timeout, now, lastKeepalive, (now-lastKeepalive) );
                 if ( sendKeepalive && (timeout > 0) && ((now-lastKeepalive) > (timeout-5)) )
                 {
                     if ( !sendCommand( message ) )

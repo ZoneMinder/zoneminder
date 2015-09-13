@@ -191,7 +191,7 @@ sub runServer
 
     $dbh = zmDbConnect();
 
-    $x10 = new X10::ActiveHome( port=>ZM_X10_DEVICE, house_code=>ZM_X10_HOUSE_CODE, debug=>0 );
+    $x10 = new X10::ActiveHome( port=>$Config{ZM_X10_DEVICE}, house_code=>$Config{ZM_X10_HOUSE_CODE}, debug=>0 );
 
     loadTasks();
 
@@ -204,7 +204,7 @@ sub runServer
     #print( "F:".fileno(SERVER)."\n" );
     my $reload = undef;
     my $reload_count = 0;
-    my $reload_limit = &ZM_X10_DB_RELOAD_INTERVAL / $timeout;
+    my $reload_limit = $Config{ZM_X10_DB_RELOAD_INTERVAL} / $timeout;
     while( 1 )
     {
         my $nfound = select( my $rout = $rin, undef, undef, $timeout );
@@ -750,7 +750,7 @@ sub x10listen
     foreach my $event ( @_ )
     {
         #print( Data::Dumper( $_ )."\n" );
-        if ( $event->house_code() eq ZM_X10_HOUSE_CODE )
+        if ( $event->house_code() eq $Config{ZM_X10_HOUSE_CODE} )
         {
             my $unit_code = $event->unit_code();
             my $device = $device_hash{$unit_code};

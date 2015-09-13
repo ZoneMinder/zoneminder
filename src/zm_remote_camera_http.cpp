@@ -18,6 +18,7 @@
 // 
 
 #include "zm_remote_camera_http.h"
+#include "zm_rtsp_auth.h"
 
 #include "zm_mem_utils.h"
 
@@ -25,6 +26,10 @@
 #include <sys/socket.h>
 #include <errno.h>
 #include <netdb.h>
+
+#ifdef SOLARIS
+#include <sys/filio.h> // FIONREAD and friends
+#endif
 
 RemoteCameraHttp::RemoteCameraHttp( int p_id, const std::string &p_method, const std::string &p_host, const std::string &p_port, const std::string &p_path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) :
     RemoteCamera( p_id, "http", p_host, p_port, p_path, p_width, p_height, p_colours, p_brightness, p_contrast, p_hue, p_colour, p_capture )
@@ -143,6 +148,12 @@ int RemoteCameraHttp::SendRequest()
     return( 0 );
 }
 
+/* Return codes are as follows:
+ * -1 means there was an error
+ * 0 means no bytes were returned but there wasn't actually an error.
+ * > 0 is the # of bytes read.
+ */
+
 int RemoteCameraHttp::ReadData( Buffer &buffer, int bytes_expected )
 {
     fd_set rfds;
@@ -154,8 +165,9 @@ int RemoteCameraHttp::ReadData( Buffer &buffer, int bytes_expected )
     int n_found = select( sd+1, &rfds, NULL, NULL, &temp_timeout );
     if( n_found == 0 )
     {
-        Warning( "Select timed out" );
-        Disconnect();
+        Debug( 4, "Select timed out timeout was %d secs %d usecs", temp_timeout.tv_sec, temp_timeout.tv_usec );
+		// Why are we disconnecting?  It's just a timeout, meaning that data wasn't available.
+        //Disconnect();
         return( 0 );
     }
     else if ( n_found < 0)
@@ -180,20 +192,27 @@ int RemoteCameraHttp::ReadData( Buffer &buffer, int bytes_expected )
 
         if ( total_bytes_to_read == 0 )
         {
-            Debug( 3, "Socket closed" );
-            Disconnect();
-            return( 0 );
+			// If socket is closed locally, then select will fail, but if it is closed remotely
+			// then we have an exception on our socket.. but no data.
+            Debug( 3, "Socket closed remotely" );
+            //Disconnect(); // Disconnect is done outside of ReadData now.
+            return( -1 );
         }
-    }
-    Debug( 3, "Expecting %d bytes", total_bytes_to_read );
+
+		// There can be lots of bytes available.  I've seen 4MB or more. This will vastly inflate our buffer size unneccessarily.
+		if ( total_bytes_to_read > ZM_NETWORK_BUFSIZ ) {
+			total_bytes_to_read = ZM_NETWORK_BUFSIZ;
+			Debug(3, "Just getting 32K" );
+		} else {
+			Debug(3, "Just getting %d", total_bytes_to_read );
+		}
+	}
+	Debug( 3, "Expecting %d bytes", total_bytes_to_read );
 
     int total_bytes_read = 0;
     do
     {
-        static unsigned char temp_buffer[ZM_NETWORK_BUFSIZ];
-        int bytes_to_read = (unsigned int)total_bytes_to_read>(unsigned int)sizeof(temp_buffer)?sizeof(temp_buffer):total_bytes_to_read;
-        int bytes_read = read( sd, temp_buffer, bytes_to_read );
-
+		int bytes_read = buffer.read_into( sd, total_bytes_to_read );
         if ( bytes_read < 0)
         {
             Error( "Read error: %s", strerror(errno) );
@@ -201,17 +220,16 @@ int RemoteCameraHttp::ReadData( Buffer &buffer, int bytes_expected )
         }
         else if ( bytes_read == 0)
         {
-            Debug( 3, "Socket closed" );
-            Disconnect();
-            return( 0 );
+            Debug( 2, "Socket closed" );
+            //Disconnect(); // Disconnect is done outside of ReadData now.
+            return( -1 );
         }
-        else if ( bytes_read < bytes_to_read )
+        else if ( bytes_read < total_bytes_to_read )
         {
-            Error( "Incomplete read, expected %d, got %d", bytes_to_read, bytes_read );
+            Error( "Incomplete read, expected %d, got %d", total_bytes_to_read, bytes_read );
             return( -1 );
         }
         Debug( 3, "Read %d bytes", bytes_read );
-        buffer.append( temp_buffer, bytes_read );
         total_bytes_read += bytes_read;
         total_bytes_to_read -= bytes_read;
     }
@@ -224,6 +242,7 @@ int RemoteCameraHttp::ReadData( Buffer &buffer, int bytes_expected )
 
 int RemoteCameraHttp::GetResponse()
 {
+	int buffer_len;
 #if HAVE_LIBPCRE
     if ( method == REGEXP )
     {
@@ -253,17 +272,12 @@ int RemoteCameraHttp::GetResponse()
                     static RegExpr *content_length_expr = 0;
                     static RegExpr *content_type_expr = 0;
 
-                    int buffer_len = ReadData( buffer );
-                    if ( buffer_len == 0 )
-                    {
-                        Error( "Connection dropped by remote end" );
-                        return( 0 );
+					while ( ! ( buffer_len = ReadData( buffer ) ) ) {
                     }
-                    else if ( buffer_len < 0 )
-                    {
-                        Error( "Unable to read header data" );
-                        return( -1 );
-                    }
+						if ( buffer_len < 0 ) {
+							Error( "Unable to read header data" );
+							return( -1 );
+						}
                     if ( !header_expr )
                         header_expr = new RegExpr( "^(.+?\r?\n\r?\n)", PCRE_DOTALL );
                     if ( header_expr->Match( (char*)buffer, buffer.size() ) == 2 )
@@ -431,16 +445,12 @@ int RemoteCameraHttp::GetResponse()
                     else
                     {
                         Debug( 3, "Unable to extract subheader from stream, retrying" );
-                        int buffer_len = ReadData( buffer );
-                        if ( buffer_len == 0 )
-                        {
-                            Error( "Connection dropped by remote end" );
-                            return( 0 );
+						while ( ! ( buffer_len = ReadData( buffer ) ) ) {
                         }
-                        else if ( buffer_len < 0 )
-                        {
-                            return( -1 );
-                        }
+							if ( buffer_len < 0 ) {
+								Error( "Unable to extract subheader data" );
+								return( -1 );
+							}
                     }
                     break;
                 }
@@ -475,14 +485,8 @@ int RemoteCameraHttp::GetResponse()
                     {
                         while ( (long)buffer.size() < content_length )
                         {
-                            int buffer_len = ReadData( buffer );
-                            if ( buffer_len == 0 )
-                            {
-                                Error( "Connection dropped by remote end" );
-                                return( 0 );
-                            }
-                            else if ( buffer_len < 0 )
-                            {
+Debug(3, "Need more data buffer %d < content length %d", buffer.size(), content_length );
+                            if ( ReadData( buffer ) < 0 ) {
                                 Error( "Unable to read content" );
                                 return( -1 );
                             }
@@ -493,54 +497,26 @@ int RemoteCameraHttp::GetResponse()
                     {
                         while ( !content_length )
                         {
-                            int buffer_len = ReadData( buffer );
-                            if ( buffer_len == 0 )
-                            {
-                                if ( mode == MULTI_IMAGE )
-                                {
-                                    Error( "Connection dropped by remote end" );
-                                    return( 0 );
-                                }
+							while ( ! ( buffer_len = ReadData( buffer ) ) ) {
                             }
-                            else if ( buffer_len < 0 )
-                            {
-                                Error( "Unable to read content" );
-                                return( -1 );
-                            }
+								if ( buffer_len < 0 ) {
+									Error( "Unable to read content" );
+									return( -1 );
+								}
                             static RegExpr *content_expr = 0;
-                            if ( buffer_len )
-                            {
-                                if ( mode == MULTI_IMAGE )
-                                {
-                                    if ( !content_expr )
-                                    {
-                                        char content_pattern[256] = "";
-                                        snprintf( content_pattern, sizeof(content_pattern), "^(.+?)(?:\r?\n)*(?:--)?%s\r?\n", content_boundary );
-                                        content_expr = new RegExpr( content_pattern, PCRE_DOTALL );
-                                    }
-                                    if ( content_expr->Match( buffer, buffer.size() ) == 2 )
-                                    {
-                                        content_length = content_expr->MatchLength( 1 );
-                                        Debug( 3, "Got end of image by pattern, content-length = %d", content_length );
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                content_length = buffer.size();
-                                Debug( 3, "Got end of image by closure, content-length = %d", content_length );
-                                if ( mode == SINGLE_IMAGE )
-                                {
-                                    if ( !content_expr )
-                                    {
-                                        content_expr = new RegExpr( "^(.+?)(?:\r?\n){1,2}?$", PCRE_DOTALL );
-                                    }
-                                    if ( content_expr->Match( buffer, buffer.size() ) == 2 )
-                                    {
-                                        content_length = content_expr->MatchLength( 1 );
-                                        Debug( 3, "Trimmed end of image, new content-length = %d", content_length );
-                                    }
-                                }
+							if ( mode == MULTI_IMAGE )
+							{
+								if ( !content_expr )
+								{
+									char content_pattern[256] = "";
+									snprintf( content_pattern, sizeof(content_pattern), "^(.+?)(?:\r?\n)*(?:--)?%s\r?\n", content_boundary );
+									content_expr = new RegExpr( content_pattern, PCRE_DOTALL );
+								}
+								if ( content_expr->Match( buffer, buffer.size() ) == 2 )
+								{
+									content_length = content_expr->MatchLength( 1 );
+									Debug( 3, "Got end of image by pattern, content-length = %d", content_length );
+								}
                             }
                         }
                     }
@@ -646,17 +622,12 @@ int RemoteCameraHttp::GetResponse()
                 }
                 case HEADERCONT :
                 {
-                    int buffer_len = ReadData( buffer );
-                    if ( buffer_len == 0 )
-                    {
-                        Error( "Connection dropped by remote end" );
-                        return( 0 );
+					while ( ! ( buffer_len = ReadData( buffer ) ) ) {
                     }
-                    else if ( buffer_len < 0 )
-                    {
-                        Error( "Unable to read header" );
-                        return( -1 );
-                    }
+						if ( buffer_len < 0 ) {
+							Error( "Unable to read header" );
+							return( -1 );
+						}
 
                     char *crlf = 0;
                     char *header_ptr = (char *)buffer;
@@ -1000,17 +971,12 @@ int RemoteCameraHttp::GetResponse()
                     else
                     {
                         Debug( 3, "Unable to extract subheader from stream, retrying" );
-                        int buffer_len = ReadData( buffer );
-                        if ( buffer_len == 0 )
-                        {
-                            Error( "Connection dropped by remote end" );
-                            return( 0 );
+                        while ( ! ( buffer_len = ReadData( buffer ) ) ) {
                         }
-                        else if ( buffer_len < 0 )
-                        {
-                            Error( "Unable to read subheader" );
-                            return( -1 );
-                        }
+							if ( buffer_len < 0 ) {
+								Error( "Unable to read subheader" );
+								return( -1 );
+							}
                         state = SUBHEADERCONT;
                     }
                     break;
@@ -1056,14 +1022,7 @@ int RemoteCameraHttp::GetResponse()
                         while ( (long)buffer.size() < content_length )
                         {
                             //int buffer_len = ReadData( buffer, content_length-buffer.size() );
-                            int buffer_len = ReadData( buffer );
-                            if ( buffer_len == 0 )
-                            {
-                                Error( "Connection dropped by remote end" );
-                                return( 0 );
-                            }
-                            else if ( buffer_len < 0 )
-                            {
+                            if ( ReadData( buffer ) < 0 ) {
                                 Error( "Unable to read content" );
                                 return( -1 );
                             }
@@ -1075,16 +1034,8 @@ int RemoteCameraHttp::GetResponse()
                         int content_pos = 0;
                         while ( !content_length )
                         {
-                            int buffer_len = ReadData( buffer );
-                            if ( buffer_len == 0 )
-                            {
-                                if ( mode == MULTI_IMAGE )
-                                {
-                                    Error( "Connection dropped by remote end" );
-                                    return( 0 );
-                                }
-                            }
-                            else if ( buffer_len < 0 )
+                            buffer_len = ReadData( buffer );
+                            if ( buffer_len < 0 )
                             {
                                 Error( "Unable to read content" );
                                 return( -1 );
@@ -1143,7 +1094,7 @@ int RemoteCameraHttp::GetResponse()
                         }
                     }
 
-                    Debug( 3, "Returning %d (%d) bytes of captured content", content_length, buffer.size() );
+                    Debug( 3, "Returning %d bytes, buffer size: (%d) bytes of captured content", content_length, buffer.size() );
                     return( content_length );
                 }
             }
@@ -1187,7 +1138,7 @@ int RemoteCameraHttp::Capture( Image &image )
     }
     if ( content_length < 0 )
     {
-        Error( "Unable to get response" );
+        Error( "Unable to get response, disconnecting" );
         Disconnect();
         return( -1 );
     }

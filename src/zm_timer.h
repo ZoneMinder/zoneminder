@@ -33,6 +33,7 @@ private:
     class TimerException : public Exception
     {
     private:
+#ifndef SOLARIS
         pid_t pid() {
 		pid_t tid;
 #ifdef __FreeBSD__
@@ -40,10 +41,17 @@ private:
 		thr_self(&lwpid);
 		tid = lwpid;
 #else
+    #ifdef __FreeBSD_kernel__
+                if ( (syscall(SYS_thr_self, &tid)) < 0 ) // Thread/Process id
+    #else
 		tid=syscall(SYS_gettid);
+    #endif
 #endif
 		return tid;
         }
+#else
+	pthread_t pid() { return( pthread_self() ); }
+#endif
     public:
         TimerException( const std::string &message ) : Exception( stringtf( "(%d) "+message, (long int)pid() ) )
         {

@@ -8,13 +8,13 @@ var STATE_ALERT = <?php echo STATE_ALERT ?>;
 var STATE_TAPE = <?php echo STATE_TAPE ?>;
 
 var stateStrings = new Array();
-stateStrings[STATE_IDLE] = "<?php echo $SLANG['Idle'] ?>";
-stateStrings[STATE_PREALARM] = "<?php echo $SLANG['Idle'] ?>";
-stateStrings[STATE_ALARM] = "<?php echo $SLANG['Alarm'] ?>";
-stateStrings[STATE_ALERT] = "<?php echo $SLANG['Alert'] ?>";
-stateStrings[STATE_TAPE] = "<?php echo $SLANG['Record'] ?>";
+stateStrings[STATE_IDLE] = "<?php echo translate('Idle') ?>";
+stateStrings[STATE_PREALARM] = "<?php echo translate('Idle') ?>";
+stateStrings[STATE_ALARM] = "<?php echo translate('Alarm') ?>";
+stateStrings[STATE_ALERT] = "<?php echo translate('Alert') ?>";
+stateStrings[STATE_TAPE] = "<?php echo translate('Record') ?>";
 
-var deleteString = "<?php echo $SLANG['Delete'] ?>";
+var deleteString = "<?php echo translate('Delete') ?>";
 
 var CMD_NONE = <?php echo CMD_NONE ?>;
 var CMD_PAUSE = <?php echo CMD_PAUSE ?>;

@@ -35,17 +35,25 @@
 class ThreadException : public Exception
 {
 private:
+#ifndef SOLARIS
 pid_t pid() {
-pid_t tid; 
+    pid_t tid; 
 #ifdef __FreeBSD__ 
-long lwpid; 
-thr_self(&lwpid); 
-tid = lwpid; 
+    long lwpid; 
+    thr_self(&lwpid); 
+    tid = lwpid; 
 #else 
-tid=syscall(SYS_gettid); 
+    #ifdef __FreeBSD_kernel__
+        if ( (syscall(SYS_thr_self, &tid)) < 0 ) // Thread/Process id
+    # else
+        tid=syscall(SYS_gettid); 
+    #endif
 #endif
-return tid;
+    return tid;
 }	
+#else
+pthread_t pid() { return( pthread_self() ); }
+#endif
 public:
     ThreadException( const std::string &message ) : Exception( stringtf( "(%d) "+message, (long int)pid() ) ) {
     }
@@ -209,7 +217,11 @@ protected:
 
     Mutex mThreadMutex;
     Condition mThreadCondition;
+#ifndef SOLARIS
     pid_t mPid;
+#else
+    pthread_t mPid;
+#endif
     bool  mStarted;
     bool  mRunning;
 
@@ -217,18 +229,30 @@ protected:
     Thread();
     virtual ~Thread();
 
+#ifndef SOLARIS
     pid_t id() const
     {
-pid_t tid; 
+        pid_t tid; 
 #ifdef __FreeBSD__ 
-long lwpid; 
-thr_self(&lwpid); 
-tid = lwpid; 
+        long lwpid; 
+        thr_self(&lwpid); 
+        tid = lwpid; 
 #else 
-tid=syscall(SYS_gettid); 
+    #ifdef __FreeBSD_kernel__
+        if ( (syscall(SYS_thr_self, &tid)) < 0 ) // Thread/Process id
+
+    #else
+        tid=syscall(SYS_gettid); 
+    #endif
 #endif
 return tid;
     }
+#else
+    pthread_t id() const
+    {
+        return( pthread_self() );
+    }
+#endif
     void exit( int status = 0 )
     {
         //INFO( "Exiting" );

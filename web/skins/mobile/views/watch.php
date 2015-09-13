@@ -32,26 +32,26 @@ $showPtzControls = ( ZM_OPT_CONTROL && $monitor['Controllable'] && canView( 'Con
 $zmuCommand = getZmuCommand( " -m ".$_REQUEST['mid']." -s -f" );
 $zmuOutput = exec( escapeshellcmd( $zmuCommand ) );
 list( $status, $fps ) = explode( ' ', $zmuOutput );
-$statusString = $SLANG['Unknown'];
+$statusString = translate('Unknown');
 $fpsString = "--.--";
 $class = "infoText";
 if ( $status <= STATE_PREALARM )
 {
-    $statusString = $SLANG['Idle'];
+    $statusString = translate('Idle');
 }
 elseif ( $status == STATE_ALARM )
 {
-    $statusString = $SLANG['Alarm'];
+    $statusString = translate('Alarm');
     $class = "errorText";
 }
 elseif ( $status == STATE_ALERT )
 {
-    $statusString = $SLANG['Alert'];
+    $statusString = translate('Alert');
     $class = "warnText";
 }
 elseif ( $status == STATE_TAPE )
 {
-    $statusString = $SLANG['Record'];
+    $statusString = translate('Record');
 }
 $fpsString = sprintf( "%.2f", $fps );
 
@@ -99,7 +99,7 @@ else
     $streamSrc = getStreamSrc( array( "mode=".$streamMode, "monitor=".$monitor['Id'], "scale=".$scale ) );
 }
 
-xhtmlHeaders( __FILE__, $monitor['Name'].' - '.$SLANG['Watch'] );
+xhtmlHeaders( __FILE__, $monitor['Name'].' - '.translate('Watch') );
 ?>
 <body>
   <div id="page">
@@ -141,9 +141,9 @@ if ( $nextMid != $monitor['Id'] || $prevMid != $monitor['Id'] )
 {
 ?>
       <div id="contentButtons">
-        <a href="?view=<?php echo $_REQUEST['view'] ?>&amp;mid=<?php echo $prevMid ?>"><?php echo $SLANG['Prev'] ?></a>
-        <a href="?view=console"><?php echo $SLANG['Console'] ?></a>
-        <a href="?view=<?php echo $_REQUEST['view'] ?>&amp;mid=<?php echo $nextMid ?>"><?php echo $SLANG['Next'] ?></a>
+        <a href="?view=<?php echo $_REQUEST['view'] ?>&amp;mid=<?php echo $prevMid ?>"><?php echo translate('Prev') ?></a>
+        <a href="?view=console"><?php echo translate('Console') ?></a>
+        <a href="?view=<?php echo $_REQUEST['view'] ?>&amp;mid=<?php echo $nextMid ?>"><?php echo translate('Next') ?></a>
       </div>
 <?php
 }

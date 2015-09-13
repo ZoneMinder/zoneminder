@@ -26,52 +26,52 @@ if ( !canView( 'System' ) )
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['SystemLog'] );
+xhtmlHeaders(__FILE__, translate('SystemLog') );
 ?>
 <body>
   <div id="page">
     <div id="header">
       <div id="headerButtons">
-          <input type="button" value="<?php echo $SLANG['More'] ?>" onclick="expandLog()"/>
-          <input type="button" value="<?php echo $SLANG['Clear'] ?>" onclick="clearLog()"/>
-          <input type="button" value="<?php echo $SLANG['Refresh'] ?>" onclick="refreshLog()"/>
-          <input type="button" value="<?php echo $SLANG['Export'] ?>" onclick="exportLog()"/>
-          <input type="button" value="<?php echo $SLANG['Close'] ?>" onclick="closeWindow()"/>
+          <input type="button" value="<?php echo translate('More') ?>" onclick="expandLog()"/>
+          <input type="button" value="<?php echo translate('Clear') ?>" onclick="clearLog()"/>
+          <input type="button" value="<?php echo translate('Refresh') ?>" onclick="refreshLog()"/>
+          <input type="button" value="<?php echo translate('Export') ?>" onclick="exportLog()"/>
+          <input type="button" value="<?php echo translate('Close') ?>" onclick="closeWindow()"/>
       </div>
-      <h2 class="floating"><?php echo $SLANG['SystemLog'] ?></h2>
+      <h2 class="floating"><?php echo translate('SystemLog') ?></h2>
       <div id="headerControl">
         <table id="logSummary" cellspacing="0">
           <tr>
-            <td><?php echo $SLANG['Updated'] ?>: <span id="lastUpdate"></span></td>
-            <td><?php echo $SLANG['State'] ?>: <span id="logState"></span></td>
-            <td><?php echo $SLANG['Total'] ?>: <span id="totalLogs"></span></td>
-            <td><?php echo $SLANG['Available'] ?>: <span id="availLogs"></span></td>
-            <td><?php echo $SLANG['Displaying'] ?>: <span id="displayLogs"></span></td>
+            <td><?php echo translate('Updated') ?>: <span id="lastUpdate"></span></td>
+            <td><?php echo translate('State') ?>: <span id="logState"></span></td>
+            <td><?php echo translate('Total') ?>: <span id="totalLogs"></span></td>
+            <td><?php echo translate('Available') ?>: <span id="availLogs"></span></td>
+            <td><?php echo translate('Displaying') ?>: <span id="displayLogs"></span></td>
           </tr>
         </table>
       </div>
     </div>
     <div id="content">
-      <div id="filters"><?php echo $SLANG['FilterLog'] ?> -
-        <?php echo $SLANG['Component'] ?> <select id="filter[Component]" onchange="filterLog(this)"><option value="">-----</option></select>
-        <?php echo $SLANG['Pid'] ?> <select id="filter[Pid]" onchange="filterLog(this)"><option value="">-----</option></select>
-        <?php echo $SLANG['Level'] ?> <select id="filter[Level]" onchange="filterLog(this)"><option value="">---</option></select>
-        <?php echo $SLANG['File'] ?> <select id="filter[File]" onchange="filterLog(this)"><option value="">------</option></select>
-        <?php echo $SLANG['Line'] ?> <select id="filter[Line]" onchange="filterLog(this)"><option value="">----</option></select>
-        <input type="reset" value="<?php echo $SLANG['Reset'] ?>" onclick="resetLog()"/>
+      <div id="filters"><?php echo translate('FilterLog') ?> -
+        <?php echo translate('Component') ?> <select id="filter[Component]" onchange="filterLog(this)"><option value="">-----</option></select>
+        <?php echo translate('Pid') ?> <select id="filter[Pid]" onchange="filterLog(this)"><option value="">-----</option></select>
+        <?php echo translate('Level') ?> <select id="filter[Level]" onchange="filterLog(this)"><option value="">---</option></select>
+        <?php echo translate('File') ?> <select id="filter[File]" onchange="filterLog(this)"><option value="">------</option></select>
+        <?php echo translate('Line') ?> <select id="filter[Line]" onchange="filterLog(this)"><option value="">----</option></select>
+        <input type="reset" value="<?php echo translate('Reset') ?>" onclick="resetLog()"/>
       </div>
       <form name="logForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <table id="logTable" class="major" cellspacing="0">
           <thead>
             <tr>
-              <th><?php echo $SLANG['DateTime'] ?></th>
-              <th class="table-th-nosort"><?php echo $SLANG['Component'] ?></th>
-              <th class="table-th-nosort"><?php echo $SLANG['Pid'] ?></th>
-              <th class="table-th-nosort"><?php echo $SLANG['Level'] ?></th>
-              <th class="table-th-nosort"><?php echo $SLANG['Message'] ?></th>
-              <th class="table-th-nosort"><?php echo $SLANG['File'] ?></th>
-              <th class="table-th-nosort"><?php echo $SLANG['Line'] ?></th>
+              <th><?php echo translate('DateTime') ?></th>
+              <th class="table-th-nosort"><?php echo translate('Component') ?></th>
+              <th class="table-th-nosort"><?php echo translate('Pid') ?></th>
+              <th class="table-th-nosort"><?php echo translate('Level') ?></th>
+              <th class="table-th-nosort"><?php echo translate('Message') ?></th>
+              <th class="table-th-nosort"><?php echo translate('File') ?></th>
+              <th class="table-th-nosort"><?php echo translate('Line') ?></th>
             </tr>
           </thead>
           <tbody>
@@ -84,29 +84,29 @@ xhtmlHeaders(__FILE__, $SLANG['SystemLog'] );
   </div>
   <div id="exportLog" class="overlay">
     <div class="overlayHeader">
-      <div class="overlayTitle"><?php echo $SLANG['ExportLog'] ?></div>
+      <div class="overlayTitle"><?php echo translate('ExportLog') ?></div>
     </div>
     <div class="overlayBody">
       <div class="overlayContent">
         <form id="exportForm" action="" method="post">
           <fieldset>
-            <legend><?php echo $SLANG['SelectLog'] ?></legend>
-            <label for="selectorAll"><?php echo $SLANG['All'] ?></label><input type="radio" id="selectorAll" name="selector" value="all"/>
-            <label for="selectorFilter"><?php echo $SLANG['Filter'] ?></label><input type="radio" id="selectorFilter" name="selector" value="filter"/>
-            <label for="selectorCurrent"><?php echo $SLANG['Current'] ?></label><input type="radio" id="selectorCurrent" name="selector" value="current" title="<?php echo $SLANG['ChooseLogSelection'] ?>" data-validators="validate-one-required"/>
+            <legend><?php echo translate('SelectLog') ?></legend>
+            <label for="selectorAll"><?php echo translate('All') ?></label><input type="radio" id="selectorAll" name="selector" value="all"/>
+            <label for="selectorFilter"><?php echo translate('Filter') ?></label><input type="radio" id="selectorFilter" name="selector" value="filter"/>
+            <label for="selectorCurrent"><?php echo translate('Current') ?></label><input type="radio" id="selectorCurrent" name="selector" value="current" title="<?php echo translate('ChooseLogSelection') ?>" data-validators="validate-one-required"/>
           </fieldset>
           <fieldset>
-            <legend><?php echo $SLANG['SelectFormat'] ?></legend>
+            <legend><?php echo translate('SelectFormat') ?></legend>
             <label for="formatText">TXT</label><input type="radio" id="formatText" name="format" value="text"/>
             <label for="formatTSV">TSV</label><input type="radio" id="formatTSV" name="format" value="tsv"/>
             <label for="formatXML">HTML</label><input type="radio" id="formatHTML" name="format" value="html"/>
-            <label for="formatXML">XML</label><input type="radio" id="formatXML" name="format" value="xml" title="<?php echo $SLANG['ChooseLogFormat'] ?>" class="validate-one-required"/>
+            <label for="formatXML">XML</label><input type="radio" id="formatXML" name="format" value="xml" title="<?php echo translate('ChooseLogFormat') ?>" class="validate-one-required"/>
           </fieldset>
           <div id="exportError">
-            <?php echo $SLANG['ExportFailed'] ?>: <span id="exportErrorText"></span>
+            <?php echo translate('ExportFailed') ?>: <span id="exportErrorText"></span>
           </div>
-          <input type="button" id="exportButton" value="<?php echo $SLANG['Export'] ?>" onclick="exportRequest()"/>
-          <input type="button" value="<?php echo $SLANG['Cancel'] ?>" class="overlayCloser"/>
+          <input type="button" id="exportButton" value="<?php echo translate('Export') ?>" onclick="exportRequest()"/>
+          <input type="button" value="<?php echo translate('Cancel') ?>" class="overlayCloser"/>
         </form>
       </div>
     </div>

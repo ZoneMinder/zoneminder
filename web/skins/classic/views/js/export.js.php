@@ -19,4 +19,4 @@ var eidParm = 'eid=<?php echo validInt($_REQUEST['eid']) ?>';
 var exportReady = <?php echo !empty($_REQUEST['generated'])?'true':'false' ?>;
 var exportFile = '<?php echo !empty($_REQUEST['exportFile'])?validJsStr($_REQUEST['exportFile']):'' ?>';
 
-var exportProgressString = '<?php echo addslashes($SLANG['Exporting']) ?>';
+var exportProgressString = '<?php echo addslashes(translate('Exporting')) ?>';

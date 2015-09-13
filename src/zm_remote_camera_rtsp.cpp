@@ -28,9 +28,10 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-RemoteCameraRtsp::RemoteCameraRtsp( int p_id, const std::string &p_method, const std::string &p_host, const std::string &p_port, const std::string &p_path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) :
+RemoteCameraRtsp::RemoteCameraRtsp( int p_id, const std::string &p_method, const std::string &p_host, const std::string &p_port, const std::string &p_path, int p_width, int p_height, bool p_rtsp_describe, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) :
     RemoteCamera( p_id, "rtsp", p_host, p_port, p_path, p_width, p_height, p_colours, p_brightness, p_contrast, p_hue, p_colour, p_capture ),
-    rtspThread( 0 )
+    rtspThread( 0 ),
+    rtsp_describe( p_rtsp_describe )
 {
     if ( p_method == "rtpUni" )
         method = RtspThread::RTP_UNICAST;
@@ -125,7 +126,7 @@ void RemoteCameraRtsp::Terminate()
 
 int RemoteCameraRtsp::Connect()
 {
-    rtspThread = new RtspThread( id, method, protocol, host, port, path, auth );
+    rtspThread = new RtspThread( id, method, protocol, host, port, path, auth, rtsp_describe );
 
     rtspThread->start();
 
@@ -162,7 +163,7 @@ int RemoteCameraRtsp::PrimeCapture()
     mVideoStreamId = -1;
     
     for ( unsigned int i = 0; i < mFormatContext->nb_streams; i++ )
-#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
+#if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
 	if ( mFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO )
 #else
 	if ( mFormatContext->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO )
@@ -183,7 +184,7 @@ int RemoteCameraRtsp::PrimeCapture()
         Panic( "Unable to locate codec %d decoder", mCodecContext->codec_id );
 
     // Open codec
-#if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(53, 7, 0)
+#if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
     if ( avcodec_open( mCodecContext, mCodec ) < 0 )
 #else
     if ( avcodec_open2( mCodecContext, mCodec, 0 ) < 0 )
@@ -191,11 +192,19 @@ int RemoteCameraRtsp::PrimeCapture()
         Panic( "Can't open codec" );
 
     // Allocate space for the native video frame
+#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
+    mRawFrame = av_frame_alloc();
+#else
     mRawFrame = avcodec_alloc_frame();
+#endif
 
     // Allocate space for the converted video frame
+#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
+    mFrame = av_frame_alloc();
+#else
     mFrame = avcodec_alloc_frame();
-    
+#endif
+
 	if(mRawFrame == NULL || mFrame == NULL)
 		Fatal( "Unable to allocate frame(s)");
 	
@@ -292,7 +301,7 @@ int RemoteCameraRtsp::Capture( Image &image )
 	    {
 		packet.data = buffer.head();
 		packet.size = buffer.size();
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 25, 0)
+#if LIBAVCODEC_VERSION_CHECK(52, 23, 0, 23, 0)
 		int len = avcodec_decode_video2( mCodecContext, mRawFrame, &frameComplete, &packet );
 #else
 		int len = avcodec_decode_video( mCodecContext, mRawFrame, &frameComplete, packet.data, packet.size );

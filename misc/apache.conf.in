@@ -14,17 +14,26 @@
         AllowOverride All
     </Directory>
 
-    ScriptAlias /cgi-bin/ "@CGI_PREFIX@"
+    ScriptAlias /cgi-bin "@CGI_PREFIX@"
     <Directory "@CGI_PREFIX@">
         Options +ExecCGI -MultiViews +SymLinksIfOwnerMatch
         AllowOverride All
+        <IfModule mod_authz_core.c>
+           # Apache 2.4
+           Require all granted
+        </IfModule>
+        <IfModule !mod_authz_core.c>
+            # Apache 2.2
+            Order deny,allow
+            Allow from all
+        </IfModule>
     </Directory>
 
     # Use the first option to have Apache logs written to the general log
     # directory, or the second to have them written to the regular Apache
     # directory (you may have to change the path to that used on your system)
     ErrorLog @ZM_LOGDIR@/apache-error.log
-    ErrorLog /var/log/httpd/zm-error.log
+    #ErrorLog /var/log/httpd/zm-error.log
 
     # Possible values include: debug, info, notice, warn, error, crit,
     # alert, emerg.
@@ -34,6 +43,6 @@
     # directory, or the second to have them written to the regular Apache
     # directory (you may have to change the path to that used on your system)
     CustomLog @ZM_LOGDIR@/apache-access.log combined
-    CustomLog /var/log/httpd/zm-access.log combined
+    #CustomLog /var/log/httpd/zm-access.log combined
 
 </VirtualHost>

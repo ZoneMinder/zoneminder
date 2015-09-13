@@ -44,13 +44,13 @@ foreach( dbFetchAll( 'select * from Zones where MonitorId = ? order by Area desc
 
 $image = 'Zones'.$monitor['Id'].'.jpg';
 
-xhtmlHeaders(__FILE__, $SLANG['Zones'] );
+xhtmlHeaders(__FILE__, translate('Zones') );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <div id="headerButtons"><a href="#" onclick="closeWindow();"><?php echo $SLANG['Close'] ?></a></div>
-      <h2><?php echo $SLANG['Zones'] ?></h2>
+      <div id="headerButtons"><a href="#" onclick="closeWindow();"><?php echo translate('Close') ?></a></div>
+      <h2><?php echo translate('Zones') ?></h2>
     </div>
     <div id="content">
       <map name="zoneMap" id="zoneMap">
@@ -72,10 +72,10 @@ foreach( array_reverse($zones) as $zone )
         <table id="contentTable" class="major" cellspacing="0">
           <thead>
             <tr>
-              <th class="colName"><?php echo $SLANG['Name'] ?></th>
-              <th class="colType"><?php echo $SLANG['Type'] ?></th>
-              <th class="colUnits"><?php echo $SLANG['AreaUnits'] ?></th>
-              <th class="colMark"><?php echo $SLANG['Mark'] ?></th>
+              <th class="colName"><?php echo translate('Name') ?></th>
+              <th class="colType"><?php echo translate('Type') ?></th>
+              <th class="colUnits"><?php echo translate('AreaUnits') ?></th>
+              <th class="colMark"><?php echo translate('Mark') ?></th>
             </tr>
           </thead>
           <tbody>
@@ -95,8 +95,8 @@ foreach( $zones as $zone )
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="button" value="<?php echo $SLANG['AddNewZone'] ?>" onclick="createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=0', 'zmZone', 'zone', <?php echo $monitor['Width'] ?>, <?php echo $monitor['Height'] ?> );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
-          <input type="submit" name="deleteBtn" value="<?php echo $SLANG['Delete'] ?>" disabled="disabled"/>
+          <input type="button" value="<?php echo translate('AddNewZone') ?>" onclick="createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=0', 'zmZone', 'zone', <?php echo $monitor['Width'] ?>, <?php echo $monitor['Height'] ?> );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
+          <input type="submit" name="deleteBtn" value="<?php echo translate('Delete') ?>" disabled="disabled"/>
         </div>
       </form>
     </div>

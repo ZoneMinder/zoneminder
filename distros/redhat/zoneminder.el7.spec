@@ -20,7 +20,7 @@ Source: ZoneMinder-%{version}.tar.gz
 
 BuildRequires: cmake gnutls-devel systemd-units bzip2-devel
 BuildRequires: mariadb-devel pcre-devel libjpeg-turbo-devel
-BuildRequires: perl(Archive::Tar) perl(Archive::Zip)
+BuildRequires: perl(Archive::Tar) perl(Archive::Zip) perl-podlators
 BuildRequires: perl(Date::Manip) perl(DBD::mysql)
 BuildRequires: perl(ExtUtils::MakeMaker) perl(LWP::UserAgent)
 BuildRequires: perl(MIME::Entity) perl(MIME::Lite)
@@ -32,8 +32,8 @@ BuildRequires: ffmpeg ffmpeg-devel perl(X10::ActiveHome) perl(Astro::SunTime)
 # cmake needs the following installed at build time due to the way it auto-detects certain parameters
 BuildRequires:  httpd polkit-devel
 
-Requires: httpd php php-mysql mariadb-server polkit net-tools psmisc
-Requires: libjpeg-turbo vlc-core libcurl
+Requires: httpd php php-gd php-mysql mariadb-server polkit net-tools mod_ssl
+Requires: psmisc libjpeg-turbo vlc-core libcurl
 Requires: perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires: perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)
 Requires: perl(MIME::Entity) perl(MIME::Lite) perl(Net::SMTP) perl(Net::FTP)
@@ -87,26 +87,35 @@ fi
 /usr/bin/gpasswd -a %{zmuid_final} video
 /usr/bin/gpasswd -a %{zmuid_final} dialout
 
+# Disabled. SELinux policy does not work for RHEL 7.
 # Create and load zoneminder selinux policy module
-echo -e "\nCreating and installing a ZoneMinder SELinux policy module. Please wait.\n"
-/usr/bin/checkmodule -M -m -o %{_docdir}/%{name}-%{version}/local_zoneminder.mod %{_docdir}/%{name}-%{version}/local_zoneminder.te > /dev/null
-/usr/bin/semodule_package -o %{_docdir}/%{name}-%{version}/local_zoneminder.pp -m %{_docdir}/%{name}-%{version}/local_zoneminder.mod > /dev/null
-/usr/sbin/semodule -i %{_docdir}/%{name}-%{version}/local_zoneminder.pp > /dev/null
+#echo -e "\nCreating and installing a ZoneMinder SELinux policy module. Please wait.\n"
+#/usr/bin/checkmodule -M -m -o %{_docdir}/%{name}-%{version}/local_zoneminder.mod %{_docdir}/%{name}-%{version}/local_zoneminder.te > /dev/null
+#/usr/bin/semodule_package -o %{_docdir}/%{name}-%{version}/local_zoneminder.pp -m %{_docdir}/%{name}-%{version}/local_zoneminder.mod > /dev/null
+#/usr/sbin/semodule -i %{_docdir}/%{name}-%{version}/local_zoneminder.pp > /dev/null
 
 # Upgrade from a previous version of zoneminder 
 if [ $1 -eq 2 ] ; then
+    # Freshen the database
+    /usr/bin/zmupdate.pl -f
+
+    # We can't run this automatically when new sql account permissions need to
+    # be manually added first
     # Run zmupdate non-interactively
-    /usr/bin/zmupdate.pl --nointeractive
+    #/usr/bin/zmupdate.pl --nointeractive
 fi
 
-# Display the README for post installation instructions
-/usr/bin/less %{_docdir}/%{name}-%{version}/README.Centos7
+# Warn the end user to read the README file
+echo -e "\nVERY IMPORTANT: Before starting ZoneMinder, read README.Centos7 to finish the\ninstallation or upgrade!\n"
+echo -e "\nThe README file is located here: %{_docdir}/%{name}-%{version}.\n"
 
 %preun
 if [ $1 -eq 0 ] ; then
     # Package removal, not upgrade
     /bin/systemctl --no-reload disable zoneminder.service > /dev/null 2>&1 || :
     /bin/systemctl stop zoneminder.service > /dev/null 2>&1 || :
+    echo -e "\nRemoving ZoneMinder SELinux policy module. Please wait.\n"
+    /usr/sbin/semodule -r local_zoneminder.pp
 fi
 
 %postun
@@ -128,7 +137,8 @@ fi
 
 %files
 %defattr(-,root,root,-)
-%doc AUTHORS COPYING README.md distros/redhat/README.Centos7 distros/redhat/jscalendar-doc
+%doc AUTHORS BUGS ChangeLog COPYING LICENSE NEWS README.md distros/redhat/README.Centos7 distros/redhat/jscalendar-doc
+%doc distros/redhat/cambozola-doc distros/redhat/local_zoneminder.te
 %config %attr(640,root,%{zmgid_final}) /etc/zm/zm.conf
 %config(noreplace) %attr(644,root,root) /etc/httpd/conf.d/zoneminder.conf
 %config(noreplace) /etc/tmpfiles.d/zoneminder.conf
@@ -156,7 +166,8 @@ fi
 %{_bindir}/zmx10.pl
 
 %{perl_vendorlib}/ZoneMinder*
-%{perl_vendorlib}/%{_arch}-linux-thread-multi/auto/ZoneMinder*
+%{perl_vendorarch}/auto/ZoneMinder/.packlist
+#%{perl_vendorlib}/%{_arch}-linux-thread-multi/auto/ZoneMinder*
 #%{perl_archlib}/ZoneMinder*
 %{_mandir}/man*/*
 %dir %{_libexecdir}/zoneminder
@@ -180,6 +191,9 @@ fi
 
 
 %changelog
+* Mon Sep 7 2015 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.28.1 
+- Require https, disable selinux module, freshen dB on updates.
+
 * Sun Feb 8 2015 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.28.1 
 - Initial release for CentOS 7.
 

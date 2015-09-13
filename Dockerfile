@@ -52,6 +52,9 @@ ADD utils/docker/apache-vhost /etc/apache2/sites-enabled/000-default
 # Set the root passwd
 RUN echo 'root:root' | chpasswd
 
+#Volume expose
+VOLUME /var/backups /usr/share/zoneminder/events /usr/share/zoneminder/images
+
 # Expose ssh and http ports
 EXPOSE 80
 EXPOSE 22

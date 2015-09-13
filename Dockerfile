@@ -1,7 +1,7 @@
 # ZoneMinder
 
 FROM ubuntu:precise
-MAINTAINER Kyle Johnson <kjohnson@gnulnx.net>
+MAINTAINER zaraki673 <azazel673@gmail.com>
 
 # Let the container know that there is no tty
 ENV DEBIAN_FRONTEND noninteractive
@@ -43,20 +43,13 @@ ADD utils/docker/start.sh /tmp/start.sh
 # TODO - Files ADD'ed have 755 already...why do we need this?
 RUN chmod 755 /tmp/start.sh
 
-# Creating SSH privledge escalation dir
-RUN mkdir /var/run/sshd
-
 # Adding apache virtual hosts file
 ADD utils/docker/apache-vhost /etc/apache2/sites-enabled/000-default
 
-# Set the root passwd
-RUN echo 'root:root' | chpasswd
-
 #Volume expose
-VOLUME /var/backups /usr/share/zoneminder/events /usr/share/zoneminder/images
+VOLUME /etc/zoneminder /var/backups /usr/share/zoneminder/events /usr/share/zoneminder/images
 
 # Expose ssh and http ports
-EXPOSE 80
-EXPOSE 22
+EXPOSE 8092
 
 CMD "/tmp/start.sh"

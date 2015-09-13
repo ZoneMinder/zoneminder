@@ -52,4 +52,5 @@ VOLUME /etc/zoneminder /var/backups /usr/share/zoneminder/events /usr/share/zone
 # Expose ssh and http ports
 EXPOSE 8092
 
+
 CMD "/tmp/start.sh"

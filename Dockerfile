@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
 	apache2 php5 php5-mysql apache2-mpm-prefork libapache2-mod-php5 php5-cli openssh-server \
 	mysql-server libvlc-dev libvlc5 libvlccore-dev libvlccore5 vlc-data libcurl4-openssl-dev \
 	libavformat-dev libswscale-dev libavutil-dev libavcodec-dev libavfilter-dev \
-	libavresample-dev libavdevice-dev libpostproc-dev libv4l-dev libtool libnetpbm10-dev \
+	libavdevice-dev libpostproc-dev libv4l-dev libtool libnetpbm10-dev \
 	libmime-lite-perl dh-autoreconf dpatch
 
 # Copy local code into our container

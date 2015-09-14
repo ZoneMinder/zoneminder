@@ -167,6 +167,7 @@ function loadConfig( $defineConsts=true )
     //print_r( $configCats );
 }
 
+require_once( 'logger.php' );
 // For Human-readability, user ZM_SERVER in zm.conf, and convert it here to a ZM_SERVER_ID
 if ( ! defined('ZM_SERVER_ID') ) {
 	if ( defined('ZM_SERVER_NAME') ) {

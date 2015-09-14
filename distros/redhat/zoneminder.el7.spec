@@ -32,7 +32,7 @@ BuildRequires: ffmpeg ffmpeg-devel perl(X10::ActiveHome) perl(Astro::SunTime)
 # cmake needs the following installed at build time due to the way it auto-detects certain parameters
 BuildRequires:  httpd polkit-devel
 
-Requires: httpd php php-gd php-mysql mariadb-server polkit net-tools mod_ssl
+Requires: httpd php php-gd php-mysql mariadb-server cambozola polkit net-tools mod_ssl
 Requires: psmisc libjpeg-turbo vlc-core libcurl
 Requires: perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires: perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)
@@ -138,7 +138,7 @@ fi
 %files
 %defattr(-,root,root,-)
 %doc AUTHORS BUGS ChangeLog COPYING LICENSE NEWS README.md distros/redhat/README.Centos7 distros/redhat/jscalendar-doc
-%doc distros/redhat/cambozola-doc distros/redhat/local_zoneminder.te
+%doc distros/redhat/local_zoneminder.te
 %config %attr(640,root,%{zmgid_final}) /etc/zm/zm.conf
 %config(noreplace) %attr(644,root,root) /etc/httpd/conf.d/zoneminder.conf
 %config(noreplace) /etc/tmpfiles.d/zoneminder.conf

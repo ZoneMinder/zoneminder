@@ -146,7 +146,7 @@ rm -rf %{_docdir}/%{name}-%{version}
 #%{_bindir}/zmonvif-probe.pl
 
 %{perl_vendorlib}/ZoneMinder*
-%{perl_vendorlib}/%{_arch}-linux-thread-multi/auto/ZoneMinder*
+%{perl_vendorarch}/auto/ZoneMinder/.packlist
 #%{perl_vendorlib}/ONVIF*
 #%{perl_vendorlib}/WSDiscovery*
 #%{perl_vendorlib}/WSSecurity*

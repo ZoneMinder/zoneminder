@@ -2222,7 +2222,7 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
 
 int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const char *port, const char *path, Monitor **&monitors, Purpose purpose )
 {
-    std::string sql = "select Id, Name, ServerId, Function+0, Enabled, LinkedMonitors, Protocol, Method, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPS, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif from Monitors where Function != 'None' and Type = 'Remote'";
+    std::string sql = "select Id, Name, ServerId, Function+0, Enabled, LinkedMonitors, Protocol, Method, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPS, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif from Monitors where Function != 'None' and Type = 'Remote'";
     if ( staticConfig.SERVER_ID ) {
         sql += " AND ServerId='";
         sql += staticConfig.SERVER_ID;
@@ -2264,7 +2264,8 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
         int colours = atoi(dbrow[col]); col++;
         /* int palette = atoi(dbrow[col]); */ col++;
         Orientation orientation = (Orientation)atoi(dbrow[col]); col++;
-        unsigned int deinterlacing = atoi(dbrow[col]); col++;        
+        unsigned int deinterlacing = atoi(dbrow[col]); col++;
+        bool rtsp_describe = (*dbrow[col] != '0'); col++;
         int brightness = atoi(dbrow[col]); col++;
         int contrast = atoi(dbrow[col]); col++;
         int hue = atoi(dbrow[col]); col++;
@@ -2329,6 +2330,7 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
                 path, // Path
                 cam_width,
                 cam_height,
+                rtsp_describe,
                 colours,
                 brightness,
                 contrast,
@@ -2692,7 +2694,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
 
 Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose )
 {
-    std::string sql = stringtf( "select Id, Name, ServerId, Type, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, Protocol, Method, Host, Port, Path, Options, User, Pass, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPS, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour, Exif from Monitors where Id = %d", p_id );
+    std::string sql = stringtf( "select Id, Name, ServerId, Type, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, Protocol, Method, Host, Port, Path, Options, User, Pass, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPS, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour, Exif from Monitors where Id = %d", p_id );
 
     MYSQL_ROW dbrow = zmDbFetchOne( sql.c_str() );
     if ( ! dbrow ) {
@@ -2750,6 +2752,7 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
     int palette = atoi(dbrow[col]); col++;
     Orientation orientation = (Orientation)atoi(dbrow[col]); col++;
     unsigned int deinterlacing = atoi(dbrow[col]); col++;
+	bool rtsp_describe = (*dbrow[col] != '0'); col++;
     int brightness = atoi(dbrow[col]); col++;
     int contrast = atoi(dbrow[col]); col++;
     int hue = atoi(dbrow[col]); col++;
@@ -2850,6 +2853,7 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
                 path.c_str(),
                 cam_width,
                 cam_height,
+                rtsp_describe,
                 colours,
                 brightness,
                 contrast,

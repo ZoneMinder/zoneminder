@@ -691,7 +691,7 @@ if ( !empty($action) )
     {
 		if ( $_REQUEST['object'] == 'server' ) {
 
-			if ( $action == "save" ) {
+			if ( $action == "Save" ) {
 				if ( !empty($_REQUEST['id']) )
 					$dbServer = dbFetchOne( "SELECT * FROM Servers WHERE Id=?", NULL, array($_REQUEST['id']) );
 				else

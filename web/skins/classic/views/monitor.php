@@ -18,6 +18,8 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
+require_once( 'includes/Server.php');
+
 if ( !canView( 'Monitors' ) )
 {
     $view = "error";
@@ -647,8 +649,12 @@ switch ( $tab )
             <tr><td><?php echo translate('Name') ?></td><td><input type="text" name="newMonitor[Name]" value="<?php echo validHtmlStr($newMonitor['Name']) ?>" size="16"/></td></tr>
             <tr><td><?php echo translate('Server') ?></td><td>
 <?php 
-	$servers = dbFetchAssoc( 'SELECT Id,Name FROM Servers ORDER BY Name', 'Id', 'Name' ); 
-	array_unshift( $servers, 'None' );
+	$servers = array(''=>'None');
+	$result = dbQuery( 'SELECT * FROM Servers ORDER BY Name');
+	$results = $result->fetchALL(PDO::FETCH_CLASS, 'Server' );
+	foreach ( $results as $row => $server_obj ) {
+		$servers[ $server_obj->Id] = $server_obj->Name;
+	}
 ?>
 	<?php echo buildSelect( "newMonitor[ServerId]", $servers ); ?>
 </td></tr>

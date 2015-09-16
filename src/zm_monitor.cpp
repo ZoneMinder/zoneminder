@@ -333,7 +333,8 @@ Monitor::Monitor(
     n_zones( p_n_zones ),
     zones( p_zones ),
     timestamps( 0 ),
-    images( 0 )
+    images( 0 ),
+    privacy_bitmask( NULL )
 {
     strncpy( name, p_name, sizeof(name) );
 
@@ -694,11 +695,13 @@ void Monitor::AddZones( int p_n_zones, Zone *p_zones[] )
 
 void Monitor::AddPrivacyBitmask( Zone *p_zones[] )
 {
-    delete[] privacy_bitmask;
+	if ( privacy_bitmask )
+		delete[] privacy_bitmask;
     privacy_bitmask = NULL;
     Image *privacy_image = NULL;
 
     for ( int i = 0; i < n_zones; i++ )
+    {
         if ( p_zones[i]->IsPrivacy() )
         {
             if ( !privacy_image )
@@ -709,6 +712,7 @@ void Monitor::AddPrivacyBitmask( Zone *p_zones[] )
             privacy_image->Fill( 0xff, p_zones[i]->GetPolygon() );
             privacy_image->Outline( 0xff, p_zones[i]->GetPolygon() );
         }
+    } // end foreach zone
     if ( privacy_image )
         privacy_bitmask = privacy_image->Buffer();
 }

@@ -116,6 +116,12 @@ bool Monitor::MonitorLink::connect()
             disconnect();
             return( false );
         }
+		while ( map_fd <= 2 ) {
+			int new_map_fd = dup(map_fd);
+			Warning( "Got one of the stdio fds for our mmap handle. map_fd was %d, new one is %d", map_fd, new_map_fd );
+			close(map_fd);
+			map_fd = new_map_fd;
+		}
 
         struct stat map_stat;
         if ( fstat( map_fd, &map_stat ) < 0 )

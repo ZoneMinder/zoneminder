@@ -16,7 +16,7 @@ else(ZM_TARGET_DISTRO STREQUAL "el7")
 endif(ZM_TARGET_DISTRO STREQUAL "el7")
 
 # Download jscalendar & move files into position
-file(DOWNLOAD http://nbtelecom.dl.sourceforge.net/project/jscalendar/jscalendar/1.0/jscalendar-1.0.zip ${CMAKE_CURRENT_SOURCE_DIR}/jscalendar-1.0.zip LOG jsc_log STATUS download_jsc)
+file(DOWNLOAD http://skylineservers.dl.sourceforge.net/project/jscalendar/jscalendar/1.0/jscalendar-1.0.zip ${CMAKE_CURRENT_SOURCE_DIR}/jscalendar-1.0.zip LOG jsc_log STATUS download_jsc)
 #message(STATUS "Log of jscalender script was: ${jsc_log}")
 if(download_jsc EQUAL 0)
 	message(STATUS "Jscalander successfully downloaded.  Installing...")
@@ -26,15 +26,16 @@ else(download_jsc EQUAL 0)
 	message(STATUS "Unable to download optional jscalander. Skipping...")
 endif(download_jsc EQUAL 0)
 
+# Cambozola is now packaged in zmrepo
 # Download cambozola & move files into position
-file(DOWNLOAD http://www.andywilcock.com/code/cambozola/cambozola-0.931.tar.gz ${CMAKE_CURRENT_SOURCE_DIR}/cambozola-0.931.tar.gz STATUS download_camb)
-if(download_camb EQUAL 0)
-	message(STATUS "Cambozola successfully downloaded.  Installing...")
-	execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/cambozola.sh WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} ERROR_VARIABLE untar_camb)
-	message(STATUS "Status of cambozola script was: ${untar_camb}")
-else(download_camb EQUAL 0)
-	message(STATUS "Unable to download optional Cambozola. Skipping...")
-endif(download_camb EQUAL 0)
+#file(DOWNLOAD http://www.andywilcock.com/code/cambozola/cambozola-0.931.tar.gz ${CMAKE_CURRENT_SOURCE_DIR}/cambozola-0.931.tar.gz STATUS download_camb)
+#if(download_camb EQUAL 0)
+#	message(STATUS "Cambozola successfully downloaded.  Installing...")
+#	execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/cambozola.sh WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} ERROR_VARIABLE untar_camb)
+#	message(STATUS "Status of cambozola script was: ${untar_camb}")
+#else(download_camb EQUAL 0)
+#	message(STATUS "Unable to download optional Cambozola. Skipping...")
+#endif(download_camb EQUAL 0)
 
 # Create several empty folders
 file(MAKE_DIRECTORY sock swap zoneminder zoneminder-upload events images temp)
@@ -52,6 +53,9 @@ install(CODE "execute_process(COMMAND ln -sf ../../../../var/lib/zoneminder/even
 install(CODE "execute_process(COMMAND ln -sf ../../../../var/lib/zoneminder/images \"\$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/www/images\")")
 install(CODE "execute_process(COMMAND ln -sf ../../../../var/lib/zoneminder/temp \"\$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/www/temp\")")
 install(CODE "execute_process(COMMAND ln -sf ../../../../../../var/lib/zoneminder/temp \"\$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/www/api/app/tmp\")")
+
+# Link to Cambozola, which is now packaged in zmrepo
+install(CODE "execute_process(COMMAND ln -sf ../../java/cambozola.jar \"\$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/www/cambozola.jar\")")
 
 # Install auxillary files required to run zoneminder on CentOS
 install(FILES redalert.wav DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/www/sounds PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)

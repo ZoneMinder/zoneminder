@@ -11,13 +11,13 @@ fi
 abort=false
 if [ -h /usr/share/zoneminder/www/events ]; then
     l=$(readlink /usr/share/zoneminder/www/events)
-    if [ "$l" != "/var/cache/zoneminder/events" ]; then
+    if [ "$l" != "/var/cache/zoneminder/events" -a "$l" != "/var/cache/zoneminder/events/" ]; then
         abort=true
     fi
 fi
 if [ -h /usr/share/zoneminder/www/images ]; then
     l=$(readlink /usr/share/zoneminder/www/images )
-    if [ "$l" != "/var/cache/zoneminder/images" ]; then
+    if [ "$l" != "/var/cache/zoneminder/images"  -a "$l" != "/var/cache/zoneminder/images/" ]; then
         abort=true
     fi
 fi

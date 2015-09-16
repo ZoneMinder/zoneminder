@@ -40,6 +40,7 @@ if ( isset($_REQUEST['tab']) )
 else
     $tab = "general";
 
+	$Server = null;
     if ( defined( 'ZM_SERVER_ID' ) ) {
         $Server = dbFetchOne( 'SELECT * FROM Servers WHERE Id=?', NULL, array( ZM_SERVER_ID ) );
 	}

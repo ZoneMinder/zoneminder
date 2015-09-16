@@ -715,6 +715,8 @@ if ( !empty($action) )
 						dbQuery( "DELETE FROM Servers WHERE Id=?", array($Id) );
 				}
                 $refreshParent = true;
+			} else {
+				Error( "Unknown action $action in saving Server" );
 			}
 
         } else if ( $action == "version" && isset($_REQUEST['option']) )

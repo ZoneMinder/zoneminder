@@ -5,14 +5,20 @@ require_once( 'Server.php' );
 class Monitor {
 	public function __construct( $id ) {
 		if ( $id ) {
-		$s = dbFetchOne( 'SELECT * FROM Monitors WHERE Id=?', NULL, array( $id ) );
-		if ( $s ) {
-			foreach ($s as $k => $v) {
-				$this->{$k} = $v;
+			$s = dbFetchOne( 'SELECT * FROM Monitors WHERE Id=?', NULL, array( $id ) );
+			if ( $s ) {
+				foreach ($s as $k => $v) {
+					$this->{$k} = $v;
+				}
+				if ( $this->{'Controllable'} ) {
+					$s = dbFetchOne( 'SELECT * FROM Controls WHERE Id=?', NULL, array( $this->{'ControlId'} ) );
+					foreach ($s as $k => $v) {
+						$this->{$k} = $v;
+					}
+				}
+			} else {
+				Error("Unable to load Monitor record for Id=" . $id );
 			}
-		} else {
-			Error("Unable to load Monitor record for Id=" . $id );
-		}
 		} else {
 			
 		}

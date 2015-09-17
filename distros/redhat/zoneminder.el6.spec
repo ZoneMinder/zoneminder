@@ -30,7 +30,7 @@ BuildRequires:  libcurl-devel vlc-devel ffmpeg-devel polkit-devel
 # cmake needs the following installed at build time due to the way it auto-detects certain parameters
 BuildRequires:  httpd ffmpeg
 
-Requires:   httpd php php-gd php-mysql mysql-server libjpeg-turbo polkit net-tools mod_ssl
+Requires:   httpd php php-gd php-mysql mysql-server libjpeg-turbo cambozola polkit net-tools mod_ssl
 Requires:   psmisc perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires:   perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)
 Requires:   perl(MIME::Entity) perl(MIME::Lite) perl(Net::SMTP) perl(Net::FTP)
@@ -131,7 +131,7 @@ rm -rf %{_docdir}/%{name}-%{version}
 %files
 %defattr(-,root,root,-)
 %doc AUTHORS BUGS ChangeLog COPYING LICENSE NEWS README.md distros/redhat/README.CentOS distros/redhat/jscalendar-doc
-%doc distros/redhat/cambozola-doc distros/redhat/local_zoneminder.te
+%doc distros/redhat/local_zoneminder.te
 %config %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm.conf
 %config(noreplace) %attr(644,root,root) %{_sysconfdir}/httpd/conf.d/zoneminder.conf
 %config(noreplace) /etc/logrotate.d/%{name}

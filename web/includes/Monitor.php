@@ -13,6 +13,9 @@ class Monitor {
 				if ( $this->{'Controllable'} ) {
 					$s = dbFetchOne( 'SELECT * FROM Controls WHERE Id=?', NULL, array( $this->{'ControlId'} ) );
 					foreach ($s as $k => $v) {
+							if ( $k == 'Id' ) {
+								continue;
+							}
 						$this->{$k} = $v;
 					}
 				}
@@ -33,7 +36,7 @@ class Monitor {
 	public function getStreamSrc( $args, $querySep='&amp;' ) {
 		if ( isset($this->{'ServerId'}) and $this->{'ServerId'} ) {
 			$Server = new Server( $this->{'ServerId'} );
-			$streamSrc = ZM_BASE_PROTOCOL.'://'.$Server->Hostname.ZM_PATH_ZMS;
+			$streamSrc = ZM_BASE_PROTOCOL.'://'.$Server->Hostname().ZM_PATH_ZMS;
 		} else {
 			$streamSrc = ZM_BASE_URL.ZM_PATH_ZMS;
 		}

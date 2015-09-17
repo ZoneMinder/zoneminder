@@ -56,7 +56,7 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT )
 elseif ( canStream() )
 {
     $streamMode = "jpeg";
-    $streamSrc = $monitor->getStreamSrc( array( "mode=".$streamMode, "scale=".$scale, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "buffer=".$monitor->StreamReplayBuffer() ) );
+    $streamSrc = $monitor->getStreamSrc( array( "mode=".$streamMode, "scale=".$scale, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "buffer=".$monitor->StreamReplayBuffer ) );
 }
 else
 {
@@ -99,7 +99,7 @@ if ( $showPtzControls )
 if ( canView( 'Control' ) && $monitor->Type() == "Local" )
 {
 ?>
-          <div id="settingsControl"><?php echo makePopupLink( '?view=settings&amp;mid='.$monitor['Id'], 'zmSettings'.$monitor['Id'], 'settings', translate('Settings'), true, 'id="settingsLink"' ) ?></div>
+          <div id="settingsControl"><?php echo makePopupLink( '?view=settings&amp;mid='.$monitor->Id, 'zmSettings'.$monitor->Id, 'settings', translate('Settings'), true, 'id="settingsLink"' ) ?></div>
 <?php
 }
 ?>
@@ -110,18 +110,18 @@ if ( canView( 'Control' ) && $monitor->Type() == "Local" )
 <?php
 if ( $streamMode == "mpeg" )
 {
-    outputVideoStream( "liveStream", $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), ZM_MPEG_LIVE_FORMAT, $monitor['Name'] );
+    outputVideoStream( "liveStream", $streamSrc, reScale( $monitor->Width, $scale ), reScale( $monitor->Height, $scale ), ZM_MPEG_LIVE_FORMAT, $monitor->Name );
 }
 elseif ( $streamMode == "jpeg" )
 {
     if ( canStreamNative() )
-        outputImageStream( "liveStream", $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), $monitor['Name'] );
+        outputImageStream( "liveStream", $streamSrc, reScale( $monitor->Width, $scale ), reScale( $monitor->Height, $scale ), $monitor->Name );
     elseif ( canStreamApplet() )
-        outputHelperStream( "liveStream", $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), $monitor['Name'] );
+        outputHelperStream( "liveStream", $streamSrc, reScale( $monitor->Width, $scale ), reScale( $monitor->Height, $scale ), $monitor->Name );
 }
 else
 {
-    outputImageStill( "liveStream", $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), $monitor['Name'] );
+    outputImageStill( "liveStream", $streamSrc, reScale( $monitor->Width, $scale ), reScale( $monitor->Height, $scale ), $monitor->Name );
 }
 ?>
       </div>

@@ -216,19 +216,18 @@
  *
  */
 	Configure::write('Session', array(
-		'defaults' => 'php',
-		'cookie'=>'ZMSESSID'
+		'defaults' => 'php'
 	));
 
 /**
  * A random string used in security hashing methods.
  */
-	Configure::write('Security.salt', 'Q0MjGG2xRQEhJVQR85WhFJKI7f2St8RYMlVR7GNQ');
+	Configure::write('Security.salt', 'URWfoFspTQASBP8afw8enOLNCSMWZnrh2TRwoGaF');
 
 /**
  * A random numeric string (digits only) used to encrypt/decrypt strings.
  */
-	Configure::write('Security.cipherSeed', '02670120062639232092038865362');
+	Configure::write('Security.cipherSeed', '07283205205652438276688533540');
 
 /**
  * Apply timestamps with the last modified time to static assets (js, css, images).

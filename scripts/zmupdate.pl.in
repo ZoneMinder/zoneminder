@@ -405,7 +405,8 @@ if ( $version )
         if ( $response =~ /^[yY]$/ )
         {
             my ( $host, $port ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
-            my $command = "mysqldump -h".$host;
+            my $command = "mysqldump";
+			$command .= " -h".$host if defined($host);
             $command .= " -P".$port if defined($port);
             if ( $dbUser )
             {

@@ -9,7 +9,7 @@ SET @s = (SELECT IF(
 	AND table_schema = DATABASE()
 	AND column_name = 'Exif'
 	) > 0,
-"SELECT 'Column Options already exists in Monitors'",
+"SELECT 'Column Exif already exists in Monitors'",
 "ALTER TABLE `Monitors` ADD `Exif` tinyint(1) unsigned NOT NULL default '0' AFTER `WebColour`"
 ));
 

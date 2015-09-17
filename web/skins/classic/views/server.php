@@ -54,6 +54,10 @@ xhtmlHeaders(__FILE__, translate('Server')." - ".$newServer['Name'] );
               <th scope="row"><?php echo translate('ServerName') ?></th>
               <td><input type="text" name="newServer[Name]" value="<?php echo $newServer['Name'] ?>"/></td>
             </tr>
+            <tr>
+              <th scope="row"><?php echo translate('ServerHostname') ?></th>
+              <td><input type="text" name="newServer[Hostname]" value="<?php echo $newServer['Hostname'] ?>"/></td>
+            </tr>
           </tbody>
         </table>
         <div id="contentButtons">

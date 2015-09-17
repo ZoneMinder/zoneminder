@@ -18,6 +18,8 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
+require_once('includes/Monitor.php');
+
 if ( !canView( 'Stream' ) )
 {
     $view = "error";
@@ -29,50 +31,51 @@ if ( ! visibleMonitor( $_REQUEST['mid'] ) ) {
 }
 
 $sql = 'SELECT C.*, M.* FROM Monitors AS M LEFT JOIN Controls AS C ON (M.ControlId = C.Id ) WHERE M.Id = ?';
-$monitor = dbFetchOne( $sql, NULL, array( $_REQUEST['mid'] ) );
+$monitor = new Monitor( $_REQUEST['mid'] );
+#dbFetchOne( $sql, NULL, array( $_REQUEST['mid'] ) );
 
 if ( isset($_REQUEST['showControls']) )
     $showControls = validInt($_REQUEST['showControls']);
 else
-    $showControls = (canView( 'Control' ) && ($monitor['DefaultView'] == 'Control'));
+    $showControls = (canView( 'Control' ) && ($monitor->DefaultView == 'Control'));
 
-$showPtzControls = ( ZM_OPT_CONTROL && $monitor['Controllable'] && canView( 'Control' ) );
+$showPtzControls = ( ZM_OPT_CONTROL && $monitor->Controllable && canView( 'Control' ) );
 
 if ( isset( $_REQUEST['scale'] ) )
     $scale = validInt($_REQUEST['scale']);
 else
-    $scale = reScale( SCALE_BASE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+    $scale = reScale( SCALE_BASE, $monitor->DefaultScale, ZM_WEB_DEFAULT_SCALE );
 
 $connkey = generateConnKey();
 
 if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT )
 {
     $streamMode = "mpeg";
-    $streamSrc = getStreamSrc( array( "mode=".$streamMode, "monitor=".$monitor['Id'], "scale=".$scale, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_LIVE_FORMAT ) );
+    $streamSrc = $monitor->getStreamSrc( array( "mode=".$streamMode, "scale=".$scale, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_LIVE_FORMAT ) );
 }
 elseif ( canStream() )
 {
     $streamMode = "jpeg";
-    $streamSrc = getStreamSrc( array( "mode=".$streamMode, "monitor=".$monitor['Id'], "scale=".$scale, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "buffer=".$monitor['StreamReplayBuffer'] ) );
+    $streamSrc = $monitor->getStreamSrc( array( "mode=".$streamMode, "scale=".$scale, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "buffer=".$monitor->StreamReplayBuffer() ) );
 }
 else
 {
     $streamMode = "single";
-    $streamSrc = getStreamSrc( array( "mode=".$streamMode, "monitor=".$monitor['Id'], "scale=".$scale ) );
+    $streamSrc = $monitor->getStreamSrc( array( "mode=".$streamMode, "scale=".$scale ) );
     Info( "The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.");
 }
 
-$showDvrControls = ( $streamMode == 'jpeg' && $monitor['StreamReplayBuffer'] != 0 );
+$showDvrControls = ( $streamMode == 'jpeg' && $monitor->StreamReplayBuffer() != 0 );
 
 noCacheHeaders();
 
-xhtmlHeaders( __FILE__, $monitor['Name']." - ".translate('Feed') );
+xhtmlHeaders( __FILE__, $monitor->Name()." - ".translate('Feed') );
 ?>
 <body>
   <div id="page">
     <div id="content">
       <div id="menuBar">
-        <div id="monitorName"><?php echo $monitor['Name'] ?></div>
+        <div id="monitorName"><?php echo $monitor->Name() ?></div>
         <div id="closeControl"><a href="#" onclick="closeWindow(); return( false );"><?php echo translate('Close') ?></a></div>
         <div id="menuControls">
 <?php
@@ -93,7 +96,7 @@ if ( $showPtzControls )
 }
 ?>
 <?php
-if ( canView( 'Control' ) && $monitor['Type'] == "Local" )
+if ( canView( 'Control' ) && $monitor->Type() == "Local" )
 {
 ?>
           <div id="settingsControl"><?php echo makePopupLink( '?view=settings&amp;mid='.$monitor['Id'], 'zmSettings'.$monitor['Id'], 'settings', translate('Settings'), true, 'id="settingsLink"' ) ?></div>

@@ -20,14 +20,34 @@ OPT_AUTH enabled, you need to log into ZoneMinder using the same browser you pla
 use the APIs from. If you are developing an app that relies on the API, you need 
 to do a POST login from the app into ZoneMinder before you can access the API.
 
+Then, you need to re-use the authentication information of the login (returned as cookie states)
+with subsequent APIs for the authentication information to flow through to the APIs.
+
 This means if you plan to use cuRL to experiment with these APIs, you first need to do
 
 ::
 
-	curl -d "username=XXXX&password=YYYY&action=login&view=console"  http://yourzmip/zm/index.php -c cookies.txt
+	curl -d "username=XXXX&password=YYYY&action=login&view=console" -c cookies.txt  http://yourzmip/zm/index.php 
 
 replacing *XXXX* and *YYYY* with your username and password, respectively.
-Then for each of the examples below, add a ``-c cookies.txt`` at the end of the requests.
+
+Please make sure you do this in a directory where you have write permissions, otherwise cookies.txt will not be created
+and the command will silently  fail.
+
+
+What the "-c cookies.txt" does is store a cookie state reflecting that you have logged into ZM. You now need
+to apply that cookie state to all subsequent APIs. You do that by using a '-b cookies.txt' to subsequent APIs if you are 
+using CuRL like so:
+
+::
+
+	curl -b cookies.txt http://yourzmip/zm/api/monitors.json
+
+This would return a list of monitors and pass on the authentication information to the ZM API layer. 
+
+So remember, if you are using authentication, please add a ``-b cookies.txt``  to each of the commands below if you are using
+CuRL. If you are not using CuRL and writing your own app, you need to make sure you pass on cookies to subsequent requests
+in your app.
 
 Examples (please read security notice above)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

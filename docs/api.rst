@@ -24,10 +24,13 @@ This means if you plan to use cuRL to experiment with these APIs, you first need
 
 ::
 
-	curl -d "username=XXXX&password=YYYY&action=login&view=console"  http://yourzmip/zm/index.php -c cookies.txt
+	curl -d "username=XXXX&password=YYYY&action=login&view=console" -c cookies.txt  http://yourzmip/zm/index.php 
 
 replacing *XXXX* and *YYYY* with your username and password, respectively.
-Then for each of the examples below, add a ``-c cookies.txt`` at the end of the requests.
+Then for each of the examples below, add a ``-b cookies.txt``  to each of the commands below.
+
+Please make sure you do this in a directory where you have write permissions, otherwise cookies.txt will not be created
+and the command will silently  fail.
 
 Examples (please read security notice above)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

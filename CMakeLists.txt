@@ -142,6 +142,8 @@ set(ZM_PERL_SEARCH_PATH "" CACHE PATH
 	installed outside Perl's default search path.")
 set(ZM_TARGET_DISTRO "" CACHE STRING 
     "Build ZoneMinder for a specific distribution.  Currently, valid names are: f21, f20, el6, OS13")
+set(ZM_SSL_LIB "gnutls" CACHE STRING
+    "Set to openssl to enable OpenSSL library support, default: gnutls")
 
 # Reassign some variables if a target distro has been specified
 if((ZM_TARGET_DISTRO STREQUAL "f21") OR (ZM_TARGET_DISTRO STREQUAL "f20"))
@@ -261,19 +263,20 @@ else(JPEG_FOUND)
             "ZoneMinder requires jpeg but it was not found on your system")
 endif(JPEG_FOUND)
 
-# OpenSSL
-find_package(OpenSSL)
-if(OPENSSL_FOUND)
-	set(HAVE_LIBOPENSSL 1)
-	set(HAVE_LIBCRYPTO 1)
-	list(APPEND ZM_BIN_LIBS "${OPENSSL_LIBRARIES}")
-	include_directories("${OPENSSL_INCLUDE_DIR}")
-	set(CMAKE_REQUIRED_INCLUDES "${OPENSSL_INCLUDE_DIR}")
-	check_include_file("openssl/md5.h" HAVE_OPENSSL_MD5_H)
-	set(optlibsfound "${optlibsfound} OpenSSL")
-else(OPENSSL_FOUND)
-	set(optlibsnotfound "${optlibsnotfound} OpenSSL")
-endif(OPENSSL_FOUND)
+if(ZM_SSL_LIB STREQUAL "openssl")
+	find_package(OpenSSL)
+	if(OPENSSL_FOUND)
+		set(HAVE_LIBOPENSSL 1)
+		set(HAVE_LIBCRYPTO 1)
+		list(APPEND ZM_BIN_LIBS "${OPENSSL_LIBRARIES}")
+		include_directories("${OPENSSL_INCLUDE_DIR}")
+		set(CMAKE_REQUIRED_INCLUDES "${OPENSSL_INCLUDE_DIR}")
+		check_include_file("openssl/md5.h" HAVE_OPENSSL_MD5_H)
+		set(optlibsfound "${optlibsfound} OpenSSL")
+	else(OPENSSL_FOUND)
+		set(optlibsnotfound "${optlibsnotfound} OpenSSL")
+	endif(OPENSSL_FOUND)
+endif(ZM_SSL_LIB STREQUAL "openssl")
 
 # pthread (using find_library and find_path)
 find_library(PTHREAD_LIBRARIES pthread)

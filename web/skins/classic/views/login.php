@@ -22,7 +22,7 @@ xhtmlHeaders(__FILE__, translate('Login') );
 ?>
 <!-- PP: Add recaptcha script if enabled -->
 <?php 
-	if (ZM_OPT_USE_GOOG_RECAPTCHA)
+	if (!empty(ZM_OPT_USE_GOOG_RECAPTCHA))
 	{
 		echo "<head> <script src='https://www.google.com/recaptcha/api.js'></script> </head>";
 	}
@@ -41,7 +41,7 @@ xhtmlHeaders(__FILE__, translate('Login') );
           <tbody>
             <tr>
               <td class="colLeft"><?php echo translate('Username') ?></td>
-              <td class="colRight"><input type="text" name="username" value="<?php echo isset($_REQUEST['username'])?validHtmlStr($_REQUEST['username']):"" ?>" size="12"/></td>
+              <td class="colRight"><input type="text" name="username" value="<?php echo isset($_REQUEST['username'])?validHtmlStr($_REQUEST['username']):"" ?>" size="13"/></td>
             </tr>
             <tr>
               <td class="colLeft"><?php echo translate('Password') ?></td>
@@ -52,7 +52,7 @@ xhtmlHeaders(__FILE__, translate('Login') );
         <input type="submit" value="<?php echo translate('Login') ?>"/>
 	<!-- PP: Added recaptcha widget if enabled -->
 	<?php
-	if (ZM_OPT_USE_GOOG_RECAPTCHA && ZM_OPT_GOOG_RECAPTCHA_SITEKEY && ZM_OPT_GOOGLE_RECAPTCHA_SECRETKEY)
+	if (!empty(ZM_OPT_USE_GOOG_RECAPTCHA) && !empty(ZM_OPT_GOOG_RECAPTCHA_SITEKEY) && !empty(ZM_OPT_GOOGLE_RECAPTCHA_SECRETKEY))
 	{
 	echo "<br/><br/><center> <div class='g-recaptcha'  data-sitekey='".ZM_OPT_GOOG_RECAPTCHA_SITEKEY."'></div> </center>";
 	}

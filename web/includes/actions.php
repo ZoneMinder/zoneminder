@@ -68,7 +68,11 @@ if ( ZM_OPT_USE_AUTH && ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST[
 if ( !empty($action) )
 {
     // PP - lets validate reCaptcha if it exists
-	if (ZM_OPT_USE_GOOG_RECAPTCHA && ZM_OPT_GOOG_RECAPTCHA_SECRETKEY && ZM_OPT_GOOG_RECAPTCHA_SITEKEY)
+	if  (   defined('ZM_OPT_USE_GOOG_RECAPTCHA') 
+		&& defined('ZM_OPT_GOOG_RECAPTCHA_SECRETKEY') 
+		&& defined('ZM_OPT_GOOG_RECAPTCHA_SITEKEY')
+		&& ZM_OPT_USE_GOOG_RECAPTCHA && ZM_OPT_GOOG_RECAPTCHA_SECRETKEY 
+		&& ZM_OPT_GOOG_RECAPTCHA_SITEKEY)
 	{
 		$url = 'https://www.google.com/recaptcha/api/siteverify';
 		$fields = array (

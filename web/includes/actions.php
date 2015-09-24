@@ -22,6 +22,7 @@
 // PP - POST request handler for PHP which does not need extensions
 // credit: http://wezfurlong.org/blog/2006/nov/http-post-from-php-without-curl/
 
+
 function do_post_request($url, $data, $optional_headers = null)
 {
   $params = array('http' => array(
@@ -67,8 +68,14 @@ if ( ZM_OPT_USE_AUTH && ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST[
 
 if ( !empty($action) )
 {
-    // PP - lets validate reCaptcha if it exists
-	if (ZM_OPT_USE_GOOG_RECAPTCHA && ZM_OPT_GOOG_RECAPTCHA_SECRETKEY && ZM_OPT_GOOG_RECAPTCHA_SITEKEY)
+	// if true, a popup will display after login
+
+    	// PP - lets validate reCaptcha if it exists
+	if  (   defined('ZM_OPT_USE_GOOG_RECAPTCHA') 
+		&& defined('ZM_OPT_GOOG_RECAPTCHA_SECRETKEY') 
+		&& defined('ZM_OPT_GOOG_RECAPTCHA_SITEKEY')
+		&& ZM_OPT_USE_GOOG_RECAPTCHA && ZM_OPT_GOOG_RECAPTCHA_SECRETKEY 
+		&& ZM_OPT_GOOG_RECAPTCHA_SITEKEY)
 	{
 		$url = 'https://www.google.com/recaptcha/api/siteverify';
 		$fields = array (
@@ -78,12 +85,32 @@ if ( !empty($action) )
 
 		);
 		$res= do_post_request($url, http_build_query($fields));
-		$result = json_decode($res);
-		if ($result->success != 'true')
+		$responseData = json_decode($res,true);
+		// PP - credit: https://github.com/google/recaptcha/blob/master/src/ReCaptcha/Response.php
+		// if recaptcha resulted in error, we might have to deny login
+		if (isset($responseData['success']) && $responseData['success'] == false)
 		{
-			userLogout();
-			$view='login';
-			$refreshParent = true;
+			// PP - before we deny auth, let's make sure the error was not 'invalid secret'
+			// because that means the user did not configure the secret key correctly
+			// in this case, we prefer to let him login in and display a message to correct
+			// the key. Unfortunately, there is no way to check for invalid site key in code
+			// as it produces the same error as when you don't answer a recaptcha
+			if (isset($responseData['error-codes']) && is_array($responseData['error-codes'])) 
+			{
+				if (!in_array('invalid-input-secret',$responseData['error-codes']))
+				{	
+					userLogout();
+					$view='login';
+					$refreshParent = true;
+				}
+				else
+				{
+					//Let them login but show an error
+					echo "<script type='text/javascript'>alert('Really annoying pop-up!');</script>";
+					$recaptchaWarning = true;
+
+				}
+			}
 
 		}
 

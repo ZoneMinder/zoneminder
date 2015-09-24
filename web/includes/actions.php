@@ -68,7 +68,6 @@ if ( ZM_OPT_USE_AUTH && ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST[
 
 if ( !empty($action) )
 {
-	// if true, a popup will display after login
 
     	// PP - lets validate reCaptcha if it exists
 	if  (   defined('ZM_OPT_USE_GOOG_RECAPTCHA') 

@@ -27,13 +27,6 @@ elseif ( ZM_DYN_SHOW_DONATE_REMINDER )
 var showVersionPopup = <?php echo isset($showVersionPopup )?'true':'false' ?>;
 var showDonatePopup = <?php echo isset($showDonatePopup )?'true':'false' ?>;
 
-//PP - display popup if during login, it was found that secret was invalid
-var recaptchaWarning = <?php echo isset($recaptchaWarning)?'true':'false' ?>;
-if ( recaptchaWarning )
-{
-    alert( "<?php echo translate('RecaptchaWarning') ?>" );
-}
-
 
 
 

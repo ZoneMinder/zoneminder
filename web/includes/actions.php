@@ -68,7 +68,9 @@ if ( ZM_OPT_USE_AUTH && ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST[
 
 if ( !empty($action) )
 {
-
+    if ( $action == "login" && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == "remote" || isset($_REQUEST['password']) ) )
+    {
+	// if true, a popup will display after login
     	// PP - lets validate reCaptcha if it exists
 	if  (   defined('ZM_OPT_USE_GOOG_RECAPTCHA') 
 		&& defined('ZM_OPT_GOOG_RECAPTCHA_SECRETKEY') 
@@ -98,6 +100,7 @@ if ( !empty($action) )
 			{
 				if (!in_array('invalid-input-secret',$responseData['error-codes']))
 				{	
+					Error ("reCaptcha authentication failed");
 					userLogout();
 					$view='login';
 					$refreshParent = true;
@@ -105,8 +108,8 @@ if ( !empty($action) )
 				else
 				{
 					//Let them login but show an error
-					echo "<script type='text/javascript'>alert('Really annoying pop-up!');</script>";
-					$recaptchaWarning = true;
+					echo '<script type="text/javascript">alert("'.translate('RecaptchaWarning').'"); </script>';
+					Error ("Invalid recaptcha secret detected");
 
 				}
 			}
@@ -114,6 +117,7 @@ if ( !empty($action) )
 		}
 
 	}
+     }
 
     // General scope actions
     if ( $action == "login" && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == "remote" || isset($_REQUEST['password']) ) )

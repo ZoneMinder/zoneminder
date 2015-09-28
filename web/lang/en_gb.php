@@ -578,6 +578,7 @@ $SLANG = array(
     'Progress'              => 'Progress',
     'Protocol'              => 'Protocol',
     'Rate'                  => 'Rate',
+    'RecaptchaWarning'      => 'Your reCaptcha secret key is invalid. Please correct it, or reCaptcha will not work', // added Sep 24 2015 - PP
     'Real'                  => 'Real',
     'Record'                => 'Record',
     'RefImageBlendPct'      => 'Reference Image Blend %ge',

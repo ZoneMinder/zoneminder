@@ -35,7 +35,7 @@ var popupSizes = {
     'donate':       { 'width': 500, 'height': 280 },
     'event':        { 'addWidth': 108, 'minWidth': 496, 'addHeight': 230, minHeight: 540 },
     'eventdetail':  { 'width': 600, 'height': 220 },
-    'events':       { 'width': 960, 'height': 780 },
+    'events':       { 'width': 1080, 'height': 780 },
     'export':       { 'width': 400, 'height': 340 },
     'filter':       { 'width': 720, 'height': 360 },
     'filtersave':   { 'width': 610, 'height': 120 },

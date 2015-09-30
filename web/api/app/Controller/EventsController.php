@@ -150,10 +150,8 @@ class EventsController extends AppController {
 			throw new NotFoundException(__('Invalid event'));
 		}
 		$this->request->allowMethod('post', 'delete');
-		if ($this->Event->delete()) {
-			// PP - lets make sure the frame table entry is removed too
-			$this->loadModel('Frame');
-                        $this->Frame->delete();
+		//PP - lets not delete the Frames - let zmaudit take care of it offline
+		if ($this->Event->delete($id,false)) {
 			return $this->flash(__('The event has been deleted.'), array('action' => 'index'));
 		} else {
 			return $this->flash(__('The event could not be deleted. Please, try again.'), array('action' => 'index'));

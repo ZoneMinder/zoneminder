@@ -1,37 +1,20 @@
 --
--- This updates a 1.28.105 database to 1.28.106
+-- This updates a 1.28.106 database to 1.28.107
 --
 
 --
--- Add Monitor StateId field
---
-SET @s = (SELECT IF(
-    (SELECT COUNT(*)
-    FROM INFORMATION_SCHEMA.COLUMNS
-    WHERE table_name = 'Servers'
-    AND table_schema = DATABASE()
-    AND column_name = 'StateId'
-    ) > 0,
-"SELECT 'Column StateId already exists in Servers'",
-"ALTER TABLE `Servers` ADD `StateId` int(10) unsigned AFTER `Name`"
-));
-
-PREPARE stmt FROM @s;
-EXECUTE stmt;
-
---
--- Add Monitor RTSPDescribe field
--- Used to enable or disable processing of the remote camera RTSP DESCRIBE response header
+-- Update Frame table to have a PrimaryKey of ID, insetad of a Composite Primary Key
+-- Used primarially for compatibility with CakePHP
 --
 SET @s = (SELECT IF(
 	(SELECT COUNT(*)
 	FROM INFORMATION_SCHEMA.COLUMNS
-	WHERE table_name = 'Servers'
+	WHERE table_name = 'Frames'
 	AND table_schema = DATABASE()
-	AND column_name = 'Hostname'
+	AND column_name = 'Id'
 	) > 0,
-"SELECT 'Column Hostname already exists in Servers'",
-"ALTER TABLE `Servers` ADD `Hostname` TEXT NOT NULL default '' AFTER `StateId`"
+"SELECT 'Column ID already exists in Monitors'",
+"ALTER TABLE `Frames` ADD COLUMN `Id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT FIRST, DROP PRIMARY KEY, ADD PRIMARY KEY(`Id`)"
 ));
 
 PREPARE stmt FROM @s;

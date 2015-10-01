@@ -19,7 +19,7 @@ class Frame extends AppModel {
  *
  * @var string
  */
-	public $primaryKey = 'FrameId';
+	public $primaryKey = 'Id';
 
 /**
  * Validation rules

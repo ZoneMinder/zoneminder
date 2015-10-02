@@ -2056,6 +2056,7 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
         sql += "'";
     }
     if ( staticConfig.SERVER_ID ) {
+Debug( 1, "Server ID %d", staticConfig.SERVER_ID );
         sql += " AND ServerId='";
         sql += staticConfig.SERVER_ID;
         sql += "'";

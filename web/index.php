@@ -60,6 +60,12 @@ else
 define( "ZM_BASE_PROTOCOL", $protocol );
 define( "ZM_BASE_URL", $protocol.'://'.$_SERVER['HTTP_HOST'] );
 
+// Check time zone is set
+if (!ini_get('date.timezone') || !date_default_timezone_set(ini_get('date.timezone'))) {
+    date_default_timezone_set('UTC');
+    Fatal( "ZoneMinder is not installed properly: php's date.timezone is not set to a valid timezone" );
+}
+
 if ( isset($_GET['skin']) )
     $skin = $_GET['skin'];
 elseif ( isset($_COOKIE['zmSkin']) )
@@ -124,6 +130,12 @@ else
 
 require_once( 'includes/lang.php' );
 require_once( 'includes/functions.php' );
+
+// Check for valid content dirs
+if ( !is_writable(ZM_DIR_EVENTS) || !is_writable(ZM_DIR_IMAGES) )
+{
+	Fatal( "Cannot write to content dirs('".ZM_DIR_EVENTS."','".ZM_DIR_IMAGES."').  Check that these exist and are owned by the web account user");
+}
 
 if ( isset($_REQUEST['view']) )
     $view = detaintPath($_REQUEST['view']);

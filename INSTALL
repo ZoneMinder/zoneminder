@@ -92,8 +92,9 @@ NOTE: The database server, database name, user and password can be different and
 7) Populate the zoneminder database using the script zm_create.sql. This should be found in <prefix>/share/zoneminder/db or in the project/db directory.
 
 8) Create an apache virtual host for ZoneMinder. Make sure to use the same paths as ZM_WEBDIR and ZM_CGIDIR in /etc/zm.conf
-9) Create other config if desired (e.g. rsyslog, logrotate and such). Some of this can be found in <prefix>/share/zoneminder/misc or project/misc directory
-10) Setup an appropriate startup script for your system. Two generic startup scripts have been provided, a legacy Sys V Init script and a Systemd service file.
+9) Verify date.timezone is set to your timezone. This parameter is often found inside the system php.ini file. Consult your distribution's documentation for the proper way to set this value.
+10) Create other config if desired (e.g. rsyslog, logrotate and such). Some of this can be found in <prefix>/share/zoneminder/misc or project/misc directory
+11) Setup an appropriate startup script for your system. Two generic startup scripts have been provided, a legacy Sys V Init script and a Systemd service file.
 
 *Sys V Init Setup*
 - Copy the sys v init script /scripts/zm from the build folder to /etc/init. 

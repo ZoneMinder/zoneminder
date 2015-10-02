@@ -232,7 +232,7 @@ public:
 
 	const Coord centreCoord( const char *text ) const;
         void MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour=0x00222222 );
-	void Annotate( const char *p_text, const Coord &coord, const int size=1, const Rgb fg_colour=RGB_WHITE, const Rgb bg_colour=RGB_BLACK );
+	void Annotate( const char *p_text, const Coord &coord, const unsigned int size=1, const Rgb fg_colour=RGB_WHITE, const Rgb bg_colour=RGB_BLACK );
 	Image *HighlightEdges( Rgb colour, unsigned int p_colours, unsigned int p_subpixelorder, const Box *limits=0 );
 	//Image *HighlightEdges( Rgb colour, const Polygon &polygon );
 	void Timestamp( const char *label, const time_t when, const Coord &coord, const int size );

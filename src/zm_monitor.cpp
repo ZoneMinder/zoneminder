@@ -2057,9 +2057,7 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
     }
     if ( staticConfig.SERVER_ID ) {
 Debug( 1, "Server ID %d", staticConfig.SERVER_ID );
-        sql += " AND ServerId='";
-        sql += staticConfig.SERVER_ID;
-        sql += "'";
+        sql += stringtf( " AND ServerId=%d", staticConfig.SERVER_ID );
     }
 
     MYSQL_RES *result = zmDbFetch( sql.c_str() );
@@ -2233,9 +2231,7 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
 {
     std::string sql = "select Id, Name, ServerId, Function+0, Enabled, LinkedMonitors, Protocol, Method, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPS, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif from Monitors where Function != 'None' and Type = 'Remote'";
     if ( staticConfig.SERVER_ID ) {
-        sql += " AND ServerId='";
-        sql += staticConfig.SERVER_ID;
-        sql += "'";
+        sql += stringtf( " AND ServerId=%d", staticConfig.SERVER_ID );
     }
 
     if ( protocol ) {
@@ -2418,9 +2414,7 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
         sql += "'";
     }
     if ( staticConfig.SERVER_ID ) {
-        sql += " AND ServerId='";
-        sql += staticConfig.SERVER_ID;
-        sql += "'";
+        sql += stringtf( " AND ServerId=%d", staticConfig.SERVER_ID );
     }
     MYSQL_RES *result = zmDbFetch( sql.c_str() );
     if ( !result )
@@ -2562,9 +2556,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
         sql += "'";
     }
     if ( staticConfig.SERVER_ID ) {
-        sql += " AND ServerId='";
-        sql += staticConfig.SERVER_ID;
-        sql += "'";
+        sql += stringtf( " AND ServerId=%d", staticConfig.SERVER_ID );
     }
     MYSQL_RES *result = zmDbFetch( sql.c_str() );
     if ( ! result ) {

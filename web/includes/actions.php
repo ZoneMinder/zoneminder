@@ -768,7 +768,7 @@ if ( !empty($action) )
     {
 		if ( $_REQUEST['object'] == 'server' ) {
 
-			if ( $action == "save" ) {
+			if ( $action == "Save" ) {
 				if ( !empty($_REQUEST['id']) )
 					$dbServer = dbFetchOne( "SELECT * FROM Servers WHERE Id=?", NULL, array($_REQUEST['id']) );
 				else
@@ -792,6 +792,8 @@ if ( !empty($action) )
 						dbQuery( "DELETE FROM Servers WHERE Id=?", array($Id) );
 				}
                 $refreshParent = true;
+			} else {
+				Error( "Unknown action $action in saving Server" );
 			}
 
         } else if ( $action == "version" && isset($_REQUEST['option']) )

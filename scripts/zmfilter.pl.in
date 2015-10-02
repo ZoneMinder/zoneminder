@@ -349,6 +349,10 @@ sub getFilters
                         my ( $temp_attr_name ) = $filter_expr->{terms}[$i]->{attr} =~ /^Monitor(.+)$/;
                         $db_filter->{Sql} .= "M.".$temp_attr_name;
                     }
+                    elsif ( $filter_expr->{terms}[$i]->{attr} eq 'ServerId' )
+                    {
+                        $db_filter->{Sql} .= "M.ServerId";
+                    }
                     elsif ( $filter_expr->{terms}[$i]->{attr} eq 'DateTime' )
                     {
                         $db_filter->{Sql} .= "E.StartTime";
@@ -391,6 +395,13 @@ sub getFilters
                         if ( $filter_expr->{terms}[$i]->{attr} =~ /^Monitor/ )
                         {
                             $value = "'$temp_value'";
+                        }
+                        elsif ( $filter_expr->{terms}[$i]->{attr} eq 'ServerId' ) {
+                            if ( $temp_value eq 'ZM_SERVER_ID' ) {
+                                $value = "'$Config{ZM_SERVER_ID}'";
+                            } else {
+                                $value = "'$temp_value'";
+                            }
                         }
                         elsif ( $filter_expr->{terms}[$i]->{attr} eq 'Name'
                                 || $filter_expr->{terms}[$i]->{attr} eq 'Cause'

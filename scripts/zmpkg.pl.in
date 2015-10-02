@@ -226,6 +226,7 @@ if ( $command =~ /^(?:start|restart)$/ )
         zmMemTidy();
         runCommand( "zmdc.pl startup" );
 
+		Info( "Starting up services for server $Config{ZM_SERVER_ID}\n" );
         my $sql = $Config{ZM_SERVER_ID} ? 'SELECT * FROM Monitors WHERE ServerId=?' : 'SELECT * FROM Monitors';
         my $sth = $dbh->prepare_cached( $sql )
             or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );

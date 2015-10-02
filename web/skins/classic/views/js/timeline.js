@@ -1,4 +1,4 @@
-var events = new Object();
+var events = {};
 
 function showEvent( eid, fid, width, height )
 {    
@@ -79,8 +79,8 @@ function frameDataResponse( respObj, respText )
 
     event['frames'][frame.FrameId] = frame;
     event['frames'][frame.FrameId]['html'] = createEventHtml( event, frame );
-    showEventDetail( event['frames'][frame.FrameId]['html'] );
-    loadEventImage( frame.Image.imagePath, event.Id, frame.FrameId, event.Width, event.Height, event.Frames/event.Length );
+
+    previewEvent(frame.EventId, frame.FrameId);
 }
 
 var eventQuery = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: eventDataResponse } );
@@ -102,6 +102,7 @@ function requestFrameData( eventId, frameId )
 
 function previewEvent( eventId, frameId )
 {
+    
     if ( events[eventId] )
     {
         if ( events[eventId]['frames'] )
@@ -109,7 +110,9 @@ function previewEvent( eventId, frameId )
             if ( events[eventId]['frames'][frameId] )
             {
                 showEventDetail( events[eventId]['frames'][frameId]['html'] );
-                loadEventImage( events[eventId].frames[frameId].Image.imagePath, eventId, frameId, events[eventId].Width, events[eventId].Height, events[eventId].Frames/events[eventId].Length );
+                var imagePath = events[eventId].frames[frameId].Image.imagePath;
+                var showVideo = parseInt(monitors[events[eventId].MonitorId].VideoWriter);
+                loadEventImage( imagePath, eventId, frameId, events[eventId].Width, events[eventId].Height, events[eventId].Frames/events[eventId].Length, showVideo);
                 return;
             }
         }
@@ -117,40 +120,45 @@ function previewEvent( eventId, frameId )
     requestFrameData( eventId, frameId );
 }
 
-function loadEventImage( imagePath, eid, fid, width, height, fps )
+function loadEventImage( imagePath, eid, fid, width, height, fps, showVideo )
 {
-    console.log(fps);
-//    console.log(imagePrefix);
-//    console.log(imagePath);
-    
-    //console.log(fid/25.0);
     var vid= $('preview');
-    var newsource=imagePrefix+imagePath.slice(0,imagePath.lastIndexOf('/'))+"/event.mp4";
-    //console.log(newsource);
-    //console.log(sources[0].src.slice(-newsource.length));
-    if(newsource!=vid.currentSrc.slice(-newsource.length) || vid.readyState==0)
+    var imageSrc = $('imageSrc');
+    if(showVideo)
     {
-        //console.log("loading new");
-        //it is possible to set a long source list here will that be unworkable?
-        var sources = vid.getElementsByTagName('source');
-        sources[0].src=newsource;
-        vid.load();
-        vid.oncanplay=function(){    vid.currentTime=fid/fps;} //25.0
+        vid.show();
+        imageSrc.hide();
+        var newsource=imagePrefix+imagePath.slice(0,imagePath.lastIndexOf('/'))+"/event.mp4";
+        //console.log(newsource);
+        //console.log(sources[0].src.slice(-newsource.length));
+        if(newsource!=vid.currentSrc.slice(-newsource.length) || vid.readyState==0)
+        {
+            //console.log("loading new");
+            //it is possible to set a long source list here will that be unworkable?
+            var sources = vid.getElementsByTagName('source');
+            sources[0].src=newsource;
+            vid.load();
+            vid.oncanplay=function(){    vid.currentTime=fid/fps;} //25.0
+        }
+        else
+        {
+            vid.oncanplay=null;//console.log("canplay");}
+            if(!vid.seeking)
+                vid.currentTime=fid/fps;//25.0;
+        }
     }
     else
     {
-        vid.oncanplay=null;//console.log("canplay");}
-        if(!vid.seeking)
-            vid.currentTime=fid/fps;//25.0;
+        vid.hide();
+        imageSrc.show();
+        imageSrc.setProperty( 'src', imagePrefix+imagePath );
+        imageSrc.removeEvent( 'click' );
+        imageSrc.addEvent( 'click', showEvent.pass( [ eid, fid, width, height ] ) );
     }
-    
-   /* var imageSrc = $('imageSrc');
-    imageSrc.setProperty( 'src', imagePrefix+imagePath );
-    imageSrc.removeEvent( 'click' );
-    imageSrc.addEvent( 'click', showEvent.pass( [ eid, fid, width, height ] ) );
+
     var eventData = $('eventData');
     eventData.removeEvent( 'click' );
-    eventData.addEvent( 'click', showEvent.pass( [ eid, fid, width, height ] ) );*/
+    eventData.addEvent( 'click', showEvent.pass( [ eid, fid, width, height ] ) );
 }
 
 function tlZoomBounds( minTime, maxTime )

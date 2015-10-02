@@ -2085,15 +2085,13 @@ Debug( 1, "Server ID %d", staticConfig.SERVER_ID );
         const char *device = dbrow[col]; col++;
         int channel = atoi(dbrow[col]); col++;
         int format = atoi(dbrow[col]); col++;
-        bool v4l_multi_buffer;
+        bool v4l_multi_buffer = config.v4l_multi_buffer;
         if ( dbrow[col] ) {
             if (*dbrow[col] == '0' ) {
                 v4l_multi_buffer = false;
             } else if ( *dbrow[col] == '1' ) {
                 v4l_multi_buffer = true;
             } 
-        } else {
-            v4l_multi_buffer = config.v4l_multi_buffer;
         }
         col++;
         
@@ -2727,15 +2725,13 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose )
     int channel = atoi(dbrow[col]); col++;
     int format = atoi(dbrow[col]); col++;
 
-    bool v4l_multi_buffer;
+    bool v4l_multi_buffer = config.v4l_multi_buffer;
     if ( dbrow[col] ) {
         if (*dbrow[col] == '0' ) {
             v4l_multi_buffer = false;
         } else if ( *dbrow[col] == '1' ) {
             v4l_multi_buffer = true;
         }
-    } else {
-        v4l_multi_buffer = config.v4l_multi_buffer;
     }
     col++;
 

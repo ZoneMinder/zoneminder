@@ -168,7 +168,7 @@ protected:
 #else // ZM_MEM_MAPPED
         int             shm_id;
 #endif // ZM_MEM_MAPPED
-		unsigned long	mem_size;
+		off_t	mem_size;
 		unsigned char	*mem_ptr;
 
 		volatile SharedData	*shared_data;
@@ -279,7 +279,7 @@ protected:
 #else // ZM_MEM_MAPPED
     int             shm_id;
 #endif // ZM_MEM_MAPPED
-	unsigned long				mem_size;
+	off_t				mem_size;
 	unsigned char	*mem_ptr;
 
 	SharedData		*shared_data;
@@ -295,10 +295,12 @@ protected:
 
 	int			n_zones;
 	Zone			**zones;
-	const unsigned char	*privacy_bitmask;
 
 	struct timeval		**timestamps;
 	Image			**images;
+
+	const unsigned char	*privacy_bitmask;
+
 
 	int			iDoNativeMotDet;
 

@@ -21,7 +21,7 @@ class Server {
 		return $this->{'Name'};
 	}
 	public function Hostname() {
-		if ( ! isset( $this->{'Hostname'} ) ) {
+		if ( ( ! isset( $this->{'Hostname'} ) and $this->{'Hostname'} != '' ) ) {
 			return $this->{'Name'};
 		}
 		return $this->{'Hostname'};

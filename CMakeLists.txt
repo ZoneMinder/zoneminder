@@ -704,7 +704,9 @@ else(zmconfgen_result EQUAL 0)
 endif(zmconfgen_result EQUAL 0)
 
 # Install zm.conf
+if(NOT EXISTS "${ZM_CONFIG_DIR}/zm.conf")
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zm.conf" DESTINATION "${ZM_CONFIG_DIR}")
+endif(NOT EXISTS "${ZM_CONFIG_DIR}/zm.conf")
 
 # Uninstall target
 configure_file(

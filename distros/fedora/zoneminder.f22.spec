@@ -96,8 +96,20 @@ fi
 /usr/bin/gpasswd -a %{zmuid_final} video
 /usr/bin/gpasswd -a %{zmuid_final} dialout
 
-# Display the README for post installation instructions
-/usr/bin/less %{_docdir}/%{name}/README.Fedora
+# Upgrade from a previous version of zoneminder 
+if [ $1 -eq 2 ] ; then
+    # Freshen the database
+    /usr/bin/zmupdate.pl -f
+
+    # We can't run this automatically when new sql account permissions need to
+    # be manually added first
+    # Run zmupdate non-interactively
+    #/usr/bin/zmupdate.pl --nointeractive
+fi
+
+# Warn the end user to read the README file
+echo -e "\nVERY IMPORTANT: Before starting ZoneMinder, read README.Fedora to finish the\ninstallation or upgrade!\n"
+echo -e "\nThe README file is located here: %{_docdir}/%{name}\n"
 
 %preun
 if [ $1 -eq 0 ] ; then

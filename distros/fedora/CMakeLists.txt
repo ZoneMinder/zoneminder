@@ -4,7 +4,10 @@
 message([STATUS] "Starting Fedora Build Options" ...)
 
 # Create the ZoneMinder Apache config file
+configure_file(zoneminder.service.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.service @ONLY)
 configure_file(zoneminder.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.conf @ONLY)
+configure_file(zoneminder.tmpfiles.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.tmpfiles @ONLY)
+configure_file(zoneminder.logrotate.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.logrotate @ONLY)
 
 # Download jscalendar & move files into position
 file(DOWNLOAD http://downloads.sourceforge.net/jscalendar/jscalendar-1.0.zip ${CMAKE_CURRENT_SOURCE_DIR}/jscalendar-1.0.zip STATUS download_jsc)

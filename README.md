@@ -140,8 +140,6 @@ root@host:~# gdebi /root/zoneminder_1.26.4-1_amd64.deb;
 
 #### Fedora / CentOS / RHEL
 
-***DRAFT* ** Needs Testing
-
 ##### Background
 The following method documents how to build ZoneMinder into an RPM package, compatible with Fedora, Redhat, CentOS, and other compatible clones. This is exactly how the RPMS in zmrepo are built.
 

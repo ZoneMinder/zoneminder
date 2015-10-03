@@ -1,5 +1,11 @@
 # CMakeLists.txt for the Fedora Target Distro.
 
+# Display a message to show the Fedora build options are being processed.
+message([STATUS] "Starting Fedora Build Options" ...)
+
+# Create the ZoneMinder Apache config file
+configure_file(zoneminder.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.conf @ONLY)
+
 # Download jscalendar & move files into position
 file(DOWNLOAD http://downloads.sourceforge.net/jscalendar/jscalendar-1.0.zip ${CMAKE_CURRENT_SOURCE_DIR}/jscalendar-1.0.zip STATUS download_jsc)
 if(download_jsc EQUAL 0)

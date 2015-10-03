@@ -1,17 +1,21 @@
 var filterQuery = '<?php echo validJsStr($filterQuery) ?>';
 
-var monitorNames = {};
 <?php
+$jsMonitors = array();
+$fields = array('Name', 'SaveJPEGs', 'VideoWriter');
 foreach ( $monitors as $monitor )
 {
     if ( !empty($monitorIds[$monitor['Id']]) )
     {
-?>
-monitorNames[<?php echo $monitor['Id'] ?>] = '<?php echo validJsStr($monitor['Name']) ?>';
-<?php
+        $jsMonitor = array();
+        foreach ($fields as $field)
+        {
+            $jsMonitor[$field] = $monitor[$field];
+        }
+        $jsMonitors[$monitor['Id']] = $jsMonitor;
     }
 }
 ?>
-var monitors = <?php echo json_encode($monitors) ?>;
+var monitors = <?php echo json_encode($jsMonitors) ?>;
 
 var archivedString = "<?php echo translate('Archived') ?>";

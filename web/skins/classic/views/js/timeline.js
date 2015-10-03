@@ -22,7 +22,7 @@ function createEventHtml( event, frame )
     if ( event.Archived > 0 )
         eventHtml.addClass( 'archived' );
 
-    new Element( 'p' ).inject( eventHtml ).set( 'text', monitorNames[event.MonitorId] );
+    new Element( 'p' ).inject( eventHtml ).set( 'text', monitors[event.MonitorId].Name );
     new Element( 'p' ).inject( eventHtml ).set( 'text', event.Name+(frame?("("+frame.FrameId+")"):"") );
     new Element( 'p' ).inject( eventHtml ).set( 'text', event.StartTime+" - "+event.Length+"s" );
     new Element( 'p' ).inject( eventHtml ).set( 'text', event.Cause );

@@ -114,8 +114,8 @@ if [ $1 -eq 0 ] ; then
     # Package removal, not upgrade
     /bin/systemctl --no-reload disable zoneminder.service > /dev/null 2>&1 || :
     /bin/systemctl stop zoneminder.service > /dev/null 2>&1 || :
-    echo -e "\nRemoving ZoneMinder SELinux policy module. Please wait.\n"
-    /usr/sbin/semodule -r local_zoneminder.pp
+#    echo -e "\nRemoving ZoneMinder SELinux policy module. Please wait.\n"
+#    /usr/sbin/semodule -r local_zoneminder.pp
 fi
 
 %postun

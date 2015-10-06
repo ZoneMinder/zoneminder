@@ -812,8 +812,7 @@ xhtmlHeaders(__FILE__, translate('Timeline') );
       <div id="topPanel" class="graphWidth">
         <div id="imagePanel">
           <div id="image" class="imageHeight">
-			<!-- <img id="imageSrc" class="imageWidth" src="graphics/transparent.gif" alt="<?php echo translate('ViewEvent') ?>" title="<?php echo translate('ViewEvent') ?>"/>-->
-			<!-- width="<?php echo $event['Width']; ?>" height="<?php echo $event['Height']; ?>" -->
+		        <img id="imageSrc" class="imageWidth" src="graphics/transparent.gif" alt="<?php echo translate('ViewEvent') ?>" title="<?php echo translate('ViewEvent') ?>"/>
 			<video id="preview" width="100%" controls>
 				<source src="<?php echo "/events/".getEventPath($event)."/event.mp4"; ?>" type="video/mp4">
 Your browser does not support the video tag.
@@ -929,6 +928,10 @@ foreach( array_keys($monEventSlots) as $monitorId )
 <?php
     unset( $currEventSlots );
     $currEventSlots = &$monEventSlots[$monitorId];
+    $monitorMouseover = $mouseover;
+    if ($monitors[$monitorId]['SaveJPEGs'] == 2) {
+        $monitorMouseover = false;
+    }
     for ( $i = 0; $i < $chart['graph']['width']; $i++ )
     {
         if ( isset($currEventSlots[$i]) )
@@ -936,7 +939,7 @@ foreach( array_keys($monEventSlots) as $monitorId )
             unset( $slot );
             $slot = &$currEventSlots[$i];
 
-            if ( $mouseover )
+            if ( $monitorMouseover )
             {
                 $behaviours = array(
                     'onclick="'.getSlotShowEventBehaviour( $slot ).'"',

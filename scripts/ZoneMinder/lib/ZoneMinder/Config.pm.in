@@ -107,12 +107,13 @@ BEGIN
 		$sth = $dbh->prepare_cached( 'SELECT * FROM Servers WHERE Name=?' );
 		if ( $Config{ZM_SERVER_NAME} ) {
 			$res = $sth->execute( $Config{ZM_SERVER_NAME} );
+			my $result = $sth->fetchrow_hashref();
+			$Config{ZM_SERVER_ID} = $$result{Id};
 		} elsif ( $Config{ZM_SERVER_HOST} ) {
 			$res = $sth->execute( $Config{ZM_SERVER_HOST} );
-		} else {
+			my $result = $sth->fetchrow_hashref();
+			$Config{ZM_SERVER_ID} = $$result{Id};
 		}
-		my $result = $sth->fetchrow_hashref();
-		$Config{ZM_SERVER_ID} = $$result{Id};
 	}
 }
 

@@ -1,0 +1,18 @@
+Last-Update: 2015-03-29
+Forwarded: no
+Bug-Debian: http://bugs.debian.org/585590
+Reviewed-By: Dmitry Smirnov <onlyjob@member.fsf.org>
+Description: use mootools shipped by debian, rather than the zoneminder included mootools.
+
+--- a/web/skins/classic/includes/functions.php
++++ b/web/skins/classic/includes/functions.php
+@@ -63,9 +63,8 @@
+     }
+ ?>
+   <script type="text/javascript" src="tools/mootools/mootools-core.js"></script>
+   <script type="text/javascript" src="tools/mootools/mootools-more.js"></script>
+-  <script type="text/javascript" src="js/mootools.ext.js"></script>
+   <script type="text/javascript" src="js/logger.js"></script>
+   <script type="text/javascript" src="js/overlay.js"></script>
+ <?php
+     if ( $skinJsPhpFile )

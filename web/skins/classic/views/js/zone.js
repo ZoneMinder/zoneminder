@@ -5,7 +5,7 @@ function validateForm( form )
     {
         errors[errors.length] = selfIntersectingString;
     }
-    if ( form.elements['newZone[Type]'].value != 'Inactive' )
+    if ( form.elements['newZone[Type]'].value != 'Inactive' && form.elements['newZone[Type]'].value != 'Privacy' )
     {
         if ( !form.newAlarmRgbR.value || !form.newAlarmRgbG.value || !form.newAlarmRgbB.value )
         {
@@ -95,7 +95,7 @@ function submitForm( form )
 function applyZoneType()
 {
     var form = document.zoneForm;
-    if ( form.elements['newZone[Type]'].value == 'Inactive' )
+    if ( form.elements['newZone[Type]'].value == 'Inactive' || form.elements['newZone[Type]'].value == 'Privacy' )
     {
         form.presetSelector.disabled = true;
         form.newAlarmRgbR.disabled = true;
@@ -420,6 +420,10 @@ function saveChanges( element )
     if ( validateForm( form ) )
     {
         submitForm( form );
+        if ( form.elements['newZone[Type]'].value == 'Privacy' )
+        {
+            alert( 'Capture process for this monitor will be restarted for the Privacy zone changes to take effect.' );
+        }
         return( true );
     }
     return( false );

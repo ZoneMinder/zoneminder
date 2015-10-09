@@ -5,13 +5,13 @@ set -e
 abort=false
 if [ -L /usr/share/zoneminder/www/events ]; then
     l=$(readlink /usr/share/zoneminder/www/events)
-    if [ "$l" != "/var/cache/zoneminder/www/events" ]; then
+    if [ "$l" != "/var/cache/zoneminder/events" ]; then
         abort=true
     fi
 fi
 if [ -L /usr/share/zoneminder/www/images ]; then
     l=$(readlink /usr/share/zoneminder/www/images )
-    if [ "$l" != "/var/cache/zoneminder/www/images" ]; then
+    if [ "$l" != "/var/cache/zoneminder/images" ]; then
         abort=true
     fi
 fi

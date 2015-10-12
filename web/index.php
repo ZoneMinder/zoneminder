@@ -46,6 +46,12 @@ if ( false )
     ob_end_clean();
 }
 
+// Check time zone is set
+if (!ini_get('date.timezone')) {
+    date_default_timezone_set('UTC');
+    trigger_error( "date.timezone not set in php.ini, defaulted to UTC", E_USER_WARNING );
+}
+
 require_once( 'includes/config.php' );
 require_once( 'includes/logger.php' );
 

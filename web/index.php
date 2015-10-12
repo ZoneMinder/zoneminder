@@ -125,6 +125,12 @@ else
 require_once( 'includes/lang.php' );
 require_once( 'includes/functions.php' );
 
+// Check for valid content dirs
+if ( !is_writable(ZM_DIR_EVENTS) || !is_writable(ZM_DIR_IMAGES) )
+{
+	Fatal( "Cannot write to content dirs('".ZM_DIR_EVENTS."','".ZM_DIR_IMAGES."').  Have you run zmlinkcontent.sh?");
+}
+
 if ( isset($_REQUEST['view']) )
     $view = detaintPath($_REQUEST['view']);
 

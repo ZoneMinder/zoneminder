@@ -48,7 +48,9 @@ if ( false )
 
 // Check time zone is set
 if (!ini_get('date.timezone')) {
-    trigger_error( "date.timezone in php.ini is unset. ZoneMinder is not installed properly. ", E_USER_ERROR );
+    trigger_error( "ZoneMinder is not installed properly: date.timezone in php.ini is unset", E_USER_ERROR );
+} else if(!date_default_timezone_set(ini_get('date.timezone'))) {
+    trigger_error( "ZoneMinder is not installed properly: date.timezone in php.ini is invalid", E_USER_ERROR );
 }
 
 require_once( 'includes/config.php' );

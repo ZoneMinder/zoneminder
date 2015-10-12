@@ -13,6 +13,14 @@ install(DIRECTORY api ajax css graphics includes js lang skins tools views DESTI
 install(FILES index.php DESTINATION "${ZM_WEBDIR}")
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/includes/config.php" DESTINATION "${ZM_WEBDIR}/includes")
 
+# Install the content dirs
+install(DIRECTORY DESTINATION "${ZM_CONTENTDIR}/events")
+install(DIRECTORY DESTINATION "${ZM_CONTENTDIR}/images")
+install(DIRECTORY DESTINATION "${ZM_CONTENTDIR}/sounds")
+install(CODE "EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E create_symlink \"\$ENV{DESTDIR}${ZM_CONTENTDIR}/events\" \"\$ENV{DESTDIR}${ZM_WEBDIR}/events\")")
+install(CODE "EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E create_symlink \"\$ENV{DESTDIR}${ZM_CONTENTDIR}/images\" \"\$ENV{DESTDIR}${ZM_WEBDIR}/images\")")
+install(CODE "EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E create_symlink \"\$ENV{DESTDIR}${ZM_CONTENTDIR}/sounds\" \"\$ENV{DESTDIR}${ZM_WEBDIR}/sounds\")")
+
 # Install the api config files (if its not in the source directory)
 if(NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR))
 	install(FILES "${CMAKE_CURRENT_BINARY_DIR}/api/app/Config/core.php" DESTINATION "${ZM_WEBDIR}/api/app/Config")

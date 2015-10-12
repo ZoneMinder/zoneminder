@@ -14,14 +14,7 @@ install(FILES index.php DESTINATION "${ZM_WEBDIR}")
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/includes/config.php" DESTINATION "${ZM_WEBDIR}/includes")
 
 # Install the content dirs
-install(DIRECTORY DESTINATION "${ZM_CONTENTDIR}/events")
-install(DIRECTORY DESTINATION "${ZM_CONTENTDIR}/images")
-install(DIRECTORY DESTINATION "${ZM_CONTENTDIR}/sounds")
-if(NOT (ZM_CONTENTDIR STREQUAL ZM_WEBDIR))
-	install(CODE "EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E create_symlink \"\$ENV{DESTDIR}${ZM_CONTENTDIR}/events\" \"\$ENV{DESTDIR}${ZM_WEBDIR}/events\")")
-	install(CODE "EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E create_symlink \"\$ENV{DESTDIR}${ZM_CONTENTDIR}/images\" \"\$ENV{DESTDIR}${ZM_WEBDIR}/images\")")
-	install(CODE "EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E create_symlink \"\$ENV{DESTDIR}${ZM_CONTENTDIR}/sounds\" \"\$ENV{DESTDIR}${ZM_WEBDIR}/sounds\")")
-endif(NOT (ZM_CONTENTDIR STREQUAL ZM_WEBDIR))
+install(CODE "execute_process(COMMAND \"${CMAKE_BINARY_DIR}/zmlinkcontent.sh\" -z \"${CMAKE_BINARY_DIR}/zm.conf\")")
 
 # Install the api config files (if its not in the source directory)
 if(NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR))

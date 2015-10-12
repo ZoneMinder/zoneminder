@@ -46,13 +46,6 @@ if ( false )
     ob_end_clean();
 }
 
-// Check time zone is set
-if (!ini_get('date.timezone')) {
-    trigger_error( "ZoneMinder is not installed properly: date.timezone in php.ini is unset", E_USER_ERROR );
-} else if(!date_default_timezone_set(ini_get('date.timezone'))) {
-    trigger_error( "ZoneMinder is not installed properly: date.timezone in php.ini is invalid", E_USER_ERROR );
-}
-
 require_once( 'includes/config.php' );
 require_once( 'includes/logger.php' );
 
@@ -66,6 +59,12 @@ else
 }
 define( "ZM_BASE_PROTOCOL", $protocol );
 define( "ZM_BASE_URL", $protocol.'://'.$_SERVER['HTTP_HOST'] );
+
+// Check time zone is set
+if (!ini_get('date.timezone') || !date_default_timezone_set(ini_get('date.timezone'))) {
+    date_default_timezone_set('UTC');
+    Fatal( "ZoneMinder is not installed properly: date.timezone in php.ini is not set to a valid timezone" );
+}
 
 if ( isset($_GET['skin']) )
     $skin = $_GET['skin'];

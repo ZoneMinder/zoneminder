@@ -63,7 +63,7 @@ define( "ZM_BASE_URL", $protocol.'://'.$_SERVER['HTTP_HOST'] );
 // Check time zone is set
 if (!ini_get('date.timezone') || !date_default_timezone_set(ini_get('date.timezone'))) {
     date_default_timezone_set('UTC');
-    Fatal( "ZoneMinder is not installed properly: date.timezone in php.ini is not set to a valid timezone" );
+    Fatal( "ZoneMinder is not installed properly: php's date.timezone is not set to a valid timezone" );
 }
 
 if ( isset($_GET['skin']) )

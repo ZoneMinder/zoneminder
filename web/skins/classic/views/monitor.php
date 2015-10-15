@@ -651,9 +651,9 @@ switch ( $tab )
 <?php 
 	$servers = array(''=>'None');
 	$result = dbQuery( 'SELECT * FROM Servers ORDER BY Name');
-	$results = $result->fetchALL(PDO::FETCH_CLASS, 'Server' );
+	$results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Server' );
 	foreach ( $results as $row => $server_obj ) {
-		$servers[ $server_obj->Id] = $server_obj->Name;
+		$servers[$server_obj->Id] = $server_obj->Name();
 	}
 ?>
 	<?php echo buildSelect( "newMonitor[ServerId]", $servers ); ?>

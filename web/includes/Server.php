@@ -3,14 +3,14 @@ require_once( 'database.php' );
 class Server {
     public function __construct( $id ) {
 		if ( $id ) {
-		$s = dbFetchOne( 'SELECT * FROM Servers WHERE Id=?', NULL, array( $id ) );
-		if ( $s ) {
-			foreach ($s as $k => $v) {
-				$this->{$k} = $v;
+			$s = dbFetchOne( 'SELECT * FROM Servers WHERE Id=?', NULL, array( $id ) );
+			if ( $s ) {
+				foreach ($s as $k => $v) {
+					$this->{$k} = $v;
+				}
+			} else {
+				Error("Unable to load Server record for Id=" . $id );
 			}
-		} else {
-			Error("Unable to load Server record for Id=" . $id );
-		}
 		} else {
 			$this->{'Name'} = '';
 			$this->{'Hostname'} = '';

@@ -290,15 +290,16 @@ foreach( $displayMonitors as $monitor )
         $dclass = "errorText";
     else
     {
-        if ( !$monitor['zma'] )
+	// https://github.com/ZoneMinder/ZoneMinder/issues/1082
+        if ( !$monitor['zma'] && $monitor['Function']!='Monitor' )
             $dclass = "warnText";
         else
             $dclass = "infoText";
     }
     if ( $monitor['Function'] == 'None' )
         $fclass = "errorText";
-    elseif ( $monitor['Function'] == 'Monitor' )
-        $fclass = "warnText";
+    //elseif ( $monitor['Function'] == 'Monitor' )
+     //   $fclass = "warnText";
     else
         $fclass = "infoText";
     if ( !$monitor['Enabled'] )

@@ -442,6 +442,7 @@ fi
 fi
 AC_CHECK_DECLS(backtrace,,,[#include <execinfo.h>])
 AC_CHECK_DECLS(backtrace_symbols,,,[#include <execinfo.h>])
+AC_CHECK_LIB(execinfo,backtrace)
 
 AC_SUBST(LDFLAGS)
 

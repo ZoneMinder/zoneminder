@@ -23,6 +23,7 @@ command="$ZM_PATH_BIN/zmpkg.pl"
 
 start() {
 	echo -n "Starting $prog: "
+	export TZ=:/etc/localtime
 	mkdir -p $RUNDIR && chown www-data:www-data $RUNDIR
 	mkdir -p $TMPDIR && chown www-data:www-data $TMPDIR
 	$command start

@@ -23,6 +23,10 @@
     vertical-align: middle;
 }
 
+#monitors .imageFeed img {
+    border: 2px solid #ffffff;
+}
+
 #monitors .imageFeed img.idle {
     border: 2px solid #ffffff;
 }

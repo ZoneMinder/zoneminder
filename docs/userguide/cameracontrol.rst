@@ -11,10 +11,38 @@ Control Scripts
 
 It should be emphasised that the control and capability elements of ZoneMinder are not intended to be able to support every camera out of the box. Some degree of development is likely to be required for many cameras.
 
+Controlling Monitors
+====================
+
+If you have defined your system as having controllable monitors and you are looking at a monitor that is configured for control, then clicking on the ‘Control’ link along the top of the window will change the short event listing area to a control area. The capabilities you have defined earlier determine exactly what is displayed in this window. Generally you will have a Pan/Tilt control area along with one or subsidiary areas such as zoom or focus control to the side. If you have preset support then these will be near the bottom of the window. The normal method of controlling the monitor is by clicking on the appropriate graphics which then send a command via the control script to the camera itself. This may sometimes take a noticeable delay before the camera responds.
+
+It is usually the case that the control arrows are sensitive to where you click on them. If you have a camera that allows different speeds to be used for panning or zooming etc then clicking near the point of the arrow will invoke the faster speed whilst clicking near the base of the arrow will be slower. If you have defined continuous motion then ongoing activities can be stopped by clicking on the area between the arrows, which will either be a graphic in the case of pan/tilt controls or a word in the case of zoom and focus controls etc.
+
+Certain control capabilities such as mapped motion allow direct control by clicking on the image itself when used in browsers which support streamed images directly. Used in this way you can just click on the area of the image that interests you and the camera will centre on that spot. You can also use direct image control for relative motion when the area of the image you click on defines the direction and the distance away from the centre of the image determines the speed. As it is not always very easy to estimate direction near the centre of the image, the active area does not start until a short distance away from the centre, resulting in a ‘dead’ zone in the middle of the image.
+
+Control Flow
+^^^^^^^^^^^^
+Having a basic understanding of how camera control works in ZoneMinder will go a long way in debugging issues in the future. It is important to note that many of the 'camera control' scripts are user contributed and it is entirely possible that they break in a future version upgrade. 
+
+* ZoneMinder relies on 'control protocols' for specific camera models. These 'control' protocols are nothing but perl packages located in ``/usr/share/perl5/ZoneMinder/Control/`` (in Ubuntu distributions) that are invoked by ZoneMinder when you invoke a PTZ operation
+
+* When you associate a 'protocol' for PTZ for a camera, you are effectively letting ZoneMinder know where to locate the perl file that will eventually control the camera movement
+
+* Let's for example, assume that you are configuring a Foscam 9831W camera and have associated the '9831w' protocol to that camara. This basically means when you move the camera via ZoneMinder, it will pass on the movements to FI9831w.pm in ``/usr/share/perl5/ZoneMinder/Control/``
+
+* ZoneMinder also maintains protocol configuration parameters in a table called ``Controls`` in the DB. This table is used to store parameters like whether the camera supports continuous move, zoom etc. 
+
+* The ``Controls`` table is used by ZoneMinder to build its PTZ web interface. For example, an FI9831W camera does not support Zoom --> so when you open the PTZ interface of ZoneMinder via the Web Console and navigate to the FI9831W camera, the Zoom option will not be shown. It knows not to show this because the ``Control`` table entry for FI9831W specifies it does not support Zoom. Note that you edit these parameters via Source->Control->Control Type->Edit in the web console
+
+* If you ever look at any of the control protocol files, you will notice it has functions like ``moveRelUp`` or ``moveConLeft`` etc. -> these are the functions that eventually get invoked to move the camera around and it is expected that contributors who implement missing camera profiles fill in these functions with the appropriate camera specific commands. This way, the core ZoneMinder code does not need to worry about camera specific commands. All it needs to know is the features of a camera and accordinfly invoke abstract commands in the protocol perl file and it is the responsibility of the perl file for that camera to implement the specifics. So, if you are facing problems with PTZ not working, these protocol files are what you should be debugging.
+
+
 Control Capabilities
 ^^^^^^^^^^^^^^^^^^^^
 
 If you have a camera that supports PTZ controls and wish to use it with ZoneMinder then the first thing you need to do is ensure that it has an accurate entry in the capabilities table. To do this you need to go to the Control tab of the Monitor configuration dialog and select ‘Edit’ where it is listed by the Control Type selection box. This will bring up a new window which lists, with a brief summary, the existing capabilities. To edit an existing capability to modify select the Id or Name of the capability in question, or click on the Add button to add a new control capability. Either of these approaches will create a new window, in familiar style, with tabs along the top and forms fields below. In the case of the capabilities table there are a large number of settings and tabs, the mean and use of these are briefly explained below.
+
+
 
 Main Tab
 --------

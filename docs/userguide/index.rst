@@ -9,7 +9,6 @@ User Guide
    definemonitor
    definezone
    viewmonitors
-   controlmonitor
    filterevents
    viewevents
    options

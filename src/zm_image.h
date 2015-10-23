@@ -204,7 +204,12 @@ public:
 	bool WriteRaw( const char *filename ) const;
 
 	bool ReadJpeg( const char *filename, unsigned int p_colours, unsigned int p_subpixelorder);
-	bool WriteJpeg( const char *filename, int quality_override=0 ) const;
+
+	bool WriteJpeg ( const char *filename) const;
+        bool WriteJpeg ( const char *filename, int quality_override ) const;
+        bool WriteJpeg ( const char *filename, struct timeval timestamp ) const;
+        bool WriteJpeg ( const char *filename, int quality_override, struct timeval timestamp ) const;
+
 	bool DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size, unsigned int p_colours, unsigned int p_subpixelorder);
 	bool EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_override=0 ) const;
 
@@ -226,10 +231,11 @@ public:
 	void Delta( const Image &image, Image* targetimage) const;
 
 	const Coord centreCoord( const char *text ) const;
-	void Annotate( const char *p_text, const Coord &coord,  const Rgb fg_colour=RGB_WHITE, const Rgb bg_colour=RGB_BLACK );
+        void MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour=0x00222222 );
+	void Annotate( const char *p_text, const Coord &coord, const unsigned int size=1, const Rgb fg_colour=RGB_WHITE, const Rgb bg_colour=RGB_BLACK );
 	Image *HighlightEdges( Rgb colour, unsigned int p_colours, unsigned int p_subpixelorder, const Box *limits=0 );
 	//Image *HighlightEdges( Rgb colour, const Polygon &polygon );
-	void Timestamp( const char *label, const time_t when, const Coord &coord );
+	void Timestamp( const char *label, const time_t when, const Coord &coord, const int size );
 	void Colourise(const unsigned int p_reqcolours, const unsigned int p_reqsubpixelorder);
 	void DeColourise();
 

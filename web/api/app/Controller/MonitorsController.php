@@ -89,6 +89,9 @@ class MonitorsController extends AppController {
 			'message' => $message,
 			'_serialize' => array('message')
 		));
+		// PP - restart this monitor after change
+                $this->daemonControl($this->Monitor->id, 'restart', $this->request->data);
+
 	}
 
 /**

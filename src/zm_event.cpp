@@ -64,7 +64,8 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     start_time( p_start_time ),
     cause( p_cause ),
     noteSetMap( p_noteSetMap ),
-    videoEvent( p_videoEvent )
+    videoEvent( p_videoEvent ),
+    videowriter( NULL )
 {
     if ( !initialised )
         Initialise();

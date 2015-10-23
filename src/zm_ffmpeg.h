@@ -29,6 +29,7 @@ extern "C" {
 
 // AVUTIL
 #if HAVE_LIBAVUTIL_AVUTIL_H
+#include "libavutil/avassert.h"
 #include <libavutil/avutil.h>
 #include <libavutil/base64.h>
 #include <libavutil/mathematics.h>
@@ -148,6 +149,8 @@ extern "C" {
 #define SWS_CPU_CAPS_SSE2     0x02000000
 #endif
 
+/* A single function to initialize ffmpeg, to avoid multiple initializations */
+void FFMPEGInit();
 
 #if HAVE_LIBAVUTIL
 enum PixelFormat GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subpixelorder);
@@ -229,5 +232,35 @@ protected:
 
 
 #endif // ( HAVE_LIBAVUTIL_AVUTIL_H || HAVE_LIBAVCODEC_AVCODEC_H || HAVE_LIBAVFORMAT_AVFORMAT_H || HAVE_LIBAVDEVICE_AVDEVICE_H )
+
+#ifndef avformat_alloc_output_context2
+int hacked_up_context2_for_older_ffmpeg(AVFormatContext **avctx, AVOutputFormat *oformat, const char *format, const char *filename);
+#define avformat_alloc_output_context2(x,y,z,a) hacked_up_context2_for_older_ffmpeg(x,y,z,a)
+#endif
+
+#ifndef av_rescale_delta
+/**
+ * Rescale a timestamp while preserving known durations.
+ */
+int64_t av_rescale_delta(AVRational in_tb, int64_t in_ts,  AVRational fs_tb, int duration, int64_t *last, AVRational out_tb);
+#endif
+
+#ifndef av_clip64
+/**
+ * Clip a signed 64bit integer value into the amin-amax range.
+ * @param a value to clip
+ * @param amin minimum value of the clip range
+ * @param amax maximum value of the clip range
+ * @return clipped value
+ */
+static av_always_inline av_const int64_t av_clip64_c(int64_t a, int64_t amin, int64_t amax)
+{
+    if      (a < amin) return amin;
+    else if (a > amax) return amax;
+    else               return a;
+}
+
+#define av_clip64        av_clip64_c
+#endif
 
 #endif // ZM_FFMPEG_H

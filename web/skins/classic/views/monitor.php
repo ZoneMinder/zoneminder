@@ -27,6 +27,7 @@ if ( !canView( 'Monitors' ) )
 $tabs = array();
 $tabs["general"] = translate('General');
 $tabs["source"] = translate('Source');
+$tabs["storage"] = translate('Storage');
 $tabs["timestamp"] = translate('Timestamp');
 $tabs["buffers"] = translate('Buffers');
 if ( ZM_OPT_CONTROL && canView( 'Control' ) )
@@ -78,6 +79,9 @@ if ( ! empty($_REQUEST['mid']) ) {
         'Height' => "240",
         'Orientation' => "0",
         'Deinterlacing' => 0,
+        'SaveJPEGs' => "3",
+        'VideoWriter' => "0",
+        'EncoderParameters' => "# Lines beginning with # are a comment \n# For changing quality, use the crf option\n# 1 is best, 51 is worst quality\n#crf=23\n",
         'RTSPDescribe' => 0,
         'LabelFormat' => '%N - %d/%m/%y %H:%M:%S',
         'LabelX' => 0,
@@ -431,6 +435,20 @@ $fastblendopts_alarm = array(
     "50% (Alarm lasts a moment)"                          => 50
 );
 
+$savejpegopts = array(
+    "Disabled"                                            => 0,
+    "Frames only"                                         => 1,
+    "Analysis images only (if available)"                 => 2,
+    "Frames + Analysis images (if available)"             => 3,
+    "Snapshot Only"                                       => 4          
+);
+
+$videowriteropts = array(
+    "Disabled"                                            => 0,
+    "X264 Encode"                                         => 1,
+    "H264 Camera Passthrough"                             => 2          
+);
+
 $label_size = array(
     "Default"                                             => 1,
     "Large"                                               => 2
@@ -562,6 +580,14 @@ if ( $tab != 'source' )
     <input type="hidden" name="newMonitor[Height]" value="<?php echo validHtmlStr($newMonitor['Height']) ?>"/>
     <input type="hidden" name="newMonitor[Orientation]" value="<?php echo validHtmlStr($newMonitor['Orientation']) ?>"/>
     <input type="hidden" name="newMonitor[Deinterlacing]" value="<?php echo validHtmlStr($newMonitor['Deinterlacing']) ?>"/>
+<?php
+}
+if ( $tab != 'storage' )
+{
+?>
+    <input type="hidden" name="newMonitor[SaveJPEGs]" value="<?php echo validHtmlStr($newMonitor['SaveJPEGs']) ?>"/>
+    <input type="hidden" name="newMonitor[VideoWriter]" value="<?php echo validHtmlStr($newMonitor['VideoWriter']) ?>"/>
+    <input type="hidden" name="newMonitor[EncoderParameters]" value="<?php echo validHtmlStr($newMonitor['EncoderParameters']) ?>"/>
 <?php
 }
 if ( $tab != 'source' || ($newMonitor['Type'] != 'Remote' && $newMonitor['Protocol'] != 'RTSP'))
@@ -841,6 +867,13 @@ switch ( $tab )
 <?php
         break;
     }
+    case 'storage'   :
+?>
+            <tr><td>translate('SaveJPEGs')</td><td><select name="newMonitor[SaveJPEGs]"><?php foreach ( $savejpegopts as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['SaveJPEGs'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
+            <tr><td>translate('VideoWriter')</td><td><select name="newMonitor[VideoWriter]"><?php foreach ( $videowriteropts as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['VideoWriter'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
+            <tr><td>translate('OptionalEncoderParam')</td><td><textarea name="newMonitor[EncoderParameters]" rows="4" cols="36"><?php echo validHtmlStr($newMonitor['EncoderParameters']) ?></textarea></td></tr>
+<?php
+        break;
     case 'timestamp' :
     {
 ?>

@@ -37,6 +37,7 @@
 #include "zm.h"
 #include "zm_image.h"
 #include "zm_stream.h"
+#include "zm_video.h"
 
 class Zone;
 class Monitor;
@@ -55,6 +56,7 @@ protected:
 	static char		capture_file_format[PATH_MAX];
 	static char		analyse_file_format[PATH_MAX];
 	static char		general_file_format[PATH_MAX];
+	static char		video_file_format[PATH_MAX];
 
 protected:
 	static int		sd;
@@ -84,11 +86,18 @@ protected:
 	struct timeval	end_time;
 	std::string     cause;
     StringSetMap    noteSetMap;
+    bool            videoEvent;
 	int				frames;
 	int				alarm_frames;
 	unsigned int	tot_score;
 	unsigned int	max_score;
 	char			path[PATH_MAX];
+	VideoWriter* videowriter;
+	FILE* timecodes_fd;
+	char video_name[PATH_MAX];
+	char video_file[PATH_MAX];
+	char timecodes_name[PATH_MAX];
+	char timecodes_file[PATH_MAX];
 
 protected:
 	int				last_db_frame;
@@ -102,6 +111,7 @@ protected:
 		snprintf( capture_file_format, sizeof(capture_file_format), "%%s/%%0%dd-capture.jpg", config.event_image_digits );
 		snprintf( analyse_file_format, sizeof(analyse_file_format), "%%s/%%0%dd-analyse.jpg", config.event_image_digits );
 		snprintf( general_file_format, sizeof(general_file_format), "%%s/%%0%dd-%%s", config.event_image_digits );
+		snprintf( video_file_format, sizeof(video_file_format), "%%s/%%s");
 
 		initialised = true;
 	}
@@ -113,7 +123,7 @@ public:
 	static bool ValidateFrameSocket( int );
 
 public:
-	Event( Monitor *p_monitor, struct timeval p_start_time, const std::string &p_cause, const StringSetMap &p_noteSetMap );
+	Event( Monitor *p_monitor, struct timeval p_start_time, const std::string &p_cause, const StringSetMap &p_noteSetMap, bool p_videoEvent=false );
 	~Event();
 
 	int Id() const { return( id ); }
@@ -127,6 +137,7 @@ public:
 
 	bool SendFrameImage( const Image *image, bool alarm_frame=false );
 	bool WriteFrameImage( Image *image, struct timeval timestamp, const char *event_file, bool alarm_frame=false );
+	bool WriteFrameVideo( const Image *image, const struct timeval timestamp, VideoWriter* videow );
 
     void updateNotes( const StringSetMap &stringSetMap );
 
@@ -146,6 +157,10 @@ public:
     static const char *getSubPath( time_t *time )
     {
         return( Event::getSubPath( localtime( time ) ) );
+    }
+
+    char* getEventFile(void){
+ 	return video_file;
     }
 
 public:

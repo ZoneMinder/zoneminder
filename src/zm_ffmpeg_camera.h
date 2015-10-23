@@ -25,6 +25,7 @@
 #include "zm_buffer.h"
 //#include "zm_utils.h"
 #include "zm_ffmpeg.h"
+#include "zm_videostore.h"
 
 //
 // Class representing 'ffmpeg' cameras, i.e. those which are
@@ -42,6 +43,7 @@ protected:
 #if HAVE_LIBAVFORMAT
     AVFormatContext     *mFormatContext;
     int                 mVideoStreamId;
+    int                 mAudioStreamId;
     AVCodecContext      *mCodecContext;
     AVCodec             *mCodec;
     AVFrame             *mRawFrame; 
@@ -58,11 +60,18 @@ protected:
     int mOpenStart;
     pthread_t mReopenThread;
 #endif // HAVE_LIBAVFORMAT
+    
+    bool                wasRecording;
+    VideoStore          *videoStore;
+    char                oldDirectory[4096];
+    //AVPacket            lastKeyframePkt;
 
 #if HAVE_LIBSWSCALE
 	struct SwsContext   *mConvertContext;
 #endif
 
+    int64_t             startTime;
+    
 public:
 	FfmpegCamera( int p_id, const std::string &path, const std::string &p_method, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
 	~FfmpegCamera();
@@ -77,6 +86,7 @@ public:
 	int PrimeCapture();
 	int PreCapture();
 	int Capture( Image &image );
+        int CaptureAndRecord( Image &image, bool recording, char* event_directory );
 	int PostCapture();
 };
 

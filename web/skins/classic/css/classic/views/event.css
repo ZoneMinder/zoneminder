@@ -57,6 +57,23 @@
     text-align: right;
 }
 
+#videoBar1 div {
+    text-align: center;
+    float: center;
+}
+
+#videoBar1 #prevEvent {
+    float: left;
+}
+
+#videoBar1 #dlEvent {
+    float: center;
+}
+
+#videoBar1 #nextEvent {
+    float: right;
+}
+
 #imageFeed {
     text-align: center;
 }

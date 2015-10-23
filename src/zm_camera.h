@@ -74,10 +74,13 @@ public:
 
     bool CanCapture() const { return( capture ); }
     
+    bool SupportsNativeVideo() const { return( type == FFMPEG_SRC ); }
+    
 	virtual int PrimeCapture() { return( 0 ); }
 	virtual int PreCapture()=0;
 	virtual int Capture( Image &image )=0;
 	virtual int PostCapture()=0;
+        virtual int CaptureAndRecord( Image &image, bool recording, char* event_directory)=0;
 };
 
 #endif // ZM_CAMERA_H

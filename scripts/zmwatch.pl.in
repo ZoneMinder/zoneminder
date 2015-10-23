@@ -93,8 +93,16 @@ while( 1 )
         {
             # Check we have got an image recently
             my $image_time = zmGetLastWriteTime( $monitor );
-            next if ( !defined($image_time) ); # Can't read from shared data
-            next if ( !$image_time ); # We can't get the last capture time so can't be sure it's died.
+            if ( !defined($image_time) ) {
+				 # Can't read from shared data
+				Debug( "LastWriteTime is not defined." );
+				next;
+			}
+            if ( !$image_time ) {
+				# We can't get the last capture time so can't be sure it's died.
+				Debug( "LastWriteTime is = $image_time." );
+				next;
+			}
 
             my $max_image_delay = ( $monitor->{MaxFPS}
                                     &&($monitor->{MaxFPS}>0)

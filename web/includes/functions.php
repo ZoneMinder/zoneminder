@@ -56,6 +56,7 @@ function userLogin( $username, $password="", $passwordHashed=false )
     $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
     if ( $dbUser = dbFetchOne( $sql, NULL, $sql_values ) )
     {
+        Info( "Login successful for user \"$username\"" );
         $_SESSION['user'] = $user = $dbUser;
         if ( ZM_AUTH_TYPE == "builtin" )
         {
@@ -64,6 +65,7 @@ function userLogin( $username, $password="", $passwordHashed=false )
     }
     else
     {
+        Warning( "Login denied for user \"$username\"" );
         unset( $user );
     }
     if ( $cookies )
@@ -73,6 +75,9 @@ function userLogin( $username, $password="", $passwordHashed=false )
 function userLogout()
 {
     global $user;
+    $username = $user['Username'];
+
+    Info( "User \"$username\" logged out" );
 
     unset( $_SESSION['user'] );
     unset( $user );

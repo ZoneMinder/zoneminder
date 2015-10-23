@@ -342,7 +342,7 @@ SET @s = (SELECT IF(
 PREPARE stmt FROM @s;
 EXECUTE stmt;
 
--- The States table will be updated to have a new column called IsActive
+-- PP:The States table will be updated to have a new column called IsActive
 -- used to keep track of which custom state is active (if any)
 SET @s = (SELECT IF(
 	(SELECT COUNT(*)
@@ -357,6 +357,23 @@ SET @s = (SELECT IF(
 
 PREPARE stmt FROM @s;
 EXECUTE stmt;
+
+-- PP:If default state does not exist, create it and set its IsActive to 1
+INSERT INTO States (Name,Definition,IsActive) 
+	SELECT * FROM (SELECT 'default', '', '1') AS tmp
+	WHERE NOT EXISTS (
+		SELECT Name FROM States WHERE Name = 'default'
+	) LIMIT 1;
+
+-- PP:Start with a sane isActive state
+UPDATE States SET IsActive = '0';
+UPDATE States SET IsActive = '1' WHERE Name = 'default'; 
+
+-- PP:Finally convert States to make sure Names are unique
+-- If duplicate states existed while upgrading, that is
+-- very likely an error that ZM allowed earlier, so
+-- we are picking up the first one and deleting the others
+ALTER IGNORE TABLE States ADD UNIQUE (Name);
 
 SET @s = (SELECT IF( 
     (SELECT COUNT(*)

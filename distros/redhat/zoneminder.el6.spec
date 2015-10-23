@@ -30,8 +30,8 @@ BuildRequires:  libcurl-devel vlc-devel ffmpeg-devel polkit-devel
 # cmake needs the following installed at build time due to the way it auto-detects certain parameters
 BuildRequires:  httpd ffmpeg
 
-Requires:   httpd php php-gd php-mysql mysql-server libjpeg-turbo polkit net-tools psmisc
-Requires:   perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
+Requires:   httpd php php-gd php-mysql mysql-server libjpeg-turbo cambozola polkit net-tools mod_ssl
+Requires:   psmisc perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires:   perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)
 Requires:   perl(MIME::Entity) perl(MIME::Lite) perl(Net::SMTP) perl(Net::FTP)
 Requires:   libcurl vlc-core ffmpeg
@@ -96,8 +96,20 @@ echo -e "\nCreating and installing a ZoneMinder SELinux policy module. Please wa
 /usr/bin/semodule_package -o %{_docdir}/%{name}-%{version}/local_zoneminder.pp -m %{_docdir}/%{name}-%{version}/local_zoneminder.mod > /dev/null 
 /usr/sbin/semodule -i %{_docdir}/%{name}-%{version}/local_zoneminder.pp > /dev/null
 
-# Display the README for post installation instructions
-/usr/bin/less %{_docdir}/%{name}-%{version}/README.CentOS
+# Upgrade from a previous version of zoneminder 
+if [ $1 -eq 2 ] ; then
+    # Freshen the database
+    /usr/bin/zmupdate.pl -f
+
+    # We can't run this automatically when new sql account permissions need to
+    # be manually added first
+    # Run zmupdate non-interactively
+    #/usr/bin/zmupdate.pl --nointeractive
+fi
+
+# Warn the end user to read the README file
+echo -e "\nVERY IMPORTANT: Before starting ZoneMinder, read README.Centos to finish the\ninstallation or upgrade!\n"
+echo -e "\nThe README file is located here: %{_docdir}/%{name}-%{version}.\n"
 
 %preun
 if [ $1 -eq 0 ]; then
@@ -119,7 +131,7 @@ rm -rf %{_docdir}/%{name}-%{version}
 %files
 %defattr(-,root,root,-)
 %doc AUTHORS BUGS ChangeLog COPYING LICENSE NEWS README.md distros/redhat/README.CentOS distros/redhat/jscalendar-doc
-%doc distros/redhat/cambozola-doc distros/redhat/local_zoneminder.te
+%doc distros/redhat/local_zoneminder.te
 %config %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm.conf
 %config(noreplace) %attr(644,root,root) %{_sysconfdir}/httpd/conf.d/zoneminder.conf
 %config(noreplace) /etc/logrotate.d/%{name}
@@ -146,7 +158,7 @@ rm -rf %{_docdir}/%{name}-%{version}
 #%{_bindir}/zmonvif-probe.pl
 
 %{perl_vendorlib}/ZoneMinder*
-%{perl_vendorlib}/%{_arch}-linux-thread-multi/auto/ZoneMinder*
+%{perl_vendorarch}/auto/ZoneMinder/.packlist
 #%{perl_vendorlib}/ONVIF*
 #%{perl_vendorlib}/WSDiscovery*
 #%{perl_vendorlib}/WSSecurity*
@@ -170,6 +182,9 @@ rm -rf %{_docdir}/%{name}-%{version}
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/spool/zoneminder-upload
 
 %changelog
+* Tue Sep 8 2015 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.28.1 
+- Require https, freshen dB on updates.
+
 * Wed Feb 18 2015 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.28.1 
 - Include ONVIF support files
 

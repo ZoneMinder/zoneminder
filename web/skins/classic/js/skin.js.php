@@ -33,6 +33,8 @@ var skinPath = "<?php echo ZM_SKIN_PATH ?>";
 var canEditSystem = <?php echo canEdit('System' )?'true':'false' ?>;
 var canViewSystem = <?php echo canView('System' )?'true':'false' ?>;
 
+var canEditGroups = <?php echo canEdit('Groups' )?'true':'false' ?>;
+
 var refreshParent = <?php echo !empty($refreshParent)?'true':'false' ?>;
 
 var focusWindow = <?php echo !empty($focusWindow)?'true':'false' ?>;

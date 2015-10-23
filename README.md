@@ -12,7 +12,7 @@ All documentation for ZoneMinder is now online at http://www.zoneminder.com/wiki
 
 ZoneMinder is an integrated set of applications which provide a complete surveillance solution allowing capture, analysis, recording and monitoring of any CCTV or security cameras attached to a Linux based machine. It is designed to run on distributions which support the Video For Linux (V4L) interface and has been tested with video cameras attached to BTTV cards, various USB cameras and also supports most IP network cameras. 
 
-## Contacting the Developement Team
+## Contacting the Development Team
 Before creating an issue in our github forum, please read our posting rules:
 https://github.com/ZoneMinder/ZoneMinder/wiki/Github-Posting-Rules
 
@@ -47,7 +47,7 @@ Lastly, if you desire to build a development snapshot from the master branch, it
 
 What follows are instructions for various distros to build ZoneMinder into a package.
 
-### Package Maintainters
+### Package Maintainers
 Many of the ZoneMinder configration variable default values are not configurable at build time through autotools or cmake.  A new tool called *zmeditconfigdata.sh* has been added to allow package maintainers to manipulate any variable stored in ConfigData.pm without patching the source. 
 
 For example, let's say I have created a new ZoneMinder package that contains the cambolzola javascript file.  However, by default cambozola support is turned off.  To fix that, add this to the pacakging script:
@@ -142,8 +142,6 @@ root@host:~# gdebi /root/zoneminder_1.26.4-1_amd64.deb;
 ```
 
 #### Fedora / CentOS / RHEL
-
-***DRAFT* ** Needs Testing
 
 ##### Background
 The following method documents how to build ZoneMinder into an RPM package, compatible with Fedora, Redhat, CentOS, and other compatible clones. This is exactly how the RPMS in zmrepo are built.

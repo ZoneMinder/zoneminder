@@ -37,7 +37,16 @@ class EventsController extends AppController {
 			'fields' => array('Name', 'Value')
 		));
 		$this->Paginator->settings = array(
-			'limit' => $limit['ZM_WEB_EVENTS_PER_PAGE'],
+			// https://github.com/ZoneMinder/ZoneMinder/issues/995
+			// 'limit' => $limit['ZM_WEB_EVENTS_PER_PAGE'],
+			// PP - 25 events per page which is what the above
+			// default is, is way too low for an API
+			// changing this to 100 so we don't kill ZM
+			// with many event APIs. In future, we can
+			// make a nice ZM_API_ITEMS_PER_PAGE for all pagination
+			// API
+		
+			'limit' => '100', 
 			'order' => array('StartTime', 'MaxScore'),
 			'paramType' => 'querystring',
 			'conditions' => $conditions
@@ -46,7 +55,8 @@ class EventsController extends AppController {
 
 		// For each event, get its thumbnail data (path, width, height)
 		foreach ($events as $key => $value) {
-			$thumbData = $this->createThumbnail($value['Event']['Id']);
+			// PP - $thumbData = $this->createThumbnail($value['Event']['Id']);
+			$thumbData ="";
 			$events[$key]['thumbData'] = $thumbData;
 
 		}
@@ -141,6 +151,9 @@ class EventsController extends AppController {
 		}
 		$this->request->allowMethod('post', 'delete');
 		if ($this->Event->delete()) {
+			// PP - lets make sure the frame table entry is removed too
+			$this->loadModel('Frame');
+                        $this->Frame->delete();
 			return $this->flash(__('The event has been deleted.'), array('action' => 'index'));
 		} else {
 			return $this->flash(__('The event could not be deleted. Please, try again.'), array('action' => 'index'));

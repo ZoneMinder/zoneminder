@@ -34,6 +34,7 @@ class AppController extends Controller {
 	use CrudControllerTrait;
 
 	public $components = [
+		'Session', // PP - We are going to use SessionHelper to check PHP session vars
 		'RequestHandler',
 		'Crud.Crud' => [
 			'actions' => [
@@ -47,4 +48,25 @@ class AppController extends Controller {
 			'listeners' => ['Api', 'ApiTransformation']
 		]
 	];
+
+	//PP - Global beforeFilter function
+	//Zoneminder sets the username session variable
+	// to the logged in user. If this variable is set
+	// then you are logged in
+	// its pretty simple to extend this to also check
+	// for role and deny API access in future 
+	// Also checking to do this only if ZM_OPT_USE_AUTH is on
+	public function beforeFilter() {
+		$this->loadModel('Config');
+        	$options = array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_OPT_USE_AUTH'));
+	 	$config = $this->Config->find('first', $options);
+        	$zmOptAuth = $config['Config']['Value'];
+        	if (!$this->Session->Read('user.Username') && ($zmOptAuth=='1'))
+        	{       
+        		 throw new NotFoundException(__('Not Authenticated'));
+        	 	return; 
+        	}     
+		
+    }
+
 }

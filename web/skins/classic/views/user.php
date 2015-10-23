@@ -118,6 +118,10 @@ if ( canEdit( 'System' ) )
               <td><?php echo buildSelect( "newUser[Monitors]", $nve ) ?></td>
             </tr>
             <tr>
+              <th scope="row"><?php echo translate('Groups') ?></th>
+              <td><?php echo buildSelect( "newUser[Groups]", $nve ) ?></td>
+            </tr>
+            <tr>
               <th scope="row"><?php echo translate('System') ?></th>
               <td><?php echo buildSelect( "newUser[System]", $nve ) ?></td>
             </tr>

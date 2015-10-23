@@ -3,33 +3,20 @@
 --
 
 --
--- Add Monitor StateId field
---
-SET @s = (SELECT IF(
-    (SELECT COUNT(*)
-    FROM INFORMATION_SCHEMA.COLUMNS
-    WHERE table_name = 'Servers'
-    AND table_schema = DATABASE()
-    AND column_name = 'StateId'
-    ) > 0,
-"SELECT 'Column StateId already exists in Servers'",
-"ALTER TABLE `Servers` ADD `StateId` int(10) unsigned AFTER `Name`"
-));
-
-PREPARE stmt FROM @s;
-EXECUTE stmt;
-
+-- Update Frame table to have an Index on EventId, per the change made in 1.28.107
 --
 SET @s = (SELECT IF(
 	(SELECT COUNT(*)
-	FROM INFORMATION_SCHEMA.COLUMNS
-	WHERE table_name = 'Servers'
+	FROM INFORMATION_SCHEMA.STATISTICS
+	WHERE table_name = 'Frames'
 	AND table_schema = DATABASE()
-	AND column_name = 'Hostname'
+	AND index_name='EventId_idx';
 	) > 0,
-"SELECT 'Column Hostname already exists in Servers'",
-"ALTER TABLE `Servers` ADD `Hostname` TEXT NOT NULL default '' AFTER `StateId`"
+"SELECT 'EventId Index already exists on Frames table'",
+"CREATE INDEX `EventId_idx` ON `Frames` (`EventId`)"
 ));
 
 PREPARE stmt FROM @s;
 EXECUTE stmt;
+
+

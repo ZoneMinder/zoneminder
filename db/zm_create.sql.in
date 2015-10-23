@@ -244,6 +244,7 @@ CREATE TABLE `Frames` (
   `Delta` decimal(8,2) NOT NULL default '0.00',
   `Score` smallint(5) unsigned NOT NULL default '0',
   PRIMARY KEY (`Id`),
+  INDEX `EventId_idx` (`EventId`),
   KEY `Type` (`Type`),
   KEY `TimeStamp` (`TimeStamp`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;

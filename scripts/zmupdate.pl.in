@@ -170,7 +170,7 @@ if ( $check && $Config{ZM_CHECK_FOR_UPDATES} )
             if ( $Config{ZM_UPDATE_CHECK_PROXY} ) {
 				$ua->proxy( "http", $Config{ZM_UPDATE_CHECK_PROXY} );
             }
-            my $req = HTTP::Request->new( GET=>'http://zoneminder.github.io/ZoneMinder/version.txt' );
+            my $req = HTTP::Request->new( GET=>'https://update.zoneminder.com/version.txt' );
             my $res = $ua->request($req);
 
             if ( $res->is_success )

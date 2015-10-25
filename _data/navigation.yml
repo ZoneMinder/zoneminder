@@ -1,3 +1,8 @@
+
+- text: Home
+  link: '/'
+  target: '_self'
+
 - text: Documentation
   link: 'http://zoneminder.readthedocs.org/en/latest/'
   target: '_blank'
@@ -21,3 +26,4 @@
 - text: Downloads
   link: '/downloads'
   target: '_self'
+

@@ -12,9 +12,13 @@
 
 		<div class="navbar-collapse collapse">
 			<ul class="nav navbar-nav">
-			{% assign navs = site.data.navigation | sort: 'text' %}
+			{% assign navs = site.data.navigation %}
 			{% for nav in navs %}
+				{% if page.title == nav.text %}
+				<li class="current"><a href="{{ nav.link }}" target="{{ nav.target }}">{{ nav.text }}</a></li>
+				{% else %}
 				<li><a href="{{ nav.link }}" target="{{ nav.target }}">{{ nav.text }}</a></li>
+				{% endif %}
 			{% endfor %}
 			</ul>
 			<div class="pull-right">

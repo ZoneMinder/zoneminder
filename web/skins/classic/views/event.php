@@ -138,7 +138,7 @@ if ( $event['SaveJPEGs'] & 3 )
 			</div>
 			<div id="eventVideo" class="">
 <?php 
-if ( $event['VideoWriter'] )
+if ( $event['DefaultVideo'] )
 { 
 ?>
 <link href="//vjs.zencdn.net/4.11/video-js.css" rel="stylesheet">

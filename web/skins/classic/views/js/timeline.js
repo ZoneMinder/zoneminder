@@ -111,8 +111,8 @@ function previewEvent( eventId, frameId )
             {
                 showEventDetail( events[eventId]['frames'][frameId]['html'] );
                 var imagePath = events[eventId].frames[frameId].Image.imagePath;
-                var showVideo = parseInt(monitors[events[eventId].MonitorId].VideoWriter);
-                loadEventImage( imagePath, eventId, frameId, events[eventId].Width, events[eventId].Height, events[eventId].Frames/events[eventId].Length, showVideo);
+                var videoName = events[eventId].DefaultVideo;
+                loadEventImage( imagePath, eventId, frameId, events[eventId].Width, events[eventId].Height, events[eventId].Frames/events[eventId].Length, videoName);
                 return;
             }
         }
@@ -120,15 +120,15 @@ function previewEvent( eventId, frameId )
     requestFrameData( eventId, frameId );
 }
 
-function loadEventImage( imagePath, eid, fid, width, height, fps, showVideo )
+function loadEventImage( imagePath, eid, fid, width, height, fps, videoName )
 {
     var vid= $('preview');
     var imageSrc = $('imageSrc');
-    if(showVideo)
+    if(videoName)
     {
         vid.show();
         imageSrc.hide();
-        var newsource=imagePrefix+imagePath.slice(0,imagePath.lastIndexOf('/'))+"/event.mp4";
+        var newsource=imagePrefix+imagePath.slice(0,imagePath.lastIndexOf('/'))+"/"+videoName;
         //console.log(newsource);
         //console.log(sources[0].src.slice(-newsource.length));
         if(newsource!=vid.currentSrc.slice(-newsource.length) || vid.readyState==0)

@@ -117,6 +117,7 @@ $statusData = array(
             "Height" => true,
             "Length" => true,
             "Frames" => true,
+            "DefaultVideo" => true,
             "AlarmFrames" => true,
             "TotScore" => true,
             "AvgScore" => true,

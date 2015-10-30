@@ -21,6 +21,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <syslog.h>
 
 #include "zm.h"
 #include "zm_videostore.h"
@@ -33,6 +34,9 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
                        AVStream *input_st, AVStream *inpaud_st,
                        int64_t nStartTime) {
     
+	AVDictionary *pmetadata = NULL;
+	int dsr;
+
     //store inputs in variables local to class
     filename = filename_in;
     format = format_in;
@@ -40,13 +44,13 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
     keyframeMessage = false;
     keyframeSkipNumber = 0;
 
+
     Info("Opening video storage stream %s\n", filename);
 
     //Init everything we need
     int ret;
     av_register_all();
 
-    //Allocate the output media context based on the filename of the context
     avformat_alloc_output_context2(&oc, NULL, NULL, filename);
         
     //Couldn't deduce format from filename, trying from format name
@@ -58,10 +62,15 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
                     filename, format);
         }
     }
+
+	dsr = av_dict_set(&pmetadata, "title", "Zoneminder Security Recording", 0);
+	if (dsr < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__ );
+
+	oc->metadata = pmetadata;
         
     fmt = oc->oformat;
     
-    video_st = avformat_new_stream(oc, input_st->codec->codec);
+	video_st = avformat_new_stream(oc, input_st->codec->codec);
     if (!video_st) {
         Fatal("Unable to create video out stream\n");
     }
@@ -102,7 +111,8 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
                     av_make_error_string(ret).c_str());
         }
     }
-    
+
+
     /* Write the stream header, if any. */
     ret = avformat_write_header(oc, NULL);
     if (ret < 0) {
@@ -110,6 +120,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
                     av_make_error_string(ret).c_str());
     }
     
+	 prevDts = 0;
     startPts = 0;
     startDts = 0;
     filter_in_rescale_delta_last = AV_NOPTS_VALUE;
@@ -117,6 +128,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
     startTime=av_gettime()-nStartTime;//oc->start_time;
     Info("VideoStore startTime=%d\n",startTime);
 }
+
 
 VideoStore::~VideoStore(){
     /* Write the trailer before close */
@@ -136,28 +148,48 @@ VideoStore::~VideoStore(){
     avformat_free_context(oc);
 }
 
+
+void VideoStore::dumpPacket( AVPacket *pkt ){
+	char b[10240];
+
+	snprintf(b, sizeof(b), " pts: %lld, dts: %lld, data: %p, size: %d, sindex: %d, dflags: %04x, s-pos: %lld, c-duration: %lld\n"
+			, pkt->pts
+			, pkt->dts
+			, pkt->data
+			, pkt->size
+			, pkt->stream_index
+			, pkt->flags
+			, pkt->pos
+			, pkt->convergence_duration
+			);
+	Info("%s:%d:DEBUG: %s", __FILE__, __LINE__, b);
+}
+
 int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st){//, AVPacket *lastKeyframePkt){
 
     int64_t ost_tb_start_time = av_rescale_q(startTime, AV_TIME_BASE_Q, video_st->time_base);
      
-    AVPacket opkt;
+    AVPacket opkt, safepkt;
     AVPicture pict;
     
     av_init_packet(&opkt);
-    
+
     //Scale the PTS of the outgoing packet to be the correct time base
-    if (ipkt->pts != AV_NOPTS_VALUE)
+    if (ipkt->pts != AV_NOPTS_VALUE) {
         opkt.pts = av_rescale_q(ipkt->pts-startPts, input_st->time_base, video_st->time_base) - ost_tb_start_time;
-    else
+	 }else {
         opkt.pts = AV_NOPTS_VALUE;
+	 }
     
     //Scale the DTS of the outgoing packet to be the correct time base
-    if(ipkt->dts == AV_NOPTS_VALUE)
+    if(ipkt->dts == AV_NOPTS_VALUE) {
         opkt.dts = av_rescale_q(input_st->cur_dts-startDts, AV_TIME_BASE_Q, video_st->time_base);
-    else
+	 } else {
         opkt.dts = av_rescale_q(ipkt->dts-startDts, input_st->time_base, video_st->time_base);
+	 }
+
     opkt.dts -= ost_tb_start_time;
-    
+
     opkt.duration = av_rescale_q(ipkt->duration, input_st->time_base, video_st->time_base);
     opkt.flags = ipkt->flags;
     opkt.pos=-1;
@@ -174,15 +206,33 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st){//, AV
         opkt.size = sizeof(AVPicture);
         opkt.flags |= AV_PKT_FLAG_KEY;
     }
+	  
+	 memcpy(&safepkt, &opkt, sizeof(AVPacket));
     
-    
-    int ret;
-    ret = av_interleaved_write_frame(oc, &opkt);
-    if(ret<0){
-        Fatal("Error encoding video frame packet: %s\n", av_make_error_string(ret).c_str());
-    }
-    
-    av_free_packet(&opkt);
+	 if ((opkt.data == NULL)||(opkt.size < 1)) {
+		Warning("%s:%d: Mangled AVPacket: discarding frame", __FILE__, __LINE__ ); 
+		 dumpPacket(&opkt);
+
+	 } else if ((prevDts > 0) && (prevDts >= opkt.dts)) {
+		Warning("%s:%d: DTS out of order: %lld \u226E %lld; discarding frame", __FILE__, __LINE__, prevDts, opkt.dts); 
+		prevDts = opkt.dts; 
+		 dumpPacket(&opkt);
+
+	 } else {
+		int ret;
+
+		prevDts = opkt.dts; // Unsure if av_interleaved_write_frame() clobbers opkt.dts when out of order, so storing in advance
+		ret = av_interleaved_write_frame(oc, &opkt);
+		if(ret<0){
+			// There's nothing we can really do if the frame is rejected, just drop it and get on with the next
+        Warning("%s:%d: Writing frame [av_interleaved_write_frame()] failed: %s(%d)  ", __FILE__, __LINE__,  av_make_error_string(ret).c_str(), (ret));
+		  dumpPacket(&safepkt);
+		}
+	 }
+
+
+    av_free_packet(&opkt); 
+
     return 0;
     
 }
@@ -237,7 +287,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt, AVStream *input_st){
         
     int ret;
     ret = av_interleaved_write_frame(oc, &opkt);
-    if(ret<0){
+    if(ret!=0){
         Fatal("Error encoding audio frame packet: %s\n", av_make_error_string(ret).c_str());
     }
     

@@ -21,7 +21,6 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <syslog.h>
 
 #include "zm.h"
 #include "zm_videostore.h"

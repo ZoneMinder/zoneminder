@@ -2352,6 +2352,34 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
         category    => "mail",
     },
     {
+        name        => "ZM_SSMTP_MAIL",
+        default     => "no",
+        description => "Use a SSMTP mail server if available. NEW_MAIL_MODULES must be enabled",
+        requires    => [
+                            { name => "ZM_OPT_EMAIL", value => "yes" },
+                            { name => "ZM_OPT_MESSAGE", value => "yes" },
+							{ name => "ZM_NEW_MAIL_MODULES", value => "yes" }
+                       ],
+        help        => qqq("
+            Please visit the following wiki page for more information on setting up ssmtp: http://www.zoneminder.com/wiki/index.php/How_to_get_ssmtp_working_with_Zoneminder.
+        "),
+        type        => $types{boolean},
+        category    => "mail",
+    },
+    {
+        name        => "ZM_SSMTP_PATH",
+        default     => '',
+        description => "SSMTP path custom location",
+        requires    => [
+                            { name => "ZM_SSMTP_MAIL", value => "yes" }
+                       ],
+        help        => qqq("
+            Please visit the following wiki page for more information on setting up ssmtp: http://www.zoneminder.com/wiki/index.php/How_to_get_ssmtp_working_with_Zoneminder.
+        "),
+        type        => $types{string},
+        category    => "mail",
+    },
+    {
         name        => "ZM_MAX_RESTART_DELAY",
         default     => "600",
         description => "Maximum delay (in seconds) for daemon restart attempts.",

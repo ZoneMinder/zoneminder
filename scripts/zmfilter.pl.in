@@ -1261,12 +1261,12 @@ sub sendMessage
                     Disposition => "attachment"
                 );
             }
-            ### Send the Message
-            if ( defined($Config{ZM_SSMTP_MAIL}) && $Config{ZM_SSMTP_MAIL}  ){
+			### Send the Message
+            if ( $Config{ZM_SSMTP_MAIL}  ){
 
                 my $ssmtp_location = qx('which ssmtp');
 
-                if( defined($Config{ZM_SSMTP_PATH}) && $Config{ZM_SSMTP_PATH} ){
+                if( $Config{ZM_SSMTP_PATH} ){
 
                     $ssmtp_location = $Config{ZM_SSMTP_PATH}
                 }
@@ -1278,7 +1278,6 @@ sub sendMessage
                 MIME::Lite->send( "smtp", $Config{ZM_EMAIL_HOST}, Timeout=>60 );
                 $mail->send();
             }
-            
 			### Send the Message
             #MIME::Lite->send( "smtp", $Config{ZM_EMAIL_HOST}, Timeout=>60 );
             #$mail->send();

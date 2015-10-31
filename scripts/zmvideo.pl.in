@@ -269,7 +269,7 @@ if ( $overwrite || !-s $video_file )
                  ." '$video_file' > ffmpeg.log 2>&1"
     ;
     Debug( $command."\n" );
-    my $output = qx($command);
+    my $output = qx(\$command);
 
     my $status = $? >> 8;
     if ( $status )

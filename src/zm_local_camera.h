@@ -107,8 +107,8 @@ protected:
 
 #if HAVE_LIBSWSCALE
 	static AVFrame    	**capturePictures;
-	PixelFormat       	imagePixFormat;
-	PixelFormat       	capturePixFormat;
+	AVPixelFormat       	imagePixFormat;
+	AVPixelFormat       	capturePixFormat;
 	struct SwsContext 	*imgConversionContext;
 	AVFrame           	*tmpPicture;    
 #endif // HAVE_LIBSWSCALE

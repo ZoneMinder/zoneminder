@@ -63,13 +63,13 @@ RemoteCameraRtsp::RemoteCameraRtsp( int p_id, const std::string &p_method, const
 	/* Has to be located inside the constructor so other components such as zma will receive correct colours and subpixel order */
 	if(colours == ZM_COLOUR_RGB32) {
 		subpixelorder = ZM_SUBPIX_ORDER_RGBA;
-		imagePixFormat = PIX_FMT_RGBA;
+		imagePixFormat = AV_PIX_FMT_RGBA;
 	} else if(colours == ZM_COLOUR_RGB24) {
 		subpixelorder = ZM_SUBPIX_ORDER_RGB;
-		imagePixFormat = PIX_FMT_RGB24;
+		imagePixFormat = AV_PIX_FMT_RGB24;
 	} else if(colours == ZM_COLOUR_GRAY8) {
 		subpixelorder = ZM_SUBPIX_ORDER_NONE;
-		imagePixFormat = PIX_FMT_GRAY8;
+		imagePixFormat = AV_PIX_FMT_GRAY8;
 	} else {
 		Panic("Unexpected colours: %d",colours);
 	}
@@ -78,8 +78,8 @@ RemoteCameraRtsp::RemoteCameraRtsp( int p_id, const std::string &p_method, const
 
 RemoteCameraRtsp::~RemoteCameraRtsp()
 {
-    av_freep( &mFrame );
-    av_freep( &mRawFrame );
+    av_frame_free( &mFrame );
+    av_frame_free( &mRawFrame );
     
 #if HAVE_LIBSWSCALE
     if ( mConvertContext )
@@ -329,7 +329,7 @@ int RemoteCameraRtsp::Capture( Image &image )
 #if HAVE_LIBSWSCALE
 		if(mConvertContext == NULL) {
 			if(config.cpu_extensions && sseversion >= 20) {
-				mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC | SWS_CPU_CAPS_SSE2, NULL, NULL, NULL );
+				mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
 			} else {
 				mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
 			}

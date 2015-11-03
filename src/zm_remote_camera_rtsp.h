@@ -59,7 +59,7 @@ protected:
     AVCodec             *mCodec;
     AVFrame             *mRawFrame; 
     AVFrame             *mFrame;
-    PixelFormat         imagePixFormat;
+    AVPixelFormat         imagePixFormat;
 #endif // HAVE_LIBAVFORMAT
 
 #if HAVE_LIBSWSCALE

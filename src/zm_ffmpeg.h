@@ -143,14 +143,8 @@ extern "C" {
  #endif
 #endif
 
-/* Fix for not having SWS_CPU_CAPS_SSE2 defined */
-#ifndef SWS_CPU_CAPS_SSE2
-#define SWS_CPU_CAPS_SSE2     0x02000000
-#endif
-
-
 #if HAVE_LIBAVUTIL
-enum PixelFormat GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subpixelorder);
+enum AVPixelFormat GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subpixelorder);
 #endif // HAVE_LIBAVUTIL
 
 
@@ -160,19 +154,19 @@ class SWScale {
 public:
 	SWScale();
 	~SWScale();
-	int SetDefaults(enum PixelFormat in_pf, enum PixelFormat out_pf, unsigned int width, unsigned int height);
+	int SetDefaults(enum AVPixelFormat in_pf, enum AVPixelFormat out_pf, unsigned int width, unsigned int height);
 	int ConvertDefaults(const Image* img, uint8_t* out_buffer, const size_t out_buffer_size);
 	int ConvertDefaults(const uint8_t* in_buffer, const size_t in_buffer_size, uint8_t* out_buffer, const size_t out_buffer_size);
-	int Convert(const Image* img, uint8_t* out_buffer, const size_t out_buffer_size, enum PixelFormat in_pf, enum PixelFormat out_pf, unsigned int width, unsigned int height);
-	int Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint8_t* out_buffer, const size_t out_buffer_size, enum PixelFormat in_pf, enum PixelFormat out_pf, unsigned int width, unsigned int height);
+	int Convert(const Image* img, uint8_t* out_buffer, const size_t out_buffer_size, enum AVPixelFormat in_pf, enum AVPixelFormat out_pf, unsigned int width, unsigned int height);
+	int Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint8_t* out_buffer, const size_t out_buffer_size, enum AVPixelFormat in_pf, enum AVPixelFormat out_pf, unsigned int width, unsigned int height);
 
 protected:
 	bool gotdefaults;
 	struct SwsContext* swscale_ctx;
 	AVFrame* input_avframe;
 	AVFrame* output_avframe;
-	enum PixelFormat default_input_pf;
-	enum PixelFormat default_output_pf;
+	enum AVPixelFormat default_input_pf;
+	enum AVPixelFormat default_output_pf;
 	unsigned int default_width;
 	unsigned int default_height;
 };

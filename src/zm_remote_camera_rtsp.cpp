@@ -78,8 +78,13 @@ RemoteCameraRtsp::RemoteCameraRtsp( int p_id, const std::string &p_method, const
 
 RemoteCameraRtsp::~RemoteCameraRtsp()
 {
+#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
     av_frame_free( &mFrame );
     av_frame_free( &mRawFrame );
+#else
+    av_freep( &mFrame );
+    av_freep( &mRawFrame );
+#endif
     
 #if HAVE_LIBSWSCALE
     if ( mConvertContext )
@@ -347,7 +352,11 @@ int RemoteCameraRtsp::Capture( Image &image )
 
 	     } /* frame complete */
 	     
-	     av_free_packet( &packet );
+#if LIBAVCODEC_VERSION_CHECK(57, 8, 0, 12, 100)
+            av_packet_unref( &packet);
+#else
+            av_free_packet( &packet );
+#endif
 	} /* getFrame() */
  
 	if(frameComplete)

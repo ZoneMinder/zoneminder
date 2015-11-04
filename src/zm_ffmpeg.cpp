@@ -99,11 +99,19 @@ SWScale::SWScale() : gotdefaults(false), swscale_ctx(NULL), input_avframe(NULL),
 SWScale::~SWScale() {
 
 	/* Free up everything */
-	av_frame_free(&input_avframe);
-	input_avframe = NULL;
+#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
+	av_frame_free( &input_avframe );
+#else
+	av_freep( &input_avframe );
+#endif   
+	//input_avframe = NULL;
 
-	av_free(output_avframe);
-	output_avframe = NULL;
+#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
+	av_frame_free( &output_avframe );
+#else
+	av_freep( &output_avframe );
+#endif
+	//output_avframe = NULL;
 
 	if(swscale_ctx) {
 		sws_freeContext(swscale_ctx);

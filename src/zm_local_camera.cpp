@@ -655,8 +655,11 @@ LocalCamera::~LocalCamera()
 		sws_freeContext(imgConversionContext);
 		imgConversionContext = NULL;
 		
-		av_frame_free(&tmpPicture);
-		tmpPicture = NULL;
+#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
+		av_frame_free( &tmpPicture );
+#else
+		av_freep( &tmpPicture );
+#endif
 	}
 #endif
 }
@@ -1085,8 +1088,11 @@ void LocalCamera::Terminate()
         for ( unsigned int i = 0; i < v4l2_data.reqbufs.count; i++ ) {
 #if HAVE_LIBSWSCALE
 			/* Free capture pictures */
-			av_frame_free(&capturePictures[i]);
-			capturePictures[i] = NULL;
+#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
+                        av_frame_free( &capturePictures[i] );
+#else
+                        av_freep( &capturePictures[i] );
+#endif
 #endif
             if ( munmap( v4l2_data.buffers[i].start, v4l2_data.buffers[i].length ) < 0 )
                 Error( "Failed to munmap buffer %d: %s", i, strerror(errno) );
@@ -1103,8 +1109,11 @@ void LocalCamera::Terminate()
 #if HAVE_LIBSWSCALE
 		for(int i=0; i < v4l1_data.frames.frames; i++) {    
 			/* Free capture pictures */
-			av_frame_free(&capturePictures[i]);
-			capturePictures[i] = NULL;
+#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
+                        av_frame_free( &capturePictures[i] );
+#else
+                        av_freep( &capturePictures[i] );
+#endif
 		}
 #endif
 	

@@ -337,7 +337,11 @@ void VideoStream::OpenStream( )
 		uint8_t *opicture_buf = (uint8_t *)av_malloc( size );
 		if ( !opicture_buf )
 		{
-			av_frame_free( &opicture );
+#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
+                    av_frame_free( &opicture );
+#else
+                    av_freep( &opicture );
+#endif
 			Panic( "Could not allocate opicture_buf" );
 		}
 		avpicture_fill( (AVPicture *)opicture, opicture_buf, c->pix_fmt, c->width, c->height );
@@ -361,7 +365,11 @@ void VideoStream::OpenStream( )
 			uint8_t *tmp_opicture_buf = (uint8_t *)av_malloc( size );
 			if ( !tmp_opicture_buf )
 			{
-				av_frame_free( &tmp_opicture );
+#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
+                            av_frame_free( &tmp_opicture );
+#else
+                            av_freep( &tmp_opicture );
+#endif
 				Panic( "Could not allocate tmp_opicture_buf" );
 			}
 			avpicture_fill( (AVPicture *)tmp_opicture, tmp_opicture_buf, pf, c->width, c->height );
@@ -512,11 +520,19 @@ VideoStream::~VideoStream( )
 	{
 		avcodec_close( ost->codec );
 		av_free( opicture->data[0] );
+#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
 		av_frame_free( &opicture );
+#else
+		av_freep( &opicture );
+#endif
 		if ( tmp_opicture )
 		{
 			av_free( tmp_opicture->data[0] );
+#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
 			av_frame_free( &tmp_opicture );
+#else
+			av_freep( &tmp_opicture );
+#endif
 		}
 		av_free( video_outbuf );
 	}
@@ -694,7 +710,11 @@ int VideoStream::SendPacket(AVPacket *packet) {
     {
         Fatal( "Error %d while writing video frame: %s", ret, av_err2str( errno ) );
     }
-    av_free_packet(packet);
+#if LIBAVCODEC_VERSION_CHECK(57, 8, 0, 12, 100)
+        av_packet_unref( packet );
+#else
+        av_free_packet( packet );
+#endif
     return ret;
 }
 
@@ -735,7 +755,11 @@ void *VideoStream::StreamingThreadCallback(void *ctx){
         if (packet->size) {
             videoStream->SendPacket(packet);
         }
-        av_free_packet(packet);
+#if LIBAVCODEC_VERSION_CHECK(57, 8, 0, 12, 100)
+        av_packet_unref( packet);
+#else
+        av_free_packet( packet );
+#endif
         videoStream->packet_index = videoStream->packet_index ? 0 : 1;
         
 		// Lock buffer and render next frame.

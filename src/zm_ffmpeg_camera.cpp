@@ -205,7 +205,11 @@ int FfmpegCamera::Capture( Image &image )
                 frameCount++;
             }
         }
+#if LIBAVCODEC_VERSION_CHECK(57, 8, 0, 12, 100)
+        av_packet_unref( &packet);
+#else
         av_free_packet( &packet );
+#endif
     }
     return (0);
 }
@@ -389,8 +393,13 @@ int FfmpegCamera::CloseFfmpeg(){
 
     mCanCapture = false;
 
+#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
     av_frame_free( &mFrame );
     av_frame_free( &mRawFrame );
+#else
+    av_freep( &mFrame );
+    av_freep( &mRawFrame );
+#endif
     
 #if HAVE_LIBSWSCALE
     if ( mConvertContext )

@@ -2,9 +2,18 @@ ZoneMinder H264 Patch
 
 [![Build Status](https://travis-ci.org/ZoneMinder/ZoneMinder.png?branch=feature-h264-videostorage)](https://travis-ci.org/ZoneMinder/ZoneMinder)  [![Bountysource](https://api.bountysource.com/badge/team?team_id=204&style=bounties_received)](https://www.bountysource.com/teams/zoneminder/issues?utm_source=ZoneMinder&utm_medium=shield&utm_campaign=bounties_received)
 
-##Information about this branch
-This branch aims to support direct recording of H264 cameras into MP4 format as well as allowing analogue or remote cameras to be transcoded into H264 video on the fly. This branch tracks the modern branch as the new WebUI is where all the viewing functionality will sit. If you encounter any issues, please open an issue on GitHub and attach it to the H264 Milestone. @chriswiggins is leading this project and welcomes all help!
+##Feature-h264-videostorage Branch Details
+This branch supports direct recording of h264 cameras into MP4 format uisng the h264 Passthrough option. As well it provides h264 encoding for local or mpeg cameras. If you encounter any issues, please open an issue on GitHub and attach it to the h264 milestone. But do remember this is bleeding edge so it will have problems.
+Thanks to @chriswiggins and @mastertheknife for their work, @SteveGilvarry is now maintaining this branch and welcomes any assistance.
 
+**The following SQL changes are required, these will be merged to zmupdate once we are ready to merge this branch to master.**
+```
+ALTER TABLE `Monitors` ADD `SaveJPEGs` TINYINT NOT NULL DEFAULT '3' AFTER `Deinterlacing` ,
+ADD `VideoWriter` TINYINT NOT NULL DEFAULT '0' AFTER `SaveJPEGs` ,
+ADD `EncoderParameters` TEXT NOT NULL AFTER `VideoWriter` ;
+
+ALTER TABLE `Events` ADD `DefaultVideo` VARCHAR( 64 ) NOT NULL AFTER `AlarmFrames` ;
+```
 
 All documentation for ZoneMinder is now online at http://www.zoneminder.com/wiki/index.php/Documentation
 

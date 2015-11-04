@@ -333,11 +333,8 @@ int RemoteCameraRtsp::Capture( Image &image )
 			
 #if HAVE_LIBSWSCALE
 		if(mConvertContext == NULL) {
-			if(config.cpu_extensions && sseversion >= 20) {
-				mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
-			} else {
-				mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
-			}
+			mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
+
 			if(mConvertContext == NULL)
 				Fatal( "Unable to create conversion context");
 		}

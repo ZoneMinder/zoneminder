@@ -631,14 +631,11 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 			Fatal("Image size mismatch. Required: %d Available: %d",pSize,imagesize);
 		}
 		
-		if(config.cpu_extensions && sseversion >= 20) {
-			imgConversionContext = sws_getContext(width, height, capturePixFormat, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
-		} else {
-			imgConversionContext = sws_getContext(width, height, capturePixFormat, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
-		}
+		imgConversionContext = sws_getContext(width, height, capturePixFormat, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
 		
-		if ( !imgConversionContext )
+		if ( !imgConversionContext ) {
 			Fatal( "Unable to initialise image scaling context" );
+                }
 		
 	}
 #endif

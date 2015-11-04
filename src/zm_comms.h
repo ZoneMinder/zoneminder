@@ -399,10 +399,13 @@ public:
 
 class InetSocket : virtual public Socket
 {
+protected:
+    int mAddressFamily;
+
 public:
     int getDomain() const
     {
-        return( AF_INET );
+        return( mAddressFamily );
     }
     virtual socklen_t getAddrSize() const
     {
@@ -410,92 +413,13 @@ public:
     }
 
 protected:
-    bool resolveLocal( const char *host, const char *serv, const char *proto )
-    {
-        SockAddrInet *addr = new SockAddrInet;
-        mLocalAddr = addr;
-        return( addr->resolve( host, serv, proto ) );
-    }
-    bool resolveLocal( const char *host, int port, const char *proto )
-    {
-        SockAddrInet *addr = new SockAddrInet;
-        mLocalAddr = addr;
-        return( addr->resolve( host, port, proto ) );
-    }
-    bool resolveLocal( const char *serv, const char *proto )
-    {
-        SockAddrInet *addr = new SockAddrInet;
-        mLocalAddr = addr;
-        return( addr->resolve( serv, proto ) );
-    }
-    bool resolveLocal( int port, const char *proto )
-    {
-        SockAddrInet *addr = new SockAddrInet;
-        mLocalAddr = addr;
-        return( addr->resolve( port, proto ) );
-    }
+    bool connect( const char *host, const char *serv );
+    bool connect( const char *host, int port );
 
-    bool resolveRemote( const char *host, const char *serv, const char *proto )
-    {
-        SockAddrInet *addr = new SockAddrInet;
-        mRemoteAddr = addr;
-        return( addr->resolve( host, serv, proto ) );
-    }
-    bool resolveRemote( const char *host, int port, const char *proto )
-    {
-        SockAddrInet *addr = new SockAddrInet;
-        mRemoteAddr = addr;
-        return( addr->resolve( host, port, proto ) );
-    }
-
-protected:
-    bool bind( const SockAddrInet &addr )
-    {
-        mLocalAddr = new SockAddrInet( addr );
-        return( Socket::bind() );
-    }
-    bool bind( const char *host, const char *serv ) 
-    {
-        if ( !resolveLocal( host, serv, getProtocol() ) )
-            return( false );
-        return( Socket::bind() );
-    }
-    bool bind( const char *host, int port )
-    {
-        if ( !resolveLocal( host, port, getProtocol() ) )
-            return( false );
-        return( Socket::bind() );
-    }
-    bool bind( const char *serv )
-    {
-        if ( !resolveLocal( serv, getProtocol() ) )
-            return( false );
-        return( Socket::bind() );
-    }
-    bool bind( int port )
-    {
-        if ( !resolveLocal( port, getProtocol() ) )
-            return( false );
-        return( Socket::bind() );
-    }
-
-    bool connect( const SockAddrInet &addr )
-    {
-        mRemoteAddr = new SockAddrInet( addr );
-        return( Socket::connect() );
-    }
-    bool connect( const char *host, const char *serv )
-    {
-        if ( !resolveRemote( host, serv, getProtocol() ) )
-            return( false );
-        return( Socket::connect() );
-    }
-    bool connect( const char *host, int port )
-    {
-        if ( !resolveRemote( host, port, getProtocol() ) )
-            return( false );
-        return( Socket::connect() );
-    }
+    bool bind( const char *host, const char *serv );
+    bool bind( const char *host, int port );
+    bool bind( const char *serv );
+    bool bind( int port );
 };
 
 class UnixSocket : virtual public Socket
@@ -591,10 +515,6 @@ public:
 class UdpInetSocket : virtual public UdpSocket, virtual public InetSocket
 {
 public:
-    bool bind( const SockAddrInet &addr ) 
-    {
-        return( InetSocket::bind( addr ) );
-    }
     bool bind( const char *host, const char *serv ) 
     {
         return( InetSocket::bind( host, serv ) );
@@ -612,10 +532,6 @@ public:
         return( InetSocket::bind( port ) );
     }
 
-    bool connect( const SockAddrInet &addr ) 
-    {
-        return( InetSocket::connect( addr ) );
-    }
     bool connect( const char *host, const char *serv )
     {
         return( InetSocket::connect( host, serv ) );
@@ -642,33 +558,7 @@ public:
 
 class UdpInetClient : public UdpInetSocket
 {
-protected:
-    bool bind( const SockAddrInet &addr ) 
-    {
-        return( UdpInetSocket::bind( addr ) );
-    }
-    bool bind( const char *host, const char *serv )
-    {
-        return( UdpInetSocket::bind( host, serv ) );
-    }
-    bool bind( const char *host, int port )
-    {
-        return( UdpInetSocket::bind( host, port ) );
-    }
-    bool bind( const char *serv )
-    {
-        return( UdpInetSocket::bind( serv ) );
-    }
-    bool bind( int port )
-    {
-        return( UdpInetSocket::bind( port ) );
-    }
-
 public:
-    bool connect( const SockAddrInet &addr ) 
-    {
-        return( UdpInetSocket::connect( addr ) );
-    }
     bool connect( const char *host, const char *serv )
     {
         return( UdpInetSocket::connect( host, serv ) );
@@ -697,10 +587,6 @@ public:
 class UdpInetServer : public UdpInetSocket
 {
 public:
-    bool bind( const SockAddrInet &addr ) 
-    {
-        return( UdpInetSocket::bind( addr ) );
-    }
     bool bind( const char *host, const char *serv )
     {
         return( UdpInetSocket::bind( host, serv ) );
@@ -812,18 +698,6 @@ public:
 class TcpInetServer : public TcpInetSocket
 {
 public:
-    bool bind( const char *host, const char *serv )
-    {
-        return( TcpInetSocket::bind( host, serv ) );
-    }
-    bool bind( const char *host, int port )
-    {
-        return( TcpInetSocket::bind( host, port ) );
-    }
-    bool bind( const char *serv )
-    {
-        return( TcpInetSocket::bind( serv ) );
-    }
     bool bind( int port )
     {
         return( TcpInetSocket::bind( port ) );

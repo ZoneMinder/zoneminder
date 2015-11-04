@@ -35,6 +35,8 @@
 #include <sys/ioctl.h>
 #include <sys/param.h>
 #include <netinet/tcp.h>
+#include <arpa/inet.h>   // for debug output
+#include <stdio.h>       // for snprintf
 
 #ifdef SOLARIS
 #include <sys/filio.h> // define FIONREAD
@@ -514,6 +516,166 @@ bool Socket::setNoDelay( bool nodelay )
 		return( false );
 	}
 	return( true );
+}
+
+bool InetSocket::connect( const char *host, const char *serv )
+{
+    struct addrinfo hints;
+    struct addrinfo *result, *rp;
+    int s;
+    char buf[255];
+
+    mAddressFamily = AF_UNSPEC;
+    memset(&hints, 0, sizeof(struct addrinfo));
+    hints.ai_family = AF_UNSPEC;    /* Allow IPv4 or IPv6 */
+    hints.ai_socktype = getType();
+    hints.ai_flags = 0;
+    hints.ai_protocol = 0;          /* Any protocol */
+
+    s = getaddrinfo(host, serv, &hints, &result);
+    if (s != 0) {
+        Error( "connect(): getaddrinfo: %s", gai_strerror(s) );
+        return( false );
+    }
+
+    /* getaddrinfo() returns a list of address structures.
+     * Try each address until we successfully connect(2).
+     * If socket(2) (or connect(2)) fails, we (close the socket
+     * and) try the next address. */
+
+    for (rp = result; rp != NULL; rp = rp->ai_next) {
+        if (mSd != -1) {
+            if (::connect(mSd, rp->ai_addr, rp->ai_addrlen) != -1)
+                break;                  /* Success */
+            continue;
+        }
+        memset(&buf, 0, sizeof(buf));
+        if (rp->ai_family == AF_INET) {
+            inet_ntop(AF_INET, &((struct sockaddr_in *)rp->ai_addr)->sin_addr, buf, sizeof(buf)-1);
+        }
+        else if (rp->ai_family == AF_INET6) {
+            inet_ntop(AF_INET6, &((struct sockaddr_in6 *)rp->ai_addr)->sin6_addr, buf, sizeof(buf)-1);
+        }
+        else {
+            strncpy(buf, "n/a", sizeof(buf)-1);
+        }
+        Debug( 1, "connect(): Trying '%s', family '%d', proto '%d'", buf, rp->ai_family, rp->ai_protocol);
+        mSd = ::socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+        if (mSd == -1)
+            continue;
+
+        int val = 1;
+
+        (void)::setsockopt( mSd, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val) );
+        (void)::setsockopt( mSd, SOL_SOCKET, SO_KEEPALIVE, &val, sizeof(val) );
+        mAddressFamily = rp->ai_family;         /* save AF_ for ctrl and data connections */
+
+        if (::connect(mSd, rp->ai_addr, rp->ai_addrlen) != -1)
+            break;                  /* Success */
+
+        ::close(mSd);
+    }
+
+    if (rp == NULL) {               /* No address succeeded */
+        Error( "connect(), Could not connect" );
+        mAddressFamily = AF_UNSPEC;
+        return( false );
+    }
+
+    freeaddrinfo(result);   /* No longer needed */
+
+    mState = CONNECTED;
+
+    return( true );
+}
+
+bool InetSocket::connect( const char *host, int port )
+{
+    char serv[8];
+    snprintf(serv, sizeof(serv), "%d", port);
+
+    return connect( host, serv );
+}
+
+bool InetSocket::bind( const char * host, const char * serv )
+{
+    struct addrinfo hints;
+    struct addrinfo *result, *rp;
+    int s;
+    char buf[255];
+
+    memset(&hints, 0, sizeof(struct addrinfo));
+    hints.ai_family = AF_UNSPEC;    /* Allow IPv4 or IPv6 */
+    hints.ai_socktype = getType();
+    hints.ai_flags = AI_PASSIVE;    /* For wildcard IP address */
+    hints.ai_protocol = 0;          /* Any protocol */
+    hints.ai_canonname = NULL;
+    hints.ai_addr = NULL;
+    hints.ai_next = NULL;
+
+    s = getaddrinfo(host, serv, &hints, &result);
+    if (s != 0) {
+        Error( "bind(): getaddrinfo: %s", gai_strerror(s) );
+        return( false );
+    }
+
+   /* getaddrinfo() returns a list of address structures.
+    * Try each address until we successfully bind(2).
+    * If socket(2) (or bind(2)) fails, we (close the socket
+    * and) try the next address. */
+    for (rp = result; rp != NULL; rp = rp->ai_next) {
+        memset(&buf, 0, sizeof(buf));
+        if (rp->ai_family == AF_INET) {
+            inet_ntop(AF_INET, &((struct sockaddr_in *)rp->ai_addr)->sin_addr, buf, sizeof(buf)-1);
+        }
+        else if (rp->ai_family == AF_INET6) {
+            inet_ntop(AF_INET6, &((struct sockaddr_in6 *)rp->ai_addr)->sin6_addr, buf, sizeof(buf)-1);
+        }
+        else {
+            strncpy(buf, "n/a", sizeof(buf)-1);
+        }
+        Debug( 1, "bind(): Trying '%s', family '%d', proto '%d'", buf, rp->ai_family, rp->ai_protocol);
+        mSd = ::socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+        if (mSd == -1)
+            continue;
+
+    mState = DISCONNECTED;
+        if (::bind(mSd, rp->ai_addr, rp->ai_addrlen) == 0)
+            break;                  /* Success */
+
+        ::close(mSd);
+        mSd = -1;
+    }
+
+    if (rp == NULL) {               /* No address succeeded */
+        Error( "bind(), Could not bind" );
+        return( false );
+    }
+
+    freeaddrinfo(result);   /* No longer needed */
+
+    return( true );
+}
+
+bool InetSocket::bind( const char * serv )
+{
+    return bind( NULL, serv);
+}
+
+bool InetSocket::bind( const char * host, int port )
+{
+    char serv[8];
+    snprintf(serv, sizeof(serv), "%d", port);
+
+    return bind( host, serv );
+}
+
+bool InetSocket::bind( int port )
+{
+    char serv[8];
+    snprintf(serv, sizeof(serv), "%d", port);
+
+    return bind( NULL, serv );
 }
 
 bool TcpInetServer::listen()

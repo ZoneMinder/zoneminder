@@ -599,11 +599,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
                 
 #if HAVE_LIBSWSCALE
 		if(mConvertContext == NULL) {
-			if(config.cpu_extensions && sseversion >= 20) {
-				mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC | SWS_CPU_CAPS_SSE2, NULL, NULL, NULL );
-			} else {
-				mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
-			}
+			mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
 			if(mConvertContext == NULL)
 				Fatal( "Unable to create conversion context for %s", mPath.c_str() );
 		}

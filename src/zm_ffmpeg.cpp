@@ -24,8 +24,8 @@
 #if HAVE_LIBAVCODEC || HAVE_LIBAVUTIL || HAVE_LIBSWSCALE
 
 #if HAVE_LIBAVUTIL
-enum AVPixelFormat GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subpixelorder) {
-	enum AVPixelFormat pf;
+enum _AVPIXELFORMAT GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subpixelorder) {
+	enum _AVPIXELFORMAT pf;
 
 	Debug(8,"Colours: %d SubpixelOrder: %d",p_colours,p_subpixelorder);
 
@@ -113,7 +113,7 @@ SWScale::~SWScale() {
 	Debug(4,"SWScale object destroyed");
 }
 
-int SWScale::SetDefaults(enum AVPixelFormat in_pf, enum AVPixelFormat out_pf, unsigned int width, unsigned int height) {
+int SWScale::SetDefaults(enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, unsigned int width, unsigned int height) {
 
 	/* Assign the defaults */
 	default_input_pf = in_pf;
@@ -126,7 +126,7 @@ int SWScale::SetDefaults(enum AVPixelFormat in_pf, enum AVPixelFormat out_pf, un
 	return 0;
 }
 
-int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint8_t* out_buffer, const size_t out_buffer_size, enum AVPixelFormat in_pf, enum AVPixelFormat out_pf, unsigned int width, unsigned int height) {
+int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint8_t* out_buffer, const size_t out_buffer_size, enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, unsigned int width, unsigned int height) {
 	/* Parameter checking */
 	if(in_buffer == NULL || out_buffer == NULL) {
 		Error("NULL Input or output buffer");
@@ -189,7 +189,7 @@ int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint
 	return 0;
 }
 
-int SWScale::Convert(const Image* img, uint8_t* out_buffer, const size_t out_buffer_size, enum AVPixelFormat in_pf, enum AVPixelFormat out_pf, unsigned int width, unsigned int height) {
+int SWScale::Convert(const Image* img, uint8_t* out_buffer, const size_t out_buffer_size, enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, unsigned int width, unsigned int height) {
 	if(img->Width() != width) {
 		Error("Source image width differs. Source: %d Output: %d",img->Width(), width);
 		return -12;

@@ -53,6 +53,57 @@ extern "C" {
 #include <ffmpeg/mathematics.h>
 #include <ffmpeg/opt.h>
 #endif /* HAVE_LIBAVUTIL_AVUTIL_H */
+    
+#if defined(HAVE_LIBAVUTIL_AVUTIL_H) 
+#if LIBAVUTIL_VERSION_CHECK(51, 42, 0, 74, 100)
+    #define _AVPIXELFORMAT AVPixelFormat
+#else
+    #define _AVPIXELFORMAT PixelFormat
+    #define AV_PIX_FMT_NONE PIX_FMT_NONE
+    #define AV_PIX_FMT_RGB444 PIX_FMT_RGB444
+    #define AV_PIX_FMT_RGB555 PIX_FMT_RGB555
+    #define AV_PIX_FMT_RGB565 PIX_FMT_RGB565
+    #define AV_PIX_FMT_BGR24 PIX_FMT_BGR24
+    #define AV_PIX_FMT_RGB24 PIX_FMT_RGB24
+    #define AV_PIX_FMT_BGRA PIX_FMT_BGRA
+    #define AV_PIX_FMT_ARGB PIX_FMT_ARGB
+    #define AV_PIX_FMT_ABGR PIX_FMT_ABGR
+    #define AV_PIX_FMT_RGBA PIX_FMT_RGBA
+    #define AV_PIX_FMT_GRAY8 PIX_FMT_GRAY8
+    #define AV_PIX_FMT_YUYV422 PIX_FMT_YUYV422
+    #define AV_PIX_FMT_YUV422P PIX_FMT_YUV422P
+    #define AV_PIX_FMT_YUV411P PIX_FMT_YUV411P
+    #define AV_PIX_FMT_YUV444P PIX_FMT_YUV444P
+    #define AV_PIX_FMT_YUV410P PIX_FMT_YUV410P
+    #define AV_PIX_FMT_YUV420P PIX_FMT_YUV420P
+    #define AV_PIX_FMT_YUVJ444P PIX_FMT_YUVJ444P
+    #define AV_PIX_FMT_UYVY422 PIX_FMT_UYVY422
+    #define AV_PIX_FMT_YUVJ420P PIX_FMT_YUVJ420P
+    #define AV_PIX_FMT_YUVJ422P PIX_FMT_YUVJ422P
+    #define AV_PIX_FMT_UYVY422 PIX_FMT_UYVY422
+    #define AV_PIX_FMT_UYYVYY411 PIX_FMT_UYYVYY411
+    #define AV_PIX_FMT_BGR565 PIX_FMT_BGR565
+    #define AV_PIX_FMT_BGR555 PIX_FMT_BGR555
+    #define AV_PIX_FMT_BGR8 PIX_FMT_BGR8
+    #define AV_PIX_FMT_BGR4 PIX_FMT_BGR4
+    #define AV_PIX_FMT_BGR4_BYTE PIX_FMT_BGR4_BYTE
+    #define AV_PIX_FMT_RGB8 PIX_FMT_RGB8
+    #define AV_PIX_FMT_RGB4 PIX_FMT_RGB4
+    #define AV_PIX_FMT_RGB4_BYTE PIX_FMT_RGB4_BYTE
+    #define AV_PIX_FMT_NV12 PIX_FMT_NV12
+    #define AV_PIX_FMT_NV21 PIX_FMT_NV21
+    #define AV_PIX_FMT_RGB32_1 PIX_FMT_RGB32_1
+    #define AV_PIX_FMT_BGR32_1 PIX_FMT_BGR32_1
+    #define AV_PIX_FMT_GRAY16BE PIX_FMT_GRAY16BE
+    #define AV_PIX_FMT_GRAY16LE PIX_FMT_GRAY16LE
+    #define AV_PIX_FMT_YUV440P PIX_FMT_YUV440P
+    #define AV_PIX_FMT_YUVJ440P PIX_FMT_YUVJ440P
+    #define AV_PIX_FMT_YUVA420P PIX_FMT_YUVA420P
+    //#define AV_PIX_FMT_VDPAU_H264 PIX_FMT_VDPAU_H264
+    //#define AV_PIX_FMT_VDPAU_MPEG1 PIX_FMT_VDPAU_MPEG1
+    //#define AV_PIX_FMT_VDPAU_MPEG2 PIX_FMT_VDPAU_MPEG2
+#endif
+#endif /* HAVE_LIBAVUTIL_AVUTIL_H */
 
 // AVCODEC
 #if HAVE_LIBAVCODEC_AVCODEC_H
@@ -144,7 +195,7 @@ extern "C" {
 #endif
 
 #if HAVE_LIBAVUTIL
-enum AVPixelFormat GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subpixelorder);
+enum _AVPIXELFORMAT GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subpixelorder);
 #endif // HAVE_LIBAVUTIL
 
 
@@ -154,19 +205,19 @@ class SWScale {
 public:
 	SWScale();
 	~SWScale();
-	int SetDefaults(enum AVPixelFormat in_pf, enum AVPixelFormat out_pf, unsigned int width, unsigned int height);
+	int SetDefaults(enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, unsigned int width, unsigned int height);
 	int ConvertDefaults(const Image* img, uint8_t* out_buffer, const size_t out_buffer_size);
 	int ConvertDefaults(const uint8_t* in_buffer, const size_t in_buffer_size, uint8_t* out_buffer, const size_t out_buffer_size);
-	int Convert(const Image* img, uint8_t* out_buffer, const size_t out_buffer_size, enum AVPixelFormat in_pf, enum AVPixelFormat out_pf, unsigned int width, unsigned int height);
-	int Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint8_t* out_buffer, const size_t out_buffer_size, enum AVPixelFormat in_pf, enum AVPixelFormat out_pf, unsigned int width, unsigned int height);
+	int Convert(const Image* img, uint8_t* out_buffer, const size_t out_buffer_size, enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, unsigned int width, unsigned int height);
+	int Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint8_t* out_buffer, const size_t out_buffer_size, enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, unsigned int width, unsigned int height);
 
 protected:
 	bool gotdefaults;
 	struct SwsContext* swscale_ctx;
 	AVFrame* input_avframe;
 	AVFrame* output_avframe;
-	enum AVPixelFormat default_input_pf;
-	enum AVPixelFormat default_output_pf;
+	enum _AVPIXELFORMAT default_input_pf;
+	enum _AVPIXELFORMAT default_output_pf;
 	unsigned int default_width;
 	unsigned int default_height;
 };

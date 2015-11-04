@@ -42,7 +42,7 @@ protected:
 	const char *filename;
 	const char *format;
 	const char *codec_name;
-	enum AVPixelFormat pf;
+	enum _AVPIXELFORMAT pf;
 	AVOutputFormat *of;
 	AVFormatContext *ofc;
 	AVStream *ost;

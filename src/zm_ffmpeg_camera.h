@@ -46,7 +46,7 @@ protected:
     AVCodec             *mCodec;
     AVFrame             *mRawFrame; 
     AVFrame             *mFrame;
-    AVPixelFormat         imagePixFormat;
+    _AVPIXELFORMAT         imagePixFormat;
 
     int OpenFfmpeg();
     int ReopenFfmpeg();

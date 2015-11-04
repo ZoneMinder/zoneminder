@@ -52,9 +52,9 @@ static int vidioctl( int fd, int request, void *arg )
 }
 
 #if HAVE_LIBSWSCALE
-static AVPixelFormat getFfPixFormatFromV4lPalette( int v4l_version, int palette )
+static _AVPIXELFORMAT getFfPixFormatFromV4lPalette( int v4l_version, int palette )
 {
-    AVPixelFormat pixFormat = AV_PIX_FMT_NONE;
+    _AVPIXELFORMAT pixFormat = AV_PIX_FMT_NONE;
      
 #if ZM_HAS_V4L2
     if ( v4l_version == 2 )

@@ -152,7 +152,7 @@ VideoStore::~VideoStore(){
 void VideoStore::dumpPacket( AVPacket *pkt ){
 	char b[10240];
 
-	snprintf(b, sizeof(b), " pts: %" PRId64 ", dts: %" PRId64 ", data: %p, size: %d, sindex: %d, dflags: %04x, s-pos: %" PRId64 ", c-duration: %" PRId64 "\n"
+	snprintf(b, sizeof(b), " pts: %"PRId64 ", dts: %"PRId64 ", data: %p, size: %d, sindex: %d, dflags: %04x, s-pos: %"PRId64 ", c-duration: %"PRId64 "\n"
 			, pkt->pts
 			, pkt->dts
 			, pkt->data

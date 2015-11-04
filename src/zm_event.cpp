@@ -456,7 +456,7 @@ bool Event::WriteFrameVideo( const Image *image, const struct timeval timestamp,
 	unsigned int timeMS = (delta_time3.sec * delta_time3.prec) + delta_time3.fsec;
 
 	/* Encode and write the frame */
-	if(videowriter->Encode(image, timeMS) != 0) {
+	if(videowriter->Encode(frameimg, timeMS) != 0) {
 		Error("Failed encoding video frame");
 	}
 

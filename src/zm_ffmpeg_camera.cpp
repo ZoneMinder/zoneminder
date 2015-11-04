@@ -614,10 +614,10 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
             if(videoStore && recording){
                 //Write the packet to our video store
                 int ret = videoStore->writeAudioFramePacket(&packet, mFormatContext->streams[packet.stream_index]); //FIXME no relevance of last key frame
-                /*if(ret<0){//Less than zero and we skipped a frame
+                if(ret<0){//Less than zero and we skipped a frame
                     av_free_packet( &packet );
-                    return 0;  //FIXME av_free_packet not called      
-                }*/
+                    return 0;      
+                }
             }
         }
         av_free_packet( &packet );

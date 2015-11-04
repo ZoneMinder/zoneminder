@@ -19,8 +19,11 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
+#define __STDC_FORMAT_MACROS 1
+
 #include <stdlib.h>
 #include <string.h>
+#include <inttypes.h>
 
 #include "zm.h"
 #include "zm_videostore.h"
@@ -151,7 +154,7 @@ VideoStore::~VideoStore(){
 void VideoStore::dumpPacket( AVPacket *pkt ){
 	char b[10240];
 
-	snprintf(b, sizeof(b), " pts: %lld, dts: %lld, data: %p, size: %d, sindex: %d, dflags: %04x, s-pos: %lld, c-duration: %lld\n"
+	snprintf(b, sizeof(b), " pts: %" PRId64 ", dts: %" PRId64 ", data: %p, size: %d, sindex: %d, dflags: %04x, s-pos: %" PRId64 ", c-duration: %" PRId64 "\n"
 			, pkt->pts
 			, pkt->dts
 			, pkt->data

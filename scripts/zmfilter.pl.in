@@ -1167,11 +1167,17 @@ sub sendEmail
             }
             if ( $Config{ZM_SSMTP_MAIL} ){
 
-                my $ssmtp_location = qx('which ssmtp');
+                my $ssmtp_location = $Config{ZM_SSMTP_PATH}
 
-                if( $Config{ZM_SSMTP_PATH} ){
+                if( ! $ssmtp_location ){
 
-                    $ssmtp_location = $Config{ZM_SSMTP_PATH}
+                	$ssmtp_location = qx('which ssmtp');
+					
+					if ( logDebugging() )
+   					{			
+				        Debug( "which ssmtp: $ssmtp_location - set ssmtp path in options to suppress this message\n" );
+				    }
+
                 }
 
                 $mail->send( 'sendmail', $ssmtp_location, $Config{ZM_EMAIL_ADDRESS} );

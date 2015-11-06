@@ -1167,7 +1167,7 @@ sub sendEmail
             }
             if ( $Config{ZM_SSMTP_MAIL} ){
 
-                my $ssmtp_location = $Config{ZM_SSMTP_PATH}
+                my $ssmtp_location = $Config{ZM_SSMTP_PATH};
 
                 if( ! $ssmtp_location ){
 

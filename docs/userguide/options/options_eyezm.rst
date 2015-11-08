@@ -1,6 +1,10 @@
 Options - eyeZM
 ---------------
 
+.. NOTE:: 
+	eyeZM does not seem to be actively maintained by the developers and does not work with later versions of ZoneMinder.
+
+
 .. image:: images/Options_eyezm.png
 
 EYEZM_DEBUG - Enable or Disable extra debugging from the eyeZm Plugin. Extra debugging information will be displayed in it's own file (EYEZM_LOG_TO_FILE is set), or your Apache error log

@@ -70,8 +70,7 @@ $eventCounts = array(
 
 $running = daemonCheck();
 $status = $running?translate('Running'):translate('Stopped');
-$run_state_array = dbFetchOne('select Name from States where  IsActive = 1');
-$run_state  = implode($run_state_array);
+$run_state = dbFetchOne('select Name from States where  IsActive = 1', 'Name' );
 
 $group = NULL;
 if ( ! empty($_COOKIE['zmGroup']) ) {
@@ -192,7 +191,7 @@ xhtmlHeaders( __FILE__, translate('Console') );
       <h3 id="systemStats"><?php echo translate('Load') ?>: <?php echo getLoad() ?> / <?php echo translate('Disk') ?>: <?php echo getDiskPercent() ?>%</h3>
       <h2 id="title"><a href="http://www.zoneminder.com" target="ZoneMinder">ZoneMinder</a> <?php echo translate('Console') ?> - <?php echo makePopupLink( '?view=state', 'zmState', 'state', $status, canEdit( 'System' ) ) ?> - <?php echo $run_state ?> <?php echo makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="'.$versionClass.'">v'.ZM_VERSION.'</span>', canEdit( 'System' ) ) ?></h2>
       <div class="clear"></div>
-      <div id="monitorSummary"><?php echo makePopupLink( '?view=groups', 'zmGroups', 'groups', translate('Group') . ': ' . ($group?' ('.$group['Name'].')':'All').': '. sprintf( $CLANG['MonitorCount'], count($displayMonitors), zmVlang( $VLANG['Monitor'], count($displayMonitors) ) ) ); ?></div>
+      <div id="monitorSummary"><?php echo makePopupLink( '?view=groups', 'zmGroups', 'groups', sprintf( $CLANG['MonitorCount'], count($displayMonitors), zmVlang( $VLANG['Monitor'], count($displayMonitors) ) ).($group?' ('.$group['Name'].')':''), canView( 'Groups' ) ); ?></div>
 <?php
 if ( ZM_OPT_X10 && canView( 'Devices' ) )
 {
@@ -288,15 +287,16 @@ foreach( $displayMonitors as $monitor )
         $dclass = "errorText";
     else
     {
-        if ( !$monitor['zma'] )
+	// https://github.com/ZoneMinder/ZoneMinder/issues/1082
+        if ( !$monitor['zma'] && $monitor['Function']!='Monitor' )
             $dclass = "warnText";
         else
             $dclass = "infoText";
     }
     if ( $monitor['Function'] == 'None' )
         $fclass = "errorText";
-    elseif ( $monitor['Function'] == 'Monitor' )
-        $fclass = "warnText";
+    //elseif ( $monitor['Function'] == 'Monitor' )
+     //   $fclass = "warnText";
     else
         $fclass = "infoText";
     if ( !$monitor['Enabled'] )

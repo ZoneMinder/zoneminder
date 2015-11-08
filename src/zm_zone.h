@@ -56,7 +56,7 @@ protected:
 	};
 
 public:
-	typedef enum { ACTIVE=1, INCLUSIVE, EXCLUSIVE, PRECLUSIVE, INACTIVE } ZoneType;
+	typedef enum { ACTIVE=1, INCLUSIVE, EXCLUSIVE, PRECLUSIVE, INACTIVE, PRIVACY } ZoneType;
 	typedef enum { ALARMED_PIXELS=1, FILTERED_PIXELS, BLOBS } CheckMethod;
 
 protected:
@@ -131,6 +131,10 @@ public:
 	{
 		Setup( p_monitor, p_id, p_label, Zone::INACTIVE, p_polygon, RGB_BLACK, (Zone::CheckMethod)0, 0, 0, 0, 0, Coord( 0, 0 ), 0, 0, 0, 0, 0, 0, 0, 0 );
 	}
+	Zone( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Polygon &p_polygon )
+	{
+		Setup( p_monitor, p_id, p_label, p_type, p_polygon, RGB_BLACK, (Zone::CheckMethod)0, 0, 0, 0, 0, Coord( 0, 0 ), 0, 0, 0, 0, 0, 0, 0, 0 );
+	}
 
 public:
 	~Zone();
@@ -143,6 +147,7 @@ public:
 	inline bool IsExclusive() const { return( type == EXCLUSIVE ); }
 	inline bool IsPreclusive() const { return( type == PRECLUSIVE ); }
 	inline bool IsInactive() const { return( type == INACTIVE ); }
+	inline bool IsPrivacy() const { return( type == PRIVACY ); }
 	inline const Image *AlarmImage() const { return( image ); }
 	inline const Polygon &GetPolygon() const { return( polygon ); }
 	inline bool Alarmed() const { return( alarmed ); }

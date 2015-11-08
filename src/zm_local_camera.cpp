@@ -52,67 +52,67 @@ static int vidioctl( int fd, int request, void *arg )
 }
 
 #if HAVE_LIBSWSCALE
-static PixelFormat getFfPixFormatFromV4lPalette( int v4l_version, int palette )
+static _AVPIXELFORMAT getFfPixFormatFromV4lPalette( int v4l_version, int palette )
 {
-    PixelFormat pixFormat = PIX_FMT_NONE;
+    _AVPIXELFORMAT pixFormat = AV_PIX_FMT_NONE;
      
 #if ZM_HAS_V4L2
     if ( v4l_version == 2 )
     {
         switch( palette )
         {
-#if defined(V4L2_PIX_FMT_RGB444) && defined(PIX_FMT_RGB444)
+#if defined(V4L2_PIX_FMT_RGB444) && defined(AV_PIX_FMT_RGB444)
             case V4L2_PIX_FMT_RGB444 :
-                pixFormat = PIX_FMT_RGB444;
+                pixFormat = AV_PIX_FMT_RGB444;
                 break;
 #endif // V4L2_PIX_FMT_RGB444
             case V4L2_PIX_FMT_RGB555 :
-                pixFormat = PIX_FMT_RGB555;
+                pixFormat = AV_PIX_FMT_RGB555;
                 break;
             case V4L2_PIX_FMT_RGB565 :
-                pixFormat = PIX_FMT_RGB565;
+                pixFormat = AV_PIX_FMT_RGB565;
                 break;
             case V4L2_PIX_FMT_BGR24 :
-                pixFormat = PIX_FMT_BGR24;
+                pixFormat = AV_PIX_FMT_BGR24;
                 break;
             case V4L2_PIX_FMT_RGB24 :
-                pixFormat = PIX_FMT_RGB24;
+                pixFormat = AV_PIX_FMT_RGB24;
                 break;
             case V4L2_PIX_FMT_BGR32 :
-                pixFormat = PIX_FMT_BGRA;
+                pixFormat = AV_PIX_FMT_BGRA;
                 break;
             case V4L2_PIX_FMT_RGB32 :
-                pixFormat = PIX_FMT_ARGB;
+                pixFormat = AV_PIX_FMT_ARGB;
                 break;
             case V4L2_PIX_FMT_GREY :
-                pixFormat = PIX_FMT_GRAY8;
+                pixFormat = AV_PIX_FMT_GRAY8;
                 break;
             case V4L2_PIX_FMT_YUYV :
-                pixFormat = PIX_FMT_YUYV422;
+                pixFormat = AV_PIX_FMT_YUYV422;
                 break;
             case V4L2_PIX_FMT_YUV422P :
-                pixFormat = PIX_FMT_YUV422P;
+                pixFormat = AV_PIX_FMT_YUV422P;
                 break;
             case V4L2_PIX_FMT_YUV411P :
-                pixFormat = PIX_FMT_YUV411P;
+                pixFormat = AV_PIX_FMT_YUV411P;
                 break;
 #ifdef V4L2_PIX_FMT_YUV444
             case V4L2_PIX_FMT_YUV444 :
-                pixFormat = PIX_FMT_YUV444P;
+                pixFormat = AV_PIX_FMT_YUV444P;
                 break;
 #endif // V4L2_PIX_FMT_YUV444
             case V4L2_PIX_FMT_YUV410 :
-                pixFormat = PIX_FMT_YUV410P;
+                pixFormat = AV_PIX_FMT_YUV410P;
                 break;
             case V4L2_PIX_FMT_YUV420 :
-                pixFormat = PIX_FMT_YUV420P;
+                pixFormat = AV_PIX_FMT_YUV420P;
                 break;
             case V4L2_PIX_FMT_JPEG :
             case V4L2_PIX_FMT_MJPEG :
-                pixFormat = PIX_FMT_YUVJ444P;
+                pixFormat = AV_PIX_FMT_YUVJ444P;
                 break;
             case V4L2_PIX_FMT_UYVY :
-                pixFormat = PIX_FMT_UYVY422;
+                pixFormat = AV_PIX_FMT_UYVY422;
                 break;
             // These don't seem to have ffmpeg equivalents
             // See if you can match any of the ones in the default clause below!?
@@ -154,32 +154,30 @@ static PixelFormat getFfPixFormatFromV4lPalette( int v4l_version, int palette )
                 Fatal( "Can't find swscale format for palette %d", palette );
                 break;
                 // These are all spare and may match some of the above
-                pixFormat = PIX_FMT_YUVJ420P;
-                pixFormat = PIX_FMT_YUVJ422P;
-                pixFormat = PIX_FMT_XVMC_MPEG2_MC;
-                pixFormat = PIX_FMT_XVMC_MPEG2_IDCT;
-                pixFormat = PIX_FMT_UYVY422;
-                pixFormat = PIX_FMT_UYYVYY411;
-                pixFormat = PIX_FMT_BGR565;
-                pixFormat = PIX_FMT_BGR555;
-                pixFormat = PIX_FMT_BGR8;
-                pixFormat = PIX_FMT_BGR4;
-                pixFormat = PIX_FMT_BGR4_BYTE;
-                pixFormat = PIX_FMT_RGB8;
-                pixFormat = PIX_FMT_RGB4;
-                pixFormat = PIX_FMT_RGB4_BYTE;
-                pixFormat = PIX_FMT_NV12;
-                pixFormat = PIX_FMT_NV21;
-                pixFormat = PIX_FMT_RGB32_1;
-                pixFormat = PIX_FMT_BGR32_1;
-                pixFormat = PIX_FMT_GRAY16BE;
-                pixFormat = PIX_FMT_GRAY16LE;
-                pixFormat = PIX_FMT_YUV440P;
-                pixFormat = PIX_FMT_YUVJ440P;
-                pixFormat = PIX_FMT_YUVA420P;
-                //pixFormat = PIX_FMT_VDPAU_H264;
-                //pixFormat = PIX_FMT_VDPAU_MPEG1;
-                //pixFormat = PIX_FMT_VDPAU_MPEG2;
+                pixFormat = AV_PIX_FMT_YUVJ420P;
+                pixFormat = AV_PIX_FMT_YUVJ422P;
+                pixFormat = AV_PIX_FMT_UYVY422;
+                pixFormat = AV_PIX_FMT_UYYVYY411;
+                pixFormat = AV_PIX_FMT_BGR565;
+                pixFormat = AV_PIX_FMT_BGR555;
+                pixFormat = AV_PIX_FMT_BGR8;
+                pixFormat = AV_PIX_FMT_BGR4;
+                pixFormat = AV_PIX_FMT_BGR4_BYTE;
+                pixFormat = AV_PIX_FMT_RGB8;
+                pixFormat = AV_PIX_FMT_RGB4;
+                pixFormat = AV_PIX_FMT_RGB4_BYTE;
+                pixFormat = AV_PIX_FMT_NV12;
+                pixFormat = AV_PIX_FMT_NV21;
+                pixFormat = AV_PIX_FMT_RGB32_1;
+                pixFormat = AV_PIX_FMT_BGR32_1;
+                pixFormat = AV_PIX_FMT_GRAY16BE;
+                pixFormat = AV_PIX_FMT_GRAY16LE;
+                pixFormat = AV_PIX_FMT_YUV440P;
+                pixFormat = AV_PIX_FMT_YUVJ440P;
+                pixFormat = AV_PIX_FMT_YUVA420P;
+                //pixFormat = AV_PIX_FMT_VDPAU_H264;
+                //pixFormat = AV_PIX_FMT_VDPAU_MPEG1;
+                //pixFormat = AV_PIX_FMT_VDPAU_MPEG2;
             }
         }
     }
@@ -191,67 +189,65 @@ static PixelFormat getFfPixFormatFromV4lPalette( int v4l_version, int palette )
         {
             case VIDEO_PALETTE_RGB32 :
 		if(BigEndian)
-			pixFormat = PIX_FMT_ARGB;
+			pixFormat = AV_PIX_FMT_ARGB;
 		else
-			pixFormat = PIX_FMT_BGRA;
+			pixFormat = AV_PIX_FMT_BGRA;
 		break;
             case VIDEO_PALETTE_RGB24 :
 		if(BigEndian)
-			pixFormat = PIX_FMT_RGB24;
+			pixFormat = AV_PIX_FMT_RGB24;
 		else
-			pixFormat = PIX_FMT_BGR24;
+			pixFormat = AV_PIX_FMT_BGR24;
 		break;
             case VIDEO_PALETTE_GREY :
-                pixFormat = PIX_FMT_GRAY8;
+                pixFormat = AV_PIX_FMT_GRAY8;
                 break;
             case VIDEO_PALETTE_RGB555 :
-                pixFormat = PIX_FMT_RGB555;
+                pixFormat = AV_PIX_FMT_RGB555;
                 break;
             case VIDEO_PALETTE_RGB565 :
-                pixFormat = PIX_FMT_RGB565;
+                pixFormat = AV_PIX_FMT_RGB565;
                 break;
             case VIDEO_PALETTE_YUYV :
             case VIDEO_PALETTE_YUV422 :
-                pixFormat = PIX_FMT_YUYV422;
+                pixFormat = AV_PIX_FMT_YUYV422;
                 break;
             case VIDEO_PALETTE_YUV422P :
-                pixFormat = PIX_FMT_YUV422P;
+                pixFormat = AV_PIX_FMT_YUV422P;
                 break;
             case VIDEO_PALETTE_YUV420P :
-                pixFormat = PIX_FMT_YUV420P;
+                pixFormat = AV_PIX_FMT_YUV420P;
                 break;
             default :
             {
                 Fatal( "Can't find swscale format for palette %d", palette );
                 break;
                 // These are all spare and may match some of the above
-                pixFormat = PIX_FMT_YUVJ420P;
-                pixFormat = PIX_FMT_YUVJ422P;
-                pixFormat = PIX_FMT_YUVJ444P;
-                pixFormat = PIX_FMT_XVMC_MPEG2_MC;
-                pixFormat = PIX_FMT_XVMC_MPEG2_IDCT;
-                pixFormat = PIX_FMT_UYVY422;
-                pixFormat = PIX_FMT_UYYVYY411;
-                pixFormat = PIX_FMT_BGR565;
-                pixFormat = PIX_FMT_BGR555;
-                pixFormat = PIX_FMT_BGR8;
-                pixFormat = PIX_FMT_BGR4;
-                pixFormat = PIX_FMT_BGR4_BYTE;
-                pixFormat = PIX_FMT_RGB8;
-                pixFormat = PIX_FMT_RGB4;
-                pixFormat = PIX_FMT_RGB4_BYTE;
-                pixFormat = PIX_FMT_NV12;
-                pixFormat = PIX_FMT_NV21;
-                pixFormat = PIX_FMT_RGB32_1;
-                pixFormat = PIX_FMT_BGR32_1;
-                pixFormat = PIX_FMT_GRAY16BE;
-                pixFormat = PIX_FMT_GRAY16LE;
-                pixFormat = PIX_FMT_YUV440P;
-                pixFormat = PIX_FMT_YUVJ440P;
-                pixFormat = PIX_FMT_YUVA420P;
-                //pixFormat = PIX_FMT_VDPAU_H264;
-                //pixFormat = PIX_FMT_VDPAU_MPEG1;
-                //pixFormat = PIX_FMT_VDPAU_MPEG2;
+                pixFormat = AV_PIX_FMT_YUVJ420P;
+                pixFormat = AV_PIX_FMT_YUVJ422P;
+                pixFormat = AV_PIX_FMT_YUVJ444P;
+                pixFormat = AV_PIX_FMT_UYVY422;
+                pixFormat = AV_PIX_FMT_UYYVYY411;
+                pixFormat = AV_PIX_FMT_BGR565;
+                pixFormat = AV_PIX_FMT_BGR555;
+                pixFormat = AV_PIX_FMT_BGR8;
+                pixFormat = AV_PIX_FMT_BGR4;
+                pixFormat = AV_PIX_FMT_BGR4_BYTE;
+                pixFormat = AV_PIX_FMT_RGB8;
+                pixFormat = AV_PIX_FMT_RGB4;
+                pixFormat = AV_PIX_FMT_RGB4_BYTE;
+                pixFormat = AV_PIX_FMT_NV12;
+                pixFormat = AV_PIX_FMT_NV21;
+                pixFormat = AV_PIX_FMT_RGB32_1;
+                pixFormat = AV_PIX_FMT_BGR32_1;
+                pixFormat = AV_PIX_FMT_GRAY16BE;
+                pixFormat = AV_PIX_FMT_GRAY16LE;
+                pixFormat = AV_PIX_FMT_YUV440P;
+                pixFormat = AV_PIX_FMT_YUVJ440P;
+                pixFormat = AV_PIX_FMT_YUVA420P;
+                //pixFormat = AV_PIX_FMT_VDPAU_H264;
+                //pixFormat = AV_PIX_FMT_VDPAU_MPEG1;
+                //pixFormat = AV_PIX_FMT_VDPAU_MPEG2;
             }
         }
     }
@@ -376,7 +372,7 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 #if HAVE_LIBSWSCALE
 		/* Get ffmpeg pixel format based on capture palette and endianness */
 		capturePixFormat = getFfPixFormatFromV4lPalette( v4l_version, palette );
-		imagePixFormat = PIX_FMT_NONE;
+		imagePixFormat = AV_PIX_FMT_NONE;
 #endif // HAVE_LIBSWSCALE   
 	}
 
@@ -423,13 +419,13 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 			Debug(2,"Using swscale for image conversion");
 			if(colours == ZM_COLOUR_RGB32) {
 				subpixelorder = ZM_SUBPIX_ORDER_RGBA;
-				imagePixFormat = PIX_FMT_RGBA;
+				imagePixFormat = AV_PIX_FMT_RGBA;
 			} else if(colours == ZM_COLOUR_RGB24) {
 				subpixelorder = ZM_SUBPIX_ORDER_RGB;
-				imagePixFormat = PIX_FMT_RGB24;
+				imagePixFormat = AV_PIX_FMT_RGB24;
 			} else if(colours == ZM_COLOUR_GRAY8) {
 				subpixelorder = ZM_SUBPIX_ORDER_NONE;
-				imagePixFormat = PIX_FMT_GRAY8;
+				imagePixFormat = AV_PIX_FMT_GRAY8;
 			} else {
 				Panic("Unexpected colours: %d",colours);
 			}
@@ -541,13 +537,13 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 			Debug(2,"Using swscale for image conversion");
 			if(colours == ZM_COLOUR_RGB32) {
 				subpixelorder = ZM_SUBPIX_ORDER_RGBA;
-				imagePixFormat = PIX_FMT_RGBA;
+				imagePixFormat = AV_PIX_FMT_RGBA;
 			} else if(colours == ZM_COLOUR_RGB24) {
 				subpixelorder = ZM_SUBPIX_ORDER_RGB;
-				imagePixFormat = PIX_FMT_RGB24;
+				imagePixFormat = AV_PIX_FMT_RGB24;
 			} else if(colours == ZM_COLOUR_GRAY8) {
 				subpixelorder = ZM_SUBPIX_ORDER_NONE;
-				imagePixFormat = PIX_FMT_GRAY8;
+				imagePixFormat = AV_PIX_FMT_GRAY8;
 			} else {
 				Panic("Unexpected colours: %d",colours);
 			}
@@ -635,14 +631,11 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 			Fatal("Image size mismatch. Required: %d Available: %d",pSize,imagesize);
 		}
 		
-		if(config.cpu_extensions && sseversion >= 20) {
-			imgConversionContext = sws_getContext(width, height, capturePixFormat, width, height, imagePixFormat, SWS_BICUBIC | SWS_CPU_CAPS_SSE2, NULL, NULL, NULL );
-		} else {
-			imgConversionContext = sws_getContext(width, height, capturePixFormat, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
-		}
+		imgConversionContext = sws_getContext(width, height, capturePixFormat, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
 		
-		if ( !imgConversionContext )
+		if ( !imgConversionContext ) {
 			Fatal( "Unable to initialise image scaling context" );
+                }
 		
 	}
 #endif
@@ -659,8 +652,11 @@ LocalCamera::~LocalCamera()
 		sws_freeContext(imgConversionContext);
 		imgConversionContext = NULL;
 		
-		av_free(tmpPicture);
-		tmpPicture = NULL;
+#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
+		av_frame_free( &tmpPicture );
+#else
+		av_freep( &tmpPicture );
+#endif
 	}
 #endif
 }
@@ -1089,8 +1085,11 @@ void LocalCamera::Terminate()
         for ( unsigned int i = 0; i < v4l2_data.reqbufs.count; i++ ) {
 #if HAVE_LIBSWSCALE
 			/* Free capture pictures */
-			av_free(capturePictures[i]);
-			capturePictures[i] = NULL;
+#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
+                        av_frame_free( &capturePictures[i] );
+#else
+                        av_freep( &capturePictures[i] );
+#endif
 #endif
             if ( munmap( v4l2_data.buffers[i].start, v4l2_data.buffers[i].length ) < 0 )
                 Error( "Failed to munmap buffer %d: %s", i, strerror(errno) );
@@ -1107,8 +1106,11 @@ void LocalCamera::Terminate()
 #if HAVE_LIBSWSCALE
 		for(int i=0; i < v4l1_data.frames.frames; i++) {    
 			/* Free capture pictures */
-			av_free(capturePictures[i]);
-			capturePictures[i] = NULL;
+#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
+                        av_frame_free( &capturePictures[i] );
+#else
+                        av_freep( &capturePictures[i] );
+#endif
 		}
 #endif
 	

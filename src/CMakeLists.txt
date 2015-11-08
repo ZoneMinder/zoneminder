@@ -46,7 +46,8 @@ ENDFOREACH(CBINARY zma zmc zmf zmu zmstreamer)
 
 install(TARGETS zmc zma zmu zmf zmstreamer RUNTIME DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 install(TARGETS zms RUNTIME DESTINATION "${ZM_CGIDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-install(CODE "execute_process(COMMAND ln -sf zms nph-zms WORKING_DIRECTORY \"\$ENV{DESTDIR}${ZM_CGIDIR}\")")
+install(CODE "execute_process(COMMAND ln -sf zms nph-zms WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})" )
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/nph-zms DESTINATION "${ZM_CGIDIR}")
 
 if(ZM_PLUGIN_SUPPORT)
 	install(FILES jinclude.h zm_db.h zm_detector.h zm_logger.h zm_poly.h zm_mem_utils.h zm_box.h zm_ffmpeg.h zm_plugin_manager.h zm_plugin.h zm_jpeg.h zm_mpeg.h zm_image_analyser.h zm_zone.h zm_rgb.h zm_utils.h zm_event.h zm_stream.h zm_coord.h zm_image.h DESTINATION include/zoneminder)

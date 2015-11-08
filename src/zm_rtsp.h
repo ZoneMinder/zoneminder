@@ -49,6 +49,7 @@ private:
 
 private:
     int mId;
+    bool mRtspDescribe;
     RtspMethod mMethod;
     std::string mProtocol;
     std::string mHost;
@@ -94,7 +95,7 @@ private:
     void checkAuthResponse(std::string &response);    
 
 public:
-    RtspThread( int id, RtspMethod method, const std::string &protocol, const std::string &host, const std::string &port, const std::string &path, const std::string &auth);
+    RtspThread( int id, RtspMethod method, const std::string &protocol, const std::string &host, const std::string &port, const std::string &path, const std::string &auth, bool rtsp_describe );
     ~RtspThread();
 
 public:

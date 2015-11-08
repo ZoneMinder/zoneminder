@@ -62,7 +62,7 @@ class Event extends AppModel {
 			'order' => '',
 			'limit' => '',
 			'offset' => '',
-			'exclusive' => '',
+			'exclusive' => 'true',
 			'finderQuery' => '',
 			'counterQuery' => ''
 		)

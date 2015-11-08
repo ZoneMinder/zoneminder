@@ -155,14 +155,38 @@ int main( int argc, char *argv[] )
 		sigset_t block_set;
 		sigemptyset( &block_set );
 
+		useconds_t analysis_rate = monitor->GetAnalysisRate();
+		unsigned int analysis_update_delay = monitor->GetAnalysisUpdateDelay();
+		time_t last_analysis_update_time, cur_time;
+		monitor->UpdateAdaptiveSkip();
+		last_analysis_update_time = time( 0 );
+
 		while( !zm_terminate )
 		{
 			// Process the next image
 			sigprocmask( SIG_BLOCK, &block_set, 0 );
+
+			// Some periodic updates are required for variable capturing framerate
+			if ( analysis_update_delay )
+			{
+				cur_time = time( 0 );
+				if ( ( cur_time - last_analysis_update_time ) > analysis_update_delay )
+				{
+					analysis_rate = monitor->GetAnalysisRate();
+					monitor->UpdateAdaptiveSkip();
+					last_analysis_update_time = cur_time;
+				}
+			}
+
 			if ( !monitor->Analyse() )
 			{
 				usleep( monitor->Active()?ZM_SAMPLE_RATE:ZM_SUSPENDED_RATE );
 			}
+			else if ( analysis_rate )
+			{
+				usleep( analysis_rate );
+			}
+
 			if ( zm_reload )
 			{
 				monitor->Reload();

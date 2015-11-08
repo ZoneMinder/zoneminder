@@ -1087,7 +1087,10 @@ int Zone::Load( Monitor *monitor, Zone **&zones )
 		{
 			zones[i] = new Zone( monitor, Id, Name, polygon );
 		}
-		else
+                else if ( atoi(dbrow[2]) == Zone::PRIVACY )
+                {
+                        zones[i] = new Zone( monitor, Id, Name, (Zone::ZoneType)Type, polygon );
+                }
 		{
 			zones[i] = new Zone( monitor, Id, Name, (Zone::ZoneType)Type, polygon, AlarmRGB, (Zone::CheckMethod)CheckMethod, MinPixelThreshold, MaxPixelThreshold, MinAlarmPixels, MaxAlarmPixels, Coord( FilterX, FilterY ), MinFilterPixels, MaxFilterPixels, MinBlobPixels, MaxBlobPixels, MinBlobs, MaxBlobs, OverloadFrames, ExtendAlarmFrames );
 		}
@@ -1113,8 +1116,9 @@ bool Zone::DumpSettings( char *output, bool /*verbose*/ )
 		type==INCLUSIVE?"Inclusive":(
 		type==EXCLUSIVE?"Exclusive":(
 		type==PRECLUSIVE?"Preclusive":(
-		type==INACTIVE?"Inactive":"Unknown"
-	)))));
+		type==INACTIVE?"Inactive":(
+		type==PRIVACY?"Privacy":"Unknown"
+	))))));
 	sprintf( output+strlen(output), "  Shape : %d points\n", polygon.getNumCoords() );
 	for ( int i = 0; i < polygon.getNumCoords(); i++ )
 	{

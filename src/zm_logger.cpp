@@ -33,6 +33,7 @@
 #include <errno.h>
 #ifdef __FreeBSD__
 #include <sys/thr.h>
+#include <libgen.h>
 #endif
 
 bool Logger::smInitialised = false;
@@ -232,7 +233,7 @@ void Logger::initialise( const std::string &id, const Options &options )
 
 void Logger::terminate()
 {
-    Info( "Terminating Logger" );
+    Debug(1, "Terminating Logger" );
 
     if ( mFileLevel > NOLOG )
         closeFile();
@@ -490,7 +491,7 @@ void Logger::closeSyslog()
     (void) closelog();
 }
 
-void Logger::logPrint( bool hex, const char * const file, const int line, const int level, const char *fstring, ... )
+void Logger::logPrint( bool hex, const char * const filepath, const int line, const int level, const char *fstring, ... )
 {
     if ( level <= mEffectiveLevel )
     {
@@ -499,6 +500,8 @@ void Logger::logPrint( bool hex, const char * const file, const int line, const 
         char            logString[8192];
         va_list         argPtr;
         struct timeval  timeVal;
+
+        const char * const file = basename(filepath);
         
         if ( level < PANIC || level > DEBUG9 )
             Panic( "Invalid logger level %d", level );

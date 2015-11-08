@@ -43,6 +43,7 @@ dist_web_DATA = \
 	options.php \
 	plugin.php \
 	postlogin.php \
+	server.php \
 	settings.php \
 	state.php \
 	stats.php \

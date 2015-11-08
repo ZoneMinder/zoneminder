@@ -357,6 +357,60 @@ our @options =
         type        => $types{boolean},
         category    => "system",
     },
+    # PP - Google reCaptcha settings
+    {
+	name 		=> "ZM_OPT_USE_GOOG_RECAPTCHA",
+	default 	=> "no",
+	description	=> "Add Google reCaptcha to login page",
+	help 		=> qqq("
+			This option allows you to include a google 
+			reCaptcha validation at login. This means in addition to providing
+			a valid usernane and password, you will also have to 
+			pass the reCaptcha test. Please note that enabling this
+			option results in the zoneminder login page reach out
+			to google servers for captcha validation. Also please note
+			that enabling this option will break 3rd party clients
+			like zmNinja and zmView as they also need to login to ZoneMinder
+			and they will fail the reCaptcha test.
+			"),
+	requires	=> [
+				{name=>"ZM_OPT_USE_AUTH", value=>"yes"}
+			  ],
+	type		=> $types {boolean},
+	category	=> "system",
+    },
+	
+    {
+	name 		=> "ZM_OPT_GOOG_RECAPTCHA_SITEKEY",
+	default 	=> "...Insert your recaptcha site-key here...",
+	description 	=> "Your recaptcha site-key",
+	help		=> qqq("You need to generate your keys from
+				the Google reCaptcha website. 
+				Please refer to https://www.google.com/recaptcha/ 
+				for more details.
+			"),
+	requires	=> [
+				{name=>"ZM_OPT_USE_GOOG_RECAPTCHA", value=>"yes"}
+			  ],
+	type		=> $types {string},
+	category	=> "system",
+    },
+    {
+	name 		=> "ZM_OPT_GOOG_RECAPTCHA_SECRETKEY",
+	default 	=> "...Insert your recaptcha secret-key here...",
+	description 	=> "Your recaptcha secret-key",
+	help		=> qqq("You need to generate your keys from
+				the Google reCaptcha website. 
+				Please refer to https://www.google.com/recaptcha/ 
+				for more details.
+			"),
+	requires	=> [
+				{name=>"ZM_OPT_USE_GOOG_RECAPTCHA", value=>"yes"}
+			  ],
+	type		=> $types {string},
+	category	=> "system",
+    },
+
     {
         name        => "ZM_DIR_EVENTS",
         default     => "events",

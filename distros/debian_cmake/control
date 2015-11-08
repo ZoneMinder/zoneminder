@@ -23,12 +23,12 @@ Description: Video camera security and surveillance solution
 
 Package: zoneminder-dbg
 Architecture: any
-Priority: extra
 Section: debug
+Priority: extra
 Depends: zoneminder (= ${binary:Version}), ${misc:Depends}
-Description: debugging syumbols for zoneminder.
+Description: Debugging symbols for zoneminder.
  ZoneMinder is a video camera security and surveillance solution.
- ZoneMinder is intended for use in single or multi-camera video security 
+ ZoneMinder is intended for use in single or multi-camera video security
  applications, including commercial or home CCTV, theft prevention and child
  or family member or home monitoring and other care scenarios. It
  supports capture, analysis, recording, and monitoring of video data coming

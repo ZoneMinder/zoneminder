@@ -35,7 +35,7 @@ var popupSizes = {
     'donate':       { 'width': 500, 'height': 280 },
     'event':        { 'addWidth': 108, 'minWidth': 496, 'addHeight': 230, minHeight: 540 },
     'eventdetail':  { 'width': 600, 'height': 220 },
-    'events':       { 'width': 960, 'height': 780 },
+    'events':       { 'width': 1080, 'height': 780 },
     'export':       { 'width': 400, 'height': 340 },
     'filter':       { 'width': 720, 'height': 360 },
     'filtersave':   { 'width': 610, 'height': 120 },
@@ -67,6 +67,6 @@ var popupSizes = {
     'video':        { 'width': 420, 'height': 360 },
     'videoview':    { 'addWidth': 48, 'addHeight': 80 },
     'watch':        { 'addWidth': 96, 'minWidth': 420, 'addHeight': 384 },
-    'zone':         { 'addWidth': 450, 'addHeight': 200, 'minHeight': 450 },
+    'zone':         { 'addWidth': 520, 'addHeight': 240, 'minHeight': 600 },
     'zones':        { 'addWidth': 72, 'addHeight': 232 }
 };

@@ -103,6 +103,8 @@ $SLANG = array(
     'Alert'                 => 'Alert',
     'All'                   => 'All',
     'AlreadyInList'         => 'Already present in list',
+    'AnalysisFPS'           => 'Analysis FPS',
+    'AnalysisUpdateDelay'   => 'Analysis Update Delay',
     'Apply'                 => 'Apply',
     'ApplyingStateChange'   => 'Applying State Change',
     'ArchArchived'          => 'Archived Only',
@@ -140,6 +142,8 @@ $SLANG = array(
     'BackgroundFilter'      => 'Run filter in background',
     'BadAlarmFrameCount'    => 'Alarm frame count must be an integer of one or more',
     'BadAlarmMaxFPS'        => 'Alarm Maximum FPS must be a positive integer or floating point value',
+    'BadAnalysisFPS'        => 'Analysis FPS must be a positive integer or floating point value',
+    'BadAnalysisUpdateDelay'=> 'Analysis update delay must be set to an integer of zero or more',
     'BadChannel'            => 'Channel must be set to an integer of zero or more',
     'BadDevice'             => 'Device must be set to a valid value',
     'BadFormat'             => 'Format must be set to a valid value',
@@ -256,6 +260,7 @@ $SLANG = array(
     'DefaultScale'          => 'Default Scale',
     'DefaultView'           => 'Default View',
     'Deinterlacing'         => 'Deinterlacing',
+    'RTSPDescribe'         => 'Use RTSP Response Media URL',
     'Delay'                 => 'Delay',
     'DeleteAndNext'         => 'Delete &amp; Next',
     'DeleteAndPrev'         => 'Delete &amp; Prev',
@@ -306,6 +311,7 @@ $SLANG = array(
     'Exclude'               => 'Exclude',
     'Execute'               => 'Execute',
     'ExportDetails'         => 'Export Event Details',
+    'Exif'                  => 'Embed EXIF data into image',
     'Export'                => 'Export',
     'ExportFailed'          => 'Export Failed',
     'ExportFormat'          => 'Export File Format',
@@ -581,6 +587,7 @@ $SLANG = array(
     'Progress'              => 'Progress',
     'Protocol'              => 'Protocol',
     'Rate'                  => 'Rate',
+    'RecaptchaWarning'      => 'Your reCaptcha secret key is invalid. Please correct it, or reCaptcha will not work', // added Sep 24 2015 - PP
     'Real'                  => 'Real',
     'Record'                => 'Record',
     'RefImageBlendPct'      => 'Reference Image Blend %ge',
@@ -682,6 +689,7 @@ $SLANG = array(
     'TimestampLabelFormat'  => 'Timestamp Label Format',
     'TimestampLabelX'       => 'Timestamp Label X',
     'TimestampLabelY'       => 'Timestamp Label Y',
+    'TimestampLabelSize'    => 'Font Size',
     'Timestamp'             => 'Timestamp',
     'TimeStamp'             => 'Time Stamp',
     'Time'                  => 'Time',
@@ -905,6 +913,16 @@ $OLANG = array(
 		          "Examples (do not enter quotes)~~~~".
 		          "\"--rtp-client-port=nnn\" Set local port to use for rtp data~~~~". 
 		          "\"--verbose=2\" Set verbosity of libVLC"
+	),
+	'OPTIONS_EXIF' => array(
+		'Help' => "Enable this option to embed EXIF data into each jpeg frame."
+	),
+	'OPTIONS_RTSPDESCRIBE' => array(
+		'Help' => "Sometimes, during the intial RTSP handshake, the camera will send an updated media URL. ".
+		          "Enable this option to tell ZoneMinder to use this URL. Disable this option to ignore the ".
+		          "value from the camera and use the value as entered in the monitor configuration~~~~". 
+		          "Generally this should be enabled. However, there are cases where the camera can get its".
+		          "own URL incorrect, such as when the camera is streaming through a firewall"
 	),
 	
 //    'LANG_DEFAULT' => array(

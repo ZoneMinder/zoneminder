@@ -1,0 +1,42 @@
+#controls {
+    height: 16px;
+    width: 100%;
+    text-align: center;
+    margin: 0 auto;
+    position: relative;
+}
+
+#controls a {
+    width: 32%;
+}
+
+#controls #refreshLink {
+    position: absolute;
+    left: 0%;
+    text-align: left;
+}
+
+#controls #filterLink {
+    position: absolute;
+    left: 34%;
+    text-align: center;
+}
+
+#controls #timelineLink {
+    position: absolute;
+    left: 68%;
+    text-align: right;
+}
+
+#contentTable.major .colTime {
+    white-space: nowrap;
+}
+
+#contentTable.major .colId, #contentTable.major .colDuration, #contentTable.major .colFrames, #contentTable.major .colAlarmFrames, #contentTable.major .colTotScore, #contentTable.major .colMaxScore, #contentTable.major .colAvgScore {
+    text-align: center;
+}
+
+#contentTable.major td.colDuration {
+    text-align: right;
+    padding-right: 8px;
+}

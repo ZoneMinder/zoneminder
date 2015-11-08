@@ -1523,7 +1523,7 @@ bool Monitor::Analyse()
 #endif // ZM_PLUGINS_ON
                     {
                         Event::StringSet zoneSet;
-                        int motion_score = last_motion_score;
+                        unsigned int motion_score = last_motion_score;
                         bool alarm = false;
                         if ( !(image_count % (motion_frame_skip+1) ) )
                         {
@@ -3578,7 +3578,7 @@ unsigned int Monitor::DetectBlack(const Image &comp_image, Event::StringSet &zon
 unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &zoneSet, unsigned int &score )
 {
     bool alarm = false;
-    unsigned int score = 0;
+    score = 0;
 
     if ( n_zones <= 0 ) return( alarm );
 

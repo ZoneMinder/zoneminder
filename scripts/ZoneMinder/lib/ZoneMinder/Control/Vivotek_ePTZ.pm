@@ -107,7 +107,7 @@ sub sendCmd
     printMsg( $speedcmd, "Tx" );
     printMsg( $cmd, "Tx" );
 
-    my $req = HTTP::Request->new( GET=>"http://".$self->{Monitor}->{ControlAddress}."/cgi-bin/camctrl/eCamCtrl.cgi?stream=0&$speedcmd&$cmd" );
+    my $req = HTTP::Request->new( GET => "http://" . $self->{Monitor}->{ControlAddress} . "/cgi-bin/camctrl/eCamCtrl.cgi?stream=0&$speedcmd&$cmd" );
     my $res = $self->{ua}->request($req);
 
     if ( $res->is_success )
@@ -116,7 +116,7 @@ sub sendCmd
     }
     else
     {
-        Error( "Error check failed: '".$res->status_line()."'" );
+        Error( "Request failed: '" . $res->status_line() . "' (URI: '" . $req->as_string() . "')" );
     }
 
     return( $result );

@@ -48,7 +48,7 @@ if [ "$1" = "configure" ]; then
     else
 		chown www-data:www-data /var/log/zm
 
-		echo 'grant lock tables, create, index, alter on zm.* to 'zmuser'@localhost identified by "zmpass";' | mysql --defaults-file=/etc/mysq
+		echo 'grant lock tables, create, index, alter on zm.* to 'zmuser'@localhost identified by "zmpass";' | mysql --defaults-file=/etc/mysql/debian.cnf mysql
 		zmupdate.pl
 	fi
 fi

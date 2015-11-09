@@ -15,6 +15,7 @@ if [ "$1" = "configure" ]; then
     # Ensure zoneminder is stopped
     deb-systemd-invoke stop zoneminder.service || exit $?
 
+	echo 'grant lock tables, create, index, alter on zm.* to 'zmuser'@localhost identified by "zmpass";' | mysql --defaults-file=/etc/mysql/debian.cnf mysql
     # Run the ZoneMinder update tool
     zmupdate.pl --nointeractive
 

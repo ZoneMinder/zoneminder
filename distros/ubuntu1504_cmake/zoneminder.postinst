@@ -8,6 +8,16 @@ if [ "$1" = "configure" ]; then
 		if [ -z "$2" ]; then
 			chown www-data:www-data -R /var/cache/zoneminder
 		fi
+
+	# Do this every time the package is installed or upgraded
+	# Test for database presence to avoid failure of zmupdate.pl
+
+    # Ensure zoneminder is stopped
+    deb-systemd-invoke stop zoneminder.service || exit $?
+
+    # Run the ZoneMinder update tool
+    zmupdate.pl --nointeractive
+
 fi
 
 #DEBHELPER#

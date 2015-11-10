@@ -58,7 +58,12 @@ else
     $protocol = 'http';
 }
 define( "ZM_BASE_PROTOCOL", $protocol );
-define( "ZM_BASE_URL", $protocol.'://'.$_SERVER['HTTP_HOST'] );
+
+// Absolute URL's are unnecessary and break compatibility with reverse proxies 
+// define( "ZM_BASE_URL", $protocol.'://'.$_SERVER['HTTP_HOST'] );
+
+// Use relative URL's instead
+define( "ZM_BASE_URL", "" );
 
 // Check time zone is set
 if (!ini_get('date.timezone') || !date_default_timezone_set(ini_get('date.timezone'))) {

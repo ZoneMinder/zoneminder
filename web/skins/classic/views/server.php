@@ -32,6 +32,7 @@ if ( $_REQUEST['id'] ) {
 } else {
 	$newServer = array();
 	$newServer['Name'] = translate('NewServer');
+	$newServer['Hostname'] = '';
 }
 
 $focusWindow = true;
@@ -61,8 +62,9 @@ xhtmlHeaders(__FILE__, translate('Server')." - ".$newServer['Name'] );
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="submit" name="action" value="<?php echo translate('Save') ?>"/>
-          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
+		<input type="hidden" name="action" value="Save"/>
+          <input type="submit" value="<?php echo translate('Save') ?>"/>
+          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
         </div>
       </form>
     </div>

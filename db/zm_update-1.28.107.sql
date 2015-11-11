@@ -13,7 +13,7 @@ SET @s = (SELECT IF(
 	AND table_schema = DATABASE()
 	AND column_name = 'Id'
 	) > 0,
-"SELECT 'Column ID already exists in Monitors'",
+"SELECT 'Column ID already exists in Frames'",
 "ALTER TABLE `Frames` ADD COLUMN `Id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT FIRST, DROP PRIMARY KEY, ADD PRIMARY KEY(`Id`)"
 ));
 

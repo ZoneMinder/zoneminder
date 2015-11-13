@@ -17,7 +17,7 @@ env:
     - CXXFLAGS="$CFLAGS"
   matrix:
     - ZM_BUILDMETHOD=cmake
-    - ZM_BUILDMETHOD=autotools
+#   - ZM_BUILDMETHOD=autotools
 compiler:
   - gcc
 before_install:

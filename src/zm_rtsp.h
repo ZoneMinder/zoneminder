@@ -49,12 +49,13 @@ private:
 
 private:
     int mId;
-    bool mRtspDescribe;
+
     RtspMethod mMethod;
     std::string mProtocol;
     std::string mHost;
     std::string mPort;
     std::string mPath;
+    bool mRtspDescribe;
     std::string mUrl;
     
     // Reworked authentication system

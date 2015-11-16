@@ -14,7 +14,7 @@ SET @s = (SELECT IF(
 	AND column_name = 'Hostname'
 	) > 0,
 "SELECT 'Column Hostname already exists in Servers'",
-"ALTER TABLE `Servers` ADD COLUMN `Hostname` TEXT AFTER Name",
+"ALTER TABLE `Servers` ADD COLUMN `Hostname` TEXT AFTER Name"
 ));
 
 PREPARE stmt FROM @s;

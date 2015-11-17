@@ -63,9 +63,47 @@ class AppController extends Controller {
         	$zmOptAuth = $config['Config']['Value'];
         	if (!$this->Session->Read('user.Username') && ($zmOptAuth=='1'))
         	{       
-        		 throw new NotFoundException(__('Not Authenticated'));
+        		 throw new UnauthorizedException(__('Not Authenticated'));
         	 	return; 
         	}     
+		// PP #1155
+		else
+		{
+			$this->loadModel('User');
+			$loggedinUser = $this->Session->Read('user.Username');
+			$isEnabled = $this->Session->Read('user.Enabled');
+			// PP - this will likely never happen as if its
+			// not enabled, login will fail and Not Auth will be returned
+			// however, keeping this here for now
+			if ($isEnabled != "1")
+			{
+				throw new UnauthorizedException(__('User is not enabled'));
+				return;
+			}
+
+			if ($zmOptAuth=='1')
+			{
+				$options = array ('conditions' => array ('User.Username' => $loggedinUser));
+				$userMonitors = $this->User->find('first', $options);
+				$this->Session->Write('allowedMonitors',$userMonitors['User']['MonitorIds']);
+				$this->Session->Write('streamPermission',$userMonitors['User']['Stream']);
+				$this->Session->Write('eventPermission',$userMonitors['User']['Events']);
+				$this->Session->Write('controlPermission',$userMonitors['User']['Control']);
+				$this->Session->Write('systemPermission',$userMonitors['User']['System']);
+				$this->Session->Write('monitorPermission',$userMonitors['User']['Monitors']);
+			}
+			else // if auth is not on, you can do everything
+			{
+				$userMonitors = $this->User->find('first', $options);
+				$this->Session->Write('allowedMonitors','');
+				$this->Session->Write('streamPermission','View');
+				$this->Session->Write('eventPermission','Edit');
+				$this->Session->Write('controlPermission','Edit');
+				$this->Session->Write('systemPermission','Edit');
+				$this->Session->Write('monitorPermission','Edit');
+			}
+		}
+		
 		
     }
 

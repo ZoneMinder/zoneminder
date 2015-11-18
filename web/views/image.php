@@ -40,6 +40,21 @@ if ( !canView( 'Events' ) )
 
 header( 'Content-type: image/jpeg' );
 
+// Compatibility for PHP 5.4 
+if (!function_exists('imagescale'))
+{
+    function imagescale($image, $new_width, $new_height = -1, $mode = 0)
+    {
+        $mode; // Not supported
+
+        $new_height = ($new_height == -1) ? imagesy($image) : $new_height;
+        $imageNew = imagecreatetruecolor($new_width, $new_height);
+        imagecopyresampled($imageNew, $image, 0, 0, 0, 0, (int)$new_width, (int)$new_height, imagesx($image), imagesy($image));
+        
+        return $imageNew;
+    }
+}
+
 $errorText = false;
 if ( empty($_REQUEST['path']) )
 {

@@ -105,14 +105,15 @@ function previewEvent( eventId, frameId )
     
     if ( events[eventId] )
     {
-        if ( events[eventId]['frames'] )
+        var event = events[eventId];
+        if ( event['frames'] )
         {
-            if ( events[eventId]['frames'][frameId] )
+            if ( event['frames'][frameId] )
             {
-                showEventDetail( events[eventId]['frames'][frameId]['html'] );
-                var imagePath = events[eventId].frames[frameId].Image.imagePath;
-                var videoName = events[eventId].DefaultVideo;
-                loadEventImage( imagePath, eventId, frameId, events[eventId].Width, events[eventId].Height, events[eventId].Frames/events[eventId].Length, videoName);
+                showEventDetail( event['frames'][frameId]['html'] );
+                var imagePath = event.frames[frameId].Image.imagePath;
+                var videoName = event.DefaultVideo;
+                loadEventImage( imagePath, eventId, frameId, event.Width, event.Height, event.Frames/event.Length, videoName, event.Length, event.StartTime, monitors[event.MonitorId]);
                 return;
             }
         }
@@ -120,7 +121,7 @@ function previewEvent( eventId, frameId )
     requestFrameData( eventId, frameId );
 }
 
-function loadEventImage( imagePath, eid, fid, width, height, fps, videoName )
+function loadEventImage( imagePath, eid, fid, width, height, fps, videoName, duration, startTime, Monitor )
 {
     var vid= $('preview');
     var imageSrc = $('imageSrc');
@@ -137,14 +138,18 @@ function loadEventImage( imagePath, eid, fid, width, height, fps, videoName )
             //it is possible to set a long source list here will that be unworkable?
             var sources = vid.getElementsByTagName('source');
             sources[0].src=newsource;
+            var tracks = vid.getElementsByTagName('track');
+            if(tracks.length){
+                tracks[0].parentNode.removeChild(tracks[0]);
+            }
             vid.load();
-            vid.oncanplay=function(){    vid.currentTime=fid/fps;} //25.0
+            addVideoTimingTrack(vid, Monitor.LabelFormat, Monitor.Name, duration, startTime)
+            vid.currentTime = fid/fps;
         }
         else
         {
-            vid.oncanplay=null;//console.log("canplay");}
             if(!vid.seeking)
-                vid.currentTime=fid/fps;//25.0;
+                vid.currentTime=fid/fps;
         }
     }
     else

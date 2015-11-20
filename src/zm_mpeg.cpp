@@ -131,10 +131,10 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
 	  {
 	    if(subpixelorder == ZM_SUBPIX_ORDER_BGR) {
 	      /* BGR subpixel order */
-	      pf = PIX_FMT_BGR24;
+	      pf = AV_PIX_FMT_BGR24;
 	    } else {
 	      /* Assume RGB subpixel order */
-	      pf = PIX_FMT_RGB24;
+	      pf = AV_PIX_FMT_RGB24;
 	    }
 	    break;
 	  }
@@ -142,21 +142,21 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
 	  {
 	    if(subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
 	      /* ARGB subpixel order */
-	      pf = PIX_FMT_ARGB;
+	      pf = AV_PIX_FMT_ARGB;
 	    } else if(subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
 	      /* ABGR subpixel order */
-	      pf = PIX_FMT_ABGR;
+	      pf = AV_PIX_FMT_ABGR;
 	    } else if(subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
 	      /* BGRA subpixel order */
-	      pf = PIX_FMT_BGRA;
+	      pf = AV_PIX_FMT_BGRA;
 	    } else {
 	      /* Assume RGBA subpixel order */
-	      pf = PIX_FMT_RGBA;
+	      pf = AV_PIX_FMT_RGBA;
 	    }
 	    break;
 	  }
 	  case ZM_COLOUR_GRAY8:
-	    pf = PIX_FMT_GRAY8;
+	    pf = AV_PIX_FMT_GRAY8;
 	    break;
 	  default:
 	    Panic("Unexpected colours: %d",colours);
@@ -234,7 +234,7 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
 		c->codec_id = codec->id;
 		c->codec_type = codec->type;
 
-		c->pix_fmt = strcmp( "mjpeg", ofc->oformat->name ) == 0 ? PIX_FMT_YUVJ422P : PIX_FMT_YUV420P;
+		c->pix_fmt = strcmp( "mjpeg", ofc->oformat->name ) == 0 ? AV_PIX_FMT_YUVJ422P : AV_PIX_FMT_YUV420P;
 		if ( bitrate <= 100 )
 		{
 			// Quality based bitrate control (VBR). Scale is 1..31 where 1 is best.
@@ -337,7 +337,11 @@ void VideoStream::OpenStream( )
 		uint8_t *opicture_buf = (uint8_t *)av_malloc( size );
 		if ( !opicture_buf )
 		{
-			av_free( opicture );
+#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
+                    av_frame_free( &opicture );
+#else
+                    av_freep( &opicture );
+#endif
 			Panic( "Could not allocate opicture_buf" );
 		}
 		avpicture_fill( (AVPicture *)opicture, opicture_buf, c->pix_fmt, c->width, c->height );
@@ -361,7 +365,11 @@ void VideoStream::OpenStream( )
 			uint8_t *tmp_opicture_buf = (uint8_t *)av_malloc( size );
 			if ( !tmp_opicture_buf )
 			{
-				av_free( tmp_opicture );
+#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
+                            av_frame_free( &tmp_opicture );
+#else
+                            av_freep( &tmp_opicture );
+#endif
 				Panic( "Could not allocate tmp_opicture_buf" );
 			}
 			avpicture_fill( (AVPicture *)tmp_opicture, tmp_opicture_buf, pf, c->width, c->height );
@@ -512,11 +520,19 @@ VideoStream::~VideoStream( )
 	{
 		avcodec_close( ost->codec );
 		av_free( opicture->data[0] );
-		av_free( opicture );
+#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
+		av_frame_free( &opicture );
+#else
+		av_freep( &opicture );
+#endif
 		if ( tmp_opicture )
 		{
 			av_free( tmp_opicture->data[0] );
-			av_free( tmp_opicture );
+#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
+			av_frame_free( &tmp_opicture );
+#else
+			av_freep( &tmp_opicture );
+#endif
 		}
 		av_free( video_outbuf );
 	}
@@ -694,7 +710,11 @@ int VideoStream::SendPacket(AVPacket *packet) {
     {
         Fatal( "Error %d while writing video frame: %s", ret, av_err2str( errno ) );
     }
-    av_free_packet(packet);
+#if LIBAVCODEC_VERSION_CHECK(57, 8, 0, 12, 100)
+        av_packet_unref( packet );
+#else
+        av_free_packet( packet );
+#endif
     return ret;
 }
 
@@ -735,7 +755,11 @@ void *VideoStream::StreamingThreadCallback(void *ctx){
         if (packet->size) {
             videoStream->SendPacket(packet);
         }
-        av_free_packet(packet);
+#if LIBAVCODEC_VERSION_CHECK(57, 8, 0, 12, 100)
+        av_packet_unref( packet);
+#else
+        av_free_packet( packet );
+#endif
         videoStream->packet_index = videoStream->packet_index ? 0 : 1;
         
 		// Lock buffer and render next frame.

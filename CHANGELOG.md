@@ -1,99 +1,88 @@
 # Change Log
 
-## [Unreleased](https://github.com/ZoneMinder/ZoneMinder/tree/HEAD)
-
-[Full Changelog](https://github.com/ZoneMinder/ZoneMinder/compare/v1.28.1...HEAD)
-
-**Closed issues:**
-
-- Zoneminder Signal Loss event [\#964](https://github.com/ZoneMinder/ZoneMinder/issues/964)
-- Default scale other than actual skews image [\#963](https://github.com/ZoneMinder/ZoneMinder/issues/963)
-- Monitor configured with ffmpeg shows last part of URL instead of hostname in overview [\#950](https://github.com/ZoneMinder/ZoneMinder/issues/950)
-- please update bundled CakePHP [\#945](https://github.com/ZoneMinder/ZoneMinder/issues/945)
-- Montage shows only feed from the first camera [\#940](https://github.com/ZoneMinder/ZoneMinder/issues/940)
-- zmtrigger: minor message format correction [\#939](https://github.com/ZoneMinder/ZoneMinder/issues/939)
-- error starting zoneminder after latest upgrade [\#935](https://github.com/ZoneMinder/ZoneMinder/issues/935)
-- Error "Attempt to directly assign buffer from an undersized buffer of size" [\#932](https://github.com/ZoneMinder/ZoneMinder/issues/932)
-- External access to snapshots of cameras [\#929](https://github.com/ZoneMinder/ZoneMinder/issues/929)
-- virtualbox - zoneminder shows only six cams [\#927](https://github.com/ZoneMinder/ZoneMinder/issues/927)
-- zm\_update-1.28.99.sql not executable [\#924](https://github.com/ZoneMinder/ZoneMinder/issues/924)
-- m [\#922](https://github.com/ZoneMinder/ZoneMinder/issues/922)
-- loop recording [\#914](https://github.com/ZoneMinder/ZoneMinder/issues/914)
-- Implement Passive Source Type for Cams that Support Event Uploading [\#912](https://github.com/ZoneMinder/ZoneMinder/issues/912)
-- incorrect encoding of Russian language [\#907](https://github.com/ZoneMinder/ZoneMinder/issues/907)
-- Can't compile Zoneminder v1.28.1 [\#904](https://github.com/ZoneMinder/ZoneMinder/issues/904)
-- Add isRunning field to States [\#898](https://github.com/ZoneMinder/ZoneMinder/issues/898)
-- updated 9831W control script [\#893](https://github.com/ZoneMinder/ZoneMinder/issues/893)
-- 404 error on Ubuntu 14.04 install [\#889](https://github.com/ZoneMinder/ZoneMinder/issues/889)
-- Video Smear - Vertical Striping [\#888](https://github.com/ZoneMinder/ZoneMinder/issues/888)
-- Zoneminder mobile theme broken. [\#887](https://github.com/ZoneMinder/ZoneMinder/issues/887)
-- cgi-bin -\> symlink on zms not work for me \(Gentoo/SystemD\) [\#878](https://github.com/ZoneMinder/ZoneMinder/issues/878)
-- Replay Event Stuck [\#869](https://github.com/ZoneMinder/ZoneMinder/issues/869)
-- cant add or edit monitor [\#868](https://github.com/ZoneMinder/ZoneMinder/issues/868)
-- Odd window size differences when viewing frame alarm image between Chrome & FF [\#865](https://github.com/ZoneMinder/ZoneMinder/issues/865)
-- On ubuntu 14.04 zoneminder 1.28.1 alarm never terminate!! [\#852](https://github.com/ZoneMinder/ZoneMinder/issues/852)
-- X-10 configuration not working ZM V1.28.1 [\#848](https://github.com/ZoneMinder/ZoneMinder/issues/848)
-- Global symbol requires explicit package name... [\#846](https://github.com/ZoneMinder/ZoneMinder/issues/846)
-- Adapt to changes in Ubuntu 15.04 [\#840](https://github.com/ZoneMinder/ZoneMinder/issues/840)
-- After initial setup, unable to start again [\#839](https://github.com/ZoneMinder/ZoneMinder/issues/839)
-- FFMPEG path finding error \(formerly: Are you switching to a totally CMake based build?\) [\#835](https://github.com/ZoneMinder/ZoneMinder/issues/835)
-- Purchase a Raspberry Pi 2 + PiCam for ZoneMinder development \[$114\] [\#832](https://github.com/ZoneMinder/ZoneMinder/issues/832)
-- Can't Login Web getting a Loop [\#831](https://github.com/ZoneMinder/ZoneMinder/issues/831)
-- Missing function drop down values \(db issue?\) [\#828](https://github.com/ZoneMinder/ZoneMinder/issues/828)
-- curl using HEAD instead of GET for http requests results in 404 on some servers [\#827](https://github.com/ZoneMinder/ZoneMinder/issues/827)
-- Empty string if missing index in lang files [\#819](https://github.com/ZoneMinder/ZoneMinder/issues/819)
-- fix for RTSP streaming over UDP [\#811](https://github.com/ZoneMinder/ZoneMinder/issues/811)
-- bundled CakePHP overhead [\#810](https://github.com/ZoneMinder/ZoneMinder/issues/810)
-- PHP session locks serialize access to all scripts causing UI hangs [\#806](https://github.com/ZoneMinder/ZoneMinder/issues/806)
-- How do I add authentication to ZM APIs? [\#797](https://github.com/ZoneMinder/ZoneMinder/issues/797)
-- Add man page for zmsystemctl.pl [\#788](https://github.com/ZoneMinder/ZoneMinder/issues/788)
-- man pages please; improve --help option [\#787](https://github.com/ZoneMinder/ZoneMinder/issues/787)
-- ZM\_CONTENTDIR issues [\#786](https://github.com/ZoneMinder/ZoneMinder/issues/786)
-- please update bundled jQuery [\#785](https://github.com/ZoneMinder/ZoneMinder/issues/785)
-- please update bundled Mootools [\#784](https://github.com/ZoneMinder/ZoneMinder/issues/784)
-- duplicated files in `cgi-bin` [\#777](https://github.com/ZoneMinder/ZoneMinder/issues/777)
-- FTBFS on kFreeBSD [\#771](https://github.com/ZoneMinder/ZoneMinder/issues/771)
-- CMake: incorrect installation of Perl modules \[patch\] [\#769](https://github.com/ZoneMinder/ZoneMinder/issues/769)
-- Issue when viewing events when users are restricted to limited cameras [\#766](https://github.com/ZoneMinder/ZoneMinder/issues/766)
-- zmupdate.pl: ignores ZM\_SERVER\_HOST in zm.conf [\#765](https://github.com/ZoneMinder/ZoneMinder/issues/765)
-- Remote Zoneminder installations [\#764](https://github.com/ZoneMinder/ZoneMinder/issues/764)
-- source code mess [\#760](https://github.com/ZoneMinder/ZoneMinder/issues/760)
-- bttv crashing zoneminder rpm [\#755](https://github.com/ZoneMinder/ZoneMinder/issues/755)
-- Make Uninstall no longer removes Perl modules [\#753](https://github.com/ZoneMinder/ZoneMinder/issues/753)
-- Playback video problem in v1.26.5 [\#752](https://github.com/ZoneMinder/ZoneMinder/issues/752)
-- Integrate Make Movie Branch [\#747](https://github.com/ZoneMinder/ZoneMinder/issues/747)
-- FI8620 ERR	Error while decoding frame [\#741](https://github.com/ZoneMinder/ZoneMinder/issues/741)
-- \[Critical\] 1.28.0 to 1.28.1 seems to have lost ability for RTSP Authentication [\#738](https://github.com/ZoneMinder/ZoneMinder/issues/738)
-- Disabling cambozola in options doesn't actually disable? [\#735](https://github.com/ZoneMinder/ZoneMinder/issues/735)
-- FI9821W v2 shows blue screen [\#734](https://github.com/ZoneMinder/ZoneMinder/issues/734)
-- Configure script checking for netpbm [\#731](https://github.com/ZoneMinder/ZoneMinder/issues/731)
-- Missing dependency for killall in rpm package [\#727](https://github.com/ZoneMinder/ZoneMinder/issues/727)
-- Build with ZM\_TARGET\_DISTRO=el7 fails to start under systemd [\#724](https://github.com/ZoneMinder/ZoneMinder/issues/724)
-- Issue with event page for users with restricted monitors [\#717](https://github.com/ZoneMinder/ZoneMinder/issues/717)
-- Unrecognised content type 'video/x-ms-asf' [\#716](https://github.com/ZoneMinder/ZoneMinder/issues/716)
-- Flat skin stopped working [\#715](https://github.com/ZoneMinder/ZoneMinder/issues/715)
-- Zone edit dots are gone [\#712](https://github.com/ZoneMinder/ZoneMinder/issues/712)
-- zm\_rtsp Use of avformat\_free\_context not version checked [\#710](https://github.com/ZoneMinder/ZoneMinder/issues/710)
-- Unable to generate video, check /usr/share/zoneminder/events/1/15/02/15/20/10/00/ffmpeg.log for details [\#705](https://github.com/ZoneMinder/ZoneMinder/issues/705)
-- Axis M5014 PTZ Control [\#703](https://github.com/ZoneMinder/ZoneMinder/issues/703)
-- 2nd network port breaks 'Probe' in 1.28 on Ubuntu 14.04LTS? [\#698](https://github.com/ZoneMinder/ZoneMinder/issues/698)
-- ZM's Develop actually [\#697](https://github.com/ZoneMinder/ZoneMinder/issues/697)
-- Release 1.28.1 [\#693](https://github.com/ZoneMinder/ZoneMinder/issues/693)
-- Image disappears \(flickers\) in monitor and event playback [\#689](https://github.com/ZoneMinder/ZoneMinder/issues/689)
-- Multiple issues.. [\#688](https://github.com/ZoneMinder/ZoneMinder/issues/688)
--  short PHP open tags paragraph on zoneminder.com Troubleshooting page [\#684](https://github.com/ZoneMinder/ZoneMinder/issues/684)
-- The monitorprobe.php code does not work in FreeBSD [\#683](https://github.com/ZoneMinder/ZoneMinder/issues/683)
-- ZoneMinder problem [\#680](https://github.com/ZoneMinder/ZoneMinder/issues/680)
-- CMAKE ZM\_PERL\_SUBPREFIX Slash Issue [\#677](https://github.com/ZoneMinder/ZoneMinder/issues/677)
-- Centos 6.5 crashes [\#619](https://github.com/ZoneMinder/ZoneMinder/issues/619)
-- ZMS crashes after "Attempt to directly assign buffer from an undersized buffer of size" error [\#586](https://github.com/ZoneMinder/ZoneMinder/issues/586)
-- hi all, i'm under Linux Gentoo with systemd - ZM v1.27.99.0 [\#511](https://github.com/ZoneMinder/ZoneMinder/issues/511)
-- Event export with ZM\_USE\_DEEP\_STORAGE option set [\#506](https://github.com/ZoneMinder/ZoneMinder/issues/506)
-- Streaming not working on Chrome when authentication is ON [\#328](https://github.com/ZoneMinder/ZoneMinder/issues/328)
-- Can add a simple send mail function？ [\#311](https://github.com/ZoneMinder/ZoneMinder/issues/311)
+## [1.29.0](https://github.com/ZoneMinder/ZoneMinder/tree/1.29.0) (2015-11-20)
+[Full Changelog](https://github.com/ZoneMinder/ZoneMinder/compare/v1.28.1...1.29.0)
 
 **Merged pull requests:**
 
+- compat for php 5.4 [\#1164](https://github.com/ZoneMinder/ZoneMinder/pull/1164) ([abishai](https://github.com/abishai))
+- remove comment at end of line [\#1157](https://github.com/ZoneMinder/ZoneMinder/pull/1157) ([connortechnology](https://github.com/connortechnology))
+- Reorder RTSPDescribe to avoid -wreorder warnings [\#1147](https://github.com/ZoneMinder/ZoneMinder/pull/1147) ([SteveGilvarry](https://github.com/SteveGilvarry))
+- Update to \#1137 for backward compatibility. [\#1142](https://github.com/ZoneMinder/ZoneMinder/pull/1142) ([SteveGilvarry](https://github.com/SteveGilvarry))
+- Update Travis to ffmpeg 2.8.1 for testing [\#1139](https://github.com/ZoneMinder/ZoneMinder/pull/1139) ([SteveGilvarry](https://github.com/SteveGilvarry))
+- Replace deprecated FFmpeg API [\#1137](https://github.com/ZoneMinder/ZoneMinder/pull/1137) ([onlyjob](https://github.com/onlyjob))
+- added prev/next event ids [\#1136](https://github.com/ZoneMinder/ZoneMinder/pull/1136) ([pliablepixels](https://github.com/pliablepixels))
+- Install nph-zms with FILES so it is listed in install\_manifest.txt [\#1124](https://github.com/ZoneMinder/ZoneMinder/pull/1124) ([baffo32](https://github.com/baffo32))
+- Stray semicolon causes SQL error [\#1123](https://github.com/ZoneMinder/ZoneMinder/pull/1123) ([baffo32](https://github.com/baffo32))
+- Use relative URL's instead of absolute [\#1121](https://github.com/ZoneMinder/ZoneMinder/pull/1121) ([knnniggett](https://github.com/knnniggett))
+- Update version check URL [\#1120](https://github.com/ZoneMinder/ZoneMinder/pull/1120) ([kylejohnson](https://github.com/kylejohnson))
+- Add index to frames [\#1116](https://github.com/ZoneMinder/ZoneMinder/pull/1116) ([kylejohnson](https://github.com/kylejohnson))
+- Fatal if content dirs are unwritable [\#1113](https://github.com/ZoneMinder/ZoneMinder/pull/1113) ([baffo32](https://github.com/baffo32))
+- Fatal error if date.timezone is unset [\#1111](https://github.com/ZoneMinder/ZoneMinder/pull/1111) ([baffo32](https://github.com/baffo32))
+- Fix faulty zm.conf.new install line [\#1107](https://github.com/ZoneMinder/ZoneMinder/pull/1107) ([baffo32](https://github.com/baffo32))
+- Update preinst [\#1103](https://github.com/ZoneMinder/ZoneMinder/pull/1103) ([seebaer1976](https://github.com/seebaer1976))
+- Update apache.conf [\#1102](https://github.com/ZoneMinder/ZoneMinder/pull/1102) ([seebaer1976](https://github.com/seebaer1976))
+- Update rules [\#1101](https://github.com/ZoneMinder/ZoneMinder/pull/1101) ([seebaer1976](https://github.com/seebaer1976))
+- Update links [\#1100](https://github.com/ZoneMinder/ZoneMinder/pull/1100) ([seebaer1976](https://github.com/seebaer1976))
+- Update preinst [\#1099](https://github.com/ZoneMinder/ZoneMinder/pull/1099) ([seebaer1976](https://github.com/seebaer1976))
+- Fix zmaudit [\#1095](https://github.com/ZoneMinder/ZoneMinder/pull/1095) ([connortechnology](https://github.com/connortechnology))
+- fixed version compare logic [\#1094](https://github.com/ZoneMinder/ZoneMinder/pull/1094) ([pliablepixels](https://github.com/pliablepixels))
+- Don't install zm.conf if it already exists [\#1090](https://github.com/ZoneMinder/ZoneMinder/pull/1090) ([connortechnology](https://github.com/connortechnology))
+- change types and move things around to remove compile warnings [\#1089](https://github.com/ZoneMinder/ZoneMinder/pull/1089) ([connortechnology](https://github.com/connortechnology))
+- Tz [\#1084](https://github.com/ZoneMinder/ZoneMinder/pull/1084) ([connortechnology](https://github.com/connortechnology))
+- fixed orange display for monitor mode [\#1083](https://github.com/ZoneMinder/ZoneMinder/pull/1083) ([pliablepixels](https://github.com/pliablepixels))
+- use deleteAll\(\) vs. delete\(\) when deleting an Event's Frames [\#1080](https://github.com/ZoneMinder/ZoneMinder/pull/1080) ([kylejohnson](https://github.com/kylejohnson))
+- Added control script for SunEyes SP-P1802SWPTZ [\#1079](https://github.com/ZoneMinder/ZoneMinder/pull/1079) ([bofhdk](https://github.com/bofhdk))
+- Use the 3.0 branch of crud, compatible with cakephp 2.x [\#1078](https://github.com/ZoneMinder/ZoneMinder/pull/1078) ([kylejohnson](https://github.com/kylejohnson))
+- 663 frames primary key [\#1075](https://github.com/ZoneMinder/ZoneMinder/pull/1075) ([kylejohnson](https://github.com/kylejohnson))
+- Delete fixes for Events [\#1073](https://github.com/ZoneMinder/ZoneMinder/pull/1073) ([pliablepixels](https://github.com/pliablepixels))
+- restart monitor when edited via APIs [\#1070](https://github.com/ZoneMinder/ZoneMinder/pull/1070) ([pliablepixels](https://github.com/pliablepixels))
+- add debug statements for when LastWriteTime is not defined. [\#1067](https://github.com/ZoneMinder/ZoneMinder/pull/1067) ([connortechnology](https://github.com/connortechnology))
+- fixed recaptcha showing up pre DB update [\#1066](https://github.com/ZoneMinder/ZoneMinder/pull/1066) ([pliablepixels](https://github.com/pliablepixels))
+- fixed security instructions for curl [\#1062](https://github.com/ZoneMinder/ZoneMinder/pull/1062) ([pliablepixels](https://github.com/pliablepixels))
+- header typo corrections [\#1058](https://github.com/ZoneMinder/ZoneMinder/pull/1058) ([onlyjob](https://github.com/onlyjob))
+- quick fix for \#1055: make sure our mmap fd is \> 2 [\#1057](https://github.com/ZoneMinder/ZoneMinder/pull/1057) ([connortechnology](https://github.com/connortechnology))
+- Fix sgfault caused by the privacy mask stuff [\#1056](https://github.com/ZoneMinder/ZoneMinder/pull/1056) ([connortechnology](https://github.com/connortechnology))
+- link to cambozola pacakge, rather than download during build [\#1054](https://github.com/ZoneMinder/ZoneMinder/pull/1054) ([knnniggett](https://github.com/knnniggett))
+- redhat rpm packaging modifications [\#1052](https://github.com/ZoneMinder/ZoneMinder/pull/1052) ([knnniggett](https://github.com/knnniggett))
+- remove core.php, modify core.php.default [\#1049](https://github.com/ZoneMinder/ZoneMinder/pull/1049) ([knnniggett](https://github.com/knnniggett))
+- Google recaptcha [\#1048](https://github.com/ZoneMinder/ZoneMinder/pull/1048) ([pliablepixels](https://github.com/pliablepixels))
+- enable/disable RTSP Describe Header [\#1045](https://github.com/ZoneMinder/ZoneMinder/pull/1045) ([knnniggett](https://github.com/knnniggett))
+- Add Documentation for Privacy zones [\#1044](https://github.com/ZoneMinder/ZoneMinder/pull/1044) ([schrorg](https://github.com/schrorg))
+- added note about potential Perl and PHP time translation conflict wit… [\#1043](https://github.com/ZoneMinder/ZoneMinder/pull/1043) ([pliablepixels](https://github.com/pliablepixels))
+- 1038 fixing state mgmt 1030 is active fix [\#1039](https://github.com/ZoneMinder/ZoneMinder/pull/1039) ([pliablepixels](https://github.com/pliablepixels))
+- Grey color for disabled buttons [\#1037](https://github.com/ZoneMinder/ZoneMinder/pull/1037) ([pliablepixels](https://github.com/pliablepixels))
+- Update filterevents.rst [\#1035](https://github.com/ZoneMinder/ZoneMinder/pull/1035) ([tikismoke](https://github.com/tikismoke))
+- update doc [\#1032](https://github.com/ZoneMinder/ZoneMinder/pull/1032) ([tikismoke](https://github.com/tikismoke))
+- Remove full path from Logger filename [\#1029](https://github.com/ZoneMinder/ZoneMinder/pull/1029) ([knnniggett](https://github.com/knnniggett))
+- Typo in README.md [\#1027](https://github.com/ZoneMinder/ZoneMinder/pull/1027) ([tikismoke](https://github.com/tikismoke))
+- Add new zone type - privacy zones [\#1026](https://github.com/ZoneMinder/ZoneMinder/pull/1026) ([schrorg](https://github.com/schrorg))
+- Send login activity to the zoneminder event log [\#1021](https://github.com/ZoneMinder/ZoneMinder/pull/1021) ([knnniggett](https://github.com/knnniggett))
+- Small dark CSS fixes in frames and timeline view [\#1019](https://github.com/ZoneMinder/ZoneMinder/pull/1019) ([schrorg](https://github.com/schrorg))
+- New User Permission "Groups" [\#1018](https://github.com/ZoneMinder/ZoneMinder/pull/1018) ([knnniggett](https://github.com/knnniggett))
+- 1013 document migration [\#1017](https://github.com/ZoneMinder/ZoneMinder/pull/1017) ([pliablepixels](https://github.com/pliablepixels))
+- Fix issue with score values less than 0 [\#1016](https://github.com/ZoneMinder/ZoneMinder/pull/1016) ([knnniggett](https://github.com/knnniggett))
+- Explained a caveat  with using relative times [\#1012](https://github.com/ZoneMinder/ZoneMinder/pull/1012) ([pliablepixels](https://github.com/pliablepixels))
+- Included logic to not enforce authentication in API layer if ZM auth is off [\#1008](https://github.com/ZoneMinder/ZoneMinder/pull/1008) ([pliablepixels](https://github.com/pliablepixels))
+- Update to ffmpeg 2.7.2 in travis build [\#1007](https://github.com/ZoneMinder/ZoneMinder/pull/1007) ([SteveGilvarry](https://github.com/SteveGilvarry))
+- I was using the wrong field to check for portal authentication [\#1006](https://github.com/ZoneMinder/ZoneMinder/pull/1006) ([pliablepixels](https://github.com/pliablepixels))
+- Demote user auth info message to debug [\#1003](https://github.com/ZoneMinder/ZoneMinder/pull/1003) ([Linwood-F](https://github.com/Linwood-F))
+- Add scale as optional feature to image.php [\#1001](https://github.com/ZoneMinder/ZoneMinder/pull/1001) ([Linwood-F](https://github.com/Linwood-F))
+- 995 events count per api \(bumps up \# of events reported per API call\) [\#996](https://github.com/ZoneMinder/ZoneMinder/pull/996) ([pliablepixels](https://github.com/pliablepixels))
+- APIs will be served only if user is logged into the ZM portal [\#994](https://github.com/ZoneMinder/ZoneMinder/pull/994) ([pliablepixels](https://github.com/pliablepixels))
+- Add option to make TimeStamp larger [\#992](https://github.com/ZoneMinder/ZoneMinder/pull/992) ([schrorg](https://github.com/schrorg))
+- Implemented \#989 \(highlight current row in tables\) for dark CSS [\#990](https://github.com/ZoneMinder/ZoneMinder/pull/990) ([schrorg](https://github.com/schrorg))
+- CSS\[skins/classic\]: highlight current row in tables. [\#989](https://github.com/ZoneMinder/ZoneMinder/pull/989) ([onlyjob](https://github.com/onlyjob))
+- quiet error when no Servers in Servers table [\#986](https://github.com/ZoneMinder/ZoneMinder/pull/986) ([connortechnology](https://github.com/connortechnology))
+- fix \#948 1 [\#985](https://github.com/ZoneMinder/ZoneMinder/pull/985) ([connortechnology](https://github.com/connortechnology))
+- Remove shared data warning for purpose query only [\#984](https://github.com/ZoneMinder/ZoneMinder/pull/984) ([Linwood-F](https://github.com/Linwood-F))
+- Change from info to debug [\#983](https://github.com/ZoneMinder/ZoneMinder/pull/983) ([Linwood-F](https://github.com/Linwood-F))
+- Fix image dimensions check [\#980](https://github.com/ZoneMinder/ZoneMinder/pull/980) ([connortechnology](https://github.com/connortechnology))
+- Apache.conf modifications [\#968](https://github.com/ZoneMinder/ZoneMinder/pull/968) ([SteveGilvarry](https://github.com/SteveGilvarry))
+- Dark CSS for classic theme [\#967](https://github.com/ZoneMinder/ZoneMinder/pull/967) ([schrorg](https://github.com/schrorg))
+- Auto generated changelog [\#966](https://github.com/ZoneMinder/ZoneMinder/pull/966) ([SteveGilvarry](https://github.com/SteveGilvarry))
+- 959 add exif date time to images [\#962](https://github.com/ZoneMinder/ZoneMinder/pull/962) ([Linwood-F](https://github.com/Linwood-F))
+- Add analysis interval parameter to monitors settings [\#956](https://github.com/ZoneMinder/ZoneMinder/pull/956) ([manupap1](https://github.com/manupap1))
 - Fixed Configs API to return all values [\#955](https://github.com/ZoneMinder/ZoneMinder/pull/955) ([pliablepixels](https://github.com/pliablepixels))
 - Change encoding of german language file to UTF-8 [\#952](https://github.com/ZoneMinder/ZoneMinder/pull/952) ([schrorg](https://github.com/schrorg))
 - Show correct part of URL \(hostname\) for ffmpeg sources in console [\#951](https://github.com/ZoneMinder/ZoneMinder/pull/951) ([schrorg](https://github.com/schrorg))
@@ -125,17 +114,12 @@
 - Generate man pages for perl scripts & C Binaries in the bin folder [\#896](https://github.com/ZoneMinder/ZoneMinder/pull/896) ([knnniggett](https://github.com/knnniggett))
 - 893 foscam 9831 w and other foscams [\#895](https://github.com/ZoneMinder/ZoneMinder/pull/895) ([pliablepixels](https://github.com/pliablepixels))
 - 893 foscam 9831 w and other foscams [\#894](https://github.com/ZoneMinder/ZoneMinder/pull/894) ([pliablepixels](https://github.com/pliablepixels))
-- improve debugging for analysis check and restart if can't read shared data [\#892](https://github.com/ZoneMinder/ZoneMinder/pull/892) ([connortechnology](https://github.com/connortechnology))
 - Zmwatch cleanup2 [\#891](https://github.com/ZoneMinder/ZoneMinder/pull/891) ([connortechnology](https://github.com/connortechnology))
 - reverse the if statement to reduce indenting [\#890](https://github.com/ZoneMinder/ZoneMinder/pull/890) ([connortechnology](https://github.com/connortechnology))
 - Updated API document  [\#886](https://github.com/ZoneMinder/ZoneMinder/pull/886) ([pliablepixels](https://github.com/pliablepixels))
 - Use avconv as alternative to ffmpeg executable [\#884](https://github.com/ZoneMinder/ZoneMinder/pull/884) ([SteveGilvarry](https://github.com/SteveGilvarry))
 - 881 bootstrap loading config [\#883](https://github.com/ZoneMinder/ZoneMinder/pull/883) ([pliablepixels](https://github.com/pliablepixels))
 - Merged Angular UI branch API to master [\#882](https://github.com/ZoneMinder/ZoneMinder/pull/882) ([pliablepixels](https://github.com/pliablepixels))
-- h264 GUI translate fixes [\#880](https://github.com/ZoneMinder/ZoneMinder/pull/880) ([SteveGilvarry](https://github.com/SteveGilvarry))
-- Merging Master to feature-h264-videostorage [\#879](https://github.com/ZoneMinder/ZoneMinder/pull/879) ([SteveGilvarry](https://github.com/SteveGilvarry))
-- 799 api improvements [\#877](https://github.com/ZoneMinder/ZoneMinder/pull/877) ([pliablepixels](https://github.com/pliablepixels))
-- Fixed daemonStatus API to return string returned by ZMC in addition t… [\#876](https://github.com/ZoneMinder/ZoneMinder/pull/876) ([pliablepixels](https://github.com/pliablepixels))
 - Add version to the startup log line [\#875](https://github.com/ZoneMinder/ZoneMinder/pull/875) ([connortechnology](https://github.com/connortechnology))
 - German translation update [\#874](https://github.com/ZoneMinder/ZoneMinder/pull/874) ([seeebek](https://github.com/seeebek))
 - reduce the wait to 2/10ths instead of a whole second [\#873](https://github.com/ZoneMinder/ZoneMinder/pull/873) ([connortechnology](https://github.com/connortechnology))
@@ -186,8 +170,6 @@
 - POD: zmupdate.pl converted to "pod2usage" [\#763](https://github.com/ZoneMinder/ZoneMinder/pull/763) ([onlyjob](https://github.com/onlyjob))
 - build: fix FTBFS with format-hardening \(please review\) [\#761](https://github.com/ZoneMinder/ZoneMinder/pull/761) ([onlyjob](https://github.com/onlyjob))
 - fixing POD errors [\#759](https://github.com/ZoneMinder/ZoneMinder/pull/759) ([onlyjob](https://github.com/onlyjob))
-- Fixed a missing bracket post merge and also SQL\_values now used for Even... [\#750](https://github.com/ZoneMinder/ZoneMinder/pull/750) ([SteveGilvarry](https://github.com/SteveGilvarry))
-- Keeping h264 updated. [\#749](https://github.com/ZoneMinder/ZoneMinder/pull/749) ([SteveGilvarry](https://github.com/SteveGilvarry))
 - Ignore autogenerated files in git [\#746](https://github.com/ZoneMinder/ZoneMinder/pull/746) ([manupap1](https://github.com/manupap1))
 - when auth is needed, try command again before dying. [\#739](https://github.com/ZoneMinder/ZoneMinder/pull/739) ([connortechnology](https://github.com/connortechnology))
 - remove NETPBM dependency from autotools [\#737](https://github.com/ZoneMinder/ZoneMinder/pull/737) ([knnniggett](https://github.com/knnniggett))
@@ -205,8 +187,6 @@
 - Check to make sure that skin and css are valid. [\#713](https://github.com/ZoneMinder/ZoneMinder/pull/713) ([connortechnology](https://github.com/connortechnology))
 - Fixes \#710 Added libavformat version check around free context functions [\#711](https://github.com/ZoneMinder/ZoneMinder/pull/711) ([SteveGilvarry](https://github.com/SteveGilvarry))
 - try harder to find arp. [\#709](https://github.com/ZoneMinder/ZoneMinder/pull/709) ([connortechnology](https://github.com/connortechnology))
-- Merging Video and feature-h264-videostorage update [\#707](https://github.com/ZoneMinder/ZoneMinder/pull/707) ([SteveGilvarry](https://github.com/SteveGilvarry))
-- Update Version.txt to 1.28.1 [\#706](https://github.com/ZoneMinder/ZoneMinder/pull/706) ([SteveGilvarry](https://github.com/SteveGilvarry))
 - Make el6 and el7 build process a little more automated [\#704](https://github.com/ZoneMinder/ZoneMinder/pull/704) ([clipo1979](https://github.com/clipo1979))
 - small improvements: [\#702](https://github.com/ZoneMinder/ZoneMinder/pull/702) ([connortechnology](https://github.com/connortechnology))
 - Centos 7 rpm packaging [\#700](https://github.com/ZoneMinder/ZoneMinder/pull/700) ([knnniggett](https://github.com/knnniggett))
@@ -216,76 +196,6 @@
 
 ## [v1.28.1](https://github.com/ZoneMinder/ZoneMinder/tree/v1.28.1) (2015-02-05)
 [Full Changelog](https://github.com/ZoneMinder/ZoneMinder/compare/v1.28.0...v1.28.1)
-
-**Implemented enhancements:**
-
-- Implement unit testing [\#266](https://github.com/ZoneMinder/ZoneMinder/issues/266)
-- Replace PHP short tags [\#11](https://github.com/ZoneMinder/ZoneMinder/issues/11)
-
-**Fixed bugs:**
-
-- Streaming an Event as MPEG fails. [\#686](https://github.com/ZoneMinder/ZoneMinder/issues/686)
-- Zoneminder Web UI No Longer Refreshes After Change [\#534](https://github.com/ZoneMinder/ZoneMinder/issues/534)
-- Monster log messages [\#491](https://github.com/ZoneMinder/ZoneMinder/issues/491)
-- zmu fails silently when it cannot read zm.conf [\#339](https://github.com/ZoneMinder/ZoneMinder/issues/339)
-- Errors on Monitors page during first view [\#175](https://github.com/ZoneMinder/ZoneMinder/issues/175)
-- Logs screen overflows when too much text in message column [\#138](https://github.com/ZoneMinder/ZoneMinder/issues/138)
-- When filtering in the Events view, filter options are lost between pages [\#25](https://github.com/ZoneMinder/ZoneMinder/issues/25)
-
-**Closed issues:**
-
-- Gentoo Systemd ZM V1.28.0- New old bug with PATH\_SOCK and PATH\_SWAP [\#681](https://github.com/ZoneMinder/ZoneMinder/issues/681)
-- PDO\_MYSQL the only PHP driver needed? [\#679](https://github.com/ZoneMinder/ZoneMinder/issues/679)
-- Unable to probe local cameras, status is '127' [\#673](https://github.com/ZoneMinder/ZoneMinder/issues/673)
-- zmc won't start automatically + Can't open memory map file [\#669](https://github.com/ZoneMinder/ZoneMinder/issues/669)
-- Fake camera support [\#659](https://github.com/ZoneMinder/ZoneMinder/issues/659)
-- Horrible error message when pressing probe [\#658](https://github.com/ZoneMinder/ZoneMinder/issues/658)
-- socket\_sendto\( /var/run/zm/zms-256303s.sock \) failed: No such file or directory [\#656](https://github.com/ZoneMinder/ZoneMinder/issues/656)
-- update feature should be removed or easily disabled [\#655](https://github.com/ZoneMinder/ZoneMinder/issues/655)
-- zmfilter.pl crashes when processing background filter with no terms [\#652](https://github.com/ZoneMinder/ZoneMinder/issues/652)
-- Use of undefined constants ZM\_SKIN\_DEFAULT and ZM\_CSS\_DEFAULT in index.php [\#650](https://github.com/ZoneMinder/ZoneMinder/issues/650)
-- Improper track URL handling in zm\_rtsp.cpp [\#644](https://github.com/ZoneMinder/ZoneMinder/issues/644)
-- Cannot install on jessie when running systemd [\#642](https://github.com/ZoneMinder/ZoneMinder/issues/642)
-- Version detection [\#626](https://github.com/ZoneMinder/ZoneMinder/issues/626)
-- some trash in debian package [\#625](https://github.com/ZoneMinder/ZoneMinder/issues/625)
-- signed integers awesome [\#624](https://github.com/ZoneMinder/ZoneMinder/issues/624)
-- cmake does not honor SYSCONFDIR [\#623](https://github.com/ZoneMinder/ZoneMinder/issues/623)
-- PTZ Control Icons have disappeared [\#622](https://github.com/ZoneMinder/ZoneMinder/issues/622)
-- RTSP Improvements [\#612](https://github.com/ZoneMinder/ZoneMinder/issues/612)
-- CCTV Camera to IP converter [\#603](https://github.com/ZoneMinder/ZoneMinder/issues/603)
-- mjpg streamer installations on fedora 20 [\#600](https://github.com/ZoneMinder/ZoneMinder/issues/600)
-- Changing the skin in the options SHOULD be permanent. [\#598](https://github.com/ZoneMinder/ZoneMinder/issues/598)
-- Zoneminder requires SElinux disabled on RHEL & derivatives. [\#593](https://github.com/ZoneMinder/ZoneMinder/issues/593)
-- Editing control settings on a monitor should probably try to kill any running zmcontrol [\#590](https://github.com/ZoneMinder/ZoneMinder/issues/590)
-- 1.28 missing dependency on debian jessie [\#581](https://github.com/ZoneMinder/ZoneMinder/issues/581)
-- LibVLC MJPEG stream slows down [\#571](https://github.com/ZoneMinder/ZoneMinder/issues/571)
-- %EV% in EMAIL\_BODY in E-mail options send still video [\#569](https://github.com/ZoneMinder/ZoneMinder/issues/569)
-- Add documentation for EMAIL\_BODY variables [\#568](https://github.com/ZoneMinder/ZoneMinder/issues/568)
-- 3S PTZ [\#566](https://github.com/ZoneMinder/ZoneMinder/issues/566)
-- Live view wrong socket name [\#563](https://github.com/ZoneMinder/ZoneMinder/issues/563)
-- V4L1 Support removal? [\#558](https://github.com/ZoneMinder/ZoneMinder/issues/558)
-- feature-h264-videostorage compile errors [\#553](https://github.com/ZoneMinder/ZoneMinder/issues/553)
-- zmc -m 1 crashed, signal 6 [\#540](https://github.com/ZoneMinder/ZoneMinder/issues/540)
-- Attempt to assign buffer from a NULL pointer [\#538](https://github.com/ZoneMinder/ZoneMinder/issues/538)
-- Please recommend ffmpeg settings for best video quality [\#536](https://github.com/ZoneMinder/ZoneMinder/issues/536)
-- Modect Mode\(Active\) - How to revert from alarm to idle [\#509](https://github.com/ZoneMinder/ZoneMinder/issues/509)
-- Update v1.27.99.0. [\#503](https://github.com/ZoneMinder/ZoneMinder/issues/503)
-- Docker Container Broken [\#498](https://github.com/ZoneMinder/ZoneMinder/issues/498)
-- Nordmark IP camera [\#483](https://github.com/ZoneMinder/ZoneMinder/issues/483)
-- Release v1.28.0 [\#467](https://github.com/ZoneMinder/ZoneMinder/issues/467)
-- Let's make a new website [\#446](https://github.com/ZoneMinder/ZoneMinder/issues/446)
-- Zoneminder, Onvif CPU and RTSP capture [\#431](https://github.com/ZoneMinder/ZoneMinder/issues/431)
-- Right memory settings to capture 1080p cameras [\#425](https://github.com/ZoneMinder/ZoneMinder/issues/425)
-- Startup problem on Ubuntu [\#424](https://github.com/ZoneMinder/ZoneMinder/issues/424)
-- Feature Request: Support for digest authentication over RTSP [\#399](https://github.com/ZoneMinder/ZoneMinder/issues/399)
-- Install Zm V1.27.0 on Linux Gentoo x64 \(systemd\) [\#396](https://github.com/ZoneMinder/ZoneMinder/issues/396)
-- Missing Dependencies [\#368](https://github.com/ZoneMinder/ZoneMinder/issues/368)
-- Error "‘AVOutputFormat’ does not name a type   AVOutputFormat \*of;" [\#340](https://github.com/ZoneMinder/ZoneMinder/issues/340)
-- Add the ability to force RTSP over TCP in ffmpeg cameras. [\#323](https://github.com/ZoneMinder/ZoneMinder/issues/323)
-- limited maximum path length for the device path prevents use of some by-id names [\#301](https://github.com/ZoneMinder/ZoneMinder/issues/301)
-- Stream acquired via RTSP/FFMPEG  won't recover from connection loss - "Unable to read packet from stream 0" [\#299](https://github.com/ZoneMinder/ZoneMinder/issues/299)
-- Invalid response status 501: Method Not Implemented [\#298](https://github.com/ZoneMinder/ZoneMinder/issues/298)
-- Invalid SOS parameters for sequential JPEG [\#279](https://github.com/ZoneMinder/ZoneMinder/issues/279)
 
 **Merged pull requests:**
 
@@ -315,11 +225,8 @@
 - Output to stderror when zmu can't read zm.conf [\#627](https://github.com/ZoneMinder/ZoneMinder/pull/627) ([knnniggett](https://github.com/knnniggett))
 - Add missing dependency to policykit-1 [\#621](https://github.com/ZoneMinder/ZoneMinder/pull/621) ([manupap1](https://github.com/manupap1))
 - Replace PHP Short Open Tags - Fixes \#11 [\#620](https://github.com/ZoneMinder/ZoneMinder/pull/620) ([SteveGilvarry](https://github.com/SteveGilvarry))
-- Video Highlander [\#618](https://github.com/ZoneMinder/ZoneMinder/pull/618) ([SteveGilvarry](https://github.com/SteveGilvarry))
-- Merge Master to feature-h264-videostorage [\#616](https://github.com/ZoneMinder/ZoneMinder/pull/616) ([SteveGilvarry](https://github.com/SteveGilvarry))
 - Rtsp [\#615](https://github.com/ZoneMinder/ZoneMinder/pull/615) ([knnniggett](https://github.com/knnniggett))
 - Merge flat css to classic [\#614](https://github.com/ZoneMinder/ZoneMinder/pull/614) ([connortechnology](https://github.com/connortechnology))
-- feature-h264-videostorage mp4 container [\#613](https://github.com/ZoneMinder/ZoneMinder/pull/613) ([SteveGilvarry](https://github.com/SteveGilvarry))
 - echo the URL to the RTSP device during the OPTIONS directive [\#608](https://github.com/ZoneMinder/ZoneMinder/pull/608) ([knnniggett](https://github.com/knnniggett))
 - Fix some memory leaks in zma [\#607](https://github.com/ZoneMinder/ZoneMinder/pull/607) ([manupap1](https://github.com/manupap1))
 - Fix a mismatched free in zmc binary [\#606](https://github.com/ZoneMinder/ZoneMinder/pull/606) ([manupap1](https://github.com/manupap1))
@@ -346,90 +253,15 @@
 - Fixed bug in rtsp streaming caused by a bad string concatenation [\#557](https://github.com/ZoneMinder/ZoneMinder/pull/557) ([manupap1](https://github.com/manupap1))
 - Add a stringVector join function for future use [\#556](https://github.com/ZoneMinder/ZoneMinder/pull/556) ([connortechnology](https://github.com/connortechnology))
 - Fixed bug in rtsp streaming caused by a signed - unsigned conversion. [\#555](https://github.com/ZoneMinder/ZoneMinder/pull/555) ([manupap1](https://github.com/manupap1))
-- Keeping branch current, and fixing libvlc compile issues [\#554](https://github.com/ZoneMinder/ZoneMinder/pull/554) ([SteveGilvarry](https://github.com/SteveGilvarry))
-- Bumped version being found by zmupdate.pl [\#551](https://github.com/ZoneMinder/ZoneMinder/pull/551) ([SteveGilvarry](https://github.com/SteveGilvarry))
 - Update Ubuntu install instructions [\#550](https://github.com/ZoneMinder/ZoneMinder/pull/550) ([SteveGilvarry](https://github.com/SteveGilvarry))
 - Ignore more files and initial travis framework [\#544](https://github.com/ZoneMinder/ZoneMinder/pull/544) ([kylejohnson](https://github.com/kylejohnson))
 - Update Travis to ffmpeg 2.4.2 [\#539](https://github.com/ZoneMinder/ZoneMinder/pull/539) ([SteveGilvarry](https://github.com/SteveGilvarry))
 - Add libvlc to Travis [\#535](https://github.com/ZoneMinder/ZoneMinder/pull/535) ([knnniggett](https://github.com/knnniggett))
-- Merge master to feature-h264-videostorage and restore web GUI [\#532](https://github.com/ZoneMinder/ZoneMinder/pull/532) ([SteveGilvarry](https://github.com/SteveGilvarry))
 - 351-Rebase Attempt for ffmpeg stability fixes [\#531](https://github.com/ZoneMinder/ZoneMinder/pull/531) ([SteveGilvarry](https://github.com/SteveGilvarry))
+- 478 Basic ONVIF Support [\#479](https://github.com/ZoneMinder/ZoneMinder/pull/479) ([altaroca](https://github.com/altaroca))
 
 ## [v1.28.0](https://github.com/ZoneMinder/ZoneMinder/tree/v1.28.0) (2014-10-18)
 [Full Changelog](https://github.com/ZoneMinder/ZoneMinder/compare/v1.27.0...v1.28.0)
-
-**Implemented enhancements:**
-
-- Migrate completely to C++ [\#265](https://github.com/ZoneMinder/ZoneMinder/issues/265)
-- All of the Config table shouldn't be written in Configure::write [\#192](https://github.com/ZoneMinder/ZoneMinder/issues/192)
-- Translation stuff done, please pull in and test... [\#72](https://github.com/ZoneMinder/ZoneMinder/issues/72)
-
-**Fixed bugs:**
-
-- zms crashes due to monitor not running. [\#468](https://github.com/ZoneMinder/ZoneMinder/issues/468)
-- Flat Skins Export Functions missing $ [\#455](https://github.com/ZoneMinder/ZoneMinder/issues/455)
-- unexpected } in console.php [\#354](https://github.com/ZoneMinder/ZoneMinder/issues/354)
-- incomplete path to arp in zoneminder/skins/classic/views/monitorprobe.php causes probe code 127 failures [\#271](https://github.com/ZoneMinder/ZoneMinder/issues/271)
-- Minor errors when either OPT\_MAIL, OPT\_MESSAGE, or OPT\_UPLOAD are not set [\#34](https://github.com/ZoneMinder/ZoneMinder/issues/34)
-
-**Closed issues:**
-
-- Travis Build failing due to build issues with ffmpeg master [\#520](https://github.com/ZoneMinder/ZoneMinder/issues/520)
-- 'zmfilter.pl' exited abnormally, exit status 9 [\#516](https://github.com/ZoneMinder/ZoneMinder/issues/516)
-- Get the script on alarm feature working [\#515](https://github.com/ZoneMinder/ZoneMinder/issues/515)
-- cmake installation on Arch Linux creates extraneous lib/perl5/... and share/man/... directories [\#514](https://github.com/ZoneMinder/ZoneMinder/issues/514)
-- ZM Gui Stopped SU Syntax Error [\#512](https://github.com/ZoneMinder/ZoneMinder/issues/512)
-- Error using log filter [\#504](https://github.com/ZoneMinder/ZoneMinder/issues/504)
-- fps drop in latest snapshot 1.27.99 [\#495](https://github.com/ZoneMinder/ZoneMinder/issues/495)
-- mysql missing field error after update [\#494](https://github.com/ZoneMinder/ZoneMinder/issues/494)
-- Emails not including video when I add %EV% [\#487](https://github.com/ZoneMinder/ZoneMinder/issues/487)
-- Cameras don't show remotely [\#484](https://github.com/ZoneMinder/ZoneMinder/issues/484)
-- ZM Gui Stopped SU Syntax Error [\#482](https://github.com/ZoneMinder/ZoneMinder/issues/482)
-- Airlink101 AIC500 mjpeg stream [\#481](https://github.com/ZoneMinder/ZoneMinder/issues/481)
-- When a monitor's size is changed, the zone does not resize with it. [\#477](https://github.com/ZoneMinder/ZoneMinder/issues/477)
-- .. [\#472](https://github.com/ZoneMinder/ZoneMinder/issues/472)
-- Just A Note When Compiling [\#471](https://github.com/ZoneMinder/ZoneMinder/issues/471)
-- firefox on windows not load all monitors in montage view [\#470](https://github.com/ZoneMinder/ZoneMinder/issues/470)
-- Default to FLAT Skin [\#466](https://github.com/ZoneMinder/ZoneMinder/issues/466)
-- zmlinkcontent.sh chown and chmod on symlink instead of content directory [\#463](https://github.com/ZoneMinder/ZoneMinder/issues/463)
-- Cannot compile Zoneminder on CentOS 6.4 [\#461](https://github.com/ZoneMinder/ZoneMinder/issues/461)
-- Video is not attached to e-mail anymore \(zm 1.27\) [\#460](https://github.com/ZoneMinder/ZoneMinder/issues/460)
-- \[Video Branch\] Unknown column 'SaveJPEGs' in 'field list' [\#453](https://github.com/ZoneMinder/ZoneMinder/issues/453)
-- Log Ajax loading oldest to newest [\#450](https://github.com/ZoneMinder/ZoneMinder/issues/450)
-- '@' in password of a remote camera makes things go wrong [\#443](https://github.com/ZoneMinder/ZoneMinder/issues/443)
-- Current code segfaults [\#439](https://github.com/ZoneMinder/ZoneMinder/issues/439)
-- Crashing under Arch Linux [\#437](https://github.com/ZoneMinder/ZoneMinder/issues/437)
-- Email Montage view on schedule [\#436](https://github.com/ZoneMinder/ZoneMinder/issues/436)
-- \[question\] vmware image for latest ZM [\#428](https://github.com/ZoneMinder/ZoneMinder/issues/428)
-- Cannot Compile [\#423](https://github.com/ZoneMinder/ZoneMinder/issues/423)
-- seg in nph-zms/loadEventData atoi [\#417](https://github.com/ZoneMinder/ZoneMinder/issues/417)
-- ffmpeg problem [\#414](https://github.com/ZoneMinder/ZoneMinder/issues/414)
-- Minor fixes \(?\) for zmtrigger and mobile skin [\#410](https://github.com/ZoneMinder/ZoneMinder/issues/410)
-- Misleading Config Dump [\#402](https://github.com/ZoneMinder/ZoneMinder/issues/402)
-- Call to undefined function fixdevices\(\) [\#401](https://github.com/ZoneMinder/ZoneMinder/issues/401)
-- Option to execute arbitrary script for each event. \[$100 awarded\] [\#400](https://github.com/ZoneMinder/ZoneMinder/issues/400)
-- Zoneminder without Analysation [\#398](https://github.com/ZoneMinder/ZoneMinder/issues/398)
-- Viewing 31 monitors in montage [\#379](https://github.com/ZoneMinder/ZoneMinder/issues/379)
-- flat theme usability / Layout issues [\#378](https://github.com/ZoneMinder/ZoneMinder/issues/378)
-- Undefined index: filter in /usr/share/zoneminder/skins/zmc/views/filter.php [\#369](https://github.com/ZoneMinder/ZoneMinder/issues/369)
-- docker install not working [\#366](https://github.com/ZoneMinder/ZoneMinder/issues/366)
-- Events are not being reported to table on main index page [\#364](https://github.com/ZoneMinder/ZoneMinder/issues/364)
-- PatternFly for design commanality and improved user experience [\#363](https://github.com/ZoneMinder/ZoneMinder/issues/363)
-- Radio buttons rendering in events replay in flat skin [\#356](https://github.com/ZoneMinder/ZoneMinder/issues/356)
-- Pick a git branching strategy [\#350](https://github.com/ZoneMinder/ZoneMinder/issues/350)
-- Compile directive ZM\_CGIDIR is not interpreted correctly [\#347](https://github.com/ZoneMinder/ZoneMinder/issues/347)
-- 736516 - FTBFS: zm\_image.cpp:2991:165: error: \_\_attribute\_\_\(\(\_\_target\_\_\("sse2"\)\)\) is invalid [\#345](https://github.com/ZoneMinder/ZoneMinder/issues/345)
-- zmcamtool isn't installed [\#344](https://github.com/ZoneMinder/ZoneMinder/issues/344)
-- Overload Frame Ignore Count has no function [\#337](https://github.com/ZoneMinder/ZoneMinder/issues/337)
-- preclusive zones calculated twice [\#336](https://github.com/ZoneMinder/ZoneMinder/issues/336)
-- Build issue - In function `matroska\_decode\_buffer' [\#335](https://github.com/ZoneMinder/ZoneMinder/issues/335)
-- High Load with Low CPU usage [\#326](https://github.com/ZoneMinder/ZoneMinder/issues/326)
-- AUTH\_TYPE=remote not working in 1.26.4 [\#324](https://github.com/ZoneMinder/ZoneMinder/issues/324)
-- Filter / Purge And Delete not running [\#321](https://github.com/ZoneMinder/ZoneMinder/issues/321)
-- /root/zoneminder\_1.26.4-1\_amd64.deb not created [\#260](https://github.com/ZoneMinder/ZoneMinder/issues/260)
-- 721161 - depends on ffmpeg which is going away [\#100](https://github.com/ZoneMinder/ZoneMinder/issues/100)
-- 694131 - FTBFS against libav 9 [\#98](https://github.com/ZoneMinder/ZoneMinder/issues/98)
-- Request: Better API/Remote control [\#23](https://github.com/ZoneMinder/ZoneMinder/issues/23)
 
 **Merged pull requests:**
 
@@ -450,7 +282,6 @@
 - Fixes errors when opening Filters \(issue \#34\) [\#457](https://github.com/ZoneMinder/ZoneMinder/pull/457) ([knnniggett](https://github.com/knnniggett))
 - Fixed missing $ on ARRAY\(event\[id\]\). Fixes \#455 [\#456](https://github.com/ZoneMinder/ZoneMinder/pull/456) ([SteveGilvarry](https://github.com/SteveGilvarry))
 - Wrap sort order. Fixes \#450 [\#451](https://github.com/ZoneMinder/ZoneMinder/pull/451) ([SteveGilvarry](https://github.com/SteveGilvarry))
-- Update downloads.html [\#448](https://github.com/ZoneMinder/ZoneMinder/pull/448) ([barjac](https://github.com/barjac))
 - scripts: BusyBox compatibility [\#445](https://github.com/ZoneMinder/ZoneMinder/pull/445) ([clandmeter](https://github.com/clandmeter))
 - Fixed issue DateTime handling in filter queries that broke timeline view... [\#442](https://github.com/ZoneMinder/ZoneMinder/pull/442) ([Tim-Craig](https://github.com/Tim-Craig))
 - Cleaning up the Contribution section of the README [\#440](https://github.com/ZoneMinder/ZoneMinder/pull/440) ([kylejohnson](https://github.com/kylejohnson))
@@ -502,49 +333,8 @@
 ## [v1.27.0](https://github.com/ZoneMinder/ZoneMinder/tree/v1.27.0) (2014-03-15)
 [Full Changelog](https://github.com/ZoneMinder/ZoneMinder/compare/v1.26.5...v1.27.0)
 
-**Implemented enhancements:**
-
-- Change help text of source "Maximum FPS" and "Alarm Maximum FPS" to note that this should only be used on analog cameras [\#273](https://github.com/ZoneMinder/ZoneMinder/issues/273)
-- Make zmpkg.pl 'better' [\#272](https://github.com/ZoneMinder/ZoneMinder/issues/272)
-- Enhance security by creating SELinux policies. [\#248](https://github.com/ZoneMinder/ZoneMinder/issues/248)
-- Update wiki page \(please?\) [\#91](https://github.com/ZoneMinder/ZoneMinder/issues/91)
-- Better ffmpeg Version Checking [\#31](https://github.com/ZoneMinder/ZoneMinder/issues/31)
-- Proposed: Enable purgewhenfull filter by default [\#332](https://github.com/ZoneMinder/ZoneMinder/issues/332)
-- Exportable Camera Configs [\#86](https://github.com/ZoneMinder/ZoneMinder/issues/86)
-
-**Fixed bugs:**
-
-- Vivotek cameras, ultra slow FPS. [\#204](https://github.com/ZoneMinder/ZoneMinder/issues/204)
-- Script to remove auto-generated files [\#112](https://github.com/ZoneMinder/ZoneMinder/issues/112)
-- zm\_mpeg no longer uses correct ffmpeg API's [\#83](https://github.com/ZoneMinder/ZoneMinder/issues/83)
-- Not all options in Monitors/add.ctp are saved to the database [\#13](https://github.com/ZoneMinder/ZoneMinder/issues/13)
-- Flat skin needs window widths fixed [\#331](https://github.com/ZoneMinder/ZoneMinder/issues/331)
-- Configuration gets broken in database after crash [\#239](https://github.com/ZoneMinder/ZoneMinder/issues/239)
-- zmc crashes after a few minutes of usage in 1.26.4 [\#237](https://github.com/ZoneMinder/ZoneMinder/issues/237)
-
-**Closed issues:**
-
-- Apache using private /tmp space [\#307](https://github.com/ZoneMinder/ZoneMinder/issues/307)
-- zmtrigger.pl crashes, which keeps Monitors in alarm state. [\#295](https://github.com/ZoneMinder/ZoneMinder/issues/295)
-- SQL-ERR using Timeline after executing Filter matching on string with whitespace [\#291](https://github.com/ZoneMinder/ZoneMinder/issues/291)
-- zm\_signal.cpp crashing signal 11 \(Segmentation fault\) [\#288](https://github.com/ZoneMinder/ZoneMinder/issues/288)
-- Zoneminder no longer builds when using -DZM\_NO\_FFMPEG=ON [\#285](https://github.com/ZoneMinder/ZoneMinder/issues/285)
-- Can't to use chinese [\#278](https://github.com/ZoneMinder/ZoneMinder/issues/278)
-- jquery is embedded inside export\_functions.php [\#274](https://github.com/ZoneMinder/ZoneMinder/issues/274)
-- Implement live streaming of H264 camera streams [\#176](https://github.com/ZoneMinder/ZoneMinder/issues/176)
-- Support non-embedded password challenge [\#33](https://github.com/ZoneMinder/ZoneMinder/issues/33)
-- libvlc source type not working in Ubuntu 12.04.3 [\#330](https://github.com/ZoneMinder/ZoneMinder/issues/330)
-- zmupdate.pl InnoDB conversion silent failure [\#320](https://github.com/ZoneMinder/ZoneMinder/issues/320)
-- Release v1.27.0 \[$100 awarded\] [\#315](https://github.com/ZoneMinder/ZoneMinder/issues/315)
-- Default skin is flat, can't switch to classic.  ?skin doesn't help [\#313](https://github.com/ZoneMinder/ZoneMinder/issues/313)
-- make failure [\#304](https://github.com/ZoneMinder/ZoneMinder/issues/304)
-- Fix 'remote' AUTH\_TYPE [\#296](https://github.com/ZoneMinder/ZoneMinder/issues/296)
-- Use libcurl for http\(s\) authentication with remote cameras \[$400 awarded\] [\#238](https://github.com/ZoneMinder/ZoneMinder/issues/238)
-
 **Merged pull requests:**
 
-- Release 1.27 [\#341](https://github.com/ZoneMinder/ZoneMinder/pull/341) ([kylejohnson](https://github.com/kylejohnson))
-- Fix popup sizes in flat skins.  Fixes \#331 [\#334](https://github.com/ZoneMinder/ZoneMinder/pull/334) ([kylejohnson](https://github.com/kylejohnson))
 - zmcamtool.pl - import and export ptz camera controls & camera presets [\#318](https://github.com/ZoneMinder/ZoneMinder/pull/318) ([kylejohnson](https://github.com/kylejohnson))
 - Example script to react to monitor alarms [\#317](https://github.com/ZoneMinder/ZoneMinder/pull/317) ([kylejohnson](https://github.com/kylejohnson))
 - Change comments for many Camera subclasses [\#316](https://github.com/ZoneMinder/ZoneMinder/pull/316) ([nereocystis](https://github.com/nereocystis))
@@ -572,34 +362,12 @@
 ## [v1.26.5](https://github.com/ZoneMinder/ZoneMinder/tree/v1.26.5) (2013-12-16)
 [Full Changelog](https://github.com/ZoneMinder/ZoneMinder/compare/v1.26.4...v1.26.5)
 
-**Implemented enhancements:**
-
-- ZoneMinder domain / website / email [\#225](https://github.com/ZoneMinder/ZoneMinder/issues/225)
-
-**Fixed bugs:**
-
-- Post shmget problem due to \*code\* not shmmax/shmall [\#226](https://github.com/ZoneMinder/ZoneMinder/issues/226)
-- SQL error when "pre event image count" \>150 or so due to insufficient ZM\_SQL\_LGE\_BUFSIZ [\#222](https://github.com/ZoneMinder/ZoneMinder/issues/222)
-- 'asm' operand has impossible constraints [\#219](https://github.com/ZoneMinder/ZoneMinder/issues/219)
-- ipv6 support [\#210](https://github.com/ZoneMinder/ZoneMinder/issues/210)
-- RTSP decoding errors in 1.26.4 \[$450 awarded\] [\#221](https://github.com/ZoneMinder/ZoneMinder/issues/221)
-- The Prev "\<+" button does not work [\#32](https://github.com/ZoneMinder/ZoneMinder/issues/32)
-
-**Closed issues:**
-
-- Strict subs error? [\#262](https://github.com/ZoneMinder/ZoneMinder/issues/262)
-- PHP depreciating [\#229](https://github.com/ZoneMinder/ZoneMinder/issues/229)
-- Add a feature to monitor camera\(s\) availability [\#228](https://github.com/ZoneMinder/ZoneMinder/issues/228)
-- Release 1.26.4 [\#202](https://github.com/ZoneMinder/ZoneMinder/issues/202)
-- 631969 - 2 problems with options screen [\#106](https://github.com/ZoneMinder/ZoneMinder/issues/106)
-- 657620 - Path issues for js scripts [\#102](https://github.com/ZoneMinder/ZoneMinder/issues/102)
-- Support http digest authentication for IP camera access [\#30](https://github.com/ZoneMinder/ZoneMinder/issues/30)
-
 **Merged pull requests:**
 
 - Add reference to zm\_update-1.26.5.sql in Makefile.am [\#269](https://github.com/ZoneMinder/ZoneMinder/pull/269) ([knnniggett](https://github.com/knnniggett))
 - Detection Support for WansView Cams [\#268](https://github.com/ZoneMinder/ZoneMinder/pull/268) ([Phhere](https://github.com/Phhere))
 - use proper DBI parameter passing to improve security [\#264](https://github.com/ZoneMinder/ZoneMinder/pull/264) ([connortechnology](https://github.com/connortechnology))
+- Fix RTSP decoding errors in 1.26.4 \(addresses \#221\) [\#259](https://github.com/ZoneMinder/ZoneMinder/pull/259) ([ebarnard](https://github.com/ebarnard))
 - Network Detection Support for Wansview [\#257](https://github.com/ZoneMinder/ZoneMinder/pull/257) ([Phhere](https://github.com/Phhere))
 - Fix checkJsonError messages [\#256](https://github.com/ZoneMinder/ZoneMinder/pull/256) ([Phhere](https://github.com/Phhere))
 - Update README.md [\#255](https://github.com/ZoneMinder/ZoneMinder/pull/255) ([zdanek](https://github.com/zdanek))
@@ -608,16 +376,9 @@
 - Fix shared memory errors on centos 6.4 [\#250](https://github.com/ZoneMinder/ZoneMinder/pull/250) ([insidenothing](https://github.com/insidenothing))
 - Update zoneminder.service [\#246](https://github.com/ZoneMinder/ZoneMinder/pull/246) ([dtmf](https://github.com/dtmf))
 - remove extra stuff that I don't think we need because we are the source.  Opinions? [\#240](https://github.com/ZoneMinder/ZoneMinder/pull/240) ([connortechnology](https://github.com/connortechnology))
-- Re-Add ZM\_PATH\_DATA [\#236](https://github.com/ZoneMinder/ZoneMinder/pull/236) ([knnniggett](https://github.com/knnniggett))
 - Cast content\_length to signed int for error-check comparison [\#232](https://github.com/ZoneMinder/ZoneMinder/pull/232) ([josephevans](https://github.com/josephevans))
 - Apply INSERTs in Event::AddFrames in batches to fix issue \#222 [\#223](https://github.com/ZoneMinder/ZoneMinder/pull/223) ([fastolfe](https://github.com/fastolfe))
-- Updates to the zones view and edit pages [\#220](https://github.com/ZoneMinder/ZoneMinder/pull/220) ([kylejohnson](https://github.com/kylejohnson))
 - ffmpeg detection improvements [\#218](https://github.com/ZoneMinder/ZoneMinder/pull/218) ([mastertheknife](https://github.com/mastertheknife))
-- cmake support files for redhat/centos distros [\#217](https://github.com/ZoneMinder/ZoneMinder/pull/217) ([knnniggett](https://github.com/knnniggett))
-- Create ZM\_TARGET\_DISTRO [\#216](https://github.com/ZoneMinder/ZoneMinder/pull/216) ([knnniggett](https://github.com/knnniggett))
-- We need a toggle for x10 support [\#215](https://github.com/ZoneMinder/ZoneMinder/pull/215) ([knnniggett](https://github.com/knnniggett))
-- Cmake support files for fedora distro [\#214](https://github.com/ZoneMinder/ZoneMinder/pull/214) ([knnniggett](https://github.com/knnniggett))
-- Initial zone editing in html5 canvas [\#213](https://github.com/ZoneMinder/ZoneMinder/pull/213) ([kylejohnson](https://github.com/kylejohnson))
 - ZoneMinder Dutch Translation updates by Alco \(a.k. nightcrawler\) [\#211](https://github.com/ZoneMinder/ZoneMinder/pull/211) ([kylejohnson](https://github.com/kylejohnson))
 - Change Prev Button functionality [\#207](https://github.com/ZoneMinder/ZoneMinder/pull/207) ([knnniggett](https://github.com/knnniggett))
 - Delete PATH\_BUILD and TIME\_BUILD from zm.conf and fix ZM\_DB\_TYPE [\#243](https://github.com/ZoneMinder/ZoneMinder/pull/243) ([mastertheknife](https://github.com/mastertheknife))
@@ -628,42 +389,6 @@
 ## [v1.26.4](https://github.com/ZoneMinder/ZoneMinder/tree/v1.26.4) (2013-10-08)
 [Full Changelog](https://github.com/ZoneMinder/ZoneMinder/compare/v1.26.3...v1.26.4)
 
-**Implemented enhancements:**
-
-- Configuration options should be handled in the model, not the controller [\#191](https://github.com/ZoneMinder/ZoneMinder/issues/191)
-- Travis CI automatic building [\#168](https://github.com/ZoneMinder/ZoneMinder/issues/168)
-- Switch h264 feature branch to track the modern branch [\#167](https://github.com/ZoneMinder/ZoneMinder/issues/167)
-- Add redhat specific files to source tree [\#115](https://github.com/ZoneMinder/ZoneMinder/issues/115)
-- Performing count\(\) in SQL is slower than in PHP [\#2](https://github.com/ZoneMinder/ZoneMinder/issues/2)
-
-**Fixed bugs:**
-
-- New WebUI displays horizontal scroll bar with 100% width [\#169](https://github.com/ZoneMinder/ZoneMinder/issues/169)
--  syntax error, unexpected $end on line 16 in LiveStreamHelper.php [\#147](https://github.com/ZoneMinder/ZoneMinder/issues/147)
-- Readme.fedora contains incorrect references [\#145](https://github.com/ZoneMinder/ZoneMinder/issues/145)
-- Bandwidth cookie issues [\#143](https://github.com/ZoneMinder/ZoneMinder/issues/143)
-- Monitor image invalid when monitor not enabled [\#140](https://github.com/ZoneMinder/ZoneMinder/issues/140)
-- Monitor image size too small [\#139](https://github.com/ZoneMinder/ZoneMinder/issues/139)
-
-**Closed issues:**
-
-- MJPEG without cambozola.jar on modern browsers \(including Linux ones\) [\#198](https://github.com/ZoneMinder/ZoneMinder/issues/198)
-- Ability to hide all 'controls' and menus [\#171](https://github.com/ZoneMinder/ZoneMinder/issues/171)
-- strace on zma gives "timer\_gettime...\(..\).. = -1 EINVAL \(Invalid argument\)" [\#170](https://github.com/ZoneMinder/ZoneMinder/issues/170)
-- Add ability to zms \(or use the segmenter\) to play back h264 video either directly or transcoded [\#166](https://github.com/ZoneMinder/ZoneMinder/issues/166)
-- I can delete multiple events at once. [\#137](https://github.com/ZoneMinder/ZoneMinder/issues/137)
-- I can view logs [\#135](https://github.com/ZoneMinder/ZoneMinder/issues/135)
-- I can update system config / options [\#134](https://github.com/ZoneMinder/ZoneMinder/issues/134)
-- I can change the order of monitors [\#132](https://github.com/ZoneMinder/ZoneMinder/issues/132)
-- When a new version is available, I am alerted [\#130](https://github.com/ZoneMinder/ZoneMinder/issues/130)
-- Bandwidth is updated on the UI after chaning it [\#129](https://github.com/ZoneMinder/ZoneMinder/issues/129)
-- I can change the bandwidth [\#128](https://github.com/ZoneMinder/ZoneMinder/issues/128)
-- I can delete events [\#126](https://github.com/ZoneMinder/ZoneMinder/issues/126)
-- I can view monitor streams individually [\#125](https://github.com/ZoneMinder/ZoneMinder/issues/125)
-- 667428 - ftbfs with GCC-4.7 [\#99](https://github.com/ZoneMinder/ZoneMinder/issues/99)
-- 707411 - FTBFS: zm\_local\_camera.cpp:742:49: error: invalid conversion from '\_\_u32 {aka unsigned int}' to 'v4l2\_buf\_type' [\#97](https://github.com/ZoneMinder/ZoneMinder/issues/97)
-- Change in monitor setup requested. [\#19](https://github.com/ZoneMinder/ZoneMinder/issues/19)
-
 **Merged pull requests:**
 
 - Change frameserver warnings to debug level 2 [\#205](https://github.com/ZoneMinder/ZoneMinder/pull/205) ([knnniggett](https://github.com/knnniggett))
@@ -671,26 +396,13 @@
 - Signal improvements and fixes [\#201](https://github.com/ZoneMinder/ZoneMinder/pull/201) ([mastertheknife](https://github.com/mastertheknife))
 - Create ZM\_PATH\_DATA and point zmupdate to ZM\_PATH\_DATA/db [\#200](https://github.com/ZoneMinder/ZoneMinder/pull/200) ([knnniggett](https://github.com/knnniggett))
 - remove ${CMAKE\_CURRENT\_SOURCE\_DIR} from add\_custom\_target [\#199](https://github.com/ZoneMinder/ZoneMinder/pull/199) ([knnniggett](https://github.com/knnniggett))
-- Updated cmake for the modern WebUI branch [\#196](https://github.com/ZoneMinder/ZoneMinder/pull/196) ([mastertheknife](https://github.com/mastertheknife))
 - Added missing word in readme [\#194](https://github.com/ZoneMinder/ZoneMinder/pull/194) ([WDKevin](https://github.com/WDKevin))
-- Moved writing of configure options from Controller to Model. Fixes \#191. [\#193](https://github.com/ZoneMinder/ZoneMinder/pull/193) ([kylejohnson](https://github.com/kylejohnson))
-- Moved zmBandwidth option from cookie to Configure:: option.  Might fix \#175 [\#190](https://github.com/ZoneMinder/ZoneMinder/pull/190) ([kylejohnson](https://github.com/kylejohnson))
-- Moved the Config tabs to the sidebar [\#185](https://github.com/ZoneMinder/ZoneMinder/pull/185) ([kylejohnson](https://github.com/kylejohnson))
-- Added datetime picker support and implemented on events sidebar [\#179](https://github.com/ZoneMinder/ZoneMinder/pull/179) ([WDKevin](https://github.com/WDKevin))
 - Add cmake to ZoneMinder [\#178](https://github.com/ZoneMinder/ZoneMinder/pull/178) ([mastertheknife](https://github.com/mastertheknife))
-- Fixes the fixed-width container bug in bootstrap [\#177](https://github.com/ZoneMinder/ZoneMinder/pull/177) ([WDKevin](https://github.com/WDKevin))
 - Rtsp updates [\#174](https://github.com/ZoneMinder/ZoneMinder/pull/174) ([POKKAHOH](https://github.com/POKKAHOH))
-- Minor patches to support older ffmpeg under distro's like Ubuntu 12.04 [\#173](https://github.com/ZoneMinder/ZoneMinder/pull/173) ([chetan-prime](https://github.com/chetan-prime))
 - Solution for Issue \#170 [\#172](https://github.com/ZoneMinder/ZoneMinder/pull/172) ([raulcaj](https://github.com/raulcaj))
 - Fixing debian build files including automated database setup [\#164](https://github.com/ZoneMinder/ZoneMinder/pull/164) ([jaydio](https://github.com/jaydio))
 - Add fedora rpm development files to zoneminder source tree [\#163](https://github.com/ZoneMinder/ZoneMinder/pull/163) ([knnniggett](https://github.com/knnniggett))
 - Improve Chrome browser support & log streaming events [\#162](https://github.com/ZoneMinder/ZoneMinder/pull/162) ([knnniggett](https://github.com/knnniggett))
-- Merge master into modern to keep changes up to date [\#161](https://github.com/ZoneMinder/ZoneMinder/pull/161) ([chriswiggins](https://github.com/chriswiggins))
-- Checks for updates every 5 minutes and notifies the user when there is one [\#158](https://github.com/ZoneMinder/ZoneMinder/pull/158) ([WDKevin](https://github.com/WDKevin))
-- Dynamic monitor resizing [\#157](https://github.com/ZoneMinder/ZoneMinder/pull/157) ([chriswiggins](https://github.com/chriswiggins))
-- Delete multiple events at once [\#156](https://github.com/ZoneMinder/ZoneMinder/pull/156) ([WDKevin](https://github.com/WDKevin))
-- Added missing jquery-2.0.1.min.map file [\#155](https://github.com/ZoneMinder/ZoneMinder/pull/155) ([WDKevin](https://github.com/WDKevin))
-- Add support to change order of monitors [\#154](https://github.com/ZoneMinder/ZoneMinder/pull/154) ([WDKevin](https://github.com/WDKevin))
 - Can't seem to catch a break tonight.  Moving debian files into correct folder [\#149](https://github.com/ZoneMinder/ZoneMinder/pull/149) ([knnniggett](https://github.com/knnniggett))
 - Move debian folder under distros [\#148](https://github.com/ZoneMinder/ZoneMinder/pull/148) ([knnniggett](https://github.com/knnniggett))
 - Removing the redhat folder from the root for real this time [\#141](https://github.com/ZoneMinder/ZoneMinder/pull/141) ([knnniggett](https://github.com/knnniggett))
@@ -702,30 +414,12 @@
 ## [v1.26.3](https://github.com/ZoneMinder/ZoneMinder/tree/v1.26.3) (2013-09-10)
 [Full Changelog](https://github.com/ZoneMinder/ZoneMinder/compare/v1.26.2...v1.26.3)
 
-**Fixed bugs:**
-
-- syntax error near unexpected token `5.6.0' [\#118](https://github.com/ZoneMinder/ZoneMinder/issues/118)
-- Must modify zmupdate whenever the zm release number is incremented [\#114](https://github.com/ZoneMinder/ZoneMinder/issues/114)
-
 **Merged pull requests:**
 
 - Add 1.26.1 and 1.26.2 releases to zmupdate [\#116](https://github.com/ZoneMinder/ZoneMinder/pull/116) ([knnniggett](https://github.com/knnniggett))
 
 ## [v1.26.2](https://github.com/ZoneMinder/ZoneMinder/tree/v1.26.2) (2013-09-06)
 [Full Changelog](https://github.com/ZoneMinder/ZoneMinder/compare/v1.26.1...v1.26.2)
-
-**Implemented enhancements:**
-
-- Update zmupdate to look at the github repo for the latest version [\#109](https://github.com/ZoneMinder/ZoneMinder/issues/109)
-
-**Fixed bugs:**
-
-- 666980 - hash authentication broken in update [\#105](https://github.com/ZoneMinder/ZoneMinder/issues/105)
-
-**Closed issues:**
-
-- 1.26.1 didn't get bumped from 1.26.0 [\#113](https://github.com/ZoneMinder/ZoneMinder/issues/113)
-- Migrate FAQ from ZoneMinder Wiki to GitHub Wiki [\#110](https://github.com/ZoneMinder/ZoneMinder/issues/110)
 
 **Merged pull requests:**
 
@@ -734,84 +428,17 @@
 ## [v1.26.1](https://github.com/ZoneMinder/ZoneMinder/tree/v1.26.1) (2013-09-06)
 [Full Changelog](https://github.com/ZoneMinder/ZoneMinder/compare/v1.26.0...v1.26.1)
 
-**Fixed bugs:**
-
-- Make and configure files are not in v1.26.0 [\#107](https://github.com/ZoneMinder/ZoneMinder/issues/107)
-
 ## [v1.26.0](https://github.com/ZoneMinder/ZoneMinder/tree/v1.26.0) (2013-09-05)
 [Full Changelog](https://github.com/ZoneMinder/ZoneMinder/compare/v1.26-beta.3...v1.26.0)
-
-**Closed issues:**
-
-- AM is deprecated in automake-1.13 onwards [\#94](https://github.com/ZoneMinder/ZoneMinder/issues/94)
-- CVE-2013-0232 [\#93](https://github.com/ZoneMinder/ZoneMinder/issues/93)
-- \[CRITICAL\] zms crashes with hashed authentication [\#88](https://github.com/ZoneMinder/ZoneMinder/issues/88)
-
-**Merged pull requests:**
-
-- Fix "Can't stat : No such file or directory" message [\#95](https://github.com/ZoneMinder/ZoneMinder/pull/95) ([knnniggett](https://github.com/knnniggett))
-- Update getBrowser\(\) to match IE10 [\#92](https://github.com/ZoneMinder/ZoneMinder/pull/92) ([knnniggett](https://github.com/knnniggett))
-- Update zmupdate.pl.in to give option to convert to InnoDB tables [\#84](https://github.com/ZoneMinder/ZoneMinder/pull/84) ([knnniggett](https://github.com/knnniggett))
 
 ## [v1.26-beta.3](https://github.com/ZoneMinder/ZoneMinder/tree/v1.26-beta.3) (2013-08-28)
 [Full Changelog](https://github.com/ZoneMinder/ZoneMinder/compare/v1.26-beta.2...v1.26-beta.3)
 
-**Fixed bugs:**
-
-- libjpeg turbo errors during make [\#52](https://github.com/ZoneMinder/ZoneMinder/issues/52)
-
-**Closed issues:**
-
-- configure.ac checking for libavcore incorrectly [\#64](https://github.com/ZoneMinder/ZoneMinder/issues/64)
-
-**Merged pull requests:**
-
-- Fix for Issue \#88 - ZMS crashing [\#90](https://github.com/ZoneMinder/ZoneMinder/pull/90) ([knnniggett](https://github.com/knnniggett))
-- Fixed typo [\#89](https://github.com/ZoneMinder/ZoneMinder/pull/89) ([knnniggett](https://github.com/knnniggett))
-- edit zmupdate function in init script [\#87](https://github.com/ZoneMinder/ZoneMinder/pull/87) ([knnniggett](https://github.com/knnniggett))
-- Add PTZ control files and camera presets for specific ptz cameras. [\#85](https://github.com/ZoneMinder/ZoneMinder/pull/85) ([knnniggett](https://github.com/knnniggett))
-- Update Makefile.am [\#81](https://github.com/ZoneMinder/ZoneMinder/pull/81) ([knnniggett](https://github.com/knnniggett))
-- Suppresses erroneous Corrupt Jpeg messages sent from the jpeg library [\#80](https://github.com/ZoneMinder/ZoneMinder/pull/80) ([knnniggett](https://github.com/knnniggett))
-- Added frameserver patch from Zoneminder Wiki [\#79](https://github.com/ZoneMinder/ZoneMinder/pull/79) ([knnniggett](https://github.com/knnniggett))
-- Don't check for gnutls-openssl on systems with older gnutls [\#78](https://github.com/ZoneMinder/ZoneMinder/pull/78) ([knnniggett](https://github.com/knnniggett))
-- Change default dB Engine from MyISAM to InnoDB [\#77](https://github.com/ZoneMinder/ZoneMinder/pull/77) ([knnniggett](https://github.com/knnniggett))
-- Added build notes for CentOS & RHEL [\#76](https://github.com/ZoneMinder/ZoneMinder/pull/76) ([knnniggett](https://github.com/knnniggett))
-
 ## [v1.26-beta.2](https://github.com/ZoneMinder/ZoneMinder/tree/v1.26-beta.2) (2013-08-15)
 [Full Changelog](https://github.com/ZoneMinder/ZoneMinder/compare/v1.26-beta.1...v1.26-beta.2)
 
-**Implemented enhancements:**
-
-- Updated Hungarian translation [\#35](https://github.com/ZoneMinder/ZoneMinder/issues/35)
-
-**Fixed bugs:**
-
-- 1.26 Beta does not install SkyIPCam7xx.pm Control Script [\#38](https://github.com/ZoneMinder/ZoneMinder/issues/38)
-
-**Closed issues:**
-
-- Store video in a \*video\* format [\#40](https://github.com/ZoneMinder/ZoneMinder/issues/40)
-
-**Merged pull requests:**
-
-- Update hu\_hu.php [\#37](https://github.com/ZoneMinder/ZoneMinder/pull/37) ([nagyrobi](https://github.com/nagyrobi))
-
 ## [v1.26-beta.1](https://github.com/ZoneMinder/ZoneMinder/tree/v1.26-beta.1) (2013-08-13)
 [Full Changelog](https://github.com/ZoneMinder/ZoneMinder/compare/v1.25...v1.26-beta.1)
-
-**Implemented enhancements:**
-
-- Scripts should only be loaded on the pages they're needed [\#15](https://github.com/ZoneMinder/ZoneMinder/issues/15)
-
-**Fixed bugs:**
-
-- Control Types always none using source Ffmpeg [\#16](https://github.com/ZoneMinder/ZoneMinder/issues/16)
-- No PTZ control option when adding a new monitor [\#4](https://github.com/ZoneMinder/ZoneMinder/issues/4)
--  Monitors/index.ctp Undefined offset error [\#1](https://github.com/ZoneMinder/ZoneMinder/issues/1)
-
-**Closed issues:**
-
-- Please Add my code for 0-23Hour 0n/off  Zone Operation [\#24](https://github.com/ZoneMinder/ZoneMinder/issues/24)
 
 ## [v1.25](https://github.com/ZoneMinder/ZoneMinder/tree/v1.25) (2013-04-12)
 

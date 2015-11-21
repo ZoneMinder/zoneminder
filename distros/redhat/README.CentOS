@@ -1,9 +1,9 @@
 What's New
 ==========
 
-1. The ZoneMinder mysql account now requires "create" and "index" permission.
-   This change must be done manually before ZoneMinder will run. See the
-   installation steps below.
+1. Due to the active state of the ZoneMinder project, we now recommend granting
+   ALL permission to the ZoneMinder mysql account. This change must be done
+   manually before ZoneMinder will run. See the installation steps below.
 
 2. A new permission group called "Groups" has been added. This allows the
    system administrator to assign "view", "edit", or "none" permission to
@@ -32,7 +32,7 @@ New installs
 
      mysql -uroot -p
 	mysql> create database zm;
-	mysql> grant select,insert,update,delete,lock tables,alter,create,index
+	mysql> grant all
                 on zm.* to 'zmuser'@localhost identified by 'zmpass';
 	mysql> exit;
      mysql -uroot -p < /usr/share/zoneminder/db/zm_create.sql
@@ -44,6 +44,11 @@ New installs
 3. If you have chosen to change the zoneminder mysql credentials to something
    other than zmuser/zmpass then you must now edit /etc/zm.conf. Change
    ZM_DB_USER and ZM_DB_PASS to the values you created in step 2.
+
+   Additionally, you must also edit 
+   /usr/share/zoneminder/www/api/app/Config/database.php in a similar manner.
+   Scroll down and change login and password to the values you created in the
+   previous step.
 
 4. Edit /etc/php.ini, uncomment the date.timezone line, and add your local
    timezone.  PHP will complain loudly if this is not set, or if it is set
@@ -101,12 +106,16 @@ New installs
    Compare /etc/zm.conf to /etc/zm.conf.rpmnew. Verify that zm.conf
    contains any new config settings that may be in zm.conf.rpmnew.
 
+   Additionally, you must also edit 
+   /usr/share/zoneminder/www/api/app/Config/database.php in a similar manner.
+   Scroll down and change login and password to the values you used
+   previsouly.
+
 2. Verify permissions of the zmuser account.
 
    Over time, the database account permissions required for normal operation
-   have changed. Verify the zmuser database account has been granted select,
-   insert, update, delete, lock tables, alter, create, and index permission
-   to the ZoneMinder database:
+   have increased. Verify the zmuser database account has been granted all
+   permission to the ZoneMinder database:
 
      mysql -u root -p
          mysql> show grants for zmuser@localhost;

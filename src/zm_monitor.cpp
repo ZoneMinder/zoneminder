@@ -4164,36 +4164,39 @@ void MonitorStream::runStream()
 
     char *swap_path = 0;
     bool buffered_playback = false;
-    int swap_path_length = strlen(config.path_swap)+1; // +1 for NULL terminator
 
-    if ( connkey && playback_buffer > 0 ) {
+    // 15 is the max length for the swap path suffix, /zmswap-whatever, assuming max 6 digits for monitor id
+    const int max_swap_len_suffix = 15; 
 
-        if ( swap_path_length + 15 > PATH_MAX ) {
-            // 15 is for /zmswap-whatever, assuming max 6 digits for monitor id
-            Error( "Swap Path is too long. %d > %d ", swap_path_length+15, PATH_MAX );
-        } else {
-            swap_path = (char *)malloc( swap_path_length+15 );
-            Debug( 3, "Checking swap image path %s", config.path_swap );
-            strncpy( swap_path, config.path_swap, swap_path_length );
-            if ( checkSwapPath( swap_path, false ) ) {
-                snprintf( &(swap_path[swap_path_length]), sizeof(swap_path)-swap_path_length, "/zmswap-m%d", monitor->Id() );
-                if ( checkSwapPath( swap_path, true ) ) {
-                    snprintf( &(swap_path[swap_path_length]), sizeof(swap_path)-swap_path_length, "/zmswap-q%06d", connkey );
-                    if ( checkSwapPath( swap_path, true ) ) {
-                        buffered_playback = true;
-                    }
-                }
-            }
+	int swap_path_length = strlen(config.path_swap)+1; // +1 for NULL terminator
 
-            if ( !buffered_playback ) {
-                Error( "Unable to validate swap image path, disabling buffered playback" );
-            } else {
-                Debug( 2, "Assigning temporary buffer" );
-                temp_image_buffer = new SwapImage[temp_image_buffer_count];
-                memset( temp_image_buffer, 0, sizeof(*temp_image_buffer)*temp_image_buffer_count );
-                Debug( 2, "Assigned temporary buffer" );
-            }
-        }
+	if ( connkey && playback_buffer > 0 ) {
+
+		if ( swap_path_length + max_swap_len_suffix > PATH_MAX ) {
+			Error( "Swap Path is too long. %d > %d ", swap_path_length+max_swap_len_suffix, PATH_MAX );
+		} else {
+			swap_path = (char *)malloc( swap_path_length+max_swap_len_suffix );
+			Debug( 3, "Checking swap image path %s", config.path_swap );
+			strncpy( swap_path, config.path_swap, swap_path_length );
+			if ( checkSwapPath( swap_path, false ) ) {
+				snprintf( &(swap_path[swap_path_length]), max_swap_len_suffix, "/zmswap-m%d", monitor->Id() );
+				if ( checkSwapPath( swap_path, true ) ) {
+					snprintf( &(swap_path[swap_path_length]), max_swap_len_suffix, "/zmswap-q%06d", connkey );
+					if ( checkSwapPath( swap_path, true ) ) {
+						buffered_playback = true;
+					}
+				}
+			}
+
+			if ( !buffered_playback ) {
+				Error( "Unable to validate swap image path, disabling buffered playback" );
+			} else {
+				Debug( 2, "Assigning temporary buffer" );
+				temp_image_buffer = new SwapImage[temp_image_buffer_count];
+				memset( temp_image_buffer, 0, sizeof(*temp_image_buffer)*temp_image_buffer_count );
+				Debug( 2, "Assigned temporary buffer" );
+			}
+		}
     }
 
     float max_secs_since_last_sent_frame = 10.0; //should be > keep alive amount (5 secs)

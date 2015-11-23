@@ -141,7 +141,7 @@ set(ZM_PERL_SEARCH_PATH "" CACHE PATH
 	where ZM_PERL_MM_PARMS has been modified such that ZoneMinder's Perl modules are 
 	installed outside Perl's default search path.")
 set(ZM_TARGET_DISTRO "" CACHE STRING 
-    "Build ZoneMinder for a specific distribution.  Currently, valid names are: f21, f22, el6, el7, OS13")
+    "Build ZoneMinder for a specific distribution.  Currently, valid names are: f22, f23, el6, el7, OS13")
 
 # Reassign some variables if a target distro has been specified
 if((ZM_TARGET_DISTRO STREQUAL "f22") OR (ZM_TARGET_DISTRO STREQUAL "f23"))

@@ -27,7 +27,7 @@ if ( !canView( 'Events' ) )
 $eid = validInt( $_REQUEST['eid'] );
 $fid = !empty($_REQUEST['fid'])?validInt($_REQUEST['fid']):1;
 
-$sql = 'SELECT E.*,M.Name AS MonitorName,M.Width,M.Height,M.DefaultRate,M.DefaultScale,M.VideoWriter,M.SaveJPEGs,M.Orientation FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = ?';
+$sql = 'SELECT E.*,M.Name AS MonitorName,M.Width,M.Height,M.DefaultRate,M.DefaultScale,M.VideoWriter,M.SaveJPEGs,M.Orientation,M.LabelFormat FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = ?';
 $sql_values = array( $eid );
 
 if ( $user['MonitorIds'] ) {
@@ -141,15 +141,24 @@ if ( $event['SaveJPEGs'] & 3 )
 if ( $event['DefaultVideo'] )
 { 
 ?>
-<link href="//vjs.zencdn.net/4.11/video-js.css" rel="stylesheet">
-<script src="//vjs.zencdn.net/4.11/video.js"></script>
-<script src='./js/videojs.zoomrotate.js'></script>
 				<div id="videoFeed">
 					<video id="videoobj" class="video-js vjs-default-skin" width="<?php echo reScale( $event['Width'], $scale ) ?>" height="<?php echo reScale( $event['Height'], $scale ) ?>" data-setup='{ "controls": true, "playbackRates": [0.5, 1, 1.5, 2, 4, 8, 16, 32, 64, 128, 256], "autoplay": true, "preload": "auto", "plugins": { "zoomrotate": { "rotate": "<?php echo $Rotation ?>", "zoom": "<?php echo $Zoom ?>"}}}'>
 					<source src="<?php echo getEventDefaultVideoPath($event) ?>" type="video/mp4">
 					Your browser does not support the video tag.
 					</video>
 				</div>
+<!--script>includeVideoJs();</script-->
+<link href="//vjs.zencdn.net/4.11/video-js.css" rel="stylesheet">
+<script src="//vjs.zencdn.net/4.11/video.js"></script>
+<script src="./js/videojs.zoomrotate.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.10.6/moment.min.js"></script>
+<script>
+var LabelFormat = "<?php echo validJsStr($event['LabelFormat'])?>";
+var monitorName = "<?php echo validJsStr($event['MonitorName'])?>";
+var duration = <?php echo $event['Length'] ?>, startTime = '<?php echo $event['StartTime'] ?>';
+
+addVideoTimingTrack(document.getElementById('videoobj'), LabelFormat, monitorName, duration, startTime);
+</script>
 
 <?php
 }

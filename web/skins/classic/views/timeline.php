@@ -813,7 +813,11 @@ xhtmlHeaders(__FILE__, translate('Timeline') );
         <div id="imagePanel">
           <div id="image" class="imageHeight">
 		        <img id="imageSrc" class="imageWidth" src="graphics/transparent.gif" alt="<?php echo translate('ViewEvent') ?>" title="<?php echo translate('ViewEvent') ?>"/>
-			<video id="preview" width="100%" controls>
+<?php
+//due to chrome bug, has to enable https://code.google.com/p/chromium/issues/detail?id=472300
+//crossorigin has to be added below to make caption work in chrome
+?>
+			<video id="preview" width="100%" controls crossorigin="anonymous">
 				<source src="<?php echo "/events/".getEventPath($event)."/event.mp4"; ?>" type="video/mp4">
 Your browser does not support the video tag.
 			</video>
@@ -979,5 +983,6 @@ foreach( array_keys($monEventSlots) as $monitorId )
       </div>
     </div>
   </div>
+<script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.10.6/moment.min.js"></script>
 </body>
 </html>

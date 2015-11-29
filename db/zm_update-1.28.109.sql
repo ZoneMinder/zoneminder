@@ -9,12 +9,12 @@
 SET @s = (SELECT IF(
 	(SELECT COUNT(*)
 	FROM INFORMATION_SCHEMA.COLUMNS
-	WHERE table_name = 'Frames'
+	WHERE table_name = 'Servers'
 	AND table_schema = DATABASE()
-	AND column_name = 'Id'
+	AND column_name = 'Hostname'
 	) > 0,
-"SELECT 'Column ID already exists in Frames'",
-"ALTER TABLE `Frames` ADD COLUMN `Id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT FIRST, DROP PRIMARY KEY, ADD PRIMARY KEY(`Id`)"
+"SELECT 'Column Hostname already exists in Servers'",
+"ALTER TABLE `Servers` ADD COLUMN `Hostname` TEXT AFTER Name"
 ));
 
 PREPARE stmt FROM @s;

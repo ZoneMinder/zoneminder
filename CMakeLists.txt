@@ -4,7 +4,7 @@
 #
 cmake_minimum_required (VERSION 2.6)
 project (zoneminder)
-set(zoneminder_VERSION "1.28.108")
+set(zoneminder_VERSION "1.28.109")
 # make API version a minor of ZM version
 set(zoneminder_API_VERSION "${zoneminder_VERSION}.1")
 
@@ -141,10 +141,10 @@ set(ZM_PERL_SEARCH_PATH "" CACHE PATH
 	where ZM_PERL_MM_PARMS has been modified such that ZoneMinder's Perl modules are 
 	installed outside Perl's default search path.")
 set(ZM_TARGET_DISTRO "" CACHE STRING 
-    "Build ZoneMinder for a specific distribution.  Currently, valid names are: f21, f22, el6, el7, OS13")
+    "Build ZoneMinder for a specific distribution.  Currently, valid names are: f22, f23, el6, el7, OS13")
 
 # Reassign some variables if a target distro has been specified
-if((ZM_TARGET_DISTRO STREQUAL "f21") OR (ZM_TARGET_DISTRO STREQUAL "f22"))
+if((ZM_TARGET_DISTRO STREQUAL "f22") OR (ZM_TARGET_DISTRO STREQUAL "f23"))
 	set(ZM_RUNDIR "/var/run/zoneminder")
 	set(ZM_SOCKDIR "/var/lib/zoneminder/sock")
 	set(ZM_TMPDIR "/var/lib/zoneminder/temp")
@@ -176,7 +176,7 @@ elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
 	set(ZM_WEB_GROUP "www")
 	set(ZM_WEBDIR "/srv/www/htdocs/zoneminder")
 	set(ZM_CGIDIR "/srv/www/cgi-bin")
-endif((ZM_TARGET_DISTRO STREQUAL "f21") OR (ZM_TARGET_DISTRO STREQUAL "f22"))
+endif((ZM_TARGET_DISTRO STREQUAL "f22") OR (ZM_TARGET_DISTRO STREQUAL "f23"))
 
 # Required for certain checks to work
 set(CMAKE_EXTRA_INCLUDE_FILES 
@@ -744,13 +744,13 @@ if(ZM_ONVIF)
 endif(ZM_ONVIF)
 
 # Process distro subdirectories
-if((ZM_TARGET_DISTRO STREQUAL "f21") OR (ZM_TARGET_DISTRO STREQUAL "f22"))
+if((ZM_TARGET_DISTRO STREQUAL "f22") OR (ZM_TARGET_DISTRO STREQUAL "f23"))
 	add_subdirectory(distros/fedora)
 elseif((ZM_TARGET_DISTRO STREQUAL "el6") OR (ZM_TARGET_DISTRO STREQUAL "el7"))
 	add_subdirectory(distros/redhat)
 elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
 	add_subdirectory(distros/opensuse)
-endif((ZM_TARGET_DISTRO STREQUAL "f21") OR (ZM_TARGET_DISTRO STREQUAL "f22"))
+endif((ZM_TARGET_DISTRO STREQUAL "f22") OR (ZM_TARGET_DISTRO STREQUAL "f23"))
 
 # Print optional libraries detection status
 message(STATUS "Optional libraries found:${optlibsfound}")

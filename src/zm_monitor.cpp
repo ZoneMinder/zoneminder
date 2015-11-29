@@ -4288,21 +4288,24 @@ void MonitorStream::runStream()
 
     char *swap_path = 0;
     bool buffered_playback = false;
+
+    // 15 is the max length for the swap path suffix, /zmswap-whatever, assuming max 6 digits for monitor id
+    const int max_swap_len_suffix = 15; 
+
 	int swap_path_length = strlen(config.path_swap)+1; // +1 for NULL terminator
 
 	if ( connkey && playback_buffer > 0 ) {
 
-		if ( swap_path_length + 15 > PATH_MAX ) {
-			// 15 is for /zmswap-whatever, assuming max 6 digits for monitor id
-			Error( "Swap Path is too long. %d > %d ", swap_path_length+15, PATH_MAX );
+		if ( swap_path_length + max_swap_len_suffix > PATH_MAX ) {
+			Error( "Swap Path is too long. %d > %d ", swap_path_length+max_swap_len_suffix, PATH_MAX );
 		} else {
-			swap_path = (char *)malloc( swap_path_length+15 );
+			swap_path = (char *)malloc( swap_path_length+max_swap_len_suffix );
 			Debug( 3, "Checking swap image path %s", config.path_swap );
 			strncpy( swap_path, config.path_swap, swap_path_length );
 			if ( checkSwapPath( swap_path, false ) ) {
-				snprintf( &(swap_path[swap_path_length]), sizeof(swap_path)-swap_path_length, "/zmswap-m%d", monitor->Id() );
+				snprintf( &(swap_path[swap_path_length]), max_swap_len_suffix, "/zmswap-m%d", monitor->Id() );
 				if ( checkSwapPath( swap_path, true ) ) {
-					snprintf( &(swap_path[swap_path_length]), sizeof(swap_path)-swap_path_length, "/zmswap-q%06d", connkey );
+					snprintf( &(swap_path[swap_path_length]), max_swap_len_suffix, "/zmswap-q%06d", connkey );
 					if ( checkSwapPath( swap_path, true ) ) {
 						buffered_playback = true;
 					}

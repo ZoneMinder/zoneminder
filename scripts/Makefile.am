@@ -57,7 +57,7 @@ EXTRA_DIST = \
 	ZoneMinder/lib/ZoneMinder/ConfigAdmin.pm \
 	ZoneMinder/lib/ZoneMinder/ConfigData.pm.in \
 	ZoneMinder/lib/ZoneMinder/Control.pm \
-	ZoneMinder/lib/ZoneMinder/Control \ # Grab all ptz control skips under the Control folder
+	ZoneMinder/lib/ZoneMinder/Control \
 	ZoneMinder/lib/ZoneMinder/Trigger/Channel.pm \
 	ZoneMinder/lib/ZoneMinder/Trigger/Channel/Handle.pm \
 	ZoneMinder/lib/ZoneMinder/Trigger/Channel/Spawning.pm \

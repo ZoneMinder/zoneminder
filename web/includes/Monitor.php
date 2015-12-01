@@ -5,10 +5,15 @@ require_once( 'Server.php' );
 class Monitor {
 	public function __construct( $IdOrRow ) {
 		$row = NULL;
-		if ( is_int( $dOrRow ) ) {
+		if ( is_int( $IdOrRow ) ) {
 			$row = dbFetchOne( 'SELECT * FROM Monitors WHERE Id=?', NULL, array( $IdOrRow ) );
-		} else if ( is_array($idOrRow) ) {
-			$row = $idOrRow;
+		} else if ( is_numeric( $IdOrRow ) ) {
+			$row = dbFetchOne( 'SELECT * FROM Monitors WHERE Id=?', NULL, array( $IdOrRow ) );
+		} else if ( is_array($IdOrRow) ) {
+			$row = $IdOrRow;
+		} else {
+			Error("Unknown argument passed to Monitor Constructor ($IdOrRow)");
+			return;
 		}
 
 		if ( $row ) {

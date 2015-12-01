@@ -3,27 +3,30 @@ require_once( 'database.php' );
 require_once( 'Server.php' );
 
 class Monitor {
-	public function __construct( $id ) {
-		if ( $id ) {
-			$s = dbFetchOne( 'SELECT * FROM Monitors WHERE Id=?', NULL, array( $id ) );
-			if ( $s ) {
+	public function __construct( $IdOrRow ) {
+		$row = NULL;
+		if ( is_int( $dOrRow ) ) {
+			$row = dbFetchOne( 'SELECT * FROM Monitors WHERE Id=?', NULL, array( $IdOrRow ) );
+		} else if ( is_array($idOrRow) ) {
+			$row = $idOrRow;
+		}
+
+		if ( $row ) {
+			foreach ($row as $k => $v) {
+				$this->{$k} = $v;
+			}
+			if ( $this->{'Controllable'} ) {
+				$s = dbFetchOne( 'SELECT * FROM Controls WHERE Id=?', NULL, array( $this->{'ControlId'} ) );
 				foreach ($s as $k => $v) {
+						if ( $k == 'Id' ) {
+							continue;
+						}
 					$this->{$k} = $v;
 				}
-				if ( $this->{'Controllable'} ) {
-					$s = dbFetchOne( 'SELECT * FROM Controls WHERE Id=?', NULL, array( $this->{'ControlId'} ) );
-					foreach ($s as $k => $v) {
-							if ( $k == 'Id' ) {
-								continue;
-							}
-						$this->{$k} = $v;
-					}
-				}
-			} else {
-				Error("Unable to load Monitor record for Id=" . $id );
 			}
+
 		} else {
-			
+			Error("No row for Monitor " . $IdOrRow );
 		}
 	} // end function __construct
 	public function __call( $fn, array $args){

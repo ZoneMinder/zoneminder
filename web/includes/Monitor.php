@@ -36,7 +36,7 @@ class Monitor {
 	} // end function __construct
 	public function __call( $fn, array $args){
         if(isset($this->{$fn})){
-			return $fn;
+			return $this->{$fn};
             #array_unshift($args, $this);
             #call_user_func_array( $this->{$fn}, $args);
         }

@@ -34,6 +34,9 @@ class Monitor {
 			Error("No row for Monitor " . $IdOrRow );
 		}
 	} // end function __construct
+	public function Server() {
+		return new Server( $this->{'ServerId'} );
+	}
 	public function __call( $fn, array $args){
         if(isset($this->{$fn})){
 			return $this->{$fn};

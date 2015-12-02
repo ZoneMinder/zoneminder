@@ -1,15 +1,19 @@
 <?php
 require_once( 'database.php' );
 class Server {
-    public function __construct( $id ) {
-		if ( $id ) {
-			$s = dbFetchOne( 'SELECT * FROM Servers WHERE Id=?', NULL, array( $id ) );
-			if ( $s ) {
-				foreach ($s as $k => $v) {
-					$this->{$k} = $v;
-				}
-			} else {
-				Error("Unable to load Server record for Id=" . $id );
+    public function __construct( $IdOrRow ) {
+		$row = NULL;
+		if ( is_integer( $IdOrRow ) or is_numeric( $IdOrRow ) ) {
+			$row = dbFetchOne( 'SELECT * FROM Servers WHERE Id=?', NULL, array( $IdOrRow ) );
+			if ( ! $row ) {
+				Error("Unable to load Server record for Id=" . $IdOrRow );
+			}
+		} elseif ( is_array( $IdOrRow ) ) {
+			$row = $IdOrRow;
+		}
+		if ( $row ) {
+			foreach ($row as $k => $v) {
+				$this->{$k} = $v;
 			}
 		} else {
 			$this->{'Name'} = '';

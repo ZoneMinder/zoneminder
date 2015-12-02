@@ -94,6 +94,25 @@ function noCacheHeaders()
     header("Pragma: no-cache");         // HTTP/1.0
 }
 
+function CORSHeaders() {
+	# This just allows cross server requests with no verification.  This is ok, because we do auth later.
+	header("Access-Control-Allow-Origin: *" );
+
+	# The following is left for future reference/use.
+#$valid = false;
+#header("Access-Control-Allow-Headers: x-requested-with,x-request");
+#foreach( dbFetchAll( 'SELECT * FROM Servers' ) as $row ) {
+#$Server = new Server( $row );
+#if ( $_SERVER['HTTP_ORIGIN'] == $Server->Url() ) {
+#$valid = true;
+#header("Access-Control-Allow-Origin: " . $Server->Url() );
+#}
+#}
+#if ( ! $valid ) {
+#Warning( $_SERVER['HTTP_ORIGIN'] . " is not found in servers list." );
+#}
+}
+
 function getAuthUser( $auth )
 {
     if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == "hashed" && !empty($auth) )

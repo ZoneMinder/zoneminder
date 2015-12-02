@@ -48,6 +48,7 @@ if ( false )
 
 require_once( 'includes/config.php' );
 require_once( 'includes/logger.php' );
+require_once( 'includes/Server.php' );
 
 if ( isset($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] == 'on' )
 {

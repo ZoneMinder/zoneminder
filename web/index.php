@@ -136,6 +136,9 @@ else
 require_once( 'includes/lang.php' );
 require_once( 'includes/functions.php' );
 
+# Add Cross domain access headers
+CORSHeaders();
+
 // Check for valid content dirs
 if ( !is_writable(ZM_DIR_EVENTS) || !is_writable(ZM_DIR_IMAGES) )
 {

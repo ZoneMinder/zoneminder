@@ -344,8 +344,8 @@ void StreamBase::closeComms()
         }
 		if (lock_fd > 0)
 		{
-			loc_sock_path[0] = '\0';
 			close(lock_fd); //close it rather than unlock it incase it got deleted.
+			unlink(sock_path_lock);
 		}
     }
 }

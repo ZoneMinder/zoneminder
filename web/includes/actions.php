@@ -767,7 +767,7 @@ if ( !empty($action) )
     // System edit actions
     if ( canEdit( 'System' ) )
     {
-		if ( $_REQUEST['object'] == 'server' ) {
+		if ( isset( $_REQUEST['object'] ) and ( $_REQUEST['object'] == 'server' ) ) {
 
 			if ( $action == "Save" ) {
 				if ( !empty($_REQUEST['id']) )

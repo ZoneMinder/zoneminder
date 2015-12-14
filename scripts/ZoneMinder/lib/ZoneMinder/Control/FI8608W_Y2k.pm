@@ -53,7 +53,7 @@ our @ISA = qw(ZoneMinder::Control);
 #  of the position of your mouse on the arrow.
 #  Extremity of arrow equal to fastest speed of movement
 #  Close the base of arrow to lowest speed of movement
-#  for diagonaly you can click before the begining of the arrow for low speed
+#  for diagonaly you can click before the beginning of the arrow for low speed
 #  In round center equal to stop to move and switch of latest OSD
 # -You can clic directly on the image that equal to click on arrow (for the left there is a bug in zoneminder speed is inverted)
 # -Zoom Tele switch ON InfraRed LED and stay to manual IR MODE
@@ -63,7 +63,7 @@ our @ISA = qw(ZoneMinder::Control);
 # -8 Preset PTZ are implemented and functionnal
 # -This Script use for login "admin" this hardcoded and your password must setup in "Control Device" section
 # -This script is compatible with the basic authentification method used by mostly new camera based with hi3510 chipset
-# -AutoStop function is active and you must set up value (in sec exemple 0.7) under AutoStop section
+# -AutoStop function is active and you must set up value (in sec example 0.7) under AutoStop section
 #  or you can set up to 0 for disable it (in this case you need to click to the circle center for stop)
 # -"White In" to control Brightness, "auto" for restore the original value of Brightness
 # -"White Out" to control Contrast, "man" for restore the original value of Contrast
@@ -129,7 +129,7 @@ sub printMsg
 }
 
 sub sendCmd
-{ 
+{
     my $self = shift;
     my $cmd = shift;
     my $result = undef;
@@ -211,7 +211,7 @@ sub moveConUp
     if ( $tiltspeed < 10 ) {
              $tiltspeed = 1;
                  }
-    Debug( "Move Up" );   
+    Debug( "Move Up" );
     if ( $osd eq "on" )
    {
          my $cmd = "param.cgi?cmd=setoverlayattr&-region=1&-show=1&-name=Move Up $tiltspeed";
@@ -658,9 +658,9 @@ sub presetGoto
 __END__
 # Below is stub documentation for your module. You'd better edit it!
 
-=head1 FI-8608W
+=head1 NAME
 
-ZoneMinder::Database - Perl extension for FOSCAM FI-8608W by Christophe_Y2k
+ZoneMinder::Control::FI-8608W - Perl extension for FOSCAM FI-8608W by Christophe_Y2k
 
 =head1 SYNOPSIS
 

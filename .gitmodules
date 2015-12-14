@@ -1,0 +1,4 @@
+[submodule "web/api/app/Plugin/Crud"]
+	path = web/api/app/Plugin/Crud
+	url = https://github.com/FriendsOfCake/crud.git
+	branch = 3.0

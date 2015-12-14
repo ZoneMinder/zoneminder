@@ -17,6 +17,39 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
+/*
+
+=head1 NAME
+
+zmf - The ZoneMinder Frame daemon
+
+=head1 SYNOPSIS
+
+ zmf -m <monitor_id>
+ zmf --monitor <monitor_id>
+ zmf -h
+ zmf --help
+ zmf -v
+ zmf --version
+
+=head1 DESCRIPTION
+
+This is an optional daemon that can run in concert with the Analysis daemon and
+whose function it is to actually write captured frames to disk. This frees up
+the Analysis daemon to do more analysis (!) and so keep up with the Capture
+daemon better. If it isn't running or dies then the Analysis daemon just writes
+them itself. 
+
+=head1 OPTIONS
+
+ -m, --monitor_id                 - ID of the monitor to use
+ -h, --help                       - Display usage information
+ -v, --version                    - Print the installed version of ZoneMinder
+
+=cut
+
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -99,6 +132,7 @@ void Usage()
 	fprintf( stderr, "Options:\n" );
 	fprintf( stderr, "  -m, --monitor <monitor_id>   : Specify which monitor to use\n" );
 	fprintf( stderr, "  -h, --help                   : This screen\n" );
+	fprintf( stderr, "  -v, --version                : Report the installed version of ZoneMinder\n" );
 	exit( 0 );
 }
 
@@ -113,6 +147,7 @@ int main( int argc, char *argv[] )
 	static struct option long_options[] = {
 		{"monitor", 1, 0, 'm'},
 		{"help", 0, 0, 'h'},
+		{"version", 0, 0, 'v'},
 		{0, 0, 0, 0}
 	};
 
@@ -120,7 +155,7 @@ int main( int argc, char *argv[] )
 	{
 		int option_index = 0;
 
-		int c = getopt_long (argc, argv, "m:h", long_options, &option_index);
+		int c = getopt_long (argc, argv, "m:h:v", long_options, &option_index);
 		if (c == -1)
 		{
 			break;
@@ -135,6 +170,9 @@ int main( int argc, char *argv[] )
 			case '?':
 				Usage();
 				break;
+			case 'v':
+				std::cout << ZM_VERSION << "\n";
+				exit(0);
 			default:
 				//fprintf( stderr, "?? getopt returned character code 0%o ??\n", c );
 				break;
@@ -307,4 +345,6 @@ int main( int argc, char *argv[] )
 
 		sigprocmask( SIG_UNBLOCK, &block_set, 0 );
 	}
+	logTerm();
+	zmDbClose();
 }

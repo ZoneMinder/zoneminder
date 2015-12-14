@@ -19,15 +19,15 @@
 //
 
 
-xhtmlHeaders( __FILE__, $SLANG['Login'] );
+xhtmlHeaders( __FILE__, translate('Login') );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h1>ZoneMinder <?= $SLANG['Login'] ?></h1>
+      <h1>ZoneMinder <?php echo translate('Login') ?></h1>
     </div>
     <div id="content">
-      <form method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
+      <form method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <div class="hidden">
           <fieldset>
             <input type="hidden" name="action" value="login"/>
@@ -36,16 +36,16 @@ xhtmlHeaders( __FILE__, $SLANG['Login'] );
         </div>
         <table id="contentTable" class="minor">
           <tr>
-            <th scope="row" class="colLeft"><?= $SLANG['Username'] ?></th>
-            <td class="colRight"><input type="text" name="username" value="<?= isset($username)?$username:"" ?>" size="12"/></td>
+            <th scope="row" class="colLeft"><?php echo translate('Username') ?></th>
+            <td class="colRight"><input type="text" name="username" value="<?php echo isset($username)?$username:"" ?>" size="12"/></td>
           </tr>
           <tr>
-            <th scope="row" class="colLeft"><?= $SLANG['Password'] ?></th>
+            <th scope="row" class="colLeft"><?php echo translate('Password') ?></th>
             <td class="colRight"><input type="password" name="password" value="" size="12"/></td>
           </tr>
         </table>
         <div id="contentButtons">
-          <input type="submit" value="<?= $SLANG['Login'] ?>"/>
+          <input type="submit" value="<?php echo translate('Login') ?>"/>
         </div>
       </form>
     </div>

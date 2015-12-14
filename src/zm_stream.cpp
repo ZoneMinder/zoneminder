@@ -18,6 +18,10 @@
 //
 
 #include <sys/un.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <sys/file.h>
 
 #include "zm.h"
 #include "zm_mpeg.h"
@@ -286,6 +290,23 @@ void StreamBase::openComms()
 {
     if ( connkey > 0 )
     {
+
+		snprintf( sock_path_lock, sizeof(sock_path_lock), "%s/zms-%06d.lock", config.path_socks, connkey);
+
+        lock_fd = open(sock_path_lock, O_CREAT|O_WRONLY, S_IRUSR | S_IWUSR);
+        if (lock_fd <= 0 || flock(lock_fd, LOCK_EX) != 0)
+        {
+            Error("Unable to lock sock lock file %s: %s", sock_path_lock, strerror(errno) );
+
+            close(lock_fd);
+            lock_fd = 0;
+        }
+        else
+        {
+            Debug( 1, "We have obtained a lock on %s fd: %d", sock_path_lock, lock_fd);
+        }
+
+
         sd = socket( AF_UNIX, SOCK_DGRAM, 0 );
         if ( sd < 0 )
         {
@@ -321,6 +342,11 @@ void StreamBase::closeComms()
         {
             unlink( loc_sock_path );
         }
+		if (lock_fd > 0)
+		{
+			close(lock_fd); //close it rather than unlock it incase it got deleted.
+			unlink(sock_path_lock);
+		}
     }
 }
 

@@ -25,38 +25,38 @@ if ( !canEdit( 'System' ) )
 }
 
 $options = array( 
-    "go"      => $SLANG['DonateYes'],
-    "hour"    => $SLANG['DonateRemindHour'],
-    "day"     => $SLANG['DonateRemindDay'],
-    "week"    => $SLANG['DonateRemindWeek'],
-    "month"   => $SLANG['DonateRemindMonth'],
-    "never"   => $SLANG['DonateRemindNever'],
-    "already" => $SLANG['DonateAlready'],
+    "go"      => translate('DonateYes'),
+    "hour"    => translate('DonateRemindHour'),
+    "day"     => translate('DonateRemindDay'),
+    "week"    => translate('DonateRemindWeek'),
+    "month"   => translate('DonateRemindMonth'),
+    "never"   => translate('DonateRemindNever'),
+    "already" => translate('DonateAlready'),
 );
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['Donate'] );
+xhtmlHeaders(__FILE__, translate('Donate') );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?= $SLANG['Donate'] ?></h2>
-      <h1>ZoneMinder - <?= $SLANG['Donate'] ?></h1>
+      <h2><?php echo translate('Donate') ?></h2>
+      <h1>ZoneMinder - <?php echo translate('Donate') ?></h1>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="none"/>
         <input type="hidden" name="action" value="donate"/>
         <p>
-          <?= $SLANG['DonateEnticement'] ?>
+          <?php echo translate('DonateEnticement') ?>
         </p>
         <p>
-          <?= buildSelect( "option", $options ); ?>
+          <?php echo buildSelect( "option", $options ); ?>
         </p>
         <div id="contentButtons">
-          <input type="submit" value="<?= $SLANG['Apply'] ?>" onclick="submitForm( this )">
-          <input type="button" value="<?= $SLANG['Close'] ?>" onclick="closeWindow()">
+          <input type="submit" value="<?php echo translate('Apply') ?>" onclick="submitForm( this )">
+          <input type="button" value="<?php echo translate('Close') ?>" onclick="closeWindow()">
         </div>
       </form>
     </div>

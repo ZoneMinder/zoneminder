@@ -26,6 +26,7 @@
 #include "zm_thread.h"
 #include "zm_rtp_source.h"
 #include "zm_rtsp_auth.h"
+#include "zm_sdp.h"
 
 #include <set>
 #include <map>
@@ -49,11 +50,13 @@ private:
 
 private:
     int mId;
+
     RtspMethod mMethod;
     std::string mProtocol;
     std::string mHost;
     std::string mPort;
     std::string mPath;
+    bool mRtspDescribe;
     std::string mUrl;
     
     // Reworked authentication system
@@ -73,6 +76,7 @@ private:
 
     SourceMap mSources;
 
+    SessionDescriptor *mSessDesc;
     AVFormatContext *mFormatContext;
 
     uint16_t mSeq;
@@ -93,7 +97,7 @@ private:
     void checkAuthResponse(std::string &response);    
 
 public:
-    RtspThread( int id, RtspMethod method, const std::string &protocol, const std::string &host, const std::string &port, const std::string &path, const std::string &auth);
+    RtspThread( int id, RtspMethod method, const std::string &protocol, const std::string &host, const std::string &port, const std::string &path, const std::string &auth, bool rtsp_describe );
     ~RtspThread();
 
 public:

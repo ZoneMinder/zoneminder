@@ -1,7 +1,6 @@
 AUTOMAKE_OPTIONS = gnu
 
 SUBDIRS = \
-	css \
 	js
 
 webdir = @WEB_PREFIX@/skins/classic/views
@@ -39,9 +38,11 @@ dist_web_DATA = \
 	monitorprobe.php \
 	montage.php \
 	none.php \
+  onvifprobe.php \
 	optionhelp.php \
 	options.php \
 	postlogin.php \
+	server.php \
 	settings.php \
 	state.php \
 	stats.php \

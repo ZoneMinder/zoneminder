@@ -46,64 +46,76 @@ use Device::SerialPort;
 
 sub new
 {
-	my $class = shift;
-	my %params = @_;
-	my $self = ZoneMinder::Trigger::Channel->new;
-	$self->{path} = $params{path};
-	bless( $self, $class );
-	return $self;
+    my $class = shift;
+    my %params = @_;
+    my $self = ZoneMinder::Trigger::Channel->new;
+    $self->{path} = $params{path};
+    bless( $self, $class );
+    return $self;
 }
 
-sub open()
+sub open
 {
-	my $self = shift;
-	my $device = new Device::SerialPort( $self->{path} );
-	$device->baudrate(9600);
-	$device->databits(8);
-	$device->parity('none');
-	$device->stopbits(1);
-	$device->handshake('none');
+    my $self = shift;
+    my $device = new Device::SerialPort( $self->{path} );
+    if ( ! $device )
+    {
+        Error( "Unable to open $$self{path}: $!" );
+        $self->{state} = 'closed';
+        return;
+    }
+    $device->baudrate(9600);
+    $device->databits(8);
+    $device->parity('none');
+    $device->stopbits(1);
+    $device->handshake('none');
 
-	$device->read_const_time(50);
-	$device->read_char_time(10);
+    $device->read_const_time(50);
+    $device->read_char_time(10);
 
-	$self->{device} = $device;
-	$self->{state} = 'open';
-	$self->{state} = 'connected';
+    $self->{device} = $device;
+    $self->{state} = 'open';
+    $self->{state} = 'connected';
 }
 
-sub close()
+sub close
 {
-	my $self = shift;
-	$self->{device}->close();
-	$self->{state} = 'closed';
+    my $self = shift;
+    $self->{device}->close();
+    $self->{state} = 'closed';
 }
 
-sub read()
+sub read
 {
-	my $self = shift;
-	my $buffer = $self->{device}->lookfor();
-	if ( !$buffer || !length($buffer) )
-	{
-		return( undef );
-	}
-	Debug( "Read '$buffer' (".length($buffer)." bytes)\n" );
-	return( $buffer );
+    my $self = shift;
+    my $buffer = $self->{device}->lookfor();
+    if ( !$buffer || !length($buffer) )
+    {
+        return( undef );
+    }
+    Debug( "Read '$buffer' (".length($buffer)." bytes)\n" );
+    return( $buffer );
 }
 
-sub write()
+sub write
 {
-	my $self = shift;
-	my $buffer = shift;
-	my $nbytes = $self->{device}->write( $buffer );
-	$self->{device}->write_drain();
-	if ( !defined( $nbytes) || $nbytes < length($buffer) )
-	{
-		Error( "Unable to write buffer '".$buffer.", expected ".length($buffer)." bytes, sent ".$nbytes.": $!\n" );
-		return( undef );
-	}
-	Debug( "Wrote '$buffer' ($nbytes bytes)\n" );
-	return( !undef );
+    my $self = shift;
+    my $buffer = shift;
+    my $nbytes = $self->{device}->write( $buffer );
+    $self->{device}->write_drain();
+    if ( !defined( $nbytes) || $nbytes < length($buffer) )
+    {
+        Error( "Unable to write buffer '".$buffer
+               .", expected "
+               .length($buffer)
+               ." bytes, sent "
+               .$nbytes
+               .": $!\n"
+        );
+        return( undef );
+    }
+    Debug( "Wrote '$buffer' ($nbytes bytes)\n" );
+    return( !undef );
 }
 
 1;

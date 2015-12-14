@@ -1,9 +1,27 @@
 --
--- This updates a 1.28.99 database to 1.28.100
+-- This updates a 1.28.109 database to 1.28.110
 --
 
+SET @s = (SELECT IF(
+    (SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.TABLES
+    WHERE table_name = 'Storage'
+    AND table_schema = DATABASE()
+    ) > 0,
+"SELECT 'Storage table exists'",
+"CREATE TABLE `Storage` (
+    `Id`    smallint(5) unsigned NOT NULL auto_increment,
+    `Path`  varchar(64) NOT NULL default '',
+    `Name`  varchar(64) NOT NULL default '',
+    PRIMARY KEY (`Id`)
+)"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+
 --
--- Add ServerId column to Monitors
+-- Add StorageId column to Monitors
 --
 
 SET @s = (SELECT IF(

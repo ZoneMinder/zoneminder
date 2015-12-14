@@ -4,7 +4,8 @@
 [Unit]
 Description=ZoneMinder CCTV recording and surveillance system
 After=network.target mysql.service
-Requires=mysql.service
+# Remarked out so that it will start ZM on machines that don't have mysql installed
+#Requires=mysql.service
 
 [Service]
 #User=www-data

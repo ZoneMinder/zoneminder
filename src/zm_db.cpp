@@ -95,7 +95,7 @@ MYSQL_RES * zmDbFetch( const char * query ) {
 	return result;
 } // end MYSQL_RES * zmDbFetch( const char * query );
 
-MYSQL_ROW zmDBFetchOne( const char *query ) {
+MYSQL_ROW zmDbFetchOne( const char *query ) {
 	MYSQL_RES *result = zmDbFetch( query );
 	int n_rows = mysql_num_rows( result );
 	if ( n_rows != 1 ) {
@@ -104,6 +104,7 @@ MYSQL_ROW zmDBFetchOne( const char *query ) {
 	}
 
 	MYSQL_ROW dbrow = mysql_fetch_row( result );
+	mysql_free_result( result );
 	if ( ! dbrow ) {
 		Error("Error getting row from query %s. Error is %s", query, mysql_error( &dbconn ) );
 		return NULL;

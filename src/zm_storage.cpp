@@ -23,6 +23,10 @@
 #include "zm_storage.h"
 
 #include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+
 
 Storage::Storage() {
 	id = name[0] = path[0] = 0;
@@ -30,37 +34,26 @@ Storage::Storage() {
 
 Storage::Storage( MYSQL_ROW &dbrow ) {
 	unsigned int index = 0;
-	id = dbrow[index++];
+	id = atoi( dbrow[index++] );
 	strncpy( name, dbrow[index++], sizeof(name) );
 	strncpy( path, dbrow[index++], sizeof(path) );
 }
 
 Storage::Storage( unsigned int p_id ) {
-    char sql[ZM_SQL_SML_BUFSIZ] = "";
+
+    char sql[ZM_SQL_SML_BUFSIZ];
 	snprintf( sql, sizeof(sql), "SELECT Id, Name, Path from Storage WHERE Id=%d", p_id );
-	if ( mysql_query( &dbconn, sql ) ) {
-		Error( "Can't run query: %s", mysql_error( &dbconn ) );
-		return;
-	}
-    MYSQL_RES *result = mysql_store_result( &dbconn );
-    if ( !result ) {
+    MYSQL_ROW dbrow = zmDbFetchOne( sql );
+    if ( ! dbrow ) {
         Error( "Can't use query result: %s", mysql_error( &dbconn ) );
-		return;
-    }
-    int n_rows = mysql_num_rows( result );
-
-    if ( n_rows != 1 ) {
-        Warning( "Should not have returned more than 1 row for %d", p_id );
-        return;
+        exit( mysql_errno( &dbconn ) );
     }
 
-    MYSQL_ROW dbrow = mysql_fetch_row( result );
-
-    Storage *storage = new Storage( dbrow );
-    Info( "Loaded Storage area '%s'", storage->getName() );
-
-    mysql_free_result( result );
-	return (storage);
+	unsigned int index = 0;
+	id = atoi( dbrow[index++] );
+	strncpy( name, dbrow[index++], sizeof(name) );
+	strncpy( path, dbrow[index++], sizeof(path) );
+    Info( "Loaded Storage area '%s'", this->getName() );
 }
 
 Storage::~Storage() {

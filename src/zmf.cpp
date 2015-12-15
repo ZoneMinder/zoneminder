@@ -211,11 +211,12 @@ int main( int argc, char *argv[] )
 		fprintf( stderr, "Can't find monitor with id of %d\n", id );
 		exit( -1 );
 	}
+	Storage *Storage = monitor->getStorage();
 
 	char capt_path[PATH_MAX];
 	char anal_path[PATH_MAX];
-	snprintf( capt_path, sizeof(capt_path), "%s/%d/%%s/%%0%dd-capture.jpg", config.dir_events, monitor->Id(), config.event_image_digits );
-	snprintf( anal_path, sizeof(anal_path), "%s/%d/%%s/%%0%dd-analyse.jpg", config.dir_events, monitor->Id(), config.event_image_digits );
+	snprintf( capt_path, sizeof(capt_path), "%s/%d/%%s/%%0%dd-capture.jpg", Storage->getPath(), monitor->Id(), config.event_image_digits );
+	snprintf( anal_path, sizeof(anal_path), "%s/%d/%%s/%%0%dd-analyse.jpg", Storage->getPath(), monitor->Id(), config.event_image_digits );
 	zmSetDefaultTermHandler();
 	zmSetDefaultDieHandler();
 

@@ -463,12 +463,13 @@ Monitor::Monitor(
     Debug( 1, "Monitor %s IBC = %d, WUC = %d, pEC = %d, PEC = %d, EAF = %d, FRI = %d, RBP = %d, ARBP = %d, FM = %d", name, image_buffer_count, warmup_count, pre_event_count, post_event_count, alarm_frame_count, fps_report_interval, ref_blend_perc, alarm_ref_blend_perc, track_motion );
 
 	storage = new Storage( storage_id );
+	Debug(1, "Storage path: %s", storage->getPath() );
 
     if ( purpose == ANALYSIS )
     {
         static char path[PATH_MAX];
 
-        strncpy( path, config.dir_events, sizeof(path) );
+        strncpy( path, storage->getPath(), sizeof(path) );
 
         struct stat statbuf;
         errno = 0;
@@ -481,7 +482,7 @@ Monitor::Monitor(
             }
         }
 
-        snprintf( path, sizeof(path), "%s/%d", config.dir_events, id );
+        snprintf( path, sizeof(path), "%s/%d", storage->getPath(), id );
 
         errno = 0;
         stat( path, &statbuf );
@@ -493,8 +494,8 @@ Monitor::Monitor(
             }
             char temp_path[PATH_MAX];
             snprintf( temp_path, sizeof(temp_path), "%d", id );
-            if ( chdir( config.dir_events ) < 0 )
-                Fatal( "Can't change directory to '%s': %s", config.dir_events, strerror(errno) );
+            if ( chdir( storage->getPath() ) < 0 )
+                Fatal( "Can't change directory to '%s': %s", storage->getPath(), strerror(errno) );
             if ( symlink( temp_path, name ) < 0 )
                 Fatal( "Can't symlink '%s' to '%s': %s", temp_path, name, strerror(errno) );
             if ( chdir( ".." ) < 0 )
@@ -3416,12 +3417,14 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
 
     if ( n_zones <= 0 ) return( alarm );
 
+	Storage *storage = this->getStorage();
+
     if ( config.record_diag_images )
     {
         static char diag_path[PATH_MAX] = "";
         if ( !diag_path[0] )
         {
-            snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-r.jpg", config.dir_events, id );
+            snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-r.jpg", storage->getPath(), id );
         }
         ref_image.WriteJpeg( diag_path );
     }
@@ -3433,7 +3436,7 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
         static char diag_path[PATH_MAX] = "";
         if ( !diag_path[0] )
         {
-            snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-d.jpg", config.dir_events, id );
+            snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-d.jpg", storage->getPath(), id );
         }
         delta_image.WriteJpeg( diag_path );
     }

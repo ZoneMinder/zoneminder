@@ -39,21 +39,28 @@ Storage::Storage( MYSQL_ROW &dbrow ) {
 	strncpy( path, dbrow[index++], sizeof(path) );
 }
 
+/* If a zero or invalid p_id is passed, then the old default path will be assumed.  */
 Storage::Storage( unsigned int p_id ) {
 
-    char sql[ZM_SQL_SML_BUFSIZ];
-	snprintf( sql, sizeof(sql), "SELECT Id, Name, Path from Storage WHERE Id=%d", p_id );
-    MYSQL_ROW dbrow = zmDbFetchOne( sql );
-    if ( ! dbrow ) {
-        Error( "Can't use query result: %s", mysql_error( &dbconn ) );
-        exit( mysql_errno( &dbconn ) );
-    }
+	if ( p_id ) {
+		char sql[ZM_SQL_SML_BUFSIZ];
+		snprintf( sql, sizeof(sql), "SELECT Id, Name, Path from Storage WHERE Id=%d", p_id );
+		MYSQL_ROW dbrow = zmDbFetchOne( sql );
+		if ( ! dbrow ) {
+			Error( "Unable to load storage area for id %d: %s", p_id, mysql_error( &dbconn ) );
+		} else {
+			unsigned int index = 0;
+			id = atoi( dbrow[index++] );
+			strncpy( name, dbrow[index++], sizeof(name) );
+			strncpy( path, dbrow[index++], sizeof(path) );
+			Info( "Loaded Storage area '%s'", this->getName() );
+		}
+	}
+	if ( ! id ) {
+		strcpy(name, "Default");
+		strncpy(path, config.dir_events, sizeof(path) );
+	}
 
-	unsigned int index = 0;
-	id = atoi( dbrow[index++] );
-	strncpy( name, dbrow[index++], sizeof(name) );
-	strncpy( path, dbrow[index++], sizeof(path) );
-    Info( "Loaded Storage area '%s'", this->getName() );
 }
 
 Storage::~Storage() {

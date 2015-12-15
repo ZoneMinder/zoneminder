@@ -334,6 +334,13 @@ public:
 	{
 		return( name );
 	}
+	inline Storage *getStorage()
+	{
+		if ( ! storage ) {
+			storage = new Storage( storage_id );
+		}
+		return( storage );
+	}
 	inline Function GetFunction() const
 	{
 		return( function );

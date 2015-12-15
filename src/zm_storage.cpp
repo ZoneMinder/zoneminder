@@ -58,7 +58,7 @@ Storage::Storage( unsigned int p_id ) {
 			id = atoi( dbrow[index++] );
 			strncpy( name, dbrow[index++], sizeof(name) );
 			strncpy( path, dbrow[index++], sizeof(path) );
-			Info( "Loaded Storage area '%s'", this->getName() );
+			Info( "Loaded Storage area %d '%s'", id, this->Name() );
 		}
 	}
 	if ( ! id ) {

@@ -36,9 +36,9 @@ public:
 	Storage( unsigned int p_id );
 	~Storage();
 
-	unsigned int	getId() const { return( id ); }
-	const char *getName() const { return( name ); }
-	const char *getPath() const { return( path ); }
+	unsigned int	Id() const { return( id ); }
+	const char *Name() const { return( name ); }
+	const char *Path() const { return( path ); }
 };
 
 #endif // ZM_STORAGE_H

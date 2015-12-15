@@ -1,9 +1,9 @@
 <?php
 require_once( 'database.php' );
 class Storage {
-    public function __construct( $IdOrRow ) {
+    public function __construct( $IdOrRow = NULL ) {
 		$row = NULL;
-		if ( isset($IdOrRow) ) {
+		if ( $IdOrRow ) {
 			if ( is_integer( $IdOrRow ) or is_numeric( $IdOrRow ) ) {
 				$row = dbFetchOne( 'SELECT * FROM Storage WHERE Id=?', NULL, array( $IdOrRow ) );
 				if ( ! $row ) {

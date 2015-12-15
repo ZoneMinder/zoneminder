@@ -205,6 +205,7 @@ protected:
     {
         unsigned long   event_id;
         unsigned long   monitor_id;
+        unsigned long   storage_id;
         unsigned long   frame_count;
         time_t          start_time;
         double          duration;

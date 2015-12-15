@@ -29,7 +29,10 @@
 
 
 Storage::Storage() {
-	id = name[0] = path[0] = 0;
+	Warning("Instantiating default Storage Object. Should not happen.");
+	id = 0;
+	strcpy(name, "Default");
+	strncpy(path, config.dir_events, sizeof(path) );
 }
 
 Storage::Storage( MYSQL_ROW &dbrow ) {
@@ -41,10 +44,12 @@ Storage::Storage( MYSQL_ROW &dbrow ) {
 
 /* If a zero or invalid p_id is passed, then the old default path will be assumed.  */
 Storage::Storage( unsigned int p_id ) {
+	id = 0;
 
 	if ( p_id ) {
 		char sql[ZM_SQL_SML_BUFSIZ];
 		snprintf( sql, sizeof(sql), "SELECT Id, Name, Path from Storage WHERE Id=%d", p_id );
+		Debug(1,"Loading Storage for %d using %s", p_id, sql );
 		MYSQL_ROW dbrow = zmDbFetchOne( sql );
 		if ( ! dbrow ) {
 			Error( "Unable to load storage area for id %d: %s", p_id, mysql_error( &dbconn ) );
@@ -57,6 +62,7 @@ Storage::Storage( unsigned int p_id ) {
 		}
 	}
 	if ( ! id ) {
+		Warning("No id passed to Storage constructor.  Using default path %s instead", config.dir_events );
 		strcpy(name, "Default");
 		strncpy(path, config.dir_events, sizeof(path) );
 	}

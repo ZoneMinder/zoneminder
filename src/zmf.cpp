@@ -215,8 +215,8 @@ int main( int argc, char *argv[] )
 
 	char capt_path[PATH_MAX];
 	char anal_path[PATH_MAX];
-	snprintf( capt_path, sizeof(capt_path), "%s/%d/%%s/%%0%dd-capture.jpg", Storage->getPath(), monitor->Id(), config.event_image_digits );
-	snprintf( anal_path, sizeof(anal_path), "%s/%d/%%s/%%0%dd-analyse.jpg", Storage->getPath(), monitor->Id(), config.event_image_digits );
+	snprintf( capt_path, sizeof(capt_path), "%s/%d/%%s/%%0%dd-capture.jpg", Storage->Path(), monitor->Id(), config.event_image_digits );
+	snprintf( anal_path, sizeof(anal_path), "%s/%d/%%s/%%0%dd-analyse.jpg", Storage->Path(), monitor->Id(), config.event_image_digits );
 	zmSetDefaultTermHandler();
 	zmSetDefaultDieHandler();
 

@@ -38,3 +38,20 @@ SET @s = (SELECT IF(
 PREPARE stmt FROM @s;
 EXECUTE stmt;
 
+--
+-- Add StorageId column to Eventss
+--
+
+SET @s = (SELECT IF(
+    (SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE table_name = 'Events'
+    AND table_schema = DATABASE()
+    AND column_name = 'StorageId'
+    ) > 0,
+"SELECT 'Column StorageId exists in Events'",
+"ALTER TABLE Events ADD `StorageId` smallint(5) unsigned AFTER `MonitorId`"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;

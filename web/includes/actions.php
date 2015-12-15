@@ -805,7 +805,7 @@ if ( !empty($action) )
 						$dbStorage = array();
 
 					$types = array();
-					$changes = getFormChanges( $dbServer, $_REQUEST['newStorage'], $types );
+					$changes = getFormChanges( $dbStorage, $_REQUEST['newStorage'], $types );
 
 					if ( count( $changes ) ) {
 						if ( !empty($_REQUEST['id']) ) {

@@ -117,7 +117,7 @@ sub find {
     }
 
 	$sql .= ' WHERE ' . join(' AND ', @sql_filters ) if @sql_filters;
-	$sql .= ' LIMIT ' . $sql_filters{limit} if $sql_filters;
+	$sql .= ' LIMIT ' . $sql_filters{limit} if $sql_filters{limit};
 
 	my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
         or Fatal( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );

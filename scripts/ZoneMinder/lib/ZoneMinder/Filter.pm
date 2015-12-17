@@ -104,8 +104,40 @@ sub Name {
 } # end sub Path
 
 sub find {
-	
+	shift if $_[0] eq 'ZoneMinder::Filter';
+	my %sql_filters = @_;
+
+	my $sql = 'SELECT * FROM Filters';
+	my @sql_filters;
+	my @sql_values;
+
+    if ( exists $sql_filters{Name} ) {
+        push @sql_filters .= ' Name = ? ';
+		push @sql_values, $sql_filters{Name};
+    }
+
+	$sql .= ' WHERE ' . join(' AND ', @sql_filters ) if @sql_filters;
+	$sql .= ' LIMIT ' . $sql_filters{limit} if $sql_filters;
+
+	my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
+        or Fatal( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
+    my $res = $sth->execute( @sql_values )
+            or Fatal( "Can't execute '$sql': ".$sth->errstr() );
+
+	my @results;
+
+	while( my $db_filter = $sth->fetchrow_hashref() ) {
+		my $filter = new ZoneMinder::Filter( $$db_filter{Id}, $db_filter );
+		push @results, $filter;
+	} # end while
+	return @results;
 }
+
+sub find_one {
+	my @results = find(@_);
+	return $results[0] if @results;
+}
+
 sub Execute {
 	my $self = $_[0];
 

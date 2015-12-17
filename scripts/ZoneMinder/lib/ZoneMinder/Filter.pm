@@ -112,7 +112,7 @@ sub find {
 	my @sql_values;
 
     if ( exists $sql_filters{Name} ) {
-        push @sql_filters .= ' Name = ? ';
+        push @sql_filters , ' Name = ? ';
 		push @sql_values, $sql_filters{Name};
     }
 

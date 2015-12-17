@@ -196,43 +196,6 @@ while( 1 )
     sleep( $delay );
 }
 
-sub getDiskPercent
-{
-    my $command = "df .";
-    my $df = qx( $command );
-    my $space = -1;
-    if ( $df =~ /\s(\d+)%/ms )
-    {
-        $space = $1;
-    }
-    return( $space );
-}
-
-sub getDiskBlocks
-{
-    my $command = "df .";
-    my $df = qx( $command );
-    my $space = -1;
-    if ( $df =~ /\s(\d+)\s+\d+\s+\d+%/ms )
-    {
-        $space = $1;
-    }
-    return( $space );
-}
-
-sub getLoad
-{
-    my $command = "uptime .";
-    my $uptime = qx( $command );
-    my $load = -1;
-    if ( $uptime =~ /load average:\s+([\d.]+)/ms )
-    {
-        $load = $1;
-        Info( "Load: $load" );
-    }
-    return( $load );
-}
-
 sub getFilters
 {
     my $filter_name = shift;

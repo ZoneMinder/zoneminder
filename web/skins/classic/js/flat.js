@@ -43,7 +43,7 @@ var popupSizes = {
     'frames':       { 'width': 500, 'height': 600 },
     'function':     { 'width': 300, 'height': 140 },
     'group':        { 'width': 360, 'height': 300 },
-    'groups':       { 'width': 440, 'height': 220 },
+    'groups':       { 'width': 540, 'height': 420 },
     'image':        { 'addWidth': 48, 'addHeight': 80 },
     'log':          { 'width': 1080, 'height': 720 },
     'login':        { 'width': 720, 'height': 480 },

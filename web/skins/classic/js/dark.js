@@ -42,7 +42,7 @@ var popupSizes = {
     'frame':        { 'addWidth': 32, 'minWidth': 384, 'addHeight': 100 },
     'frames':       { 'width': 500, 'height': 600 },
     'function':     { 'width': 300, 'height': 92 },
-    'group':        { 'width': 360, 'height': 180 },
+    'group':        { 'width': 360, 'height': 300 },
     'groups':       { 'width': 440, 'height': 220 },
     'image':        { 'addWidth': 48, 'addHeight': 80 },
     'log':          { 'width': 1080, 'height': 720 },

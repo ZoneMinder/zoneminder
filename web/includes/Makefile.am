@@ -8,6 +8,7 @@ web_DATA = \
 dist_web_DATA = \
 	Monitor.php \
 	Server.php \
+	Storage.php \
 	actions.php \
 	database.php \
 	functions.php \

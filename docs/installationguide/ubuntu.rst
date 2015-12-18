@@ -11,7 +11,7 @@ These instructions are for a brand new ubuntu 15.04 system which does not have Z
 
 ::
 
-	sudo  add-apt-repository ppa:iconnor/zoneminder-master
+	sudo  add-apt-repository ppa:iconnor/zoneminder
 	sudo apt-get update
 
 if you don't have mysql already installed:
@@ -158,7 +158,7 @@ Easy Way: Install ZoneMinder from a package (Ubuntu 14.x)
 
 ::
 
-	sudo  add-apt-repository ppa:iconnor/zoneminder-master
+	sudo  add-apt-repository ppa:iconnor/zoneminder
 	sudo apt-get update
 	sudo apt-get install zoneminder
 

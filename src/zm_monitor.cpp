@@ -116,6 +116,12 @@ bool Monitor::MonitorLink::connect()
             disconnect();
             return( false );
         }
+		while ( map_fd <= 2 ) {
+			int new_map_fd = dup(map_fd);
+			Warning( "Got one of the stdio fds for our mmap handle. map_fd was %d, new one is %d", map_fd, new_map_fd );
+			close(map_fd);
+			map_fd = new_map_fd;
+		}
 
         struct stat map_stat;
         if ( fstat( map_fd, &map_stat ) < 0 )
@@ -331,7 +337,8 @@ Monitor::Monitor(
     n_zones( p_n_zones ),
     zones( p_zones ),
     timestamps( 0 ),
-    images( 0 )
+    images( 0 ),
+    privacy_bitmask( NULL )
 {
     strncpy( name, p_name, sizeof(name) );
 
@@ -692,11 +699,13 @@ void Monitor::AddZones( int p_n_zones, Zone *p_zones[] )
 
 void Monitor::AddPrivacyBitmask( Zone *p_zones[] )
 {
-    delete[] privacy_bitmask;
+	if ( privacy_bitmask )
+		delete[] privacy_bitmask;
     privacy_bitmask = NULL;
     Image *privacy_image = NULL;
 
     for ( int i = 0; i < n_zones; i++ )
+    {
         if ( p_zones[i]->IsPrivacy() )
         {
             if ( !privacy_image )
@@ -707,6 +716,7 @@ void Monitor::AddPrivacyBitmask( Zone *p_zones[] )
             privacy_image->Fill( 0xff, p_zones[i]->GetPolygon() );
             privacy_image->Outline( 0xff, p_zones[i]->GetPolygon() );
         }
+    } // end foreach zone
     if ( privacy_image )
         privacy_bitmask = privacy_image->Buffer();
 }
@@ -2074,15 +2084,13 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
         const char *device = dbrow[col]; col++;
         int channel = atoi(dbrow[col]); col++;
         int format = atoi(dbrow[col]); col++;
-		bool v4l_multi_buffer;
+		bool v4l_multi_buffer = config.v4l_multi_buffer;
 		if ( dbrow[col] ) {
 			if (*dbrow[col] == '0' ) {
 				v4l_multi_buffer = false;
 			} else if ( *dbrow[col] == '1' ) {
 				v4l_multi_buffer = true;
 			} 
-		} else {
-			v4l_multi_buffer = config.v4l_multi_buffer;
 		}
 		col++;
 		
@@ -2224,11 +2232,11 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
     static char sql[ZM_SQL_MED_BUFSIZ];
     if ( !protocol )
     {
-        strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Protocol, Method, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPS, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif from Monitors where Function != 'None' and Type = 'Remote'", sizeof(sql) );
+        strncpy( sql, "select Id, Name, Function+0, Enabled, LinkedMonitors, Protocol, Method, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPS, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif from Monitors where Function != 'None' and Type = 'Remote'", sizeof(sql) );
     }
     else
     {
-        snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Protocol, Method, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPS, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif from Monitors where Function != 'None' and Type = 'Remote' and Protocol = '%s' and Host = '%s' and Port = '%s' and Path = '%s'", protocol, host, port, path );
+        snprintf( sql, sizeof(sql), "select Id, Name, Function+0, Enabled, LinkedMonitors, Protocol, Method, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPS, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif from Monitors where Function != 'None' and Type = 'Remote' and Protocol = '%s' and Host = '%s' and Port = '%s' and Path = '%s'", protocol, host, port, path );
     }
     if ( mysql_query( &dbconn, sql ) )
     {
@@ -2267,7 +2275,8 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
         int colours = atoi(dbrow[col]); col++;
         /* int palette = atoi(dbrow[col]); */ col++;
         Orientation orientation = (Orientation)atoi(dbrow[col]); col++;
-        unsigned int deinterlacing = atoi(dbrow[col]); col++;        
+        unsigned int deinterlacing = atoi(dbrow[col]); col++;
+        bool rtsp_describe = (*dbrow[col] != '0'); col++;
         int brightness = atoi(dbrow[col]); col++;
         int contrast = atoi(dbrow[col]); col++;
         int hue = atoi(dbrow[col]); col++;
@@ -2332,6 +2341,7 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
                 path, // Path
                 cam_width,
                 cam_height,
+                rtsp_describe,
                 colours,
                 brightness,
                 contrast,
@@ -2699,7 +2709,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
 Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
 {
     static char sql[ZM_SQL_MED_BUFSIZ];
-    snprintf( sql, sizeof(sql), "select Id, Name, Type, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, Protocol, Method, Host, Port, Path, Options, User, Pass, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPS, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour, Exif from Monitors where Id = %d", id );
+    snprintf( sql, sizeof(sql), "select Id, Name, Type, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, Protocol, Method, Host, Port, Path, Options, User, Pass, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPS, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour, Exif from Monitors where Id = %d", id );
     if ( mysql_query( &dbconn, sql ) )
     {
         Error( "Can't run query: %s", mysql_error( &dbconn ) );
@@ -2730,15 +2740,13 @@ Monitor *Monitor::Load( int id, bool load_zones, Purpose purpose )
         int channel = atoi(dbrow[col]); col++;
         int format = atoi(dbrow[col]); col++;
 
-        bool v4l_multi_buffer;
+        bool v4l_multi_buffer = config.v4l_multi_buffer;
         if ( dbrow[col] ) {
             if (*dbrow[col] == '0' ) {
                 v4l_multi_buffer = false;
             } else if ( *dbrow[col] == '1' ) {
                 v4l_multi_buffer = true;
             }
-        } else {
-            v4l_multi_buffer = config.v4l_multi_buffer;
         }
         col++;
 
@@ -2766,6 +2774,7 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
         int palette = atoi(dbrow[col]); col++;
         Orientation orientation = (Orientation)atoi(dbrow[col]); col++;
         unsigned int deinterlacing = atoi(dbrow[col]); col++;
+        bool rtsp_describe = (*dbrow[col] != '0'); col++;
         int brightness = atoi(dbrow[col]); col++;
         int contrast = atoi(dbrow[col]); col++;
         int hue = atoi(dbrow[col]); col++;
@@ -2867,6 +2876,7 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
                     path.c_str(),
                     cam_width,
                     cam_height,
+                    rtsp_describe,
                     colours,
                     brightness,
                     contrast,
@@ -4186,21 +4196,24 @@ void MonitorStream::runStream()
 
     char *swap_path = 0;
     bool buffered_playback = false;
+
+    // 15 is the max length for the swap path suffix, /zmswap-whatever, assuming max 6 digits for monitor id
+    const int max_swap_len_suffix = 15; 
+
 	int swap_path_length = strlen(config.path_swap)+1; // +1 for NULL terminator
 
 	if ( connkey && playback_buffer > 0 ) {
 
-		if ( swap_path_length + 15 > PATH_MAX ) {
-			// 15 is for /zmswap-whatever, assuming max 6 digits for monitor id
-			Error( "Swap Path is too long. %d > %d ", swap_path_length+15, PATH_MAX );
+		if ( swap_path_length + max_swap_len_suffix > PATH_MAX ) {
+			Error( "Swap Path is too long. %d > %d ", swap_path_length+max_swap_len_suffix, PATH_MAX );
 		} else {
-			swap_path = (char *)malloc( swap_path_length+15 );
+			swap_path = (char *)malloc( swap_path_length+max_swap_len_suffix );
 			Debug( 3, "Checking swap image path %s", config.path_swap );
 			strncpy( swap_path, config.path_swap, swap_path_length );
 			if ( checkSwapPath( swap_path, false ) ) {
-				snprintf( &(swap_path[swap_path_length]), sizeof(swap_path)-swap_path_length, "/zmswap-m%d", monitor->Id() );
+				snprintf( &(swap_path[swap_path_length]), max_swap_len_suffix, "/zmswap-m%d", monitor->Id() );
 				if ( checkSwapPath( swap_path, true ) ) {
-					snprintf( &(swap_path[swap_path_length]), sizeof(swap_path)-swap_path_length, "/zmswap-q%06d", connkey );
+					snprintf( &(swap_path[swap_path_length]), max_swap_len_suffix, "/zmswap-q%06d", connkey );
 					if ( checkSwapPath( swap_path, true ) ) {
 						buffered_playback = true;
 					}

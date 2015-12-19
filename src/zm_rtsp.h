@@ -50,11 +50,13 @@ private:
 
 private:
     int mId;
+
     RtspMethod mMethod;
     std::string mProtocol;
     std::string mHost;
     std::string mPort;
     std::string mPath;
+    bool mRtspDescribe;
     std::string mUrl;
     
     // Reworked authentication system
@@ -95,7 +97,7 @@ private:
     void checkAuthResponse(std::string &response);    
 
 public:
-    RtspThread( int id, RtspMethod method, const std::string &protocol, const std::string &host, const std::string &port, const std::string &path, const std::string &auth);
+    RtspThread( int id, RtspMethod method, const std::string &protocol, const std::string &host, const std::string &port, const std::string &path, const std::string &auth, bool rtsp_describe );
     ~RtspThread();
 
 public:

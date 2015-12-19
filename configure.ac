@@ -3,7 +3,7 @@
 # For instructions on building with cmake, please see INSTALL
 #
 AC_PREREQ(2.59)
-AC_INIT(zm,1.28.105,[http://www.zoneminder.com/forums/ - Please check FAQ first],zoneminder,http://www.zoneminder.com/downloads.html)
+AC_INIT(zm,1.28.109,[http://www.zoneminder.com/forums/ - Please check FAQ first],zoneminder,http://www.zoneminder.com/downloads.html)
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR(src/zm.h)
 AC_CONFIG_HEADERS(config.h)
@@ -442,6 +442,7 @@ fi
 fi
 AC_CHECK_DECLS(backtrace,,,[#include <execinfo.h>])
 AC_CHECK_DECLS(backtrace_symbols,,,[#include <execinfo.h>])
+AC_CHECK_LIB(execinfo,backtrace)
 
 AC_SUBST(LDFLAGS)
 

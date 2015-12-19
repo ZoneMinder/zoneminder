@@ -33,6 +33,7 @@
 #include <errno.h>
 #ifdef __FreeBSD__
 #include <sys/thr.h>
+#include <libgen.h>
 #endif
 
 bool Logger::smInitialised = false;

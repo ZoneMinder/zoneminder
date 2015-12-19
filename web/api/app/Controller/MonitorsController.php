@@ -17,7 +17,7 @@ class MonitorsController extends AppController {
 	public $components = array('Paginator', 'RequestHandler');
 
 
-//# PP #1155
+//# 1155
 public function beforeFilter() {
 	parent::beforeFilter();
         $canView = $this->Session->Read('monitorPermission');
@@ -37,7 +37,7 @@ public function beforeFilter() {
  */
 	public function index() {
                 $this->Monitor->recursive = 0;
-		//PP #1155 
+		//#1155 
 		$allowedMonitors=preg_split ('@,@', $this->Session->Read('allowedMonitors'),NULL, PREG_SPLIT_NO_EMPTY);
 		
 		if (!empty($allowedMonitors))
@@ -67,7 +67,7 @@ public function beforeFilter() {
 		if (!$this->Monitor->exists($id)) {
 			throw new NotFoundException(__('Invalid monitor'));
 		}
-		//PP #1155
+		//#1155
 		$allowedMonitors=preg_split ('@,@', $this->Session->Read('allowedMonitors'),NULL, PREG_SPLIT_NO_EMPTY);
 		if (!empty($allowedMonitors))
 		{
@@ -98,7 +98,7 @@ public function beforeFilter() {
 	public function add() {
 		if ($this->request->is('post')) {
 
-			//PP - #1155
+			//- #1155
 			if ($this->Session->Read('systemPermission') != 'Edit')
 			{
 				 throw new UnauthotizedException(__('Insufficient privileges'));
@@ -126,7 +126,7 @@ public function beforeFilter() {
 		if (!$this->Monitor->exists($id)) {
 			throw new NotFoundException(__('Invalid monitor'));
 		}
-		//PP - #1155
+		//- #1155
 		if ($this->Session->Read('systemPermission') != 'Edit')
 		{
 			 throw new UnauthorizedException(__('Insufficient privileges'));
@@ -142,7 +142,7 @@ public function beforeFilter() {
 			'message' => $message,
 			'_serialize' => array('message')
 		));
-		// PP - restart this monitor after change
+		// - restart this monitor after change
 		$this->daemonControl($this->Monitor->id, 'restart', $this->request->data);
 	}
 
@@ -158,7 +158,7 @@ public function beforeFilter() {
 		if (!$this->Monitor->exists()) {
 			throw new NotFoundException(__('Invalid monitor'));
 		}
-		//PP - #1155
+		// #1155
 		if ($this->Session->Read('systemPermission') != 'Edit')
 		{
 			 throw new UnauthorizedException(__('Insufficient privileges'));

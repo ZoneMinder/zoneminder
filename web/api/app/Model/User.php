@@ -1,7 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 
-// PP #1155
+// #1155
 /**
  * User Model
  *

@@ -34,7 +34,7 @@ class AppController extends Controller {
 	use CrudControllerTrait;
 
 	public $components = [
-		'Session', // PP - We are going to use SessionHelper to check PHP session vars
+		'Session', //  We are going to use SessionHelper to check PHP session vars
 		'RequestHandler',
 		'Crud.Crud' => [
 			'actions' => [
@@ -49,7 +49,7 @@ class AppController extends Controller {
 		]
 	];
 
-	//PP - Global beforeFilter function
+	// Global beforeFilter function
 	//Zoneminder sets the username session variable
 	// to the logged in user. If this variable is set
 	// then you are logged in
@@ -77,13 +77,13 @@ class AppController extends Controller {
         		 throw new UnauthorizedException(__('Not Authenticated'));
         	 	return; 
         	}     
-		// PP #1155 fixes
+		// #1155 fixes
 		else
 		{
 			$this->loadModel('User');
 			$loggedinUser = $this->Session->Read('user.Username');
 			$isEnabled = $this->Session->Read('user.Enabled');
-			// PP - this will likely never happen as if its
+			// this will likely never happen as if its
 			// not enabled, login will fail and Not Auth will be returned
 			// however, keeping this here for now
 			if ($isEnabled != "1" && $zmOptAuth=="1")

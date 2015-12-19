@@ -14,7 +14,7 @@ class EventsController extends AppController {
  */
 	public $components = array('RequestHandler', 'Scaler', 'Image', 'Paginator');
 
-//# PP #1155
+//#1155
 public function beforeFilter() {
         parent::beforeFilter();
         $canView = $this->Session->Read('eventPermission');
@@ -35,7 +35,7 @@ public function beforeFilter() {
 	public function index() {
 		$this->Event->recursive = -1;
 		
-		//PP #1155 
+		// #1155 
                 $allowedMonitors=preg_split ('@,@', $this->Session->Read('allowedMonitors'),NULL, PREG_SPLIT_NO_EMPTY);
 
                 if (!empty($allowedMonitors))
@@ -64,7 +64,7 @@ public function beforeFilter() {
 		$this->Paginator->settings = array(
 			// https://github.com/ZoneMinder/ZoneMinder/issues/995
 			// 'limit' => $limit['ZM_WEB_EVENTS_PER_PAGE'],
-			// PP - 25 events per page which is what the above
+			//  25 events per page which is what the above
 			// default is, is way too low for an API
 			// changing this to 100 so we don't kill ZM
 			// with many event APIs. In future, we can
@@ -74,7 +74,7 @@ public function beforeFilter() {
 			'limit' => '100', 
 			'order' => array('StartTime', 'MaxScore'),
 			'paramType' => 'querystring',
-			// PP #1155
+			// #1155
 			'conditions' => array (array($conditions, $mon_options))
 		);
 		$events = $this->Paginator->paginate('Event');
@@ -110,7 +110,7 @@ public function beforeFilter() {
                         throw new NotFoundException(__('Invalid event'));
                 }
 
-		//PP #1155 
+		// #1155 
                 $allowedMonitors=preg_split ('@,@', $this->Session->Read('allowedMonitors'),NULL, PREG_SPLIT_NO_EMPTY);
 
                 if (!empty($allowedMonitors))
@@ -155,7 +155,7 @@ public function beforeFilter() {
  */
 	public function add() {
 
-		//PP - #1155
+		// - #1155
                 if ($this->Session->Read('eventPermission') != 'Edit')
                 {
                          throw new UnauthorizedException(__('Insufficient privileges'));
@@ -181,7 +181,7 @@ public function beforeFilter() {
  */
 	public function edit($id = null) {
 
-		//PP - #1155
+		// - #1155
                 if ($this->Session->Read('eventPermission') != 'Edit')
                 {
                          throw new UnauthorizedException(__('Insufficient privileges'));
@@ -214,7 +214,7 @@ public function beforeFilter() {
  * @return void
  */
 	public function delete($id = null) {
-		//PP - #1155
+		//- #1155
                 if ($this->Session->Read('eventPermission') != 'Edit')
                 {
                          throw new UnauthorizedException(__('Insufficient privileges'));

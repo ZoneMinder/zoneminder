@@ -21,6 +21,9 @@ Monitor Tab
 Name 
     The name for your monitor. This should be made up of alphanumeric characters (a-z,A-Z,0-9) and hyphen (-) and underscore(_) only. Whitespace is not allowed. 
 
+Server
+    Multi-Server implementation allows the ability to define multiple ZoneMinder servers sharing a single database. When servers are configured this setting allows you nominate the server for each monitor.
+
 Source Type 
     This determines whether the camera is a local one attached to a physical video or USB port on your machine, a remote network camera or an image source that is represented by a file (for instance periodically downloaded from a alternate location). Choosing one or the other affects which set of options are shown in the Source tab. 
 

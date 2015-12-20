@@ -138,6 +138,30 @@ sub open
             ."'"
     ); 
     $self->{ua}->credentials($ADDRESS,$REALM,$USERNAME,$PASSWORD);
+
+    # Detect REALM
+    my $req = HTTP::Request->new( GET=>"http://".$ADDRESS."/cgi/ptdc.cgi" );
+    my $res = $self->{ua}->request($req);
+
+    if ( ! $res->is_success ) {
+        Debug("Need newer REALM");
+        if ( $res->status_line() eq '401 Unauthorized' ) {
+            my $headers = $res->headers();
+			foreach my $k ( keys %$headers ) {
+			Debug("Initial Header $k => $$headers{$k}");
+			}  # end foreach
+			if ( $$headers{'www-authenticate'} ) {
+                my ( $auth, $tokens ) = $$headers{'www-authenticate'} =~ /^(\w+)\s+(.*)$/;
+                if ( $tokens =~ /\w+="([^"]+)"/i ) {
+                    $REALM = $1;
+                    Debug( "Changing REALM to $REALM" );
+                    $self->{ua}->credentials($ADDRESS,$REALM,$USERNAME,$PASSWORD);
+                } # end if
+            } else {
+                Debug("No headers line");
+            } # end if headers
+        } # end if $res->status_line() eq '401 Unauthorized'
+    } # end if ! $res->is_success
 }
 
 sub close

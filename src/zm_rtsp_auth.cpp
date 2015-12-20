@@ -24,6 +24,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+namespace zm {
+
 Authenticator::Authenticator(std::string &username, std::string password) {
 #ifdef HAVE_GCRYPT_H
     // Special initialisation for libgcrypt
@@ -227,3 +229,5 @@ void Authenticator::checkAuthResponse(std::string &response) {
 		Debug( 2, "Didn't find auth line in %s", authLine.c_str());
 	}
 }
+
+} // namespace zm

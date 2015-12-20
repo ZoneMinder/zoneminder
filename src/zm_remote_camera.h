@@ -50,7 +50,7 @@ protected:
     // fill required fields and set needAuth
     // subsequent requests can set the required authentication header.
     bool mNeedAuth;
-    Authenticator* mAuthenticator;
+    zm::Authenticator* mAuthenticator;
 protected:
 	struct addrinfo *hp;
 

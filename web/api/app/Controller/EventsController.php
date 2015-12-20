@@ -14,7 +14,6 @@ class EventsController extends AppController {
  */
 	public $components = array('RequestHandler', 'Scaler', 'Image', 'Paginator');
 
-//#1155
 public function beforeFilter() {
         parent::beforeFilter();
         $canView = $this->Session->Read('eventPermission');
@@ -35,7 +34,6 @@ public function beforeFilter() {
 	public function index() {
 		$this->Event->recursive = -1;
 		
-		// #1155 
                 $allowedMonitors=preg_split ('@,@', $this->Session->Read('allowedMonitors'),NULL, PREG_SPLIT_NO_EMPTY);
 
                 if (!empty($allowedMonitors))
@@ -74,7 +72,6 @@ public function beforeFilter() {
 			'limit' => '100', 
 			'order' => array('StartTime', 'MaxScore'),
 			'paramType' => 'querystring',
-			// #1155
 			'conditions' => array (array($conditions, $mon_options))
 		);
 		$events = $this->Paginator->paginate('Event');
@@ -110,7 +107,6 @@ public function beforeFilter() {
                         throw new NotFoundException(__('Invalid event'));
                 }
 
-		// #1155 
                 $allowedMonitors=preg_split ('@,@', $this->Session->Read('allowedMonitors'),NULL, PREG_SPLIT_NO_EMPTY);
 
                 if (!empty($allowedMonitors))
@@ -155,7 +151,6 @@ public function beforeFilter() {
  */
 	public function add() {
 
-		// - #1155
                 if ($this->Session->Read('eventPermission') != 'Edit')
                 {
                          throw new UnauthorizedException(__('Insufficient privileges'));
@@ -181,7 +176,6 @@ public function beforeFilter() {
  */
 	public function edit($id = null) {
 
-		// - #1155
                 if ($this->Session->Read('eventPermission') != 'Edit')
                 {
                          throw new UnauthorizedException(__('Insufficient privileges'));
@@ -214,7 +208,6 @@ public function beforeFilter() {
  * @return void
  */
 	public function delete($id = null) {
-		//- #1155
                 if ($this->Session->Read('eventPermission') != 'Edit')
                 {
                          throw new UnauthorizedException(__('Insufficient privileges'));

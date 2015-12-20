@@ -77,7 +77,6 @@ class AppController extends Controller {
         		 throw new UnauthorizedException(__('Not Authenticated'));
         	 	return; 
         	}     
-		// #1155 fixes
 		else
 		{
 			$this->loadModel('User');

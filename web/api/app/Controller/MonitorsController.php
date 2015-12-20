@@ -17,7 +17,6 @@ class MonitorsController extends AppController {
 	public $components = array('Paginator', 'RequestHandler');
 
 
-//# 1155
 public function beforeFilter() {
 	parent::beforeFilter();
         $canView = $this->Session->Read('monitorPermission');
@@ -37,7 +36,6 @@ public function beforeFilter() {
  */
 	public function index() {
                 $this->Monitor->recursive = 0;
-		//#1155 
 		$allowedMonitors=preg_split ('@,@', $this->Session->Read('allowedMonitors'),NULL, PREG_SPLIT_NO_EMPTY);
 		
 		if (!empty($allowedMonitors))
@@ -67,7 +65,6 @@ public function beforeFilter() {
 		if (!$this->Monitor->exists($id)) {
 			throw new NotFoundException(__('Invalid monitor'));
 		}
-		//#1155
 		$allowedMonitors=preg_split ('@,@', $this->Session->Read('allowedMonitors'),NULL, PREG_SPLIT_NO_EMPTY);
 		if (!empty($allowedMonitors))
 		{
@@ -98,7 +95,6 @@ public function beforeFilter() {
 	public function add() {
 		if ($this->request->is('post')) {
 
-			//- #1155
 			if ($this->Session->Read('systemPermission') != 'Edit')
 			{
 				 throw new UnauthotizedException(__('Insufficient privileges'));
@@ -126,7 +122,6 @@ public function beforeFilter() {
 		if (!$this->Monitor->exists($id)) {
 			throw new NotFoundException(__('Invalid monitor'));
 		}
-		//- #1155
 		if ($this->Session->Read('systemPermission') != 'Edit')
 		{
 			 throw new UnauthorizedException(__('Insufficient privileges'));
@@ -158,7 +153,6 @@ public function beforeFilter() {
 		if (!$this->Monitor->exists()) {
 			throw new NotFoundException(__('Invalid monitor'));
 		}
-		// #1155
 		if ($this->Session->Read('systemPermission') != 'Edit')
 		{
 			 throw new UnauthorizedException(__('Insufficient privileges'));

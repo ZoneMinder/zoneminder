@@ -71,7 +71,7 @@ void RemoteCamera::Initialise()
 	}
 
     mNeedAuth = false;
-	mAuthenticator = new Authenticator(username,password);
+	mAuthenticator = new zm::Authenticator(username,password);
 
 	struct addrinfo hints;
 	memset(&hints, 0, sizeof(hints));

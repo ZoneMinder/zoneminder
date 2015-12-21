@@ -73,6 +73,7 @@ sub new {
 #$log->debug("loading $parent $id") if $debug or DEBUG_ALL;
 		$self->load( $data );
 	}
+	return $self;
 } # end sub new
 
 sub load {

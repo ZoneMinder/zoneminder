@@ -66,7 +66,7 @@ private:
     // subsequent requests can set the required authentication header.
     bool mNeedAuth;
     int respCode;
-    Authenticator* mAuthenticator;
+    zm::Authenticator* mAuthenticator;
 
 
     std::string mHttpSession;           ///< Only for RTSP over HTTP sessions

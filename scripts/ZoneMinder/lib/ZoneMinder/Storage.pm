@@ -69,10 +69,11 @@ sub new {
 
 	my $self = {};
 	bless $self, $parent;
-	if ( ( $$self{id} = $id ) or $data ) {
+	if ( ( $$self{Id} = $id ) or $data ) {
 #$log->debug("loading $parent $id") if $debug or DEBUG_ALL;
 		$self->load( $data );
 	}
+	return $self;
 } # end sub new
 
 sub load {
@@ -80,10 +81,10 @@ sub load {
 	my $type = ref $self;
 	if ( ! $data ) {
 #$log->debug("Object::load Loading from db $type");
-		$data = $ZoneMinder::dbh->selectrow_hashref( 'SELECT * FROM Storage WHERE Id=?', {}, $$self{Id} );
+		$data = $ZoneMinder::Database::dbh->selectrow_hashref( 'SELECT * FROM Storage WHERE Id=?', {}, $$self{Id} );
 		if ( ! $data ) {
-			if ( $ZoneMinder::dbh->errstr ) {
-				Error( "Failure to load Storage record for $$self{id}: Reason: " . $ZoneMinder::dbh->errstr );
+			if ( $ZoneMinder::Database::dbh->errstr ) {
+				Error( "Failure to load Storage record for $$self{id}: Reason: " . $ZoneMinder::Database::dbh->errstr );
 			} # end if
 		} # end if
 	} # end if ! $data

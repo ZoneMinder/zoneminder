@@ -62,6 +62,8 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Database qw(:all);
+require ZoneMinder::Storage;
+require ZoneMinder::Server;
 
 use POSIX;
 
@@ -145,7 +147,7 @@ sub Execute {
 
    if ( $self->{HasDiskPercent} )
     {
-        my $disk_percent = getDiskPercent();
+		my $disk_percent = getDiskPercent( $$self{Storage} ? $$self{Storage}->Path() : () )
         $sql =~ s/zmDiskPercent/$disk_percent/g;
     }
     if ( $self->{HasDiskBlocks} )
@@ -221,6 +223,8 @@ sub Sql {
                     if ( $filter_expr->{terms}[$i]->{attr} =~ /^Monitor/ ) {
                         my ( $temp_attr_name ) = $filter_expr->{terms}[$i]->{attr} =~ /^Monitor(.+)$/;
                         $self->{Sql} .= "M.".$temp_attr_name;
+                    } elsif ( $filter_expr->{terms}[$i]->{attr} =~ /^Server/ ) {
+						$self->{Sql} .= "M.".$filter_expr->{terms}[$i]->{attr};
                     } elsif ( $filter_expr->{terms}[$i]->{attr} eq 'DateTime' ) {
                         $self->{Sql} .= "E.StartTime";
                     } elsif ( $filter_expr->{terms}[$i]->{attr} eq 'Date' ) {
@@ -246,6 +250,29 @@ sub Sql {
                     foreach my $temp_value ( split( /["'\s]*?,["'\s]*?/, $stripped_value ) ) {
                         if ( $filter_expr->{terms}[$i]->{attr} =~ /^Monitor/ ) {
                             $value = "'$temp_value'";
+						} elsif ( $filter_expr->{terms}[$i]->{attr} eq 'ServerHost' ) {
+							if ( $temp_value eq 'ZM_SERVER_HOST' ) {
+								$value = "'$Config{ZM_SERVER_HOST}'";
+							} else {
+								$value = "'$temp_value'";
+							}
+						} elsif ( $filter_expr->{terms}[$i]->{attr} eq 'ServerName' ) {
+							if ( $temp_value eq 'ZM_SERVER_NAME' ) {
+								$value = "'$Config{ZM_SERVER_NAME}'";
+							} else {
+								$value = "'$temp_value'";
+							}
+						} elsif ( $filter_expr->{terms}[$i]->{attr} eq 'ServerId' ) {
+							if ( $temp_value eq 'ZM_SERVER_ID' ) {
+								$value = "'$Config{ZM_SERVER_ID}'";
+								my $Server = $$self{Server} = new ZoneMinder::Server( $Config{ZM_SERVER_ID} );
+							} else {
+								$value = "'$temp_value'";
+								my $Server = $$self{Server} = new ZoneMinder::Server( $temp_value );
+							}
+                        } elsif ( $filter_expr->{terms}[$i]->{attr} eq 'StorageId' ) {
+                            $value = "'$temp_value'";
+                            my $Storage = $$self{Storage} = new ZoneMinder::Storage( $temp_value );
                         } elsif ( $filter_expr->{terms}[$i]->{attr} eq 'Name'
                                 || $filter_expr->{terms}[$i]->{attr} eq 'Cause'
                                 || $filter_expr->{terms}[$i]->{attr} eq 'Notes'
@@ -407,12 +434,13 @@ sub Sql {
 
 sub getDiskPercent
 {
-    my $command = "df .";
+    my $command = "df " . ($_[0] ? $_[0] : '.');
     my $df = qx( $command );
     my $space = -1;
     if ( $df =~ /\s(\d+)%/ms )
     {
         $space = $1;
+        Debug( "getDiskPercent $command returned $space" );
     }
     return( $space );
 }

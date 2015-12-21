@@ -70,7 +70,6 @@ sub new {
 
 	my $self = {};
 	bless $self, $parent;
-    $$self{dbh} = $ZoneMinder::Database::dbh;
 #zmDbConnect();
 	if ( ( $$self{Id} = $id ) or $data ) {
 #$log->debug("loading $parent $id") if $debug or DEBUG_ALL;
@@ -84,9 +83,9 @@ sub load {
 	my $type = ref $self;
 	if ( ! $data ) {
 #$log->debug("Object::load Loading from db $type");
-		$data = $$self{dbh}->selectrow_hashref( 'SELECT * FROM Events WHERE Id=?', {}, $$self{Id} );
+		$data = $ZoneMinder::Database::dbh->selectrow_hashref( 'SELECT * FROM Events WHERE Id=?', {}, $$self{Id} );
 		if ( ! $data ) {
-				Error( "Failure to load Event record for $$self{Id}: Reason: " . $$self{dbh}->errstr );
+				Error( "Failure to load Event record for $$self{Id}: Reason: " . $ZoneMinder::Database::dbh->errstr );
 		} else {
 			Debug( 3, "Loaded Event $$self{Id}" );	
 		} # end if
@@ -281,22 +280,22 @@ sub delete {
     Info( "Deleting event $event->{Id} from Monitor $event->{MonitorId}\n" );
     # Do it individually to avoid locking up the table for new events
     my $sql = "delete from Events where Id = ?";
-    my $sth = $dbh->prepare_cached( $sql )
-        or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+    my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
+        or Fatal( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
     my $res = $sth->execute( $event->{Id} )
         or Fatal( "Can't execute '$sql': ".$sth->errstr() );
 
     if ( ! $Config{ZM_OPT_FAST_DELETE} )
     {
         my $sql = "delete from Frames where EventId = ?";
-        my $sth = $dbh->prepare_cached( $sql )
-            or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+        my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
+            or Fatal( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
         my $res = $sth->execute( $event->{Id} )
             or Fatal( "Can't execute '$sql': ".$sth->errstr() );
 
         $sql = "delete from Stats where EventId = ?";
-        $sth = $dbh->prepare_cached( $sql )
-            or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+        $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
+            or Fatal( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
         $res = $sth->execute( $event->{Id} )
             or Fatal( "Can't execute '$sql': ".$sth->errstr() );
 

@@ -396,11 +396,11 @@ Monitor::Monitor(
              + 64; /* Padding used to permit aligning the images buffer to 16 byte boundary */
 
     Debug( 1, "mem.size=%d", mem_size );
-    mem_ptr = NULL;
+	mem_ptr = NULL;
 
     if ( purpose == CAPTURE ) {
-        this->connect();
-        if ( ! mem_ptr ) exit(-1);
+		this->connect();
+		if ( ! mem_ptr ) exit(-1);
         memset( mem_ptr, 0, mem_size );
         shared_data->size = sizeof(SharedData);
         shared_data->active = enabled;

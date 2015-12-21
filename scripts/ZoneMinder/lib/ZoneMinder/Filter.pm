@@ -182,11 +182,11 @@ sub Sql {
 	my $self = $_[0];
 	if ( ! $$self{Sql} ) {
 		my $filter_expr = ZoneMinder::General::jsonDecode( $self->{Query} );
-        my $sql = "SELECT E.*,
+        my $sql = "SELECT *,
                           M.Name as MonitorName,
                           M.DefaultRate,
                           M.DefaultScale,
-                          unix_timestamp(E.StartTime) as Time,
+                          unix_timestamp(E.StartTime) as Time
                    FROM Events as E
                    INNER JOIN Monitors as M on M.Id = E.MonitorId
         ";

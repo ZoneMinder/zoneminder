@@ -8,3 +8,5 @@ Servers tab is used for setting up multiple ZoneMinder servers sharing the same 
 To delete a server mark that server and click the Delete button.
 
 Please note that all servers must have a functional web UI as the live view must come from the monitor's host server.
+
+On each server, you will have to edit /etc/zm/zm.conf and set either ZM_SERVER_NAME=

@@ -1,3 +1,9 @@
+zoneminder (1.29.109-trusty-2015122101) trusty; urgency=medium
+
+  * Make zmfilter work.
+
+ -- Isaac Connor <iconnor@testing.internal.point-one.com>  Mon, 21 Dec 2015 12:32:27 -0500
+
 zoneminder (1.29.109-trusty-2015121803) trusty; urgency=medium
 
   * merge zmvideo improvements

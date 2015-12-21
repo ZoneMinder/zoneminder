@@ -2092,15 +2092,15 @@ Debug( 1, "Server ID %d", staticConfig.SERVER_ID );
 			} 
 		}
 		col++;
-
+		
 		int v4l_captures_per_frame = 0;
 		if ( dbrow[col] ) {
-			v4l_captures_per_frame = atoi(dbrow[col]);
+			 v4l_captures_per_frame = atoi(dbrow[col]);
 		} else {
 			v4l_captures_per_frame = config.captures_per_frame;
 		}
 Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
-        col++;
+		col++;
         const char *method = dbrow[col]; col++;
 
         int width = atoi(dbrow[col]); col++;
@@ -2157,8 +2157,8 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
             device,
             channel,
             format,
-            v4l_multi_buffer,
-            v4l_captures_per_frame,
+			v4l_multi_buffer,
+			v4l_captures_per_frame,
             method,
             cam_width,
             cam_height,

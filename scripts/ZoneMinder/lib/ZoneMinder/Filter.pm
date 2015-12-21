@@ -221,8 +221,8 @@ sub Sql {
                     if ( $filter_expr->{terms}[$i]->{attr} =~ /^Monitor/ ) {
                         my ( $temp_attr_name ) = $filter_expr->{terms}[$i]->{attr} =~ /^Monitor(.+)$/;
                         $self->{Sql} .= "M.".$temp_attr_name;
-					} elsif ( $filter_expr->{terms}[$i]->{attr} eq 'ServerHost' ) {
-						$self->{Sql} .= "M.ServerHost";
+                    } elsif ( $filter_expr->{terms}[$i]->{attr} =~ /^Server/ ) {
+						$self->{Sql} .= "M.".$filter_expr->{terms}[$i]->{attr};
                     } elsif ( $filter_expr->{terms}[$i]->{attr} eq 'DateTime' ) {
                         $self->{Sql} .= "E.StartTime";
                     } elsif ( $filter_expr->{terms}[$i]->{attr} eq 'Date' ) {

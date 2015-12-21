@@ -182,7 +182,7 @@ sub Sql {
 	my $self = $_[0];
 	if ( ! $$self{Sql} ) {
 		my $filter_expr = ZoneMinder::General::jsonDecode( $self->{Query} );
-        my $sql = "SELECT *,
+        my $sql = "SELECT E.*,
                           M.Name as MonitorName,
                           M.DefaultRate,
                           M.DefaultScale,

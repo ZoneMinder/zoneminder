@@ -3004,30 +3004,30 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
 
 int Monitor::Capture()
 {
-    static int FirstCapture = 1;
-    int captureResult;
-    
-    int index = image_count%image_buffer_count;
-    Image* capture_image = image_buffer[index].image;
-    
-    if ( (deinterlacing & 0xff) == 4) {
-        if ( FirstCapture != 1 ) {
-            /* Copy the next image into the shared memory */
-            capture_image->CopyBuffer(*(next_buffer.image)); 
-        }
-        
-        /* Capture a new next image */
-        captureResult = camera->Capture(*(next_buffer.image));
-        
-        if ( FirstCapture ) {
-            FirstCapture = 0;
-            return 0;
-        }
-        
-    } else {
-        /* Capture directly into image buffer, avoiding the need to memcpy() */
-        captureResult = camera->Capture(*capture_image);
-    }
+	static int FirstCapture = 1;
+	int captureResult;
+
+	int index = image_count%image_buffer_count;
+	Image* capture_image = image_buffer[index].image;
+
+	if ( (deinterlacing & 0xff) == 4) {
+		if ( FirstCapture != 1 ) {
+			/* Copy the next image into the shared memory */
+			capture_image->CopyBuffer(*(next_buffer.image)); 
+		}
+
+		/* Capture a new next image */
+		captureResult = camera->Capture(*(next_buffer.image));
+
+		if ( FirstCapture ) {
+			FirstCapture = 0;
+			return 0;
+		}
+
+	} else {
+		/* Capture directly into image buffer, avoiding the need to memcpy() */
+		captureResult = camera->Capture(*capture_image);
+	}
     
     if ( captureResult != 0 )
     {
@@ -3044,18 +3044,18 @@ int Monitor::Capture()
     if ( captureResult == 1 )
     {
         
-    /* Deinterlacing */
-    if ( (deinterlacing & 0xff) == 1 ) {
-        capture_image->Deinterlace_Discard();
-    } else if ( (deinterlacing & 0xff) == 2 ) {
-        capture_image->Deinterlace_Linear();
-    } else if ( (deinterlacing & 0xff) == 3 ) {
-        capture_image->Deinterlace_Blend();
-    } else if ( (deinterlacing & 0xff) == 4 ) {
-        capture_image->Deinterlace_4Field( next_buffer.image, (deinterlacing>>8)&0xff );
-    } else if ( (deinterlacing & 0xff) == 5 ) {
-        capture_image->Deinterlace_Blend_CustomRatio( (deinterlacing>>8)&0xff );
-    }
+		/* Deinterlacing */
+		if ( (deinterlacing & 0xff) == 1 ) {
+			capture_image->Deinterlace_Discard();
+		} else if ( (deinterlacing & 0xff) == 2 ) {
+			capture_image->Deinterlace_Linear();
+		} else if ( (deinterlacing & 0xff) == 3 ) {
+			capture_image->Deinterlace_Blend();
+		} else if ( (deinterlacing & 0xff) == 4 ) {
+			capture_image->Deinterlace_4Field( next_buffer.image, (deinterlacing>>8)&0xff );
+		} else if ( (deinterlacing & 0xff) == 5 ) {
+			capture_image->Deinterlace_Blend_CustomRatio( (deinterlacing>>8)&0xff );
+		}
         
         
         if ( orientation != ROTATE_0 )

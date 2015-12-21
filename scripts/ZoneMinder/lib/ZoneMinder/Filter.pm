@@ -145,9 +145,9 @@ sub Execute {
 
 	my $sql = $self->Sql();
 
-   if ( $self->{HasDiskPercent} )
+    if ( $self->{HasDiskPercent} )
     {
-		my $disk_percent = getDiskPercent( $$self{Storage} ? $$self{Storage}->Path() : () )
+		my $disk_percent = getDiskPercent( $$self{Storage} ? $$self{Storage}->Path() : () );
         $sql =~ s/zmDiskPercent/$disk_percent/g;
     }
     if ( $self->{HasDiskBlocks} )

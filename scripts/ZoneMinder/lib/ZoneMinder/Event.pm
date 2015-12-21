@@ -276,6 +276,89 @@ sub GenerateVideo {
 	return;	
 } # end sub GenerateVideo
 
+sub delete {
+    my $event = $_[0];
+    Info( "Deleting event $event->{Id} from Monitor $event->{MonitorId}\n" );
+    # Do it individually to avoid locking up the table for new events
+    my $sql = "delete from Events where Id = ?";
+    my $sth = $dbh->prepare_cached( $sql )
+        or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+    my $res = $sth->execute( $event->{Id} )
+        or Fatal( "Can't execute '$sql': ".$sth->errstr() );
+
+    if ( ! $Config{ZM_OPT_FAST_DELETE} )
+    {
+        my $sql = "delete from Frames where EventId = ?";
+        my $sth = $dbh->prepare_cached( $sql )
+            or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+        my $res = $sth->execute( $event->{Id} )
+            or Fatal( "Can't execute '$sql': ".$sth->errstr() );
+
+        $sql = "delete from Stats where EventId = ?";
+        $sth = $dbh->prepare_cached( $sql )
+            or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+        $res = $sth->execute( $event->{Id} )
+            or Fatal( "Can't execute '$sql': ".$sth->errstr() );
+
+        delete_files( $event );
+    } 
+    else
+    {
+		Debug("Not deleting frames, stats and files for speed.");
+	}
+} # end sub delete
+
+
+sub delete_files {
+
+    my $Storage = new ZoneMinder::Storage( $_[0]{StorageId} );
+    my $storage_path = $Storage->Path();
+
+    if ( $Config{ZM_USE_DEEP_STORAGE} )
+    {
+		Debug("Deleting files for Event $_[0]{Id} from $storage_path. Storage Id was $_[0]{StorageId}");
+        my $link_path = $_[0]{MonitorId}."/*/*/*/.".$_[0]{Id};
+        #Debug( "LP1:$link_path" );
+        my @links = glob($storage_path.'/'.$link_path);
+        #Debug( "L:".$links[0].": $!" );
+        if ( @links )
+        {
+            ( $link_path ) = ( $links[0] =~ /^(.*)$/ ); # De-taint
+            #Debug( "LP2:$link_path" );
+
+            ( my $day_path = $link_path ) =~ s/\.\d+//;
+            #Debug( "DP:$day_path" );
+            my $event_path = $day_path.readlink( $link_path );
+            ( $event_path ) = ( $event_path =~ /^(.*)$/ ); # De-taint
+            #Debug( "EP:$event_path" );
+            my $command = "/bin/rm -rf $storage_path/$event_path";
+            #Debug( "C:$command" );
+            executeShellCommand( $command );
+
+            unlink( $link_path ) or Error( "Unable to unlink '$link_path': $!" );
+            my @path_parts = split( /\//, $event_path );
+            for ( my $i = int(@path_parts)-2; $i >= 1; $i-- )
+            {
+                my $delete_path = join( '/', @path_parts[0..$i] );
+                #Debug( "DP$i:$delete_path" );
+                my @has_files = glob( join('/', $storage_path,$delete_path,'*' ) );
+                #Debug( "HF1:".$has_files[0] ) if ( @has_files );
+                last if ( @has_files );
+                @has_files = glob( join('/', $storage_path, $delete_path, '.[0-9]*' ) );
+                #Debug( "HF2:".$has_files[0] ) if ( @has_files );
+                last if ( @has_files );
+                my $command = "/bin/rm -rf $storage_path/$delete_path";
+                executeShellCommand( $command );
+            }
+        }
+    }
+    else
+    {
+        my $command = "/bin/rm -rf $storage_path/$_[0]{MonitorId}/$_[0]{Id}";
+        executeShellCommand( $command );
+    }
+} # end sub delete_files
+
 1;
 __END__
 # Below is stub documentation for your module. You'd better edit it!

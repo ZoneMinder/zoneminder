@@ -221,6 +221,8 @@ sub Sql {
                     if ( $filter_expr->{terms}[$i]->{attr} =~ /^Monitor/ ) {
                         my ( $temp_attr_name ) = $filter_expr->{terms}[$i]->{attr} =~ /^Monitor(.+)$/;
                         $self->{Sql} .= "M.".$temp_attr_name;
+					} elsif ( $filter_expr->{terms}[$i]->{attr} eq 'ServerHost' ) {
+						$self->{Sql} .= "M.ServerHost";
                     } elsif ( $filter_expr->{terms}[$i]->{attr} eq 'DateTime' ) {
                         $self->{Sql} .= "E.StartTime";
                     } elsif ( $filter_expr->{terms}[$i]->{attr} eq 'Date' ) {
@@ -246,6 +248,24 @@ sub Sql {
                     foreach my $temp_value ( split( /["'\s]*?,["'\s]*?/, $stripped_value ) ) {
                         if ( $filter_expr->{terms}[$i]->{attr} =~ /^Monitor/ ) {
                             $value = "'$temp_value'";
+						} elsif ( $filter_expr->{terms}[$i]->{attr} eq 'ServerHost' ) {
+							if ( $temp_value eq 'ZM_SERVER_HOST' ) {
+								$value = "'$Config{ZM_SERVER_HOST}'";
+							} else {
+								$value = "'$temp_value'";
+							}
+						} elsif ( $filter_expr->{terms}[$i]->{attr} eq 'ServerName' ) {
+							if ( $temp_value eq 'ZM_SERVER_NAME' ) {
+								$value = "'$Config{ZM_SERVER_NAME}'";
+							} else {
+								$value = "'$temp_value'";
+							}
+						} elsif ( $filter_expr->{terms}[$i]->{attr} eq 'ServerId' ) {
+							if ( $temp_value eq 'ZM_SERVER_ID' ) {
+								$value = "'$Config{ZM_SERVER_ID}'";
+							} else {
+								$value = "'$temp_value'";
+							}
                         } elsif ( $filter_expr->{terms}[$i]->{attr} eq 'Name'
                                 || $filter_expr->{terms}[$i]->{attr} eq 'Cause'
                                 || $filter_expr->{terms}[$i]->{attr} eq 'Notes'

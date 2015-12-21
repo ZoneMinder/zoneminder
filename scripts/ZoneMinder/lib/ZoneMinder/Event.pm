@@ -313,6 +313,11 @@ sub delete_files {
     my $Storage = new ZoneMinder::Storage( $_[0]{StorageId} );
     my $storage_path = $Storage->Path();
 
+	if ( ! $storage_path ) {
+		Fatal("No storage path when deleting fileds for event $_[0]{Id} with storage id $_[0]{StorageId} ");
+		return;
+	}
+
 	chdir ( $storage_path );
 
     if ( $Config{ZM_USE_DEEP_STORAGE} )

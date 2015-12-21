@@ -60,6 +60,7 @@ use constant START_DELAY => 5; # How long to wait before starting
 
 @EXTRA_PERL_LIB@
 use ZoneMinder;
+require ZoneMinder::Event;
 require ZoneMinder::Filter;
 use DBI;
 use POSIX;

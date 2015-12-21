@@ -1,3 +1,9 @@
+zoneminder (1.29.109-trusty-2015121803) trusty; urgency=medium
+
+  * merge zmvideo improvements
+
+ -- Isaac Connor <iconnor@testing.internal.point-one.com>  Fri, 18 Dec 2015 14:17:56 -0500
+
 zoneminder (1.29.109-trusty-2015121802) trusty; urgency=medium
 
   * Add some missing files to the autoconf build

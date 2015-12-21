@@ -339,7 +339,7 @@ sub delete_files {
             #Debug( "EP:$event_path" );
             my $command = "/bin/rm -rf $event_path";
             #Debug( "C:$command" );
-            executeShellCommand( $command );
+            ZoneMinder::General::executeShellCommand( $command );
 
             unlink( $link_path ) or Error( "Unable to unlink '$link_path': $!" );
 
@@ -355,14 +355,14 @@ sub delete_files {
                 #Debug( "HF2:".$has_files[0] ) if ( @has_files );
                 last if ( @has_files );
                 my $command = "/bin/rm -rf $storage_path/$delete_path";
-                executeShellCommand( $command );
+                ZoneMinder::General::executeShellCommand( $command );
             }
         }
     }
     else
     {
         my $command = "/bin/rm -rf $storage_path/$_[0]{MonitorId}/$_[0]{Id}";
-        executeShellCommand( $command );
+        ZoneMinder::General::executeShellCommand( $command );
     }
 } # end sub delete_files
 

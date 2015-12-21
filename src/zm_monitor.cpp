@@ -608,14 +608,14 @@ bool Monitor::connect() {
 
 Monitor::~Monitor()
 {
-    if ( timestamps ) {
-        delete[] timestamps;
-        timestamps = 0;
-    }
-    if ( images ) {
-        delete[] images;
-        images = 0;
-    }
+	if ( timestamps ) {
+		delete[] timestamps;
+		timestamps = 0;
+	}
+	if ( images ) {
+		delete[] images;
+		images = 0;
+	}
         if ( privacy_bitmask ) {
             delete[] privacy_bitmask;
             privacy_bitmask = NULL;
@@ -738,7 +738,7 @@ int Monitor::GetImage( int index, int scale )
     if ( index != image_buffer_count )
     {
         Image *image;
-        // If we are going to be modifying the snapshot before writing, then we need to copy it
+		// If we are going to be modifying the snapshot before writing, then we need to copy it
         if ( ( scale != ZM_SCALE_BASE ) || ( !config.timestamp_on_capture ) ) {
             Snapshot *snap = &image_buffer[index];
             Image *snap_image = snap->image;
@@ -1238,32 +1238,32 @@ bool Monitor::CheckSignal( const Image *image )
                     break;
             }
             
-        if(colours == ZM_COLOUR_GRAY8) {
-            if ( *(buffer+index) != grayscale_val )
-                return true;
-            
-        } else if(colours == ZM_COLOUR_RGB24) {
-            const uint8_t *ptr = buffer+(index*colours);
-            
-            if ( usedsubpixorder == ZM_SUBPIX_ORDER_BGR) {
-                if ( (RED_PTR_BGRA(ptr) != red_val) || (GREEN_PTR_BGRA(ptr) != green_val) || (BLUE_PTR_BGRA(ptr) != blue_val) )
-                    return true;
-            } else {
-                /* Assume RGB */
-                if ( (RED_PTR_RGBA(ptr) != red_val) || (GREEN_PTR_RGBA(ptr) != green_val) || (BLUE_PTR_RGBA(ptr) != blue_val) )
-                    return true;
-            }
-            
-        } else if(colours == ZM_COLOUR_RGB32) {
-            if ( usedsubpixorder == ZM_SUBPIX_ORDER_ARGB || usedsubpixorder == ZM_SUBPIX_ORDER_ABGR) {
-                if ( ARGB_ABGR_ZEROALPHA(*(((const Rgb*)buffer)+index)) != ARGB_ABGR_ZEROALPHA(colour_val) )
-                    return true;
-            } else {
-                /* Assume RGBA or BGRA */
-                if ( RGBA_BGRA_ZEROALPHA(*(((const Rgb*)buffer)+index)) != RGBA_BGRA_ZEROALPHA(colour_val) )
-                    return true;
-            }
-        }
+			if(colours == ZM_COLOUR_GRAY8) {
+				if ( *(buffer+index) != grayscale_val )
+					return true;
+
+			} else if(colours == ZM_COLOUR_RGB24) {
+				const uint8_t *ptr = buffer+(index*colours);
+
+				if ( usedsubpixorder == ZM_SUBPIX_ORDER_BGR) {
+					if ( (RED_PTR_BGRA(ptr) != red_val) || (GREEN_PTR_BGRA(ptr) != green_val) || (BLUE_PTR_BGRA(ptr) != blue_val) )
+						return true;
+				} else {
+					/* Assume RGB */
+					if ( (RED_PTR_RGBA(ptr) != red_val) || (GREEN_PTR_RGBA(ptr) != green_val) || (BLUE_PTR_RGBA(ptr) != blue_val) )
+						return true;
+				}
+
+			} else if(colours == ZM_COLOUR_RGB32) {
+				if ( usedsubpixorder == ZM_SUBPIX_ORDER_ARGB || usedsubpixorder == ZM_SUBPIX_ORDER_ABGR) {
+					if ( ARGB_ABGR_ZEROALPHA(*(((const Rgb*)buffer)+index)) != ARGB_ABGR_ZEROALPHA(colour_val) )
+						return true;
+				} else {
+					/* Assume RGBA or BGRA */
+					if ( RGBA_BGRA_ZEROALPHA(*(((const Rgb*)buffer)+index)) != RGBA_BGRA_ZEROALPHA(colour_val) )
+						return true;
+				}
+			}
         
         }
         return( false );
@@ -1734,7 +1734,7 @@ bool Monitor::Analyse()
                         if ( config.create_analysis_images )
                         {
                             bool got_anal_image = false;
-                            alarm_image.Assign( *snap_image );
+							alarm_image.Assign( *snap_image );
                             for( int i = 0; i < n_zones; i++ )
                             {
                                 if ( zones[i]->Alarmed() )
@@ -2083,22 +2083,22 @@ Debug( 1, "Server ID %d", staticConfig.SERVER_ID );
         const char *device = dbrow[col]; col++;
         int channel = atoi(dbrow[col]); col++;
         int format = atoi(dbrow[col]); col++;
-        bool v4l_multi_buffer = config.v4l_multi_buffer;
-        if ( dbrow[col] ) {
-            if (*dbrow[col] == '0' ) {
-                v4l_multi_buffer = false;
-            } else if ( *dbrow[col] == '1' ) {
-                v4l_multi_buffer = true;
-            } 
-        }
-        col++;
-        
-        int v4l_captures_per_frame = 0;
-        if ( dbrow[col] ) {
-             v4l_captures_per_frame = atoi(dbrow[col]);
-        } else {
-            v4l_captures_per_frame = config.captures_per_frame;
-        }
+		bool v4l_multi_buffer = config.v4l_multi_buffer;
+		if ( dbrow[col] ) {
+			if (*dbrow[col] == '0' ) {
+				v4l_multi_buffer = false;
+			} else if ( *dbrow[col] == '1' ) {
+				v4l_multi_buffer = true;
+			} 
+		}
+		col++;
+
+		int v4l_captures_per_frame = 0;
+		if ( dbrow[col] ) {
+			v4l_captures_per_frame = atoi(dbrow[col]);
+		} else {
+			v4l_captures_per_frame = config.captures_per_frame;
+		}
 Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
         col++;
         const char *method = dbrow[col]; col++;

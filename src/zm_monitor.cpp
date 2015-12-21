@@ -687,7 +687,7 @@ Monitor::~Monitor()
 			}
 		}
 #endif // ZM_MEM_MAPPED
-    } // end if mem_ptr
+	} // end if mem_ptr
 }
 
 void Monitor::AddZones( int p_n_zones, Zone *p_zones[] )
@@ -1238,27 +1238,27 @@ bool Monitor::CheckSignal( const Image *image )
                     break;
             }
             
-			if(colours == ZM_COLOUR_GRAY8) {
-				if ( *(buffer+index) != grayscale_val )
+		if(colours == ZM_COLOUR_GRAY8) {
+			if ( *(buffer+index) != grayscale_val )
 					return true;
 
-			} else if(colours == ZM_COLOUR_RGB24) {
-				const uint8_t *ptr = buffer+(index*colours);
+		} else if(colours == ZM_COLOUR_RGB24) {
+			const uint8_t *ptr = buffer+(index*colours);
 
-				if ( usedsubpixorder == ZM_SUBPIX_ORDER_BGR) {
-					if ( (RED_PTR_BGRA(ptr) != red_val) || (GREEN_PTR_BGRA(ptr) != green_val) || (BLUE_PTR_BGRA(ptr) != blue_val) )
-						return true;
-				} else {
-					/* Assume RGB */
-					if ( (RED_PTR_RGBA(ptr) != red_val) || (GREEN_PTR_RGBA(ptr) != green_val) || (BLUE_PTR_RGBA(ptr) != blue_val) )
-						return true;
-				}
+			if ( usedsubpixorder == ZM_SUBPIX_ORDER_BGR) {
+				if ( (RED_PTR_BGRA(ptr) != red_val) || (GREEN_PTR_BGRA(ptr) != green_val) || (BLUE_PTR_BGRA(ptr) != blue_val) )
+					return true;
+			} else {
+				/* Assume RGB */
+				if ( (RED_PTR_RGBA(ptr) != red_val) || (GREEN_PTR_RGBA(ptr) != green_val) || (BLUE_PTR_RGBA(ptr) != blue_val) )
+					return true;
+			}
 
-			} else if(colours == ZM_COLOUR_RGB32) {
-				if ( usedsubpixorder == ZM_SUBPIX_ORDER_ARGB || usedsubpixorder == ZM_SUBPIX_ORDER_ABGR) {
-					if ( ARGB_ABGR_ZEROALPHA(*(((const Rgb*)buffer)+index)) != ARGB_ABGR_ZEROALPHA(colour_val) )
-						return true;
-				} else {
+		} else if(colours == ZM_COLOUR_RGB32) {
+			if ( usedsubpixorder == ZM_SUBPIX_ORDER_ARGB || usedsubpixorder == ZM_SUBPIX_ORDER_ABGR) {
+				if ( ARGB_ABGR_ZEROALPHA(*(((const Rgb*)buffer)+index)) != ARGB_ABGR_ZEROALPHA(colour_val) )
+					return true;
+			} else {
 					/* Assume RGBA or BGRA */
 					if ( RGBA_BGRA_ZEROALPHA(*(((const Rgb*)buffer)+index)) != RGBA_BGRA_ZEROALPHA(colour_val) )
 						return true;

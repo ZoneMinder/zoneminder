@@ -313,12 +313,14 @@ sub delete_files {
     my $Storage = new ZoneMinder::Storage( $_[0]{StorageId} );
     my $storage_path = $Storage->Path();
 
+	chdir ( $storage_path );
+
     if ( $Config{ZM_USE_DEEP_STORAGE} )
     {
 		Debug("Deleting files for Event $_[0]{Id} from $storage_path. Storage Id was $_[0]{StorageId}");
         my $link_path = $_[0]{MonitorId}."/*/*/*/.".$_[0]{Id};
         #Debug( "LP1:$link_path" );
-        my @links = glob($storage_path.'/'.$link_path);
+        my @links = glob($link_path);
         #Debug( "L:".$links[0].": $!" );
         if ( @links )
         {
@@ -330,11 +332,13 @@ sub delete_files {
             my $event_path = $day_path.readlink( $link_path );
             ( $event_path ) = ( $event_path =~ /^(.*)$/ ); # De-taint
             #Debug( "EP:$event_path" );
-            my $command = "/bin/rm -rf $storage_path/$event_path";
+            my $command = "/bin/rm -rf $event_path";
             #Debug( "C:$command" );
             executeShellCommand( $command );
 
             unlink( $link_path ) or Error( "Unable to unlink '$link_path': $!" );
+
+			$event_path 
             my @path_parts = split( /\//, $event_path );
             for ( my $i = int(@path_parts)-2; $i >= 1; $i-- )
             {

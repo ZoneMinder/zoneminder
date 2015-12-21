@@ -69,7 +69,7 @@ sub new {
 
 	my $self = {};
 	bless $self, $parent;
-	if ( ( $$self{id} = $id ) or $data ) {
+	if ( ( $$self{Id} = $id ) or $data ) {
 #$log->debug("loading $parent $id") if $debug or DEBUG_ALL;
 		$self->load( $data );
 	}

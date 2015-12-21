@@ -338,7 +338,6 @@ sub delete_files {
 
             unlink( $link_path ) or Error( "Unable to unlink '$link_path': $!" );
 
-			$event_path 
             my @path_parts = split( /\//, $event_path );
             for ( my $i = int(@path_parts)-2; $i >= 1; $i-- )
             {

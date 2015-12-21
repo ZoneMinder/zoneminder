@@ -318,7 +318,7 @@ $dbh->ping();
             if ( $delete_ok )
             {
 				my $Event = new ZoneMinder::Event( $$event{Id}, $event );
-				$event->delete();
+				$Event->delete();
             }
             else
             {

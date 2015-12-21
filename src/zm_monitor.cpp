@@ -427,8 +427,8 @@ Monitor::Monitor(
         trigger_data->trigger_showtext[0] = 0;
         shared_data->valid = true;
     } else if ( purpose == ANALYSIS ) {
-        this->connect();
-        if ( ! mem_ptr ) exit(-1);
+		this->connect();
+		if ( ! mem_ptr ) exit(-1);
         shared_data->state = IDLE;
         shared_data->last_read_time = 0;
         shared_data->alarm_x = -1;
@@ -444,9 +444,9 @@ Monitor::Monitor(
         }
     }
 
-    // Will this not happen every time a monitor is instantiated?  Seems like all the calls to the Monitor constructor pass a zero for n_zones, then load zones after..
+	// Will this not happen every time a monitor is instantiated?  Seems like all the calls to the Monitor constructor pass a zero for n_zones, then load zones after..
     if ( !n_zones ) {
-        Debug( 1, "Monitor %s has no zones, adding one.", name );
+		Debug( 1, "Monitor %s has no zones, adding one.", name );
         n_zones = 1;
         zones = new Zone *[1];
         Coord coords[4] = { Coord( 0, 0 ), Coord( width-1, 0 ), Coord( width-1, height-1 ), Coord( 0, height-1 ) };
@@ -528,28 +528,28 @@ bool Monitor::connect() {
         // Allocate the size
         if ( ftruncate( map_fd, mem_size ) < 0 ) {
             Fatal( "Can't extend memory map file %s to %d bytes: %s", mem_file, mem_size, strerror(errno) );
-        }
+		}
     } else if ( map_stat.st_size == 0 ) {
         Error( "Got empty memory map file size %ld, is the zmc process for this monitor running?", map_stat.st_size, mem_size );
-        return false;
+		return false;
     } else if ( map_stat.st_size != mem_size ) {
         Error( "Got unexpected memory map file size %ld, expected %d", map_stat.st_size, mem_size );
-        return false;
-    } else {
+		return false;
+	} else {
 #ifdef MAP_LOCKED
-        mem_ptr = (unsigned char *)mmap( NULL, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_LOCKED, map_fd, 0 );
-        if ( mem_ptr == MAP_FAILED ) {
-            if ( errno == EAGAIN ) {
-                Debug( 1, "Unable to map file %s (%d bytes) to locked memory, trying unlocked", mem_file, mem_size );
+		mem_ptr = (unsigned char *)mmap( NULL, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_LOCKED, map_fd, 0 );
+		if ( mem_ptr == MAP_FAILED ) {
+			if ( errno == EAGAIN ) {
+				Debug( 1, "Unable to map file %s (%d bytes) to locked memory, trying unlocked", mem_file, mem_size );
 #endif
-                mem_ptr = (unsigned char *)mmap( NULL, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED, map_fd, 0 );
-                Debug( 1, "Mapped file %s (%d bytes) to locked memory, unlocked", mem_file, mem_size );
+				mem_ptr = (unsigned char *)mmap( NULL, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED, map_fd, 0 );
+				Debug( 1, "Mapped file %s (%d bytes) to locked memory, unlocked", mem_file, mem_size );
 #ifdef MAP_LOCKED
-            }
-        }
+			}
+		}
 #endif
-        if ( mem_ptr == MAP_FAILED )
-            Fatal( "Can't map file %s (%d bytes) to memory: %s(%d)", mem_file, mem_size, strerror(errno), errno );
+		if ( mem_ptr == MAP_FAILED )
+			Fatal( "Can't map file %s (%d bytes) to memory: %s(%d)", mem_file, mem_size, strerror(errno), errno );
     }
 #else // ZM_MEM_MAPPED
     shm_id = shmget( (config.shm_key&0xffff0000)|id, mem_size, IPC_CREAT|0700 );
@@ -570,9 +570,9 @@ bool Monitor::connect() {
     unsigned char *shared_images = (unsigned char *)((char *)shared_timestamps + (image_buffer_count*sizeof(struct timeval)));
     
     if(((unsigned long)shared_images % 16) != 0) {
-        /* Align images buffer to nearest 16 byte boundary */
-        Debug(3,"Aligning shared memory images to the next 16 byte boundary");
-        shared_images = (uint8_t*)((unsigned long)shared_images + (16 - ((unsigned long)shared_images % 16)));
+		/* Align images buffer to nearest 16 byte boundary */
+		Debug(3,"Aligning shared memory images to the next 16 byte boundary");
+		shared_images = (uint8_t*)((unsigned long)shared_images + (16 - ((unsigned long)shared_images % 16)));
     }
     image_buffer = new Snapshot[image_buffer_count];
     for ( int i = 0; i < image_buffer_count; i++ )
@@ -603,7 +603,7 @@ bool Monitor::connect() {
         }
     }
 
-    return true;
+	return true;
 }
 
 Monitor::~Monitor()
@@ -620,22 +620,22 @@ Monitor::~Monitor()
             delete[] privacy_bitmask;
             privacy_bitmask = NULL;
         }
-    if ( mem_ptr ) {
-        if ( event )
-            Info( "%s: %03d - Closing event %d, shutting down", name, image_count, event->Id() );
-        closeEvent();
+	if ( mem_ptr ) {
+		if ( event )
+			Info( "%s: %03d - Closing event %d, shutting down", name, image_count, event->Id() );
+		closeEvent();
 
-        if ( (deinterlacing & 0xff) == 4)
-        {
-            delete next_buffer.image;
-            delete next_buffer.timestamp;
-        }
-        for ( int i = 0; i < image_buffer_count; i++ )
-        {
-            delete image_buffer[i].image;
-        }
-        delete[] image_buffer;
-    } // end if mem_ptr
+		if ( (deinterlacing & 0xff) == 4)
+		{
+			delete next_buffer.image;
+			delete next_buffer.timestamp;
+		}
+		for ( int i = 0; i < image_buffer_count; i++ )
+		{
+			delete image_buffer[i].image;
+		}
+		delete[] image_buffer;
+	} // end if mem_ptr
 
     for ( int i = 0; i < n_zones; i++ )
     {
@@ -645,47 +645,47 @@ Monitor::~Monitor()
 
     delete camera;
 
-    if ( mem_ptr ) {
-        if ( purpose == ANALYSIS )
-        {
-            shared_data->state = state = IDLE;
-            shared_data->last_read_index = image_buffer_count;
-            shared_data->last_read_time = 0;
+	if ( mem_ptr ) {
+		if ( purpose == ANALYSIS )
+		{
+			shared_data->state = state = IDLE;
+			shared_data->last_read_index = image_buffer_count;
+			shared_data->last_read_time = 0;
 
-            if ( analysis_fps )
-            {
-                for ( int i = 0; i < pre_event_buffer_count; i++ )
-                {
-                    delete pre_event_buffer[i].image;
-                    delete pre_event_buffer[i].timestamp;
-                }
-                delete[] pre_event_buffer;
-            }
-        }
-        else if ( purpose == CAPTURE )
-        {
-            shared_data->valid = false;
-            memset( mem_ptr, 0, mem_size );
-        }
+			if ( analysis_fps )
+			{
+				for ( int i = 0; i < pre_event_buffer_count; i++ )
+				{
+					delete pre_event_buffer[i].image;
+					delete pre_event_buffer[i].timestamp;
+				}
+				delete[] pre_event_buffer;
+			}
+		}
+		else if ( purpose == CAPTURE )
+		{
+			shared_data->valid = false;
+			memset( mem_ptr, 0, mem_size );
+		}
 
 #if ZM_MEM_MAPPED
-        if ( msync( mem_ptr, mem_size, MS_SYNC ) < 0 )
-            Error( "Can't msync: %s", strerror(errno) );
-        if ( munmap( mem_ptr, mem_size ) < 0 )
-            Fatal( "Can't munmap: %s", strerror(errno) );
-        close( map_fd );
+		if ( msync( mem_ptr, mem_size, MS_SYNC ) < 0 )
+			Error( "Can't msync: %s", strerror(errno) );
+		if ( munmap( mem_ptr, mem_size ) < 0 )
+			Fatal( "Can't munmap: %s", strerror(errno) );
+		close( map_fd );
 #else // ZM_MEM_MAPPED
-        struct shmid_ds shm_data;
-        if ( shmctl( shm_id, IPC_STAT, &shm_data ) < 0 ) {
-            Error( "Can't shmctl: %s", strerror(errno) );
-            exit( -1 );
-        }
-        if ( shm_data.shm_nattch <= 1 ) {
-            if ( shmctl( shm_id, IPC_RMID, 0 ) < 0 ) {
-                Error( "Can't shmctl: %s", strerror(errno) );
-                exit( -1 );
-            }
-        }
+		struct shmid_ds shm_data;
+		if ( shmctl( shm_id, IPC_STAT, &shm_data ) < 0 ) {
+			Error( "Can't shmctl: %s", strerror(errno) );
+			exit( -1 );
+		}
+		if ( shm_data.shm_nattch <= 1 ) {
+			if ( shmctl( shm_id, IPC_RMID, 0 ) < 0 ) {
+				Error( "Can't shmctl: %s", strerror(errno) );
+				exit( -1 );
+			}
+		}
 #endif // ZM_MEM_MAPPED
     } // end if mem_ptr
 }

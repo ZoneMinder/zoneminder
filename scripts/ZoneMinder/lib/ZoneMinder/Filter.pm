@@ -330,10 +330,6 @@ sub Sql {
         {
             push( @auto_terms, "E.Archived = 0" )
         }
-        if ( $self->{AutoVideo} )
-        {
-            push( @auto_terms, "E.Videoed = 0" )
-        }
         if ( $self->{AutoUpload} )
         {
             push( @auto_terms, "E.Uploaded = 0" )

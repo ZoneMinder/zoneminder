@@ -114,11 +114,14 @@ if ( ($report + $interactive + $continuous) > 1 )
 
 my $dbh = zmDbConnect();
 
-chdir( EVENT_PATH );
+require ZoneMinder::Storage;
 
 my $max_image_age = 6/24; # 6 hours
 my $max_swap_age = 24/24; # 24 hours
 my $image_path = IMAGE_PATH;
+
+
+
 
 my $loop = 1;
 my $cleaned = 0;
@@ -175,127 +178,133 @@ MAIN: while( $loop ) {
         Debug( "Got ".int(keys(%$db_events))." events\n" );
     }
 
-    my $fs_monitors;
-    foreach my $monitor ( glob("[0-9]*") )
-    {
-        Debug( "Found filesystem monitor '$monitor'" );
-        my $fs_events = $fs_monitors->{$monitor} = {};
-        ( my $monitor_dir ) = ( $monitor =~ /^(.*)$/ ); # De-taint
+	my $fs_monitors;
 
-        if ( $Config{ZM_USE_DEEP_STORAGE} )
-        {
-            foreach my $day_dir ( glob("$monitor_dir/*/*/*") )
-            {
-                Debug( "Checking $day_dir" );
-                ( $day_dir ) = ( $day_dir =~ /^(.*)$/ ); # De-taint
-                chdir( $day_dir );
-                opendir( DIR, "." )
-                    or Fatal( "Can't open directory '$day_dir': $!" );
-                my @event_links = sort { $b <=> $a } grep { -l $_ } readdir( DIR );
-                closedir( DIR );
-                my $count = 0;
-                foreach my $event_link ( @event_links )
-                {
-                    Debug( "Checking link $event_link" );
-                    ( my $event = $event_link ) =~ s/^.*\.//;
-                    my $event_path = readlink( $event_link );
-                    if ( $count++ > MAX_AGED_DIRS )
-                    {
-                        $fs_events->{$event} = -1;
-                    }
-                    else
-                    {
-                        if ( !-e $event_path )
-                        {
-                            aud_print( "Event link $day_dir/$event_link does not point to valid target" );
-                            if ( confirm() )
-                            {
-                                ( $event_link ) = ( $event_link =~ /^(.*)$/ ); # De-taint
-                                unlink( $event_link );
-                                $cleaned = 1;
-                            }
-                        }
-                        else
-                        {
-                            $fs_events->{$event} = (time() - ($^T - ((-M $event_path) * 24*60*60)));
-                        }
-                    }
-                }
-                chdir( EVENT_PATH );
-            }
-        }
-        else
-        {
-            chdir( $monitor_dir );
-            opendir( DIR, "." ) or Fatal( "Can't open directory '$monitor_dir': $!" );
-            my @temp_events = sort { $b <=> $a } grep { -d $_ && $_ =~ /^\d+$/ } readdir( DIR );
-            closedir( DIR );
-            my $count = 0;
-            foreach my $event ( @temp_events )
-            {
-                if ( $count++ > MAX_AGED_DIRS )
-                {
-                    $fs_events->{$event} = -1;
-                }
-                else
-                {
-                    $fs_events->{$event} = (time() - ($^T - ((-M $event) * 24*60*60)));
-                }
-            }
-            chdir( EVENT_PATH );
-        }
-        Debug( "Got ".int(keys(%$fs_events))." events\n" );
-    }
-    redo MAIN if ( $cleaned );
+	foreach my $Storage ( new ZoneMinder::Storage(), ZoneMinder::Storage->find( ) ) {
+		chdir( $Storage->Path() );
 
-    $cleaned = 0;
-    while ( my ( $fs_monitor, $fs_events ) = each(%$fs_monitors) )
-    {
-        if ( my $db_events = $db_monitors->{$fs_monitor} )
-        {
-            if ( $fs_events )
-            {
-                while ( my ( $fs_event, $age ) = each(%$fs_events ) )
-                {
-                    if ( !defined($db_events->{$fs_event}) && ($age < 0 || ($age > $Config{ZM_AUDIT_MIN_AGE})) )
-                    {
-                        aud_print( "Filesystem event '$fs_monitor/$fs_event' does not exist in database" );
-                        if ( confirm() )
-                        {
-                            deleteEventFiles( $fs_event, $fs_monitor );
-                            $cleaned = 1;
-                        }
-                    }
-                }
-            }
-        }
-        else
-        {
-            aud_print( "Filesystem monitor '$fs_monitor' does not exist in database" );
-            if ( confirm() )
-            {
-                my $command = "rm -rf $fs_monitor";
-                executeShellCommand( $command );
-                $cleaned = 1;
-            }
-        }
-    }
+		foreach my $monitor ( glob("[0-9]*") )
+		{
+			Debug( "Found filesystem monitor '$monitor'" );
+			my $fs_events = $fs_monitors->{$monitor} = {};
+			( my $monitor_dir ) = ( $monitor =~ /^(.*)$/ ); # De-taint
 
-    my $monitor_links;
-    foreach my $link ( glob("*") )
-    {
-        next if ( !-l $link );
-        next if ( -e $link );
+			if ( $Config{ZM_USE_DEEP_STORAGE} )
+			{
+				foreach my $day_dir ( glob("$monitor_dir/*/*/*") )
+				{
+					Debug( "Checking $day_dir" );
+					( $day_dir ) = ( $day_dir =~ /^(.*)$/ ); # De-taint
+						chdir( $day_dir );
+					opendir( DIR, "." )
+						or Fatal( "Can't open directory '$day_dir': $!" );
+					my @event_links = sort { $b <=> $a } grep { -l $_ } readdir( DIR );
+					closedir( DIR );
+					my $count = 0;
+					foreach my $event_link ( @event_links )
+					{
+						Debug( "Checking link $event_link" );
+						( my $event = $event_link ) =~ s/^.*\.//;
+						my $event_path = readlink( $event_link );
+						if ( $count++ > MAX_AGED_DIRS )
+						{
+							$fs_events->{$event} = -1;
+						}
+						else
+						{
+							if ( !-e $event_path )
+							{
+								aud_print( "Event link $day_dir/$event_link does not point to valid target" );
+								if ( confirm() )
+								{
+									( $event_link ) = ( $event_link =~ /^(.*)$/ ); # De-taint
+										unlink( $event_link );
+									$cleaned = 1;
+								}
+							}
+							else
+							{
+								$fs_events->{$event} = (time() - ($^T - ((-M $event_path) * 24*60*60)));
+							}
+						}
+					}
+					chdir( $Storage->Path() );
+				}
+			}
+			else
+			{
+				chdir( $monitor_dir );
+				opendir( DIR, "." ) or Fatal( "Can't open directory '$monitor_dir': $!" );
+				my @temp_events = sort { $b <=> $a } grep { -d $_ && $_ =~ /^\d+$/ } readdir( DIR );
+				closedir( DIR );
+				my $count = 0;
+				foreach my $event ( @temp_events )
+				{
+					if ( $count++ > MAX_AGED_DIRS )
+					{
+						$fs_events->{$event} = -1;
+					}
+					else
+					{
+						$fs_events->{$event} = (time() - ($^T - ((-M $event) * 24*60*60)));
+					}
+				}
+				chdir( $Storage->Path() );
+			} # if USE_DEEP_STORAGE
+			Debug( "Got ".int(keys(%$fs_events))." events\n" );
+		} # end foreach monitor
+		redo MAIN if ( $cleaned );
 
-        aud_print( "Filesystem monitor link '$link' does not point to valid monitor directory" );
-        if ( confirm() )
-        {
-            ( $link ) = ( $link =~ /^(.*)$/ ); # De-taint
-            my $command = "rm $link";
-            executeShellCommand( $command );
-            $cleaned = 1;
-        }
-    }
+		$cleaned = 0;
+		while ( my ( $fs_monitor, $fs_events ) = each(%$fs_monitors) )
+		{
+			if ( my $db_events = $db_monitors->{$fs_monitor} )
+			{
+				if ( $fs_events )
+				{
+					while ( my ( $fs_event, $age ) = each(%$fs_events ) )
+					{
+						if ( !defined($db_events->{$fs_event}) && ($age < 0 || ($age > $Config{ZM_AUDIT_MIN_AGE})) )
+						{
+							aud_print( "Filesystem event '$fs_monitor/$fs_event' does not exist in database" );
+							if ( confirm() )
+							{
+								my $Event = new ZoneMinder::Event( $fs_event );
+								$Event->delete_files();
+								$cleaned = 1;
+							}
+						}
+					}
+				}
+			}
+			else
+			{
+				aud_print( "Filesystem monitor '$fs_monitor' does not exist in database" );
+				if ( confirm() )
+				{
+					my $command = "rm -rf $fs_monitor";
+					executeShellCommand( $command );
+					$cleaned = 1;
+				}
+			}
+		}
+
+		my $monitor_links;
+		foreach my $link ( glob("*") )
+		{
+			next if ( !-l $link );
+			next if ( -e $link );
+
+			aud_print( "Filesystem monitor link '$link' does not point to valid monitor directory" );
+			if ( confirm() )
+			{
+				( $link ) = ( $link =~ /^(.*)$/ ); # De-taint
+					my $command = "rm $link";
+				executeShellCommand( $command );
+				$cleaned = 1;
+			}
+		}
+	} # end foreach Storage Area
     redo MAIN if ( $cleaned );
 
     $cleaned = 0;
@@ -349,7 +358,8 @@ MAIN: while( $loop ) {
                 #$cleaned = 1;
             #}
         }
-    }
+    } # end foreach db monitors
+
     redo MAIN if ( $cleaned );
 
     # Remove orphaned events (with no monitor)
@@ -553,7 +563,7 @@ MAIN: while( $loop ) {
                 ;
             }
         }
-    }
+    } # end if ZM_LOG_DATABASE_LIMIT
     $loop = $continuous;
 
     sleep( $Config{ZM_AUDIT_CHECK_INTERVAL} ) if $continuous;

@@ -1,3 +1,9 @@
+zoneminder (1.29.109-trusty-2015122201) trusty; urgency=medium
+
+  * merge multi-server, and master stuff, start work on zmaudit storage areas support
+
+ -- Isaac Connor <iconnor@testing.internal.point-one.com>  Tue, 22 Dec 2015 11:11:44 -0500
+
 zoneminder (1.29.109-trusty-2015122103) trusty; urgency=medium
 
   * Fixes

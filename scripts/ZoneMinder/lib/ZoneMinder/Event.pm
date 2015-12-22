@@ -28,30 +28,10 @@ use 5.006;
 use strict;
 use warnings;
 
-require Exporter;
 require ZoneMinder::Base;
 require Date::Manip;
 
-our @ISA = qw(Exporter ZoneMinder::Object);
-
-# Items to export into callers namespace by default. Note: do not export
-# names by default without a very good reason. Use EXPORT_OK instead.
-# Do not simply export all your public functions/methods/constants.
-
-# This allows declaration   use ZoneMinder ':all';
-# If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
-# will save memory.
-our %EXPORT_TAGS = (
-    'functions' => [ qw(
-    ) ]
-);
-push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
-
-our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
-
-our @EXPORT = qw();
-
-our $VERSION = $ZoneMinder::Base::VERSION;
+our @ISA = qw(ZoneMinder::Object);
 
 # ==========================================================================
 #
@@ -294,7 +274,11 @@ sub delete_files {
 	chdir ( $storage_path );
 
     if ( $Config{ZM_USE_DEEP_STORAGE} )
-    {
+	{
+		if ( ! $_[0]{MonitorId} ) {
+			Error("No monitor id assigned to event $_[0]{Id}");
+			return;
+        }
 		Debug("Deleting files for Event $_[0]{Id} from $storage_path.");
         my $link_path = $_[0]{MonitorId}."/*/*/*/.".$_[0]{Id};
         #Debug( "LP1:$link_path" );

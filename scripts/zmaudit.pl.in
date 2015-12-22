@@ -178,10 +178,11 @@ MAIN: while( $loop ) {
         Debug( "Got ".int(keys(%$db_events))." events\n" );
     }
 
+	my $fs_monitors;
+
 	foreach my $Storage ( new ZoneMinder::Storage(), ZoneMinder::Storage->find( ) ) {
 		chdir( $Storage->Path() );
 
-		my $fs_monitors;
 		foreach my $monitor ( glob("[0-9]*") )
 		{
 			Debug( "Found filesystem monitor '$monitor'" );

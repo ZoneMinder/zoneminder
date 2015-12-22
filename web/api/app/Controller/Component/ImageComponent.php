@@ -48,7 +48,7 @@ class ImageComponent extends Component {
 			$imageFile = $config['ZM_DIR_EVENTS']."/".$imagePath;
 			//$thumbFile = ZM_DIR_EVENTS."/".$thumbPath;
 			$thumbFile = $thumbPath;
-			// PP: This segment of code results in errors when trying to get Events API
+			// This segment of code results in errors when trying to get Events API
 			// This actually seems to be generating images for the angular UI web view
 			// and should not be a part of the API anyway
 			// I've commented it so events APIs continue to work

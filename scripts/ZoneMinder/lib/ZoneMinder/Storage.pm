@@ -93,6 +93,41 @@ sub load {
 	} # end if
 } # end sub load
 
+sub find {
+    shift if $_[0] eq 'ZoneMinder::Storage';
+    my %sql_filters = @_;
+
+    my $sql = 'SELECT * FROM Storage';
+    my @sql_filters;
+    my @sql_values;
+
+    if ( exists $sql_filters{Name} ) {
+        push @sql_filters , ' Name = ? ';
+        push @sql_values, $sql_filters{Name};
+    }
+
+    $sql .= ' WHERE ' . join(' AND ', @sql_filters ) if @sql_filters;
+    $sql .= ' LIMIT ' . $sql_filters{limit} if $sql_filters{limit};
+
+    my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
+        or Fatal( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
+    my $res = $sth->execute( @sql_values )
+            or Fatal( "Can't execute '$sql': ".$sth->errstr() );
+
+    my @results;
+
+    while( my $db_filter = $sth->fetchrow_hashref() ) {
+        my $filter = new ZoneMinder::Storage( $$db_filter{Id}, $db_filter );
+        push @results, $filter;
+    } # end while
+    return @results;
+}
+
+sub find_one {
+    my @results = find(@_);
+    return $results[0] if @results;
+}
+
 sub Path {
 	if ( @_ > 1 ) {
 		$_[0]{Path} = $_[1];

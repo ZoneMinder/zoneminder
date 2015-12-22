@@ -274,6 +274,7 @@ MAIN: while( $loop ) {
 							if ( confirm() )
 							{
 								my $Event = new ZoneMinder::Event( $fs_event );
+								$Event->MonitorId( $fs_monitor );
 								$Event->delete_files();
 								$cleaned = 1;
 							}

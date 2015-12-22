@@ -30,6 +30,7 @@ use warnings;
 
 require Exporter;
 require ZoneMinder::Base;
+require ZoneMinder::Object;
 
 our @ISA = qw(Exporter ZoneMinder::Object);
 

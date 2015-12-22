@@ -1,6 +1,6 @@
 # ==========================================================================
 #
-# ZoneMinder Storage Module, $Date$, $Revision$
+# ZoneMinder Object Module, $Date$, $Revision$
 # Copyright (C) 2001-2008  Philip Coombes
 #
 # This program is free software; you can redistribute it and/or
@@ -22,7 +22,7 @@
 # This module contains the common definitions and functions used by the rest
 # of the ZoneMinder scripts
 #
-package ZoneMinder::Storage;
+package ZoneMinder::Object;
 
 use 5.006;
 use strict;
@@ -31,7 +31,7 @@ use warnings;
 require Exporter;
 require ZoneMinder::Base;
 
-our @ISA = qw(Exporter ZoneMinder::Object);
+our @ISA = qw(Exporter ZoneMinder::Base);
 
 # Items to export into callers namespace by default. Note: do not export
 # names by default without a very good reason. Use EXPORT_OK instead.
@@ -64,57 +64,49 @@ use ZoneMinder::Database qw(:all);
 
 use POSIX;
 
-__PACKAGE__->table('Storage');
-__PACKAGE__->primary_key('Id');
+use vars qw/ $table $primary_key /;
 
-sub find {
-    shift if $_[0] eq 'ZoneMinder::Storage';
-    my %sql_filters = @_;
-
-    my $sql = 'SELECT * FROM Storage';
-    my @sql_filters;
-    my @sql_values;
-
-    if ( exists $sql_filters{Name} ) {
-        push @sql_filters , ' Name = ? ';
-        push @sql_values, $sql_filters{Name};
-    }
-
-    $sql .= ' WHERE ' . join(' AND ', @sql_filters ) if @sql_filters;
-    $sql .= ' LIMIT ' . $sql_filters{limit} if $sql_filters{limit};
-
-    my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
-        or Fatal( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
-    my $res = $sth->execute( @sql_values )
-            or Fatal( "Can't execute '$sql': ".$sth->errstr() );
-
-    my @results;
-
-    while( my $db_filter = $sth->fetchrow_hashref() ) {
-        my $filter = new ZoneMinder::Storage( $$db_filter{Id}, $db_filter );
-        push @results, $filter;
-    } # end while
-    return @results;
+sub table {
+	$table = $_[1];
 }
 
-sub find_one {
-    my @results = find(@_);
-    return $results[0] if @results;
+sub primary_key {
+	$primary_key = $_[1];
 }
 
-sub Path {
-	if ( @_ > 1 ) {
-		$_[0]{Path} = $_[1];
-	}
-	return $_[0]{Path};
-} # end sub Path
+sub new {
+    my ( $parent, $id, $data ) = @_;
 
-sub Name {
-	if ( @_ > 1 ) {
-		$_[0]{Name} = $_[1];
+	my $self = {};
+	bless $self, $parent;
+	if ( ( $$self{$primary_key} = $id ) or $data ) {
+#$log->debug("loading $parent $id") if $debug or DEBUG_ALL;
+		$self->load( $data );
 	}
-	return $_[0]{Name};
-} # end sub Path
+	return $self;
+} # end sub new
+
+sub load {
+	my ( $self, $data ) = @_;
+	my $type = ref $self;
+	if ( ! $data ) {
+		if ( ! $$self{$primary_key} ) { 
+			my ( $caller, undef, $line ) = caller;
+			Error( (ref $self) . "::load called without $primary_key from $caller:$line");
+		} else {
+	#$log->debug("Object::load Loading from db $type");
+			$data = $ZoneMinder::Database::dbh->selectrow_hashref( "SELECT * FROM $table WHERE $primary_key=?", {}, $$self{$primary_key} );
+			if ( ! $data ) {
+				if ( $ZoneMinder::Database::dbh->errstr ) {
+					Error( "Failure to load Object record for $$self{$primary_key}: Reason: " . $ZoneMinder::Database::dbh->errstr );
+				} # end if
+			} # end if
+		} # end if
+	} # end if ! $data
+	if ( $data and %$data ) {
+		@$self{keys %$data} = values %$data;
+	} # end if
+} # end sub load
 
 1;
 __END__
@@ -126,8 +118,9 @@ ZoneMinder::Database - Perl extension for blah blah blah
 
 =head1 SYNOPSIS
 
-  use ZoneMinder::Storage;
-  blah blah blah
+  use ZoneMinder::Object;
+  
+  This package should likely not be used directly, as it is meant mainly to be a parent for all other ZoneMinder classes.
 
 =head1 DESCRIPTION
 

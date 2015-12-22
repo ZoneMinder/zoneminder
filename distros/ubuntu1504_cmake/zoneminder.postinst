@@ -23,7 +23,7 @@ if [ "$1" = "configure" ]; then
 		zmupdate.pl --nointeractive
 	else
 		echo "Not doing database upgrade due to remote db server ($ZM_DB_HOST)"
-	fi;
+ 	fi;
 
 fi
 

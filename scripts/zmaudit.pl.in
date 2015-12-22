@@ -115,6 +115,7 @@ if ( ($report + $interactive + $continuous) > 1 )
 my $dbh = zmDbConnect();
 
 require ZoneMinder::Storage;
+require ZoneMinder::Event;
 
 my $max_image_age = 6/24; # 6 hours
 my $max_swap_age = 24/24; # 24 hours
@@ -183,8 +184,11 @@ MAIN: while( $loop ) {
 	foreach my $Storage ( new ZoneMinder::Storage(), ZoneMinder::Storage->find( ) ) {
 		chdir( $Storage->Path() );
 
+		# Please note that this glob will take all files beginning with a digit. 
 		foreach my $monitor ( glob("[0-9]*") )
 		{
+			next if $monitor =~ /\D/;
+
 			Debug( "Found filesystem monitor '$monitor'" );
 			my $fs_events = $fs_monitors->{$monitor} = {};
 			( my $monitor_dir ) = ( $monitor =~ /^(.*)$/ ); # De-taint

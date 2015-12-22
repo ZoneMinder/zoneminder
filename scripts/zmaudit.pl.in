@@ -277,6 +277,7 @@ MAIN: while( $loop ) {
 								$Event->MonitorId( $fs_monitor );
 								$Event->delete_files();
 								$cleaned = 1;
+								delete $fs_events->{$fs_event};
 							}
 						}
 					}

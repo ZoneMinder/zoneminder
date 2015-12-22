@@ -266,8 +266,8 @@ MAIN: while( $loop ) {
 			{
 				if ( $fs_events )
 				{
-					while ( my ( $fs_event, $age ) = each(%$fs_events ) )
-					{
+					foreach my $fs_event ( sort { $a <=> $b } keys %$fs_events ) {
+						my $age = $fs_events->{$fs_event};
 						if ( !defined($db_events->{$fs_event}) && ($age < 0 || ($age > $Config{ZM_AUDIT_MIN_AGE})) )
 						{
 							aud_print( "Filesystem event '$fs_monitor/$fs_event' does not exist in database" );

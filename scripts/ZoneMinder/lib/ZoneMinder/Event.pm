@@ -32,7 +32,7 @@ require Exporter;
 require ZoneMinder::Base;
 require Date::Manip;
 
-our @ISA = qw(Exporter ZoneMinder::Base);
+our @ISA = qw(Exporter ZoneMinder::Object);
 
 # Items to export into callers namespace by default. Note: do not export
 # names by default without a very good reason. Use EXPORT_OK instead.
@@ -63,37 +63,10 @@ use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Database qw(:all);
 
+__PACKAGE__->table('Events');
+__PACKAGE__->primary_key('Id');
+
 use POSIX;
-
-sub new {
-    my ( $parent, $id, $data ) = @_;
-
-	my $self = {};
-	bless $self, $parent;
-#zmDbConnect();
-	if ( ( $$self{Id} = $id ) or $data ) {
-#$log->debug("loading $parent $id") if $debug or DEBUG_ALL;
-		$self->load( $data );
-	}
-	return $self;
-} # end sub new
-
-sub load {
-	my ( $self, $data ) = @_;
-	my $type = ref $self;
-	if ( ! $data ) {
-#$log->debug("Object::load Loading from db $type");
-		$data = $ZoneMinder::Database::dbh->selectrow_hashref( 'SELECT * FROM Events WHERE Id=?', {}, $$self{Id} );
-		if ( ! $data ) {
-				Error( "Failure to load Event record for $$self{Id}: Reason: " . $ZoneMinder::Database::dbh->errstr );
-		} else {
-			Debug( 3, "Loaded Event $$self{Id}" );	
-		} # end if
-	} # end if ! $data
-	if ( $data and %$data ) {
-		@$self{keys %$data} = values %$data;
-	} # end if
-} # end sub load
 
 sub Name {
 	if ( @_ > 1 ) {
@@ -322,7 +295,7 @@ sub delete_files {
 
     if ( $Config{ZM_USE_DEEP_STORAGE} )
     {
-		Debug("Deleting files for Event $_[0]{Id} from $storage_path. Storage Id was $_[0]{StorageId}");
+		Debug("Deleting files for Event $_[0]{Id} from $storage_path.");
         my $link_path = $_[0]{MonitorId}."/*/*/*/.".$_[0]{Id};
         #Debug( "LP1:$link_path" );
         my @links = glob($link_path);

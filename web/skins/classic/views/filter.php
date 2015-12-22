@@ -244,6 +244,7 @@ for ( $i = 0; isset($_REQUEST['filter']) && $i < count($_REQUEST['filter']['term
         elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "StorageId" )
         {
             $storageareas = array();
+			$storageareas['NULL'] = 'Default ' . ZM_DIR_EVENTS;
             foreach ( dbFetchAll( "SELECT Id,Name FROM Storage ORDER BY lower(Name) ASC" ) as $storage )
             {
                     $storageareas[$storage['Id']] = $storage['Name'];

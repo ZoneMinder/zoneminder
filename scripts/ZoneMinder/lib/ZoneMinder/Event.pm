@@ -29,6 +29,7 @@ use strict;
 use warnings;
 
 require ZoneMinder::Base;
+require ZoneMinder::Object;
 require Date::Manip;
 
 our @ISA = qw(ZoneMinder::Object);

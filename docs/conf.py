@@ -87,6 +87,8 @@ exclude_patterns = ['_build']
 # output. They are ignored by default.
 #show_authors = False
 
+import sphinx_rtd_theme
+
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
 
@@ -113,6 +115,7 @@ html_theme = 'sphinx_rtd_theme'
 
 # Add any paths that contain custom themes here, relative to this directory.
 #html_theme_path = []
+html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".

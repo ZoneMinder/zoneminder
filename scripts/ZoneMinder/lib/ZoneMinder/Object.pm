@@ -42,7 +42,7 @@ use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Database qw(:all);
 
-use vars qw/ $table $primary_key /;
+use vars qw/ $AUTOLOAD /;
 
 sub new {
     my ( $parent, $id, $data ) = @_;
@@ -99,6 +99,18 @@ sub load {
 		@$self{keys %$data} = values %$data;
 	} # end if
 } # end sub load
+
+sub AUTOLOAD {
+    my ( $self, $newvalue ) = @_;
+    my $type = ref($_[0]);
+    my $name = $AUTOLOAD;
+    $name =~ s/.*://;
+   if ( @_ > 1 ) {
+        return $_[0]{$name} = $_[1];
+	}
+return $_[0]{$name};
+}
+
 
 1;
 __END__

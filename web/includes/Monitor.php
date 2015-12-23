@@ -5,16 +5,19 @@ require_once( 'Server.php' );
 class Monitor {
 	public function __construct( $IdOrRow ) {
 		$row = NULL;
-		if ( is_int( $IdOrRow ) ) {
-			$row = dbFetchOne( 'SELECT * FROM Monitors WHERE Id=?', NULL, array( $IdOrRow ) );
-		} else if ( is_numeric( $IdOrRow ) ) {
-			$row = dbFetchOne( 'SELECT * FROM Monitors WHERE Id=?', NULL, array( $IdOrRow ) );
-		} else if ( is_array($IdOrRow) ) {
-			$row = $IdOrRow;
-		} else {
-			Error("Unknown argument passed to Monitor Constructor ($IdOrRow)");
-			return;
-		}
+        if ( $IdOrRow ) {
+            if ( is_integer( $IdOrRow ) or is_numeric( $IdOrRow ) ) {
+				$row = dbFetchOne( 'SELECT * FROM Monitors WHERE Id=?', NULL, array( $IdOrRow ) );
+                if ( ! $row ) {
+                    Error("Unable to load Server record for Id=" . $IdOrRow );
+                }
+            } elseif ( is_array( $IdOrRow ) ) {
+                $row = $IdOrRow;
+			} else {
+				Error("Unknown argument passed to Monitor Constructor ($IdOrRow)");
+				return;
+            }
+        } # end if isset($IdOrRow)
 
 		if ( $row ) {
 			foreach ($row as $k => $v) {

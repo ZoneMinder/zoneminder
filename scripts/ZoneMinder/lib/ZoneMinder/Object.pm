@@ -49,6 +49,12 @@ sub new {
 
 	my $self = {};
 	bless $self, $parent;
+		no strict 'refs';
+		my $primary_key = ${$parent.'::primary_key'};
+		if ( ! $primary_key ) {
+			Error( 'NO primary_key for type ' . $parent );
+			return;
+		} # end if
 	if ( ( $$self{$primary_key} = $id ) or $data ) {
 #$log->debug("loading $parent $id") if $debug or DEBUG_ALL;
 		$self->load( $data );

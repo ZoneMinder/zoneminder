@@ -31,7 +31,7 @@ use warnings;
 require ZoneMinder::Base;
 require Date::Manip;
 
-use parent qw(ZoneMinder::Object);;
+use parent qw(ZoneMinder::Object);
 #our @ISA = qw(ZoneMinder::Object);
 
 use vars qw/ $table $primary_key /;
@@ -114,8 +114,8 @@ sub Execute {
         $sql =~ s/zmSystemLoad/$load/g;
     }
 
-    my $sth = $$self{dbh}->prepare_cached( $sql )
-        or Fatal( "Can't prepare '$sql': ".$$self{dbh}->errstr() );
+    my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
+        or Fatal( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
     my $res = $sth->execute();
     if ( !$res )
     {

@@ -28,31 +28,15 @@ use 5.006;
 use strict;
 use warnings;
 
-require Exporter;
 require ZoneMinder::Base;
 require Date::Manip;
 
-our @ISA = qw(Exporter ZoneMinder::Base);
+use parent qw(ZoneMinder::Object);;
+#our @ISA = qw(ZoneMinder::Object);
 
-# Items to export into callers namespace by default. Note: do not export
-# names by default without a very good reason. Use EXPORT_OK instead.
-# Do not simply export all your public functions/methods/constants.
-
-# This allows declaration   use ZoneMinder ':all';
-# If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
-# will save memory.
-our %EXPORT_TAGS = (
-    'functions' => [ qw(
-    ) ]
-);
-push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
-
-our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
-
-our @EXPORT = qw();
-
-our $VERSION = $ZoneMinder::Base::VERSION;
-
+use vars qw/ $table $primary_key /;
+$table = 'Events';
+$primary_key = 'Id';
 # ==========================================================================
 #
 # General Utility Functions
@@ -66,37 +50,6 @@ require ZoneMinder::Storage;
 require ZoneMinder::Server;
 
 use POSIX;
-
-sub new {
-    my ( $parent, $id, $data ) = @_;
-
-	my $self = {};
-	bless $self, $parent;
-    $$self{dbh} = $ZoneMinder::Database::dbh;
-#zmDbConnect();
-	if ( ( $$self{Id} = $id ) or $data ) {
-#$log->debug("loading $parent $id") if $debug or DEBUG_ALL;
-		$self->load( $data );
-	}
-	return $self;
-} # end sub new
-
-sub load {
-	my ( $self, $data ) = @_;
-	my $type = ref $self;
-	if ( ! $data ) {
-#$log->debug("Object::load Loading from db $type");
-		$data = $$self{dbh}->selectrow_hashref( 'SELECT * FROM Filter WHERE Id=?', {}, $$self{Id} );
-		if ( ! $data ) {
-				Error( "Failure to load Filter record for $$self{Id}: Reason: " . $$self{dbh}->errstr );
-		} else {
-			Debug( 3, "Loaded Filter $$self{Id}" );	
-		} # end if
-	} # end if ! $data
-	if ( $data and %$data ) {
-		@$self{keys %$data} = values %$data;
-	} # end if
-} # end sub load
 
 sub Name {
 	if ( @_ > 1 ) {

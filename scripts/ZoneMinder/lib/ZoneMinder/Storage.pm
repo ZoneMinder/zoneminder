@@ -28,30 +28,10 @@ use 5.006;
 use strict;
 use warnings;
 
-require Exporter;
 require ZoneMinder::Base;
 require ZoneMinder::Object;
 
-our @ISA = qw(Exporter ZoneMinder::Object);
-
-# Items to export into callers namespace by default. Note: do not export
-# names by default without a very good reason. Use EXPORT_OK instead.
-# Do not simply export all your public functions/methods/constants.
-
-# This allows declaration   use ZoneMinder ':all';
-# If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
-# will save memory.
-our %EXPORT_TAGS = (
-    'functions' => [ qw(
-    ) ]
-);
-push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
-
-our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
-
-our @EXPORT = qw();
-
-our $VERSION = $ZoneMinder::Base::VERSION;
+use parent qw(Exporter ZoneMinder::Object);
 
 # ==========================================================================
 #
@@ -65,8 +45,11 @@ use ZoneMinder::Database qw(:all);
 
 use POSIX;
 
-__PACKAGE__->table('Storage');
-__PACKAGE__->primary_key('Id');
+use vars qw/ $table $primary_key /;
+$table = 'Storage';
+$primary_key = 'Id';
+#__PACKAGE__->table('Storage');
+#__PACKAGE__->primary_key('Id');
 
 sub find {
     shift if $_[0] eq 'ZoneMinder::Storage';

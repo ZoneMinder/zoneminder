@@ -44,14 +44,6 @@ use ZoneMinder::Database qw(:all);
 
 use vars qw/ $table $primary_key /;
 
-sub table {
-	$table = $_[1];
-}
-
-sub primary_key {
-	$primary_key = $_[1];
-}
-
 sub new {
     my ( $parent, $id, $data ) = @_;
 
@@ -68,15 +60,31 @@ sub load {
 	my ( $self, $data ) = @_;
 	my $type = ref $self;
 	if ( ! $data ) {
+		no strict 'refs';
+		my $table = ${$type.'::table'};
+		if ( ! $table ) {
+			Error( 'NO table for type ' . $type );
+			return;
+		} # end if
+		my $primary_key = ${$type.'::primary_key'};
+		if ( ! $primary_key ) {
+			Error( 'NO primary_key for type ' . $type );
+			return;
+		} # end if
+
 		if ( ! $$self{$primary_key} ) { 
 			my ( $caller, undef, $line ) = caller;
 			Error( (ref $self) . "::load called without $primary_key from $caller:$line");
 		} else {
 	#$log->debug("Object::load Loading from db $type");
+			Debug("Loading $type from $table WHERE $primary_key = $$self{$primary_key}");
 			$data = $ZoneMinder::Database::dbh->selectrow_hashref( "SELECT * FROM $table WHERE $primary_key=?", {}, $$self{$primary_key} );
 			if ( ! $data ) {
 				if ( $ZoneMinder::Database::dbh->errstr ) {
 					Error( "Failure to load Object record for $$self{$primary_key}: Reason: " . $ZoneMinder::Database::dbh->errstr );
+				} else {
+			Debug("No Results Loading $type from $table WHERE $primary_key = $$self{$primary_key}");
+					
 				} # end if
 			} # end if
 		} # end if

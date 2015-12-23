@@ -32,7 +32,8 @@ require ZoneMinder::Base;
 require ZoneMinder::Object;
 require Date::Manip;
 
-our @ISA = qw(ZoneMinder::Object);
+#our @ISA = qw(ZoneMinder::Object);
+use parent qw(ZoneMinder::Object);
 
 # ==========================================================================
 #
@@ -44,8 +45,9 @@ use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Database qw(:all);
 
-__PACKAGE__->table('Events');
-__PACKAGE__->primary_key('Id');
+use vars qw/ $table $primary_key /;
+$table = 'Events';
+$primary_key = 'Id';
 
 use POSIX;
 

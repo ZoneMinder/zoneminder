@@ -30,6 +30,7 @@ use warnings;
 
 require ZoneMinder::Base;
 require ZoneMinder::Object;
+require ZoneMinder::Storage;
 require Date::Manip;
 
 #our @ISA = qw(ZoneMinder::Object);
@@ -325,6 +326,10 @@ sub delete_files {
         ZoneMinder::General::executeShellCommand( $command );
     }
 } # end sub delete_files
+
+sub Storage {
+	return new ZoneMinder::Storage( $_[0]{StorageId} );
+}
 
 1;
 __END__

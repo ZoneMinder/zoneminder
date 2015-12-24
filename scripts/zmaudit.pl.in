@@ -278,7 +278,9 @@ MAIN: while( $loop ) {
 							if ( confirm() )
 							{
 								my $Event = new ZoneMinder::Event( $fs_event );
+								# Must set these because the db event does not exist
 								$Event->MonitorId( $fs_monitor );
+								$Event->StorageId( $Storage->Id() );
 								$Event->delete_files();
 								$cleaned = 1;
 								delete $fs_events->{$fs_event};

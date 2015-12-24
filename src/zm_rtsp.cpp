@@ -203,9 +203,9 @@ RtspThread::RtspThread( int id, RtspMethod method, const std::string &protocol, 
     mNeedAuth = false;
     StringVector parts = split(auth,":");
     if (parts.size() > 1) 
-    	mAuthenticator = new Authenticator(parts[0], parts[1]);
+    	mAuthenticator = new zm::Authenticator(parts[0], parts[1]);
     else
-    	mAuthenticator = new Authenticator(parts[0], "");
+    	mAuthenticator = new zm::Authenticator(parts[0], "");
 }
 
 RtspThread::~RtspThread()

@@ -353,7 +353,7 @@ MAIN: while( $loop ) {
 								$cleaned = 1;
 							}
 						} else {
-							aud_print( "Database event '$db_monitor/$db_event' does not exist in filesystem but too young to delete." );
+							aud_print( "Database event '$$Storage{Path}/$db_monitor/$db_event' does not exist in filesystem but too young to delete.\n" );
 						}
                     }
                 }

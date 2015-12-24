@@ -63,6 +63,11 @@ sub find {
         push @sql_filters , ' Name = ? ';
         push @sql_values, $sql_filters{Name};
     }
+    if ( exists $sql_filters{ServerId} ) {
+	    push @sql_filters, ' Id IN ( SELECT StorageId FROM Monitors WHERE ServerId=? )';
+	    push @sql_values, $sql_filters{ServerId};
+    }
+
 
     $sql .= ' WHERE ' . join(' AND ', @sql_filters ) if @sql_filters;
     $sql .= ' LIMIT ' . $sql_filters{limit} if $sql_filters{limit};

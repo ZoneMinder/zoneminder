@@ -181,7 +181,11 @@ MAIN: while( $loop ) {
 
 	my $fs_monitors;
 
-	foreach my $Storage ( new ZoneMinder::Storage(), ZoneMinder::Storage->find( ) ) {
+	foreach my $Storage (
+			ZoneMinder::Storage->find( ($Config{ZM_SERVER_ID} ? ( ServerId => $Config{ZM_SERVER_ID} ) : () ) ),
+			new ZoneMinder::Storage(),
+			) {
+		Debug("Checking events in " . $Storage->Path() );
 		chdir( $Storage->Path() );
 
 		# Please note that this glob will take all files beginning with a digit. 

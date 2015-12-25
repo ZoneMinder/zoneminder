@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl -w
 package ONVIF::Serializer::Base;
 use strict;
 use warnings;

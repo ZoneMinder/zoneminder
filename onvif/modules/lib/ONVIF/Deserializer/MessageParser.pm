@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 package ONVIF::Deserializer::MessageParser;
 use strict; use warnings;
 

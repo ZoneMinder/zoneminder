@@ -357,7 +357,23 @@ our @options =
         type        => $types{boolean},
         category    => "system",
     },
-    # PP - Google reCaptcha settings
+    {
+        name        => "ZM_OPT_USE_API",
+        default     => "yes",
+        description => "Enable ZoneMinder APIs",
+        help        => qqq("
+		ZoneMinder now features a new API using which 3rd party
+		applications can interact with ZoneMinder data. It is 
+		STRONGLY recommended that you enable authentication along
+		with APIs. Note that the APIs return sensitive data like
+		Monitor access details which are configured as JSON objects.
+		Which is why we recommend you enabling authentication, especially
+		if you are exposing your ZM instance on the Internet.
+        "),
+        type        => $types{boolean},
+        category    => "system",
+    },
+# PP - Google reCaptcha settings
     {
 	name 		=> "ZM_OPT_USE_GOOG_RECAPTCHA",
 	default 	=> "no",
@@ -410,6 +426,7 @@ our @options =
 	type		=> $types {string},
 	category	=> "system",
     },
+    
 
     {
         name        => "ZM_DIR_EVENTS",
@@ -4044,6 +4061,58 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
         "),
         type        => $types{string},
         category    => "eyeZm",
+    },
+    {
+        name        => "ZM_PATH_PLUGINS",
+        default     => "@ZM_PLUGINSPKGLIBDIR@",
+        description => "Path to the plugin folder",
+        help        => "3d-party plugins have to be placed here.",
+        type        => $types{abs_path},
+        category    => "paths",
+    },
+    {
+        name        => "ZM_PLUGIN_EXTENSION",
+        default     => "@ZM_PLUGINSEXT@",
+        description => "Default extension of plugins to found.",
+        help        => "Default extension of plugins to found.",
+        type        => $types{rel_path},
+        category    => "paths",
+    },
+    {
+        name        => "ZM_PLUGINS_CONFIG_PATH",
+        default     => "@SYSCONFDIR@/plugins.conf",
+        description => "Path to the config file for plugins.",
+        help        => "Path to the config file for plugins.",
+        type        => $types{abs_path},
+        category    => "paths",
+    },
+    {
+        name        => "ZM_PLUGINS_CONFIG_DIR",
+        default     => "@ZM_PLUGINSCONFDIR@",
+        description => "Path to the config folder for plugins.",
+        help        => "Path to the config folder for plugins.",
+        type        => $types{abs_path},
+        category    => "paths",
+    },
+    {
+        name        => "ZM_LOAD_PLUGINS",
+        default     => "no",
+        description => "Load and use 3d-party plugins",
+        help        => "3d-party plugins will be loaded and used for analysing.",
+        type        => $types{boolean},
+        category    => "config",
+    },
+    {
+        name        => "ZM_TURNOFF_NATIVE_ANALYSIS",
+        default     => "no",
+        description => "Turn native ZM\'s image analysis possibility off",
+        help        => qqq("
+            Image analysis with ZM\'s motion detected function will be turned
+            off. Only detection functions from loaded plugins will be used.
+            Note, that if no plugins have be loaded, no detection will be done.
+        "),
+        type        => $types{boolean},
+        category    => "config",
     },
 );
 

@@ -2,7 +2,7 @@ Source: zoneminder
 Section: net
 Priority: optional
 Maintainer: Isaac Connor <iconnor@connortechnology.com>
-Build-Depends: debhelper (>= 9), po-debconf (>= 1.0), dh-systemd (>= 1.5), autoconf, automake, libphp-serialization-perl, libgnutls28-dev, libmysqlclient-dev | libmariadbclient-dev, libdbd-mysql-perl, libdate-manip-perl, libwww-perl, libjpeg8-dev | libjpeg9-dev | libjpeg62-turbo-dev, libpcre3-dev, libavcodec-dev, libavformat-dev (>= 3:0.svn20090204), libswscale-dev (>= 3:0.svn20090204), libavutil-dev, libv4l-dev (>= 0.8.3), libbz2-dev, libtool, libsys-mmap-perl, libnetpbm10-dev, libavdevice-dev, libdevice-serialport-perl, libarchive-zip-perl, libmime-lite-perl, dh-autoreconf, libvlccore-dev, libvlc-dev, libcurl4-gnutls-dev | libcurl4-nss-dev | libcurl4-openssl-dev, libgcrypt11-dev | libgcrypt20-dev, libpolkit-gobject-1-dev, libdbi-perl, libnet-sftp-foreign-perl, libexpect-perl, libmime-tools-perl
+Build-Depends: debhelper (>= 9), po-debconf (>= 1.0), dh-systemd (>= 1.5), autoconf, automake, libphp-serialization-perl, libgnutls28-dev, libmysqlclient-dev | libmariadbclient-dev, libdbd-mysql-perl, libdate-manip-perl, libwww-perl, libjpeg8-dev | libjpeg9-dev | libjpeg62-turbo-dev, libpcre3-dev, libavcodec-dev, libavformat-dev (>= 3:0.svn20090204), libswscale-dev (>= 3:0.svn20090204), libavutil-dev, libv4l-dev (>= 0.8.3), libbz2-dev, libtool, libsys-mmap-perl, libnetpbm10-dev, libavdevice-dev, libdevice-serialport-perl, libarchive-zip-perl, libmime-lite-perl, dh-autoreconf, libvlccore-dev, libvlc-dev, libcurl4-gnutls-dev | libcurl4-nss-dev | libcurl4-openssl-dev, libgcrypt11-dev | libgcrypt20-dev, libpolkit-gobject-1-dev, libdbi-perl, libnet-sftp-foreign-perl, libexpect-perl, libmime-tools-perl, libopenalpr-dev (>= 2.0.0), libboost-program-options1.55-dev, libopencv-dev, libopencv-core-dev, libopencv-imgproc-dev
 Standards-Version: 3.9.6
 
 Package: zoneminder
@@ -39,6 +39,15 @@ Description: Perl libraries for ZoneMinder
  .
  This package provides the libraries for the perl scripts, it can be used to
  write custom interfaces as well.
+
+Package: libzoneminder-dev
+Section: libdevel
+Architecture: any
+Depends: ${misc:Depends}
+Description: Development library for ZoneMinder plugins
+ ZoneMinder is a video camera security and surveillance solution.
+ .
+ This package provides the necessary files to develop video analysis plugins.
 
 Package: zoneminder-database
 Section: database
@@ -120,3 +129,12 @@ Description: XML interface for ZoneMinder
  .
  This package provides a XML interface mainly intended for use with the eyeZm
  iPhone Application, but can be used with any other custom programs as well.
+
+Package: libzoneminder-plugin-openalpr
+Section: libs
+Architecture: any
+Depends: zoneminder-core (= ${binary:Version}), ${shlibs:Depends},
+ ${misc:Depends}
+Description: License Plate Recognition plugin with openalpr library
+ This plugin add support for recognition of license plate number in zoneminder
+ with the use of the OpenALPR library.

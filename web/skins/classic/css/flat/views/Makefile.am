@@ -23,6 +23,7 @@ dist_web_DATA = \
 	montage.css \
 	montage_freeform.css \
 	options.css \
+	plugin.css \
 	stats.css \
 	timeline.css \
 	timeline.css.php \

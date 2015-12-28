@@ -4,9 +4,17 @@
 #
 cmake_minimum_required (VERSION 2.6)
 project (zoneminder)
-set(zoneminder_VERSION "1.28.108")
+set(zoneminder_VERSION "1.28.109")
+# Engine version is used for external plugin compilation
+set(ZM_ENGINE_VERSION 29)
 # make API version a minor of ZM version
 set(zoneminder_API_VERSION "${zoneminder_VERSION}.1")
+
+# Make sure the submodules are there
+if( NOT EXISTS "${CMAKE_SOURCE_DIR}/web/api/app/Plugin/Crud/Lib/CrudControllerTrait.php" )
+message( SEND_ERROR "The git submodules are not available. Please run
+git submodule update --init --recursive")
+endif( NOT EXISTS "${CMAKE_SOURCE_DIR}/web/api/app/Plugin/Crud/Lib/CrudControllerTrait.php" )
 
 # CMake does not allow out-of-source build if CMakeCache.exists 
 # in the source folder. Abort and notify the user
@@ -63,12 +71,14 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 # Modules that we need:
 include (GNUInstallDirs)
 include (CheckIncludeFile)
+include (CheckIncludeFileCXX)
 include (CheckIncludeFiles)
 include (CheckFunctionExists)
 include (CheckPrototypeDefinition_fixed)
 include (CheckTypeSize)
 include (CheckStructHasMember)
 include (CheckSendfile)
+include (FindPkgConfig)
 
 # Configuration options
 mark_as_advanced( 
@@ -79,7 +89,13 @@ mark_as_advanced(
     ZM_PERL_MM_PARMS 
     ZM_PERL_SEARCH_PATH 
     ZM_TARGET_DISTRO 
-    ZM_CONFIG_DIR)
+    ZM_CONFIG_DIR
+    ZM_PLUGIN_SUPPORT
+    ZM_PLUGIN_COMPIL
+    ZM_PLUGINSLIBDIR
+    ZM_PLUGINSPKGLIBDIR
+    ZM_PLUGINSCONFDIR
+    ZM_PLUGINSWEBDIR)
 
 set(ZM_RUNDIR "/var/run/zm" CACHE PATH 
     "Location of transient process files, default: /var/run/zm")
@@ -142,9 +158,30 @@ set(ZM_PERL_SEARCH_PATH "" CACHE PATH
 	installed outside Perl's default search path.")
 set(ZM_TARGET_DISTRO "" CACHE STRING 
     "Build ZoneMinder for a specific distribution.  Currently, valid names are: f21, f22, el6, el7, OS13")
+set(ZM_PLUGIN_SUPPORT "OFF" CACHE BOOL
+    "Set to ON to enable plugin support in ZoneMinder. This is EXPERIMENTAL, default: OFF")
+set(ZM_PLUGIN_COMPIL "OFF" CACHE BOOL
+    "Set to ON to enable compilation of internal plugins. This is EXPERIMENTAL, default: OFF")
+
+if(ZM_PLUGIN_SUPPORT)
+	set(ZM_PREFIX ${CMAKE_INSTALL_PREFIX})
+	set(ZM_PLUGINSLIBDIR "\${prefix}/${CMAKE_INSTALL_LIBDIR}" CACHE PATH
+	    "Location of the plugin development library, default: ${CMAKE_INSTALL_LIBDIR}")
+	set(ZM_PLUGINSPKGLIBDIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBEXECDIR}/zoneminder/plugins" CACHE PATH
+	    "Location of the plugin file, default: <prefix>/${CMAKE_INSTALL_LIBEXECDIR}/zoneminder/plugins")
+	set(ZM_PLUGINSCONFDIR "/${CMAKE_INSTALL_SYSCONFDIR}/plugins.d" CACHE PATH
+	    "Location of the plugin configuration files, default: /${CMAKE_INSTALL_SYSCONFDIR}/plugins.d")
+	set(ZM_PLUGINSWEBDIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/zoneminder/plugins" CACHE PATH
+	    "Location of the plugin web files, default: <prefix>/${CMAKE_INSTALL_DATADIR}/zoneminder/plugins")
+	set(ZM_PROJECTNAME ${CMAKE_PROJECT_NAME})
+	set(ZM_PLUGINSEXT ".so" CACHE STRING
+	    "Plugin extension, default: .so")
+	add_definitions(-DDEFAULT_PLUGIN_EXT=\"${ZM_PLUGIN_EXT}\")
+	add_definitions(-DZM_PLUGINS_ON=1)
+endif(ZM_PLUGIN_SUPPORT)
 
 # Reassign some variables if a target distro has been specified
-if((ZM_TARGET_DISTRO STREQUAL "f21") OR (ZM_TARGET_DISTRO STREQUAL "f22"))
+if((ZM_TARGET_DISTRO STREQUAL "f22") OR (ZM_TARGET_DISTRO STREQUAL "f23"))
 	set(ZM_RUNDIR "/var/run/zoneminder")
 	set(ZM_SOCKDIR "/var/lib/zoneminder/sock")
 	set(ZM_TMPDIR "/var/lib/zoneminder/temp")
@@ -176,7 +213,7 @@ elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
 	set(ZM_WEB_GROUP "www")
 	set(ZM_WEBDIR "/srv/www/htdocs/zoneminder")
 	set(ZM_CGIDIR "/srv/www/cgi-bin")
-endif((ZM_TARGET_DISTRO STREQUAL "f21") OR (ZM_TARGET_DISTRO STREQUAL "f22"))
+endif((ZM_TARGET_DISTRO STREQUAL "f22") OR (ZM_TARGET_DISTRO STREQUAL "f23"))
 
 # Required for certain checks to work
 set(CMAKE_EXTRA_INCLUDE_FILES 
@@ -230,6 +267,7 @@ find_package(ZLIB)
 if(ZLIB_FOUND)
 	set(HAVE_LIBZLIB 1)
 	list(APPEND ZM_BIN_LIBS "${ZLIB_LIBRARIES}")
+	set(LIBS "${LIBS} -lz")
 	include_directories("${ZLIB_INCLUDE_DIR}")
 	set(CMAKE_REQUIRED_INCLUDES "${ZLIB_INCLUDE_DIR}")
 	check_include_file("zlib.h" HAVE_ZLIB_H)
@@ -245,6 +283,7 @@ if(NOT ZM_NO_CURL)
 	if(CURL_FOUND)
 		set(HAVE_LIBCURL 1)
 		list(APPEND ZM_BIN_LIBS ${CURL_LIBRARIES})
+		set(LIBS "${LIBS} -lcurl")
 		include_directories(${CURL_INCLUDE_DIRS})
 		set(CMAKE_REQUIRED_INCLUDES ${CURL_INCLUDE_DIRS})
 		check_include_file("curl/curl.h" HAVE_CURL_CURL_H)
@@ -259,6 +298,7 @@ find_package(JPEG)
 if(JPEG_FOUND)
 	set(HAVE_LIBJPEG 1)
 	list(APPEND ZM_BIN_LIBS "${JPEG_LIBRARIES}")
+	set(LIBS "${LIBS} -ljpeg")
 	#link_directories(${JPEG_LIBRARY})
 	include_directories("${JPEG_INCLUDE_DIR}")
 	set(CMAKE_REQUIRED_INCLUDES "${JPEG_INCLUDE_DIR}")
@@ -278,6 +318,7 @@ if(OPENSSL_FOUND)
 	set(HAVE_LIBOPENSSL 1)
 	set(HAVE_LIBCRYPTO 1)
 	list(APPEND ZM_BIN_LIBS "${OPENSSL_LIBRARIES}")
+	set(LIBS "${LIBS} -lssl -lcrypto")
 	include_directories("${OPENSSL_INCLUDE_DIR}")
 	set(CMAKE_REQUIRED_INCLUDES "${OPENSSL_INCLUDE_DIR}")
 	check_include_file("openssl/md5.h" HAVE_OPENSSL_MD5_H)
@@ -291,6 +332,7 @@ find_library(PTHREAD_LIBRARIES pthread)
 if(PTHREAD_LIBRARIES)
 	set(HAVE_LIBPTHREAD 1)
 	list(APPEND ZM_BIN_LIBS "${PTHREAD_LIBRARIES}")
+	set(LIBS "${LIBS} -lpthread")
 	find_path(PTHREAD_INCLUDE_DIR pthread.h)
 	if(PTHREAD_INCLUDE_DIR)
 		include_directories("${PTHREAD_INCLUDE_DIR}")
@@ -312,6 +354,7 @@ find_library(PCRE_LIBRARIES pcre)
 if(PCRE_LIBRARIES)
 	set(HAVE_LIBPCRE 1)
 	list(APPEND ZM_BIN_LIBS "${PCRE_LIBRARIES}")
+	set(LIBS "${LIBS} -lpcre")
 	find_path(PCRE_INCLUDE_DIR pcre.h)
 	if(PCRE_INCLUDE_DIR)
 		include_directories("${PCRE_INCLUDE_DIR}")
@@ -329,6 +372,7 @@ find_library(GCRYPT_LIBRARIES gcrypt)
 if(GCRYPT_LIBRARIES)
 	set(HAVE_LIBGCRYPT 1)
 	list(APPEND ZM_BIN_LIBS "${GCRYPT_LIBRARIES}")
+	set(LIBS "${LIBS} -lgcrypt")
 	find_path(GCRYPT_INCLUDE_DIR gcrypt.h)
 	if(GCRYPT_INCLUDE_DIR)
 		include_directories("${GCRYPT_INCLUDE_DIR}")
@@ -350,6 +394,7 @@ endif(NOT GNUTLS_LIBRARIES)
 if(GNUTLS_LIBRARIES)
 	set(HAVE_LIBGNUTLS 1)
 	list(APPEND ZM_BIN_LIBS "${GNUTLS_LIBRARIES}")
+	set(LIBS "${LIBS} -lgnutls-openssl")
 	find_path(GNUTLS_INCLUDE_DIR gnutls/gnutls.h)
 	if(GNUTLS_INCLUDE_DIR)
 		include_directories("${GNUTLS_INCLUDE_DIR}")
@@ -368,6 +413,7 @@ find_library(MYSQLCLIENT_LIBRARIES mysqlclient PATH_SUFFIXES mysql)
 if(MYSQLCLIENT_LIBRARIES)
 	set(HAVE_LIBMYSQLCLIENT 1)
 	list(APPEND ZM_BIN_LIBS "${MYSQLCLIENT_LIBRARIES}")
+	set(LIBS "${LIBS} -lmysqlclient")
 	find_path(MYSQLCLIENT_INCLUDE_DIR mysql/mysql.h)
 	if(MYSQLCLIENT_INCLUDE_DIR)
 		include_directories("${MYSQLCLIENT_INCLUDE_DIR}")
@@ -393,6 +439,7 @@ if(NOT ZM_NO_FFMPEG)
 	if(AVFORMAT_LIBRARIES)
 		set(HAVE_LIBAVFORMAT 1)
 		list(APPEND ZM_BIN_LIBS "${AVFORMAT_LIBRARIES}")
+		set(LIBS "${LIBS} -lavformat")
 		find_path(AVFORMAT_INCLUDE_DIR "libavformat/avformat.h" /usr/include/ffmpeg)
 		if(AVFORMAT_INCLUDE_DIR)
 			include_directories("${AVFORMAT_INCLUDE_DIR}")
@@ -410,6 +457,7 @@ if(NOT ZM_NO_FFMPEG)
 	if(AVCODEC_LIBRARIES)
 		set(HAVE_LIBAVCODEC 1)
 		list(APPEND ZM_BIN_LIBS "${AVCODEC_LIBRARIES}")
+		set(LIBS "${LIBS} -lavcodec")
 		find_path(AVCODEC_INCLUDE_DIR "libavcodec/avcodec.h" /usr/include/ffmpeg)
 		if(AVCODEC_INCLUDE_DIR)
 			include_directories("${AVCODEC_INCLUDE_DIR}")
@@ -427,6 +475,7 @@ if(NOT ZM_NO_FFMPEG)
 	if(AVDEVICE_LIBRARIES)
 		set(HAVE_LIBAVDEVICE 1)
 		list(APPEND ZM_BIN_LIBS "${AVDEVICE_LIBRARIES}")
+		set(LIBS "${LIBS} -lavdevice")
 		find_path(AVDEVICE_INCLUDE_DIR "libavdevice/avdevice.h" /usr/include/ffmpeg)
 		if(AVDEVICE_INCLUDE_DIR)
 			include_directories("${AVDEVICE_INCLUDE_DIR}")
@@ -444,6 +493,7 @@ if(NOT ZM_NO_FFMPEG)
 	if(AVUTIL_LIBRARIES)
 		set(HAVE_LIBAVUTIL 1)
 		list(APPEND ZM_BIN_LIBS "${AVUTIL_LIBRARIES}")
+		set(LIBS "${LIBS} -lavutil")
 		find_path(AVUTIL_INCLUDE_DIR "libavutil/avutil.h" /usr/include/ffmpeg)
 		if(AVUTIL_INCLUDE_DIR)
 			include_directories("${AVUTIL_INCLUDE_DIR}")
@@ -462,6 +512,7 @@ if(NOT ZM_NO_FFMPEG)
 	if(SWSCALE_LIBRARIES)
 		set(HAVE_LIBSWSCALE 1)
 		list(APPEND ZM_BIN_LIBS "${SWSCALE_LIBRARIES}")
+		set(LIBS "${LIBS} -lswscale")
 		find_path(SWSCALE_INCLUDE_DIR "libswscale/swscale.h" /usr/include/ffmpeg)
 		if(SWSCALE_INCLUDE_DIR)
 			include_directories("${SWSCALE_INCLUDE_DIR}")
@@ -493,6 +544,7 @@ if(NOT ZM_NO_LIBVLC)
 	if(LIBVLC_LIBRARIES)
 		set(HAVE_LIBVLC 1)
 		list(APPEND ZM_BIN_LIBS "${LIBVLC_LIBRARIES}")
+		set(LIBS "${LIBS} -lvlc")
 		find_path(LIBVLC_INCLUDE_DIR "vlc/vlc.h")
 		if(LIBVLC_INCLUDE_DIR)
 			include_directories("${LIBVLC_INCLUDE_DIR}")
@@ -505,6 +557,29 @@ if(NOT ZM_NO_LIBVLC)
 		set(optlibsnotfound "${optlibsnotfound} libVLC")
 	endif(LIBVLC_LIBRARIES)
 endif(NOT ZM_NO_LIBVLC)
+
+if(ZM_PLUGIN_COMPIL)
+	if(PKG_CONFIG_FOUND)
+		pkg_search_module(opencv opencv>=2.3.1)
+		if(NOT opencv_FOUND)
+			message(FATAL_ERROR "opencv.pc not found")
+		endif(NOT opencv_FOUND)
+	else(PKG_CONFIG_FOUND)
+		message(FATAL_ERROR "pkg-config not found")
+	endif(PKG_CONFIG_FOUND)
+	find_package(OpenCV COMPONENTS core imgproc highgui objdetect REQUIRED)
+	if(OpenCV_FOUND)
+		include_directories(${OpenCV_INCLUDE_DIR})
+	else(OpenCV_FOUND)
+		message(FATAL_ERROR "Cannot build application without OpenCV. Please set OpenCV_INCLUDE_DIR.")
+	endif(OpenCV_FOUND)
+	find_package(Boost COMPONENTS program_options REQUIRED)
+	if(Boost_FOUND)
+		include_directories(${Boost_INCLUDE_DIR})
+	else(Boost_FOUND)
+		message(FATAL_ERROR "Cannot build application without Boost. Please set Boost_INCLUDE_DIR.")
+	endif(Boost_FOUND)
+endif(ZM_PLUGIN_COMPIL)
 
 # *** END OF LIBRARY CHECKS ***
 
@@ -593,6 +668,29 @@ if(HAVE_LIBCRYPTO AND HAVE_OPENSSL_MD5_H AND HAVE_MD5_OPENSSL)
 	set(HAVE_GCRYPT_H 0)
 	set(HAVE_GNUTLS_OPENSSL_H 0)
 endif(HAVE_LIBCRYPTO AND HAVE_OPENSSL_MD5_H AND HAVE_MD5_OPENSSL)
+
+if(ZM_PLUGIN_COMPIL)
+	check_include_file_cxx("alpr.h" HAVE_ALPR_H)
+	if(NOT HAVE_ALPR_H)
+		message(FATAL_ERROR "Missing include file alpr.h")
+	endif(NOT HAVE_ALPR_H)
+	check_include_file_cxx("opencv2/core/core.hpp" HAVE_OPENCV2_CORE_CORE_HPP)
+	if(NOT HAVE_OPENCV2_CORE_CORE_HPP)
+		message(FATAL_ERROR "Missing include file opencv2/core/core.hpp")
+	endif(NOT HAVE_OPENCV2_CORE_CORE_HPP)
+	check_include_file_cxx("opencv2/imgproc/imgproc.hpp" HAVE_OPENCV2_IMGPROC_IMGPROC_HPP)
+	if(NOT HAVE_OPENCV2_IMGPROC_IMGPROC_HPP)
+		message(FATAL_ERROR "Missing include file opencv2/imgproc/imgproc.hpp")
+	endif(NOT HAVE_OPENCV2_IMGPROC_IMGPROC_HPP)
+	check_include_file_cxx("boost/algorithm/string.hpp" HAVE_BOOST_ALGORITHM_STRING_HPP)
+	if(NOT HAVE_BOOST_ALGORITHM_STRING_HPP)
+		message(FATAL_ERROR "Missing include file boost/algorithm/string.hpp")
+	endif(NOT HAVE_BOOST_ALGORITHM_STRING_HPP)
+	check_include_file_cxx("boost/program_options.hpp" HAVE_BOOST_PROGRAM_OPTIONS_HPP)
+	if(NOT HAVE_BOOST_PROGRAM_OPTIONS_HPP)
+		message(FATAL_ERROR "Missing include file boost/program_options.hpp")
+	endif(NOT HAVE_BOOST_PROGRAM_OPTIONS_HPP)
+endif(ZM_PLUGIN_COMPIL)
 
 # Check for Perl
 find_package(Perl)
@@ -690,14 +788,19 @@ if(ZM_ONVIF)
 	add_subdirectory(onvif)
 endif(ZM_ONVIF)
 
+# Enable compilation of internal plugins
+if(ZM_PLUGIN_COMPIL)
+	add_subdirectory(plugins)
+endif(ZM_PLUGIN_COMPIL)
+
 # Process distro subdirectories
-if((ZM_TARGET_DISTRO STREQUAL "f21") OR (ZM_TARGET_DISTRO STREQUAL "f22"))
+if((ZM_TARGET_DISTRO STREQUAL "f22") OR (ZM_TARGET_DISTRO STREQUAL "f23"))
 	add_subdirectory(distros/fedora)
 elseif((ZM_TARGET_DISTRO STREQUAL "el6") OR (ZM_TARGET_DISTRO STREQUAL "el7"))
 	add_subdirectory(distros/redhat)
 elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
 	add_subdirectory(distros/opensuse)
-endif((ZM_TARGET_DISTRO STREQUAL "f21") OR (ZM_TARGET_DISTRO STREQUAL "f22"))
+endif((ZM_TARGET_DISTRO STREQUAL "f22") OR (ZM_TARGET_DISTRO STREQUAL "f23"))
 
 # Print optional libraries detection status
 message(STATUS "Optional libraries found:${optlibsfound}")
@@ -716,6 +819,11 @@ endif(zmconfgen_result EQUAL 0)
 
 # Install zm.conf
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zm.conf" DESTINATION "${ZM_CONFIG_DIR}")
+
+if(ZM_PLUGIN_SUPPORT)
+	# Install config.h
+	install(FILES "${CMAKE_CURRENT_BINARY_DIR}/config.h" DESTINATION include/zoneminder)
+endif(ZM_PLUGIN_SUPPORT)
 
 # Uninstall target
 configure_file(

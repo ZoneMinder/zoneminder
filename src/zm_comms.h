@@ -21,6 +21,7 @@
 #define ZM_COMMS_H
 
 #include "zm_exception.h"
+#include "zm_logger.h"
 
 #include <string.h>
 #include <unistd.h>

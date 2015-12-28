@@ -85,6 +85,7 @@ $SLANG = array(
     '8BitGrey'              => '8 bit greyscale',
     'Action'                => 'Action',
     'Actual'                => 'Actual',
+    'Add'                   => 'Add',
     'AddNewControl'         => 'Add New Control',
     'AddNewMonitor'         => 'Add New Monitor',
     'AddNewUser'            => 'Add New User',
@@ -98,8 +99,10 @@ $SLANG = array(
     'AlarmPx'               => 'Alarm Px',
     'AlarmRefImageBlendPct' => 'Alarm Reference Image Blend %ge',
     'AlarmRGBUnset'         => 'You must set an alarm RGB colour',
+    'AlarmScore'            => 'Alarm Score',
     'Alert'                 => 'Alert',
     'All'                   => 'All',
+    'AlreadyInList'         => 'Already present in list',
     'AnalysisFPS'           => 'Analysis FPS',
     'AnalysisUpdateDelay'   => 'Analysis Update Delay',
     'Apply'                 => 'Apply',
@@ -231,6 +234,7 @@ $SLANG = array(
     'Colour'                => 'Colour',
     'Command'               => 'Command',
     'Config'                => 'Config',
+    'ConfigError'           => 'Config Error',
     'ConfiguredFor'         => 'Configured for',
     'ConfirmDeleteEvents'   => 'Are you sure you wish to delete the selected events?',
     'ConfirmPassword'       => 'Confirm Password',
@@ -392,9 +396,11 @@ $SLANG = array(
     'Image'                 => 'Image',
     'Images'                => 'Images',
     'Include'               => 'Include',
+    'IncludeNatDet'         => 'Include Native Detection',
     'In'                    => 'In',
     'Inverted'              => 'Inverted',
     'Iris'                  => 'Iris',
+    'IsNotAValidOption'     => 'is not a valid option',
     'KeyString'             => 'Key String',
     'Label'                 => 'Label',
     'Language'              => 'Language',
@@ -524,6 +530,8 @@ $SLANG = array(
     'Notes'                 => 'Notes',
     'NumPresets'            => 'Num Presets',
     'Off'                   => 'Off',
+    'OnlyAlphaChars'        => 'Only alphanumeric characters are allowed',
+    'OnlyIntegers'          => 'An integer number is required',
     'On'                    => 'On',
     'OnvifProbe'            => 'ONVIF',
     'OnvifProbeIntro'       => 'The list below shows detected ONVIF cameras and whether they are already being used or available for selection.<br/><br/>Select the desired entry from the list below.<br/><br/>Please note that not all cameras may be detected and that choosing a camera here may overwrite any values you already have configured for the current monitor.<br/><br/>',
@@ -563,6 +571,7 @@ $SLANG = array(
     'Pixels'                => 'pixels',
     'PlayAll'               => 'Play All',
     'Play'                  => 'Play',
+    'Plugin'                => 'Plugin',
     'Plugins'               => 'Plugins',
     'PleaseWait'            => 'Please Wait',
     'Point'                 => 'Point',
@@ -583,6 +592,7 @@ $SLANG = array(
     'Record'                => 'Record',
     'RefImageBlendPct'      => 'Reference Image Blend %ge',
     'Refresh'               => 'Refresh',
+    'ReInitNatDet'          => 'Reinit. Native Detection',
     'RemoteHostName'        => 'Remote Host Name',
     'RemoteHostPath'        => 'Remote Host Path',
     'RemoteHostSubPath'     => 'Remote Host SubPath',
@@ -591,11 +601,13 @@ $SLANG = array(
     'RemoteMethod'          => 'Remote Method',
     'RemoteProtocol'        => 'Remote Protocol',
     'Remote'                => 'Remote',
+    'Remove'                => 'Remove',
     'Rename'                => 'Rename',
     'ReplayAll'             => 'All Events',
     'ReplayGapless'         => 'Gapless Events',
     'Replay'                => 'Replay',
     'ReplaySingle'          => 'Single Event',
+    'RequireNatDet'         => 'Require Native Detection',
     'ResetEventCounts'      => 'Reset Event Counts',
     'Reset'                 => 'Reset',
     'Restarting'            => 'Restarting',
@@ -910,7 +922,16 @@ $OLANG = array(
 		          "Enable this option to tell ZoneMinder to use this URL. Disable this option to ignore the ".
 		          "value from the camera and use the value as entered in the monitor configuration~~~~". 
 		          "Generally this should be enabled. However, there are cases where the camera can get its".
-		          "own URL incorrect, such as when the camera is streaming through a firewall"
+		          "own URL incorrect, such as when the camera is streaming through a firewall"),
+	'OPTIONS_MAXFPS' => array(
+		'Help' => "This field has certain limitations when used for non-local devices.~~ ".
+		          "Failure to adhere to these limitations will cause a delay in live video, irregular frame skipping, ".
+		          "and missed events~~".
+		          "For streaming IP cameras, do not use this field to reduce the frame rate. Set the frame rate in the".
+                          " camera, instead. You can, however, use a value that is slightly higher than the frame rate in the camera. ".
+		          "In this case, this helps keep the cpu from being overtaxed in the event of a network problem.~~". 
+		          "Some, mostly older, IP cameras support snapshot mode. In this case ZoneMinder is actively polling the camera ".
+		          "for new images. In this case, it is safe to use thie field."
 	),
 	
 //    'LANG_DEFAULT' => array(

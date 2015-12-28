@@ -34,6 +34,8 @@ dist_web_DATA = \
 	montage.js.php \
   onvifprobe.js \
 	options.js.php \
+	plugin.js \
+	plugin.js.php \
 	postlogin.js.php \
 	state.js \
 	state.js.php \

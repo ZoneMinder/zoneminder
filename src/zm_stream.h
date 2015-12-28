@@ -23,7 +23,6 @@
 #include <sys/un.h>
 #include <sys/socket.h>
 
-#include "zm.h"
 #include "zm_mpeg.h"
 
 class Monitor;
@@ -78,6 +77,8 @@ protected:
     struct sockaddr_un loc_addr;
 	char rem_sock_path[PATH_MAX];
     struct sockaddr_un rem_addr;
+	char sock_path_lock[PATH_MAX];
+	int lock_fd;
 
 protected:
     bool paused;
@@ -127,6 +128,7 @@ public:
 
         connkey = 0;
         sd = -1;
+		lock_fd = 0;
         memset( &loc_sock_path, 0, sizeof(loc_sock_path) );
         memset( &loc_addr, 0, sizeof(loc_addr) );
         memset( &rem_sock_path, 0, sizeof(rem_sock_path) );

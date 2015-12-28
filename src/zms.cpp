@@ -26,6 +26,8 @@
 #include "zm_signal.h"
 #include "zm_monitor.h"
 
+StaticConfig staticConfig;
+
 bool ValidateAccess( User *user, int mon_id )
 {
 	bool allowed = true;
@@ -86,7 +88,7 @@ int main( int argc, const char *argv[] )
 	{
 		nph = true;
 	}
-	
+
 	zmLoadConfig();
 
 	logInit( "zms" );

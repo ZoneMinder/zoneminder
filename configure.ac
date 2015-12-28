@@ -3,11 +3,18 @@
 # For instructions on building with cmake, please see INSTALL
 #
 AC_PREREQ(2.59)
-AC_INIT(zm,1.28.108,[http://www.zoneminder.com/forums/ - Please check FAQ first],zoneminder,http://www.zoneminder.com/downloads.html)
+AC_INIT(zm,1.28.109,[http://www.zoneminder.com/forums/ - Please check FAQ first],zoneminder,http://www.zoneminder.com/downloads.html)
+AC_CONFIG_AUX_DIR([.])
 AM_INIT_AUTOMAKE
+LT_PREREQ([2.4.2])
+LT_INIT([dlopen])
+AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR(src/zm.h)
 AC_CONFIG_HEADERS(config.h)
 AC_CONFIG_MACRO_DIR([m4])
+
+ZM_ENGINE_VERSION=29
+AC_SUBST(ZM_ENGINE_VERSION)
 
 AC_SUBST([AM_CXXFLAGS], [-D__STDC_CONSTANT_MACROS])
 
@@ -213,6 +220,66 @@ AC_ARG_WITH(cgidir,
 )
 AC_SUBST(CGI_PREFIX)
 
+ENABLE_PLUGIN_SUPPORT=no
+ENABLE_PLUGIN_COMPIL=no
+AC_ARG_ENABLE([plugin-support],
+    [  --enable-plugin-support=<yes|no>  enable or disable plugin support, default disabled],
+    [ENABLE_PLUGIN_SUPPORT=$enable_plugin_support],
+    [AC_MSG_WARN([You can call configure with the --enable-plugin-support=<yes|no>
+    or --disable-plugin-support option.
+    This tells configure whether to compile ZoneMinder with plugin support.
+    e.g. --enable-plugin-support=yes or --disable-plugin-support])]
+)
+
+if test "$ENABLE_PLUGIN_SUPPORT" == "yes"; then
+  if test "$enable_shared" = "no"; then
+    AC_MSG_ERROR([Plugin support is enabled and shared library are disabled.
+      If you really want plugin support you must not call configure with
+      --enable-shared=no or --disabled-shared])
+  fi
+  AC_ARG_ENABLE([plugin-compilation],
+    [ --enable-plugin-compilation=<yes|no> enable or disable plugin compilation, default disabled],
+    [ENABLE_PLUGIN_COMPIL=$enable_plugin_compilation],
+    [AC_MSG_WARN([You can call configure with the --enable-plugin-compilation=<yes|no>
+    or --disable-plugin-compilation option.
+    This tells configure whether to compile provided plugins.
+    e.g. --enable-plugin-compilation=yes or --disable-plugin-compilation])]
+  )
+  ZM_PREFIX="${prefix}"
+  AC_SUBST(ZM_PREFIX)
+  ZM_PLUGINSLIBDIR="${libdir}"
+  AC_SUBST(ZM_PLUGINSLIBDIR)
+  AC_ARG_WITH(pluginsdir,
+      [  --with-pluginsdir=<path>   plugins directory (requires --enable-plugin-support=yes)],
+      [ZM_PLUGINSPKGLIBDIR=$with_pluginsdir],
+      AC_MSG_ERROR([Plugin support is enabled.
+      You must call configure with the --with-pluginsdir options.
+      This tells configure where to install plugin library files.
+      e.g. --with-pluginsdir=/usr/lib/zoneminder/plugins])
+  )
+  AC_SUBST(ZM_PLUGINSPKGLIBDIR)
+  ZM_PLUGINSCONFDIR="${sysconfdir}/plugins.d"
+  AC_ARG_WITH(pluginsconfdir,
+      [  --with-pluginsconfdir=<path>   directory of plugin configuration files (requires --enable-plugin-support=yes)],
+      [ZM_PLUGINSCONFDIR=$with_pluginsconfdir],
+      AC_MSG_WARN([You can call configure with the --with-pluginsconfdir options.
+      This tells configure where to install the plugin configuration files.
+      The default is "${PLUGINSCONFDIR}".
+      e.g. --with-pluginsconfdir=/etc/zm/plugins.d])
+  )
+  AC_SUBST(ZM_PLUGINSCONFDIR)
+  ZM_PLUGINSWEBDIR="$WEB_PREFIX/plugins"
+  AC_SUBST(ZM_PLUGINSWEBDIR)
+  ZM_PROJECTNAME="${PACKAGE}"
+  AC_SUBST(ZM_PROJECTNAME)
+  ZM_PLUGINSEXT=".so"
+  AC_SUBST(ZM_PLUGINSEXT)
+  AC_DEFINE_UNQUOTED(DEFAULT_PLUGIN_EXT,"${ZM_PLUGINSEXT}",[File extension to detect plugins])
+  AC_DEFINE(ZM_PLUGINS_ON,1,"Whether plugin support is switched on and compiled")
+fi
+AM_CONDITIONAL([ZM_PLUGIN_SUPPORT], [test "x$ENABLE_PLUGIN_SUPPORT" = xyes])
+AM_CONDITIONAL([ZM_PLUGIN_COMPIL], [test "x$ENABLE_PLUGIN_COMPIL" = xyes])
+
 WEB_USER=apache
 AC_ARG_WITH(webuser,
     [  --with-webuser=<user>      name of web user, default apache],
@@ -342,12 +409,21 @@ AC_CHECK_LIB(rt,clock_gettime,,AC_MSG_ERROR(zm requires librt))
 AC_SEARCH_LIBS(mysql_init,[mysqlclient mariadbclient],,AC_MSG_ERROR(zm requires libmysqlclient.a or libmariadbclient.a))
 AC_CHECK_LIB(jpeg,jpeg_start_compress,,AC_MSG_ERROR(zm requires libjpeg.a))
 AC_CHECK_LIB(pthread,pthread_create,,AC_MSG_ERROR(zm requires libpthread.a))
+AC_CHECK_LIB([dl],
+    [dlsym],
+    [AC_SUBST([DL_LIBS],["-ldl"])AC_DEFINE([HAVE_LIBDL],[1],[Define to 1 if you have the 'dl' library (-ldl).])],
+    [AC_MSG_ERROR(zm requires libdl.a)]
+)
 if test "$BSD" == "0"; then
 AC_CHECK_LIB(dl,dlsym,,AC_MSG_ERROR(zm requires libdl.a))
 fi
 if test "$ZM_SSL_LIB" == "openssl"; then
 AC_CHECK_HEADERS(openssl/md5.h,,AC_MSG_WARN(zm requires openssl/md5.h header to be installed for openssl),)
-AC_CHECK_LIB(crypto,MD5,,AC_MSG_WARN([libcrypto.a is required for authenticated streaming - use ZM_SSL_LIB option to select gnutls instead]))
+AC_CHECK_LIB([crypto],
+    [MD5],
+    [AC_SUBST([CRYPTO_LIBS],["-lcrypto"])AC_DEFINE([HAVE_LIBCRYPTO],[1],[Define to 1 if you have the 'crypto' library (-lcrypto).])],
+    [AC_MSG_WARN([libcrypto.a is required for authenticated streaming - use ZM_SSL_LIB option to select gnutls instead])]
+)
 else
 AC_CHECK_HEADERS(gnutls/openssl.h,AC_SUBST(ZM_HAS_GNUTLS_OPENSSL,1),AC_SUBST(ZM_HAS_GNUTLS_OPENSSL,0),)
 AC_CHECK_HEADERS(gnutls/gnutls.h,AC_SUBST(ZM_HAS_GNUTLS,1),AC_SUBST(ZM_HAS_GNUTLS,0),)
@@ -355,28 +431,118 @@ if test "$ZM_HAS_GNUTLS_OPENSSL" == "0" && test "$ZM_HAS_GNUTLS" == "0"; then
 AC_MSG_WARN(gnutls is required for authenticated streaming - use ZM_SSL_LIB option to select openssl instead)
 fi
 AC_CHECK_HEADERS(gcrypt.h,,AC_MSG_WARN(zm requires libgcrypt headers to be installed for gnutls),)
-AC_CHECK_LIB(gcrypt,gcry_check_version,,AC_MSG_WARN([libgcrypt.a is required for authenticated streaming - use ZM_SSL_LIB option to select openssl instead]))
-AC_CHECK_LIB(gnutls,gnutls_fingerprint,,AC_MSG_WARN([libgnutls.a is required for authenticated streaming - use ZM_SSL_LIB option to select openssl instead]))
+AC_CHECK_LIB([gcrypt],
+    [gcry_check_version],
+    [AC_SUBST([GCRYPT_LIBS],["-lgcrypt"])AC_DEFINE([HAVE_LIBGCRYPT],[1],[Define to 1 if you have the 'gcrypt' library (-lgcrypt).])],
+    [AC_MSG_WARN([libgcrypt.a is required for authenticated streaming - use ZM_SSL_LIB option to select openssl instead])]
+)
+AC_CHECK_LIB([gnutls],
+    [gnutls_fingerprint],
+    [AC_SUBST([GNUTLS_LIBS],["-lgnutls"])AC_DEFINE([HAVE_LIBGNUTLS],[1],[Define to 1 if you have the 'gnutls' library (-lgnutls).])],
+    [AC_MSG_WARN([libgnutls.a is required for authenticated streaming - use ZM_SSL_LIB option to select openssl instead])]
+)
 if test "$ZM_HAS_GNUTLS_OPENSSL" == "1"; then
-AC_CHECK_LIB(gnutls-openssl,MD5,,AC_MSG_WARN([libgnutls.a is required for authenticated streaming - use ZM_SSL_LIB option to select openssl instead]))
+AC_CHECK_LIB([gnutls-openssl],
+    [MD5],
+    [AC_SUBST([GNUTLS_OPENSSL_LIBS],["-lgnutls-openssl"])AC_DEFINE([HAVE_LIBGNUTLS_OPENSSL],[1],[Define to 1 if you have the 'gnutls-openssl' library (-lgnutls-openssl).])],
+    [AC_MSG_WARN([libgnutls.a is required for authenticated streaming - use ZM_SSL_LIB option to select openssl instead])]
+)
 fi
 fi
-AC_CHECK_LIB(pcre,pcre_compile,,AC_MSG_WARN(libpcre.a may be required for remote/network camera support))
+AC_CHECK_LIB([pcre],
+    [pcre_compile],
+    [AC_SUBST([PCRE_LIBS],["-lpcre"])AC_DEFINE([HAVE_LIBPCRE],[1],[Define to 1 if you have the 'pcre' library (-lpcre).])],
+    [AC_MSG_WARN([libpcre.a may be required for remote/network camera support])]
+)
 AC_CHECK_LIB(z,zlibVersion)
-AC_CHECK_LIB(x264,x264_predict_16x16_init)
-AC_CHECK_LIB(avutil,av_malloc,,AC_MSG_WARN(libavutil.a may be required for MPEG streaming))
+AC_CHECK_LIB([x264],
+    [x264_predict_16x16_init],
+    [AC_SUBST([X264_LIBS],["-lx264"])AC_DEFINE([HAVE_LIBX264],[1],[Define to 1 if you have the 'x264' library (-lx264).])],
+)
+AC_CHECK_LIB([avutil],
+    [av_malloc],
+    [AC_SUBST([AVUTIL_LIBS],["-lavutil"])AC_DEFINE([HAVE_LIBAVUTIL],[1],[Define to 1 if you have the 'avutil' library (-lavutil).])],
+    [AC_MSG_WARN([libavutil.a may be required for MPEG streaming])]
+)
 # Don't bother to warn about this one
-AC_CHECK_LIB(avcore,av_image_copy,,)
-AC_CHECK_LIB(avcodec,avcodec_version,,AC_MSG_WARN(libavcodec.a is required for MPEG streaming))
-AC_CHECK_LIB(avformat,avformat_version,,AC_MSG_WARN(libavformat.a is required for MPEG streaming))
+AC_CHECK_LIB([avcore],
+    [av_image_copy],
+    [AC_SUBST([AVCORE_LIBS],["-lavcore"])AC_DEFINE([HAVE_LIBAVCORE],[1],[Define to 1 if you have the 'avcore' library (-lavcore).])]
+)
+AC_CHECK_LIB([avcodec],
+    [avcodec_version],
+    [AC_SUBST([AVCODEC_LIBS],["-lavcodec"])AC_DEFINE([HAVE_LIBAVCODEC],[1],[Define to 1 if you have the 'avcodec' library (-lavcodec).])],
+    [AC_MSG_WARN([libavcodec.a is required for MPEG streaming])]
+)
+AC_CHECK_LIB([avformat],
+    [avformat_version],
+    [AC_SUBST([AVFORMAT_LIBS],["-lavformat"])AC_DEFINE([HAVE_LIBAVFORMAT],[1],[Define to 1 if you have the 'avformat' library (-lavformat).])],
+    [AC_MSG_WARN([libavformat.a is required for MPEG streaming])]
+)
 #AC_CHECK_LIB(avcodec,avcodec_open,,AC_MSG_WARN(libavcodec.a is required for MPEG streaming))
 #AC_CHECK_LIB(avformat,av_new_stream,,AC_MSG_WARN(libavformat.a is required for MPEG streaming))
-AC_CHECK_LIB(avdevice,avdevice_register_all,,AC_MSG_WARN(libavdevice.a may be required for MPEG streaming))
-AC_CHECK_LIB(swscale,sws_scale,,,-lswscale)
-AC_CHECK_LIB(vlc,libvlc_new,,AC_MSG_WARN(libvlc.a may be required for streaming))
-AC_CHECK_LIB(bz2,BZ2_bzCompress,,AC_MSG_WARN(zm requires libbz2.a for recent versions of ffmpeg))
+AC_CHECK_LIB([avdevice],
+    [avdevice_register_all],
+    [AC_SUBST([AVDEVICE_LIBS],["-lavdevice"])AC_DEFINE([HAVE_LIBAVDEVICE],[1],[Define to 1 if you have the 'avdevice' library (-lavdevice).])],
+    [AC_MSG_WARN([libavdevice.a may be required for MPEG streaming])]
+)
+AC_CHECK_LIB([swscale],
+    [sws_scale],
+    [AC_SUBST([SWSCALE_LIBS],["-lswscale"])AC_DEFINE([HAVE_LIBSWSCALE],[1],[Define to 1 if you have the 'swscale' library (-lswscale).])]
+)
+AC_CHECK_LIB([vlc],
+    [libvlc_new],
+    [AC_SUBST([VLC_LIBS],["-lvlc"])AC_DEFINE([HAVE_LIBVLC],[1],[Define to 1 if you have the 'vlc' library (-lvlc).])],
+    [AC_MSG_WARN([libvlc.a may be required for streaming])]
+)
+AC_CHECK_LIB([bz2],
+    [BZ2_bzCompress],
+    [AC_SUBST([BZ2_LIBS],["-lbz2"])AC_DEFINE([HAVE_LIBBZ2],[1],[Define to 1 if you have the 'bz2' library (-lbz2).])],
+    [AC_MSG_WARN([zm requires libbz2.a for recent versions of ffmpeg])]
+)
 AC_CHECK_LIB(z,compress,,)
-AC_CHECK_LIB(curl,curl_global_init,,)
+AC_CHECK_LIB([curl],
+    [curl_global_init],
+    [AC_SUBST([CURL_LIBS],["-lcurl"])AC_DEFINE([HAVE_LIBCURL],[1],[Define to 1 if you have the 'curl' library (-lcurl).])]
+)
+
+if test "$ENABLE_PLUGIN_COMPIL" == "yes"; then
+  AC_CHECK_LIB([boost_program_options],
+    [main],
+    [AC_SUBST([BOOST_PROGRAM_OPTION_LIBS],["-lboost_program_options"])AC_DEFINE([HAVE_BOOST_PROGRAM_OPTION],[1],[Define to 1 if you have the 'boost_program_options' library (-lboost_program_options).])],
+    [AC_MSG_ERROR([libboost_program_options is required for plugin compilation])]
+  )
+  AC_CHECK_LIB([opencv_core],
+    [main],
+    [AC_SUBST([OPENCV_CORE_LIBS],["-lopencv_core"])AC_DEFINE([HAVE_LIBOPENCV_CORE],[1],[Define to 1 if you have the 'opencv_core' library (-lopencv_core).])],
+    [AC_MSG_ERROR([libopencv_core is required for plugin compilation])]
+  )
+  AC_CHECK_LIB([opencv_imgproc],
+    [main],
+    [AC_SUBST([OPENCV_IMGPROC_LIBS],["-lopencv_imgproc"])AC_DEFINE([HAVE_LIBOPENCV_IMGPROC],[1],[Define to 1 if you have the 'opencv_imgproc' library (-lopencv_imgproc).])],
+    [AC_MSG_ERROR([libopencv_imgproc is required for plugin compilation])]
+  )
+  AC_CHECK_LIB([opencv_highgui],
+    [main],
+    [AC_SUBST([OPENCV_HIGHGUI_LIBS],["-lopencv_highgui"])AC_DEFINE([HAVE_LIBOPENCV_HIGHGUI],[1],[Define to 1 if you have the 'opencv_highgui' library (-lopencv_highgui).])],
+    [AC_MSG_ERROR([libopencv_highgui is required for plugin compilation])]
+  )
+  AC_CHECK_LIB([opencv_objdetect],
+    [main],
+    [AC_SUBST([OPENCV_OBJDETECT_LIBS],["-lopencv_objdetect"])AC_DEFINE([HAVE_LIBOPENCV_OBJDETECT],[1],[Define to 1 if you have the 'opencv_objdetect' library (-lopencv_objdetect).])],
+    [AC_MSG_ERROR([libopencv_objdetect is required for plugin compilation])]
+  )
+  PKG_CHECK_MODULES([OPENCV],
+    [opencv >= 2.3.1],
+    ,
+    [AC_MSG_ERROR([${OPENCV_PKG_ERRORS}])]
+  )
+  AC_CHECK_LIB([openalpr],
+    [main],
+    [AC_SUBST([OPENALPR_LIBS],["-lopenalpr"])AC_DEFINE([HAVE_LIBOPENALPR],[1],[Define to 1 if you have the 'openalpr' library (-lopenalpr).])],
+    [AC_MSG_ERROR([libopenalpr is required for plugin compilation])]
+  )
+fi
 
 # Checks for header files.
 AC_FUNC_ALLOCA
@@ -427,6 +593,15 @@ fi
 AC_CHECK_HEADERS(zlib.h,,,)
 AC_CHECK_HEADERS(vlc/vlc.h,,,)
 AC_CHECK_HEADERS(curl/curl.h,,,)
+
+if test "$ENABLE_PLUGIN_COMPIL" == "yes"; then
+  AC_CHECK_HEADERS(alpr.h,,AC_MSG_ERROR(plugins require openalpr headers - check that development package is installed),)
+  AC_CHECK_HEADERS(boost/algorithm/string.hpp,,AC_MSG_ERROR(plugins require boost string headers - check that development package is installed),)
+  AC_CHECK_HEADERS(boost/program_options.hpp,,AC_MSG_ERROR(plugins require boost program_options headers - check that development package is installed),)
+  AC_CHECK_HEADERS(opencv2/core/core.hpp,,AC_MSG_ERROR(plugins require opencv core headers - check that development package is installed),)
+  AC_CHECK_HEADERS(opencv2/imgproc/imgproc.hpp,,AC_MSG_ERROR(plugins require opencv imgproc headers - check that development package is installed),)
+  AC_CHECK_HEADERS(opencv2/highgui/highgui.hpp,,AC_MSG_ERROR(plugins require opencv highgui headers - check that development package is installed),)
+fi
 
 if test "$ZM_SSL_LIB" == "openssl"; then
 AC_CHECK_DECLS(MD5,,AC_MSG_ERROR([zm requires openssl/md5.h - use ZM_SSL_LIB option to select gnutls instead]),[#include <stdlib.h>
@@ -497,7 +672,7 @@ fi
 AC_SUBST(PERL_MM_PARMS)
 AC_SUBST(EXTRA_PERL_LIB)
 
-AC_CONFIG_FILES([Makefile zm.conf zmconfgen.pl db/Makefile db/zm_create.sql misc/Makefile misc/apache.conf misc/logrotate.conf misc/syslog.conf misc/com.zoneminder.systemctl.policy misc/com.zoneminder.systemctl.rules onvif/Makefile onvif/scripts/Makefile scripts/Makefile scripts/zm scripts/zmaudit.pl scripts/zmcontrol.pl scripts/zmdc.pl scripts/zmfilter.pl scripts/zmpkg.pl scripts/zmtrack.pl scripts/zmcamtool.pl scripts/zmsystemctl.pl scripts/zmtrigger.pl scripts/zmupdate.pl scripts/zmvideo.pl scripts/zmwatch.pl scripts/zmx10.pl scripts/zmdbbackup scripts/zmdbrestore scripts/zmeventdump scripts/zmlogrotate.conf scripts/ZoneMinder/lib/ZoneMinder/Base.pm scripts/ZoneMinder/lib/ZoneMinder/Config.pm scripts/ZoneMinder/lib/ZoneMinder/Memory.pm scripts/ZoneMinder/lib/ZoneMinder/ConfigData.pm src/Makefile src/zm_config.h web/Makefile web/ajax/Makefile web/css/Makefile web/graphics/Makefile web/includes/Makefile web/includes/config.php web/js/Makefile web/lang/Makefile web/skins/Makefile web/skins/classic/Makefile web/skins/classic/ajax/Makefile web/skins/classic/css/Makefile web/skins/classic/css/classic/Makefile web/skins/classic/css/classic/views/Makefile web/skins/classic/css/dark/Makefile web/skins/classic/css/dark/views/Makefile web/skins/classic/css/flat/Makefile web/skins/classic/css/flat/views/Makefile web/skins/classic/graphics/Makefile web/skins/classic/includes/Makefile web/skins/classic/js/Makefile web/skins/classic/lang/Makefile web/skins/classic/views/Makefile web/skins/classic/views/js/Makefile web/skins/mobile/Makefile web/skins/mobile/ajax/Makefile web/skins/mobile/css/Makefile web/skins/mobile/graphics/Makefile web/skins/mobile/includes/Makefile web/skins/mobile/lang/Makefile web/skins/mobile/views/Makefile web/skins/mobile/views/css/Makefile web/tools/Makefile web/tools/mootools/Makefile web/views/Makefile web/skins/xml/Makefile web/skins/xml/views/Makefile web/skins/xml/includes/Makefile])
+AC_CONFIG_FILES([Makefile zm.conf zmconfgen.pl db/Makefile db/zm_create.sql misc/Makefile misc/apache.conf misc/libzoneminder.pc misc/logrotate.conf misc/syslog.conf misc/com.zoneminder.systemctl.policy misc/com.zoneminder.systemctl.rules misc/plugins.conf onvif/Makefile onvif/scripts/Makefile plugins/Makefile plugins/libzm_plugin_openalpr/Makefile plugins/libzm_plugin_openalpr/src/Makefile plugins/libzm_plugin_openalpr/data/Makefile scripts/Makefile scripts/zm scripts/zmaudit.pl scripts/zmcontrol.pl scripts/zmdc.pl scripts/zmfilter.pl scripts/zmpkg.pl scripts/zmtrack.pl scripts/zmcamtool.pl scripts/zmsystemctl.pl scripts/zmtrigger.pl scripts/zmupdate.pl scripts/zmvideo.pl scripts/zmwatch.pl scripts/zmx10.pl scripts/zmdbbackup scripts/zmdbrestore scripts/zmeventdump scripts/zmlogrotate.conf scripts/ZoneMinder/lib/ZoneMinder/Base.pm scripts/ZoneMinder/lib/ZoneMinder/Config.pm scripts/ZoneMinder/lib/ZoneMinder/Memory.pm scripts/ZoneMinder/lib/ZoneMinder/ConfigData.pm src/Makefile src/zm_config.h web/Makefile web/ajax/Makefile web/css/Makefile web/graphics/Makefile web/includes/Makefile web/includes/config.php web/js/Makefile web/lang/Makefile web/skins/Makefile web/skins/classic/Makefile web/skins/classic/ajax/Makefile web/skins/classic/css/Makefile web/skins/classic/css/classic/Makefile web/skins/classic/css/classic/views/Makefile web/skins/classic/css/dark/Makefile web/skins/classic/css/dark/views/Makefile web/skins/classic/css/flat/Makefile web/skins/classic/css/flat/views/Makefile web/skins/classic/graphics/Makefile web/skins/classic/includes/Makefile web/skins/classic/js/Makefile web/skins/classic/lang/Makefile web/skins/classic/views/Makefile web/skins/classic/views/js/Makefile web/skins/mobile/Makefile web/skins/mobile/ajax/Makefile web/skins/mobile/css/Makefile web/skins/mobile/graphics/Makefile web/skins/mobile/includes/Makefile web/skins/mobile/lang/Makefile web/skins/mobile/views/Makefile web/skins/mobile/views/css/Makefile web/tools/Makefile web/tools/mootools/Makefile web/views/Makefile web/skins/xml/Makefile web/skins/xml/views/Makefile web/skins/xml/includes/Makefile])
 
 # Create the definitions for compilation and defaults for the database
 AC_CONFIG_COMMANDS([src/zm_config_defines.h],[perl ./zmconfgen.pl])

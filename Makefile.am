@@ -13,13 +13,18 @@ if COND_ONVIF
    MAYBE_ONVIF = onvif
 endif
 
+if ZM_PLUGIN_COMPIL
+   MAYBE_PLUGINS = plugins
+endif
+
 SUBDIRS = \
 	src \
 	web \
 	scripts \
 	db \
 	misc \
- 	$(MAYBE_ONVIF)
+	$(MAYBE_ONVIF) \
+	$(MAYBE_PLUGINS)
 
 EXTRA_DIST = \
 	zm.conf.in \
@@ -31,6 +36,7 @@ install-data-hook:
 	( if ! test -e $(DESTDIR)$(ZM_RUNDIR); then mkdir -p $(DESTDIR)$(ZM_RUNDIR); fi; if test "$(DESTDIR)$(ZM_RUNDIR)" != "/var/run"; then chown $(webuser):$(webgroup) $(DESTDIR)$(ZM_RUNDIR); chmod u+w $(DESTDIR)$(ZM_RUNDIR); fi )
 	( if ! test -e $(DESTDIR)$(ZM_SOCKDIR); then mkdir -p $(DESTDIR)$(ZM_SOCKDIR); fi; if test "$(DESTDIR)$(ZM_SOCKDIR)" != "/var/run"; then chown $(webuser):$(webgroup) $(DESTDIR)$(ZM_SOCKDIR); chmod u+w $(DESTDIR)$(ZM_SOCKDIR); fi )
 	( if ! test -e $(DESTDIR)$(ZM_TMPDIR); then mkdir -m 700 -p $(DESTDIR)$(ZM_TMPDIR); fi; if test "$(DESTDIR)$(ZM_TMPDIR)" != "/tmp" && test "$(DESTDIR)$(ZM_TMPDIR)" != "/var/tmp"; then chown $(webuser):$(webgroup) $(DESTDIR)$(ZM_TMPDIR); chmod u+w $(DESTDIR)$(ZM_TMPDIR); fi )
+	( cp config.h $(DESTDIR)$(pkgincludedir) )
 
 uninstall-hook:
 	@-( cd $(DESTDIR)$(webdir); rm -rf events graphics images sounds temp )
@@ -38,3 +44,4 @@ uninstall-hook:
 	@-( if test "$(DESTDIR)$(ZM_SOCKDIR)" != "/var/run"; then rm -rf $(DESTDIR)$(ZM_SOCKDIR); fi )
 	@-( if test "$(DESTDIR)$(ZM_TMPDIR)" != "/tmp" && test "$(DESTDIR)$(ZM_TMPDIR)" != "/var/tmp"; then rm -rf $(DESTDIR)$(ZM_TMPDIR); fi )
 	@-( if test "$(DESTDIR)$(ZM_LOGDIR)" != "/var/log"; then rm -rf $(DESTDIR)$(ZM_LOGDIR); fi )
+	@-( cd $(DESTDIR)$(pkgincludedir); rm -rf config.h )

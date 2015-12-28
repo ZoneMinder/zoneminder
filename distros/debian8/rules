@@ -53,7 +53,9 @@ override_dh_auto_configure:
 	  --with-mariadb=/usr --with-webdir=/usr/share/zoneminder \
 	  --with-ffmpeg=/usr --with-cgidir=/usr/lib/cgi-bin \
 	  --with-webuser=www-data --with-webgroup=www-data \
-	  --enable-crashtrace=no --enable-mmap=yes $(DEBOPT)
+	  --enable-crashtrace=no --enable-mmap=yes $(DEBOPT) \
+	  --enable-plugin-support --with-pluginsdir=/usr/lib/zoneminder/plugins \
+	  --enable-plugin-compilation=yes
 
 override_dh_clean:
 	# Add here commands to clean up after the build process.
@@ -72,6 +74,9 @@ override_dh_clean:
 	done || true
 
 override_dh_install:
+	# Clean up libtool crap
+	find debian/tmp -name '*.la' -exec rm '{}' ';'
+	#
 	dh_install --fail-missing
 	#
 	# NOTE: This is a short-term kludge; hopefully changes in the next

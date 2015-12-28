@@ -20,7 +20,6 @@
 #ifndef ZM_RTSP_H
 #define ZM_RTSP_H
 
-#include "zm.h"
 #include "zm_ffmpeg.h"
 #include "zm_comms.h"
 #include "zm_thread.h"
@@ -66,7 +65,7 @@ private:
     // subsequent requests can set the required authentication header.
     bool mNeedAuth;
     int respCode;
-    Authenticator* mAuthenticator;
+    zm::Authenticator* mAuthenticator;
 
 
     std::string mHttpSession;           ///< Only for RTSP over HTTP sessions

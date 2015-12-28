@@ -20,6 +20,8 @@
 #ifndef ZM_THREAD_H
 #define ZM_THREAD_H
 
+#include "zm_config.h"
+
 #include <unistd.h>
 #include <pthread.h>
 #include <unistd.h>

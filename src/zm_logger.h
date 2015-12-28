@@ -84,8 +84,8 @@ private:
     static bool smInitialised;
     static Logger *smInstance;
 
-    static StringMap smCodes;
-    static IntMap smSyslogPriorities;
+    StringMap smCodes;
+    IntMap smSyslogPriorities;
 
 private:
     bool mInitialised;

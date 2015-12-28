@@ -20,7 +20,6 @@
 #ifndef ZM_LOCAL_CAMERA_H
 #define ZM_LOCAL_CAMERA_H
 
-#include "zm.h"
 #include "zm_camera.h"
 #include "zm_image.h"
 

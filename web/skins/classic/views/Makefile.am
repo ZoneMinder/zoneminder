@@ -41,6 +41,7 @@ dist_web_DATA = \
   onvifprobe.php \
 	optionhelp.php \
 	options.php \
+	plugin.php \
 	postlogin.php \
 	server.php \
 	settings.php \

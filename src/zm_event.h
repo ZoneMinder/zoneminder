@@ -34,7 +34,6 @@
 #include <set>
 #include <map>
 
-#include "zm.h"
 #include "zm_image.h"
 #include "zm_stream.h"
 
@@ -128,13 +127,16 @@ public:
 	bool SendFrameImage( const Image *image, bool alarm_frame=false );
 	bool WriteFrameImage( Image *image, struct timeval timestamp, const char *event_file, bool alarm_frame=false );
 
-    void updateNotes( const StringSetMap &stringSetMap );
+	void updateNotes( const StringSetMap &stringSetMap );
 
 	void AddFrames( int n_frames, Image **images, struct timeval **timestamps );
 	void AddFrame( Image *image, struct timeval timestamp, int score=0, Image *alarm_frame=NULL );
+	void AddCause( const std::string new_cause );
+	void Close();
 
 private:
 	void AddFramesInternal( int n_frames, int start_frame, Image **images, struct timeval **timestamps );
+	void DeleteData();
 
 public:
     static const char *getSubPath( struct tm *time )

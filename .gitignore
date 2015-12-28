@@ -20,11 +20,16 @@ config.log
 config.status
 config.sub
 db/zm_create.sql
+libtool
+ltmain.sh
+m4/*
 misc/apache.conf
 misc/com.zoneminder.systemctl.policy
 misc/com.zoneminder.systemctl.rules
+misc/libzoneminder.pc
 misc/logrotate.conf
 misc/syslog.conf
+misc/plugins.conf
 onvif/modules/MYMETA.json
 onvif/modules/MYMETA.yml
 onvif/proxy/MYMETA.json
@@ -56,6 +61,9 @@ scripts/zmvideo.pl
 scripts/zmwatch.pl
 scripts/zmx10.pl
 src/.deps/
+src/.libs/
+src/*.la
+src/*.lo
 src/*.o
 src/zm_config.h
 src/zm_config_defines.h

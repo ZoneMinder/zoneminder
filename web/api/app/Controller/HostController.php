@@ -101,7 +101,10 @@ class HostController extends AppController {
 
 	function getVersion() {
 		$version = Configure::read('ZM_VERSION');
-		$apiversion = Configure::read('ZM_API_VERSION');
+		// not going to use the ZM_API_VERSION
+		// requires recompilation and dependency on ZM upgrade
+		//$apiversion = Configure::read('ZM_API_VERSION');
+		$apiversion = '1.0';
 
 		$this->set(array(
 			'version' => $version,

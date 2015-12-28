@@ -1,3 +1,9 @@
+zoneminder (1.29.109-trusty-2015122401) trusty; urgency=medium
+
+  * fix delete events not in database in zmaudit.pl
+
+ -- Isaac Connor <iconnor@testing.internal.point-one.com>  Thu, 24 Dec 2015 12:38:05 -0500
+
 zoneminder (1.29.109-trusty-2015122301) trusty; urgency=medium
 
   * todays release

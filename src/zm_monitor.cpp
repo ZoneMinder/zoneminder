@@ -2049,7 +2049,6 @@ void Monitor::ReloadLinkedMonitors( const char *p_linked_monitors )
 int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose purpose )
 {
     std::string sql = "select Id, Name, ServerId, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, Method, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPS, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour, Exif from Monitors where Function != 'None' and Type = 'Local'";
-;
     if ( device[0] ) {
         sql += " AND Device='";
         sql += device;

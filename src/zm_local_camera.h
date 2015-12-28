@@ -29,6 +29,9 @@
 #ifdef HAVE_LINUX_VIDEODEV_H
 #include <linux/videodev.h>
 #endif // HAVE_LINUX_VIDEODEV_H
+#ifdef HAVE_LIBV4L1_VIDEODEV_H
+#include <libv4l1-videodev.h>
+#endif // HAVE_LIB4VL1_VIDEODEV_H
 #ifdef HAVE_LINUX_VIDEODEV2_H
 #include <linux/videodev2.h>
 #endif // HAVE_LINUX_VIDEODEV2_H
@@ -104,8 +107,8 @@ protected:
 
 #if HAVE_LIBSWSCALE
 	static AVFrame    	**capturePictures;
-	PixelFormat       	imagePixFormat;
-	PixelFormat       	capturePixFormat;
+	_AVPIXELFORMAT       	imagePixFormat;
+	_AVPIXELFORMAT       	capturePixFormat;
 	struct SwsContext 	*imgConversionContext;
 	AVFrame           	*tmpPicture;    
 #endif // HAVE_LIBSWSCALE

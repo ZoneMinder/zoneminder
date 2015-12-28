@@ -24,17 +24,19 @@
 //
 
 ?>
-var AJAX_TIMEOUT = <?= ZM_WEB_AJAX_TIMEOUT ?>;
+var AJAX_TIMEOUT = <?php echo ZM_WEB_AJAX_TIMEOUT ?>;
 
-var currentView = '<?= $view ?>';
-var thisUrl = "<?= ZM_BASE_URL.$_SERVER['PHP_SELF'] ?>";
-var skinPath = "<?= ZM_SKIN_PATH ?>";
+var currentView = '<?php echo $view ?>';
+var thisUrl = "<?php echo ZM_BASE_URL.$_SERVER['PHP_SELF'] ?>";
+var skinPath = "<?php echo ZM_SKIN_PATH ?>";
 
-var canEditSystem = <?= canEdit('System' )?'true':'false' ?>;
-var canViewSystem = <?= canView('System' )?'true':'false' ?>;
+var canEditSystem = <?php echo canEdit('System' )?'true':'false' ?>;
+var canViewSystem = <?php echo canView('System' )?'true':'false' ?>;
 
-var refreshParent = <?= !empty($refreshParent)?'true':'false' ?>;
+var canEditGroups = <?php echo canEdit('Groups' )?'true':'false' ?>;
 
-var focusWindow = <?= !empty($focusWindow)?'true':'false' ?>;
+var refreshParent = <?php echo !empty($refreshParent)?'true':'false' ?>;
 
-var imagePrefix = "<?= viewImagePath( "", '&' ) ?>";
+var focusWindow = <?php echo !empty($focusWindow)?'true':'false' ?>;
+
+var imagePrefix = "<?php echo viewImagePath( "", '&' ) ?>";

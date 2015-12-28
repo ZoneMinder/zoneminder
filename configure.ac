@@ -1,8 +1,13 @@
+#
+# Building ZoneMinder via Autotools will be depreciated soon
+# For instructions on building with cmake, please see INSTALL
+#
 AC_PREREQ(2.59)
-AC_INIT(zm,1.28.0,[http://www.zoneminder.com/forums/ - Please check FAQ first],zoneminder,http://www.zoneminder.com/downloads.html)
+AC_INIT(zm,1.28.109,[http://www.zoneminder.com/forums/ - Please check FAQ first],zoneminder,http://www.zoneminder.com/downloads.html)
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR(src/zm.h)
 AC_CONFIG_HEADERS(config.h)
+AC_CONFIG_MACRO_DIR([m4])
 
 AC_SUBST([AM_CXXFLAGS], [-D__STDC_CONSTANT_MACROS])
 
@@ -26,6 +31,17 @@ case $host_os in
    *BSD*)
         # Do something specific for BSD
 		HOST_OS='BSD'
+		AC_DEFINE(BSD,1,"This is a BSD system")
+        ;;
+   *bsd*)
+        # Do something specific for BSD
+		HOST_OS='BSD'
+		AC_DEFINE(BSD,1,"This is a BSD system")
+        ;;
+    *solaris*)
+        # Do something specific for Solaris
+		HOST_OS='solaris'
+		AC_DEFINE(SOLARIS,1,"We are running a Solaroid OS [tested on OmniOS]")
         ;;
     *)
         #Default Case
@@ -46,6 +62,7 @@ AC_ARG_VAR(ZM_RUNDIR,[Location of transient process files, default /var/run/zm])
 AC_ARG_VAR(ZM_SOCKDIR,[Location of Unix domain socket files, default /var/run/zm])
 AC_ARG_VAR(ZM_TMPDIR,[Location of temporary files, default /var/tmp/zm])
 AC_ARG_VAR(ZM_LOGDIR,[Location of generated log files, default /var/log/zm])
+AC_ARG_VAR(ZM_CONFIG_DIR,[Location of ZoneMinder configuration, default system config directory])
 
 if test "$ZM_DB_TYPE" == ""; then
 	AC_SUBST(ZM_DB_TYPE,[mysql])
@@ -79,6 +96,10 @@ if test "$ZM_TMPDIR" == ""; then
 fi
 if test "$ZM_LOGDIR" == ""; then
 	AC_SUBST(ZM_LOGDIR,[/var/log/zm])
+fi
+AC_DEFINE_DIR([SYSCONFDIR],[sysconfdir],[Expanded configuration directory])
+if test "$ZM_CONFIG_DIR" == ""; then
+	AC_SUBST(ZM_CONFIG_DIR,[$SYSCONFDIR])
 fi
 
 LIB_ARCH=lib
@@ -256,8 +277,26 @@ else
 fi
 AC_SUBST(ENABLE_MMAP)
 
+ENABLE_ONVIF=no
+AC_ARG_ENABLE(onvif,
+    [  --enable-onvif=<yes|no> enable or disable basic onvif support, default disabled],
+    [ENABLE_ONVIF=$enable_onvif],
+    AC_MSG_WARN([You can call configure with the --enable-onvif=<yes|no> or --enable-onvif option.
+    This tells configure whether to compile ZoneMinder with basic ONVIF support. This feature will
+    probe for ONVIF compliant cameras on your network and allow you the option to auto-configure them as
+    monitors in zoneminder. This option is EXPERIMENTAL and may not work with all cameras that claim to 
+    be ONVIF compliant.
+    e.g. --enable-onvif=yes or --disable-onvif])
+)
+AM_CONDITIONAL([COND_ONVIF], [test "$enable_onvif" = yes])
+
 # Compiler
 AC_LANG_CPLUSPLUS
+if test "$ENABLE_ONVIF" == "yes"; then
+  AC_SUBST(ZM_HAS_ONVIF,1)
+else
+  AC_SUBST(ZM_HAS_ONVIF,0)
+fi
 
 # Checks for programs.
 AC_PROG_CXX
@@ -292,21 +331,20 @@ AC_FUNC_STRTOD
 AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([gethostbyname gethostname gettimeofday memmove memset mkdir munmap posix_memalign putenv select sendfile socket sqrt strcasecmp strchr strcspn strerror strncasecmp strrchr strspn strstr strtol strtoull])
 AC_CHECK_FUNCS([syscall sleep usleep ioctl ioctlsocket sigaction])
-
+# this is required for freebsd to compile. Look for it in m4/ac_check_sendfile.m4
+AC_CHECK_SENDFILE
 # Other programs
 AC_CHECK_PROG(OPT_FFMPEG,ffmpeg,yes,no)
 AC_PATH_PROG(PATH_FFMPEG,ffmpeg)
-AC_CHECK_PROG(OPT_NETPBM,pnmscale,yes,no)
-AC_PATH_PROG(PATH_NETPBM,pnmscale)
-if test "$OPT_NETPBM" == "yes"; then
-PATH_NETPBM=`dirname $PATH_NETPBM`
-fi
 
 # Checks for libraries.
+AC_CHECK_LIB(rt,clock_gettime,,AC_MSG_ERROR(zm requires librt))
 AC_SEARCH_LIBS(mysql_init,[mysqlclient mariadbclient],,AC_MSG_ERROR(zm requires libmysqlclient.a or libmariadbclient.a))
 AC_CHECK_LIB(jpeg,jpeg_start_compress,,AC_MSG_ERROR(zm requires libjpeg.a))
 AC_CHECK_LIB(pthread,pthread_create,,AC_MSG_ERROR(zm requires libpthread.a))
+if test "$BSD" == "0"; then
 AC_CHECK_LIB(dl,dlsym,,AC_MSG_ERROR(zm requires libdl.a))
+fi
 if test "$ZM_SSL_LIB" == "openssl"; then
 AC_CHECK_HEADERS(openssl/md5.h,,AC_MSG_WARN(zm requires openssl/md5.h header to be installed for openssl),)
 AC_CHECK_LIB(crypto,MD5,,AC_MSG_WARN([libcrypto.a is required for authenticated streaming - use ZM_SSL_LIB option to select gnutls instead]))
@@ -349,14 +387,26 @@ AC_CHECK_HEADERS(execinfo.h,,,)
 AC_CHECK_HEADERS(ucontext.h,,,)
 AC_CHECK_HEADERS(sys/syscall.h,,,)
 AC_CHECK_HEADERS(pthread.h,,,)
-AC_CHECK_HEADERS(linux/videodev.h,AC_SUBST(ZM_HAS_V4L1,1),AC_SUBST(ZM_HAS_V4L1,0),)
-AC_CHECK_HEADERS(linux/videodev2.h,AC_SUBST(ZM_HAS_V4L2,1),AC_SUBST(ZM_HAS_V4L2,0),)
+
+# Check for Video for Linux 1 Header Files
+ZM_HAS_V4L1=0
+AC_CHECK_HEADERS([libv4l1-videodev.h linux/videodev.h],[ZM_HAS_V4L1=1; break;],,)
+AC_SUBST(ZM_HAS_V4L1)
+
+# Check for Video for Linux 2 Header Files
+ZM_HAS_V4L2=0
+AC_CHECK_HEADERS(linux/videodev2.h,ZM_HAS_V4L2=1,,)
+AC_SUBST(ZM_HAS_V4L2)
+
+# Set global Video for Linux flag
+ZM_HAS_V4L=0
 if test "$ZM_HAS_V4L1" == "1" || test "$ZM_HAS_V4L2" == "1"; then
-AC_SUBST(ZM_HAS_V4L,1)
+ZM_HAS_V4L=1
 else
-AC_SUBST(ZM_HAS_V4L,0)
 AC_MSG_WARN(zm requires Video4Linux or Video4Linux2 to be installed for analog or USB camera support)
 fi
+AC_SUBST(ZM_HAS_V4L)
+
 AC_CHECK_HEADERS(jpeglib.h,,AC_MSG_ERROR(zm requires libjpeg headers to be installed),)
 AC_CHECK_HEADERS(mysql/mysql.h,,AC_MSG_ERROR(zm requires MySQL headers - check that MySQL development packages are installed),)
 AC_LANG_PUSH([C])
@@ -392,6 +442,7 @@ fi
 fi
 AC_CHECK_DECLS(backtrace,,,[#include <execinfo.h>])
 AC_CHECK_DECLS(backtrace_symbols,,,[#include <execinfo.h>])
+AC_CHECK_LIB(execinfo,backtrace)
 
 AC_SUBST(LDFLAGS)
 
@@ -428,8 +479,9 @@ AC_DEFINE_DIR([LIBDIR],[libdir],[Expanded library directory])
 AC_DEFINE_DIR([DATADIR],[datadir],[Expanded data directory])
 AC_SUBST(PKGDATADIR,"$DATADIR/$PACKAGE")
 AC_SUBST(ZM_PID,"$ZM_RUNDIR/zm.pid")
-AC_DEFINE_DIR([SYSCONFDIR],[sysconfdir],[Expanded configuration directory])
-AC_SUBST(ZM_CONFIG,"$SYSCONFDIR/zm.conf")
+#AC_DEFINE_DIR([SYSCONFDIR],[sysconfdir],[Expanded configuration directory])
+#AC_SUBST(ZM_CONFIG,"$SYSCONFDIR/zm.conf")
+AC_SUBST(ZM_CONFIG,"$ZM_CONFIG_DIR/zm.conf")
 
 # Slight hack for non-standard perl install paths
 if test "$prefix" != "NONE"; then
@@ -437,20 +489,21 @@ if test "$prefix" != "NONE"; then
     PERL_SITE_LIB=`perl -V:installsitelib | sed -e "s/.*='\(.*\)';/\1/"`
     PERL_LIB_PATH=`echo $PERL_SITE_LIB | sed -e "s|^$PERL_SITE_PREFIX||"`
     EXTRA_PERL_LIB="use lib '$prefix$PERL_LIB_PATH'; # Include custom perl install path"
-    PERL_MM_PARMS="PREFIX=$prefix"
+    PERL_MM_PARMS="\"PREFIX=$prefix INSTALLDIRS=vendor\""
 else
     EXTRA_PERL_LIB="# Include from system perl paths only"
-    PERL_MM_PARMS=
+    PERL_MM_PARMS="\"INSTALLDIRS=vendor\""
 fi
 AC_SUBST(PERL_MM_PARMS)
 AC_SUBST(EXTRA_PERL_LIB)
 
-
-AC_CONFIG_FILES([Makefile zm.conf zmconfgen.pl db/Makefile db/zm_create.sql misc/Makefile misc/apache.conf misc/logrotate.conf misc/syslog.conf misc/com.zoneminder.systemctl.policy misc/com.zoneminder.systemctl.rules scripts/Makefile scripts/zm scripts/zmaudit.pl scripts/zmcontrol.pl scripts/zmdc.pl scripts/zmfilter.pl scripts/zmpkg.pl scripts/zmtrack.pl scripts/zmcamtool.pl scripts/zmsystemctl.pl scripts/zmtrigger.pl scripts/zmupdate.pl scripts/zmvideo.pl scripts/zmwatch.pl scripts/zmx10.pl scripts/zmdbbackup scripts/zmdbrestore scripts/zmeventdump scripts/zmlogrotate.conf scripts/ZoneMinder/lib/ZoneMinder/Base.pm scripts/ZoneMinder/lib/ZoneMinder/Config.pm scripts/ZoneMinder/lib/ZoneMinder/Memory.pm scripts/ZoneMinder/lib/ZoneMinder/ConfigData.pm src/Makefile src/zm_config.h web/Makefile web/ajax/Makefile web/css/Makefile web/graphics/Makefile web/includes/Makefile web/includes/config.php web/js/Makefile web/lang/Makefile web/skins/Makefile web/skins/classic/Makefile web/skins/classic/ajax/Makefile web/skins/classic/css/Makefile web/skins/classic/graphics/Makefile web/skins/classic/includes/Makefile web/skins/classic/js/Makefile web/skins/classic/lang/Makefile web/skins/classic/views/Makefile web/skins/classic/views/css/Makefile web/skins/classic/views/js/Makefile web/skins/mobile/Makefile web/skins/mobile/ajax/Makefile web/skins/mobile/css/Makefile web/skins/mobile/graphics/Makefile web/skins/mobile/includes/Makefile web/skins/mobile/lang/Makefile web/skins/mobile/views/Makefile web/skins/mobile/views/css/Makefile web/tools/Makefile web/tools/mootools/Makefile web/views/Makefile web/skins/xml/Makefile web/skins/xml/views/Makefile web/skins/xml/includes/Makefile web/skins/flat/Makefile web/skins/flat/ajax/Makefile web/skins/flat/css/Makefile web/skins/flat/graphics/Makefile web/skins/flat/includes/Makefile web/skins/flat/js/Makefile web/skins/flat/lang/Makefile web/skins/flat/views/Makefile web/skins/flat/views/css/Makefile web/skins/flat/views/js/Makefile])
+AC_CONFIG_FILES([Makefile zm.conf zmconfgen.pl db/Makefile db/zm_create.sql misc/Makefile misc/apache.conf misc/logrotate.conf misc/syslog.conf misc/com.zoneminder.systemctl.policy misc/com.zoneminder.systemctl.rules onvif/Makefile onvif/scripts/Makefile scripts/Makefile scripts/zm scripts/zmaudit.pl scripts/zmcontrol.pl scripts/zmdc.pl scripts/zmfilter.pl scripts/zmpkg.pl scripts/zmtrack.pl scripts/zmcamtool.pl scripts/zmsystemctl.pl scripts/zmtrigger.pl scripts/zmupdate.pl scripts/zmvideo.pl scripts/zmwatch.pl scripts/zmx10.pl scripts/zmdbbackup scripts/zmdbrestore scripts/zmeventdump scripts/zmlogrotate.conf scripts/ZoneMinder/lib/ZoneMinder/Base.pm scripts/ZoneMinder/lib/ZoneMinder/Config.pm scripts/ZoneMinder/lib/ZoneMinder/Memory.pm scripts/ZoneMinder/lib/ZoneMinder/ConfigData.pm src/Makefile src/zm_config.h web/Makefile web/ajax/Makefile web/css/Makefile web/graphics/Makefile web/includes/Makefile web/includes/config.php web/js/Makefile web/lang/Makefile web/skins/Makefile web/skins/classic/Makefile web/skins/classic/ajax/Makefile web/skins/classic/css/Makefile web/skins/classic/css/classic/Makefile web/skins/classic/css/classic/views/Makefile web/skins/classic/css/dark/Makefile web/skins/classic/css/dark/views/Makefile web/skins/classic/css/flat/Makefile web/skins/classic/css/flat/views/Makefile web/skins/classic/graphics/Makefile web/skins/classic/includes/Makefile web/skins/classic/js/Makefile web/skins/classic/lang/Makefile web/skins/classic/views/Makefile web/skins/classic/views/js/Makefile web/skins/mobile/Makefile web/skins/mobile/ajax/Makefile web/skins/mobile/css/Makefile web/skins/mobile/graphics/Makefile web/skins/mobile/includes/Makefile web/skins/mobile/lang/Makefile web/skins/mobile/views/Makefile web/skins/mobile/views/css/Makefile web/tools/Makefile web/tools/mootools/Makefile web/views/Makefile web/skins/xml/Makefile web/skins/xml/views/Makefile web/skins/xml/includes/Makefile])
 
 # Create the definitions for compilation and defaults for the database
 AC_CONFIG_COMMANDS([src/zm_config_defines.h],[perl ./zmconfgen.pl])
 # Manually generate the perl Makefile maker
 AC_CONFIG_COMMANDS([scripts/ZoneMinder/Makefile],[(cd scripts/ZoneMinder; echo "perl Makefile.PL $PERL_MM_PARMS"; perl Makefile.PL $PERL_MM_PARMS)],[PERL_MM_PARMS=$PERL_MM_PARMS])
+AC_CONFIG_COMMANDS([onvif/modules/Makefile],[(cd onvif/modules; echo "perl Makefile.PL $PERL_MM_PARMS"; perl Makefile.PL $PERL_MM_PARMS)],[PERL_MM_PARMS=$PERL_MM_PARMS])
+AC_CONFIG_COMMANDS([onvif/proxy/Makefile],[(cd onvif/proxy; echo "perl Makefile.PL $PERL_MM_PARMS"; perl Makefile.PL $PERL_MM_PARMS)],[PERL_MM_PARMS=$PERL_MM_PARMS])
 
 AC_OUTPUT

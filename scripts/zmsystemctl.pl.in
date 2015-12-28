@@ -2,7 +2,7 @@
 #
 # ==========================================================================
 #
-# ZoneMinder Update Script, $Date$, $Revision$
+# ZoneMinder systemctl wrapper, $Date$, $Revision$
 # Copyright (C) 2001-2008 Philip Coombes
 #
 # This program is free software; you can redistribute it and/or
@@ -20,25 +20,44 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 # ==========================================================================
-#
-# This is a wrapper script that allows zoneminder to start and stop itself
-# in a manner that keeps it in-sync with systemd.  This script is intended
-# to be called internally by zoneminder and may not give the desired results
-# if run from the command line.
-#
+
+=head1 NAME
+
+zmsystemctl.pl - ZoneMinder systemctl wrapper
+
+=head1 SYNOPSIS
+
+ zmsystemctl.pl {start|stop|restart|version}
+
+=head1 DESCRIPTION
+
+This script allows an unpriveledged user to start, stop, or restart the
+zoneminder service on a system running systemd. It does this by redirecting
+commands through pkexec, which checks the available polkit policy files. The
+default policy file grants the system web account user permission. This can be
+changed or expanded by modifying the policy file. See man polkit for details.
+
+=head1 SEE ALSO
+
+polkit(8), pkexec(1)
+
+=cut
 use warnings;
 use strict;
 use bytes;
+use autouse 'Pod::Usage'=>qw(pod2usage);
 
 @EXTRA_PERL_LIB@
 use ZoneMinder::Logger qw(:all);
 
 my $command = $ARGV[0];
 
-if ( (scalar(@ARGV) == 1) && ($command =~ /^(start|stop|restart)$/ )) {
-	$command = $1;
+if ( (scalar(@ARGV) == 1)
+     && ($command =~ /^(start|stop|restart|version)$/ )
+){
+    $command = $1;
 } else {
-	die(" USAGE: zmsystemctl.pl <start|stop|restart>\n");
+    pod2usage(-exitstatus => -1);
 }
 
 my $path = qx(which systemctl);
@@ -46,7 +65,7 @@ chomp($path);
 
 my $status = $? >> 8;
 if ( !$path || $status ) {
-	Fatal( "Unable to determine systemctl executable. Is systemd in use?" );
+    Fatal( "Unable to determine systemctl executable. Is systemd in use?" );
 }
 
 Info( "Redirecting command through systemctl\n" );

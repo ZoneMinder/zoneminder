@@ -135,8 +135,6 @@ function getControlCommands( $monitor )
 
 function controlPresets( $monitor, $cmds )
 {
-    global $SLANG;
-
     define( "MAX_PRESETS", "10" );
 
     $sql = "select * from ControlPresets where MonitorId = '".$monitor['Id']."'";
@@ -150,13 +148,13 @@ function controlPresets( $monitor, $cmds )
 ?>
 <div class="presetControls">
   <div>
-    <form method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
+    <form method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
       <div class="hidden">
         <fieldset>
-          <input type="hidden" name="view" value="<?= $_REQUEST['view'] ?>"/>
+          <input type="hidden" name="view" value="<?php echo $_REQUEST['view'] ?>"/>
           <input type="hidden" name="action" value="control"/>
-          <input type="hidden" name="mid" value="<?= $monitor['Id'] ?>"/>
-          <input type="hidden" name="control" value="<?= $cmds['PresetGoto'] ?>"/>
+          <input type="hidden" name="mid" value="<?php echo $monitor['Id'] ?>"/>
+          <input type="hidden" name="control" value="<?php echo $cmds['PresetGoto'] ?>"/>
         </fieldset>
       </div>
       <div>
@@ -164,7 +162,7 @@ function controlPresets( $monitor, $cmds )
     for ( $i = 1; $i <= min($monitor['NumPresets'],MAX_PRESETS); $i++ )
     {
 ?>
-        <input type="submit" class="ptzNumBtn" title="<?= isset($labels[$i])?$labels[$i]:"" ?>" name="preset" value="<?= $i ?>"/>
+        <input type="submit" class="ptzNumBtn" title="<?php echo isset($labels[$i])?$labels[$i]:"" ?>" name="preset" value="<?php echo $i ?>"/>
 <?php
     }
 ?>

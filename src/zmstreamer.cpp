@@ -19,6 +19,52 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
+/*
+
+=head1 NAME
+
+zmstreamer - eyeZM video streamer
+
+=head1 SYNOPSIS
+
+ zmstreamer -e <mode>
+ zmstreamer -o <format>
+ zmstreamer -u <buffer size>
+ zmstreamer -f <maximum fps>
+ zmstreamer -s <scale>
+ zmstreamer -b <bitrate in bps>
+ zmstreamer -m <monitor id>
+ zmstreamer -d <debug mode>
+ zmstreamer -i
+ zmstreamer -?
+ zmstreamer -h
+ zmstreamer -v
+
+=head1 DESCRIPTION
+
+*DEPRECIATED* The xml skin and all files associated with the xml skin are now
+depreciated. Please use the ZoneMinder API instead.
+
+This binary works in conjunction with the XML skin to stream video to iPhones
+running the eyeZm app. 
+
+=head1 OPTIONS
+
+ -e <mode>                        - Specify output mode: mpeg/jpg/zip/single/raw.
+ -o <format>                      - Specify output format.
+ -u <buffer size>                 - Specify buffer size in ms.
+ -f <maximum fps>                 - Specify maximum framerate.
+ -s <scale>                       - Specify scale.
+ -b <bitrate in bps>              - Specify bitrate.
+ -m <monitor id>                  - Specify monitor id.
+ -d <debug mode>                  - 0 = off, 1 = no streaming, 2 = with streaming.
+ -i, -?, -h                       - Display usage information
+ -v                               - Print the installed version of ZoneMinder
+
+=cut
+
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -33,7 +79,7 @@
 #include "zm_stream.h"
 
 // Possible command-line options
-#define OPTIONS "e:o:u:f:s:b:m:d:i:?"
+#define OPTIONS "e:o:u:f:s:b:m:d:i:?:h:v"
 
 // Default ZMS values
 #define ZMS_DEFAULT_DEBUG 0
@@ -87,6 +133,7 @@ int main(int argc, char** argv) {
             case 'd':
                 debug = atoi(optarg);
                 break;
+            case 'h':
             case 'i':
             case '?':
                 printf("-e <mode> : Specify output mode: mpeg/jpg/zip/single/raw. Default = %s\n", ZMS_DEFAULT_MODE);
@@ -97,8 +144,12 @@ int main(int argc, char** argv) {
                 printf("-b <bitrate in bps> : Specify bitrate. Default = %d\n", ZMS_DEFAULT_BITRATE);
                 printf("-m <monitor id> : Specify monitor id. Default = %d\n", ZMS_DEFAULT_ID);
                 printf("-d <debug mode> : 0 = off, 1 = no streaming, 2 = with streaming. Default = 0\n");
-                printf("-i or -? : This information\n");
+                printf("-i or -? or -h: This information\n");
+                printf("-v : This installed version of ZoneMinder\n");
                 return EXIT_SUCCESS;
+            case 'v':
+                std::cout << ZM_VERSION << "\n";
+                exit(0);
         }
     }
 
@@ -169,6 +220,8 @@ int main(int argc, char** argv) {
         stream.setStreamBitrate(bitrate); // default = 100000 (bitrate)
 #else
         fprintf(stderr, "MPEG streaming is disabled.\nYou should configure with the --with-ffmpeg option and rebuild to use this functionality.\n");
+        logTerm();
+        zmDbClose();
         return EXIT_FAILURE;
 #endif
     }
@@ -191,6 +244,9 @@ int main(int argc, char** argv) {
         stream.runStream();
     }
     if (debug) printf("Done.\n");
+
+    logTerm();
+    zmDbClose();
 
     return (EXIT_SUCCESS);
 }

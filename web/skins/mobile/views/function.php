@@ -25,20 +25,20 @@ if ( !canEdit( 'Monitors' ) )
 }
 $monitor = dbFetchMonitor( $_REQUEST['mid'] );
 
-xhtmlHeaders( __FILE__, $SLANG['Function'].' - '.$monitor['Name'] );
+xhtmlHeaders( __FILE__, translate('Function').' - '.$monitor['Name'] );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?= sprintf( $CLANG['MonitorFunction'], $monitor['Name'] ) ?></h2>
+      <h2><?php echo sprintf( $CLANG['MonitorFunction'], $monitor['Name'] ) ?></h2>
     </div>
     <div id="content">
-      <form method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
+      <form method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <div class="hidden">
           <fieldset>
             <input type="hidden" name="view" value="console"/>
             <input type="hidden" name="action" value="function"/>
-            <input type="hidden" name="mid" value="<?= $_REQUEST['mid'] ?>"/>
+            <input type="hidden" name="mid" value="<?php echo $_REQUEST['mid'] ?>"/>
           </fieldset>
         </div>
         <div>
@@ -47,17 +47,17 @@ xhtmlHeaders( __FILE__, $SLANG['Function'].' - '.$monitor['Name'] );
 foreach ( getEnumValues( 'Monitors', 'Function' ) as $optFunction )
 {
 ?>
-            <option value="<?= $optFunction ?>"<?php if ( $optFunction == $monitor['Function'] ) { ?> selected="selected"<?php } ?>><?= $optFunction ?></option>
+            <option value="<?php echo $optFunction ?>"<?php if ( $optFunction == $monitor['Function'] ) { ?> selected="selected"<?php } ?>><?php echo $optFunction ?></option>
 <?php
 }
 ?>
           </select>
         </div>
         <div>
-          <label for="newEnabled"><?= $SLANG['Enabled'] ?></label><input type="checkbox" name="newEnabled" id="newEnabled" value="1"<?php if ( !empty($monitor['Enabled']) ) { ?> checked="checked"<?php } ?>/>
+          <label for="newEnabled"><?php echo translate('Enabled') ?></label><input type="checkbox" name="newEnabled" id="newEnabled" value="1"<?php if ( !empty($monitor['Enabled']) ) { ?> checked="checked"<?php } ?>/>
         </div>
         <div id="contentButtons">
-          <input type="submit" value="<?= $SLANG['Save'] ?>"/>
+          <input type="submit" value="<?php echo translate('Save') ?>"/>
         </div>
       </form>
     </div>

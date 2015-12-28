@@ -4,6 +4,7 @@ EXTRA_DIST = \
 	apache.conf.in \
 	logrotate.conf.in \
 	syslog.conf.in \
+	zoneminder-tmpfiles.conf.in \
 	zoneminder.service.in \
         com.zoneminder.systemctl.policy.in \
         com.zoneminder.systemctl.rules.in

@@ -1,5 +1,5 @@
-var restartWarning = <?= empty($restartWarning)?'false':'true' ?>;
+var restartWarning = <?php echo empty($restartWarning)?'false':'true' ?>;
 if ( restartWarning )
 {
-    alert( "<?= $SLANG['OptionRestartWarning'] ?>" );
+    alert( "<?php echo translate('OptionRestartWarning') ?>" );
 }

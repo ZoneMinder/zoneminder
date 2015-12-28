@@ -41,43 +41,43 @@ $filter = $_REQUEST['filter'];
 
 parseFilter( $filter );
 
-xhtmlHeaders(__FILE__, $SLANG['SaveFilter'] );
+xhtmlHeaders(__FILE__, translate('SaveFilter') );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?= $SLANG['SaveFilter'] ?></h2>
+      <h2><?php echo translate('SaveFilter') ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="none"/>
         <input type="hidden" name="action" value="filter"/>
-        <?= $filter['fields'] ?>
-        <input type="hidden" name="sort_field" value="<?= requestVar( 'sort_field' ) ?>"/>
-        <input type="hidden" name="sort_asc" value="<?= requestVar( 'sort_asc' ) ?>"/>
-        <input type="hidden" name="limit" value="<?= requestVar( 'limit' ) ?>"/>
-        <input type="hidden" name="autoArchive" value="<?= requestVar( 'autoArchive' ) ?>"/>
-        <input type="hidden" name="autoVideo" value="<?= requestVar( 'autoVideo' ) ?>"/>
-        <input type="hidden" name="autoUpload" value="<?= requestVar( 'autoUpload' ) ?>"/>
-        <input type="hidden" name="autoEmail" value="<?= requestVar( 'autoEmail' ) ?>"/>
-        <input type="hidden" name="autoMessage" value="<?= requestVar( 'autoMessage' ) ?>"/>
-        <input type="hidden" name="autoExecute" value="<?= requestVar( 'autoExecute' ) ?>"/>
-        <input type="hidden" name="autoExecuteCmd" value="<?= requestVar( 'autoExecuteCmd' ) ?>"/>
-        <input type="hidden" name="autoDelete" value="<?= requestVar( 'autoDelete' ) ?>"/>
+        <?php echo $filter['fields'] ?>
+        <input type="hidden" name="sort_field" value="<?php echo requestVar( 'sort_field' ) ?>"/>
+        <input type="hidden" name="sort_asc" value="<?php echo requestVar( 'sort_asc' ) ?>"/>
+        <input type="hidden" name="limit" value="<?php echo requestVar( 'limit' ) ?>"/>
+        <input type="hidden" name="autoArchive" value="<?php echo requestVar( 'autoArchive' ) ?>"/>
+        <input type="hidden" name="autoVideo" value="<?php echo requestVar( 'autoVideo' ) ?>"/>
+        <input type="hidden" name="autoUpload" value="<?php echo requestVar( 'autoUpload' ) ?>"/>
+        <input type="hidden" name="autoEmail" value="<?php echo requestVar( 'autoEmail' ) ?>"/>
+        <input type="hidden" name="autoMessage" value="<?php echo requestVar( 'autoMessage' ) ?>"/>
+        <input type="hidden" name="autoExecute" value="<?php echo requestVar( 'autoExecute' ) ?>"/>
+        <input type="hidden" name="autoExecuteCmd" value="<?php echo requestVar( 'autoExecuteCmd' ) ?>"/>
+        <input type="hidden" name="autoDelete" value="<?php echo requestVar( 'autoDelete' ) ?>"/>
 <?php if ( count($filterNames) ) { ?>
         <p>
-          <label for="<?= $selectName ?>"><?= $SLANG['SaveAs'] ?></label><?= buildSelect( $selectName, $filterNames ); ?><label for="<?= $newSelectName ?>"><?= $SLANG['OrEnterNewName'] ?></label><input type="text" size="32" id="<?= $newSelectName ?>" name="<?= $newSelectName ?>" value="<?= requestVar('filterName') ?>"/>
+          <label for="<?php echo $selectName ?>"><?php echo translate('SaveAs') ?></label><?php echo buildSelect( $selectName, $filterNames ); ?><label for="<?php echo $newSelectName ?>"><?php echo translate('OrEnterNewName') ?></label><input type="text" size="32" id="<?php echo $newSelectName ?>" name="<?php echo $newSelectName ?>" value="<?php echo requestVar('filterName') ?>"/>
         </p>
 <?php } else { ?>
         <p>
-          <label for="<?= $newSelectName ?>"><?= $SLANG['EnterNewFilterName'] ?></label><input type="text" size="32" id="<?= $newSelectName ?>" name="<?= $newSelectName ?>" value="">
+          <label for="<?php echo $newSelectName ?>"><?php echo translate('EnterNewFilterName') ?></label><input type="text" size="32" id="<?php echo $newSelectName ?>" name="<?php echo $newSelectName ?>" value="">
         </p>
 <?php } ?>
         <p>
-          <label for="background"><?= $SLANG['BackgroundFilter'] ?></label><input type="checkbox" id="background" name="background" value="1"<?php if ( !empty($filterData['Background']) ) { ?> checked="checked"<?php } ?>/>
+          <label for="background"><?php echo translate('BackgroundFilter') ?></label><input type="checkbox" id="background" name="background" value="1"<?php if ( !empty($filterData['Background']) ) { ?> checked="checked"<?php } ?>/>
         </p>
         <div id="contentButtons">
-          <input type="submit" value="<?= $SLANG['Save'] ?>"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?= $SLANG['Cancel'] ?>" onclick="closeWindow();"/>
+          <input type="submit" value="<?php echo translate('Save') ?>"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
         </div>
       </form>
     </div>

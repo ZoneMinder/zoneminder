@@ -47,24 +47,24 @@ $scale = getDeviceScale( $event['Width'], $event['Height'], 1.1 );
 
 $imageData = getImageSrc( $event, $frame, $scale, (isset($_REQUEST['show'])&&$_REQUEST['show']=="capt") );
 
-xhtmlHeaders( __FILE__, $SLANG['Frame'].' - '.$_REQUEST['eid'].'-'.$frame['FrameId'] );
+xhtmlHeaders( __FILE__, translate('Frame').' - '.$_REQUEST['eid'].'-'.$frame['FrameId'] );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?= $SLANG['Frame'] ?> <?= $_REQUEST['eid']."-".$frame['FrameId']." (".$frame['Score'].")" ?></h2>
+      <h2><?php echo translate('Frame') ?> <?php echo $_REQUEST['eid']."-".$frame['FrameId']." (".$frame['Score'].")" ?></h2>
     </div>
     <div id="content">
-      <?php if ( $imageData['hasAnalImage'] ) { ?><a href="?view=frame&amp;eid=<?= $_REQUEST['eid'] ?>&amp;fid=<?= $frame['FrameId'] ?>&amp;show=<?= $imageData['isAnalImage']?"capt":"anal" ?>"><?php } ?><img src="<?= viewImagePath( $imageData['thumbPath'] ) ?>" class="<?= $imageData['imageClass'] ?>"/><?php if ( $imageData['hasAnalImage'] ) { ?></a><?php } ?>
+      <?php if ( $imageData['hasAnalImage'] ) { ?><a href="?view=frame&amp;eid=<?php echo $_REQUEST['eid'] ?>&amp;fid=<?php echo $frame['FrameId'] ?>&amp;show=<?php echo $imageData['isAnalImage']?"capt":"anal" ?>"><?php } ?><img src="<?php echo viewImagePath( $imageData['thumbPath'] ) ?>" class="<?php echo $imageData['imageClass'] ?>"/><?php if ( $imageData['hasAnalImage'] ) { ?></a><?php } ?>
       <div id="contentButtons">
 <?php if ( $frame['FrameId'] > 1 ) { ?>
-        <a href="?view=frame&amp;eid=<?= $_REQUEST['eid'] ?>&amp;fid=<?= $firstFid ?>">&lt;&lt;</a>
+        <a href="?view=frame&amp;eid=<?php echo $_REQUEST['eid'] ?>&amp;fid=<?php echo $firstFid ?>">&lt;&lt;</a>
 <?php } if ( $frame['FrameId'] > 1 ) { ?>
-        <a href="?view=frame&amp;eid=<?= $_REQUEST['eid'] ?>&amp;fid=<?= $prevFid ?>">&lt;</a>
+        <a href="?view=frame&amp;eid=<?php echo $_REQUEST['eid'] ?>&amp;fid=<?php echo $prevFid ?>">&lt;</a>
 <?php } if ( $frame['FrameId'] < $maxFid ) { ?>
-        <a href="?view=frame&amp;eid=<?= $_REQUEST['eid'] ?>&amp;fid=<?= $nextFid ?>">&gt;</a>
+        <a href="?view=frame&amp;eid=<?php echo $_REQUEST['eid'] ?>&amp;fid=<?php echo $nextFid ?>">&gt;</a>
 <?php } if ( $frame['FrameId'] < $maxFid ) { ?>
-        <a href="?view=frame&amp;eid=<?= $_REQUEST['eid'] ?>&amp;fid=<?= $lastFid ?>">&gt;&gt;</a>
+        <a href="?view=frame&amp;eid=<?php echo $_REQUEST['eid'] ?>&amp;fid=<?php echo $lastFid ?>">&gt;&gt;</a>
 <?php } ?>
       </div>
     </div>

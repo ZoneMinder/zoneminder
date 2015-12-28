@@ -25,7 +25,7 @@ if ( !canEdit( 'Monitors' ) )
 }
 
 $cameras = array();
-$cameras[0] = $SLANG['ChooseDetectedCamera'];
+$cameras[0] = translate('ChooseDetectedCamera');
 
 if ( ZM_HAS_V4L2 )
 {
@@ -103,7 +103,7 @@ if ( ZM_HAS_V4L2 )
                     $inputMonitor['SignalCheckColour'] = '#000023';
                 }
                 $inputDesc = base64_encode(serialize($inputMonitor));
-                $inputString = $deviceMatches[1].', chan '.$i.($input['free']?(" - ".$SLANG['Available']):(" (".$monitors[$input['id']]['Name'].")"));
+                $inputString = $deviceMatches[1].', chan '.$i.($input['free']?(" - ".translate('Available')):(" (".$monitors[$input['id']]['Name'].")"));
                 $inputs[] = $input;
                 $cameras[$inputDesc] = $inputString;
             }
@@ -289,25 +289,43 @@ $macBases = array(
 unset($output);
 // Calling arp without the full path was reported to fail on some systems
 // Use the builtin unix command "type" to tell us where the command is
-$command = "type -p arp";
-$result = exec( escapeshellcmd($command), $output, $status );
-if ( $status )
-    Fatal( "Unable determine arp path, status is '$status'" );
+$arp_command = '';
+$result = explode( " ", ZM_PATH_ARP );
+if ( !is_executable( $result[0] ) ) {
+	if ( ZM_PATH_ARP ) {
+		Warning( "User assigned ARP tool not found. Verify ZM_PATH_ARP points to a valid arp tool and is executable by the web user account."  );
+	}
+	$result = exec( 'type -p arp', $output, $status );
+	if ( $status ) {
+	    Warning( "Unable to determine path for arp command, type -p arp returned '$status' output is: " . implode( "\n", $output ) );
+	    unset($output);
+	    $result = exec( 'which arp', $output, $status );
+	    if ( $status ) {
+	        Warning( "Unable to determine path for arp command, which arp returned '$status'" );
+	        if ( file_exists( '/usr/sbin/arp' ) ) {
+	            $arp_command = '/usr/sbin/arp -a';
+	        }
+	    } else {
+	        $arp_command = $output[0]." -a";
+	    }
+	} else {
+	    $arp_command = $output[0]." -a";
+	}
+} else {
+	$arp_command = ZM_PATH_ARP;
+}
 // Now that we know where arp is, call it using the full path
-$command = $output[0]." -a";
 unset($output);
-$result = exec( escapeshellcmd($command), $output, $status );
+$result = exec( escapeshellcmd($arp_command), $output, $status );
 if ( $status )
     Fatal( "Unable to probe network cameras, status is '$status'" );
 foreach ( $output as $line )
 {
-    if ( !preg_match( '/^(\S+) \(([\d.]+)\) at ([0-9a-f:]+)/', $line, $matches ) )
+    if ( !preg_match( '/^.*([\d.]+).*([0-9a-f:]+).*/', $line, $matches ) )
         continue;
-    $host = $matches[1];
-    $ip = $matches[2];
-    if ( !$host || $host == '?' )
-        $host = $ip;
-    $mac = $matches[3];
+    $ip = $matches[1];
+    $host = $ip;
+    $mac = $matches[2];
     //echo "I:$ip, H:$host, M:$mac<br/>";
     $macRoot = substr($mac,0,8);
     if ( isset($macBases[$macRoot]) )
@@ -323,36 +341,36 @@ foreach ( $output as $line )
         }
         else
         {
-            $sourceString .= " - ".$SLANG['Available'];
+            $sourceString .= " - ".translate('Available');
         }
         $cameras[$sourceDesc] = $sourceString;
     }
 }
 
 if ( count($cameras) <= 0 )
-    $cameras[0] = $SLANG['NoDetectedCameras'];
+    $cameras[0] = translate('NoDetectedCameras');
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['MonitorProbe'] );
+xhtmlHeaders(__FILE__, translate('MonitorProbe') );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?= $SLANG['MonitorProbe'] ?></h2>
+      <h2><?php echo translate('MonitorProbe') ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="none"/>
-        <input type="hidden" name="mid" value="<?= validNum($_REQUEST['mid']) ?>"/>
+        <input type="hidden" name="mid" value="<?php echo validNum($_REQUEST['mid']) ?>"/>
         <p>
-          <?= $SLANG['MonitorProbeIntro'] ?>
+          <?php echo translate('MonitorProbeIntro') ?>
         </p>
         <p>
-          <label for="probe"><?= $SLANG['DetectedCameras'] ?></label><?= buildSelect( "probe", $cameras, 'configureButtons( this )' ); ?>
+          <label for="probe"><?php echo translate('DetectedCameras') ?></label><?php echo buildSelect( "probe", $cameras, 'configureButtons( this )' ); ?>
         </p>
         <div id="contentButtons">
-          <input type="submit" name="saveBtn" value="<?= $SLANG['Save'] ?>" onclick="submitCamera( this )" disabled="disabled"/><input type="button" value="<?= $SLANG['Cancel'] ?>" onclick="closeWindow()"/>
+          <input type="submit" name="saveBtn" value="<?php echo translate('Save') ?>" onclick="submitCamera( this )" disabled="disabled"/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
         </div>
       </form>
     </div>

@@ -16,6 +16,19 @@ class MonitorsController extends AppController {
  */
 	public $components = array('Paginator', 'RequestHandler');
 
+
+public function beforeFilter() {
+	parent::beforeFilter();
+        $canView = $this->Session->Read('monitorPermission');
+	if ($canView =='None')
+	{
+		throw new UnauthorizedException(__('Insufficient Privileges'));
+		return;
+	}
+
+}
+
+
 /**
  * index method
  *
@@ -23,7 +36,17 @@ class MonitorsController extends AppController {
  */
 	public function index() {
                 $this->Monitor->recursive = 0;
-        	$monitors = $this->Monitor->find('all');
+		$allowedMonitors=preg_split ('@,@', $this->Session->Read('allowedMonitors'),NULL, PREG_SPLIT_NO_EMPTY);
+		
+		if (!empty($allowedMonitors))
+		{
+			$options = array('conditions'=>array('Monitor.Id'=> $allowedMonitors));
+		}
+		else
+		{
+			$options='';
+		}
+        	$monitors = $this->Monitor->find('all',$options);
         	$this->set(array(
         	    'monitors' => $monitors,
         	    '_serialize' => array('monitors')
@@ -42,7 +65,21 @@ class MonitorsController extends AppController {
 		if (!$this->Monitor->exists($id)) {
 			throw new NotFoundException(__('Invalid monitor'));
 		}
-		$options = array('conditions' => array('Monitor.' . $this->Monitor->primaryKey => $id));
+		$allowedMonitors=preg_split ('@,@', $this->Session->Read('allowedMonitors'),NULL, PREG_SPLIT_NO_EMPTY);
+		if (!empty($allowedMonitors))
+		{
+			$restricted = array('Monitor.' . $this->Monitor->primaryKey => $allowedMonitors);
+		}
+		else
+		{
+			$restricted = '';
+		}
+		
+		$options = array('conditions' => array( 
+					array('Monitor.' . $this->Monitor->primaryKey => $id),
+					$restricted
+					)
+				);
 		$monitor = $this->Monitor->find('first', $options);
 		$this->set(array(
 			'monitor' => $monitor,
@@ -57,6 +94,13 @@ class MonitorsController extends AppController {
  */
 	public function add() {
 		if ($this->request->is('post')) {
+
+			if ($this->Session->Read('systemPermission') != 'Edit')
+			{
+				 throw new UnauthotizedException(__('Insufficient privileges'));
+				return;
+			}
+
 			$this->Monitor->create();
 			if ($this->Monitor->save($this->request->data)) {
 				$this->daemonControl($this->Monitor->id, 'start', $this->request->data);
@@ -78,7 +122,11 @@ class MonitorsController extends AppController {
 		if (!$this->Monitor->exists($id)) {
 			throw new NotFoundException(__('Invalid monitor'));
 		}
-
+		if ($this->Session->Read('systemPermission') != 'Edit')
+		{
+			 throw new UnauthorizedException(__('Insufficient privileges'));
+			return;
+		}
 		if ($this->Monitor->save($this->request->data)) {
 			$message = 'Saved';
 		} else {
@@ -89,6 +137,8 @@ class MonitorsController extends AppController {
 			'message' => $message,
 			'_serialize' => array('message')
 		));
+		// - restart this monitor after change
+		$this->daemonControl($this->Monitor->id, 'restart', $this->request->data);
 	}
 
 /**
@@ -102,6 +152,11 @@ class MonitorsController extends AppController {
 		$this->Monitor->id = $id;
 		if (!$this->Monitor->exists()) {
 			throw new NotFoundException(__('Invalid monitor'));
+		}
+		if ($this->Session->Read('systemPermission') != 'Edit')
+		{
+			 throw new UnauthorizedException(__('Insufficient privileges'));
+			return;
 		}
 		$this->request->allowMethod('post', 'delete');
 

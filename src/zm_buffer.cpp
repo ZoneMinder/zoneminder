@@ -18,6 +18,7 @@
 */ 
 
 #include <string.h>
+#include <fcntl.h>
 
 #include "zm.h"
 #include "zm_buffer.h"
@@ -66,4 +67,15 @@ unsigned int Buffer::expand( unsigned int count )
         mTail = mHead + width;
     }
     return( mSize );
+}
+
+int Buffer::read_into( int sd, unsigned int bytes ) {
+    // Make sure there is enough space
+    this->expand(bytes);
+    int bytes_read = read( sd, mTail, bytes );
+    if ( bytes_read > 0 ) {
+        mTail += bytes_read;
+        mSize += bytes_read;
+    }
+    return bytes_read;
 }

@@ -70,17 +70,17 @@ foreach( dbFetchAll( $sql ) as $row )
 $focusWindow = true;
 
 $layouts = array(
-    'montage_freeform.css' => $SLANG['MtgDefault'],
-    'montage_2wide.css' => $SLANG['Mtg2widgrd'],
-    'montage_3wide.css' => $SLANG['Mtg3widgrd'],
-    'montage_4wide.css' => $SLANG['Mtg4widgrd'],
-    'montage_3wide50enlarge.css' => $SLANG['Mtg3widgrx'],
+    'montage_freeform.css' => translate('MtgDefault'),
+    'montage_2wide.css' => translate('Mtg2widgrd'),
+    'montage_3wide.css' => translate('Mtg3widgrd'),
+    'montage_4wide.css' => translate('Mtg4widgrd'),
+    'montage_3wide50enlarge.css' => translate('Mtg3widgrx'),
 );
 
 if ( isset($_COOKIE['zmMontageLayout']) )
     $layout = $_COOKIE['zmMontageLayout'];
 
-xhtmlHeaders(__FILE__, $SLANG['Montage'] );
+xhtmlHeaders(__FILE__, translate('Montage') );
 ?>
 <body>
   <div id="page">
@@ -90,16 +90,16 @@ xhtmlHeaders(__FILE__, $SLANG['Montage'] );
 if ( $showControl )
 {
 ?>
-        <a href="#" onclick="createPopup( '?view=control', 'zmControl', 'control' )"><?= $SLANG['Control'] ?></a>
+        <a href="#" onclick="createPopup( '?view=control', 'zmControl', 'control' )"><?php echo translate('Control') ?></a>
 <?php
 }
 ?>
-        <a href="#" onclick="closeWindow()"><?= $SLANG['Close'] ?></a>
+        <a href="#" onclick="closeWindow()"><?php echo translate('Close') ?></a>
       </div>
-      <h2><?= $SLANG['Montage'] ?></h2>
+      <h2><?php echo translate('Montage') ?></h2>
       <div id="headerControl">
-        <span id="scaleControl"><?= $SLANG['Scale'] ?>: <?= buildSelect( "scale", $scales, "changeScale( this );" ); ?></span> 
-        <label for="layout"><?= $SLANG['Layout'] ?>:</label><?= buildSelect( "layout", $layouts, 'selectLayout( this )' )?>
+        <span id="scaleControl"><?php echo translate('Scale') ?>: <?php echo buildSelect( 'scale', $scales, 'changeScale(this);' ); ?></span> 
+        <label for="layout"><?php echo translate('Layout') ?>:</label><?php echo buildSelect( 'layout', $layouts, 'selectLayout(this);' )?>
       </div>
     </div>
     <div id="content">
@@ -111,9 +111,9 @@ foreach ( $monitors as $monitor )
     if ( !isset( $scale ) )
         $scale = reScale( SCALE_BASE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
 ?>
-        <div id="monitorFrame<?= $monitor['index'] ?>" class="monitorFrame">
-          <div id="monitor<?= $monitor['index'] ?>" class="monitor idle">
-            <div id="imageFeed<?= $monitor['index'] ?>" class="imageFeed" onclick="createPopup( '?view=watch&amp;mid=<?= $monitor['Id'] ?>', 'zmWatch<?= $monitor['Id'] ?>', 'watch', <?= $monitor['scaleWidth'] ?>, <?= $monitor['scaleHeight'] ?> );">
+        <div id="monitorFrame<?php echo $monitor['index'] ?>" class="monitorFrame">
+          <div id="monitor<?php echo $monitor['index'] ?>" class="monitor idle">
+            <div id="imageFeed<?php echo $monitor['index'] ?>" class="imageFeed" onclick="createPopup( '?view=watch&amp;mid=<?php echo $monitor['Id'] ?>', 'zmWatch<?php echo $monitor['Id'] ?>', 'watch', <?php echo $monitor['scaleWidth'] ?>, <?php echo $monitor['scaleHeight'] ?> );">
 <?php
 if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT )
 {
@@ -138,7 +138,7 @@ else
     if ( !ZM_WEB_COMPACT_MONTAGE )
     {
 ?>
-            <div id="monitorState<?= $monitor['index'] ?>" class="monitorState idle"><?= $SLANG['State'] ?>:&nbsp;<span id="stateValue<?= $monitor['index'] ?>"></span>&nbsp;-&nbsp;<span id="fpsValue<?= $monitor['index'] ?>"></span>&nbsp;fps</div>
+            <div id="monitorState<?php echo $monitor['index'] ?>" class="monitorState idle"><?php echo translate('State') ?>:&nbsp;<span id="stateValue<?php echo $monitor['index'] ?>"></span>&nbsp;-&nbsp;<span id="fpsValue<?php echo $monitor['index'] ?>"></span>&nbsp;fps</div>
 <?php
     }
 ?>

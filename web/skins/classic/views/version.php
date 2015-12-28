@@ -24,64 +24,64 @@ if ( !canEdit( 'System' ) )
     return;
 }
 $options = array(
-    "go" => $SLANG['GoToZoneMinder']
+    "go" => translate('GoToZoneMinder')
 );
 
 if ( verNum( ZM_DYN_CURR_VERSION ) != verNum( ZM_DYN_LAST_VERSION ) )
 {
     $options = array_merge( $options, array(
-        "ignore" => $SLANG['VersionIgnore'],
-        "hour"   => $SLANG['VersionRemindHour'],
-        "day"    => $SLANG['VersionRemindDay'],
-        "week"   => $SLANG['VersionRemindWeek'],
-        "never"  => $SLANG['VersionRemindNever']
+        "ignore" => translate('VersionIgnore'),
+        "hour"   => translate('VersionRemindHour'),
+        "day"    => translate('VersionRemindDay'),
+        "week"   => translate('VersionRemindWeek'),
+        "never"  => translate('VersionRemindNever')
     ) );
 }
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['Version'] );
+xhtmlHeaders(__FILE__, translate('Version') );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?= $SLANG['Version'] ?></h2>
+      <h2><?php echo translate('Version') ?></h2>
     </div>
     <div id="content">
 <?php
 if ( ZM_DYN_DB_VERSION && (ZM_DYN_DB_VERSION != ZM_VERSION) )
 {
 ?>
-      <p class="errorText"><?= sprintf( $CLANG['VersionMismatch'], ZM_VERSION, ZM_DYN_DB_VERSION ) ?></p>
-      <p><?= $SLANG['RunLocalUpdate'] ?></p>
+      <p class="errorText"><?php echo sprintf( $CLANG['VersionMismatch'], ZM_VERSION, ZM_DYN_DB_VERSION ) ?></p>
+      <p><?php echo translate('RunLocalUpdate') ?></p>
       <div id="contentButtons">
-        <input type="button" value="<?= $SLANG['Close'] ?>" onclick="closeWindow()"/>
+        <input type="button" value="<?php echo translate('Close') ?>" onclick="closeWindow()"/>
       </div>
 <?php
 }
 elseif ( verNum( ZM_DYN_LAST_VERSION ) <= verNum( ZM_VERSION ) )
 {
 ?>
-      <p><?= sprintf( $CLANG['RunningRecentVer'], ZM_VERSION ) ?></p>
-      <p><?= $SLANG['UpdateNotNecessary'] ?></p>
-      <p><input type="button" value="<?= $SLANG['GoToZoneMinder'] ?>" onclick="zmWindow()"/></p>
+      <p><?php echo sprintf( $CLANG['RunningRecentVer'], ZM_VERSION ) ?></p>
+      <p><?php echo translate('UpdateNotNecessary') ?></p>
+      <p><input type="button" value="<?php echo translate('GoToZoneMinder') ?>" onclick="zmWindow()"/></p>
       <div id="contentButtons">
-        <input type="button" value="<?= $SLANG['Close'] ?>" onclick="closeWindow()"/>
+        <input type="button" value="<?php echo translate('Close') ?>" onclick="closeWindow()"/>
       </div>
 <?php
 }
 else
 {
 ?>
-      <form name="contentForm" id="contentForm" method="get" action="<?= $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="none"/>
         <input type="hidden" name="action" value="version"/>
-        <p><?= $SLANG['UpdateAvailable'] ?></p>
-        <p><?= sprintf( $CLANG['LatestRelease'], ZM_DYN_LAST_VERSION, ZM_VERSION ) ?></p>
-        <p><?= buildSelect( "option", $options ); ?></p>
+        <p><?php echo translate('UpdateAvailable') ?></p>
+        <p><?php echo sprintf( $CLANG['LatestRelease'], ZM_DYN_LAST_VERSION, ZM_VERSION ) ?></p>
+        <p><?php echo buildSelect( "option", $options ); ?></p>
         <div id="contentButtons">
-          <input type="submit" value="<?= $SLANG['Apply'] ?>" onclick="submitForm( this )"/>
-          <input type="button" value="<?= $SLANG['Close'] ?>" onclick="closeWindow()"/>
+          <input type="submit" value="<?php echo translate('Apply') ?>" onclick="submitForm( this )"/>
+          <input type="button" value="<?php echo translate('Close') ?>" onclick="closeWindow()"/>
         </div>
       </form>
 <?php

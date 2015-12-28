@@ -32,6 +32,7 @@ function dbConnect()
 
 	try {
 		$dbConn = new PDO( ZM_DB_TYPE . ':host=' . ZM_DB_HOST . ';dbname='.ZM_DB_NAME, ZM_DB_USER, ZM_DB_PASS );
+		$dbConn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 	} catch(PDOException $ex ) {
 		echo "Unable to connect to ZM db." . $ex->getMessage();
 		$dbConn = null;
@@ -111,7 +112,7 @@ function dbQuery( $sql, $params=NULL ) {
             $result = $dbConn->query( $sql );
         }
     } catch(PDOException $e) {
-		Fatal( "SQL-ERR '".$e.getMessage()."', statement was '".$sql."'" );
+		Fatal( "SQL-ERR '".$e->getMessage()."', statement was '".$sql."'" );
     }
     return( $result );
 }

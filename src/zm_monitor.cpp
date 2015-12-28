@@ -2802,6 +2802,7 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
         signal_check_colour = strtol(dbrow[col]+1,0,16);
     else
         signal_check_colour = strtol(dbrow[col],0,16);
+	col++;
     bool embed_exif = (*dbrow[col] != '0'); col++;
 
     int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);

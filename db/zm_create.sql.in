@@ -548,7 +548,7 @@ CREATE TABLE `Storage` (
 	`Id`	smallint(5) unsigned NOT NULL auto_increment,
 	`Path`	varchar(64)	NOT NULL default '',
 	`Name`	varchar(64) NOT NULL default '',
-	PRIMARY KEY (`Id`),
+	PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --

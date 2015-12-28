@@ -42,7 +42,6 @@ $tabs['x10'] = translate('X10');
 $tabs['highband'] = translate('HighBW');
 $tabs['medband'] = translate('MediumBW');
 $tabs['lowband'] = translate('LowBW');
-$tabs['phoneband'] = translate('PhoneBW');
 $tabs['users'] = translate('Users');
 
 if ( isset($_REQUEST['tab']) )

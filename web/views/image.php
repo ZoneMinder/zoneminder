@@ -18,6 +18,20 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
+// Calling sequence:   ... /zm/index.php?view=image&path=/monid/path/image.jpg&scale=nnn&width=wwww&height=hhhhh
+//
+//     Path is physical path to the image starting at the monitor id
+//
+//     Scale is optional and between 1 and 400 (percent),
+//          Omitted or 100 = no scaling done, image passed through directly
+//          Scaling will increase response time slightly
+//
+//     width and height are each optional, ideally supply both, but if only one is supplied the other is calculated
+//          These are in pixels
+//
+//     If both scale and either width or height are specified, scale is ignored
+//
+
 if ( !canView( 'Events' ) )
 {
     $view = "error";
@@ -25,6 +39,21 @@ if ( !canView( 'Events' ) )
 }
 
 header( 'Content-type: image/jpeg' );
+
+// Compatibility for PHP 5.4 
+if (!function_exists('imagescale'))
+{
+    function imagescale($image, $new_width, $new_height = -1, $mode = 0)
+    {
+        $mode; // Not supported
+
+        $new_height = ($new_height == -1) ? imagesy($image) : $new_height;
+        $imageNew = imagecreatetruecolor($new_width, $new_height);
+        imagecopyresampled($imageNew, $image, 0, 0, 0, 0, (int)$new_width, (int)$new_height, imagesx($image), imagesy($image));
+        
+        return $imageNew;
+    }
+}
 
 $errorText = false;
 if ( empty($_REQUEST['path']) )
@@ -51,52 +80,67 @@ else
     }
 }
 
-if ( true )
-{
-    // Simple version
-    if ( $errorText )
-        Error( $errorText );
-    else
-        readfile( ZM_DIR_EVENTS.'/'.$path );
-}
+$scale=0;
+if( !empty($_REQUEST['scale']) )
+    if (is_numeric($_REQUEST['scale']))
+    {
+        $x = $_REQUEST['scale'];
+        if($x >= 1 and $x <= 400)
+            $scale=$x;
+    }
+
+$width=0;
+if( !empty($_REQUEST['width']) )
+    if (is_numeric($_REQUEST['width']))
+    {
+        $x = $_REQUEST['width'];
+        if($x >= 10 and $x <= 8000)
+            $width=$x;
+    }
+$height=0;
+if( !empty($_REQUEST['height']) )
+    if (is_numeric($_REQUEST['height']))
+    {
+        $x = $_REQUEST['height'];
+        if($x >= 10 and $x <= 8000)
+            $height=$x;
+    }
+
+
+if ( $errorText )
+    Error( $errorText );
 else
-{
-    // Not so simple version
-    if ( !function_exists( "imagecreatefromjpeg" ) )
-        Warning( "The imagecreatefromjpeg function is not present, php-gd not installed?" );
-
-    if ( !$errorText )
+    if( ($scale==0 || $scale==100) && $width==0 && $height==0 )
+        readfile( ZM_DIR_EVENTS.'/'.$path );
+    else
     {
-        if ( !($image = imagecreatefromjpeg( ZM_DIR_EVENTS.'/'.$path )) )
+        $i = imagecreatefromjpeg ( ZM_DIR_EVENTS.'/'.$path );
+        $oldWidth=imagesx($i);
+        $oldHeight=imagesy($i);
+        if($width==0 && $height==0)  // scale has to be set to get here with both zero
         {
-            $errorText = "Can't load image";
-            $error = error_get_last();
-            Error( $error['message'] );
+            $width = $oldWidth  * $scale / 100.0;
+            $height= $oldHeight * $scale / 100.0;
+        }
+        elseif ($width==0 && $height!=0)
+        {
+            $width = ($height * $oldWidth) / $oldHeight;
+        }
+        elseif ($width!=0 && $height==0)
+        {
+            $height = ($width * $oldHeight) / $oldWidth;
+        }
+        if($width==$oldWidth && $height==$oldHeight)  // See if we really need to scale
+        {
+            imagejpg($i);
+            imagedestroy($i);
+        }
+        else  // we do need to scale
+        {
+            $iScale = imagescale($i, $width, $height);
+            imagejpeg($iScale);
+            imagedestroy($i);
+            imagedestroy($iScale);
         }
     }
-
-    if ( $errorText )
-    {
-        if ( !($image = imagecreatetruecolor( 160, 120 )) )
-        {
-            $error = error_get_last();
-            Error( $error['message'] );
-        }
-        if ( !($textColor = imagecolorallocate( $image, 255, 0, 0 )) )
-        {
-            $error = error_get_last();
-            Error( $error['message'] );
-        }
-        if ( !imagestring( $image, 1, 20, 60, $errorText, $textColor ) )
-        {
-            $error = error_get_last();
-            Error( $error['message'] );
-        }
-        Fatal( $errorText." - ".$path );
-    }
-
-    imagejpeg( $image );
-
-    imagedestroy( $image );
-}
 ?>

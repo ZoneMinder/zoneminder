@@ -168,7 +168,7 @@ protected:
 #else // ZM_MEM_MAPPED
         int             shm_id;
 #endif // ZM_MEM_MAPPED
-		unsigned long	mem_size;
+		off_t	mem_size;
 		unsigned char	*mem_ptr;
 
 		volatile SharedData	*shared_data;
@@ -226,14 +226,20 @@ protected:
 	char			event_prefix[64];	    // The prefix applied to event names as they are created
 	char			label_format[64];	    // The format of the timestamp on the images
 	Coord			label_coord;		    // The coordinates of the timestamp on the images
+	int			label_size;                 // Size of the timestamp on the images
 	int				image_buffer_count;     // Size of circular image buffer, at least twice the size of the pre_event_count
+	int				pre_event_buffer_count;     // Size of dedicated circular pre event buffer used when analysis is not performed at capturing framerate,
+                                                                    // value is pre_event_count + alarm_frame_count - 1
 	int				warmup_count;		    // How many images to process before looking for events
 	int				pre_event_count;	    // How many images to hold and prepend to an alarm event
 	int				post_event_count;	    // How many unalarmed images must occur before the alarm state is reset
 	int				stream_replay_buffer;   // How many frames to store to support DVR functions, IGNORED from this object, passed directly into zms now
 	int				section_length;		    // How long events should last in continuous modes
+	bool				adaptive_skip;              // Whether to use the newer adaptive algorithm for this monitor
 	int				frame_skip;			    // How many frames to skip in continuous modes
 	int				motion_frame_skip;		    // How many frames to skip in motion detection
+	double				analysis_fps;    // Target framerate for video analysis
+	unsigned int			analysis_update_delay;    //  How long we wait before updating analysis parameters
 	int				capture_delay;		    // How long we wait between capture frames
 	int				alarm_capture_delay;    // How long we wait between capture frames when in alarm state
 	int				alarm_frame_count;	    // How many alarm frames are required before an event is triggered
@@ -242,10 +248,13 @@ protected:
 	int				alarm_ref_blend_perc;		    // Percentage of new image going into reference image during alarm.
 	bool			track_motion;		    // Whether this monitor tries to track detected motion 
     Rgb             signal_check_colour;    // The colour that the camera will emit when no video signal detected
+        bool                            embed_exif; // Whether to embed Exif data into each image frame or not
 
 	double			fps;
 	Image			delta_image;
 	Image			ref_image;
+    Image           alarm_image;    // Used in creating analysis images, will be initialized in Analysis
+    Image           write_image;        // Used when creating snapshot images
 
 	Purpose			purpose;			    // What this monitor has been created to do
 	int				event_count;
@@ -269,7 +278,7 @@ protected:
 #else // ZM_MEM_MAPPED
     int             shm_id;
 #endif // ZM_MEM_MAPPED
-	unsigned long				mem_size;
+	off_t				mem_size;
 	unsigned char	*mem_ptr;
 
 	SharedData		*shared_data;
@@ -277,26 +286,34 @@ protected:
 
 	Snapshot		*image_buffer;
 	Snapshot		next_buffer; /* Used by four field deinterlacing */
+	Snapshot		*pre_event_buffer;
 
 	Camera			*camera;
 
 	Event			*event;
 
-	int				n_zones;
+	int			n_zones;
 	Zone			**zones;
 
-   int iDoNativeMotDet;
+	struct timeval		**timestamps;
+	Image			**images;
 
-	int				n_linked_monitors;
+	const unsigned char	*privacy_bitmask;
+
+
+	int			iDoNativeMotDet;
+
+	int			n_linked_monitors;
 	MonitorLink		**linked_monitors;
 
 public:
 // OurCheckAlarms seems to be unused. Check it on zm_monitor.cpp for more info.
 //bool OurCheckAlarms( Zone *zone, const Image *pImage );
-	Monitor( int p_id, const char *p_name, int p_function, bool p_enabled, const char *p_linked_monitors, Camera *p_camera, int p_orientation, unsigned int p_deinterlacing, const char *p_event_prefix, const char *p_label_format, const Coord &p_label_coord, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_stream_replay_buffer, int p_alarm_frame_count, int p_section_length, int p_frame_skip, int p_motion_frame_skip, int p_capture_delay, int p_alarm_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, int p_alarm_ref_blend_perc, bool p_track_motion, Rgb p_signal_check_colour, Purpose p_purpose, int p_n_zones=0, Zone *p_zones[]=0 );
+	Monitor( int p_id, const char *p_name, int p_function, bool p_enabled, const char *p_linked_monitors, Camera *p_camera, int p_orientation, unsigned int p_deinterlacing, const char *p_event_prefix, const char *p_label_format, const Coord &p_label_coord, int label_size, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_stream_replay_buffer, int p_alarm_frame_count, int p_section_length, int p_frame_skip, int p_motion_frame_skip, double p_analysis_fps, unsigned int p_analysis_update_delay, int p_capture_delay, int p_alarm_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, int p_alarm_ref_blend_perc, bool p_track_motion, Rgb p_signal_check_colour, bool p_embed_exif, Purpose p_purpose, int p_n_zones=0, Zone *p_zones[]=0 );
 	~Monitor();
 
 	void AddZones( int p_n_zones, Zone *p_zones[] );
+	void AddPrivacyBitmask( Zone *p_zones[] );
 
 	bool connect();
 	inline int ShmValid() const
@@ -338,6 +355,10 @@ public:
 			return( false );
 		return( enabled && shared_data->active );
 	}
+	inline bool Exif()
+	{
+		return( embed_exif );
+	}
 
 	unsigned int Width() const { return( width ); }
 	unsigned int Height() const { return( height ); }
@@ -346,8 +367,11 @@ public:
       
  
 	State GetState() const;
-	int GetImage( int index=-1, int scale=100 ) const;
+	int GetImage( int index=-1, int scale=100 );
 	struct timeval GetTimestamp( int index=-1 ) const;
+	void UpdateAdaptiveSkip();
+	useconds_t GetAnalysisRate();
+	unsigned int GetAnalysisUpdateDelay() const { return( analysis_update_delay ); }
 	int GetCaptureDelay() const { return( capture_delay ); }
 	int GetAlarmCaptureDelay() const { return( alarm_capture_delay ); }
 	unsigned int GetLastReadIndex() const;
@@ -466,9 +490,9 @@ public:
     {
         ttl = p_ttl;
     }
-    void setStreamStart( int monitor_id )
+    bool setStreamStart( int monitor_id )
     {
-        loadMonitor( monitor_id );
+        return loadMonitor( monitor_id );
     }
 	void runStream();
 };

@@ -32,31 +32,31 @@ $stats = dbFetchAll( $sql, NULL, array( $eid, $fid ) );
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['Stats']." - ".$eid." - ".$fid );
+xhtmlHeaders(__FILE__, translate('Stats')." - ".$eid." - ".$fid );
 ?>
 <body>
   <div id="page">
     <div id="header">
       <div id="headerButtons">
-        <a href="#" onclick="closeWindow(); return( false );"><?= $SLANG['Close'] ?></a>
+        <a href="#" onclick="closeWindow(); return( false );"><?php echo translate('Close') ?></a>
       </div>
-      <h2><?= $SLANG['Stats'] ?> - <?= $eid ?> - <?= $fid ?></h2>
+      <h2><?php echo translate('Stats') ?> - <?php echo $eid ?> - <?php echo $fid ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="get" action="<?= $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="none"/>
         <table id="contentTable" class="major" cellspacing="0">
           <thead>
             <tr>
-              <th class="colZone"><?= $SLANG['Zone'] ?></th>
-              <th class="colPixelDiff"><?= $SLANG['PixelDiff'] ?></th>
-              <th class="colAlarmPx"><?= $SLANG['AlarmPx'] ?></th>
-              <th class="colFilterPx"><?= $SLANG['FilterPx'] ?></th>
-              <th class="colBlobPx"><?= $SLANG['BlobPx'] ?></th>
-              <th class="colBlobs"><?= $SLANG['Blobs'] ?></th>
-              <th class="colBlobSizes"><?= $SLANG['BlobSizes'] ?></th>
-              <th class="colAlarmLimits"><?= $SLANG['AlarmLimits'] ?></th>
-              <th class="colScore"><?= $SLANG['Score'] ?></th>
+              <th class="colZone"><?php echo translate('Zone') ?></th>
+              <th class="colPixelDiff"><?php echo translate('PixelDiff') ?></th>
+              <th class="colAlarmPx"><?php echo translate('AlarmPx') ?></th>
+              <th class="colFilterPx"><?php echo translate('FilterPx') ?></th>
+              <th class="colBlobPx"><?php echo translate('BlobPx') ?></th>
+              <th class="colBlobs"><?php echo translate('Blobs') ?></th>
+              <th class="colBlobSizes"><?php echo translate('BlobSizes') ?></th>
+              <th class="colAlarmLimits"><?php echo translate('AlarmLimits') ?></th>
+              <th class="colScore"><?php echo translate('Score') ?></th>
             </tr>
           </thead>
           <tbody>
@@ -67,28 +67,28 @@ if ( count($stats) )
     {
 ?>
             <tr>
-              <td class="colZone"><?= validHtmlStr($stat['ZoneName']) ?></td>
-              <td class="colPixelDiff"><?= validHtmlStr($stat['PixelDiff']) ?></td>
-              <td class="colAlarmPx"><?= sprintf( "%d (%d%%)", $stat['AlarmPixels'], (100*$stat['AlarmPixels']/$stat['Area']) ) ?></td>
-              <td class="colFilterPx"><?= sprintf( "%d (%d%%)", $stat['FilterPixels'], (100*$stat['FilterPixels']/$stat['Area']) ) ?></td>
-              <td class="colBlobPx"><?= sprintf( "%d (%d%%)", $stat['BlobPixels'], (100*$stat['BlobPixels']/$stat['Area']) ) ?></td>
-              <td class="colBlobs"><?= validHtmlStr($stat['Blobs']) ?></td>
+              <td class="colZone"><?php echo validHtmlStr($stat['ZoneName']) ?></td>
+              <td class="colPixelDiff"><?php echo validHtmlStr($stat['PixelDiff']) ?></td>
+              <td class="colAlarmPx"><?php echo sprintf( "%d (%d%%)", $stat['AlarmPixels'], (100*$stat['AlarmPixels']/$stat['Area']) ) ?></td>
+              <td class="colFilterPx"><?php echo sprintf( "%d (%d%%)", $stat['FilterPixels'], (100*$stat['FilterPixels']/$stat['Area']) ) ?></td>
+              <td class="colBlobPx"><?php echo sprintf( "%d (%d%%)", $stat['BlobPixels'], (100*$stat['BlobPixels']/$stat['Area']) ) ?></td>
+              <td class="colBlobs"><?php echo validHtmlStr($stat['Blobs']) ?></td>
 <?php
 if ( $stat['Blobs'] > 1 )
 {
 ?>
-              <td class="colBlobSizes"><?= sprintf( "%d-%d (%d%%-%d%%)", $stat['MinBlobSize'], $stat['MaxBlobSize'], (100*$stat['MinBlobSize']/$stat['Area']), (100*$stat['MaxBlobSize']/$stat['Area']) ) ?></td>
+              <td class="colBlobSizes"><?php echo sprintf( "%d-%d (%d%%-%d%%)", $stat['MinBlobSize'], $stat['MaxBlobSize'], (100*$stat['MinBlobSize']/$stat['Area']), (100*$stat['MaxBlobSize']/$stat['Area']) ) ?></td>
 <?php
 }
 else
 {
 ?>
-              <td class="colBlobSizes"><?= sprintf( "%d (%d%%)", $stat['MinBlobSize'], 100*$stat['MinBlobSize']/$stat['Area'] ) ?></td>
+              <td class="colBlobSizes"><?php echo sprintf( "%d (%d%%)", $stat['MinBlobSize'], 100*$stat['MinBlobSize']/$stat['Area'] ) ?></td>
 <?php
 }
 ?>
-              <td class="colAlarmLimits"><?= validHtmlStr($stat['MinX'].",".$stat['MinY']."-".$stat['MaxX'].",".$stat['MaxY']) ?></td>
-              <td class="colScore"><?= $stat['Score'] ?></td>
+              <td class="colAlarmLimits"><?php echo validHtmlStr($stat['MinX'].",".$stat['MinY']."-".$stat['MaxX'].",".$stat['MaxY']) ?></td>
+              <td class="colScore"><?php echo $stat['Score'] ?></td>
             </tr>
 <?php
     }
@@ -97,7 +97,7 @@ else
 {
 ?>
             <tr>
-              <td class="rowNoStats" colspan="9"><?= $SLANG['NoStatisticsRecorded'] ?></td>
+              <td class="rowNoStats" colspan="9"><?php echo translate('NoStatisticsRecorded') ?></td>
             </tr>
 <?php
 }

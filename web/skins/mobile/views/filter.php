@@ -31,14 +31,14 @@ foreach( dbFetchAll( $sql ) as $row )
     $filterNames[$row['Name']] = $row['Name'];
 }
 
-xhtmlHeaders( __FILE__, $SLANG['EventFilter'] );
+xhtmlHeaders( __FILE__, translate('EventFilter') );
 ?>
 <body>
   <div id="page">
     <div id="header">
     </div>
     <div id="content">
-      <form method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
+      <form method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <div class="hidden">
           <fieldset>
             <input type="hidden" name="view" value="events"/>
@@ -50,17 +50,17 @@ if ( count($filterNames) > 0 )
 {
 ?>
         <div>
-          <label for="filterName"><?= $SLANG['UseFilter'] ?></label><?= buildSelect( "filterName", $filterNames ); ?>
+          <label for="filterName"><?php echo translate('UseFilter') ?></label><?php echo buildSelect( "filterName", $filterNames ); ?>
         </div>
         <div id="contentButtons">
-          <input type="submit" value="<?= $SLANG['Submit'] ?>"/>
+          <input type="submit" value="<?php echo translate('Submit') ?>"/>
         </div>
 <?php
 }
 else
 {
 ?>
-        <p><?= $SLANG['NoSavedFilters'] ?></p>
+        <p><?php echo translate('NoSavedFilters') ?></p>
 <?php
 }
 ?>

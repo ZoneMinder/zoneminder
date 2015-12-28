@@ -33,32 +33,32 @@ if ( !empty($_REQUEST['did']) ) {
     );
 }
 
-xhtmlHeaders( __FILE__, $SLANG['Device']." - ".$newDevice['Name'] );
+xhtmlHeaders( __FILE__, translate('Device')." - ".$newDevice['Name'] );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?= $SLANG['Device']." - ".validHtmlStr($newDevice['Name']) ?></h2>
+      <h2><?php echo translate('Device')." - ".validHtmlStr($newDevice['Name']) ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" method="get" action="<?= $_SERVER['PHP_SELF'] ?>">
-        <input type="hidden" name="view" value="<?= $view ?>"/>
+      <form name="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+        <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value="device"/>
-        <input type="hidden" name="did" value="<?= $newDevice['Id'] ?>"/>
+        <input type="hidden" name="did" value="<?php echo $newDevice['Id'] ?>"/>
         <table id="contentTable" class="major" cellspacing="0">
           <tbody>
             <tr>
-              <th scope="row"><?= $SLANG['Name'] ?></th>
-              <td><input type="text" name="newDevice[Name]" value="<?= validHtmlStr($newDevice['Name']) ?>"/></td>
+              <th scope="row"><?php echo translate('Name') ?></th>
+              <td><input type="text" name="newDevice[Name]" value="<?php echo validHtmlStr($newDevice['Name']) ?>"/></td>
             </tr>
             <tr>
-              <th scope="row"><?= $SLANG['KeyString'] ?></th>
-              <td><input type="text" name="newDevice[KeyString]" value="<?= validHtmlStr($newDevice['KeyString']) ?>"/></td>
+              <th scope="row"><?php echo translate('KeyString') ?></th>
+              <td><input type="text" name="newDevice[KeyString]" value="<?php echo validHtmlStr($newDevice['KeyString']) ?>"/></td>
             </tr>
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="submit" value="<?= $SLANG['Save'] ?>"<?php if ( !canEdit( 'Devices' ) ) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?= $SLANG['Cancel'] ?>" onclick="closeWindow()"/>
+          <input type="submit" value="<?php echo translate('Save') ?>"<?php if ( !canEdit( 'Devices' ) ) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
         </div>
       </form>
     </div>

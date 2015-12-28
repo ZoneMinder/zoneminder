@@ -24,8 +24,8 @@
 #if HAVE_LIBAVCODEC || HAVE_LIBAVUTIL || HAVE_LIBSWSCALE
 
 #if HAVE_LIBAVUTIL
-enum PixelFormat GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subpixelorder) {
-	enum PixelFormat pf;
+enum _AVPIXELFORMAT GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subpixelorder) {
+	enum _AVPIXELFORMAT pf;
 
 	Debug(8,"Colours: %d SubpixelOrder: %d",p_colours,p_subpixelorder);
 
@@ -34,10 +34,10 @@ enum PixelFormat GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subpixe
 	  {
 	    if(p_subpixelorder == ZM_SUBPIX_ORDER_BGR) {
 	      /* BGR subpixel order */
-	      pf = PIX_FMT_BGR24;
+	      pf = AV_PIX_FMT_BGR24;
 	    } else {
 	      /* Assume RGB subpixel order */
-	      pf = PIX_FMT_RGB24;
+	      pf = AV_PIX_FMT_RGB24;
 	    }
 	    break;
 	  }
@@ -45,25 +45,25 @@ enum PixelFormat GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subpixe
 	  {
 	    if(p_subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
 	      /* ARGB subpixel order */
-	      pf = PIX_FMT_ARGB;
+	      pf = AV_PIX_FMT_ARGB;
 	    } else if(p_subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
 	      /* ABGR subpixel order */
-	      pf = PIX_FMT_ABGR;
+	      pf = AV_PIX_FMT_ABGR;
 	    } else if(p_subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
 	      /* BGRA subpixel order */
-	      pf = PIX_FMT_BGRA;
+	      pf = AV_PIX_FMT_BGRA;
 	    } else {
 	      /* Assume RGBA subpixel order */
-	      pf = PIX_FMT_RGBA;
+	      pf = AV_PIX_FMT_RGBA;
 	    }
 	    break;
 	  }
 	  case ZM_COLOUR_GRAY8:
-	    pf = PIX_FMT_GRAY8;
+	    pf = AV_PIX_FMT_GRAY8;
 	    break;
 	  default:
 	    Panic("Unexpected colours: %d",p_colours);
-	    pf = PIX_FMT_GRAY8; /* Just to shush gcc variable may be unused warning */
+	    pf = AV_PIX_FMT_GRAY8; /* Just to shush gcc variable may be unused warning */
 	    break;
 	}
 
@@ -76,13 +76,21 @@ SWScale::SWScale() : gotdefaults(false), swscale_ctx(NULL), input_avframe(NULL),
 	Debug(4,"SWScale object created");
 
 	/* Allocate AVFrame for the input */
+#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
+	input_avframe = av_frame_alloc();
+#else
 	input_avframe = avcodec_alloc_frame();
+#endif
 	if(input_avframe == NULL) {
 		Fatal("Failed allocating AVFrame for the input");
 	}
 
 	/* Allocate AVFrame for the output */
+#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
+	output_avframe = av_frame_alloc();
+#else
 	output_avframe = avcodec_alloc_frame();
+#endif
 	if(output_avframe == NULL) {
 		Fatal("Failed allocating AVFrame for the output");
 	}
@@ -91,11 +99,19 @@ SWScale::SWScale() : gotdefaults(false), swscale_ctx(NULL), input_avframe(NULL),
 SWScale::~SWScale() {
 
 	/* Free up everything */
-	av_free(input_avframe);
-	input_avframe = NULL;
+#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
+	av_frame_free( &input_avframe );
+#else
+	av_freep( &input_avframe );
+#endif   
+	//input_avframe = NULL;
 
-	av_free(output_avframe);
-	output_avframe = NULL;
+#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
+	av_frame_free( &output_avframe );
+#else
+	av_freep( &output_avframe );
+#endif
+	//output_avframe = NULL;
 
 	if(swscale_ctx) {
 		sws_freeContext(swscale_ctx);
@@ -105,7 +121,7 @@ SWScale::~SWScale() {
 	Debug(4,"SWScale object destroyed");
 }
 
-int SWScale::SetDefaults(enum PixelFormat in_pf, enum PixelFormat out_pf, unsigned int width, unsigned int height) {
+int SWScale::SetDefaults(enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, unsigned int width, unsigned int height) {
 
 	/* Assign the defaults */
 	default_input_pf = in_pf;
@@ -118,7 +134,7 @@ int SWScale::SetDefaults(enum PixelFormat in_pf, enum PixelFormat out_pf, unsign
 	return 0;
 }
 
-int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint8_t* out_buffer, const size_t out_buffer_size, enum PixelFormat in_pf, enum PixelFormat out_pf, unsigned int width, unsigned int height) {
+int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint8_t* out_buffer, const size_t out_buffer_size, enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, unsigned int width, unsigned int height) {
 	/* Parameter checking */
 	if(in_buffer == NULL || out_buffer == NULL) {
 		Error("NULL Input or output buffer");
@@ -133,7 +149,7 @@ int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint
 		return -3;
 	}
 
-#if LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(0, 8, 0)
+#if LIBSWSCALE_VERSION_CHECK(0, 8, 0, 8, 0)
 	/* Warn if the input or output pixelformat is not supported */
 	if(!sws_isSupportedInput(in_pf)) {
 		Warning("swscale does not support the input format: %c%c%c%c",(in_pf)&0xff,((in_pf)&0xff),((in_pf>>16)&0xff),((in_pf>>24)&0xff));
@@ -181,7 +197,7 @@ int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint
 	return 0;
 }
 
-int SWScale::Convert(const Image* img, uint8_t* out_buffer, const size_t out_buffer_size, enum PixelFormat in_pf, enum PixelFormat out_pf, unsigned int width, unsigned int height) {
+int SWScale::Convert(const Image* img, uint8_t* out_buffer, const size_t out_buffer_size, enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, unsigned int width, unsigned int height) {
 	if(img->Width() != width) {
 		Error("Source image width differs. Source: %d Output: %d",img->Width(), width);
 		return -12;

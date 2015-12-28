@@ -1,0 +1,4 @@
+var/cache/zoneminder/events usr/share/zoneminder/www/events
+var/cache/zoneminder/images usr/share/zoneminder/www/images
+var/cache/zoneminder/temp   usr/share/zoneminder/www/temp
+usr/lib/cgi-bin             usr/lib/zoneminder/cgi-bin

@@ -15,6 +15,22 @@ class ConfigsController extends AppController {
 	public $components = array('RequestHandler');
 
 /**
+ * resolves the issue of not returning all config parameters
+ * refer https://github.com/ZoneMinder/ZoneMinder/issues/953
+ * index method
+ *
+ * @return void
+ */
+	public function index() {
+		$this->Config->recursive = 0;
+		$configs = $this->Config->find('all');
+		$this->set(array(
+			'configs' => $configs,
+			'_serialize' => array('configs')
+		));
+	}
+
+/**
  * view method
  *
  * @throws NotFoundException

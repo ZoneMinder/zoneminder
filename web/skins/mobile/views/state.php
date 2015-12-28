@@ -27,15 +27,15 @@ $running = daemonCheck();
 
 $states = dbFetchAll( "select * from States" );
 
-xhtmlHeaders( __FILE__, $SLANG['State'] );
+xhtmlHeaders( __FILE__, translate('State') );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?= $SLANG['RunState'] ?></h2>
+      <h2><?php echo translate('RunState') ?></h2>
     </div>
     <div id="content">
-      <form method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
+      <form method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <div class="hidden">
           <fieldset>
             <input type="hidden" name="view" value="console"/>
@@ -47,14 +47,14 @@ xhtmlHeaders( __FILE__, $SLANG['State'] );
 if ( $running )
 {
 ?>
-          <option value="stop" selected="selected"><?= $SLANG['Stop'] ?></option>
-          <option value="restart"><?= $SLANG['Restart'] ?></option>
+          <option value="stop" selected="selected"><?php echo translate('Stop') ?></option>
+          <option value="restart"><?php echo translate('Restart') ?></option>
 <?php
 }
 else
 {
 ?>
-          <option value="start" selected="selected"><?= $SLANG['Start'] ?></option>
+          <option value="start" selected="selected"><?php echo translate('Start') ?></option>
 <?php
 }
 ?>
@@ -62,13 +62,13 @@ else
 foreach ( $states as $state )
 {
 ?>
-          <option value="<?= $state['Name'] ?>"><?= $state['Name'] ?></option>
+          <option value="<?php echo $state['Name'] ?>"><?php echo $state['Name'] ?></option>
 <?php
 }
 ?>
         </select>
         <div id="contentButtons">
-          <input type="submit" value="<?= $SLANG['Apply'] ?>"/>
+          <input type="submit" value="<?php echo translate('Apply') ?>"/>
         </div>
       </form>
     </div>

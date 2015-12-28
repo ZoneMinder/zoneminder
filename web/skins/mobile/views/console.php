@@ -40,7 +40,7 @@ $eventCounts = array(
 );
 
 $running = daemonCheck();
-$status = $running?$SLANG['Running']:$SLANG['Stopped'];
+$status = $running?translate('Running'):translate('Stopped');
 
 if ( $group = dbFetchOne( "select * from Groups where Name = 'Mobile'" ) )
     $groupIds = array_flip(explode( ',', $group['MonitorIds'] ));
@@ -81,14 +81,14 @@ for ( $i = 0; $i < count($monitors); $i++ )
     $monitors[$i] = array_merge( $monitors[$i], $counts );
 }
 
-xhtmlHeaders( __FILE__, $SLANG['Console'] );
+xhtmlHeaders( __FILE__, translate('Console') );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <div id="systemTime"><a href="?view=<?= $view ?>"><?= preg_match( '/%/', DATE_FMT_CONSOLE_SHORT )?strftime( DATE_FMT_CONSOLE_SHORT ):date( DATE_FMT_CONSOLE_SHORT ) ?></a></div>
-      <div id="systemStats"><?= getLoad() ?>/<?= getDiskPercent() ?>%</div>
-      <div id="systemState"><?= makeLink( "?view=state", $status, canEdit( 'System' ) ) ?></div>
+      <div id="systemTime"><a href="?view=<?php echo $view ?>"><?php echo preg_match( '/%/', DATE_FMT_CONSOLE_SHORT )?strftime( DATE_FMT_CONSOLE_SHORT ):date( DATE_FMT_CONSOLE_SHORT ) ?></a></div>
+      <div id="systemStats"><?php echo getLoad() ?>/<?php echo getDiskPercent() ?>%</div>
+      <div id="systemState"><?php echo makeLink( "?view=state", $status, canEdit( 'System' ) ) ?></div>
     </div>
     <div id="content">
       <table id="contentTable">
@@ -128,13 +128,13 @@ foreach( $monitors as $monitor )
     if ( !$monitor['Enabled'] )
         $fclass .= " disabledText";
 ?>
-          <td class="colName"><?= makeLink( "?view=watch&amp;mid=".$monitor['Id'], substr( $monitor['Name'], 0, 8 ), $running && ($monitor['Function'] != 'None') && canView( 'Stream' ) ) ?></td>
-          <td class="colFunction"><?= makeLink( "?view=function&amp;mid=".$monitor['Id'], "<span class=\"$fclass\">".substr( $monitor['Function'], 0, 4 )."</span>", canEdit( 'Monitors' ) ) ?></td>
+          <td class="colName"><?php echo makeLink( "?view=watch&amp;mid=".$monitor['Id'], substr( $monitor['Name'], 0, 8 ), $running && ($monitor['Function'] != 'None') && canView( 'Stream' ) ) ?></td>
+          <td class="colFunction"><?php echo makeLink( "?view=function&amp;mid=".$monitor['Id'], "<span class=\"$fclass\">".substr( $monitor['Function'], 0, 4 )."</span>", canEdit( 'Monitors' ) ) ?></td>
 <?php
 for ( $i = 0; $i < count($eventCounts); $i++ )
 {
 ?>
-          <td class="colEvents"><?= makeLink( "?view=events&amp;page=1".$monitor['eventCounts'][$i]['filter']['query'], $monitor['EventCount'.$i], canView( 'Events' ) ) ?></td>
+          <td class="colEvents"><?php echo makeLink( "?view=events&amp;page=1".$monitor['eventCounts'][$i]['filter']['query'], $monitor['EventCount'.$i], canView( 'Events' ) ) ?></td>
 <?php
 }
 ?>
@@ -146,7 +146,7 @@ for ( $i = 0; $i < count($eventCounts); $i++ )
 <?php
 if ( ZM_OPT_X10 ) {
 ?>
-          <td><?= makeLink( "?view=devices", $SLANG['Devices'], canView('Devices' ) ) ?></td>
+          <td><?php echo makeLink( "?view=devices", translate('Devices'), canView('Devices' ) ) ?></td>
 <?php
 } else {
 ?>
@@ -155,7 +155,7 @@ if ( ZM_OPT_X10 ) {
 }
 if ( $cycleCount > 1 ) {
 ?>
-          <td><?= makeLink( "?view=montage", $SLANG['Montage'], $running && canView( 'Stream' ) ) ?></td>
+          <td><?php echo makeLink( "?view=montage", translate('Montage'), $running && canView( 'Stream' ) ) ?></td>
 <?php
 } else {
 ?>
@@ -166,7 +166,7 @@ for ( $i = 0; $i < count($eventCounts); $i++ )
 {
     parseFilter( $eventCounts[$i]['filter'], false, '&amp;' );
 ?>
-          <td class="colEvents"><?= makeLink( "?view=events&amp;page=1".$eventCounts[$i]['filter']['query'], $eventCounts[$i]['total'], canView( 'Events' ) ) ?></td>
+          <td class="colEvents"><?php echo makeLink( "?view=events&amp;page=1".$eventCounts[$i]['filter']['query'], $eventCounts[$i]['total'], canView( 'Events' ) ) ?></td>
 <?php
 }
 ?>

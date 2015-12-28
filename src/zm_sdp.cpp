@@ -23,7 +23,7 @@
 
 #include "zm_sdp.h"
 
-#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
+#if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
 SessionDescriptor::StaticPayloadDesc SessionDescriptor::smStaticPayloads[] = {
     { 0, "PCMU",   AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_PCM_MULAW,  8000,  1 },
     { 3, "GSM",    AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_NONE,       8000,  1 },
@@ -58,7 +58,8 @@ SessionDescriptor::DynamicPayloadDesc SessionDescriptor::smDynamicPayloads[] = {
     { "MP4V-ES", AVMEDIA_TYPE_VIDEO, AV_CODEC_ID_MPEG4 },
     { "mpeg4-generic", AVMEDIA_TYPE_AUDIO, AV_CODEC_ID_AAC },
     { "H264", AVMEDIA_TYPE_VIDEO, AV_CODEC_ID_H264 },
-    { "AMR", AVMEDIA_TYPE_AUDIO, AV_CODEC_ID_AMR_NB }
+    { "AMR", AVMEDIA_TYPE_AUDIO, AV_CODEC_ID_AMR_NB },
+    { "vnd.onvif.metadata", AVMEDIA_TYPE_DATA, AV_CODEC_ID_NONE }
 };
 #else
 SessionDescriptor::StaticPayloadDesc SessionDescriptor::smStaticPayloads[] = {
@@ -95,7 +96,8 @@ SessionDescriptor::DynamicPayloadDesc SessionDescriptor::smDynamicPayloads[] = {
     { "MP4V-ES", CODEC_TYPE_VIDEO, CODEC_ID_MPEG4 },
     { "mpeg4-generic", CODEC_TYPE_AUDIO, CODEC_ID_AAC },
     { "H264", CODEC_TYPE_VIDEO, CODEC_ID_H264 },
-    { "AMR", CODEC_TYPE_AUDIO, CODEC_ID_AMR_NB }
+    { "AMR", CODEC_TYPE_AUDIO, CODEC_ID_AMR_NB },
+    { "vnd.onvif.metadata", CODEC_TYPE_DATA, CODEC_ID_NONE }
 };
 #endif
 
@@ -184,9 +186,15 @@ SessionDescriptor::SessionDescriptor( const std::string &url, const std::string 
                 mInfo = line;
                 break;
             case 'c' :
+                // This prevent a memory leak if the field appears more than one time
+                if ( mConnInfo )
+                    delete mConnInfo;
                 mConnInfo = new ConnInfo( line );
                 break;
             case 'b' :
+                // This prevent a memory leak if the field appears more than one time
+                if ( mBandInfo )
+                    delete mBandInfo;
                 mBandInfo = new BandInfo( line );
                 break;
             case 't' :
@@ -320,7 +328,7 @@ SessionDescriptor::SessionDescriptor( const std::string &url, const std::string 
                 if ( tokens.size() < 4 )
                     throw Exception( "Can't parse SDP media description '"+line+"'" );
                 std::string mediaType = tokens[0];
-                if ( mediaType != "audio" && mediaType != "video" )
+                if ( mediaType != "audio" && mediaType != "video"  && mediaType != "application" )
                     throw Exception( "Unsupported media type '"+mediaType+"' in SDP media attribute '"+line+"'" );
                 StringVector portTokens = split( tokens[1], "/" );
                 int mediaPort = atoi(portTokens[0].c_str());
@@ -339,6 +347,16 @@ SessionDescriptor::SessionDescriptor( const std::string &url, const std::string 
     }
 }
 
+SessionDescriptor::~SessionDescriptor()
+{
+    if ( mConnInfo )
+        delete mConnInfo;
+    if ( mBandInfo )
+        delete mBandInfo;
+    for ( unsigned int i = 0; i < mMediaList.size(); i++ )
+        delete mMediaList[i];
+}
+
 AVFormatContext *SessionDescriptor::generateFormatContext() const
 {
     AVFormatContext *formatContext = avformat_alloc_context();
@@ -354,7 +372,7 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const
     for ( unsigned int i = 0; i < mMediaList.size(); i++ )
     {
         const MediaDescriptor *mediaDesc = mMediaList[i];
-#if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(53, 8, 0)
+#if !LIBAVFORMAT_VERSION_CHECK(53, 10, 0, 17, 0)
         AVStream *stream = av_new_stream( formatContext, i );
 #else
         AVStream *stream = avformat_new_stream( formatContext, NULL );
@@ -362,18 +380,25 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const
 #endif
 
         Debug( 1, "Looking for codec for %s payload type %d / %s",  mediaDesc->getType().c_str(), mediaDesc->getPayloadType(), mediaDesc->getPayloadDesc().c_str() );
-#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(51,2,1)
+#if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
         if ( mediaDesc->getType() == "video" )
             stream->codec->codec_type = AVMEDIA_TYPE_VIDEO;
         else if ( mediaDesc->getType() == "audio" )
             stream->codec->codec_type = AVMEDIA_TYPE_AUDIO;
+        else if ( mediaDesc->getType() == "application" )
+            stream->codec->codec_type = AVMEDIA_TYPE_DATA;
 #else
         if ( mediaDesc->getType() == "video" )
             stream->codec->codec_type = CODEC_TYPE_VIDEO;
         else if ( mediaDesc->getType() == "audio" )
             stream->codec->codec_type = CODEC_TYPE_AUDIO;
+        else if ( mediaDesc->getType() == "application" )
+            stream->codec->codec_type = CODEC_TYPE_DATA;
 #endif
 
+#if LIBAVCODEC_VERSION_CHECK(55, 50, 3, 60, 103)
+        std::string codec_name;
+#endif
         if ( mediaDesc->getPayloadType() < PAYLOAD_TYPE_DYNAMIC )
         {
             // Look in static table
@@ -382,7 +407,11 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const
                 if ( smStaticPayloads[i].payloadType == mediaDesc->getPayloadType() )
                 {
                     Debug( 1, "Got static payload type %d, %s", smStaticPayloads[i].payloadType, smStaticPayloads[i].payloadName );
+#if LIBAVCODEC_VERSION_CHECK(55, 50, 3, 60, 103)
+                    codec_name = std::string( smStaticPayloads[i].payloadName );
+#else
                     strncpy( stream->codec->codec_name, smStaticPayloads[i].payloadName, sizeof(stream->codec->codec_name) );;
+#endif
                     stream->codec->codec_type = smStaticPayloads[i].codecType;
                     stream->codec->codec_id = smStaticPayloads[i].codecId;
                     stream->codec->sample_rate = smStaticPayloads[i].clockRate;
@@ -398,7 +427,11 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const
                 if ( smDynamicPayloads[i].payloadName == mediaDesc->getPayloadDesc() )
                 {
                     Debug( 1, "Got dynamic payload type %d, %s", mediaDesc->getPayloadType(), smDynamicPayloads[i].payloadName );
+#if LIBAVCODEC_VERSION_CHECK(55, 50, 3, 60, 103)
+                    codec_name = std::string( smStaticPayloads[i].payloadName );
+#else
                     strncpy( stream->codec->codec_name, smDynamicPayloads[i].payloadName, sizeof(stream->codec->codec_name) );;
+#endif
                     stream->codec->codec_type = smDynamicPayloads[i].codecType;
                     stream->codec->codec_id = smDynamicPayloads[i].codecId;
                     stream->codec->sample_rate = mediaDesc->getClock();
@@ -406,7 +439,12 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const
                 }
             }
         }
+
+#if LIBAVCODEC_VERSION_CHECK(55, 50, 3, 60, 103)
+        if ( codec_name.empty() )
+#else
         if ( !stream->codec->codec_name[0] )
+#endif
         {
             Warning( "Can't find payload details for %s payload type %d, name %s", mediaDesc->getType().c_str(), mediaDesc->getPayloadType(), mediaDesc->getPayloadDesc().c_str() );
             //return( 0 );

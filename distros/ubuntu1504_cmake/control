@@ -55,6 +55,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,policykit-1
         ,rsyslog | system-log-daemon
         ,zip
+        ,python-sphinx-rtd-theme
 Recommends: ${misc:Recommends}
            ,libapache2-mod-php5 | php5-fpm
            ,mysql-server | virtual-mysql-server

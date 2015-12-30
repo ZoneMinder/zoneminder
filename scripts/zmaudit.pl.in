@@ -291,7 +291,7 @@ MAIN: while( $loop ) {
 			}
 			else
 			{
-				aud_print( "Filesystem monitor '$fs_monitor' does not exist in database" );
+				aud_print( "Filesystem monitor '$fs_monitor' in $$Storage{Path} does not exist in database" );
 				if ( confirm() )
 				{
 					my $command = "rm -rf $fs_monitor";

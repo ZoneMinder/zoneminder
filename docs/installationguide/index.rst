@@ -10,5 +10,4 @@ Contents:
    debian
    fedora
    centos
-
    multiserver

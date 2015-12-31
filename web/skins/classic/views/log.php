@@ -54,6 +54,7 @@ xhtmlHeaders(__FILE__, translate('SystemLog') );
     <div id="content">
       <div id="filters"><?php echo translate('FilterLog') ?> -
         <?php echo translate('Component') ?> <select id="filter[Component]" onchange="filterLog(this)"><option value="">-----</option></select>
+        <?php echo translate('Server') ?> <select id="filter[Server]" onchange="filterLog(this)"><option value="">-----</option></select>
         <?php echo translate('Pid') ?> <select id="filter[Pid]" onchange="filterLog(this)"><option value="">-----</option></select>
         <?php echo translate('Level') ?> <select id="filter[Level]" onchange="filterLog(this)"><option value="">---</option></select>
         <?php echo translate('File') ?> <select id="filter[File]" onchange="filterLog(this)"><option value="">------</option></select>
@@ -67,6 +68,7 @@ xhtmlHeaders(__FILE__, translate('SystemLog') );
             <tr>
               <th><?php echo translate('DateTime') ?></th>
               <th class="table-th-nosort"><?php echo translate('Component') ?></th>
+              <th class="table-th-nosort"><?php echo translate('Server') ?></th>
               <th class="table-th-nosort"><?php echo translate('Pid') ?></th>
               <th class="table-th-nosort"><?php echo translate('Level') ?></th>
               <th class="table-th-nosort"><?php echo translate('Message') ?></th>

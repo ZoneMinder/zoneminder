@@ -6,7 +6,7 @@ It is possible to run multiple ZoneMinder servers and manage them from a single 
 .. image:: images/zm-multiserver.png
 
 New installs
-============
+------------
 
 1. Follow the normal instructions for your distro for installing ZoneMinder onto all the ZoneMinder servers in the normal fashion. Only a single database will be needed either as standalone, or on one of the ZoneMinder servers.
 

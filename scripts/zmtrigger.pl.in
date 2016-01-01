@@ -433,11 +433,12 @@ sub loadMonitors
     my %new_monitors = ();
 
     my $sql = "SELECT * FROM Monitors
-               WHERE find_in_set( Function, 'Modect,Mocord,Nodect' )"
+               WHERE find_in_set( Function, 'Modect,Mocord,Nodect' )".
+			   ( $Config{ZM_SERVER_ID} ? 'AND ServerId=?' : '' )
     ;
     my $sth = $dbh->prepare_cached( $sql )
         or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-    my $res = $sth->execute()
+    my $res = $sth->execute( $Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID} : () )
         or Fatal( "Can't execute: ".$sth->errstr() );
     while( my $monitor = $sth->fetchrow_hashref() )
     {

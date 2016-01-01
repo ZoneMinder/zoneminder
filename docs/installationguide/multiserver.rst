@@ -8,11 +8,11 @@ It is possible to run multiple ZoneMinder servers and manage them from a single 
 New installs
 ------------
 
-1. Follow the normal instructions for your distro for installing ZoneMinder onto all the ZoneMinder servers in the normal fashion. Only a single database will be needed either as standalone, or on one of the ZoneMinder servers.
+1. Follow the normal instructions for your distro for installing ZoneMinder onto all the ZoneMinder servers in the normal fashion. Only a single database will be needed either as standalone, or on one of the ZoneMinder Servers.
 
-2. On each ZoneMinder server, edit zm.conf. Find the ZM_DB_HOST variable and set it to the name or ip address of your Database server.
+2. On each ZoneMinder server, edit zm.conf. Find the ZM_DB_HOST variable and set it to the name or ip address of your Database Server.
 
-3. Copy the file /usr/share/zoneminder/db/zm_create.sql from one of the ZoneMinder servers to the machine targeted as the Database server.
+3. Copy the file /usr/share/zoneminder/db/zm_create.sql from one of the ZoneMinder Servers to the machine targeted as the Database Server.
 
 4. Install mysql/mariadb server onto the Database Server.
 
@@ -37,7 +37,7 @@ Additionally, you must also edit /usr/share/zoneminder/www/api/app/Config/databa
 
 8. All ZoneMinders Servers must share a common events folder. This can be done in any manner supported by the underlying operating system. From the Storage Server, share/export a folder to be used for ZoneMinder events.
 
-9. From each ZoneMinder Server, mount the shared events folder on the Storage Server to the events folder on the local ZoneMinder server.
+9. From each ZoneMinder Server, mount the shared events folder on the Storage Server to the events folder on the local ZoneMinder Server.
 
 NOTE: The location of this folder varies by distro. This folder is often found under "/var/lib/zoneminder/events" for RedHat based distros and "/var/cache/zoneminder/events" for Debain based distros. This folder is NOT a Symbolic Link!
 

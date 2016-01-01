@@ -104,6 +104,12 @@ switch ( $_REQUEST['task'] )
                     else
                         $options[$field][$value] = "DB".$value;
             }
+            elseif ( $field == 'ServerId' )
+            {
+                foreach( dbFetchAll( $sql, $field, array_values($fieldValues) ) as $value )
+                        $options['ServerId'][$value] = $value ? $servers_by_Id[$value]->Name() : '';
+				
+            }
             else
             {
                 foreach( dbFetchAll( $sql, $field, array_values( $fieldValues ) ) as $value )

@@ -38,7 +38,7 @@ switch ( $_REQUEST['task'] )
         $sortField = isset($_POST['sortField'])?$_POST['sortField']:'TimeKey';
         $sortOrder = (isset($_POST['sortOrder']) and $_POST['sortOrder']) == 'asc' ? 'asc':'desc';
 
-        $filterFields = array( 'Component', 'Pid', 'Level', 'File', 'Line' );
+        $filterFields = array( 'Component', 'ServerId', 'Pid', 'Level', 'File', 'Line' );
 
         $total = dbFetchOne( "SELECT count(*) AS Total FROM Logs", 'Total' );
         $sql = 'SELECT * FROM Logs';
@@ -136,6 +136,13 @@ switch ( $_REQUEST['task'] )
         $sortField = isset($_POST['sortField'])?$_POST['sortField']:'TimeKey';
         $sortOrder = isset($_POST['sortOrder'])?$_POST['sortOrder']:'asc';
 
+		$servers = Server::find_all();
+		$servers_by_Id = array();
+		# There is probably a better way to do this.
+		foreach ( $servers as $server ) {
+			$servers_by_Id[$server->Id()] = $server;
+		}
+
         $sql = "select * from Logs";
         $where = array();
 		$values = array();
@@ -212,10 +219,20 @@ switch ( $_REQUEST['task'] )
             }
             case 'tsv' :
             {
-                fprintf( $exportFP, translate('DateTime')."\t".translate('Component')."\t".translate('Pid')."\t".translate('Level')."\t".translate('Message')."\t".translate('File')."\t".translate('Line')."\n" );
+				# This line doesn't need fprintf, it could use fwrite
+                fprintf( $exportFP, join( "\t",
+					translate('DateTime'),
+					translate('Component'),
+					translate('Server'),
+					translate('Pid'),
+					translate('Level'),
+					translate('Message'),
+					translate('File'),
+					translate('Line')
+					   )."\n" );
                 foreach ( $logs as $log )
                 {
-                    fprintf( $exportFP, "%s\t%s\t%d\t%s\t%s\t%s\t%s\n", $log['DateTime'], $log['Component'], $log['Pid'], $log['Code'], $log['Message'], $log['File'], $log['Line'] );
+                    fprintf( $exportFP, "%s\t%s\t%s\t%d\t%s\t%s\t%s\t%s\n", $log['DateTime'], $log['Component'], $servers_by_Id[$log['ServerId']]->Name(),$log['Pid'], $log['Code'], $log['Message'], $log['File'], $log['Line'] );
                 }
                 break;
             }
@@ -265,7 +282,7 @@ tr.log-dbg td {
     <p>'.count($logs).' '.translate('Logs').'</p>
     <table>
       <tbody>
-        <tr><th>'.translate('DateTime').'</th><th>'.translate('Component').'</th><th>'.translate('Pid').'</th><th>'.translate('Level').'</th><th>'.translate('Message').'</th><th>'.translate('File').'</th><th>'.translate('Line').'</th></tr>
+        <tr><th>'.translate('DateTime').'</th><th>'.translate('Component').'</th><th>'.translate('Server').'</th><th>'.translate('Pid').'</th><th>'.translate('Level').'</th><th>'.translate('Message').'</th><th>'.translate('File').'</th><th>'.translate('Line').'</th></tr>
 ' );
                 foreach ( $logs as $log )
                 {
@@ -275,7 +292,7 @@ tr.log-dbg td {
                     elseif ( $classLevel > Logger::DEBUG )
                         $classLevel = Logger::DEBUG;
                     $logClass = 'log-'.strtolower(Logger::$codes[$classLevel]);
-                    fprintf( $exportFP, "        <tr class=\"%s\"><td>%s</td><td>%s</td><td>%d</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n", $logClass, $log['DateTime'], $log['Component'], $log['Pid'], $log['Code'], $log['Message'], $log['File'], $log['Line'] );
+                    fprintf( $exportFP, "        <tr class=\"%s\"><td>%s</td><td>%s</td><td>%s</td><td>%d</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n", $logClass, $log['DateTime'], $log['Component'], $servers_by_Id[$log['ServerId']]->Name(), $log['Pid'], $log['Code'], $log['Message'], $log['File'], $log['Line'] );
                 }
                 fwrite( $exportFP, 
 '      </tbody>
@@ -298,7 +315,7 @@ tr.log-dbg td {
   </filter>' );
                 fwrite( $exportFP, 
 '  <columns>
-    <column field="datetime">'.translate('DateTime').'</column><column field="component">'.translate('Component').'</column><column field="pid">'.translate('Pid').'</column><column field="level">'.translate('Level').'</column><column field="message">'.translate('Message').'</column><column field="file">'.translate('File').'</column><column field="line">'.translate('Line').'</column>
+    <column field="datetime">'.translate('DateTime').'</column><column field="component">'.translate('Component').'</column><column field="'.translate('Server').'</column><column field="pid">'.translate('Pid').'</column><column field="level">'.translate('Level').'</column><column field="message">'.translate('Message').'</column><column field="file">'.translate('File').'</column><column field="line">'.translate('Line').'</column>
   </columns>
   <logs count="'.count($logs).'">
 ' );
@@ -308,12 +325,13 @@ tr.log-dbg td {
 "    <log>
       <datetime>%s</datetime>
       <component>%s</component>
+      <server>%s</server>
       <pid>%d</pid>
       <level>%s</level>
       <message><![CDATA[%s]]></message>
       <file>%s</file>
       <line>%d</line>
-    </log>\n", $log['DateTime'], $log['Component'], $log['Pid'], $log['Code'], utf8_decode( $log['Message'] ), $log['File'], $log['Line'] );
+    </log>\n", $log['DateTime'], $log['Component'], $log['Server'], $log['Pid'], $log['Code'], utf8_decode( $log['Message'] ), $log['File'], $log['Line'] );
                 }
                 fwrite( $exportFP, 
 '  </logs>

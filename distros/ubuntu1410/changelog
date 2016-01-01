@@ -1,3 +1,9 @@
+zoneminder (1.29.111-trusty-2015123101) trusty; urgency=medium
+
+  * Add log filtering from multi-server
+
+ -- Isaac Connor <iconnor@testing.internal.point-one.com>  Thu, 31 Dec 2015 10:18:03 -0500
+
 zoneminder (1.29.109-trusty-2015122401) trusty; urgency=medium
 
   * fix delete events not in database in zmaudit.pl

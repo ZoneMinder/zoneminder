@@ -244,6 +244,12 @@ function updateFilterSelectors()
         function( values, key )
         {
             var selector = $('filter['+key+']');
+			if ( ! selector ) {
+				if ( window.console && window.console.log ) {
+					window.console.log("No selector foudn for " + key );
+				}
+				continue;
+			}
             selector.options.length = 1;
             if ( key == 'Level' )
             {

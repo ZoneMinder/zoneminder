@@ -22,7 +22,7 @@ var logTimeout = maxSampleTime;
 var firstLoad = true;
 var initialDisplayLimit = 200;
 var sortReversed = false;
-var filterFields = [ 'Component', 'Server', 'Pid', 'Level', 'File', 'Line'];
+var filterFields = [ 'Component', 'ServerId', 'Pid', 'Level', 'File', 'Line'];
 var options = {};
 
 function buildFetchParms( parms )
@@ -163,6 +163,12 @@ function filterLog()
         function( field )
         {
             var selector = $('filter['+field+']');
+			if ( ! selector ) {
+				if ( window.console && window.console.log ) {
+					window.console.log("No selector found for " + field );
+				}
+				return;
+			}
             var value = selector.get('value');
             if ( value )
                 filter[field] = value;
@@ -244,12 +250,27 @@ function updateFilterSelectors()
         function( values, key )
         {
             var selector = $('filter['+key+']');
+			if ( ! selector ) {
+				if ( window.console && window.console.log ) {
+					window.console.log("No selector found for " + key );
+				}
+				return;
+			}
             selector.options.length = 1;
             if ( key == 'Level' )
             {
                 Object.each(values,
                     function( value, label )
                     {
+                        selector.options[selector.options.length] = new Option( value, label );
+                    }
+                );
+            } 
+            else if ( key == 'ServerId' )
+            {
+				Object.each(values,
+                    function( value, label )
+                    {   
                         selector.options[selector.options.length] = new Option( value, label );
                     }
                 );

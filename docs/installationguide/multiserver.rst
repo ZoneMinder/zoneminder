@@ -5,6 +5,17 @@ It is possible to run multiple ZoneMinder servers and manage them from a single 
 
 .. image:: images/zm-multiserver.png
 
+Topology Design Notes
+---------------------
+
+1. Device symbols represent separate logical functions, not necessarily separate hardware. For example, the Database Server and a ZoneMinder Server, can reside on the same physical hardware.
+
+2. Configure each ZoneMinder Server to use the same, remote Database Server (Green).
+
+3. The Storage Server (Red) represents shared storage, accessible by all ZoneMinder Servers, mounted under each server’s events folder.
+
+4. Create at least two networks for best performance. Dedicate a Storage LAN for communication with the Storage and Database Servers. Make use of multipath and jumbo frames if possible. Keep all other traffic off the Storage LAN! Dedicate the second LAN, called the Video LAN in the diagram, for all other traffic.
+
 New installs
 ------------
 

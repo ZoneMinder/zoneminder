@@ -73,7 +73,7 @@ switch ( $_REQUEST['task'] )
         $logs = array();
         foreach ( dbFetchAll( $sql, NULL, $values ) as $log ) {
             $log['DateTime'] = preg_replace( '/^\d+/', strftime( "%Y-%m-%d %H:%M:%S", intval($log['TimeKey']) ), $log['TimeKey'] );
-			$log['Server'] = $log['ServerId'] ? $servers_by_Id[$log['ServerId']]->Name() : '';
+			$log['Server'] = ( $log['ServerId'] and isset($servers_by_Id[$log['ServerId']]) ) ? $servers_by_Id[$log['ServerId']]->Name() : '';
             $logs[] = $log;
         }
         $options = array();
@@ -107,7 +107,7 @@ switch ( $_REQUEST['task'] )
             elseif ( $field == 'ServerId' )
             {
                 foreach( dbFetchAll( $sql, $field, array_values($fieldValues) ) as $value )
-                        $options['ServerId'][$value] = $value ? $servers_by_Id[$value]->Name() : '';
+                        $options['ServerId'][$value] = ( $value and isset($servers_by_Id[$value]) ) ? $servers_by_Id[$value]->Name() : '';
 				
             }
             else
@@ -216,6 +216,7 @@ switch ( $_REQUEST['task'] )
         foreach ( dbFetchAll( $sql, NULL, $values ) as $log )
         {
             $log['DateTime'] = preg_replace( '/^\d+/', strftime( "%Y-%m-%d %H:%M:%S", intval($log['TimeKey']) ), $log['TimeKey'] );
+			$log['Server'] = ( $log['ServerId'] and isset($servers_by_Id[$log['ServerId']]) ) ? $servers_by_Id[$log['ServerId']]->Name() : '';
             $logs[] = $log;
         }
         switch( $format )
@@ -246,7 +247,7 @@ switch ( $_REQUEST['task'] )
 					   )."\n" );
                 foreach ( $logs as $log )
                 {
-                    fprintf( $exportFP, "%s\t%s\t%s\t%d\t%s\t%s\t%s\t%s\n", $log['DateTime'], $log['Component'], $servers_by_Id[$log['ServerId']]->Name(),$log['Pid'], $log['Code'], $log['Message'], $log['File'], $log['Line'] );
+					fprintf( $exportFP, "%s\t%s\t%s\t%d\t%s\t%s\t%s\t%s\n", $log['DateTime'], $log['Component'], $log['Server'], $log['Pid'], $log['Code'], $log['Message'], $log['File'], $log['Line'] );
                 }
                 break;
             }
@@ -306,7 +307,7 @@ tr.log-dbg td {
                     elseif ( $classLevel > Logger::DEBUG )
                         $classLevel = Logger::DEBUG;
                     $logClass = 'log-'.strtolower(Logger::$codes[$classLevel]);
-                    fprintf( $exportFP, "        <tr class=\"%s\"><td>%s</td><td>%s</td><td>%s</td><td>%d</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n", $logClass, $log['DateTime'], $log['Component'], $servers_by_Id[$log['ServerId']]->Name(), $log['Pid'], $log['Code'], $log['Message'], $log['File'], $log['Line'] );
+                    fprintf( $exportFP, "        <tr class=\"%s\"><td>%s</td><td>%s</td><td>%s</td><td>%d</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n", $logClass, $log['DateTime'], $log['Component'], $log['Server'], $log['Pid'], $log['Code'], $log['Message'], $log['File'], $log['Line'] );
                 }
                 fwrite( $exportFP, 
 '      </tbody>

@@ -1,3 +1,9 @@
+zoneminder (1.29.111-trusty-2016010101) trusty; urgency=medium
+
+  * fix logging with multi-server
+
+ -- Isaac Connor <iconnor@testing.internal.point-one.com>  Fri, 01 Jan 2016 17:11:09 -0500
+
 zoneminder (1.29.111-trusty-2015123101) trusty; urgency=medium
 
   * Add log filtering from multi-server

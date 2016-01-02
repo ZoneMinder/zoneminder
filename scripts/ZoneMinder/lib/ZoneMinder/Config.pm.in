@@ -114,6 +114,7 @@ BEGIN
 			my $result = $sth->fetchrow_hashref();
 			$Config{ZM_SERVER_ID} = $$result{Id};
 		}
+		$Config{ZM_SERVER_ID} = undef;
 	}
 }
 

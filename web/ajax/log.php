@@ -31,6 +31,13 @@ switch ( $_REQUEST['task'] )
         if ( !canView( 'System' ) )
             ajaxError( 'Insufficient permissions to view log entries' );
 
+		$servers = Server::find_all();
+		$servers_by_Id = array();
+		# There is probably a better way to do this.
+		foreach ( $servers as $server ) {
+			$servers_by_Id[$server->Id()] = $server;
+		}
+
         $minTime = isset($_POST['minTime'])?$_POST['minTime']:NULL;
         $maxTime = isset($_POST['maxTime'])?$_POST['maxTime']:NULL;
         $limit = isset($_POST['limit'])?$_POST['limit']:100;
@@ -66,6 +73,7 @@ switch ( $_REQUEST['task'] )
         $logs = array();
         foreach ( dbFetchAll( $sql, NULL, $values ) as $log ) {
             $log['DateTime'] = preg_replace( '/^\d+/', strftime( "%Y-%m-%d %H:%M:%S", intval($log['TimeKey']) ), $log['TimeKey'] );
+			$log['Server'] = $log['ServerId'] ? $servers_by_Id[$log['ServerId']]->Name() : '';
             $logs[] = $log;
         }
         $options = array();
@@ -95,6 +103,12 @@ switch ( $_REQUEST['task'] )
                         $options[$field][$value] = Logger::$codes[$value];
                     else
                         $options[$field][$value] = "DB".$value;
+            }
+            elseif ( $field == 'ServerId' )
+            {
+                foreach( dbFetchAll( $sql, $field, array_values($fieldValues) ) as $value )
+                        $options['ServerId'][$value] = $value ? $servers_by_Id[$value]->Name() : '';
+				
             }
             else
             {

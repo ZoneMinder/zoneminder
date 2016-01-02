@@ -4,7 +4,7 @@
 #
 cmake_minimum_required (VERSION 2.6)
 project (zoneminder)
-set(zoneminder_VERSION "1.28.110")
+set(zoneminder_VERSION "1.29.0")
 # make API version a minor of ZM version
 set(zoneminder_API_VERSION "${zoneminder_VERSION}.1")
 

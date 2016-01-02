@@ -4,7 +4,7 @@
 %define zmgid_final apache
 
 Name:       zoneminder
-Version:    1.28.1
+Version:    1.29.0
 Release:    1%{?dist}
 Summary:    A camera monitoring and analysis tool
 Group:      System Environment/Daemons

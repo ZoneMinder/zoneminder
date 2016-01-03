@@ -34,7 +34,11 @@ class Server {
 	}
 
 	public function Url() {
-		return ZM_BASE_PROTOCOL . '://'. $this->Hostname();
+		if ( $this->Id() ) {
+			return ZM_BASE_PROTOCOL . '://'. $this->Hostname();
+		} else {
+			return ZM_BASE_PATH;
+		}
 	}
 	public function Hostname() {
 		if ( isset( $this->{'Hostname'} ) and ( $this->{'Hostname'} != '' ) ) {

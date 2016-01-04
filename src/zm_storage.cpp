@@ -62,7 +62,7 @@ Storage::Storage( unsigned int p_id ) {
 		}
 	}
 	if ( ! id ) {
-		Warning("No id passed to Storage constructor.  Using default path %s instead", config.dir_events );
+		Debug(1,"No id passed to Storage constructor.  Using default path %s instead", config.dir_events );
 		strcpy(name, "Default");
 		strncpy(path, config.dir_events, sizeof(path) );
 	}

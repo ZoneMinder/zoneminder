@@ -1,3 +1,9 @@
+zoneminder (1.29.111-trusty-2016010401) trusty; urgency=medium
+
+  *  include fix to rotate image dimensions when applying a rotation
+
+ -- Isaac Connor <iconnor@testing.internal.point-one.com>  Mon, 04 Jan 2016 13:24:42 -0500
+
 zoneminder (1.29.111-trusty-2016010101) trusty; urgency=medium
 
   * fix logging with multi-server

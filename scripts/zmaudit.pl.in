@@ -114,6 +114,7 @@ if ( ($report + $interactive + $continuous) > 1 )
 
 my $dbh = zmDbConnect();
 
+require ZoneMinder::Monitor;
 require ZoneMinder::Storage;
 require ZoneMinder::Event;
 
@@ -364,7 +365,9 @@ MAIN: while( $loop ) {
         }
         else
         {
-            aud_print( "Database monitor '$db_monitor' does not exist in filesystem" );
+			my $Monitor = new ZoneMinder::Monitor( $db_monitor );
+			my $Storage = $Monitor->Storage();
+            aud_print( "Database monitor '$db_monitor' does not exist in filesystem, should have been at ".$Storage->Path()."\n" );
             #if ( confirm() )
             #{
                 # We don't actually do this in case it's new

@@ -37,7 +37,7 @@ class Server {
 		if ( $this->Id() ) {
 			return ZM_BASE_PROTOCOL . '://'. $this->Hostname();
 		} else {
-			return ZM_BASE_PATH;
+			return '';
 		}
 	}
 	public function Hostname() {

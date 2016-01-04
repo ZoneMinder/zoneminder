@@ -397,12 +397,7 @@ After editing your /etc/apache2/conf-available/zoneminder.conf should look like:
 	sudo chown -R www-data:www-data /usr/local/share/zoneminder/
 
 
-**Step 12:** Make sure you can view Monitor View
-
-1. Open up ZM, configure your monitors and verify you can view Monitor feeds
-2. If not, open up ZM console in your browser, go to ``Options->Path`` and make sure ``PATH_ZMS`` is set to ``/zm/cgi-bin/nph-zms`` and restart ZM
-
-**Step 13**: Edit Timezone in PHP
+**Step 12**: Edit Timezone in PHP
 
 vi /etc/php5/apache2/php.ini
 Look for [Date] and inside it you will see a date.timezone
@@ -415,7 +410,7 @@ In my case:
 
 	date.timezone = America/New_York
 
-**Step 14:** Finally, lets make a config change to apache (needed for htaccess overrides to work for APIs)
+**Step 13:** Lets make a config change to apache (needed for htaccess overrides to work for APIs)
 Edit  /etc/apache2/apache2.conf and add this:
 
 ::
@@ -425,11 +420,18 @@ Edit  /etc/apache2/apache2.conf and add this:
 		Require all granted
 	</Directory>
 
+
 Restart apache
 
 ::
 
 	sudo service apache2 reload
+
+**Step 14:** Make sure you can view Monitor View
+
+1. Open up ZM, configure your monitors and verify you can view Monitor feeds
+2. If not, open up ZM console in your browser, go to ``Options->Path`` and make sure ``PATH_ZMS`` is set to ``/zm/cgi-bin/nph-zms`` and restart ZM
+
 
 You are done. Lets proceed to make sure everything works:
 

@@ -357,7 +357,7 @@ MAIN: while( $loop ) {
 							my $Event = new ZoneMinder::Event( $db_event );
 							my $Storage = $Event->Storage();
 
-							aud_print( "Database event '$$Storage{Path}/$db_monitor/$db_event' does not exist in filesystem but too young to delete.\n" );
+							aud_print( "Database event '".$Storage->Path()."/$db_monitor/$db_event' does not exist in filesystem but too young to delete.\n" );
 						}
                     }
                 }

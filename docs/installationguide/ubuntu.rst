@@ -11,10 +11,16 @@ These instructions are for a brand new ubuntu 15.04 system which does not have Z
 
 ::
 
-	sudo  add-apt-repository ppa:iconnor/zoneminder
+	sudo add-apt-repository ppa:iconnor/zoneminder
 	sudo apt-get update
 
-if you don't have mysql already installed:
+If you don't have apache already installed:
+
+::
+
+	sudo apt-get install apache2 
+
+If you don't have mysql already installed:
 
 ::
 
@@ -22,61 +28,70 @@ if you don't have mysql already installed:
 
 This will ask you to set up a master password for the DB (you are asked for the mysql root password when installing mysql server).
 
+If you don't have php5 already installed:
+
+::
+
+	sudo apt-get install php5 
+
+
 **Step 2**: Install ZoneMinder
 
 ::
 
 	sudo apt-get install zoneminder
 
+  
 **Step 3**: Configure the Database
 
 ::
 
-	sudo mysql -uroot -p < /usr/share/zoneminder/db/zm_create.sql
+	mysql -uroot -p < /usr/share/zoneminder/db/zm_create.sql
 	mysql -uroot -p -e "grant select,insert,update,delete,create,alter,index,lock tables on zm.* to 'zmuser'@localhost identified by 'zmpass';"
 
-You don't really need this, but no harm (needed if you are upgrading)
+You don't really need this for a new install, but no harm (needed if you are upgrading)
 
 ::
 
 	sudo /usr/bin/zmupdate.pl
 
-**Step 4**: Configure systemd to recognize ZoneMinder and configure Apache correctly:
+**Step 4**: Configure systemd to recognize ZoneMinder and configure Apache:
 
 ::
 
 	sudo systemctl enable zoneminder
 	sudo a2enconf zoneminder
-	sudo a2enmod cgi
-	sudo chown -R www-data:www-data /usr/share/zoneminder/
-
-
-We need this for API routing to work:
-
-::
-
 	sudo a2enmod rewrite
+	sudo a2enmod cgi
 
-This is probably a bug with iconnor's PPA as of Oct 3, 2015 with package 1.28.107. After installing, ``zm.conf`` does not have the right read permissions, so we need to fix that. This may go away in future PPA releases:
+**Step 5:**: Some tweaks that will be needed:
 
-::
-
-	sudo chown www-data:www-data /etc/zm/zm.conf 
-
-We also need to install php5-gd (as of 1.28.107, this is not installed)
+Install php5-gd (as of 1.28.107, this is not installed)
 
 ::
 
 	sudo apt-get install php5-gd
 
-**Step 5**: Edit Timezone in PHP
+This is probably a bug with iconnor’s PPA as of Oct 3, 2015 with package 1.28.107. After installing, zm.conf does not have the right read permissions, so we need to fix that. This may go away in future PPA releases:
 
 ::
 
-	vi /etc/php5/apache2/php.ini
+  sudo chown www-data:www-data /etc/zm/zm.conf
 
-Look for [Date] and inside it you will see a date.timezone
-that is commented. remove the comment and specific your timezone.
+Change ownership of the /usr/share/zoneminder directory
+
+::
+
+	sudo chown -R www-data:www-data /usr/share/zoneminder/
+
+
+**Step 6**: Edit Timezone in PHP
+
+::
+
+	sudo vi /etc/php5/apache2/php.ini
+
+Look for [Date] and inside it you will see a date.timezone that is commented.  Remove the comment and specify your timezone.
 Please make sure the timezone is valid (see this: http://php.net/manual/en/timezones.php)
 
 In my case:
@@ -85,7 +100,8 @@ In my case:
 
 	date.timezone = America/New_York
 
-**Step 6**: Restart services
+  
+**Step 7**: Restart services
 
 ::
 
@@ -93,14 +109,9 @@ In my case:
 	sudo systemctl restart zoneminder
 
 
-**Step 7: make sure live streaming works**: Make sure you can view Monitor streams:
-
-startup ZM console in your browser, go to ``Options->Path`` and make sure ``PATH_ZMS`` is set to ``/zm/cgi-bin/nph-zms`` and restart ZM (you should not need to do this for packages, as this should automatically work)
-
-
 **Step 8**: If you have changed your DB login/password from zmuser/zmpass, the API won't know about it
 
-If you changed the  DB password **after** installing ZM, the APIs will not be able to connect to the DB.
+If you changed the DB password **after** installing ZM, the APIs will not be able to connect to the DB.
 
 If you have, go to ``zoneminder/www/api/app/Config`` & Edit ``database.php``
 
@@ -122,10 +133,10 @@ There is a class there called ``DATABASE_CONFIG`` - change the ``$default`` arra
 
 You are done. Lets proceed to make sure everything works:
 
-Making sure ZM and APIs work:
+Making sure ZM and APIs work: (optional - only if you need APIs)
 
 1. open up a browser and go to ``http://localhost/zm`` - should bring up ZM
-2. (OPTIONAL - just for peace of mind) open up a tab and go to ``http://localhost/zm/api`` - should bring up a screen showing CakePHP version with some green color boxes. Green is good. If you see red, or you don't see green, there may be a problem (should not happen). Ignore any warnings in yellow saying "DebugKit" not installed. You don't need it
+2. (OPTIONAL - just for peace of mind) open up a tab and go to ``http://localhost/zm/api`` - should bring up a screen showing CakePHP version with some green color boxes. Green is good. If you see red, or you don't see green, there may be a problem (should not happen). Ignore any warnings in yellow saying "DebugKit" not installed. You don't need it.
 3. open up a tab in the same browser and go to ``http://localhost/zm/api/host/getVersion.json``
 
 If it responds with something like:
@@ -138,9 +149,15 @@ If it responds with something like:
 	}
 
 
-**Then your APIs are working**
+Then your APIs are working
+
+Make sure you can view Monitor View:
+
+1. Open up ZM, configure your monitors and verify you can view Monitor feeds. 
+2. If not, open up ZM console in your browser, go to ``Options->Paths`` and make sure ``PATH_ZMS`` is set to ``/zm/cgi-bin/nph-zms`` and restart ZM (you should not need to do this for packages, as this should automatically work)
 
 Make sure ZM and APIs work with security:
+
 1. Enable OPT_AUTH in ZM
 2. Log out of ZM in browser
 3. Open a NEW tab in the SAME BROWSER (important) and go to ``http://localhost/zm/api/host/getVersion.json`` - should give you "Unauthorized" along with a lot more of text
@@ -150,28 +167,61 @@ Make sure ZM and APIs work with security:
 **Congrats** your installation is complete
 
 
-Easy Way: Install ZoneMinder from a package (Ubuntu 14.x)
+
+
+Easy Way: Install ZoneMinder from a package (Ubuntu 14.x & Linux Mint 17.x)
 -----------------------------------------------------------
 **These instructions are for a brand new ubuntu 14.x system which does not have ZM installed.**
 
-**Step 1:** Install ZoneMinder
+**Step 1**: Make sure we add the correct packages
 
 ::
 
-	sudo  add-apt-repository ppa:iconnor/zoneminder
+	sudo add-apt-repository ppa:iconnor/zoneminder
 	sudo apt-get update
+
+If you don't have apache already installed:
+
+::
+
+	sudo apt-get install apache2 
+
+If you don't have mysql already installed:
+
+::
+
+	sudo apt-get install mysql-server 
+
+This will ask you to set up a master password for the DB (you are asked for the mysql root password when installing mysql server).
+
+If you don't have php5 already installed:
+
+::
+
+	sudo apt-get install php5 
+
+
+**Step 2**: Install ZoneMinder
+
+::
+
 	sudo apt-get install zoneminder
 
-(just press OK for the prompts you get)
-
-**Step 2:** Set up DB
+  
+**Step 3**: Configure the Database
 
 ::
 
-	sudo mysql -uroot -p < /usr/share/zoneminder/db/zm_create.sql
+	mysql -uroot -p < /usr/share/zoneminder/db/zm_create.sql
 	mysql -uroot -p -e "grant select,insert,update,delete,create,alter,index,lock tables on zm.* to 'zmuser'@localhost identified by 'zmpass';"
 
-**Step 3:** Set up Apache 
+You don't really need this for a new install, but no harm (needed if you are upgrading)
+
+::
+
+	sudo /usr/bin/zmupdate.pl
+  
+**Step 4:** Configure Apache 
 
 ::
 
@@ -179,24 +229,63 @@ Easy Way: Install ZoneMinder from a package (Ubuntu 14.x)
 	sudo a2enmod rewrite
 	sudo a2enmod cgi
 
-**Step 4:**:Some tweaks that will be needed:
+
+**Step 5:**: Some tweaks that will be needed:
+
+Install php5-gd (as of 1.28.107, this is not installed)
+
+::
+
+	sudo apt-get install php5-gd
+
+This is probably a bug with iconnor’s PPA as of Oct 3, 2015 with package 1.28.107. After installing, zm.conf does not have the right read permissions, so we need to fix that. This may go away in future PPA releases:
+
+::
+
+  sudo chown www-data:www-data /etc/zm/zm.conf
+
+Change ownership of the /usr/share/zoneminder directory
+
+::
+
+	sudo chown -R www-data:www-data /usr/share/zoneminder/
 
 Edit /etc/init.d/zoneminder:
 
 add a ``sleep 10`` right after line 25 that reads ``echo -n "Starting $prog:"``
 (The reason we need this sleep is to make sure ZM starts after mysqld starts)
 
-As of Oct 3 2015, zm.conf is not readable by ZM. This is likely a bug and will go away in the next package
+::
+
+  sudo vi /etc/init.d/zoneminder
+
+**Step 6**: Edit Timezone in PHP
 
 ::
 
-	sudo chown www-data:www-data /etc/zm/zm.conf
+  sudo vi /etc/php5/apache2/php.ini
+  
+Look for [Date] and inside it you will see a date.timezone that is commented.  Remove the comment and specify your timezone.
+Please make sure the timezone is valid (see this: http://php.net/manual/en/timezones.php))
+
+In my case:
+
+::
+
+	date.timezone = America/New_York
 
 
+**Step 7**: Restart services
 
-**Step 5**: If you have changed your DB login/password
+::
 
-If you changed the  DB password **after** installing ZM, the APIs will not be able to connect to the DB.
+	sudo service apache2 restart
+	sudo service zoneminder restart
+
+
+**Step 8**: If you have changed your DB login/password from zmuser/zmpass, the API won't know about it
+
+If you changed the DB password **after** installing ZM, the APIs will not be able to connect to the DB.
 
 If you have, go to zoneminder/www/api/app/Config & Edit ``database.php``
 
@@ -214,45 +303,14 @@ There is a class there called ``DATABASE_CONFIG`` - change the ``$default`` arra
 			'prefix' => '',
 			//'encoding' => 'utf8',`
 		);
+ 
 
-We also need to install php5-gd (as of 1.28.107, this is not installed)
+You are done. Lets proceed to make sure everything works:
 
-::
-
-	sudo apt-get install php5-gd
-
-
-**Step 6**: Edit Timezone in PHP
-
-vi /etc/php5/apache2/php.ini
-Look for [Date] and inside it you will see a date.timezone
-that is commented. remove the comment and specific your timezone.
-Please make sure the timezone is valid (see [this](http://php.net/manual/en/timezones.php))
-
-In my case:
-
-::
-
-	date.timezone = America/New_York
-
-
-**Step 7: make sure live streaming works**: Make sure you can view Monitor streams:
-
-startup ZM console in your browser, go to ``Options->Path`` and make sure ``PATH_ZMS`` is set to ``/zm/cgi-bin/nph-zms`` and restart ZM (you should not need to do this for packages, as this should automatically work)
-
-
-
-restart:
-
-::
-
-	sudo service apache2 restart
-	/etc/init.d/zoneminder restart
-
-**Step 8**: Making sure ZM and APIs work: (optional - only if you need APIs)
+Making sure ZM and APIs work: (optional - only if you need APIs)
 
 1. open up a browser and go to ``http://localhost/zm`` - should bring up ZM
-2. (OPTIONAL - just for peace of mind) open up a tab and go to ``http://localhost/zm/api`` - should bring up a screen showing CakePHP version with some green color boxes. Green is good. If you see red, or you don't see green, there may be a problem (should not happen). Ignore any warnings in yellow saying "DebugKit" not installed. You don't need it
+2. (OPTIONAL - just for peace of mind) open up a tab and go to ``http://localhost/zm/api`` - should bring up a screen showing CakePHP version with some green color boxes. Green is good. If you see red, or you don't see green, there may be a problem (should not happen). Ignore any warnings in yellow saying "DebugKit" not installed. You don't need it.
 3. open up a tab in the same browser and go to ``http://localhost/zm/api/host/getVersion.json``
 
 If it responds with something like:
@@ -267,10 +325,12 @@ If it responds with something like:
 Then your APIs are working
 
 Make sure you can view Monitor View:
+
 1. Open up ZM, configure your monitors and verify you can view Monitor feeds. 
-2. If not, open up ZM console in your browser, go to ``Options->Path`` and make sure ``PATH_ZMS`` is set to ``/zm/cgi-bin/nph-zms`` and restart ZM (you should not need to do this for packages, as this should automatically work)
+2. If not, open up ZM console in your browser, go to ``Options->Paths`` and make sure ``PATH_ZMS`` is set to ``/zm/cgi-bin/nph-zms`` and restart ZM (you should not need to do this for packages, as this should automatically work)
 
 Make sure ZM and APIs work with security:
+
 1. Enable OPT_AUTH in ZM
 2. Log out of ZM in browser
 3. Open a NEW tab in the SAME BROWSER (important) and go to ``http://localhost/zm/api/host/getVersion.json`` - should give you "Unauthorized" along with a lot more of text

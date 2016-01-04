@@ -364,7 +364,7 @@ MAIN: while( $loop ) {
         }
         else
         {
-            aud_print( "Database monitor '$db_monitor' does not exist in filesystem" );
+            aud_print( "Database monitor '$db_monitor' does not exist in filesystem\n" );
             #if ( confirm() )
             #{
                 # We don't actually do this in case it's new

@@ -99,6 +99,10 @@ function CORSHeaders() {
 
 		# The following is left for future reference/use.
 		$valid = false;
+		$servers = dbFetchAll( 'SELECT * FROM Servers' );
+		if ( ! sizeof($servers) ) {
+			return;
+		}
 		foreach( dbFetchAll( 'SELECT * FROM Servers' ) as $row ) {
 			$Server = new Server( $row );
 			if ( $_SERVER['HTTP_ORIGIN'] == $Server->Url() ) {

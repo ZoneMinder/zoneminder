@@ -128,6 +128,7 @@ sub Execute {
 		push @results, $event;
 	}
 	$sth->finish();
+	Debug("Loaded " . @results . " events for filter $_[0]{Name} using query ($sql)");
 	return @results;
 }
 

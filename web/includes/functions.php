@@ -100,7 +100,8 @@ function CORSHeaders() {
 		# The following is left for future reference/use.
 		$valid = false;
 		$servers = dbFetchAll( 'SELECT * FROM Servers' );
-		if ( ! sizeof($servers) ) {
+		if ( sizeof($servers) <= 1 ) {
+			# Only need CORSHeaders in the event that there are multiple servers in use.
 			return;
 		}
 		foreach( dbFetchAll( 'SELECT * FROM Servers' ) as $row ) {

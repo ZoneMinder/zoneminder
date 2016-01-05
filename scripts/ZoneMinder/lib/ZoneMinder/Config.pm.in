@@ -104,6 +104,7 @@ BEGIN
     #$dbh->disconnect();
 
 	if ( ! exists $Config{ZM_SERVER_ID} ) {
+		$Config{ZM_SERVER_ID} = undef;
 		$sth = $dbh->prepare_cached( 'SELECT * FROM Servers WHERE Name=?' );
 		if ( $Config{ZM_SERVER_NAME} ) {
 			$res = $sth->execute( $Config{ZM_SERVER_NAME} );
@@ -114,7 +115,6 @@ BEGIN
 			my $result = $sth->fetchrow_hashref();
 			$Config{ZM_SERVER_ID} = $$result{Id};
 		}
-		$Config{ZM_SERVER_ID} = undef;
 	}
 }
 

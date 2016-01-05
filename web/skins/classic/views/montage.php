@@ -24,6 +24,8 @@ if ( !canView( 'Stream' ) )
     return;
 }
 
+require_once( 'includes/Monitor.php' );
+
 $groupSql = "";
 if ( !empty($_REQUEST['group']) )
 {
@@ -64,7 +66,7 @@ foreach( dbFetchAll( $sql ) as $row )
     $row['scaleWidth'] = $scaleWidth;
     $row['scaleHeight'] = $scaleHeight;
     $row['connKey'] = generateConnKey();
-    $monitors[] = $row;
+    $monitors[] = new Monitor( $row );
 }
 
 $focusWindow = true;
@@ -107,29 +109,29 @@ if ( $showControl )
 <?php
 foreach ( $monitors as $monitor )
 {
-    $connkey = $monitor['connKey']; // Minor hack
+    $connkey = $monitor->connKey(); // Minor hack
     if ( !isset( $scale ) )
-        $scale = reScale( SCALE_BASE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+        $scale = reScale( SCALE_BASE, $monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE );
 ?>
-        <div id="monitorFrame<?php echo $monitor['index'] ?>" class="monitorFrame">
-          <div id="monitor<?php echo $monitor['index'] ?>" class="monitor idle">
-            <div id="imageFeed<?php echo $monitor['index'] ?>" class="imageFeed" onclick="createPopup( '?view=watch&amp;mid=<?php echo $monitor['Id'] ?>', 'zmWatch<?php echo $monitor['Id'] ?>', 'watch', <?php echo $monitor['scaleWidth'] ?>, <?php echo $monitor['scaleHeight'] ?> );">
+        <div id="monitorFrame<?php echo $monitor->index() ?>" class="monitorFrame">
+          <div id="monitor<?php echo $monitor->index() ?>" class="monitor idle">
+            <div id="imageFeed<?php echo $monitor->index() ?>" class="imageFeed" onclick="createPopup( '?view=watch&amp;mid=<?php echo $monitor->Id() ?>', 'zmWatch<?php echo $monitor->Id() ?>', 'watch', <?php echo $monitor->scaleWidth() ?>, <?php echo $monitor->scaleHeight() ?> );">
 <?php
 if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT )
 {
-    $streamSrc = getStreamSrc( array( "mode=mpeg", "monitor=".$monitor['Id'], "scale=".$scale, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_LIVE_FORMAT ) );
-    outputVideoStream( "liveStream".$monitor['Id'], $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), ZM_MPEG_LIVE_FORMAT );
+    $streamSrc = $monitor->getStreamSrc( array( "mode=mpeg", "scale=".$scale, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_LIVE_FORMAT ) );
+    outputVideoStream( "liveStream".$monitor->Id(), $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), ZM_MPEG_LIVE_FORMAT );
 }
 else
 {
-    $streamSrc = getStreamSrc( array( "mode=jpeg", "monitor=".$monitor['Id'], "scale=".$scale, "maxfps=".ZM_WEB_VIDEO_MAXFPS ) );
+    $streamSrc = $monitor->getStreamSrc( array( "mode=jpeg", "scale=".$scale, "maxfps=".ZM_WEB_VIDEO_MAXFPS ) );
     if ( canStreamNative() )
     {
-        outputImageStream( "liveStream".$monitor['Id'], $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), validHtmlStr($monitor['Name']) );
+        outputImageStream( "liveStream".$monitor->Id(), $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), validHtmlStr($monitor->Name()) );
     }
     else
     {
-        outputHelperStream( "liveStream".$monitor['Id'], $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ) );
+        outputHelperStream( "liveStream".$monitor->Id(), $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ) );
     }
 }
 ?>
@@ -138,7 +140,7 @@ else
     if ( !ZM_WEB_COMPACT_MONTAGE )
     {
 ?>
-            <div id="monitorState<?php echo $monitor['index'] ?>" class="monitorState idle"><?php echo translate('State') ?>:&nbsp;<span id="stateValue<?php echo $monitor['index'] ?>"></span>&nbsp;-&nbsp;<span id="fpsValue<?php echo $monitor['index'] ?>"></span>&nbsp;fps</div>
+            <div id="monitorState<?php echo $monitor->index() ?>" class="monitorState idle"><?php echo translate('State') ?>:&nbsp;<span id="stateValue<?php echo $monitor->index() ?>"></span>&nbsp;-&nbsp;<span id="fpsValue<?php echo $monitor->index() ?>"></span>&nbsp;fps</div>
 <?php
     }
 ?>

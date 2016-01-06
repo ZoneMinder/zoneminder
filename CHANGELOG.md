@@ -1,5 +1,16 @@
 # Change Log
 
+## [v1.29.0-rc2](https://github.com/ZoneMinder/ZoneMinder/tree/v1.29.0-rc2) (2016-01-05)
+[Full Changelog](https://github.com/ZoneMinder/ZoneMinder/compare/v1.29.0-rc1...v1.29.0-rc2)
+
+**Merged pull requests:**
+
+- Multi server [\#1223](https://github.com/ZoneMinder/ZoneMinder/pull/1223) ([connortechnology](https://github.com/connortechnology))
+- Multi server [\#1222](https://github.com/ZoneMinder/ZoneMinder/pull/1222) ([connortechnology](https://github.com/connortechnology))
+- Multi server [\#1217](https://github.com/ZoneMinder/ZoneMinder/pull/1217) ([connortechnology](https://github.com/connortechnology))
+- Multi server [\#1215](https://github.com/ZoneMinder/ZoneMinder/pull/1215) ([connortechnology](https://github.com/connortechnology))
+- Change log updates [\#1172](https://github.com/ZoneMinder/ZoneMinder/pull/1172) ([SteveGilvarry](https://github.com/SteveGilvarry))
+
 ## [v1.29.0-rc1](https://github.com/ZoneMinder/ZoneMinder/tree/v1.29.0-rc1) (2016-01-01)
 [Full Changelog](https://github.com/ZoneMinder/ZoneMinder/compare/v1.28.1...v1.29.0-rc1)
 

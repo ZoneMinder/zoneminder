@@ -52,11 +52,11 @@ xhtmlHeaders(__FILE__, translate('Server')." - ".$newServer['Name'] );
         <table id="contentTable" class="major" cellspacing="0">
           <tbody>
             <tr>
-              <th scope="row"><?php echo translate('ServerName') ?></th>
+              <th scope="row"><?php echo translate('Name') ?></th>
               <td><input type="text" name="newServer[Name]" value="<?php echo $newServer['Name'] ?>"/></td>
             </tr>
             <tr>
-              <th scope="row"><?php echo translate('ServerHostname') ?></th>
+              <th scope="row"><?php echo translate('Hostname') ?></th>
               <td><input type="text" name="newServer[Hostname]" value="<?php echo $newServer['Hostname'] ?>"/></td>
             </tr>
           </tbody>

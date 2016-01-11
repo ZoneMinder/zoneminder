@@ -413,6 +413,7 @@ INSERT INTO States (Name,Definition,IsActive) VALUES ('default','','1');
 DROP TABLE IF EXISTS `Servers`;
 CREATE TABLE `Servers` (
   `Id` int(10) unsigned NOT NULL auto_increment,
+  `Hostname` TEXT,
   `Name` varchar(64) NOT NULL default '',
   `State_Id`	int(10) unsigned,
   PRIMARY KEY (`Id`)

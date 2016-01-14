@@ -112,7 +112,7 @@ function previewEvent( eventId, frameId )
 function loadEventImage( imagePath, eid, fid, width, height )
 {
     var imageSrc = $('imageSrc');
-    imageSrc.setProperty( 'src', imagePrefix+imagePath );
+    imageSrc.setProperty( 'src', imagePrefix + '&eid='+eid+'&fid='+fid );
     imageSrc.removeEvent( 'click' );
     imageSrc.addEvent( 'click', showEvent.pass( [ eid, fid, width, height ] ) );
     var eventData = $('eventData');

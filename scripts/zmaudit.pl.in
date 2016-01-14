@@ -212,6 +212,10 @@ MAIN: while( $loop ) {
 					my $count = 0;
 					foreach my $event_link ( @event_links )
 					{
+						if ( $event_link =~ /[^\d\.]/ ) {
+							Warning("Non-event link found $event_link in $day_dir, skipping");
+							next;
+						}
 						Debug( "Checking link $event_link" );
 						( my $event = $event_link ) =~ s/^.*\.//;
 						my $event_path = readlink( $event_link );

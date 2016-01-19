@@ -35,10 +35,10 @@ else
 ln -sf distros/ubuntu1504_cmake debian
 fi;
 
-if [ $TYPE == "local"  ] ; then
+if [ -z `hostname -d` ] ; then
     AUTHOR="`whoami` <`whoami`@`hostname`.local>"
 else
-    AUTHOR="Isaac Connor <iconnor@connortechnology.com>"
+    AUTHOR="`whoami` <`whoami`@`hostname`>"
 fi
 
 cat <<EOF > debian/changelog

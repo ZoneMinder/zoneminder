@@ -51,7 +51,11 @@ EOF
 if [ $TYPE == "binary" ]; then
 	debuild
 else
-	debuild -S -sa
+	if [ $TYPE == "local" ]; then
+		debuild -i -us -uc -b
+	else 
+		debuild -S -sa
+	fi;
 fi;
 
 cd ../

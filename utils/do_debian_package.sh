@@ -36,9 +36,9 @@ ln -sf distros/ubuntu1504_cmake debian
 fi;
 
 if [ -z `hostname -d` ] ; then
-    AUTHOR="`whoami` <`whoami`@`hostname`.local>"
+    AUTHOR="`getent passwd $USER | cut -d ':' -f 5 | cut -d ',' -f 1` <`whoami`@`hostname`.local>"
 else
-    AUTHOR="`whoami` <`whoami`@`hostname`>"
+    AUTHOR="`getent passwd $USER | cut -d ':' -f 5 | cut -d ',' -f 1` <`whoami`@`hostname`>"
 fi
 
 cat <<EOF > debian/changelog

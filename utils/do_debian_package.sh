@@ -13,7 +13,7 @@ DATE=`date -R`
 DISTRO=$1
 SNAPSHOT=$2
 if [ "$SNAPSHOT" == "stable" ]; then
-$SNAPSHOT="";
+SNAPSHOT="";
 fi;
 
 

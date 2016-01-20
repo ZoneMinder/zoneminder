@@ -1,10 +1,21 @@
 #!/bin/bash
+
+if [ "$1" == "clean" ]; then
+
+read -p "Do you really want to delete existing packages? [y/N]"
+[[ $REPLY == [yY] ]] && { rm -fr zoneminder*.build zoneminder*.changes zoneminder*.deb; echo "Existing package files deleted";  } || { echo "Packages have NOT been deleted"; }
+exit;
+
+fi
+
+
 DATE=`date -R`
 DISTRO=$1
 SNAPSHOT=$2
 if [ "$SNAPSHOT" == "stable" ]; then
-SNAPSHOT="";
+$SNAPSHOT="";
 fi;
+
 
 TYPE=$3
 if [ "$TYPE" == "" ]; then
@@ -12,11 +23,17 @@ TYPE="source";
 fi;
 BRANCH=$4
 
+
 if [ ! -d 'zoneminder_release' ]; then 
 	git clone https://github.com/ZoneMinder/ZoneMinder.git zoneminder_release
 fi;
 if [ "$BRANCH" != "" ]; then
 	cd zoneminder_release
+	if [ "$BRANCH" == "stable" ]; then
+		BRANCH=$(git describe --tags $(git rev-list --tags --max-count=1));
+		echo "Latest stable branch is $BRANCH";
+		
+	fi
 	git checkout $BRANCH
 	cd ../
 fi;
@@ -59,7 +76,10 @@ else
 fi;
 
 cd ../
-echo "about to delete zoneminder_$VERSION-$DISTRO-$SNAPSHOT.orig. Hit enter to continue."
-read delete
-rm -fr zoneminder_$VERSION-$DISTRO-$SNAPSHOT.orig
+
+read -p "Do you want to keep the checked out version of Zoneminder (incase you want to modify it later) [y/N]"
+[[ $REPLY == [yY] ]] && { mv zoneminder_$VERSION-$DISTRO-$SNAPSHOT.orig zoneminder_release; echo "The checked out copy is preserved in zoneminder_release"; } || { rm -fr zoneminder_$VERSION-$DISTRO-$SNAPSHOT.orig; echo "The checked out copy has been deleted"; }
+echo "Done!"
+
+
 

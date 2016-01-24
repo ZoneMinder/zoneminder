@@ -1,5 +1,5 @@
-Ubuntu
-======
+Ubuntu Instruction
+===================
 
 .. contents::
 

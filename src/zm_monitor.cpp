@@ -2055,9 +2055,9 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
         sql += "'";
     }
     if ( staticConfig.SERVER_ID ) {
-Debug( 1, "Server ID %d", staticConfig.SERVER_ID );
         sql += stringtf( " AND ServerId=%d", staticConfig.SERVER_ID );
     }
+	Debug( 1, "Loading Local Monitors with %s", sql.c_str() );
 
     MYSQL_RES *result = zmDbFetch( sql.c_str() );
     if ( !result ) {

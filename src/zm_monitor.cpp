@@ -2237,6 +2237,7 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
         sql += stringtf(" AND Protocol = '%s' and Host = '%s' and Port = '%s' and Path = '%s'", protocol, host, port, path );
     }
 
+	Debug( 1, "Loading Remote Monitors with %s", sql.c_str() );
     MYSQL_RES *result = zmDbFetch( sql.c_str() );
     if ( !result ) {
         Error( "Can't use query result: %s", mysql_error( &dbconn ) );
@@ -2415,6 +2416,7 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
     if ( staticConfig.SERVER_ID ) {
         sql += stringtf( " AND ServerId=%d", staticConfig.SERVER_ID );
     }
+	Debug( 1, "Loading File Monitors with %s", sql.c_str() );
     MYSQL_RES *result = zmDbFetch( sql.c_str() );
     if ( !result )
     {
@@ -2557,6 +2559,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
     if ( staticConfig.SERVER_ID ) {
         sql += stringtf( " AND ServerId=%d", staticConfig.SERVER_ID );
     }
+	Debug( 1, "Loading FFMPEG Monitors with %s", sql.c_str() );
     MYSQL_RES *result = zmDbFetch( sql.c_str() );
     if ( ! result ) {
         Error( "Cannot load FfmpegMonitors" );

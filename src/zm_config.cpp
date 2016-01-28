@@ -115,6 +115,7 @@ void zmLoadConfig()
 	if ( ! staticConfig.SERVER_ID ) {
 		if ( ! staticConfig.SERVER_NAME.empty() ) {
 
+			Debug( 1, "Fetching ZM_SERVER_ID For Name = %s", staticConfig.SERVER_NAME.c_str() );
 			std::string sql = stringtf("SELECT Id FROM Servers WHERE Name='%s'", staticConfig.SERVER_NAME.c_str() );
 			if ( MYSQL_ROW dbrow = zmDbFetchOne( sql.c_str() ) ) {
 				staticConfig.SERVER_ID = atoi(dbrow[0]);
@@ -124,6 +125,7 @@ void zmLoadConfig()
 
 		} // end if has SERVER_NAME
 	} else if ( staticConfig.SERVER_NAME.empty() ) {
+		Debug( 1, "Fetching ZM_SERVER_NAME For Id = %d", staticConfig.SERVER_ID );
 		std::string sql = stringtf("SELECT Name FROM Servers WHERE Id='%d'", staticConfig.SERVER_ID );
 		
 		if ( MYSQL_ROW dbrow = zmDbFetchOne( sql.c_str() ) ) {
@@ -133,6 +135,11 @@ void zmLoadConfig()
 		}
 	
 	}	
+	if ( ! staticConfig.SERVER_ID ) {
+		Info( "No Server ID or Name specified in config.  Not using Multi-Server Mode." );
+	} else {
+		Info( "Server is %d: using Multi-Server Mode.", staticConfig.SERVER_ID );
+	}
 }
 
 StaticConfig staticConfig;

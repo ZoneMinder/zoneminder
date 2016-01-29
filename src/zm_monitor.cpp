@@ -3922,6 +3922,11 @@ void MonitorStream::processCommand( const CmdMsg *msg )
             Debug( 1, "Got SCALE command, to %d", scale );
             break;
         }
+	case CMD_QUIT :
+	{
+	   Info ("User initiated exit - CMD_QUIT");
+	   break;
+	}
         case CMD_QUERY :
         {
             Debug( 1, "Got QUERY command, sending STATUS" );
@@ -3986,6 +3991,10 @@ void MonitorStream::processCommand( const CmdMsg *msg )
             //exit( -1 );
         }
     }
+
+    // quit after sending a status, if this was a quit request
+    if ((MsgCommand)msg->msg_data[0]==CMD_QUIT)
+	exit(0);
 
     updateFrameRate( monitor->GetFPS() );
 }

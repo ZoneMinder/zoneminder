@@ -603,7 +603,8 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
             char escapedString[(strlen(syslogStart)*2)+1];
 
             mysql_real_escape_string( &mDbConnection, escapedString, syslogStart, strlen(syslogStart) );
-            snprintf( sql, sizeof(sql), "insert into Logs ( TimeKey, Component, Pid, Level, Code, Message, File, Line ) values ( %ld.%06ld, '%s', %d, %d, '%s', '%s', '%s', %d )", timeVal.tv_sec, timeVal.tv_usec, mId.c_str(), tid, level, classString, escapedString, file, line );
+			
+            snprintf( sql, sizeof(sql), "insert into Logs ( TimeKey, Component, ServerId, Pid, Level, Code, Message, File, Line ) values ( %ld.%06ld, '%s', %d, %d, %d, '%s', '%s', '%s', %d )", timeVal.tv_sec, timeVal.tv_usec, mId.c_str(), staticConfig.SERVER_ID, tid, level, classString, escapedString, file, line );
             if ( mysql_query( &mDbConnection, sql ) )
             {
                 databaseLevel( NOLOG );

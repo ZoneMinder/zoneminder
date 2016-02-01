@@ -24,6 +24,8 @@ if ( !canView( 'Events' ) )
     return;
 }
 
+require_once('includes/Event.php');
+
 $eid = validInt($_REQUEST['eid']);
 
 $sql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultRate,M.DefaultScale FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = ?';

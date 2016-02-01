@@ -45,7 +45,8 @@ if ( isset( $_REQUEST['scale'] ) )
 else
     $scale = reScale( SCALE_BASE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
 
-$eventPath = ZM_DIR_EVENTS.'/'.getEventPath( $event );
+$Event = new Event( $event['Id'] );
+$eventPath = $Event->Path();
 
 $videoFormats = array();
 $ffmpegFormats = preg_split( '/\s+/', ZM_FFMPEG_FORMATS );

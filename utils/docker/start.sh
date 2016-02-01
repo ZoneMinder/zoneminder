@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Prepare proper amount of shared memory
+umount /dev/shm
+mount -t tmpfs -o rw,nosuid,nodev,noexec,relatime,size=2048M tmpfs /dev/shm
+
 # Start MySQL
 /usr/bin/mysqld_safe & 
 
@@ -26,6 +30,9 @@ mysql -u root < db/zm_create.sql
 
 # Add the ZoneMinder DB user
 mysql -u root -e "grant insert,select,update,delete,lock tables,alter on zm.* to 'zm'@'localhost' identified by 'zm'"
+
+# Activate CGI
+a2enmod cgi
 
 # Restart apache
 service apache2 restart

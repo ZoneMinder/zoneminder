@@ -6,6 +6,7 @@ web_DATA = \
 	config.php
 
 dist_web_DATA = \
+	Event.php \
 	Monitor.php \
 	Server.php \
 	Storage.php \

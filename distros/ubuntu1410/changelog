@@ -1,3 +1,21 @@
+zoneminder (1.29.111-trusty-2016020101) trusty; urgency=medium
+
+  * Fix video download and use of Storage Areas
+
+ -- Isaac Connor <iconnor@testing.internal.point-one.com>  Mon, 01 Feb 2016 13:42:06 -0500
+
+zoneminder (1.29.111-trusty-2016011401) trusty; urgency=medium
+
+  * fix timeline view for storageareas
+
+ -- Isaac Connor <iconnor@testing.internal.point-one.com>  Thu, 14 Jan 2016 14:03:41 -0500
+
+zoneminder (1.29.111-trusty-2016010801) trusty; urgency=medium
+
+  * Add better debug and skip when event links are not just digits. Merge multi-server stuff from master.
+
+ -- Isaac Connor <iconnor@testing.internal.point-one.com>  Fri, 08 Jan 2016 10:37:16 -0500
+
 zoneminder (1.29.111-trusty-2016010401) trusty; urgency=medium
 
   *  include fix to rotate image dimensions when applying a rotation

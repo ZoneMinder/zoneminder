@@ -104,7 +104,7 @@ sub getEventPath
     if ( $Config{ZM_USE_DEEP_STORAGE} )
     {
         $event_path = join('/',
-				$Storage->getPath(),
+				$Storage->Path(),
                       $event->{MonitorId},
                       strftime( "%y/%m/%d/%H/%M/%S",
                                      localtime($event->{Time})
@@ -114,7 +114,7 @@ sub getEventPath
     else
     {
         $event_path = join('/',
-				$Storage->getPath(),
+				$Storage->Path(),
                       $event->{MonitorId},
                       $event->{Id},
         );

@@ -1,6 +1,6 @@
 # ZoneMinder
 
-FROM ubuntu:precise
+FROM ubuntu:trusty
 MAINTAINER Kyle Johnson <kjohnson@gnulnx.net>
 
 # Let the container know that there is no tty
@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y \
 	libwww-perl libdbd-mysql-perl libsys-mmap-perl yasm automake autoconf libjpeg-turbo8-dev \
 	libjpeg-turbo8 libtheora-dev libvorbis-dev libvpx-dev libx264-dev libmp4v2-dev libav-tools mysql-client \
 	apache2 php5 php5-mysql apache2-mpm-prefork libapache2-mod-php5 php5-cli openssh-server \
-	mysql-server libvlc-dev libvlc5 libvlccore-dev libvlccore5 vlc-data libcurl4-openssl-dev \
+	mysql-server libvlc-dev libvlc5 libvlccore-dev libvlccore7 vlc-data libcurl4-openssl-dev \
 	libavformat-dev libswscale-dev libavutil-dev libavcodec-dev libavfilter-dev \
 	libavresample-dev libavdevice-dev libpostproc-dev libv4l-dev libtool libnetpbm10-dev \
 	libmime-lite-perl dh-autoreconf dpatch
@@ -47,10 +47,15 @@ RUN chmod 755 /tmp/start.sh
 RUN mkdir /var/run/sshd
 
 # Adding apache virtual hosts file
-ADD utils/docker/apache-vhost /etc/apache2/sites-enabled/000-default
+ADD utils/docker/apache-vhost /etc/apache2/sites-available/000-default.conf
+ADD utils/docker/phpdate.ini /etc/php5/apache2/conf.d/25-phpdate.ini
 
 # Set the root passwd
 RUN echo 'root:root' | chpasswd
+
+# Add a user we can actually login with
+RUN useradd -m -s /bin/bash -G sudo zoneminder
+RUN echo 'zoneminder:zoneminder' | chpasswd
 
 # Expose ssh and http ports
 EXPOSE 80

@@ -98,29 +98,28 @@ sub getEventPath
 {
     my $event = shift;
 
+	my $Storage = $event->Storage();
+
     my $event_path = "";
     if ( $Config{ZM_USE_DEEP_STORAGE} )
     {
-        $event_path = $Config{ZM_DIR_EVENTS}
-                      .'/'.$event->{MonitorId}
-                      .'/'.strftime( "%y/%m/%d/%H/%M/%S",
+        $event_path = join('/',
+				$Storage->getPath(),
+                      $event->{MonitorId},
+                      strftime( "%y/%m/%d/%H/%M/%S",
                                      localtime($event->{Time})
-                                   )
-        ;
+                                   ),
+					);
     }
     else
     {
-        $event_path = $Config{ZM_DIR_EVENTS}
-                      .'/'.$event->{MonitorId}
-                      .'/'.$event->{Id}
-        ;
+        $event_path = join('/',
+				$Storage->getPath(),
+                      $event->{MonitorId},
+                      $event->{Id},
+        );
     }
 
-    if ( index($Config{ZM_DIR_EVENTS},'/') != 0 ){
-        $event_path = $Config{ZM_PATH_WEB}
-                      .'/'.$event_path
-        ;
-    }
     return( $event_path );
 }
 

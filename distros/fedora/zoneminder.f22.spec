@@ -138,7 +138,7 @@ fi
 
 %files
 %defattr(-,root,root,-)
-%doc AUTHORS COPYING README.md distros/fedora/README.Fedora distros/fedora/jscalendar-doc
+%doc AUTHORS COPYING README.md distros/fedora/README.Fedora distros/fedora/README.https distros/fedora/jscalendar-doc
 %config %attr(640,root,%{zmgid_final}) /etc/zm/zm.conf
 %config(noreplace) %attr(644,root,root) /etc/httpd/conf.d/zoneminder.conf
 %config(noreplace) /etc/tmpfiles.d/zoneminder.conf

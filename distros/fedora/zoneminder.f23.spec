@@ -38,7 +38,7 @@ BuildRequires: gcc gcc-c++ vlc-devel libcurl-devel libv4l-devel
 BuildRequires:  httpd polkit-devel
 %{!?_without_ffmpeg:BuildRequires: ffmpeg}
 
-Requires: httpd php php-gd php-mysql cambozola polkit net-tools psmisc
+Requires: httpd php php-gd php-mysql cambozola polkit net-tools psmisc mod_ssl
 Requires: libjpeg-turbo vlc-core libcurl
 Requires: perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires: perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)
@@ -65,7 +65,7 @@ too much degradation of performance.
 %setup -q -n ZoneMinder-%{version}
 
 # Change the following default values
-./utils/zmeditconfigdata.sh ZM_PATH_ZMS /cgi-bin/zm/nph-zms
+./utils/zmeditconfigdata.sh ZM_PATH_ZMS /cgi-bin-zm/nph-zms
 ./utils/zmeditconfigdata.sh ZM_OPT_CAMBOZOLA yes
 ./utils/zmeditconfigdata.sh ZM_PATH_SWAP /dev/shm
 ./utils/zmeditconfigdata.sh ZM_UPLOAD_FTP_LOC_DIR /var/spool/zoneminder-upload
@@ -138,7 +138,7 @@ fi
 
 %files
 %defattr(-,root,root,-)
-%doc AUTHORS COPYING README.md distros/fedora/README.Fedora distros/fedora/jscalendar-doc
+%doc AUTHORS COPYING README.md distros/fedora/README.Fedora distros/fedora/README.https distros/fedora/jscalendar-doc
 %config %attr(640,root,%{zmgid_final}) /etc/zm/zm.conf
 %config(noreplace) %attr(644,root,root) /etc/httpd/conf.d/zoneminder.conf
 %config(noreplace) /etc/tmpfiles.d/zoneminder.conf

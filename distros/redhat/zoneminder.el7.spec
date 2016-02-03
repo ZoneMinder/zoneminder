@@ -6,7 +6,7 @@
 %global _hardened_build 1
 
 Name: zoneminder
-Version: 1.28.1
+Version: 1.29.0
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -137,7 +137,7 @@ fi
 
 %files
 %defattr(-,root,root,-)
-%doc AUTHORS BUGS ChangeLog COPYING LICENSE NEWS README.md distros/redhat/README.Centos7 distros/redhat/jscalendar-doc
+%doc AUTHORS BUGS ChangeLog COPYING LICENSE NEWS README.md distros/redhat/README.Centos7 distros/redhat/README.https distros/redhat/jscalendar-doc
 %doc distros/redhat/local_zoneminder.te
 %config %attr(640,root,%{zmgid_final}) /etc/zm/zm.conf
 %config(noreplace) %attr(644,root,root) /etc/httpd/conf.d/zoneminder.conf

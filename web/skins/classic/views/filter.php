@@ -84,6 +84,8 @@ $attrTypes = array(
     'DiskPercent' => translate('AttrDiskPercent'),
     'DiskBlocks'  => translate('AttrDiskBlocks'),
     'SystemLoad'  => translate('AttrSystemLoad'),
+	'ServerId'    => translate('AttrServerId'),
+	'ServerName'  => translate('AttrServerName'),
 );
 $opTypes = array(
     '='   => translate('OpEq'),

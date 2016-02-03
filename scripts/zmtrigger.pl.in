@@ -433,11 +433,12 @@ sub loadMonitors
     my %new_monitors = ();
 
     my $sql = "SELECT * FROM Monitors
-               WHERE find_in_set( Function, 'Modect,Mocord,Nodect' )"
+               WHERE find_in_set( Function, 'Modect,Mocord,Nodect' )".
+			   ( $Config{ZM_SERVER_ID} ? 'AND ServerId=?' : '' )
     ;
     my $sth = $dbh->prepare_cached( $sql )
         or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-    my $res = $sth->execute()
+    my $res = $sth->execute( $Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID} : () )
         or Fatal( "Can't execute: ".$sth->errstr() );
     while( my $monitor = $sth->fetchrow_hashref() )
     {
@@ -503,22 +504,11 @@ sub handleMessage
         Info( "Set monitor to $state\n" );
         if ( $delay )
         {
-            my $action_time = time()+$delay;
             my $action_text = $id."|".( ($state eq "enable")
                                         ? "disable"
                                         : "enable"
-                                      )
-            ;
-            my $action_array = $actions{$action_time};
-            if ( !$action_array )
-            {
-                $action_array = $actions{$action_time} = [];
-            }
-            push( @$action_array, { connection=>$connection,
-                                    message=>$action_text
-                                  }
-            );
-            Debug( "Added timed event '$action_text', expires at $action_time (+$delay secs)\n" );
+                                      );
+             handleDelay($delay, $connection, $action_text);
         }
     }
     elsif ( $action =~ /^(on|off)(?:[ \+](\d+))?$/ )
@@ -533,43 +523,33 @@ sub handleMessage
             zmTriggerEventOn( $monitor, $score, $cause, $text );
             zmTriggerShowtext( $monitor, $showtext ) if defined($showtext);
             Info( "Trigger '$trigger' '$cause'\n" );
+            if ( $delay )
+            {
+                 my $action_text = $id."|cancel";
+                 handleDelay($delay, $connection, $action_text);
+            }
         }
         elsif ( $trigger eq "off" )
         {
-            my $last_event = zmGetLastEvent( $monitor );
-            zmTriggerEventOff( $monitor );
-            zmTriggerShowtext( $monitor, $showtext ) if defined($showtext);
-            Info( "Trigger '$trigger'\n" );
-            # Wait til it's finished
-            while( zmInAlarm( $monitor )
-                   && ($last_event == zmGetLastEvent( $monitor ))
-            )
+            if ( $delay ) 
             {
-                # Tenth of a second
-                usleep( 100000 );
-            }
+                 my $action_text = $id."|off|0|".$cause."|".$text;
+                 handleDelay($delay, $connection, $action_text);
+            } else {
+                my $last_event = zmGetLastEvent( $monitor );
+                zmTriggerEventOff( $monitor );
+                zmTriggerShowtext( $monitor, $showtext ) if defined($showtext);
+                Info( "Trigger '$trigger'\n" );
+                # Wait til it's finished
+                while( zmInAlarm( $monitor )
+                       && ($last_event == zmGetLastEvent( $monitor ))
+                )
+                {
+                    # Tenth of a second
+                    usleep( 100000 );
+                }
             zmTriggerEventCancel( $monitor );
-        }
-        else
-        {
-            Info( "Trigger '$trigger'\n" );
-            zmTriggerEventCancel( $monitor );
-        }
-        if ( $delay )
-        {
-            my $action_time = time()+$delay;
-            #my $action_text = $id."|cancel|0|".$cause."|".$text;
-            my $action_text = $id."|cancel";
-            my $action_array = $actions{$action_time};
-            if ( !$action_array )
-            {
-                $action_array = $actions{$action_time} = [];
             }
-            push( @$action_array, { connection=>$connection,
-                                    message=>$action_text
-                                  }
-            );
-            Debug( "Added timed event '$action_text', expires at $action_time (+$delay secs)\n" );
         }
     }
     elsif( $action eq "cancel" )
@@ -589,5 +569,23 @@ sub handleMessage
     }
 } # end sub handleMessage
 
+sub handleDelay
+{
+    my $delay = shift;
+    my $connection = shift;
+    my $action_text = shift;
+    
+    my $action_time = time()+$delay;
+    my $action_array = $actions{$action_time};
+    if ( !$action_array )
+    {
+        $action_array = $actions{$action_time} = [];
+    }
+    push( @$action_array, { connection=>$connection,
+                            message=>$action_text
+                          }
+    );
+    Debug( "Added timed event '$action_text', expires at $action_time (+$delay secs)\n" );
+}
 1;
 __END__

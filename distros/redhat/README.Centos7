@@ -32,12 +32,10 @@ New installs
    will need to create the ZoneMinder database and configure a database
    account for ZoneMinder to use:
 
-     mysql -u root -p < /usr/share/zoneminder/db/zm_create.sql
-     mysql -u root -p
-        mysql> grant all
-               on zm.* to 'zmuser'@localhost identified by 'zmpass';
-        mysql> exit;
-     mysqladmin -u root -p reload
+     mysql -uroot -p < /usr/share/zoneminder/db/zm_create.sql
+     mysql -uroot -p -e "grant all on zm.* to \
+                        'zmuser'@localhost identified by 'zmpass';"
+     mysqladmin -uroot -p reload
 
    The database account credentials, zmuser/zmpass, are arbitrary. Set them to
    anything that suits your envinroment.
@@ -112,9 +110,7 @@ Upgrades
    have increased. Verify the zmuser database account has been granted all
    permission to the ZoneMinder database:
 
-     mysql -u root -p
-         mysql> show grants for zmuser@localhost;
-         mysql> exit;
+     mysql -uroot -p -e "show grants for zmuser@localhost;"
 
    See step 2 of the Installation section to add missing permissions.
 

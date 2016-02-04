@@ -52,12 +52,18 @@ else
 ln -sf distros/ubuntu1504_cmake debian
 fi;
 
+if [ -z `hostname -d` ] ; then
+    AUTHOR="`getent passwd $USER | cut -d ':' -f 5 | cut -d ',' -f 1` <`whoami`@`hostname`.local>"
+else
+    AUTHOR="`getent passwd $USER | cut -d ':' -f 5 | cut -d ',' -f 1` <`whoami`@`hostname`>"
+fi
+
 cat <<EOF > debian/changelog
 zoneminder ($VERSION-$DISTRO-$SNAPSHOT) $DISTRO; urgency=medium
 
   * 
 
- -- Isaac Connor <iconnor@connortechnology.com>  $DATE
+ -- $AUTHOR  $DATE
 
 EOF
 #rm -rf .git

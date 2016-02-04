@@ -133,8 +133,10 @@ sub sendCmd
 
     my $result = undef;
 
+    # Pelco P protocol checksum is created by XOR'ing the first seven bytes in the message
+    # including the first byte, the STX sync packet
     my $checksum = 0x00;
-    for ( my $i = 1; $i < int(@$cmd); $i++ )
+    for ( my $i = 0; $i < int(@$cmd); $i++ )
     {
         $checksum ^= $cmd->[$i];
     }

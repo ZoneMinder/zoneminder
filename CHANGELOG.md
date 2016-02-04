@@ -1,5 +1,18 @@
 # Change Log
 
+## [v1.29.0](https://github.com/ZoneMinder/ZoneMinder/tree/v1.29.0) (2016-02-03)
+[Full Changelog](https://github.com/ZoneMinder/ZoneMinder/compare/v1.29.0-rc2...v1.29.0)
+
+**Merged pull requests:**
+
+- 1253 zms quit cmd [\#1254](https://github.com/ZoneMinder/ZoneMinder/pull/1254) ([pliablepixels](https://github.com/pliablepixels))
+- Add Debug/Info lines reporting multi-server status [\#1252](https://github.com/ZoneMinder/ZoneMinder/pull/1252) ([connortechnology](https://github.com/connortechnology))
+- Do debian package mods [\#1244](https://github.com/ZoneMinder/ZoneMinder/pull/1244) ([pliablepixels](https://github.com/pliablepixels))
+- zmtrigger - process off+time delay condition [\#1240](https://github.com/ZoneMinder/ZoneMinder/pull/1240) ([knnniggett](https://github.com/knnniggett))
+- Multi server [\#1233](https://github.com/ZoneMinder/ZoneMinder/pull/1233) ([connortechnology](https://github.com/connortechnology))
+- remove Google open Sans external import [\#1232](https://github.com/ZoneMinder/ZoneMinder/pull/1232) ([connortechnology](https://github.com/connortechnology))
+- PTZ - Added autostop to Down command on FI8918W [\#1189](https://github.com/ZoneMinder/ZoneMinder/pull/1189) ([marcolino7](https://github.com/marcolino7))
+
 ## [v1.29.0-rc2](https://github.com/ZoneMinder/ZoneMinder/tree/v1.29.0-rc2) (2016-01-05)
 [Full Changelog](https://github.com/ZoneMinder/ZoneMinder/compare/v1.29.0-rc1...v1.29.0-rc2)
 

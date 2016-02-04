@@ -2078,6 +2078,21 @@ our @options =
         category    => "upload",
     },
     {
+        name        => "ZM_UPLOAD_STRICT",
+        default     => "no",
+        description => "Require strict host key checking for SFTP uploads",
+        help        => qqq("
+            You can require SFTP uploads to verify the host key of the remote server
+			for protection against man-in-the-middle attacks. You will need to add the
+			server's key to the known_hosts file. On most systems, this will be
+			~/.ssh/known_hosts, where ~ is the home directory of the web server running
+			ZoneMinder.
+        "),
+        requires    => [ { name => "ZM_OPT_UPLOAD", value => "yes" } ],
+        type        => $types{boolean},
+        category    => "upload",
+    },
+    {
         name        => "ZM_UPLOAD_FTP_PASSIVE",
         default     => "yes",
         description => "Use passive ftp when uploading",

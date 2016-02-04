@@ -2062,9 +2062,9 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
         sql += "'";
     }
     if ( staticConfig.SERVER_ID ) {
-Debug( 1, "Server ID %d", staticConfig.SERVER_ID );
         sql += stringtf( " AND ServerId=%d", staticConfig.SERVER_ID );
     }
+	Debug( 1, "Loading Local Monitors with %s", sql.c_str() );
 
     MYSQL_RES *result = zmDbFetch( sql.c_str() );
     if ( !result ) {
@@ -2246,6 +2246,7 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
         sql += stringtf(" AND Protocol = '%s' and Host = '%s' and Port = '%s' and Path = '%s'", protocol, host, port, path );
     }
 
+	Debug( 1, "Loading Remote Monitors with %s", sql.c_str() );
     MYSQL_RES *result = zmDbFetch( sql.c_str() );
     if ( !result ) {
         Error( "Can't use query result: %s", mysql_error( &dbconn ) );
@@ -2426,6 +2427,7 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
     if ( staticConfig.SERVER_ID ) {
         sql += stringtf( " AND ServerId=%d", staticConfig.SERVER_ID );
     }
+	Debug( 1, "Loading File Monitors with %s", sql.c_str() );
     MYSQL_RES *result = zmDbFetch( sql.c_str() );
     if ( !result )
     {
@@ -2570,6 +2572,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
     if ( staticConfig.SERVER_ID ) {
         sql += stringtf( " AND ServerId=%d", staticConfig.SERVER_ID );
     }
+	Debug( 1, "Loading FFMPEG Monitors with %s", sql.c_str() );
     MYSQL_RES *result = zmDbFetch( sql.c_str() );
     if ( ! result ) {
         Error( "Cannot load FfmpegMonitors" );
@@ -3937,6 +3940,11 @@ void MonitorStream::processCommand( const CmdMsg *msg )
             Debug( 1, "Got SCALE command, to %d", scale );
             break;
         }
+	case CMD_QUIT :
+	{
+	   Info ("User initiated exit - CMD_QUIT");
+	   break;
+	}
         case CMD_QUERY :
         {
             Debug( 1, "Got QUERY command, sending STATUS" );
@@ -4001,6 +4009,10 @@ void MonitorStream::processCommand( const CmdMsg *msg )
             //exit( -1 );
         }
     }
+
+    // quit after sending a status, if this was a quit request
+    if ((MsgCommand)msg->msg_data[0]==CMD_QUIT)
+	exit(0);
 
     updateFrameRate( monitor->GetFPS() );
 }

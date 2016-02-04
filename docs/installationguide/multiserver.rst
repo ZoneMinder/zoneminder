@@ -21,7 +21,7 @@ New installs
 
 1. Follow the normal instructions for your distro for installing ZoneMinder onto all the ZoneMinder servers in the normal fashion. Only a single database will be needed either as standalone, or on one of the ZoneMinder Servers.
 
-2. On each ZoneMinder server, edit zm.conf. Find the ZM_DB_HOST variable and set it to the name or ip address of your Database Server.
+2. On each ZoneMinder server, edit zm.conf. Find the ZM_DB_HOST variable and set it to the name or ip address of your Database Server. Find the ZM_SERVER_HOST and enter a name for this ZoneMinder server. Use a name easily recognizable by you. This name is not used by ZoneMinder for dns or any other form of network conectivity.
 
 3. Copy the file /usr/share/zoneminder/db/zm_create.sql from one of the ZoneMinder Servers to the machine targeted as the Database Server.
 
@@ -34,9 +34,7 @@ New installs
 ::
 
   mysql -u root -p < zm_create.sql
-  mysql -u root -p
-    mysql> grant all on zm.* to 'zmuser'@'%' identified by 'zmpass';
-    mysql> exit;
+  mysql -uroot -p -e "grant all on zm.* to 'zmuser'@localhost identified by 'zmpass';"
   mysqladmin -u root -p reload
 
 The database account credentials, zmuser/zmpass, are arbitrary. Set them to anything that suits your environment.
@@ -52,6 +50,6 @@ Additionally, you must also edit /usr/share/zoneminder/www/api/app/Config/databa
 
 NOTE: The location of this folder varies by distro. This folder is often found under "/var/lib/zoneminder/events" for RedHat based distros and "/var/cache/zoneminder/events" for Debain based distros. This folder is NOT a Symbolic Link!
 
-10. Open your browser and point it to the web console on any of the ZoneMinder Servers (they will all be the same). Open Options, click the Servers tab,and populate this screen with all of your ZoneMinder Servers.
+10. Open your browser and point it to the web console on any of the ZoneMinder Servers (they will all be the same). Open Options, click the Servers tab,and populate this screen with all of your ZoneMinder Servers. Each server has a field for its name and its hostname. The name is what you used for ZM_SERVER_HOST in step 2. The hostname is the network name or ip address ZoneMinder should use.
 
 11. When creating a new Monitor, remember to select the server the camera will be assigned to from the Server drop down box.

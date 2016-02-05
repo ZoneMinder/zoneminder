@@ -233,6 +233,7 @@ $SLANG = array(
     'Close'                 => 'Close',
     'Colour'                => 'Colour',
     'Command'               => 'Command',
+    'ConcurrentFilter'      => 'Run filter concurrently',
     'Config'                => 'Config',
     'ConfiguredFor'         => 'Configured for',
     'ConfirmDeleteEvents'   => 'Are you sure you wish to delete the selected events?',

@@ -29,10 +29,13 @@ done
 mysql -u root < db/zm_create.sql
 
 # Add the ZoneMinder DB user
-mysql -u root -e "grant insert,select,update,delete,lock tables,alter on zm.* to 'zm'@'localhost' identified by 'zm'"
+mysql -u root -e "grant insert,select,update,delete,lock tables,alter on zm.* to 'zmuser'@'localhost' identified by 'zmpass';"
 
 # Activate CGI
 a2enmod cgi
+
+# Activate modrewrite
+a2enmod rewrite
 
 # Restart apache
 service apache2 restart

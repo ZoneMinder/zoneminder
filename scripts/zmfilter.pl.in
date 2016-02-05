@@ -27,7 +27,7 @@ zmfilter.pl - ZoneMinder tool to filter events
 
 =head1 SYNOPSIS
 
- zmfilter.pl [-f <filter name>,--filter=<filter name>] [-fid <filter id>,--filter_id=<filter id>] | -v, --version
+ zmfilter.pl [-f <filter name>,--filter=<filter name>] [--filter_id=<filter id>] | -v, --version
 
 =head1 DESCRIPTION
 
@@ -39,7 +39,7 @@ matching events.
 
  
  -f{filter name}, --filter={filter name}  - The name of a specific filter to run
- -fid {filter id}, --filter_id={filter id}- The id of a specific filter to run
+ --filter_id={filter id}                  - The id of a specific filter to run
  -v, --version                            - Print ZoneMinder version
 
 =cut
@@ -76,7 +76,7 @@ my $version = 0;
 
 GetOptions(
     'filter=s'      =>\$filter_name,
-    'filter_id=s'      =>\$filter_id,
+    'filter_id=s'   =>\$filter_id,
     'version'       =>\$version
 ) or pod2usage(-exitstatus => -1);
 
@@ -188,8 +188,11 @@ while( 1 ) {
 
     foreach my $filter ( @$filters ) {
 		if ( $$filter{Concurrent} and ! $filter_id ) {
-			Debug("Running concurrent filter process for $$filter{Name}");
-			`$0 -fid $$filter{Id}`;
+            my ( $proc ) = $0 =~ /(\S+)/;
+            my ( $id ) = $$filter{Id} =~ /(\d+)/;
+
+			Debug("Running concurrent filter process ($proc) for $id $$filter{Name}");
+            `$proc -filter_id $id`;
 		} else {
 			checkFilter( $filter );
 		}

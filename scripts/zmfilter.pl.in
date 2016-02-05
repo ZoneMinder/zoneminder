@@ -171,7 +171,7 @@ if ( $filter_name ) {
     Info( "Scanning for events\n" );
 }
 
-if ( ! ( $filter_parm or $filter_id ) ) {
+if ( ! ( $filter_name or $filter_id ) ) {
     sleep( START_DELAY );
 }
 
@@ -195,7 +195,7 @@ while( 1 ) {
 		}
     }
 
-    last if ( $filter_parm );
+    last if ( $filter_name or $filter_id );
 
     Debug( "Sleeping for $delay seconds\n" );
     sleep( $delay );

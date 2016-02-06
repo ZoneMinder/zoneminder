@@ -1,0 +1,161 @@
+#!/usr/bin/perl -w
+#
+# ==========================================================================
+#
+# ZoneMinder Update Script, $Date$, $Revision$
+# Copyright (C) 2001-2008 Philip Coombes
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+#
+# ==========================================================================
+
+=head1 NAME
+
+zmtelemetry.pl - Send usage information to the ZoneMinder development team
+
+=head1 SYNOPSIS
+
+ zmtelemetry.pl
+
+=head1 DESCRIPTION
+
+This script collects usage information of the local system and sends it to the
+ZoneMinder development team. This data will be used to determine things like
+who and where our customers are, how big their systems are, the underlying
+hardware and operating system, etc. This is being done for the sole purpoase of
+creating a better product for our target audience. This script is intended to
+be completely transparent to the end user, and can be disabled from the web
+console under Options.
+
+=head1 OPTIONS
+
+none currently
+
+=cut
+use strict;
+use bytes;
+
+@EXTRA_PERL_LIB@
+use ZoneMinder::Config qw(:all);
+use ZoneMinder::Logger qw(:all);
+use ZoneMinder::Database qw(:all);
+use DBI;
+use Getopt::Long;
+use autouse 'Pod::Usage'=>qw(pod2usage);
+
+$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
+$ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
+delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
+
+use constant CHECK_INTERVAL => (14*24*60*60); # Interval between version checks
+
+# Setting these as contants for now. 
+# Alternatively, we can put these in the dB and then retrieve using the Config hash.
+use constant ZM_TELEMETRY_SERVER_NAME => "telemetry.zoneminder.com";
+use constant ZM_TELEMETRY_SERVER_PORT => "80";
+
+if ( $Config{ZM_TELEMETRY_DATA} )
+{
+    print( "Update agent starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+
+    my $lastCheck = $Config{ZM_TELEMETRY_LAST_CHECK};
+
+    while( 1 )
+    {
+        my $now = time();
+        if ( ($now-$lastCheck) > CHECK_INTERVAL) )
+        {
+            Info( "Colleting data to send to ZoneMinder Telemetry server\n" );
+
+            # This is where we gather our data. The following is just an oversimplified example.
+            # Modify accordingly.
+
+            # We should keep *BSD systems in mind when calling system commands
+            my $result = runSysCmd("uname -a")."\n";
+            my $result .= "ZM_DYN_CURR_VERSION: ".Config{ZM_DYN_CURR_VERSION};
+
+            Info( "Sending data to ZoneMinder Telemetry server\n" );
+
+            if ( sendData($result) ) {
+                $lastCheck = $now;
+
+                my $lc_sql = "update Config set Value = ? where Name = 'ZM_DYN_LAST_CHECK'";
+                my $lc_sth = $dbh->prepare_cached( $lc_sql ) or die( "Can't prepare '$lc_sql': ".$dbh->errstr() );
+                my $lc_res = $lc_sth->execute( $lastCheck ) or die( "Can't execute: ".$lc_sth->errstr() );
+            }
+        }
+        sleep( 3600 );
+    }
+    print( "Update agent exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+}
+
+# Find, verify, then run the supplied system command
+sub runSysCmd {
+    my $msg = shift;
+    my @arguments = split(/ /,$msg);
+    chomp($arguments[0]);
+    my $path  = qx( which $arguments[0] );
+
+    my $status = $? >> 8;
+    my $result = "";
+    if ( !$path || $status ) {
+        Warning( "Cannot find the $arguments[0] executable." );
+    } else {
+        chomp($path);
+        $arguments[0] = $path;
+        my $cmd = join(" ",@arguments);
+        my $result = qx( $cmd );
+    }
+    return chomp($result);
+}
+
+# Upload message data to ZoneMinder telemetry server
+sub sendData {
+    my $msg = shift;
+
+    use LWP::UserAgent;
+
+    my $ua = LWP::UserAgent->new;
+    my $server_endpoint = "http://".ZM_TELEMETRY_SERVER_NAME.":".ZM_TELEMETRY_SERVER_PORT."/";
+
+    if ( $Config{ZM_UPDATE_CHECK_PROXY} ) {
+        $ua->proxy( "http", $Config{ZM_UPDATE_CHECK_PROXY} );
+    }
+
+    # set custom HTTP request header fields
+    my $req = HTTP::Request->new(POST => $server_endpoint);
+    # We can set some things in the header if we need to
+    #$req->header('content-type' => 'content here');
+    #$req->header('Host' => '192.168.1.83:8899');
+    $req->header('content-length' => length($msg));
+    #$req->header('accept-encoding' => 'gzip, deflate');
+    $req->header('connection' => 'Close');
+ 
+    $req->content($msg);
+ 
+    my $resp = $ua->request($req);
+    my success = 0;
+    if ($resp->is_success) {
+        my $message = $resp->decoded_content;
+        Info("Telemetry data successfully uploaded.");
+        Debug("Telemetry server upload success response message: $message\n");
+        $success = 1;
+    } else {
+        Warning("Telemetry server returned HTTP POST error code: ", $resp->code, "\n";
+        Debug("Telemetry server upload failure response message: ", $resp->message, "\n";
+    }
+    return $success;
+}
+

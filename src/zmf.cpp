@@ -274,7 +274,7 @@ int main( int argc, char *argv[] )
 		Debug( 1, "Read frame header, expecting %ld bytes of image", frame_header.image_length );
 		static unsigned char image_data[ZM_MAX_IMAGE_SIZE];
 
-                // Read for pipe and loop until bytes expected have been read or an error occures
+                // Read for pipe and loop until bytes expected have been read or an error occurs
                 int bytes_read = 0;
                 do
 		{

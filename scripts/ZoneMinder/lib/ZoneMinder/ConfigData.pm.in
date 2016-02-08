@@ -1985,7 +1985,7 @@ our @options =
             You can use filters to instruct ZoneMinder to upload events to
             a remote server. This option indicates the password that
             ZoneMinder should use to log in for transfer. If you are using
-            certicate based logins for SFTP servers you can leave this
+            certificate based logins for SFTP servers you can leave this
             option blank.
         "),
         requires    => [ { name => "ZM_OPT_UPLOAD", value => "yes" } ],

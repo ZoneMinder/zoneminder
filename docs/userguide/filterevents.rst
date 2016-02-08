@@ -90,7 +90,7 @@ Saving filters
 .. image:: images/filter-save.png
     :width: 400px
 
-When saving filters, if you want the filter to run in the background make sure you select the "Run filter in background" option. When checked, ZoneMinder will make sure the filter is checked regularly. For example, if you want to be notified of new events by email, you sould make sure this is checked. Filters that are configured to run in the background have a "*" next to it.
+When saving filters, if you want the filter to run in the background make sure you select the "Run filter in background" option. When checked, ZoneMinder will make sure the filter is checked regularly. For example, if you want to be notified of new events by email, you should make sure this is checked. Filters that are configured to run in the background have a "*" next to it.
 
 For example:
 

@@ -19,7 +19,7 @@ UPLOAD_PORT - You can use filters to instruct ZoneMinder to upload events to a r
 
 UPLOAD_USER - You can use filters to instruct ZoneMinder to upload events to a remote server. This option indicates the username that ZoneMinder should use to log in for transfer.
 
-UPLOAD_PASS - You can use filters to instruct ZoneMinder to upload events to a remote server. This option indicates the password that ZoneMinder should use to log in for transfer. If you are using certicate based logins for SFTP servers you can leave this option blank.
+UPLOAD_PASS - You can use filters to instruct ZoneMinder to upload events to a remote server. This option indicates the password that ZoneMinder should use to log in for transfer. If you are using certificate based logins for SFTP servers you can leave this option blank.
 
 UPLOAD_LOC_DIR - You can use filters to instruct ZoneMinder to upload events to a remote server. This option indicates the local directory that ZoneMinder should use for temporary upload files. These are files that are created from events, uploaded and then deleted.
 

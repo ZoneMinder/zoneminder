@@ -18,7 +18,7 @@ Important differences
 ---------------------
 * Unlike the autotools way, the cmake way does not require any options. It attempts to detect some things by its own (system directories, libarch, web user and group) and uses defaults for others (installation paths and such).
 * Unlike the autotools way, which links the binaries to a fixed list of libraries, the cmake way only links to libraries that it found on the system. If a library is not found, but required, a fatal error will be shown during the configuration step.
-* Unlike the autotools way, the cmake way does not modify the system in any way it shouldnt. It only does what its supposed to do: Install files to your system. Nothing else and nothing leaks out of the DESTDIR environment variable (if used). This means that depending on your configuration, there might be an extra required step after installation: to link WEB_PATH/events and WEB_PATH/images folders to the correct places.
+* Unlike the autotools way, the cmake way does not modify the system in any way it shouldn't. It only does what its supposed to do: Install files to your system. Nothing else and nothing leaks out of the DESTDIR environment variable (if used). This means that depending on your configuration, there might be an extra required step after installation: to link WEB_PATH/events and WEB_PATH/images folders to the correct places.
 
 Configuration
 -------------

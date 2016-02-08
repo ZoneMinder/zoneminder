@@ -133,9 +133,9 @@ set(ZM_NO_CURL "OFF" CACHE BOOL
     "Set to ON to skip cURL checks and force building ZM without cURL. default: OFF")
 set(ZM_NO_X10 "OFF" CACHE BOOL 
     "Set to ON to build ZoneMinder without X10 support. default: OFF")
-set(ZM_ONVIF "OFF" CACHE BOOL 
+set(ZM_ONVIF "ON" CACHE BOOL 
     "Set to ON to enable basic ONVIF support. This is EXPERIMENTAL and may not 
-    work with all cameras claiming to be ONVIF compliant. default: OFF")
+    work with all cameras claiming to be ONVIF compliant. default: ON")
 set(ZM_PERL_MM_PARMS INSTALLDIRS=vendor NO_PACKLIST=1 NO_PERLLOCAL=1 CACHE STRING 
 	"By default, ZoneMinder's Perl modules are installed into the Vendor folders, 
 	as defined by your installation of Perl. You can change that here. Consult Perl's 

@@ -84,8 +84,8 @@ $attrTypes = array(
     'DiskPercent' => translate('AttrDiskPercent'),
     'DiskBlocks'  => translate('AttrDiskBlocks'),
     'SystemLoad'  => translate('AttrSystemLoad'),
-	'ServerId'    => translate('AttrServerId'),
-	'ServerName'  => translate('AttrServerName'),
+	'StorageId'   => translate('AttrStorageArea'),
+	'ServerId'    => translate('AttrServer'),
 );
 $opTypes = array(
     '='   => translate('OpEq'),
@@ -226,6 +226,32 @@ for ( $i = 0; isset($_REQUEST['filter']) && $i < count($_REQUEST['filter']['term
 ?>
               <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
               <td><?php echo buildSelect( "filter[terms][$i][val]", $monitors ); ?></td>
+<?php
+        }
+        elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "ServerId" )
+        {
+            $servers = array();
+            $servers['ZM_SERVER_ID'] = 'Current Server';
+            foreach ( dbFetchAll( "SELECT Id,Name FROM Servers ORDER BY lower(Name) ASC" ) as $server )
+            {
+                    $servers[$server['Id']] = $server['Name'];
+            }
+?>
+              <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
+              <td><?php echo buildSelect( "filter[terms][$i][val]", $servers ); ?></td>
+<?php
+        }
+        elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "StorageId" )
+        {
+            $storageareas = array();
+			$storageareas['NULL'] = 'Default ' . ZM_DIR_EVENTS;
+            foreach ( dbFetchAll( "SELECT Id,Name FROM Storage ORDER BY lower(Name) ASC" ) as $storage )
+            {
+                    $storageareas[$storage['Id']] = $storage['Name'];
+            }
+?>
+              <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
+              <td><?php echo buildSelect( "filter[terms][$i][val]", $storageareas ); ?></td>
 <?php
         }
         else

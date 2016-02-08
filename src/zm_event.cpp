@@ -77,10 +77,12 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
         gettimeofday( &start_time, 0 );
     }
 
+	Storage * storage = monitor->getStorage();
+
     static char sql[ZM_SQL_MED_BUFSIZ];
 
     struct tm *stime = localtime( &start_time.tv_sec );
-    snprintf( sql, sizeof(sql), "insert into Events ( MonitorId, Name, StartTime, Width, Height, Cause, Notes ) values ( %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s' )", monitor->Id(), start_time.tv_sec, monitor->Width(), monitor->Height(), cause.c_str(), notes.c_str() );
+    snprintf( sql, sizeof(sql), "insert into Events ( MonitorId, StorageId, Name, StartTime, Width, Height, Cause, Notes ) values ( %d, %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s' )", monitor->Id(), storage->Id(), start_time.tv_sec, monitor->Width(), monitor->Height(), cause.c_str(), notes.c_str() );
     if ( mysql_query( &dbconn, sql ) )
     {
         Error( "Can't insert event: %s", mysql_error( &dbconn ) );
@@ -100,7 +102,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     if ( config.use_deep_storage )
     {
         char *path_ptr = path;
-        path_ptr += snprintf( path_ptr, sizeof(path), "%s/%d", config.dir_events, monitor->Id() );
+        path_ptr += snprintf( path_ptr, sizeof(path), "%s/%d", storage->Path(), monitor->Id() );
 
         int dt_parts[6];
         dt_parts[0] = stime->tm_year-100;
@@ -146,7 +148,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     }
     else
     {
-        snprintf( path, sizeof(path), "%s/%d/%d", config.dir_events, monitor->Id(), id );
+        snprintf( path, sizeof(path), "%s/%d/%d", storage->Path(), monitor->Id(), id );
         
         struct stat statbuf;
         errno = 0;
@@ -733,7 +735,7 @@ bool EventStream::loadEventData( int event_id )
 {
     static char sql[ZM_SQL_MED_BUFSIZ];
 
-    snprintf( sql, sizeof(sql), "select M.Id, M.Name, E.Frames, unix_timestamp( StartTime ) as StartTimestamp, max(F.Delta)-min(F.Delta) as Duration from Events as E inner join Monitors as M on E.MonitorId = M.Id inner join Frames as F on E.Id = F.EventId where E.Id = %d group by E.Id", event_id );
+    snprintf( sql, sizeof(sql), "select M.Id, M.Name, E.StorageId, E.Frames, unix_timestamp( StartTime ) as StartTimestamp, max(F.Delta)-min(F.Delta) as Duration from Events as E inner join Monitors as M on E.MonitorId = M.Id inner join Frames as F on E.Id = F.EventId where E.Id = %d group by E.Id", event_id );
 
     if ( mysql_query( &dbconn, sql ) )
     {
@@ -765,24 +767,29 @@ bool EventStream::loadEventData( int event_id )
     event_data = new EventData;
     event_data->event_id = event_id;
     event_data->monitor_id = atoi( dbrow[0] );
-    event_data->start_time = atoi(dbrow[3]);
+	event_data->storage_id = dbrow[2] ? atoi( dbrow[2] ) : 0;
+    event_data->start_time = atoi(dbrow[4]);
+
+	Storage * storage = new Storage( event_data->storage_id );
+	const char *storage_path = storage->Path();
+
     if ( config.use_deep_storage )
     {
         struct tm *event_time = localtime( &event_data->start_time );
-        if ( config.dir_events[0] == '/' )
-            snprintf( event_data->path, sizeof(event_data->path), "%s/%ld/%02d/%02d/%02d/%02d/%02d/%02d", config.dir_events, event_data->monitor_id, event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday, event_time->tm_hour, event_time->tm_min, event_time->tm_sec );
+        if ( storage_path[0] == '/' )
+            snprintf( event_data->path, sizeof(event_data->path), "%s/%ld/%02d/%02d/%02d/%02d/%02d/%02d", storage_path, event_data->monitor_id, event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday, event_time->tm_hour, event_time->tm_min, event_time->tm_sec );
         else
-            snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%02d/%02d/%02d/%02d/%02d/%02d", staticConfig.PATH_WEB.c_str(), config.dir_events, event_data->monitor_id, event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday, event_time->tm_hour, event_time->tm_min, event_time->tm_sec );
+            snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%02d/%02d/%02d/%02d/%02d/%02d", staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id, event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday, event_time->tm_hour, event_time->tm_min, event_time->tm_sec );
     }
     else
     {
-        if ( config.dir_events[0] == '/' )
-            snprintf( event_data->path, sizeof(event_data->path), "%s/%ld/%ld", config.dir_events, event_data->monitor_id, event_data->event_id );
+        if ( storage_path[0] == '/' )
+            snprintf( event_data->path, sizeof(event_data->path), "%s/%ld/%ld", storage_path, event_data->monitor_id, event_data->event_id );
         else
-            snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%ld", staticConfig.PATH_WEB.c_str(), config.dir_events, event_data->monitor_id, event_data->event_id );
+            snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%ld", staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id, event_data->event_id );
     }
-    event_data->frame_count = dbrow[2] == NULL ? 0 : atoi(dbrow[2]);
-    event_data->duration = atof(dbrow[4]);
+    event_data->frame_count = dbrow[3] == NULL ? 0 : atoi(dbrow[3]);
+    event_data->duration = atof(dbrow[5]);
 
     updateFrameRate( (double)event_data->frame_count/event_data->duration );
 

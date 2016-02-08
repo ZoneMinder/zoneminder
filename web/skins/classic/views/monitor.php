@@ -19,6 +19,7 @@
 //
 
 require_once( 'includes/Server.php');
+require_once( 'includes/Storage.php');
 
 if ( !canView( 'Monitors' ) )
 {
@@ -573,6 +574,11 @@ if ( $tab != 'source' || ($newMonitor['Type'] != 'Remote' && $newMonitor['Protoc
     <input type="hidden" name="newMonitor[RTSPDescribe]" value="<?php echo validHtmlStr($newMonitor['RTSPDescribe']) ?>"/>
 <?php
 }
+if ( $tab != 'storage' ) {
+?>
+	<input type="hidden" name="newMonitor[StorageId]" value="<?= validHtmlStr($newMonitor['StorageId']) ?>"/>
+<?php
+}
 if ( $tab != 'timestamp' )
 {
 ?>
@@ -655,8 +661,19 @@ switch ( $tab )
 	foreach ( $results as $row => $server_obj ) {
 		$servers[$server_obj->Id] = $server_obj->Name();
 	}
-?>
-	<?php echo buildSelect( "newMonitor[ServerId]", $servers ); ?>
+	echo buildSelect( "newMonitor[ServerId]", $servers );
+ ?>
+</td></tr>
+<tr><td><?php echo translate('StorageArea') ?></td><td>
+<?php
+    $storage_areas = array(''=>'Default');
+    $result = dbQuery( 'SELECT * FROM Storage ORDER BY Name');
+    $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Storage' );
+    foreach ( $results as $row => $storage_obj ) {
+        $storage_areas[$storage_obj->Id] = $storage_obj->Name();
+    }
+    echo buildSelect( "newMonitor[StorageId]", $storage_areas );
+ ?>
 </td></tr>
             <tr><td><?php echo translate('SourceType') ?></td><td><?php echo buildSelect( "newMonitor[Type]", $sourceTypes ); ?></td></tr>
             <tr><td><?php echo translate('Function') ?></td><td><select name="newMonitor[Function]">

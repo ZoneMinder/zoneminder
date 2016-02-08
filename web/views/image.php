@@ -38,6 +38,9 @@ if ( !canView( 'Events' ) )
     return;
 }
 
+require_once('includes/Storage.php');
+require_once('includes/Event.php');
+
 header( 'Content-type: image/jpeg' );
 
 // Compatibility for PHP 5.4 
@@ -55,13 +58,23 @@ if (!function_exists('imagescale'))
     }
 }
 
+$Storage = NULL;
 $errorText = false;
 if ( empty($_REQUEST['path']) )
 {
-    $errorText = "No image path";
+	if ( ! empty($_REQUEST['fid']) ) {
+		if ( ! empty($_REQUEST['eid'] ) ) {
+			$Event = new Event( $_REQUEST['eid'] );
+			$Storage = $Event->Storage();
+			$path = $Event->Relative_Path().'/'.sprintf("%'.0".ZM_EVENT_IMAGE_DIGITS.'d',$_REQUEST['fid']).'-capture.jpg';
+		}
+	} else {
+		$errorText = "No image path";
+	}
 }
 else
 {
+    $Storage = new Storage();
     $path = $_REQUEST['path'];
     if ( !empty($user['MonitorIds']) )
     {
@@ -111,10 +124,12 @@ if ( $errorText )
     Error( $errorText );
 else
     if( ($scale==0 || $scale==100) && $width==0 && $height==0 )
-        readfile( ZM_DIR_EVENTS.'/'.$path );
+        if ( ! readfile( $Storage->Path().'/'.$path ) ) {
+		Error("No bytes read from ". $Storage->Path() . '/'.$path );
+	}
     else
     {
-        $i = imagecreatefromjpeg ( ZM_DIR_EVENTS.'/'.$path );
+        $i = imagecreatefromjpeg ( $Storage->Path().'/'.$path );
         $oldWidth=imagesx($i);
         $oldHeight=imagesy($i);
         if($width==0 && $height==0)  // scale has to be set to get here with both zero

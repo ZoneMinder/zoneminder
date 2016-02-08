@@ -767,35 +767,65 @@ if ( !empty($action) )
     // System edit actions
     if ( canEdit( 'System' ) )
     {
-		if ( isset( $_REQUEST['object'] ) and ( $_REQUEST['object'] == 'server' ) ) {
+		if ( isset( $_REQUEST['object'] ) ) {
+			if ( $_REQUEST['object'] == 'server' ) {
 
-			if ( $action == "Save" ) {
-				if ( !empty($_REQUEST['id']) )
-					$dbServer = dbFetchOne( "SELECT * FROM Servers WHERE Id=?", NULL, array($_REQUEST['id']) );
-				else
-					$dbServer = array();
+				if ( $action == "Save" ) {
+					if ( !empty($_REQUEST['id']) )
+						$dbServer = dbFetchOne( "SELECT * FROM Servers WHERE Id=?", NULL, array($_REQUEST['id']) );
+					else
+						$dbServer = array();
 
-				$types = array();
-				$changes = getFormChanges( $dbServer, $_REQUEST['newServer'], $types );
+					$types = array();
+					$changes = getFormChanges( $dbServer, $_REQUEST['newServer'], $types );
 
-				if ( count( $changes ) ) {
-					if ( !empty($_REQUEST['id']) ) {
-						dbQuery( "UPDATE Servers SET ".implode( ", ", $changes )." WHERE Id = ?", array($_REQUEST['id']) );
-					} else {
-						dbQuery( "INSERT INTO Servers set ".implode( ", ", $changes ) );
+					if ( count( $changes ) ) {
+						if ( !empty($_REQUEST['id']) ) {
+							dbQuery( "UPDATE Servers SET ".implode( ", ", $changes )." WHERE Id = ?", array($_REQUEST['id']) );
+						} else {
+							dbQuery( "INSERT INTO Servers set ".implode( ", ", $changes ) );
+						}
+						$refreshParent = true;
+					}
+					$view = 'none';
+				} else if ( $action == 'delete' ) {
+					if ( !empty($_REQUEST['markIds']) ) {
+						foreach( $_REQUEST['markIds'] as $Id )
+							dbQuery( "DELETE FROM Servers WHERE Id=?", array($Id) );
 					}
 					$refreshParent = true;
+				} else {
+					Error( "Unknown action $action in saving Server" );
 				}
-				$view = 'none';
-			} else if ( $action == 'delete' ) {
-				if ( !empty($_REQUEST['markIds']) ) {
-					foreach( $_REQUEST['markIds'] as $Id )
-						dbQuery( "DELETE FROM Servers WHERE Id=?", array($Id) );
+			} else if ( $_REQUEST['object'] == 'storage' ) {
+				if ( $action == "Save" ) {
+					if ( !empty($_REQUEST['id']) )
+						$dbStorage = dbFetchOne( "SELECT * FROM Storage WHERE Id=?", NULL, array($_REQUEST['id']) );
+					else
+						$dbStorage = array();
+
+					$types = array();
+					$changes = getFormChanges( $dbStorage, $_REQUEST['newStorage'], $types );
+
+					if ( count( $changes ) ) {
+						if ( !empty($_REQUEST['id']) ) {
+							dbQuery( "UPDATE Storage SET ".implode( ", ", $changes )." WHERE Id = ?", array($_REQUEST['id']) );
+						} else {
+							dbQuery( "INSERT INTO Storage set ".implode( ", ", $changes ) );
+						}
+						$refreshParent = true;
+					}
+					$view = 'none';
+				} else if ( $action == 'delete' ) {
+					if ( !empty($_REQUEST['markIds']) ) {
+						foreach( $_REQUEST['markIds'] as $Id )
+							dbQuery( "DELETE FROM Storage WHERE Id=?", array($Id) );
+					}
+					$refreshParent = true;
+				} else {
+					Error( "Unknown action $action in saving Storage" );
 				}
-                $refreshParent = true;
-			} else {
-				Error( "Unknown action $action in saving Server" );
-			}
+			} # end if isset($_REQUEST['object'] )
 
         } else if ( $action == "version" && isset($_REQUEST['option']) )
         {

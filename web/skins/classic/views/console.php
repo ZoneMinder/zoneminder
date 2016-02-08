@@ -287,7 +287,7 @@ for ( $i = 0; $i < count($eventCounts); $i++ )
 foreach( $displayMonitors as $monitor )
 {
 ?>
-          <tr>
+          <tr title="<?php echo $monitor['Id'] ?>">
 <?php
     if ( !$monitor['zmc'] )
         $dclass = "errorText";

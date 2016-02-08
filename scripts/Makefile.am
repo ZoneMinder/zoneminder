@@ -48,6 +48,12 @@ EXTRA_DIST = \
 	ZoneMinder/lib/ZoneMinder.pm \
 	ZoneMinder/lib/ZoneMinder/Base.pm.in \
 	ZoneMinder/lib/ZoneMinder/Config.pm.in \
+	ZoneMinder/lib/ZoneMinder/Event.pm \
+	ZoneMinder/lib/ZoneMinder/Filter.pm \
+	ZoneMinder/lib/ZoneMinder/Monitor.pm \
+	ZoneMinder/lib/ZoneMinder/Object.pm \
+	ZoneMinder/lib/ZoneMinder/Server.pm \
+	ZoneMinder/lib/ZoneMinder/Storage.pm \
 	ZoneMinder/lib/ZoneMinder/Logger.pm \
 	ZoneMinder/lib/ZoneMinder/General.pm \
 	ZoneMinder/lib/ZoneMinder/Database.pm \

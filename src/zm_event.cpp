@@ -100,7 +100,11 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     if ( config.use_deep_storage )
     {
         char *path_ptr = path;
-        path_ptr += snprintf( path_ptr, sizeof(path), "%s/%d", config.dir_events, monitor->Id() );
+        int rc;
+        rc = snprintf( path_ptr, sizeof(path), "%s/%d", config.dir_events, monitor->Id() );
+        if (rc < 0 || rc >= sizeof(path))
+            Fatal("snprintf buffer overflow");
+        path_ptr += rc;
 
         int dt_parts[6];
         dt_parts[0] = stime->tm_year-100;
@@ -115,7 +119,10 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
         char *time_path_ptr = time_path;
         for ( unsigned int i = 0; i < sizeof(dt_parts)/sizeof(*dt_parts); i++ )
         {
-            path_ptr += snprintf( path_ptr, sizeof(path)-(path_ptr-path), "/%02d", dt_parts[i] );
+            rc = snprintf( path_ptr, sizeof(path)-(path_ptr-path), "/%02d", dt_parts[i] );
+            if (rc < 0 || rc >= sizeof(path)-(path_ptr-path))
+                Fatal("snprintf buffer overflow");
+            path_ptr += rc;
 
             struct stat statbuf;
             errno = 0;
@@ -127,10 +134,14 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
                     Fatal( "Can't mkdir %s: %s", path, strerror(errno));
                 }
             }
-            if ( i == 2 )
+            if ( i == 2 ) {
                 strncpy( date_path, path, sizeof(date_path) );
-            else if ( i >= 3 )
-                time_path_ptr += snprintf( time_path_ptr, sizeof(time_path)-(time_path_ptr-time_path), "%s%02d", i>3?"/":"", dt_parts[i] );
+            } else if ( i >= 3 ) {
+                rc = snprintf( time_path_ptr, sizeof(time_path)-(time_path_ptr-time_path), "%s%02d", i>3?"/":"", dt_parts[i] );
+                if (rc < 0 || rc >= sizeof(time_path)-(time_path_ptr-time_path))
+                    Fatal("snprintf buffer overflow");
+                time_path_ptr += rc;
+            }
         }
         char id_file[PATH_MAX];
         // Create event id symlink

@@ -128,19 +128,16 @@ sub sendData {
     use LWP::UserAgent;
 
     my $ua = LWP::UserAgent->new;
-    my $server_endpoint = "https://".ZM_TELEMETRY_SERVER_NAME.":".ZM_TELEMETRY_SERVER_PORT."/";
+    my $server_endpoint = "https://".ZM_TELEMETRY_SERVER_NAME.":".ZM_TELEMETRY_SERVER_PORT."/zmtelemetry/testing/";
 
     if ( $Config{ZM_UPDATE_CHECK_PROXY} ) {
-        $ua->proxy( "http", $Config{ZM_UPDATE_CHECK_PROXY} );
+        $ua->proxy( "https", $Config{ZM_UPDATE_CHECK_PROXY} );
     }
 
     # set custom HTTP request header fields
     my $req = HTTP::Request->new(POST => $server_endpoint);
-    # We can set some things in the header if we need to
-    #$req->header('content-type' => 'content here');
-    #$req->header('Host' => '192.168.1.83:8899');
+    $req->header('content-type' => 'application/x-www-form-urlencoded');
     $req->header('content-length' => length($msg));
-    #$req->header('accept-encoding' => 'gzip, deflate');
     $req->header('connection' => 'Close');
  
     $req->content($msg);

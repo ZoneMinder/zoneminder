@@ -40,9 +40,8 @@ wsdl/     - (empty) this is only used during the proxy generation process
 
 3. LICENSE
 ----------
-The files in the subfolder proxy/ are generated files. Since generating them 
-is difficult they are included anyway. They are published under the same 
-license as this file.
+Any files in this folder and its subfolders are published under the same 
+license as this file if they do not carry additional license information.
 
 
 4. PROXY GENERATION

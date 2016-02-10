@@ -27,7 +27,7 @@ zmfilter.pl - ZoneMinder tool to filter events
 
 =head1 SYNOPSIS
 
- zmfilter.pl [-f <filter name>,--filter=<filter name>] | -v, --version
+ zmfilter.pl [-f <filter name>,--filter=<filter name>] [--filter_id=<filter id>] | -v, --version
 
 =head1 DESCRIPTION
 
@@ -37,7 +37,9 @@ matching events.
 
 =head1 OPTIONS
 
+ 
  -f{filter name}, --filter={filter name}  - The name of a specific filter to run
+ --filter_id={filter id}                  - The id of a specific filter to run
  -v, --version                            - Print ZoneMinder version
 
 =cut
@@ -67,6 +69,24 @@ use Date::Manip;
 use Getopt::Long;
 use autouse 'Pod::Usage'=>qw(pod2usage);
 use autouse 'Data::Dumper'=>qw(Dumper);
+
+my $filter_name = "";
+my $filter_id;
+my $version = 0;
+
+GetOptions(
+    'filter=s'      =>\$filter_name,
+    'filter_id=s'   =>\$filter_id,
+    'version'       =>\$version
+) or pod2usage(-exitstatus => -1);
+
+if ( $version ) {
+    print ZoneMinder::Base::ZM_VERSION . "\n";
+    exit(0);
+}
+
+require ZoneMinder::Event;
+require ZoneMinder::Filter;
 
 use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)
              ? $Config{ZM_DIR_EVENTS}
@@ -142,7 +162,7 @@ my $version = 0;
 sub strtotime
 {
     my $dt_str = shift;
-    return( UnixDate( $dt_str, '%s' ) );
+    return( Date::Manip::UnixDate( $dt_str, '%s' ) );
 }
 
 #
@@ -187,39 +207,42 @@ chdir( EVENT_PATH );
 
 my $dbh = zmDbConnect();
 
-if ( $filter_parm )
-{
-    Info( "Scanning for events using filter '$filter_parm'\n" );
-}
-else
-{
+if ( $filter_name ) {
+    Info( "Scanning for events using filter '$filter_name'\n" );
+} elsif ( $filter_id ) {
+    Info( "Scanning for events using filter id '$filter_id'\n" );
+} else {
     Info( "Scanning for events\n" );
 }
 
-if ( !$filter_parm )
-{
+if ( ! ( $filter_name or $filter_id ) ) {
     sleep( START_DELAY );
 }
 
 my $filters;
 my $last_action = 0;
 
-while( 1 )
-{
+while( 1 ) {
     my $now = time;
-    if ( ($now - $last_action) > $Config{ZM_FILTER_RELOAD_DELAY} )
-    {
+    if ( ($now - $last_action) > $Config{ZM_FILTER_RELOAD_DELAY} ) {
         Debug( "Reloading filters\n" );
         $last_action = $now;
-        $filters = getFilters( $filter_parm );
+        $filters = getFilters( { Name=>$filter_name, Id=>$filter_id } );
     }
 
-    foreach my $filter ( @$filters )
-    {
-        checkFilter( $filter );
+    foreach my $filter ( @$filters ) {
+		if ( $$filter{Concurrent} and ! $filter_id ) {
+            my ( $proc ) = $0 =~ /(\S+)/;
+            my ( $id ) = $$filter{Id} =~ /(\d+)/;
+
+			Debug("Running concurrent filter process ($proc) for $id $$filter{Name}");
+            `$proc --filter_id $id`;
+		} else {
+			checkFilter( $filter );
+		}
     }
 
-    last if ( $filter_parm );
+    last if ( $filter_name or $filter_id );
 
     Debug( "Sleeping for $delay seconds\n" );
     sleep( $delay );
@@ -264,16 +287,18 @@ sub getLoad
 
 sub getFilters
 {
-    my $filter_name = shift;
+    my $sql_filters = @_ ? shift : {};
+	my @sql_values;
 
     my @filters;
     my $sql = "SELECT * FROM Filters WHERE";
-    if ( $filter_name )
-    {
+    if ( $$sql_filters{Name} ) {
         $sql .= " Name = ? and";
-    }
-    else
-    {
+		push @sql_values, $$sql_filters{Name};
+    } elsif ( $$sql_filters{Id} ) {
+        $sql .= " Id = ? and";
+		push @sql_values, $$sql_filters{Id};
+    } else {
         $sql .= " Background = 1 and";
     }
     $sql .= "(  AutoArchive = 1
@@ -286,17 +311,8 @@ sub getFilters
              ) ORDER BY Name";
     my $sth = $dbh->prepare_cached( $sql )
         or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-    my $res;
-    if ( $filter_name )
-    {
-        $res = $sth->execute( $filter_name )
-            or Fatal( "Can't execute '$sql': ".$sth->errstr() );
-    }
-    else
-    {
-        $res = $sth->execute()
-            or Fatal( "Can't execute '$sql': ".$sth->errstr() );
-    }
+	my $res = $sth->execute( @sql_values )
+		or Fatal( "Can't execute '$sql': ".$sth->errstr() );
     FILTER: while( my $db_filter = $sth->fetchrow_hashref() )
     {
         Debug( "Found filter '$db_filter->{Name}'\n" );
@@ -601,6 +617,11 @@ sub getFilters
         push( @filters, $db_filter );
     }
     $sth->finish();
+	if ( @sql_values ) {
+		Error("No filter found for $sql with values(@sql_values)");
+	} else {
+		Debug( "Got " . @filters . " filters" );
+	}
 
     return( \@filters );
 }

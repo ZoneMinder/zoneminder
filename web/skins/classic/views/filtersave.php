@@ -76,6 +76,9 @@ xhtmlHeaders(__FILE__, translate('SaveFilter') );
         <p>
           <label for="background"><?php echo translate('BackgroundFilter') ?></label><input type="checkbox" id="background" name="background" value="1"<?php if ( !empty($filterData['Background']) ) { ?> checked="checked"<?php } ?>/>
         </p>
+        <p>
+          <label for="concurrent"><?php echo translate('ConcurrentFilter') ?></label><input type="checkbox" id="concurrent" name="concurrent" value="1"<?php if ( !empty($filterData['Concurrent']) ) { ?> checked="checked"<?php } ?>/>
+        </p>
         <div id="contentButtons">
           <input type="submit" value="<?php echo translate('Save') ?>"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
         </div>

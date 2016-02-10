@@ -181,6 +181,8 @@ if ( !empty($action) )
                         $sql .= ", AutoDelete = ".dbEscape($_REQUEST['autoDelete']);
                     if ( !empty($_REQUEST['background']) )
                         $sql .= ", Background = ".dbEscape($_REQUEST['background']);
+                    if ( !empty($_REQUEST['concurrent']) )
+                        $sql .= ", Concurrent = ".dbEscape($_REQUEST['concurrent']);
                     dbQuery( $sql );
                     $refreshParent = true;
                 }

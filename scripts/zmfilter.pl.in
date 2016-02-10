@@ -245,7 +245,7 @@ sub getFilters
 		push( @filters, $filter );
     }
     $sth->finish();
-	if ( @sql_values ) {
+	if ( ! @filters ) {
         Error("No filter found for $sql with values(@sql_values)");
     } else {
         Debug( "Got " . @filters . " filters" );

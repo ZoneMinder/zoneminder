@@ -176,4 +176,21 @@ sub getUUID {
 return $uuid;
 }
 
+# Retrieves the local server's external IP address
+sub getIP {   
+    use LWP::UserAgent;
+
+    my $ipaddr = "0.0.0.0";
+    my $ua = LWP::UserAgent->new;
+    my $server_endpoint = "https://wiki.zoneminder.com/ip.php";
+
+    my $req = HTTP::Request->new(GET => $server_endpoint);
+    my $resp = $ua->request($req);
+
+    if ($resp->is_success) {
+        $ipaddr = $resp->decoded_content;
+    }
+
+return $ipaddr;
+}
 

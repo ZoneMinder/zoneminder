@@ -186,13 +186,13 @@ while( 1 ) {
         $filters = getFilters( { Name=>$filter_name, Id=>$filter_id } );
     }
 
-    foreach my $filter ( @$filters ) {
-		if ( $$filter{Concurrent} and ! $filter_id ) {
-            my ( $proc ) = $0 =~ /(\S+)/;
-            my ( $id ) = $$filter{Id} =~ /(\d+)/;
+	foreach my $filter ( @$filters ) {
+		if ( $$filter{Concurrent} and ! ( $filter_id or $filter_name ) ) {
+			my ( $proc ) = $0 =~ /(\S+)/;
+			my ( $id ) = $$filter{Id} =~ /(\d+)/;
+			Debug("Running concurrent filter process $proc --filter_id $$filter{Id} => $id for $$filter{Name}");
 
-			Debug("Running concurrent filter process ($proc) for $id $$filter{Name}");
-            `$proc --filter_id $id`;
+			system( qq`$proc --filter "$$filter{Name}" &` );
 		} else {
 			checkFilter( $filter );
 		}

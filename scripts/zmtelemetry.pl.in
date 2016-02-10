@@ -166,7 +166,7 @@ sub getUUID {
         use OSSSP::uuid;
         my $uuidobj = OSSP::uuid->new;
         $uuidobj -> make("v1");
-        $uuid = $uuidobj->export("str");
+        $uuid = $Config{ZM_TELEMETRY_UUID} = $uuidobj->export("str");
 
         my $sql = "update Config set Value = ? where Name = 'ZM_TELEMETRY_UUID'";
         my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );

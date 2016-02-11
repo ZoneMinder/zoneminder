@@ -87,7 +87,7 @@ if ( $Config{ZM_TELEMETRY_DATA} )
             my %telemetry;
             $telemetry{uuid} = getUUID();
             $telemetry{ip} = getIP();
-            $telemetry{timestamp} = runSysCmd("date -In");
+            $telemetry{timestamp} = runSysCmd("date +%Y-%m-%dT%H:%M:%S%z");
             $telemetry{monitor_count} = countQuery("Monitors");
             $telemetry{event_count} = countQuery("Events");
             $telemetry{distro} = runSysCmd("uname -a");

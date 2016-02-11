@@ -88,8 +88,8 @@ if ( $Config{ZM_TELEMETRY_DATA} )
             $telemetry{uuid} = getUUID();
             $telemetry{ip} = getIP();
             $telemetry{timestamp} = runSysCmd("date -In");
-            #$telemetry{monitor_count} = TO-DO
-            #$telemetry{event_count} = TO-DO
+            $telemetry{monitor_count} = countQuery("Monitors");
+            $telemetry{event_count} = countQuery("Events");
             $telemetry{distro} = runSysCmd("uname -a");
             $telemetry{release} = runSysCmd("cat /etc/*{release,version}");
             $telemetry{zm_version} = ZoneMinder::Base::ZM_VERSION;
@@ -203,5 +203,17 @@ sub getIP {
     }
 
 return $ipaddr;
+}
+
+# As the name implies, just your average mysql count query
+sub countQuery {
+    my $table = shift;
+    my $count = 0;
+
+    my $sql = "select count(*) from ?";
+    my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+    $count = $sth->execute( $table ) or die( "Can't execute: ".$sth->errstr() );
+
+return $count
 }
 

@@ -54,6 +54,9 @@ use ZoneMinder::Database qw(:all);
 use DBI;
 use Getopt::Long;
 use autouse 'Pod::Usage'=>qw(pod2usage);
+use LWP::UserAgent;
+use Sys::MemInfo;
+use Sys::CPU;
 
 $ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
@@ -77,16 +80,26 @@ if ( $Config{ZM_TELEMETRY_DATA} )
         my $now = time();
         if ( ($now-$lastCheck) > CHECK_INTERVAL) )
         {
-            Info( "Colleting data to send to ZoneMinder Telemetry server\n" );
+            Info( "Colleting data to send to ZoneMinder Telemetry server." );
 
-            # This is where we gather our data. The following is just an oversimplified example.
-            # Modify accordingly.
-
+            # Build the telemetry hash
             # We should keep *BSD systems in mind when calling system commands
-            my $result = runSysCmd("uname -a")."\n";
-            my $result .= "ZM_DYN_CURR_VERSION: ".Config{ZM_DYN_CURR_VERSION};
+            my %telemetry;
+            $telemetry{uuid} = getUUID();
+            $telemetry{ip} = getIP();
+            $telemetry{timestamp} = runSysCmd("date -In");
+            #$telemetry{monitor_count} = TO-DO
+            #$telemetry{event_count} = TO-DO
+            $telemetry{distro} = runSysCmd("uname -a");
+            $telemetry{release} = runSysCmd("cat /etc/*{release,version}");
+            $telemetry{zm_version} = ZoneMinder::Base::ZM_VERSION;
+            $telemetry{system_memory} = totalmem() / (1024*1024);
+            $telemetry{processor_count} = cpu_count();
+            #$telemetry{monitors} = TO-DO
 
-            Info( "Sending data to ZoneMinder Telemetry server\n" );
+            Info( "Sending data to ZoneMinder Telemetry server." );
+
+            my $result = jsonEncode( \%telemetry );
 
             if ( sendData($result) ) {
                 $lastCheck = $now;
@@ -95,6 +108,8 @@ if ( $Config{ZM_TELEMETRY_DATA} )
                 my $lc_sth = $dbh->prepare_cached( $lc_sql ) or die( "Can't prepare '$lc_sql': ".$dbh->errstr() );
                 my $lc_res = $lc_sth->execute( $lastCheck ) or die( "Can't execute: ".$lc_sth->errstr() );
             }
+
+           Info( "Telemetry data uploaded successfully."  );
         }
         sleep( 3600 );
     }
@@ -125,8 +140,6 @@ sub runSysCmd {
 sub sendData {
     my $msg = shift;
 
-    use LWP::UserAgent;
-
     my $ua = LWP::UserAgent->new;
     my $server_endpoint = "https://".ZM_TELEMETRY_SERVER_NAME.":".ZM_TELEMETRY_SERVER_PORT."/zmtelemetry/testing/";
 
@@ -147,11 +160,11 @@ sub sendData {
     if ($resp->is_success) {
         my $message = $resp->decoded_content;
         Info("Telemetry data successfully uploaded.");
-        Debug("Telemetry server upload success response message: $message\n");
+        Debug("Telemetry server upload success response message: $message");
         $success = 1;
     } else {
-        Warning("Telemetry server returned HTTP POST error code: ", $resp->code, "\n";
-        Debug("Telemetry server upload failure response message: ", $resp->message, "\n";
+        Warning("Telemetry server returned HTTP POST error code: $resp->code");
+        Debug("Telemetry server upload failure response message: $resp->message");
     }
     return $success;
 }
@@ -178,8 +191,6 @@ return $uuid;
 
 # Retrieves the local server's external IP address
 sub getIP {   
-    use LWP::UserAgent;
-
     my $ipaddr = "0.0.0.0";
     my $ua = LWP::UserAgent->new;
     my $server_endpoint = "https://wiki.zoneminder.com/ip.php";

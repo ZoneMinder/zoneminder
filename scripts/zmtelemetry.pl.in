@@ -57,6 +57,8 @@ use autouse 'Pod::Usage'=>qw(pod2usage);
 use LWP::UserAgent;
 use Sys::MemInfo;
 use Sys::CPU;
+use DateTime;
+use POSIX qw(strftime);
 
 $ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
@@ -87,9 +89,10 @@ if ( $Config{ZM_TELEMETRY_DATA} )
             my %telemetry;
             $telemetry{uuid} = getUUID();
             $telemetry{ip} = getIP();
-            $telemetry{timestamp} = runSysCmd("date +%Y-%m-%dT%H:%M:%S%z");
+            $telemetry{timestamp} = DateTime->now( time_zone => "local" )->strftime("%Y-%m-%dT%H:%M:%S%z");
             $telemetry{monitor_count} = countQuery("Monitors");
             $telemetry{event_count} = countQuery("Events");
+            $telemetry{architecture} = runSysCmd("uname -m");
             $telemetry{distro} = runSysCmd("uname -a");
             $telemetry{release} = runSysCmd("cat /etc/*{release,version}");
             $telemetry{zm_version} = ZoneMinder::Base::ZM_VERSION;

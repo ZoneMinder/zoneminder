@@ -20,6 +20,9 @@
 
 require_once('includes/Server.php');
 $servers = Server::find_all();
+require_once('includes/Storage.php');
+$storage_areas = Storage::find_all();
+$show_storage_areas = count($storage_areas) > 1 and canEdit( 'System' ) ? 1 : 0;
 
 $eventCounts = array(
     array(
@@ -212,7 +215,11 @@ if ( canView( 'Stream' ) && $cycleCount > 1 )
 {
     $cycleGroup = isset($_COOKIE['zmGroup'])?$_COOKIE['zmGroup']:0;
 ?>
-      <div id="cycleMontage"><?php echo makePopupLink( '?view=cycle&amp;group='.$cycleGroup, 'zmCycle'.$cycleGroup, array( 'cycle', $cycleWidth, $cycleHeight ), translate('Cycle'), $running ) ?>&nbsp;/&nbsp;<?php echo makePopupLink( '?view=montage&amp;group='.$cycleGroup, 'zmMontage'.$cycleGroup, 'montage', translate('Montage'), $running ) ?></div>
+      <div id="cycleMontage">
+           <?php echo makePopupLink( '?view=cycle&amp;group='.$cycleGroup, 'zmCycle'.$cycleGroup, array( 'cycle', $cycleWidth, $cycleHeight ), translate('Cycle'), $running ) ?>&nbsp;/&nbsp;
+           <?php echo makePopupLink( '?view=montage&amp;group='.$cycleGroup, 'zmMontage'.$cycleGroup, 'montage', translate('Montage'), $running ) ?>&nbsp;/&nbsp;
+           <?php echo makePopupLink( '?view=montagereview&amp;group='.$cycleGroup, 'zmMontage'.$cycleGroup, 'montagereview', translate('Montage Review'), $running ) ?>
+      </div>
 <?php
 }
 else
@@ -242,6 +249,9 @@ else
 			<th class="colServer"><?php echo translate('Server') ?></th>
 <?php } ?>
             <th class="colSource"><?php echo translate('Source') ?></th>
+<?php if ( $show_storage_areas ) { ?>
+            <th class="colStorage"><?php echo translate('Storage') ?></th>
+<?php } ?>
 <?php
 for ( $i = 0; $i < count($eventCounts); $i++ )
 {
@@ -264,7 +274,11 @@ if ( canEdit('Monitors') )
         </thead>
         <tfoot>
           <tr>
-            <td class="colLeftButtons" colspan="<?php echo count($servers) ? 4 : 3 ?>">
+            <td class="colLeftButtons" colspan="<?php $columns = 3;
+ if ( count($servers) > 1 ) { $columns += 1; }
+ if ( $show_storage_areas ) { $columns += 1; }
+echo $columns;
+ ?>">
               <input type="button" value="<?php echo translate('Refresh') ?>" onclick="location.reload(true);"/>
               <?php echo makePopupButton( '?view=monitor', 'zmMonitor0', 'monitor', translate('AddNewMonitor'), (canEdit( 'Monitors' ) && !$user['MonitorIds']) ) ?>
               <?php echo makePopupButton( '?view=filter&amp;filter[terms][0][attr]=DateTime&amp;filter[terms][0][op]=%3c&amp;filter[terms][0][val]=now', 'zmFilter', 'filter', translate('Filters'), canView( 'Events' ) ) ?>
@@ -335,6 +349,12 @@ echo $Server->Name();
             <td class="colSource"><?php echo makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.preg_replace( '/^.*\//', '', $monitor['Path'] ).'</span>', canEdit( 'Monitors' ) ) ?></td>
 <?php } else { ?>
             <td class="colSource">&nbsp;</td>
+<?php } ?>
+<?php if ( $show_storage_areas ) { ?>
+			<td class="colStorage"><?php 
+$Storage = new Storage( $monitor['StorageId'] );
+echo $Storage->Name();
+?></td>
 <?php } ?>
 <?php
     for ( $i = 0; $i < count($eventCounts); $i++ )

@@ -227,7 +227,7 @@ Now clone the ZoneMinder git repository:
 ```bash
 git clone https://github.com/ZoneMinder/ZoneMinder
 ```
-This will create a sub-folder called ZoneMinder, which will contain the latest developement.
+This will create a sub-folder called ZoneMinder, which will contain the latest development.
 
 We want to turn this into a tarball, but first we need to figure out what to name it. Look here:
 ```bash

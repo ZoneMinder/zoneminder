@@ -352,7 +352,7 @@
 - Fix window sizes and input field sizes for flat skin [\#381](https://github.com/ZoneMinder/ZoneMinder/pull/381) ([m-bene](https://github.com/m-bene))
 - Fix reload loop on switching skins [\#380](https://github.com/ZoneMinder/ZoneMinder/pull/380) ([m-bene](https://github.com/m-bene))
 - Ability to skip frames in motion detection. [\#377](https://github.com/ZoneMinder/ZoneMinder/pull/377) ([Sune1337](https://github.com/Sune1337))
-- same dvr controlls in event as in monitor [\#375](https://github.com/ZoneMinder/ZoneMinder/pull/375) ([m-bene](https://github.com/m-bene))
+- same dvr controls in event as in monitor [\#375](https://github.com/ZoneMinder/ZoneMinder/pull/375) ([m-bene](https://github.com/m-bene))
 - do not quote column names in parse filter [\#374](https://github.com/ZoneMinder/ZoneMinder/pull/374) ([m-bene](https://github.com/m-bene))
 - Fix 'Undefined index: filter' php warnings for filter view when [\#373](https://github.com/ZoneMinder/ZoneMinder/pull/373) ([m-bene](https://github.com/m-bene))
 - Reduce window size to exclude task bar area [\#371](https://github.com/ZoneMinder/ZoneMinder/pull/371) ([m-bene](https://github.com/m-bene))

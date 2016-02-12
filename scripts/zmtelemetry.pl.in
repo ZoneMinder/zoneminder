@@ -247,6 +247,9 @@ sub getDistro {
         $version = runSysCmd("uname -r");
     } elsif ( $test =~ /Darwin/ ) {
         Debug("Mac OS distro detected.");
+        $kernel = runSysCmd("uname -v");
+        $distro = runSysCmd("uname");
+        $version = runSysCmd("uname -r");
     } elsif ( $test =~ /SunOS|Solaris/ ) {
         Debug("Sun Solaris detected.");
         $kernel = runSysCmd("uname -v");

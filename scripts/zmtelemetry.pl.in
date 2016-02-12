@@ -238,17 +238,17 @@ sub getDistro {
     my $test = runSysCmd("uname");
 
     if ( $test =~ /Linux/ ) {
-        #print "Linux distro.\n";
+        Debug("Linux distro detected.");
         ($kernel, $distro, $version) = linuxDistro();
     } elsif ( $test =~ /.*BSD/ ) {
-        #print "BSD distro.\n";
+        Debug("BSD distro detected.");
         $kernel = runSysCmd("uname -i");
         $distro = runSysCmd("uname");
         $version = runSysCmd("uname -r");
     } elsif ( $test =~ /Darwin/ ) {
-        #print "Mac OS.\n";
+        Debug("Mac OS distro detected.");
     } elsif ( $test =~ /SunOS|Solaris/ ) {
-        #print "Sun Solaris.\n";
+        Debug("Sun Solaris detected.");
         $kernel = runSysCmd("uname -v");
         $distro = runSysCmd("uname");
         $version = runSysCmd("uname -r");   
@@ -275,12 +275,12 @@ sub linuxDistro {
     if ( -f "/etc/os-release" ) {
         open(my $RELFILE,"<","/etc/os-release") or die( "Can't Open file: $!\n" );
         while (<$RELFILE>) {
-            if ( /PRETTY_NAME=\"?(.*)\"?.*/ ) {
-                $distro = $1;
+            if ( /^NAME=(")?(.*)(?(1)\1|).*$/ ) {
+                $distro = $2;
                 $found = 1;
             }
-            if ( /VERSION_ID=\"?(.*)\"?.*/ ) {
-                $version = $1;
+            if ( /^VERSION_ID=(")?(.*)(?(1)\1|).*$/ ) {
+                $version = $2;
                 $found = 1;
             }
         }
@@ -289,12 +289,12 @@ sub linuxDistro {
     } elsif ( -f "/etc/lsb-release" ) {
         open(my $RELFILE,"<","/etc/lsb-release") or die( "Can't Open file: $!\n" );
         while (<$RELFILE>) {
-            if ( /DISTRIB_DESCRIPTION=\"?(.*)\"?.*/ ) {
-                $distro = $1;
+            if ( /^DISTRIB_DESCRIPTION=(")?(.*)(?(1)\1|).*$/ ) {
+                $distro = $2;
                 $found = 1;
             }
-            if ( /DISTRIB_RELEASE=\"?(.*)\"?.*/ ) {
-                $version = $1;
+            if ( /^DISTRIB_RELEASE=(")?(.*)(?(1)\1|).*$/ ) {
+                $version = $2;
                 $found = 1;
             }
         }

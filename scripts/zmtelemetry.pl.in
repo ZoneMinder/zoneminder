@@ -96,7 +96,7 @@ if ( $Config{ZM_TELEMETRY_DATA} )
             $telemetry{zm_version} = ZoneMinder::Base::ZM_VERSION;
             $telemetry{system_memory} = totalmem() / (1024*1024);
             $telemetry{processor_count} = cpu_count();
-            #$telemetry{monitors} = TO-DO
+            $telemetry{monitors} = getMonitorRef();
 
             Info( "Sending data to ZoneMinder Telemetry server." );
 
@@ -216,5 +216,16 @@ sub countQuery {
     $count = $sth->execute( $table ) or die( "Can't execute: ".$sth->errstr() );
 
 return $count
+}
+
+# Returns a reference to an array of hashes containing data from all monitors
+sub getMonitorRef {
+
+    my $sql = "SELECT Id,Name,Type,Function,Width,Height,Colours,MaxFPS,AlarmMaxFPS FROM Monitors";
+    my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+    my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+    $arrayref = $sth->fetchall_arrayref({});
+
+return $arrayref;
 }
 

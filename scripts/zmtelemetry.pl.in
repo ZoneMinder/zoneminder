@@ -91,8 +91,7 @@ if ( $Config{ZM_TELEMETRY_DATA} )
             $telemetry{monitor_count} = countQuery("Monitors");
             $telemetry{event_count} = countQuery("Events");
             $telemetry{architecture} = runSysCmd("uname -p");
-            $telemetry{distro} = runSysCmd("uname -a");
-            $telemetry{release} = runSysCmd("cat /etc/*{release,version}");
+            ($telemetry{kernel}, $telemetry{distro}, $telemetry{version}) = getDistro();
             $telemetry{zm_version} = ZoneMinder::Base::ZM_VERSION;
             $telemetry{system_memory} = totalmem() / (1024*1024);
             $telemetry{processor_count} = cpu_count();
@@ -132,7 +131,7 @@ sub runSysCmd {
         chomp($path);
         $arguments[0] = $path;
         my $cmd = join(" ",@arguments);
-        my $result = qx( $cmd );
+        $result = qx( $cmd );
     }
     return chomp($result);
 }
@@ -230,4 +229,99 @@ sub getMonitorRef {
 
 return $arrayref;
 }
+
+sub getDistro {
+    my $kernel = "";
+    my $distro = "";
+    my $version = "";
+
+    my $test = runSysCmd("uname");
+
+    if ( $test =~ /Linux/ ) {
+        #print "Linux distro.\n";
+        ($kernel, $distro, $version) = linuxDistro();
+    } elsif ( $test =~ /.*BSD/ ) {
+        #print "BSD distro.\n";
+        $kernel = runSysCmd("uname -i");
+        $distro = runSysCmd("uname");
+        $version = runSysCmd("uname -r");
+    } elsif ( $test =~ /Darwin/ ) {
+        #print "Mac OS.\n";
+    } elsif ( $test =~ /SunOS|Solaris/ ) {
+        #print "Sun Solaris.\n";
+        $kernel = runSysCmd("uname -v");
+        $distro = runSysCmd("uname");
+        $version = runSysCmd("uname -r");   
+    } else {
+        $kernel = "Unknown"; 
+        $distro = "Unknown";
+        $version = "Unknown";
+    }
+
+return ($kernel, $distro, $version);
+}
+
+sub linuxDistro {
+    my $kernel = runSysCmd("uname -r");
+    my $distro = "Unknown Linux Distro";
+    my $version = "Unknown Linux Version";
+    my $found = 0;
+
+    #
+    # TO-DO: The regex's below are close but still need tweaking.
+    #
+
+    # os-release is the standard for many new distros based on systemd
+    if ( -f "/etc/os-release" ) {
+        open(my $RELFILE,"<","/etc/os-release") or die( "Can't Open file: $!\n" );
+        while (<$RELFILE>) {
+            if ( /PRETTY_NAME=\"?(.*)\"?.*/ ) {
+                $distro = $1;
+                $found = 1;
+            }
+            if ( /VERSION_ID=\"?(.*)\"?.*/ ) {
+                $version = $1;
+                $found = 1;
+            }
+        }
+        close $RELFILE;
+    # exists on many distros but does not always contain useful information, such as redhat
+    } elsif ( -f "/etc/lsb-release" ) {
+        open(my $RELFILE,"<","/etc/lsb-release") or die( "Can't Open file: $!\n" );
+        while (<$RELFILE>) {
+            if ( /DISTRIB_DESCRIPTION=\"?(.*)\"?.*/ ) {
+                $distro = $1;
+                $found = 1;
+            }
+            if ( /DISTRIB_RELEASE=\"?(.*)\"?.*/ ) {
+                $version = $1;
+                $found = 1;
+            }
+        }
+        close $RELFILE;
+    }
+
+    # If all else fails, search through a list of known release files until we find one
+    if ( !$found ) {
+        @releasefile = ("/etc/SuSE-release", "/etc/redhat-release", "/etc/redhat_version",
+                        "/etc/fedora-release", "/etc/slackware-release", "/etc/slackware-version",
+                        "/etc/debian_release", "/etc/debian_version", "/etc/mandrake-release",
+                        "/etc/yellowdog-release", "/etc/gentoo-release");
+        foreach (@releasefile) {
+            if ( -f $_ ) {
+                open(my $RELFILE,"<",$_) or die( "Can't Open file: $!\n" );
+                while (<$RELFILE>) {
+                    if ( /(.*).* (\d+\.?\d*) .*/ ) {
+                        $distro = $1;
+                        $version = $2;
+                    }
+                }
+                close $RELFILE;               
+                last;
+            }
+        }
+    }
+return ($kernel, $distro, $version);
+}
+
 

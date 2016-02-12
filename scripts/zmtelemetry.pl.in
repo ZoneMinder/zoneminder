@@ -48,9 +48,7 @@ use strict;
 use bytes;
 
 @EXTRA_PERL_LIB@
-use ZoneMinder::Config qw(:all);
-use ZoneMinder::Logger qw(:all);
-use ZoneMinder::Database qw(:all);
+use ZoneMinder;
 use DBI;
 use Getopt::Long;
 use autouse 'Pod::Usage'=>qw(pod2usage);
@@ -83,7 +81,7 @@ if ( $Config{ZM_TELEMETRY_DATA} )
         if ( ($now-$lastCheck) > CHECK_INTERVAL) )
         {
             Info( "Colleting data to send to ZoneMinder Telemetry server." );
-
+            my $dbh = zmDbConnect();
             # Build the telemetry hash
             # We should keep *BSD systems in mind when calling system commands
             my %telemetry;

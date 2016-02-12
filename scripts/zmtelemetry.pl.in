@@ -90,7 +90,7 @@ if ( $Config{ZM_TELEMETRY_DATA} )
             $telemetry{timestamp} = DateTime->now( time_zone => "local" )->strftime("%Y-%m-%dT%H:%M:%S%z");
             $telemetry{monitor_count} = countQuery("Monitors");
             $telemetry{event_count} = countQuery("Events");
-            $telemetry{architecture} = runSysCmd("uname -m");
+            $telemetry{architecture} = runSysCmd("uname -p");
             $telemetry{distro} = runSysCmd("uname -a");
             $telemetry{release} = runSysCmd("cat /etc/*{release,version}");
             $telemetry{zm_version} = ZoneMinder::Base::ZM_VERSION;

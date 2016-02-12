@@ -256,6 +256,7 @@ sub getDistro {
         $distro = runSysCmd("uname");
         $version = runSysCmd("uname -r");   
     } else {
+        Warning("ZoneMinder was unable to determine the host system. Please report.");
         $kernel = "Unknown"; 
         $distro = "Unknown";
         $version = "Unknown";
@@ -317,6 +318,7 @@ sub linuxDistro {
                     if ( /(.*).* (\d+\.?\d*) .*/ ) {
                         $distro = $1;
                         $version = $2;
+                        $found = 1;
                     }
                 }
                 close $RELFILE;               
@@ -324,6 +326,11 @@ sub linuxDistro {
             }
         }
     }
+
+    if ( !found ) {
+        Warning("ZoneMinder was unable to determine Linux distro. Please report.");
+    }
+
 return ($kernel, $distro, $version);
 }
 

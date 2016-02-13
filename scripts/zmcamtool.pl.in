@@ -419,9 +419,9 @@ sub toPreset
         foreach (@data) {
             s/\b(?:\d{1,3}\.){3}\d{1,3}\b/<ip-address>/; # ip address
             s/<ip-address>:(6553[0-5]|655[0-2]\d|65[0-4]\d\d|6[0-4]\d{3}|[1-5]\d{4}|[1-9]\d{0,3}|0)$/<ip-address>:<port>/; # tcpip port
-            s/\/\/.*:.*@/\/\/<username>:<pwd>@/; # user & pwd preceeding an ip address
-            s/(&|\?)(user|username)=\w\w*(&|\?)/$1$2=<username>$3/i; # username embeded in url
-            s/(&|\?)(pwd|password)=\w\w*(&|\?)/$1$2=<pwd>$3/i; # password embeded in url
+            s/\/\/.*:.*@/\/\/<username>:<pwd>@/; # user & pwd preceding an ip address
+            s/(&|\?)(user|username)=\w\w*(&|\?)/$1$2=<username>$3/i; # username embedded in url
+            s/(&|\?)(pwd|password)=\w\w*(&|\?)/$1$2=<pwd>$3/i; # password embedded in url
             s/\w\w*:\w\w*/<username>:<pwd>/; # user & pwd in their own field
             s/\/dev\/video\d\d*/\/dev\/video<?>/; # local video devices
         }

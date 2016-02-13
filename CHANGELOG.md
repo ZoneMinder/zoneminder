@@ -1,5 +1,29 @@
 # Change Log
 
+## [v1.29.0](https://github.com/ZoneMinder/ZoneMinder/tree/v1.29.0) (2016-02-03)
+[Full Changelog](https://github.com/ZoneMinder/ZoneMinder/compare/v1.29.0-rc2...v1.29.0)
+
+**Merged pull requests:**
+
+- 1253 zms quit cmd [\#1254](https://github.com/ZoneMinder/ZoneMinder/pull/1254) ([pliablepixels](https://github.com/pliablepixels))
+- Add Debug/Info lines reporting multi-server status [\#1252](https://github.com/ZoneMinder/ZoneMinder/pull/1252) ([connortechnology](https://github.com/connortechnology))
+- Do debian package mods [\#1244](https://github.com/ZoneMinder/ZoneMinder/pull/1244) ([pliablepixels](https://github.com/pliablepixels))
+- zmtrigger - process off+time delay condition [\#1240](https://github.com/ZoneMinder/ZoneMinder/pull/1240) ([knnniggett](https://github.com/knnniggett))
+- Multi server [\#1233](https://github.com/ZoneMinder/ZoneMinder/pull/1233) ([connortechnology](https://github.com/connortechnology))
+- remove Google open Sans external import [\#1232](https://github.com/ZoneMinder/ZoneMinder/pull/1232) ([connortechnology](https://github.com/connortechnology))
+- PTZ - Added autostop to Down command on FI8918W [\#1189](https://github.com/ZoneMinder/ZoneMinder/pull/1189) ([marcolino7](https://github.com/marcolino7))
+
+## [v1.29.0-rc2](https://github.com/ZoneMinder/ZoneMinder/tree/v1.29.0-rc2) (2016-01-05)
+[Full Changelog](https://github.com/ZoneMinder/ZoneMinder/compare/v1.29.0-rc1...v1.29.0-rc2)
+
+**Merged pull requests:**
+
+- Multi server [\#1223](https://github.com/ZoneMinder/ZoneMinder/pull/1223) ([connortechnology](https://github.com/connortechnology))
+- Multi server [\#1222](https://github.com/ZoneMinder/ZoneMinder/pull/1222) ([connortechnology](https://github.com/connortechnology))
+- Multi server [\#1217](https://github.com/ZoneMinder/ZoneMinder/pull/1217) ([connortechnology](https://github.com/connortechnology))
+- Multi server [\#1215](https://github.com/ZoneMinder/ZoneMinder/pull/1215) ([connortechnology](https://github.com/connortechnology))
+- Change log updates [\#1172](https://github.com/ZoneMinder/ZoneMinder/pull/1172) ([SteveGilvarry](https://github.com/SteveGilvarry))
+
 ## [v1.29.0-rc1](https://github.com/ZoneMinder/ZoneMinder/tree/v1.29.0-rc1) (2016-01-01)
 [Full Changelog](https://github.com/ZoneMinder/ZoneMinder/compare/v1.28.1...v1.29.0-rc1)
 
@@ -328,7 +352,7 @@
 - Fix window sizes and input field sizes for flat skin [\#381](https://github.com/ZoneMinder/ZoneMinder/pull/381) ([m-bene](https://github.com/m-bene))
 - Fix reload loop on switching skins [\#380](https://github.com/ZoneMinder/ZoneMinder/pull/380) ([m-bene](https://github.com/m-bene))
 - Ability to skip frames in motion detection. [\#377](https://github.com/ZoneMinder/ZoneMinder/pull/377) ([Sune1337](https://github.com/Sune1337))
-- same dvr controlls in event as in monitor [\#375](https://github.com/ZoneMinder/ZoneMinder/pull/375) ([m-bene](https://github.com/m-bene))
+- same dvr controls in event as in monitor [\#375](https://github.com/ZoneMinder/ZoneMinder/pull/375) ([m-bene](https://github.com/m-bene))
 - do not quote column names in parse filter [\#374](https://github.com/ZoneMinder/ZoneMinder/pull/374) ([m-bene](https://github.com/m-bene))
 - Fix 'Undefined index: filter' php warnings for filter view when [\#373](https://github.com/ZoneMinder/ZoneMinder/pull/373) ([m-bene](https://github.com/m-bene))
 - Reduce window size to exclude task bar area [\#371](https://github.com/ZoneMinder/ZoneMinder/pull/371) ([m-bene](https://github.com/m-bene))

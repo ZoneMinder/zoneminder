@@ -51,7 +51,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
           ,libwww-perl
         ,mysql-client | virtual-mysql-client
         ,perl-modules
-        ,php5-mysql
+        ,php5-mysql, php5-gd
         ,policykit-1
         ,rsyslog | system-log-daemon
         ,zip
@@ -105,7 +105,7 @@ Package: zoneminder-doc
 Section: doc
 Architecture: all
 Multi-Arch: foreign
-Depends: ${misc:Depends}, ${sphinxdoc:Depends}
+Depends: ${misc:Depends}, ${sphinxdoc:Depends}, python-sphinx-rtd-theme | python3-sphinx-rtd-theme
 Suggests: www-browser
 Description: ZoneMinder documentation
  ZoneMinder is intended for use in single or multi-camera video security

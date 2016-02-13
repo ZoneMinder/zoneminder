@@ -127,6 +127,7 @@ sub Execute {
     while( my $event = $sth->fetchrow_hashref() ) {
 		push @results, $event;
 	}
+	Debug($sql . ' returned ' . @results . ' events.' );
 	$sth->finish();
 	Debug("Loaded " . @results . " events for filter $_[0]{Name} using query ($sql)");
 	return @results;
@@ -360,7 +361,6 @@ sub Sql {
         {
             $sql .= " limit 0,".$filter_expr->{limit};
         }
-        Debug( "SQL:$sql\n" );
         $self->{Sql} = $sql;
 	} # end if has Sql
 	return $self->{Sql};

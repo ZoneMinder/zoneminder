@@ -36,5 +36,14 @@ class Storage {
             #call_user_func_array( $this->{$fn}, $args);
         }
     }
+    public static function find_all() {
+        $storage_areas = array();
+        $result = dbQuery( 'SELECT * FROM Storage ORDER BY Name');
+        $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Storage' );
+        foreach ( $results as $row => $obj ) {
+            $storage_areas[] = $obj;
+        }
+        return $storage_areas;
+    }
 }
 ?>

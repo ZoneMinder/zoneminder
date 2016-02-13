@@ -107,8 +107,6 @@ if ( $Config{ZM_TELEMETRY_DATA} )
                 my $res = $sth->execute( "$lastCheck" ) or die( "Can't execute: ".$sth->errstr() );
                 $sth->finish();
             }
-
-           Info( "Telemetry data uploaded successfully."  );
         }
         sleep( 3600 );
     }
@@ -135,8 +133,10 @@ sub runSysCmd {
         $arguments[0] = $path;
         my $cmd = join(" ",@arguments);
         $result = qx( $cmd );
+        chomp($result);
     }
-    return chomp($result);
+
+return $result;
 }
 
 # Upload message data to ZoneMinder telemetry server
@@ -150,6 +150,8 @@ sub sendData {
         $ua->proxy( "https", $Config{ZM_UPDATE_CHECK_PROXY} );
     }
 
+    Debug("Posting telemetry data to: $server_endpoint");
+
     # set custom HTTP request header fields
     my $req = HTTP::Request->new(POST => $server_endpoint);
     $req->header('content-type' => 'application/x-www-form-urlencoded');
@@ -159,15 +161,16 @@ sub sendData {
     $req->content($msg);
  
     my $resp = $ua->request($req);
-    if ($resp->is_success) {
-        my $message = $resp->decoded_content;
-        Info("Telemetry data successfully uploaded.");
-        Debug("Telemetry server upload success response message: $message");
+    my $resp_msg = $resp->decoded_content;
+    my $resp_code = $resp->code;
+    if ($resp->is_success) {       
+        Info("Telemetry data uploaded successfully.");
+        Debug("Telemetry server upload success response message: $resp_msg");
     } else {
-        Warning("Telemetry server returned HTTP POST error code: $resp->code");
-        Debug("Telemetry server upload failure response message: $resp->message");
+        Warning("Telemetry server returned HTTP POST error code: $resp_code");
+        Debug("Telemetry server upload failure response message: $resp_msg");
     }
-    return $resp->is_success;
+return $resp->is_success;
 }
 
 # Retrieves the UUID from the database. Creates a new UUID if one does not exist.
@@ -175,7 +178,8 @@ sub getUUID {
     my $dbh = shift;
     my $uuid= "";
 
-    if ( $Config{ZM_TELEMETRY_UUID} ) {
+    # Verify the current UUID is valid and not nil
+    if (( $Config{ZM_TELEMETRY_UUID} =~ /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i ) && ( $Config{ZM_TELEMETRY_UUID} ne "00000000-0000-0000-0000-000000000000" )) {
         $uuid = $Config{ZM_TELEMETRY_UUID};
     } else {
         my $sql = "SELECT uuid()";
@@ -189,6 +193,7 @@ sub getUUID {
         $res = $sth->execute( "$uuid" ) or die( "Can't execute: ".$sth->errstr() );
         $sth->finish();
     }
+    Debug("Using UUID of: $uuid");
 
 return $uuid;
 }
@@ -205,6 +210,8 @@ sub getIP {
     if ($resp->is_success) {
         $ipaddr = $resp->decoded_content;
     }
+
+    Info("Found external ip address of: $ipaddr");
 
 return $ipaddr;
 }

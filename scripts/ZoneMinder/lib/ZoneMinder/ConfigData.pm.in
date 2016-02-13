@@ -2765,7 +2765,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
     },
     {
         name        => "ZM_TELEMETRY_UUID",
-        default     => "yes",
+        default     => "",
         description => "Unique identifier for ZoneMinder telemetry",
         help        => qqq("
             This variable is auto-generated once by the system and is used to

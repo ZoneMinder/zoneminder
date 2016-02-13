@@ -91,7 +91,7 @@ if ( $Config{ZM_TELEMETRY_DATA} )
             $telemetry{architecture} = runSysCmd("uname -p");
             ($telemetry{kernel}, $telemetry{distro}, $telemetry{version}) = getDistro();
             $telemetry{zm_version} = ZoneMinder::Base::ZM_VERSION;
-            $telemetry{system_memory} = totalmem() / (1024*1024);
+            $telemetry{system_memory} = totalmem();
             $telemetry{processor_count} = cpu_count();
             $telemetry{monitors} = getMonitorRef($dbh);
 

@@ -1,11 +1,11 @@
 debian/apache.conf etc/zm
-usr/lib/cgi-bin
-usr/share/zoneminder/ajax
-usr/share/zoneminder/css
-usr/share/zoneminder/graphics
-usr/share/zoneminder/includes
-usr/share/zoneminder/index.php
-usr/share/zoneminder/js
-usr/share/zoneminder/lang
-usr/share/zoneminder/tools
-usr/share/zoneminder/views
+usr/lib/zoneminder/cgi-bin
+usr/share/zoneminder/www/ajax
+usr/share/zoneminder/www/css
+usr/share/zoneminder/www/graphics
+usr/share/zoneminder/www/includes
+usr/share/zoneminder/www/index.php
+usr/share/zoneminder/www/js
+usr/share/zoneminder/www/lang
+usr/share/zoneminder/www/tools
+usr/share/zoneminder/www/views

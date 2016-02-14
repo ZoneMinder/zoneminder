@@ -246,13 +246,14 @@ if ( !empty($action) )
     if ( !empty($_REQUEST['mid']) && canView( 'Control', $_REQUEST['mid'] ) )
     {
         require_once( 'control_functions.php' );
+        require_once( 'Monitor.php' );
         $mid = validInt($_REQUEST['mid']);
         if ( $action == "control" )
         {
-            $monitor = dbFetchOne( "select C.*,M.* from Monitors as M inner join Controls as C on (M.ControlId = C.Id) where M.Id = ?", NULL, array($mid) );
+            $monitor = new Monitor( $mid );
 
             $ctrlCommand = buildControlCommand( $monitor );
-			sendControlCommand( $monitor['Id'], $ctrlCommand );
+			sendControlCommand( $monitor->Id(), $ctrlCommand );
         }
         elseif ( $action == "settings" )
         {
@@ -768,7 +769,7 @@ if ( !empty($action) )
     {
 		if ( isset( $_REQUEST['object'] ) and ( $_REQUEST['object'] == 'server' ) ) {
 
-			if ( $action == "save" ) {
+			if ( $action == "Save" ) {
 				if ( !empty($_REQUEST['id']) )
 					$dbServer = dbFetchOne( "SELECT * FROM Servers WHERE Id=?", NULL, array($_REQUEST['id']) );
 				else
@@ -792,6 +793,8 @@ if ( !empty($action) )
 						dbQuery( "DELETE FROM Servers WHERE Id=?", array($Id) );
 				}
                 $refreshParent = true;
+			} else {
+				Error( "Unknown action $action in saving Server" );
 			}
 
         } else if ( $action == "version" && isset($_REQUEST['option']) )

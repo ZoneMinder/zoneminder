@@ -30,13 +30,13 @@ function getControlCommands( $monitor )
     $cmds['PresetGoto'] = "presetGoto";
     $cmds['PresetHome'] = "presetHome";
 
-    if ( !empty($monitor['CanZoom']) )
+    if ( !empty($monitor->CanZoom) )
     {
-        if ( $monitor['CanZoomCon'] )
+        if ( $monitor->CanZoomCon() )
             $cmds['ZoomRoot'] = "zoomCon";
-        elseif ( $monitor['CanZoomRel'] )
+        elseif ( $monitor->CanZoomRel() )
             $cmds['ZoomRoot'] = "zoomRel";
-        elseif ( $monitor['CanZoomAbs'] )
+        elseif ( $monitor->CanZoomAbs() )
             $cmds['ZoomRoot'] = "zoomAbs";
         $cmds['ZoomTele'] = $cmds['ZoomRoot']."Tele";
         $cmds['ZoomWide'] = $cmds['ZoomRoot']."Wide";
@@ -45,13 +45,13 @@ function getControlCommands( $monitor )
         $cmds['ZoomMan'] = "zoomMan";
     }
 
-    if ( !empty($monitor['CanFocus']) )
+    if ( !empty($monitor->CanFocus) )
     {
-        if ( $monitor['CanFocusCon'] )
+        if ( $monitor->CanFocusCon() )
             $cmds['FocusRoot'] = "focusCon";
-        elseif ( $monitor['CanFocusRel'] )
+        elseif ( $monitor->CanFocusRel() )
             $cmds['FocusRoot'] = "focusRel";
-        elseif ( $monitor['CanFocusAbs'] )
+        elseif ( $monitor->CanFocusAbs() )
             $cmds['FocusRoot'] = "focusAbs";
         $cmds['FocusFar'] = $cmds['FocusRoot']."Far";
         $cmds['FocusNear'] = $cmds['FocusRoot']."Near";
@@ -60,13 +60,13 @@ function getControlCommands( $monitor )
         $cmds['FocusMan'] = "focusMan";
     }
 
-    if ( !empty($monitor['CanIris']) )
+    if ( !empty($monitor->CanIris) )
     {
-        if ( $monitor['CanIrisCon'] )
+        if ( $monitor->CanIrisCon() )
             $cmds['IrisRoot'] = "irisCon";
-        elseif ( $monitor['CanIrisRel'] )
+        elseif ( $monitor->CanIrisRel() )
             $cmds['IrisRoot'] = "irisRel";
-        elseif ( $monitor['CanIrisAbs'] )
+        elseif ( $monitor->CanIrisAbs() )
             $cmds['IrisRoot'] = "irisAbs";
         $cmds['IrisOpen'] = $cmds['IrisRoot']."Open";
         $cmds['IrisClose'] = $cmds['IrisRoot']."Close";
@@ -75,13 +75,13 @@ function getControlCommands( $monitor )
         $cmds['IrisMan'] = "irisMan";
     }
 
-    if ( !empty($monitor['CanWhite']) )
+    if ( !empty($monitor->CanWhite) )
     {
-        if ( $monitor['CanWhiteCon'] )
+        if ( $monitor->CanWhiteCon() )
             $cmds['WhiteRoot'] = "whiteCon";
-        elseif ( $monitor['CanWhiteRel'] )
+        elseif ( $monitor->CanWhiteRel() )
             $cmds['WhiteRoot'] = "whiteRel";
-        elseif ( $monitor['CanWhiteAbs'] )
+        elseif ( $monitor->CanWhiteAbs() )
             $cmds['WhiteRoot'] = "whiteAbs";
         $cmds['WhiteIn'] = $cmds['WhiteRoot']."In";
         $cmds['WhiteOut'] = $cmds['WhiteRoot']."Out";
@@ -89,13 +89,13 @@ function getControlCommands( $monitor )
         $cmds['WhiteMan'] = "whiteMan";
     }
 
-    if ( !empty($monitor['CanGain']) )
+    if ( !empty($monitor->CanGain) )
     {
-        if ( $monitor['CanGainCon'] )
+        if ( $monitor->CanGainCon() )
             $cmds['GainRoot'] = "gainCon";
-        elseif ( $monitor['CanGainRel'] )
+        elseif ( $monitor->CanGainRel() )
             $cmds['GainRoot'] = "gainRel";
-        elseif ( $monitor['CanGainAbs'] )
+        elseif ( $monitor->CanGainAbs() )
             $cmds['GainRoot'] = "gainAbs";
         $cmds['GainUp'] = $cmds['GainRoot']."Up";
         $cmds['GainDown'] = $cmds['GainRoot']."Down";
@@ -103,19 +103,19 @@ function getControlCommands( $monitor )
         $cmds['GainMan'] = "gainMan";
     }
 
-    if ( !empty($monitor['CanMove']) )
+    if ( !empty($monitor->CanMove) )
     {
-        if ( $monitor['CanMoveCon'] )
+        if ( $monitor->CanMoveCon() )
         {
             $cmds['MoveRoot'] = "moveCon";
             $cmds['Center'] = "moveStop";
         }
-        elseif ( $monitor['CanMoveRel'] )
+        elseif ( $monitor->CanMoveRel() )
         {
             $cmds['MoveRoot'] = "moveRel";
             $cmds['Center'] = $cmds['PresetHome'];
         }
-        elseif ( $monitor['CanMoveAbs'] )
+        elseif ( $monitor->CanMoveAbs() )
         {
             $cmds['MoveRoot'] = "moveAbs";
             $cmds['Center'] = $cmds['PresetHome'];
@@ -142,11 +142,11 @@ function controlFocus( $monitor, $cmds )
 <div class="arrowControl focusControls">
   <div class="arrowLabel"><?php echo translate('Near') ?></div>
   <div class="longArrowBtn upBtn" onclick="controlCmd('<?php echo $cmds['FocusNear'] ?>',event,0,-1)"></div>
-  <div class="arrowCenter"<?php if ( $monitor['CanFocusCon'] ) { ?> onclick="controlCmd('<?php echo $cmds['FocusStop'] ?>')"<?php } ?>><?php echo translate('Focus') ?></div>
+  <div class="arrowCenter"<?php if ( $monitor->CanFocusCon() ) { ?> onclick="controlCmd('<?php echo $cmds['FocusStop'] ?>')"<?php } ?>><?php echo translate('Focus') ?></div>
   <div class="longArrowBtn downBtn" onclick="controlCmd('<?php echo $cmds['FocusFar'] ?>',event,0,1)"></div>
   <div class="arrowLabel"><?php echo translate('Far') ?></div>
 <?php
-    if ( $monitor['CanAutoFocus'] )
+    if ( $monitor->CanAutoFocus() )
     {
 ?>
   <input type="button" class="ptzTextBtn" value="<?php echo translate('Auto') ?>" onclick="controlCmd('<?php echo $cmds['FocusAuto'] ?>')"/>
@@ -168,11 +168,11 @@ function controlZoom( $monitor, $cmds )
 <div class="arrowControl zoomControls">
   <div class="arrowLabel"><?php echo translate('Tele') ?></div>
   <div class="longArrowBtn upBtn" onclick="controlCmd('<?php echo $cmds['ZoomTele'] ?>',event,0,-1)"></div>
-  <div class="arrowCenter"<?php if ( $monitor['CanZoomCon'] ) { ?> onclick="controlCmd('<?php echo $cmds['ZoomStop'] ?>')"<?php } ?>><?php echo translate('Zoom') ?></div>
+  <div class="arrowCenter"<?php if ( $monitor->CanZoomCon() ) { ?> onclick="controlCmd('<?php echo $cmds['ZoomStop'] ?>')"<?php } ?>><?php echo translate('Zoom') ?></div>
   <div class="longArrowBtn downBtn" onclick="controlCmd('<?php echo $cmds['ZoomWide'] ?>',event,0,1)"></div>
   <div class="arrowLabel"><?php echo translate('Wide') ?></div>
 <?php
-    if ( $monitor['CanAutoZoom'] )
+    if ( $monitor->CanAutoZoom() )
     {
 ?>
   <input type="button" class="ptzTextBtn" value="<?php echo translate('Auto') ?>" onclick="controlCmd('<?php echo $cmds['ZoomAuto'] ?>')"/>
@@ -193,11 +193,11 @@ function controlIris( $monitor, $cmds )
 <div class="arrowControl irisControls">
   <div class="arrowLabel"><?php echo translate('Open') ?></div>
   <div class="longArrowBtn upBtn" onclick="controlCmd('<?php echo $cmds['IrisOpen'] ?>',event,0,-1)"></div>
-  <div class="arrowCenter"<?php if ( $monitor['CanIrisCon'] ) { ?> onclick="controlCmd('<?php echo $cmds['IrisStop'] ?>')"<?php } ?>><?php echo translate('Iris') ?></div>
+  <div class="arrowCenter"<?php if ( $monitor->CanIrisCon() ) { ?> onclick="controlCmd('<?php echo $cmds['IrisStop'] ?>')"<?php } ?>><?php echo translate('Iris') ?></div>
   <div class="longArrowBtn downBtn" onclick="controlCmd('<?php echo $cmds['IrisClose'] ?>',event,0,1)"></div>
   <div class="arrowLabel"><?php echo translate('Close') ?></div>
 <?php
-    if ( $monitor['CanAutoIris'] )
+    if ( $monitor->CanAutoIris() )
     {
 ?>
   <input type="button" class="ptzTextBtn" value="<?php echo translate('Auto') ?>" onclick="controlCmd('<?php echo $cmds['IrisAuto'] ?>')"/>
@@ -219,11 +219,11 @@ function controlWhite( $monitor, $cmds )
 <div class="arrowControl whiteControls">
   <div class="arrowLabel"><?php echo translate('In') ?></div>
   <div class="longArrowBtn upBtn" onclick="controlCmd('<?php echo $cmds['WhiteIn'] ?>',event,0,-1)"></div>
-  <div class="arrowCenter"<?php if ( $monitor['CanWhiteCon'] ) { ?> onclick="controlCmd('<?php echo $cmds['WhiteStop'] ?>')"<?php } ?>><?php echo translate('White') ?></div>
+  <div class="arrowCenter"<?php if ( $monitor->CanWhiteCon() ) { ?> onclick="controlCmd('<?php echo $cmds['WhiteStop'] ?>')"<?php } ?>><?php echo translate('White') ?></div>
   <div class="longArrowBtn downBtn" onclick="controlCmd('<?php echo $cmds['WhiteOut'] ?>',event,0,1)"></div>
   <div class="arrowLabel"><?php echo translate('Out') ?></div>
 <?php
-    if ( $monitor['CanAutoWhite'] )
+    if ( $monitor->CanAutoWhite() )
     {
 ?>
   <input type="button" class="ptzTextBtn" value="<?php echo translate('Auto') ?>" onclick="controlCmd('<?php echo $cmds['WhiteAuto'] ?>')"/>
@@ -246,9 +246,9 @@ function controlPanTilt( $monitor, $cmds )
   <div class="pantilLabel"><?php echo translate('PanTilt') ?></div>
   <div class="pantiltButtons">
 <?php
-    $hasPan = $monitor['CanPan'];
-    $hasTilt = $monitor['CanTilt'];
-    $hasDiag = $hasPan && $hasTilt && $monitor['CanMoveDiag'];
+    $hasPan = $monitor->CanPan;
+    $hasTilt = $monitor->CanTilt;
+    $hasDiag = $hasPan && $hasTilt && $monitor->CanMoveDiag;
 ?>
       <div class="arrowBtn upLeftBtn<?php echo $hasDiag?'':' invisible' ?>" onclick="controlCmd('<?php echo $cmds['MoveUpLeft'] ?>',event,-1,-1)"></div>
       <div class="arrowBtn upBtn<?php echo $hasTilt?'':' invisible' ?>" onclick="controlCmd('<?php echo $cmds['MoveUp'] ?>',event,0,-1)"></div>
@@ -271,14 +271,14 @@ function controlPresets( $monitor, $cmds )
 
     define( "MAX_PRESETS", "12" );
 
-    $sql = "select * from ControlPresets where MonitorId = '".$monitor['Id']."'";
+    $sql = 'select * from ControlPresets where MonitorId = ?';
     $labels = array();
-    foreach( dbFetchAll( $sql ) as $row )
+    foreach( dbFetchAll( $sql, NULL, array( $monitor->Id() ) ) as $row )
     {
         $labels[$row['Preset']] = $row['Label'];
     }
 
-    $presetBreak = (int)(($monitor['NumPresets']+1)/((int)(($monitor['NumPresets']-1)/MAX_PRESETS)+1));
+    $presetBreak = (int)(($monitor->NumPresets+1)/((int)(($monitor->NumPresets-1)/MAX_PRESETS)+1));
 
     ob_start();
 ?>
@@ -286,7 +286,7 @@ function controlPresets( $monitor, $cmds )
   <!--<div><?php echo translate('Presets') ?></div>-->
   <div>
 <?php
-    for ( $i = 1; $i <= $monitor['NumPresets']; $i++ )
+    for ( $i = 1; $i <= $monitor->NumPresets; $i++ )
     {
 ?><input type="button" class="ptzNumBtn" title="<?php echo isset($labels[$i])?$labels[$i]:"" ?>" value="<?php echo $i ?>" onclick="controlCmd('<?php echo $cmds['PresetGoto'] ?><?php echo $i ?>');"/><?php
         if ( $i && (($i%$presetBreak) == 0) )
@@ -298,16 +298,16 @@ function controlPresets( $monitor, $cmds )
   </div>
   <div>
 <?php
-    if ( $monitor['HasHomePreset'] )
+    if ( $monitor->HasHomePreset() )
     {
 ?>
     <input type="button" class="ptzTextBtn" value="<?php echo translate('Home') ?>" onclick="controlCmd('<?php echo $cmds['PresetHome'] ?>');"/>
 <?php
     }
-    if ( canEdit( 'Monitors') && $monitor['CanSetPresets'] )
+    if ( canEdit( 'Monitors') && $monitor->CanSetPresets() )
     {
 ?>
-    <input type="button" class="ptzTextBtn" value="<?php echo translate('Set') ?>" onclick="createPopup( '?view=controlpreset&amp;mid=<?php echo $monitor['Id'] ?>', 'zmPreset', 'preset' );"/>
+    <input type="button" class="ptzTextBtn" value="<?php echo translate('Set') ?>" onclick="createPopup( '?view=controlpreset&amp;mid=<?php echo $monitor->Id() ?>', 'zmPreset', 'preset' );"/>
 <?php
     }
 ?>
@@ -327,19 +327,19 @@ function controlPower( $monitor, $cmds )
   <div class="powerLabel"><?php echo translate('Control') ?></div>
   <div>
 <?php
-    if ( $monitor['CanWake'] )
+    if ( $monitor->CanWake() )
     {
 ?>
     <input type="button" class="ptzTextBtn" value="<?php echo translate('Wake') ?>" onclick="controlCmd('<?php echo $cmds['Wake'] ?>')"/>
 <?php
     }
-    if ( $monitor['CanSleep'] )
+    if ( $monitor->CanSleep() )
     {
 ?>
     <input type="button" class="ptzTextBtn" value="<?php echo translate('Sleep') ?>" onclick="controlCmd('<?php echo $cmds['Sleep'] ?>')"/>
 <?php
     }
-    if ( $monitor['CanReset'] )
+    if ( $monitor->CanReset() )
     {
 ?>
     <input type="button" class="ptzTextBtn" value="<?php echo translate('Reset') ?>" onclick="controlCmd('<?php echo $cmds['Reset'] ?>')"/>
@@ -359,22 +359,22 @@ function ptzControls( $monitor )
 ?>
         <div class="controlsPanel">
 <?php
-        if ( $monitor['CanFocus'] )
+        if ( $monitor->CanFocus() )
             echo controlFocus( $monitor, $cmds );
-        if ( $monitor['CanZoom'] )
+        if ( $monitor->CanZoom() )
             echo controlZoom( $monitor, $cmds );
-        if ( $monitor['CanIris'] )
+        if ( $monitor->CanIris() )
             echo controlIris( $monitor, $cmds );
-        if ( $monitor['CanWhite'] )
+        if ( $monitor->CanWhite() )
             echo controlWhite( $monitor, $cmds );
-        if ( $monitor['CanMove'] || ( $monitor['CanWake'] || $monitor['CanSleep'] || $monitor['CanReset'] ) )
+        if ( $monitor->CanMove() || ( $monitor->CanWake() || $monitor->CanSleep() || $monitor->CanReset() ) )
         {
 ?>
           <div class="pantiltPanel">
 <?php
-            if ( $monitor['CanMove'] )
+            if ( $monitor->CanMove() )
                 echo controlPanTilt( $monitor, $cmds );
-            if ( $monitor['CanWake'] || $monitor['CanSleep'] || $monitor['CanReset'] )
+            if ( $monitor->CanWake() || $monitor->CanSleep() || $monitor->CanReset() )
                 echo controlPower( $monitor, $cmds );
 ?>
           </div>
@@ -383,7 +383,7 @@ function ptzControls( $monitor )
 ?>
         </div>
 <?php
-        if ( $monitor['HasPresets'] )
+        if ( $monitor->HasPresets() )
             echo controlPresets( $monitor, $cmds );
     return( ob_get_clean() );
 }

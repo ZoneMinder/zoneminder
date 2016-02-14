@@ -32,6 +32,7 @@ if ( $_REQUEST['id'] ) {
 } else {
 	$newServer = array();
 	$newServer['Name'] = translate('NewServer');
+	$newServer['Hostname'] = '';
 }
 
 $focusWindow = true;
@@ -51,14 +52,19 @@ xhtmlHeaders(__FILE__, translate('Server')." - ".$newServer['Name'] );
         <table id="contentTable" class="major" cellspacing="0">
           <tbody>
             <tr>
-              <th scope="row"><?php echo translate('ServerName') ?></th>
+              <th scope="row"><?php echo translate('Name') ?></th>
               <td><input type="text" name="newServer[Name]" value="<?php echo $newServer['Name'] ?>"/></td>
+            </tr>
+            <tr>
+              <th scope="row"><?php echo translate('Hostname') ?></th>
+              <td><input type="text" name="newServer[Hostname]" value="<?php echo $newServer['Hostname'] ?>"/></td>
             </tr>
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="submit" name="action" value="<?php echo translate('Save') ?>"/>
-          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
+		<input type="hidden" name="action" value="Save"/>
+          <input type="submit" value="<?php echo translate('Save') ?>"/>
+          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
         </div>
       </form>
     </div>

@@ -66,7 +66,7 @@ use constant CHECK_INTERVAL => (14*24*60*60); # Interval between version checks
 
 # Setting these as contants for now. 
 # Alternatively, we can put these in the dB and then retrieve using the Config hash.
-use constant ZM_TELEMETRY_SERVER_ENDPOINT => 'https://zmanon:2b2d0b4skps@telemetry.zoneminder.com/zmtelemetry/testing';
+use constant ZM_TELEMETRY_SERVER_ENDPOINT => 'https://zmanon:2b2d0b4skps@telemetry.zoneminder.com/zmtelemetry/testing5';
 
 if ( $Config{ZM_TELEMETRY_DATA} )
 {

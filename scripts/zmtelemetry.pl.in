@@ -210,7 +210,7 @@ sub getIP {
         $ipaddr = $resp->decoded_content;
     }
 
-    Info("Found external ip address of: $ipaddr");
+    Debug("Found external ip address of: $ipaddr");
 
 return $ipaddr;
 }

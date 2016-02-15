@@ -56,7 +56,7 @@ use LWP::UserAgent;
 use Sys::MemInfo qw(totalmem);
 use Sys::CPU qw(cpu_count);
 use DateTime;
-use POSIX qw(strftime);
+use POSIX qw(strftime uname);
 
 $ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
@@ -246,27 +246,26 @@ sub getDistro {
     my $kernel = "";
     my $distro = "";
     my $version = "";
+    my @uname = uname();
 
-    my $test = runSysCmd("uname");
-
-    if ( $test =~ /Linux/ ) {
+    if ( $uname[0] =~ /Linux/ ) {
         Debug("Linux distro detected.");
         ($kernel, $distro, $version) = linuxDistro();
-    } elsif ( $test =~ /.*BSD/ ) {
+    } elsif ( $uname[0] =~ /.*BSD/ ) {
         Debug("BSD distro detected.");
-        $kernel = runSysCmd("uname -i");
-        $distro = runSysCmd("uname");
-        $version = runSysCmd("uname -r");
-    } elsif ( $test =~ /Darwin/ ) {
+        $kernel = $uname[3];
+        $distro = $uname[0];
+        $version = $uname[2];
+    } elsif ( $uname[0] =~ /Darwin/ ) {
         Debug("Mac OS distro detected.");
-        $kernel = runSysCmd("uname -v");
-        $distro = runSysCmd("uname");
-        $version = runSysCmd("uname -r");
-    } elsif ( $test =~ /SunOS|Solaris/ ) {
+        $kernel = $uname[3];
+        $distro = runSysCmd("sw_vers -productName");
+        $version = runSysCmd("sw_vers -productVersion");
+    } elsif ( $uname[0] =~ /SunOS|Solaris/ ) {
         Debug("Sun Solaris detected.");
-        $kernel = runSysCmd("uname -v");
-        $distro = runSysCmd("uname");
-        $version = runSysCmd("uname -r");   
+        $kernel = $uname[3];
+        $distro = $uname[1];
+        $version = $uname[2];   
     } else {
         Warning("ZoneMinder was unable to determine the host system. Please report.");
         $kernel = "Unknown"; 
@@ -278,7 +277,8 @@ return ($kernel, $distro, $version);
 }
 
 sub linuxDistro {
-    my $kernel = runSysCmd("uname -r");
+    my @uname = uname();
+    my $kernel = $uname[2];
     my $distro = "Unknown Linux Distro";
     my $version = "Unknown Linux Version";
     my $found = 0;

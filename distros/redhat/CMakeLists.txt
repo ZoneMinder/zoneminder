@@ -57,7 +57,7 @@ install(CODE "execute_process(COMMAND ln -sf ../../../../../../var/lib/zoneminde
 # Link to Cambozola, which is now packaged in zmrepo
 install(CODE "execute_process(COMMAND ln -sf ../../java/cambozola.jar \"\$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/www/cambozola.jar\")")
 
-# Install auxillary files required to run zoneminder on CentOS
+# Install auxiliary files required to run zoneminder on CentOS
 install(FILES redalert.wav DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/www/sounds PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 if(ZM_TARGET_DISTRO STREQUAL "el7")
 	install(FILES zoneminder.el7.conf DESTINATION /etc/httpd/conf.d RENAME zoneminder.conf PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)

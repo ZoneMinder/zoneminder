@@ -199,7 +199,7 @@ int RemoteCameraHttp::ReadData( Buffer &buffer, int bytes_expected )
             return( -1 );
         }
 
-		// There can be lots of bytes available.  I've seen 4MB or more. This will vastly inflate our buffer size unneccessarily.
+		// There can be lots of bytes available.  I've seen 4MB or more. This will vastly inflate our buffer size unnecessarily.
 		if ( total_bytes_to_read > ZM_NETWORK_BUFSIZ ) {
 			total_bytes_to_read = ZM_NETWORK_BUFSIZ;
 			Debug(3, "Just getting 32K" );

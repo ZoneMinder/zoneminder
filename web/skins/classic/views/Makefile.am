@@ -37,6 +37,7 @@ dist_web_DATA = \
 	monitorpreset.php \
 	monitorprobe.php \
 	montage.php \
+    montagereview.php \
 	none.php \
   onvifprobe.php \
 	optionhelp.php \

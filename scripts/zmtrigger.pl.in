@@ -142,7 +142,7 @@ push( @connections,
 );
 push( @connections,
       ZoneMinder::Trigger::Connection->new(
-        name=>"Chan2 Unix Socket at " $Config{ZM_PATH_SOCKS}.'/zmtrigger.sock',
+        name=>"Chan2 Unix Socket at " . $Config{ZM_PATH_SOCKS}.'/zmtrigger.sock',
         channel=>ZoneMinder::Trigger::Channel::Unix->new(
                     path=>$Config{ZM_PATH_SOCKS}.'/zmtrigger.sock'
                  ),

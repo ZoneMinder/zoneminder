@@ -62,7 +62,10 @@ sub open
     local *sfh;
     #sysopen( *sfh, $conn->{path}, O_NONBLOCK|O_RDONLY ) or croak( "Can't sysopen: $!" );
     #open( *sfh, "<".$conn->{path} ) or croak( "Can't open: $!" );
-    open( *sfh, "+<", $self->{path} ) or croak( "Can't open: $!" );
+    if ( ! open( *sfh, "+<", $self->{path} ) ) {
+		Error( "Can't open file at $$self{path}: $!" );
+		croak( "Can't open file at $$self{path}: $!" );
+	}
     $self->{state} = 'open';
     $self->{handle} = *sfh;
 }
@@ -73,7 +76,7 @@ __END__
 
 =head1 NAME
 
-ZoneMinder::Database - Perl extension for blah blah blah
+ZoneMinder::Trigger::Channel::File - ZOneMinder object for a file based trigger channel
 
 =head1 SYNOPSIS
 

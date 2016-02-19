@@ -61,12 +61,21 @@ sub open
 {
     my $self = shift;
     local *sfh;
-    my $saddr = sockaddr_in( $self->{port}, INADDR_ANY );
-    socket( *sfh, PF_INET, SOCK_STREAM, getprotobyname('tcp') )
-        or croak( "Can't open socket: $!" );
+    if ( ! socket( *sfh, PF_INET, SOCK_STREAM, getprotobyname('tcp') ) ) {
+        Error( "Can't open socket: $!" );
+        croak( "Can't open socket: $!" );
+	}
     setsockopt( *sfh, SOL_SOCKET, SO_REUSEADDR, 1 );
-    bind( *sfh, $saddr ) or croak( "Can't bind: $!" );
-    listen( *sfh, SOMAXCONN ) or croak( "Can't listen: $!" );
+
+    my $saddr = sockaddr_in( $self->{port}, INADDR_ANY );
+    if ( ! bind( *sfh, $saddr ) ) {
+		Error( "Can't bind to port $$self{port}: $!" );
+		croak( "Can't bind to port $$self{port}: $!" );
+	}
+    if ( ! listen( *sfh, SOMAXCONN ) ) {
+		Error( "Can't listen: $!" );
+		croak( "Can't listen: $!" );
+	}
     $self->{state} = 'open';
     $self->{handle} = *sfh;
 }
@@ -95,7 +104,7 @@ __END__
 
 =head1 NAME
 
-ZoneMinder::Database - Perl extension for blah blah blah
+ZoneMinder::Trigger::Channel::Inet
 
 =head1 SYNOPSIS
 

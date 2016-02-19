@@ -1,3 +1,15 @@
+zoneminder (1.30.2-trusty-2016021701) trusty; urgency=medium
+
+  * printout id, and ip address when failing to connect
+
+ -- Isaac Connor <iconnor@testing.internal.point-one.com>  Wed, 17 Feb 2016 09:40:49 -0500
+
+zoneminder (1.30.2-trusty-2016021001) trusty; urgency=medium
+
+  * 
+
+ -- Isaac Connor <iconnor@testing.internal.point-one.com>  Wed, 10 Feb 2016 13:06:09 -0500
+
 zoneminder (1.29.111-trusty-2016020101) trusty; urgency=medium
 
   * Fix video download and use of Storage Areas

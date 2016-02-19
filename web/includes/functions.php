@@ -516,6 +516,7 @@ function canEdit( $area, $mid=false )
 
 function getEventPath( $event )
 {
+	
     if ( ZM_USE_DEEP_STORAGE )
         $eventPath = $event['MonitorId'].'/'.strftime( "%y/%m/%d/%H/%M/%S", strtotime($event['StartTime']) );
     else
@@ -1146,7 +1147,9 @@ function zmaCheck( $monitor )
 
 function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $overwrite=false )
 {
+	require_once('includes/Storage.php');
     $eventPath = getEventPath( $event );
+	$Storage = new Storage( $event['StorageId'] );
 
     if ( !is_array($frame) )
         $frame = array( 'FrameId'=>$frame, 'Type'=>'' );
@@ -1159,7 +1162,8 @@ function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $ov
 
     $analImage = sprintf( "%0".ZM_EVENT_IMAGE_DIGITS."d-analyse.jpg", $frame['FrameId'] );
     $analPath = $eventPath.'/'.$analImage;
-    $analFile =  ZM_DIR_EVENTS."/".$analPath;
+
+    $analFile =  $Storage->Path()."/".$analPath;
     $thumbAnalPath = ZM_DIR_IMAGES.'/'.$event['Id'].'-'.$analImage;
     //echo "AI:$analImage, AP:$analPath, TAP:$thumbAnalPath<br>";
 
@@ -1171,8 +1175,8 @@ function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $ov
     if ( !ZM_WEB_SCALE_THUMBS || $scale >= SCALE_BASE || !function_exists( 'imagecreatefromjpeg' ) )
     {
         $imagePath = $thumbPath = $isAnalImage?$analPath:$captPath;
-        $imageFile = ZM_DIR_EVENTS."/".$imagePath;
-        $thumbFile = ZM_DIR_EVENTS."/".$thumbPath;
+        $imageFile = $Storage->Path()."/".$imagePath;
+        $thumbFile = $Storage->Path()."/".$thumbPath;
     }
     else
     {
@@ -1196,7 +1200,7 @@ function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $ov
             $thumbPath = $thumbCaptPath;
         }
 
-        $imageFile = ZM_DIR_EVENTS."/".$imagePath;
+        $imageFile = $Storage->Path()."/".$imagePath;
         //$thumbFile = ZM_DIR_EVENTS."/".$thumbPath;
         $thumbFile = $thumbPath;
         if ( $overwrite || !file_exists( $thumbFile ) || !filesize( $thumbFile ) )

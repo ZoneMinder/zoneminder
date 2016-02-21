@@ -1121,7 +1121,7 @@ void EventStream::processCommand( const CmdMsg *msg )
 
     DataMsg status_msg;
     status_msg.msg_type = MSG_DATA_EVENT;
-    memcpy( &status_msg.msg_data, &status_data, sizeof(status_msg.msg_data) );
+    memcpy( &status_msg.msg_data, &status_data, sizeof(status_data) );
     if ( sendto( sd, &status_msg, sizeof(status_msg), MSG_DONTWAIT, (sockaddr *)&rem_addr, sizeof(rem_addr) ) < 0 )
     {
         //if ( errno != EAGAIN )

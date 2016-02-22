@@ -294,13 +294,11 @@ Harder Way: Build Package From Source
 	chmod a+x do_debian_package.sh
 
 
-**Step 2:** Install some core dependencies
+**Step 2:** Update the system
 
 ::
 
 	sudo apt-get update
-
-	sudo apt-get install git cmake pbuilder debhelper sphinx-common apache2-dev dh-linktree dh-systemd libavcodec-ffmpeg-dev libavformat-ffmpeg-dev libswscale-ffmpeg-dev libavutil-ffmpeg-dev libavdevice-ffmpeg-dev libbz2-dev libdate-manip-perl libdbd-mysql-perl libgcrypt-dev libcurl4-gnutls-dev libgnutls-openssl-dev libjpeg-dev libmysqlclient-dev libpcre3-dev libphp-serialization-perl libpolkit-gobject-1-dev libsys-mmap-perl libv4l-dev libvlc-dev libjs-mootools mysql-server apache2 libapache2-mod-php5 gdebi
 
 
 **Step 3** Create the package

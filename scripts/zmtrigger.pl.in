@@ -219,7 +219,7 @@ while( 1 )
     {
         Debug( "Got input from $nfound connections\n" );
         foreach my $connection ( @in_select_connections ) {
-        {
+
             if ( vec( $rout, $connection->fileno(), 1 ) )
             {
                 Debug( "Got input from connection "

@@ -1,3 +1,9 @@
+zoneminder (1.30.2-trusty-2016021901) trusty; urgency=medium
+
+  * zmtrigger improvements
+
+ -- Isaac Connor <iconnor@testing.internal.point-one.com>  Fri, 19 Feb 2016 11:09:57 -0500
+
 zoneminder (1.30.2-trusty-2016021701) trusty; urgency=medium
 
   * printout id, and ip address when failing to connect

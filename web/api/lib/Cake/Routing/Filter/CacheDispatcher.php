@@ -27,7 +27,7 @@ class CacheDispatcher extends DispatcherFilter {
  * Default priority for all methods in this filter
  * This filter should run before the request gets parsed by router
  *
- * @var integer
+ * @var int
  */
 	public $priority = 9;
 
@@ -39,7 +39,7 @@ class CacheDispatcher extends DispatcherFilter {
  */
 	public function beforeDispatch(CakeEvent $event) {
 		if (Configure::read('Cache.check') !== true) {
-			return;
+			return null;
 		}
 
 		$path = $event->data['request']->here();

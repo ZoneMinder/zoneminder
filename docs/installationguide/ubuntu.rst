@@ -1,5 +1,5 @@
-Ubuntu
-======
+Ubuntu Instruction
+===================
 
 .. contents::
 
@@ -286,192 +286,106 @@ Harder Way: Build Package From Source
 -------------------------------------------
 (These instructions assume installation from source on a ubuntu 15.x+ system)
 
-**Step 1:** First make sure you have the needed tools
+**Step 1:** Grab the package installer script
+
+::
+
+	wget https://raw.githubusercontent.com/ZoneMinder/ZoneMinder/master/utils/do_debian_package.sh
+	chmod a+x do_debian_package.sh
+
+
+**Step 2:** Update the system
 
 ::
 
 	sudo apt-get update
-	sudo apt-get install cmake git
 
-**Step 2:** Next up make sure you have all the dependencies
 
-::
+**Step 3** Create the package
 
-	sudo apt-get install apache2 mysql-server php5 php5-mysql build-essential libmysqlclient-dev libssl-dev libbz2-dev libpcre3-dev libdbi-perl libarchive-zip-perl libdate-manip-perl libdevice-serialport-perl libmime-perl libpcre3 libwww-perl libdbd-mysql-perl libsys-mmap-perl yasm automake autoconf libjpeg8-dev libjpeg8 apache2 libapache2-mod-php5 php5-cli libphp-serialization-perl libgnutls-dev libjpeg8-dev libavcodec-dev libavformat-dev libswscale-dev libavutil-dev libv4l-dev libtool ffmpeg libnetpbm10-dev libavdevice-dev libmime-lite-perl dh-autoreconf dpatch policykit-1 libpolkit-gobject-1-dev  libextutils-pkgconfig-perl libcurl3 libvlc-dev libcurl4-openssl-dev  curl php5-gd
-
-(you are asked for the mysql root password when installing mysql server - put in a password that you'd like). 
-
-**Step 3:** Download ZoneMinder source code and compile+install:
+To build the latest master snapshot:
 
 ::
 
-	git clone https://github.com/ZoneMinder/ZoneMinder.git
-	cd ZoneMinder/
-	git submodule init
-	git submodule update
-	cmake .
-	make
-	sudo make install
+	./do_debian_package.sh `lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`  `date +%Y%m%d`01 local master
 
-**Step 4:** Now make sure your symlinks to events and images are set correctly:
+
+To build the latest stable release:
 
 ::
 
-	sudo ./zmlinkcontent.sh
+	./do_debian_package.sh `lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`  `date +%Y%m%d`01 local stable 
 
-**Step 5:** Now lets make sure ZM has DB permissions to write to the DB:
+
+Note that the ``lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`` part simply extracts your distribution name - like "vivid", "trusty" etc. You can always replace it by your distro name if you know it. As far as the script goes, it checks if your distro is "trusty" in which case it pulls in pre-systemd release configurations and if its not "trusty" it assumes its based on systemd and pulls in systemd related config files. 
+
+(At the end the script will ask if you want to retain the checked out version of zoneminder. If you are a developer and are making local changes, make sure you select "y" so that the next time you do the build process mentioned here, it keeps your changes. Selecting any other value than "y" or "Y" will delete the checked out code and only retain the package)
+
+This should now create a bunch of .deb files
+
+**Step 4:** Install the package
 
 ::
 
+	sudo gdebi zoneminder_<version>_<arch>.deb
+	(example sudo gdebi zoneminder_1.29.0-vivid-2016012001_amd64.deb)
+
+
+**This will report DB errors - ignore - you need to configure the DB and some other stuff**
+
+**Step 5:** Post install configuration
+
+::
+
+	sudo mysql -uroot -p < /usr/share/zoneminder/db/zm_create.sql
 	mysql -uroot -p -e "grant select,insert,update,delete,create,alter,index,lock tables on zm.* to 'zmuser'@localhost identified by 'zmpass';"
 
-**Step 6:** Now lets create the DB & its tables that ZM needs
-
-::
-
-	mysql -uroot -p <db/zm_create.sql 
-
-
-**Step 7:** Now we need to make sure Ubuntu 15 is able to start/stop zoneminder via systemd:
-
-::
-
-	sudo cp distros/ubuntu1504_cmake/zoneminder.service /lib/systemd/system
-
-edit **/lib/systemd/system/zoneminder.service** file
-* rename **/usr/bin/zmpkg** to **/usr/local/bin/zmpkg** everywhere 
-
-(The step above is needed because when you compile from source, it installs to /usr/local/instead of /usr/)
-
-**Step 8:** Now lets make sure systemd recognizes this file
-
-::
-
-	sudo systemctl daemon-reload
-	sudo systemctl enable zoneminder.service
-
-**Step 9:** Now lets work on Zoneminder's apache configuration:
-
-::
-
-	sudo cp distros/ubuntu1504_cmake/conf/apache2/zoneminder.conf /etc/apache2/conf-available/
+	sudo a2enmod cgi rewrite
 	sudo a2enconf zoneminder
-	sudo a2enmod cgi
-	sudo a2enmod rewrite 
-	sudo service apache2 reload
 
 
-**Step 10:** Edit /etc/apache2/conf-available/zoneminder.conf and change **all** occurrences of:
 
-* **/usr/lib/zoneminder/cgi-bin** to **/usr/local/libexec/zoneminder/cgi-bin**
-* **/usr/share/zoneminder** to **/usr/local/share/zoneminder**
+**Step 6:** Fix PHP TimeZone
 
-After editing your /etc/apache2/conf-available/zoneminder.conf should look like:
+``sudo vi /etc/php5/apache2/php.ini`` 
 
-::
+Look for [Date] and inside it you will see a date.timezone that is commented. remove the comment and specific your timezone. Please make sure the timezone is valid (see http://php.net/manual/en/timezones.php)
 
-	ScriptAlias /zm/cgi-bin "/usr/local/libexec/zoneminder/cgi-bin"
-	<Directory "/usr/local/libexec/zoneminder/cgi-bin">
-	    Options +ExecCGI -MultiViews +SymLinksIfOwnerMatch
-	    AllowOverride All
-	    Require all granted
-	</Directory>
+Example:
 
-	Alias /zm /usr/local/share/zoneminder/www
-	<Directory /usr/local/share/zoneminder/www>
-	  php_flag register_globals off
-	  Options Indexes FollowSymLinks
-	  <IfModule mod_dir.c>
-	    DirectoryIndex index.php
-	  </IfModule>
-	</Directory>
+``date.timezone = America/New_York``
 
-	<Directory /usr/local/share/zoneminder/www/api>
-	    AllowOverride All
-	</Directory>
-
-**Step 11:** Now lets make sure ZM can read/write to the zoneminder directory:
+**Step 7:** Fix some key permission issues and make sure API works
 
 ::
 
-	sudo chown -R www-data:www-data /usr/local/share/zoneminder/
+	sudo chown www-data /etc/zm/zm.conf
+	sudo chown -R www-data /usr/share/zoneminder/www/api/
 
 
-**Step 12:** Make sure you can view Monitor View
-
-1. Open up ZM, configure your monitors and verify you can view Monitor feeds
-2. If not, open up ZM console in your browser, go to ``Options->Path`` and make sure ``PATH_ZMS`` is set to ``/zm/cgi-bin/nph-zms`` and restart ZM
-
-**Step 13**: Edit Timezone in PHP
-
-vi /etc/php5/apache2/php.ini
-Look for [Date] and inside it you will see a date.timezone
-that is commented. remove the comment and specific your timezone.
-Please make sure the timezone is valid (see http://php.net/manual/en/timezones.php)
-
-In my case:
+**Step 8:**  Restart all services
 
 ::
 
-	date.timezone = America/New_York
+	sudo service apache2 restart
+	sudo service zoneminder restart
 
-**Step 14:** Finally, lets make a config change to apache (needed for htaccess overrides to work for APIs)
-Edit  /etc/apache2/apache2.conf and add this:
-
-::
-
-	<Directory /usr/local/share>
-		AllowOverride All
-		Require all granted
-	</Directory>
-
-Restart apache
+Check if ZM is running properly
 
 ::
 
-	sudo service apache2 reload
+	sudo service zoneminder status
 
-You are done. Lets proceed to make sure everything works:
 
-Making sure ZM and APIs work:
+**Step 9:** Make sure streaming works - set PATH_ZMS
 
-1. open up a browser and go to ``http://localhost/zm`` - should bring up ZM
-2. (OPTIONAL - just for peace of mind) open up a tab and go to ``http://localhost/zm/api`` - should bring up a screen showing CakePHP version with some green color boxes. Green is good. If you see red, or you don't see green, there may be a problem (should not happen). Ignore any warnings in yellow saying "DebugKit" not installed. You don't need it
-3. open up a tab in the same browser and go to ``http://localhost/zm/api/host/getVersion.json``
+open up ZM console in your browser, go to Options->Path and make sure ``PATH_ZMS`` is set to ``/zm/cgi-bin/nph-zms`` and restart ZM
 
-If it responds with something like:
 
-::
+**Step 10:** Make sure everything works
 
-	{
-	    "version": "1.28.107",
-	    "apiversion": "1.28.107.1"
-	}
-
-Then your APIs are working
-
-Make sure ZM and APIs work with security:
-1. Enable OPT_AUTH in ZM
-2. Log out of ZM in browser
-3. Open a NEW tab in the SAME BROWSER (important) and go to ``http://localhost/zm/api/host/getVersion.json`` - should give you "Unauthorized" along with a lot more of text
-4. Go to another tab in the SAME BROWSER (important) and log into ZM
-5. Repeat step 3 and it should give you the ZM and API version
-
-**Congrats** your installation is complete
- 
-Suggested changes to MySQL (Optional but recommended)
-------------------------------------------------------
-For most of you Zoneminder will run just fine with the default MySQL settings. There are a couple of settings that may, in time, provide beneficial especially if you have a number of cameras and many events with a lot of files. One setting we recommend is the "innodb_file_per_table" This will be a default setting in MySQL 5.6 but should be added in MySQL 5.5 which comes with Ubuntu 14.04. A description can be found here: http://dev.mysql.com/doc/refman/5.5/en/innodb-multiple-tablespaces.html
-
-To add "innodb_file_per_table" edit the my.cnf file:
-
-``vi /etc/mysql/my.cnf``
-Under [mysqld] add
-``innodb_file_per_table``
-
-Save and exit.
-
-Restart MySQL
-``service mysql restart``
+* point your browser to http://yourzmip/zm - you should see ZM console running
+*  point your browser to http://yourzmip/zm/api/host/getVersion.json - you should see an API version
+* Configure your monitors and make sure its all a-ok
 
 

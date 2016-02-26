@@ -128,7 +128,7 @@ dist-hook:
 # Yes, you are correct. This is a HACK!
 install-exec-hook:
 	( cd $(DESTDIR)@bindir@; mkdir -p $(DESTDIR)$(cgidir); mv zms $(DESTDIR)$(cgidir) )
-	( cd $(DESTDIR)$(cgidir); chown $(webuser):$(webgroup) zms; ln -f zms nph-zms )
+	( cd $(DESTDIR)$(cgidir); ln -f zms nph-zms )
 
 uninstall-hook:
 	( cd $(DESTDIR)$(cgidir); rm -f zms nph-zms )

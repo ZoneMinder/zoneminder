@@ -182,8 +182,8 @@ int FfmpegCamera::Capture( Image &image )
             if ( frameComplete )
             {
                 Debug( 3, "Got frame %d", frameCount );
-
-		avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height);
+                av_image_fill_arrays(mFrame->data, mFrame->linesize, directbuffer, imagePixFormat, width, height, 1);
+                //avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height);
 		
 #if HAVE_LIBSWSCALE
 		if(mConvertContext == NULL) {

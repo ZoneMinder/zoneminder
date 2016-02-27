@@ -33,7 +33,7 @@ class MysqlTest extends CakeTestCase {
 /**
  * autoFixtures property
  *
- * @var boolean
+ * @var bool
  */
 	public $autoFixtures = false;
 
@@ -196,7 +196,6 @@ class MysqlTest extends CakeTestCase {
 /**
  * testTinyintCasting method
  *
- *
  * @return void
  */
 	public function testTinyintCasting() {
@@ -235,7 +234,6 @@ class MysqlTest extends CakeTestCase {
 
 /**
  * testLastAffected method
- *
  *
  * @return void
  */
@@ -555,6 +553,10 @@ class MysqlTest extends CakeTestCase {
 		$result = $this->Dbo->column('decimal(14,7) unsigned');
 		$expected = 'decimal';
 		$this->assertEquals($expected, $result);
+
+		$result = $this->Dbo->column("set('a','b','c')");
+		$expected = "set('a','b','c')";
+		$this->assertEquals($expected, $result);
 	}
 
 /**
@@ -706,7 +708,8 @@ class MysqlTest extends CakeTestCase {
 				'tableParameters' => array(
 					'charset' => 'utf8',
 					'collate' => 'utf8_general_ci',
-					'engine' => 'InnoDB'
+					'engine' => 'InnoDB',
+					'comment' => 'Newly table added comment.',
 				)
 			)
 		));
@@ -714,6 +717,7 @@ class MysqlTest extends CakeTestCase {
 		$this->assertContains('DEFAULT CHARSET=utf8', $result);
 		$this->assertContains('ENGINE=InnoDB', $result);
 		$this->assertContains('COLLATE=utf8_general_ci', $result);
+		$this->assertContains('COMMENT=\'Newly table added comment.\'', $result);
 
 		$this->Dbo->rawQuery($result);
 		$result = $this->Dbo->listDetailedSources($this->Dbo->fullTableName('altertest', false, false));
@@ -777,13 +781,15 @@ class MysqlTest extends CakeTestCase {
 		$this->assertEquals($expected, $result);
 
 		$table = $this->Dbo->fullTableName($tableName);
-		$this->Dbo->rawQuery('CREATE TABLE ' . $table . ' (id int(11) AUTO_INCREMENT, bool tinyint(1), small_int tinyint(2), primary key(id)) ENGINE=MyISAM DEFAULT CHARSET=cp1250 COLLATE=cp1250_general_ci;');
+		$this->Dbo->rawQuery('CREATE TABLE ' . $table . ' (id int(11) AUTO_INCREMENT, bool tinyint(1), small_int tinyint(2), primary key(id)) ENGINE=MyISAM DEFAULT CHARSET=cp1250 COLLATE=cp1250_general_ci COMMENT=\'Table\'\'s comment\';');
 		$result = $this->Dbo->readTableParameters($this->Dbo->fullTableName($tableName, false, false));
 		$this->Dbo->rawQuery('DROP TABLE ' . $table);
 		$expected = array(
 			'charset' => 'cp1250',
 			'collate' => 'cp1250_general_ci',
-			'engine' => 'MyISAM');
+			'engine' => 'MyISAM',
+			'comment' => 'Table\'s comment',
+		);
 		$this->assertEquals($expected, $result);
 	}
 
@@ -884,6 +890,78 @@ class MysqlTest extends CakeTestCase {
 
 		$this->assertTrue(isset($result['id']));
 		$this->assertTrue(isset($result['color']));
+	}
+
+/**
+ * Test that describe() ignores `default current_timestamp` in timestamp columns.
+ *
+ * @return void
+ */
+	public function testDescribeHandleCurrentTimestamp() {
+		$name = $this->Dbo->fullTableName('timestamp_default_values');
+		$sql = <<<SQL
+CREATE TABLE $name (
+	id INT(11) NOT NULL AUTO_INCREMENT,
+	phone VARCHAR(10),
+	limit_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	PRIMARY KEY(id)
+);
+SQL;
+		$this->Dbo->execute($sql);
+		$model = new Model(array(
+			'table' => 'timestamp_default_values',
+			'ds' => 'test',
+			'alias' => 'TimestampDefaultValue'
+		));
+		$result = $this->Dbo->describe($model);
+		$this->Dbo->execute('DROP TABLE ' . $name);
+
+		$this->assertNull($result['limit_date']['default']);
+
+		$schema = new CakeSchema(array(
+			'connection' => 'test',
+			'testdescribes' => $result
+		));
+		$result = $this->Dbo->createSchema($schema);
+		$this->assertContains('`limit_date` timestamp NOT NULL,', $result);
+	}
+
+/**
+ * Test that describe() ignores `default current_timestamp` in datetime columns.
+ * This is for MySQL >= 5.6.
+ *
+ * @return void
+ */
+	public function testDescribeHandleCurrentTimestampDatetime() {
+		$mysqlVersion = $this->Dbo->query('SELECT VERSION() as version', array('log' => false));
+		$this->skipIf(version_compare($mysqlVersion[0][0]['version'], '5.6.0', '<'));
+
+		$name = $this->Dbo->fullTableName('timestamp_default_values');
+		$sql = <<<SQL
+CREATE TABLE $name (
+	id INT(11) NOT NULL AUTO_INCREMENT,
+	phone VARCHAR(10),
+	limit_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	PRIMARY KEY(id)
+);
+SQL;
+		$this->Dbo->execute($sql);
+		$model = new Model(array(
+			'table' => 'timestamp_default_values',
+			'ds' => 'test',
+			'alias' => 'TimestampDefaultValue'
+		));
+		$result = $this->Dbo->describe($model);
+		$this->Dbo->execute('DROP TABLE ' . $name);
+
+		$this->assertNull($result['limit_date']['default']);
+
+		$schema = new CakeSchema(array(
+			'connection' => 'test',
+			'testdescribes' => $result
+		));
+		$result = $this->Dbo->createSchema($schema);
+		$this->assertContains('`limit_date` datetime NOT NULL,', $result);
 	}
 
 /**
@@ -1144,11 +1222,14 @@ class MysqlTest extends CakeTestCase {
 				$linkModel = $this->Model->Category2->{$assoc};
 				$external = isset($assocData['external']);
 
-				if ($this->Model->Category2->alias == $linkModel->alias && $type !== 'hasAndBelongsToMany' && $type !== 'hasMany') {
+				if ($this->Model->Category2->alias === $linkModel->alias &&
+					$type !== 'hasAndBelongsToMany' &&
+					$type !== 'hasMany'
+				) {
 					$result = $this->Dbo->generateAssociationQuery($this->Model->Category2, $linkModel, $type, $assoc, $assocData, $queryData, $external);
 					$this->assertFalse(empty($result));
 				} else {
-					if ($this->Model->Category2->useDbConfig == $linkModel->useDbConfig) {
+					if ($this->Model->Category2->useDbConfig === $linkModel->useDbConfig) {
 						$result = $this->Dbo->generateAssociationQuery($this->Model->Category2, $linkModel, $type, $assoc, $assocData, $queryData, $external);
 						$this->assertFalse(empty($result));
 					}
@@ -1240,7 +1321,7 @@ class MysqlTest extends CakeTestCase {
  * @param Model $model
  * @param array $queryData
  * @param array $binding
- * @return void
+ * @return array The prepared association query
  */
 	protected function &_prepareAssociationQuery(Model $model, &$queryData, $binding) {
 		$type = $binding['type'];
@@ -2353,6 +2434,10 @@ class MysqlTest extends CakeTestCase {
 		$expected = " WHERE ((`User`.`user` = 'mariano') OR (`User`.`user` = 'nate'))";
 		$this->assertEquals($expected, $result);
 
+		$result = $this->Dbo->conditions(array('User.user RLIKE' => 'mariano|nate'));
+		$expected = " WHERE `User`.`user` RLIKE 'mariano|nate'";
+		$this->assertEquals($expected, $result);
+
 		$result = $this->Dbo->conditions(array('or' => array(
 			'score BETWEEN ? AND ?' => array('4', '5'), 'rating >' => '20'
 		)));
@@ -2824,10 +2909,15 @@ class MysqlTest extends CakeTestCase {
  * testDropSchemaNoSchema method
  *
  * @expectedException PHPUnit_Framework_Error
+ * @throws PHPUnit_Framework_Error
  * @return void
  */
 	public function testDropSchemaNoSchema() {
-		$this->Dbo->dropSchema(null);
+		try {
+			$this->Dbo->dropSchema(null);
+		} catch (Throwable $t) {
+			throw new PHPUnit_Framework_Error($t);
+		}
 	}
 
 /**
@@ -2988,7 +3078,7 @@ class MysqlTest extends CakeTestCase {
 		$this->assertSame($expected, $result);
 
 		$result = $this->Dbo->length(false);
-		$this->assertTrue($result === null);
+		$this->assertNull($result);
 
 		$result = $this->Dbo->length('datetime');
 		$expected = null;
@@ -3173,9 +3263,9 @@ class MysqlTest extends CakeTestCase {
  *
  * @param array $data Column data
  * @param string $expected Expected sql part
- * 
+ *
  * @return void
- * 
+ *
  * @dataProvider buildColumnUnsignedProvider
  */
 	public function testBuildColumnUnsigned($data, $expected) {
@@ -3281,7 +3371,7 @@ class MysqlTest extends CakeTestCase {
 
 /**
  * Test getting `unsigned` field parameter from DB
- * 
+ *
  * @return void
  */
 	public function testSchemaUnsigned() {
@@ -3398,6 +3488,35 @@ class MysqlTest extends CakeTestCase {
 			"(SELECT COUNT(*) FROM $commentsTable WHERE `Article`.`id` = `$commentsTable`.`article_id`) AS  `Article__comment_count`"
 		);
 		$this->assertEquals($expected, $result);
+	}
+
+/**
+ * test find() generating usable virtual fields to use in query without modifying custom subqueries.
+ *
+ * @return void
+ */
+	public function testVirtualFieldsWithSubquery() {
+		$this->loadFixtures('Article', 'Comment', 'User', 'Tag', 'ArticlesTag');
+		$this->Dbo->virtualFieldSeparator = '__';
+		$Article = ClassRegistry::init('Article');
+		$commentsTable = $this->Dbo->fullTableName('comments', false, false);
+		$Article->Comment->virtualFields = array(
+			'extra' => 'SELECT id FROM ' . $commentsTable . ' WHERE id = (SELECT 1)',
+		);
+		$conditions = array('Article.id' => array(1, 2));
+		$contain = array('Comment.extra');
+
+		$test = ConnectionManager::getDatasource('test');
+		$test->getLog();
+		$result = $Article->find('all', compact('conditions', 'contain'));
+
+		$expected = 'SELECT `Comment`.`id`, `Comment`.`article_id`, `Comment`.`user_id`, `Comment`.`comment`,' .
+			' `Comment`.`published`, `Comment`.`created`,' .
+			' `Comment`.`updated`, (SELECT id FROM comments WHERE id = (SELECT 1)) AS  `Comment__extra`' .
+			' FROM ' . $test->fullTableName('comments') . ' AS `Comment`   WHERE `Comment`.`article_id` IN (1, 2)';
+
+		$log = $test->getLog();
+		$this->assertTextEquals($expected, $log['log'][count($log['log']) - 2]['query']);
 	}
 
 /**
@@ -3997,6 +4116,36 @@ class MysqlTest extends CakeTestCase {
 		$this->assertNotEmpty($model->read(null, 1));
 
 		$this->Dbo->useNestedTransactions = $nested;
+	}
+
+/**
+ * Test that value() quotes set values even when numeric.
+ *
+ * @return void
+ */
+	public function testSetValue() {
+		$column = "set('a','b','c')";
+		$result = $this->Dbo->value('1', $column);
+		$this->assertEquals("'1'", $result);
+
+		$result = $this->Dbo->value(1, $column);
+		$this->assertEquals("'1'", $result);
+
+		$result = $this->Dbo->value('a', $column);
+		$this->assertEquals("'a'", $result);
+	}
+
+/**
+ * Test isConnected
+ *
+ * @return void
+ */
+	public function testIsConnected() {
+		$this->Dbo->disconnect();
+		$this->assertFalse($this->Dbo->isConnected(), 'Not connected now.');
+
+		$this->Dbo->connect();
+		$this->assertTrue($this->Dbo->isConnected(), 'Should be connected.');
 	}
 
 }

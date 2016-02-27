@@ -135,14 +135,14 @@ use ZoneMinder::Trigger::Connection;
 my @connections;
 push( @connections,
       ZoneMinder::Trigger::Connection->new(
-        name=>"Chan1",
+        name=>"Chan1 TCP on port 6802",
         channel=>ZoneMinder::Trigger::Channel::Inet->new( port=>6802 ),
         mode=>"rw"
       )
 );
 push( @connections,
       ZoneMinder::Trigger::Connection->new(
-        name=>"Chan2",
+        name=>"Chan2 Unix Socket at " . $Config{ZM_PATH_SOCKS}.'/zmtrigger.sock',
         channel=>ZoneMinder::Trigger::Channel::Unix->new(
                     path=>$Config{ZM_PATH_SOCKS}.'/zmtrigger.sock'
                  ),

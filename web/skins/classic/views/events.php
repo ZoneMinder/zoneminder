@@ -30,7 +30,7 @@ if ( !empty($_REQUEST['execute']) )
 }
 
 $countSql = 'SELECT count(E.Id) AS EventCount FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId) WHERE';
-$eventsSql = 'SELECT E.Id,E.MonitorId,M.Name AS MonitorName,M.DefaultScale,E.Name,E.Width,E.Height,E.Cause,E.Notes,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId) WHERE';
+$eventsSql = 'SELECT E.Id,E.StorageId,E.MonitorId,M.Name AS MonitorName,M.DefaultScale,E.Name,E.Width,E.Height,E.Cause,E.Notes,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId) WHERE';
 if ( $user['MonitorIds'] ) {
 	$user_monitor_ids = ' M.Id in ('.$user['MonitorIds'].')';
 	$countSql .= $user_monitor_ids;

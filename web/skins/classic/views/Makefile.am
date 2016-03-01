@@ -48,6 +48,7 @@ dist_web_DATA = \
 	state.php \
 	stats.php \
 	status.php \
+    storage.php \
 	timeline.php \
 	user.php \
 	version.php \

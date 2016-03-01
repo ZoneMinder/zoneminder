@@ -20,6 +20,7 @@ bin_PROGRAMS = \
 	zmstreamer
 
 zm_SOURCES = \
+	zm_storage.cpp \
 	zm_box.cpp \
 	zm_buffer.cpp \
 	zm_camera.cpp \
@@ -71,6 +72,7 @@ zmstreamer_SOURCES = zmstreamer.cpp $(zm_SOURCES)
 
 noinst_HEADERS = \
 	jinclude.h \
+	zm_storage.h \
 	zm_box.h \
 	zm_buffer.h \
 	zm_camera.h \

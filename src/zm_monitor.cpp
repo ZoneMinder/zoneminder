@@ -270,6 +270,7 @@ Monitor::Monitor(
     int p_id,
     const char *p_name,
     const unsigned int p_server_id,
+	const unsigned int p_storage_id,
     int p_function,
     bool p_enabled,
     const char *p_linked_monitors,
@@ -304,6 +305,7 @@ Monitor::Monitor(
     Zone *p_zones[]
 ) : id( p_id ),
     server_id( p_server_id ),
+	storage_id( p_storage_id ),
     function( (Function)p_function ),
     enabled( p_enabled ),
     width( (p_orientation==ROTATE_90||p_orientation==ROTATE_270)?p_camera->Height():p_camera->Width() ),
@@ -460,11 +462,14 @@ Monitor::Monitor(
     Debug( 1, "Monitor %s LBF = '%s', LBX = %d, LBY = %d, LBS = %d", name, label_format, label_coord.X(), label_coord.Y(), label_size );
     Debug( 1, "Monitor %s IBC = %d, WUC = %d, pEC = %d, PEC = %d, EAF = %d, FRI = %d, RBP = %d, ARBP = %d, FM = %d", name, image_buffer_count, warmup_count, pre_event_count, post_event_count, alarm_frame_count, fps_report_interval, ref_blend_perc, alarm_ref_blend_perc, track_motion );
 
+	storage = new Storage( storage_id );
+	Debug(1, "Storage path: %s", storage->Path() );
+
     if ( purpose == ANALYSIS )
     {
         static char path[PATH_MAX];
 
-        strncpy( path, config.dir_events, sizeof(path) );
+        strncpy( path, storage->Path(), sizeof(path) );
 
         struct stat statbuf;
         errno = 0;
@@ -477,7 +482,7 @@ Monitor::Monitor(
             }
         }
 
-        snprintf( path, sizeof(path), "%s/%d", config.dir_events, id );
+        snprintf( path, sizeof(path), "%s/%d", storage->Path(), id );
 
         errno = 0;
         stat( path, &statbuf );
@@ -489,8 +494,8 @@ Monitor::Monitor(
             }
             char temp_path[PATH_MAX];
             snprintf( temp_path, sizeof(temp_path), "%d", id );
-            if ( chdir( config.dir_events ) < 0 )
-                Fatal( "Can't change directory to '%s': %s", config.dir_events, strerror(errno) );
+            if ( chdir( storage->Path() ) < 0 )
+                Fatal( "Can't change directory to '%s': %s", storage->Path(), strerror(errno) );
             if ( symlink( temp_path, name ) < 0 )
                 Fatal( "Can't symlink '%s' to '%s': %s", temp_path, name, strerror(errno) );
             if ( chdir( ".." ) < 0 )
@@ -644,6 +649,7 @@ Monitor::~Monitor()
     delete[] zones;
 
     delete camera;
+	delete storage;
 
 	if ( mem_ptr ) {
 		if ( purpose == ANALYSIS )
@@ -2048,7 +2054,8 @@ void Monitor::ReloadLinkedMonitors( const char *p_linked_monitors )
 #if ZM_HAS_V4L
 int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose purpose )
 {
-    std::string sql = "select Id, Name, ServerId, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, Method, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPS, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour, Exif from Monitors where Function != 'None' and Type = 'Local'";
+    std::string sql = "select Id, Name, ServerId, StorageId, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, Method, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPS, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour, Exif from Monitors where Function != 'None' and Type = 'Local'";
+;
     if ( device[0] ) {
         sql += " AND Device='";
         sql += device;
@@ -2075,6 +2082,7 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
         int id = atoi(dbrow[col]); col++;
         const char *name = dbrow[col]; col++;
         unsigned int server_id = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
+        unsigned int storage_id = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
         int function = atoi(dbrow[col]); col++;
         int enabled = atoi(dbrow[col]); col++;
         const char *linked_monitors = dbrow[col]; col++;
@@ -2175,6 +2183,7 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
             id,
             name,
             server_id,
+			storage_id,
             function,
             enabled,
             linked_monitors,
@@ -2228,7 +2237,7 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
 
 int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const char *port, const char *path, Monitor **&monitors, Purpose purpose )
 {
-    std::string sql = "select Id, Name, ServerId, Function+0, Enabled, LinkedMonitors, Protocol, Method, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPS, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif from Monitors where Function != 'None' and Type = 'Remote'";
+    std::string sql = "select Id, Name, ServerId, StorageId, Function+0, Enabled, LinkedMonitors, Protocol, Method, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPS, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif from Monitors where Function != 'None' and Type = 'Remote'";
     if ( staticConfig.SERVER_ID ) {
         sql += stringtf( " AND ServerId=%d", staticConfig.SERVER_ID );
     }
@@ -2254,6 +2263,7 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
         int id = atoi(dbrow[col]); col++;
         std::string name = dbrow[col]; col++;
         unsigned int server_id = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
+        unsigned int storage_id = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
         int function = atoi(dbrow[col]); col++;
         int enabled = atoi(dbrow[col]); col++;
         const char *linked_monitors = dbrow[col]; col++;
@@ -2354,6 +2364,7 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
             id,
             name.c_str(),
             server_id,
+			storage_id,
             function,
             enabled,
             linked_monitors,
@@ -2407,7 +2418,7 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
 
 int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose purpose )
 {
-        std::string sql = "select Id, Name, ServerId, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPS, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif from Monitors where Function != 'None' and Type = 'File'";
+        std::string sql = "select Id, Name, ServerId, StorageId, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPS, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif from Monitors where Function != 'None' and Type = 'File'";
     if ( file[0] ) {
         sql += " AND Path='";
         sql += file;
@@ -2434,6 +2445,7 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
         int id = atoi(dbrow[col]); col++;
         const char *name = dbrow[col]; col++;
         unsigned int server_id = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
+        unsigned int storage_id = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
         int function = atoi(dbrow[col]); col++;
         int enabled = atoi(dbrow[col]); col++;
         const char *linked_monitors = dbrow[col]; col++;
@@ -2497,6 +2509,7 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
             id,
             name,
             server_id,
+			storage_id,
             function,
             enabled,
             linked_monitors,
@@ -2550,7 +2563,7 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
 #if HAVE_LIBAVFORMAT
 int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose purpose )
 {
-        std::string sql = "select Id, Name, ServerId, Function+0, Enabled, LinkedMonitors, Path, Method, Options, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPS, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif from Monitors where Function != 'None' and Type = 'Ffmpeg'";
+        std::string sql = "select Id, Name, ServerId, StorageId, Function+0, Enabled, LinkedMonitors, Path, Method, Options, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPS, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif from Monitors where Function != 'None' and Type = 'Ffmpeg'";
     if ( file[0] ) {
         sql += " AND Path = '";
         sql += file;
@@ -2577,6 +2590,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
         int id = atoi(dbrow[col]); col++;
         const char *name = dbrow[col]; col++;
         unsigned int server_id = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
+        unsigned int storage_id = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
         int function = atoi(dbrow[col]); col++;
         int enabled = atoi(dbrow[col]); col++;
         const char *linked_monitors = dbrow[col]; col++;
@@ -2644,6 +2658,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
             id,
             name,
             server_id,
+			storage_id,
             function,
             enabled,
             linked_monitors,
@@ -2697,7 +2712,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
 
 Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose )
 {
-    std::string sql = stringtf( "select Id, Name, ServerId, Type, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, Protocol, Method, Host, Port, Path, Options, User, Pass, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPS, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour, Exif from Monitors where Id = %d", p_id );
+    std::string sql = stringtf( "select Id, Name, ServerId, StorageId, Type, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, Protocol, Method, Host, Port, Path, Options, User, Pass, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPS, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour, Exif from Monitors where Id = %d", p_id );
 
     MYSQL_ROW dbrow = zmDbFetchOne( sql.c_str() );
     if ( ! dbrow ) {
@@ -2710,6 +2725,7 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose )
     unsigned int id = atoi(dbrow[col]); col++;
     std::string name = dbrow[col]; col++;
     unsigned int server_id = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
+    unsigned int storage_id = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
     std::string type = dbrow[col]; col++;
     int function = atoi(dbrow[col]); col++;
     int enabled = atoi(dbrow[col]); col++;
@@ -2958,6 +2974,7 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
         id,
         name.c_str(),
         server_id,
+		storage_id,
         function,
         enabled,
         linked_monitors.c_str(),
@@ -2990,7 +3007,6 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
         purpose,
         0,
         0
-
     );
 
     int n_zones = 0;
@@ -3405,12 +3421,14 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
 
     if ( n_zones <= 0 ) return( alarm );
 
+	Storage *storage = this->getStorage();
+
     if ( config.record_diag_images )
     {
         static char diag_path[PATH_MAX] = "";
         if ( !diag_path[0] )
         {
-            snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-r.jpg", config.dir_events, id );
+            snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-r.jpg", storage->Path(), id );
         }
         ref_image.WriteJpeg( diag_path );
     }
@@ -3422,7 +3440,7 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
         static char diag_path[PATH_MAX] = "";
         if ( !diag_path[0] )
         {
-            snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-d.jpg", config.dir_events, id );
+            snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-d.jpg", storage->Path(), id );
         }
         delta_image.WriteJpeg( diag_path );
     }

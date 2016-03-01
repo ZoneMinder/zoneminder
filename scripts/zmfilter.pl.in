@@ -27,7 +27,7 @@ zmfilter.pl - ZoneMinder tool to filter events
 
 =head1 SYNOPSIS
 
- zmfilter.pl [-f <filter name>,--filter=<filter name>] | -v, --version
+ zmfilter.pl [-f <filter name>,--filter=<filter name>] [--filter_id=<filter id>] | -v, --version
 
 =head1 DESCRIPTION
 
@@ -37,7 +37,9 @@ matching events.
 
 =head1 OPTIONS
 
+ 
  -f{filter name}, --filter={filter name}  - The name of a specific filter to run
+ --filter_id={filter id}                  - The id of a specific filter to run
  -v, --version                            - Print ZoneMinder version
 
 =cut
@@ -63,10 +65,28 @@ use ZoneMinder;
 use DBI;
 use POSIX;
 use Time::HiRes qw/gettimeofday/;
-use Date::Manip;
+#use Date::Manip;
 use Getopt::Long;
 use autouse 'Pod::Usage'=>qw(pod2usage);
 use autouse 'Data::Dumper'=>qw(Dumper);
+
+my $filter_name = "";
+my $filter_id;
+my $version = 0;
+
+GetOptions(
+    'filter=s'      =>\$filter_name,
+    'filter_id=s'   =>\$filter_id,
+    'version'       =>\$version
+) or pod2usage(-exitstatus => -1);
+
+if ( $version ) {
+    print ZoneMinder::Base::ZM_VERSION . "\n";
+    exit(0);
+}
+
+require ZoneMinder::Event;
+require ZoneMinder::Filter;
 
 use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)
              ? $Config{ZM_DIR_EVENTS}
@@ -133,50 +153,6 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 my $delay = $Config{ZM_FILTER_EXECUTE_INTERVAL};
 my $event_id = 0;
-my $filter_parm = "";
-my $version = 0;
-
-#
-# More or less replicates the equivalent PHP function
-#
-sub strtotime
-{
-    my $dt_str = shift;
-    return( UnixDate( $dt_str, '%s' ) );
-}
-
-#
-# More or less replicates the equivalent PHP function
-#
-sub str_repeat
-{
-    my $string = shift;
-    my $count = shift;
-    return( ${string}x${count} );
-}
-
-# Formats a date into MySQL format
-sub DateTimeToSQL
-{
-    my $dt_str = shift;
-    my $dt_val = strtotime( $dt_str );
-    if ( !$dt_val )
-    {
-        Error( "Unable to parse date string '$dt_str'\n" );
-        return( undef );
-    }
-    return( strftime( "%Y-%m-%d %H:%M:%S", localtime( $dt_val ) ) );
-}
-
-GetOptions(
-    'filter=s'      =>\$filter_parm,
-    'version'       =>\$version
-) or pod2usage(-exitstatus => -1);
-
-if ( $version ) {
-    print ZoneMinder::Base::ZM_VERSION . "\n";
-    exit(0);
-}
 
 if ( ! EVENT_PATH ) {
     Error( "No event path defined. Config was $Config{ZM_DIR_EVENTS}\n" );
@@ -187,93 +163,61 @@ chdir( EVENT_PATH );
 
 my $dbh = zmDbConnect();
 
-if ( $filter_parm )
-{
-    Info( "Scanning for events using filter '$filter_parm'\n" );
-}
-else
-{
+if ( $filter_name ) {
+    Info( "Scanning for events using filter '$filter_name'\n" );
+} elsif ( $filter_id ) {
+    Info( "Scanning for events using filter id '$filter_id'\n" );
+} else {
     Info( "Scanning for events\n" );
 }
 
-if ( !$filter_parm )
-{
+if ( ! ( $filter_name or $filter_id ) ) {
     sleep( START_DELAY );
 }
 
 my $filters;
 my $last_action = 0;
 
-while( 1 )
-{
+while( 1 ) {
     my $now = time;
-    if ( ($now - $last_action) > $Config{ZM_FILTER_RELOAD_DELAY} )
-    {
+    if ( ($now - $last_action) > $Config{ZM_FILTER_RELOAD_DELAY} ) {
         Debug( "Reloading filters\n" );
         $last_action = $now;
-        $filters = getFilters( $filter_parm );
+        $filters = getFilters( { Name=>$filter_name, Id=>$filter_id } );
     }
 
-    foreach my $filter ( @$filters )
-    {
-        checkFilter( $filter );
+	foreach my $filter ( @$filters ) {
+		if ( $$filter{Concurrent} and ! ( $filter_id or $filter_name ) ) {
+			my ( $proc ) = $0 =~ /(\S+)/;
+			my ( $id ) = $$filter{Id} =~ /(\d+)/;
+			Debug("Running concurrent filter process $proc --filter_id $$filter{Id} => $id for $$filter{Name}");
+
+			system( qq`$proc --filter "$$filter{Name}" &` );
+		} else {
+			checkFilter( $filter );
+		}
     }
 
-    last if ( $filter_parm );
+    last if ( $filter_name or $filter_id );
 
     Debug( "Sleeping for $delay seconds\n" );
     sleep( $delay );
 }
 
-sub getDiskPercent
-{
-    my $command = "df .";
-    my $df = qx( $command );
-    my $space = -1;
-    if ( $df =~ /\s(\d+)%/ms )
-    {
-        $space = $1;
-    }
-    return( $space );
-}
-
-sub getDiskBlocks
-{
-    my $command = "df .";
-    my $df = qx( $command );
-    my $space = -1;
-    if ( $df =~ /\s(\d+)\s+\d+\s+\d+%/ms )
-    {
-        $space = $1;
-    }
-    return( $space );
-}
-
-sub getLoad
-{
-    my $command = "uptime .";
-    my $uptime = qx( $command );
-    my $load = -1;
-    if ( $uptime =~ /load average:\s+([\d.]+)/ms )
-    {
-        $load = $1;
-        Info( "Load: $load" );
-    }
-    return( $load );
-}
-
 sub getFilters
 {
-    my $filter_name = shift;
+    my $sql_filters = @_ ? shift : {};
+	my @sql_values;
 
     my @filters;
     my $sql = "SELECT * FROM Filters WHERE";
-    if ( $filter_name )
-    {
+    if ( $$sql_filters{Name} ) {
         $sql .= " Name = ? and";
-    }
-    else
-    {
+		push @sql_values, $$sql_filters{Name};
+    } elsif ( $$sql_filters{Id} ) {
+        $sql .= " Id = ? and";
+		push @sql_values, $$sql_filters{Id};
+    } else {
         $sql .= " Background = 1 and";
     }
     $sql .= "(  AutoArchive = 1
@@ -286,321 +230,26 @@ sub getFilters
              ) ORDER BY Name";
     my $sth = $dbh->prepare_cached( $sql )
         or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-    my $res;
-    if ( $filter_name )
-    {
-        $res = $sth->execute( $filter_name )
-            or Fatal( "Can't execute '$sql': ".$sth->errstr() );
-    }
-    else
-    {
-        $res = $sth->execute()
-            or Fatal( "Can't execute '$sql': ".$sth->errstr() );
-    }
+	my $res = $sth->execute( @sql_values )
+		or Fatal( "Can't execute '$sql': ".$sth->errstr() );
     FILTER: while( my $db_filter = $sth->fetchrow_hashref() )
     {
+		my $filter = new ZoneMinder::Filter( $$db_filter{Id}, $db_filter );
         Debug( "Found filter '$db_filter->{Name}'\n" );
-        my $filter_expr = jsonDecode( $db_filter->{Query} );
-        my $sql = "SELECT E.Id,
-                          E.MonitorId,
-                          M.Name as MonitorName,
-                          M.DefaultRate,
-                          M.DefaultScale,
-                          E.Name,
-                          E.Cause,
-                          E.Notes,
-                          E.StartTime,
-                          unix_timestamp(E.StartTime) as Time,
-                          E.Length,
-                          E.Frames,
-                          E.AlarmFrames,
-                          E.TotScore,
-                          E.AvgScore,
-                          E.MaxScore,
-                          E.Archived,
-                          E.Videoed,
-                          E.Uploaded,
-                          E.Emailed,
-                          E.Messaged,
-                          E.Executed
-                   FROM Events as E
-                   INNER JOIN Monitors as M on M.Id = E.MonitorId
-        ";
-        $db_filter->{Sql} = '';
+		my $sql = $filter->Sql();
 
-        if ( $filter_expr->{terms} )
-        {
-            for ( my $i = 0; $i < @{$filter_expr->{terms}}; $i++ )
-            {
-                if ( exists($filter_expr->{terms}[$i]->{cnj}) )
-                {
-                    $db_filter->{Sql} .= " ".$filter_expr->{terms}[$i]->{cnj}." ";
-                }
-                if ( exists($filter_expr->{terms}[$i]->{obr}) )
-                {
-                    $db_filter->{Sql} .= " ".str_repeat( "(", $filter_expr->{terms}[$i]->{obr} )." ";
-                }
-                my $value = $filter_expr->{terms}[$i]->{val};
-                my @value_list;
-                if ( $filter_expr->{terms}[$i]->{attr} )
-                {
-                    if ( $filter_expr->{terms}[$i]->{attr} =~ /^Monitor/ )
-                    {
-                        my ( $temp_attr_name ) = $filter_expr->{terms}[$i]->{attr} =~ /^Monitor(.+)$/;
-                        $db_filter->{Sql} .= "M.".$temp_attr_name;
-                    }
-                    elsif ( $filter_expr->{terms}[$i]->{attr} eq 'ServerId' )
-                    {
-                        $db_filter->{Sql} .= "M.ServerId";
-                    }
-                    elsif ( $filter_expr->{terms}[$i]->{attr} eq 'DateTime' )
-                    {
-                        $db_filter->{Sql} .= "E.StartTime";
-                    }
-                    elsif ( $filter_expr->{terms}[$i]->{attr} eq 'Date' )
-                    {
-                        $db_filter->{Sql} .= "to_days( E.StartTime )";
-                    }
-                    elsif ( $filter_expr->{terms}[$i]->{attr} eq 'Time' )
-                    {
-                        $db_filter->{Sql} .= "extract( hour_second from E.StartTime )";
-                    }
-                    elsif ( $filter_expr->{terms}[$i]->{attr} eq 'Weekday' )
-                    {
-                        $db_filter->{Sql} .= "weekday( E.StartTime )";
-                    }
-                    elsif ( $filter_expr->{terms}[$i]->{attr} eq 'DiskPercent' )
-                    {
-                        $db_filter->{Sql} .= "zmDiskPercent";
-                        $db_filter->{HasDiskPercent} = !undef;
-                    }
-                    elsif ( $filter_expr->{terms}[$i]->{attr} eq 'DiskBlocks' )
-                    {
-                        $db_filter->{Sql} .= "zmDiskBlocks";
-                        $db_filter->{HasDiskBlocks} = !undef;
-                    }
-                    elsif ( $filter_expr->{terms}[$i]->{attr} eq 'SystemLoad' )
-                    {
-                        $db_filter->{Sql} .= "zmSystemLoad";
-                        $db_filter->{HasSystemLoad} = !undef;
-                    }
-                    else
-                    {
-                        $db_filter->{Sql} .= "E.".$filter_expr->{terms}[$i]->{attr};
-                    }
-
-                    ( my $stripped_value = $value ) =~ s/^["\']+?(.+)["\']+?$/$1/;
-                    foreach my $temp_value ( split( /["'\s]*?,["'\s]*?/, $stripped_value ) )
-                    {
-                        if ( $filter_expr->{terms}[$i]->{attr} =~ /^Monitor/ )
-                        {
-                            $value = "'$temp_value'";
-                        }
-                        elsif ( $filter_expr->{terms}[$i]->{attr} eq 'ServerId' ) {
-                            if ( $temp_value eq 'ZM_SERVER_ID' ) {
-                                $value = "'$Config{ZM_SERVER_ID}'";
-                            } else {
-                                $value = "'$temp_value'";
-                            }
-                        }
-                        elsif ( $filter_expr->{terms}[$i]->{attr} eq 'Name'
-                                || $filter_expr->{terms}[$i]->{attr} eq 'Cause'
-                                || $filter_expr->{terms}[$i]->{attr} eq 'Notes'
-                        )
-                        {
-                            $value = "'$temp_value'";
-                        }
-                        elsif ( $filter_expr->{terms}[$i]->{attr} eq 'DateTime' )
-                        {
-                            $value = DateTimeToSQL( $temp_value );
-                            if ( !$value )
-                            {
-                                Error( "Error parsing date/time '$temp_value', "
-                                      ."skipping filter '$db_filter->{Name}'\n" );
-                                next FILTER;
-                            }
-                            $value = "'$value'";
-                        }
-                        elsif ( $filter_expr->{terms}[$i]->{attr} eq 'Date' )
-                        {
-                            $value = DateTimeToSQL( $temp_value );
-                            if ( !$value )
-                            {
-                                Error( "Error parsing date/time '$temp_value', "
-                                      ."skipping filter '$db_filter->{Name}'\n" );
-                                next FILTER;
-                            }
-                            $value = "to_days( '$value' )";
-                        }
-                        elsif ( $filter_expr->{terms}[$i]->{attr} eq 'Time' )
-                        {
-                            $value = DateTimeToSQL( $temp_value );
-                            if ( !$value )
-                            {
-                                Error( "Error parsing date/time '$temp_value', "
-                                      ."skipping filter '$db_filter->{Name}'\n" );
-                                next FILTER;
-                            }
-                            $value = "extract( hour_second from '$value' )";
-                        }
-                        else
-                        {
-                            $value = $temp_value;
-                        }
-                        push( @value_list, $value );
-                    }
-                }
-                if ( $filter_expr->{terms}[$i]->{op} )
-                {
-                    if ( $filter_expr->{terms}[$i]->{op} eq '=~' )
-                    {
-                        $db_filter->{Sql} .= " regexp $value";
-                    }
-                    elsif ( $filter_expr->{terms}[$i]->{op} eq '!~' )
-                    {
-                        $db_filter->{Sql} .= " not regexp $value";
-                    }
-                    elsif ( $filter_expr->{terms}[$i]->{op} eq '=[]' )
-                    {
-                        $db_filter->{Sql} .= " in (".join( ",", @value_list ).")";
-                    }
-                    elsif ( $filter_expr->{terms}[$i]->{op} eq '!~' )
-                    {
-                        $db_filter->{Sql} .= " not in (".join( ",", @value_list ).")";
-                    }
-                    else
-                    {
-                        $db_filter->{Sql} .= " ".$filter_expr->{terms}[$i]->{op}." $value";
-                    }
-                }
-                if ( exists($filter_expr->{terms}[$i]->{cbr}) )
-                {
-                    $db_filter->{Sql} .= " ".str_repeat( ")", $filter_expr->{terms}[$i]->{cbr} )." ";
-                }
-            }
-        }
-        if ( $db_filter->{Sql} )
-        {
-            if ( $db_filter->{AutoMessage} )
-            {
-                # Include all events, including events that are still ongoing
-                # and have no EndTime yet
-                $sql .= " and ( ".$db_filter->{Sql}." )";
-            }
-            else
-            {
-                # Only include closed events (events with valid EndTime)
-                $sql .= " where not isnull(E.EndTime) and ( ".$db_filter->{Sql}." )";
-            }
-        }
-        my @auto_terms;
-        if ( $db_filter->{AutoArchive} )
-        {
-            push( @auto_terms, "E.Archived = 0" )
-        }
-        if ( $db_filter->{AutoVideo} )
-        {
-            push( @auto_terms, "E.Videoed = 0" )
-        }
-        if ( $db_filter->{AutoUpload} )
-        {
-            push( @auto_terms, "E.Uploaded = 0" )
-        }
-        if ( $db_filter->{AutoEmail} )
-        {
-            push( @auto_terms, "E.Emailed = 0" )
-        }
-        if ( $db_filter->{AutoMessage} )
-        {
-            push( @auto_terms, "E.Messaged = 0" )
-        }
-        if ( $db_filter->{AutoExecute} )
-        {
-            push( @auto_terms, "E.Executed = 0" )
-        }
-        if ( @auto_terms )
-        {
-            $sql .= " and ( ".join( " or ", @auto_terms )." )";
-        }
-        if ( !$filter_expr->{sort_field} )
-        {
-            $filter_expr->{sort_field} = 'StartTime';
-            $filter_expr->{sort_asc} = 0;
-        }
-        my $sort_column = '';
-        if ( $filter_expr->{sort_field} eq 'Id' )
-        {
-            $sort_column = "E.Id";
-        }
-        elsif ( $filter_expr->{sort_field} eq 'MonitorName' )
-        {
-            $sort_column = "M.Name";
-        }
-        elsif ( $filter_expr->{sort_field} eq 'Name' )
-        {
-            $sort_column = "E.Name";
-        }
-        elsif ( $filter_expr->{sort_field} eq 'StartTime' )
-        {
-            $sort_column = "E.StartTime";
-        }
-        elsif ( $filter_expr->{sort_field} eq 'Secs' )
-        {
-            $sort_column = "E.Length";
-        }
-        elsif ( $filter_expr->{sort_field} eq 'Frames' )
-        {
-            $sort_column = "E.Frames";
-        }
-        elsif ( $filter_expr->{sort_field} eq 'AlarmFrames' )
-        {
-            $sort_column = "E.AlarmFrames";
-        }
-        elsif ( $filter_expr->{sort_field} eq 'TotScore' )
-        {
-            $sort_column = "E.TotScore";
-        }
-        elsif ( $filter_expr->{sort_field} eq 'AvgScore' )
-        {
-            $sort_column = "E.AvgScore";
-        }
-        elsif ( $filter_expr->{sort_field} eq 'MaxScore' )
-        {
-            $sort_column = "E.MaxScore";
-        }
-        else
-        {
-            $sort_column = "E.StartTime";
-        }
-        my $sort_order = $filter_expr->{sort_asc}?"asc":"desc";
-        $sql .= " order by ".$sort_column." ".$sort_order;
-        if ( $filter_expr->{limit} )
-        {
-            $sql .= " limit 0,".$filter_expr->{limit};
-        }
-        Debug( "SQL:$sql\n" );
-        $db_filter->{Sql} = $sql;
-        if ( $db_filter->{AutoExecute} )
-        {
-            my $script = $db_filter->{AutoExecuteCmd};
-            $script =~ s/\s.*$//;
-            if ( !-e $script )
-            {
-                Error( "Auto execute script '$script' not found, "
-                      ."skipping filter '$db_filter->{Name}'\n" );
-                next FILTER;
-
-            }
-            elsif ( !-x $script )
-            {
-                Error( "Auto execute script '$script' not executable, "
-                      ."skipping filter '$db_filter->{Name}'\n" );
-                next FILTER;
-            }
-        }
-        push( @filters, $db_filter );
+		if ( ! $sql ) {
+			Error( "Error parsing Sql. skipping filter '$db_filter->{Name}'\n" );
+			next FILTER;
+		}
+		push( @filters, $filter );
     }
     $sth->finish();
+	if ( ! @filters ) {
+        Error("No filter found for $sql with values(@sql_values)");
+    } else {
+        Debug( "Got " . @filters . " filters" );
+    }
 
     return( \@filters );
 }
@@ -619,37 +268,11 @@ sub checkFilter
         ($filter->{AutoExecute}?", execute":"").
         "\n"
     );
-    my $sql = $filter->{Sql};
 
-    if ( $filter->{HasDiskPercent} )
-    {
-        my $disk_percent = getDiskPercent();
-        $sql =~ s/zmDiskPercent/$disk_percent/g;
-    }
-    if ( $filter->{HasDiskBlocks} )
-    {
-        my $disk_blocks = getDiskBlocks();
-        $sql =~ s/zmDiskBlocks/$disk_blocks/g;
-    }
-    if ( $filter->{HasSystemLoad} )
-    {
-        my $load = getLoad();
-        $sql =~ s/zmSystemLoad/$load/g;
-    }
-
-    my $sth = $dbh->prepare_cached( $sql )
-        or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-    my $res = $sth->execute();
-    if ( !$res )
-    {
-        Error( "Can't execute filter '$sql', ignoring: ".$sth->errstr() );
-        return;
-    }
-
-    while( my $event = $sth->fetchrow_hashref() )
-    {
+	foreach my $event ( $filter->Execute() ) {
         Debug( "Checking event $event->{Id}\n" );
         my $delete_ok = !undef;
+$dbh->ping();
         if ( $filter->{AutoArchive} )
         {
             Info( "Archiving event $event->{Id}\n" );
@@ -658,7 +281,7 @@ sub checkFilter
             my $sth = $dbh->prepare_cached( $sql )
                 or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
             my $res = $sth->execute( $event->{Id} )
-                or Fatal( "Can't execute '$sql': ".$sth->errstr() );
+                or Error( "Can't execute '$sql': ".$sth->errstr() );
         }
         if ( $Config{ZM_OPT_FFMPEG} && $filter->{AutoVideo} )
         {
@@ -699,30 +322,8 @@ sub checkFilter
         {
             if ( $delete_ok )
             {
-                Info( "Deleting event $event->{Id} from Monitor $event->{MonitorId}\n" );
-                # Do it individually to avoid locking up the table for new events
-                my $sql = "delete from Events where Id = ?";
-                my $sth = $dbh->prepare_cached( $sql )
-                    or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-                my $res = $sth->execute( $event->{Id} )
-                    or Fatal( "Can't execute '$sql': ".$sth->errstr() );
-
-                if ( ! $Config{ZM_OPT_FAST_DELETE} )
-                {
-                    my $sql = "delete from Frames where EventId = ?";
-                    my $sth = $dbh->prepare_cached( $sql )
-                        or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-                    my $res = $sth->execute( $event->{Id} )
-                        or Fatal( "Can't execute '$sql': ".$sth->errstr() );
-
-                    $sql = "delete from Stats where EventId = ?";
-                    $sth = $dbh->prepare_cached( $sql )
-                        or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-                    $res = $sth->execute( $event->{Id} )
-                        or Fatal( "Can't execute '$sql': ".$sth->errstr() );
-
-                    deleteEventFiles( $event->{Id}, $event->{MonitorId} );
-                }
+				my $Event = new ZoneMinder::Event( $$event{Id}, $event );
+				$Event->delete();
             }
             else
             {
@@ -730,7 +331,6 @@ sub checkFilter
             }
         }
     }
-    $sth->finish();
 }
 
 sub generateVideo

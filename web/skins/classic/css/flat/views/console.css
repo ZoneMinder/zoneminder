@@ -42,21 +42,21 @@
     width: 100%;
 }
 
-#consoleTable tr.highlight {
+#consoleTable div.highlight {
     background-color: #eeeeee;
 }
 
-#consoleTable thead th {
+#consoleTable .thead .tr div {
     padding-bottom: 4px;
     vertical-align: middle;
 }
 
-#consoleTable tfoot td {
+#consoleTable .tfoot .tr div {
     padding-top: 4px;
     vertical-align: middle;
 }
 
-#consoleTable th,td {
+#consoleTable .tr div {
     height: 16px;
     text-align: left;
 }
@@ -80,6 +80,7 @@
 
 #consoleTable .colLeftButtons {
     text-align: left;
+	min-width:300px;
 }
 
 #consoleTable .colLeftButtons input {
@@ -89,9 +90,45 @@
 #consoleTable .colRightButtons {
     text-align: right;
     padding-right: 8px;
+	min-width: 150px;
 }
 
 #consoleTable .colRightButtons input {
     margin: 0 8px;
+}
+
+/*
+ * Console table for the main event table
+ */
+#consoleTable {
+display: table;
+}
+
+#consoleTable .tr {
+	display: table-row;
+}
+#consoleTable .tr div {
+	text-align: left;
+	display: table-cell;
+    padding: 5px;    
+    border-bottom: 2px solid #f2f2f2;
+}
+
+#consoleTable input[type=button] {
+    margin-right: 3px !important;
+}
+
+#consoleTable .tfoot {
+	display: table-footer-group;
+    background-color: #f2f2f2;  
+}
+#consoleTable .tbody {
+	display: table-row-group;
+}
+#consoleTable .thead {
+	display: table-header-group;
+	text-transform: uppercase;
+    font-size: 0.8em;
+    font-weight: 600;
 }
 

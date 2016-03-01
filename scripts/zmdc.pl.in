@@ -87,7 +87,8 @@ my @daemons = (
     'zmx10.pl',
     'zmwatch.pl',
     'zmupdate.pl',
-    'zmtrack.pl'
+    'zmtrack.pl',
+    'zmtelemetry.pl',
 );
 
 my $command = shift @ARGV;

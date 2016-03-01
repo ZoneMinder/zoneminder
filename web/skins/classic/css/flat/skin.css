@@ -474,22 +474,3 @@ input[type=submit]:disabled {
 
 }
 
-/*
- * Console table for the main event table
- */
-
-#consoleTable td, #consoleTable th {
-    padding: 5px;    
-    border-bottom: 2px solid #f2f2f2;
-}
-
-#consoleTable input[type=button] {
-    margin-right: 3px !important;
-}
-
-#consoleTable tfoot {
-    background-color: #f2f2f2;  
-}
-
-
-

@@ -1,126 +1,172 @@
 #systemTime {
-    float: left;
+	float: left;
 }
 
 #title {
-    margin: 0 auto;
-    text-align: center;
-    width: 50%;
+	margin: 0 auto;
+	text-align: center;
+	width: 50%;
 }
 
 #systemStats {
-    float: right;
+	float: right;
 }
 
 #monitorSummary {
-    float: left;
-    text-align: left;
-    width: 20%;
+	float: left;
+	text-align: left;
+	width: 20%;
 }
 
 #devices {
-    float: left;
+	float: left;
 }
 
 #loginBandwidth {
-    margin: 0 auto;
-    text-align: center;
-    width: 40%;
+	margin: 0 auto;
+	text-align: center;
+	width: 40%;
 }
 
 #cycleMontage {
-    float: right;
+	float: right;
 }
 
 #options {
-    float: right;
-    text-align: right;
-    width: 20%;
+	float: right;
+	text-align: right;
+	width: 20%;
 }
 
 #consoleTable {
-    width: 100%;
+	width: 100%;
+	border-collapse: collapse;
+display: table;
 }
 
 #consoleTable div.highlight {
-    background-color: #eeeeee;
+	background-color: #eeeeee;
 }
 
 #consoleTable .thead .tr div {
-    padding-bottom: 4px;
-    vertical-align: middle;
+	vertical-align: middle;
 }
 
+#consoleTable .MonitorInfo {
+	display: table-cell;
+	width: auto;
+}
+#consoleTable .MonitorInfo div {
+	display: inline-block;
+	text-align: left;
+	width: 19%;
+	padding: 5px 0;
+}
+
+#consoleTable .Events {
+	display: table-cell;
+	width: 381px;
+}
+#consoleTable .Events .Events {
+	width: 50px;
+}
+
+#consoleTable .Events div {
+	display: inline-block;
+	padding-bottom: 0;
+}
+
+#consoleTable .tfoot .tr {
+	padding-top: 4px;
+}
 #consoleTable .tfoot .tr div {
-    padding-top: 4px;
-    vertical-align: middle;
+	vertical-align: middle;
 }
 
 #consoleTable .tr div {
-    height: 16px;
-    text-align: left;
 }
 
 #consoleTable .colOrder {
-    text-align: center;
+	width: 47px;
+	text-align: center;
+	display: table-cell;
 }
 
 #consoleTable .colMark {
-    width: 32px;
-    text-align: center;
+	width: 32px;
+	text-align: center;
+	display: table-cell;
 }
 
 #consoleTable .colEvents {
-    text-align: right;
+	text-align: right;
+}
+#consoleTable .Hour {
+	width: 35px;
+}
+#consoleTable .Day {
+	width: 42px;
+}
+#consoleTable .Week {
+	width: 42px;
+}
+#consoleTable .Month {
+	width: 50px;
+}
+#consoleTable .Archived {
+	width: 62px;
 }
 
 #consoleTable .colZones {
-    text-align: right;
+	width: 40px;
+	text-align: right;
+	display: table-cell;
 }
 
 #consoleTable .colLeftButtons {
-    text-align: left;
-	min-width:300px;
+	text-align: left;
+	min-width:400px;
 }
 
 #consoleTable .colLeftButtons input {
-    margin-right: 24px;
+	margin-right: 24px;
 }
 
 #consoleTable .colRightButtons {
-    text-align: right;
-    padding-right: 8px;
-	min-width: 150px;
+	text-align: right;
+	min-width: 158px;
+	margin-right: -32px; 
 }
 
 #consoleTable .colRightButtons input {
-    margin: 0 8px;
+	margin: 0 8px;
 }
 
 /*
  * Console table for the main event table
  */
-#consoleTable {
-display: table;
-}
 
 #consoleTable .tr {
 	display: table-row;
 }
-#consoleTable .tr div {
-	text-align: left;
-	display: table-cell;
-    padding: 5px;    
-    border-bottom: 2px solid #f2f2f2;
+
+#consoleTable .Monitor {
+	display: table-row;
+}
+
+#consoleTable .tr {
+	padding: 5px 0;
+	border-bottom: 2px solid #f2f2f2;
+	line-height: auto;
 }
 
 #consoleTable input[type=button] {
-    margin-right: 3px !important;
+	margin-right: 3px !important;
 }
 
 #consoleTable .tfoot {
 	display: table-footer-group;
-    background-color: #f2f2f2;  
+	background-color: #f2f2f2;  
 }
 #consoleTable .tbody {
 	display: table-row-group;
@@ -128,7 +174,7 @@ display: table;
 #consoleTable .thead {
 	display: table-header-group;
 	text-transform: uppercase;
-    font-size: 0.8em;
-    font-weight: 600;
+	font-size: 0.8em;
+	font-weight: 600;
 }
 

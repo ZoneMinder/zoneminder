@@ -22,6 +22,7 @@ require_once('includes/Server.php');
 $servers = Server::find_all();
 require_once('includes/Storage.php');
 $storage_areas = Storage::find_all();
+require_once('includes/Monitor.php');
 $show_storage_areas = count($storage_areas) > 1 and canEdit( 'System' ) ? 1 : 0;
 
 $eventCounts = array(
@@ -240,41 +241,41 @@ else
 ?>&nbsp;<?php echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', $bwArray[$_COOKIE['zmBandwidth']], ($user && $user['MaxBandwidth'] != 'low' ) ) ?> <?php echo translate('BandwidthHead') ?></h3>
     </div>
     <div id="content">
-      <table id="consoleTable" cellspacing="0">
-        <thead>
-          <tr>
-            <th class="colName"><?php echo translate('Name') ?></th>
-            <th class="colFunction"><?php echo translate('Function') ?></th>
+      <div id="consoleTable" cellspacing="0">
+        <div class="thead">
+          <div class="tr">
+            <div class="colName"><?php echo translate('Name') ?></div>
+            <div class="colFunction"><?php echo translate('Function') ?></div>
 <?php if ( count($servers) ) { ?>
-			<th class="colServer"><?php echo translate('Server') ?></th>
+			<div class="colServer"><?php echo translate('Server') ?></div>
 <?php } ?>
-            <th class="colSource"><?php echo translate('Source') ?></th>
+            <div class="colSource"><?php echo translate('Source') ?></div>
 <?php if ( $show_storage_areas ) { ?>
-            <th class="colStorage"><?php echo translate('Storage') ?></th>
+            <div class="colStorage"><?php echo translate('Storage') ?></div>
 <?php } ?>
 <?php
 for ( $i = 0; $i < count($eventCounts); $i++ )
 {
 ?>
-            <th class="colEvents"><?php echo $eventCounts[$i]['title'] ?></th>
+            <div class="colEvents"><?php echo $eventCounts[$i]['title'] ?></div>
 <?php
 }
 ?>
-            <th class="colZones"><?php echo translate('Zones') ?></th>
+            <div class="colZones"><?php echo translate('Zones') ?></div>
 <?php
 if ( canEdit('Monitors') )
 {
 ?>
-            <th class="colOrder"><?php echo translate('Order') ?></th>
+            <div class="colOrder"><?php echo translate('Order') ?></div>
 <?php
 }
 ?>
-            <th class="colMark"><?php echo translate('Mark') ?></th>
-          </tr>
-        </thead>
-        <tfoot>
-          <tr>
-            <td class="colLeftButtons" colspan="<?php $columns = 3;
+            <div class="colMark"><?php echo translate('Mark') ?></div>
+          </div>
+        </div>
+        <div class="tfoot">
+          <div class="tr">
+            <div class="colLeftButtons" colspan="<?php $columns = 3;
  if ( count($servers) > 1 ) { $columns += 1; }
  if ( $show_storage_areas ) { $columns += 1; }
 echo $columns;
@@ -282,26 +283,26 @@ echo $columns;
               <input type="button" value="<?php echo translate('Refresh') ?>" onclick="location.reload(true);"/>
               <?php echo makePopupButton( '?view=monitor', 'zmMonitor0', 'monitor', translate('AddNewMonitor'), (canEdit( 'Monitors' ) && !$user['MonitorIds']) ) ?>
               <?php echo makePopupButton( '?view=filter&amp;filter[terms][0][attr]=DateTime&amp;filter[terms][0][op]=%3c&amp;filter[terms][0][val]=now', 'zmFilter', 'filter', translate('Filters'), canView( 'Events' ) ) ?>
-            </td>
+            </div>
 <?php
 for ( $i = 0; $i < count($eventCounts); $i++ )
 {
     parseFilter( $eventCounts[$i]['filter'] );
 ?>
-            <td class="colEvents"><?php echo makePopupLink( '?view='.$eventsView.'&amp;page=1'.$eventCounts[$i]['filter']['query'], $eventsWindow, $eventsView, $eventCounts[$i]['total'], canView( 'Events' ) ) ?></td>
+            <div class="colEvents"><?php echo makePopupLink( '?view='.$eventsView.'&amp;page=1'.$eventCounts[$i]['filter']['query'], $eventsWindow, $eventsView, $eventCounts[$i]['total'], canView( 'Events' ) ) ?></div>
 <?php
 }
 ?>
-            <td class="colZones"><?php echo $zoneCount ?></td>
-            <td class="colRightButtons" colspan="<?php echo canEdit('Monitors')?2:1 ?>"><input type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editMonitor( this )" disabled="disabled"/><input type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteMonitor( this )" disabled="disabled"/></td>
-          </tr>
-        </tfoot>
-        <tbody>
+            <div class="colZones"><?php echo $zoneCount ?></div>
+            <div class="colRightButtons" colspan="<?php echo canEdit('Monitors')?2:1 ?>"><input type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editMonitor( this )" disabled="disabled"/><input type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteMonitor( this )" disabled="disabled"/></div>
+          </div>
+        </div>
+        <div class="tbody">
 <?php
 foreach( $displayMonitors as $monitor )
 {
 ?>
-          <tr title="<?php echo $monitor['Id'] ?>">
+          <div class="tr" title="<?php echo $monitor['Id'] ?>">
 <?php
     if ( !$monitor['zmc'] )
         $dclass = "errorText";
@@ -323,20 +324,20 @@ foreach( $displayMonitors as $monitor )
         $fclass .= " disabledText";
     $scale = max( reScale( SCALE_BASE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
 ?>
-            <td class="colName"><?php echo makePopupLink( '?view=watch&amp;mid='.$monitor['Id'], 'zmWatch'.$monitor['Id'], array( 'watch', reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ) ), $monitor['Name'], $running && ($monitor['Function'] != 'None') && canView( 'Stream' ) ) ?></td>
-            <td class="colFunction"><?php echo makePopupLink( '?view=function&amp;mid='.$monitor['Id'], 'zmFunction', 'function', '<span class="'.$fclass.'">'.translate('Fn'.$monitor['Function']).( empty($monitor['Enabled']) ? ', disabled' : '' ) .'</span>', canEdit( 'Monitors' ) ) ?></td>
+            <div class="colName"><?php echo makePopupLink( '?view=watch&amp;mid='.$monitor['Id'], 'zmWatch'.$monitor['Id'], array( 'watch', reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ) ), $monitor['Name'], $running && ($monitor['Function'] != 'None') && canView( 'Stream' ) ) ?></div>
+            <div class="colFunction"><?php echo makePopupLink( '?view=function&amp;mid='.$monitor['Id'], 'zmFunction', 'function', '<span class="'.$fclass.'">'.translate('Fn'.$monitor['Function']).( empty($monitor['Enabled']) ? ', disabled' : '' ) .'</span>', canEdit( 'Monitors' ) ) ?></div>
 <?php if ( count($servers) ) { ?>
-			<td class="colServer"><?php 
+			<div class="colServer"><?php 
 $Server = new Server( $monitor['ServerId'] );
 echo $Server->Name();
- ?></td>
+ ?></div>
 <?php } ?>
 <?php if ( $monitor['Type'] == "Local" ) { ?>
-            <td class="colSource"><?php echo makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.$monitor['Device'].' ('.$monitor['Channel'].')</span>', canEdit( 'Monitors' ) ) ?></td>
+            <div class="colSource"><?php echo makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.$monitor['Device'].' ('.$monitor['Channel'].')</span>', canEdit( 'Monitors' ) ) ?></div>
 <?php } elseif ( $monitor['Type'] == "Remote" ) { ?>
-            <td class="colSource"><?php echo makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.preg_replace( '/^.*@/', '', $monitor['Host'] ).'</span>', canEdit( 'Monitors' ) ) ?></td>
+            <div class="colSource"><?php echo makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.preg_replace( '/^.*@/', '', $monitor['Host'] ).'</span>', canEdit( 'Monitors' ) ) ?></div>
 <?php } elseif ( $monitor['Type'] == "File" ) { ?>
-            <td class="colSource"><?php echo makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.preg_replace( '/^.*\//', '', $monitor['Path'] ).'</span>', canEdit( 'Monitors' ) ) ?></td>
+            <div class="colSource"><?php echo makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.preg_replace( '/^.*\//', '', $monitor['Path'] ).'</span>', canEdit( 'Monitors' ) ) ?></div>
 <?php } elseif ( $monitor['Type'] == "Ffmpeg" || $monitor['Type'] == "Libvlc" ) {
     $domain = parse_url( $monitor['Path'], PHP_URL_HOST );
     $shortpath = $domain ? $domain : preg_replace( '/^.*\//', '', $monitor['Path'] );
@@ -344,42 +345,42 @@ echo $Server->Name();
 		$shortpath = 'Monitor ' . $monitor['Id'];
 	}
 ?>
-            <td class="colSource"><?php echo makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.$shortpath.'</span>', canEdit( 'Monitors' ) ) ?></td>
+            <div class="colSource"><?php echo makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.$shortpath.'</span>', canEdit( 'Monitors' ) ) ?></div>
 <?php } elseif ( $monitor['Type'] == "cURL" ) { ?>
-            <td class="colSource"><?php echo makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.preg_replace( '/^.*\//', '', $monitor['Path'] ).'</span>', canEdit( 'Monitors' ) ) ?></td>
+            <div class="colSource"><?php echo makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.preg_replace( '/^.*\//', '', $monitor['Path'] ).'</span>', canEdit( 'Monitors' ) ) ?></div>
 <?php } else { ?>
-            <td class="colSource">&nbsp;</td>
+            <div class="colSource">&nbsp;</div>
 <?php } ?>
 <?php if ( $show_storage_areas ) { ?>
-			<td class="colStorage"><?php 
+			<div class="colStorage"><?php 
 $Storage = new Storage( $monitor['StorageId'] );
 echo $Storage->Name();
-?></td>
+?></div>
 <?php } ?>
 <?php
     for ( $i = 0; $i < count($eventCounts); $i++ )
     {
 ?>
-            <td class="colEvents"><?php echo makePopupLink( '?view='.$eventsView.'&amp;page=1'.$monitor['eventCounts'][$i]['filter']['query'], $eventsWindow, $eventsView, $monitor['EventCount'.$i], canView( 'Events' ) ) ?></td>
+            <div class="colEvents"><?php echo makePopupLink( '?view='.$eventsView.'&amp;page=1'.$monitor['eventCounts'][$i]['filter']['query'], $eventsWindow, $eventsView, $monitor['EventCount'.$i], canView( 'Events' ) ) ?></div>
 <?php
     }
 ?>
-            <td class="colZones"><?php echo makePopupLink( '?view=zones&amp;mid='.$monitor['Id'], 'zmZones', array( 'zones', $monitor['Width'], $monitor['Height'] ), $monitor['ZoneCount'], canView( 'Monitors' ) ) ?></td>
+            <div class="colZones"><?php echo makePopupLink( '?view=zones&amp;mid='.$monitor['Id'], 'zmZones', array( 'zones', $monitor['Width'], $monitor['Height'] ), $monitor['ZoneCount'], canView( 'Monitors' ) ) ?></div>
 <?php
     if ( canEdit('Monitors') )
     {
 ?>
-            <td class="colOrder"><?php echo makeLink( '?view='.$view.'&amp;action=sequence&amp;mid='.$monitor['Id'].'&amp;smid='.$seqIdUpList[$monitor['Id']], '<img src="'.$seqUpFile.'" alt="Up"/>', $monitor['Sequence']>$minSequence ) ?><?php echo makeLink( '?view='.$view.'&amp;action=sequence&amp;mid='.$monitor['Id'].'&amp;smid='.$seqIdDownList[$monitor['Id']], '<img src="'.$seqDownFile.'" alt="Down"/>', $monitor['Sequence']<$maxSequence ) ?></td>
+            <div class="colOrder"><?php echo makeLink( '?view='.$view.'&amp;action=sequence&amp;mid='.$monitor['Id'].'&amp;smid='.$seqIdUpList[$monitor['Id']], '<img src="'.$seqUpFile.'" alt="Up"/>', $monitor['Sequence']>$minSequence ) ?><?php echo makeLink( '?view='.$view.'&amp;action=sequence&amp;mid='.$monitor['Id'].'&amp;smid='.$seqIdDownList[$monitor['Id']], '<img src="'.$seqDownFile.'" alt="Down"/>', $monitor['Sequence']<$maxSequence ) ?></div>
 <?php
     }
 ?>
-            <td class="colMark"><input type="checkbox" name="markMids[]" value="<?php echo $monitor['Id'] ?>" onclick="setButtonStates( this )"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></td>
-          </tr>
+            <div class="colMark"><input type="checkbox" name="markMids[]" value="<?php echo $monitor['Id'] ?>" onclick="setButtonStates( this )"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></div>
+          </div>
 <?php
 }
 ?>
-        </tbody>
-      </table>
+        </div>
+      </div>
     </div>
     </form>
   </div>

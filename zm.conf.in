@@ -46,5 +46,9 @@ ZM_DB_USER=@ZM_DB_USER@
 # ZoneMinder database password
 ZM_DB_PASS=@ZM_DB_PASS@
 
-# Host of this machine
+# Do NOT set ZM_SERVER_HOST if you are not using Multi-Server
+# You have been warned
+#
+# The name specified here must have a corresponding entry
+# in the Servers tab under Options
 ZM_SERVER_HOST=

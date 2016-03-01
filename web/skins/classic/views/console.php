@@ -244,6 +244,7 @@ else
       <div id="consoleTable" cellspacing="0">
         <div class="thead">
           <div class="tr">
+<div class="MonitorInfo">
             <div class="colName"><?php echo translate('Name') ?></div>
             <div class="colFunction"><?php echo translate('Function') ?></div>
 <?php if ( count($servers) ) { ?>
@@ -253,14 +254,17 @@ else
 <?php if ( $show_storage_areas ) { ?>
             <div class="colStorage"><?php echo translate('Storage') ?></div>
 <?php } ?>
+</div>
+<div class="Events">
 <?php
 for ( $i = 0; $i < count($eventCounts); $i++ )
 {
 ?>
-            <div class="colEvents"><?php echo $eventCounts[$i]['title'] ?></div>
+            <div class="colEvents <?php echo $eventCounts[$i]['title'] ?>"><?php echo $eventCounts[$i]['title'] ?></div>
 <?php
 }
 ?>
+</div>
             <div class="colZones"><?php echo translate('Zones') ?></div>
 <?php
 if ( canEdit('Monitors') )
@@ -284,15 +288,17 @@ echo $columns;
               <?php echo makePopupButton( '?view=monitor', 'zmMonitor0', 'monitor', translate('AddNewMonitor'), (canEdit( 'Monitors' ) && !$user['MonitorIds']) ) ?>
               <?php echo makePopupButton( '?view=filter&amp;filter[terms][0][attr]=DateTime&amp;filter[terms][0][op]=%3c&amp;filter[terms][0][val]=now', 'zmFilter', 'filter', translate('Filters'), canView( 'Events' ) ) ?>
             </div>
+			<div class="Events">
 <?php
 for ( $i = 0; $i < count($eventCounts); $i++ )
 {
     parseFilter( $eventCounts[$i]['filter'] );
 ?>
-            <div class="colEvents"><?php echo makePopupLink( '?view='.$eventsView.'&amp;page=1'.$eventCounts[$i]['filter']['query'], $eventsWindow, $eventsView, $eventCounts[$i]['total'], canView( 'Events' ) ) ?></div>
+            <div class="colEvents <?php echo $eventCounts[$i]['title'] ?>"><?php echo makePopupLink( '?view='.$eventsView.'&amp;page=1'.$eventCounts[$i]['filter']['query'], $eventsWindow, $eventsView, $eventCounts[$i]['total'], canView( 'Events' ) ) ?></div>
 <?php
 }
 ?>
+			</div>
             <div class="colZones"><?php echo $zoneCount ?></div>
             <div class="colRightButtons" colspan="<?php echo canEdit('Monitors')?2:1 ?>"><input type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editMonitor( this )" disabled="disabled"/><input type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteMonitor( this )" disabled="disabled"/></div>
           </div>
@@ -324,6 +330,7 @@ foreach( $displayMonitors as $monitor )
         $fclass .= " disabledText";
     $scale = max( reScale( SCALE_BASE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
 ?>
+<div class="MonitorInfo">
             <div class="colName"><?php echo makePopupLink( '?view=watch&amp;mid='.$monitor['Id'], 'zmWatch'.$monitor['Id'], array( 'watch', reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ) ), $monitor['Name'], $running && ($monitor['Function'] != 'None') && canView( 'Stream' ) ) ?></div>
             <div class="colFunction"><?php echo makePopupLink( '?view=function&amp;mid='.$monitor['Id'], 'zmFunction', 'function', '<span class="'.$fclass.'">'.translate('Fn'.$monitor['Function']).( empty($monitor['Enabled']) ? ', disabled' : '' ) .'</span>', canEdit( 'Monitors' ) ) ?></div>
 <?php if ( count($servers) ) { ?>
@@ -352,19 +359,18 @@ echo $Server->Name();
             <div class="colSource">&nbsp;</div>
 <?php } ?>
 <?php if ( $show_storage_areas ) { ?>
-			<div class="colStorage"><?php 
-$Storage = new Storage( $monitor['StorageId'] );
-echo $Storage->Name();
-?></div>
+			<div class="colStorage"><?php $Storage = new Storage( $monitor['StorageId'] ); echo $Storage->Name(); ?></div>
 <?php } ?>
+	</div><div class="Events">
 <?php
     for ( $i = 0; $i < count($eventCounts); $i++ )
     {
 ?>
-            <div class="colEvents"><?php echo makePopupLink( '?view='.$eventsView.'&amp;page=1'.$monitor['eventCounts'][$i]['filter']['query'], $eventsWindow, $eventsView, $monitor['EventCount'.$i], canView( 'Events' ) ) ?></div>
+            <div class="colEvents <?php echo $eventCounts[$i]['title'] ?>"><?php echo makePopupLink( '?view='.$eventsView.'&amp;page=1'.$monitor['eventCounts'][$i]['filter']['query'], $eventsWindow, $eventsView, $monitor['EventCount'.$i], canView( 'Events' ) ) ?></div>
 <?php
     }
 ?>
+			</div>
             <div class="colZones"><?php echo makePopupLink( '?view=zones&amp;mid='.$monitor['Id'], 'zmZones', array( 'zones', $monitor['Width'], $monitor['Height'] ), $monitor['ZoneCount'], canView( 'Monitors' ) ) ?></div>
 <?php
     if ( canEdit('Monitors') )

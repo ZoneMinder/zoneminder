@@ -333,7 +333,13 @@ void VideoStream::OpenStream( )
 			Panic( "Could not allocate opicture" );
 		}
 		
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+		int size = av_image_get_buffer_size( c->pix_fmt, c->width, 
+                        c->height, 1 );
+#else
 		int size = avpicture_get_size( c->pix_fmt, c->width, c->height );
+#endif
+
 		uint8_t *opicture_buf = (uint8_t *)av_malloc( size );
 		if ( !opicture_buf )
 		{
@@ -344,7 +350,13 @@ void VideoStream::OpenStream( )
 #endif
 			Panic( "Could not allocate opicture_buf" );
 		}
-		avpicture_fill( (AVPicture *)opicture, opicture_buf, c->pix_fmt, c->width, c->height );
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+                av_image_fill_arrays(opicture->data, opicture->linesize,
+                        opicture_buf, c->pix_fmt, c->width, c->height, 1);
+#else
+		avpicture_fill( (AVPicture *)opicture, opicture_buf, c->pix_fmt,
+                        c->width, c->height );
+#endif
 
 		/* if the output format is not identical to the input format, then a temporary
 		   picture is needed too. It is then converted to the required
@@ -361,7 +373,12 @@ void VideoStream::OpenStream( )
 			{
 				Panic( "Could not allocate tmp_opicture" );
 			}
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+			int size = av_image_get_buffer_size( pf, c->width,
+                                c->height,1 );
+#else
 			int size = avpicture_get_size( pf, c->width, c->height );
+#endif
 			uint8_t *tmp_opicture_buf = (uint8_t *)av_malloc( size );
 			if ( !tmp_opicture_buf )
 			{
@@ -372,7 +389,14 @@ void VideoStream::OpenStream( )
 #endif
 				Panic( "Could not allocate tmp_opicture_buf" );
 			}
-			avpicture_fill( (AVPicture *)tmp_opicture, tmp_opicture_buf, pf, c->width, c->height );
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+                        av_image_fill_arrays(tmp_opicture->data,
+                                tmp_opicture->linesize, tmp_opicture_buf, pf,
+                                c->width, c->height, 1);
+#else
+			avpicture_fill( (AVPicture *)tmp_opicture,
+                                tmp_opicture_buf, pf, c->width, c->height );
+#endif
 		}
 	}
 

@@ -2747,6 +2747,44 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
         category    => "system",
     },
     {
+        name        => "ZM_TELEMETRY_DATA",
+        default     => "yes",
+        description => "Send usage information to ZoneMinder",
+        help        => qqq("
+            Enable collection of usage information of the local system and send
+            it to the ZoneMinder development team. This data will be used to
+            determine things like who and where our customers are, how big their
+            systems are, the underlying hardware and operating system, etc.
+            This is being done for the sole purpoase of creating a better
+            product for our target audience. This script is intended to be
+            completely transparent to the end user, and can be disabled from
+            the web console under Options.
+        "),
+        type        => $types{boolean},
+        category    => "system",
+    },
+    {
+        name        => "ZM_TELEMETRY_UUID",
+        default     => "",
+        description => "Unique identifier for ZoneMinder telemetry",
+        help        => qqq("
+            This variable is auto-generated once by the system and is used to
+            uniquely identify it among all other ZoneMinder systems in
+            existence.
+        "),
+        type        => $types{string},
+        category    => "dynamic",
+    },
+    {
+        name        => "ZM_TELEMETRY_LAST_UPLOAD",
+        default     => "",
+        description => "When the last ZoneMinder telemetry upload ocurred",
+        help        => "",
+        type        => $types{integer},
+        readonly    => 1,
+        category    => "dynamic",
+    },
+    {
         name        => "ZM_UPDATE_CHECK_PROXY",
         default     => "",
         description => "Proxy url if required to access zoneminder.com",

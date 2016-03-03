@@ -11,18 +11,19 @@ function setButtonStates( element )
                 if ( checked++ > 1 )
                     break;
             }
-        }
-    } else if ( form.elements[i].length )
-    {
-		for( var j = 0, j_length = form.elements[i].length; j < j_length; j += 1 ) {
-			if ( form.elements[j].type == "checkbox" ) {
-				if ( form.elements[j].checked ) {
-					if ( checked++ > 1 )
-						break;
-				}
-			}
-		} // end foreach element
-	}
+        } 
+        else if ( form.elements[i].length )
+        {
+		    for( var j = 0, j_length = form.elements[i].length; j < j_length; j += 1 ) {
+			    if ( form.elements[j].type == "checkbox" ) {
+				    if ( form.elements[j].checked ) {
+					    if ( checked++ > 1 )
+						    break;
+				    }
+			    }
+		    } // end foreach element in array
+	    }
+	} // end foreach element in array
     $(element).getParent( 'tr' ).toggleClass( 'highlight' );
     form.editBtn.disabled = (checked!=1);
     form.deleteBtn.disabled = (checked==0);

@@ -702,14 +702,14 @@ double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size,
 #endif
 		if ( got_packet )
 		{
-			if ( c->coded_frame->key_frame )
-			{
-#if LIBAVCODEC_VERSION_CHECK(52, 30, 2, 30, 2)
-				pkt->flags |= AV_PKT_FLAG_KEY;
-#else
-				pkt->flags |= PKT_FLAG_KEY;
-#endif
-			}
+//			if ( c->coded_frame->key_frame )
+//			{
+//#if LIBAVCODEC_VERSION_CHECK(52, 30, 2, 30, 2)
+//				pkt->flags |= AV_PKT_FLAG_KEY;
+//#else
+//				pkt->flags |= PKT_FLAG_KEY;
+//#endif
+//			}
 
 			if ( pkt->pts != (int64_t)AV_NOPTS_VALUE )
 			{

@@ -10,7 +10,7 @@
 %define _without_x10 1
 
 Name: zoneminder
-Version: 1.29.0
+Version: 1.30.0
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -38,7 +38,7 @@ BuildRequires: gcc gcc-c++ vlc-devel libcurl-devel libv4l-devel
 BuildRequires:  httpd polkit-devel
 %{!?_without_ffmpeg:BuildRequires: ffmpeg}
 
-Requires: httpd php php-gd php-mysql cambozola polkit net-tools psmisc mod_ssl
+Requires: httpd php php-gd php-mysql cambozola polkit net-tools psmisc
 Requires: libjpeg-turbo vlc-core libcurl
 Requires: perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires: perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)
@@ -72,6 +72,7 @@ too much degradation of performance.
 ./utils/zmeditconfigdata.sh ZM_OPT_CONTROL yes
 ./utils/zmeditconfigdata.sh ZM_CHECK_FOR_UPDATES no
 ./utils/zmeditconfigdata.sh ZM_DYN_SHOW_DONATE_REMINDER no
+./utils/zmeditconfigdata.sh ZM_OPT_FAST_DELETE no
 
 %build
 %cmake \
@@ -87,6 +88,10 @@ export DESTDIR=%{buildroot}
 make install
 
 %post
+
+# Add any new PTZ control configurations to the database (will not overwrite)
+%{_bindir}/zmcamtool.pl --import >/dev/null 2>&1 || :
+
 if [ $1 -eq 1 ] ; then
     # Initial installation
     /bin/systemctl daemon-reload >/dev/null 2>&1 || :
@@ -98,8 +103,12 @@ fi
 
 # Upgrade from a previous version of zoneminder 
 if [ $1 -eq 2 ] ; then
+
+    # Add any new PTZ control configurations to the database (will not overwrite)
+    %{_bindir}/zmcamtool.pl --import >/dev/null 2>&1 || :
+
     # Freshen the database
-    /usr/bin/zmupdate.pl -f
+    %{_bindir}/zmupdate.pl -f  >/dev/null 2>&1 || :
 
     # We can't run this automatically when new sql account permissions need to
     # be manually added first
@@ -163,9 +172,14 @@ fi
 %{_bindir}/zmwatch.pl
 %{_bindir}/zmcamtool.pl
 %{_bindir}/zmsystemctl.pl
+%{_bindir}/zmtelemetry.pl
 %{!?_without_x10:%{_bindir}/zmx10.pl}
+%{_bindir}/zmonvif-probe.pl
 
 %{perl_vendorlib}/ZoneMinder*
+%{perl_vendorlib}/ONVIF*
+%{perl_vendorlib}/WSDiscovery*
+%{perl_vendorlib}/WSSecurity*
 %{_mandir}/man*/*
 %dir %{_libexecdir}/zoneminder
 %{_libexecdir}/zoneminder/cgi-bin
@@ -188,6 +202,9 @@ fi
 
 
 %changelog
+* Thu Mar 3 2016 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.30.0 
+- Bump version fo 1.30.0 release.
+
 * Sat Nov 21 2015 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.29.0 
 - Bump version for 1.29.0 release on Fedora 23.
 

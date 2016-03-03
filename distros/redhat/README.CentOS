@@ -5,15 +5,13 @@ What's New
    ALL permission to the ZoneMinder mysql account. This change must be done
    manually before ZoneMinder will run. See the installation steps below.
 
-2. A new permission group called "Groups" has been added. This allows the
-   system administrator to assign "view", "edit", or "none" permission to
-   normal users, without giving them access to the rest of the ZoneMinder
-   system. During an upgrade, existing accounts will default to a Groups
-   permission of "none".
-
-3. This package now requires the HTTPS protocol to access the web portal.
+2. This package uses the HTTPS protocol by default to access the web portal.
    Requests using HTTP will auto-redirect to HTTPS. See README.https for
    more information.
+
+3. The php package that ships with CentOS 6 does not support the new ZoneMinder
+   API. If you require API functionality (such as using a mobile app) then you
+   should consider an upgrade to CentOS 7 or use Fedora.
 
 New installs
 ============
@@ -40,7 +38,7 @@ New installs
 
 3. If you have chosen to change the zoneminder mysql credentials to something
    other than zmuser/zmpass then you must now edit /etc/zm.conf. Change
-   ZM_DB_USER and ZM_DB_PASS to the values you created in step 2.
+   ZM_DB_USER and ZM_DB_PASS to the values you created in the previous step.
 
    Additionally, you must also edit 
    /usr/share/zoneminder/www/api/app/Config/database.php in a similar manner.
@@ -55,11 +53,15 @@ New installs
    If you are not sure of the proper timezone specification to use, look at
    http://php.net/date.timezone
 
-5. Verify the default ZoneMinder Apache configuration meets your needs:
+5. Install mod_ssl or configure /etc/httpd/conf.d/zoneminder.conf to meet your
+   needs. This package comes preconfigured for HTTPS using the default self
+   signed certificate on your system. The recommended way to complete this step
+   is to simply install mod_ssl:
 
-     /etc/httpd/conf.d/zoneminder.conf
+	sudo yum install mod_ssl
 
-   When in doubt, leave this configuration as it is.
+   If this does not meet your needs, then read README.https to
+   learn about alternatives. When in doubt, install mod_ssl.
 
 6. Configure the web server to start automatically:
 
@@ -122,6 +124,7 @@ New installs
    /etc/httpd/conf.d. You will have a file called "zoneminder.conf" and there
    may also be a file called "zoneminder.conf.rpmnew". If the rpmnew file
    exists, inspect it and merge anything new in that file with zoneminder.conf.
+   Verify the SSL REquirements meet your needs. Read README.https if necessary.
 
 4. Upgrade the database before starting ZoneMinder.
 

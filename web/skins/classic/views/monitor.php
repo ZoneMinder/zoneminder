@@ -124,6 +124,7 @@ if ( ! empty($_REQUEST['mid']) ) {
 		'V4LMultiBuffer'	=>	'',
 		'V4LCapturesPerFrame'	=>	1,
 		'ServerId'	=>	$Server['Id'],
+		'StorageId'	=> '',
     );
 }
 

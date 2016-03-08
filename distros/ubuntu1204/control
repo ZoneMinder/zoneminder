@@ -30,6 +30,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
 , libmodule-load-perl, libsys-mmap-perl, libjson-any-perl
 , libnet-sftp-foreign-perl, libio-pty-perl, libexpect-perl, liburi-encode-perl
 , libdata-dump-perl, libclass-std-fast-perl, libsoap-wsdl-perl, libio-socket-multicast-perl, libdigest-sha-perl
+, libsys-cpu-perl, libsys-meminfo-perl
 , libavdevice53 | libavdevice55
 , libjpeg8|libjpeg9|libjpeg62-turbo
 , zip

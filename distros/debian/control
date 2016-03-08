@@ -37,6 +37,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
 , libcurl4-gnutls-dev | libcurl4-nss-dev | libcurl4-openssl-dev
 , libpolkit-gobject-1-0, liburi-encode-perl, php5-gd
 , libdata-dump-perl, libclass-std-fast-perl, libsoap-wsdl-perl, libio-socket-multicast-perl, libdigest-sha-perl
+, libsys-cpu-perl, libsys-meminfo-perl
 Recommends: mysql-server|mariadb-server
 Description: Video camera security and surveillance solution
  ZoneMinder is intended for use in single or multi-camera video security

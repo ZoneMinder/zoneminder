@@ -23,13 +23,15 @@ Package: zoneminder
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
 , apache2 | httpd, libapache2-mod-php5 | libapache2-mod-fcgid | php5-fpm
-, php5-mysqlnd | php5-mysql, libphp-serialization-perl
+, php5-mysqlnd | php5-mysql
 , mariadb-client | mysql-client
+, libphp-serialization-perl
 , libdate-manip-perl, libmime-lite-perl, libmime-tools-perl, libdbd-mysql-perl
 , libwww-perl, libarchive-tar-perl, libarchive-zip-perl, libdevice-serialport-perl
 , libmodule-load-perl, libsys-mmap-perl, libjson-any-perl
 , libnet-sftp-foreign-perl, libio-pty-perl, libexpect-perl
 , libdata-dump-perl, libclass-std-fast-perl, libsoap-wsdl-perl, libio-socket-multicast-perl, libdigest-sha-perl
+, libsys-cpu-perl, libsys-meminfo-perl
 , libpcre3
 , libav-tools, libavdevice53
 , rsyslog | system-log-daemon

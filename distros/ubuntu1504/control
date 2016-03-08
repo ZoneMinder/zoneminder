@@ -24,6 +24,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
 , libmodule-load-perl, libsys-mmap-perl, libjson-any-perl
 , libnet-sftp-foreign-perl , libio-pty-perl, libexpect-perl , liburi-encode-perl , libdbd-mysql-perl
 , libdata-dump-perl, libclass-std-fast-perl, libsoap-wsdl-perl, libio-socket-multicast-perl, libdigest-sha-perl
+, libsys-cpu-perl, libsys-meminfo-perl
 , libpcre3
 , ffmpeg, libavdevice-ffmpeg56
 , rsyslog | system-log-daemon

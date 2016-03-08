@@ -3,7 +3,7 @@ Section: net
 Priority: optional
 Maintainer: Dmitry Smirnov <onlyjob@debian.org>
 Uploaders: Vagrant Cascadian <vagrant@debian.org>
-Build-Depends: debhelper (>= 9), dh-systemd, python-sphinx | python3-sphinx, apache2-dev, dh-linktree
+Build-Depends: debhelper (>= 9), dh-systemd, python-sphinx | python3-sphinx, apache2-dev, dh-linktree,
               ,cmake
               ,libavcodec-ffmpeg-dev, libavformat-ffmpeg-dev, libswscale-ffmpeg-dev, libavutil-ffmpeg-dev, libavdevice-ffmpeg-dev
               ,libbz2-dev
@@ -16,6 +16,11 @@ Build-Depends: debhelper (>= 9), dh-systemd, python-sphinx | python3-sphinx, apa
               ,libpolkit-gobject-1-dev
               ,libv4l-dev (>= 0.8.3) [!hurd-any]
               ,libvlc-dev
+              ,libdate-manip-perl
+              ,libdbd-mysql-perl
+              ,libphp-serialization-perl
+              ,libsys-mmap-perl [!hurd-any]
+              ,libwww-perl
 # Unbundled (dh_linktree):
         ,libjs-jquery
         ,libjs-mootools
@@ -36,7 +41,6 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libphp-serialization-perl
         ,libmodule-load-conditional-perl
         ,libnet-sftp-foreign-perl
-#       ,libzoneminder-perl (= ${source:Version})
           ,libarchive-zip-perl
           ,libdbd-mysql-perl
           ,libdevice-serialport-perl
@@ -50,6 +54,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
           ,libsoap-wsdl-perl
           ,libio-socket-multicast-perl
           ,libdigest-sha-perl
+          ,libsys-cpu-perl, libsys-meminfo-perl
         ,mysql-client | virtual-mysql-client
         ,perl-modules
         ,php5-mysql, php5-gd

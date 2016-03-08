@@ -5,27 +5,19 @@ What's New
    "/cgi-bin-zm/zms". This has been to done to avoid this bug:
    https://bugzilla.redhat.com/show_bug.cgi?id=973067
 
-   IMPORTANT: ZoneMinder will not update this value during an upgrade. You must
-   manually update ZM_PATH_ZMS yourself under Options. This does not affect
-   new installs.
+   IMPORTANT: You must manually inspect the value for PATH_ZMS under Options
+   and verify it is set to "/cgi-bin-zm/nph-zms". Failure to do so will result
+   in a broken system. You have been warned.
 
-2. The ZoneMinder config file, zm.conf, has been moved under /etc/zm.
-
-3. Due to the active state of the ZoneMinder project, we now recommend granting
+2. Due to the active state of the ZoneMinder project, we now recommend granting
    ALL permission to the ZoneMinder mysql account. This change must be done
    manually before ZoneMinder will run. See the installation steps below.
 
-4. A new permission group called "Groups" has been added. This allows the
-   system administrator to assign "view", "edit", or "none" permission to
-   normal users, without giving them access to the rest of the ZoneMinder
-   system. During an upgrade, existing accounts will default to a Groups
-   permission of "none".
-
-5. This package now requires the HTTPS protocol to access the web portal.
+3. This package uses the HTTPS protocol by default to access the web portal.
    Requests using HTTP will auto-redirect to HTTPS. See README.https for
    more information.
    
-6. This package ships with the new ZoneMinder API enabled.
+4. This package ships with the new ZoneMinder API enabled.
 
 New installs
 ============
@@ -86,13 +78,22 @@ New installs
    SELINUX line from "enforcing" to "disabled". This change will take
    effect after a reboot.
 
+6. Install mod_ssl or configure /etc/httpd/conf.d/zoneminder.conf to meet your
+   needs. This package comes preconfigured for HTTPS using the default self
+   signed certificate on your system. The recommended way to complete this step
+   is to simply install mod_ssl:
 
-6. Now start the web server:
+	sudo yum install mod_ssl
+
+   If this does not meet your needs, then read README.https to
+   learn about alternatives. When in doubt, install mod_ssl.
+
+7. Now start the web server:
 
 	sudo systemctl enable httpd
 	sudo systemctl start httpd
 
-7. Now start zoneminder:
+8. Now start zoneminder:
 
 	sudo systemctl enable zoneminder
 	sudo systemctl start zoneminder
@@ -131,6 +132,7 @@ Upgrades
    /etc/httpd/conf.d. You will have a file called "zoneminder.conf" and there
    may also be a file called "zoneminder.conf.rpmnew". If the rpmnew file
    exists, inspect it and merge anything new in that file with zoneminder.conf.
+   Verify the SSL REquirements meet your needs. Read README.https if necessary.
 
 4. Upgrade the database before starting ZoneMinder.
 

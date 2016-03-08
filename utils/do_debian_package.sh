@@ -52,6 +52,10 @@ else
 ln -sf distros/ubuntu1504_cmake debian
 fi;
 
+# Auto-install all ZoneMinder's depedencies using the Debian control file
+sudo apt-get install devscripts equivs
+sudo mk-build-deps -ir ./debian/control
+
 if [ -z `hostname -d` ] ; then
     AUTHOR="`getent passwd $USER | cut -d ':' -f 5 | cut -d ',' -f 1` <`whoami`@`hostname`.local>"
 else

@@ -1,0 +1,343 @@
+#!/usr/bin/perl -w
+#
+# ==========================================================================
+#
+# ZoneMinder Update Script, $Date$, $Revision$
+# Copyright (C) 2001-2008 Philip Coombes
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+#
+# ==========================================================================
+
+=head1 NAME
+
+zmtelemetry.pl - Send usage information to the ZoneMinder development team
+
+=head1 SYNOPSIS
+
+ zmtelemetry.pl
+
+=head1 DESCRIPTION
+
+This script collects usage information of the local system and sends it to the
+ZoneMinder development team. This data will be used to determine things like
+who and where our customers are, how big their systems are, the underlying
+hardware and operating system, etc. This is being done for the sole purpoase of
+creating a better product for our target audience. This script is intended to
+be completely transparent to the end user, and can be disabled from the web
+console under Options.
+
+=head1 OPTIONS
+
+none currently
+
+=cut
+use strict;
+use bytes;
+
+@EXTRA_PERL_LIB@
+use ZoneMinder;
+use DBI;
+use Getopt::Long;
+use autouse 'Pod::Usage'=>qw(pod2usage);
+use LWP::UserAgent;
+use Sys::MemInfo qw(totalmem);
+use Sys::CPU qw(cpu_count);
+use POSIX qw(strftime uname);
+
+$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
+$ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
+delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
+
+use constant CHECK_INTERVAL => (14*24*60*60); # Interval between version checks
+
+# Setting these as contants for now. 
+# Alternatively, we can put these in the dB and then retrieve using the Config hash.
+use constant ZM_TELEMETRY_SERVER_ENDPOINT => 'https://zmanon:2b2d0b4skps@telemetry.zoneminder.com/zmtelemetry/testing5';
+
+if ( $Config{ZM_TELEMETRY_DATA} )
+{
+    print( "Update agent starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+
+    my $lastCheck = $Config{ZM_TELEMETRY_LAST_CHECK};
+
+    while( 1 ) {
+        my $now = time();
+        if ( ($now-$lastCheck) > CHECK_INTERVAL ) {
+            Info( "Colleting data to send to ZoneMinder Telemetry server." );
+            my $dbh = zmDbConnect();
+            # Build the telemetry hash
+            # We should keep *BSD systems in mind when calling system commands
+            my %telemetry;
+            $telemetry{uuid} = getUUID($dbh);
+            $telemetry{ip} = getIP();
+            $telemetry{timestamp} = strftime( "%Y-%m-%dT%H:%M:%S%z", localtime() );
+            $telemetry{monitor_count} = countQuery($dbh,"Monitors");
+            $telemetry{event_count} = countQuery($dbh,"Events");
+            $telemetry{architecture} = runSysCmd("uname -p");
+            ($telemetry{kernel}, $telemetry{distro}, $telemetry{version}) = getDistro();
+            $telemetry{zm_version} = ZoneMinder::Base::ZM_VERSION;
+            $telemetry{system_memory} = totalmem();
+            $telemetry{processor_count} = cpu_count();
+            $telemetry{monitors} = getMonitorRef($dbh);
+
+            Info( "Sending data to ZoneMinder Telemetry server." );
+
+            my $result = jsonEncode( \%telemetry );
+
+            if ( sendData($result) ) {
+                $lastCheck = $now;
+
+                my $sql = "update Config set Value = ? where Name = 'ZM_TELEMETRY_LAST_UPLOAD'";
+                my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+                my $res = $sth->execute( "$lastCheck" ) or die( "Can't execute: ".$sth->errstr() );
+                $sth->finish();
+            }
+        }
+        sleep( 3600 );
+    }
+    print( "Update agent exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+}
+
+###############
+# SUBROUTINES #
+###############
+
+# Find, verify, then run the supplied system command
+sub runSysCmd {
+    my $msg = shift;
+    my @arguments = split(/ /,$msg);
+    chomp($arguments[0]);
+    my $path  = qx( which $arguments[0] );
+
+    my $status = $? >> 8;
+    my $result = "";
+    if ( !$path || $status ) {
+        Warning( "Cannot find the $arguments[0] executable." );
+    } else {
+        chomp($path);
+        $arguments[0] = $path;
+        my $cmd = join(" ",@arguments);
+        $result = qx( $cmd );
+        chomp($result);
+    }
+
+return $result;
+}
+
+# Upload message data to ZoneMinder telemetry server
+sub sendData {
+    my $msg = shift;
+
+    my $ua = LWP::UserAgent->new;
+    my $server_endpoint = ZM_TELEMETRY_SERVER_ENDPOINT;
+
+    if ( $Config{ZM_UPDATE_CHECK_PROXY} ) {
+        $ua->proxy( "https", $Config{ZM_UPDATE_CHECK_PROXY} );
+    }
+
+    Debug("Posting telemetry data to: $server_endpoint");
+
+    # set custom HTTP request header fields
+    my $req = HTTP::Request->new(POST => $server_endpoint);
+    $req->header('content-type' => 'application/x-www-form-urlencoded');
+    $req->header('content-length' => length($msg));
+    $req->header('connection' => 'Close');
+ 
+    $req->content($msg);
+ 
+    my $resp = $ua->request($req);
+    my $resp_msg = $resp->decoded_content;
+    my $resp_code = $resp->code;
+    if ($resp->is_success) {       
+        Info("Telemetry data uploaded successfully.");
+        Debug("Telemetry server upload success response message: $resp_msg");
+    } else {
+        Warning("Telemetry server returned HTTP POST error code: $resp_code");
+        Debug("Telemetry server upload failure response message: $resp_msg");
+    }
+return $resp->is_success;
+}
+
+# Retrieves the UUID from the database. Creates a new UUID if one does not exist.
+sub getUUID {
+    my $dbh = shift;
+    my $uuid= "";
+
+    # Verify the current UUID is valid and not nil
+    if (( $Config{ZM_TELEMETRY_UUID} =~ /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i ) && ( $Config{ZM_TELEMETRY_UUID} ne "00000000-0000-0000-0000-000000000000" )) {
+        $uuid = $Config{ZM_TELEMETRY_UUID};
+    } else {
+        my $sql = "SELECT uuid()";
+        my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+        my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+        $uuid = $Config{ZM_TELEMETRY_UUID} = $sth->fetchrow_array();
+        $sth->finish();
+
+        $sql = "UPDATE Config set Value = ? WHERE Name = 'ZM_TELEMETRY_UUID'";
+        $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+        $res = $sth->execute( "$uuid" ) or die( "Can't execute: ".$sth->errstr() );
+        $sth->finish();
+    }
+    Debug("Using UUID of: $uuid");
+
+return $uuid;
+}
+
+# Retrieves the local server's external IP address
+sub getIP {   
+    my $ipaddr = "0.0.0.0";
+    my $ua = LWP::UserAgent->new;
+    my $server_endpoint = "https://wiki.zoneminder.com/ip.php";
+
+    my $req = HTTP::Request->new(GET => $server_endpoint);
+    my $resp = $ua->request($req);
+
+    if ($resp->is_success) {
+        $ipaddr = $resp->decoded_content;
+    }
+
+    Debug("Found external ip address of: $ipaddr");
+
+return $ipaddr;
+}
+
+# As the name implies, just your average mysql count query
+sub countQuery {
+    my $dbh = shift;
+    my $table = shift;
+
+    my $sql = "SELECT count(*) FROM $table";
+    my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+    my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+    my $count = $sth->fetchrow_array();
+    $sth->finish();
+
+return $count
+}
+
+# Returns a reference to an array of hashes containing data from all monitors
+sub getMonitorRef {
+    my $dbh = shift;
+
+    my $sql = "SELECT Id,Name,Type,Function,Width,Height,Colours,MaxFPS,AlarmMaxFPS FROM Monitors";
+    my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+    my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+    my $arrayref = $sth->fetchall_arrayref({});
+
+return $arrayref;
+}
+
+sub getDistro {
+    my $kernel = "";
+    my $distro = "";
+    my $version = "";
+    my @uname = uname();
+
+    if ( $uname[0] =~ /Linux/ ) {
+        Debug("Linux distro detected.");
+        ($kernel, $distro, $version) = linuxDistro();
+    } elsif ( $uname[0] =~ /.*BSD/ ) {
+        Debug("BSD distro detected.");
+        $kernel = $uname[3];
+        $distro = $uname[0];
+        $version = $uname[2];
+    } elsif ( $uname[0] =~ /Darwin/ ) {
+        Debug("Mac OS distro detected.");
+        $kernel = $uname[3];
+        $distro = runSysCmd("sw_vers -productName");
+        $version = runSysCmd("sw_vers -productVersion");
+    } elsif ( $uname[0] =~ /SunOS|Solaris/ ) {
+        Debug("Sun Solaris detected.");
+        $kernel = $uname[3];
+        $distro = $uname[1];
+        $version = $uname[2];   
+    } else {
+        Warning("ZoneMinder was unable to determine the host system. Please report.");
+        $kernel = "Unknown"; 
+        $distro = "Unknown";
+        $version = "Unknown";
+    }
+
+return ($kernel, $distro, $version);
+}
+
+sub linuxDistro {
+    my @uname = uname();
+    my $kernel = $uname[2];
+    my $distro = "Unknown Linux Distro";
+    my $version = "Unknown Linux Version";
+    my $found = 0;
+
+    # os-release is the standard for many new distros based on systemd
+    if ( -f "/etc/os-release" ) {
+        open(my $RELFILE,"<","/etc/os-release") or die( "Can't Open file: $!\n" );
+        while (<$RELFILE>) {
+            if ( /^NAME=(")?(.*)(?(1)\1|).*$/ ) {
+                $distro = $2;
+                $found = 1;
+            }
+            if ( /^VERSION_ID=(")?(.*)(?(1)\1|).*$/ ) {
+                $version = $2;
+                $found = 1;
+            }
+        }
+        close $RELFILE;
+    # exists on many distros but does not always contain useful information, such as redhat
+    } elsif ( -f "/etc/lsb-release" ) {
+        open(my $RELFILE,"<","/etc/lsb-release") or die( "Can't Open file: $!\n" );
+        while (<$RELFILE>) {
+            if ( /^DISTRIB_DESCRIPTION=(")?(.*)(?(1)\1|).*$/ ) {
+                $distro = $2;
+                $found = 1;
+            }
+            if ( /^DISTRIB_RELEASE=(")?(.*)(?(1)\1|).*$/ ) {
+                $version = $2;
+                $found = 1;
+            }
+        }
+        close $RELFILE;
+    }
+
+    # If all else fails, search through a list of known release files until we find one
+    if ( !$found ) {
+        my @releasefile = ("/etc/SuSE-release", "/etc/redhat-release", "/etc/redhat_version",
+                        "/etc/fedora-release", "/etc/slackware-release", "/etc/slackware-version",
+                        "/etc/debian_release", "/etc/debian_version", "/etc/mandrake-release",
+                        "/etc/yellowdog-release", "/etc/gentoo-release");
+        foreach (@releasefile) {
+            if ( -f $_ ) {
+                open(my $RELFILE,"<",$_) or die( "Can't Open file: $!\n" );
+                while (<$RELFILE>) {
+                    if ( /(.*).* (\d+\.?\d*) .*/ ) {
+                        $distro = $1;
+                        $version = $2;
+                        $found = 1;
+                    }
+                }
+                close $RELFILE;               
+                last;
+            }
+        }
+    }
+
+    if ( !$found ) {
+        Warning("ZoneMinder was unable to determine Linux distro. Please report.");
+    }
+
+return ($kernel, $distro, $version);
+}
+
+

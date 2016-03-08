@@ -16,7 +16,7 @@ else(ZM_TARGET_DISTRO STREQUAL "el7")
 endif(ZM_TARGET_DISTRO STREQUAL "el7")
 
 # Download jscalendar & move files into position
-file(DOWNLOAD http://skylineservers.dl.sourceforge.net/project/jscalendar/jscalendar/1.0/jscalendar-1.0.zip ${CMAKE_CURRENT_SOURCE_DIR}/jscalendar-1.0.zip LOG jsc_log STATUS download_jsc)
+file(DOWNLOAD http://iweb.dl.sourceforge.net/project/jscalendar/jscalendar/1.0/jscalendar-1.0.zip ${CMAKE_CURRENT_SOURCE_DIR}/jscalendar-1.0.zip LOG jsc_log STATUS download_jsc)
 #message(STATUS "Log of jscalender script was: ${jsc_log}")
 if(download_jsc EQUAL 0)
 	message(STATUS "Jscalander successfully downloaded.  Installing...")

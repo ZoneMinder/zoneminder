@@ -82,7 +82,7 @@ class XmlTest extends CakeTestCase {
 /**
  * autoFixtures property
  *
- * @var boolean
+ * @var bool
  */
 	public $autoFixtures = false;
 
@@ -168,6 +168,28 @@ class XmlTest extends CakeTestCase {
 	}
 
 /**
+ * Test that the readFile option disables local file parsing.
+ *
+ * @expectedException XmlException
+ * @return void
+ */
+	public function testBuildFromFileWhenDisabled() {
+		$xml = CAKE . 'Test' . DS . 'Fixture' . DS . 'sample.xml';
+		Xml::build($xml, array('readFile' => false));
+	}
+
+/**
+ * Test that the readFile option disables local file parsing.
+ *
+ * @expectedException XmlException
+ * @return void
+ */
+	public function testBuildFromUrlWhenDisabled() {
+		$xml = 'http://www.google.com';
+		Xml::build($xml, array('readFile' => false));
+	}
+
+/**
  * data provider function for testBuildInvalidData
  *
  * @return array
@@ -200,7 +222,7 @@ class XmlTest extends CakeTestCase {
  */
 	public function testBuildInvalidDataSimpleXml() {
 		$input = '<derp';
-		$xml = Xml::build($input, array('return' => 'simplexml'));
+		Xml::build($input, array('return' => 'simplexml'));
 	}
 
 /**

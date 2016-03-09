@@ -87,7 +87,8 @@ my @daemons = (
     'zmx10.pl',
     'zmwatch.pl',
     'zmupdate.pl',
-    'zmtrack.pl'
+    'zmtrack.pl',
+    'zmtelemetry.pl',
 );
 
 my $command = shift @ARGV;
@@ -250,13 +251,15 @@ sub run
     {
         print( $PID $$ );
         close( $PID );
+	} else {
+		Error( "Can't open pid file at " . ZM_PID );
     }
 
     killAll( 1 );
 
     socket( SERVER, PF_UNIX, SOCK_STREAM, 0 ) or Fatal( "Can't open socket: $!" );
-    unlink( main::SOCK_FILE );
-    bind( SERVER, $saddr ) or Fatal( "Can't bind: $!" );
+    unlink( main::SOCK_FILE ) or Error( "Unable to unlink " . main::SOCK_FILE );
+    bind( SERVER, $saddr ) or Fatal( "Can't bind to " . main::SOCK_FILE . ": $!" );
     listen( SERVER, SOMAXCONN ) or Fatal( "Can't listen: $!" );
 
     $SIG{CHLD} = \&reaper;

@@ -238,7 +238,7 @@ The second approach is to use diagnostic images which are saved copies of the in
 
 There are two kinds of diagnostic images which are and are written (and continuously overwritten) to the top level monitor event directory. If an event occurs then the files are additionally copied to the event directory and renamed with the appropriate frame number as a prefix.
 
-The first set are produced by the monitor on the image as a whole. The diag-r.jpg image is the current reference image against which all individual frames are compared and the diag-d.jpg image is the delta image highlighting the difference between the reference image and the last analysed image. In this images identicial pixels will be black and the more different a pixel is the whiter it will be. Viewing this image and determining the colour of the pixels is a good way of getting a feel for the pixel differences you might expect (often more than you think).
+The first set are produced by the monitor on the image as a whole. The diag-r.jpg image is the current reference image against which all individual frames are compared and the diag-d.jpg image is the delta image highlighting the difference between the reference image and the last analysed image. In this images identical pixels will be black and the more different a pixel is the whiter it will be. Viewing this image and determining the colour of the pixels is a good way of getting a feel for the pixel differences you might expect (often more than you think).
 
 The second set of diag images are labelled as diag-<zoneid>-<stage>.jpg where zoneid is the id of the zone in question (Smile) and the stage is where in the alarm check process the image is generated from. So if you have several zones you can expect to see multiple files. Also these files are only interested in what is happening in their zone only and will ignore anything else outside of the zone. The stages that each number represents are as follows,
 
@@ -617,14 +617,14 @@ How can I trouble shoot the hardware and/or software?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Here are some commands to get information about your hardware. Some commands are distribution dependent.
-* ``[[lspci]] -vv`` -- Returns lots of detailed info. Check for conflicting interrupts or port assignments. You can sometimes alter interrupts/ ports in bios. Try a different pci slot to get a clue if it is HW conflict (comand provided by the pciutils package).
+* ``[[lspci]] -vv`` -- Returns lots of detailed info. Check for conflicting interrupts or port assignments. You can sometimes alter interrupts/ ports in bios. Try a different pci slot to get a clue if it is HW conflict (command provided by the pciutils package).
 * ``[[scanpci]] -v``  -- Gives you information from your hardware EPROM
 * ``[[lsusb]] -vv`` -- Returns lots of detail about USB devices (camand provided by usbutils package).
 * ``[[dmesg]]`` -- Shows you how your hardware initialized (or didn't) on boot-up. You will get the most use of this.
 * ``[[v4l-info]]`` -- to see how driver is talking to card. look for unusual values.
 * ``[[modinfo bttv]]`` -- some bttv driver stats.
 * ``[[zmu]]  -m 0 -q -v`` -- Returns various information regarding a monitor configuration.
-* ``[[ipcs]] ``  -- Provides information on the ipc facilities for which the calling process has read acccess.
+* ``[[ipcs]] ``  -- Provides information on the ipc facilities for which the calling process has read access.
 * ``[[ipcrm]] ``  -- The ipcrm command can be used to remove an IPC object from the kernel.
 * ``cat /proc/interrupts``  -- This will dispaly what interrupts your hardware is using.
 

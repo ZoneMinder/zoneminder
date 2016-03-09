@@ -173,14 +173,14 @@ if ( ! defined('ZM_SERVER_ID') ) {
 	if ( defined('ZM_SERVER_NAME') and ZM_SERVER_NAME ) {
 		$server_id = dbFetchOne('SELECT Id FROM Servers WHERE Name=?', 'Id', array(ZM_SERVER_NAME));
 		if ( ! $server_id ) {
-			Error("ZM_SERVER_NAME set to " . ZM_SERVER_NAME . " in config, but not found in Servers table.");
+			Error("Invalid Multi-Server configration detected. ZM_SERVER_NAME set to " . ZM_SERVER_NAME . " in zm.conf, but no corresponding entry found in Servers table.");
 		} else {
 			define( 'ZM_SERVER_ID', $server_id );
 		}
 	} else if ( defined('ZM_SERVER_HOST') and ZM_SERVER_HOST ) {
 		$server_id = dbFetchOne('SELECT Id FROM Servers WHERE Name=?', 'Id', array(ZM_SERVER_HOST));
 		if ( ! $server_id ) {
-			Error("ZM_SERVER_HOST set to " . ZM_SERVER_HOST . " in config, but not found in Servers table.");
+			Error("Invalid Multi-Server configration detected. ZM_SERVER_HOST set to " . ZM_SERVER_HOST . " in zm.conf, but no corresponding entry found in Servers table.");
 		} else {
 			define( 'ZM_SERVER_ID', $server_id );
 		}

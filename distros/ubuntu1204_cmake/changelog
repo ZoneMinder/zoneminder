@@ -525,7 +525,7 @@ zoneminder (1.22.3-7) unstable; urgency=low
 
 zoneminder (1.22.3-6) unstable; urgency=low
 
-  * Removed a similar bash only statment from zmpkg.pl
+  * Removed a similar bash only statement from zmpkg.pl
     (closes:414882)
 
  -- Peter Howard <pjh@northern-ridge.com.au>  Sat, 14 Apr 2007 11:46:56 +1000

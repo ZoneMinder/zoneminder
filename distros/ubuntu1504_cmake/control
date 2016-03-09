@@ -7,19 +7,19 @@ Build-Depends: debhelper (>= 9), dh-systemd, python-sphinx | python3-sphinx, apa
               ,cmake
               ,libavcodec-ffmpeg-dev, libavformat-ffmpeg-dev, libswscale-ffmpeg-dev, libavutil-ffmpeg-dev, libavdevice-ffmpeg-dev
               ,libbz2-dev
-              ,libdate-manip-perl
-              ,libdbd-mysql-perl
               ,libgcrypt-dev
               ,libcurl4-gnutls-dev
               ,libgnutls-openssl-dev
               ,libjpeg-dev
               ,libmysqlclient-dev
               ,libpcre3-dev
-              ,libphp-serialization-perl
               ,libpolkit-gobject-1-dev
-              ,libsys-mmap-perl [!hurd-any]
               ,libv4l-dev (>= 0.8.3) [!hurd-any]
               ,libvlc-dev
+              ,libdate-manip-perl
+              ,libdbd-mysql-perl
+              ,libphp-serialization-perl
+              ,libsys-mmap-perl [!hurd-any]
               ,libwww-perl
 # Unbundled (dh_linktree):
         ,libjs-jquery
@@ -35,12 +35,12 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,javascript-common
         ,libav-tools
         ,libdate-manip-perl
+        ,libdbd-mysql-perl
         ,libmime-lite-perl
         ,libmime-tools-perl
         ,libphp-serialization-perl
         ,libmodule-load-conditional-perl
         ,libnet-sftp-foreign-perl
-#       ,libzoneminder-perl (= ${source:Version})
           ,libarchive-zip-perl
           ,libdbd-mysql-perl
           ,libdevice-serialport-perl
@@ -49,6 +49,12 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
           ,libsys-mmap-perl [!hurd-any]
           ,liburi-encode-perl
           ,libwww-perl
+          ,libdata-dump-perl
+          ,libclass-std-fast-perl
+          ,libsoap-wsdl-perl
+          ,libio-socket-multicast-perl
+          ,libdigest-sha-perl
+          ,libsys-cpu-perl, libsys-meminfo-perl
         ,mysql-client | virtual-mysql-client
         ,perl-modules
         ,php5-mysql

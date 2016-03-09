@@ -26,7 +26,7 @@ use strict;
 use warnings;
 use SOAP::WSDL::Factory::Serializer;
 use Time::Local;
-use Digest::SHA1;
+use Digest::SHA;
 use MIME::Base64;
 
 
@@ -94,7 +94,7 @@ sub ws_authen {
     my $nonce = $nonce_generator->();
     my $timestamp = timestamp();
 
-    my $pwDigest =  Digest::SHA1::sha1( $nonce . $timestamp . $password );
+    my $pwDigest =  Digest::SHA::sha1( $nonce . $timestamp . $password );
     my $passwordHash = MIME::Base64::encode_base64($pwDigest,"");
     my $nonceHash = MIME::Base64::encode_base64($nonce,"");
 

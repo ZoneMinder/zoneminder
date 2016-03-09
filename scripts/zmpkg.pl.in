@@ -285,6 +285,10 @@ if ( $command =~ /^(?:start|restart)$/ )
         {
             runCommand( "zmdc.pl start zmupdate.pl -c" );
         }
+        if ( $Config{ZM_TELEMETRY_DATA} )
+        {
+            runCommand( "zmdc.pl start zmtelemetry.pl" );
+        }
     }
     else
     {

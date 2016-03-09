@@ -8,15 +8,11 @@ if ( refreshParent )
     opener.location.reload(true);
 }
 
-function configureButtons( element )
-{
-    if ( canEditGroups )
-    {
+function configureButtons( element ) {
+
+    if ( canEditGroups ) {
         var form = element.form;
-        if ( element.selected )
-        {
-            form.saveBtn.disabled = (element.value == 0);
-        }
+        form.saveBtn.disabled = (element.value == 0);
     }
 }
 

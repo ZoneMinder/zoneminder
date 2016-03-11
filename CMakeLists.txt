@@ -192,6 +192,7 @@ elseif(ZM_TARGET_DISTRO STREQUAL "freeBSD")
         set(ZM_CONFIG_DIR "/usr/local/etc/zm")
         set(ZM_WEBDIR "/usr/local/share/zoneminder/www")
         set(ZM_CGIDIR "/usr/local/libexec/zoneminder/cgi-bin")
+        set(ZM_PERL_MM_PARMS "INSTALLDIRS=site")
 endif((ZM_TARGET_DISTRO STREQUAL "f22") OR (ZM_TARGET_DISTRO STREQUAL "f23"))
 
 # Required for certain checks to work

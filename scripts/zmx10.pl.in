@@ -71,7 +71,7 @@ use constant SOCK_FILE => $Config{ZM_PATH_SOCKS}.'/zmx10.sock';
 
 $| = 1;
 
-$ENV{PATH}  = '/bin:/usr/bin';
+$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 

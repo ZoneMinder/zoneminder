@@ -185,58 +185,59 @@ $versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText'
 xhtmlHeaders( __FILE__, translate('Console') );
 ?>
 <body>
-  <div id="page">
     <form name="monitorForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
     <input type="hidden" name="view" value="<?php echo $view ?>"/>
     <input type="hidden" name="action" value=""/>
-    <div id="header">
-      <h3 id="systemTime"><?php echo preg_match( '/%/', DATE_FMT_CONSOLE_LONG )?strftime( DATE_FMT_CONSOLE_LONG ):date( DATE_FMT_CONSOLE_LONG ) ?></h3>
-      <h3 id="systemStats"><?php echo translate('Load') ?>: <?php echo getLoad() ?> / <?php echo translate('Disk') ?>: <?php echo getDiskPercent() ?>%</h3>
-      <h2 id="title"><a href="http://www.zoneminder.com" target="ZoneMinder">ZoneMinder</a> <?php echo translate('Console') ?> - <?php echo makePopupLink( '?view=state', 'zmState', 'state', $status, canEdit( 'System' ) ) ?> - <?php echo $run_state ?> <?php echo makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="'.$versionClass.'">v'.ZM_VERSION.'</span>', canEdit( 'System' ) ) ?></h2>
-      <div class="clear"></div>
-      <div id="monitorSummary"><?php echo makePopupLink( '?view=groups', 'zmGroups', 'groups', sprintf( $CLANG['MonitorCount'], count($displayMonitors), zmVlang( $VLANG['Monitor'], count($displayMonitors) ) ).($group?' ('.$group['Name'].')':''), canView( 'Groups' ) ); ?></div>
-<?php
-if ( ZM_OPT_X10 && canView( 'Devices' ) )
-{
+
+
+<div class="navbar navbar-default">
+	<div class="container">
+		<div class="navbar-header">
+			<a class="navbar-brand" href="http://www.zoneminder.com" target="ZoneMinder">ZoneMinder</a>
+		</div>
+
+		<ul class="nav navbar-nav">
+<?php if ( canView( 'System' ) ) { ?>
+			<li><?php echo makePopupLink( '?view=options', 'zmOptions', 'options', translate('Options') ) ?></li>
+			<li><?php if ( logToDatabase() > Logger::NOLOG ) { ?> <?php echo makePopupLink( '?view=log', 'zmLog', 'log', '<span class="'.logState().'">'.translate('Log').'</span>' ) ?><?php } ?></li>
+<?php } ?>
+<?php if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
+			<li><a href="/?view=devices">Devices</a></li>
+<?php } ?>
+			<li><?php echo makePopupLink( '?view=groups', 'zmGroups', 'groups', sprintf( $CLANG['MonitorCount'], count($displayMonitors), zmVlang( $VLANG['Monitor'], count($displayMonitors) ) ).($group?' ('.$group['Name'].')':''), canView( 'Groups' ) ); ?></li>
+			<li><?php echo makePopupLink( '?view=filter&amp;filter[terms][0][attr]=DateTime&amp;filter[terms][0][op]=%3c&amp;filter[terms][0][val]=now', 'zmFilter', 'filter', translate('Filters'), canView( 'Events' ) ) ?></li>
+
+<?php if ( canView( 'Stream' ) && $cycleCount > 1 ) {
+	$cycleGroup = isset($_COOKIE['zmGroup'])?$_COOKIE['zmGroup']:0;
 ?>
-      <div id="devices"><?php echo makePopupLink( '?view=devices', 'zmDevices', 'devices', translate('Devices') ) ?></div>
-<?php
-}
-if ( canView( 'System' ) )
-{
-?>
-      <div id="options"><?php echo makePopupLink( '?view=options', 'zmOptions', 'options', translate('Options') ) ?><?php if ( logToDatabase() > Logger::NOLOG ) { ?> / <?php echo makePopupLink( '?view=log', 'zmLog', 'log', '<span class="'.logState().'">'.translate('Log').'</span>' ) ?><?php } ?></div>
-<?php
-}
-if ( canView( 'Stream' ) && $cycleCount > 1 )
-{
-    $cycleGroup = isset($_COOKIE['zmGroup'])?$_COOKIE['zmGroup']:0;
-?>
-      <div id="cycleMontage">
-           <?php echo makePopupLink( '?view=cycle&amp;group='.$cycleGroup, 'zmCycle'.$cycleGroup, array( 'cycle', $cycleWidth, $cycleHeight ), translate('Cycle'), $running ) ?>&nbsp;/&nbsp;
-           <?php echo makePopupLink( '?view=montage&amp;group='.$cycleGroup, 'zmMontage'.$cycleGroup, 'montage', translate('Montage'), $running ) ?>&nbsp;/&nbsp;
-           <?php echo makePopupLink( '?view=montagereview&amp;group='.$cycleGroup, 'zmMontage'.$cycleGroup, 'montagereview', translate('Montage Review'), $running ) ?>
-      </div>
-<?php
-}
-else
-{
-?>
-<?php
-}
-?>
-      <h3 id="loginBandwidth"><?php
-if ( ZM_OPT_USE_AUTH )
-{
-?><?php echo translate('LoggedInAs') ?> <?php echo makePopupLink( '?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == "builtin") ) ?>, <?php echo strtolower( translate('ConfiguredFor') ) ?><?php
-}
-else
-{
-?><?php echo translate('ConfiguredFor') ?><?php
-}
-?>&nbsp;<?php echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', $bwArray[$_COOKIE['zmBandwidth']], ($user && $user['MaxBandwidth'] != 'low' ) ) ?> <?php echo translate('BandwidthHead') ?></h3>
-    </div>
-    <div id="content">
+			<li class="dropdown">
+				<a href="#" class="dropdown-toggle" data-toggle="dropdown">Montage <span class="caret"></span></a>
+				<ul class="dropdown-menu">
+					<li><?php echo makePopupLink( '?view=cycle&amp;group='.$cycleGroup, 'zmCycle'.$cycleGroup, array( 'cycle', $cycleWidth, $cycleHeight ), translate('Cycle'), $running ) ?></li>
+					<li><?php echo makePopupLink( '?view=montage&amp;group='.$cycleGroup, 'zmMontage'.$cycleGroup, 'montage', translate('Montage'), $running ) ?></li>
+					<li><?php echo makePopupLink( '?view=montagereview&amp;group='.$cycleGroup, 'zmMontage'.$cycleGroup, 'montagereview', translate('Montage Review'), $running ) ?></li>
+				</ul>
+			</li>
+<?php } ?>
+		</ul>
+
+<div class="navbar-right">
+<?php if ( ZM_OPT_USE_AUTH ) { ?>
+	<p class="navbar-text"><?php echo translate('LoggedInAs') ?> <?php echo makePopupLink( '?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == "builtin") ) ?> </p>
+<?php } ?>
+
+<?php if ( canEdit( 'System' ) ) { ?>
+		<a class="btn btn-default navbar-btn" href="/?view=state"> <?php echo $status ?> </a>
+<?php } else if ( canView( 'System' ) ) { ?>
+		<p class="navbar-text"> <?php echo $status ?> </p>
+<?php } ?>
+</div>
+
+	</div> <!-- End .container-fluid -->
+</div> <!-- End .navbar .navbar-default -->
+
+
+    <div class="container-fluid">
       <table id="consoleTable" cellspacing="0">
         <thead>
           <tr>
@@ -269,9 +270,7 @@ if ( canEdit('Monitors') )
         <tfoot>
           <tr>
             <td class="colLeftButtons" colspan="<?php echo count($servers) ? 4 : 3 ?>">
-              <input type="button" value="<?php echo translate('Refresh') ?>" onclick="location.reload(true);"/>
-              <?php echo makePopupButton( '?view=monitor', 'zmMonitor0', 'monitor', translate('AddNewMonitor'), (canEdit( 'Monitors' ) && !$user['MonitorIds']) ) ?>
-              <?php echo makePopupButton( '?view=filter&amp;filter[terms][0][attr]=DateTime&amp;filter[terms][0][op]=%3c&amp;filter[terms][0][val]=now', 'zmFilter', 'filter', translate('Filters'), canView( 'Events' ) ) ?>
+              <input type="button" class="btn btn-default" value="<?php echo translate('AddNewMonitor'); ?>" onclick="createPopup( '?view=monitor', 'zmMonitor0', 'monitor' ); return( false );"></input>
             </td>
 <?php
 for ( $i = 0; $i < count($eventCounts); $i++ )
@@ -365,7 +364,30 @@ echo $Server->Name();
         </tbody>
       </table>
     </div>
+
+<div id="footer">
+
+
+<div class="pull-left">
+<?php echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', $bwArray[$_COOKIE['zmBandwidth']], ($user && $user['MaxBandwidth'] != 'low' ) ) ?> <?php echo translate('BandwidthHead') ?>
+</div>
+
+<div class="pull-right">
+	<?php echo makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="'.$versionClass.'">v'.ZM_VERSION.'</span>', canEdit( 'System' ) ) ?>
+</div>
+<ul class="list-inline">
+	<li><?php echo translate('Load') ?>: <?php echo getLoad() ?></li>
+	<li><?php echo translate('Disk') ?>: <?php echo getDiskPercent() ?>%</li>
+</ul>
+
+
+
+
+
+
+
+</div> <!-- End .footer -->
+
     </form>
-  </div>
 </body>
 </html>

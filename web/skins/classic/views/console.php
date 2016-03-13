@@ -228,7 +228,8 @@ xhtmlHeaders( __FILE__, translate('Console') );
 <?php } ?>
 
 <?php if ( canEdit( 'System' ) ) { ?>
-		<a class="btn btn-default navbar-btn" href="/?view=state"> <?php echo $status ?> </a>
+		<a class="btn btn-default navbar-btn" href="/?view=state" onclick="createPopup( '?view=state', 'zmState', 'state' ); return( false );"> <?php echo $status ?> </a>
+
 <?php } else if ( canView( 'System' ) ) { ?>
 		<p class="navbar-text"> <?php echo $status ?> </p>
 <?php } ?>

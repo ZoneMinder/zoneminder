@@ -364,7 +364,6 @@ echo $Server->Name();
 ?>
         </tbody>
       </table>
-    </div>
 
 <div id="footer">
 
@@ -380,15 +379,9 @@ echo $Server->Name();
 	<li><?php echo translate('Load') ?>: <?php echo getLoad() ?></li>
 	<li><?php echo translate('Disk') ?>: <?php echo getDiskPercent() ?>%</li>
 </ul>
-
-
-
-
-
-
-
 </div> <!-- End .footer -->
 
+    </div>
     </form>
 </body>
 </html>

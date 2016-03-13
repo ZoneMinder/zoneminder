@@ -363,6 +363,7 @@ echo $Server->Name();
 ?>
         </tbody>
       </table>
+    </div>
 
 <div id="footer">
 
@@ -380,7 +381,6 @@ echo $Server->Name();
 </ul>
 </div> <!-- End .footer -->
 
-    </div>
     </form>
 </body>
 </html>

@@ -438,6 +438,8 @@ th.table-th-sort-rev span.table-th-sort-span {
 }
 
 #footer {
-    margin: 8px 0;
+    border-top: 1px solid #e7e7e7;
+    margin: 32px 0;
+    padding: 8px;
 }
 

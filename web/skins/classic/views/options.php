@@ -59,14 +59,14 @@ xhtmlHeaders( __FILE__, translate('Options') );
       <h2><?php echo translate('Options') ?></h2>
     </div>
     <div id="content">
-      <ul class="tabList">
+      <ul class="nav nav-tabs">
 <?php
 foreach ( $tabs as $name=>$value )
 {
     if ( $tab == $name )
     {
 ?>
-        <li class="active"><?php echo $value ?></li>
+        <li class="active"><a href="?view=<?php echo $view ?>&amp;tab=<?php echo $name ?>"><?php echo $value ?></a></li>
 <?php
     }
     else
@@ -103,7 +103,7 @@ if($tab == 'skins') {
 	<form name="optionsForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
-		<table class="contentTable major optionTable" cellspacing="0">
+		<table class="table table-striped" cellspacing="0">
 			<thead><tr><th><?php echo translate('Name') ?></th><th><?php echo translate('Description') ?></th> <th><?php echo translate('Value') ?></th></tr></thead>
 			<tbody>
 				<tr>
@@ -147,7 +147,7 @@ elseif ( $tab == "users" )
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
         <input type="hidden" name="action" value="delete"/>
-        <table id="contentTable" class="major userTable" cellspacing="0">
+        <table id="contentTable" class="table table-striped" cellspacing="0">
           <thead>
             <tr>
               <th class="colUsername"><?php echo translate('Username') ?></th>
@@ -215,7 +215,7 @@ elseif ( $tab == "users" )
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
         <input type="hidden" name="action" value="delete"/>
         <input type="hidden" name="object" value="server"/>
-        <table id="contentTable" class="major serversTable" cellspacing="0">
+        <table id="contentTable" class="table table-striped" cellspacing="0">
           <thead>
             <tr>
               <th class="colName"><?php echo translate('name') ?></th>
@@ -251,7 +251,7 @@ elseif ( $tab == "users" )
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
         <input type="hidden" name="action" value="options"/>
-        <table id="contentTable" class="major optionTable" cellspacing="0">
+        <table id="contentTable" class="table table-striped" cellspacing="0">
           <thead>
             <tr>
               <th><?php echo translate('Name') ?></th>

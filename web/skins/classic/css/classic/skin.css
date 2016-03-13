@@ -190,12 +190,6 @@ ul.tabList li.active a {
     vertical-align: middle;
 }
 
-#content table.major th, #content table.major td {
-    border: 1px solid #7f7fb2;
-    padding: 3px;
-    text-align: left;
-}
-
 #content table.major th {
     vertical-align: bottom;
 }

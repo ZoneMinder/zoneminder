@@ -63,7 +63,7 @@ sub __get_attr_class {
 }
 
 
-use base qw(ONVIF::Media::Types::TopicType);
+use base qw(WSNotification::Types::TopicType);
 # Variety: sequence
 use Class::Std::Fast::Storable constructor => 'none';
 use base qw(SOAP::WSDL::XSD::Typelib::ComplexType);
@@ -90,7 +90,7 @@ __PACKAGE__->_factory(
     {
         'documentation' => 'ONVIF::Media::Types::Documentation',
         'MessagePattern' => 'ONVIF::Media::Types::QueryExpressionType',
-        'Topic' => 'ONVIF::Media::Types::TopicType',
+        'Topic' => 'WSNotification::Types::TopicType',
     },
     {
 

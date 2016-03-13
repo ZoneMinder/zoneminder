@@ -20,13 +20,6 @@
 
 xhtmlHeaders(__FILE__, translate('Login') );
 ?>
-<!-- PP: Add recaptcha script if enabled -->
-<?php 
-	if (defined('ZM_OPT_USE_GOOG_RECAPTCHA') && ZM_OPT_USE_GOOG_RECAPTCHA)
-	{
-		echo "<head> <script src='https://www.google.com/recaptcha/api.js'></script> </head>";
-	}
-?>
 <body>
   <div id="page">
     <div id="header">

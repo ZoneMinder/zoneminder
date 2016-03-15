@@ -57,9 +57,9 @@ xhtmlHeaders( __FILE__, translate('Options') );
 ?>
 <body>
   <div id="page">
-    <div id="header">
-      <h2><?php echo translate('Options') ?></h2>
-    </div>
+
+    <?php include("skins/$skin/views/header.php") ?>
+
     <div id="content">
       <ul class="nav nav-tabs">
 <?php

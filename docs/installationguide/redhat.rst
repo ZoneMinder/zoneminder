@@ -21,7 +21,7 @@ One can think of Fedora as RHEL or CentOS Beta. This is in fact, what it is. Fed
 
 Fedora has a short life-cycle of just 6 months. However, Fedora, and consequently ZoneMinder, is available on armv7 architecture. Rejoice, Raspberry Pi users!
 
-If you desire newer packages than what it available in RHEL and CentOS, then you should consider using Fedora.
+If you desire newer packages than what is available in RHEL or CentOS, you should consider using Fedora.
 
 Zmrepo – A ZoneMinder RPM Repository
 ------------------------------------

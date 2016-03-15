@@ -26,7 +26,6 @@ body {
     font-size: 18px;
     color: #333333;
     font-weight: normal;
-    text-align: center;
 }
 
 h1 {
@@ -82,10 +81,6 @@ a:visited {
 a:hover {
     color: #666699;
     text-decoration: underline;
-}
-
-label {
-    margin-right: 4px;
 }
 
 input,textarea,select,button {

@@ -58,7 +58,7 @@ xhtmlHeaders( __FILE__, translate('Options') );
     <?php include("skins/$skin/views/header.php") ?>
 
     <div class="container-fluid">
-      <ul class="nav nav-tabs">
+      <ul class="nav nav-pills nav-stacked col-md-2">
 <?php
 foreach ( $tabs as $name=>$value )
 {
@@ -77,6 +77,8 @@ foreach ( $tabs as $name=>$value )
 }
 ?>
       </ul>
+
+      <div id="options" class="col-md-10">
 <?php 
 $skin_options = array_map( 'basename', glob('skins/*',GLOB_ONLYDIR) );
 if($tab == 'skins') {
@@ -362,6 +364,8 @@ elseif ( $tab == "users" )
 <?php
 }
 ?>
+
+    </div><!-- end #options -->
     </div>
 </body>
 </html>

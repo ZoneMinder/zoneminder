@@ -432,6 +432,21 @@ th.table-th-sort-rev span.table-th-sort-span {
     padding: 8px;
 }
 
-.nav.nav-tabs {
-    margin-bottom: 15px;
+.nav.nav-pills.nav-stacked.col-md-2 {
+	padding-right: 0;
+}
+
+.nav.nav-pills.nav-stacked.col-md-2 > li > a {
+	border-top-right-radius: 0;
+	border-bottom-right-radius: 0;
+}
+
+#options {
+	border-left: 1px solid #337ab7;
+}
+
+#options .form-group {
+	margin-bottom: 20px;
+	border-bottom: 1px solid #e7e7e7;
+
 }

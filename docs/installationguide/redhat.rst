@@ -165,6 +165,7 @@ Make sure you have git installed:
 Now clone the ZoneMinder git repository:
 
 ::
+
     cd
     git clone https://github.com/ZoneMinder/ZoneMinder
     cd ZoneMinder

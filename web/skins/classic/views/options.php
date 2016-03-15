@@ -56,11 +56,10 @@ $focusWindow = true;
 xhtmlHeaders( __FILE__, translate('Options') );
 ?>
 <body>
-  <div id="page">
 
     <?php include("skins/$skin/views/header.php") ?>
 
-    <div id="content">
+    <div class="container-fluid">
       <ul class="nav nav-tabs">
 <?php
 foreach ( $tabs as $name=>$value )
@@ -80,7 +79,6 @@ foreach ( $tabs as $name=>$value )
 }
 ?>
       </ul>
-      <div class="clear"></div>
 <?php 
 $skin_options = array_map( 'basename', glob('skins/*',GLOB_ONLYDIR) );
 if($tab == 'skins') {
@@ -376,6 +374,5 @@ elseif ( $tab == "users" )
 }
 ?>
     </div>
-  </div>
 </body>
 </html>

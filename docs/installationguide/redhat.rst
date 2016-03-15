@@ -46,7 +46,7 @@ The following notes are based on real problems which have occurred:
 
 - Each ZoneMinder rpm includes a README file under /usr/share/doc. You must follow the all steps in this README file, precisely, each and every time ZoneMinder is installed or upgraded. **Failure to do so is guaranteed to result in a non-functional system.**
 
-To being the installation of ZoneMinder on your Redhat based distro, please navigate to: http://zmrepo.zoneminder.com
+To begin the installation of ZoneMinder on your Redhat based distro, please navigate to: http://zmrepo.zoneminder.com
 
 How to Build a (Custom) ZoneMinder Package
 ------------------------------------------
@@ -150,7 +150,7 @@ From the previous instructions, we downloaded a CentOS 7 ZoneMinder SRPM and pla
 
 ::
 
-    rpm -Uvh ~/rpmbuild/SRPMS/zoneminder-1.28.1-2.el7.centos.src.rpm
+    rpm -ivh ~/rpmbuild/SRPMS/zoneminder-1.28.1-2.el7.centos.src.rpm
 
 
 IMPORTANT: This operation must be done with your normal user account. Do *not* perform this command as root.
@@ -165,8 +165,11 @@ Make sure you have git installed:
 Now clone the ZoneMinder git repository:
 
 ::
-
+    cd
     git clone https://github.com/ZoneMinder/ZoneMinder
+    cd ZoneMinder
+    git submodule init
+    git submodule update
 
 This will create a sub-folder called ZoneMinder, which will contain the latest development.
 

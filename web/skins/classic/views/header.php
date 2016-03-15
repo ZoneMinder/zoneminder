@@ -192,7 +192,7 @@ $versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText'
 
 		<ul class="nav navbar-nav">
 <?php if ( canView( 'System' ) ) { ?>
-			<li><?php echo makePopupLink( '?view=options', 'zmOptions', 'options', translate('Options') ) ?></li>
+			<li><a href="?view=options"><?php echo translate('Options') ?></a></li>
 			<li><?php if ( logToDatabase() > Logger::NOLOG ) { ?> <?php echo makePopupLink( '?view=log', 'zmLog', 'log', '<span class="'.logState().'">'.translate('Log').'</span>' ) ?><?php } ?></li>
 <?php } ?>
 <?php if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>

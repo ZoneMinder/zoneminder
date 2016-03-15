@@ -432,3 +432,6 @@ th.table-th-sort-rev span.table-th-sort-span {
     padding: 8px;
 }
 
+.nav.nav-tabs {
+    margin-bottom: 15px;
+}

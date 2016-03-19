@@ -114,7 +114,7 @@ sub interpret_messages
     my $xaddr;  
     foreach my $l_xaddr (split ' ', $result->get_ProbeMatch()->get_XAddrs()) {
   #   find IPv4 address
-      if($l_xaddr =~ m|//[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/|) { 
+      if($l_xaddr =~ m|//[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+[:/]|) {
         $xaddr = $l_xaddr;
         last;
       }

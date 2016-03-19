@@ -95,7 +95,7 @@ sub deserialize_message
 
 sub interpret_messages
 {
-  my ($svc_discover, @responses, %services) = @_;
+  my ($svc_discover, $services, @responses ) = @_;
 
   foreach my $response ( @responses ) {
 
@@ -129,8 +129,8 @@ sub interpret_messages
     next if not $xaddr;
 
     # ignore multiple responses from one service
-    next if defined $services{$xaddr};
-    $services{$xaddr} = 1;
+    next if defined $services->{$xaddr};
+    $services->{$xaddr} = 1;
 
     print "$xaddr, " . $svc_discover->get_soap_version() . ", ";
 
@@ -184,7 +184,7 @@ sub discover
   );
 #  print $result . "\n";
 
-  interpret_messages($svc_discover, \@responses, \%services);
+  interpret_messages($svc_discover, \%services, @responses);
   @responses = ();
 
   if($verbose) {
@@ -203,7 +203,7 @@ sub discover
   );
 #  print $result . "\n";
 
-  interpret_messages($svc_discover, @responses, \%services);
+  interpret_messages($svc_discover, \%services, @responses);
 }
 
 

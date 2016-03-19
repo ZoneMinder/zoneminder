@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+Copyright Notice
+
+(c) 2004-2005 Microsoft Corporation, Inc. All rights reserved.
+
+Permission to copy, display, perform, modify and distribute the 
+WS-Discovery Specification (the "Specification", which includes 
+WSDL and schema documents), and to authorize others to do the 
+foregoing, in any medium without fee or royalty is hereby granted 
+for the purpose of developing and evaluating the Specification.
+
+BEA Systems, Canon, Intel, Microsoft, and webMethods, Inc. 
+(collectively, the "Co-Developers") each agree to grant a license 
+to third parties, under royalty-free and other reasonable, 
+non-discriminatory terms and conditions, to their respective 
+essential Licensed Claims, which reasonable, non-discriminatory 
+terms and conditions may include, for example, but are not limited 
+to, an affirmation  of the obligation to grant reciprocal licenses 
+under any of the licensee's patents that are necessary to implement 
+the Specification.  
+
+DISCLAIMERS:
+
+THE SPECIFICATION IS PROVIDED "AS IS," AND THE CO-DEVELOPERS MAKE 
+NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED, INCLUDING, 
+BUT NOT LIMITED TO, WARRANTIES OF MERCHANTABILITY, FITNESS FOR A 
+PARTICULAR PURPOSE, NON-INFRINGEMENT, OR TITLE; THAT THE CONTENTS 
+OF THE SPECIFICATION ARE SUITABLE FOR ANY PURPOSE; NOR THAT THE 
+IMPLEMENTATION OF SUCH CONTENTS WILL NOT INFRINGE ANY THIRD PARTY 
+PATENTS, COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS.
+
+THE CO-DEVELOPERS WILL NOT BE LIABLE FOR ANY DIRECT, INDIRECT, 
+SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES ARISING OUT OF ANY 
+USE OF THE SPECIFICATION OR THE PERFORMANCE OR IMPLEMENTATION OF 
+THE CONTENTS THEREOF.
+
+You may remove these disclaimers from your modified versions of the 
+Specification provided that you effectively disclaim all warranties 
+and liabilities on behalf of all Co-developers and any copyright 
+holders in the copies of any such modified versions you distribute.
+
+The name and trademarks of the Co-developers may NOT be used in any 
+manner, including advertising or publicity pertaining to the 
+Specification or its contents without specific, written prior 
+permission. Title to copyright in the Specification will at all 
+times remain with Microsoft.
+
+No other rights are granted by implication, estoppel or otherwise.
+
+-->
+<xs:schema
+    targetNamespace="http://schemas.xmlsoap.org/ws/2005/04/discovery"
+    xmlns:tns="http://schemas.xmlsoap.org/ws/2005/04/discovery"
+    xmlns:wsa="http://schemas.xmlsoap.org/ws/2004/08/addressing"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    elementFormDefault="qualified"
+    blockDefault="#all" >
+
+  <xs:import
+      namespace="http://schemas.xmlsoap.org/ws/2004/08/addressing"
+      schemaLocation="file:wsdl/ws-addressing-2004-08.xsd" />
+
+  <!-- //////////////////// Discovery Messages //////////////////// -->
+
+  <xs:element name="Hello" type="tns:HelloType" />
+  <xs:complexType name="HelloType" >
+    <xs:sequence>
+      <xs:element ref="wsa:EndpointReference" />
+      <xs:element ref="tns:Types" minOccurs="0" />
+      <xs:element ref="tns:Scopes" minOccurs="0" />
+      <xs:element ref="tns:XAddrs" minOccurs="0" />
+      <xs:element ref="tns:MetadataVersion" />
+      <xs:any namespace="##other"
+              processContents="lax"
+              minOccurs="0"
+              maxOccurs="unbounded" />
+    </xs:sequence>
+    <xs:anyAttribute namespace="##other" processContents="lax" />
+  </xs:complexType>
+
+  <xs:simpleType name="RelationshipType" >
+	<xs:restriction base="xs:QName" >
+	  <xs:enumeration value="tns:Suppression" />
+	</xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="OpenRelationshipType" >
+    <xs:union memberTypes="tns:RelationshipType xs:QName" />
+  </xs:simpleType>
+    
+  <xs:element name="Bye" type="tns:ByeType" />
+  <xs:complexType name="ByeType" >
+    <xs:sequence>
+      <xs:element ref="wsa:EndpointReference" />
+      <xs:element ref="tns:Types" minOccurs="0" />
+      <xs:element ref="tns:Scopes" minOccurs="0" />
+      <xs:element ref="tns:XAddrs" minOccurs="0" />
+      <xs:element ref="tns:MetadataVersion" minOccurs="0" />
+      <xs:any namespace="##other"
+              processContents="lax"
+              minOccurs="0"
+              maxOccurs="unbounded" />
+    </xs:sequence>
+    <xs:anyAttribute namespace="##other" processContents="lax" />
+  </xs:complexType>
+
+  <xs:element name="Probe" type="tns:ProbeType" />
+  <xs:complexType name="ProbeType" >
+    <xs:sequence>
+      <xs:element ref="tns:Types" minOccurs="0" />
+      <xs:element ref="tns:Scopes" minOccurs="0" />
+      <xs:any namespace="##other"
+              processContents="lax"
+              minOccurs="0"
+              maxOccurs="unbounded" />
+    </xs:sequence>
+    <xs:anyAttribute namespace="##other" processContents="lax" />
+  </xs:complexType>
+
+  <xs:element name="ProbeMatches" type="tns:ProbeMatchesType" />
+  <xs:complexType name="ProbeMatchesType" >
+    <xs:sequence>
+      <xs:element name="ProbeMatch"
+                  type="tns:ProbeMatchType"
+                  minOccurs="0"
+                  maxOccurs="unbounded" >
+      </xs:element>
+      <xs:any namespace="##other"
+              processContents="lax"
+              minOccurs="0"
+              maxOccurs="unbounded" />
+    </xs:sequence>
+    <xs:anyAttribute namespace="##other" processContents="lax" />
+  </xs:complexType>
+  <xs:complexType name="ProbeMatchType" >
+    <xs:sequence>
+      <xs:element ref="wsa:EndpointReference" />
+      <xs:element ref="tns:Types" minOccurs="0" />
+      <xs:element ref="tns:Scopes" minOccurs="0" />
+      <xs:element ref="tns:XAddrs" minOccurs="0" />
+      <xs:element ref="tns:MetadataVersion" />
+      <xs:any namespace="##other"
+              processContents="lax"
+              minOccurs="0"
+              maxOccurs="unbounded" />
+    </xs:sequence>
+    <xs:anyAttribute namespace="##other" processContents="lax" />
+  </xs:complexType>
+
+  <xs:element name="Resolve" type="tns:ResolveType" />
+  <xs:complexType name="ResolveType" >
+    <xs:sequence>
+      <xs:element ref="wsa:EndpointReference" />
+      <xs:any namespace="##other"
+              processContents="lax"
+              minOccurs="0"
+              maxOccurs="unbounded" />
+    </xs:sequence>
+    <xs:anyAttribute namespace="##other" processContents="lax" />
+  </xs:complexType>
+
+  <xs:element name="ResolveMatches" type="tns:ResolveMatchesType" />
+  <xs:complexType name="ResolveMatchesType" >
+    <xs:sequence>
+      <xs:element name="ResolveMatch" 
+                  type="tns:ResolveMatchType"
+                  minOccurs="0" />
+      <xs:any namespace="##other"
+              processContents="lax"
+              minOccurs="0"
+              maxOccurs="unbounded" />
+    </xs:sequence>
+    <xs:anyAttribute namespace="##other" processContents="lax" />
+  </xs:complexType>
+  <xs:complexType name="ResolveMatchType" >
+    <xs:sequence>
+      <xs:element ref="wsa:EndpointReference" />
+      <xs:element ref="tns:Types" minOccurs="0" />
+      <xs:element ref="tns:Scopes" minOccurs="0" />
+      <xs:element ref="tns:XAddrs" />
+      <xs:element ref="tns:MetadataVersion" />
+      <xs:any namespace="##other"
+              processContents="lax"
+              minOccurs="0"
+              maxOccurs="unbounded" />
+    </xs:sequence>
+    <xs:anyAttribute namespace="##other" processContents="lax" />
+  </xs:complexType>
+
+  <xs:element name="Types" type="tns:QNameListType" />
+  <xs:simpleType name="QNameListType" >
+    <xs:list itemType="xs:QName" />
+  </xs:simpleType>
+
+  <xs:element name="Scopes" type="tns:ScopesType" />
+  <xs:complexType name="ScopesType" >
+    <xs:simpleContent>
+      <xs:extension base="tns:UriListType" >
+        <xs:attribute name="MatchBy" type="xs:anyURI" />
+        <xs:anyAttribute namespace="##other" processContents="lax" />
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:element name="XAddrs" type="tns:UriListType" />
+  <xs:simpleType name="UriListType" >
+    <xs:list itemType="xs:anyURI" />
+  </xs:simpleType>
+
+  <xs:element name="MetadataVersion" type="xs:unsignedInt" />
+
+  <!-- //////////////////// Faults //////////////////// -->
+
+  <xs:simpleType name="FaultCodeType" >
+	<xs:restriction base="xs:QName" >
+	  <xs:enumeration value="tns:MatchingRuleNotSupported" />
+	</xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="FaultCodeOpenType" >
+    <xs:union memberTypes="tns:FaultCodeType xs:QName" />
+  </xs:simpleType>
+
+  <xs:element name="SupportedMatchingRules" type="tns:UriListType" />
+
+  <!-- //////////////////// Compact Signature //////////////////// -->
+
+  <xs:attribute name="Id" type="xs:ID"/>
+
+  <xs:element name="Security" type="tns:SecurityType" />
+  <xs:complexType name="SecurityType" >
+    <xs:sequence>
+      <xs:element ref="tns:Sig" minOccurs="0" />
+    </xs:sequence>
+    <xs:anyAttribute namespace="##other" processContents="lax" />
+  </xs:complexType> 
+
+  <xs:element name="Sig" type="tns:SigType" />
+  <xs:complexType name="SigType" >
+    <xs:sequence>
+      <xs:any namespace="##other"
+              processContents="lax"
+              minOccurs="0"
+              maxOccurs="unbounded" />
+    </xs:sequence>
+    <xs:attribute name="Scheme" type="xs:anyURI" use="required" />
+    <xs:attribute name="KeyId" type="xs:base64Binary" />
+    <xs:attribute name="Refs" type="xs:IDREFS" use="required" />
+    <xs:attribute name="Sig" type="xs:base64Binary" use="required" />
+    <xs:anyAttribute namespace="##other" processContents="lax" />
+  </xs:complexType> 
+
+  <!-- //////////////////// General Headers //////////////////// -->
+
+  <xs:element name="AppSequence" type="tns:AppSequenceType" />
+  <xs:complexType name="AppSequenceType" >
+    <xs:complexContent>
+      <xs:restriction base="xs:anyType" >
+        <xs:attribute name="InstanceId"
+                      type="xs:unsignedInt"
+                      use="required" />
+        <xs:attribute name="SequenceId" type="xs:anyURI" />
+        <xs:attribute name="MessageNumber"
+                      type="xs:unsignedInt"
+                      use="required" />
+        <xs:anyAttribute namespace="##other" processContents="lax" />
+      </xs:restriction>
+    </xs:complexContent>
+  </xs:complexType>
+
+</xs:schema>

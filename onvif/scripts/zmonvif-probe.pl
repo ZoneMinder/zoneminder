@@ -232,16 +232,21 @@ sub profiles
          $profile->get_VideoEncoderConfiguration()->get_RateControl()->get_FrameRateLimit() .
          ", ";
 
-    $result = $client->get_endpoint('media')->GetStreamUri( { 
-      StreamSetup =>  { # ONVIF::Media::Types::StreamSetup
-        Stream => 'RTP_unicast', # StreamType
-        Transport =>  { # ONVIF::Media::Types::Transport
-          Protocol => 'RTSP', # TransportProtocol
-        },
-      },
-      ProfileToken => $token, # ReferenceToken  
-    } ,, );
-    die $result if not $result;
+   # Specification gives conflicting values for unicast stream types, try both.
+   # http://www.onvif.org/onvif/ver10/media/wsdl/media.wsdl#op.GetStreamUri
+   foreach my $streamtype ( 'RTP_unicast', 'RTP-Unicast' ) {
+     $result = $client->get_endpoint('media')->GetStreamUri( {
+       StreamSetup =>  { # ONVIF::Media::Types::StreamSetup
+         Stream => $streamtype, # StreamType
+         Transport =>  { # ONVIF::Media::Types::Transport
+           Protocol => 'RTSP', # TransportProtocol
+         },
+       },
+       ProfileToken => $token, # ReferenceToken
+     } ,, );
+     last if $result;
+   }
+   die $result if not $result;
   #  print $result . "\n";
 
     print $result->get_MediaUri()->get_Uri() .

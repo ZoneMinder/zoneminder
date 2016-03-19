@@ -114,11 +114,19 @@ sub interpret_messages
     my $xaddr;  
     foreach my $l_xaddr (split ' ', $result->get_ProbeMatch()->get_XAddrs()) {
   #   find IPv4 address
+      if($verbose) {
+        print "l_xaddr = $l_xaddr\n";
+      }
       if($l_xaddr =~ m|//[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+[:/]|) {
         $xaddr = $l_xaddr;
         last;
+      } else {
+        print STDERR "Unable to find IPv4 address from xaddr $l_xaddr\n";
       }
     }
+
+    # No usable address found
+    next if not $xaddr;
 
     # ignore multiple responses from one service
     next if defined $services{$xaddr};

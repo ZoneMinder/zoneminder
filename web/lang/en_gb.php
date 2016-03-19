@@ -336,6 +336,7 @@ $SLANG = array(
     'FnRecord'              => 'Record',            // Added 2013.08.16.
     'FnMocord'              => 'Mocord',            // Added 2013.08.16.
     'FnNodect'              => 'Nodect',            // Added 2013.08.16.
+    'FnExtdect'             => 'Extdect',           // Added 2014.12.14.
     'Focus'                 => 'Focus',
     'ForceAlarm'            => 'Force Alarm',
     'Format'                => 'Format',

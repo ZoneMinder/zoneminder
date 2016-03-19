@@ -28,9 +28,9 @@ use Getopt::Std;
 
 require ONVIF::Client;
 
-require WSDiscovery::Interfaces::WSDiscovery::WSDiscoveryPort;
-require WSDiscovery::Elements::Types;
-require WSDiscovery::Elements::Scopes;
+require WSDiscovery10::Interfaces::WSDiscovery::WSDiscoveryPort;
+require WSDiscovery10::Elements::Types;
+require WSDiscovery10::Elements::Scopes;
 
 require WSDiscovery::TransportUDP;
 
@@ -95,7 +95,9 @@ sub deserialize_message
 
 sub interpret_messages
 {
-  my ($svc_discover, @responses, %services) = @_;
+  my ($svc_discover, $responses_ref, $services_ref) = @_;
+  my @responses = @$responses_ref;
+  my %services = %$services_ref;
 
   foreach my $response ( @responses ) {
 

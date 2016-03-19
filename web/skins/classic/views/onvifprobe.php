@@ -30,11 +30,20 @@ $cameras[0] = $SLANG['ChooseDetectedCamera'];
 
 function execONVIF( $cmd )
 {
-  exec( escapeshellcmd(ZM_PATH_BIN . "/zmonvif-probe.pl $cmd"), $output, $status );
- 
-  if ( $status )
+  my $program = ZM_PATH_BIN . "/zmonvif-probe.pl";
+  exec( escapeshellcmd("$program $cmd"), $output, $status );
     Fatal( "Unable to probe network cameras, status is '$status'" );
-
+ 
+  if ( $status == -1 ) {
+    Fatal( "Failed to execute: $program\n");
+  }
+  elsif ($status & 127) {
+    Fatal( "Unable to probe network cameras. Signal %d, %s coredump\n",
+           ($status & 127), ($status & 128) ? 'with' : 'without' );
+  }
+  else {
+    Fatal( "Unable to probe network cameras (%d)\n", $status >> 8 );
+  }
   return $output;
 }
 
@@ -58,6 +67,8 @@ function probeCameras( $localIp )
                         'Type'     => 'Ffmpeg',
                         'Host'     => $device_ep,
                         'SOAP'     => $soapversion,
+                        'ConfigURL' => $device_ep,
+                        'ConfigOptions' => 'SOAP' . $soapversion,
                     ),
                 );
                 foreach ( preg_split('|,\s*|', $matches[3]) as $attr_val ) {

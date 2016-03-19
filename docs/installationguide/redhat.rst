@@ -34,7 +34,7 @@ The following notes are based on real problems which have occurred:
 
 - Zmrepo assumes you have installed the underlying distrubution **using the official installation media for that distro**. Third party "Spins" are not supported and may not work correctly.
 
-- ZoneMinder is intended to be installed in an environment dedicated to ZoneMinder. While ZoneMinder will play well with many applications, some invariably will not. Astericks is one such example.
+- ZoneMinder is intended to be installed in an environment dedicated to ZoneMinder. While ZoneMinder will play well with many applications, some invariably will not. Asterisk is one such example.
 
 - Be advised that you need to start with a clean system before using zmrepo.
 

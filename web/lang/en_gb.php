@@ -894,7 +894,7 @@ function zmVlang( $langVarArray, $count )
 // So for example, to override the help text for ZM_LANG_DEFAULT do
 $OLANG = array(
 	'OPTIONS_FFMPEG' => array(
-		'Help' => "Parameters in this field are passwd on to FFmpeg. Multiple parameters can be separated by ,~~ ".
+		'Help' => "Parameters in this field are passed on to FFmpeg. Multiple parameters can be separated by ,~~ ".
 		          "Examples (do not enter quotes)~~~~".
 		          "\"allowed_media_types=video\" Set datatype to request fromcam (audio, video, data)~~~~".
 		          "\"reorder_queue_size=nnn\" Set number of packets to buffer for handling of reordered packets~~~~".

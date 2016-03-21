@@ -28,9 +28,9 @@ use Getopt::Std;
 
 require ONVIF::Client;
 
-require WSDiscovery::Interfaces::WSDiscovery::WSDiscoveryPort;
-require WSDiscovery::Elements::Types;
-require WSDiscovery::Elements::Scopes;
+require WSDiscovery10::Interfaces::WSDiscovery::WSDiscoveryPort;
+require WSDiscovery10::Elements::Types;
+require WSDiscovery10::Elements::Scopes;
 
 require WSDiscovery::TransportUDP;
 
@@ -163,7 +163,7 @@ sub discover
   if($verbose) {
     print "Probing for SOAP 1.1\n"
   }
-  my $svc_discover = WSDiscovery::Interfaces::WSDiscovery::WSDiscoveryPort->new({ 
+  my $svc_discover = WSDiscovery10::Interfaces::WSDiscovery::WSDiscoveryPort->new({ 
 #    no_dispatch => '1',
   });
   $svc_discover->set_soap_version('1.1');
@@ -182,7 +182,7 @@ sub discover
   if($verbose) {
     print "Probing for SOAP 1.2\n"
   }
-  $svc_discover = WSDiscovery::Interfaces::WSDiscovery::WSDiscoveryPort->new({
+  $svc_discover = WSDiscovery10::Interfaces::WSDiscovery::WSDiscoveryPort->new({
 #    no_dispatch => '1',
   });
   $svc_discover->set_soap_version('1.2');

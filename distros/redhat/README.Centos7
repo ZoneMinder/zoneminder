@@ -40,7 +40,7 @@ New installs
      mysqladmin -uroot -p reload
 
    The database account credentials, zmuser/zmpass, are arbitrary. Set them to
-   anything that suits your envinroment.
+   anything that suits your environment.
 
 3. If you have chosen to change the zoneminder database account credentials to
    something other than zmuser/zmpass, you must now edit /etc/zm/zm.conf.

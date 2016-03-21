@@ -54,14 +54,15 @@ B<id>|B<action>|B<score>|B<cause>|B<text>|B<showtext>
   Valid actions are 'on', 'off', 'cancel' or 'show' where
   'on' forces an alarm condition on;
   'off' forces an alarm condition off;
-  'cancel' negates the previous 'on' or 'off'.
-
-  The 'show' action merely updates some auxiliary text which can optionally
-  be displayed in the images captured by the monitor. Ordinarily you would
-  use 'on' and 'cancel', 'off' would tend to be used to suppress motion
-  based events. Additionally 'on' and 'off' can take an additional time
-  offset, e.g. on+20 which automatically 'cancel's the previous action
-  after that number of seconds.
+  'cancel' negates the previous 'on' or 'off';
+  'show' updates the auxiliary text represented by the %Q 
+  placeholder, which can optionally be added to the affected monitor's
+  timestamp label format.
+  
+  Ordinarily you would use 'on' and 'cancel', 'off' would tend to be
+  used to suppress motion based events. Additionally 'on' and 'off' can
+  take an additional time offset, e.g. on+20 which automatically
+  cancel's the previous action after that number of seconds.
 
 =item B<score>
 
@@ -166,7 +167,7 @@ use Time::HiRes qw( usleep );
 
 $| = 1;
 
-$ENV{PATH}  = '/bin:/usr/bin';
+$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 

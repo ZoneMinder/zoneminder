@@ -23,10 +23,9 @@
 
 body {
     font-family: Verdana, Arial, Helvetica, sans-serif;
-    font-size: 10px;
+    font-size: 18px;
     color: #333333;
     font-weight: normal;
-    text-align: center;
 }
 
 h1 {
@@ -82,10 +81,6 @@ a:visited {
 a:hover {
     color: #666699;
     text-decoration: underline;
-}
-
-label {
-    margin-right: 4px;
 }
 
 input,textarea,select,button {
@@ -188,12 +183,6 @@ ul.tabList li.active a {
     padding-top: 6px;
     padding-bottom: 6px;
     vertical-align: middle;
-}
-
-#content table.major th, #content table.major td {
-    border: 1px solid #7f7fb2;
-    padding: 3px;
-    text-align: left;
 }
 
 #content table.major th {
@@ -438,7 +427,26 @@ th.table-th-sort-rev span.table-th-sort-span {
 }
 
 #footer {
-    width: 96%;
-    margin: 8px auto;
+    border-top: 1px solid #e7e7e7;
+    margin: 32px 0;
+    padding: 8px;
 }
 
+.nav.nav-pills.nav-stacked.col-md-2 {
+	padding-right: 0;
+}
+
+.nav.nav-pills.nav-stacked.col-md-2 > li > a {
+	border-top-right-radius: 0;
+	border-bottom-right-radius: 0;
+}
+
+#options {
+	border-left: 1px solid #337ab7;
+}
+
+#options .form-group {
+	margin-bottom: 20px;
+	border-bottom: 1px solid #e7e7e7;
+
+}

@@ -54,6 +54,29 @@ else
 $focusWindow = true;
 
 xhtmlHeaders( __FILE__, translate('Options') );
+
+# Have to do this stuff up here before including header.php because fof the cookie setting
+$skin_options = array_map( 'basename', glob('skins/*',GLOB_ONLYDIR) );
+if($tab == 'skins') {
+    $current_skin = $_COOKIE['zmSkin'];
+    $reload = false;
+    if ( isset($_GET['skin-choice']) && ( $_GET['skin-choice'] != $current_skin ) ) {
+        setcookie('zmSkin',$_GET['skin-choice'], time()+3600*24*30*12*10 );
+        //header("Location: index.php?view=options&tab=skins&reset_parent=1");
+        $reload = true;
+    }
+    $current_css = $_COOKIE['zmCSS'];
+Error("Current css $current_css");
+    if ( isset($_GET['css-choice']) and ( $_GET['css-choice'] != $current_css ) ) {
+Error("setting css $current_css to " .  $_GET['css-choice']);
+        setcookie('zmCSS',$_GET['css-choice'], time()+3600*24*30*12*10 );
+        //header("Location: index.php?view=options&tab=skins&reset_parent=1");
+        $reload = true;
+    }
+    if ( $reload )
+        echo "<script type=\"text/javascript\">if(window.opener){window.opener.location.reload();}window.location.href=\"{$_SERVER['PHP_SELF']}?view={$view}&tab={$tab}\"</script>";
+} # end if tab == skins
+
 ?>
 <body>
 
@@ -73,25 +96,7 @@ foreach ( $tabs as $name=>$value )
 
       <div id="options" class="col-md-10">
 <?php 
-$skin_options = array_map( 'basename', glob('skins/*',GLOB_ONLYDIR) );
 if($tab == 'skins') {
-	$current_skin = $_COOKIE['zmSkin'];
-	$reload = false;
-	if ( isset($_GET['skin-choice']) && ( $_GET['skin-choice'] != $current_skin ) ) {
-		setcookie('zmSkin',$_GET['skin-choice'], time()+3600*24*30*12*10 );
-		//header("Location: index.php?view=options&tab=skins&reset_parent=1");
-		$reload = true;
-	}
-	$current_css = $_COOKIE['zmCSS'];
-	if ( isset($_GET['css-choice']) and ( $_GET['css-choice'] != $current_css ) ) {
-		setcookie('zmCSS',$_GET['css-choice'], time()+3600*24*30*12*10 );
-		//header("Location: index.php?view=options&tab=skins&reset_parent=1");
-		$reload = true;
-	}
-
-	if ( $reload ) 
-		echo "<script type=\"text/javascript\">window.opener.location.reload();window.location.href=\"{$_SERVER['PHP_SELF']}?view={$view}&tab={$tab}\"</script>";
-
 ?>
 	<form name="optionsForm" class="form-horizontal" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>

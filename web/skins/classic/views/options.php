@@ -62,18 +62,9 @@ xhtmlHeaders( __FILE__, translate('Options') );
 <?php
 foreach ( $tabs as $name=>$value )
 {
-    if ( $tab == $name )
-    {
 ?>
-        <li class="active"><a href="?view=<?php echo $view ?>&amp;tab=<?php echo $name ?>"><?php echo $value ?></a></li>
+        <li<?php echo $tab == $name ? ' class="active"' : '' ?>><a href="?view=<?php echo $view ?>&amp;tab=<?php echo $name ?>"><?php echo $value ?></a></li>
 <?php
-    }
-    else
-    {
-?>
-        <li><a href="?view=<?php echo $view ?>&amp;tab=<?php echo $name ?>"><?php echo $value ?></a></li>
-<?php
-    }
 }
 ?>
       </ul>

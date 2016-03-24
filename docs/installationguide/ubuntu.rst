@@ -181,7 +181,7 @@ Easy Way: Install ZoneMinder from a package (Ubuntu 14.x)
 
 **Step 4:**:Some tweaks that will be needed:
 
-Edit /etc/init.d/zoneminder:
+Edit ``/etc/init.d/zoneminder``:
 
 add a ``sleep 10`` right after line 25 that reads ``echo -n "Starting $prog:"``
 (The reason we need this sleep is to make sure ZM starts after mysqld starts)
@@ -198,7 +198,7 @@ As of Oct 3 2015, zm.conf is not readable by ZM. This is likely a bug and will g
 
 If you changed the  DB password **after** installing ZM, the APIs will not be able to connect to the DB.
 
-If you have, go to zoneminder/www/api/app/Config & Edit ``database.php``
+If you have, go to ``/usr/share/zoneminder/www/api/app/Config`` & Edit ``database.php``
 
 There is a class there called ``DATABASE_CONFIG`` - change the ``$default`` array to reflect your new details. Example:
 
@@ -224,7 +224,7 @@ We also need to install php5-gd (as of 1.28.107, this is not installed)
 
 **Step 6**: Edit Timezone in PHP
 
-vi /etc/php5/apache2/php.ini
+``sudo vi /etc/php5/apache2/php.ini``
 Look for [Date] and inside it you will see a date.timezone
 that is commented. remove the comment and specific your timezone.
 Please make sure the timezone is valid (see [this](http://php.net/manual/en/timezones.php))
@@ -247,7 +247,7 @@ restart:
 ::
 
 	sudo service apache2 restart
-	/etc/init.d/zoneminder restart
+	sudo service zoneminder restart
 
 **Step 8**: Making sure ZM and APIs work: (optional - only if you need APIs)
 

@@ -224,7 +224,7 @@ We also need to install php5-gd (as of 1.28.107, this is not installed)
 
 **Step 6**: Edit Timezone in PHP
 
-``sudo nano /etc/php5/apache2/php.ini``
+``sudo vi /etc/php5/apache2/php.ini``
 Look for [Date] and inside it you will see a date.timezone
 that is commented. remove the comment and specific your timezone.
 Please make sure the timezone is valid (see [this](http://php.net/manual/en/timezones.php))

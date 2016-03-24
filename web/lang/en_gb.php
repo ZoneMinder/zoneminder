@@ -87,6 +87,7 @@ $SLANG = array(
     'Actual'                => 'Actual',
     'AddNewControl'         => 'Add New Control',
     'AddNewMonitor'         => 'Add New Monitor',
+    'AddNewServer'          => 'Add New Server',
     'AddNewUser'            => 'Add New User',
     'AddNewZone'            => 'Add New Zone',
     'Alarm'                 => 'Alarm',
@@ -100,6 +101,8 @@ $SLANG = array(
     'AlarmRGBUnset'         => 'You must set an alarm RGB colour',
     'Alert'                 => 'Alert',
     'All'                   => 'All',
+    'AnalysisFPS'           => 'Analysis FPS',
+    'AnalysisUpdateDelay'   => 'Analysis Update Delay',
     'Apply'                 => 'Apply',
     'ApplyingStateChange'   => 'Applying State Change',
     'ArchArchived'          => 'Archived Only',
@@ -122,6 +125,8 @@ $SLANG = array(
     'AttrMaxScore'          => 'Max. Score',
     'AttrMonitorId'         => 'Monitor Id',
     'AttrMonitorName'       => 'Monitor Name',
+    'AttrServerId'          => 'Server Id',
+    'AttrServerName'        => 'Server Name',
     'AttrName'              => 'Name',
     'AttrNotes'             => 'Notes',
     'AttrSystemLoad'        => 'System Load',
@@ -137,6 +142,8 @@ $SLANG = array(
     'BackgroundFilter'      => 'Run filter in background',
     'BadAlarmFrameCount'    => 'Alarm frame count must be an integer of one or more',
     'BadAlarmMaxFPS'        => 'Alarm Maximum FPS must be a positive integer or floating point value',
+    'BadAnalysisFPS'        => 'Analysis FPS must be a positive integer or floating point value',
+    'BadAnalysisUpdateDelay'=> 'Analysis update delay must be set to an integer of zero or more',
     'BadChannel'            => 'Channel must be set to an integer of zero or more',
     'BadDevice'             => 'Device must be set to a valid value',
     'BadFormat'             => 'Format must be set to a valid value',
@@ -252,6 +259,7 @@ $SLANG = array(
     'DefaultScale'          => 'Default Scale',
     'DefaultView'           => 'Default View',
     'Deinterlacing'         => 'Deinterlacing',
+    'RTSPDescribe'         => 'Use RTSP Response Media URL',
     'Delay'                 => 'Delay',
     'DeleteAndNext'         => 'Delete &amp; Next',
     'DeleteAndPrev'         => 'Delete &amp; Prev',
@@ -302,6 +310,7 @@ $SLANG = array(
     'Exclude'               => 'Exclude',
     'Execute'               => 'Execute',
     'ExportDetails'         => 'Export Event Details',
+    'Exif'                  => 'Embed EXIF data into image',
     'Export'                => 'Export',
     'ExportFailed'          => 'Export Failed',
     'ExportFormat'          => 'Export File Format',
@@ -377,6 +386,7 @@ $SLANG = array(
     'HighBW'                => 'High&nbsp;B/W',
     'High'                  => 'High',
     'Home'                  => 'Home',
+    'Hostname'				=> 'Hostname',
     'Hour'                  => 'Hour',
     'Hue'                   => 'Hue',
     'Id'                    => 'Id',
@@ -572,6 +582,7 @@ $SLANG = array(
     'Progress'              => 'Progress',
     'Protocol'              => 'Protocol',
     'Rate'                  => 'Rate',
+    'RecaptchaWarning'      => 'Your reCaptcha secret key is invalid. Please correct it, or reCaptcha will not work', // added Sep 24 2015 - PP
     'Real'                  => 'Real',
     'Record'                => 'Record',
     'RefImageBlendPct'      => 'Reference Image Blend %ge',
@@ -670,6 +681,7 @@ $SLANG = array(
     'TimestampLabelFormat'  => 'Timestamp Label Format',
     'TimestampLabelX'       => 'Timestamp Label X',
     'TimestampLabelY'       => 'Timestamp Label Y',
+    'TimestampLabelSize'    => 'Font Size',
     'Timestamp'             => 'Timestamp',
     'TimeStamp'             => 'Time Stamp',
     'Time'                  => 'Time',
@@ -882,17 +894,36 @@ function zmVlang( $langVarArray, $count )
 // So for example, to override the help text for ZM_LANG_DEFAULT do
 $OLANG = array(
 	'OPTIONS_FFMPEG' => array(
-		'Help' => "Parameters in this field are passwd on to FFmpeg. Multiple parameters can be separated by ,~~ ".
+		'Help' => "Parameters in this field are passed on to FFmpeg. Multiple parameters can be separated by ,~~ ".
 		          "Examples (do not enter quotes)~~~~".
 		          "\"allowed_media_types=video\" Set datatype to request fromcam (audio, video, data)~~~~".
 		          "\"reorder_queue_size=nnn\" Set number of packets to buffer for handling of reordered packets~~~~".
-		          "\"loglevel=debug\" Set verbosiy of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
+		          "\"loglevel=debug\" Set verbosity of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
 	),
 	'OPTIONS_LIBVLC' => array(
 		'Help' => "Parameters in this field are passed on to libVLC. Multiple parameters can be separated by ,~~ ".
 		          "Examples (do not enter quotes)~~~~".
 		          "\"--rtp-client-port=nnn\" Set local port to use for rtp data~~~~". 
 		          "\"--verbose=2\" Set verbosity of libVLC"
+	),
+	'OPTIONS_EXIF' => array(
+		'Help' => "Enable this option to embed EXIF data into each jpeg frame."
+	),
+	'OPTIONS_RTSPDESCRIBE' => array(
+		'Help' => "Sometimes, during the intial RTSP handshake, the camera will send an updated media URL. ".
+		          "Enable this option to tell ZoneMinder to use this URL. Disable this option to ignore the ".
+		          "value from the camera and use the value as entered in the monitor configuration~~~~". 
+		          "Generally this should be enabled. However, there are cases where the camera can get its".
+		          "own URL incorrect, such as when the camera is streaming through a firewall"),
+	'OPTIONS_MAXFPS' => array(
+		'Help' => "This field has certain limitations when used for non-local devices.~~ ".
+		          "Failure to adhere to these limitations will cause a delay in live video, irregular frame skipping, ".
+		          "and missed events~~".
+		          "For streaming IP cameras, do not use this field to reduce the frame rate. Set the frame rate in the".
+                          " camera, instead. You can, however, use a value that is slightly higher than the frame rate in the camera. ".
+		          "In this case, this helps keep the cpu from being overtaxed in the event of a network problem.~~". 
+		          "Some, mostly older, IP cameras support snapshot mode. In this case ZoneMinder is actively polling the camera ".
+		          "for new images. In this case, it is safe to use thie field."
 	),
 	
 //    'LANG_DEFAULT' => array(

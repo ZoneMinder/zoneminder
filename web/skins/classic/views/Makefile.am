@@ -37,11 +37,13 @@ dist_web_DATA = \
 	monitorpreset.php \
 	monitorprobe.php \
 	montage.php \
+    montagereview.php \
 	none.php \
   onvifprobe.php \
 	optionhelp.php \
 	options.php \
 	postlogin.php \
+	server.php \
 	settings.php \
 	state.php \
 	stats.php \

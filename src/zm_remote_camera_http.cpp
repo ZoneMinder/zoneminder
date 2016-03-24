@@ -199,7 +199,7 @@ int RemoteCameraHttp::ReadData( Buffer &buffer, int bytes_expected )
             return( -1 );
         }
 
-		// There can be lots of bytes available.  I've seen 4MB or more. This will vastly inflate our buffer size unneccessarily.
+		// There can be lots of bytes available.  I've seen 4MB or more. This will vastly inflate our buffer size unnecessarily.
 		if ( total_bytes_to_read > ZM_NETWORK_BUFSIZ ) {
 			total_bytes_to_read = ZM_NETWORK_BUFSIZ;
 			Debug(3, "Just getting 32K" );
@@ -306,7 +306,7 @@ int RemoteCameraHttp::GetResponse()
 							std::string Header = header;
 				
 							mAuthenticator->checkAuthResponse(Header);
-							if ( mAuthenticator->auth_method() == AUTH_DIGEST ) {
+							if ( mAuthenticator->auth_method() == zm::AUTH_DIGEST ) {
 								Debug( 2, "Need Digest Authentication" );
 								request = stringtf( "GET %s HTTP/%s\r\n", path.c_str(), config.http_version );
 								request += stringtf( "User-Agent: %s/%s\r\n", config.http_ua, ZM_VERSION );
@@ -750,7 +750,7 @@ Debug(3, "Need more data buffer %d < content length %d", buffer.size(), content_
 							Debug(2, "Checking for digest auth in %s", authenticate_header );
 
                             mAuthenticator->checkAuthResponse(Header);
-                            if ( mAuthenticator->auth_method() == AUTH_DIGEST ) {
+                            if ( mAuthenticator->auth_method() == zm::AUTH_DIGEST ) {
                                 Debug( 2, "Need Digest Authentication" );
                                 request = stringtf( "GET %s HTTP/%s\r\n", path.c_str(), config.http_version );
                                 request += stringtf( "User-Agent: %s/%s\r\n", config.http_ua, ZM_VERSION );

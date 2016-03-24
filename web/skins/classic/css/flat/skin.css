@@ -5,7 +5,7 @@
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) input[type=password], any later version.
+ * of the License, or (at your option) any later version.
  * 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -21,11 +21,9 @@
  * Primary look and feel styles
  */
 
-@import url("https://fonts.googleapis.com/css?family=Open+Sans:200,200italic,300,300italic,400,400italic,600,600italic,700");
-
 body {
     font-family: "Open Sans", Verdana, Arial, Helvetica, sans-serif;
-    font-size: 16px;
+    font-size: 13px;
     color: #333333;
     font-weight: 300;
     text-align: center;
@@ -463,6 +461,16 @@ input[type=submit] {
 input[type=button]:hover,
 input[type=submit]:hover {
     background-color: #34a2ee;    
+
+}
+
+
+/* PP - make it easy to identify disabled buttons */
+
+input[type=button]:disabled,
+input[type=submit]:disabled {
+    background-color: #aaaaaa;    
+    border-color: #bbbbbb;
 
 }
 

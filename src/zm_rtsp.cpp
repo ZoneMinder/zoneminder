@@ -167,13 +167,14 @@ void RtspThread::releasePorts( int port )
         smAssignedPorts.erase( port );
 }
 
-RtspThread::RtspThread( int id, RtspMethod method, const std::string &protocol, const std::string &host, const std::string &port, const std::string &path, const std::string &auth) :
+RtspThread::RtspThread( int id, RtspMethod method, const std::string &protocol, const std::string &host, const std::string &port, const std::string &path, const std::string &auth, bool rtsp_describe) :
     mId( id ),
     mMethod( method ),
     mProtocol( protocol ),
     mHost( host ),
     mPort( port ),
     mPath( path ),
+    mRtspDescribe( rtsp_describe ),
     mSessDesc( 0 ),
     mFormatContext( 0 ),
     mSeq( 0 ),
@@ -202,9 +203,9 @@ RtspThread::RtspThread( int id, RtspMethod method, const std::string &protocol, 
     mNeedAuth = false;
     StringVector parts = split(auth,":");
     if (parts.size() > 1) 
-    	mAuthenticator = new Authenticator(parts[0], parts[1]);
+    	mAuthenticator = new zm::Authenticator(parts[0], parts[1]);
     else
-    	mAuthenticator = new Authenticator(parts[0], "");
+    	mAuthenticator = new zm::Authenticator(parts[0], "");
 }
 
 RtspThread::~RtspThread()
@@ -382,20 +383,23 @@ int RtspThread::run()
     if( sdpStart == std::string::npos )
         return( -1 );
 
-    std::string DescHeader = response.substr( 0,sdpStart );
-    Debug( 1, "Processing DESCRIBE response header '%s'", DescHeader.c_str() );
+    if ( mRtspDescribe )
+    {
+        std::string DescHeader = response.substr( 0,sdpStart );
+        Debug( 1, "Processing DESCRIBE response header '%s'", DescHeader.c_str() );
 
-    lines = split( DescHeader, "\r\n" );
-    for ( size_t i = 0; i < lines.size(); i++ )
-    	{
-    		// If the device sends us a url value for Content-Base in the response header, we should use that instead
-    		if ( ( lines[i].size() > 13 ) && ( lines[i].substr( 0, 13 ) == "Content-Base:" ) )
-    			{
-    				mUrl = trimSpaces( lines[i].substr( 13 ) );
-    				Info("Received new Content-Base in DESCRIBE response header. Updated device Url to: '%s'", mUrl.c_str() );
-    				break;
-    			}
-    	}
+        lines = split( DescHeader, "\r\n" );
+        for ( size_t i = 0; i < lines.size(); i++ )
+    	    {
+                // If the device sends us a url value for Content-Base in the response header, we should use that instead
+                if ( ( lines[i].size() > 13 ) && ( lines[i].substr( 0, 13 ) == "Content-Base:" ) )
+                    {
+                        mUrl = trimSpaces( lines[i].substr( 13 ) );
+                        Info("Received new Content-Base in DESCRIBE response header. Updated device Url to: '%s'", mUrl.c_str() );
+                        break;
+                    }
+            }
+    }
 
     sdpStart += endOfHeaders.length();
 

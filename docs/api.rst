@@ -1,5 +1,5 @@
 API
-^^^
+====
 
 This document will provide an overview of ZoneMinder's API. This is work in progress. 
 
@@ -13,10 +13,44 @@ The API is built in CakePHP and lives under the ``/api`` directory.  It
 provides a RESTful service and supports CRUD (create, retrieve, update, delete)
 functions for Monitors, Events, Frames, Zones and Config.
 
-Examples
-^^^^^^^^
+Security
+^^^^^^^^^
+The APIs tie into ZoneMinder's existing security model. This means if you have
+OPT_AUTH enabled, you need to log into ZoneMinder using the same browser you plan to 
+use the APIs from. If you are developing an app that relies on the API, you need 
+to do a POST login from the app into ZoneMinder before you can access the API.
 
-Here be a list of examples.  Some results may be truncated.
+Then, you need to re-use the authentication information of the login (returned as cookie states)
+with subsequent APIs for the authentication information to flow through to the APIs.
+
+This means if you plan to use cuRL to experiment with these APIs, you first need to do
+
+::
+
+	curl -d "username=XXXX&password=YYYY&action=login&view=console" -c cookies.txt  http://yourzmip/zm/index.php
+
+replacing *XXXX* and *YYYY* with your username and password, respectively.
+
+Please make sure you do this in a directory where you have write permissions, otherwise cookies.txt will not be created
+and the command will silently  fail.
+
+
+What the "-c cookies.txt" does is store a cookie state reflecting that you have logged into ZM. You now need
+to apply that cookie state to all subsequent APIs. You do that by using a '-b cookies.txt' to subsequent APIs if you are 
+using CuRL like so:
+
+::
+
+	curl -b cookies.txt http://yourzmip/zm/api/monitors.json
+
+This would return a list of monitors and pass on the authentication information to the ZM API layer. 
+
+So remember, if you are using authentication, please add a ``-b cookies.txt``  to each of the commands below if you are using
+CuRL. If you are not using CuRL and writing your own app, you need to make sure you pass on cookies to subsequent requests
+in your app.
+
+Examples (please read security notice above)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You will see each URL ending in either ``.xml`` or ``.json``.  This is the
 format of the request, and it determines the format that any data returned to
@@ -27,8 +61,10 @@ you will be in.  I like json, however you can use xml if you'd like.
 API Version
 ^^^^^^^^^^^
 To retrieve the API version:
+
 ::
-  http://server/zm/api/host/getVersion.json
+
+  curl http://server/zm/api/host/getVersion.json
 
 
 Return a list of all monitors
@@ -36,20 +72,21 @@ Return a list of all monitors
 
 ::
   
-  curl -XGET http://server/zm/api/monitors.json
+	curl http://server/zm/api/monitors.json
 
 Retrieve monitor 1
 ^^^^^^^^^^^^^^^^^^^
 
- ::
+::
   
-  curl -XGET http://server/zm/api/monitors/1.json
+  	curl http://server/zm/api/monitors/1.json
 
 
 Change State of Monitor 1
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This API changes monitor 1 to Modect and Enabled
+
 ::
 
   curl -XPOST http://server/zm/api/monitors/1.json -d "Monitor[Function]=Modect&Monitor[Enabled]:true"
@@ -98,7 +135,7 @@ Return a list of all events
 
 ::
 
-  curl -XGET http://server/zm/api/events.json
+  http://server/zm/api/events.json
 
 
 Note that events list can be quite large and this API (as with all other APIs in ZM)

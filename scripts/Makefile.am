@@ -10,6 +10,7 @@ bin_SCRIPTS = \
 	zmdc.pl \
 	zmaudit.pl \
 	zmfilter.pl \
+	zmtelemetry.pl \
 	zmtrigger.pl \
 	zmx10.pl \
 	zmwatch.pl \
@@ -29,6 +30,7 @@ EXTRA_DIST = \
 	zmdc.pl.in \
 	zmaudit.pl.in \
 	zmfilter.pl.in \
+	zmtelemetry.pl.in \
 	zmtrigger.pl.in \
 	zmx10.pl.in \
 	zmwatch.pl.in \
@@ -57,7 +59,7 @@ EXTRA_DIST = \
 	ZoneMinder/lib/ZoneMinder/ConfigAdmin.pm \
 	ZoneMinder/lib/ZoneMinder/ConfigData.pm.in \
 	ZoneMinder/lib/ZoneMinder/Control.pm \
-	ZoneMinder/lib/ZoneMinder/Control \ # Grab all ptz control skips under the Control folder
+	ZoneMinder/lib/ZoneMinder/Control \
 	ZoneMinder/lib/ZoneMinder/Trigger/Channel.pm \
 	ZoneMinder/lib/ZoneMinder/Trigger/Channel/Handle.pm \
 	ZoneMinder/lib/ZoneMinder/Trigger/Channel/Spawning.pm \

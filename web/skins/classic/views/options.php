@@ -159,6 +159,7 @@ elseif ( $tab == "users" )
               <th class="colEvents"><?php echo translate('Events') ?></th>
               <th class="colControl"><?php echo translate('Control') ?></th>
               <th class="colMonitors"><?php echo translate('Monitors') ?></th>
+              <th class="colGroups"><?php echo translate('Groups') ?></th>
               <th class="colSystem"><?php echo translate('System') ?></th>
               <th class="colBandwidth"><?php echo translate('Bandwidth') ?></th>
               <th class="colMonitor"><?php echo translate('Monitor') ?></th>
@@ -194,6 +195,7 @@ elseif ( $tab == "users" )
               <td class="colEvents"><?php echo validHtmlStr($row['Events']) ?></td>
               <td class="colControl"><?php echo validHtmlStr($row['Control']) ?></td>
               <td class="colMonitors"><?php echo validHtmlStr($row['Monitors']) ?></td>
+              <td class="colGroups"><?php echo validHtmlStr($row['Groups']) ?></td>
               <td class="colSystem"><?php echo validHtmlStr($row['System']) ?></td>
               <td class="colBandwidth"><?php echo $row['MaxBandwidth']?$bwArray[$row['MaxBandwidth']]:'&nbsp;' ?></td>
               <td class="colMonitor"><?php echo $row['MonitorIds']?(join( ", ", $userMonitors )):"&nbsp;" ?></td>
@@ -219,13 +221,15 @@ elseif ( $tab == "users" )
           <thead>
             <tr>
               <th class="colName"><?php echo translate('name') ?></th>
+              <th class="colHostname"><?php echo translate('Hostname') ?></th>
               <th class="colMark"><?php echo translate('Mark') ?></th>
 			</tr>
           </thead>
           <tbody>
 <?php foreach( dbFetchAll( 'SELECT * FROM Servers' ) as $row ) { ?>
             <tr>
-              <td class="colName"><?php echo makePopupLink( '?view=server&amp;id='.$row['Id'], 'zmServer', 'server', validHtmlStr($row['Name']).($user['Name']==$row['Name']?"*":""), $canEdit ) ?></td>
+              <td class="colName"><?php echo makePopupLink( '?view=server&amp;id='.$row['Id'], 'zmServer', 'server', validHtmlStr($row['Name']), $canEdit ) ?></td>
+              <td class="colHostname"><?php echo makePopupLink( '?view=server&amp;id='.$row['Id'], 'zmServer', 'server', validHtmlStr($row['Hostname']), $canEdit ) ?></td>
               <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $row['Id'] ?>" onclick="configureDeleteButton( this );"<?php if ( !$canEdit ) { ?> disabled="disabled"<?php } ?>/></td>
 			</tr>
 <?php } #end foreach Server ?>

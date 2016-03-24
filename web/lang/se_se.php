@@ -92,6 +92,8 @@ $SLANG = array(
     'AlarmRefImageBlendPct'=> 'Alarm Reference Image Blend %ge', // Added - 2015-04-18
     'Alert'                => 'Varning',
     'All'                  => 'Alla',
+    'AnalysisFPS'          => 'Analysis FPS',           // Added - 2015-07-22
+    'AnalysisUpdateDelay'  => 'Analysis Update Delay',  // Added - 2015-07-23
     'Apply'                => 'Lägg till',
     'ApplyingStateChange'  => 'Aktivera statusändring',
     'ArchArchived'         => 'Arkivera endast',
@@ -128,6 +130,8 @@ $SLANG = array(
     'BackgroundFilter'     => 'Kör filter i bakgrunden',
     'BadAlarmFrameCount'   => 'Ramantalet för larm måste vara ett heltal, minsta värdet är 1',
     'BadAlarmMaxFPS'       => 'Larm för bilder/s måste vara ett positivt heltal eller ett flyttal',
+    'BadAnalysisFPS'       => 'Analysis FPS must be a positive integer or floating point value', // Added - 2015-07-22
+    'BadAnalysisUpdateDelay'=> 'Analysis update delay must be set to an integer of zero or more', // Added - 2015-07-23
     'BadChannel'           => 'Kanalen måste vara ett heltal, noll eller högre',
     'BadColours'           => 'Target colour must be set to a valid value', // Added - 2011-06-15
     'BadDevice'            => 'Enheten måste sättas till ett giltigt värde',
@@ -886,14 +890,14 @@ $OLANG = array(
         'Help' => "ZoneMinder kan använda annat språk än engelska i menyer och texter. Välj här det språk du vill använda till ZoneMinder."
     ),
 	'OPTIONS_FFMPEG' => array(
-		'Help' => "Parameters in this field are passwd on to FFmpeg. Multiple parameters can be separated by ,~~ ".
+		'Help' => "Parameters in this field are passed on to FFmpeg. Multiple parameters can be separated by ,~~ ".
 		          "Examples (do not enter quotes)~~~~".
 		          "\"allowed_media_types=video\" Set datatype to request fromcam (audio, video, data)~~~~".
 		          "\"reorder_queue_size=nnn\" Set number of packets to buffer for handling of reordered packets~~~~".
-		          "\"loglevel=debug\" Set verbosiy of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
+		          "\"loglevel=debug\" Set verbosity of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
 	),
 	'OPTIONS_LIBVLC' => array(
-		'Help' => "Parameters in this field are passwd on to libVLC. Multiple parameters can be separated by ,~~ ".
+		'Help' => "Parameters in this field are passed on to libVLC. Multiple parameters can be separated by ,~~ ".
 		          "Examples (do not enter quotes)~~~~".
 		          "\"--rtp-client-port=nnn\" Set local port to use for rtp data~~~~". 
 		          "\"--verbose=2\" Set verbosity of libVLC"

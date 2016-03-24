@@ -25,6 +25,8 @@
 #include <string.h>
 #include <errno.h>
 
+#include "zm_utils.h"
+
 void zmLoadConfig()
 {
 	FILE *cfg;
@@ -91,17 +93,53 @@ void zmLoadConfig()
             staticConfig.DB_PASS = std::string(val_ptr);
 		else if ( strcasecmp( name_ptr, "ZM_PATH_WEB" ) == 0 )
             staticConfig.PATH_WEB = std::string(val_ptr);
+		else if ( strcasecmp( name_ptr, "ZM_SERVER_HOST" ) == 0 )
+			staticConfig.SERVER_NAME = std::string(val_ptr);
+		else if ( strcasecmp( name_ptr, "ZM_SERVER_NAME" ) == 0 )
+			staticConfig.SERVER_NAME = std::string(val_ptr);
+		else if ( strcasecmp( name_ptr, "ZM_SERVER_ID" ) == 0 )
+			staticConfig.SERVER_ID = atoi(val_ptr);
 		else
 		{
 			// We ignore this now as there may be more parameters than the
 			// c/c++ binaries are bothered about
 			// Warning( "Invalid parameter '%s' in %s", name_ptr, ZM_CONFIG );
 		}
-	}
-	fclose( cfg);
+	} // end foreach line of the config
+	fclose( cfg );
 	zmDbConnect();
 	config.Load();
 	config.Assign();
+
+	// Populate the server config entries
+	if ( ! staticConfig.SERVER_ID ) {
+		if ( ! staticConfig.SERVER_NAME.empty() ) {
+
+			Debug( 1, "Fetching ZM_SERVER_ID For Name = %s", staticConfig.SERVER_NAME.c_str() );
+			std::string sql = stringtf("SELECT Id FROM Servers WHERE Name='%s'", staticConfig.SERVER_NAME.c_str() );
+			if ( MYSQL_ROW dbrow = zmDbFetchOne( sql.c_str() ) ) {
+				staticConfig.SERVER_ID = atoi(dbrow[0]);
+			} else {
+				Fatal("Can't get ServerId for Server %s", staticConfig.SERVER_NAME.c_str() );
+			}
+
+		} // end if has SERVER_NAME
+	} else if ( staticConfig.SERVER_NAME.empty() ) {
+		Debug( 1, "Fetching ZM_SERVER_NAME For Id = %d", staticConfig.SERVER_ID );
+		std::string sql = stringtf("SELECT Name FROM Servers WHERE Id='%d'", staticConfig.SERVER_ID );
+		
+		if ( MYSQL_ROW dbrow = zmDbFetchOne( sql.c_str() ) ) {
+			staticConfig.SERVER_NAME = std::string(dbrow[0]);
+		} else {
+			Fatal("Can't get ServerName for Server ID %d", staticConfig.SERVER_ID );
+		}
+	
+	}	
+	if ( ! staticConfig.SERVER_ID ) {
+		Debug( 1, "No Server ID or Name specified in config.  Not using Multi-Server Mode." );
+	} else {
+		Debug( 1, "Server is %d: using Multi-Server Mode.", staticConfig.SERVER_ID );
+	}
 }
 
 StaticConfig staticConfig;

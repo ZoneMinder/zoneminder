@@ -91,6 +91,8 @@ $SLANG = array(
     'AlarmRefImageBlendPct'=> 'Alarm Reference Image Blend %ge', // Added - 2015-04-18
     'Alert'                 => 'Alerta',
     'All'                   => 'Todo',
+    'AnalysisFPS'          => 'Analysis FPS',           // Added - 2015-07-22
+    'AnalysisUpdateDelay'  => 'Analysis Update Delay',  // Added - 2015-07-23
     'Apply'                 => 'Aplicar',
     'ApplyingStateChange'   => 'Aplicando cambio de estado...',
     'ArchArchived'          => 'Sólo archivados',
@@ -127,6 +129,8 @@ $SLANG = array(
     'BackgroundFilter'      => 'Ejecutar filtro en segundo plano',
     'BadAlarmFrameCount'    => 'El número de marcos de alarma debe tener un número entero de uno o más',
     'BadAlarmMaxFPS'        => 'Máximos MPS de alarma debe ser un valor entero positivo o de punto flotante',
+    'BadAnalysisFPS'       => 'Analysis FPS must be a positive integer or floating point value', // Added - 2015-07-22
+    'BadAnalysisUpdateDelay'=> 'Analysis update delay must be set to an integer of zero or more', // Added - 2015-07-23
     'BadChannel'            => 'El canal debe estar establecido en un entero de cero o más',
     'BadColours'           => 'Target colour must be set to a valid value', // Added - 2015-04-18
     'BadDevice'             => 'El dispositivo debe tener un valor válido',
@@ -672,6 +676,7 @@ $SLANG = array(
     'TimestampLabelFormat'  => 'Formato de hora multinacional',
     'TimestampLabelX'       => 'Etiqueta de tiempo X',
     'TimestampLabelY'       => 'Etiqueta de tiempo Y',
+    'TimestampLabelSize'    => 'Tamaño de fuente',
     'Today'                 => 'Hoy',
     'Tools'                 => 'Herramientas',
     'Total'                 => 'Total',
@@ -789,14 +794,14 @@ function zmVlang( $langVarArray, $count )
 
 $OLANG = array(
 	'OPTIONS_FFMPEG' => array(
-		'Help' => "Parameters in this field are passwd on to FFmpeg. Multiple parameters can be separated by ,~~ ".
+		'Help' => "Parameters in this field are passed on to FFmpeg. Multiple parameters can be separated by ,~~ ".
 		          "Examples (do not enter quotes)~~~~".
 		          "\"allowed_media_types=video\" Set datatype to request fromcam (audio, video, data)~~~~".
 		          "\"reorder_queue_size=nnn\" Set number of packets to buffer for handling of reordered packets~~~~".
-		          "\"loglevel=debug\" Set verbosiy of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
+		          "\"loglevel=debug\" Set verbosity of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
 	),
 	'OPTIONS_LIBVLC' => array(
-		'Help' => "Parameters in this field are passwd on to libVLC. Multiple parameters can be separated by ,~~ ".
+		'Help' => "Parameters in this field are passed on to libVLC. Multiple parameters can be separated by ,~~ ".
 		          "Examples (do not enter quotes)~~~~".
 		          "\"--rtp-client-port=nnn\" Set local port to use for rtp data~~~~". 
 		          "\"--verbose=2\" Set verbosity of libVLC"

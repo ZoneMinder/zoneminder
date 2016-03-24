@@ -33,6 +33,7 @@
 #include <errno.h>
 #ifdef __FreeBSD__
 #include <sys/thr.h>
+#include <libgen.h>
 #endif
 
 bool Logger::smInitialised = false;
@@ -493,7 +494,7 @@ void Logger::closeSyslog()
     (void) closelog();
 }
 
-void Logger::logPrint( bool hex, const char * const file, const int line, const int level, const char *fstring, ... )
+void Logger::logPrint( bool hex, const char * const filepath, const int line, const int level, const char *fstring, ... )
 {
     if ( level <= mEffectiveLevel )
     {
@@ -502,6 +503,8 @@ void Logger::logPrint( bool hex, const char * const file, const int line, const 
         char            logString[8192];
         va_list         argPtr;
         struct timeval  timeVal;
+
+        const char * const file = basename(filepath);
         
         if ( level < PANIC || level > DEBUG9 )
             Panic( "Invalid logger level %d", level );
@@ -600,7 +603,8 @@ void Logger::logPrint( bool hex, const char * const file, const int line, const 
             char escapedString[(strlen(syslogStart)*2)+1];
 
             mysql_real_escape_string( &mDbConnection, escapedString, syslogStart, strlen(syslogStart) );
-            snprintf( sql, sizeof(sql), "insert into Logs ( TimeKey, Component, Pid, Level, Code, Message, File, Line ) values ( %ld.%06ld, '%s', %d, %d, '%s', '%s', '%s', %d )", timeVal.tv_sec, timeVal.tv_usec, mId.c_str(), tid, level, classString, escapedString, file, line );
+			
+            snprintf( sql, sizeof(sql), "insert into Logs ( TimeKey, Component, ServerId, Pid, Level, Code, Message, File, Line ) values ( %ld.%06ld, '%s', %d, %d, %d, '%s', '%s', '%s', %d )", timeVal.tv_sec, timeVal.tv_usec, mId.c_str(), staticConfig.SERVER_ID, tid, level, classString, escapedString, file, line );
             if ( mysql_query( &mDbConnection, sql ) )
             {
                 databaseLevel( NOLOG );

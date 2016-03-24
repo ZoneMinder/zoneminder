@@ -15,7 +15,7 @@ class ConfigsController extends AppController {
 	public $components = array('RequestHandler');
 
 /**
- * PP - resolves the issue of not returning all config parameters
+ * resolves the issue of not returning all config parameters
  * refer https://github.com/ZoneMinder/ZoneMinder/issues/953
  * index method
  *

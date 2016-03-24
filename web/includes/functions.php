@@ -56,6 +56,7 @@ function userLogin( $username, $password="", $passwordHashed=false )
     $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
     if ( $dbUser = dbFetchOne( $sql, NULL, $sql_values ) )
     {
+        Info( "Login successful for user \"$username\"" );
         $_SESSION['user'] = $user = $dbUser;
         if ( ZM_AUTH_TYPE == "builtin" )
         {
@@ -64,6 +65,7 @@ function userLogin( $username, $password="", $passwordHashed=false )
     }
     else
     {
+        Warning( "Login denied for user \"$username\"" );
         unset( $user );
     }
     if ( $cookies )
@@ -73,6 +75,9 @@ function userLogin( $username, $password="", $passwordHashed=false )
 function userLogout()
 {
     global $user;
+    $username = $user['Username'];
+
+    Info( "User \"$username\" logged out" );
 
     unset( $_SESSION['user'] );
     unset( $user );
@@ -87,6 +92,30 @@ function noCacheHeaders()
     header("Cache-Control: no-store, no-cache, must-revalidate");  // HTTP/1.1
     header("Cache-Control: post-check=0, pre-check=0", false);
     header("Pragma: no-cache");         // HTTP/1.0
+}
+
+function CORSHeaders() {
+	if ( isset( $_SERVER['HTTP_ORIGIN'] ) ) {
+
+		# The following is left for future reference/use.
+		$valid = false;
+		$servers = dbFetchAll( 'SELECT * FROM Servers' );
+		if ( sizeof($servers) <= 1 ) {
+			# Only need CORSHeaders in the event that there are multiple servers in use.
+			return;
+		}
+		foreach( dbFetchAll( 'SELECT * FROM Servers' ) as $row ) {
+			$Server = new Server( $row );
+			if ( $_SERVER['HTTP_ORIGIN'] == $Server->Url() ) {
+				$valid = true;
+				header("Access-Control-Allow-Origin: " . $Server->Url() );
+				header("Access-Control-Allow-Headers: x-requested-with,x-request");
+			}
+		}
+		if ( ! $valid ) {
+			Warning( $_SERVER['HTTP_ORIGIN'] . " is not found in servers list." );
+		}
+	}
 }
 
 function getAuthUser( $auth )
@@ -763,7 +792,7 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false )
             {
                 if ( !isset($values[$key]) || ($values[$key] != $value) )
                 {
-                    $changes[$key] = "$key = ".dbEscape($value);
+                    $changes[$key] = "$key = ".dbEscape(trim($value));
                 }
                 break;
             }

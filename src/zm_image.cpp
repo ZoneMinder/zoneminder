@@ -18,6 +18,7 @@
 // 
 #include "zm.h"
 #include "zm_font.h"
+#include "zm_bigfont.h"
 #include "zm_image.h"
 #include "zm_utils.h"
 #include "zm_rgb.h"
@@ -787,15 +788,30 @@ bool Image::ReadJpeg( const char *filename, unsigned int p_colours, unsigned int
 	return( true );
 }
 
-bool Image::WriteJpeg( const char *filename, int quality_override ) const
+// Multiple calling formats to permit inclusion (or not) of both quality_override and timestamp (exif), with suitable defaults.
+// Note quality=zero means default
+
+bool Image::WriteJpeg( const char *filename, int quality_override) const
+{
+    return Image::WriteJpeg(filename, quality_override, (timeval){0,0});
+}
+bool Image::WriteJpeg( const char *filename) const
+{
+    return Image::WriteJpeg(filename, 0, (timeval){0,0});
+}
+bool Image::WriteJpeg( const char *filename, struct timeval timestamp ) const
+{
+    return Image::WriteJpeg(filename,0,timestamp);
+}
+
+bool Image::WriteJpeg( const char *filename, int quality_override, struct timeval timestamp  ) const
 {
 	if ( config.colour_jpeg_files && colours == ZM_COLOUR_GRAY8 )
 	{
 		Image temp_image( *this );
 		temp_image.Colourise( ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB );
-		return( temp_image.WriteJpeg( filename, quality_override ) );
+		return( temp_image.WriteJpeg( filename, quality_override, timestamp) );
 	}
-
 	int quality = quality_override?quality_override:config.jpeg_file_quality;
 
 	struct jpeg_compress_struct *cinfo = jpg_ccinfo[quality];
@@ -886,6 +902,30 @@ bool Image::WriteJpeg( const char *filename, int quality_override ) const
 	{
 		jpeg_write_marker( cinfo, JPEG_COM, (const JOCTET *)text, strlen(text) );
 	}
+        // If we have a non-zero time (meaning a parameter was passed in), then form a simple exif segment with that time as DateTimeOriginal and SubsecTimeOriginal
+        // No timestamp just leave off the exif section.
+        if(timestamp.tv_sec)
+        {
+            #define EXIFTIMES_MS_OFFSET 0x36   // three decimal digits for milliseconds
+            #define EXIFTIMES_MS_LEN    0x03
+            #define EXIFTIMES_OFFSET    0x3E   // 19 characters format '2015:07:21 13:14:45' not including quotes
+            #define EXIFTIMES_LEN       0x13   // = 19
+            #define EXIF_CODE           0xE1
+
+            char timebuf[64], msbuf[64];
+            strftime(timebuf, sizeof timebuf, "%Y:%m:%d %H:%M:%S", localtime(&(timestamp.tv_sec)));
+            snprintf(msbuf, sizeof msbuf, "%06d",(int)(timestamp.tv_usec));  // we only use milliseconds because that's all defined in exif, but this is the whole microseconds because we have it
+            unsigned char exiftimes[82] = {
+                 0x45, 0x78, 0x69, 0x66, 0x00, 0x00, 0x49, 0x49, 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00, 0x01, 0x00,
+                 0x69, 0x87, 0x04, 0x00, 0x01, 0x00, 0x00, 0x00, 0x1A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                 0x02, 0x00, 0x03, 0x90, 0x02, 0x00, 0x14, 0x00, 0x00, 0x00, 0x38, 0x00, 0x00, 0x00, 0x91, 0x92,
+                 0x02, 0x00, 0x04, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff,
+                 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                 0xff, 0x00 };
+            memcpy(&exiftimes[EXIFTIMES_OFFSET],    timebuf,EXIFTIMES_LEN);
+            memcpy(&exiftimes[EXIFTIMES_MS_OFFSET], msbuf  ,EXIFTIMES_MS_LEN);
+            jpeg_write_marker (cinfo, EXIF_CODE, (const JOCTET *)exiftimes, sizeof(exiftimes) );
+        }
 
 	JSAMPROW row_pointer;	/* pointer to a single row */
 	int row_stride = cinfo->image_width * colours; /* physical row width in buffer */
@@ -1696,7 +1736,60 @@ const Coord Image::centreCoord( const char *text ) const
 }
 
 /* RGB32 compatible: complete */
-void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colour, const Rgb bg_colour )
+void Image::MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour )
+{
+    const uint8_t pixel_r_col = RED_VAL_RGBA(pixel_colour);
+    const uint8_t pixel_g_col = GREEN_VAL_RGBA(pixel_colour);
+    const uint8_t pixel_b_col = BLUE_VAL_RGBA(pixel_colour);
+    const uint8_t pixel_bw_col = pixel_colour & 0xff;
+    const Rgb pixel_rgb_col = rgb_convert(pixel_colour,subpixelorder);
+
+    unsigned char *ptr = &buffer[0];
+    unsigned int i = 0;
+
+    for ( unsigned int y = 0; y < height; y++ )
+    {
+        if ( colours == ZM_COLOUR_GRAY8 )
+        {
+            for ( unsigned int x = 0; x < width; x++, ptr++ )
+            {
+                if ( p_bitmask[i] )
+                    *ptr = pixel_bw_col;
+                i++;
+            }
+        }
+        else if ( colours == ZM_COLOUR_RGB24 )
+        {
+            for ( unsigned int x = 0; x < width; x++, ptr += colours )
+            {
+                if ( p_bitmask[i] )
+                {
+                    RED_PTR_RGBA(ptr) = pixel_r_col;
+                    GREEN_PTR_RGBA(ptr) = pixel_g_col;
+                    BLUE_PTR_RGBA(ptr) = pixel_b_col;
+                }
+                i++;
+            }
+        }
+        else if ( colours == ZM_COLOUR_RGB32 )
+	{
+            for ( unsigned int x = 0; x < width; x++, ptr += colours )
+            {
+                Rgb *temp_ptr = (Rgb*)ptr;
+                if ( p_bitmask[i] )
+                    *temp_ptr = pixel_rgb_col;
+                i++;
+            }
+	} else {
+		Panic("MaskPrivacy called with unexpected colours: %d", colours);
+		return;
+	}
+
+    }
+}
+
+/* RGB32 compatible: complete */
+void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int size, const Rgb fg_colour, const Rgb bg_colour )
 {
 	strncpy( text, p_text, sizeof(text) );
 
@@ -1720,18 +1813,22 @@ void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colou
     const Rgb bg_rgb_col = rgb_convert(bg_colour,subpixelorder);
     const bool bg_trans = (bg_colour == RGB_TRANSPARENT);
 
+    int zm_text_bitmask = 0x80;
+    if (size == 2)
+        zm_text_bitmask = 0x8000;
+
     while ( (index < text_len) && (line_len = strcspn( line, "\n" )) )
     {
 
-        unsigned int line_width = line_len * CHAR_WIDTH;
+        unsigned int line_width = line_len * CHAR_WIDTH * size;
 
         unsigned int lo_line_x = coord.X();
-        unsigned int lo_line_y = coord.Y() + (line_no * LINE_HEIGHT);
+        unsigned int lo_line_y = coord.Y() + (line_no * LINE_HEIGHT * size);
 
         unsigned int min_line_x = 0;
         unsigned int max_line_x = width - line_width;
         unsigned  int min_line_y = 0;
-        unsigned int max_line_y = height - LINE_HEIGHT;
+        unsigned int max_line_y = height - (LINE_HEIGHT * size);
 
         if ( lo_line_x > max_line_x )
             lo_line_x = max_line_x;
@@ -1743,7 +1840,7 @@ void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colou
             lo_line_y = min_line_y;
 
         unsigned int hi_line_x = lo_line_x + line_width;
-        unsigned int hi_line_y = lo_line_y + LINE_HEIGHT;
+        unsigned int hi_line_y = lo_line_y + (LINE_HEIGHT * size);
 
         // Clip anything that runs off the right of the screen
         if ( hi_line_x > width )
@@ -1754,15 +1851,19 @@ void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colou
         if ( colours == ZM_COLOUR_GRAY8 )
         {
             unsigned char *ptr = &buffer[(lo_line_y*width)+lo_line_x];
-            for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < CHAR_HEIGHT; y++, r++, ptr += width )
+            for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < (CHAR_HEIGHT * size); y++, r++, ptr += width )
             {
                 unsigned char *temp_ptr = ptr;
                 for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ )
                 {
-                    int f = fontdata[(line[c] * CHAR_HEIGHT) + r];
-                    for ( unsigned int i = 0; i < CHAR_WIDTH && x < hi_line_x; i++, x++, temp_ptr++ )
+                    int f;
+                    if (size == 2)
+                        f = bigfontdata[(line[c] * CHAR_HEIGHT * size) + r];
+                    else
+                        f = fontdata[(line[c] * CHAR_HEIGHT) + r];
+                    for ( unsigned int i = 0; i < (CHAR_WIDTH * size) && x < hi_line_x; i++, x++, temp_ptr++ )
                     {
-                        if ( f & (0x80 >> i) )
+                        if ( f & (zm_text_bitmask >> i) )
                         {
                             if ( !fg_trans )
                                 *temp_ptr = fg_bw_col;
@@ -1780,15 +1881,19 @@ void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colou
             unsigned int wc = width * colours;
 
             unsigned char *ptr = &buffer[((lo_line_y*width)+lo_line_x)*colours];
-            for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < CHAR_HEIGHT; y++, r++, ptr += wc )
+            for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < (CHAR_HEIGHT * size); y++, r++, ptr += wc )
             {
                 unsigned char *temp_ptr = ptr;
                 for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ )
                 {
-                    int f = fontdata[(line[c] * CHAR_HEIGHT) + r];
-                    for ( unsigned int i = 0; i < CHAR_WIDTH && x < hi_line_x; i++, x++, temp_ptr += colours )
+                    int f;
+                    if (size == 2)
+                        f = bigfontdata[(line[c] * CHAR_HEIGHT * size) + r];
+                    else
+                        f = fontdata[(line[c] * CHAR_HEIGHT) + r];
+                    for ( unsigned int i = 0; i < (CHAR_WIDTH * size) && x < hi_line_x; i++, x++, temp_ptr += colours )
                     {
-                        if ( f & (0x80 >> i) )
+                        if ( f & (zm_text_bitmask >> i) )
                         {
                             if ( !fg_trans )
                             {
@@ -1812,15 +1917,19 @@ void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colou
             unsigned int wc = width * colours;
 
             uint8_t *ptr = &buffer[((lo_line_y*width)+lo_line_x)<<2];
-            for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < CHAR_HEIGHT; y++, r++, ptr += wc )
+            for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < (CHAR_HEIGHT * size); y++, r++, ptr += wc )
             {
                 Rgb* temp_ptr = (Rgb*)ptr;
                 for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ )
                 {
-                    int f = fontdata[(line[c] * CHAR_HEIGHT) + r];
-                    for ( unsigned int i = 0; i < CHAR_WIDTH && x < hi_line_x; i++, x++, temp_ptr++ )
+                    int f;
+                    if (size == 2)
+                        f = bigfontdata[(line[c] * CHAR_HEIGHT * size) + r];
+                    else
+                        f = fontdata[(line[c] * CHAR_HEIGHT) + r];
+                    for ( unsigned int i = 0; i < (CHAR_WIDTH * size) && x < hi_line_x; i++, x++, temp_ptr++ )
                     {
-                        if ( f & (0x80 >> i) )
+                        if ( f & (zm_text_bitmask >> i) )
                         {
                             if ( !fg_trans )
                             {
@@ -1836,7 +1945,7 @@ void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colou
             } 
 	
 	} else {
-		Panic("Annontate called with unexpected colours: %d",colours);
+		Panic("Annotate called with unexpected colours: %d",colours);
 		return;
 	}
 	
@@ -1850,7 +1959,7 @@ void Image::Annotate( const char *p_text, const Coord &coord, const Rgb fg_colou
     }
 }
 
-void Image::Timestamp( const char *label, const time_t when, const Coord &coord )
+void Image::Timestamp( const char *label, const time_t when, const Coord &coord, const int size )
 {
 	char time_text[64];
 	strftime( time_text, sizeof(time_text), "%y/%m/%d %H:%M:%S", localtime( &when ) );
@@ -1858,11 +1967,11 @@ void Image::Timestamp( const char *label, const time_t when, const Coord &coord 
 	if ( label )
 	{
 		snprintf( text, sizeof(text), "%s - %s", label, time_text );
-		Annotate( text, coord );
+		Annotate( text, coord, size );
 	}
 	else
 	{
-		Annotate( time_text, coord );
+		Annotate( time_text, coord, size );
 	}
 }
 

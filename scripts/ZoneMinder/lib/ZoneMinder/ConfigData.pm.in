@@ -345,10 +345,10 @@ our @options =
             already logged in. As authentication hashes are time and,
             optionally, IP limited this can allow short-term access to
             ZoneMinder screens from other web pages etc. In order to use
-            this the calling application will hae to generate the
+            this the calling application will have to generate the
             authentication hash itself and ensure it is valid. If you use
             this option you should ensure that you have modified the
-            ZM_AUTH_HASH_SECRET to somethign unique to your system.
+            ZM_AUTH_HASH_SECRET to something unique to your system.
         "),
         requires    => [
                             { name=>"ZM_OPT_USE_AUTH", value=>"yes" },

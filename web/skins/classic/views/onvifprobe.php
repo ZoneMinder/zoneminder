@@ -242,8 +242,9 @@ else if($_REQUEST['step'] == "2")
        // copy technical details
        $monitor['Width']  = $profile['Width'];
        $monitor['Height'] = $profile['Height'];
-       $monitor['MaxFPS'] = $profile['MaxFPS'];
-       $monitor['AlarmMaxFPS'] = $profile['AlarmMaxFPS'];
+// The maxfps fields do not work for ip streams. Can re-enable if that is fixed.
+//       $monitor['MaxFPS'] = $profile['MaxFPS'];
+//       $monitor['AlarmMaxFPS'] = $profile['AlarmMaxFPS'];
        $monitor['Path'] = $profile['Path'];
 //       $sourceDesc = htmlspecialchars(serialize($monitor));
        $sourceDesc = base64_encode(serialize($monitor));

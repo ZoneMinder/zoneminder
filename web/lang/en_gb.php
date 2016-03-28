@@ -923,7 +923,7 @@ $OLANG = array(
                           " camera, instead. You can, however, use a value that is slightly higher than the frame rate in the camera. ".
 		          "In this case, this helps keep the cpu from being overtaxed in the event of a network problem.~~". 
 		          "Some, mostly older, IP cameras support snapshot mode. In this case ZoneMinder is actively polling the camera ".
-		          "for new images. In this case, it is safe to use thie field."
+		          "for new images. In this case, it is safe to use the field."
 	),
 	
 //    'LANG_DEFAULT' => array(

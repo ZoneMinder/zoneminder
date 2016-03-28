@@ -28,6 +28,7 @@
 #include "zm_mpeg.h"
 #include "zm_signal.h"
 #include "zm_monitor.h"
+#include "zm_video.h"
 #if ZM_HAS_V4L
 #include "zm_local_camera.h"
 #endif // ZM_HAS_V4L
@@ -276,6 +277,9 @@ Monitor::Monitor(
     Camera *p_camera,
     int p_orientation,
     unsigned int p_deinterlacing,
+    int p_savejpegs,
+    int p_videowriter,
+    std::string p_encoderparams,
     const char *p_event_prefix,
     const char *p_label_format,
     const Coord &p_label_coord,
@@ -310,6 +314,9 @@ Monitor::Monitor(
     height( (p_orientation==ROTATE_90||p_orientation==ROTATE_270)?p_camera->Width():p_camera->Height() ),
     orientation( (Orientation)p_orientation ),
     deinterlacing( p_deinterlacing ),
+    savejpegspref( p_savejpegs ),
+    videowriterpref( p_videowriter ),
+    encoderparams( p_encoderparams ),
     label_coord( p_label_coord ),
     label_size( p_label_size ),
     image_buffer_count( p_image_buffer_count ),
@@ -365,6 +372,9 @@ Monitor::Monitor(
         }
     }
 
+    /* Parse encoder parameters */
+    ParseEncoderParameters(encoderparams.c_str(), &encoderparamsvec);
+
     fps = 0.0;
     event_count = 0;
     image_count = 0;
@@ -391,6 +401,7 @@ Monitor::Monitor(
 
     mem_size = sizeof(SharedData)
              + sizeof(TriggerData)
+             + sizeof(VideoStoreData) //Information to pass back to the capture process
              + (image_buffer_count*sizeof(struct timeval))
              + (image_buffer_count*camera->ImageSize())
              + 64; /* Padding used to permit aligning the images buffer to 16 byte boundary */
@@ -426,6 +437,10 @@ Monitor::Monitor(
         trigger_data->trigger_text[0] = 0;
         trigger_data->trigger_showtext[0] = 0;
         shared_data->valid = true;
+        video_store_data->recording = false;
+        snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "nothing");
+        video_store_data->size = sizeof(VideoStoreData);
+        //video_store_data->frameNumber = 0;
     } else if ( purpose == ANALYSIS ) {
 		this->connect();
 		if ( ! mem_ptr ) exit(-1);
@@ -566,7 +581,8 @@ bool Monitor::connect() {
 #endif // ZM_MEM_MAPPED
     shared_data = (SharedData *)mem_ptr;
     trigger_data = (TriggerData *)((char *)shared_data + sizeof(SharedData));
-    struct timeval *shared_timestamps = (struct timeval *)((char *)trigger_data + sizeof(TriggerData));
+    video_store_data = (VideoStoreData *)((char *)trigger_data + sizeof(TriggerData));
+    struct timeval *shared_timestamps = (struct timeval *)((char *)video_store_data + sizeof(VideoStoreData));
     unsigned char *shared_images = (unsigned char *)((char *)shared_timestamps + (image_buffer_count*sizeof(struct timeval)));
     
     if(((unsigned long)shared_images % 16) != 0) {
@@ -1206,6 +1222,9 @@ bool Monitor::CheckSignal( const Image *image )
     static Rgb colour_val; /* RGB32 color */
     static int usedsubpixorder;
 
+    if( RecordOnly() )
+        return true;
+
     if ( config.signal_check_points > 0 )
     {
         if ( static_undef )
@@ -1386,6 +1405,10 @@ bool Monitor::Analyse()
     {
         bool signal = shared_data->signal;
         bool signal_change = (signal != last_signal);
+        
+        //Set video recording flag for event start constructor and easy reference in code
+        bool videoRecording = ((GetOptVideoWriter() == 2) && camera->SupportsNativeVideo());
+        
         if ( trigger_data->trigger_state != TRIGGER_OFF )
         {
             unsigned int score = 0;
@@ -1497,10 +1520,15 @@ bool Monitor::Analyse()
                     if ( noteSet.size() > 0 )
                         noteSetMap[LINKED_CAUSE] = noteSet;
                 }
+                
+                //TODO: What happens is the event closes and sets recording to false then recording to true again so quickly that our capture daemon never picks it up. Maybe need a refresh flag?
                 if ( (!signal_change && signal) && (function == RECORD || function == MOCORD) )
                 {
                     if ( event )
                     {
+                        //TODO: We shouldn't have to do this every time. Not sure why it clears itself if this isn't here??
+                        snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
+                        
                         int section_mod = timestamp->tv_sec%section_length;
                         if ( section_mod < last_section_mod )
                         {
@@ -1526,9 +1554,12 @@ bool Monitor::Analyse()
                     {
 
                         // Create event
-                        event = new Event( this, *timestamp, "Continuous", noteSetMap );
+                        event = new Event( this, *timestamp, "Continuous", noteSetMap, videoRecording );
                         shared_data->last_event = event->Id();
-
+                        //set up video store data
+                        snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
+                        video_store_data->recording = true;
+                        
                         Info( "%s: %03d - Opening new event %d, section start", name, image_count, event->Id() );
 
                         /* To prevent cancelling out an existing alert\prealarm\alarm state */
@@ -1647,6 +1678,9 @@ bool Monitor::Analyse()
                                     event = new Event( this, *(image_buffer[pre_index].timestamp), cause, noteSetMap );
                                 }
                                 shared_data->last_event = event->Id();
+                                //set up video store data
+                                snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
+                                video_store_data->recording = true;
 
                                 Info( "%s: %03d - Opening new event %d, alarm start", name, image_count, event->Id() );
 
@@ -1793,7 +1827,12 @@ bool Monitor::Analyse()
                     }
                     else if ( state == TAPE )
                     {
-                        if ( !(image_count%(frame_skip+1)) )
+                        //Video Storage: activate only for supported cameras. Event::AddFrame knows whether or not we are recording video and saves frames accordingly
+                        if((GetOptVideoWriter() == 2) && camera->SupportsNativeVideo())
+                        {
+                            video_store_data->recording = true;
+                        }
+			else if ( !(image_count%(frame_skip+1)) )
                         {
                             if ( config.bulk_frame_interval > 1 )
                             {
@@ -2048,7 +2087,7 @@ void Monitor::ReloadLinkedMonitors( const char *p_linked_monitors )
 #if ZM_HAS_V4L
 int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose purpose )
 {
-    std::string sql = "select Id, Name, ServerId, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, Method, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPS, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour, Exif from Monitors where Function != 'None' and Type = 'Local'";
+    std::string sql = "select Id, Name, ServerId, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, Method, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, SaveJPEGs, VideoWriter, EncoderParameters, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPS, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour, Exif from Monitors where Function != 'None' and Type = 'Local'";
     if ( device[0] ) {
         sql += " AND Device='";
         sql += device;
@@ -2108,6 +2147,11 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
         int palette = atoi(dbrow[col]); col++;
         Orientation orientation = (Orientation)atoi(dbrow[col]); col++;
         unsigned int deinterlacing = atoi(dbrow[col]); col++;
+
+        int savejpegs = atoi(dbrow[col]); col++;
+        int videowriter = atoi(dbrow[col]); col++;
+        std::string encoderparams =  dbrow[col]; col++;
+
         int brightness = atoi(dbrow[col]); col++;
         int contrast = atoi(dbrow[col]); col++;
         int hue = atoi(dbrow[col]); col++;
@@ -2181,6 +2225,9 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
             camera,
             orientation,
             deinterlacing,
+            savejpegs,
+            videowriter,
+            encoderparams,
             event_prefix,
             label_format,
             Coord( label_x, label_y ),
@@ -2228,7 +2275,7 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
 
 int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const char *port, const char *path, Monitor **&monitors, Purpose purpose )
 {
-    std::string sql = "select Id, Name, ServerId, Function+0, Enabled, LinkedMonitors, Protocol, Method, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPS, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif from Monitors where Function != 'None' and Type = 'Remote'";
+    std::string sql = "select Id, Name, ServerId, Function+0, Enabled, LinkedMonitors, Protocol, Method, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, SaveJPEGs, VideoWriter, EncoderParameters, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPS, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif from Monitors where Function != 'None' and Type = 'Remote'";
     if ( staticConfig.SERVER_ID ) {
         sql += stringtf( " AND ServerId=%d", staticConfig.SERVER_ID );
     }
@@ -2271,6 +2318,10 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
         Orientation orientation = (Orientation)atoi(dbrow[col]); col++;
         unsigned int deinterlacing = atoi(dbrow[col]); col++;
         bool rtsp_describe = (*dbrow[col] != '0'); col++;
+        int savejpegs = atoi(dbrow[col]); col++;
+        int videowriter = atoi(dbrow[col]); col++;
+        std::string encoderparams =  dbrow[col]; col++;
+      
         int brightness = atoi(dbrow[col]); col++;
         int contrast = atoi(dbrow[col]); col++;
         int hue = atoi(dbrow[col]); col++;
@@ -2360,6 +2411,9 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
             camera,
             orientation,
             deinterlacing,
+            savejpegs,
+            videowriter,
+            encoderparams,
             event_prefix.c_str(),
             label_format.c_str(),
             Coord( label_x, label_y ),
@@ -2407,7 +2461,7 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
 
 int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose purpose )
 {
-        std::string sql = "select Id, Name, ServerId, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPS, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif from Monitors where Function != 'None' and Type = 'File'";
+        std::string sql = "select Id, Name, ServerId, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, SaveJPEGs, VideoWriter, EncoderParameters, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPS, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif from Monitors where Function != 'None' and Type = 'File'";
     if ( file[0] ) {
         sql += " AND Path='";
         sql += file;
@@ -2446,6 +2500,11 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
         /* int palette = atoi(dbrow[col]); */ col++;
         Orientation orientation = (Orientation)atoi(dbrow[col]); col++;
         unsigned int deinterlacing = atoi(dbrow[col]); col++;
+
+        int savejpegs = atoi(dbrow[col]); col++;
+        int videowriter = atoi(dbrow[col]); col++;
+        std::string encoderparams =  dbrow[col]; col++;
+
         int brightness = atoi(dbrow[col]); col++;
         int contrast = atoi(dbrow[col]); col++;
         int hue = atoi(dbrow[col]); col++;
@@ -2503,6 +2562,9 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
             camera,
             orientation,
             deinterlacing,
+            savejpegs,
+            videowriter,
+            encoderparams,
             event_prefix,
             label_format,
             Coord( label_x, label_y ),
@@ -2550,7 +2612,7 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
 #if HAVE_LIBAVFORMAT
 int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose purpose )
 {
-        std::string sql = "select Id, Name, ServerId, Function+0, Enabled, LinkedMonitors, Path, Method, Options, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPS, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif from Monitors where Function != 'None' and Type = 'Ffmpeg'";
+        std::string sql = "select Id, Name, ServerId, Function+0, Enabled, LinkedMonitors, Path, Method, Options, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, SaveJPEGs, VideoWriter, EncoderParameters, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPS, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif from Monitors where Function != 'None' and Type = 'Ffmpeg'";
     if ( file[0] ) {
         sql += " AND Path = '";
         sql += file;
@@ -2591,6 +2653,11 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
         /* int palette = atoi(dbrow[col]); */ col++;
         Orientation orientation = (Orientation)atoi(dbrow[col]); col++;
         unsigned int deinterlacing = atoi(dbrow[col]); col++;
+
+        int savejpegs = atoi(dbrow[col]); col++;
+        int videowriter = atoi(dbrow[col]); col++;
+        std::string encoderparams =  dbrow[col]; col++;
+
         int brightness = atoi(dbrow[col]); col++;
         int contrast = atoi(dbrow[col]); col++;
         int hue = atoi(dbrow[col]); col++;
@@ -2650,6 +2717,9 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
             camera,
             orientation,
             deinterlacing,
+            savejpegs,
+            videowriter,
+            encoderparams,
             event_prefix,
             label_format,
             Coord( label_x, label_y ),
@@ -2697,7 +2767,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
 
 Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose )
 {
-    std::string sql = stringtf( "select Id, Name, ServerId, Type, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, Protocol, Method, Host, Port, Path, Options, User, Pass, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPS, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour, Exif from Monitors where Id = %d", p_id );
+    std::string sql = stringtf( "select Id, Name, ServerId, Type, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, Protocol, Method, Host, Port, Path, Options, User, Pass, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, SaveJPEGs, VideoWriter, EncoderParameters, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPS, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour, Exif from Monitors where Id = %d", p_id );
 
     MYSQL_ROW dbrow = zmDbFetchOne( sql.c_str() );
     if ( ! dbrow ) {
@@ -2754,6 +2824,10 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
     Orientation orientation = (Orientation)atoi(dbrow[col]); col++;
     unsigned int deinterlacing = atoi(dbrow[col]); col++;
 	bool rtsp_describe = (*dbrow[col] != '0'); col++;
+    int savejpegs = atoi(dbrow[col]); col++;
+    int videowriter = atoi(dbrow[col]); col++;
+    std::string encoderparams =  dbrow[col]; col++;
+
     int brightness = atoi(dbrow[col]); col++;
     int contrast = atoi(dbrow[col]); col++;
     int hue = atoi(dbrow[col]); col++;
@@ -2964,6 +3038,9 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
         camera,
         orientation,
         deinterlacing,
+        savejpegs,
+        videowriter,
+        encoderparams,
         event_prefix.c_str(),
         label_format.c_str(),
         Coord( label_x, label_y ),
@@ -3013,26 +3090,48 @@ int Monitor::Capture()
 	int index = image_count%image_buffer_count;
 	Image* capture_image = image_buffer[index].image;
 
+	int recording = video_store_data->recording;	
+	if( recording && RecordOnly() ) {
+	    recording = 2;
+	}
+
 	if ( (deinterlacing & 0xff) == 4) {
 		if ( FirstCapture != 1 ) {
 			/* Copy the next image into the shared memory */
 			capture_image->CopyBuffer(*(next_buffer.image)); 
 		}
+		
+	    /* Capture a new next image */
+        
+        //Check if FFMPEG camera
+        if((GetOptVideoWriter() == 2) && camera->SupportsNativeVideo()){
+            captureResult = camera->CaptureAndRecord(*(next_buffer.image), recording, video_store_data->event_file);
+        }else{
+            captureResult = camera->Capture(*(next_buffer.image));
+        }
 
-		/* Capture a new next image */
-		captureResult = camera->Capture(*(next_buffer.image));
+        if ( FirstCapture ) {
+                    FirstCapture = 0;
+                    return 0;
+            }
 
-		if ( FirstCapture ) {
-			FirstCapture = 0;
-			return 0;
-		}
-
-	} else {
-		/* Capture directly into image buffer, avoiding the need to memcpy() */
-		captureResult = camera->Capture(*capture_image);
-	}
+    } else {
+        //Check if FFMPEG camera
+        if((GetOptVideoWriter() == 2) && camera->SupportsNativeVideo()){
+            //Warning("ZMC: Recording: %d", video_store_data->recording);
+            captureResult = camera->CaptureAndRecord(*capture_image, recording, video_store_data->event_file);
+        }else{
+            /* Capture directly into image buffer, avoiding the need to memcpy() */
+            captureResult = camera->Capture(*capture_image);
+        }
+    }
     
-    if ( captureResult != 0 )
+    if((GetOptVideoWriter() == 2) && captureResult > 0){
+        //video_store_data->frameNumber = captureResult;
+        captureResult = 0;
+    }
+    
+    if ( captureResult < 0 )
     {
         // Unable to capture image for temporary reason
         // Fake a signal loss image
@@ -3200,6 +3299,7 @@ void Monitor::TimestampImage( Image *ts_image, const struct timeval *ts_time ) c
 
 bool Monitor::closeEvent()
 {
+    video_store_data->recording = false;
     if ( event )
     {
         if ( function == RECORD || function == MOCORD )

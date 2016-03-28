@@ -70,6 +70,7 @@ public:
 	int PrimeCapture();
 	int PreCapture();
 	int Capture( Image &image );
+        int CaptureAndRecord( Image &image, int recording, char* event_directory );
 	int PostCapture();
 };
 

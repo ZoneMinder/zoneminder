@@ -487,7 +487,7 @@ void *FfmpegCamera::ReopenFfmpegThreadCallback(void *ctx){
 }
 
 //Function to handle capture and store
-int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_file )
+int FfmpegCamera::CaptureAndRecord( Image &image, int recording, char* event_file )
 {
     if (!mCanCapture){
         return -1;
@@ -510,11 +510,13 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
 	AVPacket packet;
 	uint8_t* directbuffer;
    
-	/* Request a writeable buffer of the target image */
-	directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
-	if(directbuffer == NULL) {
-		Error("Failed requesting writeable buffer for the captured image.");
-		return (-1);
+	// Request a writeable buffer of the target image
+	if( recording != 2 ) {
+            directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
+            if(directbuffer == NULL) {
+                Error("Failed requesting writeable buffer for the captured image.");
+                return (-1);
+            }
 	}
     
     int frameComplete = false;
@@ -539,78 +541,85 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
             Error( "Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, avResult, errbuf );
             return( -1 );
         }
+
         Debug( 5, "Got packet from stream %d", packet.stream_index );
+
         if ( packet.stream_index == mVideoStreamId )
         {
+            if( recording != 2 ) {
 #if LIBAVCODEC_VERSION_CHECK(52, 23, 0, 23, 0)
-			if ( avcodec_decode_video2( mCodecContext, mRawFrame, &frameComplete, &packet ) < 0 )
+                if( avcodec_decode_video2( mCodecContext, mRawFrame, &frameComplete, &packet ) < 0 )
 #else
-			if ( avcodec_decode_video( mCodecContext, mRawFrame, &frameComplete, packet.data, packet.size ) < 0 )
+                if( avcodec_decode_video( mCodecContext, mRawFrame, &frameComplete, packet.data, packet.size ) < 0 )
 #endif
-                Fatal( "Unable to decode frame at frame %d", frameCount );
+                    Fatal( "Unable to decode frame at frame %d", frameCount );
 
-            Debug( 4, "Decoded video packet at frame %d", frameCount );
+                Debug( 4, "Decoded video packet at frame %d", frameCount );
 
-            if ( frameComplete )
-            {
-                Debug( 3, "Got frame %d", frameCount );
+                if( frameComplete )
+                {
+                    Debug( 3, "Got frame %d", frameCount );
                 
-                avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height);
+                    avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height);
 
-                //Keep the last keyframe so we can establish immediate video
-                /*if(packet.flags & AV_PKT_FLAG_KEY)
-                    av_copy_packet(&lastKeyframePkt, &packet);*/
-                //TODO I think we need to store the key frame location for seeking as part of the event
-                
-                //Video recording
-                if(recording && !wasRecording){
-                    //Instantiate the video storage module
+                    //Keep the last keyframe so we can establish immediate video
+                    //if(packet.flags & AV_PKT_FLAG_KEY)
+                    //    av_copy_packet(&lastKeyframePkt, &packet);
+                    //TODO I think we need to store the key frame location for seeking as part of the event
 
-                    videoStore = new VideoStore((const char *)event_file, "mp4", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime);
-                    wasRecording = true;
-                    strcpy(oldDirectory, event_file);
+#if HAVE_LIBSWSCALE
+                    if(mConvertContext == NULL) {
+                        mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
+                        if(mConvertContext == NULL)
+                            Fatal( "Unable to create conversion context for %s", mPath.c_str() );
+                    }
+	
+                    if ( sws_scale( mConvertContext, mRawFrame->data, mRawFrame->linesize, 0, mCodecContext->height, mFrame->data, mFrame->linesize ) < 0 )
+                        Fatal( "Unable to convert raw format %u to target format %u at frame %d", mCodecContext->pix_fmt, imagePixFormat, frameCount );
+#else // HAVE_LIBSWSCALE
+                    Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
+#endif // HAVE_LIBSWSCALE
+ 
+                    frameCount++;
+		}
+            } else {
+		frameComplete = true;
+		frameCount++;
+            }
+
+            //Video recording
+            if(recording && !wasRecording){
+                //Instantiate the video storage module
+
+                videoStore = new VideoStore((const char *)event_file, "mp4", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime);
+                wasRecording = true;
+                strcpy(oldDirectory, event_file);
                     
-                }else if(!recording && wasRecording && videoStore){
-                    Info("Deleting videoStore instance");
+            }else if(!recording && wasRecording && videoStore){
+                Info("Deleting videoStore instance");
+                delete videoStore;
+                videoStore = NULL;
+            }
+                
+            //The directory we are recording to is no longer tied to the current event. Need to re-init the videostore with the correct directory and start recording again
+            if(recording && wasRecording && (strcmp(oldDirectory, event_file)!=0) && (packet.flags & AV_PKT_FLAG_KEY) ){ //don't open new videostore until we're on a key frame..would this require an offset adjustment for the event as a result?...if we store our key frame location with the event will that be enough?
+                Info("Re-starting video storage module");
+                if(videoStore){
                     delete videoStore;
                     videoStore = NULL;
                 }
-                
-                //The directory we are recording to is no longer tied to the current event. Need to re-init the videostore with the correct directory and start recording again
-                if(recording && wasRecording && (strcmp(oldDirectory, event_file)!=0) && (packet.flags & AV_PKT_FLAG_KEY) ){ //don't open new videostore until we're on a key frame..would this require an offset adjustment for the event as a result?...if we store our key frame location with the event will that be enough?
-                    Info("Re-starting video storage module");
-                    if(videoStore){
-                        delete videoStore;
-                        videoStore = NULL;
-                    }
 
-                    videoStore = new VideoStore((const char *)event_file, "mp4", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime);
-                    strcpy(oldDirectory, event_file);
-                }
+                videoStore = new VideoStore((const char *)event_file, "mp4", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime);
+                strcpy(oldDirectory, event_file);
+            }
                 
-                if(videoStore && recording){
-                    //Write the packet to our video store
-                    int ret = videoStore->writeVideoFramePacket(&packet, mFormatContext->streams[mVideoStreamId]);//, &lastKeyframePkt);
-                    if(ret<0){//Less than zero and we skipped a frame
-                        av_free_packet( &packet );
-                        return 0;
-                    }
+            if(videoStore && recording){
+                //Write the packet to our video store
+                int ret = videoStore->writeVideoFramePacket(&packet, mFormatContext->streams[mVideoStreamId]);//, &lastKeyframePkt);
+                if(ret<0){//Less than zero and we skipped a frame
+                    av_free_packet( &packet );
+                    return 0;
                 }
-                
-#if HAVE_LIBSWSCALE
-		if(mConvertContext == NULL) {
-			mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
-			if(mConvertContext == NULL)
-				Fatal( "Unable to create conversion context for %s", mPath.c_str() );
-		}
-	
-		if ( sws_scale( mConvertContext, mRawFrame->data, mRawFrame->linesize, 0, mCodecContext->height, mFrame->data, mFrame->linesize ) < 0 )
-			Fatal( "Unable to convert raw format %u to target format %u at frame %d", mCodecContext->pix_fmt, imagePixFormat, frameCount );
-#else // HAVE_LIBSWSCALE
-		Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
-#endif // HAVE_LIBSWSCALE
- 
-                frameCount++;
             }
         }else if(packet.stream_index == mAudioStreamId){//FIXME best way to copy all other streams
             if(videoStore && recording){

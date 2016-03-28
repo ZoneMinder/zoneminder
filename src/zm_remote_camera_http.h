@@ -58,7 +58,7 @@ public:
 	int PreCapture();
 	int Capture( Image &image );
 	int PostCapture();
-    	int CaptureAndRecord( Image &image, bool recording, char* event_directory ) {return(0);};
+    	int CaptureAndRecord( Image &image, int recording, char* event_directory ) {return(0);};
 };
 
 #endif // ZM_REMOTE_CAMERA_HTTP_H

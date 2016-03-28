@@ -382,6 +382,10 @@ public:
 	{
 		return( embed_exif );
 	}
+	inline bool RecordOnly()
+	{
+		return ( function == RECORD && GetOptVideoWriter() == 2 );
+	}
 
 	unsigned int Width() const { return( width ); }
 	unsigned int Height() const { return( height ); }

@@ -311,7 +311,7 @@ int cURLCamera::PostCapture()
     return( 0 );
 }
 
-int cURLCamera::CaptureAndRecord( Image &image, bool recording, char* event_directory )
+int cURLCamera::CaptureAndRecord( Image &image, int recording, char* event_directory )
 {
     // Nothing to do here
     return( 0 );

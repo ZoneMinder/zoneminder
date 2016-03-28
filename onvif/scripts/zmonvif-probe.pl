@@ -106,7 +106,7 @@ sub interpret_messages
     my $result = deserialize_message($svc_discover, $response);
     if(not $result) {
       if($verbose) {
-        print "Error deserializing message:\n" . $result . "\n";
+        print "Error deserializing message. No message returned from deserializer.\n";
       }
       next;
     }

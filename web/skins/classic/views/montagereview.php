@@ -100,6 +100,8 @@ if ( !canView( 'Events' ) )
     return;
 }
 
+require_once( 'includes/Monitor.php' );
+
 if ( !empty($_REQUEST['group']) )
 {
     $group = $_REQUEST['group'];
@@ -117,7 +119,7 @@ else
 // Note we round up just a bit on the end time as otherwise you get gaps, like 59.78 to 00 in the next second, which can give blank frames when moved through slowly.
 
 $eventsSql = "
-  select E.Id,E.Name,UNIX_TIMESTAMP(E.StartTime) as StartTimeSecs,
+  select E.Id,E.Name,E.StorageId,UNIX_TIMESTAMP(E.StartTime) as StartTimeSecs,
          case when E.EndTime is null then (Select UNIX_TIMESTAMP(DATE_ADD(E.StartTime, Interval max(Delta)+0.5 Second)) from Frames F where F.EventId=E.Id)
               else UNIX_TIMESTAMP(E.EndTime)
          end as CalcEndTimeSecs, E.Length,
@@ -553,13 +555,12 @@ function SetImageSource(monId,val)
     else
     {
         var zeropad = <?php echo  sprintf("\"%0" . ZM_EVENT_IMAGE_DIGITS . "d\"",0); ?>;
-        for(var i=0; i<ePath.length; i++)  // Search for a match
+        for(var i=0, var eIdlength = eId.length; i<eIdlength; i++)  // Search for a match
         {
             if(eMonId[i]==monId && val >= eStartSecs[i] && val <= eEndSecs[i])
             {
                 var frame=parseInt((val - eStartSecs[i])/(eEndSecs[i]-eStartSecs[i])*eventFrames[i])+1;
-//                img = ePath[i] + zeropad.substr(frame.toString().length) + frame.toString() + "-capture.jpg";
-                  img = "index.php?view=image&path=" + ePath[i].substring(6) + zeropad.substr(frame.toString().length) + frame.toString() + "-capture.jpg" + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
+                  img = "index.php?view=image&eid=" + eId[i] + '&fid='+frame + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
                return img;
             }
         }

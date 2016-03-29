@@ -1132,7 +1132,7 @@ void Monitor::DumpZoneImage( const char *zone_string )
     }
 
     Image *zone_image = NULL;
-    if ( ( (!staticConfig.SERVER_ID) || ( staticConfig.SERVER_ID == server_id ) ) && connected ) {
+    if ( ( (!staticConfig.SERVER_ID) || ( staticConfig.SERVER_ID == server_id ) ) && mem_ptr ) {
 		Debug(3, "Trying to load from local zmc");
 		int index = shared_data->last_write_index;
 		Snapshot *snap = &image_buffer[index];

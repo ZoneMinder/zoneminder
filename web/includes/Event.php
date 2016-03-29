@@ -66,7 +66,49 @@ class Event {
 
 	}
 
-}
+	public function LinkPath() {
+        if ( ZM_USE_DEEP_STORAGE ) {
+            return $this->{'MonitorId'} .'/'.strftime( "%y/%m/%d/.", $this->{'Time'}).$this->{'Id'};
+        }
+		Error("Calling Link_Path when not using deep storage");
+        return '';
+	}
 
+	public function delete() {
+        dbQuery( 'DELETE FROM Events WHERE Id = ?', array($this->{'Id'}) );
+        if ( !ZM_OPT_FAST_DELETE ) {
+            dbQuery( 'DELETE FROM Stats WHERE EventId = ?', array($this->{'Id'}) );
+            dbQuery( 'DELETE FROM Frames WHERE EventId = ?', array($this->{'Id'}) );
+            if ( ZM_USE_DEEP_STORAGE ) {
 
+                # Assumption: All events haev a start time
+                $start_date = date_parse( $this->{'StartTime'} );
+                $start_date['year'] = $start_date['year'] % 100;
+
+				$Storage = $this->Storage();
+                # So this is  because ZM creates a link under teh day pointing to the time that the event happened. 
+                $eventlink_path = $Storage->Path().'/'.$this->Link_Path();
+
+                if ( $id_files = glob( $eventlink_path ) ) {
+                    # I know we are using arrays here, but really there can only ever be 1 in the array
+                    $eventPath = preg_replace( '/\.'.$event['Id'].'$/', readlink($id_files[0]), $id_files[0] );
+                    deletePath( $eventPath );
+                    deletePath( $id_files[0] );
+                    $pathParts = explode(  '/', $eventPath );
+                    for ( $i = count($pathParts)-1; $i >= 2; $i-- ) {
+                        $deletePath = join( '/', array_slice( $pathParts, 0, $i ) );
+                        if ( !glob( $deletePath."/*" ) ) {
+                            deletePath( $deletePath );
+                        }
+                    }
+                } else {
+                    Warning( "Found no event files under $eventlink_path" );
+                } # end if found files
+            } else {
+                $eventPath = $this->Path();
+                deletePath( $eventPath );
+            } # USE_DEEP_STORAGE OR NOT
+        } # ! ZM_OPT_FAST_DELETE
+	} # end Event->delete
+} # end class
 ?>

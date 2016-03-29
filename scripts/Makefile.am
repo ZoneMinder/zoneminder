@@ -10,6 +10,7 @@ bin_SCRIPTS = \
 	zmdc.pl \
 	zmaudit.pl \
 	zmfilter.pl \
+	zmtelemetry.pl \
 	zmtrigger.pl \
 	zmx10.pl \
 	zmwatch.pl \
@@ -30,6 +31,7 @@ EXTRA_DIST = \
 	zmdc.pl.in \
 	zmaudit.pl.in \
 	zmfilter.pl.in \
+	zmtelemetry.pl.in \
 	zmtrigger.pl.in \
 	zmx10.pl.in \
 	zmwatch.pl.in \

@@ -17,22 +17,23 @@ Homepage: http://www.zoneminder.com/
 Package: zoneminder
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
-, apache2, libapache2-mod-php5 | libapache2-mod-fcgid, php5, php5-mysql|php5-mysqlnd
-, mariadb-client|mysql-client|mysql-client-5.6
-, libphp-serialization-perl, libdate-manip-perl, libmime-lite-perl, libmime-tools-perl
-, libwww-perl, libarchive-tar-perl, libarchive-zip-perl, libdevice-serialport-perl
-, libmodule-load-perl, libsys-mmap-perl, libjson-any-perl
-, libnet-sftp-foreign-perl , libio-pty-perl, libexpect-perl , liburi-encode-perl , libdbd-mysql-perl
-, libdata-dump-perl, libclass-std-fast-perl, libsoap-wsdl-perl, libio-socket-multicast-perl, libdigest-sha-perl
-, libpcre3
-, ffmpeg, libavdevice-ffmpeg56
-, rsyslog | system-log-daemon
-, libjpeg8|libjpeg9|libjpeg62-turbo
-, zip
-, libvlccore5 | libvlccore7 | libvlccore8, libvlc5
-, libcurl4-gnutls-dev | libcurl4-nss-dev | libcurl4-openssl-dev
-, libpolkit-gobject-1-0
-, php5-gd
+    , apache2, libapache2-mod-php5 | libapache2-mod-fcgid, php5, php5-mysql|php5-mysqlnd
+    , mariadb-client|mysql-client|mysql-client-5.6
+    , libphp-serialization-perl, libdate-manip-perl, libmime-lite-perl, libmime-tools-perl
+    , libwww-perl, libarchive-tar-perl, libarchive-zip-perl, libdevice-serialport-perl
+    , libmodule-load-perl, libsys-mmap-perl, libjson-any-perl
+    , libnet-sftp-foreign-perl , libio-pty-perl, libexpect-perl , liburi-encode-perl , libdbd-mysql-perl
+    , libdata-dump-perl, libclass-std-fast-perl, libsoap-wsdl-perl, libio-socket-multicast-perl, libdigest-sha-perl
+    , libsys-cpu-perl, libsys-meminfo-perl
+    , libpcre3
+    , ffmpeg, libavdevice-ffmpeg56
+    , rsyslog | system-log-daemon
+    , libjpeg8|libjpeg9|libjpeg62-turbo
+    , zip
+    , libvlccore5 | libvlccore7 | libvlccore8, libvlc5
+    , libcurl4-gnutls-dev | libcurl4-nss-dev | libcurl4-openssl-dev
+    , libpolkit-gobject-1-0
+    , php5-gd
 Recommends: mysql-server|mariadb-server
 Description: Video camera security and surveillance solution
  ZoneMinder is intended for use in single or multi-camera video security 

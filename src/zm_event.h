@@ -253,18 +253,19 @@ public:
 	void setStreamStart( int init_event_id, int init_frame_id=0 )
     {
         loadInitialEventData( init_event_id, init_frame_id );
-        loadMonitor( event_data->monitor_id );
+		loadMonitor( event_data->monitor_id );
     }
 	void setStreamStart( int monitor_id, time_t event_time )
     {
         loadInitialEventData( monitor_id, event_time );
-        loadMonitor( monitor_id );
+		loadMonitor( monitor_id );
     }
     void setStreamMode( StreamMode p_mode )
     {
         mode = p_mode;
     }
     void runStream();
+	Image *getImage();
 };
 
 #endif // ZM_EVENT_H

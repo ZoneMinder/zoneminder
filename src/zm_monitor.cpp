@@ -1131,13 +1131,32 @@ void Monitor::DumpZoneImage( const char *zone_string )
         }
     }
 
-    int index = shared_data->last_write_index;
-    Snapshot *snap = &image_buffer[index];
-    Image *snap_image = snap->image;
+    Image *zone_image = NULL;
+    if ( ( (!staticConfig.SERVER_ID) || ( staticConfig.SERVER_ID == server_id ) ) && connected ) {
+		Debug(3, "Trying to load from local zmc");
+		int index = shared_data->last_write_index;
+		Snapshot *snap = &image_buffer[index];
+		zone_image = new Image( *snap->image );
+	} else {
+		Debug(3, "Trying to load from event");
+		// Grab the most revent event image
+		std::string sql = stringtf( "SELECT MAX(Id) FROM Events WHERE MonitorId=%d AND Frames > 0", id );
+		MYSQL_ROW eventid_row = zmDbFetchOne(sql.c_str() );
+		if ( eventid_row ) {
+			int event_id = atoi( eventid_row[0] );
 
-    Image zone_image( *snap_image );
-    if(zone_image.Colours() == ZM_COLOUR_GRAY8) {
-        zone_image.Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB );
+			Debug( 3, "Got event %d", event_id );
+			EventStream *stream = new EventStream();
+			stream->setStreamStart( event_id, 1 );
+			zone_image = stream->getImage();
+		} else {
+			Error("Unable to load an event for monitor %d", id );
+			return;
+		}
+	}
+
+    if(zone_image->Colours() == ZM_COLOUR_GRAY8) {
+        zone_image->Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB );
     }
     
     for( int i = 0; i < n_zones; i++ )
@@ -1173,19 +1192,20 @@ void Monitor::DumpZoneImage( const char *zone_string )
                 colour = RGB_WHITE;
             }
         }
-        zone_image.Fill( colour, 2, zones[i]->GetPolygon() );
-        zone_image.Outline( colour, zones[i]->GetPolygon() );
+        zone_image->Fill( colour, 2, zones[i]->GetPolygon() );
+        zone_image->Outline( colour, zones[i]->GetPolygon() );
     }
 
     if ( extra_zone.getNumCoords() )
     {
-        zone_image.Fill( extra_colour, 2, extra_zone );
-        zone_image.Outline( extra_colour, extra_zone );
+        zone_image->Fill( extra_colour, 2, extra_zone );
+        zone_image->Outline( extra_colour, extra_zone );
     }
 
     static char filename[PATH_MAX];
     snprintf( filename, sizeof(filename), "Zones%d.jpg", id );
-    zone_image.WriteJpeg( filename );
+    zone_image->WriteJpeg( filename );
+	delete zone_image;
 }
 
 void Monitor::DumpImage( Image *dump_image ) const

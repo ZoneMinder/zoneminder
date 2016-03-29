@@ -16,6 +16,27 @@ Build-Depends: debhelper (>= 9), dh-systemd, python-sphinx | python3-sphinx, apa
               ,libpolkit-gobject-1-dev
               ,libv4l-dev (>= 0.8.3) [!hurd-any]
               ,libvlc-dev
+        ,libdate-manip-perl
+        ,libdbd-mysql-perl
+        ,libmime-lite-perl
+        ,libmime-tools-perl
+        ,libphp-serialization-perl
+        ,libmodule-load-conditional-perl
+        ,libnet-sftp-foreign-perl
+#       ,libzoneminder-perl (= ${source:Version})
+          ,libarchive-zip-perl
+          ,libdbd-mysql-perl
+          ,libdevice-serialport-perl
+          ,libimage-info-perl
+          ,libjson-any-perl
+          ,libsys-mmap-perl [!hurd-any]
+          ,liburi-encode-perl
+          ,libwww-perl
+          ,libdata-dump-perl
+          ,libclass-std-fast-perl
+          ,libsoap-wsdl-perl
+          ,libio-socket-multicast-perl
+          ,libdigest-sha-perl
 # Unbundled (dh_linktree):
         ,libjs-jquery
         ,libjs-mootools

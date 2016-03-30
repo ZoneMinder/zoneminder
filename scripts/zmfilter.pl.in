@@ -127,7 +127,7 @@ if ( $Config{ZM_OPT_MESSAGE} )
 
 $| = 1;
 
-$ENV{PATH}  = '/bin:/usr/bin';
+$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
@@ -935,7 +935,8 @@ sub uploadArchFile
                 if $Config{ZM_UPLOAD_PORT};
             $sftpOptions{timeout} = $Config{ZM_UPLOAD_TIMEOUT}
                 if $Config{ZM_UPLOAD_TIMEOUT};
-            $sftpOptions{more} = [ '-o'=>'StrictHostKeyChecking=no' ];
+            $sftpOptions{more} = [ '-o'=>'StrictHostKeyChecking=no' ]
+				if ! $Config{ZM_UPLOAD_STRICT};
             $Net::SFTP::Foreign::debug = -1
                 if $Config{ZM_UPLOAD_DEBUG};
             my $sftp = Net::SFTP::Foreign->new( $Config{ZM_UPLOAD_HOST}, %sftpOptions );

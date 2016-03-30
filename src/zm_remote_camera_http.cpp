@@ -108,7 +108,12 @@ int RemoteCameraHttp::Connect()
         {
             close(sd);
             sd = -1;
-            Warning("Can't connect to remote camera: %s", strerror(errno) );
+			char buf[sizeof(struct in6_addr)];
+			struct sockaddr_in *addr;
+			addr = (struct sockaddr_in *)p->ai_addr; 
+			inet_ntop( AF_INET, &(addr->sin_addr), buf, INET6_ADDRSTRLEN );
+			
+            Warning("Can't connect to remote camera mid: %d at %s: %s", id, buf, strerror(errno) );
             continue;
         }
 

@@ -1221,6 +1221,17 @@ void EventStream::checkEventLoaded()
     }
 }
 
+Image * EventStream::getImage( ) {
+	Event::Initialise();
+    static char filepath[PATH_MAX];
+    
+	Debug( 2, "EventStream::getImage path(%s) frame(%d)", event_data->path, curr_frame_id );
+    snprintf( filepath, sizeof(filepath), Event::capture_file_format, event_data->path, curr_frame_id );
+	Debug( 2, "EventStream::getImage path(%s) ", filepath, curr_frame_id );
+	Image *image = new Image( filepath );
+	return image;
+}
+
 bool EventStream::sendFrame( int delta_us )
 {
     Debug( 2, "Sending frame %d", curr_frame_id );

@@ -493,7 +493,6 @@ int main( int argc, char *argv[] )
 			}
 			if ( ! monitor->connect() ) {
 				Error( "Can't connect to capture daemon: %d %s", monitor->Id(), monitor->Name() );
-				exit( -1 );
 			} 
 
 			char separator = ' ';

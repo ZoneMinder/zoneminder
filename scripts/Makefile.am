@@ -10,7 +10,6 @@ bin_SCRIPTS = \
 	zmdc.pl \
 	zmaudit.pl \
 	zmfilter.pl \
-	zmtelemetry.pl \
 	zmtrigger.pl \
 	zmx10.pl \
 	zmwatch.pl \
@@ -20,7 +19,8 @@ bin_SCRIPTS = \
 	zmcontrol.pl \
 	zmtrack.pl \
 	zmcamtool.pl \
-	zmsystemctl.pl
+	zmsystemctl.pl \
+	zmtelemetry.pl
 
 SUBDIRS = \
 	. \
@@ -30,7 +30,6 @@ EXTRA_DIST = \
 	zmdc.pl.in \
 	zmaudit.pl.in \
 	zmfilter.pl.in \
-	zmtelemetry.pl.in \
 	zmtrigger.pl.in \
 	zmx10.pl.in \
 	zmwatch.pl.in \
@@ -41,6 +40,7 @@ EXTRA_DIST = \
 	zmtrack.pl.in \
 	zmcamtool.pl.in \
 	zmsystemctl.pl.in \
+	zmtelemtry.pl.in \
 	ZoneMinder/Makefile.PL \
 	ZoneMinder/README \
 	ZoneMinder/Changes \

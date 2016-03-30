@@ -537,7 +537,7 @@ function deletePath( $path )
     }
 }
 
-function deleteEvent( $event, $mid=false ) {
+function deleteEvent( $event ) {
 
 	if ( empty($event) ) {
 		Error( "Empty event passed to deleteEvent.");
@@ -546,49 +546,13 @@ function deleteEvent( $event, $mid=false ) {
 
     if ( gettype($event) != 'array' ) {
 		# $event could be an eid, so turn it into an event hash
-        $event = dbFetchOne( 'SELECT Id, MonitorId, StartTime FROM Events WHERE Id=?', NULL, array( $event ) );
+        $event = new Event( $event );
     }
 
     global $user;
 
-    if ( !$mid )
-        $mid = $event['MonitorId'];
-
     if ( $user['Events'] == 'Edit' ) {
-
-        dbQuery( 'DELETE FROM Events WHERE Id = ?', array($event['Id']) );
-        if ( !ZM_OPT_FAST_DELETE ) {
-            dbQuery( 'DELETE FROM Stats WHERE EventId = ?', array($event['Id']) );
-            dbQuery( 'DELETE FROM Frames WHERE EventId = ?', array($event['Id']) );
-            if ( ZM_USE_DEEP_STORAGE ) {
-
-				# Assumption: All events haev a start time
-				$start_date = date_parse( $event['StartTime'] );
-				$start_date['year'] = $start_date['year'] % 100;
-
-				# So this is  because ZM creates a link under teh day pointing to the time that the event happened. 
-				$eventlink_path = sprintf('%s/%d/%02d/%02d/%02d/.%d', ZM_DIR_EVENTS, $mid, $start_date['year'], $start_date['month'], $start_date['day'], $event['Id'] );
-
-                if ( $id_files = glob( $eventlink_path ) ) {
-					# I know we are using arrays here, but really there can only ever be 1 in the array
-                    $eventPath = preg_replace( '/\.'.$event['Id'].'$/', readlink($id_files[0]), $id_files[0] );
-					deletePath( $eventPath );
-					deletePath( $id_files[0] );
-					$pathParts = explode(  '/', $eventPath );
-					for ( $i = count($pathParts)-1; $i >= 2; $i-- ) {
-						$deletePath = join( '/', array_slice( $pathParts, 0, $i ) );
-						if ( !glob( $deletePath."/*" ) ) {
-							deletePath( $deletePath );
-						}
-					}
-				} else {
-					Warning( "Found no event files under $eventlink_path" );
-				} # end if found files
-            } else {
-                $eventPath = implode( '/', array( ZM_DIR_EVENTS, $mid, $event['Id'] ) );
-                deletePath( $eventPath );
-            } # USE_DEEP_STORAGE OR NOT
-        } # ! ZM_OPT_FAST_DELETE
+		$event->delete();
     } # CAN EDIT
 }
 
@@ -1433,6 +1397,9 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' )
                     case 'MonitorName':
                         $filter['sql'] .= 'M.'.preg_replace( '/^Monitor/', '', $filter['terms'][$i]['attr'] );
                         break;
+                    case 'ServerId':
+                        $filter['sql'] .= 'M.ServerId';
+                        break;
                     case 'DateTime':
                         $filter['sql'] .= "E.StartTime";
                         break;
@@ -1448,6 +1415,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' )
                     case 'Id':
                     case 'Name':
                     case 'MonitorId':
+					case 'StorageId':
                     case 'Length':
                     case 'Frames':
                     case 'AlarmFrames':
@@ -1480,6 +1448,12 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' )
                         case 'Notes':
                             $value = dbEscape($value);
                             break;
+						case 'ServerId':
+                            if ( $value == 'ZM_SERVER_ID' ) {
+                                $value = ZM_SERVER_ID;
+                            } else {
+                                $value = dbEscape($value);
+                            }
                         case 'DateTime':
                             $value = "'".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."'";
                             break;

@@ -198,6 +198,7 @@ my %spawned_connections;
 my %monitors;
 
 my $monitor_reload_time = 0;
+my $needsReload = 0;
 
 $! = undef;
 my $rin = '';
@@ -218,8 +219,8 @@ while( 1 )
     if ( $nfound > 0 )
     {
         Debug( "Got input from $nfound connections\n" );
-        foreach my $connection ( @in_select_connections )
-        {
+        foreach my $connection ( @in_select_connections ) {
+
             if ( vec( $rout, $connection->fileno(), 1 ) )
             {
                 Debug( "Got input from connection "
@@ -311,52 +312,56 @@ while( 1 )
 
     # Check for alarms that might have happened
     my @out_messages;
-    foreach my $monitor ( values(%monitors) )
-    {
-        my ( $state, $last_event )
-            = zmMemRead( $monitor,
-                         [ "shared_data:state",
-                           "shared_data:last_event"
-                         ]
-        );
+    foreach my $monitor ( values(%monitors) ) {
 
-        #print( "$monitor->{Id}: S:$state, LE:$last_event\n" );
-        #print( "$monitor->{Id}: mS:$monitor->{LastState}, mLE:$monitor->{LastEvent}\n" );
-        if ( $state == STATE_ALARM
-             || $state == STATE_ALERT
-        ) # In alarm state
-        {
-            if ( !defined($monitor->{LastEvent})
-                 || ($last_event != $monitor->{LastEvent})
-            ) # A new event
-            {
+        my $memVerified = 1;
+        if ( !zmMemRead($monitor, "shared_data:valid")  ) {
+            zmMemInvalidate($monitor);
+            $memVerified = zmMemVerify($monitor);
+        }
+
+        if ($memVerified) {
+            my ( $state, $last_event )
+                = zmMemRead( $monitor,
+                             [ "shared_data:state",
+                               "shared_data:last_event"
+                             ]
+            );
+
+            #print( "$monitor->{Id}: S:$state, LE:$last_event\n" );
+            #print( "$monitor->{Id}: mS:$monitor->{LastState}, mLE:$monitor->{LastEvent}\n" );
+            if ( $state == STATE_ALARM
+                 || $state == STATE_ALERT
+            ) { # In alarm state
+                if ( !defined($monitor->{LastEvent})
+                     || ($last_event != $monitor->{LastEvent})
+                ) { # A new event
+                    push( @out_messages, $monitor->{Id}."|on|".time()."|".$last_event );
+                } else { # The same one as last time, so ignore it
+                    # Do nothing
+                }
+            } elsif ( ($state == STATE_IDLE
+                     && $monitor->{LastState} != STATE_IDLE
+                    )
+                    || ($state == STATE_TAPE
+                        && $monitor->{LastState} != STATE_TAPE
+                       )
+            ) { # Out of alarm state
+                push( @out_messages, $monitor->{Id}."|off|".time()."|".$last_event );
+            }
+            elsif ( defined($monitor->{LastEvent})
+                    && ($last_event != $monitor->{LastEvent})
+            ) { # We've missed a whole event
                 push( @out_messages, $monitor->{Id}."|on|".time()."|".$last_event );
+                push( @out_messages, $monitor->{Id}."|off|".time()."|".$last_event );
             }
-            else # The same one as last time, so ignore it
-            {
-                # Do nothing
-            }
+            $monitor->{LastState} = $state;
+            $monitor->{LastEvent} = $last_event;
+        } else { # Our attempt to verify the memory handle failed. We should reload the monitors.
+            $needsReload = 1;
         }
-        elsif ( ($state == STATE_IDLE
-                 && $monitor->{LastState} != STATE_IDLE
-                )
-                || ($state == STATE_TAPE
-                    && $monitor->{LastState} != STATE_TAPE
-                   )
-        ) # Out of alarm state
-        {
-            push( @out_messages, $monitor->{Id}."|off|".time()."|".$last_event );
-        }
-        elsif ( defined($monitor->{LastEvent})
-                && ($last_event != $monitor->{LastEvent})
-        ) # We've missed a whole event
-        {
-            push( @out_messages, $monitor->{Id}."|on|".time()."|".$last_event );
-            push( @out_messages, $monitor->{Id}."|off|".time()."|".$last_event );
-        }
-        $monitor->{LastState} = $state;
-        $monitor->{LastEvent} = $last_event;
     }
+
     foreach my $connection ( @out_connections )
     {
         if ( $connection->canWrite() )
@@ -413,7 +418,7 @@ while( 1 )
     }
 
     # If necessary reload monitors
-    if ( (time() - $monitor_reload_time) > MONITOR_RELOAD_INTERVAL )
+    if ( $needsReload || ((time() - $monitor_reload_time) > MONITOR_RELOAD_INTERVAL ))
     {
         foreach my $monitor ( values(%monitors) )
         {
@@ -421,6 +426,7 @@ while( 1 )
             zmMemInvalidate( $monitor );
         }
         loadMonitors();
+        $needsReload = 0;
     }
 }
 Info( "Trigger daemon exiting\n" );

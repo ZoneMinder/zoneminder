@@ -154,6 +154,8 @@ else
         $newX10Monitor = $x10Monitor;
 }
 
+$newMonitor['Name'] = trim($newMonitor['Name']);
+
 if ( $newMonitor['AnalysisFPS'] == '0.00' )
     $newMonitor['AnalysisFPS'] = '';
 if ( $newMonitor['MaxFPS'] == '0.00' )

@@ -286,13 +286,32 @@ AVFrame **LocalCamera::capturePictures = 0;
 
 LocalCamera *LocalCamera::last_camera = NULL;
 
-LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, int p_standard, bool p_v4l_multi_buffer, unsigned int p_v4l_captures_per_frame, const std::string &p_method, int p_width, int p_height, int p_colours, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, unsigned int p_extras) :
+LocalCamera::LocalCamera(
+	int p_id,
+	const std::string &p_device,
+	int p_channel,
+	int p_standard,
+	bool p_v4l_multi_buffer,
+	unsigned int p_v4l_captures_per_frame,
+	const std::string &p_method,
+	int p_width,
+	int p_height,
+	int p_colours,
+	int p_palette,
+	int p_brightness,	
+	int p_contrast,
+	int p_hue,
+	int p_colour,
+	bool p_capture,
+	bool p_record_audio,
+	unsigned int p_extras) :
     Camera( p_id, LOCAL_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture ),
     device( p_device ),
     channel( p_channel ),
     standard( p_standard ),
     palette( p_palette ),
     channel_index( 0 ),
+	record_audio( p_record_audio ),
     extras ( p_extras )
 {
     // If we are the first, or only, input on this device then

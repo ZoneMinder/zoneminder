@@ -5,6 +5,11 @@ zoneminder (1.28.1+1-trusty-SNAPSHOT2015071501) trusty; urgency=medium
   * version upgraded to .100
 
  -- Isaac Connor <iconnor@connortechnology.com>  Wed, 15 Jul 2015 11:56:28 -0400
+zoneminder (1.28.1+1-trusty-SNAPSHOT2015030201ubuntu1) UNRELEASED; urgency=medium
+
+  * add h264
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Fri, 27 Mar 2015 10:08:27 -0400
 
 zoneminder (1.28.1+1-trusty-SNAPSHOT2015030201) trusty; urgency=medium
 

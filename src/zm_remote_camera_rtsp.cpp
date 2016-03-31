@@ -52,11 +52,14 @@ RemoteCameraRtsp::RemoteCameraRtsp( int p_id, const std::string &p_method, const
 	
 	mFormatContext = NULL;
 	mVideoStreamId = -1;
+        mAudioStreamId = -1;
 	mCodecContext = NULL;
 	mCodec = NULL;
 	mRawFrame = NULL;
 	mFrame = NULL;
 	frameCount = 0;
+        wasRecording = false;
+        startTime=0;
 	
 #if HAVE_LIBSWSCALE    
 	mConvertContext = NULL;
@@ -349,6 +352,175 @@ int RemoteCameraRtsp::Capture( Image &image )
 		frameCount++;
 
 	     } /* frame complete */
+	     
+#if LIBAVCODEC_VERSION_CHECK(57, 8, 0, 12, 100)
+            av_packet_unref( &packet);
+#else
+            av_free_packet( &packet );
+#endif
+	} /* getFrame() */
+ 
+	if(frameComplete)
+		return (0);
+	
+    }
+    return (0) ;
+}
+
+//Function to handle capture and store
+int RemoteCameraRtsp::CaptureAndRecord( Image &image, bool recording, char* event_file )
+{
+    AVPacket packet;
+    uint8_t* directbuffer;
+    int frameComplete = false;
+	
+    /* Request a writeable buffer of the target image */
+    directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
+    if(directbuffer == NULL) {
+        Error("Failed requesting writeable buffer for the captured image.");
+        return (-1);
+    }
+	
+    while ( true )
+    {
+        buffer.clear();
+        if ( !rtspThread->isRunning() )
+            return (-1);
+
+        if ( rtspThread->getFrame( buffer ) )
+        {
+            Debug( 3, "Read frame %d bytes", buffer.size() );
+            Debug( 4, "Address %p", buffer.head() );
+            Hexdump( 4, buffer.head(), 16 );
+
+            if ( !buffer.size() )
+                return( -1 );
+
+            if(mCodecContext->codec_id == AV_CODEC_ID_H264)
+            {
+                // SPS and PPS frames should be saved and appended to IDR frames
+                int nalType = (buffer.head()[3] & 0x1f);
+                
+                // SPS
+                if(nalType == 7)
+                {
+                    lastSps = buffer;
+                    continue;
+                }
+                // PPS
+                else if(nalType == 8)
+                {
+                    lastPps = buffer;
+                    continue;
+                }
+                // IDR
+                else if(nalType == 5)
+                {
+                    buffer += lastSps;
+                    buffer += lastPps;
+                }
+            }
+
+            av_init_packet( &packet );
+            
+            if ( packet.stream_index == mVideoStreamId )
+            {
+            
+                while ( !frameComplete && buffer.size() > 0 )
+                {
+                    packet.data = buffer.head();
+                    packet.size = buffer.size();
+#if LIBAVCODEC_VERSION_CHECK(52, 23, 0, 23, 0)
+                    int len = avcodec_decode_video2( mCodecContext, mRawFrame, &frameComplete, &packet );
+#else
+                    int len = avcodec_decode_video( mCodecContext, mRawFrame, &frameComplete, packet.data, packet.size );
+#endif
+                    if ( len < 0 )
+                    {
+                            Error( "Error while decoding frame %d", frameCount );
+                            Hexdump( Logger::ERROR, buffer.head(), buffer.size()>256?256:buffer.size() );
+                            buffer.clear();
+                            continue;
+                    }
+                    Debug( 2, "Frame: %d - %d/%d", frameCount, len, buffer.size() );
+                    //if ( buffer.size() < 400 )
+                       //Hexdump( 0, buffer.head(), buffer.size() );
+
+                    buffer -= len;
+
+                }
+                if ( frameComplete ) {
+
+                    Debug( 3, "Got frame %d", frameCount );
+
+                    avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height);
+
+                    //Video recording
+                    if(recording && !wasRecording){
+                        //Instantiate the video storage module
+
+                        videoStore = new VideoStore((const char *)event_file, "mp4", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime);
+                        wasRecording = true;
+                        strcpy(oldDirectory, event_file);
+
+                    }else if(!recording && wasRecording && videoStore){
+                        Info("Deleting videoStore instance");
+                        delete videoStore;
+                        videoStore = NULL;
+                    }
+
+                    //The directory we are recording to is no longer tied to the current event. Need to re-init the videostore with the correct directory and start recording again
+                    if(recording && wasRecording && (strcmp(oldDirectory, event_file)!=0) && (packet.flags & AV_PKT_FLAG_KEY) ){ //don't open new videostore until we're on a key frame..would this require an offset adjustment for the event as a result?...if we store our key frame location with the event will that be enough?
+                        Info("Re-starting video storage module");
+                        if(videoStore){
+                            delete videoStore;
+                            videoStore = NULL;
+                        }
+
+                        videoStore = new VideoStore((const char *)event_file, "mp4", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime);
+                        strcpy(oldDirectory, event_file);
+                    }
+
+                    if(videoStore && recording){
+                        //Write the packet to our video store
+                        int ret = videoStore->writeVideoFramePacket(&packet, mFormatContext->streams[mVideoStreamId]);//, &lastKeyframePkt);
+                        if(ret<0){//Less than zero and we skipped a frame
+                            av_free_packet( &packet );
+                            return 0;
+                        }
+                    }
+
+#if HAVE_LIBSWSCALE
+                    if(mConvertContext == NULL) {
+                            mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
+
+                            if(mConvertContext == NULL)
+                                    Fatal( "Unable to create conversion context");
+                    }
+
+                    if ( sws_scale( mConvertContext, mRawFrame->data, mRawFrame->linesize, 0, mCodecContext->height, mFrame->data, mFrame->linesize ) < 0 )
+                            Fatal( "Unable to convert raw format %u to target format %u at frame %d", mCodecContext->pix_fmt, imagePixFormat, frameCount );
+#else // HAVE_LIBSWSCALE
+                    Fatal( "You must compile ffmpeg with the --enable-swscale option to use RTSP cameras" );
+#endif // HAVE_LIBSWSCALE
+
+                    frameCount++;
+
+                 } /* frame complete */
+            }
+            else if(packet.stream_index == mAudioStreamId)
+            {
+                if(videoStore && recording)
+                {
+                    //Write the packet to our video store
+                    int ret = videoStore->writeAudioFramePacket(&packet, mFormatContext->streams[packet.stream_index]); //FIXME no relevance of last key frame
+                    if(ret<0) //Less than zero and we skipped a frame
+                    {    
+                        av_free_packet( &packet );
+                        return 0;      
+                    }
+                }
+            }
 	     
 #if LIBAVCODEC_VERSION_CHECK(57, 8, 0, 12, 100)
             av_packet_unref( &packet);

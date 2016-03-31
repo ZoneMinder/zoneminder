@@ -258,5 +258,5 @@ if ( $concat_name ) {
 }
 #unlink $input_file_list;
 #print( STDOUT $event->{MonitorId}.'/'.$event->{Id}.'/'.$video_file."\n" );
-#print( STDOUT $video_file."\n" );
+#print( STDOUT $event_path . '/' . $video_file ."\n" );
 exit( 0 );

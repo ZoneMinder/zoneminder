@@ -211,6 +211,20 @@ int LibvlcCamera::Capture( Image &image )
     return (0);
 }
 
+// Should not return -1 as cancels capture. Always wait for image if available.
+int LibvlcCamera::CaptureAndRecord( Image &image, bool recording, char* event_directory )
+{
+    while(!mLibvlcData.newImage.getValueImmediate())
+        mLibvlcData.newImage.getUpdatedValue(1);
+
+    mLibvlcData.mutex.lock();
+    image.Assign(width, height, colours, subpixelorder, mLibvlcData.buffer, width * height * mBpp);
+    mLibvlcData.newImage.setValueImmediate(false);
+    mLibvlcData.mutex.unlock();
+
+    return (0);
+}
+
 int LibvlcCamera::PostCapture()
 {
     return(0);

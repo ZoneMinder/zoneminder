@@ -47,9 +47,10 @@ protected:
 	int				colour;
 	int				contrast;
     bool            capture;
+	bool			record_audio;
 
 public:
-	Camera( int p_id, SourceType p_type, int p_width, int p_height, int p_colours, int p_subpixelorder, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
+	Camera( int p_id, SourceType p_type, int p_width, int p_height, int p_colours, int p_subpixelorder, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
 	virtual ~Camera();
 
     int getId() const { return( id ); }

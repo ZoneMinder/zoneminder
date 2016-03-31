@@ -305,13 +305,12 @@ LocalCamera::LocalCamera(
 	bool p_capture,
 	bool p_record_audio,
 	unsigned int p_extras) :
-    Camera( p_id, LOCAL_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture ),
+    Camera( p_id, LOCAL_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture, p_record_audio ),
     device( p_device ),
     channel( p_channel ),
     standard( p_standard ),
     palette( p_palette ),
     channel_index( 0 ),
-	record_audio( p_record_audio ),
     extras ( p_extras )
 {
     // If we are the first, or only, input on this device then

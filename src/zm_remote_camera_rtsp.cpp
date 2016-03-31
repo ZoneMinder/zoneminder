@@ -28,8 +28,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-RemoteCameraRtsp::RemoteCameraRtsp( int p_id, const std::string &p_method, const std::string &p_host, const std::string &p_port, const std::string &p_path, int p_width, int p_height, bool p_rtsp_describe, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) :
-	RemoteCamera( p_id, "rtsp", p_host, p_port, p_path, p_width, p_height, p_colours, p_brightness, p_contrast, p_hue, p_colour, p_capture ),
+RemoteCameraRtsp::RemoteCameraRtsp( int p_id, const std::string &p_method, const std::string &p_host, const std::string &p_port, const std::string &p_path, int p_width, int p_height, bool p_rtsp_describe, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio ) :
+	RemoteCamera( p_id, "rtsp", p_host, p_port, p_path, p_width, p_height, p_colours, p_brightness, p_contrast, p_hue, p_colour, p_capture, p_record_audio ),
 	rtsp_describe( p_rtsp_describe ),
 	rtspThread( 0 )
 
@@ -505,12 +505,16 @@ int RemoteCameraRtsp::CaptureAndRecord( Image &image, bool recording, char* even
 			} else if ( packet.stream_index == mAudioStreamId ) {
 				Debug( 4, "Got audio packet" );
 				if ( videoStore && recording ) {
-					if ( recordAudio ) {
+					if ( record_audio ) {
 						Debug( 4, "Storing Audio packet" );
 						//Write the packet to our video store
 						int ret = videoStore->writeAudioFramePacket(&packet, mFormatContext->streams[packet.stream_index]); //FIXME no relevance of last key frame
 						if ( ret < 0 ) { //Less than zero and we skipped a frame
+#if LIBAVCODEC_VERSION_CHECK(57, 8, 0, 12, 100)
+							av_packet_unref( &packet );
+#else
 							av_free_packet( &packet );
+#endif
 							return 0;	  
 						}
 					} else {
@@ -520,7 +524,7 @@ int RemoteCameraRtsp::CaptureAndRecord( Image &image, bool recording, char* even
 			} // end if video or audio packet
 		 
 #if LIBAVCODEC_VERSION_CHECK(57, 8, 0, 12, 100)
-			av_packet_unref( &packet);
+			av_packet_unref( &packet );
 #else
 			av_free_packet( &packet );
 #endif

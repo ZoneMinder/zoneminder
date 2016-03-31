@@ -45,7 +45,7 @@ protected:
     enum { SIMPLE, REGEXP } method;
 
 public:
-	RemoteCameraHttp( int p_id, const std::string &method, const std::string &host, const std::string &port, const std::string &path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
+	RemoteCameraHttp( int p_id, const std::string &method, const std::string &host, const std::string &port, const std::string &path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
 	~RemoteCameraHttp();
 
 	void Initialise();
@@ -58,7 +58,7 @@ public:
 	int PreCapture();
 	int Capture( Image &image );
 	int PostCapture();
-    	int CaptureAndRecord( Image &image, bool recording, char* event_directory ) {return(0);};
+    int CaptureAndRecord( Image &image, bool recording, char* event_directory ) {return(0);};
 };
 
 #endif // ZM_REMOTE_CAMERA_HTTP_H

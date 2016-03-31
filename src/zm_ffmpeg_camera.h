@@ -73,7 +73,7 @@ protected:
     int64_t             startTime;
     
 public:
-	FfmpegCamera( int p_id, const std::string &path, const std::string &p_method, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
+	FfmpegCamera( int p_id, const std::string &path, const std::string &p_method, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
 	~FfmpegCamera();
 
     const std::string &Path() const { return( mPath ); }
@@ -86,7 +86,7 @@ public:
 	int PrimeCapture();
 	int PreCapture();
 	int Capture( Image &image );
-        int CaptureAndRecord( Image &image, bool recording, char* event_directory );
+	int CaptureAndRecord( Image &image, bool recording, char* event_directory );
 	int PostCapture();
 };
 

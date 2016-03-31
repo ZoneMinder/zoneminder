@@ -332,6 +332,7 @@ public:
 		int p_savejpegs,
 		int p_videowriter,
 		std::string p_encoderparams,
+		bool	p_record_audio,
 		const char *p_event_prefix,
 		const char *p_label_format,
 		const Coord &p_label_coord,

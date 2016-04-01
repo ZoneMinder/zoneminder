@@ -57,7 +57,7 @@ class Event {
       $event_path = 
         $this->{'MonitorId'}
       .'/'.strftime( "%y/%m/%d/%H/%M/%S",
-          $this->{'Time'}
+          $this->Time()
           )
         ;
     }
@@ -75,7 +75,7 @@ class Event {
 
   public function LinkPath() {
     if ( ZM_USE_DEEP_STORAGE ) {
-      return $this->{'MonitorId'} .'/'.strftime( "%y/%m/%d/.", $this->{'Time'}).$this->{'Id'};
+      return $this->{'MonitorId'} .'/'.strftime( "%y/%m/%d/.", $this->Time()).$this->{'Id'};
     }
     Error("Calling Link_Path when not using deep storage");
     return '';
@@ -145,6 +145,6 @@ public function getStreamSrc( $args, $querySep='&amp;' ) {
     }
 
     return( $streamSrc );
-  } // end function etStreamSrc
+  } // end function getStreamSrc
 } # end class
 ?>

@@ -157,7 +157,8 @@ int FfmpegCamera::Capture( Image &image )
     while ( !frameComplete )
     {
         int avResult = av_read_frame( mFormatContext, &packet );
-        if ( avResult < 0 ) {
+        if ( avResult < 0 )
+        {
             char errbuf[AV_ERROR_MAX_STRING_SIZE];
             av_strerror(avResult, errbuf, AV_ERROR_MAX_STRING_SIZE);
             if (
@@ -165,7 +166,8 @@ int FfmpegCamera::Capture( Image &image )
                 (avResult == AVERROR_EOF || (mFormatContext->pb && mFormatContext->pb->eof_reached)) ||
                 // Check for Connection failure.
                 (avResult == -110)
-            ) {
+            )
+            {
                 Info( "av_read_frame returned \"%s\". Reopening stream.", errbuf );
                 ReopenFfmpeg();
             }
@@ -188,7 +190,7 @@ int FfmpegCamera::Capture( Image &image )
             if ( frameComplete ) {
                 Debug( 3, "Got frame %d", frameCount );
 
-				avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height);
+                avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height);
 		
 #if HAVE_LIBSWSCALE
 				if(mConvertContext == NULL) {

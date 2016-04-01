@@ -7,20 +7,15 @@ Build-Depends: debhelper (>= 9), python-sphinx | python3-sphinx, apache2-dev, dh
               ,cmake
 			  ,libavcodec-dev, libavformat-dev (>= 3:0.svn20090204), libswscale-dev (>= 3:0.svn20090204), libavutil-dev, libavdevice-dev
               ,libbz2-dev
-              ,libdate-manip-perl
-              ,libdbd-mysql-perl
               ,libgcrypt-dev
               ,libcurl4-gnutls-dev
               ,libgnutls-openssl-dev
 			  ,libjpeg8-dev|libjpeg9-dev|libjpeg62-turbo-dev, 
               ,libmysqlclient-dev
               ,libpcre3-dev
-              ,libphp-serialization-perl
               ,libpolkit-gobject-1-dev
-              ,libsys-mmap-perl [!hurd-any]
               ,libv4l-dev (>= 0.8.3) [!hurd-any]
               ,libvlc-dev
-              ,libwww-perl
 # Unbundled (dh_linktree):
         ,libjs-jquery
         ,libjs-mootools
@@ -35,6 +30,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,javascript-common
         ,libav-tools|ffmpeg
         ,libdate-manip-perl
+        ,libdbd-mysql-perl
         ,libmime-lite-perl
         ,libmime-tools-perl
         ,libphp-serialization-perl
@@ -55,6 +51,8 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,policykit-1
         ,rsyslog | system-log-daemon
         ,zip
+        ,libdata-dump-perl, libclass-std-fast-perl, libsoap-wsdl-perl, libio-socket-multicast-perl, libdigest-sha-perl
+        , libsys-cpu-perl, libsys-meminfo-perl
 Recommends: ${misc:Recommends}
            ,libapache2-mod-php5 | php5-fpm
            ,mysql-server | virtual-mysql-server

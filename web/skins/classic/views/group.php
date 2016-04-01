@@ -67,7 +67,7 @@ xhtmlHeaders( __FILE__, translate('Group')." - ".$newGroup['Name'] );
         if ( visibleMonitor( $monitor['Id'] ) )
         {
 ?>
-                  <option value="<?php echo $monitor['Id'] ?>"<?php if ( array_key_exists( $monitor['Id'], $monitorIds ) ) { ?> selected="selected"<?php } ?>><?php echo validHtmlStr($monitor['Name']) ?></option>
+                  <option value="<?php echo $monitor['Id'] ?>"<?php if ( array_key_exists( $monitor['Id'], $monitorIds ) ) { ?> selected="selected"<?php } ?> onclick="configureButtons( this );"><?php echo validHtmlStr($monitor['Name']) ?></option>
 <?php
         }
     }
@@ -78,7 +78,7 @@ xhtmlHeaders( __FILE__, translate('Group')." - ".$newGroup['Name'] );
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('Save') ?>"<?php if ( !canEdit( 'Groups' ) ) { ?> disabled="disabled"<?php } ?>/>
+          <input type="submit" name="saveBtn" value="<?php echo translate('Save') ?>" disabled="disabled" />
           <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
         </div>
       </form>

@@ -122,13 +122,16 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
 
             struct stat statbuf;
             errno = 0;
-            stat( path, &statbuf );
-            if ( errno == ENOENT || errno == ENOTDIR )
-            {
-                if ( mkdir( path, 0755 ) )
-                {
-                    Fatal( "Can't mkdir %s: %s", path, strerror(errno));
-                }
+            if ( stat( path, &statbuf ) ) {
+				if ( errno == ENOENT || errno == ENOTDIR )
+				{
+					if ( mkdir( path, 0755 ) )
+					{
+						Fatal( "Can't mkdir %s: %s", path, strerror(errno));
+					}
+				} else {
+					Warning( "Error stat'ing %s, may be fatal. error is %s", path, strerror(errno));
+				}
             }
             if ( i == 2 )
                 strncpy( date_path, path, sizeof(date_path) );

@@ -323,9 +323,6 @@ protected:
 
 	const unsigned char	*privacy_bitmask;
 
-
-	int			iDoNativeMotDet;
-
 	int			n_linked_monitors;
 	MonitorLink		**linked_monitors;
 

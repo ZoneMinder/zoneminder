@@ -804,7 +804,7 @@ switch ( $tab )
           <?php
       } elseif ( $monitor->Type == "Remote" ) {
         ?>
-          <tr><td><?php echo translate('RemoteProtocol') ?></td><td><?php echo htmlSelect( "newMonitor[Protocol]", $remoteProtocols, $monitor->Protocol(), "updateMethods( this );if(this.value=='RTSP'){\$('RTSPDescribe').show();}else{\$('RTSPDescribe').hide();}" ); ?></td></tr>
+          <tr><td><?php echo translate('RemoteProtocol') ?></td><td><?php echo htmlSelect( "newMonitor[Protocol]", $remoteProtocols, $monitor->Protocol(), "updateMethods( this );if(this.value=='rtsp'){\$('RTSPDescribe').show();}else{\$('RTSPDescribe').hide();}" ); ?></td></tr>
           <?php
           if ( empty($monitor->Protocol) || $monitor->Protocol == "http" ) {
             ?>
@@ -865,7 +865,7 @@ switch ( $tab )
         if ( $monitor->Type == "Remote" )
         {
           ?>
-            <tr id="RTSPDescribe"<?php if ( $monitor->Protocol != 'RTSP' ) { echo ' style="display:none;"'; } ?>><td><?php echo translate('RTSPDescribe') ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option=OPTIONS_RTSPDESCRIBE', 'zmOptionHelp', 'optionhelp', '?' ) ?>) </td><td><input type="checkbox" name="newMonitor[RTSPDescribe]" value="1"<?php if ( !empty($monitor->RTSPDescribe) ) { ?> checked="checked"<?php } ?>/></td></tr>
+            <tr id="RTSPDescribe"<?php if ( $monitor->Protocol != 'rtsp' ) { echo ' style="display:none;"'; } ?>><td><?php echo translate('RTSPDescribe') ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option=OPTIONS_RTSPDESCRIBE', 'zmOptionHelp', 'optionhelp', '?' ) ?>) </td><td><input type="checkbox" name="newMonitor[RTSPDescribe]" value="1"<?php if ( !empty($monitor->RTSPDescribe) ) { ?> checked="checked"<?php } ?>/></td></tr>
             <?php
         }
       ?>

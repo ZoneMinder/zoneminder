@@ -29,6 +29,7 @@ $focusWindow = true;
 xhtmlHeaders(__FILE__, translate('SystemLog') );
 ?>
 <body>
+    <?php include("skins/$skin/views/header.php") ?>
   <div id="page">
     <div id="header">
       <div id="headerButtons">

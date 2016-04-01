@@ -227,6 +227,7 @@ protected:
         char            path[PATH_MAX];
         int             n_frames;
         FrameData       *frames;
+        char            video_file[PATH_MAX];
     };
 
 protected:

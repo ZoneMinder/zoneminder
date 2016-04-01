@@ -116,7 +116,25 @@ protected:
 	static LocalCamera      *last_camera;
 
 public:
-	LocalCamera( int p_id, const std::string &device, int p_channel, int p_format, bool v4lmultibuffer, unsigned int v4lcapturesperframe, const std::string &p_method, int p_width, int p_height, int p_colours, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, unsigned int p_extras = 0);
+	LocalCamera(
+		int p_id,
+		const std::string &device,
+		int p_channel,
+		int p_format,
+		bool v4lmultibuffer,
+		unsigned int v4lcapturesperframe,
+		const std::string &p_method,
+		int p_width,
+		int p_height,
+		int p_colours,
+		int p_palette,
+		int p_brightness,
+		int p_contrast,
+		int p_hue,
+		int p_colour,
+		bool p_capture,
+		bool p_record_audio,
+		unsigned int p_extras = 0);
 	~LocalCamera();
 
 	void Initialise();
@@ -138,6 +156,7 @@ public:
 	int PreCapture();
 	int Capture( Image &image );
 	int PostCapture();
+   	int CaptureAndRecord( Image &image, bool recording, char* event_directory ) {return(0);};
 
 	static bool GetCurrentSettings( const char *device, char *output, int version, bool verbose );
 };

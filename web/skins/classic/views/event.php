@@ -27,7 +27,7 @@ if ( !canView( 'Events' ) )
 $eid = validInt( $_REQUEST['eid'] );
 $fid = !empty($_REQUEST['fid'])?validInt($_REQUEST['fid']):1;
 
-$sql = 'SELECT E.*,M.Name AS MonitorName,M.Width,M.Height,M.DefaultRate,M.DefaultScale FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = ?';
+$sql = 'SELECT E.*,M.Name AS MonitorName,M.Width,M.Height,M.DefaultRate,M.DefaultScale,M.VideoWriter,M.SaveJPEGs,M.Orientation,M.LabelFormat FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = ?';
 $sql_values = array( $eid );
 
 if ( $user['MonitorIds'] ) {
@@ -55,7 +55,7 @@ $replayModes = array(
 if ( isset( $_REQUEST['streamMode'] ) )
     $streamMode = validHtmlStr($_REQUEST['streamMode']);
 else
-    $streamMode = canStream()?'stream':'stills';
+    $streamMode = 'video';
 
 if ( isset( $_REQUEST['replayMode'] ) )
     $replayMode = validHtmlStr($_REQUEST['replayMode']);
@@ -64,6 +64,15 @@ if ( isset( $_COOKIE['replayMode']) && preg_match('#^[a-z]+$#', $_COOKIE['replay
 else {
 	$keys = array_keys( $replayModes );
 	$replayMode = array_shift( $keys );
+}
+
+// videojs zoomrotate only when direct recording
+$Zoom = 1;
+$Rotation = 0;
+if ( $event['VideoWriter'] == "2" ) {
+    $Rotation = $event['Orientation'];
+    if ( in_array($event['Orientation'],array("90","270"))) 
+        $Zoom = $event['Height']/$event['Width'];
 }
 
 parseSort();
@@ -108,36 +117,55 @@ if ( canEdit( 'Events' ) )
 ?>
         <div id="deleteEvent"><a href="#" onclick="deleteEvent()"><?php echo translate('Delete') ?></a></div>
         <div id="editEvent"><a href="#" onclick="editEvent()"><?php echo translate('Edit') ?></a></div>
+        <div id="archiveEvent" class="hidden"><a href="#" onclick="archiveEvent()"><?php echo translate('Archive') ?></a></div>
+        <div id="unarchiveEvent" class="hidden"><a href="#" onclick="unarchiveEvent()"><?php echo translate('Unarchive') ?></a></div>
 <?php
 }
 if ( canView( 'Events' ) )
 {
 ?>
-        <div id="exportEvent"><a href="#" onclick="exportEvent()"><?php echo translate('Export') ?></a></div>
+				<div id="framesEvent"><a href="#" onclick="showEventFrames()"><?php echo translate('Frames') ?></a></div>
 <?php
-}
-if ( canEdit( 'Events' ) )
+if ( $event['SaveJPEGs'] & 3 )
 {
 ?>
-        <div id="archiveEvent" class="hidden"><a href="#" onclick="archiveEvent()"><?php echo translate('Archive') ?></a></div>
-        <div id="unarchiveEvent" class="hidden"><a href="#" onclick="unarchiveEvent()"><?php echo translate('Unarchive') ?></a></div>
+				<div id="stillsEvent"<?php if ( $streamMode == 'still' ) { ?> class="hidden"<?php } ?>><a href="#" onclick="showStills()"><?php echo translate('Stills') ?></a></div>
 <?php
 }
 ?>
-        <div id="framesEvent"><a href="#" onclick="showEventFrames()"><?php echo translate('Frames') ?></a></div>
-        <div id="streamEvent"<?php if ( $streamMode == 'stream' ) { ?> class="hidden"<?php } ?>><a href="#" onclick="showStream()"><?php echo translate('Stream') ?></a></div>
-        <div id="stillsEvent"<?php if ( $streamMode == 'still' ) { ?> class="hidden"<?php } ?>><a href="#" onclick="showStills()"><?php echo translate('Stills') ?></a></div>
+				<div id="videoEvent"<?php if ( $streamMode == 'video' ) { ?> class="hidden"<?php } ?>><a href="#" onclick="showVideo()"><?php echo translate('Video') ?></a></div>
+				<div id="exportEvent"><a href="#" onclick="exportEvent()"><?php echo translate('Export')  ?></a></div>
+			</div>
+			<div id="eventVideo" class="">
+<?php 
+if ( $event['DefaultVideo'] )
+{ 
+?>
+				<div id="videoFeed">
+					<video id="videoobj" class="video-js vjs-default-skin" width="<?php echo reScale( $event['Width'], $scale ) ?>" height="<?php echo reScale( $event['Height'], $scale ) ?>" data-setup='{ "controls": true, "playbackRates": [0.5, 1, 1.5, 2, 4, 8, 16, 32, 64, 128, 256], "autoplay": true, "preload": "auto", "plugins": { "zoomrotate": { "rotate": "<?php echo $Rotation ?>", "zoom": "<?php echo $Zoom ?>"}}}'>
+					<source src="<?php echo getEventDefaultVideoPath($event) ?>" type="video/mp4">
+					Your browser does not support the video tag.
+					</video>
+				</div>
+<!--script>includeVideoJs();</script-->
+<link href="//vjs.zencdn.net/4.11/video-js.css" rel="stylesheet">
+<script src="//vjs.zencdn.net/4.11/video.js"></script>
+<script src="./js/videojs.zoomrotate.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.10.6/moment.min.js"></script>
+<script>
+var LabelFormat = "<?php echo validJsStr($event['LabelFormat'])?>";
+var monitorName = "<?php echo validJsStr($event['MonitorName'])?>";
+var duration = <?php echo $event['Length'] ?>, startTime = '<?php echo $event['StartTime'] ?>';
+
+addVideoTimingTrack(document.getElementById('videoobj'), LabelFormat, monitorName, duration, startTime);
+</script>
+
 <?php
-if ( ZM_OPT_FFMPEG )
+}
+else
 {
 ?>
-        <div id="videoEvent"><a href="#" onclick="videoEvent()"><?php echo translate('Video') ?></a></div>
-<?php
-}
-?>
-      </div>
-      <div id="eventStream">
-        <div id="imageFeed">
+				<div id="imageFeed">
 <?php
 if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT )
 {
@@ -184,14 +212,22 @@ else
 <?php
         }
 ?>
-        </div>
-      </div>
+		</div>    
+<?php				    
+}
+?>
+				</div>
+			</div>
+<?php
+if ($event['SaveJPEGs'] & 3)
+{
+?>
       <div id="eventStills" class="hidden">
         <div id="eventThumbsPanel">
           <div id="eventThumbs">
           </div>
         </div>
-        <div id="eventImagePanel" class="hidden">
+        <div id="eventImagePanel">
           <div id="eventImageFrame">
             <img id="eventImage" src="graphics/transparent.gif" alt=""/>
             <div id="eventImageBar">
@@ -220,7 +256,10 @@ else
           </div>
         </div>
       </div>
-    </div>
+<?php
+}
+}
+?>
   </div>
 </body>
 </html>

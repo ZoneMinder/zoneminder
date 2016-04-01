@@ -861,7 +861,7 @@ bool EventStream::loadEventData( int event_id )
 {
     static char sql[ZM_SQL_MED_BUFSIZ];
 
-    snprintf( sql, sizeof(sql), "select M.Id, M.Name, E.StorageId, E.Frames, unix_timestamp( StartTime ) as StartTimestamp, max(F.Delta)-min(F.Delta) as Duration from Events as E inner join Monitors as M on E.MonitorId = M.Id inner join Frames as F on E.Id = F.EventId where E.Id = %d group by E.Id", event_id );
+    snprintf( sql, sizeof(sql), "select M.Id, M.Name, E.StorageId, E.Frames, unix_timestamp( StartTime ) as StartTimestamp, max(F.Delta)-min(F.Delta) as Duration,E.DefaultVideo from Events as E inner join Monitors as M on E.MonitorId = M.Id inner join Frames as F on E.Id = F.EventId where E.Id = %d group by E.Id", event_id );
 
     if ( mysql_query( &dbconn, sql ) )
     {
@@ -916,6 +916,7 @@ bool EventStream::loadEventData( int event_id )
     }
     event_data->frame_count = dbrow[3] == NULL ? 0 : atoi(dbrow[3]);
     event_data->duration = atof(dbrow[5]);
+    strncpy( event_data->video_file, dbrow[6], sizeof( event_data->video_file )-1 );
 
     updateFrameRate( (double)event_data->frame_count/event_data->duration );
 

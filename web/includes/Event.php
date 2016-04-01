@@ -119,6 +119,8 @@ class Event {
   } # end Event->delete
 
 public function getStreamSrc( $args, $querySep='&amp;' ) {
+    return ZM_BASE_URL.'/index.php?view=view_video&eid='.$this->{'Id'};
+
     $streamSrc = ZM_BASE_URL.ZM_PATH_ZMS;
 
     $args[] = "source=event&event=".$this->{'Id'};

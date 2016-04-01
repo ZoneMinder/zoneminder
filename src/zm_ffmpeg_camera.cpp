@@ -123,7 +123,8 @@ int FfmpegCamera::PreCapture()
     return( 0 );
 }
 
-int FfmpegCamera::Capture( Image &image ) {
+int FfmpegCamera::Capture( Image &image )
+{
     if (!mCanCapture){
         return -1;
     }
@@ -153,7 +154,8 @@ int FfmpegCamera::Capture( Image &image ) {
 	}
     
     int frameComplete = false;
-    while ( !frameComplete ) {
+    while ( !frameComplete )
+    {
         int avResult = av_read_frame( mFormatContext, &packet );
         if ( avResult < 0 ) {
             char errbuf[AV_ERROR_MAX_STRING_SIZE];

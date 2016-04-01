@@ -92,5 +92,18 @@ class Monitor {
 		}
 		return $this->{'Height'};
 	}
+	public function set( $data ) {
+		foreach ($data as $k => $v) {
+			if ( is_array( $v ) ) {
+				# perhaps should turn into a comma-separated string
+				$this->{$k} = implode(',',$v);
+			} else if ( is_string( $v ) ) {
+				$this->{$k} = trim( $v );
+			} else {
+Error( "Unknown type of var " . gettype( $v ) );
+				$this->{$k} = $v;
+			}
+		}
+	}
 }
 ?>

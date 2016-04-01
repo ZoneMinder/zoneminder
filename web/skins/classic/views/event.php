@@ -55,7 +55,7 @@ $replayModes = array(
 if ( isset( $_REQUEST['streamMode'] ) )
     $streamMode = validHtmlStr($_REQUEST['streamMode']);
 else
-    $streamMode = video;
+    $streamMode = 'video';
 
 if ( isset( $_REQUEST['replayMode'] ) )
     $replayMode = validHtmlStr($_REQUEST['replayMode']);
@@ -70,6 +70,7 @@ else {
 $Zoom = 1;
 $Rotation = 0;
 if ( $event['VideoWriter'] == "2" ) {
+    # Passthrough
     $Rotation = $event['Orientation'];
     if ( in_array($event['Orientation'],array("90","270"))) 
         $Zoom = $event['Height']/$event['Width'];

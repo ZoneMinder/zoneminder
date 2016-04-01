@@ -79,7 +79,7 @@ class Monitor {
 		}
 
 		return( $streamSrc );
-	} // end function etStreamSrc
+	} // end function getStreamSrc
 	public function Width() {
 		if ( $this->Orientation() == '90' or $this->Orientation() == '270' ) {
 			return $this->{'Height'};

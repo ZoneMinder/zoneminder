@@ -525,7 +525,9 @@ function getEventPath( $event )
 }
 
 function getEventDefaultVideoPath( $event ) {
-	return ZM_DIR_EVENTS . "/" . getEventPath($event) . "/" . $event['DefaultVideo'];
+  $Event = new Event( $event );
+  return $Event->getStreamSrc( array( "mode=mpeg" ) );
+//$Event->Path().'/'.$event['DefaultVideo'];
 }
 
 function deletePath( $path )
@@ -1144,10 +1146,19 @@ function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $ov
 
     //echo "S:$scale, CO:$captureOnly<br>";
     $currEvent = dbFetchOne( 'SELECT M.SaveJPEGs FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = '.$event['Id'] );
-    if ( $currEvent['SaveJPEGs'] == "4" )
+    if ( $currEvent['SaveJPEGs'] == "4" ) {
+        # Snapshot only mode
         $captImage = "snapshot.jpg";
-    else
+    } else {
         $captImage = sprintf( "%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $frame['FrameId'] );
+        if ( $currEvent['SaveJPEGs'] == "0" ) {
+          # No JPEG saving, must pull from video
+          if ( ! file_exists( $Storage->Path() .'/'.$eventPath.'/'.$captImage ) ) {
+            # Generate the frame JPG
+            # See issue #1379
+          }
+        }
+    }
     $captPath = $eventPath.'/'.$captImage;
     $thumbCaptPath = ZM_DIR_IMAGES.'/'.$event['Id'].'-'.$captImage;
     //echo "CI:$captImage, CP:$captPath, TCP:$thumbCaptPath<br>";
@@ -1244,6 +1255,7 @@ function viewImagePath( $path, $querySep='&amp;' )
 
 function createListThumbnail( $event, $overwrite=false )
 {
+    # Load the frame with the highest score to use as a thumbnail
     if ( !($frame = dbFetchOne( "SELECT * FROM Frames WHERE EventId=? AND Score=? ORDER BY FrameId LIMIT 1", NULL, array( $event['Id'], $event['MaxScore'] ) )) )
         return( false );
 

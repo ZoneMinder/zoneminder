@@ -303,6 +303,9 @@ int main( int argc, const char *argv[] )
 	}
     else if ( source == ZMS_EVENT )
     {
+        if ( ! event_id ) {
+          Fatal( "Can't view an event without specifying an event_id." );
+        }
         EventStream stream;
         stream.setStreamScale( scale );
         stream.setStreamReplayRate( rate );

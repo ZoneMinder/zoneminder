@@ -55,7 +55,7 @@ $replayModes = array(
 if ( isset( $_REQUEST['streamMode'] ) )
     $streamMode = validHtmlStr($_REQUEST['streamMode']);
 else
-    $streamMode = video;
+    $streamMode = 'video';
 
 if ( isset( $_REQUEST['replayMode'] ) )
     $replayMode = validHtmlStr($_REQUEST['replayMode']);

@@ -482,3 +482,11 @@ margin-left: -20px;
 .nav-pills > li > a {
 	border-radius: 0;
 }
+
+#options .help-block {
+	margin-top: 0;
+}
+
+#options {
+	font-size:90%;
+}

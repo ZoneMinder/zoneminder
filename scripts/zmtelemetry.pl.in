@@ -76,7 +76,7 @@ if ( $Config{ZM_TELEMETRY_DATA} )
     while( 1 ) {
         my $now = time();
         if ( ($now-$lastCheck) > CHECK_INTERVAL ) {
-            Info( "Colleting data to send to ZoneMinder Telemetry server." );
+            Info( "Collecting data to send to ZoneMinder Telemetry server." );
             my $dbh = zmDbConnect();
             # Build the telemetry hash
             # We should keep *BSD systems in mind when calling system commands

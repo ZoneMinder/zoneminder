@@ -15,7 +15,7 @@ ADD `EncoderParameters` TEXT NOT NULL AFTER `VideoWriter` ;
 ALTER TABLE `Events` ADD `DefaultVideo` VARCHAR( 64 ) NOT NULL AFTER `AlarmFrames` ;
 ```
 
-All documentation for ZoneMinder is now online at http://www.zoneminder.com/wiki/index.php/Documentation
+All documentation for ZoneMinder is now online at https://zoneminder.readthedocs.org
 
 ## Overview
 

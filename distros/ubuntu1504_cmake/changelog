@@ -1,3 +1,9 @@
+zoneminder (1.29.0+h264-wily-SNAPSHOT2016033101) wily; urgency=medium
+
+  * 
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Thu, 31 Mar 2016 10:29:41 -0400
+
 zoneminder (1.28.1+1-vivid-SNAPSHOT2015081701) vivid; urgency=medium
 
   * include api, switch to cmake build

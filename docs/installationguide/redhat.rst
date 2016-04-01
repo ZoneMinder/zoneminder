@@ -17,7 +17,7 @@ The ZoneMinder team will not provide support for systems which have had any core
 Background: Fedora
 ------------------------------------
 
-One can think of Fedora as RHEL or CentOS Beta. This is in fact, what it is. Fedora is primarily geared towards development and testing of newer, sometimes bleeding edge, packages. The ZoneMinder team uses this distro to determine the interoperability of ZoneMinder with the latest and greatest versions of packages like mysql, apache, systemd, and others. If a problem is detected, it will be addressed long before it makes it way into RHEL.
+One can think of Fedora as RHEL or CentOS Beta. This is, in fact, what it is. Fedora is primarily geared towards development and testing of newer, sometimes bleeding edge, packages. The ZoneMinder team uses this distro to determine the interoperability of ZoneMinder with the latest and greatest versions of packages like mysql, apache, systemd, and others. If a problem is detected, it will be addressed long before it makes it way into RHEL.
 
 Fedora has a short life-cycle of just 6 months. However, Fedora, and consequently ZoneMinder, is available on armv7 architecture. Rejoice, Raspberry Pi users!
 
@@ -28,17 +28,17 @@ Zmrepo – A ZoneMinder RPM Repository
 
 Zmrepo is a turn key solution. It will install all of ZoneMinder's dependencies for you. This is the easiest and the recommended way to install ZoneMinder on any system running a Redhat based distribution. 
 
-Zmrepo supports the two most recent, major, releases of each Redhat based distro.
+Zmrepo supports the two most recent, major releases of each Redhat based distro.
 
 The following notes are based on real problems which have occurred:
 
 - Zmrepo assumes you have installed the underlying distrubution **using the official installation media for that distro**. Third party "Spins" are not supported and may not work correctly.
 
-- ZoneMinder is intended to be installed in an environment dedicated to ZoneMinder. While ZoneMinder will play well with many applications, some invariably will not. Astericks is one such example.
+- ZoneMinder is intended to be installed in an environment dedicated to ZoneMinder. While ZoneMinder will play well with many applications, some invariably will not. Asterisk is one such example.
 
 - Be advised that you need to start with a clean system before using zmrepo.
 
-- If you have previously installed ZoneMinder from-source, then your system is **NOT** clean. You must manually search for and delete all ZoneMinder related files before using zmrepo (look under /usr/local). Make uninstall helps, but it will not do this for you correctly. You WILL have problems if you ignore this step.
+- If you have previously installed ZoneMinder from-source, then your system is **NOT** clean. You must manually search for and delete all ZoneMinder related files before using zmrepo (look under /usr/local). Make uninstall helps, but it will not do this for you correctly. You **WILL** have problems if you ignore this step.
 
 - It is not necessary, and not recommended, to install a LAMP stack ahead of time.
 
@@ -196,8 +196,8 @@ Now build a new src.rpm:
 
     rpmbuild -bs --nodeps ~/rpmbuild/SPECS/zoneminder.el7.spec
 
-This step will overwrite the SRPM you originally downloaded, so you may want to back it up prior to completing this step. Note that the name of the specfile will vary slightly depending on what distro you are building for.
+This step will overwrite the SRPM you originally downloaded, so you may want to back it up prior to completing this step. Note that the name of the specfile will vary slightly depending on the target distro.
 
-You should now have a a new SRPM under ~/rpmbuild/SRPMS. In our example, the SRPM is called zoneminder-1.28.1-2.el7.centos.src.rpm. Now follow the previous instructions that describe how to use the buildzm script, using ~/rpmbuild/SRPMS/zoneminder-1.28.1-2.el7.centos.src.rpm as the path to your SRPM.
+You should now have a new SRPM under ~/rpmbuild/SRPMS. In our example, the SRPM is called zoneminder-1.28.1-2.el7.centos.src.rpm. Now follow the previous instructions that describe how to use the buildzm script, using ~/rpmbuild/SRPMS/zoneminder-1.28.1-2.el7.centos.src.rpm as the path to your SRPM.
 
 

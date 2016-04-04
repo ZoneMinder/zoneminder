@@ -39,8 +39,8 @@ extern "C" {
  * b and c the minor and micro versions of libav
  * d and e the minor and micro versions of FFmpeg */
 #define LIBAVUTIL_VERSION_CHECK(a, b, c, d, e) \
-    ( (LIBAVUTIL_VERSION_MICRO <  100 && LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(a, b, c) ) || \
-      (LIBAVUTIL_VERSION_MICRO >= 100 && LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(a, d, e) ) )
+  ( (LIBAVUTIL_VERSION_MICRO <  100 && LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(a, b, c) ) || \
+    (LIBAVUTIL_VERSION_MICRO >= 100 && LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(a, d, e) ) )
 
 #if LIBAVUTIL_VERSION_CHECK(50, 29, 0, 29, 0)
 #include <libavutil/opt.h>
@@ -53,55 +53,55 @@ extern "C" {
 #include <ffmpeg/mathematics.h>
 #include <ffmpeg/opt.h>
 #endif /* HAVE_LIBAVUTIL_AVUTIL_H */
-    
+  
 #if defined(HAVE_LIBAVUTIL_AVUTIL_H) 
 #if LIBAVUTIL_VERSION_CHECK(51, 42, 0, 74, 100)
-    #define _AVPIXELFORMAT AVPixelFormat
+  #define _AVPIXELFORMAT AVPixelFormat
 #else
-    #define _AVPIXELFORMAT PixelFormat
-    #define AV_PIX_FMT_NONE PIX_FMT_NONE
-    #define AV_PIX_FMT_RGB444 PIX_FMT_RGB444
-    #define AV_PIX_FMT_RGB555 PIX_FMT_RGB555
-    #define AV_PIX_FMT_RGB565 PIX_FMT_RGB565
-    #define AV_PIX_FMT_BGR24 PIX_FMT_BGR24
-    #define AV_PIX_FMT_RGB24 PIX_FMT_RGB24
-    #define AV_PIX_FMT_BGRA PIX_FMT_BGRA
-    #define AV_PIX_FMT_ARGB PIX_FMT_ARGB
-    #define AV_PIX_FMT_ABGR PIX_FMT_ABGR
-    #define AV_PIX_FMT_RGBA PIX_FMT_RGBA
-    #define AV_PIX_FMT_GRAY8 PIX_FMT_GRAY8
-    #define AV_PIX_FMT_YUYV422 PIX_FMT_YUYV422
-    #define AV_PIX_FMT_YUV422P PIX_FMT_YUV422P
-    #define AV_PIX_FMT_YUV411P PIX_FMT_YUV411P
-    #define AV_PIX_FMT_YUV444P PIX_FMT_YUV444P
-    #define AV_PIX_FMT_YUV410P PIX_FMT_YUV410P
-    #define AV_PIX_FMT_YUV420P PIX_FMT_YUV420P
-    #define AV_PIX_FMT_YUVJ444P PIX_FMT_YUVJ444P
-    #define AV_PIX_FMT_UYVY422 PIX_FMT_UYVY422
-    #define AV_PIX_FMT_YUVJ420P PIX_FMT_YUVJ420P
-    #define AV_PIX_FMT_YUVJ422P PIX_FMT_YUVJ422P
-    #define AV_PIX_FMT_UYVY422 PIX_FMT_UYVY422
-    #define AV_PIX_FMT_UYYVYY411 PIX_FMT_UYYVYY411
-    #define AV_PIX_FMT_BGR565 PIX_FMT_BGR565
-    #define AV_PIX_FMT_BGR555 PIX_FMT_BGR555
-    #define AV_PIX_FMT_BGR8 PIX_FMT_BGR8
-    #define AV_PIX_FMT_BGR4 PIX_FMT_BGR4
-    #define AV_PIX_FMT_BGR4_BYTE PIX_FMT_BGR4_BYTE
-    #define AV_PIX_FMT_RGB8 PIX_FMT_RGB8
-    #define AV_PIX_FMT_RGB4 PIX_FMT_RGB4
-    #define AV_PIX_FMT_RGB4_BYTE PIX_FMT_RGB4_BYTE
-    #define AV_PIX_FMT_NV12 PIX_FMT_NV12
-    #define AV_PIX_FMT_NV21 PIX_FMT_NV21
-    #define AV_PIX_FMT_RGB32_1 PIX_FMT_RGB32_1
-    #define AV_PIX_FMT_BGR32_1 PIX_FMT_BGR32_1
-    #define AV_PIX_FMT_GRAY16BE PIX_FMT_GRAY16BE
-    #define AV_PIX_FMT_GRAY16LE PIX_FMT_GRAY16LE
-    #define AV_PIX_FMT_YUV440P PIX_FMT_YUV440P
-    #define AV_PIX_FMT_YUVJ440P PIX_FMT_YUVJ440P
-    #define AV_PIX_FMT_YUVA420P PIX_FMT_YUVA420P
-    //#define AV_PIX_FMT_VDPAU_H264 PIX_FMT_VDPAU_H264
-    //#define AV_PIX_FMT_VDPAU_MPEG1 PIX_FMT_VDPAU_MPEG1
-    //#define AV_PIX_FMT_VDPAU_MPEG2 PIX_FMT_VDPAU_MPEG2
+  #define _AVPIXELFORMAT PixelFormat
+  #define AV_PIX_FMT_NONE PIX_FMT_NONE
+  #define AV_PIX_FMT_RGB444 PIX_FMT_RGB444
+  #define AV_PIX_FMT_RGB555 PIX_FMT_RGB555
+  #define AV_PIX_FMT_RGB565 PIX_FMT_RGB565
+  #define AV_PIX_FMT_BGR24 PIX_FMT_BGR24
+  #define AV_PIX_FMT_RGB24 PIX_FMT_RGB24
+  #define AV_PIX_FMT_BGRA PIX_FMT_BGRA
+  #define AV_PIX_FMT_ARGB PIX_FMT_ARGB
+  #define AV_PIX_FMT_ABGR PIX_FMT_ABGR
+  #define AV_PIX_FMT_RGBA PIX_FMT_RGBA
+  #define AV_PIX_FMT_GRAY8 PIX_FMT_GRAY8
+  #define AV_PIX_FMT_YUYV422 PIX_FMT_YUYV422
+  #define AV_PIX_FMT_YUV422P PIX_FMT_YUV422P
+  #define AV_PIX_FMT_YUV411P PIX_FMT_YUV411P
+  #define AV_PIX_FMT_YUV444P PIX_FMT_YUV444P
+  #define AV_PIX_FMT_YUV410P PIX_FMT_YUV410P
+  #define AV_PIX_FMT_YUV420P PIX_FMT_YUV420P
+  #define AV_PIX_FMT_YUVJ444P PIX_FMT_YUVJ444P
+  #define AV_PIX_FMT_UYVY422 PIX_FMT_UYVY422
+  #define AV_PIX_FMT_YUVJ420P PIX_FMT_YUVJ420P
+  #define AV_PIX_FMT_YUVJ422P PIX_FMT_YUVJ422P
+  #define AV_PIX_FMT_UYVY422 PIX_FMT_UYVY422
+  #define AV_PIX_FMT_UYYVYY411 PIX_FMT_UYYVYY411
+  #define AV_PIX_FMT_BGR565 PIX_FMT_BGR565
+  #define AV_PIX_FMT_BGR555 PIX_FMT_BGR555
+  #define AV_PIX_FMT_BGR8 PIX_FMT_BGR8
+  #define AV_PIX_FMT_BGR4 PIX_FMT_BGR4
+  #define AV_PIX_FMT_BGR4_BYTE PIX_FMT_BGR4_BYTE
+  #define AV_PIX_FMT_RGB8 PIX_FMT_RGB8
+  #define AV_PIX_FMT_RGB4 PIX_FMT_RGB4
+  #define AV_PIX_FMT_RGB4_BYTE PIX_FMT_RGB4_BYTE
+  #define AV_PIX_FMT_NV12 PIX_FMT_NV12
+  #define AV_PIX_FMT_NV21 PIX_FMT_NV21
+  #define AV_PIX_FMT_RGB32_1 PIX_FMT_RGB32_1
+  #define AV_PIX_FMT_BGR32_1 PIX_FMT_BGR32_1
+  #define AV_PIX_FMT_GRAY16BE PIX_FMT_GRAY16BE
+  #define AV_PIX_FMT_GRAY16LE PIX_FMT_GRAY16LE
+  #define AV_PIX_FMT_YUV440P PIX_FMT_YUV440P
+  #define AV_PIX_FMT_YUVJ440P PIX_FMT_YUVJ440P
+  #define AV_PIX_FMT_YUVA420P PIX_FMT_YUVA420P
+  //#define AV_PIX_FMT_VDPAU_H264 PIX_FMT_VDPAU_H264
+  //#define AV_PIX_FMT_VDPAU_MPEG1 PIX_FMT_VDPAU_MPEG1
+  //#define AV_PIX_FMT_VDPAU_MPEG2 PIX_FMT_VDPAU_MPEG2
 #endif
 #endif /* HAVE_LIBAVUTIL_AVUTIL_H */
 
@@ -116,8 +116,8 @@ extern "C" {
  * b and c the minor and micro versions of libav
  * d and e the minor and micro versions of FFmpeg */
 #define LIBAVCODEC_VERSION_CHECK(a, b, c, d, e) \
-    ( (LIBAVCODEC_VERSION_MICRO <  100 && LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(a, b, c) ) || \
-      (LIBAVCODEC_VERSION_MICRO >= 100 && LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(a, d, e) ) )
+  ( (LIBAVCODEC_VERSION_MICRO <  100 && LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(a, b, c) ) || \
+    (LIBAVCODEC_VERSION_MICRO >= 100 && LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(a, d, e) ) )
 
 #elif HAVE_FFMPEG_AVCODEC_H
 #include <ffmpeg/avcodec.h>
@@ -125,9 +125,9 @@ extern "C" {
 
 #if defined(HAVE_LIBAVCODEC_AVCODEC_H)
 #if LIBAVCODEC_VERSION_CHECK(54, 25, 0, 51, 100)
-    #define _AVCODECID AVCodecID
+  #define _AVCODECID AVCodecID
 #else
-    #define _AVCODECID CodecID
+  #define _AVCODECID CodecID
 #endif
 #endif /* HAVE_LIBAVCODEC_AVCODEC_H */
 
@@ -141,8 +141,8 @@ extern "C" {
  * b and c the minor and micro versions of libav
  * d and e the minor and micro versions of FFmpeg */
 #define LIBAVFORMAT_VERSION_CHECK(a, b, c, d, e) \
-    ( (LIBAVFORMAT_VERSION_MICRO <  100 && LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(a, b, c) ) || \
-      (LIBAVFORMAT_VERSION_MICRO >= 100 && LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(a, d, e) ) )
+  ( (LIBAVFORMAT_VERSION_MICRO <  100 && LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(a, b, c) ) || \
+    (LIBAVFORMAT_VERSION_MICRO >= 100 && LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(a, d, e) ) )
 
 #elif HAVE_FFMPEG_AVFORMAT_H
 #include <ffmpeg/avformat.h>
@@ -157,8 +157,8 @@ extern "C" {
  * b and c the minor and micro versions of libav
  * d and e the minor and micro versions of FFmpeg */
 #define LIBAVDEVICE_VERSION_CHECK(a, b, c, d, e) \
-    ( (LIBAVDEVICE_VERSION_MICRO <  100 && LIBAVDEVICE_VERSION_INT >= AV_VERSION_INT(a, b, c) ) || \
-      (LIBAVDEVICE_VERSION_MICRO >= 100 && LIBAVDEVICE_VERSION_INT >= AV_VERSION_INT(a, d, e) ) )
+  ( (LIBAVDEVICE_VERSION_MICRO <  100 && LIBAVDEVICE_VERSION_INT >= AV_VERSION_INT(a, b, c) ) || \
+    (LIBAVDEVICE_VERSION_MICRO >= 100 && LIBAVDEVICE_VERSION_INT >= AV_VERSION_INT(a, d, e) ) )
 
 #elif HAVE_FFMPEG_AVDEVICE_H
 #include <ffmpeg/avdevice.h>
@@ -173,8 +173,8 @@ extern "C" {
  * b and c the minor and micro versions of libav
  * d and e the minor and micro versions of FFmpeg */
 #define LIBSWSCALE_VERSION_CHECK(a, b, c, d, e) \
-    ( (LIBSWSCALE_VERSION_MICRO <  100 && LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(a, b, c) ) || \
-      (LIBSWSCALE_VERSION_MICRO >= 100 && LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(a, d, e) ) )
+  ( (LIBSWSCALE_VERSION_MICRO <  100 && LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(a, b, c) ) || \
+    (LIBSWSCALE_VERSION_MICRO >= 100 && LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(a, d, e) ) )
 
 #elif HAVE_FFMPEG_SWSCALE_H
 #include <ffmpeg/swscale.h>
@@ -203,23 +203,23 @@ enum _AVPIXELFORMAT GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subp
 #if HAVE_LIBSWSCALE && HAVE_LIBAVUTIL
 class SWScale {
 public:
-	SWScale();
-	~SWScale();
-	int SetDefaults(enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, unsigned int width, unsigned int height);
-	int ConvertDefaults(const Image* img, uint8_t* out_buffer, const size_t out_buffer_size);
-	int ConvertDefaults(const uint8_t* in_buffer, const size_t in_buffer_size, uint8_t* out_buffer, const size_t out_buffer_size);
-	int Convert(const Image* img, uint8_t* out_buffer, const size_t out_buffer_size, enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, unsigned int width, unsigned int height);
-	int Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint8_t* out_buffer, const size_t out_buffer_size, enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, unsigned int width, unsigned int height);
+  SWScale();
+  ~SWScale();
+  int SetDefaults(enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, unsigned int width, unsigned int height);
+  int ConvertDefaults(const Image* img, uint8_t* out_buffer, const size_t out_buffer_size);
+  int ConvertDefaults(const uint8_t* in_buffer, const size_t in_buffer_size, uint8_t* out_buffer, const size_t out_buffer_size);
+  int Convert(const Image* img, uint8_t* out_buffer, const size_t out_buffer_size, enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, unsigned int width, unsigned int height);
+  int Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint8_t* out_buffer, const size_t out_buffer_size, enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, unsigned int width, unsigned int height);
 
 protected:
-	bool gotdefaults;
-	struct SwsContext* swscale_ctx;
-	AVFrame* input_avframe;
-	AVFrame* output_avframe;
-	enum _AVPIXELFORMAT default_input_pf;
-	enum _AVPIXELFORMAT default_output_pf;
-	unsigned int default_width;
-	unsigned int default_height;
+  bool gotdefaults;
+  struct SwsContext* swscale_ctx;
+  AVFrame* input_avframe;
+  AVFrame* output_avframe;
+  enum _AVPIXELFORMAT default_input_pf;
+  enum _AVPIXELFORMAT default_output_pf;
+  unsigned int default_width;
+  unsigned int default_height;
 };
 #endif // HAVE_LIBSWSCALE && HAVE_LIBAVUTIL
 
@@ -256,21 +256,21 @@ protected:
  */
 #ifdef  __cplusplus
 
-    inline static const std::string av_make_error_string(int errnum)
-    {
-        char errbuf[AV_ERROR_MAX_STRING_SIZE];
+  inline static const std::string av_make_error_string(int errnum)
+  {
+    char errbuf[AV_ERROR_MAX_STRING_SIZE];
 #if LIBAVUTIL_VERSION_CHECK(50, 13, 0, 13, 0)
-        av_strerror(errnum, errbuf, AV_ERROR_MAX_STRING_SIZE);
+    av_strerror(errnum, errbuf, AV_ERROR_MAX_STRING_SIZE);
 #else
-		snprintf(errbuf, AV_ERROR_MAX_STRING_SIZE, "libav error %d", errnum);
+    snprintf(errbuf, AV_ERROR_MAX_STRING_SIZE, "libav error %d", errnum);
 #endif
-        return (std::string)errbuf;
-    }
+    return (std::string)errbuf;
+  }
 
-    #undef av_err2str
-    #define av_err2str(errnum) av_make_error_string(errnum).c_str()
+  #undef av_err2str
+  #define av_err2str(errnum) av_make_error_string(errnum).c_str()
 
-    #endif // __cplusplus
+  #endif // __cplusplus
 
 
 #endif // ( HAVE_LIBAVUTIL_AVUTIL_H || HAVE_LIBAVCODEC_AVCODEC_H || HAVE_LIBAVFORMAT_AVFORMAT_H || HAVE_LIBAVDEVICE_AVDEVICE_H )

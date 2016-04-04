@@ -28,8 +28,15 @@ class Monitor {
 				foreach ($s as $k => $v) {
 						if ( $k == 'Id' ) {
 							continue;
+                        } else if ( $k == 'Protocol' ) {
+                            $this->{'ControlProtocol'} = $v;
+                        } else if ( $k == 'Name' ) {
+                            $this->{'ControlName'} = $v;
+                        } else if ( $k == 'Type' ) {
+                            $this->{'ControlType'} = $v;
+                        } else {
+                            $this->{$k} = $v;
 						}
-					$this->{$k} = $v;
 				}
 			}
 

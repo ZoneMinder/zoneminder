@@ -65,7 +65,7 @@ protected:
 	pthread_cond_t request_complete_cond;
 
 public:
-	cURLCamera( int p_id, const std::string &path, const std::string &username, const std::string &password,  int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
+	cURLCamera( int p_id, const std::string &path, const std::string &username, const std::string &password,  int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
 	~cURLCamera();
 
 	const std::string &Path() const { return( mPath ); }
@@ -79,6 +79,8 @@ public:
 	int PreCapture();
 	int Capture( Image &image );
 	int PostCapture();
+	int CaptureAndRecord( Image &image, bool recording, char* event_directory);
+
 
 	size_t data_callback(void *buffer, size_t size, size_t nmemb, void *userdata);
 	size_t header_callback(void *buffer, size_t size, size_t nmemb, void *userdata);

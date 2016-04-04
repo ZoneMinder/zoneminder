@@ -26,7 +26,7 @@ class Storage {
 	public function Path() {
 		if ( isset( $this->{'Path'} ) and ( $this->{'Path'} != '' ) ) {
 			return $this->{'Path'};
-		} else if ( ! $this->{'Id'} ) {
+		} else if ( ! isset($this->{'Id'}) ) {
 			return ZM_DIR_EVENTS;
 		}
 		return $this->{'Name'};

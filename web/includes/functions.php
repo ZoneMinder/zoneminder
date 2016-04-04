@@ -963,7 +963,7 @@ function daemonControl( $command, $daemon=false, $args=false )
 function zmcControl( $monitor, $mode=false )
 {
   if ( (!ZM_SERVER) or ( ZM_SERVER==$monitor['ServerId'] ) ) {
-    $row = NULL;
+	$row = NULL;
     if ( $monitor['Type'] == "Local" )
     {
       $row = dbFetchOne( "select count(if(Function!='None',1,NULL)) as ActiveCount from Monitors where Device = ?", NULL, array($monitor['Device']) );
@@ -993,7 +993,7 @@ function zmcControl( $monitor, $mode=false )
 
 function zmaControl( $monitor, $mode=false )
 {
-  if ( (!ZM_SERVER) or ( ZM_SERVER==$monitor['ServerId']) ) {
+  if ( (!ZM_SERVER) or ( ZM_SERVER==$monitor['ServerId'] ) ) {
     if ( !is_array( $monitor ) )
     {
       $monitor = dbFetchOne( "select C.*, M.* from Monitors as M left join Controls as C on (M.ControlId = C.Id ) where M.Id=?", NULL, array($monitor) );

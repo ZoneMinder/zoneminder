@@ -985,6 +985,7 @@ function daemonControl( $command, $daemon=false, $args=false )
 
 function zmcControl( $monitor, $mode=false )
 {
+  if ( (!ZM_SERVER) or ( ZM_SERVER==$monitor[ServerId}) ) {
 	$row = NULL;
     if ( $monitor['Type'] == "Local" )
     {
@@ -1010,10 +1011,12 @@ function zmcControl( $monitor, $mode=false )
         }
         daemonControl( "start", "zmc", $zmcArgs );
     }
+  }
 }
 
 function zmaControl( $monitor, $mode=false )
 {
+  if ( (!ZM_SERVER) or ( ZM_SERVER==$monitor[ServerId}) ) {
     if ( !is_array( $monitor ) )
     {
         $monitor = dbFetchOne( "select C.*, M.* from Monitors as M left join Controls as C on (M.ControlId = C.Id ) where M.Id=?", NULL, array($monitor) );
@@ -1058,6 +1061,7 @@ function zmaControl( $monitor, $mode=false )
             daemonControl( "reload", "zma", "-m ".$monitor['Id'] );
         }
     }
+  }
 }
 
 function initDaemonStatus()

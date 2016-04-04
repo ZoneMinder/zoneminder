@@ -205,8 +205,13 @@ function getStreamCmdResponse( respObj, respText )
             $('enableDisableAlarms').removeClass( 'hidden' );
         }
     }
-    else
+    else {
         checkStreamForErrors("getStreamCmdResponse",respObj);//log them
+        // Try to reload the image stream.
+        var streamImg = document.getElementById('liveStream');
+        if ( streamImg )
+            streamImg.src = streamImg.src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
+    }
 
     var streamCmdTimeout = statusRefreshTimeout;
     if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )

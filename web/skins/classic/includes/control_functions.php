@@ -243,7 +243,7 @@ function controlPanTilt( $monitor, $cmds )
     ob_start();
 ?>
 <div class="pantiltControls">
-  <div class="pantilLabel"><?php echo translate('PanTilt') ?></div>
+  <div class="pantiltLabel"><?php echo translate('PanTilt') ?></div>
   <div class="pantiltButtons">
 <?php
     $hasPan = $monitor->CanPan;

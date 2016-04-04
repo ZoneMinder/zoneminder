@@ -533,7 +533,7 @@ if ( ZM_HAS_V4L && ($tab != 'source' || $monitor->Type != 'Local') ) {
 if ( $tab != 'source' || $monitor->Type != 'Remote' )
 {
   ?>
-    <input type="hidden" name="newMonitor[Protocol]" value="<?php echo validHtmlStr($monitor->Protocol) ?>"/>
+    <input type="hidden" name="newMonitor[Protocol]" value="<?php echo validHtmlStr($monitor->Protocol()) ?>"/>
     <input type="hidden" name="newMonitor[Host]" value="<?php echo validHtmlStr($monitor->Host) ?>"/>
     <input type="hidden" name="newMonitor[Port]" value="<?php echo validHtmlStr($monitor->Port) ?>"/>
     <?php
@@ -576,7 +576,7 @@ if ( $tab != 'storage' ) {
     <input type="hidden" name="newMonitor[RecordAudio]" value="<?php echo validHtmlStr($monitor->RecordAudio) ?>"/>
     <?php
 }
-if ( $tab != 'source' || ($monitor->Type != 'Remote' && $monitor->Protocol != 'RTSP'))
+if ( $tab != 'source' || ($monitor->Type != 'Remote' && $monitor->Protocol != 'rtsp'))
 {
   ?>
     <input type="hidden" name="newMonitor[RTSPDescribe]" value="<?php echo validHtmlStr($monitor->RTSPDescribe) ?>"/>

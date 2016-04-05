@@ -325,6 +325,9 @@ bool RtpSource::handlePacket( const unsigned char *packet, size_t packetLen )
                 mFrameReady.updateValueSignal( true );
                 if ( !mFrameProcessed.getValueImmediate() )
                 {
+                    // What is the point of this for loop? Is it just me, or will it call getUpdatedValue once or twice? Could it not be better written as
+                    // if ( ! mFrameProcessed.getUpdatedValue( 1 ) && mFrameProcessed.getUpdatedValue( 1 ) ) return false;
+
                     for ( int count = 0; !mFrameProcessed.getUpdatedValue( 1 ); count++ )
                         if( count > 1 )
                             return( false );

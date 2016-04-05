@@ -486,6 +486,7 @@ int RemoteCameraRtsp::CaptureAndRecord( Image &image, bool recording, char* even
 					}
 
 #if HAVE_LIBSWSCALE
+// Why are we re-scaling after writing out the packet?
 					if(mConvertContext == NULL) {
 							mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
 

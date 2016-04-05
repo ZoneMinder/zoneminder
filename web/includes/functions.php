@@ -1156,6 +1156,7 @@ function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $ov
     }
   }
 
+<<<<<<< HEAD
   $captPath = $eventPath.'/'.$captImage;
   if ( ! file_exists( $captPath ) ) {
     Error( "Capture file does not exist at $captPath" );
@@ -1164,18 +1165,50 @@ function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $ov
   $thumbCaptPath = ZM_DIR_IMAGES.'/'.$event['Id'].'-'.$captImage;
   
   //echo "CI:$captImage, CP:$captPath, TCP:$thumbCaptPath<br>";
+=======
+function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $overwrite=false )
+{
+    $eventPath = ZM_DIR_EVENTS.'/'.getEventPath( $event );
+>>>>>>> iconnor_video
 
   $analImage = sprintf( "%0".ZM_EVENT_IMAGE_DIGITS."d-analyse.jpg", $frame['FrameId'] );
   $analPath = $eventPath.'/'.$analImage;
 
+<<<<<<< HEAD
   $thumbAnalPath = ZM_DIR_IMAGES.'/'.$event['Id'].'-'.$analImage;
   //echo "AI:$analImage, AP:$analPath, TAP:$thumbAnalPath<br>";
 
   $alarmFrame = $frame['Type']=='Alarm';
+=======
+    if ( file_exists( $eventPath.'/snapshot.jpg' ) ) {
+        $captImage = "snapshot.jpg";
+    } else {
+        $captImage = sprintf( "%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $frame['FrameId'] );
+        if ( ! file_exists( $eventPath.'/'.$captImage ) ) {
+            # Generate the frame JPG
+            if ( $event['DefaultVideo'] ) {
+                $command ='ffmpeg -v 0 -i '.$eventPath.'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$frame['FrameId'].'),setpts=PTS-STARTPTS" '.$eventPath.'/'.$captImage;
+                system( $command, $output, $retval );
+            } else {
+                Error("Can't create frame images from video becuase there is no video file for this event " );
+            }
+        }
+    }
+
+    $captPath = $eventPath.'/'.$captImage;
+    $thumbCaptPath = ZM_DIR_IMAGES.'/'.$event['Id'].'-'.$captImage;
+    //echo "CI:$captImage, CP:$captPath, TCP:$thumbCaptPath<br>";
+
+    $analImage = sprintf( "%0".ZM_EVENT_IMAGE_DIGITS."d-analyse.jpg", $frame['FrameId'] );
+    $analPath = $eventPath.'/'.$analImage;
+    $thumbAnalPath = ZM_DIR_IMAGES.'/'.$event['Id'].'-'.$analImage;
+    //echo "AI:$analImage, AP:$analPath, TAP:$thumbAnalPath<br>";
+>>>>>>> iconnor_video
 
   $hasAnalImage = $alarmFrame && file_exists( $analPath ) && filesize( $analPath );
   $isAnalImage = $hasAnalImage && !$captureOnly;
 
+<<<<<<< HEAD
   if ( !ZM_WEB_SCALE_THUMBS || $scale >= SCALE_BASE || !function_exists( 'imagecreatefromjpeg' ) ) {
     $imagePath = $thumbPath = $isAnalImage?$analPath:$captPath;
     $imageFile = $imagePath;
@@ -1186,6 +1219,10 @@ function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $ov
     else
       $fraction = sprintf( "%.3f", $scale/SCALE_BASE );
     $scale = (int)round( $scale );
+=======
+    $hasAnalImage = $alarmFrame && file_exists( $analPath ) && filesize( $analPath );
+    $isAnalImage = $hasAnalImage && !$captureOnly;
+>>>>>>> iconnor_video
 
     $thumbCaptPath = preg_replace( "/\.jpg$/", "-$scale.jpg", $thumbCaptPath );
     $thumbAnalPath = preg_replace( "/\.jpg$/", "-$scale.jpg", $thumbAnalPath );
@@ -1212,11 +1249,42 @@ function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $ov
       $image = imagecreatefromjpeg( $imageFile );
       imagecopyresampled( $thumbImage, $image, 0, 0, 0, 0, $thumbWidth, $thumbHeight, $imageWidth, $imageHeight );
 
+<<<<<<< HEAD
       if ( !imagejpeg( $thumbImage, $thumbFile ) )
         Error( "Can't create thumbnail '$thumbPath'" );
+=======
+        if ( $isAnalImage )
+        {
+            $imagePath = $analPath;
+            $thumbPath = $thumbAnalPath;
+        }
+        else
+        {
+            $imagePath = $captPath;
+            $thumbPath = $thumbCaptPath;
+        }
+
+        $thumbFile = $thumbPath;
+        if ( $overwrite || !file_exists( $thumbFile ) || !filesize( $thumbFile ) )
+        {
+            // Get new dimensions
+            list( $imageWidth, $imageHeight ) = getimagesize( $imagePath );
+            $thumbWidth = $imageWidth * $fraction;
+            $thumbHeight = $imageHeight * $fraction;
+
+            // Resample
+            $thumbImage = imagecreatetruecolor( $thumbWidth, $thumbHeight );
+            $image = imagecreatefromjpeg( $imagePath );
+            imagecopyresampled( $thumbImage, $image, 0, 0, 0, 0, $thumbWidth, $thumbHeight, $imageWidth, $imageHeight );
+
+            if ( !imagejpeg( $thumbImage, $thumbPath ) )
+                Error( "Can't create thumbnail '$thumbPath'" );
+        }
+>>>>>>> iconnor_video
     }
   }
 
+<<<<<<< HEAD
   $imageData = array(
       'eventPath' => $eventPath,
       'imagePath' => $imagePath,
@@ -1229,6 +1297,20 @@ function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $ov
       );
 
   return( $imageData );
+=======
+    $imageData = array(
+        'eventPath' => $eventPath,
+        'imagePath' => $imagePath,
+        'thumbPath' => $thumbPath,
+        'imageFile' => $imagePath,
+        'thumbFile' => $thumbFile,
+        'imageClass' => $alarmFrame?"alarm":"normal",
+        'isAnalImage' => $isAnalImage,
+        'hasAnalImage' => $hasAnalImage,
+    );
+
+    return( $imageData );
+>>>>>>> iconnor_video
 }
 
 function viewImagePath( $path, $querySep='&amp;' )

@@ -46,17 +46,20 @@
 // This is the main class for monitors. Each monitor is associated
 // with a camera and is effectively a collector for events.
 //
-class Monitor {
+class Monitor
+{
 friend class MonitorStream;
 
 public:
-	typedef enum {
+	typedef enum
+	{
 		QUERY=0,
 		CAPTURE,
 		ANALYSIS
 	} Purpose;
 
-	typedef enum {
+	typedef enum
+	{
 		NONE=1,
 		MONITOR,
 		MODECT,
@@ -65,7 +68,8 @@ public:
 		NODECT
 	} Function;
 
-	typedef enum { 
+	typedef enum
+	{ 
 		ROTATE_0=1,
 		ROTATE_90,
 		ROTATE_180,
@@ -74,7 +78,8 @@ public:
 		FLIP_VERT
 	} Orientation;
 
-	typedef enum {
+	typedef enum
+	{
 		IDLE,
 		PREALARM,
 		ALARM,
@@ -90,20 +95,21 @@ protected:
 	typedef enum { CLOSE_TIME, CLOSE_IDLE, CLOSE_ALARM } EventCloseMode;
 
 	/* sizeof(SharedData) expected to be 336 bytes on 32bit and 64bit */
-	typedef struct {
-		uint32_t size;			 	/* +0	*/
-		uint32_t last_write_index; 	/* +4	*/ 
-		uint32_t last_read_index;  	/* +8	*/
+	typedef struct
+	{
+		uint32_t size;				 /* +0	*/
+		uint32_t last_write_index;	 /* +4	*/ 
+		uint32_t last_read_index;	  /* +8	*/
 		uint32_t state;				/* +12   */
-		uint32_t last_event;	   	/* +16   */
-		uint32_t action;		   	/* +20   */
+		uint32_t last_event;		   /* +16   */
+		uint32_t action;			   /* +20   */
 		int32_t brightness;			/* +24   */
-		int32_t hue;			   	/* +28   */
+		int32_t hue;				   /* +28   */
 		int32_t colour;				/* +32   */
-		int32_t contrast;		  	/* +36   */
-		int32_t alarm_x;		   	/* +40   */
-		int32_t alarm_y;		   	/* +44   */
-		uint8_t valid;			 	/* +48   */
+		int32_t contrast;			  /* +36   */
+		int32_t alarm_x;			   /* +40   */
+		int32_t alarm_y;			   /* +44   */
+		uint8_t valid;				 /* +48   */
 		uint8_t active;				/* +49   */
 		uint8_t signal;				/* +50   */
 		uint8_t format;				/* +51   */
@@ -259,7 +265,7 @@ protected:
 	int				ref_blend_perc;			// Percentage of new image going into reference image.
 	int				alarm_ref_blend_perc;			// Percentage of new image going into reference image during alarm.
 	bool			track_motion;			// Whether this monitor tries to track detected motion 
-	Rgb			 	signal_check_colour;	// The colour that the camera will emit when no video signal detected
+	Rgb				 signal_check_colour;	// The colour that the camera will emit when no video signal detected
 	bool							embed_exif; // Whether to embed Exif data into each image frame or not
 
 	double			fps;

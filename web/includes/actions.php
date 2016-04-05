@@ -953,7 +953,6 @@ if ( !empty($action) )
                     case "highband" :
                     case "medband" :
                     case "lowband" :
-                    case "phoneband" :
                         break;
                 }
             }

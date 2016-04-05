@@ -1,5 +1,5 @@
 --
--- This updates a 1.28.110 database to 1.28.111
+-- This updates a 1.29.0 database to 1.29.1
 --
 
 SET @s = (SELECT IF(
@@ -55,3 +55,6 @@ SET @s = (SELECT IF(
 
 PREPARE stmt FROM @s;
 EXECUTE stmt;
+
+-- Increase the size of the Pid field for FreeBSD
+ALTER TABLE Logs MODIFY Pid int(10);

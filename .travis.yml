@@ -1,4 +1,6 @@
 language: cpp
+sudo: required
+dist: trusty
 notifications:
   irc: "chat.freenode.net#zoneminder-dev"
 branches:
@@ -17,14 +19,14 @@ env:
     - CXXFLAGS="$CFLAGS"
   matrix:
     - ZM_BUILDMETHOD=cmake
-    - ZM_BUILDMETHOD=autotools
 compiler:
   - gcc
+  - clang
 before_install:
   - sudo apt-get update -qq
-  - sudo apt-get install -y -qq libpolkit-gobject-1-dev zlib1g-dev apache2 mysql-server php5 php5-mysql build-essential libmysqlclient-dev libssl-dev libbz2-dev libpcre3-dev libdbi-perl libarchive-zip-perl libdate-manip-perl libdevice-serialport-perl libmime-perl libwww-perl libdbd-mysql-perl libsys-mmap-perl yasm automake autoconf cmake libjpeg-turbo8-dev apache2-mpm-prefork libapache2-mod-php5 php5-cli libtheora-dev libvorbis-dev libvpx-dev libx264-dev libvlccore-dev libvlc-dev libvlccore5 libvlc5 2>&1 > /dev/null 
+  - sudo apt-get install -y -qq libpolkit-gobject-1-dev zlib1g-dev apache2 mysql-server php5 php5-mysql build-essential libmysqlclient-dev libssl-dev libbz2-dev libpcre3-dev libdbi-perl libarchive-zip-perl libdate-manip-perl libdevice-serialport-perl libmime-perl libwww-perl libdbd-mysql-perl libsys-mmap-perl yasm automake autoconf cmake libjpeg-turbo8-dev apache2-mpm-prefork libapache2-mod-php5 php5-cli libtheora-dev libvorbis-dev libvpx-dev libx264-dev libvlccore-dev libvlc-dev 2>&1 > /dev/null 
 install:
-  - git clone -b n2.8.1 --depth=1 git://source.ffmpeg.org/ffmpeg.git
+  - git clone -b n3.0 --depth=1 git://source.ffmpeg.org/ffmpeg.git
   - cd ffmpeg
   - ./configure --enable-shared --enable-swscale --enable-gpl  --enable-libx264 --enable-libvpx --enable-libvorbis --enable-libtheora 
   - make -j `grep processor /proc/cpuinfo|wc -l` 
@@ -32,16 +34,10 @@ install:
   - sudo make install-libs
 before_script:
   - cd $TRAVIS_BUILD_DIR
-  - if [ "$ZM_BUILDMETHOD" = "autotools" ]; then libtoolize -v --force; fi
-  - if [ "$ZM_BUILDMETHOD" = "autotools" ]; then aclocal -I m4; fi
-  - if [ "$ZM_BUILDMETHOD" = "autotools" ]; then autoheader; fi
-  - if [ "$ZM_BUILDMETHOD" = "autotools" ]; then automake --force-missing --add-missing; fi
-  - if [ "$ZM_BUILDMETHOD" = "autotools" ]; then autoconf; fi
   - mysql -uroot -e "CREATE DATABASE IF NOT EXISTS zm"
   - mysql -uroot -e "GRANT ALL ON zm.* TO 'zmuser'@'localhost' IDENTIFIED BY 'zmpass'";
   - mysql -uroot -e "FLUSH PRIVILEGES"
 script:
-  - if [ "$ZM_BUILDMETHOD" = "autotools" ]; then ./configure --prefix=/usr --with-libarch=lib/$DEB_HOST_GNU_TYPE --host=$DEB_HOST_GNU_TYPE --build=$DEB_BUILD_GNU_TYPE --with-mysql=/usr --with-ffmpeg=/usr --with-webdir=/usr/share/zoneminder/www --with-cgidir=/usr/libexec/zoneminder/cgi-bin --with-webuser=www-data --with-webgroup=www-data --enable-crashtrace=yes --disable-debug --enable-mmap=yes ZM_SSL_LIB=openssl; fi
   - if [ "$ZM_BUILDMETHOD" = "cmake" ]; then cmake -DCMAKE_INSTALL_PREFIX="/usr"; fi
   - make
   - sudo make install

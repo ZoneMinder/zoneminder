@@ -37,9 +37,14 @@ function changeScale()
 
     /*Stream could be an applet so can't use moo tools*/ 
     var streamImg = document.getElementById('liveStream');
-    streamImg.style.width = newWidth + "px";
-    streamImg.style.height = newHeight + "px";
+    if ( streamImg ) {
+        streamImg.style.width = newWidth + "px";
+        streamImg.style.height = newHeight + "px";
 
+        streamImg.src = streamImg.src.replace(/scale=\d+/i,'scale='+scale);
+    } else {
+        console.error("No element found for liveStream.");
+    }
 }
 
 var alarmState = STATE_IDLE;

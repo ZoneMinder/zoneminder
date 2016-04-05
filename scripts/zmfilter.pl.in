@@ -246,7 +246,7 @@ sub getFilters
     }
     $sth->finish();
 	if ( ! @filters ) {
-        Error("No filter found for $sql with values(@sql_values)");
+        Warning("No filter found for $sql with values(@sql_values)");
     } else {
         Debug( "Got " . @filters . " filters" );
     }

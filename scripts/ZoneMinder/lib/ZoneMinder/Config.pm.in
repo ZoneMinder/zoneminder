@@ -66,12 +66,6 @@ use Carp;
 BEGIN
 {
     my $config_file = ZM_CONFIG;
-    ( my $local_config_file = $config_file ) =~ s|^.*/|./|;
-    if ( -s $local_config_file and -r $local_config_file )
-    {
-        print( STDERR "Warning, overriding installed $local_config_file file with local copy\n" );
-        $config_file = $local_config_file;
-    }
     open( my $CONFIG, "<", $config_file )
         or croak( "Can't open config file '$config_file': $!" );
     foreach my $str ( <$CONFIG> )

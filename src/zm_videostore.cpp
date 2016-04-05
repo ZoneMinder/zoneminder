@@ -179,12 +179,12 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st){//, AV
     //Scale the PTS of the outgoing packet to be the correct time base
     if (ipkt->pts != AV_NOPTS_VALUE) {
         opkt.pts = av_rescale_q(ipkt->pts-startPts, input_st->time_base, video_st->time_base) - ost_tb_start_time;
-	 }else {
+	 } else {
         opkt.pts = AV_NOPTS_VALUE;
 	 }
     
     //Scale the DTS of the outgoing packet to be the correct time base
-    if(ipkt->dts == AV_NOPTS_VALUE) {
+    if(ipkt->dts != AV_NOPTS_VALUE) {
         opkt.dts = av_rescale_q(input_st->cur_dts-startDts, AV_TIME_BASE_Q, video_st->time_base);
 	 } else {
         opkt.dts = av_rescale_q(ipkt->dts-startDts, input_st->time_base, video_st->time_base);

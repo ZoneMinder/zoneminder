@@ -1,3 +1,4 @@
+# Travis test delete me
 # Main CMake file for the ZoneMinder project.
 # Created by mastertheknife (Kfir Itzhak)
 # For more information and installation, see the INSTALL file

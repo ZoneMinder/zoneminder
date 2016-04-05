@@ -314,6 +314,7 @@ int FfmpegCamera::OpenFfmpeg() {
 
     // Find first video stream present
     mVideoStreamId = -1;
+    mAudeoStreamId = -1;
     for (unsigned int i=0; i < mFormatContext->nb_streams; i++ )
     {
 #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
@@ -323,22 +324,22 @@ int FfmpegCamera::OpenFfmpeg() {
 #endif
 		{
 			mVideoStreamId = i;
-			break;
+            // if we break, then we won't find the audio stream
+			continue;
 		}
-        if(mAudioStreamId == -1) //FIXME best way to copy all other streams?
-        {
 #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
-		    if ( mFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO )
+        if ( mFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO )
 #else
-		    if ( mFormatContext->streams[i]->codec->codec_type == CODEC_TYPE_AUDIO )
+		if ( mFormatContext->streams[i]->codec->codec_type == CODEC_TYPE_AUDIO )
 #endif
-		    {
-                mAudioStreamId = i;
-		    }
-        }
+		{
+            mAudioStreamId = i;
+		}
     }
     if ( mVideoStreamId == -1 )
         Fatal( "Unable to locate video stream in %s", mPath.c_str() );
+    if ( mAudioStreamId == -1 )
+        Debug( 3, "Unable to locate audio stream in %s", mPath.c_str() );
 
     Debug ( 1, "Found video stream" );
 

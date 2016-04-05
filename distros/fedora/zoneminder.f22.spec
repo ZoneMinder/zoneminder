@@ -10,7 +10,7 @@
 %define _without_x10 1
 
 Name: zoneminder
-Version: 1.27
+Version: 1.29.0
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -22,25 +22,23 @@ URL: http://www.zoneminder.com/
 #Source: https://github.com/ZoneMinder/ZoneMinder/archive/v%{version}.tar.gz
 Source: ZoneMinder-%{version}.tar.gz
 
-Patch1: zoneminder-1.26.0-defaults.patch
-
 BuildRequires: cmake gnutls-devel systemd-units bzip2-devel
-BuildRequires: community-mysql-devel pcre-devel libjpeg-turbo-devel
-BuildRequires: perl(Archive::Tar) perl(Archive::Zip)
+BuildRequires: mariadb-devel pcre-devel libjpeg-turbo-devel
+BuildRequires: perl(Archive::Tar) perl(Archive::Zip) perl-podlators
 BuildRequires: perl(Date::Manip) perl(DBD::mysql)
 BuildRequires: perl(ExtUtils::MakeMaker) perl(LWP::UserAgent)
 BuildRequires: perl(MIME::Entity) perl(MIME::Lite)
 BuildRequires: perl(PHP::Serialization) perl(Sys::Mmap)
 BuildRequires: perl(Time::HiRes) perl(Net::SFTP::Foreign)
 BuildRequires: perl(Expect) perl(Sys::Syslog)
-BuildRequires: gcc gcc-c++ vlc-devel libcurl-devel
+BuildRequires: gcc gcc-c++ vlc-devel libcurl-devel libv4l-devel
 %{!?_without_ffmpeg:BuildRequires: ffmpeg-devel}
 %{!?_without_x10:BuildRequires: perl(X10::ActiveHome) perl(Astro::SunTime)}
 # cmake needs the following installed at build time due to the way it auto-detects certain parameters
 BuildRequires:  httpd polkit-devel
 %{!?_without_ffmpeg:BuildRequires: ffmpeg}
 
-Requires: httpd php php-mysql cambozola polkit
+Requires: httpd php php-gd php-mysql cambozola polkit net-tools psmisc
 Requires: libjpeg-turbo vlc-core libcurl
 Requires: perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires: perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)
@@ -66,12 +64,18 @@ too much degradation of performance.
 %prep
 %setup -q -n ZoneMinder-%{version}
 
-%patch1 -p0 -b .defaults
-#%patch2 -p0 -b .noffmpeg
+# Change the following default values
+./utils/zmeditconfigdata.sh ZM_PATH_ZMS /cgi-bin-zm/nph-zms
+./utils/zmeditconfigdata.sh ZM_OPT_CAMBOZOLA yes
+./utils/zmeditconfigdata.sh ZM_PATH_SWAP /dev/shm
+./utils/zmeditconfigdata.sh ZM_UPLOAD_FTP_LOC_DIR /var/spool/zoneminder-upload
+./utils/zmeditconfigdata.sh ZM_OPT_CONTROL yes
+./utils/zmeditconfigdata.sh ZM_CHECK_FOR_UPDATES no
+./utils/zmeditconfigdata.sh ZM_DYN_SHOW_DONATE_REMINDER no
 
 %build
 %cmake \
-	-DZM_TARGET_DISTRO="f19" \
+	-DZM_TARGET_DISTRO="f22" \
 %{?_without_ffmpeg:-DZM_NO_FFMPEG=ON} \
 %{?_without_x10:-DZM_NO_X10=ON} \
 	.
@@ -92,8 +96,20 @@ fi
 /usr/bin/gpasswd -a %{zmuid_final} video
 /usr/bin/gpasswd -a %{zmuid_final} dialout
 
-# Display the README for post installation instructions
-/usr/bin/less %{_docdir}/%{name}-%{version}/README.Fedora
+# Upgrade from a previous version of zoneminder 
+if [ $1 -eq 2 ] ; then
+    # Freshen the database
+    /usr/bin/zmupdate.pl -f
+
+    # We can't run this automatically when new sql account permissions need to
+    # be manually added first
+    # Run zmupdate non-interactively
+    #/usr/bin/zmupdate.pl --nointeractive
+fi
+
+# Warn the end user to read the README file
+echo -e "\nVERY IMPORTANT: Before starting ZoneMinder, read README.Fedora to finish the\ninstallation or upgrade!\n"
+echo -e "\nThe README file is located here: %{_docdir}/%{name}\n"
 
 %preun
 if [ $1 -eq 0 ] ; then
@@ -122,8 +138,8 @@ fi
 
 %files
 %defattr(-,root,root,-)
-%doc AUTHORS COPYING README.md distros/fedora/README.Fedora distros/fedora/jscalendar-doc
-%config %attr(640,root,%{zmgid_final}) /etc/zm.conf
+%doc AUTHORS COPYING README.md distros/fedora/README.Fedora distros/fedora/README.https distros/fedora/jscalendar-doc
+%config %attr(640,root,%{zmgid_final}) /etc/zm/zm.conf
 %config(noreplace) %attr(644,root,root) /etc/httpd/conf.d/zoneminder.conf
 %config(noreplace) /etc/tmpfiles.d/zoneminder.conf
 %config(noreplace) /etc/logrotate.d/zoneminder
@@ -137,8 +153,6 @@ fi
 %{_bindir}/zmdc.pl
 %{_bindir}/zmf
 %{_bindir}/zmfilter.pl
-# zmfix removed from zoneminder 1.26.6
-#%attr(4755,root,root) %{_bindir}/zmfix
 %{_bindir}/zmpkg.pl
 %{_bindir}/zmtrack.pl
 %{_bindir}/zmtrigger.pl
@@ -149,14 +163,8 @@ fi
 %{_bindir}/zmcamtool.pl
 %{_bindir}/zmsystemctl.pl
 %{!?_without_x10:%{_bindir}/zmx10.pl}
-%{_bindir}/zmonvif-probe.pl
 
 %{perl_vendorlib}/ZoneMinder*
-%{perl_vendorlib}/%{_arch}-linux-thread-multi/auto/ZoneMinder*
-%{perl_vendorlib}/ONVIF*
-%{perl_vendorlib}/WSDiscovery*
-%{perl_vendorlib}/WSSecurity*
-%{perl_vendorlib}/%{_arch}-linux-thread-multi/auto/ONVIF*
 %{_mandir}/man*/*
 %dir %{_libexecdir}/zoneminder
 %{_libexecdir}/zoneminder/cgi-bin
@@ -179,8 +187,11 @@ fi
 
 
 %changelog
-* Sun Aug 03 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.27 
-- Include ONVIF support files
+* Sat Feb 14 2015 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.28.1 
+- Bump version for 1.28.1 release on Fedora 21.
+
+* Sun Oct 5 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.28.0 
+- Bump version for 1.28.0 release.
 
 * Fri Mar 14 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.27 
 - Tweak build requirements for cmake

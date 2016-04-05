@@ -47,9 +47,10 @@ protected:
 	int				colour;
 	int				contrast;
     bool            capture;
+	bool			record_audio;
 
 public:
-	Camera( int p_id, SourceType p_type, int p_width, int p_height, int p_colours, int p_subpixelorder, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
+	Camera( int p_id, SourceType p_type, int p_width, int p_height, int p_colours, int p_subpixelorder, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
 	virtual ~Camera();
 
     int getId() const { return( id ); }
@@ -74,13 +75,13 @@ public:
 
     bool CanCapture() const { return( capture ); }
     
-    bool SupportsNativeVideo() const { return( type == FFMPEG_SRC ); }
+    bool SupportsNativeVideo() const { return( (type == FFMPEG_SRC )||(type == REMOTE_SRC)); }
     
 	virtual int PrimeCapture() { return( 0 ); }
 	virtual int PreCapture()=0;
 	virtual int Capture( Image &image )=0;
 	virtual int PostCapture()=0;
-        virtual int CaptureAndRecord( Image &image, bool recording, char* event_directory)=0;
+	virtual int CaptureAndRecord( Image &image, bool recording, char* event_directory)=0;
 };
 
 #endif // ZM_CAMERA_H

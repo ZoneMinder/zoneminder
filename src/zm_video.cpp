@@ -64,7 +64,7 @@ X264MP4Writer::X264MP4Writer(const char* p_path, const unsigned int p_width, con
 	if(zm_pf == 0) {
 		Error("Unable to match ffmpeg pixelformat");
 	}
-	codec_pf = AV_PIX_FMT_YUV420P;
+	codec_pf = PIX_FMT_YUV420P;
 
 	swscaleobj.SetDefaults(zm_pf, codec_pf, width, height);
 

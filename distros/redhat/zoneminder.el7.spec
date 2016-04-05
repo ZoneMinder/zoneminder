@@ -159,7 +159,6 @@ fi
 %{_bindir}/zmf
 %{_bindir}/zmfilter.pl
 %{_bindir}/zmpkg.pl
-%{_bindir}/zmstreamer
 %{_bindir}/zmtrack.pl
 %{_bindir}/zmtrigger.pl
 %{_bindir}/zmu

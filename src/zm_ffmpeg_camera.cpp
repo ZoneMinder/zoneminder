@@ -353,6 +353,7 @@ int FfmpegCamera::OpenFfmpeg() {
         Fatal( "Can't find codec for video stream from %s", mPath.c_str() );
 
     Debug ( 1, "Found decoder" );
+    zm_dump_stream_format( mFormatContext, mVideoStreamId, 0, 0 );
 
     // Open the codec
 #if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
@@ -553,7 +554,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
         }
         Debug( 5, "Got packet from stream %d", packet.stream_index );
         if ( packet.stream_index == mVideoStreamId ) {
-            Debug( 3, "Video stream index %d", packet.stream_index );
+            Debug( 4, "Video stream index %d", packet.stream_index );
 #if LIBAVCODEC_VERSION_CHECK(52, 23, 0, 23, 0)
 			if ( avcodec_decode_video2( mCodecContext, mRawFrame, &frameComplete, &packet ) < 0 )
 #else
@@ -631,7 +632,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
                 Debug( 3, "Not framecomplete after av_read_frame" );
 			} // end if frameComplete
         } else if ( packet.stream_index == mAudioStreamId ) { //FIXME best way to copy all other streams
-            Debug( 3, "Audio stream index %d", packet.stream_index );
+            Debug( 4, "Audio stream index %d", packet.stream_index );
             if ( frameComplete ) {
                 Debug( 3, "Got audio frame with framecomplete %d", frameCount );
             //} else {

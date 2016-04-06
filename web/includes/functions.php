@@ -1168,7 +1168,7 @@ function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $ov
                 $command ='ffmpeg -v 0 -i '.$eventPath.'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$frame['FrameId'].'),setpts=PTS-STARTPTS" '.$eventPath.'/'.$captImage;
                 system( $command, $output, $retval );
             } else {
-                Error("Can't create frame images from video becuase there is no video file for this event " );
+                Error("Can't create frame images from video because there is no video file for this event " );
             }
         }
     }

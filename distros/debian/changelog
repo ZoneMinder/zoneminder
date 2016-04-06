@@ -1,3 +1,32 @@
+zoneminder (1.28.108-nmu2015100101) wheezy; urgency=low
+
+  * 
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Thu, 01 Oct 2015 18:20:29 +0000
+
+zoneminder (1.28.107-nmu2015092401) wheezy; urgency=low
+
+  * 
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Thu, 24 Sep 2015 14:15:46 +0000
+
+zoneminder (1.28.1+106-nmu2015091001) wheezy; urgency=low
+
+  * 
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Thu, 10 Sep 2015 18:03:43 +0000
+
+zoneminder (1.28.0-0.1) wheezy; urgency=low
+
+  * Use CMake instead of Autotools to simplify
+    debian/rules and have less build-depends.
+  * Some lintian love in debian/{control,copyright}
+    and perl ZoneMinder modules.
+  * Don't purge database if we use a remote
+    MySQL server.
+
+ -- Cosme Domínguez Díaz <cosme.ddiaz@gmail.com>  Sun, 09 Nov 2014 02:20:20 +0100
+
 zoneminder (1.28.0-wheezy) wheezy; urgency=medium
 
   * Release

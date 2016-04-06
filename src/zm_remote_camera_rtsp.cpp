@@ -117,7 +117,7 @@ void RemoteCameraRtsp::Initialise()
 	int max_size = width*height*colours;
 
 	// This allocates a buffer able to hold a raw fframe, which is a little artbitrary.  Might be nice to get some
-	// decent data on how large a buffer is really needed.
+	// decent data on how large a buffer is really needed.  I think in ffmpeg there are now some functions to do that.
 	buffer.size( max_size );
 
 	if ( logDebugging() )
@@ -172,20 +172,41 @@ int RemoteCameraRtsp::PrimeCapture()
 
 	// Find first video stream present
 	mVideoStreamId = -1;
+    mAudioStreamId = -1;
 	
 	// Find the first video stream. 
-	for ( unsigned int i = 0; i < mFormatContext->nb_streams; i++ )
+	for ( unsigned int i = 0; i < mFormatContext->nb_streams; i++ ) {
 #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
 	if ( mFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO )
 #else
 	if ( mFormatContext->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO )
 #endif
 		{
-			mVideoStreamId = i;
-			break;
+            if ( mVideoStreamId == -1 ) {
+                mVideoStreamId = i;
+                continue;
+            } else {
+                Debug(2, "Have another video stream." );
+            }
 		}
+#if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
+        if ( mFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO )
+#else
+        if ( mFormatContext->streams[i]->codec->codec_type == CODEC_TYPE_AUDIO )
+#endif
+        {
+            if ( mAudioStreamId == -1 ) {
+                mAudioStreamId = i;
+            } else {
+                Debug(2, "Have another audio stream." );
+            }
+        }
+
+    }
 	if ( mVideoStreamId == -1 )
 		Fatal( "Unable to locate video stream" );
+    if ( mAudioStreamId == -1 )
+        Debug( 3, "Unable to locate audio stream" );
 
 	// Get a pointer to the codec context for the video stream
 	mCodecContext = mFormatContext->streams[mVideoStreamId]->codec;
@@ -278,6 +299,24 @@ int RemoteCameraRtsp::Capture( Image &image ) {
 			if ( !buffer.size() )
 				return( -1 );
 
+int avResult = av_read_frame( mFormatContext, &packet );
+        if ( avResult < 0 ) {
+            char errbuf[AV_ERROR_MAX_STRING_SIZE];
+            av_strerror(avResult, errbuf, AV_ERROR_MAX_STRING_SIZE);
+            if (
+                // Check if EOF.
+                (avResult == AVERROR_EOF || (mFormatContext->pb && mFormatContext->pb->eof_reached)) ||
+                // Check for Connection failure.
+                (avResult == -110)
+            ) {
+                Info( "av_read_frame returned \"%s\". Reopening stream.", errbuf);
+                //ReopenFfmpeg();
+            }
+
+            Error( "Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, avResult, errbuf );
+            return( -1 );
+        }
+
 			if(mCodecContext->codec_id == AV_CODEC_ID_H264) {
 				// SPS and PPS frames should be saved and appended to IDR frames
 				int nalType = (buffer.head()[3] & 0x1f);
@@ -367,6 +406,17 @@ int RemoteCameraRtsp::Capture( Image &image ) {
 	return (0) ;
 }
 
+//int RemoteCameraRtsp::ReadData(void *opaque, uint8_t *buf, int bufSize) {
+    
+    //if ( buffer.size() > bufSize ) {
+        //buf = buffer.head();
+        //buffer -= bufSize;
+    //} else {
+        //Error("Implement me");
+        //return -1;
+    //}
+//}
+
 //Function to handle capture and store
 int RemoteCameraRtsp::CaptureAndRecord( Image &image, bool recording, char* event_file ) {
 	AVPacket packet;
@@ -381,6 +431,7 @@ int RemoteCameraRtsp::CaptureAndRecord( Image &image, bool recording, char* even
 	}
 	
 	while ( true ) {
+
 		buffer.clear();
 		if ( !rtspThread->isRunning() )
 			return (-1);
@@ -416,7 +467,8 @@ int RemoteCameraRtsp::CaptureAndRecord( Image &image, bool recording, char* even
 
 			av_init_packet( &packet );
 			
-			// Why are we checking for it being the video stream
+			// Why are we checking for it being the video stream? Because it might be audio or something else.
+            // Um... we just initialized packet... we can't be testing for what it is yet....
 			if ( packet.stream_index == mVideoStreamId ) {
 			
 				while ( !frameComplete && buffer.size() > 0 ) {

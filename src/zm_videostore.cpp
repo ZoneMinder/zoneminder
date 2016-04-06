@@ -134,7 +134,11 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
 VideoStore::~VideoStore(){
     /* Write the trailer before close */
-    av_write_trailer(oc);
+    if ( int rc = av_write_trailer(oc) ) {
+        Error("Error writing trailer %s",  av_err2str( rc ) );
+    } else {
+        Debug(3, "Sucess Writing trailer");
+    }
     
     avcodec_close(video_st->codec);
     if (audio_st) {
@@ -143,7 +147,9 @@ VideoStore::~VideoStore(){
     
     if (!(fmt->flags & AVFMT_NOFILE)) {
     /* Close the output file. */
-        avio_close(oc->pb);
+        if ( int rc= avio_close(oc->pb) ) {
+        Error("Error closing avio %s",  av_err2str( rc ) );
+        }
     }
     
     /* free the stream */
@@ -184,7 +190,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st){//, AV
 	 }
     
     //Scale the DTS of the outgoing packet to be the correct time base
-    if(ipkt->dts != AV_NOPTS_VALUE) {
+    if(ipkt->dts == AV_NOPTS_VALUE) {
         opkt.dts = av_rescale_q(input_st->cur_dts-startDts, AV_TIME_BASE_Q, video_st->time_base);
 	 } else {
         opkt.dts = av_rescale_q(ipkt->dts-startDts, input_st->time_base, video_st->time_base);
@@ -260,13 +266,15 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt, AVStream *input_st){
         opkt.pts = AV_NOPTS_VALUE;
     
     //Scale the DTS of the outgoing packet to be the correct time base
-    if(ipkt->dts == AV_NOPTS_VALUE)
+    if(ipkt->dts == AV_NOPTS_VALUE) {
         opkt.dts = av_rescale_q(input_st->cur_dts-startDts, AV_TIME_BASE_Q, audio_st->time_base);
-    else
+Debug(3, "ipkt->dts == AV_NOPTS_VALUE %d to %d",  AV_NOPTS_VALUE, opkt.dts );
+    } else
         opkt.dts = av_rescale_q(ipkt->dts-startDts, input_st->time_base, audio_st->time_base);
     opkt.dts -= ost_tb_start_time;
     
     if (audio_st->codec->codec_type == AVMEDIA_TYPE_AUDIO && ipkt->dts != AV_NOPTS_VALUE) {
+        Debug( 3, "code is audio, dts != AV_NOPTS_VALUE " );
          int duration = av_get_audio_frame_duration(input_st->codec, ipkt->size);
          if(!duration)
              duration = input_st->codec->frame_size;
@@ -285,7 +293,6 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt, AVStream *input_st){
     opkt.data = ipkt->data;
     opkt.size = ipkt->size;
     opkt.stream_index = ipkt->stream_index;
-    /*opkt.flags |= AV_PKT_FLAG_KEY;*/
         
     int ret;
     ret = av_interleaved_write_frame(oc, &opkt);

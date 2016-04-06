@@ -593,7 +593,7 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
         if ( level <= mFileLevel )
         {
             fprintf( mLogFileFP, "%s", logString );
-            if ( mFlush )
+            //if ( mFlush )
                 fflush( mLogFileFP );
         }
         *syslogEnd = '\0';

@@ -97,36 +97,36 @@ protected:
 	/* sizeof(SharedData) expected to be 336 bytes on 32bit and 64bit */
 	typedef struct
 	{
-		uint32_t size;				 /* +0	*/
-		uint32_t last_write_index;	 /* +4	*/ 
-		uint32_t last_read_index;	  /* +8	*/
-		uint32_t state;				/* +12   */
-		uint32_t last_event;		   /* +16   */
-		uint32_t action;			   /* +20   */
-		int32_t brightness;			/* +24   */
-		int32_t hue;				   /* +28   */
-		int32_t colour;				/* +32   */
-		int32_t contrast;			  /* +36   */
-		int32_t alarm_x;			   /* +40   */
-		int32_t alarm_y;			   /* +44   */
-		uint8_t valid;				 /* +48   */
-		uint8_t active;				/* +49   */
-		uint8_t signal;				/* +50   */
-		uint8_t format;				/* +51   */
-		uint32_t imagesize;			/* +52   */
-		uint32_t epadding1;			/* +56   */
-		uint32_t epadding2;			/* +60   */
+		uint32_t size;              /* +0    */
+		uint32_t last_write_index;  /* +4    */ 
+		uint32_t last_read_index;   /* +8    */
+		uint32_t state;             /* +12   */
+		uint32_t last_event;        /* +16   */
+		uint32_t action;            /* +20   */
+		int32_t brightness;         /* +24   */
+		int32_t hue;                /* +28   */
+		int32_t colour;             /* +32   */
+		int32_t contrast;           /* +36   */
+		int32_t alarm_x;            /* +40   */
+		int32_t alarm_y;            /* +44   */
+		uint8_t valid;              /* +48   */
+		uint8_t active;             /* +49   */
+		uint8_t signal;             /* +50   */
+		uint8_t format;             /* +51   */
+		uint32_t imagesize;         /* +52   */
+		uint32_t epadding1;         /* +56   */
+		uint32_t epadding2;         /* +60   */
 		/* 
 		** This keeps 32bit time_t and 64bit time_t identical and compatible as long as time is before 2038.
 		** Shared memory layout should be identical for both 32bit and 64bit and is multiples of 16.
 		*/	
-		union {						/* +64	*/
-			  time_t last_write_time;
-			  uint64_t extrapad1;
+		union {                     /* +64   */
+              time_t last_write_time;
+              uint64_t extrapad1;
 		};
 		union {						/* +72   */
-			  time_t last_read_time;
-			  uint64_t extrapad2;
+              time_t last_read_time;
+              uint64_t extrapad2;
 		};
 		uint8_t control_state[256];	/* +80   */
 		
@@ -135,7 +135,8 @@ protected:
 	typedef enum { TRIGGER_CANCEL, TRIGGER_ON, TRIGGER_OFF } TriggerState;
 	
 	/* sizeof(TriggerData) expected to be 560 on 32bit & and 64bit */
-	typedef struct {
+	typedef struct
+    {
 		uint32_t size;
 		uint32_t trigger_state;
 		uint32_t trigger_score;
@@ -146,7 +147,8 @@ protected:
 	} TriggerData;
 
 	/* sizeof(Snapshot) expected to be 16 bytes on 32bit and 32 bytes on 64bit */
-	struct Snapshot {
+	struct Snapshot
+    {
 		struct timeval	*timestamp;
 		Image	*image;
 		void* padding;
@@ -154,14 +156,14 @@ protected:
 
 	//TODO: Technically we can't exclude this struct when people don't have avformat as the Memory.pm module doesn't know about avformat
 #if 1
-	//sizeOf(VideoStoreData) expected to be 4104 bytes on 32bit and 64bit
-	typedef struct {
-		uint32_t size;
-		char event_file[4096];
-		uint32_t recording; //bool arch dependent so use uint32 instead
-		//uint32_t frameNumber;
-	
-	} VideoStoreData;
+    //sizeOf(VideoStoreData) expected to be 4104 bytes on 32bit and 64bit
+    typedef struct
+    {
+        uint32_t size;
+        char event_file[4096];
+        uint32_t recording; //bool arch dependent so use uint32 instead
+        //uint32_t frameNumber;
+    } VideoStoreData;
 	
 #endif // HAVE_LIBAVFORMAT
 

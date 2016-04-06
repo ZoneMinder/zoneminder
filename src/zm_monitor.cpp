@@ -1281,6 +1281,7 @@ bool Monitor::Analyse()
 	{
 		return( false );
 	}
+<<<<<<< HEAD
 
 	struct timeval now;
 	gettimeofday( &now, NULL );

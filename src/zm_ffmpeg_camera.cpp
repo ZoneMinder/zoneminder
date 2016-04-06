@@ -189,7 +189,7 @@ int FfmpegCamera::Capture( Image &image )
             Debug( 4, "Decoded video packet at frame %d", frameCount );
 
             if ( frameComplete ) {
-                //Debug( 3, "Got frame %d", frameCount );
+                Debug( 4, "Got frame %d", frameCount );
 
                 avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height);
 		
@@ -324,19 +324,25 @@ int FfmpegCamera::OpenFfmpeg() {
         if ( mFormatContext->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO )
 #endif
 		{
-			mVideoStreamId = i;
-            continue;
-        } else { 
-            Debug(3, "Stream %d is not video", i );
+            if ( mVideoStreamId == -1 ) {
+                mVideoStreamId = i;
+                // if we break, then we won't find the audio stream
+                continue;
+            } else {
+                Debug(2, "Have another video stream." );
+            }
 		}
 #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
         if ( mFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO )
 #else
-        if ( mFormatContext->streams[i]->codec->codec_type == CODEC_TYPE_AUDIO )
+		if ( mFormatContext->streams[i]->codec->codec_type == CODEC_TYPE_AUDIO )
 #endif
-        {
-            mAudioStreamId = i;
-            Debug(3, "Got audio stream at %d", mAudioStreamId );
+		{
+            if ( mAudioStreamId == -1 ) {
+                mAudioStreamId = i;
+            } else {
+                Debug(2, "Have another audio stream." );
+            }
         }
     }
     if ( mVideoStreamId == -1 )
@@ -554,7 +560,6 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
         }
         Debug( 5, "Got packet from stream %d", packet.stream_index );
         if ( packet.stream_index == mVideoStreamId ) {
-            Debug( 4, "Video stream index %d", packet.stream_index );
 #if LIBAVCODEC_VERSION_CHECK(52, 23, 0, 23, 0)
 			if ( avcodec_decode_video2( mCodecContext, mRawFrame, &frameComplete, &packet ) < 0 )
 #else
@@ -565,7 +570,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
             Debug( 4, "Decoded video packet at frame %d", frameCount );
 
             if ( frameComplete ) {
-                //Debug( 3, "Got frame %d", frameCount );
+                Debug( 4, "Got frame %d", frameCount );
                 
                 avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height);
 
@@ -658,6 +663,5 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
     } // end while ! frameComplete
     return (frameCount);
 }
-
 
 #endif // HAVE_LIBAVFORMAT

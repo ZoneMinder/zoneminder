@@ -29,9 +29,9 @@ if [ "$1" = "configure" ]; then
                 if ! $(echo quit | mysql --defaults-file=/etc/mysql/debian.cnf zm > /dev/null 2> /dev/null) ; then
                     cat /usr/share/zoneminder/db/zm_create.sql | mysql --defaults-file=/etc/mysql/debian.cnf
                     # This creates the user.
-                    echo 'grant lock tables, alter,select,insert,update,delete,create,index on zm.* to 'zmuser'@localhost identified by "zmpass";' | mysql --defaults-file=/etc/mysql/debian.cnf mysql
+                    echo "grant lock tables, alter,select,insert,update,delete,create,index on ${ZM_DB_NAME}.* to '${ZM_DB_USER}'@localhost identified by \"${ZM_DB_PASS}\";" | mysql --defaults-file=/etc/mysql/debian.cnf mysql
                 else
-                    echo 'grant lock tables, alter,select,insert,update,delete,create,index on zm.* to 'zmuser'@localhost;' | mysql --defaults-file=/etc/mysql/debian.cnf mysql
+                    echo "grant lock tables, alter,select,insert,update,delete,create,index on ${ZM_DB_NAME}.* to '${ZM_DB_USER}'@localhost;" | mysql --defaults-file=/etc/mysql/debian.cnf mysql
                 fi
 
                 # Ensure zoneminder is stopped

@@ -120,7 +120,7 @@ bool RtpSource::updateSeq( uint16_t seq )
     {
         if ( uDelta == 1 )
         {
-            Debug( 3, "Packet in sequence, gap %d", uDelta );
+            Debug( 4, "Packet in sequence, gap %d", uDelta );
         }
         else
         {
@@ -393,7 +393,7 @@ bool RtpSource::getFrame( Buffer &buffer )
     buffer = mFrame;
     mFrameReady.setValueImmediate( false );
     mFrameProcessed.updateValueSignal( true );
-    Debug( 3, "Copied %d bytes", buffer.size() );
+    Debug( 4, "Copied %d bytes", buffer.size() );
     return( true );
 }
 

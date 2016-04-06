@@ -326,11 +326,7 @@ Monitor::Monitor(
 	images( 0 ),
 	privacy_bitmask( NULL )
 {
-<<<<<<< HEAD
-	strncpy( name, p_name, sizeof(name) );
-=======
 	strncpy( name, p_name, sizeof(name)-1 );
->>>>>>> iconnor_video
 
 	strncpy( event_prefix, p_event_prefix, sizeof(event_prefix)-1 );
 	strncpy( label_format, p_label_format, sizeof(label_format)-1 );

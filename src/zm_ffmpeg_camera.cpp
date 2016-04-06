@@ -189,7 +189,7 @@ int FfmpegCamera::Capture( Image &image )
             Debug( 4, "Decoded video packet at frame %d", frameCount );
 
             if ( frameComplete ) {
-                Debug( 3, "Got frame %d", frameCount );
+                //Debug( 3, "Got frame %d", frameCount );
 
                 avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height);
 		
@@ -313,7 +313,9 @@ int FfmpegCamera::OpenFfmpeg() {
     Debug ( 1, "Got stream info" );
 
     // Find first video stream present
+    // The one we want Might not be the first
     mVideoStreamId = -1;
+    mAudioStreamId = -1;
     for (unsigned int i=0; i < mFormatContext->nb_streams; i++ )
     {
 #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
@@ -323,22 +325,24 @@ int FfmpegCamera::OpenFfmpeg() {
 #endif
 		{
 			mVideoStreamId = i;
-			break;
+            continue;
+        } else { 
+            Debug(3, "Stream %d is not video", i );
 		}
-        if(mAudioStreamId == -1) //FIXME best way to copy all other streams?
-        {
 #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
-		    if ( mFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO )
+        if ( mFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO )
 #else
-		    if ( mFormatContext->streams[i]->codec->codec_type == CODEC_TYPE_AUDIO )
+        if ( mFormatContext->streams[i]->codec->codec_type == CODEC_TYPE_AUDIO )
 #endif
-		    {
-                mAudioStreamId = i;
-		    }
+        {
+            mAudioStreamId = i;
+            Debug(3, "Got audio stream at %d", mAudioStreamId );
         }
     }
     if ( mVideoStreamId == -1 )
         Fatal( "Unable to locate video stream in %s", mPath.c_str() );
+    if ( mAudioStreamId == -1 )
+        Debug( 2, "Unable to locate audio stream in %s", mPath.c_str() );
 
     Debug ( 1, "Found video stream" );
 
@@ -549,6 +553,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
         }
         Debug( 5, "Got packet from stream %d", packet.stream_index );
         if ( packet.stream_index == mVideoStreamId ) {
+            Debug( 3, "Video stream index %d", packet.stream_index );
 #if LIBAVCODEC_VERSION_CHECK(52, 23, 0, 23, 0)
 			if ( avcodec_decode_video2( mCodecContext, mRawFrame, &frameComplete, &packet ) < 0 )
 #else
@@ -559,7 +564,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
             Debug( 4, "Decoded video packet at frame %d", frameCount );
 
             if ( frameComplete ) {
-                Debug( 3, "Got frame %d", frameCount );
+                //Debug( 3, "Got frame %d", frameCount );
                 
                 avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height);
 
@@ -571,6 +576,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
                 //Video recording
                 if ( recording && !wasRecording ) {
                     //Instantiate the video storage module
+                    Debug(3, "recording and ! wasRecording %s", event_file);
 
                     videoStore = new VideoStore((const char *)event_file, "mp4", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime);
                     wasRecording = true;
@@ -582,8 +588,10 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
                     videoStore = NULL;
                 }
                 
-                //The directory we are recording to is no longer tied to the current event. Need to re-init the videostore with the correct directory and start recording again
-                if ( recording && wasRecording && (strcmp(oldDirectory, event_file) != 0 ) && (packet.flags & AV_PKT_FLAG_KEY) ) {
+                // The directory we are recording to is no longer tied to the current event. 
+                // Need to re-init the videostore with the correct directory and start recording again
+                // for efficiency's sake, we should test for keyframe before we test for directory change...
+                if ( recording && wasRecording && (packet.flags & AV_PKT_FLAG_KEY) && (strcmp(oldDirectory, event_file) != 0 ) ) {
 					// don't open new videostore until we're on a key frame..would this require an offset adjustment for the event as a result?...
 					// if we store our key frame location with the event will that be enough?
                     Info("Re-starting video storage module");
@@ -599,7 +607,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
                 if ( videoStore && recording ) {
                     //Write the packet to our video store
                     int ret = videoStore->writeVideoFramePacket(&packet, mFormatContext->streams[mVideoStreamId]);//, &lastKeyframePkt);
-                    if(ret<0){//Less than zero and we skipped a frame
+                    if ( ret < 0 ) { //Less than zero and we skipped a frame
                         av_free_packet( &packet );
                         return 0;
                     }
@@ -619,21 +627,31 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
 #endif // HAVE_LIBSWSCALE
 
 				frameCount++;
+            } else {
+                Debug( 3, "Not framecomplete after av_read_frame" );
 			} // end if frameComplete
         } else if ( packet.stream_index == mAudioStreamId ) { //FIXME best way to copy all other streams
+            Debug( 3, "Audio stream index %d", packet.stream_index );
+            if ( frameComplete ) {
+                Debug( 3, "Got audio frame with framecomplete %d", frameCount );
+            //} else {
+                //Debug( 3, "Got audio frame %d without frameComplete", frameCount );
+            }
             if ( videoStore && recording ) {
 				if ( record_audio ) {
-					Debug(4, "Recording audio packet" );
+					Debug(3, "Recording audio packet" );
 					//Write the packet to our video store
 					int ret = videoStore->writeAudioFramePacket(&packet, mFormatContext->streams[packet.stream_index]); //FIXME no relevance of last key frame
 					if ( ret < 0 ) {//Less than zero and we skipped a frame
 						av_free_packet( &packet );
-						return 0;      
+						return 0;
 					}
 				} else {
 					Debug(4, "Not recording audio packet" );
 				}
             }
+        } else {
+            Debug( 3, "Some other stream index %d, %s", packet.stream_index, av_get_media_type_string( mFormatContext->streams[packet.stream_index]->codec->codec_type) );
         }
         av_free_packet( &packet );
     } // end while ! frameComplete

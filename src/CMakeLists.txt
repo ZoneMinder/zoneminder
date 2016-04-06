@@ -31,11 +31,11 @@ add_executable(zmu zmu.cpp)
 add_executable(zmf zmf.cpp)
 add_executable(zms zms.cpp)
 
-target_link_libraries(zmc -ldl zoneminder ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
-target_link_libraries(zma -ldl zoneminder ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
-target_link_libraries(zmu -ldl zoneminder ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
-target_link_libraries(zmf -ldl zoneminder ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
-target_link_libraries(zms -ldl zoneminder ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
+target_link_libraries(zmc -ldl zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
+target_link_libraries(zma -ldl zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
+target_link_libraries(zmu -ldl zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
+target_link_libraries(zmf -ldl zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
+target_link_libraries(zms -ldl zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
 
 # Generate man files for the binaries destined for the bin folder
 FOREACH(CBINARY zma zmc zmf zmu)

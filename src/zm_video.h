@@ -120,8 +120,8 @@ protected:
 	
 	/* SWScale */
 	SWScale swscaleobj;
-	enum PixelFormat zm_pf;
-	enum PixelFormat codec_pf;
+	enum _AVPIXELFORMAT zm_pf;
+	enum _AVPIXELFORMAT codec_pf;
 	size_t codec_imgsize;
 	size_t zm_imgsize;
 

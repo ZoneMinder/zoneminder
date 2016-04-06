@@ -15,11 +15,12 @@ if [ "$1" = "configure" ]; then
 			# test if database if already present...
 			if ! $(echo quit | mysql --defaults-file=/etc/mysql/debian.cnf zm > /dev/null 2> /dev/null) ; then
 				cat /usr/share/zoneminder/db/zm_create.sql | mysql --defaults-file=/etc/mysql/debian.cnf
-				echo 'grant lock tables, alter,select,insert,update,delete on zm.* to 'zmuser'@localhost identified by "zmpass";' | mysql --defaults-file=/etc/mysql/debian.cnf mysql
+				echo 'grant lock tables, alter,select,insert,update,delete,create,index on zm.* to 'zmuser'@localhost;' | mysql --defaults-file=/etc/mysql/debian.cnf mysql
 			fi
 
 			invoke-rc.d zoneminder stop || true
 			zmupdate.pl --nointeractive
+			zmupdate.pl --nointeractive -f
 
 		else
 			echo 'NOTE: mysql not running, please start mysql and run dpkg-reconfigure zoneminder when it is running.'

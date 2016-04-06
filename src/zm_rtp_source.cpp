@@ -262,7 +262,7 @@ bool RtpSource::handlePacket( const unsigned char *packet, size_t packetLen )
 	int rtpHeaderSize = 12 + rtpHeader->cc * 4;
     // No need to check for nal type as non fragmented packets already have 001 start sequence appended
     bool h264FragmentEnd = (mCodecId == AV_CODEC_ID_H264) && (packet[rtpHeaderSize+1] & 0x40);
-    // M stands for Market, it is the 8th bit
+    // M stands for Marker, it is the 8th bit
     // The interpretation of the marker is defined by a profile. It is intended
     // to allow significant events such as frame boundaries to be marked in the
     //  packet stream. A profile may define additional marker bits or specify

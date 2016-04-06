@@ -4,7 +4,7 @@
 #
 cmake_minimum_required (VERSION 2.6)
 project (zoneminder)
-set(zoneminder_VERSION "1.29.0")
+set(zoneminder_VERSION "1.29.1")
 # make API version a minor of ZM version
 set(zoneminder_API_VERSION "${zoneminder_VERSION}.1")
 
@@ -182,7 +182,7 @@ elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
 	set(ZM_WEB_GROUP "www")
 	set(ZM_WEBDIR "/srv/www/htdocs/zoneminder")
 	set(ZM_CGIDIR "/srv/www/cgi-bin")
-elseif(ZM_TARGET_DISTRO STREQUAL "freeBSD")
+elseif(ZM_TARGET_DISTRO STREQUAL "FreeBSD")
 	set(ZM_RUNDIR "/var/run/zm")
         set(ZM_SOCKDIR "/var/run/zm")
 	set(ZM_TMPDIR "/var/tmp/zm")

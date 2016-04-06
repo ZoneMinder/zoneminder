@@ -1,1 +1,0 @@
-extend-diff-ignore = "(^|/)(config\.sub|config\.guess|Makefile|aclocal.m4|compile|config.h.in|configure|depcomp|install-sh|missing)$"

@@ -1,94 +1,573 @@
-zoneminder (1.28.1+1-vivid-SNAPSHOT2015071501) vivid; urgency=medium
+zoneminder (1.28.1+1-vivid-SNAPSHOT2015081701) vivid; urgency=medium
 
-  * fix for issue #586 and #932
-  * fix for db not being upgraded
-  * version upgraded to .100
+  * include api, switch to cmake build
 
- -- Isaac Connor <iconnor@connortechnology.com>  Wed, 15 Jul 2015 11:56:28 -0400
+ -- Isaac Connor <iconnor@connortechnology.com>  Mon, 17 Aug 2015 10:29:23 -0400
 
-zoneminder (1.28.1+1-trusty-SNAPSHOT2015030201) trusty; urgency=medium
 
-  * maybe fix for RTSP Basic Auth
-  * Also remove dependency on netpbm
+zoneminder (1.28.1-8) unstable; urgency=medium
 
- -- Isaac Connor <iconnor@connortechnology.com>  Mon, 02 Mar 2015 11:25:59 -0500
+  * Patchworks:
+    + New upstream "980-fix-image-size.patch".
+    + New "default_cgi-path.patch" to correct default ZM_PATH_ZMS.
+  * postinst: set "root" as group owner for "/var/log/zm" to silence
+    logrotate warnings.
+  * Minor correction to README.Debian.
 
-zoneminder (1.28.1+1-utopic-SNAPSHOT2015022301) utopic; urgency=medium
+ -- Dmitry Smirnov <onlyjob@debian.org>  Sun, 16 Aug 2015 19:19:50 +1000
 
-  * Big merge of onvif support and some fixes.
+zoneminder (1.28.1-7) unstable; urgency=medium
 
- -- Isaac Connor <iconnor@connortechnology.com>  Mon, 23 Feb 2015 19:45:45 -0500
+  * Build-Depends += "cakephp (<< 3.0.0~)";
+    Zoneminder is not compatible with latest CakePHP.
+  * Handle conffile removal from maintscript.
+  * rules: build man pages reproducibly.
+  * gbp.conf: renamed old style config section [git-dch] to [dch].
+  * README
+    + added instructions to update owner of the "/etc/zm/zm.conf"
+      (Closes: #789327).
+    + zmupdate.pl needs CREATE rights.
+    + added note about required number of "fcgiwrap" workers.
+  * New upstream patch: "zmtrigger-plus.patch".
 
-zoneminder (1.28.0+1-trusty-SNAPSHOT2015021201) trusty; urgency=medium
+ -- Dmitry Smirnov <onlyjob@debian.org>  Mon, 20 Jul 2015 16:30:15 +1000
 
-  * add mysql-client-5.6 as a dependency instaed of mysql-client.  
+zoneminder (1.28.1-6) unstable; urgency=low
 
- -- Isaac Connor <iconnor@connortechnology.com>  Fri, 13 Feb 2015 09:35:13 -0500
+  * New "zoneminder-doc" and "zoneminder-dbg" packages.
 
-zoneminder (1.28.0+1-trusty-SNAPSHOT2015011101) trusty; urgency=medium
+ -- Dmitry Smirnov <onlyjob@debian.org>  Sun, 19 Apr 2015 14:50:41 +1000
 
-  * small changes
+zoneminder (1.28.1-5) unstable; urgency=low
 
- -- Isaac Connor <iconnor@connortechnology.com>  Fri, 12 Dec 2014 16:38:36 -0500
+  * Move handling of "/var/run/zm" and "/tmp/zm" from .service into .tmpfile.
+    Let dh_installinit do the job. Thanks, Andrew Bauer.
+  * Use dh_apache2 to install Apache conf file; remove old conf and symlink.
+  * Promote "libapache2-mod-php5 | php5-fpm" to Recommends.
+  * Build-Depends:
+    + dh-linktree
+    + cakephp (>= 2.6.3)
+    + libjs-jquery
+    + libjs-mootools
+  * Depends:
+    - libjs-jquery
+    - libjs-mootools
+  * Build-time replace bundled CakePHP with system one using "dh-linktree".
+  * Use "dh-linktree" to handle mootools and jquery symlinks.
 
-zoneminder (1.28.0+1-utopic-SNAPSHOT2014112001) utopic; urgency=medium
+ -- Dmitry Smirnov <onlyjob@debian.org>  Sun, 19 Apr 2015 11:45:01 +1000
 
-  * Various fixes and developments since 1.28.0.  Includes Digest-Auth for HTTP and better for RTSP
+zoneminder (1.28.1-4) unstable; urgency=low
 
- -- Isaac Connor <iconnor@connortechnology.com>  Thu, 20 Nov 2014 10:57:57 -0500
+  * New patch to fix HTML export with USE_DEEP_STORAGE (closes: #723706).
+  * New "783.patch" to describe potential data loss in ZM_USE_DEEP_STORAGE.
+  * New patch to change default date format to region-neutral ISO notation
+    with time zone.
+  * Build sphinx documentation:
+    + Install "zoneminder.1" man page.
+    + Build-Depends += "python-sphinx | python3-sphinx"
+    + Added commented "zoneminder-doc" package.
+    + Added "docs.patch" to unlink distro-specific installation docs.
+  * rules:
+    + set ZM_CONTENTDIR, ZM_SOCKDIR and ZM_TMPDIR.
+    + remove mistakengly installed Perl module templates.
+  * Updated startup scripts to create ZM_TMPDIR.
+  * Hurd improvements:
+    + New patch to add PATH_MAX definitions.
+    + Build without MMAP support on Hurd.
+    + libsys-mmap-perl [!hurd-any].
 
-zoneminder (1.28.0-trusty) trusty; urgency=medium
+ -- Dmitry Smirnov <onlyjob@debian.org>  Mon, 06 Apr 2015 18:18:55 +1000
 
-  * Release
+zoneminder (1.28.1-3) unstable; urgency=low
 
- -- Isaac Connor <iconnor@connortechnology.com>  Fri, 17 Oct 2014 09:25:55 -0400
+  * Updated Apache2 and nginx configuration templates to support CGI.
+  * Updated README.Debian to document cgi-bin setup.
+  * Removed "/usr/share/zoneminder/www/cgi-bin" symlink.
+  * Added "apache2.patch" to correct Apache2 site configuration example.
+  * control: Suggests += "fcgiwrap".
+  * rules: added dh_systemd overrides to prevent automatic service
+    activation and start.
+  * Added note about manual service activation to README.Debian
+    (Closes: #781733).
 
-zoneminder (1.27.99+1-trusty-SNAPSHOT2014101401) trusty; urgency=medium
+ -- Dmitry Smirnov <onlyjob@debian.org>  Thu, 02 Apr 2015 23:20:20 +1100
 
-  * Several PR merges in big push for 1.28.0
+zoneminder (1.28.1-2) unstable; urgency=low
 
- -- Isaac Connor <iconnor@connortechnology.com>  Tue, 14 Oct 2014 09:28:29 -0400
+  * Removed word "Linux" from short package description.
+  * Build-Depends: do not require "libv4l-dev" on Hurd i.e. [!hurd-any].
+  * Added run-time Perl Depends:
+     + libdbd-mysql-perl
+     + libimage-info-perl
+     + libmodule-load-conditional-perl
+     + libnet-sftp-foreign-perl
+     + liburi-encode-perl
+  * Prepare for package split: added commented "libzoneminder-perl"
+    and "zoneminder-dbg" packages to "debian/control".
+  * rules: do not install worthless ".packlist" file.
+  * Updated "libv4l1-videodev.h.patch" to fix v4lv1 detection in CMake.
 
-zoneminder (1.27.99+1-trusty-SNAPSHOT2014092601) trusty; urgency=medium
+ -- Dmitry Smirnov <onlyjob@debian.org>  Thu, 02 Apr 2015 13:25:19 +1100
 
-  * style updates and db fixes for database logging filters
+zoneminder (1.28.1-1) unstable; urgency=low
 
- -- Isaac Connor <iconnor@connortechnology.com>  Fri, 26 Sep 2014 14:44:45 -0400
+  [ Dmitry Smirnov <onlyjob@debian.org> ]
+  * New upstream release [February 2015].
+  * Upload to unstable.
+  * Disabled automatic database upgrades: post(inst|rm) scripts no longer
+    touch database or do unexpected stuff (Closes: #779254).
+    See README.Debian for details.
+  * Updated installation paths:
+    + /usr/share/zoneminder --> /usr/share/zoneminder/www
+    + /usr/lib/cgi-bin --> /usr/lib/zoneminder/cgi-bin
+  * Added logrotate config (Closes: #544826).
+    Thanks, Alberto Reyes.
+  * Native systemd service; "--with systemd" added to dh.
+  * Build with CMake instead of autoconf; rules clean-up.
+  * Build with all hardening.
+  * Build and install "zmupdate.pl.1" man page.
+  * Added nginx/php5-fpm configuration example.
+  * Install upstream "apache.conf" example.
+  * Described setup of Zoneminer web site and database in README.Debian.
+  * Install "/etc/zm/zm.conf" with tighter permissions.
+  * Added TODO.Debian.
+  * Added "debian/clean"; "debian/gbp.conf"; bug-presubj.
+  * Remove bundled Cake tests to take ~5 MB off big-usr-share.
+  * Standards-Version: 3.9.6; compat/debhelper to version 9.
+  * Vcs links to new git repository at collab-maint.
+  * Build-Depends:
+    + dh-systemd
+    + libgcrypt11-dev --> libgcrypt-dev
+    + libcurl4-gnutls-dev
+    + libvlc-dev
+    + policykit-1 (required by "zmsystemctl.pl")
+    - dh-autoreconf, autoconf, automake
+  * Depends:
+    - apache2
+    - libapache2-mod-php5 (moved to Suggests)
+    - libpcre3 (invalid)
+    - libmodule-load-perl (obsolete; replaced with perl-modules)
+    - libarchive-tar-perl (obsolete; replaced with perl-modules)
+    - mysql-server (moved to Recommends, Closes: #759504).
+    - php5
+    + libav-tools
+    + libjs-jquery  (replaces bundled component)
+    + libjs-mootool (replaces bundled component)
+    + libjson-any-perl (Closes: #690803).
+    + perl-modules (Closes: #745819).
+  * Recommends:
+    + apache2 | httpd
+    + mysql-server | virtual-mysql-server (Closes: #732874).
+  * Suggests:
+    + libapache2-mod-php5 | php5-fpm
+    + logrotate
+  * Refreshed, renamed and re-ordered patches; added DEP-3 headers.
+  * Removed "vendor_perl" patch (applied-upstream).
+  * New patches:
+    + cmake-fix-confpath.patch
+    + cmake-gnutls.patch
+    + cmake-nossl.patch
+    + cmake.patch
+    + format-hardening.patch
+    + pod_man_fixes.patch
+    + pod_name_fixes.patch
+    + pod_zmupdate-to-pod2usage.patch
+  * Lintianisation (incomplete):
+    - extra-license-file
+    - init.d-script-missing-lsb-description
+    - init.d-script-does-not-source-init-functions
+    - privacy-breach-generic
+    - package-contains-empty-directory
+    - manpage-has-errors-from-pod2man
+    - manpage-has-bad-whatis-entry
+    - quilt-patch-missing-description
+    - no-dep5-copyright
+  * Lintian-overrides:
+    + unusual-interpreter usr/bin/zmsystemctl.pl #!/usr/bin/pkexec
+    + script-not-executable usr/share/zoneminder/www/api/*
+    + script-with-language-extension usr/bin/*.pl
+    + source-is-missing web/tools/mootools/mootools-*-yc.js
+    + source-is-missing web/skins/*/js/jquery-1.4.2.min.js
+    + source-contains-prebuilt-javascript-object
+  * Renamed files in "debian".
+  * watch: dfsg repacksuffix and dversionmangle.
+  * "debian/copyright" to Copyright-Format-1.0.
+  * Set myself as new Maintainer (Closes: #760314).
 
-zoneminder (1.27.99+1-trusty-SNAPSHOT2014090801) trusty; urgency=medium
+  [ Vagrant Cascadian <vagrant@debian.org> ]
+  * Removed obsolete DM-Upload-Allowed flag.
+  * Update debian/watch to use tarballs from github.
+  * Add Build-Depends on libgcrypt11-dev (Closes: #745819).
+  * Use canonical alioth Vcs-Hg URL.
+  * debian/control: Add Build-Depends: libpolkit-gobject-1-dev.
+  * Removed configure flag "--enable-crashtrace=no", which is no longer
+    present upstream.
 
-  * several segfault fixes for local cameras
+ -- Dmitry Smirnov <onlyjob@debian.org>  Tue, 31 Mar 2015 15:11:13 +1100
 
- -- Isaac Connor <iconnor@connortechnology.com>  Mon, 08 Sep 2014 16:56:57 -0400
+zoneminder (1.26.5-3.1) experimental; urgency=low
 
-zoneminder (1.27.99+1-trusty-SNAPSHOT2014090701) trusty; urgency=medium
+  * Non-maintainer upload.
+  * Add libav10.patch and compile against libav10 (Closes: #739461)
 
-  * Fix segfaults for local cameras, also now includes the systemd support patch
+ -- Reinhard Tartler <siretart@tauware.de>  Wed, 19 Mar 2014 00:31:22 +0000
 
- -- Isaac Connor <iconnor@connortechnology.com>  Sun, 07 Sep 2014 17:19:01 -0400
+zoneminder (1.26.5-3) unstable; urgency=low
 
-zoneminder (1.27.99+1-trusty-SNAPSHOT2014082102) trusty; urgency=medium
 
-  * Fix UI inputs for v4l multibuffer and captures per frame
+  * Previous release still didn't build on PPC - this has been corrected.
+    (Closes: #736516)
 
- -- Isaac Connor <iconnor@connortechnology.com>  Thu, 21 Aug 2014 12:03:31 -0400
+ -- Peter Howard <pjh@northern-ridge.com.au>  Tue, 4 Feb 2014 02:02:10 +1000
 
-zoneminder (1.27.99+1-trusty-SNAPSHOT2014082101) trusty; urgency=medium
+zoneminder (1.26.5-2) unstable; urgency=low
 
-  * fall back to Config table values for V4l MultiBUffer and Captures Per Frame
-  * add mention of monitor page settings for thse in the config table
+  * Remove dependency on ffmpeg
+    (Closes: #721161)
 
- -- Isaac Connor <iconnor@connortechnology.com>  Thu, 21 Aug 2014 10:04:46 -0400
+  * Builds again on non-x86 target architectures.
 
-zoneminder (1.27.99+1-precise-SNAPSHOT2014080601) precise; urgency=medium
+ -- Peter Howard <pjh@northern-ridge.com.au>  Thu, 23 Jan 2014 01:02:10 +1000
 
-  * improve error messages
-  * Make zmupdate re-run the most recent patch so that people running the daily builds get their db updates
+zoneminder (1.26.5-1) unstable; urgency=low
 
- -- Isaac Connor <iconnor@connortechnology.com>  Wed, 06 Aug 2014 20:20:20 -0400
+  * New upstream version
+    (Closes: #694131)
+  * Change Build-Depends on libgnutls-dev to libgnutls-openssl-dev
+    (Closes: #731560)
+ -- Peter Howard <pjh@northern-ridge.com.au>  Tue, 17 Dec 2013 01:02:10 +1000
 
-zoneminder (1.27.0+1-trusty-v4ltomonitor-1) trusty; urgency=high
+zoneminder (1.25.0-4) unstable; urgency=high
 
-  * Snapshot release - 
+  * Add CVE-2013-0232 patch
+    [SECURITY] CVE-2013-0232: Shell escape commands with untrusted content.
+    Thanks to James McCoy <jamessan@debian.org> (Closes: #698910)
+    Thanks also to Salvatore Bonaccorso <carnil@debian.org>
 
- -- Isaac Connor <iconnor@connortechnology.com>  Wed, 09 Jul 2014 21:35:29 -0400
+ -- Peter Howard <pjh@northern-ridge.com.au>  Tue, 12 Jun 2013 12:02:10 +1000
+
+zoneminder (1.25.0-3) unstable; urgency=low
+
+  * debian/rules: Export CFLAGS, CPPFLAGS, CXXFLAGS and LDFLAGS, to ensure
+    hardening build flags are enabled.
+
+ -- Vagrant Cascadian <vagrant@debian.org>  Tue, 28 Aug 2012 12:10:03 -0700
+
+zoneminder (1.25.0-2) unstable; urgency=low
+
+  [ Vagrant Cascadian ]
+  * Add a patch to disable checking for updated versions by default, as
+    upgrades should happen through package management.
+  * Use dpkg-buildflags in debian/rules to set default compiler flags.
+  * Ensure zoneminder is stopped before starting (Closes: #657407).
+
+  [ Peter Howard ]
+  * Fix postinst to add permission for table creation during upgrade
+    (Closes: #657407).
+
+ -- Vagrant Cascadian <vagrant@debian.org>  Thu, 23 Aug 2012 12:40:34 -0700
+
+zoneminder (1.25.0-1.1) unstable; urgency=low
+
+  * Non-maintainer upload.
+  * Fix "ftbfs with GCC-4.7": add patch Fix-FTBFS-with-gcc-4.7 from Cyril
+    Brulebois: fix missing <unistd.h> includes.
+    (Closes: #667428)
+
+ -- gregor herrmann <gregoa@debian.org>  Sun, 13 May 2012 17:02:21 +0200
+
+zoneminder (1.25.0-1) unstable; urgency=low
+
+  * Fix typo in libv4l1-videodev.h patch that caused v4l1 support to be
+    dropped.
+  * Fail to build if version in postinst doesn't match upstream version.
+  * Add Build-Depends: libavdevice-dev to fix MPEG streaming (Closes: #515558).
+  * debian/rules: Convert to using debhelper overrides.
+  * Set debian/compat to 7.
+  * Simplify debian/watch file.
+  * Refresh debian/patches/use_libjs-mootools.
+  * Refresh debian/patches/libv4l1-videodev.h.
+  * Remove dependencies on php4 and related packages.
+  * Remove build-dependencies on libmysqlclient14-dev and
+    libmysqlclient15-dev.
+  * Update Build-Depends to use libjpeg-dev instead of libjpeg62-dev
+    (Closes: #647114).
+  * Add patch to fix build by testing for C headers rather than C++ headers.
+    Thanks to Ryan Niebur. (Closes: #654230)
+  * Add a patch to fix build problems caused by API changes in libav 0.8.
+    Thanks again to Ryan Niebur. (Closes: #654230)
+
+ -- Vagrant Cascadian <vagrant@debian.org>  Mon, 16 Jan 2012 11:58:05 -0800
+
+zoneminder (1.24.4-1) unstable; urgency=low
+
+  [ Peter Howard ]
+  * Initial release of 1.24.4 (Closes: #634985).
+    - Fix 32/64-bit type declarations (Closes: #614404).
+  * Update patches.
+
+  [ Vagrant Cascadian ]
+  * Add patch to fix FTBFS by using libv4l1-videodev.h from libv4l-dev.
+    Thanks to Andreas Metzler for reporting the issue.
+    (Closes: #619813).
+  * Document adding the www-data user to the video group in README.Debian.
+    (Closes: #611324)
+  * Depend on libsys-mmap-perl to enable mapped memory support.
+    (Closes: #607331)
+  * Update libjs-mootools patch to use -nc variants (Closes: #635075).
+  * Depend on javascript-common, to ensure that /javascript is available in
+    the web server.
+  * Set the upstream version in postinst at build time.
+  * Use dh-autoreconf to properly clean up autogenerated files during build.
+  * Add Vcs-HG to debian/control.
+  * Add Build-Depends: libv4l-dev, libbz2-dev, dh-autoreconf, libsys-mmap-perl.
+
+ -- Vagrant Cascadian <vagrant@debian.org>  Sun, 24 Jul 2011 16:44:30 +0200
+
+zoneminder (1.24.2-9) unstable; urgency=low
+
+  * Apply patch from Ubuntu to fix FTBFS with ffmpeg 0.6:
+    - Add -D__STDC_CONSTANT_MACROS to CPPFLAGS (closes: 614080).
+  * Update Standards-Version to 3.9.1, no changes necessary.
+
+ -- Vagrant Cascadian <vagrant@debian.org>  Sun, 20 Feb 2011 23:43:02 -0800
+
+zoneminder (1.24.2-8) unstable; urgency=medium
+
+  [ Vagrant Cascadian ]
+  * Apply patch to fix V4L2 cameras without crop support (closes: #608790).
+    Thanks to piratebab.
+  * Add preinst script which aborts if dangerous symlinks exist.
+    (closes: #608793)
+
+  [ Peter Howard ]
+  * Added to README.Debian with info about images and events directories.
+    (closes: #608793)
+
+ -- Vagrant Cascadian <vagrant@debian.org>  Sat, 15 Jan 2011 19:39:26 -0800
+
+zoneminder (1.24.2-7) unstable; urgency=medium
+
+  * Do not set ownership of /var/cache/zoneminder when upgrading, which fixes a
+    regression causing upgrades to take inordinately long with large
+    installations (closes: #597040).
+
+ -- Vagrant Cascadian <vagrant@debian.org>  Fri, 17 Sep 2010 11:24:41 -0700
+
+zoneminder (1.24.2-6) unstable; urgency=low
+
+  * Only remove database on purge. This requires only creating the database if
+    it doesn't already exist, and upgrading the database only if the database
+    is an older version (closes: #497107).
+
+  * Do not prompt the user on database upgrades by using the --nointeractive
+    flag when calling zmupdate.pl from postinst (closes: #595902).
+
+ -- Vagrant Cascadian <vagrant@debian.org>  Fri, 10 Sep 2010 10:06:06 -0700
+
+zoneminder (1.24.2-5) unstable; urgency=low
+
+  [ Peter Howard ]
+  * Add zip dependency
+    (closes: #494261)
+  * Add debian/watch file
+    (closes: #545552)
+  * Use packaged libjs-mootools
+    (closes: #585590)
+  * Miscellaneous cleanups
+
+  [ Vagrant Cascadian ]
+  * Add vagrant@debian.org as uploader
+  * Update Standards-Version to 3.9.0, no changes necessary.
+
+ -- Vagrant Cascadian <vagrant@debian.org>  Fri, 23 Jul 2010 18:12:50 -0500
+
+zoneminder (1.24.2-4.1) unstable; urgency=low
+
+  * Non-maintainer upload.
+  * Fix "package removed, processes still running": apply patch to
+    debian/postinst by Vagrant Cascadian: use invoke-rc.d and run
+    mysql-related actions only when mysql is running (closes: #583648).
+
+ -- gregor herrmann <gregoa@debian.org>  Thu, 01 Jul 2010 19:47:10 +0200
+
+zoneminder (1.24.2-4) unstable; urgency=high
+  * Update init.d to list mysql dependency
+    (closes: #583505)
+  * Change depenency from libmime-perl to libmime-tools-perl
+    (closes: #585589)
+  * Problems in changelog format fixed
+    (closes: #585592)
+  * Fix debian-rules-ignores-make-clean-error
+    (closes: #585593)
+ -- Peter Howard <pjh@northern-ridge.com.au>  Mon, 14 jun 2010 15:02:10 +1000
+
+zoneminder (1.24.2-3) unstable; urgency=high
+  * Changes symbols to build with libjpeg8
+    (closes: #565326, #568327)
+  * Note: location of all perl files should have been fixed in previous release
+    (closes: #553096)
+ -- Peter Howard <pjh@northern-ridge.com.au>  Mon, 26 apr 2010 15:02:10 +1000
+
+zoneminder (1.24.2-2) unstable; urgency=high
+
+  * Remove custom perl parth from zmpkg.pl, fix location of manpages.
+    (closes: #551746, #553092)
+  * Fix GCC4.4 bug
+    (closes: #531717)
+  * Fix potential bug in postinst script
+
+ -- Peter Howard <pjh@northern-ridge.com.au>  Sat, 14 Nov 2009 15:02:10 +1000
+
+zoneminder (1.24.2-1) unstable; urgency=high
+
+  * Initial release of zoneminder 1.24.2
+ -- Peter Howard <pjh@northern-ridge.com.au>  Fri, 11 Sep 2009 07:02:50 +1000
+
+zoneminder (1.24.1-1) unstable; urgency=high
+
+  * Initial release of zoneminder 1.24.1, closing CVE-2008-3882,
+    CVE-2008-3881, CVE-2008-3880
+    (closes: #497640)
+  * Change syslog dependency to rsyslog.
+    (closes: #526918)
+  * Add missing perl depenency.
+  * Restore patch to disable "check for updates" by default.
+  * Removed spurious '$' in init script.
+    (closes: #486064)
+  * Change permission of zm.conf from 0600 to 0400 for CVE-2008-6755
+    (closes: #528252)
+ -- Peter Howard <pjh@northern-ridge.com.au>  Sat, 16 May 2009 07:02:50 +1000
+
+zoneminder (1.23.3-4) unstable; urgency=high
+
+  * update to get it building with latest unstable. Thanks to waldi@debian.org
+    (closes: #517569)
+ -- Peter Howard <pjh@northern-ridge.com.au>  Thu, 16 Apr 2009 01:02:50 +1000
+
+zoneminder (1.23.3-3) unstable; urgency=high
+
+  * ffmpeg confirmed  working
+    (closes: #475145)
+  * Fix upgrade problem intrudouced in 1.23.3-1
+    (closes: #481637)
+  * Include libmime-lite-perl in dependencies
+    (closes: #486312)
+ -- Peter Howard <pjh@northern-ridge.com.au>  Thu, 18 Sep 2008 01:02:50 +1000
+
+zoneminder (1.23.3-2) unstable; urgency=high
+
+  * ffmpeg finally working?
+
+ -- Peter Howard <pjh@northern-ridge.com.au>  Wed, 13 Aug 2008 01:02:50 +1000
+
+zoneminder (1.23.3-1) unstable; urgency=high
+
+  * Initial version for 1.23.3 - security fix.
+    (closes: #479034)
+
+ -- Peter Howard <pjh@northern-ridge.com.au>  Wed, 19 Mar 2008 01:02:50 +1000
+
+zoneminder (1.23.2-2) unstable; urgency=low
+
+  * Update to init.d
+    (closes: #468856)
+  * Add dependency on logging daemon
+    (closes: #471277)
+
+ -- Peter Howard <pjh@northern-ridge.com.au>  Wed, 19 Mar 2008 01:02:50 +1000
+
+zoneminder (1.23.2-1) unstable; urgency=low
+
+  * Initial version for 1.23.2
+    (closes: #464152)
+  * Zoneminder 1.23.2 upstream includes fix for GCC 4.3
+    (closes: #454980)
+  * Includes ffmpeg patch by Alexander Kushnirenko <kushnir@uni-protvino.ru>
+
+ -- Peter Howard <pjh@northern-ridge.com.au>  Sat, 01 Mar 2008 16:02:50 +1000
+
+zoneminder (1.22.3-10) unstable; urgency=low
+
+  * Fix bug introduced in -9 where perl is put under /usr/local
+    (closes: #457507)
+
+ -- Peter Howard <pjh@northern-ridge.com.au>  Mon, 24 Dec 2007 16:02:50 +1000
+
+zoneminder (1.22.3-9) unstable; urgency=low
+
+  * Starting zoneminder via init script now  invokes "zmfix -a"
+    (closes: #481637)
+  * Change apache2-mpm-prefork dependency to apache2
+  * Temp dir for export under /var/cache/zoneminder (but linked back to
+    /usr/share/zoneminder for now)
+  * Redo use of gnutls rather than openssl for md5 hashes
+
+ -- Peter Howard <pjh@northern-ridge.com.au>  Mon, 10 Dec 2007 16:02:50 +1000
+
+zoneminder (1.22.3-8) unstable; urgency=low
+
+  * Build now includes libpcre3
+    (closes: #437533)
+  * "Monitor Presets" patch now applied to package during build.
+
+ -- Peter Howard <pjh@northern-ridge.com.au>  Sat, 18 Aug 2007 14:35:23 +1000
+
+zoneminder (1.22.3-7) unstable; urgency=low
+
+  * Turn off debug trace and crash dump on build
+    (closes:#414857,#414891)
+  * Additional perl libraries added in dependencies
+    (closes:#416291)
+  * Change preferred PHP version from 4 to 5
+ -- Peter Howard <pjh@northern-ridge.com.au>  Sun, 29 Jul 2007 15:11:13 +1000
+
+zoneminder (1.22.3-6) unstable; urgency=low
+
+  * Removed a similar bash only statement from zmpkg.pl
+    (closes:414882)
+
+ -- Peter Howard <pjh@northern-ridge.com.au>  Sat, 14 Apr 2007 11:46:56 +1000
+
+zoneminder (1.22.3-5) unstable; urgency=low
+
+  * Installs with "phone home" feature turned off by default, and permissions
+    on /etc/zm/zm.conf fixed (now the 0600 it s hould be)
+    (closes:415349)
+  * Removed "stupid bash-ism" on mysqld check in postinst file.
+
+ -- Peter Howard <pjh@northern-ridge.com.au>  Fri,  6 Apr 2007 15:50:00 +1000
+
+zoneminder (1.22.3-4) unstable; urgency=low
+
+  * Put libmysqlclient-15-dev in front of -14-dev so sbuild works
+    (closes: #414410)
+
+ -- Peter Howard <pjh@northern-ridge.com.au>  Mon, 12 Mar 2007 11:38:56 +1100
+
+zoneminder (1.22.3-3) unstable; urgency=low
+
+  * Clean up of postinstall, postrm ; user "zm" definitely was a mistake
+  * Also in postinstall: check and start MySQL if it's not running.
+  * init.d script now checks if zoneminder isn't running and still returns 0
+    (which helps uninstalling)
+  * Addition of php5 dependency options as well as php4.
+
+ -- Peter Howard <pjh@northern-ridge.com.au>  Mon, 26 Feb 2007 10:40:52 +1100
+
+zoneminder (1.22.3-2) unstable; urgency=low
+
+  * Added zmuser in the mysql creation; this should fix the install problem
+    for people, but needs to be cleaned up (in -3)
+
+ -- Peter Howard <pjh@northern-ridge.com.au>  Fri, 16 Feb 2007 14:16:03 +1100
+
+zoneminder (1.22.3-1) unstable; urgency=low
+
+  * Initial Version. (closes: #248393)
+  * Patched out use of openssl; uses gnutls instead for MD5 hashes.
+  * Removed MakeMaker-inserted Perl licensing (with authors permission) in
+    various scripts; replaced with GPL.
+
+ -- Peter Howard <pjh@northern-ridge.com.au>  Wed,  7 Feb 2007 14:09:01 +1100

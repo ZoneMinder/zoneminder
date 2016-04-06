@@ -3551,7 +3551,7 @@ unsigned int Monitor::DetectBlack(const Image &comp_image, Event::StringSet &zon
 unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &zoneSet, unsigned int &score )
 {
     bool alarm = false;
-    unsigned int score = 0;
+    score = 0;
 
     if ( n_zones <= 0 ) return( alarm );
 

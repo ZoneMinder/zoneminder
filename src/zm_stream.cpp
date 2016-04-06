@@ -294,7 +294,12 @@ void StreamBase::openComms()
 		snprintf( sock_path_lock, sizeof(sock_path_lock), "%s/zms-%06d.lock", config.path_socks, connkey);
 
         lock_fd = open(sock_path_lock, O_CREAT|O_WRONLY, S_IRUSR | S_IWUSR);
-        if (lock_fd <= 0 || flock(lock_fd, LOCK_EX) != 0)
+        if ( lock_fd <= 0 )
+		{
+            Error("Unable to open sock lock file %s: %s", sock_path_lock, strerror(errno) );
+            lock_fd = 0;
+		}
+		else if ( flock(lock_fd, LOCK_EX) != 0 )
         {
             Error("Unable to lock sock lock file %s: %s", sock_path_lock, strerror(errno) );
 

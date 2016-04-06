@@ -257,6 +257,10 @@ int FfmpegCamera::OpenFfmpeg() {
     	    }
     		  
     	}
+       else
+       {
+           Warning( "Unable to parse ffmpeg option %d '%s', expecting key=value", i, opVect[i].c_str() );
+       }
     }    
 	Debug ( 1, "Calling avformat_open_input" );
 
@@ -270,6 +274,11 @@ int FfmpegCamera::OpenFfmpeg() {
         mIsOpening = false;
         Error( "Unable to open input %s due to: %s", mPath.c_str(), strerror(errno) );
         return -1;
+    }
+
+    AVDictionaryEntry *e;
+    if ((e = av_dict_get(opts, "", NULL, AV_DICT_IGNORE_SUFFIX)) != NULL) {
+        Warning( "Option %s not recognized by ffmpeg", e->key);
     }
 
     mIsOpening = false;

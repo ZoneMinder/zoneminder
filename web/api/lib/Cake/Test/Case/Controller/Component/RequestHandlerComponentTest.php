@@ -33,7 +33,7 @@ class RequestHandlerTestController extends Controller {
 /**
  * uses property
  *
- * @var mixed null
+ * @var mixed
  */
 	public $uses = null;
 
@@ -195,6 +195,20 @@ class RequestHandlerComponentTest extends CakeTestCase {
 
 		$this->RequestHandler->initialize($this->Controller);
 		$this->assertEquals('json', $this->RequestHandler->ext);
+	}
+
+/**
+ * Test that RequestHandler does not set extension to csv for text/plain mimetype
+ *
+ * @return void
+ */
+	public function testInitializeContentTypeWithjQueryTextPlainAccept() {
+		$_SERVER['HTTP_ACCEPT'] = 'text/plain, */*; q=0.01';
+		$this->assertNull($this->RequestHandler->ext);
+		Router::parseExtensions('csv');
+
+		$this->RequestHandler->initialize($this->Controller);
+		$this->assertNull($this->RequestHandler->ext);
 	}
 
 /**
@@ -600,6 +614,9 @@ class RequestHandlerComponentTest extends CakeTestCase {
 
 		$result = $this->RequestHandler->requestedWith(array('rss', 'atom'));
 		$this->assertFalse($result);
+
+		$_SERVER['REQUEST_METHOD'] = 'DELETE';
+		$this->assertEquals('json', $this->RequestHandler->requestedWith());
 
 		$_SERVER['REQUEST_METHOD'] = 'POST';
 		unset($_SERVER['CONTENT_TYPE']);

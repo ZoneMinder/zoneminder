@@ -20,7 +20,7 @@ Here is an example of viewing an event stream:
 * **A**: Administrative Event options on the event including viewing individual frames
 * **B**: The actual image stream
 * **C**: Navigation control
-* **D**: You can switch between watching a single event or Continous mode (where it advances to the next event after playback is complete)
+* **D**: You can switch between watching a single event or Continuous mode (where it advances to the next event after playback is complete)
 * **E**: Event progress bar - how much of the current event has been played back
 
 You will notice for the first time that alarm images now contain an overlay outlining the blobs that represent the alarmed area. This outline is in the colour defined for that zone and lets you see what it was that caused the alarm. Clicking on one of the thumbnails will take you to a full size window where you can see the image in all its detail and scroll through the various images that make up the event. If you have the ZM_RECORD_EVENT_STATS option on, you will be able to click the 'Stats' link here and get some analysis of the cause of the event. 

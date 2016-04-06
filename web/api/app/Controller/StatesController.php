@@ -11,6 +11,18 @@ class StatesController extends AppController {
 
 public $components = array('RequestHandler');
 
+public function beforeFilter() {
+        parent::beforeFilter();
+        $canView = $this->Session->Read('systemPermission');
+        if ($canView =='None')
+        {
+                throw new UnauthorizedException(__('Insufficient Privileges'));
+                return;
+        }
+
+}
+
+
 /**
  * index method
  *
@@ -46,7 +58,15 @@ public $components = array('RequestHandler');
  * @return void
  */
 	public function add() {
+		
 		if ($this->request->is('post')) {
+
+			if ($this->Session->Read('systemPermission') != 'Edit')
+                        {
+                                 throw new UnauthorizedException(__('Insufficient privileges'));
+                                return;
+                        }
+
 			$this->State->create();
 			if ($this->State->save($this->request->data)) {
 				return $this->flash(__('The state has been saved.'), array('action' => 'index'));
@@ -65,6 +85,13 @@ public $components = array('RequestHandler');
 		if (!$this->State->exists($id)) {
 			throw new NotFoundException(__('Invalid state'));
 		}
+
+		if ($this->Session->Read('systemPermission') != 'Edit')
+                {
+                       throw new UnauthorizedException(__('Insufficient privileges'));
+                       return;
+                }
+
 		if ($this->request->is(array('post', 'put'))) {
 			if ($this->State->save($this->request->data)) {
 				return $this->flash(__('The state has been saved.'), array('action' => 'index'));
@@ -84,6 +111,12 @@ public $components = array('RequestHandler');
  */
 	public function delete($id = null) {
 		$this->State->id = $id;
+		if ($this->Session->Read('systemPermission') != 'Edit')
+		{
+			 throw new UnauthorizedException(__('Insufficient privileges'));
+			return;
+		}
+
 		if (!$this->State->exists()) {
 			throw new NotFoundException(__('Invalid state'));
 		}
@@ -96,6 +129,12 @@ public $components = array('RequestHandler');
 	}
 
 	public function change() {
+		if ($this->Session->Read('systemPermission') != 'Edit')
+                {
+                    throw new UnauthorizedException(__('Insufficient privileges'));
+                    return;
+                }
+
 		$newState = $this->request->params['pass'][0];
 		$blah = $this->packageControl($newState);
 

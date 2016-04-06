@@ -23,7 +23,7 @@
 
 =head1 NAME
 
-zmupdate.pl - check and upgrade Zoneminer database
+zmupdate.pl - check and upgrade ZoneMinder database
 
 =head1 SYNOPSIS
 

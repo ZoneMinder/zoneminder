@@ -20,6 +20,7 @@ require_once CAKE . 'basics.php';
 
 App::uses('Folder', 'Utility');
 App::uses('CakeResponse', 'Network');
+App::uses('Debugger', 'Utility');
 
 /**
  * BasicsTest class
@@ -378,6 +379,14 @@ class BasicsTest extends CakeTestCase {
 
 		$result = __('Some string with %s %s', 'multiple', 'arguments');
 		$expected = 'Some string with multiple arguments';
+		$this->assertEquals($expected, $result);
+
+		$result = __('Some string with %s and a null argument', null);
+		$expected = 'Some string with %s and a null argument';
+		$this->assertEquals($expected, $result);
+
+		$result = __('Some string with multiple %s%s, first being null', null, 'arguments');
+		$expected = 'Some string with multiple arguments, first being null';
 		$this->assertEquals($expected, $result);
 
 		$result = __('Some string with %s %s', array('multiple', 'arguments'));
@@ -943,10 +952,10 @@ EXPECTED;
 ###########################
 
 EXPECTED;
-		if (php_sapi_name() === 'cli') {
+		if (PHP_SAPI === 'cli') {
 			$expected = sprintf($expectedText, str_replace(CAKE_CORE_INCLUDE_PATH, '', __FILE__), __LINE__ - 18);
 		} else {
-			$expected = sprintf($expectedHtml, str_replace(CAKE_CORE_INCLUDE_PATH, '', __FILE__), __LINE__ - 19);
+			$expected = sprintf($expectedHtml, str_replace(CAKE_CORE_INCLUDE_PATH, '', __FILE__), __LINE__ - 20);
 		}
 		$this->assertEquals($expected, $result);
 
@@ -968,7 +977,7 @@ EXPECTED;
 ###########################
 
 EXPECTED;
-		if (php_sapi_name() === 'cli') {
+		if (PHP_SAPI === 'cli') {
 			$expected = sprintf($expectedText, str_replace(CAKE_CORE_INCLUDE_PATH, '', __FILE__), __LINE__ - 18);
 		} else {
 			$expected = sprintf($expectedHtml, str_replace(CAKE_CORE_INCLUDE_PATH, '', __FILE__), __LINE__ - 19);
@@ -1034,7 +1043,7 @@ EXPECTED;
  * @return void
  */
 	public function testPr() {
-		$this->skipIf(php_sapi_name() == 'cli', 'Skipping web test in cli mode');
+		$this->skipIf(PHP_SAPI === 'cli', 'Skipping web test in cli mode');
 		ob_start();
 		pr('this is a test');
 		$result = ob_get_clean();
@@ -1054,7 +1063,7 @@ EXPECTED;
  * @return void
  */
 	public function testPrCli() {
-		$this->skipIf(php_sapi_name() != 'cli', 'Skipping cli test in web mode');
+		$this->skipIf(PHP_SAPI !== 'cli', 'Skipping cli test in web mode');
 		ob_start();
 		pr('this is a test');
 		$result = ob_get_clean();
@@ -1138,6 +1147,24 @@ EXPECTED;
 			'g' => "te'''st"
 			);
 		$this->assertEquals($expected, stripslashes_deep($nested));
+	}
+
+/**
+ * Tests that the stackTrace() method is a shortcut for Debugger::trace()
+ *
+ * @return void
+ */
+	public function testStackTrace() {
+		ob_start();
+		list(, $expected) = array(stackTrace(), Debugger::trace());
+		$result = ob_get_clean();
+		$this->assertEquals($expected, $result);
+
+		$opts = array('args' => true);
+		ob_start();
+		list(, $expected) = array(stackTrace($opts), Debugger::trace($opts));
+		$result = ob_get_clean();
+		$this->assertEquals($expected, $result);
 	}
 
 /**

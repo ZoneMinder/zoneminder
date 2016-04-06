@@ -88,6 +88,7 @@ $SLANG = array(
     'Add'                   => 'Add',
     'AddNewControl'         => 'Add New Control',
     'AddNewMonitor'         => 'Add New Monitor',
+    'AddNewServer'          => 'Add New Server',
     'AddNewUser'            => 'Add New User',
     'AddNewZone'            => 'Add New Zone',
     'Alarm'                 => 'Alarm',
@@ -127,6 +128,8 @@ $SLANG = array(
     'AttrMaxScore'          => 'Max. Score',
     'AttrMonitorId'         => 'Monitor Id',
     'AttrMonitorName'       => 'Monitor Name',
+    'AttrServerId'          => 'Server Id',
+    'AttrServerName'        => 'Server Name',
     'AttrName'              => 'Name',
     'AttrNotes'             => 'Notes',
     'AttrSystemLoad'        => 'System Load',
@@ -156,7 +159,7 @@ $SLANG = array(
     'BadLabelX'             => 'Label X co-ordinate must be set to an integer of zero or more',
     'BadLabelY'             => 'Label Y co-ordinate must be set to an integer of zero or more',
     'BadMaxFPS'             => 'Maximum FPS must be a positive integer or floating point value',
-    'BadNameChars'          => 'Names may only contain alphanumeric characters plus hyphen and underscore',
+    'BadNameChars'          => 'Names may only contain alphanumeric characters plus spaces, hyphen and underscore',
     'BadPalette'            => 'Palette must be set to a valid value',
     'BadColours'            => 'Target colour must be set to a valid value',
     'BadPath'               => 'Path must be set to a valid value',
@@ -387,6 +390,7 @@ $SLANG = array(
     'HighBW'                => 'High&nbsp;B/W',
     'High'                  => 'High',
     'Home'                  => 'Home',
+    'Hostname'				=> 'Hostname',
     'Hour'                  => 'Hour',
     'Hue'                   => 'Hue',
     'Id'                    => 'Id',
@@ -902,11 +906,11 @@ function zmVlang( $langVarArray, $count )
 // So for example, to override the help text for ZM_LANG_DEFAULT do
 $OLANG = array(
 	'OPTIONS_FFMPEG' => array(
-		'Help' => "Parameters in this field are passwd on to FFmpeg. Multiple parameters can be separated by ,~~ ".
+		'Help' => "Parameters in this field are passed on to FFmpeg. Multiple parameters can be separated by ,~~ ".
 		          "Examples (do not enter quotes)~~~~".
 		          "\"allowed_media_types=video\" Set datatype to request fromcam (audio, video, data)~~~~".
 		          "\"reorder_queue_size=nnn\" Set number of packets to buffer for handling of reordered packets~~~~".
-		          "\"loglevel=debug\" Set verbosiy of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
+		          "\"loglevel=debug\" Set verbosity of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
 	),
 	'OPTIONS_LIBVLC' => array(
 		'Help' => "Parameters in this field are passed on to libVLC. Multiple parameters can be separated by ,~~ ".
@@ -931,7 +935,7 @@ $OLANG = array(
                           " camera, instead. You can, however, use a value that is slightly higher than the frame rate in the camera. ".
 		          "In this case, this helps keep the cpu from being overtaxed in the event of a network problem.~~". 
 		          "Some, mostly older, IP cameras support snapshot mode. In this case ZoneMinder is actively polling the camera ".
-		          "for new images. In this case, it is safe to use thie field."
+		          "for new images. In this case, it is safe to use the field."
 	),
 	
 //    'LANG_DEFAULT' => array(

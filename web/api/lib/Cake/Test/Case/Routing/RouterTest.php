@@ -201,7 +201,7 @@ class RouterTest extends CakeTestCase {
 		));
 		CakePlugin::load('TestPlugin');
 		App::uses('TestRoute', 'TestPlugin.Routing/Route');
-		$resources = Router::mapResources('Posts', array(
+		Router::mapResources('Posts', array(
 			'connectOptions' => array(
 				'routeClass' => 'TestPlugin.TestRoute',
 				'foo' => '^(bar)$',
@@ -238,7 +238,7 @@ class RouterTest extends CakeTestCase {
 		$this->assertEquals($expected, $result);
 		$this->assertEquals(array('test_plugin'), $resources);
 
-		$resources = Router::mapResources('Posts', array('prefix' => 'api'));
+		Router::mapResources('Posts', array('prefix' => 'api'));
 
 		$_SERVER['REQUEST_METHOD'] = 'GET';
 		$result = Router::parse('/api/posts');
@@ -997,6 +997,23 @@ class RouterTest extends CakeTestCase {
 	}
 
 /**
+ * Test that URL's fail to parse when they are prefixed with //
+ *
+ * @return void
+ */
+	public function testUrlParseFailureDoubleSlash() {
+		Router::connect('/posts', array('controller' => 'posts', 'action' => 'index'));
+		$result = Router::parse('/posts');
+		$this->assertEquals(
+			array('pass' => array(), 'named' => array(), 'plugin' => null, 'controller' => 'posts', 'action' => 'index'),
+			$result
+		);
+
+		$result = Router::parse('//posts');
+		$this->assertEquals(array(), $result);
+	}
+
+/**
  * testUrlParsing method
  *
  * @return void
@@ -1562,7 +1579,7 @@ class RouterTest extends CakeTestCase {
 		$request->base = '/';
 		Router::setRequestInfo($request);
 
-		$result = Router::parse('/admin/controller/index/type:whatever');
+		Router::parse('/admin/controller/index/type:whatever');
 		$result = Router::url(array('type' => 'new'));
 		$expected = "/admin/controller/index/type:new";
 		$this->assertEquals($expected, $result);

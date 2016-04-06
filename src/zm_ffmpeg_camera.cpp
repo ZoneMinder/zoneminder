@@ -397,7 +397,7 @@ int FfmpegCamera::OpenFfmpeg() {
     }
 
     Debug ( 1, "Validated imagesize" );
-    
+
 #if HAVE_LIBSWSCALE
     Debug ( 1, "Calling sws_isSupportedInput" );
     if(!sws_isSupportedInput(mCodecContext->pix_fmt)) {
@@ -538,6 +538,10 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
 		return (-1);
 	}
     
+    if ( mCodecContext->codec_id != AV_CODEC_ID_H264 ) {
+        Error( "Input stream is not h264.  The stored event file may not be viewable in browser." );
+    }
+
     int frameComplete = false;
     while ( !frameComplete ) {
         int avResult = av_read_frame( mFormatContext, &packet );

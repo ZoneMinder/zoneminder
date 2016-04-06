@@ -318,3 +318,101 @@ int hacked_up_context2_for_older_ffmpeg(AVFormatContext **avctx, AVOutputFormat 
 		return 0;
 	}
 }
+
+static void zm_log_fps(double d, const char *postfix)
+{
+    uint64_t v = lrintf(d * 100);
+    if (!v) {
+        Debug(3, "%1.4f %s", d, postfix);
+    } else if (v % 100) {
+        Debug(3, "%3.2f %s", d, postfix);
+     } else if (v % (100 * 1000)) {
+        Debug(3, "%1.0f %s", d, postfix);
+    } else
+        Debug(3, "%1.0fk %s", d / 1000, postfix);
+}
+
+/* "user interface" functions */
+void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output) {
+    char buf[256];
+    int flags = (is_output ? ic->oformat->flags : ic->iformat->flags);
+    AVStream *st = ic->streams[i];
+    AVDictionaryEntry *lang = av_dict_get(st->metadata, "language", NULL, 0);
+    unsigned char *separator = ic->dump_separator;
+    char **codec_separator = (char **)av_opt_ptr(st->codec->av_class, st->codec, "dump_separator");
+    int use_format_separator = !*codec_separator;
+
+    if (use_format_separator)
+        *codec_separator = av_strdup((const char *)separator);
+    avcodec_string(buf, sizeof(buf), st->codec, is_output);
+    if (use_format_separator)
+        av_freep(codec_separator);
+    Debug(3, "    Stream #%d:%d", index, i);
+
+    /* the pid is an important information, so we display it */
+    /* XXX: add a generic system */
+    if (flags & AVFMT_SHOW_IDS)
+        Debug(3, "[0x%x]", st->id);
+    if (lang)
+        Debug(3, "(%s)", lang->value);
+    av_log(NULL, AV_LOG_DEBUG, ", %d, %d/%d", st->codec_info_nb_frames,
+           st->time_base.num, st->time_base.den);
+    Debug(3, ": %s", buf);
+
+    if (st->sample_aspect_ratio.num && // default
+        av_cmp_q(st->sample_aspect_ratio, st->codec->sample_aspect_ratio)) {
+        AVRational display_aspect_ratio;
+        av_reduce(&display_aspect_ratio.num, &display_aspect_ratio.den,
+                  st->codec->width  * (int64_t)st->sample_aspect_ratio.num,
+                  st->codec->height * (int64_t)st->sample_aspect_ratio.den,
+                  1024 * 1024);
+        Debug(3, ", SAR %d:%d DAR %d:%d",
+               st->sample_aspect_ratio.num, st->sample_aspect_ratio.den,
+               display_aspect_ratio.num, display_aspect_ratio.den);
+    }
+
+    if (st->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
+        int fps = st->avg_frame_rate.den && st->avg_frame_rate.num;
+        int tbr = st->r_frame_rate.den && st->r_frame_rate.num;
+        int tbn = st->time_base.den && st->time_base.num;
+        int tbc = st->codec->time_base.den && st->codec->time_base.num;
+
+        if (fps || tbr || tbn || tbc)
+            Debug(3, "%s", separator);
+
+        if (fps)
+            zm_log_fps(av_q2d(st->avg_frame_rate), tbr || tbn || tbc ? "fps, " : "fps");
+         if (tbr)
+             zm_log_fps(av_q2d(st->r_frame_rate), tbn || tbc ? "tbr, " : "tbr");
+         if (tbn)
+             zm_log_fps(1 / av_q2d(st->time_base), tbc ? "tbn, " : "tbn");
+         if (tbc)
+             zm_log_fps(1 / av_q2d(st->codec->time_base), "tbc");
+     }
+ 
+     if (st->disposition & AV_DISPOSITION_DEFAULT)
+         Debug(3, " (default)");
+     if (st->disposition & AV_DISPOSITION_DUB)
+         Debug(3, " (dub)");
+     if (st->disposition & AV_DISPOSITION_ORIGINAL)
+         Debug(3, " (original)");
+     if (st->disposition & AV_DISPOSITION_COMMENT)
+         Debug(3, " (comment)");
+     if (st->disposition & AV_DISPOSITION_LYRICS)
+         Debug(3, " (lyrics)");
+     if (st->disposition & AV_DISPOSITION_KARAOKE)
+         Debug(3, " (karaoke)");
+     if (st->disposition & AV_DISPOSITION_FORCED)
+         Debug(3, " (forced)");
+     if (st->disposition & AV_DISPOSITION_HEARING_IMPAIRED)
+         Debug(3, " (hearing impaired)");
+     if (st->disposition & AV_DISPOSITION_VISUAL_IMPAIRED)
+         Debug(3, " (visual impaired)");
+     if (st->disposition & AV_DISPOSITION_CLEAN_EFFECTS)
+         Debug(3, " (clean effects)");
+     Debug(3, "\n");
+ 
+     //dump_metadata(NULL, st->metadata, "    ");
+ 
+     //dump_sidedata(NULL, st, "    ");
+ }

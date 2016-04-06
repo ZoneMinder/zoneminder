@@ -94,6 +94,30 @@ function noCacheHeaders()
     header("Pragma: no-cache");         // HTTP/1.0
 }
 
+function CORSHeaders() {
+	if ( isset( $_SERVER['HTTP_ORIGIN'] ) ) {
+
+		# The following is left for future reference/use.
+		$valid = false;
+		$servers = dbFetchAll( 'SELECT * FROM Servers' );
+		if ( sizeof($servers) <= 1 ) {
+			# Only need CORSHeaders in the event that there are multiple servers in use.
+			return;
+		}
+		foreach( dbFetchAll( 'SELECT * FROM Servers' ) as $row ) {
+			$Server = new Server( $row );
+			if ( $_SERVER['HTTP_ORIGIN'] == $Server->Url() ) {
+				$valid = true;
+				header("Access-Control-Allow-Origin: " . $Server->Url() );
+				header("Access-Control-Allow-Headers: x-requested-with,x-request");
+			}
+		}
+		if ( ! $valid ) {
+			Warning( $_SERVER['HTTP_ORIGIN'] . " is not found in servers list." );
+		}
+	}
+}
+
 function getAuthUser( $auth )
 {
     if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == "hashed" && !empty($auth) )
@@ -768,7 +792,7 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false )
             {
                 if ( !isset($values[$key]) || ($values[$key] != $value) )
                 {
-                    $changes[$key] = "$key = ".dbEscape($value);
+                    $changes[$key] = "$key = ".dbEscape(trim($value));
                 }
                 break;
             }
@@ -958,6 +982,7 @@ function daemonControl( $command, $daemon=false, $args=false )
 
 function zmcControl( $monitor, $mode=false )
 {
+  if ( (!defined('ZM_SERVER_ID')) or ( ZM_SERVER_ID==$monitor['ServerId'] ) ) {
 	$row = NULL;
     if ( $monitor['Type'] == "Local" )
     {
@@ -983,10 +1008,12 @@ function zmcControl( $monitor, $mode=false )
         }
         daemonControl( "start", "zmc", $zmcArgs );
     }
+  }
 }
 
 function zmaControl( $monitor, $mode=false )
 {
+  if ( (!defined('ZM_SERVER_ID')) or ( ZM_SERVER_ID==$monitor['ServerId'] ) ) {
     if ( !is_array( $monitor ) )
     {
         $monitor = dbFetchOne( "select C.*, M.* from Monitors as M left join Controls as C on (M.ControlId = C.Id ) where M.Id=?", NULL, array($monitor) );
@@ -1031,6 +1058,7 @@ function zmaControl( $monitor, $mode=false )
             daemonControl( "reload", "zma", "-m ".$monitor['Id'] );
         }
     }
+  }
 }
 
 function initDaemonStatus()

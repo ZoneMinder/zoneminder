@@ -69,9 +69,11 @@ Depends: libzoneminder-perl (= ${source:Version}),
  zoneminder-database (= ${source:Version}), ${shlibs:Depends}, ${misc:Depends},
  ${perl:Depends}, libarchive-tar-perl, libarchive-zip-perl, libdate-manip-perl,
  libdbi-perl, libmodule-load-conditional-perl, libmime-lite-perl,
- libmime-tools-perl, libnet-sftp-foreign-perl, libphp-serialization-perl,
+ libmime-tools-perl, libnet-sftp-foreign-perl, libphp-serialization-perl
  debconf, ffmpeg | libav-tools, rsyslog | system-log-daemon, netpbm, zip,
  policykit-1, apache2
+, libsys-cpu-perl, libsys-meminfo-perl
+, libdata-dump-perl, libclass-std-fast-perl, libsoap-wsdl-perl, libio-socket-multicast-perl, libdigest-sha-perl
 Description: Core binaries and perl scripts for ZoneMinder
  ZoneMinder is a video camera security and surveillance solution.
  .
@@ -110,25 +112,6 @@ Description: Classic web user interface for ZoneMinder
  ZoneMinder is a video camera security and surveillance solution.
  .
  This package provides the classic web user interface.
-
-Package: zoneminder-ui-mobile
-Section: web
-Architecture: all
-Depends: zoneminder-ui-base (>= ${source:Version}), ${misc:Depends}
-Description: Mobile web user interface for ZoneMinder
- ZoneMinder is a video camera security and surveillance solution.
- .
- This package provides the web user interface for mobile devices.
-
-Package: zoneminder-ui-xml
-Section: web
-Architecture: all
-Depends: zoneminder-ui-base (>= ${source:Version}), ${misc:Depends}
-Description: XML interface for ZoneMinder
- ZoneMinder is a video camera security and surveillance solution.
- .
- This package provides a XML interface mainly intended for use with the eyeZm
- iPhone Application, but can be used with any other custom programs as well.
 
 Package: libzoneminder-plugin-openalpr
 Section: libs

@@ -42,8 +42,6 @@ $tabs['x10'] = translate('X10');
 $tabs['highband'] = translate('HighBW');
 $tabs['medband'] = translate('MediumBW');
 $tabs['lowband'] = translate('LowBW');
-$tabs['phoneband'] = translate('PhoneBW');
-$tabs['eyeZm'] = "eyeZm";
 $tabs['users'] = translate('Users');
 
 if ( isset($_REQUEST['tab']) )
@@ -221,13 +219,15 @@ elseif ( $tab == "users" )
           <thead>
             <tr>
               <th class="colName"><?php echo translate('name') ?></th>
+              <th class="colHostname"><?php echo translate('Hostname') ?></th>
               <th class="colMark"><?php echo translate('Mark') ?></th>
 			</tr>
           </thead>
           <tbody>
 <?php foreach( dbFetchAll( 'SELECT * FROM Servers' ) as $row ) { ?>
             <tr>
-              <td class="colName"><?php echo makePopupLink( '?view=server&amp;id='.$row['Id'], 'zmServer', 'server', validHtmlStr($row['Name']).($user['Name']==$row['Name']?"*":""), $canEdit ) ?></td>
+              <td class="colName"><?php echo makePopupLink( '?view=server&amp;id='.$row['Id'], 'zmServer', 'server', validHtmlStr($row['Name']), $canEdit ) ?></td>
+              <td class="colHostname"><?php echo makePopupLink( '?view=server&amp;id='.$row['Id'], 'zmServer', 'server', validHtmlStr($row['Hostname']), $canEdit ) ?></td>
               <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $row['Id'] ?>" onclick="configureDeleteButton( this );"<?php if ( !$canEdit ) { ?> disabled="disabled"<?php } ?>/></td>
 			</tr>
 <?php } #end foreach Server ?>

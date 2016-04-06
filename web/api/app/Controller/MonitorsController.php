@@ -97,7 +97,7 @@ public function beforeFilter() {
 
 			if ($this->Session->Read('systemPermission') != 'Edit')
 			{
-				 throw new UnauthotizedException(__('Insufficient privileges'));
+				 throw new UnauthorizedException(__('Insufficient privileges'));
 				return;
 			}
 

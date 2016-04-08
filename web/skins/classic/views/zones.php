@@ -47,7 +47,7 @@ xhtmlHeaders(__FILE__, translate('Zones') );
     </div>
     <div id="content">
       <?php echo getStreamHTML( $monitor ); ?>
-      <svg width="<?php echo $Monitor->Width ?>" height="<?php echo $Monitor->Height ?>" style="margin-top: -<?php echo $Monitor->Height ?>px;background: none;">
+      <svg width="<?php echo $monitor->Width ?>" height="<?php echo $monitor->Height ?>" style="margin-top: -<?php echo $monitor->Height ?>px;background: none;">
 <?php
       foreach( array_reverse($zones) as $zone ) {
 ?>

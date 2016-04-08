@@ -304,19 +304,6 @@ function unsetActivePoint( index )
     $('point'+index).removeClass( 'active' );
 }
 
-function updateZoneImageResponse( respObj, respText )
-{
-    if ( respObj.result == 'Ok' )
-    {
-        document.zoneForm.elements['submitBtn'].disabled = ( selfIntersecting = respObj.selfIntersecting );
-        document.zoneForm.elements['newZone[Area]'].value = zone.Area = respObj.area;
-        if ( document.zoneForm.elements['newZone[Units]'].value == 'Pixels' )
-            document.zoneForm.elements['newZone[TempArea]'].value = document.zoneForm.elements['newZone[Area]'].value;
-        
-        var newImage = new Asset.image( respObj.zoneImage, { 'onload': function() { $('zoneImage').src = newImage.src; } } );
-    }
-}
-
 function getCoordString()
 {
     var coords = new Array();
@@ -327,9 +314,6 @@ function getCoordString()
 
 function updateZoneImage()
 {
-    var parms = "view=request&request=zone&action=zoneImage&mid="+zone.MonitorId+"&zid="+zone.Id+"&coords="+getCoordString();
-    var query = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, data: parms, onSuccess: updateZoneImageResponse } );
-    query.send();
 }
 
 function fixActivePoint( index )
@@ -360,6 +344,10 @@ function updateActivePoint( index )
     $('newZone[Points]['+index+'][y]').value = y;
     zone['Points'][index].x = x;
     zone['Points'][index].y = y;
+    var Point =  $('zonePoly').points.getItem(index);
+    Point.x =x;
+    Point.y =y;
+
 }
 
 function addPoint( index )
@@ -397,8 +385,9 @@ function updateX( index )
 
     point.setStyle( 'left', x+'px' );
     zone['Points'][index].x = x;
-
-    updateZoneImage();
+    var Point =  $('zonePoly').points.getItem(index);
+    Point.x =x;
+    Point.y =y;
 }
 
 function updateY( index )
@@ -410,8 +399,9 @@ function updateY( index )
 
     point.setStyle( 'top', y+'px' );
     zone['Points'][index].y = y;
-
-    updateZoneImage();
+    var Point =  $('zonePoly').points.getItem(index);
+    Point.x =x;
+    Point.y =y;
 }
 
 function saveChanges( element )

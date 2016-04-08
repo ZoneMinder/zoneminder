@@ -47,41 +47,7 @@ xhtmlHeaders(__FILE__, translate('Zones') );
       <h2><?php echo translate('Zones') ?></h2>
     </div>
     <div id="content">
-<?php
-$scale = 100;
-if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
-    $streamMode = "mpeg";
-    $streamSrc = $monitor->getStreamSrc( array( "mode=".$streamMode, "scale=".$scale, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_LIVE_FORMAT ) );
-}
-elseif ( canStream() )
-{
-    $streamMode = "jpeg";
-    $streamSrc = $monitor->getStreamSrc( array( "mode=".$streamMode, "scale=".$scale, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "buffer=".$monitor->StreamReplayBuffer() ) );
-}
-else
-{
-    $streamMode = "single";
-    $streamSrc = $monitor->getStreamSrc( array( "mode=".$streamMode, "scale=".$scale ) );
-    Info( "The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.");
-}
-?>
-<img alt="zones" usemap="#zoneMap" width="<?php echo $monitor->Width() ?>" height="<?php echo $monitor->Height() ?>" border="0" src="<?php
-if ( $streamMode == "mpeg" )
-{
-    outputVideoStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
-}
-elseif ( $streamMode == "jpeg" )
-{
-    if ( canStreamNative() )
-        outputImageStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
-    elseif ( canStreamApplet() )
-        outputHelperStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
-}
-else
-{
-    outputImageStill( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
-}
-?>"/>
+      <?php echo getStreamHTML( $monitor ); ?>
       <svg width="<?php echo $Monitor->Width ?>" height="<?php echo $Monitor->Height ?>" style="margin-top: -<?php echo $Monitor->Height ?>px;background: none;">
 <?php
       foreach( array_reverse($zones) as $zone ) {

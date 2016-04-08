@@ -314,6 +314,15 @@ function getCoordString()
 
 function updateZoneImage()
 {
+    var SVG = $('zoneSVG');
+    var Poly = $('zonePoly');
+    Poly.points.clear();
+    for ( var i = 0; i < zone['Points'].length; i++ ) {
+        var Point = SVG.createSVGPoint();
+        Point.x = zone['Points'][i].x;
+        Point.y = zone['Points'][i].y;
+       Poly.points.appendItem( Point );
+    }
 }
 
 function fixActivePoint( index )
@@ -362,6 +371,7 @@ function addPoint( index )
     else
         zone['Points'].splice( nextIndex, 0, { 'x': newX, 'y': newY } );
     drawZonePoints();
+    updateZoneImage();
     //setActivePoint( nextIndex );
 }
 
@@ -461,6 +471,8 @@ function drawZonePoints()
 
         row.inject( tables[i%tables.length].getElement( 'tbody' ) );
     }
+    // Sets up the SVG polygon
+    updateZoneImage();
 }
 
 function initPage()

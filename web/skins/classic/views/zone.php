@@ -62,25 +62,25 @@ foreach ( getEnumValues( 'Zones', 'CheckMethod' ) as $optCheckMethod )
 $monitor = new Monitor( $mid );
 
 $minX = 0;
-$maxX = $monitor['Width']-1;
+$maxX = $monitor->Width()-1;
 $minY = 0;
-$maxY = $monitor['Height']-1;
+$maxY = $monitor->Height()-1;
 
 if ( !isset($newZone) )
 {
     if ( $zid > 0 )
     {
-        $zone = dbFetchOne( 'SELECT * FROM Zones WHERE MonitorId = ? AND Id=?', NULL, array( $monitor['Id'], $zid ) );
+        $zone = dbFetchOne( 'SELECT * FROM Zones WHERE MonitorId = ? AND Id=?', NULL, array( $monitor->Id(), $zid ) );
     }
     else
     {
         $zone = array(
             'Name' => translate('New'),
             'Id' => 0,
-            'MonitorId' => $monitor['Id'],
+            'MonitorId' => $monitor->Id(),
             'NumCoords' => 4,
             'Coords' => sprintf( "%d,%d %d,%d, %d,%d %d,%d", $minX, $minY, $maxX, $minY, $maxX, $maxY, $minX, $maxY ),
-            'Area' => $monitor['Width'] * $monitor['Height'],
+            'Area' => $monitor->Width() * $monitor->Height(),
             'AlarmRGB' => 0xff0000,
             'CheckMethod' => 'Blobs',
             'MinPixelThreshold' => '',
@@ -123,7 +123,7 @@ xhtmlHeaders(__FILE__, translate('Zone') );
 <body>
   <div id="page">
     <div id="header">
-      <h2><?php echo translate('Monitor') ?> <?php echo $monitor['Name'] ?> - <?php echo translate('Zone') ?> <?php echo $newZone['Name'] ?></h2>
+      <h2><?php echo translate('Monitor') ?> <?php echo $monitor->Name() ?> - <?php echo translate('Zone') ?> <?php echo $newZone['Name'] ?></h2>
     </div>
     <div id="content">
       <form name="zoneForm" id="zoneForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
@@ -209,7 +209,7 @@ xhtmlHeaders(__FILE__, translate('Zone') );
         </div>
         <div id="definitionPanel">
           <div id="imagePanel">
-            <div id="imageFrame" style="width: <?php echo reScale( $monitor['Width'], $scale ) ?>px; height: <?php echo reScale( $monitor['Height'], $scale ) ?>px;">
+            <div id="imageFrame" style="width: <?php echo reScale( $monitor->Width(), $scale ) ?>px; height: <?php echo reScale( $monitor->Height(), $scale ) ?>px;">
                 <?php echo getStreamHTML( $monitor, $scale ); ?>
                 <svg id="zoneSVG" class="zones" style="width: <?php echo reScale( $monitor->Width(), $scale ) ?>px; height: <?php echo reScale( $monitor->Height(), $scale ) ?>px;margin-top: -<?php echo $monitor->Height ?>px;background: none;">
                   <polygon id="zonePoly" points="<?php echo $zone['AreaCoords'] ?>" class="<?php echo $zone['Type'] ?>"/>

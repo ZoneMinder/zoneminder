@@ -51,7 +51,7 @@ xhtmlHeaders(__FILE__, translate('Zones') );
 <?php
       foreach( array_reverse($zones) as $zone ) {
 ?>
-        <polygon points="<?php echo $zone['AreaCoords'] ?>" class="<?php echo $zone['Type']?>" />
+        <polygon points="<?php echo $zone['AreaCoords'] ?>" class="<?php echo $zone['Type']?>" onclick="createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>', 'zmZone', 'zone', <?php echo $monitor->Width ?>, <?php echo $monitor->Height ?> ); return( false );"/>
 <?php
       } // end foreach zone
 ?>

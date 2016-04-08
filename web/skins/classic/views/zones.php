@@ -53,12 +53,6 @@ xhtmlHeaders(__FILE__, translate('Zones') );
 ?>
         <polygon points="<?php echo $zone['AreaCoords'] ?>" class="<?php echo $zone['Type']?>" />
 <?php
-        foreach ( explode(' ', $zone['Coords'] ) as $point ) {
-          $xy = explode(',', $point );
-?>
-          <circle class="point <?php echo $zone['Type'] ?>" cx="<?php echo $xy[0] ?>" cy="<?php echo $xy[1] ?>" onclick="createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>', 'zmZone', 'zone', <?php echo $monitor->Width ?>, <?php echo $monitor->Height ?> ); return( false );"/>
-<?php
-        } // end foreach point
       } // end foreach zone
 ?>
           Sorry, your browser does not support inline SVG

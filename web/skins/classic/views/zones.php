@@ -26,11 +26,7 @@ if ( !canView( 'Monitors' ) )
 
 $mid = validInt($_REQUEST['mid']);
 $wd = getcwd();
-chdir( ZM_DIR_IMAGES );
-$status = exec( escapeshellcmd( getZmuCommand( " -m ".$mid." -z" ) ) );
-chdir( $wd );
-
-$monitor = dbFetchMonitor( $mid );
+$monitor = new Monitor( $mid );
 
 $zones = array();
 foreach( dbFetchAll( 'select * from Zones where MonitorId = ? order by Area desc', NULL, array($mid) ) as $row )
@@ -42,8 +38,6 @@ foreach( dbFetchAll( 'select * from Zones where MonitorId = ? order by Area desc
     }
 }
 
-$image = 'Zones'.$monitor['Id'].'.jpg';
-
 xhtmlHeaders(__FILE__, translate('Zones') );
 ?>
 <body>
@@ -53,18 +47,57 @@ xhtmlHeaders(__FILE__, translate('Zones') );
       <h2><?php echo translate('Zones') ?></h2>
     </div>
     <div id="content">
-      <map name="zoneMap" id="zoneMap">
 <?php
-foreach( array_reverse($zones) as $zone )
+$scale = 100;
+if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
+    $streamMode = "mpeg";
+    $streamSrc = $monitor->getStreamSrc( array( "mode=".$streamMode, "scale=".$scale, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_LIVE_FORMAT ) );
+}
+elseif ( canStream() )
 {
-?>
-        <area shape="poly" alt="<?php echo htmlspecialchars($zone['Name']) ?>" coords="<?php echo $zone['AreaCoords'] ?>" href="#" onclick="createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>', 'zmZone', 'zone', <?php echo $monitor['Width'] ?>, <?php echo $monitor['Height'] ?> ); return( false );"/>
-<?php
+    $streamMode = "jpeg";
+    $streamSrc = $monitor->getStreamSrc( array( "mode=".$streamMode, "scale=".$scale, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "buffer=".$monitor->StreamReplayBuffer() ) );
+}
+else
+{
+    $streamMode = "single";
+    $streamSrc = $monitor->getStreamSrc( array( "mode=".$streamMode, "scale=".$scale ) );
+    Info( "The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.");
 }
 ?>
-        <!--<area shape="default" nohref>-->
-      </map>
-      <img src="<?php echo ZM_DIR_IMAGES.'/'.$image ?>" alt="zones" usemap="#zoneMap" width="<?php echo $monitor['Width'] ?>" height="<?php echo $monitor['Height'] ?>" border="0"/>
+<img alt="zones" usemap="#zoneMap" width="<?php echo $monitor->Width() ?>" height="<?php echo $monitor->Height() ?>" border="0" src="<?php
+if ( $streamMode == "mpeg" )
+{
+    outputVideoStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
+}
+elseif ( $streamMode == "jpeg" )
+{
+    if ( canStreamNative() )
+        outputImageStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
+    elseif ( canStreamApplet() )
+        outputHelperStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
+}
+else
+{
+    outputImageStill( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
+}
+?>"/>
+      <svg width="<?php echo $Monitor->Width ?>" height="<?php echo $Monitor->Height ?>" style="margin-top: -<?php echo $Monitor->Height ?>px;background: none;">
+<?php
+      foreach( array_reverse($zones) as $zone ) {
+?>
+        <polygon points="<?php echo $zone['AreaCoords'] ?>" class="<?php echo $zone['Type']?>" />
+<?php
+        foreach ( explode(' ', $zone['Coords'] ) as $point ) {
+          $xy = explode(',', $point );
+?>
+          <rect class="point" x="<?php $xy[0] ?>" y="<?php $xy[1] ?>" onclick="createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>', 'zmZone', 'zone', <?php echo $monitor->Width ?>, <?php echo $monitor->Height ?> ); return( false );"/>
+<?php
+        } // end foreach point
+      } // end foreach zone
+?>
+          Sorry, your browser does not support inline SVG
+        </svg>
       <form name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value="delete"/>
@@ -84,9 +117,9 @@ foreach( $zones as $zone )
 {
 ?>
             <tr>
-              <td class="colName"><a href="#" onclick="createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>', 'zmZone', 'zone', <?php echo $monitor['Width'] ?>, <?php echo $monitor['Height'] ?> ); return( false );"><?php echo $zone['Name'] ?></a></td>
+              <td class="colName"><a href="#" onclick="createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>', 'zmZone', 'zone', <?php echo $monitor->Width() ?>, <?php echo $monitor->Height() ?> ); return( false );"><?php echo $zone['Name'] ?></a></td>
               <td class="colType"><?php echo $zone['Type'] ?></td>
-              <td class="colUnits"><?php echo $zone['Area'] ?>&nbsp;/&nbsp;<?php echo sprintf( "%.2f", ($zone['Area']*100)/($monitor['Width']*$monitor['Height']) ) ?></td>
+              <td class="colUnits"><?php echo $zone['Area'] ?>&nbsp;/&nbsp;<?php echo sprintf( "%.2f", ($zone['Area']*100)/($monitor->Width()*$monitor->Height()) ) ?></td>
               <td class="colMark"><input type="checkbox" name="markZids[]" value="<?php echo $zone['Id'] ?>" onclick="configureDeleteButton( this );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></td>
             </tr>
 <?php
@@ -95,7 +128,7 @@ foreach( $zones as $zone )
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="button" value="<?php echo translate('AddNewZone') ?>" onclick="createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=0', 'zmZone', 'zone', <?php echo $monitor['Width'] ?>, <?php echo $monitor['Height'] ?> );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
+          <input type="button" value="<?php echo translate('AddNewZone') ?>" onclick="createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=0', 'zmZone', 'zone', <?php echo $monitor->Width() ?>, <?php echo $monitor->Height() ?> );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
           <input type="submit" name="deleteBtn" value="<?php echo translate('Delete') ?>" disabled="disabled"/>
         </div>
       </form>

@@ -59,7 +59,7 @@ foreach ( getEnumValues( 'Zones', 'CheckMethod' ) as $optCheckMethod )
     $optCheckMethods[$optCheckMethod] = $optCheckMethod;
 }
 
-$monitor = dbFetchMonitor ( $mid );
+$monitor = new Monitor( $mid );
 
 $minX = 0;
 $maxX = $monitor['Width']-1;
@@ -100,6 +100,7 @@ if ( !isset($newZone) )
         );
     }
     $zone['Points'] = coordsToPoints( $zone['Coords'] );
+    $zone['AreaCoords'] = preg_replace( '/\s+/', ',', $zone['Coords'] );
 
     $newZone = $zone;
 }
@@ -114,15 +115,6 @@ ksort( $newZone['Points'], SORT_NUMERIC );
 $newZone['Coords'] = pointsToCoords( $newZone['Points'] );
 $newZone['Area'] = getPolyArea( $newZone['Points'] );
 $selfIntersecting = isSelfIntersecting( $newZone['Points'] );
-
-$wd = getcwd();
-chdir( ZM_DIR_IMAGES );
-$command = getZmuCommand( " -m ".$mid." -z" );
-$command .= '"'.$zid.' '.$hicolor.' '.$newZone['Coords'].'"';
-$status = exec( escapeshellcmd( $command ) );
-chdir( $wd );
-
-$zoneImage = ZM_DIR_IMAGES.'/Zones'.$monitor['Id'].'.jpg?'.time();
 
 $focusWindow = true;
 
@@ -218,7 +210,11 @@ xhtmlHeaders(__FILE__, translate('Zone') );
         <div id="definitionPanel">
           <div id="imagePanel">
             <div id="imageFrame" style="width: <?php echo reScale( $monitor['Width'], $scale ) ?>px; height: <?php echo reScale( $monitor['Height'], $scale ) ?>px;">
-              <img name="zoneImage" id="zoneImage" src="<?php echo $zoneImage ?>" width="<?php echo reScale( $monitor['Width'], $scale ) ?>" height="<?php echo reScale( $monitor['Height'], $scale ) ?>" alt="Zone Image"/>
+                <?php echo getStreamHTML( $monitor, $scale ); ?>
+                <svg id="zoneSVG" class="zones" style="width: <?php echo reScale( $monitor->Width(), $scale ) ?>px; height: <?php echo reScale( $monitor->Height(), $scale ) ?>px;margin-top: -<?php echo $monitor->Height ?>px;background: none;">
+                  <polygon id="zonePoly" points="<?php echo $zone['AreaCoords'] ?>" class="<?php echo $zone['Type'] ?>"/>
+                  Sorry, your browser does not support inline SVG
+                </svg>
             </div>
           </div>
           <table id="zonePoints" cellspacing="0">

@@ -18,8 +18,3 @@
 	stroke: #0000FF;
 	fill: #0000FF;
 }
-.zones circle {
-	r: 5px;
-	fill-opacity: 0.5;
-	stroke-width: 2px;
-}

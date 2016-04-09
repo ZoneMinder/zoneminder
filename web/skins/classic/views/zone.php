@@ -29,7 +29,7 @@ $zid = !empty($_REQUEST['zid'])?validInt($_REQUEST['zid']):0;
 
 $scale = SCALE_BASE;
 
-$hicolor = "0x00ff00"; // Green
+$hicolor = '0x00ff00'; // Green
 
 $presets = array();
 $presetNames = array();

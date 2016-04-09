@@ -17,7 +17,7 @@ if ( canView( 'Monitors' ) )
         {
             $wd = getcwd();
             chdir( ZM_DIR_IMAGES );
-            $hiColor = "0x00ff00";
+            $hiColor = '0x00ff00';
 
             $command = getZmuCommand( " -m ".$_REQUEST['mid']." -z" );
             if ( !isset($_REQUEST['zid']) )

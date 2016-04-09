@@ -1307,26 +1307,30 @@ function executeFilter( $filter )
     return( $status );
 }
 
+# This takes more than one scale amount, so it runs through each and alters dimension.
+# I can't imagine why you would want to do that.
 function reScale( $dimension, $dummy )
 {
+    $new_dimension = $dimension;
     for ( $i = 1; $i < func_num_args(); $i++ )
     {
         $scale = func_get_arg( $i );
         if ( !empty($scale) && $scale != SCALE_BASE )
-            $dimension = (int)(($dimension*$scale)/SCALE_BASE);
+            $new_dimension = (int)(($new_dimension*$scale)/SCALE_BASE);
     }
-    return( $dimension );
+    return( $new_dimension );
 }
 
 function deScale( $dimension, $dummy )
 {
+    $new_dimension = $dimension;
     for ( $i = 1; $i < func_num_args(); $i++ )
     {
         $scale = func_get_arg( $i );
         if ( !empty($scale) && $scale != SCALE_BASE )
-            $dimension = (int)(($dimension*SCALE_BASE)/$scale);
+            $new_dimension = (int)(($new_dimension*SCALE_BASE)/$scale);
     }
-    return( $dimension );
+    return( $new_dimension );
 }
 
 function monitorLimitSql()

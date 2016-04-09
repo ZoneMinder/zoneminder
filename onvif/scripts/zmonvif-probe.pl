@@ -31,6 +31,7 @@ require ONVIF::Client;
 require WSDiscovery10::Interfaces::WSDiscovery::WSDiscoveryPort;
 require WSDiscovery10::Elements::Types;
 require WSDiscovery10::Elements::Scopes;
+require WSDiscovery10::Elements::To;
 
 require WSDiscovery::TransportUDP;
 
@@ -178,9 +179,10 @@ sub discover
 
   my $result = $svc_discover->ProbeOp(
     { # WSDiscovery::Types::ProbeType
-      Types => { 'dn:NetworkVideoTransmitter', 'tds:Device' }, # QNameListType
+      Types => 'http://www.onvif.org/ver10/network/wsdl:NetworkVideoTransmitter http://www.onvif.org/ver10/device/wsdl:Device', # QNameListType
       Scopes =>  { value => '' },
-    },, 
+    },
+      WSDiscovery10::Elements::To->new({ value => 'urn:schemas-xmlsoap-org:ws:2005:04:discovery' })
   );
 #  print $result . "\n";
 
@@ -197,9 +199,10 @@ sub discover
 
   $result = $svc_discover->ProbeOp(
     { # WSDiscovery::Types::ProbeType
-      Types => { 'dn:NetworkVideoTransmitter', 'tds:Device' }, # QNameListType
+      Types => 'http://www.onvif.org/ver10/network/wsdl:NetworkVideoTransmitter http://www.onvif.org/ver10/device/wsdl:Device', # QNameListType
       Scopes =>  { value => '' },
-    },, 
+    },
+      WSDiscovery10::Elements::To->new({ value => 'urn:schemas-xmlsoap-org:ws:2005:04:discovery' })
   );
 #  print $result . "\n";
 

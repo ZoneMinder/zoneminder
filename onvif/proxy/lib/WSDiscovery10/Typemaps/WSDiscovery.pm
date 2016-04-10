@@ -25,10 +25,10 @@ our $typemap_1 = {
                'ProbeMatches/ProbeMatch/EndpointReference/ReferenceProperties' => 'WSDiscovery10::Types::ReferencePropertiesType',
                'ProbeMatches/ProbeMatch/EndpointReference/PortType' => 'WSDiscovery10::Types::AttributedQName'
                'MessageID' => 'WSDiscovery10::Elements::MessageID',
-               'RelatesTo' => '__SKIP__',
-               'To' => '__SKIP__',
-               'Action' => '__SKIP__',
-               'AppSequence' => '__SKIP__',
+               'RelatesTo' => 'WSDiscovery10::Elements::RelatesTo',
+               'To' => 'WSDiscovery10::Elements::To',
+               'Action' => 'WSDiscovery10::Elements::Action',
+               'AppSequence' => 'WSDiscovery10::Elements::AppSequence',
              };
 ;
 

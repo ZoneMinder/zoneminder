@@ -25,13 +25,14 @@
 #
 
 use Getopt::Std;
+use Data::UUID;
 
 require ONVIF::Client;
 
 require WSDiscovery10::Interfaces::WSDiscovery::WSDiscoveryPort;
+require WSDiscovery10::Elements::Header;
 require WSDiscovery10::Elements::Types;
 require WSDiscovery10::Elements::Scopes;
-require WSDiscovery10::Elements::To;
 
 require WSDiscovery::TransportUDP;
 
@@ -169,6 +170,8 @@ sub discover
   ## try both soap versions
   my %services;
 
+  my $uuid_gen = Data::UUID->new();
+
   if($verbose) {
     print "Probing for SOAP 1.1\n"
   }
@@ -177,12 +180,18 @@ sub discover
   });
   $svc_discover->set_soap_version('1.1');
 
+  my $uuid = $uuid_gen->create_str();
+
   my $result = $svc_discover->ProbeOp(
     { # WSDiscovery::Types::ProbeType
       Types => 'http://www.onvif.org/ver10/network/wsdl:NetworkVideoTransmitter http://www.onvif.org/ver10/device/wsdl:Device', # QNameListType
       Scopes =>  { value => '' },
     },
-      WSDiscovery10::Elements::To->new({ value => 'urn:schemas-xmlsoap-org:ws:2005:04:discovery' })
+    WSDiscovery10::Elements::Header->new({
+      Action => { value => 'http://schemas.xmlsoap.org/ws/2005/04/discovery/Probe' },
+      MessageID => { value => "urn:uuid:$uuid" }, 
+      To => { value => 'urn:schemas-xmlsoap-org:ws:2005:04:discovery' },
+    })
   );
 #  print $result . "\n";
 
@@ -197,12 +206,20 @@ sub discover
   });
   $svc_discover->set_soap_version('1.2');
 
+  # copies of the same Probe message must have the same MessageID. 
+  # This is not a copy. So we generate a new uuid.
+  $uuid = $uuid_gen->create_str();
+
   $result = $svc_discover->ProbeOp(
     { # WSDiscovery::Types::ProbeType
       Types => 'http://www.onvif.org/ver10/network/wsdl:NetworkVideoTransmitter http://www.onvif.org/ver10/device/wsdl:Device', # QNameListType
       Scopes =>  { value => '' },
     },
-      WSDiscovery10::Elements::To->new({ value => 'urn:schemas-xmlsoap-org:ws:2005:04:discovery' })
+    WSDiscovery10::Elements::Header->new({
+      Action => { value => 'http://schemas.xmlsoap.org/ws/2005/04/discovery/Probe' },
+      MessageID => { value => "urn:uuid:$uuid" }, 
+      To => { value => 'urn:schemas-xmlsoap-org:ws:2005:04:discovery' },
+    })
   );
 #  print $result . "\n";
 

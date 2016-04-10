@@ -219,11 +219,6 @@ xhtmlHeaders(__FILE__, translate('Zone') );
             </div>
           </div>
           <div id="monitorState"><?php echo translate('State') ?>:&nbsp;<span id="stateValue"></span>&nbsp;-&nbsp;<span id="fpsValue"></span>&nbsp;fps</div>
-<!--
-          <div style="border-style: solid;border-width: 1px;">
-            <div id="barLevel" style="width: 25%;background-color: green;text-align: center;"><span id=barLevelVal>4</span>%</div>
-          </div>
--->
           <table id="zonePoints" cellspacing="0">
             <tbody>
               <tr>

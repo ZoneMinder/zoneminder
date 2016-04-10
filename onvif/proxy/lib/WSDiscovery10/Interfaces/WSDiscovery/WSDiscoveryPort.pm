@@ -37,7 +37,7 @@ sub ProbeOp {
             'use'           => 'literal',
             namespace       => 'http://schemas.xmlsoap.org/ws/2004/08/addressing',
             encodingStyle   => '',
-            parts           => [qw(WSDiscovery10::Elements::To WSDiscovery10::Elements::Action)],
+            parts           => [qw( WSDiscovery10::Elements::Header )],
  
         },
         headerfault => {

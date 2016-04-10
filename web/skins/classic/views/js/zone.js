@@ -479,11 +479,6 @@ function drawZonePoints()
 // Imported from watch.js and modified for new zone edit view
 //
 
-function setButtonState( element, butClass ) {
-    element.className = butClass;
-    element.disabled = (butClass != 'inactive');
-}
-
 var alarmState = STATE_IDLE;
 var lastAlarmState = STATE_IDLE;
 

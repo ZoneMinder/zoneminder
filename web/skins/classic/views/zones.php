@@ -37,6 +37,8 @@ foreach( dbFetchAll( 'select * from Zones where MonitorId = ? order by Area desc
     }
 }
 
+$connkey = generateConnKey();
+
 xhtmlHeaders(__FILE__, translate('Zones') );
 ?>
 <body>
@@ -51,7 +53,7 @@ xhtmlHeaders(__FILE__, translate('Zones') );
 <?php
       foreach( array_reverse($zones) as $zone ) {
 ?>
-        <polygon points="<?php echo $zone['AreaCoords'] ?>" class="<?php echo $zone['Type']?>" onclick="createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>', 'zmZone', 'zone', <?php echo $monitor->Width ?>, <?php echo $monitor->Height ?> ); return( false );"/>
+        <polygon points="<?php echo $zone['AreaCoords'] ?>" class="<?php echo $zone['Type']?>" onclick="streamCmdQuit( true ); createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>', 'zmZone', 'zone', <?php echo $monitor->Width ?>, <?php echo $monitor->Height ?> ); return( false );"/>
 <?php
       } // end foreach zone
 ?>
@@ -76,7 +78,7 @@ foreach( $zones as $zone )
 {
 ?>
             <tr>
-              <td class="colName"><a href="#" onclick="createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>', 'zmZone', 'zone', <?php echo $monitor->Width() ?>, <?php echo $monitor->Height() ?> ); return( false );"><?php echo $zone['Name'] ?></a></td>
+              <td class="colName"><a href="#" onclick="streamCmdQuit( true ); createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>', 'zmZone', 'zone', <?php echo $monitor->Width() ?>, <?php echo $monitor->Height() ?> ); return( false );"><?php echo $zone['Name'] ?></a></td>
               <td class="colType"><?php echo $zone['Type'] ?></td>
               <td class="colUnits"><?php echo $zone['Area'] ?>&nbsp;/&nbsp;<?php echo sprintf( "%.2f", ($zone['Area']*100)/($monitor->Width()*$monitor->Height()) ) ?></td>
               <td class="colMark"><input type="checkbox" name="markZids[]" value="<?php echo $zone['Id'] ?>" onclick="configureDeleteButton( this );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></td>

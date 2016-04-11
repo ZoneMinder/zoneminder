@@ -117,6 +117,7 @@ $newZone['Area'] = getPolyArea( $newZone['Points'] );
 $selfIntersecting = isSelfIntersecting( $newZone['Points'] );
 
 $focusWindow = true;
+$connkey = generateConnKey();
 
 xhtmlHeaders(__FILE__, translate('Zone') );
 ?>
@@ -217,6 +218,7 @@ xhtmlHeaders(__FILE__, translate('Zone') );
                 </svg>
             </div>
           </div>
+          <div id="monitorState"><?php echo translate('State') ?>:&nbsp;<span id="stateValue"></span>&nbsp;-&nbsp;<span id="fpsValue"></span>&nbsp;fps</div>
           <table id="zonePoints" cellspacing="0">
             <tbody>
               <tr>
@@ -265,7 +267,7 @@ for ( $i = 0; $i < $pointCols; $i++ )
               </tr>
             </tbody>
           </table>
-          <input type="submit" id="submitBtn" name="submitBtn" value="<?php echo translate('Save') ?>" onclick="return saveChanges( this )"<?php if (!canEdit( 'Monitors' ) || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
+          <input id="pauseBtn" type="button" value="<?php echo translate('Pause') ?>" onclick="streamCmdPauseToggle()"/><input type="submit" id="submitBtn" name="submitBtn" value="<?php echo translate('Save') ?>" onclick="return saveChanges( this )"<?php if (!canEdit( 'Monitors' ) || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="refreshParentWindow(); closeWindow();"/>
         </div>
       </form>
     </div>

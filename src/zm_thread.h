@@ -224,6 +224,7 @@ protected:
 #endif
     bool  mStarted;
     bool  mRunning;
+    int		status;		// Used in various funcions to get around return a local variable
 
 protected:
     Thread();
@@ -253,10 +254,10 @@ return tid;
         return( pthread_self() );
     }
 #endif
-    void exit( int status = 0 )
+    void exit( int p_status = 0 )
     {
         //INFO( "Exiting" );
-        pthread_exit( (void *)&status );
+        pthread_exit( (void *)&p_status );
     }
     static void *mThreadFunc( void *arg );
 

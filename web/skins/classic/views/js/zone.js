@@ -475,8 +475,211 @@ function drawZonePoints()
     updateZoneImage();
 }
 
-function initPage()
+//
+// Imported from watch.js and modified for new zone edit view
+//
+
+var alarmState = STATE_IDLE;
+var lastAlarmState = STATE_IDLE;
+
+function setAlarmState( currentAlarmState ) {
+    alarmState = currentAlarmState;
+
+    var stateString = "Unknown";
+    var stateClass = "";
+    if ( alarmState == STATE_ALARM )
+        stateClass = "alarm";
+    else if ( alarmState == STATE_ALERT )
+        stateClass = "alert";
+    $('stateValue').set( 'text', stateStrings[alarmState] );
+    if ( stateClass )
+        $('stateValue').setProperty( 'class', stateClass );
+    else
+        $('stateValue').removeProperty( 'class' );
+
+    var isAlarmed = ( alarmState == STATE_ALARM || alarmState == STATE_ALERT );
+    var wasAlarmed = ( lastAlarmState == STATE_ALARM || lastAlarmState == STATE_ALERT );
+
+    var newAlarm = ( isAlarmed && !wasAlarmed );
+    var oldAlarm = ( !isAlarmed && wasAlarmed );
+
+    if ( newAlarm )
+    {
+        if ( SOUND_ON_ALARM )
+        {
+            // Enable the alarm sound
+            if ( !canPlayPauseAudio )
+                $('alarmSound').removeClass( 'hidden' );
+            else
+                $('MediaPlayer').Play();
+        }
+    }
+    if ( SOUND_ON_ALARM )
+    {
+        if ( oldAlarm )
+        {
+            // Disable alarm sound
+            if ( !canPlayPauseAudio )
+                $('alarmSound').addClass( 'hidden' );
+            else
+                $('MediaPlayer').Stop();
+        }
+    }
+    lastAlarmState = alarmState;
+}
+
+var streamCmdParms = "view=request&request=stream&connkey="+connKey;
+var streamCmdReq = new Request.JSON( { url: monitorUrl+thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getStreamCmdResponse } );
+var streamCmdTimer = null;
+
+var streamStatus;
+
+function getStreamCmdResponse( respObj, respText ) {
+    watchdogOk("stream");
+    if ( streamCmdTimer )
+        streamCmdTimer = clearTimeout( streamCmdTimer );
+
+    if ( respObj.result == 'Ok' ) {
+        streamStatus = respObj.status;
+        $('fpsValue').set( 'text', streamStatus.fps );
+
+        setAlarmState( streamStatus.state );
+
+        var delayString = secsToTime( streamStatus.delay );
+
+        if ( streamStatus.paused == true )
+        {
+            streamCmdPause( false );
+        } else if ( streamStatus.delayed == true && streamStatus.rate == 1 ) {
+                streamCmdPlay( false );
+        }
+    } else {
+        checkStreamForErrors("getStreamCmdResponse",respObj);//log them
+        // Try to reload the image stream.
+        var streamImg = document.getElementById('liveStream');
+        if ( streamImg )
+            streamImg.src = streamImg.src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
+    }
+
+    var streamCmdTimeout = statusRefreshTimeout;
+    if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
+        streamCmdTimeout = streamCmdTimeout/5;
+    streamCmdTimer = streamCmdQuery.delay( streamCmdTimeout );
+} 
+
+var streamPause = false;
+
+function streamCmdPauseToggle() {
+  if ( streamPause == true ) {
+    streamCmdPlay( true );
+    streamPause = false;
+    document.getElementById("pauseBtn").value = pauseString;
+  } else {
+    streamCmdPause( true );
+    streamPause = true;
+    document.getElementById("pauseBtn").value = playString;
+  }
+}
+
+function streamCmdPause( action ) {
+    if ( action )
+        streamCmdReq.send( streamCmdParms+"&command="+CMD_PAUSE );
+}
+
+function streamCmdPlay( action )
 {
+    if ( action )
+        streamCmdReq.send( streamCmdParms+"&command="+CMD_PLAY );
+}
+
+function streamCmdStop( action ) {
+    if ( action )
+        streamCmdReq.send( streamCmdParms+"&command="+CMD_STOP );
+}
+
+function streamCmdQuery() {
+    streamCmdReq.send( streamCmdParms+"&command="+CMD_QUERY );
+}       
+
+var statusCmdParms = "view=request&request=status&entity=monitor&id="+monitorId+"&element[]=Status&element[]=FrameRate";
+var statusCmdReq = new Request.JSON( { url: monitorUrl+thisUrl, method: 'post', data: statusCmdParms, timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getStatusCmdResponse } );
+var statusCmdTimer = null;
+
+function getStatusCmdResponse( respObj, respText ) {
+    watchdogOk("status");
+    if ( statusCmdTimer )
+        statusCmdTimer = clearTimeout( statusCmdTimer );
+
+    if ( respObj.result == 'Ok' )
+    {
+        $('fpsValue').set( 'text', respObj.monitor.FrameRate );
+        setAlarmState( respObj.monitor.Status );
+    }
+    else
+        checkStreamForErrors("getStatusCmdResponse",respObj);
+
+    var statusCmdTimeout = statusRefreshTimeout;
+    if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
+        statusCmdTimeout = statusCmdTimeout/5;
+    statusCmdTimer = statusCmdQuery.delay( statusCmdTimeout );
+} 
+
+function statusCmdQuery() {
+    statusCmdReq.send();
+}
+
+var tempImage = null;
+
+function fetchImage( streamImage ) {
+    var now = new Date();
+    if ( !tempImage )
+        tempImage = new Element( 'img' );
+    tempImage.setProperty( 'src', streamSrc+'&'+now.getTime() );
+    $(streamImage).setProperty( 'src', tempImage.getProperty( 'src' ) );
+}
+
+function appletRefresh() {
+    if ( streamStatus && (!streamStatus.paused && !streamStatus.delayed) )
+    {
+        var streamImg = $('liveStream');
+        var parent = streamImg.getParent();
+        streamImg.dispose();
+        streamImg.inject( parent );
+        if ( appletRefreshTime )
+            appletRefresh.delay( appletRefreshTime*1000 );
+    }
+    else
+    {
+        appletRefresh.delay( 15*1000 ); //if we are paused or delayed check every 15 seconds if we are live yet...
+    }
+}
+
+var watchdogInactive = {
+    'stream': false,
+    'status': false
+};
+
+var watchdogFunctions = {
+    'stream': streamCmdQuery,
+    'status': statusCmdQuery
+};
+
+//Make sure the various refreshes are still taking effect
+function watchdogCheck( type ) {
+    if ( watchdogInactive[type] ) {
+        console.log( "Detected streamWatch of type: " + type + " stopped, restarting" );
+        watchdogFunctions[type]();
+        watchdogInactive[type] = false;
+    } else {
+        watchdogInactive[type] = true;
+    }
+}
+
+function watchdogOk( type ) {
+    watchdogInactive[type] = false;
+}
+
+function initPage() {
     var form = document.zoneForm;
 
     //form.elements['newZone[Name]'].disabled = true;
@@ -503,13 +706,37 @@ function initPage()
 
     applyZoneType();
 
-    if ( form.elements['newZone[Units]'].value == 'Percent' )
-    {
+    if ( form.elements['newZone[Units]'].value == 'Percent' ) {
         applyZoneUnits();
     }
 
     applyCheckMethod();
     drawZonePoints();
+
+//
+// Imported from watch.js and modified for new zone edit view
+//
+
+    if ( streamMode == "single" ) {
+        statusCmdTimer = statusCmdQuery.delay( (Math.random()+0.1)*statusRefreshTimeout );
+        watchdogCheck.pass('status').periodical(statusRefreshTimeout*2);
+    } else {
+        streamCmdTimer = streamCmdQuery.delay( (Math.random()+0.1)*statusRefreshTimeout );
+        watchdogCheck.pass('stream').periodical(statusRefreshTimeout*2);
+    }
+
+    if ( canStreamNative || streamMode == "single" ) {
+        var streamImg = $('imageFrame').getElement('img');
+        if ( !streamImg )
+            streamImg = $('imageFrame').getElement('object');
+        if ( streamMode == "single" ) {
+            streamImg.addEvent( 'click', fetchImage.pass( streamImg ) );
+            fetchImage.pass( streamImg ).periodical( imageRefreshTimeout );
+        }
+    }
+
+    if ( refreshApplet && appletRefreshTime )
+        appletRefresh.delay( appletRefreshTime*1000 );
 }
 
 window.addEvent( 'domready', initPage );

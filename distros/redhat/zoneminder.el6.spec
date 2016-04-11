@@ -168,6 +168,7 @@ rm -rf %{_docdir}/%{name}-%{version}
 %{perl_vendorlib}/ONVIF*
 %{perl_vendorlib}/WSDiscovery*
 %{perl_vendorlib}/WSSecurity*
+%{perl_vendorlib}/WSNotification*
 %{_mandir}/man*/*
 %dir %{_libexecdir}/%{name}
 %{_libexecdir}/%{name}/cgi-bin

@@ -268,16 +268,7 @@ zoneminder (1.25.0-2) unstable; urgency=low
 
  -- Vagrant Cascadian <vagrant@debian.org>  Thu, 23 Aug 2012 12:40:34 -0700
 
-<<<<<<< HEAD
- -- Isaac Connor <iconnor@connortechnology.com>  Wed, 15 Jul 2015 11:56:28 -0400
-zoneminder (1.28.1+1-trusty-SNAPSHOT2015030201ubuntu1) UNRELEASED; urgency=medium
-
-  * add h264
-
- -- Isaac Connor <iconnor@connortechnology.com>  Fri, 27 Mar 2015 10:08:27 -0400
-=======
 zoneminder (1.25.0-1.1) unstable; urgency=low
->>>>>>> master
 
   * Non-maintainer upload.
   * Fix "ftbfs with GCC-4.7": add patch Fix-FTBFS-with-gcc-4.7 from Cyril

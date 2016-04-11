@@ -150,7 +150,6 @@ rm -rf %{_docdir}/%{name}-%{version}
 %{_bindir}/zmf
 %{_bindir}/zmfilter.pl
 %{_bindir}/zmpkg.pl
-%{_bindir}/zmstreamer
 %{_bindir}/zmtrack.pl
 %{_bindir}/zmtrigger.pl
 %{_bindir}/zmu
@@ -169,6 +168,7 @@ rm -rf %{_docdir}/%{name}-%{version}
 %{perl_vendorlib}/ONVIF*
 %{perl_vendorlib}/WSDiscovery*
 %{perl_vendorlib}/WSSecurity*
+%{perl_vendorlib}/WSNotification*
 %{_mandir}/man*/*
 %dir %{_libexecdir}/%{name}
 %{_libexecdir}/%{name}/cgi-bin

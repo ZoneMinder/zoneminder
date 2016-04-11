@@ -81,7 +81,7 @@ function dbLog( $sql, $update=false )
 
 function dbError( $sql )
 {
-    Fatal( "SQL-ERR '".mysql_error()."', statement was '".$sql."'" );
+    Fatal( "SQL-ERR '".$dbConn->errorInfo()."', statement was '".$sql."'" );
 }
 
 function dbEscape( $string )

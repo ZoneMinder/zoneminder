@@ -309,4 +309,6 @@ static av_always_inline av_const int64_t av_clip64_c(int64_t a, int64_t amin, in
 #define av_clip64        av_clip64_c
 #endif
 
+void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output);
+
 #endif // ZM_FFMPEG_H

@@ -1153,30 +1153,38 @@ function zmaCheck( $monitor )
 
 function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $overwrite=false )
 {
-    $eventPath = getEventPath( $event );
+    $eventPath = ZM_DIR_EVENTS.'/'.getEventPath( $event );
 
     if ( !is_array($frame) )
         $frame = array( 'FrameId'=>$frame, 'Type'=>'' );
 
-    //echo "S:$scale, CO:$captureOnly<br>";
-    $currEvent = dbFetchOne( 'SELECT M.SaveJPEGs FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = '.$event['Id'] );
-    if ( $currEvent['SaveJPEGs'] == "4" )
+    if ( file_exists( $eventPath.'/snapshot.jpg' ) ) {
         $captImage = "snapshot.jpg";
-    else
+    } else {
         $captImage = sprintf( "%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $frame['FrameId'] );
+        if ( ! file_exists( $eventPath.'/'.$captImage ) ) {
+            # Generate the frame JPG
+            if ( $event['DefaultVideo'] ) {
+                $command ='ffmpeg -v 0 -i '.$eventPath.'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$frame['FrameId'].'),setpts=PTS-STARTPTS" '.$eventPath.'/'.$captImage;
+                system( $command, $output, $retval );
+            } else {
+                Error("Can't create frame images from video because there is no video file for this event " );
+            }
+        }
+    }
+
     $captPath = $eventPath.'/'.$captImage;
     $thumbCaptPath = ZM_DIR_IMAGES.'/'.$event['Id'].'-'.$captImage;
     //echo "CI:$captImage, CP:$captPath, TCP:$thumbCaptPath<br>";
 
     $analImage = sprintf( "%0".ZM_EVENT_IMAGE_DIGITS."d-analyse.jpg", $frame['FrameId'] );
     $analPath = $eventPath.'/'.$analImage;
-    $analFile =  ZM_DIR_EVENTS."/".$analPath;
     $thumbAnalPath = ZM_DIR_IMAGES.'/'.$event['Id'].'-'.$analImage;
     //echo "AI:$analImage, AP:$analPath, TAP:$thumbAnalPath<br>";
 
     $alarmFrame = $frame['Type']=='Alarm';
 
-    $hasAnalImage = $alarmFrame && file_exists( $analFile ) && filesize( $analFile );
+    $hasAnalImage = $alarmFrame && file_exists( $analPath ) && filesize( $analPath );
     $isAnalImage = $hasAnalImage && !$captureOnly;
 
     if ( !ZM_WEB_SCALE_THUMBS || $scale >= SCALE_BASE || !function_exists( 'imagecreatefromjpeg' ) )
@@ -1207,22 +1215,20 @@ function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $ov
             $thumbPath = $thumbCaptPath;
         }
 
-        $imageFile = ZM_DIR_EVENTS."/".$imagePath;
-        //$thumbFile = ZM_DIR_EVENTS."/".$thumbPath;
         $thumbFile = $thumbPath;
         if ( $overwrite || !file_exists( $thumbFile ) || !filesize( $thumbFile ) )
         {
             // Get new dimensions
-            list( $imageWidth, $imageHeight ) = getimagesize( $imageFile );
+            list( $imageWidth, $imageHeight ) = getimagesize( $imagePath );
             $thumbWidth = $imageWidth * $fraction;
             $thumbHeight = $imageHeight * $fraction;
 
             // Resample
             $thumbImage = imagecreatetruecolor( $thumbWidth, $thumbHeight );
-            $image = imagecreatefromjpeg( $imageFile );
+            $image = imagecreatefromjpeg( $imagePath );
             imagecopyresampled( $thumbImage, $image, 0, 0, 0, 0, $thumbWidth, $thumbHeight, $imageWidth, $imageHeight );
 
-            if ( !imagejpeg( $thumbImage, $thumbFile ) )
+            if ( !imagejpeg( $thumbImage, $thumbPath ) )
                 Error( "Can't create thumbnail '$thumbPath'" );
         }
     }
@@ -1231,15 +1237,13 @@ function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $ov
         'eventPath' => $eventPath,
         'imagePath' => $imagePath,
         'thumbPath' => $thumbPath,
-        'imageFile' => $imageFile,
+        'imageFile' => $imagePath,
         'thumbFile' => $thumbFile,
         'imageClass' => $alarmFrame?"alarm":"normal",
         'isAnalImage' => $isAnalImage,
         'hasAnalImage' => $hasAnalImage,
     );
 
-    //echo "IP:$imagePath<br>";
-    //echo "TP:$thumbPath<br>";
     return( $imageData );
 }
 

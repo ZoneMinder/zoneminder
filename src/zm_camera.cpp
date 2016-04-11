@@ -20,7 +20,7 @@
 #include "zm.h"
 #include "zm_camera.h"
 
-Camera::Camera( int p_id, SourceType p_type, int p_width, int p_height, int p_colours, int p_subpixelorder, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) :
+Camera::Camera( int p_id, SourceType p_type, int p_width, int p_height, int p_colours, int p_subpixelorder, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio ) :
     id( p_id ),
     type( p_type ),
     width( p_width),
@@ -31,7 +31,8 @@ Camera::Camera( int p_id, SourceType p_type, int p_width, int p_height, int p_co
     hue( p_hue ),
     colour( p_colour ),
     contrast( p_contrast ),
-    capture( p_capture )
+    capture( p_capture ),
+	record_audio( p_record_audio )
 {
 	pixels = width * height;
 	imagesize = pixels * colours;

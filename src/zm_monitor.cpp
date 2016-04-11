@@ -1222,6 +1222,9 @@ bool Monitor::CheckSignal( const Image *image )
     static Rgb colour_val; /* RGB32 color */
     static int usedsubpixorder;
 
+    if( RecordOnly() )
+        return true;
+
     if ( config.signal_check_points > 0 )
     {
         if ( static_undef )
@@ -1829,7 +1832,7 @@ bool Monitor::Analyse()
                         {
                             video_store_data->recording = true;
                         }
-                        if ( !(image_count%(frame_skip+1)) )
+			else if ( !(image_count%(frame_skip+1)) )
                         {
                             if ( config.bulk_frame_interval > 1 )
                             {
@@ -3087,6 +3090,11 @@ int Monitor::Capture()
 	int index = image_count%image_buffer_count;
 	Image* capture_image = image_buffer[index].image;
 
+	int recording = video_store_data->recording;	
+	if( recording && RecordOnly() ) {
+	    recording = 2;
+	}
+
 	if ( (deinterlacing & 0xff) == 4) {
 		if ( FirstCapture != 1 ) {
 			/* Copy the next image into the shared memory */
@@ -3097,7 +3105,7 @@ int Monitor::Capture()
         
         //Check if FFMPEG camera
         if((GetOptVideoWriter() == 2) && camera->SupportsNativeVideo()){
-            captureResult = camera->CaptureAndRecord(*(next_buffer.image), video_store_data->recording, video_store_data->event_file);
+            captureResult = camera->CaptureAndRecord(*(next_buffer.image), recording, video_store_data->event_file);
         }else{
             captureResult = camera->Capture(*(next_buffer.image));
         }
@@ -3111,7 +3119,7 @@ int Monitor::Capture()
         //Check if FFMPEG camera
         if((GetOptVideoWriter() == 2) && camera->SupportsNativeVideo()){
             //Warning("ZMC: Recording: %d", video_store_data->recording);
-            captureResult = camera->CaptureAndRecord(*capture_image, video_store_data->recording, video_store_data->event_file);
+            captureResult = camera->CaptureAndRecord(*capture_image, recording, video_store_data->event_file);
         }else{
             /* Capture directly into image buffer, avoiding the need to memcpy() */
             captureResult = camera->Capture(*capture_image);
@@ -3123,7 +3131,7 @@ int Monitor::Capture()
         captureResult = 0;
     }
     
-    if ( captureResult != 0 )
+    if ( captureResult < 0 )
     {
         // Unable to capture image for temporary reason
         // Fake a signal loss image

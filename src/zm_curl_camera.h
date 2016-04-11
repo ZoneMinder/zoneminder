@@ -79,7 +79,7 @@ public:
 	int PreCapture();
 	int Capture( Image &image );
 	int PostCapture();
-	int CaptureAndRecord( Image &image, bool recording, char* event_directory);
+	int CaptureAndRecord( Image &image, int recording, char* event_directory);
 
 
 	size_t data_callback(void *buffer, size_t size, size_t nmemb, void *userdata);

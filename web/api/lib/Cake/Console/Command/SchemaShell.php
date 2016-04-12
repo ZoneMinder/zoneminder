@@ -39,7 +39,7 @@ class SchemaShell extends AppShell {
 /**
  * is this a dry run?
  *
- * @var boolean
+ * @var bool
  */
 	protected $_dry = null;
 
@@ -66,13 +66,10 @@ class SchemaShell extends AppShell {
 			list($this->params['plugin'], $splitName) = pluginSplit($name);
 			$name = $this->params['name'] = $splitName;
 		}
-
-		$defaultFile = 'schema.php';
-		if (empty($this->params['file'])) {
-			$this->params['file'] = $defaultFile;
-		}
-		if ($name && $this->params['file'] === $defaultFile) {
+		if ($name && empty($this->params['file'])) {
 			$this->params['file'] = Inflector::underscore($name);
+		} elseif (empty($this->params['file'])) {
+			$this->params['file'] = 'schema.php';
 		}
 		if (strpos($this->params['file'], '.php') === false) {
 			$this->params['file'] .= '.php';
@@ -92,7 +89,7 @@ class SchemaShell extends AppShell {
 				$name = $plugin;
 			}
 		}
-		$name = Inflector::classify($name);
+		$name = Inflector::camelize($name);
 		$this->Schema = new CakeSchema(compact('name', 'path', 'file', 'connection', 'plugin'));
 	}
 
@@ -125,7 +122,7 @@ class SchemaShell extends AppShell {
 		if ($this->params['force']) {
 			$options['models'] = false;
 		} elseif (!empty($this->params['models'])) {
-			$options['models'] = String::tokenize($this->params['models']);
+			$options['models'] = CakeText::tokenize($this->params['models']);
 		}
 
 		$snapshot = false;
@@ -154,14 +151,14 @@ class SchemaShell extends AppShell {
 		Configure::write('Cache.disable', $cacheDisable);
 
 		if (!empty($this->params['exclude']) && !empty($content)) {
-			$excluded = String::tokenize($this->params['exclude']);
+			$excluded = CakeText::tokenize($this->params['exclude']);
 			foreach ($excluded as $table) {
 				unset($content['tables'][$table]);
 			}
 		}
 
 		if ($snapshot === true) {
-			$fileName = rtrim($this->params['file'], '.php');
+			$fileName = basename($this->params['file'], '.php');
 			$Folder = new Folder($this->Schema->path);
 			$result = $Folder->read();
 
@@ -288,17 +285,17 @@ class SchemaShell extends AppShell {
 			'connection' => $this->params['connection'],
 		);
 		if (!empty($this->params['snapshot'])) {
-			$fileName = rtrim($this->Schema->file, '.php');
+			$fileName = basename($this->Schema->file, '.php');
 			$options['file'] = $fileName . '_' . $this->params['snapshot'] . '.php';
 		}
 
 		$Schema = $this->Schema->load($options);
 
 		if (!$Schema) {
-			$this->err(__d('cake_console', 'The chosen schema could not be loaded. Attempted to load:'));
-			$this->err(__d('cake_console', 'File: %s', $this->Schema->path . DS . $this->Schema->file));
-			$this->err(__d('cake_console', 'Name: %s', $this->Schema->name));
-			return $this->_stop();
+			$this->err(__d('cake_console', '<error>Error</error>: The chosen schema could not be loaded. Attempted to load:'));
+			$this->err(__d('cake_console', '- file: %s', $this->Schema->path . DS . $this->Schema->file));
+			$this->err(__d('cake_console', '- name: %s', $this->Schema->name));
+			return $this->_stop(2);
 		}
 		$table = null;
 		if (isset($this->args[1])) {
@@ -311,8 +308,8 @@ class SchemaShell extends AppShell {
  * Create database from Schema object
  * Should be called via the run method
  *
- * @param CakeSchema $Schema
- * @param string $table
+ * @param CakeSchema $Schema The schema instance to create.
+ * @param string $table The table name.
  * @return void
  */
 	protected function _create(CakeSchema $Schema, $table = null) {
@@ -337,8 +334,7 @@ class SchemaShell extends AppShell {
 		$this->out("\n" . __d('cake_console', 'The following table(s) will be dropped.'));
 		$this->out(array_keys($drop));
 
-		if (
-			!empty($this->params['yes']) ||
+		if (!empty($this->params['yes']) ||
 			$this->in(__d('cake_console', 'Are you sure you want to drop the table(s)?'), array('y', 'n'), 'n') === 'y'
 		) {
 			$this->out(__d('cake_console', 'Dropping table(s).'));
@@ -348,8 +344,7 @@ class SchemaShell extends AppShell {
 		$this->out("\n" . __d('cake_console', 'The following table(s) will be created.'));
 		$this->out(array_keys($create));
 
-		if (
-			!empty($this->params['yes']) ||
+		if (!empty($this->params['yes']) ||
 			$this->in(__d('cake_console', 'Are you sure you want to create the table(s)?'), array('y', 'n'), 'y') === 'y'
 		) {
 			$this->out(__d('cake_console', 'Creating table(s).'));
@@ -362,8 +357,8 @@ class SchemaShell extends AppShell {
  * Update database with Schema object
  * Should be called via the run method
  *
- * @param CakeSchema $Schema
- * @param string $table
+ * @param CakeSchema &$Schema The schema instance
+ * @param string $table The table name.
  * @return void
  */
 	protected function _update(&$Schema, $table = null) {
@@ -402,13 +397,15 @@ class SchemaShell extends AppShell {
 
 		$this->out("\n" . __d('cake_console', 'The following statements will run.'));
 		$this->out(array_map('trim', $contents));
-		if (
-			!empty($this->params['yes']) ||
+		if (!empty($this->params['yes']) ||
 			$this->in(__d('cake_console', 'Are you sure you want to alter the tables?'), array('y', 'n'), 'n') === 'y'
 		) {
 			$this->out();
 			$this->out(__d('cake_console', 'Updating Database...'));
 			$this->_run($contents, 'update', $Schema);
+
+			Configure::write('Cache.disable', false);
+			Cache::clear(false, '_cake_model_');
 		}
 
 		$this->out(__d('cake_console', 'End update.'));
@@ -417,9 +414,9 @@ class SchemaShell extends AppShell {
 /**
  * Runs sql from _create() or _update()
  *
- * @param array $contents
- * @param string $event
- * @param CakeSchema $Schema
+ * @param array $contents The contents to execute.
+ * @param string $event The event to fire
+ * @param CakeSchema $Schema The schema instance.
  * @return void
  */
 	protected function _run($contents, $event, CakeSchema $Schema) {
@@ -483,7 +480,6 @@ class SchemaShell extends AppShell {
 		);
 		$file = array(
 			'help' => __d('cake_console', 'File name to read and write.'),
-			'default' => 'schema.php'
 		);
 		$name = array(
 			'help' => __d('cake_console',

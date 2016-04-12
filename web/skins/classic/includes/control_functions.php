@@ -243,7 +243,7 @@ function controlPanTilt( $monitor, $cmds )
     ob_start();
 ?>
 <div class="pantiltControls">
-  <div class="pantilLabel"><?php echo translate('PanTilt') ?></div>
+  <div class="pantiltLabel"><?php echo translate('PanTilt') ?></div>
   <div class="pantiltButtons">
 <?php
     $hasPan = $monitor->CanPan;
@@ -367,24 +367,22 @@ function ptzControls( $monitor )
             echo controlIris( $monitor, $cmds );
         if ( $monitor->CanWhite() )
             echo controlWhite( $monitor, $cmds );
-        if ( $monitor->CanMove() || ( $monitor->CanWake() || $monitor->CanSleep() || $monitor->CanReset() ) )
-        {
+        if ( $monitor->CanMove() ) {
 ?>
           <div class="pantiltPanel">
 <?php
-            if ( $monitor->CanMove() )
                 echo controlPanTilt( $monitor, $cmds );
-            if ( $monitor->CanWake() || $monitor->CanSleep() || $monitor->CanReset() )
-                echo controlPower( $monitor, $cmds );
 ?>
           </div>
 <?php
         }
+        if ( $monitor->CanWake() || $monitor->CanSleep() || $monitor->CanReset() )
+            echo controlPower( $monitor, $cmds );
+        if ( $monitor->HasPresets() )
+            echo controlPresets( $monitor, $cmds );
 ?>
         </div>
 <?php
-        if ( $monitor->HasPresets() )
-            echo controlPresets( $monitor, $cmds );
     return( ob_get_clean() );
 }
 ?>

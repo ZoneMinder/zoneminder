@@ -156,7 +156,7 @@ $SLANG = array(
     'BadLabelX'             => 'Label X co-ordinate must be set to an integer of zero or more',
     'BadLabelY'             => 'Label Y co-ordinate must be set to an integer of zero or more',
     'BadMaxFPS'             => 'Maximum FPS must be a positive integer or floating point value',
-    'BadNameChars'          => 'Names may only contain alphanumeric characters plus hyphen and underscore',
+    'BadNameChars'          => 'Names may only contain alphanumeric characters plus spaces, hyphen and underscore',
     'BadPalette'            => 'Palette must be set to a valid value',
     'BadColours'            => 'Target colour must be set to a valid value',
     'BadPath'               => 'Path must be set to a valid value',
@@ -544,6 +544,7 @@ $SLANG = array(
     'OpNe'                  => 'not equal to',
     'OpNotIn'               => 'not in set',
     'OpNotMatches'          => 'does not match',
+    'OptionalEncoderParam'  => 'Optional Encoder Parameters',
     'OptionHelp'            => 'Option Help',
     'OptionRestartWarning'  => 'These changes may not come into effect fully\nwhile the system is running. When you have\nfinished making your changes please ensure that\nyou restart ZoneMinder.',
     'Options'               => 'Options',
@@ -584,6 +585,7 @@ $SLANG = array(
     'Protocol'              => 'Protocol',
     'Rate'                  => 'Rate',
     'RecaptchaWarning'      => 'Your reCaptcha secret key is invalid. Please correct it, or reCaptcha will not work', // added Sep 24 2015 - PP
+	'RecordAudio'			=> 'Whether to store the audio stream when saving an event.',
     'Real'                  => 'Real',
     'Record'                => 'Record',
     'RefImageBlendPct'      => 'Reference Image Blend %ge',
@@ -618,6 +620,7 @@ $SLANG = array(
     'RunState'              => 'Run State',
     'SaveAs'                => 'Save as',
     'SaveFilter'            => 'Save Filter',
+    'SaveJPEGs'             => 'Save JPEGs',
     'Save'                  => 'Save',
     'Scale'                 => 'Scale',
     'Score'                 => 'Score',
@@ -726,6 +729,7 @@ $SLANG = array(
     'VideoGenParms'         => 'Video Generation Parameters',
     'VideoGenSucceeded'     => 'Video Generation Succeeded!',
     'VideoSize'             => 'Video Size',
+    'VideoWriter'           => 'Video Writer',
     'Video'                 => 'Video',
     'ViewAll'               => 'View All',
     'ViewEvent'             => 'View Event',
@@ -895,11 +899,11 @@ function zmVlang( $langVarArray, $count )
 // So for example, to override the help text for ZM_LANG_DEFAULT do
 $OLANG = array(
 	'OPTIONS_FFMPEG' => array(
-		'Help' => "Parameters in this field are passwd on to FFmpeg. Multiple parameters can be separated by ,~~ ".
+		'Help' => "Parameters in this field are passed on to FFmpeg. Multiple parameters can be separated by ,~~ ".
 		          "Examples (do not enter quotes)~~~~".
 		          "\"allowed_media_types=video\" Set datatype to request fromcam (audio, video, data)~~~~".
 		          "\"reorder_queue_size=nnn\" Set number of packets to buffer for handling of reordered packets~~~~".
-		          "\"loglevel=debug\" Set verbosiy of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
+		          "\"loglevel=debug\" Set verbosity of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
 	),
 	'OPTIONS_LIBVLC' => array(
 		'Help' => "Parameters in this field are passed on to libVLC. Multiple parameters can be separated by ,~~ ".
@@ -924,7 +928,7 @@ $OLANG = array(
                           " camera, instead. You can, however, use a value that is slightly higher than the frame rate in the camera. ".
 		          "In this case, this helps keep the cpu from being overtaxed in the event of a network problem.~~". 
 		          "Some, mostly older, IP cameras support snapshot mode. In this case ZoneMinder is actively polling the camera ".
-		          "for new images. In this case, it is safe to use thie field."
+		          "for new images. In this case, it is safe to use the field."
 	),
 	
 //    'LANG_DEFAULT' => array(

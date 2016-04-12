@@ -147,7 +147,7 @@ if ( $Config{ZM_OPT_MESSAGE} )
 
 $| = 1;
 
-$ENV{PATH}  = '/bin:/usr/bin';
+$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
@@ -246,7 +246,7 @@ sub getFilters
     }
     $sth->finish();
 	if ( ! @filters ) {
-        Error("No filter found for $sql with values(@sql_values)");
+        Warning("No filter found for $sql with values(@sql_values)");
     } else {
         Debug( "Got " . @filters . " filters" );
     }
@@ -535,10 +535,12 @@ sub uploadArchFile
                 if $Config{ZM_UPLOAD_PORT};
             $sftpOptions{timeout} = $Config{ZM_UPLOAD_TIMEOUT}
                 if $Config{ZM_UPLOAD_TIMEOUT};
-            $sftpOptions{more} = [ '-o'=>'StrictHostKeyChecking=no' ]
+            my @more_ssh_args;
+            push @more_ssh_args, ['-o'=>'StrictHostKeyChecking=no']
 				if ! $Config{ZM_UPLOAD_STRICT};
-            $Net::SFTP::Foreign::debug = -1
+            push @more_ssh_args, ['-v']
                 if $Config{ZM_UPLOAD_DEBUG};
+            $sftpOptions{more} = [@more_ssh_args];
             my $sftp = Net::SFTP::Foreign->new( $Config{ZM_UPLOAD_HOST}, %sftpOptions );
             if ( $sftp->error )
             {

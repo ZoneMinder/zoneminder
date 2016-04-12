@@ -44,6 +44,7 @@ function xhtmlHeaders( $file, $title )
   <link rel="shortcut icon" href="graphics/favicon.ico"/>
   <link rel="stylesheet" href="css/reset.css" type="text/css"/>
   <link rel="stylesheet" href="css/overlay.css" type="text/css"/>
+  <link rel="stylesheet" href="css/bootstrap.min.css" type="text/css"/>
   <link rel="stylesheet" href="<?php echo $skinCssFile ?>" type="text/css" media="screen"/>
 <?php
     if ( $viewCssFile )
@@ -70,7 +71,10 @@ function xhtmlHeaders( $file, $title )
   <script type="text/javascript" src="js/mootools.ext.js"></script>
   <script type="text/javascript" src="js/logger.js"></script>
   <script type="text/javascript" src="js/overlay.js"></script>
+<?php if ( $title == 'Login' && (defined('ZM_OPT_USE_GOOG_RECAPTCHA') && ZM_OPT_USE_GOOG_RECAPTCHA) ) { ?>
+  <script src='https://www.google.com/recaptcha/api.js'></script>
 <?php
+}
     if ( $skinJsPhpFile )
     {
 ?>

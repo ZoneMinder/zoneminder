@@ -1,4 +1,27 @@
-#!/usr/bin/perl -w
+# ==========================================================================
+#
+# ZoneMinder ONVIF Client module
+# Copyright (C) 2014  Jan M. Hochstein
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+#
+# ==========================================================================
+#
+# This module contains the base class for the SOAP serializers
+#
+
 package ONVIF::Serializer::Base;
 use strict;
 use warnings;
@@ -74,8 +97,11 @@ sub serialize {
 
     my $soap_prefix = $opt->{ namespace }->{ $SOAP_NS };
 
-    # envelope start with namespaces
-    my $xml = "<$soap_prefix\:Envelope ";
+    # XML starts with header
+    my $xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+    
+    # envelope starts with namespaces
+    $xml .= "<$soap_prefix\:Envelope ";
 
     while (my ($uri, $prefix) = each %{ $opt->{ namespace } })
     {

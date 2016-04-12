@@ -133,9 +133,9 @@ set(ZM_NO_CURL "OFF" CACHE BOOL
     "Set to ON to skip cURL checks and force building ZM without cURL. default: OFF")
 set(ZM_NO_X10 "OFF" CACHE BOOL 
     "Set to ON to build ZoneMinder without X10 support. default: OFF")
-set(ZM_ONVIF "OFF" CACHE BOOL 
+set(ZM_ONVIF "ON" CACHE BOOL 
     "Set to ON to enable basic ONVIF support. This is EXPERIMENTAL and may not 
-    work with all cameras claiming to be ONVIF compliant. default: OFF")
+    work with all cameras claiming to be ONVIF compliant. default: ON")
 set(ZM_PERL_MM_PARMS INSTALLDIRS=vendor NO_PACKLIST=1 NO_PERLLOCAL=1 CACHE STRING 
 	"By default, ZoneMinder's Perl modules are installed into the Vendor folders, 
 	as defined by your installation of Perl. You can change that here. Consult Perl's 
@@ -182,6 +182,17 @@ elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
 	set(ZM_WEB_GROUP "www")
 	set(ZM_WEBDIR "/srv/www/htdocs/zoneminder")
 	set(ZM_CGIDIR "/srv/www/cgi-bin")
+elseif(ZM_TARGET_DISTRO STREQUAL "FreeBSD")
+	set(ZM_RUNDIR "/var/run/zm")
+        set(ZM_SOCKDIR "/var/run/zm")
+	set(ZM_TMPDIR "/var/tmp/zm")
+        set(ZM_CONTENTDIR "/usr/local/var/lib/zoneminder")
+        set(ZM_WEB_USER "www")
+        set(ZM_WEB_GROUP "www")
+        set(ZM_CONFIG_DIR "/usr/local/etc/zm")
+        set(ZM_WEBDIR "/usr/local/share/zoneminder/www")
+        set(ZM_CGIDIR "/usr/local/libexec/zoneminder/cgi-bin")
+        set(ZM_PERL_MM_PARMS "INSTALLDIRS=site")
 endif((ZM_TARGET_DISTRO STREQUAL "f22") OR (ZM_TARGET_DISTRO STREQUAL "f23"))
 
 # Required for certain checks to work
@@ -205,7 +216,7 @@ if (HAVE_EXECINFO_H)
   if (NOT HAVE_DECL_BACKTRACE)
     find_library (EXECINFO_LIBRARY NAMES execinfo)
     if (EXECINFO_LIBRARY)
-        list(APPEND ZM_BIN_LIBS "-l${EXECINFO_LIBRARY}")
+        list(APPEND ZM_BIN_LIBS "-lexecinfo")
     endif (EXECINFO_LIBRARY)
   endif (NOT HAVE_DECL_BACKTRACE)
   check_function_exists("backtrace_symbols" HAVE_DECL_BACKTRACE_SYMBOLS)
@@ -389,6 +400,59 @@ else(MYSQLCLIENT_LIBRARIES)
 	message(FATAL_ERROR 
             "ZoneMinder requires mysqlclient but it was not found on your system")
 endif(MYSQLCLIENT_LIBRARIES)
+
+# x264 (using find_library and find_path)
+find_library(X264_LIBRARIES x264)
+if(X264_LIBRARIES)
+	set(HAVE_LIBX264 1)
+	list(APPEND ZM_BIN_LIBS "${X264_LIBRARIES}")
+	find_path(X264_INCLUDE_DIR x264.h)
+	if(X264_INCLUDE_DIR)
+		include_directories("${X264_INCLUDE_DIR}")
+		set(CMAKE_REQUIRED_INCLUDES "${X264_INCLUDE_DIR}")
+	endif(X264_INCLUDE_DIR)
+	mark_as_advanced(FORCE X264_LIBRARIES X264_INCLUDE_DIR)
+	check_include_files("stdint.h;x264.h" HAVE_X264_H)
+	set(optlibsfound "${optlibsfound} x264")
+else(X264_LIBRARIES)
+	set(optlibsnotfound "${optlibsnotfound} x264")
+endif(X264_LIBRARIES)
+
+# mp4v2 (using find_library and find_path)
+find_library(MP4V2_LIBRARIES mp4v2)
+if(MP4V2_LIBRARIES)
+	set(HAVE_LIBMP4V2 1)
+	list(APPEND ZM_BIN_LIBS "${MP4V2_LIBRARIES}")
+
+        # mp4v2/mp4v2.h
+	find_path(MP4V2_INCLUDE_DIR mp4v2/mp4v2.h)
+	if(MP4V2_INCLUDE_DIR)
+		include_directories("${MP4V2_INCLUDE_DIR}")
+		set(CMAKE_REQUIRED_INCLUDES "${MP4V2_INCLUDE_DIR}")
+	endif(MP4V2_INCLUDE_DIR)
+	check_include_file("mp4v2/mp4v2.h" HAVE_MP4V2_MP4V2_H)
+
+        # mp4v2.h
+	find_path(MP4V2_INCLUDE_DIR mp4v2.h)
+	if(MP4V2_INCLUDE_DIR)
+		include_directories("${MP4V2_INCLUDE_DIR}")
+		set(CMAKE_REQUIRED_INCLUDES "${MP4V2_INCLUDE_DIR}")
+	endif(MP4V2_INCLUDE_DIR)
+	check_include_file("mp4v2.h" HAVE_MP4V2_H)
+
+	# mp4.h
+	find_path(MP4V2_INCLUDE_DIR mp4.h)
+	if(MP4V2_INCLUDE_DIR)
+		include_directories("${MP4V2_INCLUDE_DIR}")
+		set(CMAKE_REQUIRED_INCLUDES "${MP4V2_INCLUDE_DIR}")
+	endif(MP4V2_INCLUDE_DIR)
+	check_include_file("mp4.h" HAVE_MP4_H)
+
+	mark_as_advanced(FORCE MP4V2_LIBRARIES MP4V2_INCLUDE_DIR)
+	set(optlibsfound "${optlibsfound} mp4v2")
+else(MP4V2_LIBRARIES)
+	set(optlibsnotfound "${optlibsnotfound} mp4v2")
+endif(MP4V2_LIBRARIES)
 
 set(PATH_FFMPEG "")
 set(OPT_FFMPEG "no")

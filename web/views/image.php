@@ -147,7 +147,7 @@ else
         }
         if($width==$oldWidth && $height==$oldHeight)  // See if we really need to scale
         {
-            imagejpg($i);
+            imagejpeg($i);
             imagedestroy($i);
         }
         else  // we do need to scale

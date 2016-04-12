@@ -120,7 +120,7 @@ bool RtpSource::updateSeq( uint16_t seq )
     {
         if ( uDelta == 1 )
         {
-            Debug( 3, "Packet in sequence, gap %d", uDelta );
+            Debug( 4, "Packet in sequence, gap %d", uDelta );
         }
         else
         {
@@ -262,6 +262,11 @@ bool RtpSource::handlePacket( const unsigned char *packet, size_t packetLen )
 	int rtpHeaderSize = 12 + rtpHeader->cc * 4;
     // No need to check for nal type as non fragmented packets already have 001 start sequence appended
     bool h264FragmentEnd = (mCodecId == AV_CODEC_ID_H264) && (packet[rtpHeaderSize+1] & 0x40);
+    // M stands for Marker, it is the 8th bit
+    // The interpretation of the marker is defined by a profile. It is intended
+    // to allow significant events such as frame boundaries to be marked in the
+    //  packet stream. A profile may define additional marker bits or specify
+    //  that there is no marker bit by changing the number of bits in the payload type field.
     bool thisM = rtpHeader->m || h264FragmentEnd;
 
     if ( updateSeq( ntohs(rtpHeader->seqN) ) )
@@ -275,15 +280,18 @@ bool RtpSource::handlePacket( const unsigned char *packet, size_t packetLen )
             if( mCodecId == AV_CODEC_ID_H264 )
             {
                 int nalType = (packet[rtpHeaderSize] & 0x1f);
+                Debug( 3, "Have H264 frame: nal type is %d", nalType );
                 
                 switch (nalType)
                 {
-                    case 24:
+                    case 24: // STAP-A
                     {
                         extraHeader = 2;
                         break;
                     }
-                    case 25: case 26: case 27:
+                    case 25: // STAP-B
+                    case 26: // MTAP-16
+                    case 27: // MTAP-24
                     {
                         extraHeader = 3;
                         break;
@@ -304,6 +312,9 @@ bool RtpSource::handlePacket( const unsigned char *packet, size_t packetLen )
                         extraHeader = 2;
                         break;
                     }
+                    default: {
+                        Debug(3, "Unhandled nalType %d", nalType );
+                    }
                 }
                 
                 // Append NAL frame start code
@@ -311,6 +322,8 @@ bool RtpSource::handlePacket( const unsigned char *packet, size_t packetLen )
                     mFrame.append( "\x0\x0\x1", 3 );
             }
             mFrame.append( packet+rtpHeaderSize+extraHeader, packetLen-rtpHeaderSize-extraHeader ); 
+        } else {
+            Debug( 3, "NOT H264 frame: type is %d", mCodecId );
         }
 
         Hexdump( 4, mFrame.head(), 16 );
@@ -325,6 +338,9 @@ bool RtpSource::handlePacket( const unsigned char *packet, size_t packetLen )
                 mFrameReady.updateValueSignal( true );
                 if ( !mFrameProcessed.getValueImmediate() )
                 {
+                    // What is the point of this for loop? Is it just me, or will it call getUpdatedValue once or twice? Could it not be better written as
+                    // if ( ! mFrameProcessed.getUpdatedValue( 1 ) && mFrameProcessed.getUpdatedValue( 1 ) ) return false;
+
                     for ( int count = 0; !mFrameProcessed.getUpdatedValue( 1 ); count++ )
                         if( count > 1 )
                             return( false );
@@ -377,7 +393,7 @@ bool RtpSource::getFrame( Buffer &buffer )
     buffer = mFrame;
     mFrameReady.setValueImmediate( false );
     mFrameProcessed.updateValueSignal( true );
-    Debug( 3, "Copied %d bytes", buffer.size() );
+    Debug( 4, "Copied %d bytes", buffer.size() );
     return( true );
 }
 

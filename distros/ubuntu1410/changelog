@@ -1,3 +1,39 @@
+zoneminder (1.30.2-trusty-2016030702) trusty; urgency=medium
+
+  * 
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Mon, 07 Mar 2016 22:14:03 -0500
+
+zoneminder (1.30.2-trusty-2016030701) trusty; urgency=medium
+
+  * merge master. with telemetry
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Mon, 07 Mar 2016 21:47:53 -0500
+
+zoneminder (1.30.2-trusty-2016022101) trusty; urgency=medium
+
+  * merge zmtrigger fix
+
+ -- Isaac Connor <iconnor@testing.internal.point-one.com>  Mon, 22 Feb 2016 09:15:53 -0500
+
+zoneminder (1.30.2-trusty-2016021901) trusty; urgency=medium
+
+  * zmtrigger improvements
+
+ -- Isaac Connor <iconnor@testing.internal.point-one.com>  Fri, 19 Feb 2016 11:09:57 -0500
+
+zoneminder (1.30.2-trusty-2016021701) trusty; urgency=medium
+
+  * printout id, and ip address when failing to connect
+
+ -- Isaac Connor <iconnor@testing.internal.point-one.com>  Wed, 17 Feb 2016 09:40:49 -0500
+
+zoneminder (1.30.2-trusty-2016021001) trusty; urgency=medium
+
+  * 
+
+ -- Isaac Connor <iconnor@testing.internal.point-one.com>  Wed, 10 Feb 2016 13:06:09 -0500
+
 zoneminder (1.29.111-trusty-2016020101) trusty; urgency=medium
 
   * Fix video download and use of Storage Areas

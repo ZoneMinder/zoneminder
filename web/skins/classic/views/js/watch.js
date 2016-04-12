@@ -37,9 +37,14 @@ function changeScale()
 
     /*Stream could be an applet so can't use moo tools*/ 
     var streamImg = document.getElementById('liveStream');
-    streamImg.style.width = newWidth + "px";
-    streamImg.style.height = newHeight + "px";
+    if ( streamImg ) {
+        streamImg.style.width = newWidth + "px";
+        streamImg.style.height = newHeight + "px";
 
+        streamImg.src = streamImg.src.replace(/scale=\d+/i,'scale='+scale);
+    } else {
+        console.error("No element found for liveStream.");
+    }
 }
 
 var alarmState = STATE_IDLE;
@@ -205,8 +210,13 @@ function getStreamCmdResponse( respObj, respText )
             $('enableDisableAlarms').removeClass( 'hidden' );
         }
     }
-    else
+    else {
         checkStreamForErrors("getStreamCmdResponse",respObj);//log them
+        // Try to reload the image stream.
+        var streamImg = document.getElementById('liveStream');
+        if ( streamImg )
+            streamImg.src = streamImg.src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
+    }
 
     var streamCmdTimeout = statusRefreshTimeout;
     if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )

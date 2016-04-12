@@ -29,6 +29,7 @@ dist_web_DATA = \
 	function.php \
 	group.php \
 	groups.php \
+	header.php \
 	log.php \
 	login.php \
 	logout.php \
@@ -37,6 +38,7 @@ dist_web_DATA = \
 	monitorpreset.php \
 	monitorprobe.php \
 	montage.php \
+    montagereview.php \
 	none.php \
   onvifprobe.php \
 	optionhelp.php \

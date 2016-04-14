@@ -118,11 +118,13 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
     /* Write the stream header, if any. */
     ret = avformat_write_header(oc, NULL);
     if (ret < 0) {
-            Fatal("Error occurred when writing output file header: %s\n",
+zm_dump_stream_format(AVFormatContext *oc, 0, 0, 1 );
+            Fatal("Error occurred when writing output file header to %s: %s\n",
+                    filename,
                     av_make_error_string(ret).c_str());
     }
     
-	 prevDts = 0;
+	prevDts = 0;
     startPts = 0;
     startDts = 0;
     filter_in_rescale_delta_last = AV_NOPTS_VALUE;

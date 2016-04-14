@@ -118,7 +118,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
     /* Write the stream header, if any. */
     ret = avformat_write_header(oc, NULL);
     if (ret < 0) {
-zm_dump_stream_format(AVFormatContext *oc, 0, 0, 1 );
+zm_dump_stream_format( oc, 0, 0, 1 );
             Fatal("Error occurred when writing output file header to %s: %s\n",
                     filename,
                     av_make_error_string(ret).c_str());

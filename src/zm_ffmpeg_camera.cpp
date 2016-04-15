@@ -61,6 +61,7 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::stri
     mOpenStart = 0;
     mReopenThread = 0;
     wasRecording = false;
+    videoStore = NULL;
 	
 #if HAVE_LIBSWSCALE    
 	mConvertContext = NULL;

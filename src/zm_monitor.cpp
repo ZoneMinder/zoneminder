@@ -1255,6 +1255,7 @@ bool Monitor::Analyse()
 {
 	if ( shared_data->last_read_index == shared_data->last_write_index )
 	{
+        // I wonder how often this happens. Maybe if this happens we should sleep or something?
 		return( false );
 	}
 
@@ -1275,8 +1276,10 @@ bool Monitor::Analyse()
 		if ( read_margin < 0 ) read_margin += image_buffer_count;
 
 		int step = 1;
+        // Isn't read_margin always > 0 here?
 		if ( read_margin > 0 )
 		{
+            // TODO explain this so... 90% of image buffer / 50% of read margin?
 			step = (9*image_buffer_count)/(5*read_margin);
 		}
 
@@ -1356,6 +1359,7 @@ bool Monitor::Analyse()
 
 	if ( static_undef )
 	{
+// Sure would be nice to be able to assume that these were already initialized.  It's just 1 compare/branch, but really not neccessary.
 		static_undef = false;
 		timestamps = new struct timeval *[pre_event_count];
 		images = new Image *[pre_event_count];
@@ -1368,6 +1372,7 @@ bool Monitor::Analyse()
 		bool signal_change = (signal != last_signal);
 		
 		//Set video recording flag for event start constructor and easy reference in code
+        // TODO: Use enum instead of the # 2. Makes for easier reading
 		bool videoRecording = ((GetOptVideoWriter() == 2) && camera->SupportsNativeVideo());
 		
 		if ( trigger_data->trigger_state != TRIGGER_OFF )

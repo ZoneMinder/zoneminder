@@ -114,6 +114,13 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
         audio_st = NULL;
     }    
 
+// set the output parameters (must be done even if no parameters)
+ret = av_set_parameters( oc, NULL );
+        if ( ret < 0 ) {
+        {
+            Fatal("Could not set parameters '%s': %s\n", filename,
+                    av_make_error_string(ret).c_str());
+        }
     /* open the output file, if needed */
     if (!(fmt->flags & AVFMT_NOFILE)) {
         ret = avio_open2(&oc->pb, filename, AVIO_FLAG_WRITE,NULL,NULL);

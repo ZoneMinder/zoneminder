@@ -53,7 +53,14 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
     int ret;
     av_register_all();
 
-    avformat_alloc_output_context2(&oc, NULL, NULL, filename);
+    ret = avformat_alloc_output_context2(&oc, NULL, NULL, filename);
+    if ( ret < 0 ) {
+            Warning("Could not create video storage stream %s as no output context"
+                  " could be assigned based on filename: %s",
+                    filename,
+                    av_make_error_string(ret).c_str()
+                   );
+    }
         
     //Couldn't deduce format from filename, trying from format name
     if (!oc) {
@@ -91,15 +98,17 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
     if (inpaud_st) {
         audio_st = avformat_new_stream(oc, inpaud_st->codec->codec);
         if (!audio_st) {
-                Fatal("Unable to create audio out stream\n");
-        }
-        ret=avcodec_copy_context(audio_st->codec, inpaud_st->codec);
-        if (ret < 0) {
-            Fatal("Unable to copy audio context %s\n", av_make_error_string(ret).c_str());
-        }   
-        audio_st->codec->codec_tag = 0;
-        if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
-            audio_st->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
+            Error("Unable to create audio out stream\n");
+            audio_st = NULL;
+        } else {
+            ret=avcodec_copy_context(audio_st->codec, inpaud_st->codec);
+            if (ret < 0) {
+                Fatal("Unable to copy audio context %s\n", av_make_error_string(ret).c_str());
+            }   
+            audio_st->codec->codec_tag = 0;
+            if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
+                audio_st->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
+            }
         }
     } else {
         audio_st = NULL;
@@ -114,12 +123,18 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
         }
     }
 
+ //av_dict_set(&opts, "movflags", "frag_custom+dash+delay_moov", 0);
+           //if ((ret = avformat_write_header(ctx, &opts)) < 0) {
+           //}
+           //os->ctx_inited = 1;
+           //avio_flush(ctx->pb);
+           //av_dict_free(&opts);
 
     /* Write the stream header, if any. */
     ret = avformat_write_header(oc, NULL);
     if (ret < 0) {
-zm_dump_stream_format(AVFormatContext *oc, 0, 0, 1 );
-            Fatal("Error occurred when writing output file header to %s: %s\n",
+        zm_dump_stream_format(AVFormatContext *oc, 0, 0, 1 );
+        Fatal("Error occurred when writing output file header to %s: %s\n",
                     filename,
                     av_make_error_string(ret).c_str());
     }
@@ -142,18 +157,26 @@ VideoStore::~VideoStore(){
         Debug(3, "Sucess Writing trailer");
     }
     
-    avcodec_close(video_st->codec);
+    // I wonder if we should be closing the file first.
+    // I also wonder if we really need to be doing all the context allocation/de-allocation constantly, or whether we can just re-use it.  Just do a file open/close/writeheader/etc.
+    // What if we were only doing audio recording?
+    if ( video_st ) {
+        avcodec_close(video_st->codec);
+    }
     if (audio_st) {
         avcodec_close(audio_st->codec);
     }
     
+    // WHen will be not using a file ?
     if (!(fmt->flags & AVFMT_NOFILE)) {
     /* Close the output file. */
-        if ( int rc= avio_close(oc->pb) ) {
-        Error("Error closing avio %s",  av_err2str( rc ) );
+        if ( int rc = avio_close(oc->pb) ) {
+            Error("Error closing avio %s",  av_err2str( rc ) );
         }
+    } else {
+        Debug("Not closing avio because we are not writing to a file.");
     }
-    
+
     /* free the stream */
     avformat_free_context(oc);
 }

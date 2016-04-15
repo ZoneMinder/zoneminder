@@ -114,13 +114,6 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
         audio_st = NULL;
     }    
 
-// set the output parameters (must be done even if no parameters)
-ret = av_set_parameters( oc, NULL );
-        if ( ret < 0 ) {
-        {
-            Fatal("Could not set parameters '%s': %s\n", filename,
-                    av_make_error_string(ret).c_str());
-        }
     /* open the output file, if needed */
     if (!(fmt->flags & AVFMT_NOFILE)) {
         ret = avio_open2(&oc->pb, filename, AVIO_FLAG_WRITE,NULL,NULL);
@@ -153,7 +146,7 @@ ret = av_set_parameters( oc, NULL );
 
     startTime=av_gettime()-nStartTime;//oc->start_time;
     Info("VideoStore startTime=%d\n",startTime);
-}
+} // VideoStore::VideoStore
 
 
 VideoStore::~VideoStore(){
@@ -279,16 +272,22 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st){//, AV
 
 int VideoStore::writeAudioFramePacket(AVPacket *ipkt, AVStream *input_st){
 
-    if(!audio_st)
+    if(!audio_st) {
+Error("Called writeAudioFramePacket when no audio_st");
         return -1;//FIXME -ve return codes do not free packet in ffmpeg_camera at the moment
+    }
     /*if(!keyframeMessage)
         return -1;*/
         
-    int64_t ost_tb_start_time = av_rescale_q(startTime, AV_TIME_BASE_Q, video_st->time_base);
+    Debug(4, "before ost_tbcket %d", startTime );
+    // What is this doing?  Getting the time of the start of this video chunk? Does that actually make sense?
+    int64_t ost_tb_start_time = av_rescale_q(startTime, AV_TIME_BASE_Q, audio_st->time_base);
+    Debug(4, "after ost_tbacket" );
         
     AVPacket opkt;
     
     av_init_packet(&opkt);
+    Debug(4, "after init packet" );
 
     
     //Scale the PTS of the outgoing packet to be the correct time base
@@ -325,13 +324,14 @@ Debug(3, "ipkt->dts == AV_NOPTS_VALUE %d to %d",  AV_NOPTS_VALUE, opkt.dts );
     opkt.data = ipkt->data;
     opkt.size = ipkt->size;
     opkt.stream_index = ipkt->stream_index;
+Debug(4,"Stream index %d", opkt.stream_index );
         
     int ret;
     ret = av_interleaved_write_frame(oc, &opkt);
     if(ret!=0){
         Fatal("Error encoding audio frame packet: %s\n", av_make_error_string(ret).c_str());
     }
-    
+    Debug(4,"Success writing audio frame" ); 
     av_free_packet(&opkt);
     return 0;
 }

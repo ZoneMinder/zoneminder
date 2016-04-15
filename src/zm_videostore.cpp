@@ -33,7 +33,8 @@ extern "C"{
 }
 
 VideoStore::VideoStore(const char *filename_in, const char *format_in,
-                       AVStream *input_st, AVStream *inpaud_st,
+                       AVStream *input_st,
+                       AVStream *inpaud_st,
                        int64_t nStartTime) {
     
 	AVDictionary *pmetadata = NULL;
@@ -46,14 +47,20 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
     keyframeMessage = false;
     keyframeSkipNumber = 0;
 
-
-    Info("Opening video storage stream %s\n", filename);
+    Info("Opening video storage stream %s format: %d\n", filename, format);
 
     //Init everything we need
     int ret;
     av_register_all();
 
-    avformat_alloc_output_context2(&oc, NULL, NULL, filename);
+    ret = avformat_alloc_output_context2(&oc, NULL, NULL, filename);
+    if ( ret < 0 ) {
+            Warning("Could not create video storage stream %s as no output context"
+                  " could be assigned based on filename: %s",
+                    filename,
+                    av_make_error_string(ret).c_str()
+                   );
+    }
         
     //Couldn't deduce format from filename, trying from format name
     if (!oc) {
@@ -91,17 +98,20 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
     if (inpaud_st) {
         audio_st = avformat_new_stream(oc, inpaud_st->codec->codec);
         if (!audio_st) {
-                Fatal("Unable to create audio out stream\n");
-        }
-        ret=avcodec_copy_context(audio_st->codec, inpaud_st->codec);
-        if (ret < 0) {
-            Fatal("Unable to copy audio context %s\n", av_make_error_string(ret).c_str());
-        }   
-        audio_st->codec->codec_tag = 0;
-        if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
-            audio_st->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
+            Error("Unable to create audio out stream\n");
+            audio_st = NULL;
+        } else {
+            ret=avcodec_copy_context(audio_st->codec, inpaud_st->codec);
+            if (ret < 0) {
+                Fatal("Unable to copy audio context %s\n", av_make_error_string(ret).c_str());
+            }   
+            audio_st->codec->codec_tag = 0;
+            if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
+                audio_st->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
+            }
         }
     } else {
+        Debug(3, "No Audio output stream");
         audio_st = NULL;
     }    
 
@@ -114,12 +124,18 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
         }
     }
 
+ //av_dict_set(&opts, "movflags", "frag_custom+dash+delay_moov", 0);
+           //if ((ret = avformat_write_header(ctx, &opts)) < 0) {
+           //}
+           //os->ctx_inited = 1;
+           //avio_flush(ctx->pb);
+           //av_dict_free(&opts);
 
     /* Write the stream header, if any. */
     ret = avformat_write_header(oc, NULL);
     if (ret < 0) {
-zm_dump_stream_format(AVFormatContext *oc, 0, 0, 1 );
-            Fatal("Error occurred when writing output file header to %s: %s\n",
+        zm_dump_stream_format( oc, 0, 0, 1 );
+        Fatal("Error occurred when writing output file header to %s: %s\n",
                     filename,
                     av_make_error_string(ret).c_str());
     }
@@ -131,23 +147,37 @@ zm_dump_stream_format(AVFormatContext *oc, 0, 0, 1 );
 
     startTime=av_gettime()-nStartTime;//oc->start_time;
     Info("VideoStore startTime=%d\n",startTime);
-}
+} // VideoStore::VideoStore
 
 
 VideoStore::~VideoStore(){
     /* Write the trailer before close */
-    av_write_trailer(oc);
+    if ( int rc = av_write_trailer(oc) ) {
+        Error("Error writing trailer %s",  av_err2str( rc ) );
+    } else {
+        Debug(3, "Sucess Writing trailer");
+    }
     
-    avcodec_close(video_st->codec);
+    // I wonder if we should be closing the file first.
+    // I also wonder if we really need to be doing all the context allocation/de-allocation constantly, or whether we can just re-use it.  Just do a file open/close/writeheader/etc.
+    // What if we were only doing audio recording?
+    if ( video_st ) {
+        avcodec_close(video_st->codec);
+    }
     if (audio_st) {
         avcodec_close(audio_st->codec);
     }
     
+    // WHen will be not using a file ?
     if (!(fmt->flags & AVFMT_NOFILE)) {
     /* Close the output file. */
-        avio_close(oc->pb);
+        if ( int rc = avio_close(oc->pb) ) {
+            Error("Error closing avio %s",  av_err2str( rc ) );
+        }
+    } else {
+        Debug(3, "Not closing avio because we are not writing to a file.");
     }
-    
+
     /* free the stream */
     avformat_free_context(oc);
 }
@@ -171,6 +201,9 @@ void VideoStore::dumpPacket( AVPacket *pkt ){
 
 int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st){//, AVPacket *lastKeyframePkt){
 
+    Debug(3, "before ost_tbcket %d", startTime );
+        zm_dump_stream_format( oc, ipkt->stream_index, 0, 1 );
+    Debug(3, "before ost_tbcket %d", startTime );
     int64_t ost_tb_start_time = av_rescale_q(startTime, AV_TIME_BASE_Q, video_st->time_base);
      
     AVPacket opkt, safepkt;
@@ -181,7 +214,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st){//, AV
     //Scale the PTS of the outgoing packet to be the correct time base
     if (ipkt->pts != AV_NOPTS_VALUE) {
         opkt.pts = av_rescale_q(ipkt->pts-startPts, input_st->time_base, video_st->time_base) - ost_tb_start_time;
-	 }else {
+	 } else {
         opkt.pts = AV_NOPTS_VALUE;
 	 }
     
@@ -220,7 +253,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st){//, AV
 	 } else if ((prevDts > 0) && (prevDts >= opkt.dts)) {
 		Warning("%s:%d: DTS out of order: %lld \u226E %lld; discarding frame", __FILE__, __LINE__, prevDts, opkt.dts); 
 		prevDts = opkt.dts; 
-		 dumpPacket(&opkt);
+		dumpPacket(&opkt);
 
 	 } else {
 		int ret;
@@ -243,32 +276,47 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st){//, AV
 
 int VideoStore::writeAudioFramePacket(AVPacket *ipkt, AVStream *input_st){
 
-    if(!audio_st)
+    if(!audio_st) {
+        Error("Called writeAudioFramePacket when no audio_st");
         return -1;//FIXME -ve return codes do not free packet in ffmpeg_camera at the moment
+    }
     /*if(!keyframeMessage)
         return -1;*/
-        
-    int64_t ost_tb_start_time = av_rescale_q(startTime, AV_TIME_BASE_Q, video_st->time_base);
+    //zm_dump_stream_format( oc, ipkt->stream_index, 0, 1 );
+         
+    // What is this doing?  Getting the time of the start of this video chunk? Does that actually make sense?
+    int64_t ost_tb_start_time = av_rescale_q(startTime, AV_TIME_BASE_Q, audio_st->time_base);
         
     AVPacket opkt;
     
     av_init_packet(&opkt);
+    Debug(3, "after init packet" );
 
     
     //Scale the PTS of the outgoing packet to be the correct time base
-    if (ipkt->pts != AV_NOPTS_VALUE)
+    if (ipkt->pts != AV_NOPTS_VALUE) {
+        Debug(3, "Rescaling output pts");
         opkt.pts = av_rescale_q(ipkt->pts-startPts, input_st->time_base, audio_st->time_base) - ost_tb_start_time;
-    else
+    } else {
+        Debug(3, "Setting output pts to AV_NOPTS_VALUE");
         opkt.pts = AV_NOPTS_VALUE;
+    }
     
     //Scale the DTS of the outgoing packet to be the correct time base
-    if(ipkt->dts == AV_NOPTS_VALUE)
+    if(ipkt->dts == AV_NOPTS_VALUE) {
+Debug(4, "ipkt->dts == AV_NOPTS_VALUE %d to %d",  AV_NOPTS_VALUE, opkt.dts );
         opkt.dts = av_rescale_q(input_st->cur_dts-startDts, AV_TIME_BASE_Q, audio_st->time_base);
-    else
+Debug(4, "ipkt->dts == AV_NOPTS_VALUE %d to %d",  AV_NOPTS_VALUE, opkt.dts );
+    } else {
+Debug(4, "ipkt->dts != AV_NOPTS_VALUE %d to %d",  AV_NOPTS_VALUE, opkt.dts );
         opkt.dts = av_rescale_q(ipkt->dts-startDts, input_st->time_base, audio_st->time_base);
+Debug(4, "ipkt->dts != AV_NOPTS_VALUE %d to %d",  AV_NOPTS_VALUE, opkt.dts );
+    }
     opkt.dts -= ost_tb_start_time;
     
+    // Seems like it would be really weird for the codec type to NOT be audiu
     if (audio_st->codec->codec_type == AVMEDIA_TYPE_AUDIO && ipkt->dts != AV_NOPTS_VALUE) {
+        Debug( 4, "code is audio, dts != AV_NOPTS_VALUE " );
          int duration = av_get_audio_frame_duration(input_st->codec, ipkt->size);
          if(!duration)
              duration = input_st->codec->frame_size;
@@ -287,14 +335,13 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt, AVStream *input_st){
     opkt.data = ipkt->data;
     opkt.size = ipkt->size;
     opkt.stream_index = ipkt->stream_index;
-    /*opkt.flags |= AV_PKT_FLAG_KEY;*/
         
     int ret;
     ret = av_interleaved_write_frame(oc, &opkt);
     if(ret!=0){
         Fatal("Error encoding audio frame packet: %s\n", av_make_error_string(ret).c_str());
     }
-    
+    Debug(4,"Success writing audio frame" ); 
     av_free_packet(&opkt);
     return 0;
 }

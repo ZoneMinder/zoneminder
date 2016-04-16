@@ -582,7 +582,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
 
                 //Keep the last keyframe so we can establish immediate video
                 if(packet.flags & AV_PKT_FLAG_KEY) {
-                    Debug(3, "Have keyframe");   
+                    Debug(4, "Have keyframe");   
                     av_copy_packet(&lastKeyframePkt, &packet);
                     //TODO I think we need to store the key frame location for seeking as part of the event
                 }

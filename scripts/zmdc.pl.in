@@ -862,7 +862,7 @@ sub killAll
     my $killall;
     if ( '@HOST_OS@' eq 'BSD' )
     {
-        $killall = 'killall -';
+        $killall = 'killall -q -';
     } elsif ( '@HOST_OS@' eq 'solaris' ) {
         $killall = 'pkill -';
     } else {

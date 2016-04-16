@@ -212,7 +212,9 @@ sub discover
 
   $result = $svc_discover->ProbeOp(
     { # WSDiscovery::Types::ProbeType
-      Types => 'http://www.onvif.org/ver10/network/wsdl:NetworkVideoTransmitter http://www.onvif.org/ver10/device/wsdl:Device', # QNameListType
+      xmlattr => { 'xmlns:dn'  => 'http://www.onvif.org/ver10/network/wsdl',
+                   'xmlns:tds' => 'http://www.onvif.org/ver10/device/wsdl', },
+      Types => 'dn:NetworkVideoTransmitter tds:Device', # QNameListType
       Scopes =>  { value => '' },
     },
     WSDiscovery10::Elements::Header->new({

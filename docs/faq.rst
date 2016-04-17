@@ -514,6 +514,8 @@ You do not need to rebuild ZM for X10 support. You will need to install the perl
 
 Extending Zoneminder
 ------------------------
+.. _runstate_cron_example:
+
 How can I get ZM to do different things at different times of day or week?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

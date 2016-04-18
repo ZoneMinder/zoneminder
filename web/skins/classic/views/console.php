@@ -9,7 +9,7 @@ xhtmlHeaders( __FILE__, translate('Console') );
     <?php include("skins/$skin/views/header.php") ?>
 
     <div class="container-fluid">
-      <table id="consoleTable" cellspacing="0">
+      <table class="table table-striped table-hover table-condensed">
         <thead>
           <tr>
             <th class="colName"><?php echo translate('Name') ?></th>

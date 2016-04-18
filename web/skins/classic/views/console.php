@@ -54,7 +54,7 @@ for ( $i = 0; $i < count($eventCounts); $i++ )
 ?>
             <td class="colZones"><?php echo $zoneCount ?></td>
             <td><input class="btn btn-primary" type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editMonitor( this )" disabled="disabled"/></td>
-            <td><input class="btn btn-primary" type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteMonitor( this )" disabled="disabled"/></td>
+            <td><input class="btn btn-danger" type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteMonitor( this )" disabled="disabled"/></td>
           </tr>
         </tfoot>
         <tbody>

@@ -41,7 +41,7 @@ if ( canEdit('Monitors') )
         <tfoot>
           <tr>
             <td class="colLeftButtons" colspan="<?php echo count($servers) ? 4 : 3 ?>">
-              <input type="button" class="btn btn-default" value="<?php echo translate('AddNewMonitor'); ?>" onclick="createPopup( '?view=monitor', 'zmMonitor0', 'monitor' ); return( false );"></input>
+              <input type="button" class="btn btn-primary" value="<?php echo translate('AddNewMonitor'); ?>" onclick="createPopup( '?view=monitor', 'zmMonitor0', 'monitor' ); return( false );"></input>
             </td>
 <?php
 for ( $i = 0; $i < count($eventCounts); $i++ )
@@ -53,7 +53,8 @@ for ( $i = 0; $i < count($eventCounts); $i++ )
 }
 ?>
             <td class="colZones"><?php echo $zoneCount ?></td>
-            <td class="colRightButtons" colspan="<?php echo canEdit('Monitors')?2:1 ?>"><input class="btn btn-default" type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editMonitor( this )" disabled="disabled"/><input class="btn btn-default" type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteMonitor( this )" disabled="disabled"/></td>
+            <td><input class="btn btn-primary" type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editMonitor( this )" disabled="disabled"/></td>
+            <td><input class="btn btn-primary" type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteMonitor( this )" disabled="disabled"/></td>
           </tr>
         </tfoot>
         <tbody>

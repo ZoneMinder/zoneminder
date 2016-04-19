@@ -471,16 +471,14 @@ MAIN: while( $loop ) {
 
     # New audit to close any events that were left open for longer than MIN_AGE seconds
     my $selectUnclosedEventsSql =
-       "SELECT E.Id,
+       "SELECT E.Id, E.MonitorId,
                max(F.TimeStamp) as EndTime,
                unix_timestamp(max(F.TimeStamp)) - unix_timestamp(E.StartTime) as Length,
                max(F.FrameId) as Frames,
                count(if(F.Score>0,1,NULL)) as AlarmFrames,
                sum(F.Score) as TotScore,
-               max(F.Score) as MaxScore,
-               M.EventPrefix as Prefix
+               max(F.Score) as MaxScore
         FROM Events as E
-        LEFT JOIN Monitors as M on E.MonitorId = M.Id
         INNER JOIN Frames as F on E.Id = F.EventId
         WHERE isnull(E.Frames) or isnull(E.EndTime)
         GROUP BY E.Id HAVING EndTime < (now() - interval ".$Config{ZM_AUDIT_MIN_AGE}." second)"
@@ -512,7 +510,7 @@ MAIN: while( $loop ) {
             $res = $updateUnclosedEventsSth->execute
             (
                 sprintf("%s%d%s",
-                        $event->{Prefix},
+                        $Monitors{$event->{MonitorId}->{Prefix},
                         $event->{Id},
                         RECOVER_TAG
                 ),

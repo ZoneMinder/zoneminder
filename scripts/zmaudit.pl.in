@@ -510,7 +510,7 @@ MAIN: while( $loop ) {
             $res = $updateUnclosedEventsSth->execute
             (
                 sprintf("%s%d%s",
-                        $Monitors{$event->{MonitorId}->{Prefix},
+                        $Monitors{$event->{MonitorId}->{EventPrefix},
                         $event->{Id},
                         RECOVER_TAG
                 ),

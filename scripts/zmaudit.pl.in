@@ -155,10 +155,12 @@ MAIN: while( $loop ) {
         Fatal("ZM_AUDIT_MIN_AGE is not set in config.");
     }
 
+    my %Monitors;
     my $db_monitors;
-    my $monitorSelectSql = "select Id from Monitors order by Id";
+    my $monitorSelectSql = "select * from Monitors order by Id";
     my $monitorSelectSth = $dbh->prepare_cached( $monitorSelectSql )
         or Fatal( "Can't prepare '$monitorSelectSql': ".$dbh->errstr() );
+
     my $eventSelectSql = "SELECT Id, (unix_timestamp() - unix_timestamp(StartTime)) as Age
                           FROM Events WHERE MonitorId = ? ORDER BY Id";
     my $eventSelectSth = $dbh->prepare_cached( $eventSelectSql )
@@ -169,6 +171,8 @@ MAIN: while( $loop ) {
         or Fatal( "Can't execute: ".$monitorSelectSth->errstr() );
     while( my $monitor = $monitorSelectSth->fetchrow_hashref() )
     {
+        $Monitors{$$monitor{Id}} = $monitor;
+
         Debug( "Found database monitor '$monitor->{Id}'" );
         my $db_events = $db_monitors->{$monitor->{Id}} = {};
         my $res = $eventSelectSth->execute( $monitor->{Id} )

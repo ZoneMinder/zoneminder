@@ -471,18 +471,30 @@ MAIN: while( $loop ) {
 
     # New audit to close any events that were left open for longer than MIN_AGE seconds
     my $selectUnclosedEventsSql =
-       "SELECT E.Id, E.MonitorId,
-               max(F.TimeStamp) as EndTime,
-               unix_timestamp(max(F.TimeStamp)) - unix_timestamp(E.StartTime) as Length,
-               max(F.FrameId) as Frames,
+       #"SELECT E.Id, ANY_VALUE(E.MonitorId),
+#
+               #max(F.TimeStamp) as EndTime,
+               #unix_timestamp(max(F.TimeStamp)) - unix_timestamp(E.StartTime) as Length,
+               #max(F.FrameId) as Frames,
+               #count(if(F.Score>0,1,NULL)) as AlarmFrames,
+               #sum(F.Score) as TotScore,
+               #max(F.Score) as MaxScore
+        #FROM Events as E
+        #INNER JOIN Frames as F on E.Id = F.EventId
+        #WHERE isnull(E.Frames) or isnull(E.EndTime)
+        #GROUP BY E.Id HAVING EndTime < (now() - interval ".$Config{ZM_AUDIT_MIN_AGE}." second)"
+    #;
+        "SELECT *, unix_timestamp(StartTime) AS TimeStamp FROM Events WHERE EndTime IS NULL AND StartTime < (now() - interval ".$Config{ZM_AUDIT_MIN_AGE}." second)";
+
+    my $selectFrameDataSql = "SELECT max(TimeStamp) as EndTime, unix_timestamp(max(TimeStamp)) AS EndTimeStamp, max(FrameId) as Frames,
                count(if(F.Score>0,1,NULL)) as AlarmFrames,
                sum(F.Score) as TotScore,
                max(F.Score) as MaxScore
-        FROM Events as E
-        INNER JOIN Frames as F on E.Id = F.EventId
-        WHERE isnull(E.Frames) or isnull(E.EndTime)
-        GROUP BY E.Id HAVING EndTime < (now() - interval ".$Config{ZM_AUDIT_MIN_AGE}." second)"
-    ;
+        FROM Frames WHERE EventId=?";
+    my $selectFrameDataSth = $dbh->prepare_cached($selectFrameDataSql)
+        or Fatal( "Can't prepare '$selectFrameDataSql': ".$dbh->errstr() );
+
+
     my $selectUnclosedEventsSth = $dbh->prepare_cached( $selectUnclosedEventsSql )
         or Fatal( "Can't prepare '$selectUnclosedEventsSql': ".$dbh->errstr() );
     my $updateUnclosedEventsSql =
@@ -507,26 +519,32 @@ MAIN: while( $loop ) {
         aud_print( "Found open event '$event->{Id}'" );
         if ( confirm( 'close', 'closing' ) )
         {
-            $res = $updateUnclosedEventsSth->execute
-            (
-                sprintf("%s%d%s",
-                        $Monitors{$event->{MonitorId}->{EventPrefix},
-                        $event->{Id},
-                        RECOVER_TAG
-                ),
-                $event->{EndTime},
-                $event->{Length},
-                $event->{Frames},
-                $event->{AlarmFrames},
-                $event->{TotScore},
-                $event->{AlarmFrames}
-                    ? int($event->{TotScore} / $event->{AlarmFrames})
-                    : 0
-                ,
-                $event->{MaxScore},
-                RECOVER_TEXT,
-                $event->{Id}
-            ) or Fatal( "Can't execute: ".$updateUnclosedEventsSth->errstr() );
+            $res = $selectFrameDataSth->execute( $event->{Id} );
+            my $frame = $selectFrameDataSth->fetchrow_hashref();
+            if ( $frame ) {
+                $res = $updateUnclosedEventsSth->execute
+                (
+                    sprintf("%s%d%s",
+                            $Monitors{$event->{MonitorId}}->{EventPrefix},
+                            $event->{Id},
+                            RECOVER_TAG
+                    ),
+                    $frame->{EndTime},
+                    $frame->{EndTimeStamp} - $event->{TimeStamp},
+                    $frame->{Frames},
+                    $frame->{AlarmFrames},
+                    $frame->{TotScore},
+                    $frame->{AlarmFrames}
+                        ? int($frame->{TotScore} / $frame->{AlarmFrames})
+                        : 0
+                    ,
+                    $frame->{MaxScore},
+                    RECOVER_TEXT,
+                    $event->{Id}
+                ) or Fatal( "Can't execute: ".$updateUnclosedEventsSth->errstr() );
+            } else {
+                Error("SHOULD DELETE");
+            } # end if has frame data
         }
     }
 

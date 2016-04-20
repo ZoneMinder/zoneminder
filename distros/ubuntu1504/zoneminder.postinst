@@ -10,7 +10,7 @@ if [ "$1" = "configure" ]; then
     chown www-data:root /var/log/zm
     chown www-data:www-data /var/lib/zm
     if [ -z "$2" ]; then
-        chown www-data:www-data -R /var/cache/zoneminder
+        chown www-data:www-data /var/cache/zoneminder /var/cache/zoneminder/*
     fi
 
 	# Do this every time the package is installed or upgraded

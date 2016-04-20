@@ -191,7 +191,13 @@ int FfmpegCamera::Capture( Image &image )
             if ( frameComplete ) {
                 Debug( 4, "Got frame %d", frameCount );
 
-                avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height);
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+                av_image_fill_arrays(mFrame->data, mFrame->linesize,
+                        directbuffer, imagePixFormat, width, height, 1);
+#else
+                avpicture_fill( (AVPicture *)mFrame, directbuffer,
+                        imagePixFormat, width, height);
+#endif
 		
 #if HAVE_LIBSWSCALE
                 if(mConvertContext == NULL) {
@@ -392,7 +398,12 @@ int FfmpegCamera::OpenFfmpeg() {
 
     Debug ( 1, "Allocated frames" );
     
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+    int pSize = av_image_get_buffer_size( imagePixFormat, width, height,1 );
+#else
     int pSize = avpicture_get_size( imagePixFormat, width, height );
+#endif
+
     if( (unsigned int)pSize != imagesize) {
         Fatal("Image size mismatch. Required: %d Available: %d",pSize,imagesize);
     }

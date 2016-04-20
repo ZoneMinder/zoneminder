@@ -114,13 +114,6 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
         audio_st = NULL;
     }    
 
-// set the output parameters (must be done even if no parameters)
-ret = av_set_parameters( oc, NULL );
-        if ( ret < 0 ) {
-        {
-            Fatal("Could not set parameters '%s': %s\n", filename,
-                    av_make_error_string(ret).c_str());
-        }
     /* open the output file, if needed */
     if (!(fmt->flags & AVFMT_NOFILE)) {
         ret = avio_open2(&oc->pb, filename, AVIO_FLAG_WRITE,NULL,NULL);
@@ -140,7 +133,7 @@ ret = av_set_parameters( oc, NULL );
     /* Write the stream header, if any. */
     ret = avformat_write_header(oc, NULL);
     if (ret < 0) {
-        zm_dump_stream_format(AVFormatContext *oc, 0, 0, 1 );
+        zm_dump_stream_format( oc, 0, 0, 1 );
         Fatal("Error occurred when writing output file header to %s: %s\n",
                     filename,
                     av_make_error_string(ret).c_str());
@@ -181,7 +174,7 @@ VideoStore::~VideoStore(){
             Error("Error closing avio %s",  av_err2str( rc ) );
         }
     } else {
-        Debug("Not closing avio because we are not writing to a file.");
+        Debug(3, "Not closing avio because we are not writing to a file.");
     }
 
     /* free the stream */

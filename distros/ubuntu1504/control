@@ -57,7 +57,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
           ,libsys-cpu-perl, libsys-meminfo-perl
         ,mysql-client | virtual-mysql-client
         ,perl-modules
-        ,php5-mysql | php7-mysql, php5-gd | php-gd
+        ,php5-mysql | php-mysql, php5-gd | php-gd
         ,policykit-1
         ,rsyslog | system-log-daemon
         ,zip

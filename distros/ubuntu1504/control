@@ -57,12 +57,12 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
           ,libsys-cpu-perl, libsys-meminfo-perl
         ,mysql-client | virtual-mysql-client
         ,perl-modules
-        ,php5-mysql, php5-gd
+        ,php5-mysql | php7-mysql, php5-gd | php-gd
         ,policykit-1
         ,rsyslog | system-log-daemon
         ,zip
 Recommends: ${misc:Recommends}
-           ,libapache2-mod-php5 | php5-fpm
+           ,libapache2-mod-php5 | libapache2-mod-php7 | php5-fpm
            ,mysql-server | virtual-mysql-server
            ,zoneminder-doc (>= ${source:Version})
 Suggests: fcgiwrap, logrotate

@@ -1119,8 +1119,8 @@ void Monitor::DumpZoneImage( const char *zone_string ) {
 		Debug(3, "Trying to load from event");
 		// Grab the most revent event image
 		std::string sql = stringtf( "SELECT MAX(Id) FROM Events WHERE MonitorId=%d AND Frames > 0", id );
-		MYSQL_ROW eventid_row = zmDbFetchOne(sql.c_str() );
-		if ( eventid_row ) {
+		zmDbRow eventid_row;
+		if ( eventid_row.fetch( sql.c_str() ) ) {
 			int event_id = atoi( eventid_row[0] );
 
 			Debug( 3, "Got event %d", event_id );
@@ -2770,8 +2770,8 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
 Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
 	std::string sql = stringtf( "select Id, Name, ServerId, StorageId, Type, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, Protocol, Method, Host, Port, Path, Options, User, Pass, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, SaveJPEGs, VideoWriter, EncoderParameters, RecordAudio, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPS, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour, Exif from Monitors where Id = %d", p_id );
 
-	MYSQL_ROW dbrow = zmDbFetchOne( sql.c_str() );
-	if ( ! dbrow ) {
+	zmDbRow dbrow;
+	if ( ! dbrow.fetch( sql.c_str() ) ) {
 		Error( "Can't use query result: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}

@@ -83,7 +83,7 @@ use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)
 
 $| = 1;
 
-$ENV{PATH}  = '/bin:/usr/bin';
+$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
@@ -178,6 +178,8 @@ MAIN: while( $loop ) {
     my $fs_monitors;
     foreach my $monitor ( glob("[0-9]*") )
     {
+		# Thie glob above gives all files starting with a digit.  So a monitor with a name starting with a digit will be in this list.
+		next if $monitor =~ /\D/;
         Debug( "Found filesystem monitor '$monitor'" );
         my $fs_events = $fs_monitors->{$monitor} = {};
         ( my $monitor_dir ) = ( $monitor =~ /^(.*)$/ ); # De-taint

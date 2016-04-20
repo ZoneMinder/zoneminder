@@ -29,7 +29,7 @@ $zid = !empty($_REQUEST['zid'])?validInt($_REQUEST['zid']):0;
 
 $scale = SCALE_BASE;
 
-$hicolor = "0x00ff00"; // Green
+$hicolor = '0x00ff00'; // Green
 
 $presets = array();
 $presetNames = array();
@@ -59,28 +59,28 @@ foreach ( getEnumValues( 'Zones', 'CheckMethod' ) as $optCheckMethod )
     $optCheckMethods[$optCheckMethod] = $optCheckMethod;
 }
 
-$monitor = dbFetchMonitor ( $mid );
+$monitor = new Monitor( $mid );
 
 $minX = 0;
-$maxX = $monitor['Width']-1;
+$maxX = $monitor->Width()-1;
 $minY = 0;
-$maxY = $monitor['Height']-1;
+$maxY = $monitor->Height()-1;
 
 if ( !isset($newZone) )
 {
     if ( $zid > 0 )
     {
-        $zone = dbFetchOne( 'SELECT * FROM Zones WHERE MonitorId = ? AND Id=?', NULL, array( $monitor['Id'], $zid ) );
+        $zone = dbFetchOne( 'SELECT * FROM Zones WHERE MonitorId = ? AND Id=?', NULL, array( $monitor->Id(), $zid ) );
     }
     else
     {
         $zone = array(
             'Name' => translate('New'),
             'Id' => 0,
-            'MonitorId' => $monitor['Id'],
+            'MonitorId' => $monitor->Id(),
             'NumCoords' => 4,
             'Coords' => sprintf( "%d,%d %d,%d, %d,%d %d,%d", $minX, $minY, $maxX, $minY, $maxX, $maxY, $minX, $maxY ),
-            'Area' => $monitor['Width'] * $monitor['Height'],
+            'Area' => $monitor->Width() * $monitor->Height(),
             'AlarmRGB' => 0xff0000,
             'CheckMethod' => 'Blobs',
             'MinPixelThreshold' => '',
@@ -100,6 +100,7 @@ if ( !isset($newZone) )
         );
     }
     $zone['Points'] = coordsToPoints( $zone['Coords'] );
+    $zone['AreaCoords'] = preg_replace( '/\s+/', ',', $zone['Coords'] );
 
     $newZone = $zone;
 }
@@ -115,23 +116,15 @@ $newZone['Coords'] = pointsToCoords( $newZone['Points'] );
 $newZone['Area'] = getPolyArea( $newZone['Points'] );
 $selfIntersecting = isSelfIntersecting( $newZone['Points'] );
 
-$wd = getcwd();
-chdir( ZM_DIR_IMAGES );
-$command = getZmuCommand( " -m ".$mid." -z" );
-$command .= '"'.$zid.' '.$hicolor.' '.$newZone['Coords'].'"';
-$status = exec( escapeshellcmd( $command ) );
-chdir( $wd );
-
-$zoneImage = ZM_DIR_IMAGES.'/Zones'.$monitor['Id'].'.jpg?'.time();
-
 $focusWindow = true;
+$connkey = generateConnKey();
 
 xhtmlHeaders(__FILE__, translate('Zone') );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?php echo translate('Monitor') ?> <?php echo $monitor['Name'] ?> - <?php echo translate('Zone') ?> <?php echo $newZone['Name'] ?></h2>
+      <h2><?php echo translate('Monitor') ?> <?php echo $monitor->Name() ?> - <?php echo translate('Zone') ?> <?php echo $newZone['Name'] ?></h2>
     </div>
     <div id="content">
       <form name="zoneForm" id="zoneForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
@@ -217,10 +210,15 @@ xhtmlHeaders(__FILE__, translate('Zone') );
         </div>
         <div id="definitionPanel">
           <div id="imagePanel">
-            <div id="imageFrame" style="width: <?php echo reScale( $monitor['Width'], $scale ) ?>px; height: <?php echo reScale( $monitor['Height'], $scale ) ?>px;">
-              <img name="zoneImage" id="zoneImage" src="<?php echo $zoneImage ?>" width="<?php echo reScale( $monitor['Width'], $scale ) ?>" height="<?php echo reScale( $monitor['Height'], $scale ) ?>" alt="Zone Image"/>
+            <div id="imageFrame" style="width: <?php echo reScale( $monitor->Width(), $scale ) ?>px; height: <?php echo reScale( $monitor->Height(), $scale ) ?>px;">
+                <?php echo getStreamHTML( $monitor, $scale ); ?>
+                <svg id="zoneSVG" class="zones" style="width: <?php echo reScale( $monitor->Width(), $scale ) ?>px; height: <?php echo reScale( $monitor->Height(), $scale ) ?>px;margin-top: -<?php echo $monitor->Height ?>px;background: none;">
+                  <polygon id="zonePoly" points="<?php echo $zone['AreaCoords'] ?>" class="<?php echo $zone['Type'] ?>"/>
+                  Sorry, your browser does not support inline SVG
+                </svg>
             </div>
           </div>
+          <div id="monitorState"><?php echo translate('State') ?>:&nbsp;<span id="stateValue"></span>&nbsp;-&nbsp;<span id="fpsValue"></span>&nbsp;fps</div>
           <table id="zonePoints" cellspacing="0">
             <tbody>
               <tr>
@@ -269,7 +267,7 @@ for ( $i = 0; $i < $pointCols; $i++ )
               </tr>
             </tbody>
           </table>
-          <input type="submit" id="submitBtn" name="submitBtn" value="<?php echo translate('Save') ?>" onclick="return saveChanges( this )"<?php if (!canEdit( 'Monitors' ) || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
+          <input id="pauseBtn" type="button" value="<?php echo translate('Pause') ?>" onclick="streamCmdPauseToggle()"/><input type="submit" id="submitBtn" name="submitBtn" value="<?php echo translate('Save') ?>" onclick="return saveChanges( this )"<?php if (!canEdit( 'Monitors' ) || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="refreshParentWindow(); closeWindow();"/>
         </div>
       </form>
     </div>

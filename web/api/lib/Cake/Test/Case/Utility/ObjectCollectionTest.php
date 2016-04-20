@@ -27,8 +27,8 @@ class GenericObject {
 /**
  * Constructor
  *
- * @param GenericObjectCollection $collection
- * @param array $settings
+ * @param GenericObjectCollection $collection A collection.
+ * @param array $settings Settings.
  */
 	public function __construct(GenericObjectCollection $collection, $settings = array()) {
 		$this->_Collection = $collection;
@@ -535,6 +535,7 @@ class ObjectCollectionTest extends CakeTestCase {
  * tests that passing an instance of CakeEvent to trigger will prepend the subject to the list of arguments
  *
  * @return void
+ * @triggers callback $subjectClass, array('first argument')
  */
 	public function testDispatchEventWithSubject() {
 		$this->_makeMockClasses();
@@ -560,6 +561,7 @@ class ObjectCollectionTest extends CakeTestCase {
  * will NOT prepend the subject to the list of arguments
  *
  * @return void
+ * @triggers callback $subjectClass, array('first argument')
  */
 	public function testDispatchEventNoSubject() {
 		$this->_makeMockClasses();
@@ -581,4 +583,33 @@ class ObjectCollectionTest extends CakeTestCase {
 		$this->assertTrue($this->Objects->trigger($event));
 	}
 
+/**
+ * test that the various methods ignore plugin prefixes
+ *
+ * plugin prefixes should be removed consistently as load() will
+ * remove them. Furthermore the __get() method does not support
+ * names with '.' in them.
+ *
+ * @return void
+ */
+	public function testPluginPrefixes() {
+		$this->Objects->load('TestPlugin.First');
+		$this->assertTrue($this->Objects->loaded('First'));
+		$this->assertTrue($this->Objects->loaded('TestPlugin.First'));
+
+		$this->assertTrue($this->Objects->enabled('First'));
+		$this->assertTrue($this->Objects->enabled('TestPlugin.First'));
+
+		$this->assertNull($this->Objects->disable('TestPlugin.First'));
+		$this->assertFalse($this->Objects->enabled('First'));
+		$this->assertFalse($this->Objects->enabled('TestPlugin.First'));
+
+		$this->assertNull($this->Objects->enable('TestPlugin.First'));
+		$this->assertTrue($this->Objects->enabled('First'));
+		$this->assertTrue($this->Objects->enabled('TestPlugin.First'));
+		$this->Objects->setPriority('TestPlugin.First', 1000);
+
+		$result = $this->Objects->prioritize();
+		$this->assertEquals(1000, $result['First'][0]);
+	}
 }

@@ -119,13 +119,16 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
 
             struct stat statbuf;
             errno = 0;
-            stat( path, &statbuf );
-            if ( errno == ENOENT || errno == ENOTDIR )
-            {
-                if ( mkdir( path, 0755 ) )
-                {
-                    Fatal( "Can't mkdir %s: %s", path, strerror(errno));
-                }
+            if ( stat( path, &statbuf ) ) {
+				if ( errno == ENOENT || errno == ENOTDIR )
+				{
+					if ( mkdir( path, 0755 ) )
+					{
+						Fatal( "Can't mkdir %s: %s", path, strerror(errno));
+					}
+				} else {
+					Warning( "Error stat'ing %s, may be fatal. error is %s", path, strerror(errno));
+				}
             }
             if ( i == 2 )
                 strncpy( date_path, path, sizeof(date_path) );
@@ -1088,6 +1091,11 @@ void EventStream::processCommand( const CmdMsg *msg )
             Debug( 1, "Got QUERY command, sending STATUS" );
             break;
         }
+	case CMD_QUIT :
+        {
+           Info ("User initiated exit - CMD_QUIT");
+           break;
+        }
         default :
         {
             // Do nothing, for now
@@ -1116,7 +1124,7 @@ void EventStream::processCommand( const CmdMsg *msg )
 
     DataMsg status_msg;
     status_msg.msg_type = MSG_DATA_EVENT;
-    memcpy( &status_msg.msg_data, &status_data, sizeof(status_msg.msg_data) );
+    memcpy( &status_msg.msg_data, &status_data, sizeof(status_data) );
     if ( sendto( sd, &status_msg, sizeof(status_msg), MSG_DONTWAIT, (sockaddr *)&rem_addr, sizeof(rem_addr) ) < 0 )
     {
         //if ( errno != EAGAIN )
@@ -1125,6 +1133,9 @@ void EventStream::processCommand( const CmdMsg *msg )
             exit( -1 );
         }
     }
+    // quit after sending a status, if this was a quit request
+    if ((MsgCommand)msg->msg_data[0]==CMD_QUIT)
+        exit(0);
 
     updateFrameRate( (double)event_data->frame_count/event_data->duration );
 }

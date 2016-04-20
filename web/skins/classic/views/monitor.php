@@ -18,6 +18,8 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
+require_once( 'includes/Server.php');
+
 if ( !canView( 'Monitors' ) )
 {
     $view = "error";
@@ -40,6 +42,7 @@ if ( isset($_REQUEST['tab']) )
 else
     $tab = "general";
 
+	$Server = null;
     if ( defined( 'ZM_SERVER_ID' ) ) {
         $Server = dbFetchOne( 'SELECT * FROM Servers WHERE Id=?', NULL, array( ZM_SERVER_ID ) );
 	}
@@ -150,6 +153,8 @@ else
     if ( ZM_OPT_X10 )
         $newX10Monitor = $x10Monitor;
 }
+
+$newMonitor['Name'] = trim($newMonitor['Name']);
 
 if ( $newMonitor['AnalysisFPS'] == '0.00' )
     $newMonitor['AnalysisFPS'] = '';
@@ -646,8 +651,12 @@ switch ( $tab )
             <tr><td><?php echo translate('Name') ?></td><td><input type="text" name="newMonitor[Name]" value="<?php echo validHtmlStr($newMonitor['Name']) ?>" size="16"/></td></tr>
             <tr><td><?php echo translate('Server') ?></td><td>
 <?php 
-	$servers = dbFetchAssoc( 'SELECT Id,Name FROM Servers ORDER BY Name', 'Id', 'Name' ); 
-	array_unshift( $servers, 'None' );
+	$servers = array(''=>'None');
+	$result = dbQuery( 'SELECT * FROM Servers ORDER BY Name');
+	$results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Server' );
+	foreach ( $results as $row => $server_obj ) {
+		$servers[$server_obj->Id] = $server_obj->Name();
+	}
 ?>
 	<?php echo buildSelect( "newMonitor[ServerId]", $servers ); ?>
 </td></tr>
@@ -687,9 +696,19 @@ switch ( $tab )
               </td>
             </tr>
             <tr><td><?php echo translate('AnalysisFPS') ?></td><td><input type="text" name="newMonitor[AnalysisFPS]" value="<?php echo validHtmlStr($newMonitor['AnalysisFPS']) ?>" size="6"/></td></tr>
-            <tr><td><?php echo translate('MaximumFPS') ?></td><td><input type="text" name="newMonitor[MaxFPS]" value="<?php echo validHtmlStr($newMonitor['MaxFPS']) ?>" size="6"/></td></tr>
-            <tr><td><?php echo translate('AlarmMaximumFPS') ?></td><td><input type="text" name="newMonitor[AlarmMaxFPS]" value="<?php echo validHtmlStr($newMonitor['AlarmMaxFPS']) ?>" size="6"/></td></tr>
 <?php
+    if ( $newMonitor['Type'] != "Local" && $newMonitor['Type'] != "File" )
+    {
+?>
+            <tr><td><?php echo translate('MaximumFPS') ?>&nbsp;(<?php echo makePopupLink('?view=optionhelp&amp;option=OPTIONS_MAXFPS', 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td><td><input type="text" onclick="document.getElementById('newMonitor[MaxFPS]').innerHTML= ' CAUTION: See the help text'" name="newMonitor[MaxFPS]" value="<?php echo validHtmlStr($newMonitor['MaxFPS']) ?>" size="5"/><span id="newMonitor[MaxFPS]" style="color:red"></span></td></tr>
+            <tr><td><?php echo translate('AlarmMaximumFPS') ?>&nbsp;(<?php echo makePopupLink('?view=optionhelp&amp;option=OPTIONS_MAXFPS', 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td><td><input type="text" onclick="document.getElementById('newMonitor[AlarmMaxFPS]').innerHTML= ' CAUTION: See the help text'" name="newMonitor[AlarmMaxFPS]" value="<?php echo validHtmlStr($newMonitor['AlarmMaxFPS']) ?>" size="5"/><span id="newMonitor[AlarmMaxFPS]" style="color:red"></span></td></tr>
+<?php
+    } else {
+?>
+            <tr><td><?php echo translate('MaximumFPS') ?></td><td><input type="text" name="newMonitor[MaxFPS]" value="<?php echo validHtmlStr($newMonitor['MaxFPS']) ?>" size="5"/></td></tr>
+            <tr><td><?php echo translate('AlarmMaximumFPS') ?></td><td><input type="text" name="newMonitor[AlarmMaxFPS]" value="<?php echo validHtmlStr($newMonitor['AlarmMaxFPS']) ?>" size="5"/></td></tr>
+<?php
+    }
 	if ( ZM_FAST_IMAGE_BLENDS )
         {
 ?>

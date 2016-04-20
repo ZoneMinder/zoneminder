@@ -94,6 +94,30 @@ function noCacheHeaders()
     header("Pragma: no-cache");         // HTTP/1.0
 }
 
+function CORSHeaders() {
+	if ( isset( $_SERVER['HTTP_ORIGIN'] ) ) {
+
+		# The following is left for future reference/use.
+		$valid = false;
+		$servers = dbFetchAll( 'SELECT * FROM Servers' );
+		if ( sizeof($servers) <= 1 ) {
+			# Only need CORSHeaders in the event that there are multiple servers in use.
+			return;
+		}
+		foreach( dbFetchAll( 'SELECT * FROM Servers' ) as $row ) {
+			$Server = new Server( $row );
+			if ( $_SERVER['HTTP_ORIGIN'] == $Server->Url() ) {
+				$valid = true;
+				header("Access-Control-Allow-Origin: " . $Server->Url() );
+				header("Access-Control-Allow-Headers: x-requested-with,x-request");
+			}
+		}
+		if ( ! $valid ) {
+			Warning( $_SERVER['HTTP_ORIGIN'] . " is not found in servers list." );
+		}
+	}
+}
+
 function getAuthUser( $auth )
 {
     if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == "hashed" && !empty($auth) )
@@ -768,7 +792,7 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false )
             {
                 if ( !isset($values[$key]) || ($values[$key] != $value) )
                 {
-                    $changes[$key] = "$key = ".dbEscape($value);
+                    $changes[$key] = "$key = ".dbEscape(trim($value));
                 }
                 break;
             }
@@ -958,6 +982,7 @@ function daemonControl( $command, $daemon=false, $args=false )
 
 function zmcControl( $monitor, $mode=false )
 {
+  if ( (!defined('ZM_SERVER_ID')) or ( ZM_SERVER_ID==$monitor['ServerId'] ) ) {
 	$row = NULL;
     if ( $monitor['Type'] == "Local" )
     {
@@ -983,10 +1008,12 @@ function zmcControl( $monitor, $mode=false )
         }
         daemonControl( "start", "zmc", $zmcArgs );
     }
+  }
 }
 
 function zmaControl( $monitor, $mode=false )
 {
+  if ( (!defined('ZM_SERVER_ID')) or ( ZM_SERVER_ID==$monitor['ServerId'] ) ) {
     if ( !is_array( $monitor ) )
     {
         $monitor = dbFetchOne( "select C.*, M.* from Monitors as M left join Controls as C on (M.ControlId = C.Id ) where M.Id=?", NULL, array($monitor) );
@@ -1031,6 +1058,7 @@ function zmaControl( $monitor, $mode=false )
             daemonControl( "reload", "zma", "-m ".$monitor['Id'] );
         }
     }
+  }
 }
 
 function initDaemonStatus()
@@ -1279,26 +1307,30 @@ function executeFilter( $filter )
     return( $status );
 }
 
+# This takes more than one scale amount, so it runs through each and alters dimension.
+# I can't imagine why you would want to do that.
 function reScale( $dimension, $dummy )
 {
+    $new_dimension = $dimension;
     for ( $i = 1; $i < func_num_args(); $i++ )
     {
         $scale = func_get_arg( $i );
         if ( !empty($scale) && $scale != SCALE_BASE )
-            $dimension = (int)(($dimension*$scale)/SCALE_BASE);
+            $new_dimension = (int)(($new_dimension*$scale)/SCALE_BASE);
     }
-    return( $dimension );
+    return( $new_dimension );
 }
 
 function deScale( $dimension, $dummy )
 {
+    $new_dimension = $dimension;
     for ( $i = 1; $i < func_num_args(); $i++ )
     {
         $scale = func_get_arg( $i );
         if ( !empty($scale) && $scale != SCALE_BASE )
-            $dimension = (int)(($dimension*SCALE_BASE)/$scale);
+            $new_dimension = (int)(($new_dimension*SCALE_BASE)/$scale);
     }
-    return( $dimension );
+    return( $new_dimension );
 }
 
 function monitorLimitSql()
@@ -1640,6 +1672,10 @@ function getLoad()
 function getDiskPercent()
 {
     $total = disk_total_space(ZM_DIR_EVENTS);
+    if ( ! $total ) {
+        Error("disk_total_space returned false for " . ZM_DIR_EVENTS );
+        return 0;
+    }
     $space = round(($total - disk_free_space(ZM_DIR_EVENTS)) / $total * 100);
     return( $space );
 }
@@ -2457,5 +2493,23 @@ function validHtmlStr( $input )
 {
     return( htmlspecialchars( $input, ENT_QUOTES ) );
 }
+
+function getStreamHTML( $monitor, $scale=100 ) {
+//FIXME, the width and height of the image need to be scaled.
+    if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
+        $streamSrc = $monitor->getStreamSrc( array( "mode=mpeg", "scale=".$scale, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_LIVE_FORMAT ) );
+        outputVideoStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
+    } else if ( canStream() ) {
+        $streamSrc = $monitor->getStreamSrc( array( 'mode=jpeg', 'scale='.$scale, 'maxfps='.ZM_WEB_VIDEO_MAXFPS, 'buffer='.$monitor->StreamReplayBuffer() ) );
+        if ( canStreamNative() )
+            outputImageStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
+        elseif ( canStreamApplet() )
+            outputHelperStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
+    } else {
+        $streamSrc = $monitor->getStreamSrc( array( 'mode=single', "scale=".$scale ) );
+        outputImageStill( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
+        Info( "The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.");
+    }
+} // end function getStreamHTML
 
 ?>

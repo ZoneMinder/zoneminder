@@ -32,6 +32,8 @@
 #include <openssl/md5.h>
 #endif // HAVE_GCRYPT_H || HAVE_LIBCRYPTO
 
+namespace zm { 
+
 enum AuthMethod { AUTH_UNDEFINED = 0, AUTH_BASIC = 1, AUTH_DIGEST = 2 };
 class Authenticator {
 public:
@@ -61,5 +63,7 @@ private:
   std::string quote( std::string src );
 	int nc;
 };
+
+} // namespace zm
 
 #endif // ZM_RTSP_AUTH_H

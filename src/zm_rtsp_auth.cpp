@@ -24,6 +24,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+namespace zm {
+
 Authenticator::Authenticator(std::string &username, std::string password) {
 #ifdef HAVE_GCRYPT_H
     // Special initialisation for libgcrypt
@@ -199,8 +201,8 @@ std::string Authenticator::computeDigestResponse(std::string &method, std::strin
     return md5HexBuf;
 #else // HAVE_DECL_MD5
 	Error( "You need to build with gnutls or openssl installed to use digest authentication" );
-#endif // HAVE_DECL_MD5
     return( 0 );
+#endif // HAVE_DECL_MD5
 }
 
 void Authenticator::checkAuthResponse(std::string &response) {
@@ -227,3 +229,5 @@ void Authenticator::checkAuthResponse(std::string &response) {
 		Debug( 2, "Didn't find auth line in %s", authLine.c_str());
 	}
 }
+
+} // namespace zm

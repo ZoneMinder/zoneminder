@@ -48,6 +48,8 @@ if ( false )
 
 require_once( 'includes/config.php' );
 require_once( 'includes/logger.php' );
+require_once( 'includes/Server.php' );
+require_once( 'includes/Monitor.php' );
 
 if ( isset($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] == 'on' )
 {
@@ -136,10 +138,13 @@ else
 require_once( 'includes/lang.php' );
 require_once( 'includes/functions.php' );
 
+# Add Cross domain access headers
+CORSHeaders();
+
 // Check for valid content dirs
 if ( !is_writable(ZM_DIR_EVENTS) || !is_writable(ZM_DIR_IMAGES) )
 {
-	Fatal( "Cannot write to content dirs('".ZM_DIR_EVENTS."','".ZM_DIR_IMAGES."').  Check that these exist and are owned by the web account user");
+	Error( "Cannot write to content dirs('".ZM_DIR_EVENTS."','".ZM_DIR_IMAGES."').  Check that these exist and are owned by the web account user");
 }
 
 if ( isset($_REQUEST['view']) )

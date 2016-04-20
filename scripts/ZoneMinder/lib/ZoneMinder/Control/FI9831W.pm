@@ -155,7 +155,7 @@ sub reset
    #my $cmd = "setOSDSetting%26isEnableTimeStamp%3D0%26isEnableDevName%3D1%26dispPos%3D0%26isEnabledOSDMask%3D0";
    Info ("Sending reboot $cmd");
    $self->sendCmd( $cmd );
-   # Setup For Stream=0 Resolution=720p Bandwith=4M FPS=30 KeyFrameInterval/GOP=100 VBR=ON
+   # Setup For Stream=0 Resolution=720p Bandwidth=4M FPS=30 KeyFrameInterval/GOP=100 VBR=ON
    #$cmd = "setVideoStreamParam%26streamType%3D0%26resolution%3D0%26bitRate%3D4194304%26frameRate%3D30%26GOP%3D100%26isVBR%3D1";
    #$self->sendCmd( $cmd );
    # Setup For Infrared AUTO

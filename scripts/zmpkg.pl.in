@@ -52,7 +52,7 @@ use Time::HiRes qw/gettimeofday/;
 use autouse 'Pod::Usage'=>qw(pod2usage);
 
 # Detaint our environment
-$ENV{PATH}  = '/bin:/usr/bin';
+$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 my $store_state=""; # PP - will remember state name passed
@@ -121,10 +121,10 @@ my $retval = 0;
 if ( $command eq "state" )
 {
     Info( "Updating DB: $state->{Name}\n" );
-    my $sql = "select * from Monitors order by Id asc";
+    my $sql = $Config{ZM_SERVER_ID} ? 'SELECT * FROM Monitors WHERE ServerId=? ORDER BY Id ASC' : 'SELECT * FROM Monitors ORDER BY Id ASC';
     my $sth = $dbh->prepare_cached( $sql )
         or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-    my $res = $sth->execute()
+    my $res = $sth->execute( $Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID}: () )
         or Fatal( "Can't execute: ".$sth->errstr() );
     while( my $monitor = $sth->fetchrow_hashref() )
     {
@@ -226,10 +226,11 @@ if ( $command =~ /^(?:start|restart)$/ )
         zmMemTidy();
         runCommand( "zmdc.pl startup" );
 
-        my $sql = "select * from Monitors";
+		Info( "Starting up services" . ( $Config{ZM_SERVER_ID} ? " for server $Config{ZM_SERVER_ID}\n" : "\n" ) );
+        my $sql = $Config{ZM_SERVER_ID} ? 'SELECT * FROM Monitors WHERE ServerId=?' : 'SELECT * FROM Monitors';
         my $sth = $dbh->prepare_cached( $sql )
             or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-        my $res = $sth->execute()
+        my $res = $sth->execute( $Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID} : () )
             or Fatal( "Can't execute: ".$sth->errstr() );
         while( my $monitor = $sth->fetchrow_hashref() )
         {
@@ -283,6 +284,10 @@ if ( $command =~ /^(?:start|restart)$/ )
         if ( $Config{ZM_CHECK_FOR_UPDATES} )
         {
             runCommand( "zmdc.pl start zmupdate.pl -c" );
+        }
+        if ( $Config{ZM_TELEMETRY_DATA} )
+        {
+            runCommand( "zmdc.pl start zmtelemetry.pl" );
         }
     }
     else

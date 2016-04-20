@@ -73,7 +73,7 @@ use constant SOCK_FILE => $Config{ZM_PATH_SOCKS}.'/zmdc.sock';
 
 $| = 1;
 
-$ENV{PATH}  = '/bin:/usr/bin';
+$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
@@ -87,7 +87,8 @@ my @daemons = (
     'zmx10.pl',
     'zmwatch.pl',
     'zmupdate.pl',
-    'zmtrack.pl'
+    'zmtrack.pl',
+    'zmtelemetry.pl',
 );
 
 my $command = shift @ARGV;
@@ -250,13 +251,15 @@ sub run
     {
         print( $PID $$ );
         close( $PID );
+	} else {
+		Error( "Can't open pid file at " . ZM_PID );
     }
 
     killAll( 1 );
 
     socket( SERVER, PF_UNIX, SOCK_STREAM, 0 ) or Fatal( "Can't open socket: $!" );
-    unlink( main::SOCK_FILE );
-    bind( SERVER, $saddr ) or Fatal( "Can't bind: $!" );
+    unlink( main::SOCK_FILE ) or Error( "Unable to unlink " . main::SOCK_FILE );
+    bind( SERVER, $saddr ) or Fatal( "Can't bind to " . main::SOCK_FILE . ": $!" );
     listen( SERVER, SOMAXCONN ) or Fatal( "Can't listen: $!" );
 
     $SIG{CHLD} = \&reaper;
@@ -859,7 +862,7 @@ sub killAll
     my $killall;
     if ( '@HOST_OS@' eq 'BSD' )
     {
-        $killall = 'killall -';
+        $killall = 'killall -q -';
     } elsif ( '@HOST_OS@' eq 'solaris' ) {
         $killall = 'pkill -';
     } else {

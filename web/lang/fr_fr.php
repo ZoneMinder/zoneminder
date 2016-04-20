@@ -150,7 +150,7 @@ $SLANG = array(
     'BadLabelY'            => 'La coordonnée Y pour l\'horodatage doit être un entier supérieur ou égal à 0',
     'BadMaxFPS'            => 'Le nombre maximum d\'i/s doit être un entier ou un nombre à virgule flottante supérieur à 0',
     'BadMotionFrameSkip'   => 'Le nombre d\'images à sauter en cas de détection doit être un entier supérieur ou égal à 0',
-    'BadNameChars'         => 'Les noms ne peuvent contenir que des lettres, chiffres, trait d\'union ou souligné',
+    'BadNameChars'         => 'Les noms ne peuvent contenir que des lettres, chiffres, les espaces, trait d\'union ou souligné',
     'BadPalette'           => 'La palette doit être définie', // Added - 2009-03-31
     'BadPath'              => 'Le chemin doit être défini',
     'BadPort'              => 'Le port doit être un nombre entier supérieur ou égal à 0',
@@ -893,14 +893,14 @@ function zmVlang( $langVarArray, $count )
 // So for example, to override the help text for ZM_LANG_DEFAULT do
 $OLANG = array(
 	'OPTIONS_FFMPEG' => array(
-		'Help' => "Parameters in this field are passwd on to FFmpeg. Multiple parameters can be separated by ,~~ ".
+		'Help' => "Parameters in this field are passed on to FFmpeg. Multiple parameters can be separated by ,~~ ".
 		          "Examples (do not enter quotes)~~~~".
 		          "\"allowed_media_types=video\" Set datatype to request fromcam (audio, video, data)~~~~".
 		          "\"reorder_queue_size=nnn\" Set number of packets to buffer for handling of reordered packets~~~~".
-		          "\"loglevel=debug\" Set verbosiy of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
+		          "\"loglevel=debug\" Set verbosity of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
 	),
 	'OPTIONS_LIBVLC' => array(
-		'Help' => "Parameters in this field are passwd on to libVLC. Multiple parameters can be separated by ,~~ ".
+		'Help' => "Parameters in this field are passed on to libVLC. Multiple parameters can be separated by ,~~ ".
 		          "Examples (do not enter quotes)~~~~".
 		          "\"--rtp-client-port=nnn\" Set local port to use for rtp data~~~~". 
 		          "\"--verbose=2\" Set verbosity of libVLC"

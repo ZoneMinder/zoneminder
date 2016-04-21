@@ -3830,7 +3830,7 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
         default     => "no",
         description =>  qqq("
             Use a SSMTP mail server if available. 
-            NEW_MAIL_MODULES must be enabled"
+            NEW_MAIL_MODULES must be enabled
         "),
         requires    => [
                         { name => "ZM_OPT_EMAIL", value => "yes" },

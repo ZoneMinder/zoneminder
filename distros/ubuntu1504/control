@@ -6,6 +6,7 @@ Uploaders: Vagrant Cascadian <vagrant@debian.org>
 Build-Depends: debhelper (>= 9), dh-systemd, python-sphinx | python3-sphinx, apache2-dev, dh-linktree
               ,cmake
               ,libavcodec-ffmpeg-dev, libavformat-ffmpeg-dev, libswscale-ffmpeg-dev, libavutil-ffmpeg-dev, libavdevice-ffmpeg-dev
+              ,libx264-dev, libmp4v2-dev,
               ,libbz2-dev
               ,libgcrypt-dev
               ,libcurl4-gnutls-dev
@@ -34,10 +35,8 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,javascript-common
         ,libav-tools
-        ,libdate-manip-perl
+        ,libdate-manip-perl, libmime-lite-perl, libmime-tools-perl
         ,libdbd-mysql-perl
-        ,libmime-lite-perl
-        ,libmime-tools-perl
         ,libphp-serialization-perl
         ,libmodule-load-conditional-perl
         ,libnet-sftp-foreign-perl

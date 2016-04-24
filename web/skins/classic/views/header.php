@@ -72,6 +72,7 @@ $eventCounts = array(
 );
 
 $running = daemonCheck();
+$states = dbFetchAll( "select * from States" );
 $status = $running?translate('Running'):translate('Stopped');
 $run_state = dbFetchOne('select Name from States where  IsActive = 1', 'Name' );
 
@@ -229,7 +230,7 @@ $versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText'
 <?php } ?>
 
 <?php if ( canEdit( 'System' ) ) { ?>
-		<a class="btn btn-default navbar-btn" href="/?view=state" onclick="createPopup( '?view=state', 'zmState', 'state' ); return( false );"> <?php echo $status ?> </a>
+		<button type="button" class="btn btn-default navbar-btn" data-toggle="modal" data-target="#modalState"><?php echo $status ?></button>
 
 <?php } else if ( canView( 'System' ) ) { ?>
 		<p class="navbar-text"> <?php echo $status ?> </p>

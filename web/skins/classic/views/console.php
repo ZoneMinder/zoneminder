@@ -154,5 +154,6 @@ echo $Server->Name();
 </div> <!-- End .footer -->
 
     </form>
+<?php include("skins/$skin/views/state.php") ?>
 </body>
 </html>

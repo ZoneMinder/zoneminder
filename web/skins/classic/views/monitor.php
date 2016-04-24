@@ -444,7 +444,6 @@ xhtmlHeaders(__FILE__, translate('Monitor')." - ".validHtmlStr($monitor['Name'])
 <body>
     <?php include("skins/$skin/views/header.php") ?>
 
- <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" onsubmit="return validateForm( this )">
   <div class="container-fluid">
 
 
@@ -956,9 +955,9 @@ switch ( $tab )
         <div id="contentButtons">
           <input type="submit" value="<?php echo translate('Save') ?>"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
         </div>
+      </form>
     </div>
   </div>
 </div>
-</form>
 </body>
 </html>

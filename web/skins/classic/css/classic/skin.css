@@ -469,8 +469,8 @@ th.table-th-sort-rev span.table-th-sort-span {
     padding: 20px;
     overflow-x: hidden;
     overflow-y: auto;
-    background-color: #222;
-    border-right: 1px solid #080808;
+    background-color: #f5f5f5;
+    border-right: 1px solid #eeeeee;
 }
 
 .sidebar ul {

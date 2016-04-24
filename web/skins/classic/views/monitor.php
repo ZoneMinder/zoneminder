@@ -442,22 +442,38 @@ $label_size = array(
 xhtmlHeaders(__FILE__, translate('Monitor')." - ".validHtmlStr($monitor['Name']) );
 ?>
 <body>
-    <?php include("skins/$skin/views/header.php") ?>
-
-  <div class="container-fluid">
-
-
-<div class="row">
-
-    <div class="col-sm-2 sidebar">
-      <ul class="nav nav-pills nav-stacked">
+  <div id="page">
+    <div id="header">
+<?php
+if ( canEdit( 'Monitors' ) )
+{
+?>
+      <div id="headerButtons">
+        <a href="#" onclick="createPopup( '?view=monitorprobe&amp;mid=<?php echo $monitor['Id'] ?>', 'zmMonitorProbe<?php echo $monitor['Id'] ?>', 'monitorprobe' ); return( false );"><?php echo translate('Probe') ?></a>
+	<?php
+	if ( ZM_HAS_ONVIF )
+	{
+	?>
+	        <a href="#" onclick="createPopup( '?view=onvifprobe&amp;mid=<?php echo $monitor['Id'] ?>', 'zmOnvifProbe<?php echo $monitor['Id'] ?>', 'onvifprobe' ); return( false );"><?php echo  translate('OnvifProbe') ?></a>
+	<?php
+	}
+	?>
+        <a href="#" onclick="createPopup( '?view=monitorpreset&amp;mid=<?php echo $monitor['Id'] ?>', 'zmMonitorPreset<?php echo $monitor['Id'] ?>', 'monitorpreset' ); return( false );"><?php echo translate('Presets') ?></a>
+      </div>
+<?php
+}
+?>
+      <h2><?php echo translate('Monitor') ?> - <?php echo validHtmlStr($monitor['Name']) ?><?php if ( !empty($monitor['Id']) ) { ?> (<?php echo $monitor['Id'] ?>)<?php } ?></h2>
+    </div>
+    <div id="content">
+      <ul class="tabList">
 <?php
 foreach ( $tabs as $name=>$value )
 {
     if ( $tab == $name )
     {
 ?>
-        <li class="active"><a href="#" onclick="submitTab( '<?php echo $name ?>' ); return( false );"><?php echo $value ?></a></li>
+        <li class="active"><?php echo $value ?></li>
 <?php
     }
     else
@@ -469,25 +485,8 @@ foreach ( $tabs as $name=>$value )
 }
 ?>
       </ul>
-        <a class="btn btn-default navbar-btn btn-block" href="#" onclick="createPopup( '?view=monitorprobe&amp;mid=<?php echo $monitor['Id'] ?>', 'zmMonitorProbe<?php echo $monitor['Id'] ?>', 'monitorprobe' ); return( false );"><?php echo translate('Probe') ?></a>
-	<?php
-	if ( ZM_HAS_ONVIF )
-	{
-	?>
-	        <a class="btn btn-default navbar-btn btn-block" href="#" onclick="createPopup( '?view=onvifprobe&amp;mid=<?php echo $monitor['Id'] ?>', 'zmOnvifProbe<?php echo $monitor['Id'] ?>', 'onvifprobe' ); return( false );"><?php echo  translate('OnvifProbe') ?></a>
-	<?php
-	}
-	?>
-        <a class="btn btn-default navbar-btn btn-block" href="#" onclick="createPopup( '?view=monitorpreset&amp;mid=<?php echo $monitor['Id'] ?>', 'zmMonitorPreset<?php echo $monitor['Id'] ?>', 'monitorpreset' ); return( false );"><?php echo translate('Presets') ?></a>
-	</div> <!-- end sidebar -->
-
-
-	<div class="col-sm-10 col-sm-offset-2">
-<h2 class="page-header">
-      <?php echo translate('Monitor') ?> - <?php echo validHtmlStr($monitor['Name']) ?><?php if ( !empty($monitor['Id']) ) { ?> (<?php echo $monitor['Id'] ?>)<?php } ?>
-</h2>
-	
-
+      <div class="clear"></div>
+      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" onsubmit="return validateForm( this )">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
         <input type="hidden" name="action" value="monitor"/>
@@ -958,6 +957,5 @@ switch ( $tab )
       </form>
     </div>
   </div>
-</div>
 </body>
 </html>

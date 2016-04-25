@@ -660,7 +660,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
     */
 }
 
-bool EventStream::loadInitialEventData( int monitor_id, time_t event_time )
+bool EventStream::loadInitialEventData( int monitor_id, long event_time )
 {
     static char sql[ZM_SQL_SML_BUFSIZ];
 

@@ -40,6 +40,7 @@ if ( !canView( 'Events' ) )
 
 require_once('includes/Storage.php');
 require_once('includes/Event.php');
+require_once('includes/Frame.php');
 
 header( 'Content-type: image/jpeg' );
 
@@ -67,6 +68,12 @@ if ( empty($_REQUEST['path']) )
 			$Event = new Event( $_REQUEST['eid'] );
 			$Storage = $Event->Storage();
 			$path = $Event->Relative_Path().'/'.sprintf("%'.0".ZM_EVENT_IMAGE_DIGITS.'d',$_REQUEST['fid']).'-capture.jpg';
+        } else {
+            # If we are only specifying fid, then the fid must be the primary key into the frames table. But when the event is specified, then it is the frame #
+            $Frame = new Frame( $_REQUEST['fid'] );
+            $Event = new Event( $Frame->EventId() );
+			$Storage = $Event->Storage();
+			$path = $Event->Relative_Path().'/'.sprintf("%'.0".ZM_EVENT_IMAGE_DIGITS.'d',$Frame->FrameId()).'-capture.jpg';
 		}
 	} else {
 		$errorText = "No image path";

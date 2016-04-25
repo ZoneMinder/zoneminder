@@ -306,8 +306,12 @@ Monitor::Monitor(
     server_id( p_server_id ),
     function( (Function)p_function ),
     enabled( p_enabled ),
-    width( (p_orientation==ROTATE_90||p_orientation==ROTATE_270)?p_camera->Height():p_camera->Width() ),
-    height( (p_orientation==ROTATE_90||p_orientation==ROTATE_270)?p_camera->Width():p_camera->Height() ),
+    // When we instantiate the camera, the dimensions are rotated.  So if we rotate them again here, we undo the rotation.
+    // With this change, calls to Monitor->Width and Height will give the rotated dimesions.So this will trickle down
+	width( p_camera->Width() ),
+	height( p_camera->Height() ),
+    //width( (p_orientation==ROTATE_90||p_orientation==ROTATE_270)?p_camera->Height():p_camera->Width() ),
+    //height( (p_orientation==ROTATE_90||p_orientation==ROTATE_270)?p_camera->Width():p_camera->Height() ),
     orientation( (Orientation)p_orientation ),
     deinterlacing( p_deinterlacing ),
     label_coord( p_label_coord ),

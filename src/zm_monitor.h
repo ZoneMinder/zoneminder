@@ -358,8 +358,8 @@ public:
 		return( embed_exif );
 	}
 
-	unsigned int Width() const { return( width ); }
-	unsigned int Height() const { return( height ); }
+	unsigned int Width() const { return( (p_orientation==ROTATE_90||p_orientation==ROTATE_270)?p_camera->Height():p_camera->Width() ); }
+	unsigned int Height() const { return( (p_orientation==ROTATE_90||p_orientation==ROTATE_270)?p_camera->Width():p_camera->Height() ); }
 	unsigned int Colours() const { return( camera->Colours() ); }
 	unsigned int SubpixelOrder() const { return( camera->SubpixelOrder() ); }
       

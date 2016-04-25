@@ -24,7 +24,9 @@
 
 using namespace std;
 
-zm_packetqueue::zm_packetqueue() {
+zm_packetqueue::zm_packetqueue()
+    : MaxVideoQueueSize(VIDEO_QUEUESIZE)
+    , MaxAudioQueueSize(AUDIO_QUEUESIZE){
 }
 
 zm_packetqueue::zm_packetqueue(const zm_packetqueue& orig) {
@@ -34,59 +36,59 @@ zm_packetqueue::~zm_packetqueue() {
 }
 
 bool zm_packetqueue::queueVideoPacket(AVPacket* packet){
-  return queuePacket(m_VideoQueue, packet);
+  return queuePacket(VideoQueue, packet);
 }
 
 bool zm_packetqueue::queueAudioPacket(AVPacket* packet)
 {
-	return queuePacket(m_AudioQueue, packet);
+	return queuePacket(AudioQueue, packet);
 }
 
-bool zm_packetqueue::queuePacket(queue<AVPacket>& packetQueue, AVPacket* packet){
+bool zm_packetqueue::queuePacket(queue<AVPacket>& pktQueue, AVPacket* packet){
     
   AVPacket input_ref = { 0 };
   if (av_packet_ref(&input_ref, packet) < 0){
 		return false;
 	}
-	packetQueue.push(*packet);
+	pktQueue.push(*packet);
 
 	return true;
 }
 
-bool zm_packetqueue::popPacket(queue<AVPacket>& packetQueue, AVPacket* packet)
+bool zm_packetqueue::popPacket(queue<AVPacket>& pktQueue, AVPacket* packet)
 {
-	if (packetQueue.empty())
+	if (pktQueue.empty())
 	{
 		return false;
 	}
 
-	*packet = packetQueue.front();
-	packetQueue.pop();
+	*packet = pktQueue.front();
+	pktQueue.pop();
 
 	return true;
 }
 
-void zm_packetqueue::clearQueue(std::queue<AVPacket>& packetQueue)
+void zm_packetqueue::clearQueue(std::queue<AVPacket>& pktQueue)
 {
-	while(!packetQueue.empty())
+	while(!pktQueue.empty())
 	{
-		packetQueue.pop();
+		pktQueue.pop();
 	}
 }
 
 void zm_packetqueue::clearQueues()
 {
-  clearQueue(m_VideoQueue);
-  clearQueue(m_AudioQueue);
+  clearQueue(VideoQueue);
+  clearQueue(AudioQueue);
 }
 
 bool zm_packetqueue::popAudioPacket(AVPacket* packet)
 {
-	return popPacket(m_AudioQueue, packet);
+	return popPacket(AudioQueue, packet);
 }
 
 bool zm_packetqueue::popVideoPacket(AVPacket* packet)
 {
-	return popPacket(m_VideoQueue, packet);
+	return popPacket(VideoQueue, packet);
 }
 

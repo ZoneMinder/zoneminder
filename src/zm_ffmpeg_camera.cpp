@@ -486,6 +486,7 @@ int FfmpegCamera::CaptureAndRecord(Image &image, bool recording, char* event_fil
   }
 
   AVPacket packet;
+  AVPacket* queuedpacket;
   uint8_t* directbuffer;
   zm_packetqueue packetqueue;
 
@@ -546,6 +547,13 @@ int FfmpegCamera::CaptureAndRecord(Image &image, bool recording, char* event_fil
           videoStore = new VideoStore((const char *) event_file, "mp4", mFormatContext->streams[mVideoStreamId], mAudioStreamId == -1 ? NULL : mFormatContext->streams[mAudioStreamId], startTime);
           wasRecording = true;
           strcpy(oldDirectory, event_file);
+          while(packetqueue.popVideoPacket(queuedpacket)){
+            int ret = videoStore->writeVideoFramePacket(&packet, mFormatContext->streams[mVideoStreamId]); //, &lastKeyframePkt);
+            if (ret < 0) {//Less than zero and we skipped a frame
+                av_free_packet(&packet);
+            return 0;  
+            }
+          }
 
         } else if (!recording && wasRecording && videoStore) {
           Info("Deleting videoStore instance");

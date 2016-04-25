@@ -304,24 +304,6 @@ int RemoteCameraRtsp::Capture( Image &image ) {
 			if ( !buffer.size() )
 				return( -1 );
 
-int avResult = av_read_frame( mFormatContext, &packet );
-        if ( avResult < 0 ) {
-            char errbuf[AV_ERROR_MAX_STRING_SIZE];
-            av_strerror(avResult, errbuf, AV_ERROR_MAX_STRING_SIZE);
-            if (
-                // Check if EOF.
-                (avResult == AVERROR_EOF || (mFormatContext->pb && mFormatContext->pb->eof_reached)) ||
-                // Check for Connection failure.
-                (avResult == -110)
-            ) {
-                Info( "av_read_frame returned \"%s\". Reopening stream.", errbuf);
-                //ReopenFfmpeg();
-            }
-
-            Error( "Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, avResult, errbuf );
-            return( -1 );
-        }
-
 			if(mCodecContext->codec_id == AV_CODEC_ID_H264) {
 				// SPS and PPS frames should be saved and appended to IDR frames
 				int nalType = (buffer.head()[3] & 0x1f);
@@ -344,6 +326,8 @@ int avResult = av_read_frame( mFormatContext, &packet );
 					buffer += lastSps;
 					buffer += lastPps;
 				}
+            } else {
+                Debug(3, "Not an h264 packet");
 			}
 
 			av_init_packet( &packet );

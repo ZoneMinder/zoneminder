@@ -62,7 +62,7 @@ int main( int argc, const char *argv[] )
 	int monitor_id = 0;
 	time_t event_time = 0;
 	int event_id = 0;
-	int frame_id = 1;
+	unsigned int frame_id = 1;
 	unsigned int scale = 100;
 	unsigned int rate = 100;
 	double maxfps = 10.0;

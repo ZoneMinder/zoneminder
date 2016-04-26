@@ -54,7 +54,9 @@ if ( canEdit('Monitors') )
  if ( $show_storage_areas ) { $columns += 1; }
 echo $columns;
  ?>">
-              <input type="button" class="btn btn-default" value="<?php echo translate('AddNewMonitor'); ?>" onclick="createPopup( '?view=monitor', 'zmMonitor0', 'monitor' ); return( false );"></input>
+              <input type="button" name="addBtn" value="<?php echo translate('AddNewMonitor') ?>" onclick="addMonitor( this )"/>
+              <!-- <?php echo makePopupButton( '?view=monitor', 'zmMonitor0', 'monitor', translate('AddNewMonitor'), (canEdit( 'Monitors' ) && !$user['MonitorIds']) ) ?> -->
+
             </td>
 <?php
 for ( $i = 0; $i < count($eventCounts); $i++ )

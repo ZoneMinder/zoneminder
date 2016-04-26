@@ -21,7 +21,7 @@ xhtmlHeaders( __FILE__, translate('Console') );
             <th class="colName"><?php echo translate('Name') ?></th>
             <th class="colFunction"><?php echo translate('Function') ?></th>
 <?php if ( count($servers) ) { ?>
-			<th class="colServer"><?php echo translate('Server') ?></th>
+            <th class="colServer"><?php echo translate('Server') ?></th>
 <?php } ?>
             <th class="colSource"><?php echo translate('Source') ?></th>
 <?php if ( $show_storage_areas ) { ?>
@@ -80,7 +80,7 @@ foreach( $displayMonitors as $monitor )
         $dclass = "errorText";
     else
     {
-	// https://github.com/ZoneMinder/ZoneMinder/issues/1082
+    // https://github.com/ZoneMinder/ZoneMinder/issues/1082
         if ( !$monitor['zma'] && $monitor['Function']!='Monitor' )
             $dclass = "warnText";
         else
@@ -99,7 +99,7 @@ foreach( $displayMonitors as $monitor )
             <td class="colName"><?php echo makePopupLink( '?view=watch&amp;mid='.$monitor['Id'], 'zmWatch'.$monitor['Id'], array( 'watch', reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ) ), $monitor['Name'], $running && ($monitor['Function'] != 'None') && canView( 'Stream' ) ) ?></td>
             <td class="colFunction"><?php echo makePopupLink( '?view=function&amp;mid='.$monitor['Id'], 'zmFunction', 'function', '<span class="'.$fclass.'">'.translate('Fn'.$monitor['Function']).( empty($monitor['Enabled']) ? ', disabled' : '' ) .'</span>', canEdit( 'Monitors' ) ) ?></td>
 <?php if ( count($servers) ) { ?>
-			<td class="colServer"><?php 
+            <td class="colServer"><?php 
 $Server = new Server( $monitor['ServerId'] );
 echo $Server->Name();
  ?></td>
@@ -113,9 +113,9 @@ echo $Server->Name();
 <?php } elseif ( $monitor['Type'] == "Ffmpeg" || $monitor['Type'] == "Libvlc" ) {
     $domain = parse_url( $monitor['Path'], PHP_URL_HOST );
     $shortpath = $domain ? $domain : preg_replace( '/^.*\//', '', $monitor['Path'] );
-	if ( $shortpath == '' ) {
-		$shortpath = 'Monitor ' . $monitor['Id'];
-	}
+    if ( $shortpath == '' ) {
+        $shortpath = 'Monitor ' . $monitor['Id'];
+    }
 ?>
             <td class="colSource"><?php echo makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.$shortpath.'</span>', canEdit( 'Monitors' ) ) ?></td>
 <?php } elseif ( $monitor['Type'] == "cURL" ) { ?>

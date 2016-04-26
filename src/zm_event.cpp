@@ -715,7 +715,7 @@ bool EventStream::loadInitialEventData( int monitor_id, time_t event_time )
     return( true );
 }
 
-bool EventStream::loadInitialEventData( int init_event_id, int init_frame_id )
+bool EventStream::loadInitialEventData( int init_event_id, unsigned int init_frame_id )
 {
     loadEventData( init_event_id );
 

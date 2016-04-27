@@ -193,7 +193,13 @@ int FfmpegCamera::Capture( Image &image )
             if ( frameComplete ) {
                 Debug( 4, "Got frame %d", frameCount );
 
-                avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height);
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+                av_image_fill_arrays(mFrame->data, mFrame->linesize,
+                        directbuffer, imagePixFormat, width, height, 1);
+#else
+                avpicture_fill( (AVPicture *)mFrame, directbuffer,
+                        imagePixFormat, width, height);
+#endif
 		
 #if HAVE_LIBSWSCALE
                 if(mConvertContext == NULL) {
@@ -395,7 +401,12 @@ int FfmpegCamera::OpenFfmpeg() {
 
     Debug ( 1, "Allocated frames" );
     
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+    int pSize = av_image_get_buffer_size( imagePixFormat, width, height,1 );
+#else
     int pSize = avpicture_get_size( imagePixFormat, width, height );
+#endif
+
     if( (unsigned int)pSize != imagesize) {
         Fatal("Image size mismatch. Required: %d Available: %d",pSize,imagesize);
     }
@@ -583,8 +594,8 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
 
                 //Keep the last keyframe so we can establish immediate video
                 if(packet.flags & AV_PKT_FLAG_KEY) {
-                    Debug(4, "Have keyframe");   
-                    av_copy_packet(&lastKeyframePkt, &packet);
+                    //Debug(4, "Have keyframe");   
+                    //av_copy_packet(&lastKeyframePkt, &packet);
                     //TODO I think we need to store the key frame location for seeking as part of the event
                 }
                 

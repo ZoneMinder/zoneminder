@@ -417,8 +417,8 @@ public:
 		return( embed_exif );
 	}
 
-	unsigned int Width() const { return( width ); }
-	unsigned int Height() const { return( height ); }
+	unsigned int Width() const { return width; }
+	unsigned int Height() const { return height; }
 	unsigned int Colours() const { return( camera->Colours() ); }
 	unsigned int SubpixelOrder() const { return( camera->SubpixelOrder() ); }
 

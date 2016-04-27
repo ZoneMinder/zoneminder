@@ -286,8 +286,8 @@ Monitor::Monitor(
 	storage_id( p_storage_id ),
 	function( (Function)p_function ),
 	enabled( p_enabled ),
-	width( (p_orientation==ROTATE_90||p_orientation==ROTATE_270)?p_camera->Height():p_camera->Width() ),
-	height( (p_orientation==ROTATE_90||p_orientation==ROTATE_270)?p_camera->Width():p_camera->Height() ),
+    width( (p_orientation==ROTATE_90||p_orientation==ROTATE_270)?p_camera->Height():p_camera->Width() ),
+    height( (p_orientation==ROTATE_90||p_orientation==ROTATE_270)?p_camera->Width():p_camera->Height() ),
 	orientation( (Orientation)p_orientation ),
 	deinterlacing( p_deinterlacing ),
 	savejpegspref( p_savejpegs ),
@@ -1119,8 +1119,8 @@ void Monitor::DumpZoneImage( const char *zone_string ) {
 		Debug(3, "Trying to load from event");
 		// Grab the most revent event image
 		std::string sql = stringtf( "SELECT MAX(Id) FROM Events WHERE MonitorId=%d AND Frames > 0", id );
-		MYSQL_ROW eventid_row = zmDbFetchOne(sql.c_str() );
-		if ( eventid_row ) {
+		zmDbRow eventid_row;
+		if ( eventid_row.fetch( sql.c_str() ) ) {
 			int event_id = atoi( eventid_row[0] );
 
 			Debug( 3, "Got event %d", event_id );
@@ -2182,9 +2182,6 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
 		col++;
 		bool embed_exif = (*dbrow[col] != '0'); col++;
 
-		int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
-		int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
-
 		int extras = (deinterlacing>>24)&0xff;
 
 		Camera *camera = new LocalCamera(
@@ -2195,8 +2192,8 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
 			v4l_multi_buffer,
 			v4l_captures_per_frame,
 			method,
-			cam_width,
-			cam_height,
+			width,
+			height,
 			colours,
 			palette,
 			brightness,
@@ -2349,9 +2346,6 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
 		int track_motion = atoi(dbrow[col]); col++;
 		bool embed_exif = (*dbrow[col] != '0'); col++;
 
-		int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
-		int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
-
 		Camera *camera = 0;
 		if ( protocol == "http" ) {
 			camera = new RemoteCameraHttp(
@@ -2360,8 +2354,8 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
 				host, // Host
 				port, // Port
 				path, // Path
-				cam_width,
-				cam_height,
+				width,
+				height,
 				colours,
 				brightness,
 				contrast,
@@ -2379,8 +2373,8 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
 				host, // Host
 				port, // Port
 				path, // Path
-				cam_width,
-				cam_height,
+				width,
+				height,
 				rtsp_describe,
 				colours,
 				brightness,
@@ -2531,14 +2525,11 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
 		int track_motion = atoi(dbrow[col]); col++;
 		bool embed_exif = (*dbrow[col] != '0'); col++;
 
-		int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
-		int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
-
 		Camera *camera = new FileCamera(
 			id,
 			path, // File
-			cam_width,
-			cam_height,
+			width,
+			height,
 			colours,
 			brightness,
 			contrast,
@@ -2688,16 +2679,13 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
 		int track_motion = atoi(dbrow[col]); col++;
 		bool embed_exif = (*dbrow[col] != '0'); col++;
 
-		int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
-		int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
-
 		Camera *camera = new FfmpegCamera(
 			id,
 			path, // File
 			method,
 			options,
-			cam_width,
-			cam_height,
+			width,
+			height,
 			colours,
 			brightness,
 			contrast,
@@ -2770,8 +2758,8 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
 Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
 	std::string sql = stringtf( "select Id, Name, ServerId, StorageId, Type, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, Protocol, Method, Host, Port, Path, Options, User, Pass, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, SaveJPEGs, VideoWriter, EncoderParameters, RecordAudio, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPS, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour, Exif from Monitors where Id = %d", p_id );
 
-	MYSQL_ROW dbrow = zmDbFetchOne( sql.c_str() );
-	if ( ! dbrow ) {
+	zmDbRow dbrow;
+	if ( ! dbrow.fetch( sql.c_str() ) ) {
 		Error( "Can't use query result: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
@@ -2869,9 +2857,6 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
 	col++;
 	bool embed_exif = (*dbrow[col] != '0'); col++;
 
-	int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
-	int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
-
 	int extras = (deinterlacing>>24)&0xff;
 
 	Camera *camera = 0;
@@ -2885,8 +2870,8 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
 			v4l_multi_buffer,
 			v4l_captures_per_frame,
 			method,
-			cam_width,
-			cam_height,
+			width,
+			height,
 			colours,
 			palette,
 			brightness,
@@ -2908,8 +2893,8 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
 				host.c_str(),
 				port.c_str(),
 				path.c_str(),
-				cam_width,
-				cam_height,
+				width,
+				height,
 				colours,
 				brightness,
 				contrast,
@@ -2926,8 +2911,8 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
 				host.c_str(),
 				port.c_str(),
 				path.c_str(),
-				cam_width,
-				cam_height,
+				width,
+				height,
 				rtsp_describe,
 				colours,
 				brightness,
@@ -2947,8 +2932,8 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
 		camera = new FileCamera(
 			id,
 			path.c_str(),
-			cam_width,
-			cam_height,
+			width,
+			height,
 			colours,
 			brightness,
 			contrast,
@@ -2964,8 +2949,8 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
 			path.c_str(),
 			method,
 			options,
-			cam_width,
-			cam_height,
+			width,
+			height,
 			colours,
 			brightness,
 			contrast,
@@ -2984,8 +2969,8 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
 			path.c_str(),
 			method,
 			options,
-			cam_width,
-			cam_height,
+			width,
+			height,
 			colours,
 			brightness,
 			contrast,
@@ -3004,8 +2989,8 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
 			path.c_str(),
 			user.c_str(),
 			pass.c_str(),
-			cam_width,
-			cam_height,
+			width,
+			height,
 			colours,
 			brightness,
 			contrast,

@@ -20,11 +20,16 @@
 #ifndef ZM_PACKETQUEUE_H
 #define ZM_PACKETQUEUE_H
 
+#include <boost/interprocess/managed_shared_memory.hpp>
+#include <boost/interprocess/containers/map.hpp>
+#include <boost/interprocess/allocators/allocator.hpp>
 #include <queue>
 
 extern "C" {
 #include <libavformat/avformat.h>
 }
+
+typedef queue<AVPacket, deque<AVPacket, QueueShmemAllocator> > QueueType;
 
 class zm_packetqueue {
 public:

@@ -565,6 +565,13 @@ if(NOT ZM_NO_LIBVLC)
 	endif(LIBVLC_LIBRARIES)
 endif(NOT ZM_NO_LIBVLC)
 
+find_package(Boost 1.36.0)
+if(Boost_FOUND)
+  include_directories(${Boost_INCLUDE_DIRS})
+  set(CMAKE_REQUIRED_INCLUDES "${Boost_INCLUDE_DIRS}")
+  list(APPEND ZM_BIN_LIBS "${Boost_LIBRARIES}")
+endif()
+
 # *** END OF LIBRARY CHECKS ***
 
 # Check for gnutls or crypto

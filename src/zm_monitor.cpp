@@ -1125,7 +1125,7 @@ void Monitor::DumpZoneImage( const char *zone_string ) {
 
 			Debug( 3, "Got event %d", event_id );
 			EventStream *stream = new EventStream();
-			stream->setStreamStart( event_id, 1 );
+			stream->setStreamStart( event_id, (unsigned int)1 );
 			zone_image = stream->getImage();
 		} else {
 			Error("Unable to load an event for monitor %d", id );

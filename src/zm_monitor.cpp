@@ -371,7 +371,6 @@ Monitor::Monitor(
     ready_count = warmup_count;
     first_alarm_count = 0;
     last_alarm_count = 0;
-    state = IDLE;
 
     if ( alarm_frame_count < 1 )
         alarm_frame_count = 1;
@@ -648,7 +647,7 @@ Monitor::~Monitor()
 	if ( mem_ptr ) {
 		if ( purpose == ANALYSIS )
 		{
-			shared_data->state = state = IDLE;
+			shared_data->state = IDLE;
 			shared_data->last_read_index = image_buffer_count;
 			shared_data->last_read_time = 0;
 
@@ -1433,7 +1432,7 @@ bool Monitor::Analyse()
                     Event::StringSet noteSet;
                     noteSet.insert( signalText );
                     noteSetMap[SIGNAL_CAUSE] = noteSet;
-                    shared_data->state = state = IDLE;
+                    shared_data->state = IDLE;
                     shared_data->active = signal;
                     ref_image = *snap_image;
                 }
@@ -1504,11 +1503,11 @@ bool Monitor::Analyse()
                         int section_mod = timestamp->tv_sec%section_length;
                         if ( section_mod < last_section_mod )
                         {
-                            if ( state == IDLE || state == TAPE || event_close_mode == CLOSE_TIME )
+                            if ( shared_data->state == IDLE || shared_data->state == TAPE || event_close_mode == CLOSE_TIME )
                             {
-                                if ( state == TAPE )
+                                if ( shared_data->state == TAPE )
                                 {
-                                    shared_data->state = state = IDLE;
+                                    shared_data->state = IDLE;
                                     Info( "%s: %03d - Closing event %d, section end", name, image_count, event->Id() )
                                 }
                                 else
@@ -1532,9 +1531,9 @@ bool Monitor::Analyse()
                         Info( "%s: %03d - Opening new event %d, section start", name, image_count, event->Id() );
 
                         /* To prevent cancelling out an existing alert\prealarm\alarm state */
-                        if ( state == IDLE )
+                        if ( shared_data->state == IDLE )
                         {
-                            shared_data->state = state = TAPE;
+                            shared_data->state = TAPE;
                         }
 
                         //if ( config.overlap_timed_events )
@@ -1598,13 +1597,13 @@ bool Monitor::Analyse()
                 }
                 if ( score )
                 {
-                    if ( (state == IDLE || state == TAPE || state == PREALARM ) )
+                    if ( (shared_data->state == IDLE || shared_data->state == TAPE || shared_data->state == PREALARM ) )
                     {
                         if ( Event::PreAlarmCount() >= (alarm_frame_count-1) )
                         {
                             Info( "%s: %03d - Gone into alarm state", name, image_count );
-                            shared_data->state = state = ALARM;
-                            if ( signal_change || (function != MOCORD && state != ALERT) )
+                            shared_data->state = ALARM;
+                            if ( signal_change || (function != MOCORD && shared_data->state != ALERT) )
                             {
                                 int pre_index;
                                 int pre_event_images = pre_event_count;
@@ -1675,27 +1674,27 @@ bool Monitor::Analyse()
                                 }
                             }
                         }
-                        else if ( state != PREALARM )
+                        else if ( shared_data->state != PREALARM )
                         {
                             Info( "%s: %03d - Gone into prealarm state", name, image_count );
-                            shared_data->state = state = PREALARM;
+                            shared_data->state = PREALARM;
                         }
                     }
-                    else if ( state == ALERT )
+                    else if ( shared_data->state == ALERT )
                     {
                         Info( "%s: %03d - Gone back into alarm state", name, image_count );
-                        shared_data->state = state = ALARM;
+                        shared_data->state = ALARM;
                     }
                     last_alarm_count = image_count;
                 }
                 else
                 {
-                    if ( state == ALARM )
+                    if ( shared_data->state == ALARM )
                     {
                         Info( "%s: %03d - Gone into alert state", name, image_count );
-                        shared_data->state = state = ALERT;
+                        shared_data->state = ALERT;
                     }
-                    else if ( state == ALERT )
+                    else if ( shared_data->state == ALERT )
                     {
                         if ( image_count-last_alarm_count > post_event_count )
                         {
@@ -1703,33 +1702,33 @@ bool Monitor::Analyse()
                             //if ( function != MOCORD || event_close_mode == CLOSE_ALARM || event->Cause() == SIGNAL_CAUSE )
                             if ( function != MOCORD || event_close_mode == CLOSE_ALARM )
                             {
-                                shared_data->state = state = IDLE;
+                                shared_data->state = IDLE;
                                 Info( "%s: %03d - Closing event %d, alarm end%s", name, image_count, event->Id(), (function==MOCORD)?", section truncated":"" );
                                 closeEvent();
                             }
                             else
                             {
-                                shared_data->state = state = TAPE;
+                                shared_data->state = TAPE;
                             }
                         }
                     }
-                    if ( state == PREALARM )
+                    if ( shared_data->state == PREALARM )
                     {
                         if ( function != MOCORD )
                         {
-                            shared_data->state = state = IDLE;
+                            shared_data->state = IDLE;
                         }
                         else
                         {
-                            shared_data->state = state = TAPE;
+                            shared_data->state = TAPE;
                         }
                     }
                     if ( Event::PreAlarmCount() )
                         Event::EmptyPreAlarmFrames();
                 }
-                if ( state != IDLE )
+                if ( shared_data->state != IDLE )
                 {
-                    if ( state == PREALARM || state == ALARM )
+                    if ( shared_data->state == PREALARM || shared_data->state == ALARM )
                     {
                         if ( config.create_analysis_images )
                         {
@@ -1744,7 +1743,7 @@ bool Monitor::Analyse()
                                         alarm_image.Overlay( *(zones[i]->AlarmImage()) );
                                         got_anal_image = true;
                                     }
-                                    if ( config.record_event_stats && state == ALARM )
+                                    if ( config.record_event_stats && shared_data->state == ALARM )
                                     {
                                         zones[i]->RecordStats( event );
                                     }
@@ -1752,14 +1751,14 @@ bool Monitor::Analyse()
                             }
                             if ( got_anal_image )
                             {
-                                if ( state == PREALARM )
+                                if ( shared_data->state == PREALARM )
                                     Event::AddPreAlarmFrame( snap_image, *timestamp, score, &alarm_image );
                                 else
                                     event->AddFrame( snap_image, *timestamp, score, &alarm_image );
                             }
                             else
                             {
-                                if ( state == PREALARM )
+                                if ( shared_data->state == PREALARM )
                                     Event::AddPreAlarmFrame( snap_image, *timestamp, score );
                                 else
                                     event->AddFrame( snap_image, *timestamp, score );
@@ -1771,13 +1770,13 @@ bool Monitor::Analyse()
                             {
                                 if ( zones[i]->Alarmed() )
                                 {
-                                    if ( config.record_event_stats && state == ALARM )
+                                    if ( config.record_event_stats && shared_data->state == ALARM )
                                     {
                                         zones[i]->RecordStats( event );
                                     }
                                 }
                             }
-                            if ( state == PREALARM )
+                            if ( shared_data->state == PREALARM )
                                 Event::AddPreAlarmFrame( snap_image, *timestamp, score );
                             else
                                 event->AddFrame( snap_image, *timestamp, score );
@@ -1785,13 +1784,13 @@ bool Monitor::Analyse()
                         if ( event && noteSetMap.size() > 0 )
                             event->updateNotes( noteSetMap );
                     }
-                    else if ( state == ALERT )
+                    else if ( shared_data->state == ALERT )
                     {
                         event->AddFrame( snap_image, *timestamp );
                         if ( noteSetMap.size() > 0 )
                             event->updateNotes( noteSetMap );
                     }
-                    else if ( state == TAPE )
+                    else if ( shared_data->state == TAPE )
                     {
                         if ( !(image_count%(frame_skip+1)) )
                         {
@@ -1815,12 +1814,12 @@ bool Monitor::Analyse()
                 Info( "%s: %03d - Closing event %d, trigger off", name, image_count, event->Id() );
                 closeEvent();
             }
-            shared_data->state = state = IDLE;
+            shared_data->state = IDLE;
             last_section_mod = 0;
         }
         if ( (!signal_change && signal) && (function == MODECT || function == MOCORD) )
         {
-            if ( state == ALARM ) {
+            if ( shared_data->state == ALARM ) {
                ref_image.Blend( *snap_image, alarm_ref_blend_perc );
             } else {
                ref_image.Blend( *snap_image, ref_blend_perc );
@@ -1910,7 +1909,7 @@ void Monitor::Reload()
             signal_check_colour = strtol(dbrow[index],0,16);
         index++;
 
-        shared_data->state = state = IDLE;
+        shared_data->state = IDLE;
         shared_data->alarm_x = shared_data->alarm_y = -1;
         if ( enabled )
             shared_data->active = true;

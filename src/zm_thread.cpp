@@ -253,7 +253,7 @@ void *Thread::mThreadFunc( void *arg )
   Debug( 2, "Invoking thread" );
 
   Thread *thisPtr = (Thread *)arg;
-  void *status = 0;
+  thisPtr->status = 0;
   try
   {
     thisPtr->mThreadMutex.lock();
@@ -261,19 +261,18 @@ void *Thread::mThreadFunc( void *arg )
     thisPtr->mThreadCondition.signal();
     thisPtr->mThreadMutex.unlock();
     thisPtr->mRunning = true;
-    int run=(thisPtr->run());
-    status = (void *)&run;
+    thisPtr->status = thisPtr->run();
     thisPtr->mRunning = false;
-    Debug( 2, "Exiting thread, status %p", status );
+    Debug( 2, "Exiting thread, status %p", (void *)&(thisPtr->status) );
+    return (void *)&(thisPtr->status);
   }
   catch ( const ThreadException &e )
   {
     Error( "%s", e.getMessage().c_str() );
     thisPtr->mRunning = false;
-    status = (void *)-1;
-    Debug( 2, "Exiting thread after exception, status %p", status );
+    Debug( 2, "Exiting thread after exception, status %p", (void *)-1 );
+    return (void *)-1;
   }
-  return( status );
 }
 
 void Thread::start()

@@ -2146,9 +2146,6 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
     col++;
     bool embed_exif = (*dbrow[col] != '0'); col++;
 
-    int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
-    int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
-
     int extras = (deinterlacing>>24)&0xff;
 
     Camera *camera = new LocalCamera(
@@ -2159,8 +2156,8 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
       v4l_multi_buffer,
       v4l_captures_per_frame,
       method,
-      cam_width,
-      cam_height,
+      width,
+      height,
       colours,
       palette,
       brightness,
@@ -2302,9 +2299,6 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
     int track_motion = atoi(dbrow[col]); col++;
     bool embed_exif = (*dbrow[col] != '0'); col++;
 
-    int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
-    int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
-
     Camera *camera = 0;
     if ( protocol == "http" )
     {
@@ -2314,8 +2308,8 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
         host, // Host
         port, // Port
         path, // Path
-        cam_width,
-        cam_height,
+        width,
+        height,
         colours,
         brightness,
         contrast,
@@ -2333,8 +2327,8 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
         host, // Host
         port, // Port
         path, // Path
-        cam_width,
-        cam_height,
+        width,
+        height,
         rtsp_describe,
         colours,
         brightness,
@@ -2477,14 +2471,11 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
     int track_motion = atoi(dbrow[col]); col++;
     bool embed_exif = (*dbrow[col] != '0'); col++;
 
-    int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
-    int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
-
     Camera *camera = new FileCamera(
       id,
       path, // File
-      cam_width,
-      cam_height,
+      width,
+      height,
       colours,
       brightness,
       contrast,
@@ -2622,16 +2613,13 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
     int track_motion = atoi(dbrow[col]); col++;
     bool embed_exif = (*dbrow[col] != '0'); col++;
 
-    int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
-    int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
-
     Camera *camera = new FfmpegCamera(
       id,
       path, // File
       method,
       options,
-      cam_width,
-      cam_height,
+      width,
+      height,
       colours,
       brightness,
       contrast,
@@ -2792,9 +2780,6 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
   col++;
   bool embed_exif = (*dbrow[col] != '0'); col++;
 
-  int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
-  int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
-
   int extras = (deinterlacing>>24)&0xff;
 
   Camera *camera = 0;
@@ -2809,8 +2794,8 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
       v4l_multi_buffer,
       v4l_captures_per_frame,
       method,
-      cam_width,
-      cam_height,
+      width,
+      height,
       colours,
       palette,
       brightness,
@@ -2834,8 +2819,8 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
         host.c_str(),
         port.c_str(),
         path.c_str(),
-        cam_width,
-        cam_height,
+        width,
+        height,
         colours,
         brightness,
         contrast,
@@ -2853,8 +2838,8 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
         host.c_str(),
         port.c_str(),
         path.c_str(),
-        cam_width,
-        cam_height,
+        width,
+        height,
         rtsp_describe,
         colours,
         brightness,
@@ -2877,8 +2862,8 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
     camera = new FileCamera(
       id,
       path.c_str(),
-      cam_width,
-      cam_height,
+      width,
+      height,
       colours,
       brightness,
       contrast,
@@ -2895,8 +2880,8 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
       path.c_str(),
       method,
       options,
-      cam_width,
-      cam_height,
+      width,
+      height,
       colours,
       brightness,
       contrast,
@@ -2916,8 +2901,8 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
       path.c_str(),
       method,
       options,
-      cam_width,
-      cam_height,
+      width,
+      height,
       colours,
       brightness,
       contrast,
@@ -2937,8 +2922,8 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
       path.c_str(),
       user.c_str(),
       pass.c_str(),
-      cam_width,
-      cam_height,
+      width,
+      height,
       colours,
       brightness,
       contrast,

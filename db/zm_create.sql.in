@@ -270,7 +270,7 @@ CREATE TABLE `Logs` (
   `TimeKey` decimal(16,6) NOT NULL,
   `Component` varchar(32) NOT NULL,
   `ServerId` int(10) unsigned,
-  `Pid` smallint(6) DEFAULT NULL,
+  `Pid` int(10) DEFAULT NULL,
   `Level` tinyint(3) NOT NULL,
   `Code` char(3) NOT NULL,
   `Message` text NOT NULL,

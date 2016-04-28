@@ -6,12 +6,12 @@ if [ "$1" = "configure" ]; then
 
     . /etc/zm/zm.conf
 
-    # The logs can contain passwords, etc... so by setting group root, only www-data can read them, not people in the www-data group.
-	chown www-data:root /var/log/zm
-	chown www-data:www-data /var/lib/zm
-	if [ -z "$2" ]; then
+    # The logs can contain passwords, etc... so by setting group root, only www-data can read them, not people in the www-data group
+    chown www-data:root /var/log/zm
+    chown www-data:www-data /var/lib/zm
+    if [ -z "$2" ]; then
         chown www-data:www-data /var/cache/zoneminder /var/cache/zoneminder/*
-	fi
+    fi
 
     # Do this every time the package is installed or upgraded
 
@@ -45,9 +45,9 @@ if [ "$1" = "configure" ]; then
         else 
             echo 'mysql not found, assuming remote server.'
         fi
-    else
+    else 
         echo "Not doing database upgrade due to remote db server ($ZM_DB_HOST)"
     fi
-
 fi
+
 #DEBHELPER#

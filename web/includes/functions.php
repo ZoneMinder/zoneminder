@@ -1679,7 +1679,6 @@ function getDiskPercent()
     $free = disk_free_space(ZM_DIR_EVENTS);
     if ( ! $free ) {
         Error("disk_free_space returned false for " . ZM_DIR_EVENTS );
-        return 0;
     }
     $space = round(($total - $free) / $total * 100);
     return( $space );

@@ -555,7 +555,8 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
         tid = getpid(); // Process id
 
         char *logPtr = logString;
-        logPtr += snprintf( logPtr, sizeof(logString), "%s %s[%d].%s-%s/%d [", 
+        int rc;
+        rc = snprintf( logPtr, sizeof(logString), "%s %s[%d].%s-%s/%d [", 
                     timeString,
                     mId.c_str(),
                     tid,
@@ -563,6 +564,8 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
                     file,
                     line
                 );
+        if (!(rc < 0 || rc >= sizeof(logString)))
+            logPtr += rc;
         char *syslogStart = logPtr;
 
         va_start( argPtr, fstring );
@@ -571,15 +574,21 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
             unsigned char *data = va_arg( argPtr, unsigned char * );
             int len = va_arg( argPtr, int );
             int i;
-            logPtr += snprintf( logPtr, sizeof(logString)-(logPtr-logString), "%d:", len );
+            rc = snprintf( logPtr, sizeof(logString)-(logPtr-logString), "%d:", len );
+            if (!(rc < 0 || rc >= sizeof(logString)-(logPtr-logString)))
+                logPtr += rc;
             for ( i = 0; i < len; i++ )
             {
-                logPtr += snprintf( logPtr, sizeof(logString)-(logPtr-logString), " %02x", data[i] );
+                rc = snprintf( logPtr, sizeof(logString)-(logPtr-logString), " %02x", data[i] );
+                if (!(rc < 0 || rc >= sizeof(logString)-(logPtr-logString)))
+                    logPtr += rc;
             }
         }
         else
         {
-            logPtr += vsnprintf( logPtr, sizeof(logString)-(logPtr-logString), fstring, argPtr );
+            rc = vsnprintf( logPtr, sizeof(logString)-(logPtr-logString), fstring, argPtr );
+            if (!(rc < 0 || rc >= sizeof(logString)-(logPtr-logString)))
+                logPtr += rc;
         }
         va_end(argPtr);
         char *syslogEnd = logPtr;

@@ -3155,19 +3155,29 @@ void Monitor::TimestampImage( Image *ts_image, const struct timeval *ts_time ) c
             if ( *s_ptr == '%' )
             {
                 bool found_macro = false;
+                int rc;
                 switch ( *(s_ptr+1) )
                 {
                     case 'N' :
-                        d_ptr += snprintf( d_ptr, sizeof(label_text)-(d_ptr-label_text), "%s", name );
+                        rc = snprintf( d_ptr, sizeof(label_text)-(d_ptr-label_text), "%s", name );
                         found_macro = true;
+                        if (rc < 0 || rc >= sizeof(label_text)-(d_ptr-label_text))
+                            break;
+                        d_ptr += rc;
                         break;
                     case 'Q' :
-                        d_ptr += snprintf( d_ptr, sizeof(label_text)-(d_ptr-label_text), "%s", trigger_data->trigger_showtext );
+                        rc = snprintf( d_ptr, sizeof(label_text)-(d_ptr-label_text), "%s", trigger_data->trigger_showtext );
                         found_macro = true;
+                        if (rc < 0 || rc >= sizeof(label_text)-(d_ptr-label_text))
+                            break;
+                        d_ptr += rc;
                         break;
                     case 'f' :
-                        d_ptr += snprintf( d_ptr, sizeof(label_text)-(d_ptr-label_text), "%02ld", ts_time->tv_usec/10000 );
+                        rc = snprintf( d_ptr, sizeof(label_text)-(d_ptr-label_text), "%02ld", ts_time->tv_usec/10000 );
                         found_macro = true;
+                        if (rc < 0 || rc >= sizeof(label_text)-(d_ptr-label_text))
+                            break;
+                        d_ptr += rc;
                         break;
                 }
                 if ( found_macro )

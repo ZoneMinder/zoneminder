@@ -94,15 +94,19 @@ RETSIGTYPE zm_die_handler(int signal)
 
 	char cmd[1024] = "addr2line -e ";
 	char *cmd_ptr = cmd + strlen(cmd);
-	cmd_ptr += snprintf(cmd_ptr, sizeof(cmd) - (cmd_ptr - cmd), "%s", self);
+	int rc;
+	rc = snprintf(cmd_ptr, sizeof(cmd) - (cmd_ptr - cmd), "%s", self);
+	if (!(rc < 0 || rc >= sizeof(cmd) - (cmd_ptr - cmd)))
+		cmd_ptr += rc;
 
 	char **messages = backtrace_symbols(trace, trace_size);
 	// Print the full backtrace
 	for (int i = 0; i < trace_size; i++) {
 		Error("Backtrace %u: %s", i, messages[i]);
-		cmd_ptr +=
-		    snprintf(cmd_ptr, sizeof(cmd) - (cmd_ptr - cmd), " %p",
-			     trace[i]);
+		rc = snprintf(cmd_ptr, sizeof(cmd) - (cmd_ptr - cmd), " %p",
+			 trace[i]);
+		if (!(rc < 0 || rc >= sizeof(cmd) - (cmd_ptr - cmd)))
+			cmd_ptr += rc;
 	}
 	free(messages);
 

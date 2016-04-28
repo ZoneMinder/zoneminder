@@ -757,15 +757,14 @@ int main( int argc, char *argv[] )
 
 		if ( function & ZMU_LIST )
 		{
-           char sql[ZM_SQL_SML_BUFSIZ];
-			strncpy( sql, "select Id, Function+0 from Monitors", sizeof(sql) );
+            std::string sql = "select Id, Function+0 from Monitors";
 			if ( !verbose )
 			{
-				strncat( sql, " where Function != 'None'", sizeof(sql)-strlen(sql) );
+                sql += "where Function != 'None'";
 			}
-			strncat( sql, " order by Id asc", sizeof(sql)-strlen(sql) );
+            sql += " order by Id asc";
 
-			if ( mysql_query( &dbconn, sql ) )
+			if ( mysql_query( &dbconn, sql.c_str() ) )
 			{
 				Error( "Can't run query: %s", mysql_error( &dbconn ) );
 				exit( mysql_errno( &dbconn ) );

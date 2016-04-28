@@ -1,3 +1,9 @@
+zoneminder (1.30.2-trusty-2016042801) trusty; urgency=medium
+
+  *  Merge video
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Thu, 28 Apr 2016 12:54:08 -0400
+
 zoneminder (1.28.1+1-vivid-SNAPSHOT2015081701) vivid; urgency=medium
 
   * include api, switch to cmake build

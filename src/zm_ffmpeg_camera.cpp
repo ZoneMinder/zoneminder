@@ -681,7 +681,11 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
 				}
             }
         } else {
+#if LIBAVUTIL_VERSION_CHECK(54, 23, 0, 23, 0)
             Debug( 3, "Some other stream index %d, %s", packet.stream_index, av_get_media_type_string( mFormatContext->streams[packet.stream_index]->codec->codec_type) );
+#else
+            Debug( 3, "Some other stream index %d", packet.stream_index );
+#endif
         }
         av_free_packet( &packet );
     } // end while ! frameComplete

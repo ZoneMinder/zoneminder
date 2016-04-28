@@ -2146,9 +2146,6 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
         col++;
         bool embed_exif = (*dbrow[col] != '0'); col++;
 
-        int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
-        int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
-
         int extras = (deinterlacing>>24)&0xff;
 
         Camera *camera = new LocalCamera(
@@ -2159,8 +2156,8 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
 			v4l_multi_buffer,
 			v4l_captures_per_frame,
             method,
-            cam_width,
-            cam_height,
+            width,
+            height,
             colours,
             palette,
             brightness,
@@ -2302,9 +2299,6 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
         int track_motion = atoi(dbrow[col]); col++;
         bool embed_exif = (*dbrow[col] != '0'); col++;
 
-        int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
-        int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
-
         Camera *camera = 0;
         if ( protocol == "http" )
         {
@@ -2314,8 +2308,8 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
                 host, // Host
                 port, // Port
                 path, // Path
-                cam_width,
-                cam_height,
+                width,
+                height,
                 colours,
                 brightness,
                 contrast,
@@ -2333,8 +2327,8 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
                 host, // Host
                 port, // Port
                 path, // Path
-                cam_width,
-                cam_height,
+                width,
+                height,
                 rtsp_describe,
                 colours,
                 brightness,
@@ -2477,14 +2471,11 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
         int track_motion = atoi(dbrow[col]); col++;
         bool embed_exif = (*dbrow[col] != '0'); col++;
 
-        int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
-        int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
-
         Camera *camera = new FileCamera(
             id,
             path, // File
-            cam_width,
-            cam_height,
+            width,
+            height,
             colours,
             brightness,
             contrast,
@@ -2622,16 +2613,13 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
         int track_motion = atoi(dbrow[col]); col++;
         bool embed_exif = (*dbrow[col] != '0'); col++;
 
-        int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
-        int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
-
         Camera *camera = new FfmpegCamera(
             id,
             path, // File
             method,
             options,
-            cam_width,
-            cam_height,
+            width,
+            height,
             colours,
             brightness,
             contrast,
@@ -2792,9 +2780,6 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
 	col++;
     bool embed_exif = (*dbrow[col] != '0'); col++;
 
-    int cam_width = ((orientation==ROTATE_90||orientation==ROTATE_270)?height:width);
-    int cam_height = ((orientation==ROTATE_90||orientation==ROTATE_270)?width:height);
-
     int extras = (deinterlacing>>24)&0xff;
 
     Camera *camera = 0;
@@ -2809,8 +2794,8 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
             v4l_multi_buffer,
             v4l_captures_per_frame,
             method,
-            cam_width,
-            cam_height,
+            width,
+            height,
             colours,
             palette,
             brightness,
@@ -2834,8 +2819,8 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
                 host.c_str(),
                 port.c_str(),
                 path.c_str(),
-                cam_width,
-                cam_height,
+                width,
+                height,
                 colours,
                 brightness,
                 contrast,
@@ -2853,8 +2838,8 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
                 host.c_str(),
                 port.c_str(),
                 path.c_str(),
-                cam_width,
-                cam_height,
+                width,
+                height,
                 rtsp_describe,
                 colours,
                 brightness,
@@ -2877,8 +2862,8 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
         camera = new FileCamera(
             id,
             path.c_str(),
-            cam_width,
-            cam_height,
+            width,
+            height,
             colours,
             brightness,
             contrast,
@@ -2895,8 +2880,8 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
             path.c_str(),
             method,
             options,
-            cam_width,
-            cam_height,
+            width,
+            height,
             colours,
             brightness,
             contrast,
@@ -2916,8 +2901,8 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
             path.c_str(),
             method,
             options,
-            cam_width,
-            cam_height,
+            width,
+            height,
             colours,
             brightness,
             contrast,
@@ -2937,8 +2922,8 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
             path.c_str(),
             user.c_str(),
             pass.c_str(),
-            cam_width,
-            cam_height,
+            width,
+            height,
             colours,
             brightness,
             contrast,
@@ -3212,191 +3197,6 @@ bool Monitor::closeEvent()
     }
     return( false );
 }
-
-//-----------------------------------------
-
-/* 
- * NOTE Nextime's comment:
- *
- * OurCheckAlarms seems to be called only by DetectBlack method, and DetectBlack 
- * method is only called in a commented line  instead of DetectMotion in zm_monitor.cpp.
- *
- * Probably this is just a dead code used for debugghing purpose, so, instead of fixing it
- * it seems to be safe to just comment it out.
- *
- * Anyway, the issues with this code is that it assumes the image to be an RGB24 image,
- * so, as i've discussed on IRC with mastertheknife, changes needed are:
- *
- * Check if the image is 24 or 32 bits ( pImage->Colours() says 3 for 24 and 4 for 32 bits, 
- * comparing it with ZM_COLOUR_RGB24 or ZM_COLOUR_RGB32 is the way ), and then
- * manage che check using RGB_VAL_RED() and so on macros instead of just RED().
- *
- * Be careful that in 32 bit images we need to check also where the alpha channel is, so,
- * (RGBA and BGRA) or (ABGR and ARGB) aren't the same!
- *
- * To check black pixels in 32 bit images i can do a more efficient way using 
- * RGBA_ZERO_ALPHA(pixel) == RGBA_ZERO_ALPHA(RGB_BLACK), but before of that i need to 
- * check where the alpha channel is and maybe convert it.
- * Maybe this won't work as they assign "23" to black_thr, so, they are not checking
- * if the pixel is black, but just "quasi" black is enough.
- *
- * Anyway, for the moment, comment out whole part.
- */
-
-/*
-bool Monitor::OurCheckAlarms( Zone *zone, const Image *pImage )
-{
-    Info("Entering OurCheckAlarms >>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-    unsigned char black_thr = 23;
-    int min_alarm_score = 10;
-    int max_alarm_score = 99;
-    //bool alarm = false;
-    unsigned int score;
-    Polygon zone_polygon = zone->GetPolygon();
-    Info("Got polygon of a zone. It has %d vertices.", zone_polygon.getNumCoords());
-
-  zone->ResetStats();
-    Info("ResetStats done.");
-
-    if ( !zone->CheckOverloadCount() )
-    {
-        Info("CheckOverloadCount() return false, we'll return false.");
-        return( false );
-    }
-
-    Image *pMaskImage = new Image(pImage->Width(), pImage->Height(), ZM_COLOUR_GRAY8, pImage->SubpixelOrder());
-    Info("Mask image created.");
- 
-    pMaskImage->Fill(BLACK);
-    Info("Mask image filled with BLACK.");
-    if (pImage->Colours() == ZM_COLOUR_GRAY8)
-    {
-        Info("Analysed image is not colored! Set score = 0.");
-        score = 0;
-    }
-    else
-    {
-        Info("Start processing image.");
-        //Process image
-        unsigned char *buffer = (unsigned char*)pImage->Buffer();
-        unsigned char *mask_buffer = (unsigned char*)pMaskImage->Buffer();
-        
-        int black_pixels_count = 0;
-        Info("Loop for black pixels counting and mask filling.");
-        while (buffer < (pImage->Buffer() + pImage->Size()))
-        {
-            if ( (RED(buffer) < black_thr) && (GREEN(buffer) < black_thr) && (BLUE(buffer) < black_thr) )
-            {
-                *mask_buffer = WHITE;
-                black_pixels_count++;
-            }
-            buffer += pImage->Colours();
-            mask_buffer++;
-        }
-
-        if ( !black_pixels_count )
-        {
-            delete pMaskImage;
-            return( false );
-        }
-        score = (100*black_pixels_count)/zone_polygon.Area();
-        Info("Number of black pixels is %d, zone polygon area is %d, score is %d", black_pixels_count, zone_polygon.Area(), score);
-
-        if ( min_alarm_score && ( score < min_alarm_score) )
-        {
-            delete pMaskImage;
-            return( false );
-        }
-        if ( max_alarm_score && (score > max_alarm_score) )
-        {
-            zone->SetOverloadCount(zone->GetOverloadFrames());
-            delete pMaskImage;
-            return( false );
-        }
-    }
-
-    zone->SetScore(score);
-    Info("Score have been set in zone.");
-    //Get mask
-    Rgb alarm_colour = RGB_RED;
-  Image *tempImage = pMaskImage->HighlightEdges(alarm_colour, &zone_polygon.Extent() );
-    Info("After HighlightEdges");
-
-    zone->SetAlarmImage(tempImage);
-    Info("After SetAlarmImage");
-    delete pMaskImage;
-    Info("After Delete pMaskImage");
-    delete tempImage;
-
-    Info("Leaving OurCheckAlarms >>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-    return true;
-}
-
-unsigned int Monitor::DetectBlack(const Image &comp_image, Event::StringSet &zoneSet )
-{
-    Info("Entering DetectBlack >>>>>>>>>>>>>>>>>>>>>>>>>>");
-    bool alarm = false;
-    unsigned int score = 0;
-
-    if ( n_zones <= 0 ) return( alarm );
-
-//    Coord alarm_centre;
-//    int top_score = -1;
-
-    // Find all alarm pixels in active zones
-    Info("Number of zones to process %d", n_zones);
-    for ( int n_zone = 0; n_zone < n_zones; n_zone++ )
-    {
-        Zone *zone = zones[n_zone];
-        if ( !zone->IsActive() )
-        {
-            continue;
-        }
-        Debug( 3, "Checking active zone %s", zone->Label() );
-        Info( "Checking active zone %s", zone->Label() );
-        if ( OurCheckAlarms( zone, &comp_image ) )
-        {
-            Info("OurCheckAlarm is TRUE!!!!!!");
-            alarm = true;
-            score += zone->Score();
-            zone->SetAlarm();
-            Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
-            Info( "Zone is alarmed, zone score = %d", zone->Score() );
-            zoneSet.insert( zone->Label() );
-//            if ( config.opt_control && track_motion )
-//            {
-//                if ( (int)zone->Score() > top_score )
-//                {
-//                    top_score = zone->Score();
-//                    alarm_centre = zone->GetAlarmCentre();
-//                }
-//            }
-        }
-        Info( "Finish checking active zone %s", zone->Label() );
-    }
-
-
-//    if ( top_score > 0 )
-//    {
-//        shared_data->alarm_x = alarm_centre.X();
-//        shared_data->alarm_y = alarm_centre.Y();
-//
-//        Info( "Got alarm centre at %d,%d, at count %d", shared_data->alarm_x, shared_data->alarm_y, image_count );
-//    }
-//    else
-//    {
-//        shared_data->alarm_x = shared_data->alarm_y = -1;
-//    }
-
-    // This is a small and innocent hack to prevent scores of 0 being returned in alarm state
-    Info("Leaving DetectBlack <<<<<<<<<<<<<<<<<<<<<<<<<<<");
-    return( score?score:alarm );
-}
-
-*/
-//-----------------------------------------------------------------------------------------------
-
-
 
 unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &zoneSet )
 {

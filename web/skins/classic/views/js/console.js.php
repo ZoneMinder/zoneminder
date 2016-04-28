@@ -26,7 +26,7 @@ elseif ( ZM_DYN_SHOW_DONATE_REMINDER )
 ?>
 var showVersionPopup = <?php echo isset($showVersionPopup )?'true':'false' ?>;
 var showDonatePopup = <?php echo isset($showDonatePopup )?'true':'false' ?>;
-
-
+var translatedAddText = "<?php echo translate('AddNewMonitor') ?>";
+var translatedCloneText = "<?php echo translate('CloneMonitor') ?>";
 
 

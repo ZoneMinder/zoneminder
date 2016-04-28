@@ -230,7 +230,7 @@ protected:
 
 protected:
     bool loadEventData( int event_id );
-    bool loadInitialEventData( int init_event_id, int init_frame_id );
+    bool loadInitialEventData( int init_event_id, unsigned int init_frame_id );
     bool loadInitialEventData( int monitor_id, time_t event_time );
 
     void checkEventLoaded();
@@ -249,7 +249,7 @@ public:
 
         event_data = 0;
     }
-	void setStreamStart( int init_event_id, int init_frame_id=0 )
+	void setStreamStart( int init_event_id, unsigned int init_frame_id=0 )
     {
         loadInitialEventData( init_event_id, init_frame_id );
         loadMonitor( event_data->monitor_id );

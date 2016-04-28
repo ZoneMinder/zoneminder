@@ -47,15 +47,12 @@ RETSIGTYPE zm_die_handler(int signal, siginfo_t * info, void *context)
 RETSIGTYPE zm_die_handler(int signal)
 #endif
 {
-#if (defined(__i386__) || defined(__x86_64__))
-	void *cr2 = 0;
-	void *ip = 0;
-#endif
 	Error("Got signal %d (%s), crashing", signal, strsignal(signal));
-
 #if (defined(__i386__) || defined(__x86_64__))
 	// Get more information if available
-#if ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
+  #if ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
+	void *ip = 0;
+	void *cr2 = 0;
 	if (info && context) {
 
 		Debug(1,
@@ -65,19 +62,19 @@ RETSIGTYPE zm_die_handler(int signal)
 
 		ucontext_t *uc = (ucontext_t *) context;
 		cr2 = info->si_addr;
-#if defined(__x86_64__)
-	#ifdef __FreeBSD_kernel__
+    #if defined(__x86_64__)
+	    #ifdef __FreeBSD_kernel__
 		ip = (void *)(uc->uc_mcontext.mc_rip);
-	#else
+	    #else
 		ip = (void *)(uc->uc_mcontext.gregs[REG_RIP]);
-	#endif
-#else
-	#ifdef __FreeBSD_kernel__
+	    #endif
+    #else
+	    #ifdef __FreeBSD_kernel__
 		ip = (void *)(uc->uc_mcontext.mc_eip);
-	#else
+	    #else
 		ip = (void *)(uc->uc_mcontext.gregs[REG_EIP]);
-	#endif
-#endif				// defined(__x86_64__)
+	    #endif
+    #endif				// defined(__x86_64__)
 
 		// Print the signal address and instruction pointer if available
 		if (ip) {
@@ -86,11 +83,11 @@ RETSIGTYPE zm_die_handler(int signal)
 			Error("Signal address is %p, no instruction pointer", cr2);
 		}
 	}
-#endif				// ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
+  #endif				// ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
 
 
 	// Print backtrace if enabled and available
-#if ( !defined(ZM_NO_CRASHTRACE) && HAVE_DECL_BACKTRACE && HAVE_DECL_BACKTRACE_SYMBOLS )
+  #if ( !defined(ZM_NO_CRASHTRACE) && HAVE_DECL_BACKTRACE && HAVE_DECL_BACKTRACE_SYMBOLS )
 	void *trace[TRACE_SIZE];
 	int trace_size = 0;
 	trace_size = backtrace(trace, TRACE_SIZE);
@@ -111,7 +108,7 @@ RETSIGTYPE zm_die_handler(int signal)
 
 	Info("Backtrace complete, please execute the following command for more information");
 	Info(cmd);
-#endif				// ( !defined(ZM_NO_CRASHTRACE) && HAVE_DECL_BACKTRACE && HAVE_DECL_BACKTRACE_SYMBOLS )
+  #endif				// ( !defined(ZM_NO_CRASHTRACE) && HAVE_DECL_BACKTRACE && HAVE_DECL_BACKTRACE_SYMBOLS )
 #endif                          // (defined(__i386__) || defined(__x86_64__)
 	exit(signal);
 }

@@ -50,8 +50,6 @@ extern "C" {
     
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
 #include <libavutil/imgutils.h>
-#else
-#include <libavutil/avutil.h>
 #endif
 #elif HAVE_FFMPEG_AVUTIL_H
 #include <ffmpeg/avutil.h>

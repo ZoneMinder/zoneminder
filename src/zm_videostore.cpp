@@ -107,6 +107,10 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
                 Fatal("Unable to copy audio context %s\n", av_make_error_string(ret).c_str());
             }   
             audio_st->codec->codec_tag = 0;
+            if ( audio_st->codec->channels > 1 ) {
+                Warning("Audio isn't mono, changing it.");
+                audio_st->codec->channels = 1;
+            }
             if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
                 audio_st->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
             }

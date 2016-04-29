@@ -28,9 +28,7 @@ Depends: ${misc:Depends},
  zoneminder-database (>= ${source:Version}),
  zoneminder-core (>= ${binary:Version}),
  zoneminder-ui-base (>= ${source:Version}),
- zoneminder-ui-classic (>= ${source:Version}),
- zoneminder-ui-mobile (>= ${source:Version}),
- zoneminder-ui-xml (>= ${source:Version})
+ zoneminder-ui-classic (>= ${source:Version})
 Description: Video camera security and surveillance solution (metapackage)
  ZoneMinder is intended for use in single or multi-camera video security
  applications, including commercial or home CCTV, theft prevention and child
@@ -78,6 +76,8 @@ Depends: libzoneminder-perl (= ${source:Version}),
  libmime-tools-perl, libnet-sftp-foreign-perl, libphp-serialization-perl,
  debconf, ffmpeg | libav-tools, rsyslog | system-log-daemon, zip,
  policykit-1, apache2, libmp4v2-2, libpcre++0
+, libsys-cpu-perl, libsys-meminfo-perl
+, libdata-dump-perl, libclass-std-fast-perl, libsoap-wsdl-perl, libio-socket-multicast-perl, libdigest-sha-perl
 Description: Core binaries and perl scripts for ZoneMinder
  ZoneMinder is a video camera security and surveillance solution.
  .
@@ -116,25 +116,6 @@ Description: Classic web user interface for ZoneMinder
  ZoneMinder is a video camera security and surveillance solution.
  .
  This package provides the classic web user interface.
-
-Package: zoneminder-ui-mobile
-Section: web
-Architecture: all
-Depends: zoneminder-ui-base (>= ${source:Version}), ${misc:Depends}
-Description: Mobile web user interface for ZoneMinder
- ZoneMinder is a video camera security and surveillance solution.
- .
- This package provides the web user interface for mobile devices.
-
-Package: zoneminder-ui-xml
-Section: web
-Architecture: all
-Depends: zoneminder-ui-base (>= ${source:Version}), ${misc:Depends}
-Description: XML interface for ZoneMinder
- ZoneMinder is a video camera security and surveillance solution.
- .
- This package provides a XML interface mainly intended for use with the eyeZm
- iPhone Application, but can be used with any other custom programs as well.
 
 Package: zoneminder-ui-api
 Section: web

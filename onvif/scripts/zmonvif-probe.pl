@@ -28,9 +28,10 @@ use Getopt::Std;
 
 require ONVIF::Client;
 
-require WSDiscovery::Interfaces::WSDiscovery::WSDiscoveryPort;
-require WSDiscovery::Elements::Types;
-require WSDiscovery::Elements::Scopes;
+require WSDiscovery10::Interfaces::WSDiscovery::WSDiscoveryPort;
+require WSDiscovery10::Elements::Types;
+require WSDiscovery10::Elements::Scopes;
+require WSDiscovery10::Elements::To;
 
 require WSDiscovery::TransportUDP;
 
@@ -95,7 +96,7 @@ sub deserialize_message
 
 sub interpret_messages
 {
-  my ($svc_discover, @responses, %services) = @_;
+  my ($svc_discover, $services, @responses ) = @_;
 
   foreach my $response ( @responses ) {
 
@@ -106,7 +107,7 @@ sub interpret_messages
     my $result = deserialize_message($svc_discover, $response);
     if(not $result) {
       if($verbose) {
-        print "Error deserializing message:\n" . $result . "\n";
+        print "Error deserializing message. No message returned from deserializer.\n";
       }
       next;
     }
@@ -114,15 +115,23 @@ sub interpret_messages
     my $xaddr;  
     foreach my $l_xaddr (split ' ', $result->get_ProbeMatch()->get_XAddrs()) {
   #   find IPv4 address
-      if($l_xaddr =~ m|//[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/|) { 
+      if($verbose) {
+        print "l_xaddr = $l_xaddr\n";
+      }
+      if($l_xaddr =~ m|//[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+[:/]|) {
         $xaddr = $l_xaddr;
         last;
+      } else {
+        print STDERR "Unable to find IPv4 address from xaddr $l_xaddr\n";
       }
     }
 
+    # No usable address found
+    next if not $xaddr;
+
     # ignore multiple responses from one service
-    next if defined $services{$xaddr};
-    $services{$xaddr} = 1;
+    next if defined $services->{$xaddr};
+    $services->{$xaddr} = 1;
 
     print "$xaddr, " . $svc_discover->get_soap_version() . ", ";
 
@@ -163,39 +172,41 @@ sub discover
   if($verbose) {
     print "Probing for SOAP 1.1\n"
   }
-  my $svc_discover = WSDiscovery::Interfaces::WSDiscovery::WSDiscoveryPort->new({ 
+  my $svc_discover = WSDiscovery10::Interfaces::WSDiscovery::WSDiscoveryPort->new({ 
 #    no_dispatch => '1',
   });
   $svc_discover->set_soap_version('1.1');
 
   my $result = $svc_discover->ProbeOp(
     { # WSDiscovery::Types::ProbeType
-      Types => { 'dn:NetworkVideoTransmitter', 'tds:Device' }, # QNameListType
+      Types => 'http://www.onvif.org/ver10/network/wsdl:NetworkVideoTransmitter http://www.onvif.org/ver10/device/wsdl:Device', # QNameListType
       Scopes =>  { value => '' },
-    },, 
+    },
+      WSDiscovery10::Elements::To->new({ value => 'urn:schemas-xmlsoap-org:ws:2005:04:discovery' })
   );
 #  print $result . "\n";
 
-  interpret_messages($svc_discover, \@responses, \%services);
+  interpret_messages($svc_discover, \%services, @responses);
   @responses = ();
 
   if($verbose) {
     print "Probing for SOAP 1.2\n"
   }
-  $svc_discover = WSDiscovery::Interfaces::WSDiscovery::WSDiscoveryPort->new({
+  $svc_discover = WSDiscovery10::Interfaces::WSDiscovery::WSDiscoveryPort->new({
 #    no_dispatch => '1',
   });
   $svc_discover->set_soap_version('1.2');
 
   $result = $svc_discover->ProbeOp(
     { # WSDiscovery::Types::ProbeType
-      Types => { 'dn:NetworkVideoTransmitter', 'tds:Device' }, # QNameListType
+      Types => 'http://www.onvif.org/ver10/network/wsdl:NetworkVideoTransmitter http://www.onvif.org/ver10/device/wsdl:Device', # QNameListType
       Scopes =>  { value => '' },
-    },, 
+    },
+      WSDiscovery10::Elements::To->new({ value => 'urn:schemas-xmlsoap-org:ws:2005:04:discovery' })
   );
 #  print $result . "\n";
 
-  interpret_messages($svc_discover, @responses, \%services);
+  interpret_messages($svc_discover, \%services, @responses);
 }
 
 
@@ -224,16 +235,21 @@ sub profiles
          $profile->get_VideoEncoderConfiguration()->get_RateControl()->get_FrameRateLimit() .
          ", ";
 
-    $result = $client->get_endpoint('media')->GetStreamUri( { 
-      StreamSetup =>  { # ONVIF::Media::Types::StreamSetup
-        Stream => 'RTP_unicast', # StreamType
-        Transport =>  { # ONVIF::Media::Types::Transport
-          Protocol => 'RTSP', # TransportProtocol
-        },
-      },
-      ProfileToken => $token, # ReferenceToken  
-    } ,, );
-    die $result if not $result;
+   # Specification gives conflicting values for unicast stream types, try both.
+   # http://www.onvif.org/onvif/ver10/media/wsdl/media.wsdl#op.GetStreamUri
+   foreach my $streamtype ( 'RTP_unicast', 'RTP-Unicast' ) {
+     $result = $client->get_endpoint('media')->GetStreamUri( {
+       StreamSetup =>  { # ONVIF::Media::Types::StreamSetup
+         Stream => $streamtype, # StreamType
+         Transport =>  { # ONVIF::Media::Types::Transport
+           Protocol => 'RTSP', # TransportProtocol
+         },
+       },
+       ProfileToken => $token, # ReferenceToken
+     } ,, );
+     last if $result;
+   }
+   die $result if not $result;
   #  print $result . "\n";
 
     print $result->get_MediaUri()->get_Uri() .

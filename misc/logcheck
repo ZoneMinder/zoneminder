@@ -1,0 +1,29 @@
+zmc_m[[:digit:]]+\[[[:digit:]]+\]: INF \[[[:alnum:]]+: [[:digit:]]+ - Capturing at [.[:digit:]]+ fps\]$
+zma_m[[:digit:]]+\[[[:digit:]]+\]: INF \[[[:alnum:]]+: [[:digit:]]+ - Processing at [.[:digit:]]+ fps\]$
+zmc_m[[:digit:]]+\[[[:digit:]]+\]: INF \[Got signal 15 \(Terminated\), exiting\]$
+zmc_m[[:digit:]]+\[[[:digit:]]+\]: INF \[Starting Capture\]$
+zmc_m[[:digit:]]+\[[[:digit:]]+\]: ERR \[(Connection dropped by remote end|Unable to read (sub)?header|Unable to get response(, disconnecting)?|Select error: Interrupted system call|Can't connect to remote camera: Interrupted system call|Unable to connect to (the remote )?camera(, aborting)?)\]$
+zmc_m[[:digit:]]+\[[[:digit:]]+\]: WAR \[(Unable to capture image, retrying|Select timed out)\]$
+zmaudit\[[[:digit:]]+\]: INF \[Deleted [[:digit:]]+ log table entries by time\]$
+zmdc\[[[:digit:]]+\]: INF \[Starting pending process, [. [:alnum:]-]+\]$
+zmdc\[[[:digit:]]+\]: INF \['[. [:alnum:]-]+' start(ed|ing) at [/: [:digit:]]+(, pid = [[:digit:]]+)?\]$
+zmwatch\[[[:digit:]]+\]: INF \[Watchdog starting\]$
+zmwatch\[[[:digit:]]+\]: INF \[Watchdog pausing for 30 seconds\]$
+zmc_m3\[[[:digit:]]+\]: ERR \[Can't connect to remote camera: (No route to host|Connection refused)\]$
+zmdc\[[[:digit:]]+\]: ERR \['zmc -m 3' exited abnormally, exit status 255\]$
+zmc_m1\[[[:digit:]]+\]: ERR-zm_remote_camera_rtsp.cpp/302 \[Error while decoding frame 0\]$
+zmc_m1\[[[:digit:]]+\]: ERR-zm_remote_camera_rtsp.cpp/303 \[256: [ [:xdigit:]]+\]$
+zma_m[[:digit:]]+\[[[:digit:]]+\]: INF \[[[:alnum:]]+: [[:digit:]]+ - Gone into alarm state\]$
+zma_m[[:digit:]]+\[[[:digit:]]+\]: INF \[[[:alnum:]]+: [[:digit:]]+ - Opening new event [[:digit:]]+, alarm start\]$
+zma_m[[:digit:]]+\[[[:digit:]]+\]: INF \[[[:alnum:]]+: [[:digit:]]+ - Gone into alert state\]$
+zma_m[[:digit:]]+\[[[:digit:]]+\]: WAR \[Waiting for capture daemon\]$
+zma_m[[:digit:]]+\[[[:digit:]]+\]: INF \[[[:alnum:]]+: [[:digit:]]+ - Gone back into alarm state\]$
+zma_m[[:digit:]]+\[[[:digit:]]+\]: INF \[[[:alnum:]]+: [[:digit:]]+ - Left alarm state \([[:digit:]]+\) - [[:digit:]]+\([[:digit:]]+\) images\]$
+zma_m[[:digit:]]+\[[[:digit:]]+\]: INF \[[[:alnum:]]+: [[:digit:]]+ - Closing event [[:digit:]]+, alarm end\]$
+zmaudit\[[[:digit:]]+\]: INF \[Filesystem event '[[:digit:]]+/[[:digit:]]+' does not exist in database\]$
+zmaudit\[[[:digit:]]+\]: INF \[deleting\]$
+zmaudit\[[[:digit:]]+\]: INF \[Found orphaned frame records for event '[[:digit:]]+'\]$
+zmfilter\[[[:digit:]]+\]: INF \[Deleting event [[:digit:]]+\]$
+zmtelemetry\[[[:digit:]]+\]: INF \[Telemetry data uploaded successfully.\]$
+zmtelemetry\[[[:digit:]]+\]: INF \[Sending data to ZoneMinder Telemetry server.\]$
+zmtelemetry\[[[:digit:]]+\]: INF \[Collec?ting data to send to ZoneMinder Telemetry server.\]$

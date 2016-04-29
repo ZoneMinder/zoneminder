@@ -1317,14 +1317,14 @@ $OLANG = array(
     
 // Options on Monitor view
 	'OPTIONS_FFMPEG' => array(
-		'Help' => "Parameters in this field are passwd on to FFmpeg. Multiple parameters can be separated by ,~~ ".
+		'Help' => "Parameters in this field are passed on to FFmpeg. Multiple parameters can be separated by ,~~ ".
 		          "Examples (do not enter quotes)~~~~".
 		          "\"allowed_media_types=video\" Set datatype to request fromcam (audio, video, data)~~~~".
 		          "\"reorder_queue_size=nnn\" Set number of packets to buffer for handling of reordered packets~~~~".
-		          "\"loglevel=debug\" Set verbosiy of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
+		          "\"loglevel=debug\" Set verbosity of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
 	),
 	'OPTIONS_LIBVLC' => array(
-		'Help' => "Parameters in this field are passwd on to libVLC. Multiple parameters can be separated by ,~~ ".
+		'Help' => "Parameters in this field are passed on to libVLC. Multiple parameters can be separated by ,~~ ".
 		          "Examples (do not enter quotes)~~~~".
 		          "\"--rtp-client-port=nnn\" Set local port to use for rtp data~~~~". 
 		          "\"--verbose=2\" Set verbosity of libVLC"

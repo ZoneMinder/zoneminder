@@ -29,277 +29,277 @@
 
 void zmLoadConfig()
 {
-	FILE *cfg;
-	char line[512];
-	if ( (cfg = fopen( ZM_CONFIG, "r")) == NULL )
-	{
-		Fatal( "Can't open %s: %s", ZM_CONFIG, strerror(errno) );
-	}
-	while ( fgets( line, sizeof(line), cfg ) != NULL )
-	{
-		char *line_ptr = line;
+  FILE *cfg;
+  char line[512];
+  if ( (cfg = fopen( ZM_CONFIG, "r")) == NULL )
+  {
+    Fatal( "Can't open %s: %s", ZM_CONFIG, strerror(errno) );
+  }
+  while ( fgets( line, sizeof(line), cfg ) != NULL )
+  {
+    char *line_ptr = line;
 
-		// Trim off any cr/lf line endings
-		int chomp_len = strcspn( line_ptr, "\r\n" );
-		line_ptr[chomp_len] = '\0';
+    // Trim off any cr/lf line endings
+    int chomp_len = strcspn( line_ptr, "\r\n" );
+    line_ptr[chomp_len] = '\0';
 
-		// Remove leading white space
-		int white_len = strspn( line_ptr, " \t" );
-		line_ptr += white_len;
+    // Remove leading white space
+    int white_len = strspn( line_ptr, " \t" );
+    line_ptr += white_len;
 
-		// Check for comment or empty line
-		if ( *line_ptr == '\0' || *line_ptr == '#' )
-			continue;
+    // Check for comment or empty line
+    if ( *line_ptr == '\0' || *line_ptr == '#' )
+      continue;
 
-		// Remove trailing white space
-		char *temp_ptr = line_ptr+strlen(line_ptr)-1;
-		while ( *temp_ptr == ' ' || *temp_ptr == '\t' )
-		{
-			*temp_ptr-- = '\0';
-			temp_ptr--;
-		}
+    // Remove trailing white space
+    char *temp_ptr = line_ptr+strlen(line_ptr)-1;
+    while ( *temp_ptr == ' ' || *temp_ptr == '\t' )
+    {
+      *temp_ptr-- = '\0';
+      temp_ptr--;
+    }
 
-		// Now look for the '=' in the middle of the line
-		temp_ptr = strchr( line_ptr, '=' );
-		if ( !temp_ptr )
-		{
-			Warning( "Invalid data in %s: '%s'", ZM_CONFIG, line );
-			continue;
-		}
+    // Now look for the '=' in the middle of the line
+    temp_ptr = strchr( line_ptr, '=' );
+    if ( !temp_ptr )
+    {
+      Warning( "Invalid data in %s: '%s'", ZM_CONFIG, line );
+      continue;
+    }
 
-		// Assign the name and value parts
-		char *name_ptr = line_ptr;
-		char *val_ptr = temp_ptr+1;
+    // Assign the name and value parts
+    char *name_ptr = line_ptr;
+    char *val_ptr = temp_ptr+1;
 
-		// Trim trailing space from the name part
-		do
-		{
-			*temp_ptr = '\0';
-			temp_ptr--;
-		}
-		while ( *temp_ptr == ' ' || *temp_ptr == '\t' );
+    // Trim trailing space from the name part
+    do
+    {
+      *temp_ptr = '\0';
+      temp_ptr--;
+    }
+    while ( *temp_ptr == ' ' || *temp_ptr == '\t' );
 
-		// Remove leading white space from the value part
-		white_len = strspn( val_ptr, " \t" );
-		val_ptr += white_len;
+    // Remove leading white space from the value part
+    white_len = strspn( val_ptr, " \t" );
+    val_ptr += white_len;
 
-		if ( strcasecmp( name_ptr, "ZM_DB_HOST" ) == 0 )
-            staticConfig.DB_HOST = std::string(val_ptr);
-		else if ( strcasecmp( name_ptr, "ZM_DB_NAME" ) == 0 )
-            staticConfig.DB_NAME = std::string(val_ptr);
-		else if ( strcasecmp( name_ptr, "ZM_DB_USER" ) == 0 )
-            staticConfig.DB_USER = std::string(val_ptr);
-		else if ( strcasecmp( name_ptr, "ZM_DB_PASS" ) == 0 )
-            staticConfig.DB_PASS = std::string(val_ptr);
-		else if ( strcasecmp( name_ptr, "ZM_PATH_WEB" ) == 0 )
-            staticConfig.PATH_WEB = std::string(val_ptr);
-		else if ( strcasecmp( name_ptr, "ZM_SERVER_HOST" ) == 0 )
-			staticConfig.SERVER_NAME = std::string(val_ptr);
-		else if ( strcasecmp( name_ptr, "ZM_SERVER_NAME" ) == 0 )
-			staticConfig.SERVER_NAME = std::string(val_ptr);
-		else if ( strcasecmp( name_ptr, "ZM_SERVER_ID" ) == 0 )
-			staticConfig.SERVER_ID = atoi(val_ptr);
-		else
-		{
-			// We ignore this now as there may be more parameters than the
-			// c/c++ binaries are bothered about
-			// Warning( "Invalid parameter '%s' in %s", name_ptr, ZM_CONFIG );
-		}
-	} // end foreach line of the config
-	fclose( cfg );
-	zmDbConnect();
-	config.Load();
-	config.Assign();
+    if ( strcasecmp( name_ptr, "ZM_DB_HOST" ) == 0 )
+      staticConfig.DB_HOST = std::string(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_DB_NAME" ) == 0 )
+      staticConfig.DB_NAME = std::string(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_DB_USER" ) == 0 )
+      staticConfig.DB_USER = std::string(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_DB_PASS" ) == 0 )
+      staticConfig.DB_PASS = std::string(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_PATH_WEB" ) == 0 )
+      staticConfig.PATH_WEB = std::string(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_SERVER_HOST" ) == 0 )
+      staticConfig.SERVER_NAME = std::string(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_SERVER_NAME" ) == 0 )
+      staticConfig.SERVER_NAME = std::string(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_SERVER_ID" ) == 0 )
+      staticConfig.SERVER_ID = atoi(val_ptr);
+    else
+    {
+      // We ignore this now as there may be more parameters than the
+      // c/c++ binaries are bothered about
+      // Warning( "Invalid parameter '%s' in %s", name_ptr, ZM_CONFIG );
+    }
+  } // end foreach line of the config
+  fclose( cfg );
+  zmDbConnect();
+  config.Load();
+  config.Assign();
 
-	// Populate the server config entries
-	if ( ! staticConfig.SERVER_ID ) {
-		if ( ! staticConfig.SERVER_NAME.empty() ) {
+  // Populate the server config entries
+  if ( ! staticConfig.SERVER_ID ) {
+    if ( ! staticConfig.SERVER_NAME.empty() ) {
 
-			Debug( 1, "Fetching ZM_SERVER_ID For Name = %s", staticConfig.SERVER_NAME.c_str() );
-			std::string sql = stringtf("SELECT Id FROM Servers WHERE Name='%s'", staticConfig.SERVER_NAME.c_str() );
-			if ( MYSQL_ROW dbrow = zmDbFetchOne( sql.c_str() ) ) {
-				staticConfig.SERVER_ID = atoi(dbrow[0]);
-			} else {
-				Fatal("Can't get ServerId for Server %s", staticConfig.SERVER_NAME.c_str() );
-			}
+      Debug( 1, "Fetching ZM_SERVER_ID For Name = %s", staticConfig.SERVER_NAME.c_str() );
+      std::string sql = stringtf("SELECT Id FROM Servers WHERE Name='%s'", staticConfig.SERVER_NAME.c_str() );
+      if ( MYSQL_ROW dbrow = zmDbFetchOne( sql.c_str() ) ) {
+        staticConfig.SERVER_ID = atoi(dbrow[0]);
+      } else {
+        Fatal("Can't get ServerId for Server %s", staticConfig.SERVER_NAME.c_str() );
+      }
 
-		} // end if has SERVER_NAME
-	} else if ( staticConfig.SERVER_NAME.empty() ) {
-		Debug( 1, "Fetching ZM_SERVER_NAME For Id = %d", staticConfig.SERVER_ID );
-		std::string sql = stringtf("SELECT Name FROM Servers WHERE Id='%d'", staticConfig.SERVER_ID );
-		
-		if ( MYSQL_ROW dbrow = zmDbFetchOne( sql.c_str() ) ) {
-			staticConfig.SERVER_NAME = std::string(dbrow[0]);
-		} else {
-			Fatal("Can't get ServerName for Server ID %d", staticConfig.SERVER_ID );
-		}
-	
-	}	
-	if ( ! staticConfig.SERVER_ID ) {
-		Debug( 1, "No Server ID or Name specified in config.  Not using Multi-Server Mode." );
-	} else {
-		Debug( 1, "Server is %d: using Multi-Server Mode.", staticConfig.SERVER_ID );
-	}
+    } // end if has SERVER_NAME
+  } else if ( staticConfig.SERVER_NAME.empty() ) {
+    Debug( 1, "Fetching ZM_SERVER_NAME For Id = %d", staticConfig.SERVER_ID );
+    std::string sql = stringtf("SELECT Name FROM Servers WHERE Id='%d'", staticConfig.SERVER_ID );
+    
+    if ( MYSQL_ROW dbrow = zmDbFetchOne( sql.c_str() ) ) {
+      staticConfig.SERVER_NAME = std::string(dbrow[0]);
+    } else {
+      Fatal("Can't get ServerName for Server ID %d", staticConfig.SERVER_ID );
+    }
+  
+  }  
+  if ( ! staticConfig.SERVER_ID ) {
+    Debug( 1, "No Server ID or Name specified in config.  Not using Multi-Server Mode." );
+  } else {
+    Debug( 1, "Server is %d: using Multi-Server Mode.", staticConfig.SERVER_ID );
+  }
 }
 
 StaticConfig staticConfig;
 
 ConfigItem::ConfigItem( const char *p_name, const char *p_value, const char *const p_type )
 {
-	name = new char[strlen(p_name)+1];
-	strcpy( name, p_name );
-	value = new char[strlen(p_value)+1];
-	strcpy( value, p_value );
-	type = new char[strlen(p_type)+1];
-	strcpy( type, p_type );
+  name = new char[strlen(p_name)+1];
+  strcpy( name, p_name );
+  value = new char[strlen(p_value)+1];
+  strcpy( value, p_value );
+  type = new char[strlen(p_type)+1];
+  strcpy( type, p_type );
 
-	//Info( "Created new config item %s = %s (%s)\n", name, value, type );
+  //Info( "Created new config item %s = %s (%s)\n", name, value, type );
 
-	accessed = false;
+  accessed = false;
 }
 
 ConfigItem::~ConfigItem()
 {
-	delete[] name;
-	delete[] value;
-	delete[] type;
+  delete[] name;
+  delete[] value;
+  delete[] type;
 }
 
 void ConfigItem::ConvertValue() const
 {
-	if ( !strcmp( type, "boolean" ) )
-	{
-		cfg_type = CFG_BOOLEAN;
-		cfg_value.boolean_value = (bool)strtol( value, 0, 0 );
-	}
-	else if ( !strcmp( type, "integer" ) )
-	{
-		cfg_type = CFG_INTEGER;
-		cfg_value.integer_value = strtol( value, 0, 10 );
-	}
-	else if ( !strcmp( type, "hexadecimal" ) )
-	{
-		cfg_type = CFG_INTEGER;
-		cfg_value.integer_value = strtol( value, 0, 16 );
-	}
-	else if ( !strcmp( type, "decimal" ) )
-	{
-		cfg_type = CFG_DECIMAL;
-		cfg_value.decimal_value = strtod( value, 0 );
-	}
-	else
-	{
-		cfg_type = CFG_STRING;
-		cfg_value.string_value = value;
-	}
-	accessed = true;
+  if ( !strcmp( type, "boolean" ) )
+  {
+    cfg_type = CFG_BOOLEAN;
+    cfg_value.boolean_value = (bool)strtol( value, 0, 0 );
+  }
+  else if ( !strcmp( type, "integer" ) )
+  {
+    cfg_type = CFG_INTEGER;
+    cfg_value.integer_value = strtol( value, 0, 10 );
+  }
+  else if ( !strcmp( type, "hexadecimal" ) )
+  {
+    cfg_type = CFG_INTEGER;
+    cfg_value.integer_value = strtol( value, 0, 16 );
+  }
+  else if ( !strcmp( type, "decimal" ) )
+  {
+    cfg_type = CFG_DECIMAL;
+    cfg_value.decimal_value = strtod( value, 0 );
+  }
+  else
+  {
+    cfg_type = CFG_STRING;
+    cfg_value.string_value = value;
+  }
+  accessed = true;
 }
 
 bool ConfigItem::BooleanValue() const
 {
-	if ( !accessed )
-		ConvertValue();
+  if ( !accessed )
+    ConvertValue();
 
-	if ( cfg_type != CFG_BOOLEAN )
-	{
-		Error( "Attempt to fetch boolean value for %s, actual type is %s. Try running 'zmupdate.pl -f' to reload config.", name, type );
-		exit( -1 );
-	}
+  if ( cfg_type != CFG_BOOLEAN )
+  {
+    Error( "Attempt to fetch boolean value for %s, actual type is %s. Try running 'zmupdate.pl -f' to reload config.", name, type );
+    exit( -1 );
+  }
 
-	return( cfg_value.boolean_value );
+  return( cfg_value.boolean_value );
 }
 
 int ConfigItem::IntegerValue() const
 {
-	if ( !accessed )
-		ConvertValue();
+  if ( !accessed )
+    ConvertValue();
 
-	if ( cfg_type != CFG_INTEGER )
-	{
-		Error( "Attempt to fetch integer value for %s, actual type is %s. Try running 'zmupdate.pl -f' to reload config.", name, type );
-		exit( -1 );
-	}
+  if ( cfg_type != CFG_INTEGER )
+  {
+    Error( "Attempt to fetch integer value for %s, actual type is %s. Try running 'zmupdate.pl -f' to reload config.", name, type );
+    exit( -1 );
+  }
 
-	return( cfg_value.integer_value );
+  return( cfg_value.integer_value );
 }
 
 double ConfigItem::DecimalValue() const
 {
-	if ( !accessed )
-		ConvertValue();
+  if ( !accessed )
+    ConvertValue();
 
-	if ( cfg_type != CFG_DECIMAL )
-	{
-		Error( "Attempt to fetch decimal value for %s, actual type is %s. Try running 'zmupdate.pl -f' to reload config.", name, type );
-		exit( -1 );
-	}
+  if ( cfg_type != CFG_DECIMAL )
+  {
+    Error( "Attempt to fetch decimal value for %s, actual type is %s. Try running 'zmupdate.pl -f' to reload config.", name, type );
+    exit( -1 );
+  }
 
-	return( cfg_value.decimal_value );
+  return( cfg_value.decimal_value );
 }
 
 const char *ConfigItem::StringValue() const
 {
-	if ( !accessed )
-		ConvertValue();
+  if ( !accessed )
+    ConvertValue();
 
-	if ( cfg_type != CFG_STRING )
-	{
-		Error( "Attempt to fetch string value for %s, actual type is %s. Try running 'zmupdate.pl -f' to reload config.", name, type );
-		exit( -1 );
-	}
+  if ( cfg_type != CFG_STRING )
+  {
+    Error( "Attempt to fetch string value for %s, actual type is %s. Try running 'zmupdate.pl -f' to reload config.", name, type );
+    exit( -1 );
+  }
 
-	return( cfg_value.string_value );
+  return( cfg_value.string_value );
 }
 
 Config::Config()
 {
-	n_items = 0;
-	items = 0;
+  n_items = 0;
+  items = 0;
 }
 
 Config::~Config()
 {
-	if ( items )
-	{
-		for ( int i = 0; i < n_items; i++ )
-		{
-			delete items[i];
-		}
-		delete[] items;
-	}
+  if ( items )
+  {
+    for ( int i = 0; i < n_items; i++ )
+    {
+      delete items[i];
+    }
+    delete[] items;
+  }
 }
 
 void Config::Load()
 {
-    static char sql[ZM_SQL_SML_BUFSIZ];
+  static char sql[ZM_SQL_SML_BUFSIZ];
    
-    strncpy( sql, "select Name, Value, Type from Config order by Id", sizeof(sql) );
-	if ( mysql_query( &dbconn, sql ) )
-	{
-		Error( "Can't run query: %s", mysql_error( &dbconn ) );
-		exit( mysql_errno( &dbconn ) );
-	}
+  strncpy( sql, "select Name, Value, Type from Config order by Id", sizeof(sql) );
+  if ( mysql_query( &dbconn, sql ) )
+  {
+    Error( "Can't run query: %s", mysql_error( &dbconn ) );
+    exit( mysql_errno( &dbconn ) );
+  }
 
-	MYSQL_RES *result = mysql_store_result( &dbconn );
-	if ( !result )
-	{
-		Error( "Can't use query result: %s", mysql_error( &dbconn ) );
-		exit( mysql_errno( &dbconn ) );
-	}
-	n_items = mysql_num_rows( result );
+  MYSQL_RES *result = mysql_store_result( &dbconn );
+  if ( !result )
+  {
+    Error( "Can't use query result: %s", mysql_error( &dbconn ) );
+    exit( mysql_errno( &dbconn ) );
+  }
+  n_items = mysql_num_rows( result );
 
-	if ( n_items <= ZM_MAX_CFG_ID )
-	{
-		Error( "Config mismatch, expected %d items, read %d. Try running 'zmupdate.pl -f' to reload config.", ZM_MAX_CFG_ID+1, n_items );
-		exit( -1 );
-	}
+  if ( n_items <= ZM_MAX_CFG_ID )
+  {
+    Error( "Config mismatch, expected %d items, read %d. Try running 'zmupdate.pl -f' to reload config.", ZM_MAX_CFG_ID+1, n_items );
+    exit( -1 );
+  }
 
-	items = new ConfigItem *[n_items];
-	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
-	{
-		items[i] = new ConfigItem( dbrow[0], dbrow[1], dbrow[2] );
-	}
-	mysql_free_result( result );
+  items = new ConfigItem *[n_items];
+  for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
+  {
+    items[i] = new ConfigItem( dbrow[0], dbrow[1], dbrow[2] );
+  }
+  mysql_free_result( result );
 }
 
 void Config::Assign()
@@ -309,27 +309,27 @@ ZM_CFG_ASSIGN_LIST
 
 const ConfigItem &Config::Item( int id )
 {
-	if ( !n_items )
-	{
-		Load();
-		Assign();
-	}
+  if ( !n_items )
+  {
+    Load();
+    Assign();
+  }
 
-	if ( id < 0 || id > ZM_MAX_CFG_ID )
-	{
-		Error( "Attempt to access invalid config, id = %d. Try running 'zmupdate.pl -f' to reload config.", id );
-		exit( -1 );
-	}
+  if ( id < 0 || id > ZM_MAX_CFG_ID )
+  {
+    Error( "Attempt to access invalid config, id = %d. Try running 'zmupdate.pl -f' to reload config.", id );
+    exit( -1 );
+  }
 
-	ConfigItem *item = items[id];
-	
-	if ( !item )
-	{
-		Error( "Can't find config item %d", id );
-		exit( -1 );
-	}
-		
-	return( *item );
+  ConfigItem *item = items[id];
+  
+  if ( !item )
+  {
+    Error( "Can't find config item %d", id );
+    exit( -1 );
+  }
+    
+  return( *item );
 }
 
 Config config;

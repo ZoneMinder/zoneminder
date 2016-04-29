@@ -232,7 +232,6 @@ fi
 # zmfix removed from zoneminder 1.26.6
 #%attr(4755,root,root) %{_bindir}/zmfix
 %{_bindir}/zmpkg.pl
-%{_bindir}/zmstreamer
 %{_bindir}/zmtrack.pl
 %{_bindir}/zmtrigger.pl
 %{_bindir}/zmu

@@ -8,6 +8,5 @@ Contents:
 
    ubuntu
    debian
-   fedora
-   centos
+   redhat
    multiserver

@@ -10,7 +10,7 @@ configure_file(zoneminder.tmpfiles.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.tmp
 configure_file(zoneminder.logrotate.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.logrotate @ONLY)
 
 # Download jscalendar & move files into position
-file(DOWNLOAD http://downloads.sourceforge.net/jscalendar/jscalendar-1.0.zip ${CMAKE_CURRENT_SOURCE_DIR}/jscalendar-1.0.zip STATUS download_jsc)
+file(DOWNLOAD http://iweb.dl.sourceforge.net/project/jscalendar/jscalendar/1.0/jscalendar-1.0.zip ${CMAKE_CURRENT_SOURCE_DIR}/jscalendar-1.0.zip STATUS download_jsc)
 if(download_jsc EQUAL 0)
 message(STATUS "Jscalander successfully downloaded.  Installing...")
 execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/jscalendar.sh WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} ERROR_VARIABLE unzip_jsc)

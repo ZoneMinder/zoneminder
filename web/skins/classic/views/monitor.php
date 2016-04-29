@@ -58,9 +58,32 @@ if ( ! empty($_REQUEST['mid']) ) {
 } else {
 
     $nextId = getTableAutoInc( 'Monitors' );
+  $monitor = getMonitorObject($_REQUEST['dupId']);
+  $clonedName = $monitor['Name'];
+  $monitor['Name'] = translate('Monitor').'-'.$nextId;
+  $monitor['Id']='0';
+}
+
+if ( ZM_OPT_X10 && empty($x10Monitor) )
+{
+    $x10Monitor = array(
+        'Activation' => '',   
+        'AlarmInput' => '',   
+        'AlarmOutput' => '',   
+    );
+}
+
+function getMonitorObject( $mid = null) 
+{
+    if ($mid !== null)
+    {
+      $monitor = dbFetchMonitor($mid);
+    }
+    else
+    {
     $monitor = array(
         'Id' => 0,
-        'Name' => translate('Monitor').'-'.$nextId,
+                'Name' => "willbereplaced",
         'Function' => "Monitor",
         'Enabled' => true,
         'LinkedMonitors' => "",
@@ -129,15 +152,8 @@ if ( ! empty($_REQUEST['mid']) ) {
 		'V4LCapturesPerFrame'	=>	1,
 		'ServerId'	=>	$Server['Id'],
     );
-}
-
-if ( ZM_OPT_X10 && empty($x10Monitor) )
-{
-    $x10Monitor = array(
-        'Activation' => '',   
-        'AlarmInput' => '',   
-        'AlarmOutput' => '',   
-    );
+      }
+      return ($monitor);
 }
 
 function fourcc( $a, $b, $c, $d )
@@ -469,6 +485,21 @@ xhtmlHeaders(__FILE__, translate('Monitor')." - ".validHtmlStr($monitor['Name'])
 if ( canEdit( 'Monitors' ) )
 {
 ?>
+
+<?php
+if ( isset ($_REQUEST['dupId']))
+{
+  $dupId = $_REQUEST['dupId'];
+?>
+
+<div class="alert alert-info">
+  Configuration cloned from Monitor: <?php echo $clonedName ?>
+</div>
+
+<?php 
+}
+?>
+
       <div id="headerButtons">
         <a href="#" onclick="createPopup( '?view=monitorprobe&amp;mid=<?php echo $monitor['Id'] ?>', 'zmMonitorProbe<?php echo $monitor['Id'] ?>', 'monitorprobe' ); return( false );"><?php echo translate('Probe') ?></a>
 	<?php
@@ -992,6 +1023,7 @@ switch ( $tab )
         <div id="contentButtons">
           <input type="submit" value="<?php echo translate('Save') ?>"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
         </div>
+        
       </form>
     </div>
   </div>

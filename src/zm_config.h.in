@@ -25,48 +25,48 @@
 
 #include <string>
 
-#define ZM_CONFIG				"@ZM_CONFIG@"	// Path to config file
-#define ZM_VERSION				"@VERSION@"	// ZoneMinder Version
+#define ZM_CONFIG        "@ZM_CONFIG@"  // Path to config file
+#define ZM_VERSION        "@VERSION@"  // ZoneMinder Version
 
-#define ZM_HAS_V4L1             @ZM_HAS_V4L1@
-#define ZM_HAS_V4L2             @ZM_HAS_V4L2@
-#define ZM_HAS_V4L              @ZM_HAS_V4L@
+#define ZM_HAS_V4L1       @ZM_HAS_V4L1@
+#define ZM_HAS_V4L2       @ZM_HAS_V4L2@
+#define ZM_HAS_V4L        @ZM_HAS_V4L@
 
 #ifdef HAVE_LIBAVFORMAT
-#define ZM_HAS_FFMPEG           1
+#define ZM_HAS_FFMPEG       1
 #endif // HAVE_LIBAVFORMAT
 
-#define ZM_MAX_IMAGE_WIDTH		2048				// The largest image we imagine ever handling
-#define ZM_MAX_IMAGE_HEIGHT		1536				// The largest image we imagine ever handling
-#define ZM_MAX_IMAGE_COLOURS		4				// The largest image we imagine ever handling
-#define ZM_MAX_IMAGE_DIM		(ZM_MAX_IMAGE_WIDTH*ZM_MAX_IMAGE_HEIGHT)
-#define ZM_MAX_IMAGE_SIZE		(ZM_MAX_IMAGE_DIM*ZM_MAX_IMAGE_COLOURS)
+#define ZM_MAX_IMAGE_WIDTH    2048        // The largest image we imagine ever handling
+#define ZM_MAX_IMAGE_HEIGHT    1536        // The largest image we imagine ever handling
+#define ZM_MAX_IMAGE_COLOURS    4        // The largest image we imagine ever handling
+#define ZM_MAX_IMAGE_DIM    (ZM_MAX_IMAGE_WIDTH*ZM_MAX_IMAGE_HEIGHT)
+#define ZM_MAX_IMAGE_SIZE    (ZM_MAX_IMAGE_DIM*ZM_MAX_IMAGE_COLOURS)
 
-#define ZM_SCALE_BASE			100					// The factor by which we bump up 'scale' to simulate FP
-#define ZM_RATE_BASE			100					// The factor by which we bump up 'rate' to simulate FP
+#define ZM_SCALE_BASE      100          // The factor by which we bump up 'scale' to simulate FP
+#define ZM_RATE_BASE      100          // The factor by which we bump up 'rate' to simulate FP
 
-#define ZM_SQL_BATCH_SIZE       50                  // Limit the size of multi-row SQL statements
-#define ZM_SQL_SML_BUFSIZ       256                 // Size of SQL buffer
-#define ZM_SQL_MED_BUFSIZ       1024                // Size of SQL buffer
-#define ZM_SQL_LGE_BUFSIZ       8192                // Size of SQL buffer
+#define ZM_SQL_BATCH_SIZE     50          // Limit the size of multi-row SQL statements
+#define ZM_SQL_SML_BUFSIZ     256         // Size of SQL buffer
+#define ZM_SQL_MED_BUFSIZ     1024        // Size of SQL buffer
+#define ZM_SQL_LGE_BUFSIZ     8192        // Size of SQL buffer
 
-#define ZM_NETWORK_BUFSIZ       32768               // Size of network buffer
+#define ZM_NETWORK_BUFSIZ     32768         // Size of network buffer
 
-#define ZM_MAX_FPS              30                  // The maximum frame rate we expect to handle
-#define ZM_SAMPLE_RATE          int(1000000/ZM_MAX_FPS) // A general nyquist sample frequency for delays etc
-#define ZM_SUSPENDED_RATE       int(1000000/4) // A slower rate for when disabled etc
+#define ZM_MAX_FPS        30          // The maximum frame rate we expect to handle
+#define ZM_SAMPLE_RATE      int(1000000/ZM_MAX_FPS) // A general nyquist sample frequency for delays etc
+#define ZM_SUSPENDED_RATE     int(1000000/4) // A slower rate for when disabled etc
 
 extern void zmLoadConfig();
 
 struct StaticConfig
 {
-    std::string DB_HOST;
-    std::string DB_NAME;
-    std::string DB_USER;
-    std::string DB_PASS;
-    std::string PATH_WEB;
-	std::string SERVER_NAME;
-	unsigned int SERVER_ID;
+  std::string DB_HOST;
+  std::string DB_NAME;
+  std::string DB_USER;
+  std::string DB_PASS;
+  std::string PATH_WEB;
+  std::string SERVER_NAME;
+  unsigned int SERVER_ID;
 };
 
 extern StaticConfig staticConfig;
@@ -74,63 +74,63 @@ extern StaticConfig staticConfig;
 class ConfigItem
 {
 private:
-	char *name;
-	char *value;
-	char *type;
+  char *name;
+  char *value;
+  char *type;
 
-	mutable enum { CFG_BOOLEAN, CFG_INTEGER, CFG_DECIMAL, CFG_STRING } cfg_type;
-	mutable union
-	{
-		bool boolean_value;
-		int integer_value;
-		double decimal_value;
-		char *string_value;
-	} cfg_value;
-	mutable bool accessed;
+  mutable enum { CFG_BOOLEAN, CFG_INTEGER, CFG_DECIMAL, CFG_STRING } cfg_type;
+  mutable union
+  {
+    bool boolean_value;
+    int integer_value;
+    double decimal_value;
+    char *string_value;
+  } cfg_value;
+  mutable bool accessed;
 
 public:
-	ConfigItem( const char *p_name, const char *p_value, const char *const p_type );
-	~ConfigItem();
-	void ConvertValue() const;
-	bool BooleanValue() const;
-	int IntegerValue() const;
-	double DecimalValue() const;
-	const char *StringValue() const;
+  ConfigItem( const char *p_name, const char *p_value, const char *const p_type );
+  ~ConfigItem();
+  void ConvertValue() const;
+  bool BooleanValue() const;
+  int IntegerValue() const;
+  double DecimalValue() const;
+  const char *StringValue() const;
 
-	inline operator bool() const
-	{
-		return( BooleanValue() );
-	}
-	inline operator int() const
-	{
-		return( IntegerValue() );
-	}
-	inline operator double() const
-	{
-		return( DecimalValue() );
-	}
-	inline operator const char *() const
-	{
-		return( StringValue() );
-	}
+  inline operator bool() const
+  {
+    return( BooleanValue() );
+  }
+  inline operator int() const
+  {
+    return( IntegerValue() );
+  }
+  inline operator double() const
+  {
+    return( DecimalValue() );
+  }
+  inline operator const char *() const
+  {
+    return( StringValue() );
+  }
 };
 
 class Config
 {
 public:
-	ZM_CFG_DECLARE_LIST
+  ZM_CFG_DECLARE_LIST
 
 private:
-	int n_items;
-	ConfigItem **items;
+  int n_items;
+  ConfigItem **items;
 
 public:
-	Config();
-	~Config();
+  Config();
+  ~Config();
 
-	void Load();
-	void Assign();
-	const ConfigItem &Item( int id );
+  void Load();
+  void Assign();
+  const ConfigItem &Item( int id );
 };
 
 extern Config config;

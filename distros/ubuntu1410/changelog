@@ -1,3 +1,15 @@
+zoneminder (1.30.2-trusty-2016033001) trusty; urgency=medium
+
+  * merge master
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Wed, 30 Mar 2016 14:09:48 -0400
+
+zoneminder (1.30.2-trusty-2016032901) trusty; urgency=medium
+
+  * filter fixes, merge options rework by Kyle
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Tue, 29 Mar 2016 12:27:57 -0400
+
 zoneminder (1.30.2-trusty-2016030702) trusty; urgency=medium
 
   * 

@@ -15,11 +15,11 @@
 
 #menuBar1 {
     width: 100%;
-    height: 1.5em;
     padding: 3px 0;
     text-align: center;
     clear: both;
 }
+
 
 #menuBar1 #nameControl {
     float: left;
@@ -41,7 +41,6 @@
 
 #menuBar2 {
     width: 100%;
-    height: 1.2em;
     padding: 3px 0;
     margin-bottom: 4px;
 }
@@ -55,6 +54,15 @@
 #menuBar2 #closeWindow {
     float: right;
     text-align: right;
+}
+#menuBar1:after,
+#menuBar2:after {
+    content: ".";
+    display: block;
+    height: 0;
+    font-size: 0;
+    clear: both;
+    visibility: hidden;
 }
 
 #imageFeed {

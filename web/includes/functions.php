@@ -217,14 +217,20 @@ function getMimeType( $file )
   return( trim( exec( 'file -bi '.escapeshellarg( $file ).' 2>/dev/null' ) ) );
 }
 
-function outputVideoStream( $id, $src, $width, $height, $format, $title="" )
-{
-  if ( file_exists( $src ) )
+function outputVideoStream( $id, $src, $width, $height, $format, $title="" ) {
+  echo getVideoStreamHTML( $id, $src, $width, $height, $format, $title );
+}
+
+function getVideoStreamHTML( $id, $src, $width, $height, $format, $title="" ) {
+  $html = '';
+  $width = validInt($width);
+  $height = validInt($height);
+  $title = validHtmlStr($title);
+
+  if ( file_exists( $src ) ) {
     $mimeType = getMimeType( $src );
-  else
-  {
-    switch( $format )
-    {
+  } else {
+    switch( $format ) {
       case 'asf' :
         $mimeType = "video/x-ms-asf";
         break;
@@ -252,118 +258,95 @@ function outputVideoStream( $id, $src, $width, $height, $format, $title="" )
   }
   if ( !$mimeType || ($mimeType == 'application/octet-stream') )
     $mimeType = 'video/'.$format;
-  $objectTag = false;
-  if ( ZM_WEB_USE_OBJECT_TAGS )
-  {
-    switch( $mimeType )
-    {
+  if ( ZM_WEB_USE_OBJECT_TAGS ) {
+    switch( $mimeType ) {
       case "video/x-ms-asf" :
       case "video/x-msvideo" :
       case "video/mp4" :
         {
-          if ( isWindows() )
-          {
-            ?>
-              <object id="<?php echo $id ?>" width="<?php echo validNum($width) ?>" height="<?php echo validNum($height) ?>"
+          if ( isWindows() ) {
+            return '<object id="'.$id.'" width="'.$width.'" height="'.$height.'
               classid="CLSID:22D6F312-B0F6-11D0-94AB-0080C74C7E95"
               codebase="http://activex.microsoft.com/activex/controls/mplayer/en/nsmp2inf.cab#Version=6,0,02,902"
               standby="Loading Microsoft Windows Media Player components..."
-              type="<?php echo $mimeType ?>">
-              <param name="FileName" value="<?php echo $src ?>"/>
+              type="'.$mimeType.'">
+              <param name="FileName" value="'.$src.'"/>
               <param name="autoStart" value="1"/>
               <param name="showControls" value="0"/>
-              <embed type="<?php echo $mimeType ?>"
+              <embed type="'.$mimeType.'"
               pluginspage="http://www.microsoft.com/Windows/MediaPlayer/"
-              src="<?php echo $src ?>"
-              name="<?php echo validHtmlStr($title) ?>"
-              width="<?php echo validNum($width) ?>"
-              height="<?php echo validInt($height) ?>"
+              src="'.$src.'"
+              name="'.$title.'"
+              width="'.$width.'"
+              height="'.$height.'"
               autostart="1"
               showcontrols="0">
               </embed>
-              </object>
-              <?php
-              $objectTag = true;
+              </object>';
           }
-          break;
         }
       case "video/quicktime" :
         {
-          ?>
-            <object id="<?php echo $id ?>" width="<?php echo $width ?>" height="<?php echo $height ?>"
+            return '<object id="'.$id.'" width="'.$width.'" height="'.$height.'"
             classid="clsid:02BF25D5-8C17-4B23-BC80-D3488ABDDC6B"
             codebase="http://www.apple.com/qtactivex/qtplugin.cab"
-            type="<?php echo $mimeType ?>">
-            <param name="src" value="<?php echo $src ?>"/>
+            type="'.$mimeType.'">
+            <param name="src" value="'.$src.'"/>
             <param name="autoplay" VALUE="true"/>
             <param name="controller" VALUE="false"/>
-            <embed type="<?php echo $mimeType ?>"
-            src="<?php echo $src ?>"
+            <embed type="'.$mimeType.'"
+            src="'.$src.'"
             pluginspage="http://www.apple.com/quicktime/download/"
-            name="<?php echo validHtmlStr($title) ?>"
-            width="<?php echo validInt($width) ?>"
-            height="<?php echo validInt($height) ?>"
+            name="'.$title.'" width="'.$width.'" height="'.$height.'"
             autoplay="true"
             controller="true">
             </embed>
-            </object>
-            <?php
-            $objectTag = true;
-          break;
+            </object>';
         }
       case "application/x-shockwave-flash" :
         {
-          ?>
-            <object id="<?php echo $id ?>" width="<?php echo $width ?>" height="<?php echo $height ?>"
+            return '<object id="'.$id.'" width="'.$width.'" height="'.$height.'"
             classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000"
             codebase="http://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=6,0,40,0"
-            type="<?php echo $mimeType ?>">
-            <param name="movie" value="<?php echo $src ?>"/>
+            type="'.$mimeType.'">
+            <param name="movie" value="'.$src.'"/>
             <param name="quality" value="high"/>
             <param name="bgcolor" value="#ffffff"/>
-            <embed type="<?php echo $mimeType ?>"
+            <embed type="'.$mimeType.'"
             pluginspage="http://www.macromedia.com/go/getflashplayer"
-            src="<?php echo $src ?>"
-            name="<?php echo validHtmlStr($title) ?>"
-            width="<?php echo validInt($width) ?>"
-            height="<?php echo validInt($height) ?>"
+            src="'.$src.'"
+            name="'.$title.'"
+            width="'.$width.'"
+            height="'.$height.'"
             quality="high"
             bgcolor="#ffffff">
             </embed>
-            </object>
-            <?php
-            $objectTag = true;
-          break;
+            </object>';
         }
-    }
-  }
-  if ( !$objectTag )
-  {
-    ?>
-      <embed<?php echo isset($mimeType)?(' type="'.$mimeType.'"'):"" ?> 
-      src="<?php echo $src ?>"
-      name="<?php echo validHtmlStr($title) ?>"
-      width="<?php echo validInt($width) ?>"
-      height="<?php echo validInt($height) ?>"
+    } # end switch
+  } # end if use object tags
+  return '<embed'. ( isset($mimeType)?(' type="'.$mimeType.'"'):'' ). '
+      src="'.$src.'"
+      name="'.$title.'"
+      width="'.$width.'"
+      height="'.$height.'"
       autostart="1"
       autoplay="1"
       showcontrols="0"
       controller="0">
-      </embed>
-      <?php
-  }
+      </embed>';
 }
 
-function outputImageStream( $id, $src, $width, $height, $title="" )
-{
+function outputImageStream( $id, $src, $width, $height, $title="" ) {
+  echo getImageStream( $id, $src, $width, $height, $title );
+}
+
+
+function getImageStream( $id, $src, $width, $height, $title="" ) {
   if ( canStreamIframe() ) {
-    ?>
-      <iframe id="<?php echo $id ?>" src="<?php echo $src ?>" alt="<?php echo validHtmlStr($title) ?>" width="<?php echo $width ?>" height="<?php echo $height ?>"/>
-      <?php
+      return '<iframe id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" width="'. validInt($width)." height=".validInt($height).'"/>';
   } else {
-    ?>
-      <img id="<?php echo $id ?>" src="<?php echo $src ?>" alt="<?php echo validHtmlStr($title) ?>" width="<?php echo $width ?>" height="<?php echo $height ?>"/>
-      <?php
+      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" width="'. validInt($width) .'" height="'. validInt( $height ).'"/>';
   }
 }
 
@@ -1685,7 +1668,11 @@ function getDiskPercent()
     Error("disk_total_space returned false for " . ZM_DIR_EVENTS );
     return 0;
   }
-  $space = round(($total - disk_free_space(ZM_DIR_EVENTS)) / $total * 100);
+    $free = disk_free_space(ZM_DIR_EVENTS);
+    if ( ! $free ) {
+        Error("disk_free_space returned false for " . ZM_DIR_EVENTS );
+    }
+    $space = round(($total - $free) / $total * 100);
   return( $space );
 }
 
@@ -2507,11 +2494,11 @@ function getStreamHTML( $monitor, $scale=100 ) {
 //FIXME, the width and height of the image need to be scaled.
     if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
         $streamSrc = $monitor->getStreamSrc( array( "mode=mpeg", "scale=".$scale, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_LIVE_FORMAT ) );
-        outputVideoStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
+        return getVideoStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
     } else if ( canStream() ) {
         $streamSrc = $monitor->getStreamSrc( array( 'mode=jpeg', 'scale='.$scale, 'maxfps='.ZM_WEB_VIDEO_MAXFPS, 'buffer='.$monitor->StreamReplayBuffer() ) );
         if ( canStreamNative() )
-            outputImageStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
+            return getImageStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
         elseif ( canStreamApplet() )
             outputHelperStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
     } else {

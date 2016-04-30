@@ -66,13 +66,11 @@ if ( !empty($limit) && $nEvents > $limit )
     $nEvents = $limit;
 }
 $pages = (int)ceil($nEvents/ZM_WEB_EVENTS_PER_PAGE);
-if ( $pages > 1 ) {
-    if ( !empty($page) ) {
-        if ( $page < 0 )
-            $page = 1;
-        if ( $page > $pages )
-            $page = $pages;
-    }
+if ( !empty($page) ) {
+    if ( $page < 0 )
+        $page = 1;
+    if ( $page > $pages )
+        $page = $pages;
 }
 if ( !empty($page) ) {
     $limitStart = (($page-1)*ZM_WEB_EVENTS_PER_PAGE);

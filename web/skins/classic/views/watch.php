@@ -115,7 +115,10 @@ if ( canEdit( 'Monitors' ) )
 if ( canEdit( 'Monitors' ) )
 {
 ?>
-        <div id="forceCancelAlarm"><a id="forceAlarmLink" href="#" onclick="cmdForceAlarm()" class="hidden"><?php echo translate('ForceAlarm') ?></a><a id="cancelAlarmLink" href="#" onclick="cmdCancelForcedAlarm()" class="hidden"><?php echo translate('CancelForcedAlarm') ?></a></div>
+        <div id="forceCancelAlarm">
+            <a id="forceAlarmLink" href="#" onclick="cmdForceAlarm();"><?php echo translate('ForceAlarm') ?></a>
+            <a id="cancelAlarmLink" href="#" onclick="cmdCancelForcedAlarm();" class="hidden"><?php echo translate('CancelForcedAlarm') ?></a>
+        </div>
 <?php
 }
 ?>

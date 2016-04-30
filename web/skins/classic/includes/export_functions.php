@@ -589,7 +589,6 @@ else if (document.layers) window.onload=start_slider;
 
 function exportEventImagesMaster( $eids )
 {
-    global $SLANG;
     ob_start();
     exportHeader( translate('Images').' Master' );
 ?>
@@ -599,9 +598,9 @@ function exportEventImagesMaster( $eids )
 	foreach ($eids as $eid) {
 		//get monitor id and event id
 		$sql = 'SELECT E.MonitorId, E.StartTime, E.Id
-			FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId)
-			WHERE E.Id = ?
-		';
+            FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId)
+            WHERE E.Id = ?
+        ';
 		$event = dbFetchOne( $sql, NULL, array( $eid ) );
 		$eventMonitorId[$eid] = $event['MonitorId'];
 		$eventPath[$eid] = mygetEventPath( $event );

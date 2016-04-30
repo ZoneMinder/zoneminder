@@ -167,12 +167,21 @@ int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint
 #endif
 
 	/* Check the buffer sizes */
-	size_t insize = avpicture_get_size(in_pf, width, height);
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+        size_t insize = av_image_get_buffer_size(in_pf, width, height,1);
+#else
+        size_t insize = avpicture_get_size(in_pf, width, height);
+#endif
 	if(insize != in_buffer_size) {
 		Error("The input buffer size does not match the expected size for the input format. Required: %d Available: %d", insize, in_buffer_size);
 		return -4;
 	}
-	size_t outsize = avpicture_get_size(out_pf, width, height);
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+        size_t outsize = av_image_get_buffer_size(out_pf, width, height,1);
+#else
+        size_t outsize = avpicture_get_size(out_pf, width, height);
+#endif
+
 	if(outsize < out_buffer_size) {
 		Error("The output buffer is undersized for the output format. Required: %d Available: %d", outsize, out_buffer_size);
 		return -5;
@@ -186,13 +195,29 @@ int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint
 	}
 
 	/* Fill in the buffers */
-	if(!avpicture_fill( (AVPicture*)input_avframe, (uint8_t*)in_buffer, in_pf, width, height ) ) {
-		Error("Failed filling input frame with input buffer");
-		return -7;
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+        if(av_image_fill_arrays(input_avframe->data, input_avframe->linesize,
+                (uint8_t*)in_buffer, in_pf, width, height, 1) <= 0)
+        {
+#else
+	if(avpicture_fill( (AVPicture*)input_avframe, (uint8_t*)in_buffer,
+                in_pf, width, height ) <= 0)
+        {
+#endif
+            Error("Failed filling input frame with input buffer");
+            return -7;
 	}
-	if(!avpicture_fill( (AVPicture*)output_avframe, out_buffer, out_pf, width, height ) ) {
-		Error("Failed filling output frame with output buffer");
-		return -8;
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+        if(av_image_fill_arrays(output_avframe->data, output_avframe->linesize,
+                out_buffer, out_pf, width, height, 1) <= 0)
+        {
+#else
+	if(avpicture_fill( (AVPicture*)output_avframe, out_buffer,
+                out_pf, width, height ) <= 0)
+        {
+#endif
+            Error("Failed filling output frame with output buffer");
+            return -8;
 	}
 
 	/* Do the conversion */
@@ -338,15 +363,9 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
     int flags = (is_output ? ic->oformat->flags : ic->iformat->flags);
     AVStream *st = ic->streams[i];
     AVDictionaryEntry *lang = av_dict_get(st->metadata, "language", NULL, 0);
-    unsigned char *separator = ic->dump_separator;
-    char **codec_separator = (char **)av_opt_ptr(st->codec->av_class, st->codec, "dump_separator");
-    int use_format_separator = !*codec_separator;
+	char separator = '\n';
 
-    if (use_format_separator)
-        *codec_separator = av_strdup((const char *)separator);
     avcodec_string(buf, sizeof(buf), st->codec, is_output);
-    if (use_format_separator)
-        av_freep(codec_separator);
     Debug(3, "    Stream #%d:%d", index, i);
 
     /* the pid is an important information, so we display it */

@@ -117,7 +117,8 @@ void zmLoadConfig()
 
 			Debug( 1, "Fetching ZM_SERVER_ID For Name = %s", staticConfig.SERVER_NAME.c_str() );
 			std::string sql = stringtf("SELECT Id FROM Servers WHERE Name='%s'", staticConfig.SERVER_NAME.c_str() );
-			if ( MYSQL_ROW dbrow = zmDbFetchOne( sql.c_str() ) ) {
+            zmDbRow dbrow;
+			if ( dbrow.fetch( sql.c_str() ) ) {
 				staticConfig.SERVER_ID = atoi(dbrow[0]);
 			} else {
 				Fatal("Can't get ServerId for Server %s", staticConfig.SERVER_NAME.c_str() );
@@ -128,7 +129,8 @@ void zmLoadConfig()
 		Debug( 1, "Fetching ZM_SERVER_NAME For Id = %d", staticConfig.SERVER_ID );
 		std::string sql = stringtf("SELECT Name FROM Servers WHERE Id='%d'", staticConfig.SERVER_ID );
 		
-		if ( MYSQL_ROW dbrow = zmDbFetchOne( sql.c_str() ) ) {
+        zmDbRow dbrow;
+		if ( dbrow.fetch( sql.c_str() ) ) {
 			staticConfig.SERVER_NAME = std::string(dbrow[0]);
 		} else {
 			Fatal("Can't get ServerName for Server ID %d", staticConfig.SERVER_ID );

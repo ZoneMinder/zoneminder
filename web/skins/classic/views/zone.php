@@ -117,6 +117,11 @@ $newZone['Area'] = getPolyArea( $newZone['Points'] );
 $selfIntersecting = isSelfIntersecting( $newZone['Points'] );
 
 $focusWindow = true;
+$connkey = generateConnKey();
+$streamSrc = '';
+$streamMode = '';
+# Have to do this here, because the .js.php references somethings figured out when generating the streamHTML
+$StreamHTML = getStreamHTML( $monitor, $scale );
 
 xhtmlHeaders(__FILE__, translate('Zone') );
 ?>
@@ -210,13 +215,14 @@ xhtmlHeaders(__FILE__, translate('Zone') );
         <div id="definitionPanel">
           <div id="imagePanel">
             <div id="imageFrame" style="width: <?php echo reScale( $monitor->Width(), $scale ) ?>px; height: <?php echo reScale( $monitor->Height(), $scale ) ?>px;">
-                <?php echo getStreamHTML( $monitor, $scale ); ?>
+                <?php $StreamHTML; ?>
                 <svg id="zoneSVG" class="zones" style="width: <?php echo reScale( $monitor->Width(), $scale ) ?>px; height: <?php echo reScale( $monitor->Height(), $scale ) ?>px;margin-top: -<?php echo $monitor->Height ?>px;background: none;">
                   <polygon id="zonePoly" points="<?php echo $zone['AreaCoords'] ?>" class="<?php echo $zone['Type'] ?>"/>
                   Sorry, your browser does not support inline SVG
                 </svg>
             </div>
           </div>
+          <div id="monitorState"><?php echo translate('State') ?>:&nbsp;<span id="stateValue"></span>&nbsp;-&nbsp;<span id="fpsValue"></span>&nbsp;fps</div>
           <table id="zonePoints" cellspacing="0">
             <tbody>
               <tr>
@@ -265,7 +271,7 @@ for ( $i = 0; $i < $pointCols; $i++ )
               </tr>
             </tbody>
           </table>
-          <input type="submit" id="submitBtn" name="submitBtn" value="<?php echo translate('Save') ?>" onclick="return saveChanges( this )"<?php if (!canEdit( 'Monitors' ) || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
+          <input id="pauseBtn" type="button" value="<?php echo translate('Pause') ?>" onclick="streamCmdPauseToggle()"/><input type="submit" id="submitBtn" name="submitBtn" value="<?php echo translate('Save') ?>" onclick="return saveChanges( this )"<?php if (!canEdit( 'Monitors' ) || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="refreshParentWindow(); closeWindow();"/>
         </div>
       </form>
     </div>

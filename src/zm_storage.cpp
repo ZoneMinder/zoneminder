@@ -50,8 +50,8 @@ Storage::Storage( unsigned int p_id ) {
 		char sql[ZM_SQL_SML_BUFSIZ];
 		snprintf( sql, sizeof(sql), "SELECT Id, Name, Path from Storage WHERE Id=%d", p_id );
 		Debug(1,"Loading Storage for %d using %s", p_id, sql );
-		MYSQL_ROW dbrow = zmDbFetchOne( sql );
-		if ( ! dbrow ) {
+		zmDbRow dbrow;
+		if ( ! dbrow.fetch( sql ) ) {
 			Error( "Unable to load storage area for id %d: %s", p_id, mysql_error( &dbconn ) );
 		} else {
 			unsigned int index = 0;

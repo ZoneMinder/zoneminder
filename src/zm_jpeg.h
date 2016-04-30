@@ -32,8 +32,8 @@ extern "C"
 /* Stuff for overriden error handlers */
 struct zm_error_mgr
 {
-	struct jpeg_error_mgr pub;
-	jmp_buf setjmp_buffer;
+  struct jpeg_error_mgr pub;
+  jmp_buf setjmp_buffer;
 };
 
 typedef struct zm_error_mgr *zm_error_ptr;

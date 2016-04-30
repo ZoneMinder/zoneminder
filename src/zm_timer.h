@@ -30,81 +30,81 @@
 class Timer
 {
 private:
-    class TimerException : public Exception
-    {
-    private:
+  class TimerException : public Exception
+  {
+  private:
 #ifndef SOLARIS
-        pid_t pid() {
-		pid_t tid;
+    pid_t pid() {
+    pid_t tid;
 #ifdef __FreeBSD__
-		long lwpid;
-		thr_self(&lwpid);
-		tid = lwpid;
+    long lwpid;
+    thr_self(&lwpid);
+    tid = lwpid;
 #else
-    #ifdef __FreeBSD_kernel__
-                if ( (syscall(SYS_thr_self, &tid)) < 0 ) // Thread/Process id
-    #else
-		tid=syscall(SYS_gettid);
-    #endif
+  #ifdef __FreeBSD_kernel__
+    if ( (syscall(SYS_thr_self, &tid)) < 0 ) // Thread/Process id
+  #else
+    tid=syscall(SYS_gettid);
+  #endif
 #endif
-		return tid;
-        }
+    return tid;
+  }
 #else
-	pthread_t pid() { return( pthread_self() ); }
+  pthread_t pid() { return( pthread_self() ); }
 #endif
-    public:
-        TimerException( const std::string &message ) : Exception( stringtf( "(%d) "+message, (long int)pid() ) )
-        {
-        }
-    };
-
-    class TimerThread : public Thread
+  public:
+    TimerException( const std::string &message ) : Exception( stringtf( "(%d) "+message, (long int)pid() ) )
     {
-    private:
-        typedef ThreadData<bool> ExpiryFlag;
+    }
+  };
 
-    private:
-        static int mNextTimerId;
+  class TimerThread : public Thread
+  {
+  private:
+    typedef ThreadData<bool> ExpiryFlag;
 
-    private:
-        int mTimerId;
-        Timer &mTimer;
-        int mDuration;
-        int mRepeat;
-        int mReset;
-        ExpiryFlag mExpiryFlag;
-        Mutex mAccessMutex;
+  private:
+    static int mNextTimerId;
 
-    private:
-        void quit()
-        {
-            cancel();
-        }
+  private:
+    int mTimerId;
+    Timer &mTimer;
+    int mDuration;
+    int mRepeat;
+    int mReset;
+    ExpiryFlag mExpiryFlag;
+    Mutex mAccessMutex;
 
-    public:
-        TimerThread( Timer &timer, int timeout, bool repeat );
-        ~TimerThread();
+  private:
+    void quit()
+    {
+      cancel();
+    }
 
-        void cancel();
-        void reset();
-        int run();
-    };
+  public:
+    TimerThread( Timer &timer, int timeout, bool repeat );
+    ~TimerThread();
 
-protected:
-    TimerThread mTimerThread;
-
-protected:
-    Timer( int timeout, bool repeat=false );
-
-public:
-    virtual ~Timer();
-
-protected:
-    virtual void expire()=0;
-
-public:
     void cancel();
     void reset();
+    int run();
+  };
+
+protected:
+  TimerThread mTimerThread;
+
+protected:
+  Timer( int timeout, bool repeat=false );
+
+public:
+  virtual ~Timer();
+
+protected:
+  virtual void expire()=0;
+
+public:
+  void cancel();
+  void reset();
 };
 
 #endif // ZM_TIMER_H

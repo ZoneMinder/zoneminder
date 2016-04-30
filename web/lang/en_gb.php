@@ -230,6 +230,7 @@ $SLANG = array(
     'ChooseLogFormat'       => 'Choose a log format',
     'ChooseLogSelection'    => 'Choose a log selection',
     'ChoosePreset'          => 'Choose Preset',
+    'CloneMonitor'          => 'Clone Monitor',
     'Close'                 => 'Close',
     'Colour'                => 'Colour',
     'Command'               => 'Command',

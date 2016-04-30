@@ -3825,6 +3825,41 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
         readonly    => 1,
         category    => "dynamic",
     },
+    {
+        name        => "ZM_SSMTP_MAIL",
+        default     => "no",
+        description =>  qqq("
+            Use a SSMTP mail server if available. 
+            NEW_MAIL_MODULES must be enabled
+        "),
+        requires    => [
+                        { name => "ZM_OPT_EMAIL", value => "yes" },
+                        { name => "ZM_OPT_MESSAGE", value => "yes" },
+                        { name => "ZM_NEW_MAIL_MODULES", value => "yes" }
+                       ],
+        help        => qqq("
+            SSMTP is a lightweight and efficient method to send email.
+            The SSMTP application is not installed by default.
+            NEW_MAIL_MODULES must also be enabled.
+            Please visit: http://www.zoneminder.com/wiki/index.php/How_to_get_ssmtp_working_with_Zoneminder
+            for setup and configuration help.
+        "),
+        type        => $types{boolean},
+        category    => "mail",
+    },
+    {
+        name        => "ZM_SSMTP_PATH",
+        default     => "",
+        description => "SSMTP executable path",
+        requires    => [{ name => "ZM_SSMTP_MAIL", value => "yes" }],
+        help        => qqq("
+            Recommend setting the path to the SSMTP application.
+            If path is not defined. Zoneminder will try to determine
+            the path via shell command. Example path: /usr/sbin/ssmtp.
+        "),
+        type        => $types{string},
+        category    => "mail",
+    },
 );
 
 our %options_hash = map { ( $_->{name}, $_ ) } @options;

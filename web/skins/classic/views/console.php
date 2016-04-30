@@ -77,8 +77,8 @@ $run_state = dbFetchOne('select Name from States where  IsActive = 1', 'Name' );
 
 $group = NULL;
 if ( ! empty($_COOKIE['zmGroup']) ) {
-	if ( $group = dbFetchOne( 'select * from Groups where Id = ?', NULL, array($_COOKIE['zmGroup'])) )
-		$groupIds = array_flip(explode( ',', $group['MonitorIds'] ));
+    if ( $group = dbFetchOne( 'select * from Groups where Id = ?', NULL, array($_COOKIE['zmGroup'])) )
+        $groupIds = array_flip(explode( ',', $group['MonitorIds'] ));
 }
 
 noCacheHeaders();
@@ -182,6 +182,7 @@ $seqDownFile = getSkinFile( 'graphics/seq-d.gif' );
 
 $versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText':'';
 
+
 xhtmlHeaders( __FILE__, translate('Console') );
 ?>
 <body>
@@ -243,7 +244,7 @@ else
             <th class="colName"><?php echo translate('Name') ?></th>
             <th class="colFunction"><?php echo translate('Function') ?></th>
 <?php if ( count($servers) ) { ?>
-			<th class="colServer"><?php echo translate('Server') ?></th>
+            <th class="colServer"><?php echo translate('Server') ?></th>
 <?php } ?>
             <th class="colSource"><?php echo translate('Source') ?></th>
 <?php
@@ -270,7 +271,8 @@ if ( canEdit('Monitors') )
           <tr>
             <td class="colLeftButtons" colspan="<?php echo count($servers) ? 4 : 3 ?>">
               <input type="button" value="<?php echo translate('Refresh') ?>" onclick="location.reload(true);"/>
-              <?php echo makePopupButton( '?view=monitor', 'zmMonitor0', 'monitor', translate('AddNewMonitor'), (canEdit( 'Monitors' ) && !$user['MonitorIds']) ) ?>
+          <input type="button" name="addBtn" value="<?php echo translate('AddNewMonitor') ?>" onclick="addMonitor( this )"/>
+              <!-- <?php echo makePopupButton( '?view=monitor', 'zmMonitor0', 'monitor', translate('AddNewMonitor'), (canEdit( 'Monitors' ) && !$user['MonitorIds']) ) ?> -->
               <?php echo makePopupButton( '?view=filter&amp;filter[terms][0][attr]=DateTime&amp;filter[terms][0][op]=%3c&amp;filter[terms][0][val]=now', 'zmFilter', 'filter', translate('Filters'), canView( 'Events' ) ) ?>
             </td>
 <?php
@@ -297,7 +299,7 @@ foreach( $displayMonitors as $monitor )
         $dclass = "errorText";
     else
     {
-	// https://github.com/ZoneMinder/ZoneMinder/issues/1082
+    // https://github.com/ZoneMinder/ZoneMinder/issues/1082
         if ( !$monitor['zma'] && $monitor['Function']!='Monitor' )
             $dclass = "warnText";
         else
@@ -316,7 +318,7 @@ foreach( $displayMonitors as $monitor )
             <td class="colName"><?php echo makePopupLink( '?view=watch&amp;mid='.$monitor['Id'], 'zmWatch'.$monitor['Id'], array( 'watch', reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ) ), $monitor['Name'], $running && ($monitor['Function'] != 'None') && canView( 'Stream' ) ) ?></td>
             <td class="colFunction"><?php echo makePopupLink( '?view=function&amp;mid='.$monitor['Id'], 'zmFunction', 'function', '<span class="'.$fclass.'">'.translate('Fn'.$monitor['Function']).( empty($monitor['Enabled']) ? ', disabled' : '' ) .'</span>', canEdit( 'Monitors' ) ) ?></td>
 <?php if ( count($servers) ) { ?>
-			<td class="colServer"><?php 
+            <td class="colServer"><?php 
 $Server = new Server( $monitor['ServerId'] );
 echo $Server->Name();
  ?></td>
@@ -330,9 +332,9 @@ echo $Server->Name();
 <?php } elseif ( $monitor['Type'] == "Ffmpeg" || $monitor['Type'] == "Libvlc" ) {
     $domain = parse_url( $monitor['Path'], PHP_URL_HOST );
     $shortpath = $domain ? $domain : preg_replace( '/^.*\//', '', $monitor['Path'] );
-	if ( $shortpath == '' ) {
-		$shortpath = 'Monitor ' . $monitor['Id'];
-	}
+    if ( $shortpath == '' ) {
+        $shortpath = 'Monitor ' . $monitor['Id'];
+    }
 ?>
             <td class="colSource"><?php echo makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.$shortpath.'</span>', canEdit( 'Monitors' ) ) ?></td>
 <?php } elseif ( $monitor['Type'] == "cURL" ) { ?>

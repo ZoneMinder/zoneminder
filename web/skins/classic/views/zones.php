@@ -25,12 +25,7 @@ if ( !canView( 'Monitors' ) )
 }
 
 $mid = validInt($_REQUEST['mid']);
-$wd = getcwd();
-chdir( ZM_DIR_IMAGES );
-$status = exec( escapeshellcmd( getZmuCommand( " -m ".$mid." -z" ) ) );
-chdir( $wd );
-
-$monitor = dbFetchMonitor( $mid );
+$monitor = new Monitor( $mid );
 
 $zones = array();
 foreach( dbFetchAll( 'select * from Zones where MonitorId = ? order by Area desc', NULL, array($mid) ) as $row )
@@ -42,7 +37,7 @@ foreach( dbFetchAll( 'select * from Zones where MonitorId = ? order by Area desc
     }
 }
 
-$image = 'Zones'.$monitor['Id'].'.jpg';
+$connkey = generateConnKey();
 
 xhtmlHeaders(__FILE__, translate('Zones') );
 ?>
@@ -53,18 +48,17 @@ xhtmlHeaders(__FILE__, translate('Zones') );
       <h2><?php echo translate('Zones') ?></h2>
     </div>
     <div id="content">
-      <map name="zoneMap" id="zoneMap">
+      <?php echo getStreamHTML( $monitor ); ?>
+      <svg class="zones" width="<?php echo $monitor->Width ?>" height="<?php echo $monitor->Height ?>" style="margin-top: -<?php echo $monitor->Height ?>px;background: none;">
 <?php
-foreach( array_reverse($zones) as $zone )
-{
+      foreach( array_reverse($zones) as $zone ) {
 ?>
-        <area shape="poly" alt="<?php echo htmlspecialchars($zone['Name']) ?>" coords="<?php echo $zone['AreaCoords'] ?>" href="#" onclick="createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>', 'zmZone', 'zone', <?php echo $monitor['Width'] ?>, <?php echo $monitor['Height'] ?> ); return( false );"/>
+        <polygon points="<?php echo $zone['AreaCoords'] ?>" class="<?php echo $zone['Type']?>" onclick="streamCmdQuit( true ); createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>', 'zmZone', 'zone', <?php echo $monitor->Width ?>, <?php echo $monitor->Height ?> ); return( false );"/>
 <?php
-}
+      } // end foreach zone
 ?>
-        <!--<area shape="default" nohref>-->
-      </map>
-      <img src="<?php echo ZM_DIR_IMAGES.'/'.$image ?>" alt="zones" usemap="#zoneMap" width="<?php echo $monitor['Width'] ?>" height="<?php echo $monitor['Height'] ?>" border="0"/>
+          Sorry, your browser does not support inline SVG
+        </svg>
       <form name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value="delete"/>
@@ -84,9 +78,9 @@ foreach( $zones as $zone )
 {
 ?>
             <tr>
-              <td class="colName"><a href="#" onclick="createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>', 'zmZone', 'zone', <?php echo $monitor['Width'] ?>, <?php echo $monitor['Height'] ?> ); return( false );"><?php echo $zone['Name'] ?></a></td>
+              <td class="colName"><a href="#" onclick="streamCmdQuit( true ); createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>', 'zmZone', 'zone', <?php echo $monitor->Width() ?>, <?php echo $monitor->Height() ?> ); return( false );"><?php echo $zone['Name'] ?></a></td>
               <td class="colType"><?php echo $zone['Type'] ?></td>
-              <td class="colUnits"><?php echo $zone['Area'] ?>&nbsp;/&nbsp;<?php echo sprintf( "%.2f", ($zone['Area']*100)/($monitor['Width']*$monitor['Height']) ) ?></td>
+              <td class="colUnits"><?php echo $zone['Area'] ?>&nbsp;/&nbsp;<?php echo sprintf( "%.2f", ($zone['Area']*100)/($monitor->Width()*$monitor->Height()) ) ?></td>
               <td class="colMark"><input type="checkbox" name="markZids[]" value="<?php echo $zone['Id'] ?>" onclick="configureDeleteButton( this );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></td>
             </tr>
 <?php
@@ -95,7 +89,7 @@ foreach( $zones as $zone )
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="button" value="<?php echo translate('AddNewZone') ?>" onclick="createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=0', 'zmZone', 'zone', <?php echo $monitor['Width'] ?>, <?php echo $monitor['Height'] ?> );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
+          <input type="button" value="<?php echo translate('AddNewZone') ?>" onclick="createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=0', 'zmZone', 'zone', <?php echo $monitor->Width() ?>, <?php echo $monitor->Height() ?> );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
           <input type="submit" name="deleteBtn" value="<?php echo translate('Delete') ?>" disabled="disabled"/>
         </div>
       </form>

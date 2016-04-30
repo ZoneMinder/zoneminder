@@ -83,8 +83,25 @@ BEGIN
     close( $CONFIG );
 
     use DBI;
+    my $socket;
+    my ( $host, $portOrSocket ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
+    if ( defined($portOrSocket) )
+    {
+        if ( $portOrSocket =~ /^[[:digit:]]+$/m )
+        {
+            $socket = ";host=".$host.";port=".$portOrSocket;
+        }
+        else
+        {
+            $socket = ";mysql_socket=".$portOrSocket;
+        }
+    }
+    else
+    {
+        $socket = ";$host=".$Config{ZM_DB_HOST};
+    }
     my $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
-                           .";host=".$Config{ZM_DB_HOST}
+                           .$socket
                            , $Config{ZM_DB_USER}
                            , $Config{ZM_DB_PASS}
     ) or croak( "Can't connect to db" );

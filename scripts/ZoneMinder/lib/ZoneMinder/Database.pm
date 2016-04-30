@@ -79,12 +79,13 @@ sub zmDbConnect
     }
     if ( !defined( $dbh ) )
     {
+        my $socket;
         my ( $host, $portOrSocket ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
         if ( defined($portOrSocket) )
         {
-            if ( $portOrSocket =~ /^[[:digit:]]+$/ )
+            if ( $portOrSocket =~ /^[[:digit:]]+$/g )
             {
-                $socket = ";host=".host.";port=".$port;
+                $socket = ";host=".$host.";port=".$portOrSocket;
             }
             else
             {
@@ -93,7 +94,7 @@ sub zmDbConnect
         }
         else
         {
-            $socket = ";host=".$Config{ZM_DB_HOST};
+            $socket = ";$host=".$Config{ZM_DB_HOST};
         }
         $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
                             .$socket

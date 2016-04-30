@@ -94,7 +94,7 @@ sub zmDbConnect
         }
         else
         {
-            $socket = ";$host=".$Config{ZM_DB_HOST};
+            $socket = ";host=".$Config{ZM_DB_HOST};
         }
         $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
                             .$socket

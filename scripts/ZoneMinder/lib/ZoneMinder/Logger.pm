@@ -465,13 +465,13 @@ sub databaseLevel
 
                     if ( defined($portOrSocket) )
                     {
-                        if ( $portOrSocket =~ /^[[:digit:]]+$/m )
+                        if ( $portOrSocket =~ /\// )
                         {
-                            $socket = ";host=".$host.";port=".$portOrSocket;
+                            $socket = ";mysql_socket=".$portOrSocket;
                         }
                         else
                         {
-                            $socket = ";mysql_socket=".$portOrSocket;
+                            $socket = ";host=".$host.";port=".$portOrSocket;
                         }
                     }
                     else

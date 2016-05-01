@@ -83,13 +83,13 @@ sub zmDbConnect
         my ( $host, $portOrSocket ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
         if ( defined($portOrSocket) )
         {
-            if ( $portOrSocket =~ /^[[:digit:]]+$/g )
+            if ( $portOrSocket =~ /\// )
             {
-                $socket = ";host=".$host.";port=".$portOrSocket;
+                $socket = ";mysql_socket=".$portOrSocket;
             }
             else
             {
-                $socket = ";mysql_socket=".$portOrSocket;
+                $socket = ";host=".$host.";port=".$portOrSocket;
             }
         }
         else

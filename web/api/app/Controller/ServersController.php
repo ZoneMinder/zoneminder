@@ -19,7 +19,7 @@ class ServersController extends AppController {
 
 public function beforeFilter() {
   parent::beforeFilter();
-  $canView = $this->Session->Read('systemPermission');
+  $canView = $this->Session->Read('streamPermission');
   if ($canView =='None') {
     throw new UnauthorizedException(__('Insufficient Privileges'));
     return;

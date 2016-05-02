@@ -135,27 +135,45 @@ if ( $errorText ) {
 			Error("No bytes read from ". $Storage->Path() . '/'.$path );
 		}
   } else {
-		Error("Doing a scaled image: scale($scale) width($width) height($height)");
-		$i = imagecreatefromjpeg ( $Storage->Path().'/'.$path );
-		$oldWidth=imagesx($i);
-		$oldHeight=imagesy($i);
-		if($width==0 && $height==0)  // scale has to be set to get here with both zero
-		{
-			$width = $oldWidth  * $scale / 100.0;
-			$height= $oldHeight * $scale / 100.0;
-		} elseif ($width==0 && $height!=0) {
-			$width = ($height * $oldWidth) / $oldHeight;
-		} elseif ($width!=0 && $height==0) {
-			$height = ($width * $oldHeight) / $oldWidth;
+		Debug("Doing a scaled image: scale($scale) width($width) height($height)");
+		$i = 0;
+		if ( ! ( $width && $height ) ) {
+			$i = imagecreatefromjpeg( $Storage->Path().'/'.$path );
+			$oldWidth = imagesx( $i );
+			$oldHeight = imagesy( $i );
+			if ( $width == 0 && $height == 0 ) { // scale has to be set to get here with both zero
+				$width = $oldWidth  * $scale / 100.0;
+				$height= $oldHeight * $scale / 100.0;
+			} elseif ( $width == 0 && $height != 0 ) {
+				$width = ($height * $oldWidth) / $oldHeight;
+			} elseif ( $width != 0 && $height == 0 ) {
+				$height = ($width * $oldHeight) / $oldWidth;
+			}
+			if ( $width == $oldWidth && $height == $oldHeight) {
+				Warning( "No change to width despite scaling." );
+			}
 		}
-		if($width==$oldWidth && $height==$oldHeight) {// See if we really need to scale
-			imagejpeg($i);
-			imagedestroy($i);
-		} else {  // we do need to scale
-			$iScale = imagescale($i, $width, $height);
-			imagejpeg($iScale);
-			imagedestroy($i);
-			imagedestroy($iScale);
+	
+		# Slight optimisation, thumbnails always specify width and height, so we can cache them.
+		$scaled_path = $Storage->Path().'/'.preg_replace('/\.jpg$/', "-${width}x${height}.jpg", $path );
+		if ( file_exists( $scaled_path ) ) {
+			Debug( "Using cached scaled image at $scaled_path.");
+			if ( ! readfile( $Storage->Path().'/'.$path. "-${width}x${height}" ) ) {
+				Error("No bytes read from ". $Storage->Path() . '/'.$path );
+			}
+		} else {
+			Debug( "Cached scaled image does not exist at $scaled_path. Creating it");
+			ob_start();
+			if ( ! $i )
+				$i = imagecreatefromjpeg( $Storage->Path().'/'.$path );
+			$iScale = imagescale( $i, $width, $height );
+			imagejpeg( $iScale );
+			imagedestroy( $i );
+			imagedestroy( $iScale );
+			$scaled_jpeg_data = ob_get_contents();
+			file_put_contents( $scaled_path, $scaled_jpeg_data );
+			ob_end_clean();
+			echo $scaled_jpeg_data;
 		}
 	}
 }

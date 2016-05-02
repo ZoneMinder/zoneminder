@@ -33,19 +33,19 @@
 class FileCamera : public Camera
 {
 protected:
-	char path[PATH_MAX];
+  char path[PATH_MAX];
 
 public:
-	FileCamera( int p_id, const char *p_path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
-	~FileCamera();
+  FileCamera( int p_id, const char *p_path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
+  ~FileCamera();
 
-	const char *Path() const { return( path ); }
+  const char *Path() const { return( path ); }
 
-	void Initialise();
-	void Terminate();
-	int PreCapture();
-	int Capture( Image &image );
-	int PostCapture();
+  void Initialise();
+  void Terminate();
+  int PreCapture();
+  int Capture( Image &image );
+  int PostCapture();
 };
 
 #endif // ZM_FILE_CAMERA_H

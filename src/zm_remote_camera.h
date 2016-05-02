@@ -35,44 +35,44 @@
 class RemoteCamera : public Camera
 {
 protected:
-	std::string	protocol;
-	std::string	host;
-	std::string	port;
-	std::string	path;
-	std::string	auth;
-	std::string	username;
-	std::string	password;
-	std::string	auth64;
+  std::string  protocol;
+  std::string  host;
+  std::string  port;
+  std::string  path;
+  std::string  auth;
+  std::string  username;
+  std::string  password;
+  std::string  auth64;
 
-    // Reworked authentication system
-    // First try without authentication, even if we have a username and password
-    // on receiving a 401 response, select authentication method (basic or digest)
-    // fill required fields and set needAuth
-    // subsequent requests can set the required authentication header.
-    bool mNeedAuth;
-    zm::Authenticator* mAuthenticator;
+  // Reworked authentication system
+  // First try without authentication, even if we have a username and password
+  // on receiving a 401 response, select authentication method (basic or digest)
+  // fill required fields and set needAuth
+  // subsequent requests can set the required authentication header.
+  bool mNeedAuth;
+  zm::Authenticator* mAuthenticator;
 protected:
-	struct addrinfo *hp;
+  struct addrinfo *hp;
 
 public:
-	RemoteCamera( int p_id, const std::string &p_proto, const std::string &p_host, const std::string &p_port, const std::string &p_path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
-	virtual ~RemoteCamera();
+  RemoteCamera( int p_id, const std::string &p_proto, const std::string &p_host, const std::string &p_port, const std::string &p_path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
+  virtual ~RemoteCamera();
 
-	const std::string &Protocol() const { return( protocol ); }
-	const std::string &Host() const { return( host ); }
-	const std::string &Port() const { return( port ); }
-	const std::string &Path() const { return( path ); }
-	const std::string &Auth() const { return( auth ); }
-	const std::string &Username() const { return( username ); }
-	const std::string &Password() const { return( password ); }
+  const std::string &Protocol() const { return( protocol ); }
+  const std::string &Host() const { return( host ); }
+  const std::string &Port() const { return( port ); }
+  const std::string &Path() const { return( path ); }
+  const std::string &Auth() const { return( auth ); }
+  const std::string &Username() const { return( username ); }
+  const std::string &Password() const { return( password ); }
 
-	virtual void Initialise();
-	virtual void Terminate() = 0;
-	virtual int Connect() = 0;
-	virtual int Disconnect() = 0;
-	virtual int PreCapture() = 0;
-	virtual int Capture( Image &image ) = 0;
-	virtual int PostCapture() = 0;
+  virtual void Initialise();
+  virtual void Terminate() = 0;
+  virtual int Connect() = 0;
+  virtual int Disconnect() = 0;
+  virtual int PreCapture() = 0;
+  virtual int Capture( Image &image ) = 0;
+  virtual int PostCapture() = 0;
 };
 
 #endif // ZM_REMOTE_CAMERA_H

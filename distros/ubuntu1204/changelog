@@ -1,3 +1,9 @@
+zoneminder (1.30.2-trusty-2016050201) trusty; urgency=medium
+
+  * add Servers support to API
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Mon, 02 May 2016 10:45:24 -0400
+
 zoneminder (1.30.2-trusty-2016042901) trusty; urgency=medium
 
   * zone edit fixes

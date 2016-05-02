@@ -1,3 +1,9 @@
+zoneminder (1.30.2-trusty-2016042901) trusty; urgency=medium
+
+  * zone edit fixes
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Fri, 29 Apr 2016 10:46:18 -0400
+
 zoneminder (1.30.2-trusty-2016042801) trusty; urgency=medium
 
   *  Merge video

@@ -1,4 +1,81 @@
 <?php
+//
+// ZoneMinder web console file, $Date$, $Revision$
+// Copyright (C) 2001-2008 Philip Coombes
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//
+
+$servers = Server::find_all();
+
+$eventCounts = array(
+    array(
+        "title" => translate('Events'),
+        "filter" => array(
+            "terms" => array(
+            )
+        ),
+    ),
+    array(
+        "title" => translate('Hour'),
+        "filter" => array(
+            "terms" => array(
+                array( "attr" => "DateTime", "op" => ">=", "val" => "-1 hour" ),
+            )
+        ),
+    ),
+    array(
+        "title" => translate('Day'),
+        "filter" => array(
+            "terms" => array(
+                array( "attr" => "DateTime", "op" => ">=", "val" => "-1 day" ),
+            )
+        ),
+    ),
+    array(
+        "title" => translate('Week'),
+        "filter" => array(
+            "terms" => array(
+                array( "attr" => "DateTime", "op" => ">=", "val" => "-7 day" ),
+            )
+        ),
+    ),
+    array(
+        "title" => translate('Month'),
+        "filter" => array(
+            "terms" => array(
+                array( "attr" => "DateTime", "op" => ">=", "val" => "-1 month" ),
+            )
+        ),
+    ),
+    array(
+        "title" => translate('Archived'),
+        "filter" => array(
+            "terms" => array(
+                array( "attr" => "Archived", "op" => "=", "val" => "1" ),
+            )
+        ),
+    ),
+);
+
+
+noCacheHeaders();
+
+$seqUpFile = getSkinFile( 'graphics/seq-u.gif' );
+$seqDownFile = getSkinFile( 'graphics/seq-d.gif' );
+
 xhtmlHeaders( __FILE__, translate('Console') );
 ?>
 <body>
@@ -41,7 +118,7 @@ if ( canEdit('Monitors') )
         <tfoot>
           <tr>
             <td class="colLeftButtons" colspan="<?php echo count($servers) ? 4 : 3 ?>">
-              <input type="button" class="btn btn-primary" value="<?php echo translate('AddNewMonitor'); ?>" onclick="createPopup( '?view=monitor', 'zmMonitor0', 'monitor' ); return( false );"></input>
+              <input type="button" class="btn btn-primary" name="addBtn" value="<?php echo translate('AddNewMonitor') ?>" onclick="addMonitor( this );"/>
             </td>
 <?php
 for ( $i = 0; $i < count($eventCounts); $i++ )

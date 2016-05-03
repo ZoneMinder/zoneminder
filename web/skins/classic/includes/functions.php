@@ -18,6 +18,10 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
+
+// Don't load in additional JS to these views
+$bad_views = array('monitor', 'log');
+
 function xhtmlHeaders( $file, $title )
 {
     global  $css;
@@ -72,7 +76,7 @@ function xhtmlHeaders( $file, $title )
   <script type="text/javascript" src="tools/mootools/mootools-core.js"></script>
   <script type="text/javascript" src="tools/mootools/mootools-more.js"></script>
   <script type="text/javascript" src="js/mootools.ext.js"></script>
-<?php if ( $basename != 'monitor') { ?>
+<?php if ( !in_array($basename, $bad_views) ) { ?>
   <script type="text/javascript" src="js/logger.js"></script>
   <script type="text/javascript" src="js/overlay.js"></script>
   <script type="text/javascript" src="/skins/<?php echo $css; ?>/js/jquery-1.11.3.js"></script>

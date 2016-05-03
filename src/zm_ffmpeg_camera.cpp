@@ -488,7 +488,7 @@ int FfmpegCamera::CaptureAndRecord(Image &image, bool recording, char* event_fil
   AVPacket packet;
   AVPacket* queuedpacket;
   uint8_t* directbuffer;
-  zm_packetqueue packetqueue;
+  zm_packetqueue packetqueue("testqueue");
 
   /* Request a writeable buffer of the target image */
   directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);

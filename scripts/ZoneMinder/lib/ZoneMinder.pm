@@ -81,6 +81,13 @@ our @EXPORT = ( @EXPORT_OK );
 
 our $VERSION = $ZoneMinder::Base::VERSION;
 
+BEGIN {
+  require ZoneMinder::Config;
+  require ZoneMinder::Database;
+  ZoneMinder::Config::zmConfigLoad();
+  ZoneMinder::Database::zmDbConnect();
+}
+
 1;
 __END__
 

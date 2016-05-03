@@ -18,7 +18,6 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-require_once('includes/Server.php');
 $servers = Server::find_all();
 
 $eventCounts = array(
@@ -119,14 +118,7 @@ if ( canEdit('Monitors') )
         <tfoot>
           <tr>
             <td class="colLeftButtons" colspan="<?php echo count($servers) ? 4 : 3 ?>">
-<<<<<<< HEAD
-              <input type="button" value="<?php echo translate('Refresh') ?>" onclick="location.reload(true);"/>
-              <input type="button" class="btn btn-primary" name="addBtn" value="<?php echo translate('AddNewMonitor') ?>" onclick="addMonitor( this )"/>
-              <!-- <?php echo makePopupButton( '?view=monitor', 'zmMonitor0', 'monitor', translate('AddNewMonitor'), (canEdit( 'Monitors' ) && !$user['MonitorIds']) ) ?> -->
-              <?php echo makePopupButton( '?view=filter&amp;filter[terms][0][attr]=DateTime&amp;filter[terms][0][op]=%3c&amp;filter[terms][0][val]=now', 'zmFilter', 'filter', translate('Filters'), canView( 'Events' ) ) ?>
-=======
-              <input type="button" class="btn btn-primary" value="<?php echo translate('AddNewMonitor'); ?>" onclick="createPopup( '?view=monitor', 'zmMonitor0', 'monitor' ); return( false );"></input>
->>>>>>> 59d0de4313f489f52cee2f2538b5f78bd1de505d
+              <input type="button" class="btn btn-primary" name="addBtn" value="<?php echo translate('AddNewMonitor') ?>" onclick="addMonitor( this );"/>
             </td>
 <?php
 for ( $i = 0; $i < count($eventCounts); $i++ )

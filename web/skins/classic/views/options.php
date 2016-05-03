@@ -371,5 +371,6 @@ elseif ( $tab == "users" )
 	</div>
 </div> <!-- end row -->
     </div>
+<?php include("skins/$skin/views/state.php") ?>
 </body>
 </html>

@@ -27,6 +27,7 @@ package ZoneMinder::Database;
 use 5.006;
 use strict;
 use warnings;
+use DBI;
 
 require Exporter;
 require ZoneMinder::Base;

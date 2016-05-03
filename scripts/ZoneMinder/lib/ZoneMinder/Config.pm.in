@@ -30,7 +30,6 @@ use warnings;
 
 require Exporter;
 require ZoneMinder::Base;
-require ZoneMinder::Database;
 
 our @ISA = qw(Exporter ZoneMinder::Base);
 
@@ -64,8 +63,9 @@ use constant ZM_CONFIG => "@ZM_CONFIG@"; # Path to the ZoneMinder config file
 use Carp;
 
 # Load the config from the database into the symbol table
-BEGIN
-{
+sub zmConfigLoad {
+  %Config = ();
+
     my $config_file = ZM_CONFIG;
     open( my $CONFIG, "<", $config_file )
         or croak( "Can't open config file '$config_file': $!" );
@@ -83,7 +83,8 @@ BEGIN
     }
     close( $CONFIG );
 
-    my $dbh = zmDbConnect() or croak( "Can't connect to db" );
+    require ZoneMinder::Database;
+    my $dbh = ZoneMinder::Database::zmDbConnect() or croak( "Can't connect to db" );
     my $sql = 'select * from Config';
     my $sth = $dbh->prepare_cached( $sql ) or croak( "Can't prepare '$sql': ".$dbh->errstr() );
     my $res = $sth->execute() or croak( "Can't execute: ".$sth->errstr() );

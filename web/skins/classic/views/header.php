@@ -21,56 +21,6 @@
 require_once('includes/Server.php');
 $servers = Server::find_all();
 
-$eventCounts = array(
-    array(
-        "title" => translate('Events'),
-        "filter" => array(
-            "terms" => array(
-            )
-        ),
-    ),
-    array(
-        "title" => translate('Hour'),
-        "filter" => array(
-            "terms" => array(
-                array( "attr" => "DateTime", "op" => ">=", "val" => "-1 hour" ),
-            )
-        ),
-    ),
-    array(
-        "title" => translate('Day'),
-        "filter" => array(
-            "terms" => array(
-                array( "attr" => "DateTime", "op" => ">=", "val" => "-1 day" ),
-            )
-        ),
-    ),
-    array(
-        "title" => translate('Week'),
-        "filter" => array(
-            "terms" => array(
-                array( "attr" => "DateTime", "op" => ">=", "val" => "-7 day" ),
-            )
-        ),
-    ),
-    array(
-        "title" => translate('Month'),
-        "filter" => array(
-            "terms" => array(
-                array( "attr" => "DateTime", "op" => ">=", "val" => "-1 month" ),
-            )
-        ),
-    ),
-    array(
-        "title" => translate('Archived'),
-        "filter" => array(
-            "terms" => array(
-                array( "attr" => "Archived", "op" => "=", "val" => "1" ),
-            )
-        ),
-    ),
-);
-
 $running = daemonCheck();
 $states = dbFetchAll( "select * from States" );
 $status = $running?translate('Running'):translate('Stopped');
@@ -81,8 +31,6 @@ if ( ! empty($_COOKIE['zmGroup']) ) {
 	if ( $group = dbFetchOne( 'select * from Groups where Id = ?', NULL, array($_COOKIE['zmGroup'])) )
 		$groupIds = array_flip(explode( ',', $group['MonitorIds'] ));
 }
-
-noCacheHeaders();
 
 $maxWidth = 0;
 $maxHeight = 0;
@@ -177,9 +125,6 @@ foreach( $displayMonitors as $monitor )
     }
     $zoneCount += $monitor['ZoneCount'];
 }
-
-$seqUpFile = getSkinFile( 'graphics/seq-u.gif' );
-$seqDownFile = getSkinFile( 'graphics/seq-d.gif' );
 
 $versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText':'';
 

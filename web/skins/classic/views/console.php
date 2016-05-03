@@ -1,4 +1,82 @@
 <?php
+//
+// ZoneMinder web console file, $Date$, $Revision$
+// Copyright (C) 2001-2008 Philip Coombes
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//
+
+require_once('includes/Server.php');
+$servers = Server::find_all();
+
+$eventCounts = array(
+    array(
+        "title" => translate('Events'),
+        "filter" => array(
+            "terms" => array(
+            )
+        ),
+    ),
+    array(
+        "title" => translate('Hour'),
+        "filter" => array(
+            "terms" => array(
+                array( "attr" => "DateTime", "op" => ">=", "val" => "-1 hour" ),
+            )
+        ),
+    ),
+    array(
+        "title" => translate('Day'),
+        "filter" => array(
+            "terms" => array(
+                array( "attr" => "DateTime", "op" => ">=", "val" => "-1 day" ),
+            )
+        ),
+    ),
+    array(
+        "title" => translate('Week'),
+        "filter" => array(
+            "terms" => array(
+                array( "attr" => "DateTime", "op" => ">=", "val" => "-7 day" ),
+            )
+        ),
+    ),
+    array(
+        "title" => translate('Month'),
+        "filter" => array(
+            "terms" => array(
+                array( "attr" => "DateTime", "op" => ">=", "val" => "-1 month" ),
+            )
+        ),
+    ),
+    array(
+        "title" => translate('Archived'),
+        "filter" => array(
+            "terms" => array(
+                array( "attr" => "Archived", "op" => "=", "val" => "1" ),
+            )
+        ),
+    ),
+);
+
+
+noCacheHeaders();
+
+$seqUpFile = getSkinFile( 'graphics/seq-u.gif' );
+$seqDownFile = getSkinFile( 'graphics/seq-d.gif' );
+
 xhtmlHeaders( __FILE__, translate('Console') );
 ?>
 <body>
@@ -15,7 +93,7 @@ xhtmlHeaders( __FILE__, translate('Console') );
             <th class="colName"><?php echo translate('Name') ?></th>
             <th class="colFunction"><?php echo translate('Function') ?></th>
 <?php if ( count($servers) ) { ?>
-			<th class="colServer"><?php echo translate('Server') ?></th>
+            <th class="colServer"><?php echo translate('Server') ?></th>
 <?php } ?>
             <th class="colSource"><?php echo translate('Source') ?></th>
 <?php
@@ -41,7 +119,10 @@ if ( canEdit('Monitors') )
         <tfoot>
           <tr>
             <td class="colLeftButtons" colspan="<?php echo count($servers) ? 4 : 3 ?>">
-              <input type="button" class="btn btn-primary" value="<?php echo translate('AddNewMonitor'); ?>" onclick="createPopup( '?view=monitor', 'zmMonitor0', 'monitor' ); return( false );"></input>
+              <input type="button" value="<?php echo translate('Refresh') ?>" onclick="location.reload(true);"/>
+              <input type="button" class="btn btn-primary" name="addBtn" value="<?php echo translate('AddNewMonitor') ?>" onclick="addMonitor( this )"/>
+              <!-- <?php echo makePopupButton( '?view=monitor', 'zmMonitor0', 'monitor', translate('AddNewMonitor'), (canEdit( 'Monitors' ) && !$user['MonitorIds']) ) ?> -->
+              <?php echo makePopupButton( '?view=filter&amp;filter[terms][0][attr]=DateTime&amp;filter[terms][0][op]=%3c&amp;filter[terms][0][val]=now', 'zmFilter', 'filter', translate('Filters'), canView( 'Events' ) ) ?>
             </td>
 <?php
 for ( $i = 0; $i < count($eventCounts); $i++ )
@@ -68,7 +149,7 @@ foreach( $displayMonitors as $monitor )
         $dclass = "errorText";
     else
     {
-	// https://github.com/ZoneMinder/ZoneMinder/issues/1082
+    // https://github.com/ZoneMinder/ZoneMinder/issues/1082
         if ( !$monitor['zma'] && $monitor['Function']!='Monitor' )
             $dclass = "warnText";
         else
@@ -87,7 +168,7 @@ foreach( $displayMonitors as $monitor )
             <td class="colName"><?php echo makePopupLink( '?view=watch&amp;mid='.$monitor['Id'], 'zmWatch'.$monitor['Id'], array( 'watch', reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ) ), $monitor['Name'], $running && ($monitor['Function'] != 'None') && canView( 'Stream' ) ) ?></td>
             <td class="colFunction"><?php echo makePopupLink( '?view=function&amp;mid='.$monitor['Id'], 'zmFunction', 'function', '<span class="'.$fclass.'">'.translate('Fn'.$monitor['Function']).( empty($monitor['Enabled']) ? ', disabled' : '' ) .'</span>', canEdit( 'Monitors' ) ) ?></td>
 <?php if ( count($servers) ) { ?>
-			<td class="colServer"><?php 
+            <td class="colServer"><?php 
 $Server = new Server( $monitor['ServerId'] );
 echo $Server->Name();
  ?></td>
@@ -101,9 +182,9 @@ echo $Server->Name();
 <?php } elseif ( $monitor['Type'] == "Ffmpeg" || $monitor['Type'] == "Libvlc" ) {
     $domain = parse_url( $monitor['Path'], PHP_URL_HOST );
     $shortpath = $domain ? $domain : preg_replace( '/^.*\//', '', $monitor['Path'] );
-	if ( $shortpath == '' ) {
-		$shortpath = 'Monitor ' . $monitor['Id'];
-	}
+    if ( $shortpath == '' ) {
+        $shortpath = 'Monitor ' . $monitor['Id'];
+    }
 ?>
             <td class="colSource"><?php echo makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.$shortpath.'</span>', canEdit( 'Monitors' ) ) ?></td>
 <?php } elseif ( $monitor['Type'] == "cURL" ) { ?>

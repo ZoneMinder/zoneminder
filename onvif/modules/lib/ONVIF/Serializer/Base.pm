@@ -97,8 +97,11 @@ sub serialize {
 
     my $soap_prefix = $opt->{ namespace }->{ $SOAP_NS };
 
-    # envelope start with namespaces
-    my $xml = "<$soap_prefix\:Envelope ";
+    # XML starts with header
+    my $xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+    
+    # envelope starts with namespaces
+    $xml .= "<$soap_prefix\:Envelope ";
 
     while (my ($uri, $prefix) = each %{ $opt->{ namespace } })
     {

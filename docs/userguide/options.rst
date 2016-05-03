@@ -19,6 +19,4 @@ If you have changed the value of an option you should then ‘save’ it. A numb
    options/options_upload
    options/options_x10
    options/options_bw
-   options/options_phonebw
-   options/options_eyezm
    options/options_users

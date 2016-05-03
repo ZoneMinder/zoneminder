@@ -82,7 +82,9 @@ Error("setting css $current_css to " .  $_GET['css-choice']);
     <?php include("skins/$skin/views/header.php") ?>
 
     <div class="container-fluid">
-      <ul class="nav nav-pills nav-stacked col-md-2">
+<div class="row">
+	<div class="col-sm-2 sidebar">
+      <ul class="nav nav-pills nav-stacked">
 <?php
 foreach ( $tabs as $name=>$value )
 {
@@ -92,8 +94,10 @@ foreach ( $tabs as $name=>$value )
 }
 ?>
       </ul>
+	</div>
 
-      <div id="options" class="col-md-10">
+	<div class="col-sm-10 col-sm-offset-2">
+      <div id="options">
 <?php 
 if($tab == 'skins') {
 ?>
@@ -391,6 +395,9 @@ elseif ( $tab == "users" )
 ?>
 
     </div><!-- end #options -->
+	</div>
+</div> <!-- end row -->
     </div>
+<?php include("skins/$skin/views/state.php") ?>
 </body>
 </html>

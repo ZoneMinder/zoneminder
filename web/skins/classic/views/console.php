@@ -15,7 +15,7 @@ xhtmlHeaders( __FILE__, translate('Console') );
     <?php include("skins/$skin/views/header.php") ?>
 
     <div class="container-fluid">
-      <table id="consoleTable" cellspacing="0">
+      <table class="table table-striped table-hover table-condensed">
         <thead>
           <tr>
             <th class="colName"><?php echo translate('Name') ?></th>
@@ -54,7 +54,7 @@ if ( canEdit('Monitors') )
  if ( $show_storage_areas ) { $columns += 1; }
 echo $columns;
  ?>">
-              <input type="button" name="addBtn" value="<?php echo translate('AddNewMonitor') ?>" onclick="addMonitor( this )"/>
+              <input type="button" class="btn btn-primary" name="addBtn" value="<?php echo translate('AddNewMonitor') ?>" onclick="addMonitor( this )"/>
               <!-- <?php echo makePopupButton( '?view=monitor', 'zmMonitor0', 'monitor', translate('AddNewMonitor'), (canEdit( 'Monitors' ) && !$user['MonitorIds']) ) ?> -->
 
             </td>
@@ -68,7 +68,8 @@ for ( $i = 0; $i < count($eventCounts); $i++ )
 }
 ?>
             <td class="colZones"><?php echo $zoneCount ?></td>
-            <td class="colRightButtons" colspan="<?php echo canEdit('Monitors')?2:1 ?>"><input class="btn btn-default" type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editMonitor( this )" disabled="disabled"/><input class="btn btn-default" type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteMonitor( this )" disabled="disabled"/></td>
+            <td><input class="btn btn-primary" type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editMonitor( this )" disabled="disabled"/></td>
+            <td><input class="btn btn-danger" type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteMonitor( this )" disabled="disabled"/></td>
           </tr>
         </tfoot>
         <tbody>
@@ -174,5 +175,6 @@ echo $Storage->Name();
 </div> <!-- End .footer -->
 
     </form>
+<?php include("skins/$skin/views/state.php") ?>
 </body>
 </html>

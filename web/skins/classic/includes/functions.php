@@ -18,6 +18,10 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
+
+// Don't load in additional JS to these views
+$bad_views = array('monitor', 'log');
+
 function xhtmlHeaders( $file, $title )
 {
     global  $css;
@@ -36,9 +40,12 @@ function xhtmlHeaders( $file, $title )
 
     extract( $GLOBALS, EXTR_OVERWRITE );
 ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+<!DOCTYPE html>
+<html lang="en">
 <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maxiumum-scale=1.0, user-scalable=no">
   <title><?php echo ZM_WEB_TITLE_PREFIX ?> - <?php echo validHtmlStr($title) ?></title>
   <link rel="icon" type="image/ico" href="graphics/favicon.ico"/>
   <link rel="shortcut icon" href="graphics/favicon.ico"/>
@@ -69,12 +76,17 @@ function xhtmlHeaders( $file, $title )
   <script type="text/javascript" src="tools/mootools/mootools-core.js"></script>
   <script type="text/javascript" src="tools/mootools/mootools-more.js"></script>
   <script type="text/javascript" src="js/mootools.ext.js"></script>
+<?php if ( !in_array($basename, $bad_views) ) { ?>
   <script type="text/javascript" src="js/logger.js"></script>
   <script type="text/javascript" src="js/overlay.js"></script>
+  <script type="text/javascript" src="/skins/<?php echo $css; ?>/js/jquery-1.11.3.js"></script>
+  <script type="text/javascript" src="/skins/<?php echo $css; ?>/js/bootstrap.min.js"></script>
+  <script type="text/javascript" src="/skins/<?php echo $css; ?>/views/js/state.js.php"></script>
+  <script type="text/javascript" src="/skins/<?php echo $css; ?>/views/js/state.js"></script>
+<?php } ?>
 <?php if ( $title == 'Login' && (defined('ZM_OPT_USE_GOOG_RECAPTCHA') && ZM_OPT_USE_GOOG_RECAPTCHA) ) { ?>
   <script src='https://www.google.com/recaptcha/api.js'></script>
-<?php
-}
+<?php }
     if ( $skinJsPhpFile )
     {
 ?>

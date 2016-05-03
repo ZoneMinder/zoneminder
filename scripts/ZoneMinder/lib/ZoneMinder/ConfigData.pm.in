@@ -345,10 +345,10 @@ our @options =
             already logged in. As authentication hashes are time and,
             optionally, IP limited this can allow short-term access to
             ZoneMinder screens from other web pages etc. In order to use
-            this the calling application will hae to generate the
+            this the calling application will have to generate the
             authentication hash itself and ensure it is valid. If you use
             this option you should ensure that you have modified the
-            ZM_AUTH_HASH_SECRET to somethign unique to your system.
+            ZM_AUTH_HASH_SECRET to something unique to your system.
         "),
         requires    => [
                             { name=>"ZM_OPT_USE_AUTH", value=>"yes" },
@@ -3760,161 +3760,6 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
         category    => "lowband",
     },
     {
-        name        => "ZM_WEB_P_CAN_STREAM",
-        default     => "auto",
-        description => "Override the automatic detection of browser streaming capability",
-        help        => qqq("
-            If you know that your browser can handle image streams of the
-            type 'multipart/x-mixed-replace' but ZoneMinder does not detect
-            this correctly you can set this option to ensure that the
-            stream is delivered with or without the use of the Cambozola
-            plugin. Selecting 'yes' will tell ZoneMinder that your browser
-            can handle the streams natively, 'no' means that it can't and
-            so the plugin will be used while 'auto' lets ZoneMinder decide.
-        "),
-        type        => $types{tristate},
-        category    => "phoneband",
-    },
-    {
-        name        => "ZM_WEB_P_STREAM_METHOD",
-        default     => "jpeg",
-        description => "Which method should be used to send video streams to your browser.",
-        help        => qqq("
-            ZoneMinder can be configured to use either mpeg encoded video
-            or a series or still jpeg images when sending video streams.
-            This option defines which is used. If you choose mpeg you
-            should ensure that you have the appropriate plugins available
-            on your browser whereas choosing jpeg will work natively on
-            Mozilla and related browsers and with a Java applet on Internet
-            Explorer
-        "),
-        type        => {
-            db_type     =>"string",
-            hint        =>"mpeg|jpeg",
-            pattern     =>qr|^([mj])|i,
-            format      =>q( $1 =~ /^m/ ? "mpeg" : "jpeg" )
-        },
-        category    => "phoneband",
-    },
-    {
-        name        => "ZM_WEB_P_DEFAULT_SCALE",
-        default     => "100",
-        description => "What the default scaling factor applied to 'live' or 'event' views is (%)",
-        help        => qqq("
-            Normally ZoneMinder will display 'live' or 'event' streams in
-            their native size. However if you have monitors with large
-            dimensions or a slow link you may prefer to reduce this size,
-            alternatively for small monitors you can enlarge it. This
-            options lets you specify what the default scaling factor will
-            be. It is expressed as a percentage so 100 is normal size, 200
-            is double size etc.
-        "),
-        type        => {
-            db_type     =>"integer",
-            hint        =>"25|33|50|75|100|150|200|300|400",
-            pattern     =>qr|^(\d+)$|, format=>q( $1 )
-        },
-        category    => "phoneband",
-    },
-    {
-        name        => "ZM_WEB_P_DEFAULT_RATE",
-        default     => "100",
-        description => "What the default replay rate factor applied to 'event' views is (%)",
-        help        => qqq("
-            Normally ZoneMinder will display 'event' streams at their
-            native rate, i.e. as close to real-time as possible. However if
-            you have long events it is often convenient to replay them at a
-            faster rate for review. This option lets you specify what the
-            default replay rate will be. It is expressed as a percentage so
-            100 is normal rate, 200 is double speed etc.
-        "),
-        type        => {
-            db_type     =>"integer",
-            hint        =>"25|50|100|150|200|400|1000|2500|5000|10000",
-            pattern     =>qr|^(\d+)$|,
-            format      =>q( $1 )
-        },
-        category    => "phoneband",
-    },
-    {
-        name        => "ZM_WEB_P_VIDEO_BITRATE",
-        default     => "8000",
-        description => "What the bitrate of the video encoded stream should be set to",
-        help        => qqq("
-            When encoding real video via the ffmpeg library a bit rate can
-            be specified which roughly corresponds to the available
-            bandwidth used for the stream. This setting effectively
-            corresponds to a 'quality' setting for the video. A low value
-            will result in a blocky image whereas a high value will produce
-            a clearer view. Note that this setting does not control the
-            frame rate of the video however the quality of the video
-            produced is affected both by this setting and the frame rate
-            that the video is produced at. A higher frame rate at a
-            particular bit rate result in individual frames being at a
-            lower quality.
-        "),
-        type        => $types{integer},
-        category    => "phoneband",
-    },
-    {
-        name        => "ZM_WEB_P_VIDEO_MAXFPS",
-        default     => "5",
-        description => "What the maximum frame rate for streamed video should be",
-        help        => qqq("
-            When using streamed video the main control is the bitrate which
-            determines how much data can be transmitted. However a lower
-            bitrate at high frame rates results in a lower quality image.
-            This option allows you to limit the maximum frame rate to
-            ensure that video quality is maintained. An additional
-            advantage is that encoding video at high frame rates is a
-            processor intensive task when for the most part a very high
-            frame rate offers little perceptible improvement over one that
-            has a more manageable resource requirement. Note, this option
-            is implemented as a cap beyond which binary reduction takes
-            place. So if you have a device capturing at 15fps and set this
-            option to 10fps then the video is not produced at 10fps, but
-            rather at 7.5fps (15 divided by 2) as the final frame rate must
-            be the original divided by a power of 2.
-        "),
-        type        => $types{integer},
-        category    => "phoneband",
-    },
-    {
-        name        => "ZM_WEB_P_SCALE_THUMBS",
-        default     => "yes",
-        description => "Scale thumbnails in events, bandwidth versus cpu in rescaling",
-        help        => qqq("
-            If unset, this option sends the whole image to the browser
-            which resizes it in the window. If set the image is scaled down
-            on the server before sending a reduced size image to the
-            browser to conserve bandwidth at the cost of cpu on the server.
-            Note that ZM can only perform the resizing if the appropriate
-            PHP graphics functionality is installed. This is usually
-            available in the php-gd package.
-        "),
-        type        => $types{boolean},
-        category    => "phoneband",
-    },
-    {
-        name        => "ZM_WEB_P_AJAX_TIMEOUT",
-        default     => "10000",
-        description => "How long to wait for Ajax request responses (ms)",
-        help        => qqq("
-            The newer versions of the live feed and event views use Ajax to
-            request information from the server and populate the views
-            dynamically. This option allows you to specify a timeout if
-            required after which requests are abandoned. A timeout may be
-            necessary if requests would overwise hang such as on a slow
-            connection. This would tend to consume a lot of browser memory
-            and make the interface unresponsive. Ordinarily no requests
-            should timeout so this setting should be set to a value greater
-            than the slowest expected response. This value is in
-            milliseconds but if set to zero then no timeout will be used.
-        "),
-        type        => $types{integer},
-        category    => "phoneband",
-    },
-    {
         name        => "ZM_DYN_LAST_VERSION",
         default     => "",
         description => "What the last version of ZoneMinder recorded from zoneminder.com is",
@@ -3981,139 +3826,39 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
         category    => "dynamic",
     },
     {
-        name        => "ZM_EYEZM_DEBUG",
+        name        => "ZM_SSMTP_MAIL",
         default     => "no",
-        description => "Switch additional debugging on for eyeZm Plugin",
+        description =>  qqq("
+            Use a SSMTP mail server if available. 
+            NEW_MAIL_MODULES must be enabled
+        "),
+        requires    => [
+                        { name => "ZM_OPT_EMAIL", value => "yes" },
+                        { name => "ZM_OPT_MESSAGE", value => "yes" },
+                        { name => "ZM_NEW_MAIL_MODULES", value => "yes" }
+                       ],
         help        => qqq("
-            Enable or Disable extra debugging from the eyeZm Plugin. Extra
-            debugging information will be displayed in it's own file
-            (EYEZM_LOG_TO_FILE is set), or your Apache error log
+            SSMTP is a lightweight and efficient method to send email.
+            The SSMTP application is not installed by default.
+            NEW_MAIL_MODULES must also be enabled.
+            Please visit: http://www.zoneminder.com/wiki/index.php/How_to_get_ssmtp_working_with_Zoneminder
+            for setup and configuration help.
         "),
         type        => $types{boolean},
-        category    => "eyeZm",
+        category    => "mail",
     },
     {
-        name        => "ZM_EYEZM_LOG_TO_FILE",
-        default     => "yes",
-        description => "When eyeZm Debugging is enabled, enabling this logs output to it's own file",
+        name        => "ZM_SSMTP_PATH",
+        default     => "",
+        description => "SSMTP executable path",
+        requires    => [{ name => "ZM_SSMTP_MAIL", value => "yes" }],
         help        => qqq("
-            When EYEZM_DEBUG is on and EYEZM_LOG_TO_FILE is on, output
-            generated from the eyeZm Plugin will go to it's own file.
-            Otherwise it will go to the apache error log.
-        "),
-        type        => $types{boolean},
-        category    => "eyeZm",
-    },
-    {
-        name        => "ZM_EYEZM_LOG_FILE",
-        default     => "@ZM_LOGDIR@/zm_xml.log",
-        description => "Default filename to use when logging eyeZm Output and EYEZM_LOG_TO_FILE is enabled", 
-        help        => qqq("
-            This file will contain it's own output from the eyeZm Plugin
-            when EYEZM_LOG_TO_FILE and EYEZM_DEBUG are both enabled
+            Recommend setting the path to the SSMTP application.
+            If path is not defined. Zoneminder will try to determine
+            the path via shell command. Example path: /usr/sbin/ssmtp.
         "),
         type        => $types{string},
-        category    => "eyeZm",
-    },
-    {
-        name        => "ZM_EYEZM_EVENT_VCODEC",
-        default     => "mpeg4",
-        description => "Default video-codec to use for encoding events",
-        help        => qqq("
-            The eyeZm Plugin calls FFMPEG externally to encode the captured
-            images. If your FFMPEG is not built with support for H264,
-            change this to MPEG-4. If using H264, please check
-            http://www.eyezm.com for H264 requirements and that your eyeZm
-            version supports H264 (v1.2+).
-        "),
-        type        => {
-            db_type     =>"string",
-            hint        =>"mpeg4|h264",
-            pattern     =>qr|^([mh])|i,
-            format      =>q( $1 =~ /^m/ ? "mpeg4" : "h264" )
-        },
-        category    => "eyeZm",
-    },
-    {
-        name        => "ZM_EYEZM_FEED_VCODEC",
-        default     => "mjpeg",
-        description => "Default video-codec to use for streaming the live feed",
-        help        => qqq("
-            Determines whether the live stream is generated using native
-            MJPEG streaming with ZoneMinder, or H264 using FFMPEG and
-            HTML-5 streaming. If using H264, please check
-            http://www.eyezm.com for H264 requirements and that your eyeZm
-            version supports H264 (v1.2+). This is just a default
-            parameter, and can be overridden with eyeZm.
-        "),
-        type        => {
-            db_type     =>"string",
-            hint        =>"mjpeg|h264",
-            pattern     =>qr|^([mh])|i,
-            format      =>q( $1 =~ /^m/ ? "mjpeg" : "h264" )
-        },
-        category    => "eyeZm",
-    },
-    {
-        name        => "ZM_EYEZM_H264_DEFAULT_BR",
-        default     => "96k",
-        description => "Default bit-rate to use with FFMPEG for H264 streaming",
-        help        => qqq("
-            When using the eyeZm Plugin to stream H264 data, FFMPEG
-            requires a bitrate to control the quality and bandwidth of the
-            video. This should be specified in a format acceptable to
-            FFMPEG. The default value is sufficient for most installations.
-            This is just a default parameter, and can be overridden with
-            eyeZm.
-        "),
-        type        => $types{string},
-        category    => "eyeZm",
-    },
-    {
-        name        => "ZM_EYEZM_H264_DEFAULT_EVBR",
-        default     => "128k",
-        description => "Default bit-rate to use with FFMPEG for H264 event viewing",
-        help        => qqq("
-            When using the eyeZm Plugin to view events in H264, FFMPEG
-            requires a bitrate to control the quality and bandwidth of the
-            video. This should be specified in a format acceptable to
-            FFMPEG. The default value is sufficient for most installations.
-            This is just a default parameter, and can be overridden with
-            eyeZm.
-        "),
-        type        => $types{string},
-        category    => "eyeZm",
-    },
-    {
-        name        => "ZM_EYEZM_H264_TIMEOUT",
-        default     => "20",
-        description => "Timeout (sec) to wait for H264 stream to start before terminating",
-        help        => qqq("
-            The eyeZm Plugin will attempt to spawn an H264 stream when
-            requested, and require that it complete within the timeout
-            specified. If you have a slow system or find through the logs
-            that the H264 stream is not starting because the timeout is
-            expiring, even though FFMPEG is running, try increasing this
-            value. If you have a fast system, decreasing this value can
-            improve the responsiveness when there are issues starting H264
-            streams
-        "),
-        type        => $types{string},
-        category    => "eyeZm",
-    },
-    {
-        name        => "ZM_EYEZM_SEG_DURATION",
-        default     => "3",
-        description => "Segment duration used for streaming using HTTP-5 Streaming protocol",
-        help        => qqq("
-            The HTTP-5 Live Streaming Protocol segments the input video
-            stream into small chunks of a duration specified by this
-            parameter. Increasing the segment duration will help with
-            choppy connections on the other end, but will increase the
-            latency in starting a stream.
-        "),
-        type        => $types{string},
-        category    => "eyeZm",
+        category    => "mail",
     },
 );
 

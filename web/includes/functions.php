@@ -985,6 +985,7 @@ function daemonControl( $command, $daemon=false, $args=false )
 
 function zmcControl( $monitor, $mode=false )
 {
+  if ( (!defined('ZM_SERVER_ID')) or ( ZM_SERVER_ID==$monitor['ServerId'] ) ) {
 	$row = NULL;
     if ( $monitor['Type'] == "Local" )
     {
@@ -1010,10 +1011,12 @@ function zmcControl( $monitor, $mode=false )
         }
         daemonControl( "start", "zmc", $zmcArgs );
     }
+  }
 }
 
 function zmaControl( $monitor, $mode=false )
 {
+  if ( (!defined('ZM_SERVER_ID')) or ( ZM_SERVER_ID==$monitor['ServerId'] ) ) {
     if ( !is_array( $monitor ) )
     {
         $monitor = dbFetchOne( "select C.*, M.* from Monitors as M left join Controls as C on (M.ControlId = C.Id ) where M.Id=?", NULL, array($monitor) );
@@ -1058,6 +1061,7 @@ function zmaControl( $monitor, $mode=false )
             daemonControl( "reload", "zma", "-m ".$monitor['Id'] );
         }
     }
+  }
 }
 
 function initDaemonStatus()
@@ -1149,30 +1153,38 @@ function zmaCheck( $monitor )
 
 function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $overwrite=false )
 {
-    $eventPath = getEventPath( $event );
+    $eventPath = ZM_DIR_EVENTS.'/'.getEventPath( $event );
 
     if ( !is_array($frame) )
         $frame = array( 'FrameId'=>$frame, 'Type'=>'' );
 
-    //echo "S:$scale, CO:$captureOnly<br>";
-    $currEvent = dbFetchOne( 'SELECT M.SaveJPEGs FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = '.$event['Id'] );
-    if ( $currEvent['SaveJPEGs'] == "4" )
+    if ( file_exists( $eventPath.'/snapshot.jpg' ) ) {
         $captImage = "snapshot.jpg";
-    else
+    } else {
         $captImage = sprintf( "%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $frame['FrameId'] );
+        if ( ! file_exists( $eventPath.'/'.$captImage ) ) {
+            # Generate the frame JPG
+            if ( $event['DefaultVideo'] ) {
+                $command ='ffmpeg -v 0 -i '.$eventPath.'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$frame['FrameId'].'),setpts=PTS-STARTPTS" '.$eventPath.'/'.$captImage;
+                system( $command, $output, $retval );
+            } else {
+                Error("Can't create frame images from video because there is no video file for this event " );
+            }
+        }
+    }
+
     $captPath = $eventPath.'/'.$captImage;
     $thumbCaptPath = ZM_DIR_IMAGES.'/'.$event['Id'].'-'.$captImage;
     //echo "CI:$captImage, CP:$captPath, TCP:$thumbCaptPath<br>";
 
     $analImage = sprintf( "%0".ZM_EVENT_IMAGE_DIGITS."d-analyse.jpg", $frame['FrameId'] );
     $analPath = $eventPath.'/'.$analImage;
-    $analFile =  ZM_DIR_EVENTS."/".$analPath;
     $thumbAnalPath = ZM_DIR_IMAGES.'/'.$event['Id'].'-'.$analImage;
     //echo "AI:$analImage, AP:$analPath, TAP:$thumbAnalPath<br>";
 
     $alarmFrame = $frame['Type']=='Alarm';
 
-    $hasAnalImage = $alarmFrame && file_exists( $analFile ) && filesize( $analFile );
+    $hasAnalImage = $alarmFrame && file_exists( $analPath ) && filesize( $analPath );
     $isAnalImage = $hasAnalImage && !$captureOnly;
 
     if ( !ZM_WEB_SCALE_THUMBS || $scale >= SCALE_BASE || !function_exists( 'imagecreatefromjpeg' ) )
@@ -1203,22 +1215,20 @@ function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $ov
             $thumbPath = $thumbCaptPath;
         }
 
-        $imageFile = ZM_DIR_EVENTS."/".$imagePath;
-        //$thumbFile = ZM_DIR_EVENTS."/".$thumbPath;
         $thumbFile = $thumbPath;
         if ( $overwrite || !file_exists( $thumbFile ) || !filesize( $thumbFile ) )
         {
             // Get new dimensions
-            list( $imageWidth, $imageHeight ) = getimagesize( $imageFile );
+            list( $imageWidth, $imageHeight ) = getimagesize( $imagePath );
             $thumbWidth = $imageWidth * $fraction;
             $thumbHeight = $imageHeight * $fraction;
 
             // Resample
             $thumbImage = imagecreatetruecolor( $thumbWidth, $thumbHeight );
-            $image = imagecreatefromjpeg( $imageFile );
+            $image = imagecreatefromjpeg( $imagePath );
             imagecopyresampled( $thumbImage, $image, 0, 0, 0, 0, $thumbWidth, $thumbHeight, $imageWidth, $imageHeight );
 
-            if ( !imagejpeg( $thumbImage, $thumbFile ) )
+            if ( !imagejpeg( $thumbImage, $thumbPath ) )
                 Error( "Can't create thumbnail '$thumbPath'" );
         }
     }
@@ -1227,15 +1237,13 @@ function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $ov
         'eventPath' => $eventPath,
         'imagePath' => $imagePath,
         'thumbPath' => $thumbPath,
-        'imageFile' => $imageFile,
+        'imageFile' => $imagePath,
         'thumbFile' => $thumbFile,
         'imageClass' => $alarmFrame?"alarm":"normal",
         'isAnalImage' => $isAnalImage,
         'hasAnalImage' => $hasAnalImage,
     );
 
-    //echo "IP:$imagePath<br>";
-    //echo "TP:$thumbPath<br>";
     return( $imageData );
 }
 
@@ -1310,26 +1318,30 @@ function executeFilter( $filter )
     return( $status );
 }
 
+# This takes more than one scale amount, so it runs through each and alters dimension.
+# I can't imagine why you would want to do that.
 function reScale( $dimension, $dummy )
 {
+    $new_dimension = $dimension;
     for ( $i = 1; $i < func_num_args(); $i++ )
     {
         $scale = func_get_arg( $i );
         if ( !empty($scale) && $scale != SCALE_BASE )
-            $dimension = (int)(($dimension*$scale)/SCALE_BASE);
+            $new_dimension = (int)(($new_dimension*$scale)/SCALE_BASE);
     }
-    return( $dimension );
+    return( $new_dimension );
 }
 
 function deScale( $dimension, $dummy )
 {
+    $new_dimension = $dimension;
     for ( $i = 1; $i < func_num_args(); $i++ )
     {
         $scale = func_get_arg( $i );
         if ( !empty($scale) && $scale != SCALE_BASE )
-            $dimension = (int)(($dimension*SCALE_BASE)/$scale);
+            $new_dimension = (int)(($new_dimension*SCALE_BASE)/$scale);
     }
-    return( $dimension );
+    return( $new_dimension );
 }
 
 function monitorLimitSql()
@@ -1671,7 +1683,15 @@ function getLoad()
 function getDiskPercent()
 {
     $total = disk_total_space(ZM_DIR_EVENTS);
-    $space = round(($total - disk_free_space(ZM_DIR_EVENTS)) / $total * 100);
+    if ( ! $total ) {
+        Error("disk_total_space returned false for " . ZM_DIR_EVENTS );
+        return 0;
+    }
+    $free = disk_free_space(ZM_DIR_EVENTS);
+    if ( ! $free ) {
+        Error("disk_free_space returned false for " . ZM_DIR_EVENTS );
+    }
+    $space = round(($total - $free) / $total * 100);
     return( $space );
 }
 
@@ -2488,5 +2508,23 @@ function validHtmlStr( $input )
 {
     return( htmlspecialchars( $input, ENT_QUOTES ) );
 }
+
+function getStreamHTML( $monitor, $scale=100 ) {
+//FIXME, the width and height of the image need to be scaled.
+    if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
+        $streamSrc = $monitor->getStreamSrc( array( "mode=mpeg", "scale=".$scale, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_LIVE_FORMAT ) );
+        outputVideoStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
+    } else if ( canStream() ) {
+        $streamSrc = $monitor->getStreamSrc( array( 'mode=jpeg', 'scale='.$scale, 'maxfps='.ZM_WEB_VIDEO_MAXFPS, 'buffer='.$monitor->StreamReplayBuffer() ) );
+        if ( canStreamNative() )
+            outputImageStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
+        elseif ( canStreamApplet() )
+            outputHelperStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
+    } else {
+        $streamSrc = $monitor->getStreamSrc( array( 'mode=single', "scale=".$scale ) );
+        outputImageStill( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
+        Info( "The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.");
+    }
+} // end function getStreamHTML
 
 ?>

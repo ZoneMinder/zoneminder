@@ -525,6 +525,7 @@ if ( !empty($action) )
                 'DoNativeMotDet' => 'toggle',
                 'Exif' => 'toggle',
                 'RTSPDescribe' => 'toggle',
+                'RecordAudio' => 'toggle',
             );
 
             $columns = getTableColumns( 'Monitors' );
@@ -921,7 +922,6 @@ if ( !empty($action) )
                     case "highband" :
                     case "medband" :
                     case "lowband" :
-                    case "phoneband" :
                         break;
                 }
             }

@@ -50,16 +50,16 @@ running the eyeZm app.
 
 =head1 OPTIONS
 
- -e <mode>                        - Specify output mode: mpeg/jpg/zip/single/raw.
- -o <format>                      - Specify output format.
- -u <buffer size>                 - Specify buffer size in ms.
- -f <maximum fps>                 - Specify maximum framerate.
- -s <scale>                       - Specify scale.
- -b <bitrate in bps>              - Specify bitrate.
- -m <monitor id>                  - Specify monitor id.
- -d <debug mode>                  - 0 = off, 1 = no streaming, 2 = with streaming.
- -i, -?, -h                       - Display usage information
- -v                               - Print the installed version of ZoneMinder
+ -e <mode>            - Specify output mode: mpeg/jpg/zip/single/raw.
+ -o <format>            - Specify output format.
+ -u <buffer size>         - Specify buffer size in ms.
+ -f <maximum fps>         - Specify maximum framerate.
+ -s <scale>             - Specify scale.
+ -b <bitrate in bps>        - Specify bitrate.
+ -m <monitor id>          - Specify monitor id.
+ -d <debug mode>          - 0 = off, 1 = no streaming, 2 = with streaming.
+ -i, -?, -h             - Display usage information
+ -v                 - Print the installed version of ZoneMinder
 
 =cut
 
@@ -92,161 +92,161 @@ running the eyeZm app.
 #define ZMS_DEFAULT_BUFFER 1000
 
 int main(int argc, char** argv) {
-    self = argv[0];
-    // Set initial values to the default values
-    int debug = ZMS_DEFAULT_DEBUG;
-    int id = ZMS_DEFAULT_ID;
-    int bitrate = ZMS_DEFAULT_BITRATE;
-    int scale = ZMS_DEFAULT_SCALE;
-    char mode[32];
-    sprintf(mode, "%s", ZMS_DEFAULT_MODE);
-    char format[32];
-    sprintf(format, "%s", ZMS_DEFAULT_FORMAT);
-    double maxfps = ZMS_DEFAULT_FPS;
-    int buffer = ZMS_DEFAULT_BUFFER;
+  self = argv[0];
+  // Set initial values to the default values
+  int debug = ZMS_DEFAULT_DEBUG;
+  int id = ZMS_DEFAULT_ID;
+  int bitrate = ZMS_DEFAULT_BITRATE;
+  int scale = ZMS_DEFAULT_SCALE;
+  char mode[32];
+  sprintf(mode, "%s", ZMS_DEFAULT_MODE);
+  char format[32];
+  sprintf(format, "%s", ZMS_DEFAULT_FORMAT);
+  double maxfps = ZMS_DEFAULT_FPS;
+  int buffer = ZMS_DEFAULT_BUFFER;
 
-    // Parse command-line options
-    int arg;
-    while ((arg = getopt(argc, argv, OPTIONS)) != -1) {
-        switch (arg) {
-            case 'e':
-                sprintf(mode, "%s", optarg);
-                break;
-            case 'o':
-                sprintf(format, "%s", optarg);
-                break;
-            case 'u':
-                buffer = atoi(optarg);
-                break;
-            case 'f':
-                maxfps = atof(optarg);
-                break;
-            case 's':
-                scale = atoi(optarg);
-                break;
-            case 'b':
-                bitrate = atoi(optarg);
-                break;
-            case 'm':
-                id = atoi(optarg);
-                break;
-            case 'd':
-                debug = atoi(optarg);
-                break;
-            case 'h':
-            case 'i':
-            case '?':
-                printf("-e <mode> : Specify output mode: mpeg/jpg/zip/single/raw. Default = %s\n", ZMS_DEFAULT_MODE);
-                printf("-o <format> : Specify output format. Default = %s\n", ZMS_DEFAULT_FORMAT);
-                printf("-u <buffer size> : Specify buffer size in ms. Default = %d\n", ZMS_DEFAULT_BUFFER);
-                printf("-f <maximum fps> : Specify maximum framerate. Default = %lf\n", ZMS_DEFAULT_FPS);
-                printf("-s <scale> : Specify scale. Default = %d\n", ZMS_DEFAULT_SCALE);
-                printf("-b <bitrate in bps> : Specify bitrate. Default = %d\n", ZMS_DEFAULT_BITRATE);
-                printf("-m <monitor id> : Specify monitor id. Default = %d\n", ZMS_DEFAULT_ID);
-                printf("-d <debug mode> : 0 = off, 1 = no streaming, 2 = with streaming. Default = 0\n");
-                printf("-i or -? or -h: This information\n");
-                printf("-v : This installed version of ZoneMinder\n");
-                return EXIT_SUCCESS;
-            case 'v':
-                std::cout << ZM_VERSION << "\n";
-                exit(0);
-        }
+  // Parse command-line options
+  int arg;
+  while ((arg = getopt(argc, argv, OPTIONS)) != -1) {
+    switch (arg) {
+      case 'e':
+        sprintf(mode, "%s", optarg);
+        break;
+      case 'o':
+        sprintf(format, "%s", optarg);
+        break;
+      case 'u':
+        buffer = atoi(optarg);
+        break;
+      case 'f':
+        maxfps = atof(optarg);
+        break;
+      case 's':
+        scale = atoi(optarg);
+        break;
+      case 'b':
+        bitrate = atoi(optarg);
+        break;
+      case 'm':
+        id = atoi(optarg);
+        break;
+      case 'd':
+        debug = atoi(optarg);
+        break;
+      case 'h':
+      case 'i':
+      case '?':
+        printf("-e <mode> : Specify output mode: mpeg/jpg/zip/single/raw. Default = %s\n", ZMS_DEFAULT_MODE);
+        printf("-o <format> : Specify output format. Default = %s\n", ZMS_DEFAULT_FORMAT);
+        printf("-u <buffer size> : Specify buffer size in ms. Default = %d\n", ZMS_DEFAULT_BUFFER);
+        printf("-f <maximum fps> : Specify maximum framerate. Default = %lf\n", ZMS_DEFAULT_FPS);
+        printf("-s <scale> : Specify scale. Default = %d\n", ZMS_DEFAULT_SCALE);
+        printf("-b <bitrate in bps> : Specify bitrate. Default = %d\n", ZMS_DEFAULT_BITRATE);
+        printf("-m <monitor id> : Specify monitor id. Default = %d\n", ZMS_DEFAULT_ID);
+        printf("-d <debug mode> : 0 = off, 1 = no streaming, 2 = with streaming. Default = 0\n");
+        printf("-i or -? or -h: This information\n");
+        printf("-v : This installed version of ZoneMinder\n");
+        return EXIT_SUCCESS;
+      case 'v':
+        std::cout << ZM_VERSION << "\n";
+        exit(0);
     }
+  }
 
-    // Set stream type
-    StreamBase::StreamType streamtype;
-    if (!strcasecmp("raw", mode))
-        streamtype = MonitorStream::STREAM_RAW;
-    else if (!strcasecmp("mpeg", mode))
-        streamtype = MonitorStream::STREAM_MPEG;
-    else if (!strcasecmp("jpg", mode))
-        streamtype = MonitorStream::STREAM_JPEG;
-    else if (!strcasecmp("single", mode))
-        streamtype = MonitorStream::STREAM_SINGLE;
-    else if (!strcasecmp("zip", mode))
-        streamtype = MonitorStream::STREAM_ZIP;
-    else
-        streamtype = MonitorStream::STREAM_MPEG;
+  // Set stream type
+  StreamBase::StreamType streamtype;
+  if (!strcasecmp("raw", mode))
+    streamtype = MonitorStream::STREAM_RAW;
+  else if (!strcasecmp("mpeg", mode))
+    streamtype = MonitorStream::STREAM_MPEG;
+  else if (!strcasecmp("jpg", mode))
+    streamtype = MonitorStream::STREAM_JPEG;
+  else if (!strcasecmp("single", mode))
+    streamtype = MonitorStream::STREAM_SINGLE;
+  else if (!strcasecmp("zip", mode))
+    streamtype = MonitorStream::STREAM_ZIP;
+  else
+    streamtype = MonitorStream::STREAM_MPEG;
 
-    if (debug) {
-        // Show stream parameters
-        printf("Stream parameters:\n");
-        switch (streamtype) {
-            case MonitorStream::STREAM_MPEG:
-                printf("Output mode (-e) = %s\n", "mpeg");
-                printf("Output format (-o) = %s\n", format);
-                break;
-            default:
-                printf("Output mode (-e) = %s\n", mode);
-        }
-        printf("Buffer size (-u) = %d ms\n", buffer);
-        printf("Maximum FPS (-f) = %lf FPS\n", maxfps);
-        printf("Scale (-s) = %d%%\n", scale);
-        printf("Bitrate (-b) = %d bps\n", bitrate);
-        printf("Monitor Id (-m) = %d\n", id);
+  if (debug) {
+    // Show stream parameters
+    printf("Stream parameters:\n");
+    switch (streamtype) {
+      case MonitorStream::STREAM_MPEG:
+        printf("Output mode (-e) = %s\n", "mpeg");
+        printf("Output format (-o) = %s\n", format);
+        break;
+      default:
+        printf("Output mode (-e) = %s\n", mode);
     }
+    printf("Buffer size (-u) = %d ms\n", buffer);
+    printf("Maximum FPS (-f) = %lf FPS\n", maxfps);
+    printf("Scale (-s) = %d%%\n", scale);
+    printf("Bitrate (-b) = %d bps\n", bitrate);
+    printf("Monitor Id (-m) = %d\n", id);
+  }
 
-    if (debug) {
-        // Set ZM debugger to print to stdout
-        printf("Setting up ZoneMinder debugger to print to stdout...");
-        setenv("ZM_DBG_PRINT", "1", 1);
-        printf("Done.\n");
-    }
-
-    // Loading ZM configurations
-    printf("Loading ZoneMinder configurations...");
-    zmLoadConfig();
+  if (debug) {
+    // Set ZM debugger to print to stdout
+    printf("Setting up ZoneMinder debugger to print to stdout...");
+    setenv("ZM_DBG_PRINT", "1", 1);
     printf("Done.\n");
+  }
 
-    logInit("zmstreamer");
-    
-    ssedetect();
+  // Loading ZM configurations
+  printf("Loading ZoneMinder configurations...");
+  zmLoadConfig();
+  printf("Done.\n");
 
-    // Setting stream parameters
-    MonitorStream stream;
-    stream.setStreamScale(scale); // default = 100 (scale)
-    stream.setStreamReplayRate(100); // default = 100 (rate)
-    stream.setStreamMaxFPS(maxfps); // default = 10 (maxfps)
-    if (debug) stream.setStreamTTL(1);
-    else stream.setStreamTTL(0); // default = 0 (ttl)
-    stream.setStreamQueue(0); // default = 0 (connkey)
-    stream.setStreamBuffer(buffer); // default = 0 (buffer)
-    stream.setStreamStart(id); // default = 0 (monitor_id)
-    stream.setStreamType(streamtype);
-    if (streamtype == MonitorStream::STREAM_MPEG) {
+  logInit("zmstreamer");
+  
+  ssedetect();
+
+  // Setting stream parameters
+  MonitorStream stream;
+  stream.setStreamScale(scale); // default = 100 (scale)
+  stream.setStreamReplayRate(100); // default = 100 (rate)
+  stream.setStreamMaxFPS(maxfps); // default = 10 (maxfps)
+  if (debug) stream.setStreamTTL(1);
+  else stream.setStreamTTL(0); // default = 0 (ttl)
+  stream.setStreamQueue(0); // default = 0 (connkey)
+  stream.setStreamBuffer(buffer); // default = 0 (buffer)
+  stream.setStreamStart(id); // default = 0 (monitor_id)
+  stream.setStreamType(streamtype);
+  if (streamtype == MonitorStream::STREAM_MPEG) {
 #if HAVE_LIBAVCODEC
-        if (debug) printf("HAVE_LIBAVCODEC is set\n");
-        stream.setStreamFormat(format); // default = "" (format)
-        stream.setStreamBitrate(bitrate); // default = 100000 (bitrate)
+    if (debug) printf("HAVE_LIBAVCODEC is set\n");
+    stream.setStreamFormat(format); // default = "" (format)
+    stream.setStreamBitrate(bitrate); // default = 100000 (bitrate)
 #else
-        fprintf(stderr, "MPEG streaming is disabled.\nYou should configure with the --with-ffmpeg option and rebuild to use this functionality.\n");
-        logTerm();
-        zmDbClose();
-        return EXIT_FAILURE;
-#endif
-    }
-
-    if (debug != 1) {
-        if (debug) printf("Running stream...");
-
-        // Output headers
-        fprintf(stdout, "Server: ZoneMinder Video Server/%s\r\n", ZM_VERSION);
-        time_t now = time(0);
-        char date_string[64];
-        strftime(date_string, sizeof (date_string) - 1, "%a, %d %b %Y %H:%M:%S GMT", gmtime(&now));
-        fprintf(stdout, "Expires: Mon, 26 Jul 1997 05:00:00 GMT\r\n");
-        fprintf(stdout, "Last-Modified: %s\r\n", date_string);
-        fprintf(stdout, "Cache-Control: no-store, no-cache, must-revalidate\r\n");
-        fprintf(stdout, "Cache-Control: post-check=0, pre-check=0\r\n");
-        fprintf(stdout, "Pragma: no-cache\r\n");
-
-        // Run stream
-        stream.runStream();
-    }
-    if (debug) printf("Done.\n");
-
+    fprintf(stderr, "MPEG streaming is disabled.\nYou should configure with the --with-ffmpeg option and rebuild to use this functionality.\n");
     logTerm();
     zmDbClose();
+    return EXIT_FAILURE;
+#endif
+  }
 
-    return (EXIT_SUCCESS);
+  if (debug != 1) {
+    if (debug) printf("Running stream...");
+
+    // Output headers
+    fprintf(stdout, "Server: ZoneMinder Video Server/%s\r\n", ZM_VERSION);
+    time_t now = time(0);
+    char date_string[64];
+    strftime(date_string, sizeof (date_string) - 1, "%a, %d %b %Y %H:%M:%S GMT", gmtime(&now));
+    fprintf(stdout, "Expires: Mon, 26 Jul 1997 05:00:00 GMT\r\n");
+    fprintf(stdout, "Last-Modified: %s\r\n", date_string);
+    fprintf(stdout, "Cache-Control: no-store, no-cache, must-revalidate\r\n");
+    fprintf(stdout, "Cache-Control: post-check=0, pre-check=0\r\n");
+    fprintf(stdout, "Pragma: no-cache\r\n");
+
+    // Run stream
+    stream.runStream();
+  }
+  if (debug) printf("Done.\n");
+
+  logTerm();
+  zmDbClose();
+
+  return (EXIT_SUCCESS);
 }

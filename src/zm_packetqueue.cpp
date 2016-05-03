@@ -63,9 +63,6 @@ alloc(msm.get_segment_manager()) {
   shared_memory_object::remove("MySharedMemory");
 }
 
-zm_packetqueue::zm_packetqueue(const zm_packetqueue& orig) {
-}
-
 zm_packetqueue::~zm_packetqueue() {
 }
 

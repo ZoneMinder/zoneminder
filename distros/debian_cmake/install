@@ -1,8 +1,0 @@
-usr/bin
-usr/lib/zoneminder/cgi-bin
-usr/share/man
-usr/share/perl5/ZoneMinder
-usr/share/perl5/ZoneMinder.pm
-usr/share/zoneminder/db
-usr/share/zoneminder/www
-etc/zm

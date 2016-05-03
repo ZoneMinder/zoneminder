@@ -30,6 +30,7 @@ use warnings;
 
 require Exporter;
 require ZoneMinder::Base;
+require ZoneMinder::Database;
 
 our @ISA = qw(Exporter ZoneMinder::Base);
 
@@ -460,25 +461,7 @@ sub databaseLevel
             {
                 if ( !$this->{dbh} )
                 {
-                    my ( $host, $port ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
-
-                    if ( defined($port) )
-                    {
-                        $this->{dbh} = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
-                                                    .";host=".$host
-                                                    .";port=".$port
-                                                    , $Config{ZM_DB_USER}
-                                                    , $Config{ZM_DB_PASS}
-                        );
-                    }
-                    else
-                    {
-                        $this->{dbh} = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
-                                                    .";host=".$Config{ZM_DB_HOST}
-                                                    , $Config{ZM_DB_USER}
-                                                    , $Config{ZM_DB_PASS}
-                        );
-                    }
+                    $this->{dbh} = zmDbConnect();
                     if ( !$this->{dbh} )
                     {
                         $databaseLevel = NOLOG;
@@ -505,7 +488,8 @@ sub databaseLevel
             {
                 if ( $this->{dbh} )
                 {
-                    $this->{dbh}->disconnect();
+                    # $this->dbh is now the global dbh, so don't close it.
+                    #$this->{dbh}->disconnect();
                     undef($this->{dbh});
                 }
             }

@@ -461,7 +461,7 @@ sub databaseLevel
             {
                 if ( !$this->{dbh} )
                 {
-                    $this->{dbh} = zmDbConnect();
+                    $this->{dbh} = ZoneMinder::Database::zmDbConnect();
                     if ( !$this->{dbh} )
                     {
                         $databaseLevel = NOLOG;

@@ -238,19 +238,19 @@ int RemoteCameraRtsp::PrimeCapture()
 	mFrame = avcodec_alloc_frame();
 #endif
 
-	if(mRawFrame == NULL || mFrame == NULL)
-		Fatal( "Unable to allocate frame(s)");
-	
+  if(mRawFrame == NULL || mFrame == NULL)
+    Fatal( "Unable to allocate frame(s)");
+
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-    int pSize = av_image_get_buffer_size( imagePixFormat, width, height, 1 );
+  int pSize = av_image_get_buffer_size( imagePixFormat, width, height, 1 );
 #else
-    int pSize = avpicture_get_size( imagePixFormat, width, height );
+  int pSize = avpicture_get_size( imagePixFormat, width, height );
 #endif
 
 	if( (unsigned int)pSize != imagesize) {
 		Fatal("Image size mismatch. Required: %d Available: %d",pSize,imagesize);
 	}
-/*	
+/*  
 #if HAVE_LIBSWSCALE
 	if(!sws_isSupportedInput(mCodecContext->pix_fmt)) {
 		Fatal("swscale does not support the codec format: %c%c%c%c",(mCodecContext->pix_fmt)&0xff,((mCodecContext->pix_fmt>>8)&0xff),((mCodecContext->pix_fmt>>16)&0xff),((mCodecContext->pix_fmt>>24)&0xff));
@@ -488,11 +488,11 @@ int RemoteCameraRtsp::CaptureAndRecord( Image &image, bool recording, char* even
 					Debug( 3, "Got frame %d", frameCount );
 
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-                    av_image_fill_arrays(mFrame->data, mFrame->linesize,
-                            directbuffer, imagePixFormat, width, height, 1);
+          av_image_fill_arrays(mFrame->data, mFrame->linesize,
+              directbuffer, imagePixFormat, width, height, 1);
 #else
-                    avpicture_fill( (AVPicture *)mFrame, directbuffer,
-                            imagePixFormat, width, height);
+          avpicture_fill( (AVPicture *)mFrame, directbuffer,
+              imagePixFormat, width, height);
 #endif
 
                     //Video recording

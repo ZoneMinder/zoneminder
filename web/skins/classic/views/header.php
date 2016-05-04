@@ -18,9 +18,6 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-require_once('includes/Server.php');
-$servers = Server::find_all();
-
 $running = daemonCheck();
 $states = dbFetchAll( "select * from States" );
 $status = $running?translate('Running'):translate('Stopped');

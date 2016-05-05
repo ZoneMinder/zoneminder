@@ -814,7 +814,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 			image = 0;
 		}
 
-		Debug( 1, "%s: Pixel Diff: %d, Alarm Pixels: %d, Filter Pixels: %d, Blob Pixels: %d, Blobs: %d, Score: %d", Label(), pixel_diff, alarm_pixels, alarm_filter_pixels, alarm_blob_pixels, alarm_blobs, score );
+		Debug( 3, "%s: Pixel Diff: %d, Alarm Pixels: %d, Filter Pixels: %d, Blob Pixels: %d, Blobs: %d, Score: %d", Label(), pixel_diff, alarm_pixels, alarm_filter_pixels, alarm_blob_pixels, alarm_blobs, score );
 	}
 	return( true );
 }

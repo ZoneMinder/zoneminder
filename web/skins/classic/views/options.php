@@ -247,6 +247,7 @@ elseif ( $tab == "users" )
         <table id="contentTable" class="major storageTable" cellspacing="0">
           <thead>
             <tr>
+              <th class="colId"><?php echo translate('Id') ?></th>
               <th class="colName"><?php echo translate('name') ?></th>
               <th class="colPath"><?php echo translate('path') ?></th>
               <th class="colMark"><?php echo translate('Mark') ?></th>
@@ -255,6 +256,7 @@ elseif ( $tab == "users" )
           <tbody>
 <?php foreach( dbFetchAll( 'SELECT * FROM Storage ORDER BY Name' ) as $row ) { ?>
             <tr>
+              <td class="colId"><?php echo makePopupLink( '?view=storage&amp;id='.$row['Id'], 'zmStorage', 'storage', validHtmlStr($row['Id']), $canEdit ) ?></td>
               <td class="colName"><?php echo makePopupLink( '?view=storage&amp;id='.$row['Id'], 'zmStorage', 'storage', validHtmlStr($row['Name']), $canEdit ) ?></td>
               <td class="colPath"><?php echo makePopupLink( '?view=storage&amp;id='.$row['Id'], 'zmStorage', 'storage', validHtmlStr($row['Path']), $canEdit ) ?></td>
               <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $row['Id'] ?>" onclick="configureDeleteButton( this );"<?php if ( !$canEdit ) { ?> disabled="disabled"<?php } ?>/></td>

@@ -1335,6 +1335,7 @@ bool Monitor::Analyse()
 
   if ( shared_data->action )
   {
+		// Can there be more than 1 bit set in the action?  Shouldn't these be elseifs?
     if ( shared_data->action & RELOAD )
     {
       Info( "Received reload indication at count %d", image_count );
@@ -1348,6 +1349,8 @@ bool Monitor::Analyse()
         Info( "Received suspend indication at count %d", image_count );
         shared_data->active = false;
         //closeEvent();
+			} else {
+        Info( "Received suspend indication at count %d, but wasn't active", image_count );
       }
       if ( config.max_suspend_time )
       {
@@ -1367,7 +1370,8 @@ bool Monitor::Analyse()
       }
       shared_data->action &= ~RESUME;
     }
-  }
+  } // end ifshared_data->action
+
   if ( auto_resume_time && (now.tv_sec >= auto_resume_time) )
   {
     Info( "Auto resuming at count %d", image_count );
@@ -1394,6 +1398,7 @@ bool Monitor::Analyse()
   {
     bool signal = shared_data->signal;
     bool signal_change = (signal != last_signal);
+	Debug(3, "Motion detection is enabled signal(%d) signal_change(%d)", signal, signal_change);
     
     //Set video recording flag for event start constructor and easy reference in code
         // TODO: Use enum instead of the # 2. Makes for easier reading
@@ -1457,7 +1462,11 @@ bool Monitor::Analyse()
           if ( !(image_count % (motion_frame_skip+1) ) )
           {
             // Get new score.
-            motion_score = last_motion_score = DetectMotion( *snap_image, zoneSet );
+            motion_score = DetectMotion( *snap_image, zoneSet );
+
+						Debug( 3, "After motion detection, last_motion_score(%d), new motion score(%d)", last_motion_score, motion_score );
+						// Why are we updating the last_motion_score too?
+						last_motion_score = motion_score;
           }
           //int motion_score = DetectBlack( *snap_image, zoneSet );
           if ( motion_score )
@@ -1519,27 +1528,27 @@ bool Monitor::Analyse()
             //TODO: We shouldn't have to do this every time. Not sure why it clears itself if this isn't here??
             snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
             
-            int section_mod = timestamp->tv_sec%section_length;
-            if ( section_mod < last_section_mod )
-            {
-              if ( state == IDLE || state == TAPE || event_close_mode == CLOSE_TIME )
-              {
-                if ( state == TAPE )
-                {
-                  shared_data->state = state = IDLE;
-                  Info( "%s: %03d - Closing event %d, section end", name, image_count, event->Id() )
-                }
-                else
-                  Info( "%s: %03d - Closing event %d, section end forced ", name, image_count, event->Id() );
-                closeEvent();
-                last_section_mod = 0;
-              }
-            }
-            else
-            {
-              last_section_mod = section_mod;
-            }
-          }
+					  if ( section_length ) {
+							int section_mod = timestamp->tv_sec%section_length;
+							Debug( 3, "Section length (%d) Last Section Mod(%d), new section mod(%d)", section_length, last_section_mod, section_mod );
+							if ( section_mod < last_section_mod ) {
+								//if ( state == IDLE || state == TAPE || event_close_mode == CLOSE_TIME ) {
+									//if ( state == TAPE ) {
+										//shared_data->state = state = IDLE;
+										//Info( "%s: %03d - Closing event %d, section end", name, image_count, event->Id() )
+									//} else {
+										Info( "%s: %03d - Closing event %d, section end forced ", name, image_count, event->Id() );
+									//}
+									closeEvent();
+									last_section_mod = 0;
+								//} else {
+									//Debug( 2, "Time to close event, but state (%d) is not IDLE or TAPE and event_close_mode is not CLOSE_TIME (%d)", state, event_close_mode );
+								//}
+							} else {
+								last_section_mod = section_mod;
+							}
+						}
+					} // end if section_length
           if ( !event )
           {
 

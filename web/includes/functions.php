@@ -1255,7 +1255,7 @@ function createListThumbnail( $event, $overwrite=false )
 
   $imageData = getImageSrc( $event, $frame, $scale, false, $overwrite );
   if ( ! $imageData ) {
-    return ( false );;
+    return ( false );
   }
   $thumbData = $frame;
   $thumbData['Path'] = $imageData['thumbPath'];

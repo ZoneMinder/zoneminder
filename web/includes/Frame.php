@@ -72,5 +72,37 @@ class Frame {
   public function getImageSrc( ) {
     return ZM_BASE_URL.'/index.php?view=image&fid='.$this->{'Id'};
   } // end function getImageSrc
+
+	public static function find( $parameters = array(), $limit = NULL ) {
+		$sql = 'SELECT * FROM Frames';
+		$values = array();
+		if ( sizeof($parameters) ) {
+			$sql .= ' WHERE ' . implode( ' AND ', array_map( 
+				function($v){ return $v.'=?'; }, 
+				array_keys( $parameters ) 
+				) );
+			$values = array_values( $parameters );
+		}
+		if ( $limit ) {
+			$sql .= ' LIMIT ' . $limit;
+		}
+Error("sql:$sql ". implode(",", $values));
+		$results = dbFetchAll( $sql, NULL, $values );
+		if ( $results ) {
+Error("results" . sizeof($results) );
+		  return array_map( function($id){ return new Frame($id); }, $results );
+		}
+Error("No results");
+
+	}
+
+	public static function find_one( $parameters = array() ) {
+	  $results = Frame::find( $parameters, 1 );
+	  if ( ! sizeof( $results ) ) {
+Debug("No Frame found");
+		  return;
+	  }
+	  return $results[0];
+	}
 } # end class
 ?>

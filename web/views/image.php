@@ -66,18 +66,38 @@ if ( empty($_REQUEST['path']) )
 	if ( ! empty($_REQUEST['fid']) ) {
 		if ( ! empty($_REQUEST['eid'] ) ) {
 			$Event = new Event( $_REQUEST['eid'] );
+			$Frame = Frame::find_one( array( 'EventId' => $_REQUEST['eid'], 'FrameId' => $_REQUEST['fid'] ) );
+			if ( ! $Frame ) {
+				Fatal("No Frame found for event(".$_REQUEST['eid'].") and frame id(".$_REQUEST['fid'].")");
+			}
 			$Storage = $Event->Storage();
-			$path = $Event->Relative_Path().'/'.sprintf("%'.0".ZM_EVENT_IMAGE_DIGITS.'d',$_REQUEST['fid']).'-capture.jpg';
+			$path = $Event->Path().'/'.sprintf("%'.0".ZM_EVENT_IMAGE_DIGITS.'d',$_REQUEST['fid']).'-capture.jpg';
 		} else {
 # If we are only specifying fid, then the fid must be the primary key into the frames table. But when the event is specified, then it is the frame #
 			$Frame = new Frame( $_REQUEST['fid'] );
 			$Event = new Event( $Frame->EventId() );
 			$Storage = $Event->Storage();
-			$path = $Event->Relative_Path().'/'.sprintf("%'.0".ZM_EVENT_IMAGE_DIGITS.'d',$Frame->FrameId()).'-capture.jpg';
+			$path = $Event->Path().'/'.sprintf("%'.0".ZM_EVENT_IMAGE_DIGITS.'d',$Frame->FrameId()).'-capture.jpg';
 		}
 	} else {
 		$errorText = "No image path";
 	}
+
+  if ( ! file_exists( $path ) ) {
+# Generate the frame JPG
+      if ( $Event->DefaultVideo() ) {
+        $command ='ffmpeg -i '.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
+        #$command ='ffmpeg -v 0 -i '.$Storage->Path().'/'.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
+        Debug( "Running $command" );
+        $output = array();
+        $retval = 0;
+        exec( $command, $output, $retval );
+        Debug("Retval: $retval, output: " . implode("\n", $output));
+      } else {
+        Fatal("Can't create frame images from video becuase there is no video file for this event (".$Event->DefaultVideo() );
+      }
+  }
+
 }
 else
 {
@@ -131,14 +151,14 @@ if ( $errorText ) {
 	Error( $errorText );
 } else {
 	if ( ( $scale==0 || $scale==100 ) && $width==0 && $height==0 ) {
-		if ( ! readfile( $Storage->Path().'/'.$path ) ) {
-			Error("No bytes read from ". $Storage->Path() . '/'.$path );
+		if ( ! readfile( $path ) ) {
+			Error("No bytes read from ". $path );
 		}
   } else {
 		Debug("Doing a scaled image: scale($scale) width($width) height($height)");
 		$i = 0;
 		if ( ! ( $width && $height ) ) {
-			$i = imagecreatefromjpeg( $Storage->Path().'/'.$path );
+			$i = imagecreatefromjpeg( $path );
 			$oldWidth = imagesx( $i );
 			$oldHeight = imagesy( $i );
 			if ( $width == 0 && $height == 0 ) { // scale has to be set to get here with both zero
@@ -155,17 +175,17 @@ if ( $errorText ) {
 		}
 	
 		# Slight optimisation, thumbnails always specify width and height, so we can cache them.
-		$scaled_path = $Storage->Path().'/'.preg_replace('/\.jpg$/', "-${width}x${height}.jpg", $path );
+		$scaled_path = preg_replace('/\.jpg$/', "-${width}x${height}.jpg", $path );
 		if ( file_exists( $scaled_path ) ) {
 			Debug( "Using cached scaled image at $scaled_path.");
-			if ( ! readfile( $Storage->Path().'/'.$path. "-${width}x${height}" ) ) {
-				Error("No bytes read from ". $Storage->Path() . '/'.$path );
+			if ( ! readfile( $scaled_path ) ) {
+				Error("No bytes read from scaled image". $scaled_path );
 			}
 		} else {
 			Debug( "Cached scaled image does not exist at $scaled_path. Creating it");
 			ob_start();
 			if ( ! $i )
-				$i = imagecreatefromjpeg( $Storage->Path().'/'.$path );
+				$i = imagecreatefromjpeg( $path );
 			$iScale = imagescale( $i, $width, $height );
 			imagejpeg( $iScale );
 			imagedestroy( $i );

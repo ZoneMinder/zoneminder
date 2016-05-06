@@ -32,6 +32,8 @@ if ( ! empty($_COOKIE['zmGroup']) ) {
 $maxWidth = 0;
 $maxHeight = 0;
 $cycleCount = 0;
+# minSequence and MaxSequence are used to determine whether the up and down arrows are greyed out or not.
+# Seems to me, we shouldn't need it, we could just test for 
 $minSequence = 0;
 $maxSequence = 1;
 $seqIdList = array();

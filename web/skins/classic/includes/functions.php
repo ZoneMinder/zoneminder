@@ -137,4 +137,122 @@ function xhtmlHeaders( $file, $title )
 </head>
 <?php
 }
+
+function getNavBarHTML() {
+
+$group = NULL;
+if ( ! empty($_COOKIE['zmGroup']) ) {
+	if ( $group = dbFetchOne( 'select * from Groups where Id = ?', NULL, array($_COOKIE['zmGroup'])) )
+		$groupIds = array_flip(explode( ',', $group['MonitorIds'] ));
+}
+
+# Used to determine if the Cycle button should be made available
+$cycleCount = 0;
+$monitors = dbFetchAll( "select * from Monitors order by Sequence asc" );
+$displayMonitors = array();
+for ( $i = 0; $i < count($monitors); $i++ )
+{
+    if ( !visibleMonitor( $monitors[$i]['Id'] ) )
+    {
+        continue;
+    }
+    if ( $group && !empty($groupIds) && !array_key_exists( $monitors[$i]['Id'], $groupIds ) )
+    {
+        continue;
+    }
+    if ( $monitors[$i]['Function'] != 'None' )
+    {
+        $cycleCount++;
+        $scaleWidth = reScale( $monitors[$i]['Width'], $monitors[$i]['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+        $scaleHeight = reScale( $monitors[$i]['Height'], $monitors[$i]['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+        if ( $maxWidth < $scaleWidth ) $maxWidth = $scaleWidth;
+        if ( $maxHeight < $scaleHeight ) $maxHeight = $scaleHeight;
+    }
+    $displayMonitors[] = $monitors[$i];
+}
+
+$cycleWidth = $maxWidth;
+$cycleHeight = $maxHeight;
+
+$eventsView = ZM_WEB_EVENTS_VIEW;
+$eventsWindow = 'zm'.ucfirst(ZM_WEB_EVENTS_VIEW);
+
+$eventCount = 0;
+for ( $i = 0; $i < count($eventCounts); $i++ )
+{
+    $eventCounts[$i]['total'] = 0;
+}
+$zoneCount = 0;
+foreach( $displayMonitors as $monitor )
+{
+    for ( $i = 0; $i < count($eventCounts); $i++ )
+    {
+        $eventCounts[$i]['total'] += $monitor['EventCount'.$i];
+    }
+    $zoneCount += $monitor['ZoneCount'];
+}
+
+$versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText':'';
+
+    ob_start();
+
+?>
+<div class="navbar navbar-inverse navbar-fixed-top">
+	<div class="container-fluid">
+		<div class="navbar-header">
+			<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#main-header-nav" aria-expanded="false">
+				<span class="sr-only">Toggle navigation</span>
+				<span class="icon-bar"></span>
+				<span class="icon-bar"></span>
+				<span class="icon-bar"></span>
+			</button>
+			<a class="navbar-brand" href="http://www.zoneminder.com" target="ZoneMinder">ZoneMinder</a>
+		</div>
+
+		<div class="collapse navbar-collapse" id="main-header-nav">
+		<ul class="nav navbar-nav">
+			<li><a href="?view=console"><?php echo translate('Console') ?></a></li>
+<?php if ( canView( 'System' ) ) { ?>
+			<li><a href="?view=options"><?php echo translate('Options') ?></a></li>
+			<li><?php if ( logToDatabase() > Logger::NOLOG ) { ?> <?php echo makePopupLink( '?view=log', 'zmLog', 'log', '<span class="'.logState().'">'.translate('Log').'</span>' ) ?><?php } ?></li>
+<?php } ?>
+<?php if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
+			<li><a href="/?view=devices">Devices</a></li>
+<?php } ?>
+			<li><?php echo makePopupLink( '?view=groups', 'zmGroups', 'groups', sprintf( $CLANG['MonitorCount'], count($displayMonitors), zmVlang( $VLANG['Monitor'], count($displayMonitors) ) ).($group?' ('.$group['Name'].')':''), canView( 'Groups' ) ); ?></li>
+			<li><?php echo makePopupLink( '?view=filter&amp;filter[terms][0][attr]=DateTime&amp;filter[terms][0][op]=%3c&amp;filter[terms][0][val]=now', 'zmFilter', 'filter', translate('Filters'), canView( 'Events' ) ) ?></li>
+
+<?php if ( canView( 'Stream' ) && $cycleCount > 1 ) {
+	$cycleGroup = isset($_COOKIE['zmGroup'])?$_COOKIE['zmGroup']:0;
+?>
+			<li class="dropdown">
+				<a href="#" class="dropdown-toggle" data-toggle="dropdown">Montage <span class="caret"></span></a>
+				<ul class="dropdown-menu">
+					<li><?php echo makePopupLink( '?view=cycle&amp;group='.$cycleGroup, 'zmCycle'.$cycleGroup, array( 'cycle', $cycleWidth, $cycleHeight ), translate('Cycle'), $running ) ?></li>
+					<li><?php echo makePopupLink( '?view=montage&amp;group='.$cycleGroup, 'zmMontage'.$cycleGroup, 'montage', translate('Montage'), $running ) ?></li>
+					<li><?php echo makePopupLink( '?view=montagereview&amp;group='.$cycleGroup, 'zmMontage'.$cycleGroup, 'montagereview', translate('Montage Review'), $running ) ?></li>
+				</ul>
+			</li>
+<?php } ?>
+		</ul>
+
+<div class="navbar-right">
+<?php if ( ZM_OPT_USE_AUTH ) { ?>
+	<p class="navbar-text"><?php echo translate('LoggedInAs') ?> <?php echo makePopupLink( '?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == "builtin") ) ?> </p>
+<?php } ?>
+
+<?php if ( canEdit( 'System' ) ) { ?>
+		<button type="button" class="btn btn-default navbar-btn" data-toggle="modal" data-target="#modalState"><?php echo $status ?></button>
+
+<?php } else if ( canView( 'System' ) ) { ?>
+		<p class="navbar-text"> <?php echo $status ?> </p>
+<?php } ?>
+</div>
+
+		</div><!-- End .navbar-collapse -->
+	</div> <!-- End .container-fluid -->
+</div> <!-- End .navbar .navbar-default -->
+<?php
+return( ob_get_clean() );
+}
 ?>

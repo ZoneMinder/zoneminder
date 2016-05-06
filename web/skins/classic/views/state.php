@@ -64,8 +64,6 @@ if ( !canEdit( 'System' ) ) {
           <button class="btn btn-primary" type="button" id="btnApply"><?php echo translate('Apply') ?></button>
           <button class="btn btn-primary" type="button" id="btnSave" disabled><?php echo translate('Save') ?></button>
           <button class="btn btn-danger" type="button" id="btnDelete" disabled><?php echo translate('Delete') ?></button>
-          <input type="hidden" name="view" value="none"/>
-          <input type="hidden" name="action" value="state"/>
           <p class="pull-left hidden" id="pleasewait"><?php echo translate('PleaseWait') ?></p>
 	      </div><!-- footer -->
       </div> <!-- content -->

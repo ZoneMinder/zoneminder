@@ -174,8 +174,6 @@ function getNavBarHTML() {
   $cycleWidth = $maxWidth;
   $cycleHeight = $maxHeight;
 
-  $eventsView = ZM_WEB_EVENTS_VIEW;
-  $eventsWindow = 'zm'.ucfirst(ZM_WEB_EVENTS_VIEW);
 
   $versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText':'';
 

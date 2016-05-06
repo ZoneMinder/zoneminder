@@ -85,7 +85,7 @@ $displayMonitors = NULL;
 $navbar = getNavBarHTML();
 $zoneCount = 0;
 
-for( $i = 0; $i < count($displayMonitors); $i += 1 ) { {
+for( $i = 0; $i < count($displayMonitors); $i += 1 ) {
   $monitor = $displayMonitors[$i];
   $monitor['zmc'] = zmcStatus( $monitor );
   $monitor['zma'] = zmaStatus( $monitor );
@@ -100,7 +100,7 @@ for( $i = 0; $i < count($displayMonitors); $i += 1 ) { {
   $sql = "select ".join($counts,", ")." from Events as E where MonitorId = ?";
   $counts = dbFetchOne( $sql, NULL, array($monitor['Id']) );
   if ( $counts ) $displayMonitors[$i] = array_merge( $monitor, $counts );
-  for ( $i = 0; $j < count($eventCounts); $j++ ) {
+  for ( $j = 0; $j < count($eventCounts); $j++ ) {
     $eventCounts[$j]['total'] += $monitor['EventCount'.$j];
   }
   $zoneCount += $monitor['ZoneCount'];
@@ -110,6 +110,8 @@ noCacheHeaders();
 
 $seqUpFile = getSkinFile( 'graphics/seq-u.gif' );
 $seqDownFile = getSkinFile( 'graphics/seq-d.gif' );
+  $eventsView = ZM_WEB_EVENTS_VIEW;
+  $eventsWindow = 'zm'.ucfirst(ZM_WEB_EVENTS_VIEW);
 
 xhtmlHeaders( __FILE__, translate('Console') );
 ?>

@@ -140,49 +140,46 @@ function xhtmlHeaders( $file, $title )
 
 function getNavBarHTML() {
 
-$group = NULL;
-if ( ! empty($_COOKIE['zmGroup']) ) {
-	if ( $group = dbFetchOne( 'select * from Groups where Id = ?', NULL, array($_COOKIE['zmGroup'])) )
-		$groupIds = array_flip(explode( ',', $group['MonitorIds'] ));
-}
+  $group = NULL;
+  if ( ! empty($_COOKIE['zmGroup']) ) {
+	  if ( $group = dbFetchOne( 'select * from Groups where Id = ?', NULL, array($_COOKIE['zmGroup'])) )
+		  $groupIds = array_flip(explode( ',', $group['MonitorIds'] ));
+  }
 
-$maxWidth = 0;
-$maxHeight = 0;
-# Used to determine if the Cycle button should be made available
-$cycleCount = 0;
-$monitors = dbFetchAll( "select * from Monitors order by Sequence asc" );
-$displayMonitors = array();
-for ( $i = 0; $i < count($monitors); $i++ )
-{
-    if ( !visibleMonitor( $monitors[$i]['Id'] ) )
-    {
-        continue;
+  $maxWidth = 0;
+  $maxHeight = 0;
+  # Used to determine if the Cycle button should be made available
+  $cycleCount = 0;
+  $monitors = dbFetchAll( "select * from Monitors order by Sequence asc" );
+  $displayMonitors = array();
+  for ( $i = 0; $i < count($monitors); $i++ ) {
+    if ( !visibleMonitor( $monitors[$i]['Id'] ) ) {
+      continue;
     }
-    if ( $group && !empty($groupIds) && !array_key_exists( $monitors[$i]['Id'], $groupIds ) )
-    {
-        continue;
+    if ( $group && !empty($groupIds) && !array_key_exists( $monitors[$i]['Id'], $groupIds ) ) {
+      continue;
     }
-    if ( $monitors[$i]['Function'] != 'None' )
-    {
-        $cycleCount++;
-        $scaleWidth = reScale( $monitors[$i]['Width'], $monitors[$i]['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
-        $scaleHeight = reScale( $monitors[$i]['Height'], $monitors[$i]['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
-        if ( $maxWidth < $scaleWidth ) $maxWidth = $scaleWidth;
-        if ( $maxHeight < $scaleHeight ) $maxHeight = $scaleHeight;
+    if ( $monitors[$i]['Function'] != 'None' ) {
+      $cycleCount++;
+      $scaleWidth = reScale( $monitors[$i]['Width'], $monitors[$i]['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+      $scaleHeight = reScale( $monitors[$i]['Height'], $monitors[$i]['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+      if ( $maxWidth < $scaleWidth ) $maxWidth = $scaleWidth;
+      if ( $maxHeight < $scaleHeight ) $maxHeight = $scaleHeight;
     }
     $displayMonitors[] = $monitors[$i];
-}
+  }
 
-$cycleWidth = $maxWidth;
-$cycleHeight = $maxHeight;
+  $cycleWidth = $maxWidth;
+  $cycleHeight = $maxHeight;
 
-$eventsView = ZM_WEB_EVENTS_VIEW;
-$eventsWindow = 'zm'.ucfirst(ZM_WEB_EVENTS_VIEW);
+  $eventsView = ZM_WEB_EVENTS_VIEW;
+  $eventsWindow = 'zm'.ucfirst(ZM_WEB_EVENTS_VIEW);
 
+  $versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText':'';
 
-$versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText':'';
-
-    ob_start();
+  ob_start();
+  global $CLANG;
+  global $VLANG;
 
 ?>
 <div class="navbar navbar-inverse navbar-fixed-top">

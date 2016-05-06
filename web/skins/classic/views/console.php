@@ -204,8 +204,8 @@ echo $Server->Name();
     {
 ?>
             <td class="colOrder">
-              <?php echo makeLink( '?view='.$view.'&amp;action=sequence&amp;mid='.$monitor['Id'].'&amp;smid='.$seqIdUpList[$monitor['Id']], '<img src="'.$seqUpFile.'" alt="Up"/>', $i>0 ) ?>
-              <?php echo makeLink( '?view='.$view.'&amp;action=sequence&amp;mid='.$monitor['Id'].'&amp;smid='.$seqIdDownList[$monitor['Id']], '<img src="'.$seqDownFile.'" alt="Down"/>', $i<count($displayMonitors)-1 ) ?>
+              <?php echo makeLink( '?view='.$view.'&amp;action=sequence&amp;mid='.$monitor['Id'].'&amp;smid='.$displayMonitors[$monitor_i-1]['Id'], '<img src="'.$seqUpFile.'" alt="Up"/>', $i>0 ) ?>
+              <?php echo makeLink( '?view='.$view.'&amp;action=sequence&amp;mid='.$monitor['Id'].'&amp;smid='.$displayMonitors[$monitor_i+1]['Id'], '<img src="'.$seqDownFile.'" alt="Down"/>', $i<count($displayMonitors)-1 ) ?>
             </td>
 <?php
     }

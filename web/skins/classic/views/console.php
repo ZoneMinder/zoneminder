@@ -30,6 +30,7 @@ $eventCounts = array(
             "terms" => array(
             )
         ),
+        "total" => 0,
     ),
     array(
         "title" => translate('Hour'),
@@ -38,6 +39,7 @@ $eventCounts = array(
                 array( "attr" => "DateTime", "op" => ">=", "val" => "-1 hour" ),
             )
         ),
+        "total" => 0,
     ),
     array(
         "title" => translate('Day'),
@@ -46,6 +48,7 @@ $eventCounts = array(
                 array( "attr" => "DateTime", "op" => ">=", "val" => "-1 day" ),
             )
         ),
+        "total" => 0,
     ),
     array(
         "title" => translate('Week'),
@@ -54,6 +57,7 @@ $eventCounts = array(
                 array( "attr" => "DateTime", "op" => ">=", "val" => "-7 day" ),
             )
         ),
+        "total" => 0,
     ),
     array(
         "title" => translate('Month'),
@@ -62,6 +66,7 @@ $eventCounts = array(
                 array( "attr" => "DateTime", "op" => ">=", "val" => "-1 month" ),
             )
         ),
+        "total" => 0,
     ),
     array(
         "title" => translate('Archived'),
@@ -70,6 +75,7 @@ $eventCounts = array(
                 array( "attr" => "Archived", "op" => "=", "val" => "1" ),
             )
         ),
+        "total" => 0,
     ),
 );
 
@@ -77,6 +83,7 @@ $displayMonitors = NULL;
 
 # Also populates displayMonitors
 $navbar = getNavBarHTML();
+$zoneCount = 0;
 
 foreach( $displayMonitors as $monitor ) {
   $monitor['zmc'] = zmcStatus( $monitor );
@@ -92,6 +99,10 @@ foreach( $displayMonitors as $monitor ) {
   $sql = "select ".join($counts,", ")." from Events as E where MonitorId = ?";
   $counts = dbFetchOne( $sql, NULL, array($monitor['Id']) );
   if ( $counts ) $monitor = array_merge( $monitor, $counts );
+  for ( $i = 0; $i < count($eventCounts); $i++ ) {
+    $eventCounts[$i]['total'] += $monitor['EventCount'.$i];
+  }
+  $zoneCount += $monitor['ZoneCount'];
 }
 
 noCacheHeaders();

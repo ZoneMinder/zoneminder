@@ -177,20 +177,6 @@ $cycleHeight = $maxHeight;
 $eventsView = ZM_WEB_EVENTS_VIEW;
 $eventsWindow = 'zm'.ucfirst(ZM_WEB_EVENTS_VIEW);
 
-$eventCount = 0;
-for ( $i = 0; $i < count($eventCounts); $i++ )
-{
-    $eventCounts[$i]['total'] = 0;
-}
-$zoneCount = 0;
-foreach( $displayMonitors as $monitor )
-{
-    for ( $i = 0; $i < count($eventCounts); $i++ )
-    {
-        $eventCounts[$i]['total'] += $monitor['EventCount'.$i];
-    }
-    $zoneCount += $monitor['ZoneCount'];
-}
 
 $versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText':'';
 

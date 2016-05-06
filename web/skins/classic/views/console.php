@@ -70,7 +70,7 @@ $eventCounts = array(
     ),
 );
 
-$displayMonitors = NULL:
+$displayMonitors = NULL;
 
 # Also populates displayMonitors
 $navbar = getNavBarHTML();

@@ -91,7 +91,7 @@ for( $i = 0; $i < count($displayMonitors); $i += 1 ) {
   $monitor['zma'] = zmaStatus( $monitor );
   $monitor['ZoneCount'] = dbFetchOne( 'select count(Id) as ZoneCount from Zones where MonitorId = ?', 'ZoneCount', array($monitor['Id']) );
   $counts = array();
-  for ( $j = 0; $j < count($eventCounts); $j++ ) {
+  for ( $j = 0; $j < count($eventCounts); $j += 1 ) {
     $filter = addFilterTerm( $eventCounts[$j]['filter'], count($eventCounts[$j]['filter']['terms']), array( "cnj" => "and", "attr" => "MonitorId", "op" => "=", "val" => $monitor['Id'] ) );
     parseFilter( $filter );
     $counts[] = "count(if(1".$filter['sql'].",1,NULL)) as EventCount$j";
@@ -99,8 +99,9 @@ for( $i = 0; $i < count($displayMonitors); $i += 1 ) {
   }
   $sql = "select ".join($counts,", ")." from Events as E where MonitorId = ?";
   $counts = dbFetchOne( $sql, NULL, array($monitor['Id']) );
-  if ( $counts ) $displayMonitors[$i] = array_merge( $monitor, $counts );
-  for ( $j = 0; $j < count($eventCounts); $j++ ) {
+  if ( $counts )
+    $displayMonitors[$i] = $monitor = array_merge( $monitor, $counts );
+  for ( $j = 0; $j < count($eventCounts); $j += 1 ) {
     $eventCounts[$j]['total'] += $monitor['EventCount'.$j];
   }
   $zoneCount += $monitor['ZoneCount'];

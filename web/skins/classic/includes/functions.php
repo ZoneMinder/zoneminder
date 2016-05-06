@@ -152,6 +152,7 @@ function getNavBarHTML() {
   # Used to determine if the Cycle button should be made available
   $cycleCount = 0;
   $monitors = dbFetchAll( "select * from Monitors order by Sequence asc" );
+  global $displayMonitors;
   $displayMonitors = array();
   for ( $i = 0; $i < count($monitors); $i++ ) {
     if ( !visibleMonitor( $monitors[$i]['Id'] ) ) {

@@ -77,9 +77,7 @@ Error("setting css $current_css to " .  $_GET['css-choice']);
 
 ?>
 <body>
-
-    <?php include("skins/$skin/views/header.php") ?>
-
+<?php echo getNavBarHTML(); ?>
     <div class="container-fluid">
 <div class="row">
 	<div class="col-sm-2 sidebar">

@@ -114,7 +114,7 @@ xhtmlHeaders( __FILE__, translate('Console') );
     <input type="hidden" name="view" value="<?php echo $view ?>"/>
     <input type="hidden" name="action" value=""/>
 
-    <?php include("skins/$skin/views/header.php") ?>
+    <?php echo $navbar ?>
 
     <div class="container-fluid">
       <table class="table table-striped table-hover table-condensed">

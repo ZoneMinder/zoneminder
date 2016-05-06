@@ -110,8 +110,8 @@ noCacheHeaders();
 
 $seqUpFile = getSkinFile( 'graphics/seq-u.gif' );
 $seqDownFile = getSkinFile( 'graphics/seq-d.gif' );
-  $eventsView = ZM_WEB_EVENTS_VIEW;
-  $eventsWindow = 'zm'.ucfirst(ZM_WEB_EVENTS_VIEW);
+$eventsView = ZM_WEB_EVENTS_VIEW;
+$eventsWindow = 'zm'.ucfirst(ZM_WEB_EVENTS_VIEW);
 
 xhtmlHeaders( __FILE__, translate('Console') );
 ?>

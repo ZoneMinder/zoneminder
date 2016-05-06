@@ -204,8 +204,18 @@ echo $Server->Name();
     {
 ?>
             <td class="colOrder">
-              <?php echo makeLink( '?view='.$view.'&amp;action=sequence&amp;mid='.$monitor['Id'].'&amp;smid='.$displayMonitors[$monitor_i-1]['Id'], '<img src="'.$seqUpFile.'" alt="Up"/>', $i>0 ) ?>
-              <?php echo makeLink( '?view='.$view.'&amp;action=sequence&amp;mid='.$monitor['Id'].'&amp;smid='.$displayMonitors[$monitor_i+1]['Id'], '<img src="'.$seqDownFile.'" alt="Down"/>', $i<count($displayMonitors)-1 ) ?>
+<?php 
+  if ( $monitor_i ) {
+    echo makeLink( '?view='.$view.'&amp;action=sequence&amp;mid='.$monitor['Id'].'&amp;smid='.$displayMonitors[$monitor_i-1]['Id'], '<img src="'.$seqUpFile.'" alt="Up"/>' );
+  } else {
+    echo '<img src="'.$seqUpFile.'" alt="Up"/>';
+  }
+  if ( $monitor_i<count($displayMonitors)-1 ) {
+    echo makeLink( '?view='.$view.'&amp;action=sequence&amp;mid='.$monitor['Id'].'&amp;smid='.$displayMonitors[$monitor_i+1]['Id'], '<img src="'.$seqDownFile.'" alt="Down"/>' );
+  } else {
+    echo '<img src="'.$seqDownFile.'" alt="Down"/>';
+  }
+?>
             </td>
 <?php
     }

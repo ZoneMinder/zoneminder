@@ -181,7 +181,6 @@ for ( $i = 0; $i < count($eventCounts); $i++ )
         </tfoot>
         <tbody>
 <?php
-#foreach( $displayMonitors as $monitor )
 for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   $monitor = $displayMonitors[$monitor_i];
 ?>

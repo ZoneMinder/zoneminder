@@ -180,7 +180,11 @@ function getNavBarHTML() {
   ob_start();
   global $CLANG;
   global $VLANG;
-
+  global $CLANG;
+  global $VLANG;
+  global $status;
+  global $running;
+  global $user;
 ?>
 <div class="navbar navbar-inverse navbar-fixed-top">
 	<div class="container-fluid">

@@ -146,6 +146,8 @@ if ( ! empty($_COOKIE['zmGroup']) ) {
 		$groupIds = array_flip(explode( ',', $group['MonitorIds'] ));
 }
 
+$maxWidth = 0;
+$maxHeight = 0;
 # Used to determine if the Cycle button should be made available
 $cycleCount = 0;
 $monitors = dbFetchAll( "select * from Monitors order by Sequence asc" );

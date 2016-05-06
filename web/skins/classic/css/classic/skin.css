@@ -451,10 +451,10 @@ th.table-th-sort-rev span.table-th-sort-span {
 .navbar{
 	margin-bottom: 0 !important;
 	border-radius: 0;
+	color: #03A9F4 !important;
 }
 
 .navbar-brand {
-	color: #03A9F4 !important;
 	font-weight: bold;
 	font-size: 20px;
 }

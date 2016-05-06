@@ -185,8 +185,9 @@ function getNavBarHTML() {
   global $status;
   global $running;
   global $user;
+  global $bwArray;
 ?>
-<div class="navbar navbar-inverse navbar-fixed-top">
+<div class="navbar navbar-inverse navbar-static-top">
 	<div class="container-fluid">
 		<div class="navbar-header">
 			<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#main-header-nav" aria-expanded="false">
@@ -237,9 +238,21 @@ function getNavBarHTML() {
 		<p class="navbar-text"> <?php echo $status ?> </p>
 <?php } ?>
 </div>
-
 		</div><!-- End .navbar-collapse -->
 	</div> <!-- End .container-fluid -->
+	<div class="container-fluid">
+  <div class="pull-left">
+    <?php echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', $bwArray[$_COOKIE['zmBandwidth']], ($user && $user['MaxBandwidth'] != 'low' ) ) ?> <?php echo translate('BandwidthHead') ?>
+  </div>
+  <div class="pull-right">
+	  <?php echo makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="'.$versionClass.'">v'.ZM_VERSION.'</span>', canEdit( 'System' ) ) ?>
+  </div>
+  <ul class="list-inline">
+	  <li><?php echo translate('Load') ?>: <?php echo getLoad() ?></li>
+	  <li><?php echo translate('Disk') ?>: <?php echo getDiskPercent() ?>%</li>
+  </ul>
+</div> <!-- End .footer -->
+
 </div> <!-- End .navbar .navbar-default -->
 <?php
 return( ob_get_clean() );

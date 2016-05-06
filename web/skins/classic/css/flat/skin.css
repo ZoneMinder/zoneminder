@@ -491,6 +491,16 @@ input[type=submit]:disabled {
     background-color: #f2f2f2;  
 }
 
+.navbar{
+	margin-bottom: 0 !important;
+	border-radius: 0;
+	color: #03A9F4 !important;
+}
+
+.navbar-brand {
+	font-weight: bold;
+	font-size: 20px;
+}
 .sidebar {
     position: fixed;
     top: 51px;

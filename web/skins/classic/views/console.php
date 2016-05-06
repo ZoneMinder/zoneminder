@@ -70,6 +70,27 @@ $eventCounts = array(
     ),
 );
 
+$displayMonitors = NULL:
+
+# Also populates displayMonitors
+$navbar = getNavBarHTML();
+
+foreach( $displayMonitors as $monitor )
+    $monitor['zmc'] = zmcStatus( $monitor );
+    $monitor['zma'] = zmaStatus( $monitor );
+    $monitor['ZoneCount'] = dbFetchOne( 'select count(Id) as ZoneCount from Zones where MonitorId = ?', 'ZoneCount', array($monitor['Id']) );
+    $counts = array();
+    for ( $j = 0; $j < count($eventCounts); $j++ )
+    {
+        $filter = addFilterTerm( $eventCounts[$j]['filter'], count($eventCounts[$j]['filter']['terms']), array( "cnj" => "and", "attr" => "MonitorId", "op" => "=", "val" => $monitor['Id'] ) );
+        parseFilter( $filter );
+        $counts[] = "count(if(1".$filter['sql'].",1,NULL)) as EventCount$j";
+        $monitor['eventCounts'][$j]['filter'] = $filter;
+    }
+    $sql = "select ".join($counts,", ")." from Events as E where MonitorId = ?";
+    $counts = dbFetchOne( $sql, NULL, array($monitor['Id']) );
+    if ( $counts ) $monitor = array_merge( $monitor, $counts );
+}
 
 noCacheHeaders();
 

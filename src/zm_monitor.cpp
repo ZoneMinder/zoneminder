@@ -387,6 +387,7 @@ Monitor::Monitor(
   mem_ptr = NULL;
 
   if ( purpose == CAPTURE ) {
+
     this->connect();
     if ( ! mem_ptr ) exit(-1);
     memset( mem_ptr, 0, mem_size );
@@ -503,6 +504,7 @@ Monitor::Monitor(
 }
 
 bool Monitor::connect() {
+	Debug(3, "Connecting to monitor.  Purpose is %d", purpose ); 
 #if ZM_MEM_MAPPED
   snprintf( mem_file, sizeof(mem_file), "%s/zm.mmap.%d", config.path_map, id );
   map_fd = open( mem_file, O_RDWR|O_CREAT, (mode_t)0600 );
@@ -562,6 +564,7 @@ bool Monitor::connect() {
     Debug(3,"Aligning shared memory images to the next 16 byte boundary");
     shared_images = (uint8_t*)((unsigned long)shared_images + (16 - ((unsigned long)shared_images % 16)));
   }
+	Debug(3, "Allocating %d image buffers", image_buffer_count );
   image_buffer = new Snapshot[image_buffer_count];
   for ( int i = 0; i < image_buffer_count; i++ ) {
     image_buffer[i].timestamp = &(shared_timestamps[i]);

@@ -36,7 +36,6 @@ $cycleCount = 0;
 # Seems to me, we shouldn't need it, we could just test for 
 $minSequence = 0;
 $maxSequence = 1;
-$seqIdList = array();
 $monitors = dbFetchAll( "select * from Monitors order by Sequence asc" );
 $displayMonitors = array();
 for ( $i = 0; $i < count($monitors); $i++ )
@@ -80,28 +79,7 @@ for ( $i = 0; $i < count($monitors); $i++ )
         if ( $maxHeight < $scaleHeight ) $maxHeight = $scaleHeight;
     }
     if ( $counts ) $monitors[$i] = array_merge( $monitors[$i], $counts );
-    $seqIdList[] = $monitors[$i]['Id'];
     $displayMonitors[] = $monitors[$i];
-}
-$lastId = 0;
-$seqIdUpList = array();
-foreach ( $seqIdList as $seqId )
-{
-    if ( !empty($lastId) )
-        $seqIdUpList[$seqId] = $lastId;
-    else
-        $seqIdUpList[$seqId] = $seqId;
-    $lastId = $seqId;
-}
-$lastId = 0;
-$seqIdDownList = array();
-foreach ( array_reverse($seqIdList) as $seqId )
-{
-    if ( !empty($lastId) )
-        $seqIdDownList[$seqId] = $lastId;
-    else
-        $seqIdDownList[$seqId] = $seqId;
-    $lastId = $seqId;
 }
 
 $cycleWidth = $maxWidth;

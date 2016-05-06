@@ -18,79 +18,57 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-if ( !canEdit( 'System' ) )
-{
-    $view = "error";
-    return;
+if ( !canEdit( 'System' ) ) {
+  $view = "error";
+  return;
 }
-
 ?>
-  <div id="modalState" class="modal fade">
-<form class="form-horizontal" name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+<div id="modalState" class="modal fade">
+  <form class="form-horizontal" name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
     <div class="modal-dialog">
       <div class="modal-content">
-
         <div class="modal-header">
-	  <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+	        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
           <h2 class="modal-title"><?php echo translate('RunState') ?></h2>
         </div>
+        <div class="modal-body">
+          <input type="hidden" name="view" value="<?php echo $view ?>"/>
+          <input type="hidden" name="action" value="state"/>
+          <input type="hidden" name="apply" value="1"/>
 
-    <div class="modal-body">
-        <input type="hidden" name="view" value="<?php echo $view ?>"/>
-        <input type="hidden" name="action" value="state"/>
-        <input type="hidden" name="apply" value="1"/>
-
-	<div class="form-group">
-	<label for="runState" class="col-sm-3 control-label">Change State</label>
-	<div class="col-sm-9">
-          <select id="runState" name="runState" class="form-control">
-<?php
-    if ( $running )
-    {
+	        <div class="form-group">
+	          <label for="runState" class="col-sm-3 control-label">Change State</label>
+	          <div class="col-sm-9">
+              <select id="runState" name="runState" class="form-control">
+<?php if ( $running ) { ?>
+                <option value="stop" selected="selected"><?php echo translate('Stop') ?></option>
+                <option value="restart"><?php echo translate('Restart') ?></option>
+<?php } else { ?>
+                <option value="start" selected="selected"><?php echo translate('Start') ?></option>
+<?php }
 ?>
-            <option value="stop" selected="selected"><?php echo translate('Stop') ?></option>
-            <option value="restart"><?php echo translate('Restart') ?></option>
-<?php
-    }
-    else
-    {
-?>
-            <option value="start" selected="selected"><?php echo translate('Start') ?></option>
-<?php
-    }
-?>
-<?php
-    foreach ( $states as $state )
-    {
-?>
-            <option value="<?php echo $state['Name'] ?>"><?php echo $state['Name'] ?></option>
-<?php
-    }
-?>
-          </select>
-	</div>
-	</div>
-
-	<div class="form-group">
-              <label for="newState" class="col-sm-3 control-label"><?php echo translate('NewState') ?></label>
-		<div class="col-sm-9">
+<?php foreach ( $states as $state ) { ?>
+                <option value="<?php echo $state['Name'] ?>"><?php echo $state['Name'] ?></option>
+<?php } ?>
+              </select>
+	          </div><!--col-sm-9-->
+	        </div><!--form-group-->
+	        <div class="form-group">
+            <label for="newState" class="col-sm-3 control-label"><?php echo translate('NewState') ?></label>
+		        <div class="col-sm-9">
               <input class="form-control" type="text" id="newState"/>
-		</div>
-	</div>
-
-    </div> <!-- body -->
+		        </div>
+	        </div>
+        </div> <!-- modal-body -->
         <div class="modal-footer">
           <button class="btn btn-primary" type="button" id="btnApply"><?php echo translate('Apply') ?></button>
           <button class="btn btn-primary" type="button" id="btnSave" disabled><?php echo translate('Save') ?></button>
           <button class="btn btn-danger" type="button" id="btnDelete" disabled><?php echo translate('Delete') ?></button>
-
-        <input type="hidden" name="view" value="none"/>
-        <input type="hidden" name="action" value="state"/>
-        <input type="hidden" name="runState" value="<?php echo validHtmlStr($_REQUEST['runState']) ?>"/>
-        <p class="pull-left hidden" id="pleasewait"><?php echo translate('PleaseWait') ?></p>
-	</div><!-- footer -->
-
-  </div> <!-- content -->
-</div> <!-- dialog -->
-</form>
+          <input type="hidden" name="view" value="none"/>
+          <input type="hidden" name="action" value="state"/>
+          <p class="pull-left hidden" id="pleasewait"><?php echo translate('PleaseWait') ?></p>
+	      </div><!-- footer -->
+      </div> <!-- content -->
+    </div> <!-- dialog -->
+  </form>
 </div> <!-- state -->

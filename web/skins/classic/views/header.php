@@ -18,7 +18,6 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-$running = daemonCheck();
 $states = dbFetchAll( "select * from States" );
 $status = $running?translate('Running'):translate('Stopped');
 $run_state = dbFetchOne('select Name from States where  IsActive = 1', 'Name' );

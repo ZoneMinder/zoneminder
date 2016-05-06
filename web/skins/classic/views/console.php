@@ -82,7 +82,8 @@ $displayMonitors = NULL;
 $navbar = getNavBarHTML();
 $zoneCount = 0;
 
-foreach( $displayMonitors as $monitor ) {
+for( $i = 0; $i < count($displayMonitors); $i += 1 ) { {
+  $monitor = $displayMonitors[$i];
   $monitor['zmc'] = zmcStatus( $monitor );
   $monitor['zma'] = zmaStatus( $monitor );
   $monitor['ZoneCount'] = dbFetchOne( 'select count(Id) as ZoneCount from Zones where MonitorId = ?', 'ZoneCount', array($monitor['Id']) );
@@ -95,9 +96,9 @@ foreach( $displayMonitors as $monitor ) {
   }
   $sql = "select ".join($counts,", ")." from Events as E where MonitorId = ?";
   $counts = dbFetchOne( $sql, NULL, array($monitor['Id']) );
-  if ( $counts ) $monitor = array_merge( $monitor, $counts );
-  for ( $i = 0; $i < count($eventCounts); $i++ ) {
-    $eventCounts[$i]['total'] += $monitor['EventCount'.$i];
+  if ( $counts ) $displayMonitors[$i] = array_merge( $monitor, $counts );
+  for ( $i = 0; $j < count($eventCounts); $j++ ) {
+    $eventCounts[$j]['total'] += $monitor['EventCount'.$j];
   }
   $zoneCount += $monitor['ZoneCount'];
 }
@@ -167,9 +168,7 @@ for ( $i = 0; $i < count($eventCounts); $i++ )
         </tfoot>
         <tbody>
 <?php
-#foreach( $displayMonitors as $monitor )
-for( $i = 0; $i < count($displayMonitors); $i += 1 ) {
-{
+for( $i = 0; $i < count($displayMonitors); $i += 1 ) { {
   $monitor = $displayMonitors[$i];
 ?>
           <tr>

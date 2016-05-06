@@ -149,8 +149,9 @@ for ( $i = 0; $i < count($eventCounts); $i++ )
         </tfoot>
         <tbody>
 <?php
-foreach( $displayMonitors as $monitor )
-{
+#foreach( $displayMonitors as $monitor )
+for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
+  $monitor = $displayMonitors[$monitor_i];
 ?>
           <tr title="<?php echo $monitor['Id'] ?>">
 <?php
@@ -220,14 +221,16 @@ echo $Storage->Name();
     if ( canEdit('Monitors') )
     {
 ?>
-            <td class="colOrder"><?php echo makeLink( '?view='.$view.'&amp;action=sequence&amp;mid='.$monitor['Id'].'&amp;smid='.$seqIdUpList[$monitor['Id']], '<img src="'.$seqUpFile.'" alt="Up"/>', $monitor['Sequence']>$minSequence ) ?><?php echo makeLink( '?view='.$view.'&amp;action=sequence&amp;mid='.$monitor['Id'].'&amp;smid='.$seqIdDownList[$monitor['Id']], '<img src="'.$seqDownFile.'" alt="Down"/>', $monitor['Sequence']<$maxSequence ) ?></td>
+            <td class="colOrder">
+              <?php echo makeLink( '?view='.$view.'&amp;action=sequence&amp;mid='.$monitor['Id'].'&amp;smid='.$seqIdUpList[$monitor['Id']], '<img src="'.$seqUpFile.'" alt="Up"/>', $monitor_i > 0 ) ?>
+              <?php echo makeLink( '?view='.$view.'&amp;action=sequence&amp;mid='.$monitor['Id'].'&amp;smid='.$seqIdDownList[$monitor['Id']], '<img src="'.$seqDownFile.'" alt="Down"/>', $monitor_i<count($displayMonitors)-1 ) ?></td>
 <?php
     }
 ?>
             <td class="colMark"><input type="checkbox" name="markMids[]" value="<?php echo $monitor['Id'] ?>" onclick="setButtonStates( this )"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></td>
           </tr>
 <?php
-}
+} # end for eacho monitor
 ?>
         </tbody>
       </table>

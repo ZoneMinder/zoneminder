@@ -168,8 +168,8 @@ for ( $i = 0; $i < count($eventCounts); $i++ )
         </tfoot>
         <tbody>
 <?php
-for( $i = 0; $i < count($displayMonitors); $i += 1 ) { {
-  $monitor = $displayMonitors[$i];
+for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) { {
+  $monitor = $displayMonitors[$monitor_i];
 ?>
           <tr>
 <?php

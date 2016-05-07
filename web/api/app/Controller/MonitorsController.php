@@ -138,7 +138,8 @@ public function beforeFilter() {
 			'_serialize' => array('message')
 		));
 		// - restart this monitor after change
-		$this->daemonControl($this->Monitor->id, 'restart', $this->request->data);
+    // We don't pass the request data as the monitor object because it may be a subset of the full monitor array
+		$this->daemonControl( $this->Monitor->id, 'restart' );
 	}
 
 /**

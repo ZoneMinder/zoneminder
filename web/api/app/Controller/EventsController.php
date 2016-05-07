@@ -253,11 +253,20 @@ public function beforeFilter() {
 		
 	}
 
-	public function consoleEvents($interval = null, $aframes = 0) {
+	// format expected:
+	// you can changed AlarmFrames to any other named params
+	// consoleEvents/1 hour/AlarmFrames >=: 1/AlarmFrames <=: 20.json
+
+	public function consoleEvents($interval = null) {
 		$this->Event->recursive = -1;
 		$results = array();
 
-		$query = $this->Event->query("select MonitorId, COUNT(*) AS Count from Events WHERE (StartTime >= (DATE_SUB(NOW(), interval $interval)) AND AlarmFrames >=$aframes) GROUP BY MonitorId;");
+		$moreconditions ="";
+		foreach ($this->request->params['named'] as $name => $param) {
+		   $moreconditions = $moreconditions . " AND ".$name.$param;
+		}	
+		
+		$query = $this->Event->query("select MonitorId, COUNT(*) AS Count from Events WHERE (StartTime >= (DATE_SUB(NOW(), interval $interval)) $moreconditions) GROUP BY MonitorId;");
 
 		foreach ($query as $result) {
 			$results[$result['Events']['MonitorId']] = $result[0]['Count'];

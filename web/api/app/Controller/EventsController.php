@@ -253,11 +253,11 @@ public function beforeFilter() {
 		
 	}
 
-	public function consoleEvents($interval = null) {
+	public function consoleEvents($interval = null, $aframes = 0) {
 		$this->Event->recursive = -1;
 		$results = array();
 
-		$query = $this->Event->query("select MonitorId, COUNT(*) AS Count from Events WHERE StartTime >= (DATE_SUB(NOW(), interval $interval)) GROUP BY MonitorId;");
+		$query = $this->Event->query("select MonitorId, COUNT(*) AS Count from Events WHERE (StartTime >= (DATE_SUB(NOW(), interval $interval)) AND AlarmFrames >=$aframes) GROUP BY MonitorId;");
 
 		foreach ($query as $result) {
 			$results[$result['Events']['MonitorId']] = $result[0]['Count'];

@@ -27,6 +27,7 @@ body {
     color: #333333;
     font-weight: 300;
     text-align: center;
+    padding-top:81px;
 }
 
 h1 {
@@ -503,7 +504,7 @@ input[type=submit]:disabled {
 }
 .sidebar {
     position: fixed;
-    top: 51px;
+    top: 81px;
     bottom: 0;
     left: 0;
     z-index: 1000;

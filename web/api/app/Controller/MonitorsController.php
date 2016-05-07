@@ -198,6 +198,13 @@ public function beforeFilter() {
 		{
 			throw new BadRequestException(__('Invalid command'));
 		}
+
+		if ($this->Session->Read('systemPermission') != 'Edit')
+                {        
+                         throw new UnauthorizedException(__('Insufficient privileges'));
+                        return;
+                }
+
 		$zm_path_bin = Configure::read('ZM_PATH_BIN');
 		$q = ($cmd == 'on') ? '-a':'-c';
 

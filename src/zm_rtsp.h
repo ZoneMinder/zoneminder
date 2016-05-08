@@ -138,6 +138,10 @@ public:
   {
     return( mStop );
   }
+  int getAddressFamily ()
+  {
+    return mRtspSocket.getDomain();
+  }
 };
 
 #endif // ZM_RTSP_H

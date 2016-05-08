@@ -21,7 +21,7 @@
 #define ZM_PACKETQUEUE_H
 
 #include <boost/interprocess/managed_shared_memory.hpp>
-#include <boost/interprocess/containers/deque.hpp>
+#include <boost/interprocess/containers/map.hpp>
 #include <boost/interprocess/allocators/allocator.hpp>
 #include <queue>
 
@@ -29,31 +29,26 @@ extern "C" {
 #include <libavformat/avformat.h>
 }
 
+typedef queue<AVPacket, deque<AVPacket, QueueShmemAllocator> > QueueType;
+
 class zm_packetqueue {
 public:
- zm_packetqueue(const std::string &name);
- virtual ~zm_packetqueue();
- bool queuePacket(std::queue<AVPacket>& pktQueue, AVPacket* packet);
- bool queueVideoPacket(AVPacket* packet);
- bool queueAudioPacket(AVPacket* packet);
- bool popPacket(std::queue<AVPacket>& pktQueue, AVPacket* packet);
- bool popVideoPacket(AVPacket* packet);
- bool popAudioPacket(AVPacket* packet);
- void clearQueues();
- void clearQueue(std::queue<AVPacket>& pktQueue);
+    zm_packetqueue();
+    zm_packetqueue(const zm_packetqueue& orig);
+    virtual ~zm_packetqueue();
+    bool queuePacket(std::queue<AVPacket>& pktQueue, AVPacket* packet);
+    bool queueVideoPacket(AVPacket* packet);
+    bool queueAudioPacket(AVPacket* packet);
+    bool popPacket(std::queue<AVPacket>& pktQueue, AVPacket* packet);
+    bool popVideoPacket(AVPacket* packet);
+    bool popAudioPacket(AVPacket* packet);
+    void clearQueues();
+    void clearQueue(std::queue<AVPacket>& pktQueue);
 private:
- typedef boost::interprocess::allocator <AVPacket,
-     boost::interprocess::managed_shared_memory::segment_manager>
-     QueueShmemAllocator;
- typedef std::queue<AVPacket, std::deque<AVPacket, QueueShmemAllocator> > 
-         QueueType;
- std::string m_name;
- boost::interprocess::managed_shared_memory msm;
- QueueShmemAllocator alloc;
- int                     MaxVideoQueueSize;
- int                     MaxAudioQueueSize;
- std::queue<AVPacket>    VideoQueue;
- std::queue<AVPacket>    AudioQueue;
+    int                     MaxVideoQueueSize;
+    int                     MaxAudioQueueSize;
+    std::queue<AVPacket>    VideoQueue;
+    std::queue<AVPacket>    AudioQueue;
 
 };
 

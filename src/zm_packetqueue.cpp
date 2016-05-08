@@ -22,25 +22,11 @@
 #define VIDEO_QUEUESIZE 200
 #define AUDIO_QUEUESIZE 50
 
-using namespace boost::interprocess;
+using namespace std;
 
-zm_packetqueue::zm_packetqueue(const std::string &name)
-: m_name(name),
-msm(open_or_create, m_name.c_str(), 65536),
-alloc(msm.get_segment_manager()) {
-
-  try {
-
-      //Construct a shared memory map.
-      //Note that the first parameter is the comparison function,
-      //and the second one the allocator.
-      //This the same signature as std::map's constructor taking an allocator
-    ptr = msm.find_or_construct<AVPacket>(m_name.c_str())(alloc);
-  }  catch (...) {
-      shared_memory_object::remove("MySharedMemory");
-      throw;
-  }
-  shared_memory_object::remove("MySharedMemory");
+zm_packetqueue::zm_packetqueue()
+    : MaxVideoQueueSize(VIDEO_QUEUESIZE)
+, MaxAudioQueueSize(AUDIO_QUEUESIZE) {
 }
 
 zm_packetqueue::~zm_packetqueue() {
@@ -55,7 +41,7 @@ bool zm_packetqueue::queueAudioPacket(AVPacket* packet)
 	return queuePacket(AudioQueue, packet);
 }
 
-bool zm_packetqueue::queuePacket(std::queue<AVPacket>& pktQueue, AVPacket* packet) {
+bool zm_packetqueue::queuePacket(queue<AVPacket>& pktQueue, AVPacket* packet){
     
   AVPacket input_ref = { 0 };
   if (av_packet_ref(&input_ref, packet) < 0){
@@ -66,7 +52,7 @@ bool zm_packetqueue::queuePacket(std::queue<AVPacket>& pktQueue, AVPacket* packe
 	return true;
 }
 
-bool zm_packetqueue::popPacket(std::queue<AVPacket>& pktQueue, AVPacket* packet)
+bool zm_packetqueue::popPacket(queue<AVPacket>& pktQueue, AVPacket* packet)
 {
 	if (pktQueue.empty())
 	{

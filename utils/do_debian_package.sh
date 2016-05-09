@@ -49,7 +49,7 @@ git submodule update --init --recursive
 if [ $DISTRO == "trusty" ]; then 
 ln -sf distros/ubuntu1204 debian
 else
-ln -sf distros/ubuntu1504 debian
+ln -sf distros/ubuntu1604 debian
 fi;
 
 # Auto-install all ZoneMinder's depedencies using the Debian control file

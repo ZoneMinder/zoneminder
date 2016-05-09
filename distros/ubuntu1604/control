@@ -5,7 +5,11 @@ Maintainer: Dmitry Smirnov <onlyjob@debian.org>
 Uploaders: Vagrant Cascadian <vagrant@debian.org>
 Build-Depends: debhelper (>= 9), dh-systemd, python-sphinx | python3-sphinx, apache2-dev, dh-linktree
               ,cmake
-              ,libavcodec-ffmpeg-dev, libavformat-ffmpeg-dev, libswscale-ffmpeg-dev, libavutil-ffmpeg-dev, libavdevice-ffmpeg-dev
+              ,libavdevice-dev (>= 6:10~)
+              ,libavcodec-dev (>= 6:10~)
+              ,libavformat-dev  (>= 6:10~)
+              ,libavutil-dev (>= 6:10~)
+              ,libswscale-dev (>= 6:10~)
               ,libbz2-dev
               ,libgcrypt-dev
               ,libcurl4-gnutls-dev
@@ -57,14 +61,15 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
           ,libsys-cpu-perl, libsys-meminfo-perl
         ,mysql-client | virtual-mysql-client
         ,perl-modules
-        ,php5-mysql, php5-gd
+        ,php5-mysql | php-mysql, php5-gd | php-gd
         ,policykit-1
         ,rsyslog | system-log-daemon
         ,zip
 Recommends: ${misc:Recommends}
-           ,libapache2-mod-php5 | php5-fpm
+           ,libapache2-mod-php5 | libapache2-mod-php | php5-fpm | php-fpm
            ,mysql-server | virtual-mysql-server
            ,zoneminder-doc (>= ${source:Version})
+           ,ffmpeg
 Suggests: fcgiwrap, logrotate
 Description: video camera security and surveillance solution
  ZoneMinder is intended for use in single or multi-camera video security

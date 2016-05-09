@@ -1,9 +1,43 @@
-zoneminder (1.28.1+1-vivid-SNAPSHOT2015081701) vivid; urgency=medium
+zoneminder (1.29.0+dfsg-1) unstable; urgency=low
 
-  * include api, switch to cmake build
+  * New upstream release [February 2016] (Closes: #788317, #770851).
 
- -- Isaac Connor <iconnor@connortechnology.com>  Mon, 17 Aug 2015 10:29:23 -0400
+  [ Dmitry Smirnov <onlyjob@debian.org> ]
+  * copyright/Files-Excluded += "onvif/*" due to licensing uncertainty.
+  * Fixed FTBFS when built with dpkg-buildpackage -A (Closes: #806126).
+  * FFmpeg 2.9 support. Thanks, Andreas Cadhalpun. (Closes: #803850).
+  * Use "ffmpeg" instead of "avconv":
+    + "libav_path.patch" replaced with "default_ffmpeg_path.patch".
+  * zoneminder/Depends:
+    - perl-modules (package-relation-with-perl-modules)
+    - libav-tools
+  * zoneminder/Recommends:
+    + ffmpeg | libav-tools
+  * Updated Vcs URLs.
+  * Build/install new man pages.
+  * Removed obsolete lintian-overrides.
+  * README: grant "index" right to DB user.
+  * systemd: start after MySQL but do not require the latter.
+  * Added new patch with spelling corrections.
+  * Removed obsolete patches:
+    - 783.patch
+    - 980-fix-image-size.patch
+    - cmake-fix-confpath.patch
+    - cmake.patch
+    - cmake-gnutls.patch
+    - fix-html-export.patch
+    - format-hardening.patch
+    - libv4l1-videodev.h.patch
+    - pod_man_fixes.patch
+    - pod_name_fixes.patch
+    - pod_zmupdate-to-pod2usage.patch
+    - respect-privacy.patch
+    - zmtrigger-plus.patch
 
+  [ Vagrant Cascadian <vagrant@debian.org> ]
+  * Remove myself from Uploaders.
+
+ -- Dmitry Smirnov <onlyjob@debian.org>  Tue, 09 Feb 2016 15:40:32 +1100
 
 zoneminder (1.28.1-8) unstable; urgency=medium
 

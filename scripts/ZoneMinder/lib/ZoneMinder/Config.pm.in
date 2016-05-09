@@ -30,6 +30,7 @@ use warnings;
 
 require Exporter;
 require ZoneMinder::Base;
+require ZoneMinder::Database;
 
 our @ISA = qw(Exporter ZoneMinder::Base);
 
@@ -83,7 +84,6 @@ sub zmConfigLoad {
     }
     close( $CONFIG );
 
-    require ZoneMinder::Database;
     my $dbh = ZoneMinder::Database::zmDbConnect() or croak( "Can't connect to db" );
     my $sql = 'select * from Config';
     my $sth = $dbh->prepare_cached( $sql ) or croak( "Can't prepare '$sql': ".$dbh->errstr() );

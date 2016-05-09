@@ -53,5 +53,32 @@ class Server {
 #call_user_func_array( $this->{$fn}, $args);
     }
   }
+  public static function find( $parameters = array(), $limit = NULL ) {
+    $sql = 'SELECT * FROM Servers';
+    $values = array();
+    if ( sizeof($parameters) ) {
+      $sql .= ' WHERE ' . implode( ' AND ', array_map(
+        function($v){ return $v.'=?'; },
+        array_keys( $parameters )
+        ) );
+      $values = array_values( $parameters );
+    }
+    if ( $limit ) {
+      $sql .= ' LIMIT ' . $limit;
+    }
+    $results = dbFetchAll( $sql, NULL, $values );
+    if ( $results ) {
+      return array_map( function($id){ return new Server($id); }, $results );
+    }
+  }
+
+  public static function find_one( $parameters = array() ) {
+    $results = Server::find( $parameters, 1 );
+    if ( ! sizeof( $results ) ) {
+      return;
+    }
+    return $results[0];
+  }
+
 }
 ?>

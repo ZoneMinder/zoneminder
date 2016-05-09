@@ -86,20 +86,15 @@ class Frame {
 		if ( $limit ) {
 			$sql .= ' LIMIT ' . $limit;
 		}
-Error("sql:$sql ". implode(",", $values));
 		$results = dbFetchAll( $sql, NULL, $values );
 		if ( $results ) {
-Error("results" . sizeof($results) );
 		  return array_map( function($id){ return new Frame($id); }, $results );
 		}
-Error("No results");
-
 	}
 
 	public static function find_one( $parameters = array() ) {
 	  $results = Frame::find( $parameters, 1 );
 	  if ( ! sizeof( $results ) ) {
-Debug("No Frame found");
 		  return;
 	  }
 	  return $results[0];

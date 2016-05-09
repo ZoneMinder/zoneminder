@@ -6,6 +6,7 @@ Uploaders: Vagrant Cascadian <vagrant@debian.org>
 Build-Depends: debhelper (>= 9), dh-systemd, python-sphinx | python3-sphinx, apache2-dev, dh-linktree
               ,cmake
               ,libx264-dev, libmp4v2-dev
+              ,libavcodec-dev, libavformat-dev, libswscale-dev, libavutil-dev, libavdevice-dev
               ,libbz2-dev
               ,libgcrypt-dev
               ,libcurl4-gnutls-dev
@@ -60,11 +61,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,rsyslog | system-log-daemon
         ,zip
 Recommends: ${misc:Recommends}
-<<<<<<< HEAD:distros/ubuntu1504/control
-           ,libapache2-mod-php5 | libapache2-mod-php7 | php5-fpm
-=======
            ,libapache2-mod-php5 | libapache2-mod-php | php5-fpm | php-fpm
->>>>>>> merge_db_connects:distros/ubuntu1604/control
            ,mysql-server | virtual-mysql-server
            ,zoneminder-doc (>= ${source:Version})
            ,ffmpeg

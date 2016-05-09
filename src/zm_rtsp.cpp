@@ -234,7 +234,7 @@ int RtspThread::run()
 
   response.reserve( ZM_NETWORK_BUFSIZ );
 
-  if ( !mRtspSocket.connect( mHost.c_str(), strtol( mPort.c_str(), NULL, 10 ) ) )
+  if ( !mRtspSocket.connect( mHost.c_str(), mPort.c_str() ) )
     Fatal( "Unable to connect RTSP socket" );
   //Select select( 0.25 );
   //select.addReader( &mRtspSocket );
@@ -248,7 +248,7 @@ int RtspThread::run()
   bool authTried = false; 
   if ( mMethod == RTP_RTSP_HTTP )
   {
-    if ( !mRtspSocket2.connect( mHost.c_str(), strtol( mPort.c_str(), NULL, 10 ) ) )
+    if ( !mRtspSocket2.connect( mHost.c_str(), mPort.c_str() ) )
       Fatal( "Unable to connect auxiliary RTSP/HTTP socket" );
     //Select select( 0.25 );
     //select.addReader( &mRtspSocket2 );
@@ -289,13 +289,13 @@ int RtspThread::run()
       {
         if ( isalnum(response[0]) )
         {
-        Error( "Response parse failure in '%s'", response.c_str() );
+          Error( "Response parse failure in '%s'", response.c_str() );
         }
         else
         {
-        Error( "Response parse failure, %zd bytes follow", response.size() );
-        if ( response.size() )
-          Hexdump( Logger::ERROR, response.data(), min(response.size(),16) );
+          Error( "Response parse failure, %zd bytes follow", response.size() );
+          if ( response.size() )
+            Hexdump( Logger::ERROR, response.data(), min(response.size(),16) );
         }
         return( -1 );
       }
@@ -306,7 +306,7 @@ int RtspThread::run()
         mAuthenticator->checkAuthResponse(response);
         Debug(2, "Processed 401 response");
         mRtspSocket.close();
-        if ( !mRtspSocket.connect( mHost.c_str(), strtol( mPort.c_str(), NULL, 10 ) ) )
+        if ( !mRtspSocket.connect( mHost.c_str(), mPort.c_str() ) )
           Fatal( "Unable to reconnect RTSP socket" );
         Debug(2, "connection should be reopened now");
       }

@@ -30,6 +30,7 @@ use warnings;
 
 require Exporter;
 require ZoneMinder::Base;
+require ZoneMinder::Database;
 
 our @ISA = qw(Exporter ZoneMinder::Base);
 
@@ -63,8 +64,9 @@ use constant ZM_CONFIG => "@ZM_CONFIG@"; # Path to the ZoneMinder config file
 use Carp;
 
 # Load the config from the database into the symbol table
-BEGIN
-{
+sub zmConfigLoad {
+  %Config = ();
+
     my $config_file = ZM_CONFIG;
     open( my $CONFIG, "<", $config_file )
         or croak( "Can't open config file '$config_file': $!" );
@@ -82,12 +84,7 @@ BEGIN
     }
     close( $CONFIG );
 
-    use DBI;
-    my $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
-                           .";host=".$Config{ZM_DB_HOST}
-                           , $Config{ZM_DB_USER}
-                           , $Config{ZM_DB_PASS}
-    ) or croak( "Can't connect to db" );
+    my $dbh = ZoneMinder::Database::zmDbConnect() or croak( "Can't connect to db" );
     my $sql = 'select * from Config';
     my $sth = $dbh->prepare_cached( $sql ) or croak( "Can't prepare '$sql': ".$dbh->errstr() );
     my $res = $sth->execute() or croak( "Can't execute: ".$sth->errstr() );
@@ -95,7 +92,6 @@ BEGIN
         $Config{$config->{Name}} = $config->{Value};
     }
     $sth->finish();
-    #$dbh->disconnect();
 
 	if ( ! exists $Config{ZM_SERVER_ID} ) {
 		$Config{ZM_SERVER_ID} = undef;

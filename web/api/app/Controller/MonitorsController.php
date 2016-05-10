@@ -97,7 +97,7 @@ public function beforeFilter() {
 
 			if ($this->Session->Read('systemPermission') != 'Edit')
 			{
-				 throw new UnauthotizedException(__('Insufficient privileges'));
+				 throw new UnauthorizedException(__('Insufficient privileges'));
 				return;
 			}
 
@@ -181,6 +181,83 @@ public function beforeFilter() {
 			'sourceTypes' => $enum,
 			'_serialize' => array('sourceTypes')
 		));
+	}
+
+	// arm/disarm alarms
+	// expected format: http(s):/portal-api-url/monitors/alarm/id:M/command:C.json
+	// where M=monitorId
+	// where C=on|off|status
+	public function alarm()
+	{
+		$id = $this->request->params['named']['id'];
+		$cmd = strtolower($this->request->params['named']['command']);
+		if (!$this->Monitor->exists($id)) {
+			throw new NotFoundException(__('Invalid monitor'));
+		}
+		if ( $cmd != 'on' && $cmd != 'off' && $cmd != 'status')
+		{
+			throw new BadRequestException(__('Invalid command'));
+		}
+		$zm_path_bin = Configure::read('ZM_PATH_BIN');
+
+		switch ($cmd) 
+		{
+			case "on":
+				$q = '-a';
+				break;
+			case "off":
+			  $q = "-c";
+				break;
+			case "status":
+				$q = "-s";
+				break;			
+		}
+
+		// form auth key based on auth credentials
+		$this->loadModel('Config');
+		$options = array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_OPT_USE_AUTH'));
+                $config = $this->Config->find('first', $options);
+		$zmOptAuth = $config['Config']['Value'];
+
+
+		$options = array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_RELAY'));
+                $config = $this->Config->find('first', $options);
+		$zmAuthRelay = $config['Config']['Value'];
+	
+		$auth="";
+		if ($zmOptAuth)
+		{
+			if ($zmAuthRelay == 'hashed')
+			{
+				$options = array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_HASH_SECRET'));
+                		$config = $this->Config->find('first', $options);
+				$zmAuthHashSecret = $config['Config']['Value'];
+
+				$time = localtime();
+				$ak = $zmAuthHashSecret.$this->Session->Read('username').$this->Session->Read('passwordHash').$time[2].$time[3].$time[4].$time[5];
+				$ak = md5($ak);
+				$auth = " -A ".$ak;
+			}
+			elseif ($zmAuthRelay == 'plain')
+			{
+				$auth = " -U " .$this->Session->Read('username')." -P ".$this->Session->Read('password');
+				
+			}
+			elseif ($zmAuthRelay == 'none')
+			{
+				$auth = " -U " .$this->Session->Read('username');
+			}
+		}
+		
+		$shellcmd = escapeshellcmd("$zm_path_bin/zmu -v -m$id $q $auth");
+		$status = exec ($shellcmd);
+
+		$this->set(array(
+			'status' => $status,
+			'_serialize' => array('status'),
+		));
+
+		
 	}
 
 	// Check if a daemon is running for the monitor id

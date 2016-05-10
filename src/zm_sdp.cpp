@@ -112,7 +112,7 @@ SessionDescriptor::ConnInfo::ConnInfo( const std::string &connInfo ) :
   if ( mNetworkType != "IN" )
     throw Exception( "Invalid SDP network type '"+mNetworkType+"' in connection info '"+connInfo+"'" );
   mAddressType = tokens[1];
-  if ( mAddressType != "IP4" )
+  if ( mAddressType != "IP4" && mAddressType != "IP6" )
     throw Exception( "Invalid SDP address type '"+mAddressType+"' in connection info '"+connInfo+"'" );
   StringVector addressTokens = split( tokens[2], "/" );
   if ( addressTokens.size() < 1 ) 

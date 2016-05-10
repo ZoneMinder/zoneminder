@@ -27,6 +27,7 @@ body {
     color: #333333;
     font-weight: 300;
     text-align: center;
+    padding-top:81px;
 }
 
 h1 {
@@ -490,6 +491,37 @@ input[type=submit]:disabled {
 #consoleTable tfoot {
     background-color: #f2f2f2;  
 }
+
+.navbar{
+	margin-bottom: 0 !important;
+	border-radius: 0;
+	color: #03A9F4 !important;
+}
+
+.navbar-brand {
+	font-weight: bold;
+	font-size: 20px;
+}
+.sidebar {
+    position: fixed;
+    top: 81px;
+    bottom: 0;
+    left: 0;
+    z-index: 1000;
+    display: block;
+    padding: 20px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    background-color: #f5f5f5;
+    border-right: 1px solid #eeeeee;
+}
+
+.sidebar ul {
+margin-right: -21px;
+margin-bottom: 20px;
+margin-left: -20px;
+}
+
 
 
 

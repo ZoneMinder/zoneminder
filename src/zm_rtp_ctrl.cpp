@@ -279,20 +279,17 @@ int RtpCtrlThread::run()
   UdpInetSocket rtpCtrlServer;
   if ( mRtpSource.getLocalHost() != "" )
   {
-    localAddr.resolve( mRtpSource.getLocalHost().c_str(), mRtpSource.getLocalCtrlPort(), "udp" );
-    if ( !rtpCtrlServer.bind( localAddr ) )
+    if ( !rtpCtrlServer.bind( mRtpSource.getLocalHost().c_str(), mRtpSource.getLocalCtrlPort() ) )
       Fatal( "Failed to bind RTCP server" );
     sendReports = false;
     Debug( 3, "Bound to %s:%d",  mRtpSource.getLocalHost().c_str(), mRtpSource.getLocalCtrlPort() );
   }
   else
   {
-    localAddr.resolve( mRtpSource.getLocalCtrlPort(), "udp" );
-    if ( !rtpCtrlServer.bind( localAddr ) )
+    if ( !rtpCtrlServer.bind( mRtspThread.getAddressFamily() == AF_INET6 ? "::" : "0.0.0.0", mRtpSource.getLocalCtrlPort() ) )
       Fatal( "Failed to bind RTCP server" );
     Debug( 3, "Bound to %s:%d",  mRtpSource.getLocalHost().c_str(), mRtpSource.getLocalCtrlPort() );
-    remoteAddr.resolve( mRtpSource.getRemoteHost().c_str(), mRtpSource.getRemoteCtrlPort(), "udp" );
-    if ( !rtpCtrlServer.connect( remoteAddr ) )
+    if ( !rtpCtrlServer.connect( mRtpSource.getRemoteHost().c_str(), mRtpSource.getRemoteCtrlPort() ) )
       Fatal( "Failed to connect RTCP server" );
     Debug( 3, "Connected to %s:%d",  mRtpSource.getRemoteHost().c_str(), mRtpSource.getRemoteCtrlPort() );
     sendReports = true;

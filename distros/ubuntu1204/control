@@ -16,6 +16,7 @@ Build-Depends: debhelper (>= 9), python-sphinx | python3-sphinx, apache2-dev, dh
               ,libpolkit-gobject-1-dev
               ,libv4l-dev (>= 0.8.3) [!hurd-any]
               ,libvlc-dev
+              ,libdbd-mysql-perl
 # Unbundled (dh_linktree):
         ,libjs-jquery
         ,libjs-mootools

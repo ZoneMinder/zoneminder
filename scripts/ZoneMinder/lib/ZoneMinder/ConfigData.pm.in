@@ -1712,7 +1712,8 @@ our @options =
     {
       name          =>  'ZM_LD_PRELOAD',
       default       =>  '',
-      description   =>  "Some older cameras require the use of the v4l1 compat
+      description   =>  "Path to library to preload before launching daemons",
+      help          => qqq("Some older cameras require the use of the v4l1 compat
                          library. This setting allows the setting of the path 
                          to the library, so that it can be loaded by zmdc.pl 
                          before launching zmc."),

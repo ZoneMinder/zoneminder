@@ -1,3 +1,9 @@
+zoneminder (1.30.2-trusty-2016050901) trusty; urgency=medium
+
+  * 
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Mon, 09 May 2016 21:08:56 -0400
+
 zoneminder (1.30.2-trusty-2016050501) trusty; urgency=medium
 
   * add some more debug

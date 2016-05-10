@@ -37,20 +37,20 @@ namespace zm {
 enum AuthMethod { AUTH_UNDEFINED = 0, AUTH_BASIC = 1, AUTH_DIGEST = 2 };
 class Authenticator {
 public:
-    Authenticator(std::string &username, std::string password);
-    virtual ~Authenticator();
-    void reset();
+  Authenticator(std::string &username, std::string password);
+  virtual ~Authenticator();
+  void reset();
 
-    std::string realm() { return fRealm; }
-    std::string nonce() { return fNonce; }
-    std::string username() { return fUsername; }
-	AuthMethod	auth_method() const { return fAuthMethod; } 
-    
-    std::string computeDigestResponse( std::string &cmd, std::string &url );
-    void authHandleHeader( std::string headerData );
-    std::string getAuthHeader( std::string method, std::string path );
-	void checkAuthResponse(std::string &response);
-    
+  std::string realm() { return fRealm; }
+  std::string nonce() { return fNonce; }
+  std::string username() { return fUsername; }
+  AuthMethod  auth_method() const { return fAuthMethod; } 
+  
+  std::string computeDigestResponse( std::string &cmd, std::string &url );
+  void authHandleHeader( std::string headerData );
+  std::string getAuthHeader( std::string method, std::string path );
+  void checkAuthResponse(std::string &response);
+  
 private:
   std::string password() { return fPassword; }
   AuthMethod fAuthMethod;
@@ -61,7 +61,7 @@ private:
   std::string fUsername; 
   std::string fPassword;
   std::string quote( std::string src );
-	int nc;
+  int nc;
 };
 
 } // namespace zm

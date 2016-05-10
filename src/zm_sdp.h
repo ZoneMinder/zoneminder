@@ -34,204 +34,204 @@
 class SessionDescriptor
 {
 protected:
-    enum { PAYLOAD_TYPE_DYNAMIC=96 };
+  enum { PAYLOAD_TYPE_DYNAMIC=96 };
 
-    struct StaticPayloadDesc
-    {
-        int payloadType;
-        const char payloadName[6];
+  struct StaticPayloadDesc
+  {
+    int payloadType;
+    const char payloadName[6];
 #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
-        AVMediaType codecType;
+    AVMediaType codecType;
 #else
-		enum CodecType codecType;
+    enum CodecType codecType;
 #endif
-        _AVCODECID codecId;
-        int clockRate;
-        int autoChannels;
-    };
+    _AVCODECID codecId;
+    int clockRate;
+    int autoChannels;
+  };
 
-    struct DynamicPayloadDesc
-    {
-        const char payloadName[32];
+  struct DynamicPayloadDesc
+  {
+    const char payloadName[32];
 #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
-        AVMediaType codecType;
+    AVMediaType codecType;
 #else
-		enum CodecType codecType;
+    enum CodecType codecType;
 #endif
-        _AVCODECID codecId;
+    _AVCODECID codecId;
 
-        //int clockRate;
-        //int autoChannels;
-    };
+    //int clockRate;
+    //int autoChannels;
+  };
 
 public:
-    class ConnInfo
-    {
-    protected:
-        std::string mNetworkType;
-        std::string mAddressType;
-        std::string mAddress;
-        int mTtl;
-        int mNoAddresses;
+  class ConnInfo
+  {
+  protected:
+    std::string mNetworkType;
+    std::string mAddressType;
+    std::string mAddress;
+    int mTtl;
+    int mNoAddresses;
 
-    public:
-        ConnInfo( const std::string &connInfo );
-    };
+  public:
+    ConnInfo( const std::string &connInfo );
+  };
 
-    class BandInfo
-    {
-    protected:
-        std::string mType;
-        int mValue;
+  class BandInfo
+  {
+  protected:
+    std::string mType;
+    int mValue;
 
-    public:
-        BandInfo( const std::string &bandInfo );
-    };
+  public:
+    BandInfo( const std::string &bandInfo );
+  };
 
-    class MediaDescriptor
-    {
-    protected:
-        std::string mType;
-        int mPort;
-        int mNumPorts;
-        std::string mTransport;
-        int mPayloadType;
+  class MediaDescriptor
+  {
+  protected:
+    std::string mType;
+    int mPort;
+    int mNumPorts;
+    std::string mTransport;
+    int mPayloadType;
 
-        std::string mPayloadDesc;
-        std::string mControlUrl;
-        double mFrameRate;
-        int mClock;
-        int mWidth;
-        int mHeight;
-        std::string mSprops;
-
-        ConnInfo *mConnInfo;
-
-    public:
-        MediaDescriptor( const std::string &type, int port, int numPorts, const std::string &transport, int payloadType );
-
-        const std::string &getType() const
-        {
-            return( mType );
-        }
-        int getPort() const
-        {
-            return( mPort );
-        }
-        int getNumPorts() const
-        {
-            return( mNumPorts );
-        }
-        const std::string &getTransport() const
-        {
-            return( mTransport );
-        }
-        const int getPayloadType() const
-        {
-            return( mPayloadType );
-        }
-
-        const std::string &getPayloadDesc() const
-        {
-            return( mPayloadDesc );
-        }
-        void setPayloadDesc( const std::string &payloadDesc )
-        {
-            mPayloadDesc = payloadDesc;
-        }
-
-        const std::string &getControlUrl() const
-        {
-            return( mControlUrl );
-        }
-        void setControlUrl( const std::string &controlUrl )
-        {
-            mControlUrl = controlUrl;
-        }
-
-        const int getClock() const
-        {
-            return( mClock );
-        }
-        void setClock( int clock )
-        {
-            mClock = clock;
-        }
-
-        void setFrameSize( int width, int height )
-        {
-            mWidth = width;
-            mHeight = height;
-        }
-        int getWidth() const
-        {
-            return( mWidth );
-        }
-        int getHeight() const
-        {
-            return( mHeight );
-        }
-
-	void setSprops(const std::string props)
-	{
-		mSprops = props;
-	}
-	const std::string getSprops() const
-	{
-		return ( mSprops );
-	}
-        const double getFrameRate() const
-        {
-            return( mFrameRate );
-        }
-        void setFrameRate( double frameRate )
-        {
-            mFrameRate = frameRate;
-        }
-    };
-
-    typedef std::vector<MediaDescriptor *> MediaList;
-
-protected:
-    static StaticPayloadDesc smStaticPayloads[];
-    static DynamicPayloadDesc smDynamicPayloads[];
-
-protected:
-    std::string mUrl;
-
-    std::string mVersion;
-    std::string mOwner;
-    std::string mName;
-    std::string mInfo;
+    std::string mPayloadDesc;
+    std::string mControlUrl;
+    double mFrameRate;
+    int mClock;
+    int mWidth;
+    int mHeight;
+    std::string mSprops;
 
     ConnInfo *mConnInfo;
-    BandInfo *mBandInfo;
-    std::string mTimeInfo;
-    StringVector mAttributes;
 
-    MediaList mMediaList;
+  public:
+    MediaDescriptor( const std::string &type, int port, int numPorts, const std::string &transport, int payloadType );
+
+    const std::string &getType() const
+    {
+      return( mType );
+    }
+    int getPort() const
+    {
+      return( mPort );
+    }
+    int getNumPorts() const
+    {
+      return( mNumPorts );
+    }
+    const std::string &getTransport() const
+    {
+      return( mTransport );
+    }
+    const int getPayloadType() const
+    {
+      return( mPayloadType );
+    }
+
+    const std::string &getPayloadDesc() const
+    {
+      return( mPayloadDesc );
+    }
+    void setPayloadDesc( const std::string &payloadDesc )
+    {
+      mPayloadDesc = payloadDesc;
+    }
+
+    const std::string &getControlUrl() const
+    {
+      return( mControlUrl );
+    }
+    void setControlUrl( const std::string &controlUrl )
+    {
+      mControlUrl = controlUrl;
+    }
+
+    const int getClock() const
+    {
+      return( mClock );
+    }
+    void setClock( int clock )
+    {
+      mClock = clock;
+    }
+
+    void setFrameSize( int width, int height )
+    {
+      mWidth = width;
+      mHeight = height;
+    }
+    int getWidth() const
+    {
+      return( mWidth );
+    }
+    int getHeight() const
+    {
+      return( mHeight );
+    }
+
+    void setSprops(const std::string props)
+    {
+      mSprops = props;
+    }
+    const std::string getSprops() const
+    {
+      return ( mSprops );
+    }
+    const double getFrameRate() const
+    {
+      return( mFrameRate );
+    }
+    void setFrameRate( double frameRate )
+    {
+      mFrameRate = frameRate;
+    }
+  };
+
+  typedef std::vector<MediaDescriptor *> MediaList;
+
+protected:
+  static StaticPayloadDesc smStaticPayloads[];
+  static DynamicPayloadDesc smDynamicPayloads[];
+
+protected:
+  std::string mUrl;
+
+  std::string mVersion;
+  std::string mOwner;
+  std::string mName;
+  std::string mInfo;
+
+  ConnInfo *mConnInfo;
+  BandInfo *mBandInfo;
+  std::string mTimeInfo;
+  StringVector mAttributes;
+
+  MediaList mMediaList;
 
 public:
-    SessionDescriptor( const std::string &url, const std::string &sdp );
-    ~SessionDescriptor();
+  SessionDescriptor( const std::string &url, const std::string &sdp );
+  ~SessionDescriptor();
 
-    const std::string &getUrl() const
-    {
-        return( mUrl );
-    }
+  const std::string &getUrl() const
+  {
+    return( mUrl );
+  }
 
-    int getNumStreams() const
-    {
-        return( mMediaList.size() );
-    }
-    MediaDescriptor *getStream( int index )
-    {
-        if ( index < 0 || (unsigned int)index >= mMediaList.size() )
-            return( 0 );
-        return( mMediaList[index] );
-    }
+  int getNumStreams() const
+  {
+    return( mMediaList.size() );
+  }
+  MediaDescriptor *getStream( int index )
+  {
+    if ( index < 0 || (unsigned int)index >= mMediaList.size() )
+      return( 0 );
+    return( mMediaList[index] );
+  }
 
-    AVFormatContext *generateFormatContext() const;
+  AVFormatContext *generateFormatContext() const;
 };
 #if 0
 v=0
@@ -254,7 +254,7 @@ a=mpeg4-esid:201
 m=audio 0 RTP/AVP 0
 b=AS:64
 a=control:trackID=2
-    
+  
 #endif
 
 #endif // ZM_SDP_H

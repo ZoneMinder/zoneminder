@@ -35,6 +35,7 @@ function Monitor( index, id, connKey )
         if ( this.streamCmdTimer )
             this.streamCmdTimer = clearTimeout( this.streamCmdTimer );
 
+        var stream = document.getElementById( "liveStream"+this.id );
         if ( respObj.result == 'Ok' )
         {
             this.status = respObj.status;
@@ -57,7 +58,6 @@ function Monitor( index, id, connKey )
             this.setStateClass( $('monitor'+this.index), stateClass );
 
             /*Stream could be an applet so can't use moo tools*/ 
-            var stream = document.getElementById( "liveStream"+this.id );
             stream.className = stateClass;
 
             var isAlarmed = ( this.alarmState == STATE_ALARM || this.alarmState == STATE_ALERT );
@@ -90,6 +90,10 @@ function Monitor( index, id, connKey )
         else
         {
             console.error( respObj.message );
+            // Try to reload the image stream.
+            if ( stream )
+                stream.src = stream.src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
+
         }
         var streamCmdTimeout = statusRefreshTimeout;
         if ( this.alarmState == STATE_ALARM || this.alarmState == STATE_ALERT )

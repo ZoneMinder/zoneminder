@@ -42,11 +42,11 @@ if ( isset($_REQUEST['tab']) )
 else
     $tab = "general";
 
-	$Server = null;
+  $Server = null;
     if ( defined( 'ZM_SERVER_ID' ) ) {
         $Server = dbFetchOne( 'SELECT * FROM Servers WHERE Id=?', NULL, array( ZM_SERVER_ID ) );
-	}
-	if ( ! $Server ) {
+  }
+  if ( ! $Server ) {
         $Server = array( 'Id' => '' );
     }
 
@@ -56,74 +56,11 @@ if ( ! empty($_REQUEST['mid']) ) {
         $x10Monitor = dbFetchOne( 'SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['mid']) );
 } else {
 
-    $nextId = getTableAutoInc( 'Monitors' );
-    $monitor = array(
-        'Id' => 0,
-        'Name' => translate('Monitor').'-'.$nextId,
-        'Function' => "Monitor",
-        'Enabled' => true,
-        'LinkedMonitors' => "",
-        'Type' => "",
-        'Device' => "/dev/video0",
-        'Channel' => "0",
-        'Format' => 0x000000ff,
-        'Protocol' => "",
-        'Method' => "",
-        'Host' => "",
-        'Path' => "",
-        'Options' => "",
-        'Port' => "80",
-        'User' => "",
-        'Pass' => "",
-        'Colours' => 3,
-        'Palette' => 0,
-        'Width' => "320",
-        'Height' => "240",
-        'Orientation' => "0",
-        'Deinterlacing' => 0,
-        'RTSPDescribe' => 0,
-        'LabelFormat' => '%N - %d/%m/%y %H:%M:%S',
-        'LabelX' => 0,
-        'LabelY' => 0,
-        'LabelSize' => 1,
-        'ImageBufferCount' => 50,
-        'WarmupCount' => 25,
-        'PreEventCount' => 25,
-        'PostEventCount' => 25,
-        'StreamReplayBuffer' => 1000,
-        'AlarmFrameCount' => 1,
-        'Controllable' => 0,
-        'ControlId' => "",
-        'ControlType' => 0,
-        'ControlDevice' => "",
-        'ControlAddress' => "",
-        'AutoStopTimeout' => "",
-        'TrackMotion' => 0,
-        'TrackDelay' => "",
-        'ReturnLocation' => -1,
-        'ReturnDelay' => "",
-        'SectionLength' => 600,
-        'FrameSkip' => 0,
-        'MotionFrameSkip' => 0,
-        'EventPrefix' => 'Event-',
-        'AnalysisFPS' => "",
-        'AnalysisUpdateDelay' => 0,
-        'MaxFPS' => "",
-        'AlarmMaxFPS' => "",
-        'FPSReportInterval' => 1000,
-        'RefBlendPerc' => 6,
-        'AlarmRefBlendPerc' => 6,
-        'DefaultView' => 'Events',
-        'DefaultRate' => '100',
-        'DefaultScale' => '100',
-        'SignalCheckColour' => '#0000c0',
-        'WebColour' => 'red',
-        'Exif' => '0',
-        'Triggers' => "",
-		'V4LMultiBuffer'	=>	'',
-		'V4LCapturesPerFrame'	=>	1,
-		'ServerId'	=>	$Server['Id'],
-    );
+  $nextId = getTableAutoInc( 'Monitors' );
+  $monitor = getMonitorObject($_REQUEST['dupId']);
+  $clonedName = $monitor['Name'];
+  $monitor['Name'] = translate('Monitor').'-'.$nextId;
+  $monitor['Id']='0';
 }
 
 if ( ZM_OPT_X10 && empty($x10Monitor) )
@@ -133,6 +70,85 @@ if ( ZM_OPT_X10 && empty($x10Monitor) )
         'AlarmInput' => '',   
         'AlarmOutput' => '',   
     );
+}
+
+function getMonitorObject( $mid = null) 
+{
+    if ($mid !== null)
+    {
+      $monitor = dbFetchMonitor($mid);
+    }
+    else
+    {
+          $monitor = array(
+                'Id' => 0,
+                'Name' => "willbereplaced",
+                'Function' => "Monitor",
+                'Enabled' => true,
+                'LinkedMonitors' => "",
+                'Type' => "",
+                'Device' => "/dev/video0",
+                'Channel' => "0",
+                'Format' => 0x000000ff,
+                'Protocol' => "",
+                'Method' => "",
+                'Host' => "",
+                'Path' => "",
+                'Options' => "",
+                'Port' => "80",
+                'User' => "",
+                'Pass' => "",
+                'Colours' => 3,
+                'Palette' => 0,
+                'Width' => "320",
+                'Height' => "240",
+                'Orientation' => "0",
+                'Deinterlacing' => 0,
+                'RTSPDescribe' => 0,
+                'LabelFormat' => '%N - %d/%m/%y %H:%M:%S',
+                'LabelX' => 0,
+                'LabelY' => 0,
+                'LabelSize' => 1,
+                'ImageBufferCount' => 50,
+                'WarmupCount' => 25,
+                'PreEventCount' => 25,
+                'PostEventCount' => 25,
+                'StreamReplayBuffer' => 1000,
+                'AlarmFrameCount' => 1,
+                'Controllable' => 0,
+                'ControlId' => "",
+                'ControlType' => 0,
+                'ControlDevice' => "",
+                'ControlAddress' => "",
+                'AutoStopTimeout' => "",
+                'TrackMotion' => 0,
+                'TrackDelay' => "",
+                'ReturnLocation' => -1,
+                'ReturnDelay' => "",
+                'SectionLength' => 600,
+                'FrameSkip' => 0,
+                'MotionFrameSkip' => 0,
+                'EventPrefix' => 'Event-',
+                'AnalysisFPS' => "",
+                'AnalysisUpdateDelay' => 0,
+                'MaxFPS' => "",
+                'AlarmMaxFPS' => "",
+                'FPSReportInterval' => 1000,
+                'RefBlendPerc' => 6,
+                'AlarmRefBlendPerc' => 6,
+                'DefaultView' => 'Events',
+                'DefaultRate' => '100',
+                'DefaultScale' => '100',
+                'SignalCheckColour' => '#0000c0',
+                'WebColour' => 'red',
+                'Exif' => '0',
+                'Triggers' => "",
+            'V4LMultiBuffer'  =>  '',
+            'V4LCapturesPerFrame' =>  1,
+            'ServerId'  =>  $Server['Id'],
+            );
+      }
+      return ($monitor);
 }
 
 function fourcc( $a, $b, $c, $d )
@@ -153,6 +169,8 @@ else
     if ( ZM_OPT_X10 )
         $newX10Monitor = $x10Monitor;
 }
+
+$newMonitor['Name'] = trim($newMonitor['Name']);
 
 if ( $newMonitor['AnalysisFPS'] == '0.00' )
     $newMonitor['AnalysisFPS'] = '';
@@ -448,16 +466,31 @@ xhtmlHeaders(__FILE__, translate('Monitor')." - ".validHtmlStr($monitor['Name'])
 if ( canEdit( 'Monitors' ) )
 {
 ?>
+
+<?php
+if ( isset ($_REQUEST['dupId']))
+{
+  $dupId = $_REQUEST['dupId'];
+?>
+
+<div class="alert alert-info">
+  Configuration cloned from Monitor: <?php echo $clonedName ?>
+</div>
+
+<?php 
+}
+?>
+
       <div id="headerButtons">
         <a href="#" onclick="createPopup( '?view=monitorprobe&amp;mid=<?php echo $monitor['Id'] ?>', 'zmMonitorProbe<?php echo $monitor['Id'] ?>', 'monitorprobe' ); return( false );"><?php echo translate('Probe') ?></a>
-	<?php
-	if ( ZM_HAS_ONVIF )
-	{
-	?>
-	        <a href="#" onclick="createPopup( '?view=onvifprobe&amp;mid=<?php echo $monitor['Id'] ?>', 'zmOnvifProbe<?php echo $monitor['Id'] ?>', 'onvifprobe' ); return( false );"><?php echo  translate('OnvifProbe') ?></a>
-	<?php
-	}
-	?>
+  <?php
+  if ( ZM_HAS_ONVIF )
+  {
+  ?>
+          <a href="#" onclick="createPopup( '?view=onvifprobe&amp;mid=<?php echo $monitor['Id'] ?>', 'zmOnvifProbe<?php echo $monitor['Id'] ?>', 'onvifprobe' ); return( false );"><?php echo  translate('OnvifProbe') ?></a>
+  <?php
+  }
+  ?>
         <a href="#" onclick="createPopup( '?view=monitorpreset&amp;mid=<?php echo $monitor['Id'] ?>', 'zmMonitorPreset<?php echo $monitor['Id'] ?>', 'monitorpreset' ); return( false );"><?php echo translate('Presets') ?></a>
       </div>
 <?php
@@ -649,14 +682,14 @@ switch ( $tab )
             <tr><td><?php echo translate('Name') ?></td><td><input type="text" name="newMonitor[Name]" value="<?php echo validHtmlStr($newMonitor['Name']) ?>" size="16"/></td></tr>
             <tr><td><?php echo translate('Server') ?></td><td>
 <?php 
-	$servers = array(''=>'None');
-	$result = dbQuery( 'SELECT * FROM Servers ORDER BY Name');
-	$results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Server' );
-	foreach ( $results as $row => $server_obj ) {
-		$servers[$server_obj->Id] = $server_obj->Name();
-	}
+  $servers = array(''=>'None');
+  $result = dbQuery( 'SELECT * FROM Servers ORDER BY Name');
+  $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Server' );
+  foreach ( $results as $row => $server_obj ) {
+    $servers[$server_obj->Id] = $server_obj->Name();
+  }
 ?>
-	<?php echo buildSelect( "newMonitor[ServerId]", $servers ); ?>
+  <?php echo buildSelect( "newMonitor[ServerId]", $servers ); ?>
 </td></tr>
             <tr><td><?php echo translate('SourceType') ?></td><td><?php echo buildSelect( "newMonitor[Type]", $sourceTypes ); ?></td></tr>
             <tr><td><?php echo translate('Function') ?></td><td><select name="newMonitor[Function]">
@@ -707,13 +740,13 @@ switch ( $tab )
             <tr><td><?php echo translate('AlarmMaximumFPS') ?></td><td><input type="text" name="newMonitor[AlarmMaxFPS]" value="<?php echo validHtmlStr($newMonitor['AlarmMaxFPS']) ?>" size="5"/></td></tr>
 <?php
     }
-	if ( ZM_FAST_IMAGE_BLENDS )
+  if ( ZM_FAST_IMAGE_BLENDS )
         {
 ?>
             <tr><td><?php echo translate('RefImageBlendPct') ?></td><td><select name="newMonitor[RefBlendPerc]"><?php foreach ( $fastblendopts as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['RefBlendPerc'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
             <tr><td><?php echo translate('AlmRefImageBlendPct') ?></td><td><select name="newMonitor[AlarmRefBlendPerc]"><?php foreach ( $fastblendopts_alarm as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $newMonitor['AlarmRefBlendPerc'] ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
 <?php
-	} else {
+  } else {
 ?>
             <tr><td><?php echo translate('RefImageBlendPct') ?></td><td><input type="text" name="newMonitor[RefBlendPerc]" value="<?php echo validHtmlStr($newMonitor['RefBlendPerc']) ?>" size="4"/></td></tr>
             <tr><td><?php echo translate('AlarmRefImageBlendPct') ?></td><td><input type="text" name="newMonitor[AlarmRefBlendPerc]" value="<?php echo validHtmlStr($newMonitor['AlarmRefBlendPerc']) ?>" size="4"/></td></tr>
@@ -773,15 +806,15 @@ switch ( $tab )
 <?php
             }
 ?>
-			<tr><td><?php echo translate('V4LMultiBuffer') ?></td><td>
-				<input type="radio" name="newMonitor[V4LMultiBuffer]" id="newMonitor[V4LMultiBuffer]1" value="1" <?php echo ( $newMonitor['V4LMultiBuffer'] == 1 ? 'checked="checked"' : '' ) ?>/>
-				<label for="newMonitor[V4LMultiBuffer]1">Yes</label>
-				<input type="radio" name="newMonitor[V4LMultiBuffer]" id="newMonitor[V4LMultiBuffer]0" value="0" <?php echo ( $newMonitor['V4LMultiBuffer'] == 0 ? 'checked="checked"' : '' ) ?>/>
-				<label for="newMonitor[V4LMultiBuffer]0">No</label>
-				<input type="radio" name="newMonitor[V4LMultiBuffer]" id="newMonitor[V4LMultiBuffer]" value="" <?php echo ( empty($newMonitor['V4LMultiBuffer']) ? 'checked="checked"' : '' ) ?>/>
-				<label for="newMonitor[V4LMultiBuffer]">Use Config Value</label>
-			</td></tr>
-			<tr><td><?php echo translate('V4LCapturesPerFrame') ?></td><td><input type="number" name="newMonitor[V4LCapturesPerFrame]" value="<?php echo $newMonitor['V4LCapturesPerFrame'] ?>"/></td></tr>
+      <tr><td><?php echo translate('V4LMultiBuffer') ?></td><td>
+        <input type="radio" name="newMonitor[V4LMultiBuffer]" id="newMonitor[V4LMultiBuffer]1" value="1" <?php echo ( $newMonitor['V4LMultiBuffer'] == 1 ? 'checked="checked"' : '' ) ?>/>
+        <label for="newMonitor[V4LMultiBuffer]1">Yes</label>
+        <input type="radio" name="newMonitor[V4LMultiBuffer]" id="newMonitor[V4LMultiBuffer]0" value="0" <?php echo ( $newMonitor['V4LMultiBuffer'] == 0 ? 'checked="checked"' : '' ) ?>/>
+        <label for="newMonitor[V4LMultiBuffer]0">No</label>
+        <input type="radio" name="newMonitor[V4LMultiBuffer]" id="newMonitor[V4LMultiBuffer]" value="" <?php echo ( empty($newMonitor['V4LMultiBuffer']) ? 'checked="checked"' : '' ) ?>/>
+        <label for="newMonitor[V4LMultiBuffer]">Use Config Value</label>
+      </td></tr>
+      <tr><td><?php echo translate('V4LCapturesPerFrame') ?></td><td><input type="number" name="newMonitor[V4LCapturesPerFrame]" value="<?php echo $newMonitor['V4LCapturesPerFrame'] ?>"/></td></tr>
 <?php
         }
         elseif ( $newMonitor['Type'] == "Remote" )
@@ -824,9 +857,9 @@ switch ( $tab )
         elseif ( $newMonitor['Type'] == "Ffmpeg" || $newMonitor['Type'] == "Libvlc")
         {
 ?>
-			<tr><td><?php echo translate('SourcePath') ?></td><td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($newMonitor['Path']) ?>" size="36"/></td></tr>
+      <tr><td><?php echo translate('SourcePath') ?></td><td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($newMonitor['Path']) ?>" size="36"/></td></tr>
             <tr><td><?php echo translate('RemoteMethod') ?></td><td><?php echo buildSelect( "newMonitor[Method]", $rtspMethods ); ?></td></tr>
-			<tr><td><?php echo translate('Options') ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option=OPTIONS_'.strtoupper($newMonitor['Type']), 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td><td><input type="text" name="newMonitor[Options]" value="<?php echo validHtmlStr($newMonitor['Options']) ?>" size="36"/></td></tr>
+      <tr><td><?php echo translate('Options') ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option=OPTIONS_'.strtoupper($newMonitor['Type']), 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td><td><input type="text" name="newMonitor[Options]" value="<?php echo validHtmlStr($newMonitor['Options']) ?>" size="36"/></td></tr>
 <?php
         }
 ?>
@@ -954,8 +987,9 @@ switch ( $tab )
         <div id="contentButtons">
           <input type="submit" value="<?php echo translate('Save') ?>"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
         </div>
+        
       </form>
     </div>
-  </div>
+    </div>
 </body>
 </html>

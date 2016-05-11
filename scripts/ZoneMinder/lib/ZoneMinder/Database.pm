@@ -78,8 +78,7 @@ sub zmDbConnect
     {
          zmDbDisconnect();
     }
-    if ( !defined( $dbh ) )
-    {
+    if ( ( ! defined( $dbh ) ) or ! $dbh->ping() ) {
         my ( $host, $port ) = ( $ZoneMinder::Config::Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
 
         if ( defined($port) )

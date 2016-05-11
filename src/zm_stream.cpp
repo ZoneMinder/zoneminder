@@ -317,6 +317,8 @@ void StreamBase::openComms()
     if ( sd < 0 )
     {
       Fatal( "Can't create socket: %s", strerror(errno) );
+		} else {
+			Debug(3, "Have socket %d", sd );
     }
 
     length = snprintf( loc_sock_path, sizeof(loc_sock_path), "%s/zms-%06ds.sock", config.path_socks, connkey );
@@ -331,6 +333,7 @@ void StreamBase::openComms()
 
     strncpy( loc_addr.sun_path, loc_sock_path, sizeof(loc_addr.sun_path) );
     loc_addr.sun_family = AF_UNIX;
+		Debug(3, "Binding to %s", loc_sock_path );
     if ( bind( sd, (struct sockaddr *)&loc_addr, strlen(loc_addr.sun_path)+sizeof(loc_addr.sun_family))+1 < 0 )
     {
       Fatal( "Can't bind: %s", strerror(errno) );
@@ -340,6 +343,7 @@ void StreamBase::openComms()
     strncpy( rem_addr.sun_path, rem_sock_path, sizeof(rem_addr.sun_path) );
     rem_addr.sun_family = AF_UNIX;
   } // end if connKey > 0
+	Debug(3, "comms open" );
 }
 
 void StreamBase::closeComms()

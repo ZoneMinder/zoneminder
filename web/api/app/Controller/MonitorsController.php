@@ -138,8 +138,7 @@ public function beforeFilter() {
 			'_serialize' => array('message')
 		));
 		// - restart this monitor after change
-		// We don't pass the request data as the monitor object because it may be a subset of the full monitor array
-		$this->daemonControl( $this->Monitor->id, 'restart' );
+		$this->daemonControl($this->Monitor->id, 'restart', $this->request->data);
 	}
 
 /**
@@ -205,11 +204,14 @@ public function beforeFilter() {
 		{
 			case "on":
 				$q = '-a';
+				$verbose = "-v";
 				break;
 			case "off":
 			  $q = "-c";
+				$verbose = "-v";
 				break;
 			case "status":
+				$verbose = ""; // zmu has a bug - gives incorrect verbose output in this case
 				$q = "-s";
 				break;			
 		}
@@ -250,7 +252,7 @@ public function beforeFilter() {
 			}
 		}
 		
-		$shellcmd = escapeshellcmd("$zm_path_bin/zmu -v -m$id $q $auth");
+		$shellcmd = escapeshellcmd("$zm_path_bin/zmu $verbose -m$id $q $auth");
 		$status = exec ($shellcmd);
 
 		$this->set(array(

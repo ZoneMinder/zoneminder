@@ -1,3 +1,9 @@
+zoneminder (1.30.2-trusty-2016051101) trusty; urgency=medium
+
+  *  fix zms
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Wed, 11 May 2016 11:36:08 -0400
+
 zoneminder (1.30.2-trusty-2016050901) trusty; urgency=medium
 
   * 

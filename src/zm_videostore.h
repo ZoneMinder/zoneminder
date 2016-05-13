@@ -5,6 +5,8 @@
 
 #if HAVE_LIBAVCODEC
 
+#include "zm_monitor.h"
+
 class VideoStore {
 private:
 
@@ -15,6 +17,8 @@ private:
     
 	const char *filename;
 	const char *format;
+
+  Monitor::Orientation orientation;
     
     bool keyframeMessage;
     int keyframeSkipNumber;
@@ -26,7 +30,7 @@ private:
     int64_t filter_in_rescale_delta_last;
 
 public:
-	VideoStore(const char *filename_in, const char *format_in, AVStream *input_st, AVStream *inpaud_st, int64_t nStartTime);
+	VideoStore(const char *filename_in, const char *format_in, AVStream *input_st, AVStream *inpaud_st, int64_t nStartTime, Monitor::Orientation p_orientation );
 	~VideoStore();
 
     int writeVideoFramePacket(AVPacket *pkt, AVStream *input_st);//, AVPacket *lastKeyframePkt);

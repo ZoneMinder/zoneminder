@@ -29,6 +29,7 @@
 #include "zm_rgb.h"
 #include "zm_zone.h"
 #include "zm_event.h"
+class Monitor;
 #include "zm_camera.h"
 #include "zm_storage.h"
 #include "zm_utils.h"
@@ -326,6 +327,8 @@ protected:
 	MonitorLink		**linked_monitors;
 
 public:
+  Monitor( int p_id );
+
 // OurCheckAlarms seems to be unused. Check it on zm_monitor.cpp for more info.
 //bool OurCheckAlarms( Zone *zone, const Image *pImage );
 	Monitor( 
@@ -416,11 +419,12 @@ public:
 	inline bool Exif() {
 		return( embed_exif );
 	}
+  Orientation getOrientation()const;
 
 	unsigned int Width() const { return width; }
 	unsigned int Height() const { return height; }
-	unsigned int Colours() const { return( camera->Colours() ); }
-	unsigned int SubpixelOrder() const { return( camera->SubpixelOrder() ); }
+	unsigned int Colours() const;
+	unsigned int SubpixelOrder() const;
 
 	int GetOptSaveJPEGs() const { return( savejpegspref ); }
 	int GetOptVideoWriter() const { return( videowriterpref ); }
@@ -454,16 +458,10 @@ public:
 	int actionColour( int p_colour=-1 );
 	int actionContrast( int p_contrast=-1 );
 
-	inline int PrimeCapture() {
-		return( camera->PrimeCapture() );
-	}
-	inline int PreCapture() {
-		return( camera->PreCapture() );
-	}
+	int PrimeCapture();
+	int PreCapture();
 	int Capture();
-	int PostCapture() {
-		return( camera->PostCapture() );
-	}
+	int PostCapture();
 
 	unsigned int DetectMotion( const Image &comp_image, Event::StringSet &zoneSet );
    // DetectBlack seems to be unused. Check it on zm_monitor.cpp for more info.

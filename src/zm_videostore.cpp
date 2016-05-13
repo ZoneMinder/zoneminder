@@ -35,7 +35,9 @@ extern "C"{
 VideoStore::VideoStore(const char *filename_in, const char *format_in,
                        AVStream *input_st,
                        AVStream *inpaud_st,
-                       int64_t nStartTime) {
+                       int64_t nStartTime,
+                        Monitor::Orientation p_orientation
+) {
     
 	AVDictionary *pmetadata = NULL;
 	int dsr;
@@ -74,6 +76,11 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
 	dsr = av_dict_set(&pmetadata, "title", "Zoneminder Security Recording", 0);
 	if (dsr < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__ );
+
+  if ( p_orientation == Monitor::ROTATE_90 ) {
+    dsr = av_dict_set(&pmetadata, "rotate", "90", 0);
+    if (dsr < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__ );
+  }
 
 	oc->metadata = pmetadata;
         

@@ -254,7 +254,11 @@ function controlPanTilt( $monitor, $cmds )
       <div class="arrowBtn upBtn<?php echo $hasTilt?'':' invisible' ?>" onclick="controlCmd('<?php echo $cmds['MoveUp'] ?>',event,0,-1)"></div>
       <div class="arrowBtn upRightBtn<?php echo $hasDiag?'':' invisible' ?>" onclick="controlCmd('<?php echo $cmds['MoveUpRight'] ?>',event,1,-1)"></div>
       <div class="arrowBtn leftBtn<?php echo $hasPan?'':' invisible' ?>" onclick="controlCmd('<?php echo $cmds['MoveLeft'] ?>',event,1,0)"></div>
+<?php if ( isset($cmds['Center']) ) { ?>
       <div class="arrowBtn centerBtn" onclick="controlCmd('<?php echo $cmds['Center'] ?>')"></div>
+<?php } else { ?>
+      <div class="arrowBtn NocenterBtn"></div>
+<?php } ?>
       <div class="arrowBtn rightBtn<?php echo $hasPan?'':' invisible' ?>" onclick="controlCmd('<?php echo $cmds['MoveRight'] ?>',event,1,0)"></div>
       <div class="arrowBtn downLeftBtn<?php echo $hasDiag?'':' invisible' ?>" onclick="controlCmd('<?php echo $cmds['MoveDownLeft'] ?>',event,-1,1)"></div>
       <div class="arrowBtn downBtn<?php echo $hasTilt?'':' invisible' ?>" onclick="controlCmd('<?php echo $cmds['MoveDown'] ?>',event,0,1)"></div>

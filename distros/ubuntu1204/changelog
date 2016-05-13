@@ -1,3 +1,45 @@
+zoneminder (1.30.2-trusty-2016051301) trusty; urgency=medium
+
+  * fixes
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Fri, 13 May 2016 09:45:49 -0400
+
+zoneminder (1.30.2-trusty-2016051201) trusty; urgency=medium
+
+  * web ui fixies
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Thu, 12 May 2016 20:01:21 -0400
+
+zoneminder (1.30.2-trusty-2016051101) trusty; urgency=medium
+
+  *  fix zms
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Wed, 11 May 2016 11:36:08 -0400
+
+zoneminder (1.30.2-trusty-2016050901) trusty; urgency=medium
+
+  * 
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Mon, 09 May 2016 21:08:56 -0400
+
+zoneminder (1.30.2-trusty-2016050501) trusty; urgency=medium
+
+  * add some more debug
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Thu, 05 May 2016 10:20:23 -0400
+
+zoneminder (1.30.2-trusty-2016050201) trusty; urgency=medium
+
+  * add Servers support to API
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Mon, 02 May 2016 10:45:24 -0400
+
+zoneminder (1.30.2-trusty-2016042901) trusty; urgency=medium
+
+  * zone edit fixes
+
+ -- Isaac Connor <iconnor@connortechnology.com>  Fri, 29 Apr 2016 10:46:18 -0400
+
 zoneminder (1.30.2-trusty-2016042801) trusty; urgency=medium
 
   *  Merge video

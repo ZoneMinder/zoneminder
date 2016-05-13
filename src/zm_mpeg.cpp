@@ -328,82 +328,82 @@ void VideoStream::OpenStream( )
 #else
 		opicture = avcodec_alloc_frame( );
 #endif
-		if ( !opicture )
-		{
-			Panic( "Could not allocate opicture" );
-		}
-		
+    if ( !opicture )
+    {
+      Panic( "Could not allocate opicture" );
+    }
+
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-		int size = av_image_get_buffer_size( c->pix_fmt, c->width, 
-                        c->height, 1 );
+    int size = av_image_get_buffer_size( c->pix_fmt, c->width, 
+      c->height, 1 );
 #else
-		int size = avpicture_get_size( c->pix_fmt, c->width, c->height );
+    int size = avpicture_get_size( c->pix_fmt, c->width, c->height );
 #endif
 
-		uint8_t *opicture_buf = (uint8_t *)av_malloc( size );
-		if ( !opicture_buf )
-		{
+    uint8_t *opicture_buf = (uint8_t *)av_malloc( size );
+    if ( !opicture_buf )
+    {
 #if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
                     av_frame_free( &opicture );
 #else
                     av_freep( &opicture );
 #endif
-			Panic( "Could not allocate opicture_buf" );
-		}
+      Panic( "Could not allocate opicture_buf" );
+    }
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-                av_image_fill_arrays(opicture->data, opicture->linesize,
-                        opicture_buf, c->pix_fmt, c->width, c->height, 1);
+    av_image_fill_arrays(opicture->data, opicture->linesize,
+      opicture_buf, c->pix_fmt, c->width, c->height, 1);
 #else
-		avpicture_fill( (AVPicture *)opicture, opicture_buf, c->pix_fmt,
-                        c->width, c->height );
+    avpicture_fill( (AVPicture *)opicture, opicture_buf, c->pix_fmt,
+      c->width, c->height );
 #endif
 
-		/* if the output format is not identical to the input format, then a temporary
-		   picture is needed too. It is then converted to the required
-		   output format */
-		tmp_opicture = NULL;
-		if ( c->pix_fmt != pf )
-		{
+    /* if the output format is not identical to the input format, then a temporary
+       picture is needed too. It is then converted to the required
+       output format */
+    tmp_opicture = NULL;
+    if ( c->pix_fmt != pf )
+    {
 #if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
 			tmp_opicture = av_frame_alloc( );
 #else
 			tmp_opicture = avcodec_alloc_frame( );
 #endif
-			if ( !tmp_opicture )
-			{
-				Panic( "Could not allocate tmp_opicture" );
-			}
+      if ( !tmp_opicture )
+      {
+        Panic( "Could not allocate tmp_opicture" );
+      }
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-			int size = av_image_get_buffer_size( pf, c->width,
-                                c->height,1 );
+      int size = av_image_get_buffer_size( pf, c->width,
+        c->height,1 );
 #else
-			int size = avpicture_get_size( pf, c->width, c->height );
+      int size = avpicture_get_size( pf, c->width, c->height );
 #endif
-			uint8_t *tmp_opicture_buf = (uint8_t *)av_malloc( size );
-			if ( !tmp_opicture_buf )
-			{
+      uint8_t *tmp_opicture_buf = (uint8_t *)av_malloc( size );
+      if ( !tmp_opicture_buf )
+      {
 #if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
-                            av_frame_free( &tmp_opicture );
+        av_frame_free( &tmp_opicture );
 #else
-                            av_freep( &tmp_opicture );
+        av_freep( &tmp_opicture );
 #endif
-				Panic( "Could not allocate tmp_opicture_buf" );
-			}
+        Panic( "Could not allocate tmp_opicture_buf" );
+      }
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-                        av_image_fill_arrays(tmp_opicture->data,
-                                tmp_opicture->linesize, tmp_opicture_buf, pf,
-                                c->width, c->height, 1);
+      av_image_fill_arrays(tmp_opicture->data,
+        tmp_opicture->linesize, tmp_opicture_buf, pf,
+        c->width, c->height, 1);
 #else
-			avpicture_fill( (AVPicture *)tmp_opicture,
-                                tmp_opicture_buf, pf, c->width, c->height );
+      avpicture_fill( (AVPicture *)tmp_opicture,
+        tmp_opicture_buf, pf, c->width, c->height );
 #endif
-		}
-	}
+    }
+  }
 
-	/* open the output file, if needed */
-	if ( !(of->flags & AVFMT_NOFILE) )
-	{
-		int ret;
+  /* open the output file, if needed */
+  if ( !(of->flags & AVFMT_NOFILE) )
+  {
+    int ret;
 #if LIBAVFORMAT_VERSION_CHECK(53, 15, 0, 21, 0)
 		ret = avio_open2( &ofc->pb, filename, AVIO_FLAG_WRITE, NULL, NULL );
 #elif LIBAVFORMAT_VERSION_CHECK(52, 102, 0, 102, 0)
@@ -700,31 +700,31 @@ double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size,
 		pkt->data = got_packet ? video_outbuf : NULL;
 		pkt->size = got_packet ? out_size : 0;
 #endif
-		if ( got_packet )
-		{
-//			if ( c->coded_frame->key_frame )
-//			{
+    if ( got_packet )
+    {
+//      if ( c->coded_frame->key_frame )
+//      {
 //#if LIBAVCODEC_VERSION_CHECK(52, 30, 2, 30, 2)
-//				pkt->flags |= AV_PKT_FLAG_KEY;
+//        pkt->flags |= AV_PKT_FLAG_KEY;
 //#else
-//				pkt->flags |= PKT_FLAG_KEY;
+//        pkt->flags |= PKT_FLAG_KEY;
 //#endif
-//			}
+//      }
 
-			if ( pkt->pts != (int64_t)AV_NOPTS_VALUE )
-			{
-				pkt->pts = av_rescale_q( pkt->pts, c->time_base, ost->time_base );
-			}
-			if ( pkt->dts != (int64_t)AV_NOPTS_VALUE )
-			{
-				pkt->dts = av_rescale_q( pkt->dts, c->time_base, ost->time_base );
-			}
-			pkt->duration = av_rescale_q( pkt->duration, c->time_base, ost->time_base );
-			pkt->stream_index = ost->index;
-		}
-	}
-    
-	return ( opicture_ptr->pts);
+      if ( pkt->pts != (int64_t)AV_NOPTS_VALUE )
+      {
+        pkt->pts = av_rescale_q( pkt->pts, c->time_base, ost->time_base );
+      }
+      if ( pkt->dts != (int64_t)AV_NOPTS_VALUE )
+      {
+        pkt->dts = av_rescale_q( pkt->dts, c->time_base, ost->time_base );
+      }
+      pkt->duration = av_rescale_q( pkt->duration, c->time_base, ost->time_base );
+      pkt->stream_index = ost->index;
+    }
+  }
+  
+  return ( opicture_ptr->pts);
 }
 
 int VideoStream::SendPacket(AVPacket *packet) {

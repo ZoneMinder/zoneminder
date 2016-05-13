@@ -604,7 +604,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
                     //Instantiate the video storage module
                     Debug(3, "recording and ! wasRecording %s", event_file);
 
-                    videoStore = new VideoStore((const char *)event_file, "mp4", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime);
+                    videoStore = new VideoStore((const char *)event_file, "mp4", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime, this->getMonitor()->getOrientation() );
                     wasRecording = true;
                     strcpy(oldDirectory, event_file);
 
@@ -629,7 +629,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
                         videoStore = NULL;
                     }
 
-                    videoStore = new VideoStore((const char *)event_file, "mp4", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime);
+                    videoStore = new VideoStore((const char *)event_file, "mp4", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime, this->getMonitor()->getOrientation());
                     strcpy(oldDirectory, event_file);
                 }
                 

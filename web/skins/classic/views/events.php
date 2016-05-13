@@ -30,7 +30,7 @@ if ( !empty($_REQUEST['execute']) )
 }
 
 $countSql = 'SELECT count(E.Id) AS EventCount FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId) WHERE';
-$eventsSql = 'SELECT E.Id,E.MonitorId,M.Name AS MonitorName,M.DefaultScale,E.Name,E.Width,E.Height,E.Cause,E.Notes,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId) WHERE';
+$eventsSql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultScale FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId) WHERE';
 if ( $user['MonitorIds'] ) {
 	$user_monitor_ids = ' M.Id in ('.$user['MonitorIds'].')';
 	$countSql .= $user_monitor_ids;
@@ -215,7 +215,7 @@ foreach ( $events as $event )
         if ( $thumbData = createListThumbnail( $event ) )
         {
 ?>
-              <td class="colThumbnail"><?php echo makePopupLink( '?view=frame&amp;eid='.$event['Id'].'&amp;fid='.$thumbData['FrameId'], 'zmImage', array( 'image', reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ) ), '<img src="'.viewImagePath( $thumbData['Path'] ).'" width="'.$thumbData['Width'].'" height="'.$thumbData['Height'].'" alt="'.$thumbData['FrameId'].'/'.$event['MaxScore'].'"/>' ) ?></td>
+              <td class="colThumbnail"><?php echo makePopupLink( '?view=frame&amp;eid='.$event['Id'].'&amp;fid='.$thumbData['FrameId'], 'zmImage', array( 'image', reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ) ), '<img src="?view=image&amp;eid='.$event['Id'].'&amp;fid='.$thumbData['FrameId'].'&amp;width='.$thumbData['Width'].'&amp;height='.$thumbData['Height'].'" width="'.$thumbData['Width'].'" height="'.$thumbData['Height'].'" alt="'.$thumbData['FrameId'].'/'.$event['MaxScore'].'"/>' ) ?></td>
 <?php
         }
         else

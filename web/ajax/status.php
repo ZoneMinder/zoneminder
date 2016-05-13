@@ -117,6 +117,7 @@ $statusData = array(
             "Height" => true,
             "Length" => true,
             "Frames" => true,
+            "DefaultVideo" => true,
             "AlarmFrames" => true,
             "TotScore" => true,
             "AvgScore" => true,
@@ -391,7 +392,7 @@ function getNearEvents()
     {
         if ( $id == $eventId )
         {
-            $prevId = dbFetchNext( $result, 'Id' );
+            $prevEvent = dbFetchNext( $result );
             break;
         }
     }
@@ -402,14 +403,16 @@ function getNearEvents()
     {
         if ( $id == $eventId )
         {
-            $nextId = dbFetchNext( $result, 'Id' );
+            $nextEvent = dbFetchNext( $result );
             break;
         }
     }
 
     $result = array( 'EventId'=>$eventId );
-    $result['PrevEventId'] = empty($prevId)?0:$prevId;
-    $result['NextEventId'] = empty($nextId)?0:$nextId;
+    $result['PrevEventId'] = empty($prevEvent)?0:$prevEvent['Id'];
+    $result['NextEventId'] = empty($nextEvent)?0:$nextEvent['Id'];
+    $result['PrevEventDefVideoPath'] = empty($prevEvent)?0:(getEventDefaultVideoPath($prevEvent));
+    $result['NextEventDefVideoPath'] = empty($nextEvent)?0:(getEventDefaultVideoPath($nextEvent));
     return( $result );
 }
 

@@ -114,11 +114,16 @@ if ( ($report + $interactive + $continuous) > 1 )
 
 my $dbh = zmDbConnect();
 
-chdir( EVENT_PATH );
+require ZoneMinder::Monitor;
+require ZoneMinder::Storage;
+require ZoneMinder::Event;
 
 my $max_image_age = 6/24; # 6 hours
 my $max_swap_age = 24/24; # 24 hours
 my $image_path = IMAGE_PATH;
+
+
+
 
 my $loop = 1;
 my $cleaned = 0;
@@ -150,10 +155,12 @@ MAIN: while( $loop ) {
         Fatal("ZM_AUDIT_MIN_AGE is not set in config.");
     }
 
+    my %Monitors;
     my $db_monitors;
-    my $monitorSelectSql = "select Id from Monitors order by Id";
+    my $monitorSelectSql = "select * from Monitors order by Id";
     my $monitorSelectSth = $dbh->prepare_cached( $monitorSelectSql )
         or Fatal( "Can't prepare '$monitorSelectSql': ".$dbh->errstr() );
+
     my $eventSelectSql = "SELECT Id, (unix_timestamp() - unix_timestamp(StartTime)) as Age
                           FROM Events WHERE MonitorId = ? ORDER BY Id";
     my $eventSelectSth = $dbh->prepare_cached( $eventSelectSql )
@@ -164,6 +171,8 @@ MAIN: while( $loop ) {
         or Fatal( "Can't execute: ".$monitorSelectSth->errstr() );
     while( my $monitor = $monitorSelectSth->fetchrow_hashref() )
     {
+        $Monitors{$$monitor{Id}} = $monitor;
+
         Debug( "Found database monitor '$monitor->{Id}'" );
         my $db_events = $db_monitors->{$monitor->{Id}} = {};
         my $res = $eventSelectSth->execute( $monitor->{Id} )
@@ -175,129 +184,148 @@ MAIN: while( $loop ) {
         Debug( "Got ".int(keys(%$db_events))." events\n" );
     }
 
-    my $fs_monitors;
-    foreach my $monitor ( glob("[0-9]*") )
-    {
-		# Thie glob above gives all files starting with a digit.  So a monitor with a name starting with a digit will be in this list.
-		next if $monitor =~ /\D/;
-        Debug( "Found filesystem monitor '$monitor'" );
-        my $fs_events = $fs_monitors->{$monitor} = {};
-        ( my $monitor_dir ) = ( $monitor =~ /^(.*)$/ ); # De-taint
+	my $fs_monitors;
 
-        if ( $Config{ZM_USE_DEEP_STORAGE} )
-        {
-            foreach my $day_dir ( glob("$monitor_dir/*/*/*") )
-            {
-                Debug( "Checking $day_dir" );
-                ( $day_dir ) = ( $day_dir =~ /^(.*)$/ ); # De-taint
-                chdir( $day_dir );
-                opendir( DIR, "." )
-                    or Fatal( "Can't open directory '$day_dir': $!" );
-                my @event_links = sort { $b <=> $a } grep { -l $_ } readdir( DIR );
-                closedir( DIR );
-                my $count = 0;
-                foreach my $event_link ( @event_links )
-                {
-                    Debug( "Checking link $event_link" );
-                    ( my $event = $event_link ) =~ s/^.*\.//;
-                    my $event_path = readlink( $event_link );
-                    if ( $count++ > MAX_AGED_DIRS )
-                    {
-                        $fs_events->{$event} = -1;
-                    }
-                    else
-                    {
-                        if ( !-e $event_path )
-                        {
-                            aud_print( "Event link $day_dir/$event_link does not point to valid target" );
-                            if ( confirm() )
-                            {
-                                ( $event_link ) = ( $event_link =~ /^(.*)$/ ); # De-taint
-                                unlink( $event_link );
-                                $cleaned = 1;
-                            }
-                        }
-                        else
-                        {
-                            $fs_events->{$event} = (time() - ($^T - ((-M $event_path) * 24*60*60)));
-                        }
-                    }
-                }
-                chdir( EVENT_PATH );
-            }
-        }
-        else
-        {
-            chdir( $monitor_dir );
-            opendir( DIR, "." ) or Fatal( "Can't open directory '$monitor_dir': $!" );
-            my @temp_events = sort { $b <=> $a } grep { -d $_ && $_ =~ /^\d+$/ } readdir( DIR );
-            closedir( DIR );
-            my $count = 0;
-            foreach my $event ( @temp_events )
-            {
-                if ( $count++ > MAX_AGED_DIRS )
-                {
-                    $fs_events->{$event} = -1;
-                }
-                else
-                {
-                    $fs_events->{$event} = (time() - ($^T - ((-M $event) * 24*60*60)));
-                }
-            }
-            chdir( EVENT_PATH );
-        }
-        Debug( "Got ".int(keys(%$fs_events))." events\n" );
-    }
-    redo MAIN if ( $cleaned );
+	foreach my $Storage (
+			ZoneMinder::Storage->find( ($Config{ZM_SERVER_ID} ? ( ServerId => $Config{ZM_SERVER_ID} ) : () ) ),
+			new ZoneMinder::Storage(),
+			) {
+		Debug("Checking events in " . $Storage->Path() );
+		chdir( $Storage->Path() );
 
-    $cleaned = 0;
-    while ( my ( $fs_monitor, $fs_events ) = each(%$fs_monitors) )
-    {
-        if ( my $db_events = $db_monitors->{$fs_monitor} )
-        {
-            if ( $fs_events )
-            {
-                while ( my ( $fs_event, $age ) = each(%$fs_events ) )
-                {
-                    if ( !defined($db_events->{$fs_event}) && ($age < 0 || ($age > $Config{ZM_AUDIT_MIN_AGE})) )
-                    {
-                        aud_print( "Filesystem event '$fs_monitor/$fs_event' does not exist in database" );
-                        if ( confirm() )
-                        {
-                            deleteEventFiles( $fs_event, $fs_monitor );
-                            $cleaned = 1;
-                        }
-                    }
-                }
-            }
-        }
-        else
-        {
-            aud_print( "Filesystem monitor '$fs_monitor' does not exist in database" );
-            if ( confirm() )
-            {
-                my $command = "rm -rf $fs_monitor";
-                executeShellCommand( $command );
-                $cleaned = 1;
-            }
-        }
-    }
+		# Please note that this glob will take all files beginning with a digit. 
+		foreach my $monitor ( glob("[0-9]*") )
+		{
+			next if $monitor =~ /\D/;
 
-    my $monitor_links;
-    foreach my $link ( glob("*") )
-    {
-        next if ( !-l $link );
-        next if ( -e $link );
+			Debug( "Found filesystem monitor '$monitor'" );
+			my $fs_events = $fs_monitors->{$monitor} = {};
+			( my $monitor_dir ) = ( $monitor =~ /^(.*)$/ ); # De-taint
 
-        aud_print( "Filesystem monitor link '$link' does not point to valid monitor directory" );
-        if ( confirm() )
-        {
-            ( $link ) = ( $link =~ /^(.*)$/ ); # De-taint
-            my $command = "rm $link";
-            executeShellCommand( $command );
-            $cleaned = 1;
-        }
-    }
+			if ( $Config{ZM_USE_DEEP_STORAGE} )
+			{
+				foreach my $day_dir ( glob("$monitor_dir/*/*/*") )
+				{
+					Debug( "Checking $day_dir" );
+					( $day_dir ) = ( $day_dir =~ /^(.*)$/ ); # De-taint
+						chdir( $day_dir );
+					opendir( DIR, "." )
+						or Fatal( "Can't open directory '$day_dir': $!" );
+					my @event_links = sort { $b <=> $a } grep { -l $_ } readdir( DIR );
+					closedir( DIR );
+					my $count = 0;
+					foreach my $event_link ( @event_links )
+					{
+						if ( $event_link =~ /[^\d\.]/ ) {
+							Warning("Non-event link found $event_link in $day_dir, skipping");
+							next;
+						}
+						Debug( "Checking link $event_link" );
+						( my $event = $event_link ) =~ s/^.*\.//;
+						my $event_path = readlink( $event_link );
+						if ( $count++ > MAX_AGED_DIRS )
+						{
+							$fs_events->{$event} = -1;
+						}
+						else
+						{
+							if ( !-e $event_path )
+							{
+								aud_print( "Event link $day_dir/$event_link does not point to valid target" );
+								if ( confirm() )
+								{
+									( $event_link ) = ( $event_link =~ /^(.*)$/ ); # De-taint
+										unlink( $event_link );
+									$cleaned = 1;
+								}
+							}
+							else
+							{
+								$fs_events->{$event} = (time() - ($^T - ((-M $event_path) * 24*60*60)));
+							}
+						}
+					}
+					chdir( $Storage->Path() );
+				}
+			}
+			else
+			{
+				chdir( $monitor_dir );
+				opendir( DIR, "." ) or Fatal( "Can't open directory '$monitor_dir': $!" );
+				my @temp_events = sort { $b <=> $a } grep { -d $_ && $_ =~ /^\d+$/ } readdir( DIR );
+				closedir( DIR );
+				my $count = 0;
+				foreach my $event ( @temp_events )
+				{
+					if ( $count++ > MAX_AGED_DIRS )
+					{
+						$fs_events->{$event} = -1;
+					}
+					else
+					{
+						$fs_events->{$event} = (time() - ($^T - ((-M $event) * 24*60*60)));
+					}
+				}
+				chdir( $Storage->Path() );
+			} # if USE_DEEP_STORAGE
+			Debug( "Got ".int(keys(%$fs_events))." events\n" );
+		} # end foreach monitor
+		redo MAIN if ( $cleaned );
+
+		$cleaned = 0;
+		while ( my ( $fs_monitor, $fs_events ) = each(%$fs_monitors) )
+		{
+			if ( my $db_events = $db_monitors->{$fs_monitor} )
+			{
+				if ( $fs_events )
+				{
+					foreach my $fs_event ( sort { $a <=> $b } keys %$fs_events ) {
+						my $age = $fs_events->{$fs_event};
+						if ( !defined($db_events->{$fs_event}) && ($age < 0 || ($age > $Config{ZM_AUDIT_MIN_AGE})) )
+						{
+							aud_print( "Filesystem event '$fs_monitor/$fs_event' does not exist in database" );
+							if ( confirm() )
+							{
+								my $Event = new ZoneMinder::Event( $fs_event );
+								# Must set these because the db event does not exist
+								$Event->MonitorId( $fs_monitor );
+								$Event->StorageId( $Storage->Id() );
+								$Event->delete_files();
+								$cleaned = 1;
+								delete $fs_events->{$fs_event};
+							}
+						}
+					}
+				}
+			}
+			else
+			{
+				aud_print( "Filesystem monitor '$fs_monitor' in $$Storage{Path} does not exist in database" );
+				if ( confirm() )
+				{
+					my $command = "rm -rf $fs_monitor";
+					executeShellCommand( $command );
+					$cleaned = 1;
+				}
+			}
+		}
+
+		my $monitor_links;
+		foreach my $link ( glob("*") )
+		{
+			next if ( !-l $link );
+			next if ( -e $link );
+
+			aud_print( "Filesystem monitor link '$link' does not point to valid monitor directory" );
+			if ( confirm() )
+			{
+				( $link ) = ( $link =~ /^(.*)$/ ); # De-taint
+					my $command = "rm $link";
+				executeShellCommand( $command );
+				$cleaned = 1;
+			}
+		}
+	} # end foreach Storage Area
     redo MAIN if ( $cleaned );
 
     $cleaned = 0;
@@ -334,7 +362,10 @@ MAIN: while( $loop ) {
 								$cleaned = 1;
 							}
 						} else {
-							aud_print( "Database event '$db_monitor/$db_event' does not exist in filesystem but too young to delete." );
+							my $Event = new ZoneMinder::Event( $db_event );
+							my $Storage = $Event->Storage();
+
+							aud_print( "Database event '".$Event->getPath()."/$db_monitor/$db_event' does not exist in filesystem but too young to delete.\n" );
 						}
                     }
                 }
@@ -342,7 +373,9 @@ MAIN: while( $loop ) {
         }
         else
         {
-            aud_print( "Database monitor '$db_monitor' does not exist in filesystem" );
+			my $Monitor = new ZoneMinder::Monitor( $db_monitor );
+			my $Storage = $Monitor->Storage();
+            aud_print( "Database monitor '$db_monitor' does not exist in filesystem, should have been at ".$Storage->Path()."\n" );
             #if ( confirm() )
             #{
                 # We don't actually do this in case it's new
@@ -351,7 +384,8 @@ MAIN: while( $loop ) {
                 #$cleaned = 1;
             #}
         }
-    }
+    } # end foreach db monitors
+
     redo MAIN if ( $cleaned );
 
     # Remove orphaned events (with no monitor)
@@ -437,20 +471,30 @@ MAIN: while( $loop ) {
 
     # New audit to close any events that were left open for longer than MIN_AGE seconds
     my $selectUnclosedEventsSql =
-       "SELECT E.Id,
-               max(F.TimeStamp) as EndTime,
-               unix_timestamp(max(F.TimeStamp)) - unix_timestamp(E.StartTime) as Length,
-               max(F.FrameId) as Frames,
+       #"SELECT E.Id, ANY_VALUE(E.MonitorId),
+#
+               #max(F.TimeStamp) as EndTime,
+               #unix_timestamp(max(F.TimeStamp)) - unix_timestamp(E.StartTime) as Length,
+               #max(F.FrameId) as Frames,
+               #count(if(F.Score>0,1,NULL)) as AlarmFrames,
+               #sum(F.Score) as TotScore,
+               #max(F.Score) as MaxScore
+        #FROM Events as E
+        #INNER JOIN Frames as F on E.Id = F.EventId
+        #WHERE isnull(E.Frames) or isnull(E.EndTime)
+        #GROUP BY E.Id HAVING EndTime < (now() - interval ".$Config{ZM_AUDIT_MIN_AGE}." second)"
+    #;
+        "SELECT *, unix_timestamp(StartTime) AS TimeStamp FROM Events WHERE EndTime IS NULL AND StartTime < (now() - interval ".$Config{ZM_AUDIT_MIN_AGE}." second)";
+
+    my $selectFrameDataSql = "SELECT max(TimeStamp) as EndTime, unix_timestamp(max(TimeStamp)) AS EndTimeStamp, max(FrameId) as Frames,
                count(if(F.Score>0,1,NULL)) as AlarmFrames,
                sum(F.Score) as TotScore,
-               max(F.Score) as MaxScore,
-               M.EventPrefix as Prefix
-        FROM Events as E
-        LEFT JOIN Monitors as M on E.MonitorId = M.Id
-        INNER JOIN Frames as F on E.Id = F.EventId
-        WHERE isnull(E.Frames) or isnull(E.EndTime)
-        GROUP BY E.Id HAVING EndTime < (now() - interval ".$Config{ZM_AUDIT_MIN_AGE}." second)"
-    ;
+               max(F.Score) as MaxScore
+        FROM Frames WHERE EventId=?";
+    my $selectFrameDataSth = $dbh->prepare_cached($selectFrameDataSql)
+        or Fatal( "Can't prepare '$selectFrameDataSql': ".$dbh->errstr() );
+
+
     my $selectUnclosedEventsSth = $dbh->prepare_cached( $selectUnclosedEventsSql )
         or Fatal( "Can't prepare '$selectUnclosedEventsSql': ".$dbh->errstr() );
     my $updateUnclosedEventsSql =
@@ -475,26 +519,32 @@ MAIN: while( $loop ) {
         aud_print( "Found open event '$event->{Id}'" );
         if ( confirm( 'close', 'closing' ) )
         {
-            $res = $updateUnclosedEventsSth->execute
-            (
-                sprintf("%s%d%s",
-                        $event->{Prefix},
-                        $event->{Id},
-                        RECOVER_TAG
-                ),
-                $event->{EndTime},
-                $event->{Length},
-                $event->{Frames},
-                $event->{AlarmFrames},
-                $event->{TotScore},
-                $event->{AlarmFrames}
-                    ? int($event->{TotScore} / $event->{AlarmFrames})
-                    : 0
-                ,
-                $event->{MaxScore},
-                RECOVER_TEXT,
-                $event->{Id}
-            ) or Fatal( "Can't execute: ".$updateUnclosedEventsSth->errstr() );
+            $res = $selectFrameDataSth->execute( $event->{Id} );
+            my $frame = $selectFrameDataSth->fetchrow_hashref();
+            if ( $frame ) {
+                $res = $updateUnclosedEventsSth->execute
+                (
+                    sprintf("%s%d%s",
+                            $Monitors{$event->{MonitorId}}->{EventPrefix},
+                            $event->{Id},
+                            RECOVER_TAG
+                    ),
+                    $frame->{EndTime},
+                    $frame->{EndTimeStamp} - $event->{TimeStamp},
+                    $frame->{Frames},
+                    $frame->{AlarmFrames},
+                    $frame->{TotScore},
+                    $frame->{AlarmFrames}
+                        ? int($frame->{TotScore} / $frame->{AlarmFrames})
+                        : 0
+                    ,
+                    $frame->{MaxScore},
+                    RECOVER_TEXT,
+                    $event->{Id}
+                ) or Fatal( "Can't execute: ".$updateUnclosedEventsSth->errstr() );
+            } else {
+                Error("SHOULD DELETE");
+            } # end if has frame data
         }
     }
 
@@ -555,7 +605,7 @@ MAIN: while( $loop ) {
                 ;
             }
         }
-    }
+    } # end if ZM_LOG_DATABASE_LIMIT
     $loop = $continuous;
 
     sleep( $Config{ZM_AUDIT_CHECK_INTERVAL} ) if $continuous;

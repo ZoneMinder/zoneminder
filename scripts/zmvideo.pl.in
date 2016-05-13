@@ -240,7 +240,8 @@ if ( $concat_name ) {
 	close $fd;
 	my $command = $Config{ZM_PATH_FFMPEG}
 	. " -f concat -i $concat_list_file -c copy "
-		." '$video_file' > ffmpeg.log 2>&1"
+.$Config{ZM_FFMPEG_OUTPUT_OPTIONS}
+		." '$video_file' > ffmpeg_${concat_name}.log 2>&1"
 		;
 	Debug( $command."\n" );
 	my $output = qx($command);
@@ -257,5 +258,5 @@ if ( $concat_name ) {
 }
 #unlink $input_file_list;
 #print( STDOUT $event->{MonitorId}.'/'.$event->{Id}.'/'.$video_file."\n" );
-#print( STDOUT $video_file."\n" );
+#print( STDOUT $event_path . '/' . $video_file ."\n" );
 exit( 0 );

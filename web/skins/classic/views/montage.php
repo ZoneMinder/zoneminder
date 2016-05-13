@@ -113,7 +113,7 @@ foreach ( $monitors as $monitor )
     if ( !isset( $scale ) )
         $scale = reScale( SCALE_BASE, $monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE );
 ?>
-        <div id="monitorFrame<?php echo $monitor->index() ?>" class="monitorFrame">
+        <div id="monitorFrame<?php echo $monitor->index() ?>" class="monitorFrame" title="<?php echo $monitor->Name() ?>">
           <div id="monitor<?php echo $monitor->index() ?>" class="monitor idle">
             <div id="imageFeed<?php echo $monitor->index() ?>" class="imageFeed" onclick="createPopup( '?view=watch&amp;mid=<?php echo $monitor->Id() ?>', 'zmWatch<?php echo $monitor->Id() ?>', 'watch', <?php echo $monitor->scaleWidth() ?>, <?php echo $monitor->scaleHeight() ?> );">
 <?php

@@ -49,6 +49,7 @@ if ( false )
 require_once( 'includes/config.php' );
 require_once( 'includes/logger.php' );
 require_once( 'includes/Server.php' );
+require_once( 'includes/Event.php' );
 require_once( 'includes/Monitor.php' );
 
 if ( isset($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] == 'on' )
@@ -137,6 +138,10 @@ else
 
 require_once( 'includes/lang.php' );
 require_once( 'includes/functions.php' );
+$running = daemonCheck();
+$states = dbFetchAll( "select * from States" );
+$status = $running?translate('Running'):translate('Stopped');
+$run_state = dbFetchOne('select Name from States where  IsActive = 1', 'Name' );
 
 # Add Cross domain access headers
 CORSHeaders();

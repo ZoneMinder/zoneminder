@@ -28,31 +28,15 @@ use 5.006;
 use strict;
 use warnings;
 
-require Exporter;
 require ZoneMinder::Base;
 require Date::Manip;
 
-our @ISA = qw(Exporter ZoneMinder::Base);
+use parent qw(ZoneMinder::Object);
+#our @ISA = qw(ZoneMinder::Object);
 
-# Items to export into callers namespace by default. Note: do not export
-# names by default without a very good reason. Use EXPORT_OK instead.
-# Do not simply export all your public functions/methods/constants.
-
-# This allows declaration   use ZoneMinder ':all';
-# If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
-# will save memory.
-our %EXPORT_TAGS = (
-    'functions' => [ qw(
-    ) ]
-);
-push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
-
-our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
-
-our @EXPORT = qw();
-
-our $VERSION = $ZoneMinder::Base::VERSION;
-
+use vars qw/ $table $primary_key /;
+$table = 'Events';
+$primary_key = 'Id';
 # ==========================================================================
 #
 # General Utility Functions
@@ -62,39 +46,10 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Database qw(:all);
+require ZoneMinder::Storage;
+require ZoneMinder::Server;
 
 use POSIX;
-
-sub new {
-    my ( $parent, $id, $data ) = @_;
-
-	my $self = {};
-	bless $self, $parent;
-    $$self{dbh} = $ZoneMinder::Database::dbh;
-#zmDbConnect();
-	if ( ( $$self{Id} = $id ) or $data ) {
-#$log->debug("loading $parent $id") if $debug or DEBUG_ALL;
-		$self->load( $data );
-	}
-	return $self;
-} # end sub new
-
-sub load {
-	my ( $self, $data ) = @_;
-	my $type = ref $self;
-	if ( ! $data ) {
-#$log->debug("Object::load Loading from db $type");
-		$data = $$self{dbh}->selectrow_hashref( 'SELECT * FROM Filter WHERE Id=?', {}, $$self{Id} );
-		if ( ! $data ) {
-				Error( "Failure to load Filter record for $$self{Id}: Reason: " . $$self{dbh}->errstr );
-		} else {
-			Debug( 3, "Loaded Filter $$self{Id}" );	
-		} # end if
-	} # end if ! $data
-	if ( $data and %$data ) {
-		@$self{keys %$data} = values %$data;
-	} # end if
-} # end sub load
 
 sub Name {
 	if ( @_ > 1 ) {
@@ -143,9 +98,9 @@ sub Execute {
 
 	my $sql = $self->Sql();
 
-   if ( $self->{HasDiskPercent} )
+    if ( $self->{HasDiskPercent} )
     {
-        my $disk_percent = getDiskPercent();
+		my $disk_percent = getDiskPercent( $$self{Storage} ? $$self{Storage}->Path() : () );
         $sql =~ s/zmDiskPercent/$disk_percent/g;
     }
     if ( $self->{HasDiskBlocks} )
@@ -159,8 +114,8 @@ sub Execute {
         $sql =~ s/zmSystemLoad/$load/g;
     }
 
-    my $sth = $$self{dbh}->prepare_cached( $sql )
-        or Fatal( "Can't prepare '$sql': ".$$self{dbh}->errstr() );
+    my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
+        or Fatal( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
     my $res = $sth->execute();
     if ( !$res )
     {
@@ -172,6 +127,7 @@ sub Execute {
     while( my $event = $sth->fetchrow_hashref() ) {
 		push @results, $event;
 	}
+	Debug($sql . ' returned ' . @results . ' events.' );
 	$sth->finish();
 	return @results;
 }
@@ -180,28 +136,12 @@ sub Sql {
 	my $self = $_[0];
 	if ( ! $$self{Sql} ) {
 		my $filter_expr = ZoneMinder::General::jsonDecode( $self->{Query} );
-        my $sql = "SELECT E.Id,
-                          E.MonitorId,
+        my $sql = "SELECT E.*,
+                          M.Id as MonitorId,
                           M.Name as MonitorName,
                           M.DefaultRate,
                           M.DefaultScale,
-                          E.Name,
-                          E.Cause,
-                          E.Notes,
-                          E.StartTime,
-                          unix_timestamp(E.StartTime) as Time,
-                          E.Length,
-                          E.Frames,
-                          E.AlarmFrames,
-                          E.TotScore,
-                          E.AvgScore,
-                          E.MaxScore,
-                          E.Archived,
-                          E.Videoed,
-                          E.Uploaded,
-                          E.Emailed,
-                          E.Messaged,
-                          E.Executed
+                          unix_timestamp(E.StartTime) as Time
                    FROM Events as E
                    INNER JOIN Monitors as M on M.Id = E.MonitorId
         ";
@@ -221,6 +161,8 @@ sub Sql {
                     if ( $filter_expr->{terms}[$i]->{attr} =~ /^Monitor/ ) {
                         my ( $temp_attr_name ) = $filter_expr->{terms}[$i]->{attr} =~ /^Monitor(.+)$/;
                         $self->{Sql} .= "M.".$temp_attr_name;
+                    } elsif ( $filter_expr->{terms}[$i]->{attr} =~ /^Server/ ) {
+						$self->{Sql} .= "M.".$filter_expr->{terms}[$i]->{attr};
                     } elsif ( $filter_expr->{terms}[$i]->{attr} eq 'DateTime' ) {
                         $self->{Sql} .= "E.StartTime";
                     } elsif ( $filter_expr->{terms}[$i]->{attr} eq 'Date' ) {
@@ -246,6 +188,29 @@ sub Sql {
                     foreach my $temp_value ( split( /["'\s]*?,["'\s]*?/, $stripped_value ) ) {
                         if ( $filter_expr->{terms}[$i]->{attr} =~ /^Monitor/ ) {
                             $value = "'$temp_value'";
+						} elsif ( $filter_expr->{terms}[$i]->{attr} eq 'ServerHost' ) {
+							if ( $temp_value eq 'ZM_SERVER_HOST' ) {
+								$value = "'$Config{ZM_SERVER_HOST}'";
+							} else {
+								$value = "'$temp_value'";
+							}
+						} elsif ( $filter_expr->{terms}[$i]->{attr} eq 'ServerName' ) {
+							if ( $temp_value eq 'ZM_SERVER_NAME' ) {
+								$value = "'$Config{ZM_SERVER_NAME}'";
+							} else {
+								$value = "'$temp_value'";
+							}
+						} elsif ( $filter_expr->{terms}[$i]->{attr} eq 'ServerId' ) {
+							if ( $temp_value eq 'ZM_SERVER_ID' ) {
+								$value = "'$Config{ZM_SERVER_ID}'";
+								my $Server = $$self{Server} = new ZoneMinder::Server( $Config{ZM_SERVER_ID} );
+							} else {
+								$value = "'$temp_value'";
+								my $Server = $$self{Server} = new ZoneMinder::Server( $temp_value );
+							}
+                        } elsif ( $filter_expr->{terms}[$i]->{attr} eq 'StorageId' ) {
+                            $value = "'$temp_value'";
+                            my $Storage = $$self{Storage} = new ZoneMinder::Storage( $temp_value );
                         } elsif ( $filter_expr->{terms}[$i]->{attr} eq 'Name'
                                 || $filter_expr->{terms}[$i]->{attr} eq 'Cause'
                                 || $filter_expr->{terms}[$i]->{attr} eq 'Notes'
@@ -318,10 +283,6 @@ sub Sql {
         if ( $self->{AutoArchive} )
         {
             push( @auto_terms, "E.Archived = 0" )
-        }
-        if ( $self->{AutoVideo} )
-        {
-            push( @auto_terms, "E.Videoed = 0" )
         }
         if ( $self->{AutoUpload} )
         {
@@ -399,7 +360,6 @@ sub Sql {
         {
             $sql .= " limit 0,".$filter_expr->{limit};
         }
-        Debug( "SQL:$sql\n" );
         $self->{Sql} = $sql;
 	} # end if has Sql
 	return $self->{Sql};
@@ -407,12 +367,13 @@ sub Sql {
 
 sub getDiskPercent
 {
-    my $command = "df .";
+    my $command = "df " . ($_[0] ? $_[0] : '.');
     my $df = qx( $command );
     my $space = -1;
     if ( $df =~ /\s(\d+)%/ms )
     {
         $space = $1;
+        Debug( "getDiskPercent $command returned $space" );
     }
     return( $space );
 }

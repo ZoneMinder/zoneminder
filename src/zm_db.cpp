@@ -95,19 +95,38 @@ MYSQL_RES * zmDbFetch( const char * query ) {
   return result;
 } // end MYSQL_RES * zmDbFetch( const char * query );
 
-MYSQL_ROW zmDbFetchOne( const char *query ) {
-  MYSQL_RES *result = zmDbFetch( query );
-  int n_rows = mysql_num_rows( result );
+zmDbRow *zmDbFetchOne( const char *query ) {
+  zmDbRow *row = new zmDbRow();
+  if ( row->fetch( query ) ) {
+    return row;
+  } 
+  delete row;
+  return NULL;
+}
+
+MYSQL_RES *zmDbRow::fetch( const char *query ) {
+  result_set = zmDbFetch( query );
+  if ( ! result_set ) return result_set;
+
+  int n_rows = mysql_num_rows( result_set );
   if ( n_rows != 1 ) {
     Error( "Bogus number of lines return from query, %d returned for query %s.", n_rows, query );
-    return NULL;
+    mysql_free_result( result_set );
+    result_set = NULL;
+    return result_set;
   }
 
-  MYSQL_ROW dbrow = mysql_fetch_row( result );
-  mysql_free_result( result );
-  if ( ! dbrow ) {
+  row = mysql_fetch_row( result_set );
+  if ( ! row ) {
+    mysql_free_result( result_set );
+    result_set = NULL;
     Error("Error getting row from query %s. Error is %s", query, mysql_error( &dbconn ) );
-    return NULL;
+  } else {
+    Debug(3, "Succes");
   }
-  return dbrow;
+  return result_set;
+}
+zmDbRow::~zmDbRow() {
+  if ( result_set )
+    mysql_free_result( result_set );
 }

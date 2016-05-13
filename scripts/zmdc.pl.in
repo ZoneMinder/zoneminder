@@ -459,6 +459,7 @@ sub start
     }
     elsif ( defined($cpid ) )
     {
+				zmDbConnect(1);
         logReinit();
 
         dPrint( ZoneMinder::Logger::INFO, "'".join( ' ', ( $daemon, @args ) )

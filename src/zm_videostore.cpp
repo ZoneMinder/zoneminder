@@ -36,7 +36,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
                        AVStream *input_st,
                        AVStream *inpaud_st,
                        int64_t nStartTime,
-                        Monitor::Orientation p_orientation
+                        Monitor::Orientation orientation
 ) {
     
   AVDictionary *pmetadata = NULL;
@@ -76,9 +76,19 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
   dsr = av_dict_set(&pmetadata, "title", "Zoneminder Security Recording", 0);
   if (dsr < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__ );
-  if ( p_orientation == Monitor::ROTATE_90 ) {
-    dsr = av_dict_set(&pmetadata, "rotate", "90", 0);
-    if (dsr < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__ );
+  if ( orientation ) {
+    if ( orientation == Monitor::ROTATE_90 ) {
+      dsr = av_dict_set(&pmetadata, "rotate", "90", 0);
+      if (dsr < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__ );
+    } else if ( orientation == Monitor::ROTATE_180 ) {
+      dsr = av_dict_set(&pmetadata, "rotate", "180", 0);
+      if (dsr < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__ );
+    } else if ( orientation == Monitor::ROTATE_270 ) {
+      dsr = av_dict_set(&pmetadata, "rotate", "270", 0);
+      if (dsr < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__ );
+    } else {
+      Warning( "Unsupported Orientation(%d)", orientation );
+    }
   }
 
   oc->metadata = pmetadata;

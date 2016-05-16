@@ -65,12 +65,16 @@ RETSIGTYPE zm_die_handler(int signal)
     #if defined(__x86_64__)
 	    #ifdef __FreeBSD_kernel__
 		ip = (void *)(uc->uc_mcontext.mc_rip);
+	    #elif __APPLE__
+		 ip = (void *)(uc->uc_mcontext->__ss.__rip);
 	    #else
 		ip = (void *)(uc->uc_mcontext.gregs[REG_RIP]);
 	    #endif
     #else
 	    #ifdef __FreeBSD_kernel__
 		ip = (void *)(uc->uc_mcontext.mc_eip);
+	    #elif __APPLE_
+		 ip = (void *)(uc->uc_mcontext->__ss.__rip);
 	    #else
 		ip = (void *)(uc->uc_mcontext.gregs[REG_EIP]);
 	    #endif

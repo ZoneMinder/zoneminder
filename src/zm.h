@@ -37,4 +37,13 @@
 
 extern const char* self;
 
+#ifdef __APPLE__
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/uio.h>
+#include <sys/unistd.h>
+#include <sys/socket.h>
+#include <libgen.h>
+
+#endif
 #endif // ZM_H

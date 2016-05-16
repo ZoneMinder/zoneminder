@@ -1,4 +1,5 @@
-#ifdef HAVE_SENDFILE4_SUPPORT
+#if defined(HAVE_SENDFILE4_SUPPORT) 
+
 #include <sys/sendfile.h>
 int zm_sendfile(int out_fd, int in_fd, off_t *offset, size_t size) {
         int err;
@@ -26,6 +27,25 @@ int zm_sendfile(int out_fd, int in_fd, off_t *offset, off_t size) {
 
         return -EAGAIN;
 }
+#elif HAVE_SENDFILE6_SUPPORT
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/uio.h>
+int zm_sendfile(int out_fd, int in_fd, off_t *offset, off_t size) {
+        int err;
+        err = sendfile(in_fd, out_fd, *offset, &size,  0, 0);
+        if (err && errno != EAGAIN)
+                return -errno;
+
+        if (size) {
+                *offset += size;
+                return size;
+        }
+
+        return -EAGAIN;
+}
+
+
 #else
 #error "Your platform does not support sendfile. Sorry."
 #endif

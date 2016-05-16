@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */ 
-
+#include "zm.h"
 #include "zm_logger.h"
 
 #include "zm_config.h"
@@ -35,12 +35,29 @@
 #include <sys/thr.h>
 #include <libgen.h>
 #endif
-
 bool Logger::smInitialised = false;
 Logger *Logger::smInstance = 0;
 
 Logger::StringMap Logger::smCodes;
 Logger::IntMap Logger::smSyslogPriorities;
+
+#ifdef __MACH__
+// can't find basename on OSX though it seems to exist in libgen
+char * basename (const char *name)
+{
+  const char *base = name;
+
+  while (*name)
+    {
+      if (*name++ == '/')
+        {
+          base = name;
+        }
+    }
+  return (char *) base;
+}
+#endif
+
 
 #if 0
 static void subtractTime( struct timeval * const tp1, struct timeval * const tp2 )
@@ -505,6 +522,7 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
         struct timeval  timeVal;
 
         const char * const file = basename(filepath);
+        //const char * const file = filepath;
         
         if ( level < PANIC || level > DEBUG9 )
             Panic( "Invalid logger level %d", level );

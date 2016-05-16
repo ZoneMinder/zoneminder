@@ -57,7 +57,7 @@ possible, this should run at more or less constant speed.
 
 #include <getopt.h>
 #include <signal.h>
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || defined (__MACH__)
 #include <limits.h>
 #else
 #include <values.h>

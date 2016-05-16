@@ -66,13 +66,13 @@ RETSIGTYPE zm_die_handler(int signal)
 		ucontext_t *uc = (ucontext_t *) context;
 		cr2 = info->si_addr;
 #if defined(__x86_64__)
-	#ifdef __FreeBSD_kernel__
-		ip = (void *)(uc->uc_mcontext.mc_rip);
+	#if defined (__FreeBSD_kernel__) || defined (__MACH__)
+		//ip = (void *)(uc->uc_mcontext->mc_rip);
 	#else
 		ip = (void *)(uc->uc_mcontext.gregs[REG_RIP]);
 	#endif
 #else
-	#ifdef __FreeBSD_kernel__
+	#if defined(__FreeBSD_kernel__) || (defined (__MACH__)
 		ip = (void *)(uc->uc_mcontext.mc_eip);
 	#else
 		ip = (void *)(uc->uc_mcontext.gregs[REG_EIP]);

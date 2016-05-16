@@ -31,7 +31,6 @@
 #else
 #error Unable to locate pcre.h, please do 'locate pcre.h' and report location to zoneminder.com
 #endif
-
 class RegExpr
 {
 protected:

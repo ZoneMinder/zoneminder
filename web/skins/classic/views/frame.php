@@ -25,6 +25,8 @@ if ( !canView( 'Events' ) )
 }
 require_once('includes/Frame.php');
 
+require_once('includes/Frame.php');
+
 $eid = validInt($_REQUEST['eid']);
 if ( !empty($_REQUEST['fid']) )
     $fid = validInt($_REQUEST['fid']);
@@ -98,7 +100,7 @@ if ( $imageData['hasAnalImage'] ) { ?><a href="?view=frame&amp;eid=<?php echo $e
       </p>
 <?php if (file_exists ($dImagePath)) { ?>
       <p id="diagImagePath"><?php echo $dImagePath ?></p>
-      <p id="diagImage"><img src=?"<?php echo viewImagePath( $dImagePath ) ?>" width="<?php echo reScale( $event['Width'], $event['DefaultScale'], $scale ) ?>" height="<?php echo reScale( $event['Height'], $event['DefaultScale'], $scale ) ?>" class="<?php echo $imageData['imageClass'] ?>"/></p>
+      <p id="diagImage"><img src="<?php echo viewImagePath( $dImagePath ) ?>" width="<?php echo reScale( $event['Width'], $event['DefaultScale'], $scale ) ?>" height="<?php echo reScale( $event['Height'], $event['DefaultScale'], $scale ) ?>" class="<?php echo $imageData['imageClass'] ?>"/></p>
 <?php } if (file_exists ($rImagePath)) { ?>
       <p id="refImagePath"><?php echo $rImagePath ?></p>
       <p id="refImage"><img src="<?php echo viewImagePath( $rImagePath ) ?>" width="<?php echo reScale( $event['Width'], $event['DefaultScale'], $scale ) ?>" height="<?php echo reScale( $event['Height'], $event['DefaultScale'], $scale ) ?>" class="<?php echo $imageData['imageClass'] ?>"/></p>

@@ -68,7 +68,6 @@ use constant CHECK_INTERVAL => (1*24*60*60); # Interval between version checks
 
 @EXTRA_PERL_LIB@
 use ZoneMinder;
-use ZoneMinder::Config qw(:all);
 use POSIX;
 use DBI;
 use Getopt::Long;
@@ -361,9 +360,9 @@ if ( $interactive ) {
 		if ( $response =~ /^[yY]$/ ) {
 			$dbh->do(q|SET sql_mode='traditional'|); # Elevate warnings to errors
 			print "\nConverting MyISAM tables to InnoDB. Please wait.\n";
-      my $sql = "ALTER TABLE $_ ENGINE = InnoDB";
-      my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 			foreach (@MyISAM_Tables) {
+        my $sql = "ALTER TABLE $_ ENGINE = InnoDB";
+        my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 				my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
 			}
 			$sth->finish();

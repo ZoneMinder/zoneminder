@@ -137,6 +137,10 @@ else
 
 require_once( 'includes/lang.php' );
 require_once( 'includes/functions.php' );
+$running = daemonCheck();
+$states = dbFetchAll( "select * from States" );
+$status = $running?translate('Running'):translate('Stopped');
+$run_state = dbFetchOne('select Name from States where  IsActive = 1', 'Name' );
 
 # Add Cross domain access headers
 CORSHeaders();

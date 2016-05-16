@@ -10,15 +10,16 @@ This may help folks who are interested in an OSX port.
 
 #### Toolchain
 
+xcode-select --install
+
 requirement - macports (brew doesn't have polkit)
 sudo port install cmake
+sudo port install jpeg
+sudo port install mysql5
 
 sudo perl -MCPAN -e 'install DBI'
 sudo perl -MCPAN -e 'install DBD::mysql'
 sudo perl -MCPAN -e 'install Sys::Mmap'
-
-xcode-select --install
-
 sudo perl -MCPAN -e 'install DBI'
 sudo perl -MCPAN -e 'install DBD::mysql'
 sudo perl -MCPAN -e 'install Sys::Mmap'
@@ -38,7 +39,10 @@ InstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault
 
 
 #### Build process
+
 git submodule update --init --recursive
 cmake .
 
 #### Things to resolve
+*) Haven't tried make install - don't want my mac to explode - need a VM
+*) Apache linkage is TBD

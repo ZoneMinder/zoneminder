@@ -232,7 +232,7 @@ check_type_size("ucontext_t" HAVE_UCONTEXT_T)
 
 # *** LIBRARY CHECKS ***
 
-if (UNIX)
+if (UNIX AND NOT APPLE)
     include (CheckLibraryExists)
     CHECK_LIBRARY_EXISTS(rt clock_gettime "time.h" HAVE_CLOCK_GETTIME)
     if(NOT HAVE_CLOCK_GETTIME)
@@ -240,7 +240,7 @@ if (UNIX)
     else(NOT HAVE_CLOCK_GETTIME)
         list(APPEND ZM_BIN_LIBS "-lrt")
     endif(NOT HAVE_CLOCK_GETTIME)
-endif(UNIX)
+endif(UNIX AND NOT APPLE)
 
 # zlib
 find_package(ZLIB)
@@ -659,11 +659,13 @@ message(STATUS "Using web user: ${ZM_WEB_USER}")
 message(STATUS "Using web group: ${ZM_WEB_GROUP}")
 
 # Check for polkit
-find_package(Polkit)
-if(NOT POLKIT_FOUND)
-	message(FATAL_ERROR 
-            "Running ZoneMinder requires polkit. Building ZoneMinder requires the polkit development package.")
-endif(NOT POLKIT_FOUND)
+if (NOT APPLE)
+	find_package(Polkit)
+	if(NOT POLKIT_FOUND)
+		message(FATAL_ERROR 
+		    "Running ZoneMinder requires polkit. Building ZoneMinder requires the polkit development package.")
+	endif(NOT POLKIT_FOUND)
+endif (NOT APPLE)
 
 # Some variables that zm expects
 set(ZM_PID "${ZM_RUNDIR}/zm.pid")

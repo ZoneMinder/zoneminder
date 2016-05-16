@@ -21,6 +21,7 @@
 #define ZM_LOGGER_H
 
 #include "zm_config.h"
+#include "zm.h"
 #include <stdint.h>
 #include <unistd.h>
 #include <string>

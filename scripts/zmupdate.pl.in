@@ -361,9 +361,9 @@ if ( $interactive ) {
 		if ( $response =~ /^[yY]$/ ) {
 			$dbh->do(q|SET sql_mode='traditional'|); # Elevate warnings to errors
 			print "\nConverting MyISAM tables to InnoDB. Please wait.\n";
-      my $sql = "ALTER TABLE $_ ENGINE = InnoDB";
-      my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 			foreach (@MyISAM_Tables) {
+        my $sql = "ALTER TABLE $_ ENGINE = InnoDB";
+        my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 				my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
 			}
 			$sth->finish();

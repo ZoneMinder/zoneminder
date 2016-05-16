@@ -9,20 +9,22 @@ This may help folks who are interested in an OSX port.
 
 
 #### Toolchain
-requirement - brew
 
-brew install cmake
-brew install libjpeg
-brew install mysql
-brew install ssl
+requirement - macports (brew doesn't have polkit)
+sudo port install cmake
 
 sudo perl -MCPAN -e 'install DBI'
 sudo perl -MCPAN -e 'install DBD::mysql'
 sudo perl -MCPAN -e 'install Sys::Mmap'
-brew install pkg-config
-brew install glib
-brew install pcre++
+
 xcode-select --install
+
+sudo perl -MCPAN -e 'install DBI'
+sudo perl -MCPAN -e 'install DBD::mysql'
+sudo perl -MCPAN -e 'install Sys::Mmap'
+sudo perl -MCPAN -e 'install Date::Manip'
+sudo perl -MCPAN -e 'install LWP::UserAgent'
+
 
 #### Environment used to build
 
@@ -37,7 +39,6 @@ InstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault
 
 #### Build process
 git submodule update --init --recursive
-cmake  -DOPENSSL_ROOT_DIR=/usr/local/Cellar/openssl/1.0.2a-1/include
+cmake .
 
 #### Things to resolve
-Polkit is commented in CMakeLists.txt

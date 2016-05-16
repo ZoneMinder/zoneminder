@@ -659,13 +659,13 @@ message(STATUS "Using web user: ${ZM_WEB_USER}")
 message(STATUS "Using web group: ${ZM_WEB_GROUP}")
 
 # Check for polkit
-if (NOT APPLE)
+#if (NOT APPLE)
 	find_package(Polkit)
 	if(NOT POLKIT_FOUND)
 		message(FATAL_ERROR 
 		    "Running ZoneMinder requires polkit. Building ZoneMinder requires the polkit development package.")
 	endif(NOT POLKIT_FOUND)
-endif (NOT APPLE)
+#endif (NOT APPLE)
 
 # Some variables that zm expects
 set(ZM_PID "${ZM_RUNDIR}/zm.pid")

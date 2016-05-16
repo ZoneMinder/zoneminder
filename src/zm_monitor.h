@@ -29,6 +29,7 @@
 #include "zm_rgb.h"
 #include "zm_zone.h"
 #include "zm_event.h"
+class Monitor;
 #include "zm_camera.h"
 #include "zm_storage.h"
 #include "zm_utils.h"
@@ -298,188 +299,185 @@ class Monitor
 #else // ZM_MEM_MAPPED
   int			 shm_id;
 #endif // ZM_MEM_MAPPED
-  off_t				mem_size;
-  unsigned char	*mem_ptr;
-  Storage			*storage;
+	off_t				mem_size;
+	unsigned char	*mem_ptr;
+	Storage			*storage;
 
-  SharedData		*shared_data;
-  TriggerData		*trigger_data;
-  VideoStoreData  *video_store_data;
+	SharedData		*shared_data;
+	TriggerData		*trigger_data;
+	VideoStoreData  *video_store_data;
 
-  Snapshot		*image_buffer;
-  Snapshot		next_buffer; /* Used by four field deinterlacing */
-  Snapshot		*pre_event_buffer;
+	Snapshot		*image_buffer;
+	Snapshot		next_buffer; /* Used by four field deinterlacing */
+	Snapshot		*pre_event_buffer;
 
-  Camera			*camera;
+	Camera			*camera;
 
-  Event			*event;
+	Event			*event;
 
-  int			n_zones;
-  Zone			**zones;
+	int			n_zones;
+	Zone			**zones;
 
-  struct timeval		**timestamps;
-  Image			**images;
+	struct timeval		**timestamps;
+	Image			**images;
 
-  const unsigned char	*privacy_bitmask;
+	const unsigned char	*privacy_bitmask;
 
-  int			n_linked_monitors;
-  MonitorLink		**linked_monitors;
+	int			n_linked_monitors;
+	MonitorLink		**linked_monitors;
 
-  public:
-  // OurCheckAlarms seems to be unused. Check it on zm_monitor.cpp for more info.
-  //bool OurCheckAlarms( Zone *zone, const Image *pImage );
-  Monitor( 
-      int p_id,
-      const char *p_name,
-      unsigned int p_server_id,
-      unsigned int p_storage_id,
-      int p_function,
-      bool p_enabled,
-      const char *p_linked_monitors,
-      Camera *p_camera,
-      int p_orientation,
-      unsigned int p_deinterlacing,
-      int p_savejpegs,
-      int p_videowriter,
-      std::string p_encoderparams,
-      bool	p_record_audio,
-      const char *p_event_prefix,
-      const char *p_label_format,
-      const Coord &p_label_coord,
-      int label_size,
-      int p_image_buffer_count,
-      int p_warmup_count,
-      int p_pre_event_count,
-      int p_post_event_count,
-      int p_stream_replay_buffer,
-      int p_alarm_frame_count,
-      int p_section_length,
-      int p_frame_skip,
-      int p_motion_frame_skip,
-      double p_analysis_fps,
-      unsigned int p_analysis_update_delay,
-      int p_capture_delay,
-      int p_alarm_capture_delay,
-      int p_fps_report_interval,
-      int p_ref_blend_perc,
-      int p_alarm_ref_blend_perc,
-      bool p_track_motion,
-      Rgb p_signal_check_colour,
-      bool p_embed_exif,
-      Purpose p_purpose,
-      int p_n_zones=0,
-      Zone *p_zones[]=0
-        );
-  ~Monitor();
+public:
+  Monitor( int p_id );
 
-  void AddZones( int p_n_zones, Zone *p_zones[] );
-  void AddPrivacyBitmask( Zone *p_zones[] );
+// OurCheckAlarms seems to be unused. Check it on zm_monitor.cpp for more info.
+//bool OurCheckAlarms( Zone *zone, const Image *pImage );
+	Monitor( 
+		int p_id,
+		const char *p_name,
+		unsigned int p_server_id,
+		unsigned int p_storage_id,
+		int p_function,
+		bool p_enabled,
+		const char *p_linked_monitors,
+		Camera *p_camera,
+		int p_orientation,
+		unsigned int p_deinterlacing,
+		int p_savejpegs,
+		int p_videowriter,
+		std::string p_encoderparams,
+		bool	p_record_audio,
+		const char *p_event_prefix,
+		const char *p_label_format,
+		const Coord &p_label_coord,
+		int label_size,
+		int p_image_buffer_count,
+		int p_warmup_count,
+		int p_pre_event_count,
+		int p_post_event_count,
+		int p_stream_replay_buffer,
+		int p_alarm_frame_count,
+		int p_section_length,
+		int p_frame_skip,
+		int p_motion_frame_skip,
+		double p_analysis_fps,
+		unsigned int p_analysis_update_delay,
+		int p_capture_delay,
+		int p_alarm_capture_delay,
+		int p_fps_report_interval,
+		int p_ref_blend_perc,
+		int p_alarm_ref_blend_perc,
+		bool p_track_motion,
+		Rgb p_signal_check_colour,
+		bool p_embed_exif,
+		Purpose p_purpose,
+		int p_n_zones=0,
+		Zone *p_zones[]=0
+	);
+	~Monitor();
 
-  bool connect();
-  inline int ShmValid() const {
-    return( shared_data->valid );
-  }
+	void AddZones( int p_n_zones, Zone *p_zones[] );
+	void AddPrivacyBitmask( Zone *p_zones[] );
 
-  inline int Id() const {
-    return( id );
-  }
-  inline const char *Name() const {
-    return( name );
-  }
-  inline Storage *getStorage() {
-    if ( ! storage ) {
-      storage = new Storage( storage_id );
-    }
-    return( storage );
-  }
-  inline Function GetFunction() const {
-    return( function );
-  }
-  inline bool Enabled() {
-    if ( function <= MONITOR )
-      return( false );
-    return( enabled );
-  }
-  inline const char *EventPrefix() const {
-    return( event_prefix );
-  }
-  inline bool Ready() {
-    if ( function <= MONITOR )
-      return( false );
-    return( image_count > ready_count );
-  }
-  inline bool Active() {
-    if ( function <= MONITOR )
-      return( false );
-    return( enabled && shared_data->active );
-  }
-  inline bool Exif() {
-    return( embed_exif );
-  }
+	bool connect();
+	inline int ShmValid() const {
+		return( shared_data->valid );
+	}
 
-  unsigned int Width() const { return width; }
-  unsigned int Height() const { return height; }
-  unsigned int Colours() const { return( camera->Colours() ); }
-  unsigned int SubpixelOrder() const { return( camera->SubpixelOrder() ); }
+	inline int Id() const {
+		return( id );
+	}
+	inline const char *Name() const {
+		return( name );
+	}
+	inline Storage *getStorage() {
+		if ( ! storage ) {
+			storage = new Storage( storage_id );
+		}
+		return( storage );
+	}
+	inline Function GetFunction() const {
+		return( function );
+	}
+	inline bool Enabled() {
+		if ( function <= MONITOR )
+			return( false );
+		return( enabled );
+	}
+	inline const char *EventPrefix() const {
+		return( event_prefix );
+	}
+	inline bool Ready() {
+		if ( function <= MONITOR )
+			return( false );
+		return( image_count > ready_count );
+	}
+	inline bool Active() {
+		if ( function <= MONITOR )
+			return( false );
+		return( enabled && shared_data->active );
+	}
+	inline bool Exif() {
+		return( embed_exif );
+	}
+  Orientation getOrientation()const;
 
-  int GetOptSaveJPEGs() const { return( savejpegspref ); }
-  int GetOptVideoWriter() const { return( videowriterpref ); }
-  const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return( &encoderparamsvec ); }	  
+	unsigned int Width() const { return width; }
+	unsigned int Height() const { return height; }
+	unsigned int Colours() const;
+	unsigned int SubpixelOrder() const;
 
-  State GetState() const;
-  int GetImage( int index=-1, int scale=100 );
-  struct timeval GetTimestamp( int index=-1 ) const;
-  void UpdateAdaptiveSkip();
-  useconds_t GetAnalysisRate();
-  unsigned int GetAnalysisUpdateDelay() const { return( analysis_update_delay ); }
-  int GetCaptureDelay() const { return( capture_delay ); }
-  int GetAlarmCaptureDelay() const { return( alarm_capture_delay ); }
-  unsigned int GetLastReadIndex() const;
-  unsigned int GetLastWriteIndex() const;
-  unsigned int GetLastEvent() const;
-  double GetFPS() const;
-  void ForceAlarmOn( int force_score, const char *force_case, const char *force_text="" );
-  void ForceAlarmOff();
-  void CancelForced();
-  TriggerState GetTriggerState() const { return( (TriggerState)(trigger_data?trigger_data->trigger_state:TRIGGER_CANCEL )); }
+	int GetOptSaveJPEGs() const { return( savejpegspref ); }
+	int GetOptVideoWriter() const { return( videowriterpref ); }
+	const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return( &encoderparamsvec ); }	  
+ 
+	State GetState() const;
+	int GetImage( int index=-1, int scale=100 );
+	struct timeval GetTimestamp( int index=-1 ) const;
+	void UpdateAdaptiveSkip();
+	useconds_t GetAnalysisRate();
+	unsigned int GetAnalysisUpdateDelay() const { return( analysis_update_delay ); }
+	int GetCaptureDelay() const { return( capture_delay ); }
+	int GetAlarmCaptureDelay() const { return( alarm_capture_delay ); }
+	unsigned int GetLastReadIndex() const;
+	unsigned int GetLastWriteIndex() const;
+	unsigned int GetLastEvent() const;
+	double GetFPS() const;
+	void ForceAlarmOn( int force_score, const char *force_case, const char *force_text="" );
+	void ForceAlarmOff();
+	void CancelForced();
+	TriggerState GetTriggerState() const { return( (TriggerState)(trigger_data?trigger_data->trigger_state:TRIGGER_CANCEL )); }
 
-  void actionReload();
-  void actionEnable();
-  void actionDisable();
-  void actionSuspend();
-  void actionResume();
+	void actionReload();
+	void actionEnable();
+	void actionDisable();
+	void actionSuspend();
+	void actionResume();
 
-  int actionBrightness( int p_brightness=-1 );
-  int actionHue( int p_hue=-1 );
-  int actionColour( int p_colour=-1 );
-  int actionContrast( int p_contrast=-1 );
+	int actionBrightness( int p_brightness=-1 );
+	int actionHue( int p_hue=-1 );
+	int actionColour( int p_colour=-1 );
+	int actionContrast( int p_contrast=-1 );
 
-  inline int PrimeCapture() {
-    return( camera->PrimeCapture() );
-  }
-  inline int PreCapture() {
-    return( camera->PreCapture() );
-  }
-  int Capture();
-  int PostCapture() {
-    return( camera->PostCapture() );
-  }
+	int PrimeCapture();
+	int PreCapture();
+	int Capture();
+	int PostCapture();
 
-  unsigned int DetectMotion( const Image &comp_image, Event::StringSet &zoneSet );
-  // DetectBlack seems to be unused. Check it on zm_monitor.cpp for more info.
-  //unsigned int DetectBlack( const Image &comp_image, Event::StringSet &zoneSet );
-  bool CheckSignal( const Image *image );
-  bool Analyse();
-  void DumpImage( Image *dump_image ) const;
-  void TimestampImage( Image *ts_image, const struct timeval *ts_time ) const;
-  bool closeEvent();
+	unsigned int DetectMotion( const Image &comp_image, Event::StringSet &zoneSet );
+   // DetectBlack seems to be unused. Check it on zm_monitor.cpp for more info.
+   //unsigned int DetectBlack( const Image &comp_image, Event::StringSet &zoneSet );
+	bool CheckSignal( const Image *image );
+	bool Analyse();
+	void DumpImage( Image *dump_image ) const;
+	void TimestampImage( Image *ts_image, const struct timeval *ts_time ) const;
+	bool closeEvent();
 
-  void Reload();
-  void ReloadZones();
-  void ReloadLinkedMonitors( const char * );
+	void Reload();
+	void ReloadZones();
+	void ReloadLinkedMonitors( const char * );
 
-  bool DumpSettings( char *output, bool verbose );
-  void DumpZoneImage( const char *zone_string=0 );
+	bool DumpSettings( char *output, bool verbose );
+	void DumpZoneImage( const char *zone_string=0 );
 
 #if ZM_HAS_V4L
   static int LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose purpose );

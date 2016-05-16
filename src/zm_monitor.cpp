@@ -4411,3 +4411,15 @@ void Monitor::SingleImageZip( int scale)
   fprintf( stdout, "Content-Type: image/x-rgbz\r\n\r\n" );
   fwrite( img_buffer, img_buffer_size, 1, stdout );
 }
+unsigned int Monitor::Colours() const { return( camera->Colours() ); }
+	unsigned int Monitor::SubpixelOrder() const { return( camera->SubpixelOrder() ); }
+	int Monitor::PrimeCapture() {
+		return( camera->PrimeCapture() );
+	}
+	int Monitor::PreCapture() {
+		return( camera->PreCapture() );
+	}
+	int Monitor::PostCapture() {
+		return( camera->PostCapture() );
+	}
+  Monitor::Orientation Monitor::getOrientation()const { return orientation; }

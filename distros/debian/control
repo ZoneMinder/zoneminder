@@ -2,15 +2,46 @@ Source: zoneminder
 Section: net
 Priority: optional
 Maintainer: Isaac Connor <iconnor@connortechnology.com>
-Build-Depends: debhelper (>= 9), autoconf, automake, quilt, libphp-serialization-perl, libgnutls-dev|libgnutls28-dev, libmysqlclient-dev | libmariadbclient-dev, libdbd-mysql-perl, libdate-manip-perl, libwww-perl, libjpeg8-dev|libjpeg9-dev|libjpeg62-turbo-dev, libpcre3-dev, libavcodec-dev, libavformat-dev (>= 3:0.svn20090204), libswscale-dev (>= 3:0.svn20090204), libavutil-dev, libv4l-dev (>= 0.8.3), libbz2-dev, libtool, libsys-mmap-perl, ffmpeg | libav-tools, libnetpbm10-dev, libavdevice-dev, libdevice-serialport-perl, libarchive-zip-perl, libmime-lite-perl, dh-autoreconf, libvlccore-dev, libvlc-dev, libcurl4-gnutls-dev | libcurl4-nss-dev | libcurl4-openssl-dev, libgcrypt11-dev|libgcrypt20-dev, libpolkit-gobject-1-dev
+Build-Depends: debhelper (>= 9), cmake
+    , libphp-serialization-perl
+    , libgnutls28-dev | libgnutls-dev
+    , libmysqlclient-dev | libmariadbclient-dev
+    , libjpeg8-dev
+    , libpcre3-dev
+    , libavcodec-dev, libavformat-dev (>= 3:0.svn20090204), libswscale-dev (>= 3:0.svn20090204), libavutil-dev
+    , libv4l-dev (>= 0.8.3)
+    , libbz2-dev
+    , libav-tools
+    , libnetpbm10-dev
+    , libavdevice-dev
+    , libvlccore-dev, libvlc-dev
+    , libcurl4-gnutls-dev | libcurl4-nss-dev | libcurl4-openssl-dev
+    , libgcrypt11-dev, libpolkit-gobject-1-dev
 Standards-Version: 3.9.4
 
 Package: zoneminder
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}, apache2, libapache2-mod-php5 | libapache2-mod-fcgid, php5, php5-mysql|php5-mysqlnd, libphp-serialization-perl, libdate-manip-perl, libmime-lite-perl, libmime-tools-perl, mariadb-client|mysql-client, libwww-perl, libarchive-tar-perl, libarchive-zip-perl, libdevice-serialport-perl, libpcre3, ffmpeg | libav-tools, rsyslog | system-log-daemon, libmodule-load-perl, libsys-mmap-perl, libjson-any-perl, netpbm, libavdevice53 | libavdevice55, libjpeg8|libjpeg9|libjpeg62-turbo, zip, libnet-sftp-foreign-perl, libio-pty-perl, libexpect-perl, libvlccore5 | libvlccore7 | libvlccore8, libvlc5, libcurl4-gnutls-dev | libcurl4-nss-dev | libcurl4-openssl-dev, libpolkit-gobject-1-0, liburi-encode-perl, php5-gd
-Recommends: mysql-server|mariadb-server
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
+    , apache2 | httpd, libapache2-mod-php5 | libapache2-mod-fcgid | php5-fpm
+    , php5-mysqlnd | php5-mysql
+    , mariadb-client | mysql-client
+    , libphp-serialization-perl
+    , libdate-manip-perl, libmime-lite-perl, libmime-tools-perl, libdbd-mysql-perl
+    , libwww-perl, libarchive-tar-perl, libarchive-zip-perl, libdevice-serialport-perl
+    , libmodule-load-perl, libsys-mmap-perl, libjson-any-perl
+    , libnet-sftp-foreign-perl, libio-pty-perl, libexpect-perl
+    , libdata-dump-perl, libclass-std-fast-perl, libsoap-wsdl-perl, libio-socket-multicast-perl, libdigest-sha-perl
+    , libsys-cpu-perl, libsys-meminfo-perl
+    , libpcre3
+    , libav-tools, libavdevice53
+    , rsyslog | system-log-daemon
+    , netpbm , libjpeg8
+    , zip
+    , libvlccore5 | libvlccore7, libvlc5
+    , libpolkit-gobject-1-0, php5-gd
+Recommends: mysql-server | mariadb-server
 Description: Video camera security and surveillance solution
- ZoneMinder is intended for use in single or multi-camera video security
+ ZoneMinder is intended for use in single or multi-camera video security 
  applications, including commercial or home CCTV, theft prevention and child
  or family member or home monitoring and other care scenarios. It
  supports capture, analysis, recording, and monitoring of video data coming
@@ -22,9 +53,9 @@ Description: Video camera security and surveillance solution
  via X.10 or other protocols.
 
 Package: zoneminder-dbg
+Architecture: any
 Section: debug
 Priority: extra
-Architecture: any
 Depends: zoneminder (= ${binary:Version}), ${misc:Depends}
 Description: Debugging symbols for zoneminder.
  ZoneMinder is a video camera security and surveillance solution.

@@ -373,7 +373,7 @@ UPDATE States SET IsActive = '1' WHERE Name = 'default';
 -- If duplicate states existed while upgrading, that is
 -- very likely an error that ZM allowed earlier, so
 -- we are picking up the first one and deleting the others
-ALTER IGNORE TABLE States ADD UNIQUE (Name);
+ALTER TABLE States ADD UNIQUE (Name);
 
 SET @s = (SELECT IF( 
     (SELECT COUNT(*)

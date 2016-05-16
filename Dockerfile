@@ -50,7 +50,7 @@ RUN chmod 755 /tmp/start.sh
 # give files in /usr/local/share/zoneminder/
 RUN chown -R www-data:www-data /usr/local/share/zoneminder/
 
-# Creating SSH privledge escalation dir
+# Creating SSH privilege escalation dir
 RUN mkdir /var/run/sshd
 
 # Adding apache virtual hosts file

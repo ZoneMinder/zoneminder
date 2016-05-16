@@ -8,4 +8,12 @@ if ( refreshParent )
     opener.location.reload(true);
 }
 
+function configureButtons( element ) {
+
+    if ( canEditGroups ) {
+        var form = element.form;
+        form.saveBtn.disabled = (element.value == 0);
+    }
+}
+
 window.focus();

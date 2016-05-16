@@ -67,12 +67,7 @@ use constant CHECK_INTERVAL => (1*24*60*60); # Interval between version checks
 # ==========================================================================
 
 @EXTRA_PERL_LIB@
-use ZoneMinder::Base qw(:all);
-use ZoneMinder::Config qw(:all);
-use ZoneMinder::Logger qw(:all);
-use ZoneMinder::General qw(:all);
-use ZoneMinder::Database qw(:all);
-use ZoneMinder::ConfigAdmin qw( :functions );
+use ZoneMinder;
 use POSIX;
 use DBI;
 use Getopt::Long;
@@ -155,6 +150,7 @@ if ( $check && $Config{ZM_CHECK_FOR_UPDATES} )
         my $sql = "update Config set Value = ? where Name = 'ZM_DYN_CURR_VERSION'";
         my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
         my $res = $sth->execute( "$currVersion" ) or die( "Can't execute: ".$sth->errstr() );
+        $sth->finish();
     }
 
     while( 1 )
@@ -184,10 +180,12 @@ if ( $check && $Config{ZM_CHECK_FOR_UPDATES} )
                 my $lv_sql = "update Config set Value = ? where Name = 'ZM_DYN_LAST_VERSION'";
                 my $lv_sth = $dbh->prepare_cached( $lv_sql ) or die( "Can't prepare '$lv_sql': ".$dbh->errstr() );
                 my $lv_res = $lv_sth->execute( $lastVersion ) or die( "Can't execute: ".$lv_sth->errstr() );
+                $lv_sth->finish();
 
                 my $lc_sql = "update Config set Value = ? where Name = 'ZM_DYN_LAST_CHECK'";
                 my $lc_sth = $dbh->prepare_cached( $lc_sql ) or die( "Can't prepare '$lc_sql': ".$dbh->errstr() );
                 my $lc_res = $lc_sth->execute( $lastCheck ) or die( "Can't execute: ".$lc_sth->errstr() );
+                $lc_sth->finish();
             }
             else
             {
@@ -239,14 +237,14 @@ if ( $zoneFix )
     }
     $sth->finish();
 
+    $sql = "update Zones set MinAlarmPixels = ?, MaxAlarmPixels = ?, MinFilterPixels = ?, MaxFilterPixels = ?, MinBlobPixels = ?, MaxBlobPixels = ? where Id = ?";
+    $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
     foreach my $zone ( @zones )
     {
         my $zone_width = (($zone->{HiX}*$zone->{MonitorWidth})-($zone->{LoX}*$zone->{MonitorWidth}))/100;
         my $zone_height = (($zone->{HiY}*$zone->{MonitorHeight})-($zone->{LoY}*$zone->{MonitorHeight}))/100;
         my $zone_area = $zone_width * $zone_height;
         my $monitor_area = $zone->{MonitorWidth} * $zone->{MonitorHeight};
-        my $sql = "update Zones set MinAlarmPixels = ?, MaxAlarmPixels = ?, MinFilterPixels = ?, MaxFilterPixels = ?, MinBlobPixels = ?, MaxBlobPixels = ? where Id = ?";
-        my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
         my $res = $sth->execute(
             ($zone->{MinAlarmPixels}*$monitor_area)/$zone_area,
             ($zone->{MaxAlarmPixels}*$monitor_area)/$zone_area,
@@ -257,6 +255,7 @@ if ( $zoneFix )
             $zone->{Id}
         ) or die( "Can't execute: ".$sth->errstr() );
     }
+    $sth->finish();
 }
 if ( $migrateEvents )
 {
@@ -318,11 +317,13 @@ if ( $migrateEvents )
             symlink( $newTimePath, $idLink ) or die( "Can't symlink $newTimePath -> $idLink: $!" );
             rename( $oldEventPath, $newEventPath ) or die( "Can't move $oldEventPath -> $newEventPath: $!" );
         }
+        $sth->finish();
 
         print( "Updating configuration.\n" );
         $sql = "update Config set Value = ? where Name = 'ZM_USE_DEEP_STORAGE'";
         $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
         $res = $sth->execute( 1 ) or die( "Can't execute: ".$sth->errstr() );
+        $sth->finish();
 
         print( "All events converted.\n\n" );
     }
@@ -334,8 +335,8 @@ if ( $migrateEvents )
 if ( $freshen )
 {
     print( "\nFreshening configuration in database\n" );
-    loadConfigFromDB();
-    saveConfigToDB();
+    ZoneMinder::Config::loadConfigFromDB();
+    ZoneMinder::Config::saveConfigToDB();
 }
 
 # Don't do innoDB upgrade if not interactive
@@ -360,11 +361,11 @@ if ( $interactive ) {
 			$dbh->do(q|SET sql_mode='traditional'|); # Elevate warnings to errors
 			print "\nConverting MyISAM tables to InnoDB. Please wait.\n";
 			foreach (@MyISAM_Tables) {
-				my $sql = "ALTER TABLE $_ ENGINE = InnoDB";
-				my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+        my $sql = "ALTER TABLE $_ ENGINE = InnoDB";
+        my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
 				my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
-				$sth->finish();
 			}
+			$sth->finish();
 			$dbh->do(q|SET sql_mode=''|); # Set mode back to default
 		}
 	}
@@ -494,8 +495,8 @@ if ( $version )
     print( "\nUpgrading database to version ".ZM_VERSION."\n" );
 
     # Update config first of all
-    loadConfigFromDB();
-    saveConfigToDB();
+    ZoneMinder::Config::loadConfigFromDB();
+    ZoneMinder::Config::saveConfigToDB();
 
     my $cascade = undef;
     if ( $cascade || $version eq "1.19.0" )
@@ -1064,6 +1065,7 @@ if ( $version )
         my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
         my $res = $sth->execute( "$installed_version", "ZM_DYN_DB_VERSION" ) or die( "Can't execute: ".$sth->errstr() );
         $res = $sth->execute( "$installed_version", "ZM_DYN_CURR_VERSION" ) or die( "Can't execute: ".$sth->errstr() );
+        $sth->finish();
     }
     else
     {

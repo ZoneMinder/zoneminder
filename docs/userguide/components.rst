@@ -26,16 +26,13 @@ Binaries
 
 PHP
 ---
-As well as this there are the web PHP files in the web directory. Currently these consist of 4 possible skins.
+As well as this there are the web PHP files in the web directory. Currently these consist of a single skin with Classic and Flat styles.
 
 **Classic**
   Original ZoneMinder skin
 **Flat**
-  An updated version of classic skin, retaining the same layout with a more modern style
-**XML**
-  Displays certain views as XML. Used by eyeZM as an interfacing skin (Note that eyeZM no longer seems to work with later versions of Zoneminder). New developers of 3rd party clients should use the API instead (:doc:`../api`)
-**Mobile**
-  A skin that displays views in a more condensed and single page format, likely suitable for smaller mobile devices, should one choose to access the ZoneMinder console using such devices. Note that there are also third party mobile clients one could use (:doc:`mobile`)
+  An updated version of Classic skin, retaining the same layout with a more modern style. Originally a skin this is now just a CSS style.
+
 
 Perl
 ----

@@ -27,9 +27,11 @@ package ZoneMinder::Database;
 use 5.006;
 use strict;
 use warnings;
+use DBI;
 
 require Exporter;
 require ZoneMinder::Base;
+require ZoneMinder::Config;
 
 our @ISA = qw(Exporter ZoneMinder::Base);
 
@@ -64,7 +66,6 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 # ==========================================================================
 
 use ZoneMinder::Logger qw(:all);
-use ZoneMinder::Config qw(:all);
 
 use Carp;
 
@@ -79,23 +80,23 @@ sub zmDbConnect
     }
     if ( !defined( $dbh ) )
     {
-        my ( $host, $port ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
+        my ( $host, $port ) = ( $ZoneMinder::Config::Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
 
         if ( defined($port) )
         {
-            $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
+            $dbh = DBI->connect( "DBI:mysql:database=".$ZoneMinder::Config::Config{ZM_DB_NAME}
                                 .";host=".$host
                                 .";port=".$port
-                                , $Config{ZM_DB_USER}
-                                , $Config{ZM_DB_PASS}
+                                , $ZoneMinder::Config::Config{ZM_DB_USER}
+                                , $ZoneMinder::Config::Config{ZM_DB_PASS}
             );
         }
         else
         {
-            $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
-                                .";host=".$Config{ZM_DB_HOST}
-                                , $Config{ZM_DB_USER}
-                                , $Config{ZM_DB_PASS}
+            $dbh = DBI->connect( "DBI:mysql:database=".$ZoneMinder::Config::Config{ZM_DB_NAME}
+                                .";host=".$ZoneMinder::Config::Config{ZM_DB_HOST}
+                                , $ZoneMinder::Config::Config{ZM_DB_USER}
+                                , $ZoneMinder::Config::Config{ZM_DB_PASS}
             );
         }
         $dbh->trace( 0 );

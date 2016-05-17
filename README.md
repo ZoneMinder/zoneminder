@@ -15,7 +15,7 @@ xcode-select --install
 requirement - macports (brew doesn't have polkit)
 sudo port install cmake
 sudo port install jpeg
-sudo port install mysql5
+sudo port install mysql55
 
 sudo perl -MCPAN -e 'install DBI'
 sudo perl -MCPAN -e 'install DBD::mysql'

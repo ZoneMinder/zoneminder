@@ -15,7 +15,8 @@ xcode-select --install
 requirement - macports (brew doesn't have polkit)
 sudo port install cmake
 sudo port install jpeg
-sudo port install mysql55
+sudo port install mysql56
+sudo port install mysql-server
 
 sudo perl -MCPAN -e 'install DBI'
 sudo perl -MCPAN -e 'install DBD::mysql'
@@ -42,6 +43,7 @@ InstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault
 
 git submodule update --init --recursive
 cmake .
+make 
 
 #### Things to resolve
 *) Haven't tried make install - don't want my mac to explode - need a VM

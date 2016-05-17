@@ -23,6 +23,7 @@
 #include "zm_camera.h"
 #include "zm_buffer.h"
 #include "zm_regexp.h"
+#include "zm_packetqueue.h"
 
 #include <sys/param.h>
 
@@ -46,7 +47,7 @@ public:
   int PreCapture();
   int Capture( Image &image );
   int PostCapture();
-	int CaptureAndRecord( Image &image, bool recording, char* event_directory ) {return(0);};
+	int CaptureAndRecord( Image &image, bool recording, char* event_directory, zm_packetqueue* packetqueue ) {return(0);};
 };
 
 #endif // ZM_FILE_CAMERA_H

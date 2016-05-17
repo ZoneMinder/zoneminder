@@ -29,12 +29,9 @@ extern "C" {
 #include <libavformat/avformat.h>
 }
 
-typedef queue<AVPacket, deque<AVPacket, QueueShmemAllocator> > QueueType;
-
 class zm_packetqueue {
 public:
     zm_packetqueue();
-    zm_packetqueue(const zm_packetqueue& orig);
     virtual ~zm_packetqueue();
     bool queuePacket(std::queue<AVPacket>& pktQueue, AVPacket* packet);
     bool queueVideoPacket(AVPacket* packet);

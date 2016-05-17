@@ -24,6 +24,7 @@
 #include <sys/ioctl.h>
 
 #include "zm_image.h"
+#include "zm_packetqueue.h"
 
 //
 // Abstract base class for cameras. This is intended just to express
@@ -81,7 +82,7 @@ public:
   virtual int PreCapture()=0;
   virtual int Capture( Image &image )=0;
   virtual int PostCapture()=0;
-	virtual int CaptureAndRecord( Image &image, bool recording, char* event_directory)=0;
+  virtual int CaptureAndRecord( Image &image, bool recording, char* event_directory, zm_packetqueue* packetqueue )=0;
 };
 
 #endif // ZM_CAMERA_H

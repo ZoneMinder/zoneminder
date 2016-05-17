@@ -1539,7 +1539,7 @@ bool Monitor::Analyse()
                 if ( state == TAPE )
                 {
                   shared_data->state = state = IDLE;
-                  Info( "%s: %03d - Closing event %d, section end", name, image_count, event->Id() )
+                  Info("%s: %03d - Closing event %d, section end", name, image_count, event->Id());
                 }
                 else
                   Info( "%s: %03d - Closing event %d, section end forced ", name, image_count, event->Id() );
@@ -3099,6 +3099,7 @@ int Monitor::Capture()
 
   int index = image_count%image_buffer_count;
   Image* capture_image = image_buffer[index].image;
+  zm_packetqueue* packetqueue = NULL;
 
   if ( (deinterlacing & 0xff) == 4) {
     if ( FirstCapture != 1 ) {
@@ -3109,8 +3110,11 @@ int Monitor::Capture()
     /* Capture a new next image */
     
     //Check if FFMPEG camera
-    if((GetOptVideoWriter() == 2) && camera->SupportsNativeVideo()){
-      captureResult = camera->CaptureAndRecord(*(next_buffer.image), video_store_data->recording, video_store_data->event_file);
+    if((GetOptVideoWriter() == 2) && camera->SupportsNativeVideo()) {
+      captureResult = camera->CaptureAndRecord(*(next_buffer.image),
+                                               video_store_data->recording,
+                                               video_store_data->event_file,
+                                               packetqueue);
     }else{
       captureResult = camera->Capture(*(next_buffer.image));
     }
@@ -3124,7 +3128,7 @@ int Monitor::Capture()
     //Check if FFMPEG camera
     if((GetOptVideoWriter() == 2) && camera->SupportsNativeVideo()){
       //Warning("ZMC: Recording: %d", video_store_data->recording);
-      captureResult = camera->CaptureAndRecord(*capture_image, video_store_data->recording, video_store_data->event_file);
+      captureResult = camera->CaptureAndRecord(*capture_image, video_store_data->recording, video_store_data->event_file, packetqueue);
     }else{
       /* Capture directly into image buffer, avoiding the need to memcpy() */
       captureResult = camera->Capture(*capture_image);

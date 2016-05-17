@@ -27,6 +27,7 @@
 #include "zm_rtsp.h"
 #include "zm_ffmpeg.h"
 #include "zm_videostore.h"
+#include "zm_packetqueue.h"
 
 //
 // Class representing 'rtsp' cameras, i.e. those which are
@@ -85,7 +86,7 @@ public:
   int PreCapture();
   int Capture( Image &image );
   int PostCapture();
-	int CaptureAndRecord( Image &image, bool recording, char* event_directory );
+  int CaptureAndRecord( Image &image, bool recording, char* event_directory, zm_packetqueue* packetqueue );
 };
 
 #endif // ZM_REMOTE_CAMERA_RTSP_H

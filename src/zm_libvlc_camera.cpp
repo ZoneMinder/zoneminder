@@ -212,7 +212,7 @@ int LibvlcCamera::Capture( Image &image )
 }
 
 // Should not return -1 as cancels capture. Always wait for image if available.
-int LibvlcCamera::CaptureAndRecord( Image &image, bool recording, char* event_directory )
+int LibvlcCamera::CaptureAndRecord(Image &image, bool recording, char* event_directory, zm_packetqueue* packetqueue)
 {
   while(!mLibvlcData.newImage.getValueImmediate())
     mLibvlcData.newImage.getUpdatedValue(1);

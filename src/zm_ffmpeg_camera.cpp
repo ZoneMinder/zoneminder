@@ -510,7 +510,8 @@ void *FfmpegCamera::ReopenFfmpegThreadCallback(void *ctx){
 }
 
 //Function to handle capture and store
-int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_file ){
+
+int FfmpegCamera::CaptureAndRecord(Image &image, bool recording, char* event_file, zm_packetqueue* packetqueue) {
   if (!mCanCapture){
     return -1;
   }
@@ -530,9 +531,8 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
   }
 
   AVPacket packet;
-  AVPacket* queuedpacket;
+  AVPacket queuedpacket;
   uint8_t* directbuffer;
-  zm_packetqueue packetqueue;
 
   /* Request a writeable buffer of the target image */
   directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
@@ -583,10 +583,10 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
 
         //Buffer video packets
         if (!recording) { 
-          if(packet.flags & AV_PKT_FLAG_KEY){
-            packetqueue.clearQueues();
+          if(packet.flags & AV_PKT_FLAG_KEY) {
+            packetqueue->clearQueues();
           }
-          packetqueue.queueVideoPacket(&packet);
+          packetqueue->queueVideoPacket(&packet);
         }
 
         //Video recording
@@ -596,7 +596,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
           videoStore = new VideoStore((const char *) event_file, "mp4", mFormatContext->streams[mVideoStreamId], mAudioStreamId == -1 ? NULL : mFormatContext->streams[mAudioStreamId], startTime);
           wasRecording = true;
           strcpy(oldDirectory, event_file);
-          while(packetqueue.popVideoPacket(queuedpacket)){
+          while (packetqueue->popVideoPacket(&queuedpacket)) {
             int ret = videoStore->writeVideoFramePacket(&packet, mFormatContext->streams[mVideoStreamId]); //, &lastKeyframePkt);
             if (ret < 0) {//Less than zero and we skipped a frame
                 av_free_packet(&packet);

@@ -18,7 +18,10 @@
 // 
 
 #include "zm.h"
+
 #include "zm_curl_camera.h"
+
+#include "zm_packetqueue.h"
 
 #if HAVE_LIBCURL
 
@@ -311,7 +314,7 @@ int cURLCamera::PostCapture()
   return( 0 );
 }
 
-int cURLCamera::CaptureAndRecord( Image &image, bool recording, char* event_directory )
+int cURLCamera::CaptureAndRecord(Image &image, bool recording, char* event_directory, zm_packetqueue* packetqueue)
 {
 	Error("Capture and Record not implemented for the cURL camera type");
     // Nothing to do here

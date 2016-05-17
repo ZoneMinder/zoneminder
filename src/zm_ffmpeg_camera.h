@@ -65,6 +65,7 @@ protected:
   bool              wasRecording;
   VideoStore        *videoStore;
   char              oldDirectory[4096];
+  zm_packetqueue    packetqueue;
   //AVPacket        lastKeyframePkt;
 
 #if HAVE_LIBSWSCALE
@@ -87,7 +88,7 @@ public:
   int PrimeCapture();
   int PreCapture();
   int Capture( Image &image );
-  int CaptureAndRecord( Image &image, bool recording, char* event_directory );
+  int CaptureAndRecord( Image &image, bool recording, char* event_directory, zm_packetqueue* packetqueue );
   int PostCapture();
 };
 

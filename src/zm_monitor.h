@@ -31,6 +31,7 @@
 #include "zm_event.h"
 #include "zm_camera.h"
 #include "zm_utils.h"
+#include "zm_packetqueue.h"
 
 #include "zm_image_analyser.h"
 

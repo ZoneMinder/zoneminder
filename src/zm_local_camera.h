@@ -23,6 +23,7 @@
 #include "zm.h"
 #include "zm_camera.h"
 #include "zm_image.h"
+#include "zm_packetqueue.h"
 
 #if ZM_HAS_V4L
 
@@ -156,7 +157,7 @@ public:
   int PreCapture();
   int Capture( Image &image );
   int PostCapture();
-  int CaptureAndRecord( Image &image, bool recording, char* event_directory ) {return(0);};
+  int CaptureAndRecord( Image &image, bool recording, char* event_directory, zm_packetqueue* packetqueue ) {return(0);};
 
   static bool GetCurrentSettings( const char *device, char *output, int version, bool verbose );
 };

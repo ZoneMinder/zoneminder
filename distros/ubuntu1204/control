@@ -21,6 +21,7 @@ Build-Depends: debhelper (>= 9), python-sphinx | python3-sphinx, apache2-dev, dh
               ,libphp-serialization-perl
               ,libsys-mmap-perl [!hurd-any]
               ,libwww-perl
+              ,libdata-uuid-perl 
 # Unbundled (dh_linktree):
         ,libjs-jquery
         ,libjs-mootools
@@ -42,14 +43,15 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libmodule-load-conditional-perl
         ,libnet-sftp-foreign-perl
 #       ,libzoneminder-perl (= ${source:Version})
-          ,libarchive-zip-perl
-          ,libdbd-mysql-perl
-          ,libdevice-serialport-perl
-          ,libimage-info-perl
-          ,libjson-any-perl
-          ,libsys-mmap-perl [!hurd-any]
-          ,liburi-encode-perl
-          ,libwww-perl
+        ,libarchive-zip-perl
+        ,libdbd-mysql-perl
+        ,libdevice-serialport-perl
+        ,libimage-info-perl
+        ,libjson-any-perl
+        ,libsys-mmap-perl [!hurd-any]
+        ,liburi-encode-perl
+        ,libwww-perl
+        ,libdata-uuid-perl 
         ,mysql-client | virtual-mysql-client
         ,perl-modules
         ,php5-mysql, php5-gd

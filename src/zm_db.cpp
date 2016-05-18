@@ -57,7 +57,6 @@ void zmDbConnect()
         Error( "Can't connect to server: %s", mysql_error( &dbconn ) );
         exit( mysql_errno( &dbconn ) );
       }
-
     }
     else
     {

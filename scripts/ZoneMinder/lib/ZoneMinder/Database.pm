@@ -80,25 +80,29 @@ sub zmDbConnect
     }
     if ( !defined( $dbh ) )
     {
-        my ( $host, $port ) = ( $ZoneMinder::Config::Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
+        my $socket;
+        my ( $host, $portOrSocket ) = ( $ZoneMinder::Config::Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
 
-        if ( defined($port) )
+        if ( defined($portOrSocket) )
         {
-            $dbh = DBI->connect( "DBI:mysql:database=".$ZoneMinder::Config::Config{ZM_DB_NAME}
-                                .";host=".$host
-                                .";port=".$port
-                                , $ZoneMinder::Config::Config{ZM_DB_USER}
-                                , $ZoneMinder::Config::Config{ZM_DB_PASS}
-            );
+            if ( $portOrSocket =~ /^\// )
+            {
+                $socket = ";mysql_socket=".$portOrSocket;
+            }
+            else
+            {
+                $socket = ";host=".$host.";port=".$portOrSocket;
+            }
         }
         else
         {
-            $dbh = DBI->connect( "DBI:mysql:database=".$ZoneMinder::Config::Config{ZM_DB_NAME}
-                                .";host=".$ZoneMinder::Config::Config{ZM_DB_HOST}
-                                , $ZoneMinder::Config::Config{ZM_DB_USER}
-                                , $ZoneMinder::Config::Config{ZM_DB_PASS}
-            );
+            $socket = ";host=".$ZoneMinder::Config::Config{ZM_DB_HOST};
         }
+        $dbh = DBI->connect( "DBI:mysql:database=".$ZoneMinder::Config::Config{ZM_DB_NAME}
+                            .$socket
+                            , $ZoneMinder::Config::Config{ZM_DB_USER}
+                            , $ZoneMinder::Config::Config{ZM_DB_PASS}
+        );
         $dbh->trace( 0 );
     }
     return( $dbh );

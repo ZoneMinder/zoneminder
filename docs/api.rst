@@ -130,6 +130,28 @@ depend on it.
   curl -XDELETE http://server/zm/api/monitors/1.json
 
 
+Arm/Disarm monitors
+^^^^^^^^^^^^^^^^^^^^
+
+This command will force an alarm on Monitor 1:
+
+::
+
+  curl http://server/zm/api/monitors/alarm/id:1/command:on.json
+
+This command will disable the  alarm on Monitor 1:
+
+::
+
+  curl http://server/zm/api/monitors/alarm/id:1/command:off.json
+
+This command will report the status of the alarm  Monitor 1:
+
+::
+
+  curl http://server/zm/api/monitors/alarm/id:1/command:status.json
+
+
 Return a list of all events
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

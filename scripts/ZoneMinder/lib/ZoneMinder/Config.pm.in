@@ -30,6 +30,7 @@ use warnings;
 
 require Exporter;
 require ZoneMinder::Base;
+use ZoneMinder::ConfigData qw(:all);
 
 our @ISA = qw(Exporter ZoneMinder::Base);
 

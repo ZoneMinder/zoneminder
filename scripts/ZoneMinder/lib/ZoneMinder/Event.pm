@@ -45,12 +45,24 @@ use parent qw(ZoneMinder::Object);
 use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Database qw(:all);
+require Date::Parse;
 
 use vars qw/ $table $primary_key /;
 $table = 'Events';
 $primary_key = 'Id';
 
 use POSIX;
+
+sub Time {
+	if ( @_ > 1 ) {
+		$_[0]{Time} = $_[1];
+	}
+	if ( ! defined $_[0]{Time} ) {
+
+		$_[0]{Time} = Date::Parse::str2time( $_[0]{StartTime} );
+	}
+	return $_[0]{Time};
+}
 
 sub Name {
 	if ( @_ > 1 ) {
@@ -96,9 +108,12 @@ sub find_one {
 }
 
 sub getPath {
+return Path( @_ );
+}
+sub Path {
   my $event = shift;
 
-	my $Storage = $event->Storage();
+  my $Storage = $event->Storage();
 
   my $event_path = "";
   if ( $Config{ZM_USE_DEEP_STORAGE} ) {
@@ -106,7 +121,7 @@ sub getPath {
         $Storage->Path(),
         $event->{MonitorId},
         strftime( "%y/%m/%d/%H/%M/%S",
-          localtime($event->{Time})
+          localtime($event->Time())
           ),
         );
   } else {
@@ -304,6 +319,11 @@ sub delete_files {
 
 sub Storage {
 	return new ZoneMinder::Storage( $_[0]{StorageId} );
+}
+sub check_for_in_filesystem {
+	my $path = $_[0]->Path();
+	my @files = glob( $path . '/*' );
+	return 1 if @files;
 }
 
 1;

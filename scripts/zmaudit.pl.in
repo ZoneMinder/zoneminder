@@ -350,8 +350,12 @@ MAIN: while( $loop ) {
                 while ( my ( $db_event, $age ) = each(%$db_events ) )
                 {
                     if ( !defined($fs_events->{$db_event}) ) {
+my $Event = new ZoneMinder::Event( $db_event );
+if ( $Event->check_for_in_filesystem() ) {
+Debug("Database events apparent exists at " . $Event->Path() );
+} else {
 						if ( $age > $Config{ZM_AUDIT_MIN_AGE} ) {
-							aud_print( "Database event '$db_monitor/$db_event' does not exist in filesystem" );
+							aud_print( "Database event '$db_monitor/$db_event' does not exist at " . $Event->Path()." in filesystem" );
 							if ( confirm() ) {
 								my $res = $deleteEventSth->execute( $db_event )
 									or Fatal( "Can't execute: ".$deleteEventSth->errstr() );
@@ -362,11 +366,11 @@ MAIN: while( $loop ) {
 								$cleaned = 1;
 							}
 						} else {
-							my $Event = new ZoneMinder::Event( $db_event );
 							my $Storage = $Event->Storage();
 
 							aud_print( "Database event '".$Event->getPath()."/$db_monitor/$db_event' does not exist in filesystem but too young to delete.\n" );
 						}
+							}
                     }
                 }
             }

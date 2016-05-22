@@ -103,7 +103,7 @@ public function beforeFilter() {
 
 			$this->Monitor->create();
 			if ($this->Monitor->save($this->request->data)) {
-				$this->daemonControl($this->Monitor->id, 'start', $this->request->data);
+				$this->daemonControl($this->Monitor->id, 'start');
 				return $this->flash(__('The monitor has been saved.'), array('action' => 'index'));
 			}
 		}

@@ -262,7 +262,8 @@ sub run
     killAll( 1 );
 
     socket( SERVER, PF_UNIX, SOCK_STREAM, 0 ) or Fatal( "Can't open socket: $!" );
-    unlink( main::SOCK_FILE ) or Error( "Unable to unlink " . main::SOCK_FILE );
+#    Fails every time. Does not appear to be necessary.
+#    unlink( main::SOCK_FILE ) or Error( "Unable to unlink " . main::SOCK_FILE .". Error message was: $!" );
     bind( SERVER, $saddr ) or Fatal( "Can't bind to " . main::SOCK_FILE . ": $!" );
     listen( SERVER, SOMAXCONN ) or Fatal( "Can't listen: $!" );
 
@@ -374,8 +375,8 @@ sub run
         .strftime( '%y/%m/%d %H:%M:%S', localtime() )
         ."\n"
     );
-    unlink( main::SOCK_FILE );
-    unlink( ZM_PID );
+    unlink( main::SOCK_FILE ) or Error( "Unable to unlink " . main::SOCK_FILE .". Error message was: $!" );
+    unlink( ZM_PID ) or Error( "Unable to unlink " . ZM_PID .". Error message was: $!" );
     exit();
 }
 
@@ -760,8 +761,8 @@ sub shutdownAll
         .strftime( '%y/%m/%d %H:%M:%S', localtime() )
         ."\n"
     );
-    unlink( main::SOCK_FILE );
-    unlink( ZM_PID );
+    unlink( main::SOCK_FILE ) or Error( "Unable to unlink " . main::SOCK_FILE .". Error message was: $!" );
+    unlink( ZM_PID ) or Error( "Unable to unlink " . ZM_PID .". Error message was: $!" );
     close( CLIENT );
     close( SERVER );
     exit();

@@ -357,11 +357,11 @@ function getHelperStream( $id, $src, $width, $height, $title="" ) {
     </applet>';
 }
 
-function outputImageStill( $id, $src, $width, $height, $title="" )
-{
-  ?>
-    <img id="<?php echo $id ?>" src="<?php echo $src ?>" alt="<?php echo $title ?>" width="<?php echo $width ?>" height="<?php echo $height ?>"/>
-    <?php
+function outputImageStill( $id, $src, $width, $height, $title="" ) {
+  echo getImageStill( $id, $src, $width, $height, $title="" );
+}
+function getImageStill( $id, $src, $width, $height, $title="" ) {
+  return '<img id="'.$id.'" src="'.$src.'" alt="'.$title.'" width="'.$width.'" height="'.$height.'"/>';
 }
 
 function outputControlStill( $src, $width, $height, $monitor, $scale, $target )
@@ -2137,8 +2137,8 @@ function getStreamHTML( $monitor, $scale=100 ) {
       return getHelperStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
   } else {
     $streamSrc = $monitor->getStreamSrc( array( 'mode=single', "scale=".$scale ) );
-    outputImageStill( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
     Info( "The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.");
+    return getImageStill( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
   }
 } // end function getStreamHTML
 

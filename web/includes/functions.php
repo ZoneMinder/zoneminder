@@ -343,17 +343,18 @@ function outputControlStream( $src, $width, $height, $monitor, $scale, $target )
 }
 
 function outputHelperStream( $id, $src, $width, $height, $title="" ) {
-?>
-    <applet id="<?php echo $id ?>" code="com.charliemouse.cambozola.Viewer"
-    archive="<?php echo ZM_PATH_CAMBOZOLA ?>"
+        echo getOutputHelperStream( $id, $src, $width, $height, $title );
+}
+function getHelperStream( $id, $src, $width, $height, $title="" ) {
+    return '<applet id="'.$id.'" code="com.charliemouse.cambozola.Viewer"
+    archive="'. ZM_PATH_CAMBOZOLA .'" 
     align="middle"
-    width="<?php echo $width ?>"
-    height="<?php echo $height ?>"
-    title="<?php echo $title ?>">
+    width="'. $width .'"
+    height="'. $height .'"
+    title="'. $title .'">
     <param name="accessories" value="none"/>
-    <param name="url" value="<?php echo $src ?>"/>
-    </applet>
-    <?php
+    <param name="url" value="'. $src .'"/>
+    </applet>';
 }
 
 function outputImageStill( $id, $src, $width, $height, $title="" )
@@ -2133,7 +2134,7 @@ function getStreamHTML( $monitor, $scale=100 ) {
     if ( canStreamNative() )
       return getImageStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
     elseif ( canStreamApplet() )
-      outputHelperStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
+      return getHelperStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
   } else {
     $streamSrc = $monitor->getStreamSrc( array( 'mode=single', "scale=".$scale ) );
     outputImageStill( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );

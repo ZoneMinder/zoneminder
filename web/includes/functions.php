@@ -365,9 +365,10 @@ function outputHelperStream( $id, $src, $width, $height, $title="" ) {
 }
 
 function outputImageStill( $id, $src, $width, $height, $title="" ) {
-?>
-  <img id="<?php echo $id ?>" src="<?php echo $src ?>" alt="<?php echo $title ?>" width="<?php echo $width ?>" height="<?php echo $height ?>"/>
-<?php
+  echo getImageStill( $id, $src, $width, $height, $title="" );
+}
+function getImageStill( $id, $src, $width, $height, $title="" ) {
+  return '<img id="'.$id.'" src="'.$src.'" alt="'.$title.'" width="'.$width.'" height="'.$height.'"/>';
 }
 
 function outputControlStill( $src, $width, $height, $monitor, $scale, $target ) {
@@ -2094,14 +2095,15 @@ function getStreamHTML( $monitor, $scale=100 ) {
         return getVideoStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
     } else if ( canStream() ) {
         $streamSrc = $monitor->getStreamSrc( array( 'mode=jpeg', 'scale='.$scale, 'maxfps='.ZM_WEB_VIDEO_MAXFPS, 'buffer='.$monitor->StreamReplayBuffer() ) );
-        if ( canStreamNative() )
+        if ( canStreamNative() ) {
             return getImageStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
-        elseif ( canStreamApplet() )
-            outputHelperStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
+        } elseif ( canStreamApplet() ) {
+            return getHelperStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
+        }
     } else {
         $streamSrc = $monitor->getStreamSrc( array( 'mode=single', "scale=".$scale ) );
-        outputImageStill( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
         Info( "The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.");
+        return getImageStill( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
     }
 } // end function getStreamHTML
 

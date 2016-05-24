@@ -135,11 +135,6 @@ void zmLoadConfig()
     }
   
   }  
-  if ( ! staticConfig.SERVER_ID ) {
-    Debug( 1, "No Server ID or Name specified in config.  Not using Multi-Server Mode." );
-  } else {
-    Debug( 1, "Server is %d: using Multi-Server Mode.", staticConfig.SERVER_ID );
-  }
 }
 
 StaticConfig staticConfig;

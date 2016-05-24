@@ -884,7 +884,7 @@ switch ( $tab )
         if ( $newMonitor['Type'] == "Remote" )
         {
 ?>
-            <tr id="RTSPDescribe"<?php if ( $newMonitor['Protocol'] != 'RTSP' ) { echo ' style="display:none;"'; } ?>><td><?php echo translate('RTSPDescribe') ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option=OPTIONS_RTSPDESCRIBE', 'zmOptionHelp', 'optionhelp', '?' ) ?>) </td><td><input type="checkbox" name="newMonitor[RTSPDescribe]" value="1"<?php if ( !empty($newMonitor['RTSPDescribe']) ) { ?> checked="checked"<?php } ?>/></td></tr>
+            <tr id="RTSPDescribe"<?php if ( $newMonitor['Protocol'] != 'rtsp' ) { echo ' style="display:none;"'; } ?>><td><?php echo translate('RTSPDescribe') ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option=OPTIONS_RTSPDESCRIBE', 'zmOptionHelp', 'optionhelp', '?' ) ?>) </td><td><input type="checkbox" name="newMonitor[RTSPDescribe]" value="1"<?php if ( !empty($newMonitor['RTSPDescribe']) ) { ?> checked="checked"<?php } ?>/></td></tr>
 <?php
         }
 ?>

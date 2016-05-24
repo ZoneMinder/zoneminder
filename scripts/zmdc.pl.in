@@ -75,6 +75,10 @@ $| = 1;
 
 $ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
+if ( $Config{ZM_LD_PRELOAD} ) {
+  Debug("Adding ENV{LD_PRELOAD} = $Config{ZM_LD_PRELOAD}");
+  $ENV{LD_PRELOAD} = $Config{ZM_LD_PRELOAD};
+}
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 my @daemons = (
@@ -88,7 +92,7 @@ my @daemons = (
     'zmwatch.pl',
     'zmupdate.pl',
     'zmtrack.pl',
-    'zmtelemetry.pl',
+    'zmtelemetry.pl'
 );
 
 my $command = shift @ARGV;

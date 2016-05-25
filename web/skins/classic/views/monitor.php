@@ -820,7 +820,7 @@ switch ( $tab )
         elseif ( $newMonitor['Type'] == "Remote" )
         {
 ?>
-            <tr><td><?php echo translate('RemoteProtocol') ?></td><td><?php echo buildSelect( "newMonitor[Protocol]", $remoteProtocols, "updateMethods( this );if(this.value=='rtsp'){\$('RTSPDescribe').show();}else{\$('RTSPDescribe').hide();}" ); ?></td></tr>
+            <tr><td><?php echo translate('RemoteProtocol') ?></td><td><?php echo buildSelect( "newMonitor[Protocol]", $remoteProtocols, "updateMethods( this );if(this.value=='rtsp'){\$('RTSPDescribe').setStyle('display','table-row');}else{\$('RTSPDescribe').hide();}" ); ?></td></tr>
 <?php
             if ( empty($newMonitor['Protocol']) || $newMonitor['Protocol'] == "http" )
             {

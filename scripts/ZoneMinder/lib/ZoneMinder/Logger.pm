@@ -30,9 +30,6 @@ use warnings;
 
 require Exporter;
 require ZoneMinder::Base;
-require ZoneMinder::Database;
-require ZoneMinder::Config;
-
 
 our @ISA = qw(Exporter ZoneMinder::Base);
 
@@ -88,6 +85,8 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 # Logger Facilities
 #
 # ==========================================================================
+
+use ZoneMinder::Config qw(:all);
 
 use DBI;
 use Carp;
@@ -152,7 +151,7 @@ sub new
     $this->{hasTerm} = -t STDERR;
 
     ( $this->{fileName} = $0 ) =~ s|^.*/||;
-    $this->{logPath} = $ZoneMinder::Config::Config{ZM_PATH_LOGS};
+    $this->{logPath} = $Config{ZM_PATH_LOGS};
     $this->{logFile} = $this->{logPath}."/".$this->{id}.".log";
 
     $this->{trace} = 0;
@@ -165,7 +164,7 @@ sub BEGIN
 {
     # Fake the config variables that are used in case they are not defined yet
     # Only really necessary to support upgrade from previous version
-    if ( !eval('defined($ZoneMinder::Config::Config{ZM_LOG_DEBUG})') )
+    if ( !eval('defined($Config{ZM_LOG_DEBUG})') )
     {
         no strict 'subs';
         no strict 'refs';
@@ -223,7 +222,7 @@ sub initialise( @ )
     }
     else
     {
-        $tempDatabaseLevel = $ZoneMinder::Config::Config{ZM_LOG_LEVEL_DATABASE};
+        $tempDatabaseLevel = $Config{ZM_LOG_LEVEL_DATABASE};
     }
     if ( defined($options{fileLevel}) )
     {
@@ -231,7 +230,7 @@ sub initialise( @ )
     }
     else
     {
-        $tempFileLevel = $ZoneMinder::Config::Config{ZM_LOG_LEVEL_FILE};
+        $tempFileLevel = $Config{ZM_LOG_LEVEL_FILE};
     }
     if ( defined($options{syslogLevel}) )
     {
@@ -239,7 +238,7 @@ sub initialise( @ )
     }
     else
     {
-        $tempSyslogLevel = $ZoneMinder::Config::Config{ZM_LOG_LEVEL_SYSLOG};
+        $tempSyslogLevel = $Config{ZM_LOG_LEVEL_SYSLOG};
     }
 
     if ( defined($ENV{'LOG_PRINT'}) )
@@ -255,9 +254,9 @@ sub initialise( @ )
     $tempFileLevel = $level if ( defined($level = $this->getTargettedEnv('LOG_LEVEL_FILE')) );
     $tempSyslogLevel = $level if ( defined($level = $this->getTargettedEnv('LOG_LEVEL_SYSLOG')) );
 
-    if ( $ZoneMinder::Config::Config{ZM_LOG_DEBUG} )
+    if ( $Config{ZM_LOG_DEBUG} )
     {
-        foreach my $target ( split( /\|/, $ZoneMinder::Config::Config{ZM_LOG_DEBUG_TARGET} ) )
+        foreach my $target ( split( /\|/, $Config{ZM_LOG_DEBUG_TARGET} ) )
         {
             if ( $target eq $this->{id}
                  || $target eq "_".$this->{id}
@@ -266,12 +265,12 @@ sub initialise( @ )
                  || $target eq ""
             )
             {
-                if ( $ZoneMinder::Config::Config{ZM_LOG_DEBUG_LEVEL} > NOLOG )
+                if ( $Config{ZM_LOG_DEBUG_LEVEL} > NOLOG )
                 {
-                    $tempLevel = $this->limit( $ZoneMinder::Config::Config{ZM_LOG_DEBUG_LEVEL} );
-                    if ( $ZoneMinder::Config::Config{ZM_LOG_DEBUG_FILE} ne "" )
+                    $tempLevel = $this->limit( $Config{ZM_LOG_DEBUG_LEVEL} );
+                    if ( $Config{ZM_LOG_DEBUG_FILE} ne "" )
                     {
-                        $tempLogFile = $ZoneMinder::Config::Config{ZM_LOG_DEBUG_FILE};
+                        $tempLogFile = $Config{ZM_LOG_DEBUG_FILE};
                         $tempFileLevel = $tempLevel;
                     }
                 }
@@ -461,14 +460,32 @@ sub databaseLevel
             {
                 if ( !$this->{dbh} )
                 {
-                    $this->{dbh} = ZoneMinder::Database::zmDbConnect();
+                    my ( $host, $port ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
+
+                    if ( defined($port) )
+                    {
+                        $this->{dbh} = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
+                                                    .";host=".$host
+                                                    .";port=".$port
+                                                    , $Config{ZM_DB_USER}
+                                                    , $Config{ZM_DB_PASS}
+                        );
+                    }
+                    else
+                    {
+                        $this->{dbh} = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
+                                                    .";host=".$Config{ZM_DB_HOST}
+                                                    , $Config{ZM_DB_USER}
+                                                    , $Config{ZM_DB_PASS}
+                        );
+                    }
                     if ( !$this->{dbh} )
                     {
                         $databaseLevel = NOLOG;
                         Error( "Unable to write log entries to DB, can't connect to database '"
-                               .$ZoneMinder::Config::Config{ZM_DB_NAME}
+                               .$Config{ZM_DB_NAME}
                                ."' on host '"
-                               .$ZoneMinder::Config::Config{ZM_DB_HOST}
+                               .$Config{ZM_DB_HOST}
                                ."'"
                         );
                     }
@@ -488,8 +505,7 @@ sub databaseLevel
             {
                 if ( $this->{dbh} )
                 {
-                    # $this->dbh is now the global dbh, so don't close it.
-                    #$this->{dbh}->disconnect();
+                    $this->{dbh}->disconnect();
                     undef($this->{dbh});
                 }
             }
@@ -566,8 +582,8 @@ sub openFile
     {
         $LOGFILE->autoflush() if ( $this->{autoFlush} );
 
-        my $webUid = (getpwnam( $ZoneMinder::Config::Config{ZM_WEB_USER} ))[2];
-        my $webGid = (getgrnam( $ZoneMinder::Config::Config{ZM_WEB_GROUP} ))[2];
+        my $webUid = (getpwnam( $Config{ZM_WEB_USER} ))[2];
+        my $webGid = (getgrnam( $Config{ZM_WEB_GROUP} ))[2];
         if ( $> == 0 )
         {
             chown( $webUid, $webGid, $this->{logFile} )

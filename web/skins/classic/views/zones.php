@@ -47,9 +47,9 @@ xhtmlHeaders(__FILE__, translate('Zones') );
       <div id="headerButtons"><a href="#" onclick="closeWindow();"><?php echo translate('Close') ?></a></div>
       <h2><?php echo translate('Zones') ?></h2>
     </div>
-    <div id="content">
+    <div id="content" style="width:<?php echo $monitor->Width() ?>px; height:<?php echo $monitor->Height() ?>px; position:relative; margin: 0 auto;">
       <?php echo getStreamHTML( $monitor ); ?>
-      <svg class="zones" width="<?php echo $monitor->Width ?>" height="<?php echo $monitor->Height ?>" style="margin-top: -<?php echo $monitor->Height ?>px;background: none;">
+      <svg class="zones" width="<?php echo $monitor->Width() ?>" height="<?php echo $monitor->Height() ?>" style="position:absolute; top: 0; left: 0; background: none;">
 <?php
       foreach( array_reverse($zones) as $zone ) {
 ?>

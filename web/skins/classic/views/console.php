@@ -115,7 +115,7 @@ $eventsView = ZM_WEB_EVENTS_VIEW;
 $eventsWindow = 'zm'.ucfirst(ZM_WEB_EVENTS_VIEW);
 $left_columns = 3;
 if ( count($servers) ) $left_columns += 1;
-if ( ZM_WEB_ID_ON_CONSOLE ) ) $left_columns += 1;
+if ( ZM_WEB_ID_ON_CONSOLE ) $left_columns += 1;
 if ( $show_storage_areas ) $left_columns += 1;
 
 xhtmlHeaders( __FILE__, translate('Console') );

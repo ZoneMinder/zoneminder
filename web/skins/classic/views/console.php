@@ -184,7 +184,7 @@ $versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText'
 
 $left_columns = 3;
 if ( count($servers) ) $left_columns += 1;
-if ( ZM_WEB_ID_ON_CONSOLE ) ) $left_columns += 1;
+if ( ZM_WEB_ID_ON_CONSOLE ) $left_columns += 1;
 
 xhtmlHeaders( __FILE__, translate('Console') );
 ?>

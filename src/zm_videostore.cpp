@@ -485,7 +485,7 @@ Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts, pkt.dts
 Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts, pkt.dts, pkt.duration );
       pkt.stream_index = audio_output_stream->index;
       av_interleaved_write_frame( oc, &pkt );
-      zm_av_unref_packet( &pkt );
+      zm_av_packet_unref( &pkt );
     } // while 1
   }
   /* Write the trailer before close */
@@ -657,7 +657,7 @@ Debug(4, "Not video and RAWPICTURE");
     }
   }
 
-  zm_av_unref_packet(&opkt); 
+  zm_av_packet_unref(&opkt); 
 
   return 0;
 
@@ -781,12 +781,12 @@ av_codec_is_encoder( audio_output_context->codec)
                 av_make_error_string(ret).c_str());
         dumpPacket( ipkt );
         av_frame_free(&input_frame);
-        zm_av_unref_packet(&opkt);
+        zm_av_packet_unref(&opkt);
         return 0;
     }
     if ( ! data_present ) {
       Debug(2, "Not ready to transcode a frame yet.");
-      zm_av_unref_packet(&opkt);
+      zm_av_packet_unref(&opkt);
       return 0;
     }
 
@@ -841,7 +841,7 @@ av_codec_is_encoder( audio_output_context->codec)
       Error("Frame: samples(%d) layout (%d) format(%d) rate(%d)", output_frame->nb_samples,
           output_frame->channel_layout, output_frame->format , output_frame->sample_rate 
           );
-      zm_av_unref_packet(&opkt);
+      zm_av_packet_unref(&opkt);
       return 0;
     }
 
@@ -866,12 +866,12 @@ av_frame_get_best_effort_timestamp(output_frame)
             output_frame, &data_present )) < 0) {
       Error( "Could not encode frame (error '%s')",
           av_make_error_string(ret).c_str());
-      zm_av_unref_packet(&opkt);
+      zm_av_packet_unref(&opkt);
       return 0;
     }
     if ( ! data_present ) {
       Debug(2, "Not ready to output a frame yet.");
-      zm_av_unref_packet(&opkt);
+      zm_av_packet_unref(&opkt);
       return 0;
     }
   
@@ -909,6 +909,6 @@ Debug(2, "opkt dts (%d) pts(%d) duration:(%d) pos(%d) ", opkt.dts, opkt.pts, opk
   } else {
     Debug(2,"Success writing audio frame" ); 
   }
-  zm_av_unref_packet(&opkt);
+  zm_av_packet_unref(&opkt);
   return 0;
 }

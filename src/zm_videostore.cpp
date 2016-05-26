@@ -86,7 +86,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
   output_format = oc->oformat;
 
-  video_output_stream = avformat_new_stream(oc, video_input_context->codec);
+  video_output_stream = avformat_new_stream(oc, (AVCodec*)video_input_context->codec);
   if (!video_output_stream) {
     Fatal("Unable to create video out stream\n");
   } else {
@@ -383,7 +383,7 @@ Error("Not build with libswressample library.");
     } else {
       Debug(3, "Got AAC" );
 
-      audio_output_stream = avformat_new_stream(oc, audio_input_context->codec);
+      audio_output_stream = avformat_new_stream(oc, (AVCodec*)audio_input_context->codec);
       if ( ! audio_output_stream ) {
         Error("Unable to create audio out stream\n");
         audio_output_stream = NULL;
@@ -590,7 +590,7 @@ if ( 1 ) {
   opkt.duration = av_rescale_q(ipkt->duration, video_input_stream->time_base, video_output_stream->time_base);
 } else {
   // Using this results in super fast video output, might be because it should be using the codec time base instead of stream tb
-  av_packet_rescale_ts( &opkt, video_input_stream->time_base, video_output_stream->time_base );
+  //av_packet_rescale_ts( &opkt, video_input_stream->time_base, video_output_stream->time_base );
 }
 
 if ( opkt.dts != AV_NOPTS_VALUE ) {

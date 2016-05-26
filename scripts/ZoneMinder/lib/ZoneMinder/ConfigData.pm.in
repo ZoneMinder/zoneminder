@@ -1565,6 +1565,16 @@ our @options =
         category    => "web",
     },
     {
+        name        => "ZM_WEB_ID_ON_CONSOLE",
+        default     => "no",
+        description => "Should the console list the monitor id",
+        help        => qqq("Some find it useful to have the id always visible
+            on the console. This option will add a column listing it.
+        "),
+        type        => $types{boolean},
+        category    => "web",
+    },
+    {
         name        => "ZM_WEB_POPUP_ON_ALARM",
         default     => "yes",
         description => "Should the monitor window jump to the top if an alarm occurs",

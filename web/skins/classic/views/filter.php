@@ -48,6 +48,18 @@ if ( isset($dbFilter) )
     unset( $_REQUEST['filter']['limit'] );
 }
 
+# reload is set when the dropdown is changed. 
+if ( isset( $_REQUEST['reload'] ) and ! $_REQUEST['reload'] ) {
+  $dbFilter['AutoArchive'] = isset( $_REQUEST['AutoArchive'] );
+  $dbFilter['AutoExecute'] = isset( $_REQUEST['AutoExecute'] );
+  $dbFilter['AutoExecuteCmd'] = $_REQUEST['AutoExecuteCmd'];
+  $dbFilter['AutoEmail'] = isset( $_REQUEST['AutoEmail'] );
+  $dbFilter['AutoMessage'] = isset( $_REQUEST['AutoMessage'] );
+  $dbFilter['AutoUpload'] = isset( $_REQUEST['AutoUpload'] );
+  $dbFilter['AutoVideo'] = isset( $_REQUEST['AutoVideo'] );
+  $dbFilter['AutoDelete'] = isset( $_REQUEST['AutoDelete'] );
+}
+
 $conjunctionTypes = array(
     'and' => translate('ConjAnd'),
     'or'  => translate('ConjOr')

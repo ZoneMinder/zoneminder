@@ -7,19 +7,19 @@ function updateButtons( element )
     else
     {
         var canExecute = false;
-        if ( form.elements['autoArchive'].checked )
+        if ( form.elements['AutoArchive'].checked )
             canExecute = true;
-        else if ( typeof ZM_OPT_FFMPEG !== "undefined" && form.elements['autoVideo'].checked )
+        else if ( typeof ZM_OPT_FFMPEG !== "undefined" && form.elements['AutoVideo'].checked )
             canExecute = true;
-        else if ( typeof ZM_OPT_UPLOAD !== "undefined" && form.elements['autoUpload'].checked )
+        else if ( typeof ZM_OPT_UPLOAD !== "undefined" && form.elements['AutoUpload'].checked )
             canExecute = true;
-        else if ( typeof ZM_OPT_EMAIL !== "undefined" && form.elements['autoEmail'].checked )
+        else if ( typeof ZM_OPT_EMAIL !== "undefined" && form.elements['AutoEmail'].checked )
             canExecute = true;
-        else if ( typeof ZM_OPT_MESSAGE !== "undefined" && form.elements['autoMessage'].checked )
+        else if ( typeof ZM_OPT_MESSAGE !== "undefined" && form.elements['AutoMessage'].checked )
             canExecute = true;
-        else if ( form.elements['autoExecute'].checked && form.elements['autoExecuteCmd'].value != '' )
+        else if ( form.elements['AutoExecute'].checked && form.elements['AutoExecuteCmd'].value != '' )
             canExecute = true;
-        else if ( form.elements['autoDelete'].checked )
+        else if ( form.elements['AutoDelete'].checked )
             canExecute = true;
         form.elements['executeButton'].disabled = !canExecute;
     }

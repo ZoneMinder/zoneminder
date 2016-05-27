@@ -261,14 +261,14 @@ for ( $i = 0; isset($_REQUEST['filter']) && $i < count($_REQUEST['filter']['term
           <tbody>
             <tr>
               <td><?php echo translate('FilterArchiveEvents') ?></td>
-              <td><input type="checkbox" name="autoArchive" value="1"<?php if ( !empty($dbFilter['AutoArchive']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
+              <td><input type="checkbox" name="AutoArchive" value="1"<?php if ( !empty($dbFilter['AutoArchive']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
             </tr>
 <?php
 if ( ZM_OPT_FFMPEG ) {
 ?>
             <tr>
               <td><?php echo translate('FilterVideoEvents') ?></td>
-              <td><input type="checkbox" name="autoVideo" value="1"<?php if ( !empty($dbFilter['AutoVideo']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
+              <td><input type="checkbox" name="AutoVideo" value="1"<?php if ( !empty($dbFilter['AutoVideo']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
             </tr>
 <?php
 }
@@ -276,7 +276,7 @@ if ( ZM_OPT_UPLOAD ) {
 ?>
             <tr>
               <td><?php echo translate('FilterUploadEvents') ?></td>
-              <td><input type="checkbox" name="autoUpload" value="1"<?php if ( !empty($dbFilter['AutoUpload']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
+              <td><input type="checkbox" name="AutoUpload" value="1"<?php if ( !empty($dbFilter['AutoUpload']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
             </tr>
 <?php
 }
@@ -284,7 +284,7 @@ if ( ZM_OPT_EMAIL ) {
 ?>
             <tr>
               <td><?php echo translate('FilterEmailEvents') ?></td>
-              <td><input type="checkbox" name="autoEmail" value="1"<?php if ( !empty($dbFilter['AutoEmail']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
+              <td><input type="checkbox" name="AutoEmail" value="1"<?php if ( !empty($dbFilter['AutoEmail']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
             </tr>
 <?php
 }
@@ -292,18 +292,18 @@ if ( ZM_OPT_MESSAGE ) {
 ?>
             <tr>
               <td><?php echo translate('FilterMessageEvents') ?></td>
-              <td><input type="checkbox" name="autoMessage" value="1"<?php if ( !empty($dbFilter['AutoMessage']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
+              <td><input type="checkbox" name="AutoMessage" value="1"<?php if ( !empty($dbFilter['AutoMessage']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
             </tr>
 <?php
 }
 ?>
             <tr>
               <td><?php echo translate('FilterExecuteEvents') ?></td>
-              <td><input type="checkbox" name="autoExecute" value="1"<?php if ( !empty($dbFilter['AutoExecute']) ) { ?> checked="checked"<?php } ?>/><input type="text" name="autoExecuteCmd" value="<?php echo isset($dbFilter['AutoExecuteCmd'])?$dbFilter['AutoExecuteCmd']:"" ?>" size="32" maxlength="255" onchange="updateButtons( this )"/></td>
+              <td><input type="checkbox" name="AutoExecute" value="1"<?php if ( !empty($dbFilter['AutoExecute']) ) { ?> checked="checked"<?php } ?>/><input type="text" name="AutoExecuteCmd" value="<?php echo isset($dbFilter['AutoExecuteCmd'])?$dbFilter['AutoExecuteCmd']:"" ?>" size="32" maxlength="255" onchange="updateButtons( this )"/></td>
             </tr>
             <tr>
               <td><?php echo translate('FilterDeleteEvents') ?></td>
-              <td colspan="2"><input type="checkbox" name="autoDelete" value="1"<?php if ( !empty($dbFilter['AutoDelete']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
+              <td colspan="2"><input type="checkbox" name="AutoDelete" value="1"<?php if ( !empty($dbFilter['AutoDelete']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
             </tr>
           </tbody>
         </table>

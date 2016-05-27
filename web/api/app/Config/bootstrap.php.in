@@ -135,9 +135,9 @@ function loadConfigFile() {
 		            elseif ( preg_match( '/^\s*#/', $str ))
 		                continue;
 		            elseif ( preg_match( '/^\s*([^=\s]+)\s*=\s*(.*?)\s*$/', $str, $matches )) {
-	                    Configure::write("$matches[1]", "$matches[2]");
-						define( $matches[1], $matches[2] );
-					}
+	                    Configure::write( $matches[1], $matches[2] );
+                      define( $matches[1], $matches[2] );
+                }
 		        }
 		        fclose( $cfg );
 }

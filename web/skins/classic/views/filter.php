@@ -57,6 +57,7 @@ if ( isset( $_REQUEST['reload'] ) and ! $_REQUEST['reload'] ) {
   $dbFilter['AutoUpload'] = isset( $_REQUEST['AutoUpload'] );
   $dbFilter['AutoVideo'] = isset( $_REQUEST['AutoVideo'] );
   $dbFilter['AutoDelete'] = isset( $_REQUEST['AutoDelete'] );
+  $dbFilter['Name'] = $_REQUEST['filterName'];
 }
 
 $conjunctionTypes = array(
@@ -324,9 +325,11 @@ if ( ZM_OPT_MESSAGE ) {
           <input type="submit" value="<?php echo translate('Submit') ?>" onclick="submitToEvents( this );"/>
           <input type="button" name="executeButton" id="executeButton" value="<?php echo translate('Execute') ?>" onclick="executeFilter( this );"/>
 <?php if ( canEdit( 'Events' ) ) { ?>
-          <input type="button" value="<?php echo translate('Save') ?>" onclick="saveFilter( this );"/><?php } ?>
-<?php if ( canEdit( 'Events' ) && isset($dbFilter) ) { ?>
-          <input type="button" value="<?php echo translate('Delete') ?>" onclick="deleteFilter( this, '<?php echo $dbFilter['Name'] ?>' );"/><?php } ?>
+          <input type="button" value="<?php echo translate('Save') ?>" onclick="saveFilter( this );"/>
+<?php } ?>
+<?php if ( canEdit( 'Events' ) && isset($dbFilter) && $dbFilter['Name'] ) { ?>
+          <input type="button" value="<?php echo translate('Delete') ?>" onclick="deleteFilter( this, '<?php echo $dbFilter['Name'] ?>' );"/>
+<?php } ?>
           <input type="button" value="<?php echo translate('Reset') ?>" onclick="submitToFilter( this, 1 );"/>
         </div>
       </form>

@@ -246,7 +246,7 @@ sub Sql {
           }
         } # end if has an operator
         if ( exists($term->{cbr}) ) {
-          $self->{Sql} .= " ".str_repeat( ")", $terms->{cbr} )." ";
+          $self->{Sql} .= " ".str_repeat( ")", $term->{cbr} )." ";
         }
       } # end foreach term
     } # end if terms

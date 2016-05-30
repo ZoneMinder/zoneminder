@@ -265,9 +265,11 @@ sub Sql {
     if ( $self->{AutoArchive} ) {
       push @auto_terms, "E.Archived = 0";
     }
-    if ( $self->{AutoVideo} ) {
-      push @auto_terms, "E.Videoed = 0";
-    }
+    # Don't do this, it prevents re-generation and concatenation.
+    # If the file already exists, then the video won't be re-recreated
+    #if ( $self->{AutoVideo} ) {
+      #push @auto_terms, "E.Videoed = 0";
+    #}
     if ( $self->{AutoUpload} ) {
       push @auto_terms, "E.Uploaded = 0";
     }

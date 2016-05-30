@@ -100,7 +100,7 @@ sub Execute {
   my $sql = $self->Sql();
 
   if ( $self->{HasDiskPercent} ) {
-    my $disk_percent = getDiskPercent();
+    my $disk_percent = getDiskPercent( $$self{Storage} ? $$self{Storage}->Path() : () );
     $sql =~ s/zmDiskPercent/$disk_percent/g;
   }
   if ( $self->{HasDiskBlocks} ) {
@@ -323,7 +323,7 @@ sub Sql {
 } # end sub Sql
 
 sub getDiskPercent {
-  my $command = "df .";
+  my $command = "df " . ($_[0] ? $_[0] : '.');
   my $df = qx( $command );
   my $space = -1;
   if ( $df =~ /\s(\d+)%/ms ) {

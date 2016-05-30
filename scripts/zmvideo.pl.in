@@ -27,12 +27,14 @@ zmvideo.pl - ZoneMinder Video Creation Script
 
 =head1 SYNOPSIS
 
- zmvideo.pl [ -e <event_id>,--event=<event_id> | --filter=<filter name> ] [--format <format>]
-                                             [--rate=<rate>]
-                                             [--scale=<scale>]
-                                             [--fps=<fps>]
-                                             [--size=<size>]
-                                             [--overwrite]
+ zmvideo.pl [ -e <event_id>,--event=<event_id> | --filter_name=<filter name> | --filter_id=<filter id> ] 
+            [--concat=filename]
+            [--format <format>]
+            [--rate=<rate>]
+            [--scale=<scale>]
+            [--fps=<fps>]
+            [--size=<size>]
+            [--overwrite]
 
 =head1 DESCRIPTION
 
@@ -104,10 +106,10 @@ for ( my $i = 0; $i < @formats; $i++ )
 }
 
 GetOptions(
-	'concat|c:s'	=>\$concat_name,
+  'concat|c:s'  =>\$concat_name,
     'event|e=i'     =>\$event_id,
-    'filter_name=s'	=>\$filter_name,
-    'filter_id=i'	=>\$filter_id,
+    'filter_name=s'  =>\$filter_name,
+    'filter_id=i'  =>\$filter_id,
     'format|f=s'    =>\$format,
     'rate|r=f'      =>\$rate,
     'scale|s=f'     =>\$scale,
@@ -181,19 +183,24 @@ my $cwd = getcwd;
 my $video_name;
 my @event_ids;
 if ( $event_id ) {
-	@event_ids = ( $event_id );
-	
+  Debug("Making a video of event $event_id");
+  @event_ids = ( $event_id );
+  
 } elsif ( $filter_name or $filter_id ) {
-	my $Filter = ZoneMinder::Filter->find_one( 
-		($filter_name ? ( Name => $filter_name ) : () ),
-		($filter_id ? ( Id => $filter_name ) : () ),
-		);
-	if ( ! $Filter ) {
-		Fatal("Filter $filter_name $filter_id not found.");	
-	}	
-	@event_ids = map { $_->{Id} }$Filter->Execute();	
-	Fatal( "No events found for $filter_name") if ! @event_ids;
-	$concat_name = $filter_name if $concat_name eq '';
+  Debug("Loading filter " .join('',
+        ($filter_name ? "Name => $filter_name" : '' ),
+        ($filter_id ? "Id => $filter_id " : '' ),
+        ) );
+  my $Filter = ZoneMinder::Filter->find_one( 
+    ($filter_name ? ( Name => $filter_name ) : () ),
+    ($filter_id ? ( Id => $filter_id ) : () ),
+    );
+  if ( ! $Filter ) {
+    Fatal("Filter $filter_name $filter_id not found.");  
+  }
+  @event_ids = map { $_->{Id} }$Filter->Execute();  
+  Fatal( "No events found for $filter_name") if ! @event_ids;
+  $concat_name = $filter_name if $concat_name eq '';
 }
 
 my $sql = " SELECT max(F.Delta)-min(F.Delta) as FullLength,
@@ -210,51 +217,51 @@ my $sql = " SELECT max(F.Delta)-min(F.Delta) as FullLength,
    GROUP BY F.EventId"
    ;
 my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+Debug($sql);
 
 my @video_files;
 foreach my $event_id ( @event_ids ) {
 
-	my $res = $sth->execute( $event_id )
-		or Fatal( "Can't execute: ".$sth->errstr() );
-	my $event = $sth->fetchrow_hashref();
+  my $res = $sth->execute( $event_id )
+    or Fatal( "Can't execute: ".$sth->errstr() );
+  my $event = $sth->fetchrow_hashref();
 
-	my $Event = new ZoneMinder::Event( $$event{Id}, $event );
-	my $video_file = $Event->GenerateVideo( $rate, $fps, $scale,  $size, $overwrite, $format );
-	if ( $video_file ) {
-		push @video_files, $video_file;
-	}
+  my $Event = new ZoneMinder::Event( $$event{Id}, $event );
+  my $video_file = $Event->GenerateVideo( $rate, $fps, $scale,  $size, $overwrite, $format );
+  if ( $video_file ) {
+    Debug("Generated $video_file");
+    push @video_files, $video_file;
+  }
 } # end foreach event_id
 
 if ( $concat_name ) {
-	($cwd) = $cwd =~ /(.*)/; # detaint
-	chdir( $cwd );
-	($concat_name ) = $concat_name =~ /([\-A-Za-z0-9_\.]*)/;
-	my $concat_list_file = "/tmp/$concat_name.concat.lst";
+  ($cwd) = $cwd =~ /(.*)/; # detaint
+  chdir( $cwd );
+  ($concat_name ) = $concat_name =~ /([\-A-Za-z0-9_\.]*)/;
+  my $concat_list_file = "/tmp/$concat_name.concat.lst";
 
-	my $video_file = $concat_name . '.'. $detaint_format;
+  my $video_file = $concat_name . '.'. $detaint_format;
 
-	open( my $fd, '>', $concat_list_file ) or die "Can't open $concat_list_file: $!";
-	foreach ( @video_files ) {
-		print $fd "file '$_'\n";
-	}
-	close $fd;
-	my $command = $Config{ZM_PATH_FFMPEG}
-	. " -f concat -i $concat_list_file -c copy "
+  open( my $fd, '>', $concat_list_file ) or die "Can't open $concat_list_file: $!";
+  foreach ( @video_files ) {
+    print $fd "file '$_'\n";
+  }
+  close $fd;
+  my $command = $Config{ZM_PATH_FFMPEG}
+  . " -f concat -i $concat_list_file -c copy "
 .$Config{ZM_FFMPEG_OUTPUT_OPTIONS}
-		." '$video_file' > ffmpeg_${concat_name}.log 2>&1"
-		;
-	Debug( $command."\n" );
-	my $output = qx($command);
+    ." '$video_file' > ffmpeg_${concat_name}.log 2>&1"
+    ;
+  Debug( $command."\n" );
+  my $output = qx($command);
 
-	my $status = $? >> 8;
+  my $status = $? >> 8;
 
-	unlink $concat_list_file;
-	if ( $status )
-	{
-		Error( "Unable to generate video, check /ffmpeg.log for details");
-		exit(-1);
-	}
-	
+  unlink $concat_list_file;
+  if ( $status ) {
+    Error( "Unable to generate video, check /ffmpeg.log for details");
+    exit(-1);
+  }
 }
 #unlink $input_file_list;
 #print( STDOUT $event->{MonitorId}.'/'.$event->{Id}.'/'.$video_file."\n" );

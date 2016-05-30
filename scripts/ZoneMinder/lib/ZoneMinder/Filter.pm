@@ -136,7 +136,7 @@ sub Sql {
        unix_timestamp(E.StartTime) as Time,
        M.Name as MonitorName,
        M.DefaultRate,
-       M.DefaultScale,
+       M.DefaultScale
          FROM Events as E
          INNER JOIN Monitors as M on M.Id = E.MonitorId
          ";

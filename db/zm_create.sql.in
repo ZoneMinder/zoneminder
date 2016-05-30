@@ -217,6 +217,7 @@ CREATE TABLE `Events` (
 
 DROP TABLE IF EXISTS `Filters`;
 CREATE TABLE `Filters` (
+  `Id` int(10) unsigned NOT NULL auto_increment,
   `Name` varchar(64) NOT NULL default '',
   `Query` text NOT NULL,
   `AutoArchive` tinyint(3) unsigned NOT NULL default '0',
@@ -228,8 +229,13 @@ CREATE TABLE `Filters` (
   `AutoExecuteCmd` tinytext,
   `AutoDelete` tinyint(3) unsigned NOT NULL default '0',
   `Background` tinyint(1) unsigned NOT NULL default '0',
+<<<<<<< HEAD
   `Concurrent` tinyint(1) unsigned NOT NULL default '0',
   PRIMARY KEY (`Name`)
+=======
+  PRIMARY KEY (`Id`),
+  KEY `Name` (`Name`)
+>>>>>>> filter_id
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --

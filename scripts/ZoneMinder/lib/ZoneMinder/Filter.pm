@@ -96,7 +96,7 @@ sub find_one {
 }
 
 sub Execute {
-
+  my $self = $_[0];
   my $sql = $self->Sql();
 
   if ( $self->{HasDiskPercent} ) {

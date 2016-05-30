@@ -199,9 +199,7 @@ sub GenerateVideo {
 		my $command = $Config{ZM_PATH_FFMPEG}
 		." -y -r $frame_rate "
 			.$Config{ZM_FFMPEG_INPUT_OPTIONS}
-		." -i %0"
-			.$Config{ZM_EVENT_IMAGE_DIGITS}
-		."d-capture.jpg -s $video_size "
+		.' -i ' . ( $$self{DefaultVideo} ? $self{DefaultVideo} : '%0'.$Config{ZM_EVENT_IMAGE_DIGITS} .'d-capture.jpg' )
 #. " -f concat -i /tmp/event_files.txt"
 			." -s $video_size "
 			.$Config{ZM_FFMPEG_OUTPUT_OPTIONS}

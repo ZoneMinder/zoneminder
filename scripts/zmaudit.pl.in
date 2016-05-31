@@ -491,9 +491,9 @@ Debug("Database events apparent exists at " . $Event->Path() );
         "SELECT *, unix_timestamp(StartTime) AS TimeStamp FROM Events WHERE EndTime IS NULL AND StartTime < (now() - interval ".$Config{ZM_AUDIT_MIN_AGE}." second)";
 
     my $selectFrameDataSql = "SELECT max(TimeStamp) as EndTime, unix_timestamp(max(TimeStamp)) AS EndTimeStamp, max(FrameId) as Frames,
-               count(if(F.Score>0,1,NULL)) as AlarmFrames,
-               sum(F.Score) as TotScore,
-               max(F.Score) as MaxScore
+               count(if(Score>0,1,NULL)) as AlarmFrames,
+               sum(Score) as TotScore,
+               max(Score) as MaxScore
         FROM Frames WHERE EventId=?";
     my $selectFrameDataSth = $dbh->prepare_cached($selectFrameDataSql)
         or Fatal( "Can't prepare '$selectFrameDataSql': ".$dbh->errstr() );
@@ -523,7 +523,7 @@ Debug("Database events apparent exists at " . $Event->Path() );
         aud_print( "Found open event '$event->{Id}'" );
         if ( confirm( 'close', 'closing' ) )
         {
-            $res = $selectFrameDataSth->execute( $event->{Id} );
+            $res = $selectFrameDataSth->execute( $event->{Id} ) or Fatal( "Can't execute: ".$selectFrameDataSth->errstr() );
             my $frame = $selectFrameDataSth->fetchrow_hashref();
             if ( $frame ) {
                 $res = $updateUnclosedEventsSth->execute

@@ -59,4 +59,8 @@ RUN echo 'zoneminder:zoneminder' | chpasswd
 # Expose ssh and http ports
 EXPOSE 22 80
 
-CMD "/tmp/start.sh"
+# Initial database and apache setup:
+RUN "/ZoneMinder/utils/docker/setup.sh"
+
+CMD ["/ZoneMinder/utils/docker/start.sh"]
+

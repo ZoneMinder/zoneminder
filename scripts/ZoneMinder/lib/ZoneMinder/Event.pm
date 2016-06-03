@@ -108,31 +108,37 @@ sub find_one {
 }
 
 sub getPath {
-return Path( @_ );
+  return Path( @_ );
 }
 sub Path {
   my $event = shift;
 
-  my $Storage = $event->Storage();
+  if ( ! $$event{Path} ) {
+    my $Storage = $event->Storage();
 
-  my $event_path = "";
-  if ( $Config{ZM_USE_DEEP_STORAGE} ) {
-    $event_path = join('/',
-        $Storage->Path(),
-        $event->{MonitorId},
-        strftime( "%y/%m/%d/%H/%M/%S",
-          localtime($event->Time())
-          ),
-        );
-  } else {
-    $event_path = join('/',
-        $Storage->Path(),
-        $event->{MonitorId},
-        $event->{Id},
-        );
-  }
+    if ( $Config{ZM_USE_DEEP_STORAGE} ) {
+      if ( $event->Time() ) {
+        $$event{Path} = join('/',
+            $Storage->Path(),
+            $event->{MonitorId},
+            strftime( "%y/%m/%d/%H/%M/%S",
+              localtime($event->Time())
+              ),
+            );
+      } else {
+        Error("Event $$event{Id} has no value for Time(), unable to determine path");
+        $$event{Path} = '';
+      }
+    } else {
+      $$event{Path} = join('/',
+          $Storage->Path(),
+          $event->{MonitorId},
+          $event->{Id},
+          );
+    }
+  } # end if
 
-  return( $event_path );
+  return $$event{Path};
 }
 
 sub GenerateVideo {

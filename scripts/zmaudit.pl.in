@@ -249,6 +249,8 @@ MAIN: while( $loop ) {
         chdir( $Storage->Path() );
       } # if USE_DEEP_STORAGE
       Debug( "Got ".int(keys(%$fs_events))." events\n" );
+
+      delete_empty_directories(  $monitor_dir );
     } # end foreach monitor
     redo MAIN if ( $cleaned );
 

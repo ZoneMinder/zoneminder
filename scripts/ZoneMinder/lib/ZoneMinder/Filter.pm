@@ -112,6 +112,7 @@ sub Execute {
     $sql =~ s/zmSystemLoad/$load/g;
   }
 
+  Debug("Filter::Execute SQL ($sql)");
   my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
     or Fatal( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
   my $res = $sth->execute();
@@ -318,7 +319,6 @@ sub Sql {
     if ( $filter_expr->{limit} ) {
       $sql .= " limit 0,".$filter_expr->{limit};
     }
-    Debug( "SQL:$sql\n" );
     $self->{Sql} = $sql;
   } # end if has Sql
   return $self->{Sql};

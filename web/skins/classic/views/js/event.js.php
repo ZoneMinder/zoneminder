@@ -26,10 +26,10 @@ var SCALE_BASE = <?php echo SCALE_BASE ?>;
 var connKey = '<?php echo $connkey ?>';
 
 var eventData = {
-    Id: <?php echo $event['Id'] ?>,
-    Width: <?php echo $event['Width'] ?>,
-    Height: <?php echo $event['Height'] ?>,
-    Length: <?php echo $event['Length'] ?>
+    Id: '<?php echo $event['Id'] ?>',
+    Width: '<?php echo $event['Width'] ?>',
+    Height: '<?php echo $event['Height'] ?>',
+    Length: '<?php echo $event['Length'] ?>'
 };
 
 var filterQuery = '<?php echo isset($filterQuery)?validJsStr($filterQuery):'' ?>';

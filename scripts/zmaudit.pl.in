@@ -247,7 +247,8 @@ MAIN: while( $loop ) {
             chdir( EVENT_PATH );
         }
         Debug( "Got ".int(keys(%$fs_events))." events\n" );
-    }
+        delete_empty_directories( $monitor_dir );
+    } # end foreach monitor directory
     redo MAIN if ( $cleaned );
 
     $cleaned = 0;
@@ -637,3 +638,24 @@ sub deleteSwapImage
         #unlink( $file );
     }
 }
+
+sub delete_empty_directories {
+  if ( ! opendir( DIR, $_[0] ) ) {
+    Error( "Can't open directory '$_[0]': $!" );
+    return;
+  }
+  my @contents = map { $_ eq '.' or $_ eq '..' ? () : $_ } readdir( DIR );
+  my @dirs = map { -d $_ ? $_ : () } @contents;
+  if ( @dirs ) {
+    foreach ( @dirs ) {
+      delete_empty_directories( $_[0].'/'.$_ );
+    }
+#Reload, since we may now be empty
+    @contents = map { $_ eq '.' or $_ eq '..' ? () : $_ } readdir( DIR );
+  }
+  if ( ! @contents ) {
+    unlink $_[0];
+  } 
+  closedir( DIR );
+} # end sub delete_empty_directories
+

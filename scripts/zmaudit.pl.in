@@ -255,29 +255,29 @@ MAIN: while( $loop ) {
     redo MAIN if ( $cleaned );
 
     $cleaned = 0;
-    while ( my ( $fs_monitor, $fs_events ) = each(%$fs_monitors) ) {
-      if ( my $db_events = $db_monitors->{$fs_monitor} ) {
+    while ( my ( $monitor_id, $fs_events ) = each(%$fs_monitors) ) {
+      if ( my $db_events = $db_monitors->{$monitor_id} ) {
         next if ! $fs_events;
 
-          foreach my $fs_event ( sort { $a <=> $b } keys %$fs_events ) {
-            my $age = $fs_events->{$fs_event};
-            if ( !defined($db_events->{$fs_event}) && ($age < 0 || ($age > $Config{ZM_AUDIT_MIN_AGE})) ) {
-              aud_print( "Filesystem event '$fs_monitor/$fs_event' does not exist in database" );
-              if ( confirm() ) {
-                my $Event = new ZoneMinder::Event( $fs_event );
-# Must set these because the db event does not exist
-                $Event->MonitorId( $fs_monitor );
-                $Event->StorageId( $Storage->Id() );
-                $Event->delete_files();
-                $cleaned = 1;
-                delete $fs_events->{$fs_event};
-              } # end if confirm
-            } # end if ! in db events and old enough
-          } # end foreach fs event
+        foreach my $fs_event ( sort { $a <=> $b } keys %$fs_events ) {
+          my $age = $fs_events->{$fs_event};
+          if ( !defined($db_events->{$fs_event}) && ($age < 0 || ($age > $Config{ZM_AUDIT_MIN_AGE})) ) {
+            aud_print( "Filesystem event '$$Storage{Path}/$monitor_id/$fs_event' does not exist in database" );
+            if ( confirm() ) {
+              my $Event = new ZoneMinder::Event( $fs_event );
+# Must set these because the db event does not exist, however these are not enough.
+              $Event->MonitorId( $monitor_id );
+              $Event->StorageId( $Storage->Id() );
+              $Event->delete_files();
+              $cleaned = 1;
+              delete $fs_events->{$fs_event};
+            } # end if confirm
+          } # end if ! in db events and old enough
+        } # end foreach fs event
       } else {
-        aud_print( "Filesystem monitor '$fs_monitor' in $$Storage{Path} does not exist in database" );
+        aud_print( "Filesystem monitor '$monitor_id' in $$Storage{Path} does not exist in database" );
         if ( confirm() ) {
-          my $command = "rm -rf $fs_monitor";
+          my $command = "rm -rf $monitor_id";
           executeShellCommand( $command );
           $cleaned = 1;
         }

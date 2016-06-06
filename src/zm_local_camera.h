@@ -105,6 +105,11 @@ protected:
   static V4L1Data     v4l1_data;
 #endif // ZM_HAS_V4L1
 
+// Required on systems with v4l1 but without v4l2 headers
+#ifndef VIDEO_MAX_FRAME
+#define VIDEO_MAX_FRAME               32
+#endif
+
 #if HAVE_LIBSWSCALE
   static AVFrame    **capturePictures;
   _AVPIXELFORMAT       imagePixFormat;

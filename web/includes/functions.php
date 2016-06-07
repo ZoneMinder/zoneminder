@@ -838,7 +838,8 @@ function zmcControl( $monitor, $mode=false ) {
   } else {
     $Server = new Server( $monitor['ServerId'] );
 
-    $url = $Server->Url() . '/zm/api/monitors.json?auth='.generateAuthHash( $_SESSION['remoteAddr'] );
+    #$url = $Server->Url() . '/zm/api/monitors.json?auth='.generateAuthHash( $_SESSION['remoteAddr'] );
+    $url = $Server->Url() . '/zm/api/monitors.json?user='.$_SESSION['username'].'&pass='.$_SESSION['passwordHash'];
     $data = array('Monitor[Function]' => $monitor['Function'] );
 
     // use key 'http' even if you send the request to https://...

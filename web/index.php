@@ -48,6 +48,8 @@ if ( false )
 
 require_once( 'includes/config.php' );
 require_once( 'includes/logger.php' );
+require_once( 'includes/Server.php' );
+require_once( 'includes/Monitor.php' );
 
 if ( isset($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] == 'on' )
 {
@@ -57,7 +59,19 @@ else
 {
     $protocol = 'http';
 }
-define( "ZM_BASE_URL", $protocol.'://'.$_SERVER['HTTP_HOST'] );
+define( "ZM_BASE_PROTOCOL", $protocol );
+
+// Absolute URL's are unnecessary and break compatibility with reverse proxies 
+// define( "ZM_BASE_URL", $protocol.'://'.$_SERVER['HTTP_HOST'] );
+
+// Use relative URL's instead
+define( "ZM_BASE_URL", "" );
+
+// Check time zone is set
+if (!ini_get('date.timezone') || !date_default_timezone_set(ini_get('date.timezone'))) {
+    date_default_timezone_set('UTC');
+    Fatal( "ZoneMinder is not installed properly: php's date.timezone is not set to a valid timezone" );
+}
 
 if ( isset($_GET['skin']) )
     $skin = $_GET['skin'];
@@ -123,6 +137,15 @@ else
 
 require_once( 'includes/lang.php' );
 require_once( 'includes/functions.php' );
+
+# Add Cross domain access headers
+CORSHeaders();
+
+// Check for valid content dirs
+if ( !is_writable(ZM_DIR_EVENTS) || !is_writable(ZM_DIR_IMAGES) )
+{
+	Error( "Cannot write to content dirs('".ZM_DIR_EVENTS."','".ZM_DIR_IMAGES."').  Check that these exist and are owned by the web account user");
+}
 
 if ( isset($_REQUEST['view']) )
     $view = detaintPath($_REQUEST['view']);

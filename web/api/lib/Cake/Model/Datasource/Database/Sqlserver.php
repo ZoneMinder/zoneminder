@@ -115,7 +115,7 @@ class Sqlserver extends DboSource {
 /**
  * Connects to the database using options in the given configuration array.
  *
- * @return boolean True if the database could be connected, else false
+ * @return bool True if the database could be connected, else false
  * @throws MissingConnectionException
  */
 	public function connect() {
@@ -157,7 +157,7 @@ class Sqlserver extends DboSource {
 /**
  * Check that PDO SQL Server is installed/loaded
  *
- * @return boolean
+ * @return bool
  */
 	public function enabled() {
 		return in_array('sqlsrv', PDO::getAvailableDrivers());
@@ -166,7 +166,7 @@ class Sqlserver extends DboSource {
 /**
  * Returns an array of sources (tables) in the database.
  *
- * @param mixed $data
+ * @param mixed $data The names
  * @return array Array of table names in the database
  */
 	public function listSources($data = null) {
@@ -208,7 +208,7 @@ class Sqlserver extends DboSource {
 		}
 
 		$fields = array();
-		$schema = $model->schemaName;
+		$schema = is_object($model) ? $model->schemaName : false;
 
 		$cols = $this->_execute(
 			"SELECT
@@ -269,10 +269,10 @@ class Sqlserver extends DboSource {
 /**
  * Generates the fields list of an SQL query.
  *
- * @param Model $model
+ * @param Model $model The model to get fields for.
  * @param string $alias Alias table name
- * @param array $fields
- * @param boolean $quote
+ * @param array $fields The fields so far.
+ * @param bool $quote Whether or not to quote identfiers.
  * @return array
  */
 	public function fields(Model $model, $alias = null, $fields = array(), $quote = true) {
@@ -338,9 +338,9 @@ class Sqlserver extends DboSource {
  * Removes Identity (primary key) column from update data before returning to parent, if
  * value is empty.
  *
- * @param Model $model
- * @param array $fields
- * @param array $values
+ * @param Model $model The model to insert into.
+ * @param array $fields The fields to set.
+ * @param array $values The values to set.
  * @return array
  */
 	public function create(Model $model, $fields = null, $values = null) {
@@ -367,10 +367,10 @@ class Sqlserver extends DboSource {
  * Generates and executes an SQL UPDATE statement for given model, fields, and values.
  * Removes Identity (primary key) column from update data before returning to parent.
  *
- * @param Model $model
- * @param array $fields
- * @param array $values
- * @param mixed $conditions
+ * @param Model $model The model to update.
+ * @param array $fields The fields to set.
+ * @param array $values The values to set.
+ * @param mixed $conditions The conditions to use.
  * @return array
  */
 	public function update(Model $model, $fields = array(), $values = null, $conditions = null) {
@@ -389,8 +389,8 @@ class Sqlserver extends DboSource {
 /**
  * Returns a limit statement in the correct format for the particular database.
  *
- * @param integer $limit Limit of results returned
- * @param integer $offset Offset from which to start results
+ * @param int $limit Limit of results returned
+ * @param int $offset Offset from which to start results
  * @return string SQL limit/offset statement
  */
 	public function limit($limit, $offset = null) {
@@ -474,6 +474,9 @@ class Sqlserver extends DboSource {
 			if (in_array($length->Type, array('nchar', 'nvarchar'))) {
 				return floor($length->Length / 2);
 			}
+			if ($length->Type === 'text') {
+				return null;
+			}
 			return $length->Length;
 		}
 		return parent::length($length);
@@ -482,7 +485,7 @@ class Sqlserver extends DboSource {
 /**
  * Builds a map of the columns contained in a result
  *
- * @param PDOStatement $results
+ * @param PDOStatement $results The result to modify.
  * @return void
  */
 	public function resultSet($results) {
@@ -537,11 +540,11 @@ class Sqlserver extends DboSource {
 				if (version_compare($this->getVersion(), '11', '<') && preg_match('/FETCH\sFIRST\s+([0-9]+)/i', $limit, $offset)) {
 					preg_match('/OFFSET\s*(\d+)\s*.*?(\d+)\s*ROWS/', $limit, $limitOffset);
 
-					$limit = 'TOP ' . intval($limitOffset[2]);
-					$page = intval($limitOffset[1] / $limitOffset[2]);
-					$offset = intval($limitOffset[2] * $page);
+					$limit = 'TOP ' . (int)$limitOffset[2];
+					$page = (int)($limitOffset[1] / $limitOffset[2]);
+					$offset = (int)($limitOffset[2] * $page);
 
-					$rowCounter = self::ROW_COUNTER;
+					$rowCounter = static::ROW_COUNTER;
 					$sql = "SELECT {$limit} * FROM (
 							SELECT {$fields}, ROW_NUMBER() OVER ({$order}) AS {$rowCounter}
 							FROM {$table} {$alias} {$joins} {$conditions} {$group}
@@ -581,11 +584,12 @@ class Sqlserver extends DboSource {
  *
  * @param string $data String to be prepared for use in an SQL statement
  * @param string $column The column into which this data will be inserted
+ * @param bool $null Column allows NULL values
  * @return string Quoted and escaped data
  */
-	public function value($data, $column = null) {
+	public function value($data, $column = null, $null = true) {
 		if ($data === null || is_array($data) || is_object($data)) {
-			return parent::value($data, $column);
+			return parent::value($data, $column, $null);
 		}
 		if (in_array($data, array('{$__cakeID__$}', '{$__cakeForeignKey__$}'), true)) {
 			return $data;
@@ -600,7 +604,7 @@ class Sqlserver extends DboSource {
 			case 'text':
 				return 'N' . $this->_connection->quote($data, PDO::PARAM_STR);
 			default:
-				return parent::value($data, $column);
+				return parent::value($data, $column, $null);
 		}
 	}
 
@@ -608,9 +612,9 @@ class Sqlserver extends DboSource {
  * Returns an array of all result rows for a given SQL query.
  * Returns false if no rows matched.
  *
- * @param Model $model
- * @param array $queryData
- * @param integer $recursive
+ * @param Model $model The model to read from
+ * @param array $queryData The query data
+ * @param int $recursive How many layers to go.
  * @return array|false Array of resultset rows, or false if no rows matched
  */
 	public function read(Model $model, $queryData = array(), $recursive = null) {
@@ -630,7 +634,7 @@ class Sqlserver extends DboSource {
 			$resultRow = array();
 			foreach ($this->map as $col => $meta) {
 				list($table, $column, $type) = $meta;
-				if ($table === 0 && $column === self::ROW_COUNTER) {
+				if ($table === 0 && $column === static::ROW_COUNTER) {
 					continue;
 				}
 				$resultRow[$table][$column] = $row[$col];
@@ -647,9 +651,9 @@ class Sqlserver extends DboSource {
 /**
  * Inserts multiple values into a table
  *
- * @param string $table
- * @param string $fields
- * @param array $values
+ * @param string $table The table to insert into.
+ * @param string $fields The fields to set.
+ * @param array $values The values to set.
  * @return void
  */
 	public function insertMulti($table, $fields, $values) {
@@ -688,7 +692,7 @@ class Sqlserver extends DboSource {
 			} else {
 				$result = str_replace('DEFAULT NULL', 'NULL', $result);
 			}
-		} elseif (array_keys($column) == array('type', 'name')) {
+		} elseif (array_keys($column) === array('type', 'name')) {
 			$result .= ' NULL';
 		} elseif (strpos($result, "DEFAULT N'")) {
 			$result = str_replace("DEFAULT N'", "DEFAULT '", $result);
@@ -699,8 +703,8 @@ class Sqlserver extends DboSource {
 /**
  * Format indexes for create table
  *
- * @param array $indexes
- * @param string $table
+ * @param array $indexes The indexes to build
+ * @param string $table The table to make indexes for.
  * @return string
  */
 	public function buildIndex($indexes, $table = null) {
@@ -744,8 +748,8 @@ class Sqlserver extends DboSource {
  * Returns number of affected rows in previous database operation. If no previous operation exists,
  * this returns false.
  *
- * @param mixed $source
- * @return integer Number of affected rows
+ * @param mixed $source Unused
+ * @return int Number of affected rows
  */
 	public function lastAffected($source = null) {
 		$affected = parent::lastAffected();
@@ -767,6 +771,7 @@ class Sqlserver extends DboSource {
  */
 	protected function _execute($sql, $params = array(), $prepareOptions = array()) {
 		$this->_lastAffected = false;
+		$sql = trim($sql);
 		if (strncasecmp($sql, 'SELECT', 6) === 0 || preg_match('/^EXEC(?:UTE)?\s/mi', $sql) > 0) {
 			$prepareOptions += array(PDO::ATTR_CURSOR => PDO::CURSOR_SCROLL);
 			return parent::_execute($sql, $params, $prepareOptions);

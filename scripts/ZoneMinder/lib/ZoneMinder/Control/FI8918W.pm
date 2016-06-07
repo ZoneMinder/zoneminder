@@ -173,6 +173,7 @@ sub moveConDown
 	Debug( "Move Down" );
 	my $cmd = "decoder_control.cgi?command=2";
 	$self->sendCmd( $cmd );
+	$self->autoStop( $self->{Monitor}->{AutoStopTimeout} );
 }
  
 #Left Arrow

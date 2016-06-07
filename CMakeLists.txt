@@ -4,9 +4,15 @@
 #
 cmake_minimum_required (VERSION 2.6)
 project (zoneminder)
-set(zoneminder_VERSION "1.28.1")
+set(zoneminder_VERSION "1.30.0")
 # make API version a minor of ZM version
 set(zoneminder_API_VERSION "${zoneminder_VERSION}.1")
+
+# Make sure the submodules are there
+if( NOT EXISTS "${CMAKE_SOURCE_DIR}/web/api/app/Plugin/Crud/Lib/CrudControllerTrait.php" )
+message( SEND_ERROR "The git submodules are not available. Please run
+git submodule update --init --recursive")
+endif( NOT EXISTS "${CMAKE_SOURCE_DIR}/web/api/app/Plugin/Crud/Lib/CrudControllerTrait.php" )
 
 # CMake does not allow out-of-source build if CMakeCache.exists 
 # in the source folder. Abort and notify the user
@@ -127,9 +133,9 @@ set(ZM_NO_CURL "OFF" CACHE BOOL
     "Set to ON to skip cURL checks and force building ZM without cURL. default: OFF")
 set(ZM_NO_X10 "OFF" CACHE BOOL 
     "Set to ON to build ZoneMinder without X10 support. default: OFF")
-set(ZM_ONVIF "OFF" CACHE BOOL 
+set(ZM_ONVIF "ON" CACHE BOOL 
     "Set to ON to enable basic ONVIF support. This is EXPERIMENTAL and may not 
-    work with all cameras claiming to be ONVIF compliant. default: OFF")
+    work with all cameras claiming to be ONVIF compliant. default: ON")
 set(ZM_PERL_MM_PARMS INSTALLDIRS=vendor NO_PACKLIST=1 NO_PERLLOCAL=1 CACHE STRING 
 	"By default, ZoneMinder's Perl modules are installed into the Vendor folders, 
 	as defined by your installation of Perl. You can change that here. Consult Perl's 
@@ -141,14 +147,17 @@ set(ZM_PERL_SEARCH_PATH "" CACHE PATH
 	where ZM_PERL_MM_PARMS has been modified such that ZoneMinder's Perl modules are 
 	installed outside Perl's default search path.")
 set(ZM_TARGET_DISTRO "" CACHE STRING 
-    "Build ZoneMinder for a specific distribution.  Currently, valid names are: f21, f20, el6, OS13")
+    "Build ZoneMinder for a specific distribution.  Currently, valid names are: f22, f23, el6, el7, OS13")
 
 # Reassign some variables if a target distro has been specified
-if((ZM_TARGET_DISTRO STREQUAL "f21") OR (ZM_TARGET_DISTRO STREQUAL "f20"))
+if((ZM_TARGET_DISTRO STREQUAL "f22") OR (ZM_TARGET_DISTRO STREQUAL "f23"))
 	set(ZM_RUNDIR "/var/run/zoneminder")
 	set(ZM_SOCKDIR "/var/lib/zoneminder/sock")
 	set(ZM_TMPDIR "/var/lib/zoneminder/temp")
 	set(ZM_LOGDIR "/var/log/zoneminder")
+	set(ZM_CONFIG_DIR "/etc/zm")
+	set(ZM_WEBDIR "/usr/share/zoneminder/www")
+	set(ZM_CGIDIR "/usr/libexec/zoneminder/cgi-bin")
 elseif(ZM_TARGET_DISTRO STREQUAL "el6")
 	set(ZM_RUNDIR "/var/run/zoneminder")
 	set(ZM_SOCKDIR "/var/lib/zoneminder/sock")
@@ -173,7 +182,18 @@ elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
 	set(ZM_WEB_GROUP "www")
 	set(ZM_WEBDIR "/srv/www/htdocs/zoneminder")
 	set(ZM_CGIDIR "/srv/www/cgi-bin")
-endif((ZM_TARGET_DISTRO STREQUAL "f21") OR (ZM_TARGET_DISTRO STREQUAL "f20"))
+elseif(ZM_TARGET_DISTRO STREQUAL "FreeBSD")
+	set(ZM_RUNDIR "/var/run/zm")
+        set(ZM_SOCKDIR "/var/run/zm")
+	set(ZM_TMPDIR "/var/tmp/zm")
+        set(ZM_CONTENTDIR "/usr/local/var/lib/zoneminder")
+        set(ZM_WEB_USER "www")
+        set(ZM_WEB_GROUP "www")
+        set(ZM_CONFIG_DIR "/usr/local/etc/zm")
+        set(ZM_WEBDIR "/usr/local/share/zoneminder/www")
+        set(ZM_CGIDIR "/usr/local/libexec/zoneminder/cgi-bin")
+        set(ZM_PERL_MM_PARMS "INSTALLDIRS=site")
+endif((ZM_TARGET_DISTRO STREQUAL "f22") OR (ZM_TARGET_DISTRO STREQUAL "f23"))
 
 # Required for certain checks to work
 set(CMAKE_EXTRA_INCLUDE_FILES 
@@ -191,18 +211,36 @@ if(NOT HAVE_LIBV4L1_VIDEODEV_H)
 endif(NOT HAVE_LIBV4L1_VIDEODEV_H)
 check_include_file("linux/videodev2.h" HAVE_LINUX_VIDEODEV2_H)
 check_include_file("execinfo.h" HAVE_EXECINFO_H)
+if (HAVE_EXECINFO_H)
+  check_function_exists("backtrace" HAVE_DECL_BACKTRACE)
+  if (NOT HAVE_DECL_BACKTRACE)
+    find_library (EXECINFO_LIBRARY NAMES execinfo)
+    if (EXECINFO_LIBRARY)
+        list(APPEND ZM_BIN_LIBS "-lexecinfo")
+    endif (EXECINFO_LIBRARY)
+  endif (NOT HAVE_DECL_BACKTRACE)
+  check_function_exists("backtrace_symbols" HAVE_DECL_BACKTRACE_SYMBOLS)
+endif (HAVE_EXECINFO_H)
 check_include_file("ucontext.h" HAVE_UCONTEXT_H)
 check_include_file("sys/sendfile.h" HAVE_SYS_SENDFILE_H)
 check_include_file("sys/syscall.h" HAVE_SYS_SYSCALL_H)
 check_function_exists("syscall" HAVE_SYSCALL)
 check_function_exists("sendfile" HAVE_SENDFILE)
-check_function_exists("backtrace" HAVE_DECL_BACKTRACE)
-check_function_exists("backtrace_symbols" HAVE_DECL_BACKTRACE_SYMBOLS)
 check_function_exists("posix_memalign" HAVE_POSIX_MEMALIGN)
 check_type_size("siginfo_t" HAVE_SIGINFO_T)
 check_type_size("ucontext_t" HAVE_UCONTEXT_T)
 
 # *** LIBRARY CHECKS ***
+
+if (UNIX)
+    include (CheckLibraryExists)
+    CHECK_LIBRARY_EXISTS(rt clock_gettime "time.h" HAVE_CLOCK_GETTIME)
+    if(NOT HAVE_CLOCK_GETTIME)
+        message(FATAL_ERROR "clock_gettime not found")
+    else(NOT HAVE_CLOCK_GETTIME)
+        list(APPEND ZM_BIN_LIBS "-lrt")
+    endif(NOT HAVE_CLOCK_GETTIME)
+endif(UNIX)
 
 # zlib
 find_package(ZLIB)
@@ -653,6 +691,10 @@ configure_file(zoneminder-config.cmake "${CMAKE_CURRENT_BINARY_DIR}/config.h" @O
 configure_file(zmconfgen.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmconfgen.pl" @ONLY)
 configure_file(zmlinkcontent.sh.in "${CMAKE_CURRENT_BINARY_DIR}/zmlinkcontent.sh" @ONLY)
 
+# Create a target for man pages
+include(Pod2Man)
+ADD_MANPAGE_TARGET()
+
 # Process subdirectories
 add_subdirectory(src)
 add_subdirectory(scripts)
@@ -666,13 +708,13 @@ if(ZM_ONVIF)
 endif(ZM_ONVIF)
 
 # Process distro subdirectories
-if((ZM_TARGET_DISTRO STREQUAL "f21") OR (ZM_TARGET_DISTRO STREQUAL "f20"))
+if((ZM_TARGET_DISTRO STREQUAL "f22") OR (ZM_TARGET_DISTRO STREQUAL "f23"))
 	add_subdirectory(distros/fedora)
 elseif((ZM_TARGET_DISTRO STREQUAL "el6") OR (ZM_TARGET_DISTRO STREQUAL "el7"))
 	add_subdirectory(distros/redhat)
 elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
 	add_subdirectory(distros/opensuse)
-endif((ZM_TARGET_DISTRO STREQUAL "f21") OR (ZM_TARGET_DISTRO STREQUAL "f20"))
+endif((ZM_TARGET_DISTRO STREQUAL "f22") OR (ZM_TARGET_DISTRO STREQUAL "f23"))
 
 # Print optional libraries detection status
 message(STATUS "Optional libraries found:${optlibsfound}")

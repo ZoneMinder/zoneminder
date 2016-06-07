@@ -14,6 +14,17 @@ class EventsController extends AppController {
  */
 	public $components = array('RequestHandler', 'Scaler', 'Image', 'Paginator');
 
+public function beforeFilter() {
+        parent::beforeFilter();
+        $canView = $this->Session->Read('eventPermission');
+        if ($canView =='None')
+        {
+                throw new UnauthorizedException(__('Insufficient Privileges'));
+                return;
+        }
+
+}
+
 /**
  * index method
  *
@@ -22,6 +33,18 @@ class EventsController extends AppController {
  */
 	public function index() {
 		$this->Event->recursive = -1;
+		
+                $allowedMonitors=preg_split ('@,@', $this->Session->Read('allowedMonitors'),NULL, PREG_SPLIT_NO_EMPTY);
+
+                if (!empty($allowedMonitors))
+                {
+                        $mon_options = array('Event.MonitorId' => $allowedMonitors);
+                }
+                else
+                {
+                        $mon_options='';
+                }
+
 
 		if ($this->request->params['named']) {	
 			$this->FilterComponent = $this->Components->load('Filter');
@@ -37,16 +60,26 @@ class EventsController extends AppController {
 			'fields' => array('Name', 'Value')
 		));
 		$this->Paginator->settings = array(
-			'limit' => $limit['ZM_WEB_EVENTS_PER_PAGE'],
+			// https://github.com/ZoneMinder/ZoneMinder/issues/995
+			// 'limit' => $limit['ZM_WEB_EVENTS_PER_PAGE'],
+			//  25 events per page which is what the above
+			// default is, is way too low for an API
+			// changing this to 100 so we don't kill ZM
+			// with many event APIs. In future, we can
+			// make a nice ZM_API_ITEMS_PER_PAGE for all pagination
+			// API
+		
+			'limit' => '100', 
 			'order' => array('StartTime', 'MaxScore'),
 			'paramType' => 'querystring',
-			'conditions' => $conditions
+			'conditions' => array (array($conditions, $mon_options))
 		);
 		$events = $this->Paginator->paginate('Event');
 
 		// For each event, get its thumbnail data (path, width, height)
 		foreach ($events as $key => $value) {
-			$thumbData = $this->createThumbnail($value['Event']['Id']);
+			//$thumbData = $this->createThumbnail($value['Event']['Id']);
+			$thumbData = "";
 			$events[$key]['thumbData'] = $thumbData;
 
 		}
@@ -61,29 +94,55 @@ class EventsController extends AppController {
  * @param string $id
  * @return void
  */
-	public function view($id = null) {
-		$this->loadModel('Config');
-		$configs = $this->Config->find('list', array(
-			'fields' => array('Name', 'Value'),
-			'conditions' => array('Name' => array('ZM_DIR_EVENTS'))
-		));
+	public function view($id = null) 
+{
+                $this->loadModel('Config');
+                $configs = $this->Config->find('list', array(
+                        'fields' => array('Name', 'Value'),
+                        'conditions' => array('Name' => array('ZM_DIR_EVENTS'))
+                ));
 
-		$this->Event->recursive = 1;
-		if (!$this->Event->exists($id)) {
-			throw new NotFoundException(__('Invalid event'));
-		}
-		$options = array('conditions' => array('Event.' . $this->Event->primaryKey => $id));
-		$event = $this->Event->find('first', $options);
+                $this->Event->recursive = 1;
+                if (!$this->Event->exists($id)) {
+                        throw new NotFoundException(__('Invalid event'));
+                }
+
+                $allowedMonitors=preg_split ('@,@', $this->Session->Read('allowedMonitors'),NULL, PREG_SPLIT_NO_EMPTY);
+
+                if (!empty($allowedMonitors))
+                {
+                        $mon_options = array('Event.MonitorId' => $allowedMonitors);
+                }
+                else
+                {
+                        $mon_options='';
+                }
 		
-		$path = $configs['ZM_DIR_EVENTS'].'/'.$this->Image->getEventPath($event).'/';
+                $options = array('conditions' => array(array('Event.' . $this->Event->primaryKey => $id), $mon_options));
+                $event = $this->Event->find('first', $options);
 
-		$event['Event']['BasePath'] = $path;
+                $path = $configs['ZM_DIR_EVENTS'].'/'.$this->Image->getEventPath($event).'/';
+                $event['Event']['BasePath'] = $path;
 
-		$this->set(array(
-			'event' => $event,
-			'_serialize' => array('event')
-		));
-	}
+                # Get the previous and next events for any monitor
+                $this->Event->id = $id;
+                $event_neighbors = $this->Event->find('neighbors');
+                $event['Event']['Next'] = $event_neighbors['next']['Event']['Id'];
+                $event['Event']['Prev'] = $event_neighbors['prev']['Event']['Id'];
+
+                # Also get the previous and next events for the same monitor
+                $event_monitor_neighbors = $this->Event->find('neighbors', array(
+                        'conditions'=>array('Event.MonitorId'=>$event['Event']['MonitorId'])
+                ));
+                $event['Event']['NextOfMonitor'] = $event_monitor_neighbors['next']['Event']['Id'];
+                $event['Event']['PrevOfMonitor'] = $event_monitor_neighbors['prev']['Event']['Id'];
+
+                $this->set(array(
+                        'event' => $event,
+                        '_serialize' => array('event')
+                ));
+        }
+
 
 /**
  * add method
@@ -91,6 +150,13 @@ class EventsController extends AppController {
  * @return void
  */
 	public function add() {
+
+                if ($this->Session->Read('eventPermission') != 'Edit')
+                {
+                         throw new UnauthorizedException(__('Insufficient privileges'));
+                        return;
+                }
+
 		if ($this->request->is('post')) {
 			$this->Event->create();
 			if ($this->Event->save($this->request->data)) {
@@ -109,6 +175,13 @@ class EventsController extends AppController {
  * @return void
  */
 	public function edit($id = null) {
+
+                if ($this->Session->Read('eventPermission') != 'Edit')
+                {
+                         throw new UnauthorizedException(__('Insufficient privileges'));
+                        return;
+                }
+
 		$this->Event->id = $id;
 
 		if (!$this->Event->exists($id)) {
@@ -135,12 +208,19 @@ class EventsController extends AppController {
  * @return void
  */
 	public function delete($id = null) {
+                if ($this->Session->Read('eventPermission') != 'Edit')
+                {
+                         throw new UnauthorizedException(__('Insufficient privileges'));
+                        return;
+                }
 		$this->Event->id = $id;
 		if (!$this->Event->exists()) {
 			throw new NotFoundException(__('Invalid event'));
 		}
 		$this->request->allowMethod('post', 'delete');
 		if ($this->Event->delete()) {
+			//$this->loadModel('Frame');
+			//$this->Event->Frame->delete();
 			return $this->flash(__('The event has been deleted.'), array('action' => 'index'));
 		} else {
 			return $this->flash(__('The event could not be deleted. Please, try again.'), array('action' => 'index'));
@@ -173,11 +253,20 @@ class EventsController extends AppController {
 		
 	}
 
+	// format expected:
+	// you can changed AlarmFrames to any other named params
+	// consoleEvents/1 hour/AlarmFrames >=: 1/AlarmFrames <=: 20.json
+
 	public function consoleEvents($interval = null) {
 		$this->Event->recursive = -1;
 		$results = array();
 
-		$query = $this->Event->query("select MonitorId, COUNT(*) AS Count from Events WHERE StartTime >= (DATE_SUB(NOW(), interval $interval)) GROUP BY MonitorId;");
+		$moreconditions ="";
+		foreach ($this->request->params['named'] as $name => $param) {
+		   $moreconditions = $moreconditions . " AND ".$name.$param;
+		}	
+		
+		$query = $this->Event->query("select MonitorId, COUNT(*) AS Count from Events WHERE (StartTime >= (DATE_SUB(NOW(), interval $interval)) $moreconditions) GROUP BY MonitorId;");
 
 		foreach ($query as $result) {
 			$results[$result['Events']['MonitorId']] = $result[0]['Count'];

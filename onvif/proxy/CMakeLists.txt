@@ -9,7 +9,7 @@ endif(NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR))
 # MAKEMAKER_NOECHO_COMMAND previously defined in /scripts/zoneminder/CMakeLists.txt
 
 # Add build target for the perl modules
-add_custom_target(zmonvifproxy ALL perl Makefile.PL ${ZM_PERL_MM_PARMS} FIRST_MAKEFILE=MakefilePerl DESTDIR="${CMAKE_CURRENT_BINARY_DIR}/output" ${MAKEMAKER_NOECHO_COMMAND} COMMAND make --makefile=MakefilePerl pure_install COMMENT "Building ZoneMinder perl ONVIF proxy module")
+add_custom_target(zmonvifproxy ALL perl Makefile.PL ${ZM_PERL_MM_PARMS} FIRST_MAKEFILE=MakefilePerl DESTDIR="${CMAKE_CURRENT_BINARY_DIR}/output" ${MAKEMAKER_NOECHO_COMMAND} COMMAND make -f MakefilePerl pure_install COMMENT "Building ZoneMinder perl ONVIF proxy module")
 
 # Add install target for the perl modules
 install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/output/" DESTINATION "/")

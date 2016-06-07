@@ -63,7 +63,6 @@ src/zma
 src/zmc
 src/zmf
 src/zms
-src/zmstreamer
 src/zmu
 web/includes/config.php
 zm.conf

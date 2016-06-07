@@ -18,7 +18,7 @@ Important differences
 ---------------------
 * Unlike the autotools way, the cmake way does not require any options. It attempts to detect some things by its own (system directories, libarch, web user and group) and uses defaults for others (installation paths and such).
 * Unlike the autotools way, which links the binaries to a fixed list of libraries, the cmake way only links to libraries that it found on the system. If a library is not found, but required, a fatal error will be shown during the configuration step.
-* Unlike the autotools way, the cmake way does not modify the system in any way it shouldnt. It only does what its supposed to do: Install files to your system. Nothing else and nothing leaks out of the DESTDIR environment variable (if used). This means that depending on your configuration, there might be an extra required step after installation: to link WEB_PATH/events and WEB_PATH/images folders to the correct places.
+* Unlike the autotools way, the cmake way does not modify the system in any way it shouldn't. It only does what its supposed to do: Install files to your system. Nothing else and nothing leaks out of the DESTDIR environment variable (if used). This means that depending on your configuration, there might be an extra required step after installation: to link WEB_PATH/events and WEB_PATH/images folders to the correct places.
 
 Configuration
 -------------
@@ -92,8 +92,9 @@ NOTE: The database server, database name, user and password can be different and
 7) Populate the zoneminder database using the script zm_create.sql. This should be found in <prefix>/share/zoneminder/db or in the project/db directory.
 
 8) Create an apache virtual host for ZoneMinder. Make sure to use the same paths as ZM_WEBDIR and ZM_CGIDIR in /etc/zm.conf
-9) Create other config if desired (e.g. rsyslog, logrotate and such). Some of this can be found in <prefix>/share/zoneminder/misc or project/misc directory
-10) Setup an appropriate startup script for your system. Two generic startup scripts have been provided, a legacy Sys V Init script and a Systemd service file.
+9) Verify date.timezone is set to your timezone. This parameter is often found inside the system php.ini file. Consult your distribution's documentation for the proper way to set this value.
+10) Create other config if desired (e.g. rsyslog, logrotate and such). Some of this can be found in <prefix>/share/zoneminder/misc or project/misc directory
+11) Setup an appropriate startup script for your system. Two generic startup scripts have been provided, a legacy Sys V Init script and a Systemd service file.
 
 *Sys V Init Setup*
 - Copy the sys v init script /scripts/zm from the build folder to /etc/init. 

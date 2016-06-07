@@ -18,6 +18,32 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
+
+// PP - POST request handler for PHP which does not need extensions
+// credit: http://wezfurlong.org/blog/2006/nov/http-post-from-php-without-curl/
+
+
+function do_post_request($url, $data, $optional_headers = null)
+{
+  $params = array('http' => array(
+              'method' => 'POST',
+              'content' => $data
+            ));
+  if ($optional_headers !== null) {
+    $params['http']['header'] = $optional_headers;
+  }
+  $ctx = stream_context_create($params);
+  $fp = @fopen($url, 'rb', false, $ctx);
+  if (!$fp) {
+    throw new Exception("Problem with $url, $php_errormsg");
+  }
+  $response = @stream_get_contents($fp);
+  if ($response === false) {
+    throw new Exception("Problem reading data from $url, $php_errormsg");
+  }
+  return $response;
+}
+
 function getAffectedIds( $name )
 {
     $names = $name."s";
@@ -42,6 +68,57 @@ if ( ZM_OPT_USE_AUTH && ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST[
 
 if ( !empty($action) )
 {
+    if ( $action == "login" && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == "remote" || isset($_REQUEST['password']) ) )
+    {
+	// if true, a popup will display after login
+    	// PP - lets validate reCaptcha if it exists
+	if  (   defined('ZM_OPT_USE_GOOG_RECAPTCHA') 
+		&& defined('ZM_OPT_GOOG_RECAPTCHA_SECRETKEY') 
+		&& defined('ZM_OPT_GOOG_RECAPTCHA_SITEKEY')
+		&& ZM_OPT_USE_GOOG_RECAPTCHA && ZM_OPT_GOOG_RECAPTCHA_SECRETKEY 
+		&& ZM_OPT_GOOG_RECAPTCHA_SITEKEY)
+	{
+		$url = 'https://www.google.com/recaptcha/api/siteverify';
+		$fields = array (
+			'secret'=> ZM_OPT_GOOG_RECAPTCHA_SECRETKEY,
+			'response' => $_REQUEST['g-recaptcha-response'],
+			'remoteip'=> $_SERVER['REMOTE_ADDR']
+
+		);
+		$res= do_post_request($url, http_build_query($fields));
+		$responseData = json_decode($res,true);
+		// PP - credit: https://github.com/google/recaptcha/blob/master/src/ReCaptcha/Response.php
+		// if recaptcha resulted in error, we might have to deny login
+		if (isset($responseData['success']) && $responseData['success'] == false)
+		{
+			// PP - before we deny auth, let's make sure the error was not 'invalid secret'
+			// because that means the user did not configure the secret key correctly
+			// in this case, we prefer to let him login in and display a message to correct
+			// the key. Unfortunately, there is no way to check for invalid site key in code
+			// as it produces the same error as when you don't answer a recaptcha
+			if (isset($responseData['error-codes']) && is_array($responseData['error-codes'])) 
+			{
+				if (!in_array('invalid-input-secret',$responseData['error-codes']))
+				{	
+					Error ("reCaptcha authentication failed");
+					userLogout();
+					$view='login';
+					$refreshParent = true;
+				}
+				else
+				{
+					//Let them login but show an error
+					echo '<script type="text/javascript">alert("'.translate('RecaptchaWarning').'"); </script>';
+					Error ("Invalid recaptcha secret detected");
+
+				}
+			}
+
+		}
+
+	}
+     }
+
     // General scope actions
     if ( $action == "login" && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == "remote" || isset($_REQUEST['password']) ) )
     {
@@ -169,13 +246,14 @@ if ( !empty($action) )
     if ( !empty($_REQUEST['mid']) && canView( 'Control', $_REQUEST['mid'] ) )
     {
         require_once( 'control_functions.php' );
+        require_once( 'Monitor.php' );
         $mid = validInt($_REQUEST['mid']);
         if ( $action == "control" )
         {
-            $monitor = dbFetchOne( "select C.*,M.* from Monitors as M inner join Controls as C on (M.ControlId = C.Id) where M.Id = ?", NULL, array($mid) );
+            $monitor = new Monitor( $mid );
 
             $ctrlCommand = buildControlCommand( $monitor );
-			sendControlCommand( $monitor['Id'], $ctrlCommand );
+			sendControlCommand( $monitor->Id(), $ctrlCommand );
         }
         elseif ( $action == "settings" )
         {
@@ -325,8 +403,21 @@ if ( !empty($action) )
                 //if ( $cookies ) session_write_close();
                 if ( daemonCheck() )
                 {
-                    zmaControl( $mid, "restart" );
-                }
+		    if ( $_REQUEST['newZone']['Type'] == 'Privacy' )
+		    {
+			zmaControl( $monitor, "stop" );
+			zmcControl( $monitor, "restart" );
+			zmaControl( $monitor, "start" );
+		    }
+		    else
+		    {
+			zmaControl( $mid, "restart" );
+		    }
+		}
+		if ( $_REQUEST['newZone']['Type'] == 'Privacy' && $monitor['Controllable'] ) {
+		    require_once( 'control_functions.php' );
+		    sendControlCommand( $mid, 'quit' );
+		}
                 $refreshParent = true;
             }
             $view = 'none';
@@ -374,6 +465,7 @@ if ( !empty($action) )
                 $deletedZid = 0;
                 foreach( $_REQUEST['markZids'] as $markZid )
                 {
+                    $zone = dbFetchOne( "select * from Zones where Id=?", NULL, array($markZid) );
                     dbQuery( "delete from Zones WHERE MonitorId=? AND Id=?", array( $mid, $markZid) );
                     $deletedZid = 1;
                 }
@@ -382,7 +474,16 @@ if ( !empty($action) )
                     //if ( $cookies )
                         //session_write_close();
                     if ( daemonCheck() )
-                        zmaControl( $mid, "restart" );
+                        if ( $zone['Type'] == 'Privacy' )
+                        {
+                            zmaControl( $mid, "stop" );
+                            zmcControl( $mid, "restart" );
+                            zmaControl( $mid, "start" );
+                        }
+                        else
+                        {
+                            zmaControl( $mid, "restart" );
+                        }
                     $refreshParent = true;
                 }
             }
@@ -421,7 +522,9 @@ if ( !empty($action) )
                 'Controllable' => 'toggle',
                 'TrackMotion' => 'toggle',
                 'Enabled' => 'toggle',
-                'DoNativeMotDet' => 'toggle'
+                'DoNativeMotDet' => 'toggle',
+                'Exif' => 'toggle',
+                'RTSPDescribe' => 'toggle',
             );
 
             $columns = getTableColumns( 'Monitors' );
@@ -624,20 +727,77 @@ if ( !empty($action) )
         }
     }
 
-    // System view actions
-	if ( $action == "setgroup" ) {
-		if ( !empty($_REQUEST['gid']) ) {
-			setcookie( "zmGroup", validInt($_REQUEST['gid']), time()+3600*24*30*12*10 );
-		} else {
-			setcookie( "zmGroup", "", time()-3600*24*2 );
-		}
-		$refreshParent = true;
-	}
+    // Group view actions
+    if ( canView( 'Groups' ) && $action == "setgroup" ) {
+        if ( !empty($_REQUEST['gid']) ) {
+            setcookie( "zmGroup", validInt($_REQUEST['gid']), time()+3600*24*30*12*10 );
+        } else {
+            setcookie( "zmGroup", "", time()-3600*24*2 );
+        }
+            $refreshParent = true;
+    }
+
+    // Group edit actions
+    if ( canEdit( 'Groups' ) ) {
+        if ( $action == "group" ) {
+            # Should probably verfy that each monitor id is a valid monitor, that we have access to. HOwever at the moment, you have to have System permissions to do this
+            $monitors = empty( $_POST['newGroup']['MonitorIds'] ) ? NULL : implode(',', $_POST['newGroup']['MonitorIds']);
+            if ( !empty($_POST['gid']) ) {
+                dbQuery( "UPDATE Groups SET Name=?, MonitorIds=? WHERE Id=?", array($_POST['newGroup']['Name'], $monitors, $_POST['gid']) );
+            } else {
+                dbQuery( "INSERT INTO Groups SET Name=?, MonitorIds=?", array( $_POST['newGroup']['Name'], $monitors ) );
+            }
+        $view = 'none';
+        }
+        if ( !empty($_REQUEST['gid']) && $action == "delete" ) {
+            dbQuery( "delete from Groups where Id = ?", array($_REQUEST['gid']) );
+            if ( isset($_COOKIE['zmGroup']) )
+            {
+                if ( $_REQUEST['gid'] == $_COOKIE['zmGroup'] )
+                {
+                    unset( $_COOKIE['zmGroup'] );
+                    setcookie( "zmGroup", "", time()-3600*24*2 );
+                    $refreshParent = true;
+                }
+             }
+        }
+        $refreshParent = true;
+    }
 
     // System edit actions
     if ( canEdit( 'System' ) )
     {
-        if ( $action == "version" && isset($_REQUEST['option']) )
+		if ( isset( $_REQUEST['object'] ) and ( $_REQUEST['object'] == 'server' ) ) {
+
+			if ( $action == "Save" ) {
+				if ( !empty($_REQUEST['id']) )
+					$dbServer = dbFetchOne( "SELECT * FROM Servers WHERE Id=?", NULL, array($_REQUEST['id']) );
+				else
+					$dbServer = array();
+
+				$types = array();
+				$changes = getFormChanges( $dbServer, $_REQUEST['newServer'], $types );
+
+				if ( count( $changes ) ) {
+					if ( !empty($_REQUEST['id']) ) {
+						dbQuery( "UPDATE Servers SET ".implode( ", ", $changes )." WHERE Id = ?", array($_REQUEST['id']) );
+					} else {
+						dbQuery( "INSERT INTO Servers set ".implode( ", ", $changes ) );
+					}
+					$refreshParent = true;
+				}
+				$view = 'none';
+			} else if ( $action == 'delete' ) {
+				if ( !empty($_REQUEST['markIds']) ) {
+					foreach( $_REQUEST['markIds'] as $Id )
+						dbQuery( "DELETE FROM Servers WHERE Id=?", array($Id) );
+				}
+                $refreshParent = true;
+			} else {
+				Error( "Unknown action $action in saving Server" );
+			}
+
+        } else if ( $action == "version" && isset($_REQUEST['option']) )
         {
             $option = $_REQUEST['option'];
             switch( $option )
@@ -761,7 +921,6 @@ if ( !empty($action) )
                     case "highband" :
                     case "medband" :
                     case "lowband" :
-                    case "phoneband" :
                         break;
                 }
             }
@@ -823,19 +982,6 @@ if ( !empty($action) )
                 dbQuery( "replace into States set Name=?, Definition=?", array( $_REQUEST['runState'],$definition) );
             }
         }
-        elseif ( $action == "group" )
-        {
-			# Should probably verfy that each monitor id is a valid monitor, that we have access to. HOwever at the moment, you have to have System permissions to do this
-			$monitors = empty( $_POST['newGroup']['MonitorIds'] ) ? NULL : implode(',', $_POST['newGroup']['MonitorIds']);
-			if ( !empty($_POST['gid']) ) {
-				dbQuery( "UPDATE Groups SET Name=?, MonitorIds=? WHERE Id=?", array($_POST['newGroup']['Name'], $monitors, $_POST['gid']) );
-			} else {
-				dbQuery( "INSERT INTO Groups SET Name=?, MonitorIds=?", array( $_POST['newGroup']['Name'], $monitors ) );
-			}
-
-            $refreshParent = true;
-            $view = 'none';
-        }
         elseif ( $action == "delete" )
         {
             if ( isset($_REQUEST['runState']) )
@@ -847,19 +993,6 @@ if ( !empty($action) )
                     dbQuery( "delete from Users where Id = ?", array($markUid) );
                 if ( $markUid == $user['Id'] )
                     userLogout();
-            }
-            if ( !empty($_REQUEST['gid']) )
-            {
-                dbQuery( "delete from Groups where Id = ?", array($_REQUEST['gid']) );
-                if ( isset($_COOKIE['zmGroup']) )
-                {
-                    if ( $_REQUEST['gid'] == $_COOKIE['zmGroup'] )
-                    {
-                        unset( $_COOKIE['zmGroup'] );
-                        setcookie( "zmGroup", "", time()-3600*24*2 );
-                        $refreshParent = true;
-                    }
-                }
             }
         }
     }

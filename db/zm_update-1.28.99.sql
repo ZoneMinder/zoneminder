@@ -324,4 +324,72 @@ WHERE NOT EXISTS (
 --
 UPDATE `zm`.`Config` SET `Category`='hidden' WHERE `Name`='ZM_USE_DEEP_STORAGE';
 
+--
+-- Add Id column to State
+--
+
+SET @s = (SELECT IF(
+    (SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE table_name = 'States'
+    AND table_schema = DATABASE()
+    AND column_name = 'Id'
+    ) > 0,
+"SELECT 'Column Id exists in States'",
+"ALTER TABLE States DROP PRIMARY KEY, ADD `Id` int(10) unsigned auto_increment NOT NULL PRIMARY KEY FIRST"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+
+-- PP:The States table will be updated to have a new column called IsActive
+-- used to keep track of which custom state is active (if any)
+SET @s = (SELECT IF(
+	(SELECT COUNT(*)
+	FROM INFORMATION_SCHEMA.COLUMNS
+	WHERE table_name = 'States'
+	AND table_schema = DATABASE()
+	AND column_name = 'IsActive'
+	) > 0,
+"SELECT 'Column IsActive  exists in States'",
+"ALTER TABLE `States` ADD `IsActive` tinyint(3) unsigned not null default 0 AFTER `Definition`"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+
+-- PP:If default state does not exist, create it and set its IsActive to 1
+INSERT INTO States (Name,Definition,IsActive) 
+	SELECT * FROM (SELECT 'default', '', '1') AS tmp
+	WHERE NOT EXISTS (
+		SELECT Name FROM States WHERE Name = 'default'
+	) LIMIT 1;
+
+-- PP:Start with a sane isActive state
+UPDATE States SET IsActive = '0';
+UPDATE States SET IsActive = '1' WHERE Name = 'default'; 
+
+-- PP:Finally convert States to make sure Names are unique
+-- If duplicate states existed while upgrading, that is
+-- very likely an error that ZM allowed earlier, so
+-- we are picking up the first one and deleting the others
+ALTER TABLE States ADD UNIQUE (Name);
+
+SET @s = (SELECT IF( 
+    (SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.TABLES
+    WHERE table_name = 'Servers'
+    AND table_schema = DATABASE()
+    ) > 0,
+"SELECT 'Servers table exists'",
+"CREATE TABLE `Servers` (
+  `Id` int(10) unsigned NOT NULL auto_increment,
+  `Name` varchar(64) NOT NULL default '',
+  `State_Id`    int(10) unsigned,
+  PRIMARY KEY (`Id`)
+)"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
 

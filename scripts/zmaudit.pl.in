@@ -83,7 +83,7 @@ use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)
 
 $| = 1;
 
-$ENV{PATH}  = '/bin:/usr/bin';
+$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
@@ -126,16 +126,25 @@ MAIN: while( $loop ) {
     while ( ! ( $dbh and $dbh->ping() ) ) {
         $dbh = zmDbConnect();
 
-        last if $dbh;
-        if ( $continuous ) {
-            # if we are running continuously, then just skip to the next
-            # interval, otherwise we are a one off run, so wait a second and
-            # retry until someone kills us.
-            sleep( $Config{ZM_AUDIT_CHECK_INTERVAL} );
-        } else {
-            sleep 1;
-        } # end if
-    } # end while can't connect to the db
+		if ( $continuous ) {
+			Error("Unable to connect to database");
+			# if we are running continuously, then just skip to the next
+			# interval, otherwise we are a one off run, so wait a second and
+			# retry until someone kills us.
+			sleep( $Config{ZM_AUDIT_CHECK_INTERVAL} );
+		} else {
+			Fatal("Unable to connect to database");
+		} # end if
+	} # end while can't connect to the db
+
+	if ( $continuous ) {
+		# if we are running continuously, then just skip to the next
+		# interval, otherwise we are a one off run, so wait a second and
+		# retry until someone kills us.
+		sleep( $Config{ZM_AUDIT_CHECK_INTERVAL} );
+	} else {
+		sleep 1;
+	} # end if
 
 	if ( ! exists $Config{ZM_AUDIT_MIN_AGE} ) {
         Fatal("ZM_AUDIT_MIN_AGE is not set in config.");
@@ -169,6 +178,8 @@ MAIN: while( $loop ) {
     my $fs_monitors;
     foreach my $monitor ( glob("[0-9]*") )
     {
+		# Thie glob above gives all files starting with a digit.  So a monitor with a name starting with a digit will be in this list.
+		next if $monitor =~ /\D/;
         Debug( "Found filesystem monitor '$monitor'" );
         my $fs_events = $fs_monitors->{$monitor} = {};
         ( my $monitor_dir ) = ( $monitor =~ /^(.*)$/ ); # De-taint
@@ -366,7 +377,7 @@ MAIN: while( $loop ) {
 
     # Remove empty events (with no frames)
     $cleaned = 0;
-    my $selectEmptyEventsSql = "SELECT * FROM Events as E LEFT JOIN Frames as F ON (E.Id = F.EventId)
+    my $selectEmptyEventsSql = "SELECT E.Id AS Id, E.StartTime, F.EventId FROM Events as E LEFT JOIN Frames as F ON (E.Id = F.EventId)
                                 WHERE isnull(F.EventId) AND now() - interval ".$Config{ZM_AUDIT_MIN_AGE}." second > E.StartTime";
     my $selectEmptyEventsSth = $dbh->prepare_cached( $selectEmptyEventsSql )
         or Fatal( "Can't prepare '$selectEmptyEventsSql': ".$dbh->errstr() );

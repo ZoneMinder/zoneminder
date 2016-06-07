@@ -61,7 +61,7 @@ use autouse 'Data::Dumper'=>qw(Dumper);
 
 $| = 1;
 
-$ENV{PATH}  = '/bin:/usr/bin';
+$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
@@ -74,14 +74,14 @@ sleep( START_DELAY );
 
 my $dbh = zmDbConnect();
 
-my $sql = "select * from Monitors";
+my $sql = $Config{ZM_SERVER_ID} ? 'SELECT * FROM Monitors WHERE ServerId=?' : 'SELECT * FROM Monitors';
 my $sth = $dbh->prepare_cached( $sql )
     or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
 
 while( 1 )
 {
     my $now = time();
-    my $res = $sth->execute()
+    my $res = $sth->execute( $Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID} : () )
         or Fatal( "Can't execute: ".$sth->errstr() );
     while( my $monitor = $sth->fetchrow_hashref() )
     {
@@ -93,8 +93,16 @@ while( 1 )
         {
             # Check we have got an image recently
             my $image_time = zmGetLastWriteTime( $monitor );
-            next if ( !defined($image_time) ); # Can't read from shared data
-            next if ( !$image_time ); # We can't get the last capture time so can't be sure it's died.
+            if ( !defined($image_time) ) {
+				 # Can't read from shared data
+				Debug( "LastWriteTime is not defined." );
+				next;
+			}
+            if ( !$image_time ) {
+				# We can't get the last capture time so can't be sure it's died.
+				Debug( "LastWriteTime is = $image_time." );
+				next;
+			}
 
             my $max_image_delay = ( $monitor->{MaxFPS}
                                     &&($monitor->{MaxFPS}>0)

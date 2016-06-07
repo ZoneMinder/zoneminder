@@ -58,6 +58,12 @@ sub open
 {
     my $self = shift;
     my $device = new Device::SerialPort( $self->{path} );
+    if ( ! $device )
+    {
+        Error( "Unable to open $$self{path}: $!" );
+        $self->{state} = 'closed';
+        return;
+    }
     $device->baudrate(9600);
     $device->databits(8);
     $device->parity('none');

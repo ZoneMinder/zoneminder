@@ -18,6 +18,10 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
+if ( !canView( 'Groups' ) ) {
+    $view = "error";
+    return;
+}
 
 $sql = "select * from Groups order by Name";
 $groups = array();
@@ -72,9 +76,9 @@ xhtmlHeaders(__FILE__, translate('Groups') );
         </table>
         <div id="contentButtons">
           <input type="submit" value="<?php echo translate('Apply') ?>"/>
-          <input type="button" value="<?php echo translate('New') ?>" onclick="newGroup()"<?php echo canEdit('System')?'':' disabled="disabled"' ?>/>
-          <input type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editGroup( this )"<?php echo $selected&&canEdit('System')?'':' disabled="disabled"' ?>/>
-          <input type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteGroup( this )"<?php echo $selected&&canEdit('System')?'':' disabled="disabled"' ?>/>
+          <input type="button" value="<?php echo translate('New') ?>" onclick="newGroup()"<?php echo canEdit('Groups')?'':' disabled="disabled"' ?>/>
+          <input type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editGroup( this )"<?php echo $selected&&canEdit('Groups')?'':' disabled="disabled"' ?>/>
+          <input type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteGroup( this )"<?php echo $selected&&canEdit('Groups')?'':' disabled="disabled"' ?>/>
           <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
         </div>
       </form>

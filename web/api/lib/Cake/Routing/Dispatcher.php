@@ -85,7 +85,7 @@ class Dispatcher implements CakeEventListener {
  * Attaches all event listeners for this dispatcher instance. Loads the
  * dispatcher filters from the configured locations.
  *
- * @param CakeEventManager $manager
+ * @param CakeEventManager $manager Event manager instance.
  * @return void
  * @throws MissingDispatcherFilterException
  */
@@ -97,7 +97,7 @@ class Dispatcher implements CakeEventListener {
 
 		foreach ($filters as $index => $filter) {
 			$settings = array();
-			if (is_array($filter) && !is_int($index)) {
+			if (is_array($filter) && !is_int($index) && class_exists($index)) {
 				$settings = $filter;
 				$filter = $index;
 			}
@@ -137,7 +137,9 @@ class Dispatcher implements CakeEventListener {
  * @param CakeRequest $request Request object to dispatch.
  * @param CakeResponse $response Response object to put the results of the dispatch into.
  * @param array $additionalParams Settings array ("bare", "return") which is melded with the GET and POST params
- * @return string|void if `$request['return']` is set then it returns response body, null otherwise
+ * @return string|null if `$request['return']` is set then it returns response body, null otherwise
+ * @triggers Dispatcher.beforeDispatch $this, compact('request', 'response', 'additionalParams')
+ * @triggers Dispatcher.afterDispatch $this, compact('request', 'response')
  * @throws MissingControllerException When the controller is missing.
  */
 	public function dispatch(CakeRequest $request, CakeResponse $response, $additionalParams = array()) {
@@ -150,7 +152,7 @@ class Dispatcher implements CakeEventListener {
 				return $beforeEvent->result->body();
 			}
 			$beforeEvent->result->send();
-			return;
+			return null;
 		}
 
 		$controller = $this->_getController($request, $response);
@@ -244,8 +246,8 @@ class Dispatcher implements CakeEventListener {
 /**
  * Load controller and return controller class name
  *
- * @param CakeRequest $request
- * @return string|boolean Name of controller class name
+ * @param CakeRequest $request Request instance.
+ * @return string|bool Name of controller class name
  */
 	protected function _loadController($request) {
 		$pluginName = $pluginPath = $controller = null;

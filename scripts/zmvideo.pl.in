@@ -27,7 +27,7 @@ zmvideo.pl - ZoneMinder Video Creation Script
 
 =head1 SYNOPSIS
 
- zmvideo.pl -e <event_id>,--event=<event_id> [--format <format>]
+ zmvideo.pl [ -e <event_id>,--event=<event_id> | --filter=<filter name> ] [--format <format>]
                                              [--rate=<rate>]
                                              [--scale=<scale>]
                                              [--fps=<fps>]
@@ -40,15 +40,18 @@ This script is used to create MPEG videos of events for the web pages
 or as email attachments.
 
 =head1 OPTIONS
-
- -e<event_id>, --event=<event_id>  - What event to create the video for
- -f<format>, --format=<format>     - What format to create the video in, default is mpg. For ffmpeg only.
- -r<rate>, --rate=<rate>           - Relative rate, 1 = realtime, 2 = double speed, 0.5 = half speed etc.
- -s<scale>, --scale=<scale>        - Scale, 1 = normal, 2 = double size, 0.5 = half size etc.
- -F<fps>, --fps=<fps>              - Absolute frame rate, in frames per second
- -S<size>, --size=<size>           - Absolute video size, WxH or other specification supported by ffmpeg
- -o, --overwrite                   - Whether to overwrite an existing file, off by default.
- -v, --version                     - Outputs the currently installed version of ZoneMinder
+ -c[=filename], --concat[=filename] - When creating videos for multiple events, create a concatenated video as well.
+                                    - If not specified, filename is taken from filter name.
+ -e<event_id>, --event=<event_id>   - What event to create the video for
+ --filter_name=<filter name>        - The name of a saved filter to generate a video for all events returned by it.
+ --filter_id=<filter id>            - The id of a saved filter to generate a video for all events returned by it.
+ -f<format>, --format=<format>      - What format to create the video in, default is mpg. For ffmpeg only.
+ -r<rate>, --rate=<rate>            - Relative rate, 1 = realtime, 2 = double speed, 0.5 = half speed etc.
+ -s<scale>, --scale=<scale>         - Scale, 1 = normal, 2 = double size, 0.5 = half size etc.
+ -F<fps>, --fps=<fps>               - Absolute frame rate, in frames per second
+ -S<size>, --size=<size>            - Absolute video size, WxH or other specification supported by ffmpeg
+ -o, --overwrite                    - Whether to overwrite an existing file, off by default.
+ -v, --version                      - Outputs the currently installed version of ZoneMinder
 
 =cut
 use strict;
@@ -62,21 +65,27 @@ use bytes;
 
 @EXTRA_PERL_LIB@
 use ZoneMinder;
+require ZoneMinder::Filter;
+require ZoneMinder::Event;
 use DBI;
 use autouse 'Data::Dumper'=>qw(Dumper);
 use POSIX qw(strftime);
 use Getopt::Long qw(:config no_ignore_case );
+use Cwd;
 use autouse 'Pod::Usage'=>qw(pod2usage);
 
 $| = 1;
 
-$ENV{PATH}  = '/bin:/usr/bin';
+$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 logInit();
 
 my $event_id;
+my $concat_name;
+my $filter_name;
+my $filter_id;
 my $format = 'mpg';
 my $rate = '';
 my $scale = '';
@@ -95,7 +104,10 @@ for ( my $i = 0; $i < @formats; $i++ )
 }
 
 GetOptions(
-    'event=i'       =>\$event_id,
+	'concat|c:s'	=>\$concat_name,
+    'event|e=i'     =>\$event_id,
+    'filter_name=s'	=>\$filter_name,
+    'filter_id=i'	=>\$filter_id,
     'format|f=s'    =>\$format,
     'rate|r=f'      =>\$rate,
     'scale|s=f'     =>\$scale,
@@ -110,9 +122,9 @@ if ( $version ) {
     exit(0);
 }
 
-if ( !$event_id || $event_id < 0 )
+if ( !( $filter_id or $filter_name or $event_id ) || $event_id < 0 )
 {
-    print( STDERR "Please give a valid event id\n" );
+    print( STDERR "Please give a valid event id or filter name\n" );
     pod2usage(-exitstatus => -1);
 }
 
@@ -164,128 +176,86 @@ $size = $detaint_size;
 
 my $dbh = zmDbConnect();
 
-my @filters;
+my $cwd = getcwd;
+
+my $video_name;
+my @event_ids;
+if ( $event_id ) {
+	@event_ids = ( $event_id );
+	
+} elsif ( $filter_name or $filter_id ) {
+	my $Filter = ZoneMinder::Filter->find_one( 
+		($filter_name ? ( Name => $filter_name ) : () ),
+		($filter_id ? ( Id => $filter_name ) : () ),
+		);
+	if ( ! $Filter ) {
+		Fatal("Filter $filter_name $filter_id not found.");	
+	}	
+	@event_ids = map { $_->{Id} }$Filter->Execute();	
+	Fatal( "No events found for $filter_name") if ! @event_ids;
+	$concat_name = $filter_name if $concat_name eq '';
+}
+
 my $sql = " SELECT max(F.Delta)-min(F.Delta) as FullLength,
-                   E.*,
-                   unix_timestamp(E.StartTime) as Time,
-                   M.Name as MonitorName,
-                   M.Width as MonitorWidth,
-                   M.Height as MonitorHeight,
-                   M.Palette
-            FROM Frames as F
-            INNER JOIN Events as E on F.EventId = E.Id
-            INNER JOIN Monitors as M on E.MonitorId = M.Id
-            WHERE EventId = '$event_id'
-            GROUP BY F.EventId"
-;
-my $sth = $dbh->prepare_cached( $sql )
-    or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-my $res = $sth->execute()
-    or Fatal( "Can't execute: ".$sth->errstr() );
-my $event = $sth->fetchrow_hashref();
-$sth->finish();
-my $event_path = getEventPath( $event );
-chdir( $event_path );
-( my $video_name = $event->{Name} ) =~ s/\s/_/g; 
+   E.*,
+   unix_timestamp(E.StartTime) as Time,
+   M.Name as MonitorName,
+   M.Width as MonitorWidth,
+   M.Height as MonitorHeight,
+   M.Palette
+   FROM Frames as F
+   INNER JOIN Events as E on F.EventId = E.Id
+   INNER JOIN Monitors as M on E.MonitorId = M.Id
+   WHERE EventId = ?
+   GROUP BY F.EventId"
+   ;
+my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
 
-my @file_parts;
-if ( $rate )
-{
-    my $file_rate = $rate;
-    $file_rate =~ s/\./_/;
-    $file_rate =~ s/_00//;
-    $file_rate =~ s/(_\d+)0+$/$1/;
-    $file_rate = 'r'.$file_rate;
-    push( @file_parts, $file_rate );
+my @video_files;
+foreach my $event_id ( @event_ids ) {
+
+	my $res = $sth->execute( $event_id )
+		or Fatal( "Can't execute: ".$sth->errstr() );
+	my $event = $sth->fetchrow_hashref();
+
+	my $Event = new ZoneMinder::Event( $$event{Id}, $event );
+	my $video_file = $Event->GenerateVideo( $rate, $fps, $scale,  $size, $overwrite, $format );
+	if ( $video_file ) {
+		push @video_files, $video_file;
+	}
+} # end foreach event_id
+
+if ( $concat_name ) {
+	($cwd) = $cwd =~ /(.*)/; # detaint
+	chdir( $cwd );
+	($concat_name ) = $concat_name =~ /([\-A-Za-z0-9_\.]*)/;
+	my $concat_list_file = "/tmp/$concat_name.concat.lst";
+
+	my $video_file = $concat_name . '.'. $detaint_format;
+
+	open( my $fd, '>', $concat_list_file ) or die "Can't open $concat_list_file: $!";
+	foreach ( @video_files ) {
+		print $fd "file '$_'\n";
+	}
+	close $fd;
+	my $command = $Config{ZM_PATH_FFMPEG}
+	. " -f concat -i $concat_list_file -c copy "
+		." '$video_file' > ffmpeg.log 2>&1"
+		;
+	Debug( $command."\n" );
+	my $output = qx($command);
+
+	my $status = $? >> 8;
+
+	unlink $concat_list_file;
+	if ( $status )
+	{
+		Error( "Unable to generate video, check /ffmpeg.log for details");
+		exit(-1);
+	}
+	
 }
-elsif ( $fps )
-{
-    my $file_fps = $fps;
-    $file_fps =~ s/\./_/;
-    $file_fps =~ s/_00//;
-    $file_fps =~ s/(_\d+)0+$/$1/;
-    $file_fps = 'R'.$file_fps;
-    push( @file_parts, $file_fps );
-}
-
-if ( $scale )
-{
-    my $file_scale = $scale;
-    $file_scale =~ s/\./_/;
-    $file_scale =~ s/_00//;
-    $file_scale =~ s/(_\d+)0+$/$1/;
-    $file_scale = 's'.$file_scale;
-    push( @file_parts, $file_scale );
-}
-elsif ( $size )
-{
-    my $file_size = 'S'.$size;
-    push( @file_parts, $file_size );
-}
-my $video_file = "$video_name-".$file_parts[0]."-".$file_parts[1].".$format";
-
-if ( $overwrite || !-s $video_file )
-{
-    Info( "Creating video file $video_file for event $event->{Id}\n" );
-
-    my $frame_rate = sprintf( "%.2f", $event->{Frames}/$event->{FullLength} );
-    if ( $rate )
-    {
-        if ( $rate != 1.0 )
-        {
-            $frame_rate *= $rate;
-        }
-    }
-    elsif ( $fps )
-    {
-        $frame_rate = $fps;
-    }
-
-    my $width = $event->{MonitorWidth};
-    my $height = $event->{MonitorHeight};
-    my $video_size = " ${width}x${height}";
-
-    if ( $scale )
-    {
-        if ( $scale != 1.0 )
-        {
-            $width = int($width*$scale);
-            $height = int($height*$scale);
-            $video_size = " ${width}x${height}";
-        }
-    }
-    elsif ( $size )
-    {
-        $video_size = $size;
-    }
-
-    my $command = $Config{ZM_PATH_FFMPEG}
-                 ." -y -r $frame_rate "
-                 .$Config{ZM_FFMPEG_INPUT_OPTIONS}
-                 ." -i %0"
-                 .$Config{ZM_EVENT_IMAGE_DIGITS}
-                 ."d-capture.jpg -s $video_size "
-                 .$Config{ZM_FFMPEG_OUTPUT_OPTIONS}
-                 ." '$video_file' > ffmpeg.log 2>&1"
-    ;
-    Debug( $command."\n" );
-    my $output = qx($command);
-
-    my $status = $? >> 8;
-    if ( $status )
-    {
-        Error( "Unable to generate video, check "
-               .$event_path."/ffmpeg.log for details"
-        );
-        exit( -1 );
-    }
-    
-    Info( "Finished $video_file\n" );
-}
-else
-{
-    Info( "Video file $video_file already exists for event $event->{Id}\n" );
-}
+#unlink $input_file_list;
 #print( STDOUT $event->{MonitorId}.'/'.$event->{Id}.'/'.$video_file."\n" );
-print( STDOUT $video_file."\n" );
+#print( STDOUT $video_file."\n" );
 exit( 0 );

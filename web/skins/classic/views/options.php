@@ -30,6 +30,7 @@ $tabs = array();
 $tabs['skins'] = translate('Display');
 $tabs['system'] = translate('System');
 $tabs['config'] = translate('Config');
+$tabs['servers'] = translate('Servers');
 $tabs['paths'] = translate('Paths');
 $tabs['web'] = translate('Web');
 $tabs['images'] = translate('Images');
@@ -41,8 +42,6 @@ $tabs['x10'] = translate('X10');
 $tabs['highband'] = translate('HighBW');
 $tabs['medband'] = translate('MediumBW');
 $tabs['lowband'] = translate('LowBW');
-$tabs['phoneband'] = translate('PhoneBW');
-$tabs['eyeZm'] = "eyeZm";
 $tabs['users'] = translate('Users');
 
 if ( isset($_REQUEST['tab']) )
@@ -158,6 +157,7 @@ elseif ( $tab == "users" )
               <th class="colEvents"><?php echo translate('Events') ?></th>
               <th class="colControl"><?php echo translate('Control') ?></th>
               <th class="colMonitors"><?php echo translate('Monitors') ?></th>
+              <th class="colGroups"><?php echo translate('Groups') ?></th>
               <th class="colSystem"><?php echo translate('System') ?></th>
               <th class="colBandwidth"><?php echo translate('Bandwidth') ?></th>
               <th class="colMonitor"><?php echo translate('Monitor') ?></th>
@@ -193,6 +193,7 @@ elseif ( $tab == "users" )
               <td class="colEvents"><?php echo validHtmlStr($row['Events']) ?></td>
               <td class="colControl"><?php echo validHtmlStr($row['Control']) ?></td>
               <td class="colMonitors"><?php echo validHtmlStr($row['Monitors']) ?></td>
+              <td class="colGroups"><?php echo validHtmlStr($row['Groups']) ?></td>
               <td class="colSystem"><?php echo validHtmlStr($row['System']) ?></td>
               <td class="colBandwidth"><?php echo $row['MaxBandwidth']?$bwArray[$row['MaxBandwidth']]:'&nbsp;' ?></td>
               <td class="colMonitor"><?php echo $row['MonitorIds']?(join( ", ", $userMonitors )):"&nbsp;" ?></td>
@@ -207,6 +208,36 @@ elseif ( $tab == "users" )
           <input type="button" value="<?php echo translate('AddNewUser') ?>" onclick="createPopup( '?view=user&amp;uid=0', 'zmUser', 'user' );"<?php if ( !canEdit( 'System' ) ) { ?> disabled="disabled"<?php } ?>/><input type="submit" name="deleteBtn" value="<?php echo translate('Delete') ?>" disabled="disabled"/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
         </div>
       </form>
+<?php
+} else if ( $tab == "servers" ) { ?>
+      <form name="serversForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+        <input type="hidden" name="view" value="<?php echo $view ?>"/>
+        <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
+        <input type="hidden" name="action" value="delete"/>
+        <input type="hidden" name="object" value="server"/>
+        <table id="contentTable" class="major serversTable" cellspacing="0">
+          <thead>
+            <tr>
+              <th class="colName"><?php echo translate('name') ?></th>
+              <th class="colHostname"><?php echo translate('Hostname') ?></th>
+              <th class="colMark"><?php echo translate('Mark') ?></th>
+			</tr>
+          </thead>
+          <tbody>
+<?php foreach( dbFetchAll( 'SELECT * FROM Servers' ) as $row ) { ?>
+            <tr>
+              <td class="colName"><?php echo makePopupLink( '?view=server&amp;id='.$row['Id'], 'zmServer', 'server', validHtmlStr($row['Name']), $canEdit ) ?></td>
+              <td class="colHostname"><?php echo makePopupLink( '?view=server&amp;id='.$row['Id'], 'zmServer', 'server', validHtmlStr($row['Hostname']), $canEdit ) ?></td>
+              <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $row['Id'] ?>" onclick="configureDeleteButton( this );"<?php if ( !$canEdit ) { ?> disabled="disabled"<?php } ?>/></td>
+			</tr>
+<?php } #end foreach Server ?>
+          </tbody>
+        </table>
+        <div id="contentButtons">
+          <input type="button" value="<?php echo translate('AddNewServer') ?>" onclick="createPopup( '?view=server&amp;id=0', 'zmServer', 'server' );"<?php if ( !canEdit( 'System' ) ) { ?> disabled="disabled"<?php } ?>/><input type="submit" name="deleteBtn" value="<?php echo translate('Delete') ?>" disabled="disabled"/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
+        </div>
+      </form>
+
 <?php
 } else {
     if ( $tab == "system" ) {

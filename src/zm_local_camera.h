@@ -36,6 +36,11 @@
 #include <linux/videodev2.h>
 #endif // HAVE_LINUX_VIDEODEV2_H
 
+// Required on systems with v4l1 but without v4l2 headers
+#ifndef VIDEO_MAX_FRAME
+#define VIDEO_MAX_FRAME               32
+#endif
+
 #include "zm_ffmpeg.h"
 
 //
@@ -104,11 +109,6 @@ protected:
 #if ZM_HAS_V4L1
   static V4L1Data     v4l1_data;
 #endif // ZM_HAS_V4L1
-
-// Required on systems with v4l1 but without v4l2 headers
-#ifndef VIDEO_MAX_FRAME
-#define VIDEO_MAX_FRAME               32
-#endif
 
 #if HAVE_LIBSWSCALE
   static AVFrame    **capturePictures;

@@ -247,7 +247,7 @@ function applyZoneUnits()
     }
     else
     {
-        form.elements['newZone[TempArea]'].value = 100;
+        form.elements['newZone[TempArea]'].value = Math.round( area/monitorArea * 100 );
         toPercent( form.elements['newZone[MinAlarmPixels]'], area );
         toPercent( form.elements['newZone[MaxAlarmPixels]'], area );
         toPercent( form.elements['newZone[MinFilterPixels]'], area );
@@ -323,6 +323,7 @@ function updateZoneImage()
         Point.y = zone['Points'][i].y;
        Poly.points.appendItem( Point );
     }
+    updateArea();
 }
 
 function fixActivePoint( index )
@@ -356,6 +357,7 @@ function updateActivePoint( index )
     var Point =  $('zonePoly').points.getItem(index);
     Point.x =x;
     Point.y =y;
+  updateArea();
 
 }
 
@@ -379,11 +381,27 @@ function delPoint( index )
 {
     zone['Points'].splice( index, 1 );
     drawZonePoints();
+  updateArea();
 }
 
 function limitPointValue( point, loVal, hiVal )
 {
     point.value = constrainValue(point.value, loVal, hiVal)
+}
+
+function updateArea( ) {
+  area = Polygon_calcArea( zone['Points'] );
+  zone.Area = area;
+  var form = $('zoneForm');
+  form.elements['newZone[Area]'].value = area;
+  if ( form.elements['newZone[Units]'].value == 'Percent' ) {
+
+    form.elements['newZone[TempArea]'].value = Math.round( area/monitorArea*100 );
+  } else if ( form.elements['newZone[Units]'].value == 'Pixels' ) {
+    form.elements['newZone[TempArea]'].value = area;
+  } else {
+    alert("Unknown units: " + form.elements['newZone[Units]'].value );
+  }
 }
 
 function updateX( index )
@@ -398,6 +416,7 @@ function updateX( index )
     var Point =  $('zonePoly').points.getItem(index);
     Point.x =x;
     Point.y =y;
+  updateArea();
 }
 
 function updateY( index )
@@ -412,6 +431,7 @@ function updateY( index )
     var Point =  $('zonePoly').points.getItem(index);
     Point.x =x;
     Point.y =y;
+  updateArea();
 }
 
 function saveChanges( element )
@@ -737,6 +757,18 @@ function initPage() {
 
     if ( refreshApplet && appletRefreshTime )
         appletRefresh.delay( appletRefreshTime*1000 );
+}
+
+function Polygon_calcArea( coords ) {
+  var n_coords = coords.length;
+  var float_area = 0.0;
+
+  for ( i = 0, j = n_coords-1; i < n_coords; j = i++ ) {
+    var trap_area = ( ( coords[i].x - coords[j].x ) * ( coords[i].y + coords[j].y ) ) / 2;
+    float_area += trap_area;
+    //printf( "%.2f (%.2f)\n", float_area, trap_area );
+  }
+  return Math.round( Math.abs( float_area ) );
 }
 
 window.addEvent( 'domready', initPage );

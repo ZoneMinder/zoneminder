@@ -321,7 +321,7 @@ function updateZoneImage()
         var Point = SVG.createSVGPoint();
         Point.x = zone['Points'][i].x;
         Point.y = zone['Points'][i].y;
-       Poly.points.appendItem( Point );
+        Poly.points.appendItem( Point );
     }
 }
 

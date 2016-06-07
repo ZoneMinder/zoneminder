@@ -75,7 +75,6 @@ class AppController extends Controller {
     if ( $zmOptAuth=='1' ) {
       if ( $_REQUEST['user'] and $_REQUEST['pass'] ) {
         $this->loadModel('User');
-        $this->log("have user " . $_REQUEST['user'] ." and pass " . $_REQUEST['pass'] ."!", 'error');
         $user = $this->User->find('first', array ('conditions' => array (
                 'User.Username' => $_REQUEST['user'],
                 'User.Password' => $_REQUEST['pass'],
@@ -84,7 +83,6 @@ class AppController extends Controller {
           throw new UnauthorizedException(__('User not found'));
           return;
         } else {
-          $this->log("Found user " . $_REQUEST['user'] ." and pass " . $_REQUEST['pass'] ."!", 'error');
           $this->Session->Write( 'user.Username', $user['User']['Username'] );
           $this->Session->Write( 'user.Enabled', $user['User']['Enabled'] );
         }
@@ -98,7 +96,7 @@ class AppController extends Controller {
         return;
       }
 
-      $options = array ('conditions' => array ('User.Username' => $loggedinUser));
+      $options = array ('conditions' => array ('User.Username' => $this->Session->Read('user.Username')));
       $userMonitors = $this->User->find('first', $options);
       $this->Session->Write('allowedMonitors',$userMonitors['User']['MonitorIds']);
       $this->Session->Write('streamPermission',$userMonitors['User']['Stream']);

@@ -323,7 +323,6 @@ function updateZoneImage()
         Point.y = zone['Points'][i].y;
         Poly.points.appendItem( Point );
     }
-    updateArea();
 }
 
 function fixActivePoint( index )
@@ -357,8 +356,6 @@ function updateActivePoint( index )
     var Point =  $('zonePoly').points.getItem(index);
     Point.x =x;
     Point.y =y;
-  updateArea();
-
 }
 
 function addPoint( index )
@@ -373,7 +370,8 @@ function addPoint( index )
     else
         zone['Points'].splice( nextIndex, 0, { 'x': newX, 'y': newY } );
     drawZonePoints();
-    updateZoneImage();
+    // drawZonePoints calls updateZoneImage
+    //updateZoneImage();
     //setActivePoint( nextIndex );
 }
 
@@ -381,7 +379,6 @@ function delPoint( index )
 {
     zone['Points'].splice( index, 1 );
     drawZonePoints();
-  updateArea();
 }
 
 function limitPointValue( point, loVal, hiVal )
@@ -414,9 +411,8 @@ function updateX( index )
     point.setStyle( 'left', x+'px' );
     zone['Points'][index].x = x;
     var Point =  $('zonePoly').points.getItem(index);
-    Point.x =x;
-    Point.y =y;
-  updateArea();
+    Point.x = x;
+    Point.y = y;
 }
 
 function updateY( index )
@@ -429,9 +425,8 @@ function updateY( index )
     point.setStyle( 'top', y+'px' );
     zone['Points'][index].y = y;
     var Point =  $('zonePoly').points.getItem(index);
-    Point.x =x;
-    Point.y =y;
-  updateArea();
+    Point.x = x;
+    Point.y = y;
 }
 
 function saveChanges( element )

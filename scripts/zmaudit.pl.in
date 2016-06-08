@@ -634,22 +634,25 @@ sub deleteSwapImage {
 }
 
 sub delete_empty_directories {
-  if ( ! opendir( DIR, $_[0] ) ) {
+  my $DIR;
+  if ( ! opendir( $DIR, $_[0] ) ) {
     Error( "delete_empty_directories: Can't open directory '".getcwd()."$_[0]': $!" );
     return;
   }
-  my @contents = map { $_ eq '.' or $_ eq '..' ? () : $_ } readdir( DIR );
+  my @contents = map { $_ eq '.' or $_ eq '..' ? () : $_ } readdir( $DIR );
   my @dirs = map { -d $_[0].'/'.$_ ? $_ : () } @contents;
   if ( @dirs ) {
     foreach ( @dirs ) {
       delete_empty_directories( $_[0].'/'.$_ );
     }
 #Reload, since we may now be empty
-    @contents = map { $_ eq '.' or $_ eq '..' ? () : $_ } readdir( DIR );
+    rewinddir $DIR;
+    @contents = map { $_ eq '.' or $_ eq '..' ? () : $_ } readdir( $DIR );
   }
   if ( ! @contents ) {
-    unlink $_[0];
+    ( my $dir ) = ( $_[0] =~ /^(.*)$/ );
+    unlink $dir;
   } 
-  closedir( DIR );
+  closedir( $DIR );
 } # end sub delete_empty_directories
 

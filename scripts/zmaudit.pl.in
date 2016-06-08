@@ -197,14 +197,20 @@ MAIN: while( $loop ) {
       my $fs_events = $fs_monitors->{$monitor} = {};
       # De-taint
       ( my $monitor_dir ) = ( $monitor =~ /^(.*)$/ );
+  
 
       if ( $Config{ZM_USE_DEEP_STORAGE} ) {
         foreach my $day_dir ( glob("$monitor_dir/*/*/*") ) {
           Debug( "Checking $day_dir" );
           ( $day_dir ) = ( $day_dir =~ /^(.*)$/ ); # De-taint
-          chdir( $day_dir );
-          opendir( DIR, "." )
-            or Fatal( "Can't open directory '$day_dir': $!" );
+          if ( ! chdir( $day_dir ) ) {
+            Error( "Can't chdir to $$Storage{Path}/$monitor_dir/'$day_dir': $!" );
+            next;
+          }
+          if ( ! opendir( DIR, "." ) ) {
+            Error( "Can't open directory $$Storage{Path}/$monitor_dir/'$day_dir': $!" );
+            next;
+          }
           my @event_links = sort { $b <=> $a } grep { -l $_ } readdir( DIR );
           closedir( DIR );
           my $count = 0;

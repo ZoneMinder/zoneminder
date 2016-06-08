@@ -240,8 +240,14 @@ MAIN: while( $loop ) {
           chdir( $Storage->Path() );
         } # end foreach day dir
       } else {
-        chdir( $monitor_dir );
-        opendir( DIR, "." ) or Fatal( "Can't open directory '$monitor_dir': $!" );
+        if ( ! chdir( $monitor_dir ) ) {
+          Error( "Can't chdir directory $$Storage{Path}/'$monitor_dir': $!" );
+          next;
+        }
+        if ( ! opendir( DIR, "." ) ) {
+          Error( "Can't open directory $$Storage{Path}/'$monitor_dir': $!" );
+          next;
+        }
         my @temp_events = sort { $b <=> $a } grep { -d $_ && $_ =~ /^\d+$/ } readdir( DIR );
         closedir( DIR );
         my $count = 0;
@@ -629,11 +635,11 @@ sub deleteSwapImage {
 
 sub delete_empty_directories {
   if ( ! opendir( DIR, $_[0] ) ) {
-    Error( "Can't open directory '$_[0]': $!" );
+    Error( "delete_empty_directories: Can't open directory '".getcwd()."$_[0]': $!" );
     return;
   }
   my @contents = map { $_ eq '.' or $_ eq '..' ? () : $_ } readdir( DIR );
-  my @dirs = map { -d $_ ? $_ : () } @contents;
+  my @dirs = map { -d $_[0].'/'.$_ ? $_ : () } @contents;
   if ( @dirs ) {
     foreach ( @dirs ) {
       delete_empty_directories( $_[0].'/'.$_ );

@@ -2785,7 +2785,7 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
   std::string type = dbrow[col]; col++;
   int function = atoi(dbrow[col]); col++;
   int enabled = atoi(dbrow[col]); col++;
-  std::string linked_monitors = dbrow[col]; col++;
+  std::string linked_monitors = dbrow[col] ? dbrow[col] : ""; col++;
 
   std::string device = dbrow[col]; col++;
   int channel = atoi(dbrow[col]); col++;

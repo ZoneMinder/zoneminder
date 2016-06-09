@@ -2642,11 +2642,11 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
     unsigned int storage_id = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
     int function = atoi(dbrow[col]); col++;
     int enabled = atoi(dbrow[col]); col++;
-    const char *linked_monitors = dbrow[col]; col++;
+    const char *linked_monitors = dbrow[col] ? dbrow[col] : ""; col++;
 
     const char *path = dbrow[col]; col++;
     const char *method = dbrow[col]; col++;
-    const char *options = dbrow[col]; col++;
+    const char *options = dbrow[col] ? dbrow[col] : ""; col++;
 
     int width = atoi(dbrow[col]); col++;
     int height = atoi(dbrow[col]); col++;
@@ -2657,7 +2657,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
 
     int savejpegs = atoi(dbrow[col]); col++;
     int videowriter = atoi(dbrow[col]); col++;
-    std::string encoderparams =  dbrow[col]; col++;
+    std::string encoderparams =  dbrow[col] ? dbrow[col] : ""; col++;
     bool record_audio = (*dbrow[col] != '0'); col++;
 
     int brightness = atoi(dbrow[col]); col++;
@@ -2666,7 +2666,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
     int colour = atoi(dbrow[col]); col++;
 
     const char *event_prefix = dbrow[col]; col++;
-    const char *label_format = dbrow[col]; col++;
+    const char *label_format = dbrow[col] ? dbrow[col] : ""; col++;
 
     int label_x = atoi(dbrow[col]); col++;
     int label_y = atoi(dbrow[col]); col++;
@@ -2815,7 +2815,7 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
   std::string host = dbrow[col]; col++;
   std::string port = dbrow[col]; col++;
   std::string path = dbrow[col]; col++;
-  std::string options = dbrow[col]; col++;
+  std::string options = dbrow[col] ? dbrow[col] : ""; col++;
   std::string user = dbrow[col]; col++;
   std::string pass = dbrow[col]; col++;
 
@@ -2828,7 +2828,7 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
   bool rtsp_describe = (*dbrow[col] != '0'); col++;
   int savejpegs = atoi(dbrow[col]); col++;
   int videowriter = atoi(dbrow[col]); col++;
-  std::string encoderparams =  dbrow[col]; col++;
+  std::string encoderparams =  dbrow[col] ? dbrow[col] : ""; col++;
   bool record_audio = (*dbrow[col] != '0'); col++;
 
   int brightness = atoi(dbrow[col]); col++;
@@ -2837,7 +2837,7 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
   int colour = atoi(dbrow[col]); col++;
 
   std::string event_prefix = dbrow[col]; col++;
-  std::string label_format = dbrow[col]; col++;
+  std::string label_format = dbrow[col] ? dbrow[col] : ""; col++;
 
   int label_x = atoi(dbrow[col]); col++;
   int label_y = atoi(dbrow[col]); col++;

@@ -15,17 +15,6 @@ else(ZM_TARGET_DISTRO STREQUAL "el7")
 	configure_file(zoneminder.el6.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.el6.conf @ONLY)
 endif(ZM_TARGET_DISTRO STREQUAL "el7")
 
-# Download jscalendar & move files into position
-file(DOWNLOAD http://iweb.dl.sourceforge.net/project/jscalendar/jscalendar/1.0/jscalendar-1.0.zip ${CMAKE_CURRENT_SOURCE_DIR}/jscalendar-1.0.zip LOG jsc_log STATUS download_jsc)
-#message(STATUS "Log of jscalender script was: ${jsc_log}")
-if(download_jsc EQUAL 0)
-	message(STATUS "Jscalander successfully downloaded.  Installing...")
-	execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/jscalendar.sh WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} ERROR_VARIABLE unzip_jsc)
-	message(STATUS "Status of jscalender script was: ${unzip_jsc}")
-else(download_jsc EQUAL 0)
-	message(STATUS "Unable to download optional jscalander. Skipping...")
-endif(download_jsc EQUAL 0)
-
 # Cambozola is now packaged in zmrepo
 # Download cambozola & move files into position
 #file(DOWNLOAD http://www.andywilcock.com/code/cambozola/cambozola-0.931.tar.gz ${CMAKE_CURRENT_SOURCE_DIR}/cambozola-0.931.tar.gz STATUS download_camb)
@@ -69,11 +58,6 @@ else(ZM_TARGET_DISTRO STREQUAL "el7")
 	install(FILES zoneminder.el6.logrotate DESTINATION /etc/logrotate.d RENAME zoneminder PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
 	install(FILES zoneminder.sysvinit DESTINATION /etc/rc.d/init.d RENAME zoneminder PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
 endif(ZM_TARGET_DISTRO STREQUAL "el7")
-
-# Install jscalendar
-if(unzip_jsc STREQUAL "")
-	install(DIRECTORY jscalendar-1.0/ DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/www/tools/jscalendar)
-endif(unzip_jsc STREQUAL "")
 
 # Install cambozola
 if(untar_camb STREQUAL "")

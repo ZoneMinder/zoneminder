@@ -2,3 +2,6 @@
 	path = web/api/app/Plugin/Crud
 	url = https://github.com/FriendsOfCake/crud.git
 	branch = 3.0
+[submodule "web/tools/jscalendar"]
+	path = web/tools/jscalendar
+	url = https://github.com/virasak/jscalendar

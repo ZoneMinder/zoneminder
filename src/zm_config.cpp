@@ -133,12 +133,11 @@ void zmLoadConfig()
     } else {
       Fatal("Can't get ServerName for Server ID %d", staticConfig.SERVER_ID );
     }
-  
-  }  
-  if ( ! staticConfig.SERVER_ID ) {
-    Debug( 1, "No Server ID or Name specified in config.  Not using Multi-Server Mode." );
-  } else {
-    Debug( 1, "Server is %d: using Multi-Server Mode.", staticConfig.SERVER_ID );
+    if ( staticConfig.SERVER_ID ) {
+        Debug( 3, "Multi-server configuration detected. Server is %d.", staticConfig.SERVER_ID );
+    } else {
+        Debug( 3, "Single server configuration assumed because no Server ID or Name was specified." );
+    }
   }
 }
 

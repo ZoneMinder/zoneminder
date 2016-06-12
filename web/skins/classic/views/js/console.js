@@ -16,7 +16,7 @@ function setButtonStates( element )
             }
         }
     }
-    $(element).getParent( 'tr' ).toggleClass( 'highlight' );
+    $(element).closest("tr").toggleClass("danger");
     form.editBtn.disabled = (checked!=1);
     form.addBtn.value = (checked==1) ? jsTranslatedCloneText:jsTranslatedAddText;
 

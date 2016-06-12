@@ -51,3 +51,8 @@ Camera::~Camera()
 {
 }
 
+Monitor *Camera::getMonitor() {
+  if ( ! monitor )
+    monitor = Monitor::Load( id, false, Monitor::QUERY );
+  return monitor;
+} 

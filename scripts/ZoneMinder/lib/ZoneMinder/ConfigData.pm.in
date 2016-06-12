@@ -1565,6 +1565,16 @@ our @options =
         category    => "web",
     },
     {
+        name        => "ZM_WEB_ID_ON_CONSOLE",
+        default     => "no",
+        description => "Should the console list the monitor id",
+        help        => qqq("Some find it useful to have the id always visible
+            on the console. This option will add a column listing it.
+        "),
+        type        => $types{boolean},
+        category    => "web",
+    },
+    {
         name        => "ZM_WEB_POPUP_ON_ALARM",
         default     => "yes",
         description => "Should the monitor window jump to the top if an alarm occurs",
@@ -1708,6 +1718,17 @@ our @options =
         "),
         type        => $types{boolean},
         category    => "config",
+    },
+    {
+      name          =>  'ZM_LD_PRELOAD',
+      default       =>  '',
+      description   =>  "Path to library to preload before launching daemons",
+      help          => qqq("Some older cameras require the use of the v4l1 compat
+                         library. This setting allows the setting of the path 
+                         to the library, so that it can be loaded by zmdc.pl 
+                         before launching zmc."),
+      type          =>  $types{abs_path},
+      category      =>  'config',
     },
     {
         name        => "ZM_SIGNAL_CHECK_POINTS",

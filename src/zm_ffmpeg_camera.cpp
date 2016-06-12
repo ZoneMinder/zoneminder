@@ -182,43 +182,43 @@ int FfmpegCamera::Capture( Image &image )
         if ( packet.stream_index == mVideoStreamId )
         {
 #if LIBAVCODEC_VERSION_CHECK(52, 23, 0, 23, 0)
-			if ( avcodec_decode_video2( mCodecContext, mRawFrame, &frameComplete, &packet ) < 0 )
+          if ( avcodec_decode_video2( mCodecContext, mRawFrame, &frameComplete, &packet ) < 0 )
 #else
-			if ( avcodec_decode_video( mCodecContext, mRawFrame, &frameComplete, packet.data, packet.size ) < 0 )
+          if ( avcodec_decode_video( mCodecContext, mRawFrame, &frameComplete, packet.data, packet.size ) < 0 )
 #endif
-                Fatal( "Unable to decode frame at frame %d", frameCount );
+            Fatal( "Unable to decode frame at frame %d", frameCount );
 
-            Debug( 4, "Decoded video packet at frame %d", frameCount );
+          Debug( 4, "Decoded video packet at frame %d", frameCount );
 
-            if ( frameComplete ) {
-                Debug( 4, "Got frame %d", frameCount );
+          if ( frameComplete ) {
+            Debug( 4, "Got frame %d", frameCount );
 
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-                av_image_fill_arrays(mFrame->data, mFrame->linesize,
-                        directbuffer, imagePixFormat, width, height, 1);
+            av_image_fill_arrays(mFrame->data, mFrame->linesize,
+                directbuffer, imagePixFormat, width, height, 1);
 #else
-                avpicture_fill( (AVPicture *)mFrame, directbuffer,
-                        imagePixFormat, width, height);
+            avpicture_fill( (AVPicture *)mFrame, directbuffer,
+                imagePixFormat, width, height);
 #endif
 		
 #if HAVE_LIBSWSCALE
-                if(mConvertContext == NULL) {
-                    mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
+            if(mConvertContext == NULL) {
+              mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
 
-                    if(mConvertContext == NULL)
-                        Fatal( "Unable to create conversion context for %s", mPath.c_str() );
-                }
+              if(mConvertContext == NULL)
+                Fatal( "Unable to create conversion context for %s", mPath.c_str() );
+            }
 	
-                if ( sws_scale( mConvertContext, mRawFrame->data, mRawFrame->linesize, 0, mCodecContext->height, mFrame->data, mFrame->linesize ) < 0 )
-                    Fatal( "Unable to convert raw format %u to target format %u at frame %d", mCodecContext->pix_fmt, imagePixFormat, frameCount );
+            if ( sws_scale( mConvertContext, mRawFrame->data, mRawFrame->linesize, 0, mCodecContext->height, mFrame->data, mFrame->linesize ) < 0 )
+              Fatal( "Unable to convert raw format %u to target format %u at frame %d", mCodecContext->pix_fmt, imagePixFormat, frameCount );
 #else // HAVE_LIBSWSCALE
-                Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
+            Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
 #endif // HAVE_LIBSWSCALE
 
-                frameCount++;
-            } // end if frameComplete
+            frameCount++;
+          } // end if frameComplete
         } else {
-            Debug( 4, "Different stream_index %d", packet.stream_index );
+          Debug( 4, "Different stream_index %d", packet.stream_index );
         } // end if packet.stream_index == mVideoStreamId
 #if LIBAVCODEC_VERSION_CHECK(57, 8, 0, 12, 100)
         av_packet_unref( &packet);
@@ -399,20 +399,20 @@ int FfmpegCamera::OpenFfmpeg() {
     if(mRawFrame == NULL || mFrame == NULL)
         Fatal( "Unable to allocate frame for %s", mPath.c_str() );
 
-    Debug ( 1, "Allocated frames" );
-    
+  Debug ( 1, "Allocated frames" );
+
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-    int pSize = av_image_get_buffer_size( imagePixFormat, width, height,1 );
+  int pSize = av_image_get_buffer_size( imagePixFormat, width, height,1 );
 #else
-    int pSize = avpicture_get_size( imagePixFormat, width, height );
+  int pSize = avpicture_get_size( imagePixFormat, width, height );
 #endif
 
-    if( (unsigned int)pSize != imagesize) {
-        Fatal("Image size mismatch. Required: %d Available: %d",pSize,imagesize);
-    }
+  if( (unsigned int)pSize != imagesize) {
+    Fatal("Image size mismatch. Required: %d Available: %d",pSize,imagesize);
+  }
 
-    Debug ( 1, "Validated imagesize %d", pSize );
-
+  Debug ( 1, "Validated imagesize" );
+  
 #if HAVE_LIBSWSCALE
     Debug ( 1, "Calling sws_isSupportedInput" );
     if(!sws_isSupportedInput(mCodecContext->pix_fmt)) {
@@ -604,7 +604,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
                     //Instantiate the video storage module
                     Debug(3, "recording and ! wasRecording %s", event_file);
 
-                    videoStore = new VideoStore((const char *)event_file, "mp4", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime);
+                    videoStore = new VideoStore((const char *)event_file, "mp4", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime, this->getMonitor()->getOrientation() );
                     wasRecording = true;
                     strcpy(oldDirectory, event_file);
 
@@ -629,7 +629,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
                         videoStore = NULL;
                     }
 
-                    videoStore = new VideoStore((const char *)event_file, "mp4", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime);
+                    videoStore = new VideoStore((const char *)event_file, "mp4", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime, this->getMonitor()->getOrientation());
                     strcpy(oldDirectory, event_file);
                 }
                 

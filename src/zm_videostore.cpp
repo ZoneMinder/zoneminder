@@ -35,7 +35,9 @@ extern "C"{
 VideoStore::VideoStore(const char *filename_in, const char *format_in,
                        AVStream *input_st,
                        AVStream *inpaud_st,
-                       int64_t nStartTime) {
+                       int64_t nStartTime,
+                        Monitor::Orientation orientation
+) {
     
   AVDictionary *pmetadata = NULL;
   int dsr;
@@ -93,6 +95,20 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   video_st->codec->codec_tag = 0;
   if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
     video_st->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
+  }
+  if ( orientation ) {
+    if ( orientation == Monitor::ROTATE_90 ) {
+      dsr = av_dict_set( &video_st->metadata, "rotate", "90", 0);
+      if (dsr < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__ );
+    } else if ( orientation == Monitor::ROTATE_180 ) {
+      dsr = av_dict_set( &video_st->metadata, "rotate", "180", 0);
+      if (dsr < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__ );
+    } else if ( orientation == Monitor::ROTATE_270 ) {
+      dsr = av_dict_set( &video_st->metadata, "rotate", "270", 0);
+      if (dsr < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__ );
+    } else {
+      Warning( "Unsupported Orientation(%d)", orientation );
+    }
   }
 
   if (inpaud_st) {

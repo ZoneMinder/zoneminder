@@ -65,6 +65,15 @@
     visibility: hidden;
 }
 
+#menuBar1:after,
+#menuBar2:after {
+    content: ".";
+    display: block;
+    height: 0;
+    font-size: 0;
+    clear: both;
+    visibility: hidden;
+}
 #imageFeed {
     text-align: center;
 }

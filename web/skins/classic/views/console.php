@@ -1,9 +1,122 @@
 <?php
-require_once('includes/Server.php');
+//
+// ZoneMinder web console file, $Date$, $Revision$
+// Copyright (C) 2001-2008 Philip Coombes
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//
+
 $servers = Server::find_all();
 require_once('includes/Storage.php');
 $storage_areas = Storage::find_all();
 $show_storage_areas = count($storage_areas) > 1 and canEdit( 'System' ) ? 1 : 0;
+
+$eventCounts = array(
+    array(
+        "title" => translate('Events'),
+        "filter" => array(
+            "terms" => array(
+            )
+        ),
+        "total" => 0,
+    ),
+    array(
+        "title" => translate('Hour'),
+        "filter" => array(
+            "terms" => array(
+                array( "attr" => "DateTime", "op" => ">=", "val" => "-1 hour" ),
+            )
+        ),
+        "total" => 0,
+    ),
+    array(
+        "title" => translate('Day'),
+        "filter" => array(
+            "terms" => array(
+                array( "attr" => "DateTime", "op" => ">=", "val" => "-1 day" ),
+            )
+        ),
+        "total" => 0,
+    ),
+    array(
+        "title" => translate('Week'),
+        "filter" => array(
+            "terms" => array(
+                array( "attr" => "DateTime", "op" => ">=", "val" => "-7 day" ),
+            )
+        ),
+        "total" => 0,
+    ),
+    array(
+        "title" => translate('Month'),
+        "filter" => array(
+            "terms" => array(
+                array( "attr" => "DateTime", "op" => ">=", "val" => "-1 month" ),
+            )
+        ),
+        "total" => 0,
+    ),
+    array(
+        "title" => translate('Archived'),
+        "filter" => array(
+            "terms" => array(
+                array( "attr" => "Archived", "op" => "=", "val" => "1" ),
+            )
+        ),
+        "total" => 0,
+    ),
+);
+
+$displayMonitors = NULL;
+
+# Also populates displayMonitors
+$navbar = getNavBarHTML();
+$zoneCount = 0;
+
+for( $i = 0; $i < count($displayMonitors); $i += 1 ) {
+  $monitor = $displayMonitors[$i];
+  $monitor['zmc'] = zmcStatus( $monitor );
+  $monitor['zma'] = zmaStatus( $monitor );
+  $monitor['ZoneCount'] = dbFetchOne( 'select count(Id) as ZoneCount from Zones where MonitorId = ?', 'ZoneCount', array($monitor['Id']) );
+  $counts = array();
+  for ( $j = 0; $j < count($eventCounts); $j += 1 ) {
+    $filter = addFilterTerm( $eventCounts[$j]['filter'], count($eventCounts[$j]['filter']['terms']), array( "cnj" => "and", "attr" => "MonitorId", "op" => "=", "val" => $monitor['Id'] ) );
+    parseFilter( $filter );
+    $counts[] = "count(if(1".$filter['sql'].",1,NULL)) as EventCount$j";
+    $monitor['eventCounts'][$j]['filter'] = $filter;
+  }
+  $sql = "select ".join($counts,", ")." from Events as E where MonitorId = ?";
+  $counts = dbFetchOne( $sql, NULL, array($monitor['Id']) );
+  if ( $counts )
+    $displayMonitors[$i] = $monitor = array_merge( $monitor, $counts );
+  for ( $j = 0; $j < count($eventCounts); $j += 1 ) {
+    $eventCounts[$j]['total'] += $monitor['EventCount'.$j];
+  }
+  $zoneCount += $monitor['ZoneCount'];
+}
+
+noCacheHeaders();
+
+$seqUpFile = getSkinFile( 'graphics/seq-u.gif' );
+$seqDownFile = getSkinFile( 'graphics/seq-d.gif' );
+$eventsView = ZM_WEB_EVENTS_VIEW;
+$eventsWindow = 'zm'.ucfirst(ZM_WEB_EVENTS_VIEW);
+$left_columns = 3;
+if ( count($servers) ) $left_columns += 1;
+if ( ZM_WEB_ID_ON_CONSOLE ) $left_columns += 1;
+if ( $show_storage_areas ) $left_columns += 1;
 
 xhtmlHeaders( __FILE__, translate('Console') );
 ?>
@@ -12,12 +125,15 @@ xhtmlHeaders( __FILE__, translate('Console') );
     <input type="hidden" name="view" value="<?php echo $view ?>"/>
     <input type="hidden" name="action" value=""/>
 
-    <?php include("skins/$skin/views/header.php") ?>
+    <?php echo $navbar ?>
 
     <div class="container-fluid">
-      <table id="consoleTable" cellspacing="0">
+      <table class="table table-striped table-hover table-condensed">
         <thead>
           <tr>
+<?php if ( ZM_WEB_ID_ON_CONSOLE ) { ?>
+            <th class="colId"><?php echo translate('Id') ?></th>
+<?php } ?>
             <th class="colName"><?php echo translate('Name') ?></th>
             <th class="colFunction"><?php echo translate('Function') ?></th>
 <?php if ( count($servers) ) { ?>
@@ -49,14 +165,11 @@ if ( canEdit('Monitors') )
         </thead>
         <tfoot>
           <tr>
-            <td class="colLeftButtons" colspan="<?php $columns = 3;
- if ( count($servers) > 1 ) { $columns += 1; }
- if ( $show_storage_areas ) { $columns += 1; }
-echo $columns;
- ?>">
-              <input type="button" name="addBtn" value="<?php echo translate('AddNewMonitor') ?>" onclick="addMonitor( this )"/>
+            <td class="colLeftButtons" colspan="<?php echo $left_columns ?>">
+              <input type="button" value="<?php echo translate('Refresh') ?>" onclick="location.reload(true);"/>
+              <input type="button" class="btn btn-primary" name="addBtn" value="<?php echo translate('AddNewMonitor') ?>" onclick="addMonitor( this )"/>
               <!-- <?php echo makePopupButton( '?view=monitor', 'zmMonitor0', 'monitor', translate('AddNewMonitor'), (canEdit( 'Monitors' ) && !$user['MonitorIds']) ) ?> -->
-
+              <?php echo makePopupButton( '?view=filter&amp;filter[terms][0][attr]=DateTime&amp;filter[terms][0][op]=%3c&amp;filter[terms][0][val]=now', 'zmFilter', 'filter', translate('Filters'), canView( 'Events' ) ) ?>
             </td>
 <?php
 for ( $i = 0; $i < count($eventCounts); $i++ )
@@ -68,13 +181,14 @@ for ( $i = 0; $i < count($eventCounts); $i++ )
 }
 ?>
             <td class="colZones"><?php echo $zoneCount ?></td>
-            <td class="colRightButtons" colspan="<?php echo canEdit('Monitors')?2:1 ?>"><input class="btn btn-default" type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editMonitor( this )" disabled="disabled"/><input class="btn btn-default" type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteMonitor( this )" disabled="disabled"/></td>
+            <td><input class="btn btn-primary" type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editMonitor( this )" disabled="disabled"/></td>
+            <td><input class="btn btn-danger" type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteMonitor( this )" disabled="disabled"/></td>
           </tr>
         </tfoot>
         <tbody>
 <?php
-foreach( $displayMonitors as $monitor )
-{
+for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
+  $monitor = $displayMonitors[$monitor_i];
 ?>
           <tr title="<?php echo $monitor['Id'] ?>">
 <?php
@@ -98,6 +212,9 @@ foreach( $displayMonitors as $monitor )
         $fclass .= " disabledText";
     $scale = max( reScale( SCALE_BASE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
 ?>
+<?php if ( ZM_WEB_ID_ON_CONSOLE ) { ?>
+            <td class="colId"><?php echo makePopupLink( '?view=watch&amp;mid='.$monitor['Id'], 'zmWatch'.$monitor['Id'], array( 'watch', reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ) ), $monitor['Id'], $running && ($monitor['Function'] != 'None') && canView( 'Stream' ) ) ?></td>
+<?php } ?>
             <td class="colName"><?php echo makePopupLink( '?view=watch&amp;mid='.$monitor['Id'], 'zmWatch'.$monitor['Id'], array( 'watch', reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ) ), $monitor['Name'], $running && ($monitor['Function'] != 'None') && canView( 'Stream' ) ) ?></td>
             <td class="colFunction"><?php echo makePopupLink( '?view=function&amp;mid='.$monitor['Id'], 'zmFunction', 'function', '<span class="'.$fclass.'">'.translate('Fn'.$monitor['Function']).( empty($monitor['Enabled']) ? ', disabled' : '' ) .'</span>', canEdit( 'Monitors' ) ) ?></td>
 <?php if ( count($servers) ) { ?>
@@ -139,40 +256,39 @@ echo $Storage->Name();
 <?php
     }
 ?>
-            <td class="colZones"><?php echo makePopupLink( '?view=zones&amp;mid='.$monitor['Id'], 'zmZones', array( 'zones', $monitor['Width'], $monitor['Height'] ), $monitor['ZoneCount'], canView( 'Monitors' ) ) ?></td>
+            <td class="colZones"><?php echo makePopupLink( '?view=zones&amp;mid='.$monitor['Id'], 'zmZones', array( 'zones', $monitor['Width'], $monitor['Height'] ), $monitor['ZoneCount'], $running && canView( 'Monitors' ) ) ?></td>
 <?php
     if ( canEdit('Monitors') )
     {
 ?>
-            <td class="colOrder"><?php echo makeLink( '?view='.$view.'&amp;action=sequence&amp;mid='.$monitor['Id'].'&amp;smid='.$seqIdUpList[$monitor['Id']], '<img src="'.$seqUpFile.'" alt="Up"/>', $monitor['Sequence']>$minSequence ) ?><?php echo makeLink( '?view='.$view.'&amp;action=sequence&amp;mid='.$monitor['Id'].'&amp;smid='.$seqIdDownList[$monitor['Id']], '<img src="'.$seqDownFile.'" alt="Down"/>', $monitor['Sequence']<$maxSequence ) ?></td>
+            <td class="colOrder">
+<?php 
+  if ( $monitor_i ) {
+    echo makeLink( '?view='.$view.'&amp;action=sequence&amp;mid='.$monitor['Id'].'&amp;smid='.$displayMonitors[$monitor_i-1]['Id'], '<img src="'.$seqUpFile.'" alt="Up"/>' );
+  } else {
+    echo '<img src="'.$seqUpFile.'" alt="Up"/>';
+  }
+  if ( $monitor_i<count($displayMonitors)-1 ) {
+    echo makeLink( '?view='.$view.'&amp;action=sequence&amp;mid='.$monitor['Id'].'&amp;smid='.$displayMonitors[$monitor_i+1]['Id'], '<img src="'.$seqDownFile.'" alt="Down"/>' );
+  } else {
+    echo '<img src="'.$seqDownFile.'" alt="Down"/>';
+  }
+?>
+            </td>
 <?php
     }
 ?>
             <td class="colMark"><input type="checkbox" name="markMids[]" value="<?php echo $monitor['Id'] ?>" onclick="setButtonStates( this )"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></td>
           </tr>
 <?php
-}
+} # end for eacho monitor
 ?>
         </tbody>
       </table>
     </div>
 
-<div id="footer">
-
-
-<div class="pull-left">
-<?php echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', $bwArray[$_COOKIE['zmBandwidth']], ($user && $user['MaxBandwidth'] != 'low' ) ) ?> <?php echo translate('BandwidthHead') ?>
-</div>
-
-<div class="pull-right">
-	<?php echo makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="'.$versionClass.'">v'.ZM_VERSION.'</span>', canEdit( 'System' ) ) ?>
-</div>
-<ul class="list-inline">
-	<li><?php echo translate('Load') ?>: <?php echo getLoad() ?></li>
-	<li><?php echo translate('Disk') ?>: <?php echo getDiskPercent() ?>%</li>
-</ul>
-</div> <!-- End .footer -->
 
     </form>
+<?php include("skins/$skin/views/state.php") ?>
 </body>
 </html>

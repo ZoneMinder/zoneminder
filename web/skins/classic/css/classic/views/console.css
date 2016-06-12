@@ -94,4 +94,7 @@
 #consoleTable .colRightButtons input {
     margin: 0 8px;
 }
+body {
+	padding-top: 95px;
+}
 

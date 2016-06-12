@@ -29,119 +29,118 @@
 
 void zmLoadConfig()
 {
-	FILE *cfg;
-	char line[512];
-	if ( (cfg = fopen( ZM_CONFIG, "r")) == NULL )
-	{
-		Fatal( "Can't open %s: %s", ZM_CONFIG, strerror(errno) );
-	}
-	while ( fgets( line, sizeof(line), cfg ) != NULL )
-	{
-		char *line_ptr = line;
+  FILE *cfg;
+  char line[512];
+  if ( (cfg = fopen( ZM_CONFIG, "r")) == NULL )
+  {
+    Fatal( "Can't open %s: %s", ZM_CONFIG, strerror(errno) );
+  }
+  while ( fgets( line, sizeof(line), cfg ) != NULL )
+  {
+    char *line_ptr = line;
 
-		// Trim off any cr/lf line endings
-		int chomp_len = strcspn( line_ptr, "\r\n" );
-		line_ptr[chomp_len] = '\0';
+    // Trim off any cr/lf line endings
+    int chomp_len = strcspn( line_ptr, "\r\n" );
+    line_ptr[chomp_len] = '\0';
 
-		// Remove leading white space
-		int white_len = strspn( line_ptr, " \t" );
-		line_ptr += white_len;
+    // Remove leading white space
+    int white_len = strspn( line_ptr, " \t" );
+    line_ptr += white_len;
 
-		// Check for comment or empty line
-		if ( *line_ptr == '\0' || *line_ptr == '#' )
-			continue;
+    // Check for comment or empty line
+    if ( *line_ptr == '\0' || *line_ptr == '#' )
+      continue;
 
-		// Remove trailing white space
-		char *temp_ptr = line_ptr+strlen(line_ptr)-1;
-		while ( *temp_ptr == ' ' || *temp_ptr == '\t' )
-		{
-			*temp_ptr-- = '\0';
-			temp_ptr--;
-		}
+    // Remove trailing white space
+    char *temp_ptr = line_ptr+strlen(line_ptr)-1;
+    while ( *temp_ptr == ' ' || *temp_ptr == '\t' )
+    {
+      *temp_ptr-- = '\0';
+      temp_ptr--;
+    }
 
-		// Now look for the '=' in the middle of the line
-		temp_ptr = strchr( line_ptr, '=' );
-		if ( !temp_ptr )
-		{
-			Warning( "Invalid data in %s: '%s'", ZM_CONFIG, line );
-			continue;
-		}
+    // Now look for the '=' in the middle of the line
+    temp_ptr = strchr( line_ptr, '=' );
+    if ( !temp_ptr )
+    {
+      Warning( "Invalid data in %s: '%s'", ZM_CONFIG, line );
+      continue;
+    }
 
-		// Assign the name and value parts
-		char *name_ptr = line_ptr;
-		char *val_ptr = temp_ptr+1;
+    // Assign the name and value parts
+    char *name_ptr = line_ptr;
+    char *val_ptr = temp_ptr+1;
 
-		// Trim trailing space from the name part
-		do
-		{
-			*temp_ptr = '\0';
-			temp_ptr--;
-		}
-		while ( *temp_ptr == ' ' || *temp_ptr == '\t' );
+    // Trim trailing space from the name part
+    do
+    {
+      *temp_ptr = '\0';
+      temp_ptr--;
+    }
+    while ( *temp_ptr == ' ' || *temp_ptr == '\t' );
 
-		// Remove leading white space from the value part
-		white_len = strspn( val_ptr, " \t" );
-		val_ptr += white_len;
+    // Remove leading white space from the value part
+    white_len = strspn( val_ptr, " \t" );
+    val_ptr += white_len;
 
-		if ( strcasecmp( name_ptr, "ZM_DB_HOST" ) == 0 )
-            staticConfig.DB_HOST = std::string(val_ptr);
-		else if ( strcasecmp( name_ptr, "ZM_DB_NAME" ) == 0 )
-            staticConfig.DB_NAME = std::string(val_ptr);
-		else if ( strcasecmp( name_ptr, "ZM_DB_USER" ) == 0 )
-            staticConfig.DB_USER = std::string(val_ptr);
-		else if ( strcasecmp( name_ptr, "ZM_DB_PASS" ) == 0 )
-            staticConfig.DB_PASS = std::string(val_ptr);
-		else if ( strcasecmp( name_ptr, "ZM_PATH_WEB" ) == 0 )
-            staticConfig.PATH_WEB = std::string(val_ptr);
-		else if ( strcasecmp( name_ptr, "ZM_SERVER_HOST" ) == 0 )
-			staticConfig.SERVER_NAME = std::string(val_ptr);
-		else if ( strcasecmp( name_ptr, "ZM_SERVER_NAME" ) == 0 )
-			staticConfig.SERVER_NAME = std::string(val_ptr);
-		else if ( strcasecmp( name_ptr, "ZM_SERVER_ID" ) == 0 )
-			staticConfig.SERVER_ID = atoi(val_ptr);
-		else
-		{
-			// We ignore this now as there may be more parameters than the
-			// c/c++ binaries are bothered about
-			// Warning( "Invalid parameter '%s' in %s", name_ptr, ZM_CONFIG );
-		}
-	} // end foreach line of the config
-	fclose( cfg );
-	zmDbConnect();
-	config.Load();
-	config.Assign();
+    if ( strcasecmp( name_ptr, "ZM_DB_HOST" ) == 0 )
+      staticConfig.DB_HOST = std::string(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_DB_NAME" ) == 0 )
+      staticConfig.DB_NAME = std::string(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_DB_USER" ) == 0 )
+      staticConfig.DB_USER = std::string(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_DB_PASS" ) == 0 )
+      staticConfig.DB_PASS = std::string(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_PATH_WEB" ) == 0 )
+      staticConfig.PATH_WEB = std::string(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_SERVER_HOST" ) == 0 )
+      staticConfig.SERVER_NAME = std::string(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_SERVER_NAME" ) == 0 )
+      staticConfig.SERVER_NAME = std::string(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_SERVER_ID" ) == 0 )
+      staticConfig.SERVER_ID = atoi(val_ptr);
+    else
+    {
+      // We ignore this now as there may be more parameters than the
+      // c/c++ binaries are bothered about
+      // Warning( "Invalid parameter '%s' in %s", name_ptr, ZM_CONFIG );
+    }
+  } // end foreach line of the config
+  fclose( cfg );
+  zmDbConnect();
+  config.Load();
+  config.Assign();
 
-	// Populate the server config entries
-	if ( ! staticConfig.SERVER_ID ) {
-		if ( ! staticConfig.SERVER_NAME.empty() ) {
+  // Populate the server config entries
+  if ( ! staticConfig.SERVER_ID ) {
+    if ( ! staticConfig.SERVER_NAME.empty() ) {
 
-			Debug( 1, "Fetching ZM_SERVER_ID For Name = %s", staticConfig.SERVER_NAME.c_str() );
-			std::string sql = stringtf("SELECT Id FROM Servers WHERE Name='%s'", staticConfig.SERVER_NAME.c_str() );
-            zmDbRow dbrow;
-			if ( dbrow.fetch( sql.c_str() ) ) {
-				staticConfig.SERVER_ID = atoi(dbrow[0]);
-			} else {
-				Fatal("Can't get ServerId for Server %s", staticConfig.SERVER_NAME.c_str() );
-			}
+      Debug( 1, "Fetching ZM_SERVER_ID For Name = %s", staticConfig.SERVER_NAME.c_str() );
+      std::string sql = stringtf("SELECT Id FROM Servers WHERE Name='%s'", staticConfig.SERVER_NAME.c_str() );
+      zmDbRow dbrow;
+      if ( dbrow.fetch( sql.c_str() ) ) {
+        staticConfig.SERVER_ID = atoi(dbrow[0]);
+      } else {
+        Fatal("Can't get ServerId for Server %s", staticConfig.SERVER_NAME.c_str() );
+      }
 
-		} // end if has SERVER_NAME
-	} else if ( staticConfig.SERVER_NAME.empty() ) {
-		Debug( 1, "Fetching ZM_SERVER_NAME For Id = %d", staticConfig.SERVER_ID );
-		std::string sql = stringtf("SELECT Name FROM Servers WHERE Id='%d'", staticConfig.SERVER_ID );
-		
-        zmDbRow dbrow;
-		if ( dbrow.fetch( sql.c_str() ) ) {
-			staticConfig.SERVER_NAME = std::string(dbrow[0]);
-		} else {
-			Fatal("Can't get ServerName for Server ID %d", staticConfig.SERVER_ID );
-		}
-	
-	}	
-	if ( ! staticConfig.SERVER_ID ) {
-		Debug( 1, "No Server ID or Name specified in config.  Not using Multi-Server Mode." );
-	} else {
-		Debug( 1, "Server is %d: using Multi-Server Mode.", staticConfig.SERVER_ID );
-	}
+    } // end if has SERVER_NAME
+  } else if ( staticConfig.SERVER_NAME.empty() ) {
+    Debug( 1, "Fetching ZM_SERVER_NAME For Id = %d", staticConfig.SERVER_ID );
+    std::string sql = stringtf("SELECT Name FROM Servers WHERE Id='%d'", staticConfig.SERVER_ID );
+    
+    zmDbRow dbrow;
+    if ( dbrow.fetch( sql.c_str() ) ) {
+      staticConfig.SERVER_NAME = std::string(dbrow[0]);
+    } else {
+      Fatal("Can't get ServerName for Server ID %d", staticConfig.SERVER_ID );
+    }
+    if ( staticConfig.SERVER_ID ) {
+        Debug( 3, "Multi-server configuration detected. Server is %d.", staticConfig.SERVER_ID );
+    } else {
+        Debug( 3, "Single server configuration assumed because no Server ID or Name was specified." );
+    }
+  }
 }
 
 StaticConfig staticConfig;

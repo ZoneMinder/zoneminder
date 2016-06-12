@@ -165,20 +165,20 @@ if ( !empty($action) )
                     $_REQUEST['filter']['sort_asc'] = validStr($_REQUEST['sort_asc']);
                     $_REQUEST['filter']['limit'] = validInt($_REQUEST['limit']);
                     $sql = "replace into Filters set Name = ".dbEscape($filterName).", Query = ".dbEscape(jsonEncode($_REQUEST['filter']));
-                    if ( !empty($_REQUEST['autoArchive']) )
-                        $sql .= ", AutoArchive = ".dbEscape($_REQUEST['autoArchive']);
-                    if ( !empty($_REQUEST['autoVideo']) )
-                        $sql .= ", AutoVideo = ".dbEscape($_REQUEST['autoVideo']);
-                    if ( !empty($_REQUEST['autoUpload']) )
-                        $sql .= ", AutoUpload = ".dbEscape($_REQUEST['autoUpload']);
-                    if ( !empty($_REQUEST['autoEmail']) )
-                        $sql .= ", AutoEmail = ".dbEscape($_REQUEST['autoEmail']);
-                    if ( !empty($_REQUEST['autoMessage']) )
-                        $sql .= ", AutoMessage = ".dbEscape($_REQUEST['autoMessage']);
-                    if ( !empty($_REQUEST['autoExecute']) && !empty($_REQUEST['autoExecuteCmd']) )
-                        $sql .= ", AutoExecute = ".dbEscape($_REQUEST['autoExecute']).", AutoExecuteCmd = ".dbEscape($_REQUEST['autoExecuteCmd']);
-                    if ( !empty($_REQUEST['autoDelete']) )
-                        $sql .= ", AutoDelete = ".dbEscape($_REQUEST['autoDelete']);
+                    if ( !empty($_REQUEST['AutoArchive']) )
+                        $sql .= ", AutoArchive = ".dbEscape($_REQUEST['AutoArchive']);
+                    if ( !empty($_REQUEST['AutoVideo']) )
+                        $sql .= ", AutoVideo = ".dbEscape($_REQUEST['AutoVideo']);
+                    if ( !empty($_REQUEST['AutoUpload']) )
+                        $sql .= ", AutoUpload = ".dbEscape($_REQUEST['AutoUpload']);
+                    if ( !empty($_REQUEST['AutoEmail']) )
+                        $sql .= ", AutoEmail = ".dbEscape($_REQUEST['AutoEmail']);
+                    if ( !empty($_REQUEST['AutoMessage']) )
+                        $sql .= ", AutoMessage = ".dbEscape($_REQUEST['AutoMessage']);
+                    if ( !empty($_REQUEST['AutoExecute']) && !empty($_REQUEST['AutoExecuteCmd']) )
+                        $sql .= ", AutoExecute = ".dbEscape($_REQUEST['AutoExecute']).", AutoExecuteCmd = ".dbEscape($_REQUEST['AutoExecuteCmd']);
+                    if ( !empty($_REQUEST['AutoDelete']) )
+                        $sql .= ", AutoDelete = ".dbEscape($_REQUEST['AutoDelete']);
                     if ( !empty($_REQUEST['background']) )
                         $sql .= ", Background = ".dbEscape($_REQUEST['background']);
                     if ( !empty($_REQUEST['concurrent']) )

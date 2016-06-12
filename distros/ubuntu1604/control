@@ -5,8 +5,8 @@ Maintainer: Dmitry Smirnov <onlyjob@debian.org>
 Uploaders: Vagrant Cascadian <vagrant@debian.org>
 Build-Depends: debhelper (>= 9), dh-systemd, python-sphinx | python3-sphinx, apache2-dev, dh-linktree
               ,cmake
-              ,libavcodec-ffmpeg-dev, libavformat-ffmpeg-dev, libswscale-ffmpeg-dev, libavutil-ffmpeg-dev, libavdevice-ffmpeg-dev
-              ,libx264-dev, libmp4v2-dev,
+              ,libx264-dev, libmp4v2-dev
+              ,libavcodec-dev, libavformat-dev, libswscale-dev, libavutil-dev, libavdevice-dev
               ,libbz2-dev
               ,libgcrypt-dev
               ,libcurl4-gnutls-dev
@@ -22,6 +22,7 @@ Build-Depends: debhelper (>= 9), dh-systemd, python-sphinx | python3-sphinx, apa
               ,libphp-serialization-perl
               ,libsys-mmap-perl [!hurd-any]
               ,libwww-perl
+              ,libdata-uuid-perl 
 # Unbundled (dh_linktree):
         ,libjs-jquery
         ,libjs-mootools
@@ -40,20 +41,21 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libphp-serialization-perl
         ,libmodule-load-conditional-perl
         ,libnet-sftp-foreign-perl
-          ,libarchive-zip-perl
-          ,libdbd-mysql-perl
-          ,libdevice-serialport-perl
-          ,libimage-info-perl
-          ,libjson-any-perl
-          ,libsys-mmap-perl [!hurd-any]
-          ,liburi-encode-perl
-          ,libwww-perl
-          ,libdata-dump-perl
-          ,libclass-std-fast-perl
-          ,libsoap-wsdl-perl
-          ,libio-socket-multicast-perl
-          ,libdigest-sha-perl
-          ,libsys-cpu-perl, libsys-meminfo-perl
+        ,libarchive-zip-perl
+        ,libdbd-mysql-perl
+        ,libdevice-serialport-perl
+        ,libimage-info-perl
+        ,libjson-any-perl
+        ,libsys-mmap-perl [!hurd-any]
+        ,liburi-encode-perl
+        ,libwww-perl
+        ,libdata-dump-perl
+        ,libclass-std-fast-perl
+        ,libsoap-wsdl-perl
+        ,libio-socket-multicast-perl
+        ,libdigest-sha-perl
+        ,libsys-cpu-perl, libsys-meminfo-perl
+        ,libdata-uuid-perl 
         ,mysql-client | virtual-mysql-client
         ,perl-modules
         ,php5-mysql | php-mysql, php5-gd | php-gd
@@ -61,9 +63,10 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,rsyslog | system-log-daemon
         ,zip
 Recommends: ${misc:Recommends}
-           ,libapache2-mod-php5 | libapache2-mod-php7 | php5-fpm
+           ,libapache2-mod-php5 | libapache2-mod-php | php5-fpm | php-fpm
            ,mysql-server | virtual-mysql-server
            ,zoneminder-doc (>= ${source:Version})
+           ,ffmpeg
 Suggests: fcgiwrap, logrotate
 Description: video camera security and surveillance solution
  ZoneMinder is intended for use in single or multi-camera video security

@@ -387,6 +387,7 @@ Monitor::Monitor(
   mem_ptr = NULL;
 
   if ( purpose == CAPTURE ) {
+
     this->connect();
     if ( ! mem_ptr ) exit(-1);
     memset( mem_ptr, 0, mem_size );
@@ -503,6 +504,7 @@ Monitor::Monitor(
 }
 
 bool Monitor::connect() {
+	Debug(3, "Connecting to monitor.  Purpose is %d", purpose ); 
 #if ZM_MEM_MAPPED
   snprintf( mem_file, sizeof(mem_file), "%s/zm.mmap.%d", config.path_map, id );
   map_fd = open( mem_file, O_RDWR|O_CREAT, (mode_t)0600 );
@@ -562,6 +564,7 @@ bool Monitor::connect() {
     Debug(3,"Aligning shared memory images to the next 16 byte boundary");
     shared_images = (uint8_t*)((unsigned long)shared_images + (16 - ((unsigned long)shared_images % 16)));
   }
+	Debug(3, "Allocating %d image buffers", image_buffer_count );
   image_buffer = new Snapshot[image_buffer_count];
   for ( int i = 0; i < image_buffer_count; i++ ) {
     image_buffer[i].timestamp = &(shared_timestamps[i]);
@@ -1335,6 +1338,7 @@ bool Monitor::Analyse()
 
   if ( shared_data->action )
   {
+		// Can there be more than 1 bit set in the action?  Shouldn't these be elseifs?
     if ( shared_data->action & RELOAD )
     {
       Info( "Received reload indication at count %d", image_count );
@@ -1348,6 +1352,8 @@ bool Monitor::Analyse()
         Info( "Received suspend indication at count %d", image_count );
         shared_data->active = false;
         //closeEvent();
+			} else {
+        Info( "Received suspend indication at count %d, but wasn't active", image_count );
       }
       if ( config.max_suspend_time )
       {
@@ -1367,7 +1373,8 @@ bool Monitor::Analyse()
       }
       shared_data->action &= ~RESUME;
     }
-  }
+  } // end ifshared_data->action
+
   if ( auto_resume_time && (now.tv_sec >= auto_resume_time) )
   {
     Info( "Auto resuming at count %d", image_count );
@@ -1394,6 +1401,7 @@ bool Monitor::Analyse()
   {
     bool signal = shared_data->signal;
     bool signal_change = (signal != last_signal);
+	Debug(3, "Motion detection is enabled signal(%d) signal_change(%d)", signal, signal_change);
     
     //Set video recording flag for event start constructor and easy reference in code
         // TODO: Use enum instead of the # 2. Makes for easier reading
@@ -1457,7 +1465,11 @@ bool Monitor::Analyse()
           if ( !(image_count % (motion_frame_skip+1) ) )
           {
             // Get new score.
-            motion_score = last_motion_score = DetectMotion( *snap_image, zoneSet );
+            motion_score = DetectMotion( *snap_image, zoneSet );
+
+						Debug( 3, "After motion detection, last_motion_score(%d), new motion score(%d)", last_motion_score, motion_score );
+						// Why are we updating the last_motion_score too?
+						last_motion_score = motion_score;
           }
           //int motion_score = DetectBlack( *snap_image, zoneSet );
           if ( motion_score )
@@ -1519,27 +1531,27 @@ bool Monitor::Analyse()
             //TODO: We shouldn't have to do this every time. Not sure why it clears itself if this isn't here??
             snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
             
-            int section_mod = timestamp->tv_sec%section_length;
-            if ( section_mod < last_section_mod )
-            {
-              if ( state == IDLE || state == TAPE || event_close_mode == CLOSE_TIME )
-              {
-                if ( state == TAPE )
-                {
-                  shared_data->state = state = IDLE;
-                  Info( "%s: %03d - Closing event %d, section end", name, image_count, event->Id() )
-                }
-                else
-                  Info( "%s: %03d - Closing event %d, section end forced ", name, image_count, event->Id() );
-                closeEvent();
-                last_section_mod = 0;
-              }
-            }
-            else
-            {
-              last_section_mod = section_mod;
-            }
-          }
+					  if ( section_length ) {
+							int section_mod = timestamp->tv_sec%section_length;
+							Debug( 3, "Section length (%d) Last Section Mod(%d), new section mod(%d)", section_length, last_section_mod, section_mod );
+							if ( section_mod < last_section_mod ) {
+								//if ( state == IDLE || state == TAPE || event_close_mode == CLOSE_TIME ) {
+									//if ( state == TAPE ) {
+										//shared_data->state = state = IDLE;
+										//Info( "%s: %03d - Closing event %d, section end", name, image_count, event->Id() )
+									//} else {
+										Info( "%s: %03d - Closing event %d, section end forced ", name, image_count, event->Id() );
+									//}
+									closeEvent();
+									last_section_mod = 0;
+								//} else {
+									//Debug( 2, "Time to close event, but state (%d) is not IDLE or TAPE and event_close_mode is not CLOSE_TIME (%d)", state, event_close_mode );
+								//}
+							} else {
+								last_section_mod = section_mod;
+							}
+						}
+					} // end if section_length
           if ( !event )
           {
 
@@ -2630,11 +2642,11 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
     unsigned int storage_id = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
     int function = atoi(dbrow[col]); col++;
     int enabled = atoi(dbrow[col]); col++;
-    const char *linked_monitors = dbrow[col]; col++;
+    const char *linked_monitors = dbrow[col] ? dbrow[col] : ""; col++;
 
     const char *path = dbrow[col]; col++;
     const char *method = dbrow[col]; col++;
-    const char *options = dbrow[col]; col++;
+    const char *options = dbrow[col] ? dbrow[col] : ""; col++;
 
     int width = atoi(dbrow[col]); col++;
     int height = atoi(dbrow[col]); col++;
@@ -2645,7 +2657,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
 
     int savejpegs = atoi(dbrow[col]); col++;
     int videowriter = atoi(dbrow[col]); col++;
-    std::string encoderparams =  dbrow[col]; col++;
+    std::string encoderparams =  dbrow[col] ? dbrow[col] : ""; col++;
     bool record_audio = (*dbrow[col] != '0'); col++;
 
     int brightness = atoi(dbrow[col]); col++;
@@ -2654,7 +2666,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
     int colour = atoi(dbrow[col]); col++;
 
     const char *event_prefix = dbrow[col]; col++;
-    const char *label_format = dbrow[col]; col++;
+    const char *label_format = dbrow[col] ? dbrow[col] : ""; col++;
 
     int label_x = atoi(dbrow[col]); col++;
     int label_y = atoi(dbrow[col]); col++;
@@ -2773,7 +2785,7 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
   std::string type = dbrow[col]; col++;
   int function = atoi(dbrow[col]); col++;
   int enabled = atoi(dbrow[col]); col++;
-  std::string linked_monitors = dbrow[col]; col++;
+  std::string linked_monitors = dbrow[col] ? dbrow[col] : ""; col++;
 
   std::string device = dbrow[col]; col++;
   int channel = atoi(dbrow[col]); col++;
@@ -2803,7 +2815,7 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
   std::string host = dbrow[col]; col++;
   std::string port = dbrow[col]; col++;
   std::string path = dbrow[col]; col++;
-  std::string options = dbrow[col]; col++;
+  std::string options = dbrow[col] ? dbrow[col] : ""; col++;
   std::string user = dbrow[col]; col++;
   std::string pass = dbrow[col]; col++;
 
@@ -2816,7 +2828,7 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
   bool rtsp_describe = (*dbrow[col] != '0'); col++;
   int savejpegs = atoi(dbrow[col]); col++;
   int videowriter = atoi(dbrow[col]); col++;
-  std::string encoderparams =  dbrow[col]; col++;
+  std::string encoderparams =  dbrow[col] ? dbrow[col] : ""; col++;
   bool record_audio = (*dbrow[col] != '0'); col++;
 
   int brightness = atoi(dbrow[col]); col++;
@@ -2825,7 +2837,7 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
   int colour = atoi(dbrow[col]); col++;
 
   std::string event_prefix = dbrow[col]; col++;
-  std::string label_format = dbrow[col]; col++;
+  std::string label_format = dbrow[col] ? dbrow[col] : ""; col++;
 
   int label_x = atoi(dbrow[col]); col++;
   int label_y = atoi(dbrow[col]); col++;
@@ -4399,3 +4411,15 @@ void Monitor::SingleImageZip( int scale)
   fprintf( stdout, "Content-Type: image/x-rgbz\r\n\r\n" );
   fwrite( img_buffer, img_buffer_size, 1, stdout );
 }
+unsigned int Monitor::Colours() const { return( camera->Colours() ); }
+	unsigned int Monitor::SubpixelOrder() const { return( camera->SubpixelOrder() ); }
+	int Monitor::PrimeCapture() {
+		return( camera->PrimeCapture() );
+	}
+	int Monitor::PreCapture() {
+		return( camera->PreCapture() );
+	}
+	int Monitor::PostCapture() {
+		return( camera->PostCapture() );
+	}
+  Monitor::Orientation Monitor::getOrientation()const { return orientation; }

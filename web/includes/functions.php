@@ -108,31 +108,25 @@ function CORSHeaders() {
 }
 
 function getAuthUser( $auth ) {
-  if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == "hashed" && !empty($auth) )
-  {
+  if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == "hashed" && !empty($auth) ) {
     $remoteAddr = "";
-    if ( ZM_AUTH_HASH_IPS )
-    {
+    if ( ZM_AUTH_HASH_IPS ) {
       $remoteAddr = $_SERVER['REMOTE_ADDR'];
-      if ( !$remoteAddr )
-      {
+      if ( !$remoteAddr ) {
         Error( "Can't determine remote address for authentication, using empty string" );
         $remoteAddr = "";
       }
     }
 
     $sql = "select Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds from Users where Enabled = 1";
-    foreach ( dbFetchAll( $sql ) as $user )
-    {
+    foreach ( dbFetchAll( $sql ) as $user ) {
       $now = time();
-      for ( $i = 0; $i < 2; $i++, $now -= (60*60) ) // Try for last two hours
-      {
+      for ( $i = 0; $i < 2; $i++, $now -= (60*60) ) { // Try for last two hours
         $time = localtime( $now );
         $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$remoteAddr.$time[2].$time[3].$time[4].$time[5];
         $authHash = md5( $authKey );
 
-        if ( $auth == $authHash )
-        {
+        if ( $auth == $authHash ) {
           return( $user );
         }
       }
@@ -142,73 +136,52 @@ function getAuthUser( $auth ) {
   return( false );
 }
 
-function generateAuthHash( $useRemoteAddr )
-{
-  if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == "hashed" )
-  {
+function generateAuthHash( $useRemoteAddr ) {
+  if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == "hashed" ) {
     $time = localtime();
-    if ( $useRemoteAddr )
-    {
+    if ( $useRemoteAddr ) {
       $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$_SESSION['remoteAddr'].$time[2].$time[3].$time[4].$time[5];
-    }
-    else
-    {
+    } else {
       $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$time[2].$time[3].$time[4].$time[5];
     }
     $auth = md5( $authKey );
-  }
-  else
-  {
+  } else {
     $auth = "";
   }
   return( $auth );
 }
 
-function getStreamSrc( $args, $querySep='&amp;' )
-{
+function getStreamSrc( $args, $querySep='&amp;' ) {
   $streamSrc = ZM_BASE_URL.ZM_PATH_ZMS;
 
-  if ( ZM_OPT_USE_AUTH )
-  {
-    if ( ZM_AUTH_RELAY == "hashed" )
-    {
+  if ( ZM_OPT_USE_AUTH ) {
+    if ( ZM_AUTH_RELAY == "hashed" ) {
       $args[] = "auth=".generateAuthHash( ZM_AUTH_HASH_IPS );
-    }
-    elseif ( ZM_AUTH_RELAY == "plain" )
-    {
+    } elseif ( ZM_AUTH_RELAY == "plain" ) {
       $args[] = "user=".$_SESSION['username'];
       $args[] = "pass=".$_SESSION['password'];
-    }
-    elseif ( ZM_AUTH_RELAY == "none" )
-    {
+    } elseif ( ZM_AUTH_RELAY == "none" ) {
       $args[] = "user=".$_SESSION['username'];
     }
   }
-  if ( !in_array( "mode=single", $args ) && !empty($GLOBALS['connkey']) )
-  {   
+  if ( !in_array( "mode=single", $args ) && !empty($GLOBALS['connkey']) ) {   
     $args[] = "connkey=".$GLOBALS['connkey'];
   }       
-  if ( ZM_RAND_STREAM )
-  {
+  if ( ZM_RAND_STREAM ) {
     $args[] = "rand=".time();
   }
 
-  if ( count($args) )
-  {
+  if ( count($args) ) {
     $streamSrc .= "?".join( $querySep, $args );
   }
 
   return( $streamSrc );
 }
 
-function getMimeType( $file )
-{
-  if ( function_exists('mime_content_type') )
-  {
+function getMimeType( $file ) {
+  if ( function_exists('mime_content_type') ) {
     return( mime_content_type( $file ) );
-  }
-  elseif ( function_exists('finfo_file') )
-  {
+  } elseif ( function_exists('finfo_file') ) {
     $finfo = finfo_open( FILEINFO_MIME );
     $mimeType = finfo_file( $finfo, $file );
     finfo_close($finfo);
@@ -350,59 +323,45 @@ function getImageStream( $id, $src, $width, $height, $title="" ) {
   }
 }
 
-function outputControlStream( $src, $width, $height, $monitor, $scale, $target )
-{
-  ?>
-    <form name="ctrlForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" target="<?php echo $target ?>">
+function outputControlStream( $src, $width, $height, $monitor, $scale, $target ) {
+?>
+  <form name="ctrlForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" target="<?php echo $target ?>">
     <input type="hidden" name="view" value="blank">
     <input type="hidden" name="mid" value="<?php echo $monitor['Id'] ?>">
     <input type="hidden" name="action" value="control">
-    <?php
-    if ( $monitor['CanMoveMap'] ) 
-    {
-      ?>
-        <input type="hidden" name="control" value="moveMap">
-        <?php
-    }
-  elseif ( $monitor['CanMoveRel'] )
-  {
-    ?>
+<?php if ( $monitor['CanMoveMap'] ) { ?>
+      <input type="hidden" name="control" value="moveMap">
+    <?php } elseif ( $monitor['CanMoveRel'] ) { ?>
       <input type="hidden" name="control" value="movePseudoMap">
-      <?php
-  }
-  elseif ( $monitor['CanMoveCon'] )
-  {
-    ?>
+    <?php } elseif ( $monitor['CanMoveCon'] ) { ?>
       <input type="hidden" name="control" value="moveConMap">
-      <?php
-  }
-  ?>
+    <?php } ?>
     <input type="hidden" name="scale" value="<?php echo $scale ?>">
     <input type="image" src="<?php echo $src ?>" width="<?php echo $width ?>" height="<?php echo $height ?>">
-    </form>
-    <?php
+  </form>
+<?php
 }
 
-function outputHelperStream( $id, $src, $width, $height, $title="" )
-{
-  ?>
-    <applet id="<?php echo $id ?>" code="com.charliemouse.cambozola.Viewer"
-    archive="<?php echo ZM_PATH_CAMBOZOLA ?>"
+function outputHelperStream( $id, $src, $width, $height, $title="" ) {
+        echo getOutputHelperStream( $id, $src, $width, $height, $title );
+}
+function getHelperStream( $id, $src, $width, $height, $title="" ) {
+    return '<applet id="'.$id.'" code="com.charliemouse.cambozola.Viewer"
+    archive="'. ZM_PATH_CAMBOZOLA .'" 
     align="middle"
-    width="<?php echo $width ?>"
-    height="<?php echo $height ?>"
-    title="<?php echo $title ?>">
+    width="'. $width .'"
+    height="'. $height .'"
+    title="'. $title .'">
     <param name="accessories" value="none"/>
-    <param name="url" value="<?php echo $src ?>"/>
-    </applet>
-    <?php
+    <param name="url" value="'. $src .'"/>
+    </applet>';
 }
 
-function outputImageStill( $id, $src, $width, $height, $title="" )
-{
-  ?>
-    <img id="<?php echo $id ?>" src="<?php echo $src ?>" alt="<?php echo $title ?>" width="<?php echo $width ?>" height="<?php echo $height ?>"/>
-    <?php
+function outputImageStill( $id, $src, $width, $height, $title="" ) {
+  echo getImageStill( $id, $src, $width, $height, $title="" );
+}
+function getImageStill( $id, $src, $width, $height, $title="" ) {
+  return '<img id="'.$id.'" src="'.$src.'" alt="'.$title.'" width="'.$width.'" height="'.$height.'"/>';
 }
 
 function outputControlStill( $src, $width, $height, $monitor, $scale, $target )
@@ -413,25 +372,20 @@ function outputControlStill( $src, $width, $height, $monitor, $scale, $target )
     <input type="hidden" name="mid" value="<?php echo $monitor['Id'] ?>">
     <input type="hidden" name="action" value="control">
     <?php
-    if ( $monitor['CanMoveMap'] ) 
-    {
-      ?>
-        <input type="hidden" name="control" value="moveMap">
-        <?php
-    }
-  elseif ( $monitor['CanMoveRel'] )
-  {
+    if ( $monitor['CanMoveMap'] ) {
+    ?>
+      <input type="hidden" name="control" value="moveMap">
+    <?php
+    } elseif ( $monitor['CanMoveRel'] ) {
     ?>
       <input type="hidden" name="control" value="movePseudoMap">
-      <?php
-  }
-  elseif ( $monitor['CanMoveCon'] )
-  {
+    <?php
+    } elseif ( $monitor['CanMoveCon'] ) {
     ?>
       <input type="hidden" name="control" value="moveConMap">
-      <?php
-  }
-  ?>
+    <?php
+    }
+    ?>
     <input type="hidden" name="scale" value="<?php echo $scale ?>">
     <input type="image" src="<?php echo $src ?>" width="<?php echo $width ?>" height="<?php echo $height ?>">
     </form>
@@ -439,8 +393,7 @@ function outputControlStill( $src, $width, $height, $monitor, $scale, $target )
 }
 
 // Incoming args are shell-escaped. This function must escape any further arguments it cannot guarantee.
-function getZmuCommand( $args )
-{
+function getZmuCommand( $args ) {
   $zmuCommand = ZMU_PATH;
 
   if ( ZM_OPT_USE_AUTH )
@@ -464,30 +417,25 @@ function getZmuCommand( $args )
   return( $zmuCommand );
 }
 
-function visibleMonitor( $mid )
-{
+function visibleMonitor( $mid ) {
   global $user;
 
   return( empty($user['MonitorIds']) || in_array( $mid, explode( ',', $user['MonitorIds'] ) ) );
 }
 
-function canView( $area, $mid=false )
-{
+function canView( $area, $mid=false ) {
   global $user;
 
   return( ($user[$area] == 'View' || $user[$area] == 'Edit') && ( !$mid || visibleMonitor( $mid ) ) );
 }
 
-function canEdit( $area, $mid=false )
-{
+function canEdit( $area, $mid=false ) {
   global $user;
 
   return( $user[$area] == 'Edit' && ( !$mid || visibleMonitor( $mid ) ) );
 }
 
-function getEventPath( $event )
-{
-
+function getEventPath( $event ) {
   if ( ZM_USE_DEEP_STORAGE )
     $eventPath = $event['MonitorId'].'/'.strftime( "%y/%m/%d/%H/%M/%S", strtotime($event['StartTime']) );
   else
@@ -501,14 +449,10 @@ function getEventDefaultVideoPath( $event ) {
   //$Event->Path().'/'.$event['DefaultVideo'];
 }
 
-function deletePath( $path )
-{
-  if ( is_dir( $path ) )
-  {
+function deletePath( $path ) {
+  if ( is_dir( $path ) ) {
     system( escapeshellcmd( "rm -rf ".$path ) );
-  }
-  else
-  {
+  } else {
     unlink( $path );
   }
 }
@@ -532,26 +476,21 @@ function deleteEvent( $event ) {
   } # CAN EDIT
 }
 
-function makeLink( $url, $label, $condition=1, $options="" )
-{
+function makeLink( $url, $label, $condition=1, $options="" ) {
   $string = "";
-  if ( $condition )
-  {
+  if ( $condition ) {
     $string .= '<a href="'.$url.'"'.($options?(' '.$options):'').'>';
   }
   $string .= $label;
-  if ( $condition )
-  {
+  if ( $condition ) {
     $string .= '</a>';
   }
   return( $string );
 }
 
-function makePopupLink( $url, $winName, $winSize, $label, $condition=1, $options="" )
-{
+function makePopupLink( $url, $winName, $winSize, $label, $condition=1, $options="" ) {
   $string = "";
-  if ( $condition )
-  {
+  if ( $condition ) {
     if ( is_array( $winSize ) )
       $popupParms = "'".$url."', '".$winName."', '".$winSize[0]."', ".$winSize[1].", ".$winSize[2];
     else
@@ -560,15 +499,13 @@ function makePopupLink( $url, $winName, $winSize, $label, $condition=1, $options
     $string .= '<a href="'.$url.'" onclick="createPopup( '.$popupParms.' ); return( false );"'.($options?(' '.$options):'').'>';
   }
   $string .= $label;
-  if ( $condition )
-  {
+  if ( $condition ) {
     $string .= '</a>';
   }
   return( $string );
 }
 
-function makePopupButton( $url, $winName, $winSize, $buttonValue, $condition=1, $options="" )
-{
+function makePopupButton( $url, $winName, $winSize, $buttonValue, $condition=1, $options="" ) {
   if ( is_array( $winSize ) )
     $popupParms = "'".$url."', '".$winName."', '".$winSize[0]."', ".$winSize[1].", ".$winSize[2];
   else
@@ -577,8 +514,7 @@ function makePopupButton( $url, $winName, $winSize, $buttonValue, $condition=1, 
   return( $string );
 }
 
-function truncText( $text, $length, $deslash=1 )
-{       
+function truncText( $text, $length, $deslash=1 ) {       
   return( preg_replace( "/^(.{".$length.",}?)\b.*$/", "\\1&hellip;", ($deslash?stripslashes($text):$text) ) );       
 }               
 
@@ -607,25 +543,20 @@ function htmlSelect( $name, $contents, $values, $behaviours=false ) {
 function buildSelect( $name, $contents, $behaviours=false )
 {
   $value = "";
-  if ( preg_match( "/^\s*(\w+)\s*(\[.*\])?\s*$/", $name, $matches ) && count($matches) > 2 )
-  {
+  if ( preg_match( "/^\s*(\w+)\s*(\[.*\])?\s*$/", $name, $matches ) && count($matches) > 2 ) {
     $arr = $matches[1];
     if ( isset($GLOBALS[$arr]) )
       $value = $GLOBALS[$arr];
     elseif ( isset($_REQUEST[$arr]) )
       $value = $_REQUEST[$arr];
-    if ( !preg_match_all( "/\[\s*['\"]?(\w+)[\"']?\s*\]/", $matches[2], $matches ) )
-    {
+    if ( !preg_match_all( "/\[\s*['\"]?(\w+)[\"']?\s*\]/", $matches[2], $matches ) ) {
       Fatal( "Can't parse selector '$name'" );
     }
-    for ( $i = 0; $i < count($matches[1]); $i++ )
-    {
+    for ( $i = 0; $i < count($matches[1]); $i++ ) {
       $idx = $matches[1][$i];
       $value = isset($value[$idx])?$value[$idx]:false;
     }
-  }
-  else
-  {
+  } else {
     if ( isset($GLOBALS[$name]) )
       $value = $GLOBALS[$name];
     elseif ( isset($_REQUEST[$name]) )
@@ -633,72 +564,58 @@ function buildSelect( $name, $contents, $behaviours=false )
   }
   ob_start();
   $behaviourText = "";
-  if ( !empty($behaviours) )
-  {
-    if ( is_array($behaviours) )
-    {
-      foreach ( $behaviours as $event=>$action )
-      {
+  if ( !empty($behaviours) ) {
+    if ( is_array($behaviours) ) {
+      foreach ( $behaviours as $event=>$action ) {
         $behaviourText .= ' '.$event.'="'.$action.'"';
       }
-    }
-    else
-    {
+    } else {
       $behaviourText = ' onchange="'.$behaviours.'"';
     }
   }
   ?>
-    <select name="<?php echo $name ?>" id="<?php echo $name ?>"<?php echo $behaviourText ?>>
-    <?php
-    foreach ( $contents as $contentValue => $contentText )
-    {
-      ?>
-        <option value="<?php echo $contentValue ?>"<?php if ( $value == $contentValue ) { ?> selected="selected"<?php } ?>><?php echo validHtmlStr($contentText) ?></option>
-        <?php
-    }
+  <select name="<?php echo $name ?>" id="<?php echo $name ?>"<?php echo $behaviourText ?>>
+  <?php
+  foreach ( $contents as $contentValue => $contentText ) {
   ?>
-    </select>
-    <?php
-    $html = ob_get_contents();
+    <option value="<?php echo $contentValue ?>"<?php if ( $value == $contentValue ) { ?> selected="selected"<?php } ?>><?php echo validHtmlStr($contentText) ?></option>
+  <?php
+  }
+  ?>
+  </select>
+  <?php
+  $html = ob_get_contents();
   ob_end_clean();
 
   return( $html );
 }
 
-function getFormChanges( $values, $newValues, $types=false, $columns=false )
-{
+function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
   $changes = array();
   if ( !$types )
     $types = array();
 
-  foreach( $newValues as $key=>$value )
-  {
+  foreach( $newValues as $key=>$value ) {
     if ( $columns && !$columns[$key] )
       continue;
 
     if ( !isset($types[$key]) )
       $types[$key] = false;
-    switch( $types[$key] )
-    {
+    switch( $types[$key] ) {
       case 'set' :
         {
-          if ( is_array( $newValues[$key] ) )
-          {
-            if ( join(',',$newValues[$key]) != $values[$key] )
-            {
+          if ( is_array( $newValues[$key] ) ) {
+            if ( join(',',$newValues[$key]) != $values[$key] ) {
               $changes[$key] = "$key = ".dbEscape(join(',',$newValues[$key]));
             }
-          }
-          elseif ( $values[$key] )
-          {
+          } elseif ( $values[$key] ) {
             $changes[$key] = "$key = ''";
           }
           break;
         }
       case 'image' :
         {
-          if ( is_array( $newValues[$key] ) )
-          {
+          if ( is_array( $newValues[$key] ) ) {
             $imageData = getimagesize( $newValues[$key]['tmp_name'] );
             $changes[$key.'Width'] = $key."Width = ".$imageData[0];
             $changes[$key.'Height'] = $key."Height = ".$imageData[1];
@@ -708,17 +625,14 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false )
             readfile( $newValues[$key]['tmp_name'] );
             $changes[$key] = $key." = ".dbEscape( ob_get_contents() );
             ob_end_clean();
-          }
-          else
-          {
+          } else {
             $changes[$key] = "$key = ".dbEscape($value);
           }
           break;
         }
       case 'document' :
         {
-          if ( is_array( $newValues[$key] ) )
-          {
+          if ( is_array( $newValues[$key] ) ) {
             $imageData = getimagesize( $newValues[$key]['tmp_name'] );
             $changes[$key.'Type'] = $key."Type = '".$newValues[$key]['type']."'";
             $changes[$key.'Size'] = $key."Size = ".$newValues[$key]['size'];
@@ -726,9 +640,7 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false )
             readfile( $newValues[$key]['tmp_name'] );
             $changes[$key] = $key." = ".dbEscape( ob_get_contents() );
             ob_end_clean();
-          }
-          else
-          {
+          } else {
             $changes[$key] = "$key = ".dbEscape($value);
           }
           break;
@@ -745,32 +657,29 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false )
         }
       case 'raw' :
         {
-          if ( $values[$key] != $value )
-          {
+          if ( $values[$key] != $value ) {
             $changes[$key] = "$key = ".dbEscape($value);
           }
           break;
         }
       default :
         {
-          if ( !isset($values[$key]) || ($values[$key] != $value) )
-          {
-            $changes[$key] = "$key = ".dbEscape(trim($value));
+          if ( !isset($values[$key]) || ($values[$key] != $value) ) {
+            if ( ! isset($value) || $value == '' ) {
+              $changes[$key] = "$key = NULL";
+            } else {
+              $changes[$key] = "$key = ".dbEscape(trim($value));
+            }
           }
           break;
         }
     }
   }
-  foreach( $values as $key=>$value )
-  {
-    if ( !empty($columns[$key]) )
-    {
-      if ( !empty($types[$key]) )
-      {
-        if ( $types[$key] == 'toggle' )
-        {
-          if ( !isset($newValues[$key]) && !empty($value) )
-          {
+  foreach( $values as $key=>$value ) {
+    if ( !empty($columns[$key]) ) {
+      if ( !empty($types[$key]) ) {
+        if ( $types[$key] == 'toggle' ) {
+          if ( !isset($newValues[$key]) && !empty($value) ) {
             $changes[$key] = "$key = 0";
           }
         }
@@ -784,55 +693,35 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false )
   return( $changes );
 }
 
-function getBrowser( &$browser, &$version )
-{
-  if ( isset($_SESSION['browser']) )
-  {
+function getBrowser( &$browser, &$version ) {
+  if ( isset($_SESSION['browser']) ) {
     $browser = $_SESSION['browser'];
     $version = $_SESSION['version'];
-  }
-  else
-  {
-    if (( preg_match( '/MSIE (.*?);/', $_SERVER['HTTP_USER_AGENT'], $logVersion)) || (preg_match( '/.*Trident.*rv:(.*?)(;|\))/', $_SERVER['HTTP_USER_AGENT'], $logVersion)))
-    {
+  } else {
+    if (( preg_match( '/MSIE (.*?);/', $_SERVER['HTTP_USER_AGENT'], $logVersion)) || (preg_match( '/.*Trident.*rv:(.*?)(;|\))/', $_SERVER['HTTP_USER_AGENT'], $logVersion))) {
       $version = $logVersion[1];
       $browser = 'ie';
-    }
-    elseif ( preg_match( '/Chrome\/([0-9.]+)/', $_SERVER['HTTP_USER_AGENT'], $logVersion) )
-    {
+    } elseif ( preg_match( '/Chrome\/([0-9.]+)/', $_SERVER['HTTP_USER_AGENT'], $logVersion) ) {
       $version = $logVersion[1];
       // Check for old version of Chrome with bug 5876
-      if ( $version < 7 )
-      {
+      if ( $version < 7 ) {
         $browser = 'oldchrome';
-      }
-      else
-      {
+      } else {
         $browser = 'chrome';
       }
-    }
-    elseif ( preg_match( '/Safari\/([0-9.]+)/', $_SERVER['HTTP_USER_AGENT'], $logVersion) )
-    {
+    } elseif ( preg_match( '/Safari\/([0-9.]+)/', $_SERVER['HTTP_USER_AGENT'], $logVersion) ) {
       $version = $logVersion[1];
       $browser = 'safari';
-    }
-    elseif ( preg_match( '/Opera[ \/]([0-9].[0-9]{1,2})/', $_SERVER['HTTP_USER_AGENT'], $logVersion) )
-    {
+    } elseif ( preg_match( '/Opera[ \/]([0-9].[0-9]{1,2})/', $_SERVER['HTTP_USER_AGENT'], $logVersion) ) {
       $version = $logVersion[1];
       $browser = 'opera';
-    }
-    elseif ( preg_match( '/Konqueror\/([0-9.]+)/', $_SERVER['HTTP_USER_AGENT'], $logVersion) )
-    {
+    } elseif ( preg_match( '/Konqueror\/([0-9.]+)/', $_SERVER['HTTP_USER_AGENT'], $logVersion) ) {
       $version = $logVersion[1];
       $browser = 'konqueror';
-    }
-    elseif ( preg_match( '/Mozilla\/([0-9].[0-9]{1,2})/', $_SERVER['HTTP_USER_AGENT'], $logVersion) )
-    {
+    } elseif ( preg_match( '/Mozilla\/([0-9].[0-9]{1,2})/', $_SERVER['HTTP_USER_AGENT'], $logVersion) ) {
       $version = $logVersion[1];
       $browser = 'mozilla';
-    }
-    else
-    {
+    } else {
       $version = 0;
       $browser = 'unknown';
     }
@@ -841,101 +730,84 @@ function getBrowser( &$browser, &$version )
   }
 }
 
-function isMozilla()
-{
+function isMozilla() {
   getBrowser( $browser, $version );
 
   return( $browser == "mozilla" );
 }
 
-function isKonqueror()
-{
+function isKonqueror() {
   getBrowser( $browser, $version );
 
   return( $browser == "konqueror" );
 }
 
-function isInternetExplorer()
-{
+function isInternetExplorer() {
   getBrowser( $browser, $version );
 
   return( $browser == "ie" );
 }
 
-function isOldChrome()
-{
+function isOldChrome() {
   getBrowser( $browser, $version );
 
   return( $browser == "oldchrome" );
 }
 
-function isChrome()
-{
+function isChrome() {
   getBrowser( $browser, $version );
 
   return( $browser == "chrome" );
 }
 
-function isOpera()
-{
+function isOpera() {
   getBrowser( $browser, $version );
 
   return( $browser == "opera" );
 }
 
-function isSafari()
-{
+function isSafari() {
   getBrowser( $browser, $version );
 
   return( $browser == "safari" );
 }
 
-function isWindows()
-{
+function isWindows() {
   return ( preg_match( '/Win/', $_SERVER['HTTP_USER_AGENT'] ) );
 }
 
-function canStreamIframe()
-{
+function canStreamIframe() {
   return( isKonqueror() );
 }
 
-function canStreamNative()
-{
+function canStreamNative() {
   // Old versions of Chrome can display the stream, but then it blocks everything else (Chrome bug 5876)
   return( ZM_WEB_CAN_STREAM == "yes" || ( ZM_WEB_CAN_STREAM == "auto" && (!isInternetExplorer() && !isOldChrome()) ) );
 }
 
-function canStreamApplet()
-{
-  if ( (ZM_OPT_CAMBOZOLA && !file_exists( ZM_PATH_WEB.'/'.ZM_PATH_CAMBOZOLA )) )
-  {
+function canStreamApplet() {
+  if ( (ZM_OPT_CAMBOZOLA && !file_exists( ZM_PATH_WEB.'/'.ZM_PATH_CAMBOZOLA )) ) {
     Warning ( "ZM_OPT_CAMBOZOLA is enabled, but the system cannot find ".ZM_PATH_WEB."/".ZM_PATH_CAMBOZOLA );
   }
 
   return( (ZM_OPT_CAMBOZOLA && file_exists( ZM_PATH_WEB.'/'.ZM_PATH_CAMBOZOLA )) );
 }
 
-function canStream()
-{
+function canStream() {
   return( canStreamNative() | canStreamApplet() );
 }
 
-function packageControl( $command )
-{
+function packageControl( $command ) {
   $string = ZM_PATH_BIN.'/zmpkg.pl '.escapeshellarg( $command );
   $string .= " 2>/dev/null >&- <&- >/dev/null";
   exec( $string );
 }
 
-function daemonControl( $command, $daemon=false, $args=false )
-{
+function daemonControl( $command, $daemon=false, $args=false ) {
   $string = ZM_PATH_BIN."/zmdc.pl $command";
-  if ( $daemon )
-  {
+  if ( $daemon ) {
     $string .= " $daemon";
-    if ( $args )
-    {
+    if ( $args ) {
       $string .= " $args";
     }
   }
@@ -943,107 +815,99 @@ function daemonControl( $command, $daemon=false, $args=false )
   exec( $string );
 }
 
-function zmcControl( $monitor, $mode=false )
-{
+function zmcControl( $monitor, $mode=false ) {
   if ( (!defined('ZM_SERVER_ID')) or ( ZM_SERVER_ID==$monitor['ServerId'] ) ) {
-	$row = NULL;
-    if ( $monitor['Type'] == "Local" )
-    {
+    $row = NULL;
+    if ( $monitor['Type'] == "Local" ) {
       $row = dbFetchOne( "select count(if(Function!='None',1,NULL)) as ActiveCount from Monitors where Device = ?", NULL, array($monitor['Device']) );
       $zmcArgs = "-d ".$monitor['Device'];
-    }
-    else
-    {
+    } else {
       $row = dbFetchOne( "select count(if(Function!='None',1,NULL)) as ActiveCount from Monitors where Id = ?", NULL, array($monitor['Id']) );
       $zmcArgs = "-m ".$monitor['Id'];
     }
     $activeCount = $row['ActiveCount'];
 
-    if ( !$activeCount || $mode == "stop" )
-    {
+    if ( !$activeCount || $mode == "stop" ) {
       daemonControl( "stop", "zmc", $zmcArgs );
-    }
-    else
-    {
-      if ( $mode == "restart" )
-      {
+    } else {
+      if ( $mode == "restart" ) {
         daemonControl( "stop", "zmc", $zmcArgs );
       }
       daemonControl( "start", "zmc", $zmcArgs );
     }
+  } else {
+    $Server = new Server( $monitor['ServerId'] );
+
+    #$url = $Server->Url() . '/zm/api/monitors.json?auth='.generateAuthHash( $_SESSION['remoteAddr'] );
+    $url = $Server->Url() . '/zm/api/monitors.json?user='.$_SESSION['username'].'&pass='.$_SESSION['passwordHash'];
+    $data = array('Monitor[Function]' => $monitor['Function'] );
+
+    // use key 'http' even if you send the request to https://...
+    $options = array(
+        'http' => array(
+          'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+          'method'  => 'POST',
+          'content' => http_build_query($data)
+          )
+        );
+    $context  = stream_context_create($options);
+    $result = file_get_contents($url, false, $context);
+    if ($result === FALSE) { /* Handle error */ }
+
   }
 }
 
-function zmaControl( $monitor, $mode=false )
-{
+function zmaControl( $monitor, $mode=false ) {
   if ( (!defined('ZM_SERVER_ID')) or ( ZM_SERVER_ID==$monitor['ServerId'] ) ) {
-    if ( !is_array( $monitor ) )
-    {
+    if ( !is_array( $monitor ) ) {
       $monitor = dbFetchOne( "select C.*, M.* from Monitors as M left join Controls as C on (M.ControlId = C.Id ) where M.Id=?", NULL, array($monitor) );
     }
-    if ( !$monitor || $monitor['Function'] == 'None' || $monitor['Function'] == 'Monitor' || $mode == "stop" )
-    {
-      if ( ZM_OPT_CONTROL )
-      {
+    if ( !$monitor || $monitor['Function'] == 'None' || $monitor['Function'] == 'Monitor' || $mode == "stop" ) {
+      if ( ZM_OPT_CONTROL ) {
         daemonControl( "stop", "zmtrack.pl", "-m ".$monitor['Id'] );
       }
       daemonControl( "stop", "zma", "-m ".$monitor['Id'] );
-      if ( ZM_OPT_FRAME_SERVER )
-      {
+      if ( ZM_OPT_FRAME_SERVER ) {
         daemonControl( "stop", "zmf", "-m ".$monitor['Id'] );
       }
-    }
-    else
-    {
-      if ( $mode == "restart" )
-      {
-        if ( ZM_OPT_CONTROL )
-        {
+    } else {
+      if ( $mode == "restart" ) {
+        if ( ZM_OPT_CONTROL ) {
           daemonControl( "stop", "zmtrack.pl", "-m ".$monitor['Id'] );
         }
         daemonControl( "stop", "zma", "-m ".$monitor['Id'] );
-        if ( ZM_OPT_FRAME_SERVER )
-        {
+        if ( ZM_OPT_FRAME_SERVER ) {
           daemonControl( "stop", "zmf", "-m ".$monitor['Id'] );
         }
       }
-      if ( ZM_OPT_FRAME_SERVER )
-      {
+      if ( ZM_OPT_FRAME_SERVER ) {
         daemonControl( "start", "zmf", "-m ".$monitor['Id'] );
       }
       daemonControl( "start", "zma", "-m ".$monitor['Id'] );
-      if ( ZM_OPT_CONTROL && $monitor['Controllable'] && $monitor['TrackMotion'] && ( $monitor['Function'] == 'Modect' || $monitor['Function'] == 'Mocord' ) )
-      {
+      if ( ZM_OPT_CONTROL && $monitor['Controllable'] && $monitor['TrackMotion'] && ( $monitor['Function'] == 'Modect' || $monitor['Function'] == 'Mocord' ) ) {
         daemonControl( "start", "zmtrack.pl", "-m ".$monitor['Id'] );
       }
-      if ( $mode == "reload" )
-      {
+      if ( $mode == "reload" ) {
         daemonControl( "reload", "zma", "-m ".$monitor['Id'] );
       }
     }
   }
 }
 
-function initDaemonStatus()
-{
+function initDaemonStatus() {
   global $daemon_status;
 
-  if ( !isset($daemon_status) )
-  {
-    if ( daemonCheck() )
-    {
+  if ( !isset($daemon_status) ) {
+    if ( daemonCheck() ) {
       $string = ZM_PATH_BIN."/zmdc.pl status";
       $daemon_status = shell_exec( $string );
-    }
-    else
-    {
+    } else {
       $daemon_status = "";
     }
   }
 }
 
-function daemonStatus( $daemon, $args=false )
-{
+function daemonStatus( $daemon, $args=false ) {
   global $daemon_status;
 
   initDaemonStatus();
@@ -1054,33 +918,25 @@ function daemonStatus( $daemon, $args=false )
   return( strpos( $daemon_status, "'$string' running" ) !== false );
 }
 
-function zmcStatus( $monitor )
-{
-  if ( $monitor['Type'] == 'Local' )
-  {
+function zmcStatus( $monitor ) {
+  if ( $monitor['Type'] == 'Local' ) {
     $zmcArgs = "-d ".$monitor['Device'];
-  }
-  else
-  {
+  } else {
     $zmcArgs = "-m ".$monitor['Id'];
   }
   return( daemonStatus( "zmc", $zmcArgs ) );
 }
 
-function zmaStatus( $monitor )
-{
-  if ( is_array( $monitor ) )
-  {
+function zmaStatus( $monitor ) {
+  if ( is_array( $monitor ) ) {
     $monitor = $monitor['Id'];
   }
   return( daemonStatus( "zma", "-m $monitor" ) );
 }
 
-function daemonCheck( $daemon=false, $args=false )
-{
+function daemonCheck( $daemon=false, $args=false ) {
   $string = ZM_PATH_BIN."/zmdc.pl check";
-  if ( $daemon )
-  {
+  if ( $daemon ) {
     $string .= " $daemon";
     if ( $args )
       $string .= " $args";
@@ -1089,23 +945,17 @@ function daemonCheck( $daemon=false, $args=false )
   return( preg_match( '/running/', $result ) );
 }
 
-function zmcCheck( $monitor )
-{
-  if ( $monitor['Type'] == 'Local' )
-  {
+function zmcCheck( $monitor ) {
+  if ( $monitor['Type'] == 'Local' ) {
     $zmcArgs = "-d ".$monitor['Device'];
-  }
-  else
-  {
+  } else {
     $zmcArgs = "-m ".$monitor['Id'];
   }
   return( daemonCheck( "zmc", $zmcArgs ) );
 }
 
-function zmaCheck( $monitor )
-{
-  if ( is_array( $monitor ) )
-  {
+function zmaCheck( $monitor ) {
+  if ( is_array( $monitor ) ) {
     $monitor = $monitor['Id'];
   }
   return( daemonCheck( "zma", "-m $monitor" ) );
@@ -1214,48 +1064,38 @@ function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $ov
   return( $imageData );
 }
 
-function viewImagePath( $path, $querySep='&amp;' )
-{
-  if ( strncmp( $path, ZM_DIR_IMAGES, strlen(ZM_DIR_IMAGES) ) == 0 )
-  {
+function viewImagePath( $path, $querySep='&amp;' ) {
+  if ( strncmp( $path, ZM_DIR_IMAGES, strlen(ZM_DIR_IMAGES) ) == 0 ) {
     // Thumbnails
     return( $path );
-  }
-  elseif ( strpos( ZM_DIR_EVENTS, '/' ) === 0 )
-  {
+  } elseif ( strpos( ZM_DIR_EVENTS, '/' ) === 0 ) {
     return( '?view=image'.$querySep.'path='.$path );
   }
   return( ZM_DIR_EVENTS.'/'.$path );
 }
 
-function createListThumbnail( $event, $overwrite=false )
-{
+function createListThumbnail( $event, $overwrite=false ) {
 # Load the frame with the highest score to use as a thumbnail
   if ( !($frame = dbFetchOne( "SELECT * FROM Frames WHERE EventId=? AND Score=? ORDER BY FrameId LIMIT 1", NULL, array( $event['Id'], $event['MaxScore'] ) )) )
     return( false );
 
   $frameId = $frame['FrameId'];
 
-  if ( ZM_WEB_LIST_THUMB_WIDTH )
-  {
+  if ( ZM_WEB_LIST_THUMB_WIDTH ) {
     $thumbWidth = ZM_WEB_LIST_THUMB_WIDTH;
     $scale = (SCALE_BASE*ZM_WEB_LIST_THUMB_WIDTH)/$event['Width'];
     $thumbHeight = reScale( $event['Height'], $scale );
-  }
-  elseif ( ZM_WEB_LIST_THUMB_HEIGHT )
-  {
+  } elseif ( ZM_WEB_LIST_THUMB_HEIGHT ) {
     $thumbHeight = ZM_WEB_LIST_THUMB_HEIGHT;
     $scale = (SCALE_BASE*ZM_WEB_LIST_THUMB_HEIGHT)/$event['Height'];
     $thumbWidth = reScale( $event['Width'], $scale );
-  }
-  else
-  {
+  } else {
     Fatal( "No thumbnail width or height specified, please check in Options->Web" );
   }
 
   $imageData = getImageSrc( $event, $frame, $scale, false, $overwrite );
   if ( ! $imageData ) {
-    return ( false );;
+    return ( false );
   }
   $thumbData = $frame;
   $thumbData['Path'] = $imageData['thumbPath'];
@@ -1265,8 +1105,7 @@ function createListThumbnail( $event, $overwrite=false )
   return( $thumbData );
 }
 
-function createVideo( $event, $format, $rate, $scale, $overwrite=false )
-{
+function createVideo( $event, $format, $rate, $scale, $overwrite=false ) {
   $command = ZM_PATH_BIN."/zmvideo.pl -e ".$event['Id']." -f ".$format." -r ".sprintf( "%.2F", ($rate/RATE_BASE) );
   if ( preg_match( '/\d+x\d+/', $scale ) )
     $command .= " -S ".$scale;
@@ -1281,8 +1120,7 @@ function createVideo( $event, $format, $rate, $scale, $overwrite=false )
   return( $status?"":rtrim($result) );
 }
 
-function executeFilter( $filter )
-{
+function executeFilter( $filter ) {
   $command = ZM_PATH_BIN."/zmfilter.pl --filter ".escapeshellarg($filter);
   $result = exec( $command, $output, $status );
   dbQuery( "delete from Filters where Name like '_TempFilter%'" );
@@ -1291,11 +1129,9 @@ function executeFilter( $filter )
 
 # This takes more than one scale amount, so it runs through each and alters dimension.
 # I can't imagine why you would want to do that.
-function reScale( $dimension, $dummy )
-{
+function reScale( $dimension, $dummy ) {
   $new_dimension = $dimension;
-  for ( $i = 1; $i < func_num_args(); $i++ )
-  {
+  for ( $i = 1; $i < func_num_args(); $i++ ) {
     $scale = func_get_arg( $i );
     if ( !empty($scale) && $scale != SCALE_BASE )
       $new_dimension = (int)(($new_dimension*$scale)/SCALE_BASE);
@@ -1303,11 +1139,9 @@ function reScale( $dimension, $dummy )
   return( $new_dimension );
 }
 
-function deScale( $dimension, $dummy )
-{
+function deScale( $dimension, $dummy ) {
   $new_dimension = $dimension;
-  for ( $i = 1; $i < func_num_args(); $i++ )
-  {
+  for ( $i = 1; $i < func_num_args(); $i++ ) {
     $scale = func_get_arg( $i );
     if ( !empty($scale) && $scale != SCALE_BASE )
       $new_dimension = (int)(($new_dimension*SCALE_BASE)/$scale);
@@ -1315,8 +1149,7 @@ function deScale( $dimension, $dummy )
   return( $new_dimension );
 }
 
-function monitorLimitSql()
-{
+function monitorLimitSql() {
   global $user;
   if ( !empty($user['MonitorIds']) )
     $midSql = " and MonitorId in (".join( ",", preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) ).")";
@@ -1325,17 +1158,14 @@ function monitorLimitSql()
   return( $midSql );
 }
 
-function parseSort( $saveToSession=false, $querySep='&amp;' )
-{
+function parseSort( $saveToSession=false, $querySep='&amp;' ) {
   global $sortQuery, $sortColumn, $sortOrder; // Outputs
 
-  if ( empty($_REQUEST['sort_field']) )
-  {
+  if ( empty($_REQUEST['sort_field']) ) {
     $_REQUEST['sort_field'] = ZM_WEB_EVENT_SORT_FIELD;
     $_REQUEST['sort_asc'] = (ZM_WEB_EVENT_SORT_ORDER == "asc");
   }
-  switch( $_REQUEST['sort_field'] )
-  {
+  switch( $_REQUEST['sort_field'] ) {
     case 'Id' :
       $sortColumn = "E.Id";
       break;
@@ -1381,41 +1211,33 @@ function parseSort( $saveToSession=false, $querySep='&amp;' )
   $sortQuery = $querySep."sort_field=".validHtmlStr($_REQUEST['sort_field']).$querySep."sort_asc=".validHtmlStr($_REQUEST['sort_asc']);
   if ( !isset($_REQUEST['limit']) )
     $_REQUEST['limit'] = "";
-  if ( $saveToSession )
-  {
+  if ( $saveToSession ) {
     $_SESSION['sort_field'] = validHtmlStr($_REQUEST['sort_field']);
     $_SESSION['sort_asc'] = validHtmlStr($_REQUEST['sort_asc']);
   }
 }
 
-function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' )
-{
+function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
   $filter['query'] = ''; 
   $filter['sql'] = '';
   $filter['fields'] = '';
 
-  if ( isset($filter['terms']) && count($filter['terms']) )
-  {
-    for ( $i = 0; $i < count($filter['terms']); $i++ )
-    {
-      if ( isset($filter['terms'][$i]['cnj']) )
-      {
+  if ( isset($filter['terms']) && count($filter['terms']) ) {
+    for ( $i = 0; $i < count($filter['terms']); $i++ ) {
+      if ( isset($filter['terms'][$i]['cnj']) ) {
         $filter['query'] .= $querySep."filter[terms][$i][cnj]=".urlencode($filter['terms'][$i]['cnj']);
         $filter['sql'] .= " ".$filter['terms'][$i]['cnj']." ";
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][cnj]\" value=\"".htmlspecialchars($filter['terms'][$i]['cnj'])."\"/>\n";
       }
-      if ( isset($filter['terms'][$i]['obr']) )
-      {
+      if ( isset($filter['terms'][$i]['obr']) ) {
         $filter['query'] .= $querySep."filter[terms][$i][obr]=".urlencode($filter['terms'][$i]['obr']);
         $filter['sql'] .= " ".str_repeat( "(", $filter['terms'][$i]['obr'] )." ";
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][obr]\" value=\"".htmlspecialchars($filter['terms'][$i]['obr'])."\"/>\n";
       }
-      if ( isset($filter['terms'][$i]['attr']) )
-      {
+      if ( isset($filter['terms'][$i]['attr']) ) {
         $filter['query'] .= $querySep."filter[terms][$i][attr]=".urlencode($filter['terms'][$i]['attr']);
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][attr]\" value=\"".htmlspecialchars($filter['terms'][$i]['attr'])."\"/>\n";
-        switch ( $filter['terms'][$i]['attr'] )
-        {
+        switch ( $filter['terms'][$i]['attr'] ) {
           case 'MonitorName':
             $filter['sql'] .= 'M.'.preg_replace( '/^Monitor/', '', $filter['terms'][$i]['attr'] );
             break;
@@ -1460,10 +1282,8 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' )
             break;
         }
         $valueList = array();
-        foreach ( preg_split( '/["\'\s]*?,["\'\s]*?/', preg_replace( '/^["\']+?(.+)["\']+?$/', '$1', $filter['terms'][$i]['val'] ) ) as $value )
-        {
-          switch ( $filter['terms'][$i]['attr'] )
-          {
+        foreach ( preg_split( '/["\'\s]*?,["\'\s]*?/', preg_replace( '/^["\']+?(.+)["\']+?$/', '$1', $filter['terms'][$i]['val'] ) ) as $value ) {
+          switch ( $filter['terms'][$i]['attr'] ) {
             case 'MonitorName':
             case 'Name':
             case 'Cause':
@@ -1492,8 +1312,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' )
           $valueList[] = $value;
         }
 
-        switch ( $filter['terms'][$i]['op'] )
-        {
+        switch ( $filter['terms'][$i]['op'] ) {
           case '=' :
           case '!=' :
           case '>=' :
@@ -1521,8 +1340,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' )
         $filter['query'] .= $querySep."filter[terms][$i][val]=".urlencode($filter['terms'][$i]['val']);
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][val]\" value=\"".htmlspecialchars($filter['terms'][$i]['val'])."\"/>\n";
       }
-      if ( isset($filter['terms'][$i]['cbr']) )
-      {
+      if ( isset($filter['terms'][$i]['cbr']) ) {
         $filter['query'] .= $querySep."filter[terms][$i][cbr]=".urlencode($filter['terms'][$i]['cbr']);
         $filter['sql'] .= " ".str_repeat( ")", $filter['terms'][$i]['cbr'] )." ";
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][cbr]\" value=\"".htmlspecialchars($filter['terms'][$i]['cbr'])."\"/>\n";
@@ -1530,15 +1348,13 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' )
     }
     if ( $filter['sql'] )
       $filter['sql'] = " and ( ".$filter['sql']." )";
-    if ( $saveToSession )
-    {
+    if ( $saveToSession ) {
       $_SESSION['filter'] = $filter;
     }
   }
 }
 
-function addFilterTerm( $filter, $position, $term=false )
-{
+function addFilterTerm( $filter, $position, $term=false ) {
   if ( $position < 0 )
     $position = 0;
   elseif( $position > count($filter['terms']) )
@@ -1550,8 +1366,7 @@ function addFilterTerm( $filter, $position, $term=false )
   return( $filter );
 }
 
-function delFilterTerm( $filter, $position )
-{
+function delFilterTerm( $filter, $position ) {
   if ( $position < 0 )
     $position = 0;
   elseif( $position >= count($filter['terms']) )
@@ -1561,24 +1376,19 @@ function delFilterTerm( $filter, $position )
   return( $filter );
 }
 
-function getPagination( $pages, $page, $maxShortcuts, $query, $querySep='&amp;' )
-{
+function getPagination( $pages, $page, $maxShortcuts, $query, $querySep='&amp;' ) {
   global $view;
 
   $pageText = "";
-  if ( $pages > 1 )
-  {
-    if ( $page )
-    {
+  if ( $pages > 1 ) {
+    if ( $page ) {
       if ( $page < 0 )
         $page = 1;
       if ( $page > $pages )
         $page = $pages;
 
-      if ( $page > 1 )
-      {
-        if ( false && $page > 2 )
-        {
+      if ( $page > 1 ) {
+        if ( false && $page > 2 ) {
           $pageText .= '<a href="?view='.$view.$querySep.'page=1'.$query.'">&lt;&lt;</a>';
         }
         $pageText .= '<a href="?view='.$view.$querySep.'page='.($page-1).$query.'">&lt;</a>';
@@ -1586,8 +1396,7 @@ function getPagination( $pages, $page, $maxShortcuts, $query, $querySep='&amp;' 
         $newPages = array();
         $pagesUsed = array();
         $lo_exp = max(2,log($page-1)/log($maxShortcuts));
-        for ( $i = 0; $i < $maxShortcuts; $i++ )
-        {
+        for ( $i = 0; $i < $maxShortcuts; $i++ ) {
           $newPage = round($page-pow($lo_exp,$i));
           if ( isset($pagesUsed[$newPage]) )
             continue;
@@ -1599,20 +1408,17 @@ function getPagination( $pages, $page, $maxShortcuts, $query, $querySep='&amp;' 
         if ( !isset($pagesUsed[1]) )
           array_unshift( $newPages, 1 );
 
-        foreach ( $newPages as $newPage )
-        {
+        foreach ( $newPages as $newPage ) {
           $pageText .= '<a href="?view='.$view.$querySep.'page='.$newPage.$query.'">'.$newPage.'</a>&nbsp;';
         }
 
       }
       $pageText .= '-&nbsp;'.$page.'&nbsp;-';
-      if ( $page < $pages )
-      {
+      if ( $page < $pages ) {
         $newPages = array();
         $pagesUsed = array();
         $hi_exp = max(2,log($pages-$page)/log($maxShortcuts));
-        for ( $i = 0; $i < $maxShortcuts; $i++ )
-        {
+        for ( $i = 0; $i < $maxShortcuts; $i++ ) {
           $newPage = round($page+pow($hi_exp,$i));
           if ( isset($pagesUsed[$newPage]) )
             continue;
@@ -1624,13 +1430,11 @@ function getPagination( $pages, $page, $maxShortcuts, $query, $querySep='&amp;' 
         if ( !isset($pagesUsed[$pages]) )
           array_push( $newPages, $pages );
 
-        foreach ( $newPages as $newPage )
-        {
+        foreach ( $newPages as $newPage ) {
           $pageText .= '&nbsp;<a href="?view='.$view.$querySep.'page='.$newPage.$query.'">'.$newPage.'</a>';
         }
         $pageText .= '<a href="?view='.$view.$querySep.'page='.($page+1).$query.'">&gt;</a>';
-        if ( false && $page < ($pages-1) )
-        {
+        if ( false && $page < ($pages-1) ) {
           $pageText .= '<a href="?view='.$view.$querySep.'page='.$pages.$query.'">&gt;&gt;</a>';
         }
       }
@@ -1639,14 +1443,12 @@ function getPagination( $pages, $page, $maxShortcuts, $query, $querySep='&amp;' 
   return( $pageText );
 }
 
-function sortHeader( $field, $querySep='&amp;' )
-{
+function sortHeader( $field, $querySep='&amp;' ) {
   global $view;
   return( '?view='.$view.$querySep.'page=1'.$_REQUEST['filter']['query'].$querySep.'sort_field='.$field.$querySep.'sort_asc='.($_REQUEST['sort_field'] == $field?!$_REQUEST['sort_asc']:0).$querySep.'limit='.$_REQUEST['limit'] );
 }
 
-function sortTag( $field )
-{
+function sortTag( $field ) {
   if ( $_REQUEST['sort_field'] == $field )
     if ( $_REQUEST['sort_asc'] )
       return( "(^)" );
@@ -1655,29 +1457,26 @@ function sortTag( $field )
   return( false );
 }
 
-function getLoad()
-{
+function getLoad() {
   $load = sys_getloadavg();
   return( $load[0] );
 }
 
-function getDiskPercent()
-{
+function getDiskPercent() {
   $total = disk_total_space(ZM_DIR_EVENTS);
   if ( ! $total ) {
     Error("disk_total_space returned false for " . ZM_DIR_EVENTS );
     return 0;
   }
-    $free = disk_free_space(ZM_DIR_EVENTS);
-    if ( ! $free ) {
-        Error("disk_free_space returned false for " . ZM_DIR_EVENTS );
-    }
-    $space = round(($total - $free) / $total * 100);
+  $free = disk_free_space(ZM_DIR_EVENTS);
+  if ( ! $free ) {
+    Error("disk_free_space returned false for " . ZM_DIR_EVENTS );
+  }
+  $space = round(($total - $free) / $total * 100);
   return( $space );
 }
 
-function getDiskBlocks()
-{
+function getDiskBlocks() {
   $df = shell_exec( 'df '.ZM_DIR_EVENTS );
   $space = -1;
   if ( preg_match( '/\s(\d+)\s+\d+\s+\d+%/ms', $df, $matches ) )
@@ -1688,32 +1487,26 @@ function getDiskBlocks()
 // Function to fix a problem whereby the built in PHP session handling 
 // features want to put the sid as a hidden field after the form or 
 // fieldset tag, neither of which will work with strict XHTML Basic.
-function sidField()
-{
-  if ( SID )
-  {
+function sidField() {
+  if ( SID ) {
     list( $sessname, $sessid ) = explode( "=", SID );
-    ?>
-      <input type="hidden" name="<?php echo $sessname ?>" value="<?php echo $sessid ?>"/>
-      <?php
+?>
+    <input type="hidden" name="<?php echo $sessname ?>" value="<?php echo $sessid ?>"/>
+<?php
   }
 }
 
-function verNum( $version )
-{
+function verNum( $version ) {
   $vNum = "";
   $maxFields = 3;
   $vFields = explode( ".", $version );
   array_splice( $vFields, $maxFields );
-  while ( count($vFields) < $maxFields )
-  {
+  while ( count($vFields) < $maxFields ) {
     $vFields[] = 0;
   }
-  foreach ( $vFields as $vField )
-  {
+  foreach ( $vFields as $vField ) {
     $vField = sprintf( "%02d", $vField );
-    while ( strlen($vField) < 2 )
-    {
+    while ( strlen($vField) < 2 ) {
       $vField = "0".$vField;
     }
     $vNum .= $vField;
@@ -1721,31 +1514,25 @@ function verNum( $version )
   return( $vNum );
 }
 
-function fixSequences()
-{
+function fixSequences() {
   $sequence = 1;
   $sql = "select * from Monitors order by Sequence asc, Id asc";
-  foreach( dbFetchAll( $sql ) as $monitor )
-  {
-    if ( $monitor['Sequence'] != $sequence )
-    {
+  foreach( dbFetchAll( $sql ) as $monitor ) {
+    if ( $monitor['Sequence'] != $sequence ) {
       dbQuery( 'update Monitors set Sequence = ? WHERE Id=?', array( $sequence, $monitor['Id'] ) );
     }
     $sequence++;
   }
 }
 
-function firstSet()
-{
-  foreach ( func_get_args() as $arg )
-  {
+function firstSet() {
+  foreach ( func_get_args() as $arg ) {
     if ( !empty( $arg ) )
       return( $arg );
   }
 }
 
-function linesIntersect( $line1, $line2 )
-{
+function linesIntersect( $line1, $line2 ) {
   global $debug;
 
   $min_x1 = min( $line1[0]['x'], $line1[1]['x'] );
@@ -1758,8 +1545,7 @@ function linesIntersect( $line1, $line2 )
   $max_y2 = max( $line2[0]['y'], $line2[1]['y'] );
 
   // Checking if bounding boxes intersect
-  if ( $max_x1 < $min_x2 || $max_x2 < $min_x1 ||$max_y1 < $min_y2 || $max_y2 < $min_y1 )
-  {
+  if ( $max_x1 < $min_x2 || $max_x2 < $min_x1 ||$max_y1 < $min_y2 || $max_y2 < $min_y1 ) {
     if ( $debug ) echo "Not intersecting, out of bounds<br>";
     return( false );
   }
@@ -1769,93 +1555,63 @@ function linesIntersect( $line1, $line2 )
   $dx2 = $line2[1]['x'] - $line2[0]['x'];
   $dy2 = $line2[1]['y'] - $line2[0]['y'];
 
-  if ( $dx1 )
-  {
+  if ( $dx1 ) {
     $m1 = $dy1/$dx1;
     $b1 = $line1[0]['y'] - ($m1 * $line1[0]['x']);
-  }
-  else
-  {
+  } else {
     $b1 = $line1[0]['y'];
   }
-  if ( $dx2 )
-  {
+  if ( $dx2 ) {
     $m2 = $dy2/$dx2;
     $b2 = $line2[0]['y'] - ($m2 * $line2[0]['x']);
-  }
-  else
-  {
+  } else {
     $b2 = $line2[0]['y'];
   }
 
-  if ( $dx1 && $dx2 ) // Both not vertical
-  {
-    if ( $m1 != $m2 ) // Not parallel or colinear
-    {
+  if ( $dx1 && $dx2 ) { // Both not vertical
+    if ( $m1 != $m2 ) { // Not parallel or colinear
       $x = ( $b2 - $b1 ) / ( $m1 - $m2 );
 
-      if ( $x >= $min_x1 && $x <= $max_x1 && $x >= $min_x2 && $x <= $max_x2 )
-      {
+      if ( $x >= $min_x1 && $x <= $max_x1 && $x >= $min_x2 && $x <= $max_x2 ) {
         if ( $debug ) echo "Intersecting, at x $x<br>";
         return( true );
-      }
-      else
-      {
+      } else {
         if ( $debug ) echo "Not intersecting, out of range at x $x<br>";
         return( false );
       }
-    }
-    elseif ( $b1 == $b2 )
-    {
+    } elseif ( $b1 == $b2 ) {
       // Colinear, must overlap due to box check, intersect? 
       if ( $debug ) echo "Intersecting, colinear<br>";
       return( true );
-    }
-    else
-    {
+    } else {
       // Parallel
       if ( $debug ) echo "Not intersecting, parallel<br>";
       return( false );
     }
-  }
-  elseif ( !$dx1 ) // Line 1 is vertical
-  {
+  } elseif ( !$dx1 ) { // Line 1 is vertical 
     $y = ( $m2 * $line1[0]['x'] ) * $b2;
-    if ( $y >= $min_y1 && $y <= $max_y1 )
-    {
+    if ( $y >= $min_y1 && $y <= $max_y1 ) {
       if ( $debug ) echo "Intersecting, at y $y<br>";
       return( true );
-    }
-    else
-    {
+    } else {
       if ( $debug ) echo "Not intersecting, out of range at y $y<br>";
       return( false );
     }
-  }
-  elseif ( !$dx2 ) // Line 2 is vertical
-  {
+  } elseif ( !$dx2 ) { // Line 2 is vertical 
     $y = ( $m1 * $line2[0]['x'] ) * $b1;
-    if ( $y >= $min_y2 && $y <= $max_y2 )
-    {
+    if ( $y >= $min_y2 && $y <= $max_y2 ) {
       if ( $debug ) echo "Intersecting, at y $y<br>";
       return( true );
-    }
-    else
-    {
+    } else {
       if ( $debug ) echo "Not intersecting, out of range at y $y<br>";
       return( false );
     }
-  }
-  else // Both lines are vertical
-  {
-    if ( $line1[0]['x'] == $line2[0]['x'] )
-    {
+  } else { // Both lines are vertical
+    if ( $line1[0]['x'] == $line2[0]['x'] ) {
       // Colinear, must overlap due to box check, intersect? 
       if ( $debug ) echo "Intersecting, vertical, colinear<br>";
       return( true );
-    }
-    else
-    {
+    } else {
       // Parallel
       if ( $debug ) echo "Not intersecting, vertical, parallel<br>";
       return( false );
@@ -1865,24 +1621,19 @@ function linesIntersect( $line1, $line2 )
   return( false );
 }
 
-function isSelfIntersecting( $points )
-{
+function isSelfIntersecting( $points ) {
   global $debug;
 
   $n_coords = count($points);
   $edges = array();
-  for ( $j = 0, $i = $n_coords-1; $j < $n_coords; $i = $j++ )
-  {
+  for ( $j = 0, $i = $n_coords-1; $j < $n_coords; $i = $j++ ) {
     $edges[] = array( $points[$i], $points[$j] );
   }
 
-  for ( $i = 0; $i <= ($n_coords-2); $i++ )
-  {
-    for ( $j = $i+2; $j < $n_coords+min(0,$i-1); $j++ )
-    {
+  for ( $i = 0; $i <= ($n_coords-2); $i++ ) {
+    for ( $j = $i+2; $j < $n_coords+min(0,$i-1); $j++ ) {
       if ( $debug ) echo "Checking $i and $j<br>";
-      if ( linesIntersect( $edges[$i], $edges[$j] ) )
-      {
+      if ( linesIntersect( $edges[$i], $edges[$j] ) ) {
         if ( $debug ) echo "Lines $i and $j intersect<br>";
         return( true );
       }
@@ -1891,14 +1642,12 @@ function isSelfIntersecting( $points )
   return( false );
 }
 
-function getPolyCentre( $points, $area=0 )
-{
+function getPolyCentre( $points, $area=0 ) {
   $cx = 0.0;
   $cy = 0.0;
   if ( !$area )
     $area = getPolyArea( $points );
-  for ( $i = 0, $j = count($points)-1; $i < count($points); $j = $i++ )
-  {
+  for ( $i = 0, $j = count($points)-1; $i < count($points); $j = $i++ ) {
     $ct = ($points[$i]['x'] * $points[$j]['y']) - ($points[$j]['x'] * $points[$i]['y']);
     $cx += ($points[$i]['x'] + $points[$j]['x']) * ct;
     $cy += ($points[$i]['y'] + $points[$j]['y']) * ct;
@@ -1909,27 +1658,23 @@ function getPolyCentre( $points, $area=0 )
   return( array( 'x'=>$cx, 'y'=>$cy ) );
 }
 
-function _CompareXY( $a, $b )
-{
+function _CompareXY( $a, $b ) {
   if ( $a['min_y'] == $b['min_y'] )
     return( intval($a['min_x'] - $b['min_x']) );
   else
     return( intval($a['min_y'] - $b['min_y']) );
 }
 
-function _CompareX( $a, $b )
-{
+function _CompareX( $a, $b ) {
   return( intval($a['min_x'] - $b['min_x']) );
 }
 
-function getPolyArea( $points )
-{
+function getPolyArea( $points ) {
   global $debug;
 
   $n_coords = count($points);
   $global_edges = array();
-  for ( $j = 0, $i = $n_coords-1; $j < $n_coords; $i = $j++ )
-  {
+  for ( $j = 0, $i = $n_coords-1; $j < $n_coords; $i = $j++ ) {
     $x1 = $points[$i]['x'];
     $x2 = $points[$j]['x'];
     $y1 = $points[$i]['y'];
@@ -1952,10 +1697,8 @@ function getPolyArea( $points )
 
   usort( $global_edges, "_CompareXY" );
 
-  if ( $debug )
-  {
-    for ( $i = 0; $i < count($global_edges); $i++ )
-    {
+  if ( $debug ) {
+    for ( $i = 0; $i < count($global_edges); $i++ ) {
       printf( "%d: min_y: %d, max_y:%d, min_x:%.2f, 1/m:%.2f<br>", $i, $global_edges[$i]['min_y'], $global_edges[$i]['max_y'], $global_edges[$i]['min_x'], $global_edges[$i]['_1_m'] );
     }
   }
@@ -1963,38 +1706,29 @@ function getPolyArea( $points )
   $area = 0.0;
   $active_edges = array();
   $y = $global_edges[0]['min_y'];
-  do 
-  {
-    for ( $i = 0; $i < count($global_edges); $i++ )
-    {
-      if ( $global_edges[$i]['min_y'] == $y )
-      {
+  do {
+    for ( $i = 0; $i < count($global_edges); $i++ ) {
+      if ( $global_edges[$i]['min_y'] == $y ) {
         if ( $debug ) printf( "Moving global edge<br>" );
         $active_edges[] = $global_edges[$i];
         array_splice( $global_edges, $i, 1 );
         $i--;
-      }
-      else
-      {
+      } else {
         break;
       }
     }
     usort( $active_edges, "_CompareX" );
-    if ( $debug )
-    {
-      for ( $i = 0; $i < count($active_edges); $i++ )
-      {
+    if ( $debug ) {
+      for ( $i = 0; $i < count($active_edges); $i++ ) {
         printf( "%d - %d: min_y: %d, max_y:%d, min_x:%.2f, 1/m:%.2f<br>", $y, $i, $active_edges[$i]['min_y'], $active_edges[$i]['max_y'], $active_edges[$i]['min_x'], $active_edges[$i]['_1_m'] );
       }
     }
     $last_x = 0;
     $row_area = 0;
     $parity = false;
-    for ( $i = 0; $i < count($active_edges); $i++ )
-    {
+    for ( $i = 0; $i < count($active_edges); $i++ ) {
       $x = intval(round($active_edges[$i]['min_x']));
-      if ( $parity )
-      {
+      if ( $parity ) {
         $row_area += ($x - $last_x)+1;
         $area += $row_area;
       }
@@ -2004,16 +1738,12 @@ function getPolyArea( $points )
     }
     if ( $debug ) printf( "%d: Area:%d<br>", $y, $row_area );
     $y++;
-    for ( $i = 0; $i < count($active_edges); $i++ )
-    {
-      if ( $y >= $active_edges[$i]['max_y'] ) // Or >= as per sheets
-      {
+    for ( $i = 0; $i < count($active_edges); $i++ ) {
+      if ( $y >= $active_edges[$i]['max_y'] ) { // Or >= as per sheets
         if ( $debug ) printf( "Deleting active_edge<br>" );
         array_splice( $active_edges, $i, 1 );
         $i--;
-      }
-      else
-      {
+      } else {
         $active_edges[$i]['min_x'] += $active_edges[$i]['_1_m'];
       }
     }
@@ -2022,12 +1752,10 @@ function getPolyArea( $points )
   return( $area );
 }
 
-function getPolyAreaOld( $points )
-{
+function getPolyAreaOld( $points ) {
   $area = 0.0;
   $edge = 0.0;
-  for ( $i = 0, $j = count($points)-1; $i < count($points); $j = $i++ )
-  {
+  for ( $i = 0, $j = count($points)-1; $i < count($points); $j = $i++ ) {
     $x_diff = ($points[$i]['x'] - $points[$j]['x']);
     $y_diff = ($points[$i]['y'] - $points[$j]['y']);
     $y_sum = ($points[$i]['y'] + $points[$j]['y']);
@@ -2044,76 +1772,57 @@ function getPolyAreaOld( $points )
   return( $area );
 }
 
-function mapCoords( $a )
-{
+function mapCoords( $a ) {
   return( $a['x'].",".$a['y'] );
 }
 
-function pointsToCoords( $points )
-{
+function pointsToCoords( $points ) {
   return( join( " ", array_map( "mapCoords", $points ) ) );
 }
 
-function coordsToPoints( $coords )
-{
+function coordsToPoints( $coords ) {
   $points = array();
-  if ( preg_match_all( '/(\d+,\d+)+/', $coords, $matches ) )
-  {
-    for ( $i = 0; $i < count($matches[1]); $i++ )
-    {
-      if ( preg_match( '/(\d+),(\d+)/', $matches[1][$i], $cmatches ) )
-      {
+  if ( preg_match_all( '/(\d+,\d+)+/', $coords, $matches ) ) {
+    for ( $i = 0; $i < count($matches[1]); $i++ ) {
+      if ( preg_match( '/(\d+),(\d+)/', $matches[1][$i], $cmatches ) ) {
         $points[] = array( 'x'=>$cmatches[1], 'y'=>$cmatches[2] );
-      }
-      else
-      {
+      } else {
         echo( "Bogus coordinates '".$matches[$i]."'" );
         return( false );
       }
     }
-  }
-  else
-  {
+  } else {
     echo( "Bogus coordinate string '$coords'" );
     return( false );
   }
   return( $points );
 }
 
-function getLanguages()
-{
+function getLanguages() {
   $langs = array();
-  foreach ( glob("lang/*_*.php") as $file )
-  {
+  foreach ( glob("lang/*_*.php") as $file ) {
     preg_match( '/([^\/]+_.+)\.php/', $file, $matches );
     $langs[$matches[1]] = $matches[1];
   }
   return( $langs );
 }
 
-function trimString( $string, $length )
-{
+function trimString( $string, $length ) {
   return( preg_replace( '/^(.{'.$length.',}?)\b.*$/', '\\1&hellip;', $string ) );
 }
 
-function monitorIdsToNames( $ids )
-{
+function monitorIdsToNames( $ids ) {
   global $mITN_monitors;
-  if ( !$mITN_monitors )
-  {
+  if ( !$mITN_monitors ) {
     $sql = "select Id, Name from Monitors";
-    foreach( dbFetchAll( $sql ) as $monitor )
-    {
+    foreach( dbFetchAll( $sql ) as $monitor ) {
       $mITN_monitors[$monitor['Id']] = $monitor;
     }
   }
   $names = array();
-  foreach ( preg_split( '/\s*,\s*/', $ids ) as $id )
-  {
-    if ( visibleMonitor( $id ) )
-    {
-      if ( isset($mITN_monitors[$id]) )
-      {
+  foreach ( preg_split( '/\s*,\s*/', $ids ) as $id ) {
+    if ( visibleMonitor( $id ) ) {
+      if ( isset($mITN_monitors[$id]) ) {
         $names[] = $mITN_monitors[$id]['Name'];
       }
     }
@@ -2122,53 +1831,42 @@ function monitorIdsToNames( $ids )
   return( $name_string );
 }
 
-function initX10Status()
-{
+function initX10Status() {
   global $x10_status;
 
-  if ( !isset($x10_status) )
-  {
+  if ( !isset($x10_status) ) {
     $socket = socket_create( AF_UNIX, SOCK_STREAM, 0 );
-    if ( $socket < 0 )
-    {
+    if ( $socket < 0 ) {
       Fatal( "socket_create() failed: ".socket_strerror($socket) );
     }
     $sock_file = ZM_PATH_SOCKS.'/zmx10.sock';
-    if ( @socket_connect( $socket, $sock_file ) )
-    {
+    if ( @socket_connect( $socket, $sock_file ) ) {
       $command = "status";
-      if ( !socket_write( $socket, $command ) )
-      {
+      if ( !socket_write( $socket, $command ) ) {
         Fatal( "Can't write to control socket: ".socket_strerror(socket_last_error($socket)) );
       }
       socket_shutdown( $socket, 1 );
       $x10Output = "";
-      while ( $x10Response = socket_read( $socket, 256 ) )
-      {
+      while ( $x10Response = socket_read( $socket, 256 ) ) {
         $x10Output .= $x10Response;
       }
       socket_close( $socket );
-    }
-    else
-    {
+    } else {
       // Can't connect so use script
       $command = ZM_PATH_BIN."/zmx10.pl --command status";
       //$command .= " 2>/dev/null >&- <&- >/dev/null";
 
       $x10Output = exec( escapeshellcmd( $command ) );
     }
-    foreach ( explode( "\n", $x10Output ) as $x10Response )
-    {
-      if ( preg_match( "/^(\d+)\s+(.+)$/", $x10Response, $matches ) )
-      {
+    foreach ( explode( "\n", $x10Output ) as $x10Response ) {
+      if ( preg_match( "/^(\d+)\s+(.+)$/", $x10Response, $matches ) ) {
         $x10_status[$matches[1]] = $matches[2];
       }
     }
   }
 }
 
-function getDeviceStatusX10( $key )
-{
+function getDeviceStatusX10( $key ) {
   global $x10_status;
 
   initX10Status();
@@ -2178,27 +1876,21 @@ function getDeviceStatusX10( $key )
   return( $status );
 }
 
-function setDeviceStatusX10( $key, $status )
-{
+function setDeviceStatusX10( $key, $status ) {
   $socket = socket_create( AF_UNIX, SOCK_STREAM, 0 );
-  if ( $socket < 0 )
-  {
+  if ( $socket < 0 ) {
     Fatal( "socket_create() failed: ".socket_strerror($socket) );
   }
   $sock_file = ZM_PATH_SOCKS.'/zmx10.sock';
-  if ( @socket_connect( $socket, $sock_file ) )
-  {
+  if ( @socket_connect( $socket, $sock_file ) ) {
     $command = "$status;$key";
-    if ( !socket_write( $socket, $command ) )
-    {
+    if ( !socket_write( $socket, $command ) ) {
       Fatal( "Can't write to control socket: ".socket_strerror(socket_last_error($socket)) );
     }
     socket_shutdown( $socket, 1 );
     $x10Response = socket_read( $socket, 256 );
     socket_close( $socket );
-  }
-  else
-  {
+  } else {
     // Can't connect so use script
     $command = ZM_PATH_BIN.'/zmx10.pl --command '.escapeshellarg( $status );
     $command .= ' --unit-code '.escapeshellarg( $key );
@@ -2212,8 +1904,7 @@ function setDeviceStatusX10( $key, $status )
   return( $status );
 }
 
-function logState()
-{
+function logState() {
   $state = 'ok';
 
   $levelCounts = array(
@@ -2225,33 +1916,26 @@ function logState()
   $sql = "select Level, count(Level) as LevelCount from Logs where Level < ".Logger::INFO." and TimeKey > unix_timestamp(now() - interval ".ZM_LOG_CHECK_PERIOD." second) group by Level order by Level asc";
   $counts = dbFetchAll( $sql );
 
-  foreach ( $counts as $count )
-  {
+  foreach ( $counts as $count ) {
     if ( $count['Level'] <= Logger::PANIC )
       $count['Level'] = Logger::FATAL;
-    if ( !($levelCount = $levelCounts[$count['Level']]) )
-    {
+    if ( !($levelCount = $levelCounts[$count['Level']]) ) {
       Error( "Unexpected Log level ".$count['Level'] );
       next;
     }
-    if ( $levelCount[1] && $count['LevelCount'] >= $levelCount[1] )
-    {
+    if ( $levelCount[1] && $count['LevelCount'] >= $levelCount[1] ) {
       $state = 'alarm';
       break;
-    }
-    elseif ( $levelCount[0] && $count['LevelCount'] >= $levelCount[0] )
-    {
+    } elseif ( $levelCount[0] && $count['LevelCount'] >= $levelCount[0] ) {
       $state = 'alert';
     }
   }
   return( $state );
 }
 
-function isVector ( &$array )
-{
+function isVector ( &$array ) {
   $next_key = 0;
-  foreach ( array_keys($array) as $key )
-  {
+  foreach ( array_keys($array) as $key ) {
     if ( !is_int( $key ) )
       return( false );
     if ( $key != $next_key++ )
@@ -2260,13 +1944,10 @@ function isVector ( &$array )
   return( true );
 }
 
-function checkJsonError($value)
-{
-  if ( function_exists('json_last_error') )
-  {
+function checkJsonError($value) {
+  if ( function_exists('json_last_error') ) {
     $value = var_export($value,true);
-    switch( json_last_error() )
-    {
+    switch( json_last_error() ) {
       case JSON_ERROR_DEPTH :
         Fatal( "Unable to decode JSON string '$value', maximum stack depth exceeded" );
       case JSON_ERROR_CTRL_CHAR :
@@ -2283,17 +1964,14 @@ function checkJsonError($value)
   }
 }
 
-function jsonEncode( &$value )
-{
-  if ( function_exists('json_encode') )
-  {
+function jsonEncode( &$value ) {
+  if ( function_exists('json_encode') ) {
     $string = json_encode( $value );
     checkJsonError($value);
     return( $string );
   }
 
-  switch ( gettype($value) )
-  {
+  switch ( gettype($value) ) {
     case 'double':
     case 'integer':
       return( $value );
@@ -2308,11 +1986,9 @@ function jsonEncode( &$value )
     case 'array':
       if ( isVector( $value ) )
         return( '['.join( ',', array_map( 'jsonEncode', $value) ).']' );
-      else
-      {
+      else {
         $result = '{';
-        foreach ($value as $subkey => $subvalue )
-        {
+        foreach ($value as $subkey => $subvalue ) {
           if ( $result != '{' )
             $result .= ',';
           $result .= '"'.$subkey.'":'.jsonEncode( $subvalue );
@@ -2324,10 +2000,8 @@ function jsonEncode( &$value )
   }
 }
 
-function jsonDecode( $value )
-{
-  if ( function_exists('json_decode') )
-  {
+function jsonDecode( $value ) {
+  if ( function_exists('json_decode') ) {
     $object = json_decode( $value, true );
     checkJsonError($value);
     return( $object );
@@ -2336,35 +2010,31 @@ function jsonDecode( $value )
   $comment = false;
   $unescape = false;
   $out = '$result=';
-  for ( $i = 0; $i < strlen($value); $i++ )
-  {
-    if ( !$comment )
-    {
-      if ( ($value[$i] == '{') || ($value[$i] == '[') )
+  for ( $i = 0; $i < strlen($value); $i++ ) {
+    if ( !$comment ) {
+      if ( ($value[$i] == '{') || ($value[$i] == '[') ) {
         $out .= ' array(';
-            else if ( ($value[$i] == '}') || ($value[$i] == ']') )
-            $out .= ')';
-            else if ( $value[$i] == ':' )
-            $out .= '=>';
-            else
-            $out .= $value[$i];         
-            }
-            else if ( !$unescape )
-            {
-            if ( $value[$i] == '\\' )
-            $unescape = true;
-            else
-            $out .= $value[$i];
-            }
-            else
-            {
-            if ( $value[$i] != '/' )
-            $out .= '\\';
-            $out .= $value[$i];
-            $unescape = false;
-            }
-            if ( $value[$i] == '"' )
-              $comment = !$comment;
+      } else if ( ($value[$i] == '}') || ($value[$i] == ']') ) {
+        $out .= ')';
+      } else if ( $value[$i] == ':' ) {
+        $out .= '=>';
+      } else {
+        $out .= $value[$i];         
+      }
+    } else if ( !$unescape ) {
+      if ( $value[$i] == '\\' )
+        $unescape = true;
+      else
+        $out .= $value[$i];
+    } else {
+      if ( $value[$i] != '/' )
+        $out .= '\\';
+      $out .= $value[$i];
+      $unescape = false;
+    }
+    if ( $value[$i] == '"' ) {
+      $comment = !$comment;
+    }
   }
   eval( $out.';' );
   return( $result );
@@ -2374,13 +2044,11 @@ define( 'HTTP_STATUS_OK', 200 );
 define( 'HTTP_STATUS_BAD_REQUEST', 400 );
 define( 'HTTP_STATUS_FORBIDDEN', 403 );
 
-function ajaxError( $message, $code=HTTP_STATUS_OK )
-{
+function ajaxError( $message, $code=HTTP_STATUS_OK ) {
   Error( $message );
   if ( function_exists( 'ajaxCleanup' ) )
     ajaxCleanup();
-  if ( $code == HTTP_STATUS_OK )
-  {
+  if ( $code == HTTP_STATUS_OK ) {
     $response = array( 'result'=>'Error', 'message'=>$message );
     header( "Content-type: text/plain" );
     exit( jsonEncode( $response ) );
@@ -2389,8 +2057,7 @@ function ajaxError( $message, $code=HTTP_STATUS_OK )
   exit();
 }
 
-function ajaxResponse( $result=false )
-{
+function ajaxResponse( $result=false ) {
   if ( function_exists( 'ajaxCleanup' ) )
     ajaxCleanup();
   $response = array( 'result'=>'Ok' );
@@ -2402,25 +2069,21 @@ function ajaxResponse( $result=false )
   exit( jsonEncode( $response ) );
 }
 
-function generateConnKey()
-{
+function generateConnKey() {
   return( rand( 1, 999999 ) );
 }
 
-function detaintPath( $path )
-{
+function detaintPath( $path ) {
   // Remove any absolute paths, or relative ones that want to go up
   $path = preg_replace( '/\.(?:\.+[\\/][\\/]*)+/', '', $path );
   $path = preg_replace( '/^[\\/]+/', '', $path );
   return( $path );
 }
 
-function getSkinFile( $file )
-{
+function getSkinFile( $file ) {
   global $skinBase;
   $skinFile = false;
-  foreach ( $skinBase as $skin )
-  {
+  foreach ( $skinBase as $skin ) {
     $tempSkinFile = detaintPath( 'skins'.'/'.$skin.'/'.$file );
     if ( file_exists( $tempSkinFile ) )
       $skinFile = $tempSkinFile;
@@ -2432,22 +2095,18 @@ function getSkinIncludes( $file, $includeBase=false, $asOverride=false )
 {
   global $skinBase;
   $skinFile = false;
-  foreach ( $skinBase as $skin )
-  {
+  foreach ( $skinBase as $skin ) {
     $tempSkinFile = detaintPath( 'skins'.'/'.$skin.'/'.$file );
     if ( file_exists( $tempSkinFile ) )
       $skinFile = $tempSkinFile;
   }
   $includeFiles = array();
-  if ( $asOverride )
-  {
+  if ( $asOverride ) {
     if ( $skinFile )
       $includeFiles[] = $skinFile;
     else if ( $includeBase )
       $includeFiles[] = $file;
-  }
-  else
-  {
+  } else {
     if ( $includeBase )
       $includeFiles[] = $file;
     if ( $skinFile )
@@ -2456,56 +2115,50 @@ function getSkinIncludes( $file, $includeBase=false, $asOverride=false )
   return( $includeFiles );
 }
 
-function requestVar( $name, $default="" )
-{
+function requestVar( $name, $default="" ) {
   return( isset($_REQUEST[$name])?validHtmlStr($_REQUEST[$name]):$default );
 }
 
 // For numbers etc in javascript or tags etc
-function validInt( $input )
-{
+function validInt( $input ) {
   return( preg_replace( '/\D/', '', $input ) );
 }
 
-function validNum( $input )
-{
+function validNum( $input ) {
   return( preg_replace( '/[^\d.-]/', '', $input ) );
 }
 
 // For general strings
-function validStr( $input )
-{
+function validStr( $input ) {
   return( strip_tags( $input ) );
 }
 
 // For strings in javascript or tags etc, expected to be in quotes so further quotes escaped rather than converted
-function validJsStr( $input )
-{
+function validJsStr( $input ) {
   return( strip_tags( addslashes( $input ) ) );
 }
 
 // For general text in pages outside of tags or quotes so quotes converted to entities
-function validHtmlStr( $input )
-{
+function validHtmlStr( $input ) {
   return( htmlspecialchars( $input, ENT_QUOTES ) );
 }
 
 function getStreamHTML( $monitor, $scale=100 ) {
-//FIXME, the width and height of the image need to be scaled.
-    if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
-        $streamSrc = $monitor->getStreamSrc( array( "mode=mpeg", "scale=".$scale, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_LIVE_FORMAT ) );
-        return getVideoStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
-    } else if ( canStream() ) {
-        $streamSrc = $monitor->getStreamSrc( array( 'mode=jpeg', 'scale='.$scale, 'maxfps='.ZM_WEB_VIDEO_MAXFPS, 'buffer='.$monitor->StreamReplayBuffer() ) );
-        if ( canStreamNative() )
-            return getImageStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
-        elseif ( canStreamApplet() )
-            outputHelperStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
-    } else {
-        $streamSrc = $monitor->getStreamSrc( array( 'mode=single', "scale=".$scale ) );
-        outputImageStill( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
-        Info( "The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.");
-    }
+  //FIXME, the width and height of the image need to be scaled.
+  if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
+    $streamSrc = $monitor->getStreamSrc( array( "mode=mpeg", "scale=".$scale, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_LIVE_FORMAT ) );
+    return getVideoStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
+  } else if ( canStream() ) {
+    $streamSrc = $monitor->getStreamSrc( array( 'mode=jpeg', 'scale='.$scale, 'maxfps='.ZM_WEB_VIDEO_MAXFPS, 'buffer='.$monitor->StreamReplayBuffer() ) );
+    if ( canStreamNative() )
+      return getImageStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
+    elseif ( canStreamApplet() )
+      return getHelperStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
+  } else {
+    $streamSrc = $monitor->getStreamSrc( array( 'mode=single', "scale=".$scale ) );
+    Info( "The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.");
+    return getImageStill( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
+  }
 } // end function getStreamHTML
 
 ?>

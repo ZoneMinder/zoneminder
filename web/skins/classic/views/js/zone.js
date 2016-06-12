@@ -356,6 +356,7 @@ function updateActivePoint( index )
     var Point =  $('zonePoly').points.getItem(index);
     Point.x =x;
     Point.y =y;
+    updateArea();
 }
 
 function addPoint( index )

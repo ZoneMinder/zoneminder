@@ -356,7 +356,6 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
     int flags = (is_output ? ic->oformat->flags : ic->iformat->flags);
     AVStream *st = ic->streams[i];
     AVDictionaryEntry *lang = av_dict_get(st->metadata, "language", NULL, 0);
-	char separator = '\n';
 
     avcodec_string(buf, sizeof(buf), st->codec, is_output);
     Debug(3, "    Stream #%d:%d", index, i);
@@ -390,7 +389,7 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
         int tbc = st->codec->time_base.den && st->codec->time_base.num;
 
         if (fps || tbr || tbn || tbc)
-            Debug(3, "%s", separator);
+            Debug(3, "\n" );
 
         if (fps)
             zm_log_fps(av_q2d(st->avg_frame_rate), tbr || tbn || tbc ? "fps, " : "fps");

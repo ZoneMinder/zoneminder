@@ -53,7 +53,9 @@ class Monitor {
       return $this->{$fn};
         #array_unshift($args, $this);
         #call_user_func_array( $this->{$fn}, $args);
-      }
+		} else {
+			Warning( "Unknown function call Monitor->$fn" );
+    }
   }
   public function getStreamSrc( $args, $querySep='&amp;' ) {
     if ( isset($this->{'ServerId'}) and $this->{'ServerId'} ) {
@@ -88,18 +90,21 @@ class Monitor {
 
     return( $streamSrc );
   } // end function getStreamSrc
+
   public function Width() {
     if ( $this->Orientation() == '90' or $this->Orientation() == '270' ) {
       return $this->{'Height'};
     }
     return $this->{'Width'};
   }
+
   public function Height() {
     if ( $this->Orientation() == '90' or $this->Orientation() == '270' ) {
       return $this->{'Width'};
     }
     return $this->{'Height'};
   }
+
   public function set( $data ) {
     foreach ($data as $k => $v) {
       if ( is_array( $v ) ) {

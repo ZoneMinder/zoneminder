@@ -40,26 +40,9 @@ $showPtzControls = ( ZM_OPT_CONTROL && $monitor->Controllable() && canView( 'Con
 if ( isset( $_REQUEST['scale'] ) )
     $scale = validInt($_REQUEST['scale']);
 else
-    $scale = reScale( SCALE_BASE, $monitor->DefaultScale, ZM_WEB_DEFAULT_SCALE );
+    $scale = reScale( SCALE_BASE, $monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE );
 
 $connkey = generateConnKey();
-
-if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT )
-{
-    $streamMode = "mpeg";
-    $streamSrc = $monitor->getStreamSrc( array( "mode=".$streamMode, "scale=".$scale, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_LIVE_FORMAT ) );
-}
-elseif ( canStream() )
-{
-    $streamMode = "jpeg";
-    $streamSrc = $monitor->getStreamSrc( array( "mode=".$streamMode, "scale=".$scale, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "buffer=".$monitor->StreamReplayBuffer() ) );
-}
-else
-{
-    $streamMode = "single";
-    $streamSrc = $monitor->getStreamSrc( array( "mode=".$streamMode, "scale=".$scale ) );
-    Info( "The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.");
-}
 
 $showDvrControls = ( $streamMode == 'jpeg' && $monitor->StreamReplayBuffer() != 0 );
 
@@ -86,23 +69,7 @@ if ( canView( 'Control' ) && $monitor->Type() == "Local" )
         </div>
       </div>
       <div id="imageFeed">
-<?php
-if ( $streamMode == "mpeg" )
-{
-    outputVideoStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
-}
-elseif ( $streamMode == "jpeg" )
-{
-    if ( canStreamNative() )
-        outputImageStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
-    elseif ( canStreamApplet() )
-        outputHelperStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
-}
-else
-{
-    outputImageStill( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
-}
-?>
+<?php echo getStreamHTML( $monitor, $scale ); ?>
       </div>
       <div id="monitorStatus">
 <?php

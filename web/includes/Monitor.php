@@ -52,7 +52,7 @@ class Monitor {
 			$Server = new Server( $this->{'ServerId'} );
 			$streamSrc = ZM_BASE_PROTOCOL.'://'.$Server->Hostname().ZM_PATH_ZMS;
 		} else {
-			$streamSrc = ZM_BASE_URL.ZM_PATH_ZMS;
+			$streamSrc = ZM_BASE_URL . ZM_BASE_PATH . ZM_PATH_ZMS;
 		}
 
 		$args[] = "monitor=".$this->{'Id'};

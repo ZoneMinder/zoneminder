@@ -14,7 +14,7 @@ SET @s = (SELECT IF(
   AND column_name = 'Id'
   ) > 0,
 "SELECT 'Column Id exists in Filters'",
-"ALTER TABLE `Filters` DROP PRIMARY KEY; ALTER TABLE `Filters` ADD `Id` int(10) unsigned NOT NULL auto_increment PRIMARY KEY FIRST; ALTER TABLE Filters ADD KEY `Name` (`Name`);"
+"ALTER TABLE `Filters` DROP PRIMARY KEY, ADD `Id` int(10) unsigned NOT NULL auto_increment PRIMARY KEY FIRST, ADD KEY `Name` (`Name`);"
 ));
 
 PREPARE stmt FROM @s;

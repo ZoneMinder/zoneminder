@@ -413,7 +413,6 @@ function updateX( index )
     zone['Points'][index].x = x;
     var Point =  $('zonePoly').points.getItem(index);
     Point.x = x;
-    Point.y = y;
 }
 
 function updateY( index )
@@ -426,7 +425,6 @@ function updateY( index )
     point.setStyle( 'top', y+'px' );
     zone['Points'][index].y = y;
     var Point =  $('zonePoly').points.getItem(index);
-    Point.x = x;
     Point.y = y;
 }
 

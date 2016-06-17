@@ -103,7 +103,7 @@ public function beforeFilter() {
 
 			$this->Monitor->create();
 			if ($this->Monitor->save($this->request->data)) {
-				$this->daemonControl($this->Monitor->id, 'start', $this->request->data);
+				$this->daemonControl($this->Monitor->id, 'start');
 				return $this->flash(__('The monitor has been saved.'), array('action' => 'index'));
 			}
 		}
@@ -138,8 +138,8 @@ public function beforeFilter() {
 			'_serialize' => array('message')
 		));
 		// - restart this monitor after change
-    // We don't pass the request data as the monitor object because it may be a subset of the full monitor array
-		$this->daemonControl( $this->Monitor->id, 'restart' );
+		// We don't pass the request data as the monitor object because it may be a subset of the full monitor array
+ 		$this->daemonControl( $this->Monitor->id, 'restart' );
 	}
 
 /**
@@ -187,7 +187,7 @@ public function beforeFilter() {
 	// arm/disarm alarms
 	// expected format: http(s):/portal-api-url/monitors/alarm/id:M/command:C.json
 	// where M=monitorId
-	// where C=on|off
+	// where C=on|off|status
 	public function alarm()
 	{
 		$id = $this->request->params['named']['id'];
@@ -195,19 +195,27 @@ public function beforeFilter() {
 		if (!$this->Monitor->exists($id)) {
 			throw new NotFoundException(__('Invalid monitor'));
 		}
-		if ( $cmd != 'on' && $cmd != 'off')
+		if ( $cmd != 'on' && $cmd != 'off' && $cmd != 'status')
 		{
 			throw new BadRequestException(__('Invalid command'));
 		}
-
-		if ($this->Session->Read('systemPermission') != 'Edit')
-                {        
-                         throw new UnauthorizedException(__('Insufficient privileges'));
-                        return;
-                }
-
 		$zm_path_bin = Configure::read('ZM_PATH_BIN');
-		$q = ($cmd == 'on') ? '-a':'-c';
+
+		switch ($cmd) 
+		{
+			case "on":
+				$q = '-a';
+				$verbose = "-v";
+				break;
+			case "off":
+			  $q = "-c";
+				$verbose = "-v";
+				break;
+			case "status":
+				$verbose = ""; // zmu has a bug - gives incorrect verbose output in this case
+				$q = "-s";
+				break;			
+		}
 
 		// form auth key based on auth credentials
 		$this->loadModel('Config');
@@ -245,7 +253,7 @@ public function beforeFilter() {
 			}
 		}
 		
-		$shellcmd = escapeshellcmd("$zm_path_bin/zmu -v -m$id $q $auth");
+		$shellcmd = escapeshellcmd("$zm_path_bin/zmu $verbose -m$id $q $auth");
 		$status = exec ($shellcmd);
 
 		$this->set(array(

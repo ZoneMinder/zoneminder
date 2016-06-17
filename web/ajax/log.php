@@ -394,7 +394,7 @@ tr.log-dbg td {
         }
 
         $exportFile = "zm-log.$exportExt";
-        $exportPath = "temp/zm-log-$exportKey.$exportExt";
+        $exportPath = ZM_PATH_SWAP."/zm-log-$exportKey.$exportExt";
 
         header( "Pragma: public" );
         header( "Expires: 0" );

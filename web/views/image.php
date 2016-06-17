@@ -37,6 +37,8 @@ if ( !canView( 'Events' ) )
     $view = "error";
     return;
 }
+require_once('includes/Event.php');
+require_once('includes/Frame.php');
 
 header( 'Content-type: image/jpeg' );
 
@@ -58,11 +60,27 @@ if (!function_exists('imagescale'))
 $errorText = false;
 if ( empty($_REQUEST['path']) )
 {
+  if ( ! empty($_REQUEST['fid']) ) {
+    if ( ! empty($_REQUEST['eid'] ) ) {
+      $Event = new Event( $_REQUEST['eid'] );
+      $Frame = Frame::find_one( array( 'EventId' => $_REQUEST['eid'], 'FrameId' => $_REQUEST['fid'] ) );
+      if ( ! $Frame ) {
+        Fatal("No Frame found for event(".$_REQUEST['eid'].") and frame id(".$_REQUEST['fid'].")");
+      }
+      $path = $Event->Path().'/'.sprintf("%'.0".ZM_EVENT_IMAGE_DIGITS.'d',$_REQUEST['fid']).'-capture.jpg';
+    } else {
+# If we are only specifying fid, then the fid must be the primary key into the frames table. But when the event is specified, then it is the frame #
+      $Frame = new Frame( $_REQUEST['fid'] );
+      $Event = new Event( $Frame->EventId() );
+      $path = $Event->Path().'/'.sprintf("%'.0".ZM_EVENT_IMAGE_DIGITS.'d',$Frame->FrameId()).'-capture.jpg';
+    }
+  } else {
     $errorText = "No image path";
+  }
 }
 else
 {
-    $path = $_REQUEST['path'];
+    $path = ZM_DIR_EVENTS . '/' . $_REQUEST['path'];
     if ( !empty($user['MonitorIds']) )
     {
         $imageOk = false;
@@ -111,10 +129,10 @@ if ( $errorText )
     Error( $errorText );
 else
     if( ($scale==0 || $scale==100) && $width==0 && $height==0 )
-        readfile( ZM_DIR_EVENTS.'/'.$path );
+        readfile( $path );
     else
     {
-        $i = imagecreatefromjpeg ( ZM_DIR_EVENTS.'/'.$path );
+        $i = imagecreatefromjpeg ( $path );
         $oldWidth=imagesx($i);
         $oldHeight=imagesy($i);
         if($width==0 && $height==0)  // scale has to be set to get here with both zero

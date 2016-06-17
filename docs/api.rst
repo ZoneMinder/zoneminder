@@ -130,6 +130,28 @@ depend on it.
   curl -XDELETE http://server/zm/api/monitors/1.json
 
 
+Arm/Disarm monitors
+^^^^^^^^^^^^^^^^^^^^
+
+This command will force an alarm on Monitor 1:
+
+::
+
+  curl http://server/zm/api/monitors/alarm/id:1/command:on.json
+
+This command will disable the  alarm on Monitor 1:
+
+::
+
+  curl http://server/zm/api/monitors/alarm/id:1/command:off.json
+
+This command will report the status of the alarm  Monitor 1:
+
+::
+
+  curl http://server/zm/api/monitors/alarm/id:1/command:status.json
+
+
 Return a list of all events
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -214,6 +236,26 @@ Return a list of events for all monitors within a specified date/time range
 ::
 
   curl -XGET "http://server/zm/api/events/index/StartTime%20>=:2015-05-15%2018:43:56/EndTime%20<=:208:43:56.json"
+
+
+Return event count based on times and conditions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The API also supports a handy mechanism to return a count of events for a period of time.
+
+This returns number of events per monitor that were recorded in the last one hour
+
+::
+
+  curl "http://server/zm/api/events/consoleEvents/1%20hour.json"
+
+This returns number of events per monitor that were recorded in the last day where there were atleast 10 frames that were alarms"
+
+::
+
+  curl "http://server/zm/api/events/consoleEvents/1%20day.json/AlarmFrames >=: 10.json"
+
+
 
 
 

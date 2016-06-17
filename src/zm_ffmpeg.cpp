@@ -170,12 +170,20 @@ int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint
 #endif
 
   /* Check the buffer sizes */
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+  size_t insize = av_image_get_buffer_size(in_pf, width, height,1);
+#else
   size_t insize = avpicture_get_size(in_pf, width, height);
+#endif
   if(insize != in_buffer_size) {
     Error("The input buffer size does not match the expected size for the input format. Required: %d Available: %d", insize, in_buffer_size);
     return -4;
   }
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+  size_t outsize = av_image_get_buffer_size(out_pf, width, height,1);
+#else
   size_t outsize = avpicture_get_size(out_pf, width, height);
+#endif
   if(outsize < out_buffer_size) {
     Error("The output buffer is undersized for the output format. Required: %d Available: %d", outsize, out_buffer_size);
     return -5;

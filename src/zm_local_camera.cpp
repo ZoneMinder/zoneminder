@@ -643,8 +643,12 @@ LocalCamera::LocalCamera(
 #endif
     if ( !tmpPicture )
       Fatal( "Could not allocate temporary picture" );
-    
+
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+    int pSize = av_image_get_buffer_size( imagePixFormat, width, height,1 );
+#else
     int pSize = avpicture_get_size( imagePixFormat, width, height );
+#endif
     if( (unsigned int)pSize != imagesize) {
       Fatal("Image size mismatch. Required: %d Available: %d",pSize,imagesize);
     }
@@ -877,7 +881,18 @@ void LocalCamera::Initialise()
 #endif
     if ( !capturePictures[i] )
       Fatal( "Could not allocate picture" );
-    avpicture_fill( (AVPicture *)capturePictures[i], (uint8_t*)v4l2_data.buffers[i].start, capturePixFormat, v4l2_data.fmt.fmt.pix.width, v4l2_data.fmt.fmt.pix.height );
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+    av_image_fill_arrays(capturePictures[i]->data,
+      capturePictures[i]->linesize,
+      (uint8_t*)v4l2_data.buffers[i].start,capturePixFormat,
+      v4l2_data.fmt.fmt.pix.width,
+      v4l2_data.fmt.fmt.pix.height, 1);
+#else
+    avpicture_fill( (AVPicture *)capturePictures[i],
+      (uint8_t*)v4l2_data.buffers[i].start, capturePixFormat,
+      v4l2_data.fmt.fmt.pix.width,
+      v4l2_data.fmt.fmt.pix.height );
+#endif
 #endif // HAVE_LIBSWSCALE
     }
 
@@ -1035,7 +1050,16 @@ void LocalCamera::Initialise()
 #endif
       if ( !capturePictures[i] )
         Fatal( "Could not allocate picture" );
-      avpicture_fill( (AVPicture *)capturePictures[i], (unsigned char *)v4l1_data.bufptr+v4l1_data.frames.offsets[i], capturePixFormat, width, height );
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+      av_image_fill_arrays(capturePictures[i]->data,
+        capturePictures[i]->linesize,
+        (unsigned char *)v4l1_data.bufptr+v4l1_data.frames.offsets[i],
+        capturePixFormat, width, height, 1);
+#else
+      avpicture_fill( (AVPicture *)capturePictures[i],
+        (unsigned char *)v4l1_data.bufptr+v4l1_data.frames.offsets[i],
+        capturePixFormat, width, height );
+#endif
     }
 #endif // HAVE_LIBSWSCALE
 
@@ -2128,10 +2152,17 @@ int LocalCamera::Capture( Image &image )
     }
 #if HAVE_LIBSWSCALE
     if(conversion_type == 1) {
-      
+
       Debug( 9, "Calling sws_scale to perform the conversion" );
       /* Use swscale to convert the image directly into the shared memory */
-      avpicture_fill( (AVPicture *)tmpPicture, directbuffer, imagePixFormat, width, height );
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+      av_image_fill_arrays(tmpPicture->data,
+        tmpPicture->linesize, directbuffer,
+        imagePixFormat, width, height, 1);
+#else
+      avpicture_fill( (AVPicture *)tmpPicture, directbuffer,
+        imagePixFormat, width, height );
+#endif
       sws_scale( imgConversionContext, capturePictures[capture_frame]->data, capturePictures[capture_frame]->linesize, 0, height, tmpPicture->data, tmpPicture->linesize );
     }
 #endif  

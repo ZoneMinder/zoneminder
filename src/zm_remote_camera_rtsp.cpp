@@ -532,6 +532,7 @@ int RemoteCameraRtsp::CaptureAndRecord( Image &image, bool recording, char* even
 #endif
               return 0;
             }
+          }
         }
       } // end if video or audio packet
      

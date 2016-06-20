@@ -642,14 +642,8 @@ function statusCmdQuery() {
     statusCmdReq.send();
 }
 
-var tempImage = null;
-
 function fetchImage( streamImage ) {
-    var now = new Date();
-    if ( !tempImage )
-        tempImage = new Element( 'img' );
-    tempImage.setProperty( 'src', streamSrc+'&'+now.getTime() );
-    $(streamImage).setProperty( 'src', tempImage.getProperty( 'src' ) );
+  streamImage.src = streamImage.src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
 }
 
 function appletRefresh() {

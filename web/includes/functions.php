@@ -2161,4 +2161,16 @@ function getStreamHTML( $monitor, $scale=100 ) {
   }
 } // end function getStreamHTML
 
+function getStreamMode( ) {
+  $streamMode = '';
+  if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
+    $streamMode = 'mpeg';
+  } elseif ( canStream() ) {
+    $streamMode = 'jpeg';
+  } else {
+    $streamMode = 'single';
+    Info( "The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.");
+  }
+} // end function getStreamMode
+
 ?>

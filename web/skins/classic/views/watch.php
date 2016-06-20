@@ -44,6 +44,7 @@ else
 
 $connkey = generateConnKey();
 
+$streamMode = getStreamMode();
 $showDvrControls = ( $streamMode == 'jpeg' && $monitor->StreamReplayBuffer() != 0 );
 
 noCacheHeaders();

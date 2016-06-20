@@ -2,8 +2,9 @@
 require_once( 'database.php' );
 require_once( 'Server.php' );
 
+class Monitor {
 
-$control_fields = array(
+private $control_fields = array(
   'Name' => '',
   'Type' => 'Local',
   'Protocol' => NULL,
@@ -104,7 +105,6 @@ $control_fields = array(
   'NumScanPaths' => '0',
 );
 
-class Monitor {
   public function __construct( $IdOrRow ) {
     $row = NULL;
     if ( $IdOrRow ) {
@@ -156,10 +156,10 @@ class Monitor {
         #array_unshift($args, $this);
         #call_user_func_array( $this->{$fn}, $args);
 		} else {
-      if ( isset( $control_fields{$fn} ) ) {
-        return $control_fields{$fn};
+      if ( isset( $this->control_fields{$fn} ) ) {
+        return $this->control_fields{$fn};
       } else {
-			Warning( "Unknown function call Monitor->$fn" );
+        Warning( "Unknown function call Monitor->$fn" );
       }
     }
   }

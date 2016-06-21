@@ -510,7 +510,7 @@ function makePopupButton( $url, $winName, $winSize, $buttonValue, $condition=1, 
     $popupParms = "'".$url."', '".$winName."', '".$winSize[0]."', ".$winSize[1].", ".$winSize[2];
   else
     $popupParms = "'".$url."', '".$winName."', '".$winSize."'";
-  $string = '<input type="button" value="'.$buttonValue.'" onclick="createPopup( '.$popupParms.' ); return( false );"'.($condition?'':' disabled="disabled"').($options?(' '.$options):'').'/>';
+  $string = '<input class="btn btn-primary" type="button" value="'.$buttonValue.'" onclick="createPopup( '.$popupParms.' ); return( false );"'.($condition?'':' disabled="disabled"').($options?(' '.$options):'').'/>';
   return( $string );
 }
 

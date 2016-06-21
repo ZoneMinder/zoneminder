@@ -82,8 +82,11 @@ xhtmlHeaders(__FILE__, translate('Frame')." - ".$event['Id']." - ".$frame->Frame
 <?php if ( in_array($event['VideoWriter'],array("1","2")) ) { ?>
 <img src="?view=image&eid=<?php echo $event['Id'] ?>&fid=<?php echo $frame->FrameId() ?>&scale=<?php echo $event['DefaultScale'] ?>" class="<?php echo $imageData['imageClass'] ?>" width="<?php echo reScale( $event['Width'], $event['DefaultScale'], $scale ) ?>" height="<?php echo reScale( $event['Height'], $event['DefaultScale'], $scale ) ?>" alt="<?php echo $frame->EventId()."-".$frame->FrameId() ?>">
 <?php } else {
-if ( $imageData['hasAnalImage'] ) { ?><a href="?view=frame&amp;eid=<?php echo $event['Id'] ?>&amp;fid=<?php echo $frame->FrameId() ?>&amp;scale=<?php echo $scale ?>&amp;show=<?php echo $imageData['isAnalImage']?"capt":"anal" ?>"><?php } ?>
-<img src="<?php echo $frame->getImageSrc() ?>" width="<?php echo reScale( $event['Width'], $event['DefaultScale'], $scale ) ?>" height="<?php echo reScale( $event['Height'], $event['DefaultScale'], $scale ) ?>" alt="<?php echo $frame->EventId()."-".$frame->FrameId() ?>" class="<?php echo $imageData['imageClass'] ?>"/><?php if ( $imageData['hasAnalImage'] ) { ?></a><?php } ?>
+if ( $imageData['hasAnalImage'] ) { ?>
+<a href="?view=frame&amp;eid=<?php echo $event['Id'] ?>&amp;fid=<?php echo $frame->FrameId() ?>&amp;scale=<?php echo $scale ?>&amp;show=<?php echo $imageData['isAnalImage']?"capt":"anal" ?>">
+<?php } ?>
+<img src="<?php echo $frame->getImageSrc() ?>" width="<?php echo reScale( $event['Width'], $event['DefaultScale'], $scale ) ?>" height="<?php echo reScale( $event['Height'], $event['DefaultScale'], $scale ) ?>" alt="<?php echo $frame->EventId()."-".$frame->FrameId() ?>" class="<?php echo $imageData['imageClass'] ?>"/>
+<?php if ( $imageData['hasAnalImage'] ) { ?></a><?php } ?>
 <?php } ?>
 </p>
       <p id="controls">

@@ -33,10 +33,10 @@
 //
 class FfmpegCamera : public Camera
 {
-protected:
+  protected:
     std::string         mPath;
-    std::string			mMethod;
-    std::string			mOptions;
+    std::string      mMethod;
+    std::string      mOptions;
 
     int frameCount;    
 
@@ -60,7 +60,7 @@ protected:
     int mOpenStart;
     pthread_t mReopenThread;
 #endif // HAVE_LIBAVFORMAT
-    
+
     bool                wasRecording;
     VideoStore          *videoStore;
     char                oldDirectory[4096];
@@ -69,27 +69,27 @@ protected:
     AVPacket            lastKeyframePkt;
 
 #if HAVE_LIBSWSCALE
-	struct SwsContext   *mConvertContext;
+    struct SwsContext   *mConvertContext;
 #endif
 
     int64_t             startTime;
-    
-public:
-	FfmpegCamera( int p_id, const std::string &path, const std::string &p_method, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
-	~FfmpegCamera();
+
+  public:
+    FfmpegCamera( int p_id, const std::string &path, const std::string &p_method, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
+    ~FfmpegCamera();
 
     const std::string &Path() const { return( mPath ); }
     const std::string &Options() const { return( mOptions ); } 
     const std::string &Method() const { return( mMethod ); }
 
-	void Initialise();
-	void Terminate();
+    void Initialise();
+    void Terminate();
 
-	int PrimeCapture();
-	int PreCapture();
-	int Capture( Image &image );
-	int CaptureAndRecord( Image &image, bool recording, char* event_directory );
-	int PostCapture();
+    int PrimeCapture();
+    int PreCapture();
+    int Capture( Image &image );
+    int CaptureAndRecord( Image &image, bool recording, char* event_directory );
+    int PostCapture();
 };
 
 #endif // ZM_FFMPEG_CAMERA_H

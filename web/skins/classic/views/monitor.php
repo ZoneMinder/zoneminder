@@ -58,6 +58,7 @@ if ( ! empty($_REQUEST['mid']) ) {
 } else {
 
   $nextId = getTableAutoInc( 'Monitors' );
+<<<<<<< HEAD
   if ( ! empty( $_REQUEST['dupId'] ) ) {
       $monitor = new Monitor( $_REQUEST['dupId'] );
       if ( ZM_OPT_X10 )
@@ -151,6 +152,105 @@ if ( ZM_OPT_X10 && empty($x10Monitor) ) {
 
 function fourcc( $a, $b, $c, $d ) {
   return( ord($a) | (ord($b) << 8) | (ord($c) << 16) | (ord($d) << 24) );
+=======
+  $monitor = getMonitorObject($_REQUEST['dupId']);
+  $clonedName = $monitor['Name'];
+  $monitor['Name'] = translate('Monitor').'-'.$nextId;
+  $monitor['Id']='0';
+}
+
+if ( ZM_OPT_X10 && empty($x10Monitor) )
+{
+    $x10Monitor = array(
+        'Activation' => '',   
+        'AlarmInput' => '',   
+        'AlarmOutput' => '',   
+    );
+}
+
+function getMonitorObject( $mid = null) 
+{
+    if ($mid !== null)
+    {
+      $monitor = dbFetchMonitor($mid);
+    }
+    else
+    {
+          $monitor = array(
+                'Id' => 0,
+                'Name' => "willbereplaced",
+                'Function' => "Monitor",
+                'Enabled' => true,
+                'LinkedMonitors' => "",
+                'Type' => "",
+                'Device' => "/dev/video0",
+                'Channel' => "0",
+                'Format' => 0x000000ff,
+                'Protocol' => "",
+                'Method' => "",
+                'Host' => "",
+                'Path' => "",
+                'Options' => "",
+                'Port' => "80",
+                'User' => "",
+                'Pass' => "",
+                'Colours' => 3,
+                'Palette' => 0,
+                'Width' => "320",
+                'Height' => "240",
+                'Orientation' => "0",
+                'Deinterlacing' => 0,
+                'RTSPDescribe' => 0,
+                'SaveJPEGs' => "3",
+                'VideoWriter' => "0",
+                'EncoderParameters' => "# Lines beginning with # are a comment \n# For changing quality, use the crf option\n# 1 is best, 51 is worst quality\n#crf=23\n",
+                'RecordAudio' => "0",
+                'LabelFormat' => '%N - %d/%m/%y %H:%M:%S',
+                'LabelX' => 0,
+                'LabelY' => 0,
+                'LabelSize' => 1,
+                'ImageBufferCount' => 50,
+                'WarmupCount' => 25,
+                'PreEventCount' => 25,
+                'PostEventCount' => 25,
+                'StreamReplayBuffer' => 1000,
+                'AlarmFrameCount' => 1,
+                'Controllable' => 0,
+                'ControlId' => "",
+                'ControlType' => 0,
+                'ControlDevice' => "",
+                'ControlAddress' => "",
+                'AutoStopTimeout' => "",
+                'TrackMotion' => 0,
+                'TrackDelay' => "",
+                'ReturnLocation' => -1,
+                'ReturnDelay' => "",
+                'SectionLength' => 600,
+                'FrameSkip' => 0,
+                'MotionFrameSkip' => 0,
+                'EventPrefix' => 'Event-',
+                'AnalysisFPS' => "",
+                'AnalysisUpdateDelay' => 0,
+                'MaxFPS' => "",
+                'AlarmMaxFPS' => "",
+                'FPSReportInterval' => 1000,
+                'RefBlendPerc' => 6,
+                'AlarmRefBlendPerc' => 6,
+                'DefaultView' => 'Events',
+                'DefaultRate' => '100',
+                'DefaultScale' => '100',
+                'SignalCheckColour' => '#0000c0',
+                'WebColour' => 'red',
+                'Exif' => '0',
+                'Triggers' => "",
+            'V4LMultiBuffer'  =>  '',
+            'V4LCapturesPerFrame' =>  1,
+            'ServerId'  =>  $Server['Id'],
+            );
+      }
+      return ($monitor);
+}
+>>>>>>> feature-h264-videostorage
 
 }
 

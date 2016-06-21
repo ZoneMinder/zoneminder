@@ -33,11 +33,11 @@ extern "C"{
 }
 
 VideoStore::VideoStore(const char *filename_in, const char *format_in,
-                       AVStream *input_st,
-                       AVStream *inpaud_st,
-                       int64_t nStartTime,
-                        Monitor::Orientation orientation
-) {
+    AVStream *input_st,
+    AVStream *inpaud_st,
+    int64_t nStartTime,
+    Monitor::Orientation orientation
+    ) {
     
   AVDictionary *pmetadata = NULL;
   int dsr;
@@ -96,6 +96,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
     video_st->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
   }
+
   if ( orientation ) {
     if ( orientation == Monitor::ROTATE_90 ) {
       dsr = av_dict_set( &video_st->metadata, "rotate", "90", 0);
@@ -112,7 +113,6 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   }
 
   if (inpaud_st) {
-
     audio_st = avformat_new_stream(oc, (AVCodec *)inpaud_st->codec->codec);
     if (!audio_st) {
       Error("Unable to create audio out stream\n");
@@ -222,6 +222,9 @@ void VideoStore::dumpPacket( AVPacket *pkt ){
 
 int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st){//, AVPacket *lastKeyframePkt){
 
+  Debug(3, "before ost_tbcket %d", startTime );
+  zm_dump_stream_format( oc, ipkt->stream_index, 0, 1 );
+  Debug(3, "before ost_tbcket %d", startTime );
   int64_t ost_tb_start_time = av_rescale_q(startTime, AV_TIME_BASE_Q, video_st->time_base);
 
   AVPacket opkt, safepkt;
@@ -285,7 +288,6 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st){//, AV
     }
   }
 
-
   av_free_packet(&opkt); 
 
   return 0;
@@ -309,7 +311,6 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt, AVStream *input_st){
 
   av_init_packet(&opkt);
   Debug(3, "after init packet" );
-
 
   //Scale the PTS of the outgoing packet to be the correct time base
   if (ipkt->pts != AV_NOPTS_VALUE) {

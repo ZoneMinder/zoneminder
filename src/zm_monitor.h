@@ -505,9 +505,9 @@ public:
 class MonitorStream : public StreamBase {
   protected:
     typedef struct SwapImage {
-      bool      valid;
+      bool            valid;
       struct timeval  timestamp;
-      char      file_name[PATH_MAX];
+      char            file_name[PATH_MAX];
     } SwapImage;
 
   private:

@@ -200,230 +200,246 @@ int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint
         (uint8_t*)in_buffer, in_pf, width, height, 1) <= 0)
   {
 #else
-    if(avpicture_fill( (AVPicture*)input_avframe, (uint8_t*)in_buffer,
-          in_pf, width, height ) <= 0)
-    {
+  if(avpicture_fill( (AVPicture*)input_avframe, (uint8_t*)in_buffer,
+        in_pf, width, height ) <= 0)
+  {
 #endif
-      Error("Failed filling input frame with input buffer");
-      return -7;
-    }
-
-    if(!avpicture_fill( (AVPicture*)output_avframe, out_buffer, out_pf, width, height ) ) {
-      Error("Failed filling output frame with output buffer");
-      return -8;
-    }
-
-    /* Do the conversion */
-    if(!sws_scale(swscale_ctx, input_avframe->data, input_avframe->linesize, 0, height, output_avframe->data, output_avframe->linesize ) ) {
-      Error("swscale conversion failed");
-      return -10;
-    }
-
-    return 0;
+    Error("Failed filling input frame with input buffer");
+    return -7;
   }
 
-  int SWScale::Convert(const Image* img, uint8_t* out_buffer, const size_t out_buffer_size, enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, unsigned int width, unsigned int height) {
-    if(img->Width() != width) {
-      Error("Source image width differs. Source: %d Output: %d",img->Width(), width);
-      return -12;
-    }
-
-    if(img->Height() != height) {
-      Error("Source image height differs. Source: %d Output: %d",img->Height(), height);
-      return -13;
-    }
-
-    return Convert(img->Buffer(),img->Size(),out_buffer,out_buffer_size,in_pf,out_pf,width,height);
+  if(!avpicture_fill( (AVPicture*)output_avframe, out_buffer, out_pf, width, height ) ) {
+    Error("Failed filling output frame with output buffer");
+    return -8;
   }
 
-  int SWScale::ConvertDefaults(const Image* img, uint8_t* out_buffer, const size_t out_buffer_size) {
-
-    if(!gotdefaults) {
-      Error("Defaults are not set");
-      return -24;
-    }
-
-    return Convert(img,out_buffer,out_buffer_size,default_input_pf,default_output_pf,default_width,default_height);
+  /* Do the conversion */
+  if(!sws_scale(swscale_ctx, input_avframe->data, input_avframe->linesize, 0, height, output_avframe->data, output_avframe->linesize ) ) {
+    Error("swscale conversion failed");
+    return -10;
   }
 
-  int SWScale::ConvertDefaults(const uint8_t* in_buffer, const size_t in_buffer_size, uint8_t* out_buffer, const size_t out_buffer_size) {
+  return 0;
+}
 
-    if(!gotdefaults) {
-      Error("Defaults are not set");
-      return -24;
-    }
-
-    return Convert(in_buffer,in_buffer_size,out_buffer,out_buffer_size,default_input_pf,default_output_pf,default_width,default_height);
+int SWScale::Convert(const Image* img, uint8_t* out_buffer, const size_t out_buffer_size, enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, unsigned int width, unsigned int height) {
+  if(img->Width() != width) {
+    Error("Source image width differs. Source: %d Output: %d",img->Width(), width);
+    return -12;
   }
+
+  if(img->Height() != height) {
+    Error("Source image height differs. Source: %d Output: %d",img->Height(), height);
+    return -13;
+  }
+
+  return Convert(img->Buffer(),img->Size(),out_buffer,out_buffer_size,in_pf,out_pf,width,height);
+}
+
+int SWScale::ConvertDefaults(const Image* img, uint8_t* out_buffer, const size_t out_buffer_size) {
+
+  if(!gotdefaults) {
+    Error("Defaults are not set");
+    return -24;
+  }
+
+  return Convert(img,out_buffer,out_buffer_size,default_input_pf,default_output_pf,default_width,default_height);
+}
+
+int SWScale::ConvertDefaults(const uint8_t* in_buffer, const size_t in_buffer_size, uint8_t* out_buffer, const size_t out_buffer_size) {
+
+  if(!gotdefaults) {
+    Error("Defaults are not set");
+    return -24;
+  }
+
+  return Convert(in_buffer,in_buffer_size,out_buffer,out_buffer_size,default_input_pf,default_output_pf,default_width,default_height);
+}
 #endif // HAVE_LIBSWSCALE && HAVE_LIBAVUTIL
 
 #endif // HAVE_LIBAVCODEC || HAVE_LIBAVUTIL || HAVE_LIBSWSCALE
 
 #if HAVE_LIBAVUTIL
-  int64_t av_rescale_delta(AVRational in_tb, int64_t in_ts,  AVRational fs_tb, int duration, int64_t *last, AVRational out_tb){
-    int64_t a, b, this_thing;
+int64_t av_rescale_delta(AVRational in_tb, int64_t in_ts,  AVRational fs_tb, int duration, int64_t *last, AVRational out_tb){
+  int64_t a, b, this_thing;
 
-    av_assert0(in_ts != AV_NOPTS_VALUE);
-    av_assert0(duration >= 0);
+  av_assert0(in_ts != AV_NOPTS_VALUE);
+  av_assert0(duration >= 0);
 
-    if (*last == AV_NOPTS_VALUE || !duration || in_tb.num*(int64_t)out_tb.den <= out_tb.num*(int64_t)in_tb.den) {
+  if (*last == AV_NOPTS_VALUE || !duration || in_tb.num*(int64_t)out_tb.den <= out_tb.num*(int64_t)in_tb.den) {
 simple_round:
-      *last = av_rescale_q(in_ts, in_tb, fs_tb) + duration;
-      return av_rescale_q(in_ts, in_tb, out_tb);
-    }
-
-    a =  av_rescale_q_rnd(2*in_ts-1, in_tb, fs_tb, AV_ROUND_DOWN)   >>1;
-    b = (av_rescale_q_rnd(2*in_ts+1, in_tb, fs_tb, AV_ROUND_UP  )+1)>>1;
-    if (*last < 2*a - b || *last > 2*b - a)
-      goto simple_round;
-
-    this_thing = av_clip64(*last, a, b);
-    *last = this_thing + duration;
-
-    return av_rescale_q(this_thing, fs_tb, out_tb);
+    *last = av_rescale_q(in_ts, in_tb, fs_tb) + duration;
+    return av_rescale_q(in_ts, in_tb, out_tb);
   }
+
+  a =  av_rescale_q_rnd(2*in_ts-1, in_tb, fs_tb, AV_ROUND_DOWN)   >>1;
+  b = (av_rescale_q_rnd(2*in_ts+1, in_tb, fs_tb, AV_ROUND_UP  )+1)>>1;
+  if (*last < 2*a - b || *last > 2*b - a)
+    goto simple_round;
+
+  this_thing = av_clip64(*last, a, b);
+  *last = this_thing + duration;
+
+  return av_rescale_q(this_thing, fs_tb, out_tb);
+}
 #endif
 
-  int hacked_up_context2_for_older_ffmpeg(AVFormatContext **avctx, AVOutputFormat *oformat, const char *format, const char *filename) {
-    AVFormatContext *s = avformat_alloc_context();
-    int ret = 0;
+int hacked_up_context2_for_older_ffmpeg(AVFormatContext **avctx, AVOutputFormat *oformat, const char *format, const char *filename) {
+  AVFormatContext *s = avformat_alloc_context();
+  int ret = 0;
 
-    *avctx = NULL;
-    if (!s) {
-      av_log(s, AV_LOG_ERROR, "Out of memory\n");
-      ret = AVERROR(ENOMEM);
-      return ret;
+  *avctx = NULL;
+  if (!s) {
+    av_log(s, AV_LOG_ERROR, "Out of memory\n");
+    ret = AVERROR(ENOMEM);
+    return ret;
+  }
+
+  if (!oformat) {
+    if (format) {
+      oformat = av_guess_format(format, NULL, NULL);
+      if (!oformat) {
+        av_log(s, AV_LOG_ERROR, "Requested output format '%s' is not a suitable output format\n", format);
+        ret = AVERROR(EINVAL);
+      }
+    } else {
+      oformat = av_guess_format(NULL, filename, NULL);
+      if (!oformat) {
+        ret = AVERROR(EINVAL);
+        av_log(s, AV_LOG_ERROR, "Unable to find a suitable output format for '%s'\n", filename);
+      }
     }
+  }
 
-    if (!oformat) {
-      if (format) {
-        oformat = av_guess_format(format, NULL, NULL);
-        if (!oformat) {
-          av_log(s, AV_LOG_ERROR, "Requested output format '%s' is not a suitable output format\n", format);
-          ret = AVERROR(EINVAL);
+  if (!oformat) {
+    if (format) {
+      oformat = av_guess_format(format, NULL, NULL);
+      if (!oformat) {
+        av_log(s, AV_LOG_ERROR, "Requested output format '%s' is not a suitable output format\n", format);
+        ret = AVERROR(EINVAL);
+      }
+    } else {
+      oformat = av_guess_format(NULL, filename, NULL);
+      if (!oformat) {
+        ret = AVERROR(EINVAL);
+        av_log(s, AV_LOG_ERROR, "Unable to find a suitable output format for '%s'\n", filename);
+      }
+    }
+  }
+
+  if (ret) {
+    avformat_free_context(s);
+    return ret;
+  } else {
+    s->oformat = oformat;
+    if (s->oformat->priv_data_size > 0) {
+      s->priv_data = av_mallocz(s->oformat->priv_data_size);
+      if (s->priv_data) {
+        if (s->oformat->priv_class) {
+          *(const AVClass**)s->priv_data= s->oformat->priv_class;
+          av_opt_set_defaults(s->priv_data);
         }
       } else {
-        oformat = av_guess_format(NULL, filename, NULL);
-        if (!oformat) {
-          ret = AVERROR(EINVAL);
-          av_log(s, AV_LOG_ERROR, "Unable to find a suitable output format for '%s'\n", filename);
-        }
+        av_log(s, AV_LOG_ERROR, "Out of memory\n");
+        ret = AVERROR(ENOMEM);
+        return ret;
       }
+      s->priv_data = NULL;
     }
 
-    if (ret) {
-      avformat_free_context(s);
-      return ret;
-    } else {
-      s->oformat = oformat;
-      if (s->oformat->priv_data_size > 0) {
-        s->priv_data = av_mallocz(s->oformat->priv_data_size);
-        if (s->priv_data) {
-          if (s->oformat->priv_class) {
-            *(const AVClass**)s->priv_data= s->oformat->priv_class;
-            av_opt_set_defaults(s->priv_data);
-          }
-        } else {
-          av_log(s, AV_LOG_ERROR, "Out of memory\n");
-          ret = AVERROR(ENOMEM);
-          return ret;
-        }
-        s->priv_data = NULL;
-      }
+    if (filename) strncpy(s->filename, filename, sizeof(s->filename));
+    *avctx = s;
+    return 0;
+  }
+}
 
-      if (filename) strncpy(s->filename, filename, sizeof(s->filename));
-      *avctx = s;
-      return 0;
-    }
+static void zm_log_fps(double d, const char *postfix)
+{
+  uint64_t v = lrintf(d * 100);
+  if (!v) {
+    Debug(3, "%1.4f %s", d, postfix);
+  } else if (v % 100) {
+    Debug(3, "%3.2f %s", d, postfix);
+  } else if (v % (100 * 1000)) {
+    Debug(3, "%1.0f %s", d, postfix);
+  } else
+    Debug(3, "%1.0fk %s", d / 1000, postfix);
+}
+
+/* "user interface" functions */
+void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output) {
+  char buf[256];
+  int flags = (is_output ? ic->oformat->flags : ic->iformat->flags);
+  AVStream *st = ic->streams[i];
+  AVDictionaryEntry *lang = av_dict_get(st->metadata, "language", NULL, 0);
+
+  avcodec_string(buf, sizeof(buf), st->codec, is_output);
+  Debug(3, "    Stream #%d:%d", index, i);
+
+  /* the pid is an important information, so we display it */
+  /* XXX: add a generic system */
+  if (flags & AVFMT_SHOW_IDS)
+    Debug(3, "[0x%x]", st->id);
+  if (lang)
+    Debug(3, "(%s)", lang->value);
+  av_log(NULL, AV_LOG_DEBUG, ", %d, %d/%d", st->codec_info_nb_frames,
+      st->time_base.num, st->time_base.den);
+  Debug(3, ": %s", buf);
+
+  if (st->sample_aspect_ratio.num && // default
+      av_cmp_q(st->sample_aspect_ratio, st->codec->sample_aspect_ratio)) {
+    AVRational display_aspect_ratio;
+    av_reduce(&display_aspect_ratio.num, &display_aspect_ratio.den,
+        st->codec->width  * (int64_t)st->sample_aspect_ratio.num,
+        st->codec->height * (int64_t)st->sample_aspect_ratio.den,
+        1024 * 1024);
+    Debug(3, ", SAR %d:%d DAR %d:%d",
+        st->sample_aspect_ratio.num, st->sample_aspect_ratio.den,
+        display_aspect_ratio.num, display_aspect_ratio.den);
   }
 
-  static void zm_log_fps(double d, const char *postfix)
-  {
-    uint64_t v = lrintf(d * 100);
-    if (!v) {
-      Debug(3, "%1.4f %s", d, postfix);
-    } else if (v % 100) {
-      Debug(3, "%3.2f %s", d, postfix);
-    } else if (v % (100 * 1000)) {
-      Debug(3, "%1.0f %s", d, postfix);
-    } else
-      Debug(3, "%1.0fk %s", d / 1000, postfix);
+  if (st->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
+    int fps = st->avg_frame_rate.den && st->avg_frame_rate.num;
+    int tbr = st->r_frame_rate.den && st->r_frame_rate.num;
+    int tbn = st->time_base.den && st->time_base.num;
+    int tbc = st->codec->time_base.den && st->codec->time_base.num;
+
+    if (fps || tbr || tbn || tbc)
+      Debug(3, "\n" );
+
+    if (fps)
+      zm_log_fps(av_q2d(st->avg_frame_rate), tbr || tbn || tbc ? "fps, " : "fps");
+    if (tbr)
+      zm_log_fps(av_q2d(st->r_frame_rate), tbn || tbc ? "tbr, " : "tbr");
+    if (tbn)
+      zm_log_fps(1 / av_q2d(st->time_base), tbc ? "tbn, " : "tbn");
+    if (tbc)
+      zm_log_fps(1 / av_q2d(st->codec->time_base), "tbc");
   }
 
-  /* "user interface" functions */
-  void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output) {
-    char buf[256];
-    int flags = (is_output ? ic->oformat->flags : ic->iformat->flags);
-    AVStream *st = ic->streams[i];
-    AVDictionaryEntry *lang = av_dict_get(st->metadata, "language", NULL, 0);
+  if (st->disposition & AV_DISPOSITION_DEFAULT)
+    Debug(3, " (default)");
+  if (st->disposition & AV_DISPOSITION_DUB)
+    Debug(3, " (dub)");
+  if (st->disposition & AV_DISPOSITION_ORIGINAL)
+    Debug(3, " (original)");
+  if (st->disposition & AV_DISPOSITION_COMMENT)
+    Debug(3, " (comment)");
+  if (st->disposition & AV_DISPOSITION_LYRICS)
+    Debug(3, " (lyrics)");
+  if (st->disposition & AV_DISPOSITION_KARAOKE)
+    Debug(3, " (karaoke)");
+  if (st->disposition & AV_DISPOSITION_FORCED)
+    Debug(3, " (forced)");
+  if (st->disposition & AV_DISPOSITION_HEARING_IMPAIRED)
+    Debug(3, " (hearing impaired)");
+  if (st->disposition & AV_DISPOSITION_VISUAL_IMPAIRED)
+    Debug(3, " (visual impaired)");
+  if (st->disposition & AV_DISPOSITION_CLEAN_EFFECTS)
+    Debug(3, " (clean effects)");
+  Debug(3, "\n");
 
-    avcodec_string(buf, sizeof(buf), st->codec, is_output);
-    Debug(3, "    Stream #%d:%d", index, i);
+  //dump_metadata(NULL, st->metadata, "    ");
 
-    /* the pid is an important information, so we display it */
-    /* XXX: add a generic system */
-    if (flags & AVFMT_SHOW_IDS)
-      Debug(3, "[0x%x]", st->id);
-    if (lang)
-      Debug(3, "(%s)", lang->value);
-    av_log(NULL, AV_LOG_DEBUG, ", %d, %d/%d", st->codec_info_nb_frames,
-        st->time_base.num, st->time_base.den);
-    Debug(3, ": %s", buf);
-
-    if (st->sample_aspect_ratio.num && // default
-        av_cmp_q(st->sample_aspect_ratio, st->codec->sample_aspect_ratio)) {
-      AVRational display_aspect_ratio;
-      av_reduce(&display_aspect_ratio.num, &display_aspect_ratio.den,
-          st->codec->width  * (int64_t)st->sample_aspect_ratio.num,
-          st->codec->height * (int64_t)st->sample_aspect_ratio.den,
-          1024 * 1024);
-      Debug(3, ", SAR %d:%d DAR %d:%d",
-          st->sample_aspect_ratio.num, st->sample_aspect_ratio.den,
-          display_aspect_ratio.num, display_aspect_ratio.den);
-    }
-
-    if (st->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
-      int fps = st->avg_frame_rate.den && st->avg_frame_rate.num;
-      int tbr = st->r_frame_rate.den && st->r_frame_rate.num;
-      int tbn = st->time_base.den && st->time_base.num;
-      int tbc = st->codec->time_base.den && st->codec->time_base.num;
-
-      if (fps || tbr || tbn || tbc)
-        Debug(3, "\n" );
-
-      if (fps)
-        zm_log_fps(av_q2d(st->avg_frame_rate), tbr || tbn || tbc ? "fps, " : "fps");
-      if (tbr)
-        zm_log_fps(av_q2d(st->r_frame_rate), tbn || tbc ? "tbr, " : "tbr");
-      if (tbn)
-        zm_log_fps(1 / av_q2d(st->time_base), tbc ? "tbn, " : "tbn");
-      if (tbc)
-        zm_log_fps(1 / av_q2d(st->codec->time_base), "tbc");
-    }
-
-    if (st->disposition & AV_DISPOSITION_DEFAULT)
-      Debug(3, " (default)");
-    if (st->disposition & AV_DISPOSITION_DUB)
-      Debug(3, " (dub)");
-    if (st->disposition & AV_DISPOSITION_ORIGINAL)
-      Debug(3, " (original)");
-    if (st->disposition & AV_DISPOSITION_COMMENT)
-      Debug(3, " (comment)");
-    if (st->disposition & AV_DISPOSITION_LYRICS)
-      Debug(3, " (lyrics)");
-    if (st->disposition & AV_DISPOSITION_KARAOKE)
-      Debug(3, " (karaoke)");
-    if (st->disposition & AV_DISPOSITION_FORCED)
-      Debug(3, " (forced)");
-    if (st->disposition & AV_DISPOSITION_HEARING_IMPAIRED)
-      Debug(3, " (hearing impaired)");
-    if (st->disposition & AV_DISPOSITION_VISUAL_IMPAIRED)
-      Debug(3, " (visual impaired)");
-    if (st->disposition & AV_DISPOSITION_CLEAN_EFFECTS)
-      Debug(3, " (clean effects)");
-    Debug(3, "\n");
-
-    //dump_metadata(NULL, st->metadata, "    ");
-
-    //dump_sidedata(NULL, st, "    ");
-  }
+  //dump_sidedata(NULL, st, "    ");
+}

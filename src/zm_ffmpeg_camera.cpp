@@ -63,7 +63,7 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::stri
   wasRecording = false;
   videoStore = NULL;
 
-#if HAVE_LIBSWSCALE    
+#if HAVE_LIBSWSCALE  
   mConvertContext = NULL;
 #endif
   /* Has to be located inside the constructor so other components such as zma will receive correct colours and subpixel order */
@@ -274,9 +274,7 @@ int FfmpegCamera::OpenFfmpeg() {
         Warning( "Error trying to set option %d '%s' to '%s'", i, parts[0].c_str(), parts[1].c_str() );
       }
 
-    }
-    else
-    {
+    } else {
       Warning( "Unable to parse ffmpeg option %d '%s', expecting key=value", i, opVect[i].c_str() );
     }
   }    
@@ -356,7 +354,7 @@ int FfmpegCamera::OpenFfmpeg() {
   if ( mVideoStreamId == -1 )
     Fatal( "Unable to locate video stream in %s", mPath.c_str() );
   if ( mAudioStreamId == -1 )
-    Debug( 2, "Unable to locate audio stream in %s", mPath.c_str() );
+    Debug( 3, "Unable to locate audio stream in %s", mPath.c_str() );
 
   Debug ( 3, "Found video stream at index %d", mVideoStreamId );
   Debug ( 3, "Found audio stream at index %d", mAudioStreamId );
@@ -523,12 +521,11 @@ void *FfmpegCamera::ReopenFfmpegThreadCallback(void *ctx){
 }
 
 //Function to handle capture and store
-int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_file )
-{
+int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_file ) {
   if (!mCanCapture){
     return -1;
   }
-
+  
   // If the reopen thread has a value, but mCanCapture != 0, then we have just reopened the connection to the ffmpeg device, and we can clean up the thread.
   if (mReopenThread != 0) {
     void *retval = 0;
@@ -568,9 +565,9 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
           (avResult == AVERROR_EOF || (mFormatContext->pb && mFormatContext->pb->eof_reached)) ||
           // Check for Connection failure.
           (avResult == -110)
-         ) {
-        Info( "av_read_frame returned \"%s\". Reopening stream.", errbuf);
-        ReopenFfmpeg();
+      ) {
+          Info( "av_read_frame returned \"%s\". Reopening stream.", errbuf);
+          ReopenFfmpeg();
       }
 
       Error( "Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, avResult, errbuf );
@@ -581,9 +578,9 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
 #if LIBAVCODEC_VERSION_CHECK(52, 23, 0, 23, 0)
       if ( avcodec_decode_video2( mCodecContext, mRawFrame, &frameComplete, &packet ) < 0 )
 #else
-        if ( avcodec_decode_video( mCodecContext, mRawFrame, &frameComplete, packet.data, packet.size ) < 0 )
+      if ( avcodec_decode_video( mCodecContext, mRawFrame, &frameComplete, packet.data, packet.size ) < 0 )
 #endif
-          Fatal( "Unable to decode frame at frame %d", frameCount );
+        Fatal( "Unable to decode frame at frame %d", frameCount );
 
       Debug( 4, "Decoded video packet at frame %d", frameCount );
 

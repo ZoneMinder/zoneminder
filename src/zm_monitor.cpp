@@ -75,7 +75,12 @@ std::vector<std::string> split(const std::string &s, char delim) {
 
 
 
+<<<<<<< HEAD
 Monitor::MonitorLink::MonitorLink( int p_id, const char *p_name ) : id( p_id ) {
+=======
+Monitor::MonitorLink::MonitorLink( int p_id, const char *p_name ) : id( p_id )
+{
+>>>>>>> feature-h264-videostorage
   strncpy( name, p_name, sizeof(name) );
 
 #if ZM_MEM_MAPPED
@@ -232,7 +237,12 @@ bool Monitor::MonitorLink::inAlarm() {
 
 bool Monitor::MonitorLink::hasAlarmed()
 {
+<<<<<<< HEAD
   if ( shared_data->state == ALARM ) {
+=======
+  if ( shared_data->state == ALARM )
+  {
+>>>>>>> feature-h264-videostorage
     return( true );
   } else if ( shared_data->last_event != (unsigned int)last_event ) {
     last_event = shared_data->last_event;
@@ -1303,10 +1313,10 @@ bool Monitor::Analyse()
     if ( read_margin < 0 ) read_margin += image_buffer_count;
 
     int step = 1;
-        // Isn't read_margin always > 0 here?
+    // Isn't read_margin always > 0 here?
     if ( read_margin > 0 )
     {
-            // TODO explain this so... 90% of image buffer / 50% of read margin?
+      // TODO explain this so... 90% of image buffer / 50% of read margin?
       step = (9*image_buffer_count)/(5*read_margin);
     }
 
@@ -1401,10 +1411,11 @@ bool Monitor::Analyse()
   {
     bool signal = shared_data->signal;
     bool signal_change = (signal != last_signal);
-  Debug(3, "Motion detection is enabled signal(%d) signal_change(%d)", signal, signal_change);
+
+    Debug(3, "Motion detection is enabled signal(%d) signal_change(%d)", signal, signal_change);
     
     //Set video recording flag for event start constructor and easy reference in code
-        // TODO: Use enum instead of the # 2. Makes for easier reading
+    // TODO: Use enum instead of the # 2. Makes for easier reading
     bool videoRecording = ((GetOptVideoWriter() == 2) && camera->SupportsNativeVideo());
     
     if ( trigger_data->trigger_state != TRIGGER_OFF )
@@ -1561,7 +1572,7 @@ bool Monitor::Analyse()
             //set up video store data
             snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
             video_store_data->recording = true;
-            
+
             Info( "%s: %03d - Opening new event %d, section start", name, image_count, event->Id() );
 
             /* To prevent cancelling out an existing alert\prealarm\alarm state */
@@ -2326,7 +2337,7 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
     int videowriter = atoi(dbrow[col]); col++;
     std::string encoderparams =  dbrow[col]; col++;
     bool record_audio = (*dbrow[col] != '0'); col++;
-    
+
     int brightness = atoi(dbrow[col]); col++;
     int contrast = atoi(dbrow[col]); col++;
     int hue = atoi(dbrow[col]); col++;
@@ -4412,14 +4423,14 @@ void Monitor::SingleImageZip( int scale)
   fwrite( img_buffer, img_buffer_size, 1, stdout );
 }
 unsigned int Monitor::Colours() const { return( camera->Colours() ); }
-  unsigned int Monitor::SubpixelOrder() const { return( camera->SubpixelOrder() ); }
-  int Monitor::PrimeCapture() {
-    return( camera->PrimeCapture() );
-  }
-  int Monitor::PreCapture() {
-    return( camera->PreCapture() );
-  }
-  int Monitor::PostCapture() {
-    return( camera->PostCapture() );
-  }
-  Monitor::Orientation Monitor::getOrientation()const { return orientation; }
+unsigned int Monitor::SubpixelOrder() const { return( camera->SubpixelOrder() ); }
+int Monitor::PrimeCapture() {
+  return( camera->PrimeCapture() );
+}
+int Monitor::PreCapture() {
+  return( camera->PreCapture() );
+}
+int Monitor::PostCapture() {
+  return( camera->PostCapture() );
+}
+Monitor::Orientation Monitor::getOrientation()const { return orientation; }

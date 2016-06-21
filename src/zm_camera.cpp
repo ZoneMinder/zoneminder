@@ -32,7 +32,7 @@ Camera::Camera( int p_id, SourceType p_type, int p_width, int p_height, int p_co
     colour( p_colour ),
     contrast( p_contrast ),
     capture( p_capture ),
-  record_audio( p_record_audio )
+    record_audio( p_record_audio )
 {
   pixels = width * height;
   imagesize = pixels * colours;
@@ -47,8 +47,7 @@ Camera::Camera( int p_id, SourceType p_type, int p_width, int p_height, int p_co
   }
 }
 
-Camera::~Camera()
-{
+Camera::~Camera() {
 }
 
 Monitor *Camera::getMonitor() {

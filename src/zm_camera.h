@@ -80,9 +80,9 @@ public:
   virtual int Contrast( int/*p_contrast*/=-1 ) { return( -1 ); }
 
   bool CanCapture() const { return( capture ); }
-    
+
   bool SupportsNativeVideo() const { return( (type == FFMPEG_SRC )||(type == REMOTE_SRC)); }
-    
+
   virtual int PrimeCapture() { return( 0 ); }
   virtual int PreCapture()=0;
   virtual int Capture( Image &image )=0;

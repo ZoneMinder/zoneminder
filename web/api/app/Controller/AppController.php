@@ -73,8 +73,8 @@ class AppController extends Controller {
     $zmOptAuth = $config['Config']['Value'];
 
     if ( $zmOptAuth=='1' ) {
-      if ( $_REQUEST['user'] and $_REQUEST['pass'] ) {
-        $this->loadModel('User');
+      $this->loadModel('User');
+      if ( isset($_REQUEST['user']) and isset($_REQUEST['pass']) ) {
         $user = $this->User->find('first', array ('conditions' => array (
                 'User.Username' => $_REQUEST['user'],
                 'User.Password' => $_REQUEST['pass'],

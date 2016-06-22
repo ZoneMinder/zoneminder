@@ -30,6 +30,9 @@
 #ifdef SOLARIS
 #include <sys/filio.h> // FIONREAD and friends
 #endif
+#ifdef __FreeBSD__
+#include <netinet/in.h>
+#endif
 
 RemoteCameraHttp::RemoteCameraHttp(
   int p_id,

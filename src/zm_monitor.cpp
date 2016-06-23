@@ -2065,7 +2065,7 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
     bool rtsp_describe = (*dbrow[col] != '0'); col++;
     int savejpegs = atoi(dbrow[col]); col++;
     int videowriter = atoi(dbrow[col]); col++;
-    std::string encoderparams = dbrow[col] ? dbrow[col] : ''; col++;
+    std::string encoderparams = dbrow[col] ? dbrow[col] : ""; col++;
     bool record_audio = (*dbrow[col] != '0'); col++;
 
     int brightness = atoi(dbrow[col]); col++;

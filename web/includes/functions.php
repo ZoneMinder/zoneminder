@@ -962,18 +962,12 @@ function zmaCheck( $monitor ) {
 }
 
 function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $overwrite=false ) {
-<<<<<<< HEAD
   $Storage = new Storage( $event['StorageId'] );
   $Event = new Event( $event );
   $eventPath = $Event->Path();
-=======
-  $eventPath = getEventPath( $event );
->>>>>>> feature-h264-videostorage
 
   if ( !is_array($frame) )
     $frame = array( 'FrameId'=>$frame, 'Type'=>'' );
-
-<<<<<<< HEAD
 
   if ( file_exists( $eventPath.'/snapshot.jpg' ) ) {
     $captImage = "snapshot.jpg";
@@ -992,21 +986,6 @@ function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $ov
         Error("Can't create frame images from video becuase there is no video file for this event (".$Event->DefaultVideo() );
       }
     }
-=======
-  if ( file_exists( $eventPath.'/snapshot.jpg' ) ) {
-      $captImage = "snapshot.jpg";
-  } else {
-      $captImage = sprintf( "%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $frame['FrameId'] );
-      if ( ! file_exists( $eventPath.'/'.$captImage ) ) {
-          # Generate the frame JPG
-          if ( $event['DefaultVideo'] ) {
-              $command ='ffmpeg -v 0 -i '.$eventPath.'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$frame['FrameId'].'),setpts=PTS-STARTPTS" '.$eventPath.'/'.$captImage;
-              system( $command, $output, $retval );
-          } else {
-              Error("Can't create frame images from video because there is no video file for this event " );
-          }
-      }
->>>>>>> feature-h264-videostorage
   }
 
   $captPath = $eventPath.'/'.$captImage;
@@ -1020,10 +999,7 @@ function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $ov
 
   $analImage = sprintf( "%0".ZM_EVENT_IMAGE_DIGITS."d-analyse.jpg", $frame['FrameId'] );
   $analPath = $eventPath.'/'.$analImage;
-<<<<<<< HEAD
 
-=======
->>>>>>> feature-h264-videostorage
   $thumbAnalPath = ZM_DIR_IMAGES.'/'.$event['Id'].'-'.$analImage;
   //echo "AI:$analImage, AP:$analPath, TAP:$thumbAnalPath<br>";
 
@@ -1054,10 +1030,6 @@ function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $ov
       $thumbPath = $thumbCaptPath;
     }
 
-<<<<<<< HEAD
-    $imageFile = $imagePath;
-=======
->>>>>>> feature-h264-videostorage
     $thumbFile = $thumbPath;
     if ( $overwrite || !file_exists( $thumbFile ) || !filesize( $thumbFile ) )
     {

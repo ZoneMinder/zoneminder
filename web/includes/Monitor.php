@@ -151,6 +151,9 @@ private $control_fields = array(
     return new Server( $this->{'ServerId'} );
   }
   public function __call( $fn, array $args){
+	if ( count( $args )  ) {
+		$this->{$fn} = $args[0];
+	}
     if ( isset( $this->{$fn} ) ) {
       return $this->{$fn};
         #array_unshift($args, $this);
@@ -219,7 +222,7 @@ private $control_fields = array(
       } else if ( is_string( $v ) ) {
         $this->{$k} = trim( $v );
       } else {
-        Error( "Unknown type of var " . gettype( $v ) );
+        Error( "Unknown type $k => $v of var " . gettype( $v ) );
         $this->{$k} = $v;
       }
     }

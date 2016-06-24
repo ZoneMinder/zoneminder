@@ -64,6 +64,7 @@ if ( ! empty($_REQUEST['mid']) ) {
           $x10Monitor = dbFetchOne( 'SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['dupId']) );
       $clonedName = $monitor->Name();
       $monitor->Name( translate('Monitor').'-'.$nextId );
+	  $monitor->Id( $nextId );
   } else {
       $monitor = new Monitor();
       $monitor->set( array(

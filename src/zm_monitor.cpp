@@ -2050,11 +2050,11 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
     int enabled = atoi(dbrow[col]); col++;
     const char *linked_monitors = dbrow[col]; col++;
 
-    std::string protocol = dbrow[col]; col++;
-    std::string method = dbrow[col]; col++;
-    std::string host = dbrow[col]; col++;
-    std::string port = dbrow[col]; col++;
-    std::string path = dbrow[col]; col++;
+    std::string protocol = dbrow[col] ? dbrow[col] : ""; col++;
+    std::string method = dbrow[col] ? dbrow[col] : ""; col++;
+    std::string host = dbrow[col] ? dbrow[col] : ""; col++;
+    std::string port = dbrow[col] ? dbrow[col] : ""; col++;
+    std::string path = dbrow[col] ? dbrow[col] : ""; col++;
 
     int width = atoi(dbrow[col]); col++;
     int height = atoi(dbrow[col]); col++;
@@ -2073,8 +2073,8 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
     int hue = atoi(dbrow[col]); col++;
     int colour = atoi(dbrow[col]); col++;
 
-    std::string event_prefix = dbrow[col]; col++;
-    std::string label_format = dbrow[col]; col++;
+    std::string event_prefix = dbrow[col] ? dbrow[col] : ""; col++;
+    std::string label_format = dbrow[col] ? dbrow[col] : ""; col++;
 
     int label_x = atoi(dbrow[col]); col++;
     int label_y = atoi(dbrow[col]); col++;
@@ -2252,8 +2252,8 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
     int hue = atoi(dbrow[col]); col++;
     int colour = atoi(dbrow[col]); col++;
 
-    const char *event_prefix = dbrow[col]; col++;
-    const char *label_format = dbrow[col]; col++;
+    std::string event_prefix = dbrow[col] ? dbrow[col] : ""; col++;
+    std::string label_format = dbrow[col] ? dbrow[col] : ""; col++;
 
     int label_x = atoi(dbrow[col]); col++;
     int label_y = atoi(dbrow[col]); col++;
@@ -2307,8 +2307,8 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
       videowriter,
       encoderparams,
       record_audio,
-      event_prefix,
-      label_format,
+      event_prefix.c_str(),
+      label_format.c_str(),
       Coord( label_x, label_y ),
       label_size,
       image_buffer_count,
@@ -2406,8 +2406,8 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
     int hue = atoi(dbrow[col]); col++;
     int colour = atoi(dbrow[col]); col++;
 
-    const char *event_prefix = dbrow[col]; col++;
-    const char *label_format = dbrow[col] ? dbrow[col] : ""; col++;
+    std::string event_prefix = dbrow[col] ? dbrow[col] : ""; col++;
+    std::string label_format = dbrow[col] ? dbrow[col] : ""; col++;
 
     int label_x = atoi(dbrow[col]); col++;
     int label_y = atoi(dbrow[col]); col++;
@@ -2463,8 +2463,8 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
       videowriter,
       encoderparams,
       record_audio,
-      event_prefix,
-      label_format,
+      event_prefix.c_str(),
+      label_format.c_str(),
       Coord( label_x, label_y ),
       label_size,
       image_buffer_count,
@@ -2551,14 +2551,14 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
   Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
   col++;
 
-  std::string protocol = dbrow[col]; col++;
-  std::string method = dbrow[col]; col++;
-  std::string host = dbrow[col]; col++;
-  std::string port = dbrow[col]; col++;
-  std::string path = dbrow[col]; col++;
+  std::string protocol = dbrow[col] ? dbrow[col] : ""; col++;
+  std::string method = dbrow[col] ? dbrow[col] : ""; col++;
+  std::string host = dbrow[col] ? dbrow[col] : ""; col++;
+  std::string port = dbrow[col] ? dbrow[col] : ""; col++;
+  std::string path = dbrow[col] ? dbrow[col] : ""; col++;
   std::string options = dbrow[col] ? dbrow[col] : ""; col++;
-  std::string user = dbrow[col]; col++;
-  std::string pass = dbrow[col]; col++;
+  std::string user = dbrow[col] ? dbrow[col] : ""; col++;
+  std::string pass = dbrow[col] ? dbrow[col] : ""; col++;
 
   int width = atoi(dbrow[col]); col++;
   int height = atoi(dbrow[col]); col++;
@@ -2577,7 +2577,7 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
   int hue = atoi(dbrow[col]); col++;
   int colour = atoi(dbrow[col]); col++;
 
-  std::string event_prefix = dbrow[col]; col++;
+  std::string event_prefix = dbrow[col] ? dbrow[col] : ""; col++;
   std::string label_format = dbrow[col] ? dbrow[col] : ""; col++;
 
   int label_x = atoi(dbrow[col]); col++;

@@ -41,7 +41,7 @@ if ( ! empty($_REQUEST['eid'] ) ) {
     $Event = new Event( $_REQUEST['eid'] );
     $Storage = $Event->Storage();
     $path = $Event->Relative_Path().'/'.$Event->DefaultVideo();
-	Error("Path: $path");
+	Debug("Path: $path");
 } else {
     $errorText = "No video path";
 }
@@ -54,7 +54,7 @@ else{
     if ( ! readfile( $Storage->Path().'/'.$path ) ) {
 		Error("No bytes read from ". $Storage->Path() . '/'.$path );
 	} else {
-		Error("Success sending " . $Storage->Path().'/'.$path );
+		Debug("Success sending " . $Storage->Path().'/'.$path );
     }
 }
 ?>

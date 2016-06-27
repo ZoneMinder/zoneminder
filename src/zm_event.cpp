@@ -774,7 +774,7 @@ bool EventStream::loadInitialEventData( int init_event_id, unsigned int init_fra
 bool EventStream::loadEventData( int event_id ) {
   static char sql[ZM_SQL_MED_BUFSIZ];
 
-  snprintf( sql, sizeof(sql), "select M.Id, M.Name, E.StorageId, E.Frames, unix_timestamp( StartTime ) as StartTimestamp, max(F.Delta)-min(F.Delta) as Duration,E.DefaultVideo from Events as E inner join Monitors as M on E.MonitorId = M.Id inner join Frames as F on E.Id = F.EventId where E.Id = %d group by E.Id", event_id );
+  snprintf( sql, sizeof(sql), "select M.Id, M.Name, E.StorageId, E.Frames, unix_timestamp( StartTime ) as StartTimestamp, (SELECT max(Delta)-min(Delta) FROM Frames WHERE EventId=E.Id) as Duration,E.DefaultVideo from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = %d", event_id );
 
   if ( mysql_query( &dbconn, sql ) ) {
     Error( "Can't run query: %s", mysql_error( &dbconn ) );

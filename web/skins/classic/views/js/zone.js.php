@@ -48,6 +48,7 @@ zone['Points'][<?php echo $i ?>] = { 'x': <?php echo $newZone['Points'][$i]['x']
 
 var maxX = <?php echo $monitor->Width()-1 ?>;
 var maxY = <?php echo $monitor->Height()-1 ?>;
+var monitorArea = <?php echo $monitor->Width() * $monitor->Height() ?>;
 var selfIntersecting = <?php echo $selfIntersecting?'true':'false' ?>;
 
 var selfIntersectingString = '<?php echo addslashes(translate('SelfIntersecting')) ?>';

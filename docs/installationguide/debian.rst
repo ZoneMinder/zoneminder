@@ -1,37 +1,154 @@
 Debian
 ======
 
-A fresh build based on master branch running Debian 7 (wheezy)\:
+.. contents::
+
+Easy Way: Debian Jessie
+-----------------------
+
+**Step 1**: Setup Sudo
+
+By default Debian does not come with sudo. Log in as root or use su command.
+N.B. The instructions below are for setting up sudo for your current account, you can
+do this as root if you prefer.
+
+::
+    
+    aptitude update
+    aptitude install sudo
+    usermod -a -G sudo <username>
+    exit
+
+Logout or try ``newgrp`` to reload user groups
+
+**Step 2**: Run sudo and update
+
+Now run session using sudo and ensure system is updated.
 ::
 
-  root@host:~# aptitude install -y apache2 mysql-server php5 php5-mysql build-essential libmysqlclient-dev libssl-dev libbz2-dev libpcre3-dev libdbi-perl libarchive-zip-perl libdate-manip-perl libdevice-serialport-perl libmime-perl libpcre3 libwww-perl libdbd-mysql-perl libsys-mmap-perl yasm automake autoconf libjpeg8-dev libjpeg8 apache2-mpm-prefork libapache2-mod-php5 php5-cli libphp-serialization-perl libgnutls-dev libjpeg8-dev libavcodec-dev libavformat-dev libswscale-dev libavutil-dev libv4l-dev libtool ffmpeg libnetpbm10-dev libavdevice-dev libmime-lite-perl dh-autoreconf dpatch;
+    sudo -i
+    aptitude safe-upgrade
 
-  root@host:~# git clone https://github.com/ZoneMinder/ZoneMinder.git zoneminder;
-  root@host:~# cd zoneminder;
-  root@host:~# ln -s distros/debian;
-  root@host:~# dpkg-checkbuilddeps;
-  root@host:~# dpkg-buildpackage;
+**Step 3**: Install Apache and MySQL
 
-One level above you'll now find a deb package matching the architecture of the build host:
+These are not dependencies for the package as they could
+be installed elsewhere.
+
 ::
 
-  root@host:~# ls -1 ~/zoneminder*;
-  /root/zoneminder_1.26.4-1_amd64.changes
-  /root/zoneminder_1.26.4-1_amd64.deb
-  /root/zoneminder_1.26.4-1.dsc
-  /root/zoneminder_1.26.4-1.tar.gz
+    aptitude install apache2 mysql-server
 
-The dpkg command itself does not resolve dependencies. That's what high-level interfaces like aptitude and apt-get are normally for. Unfortunately, unlike RPM, there's no easy way to install a separate deb package not contained with any repository.
+**Step 4**: Edit sources.list to add jessie-backports
 
-To overcome this "limitation" we'll use dpkg only to install the zoneminder package and apt-get to fetch all needed dependencies afterwards. Running dpkg-reconfigure in the end will ensure that the setup scripts e.g. for database provisioning were executed.
 ::
 
-  root@host:~# dpkg -i /root/zoneminder_1.26.4-1_amd64.deb; apt-get install -f;
-  root@host:~# dpkg-reconfigure zoneminder;
+    nano /etc/apt/sources.list
 
-Alternatively you may also use gdebi to automatically resolve dependencies during installation:
+Add the following to the bottom of the file
+
 ::
 
-  root@host:~# aptitude install -y gdebi;
-  root@host:~# gdebi /root/zoneminder_1.26.4-1_amd64.deb;
+    # Backports repository
+    deb http://httpredir.debian.org/debian jessie-backports main contrib non-free
 
+CTRL+o and <Enter> to save
+CTRL+x to exit
+
+**Step 5**: Install ZoneMinder
+
+::
+
+    aptitude update
+    aptitude install zoneminder
+
+**Step 6**: Read the Readme
+
+The rest of the install process is covered in the README.Debian, so feel free to have
+a read.
+
+::
+
+    gunzip /usr/share/doc/zoneminder/README.Debian.gz
+    cat /usr/share/doc/zoneminder/README.Debian
+
+**Step 7**: Setup Database
+
+Install the zm database and setup the user account. Refer to Hints in Ubuntu install
+should you choose to change default database user and password.
+
+::
+
+    cat /usr/share/zoneminder/db/zm_create.sql | sudo mysql --defaults-file=/etc/mysql/debian.cnf
+    echo 'grant lock tables,alter,create,select,insert,update,delete,index on zm.* to 'zmuser'@localhost identified by "zmpass";'    | sudo mysql --defaults-file=/etc/mysql/debian.cnf mysql
+
+** Step 8**: zm.conf Permissions
+
+Adjust permissions to the zm.conf file to allow web account to access it.
+
+::
+
+    chgrp -c www-data /etc/zm/zm.conf
+
+**Step 9**: Setup ZoneMinder service
+
+::
+
+    systemctl enable zoneminder.service
+
+**Step 10**: Configure Apache
+
+The following commands will setup the default /zm virtual directory and configure
+required apache modules.
+
+::
+
+    a2enconf zoneminder
+    a2enmod cgi
+    a2enmod rewrite
+
+**Step 11**: Edit Timezone in PHP
+
+::
+
+    nano /etc/php5/apache2/php.ini
+
+Search for [Date] (Ctrl + w then type Date and press Enter) and change 
+date.timezone for your time zone. **Don't forget to remove the ; from in front
+of date.timezone**
+
+::
+
+        [Date]
+        ; Defines the default timezone used by the date functions
+        ; http://php.net/date.timezone
+        date.timezone = America/New_York
+
+CTRL+o then [Enter] to save
+
+CTRL+x to exit
+
+**Step 12**: Start ZoneMinder
+
+Reload Apache to enable your changes and then start ZoneMinder.
+
+::
+
+    service apache2 reload
+    service zoneminder start
+
+**Step 13**: Making sure ZoneMinder works
+
+1. Open up a browser and go to ``http://hostname_or_ip/zm`` - should bring up ZoneMinder Console
+
+2. (Optional API Check)Open up a tab in the same browser and go to ``http://hostname_or_ip/zm/api/host/getVersion.json``
+
+    If it is working correctly you should get version information similar to the example below:
+
+    ::
+
+            {
+                "version": "1.29.0",
+                "apiversion": "1.29.0.1"
+            }
+
+**Congratulations**  Your installation is complete

@@ -14,7 +14,7 @@ during install to install Apache, MySQL and PHP. If you failed to do this you ca
 achieve the same result by running:
 
 ::
-    
+
     tasksel install lamp-server
 
 During installation it will ask you to set up a master/root password for the MySQL.
@@ -33,13 +33,13 @@ During installation it will ask you to set up a master/root password for the MyS
     to add the iconnor/zoneminder PPA.
 
     ::
-            
+
         add-apt-repository ppa:iconnor/zoneminder
 
 Update repo and upgrade.
 
 ::
-        
+
 	apt-get update
         apt-get upgrade
         apt-get dist-upgrade
@@ -51,7 +51,7 @@ Update repo and upgrade.
     The MySQL default configuration file (/etc/mysql/mysql.cnf)is read through
     several symbolic links beginning with /etc/mysql/my.cnf as follows:
 
-    | /etc/mysql/my.cnf -> /etc/alternatives/my.cnf 
+    | /etc/mysql/my.cnf -> /etc/alternatives/my.cnf
     | /etc/alternatives/my.cnf -> /etc/mysql/mysql.cnf
     | /etc/mysql/mysql.cnf is a basic file
 
@@ -62,20 +62,20 @@ To better manage the MySQL server it is recommended to copy the sample config fi
 replace the default my.cnf symbolic link.
 
 ::
-        
+
         rm /etc/mysql/my.cnf  (this removes the current symbolic link)
         cp /etc/mysql/mysql.conf.d/mysqld.cnf /etc/mysql/my.cnf
 
 To change MySQL settings:
 
 ::
-        
+
         nano /etc/mysql/my.cnf
 
 In the [mysqld] section add the following
 
 ::
-        
+
         sql_mode = NO_ENGINE_SUBSTITUTION
 
 CTRL+o then [Enter] to save
@@ -85,7 +85,7 @@ CTRL+x to exit
 Restart MySQL
 
 ::
-        
+
         systemctl restart mysql
 
 
@@ -103,7 +103,7 @@ Restart MySQL
 	mysql -uroot -p -e "grant select,insert,update,delete,create,alter,index,lock tables on zm.* to 'zmuser'@localhost identified by 'zmpass';"
 
 
-**Step 6:** Set permissions 
+**Step 6:** Set permissions
 
 Set /etc/zm/zm.conf to root:www-data 740 and www-data access to content
 
@@ -128,14 +128,13 @@ Set /etc/zm/zm.conf to root:www-data 740 and www-data access to content
         systemctl enable zoneminder
         systemctl start zoneminder
 
-
 **Step 9:** Edit Timezone in PHP
 
 ::
 
         nano /etc/php/7.0/apache2/php.ini
 
-Search for [Date] (Ctrl + w then type Date and press Enter) and change 
+Search for [Date] (Ctrl + w then type Date and press Enter) and change
 date.timezone for your time zone, see [this](http://php.net/manual/en/timezones.php).
 **Don't forget to remove the ; from in front of date.timezone**
 
@@ -176,7 +175,7 @@ CTRL+x to exit
 PPA install may need some tweaking of ZMS_PATH in ZoneMinder options. `Socket_sendto or no live streaming`_
 
 Easy Way: Ubuntu 14.x
------------------------------------------------------------
+---------------------
 **These instructions are for a brand new ubuntu 14.x system which does not have ZM installed.**
 
 **Step 1:** Either run commands in this install using sudo or use the below to become root
@@ -202,7 +201,7 @@ Easy Way: Ubuntu 14.x
 	mysql -uroot -p < /usr/share/zoneminder/db/zm_create.sql
 	mysql -uroot -p -e "grant select,insert,update,delete,create,alter,index,lock tables on zm.* to 'zmuser'@localhost identified by 'zmpass';"
 
-**Step 4:** Set up Apache 
+**Step 4:** Set up Apache
 
 ::
 
@@ -221,9 +220,9 @@ Easy Way: Ubuntu 14.x
 
 ::
 
-        nano /etc/php/7.0/apache2/php.ini
+        nano /etc/php5/apache2/php.ini
 
-Search for [Date] (Ctrl + w then type Date and press Enter) and change 
+Search for [Date] (Ctrl + w then type Date and press Enter) and change
 date.timezone for your time zone, see [this](http://php.net/manual/en/timezones.php).
 **Don't forget to remove the ; from in front of date.timezone**
 
@@ -295,12 +294,21 @@ To build the latest stable release:
 
 ::
 
-	./do_debian_package.sh `lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`  `date +%Y%m%d`01 local stable 
+	./do_debian_package.sh `lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`  `date +%Y%m%d`01 local stable
 
 
-Note that the ``lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`` part simply extracts your distribution name - like "vivid", "trusty" etc. You can always replace it by your distro name if you know it. As far as the script goes, it checks if your distro is "trusty" in which case it pulls in pre-systemd release configurations and if its not "trusty" it assumes its based on systemd and pulls in systemd related config files. 
+Note that the ``lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'``
+part simply extracts your distribution name - like "vivid", "trusty" etc. You
+can always replace it by your distro name if you know it. As far as the script
+goes, it checks if your distro is "trusty" in which case it pulls in pre-systemd
+release configurations and if its not "trusty" it assumes its based on systemd
+and pulls in systemd related config files.
 
-(At the end the script will ask if you want to retain the checked out version of zoneminder. If you are a developer and are making local changes, make sure you select "y" so that the next time you do the build process mentioned here, it keeps your changes. Selecting any other value than "y" or "Y" will delete the checked out code and only retain the package)
+(At the end the script will ask if you want to retain the checked out version of
+ZoneMinder. If you are a developer and are making local changes, make sure you
+select "y" so that the next time you do the build process mentioned here, it
+keeps your changes. Selecting any other value than "y" or "Y" will delete the
+checked out code and only retain the package)
 
 This should now create a bunch of .deb files
 
@@ -316,7 +324,7 @@ This should now create a bunch of .deb files
 
 **Step 5:** Post install configuration
 
-Now that you have installed from your own package you can resume following the 
+Now that you have installed from your own package you can resume following the
 standard install guide for your version, start at the step after Install Zoneminder.
 
 Hints
@@ -326,7 +334,9 @@ Make sure ZoneMinder and APIs work with security
 
 1. Enable OPT_AUTH in ZoneMinder
 2. Log out of ZoneMinder in browser
-3. Open a new tab in the *same browser* (important) and go to ``http://localhost/zm/api/host/getVersion.json`` - should give you "Unauthorized" along with a lot more of text
+3. Open a new tab in the *same browser* (important) and go to
+   ``http://localhost/zm/api/host/getVersion.json`` - should give you "Unauthorized"
+   along with a lot more of text
 4. Go to another tab in the SAME BROWSER (important) and log into ZM
 5. Repeat step 3 and it should give you the ZM and API version
 
@@ -354,7 +364,7 @@ update these values in zm.conf and the API's database.php file.
 
 2. Edit databse.php which can be found in the web server folder zoneminder/www/api/app/Config
 
-There is a class there called DATABASE_CONFIG - 
+There is a class there called DATABASE_CONFIG -
 change the $default array to reflect your new details. Example:
 
 ::

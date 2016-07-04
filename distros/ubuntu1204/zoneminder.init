@@ -23,6 +23,13 @@ command="$ZM_PATH_BIN/zmpkg.pl"
 
 start() {
 	echo -n "Starting $prog: "
+        # ATB - wait for mysqld to start. Continue if it takes too long.
+            count=0
+            while [ ! -e /var/run/mysqld/mysqld.sock ] && [ $count -lt 60 ]
+                do
+                    sleep 1
+                    count=$((count+1))
+            done
 	export TZ=:/etc/localtime
 	mkdir -p "$RUNDIR" && chown www-data:www-data "$RUNDIR"
 	mkdir -p "$TMPDIR" && chown www-data:www-data "$TMPDIR"

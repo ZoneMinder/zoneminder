@@ -18,7 +18,7 @@ if you don't have mysql already installed:
 
 ::
 
-	sudo apt-get install mysql-server 
+	sudo apt-get install mysql-server
 
 This will ask you to set up a master password for the DB (you are asked for the mysql root password when installing mysql server).
 
@@ -61,7 +61,7 @@ This is probably a bug with iconnor's PPA as of Oct 3, 2015 with package 1.28.10
 
 ::
 
-	sudo chown www-data:www-data /etc/zm/zm.conf 
+	sudo chown www-data:www-data /etc/zm/zm.conf
 
 We also need to install php5-gd (as of 1.28.107, this is not installed)
 
@@ -171,7 +171,7 @@ Easy Way: Install ZoneMinder from a package (Ubuntu 14.x)
 	sudo mysql -uroot -p < /usr/share/zoneminder/db/zm_create.sql
 	mysql -uroot -p -e "grant select,insert,update,delete,create,alter,index,lock tables on zm.* to 'zmuser'@localhost identified by 'zmpass';"
 
-**Step 3:** Set up Apache 
+**Step 3:** Set up Apache
 
 ::
 
@@ -181,9 +181,12 @@ Easy Way: Install ZoneMinder from a package (Ubuntu 14.x)
 
 **Step 4:**:Some tweaks that will be needed:
 
-Edit ``/etc/init.d/zoneminder``:
+Add a ``sleep 10`` to the ``/etc/init.d/zoneminder`` file, right after line 25 which reads ``echo -n "Starting $prog:"``. This can be done by manually editing the file, or by running:
 
-add a ``sleep 10`` right after line 25 that reads ``echo -n "Starting $prog:"``
+::
+
+  sudo sed -i "25 a sleep 10" /etc/init.d/zoneminder
+
 (The reason we need this sleep is to make sure ZM starts after mysqld starts)
 
 As of Oct 3 2015, zm.conf is not readable by ZM. This is likely a bug and will go away in the next package
@@ -267,7 +270,7 @@ If it responds with something like:
 Then your APIs are working
 
 Make sure you can view Monitor View:
-1. Open up ZM, configure your monitors and verify you can view Monitor feeds. 
+1. Open up ZM, configure your monitors and verify you can view Monitor feeds.
 2. If not, open up ZM console in your browser, go to ``Options->Path`` and make sure ``PATH_ZMS`` is set to ``/zm/cgi-bin/nph-zms`` and restart ZM (you should not need to do this for packages, as this should automatically work)
 
 Make sure ZM and APIs work with security:
@@ -314,10 +317,10 @@ To build the latest stable release:
 
 ::
 
-	./do_debian_package.sh `lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`  `date +%Y%m%d`01 local stable 
+	./do_debian_package.sh `lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`  `date +%Y%m%d`01 local stable
 
 
-Note that the ``lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`` part simply extracts your distribution name - like "vivid", "trusty" etc. You can always replace it by your distro name if you know it. As far as the script goes, it checks if your distro is "trusty" in which case it pulls in pre-systemd release configurations and if its not "trusty" it assumes its based on systemd and pulls in systemd related config files. 
+Note that the ``lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`` part simply extracts your distribution name - like "vivid", "trusty" etc. You can always replace it by your distro name if you know it. As far as the script goes, it checks if your distro is "trusty" in which case it pulls in pre-systemd release configurations and if its not "trusty" it assumes its based on systemd and pulls in systemd related config files.
 
 (At the end the script will ask if you want to retain the checked out version of zoneminder. If you are a developer and are making local changes, make sure you select "y" so that the next time you do the build process mentioned here, it keeps your changes. Selecting any other value than "y" or "Y" will delete the checked out code and only retain the package)
 
@@ -347,7 +350,7 @@ This should now create a bunch of .deb files
 
 **Step 6:** Fix PHP TimeZone
 
-``sudo vi /etc/php5/apache2/php.ini`` 
+``sudo vi /etc/php5/apache2/php.ini``
 
 Look for [Date] and inside it you will see a date.timezone that is commented. remove the comment and specific your timezone. Please make sure the timezone is valid (see http://php.net/manual/en/timezones.php)
 

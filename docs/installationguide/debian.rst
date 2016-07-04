@@ -6,7 +6,7 @@ Debian
 Easy Way: Debian Jessie
 -----------------------
 
-**Step 1**: Setup Sudo
+**Step 1:** Setup Sudo
 
 By default Debian does not come with sudo. Log in as root or use su command.
 N.B. The instructions below are for setting up sudo for your current account, you can
@@ -21,7 +21,7 @@ do this as root if you prefer.
 
 Logout or try ``newgrp`` to reload user groups
 
-**Step 2**: Run sudo and update
+**Step 2:** Run sudo and update
 
 Now run session using sudo and ensure system is updated.
 ::
@@ -29,7 +29,7 @@ Now run session using sudo and ensure system is updated.
     sudo -i
     aptitude safe-upgrade
 
-**Step 3**: Install Apache and MySQL
+**Step 3:** Install Apache and MySQL
 
 These are not dependencies for the package as they could
 be installed elsewhere.
@@ -38,7 +38,7 @@ be installed elsewhere.
 
     aptitude install apache2 mysql-server
 
-**Step 4**: Edit sources.list to add jessie-backports
+**Step 4:** Edit sources.list to add jessie-backports
 
 ::
 
@@ -54,14 +54,14 @@ Add the following to the bottom of the file
 CTRL+o and <Enter> to save
 CTRL+x to exit
 
-**Step 5**: Install ZoneMinder
+**Step 5:** Install ZoneMinder
 
 ::
 
     aptitude update
     aptitude install zoneminder
 
-**Step 6**: Read the Readme
+**Step 6:** Read the Readme
 
 The rest of the install process is covered in the README.Debian, so feel free to have
 a read.
@@ -71,7 +71,7 @@ a read.
     gunzip /usr/share/doc/zoneminder/README.Debian.gz
     cat /usr/share/doc/zoneminder/README.Debian
 
-**Step 7**: Setup Database
+**Step 7:** Setup Database
 
 Install the zm database and setup the user account. Refer to Hints in Ubuntu install
 should you choose to change default database user and password.
@@ -81,7 +81,7 @@ should you choose to change default database user and password.
     cat /usr/share/zoneminder/db/zm_create.sql | sudo mysql --defaults-file=/etc/mysql/debian.cnf
     echo 'grant lock tables,alter,create,select,insert,update,delete,index on zm.* to 'zmuser'@localhost identified by "zmpass";'    | sudo mysql --defaults-file=/etc/mysql/debian.cnf mysql
 
-** Step 8**: zm.conf Permissions
+** Step 8:** zm.conf Permissions
 
 Adjust permissions to the zm.conf file to allow web account to access it.
 
@@ -89,13 +89,13 @@ Adjust permissions to the zm.conf file to allow web account to access it.
 
     chgrp -c www-data /etc/zm/zm.conf
 
-**Step 9**: Setup ZoneMinder service
+**Step 9:** Setup ZoneMinder service
 
 ::
 
     systemctl enable zoneminder.service
 
-**Step 10**: Configure Apache
+**Step 10:** Configure Apache
 
 The following commands will setup the default /zm virtual directory and configure
 required apache modules.
@@ -106,7 +106,7 @@ required apache modules.
     a2enmod cgi
     a2enmod rewrite
 
-**Step 11**: Edit Timezone in PHP
+**Step 11:** Edit Timezone in PHP
 
 ::
 
@@ -127,16 +127,16 @@ CTRL+o then [Enter] to save
 
 CTRL+x to exit
 
-**Step 12**: Start ZoneMinder
+**Step 12:** Start ZoneMinder
 
 Reload Apache to enable your changes and then start ZoneMinder.
 
 ::
 
-    service apache2 reload
-    service zoneminder start
+    systemctl reload apache2
+    systemctl start zoneminder
 
-**Step 13**: Making sure ZoneMinder works
+**Step 13:** Making sure ZoneMinder works
 
 1. Open up a browser and go to ``http://hostname_or_ip/zm`` - should bring up ZoneMinder Console
 

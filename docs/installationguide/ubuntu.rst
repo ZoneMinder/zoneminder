@@ -19,12 +19,12 @@ achieve the same result by running:
 
 During installation it will ask you to set up a master/root password for the MySQL.
 
-**Step 1**: Either run commands in this install using sudo or use the below to become root
+**Step 1:** Either run commands in this install using sudo or use the below to become root
 ::
 
     sudo -i
 
-**Step 2**: Update Repos
+**Step 2:** Update Repos
 
 .. topic :: Latest Release
 
@@ -44,7 +44,7 @@ Update repo and upgrade.
         apt-get upgrade
         apt-get dist-upgrade
 
-**Step 3**: Configure MySQL
+**Step 3:** Configure MySQL
 
 .. sidebar :: Note
 
@@ -89,13 +89,13 @@ Restart MySQL
         systemctl restart mysql
 
 
-**Step 4**: Install ZoneMinder
+**Step 4:** Install ZoneMinder
 
 ::
 
 	apt-get install zoneminder
 
-**Step 5**: Configure the ZoneMinder Database
+**Step 5:** Configure the ZoneMinder Database
 
 ::
 
@@ -103,7 +103,7 @@ Restart MySQL
 	mysql -uroot -p -e "grant select,insert,update,delete,create,alter,index,lock tables on zm.* to 'zmuser'@localhost identified by 'zmpass';"
 
 
-**Step 6**: Set permissions 
+**Step 6:** Set permissions 
 
 Set /etc/zm/zm.conf to root:www-data 740 and www-data access to content
 
@@ -113,7 +113,7 @@ Set /etc/zm/zm.conf to root:www-data 740 and www-data access to content
         chown root:www-data /etc/zm/zm.conf
         chown -R www-data:www-data /usr/share/zoneminder/
 
-**Step 7**: Configure Apache correctly:
+**Step 7:** Configure Apache correctly:
 
 ::
 
@@ -121,23 +121,23 @@ Set /etc/zm/zm.conf to root:www-data 740 and www-data access to content
 	a2enmod cgi
         a2enmod rewrite
 
-**Step 8**: Enable and start Zoneminder
+**Step 8:** Enable and start Zoneminder
 
 ::
 
         systemctl enable zoneminder
-        service zoneminder start
+        systemctl start zoneminder
 
 
-**Step 9**: Edit Timezone in PHP
+**Step 9:** Edit Timezone in PHP
 
 ::
 
         nano /etc/php/7.0/apache2/php.ini
 
 Search for [Date] (Ctrl + w then type Date and press Enter) and change 
-date.timezone for your time zone. **Don't forget to remove the ; from in front
-of date.timezone**
+date.timezone for your time zone, see [this](http://php.net/manual/en/timezones.php).
+**Don't forget to remove the ; from in front of date.timezone**
 
 ::
 
@@ -150,13 +150,13 @@ CTRL+o then [Enter] to save
 
 CTRL+x to exit
 
-**Step 10**: Restart Apache service
+**Step 10:** Reload Apache service
 
 ::
 
-	service apache2 reload
+	systemctl reload apache2
 
-**Step 11**: Making sure ZoneMinder works
+**Step 11:** Making sure ZoneMinder works
 
 1. Open up a browser and go to ``http://hostname_or_ip/zm`` - should bring up ZoneMinder Console
 
@@ -179,7 +179,8 @@ Easy Way: Ubuntu 14.x
 -----------------------------------------------------------
 **These instructions are for a brand new ubuntu 14.x system which does not have ZM installed.**
 
-**Step 1**: Either run commands in this install using sudo or use the below to become root
+**Step 1:** Either run commands in this install using sudo or use the below to become root
+
 ::
 
     sudo -i
@@ -209,40 +210,43 @@ Easy Way: Ubuntu 14.x
 	a2enmod rewrite
 	a2enmod cgi
 
-**Step 5:**:Some tweaks that will be needed:
+**Step 5:** Make zm.conf readable by web user.
 
-Edit ``/etc/init.d/zoneminder``:
-
-add a ``sleep 10`` right after line 25 that reads ``echo -n "Starting $prog:"``
-(The reason we need this sleep is to make sure ZM starts after mysqld starts)
-
-Make zm.conf readable by web user.
 ::
 
 	sudo chown www-data:www-data /etc/zm/zm.conf
 
 
-**Step 6**: Edit Timezone in PHP
-
-``sudo vi /etc/php5/apache2/php.ini``
-Look for [Date] and inside it you will see a date.timezone
-that is commented. remove the comment and specific your timezone.
-Please make sure the timezone is valid (see [this](http://php.net/manual/en/timezones.php))
-
-In my case:
+**Step 6:** Edit Timezone in PHP
 
 ::
 
-	date.timezone = America/New_York
+        nano /etc/php/7.0/apache2/php.ini
 
+Search for [Date] (Ctrl + w then type Date and press Enter) and change 
+date.timezone for your time zone, see [this](http://php.net/manual/en/timezones.php).
+**Don't forget to remove the ; from in front of date.timezone**
 
-**Step 7**: Restart Apache service
+::
+
+        [Date]
+        ; Defines the default timezone used by the date functions
+        ; http://php.net/date.timezone
+        date.timezone = America/New_York
+
+CTRL+o then [Enter] to save
+
+CTRL+x to exit
+
+**Step 7:** Restart Apache service and start ZoneMinder
 
 ::
 
 	service apache2 reload
+        service zoneminder start
 
-**Step 8**: Making sure ZoneMinder works
+
+**Step 8:** Making sure ZoneMinder works
 
 1. Open up a browser and go to ``http://hostname_or_ip/zm`` - should bring up ZoneMinder Console
 
@@ -312,58 +316,8 @@ This should now create a bunch of .deb files
 
 **Step 5:** Post install configuration
 
-::
-
-	sudo mysql -uroot -p < /usr/share/zoneminder/db/zm_create.sql
-	mysql -uroot -p -e "grant select,insert,update,delete,create,alter,index,lock tables on zm.* to 'zmuser'@localhost identified by 'zmpass';"
-
-	sudo a2enmod cgi rewrite
-	sudo a2enconf zoneminder
-
-
-
-**Step 6:** Fix PHP TimeZone
-
-``sudo vi /etc/php5/apache2/php.ini`` 
-
-Look for [Date] and inside it you will see a date.timezone that is commented. remove the comment and specific your timezone. Please make sure the timezone is valid (see http://php.net/manual/en/timezones.php)
-
-Example:
-
-``date.timezone = America/New_York``
-
-**Step 7:** Fix some key permission issues and make sure API works
-
-::
-
-	sudo chown www-data /etc/zm/zm.conf
-	sudo chown -R www-data /usr/share/zoneminder/www/api/
-
-
-**Step 8:**  Restart all services
-
-::
-
-	sudo service apache2 restart
-	sudo service zoneminder restart
-
-Check if ZM is running properly
-
-::
-
-	sudo service zoneminder status
-
-
-**Step 9:** Make sure streaming works - set PATH_ZMS
-
-open up ZM console in your browser, go to Options->Path and make sure ``PATH_ZMS`` is set to ``/zm/cgi-bin/nph-zms`` and restart ZM
-
-
-**Step 10:** Make sure everything works
-
-* point your browser to http://yourzmip/zm - you should see ZM console running
-*  point your browser to http://yourzmip/zm/api/host/getVersion.json - you should see an API version
-* Configure your monitors and make sure its all a-ok
+Now that you have installed from your own package you can resume following the 
+standard install guide for your version, start at the step after Install Zoneminder.
 
 Hints
 -----

@@ -13,9 +13,9 @@ N.B. The instructions below are for setting up sudo for your current account, yo
 do this as root if you prefer.
 
 ::
-    
-    aptitude update
-    aptitude install sudo
+
+    apt-get update
+    apt-get install sudo
     usermod -a -G sudo <username>
     exit
 
@@ -27,7 +27,7 @@ Now run session using sudo and ensure system is updated.
 ::
 
     sudo -i
-    aptitude safe-upgrade
+    apt-get upgrade
 
 **Step 3:** Install Apache and MySQL
 
@@ -36,7 +36,7 @@ be installed elsewhere.
 
 ::
 
-    aptitude install apache2 mysql-server
+    apt-get install apache2 mysql-server
 
 **Step 4:** Edit sources.list to add jessie-backports
 
@@ -58,8 +58,8 @@ CTRL+x to exit
 
 ::
 
-    aptitude update
-    aptitude install zoneminder
+    apt-get update
+    apt-get install zoneminder
 
 **Step 6:** Read the Readme
 
@@ -112,7 +112,7 @@ required apache modules.
 
     nano /etc/php5/apache2/php.ini
 
-Search for [Date] (Ctrl + w then type Date and press Enter) and change 
+Search for [Date] (Ctrl + w then type Date and press Enter) and change
 date.timezone for your time zone. **Don't forget to remove the ; from in front
 of date.timezone**
 

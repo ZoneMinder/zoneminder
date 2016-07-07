@@ -59,62 +59,64 @@ class AppController extends Controller {
 	public function beforeFilter() {
 		$this->loadModel('Config');
 		
-        	$options = array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_OPT_USE_API'));
-	 	$config = $this->Config->find('first', $options);
-        	$zmOptApi = $config['Config']['Value'];
+    $options = array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_OPT_USE_API'));
+    $config = $this->Config->find('first', $options);
+    $zmOptApi = $config['Config']['Value'];
 
-		if ($zmOptApi !='1')
-		{
-        		 throw new UnauthorizedException(__('API Disabled'));
-        	 	return; 
+		if ($zmOptApi !='1') {
+      throw new UnauthorizedException(__('API Disabled'));
+      return; 
 		}
 		
-        	$options = array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_OPT_USE_AUTH'));
-	 	$config = $this->Config->find('first', $options);
-        	$zmOptAuth = $config['Config']['Value'];
-        	if (!$this->Session->Read('user.Username') && ($zmOptAuth=='1'))
-        	{       
-        		 throw new UnauthorizedException(__('Not Authenticated'));
-        	 	return; 
-        	}     
-		else
-		{
-			$this->loadModel('User');
-			$loggedinUser = $this->Session->Read('user.Username');
-			$isEnabled = $this->Session->Read('user.Enabled');
-			// this will likely never happen as if its
-			// not enabled, login will fail and Not Auth will be returned
-			// however, keeping this here for now
-			if ($isEnabled != "1" && $zmOptAuth=="1")
-			{
-				throw new UnauthorizedException(__('User is not enabled'));
-				return;
-			}
+    $options = array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_OPT_USE_AUTH'));
+    $config = $this->Config->find('first', $options);
+    $zmOptAuth = $config['Config']['Value'];
 
-			if ($zmOptAuth=='1')
-			{
-				$options = array ('conditions' => array ('User.Username' => $loggedinUser));
-				$userMonitors = $this->User->find('first', $options);
-				$this->Session->Write('allowedMonitors',$userMonitors['User']['MonitorIds']);
-				$this->Session->Write('streamPermission',$userMonitors['User']['Stream']);
-				$this->Session->Write('eventPermission',$userMonitors['User']['Events']);
-				$this->Session->Write('controlPermission',$userMonitors['User']['Control']);
-				$this->Session->Write('systemPermission',$userMonitors['User']['System']);
-				$this->Session->Write('monitorPermission',$userMonitors['User']['Monitors']);
-			}
-			else // if auth is not on, you can do everything
-			{
-				//$userMonitors = $this->User->find('first', $options);
-				$this->Session->Write('allowedMonitors','');
-				$this->Session->Write('streamPermission','View');
-				$this->Session->Write('eventPermission','Edit');
-				$this->Session->Write('controlPermission','Edit');
-				$this->Session->Write('systemPermission','Edit');
-				$this->Session->Write('monitorPermission','Edit');
-			}
-		}
-		
-		
+    if ( $zmOptAuth=='1' ) {
+      $this->loadModel('User');
+      if ( isset($_REQUEST['user']) and isset($_REQUEST['pass']) ) {
+        $user = $this->User->find('first', array ('conditions' => array (
+                'User.Username' => $_REQUEST['user'],
+                'User.Password' => $_REQUEST['pass'],
+                )) );
+        if ( ! $user ) {
+          throw new UnauthorizedException(__('User not found'));
+          return;
+        } else {
+          $this->Session->Write( 'user.Username', $user['User']['Username'] );
+          $this->Session->Write( 'user.Enabled', $user['User']['Enabled'] );
+        }
+      }
+
+      if( ! $this->Session->Read('user.Username') ) {
+        throw new UnauthorizedException(__('Not Authenticated'));
+        return;
+      } else if ( ! $this->Session->Read('user.Username') ) {
+        throw new UnauthorizedException(__('User is not enabled'));
+        return;
+      }
+
+      $options = array ('conditions' => array ('User.Username' => $this->Session->Read('user.Username')));
+      $userMonitors = $this->User->find('first', $options);
+      $this->Session->Write('allowedMonitors',$userMonitors['User']['MonitorIds']);
+      $this->Session->Write('streamPermission',$userMonitors['User']['Stream']);
+      $this->Session->Write('eventPermission',$userMonitors['User']['Events']);
+      $this->Session->Write('controlPermission',$userMonitors['User']['Control']);
+      $this->Session->Write('systemPermission',$userMonitors['User']['System']);
+      $this->Session->Write('monitorPermission',$userMonitors['User']['Monitors']);
     }
+    else // if auth is not on, you can do everything
+    {
+      //$userMonitors = $this->User->find('first', $options);
+      $this->Session->Write('allowedMonitors','');
+      $this->Session->Write('streamPermission','View');
+      $this->Session->Write('eventPermission','Edit');
+      $this->Session->Write('controlPermission','Edit');
+      $this->Session->Write('systemPermission','Edit');
+      $this->Session->Write('monitorPermission','Edit');
+    }
+		
+		
+  } # end function beforeFilter()
 
 }

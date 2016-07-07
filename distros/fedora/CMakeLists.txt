@@ -11,7 +11,6 @@ configure_file(zoneminder.logrotate.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.lo
 
 # Unpack jscalendar & move files into position
 message(STATUS "Unpacking and Installing jscalendar...")
-set(unzip_jcs "")
 execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/jscalendar.sh 
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} 
                 ERROR_VARIABLE unzip_jsc

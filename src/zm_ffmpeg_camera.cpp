@@ -597,7 +597,16 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
           if ( recording && !wasRecording ) {
             //Instantiate the video storage module
 
-            videoStore = new VideoStore((const char *)event_file, "mp4", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime);
+          if (mAudioStreamId == -1 && !record_audio) {
+            videoStore = new VideoStore((const char *) event_file, "mp4",
+                                        mFormatContext->streams[mVideoStreamId],
+                                        NULL, startTime);
+          } else {
+            videoStore = new VideoStore((const char *) event_file, "mp4",
+                                        mFormatContext->streams[mVideoStreamId],
+                                        mFormatContext->streams[mAudioStreamId],
+                                        startTime);
+          }
             wasRecording = true;
             strcpy(oldDirectory, event_file);
             
@@ -606,24 +615,38 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
             delete videoStore;
             videoStore = NULL;
           }
-          
-          //The directory we are recording to is no longer tied to the current event. Need to re-init the videostore with the correct directory and start recording again
-          if ( recording && wasRecording && (strcmp(oldDirectory, event_file) != 0 ) && (packet.flags & AV_PKT_FLAG_KEY) ) {
-			      // don't open new videostore until we're on a key frame..would this require an offset adjustment for the event as a result?...
-			      // if we store our key frame location with the event will that be enough?
+
+        //          The directory we are recording to is no longer tied to the current
+        //          event. Need to re-init the videostore with the correct directory and
+        //          start recording again
+        if (recording && wasRecording && (strcmp(oldDirectory, event_file) != 0)
+            && (packet.flags & AV_PKT_FLAG_KEY)) {
+          //			Don't open new videostore until we're on a key frame..would this
+          //          require an offset adjustment for the event as a result?...if we store
+          //			our key frame location with the event will that be enough?
             Info("Re-starting video storage module");
             if(videoStore){
               delete videoStore;
               videoStore = NULL;
-            }
+          }
 
-            videoStore = new VideoStore((const char *)event_file, "mp4", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime);
+          if (mAudioStreamId == -1 && !record_audio) {
+            videoStore = new VideoStore((const char *) event_file, "mp4",
+                                        mFormatContext->streams[mVideoStreamId],
+                                        NULL, startTime);
+          } else {
+            videoStore = new VideoStore((const char *) event_file, "mp4",
+                                        mFormatContext->streams[mVideoStreamId],
+                                        mFormatContext->streams[mAudioStreamId],
+                                        startTime);
+          }
             strcpy(oldDirectory, event_file);
           }
           
           if ( videoStore && recording ) {
             //Write the packet to our video store
-            int ret = videoStore->writeVideoFramePacket(&packet, mFormatContext->streams[mVideoStreamId]);//, &lastKeyframePkt);
+          int ret = videoStore->writeVideoFramePacket(&packet,
+                                                      mFormatContext->streams[mVideoStreamId]); //, &lastKeyframePkt);
             if(ret<0){//Less than zero and we skipped a frame
               av_free_packet( &packet );
               return 0;
@@ -632,13 +655,20 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
                 
 #if HAVE_LIBSWSCALE
           if ( mConvertContext == NULL ) {
-            mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
+          mConvertContext = sws_getContext(mCodecContext->width,
+                                           mCodecContext->height,
+                                           mCodecContext->pix_fmt,
+                                           width, height,
+                                           imagePixFormat, SWS_BICUBIC, NULL,
+                                           NULL, NULL);
             if ( mConvertContext == NULL )
               Fatal( "Unable to create conversion context for %s", mPath.c_str() );
-          }
+        }
 
-          if ( sws_scale( mConvertContext, mRawFrame->data, mRawFrame->linesize, 0, mCodecContext->height, mFrame->data, mFrame->linesize ) < 0 )
-            Fatal( "Unable to convert raw format %u to target format %u at frame %d", mCodecContext->pix_fmt, imagePixFormat, frameCount );
+        if (sws_scale(mConvertContext, mRawFrame->data, mRawFrame->linesize,
+                      0, mCodecContext->height, mFrame->data, mFrame->linesize) < 0)
+          Fatal("Unable to convert raw format %u to target format %u at frame %d",
+                mCodecContext->pix_fmt, imagePixFormat, frameCount);
 #else // HAVE_LIBSWSCALE
           Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
 #endif // HAVE_LIBSWSCALE
@@ -650,7 +680,8 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
           if ( record_audio ) {
             Debug(4, "Recording audio packet" );
             //Write the packet to our video store
-            int ret = videoStore->writeAudioFramePacket(&packet, mFormatContext->streams[packet.stream_index]); //FIXME no relevance of last key frame
+          int ret = videoStore->writeAudioFramePacket(&packet,
+                                                      mFormatContext->streams[packet.stream_index]); //FIXME no relevance of last key frame
             if ( ret < 0 ) {//Less than zero and we skipped a frame
               av_free_packet( &packet );
             return 0;      

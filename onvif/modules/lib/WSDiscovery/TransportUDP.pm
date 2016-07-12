@@ -145,17 +145,18 @@ sub send_receive {
     }
     
     if($last_response) {
-      $self->code();
-      $self->message();
-      $self->is_success(1);
-      $self->status('OK');
+      $self->set_code();
+      $self->set_message("");
+      $self->set_is_success(1);
+      $self->set_status('OK');
     }
     else{
-      $self->code();
-      $self->message();
-      $self->is_success(0);
-      $self->status('TIMEOUT');
+      $self->set_code();
+      $self->set_message("Timed out waiting for response");
+      $self->set_is_success(0);
+      $self->set_status('TIMEOUT');
     }
+
     return $last_response;
 }
 

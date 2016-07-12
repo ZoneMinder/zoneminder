@@ -1,6 +1,4 @@
 <?php
-# We use session vars in here, so we need to restart the session because we stopped it in index.php to improve concurrency.
-session_start();
 
 if ( empty($_REQUEST['id']) && empty($_REQUEST['eids']) ) {
     ajaxError( "No event id(s) supplied" );
@@ -39,6 +37,9 @@ if ( canView( 'Events' ) ) {
         {
             require_once( ZM_SKIN_PATH.'/includes/export_functions.php' );
 
+            # We use session vars in here, so we need to restart the session because we stopped it in index.php to improve concurrency.
+            session_start();
+
             if ( !empty($_REQUEST['exportDetail']) )
                 $exportDetail = $_SESSION['export']['detail'] = $_REQUEST['exportDetail'];
             else
@@ -63,6 +64,8 @@ if ( canView( 'Events' ) ) {
                 $exportFormat = $_SESSION['export']['format'] = $_REQUEST['exportFormat'];
             else
                 $exportFormat = '';
+
+            session_write_close();
 
             $exportIds = !empty($_REQUEST['eids'])?$_REQUEST['eids']:$_REQUEST['id'];
             if ( $exportFile = exportEvents( $exportIds, $exportDetail, $exportFrames, $exportImages, $exportVideo, $exportMisc, $exportFormat ) )

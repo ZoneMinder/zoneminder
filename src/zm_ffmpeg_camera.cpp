@@ -597,15 +597,24 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
           if ( recording && !wasRecording ) {
             //Instantiate the video storage module
 
-          if (mAudioStreamId == -1 && !record_audio) {
+          if (record_audio) {
+            if (mAudioStreamId == -1) {
+              Debug(3, "Record Audio on but no audio stream found");
+              videoStore = new VideoStore((const char *) event_file, "mp4",
+                                          mFormatContext->streams[mVideoStreamId],
+                                          NULL, startTime);
+            } else {
+              Debug(3, "Video module initiated with audio stream");
+              videoStore = new VideoStore((const char *) event_file, "mp4",
+                                          mFormatContext->streams[mVideoStreamId],
+                                          mFormatContext->streams[mAudioStreamId],
+                                          startTime);
+            }
+          } else {
+            Debug(3, "Record_audio is false so exclude audio stream");
             videoStore = new VideoStore((const char *) event_file, "mp4",
                                         mFormatContext->streams[mVideoStreamId],
                                         NULL, startTime);
-          } else {
-            videoStore = new VideoStore((const char *) event_file, "mp4",
-                                        mFormatContext->streams[mVideoStreamId],
-                                        mFormatContext->streams[mAudioStreamId],
-                                        startTime);
           }
             wasRecording = true;
             strcpy(oldDirectory, event_file);
@@ -630,15 +639,24 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
               videoStore = NULL;
           }
 
-          if (mAudioStreamId == -1 && !record_audio) {
+          if (record_audio) {
+            if (mAudioStreamId == -1) {
+              Debug(3, "Record Audio on but no audio stream found");
+              videoStore = new VideoStore((const char *) event_file, "mp4",
+                                          mFormatContext->streams[mVideoStreamId],
+                                          NULL, startTime);
+            } else {
+              Debug(3, "Video module initiated with audio stream");
+              videoStore = new VideoStore((const char *) event_file, "mp4",
+                                          mFormatContext->streams[mVideoStreamId],
+                                          mFormatContext->streams[mAudioStreamId],
+                                          startTime);
+            }
+          } else {
+            Debug(3, "Record_audio is false so exclude audio stream");
             videoStore = new VideoStore((const char *) event_file, "mp4",
                                         mFormatContext->streams[mVideoStreamId],
                                         NULL, startTime);
-          } else {
-            videoStore = new VideoStore((const char *) event_file, "mp4",
-                                        mFormatContext->streams[mVideoStreamId],
-                                        mFormatContext->streams[mAudioStreamId],
-                                        startTime);
           }
             strcpy(oldDirectory, event_file);
           }

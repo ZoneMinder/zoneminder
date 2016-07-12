@@ -98,7 +98,9 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   }
 
   if ( orientation ) {
-    if ( orientation == Monitor::ROTATE_90 ) {
+    if ( orientation == Monitor::ROTATE_0 ) {
+
+    } else if ( orientation == Monitor::ROTATE_90 ) {
       dsr = av_dict_set( &video_st->metadata, "rotate", "90", 0);
       if (dsr < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__ );
     } else if ( orientation == Monitor::ROTATE_180 ) {

@@ -202,7 +202,7 @@ MAIN: while( $loop ) {
 
       if ( $Config{ZM_USE_DEEP_STORAGE} ) {
         foreach my $day_dir ( glob("$monitor_dir/*/*/*") ) {
-          Debug( "Checking $day_dir" );
+          Debug( "Checking day dir $day_dir" );
           ( $day_dir ) = ( $day_dir =~ /^(.*)$/ ); # De-taint
           if ( ! chdir( $day_dir ) ) {
             Error( "Can't chdir to $$Storage{Path}/$monitor_dir/'$day_dir': $!" );
@@ -238,9 +238,9 @@ MAIN: while( $loop ) {
               $Event->MonitorId( $monitor_dir );
               $Event->StorageId( $Storage->Id() );
               if ( $count++ > MAX_AGED_DIRS ) {
-                $Event->age( -1 );
+                $$Event{age} = -1;
               } else {
-                $Event->age( (time() - ($^T - ((-M $event_path ) * 24*60*60))) );
+                $$Event{age} = (time() - ($^T - ((-M $event_path ) * 24*60*60)));
               }
 
             } # event path exists
@@ -266,9 +266,9 @@ MAIN: while( $loop ) {
           $Event->MonitorId( $monitor_dir );
           $Event->StorageId( $Storage->Id() );
           if ( $count++ > MAX_AGED_DIRS ) {
-            $Event->age( -1 );
+            $$Event{age} = -1;
           } else {
-            $Event->age( (time() - ($^T - ((-M $event ) * 24*60*60))) );
+            $$Event{age} = (time() - ($^T - ((-M $event ) * 24*60*60)));
           }
 
         } # end foreach event
@@ -344,27 +344,31 @@ MAIN: while( $loop ) {
     if ( my $fs_events = $fs_monitors->{$db_monitor} ) {
       next if ! $db_events;
 
-      while ( my ( $db_event, $age ) = each(%$db_events ) ) {
-        if ( !defined($fs_events->{$db_event}) ) {
+      while ( my ( $db_event, $age ) = each( %$db_events ) ) {
+        if ( ! defined( $fs_events->{$db_event} ) ) {
+Debug("Event $db_event is not in fs.");
           my $Event = new ZoneMinder::Event( $db_event );
+          if ( ! $Event->StartTime() ) {
+            Debug("Event $$Event{Id} has no start time.  deleting it.");
+            if ( confirm() ) {
+              $Event->delete();
+              $cleaned = 1;
+            }
+            next;
+          } 
           if ( $Event->check_for_in_filesystem() ) {
             Debug("Database events apparent exists at " . $Event->Path() );
           } else {
             if ( $age > $Config{ZM_AUDIT_MIN_AGE} ) {
               aud_print( "Database event '$db_monitor/$db_event' does not exist at " . $Event->Path()." in filesystem" );
               if ( confirm() ) {
-                my $res = $deleteEventSth->execute( $db_event )
-                  or Fatal( "Can't execute: ".$deleteEventSth->errstr() );
-                $res = $deleteFramesSth->execute( $db_event )
-                  or Fatal( "Can't execute: ".$deleteFramesSth->errstr() );
-                $res = $deleteStatsSth->execute( $db_event )
-                  or Fatal( "Can't execute: ".$deleteStatsSth->errstr() );
+                $Event->delete();
                 $cleaned = 1;
               }
             } else {
               my $Storage = $Event->Storage();
 
-              aud_print( "Database event '".$Event->getPath()."/$db_monitor/$db_event' does not exist in filesystem but too young to delete.\n" );
+              aud_print( "Database event '".$Event->getPath()." monitor:$db_monitor event:$db_event' does not exist in filesystem but too young to delete age: $age > MIN $Config{ZM_AUDIT_MIN_AGE}.\n" );
             }
           } # end if exists in filesystem
         } # end if ! in fs_events
@@ -632,18 +636,24 @@ sub confirm {
 sub deleteSwapImage {
   my $file = $_;
 
+  return if $file =~ /^./;
+
   if ( $file !~ /^zmswap-/ ) {
+    Error( "Trying to delete SwapImage that isnt a swap image $file" );
     return;
   }
 
 # Ignore directories
   if ( -d $file ) {
+    Error( "Trying to delete a directory instead of a swap image $file" );
     return;
   }
 
   if ( -M $file > $max_swap_age ) {
+    ( $file ) = ( $file =~ /^(.*)$/ );
+  
     Debug( "Deleting $file" );
-#unlink( $file );
+    unlink( $file );
   }
 }
 

@@ -333,8 +333,11 @@ sub Storage {
 }
 sub check_for_in_filesystem {
 	my $path = $_[0]->Path();
-	my @files = glob( $path . '/*' );
-	return 1 if @files;
+  if ( $path ) {
+    my @files = glob( $path . '/*' );
+    return 1 if @files;
+  }
+  return 0;
 }
 
 1;

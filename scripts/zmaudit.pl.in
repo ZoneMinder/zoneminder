@@ -194,10 +194,11 @@ MAIN: while( $loop ) {
       next if $monitor =~ /\D/;
 
       Debug( "Found filesystem monitor '$monitor'" );
-      my $fs_events = $fs_monitors->{$monitor} = {};
+      $fs_monitors->{$monitor} = {} if ! $fs_monitors->{$monitor};
+      my $fs_events = $fs_monitors->{$monitor};
+
       # De-taint
       ( my $monitor_dir ) = ( $monitor =~ /^(.*)$/ );
-  
 
       if ( $Config{ZM_USE_DEEP_STORAGE} ) {
         foreach my $day_dir ( glob("$monitor_dir/*/*/*") ) {
@@ -222,20 +223,27 @@ MAIN: while( $loop ) {
             Debug( "Checking link $event_link" );
             ( my $event = $event_link ) =~ s/^.*\.//;
             my $event_path = readlink( $event_link );
-            if ( $count++ > MAX_AGED_DIRS ) {
-              $fs_events->{$event} = -1;
+
+            if ( !-e $event_path ) {
+              aud_print( "Event link $day_dir/$event_link does not point to valid target" );
+              if ( confirm() ) {
+                ( $event_link ) = ( $event_link =~ /^(.*)$/ ); # De-taint
+                  unlink( $event_link );
+                $cleaned = 1;
+              }
             } else {
-              if ( !-e $event_path ) {
-                aud_print( "Event link $day_dir/$event_link does not point to valid target" );
-                if ( confirm() ) {
-                  ( $event_link ) = ( $event_link =~ /^(.*)$/ ); # De-taint
-                    unlink( $event_link );
-                  $cleaned = 1;
-                }
+              my $Event = $fs_events->{$event} = new ZoneMinder::Event();
+              $$Event{Id} = $event;
+              $$Event{Path} = $event_path;
+              $Event->MonitorId( $monitor_dir );
+              $Event->StorageId( $Storage->Id() );
+              if ( $count++ > MAX_AGED_DIRS ) {
+                $Event->age( -1 );
               } else {
-                $fs_events->{$event} = (time() - ($^T - ((-M $event_path) * 24*60*60)));
-              } # event path exists
-            }
+                $Event->age( (time() - ($^T - ((-M $event_path ) * 24*60*60))) );
+              }
+
+            } # event path exists
           } # end foreach event_link
           chdir( $Storage->Path() );
         } # end foreach day dir
@@ -252,11 +260,17 @@ MAIN: while( $loop ) {
         closedir( DIR );
         my $count = 0;
         foreach my $event ( @temp_events ) {
+          my $Event = $fs_events->{$event} = new ZoneMinder::Event();
+          $$Event{Id} = $event;
+          #$$Event{Path} = $event_path;
+          $Event->MonitorId( $monitor_dir );
+          $Event->StorageId( $Storage->Id() );
           if ( $count++ > MAX_AGED_DIRS ) {
-            $fs_events->{$event} = -1;
+            $Event->age( -1 );
           } else {
-            $fs_events->{$event} = (time() - ($^T - ((-M $event) * 24*60*60)));
+            $Event->age( (time() - ($^T - ((-M $event ) * 24*60*60))) );
           }
+
         } # end foreach event
         chdir( $Storage->Path() );
       } # if USE_DEEP_STORAGE
@@ -271,18 +285,18 @@ MAIN: while( $loop ) {
       if ( my $db_events = $db_monitors->{$monitor_id} ) {
         next if ! $fs_events;
 
-        foreach my $fs_event ( sort { $a <=> $b } keys %$fs_events ) {
-          my $age = $fs_events->{$fs_event};
-          if ( !defined($db_events->{$fs_event}) && ($age < 0 || ($age > $Config{ZM_AUDIT_MIN_AGE})) ) {
-            aud_print( "Filesystem event '$$Storage{Path}/$monitor_id/$fs_event' does not exist in database" );
+        foreach my $fs_event_id ( sort { $a <=> $b } keys %$fs_events ) {
+
+          my $Event = $fs_events->{$fs_event_id};
+
+          my $age = $$Event{age};
+
+          if ( !defined($db_events->{$fs_event_id}) && ($age < 0 || ($age > $Config{ZM_AUDIT_MIN_AGE})) ) {
+            aud_print( "Filesystem event '$$Storage{Path}/$monitor_id/$fs_event_id' does not exist in database" );
             if ( confirm() ) {
-              my $Event = new ZoneMinder::Event( $fs_event );
-# Must set these because the db event does not exist, however these are not enough.
-              $Event->MonitorId( $monitor_id );
-              $Event->StorageId( $Storage->Id() );
               $Event->delete_files();
               $cleaned = 1;
-              delete $fs_events->{$fs_event};
+              delete $fs_events->{$fs_event_id};
             } # end if confirm
           } # end if ! in db events and old enough
         } # end foreach fs event

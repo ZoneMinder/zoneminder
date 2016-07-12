@@ -150,11 +150,14 @@ int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint
     Error("NULL Input or output buffer");
     return -1;
   }
-
-  if(!width || !height) {
-    Error("Invalid width or height");
-    return -3;
-  }
+  //  if(in_pf == 0 || out_pf == 0) {
+  //    Error("Invalid input or output pixel formats");
+  //    return -2;
+  //  }
+  //  if(!width || !height) {
+  //    Error("Invalid width or height");
+  //    return -3;
+  //  }
 
 #if LIBSWSCALE_VERSION_CHECK(0, 8, 0, 8, 0)
   /* Warn if the input or output pixelformat is not supported */
@@ -196,19 +199,22 @@ int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint
 
   /* Fill in the buffers */
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-  if(av_image_fill_arrays(input_avframe->data, input_avframe->linesize,
-        (uint8_t*)in_buffer, in_pf, width, height, 1) <= 0)
-  {
+  if (av_image_fill_arrays(input_avframe->data, input_avframe->linesize,
+                           (uint8_t*) in_buffer, in_pf, width, height, 1) <= 0) {
 #else
-  if(avpicture_fill( (AVPicture*)input_avframe, (uint8_t*)in_buffer,
-        in_pf, width, height ) <= 0)
-  {
+  if (avpicture_fill((AVPicture*) input_avframe, (uint8_t*) in_buffer,
+                     in_pf, width, height) <= 0) {
 #endif
     Error("Failed filling input frame with input buffer");
     return -7;
   }
-
-  if(!avpicture_fill( (AVPicture*)output_avframe, out_buffer, out_pf, width, height ) ) {
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+  if (av_image_fill_arrays(output_avframe->data, output_avframe->linesize,
+                           out_buffer, out_pf, width, height, 1) <= 0) {
+#else
+  if (avpicture_fill((AVPicture*) output_avframe, out_buffer, out_pf, width,
+                     height) <= 0) {
+#endif
     Error("Failed filling output frame with output buffer");
     return -8;
   }
@@ -353,8 +359,7 @@ int hacked_up_context2_for_older_ffmpeg(AVFormatContext **avctx, AVOutputFormat 
   }
 }
 
-static void zm_log_fps(double d, const char *postfix)
-{
+static void zm_log_fps(double d, const char *postfix) {
   uint64_t v = lrintf(d * 100);
   if (!v) {
     Debug(3, "%1.4f %s", d, postfix);

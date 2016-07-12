@@ -113,6 +113,13 @@ sub getPath {
 sub Path {
   my $event = shift;
 
+  if ( @_ > 1 ) {
+    $$event{Path} = $_[1];
+    if ( ! -e  $$event{Path} ) {
+      Error("Setting path for event $$event{Id} to $_[1] but does not exist!");
+    }
+  }
+
   if ( ! $$event{Path} ) {
     my $Storage = $event->Storage();
 

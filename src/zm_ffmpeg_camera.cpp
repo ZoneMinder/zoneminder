@@ -601,7 +601,16 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
           //Instantiate the video storage module
           Debug(3, "recording and ! wasRecording %s", event_file);
 
-          videoStore = new VideoStore((const char *)event_file, "mp4", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime, this->getMonitor()->getOrientation() );
+          if (mAudioStreamId == -1 && !record_audio) {
+            videoStore = new VideoStore((const char *) event_file, "mp4",
+                                        mFormatContext->streams[mVideoStreamId],
+                                        NULL, startTime, this->getMonitor()->getOrientation() );
+          } else {
+            videoStore = new VideoStore((const char *) event_file, "mp4",
+                                        mFormatContext->streams[mVideoStreamId],
+                                        mFormatContext->streams[mAudioStreamId],
+                                        startTime, this->getMonitor()->getOrientation() );
+          }
           wasRecording = true;
           strcpy(oldDirectory, event_file);
 
@@ -626,7 +635,16 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
             videoStore = NULL;
           }
 
-          videoStore = new VideoStore((const char *)event_file, "mp4", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime, this->getMonitor()->getOrientation());
+          if (mAudioStreamId == -1 && !record_audio) {
+            videoStore = new VideoStore((const char *) event_file, "mp4",
+                                        mFormatContext->streams[mVideoStreamId],
+                                        NULL, startTime, this->getMonitor()->getOrientation() );
+          } else {
+            videoStore = new VideoStore((const char *) event_file, "mp4",
+                                        mFormatContext->streams[mVideoStreamId],
+                                        mFormatContext->streams[mAudioStreamId],
+                                        startTime, this->getMonitor()->getOrientation() );
+          }
           strcpy(oldDirectory, event_file);
         }
 
@@ -641,13 +659,20 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
 
 #if HAVE_LIBSWSCALE
         if ( mConvertContext == NULL ) {
-          mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
+          mConvertContext = sws_getContext(mCodecContext->width,
+                                           mCodecContext->height,
+                                           mCodecContext->pix_fmt,
+                                           width, height,
+                                           imagePixFormat, SWS_BICUBIC, NULL,
+                                           NULL, NULL);
           if ( mConvertContext == NULL )
             Fatal( "Unable to create conversion context for %s", mPath.c_str() );
         }
 
-        if ( sws_scale( mConvertContext, mRawFrame->data, mRawFrame->linesize, 0, mCodecContext->height, mFrame->data, mFrame->linesize ) < 0 )
-          Fatal( "Unable to convert raw format %u to target format %u at frame %d", mCodecContext->pix_fmt, imagePixFormat, frameCount );
+        if (sws_scale(mConvertContext, mRawFrame->data, mRawFrame->linesize,
+                      0, mCodecContext->height, mFrame->data, mFrame->linesize) < 0)
+          Fatal("Unable to convert raw format %u to target format %u at frame %d",
+                mCodecContext->pix_fmt, imagePixFormat, frameCount);
 #else // HAVE_LIBSWSCALE
         Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
 #endif // HAVE_LIBSWSCALE

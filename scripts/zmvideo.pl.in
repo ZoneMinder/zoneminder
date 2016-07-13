@@ -231,6 +231,7 @@ foreach my $event_id ( @event_ids ) {
   if ( $video_file ) {
     Debug("Generated $video_file");
     push @video_files, $video_file;
+    print( STDOUT $video_file."\n" );
   }
 } # end foreach event_id
 
@@ -250,7 +251,7 @@ if ( $concat_name ) {
   my $command = $Config{ZM_PATH_FFMPEG}
   . " -f concat -i $concat_list_file -c copy "
 .$Config{ZM_FFMPEG_OUTPUT_OPTIONS}
-    ." '$video_file' > ffmpeg_${concat_name}.log 2>&1"
+    ." '$video_file' > $Config{ZM_PATH_LOGS}/ffmpeg_${concat_name}.log 2>&1"
     ;
   Debug( $command."\n" );
   my $output = qx($command);
@@ -259,12 +260,9 @@ if ( $concat_name ) {
 
   unlink $concat_list_file;
   if ( $status ) {
-    Error( "Unable to generate video, check /ffmpeg.log for details");
+    Error( "Unable to generate video, check $Config{ZM_PATH_LOGS}/ffmpeg_${concat_name}.log for details");
     exit(-1);
   }
+	print( STDOUT $video_file."\n" );
 }
-#unlink $input_file_list;
-#print( STDOUT $event->{MonitorId}.'/'.$event->{Id}.'/'.$video_file."\n" );
-#print( STDOUT $event_path . '/' . $video_file ."\n" );
-#print( STDOUT $video_file."\n" );
 exit( 0 );

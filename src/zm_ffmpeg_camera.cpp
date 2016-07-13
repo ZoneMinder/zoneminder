@@ -601,19 +601,32 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
           //Instantiate the video storage module
           Debug(3, "recording and ! wasRecording %s", event_file);
 
-          if (mAudioStreamId == -1 && !record_audio) {
-            videoStore = new VideoStore((const char *) event_file, "mp4",
-                                        mFormatContext->streams[mVideoStreamId],
-                                        NULL, startTime, this->getMonitor()->getOrientation() );
+          if (record_audio) {
+            if (mAudioStreamId == -1) {
+              Debug(3, "Record Audio on but no audio stream found");
+              videoStore = new VideoStore((const char *) event_file, "mp4",
+                                          mFormatContext->streams[mVideoStreamId],
+                                          NULL,
+                                          startTime,
+                                          this->getMonitor()->getOrientation());
+            } else {
+              Debug(3, "Video module initiated with audio stream");
+              videoStore = new VideoStore((const char *) event_file, "mp4",
+                                          mFormatContext->streams[mVideoStreamId],
+                                          mFormatContext->streams[mAudioStreamId],
+                                          startTime,
+                                          this->getMonitor()->getOrientation());
+            }
           } else {
+            Debug(3, "Record_audio is false so exclude audio stream");
             videoStore = new VideoStore((const char *) event_file, "mp4",
                                         mFormatContext->streams[mVideoStreamId],
-                                        mFormatContext->streams[mAudioStreamId],
-                                        startTime, this->getMonitor()->getOrientation() );
+                                        NULL,
+                                        startTime,
+                                        this->getMonitor()->getOrientation() );
           }
           wasRecording = true;
           strcpy(oldDirectory, event_file);
-
 
           // Need to write out all the frames from the last keyframe?
 
@@ -635,15 +648,29 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
             videoStore = NULL;
           }
 
-          if (mAudioStreamId == -1 && !record_audio) {
-            videoStore = new VideoStore((const char *) event_file, "mp4",
-                                        mFormatContext->streams[mVideoStreamId],
-                                        NULL, startTime, this->getMonitor()->getOrientation() );
+          if (record_audio) {
+            if (mAudioStreamId == -1) {
+              Debug(3, "Record Audio on but no audio stream found");
+              videoStore = new VideoStore((const char *) event_file, "mp4",
+                                          mFormatContext->streams[mVideoStreamId],
+                                          NULL,
+                                          startTime,
+                                          this->getMonitor()->getOrientation() );
+            } else {
+              Debug(3, "Video module initiated with audio stream");
+              videoStore = new VideoStore((const char *) event_file, "mp4",
+                                          mFormatContext->streams[mVideoStreamId],
+                                          mFormatContext->streams[mAudioStreamId],
+                                          startTime,
+                                          this->getMonitor()->getOrientation() );
+            }
           } else {
+            Debug(3, "Record_audio is false so exclude audio stream");
             videoStore = new VideoStore((const char *) event_file, "mp4",
                                         mFormatContext->streams[mVideoStreamId],
-                                        mFormatContext->streams[mAudioStreamId],
-                                        startTime, this->getMonitor()->getOrientation() );
+                                        NULL,
+                                        startTime,
+                                        this->getMonitor()->getOrientation() );
           }
           strcpy(oldDirectory, event_file);
         }

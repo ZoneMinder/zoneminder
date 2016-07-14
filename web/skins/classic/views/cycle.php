@@ -54,7 +54,7 @@ foreach( dbFetchAll( $sql ) as $row ) {
 }
 
 $monitor = $monitors[$monIdx];
-$nextMid = $monIdx==(count($monitors)-1)?$monitors[0]['Id']:$monitors[$monIdx+1]['Id'];
+$nextMid = $monIdx==(count($monitors)-1)?$monitors[0]->Id():$monitors[$monIdx+1]->Id();
 $montageWidth = $monitor->ScaledWidth();
 $montageHeight = $monitor->ScaledHeight();
 $widthScale = ($montageWidth*SCALE_BASE)/$monitor->Width();

@@ -2062,7 +2062,7 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
     /* int palette = atoi(dbrow[col]); */ col++;
     Orientation orientation = (Orientation)atoi(dbrow[col]); col++;
     unsigned int deinterlacing = atoi(dbrow[col]); col++;
-    bool rtsp_describe = (*dbrow[col] != '0'); col++;
+    bool rtsp_describe = (dbrow[col] && *dbrow[col] != '0'); col++;
     int savejpegs = atoi(dbrow[col]); col++;
     int videowriter = atoi(dbrow[col]); col++;
     std::string encoderparams = dbrow[col] ? dbrow[col] : ""; col++;
@@ -2566,7 +2566,7 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
   int palette = atoi(dbrow[col]); col++;
   Orientation orientation = (Orientation)atoi(dbrow[col]); col++;
   unsigned int deinterlacing = atoi(dbrow[col]); col++;
-  bool rtsp_describe = (*dbrow[col] != '0'); col++;
+  bool rtsp_describe = (dbrow[col] && *dbrow[col] != '0'); col++;
   int savejpegs = atoi(dbrow[col]); col++;
   int videowriter = atoi(dbrow[col]); col++;
   std::string encoderparams =  dbrow[col] ? dbrow[col] : ""; col++;

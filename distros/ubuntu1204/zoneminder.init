@@ -23,7 +23,7 @@ command="$ZM_PATH_BIN/zmpkg.pl"
 
 start() {
 	echo -n "Starting $prog: "
-        # ATB - wait for mysqld to start. Continue if it takes too long.
+        # Wait for mysqld to start. Continue if it takes too long.
             count=0
             while [ ! -e /var/run/mysqld/mysqld.sock ] && [ $count -lt 60 ]
                 do

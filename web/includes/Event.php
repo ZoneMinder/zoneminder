@@ -148,5 +148,8 @@ public function getStreamSrc( $args, $querySep='&amp;' ) {
 
     return( $streamSrc );
   } // end function getStreamSrc
+  function DiskSpace() {
+    return folder_size( $this->Path() );
+  }
 } # end class
 ?>

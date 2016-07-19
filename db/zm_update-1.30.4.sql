@@ -12,3 +12,7 @@ ALTER TABLE Monitors MODIFY LinkedMonitors varchar(255);
 ALTER TABLE Monitors MODIFY User varchar(64);
 ALTER TABLE Monitors MODIFY Pass varchar(64);
 ALTER TABLE Monitors MODIFY RTSPDescribe tinyint(1) unsigned;
+
+ALTER TABLE Users MODIFY MonitorIds tinytext;
+ALTER TABLE Users MODIFY Language varchar(8);
+ALTER TABLE Users MODIFY MaxBandwidth varchar(16);

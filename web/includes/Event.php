@@ -148,8 +148,142 @@ public function getStreamSrc( $args, $querySep='&amp;' ) {
 
     return( $streamSrc );
   } // end function getStreamSrc
+
   function DiskSpace() {
     return folder_size( $this->Path() );
   }
+
+  function createListThumbnail( $overwrite=false ) {
+# Load the frame with the highest score to use as a thumbnail
+  if ( !($frame = dbFetchOne( "SELECT * FROM Frames WHERE EventId=? AND Score=? ORDER BY FrameId LIMIT 1", NULL, array( $this->{'Id'}, $this->{'MaxScore'} ) )) )
+    return( false );
+
+  $frameId = $frame['FrameId'];
+
+  if ( ZM_WEB_LIST_THUMB_WIDTH ) {
+    $thumbWidth = ZM_WEB_LIST_THUMB_WIDTH;
+    $scale = (SCALE_BASE*ZM_WEB_LIST_THUMB_WIDTH)/$this->{'Width'};
+    $thumbHeight = reScale( $this->{'Height'}, $scale );
+  } elseif ( ZM_WEB_LIST_THUMB_HEIGHT ) {
+    $thumbHeight = ZM_WEB_LIST_THUMB_HEIGHT;
+    $scale = (SCALE_BASE*ZM_WEB_LIST_THUMB_HEIGHT)/$this->{'Height'};
+    $thumbWidth = reScale( $this->{'Width'}, $scale );
+  } else {
+    Fatal( "No thumbnail width or height specified, please check in Options->Web" );
+  }
+
+  $imageData = $this->getImageSrc( $frame, $scale, false, $overwrite );
+  if ( ! $imageData ) {
+    return ( false );
+  }
+  $thumbData = $frame;
+  $thumbData['Path'] = $imageData['thumbPath'];
+  $thumbData['Width'] = (int)$thumbWidth;
+  $thumbData['Height'] = (int)$thumbHeight;
+
+  return( $thumbData );
+}
+function getImageSrc( $frame, $scale=SCALE_BASE, $captureOnly=false, $overwrite=false ) {
+  $Storage = new Storage( $this->{'StorageId'} );
+  $Event = $this;
+  $eventPath = $Event->Path();
+
+  if ( !is_array($frame) )
+    $frame = array( 'FrameId'=>$frame, 'Type'=>'' );
+
+  if ( file_exists( $eventPath.'/snapshot.jpg' ) ) {
+    $captImage = "snapshot.jpg";
+  } else {
+    $captImage = sprintf( "%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $frame['FrameId'] );
+    if ( ! file_exists( $eventPath.'/'.$captImage ) ) {
+# Generate the frame JPG
+      if ( $Event->DefaultVideo() ) {
+        $command ='ffmpeg -v 0 -i '.$eventPath.'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$frame['FrameId'].'),setpts=PTS-STARTPTS" '.$eventPath.'/'.$captImage;
+        Debug( "Running $command" );
+        $output = array();
+        $retval = 0;
+        exec( $command, $output, $retval );
+        Debug("Retval: $retval, output: " . implode("\n", $output));
+      } else {
+        Error("Can't create frame images from video becuase there is no video file for this event (".$Event->DefaultVideo() );
+      }
+    }
+  }
+
+  $captPath = $eventPath.'/'.$captImage;
+  if ( ! file_exists( $captPath ) ) {
+    Error( "Capture file does not exist at $captPath" );
+    return '';
+  }
+  $thumbCaptPath = ZM_DIR_IMAGES.'/'.$event['Id'].'-'.$captImage;
+  
+  //echo "CI:$captImage, CP:$captPath, TCP:$thumbCaptPath<br>";
+
+  $analImage = sprintf( "%0".ZM_EVENT_IMAGE_DIGITS."d-analyse.jpg", $frame['FrameId'] );
+  $analPath = $eventPath.'/'.$analImage;
+
+  $thumbAnalPath = ZM_DIR_IMAGES.'/'.$event['Id'].'-'.$analImage;
+  //echo "AI:$analImage, AP:$analPath, TAP:$thumbAnalPath<br>";
+
+  $alarmFrame = $frame['Type']=='Alarm';
+
+  $hasAnalImage = $alarmFrame && file_exists( $analPath ) && filesize( $analPath );
+  $isAnalImage = $hasAnalImage && !$captureOnly;
+
+  if ( !ZM_WEB_SCALE_THUMBS || $scale >= SCALE_BASE || !function_exists( 'imagecreatefromjpeg' ) ) {
+    $imagePath = $thumbPath = $isAnalImage?$analPath:$captPath;
+    $imageFile = $imagePath;
+    $thumbFile = $thumbPath;
+  } else {
+    if ( version_compare( phpversion(), "4.3.10", ">=") )
+      $fraction = sprintf( "%.3F", $scale/SCALE_BASE );
+    else
+      $fraction = sprintf( "%.3f", $scale/SCALE_BASE );
+    $scale = (int)round( $scale );
+
+    $thumbCaptPath = preg_replace( "/\.jpg$/", "-$scale.jpg", $thumbCaptPath );
+    $thumbAnalPath = preg_replace( "/\.jpg$/", "-$scale.jpg", $thumbAnalPath );
+
+    if ( $isAnalImage ) {
+      $imagePath = $analPath;
+      $thumbPath = $thumbAnalPath;
+    } else {
+      $imagePath = $captPath;
+      $thumbPath = $thumbCaptPath;
+    }
+
+    $thumbFile = $thumbPath;
+    if ( $overwrite || !file_exists( $thumbFile ) || !filesize( $thumbFile ) )
+    {
+      // Get new dimensions
+      list( $imageWidth, $imageHeight ) = getimagesize( $imagePath );
+      $thumbWidth = $imageWidth * $fraction;
+      $thumbHeight = $imageHeight * $fraction;
+
+      // Resample
+      $thumbImage = imagecreatetruecolor( $thumbWidth, $thumbHeight );
+      $image = imagecreatefromjpeg( $imagePath );
+      imagecopyresampled( $thumbImage, $image, 0, 0, 0, 0, $thumbWidth, $thumbHeight, $imageWidth, $imageHeight );
+
+      if ( !imagejpeg( $thumbImage, $thumbPath ) )
+        Error( "Can't create thumbnail '$thumbPath'" );
+    }
+  }
+
+  $imageData = array(
+      'eventPath' => $eventPath,
+      'imagePath' => $imagePath,
+      'thumbPath' => $thumbPath,
+      'imageFile' => $imagePath,
+      'thumbFile' => $thumbFile,
+      'imageClass' => $alarmFrame?"alarm":"normal",
+      'isAnalImage' => $isAnalImage,
+      'hasAnalImage' => $hasAnalImage,
+      );
+
+  return( $imageData );
+}
+
 } # end class
+
 ?>

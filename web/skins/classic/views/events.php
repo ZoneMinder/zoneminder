@@ -98,7 +98,7 @@ foreach ( dbFetchAll( $eventsSql ) as $event )
     $events[] = new Event( $event );
 
    # Doesn this code do anything? 
-    $scale = max( reScale( SCALE_BASE, $event->DefaultScale(), ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
+    $scale = max( reScale( SCALE_BASE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
     $eventWidth = reScale( $event['Width'], $scale );
     $eventHeight = reScale( $event['Height'], $scale );
     if ( $maxWidth < $eventWidth ) $maxWidth = $eventWidth;
@@ -212,14 +212,14 @@ foreach ( $events as $event )
               <td class="colTotScore"><?php echo $event->TotScore() ?></td>
               <td class="colAvgScore"><?php echo $event->AvgScore() ?></td>
               <td class="colMaxScore"><?php echo makePopupLink( '?view=frame&amp;eid='.$event->Id().'&amp;fid=0', 'zmImage', array( 'image', reScale( $event->Width(), $scale ), reScale( $event->Height(), $scale ) ), $event->MaxScore() ) ?></td>
-              <td class="colDiskSpace"><?php echo $event->DiskSpace() ?></td>
+              <td class="colDiskSpace"><?php echo human_filesize( $event->DiskSpace() ) ?></td>
 <?php
     if ( ZM_WEB_LIST_THUMBS )
     {
-        if ( $thumbData = createListThumbnail( $event ) )
+        if ( $thumbData = $event->createListThumbnail() )
         {
 ?>
-              <td class="colThumbnail"><?php echo makePopupLink( '?view=frame&amp;eid='.$event['Id'].'&amp;fid='.$thumbData['FrameId'], 'zmImage', array( 'image', reScale( $event->Width(), $scale ), reScale( $event->Height(), $scale ) ), '<img src="?view=image&amp;eid='.$event->Id().'&amp;fid='.$thumbData['FrameId'].'&amp;width='.$thumbData['Width'].'&amp;height='.$thumbData['Height'].'" width="'.$thumbData['Width'].'" height="'.$thumbData['Height'].'" alt="'.$thumbData['FrameId'].'/'.$event->MaxScore().'"/>' ) ?></td>
+              <td class="colThumbnail"><?php echo makePopupLink( '?view=frame&amp;eid='.$event->Id().'&amp;fid='.$thumbData['FrameId'], 'zmImage', array( 'image', reScale( $event->Width(), $scale ), reScale( $event->Height(), $scale ) ), '<img src="?view=image&amp;eid='.$event->Id().'&amp;fid='.$thumbData['FrameId'].'&amp;width='.$thumbData['Width'].'&amp;height='.$thumbData['Height'].'" width="'.$thumbData['Width'].'" height="'.$thumbData['Height'].'" alt="'.$thumbData['FrameId'].'/'.$event->MaxScore().'"/>' ) ?></td>
 <?php
         }
         else

@@ -20,13 +20,13 @@
 
 if ( !canView( 'Stream' ) )
 {
-    $view = "error";
+    $view = 'error';
     return;
 }
 
 require_once( 'includes/Monitor.php' );
 
-$groupSql = "";
+$groupSql = '';
 if ( !empty($_REQUEST['group']) ) {
 	$row = dbFetchOne( 'select * from Groups where Id = ?', NULL, array($_REQUEST['group']) );
 	$sql = "select * from Monitors where Function != 'None' and find_in_set( Id, '".$row['MonitorIds']."' ) order by Sequence";
@@ -36,7 +36,6 @@ if ( !empty($_REQUEST['group']) ) {
 
 $showControl = false;
 $monitors = array();
-
 
 foreach( dbFetchAll( $sql ) as $row ) {
 	if ( !visibleMonitor( $row['Id'] ) ) {
@@ -101,7 +100,7 @@ foreach ( $monitors as $monitor )
 {
     $connkey = $monitor->connKey(); // Minor hack
 ?>
-        <div id="monitorFrame<?php echo $monitor->Id() ?>" class="monitorFrame" title="<?php echo $monitor->Name() ?>">
+        <div id="monitorFrame<?php echo $monitor->Id() ?>" class="monitorFrame" title="<?php echo $monitor->Id() . ' ' .$monitor->Name() ?>">
           <div id="monitor<?php echo $monitor->Id() ?>" class="monitor idle">
             <div id="imageFeed<?php echo $monitor->Id() ?>" class="imageFeed" onclick="createPopup( '?view=watch&amp;mid=<?php echo $monitor->Id() ?>', 'zmWatch<?php echo $monitor->Id() ?>', 'watch', <?php echo reScale( $monitor->Width(), $monitor->PopupScale() ); ?>, <?php echo reScale( $monitor->Height(), $monitor->PopupScale() ); ?> );">
 						<?php echo getStreamHTML( $monitor, $monitor->Scale() ); ?>

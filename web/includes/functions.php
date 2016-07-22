@@ -497,11 +497,11 @@ function makePopupLink( $url, $winName, $winSize, $label, $condition=1, $options
       $popupParms = "'".$url."', '".$winName."', '".$winSize."'";
 
     $string .= '<a href="'.$url.'" onclick="createPopup( '.$popupParms.' ); return( false );"'.($options?(' '.$options):'').'>';
+  } else {
+    $string .= '<a>';
   }
   $string .= $label;
-  if ( $condition ) {
     $string .= '</a>';
-  }
   return( $string );
 }
 

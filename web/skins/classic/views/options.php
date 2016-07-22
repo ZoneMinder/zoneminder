@@ -65,9 +65,7 @@ if($tab == 'skins') {
         $reload = true;
     }
     $current_css = $_COOKIE['zmCSS'];
-Error("Current css $current_css");
     if ( isset($_GET['css-choice']) and ( $_GET['css-choice'] != $current_css ) ) {
-Error("setting css $current_css to " .  $_GET['css-choice']);
         setcookie('zmCSS',$_GET['css-choice'], time()+3600*24*30*12*10 );
         //header("Location: index.php?view=options&tab=skins&reset_parent=1");
         $reload = true;

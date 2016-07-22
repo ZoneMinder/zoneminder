@@ -289,6 +289,10 @@ echo $Storage->Name();
 
 
     </form>
-<?php include("skins/$skin/views/state.php") ?>
+<?php
+if ( canEdit('System') ) {
+  include("skins/$skin/views/state.php");
+}
+?>
 </body>
 </html>

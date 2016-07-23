@@ -272,7 +272,7 @@ This returns the full list of configuration parameters:
 
 Each configuration parameter has an Id, Name, Value and other fields. Chances are you are likely only going to focus on these 3.
 
-The edit function of the Configs API is a little quirky at the Moment. Its format deviates from the usual edit flow of other APIs. This will be fixed, eventually. For now, to change the "Value" of ZM_X10_HOUSE_CODE from A to B:
+The edit function of the Configs API is a little quirky at the moment. Its format deviates from the usual edit flow of other APIs. This will be fixed, eventually. For now, to change the "Value" of ZM_X10_HOUSE_CODE from A to B:
 
 ::
 

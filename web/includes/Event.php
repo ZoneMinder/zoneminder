@@ -222,7 +222,7 @@ function getImageSrc( $frame, $scale=SCALE_BASE, $captureOnly=false, $overwrite=
   $analImage = sprintf( "%0".ZM_EVENT_IMAGE_DIGITS."d-analyse.jpg", $frame['FrameId'] );
   $analPath = $eventPath.'/'.$analImage;
 
-  $thumbAnalPath = ZM_DIR_IMAGES.'/'.$event['Id'].'-'.$analImage;
+  $thumbAnalPath = ZM_DIR_IMAGES.'/'.$this->{'Id'}.'-'.$analImage;
   //echo "AI:$analImage, AP:$analPath, TAP:$thumbAnalPath<br>";
 
   $alarmFrame = $frame['Type']=='Alarm';

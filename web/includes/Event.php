@@ -215,7 +215,7 @@ function getImageSrc( $frame, $scale=SCALE_BASE, $captureOnly=false, $overwrite=
     Error( "Capture file does not exist at $captPath" );
     return '';
   }
-  $thumbCaptPath = ZM_DIR_IMAGES.'/'.$event['Id'].'-'.$captImage;
+  $thumbCaptPath = ZM_DIR_IMAGES.'/'.$this->{'Id'}'-'.$captImage;
   
   //echo "CI:$captImage, CP:$captPath, TCP:$thumbCaptPath<br>";
 

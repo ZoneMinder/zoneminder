@@ -289,7 +289,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st){//, AV
     Warning("%s:%d: Mangled AVPacket: discarding frame", __FILE__, __LINE__ ); 
     dumpPacket(&opkt);
 
-  } else if ((prevDts > 0) && (prevDts >= opkt.dts)) {
+  } else if ((prevDts > 0) && (prevDts > opkt.dts)) {
     Warning("%s:%d: DTS out of order: %lld \u226E %lld; discarding frame", __FILE__, __LINE__, prevDts, opkt.dts); 
     prevDts = opkt.dts; 
     dumpPacket(&opkt);

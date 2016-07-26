@@ -97,7 +97,7 @@ void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_
 		static char diag_path[PATH_MAX] = "";
 		if ( !diag_path[0] )
 		{
-			snprintf( diag_path, sizeof(diag_path), "%s/%s/diag-%d-poly.jpg", monitor->getStorage()->Path(), monitor->Name(), id);
+			snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-%d-poly.jpg", monitor->getStorage()->Path(), monitor->Id(), id);
 		}
 		pg_image->WriteJpeg( diag_path );
 	}
@@ -248,7 +248,7 @@ bool Zone::CheckAlarms( const Image *delta_image )
 		static char diag_path[PATH_MAX] = "";
 		if ( !diag_path[0] )
 		{
-			snprintf( diag_path, sizeof(diag_path), "%s/%s/diag-%d-%d.jpg", storage->Path(), monitor->Name(), id, 1 );
+			snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-%d-%d.jpg", storage->Path(), monitor->Id(), id, 1 );
 		}
 		diff_image->WriteJpeg( diag_path );
 	}

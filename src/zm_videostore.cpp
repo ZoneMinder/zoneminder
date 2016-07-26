@@ -104,8 +104,10 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 	  video_st->codec->codec_id = input_st->codec->codec_id;
   }
   if ( ! video_st->codec->time_base.num ) {
-	  Warning("video_st->codec->time_base.num is not set. Fixing by setting it to 1");	
-	  video_st->codec->time_base.num = 1;
+	  Warning("video_st->codec->time_base.num is not set%d/%d. Fixing by setting it to 1", video_st->codec->time_base.num, video_st->codec->time_base.den);	
+	  Warning("video_st->codec->time_base.num is not set%d/%d. Fixing by setting it to 1", video_st->time_base.num, video_st->time_base.den);	
+	  video_st->codec->time_base.num = video_st->time_base.num;
+	  video_st->codec->time_base.den = video_st->time_base.den;
   }
 
   video_st->codec->codec_tag = 0;
@@ -240,10 +242,10 @@ void VideoStore::dumpPacket( AVPacket *pkt ){
 
 int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st){//, AVPacket *lastKeyframePkt){
 
-  Debug(3, "before ost_tbcket %d", startTime );
+  Debug(3, "before ost_tbcket starttime %d, timebase%d", startTime, video_st->time_base );
   zm_dump_stream_format( oc, ipkt->stream_index, 0, 1 );
-  Debug(3, "before ost_tbcket %d", startTime );
   int64_t ost_tb_start_time = av_rescale_q(startTime, AV_TIME_BASE_Q, video_st->time_base);
+  Debug(3, "before ost_tbcket starttime %d, ost_tbcket %d", startTime, ost_tb_start_time );
 
   AVPacket opkt, safepkt;
   AVPicture pict;
@@ -253,6 +255,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st){//, AV
   //Scale the PTS of the outgoing packet to be the correct time base
   if (ipkt->pts != AV_NOPTS_VALUE) {
     opkt.pts = av_rescale_q(ipkt->pts-startPts, input_st->time_base, video_st->time_base) - ost_tb_start_time;
+	Debug(3, "opkt.pts = %d from ipkt->pts(%d) - startPts(%d), input->time_base(%d) video_st->time-base(%d)", opkt.pts, ipkt->pts, startPts, input_st->time_base, video_st->time_base );
   } else {
     opkt.pts = AV_NOPTS_VALUE;
   }
@@ -260,8 +263,10 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st){//, AV
   //Scale the DTS of the outgoing packet to be the correct time base
   if(ipkt->dts == AV_NOPTS_VALUE) {
     opkt.dts = av_rescale_q(input_st->cur_dts-startDts, AV_TIME_BASE_Q, video_st->time_base);
+	Debug(3, "opkt.dts = %d from input_st->cur_dts(%d) - startDts(%d), video_st->time-base(%d)", opkt.dts, input_st->cur_dts, startDts, video_st->time_base );
   } else {
     opkt.dts = av_rescale_q(ipkt->dts-startDts, input_st->time_base, video_st->time_base);
+	Debug(3, "opkt.dts = %d from ipkt->dts(%d) - startDts(%d), video_st->time-base(%d)", opkt.dts, ipkt->dts, startDts, video_st->time_base );
   }
 
   opkt.dts -= ost_tb_start_time;

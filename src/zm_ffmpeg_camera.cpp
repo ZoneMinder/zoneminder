@@ -231,7 +231,6 @@ int FfmpegCamera::OpenFfmpeg() {
   mOpenStart = time(NULL);
   mIsOpening = true;
 
-
   // Open the input, not necessarily a file
 #if !LIBAVFORMAT_VERSION_CHECK(53, 2, 0, 4, 0)
   Debug ( 1, "Calling av_open_input_file" );
@@ -241,9 +240,8 @@ int FfmpegCamera::OpenFfmpeg() {
   AVDictionary *opts = 0;
   ret = av_dict_parse_string(&opts, Options().c_str(), "=", ",", 0);
   if (ret < 0) {
-    Warning("Could not parse format options list '%s'\n", Options().c_str());
+    Warning("Could not parse ffmpeg input options list '%s'\n", Options().c_str());
   }
-
 
   // Set transport method as specified by method field, rtpUni is default
   if (Method() == "rtpMulti") {

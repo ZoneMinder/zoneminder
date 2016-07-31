@@ -3,5 +3,5 @@
 	weekly
 	notifempty
 	missingok
-	create 660 apache apache
+	create 660 @WEB_USER@ @WEB_GROUP@
 }

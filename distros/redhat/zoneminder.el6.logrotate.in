@@ -3,5 +3,5 @@
 	weekly
 	notifempty
 	missingok
-	create 660 http http
+	create 660 apache apache
 }

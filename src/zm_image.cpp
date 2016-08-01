@@ -324,7 +324,7 @@ uint8_t* Image::WriteBuffer(const unsigned int p_width, const unsigned int p_hei
   }
   
   if(!p_height || !p_width) {
-    Error("WriteBuffer called with invaid width or height: %d %d",p_width,p_height);
+    Error("WriteBuffer called with invalid width or height: %d %d",p_width,p_height);
     return NULL;
   }
   

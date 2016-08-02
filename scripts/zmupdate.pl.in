@@ -460,7 +460,7 @@ if ( $version )
             $command .= " -u".$dbUser;
             if ( $dbPass )
             {
-                $command .= " -p".$dbPass;
+                $command .= ' -p"'.$dbPass.'"';
             }
         }
         $command .= " ".$Config{ZM_DB_NAME}." < ";

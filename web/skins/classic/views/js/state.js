@@ -1,55 +1,69 @@
-function checkState( element )
-{
+$(document).ready(function() {
+	// Enable or disable the Delete button depending on the selected run state
+	$("#runState").change(function() {
+		runstate = $(this).val();
 
-    var form = element.form;
+		if ( (runstate == 'stop') || (runstate == 'restart') || (runstate == 'start') || (runstate == 'default') ) {
+			$("#btnDelete").prop( "disabled", true );
+		} else {
+			$("#btnDelete").prop( "disabled", false );
+		}
+	});
 
-    var minIndex = running?2:1;
-    if ( form.runState.selectedIndex < minIndex )
-    {
-        form.saveBtn.disabled = true;
-        form.deleteBtn.disabled = true;
-    }
-    else
-    {
-        form.saveBtn.disabled = false;
-        form.deleteBtn.disabled = false;
-    }
+	// Enable or disable the Save button when entering a new state
+	$("#newState").keyup(function() {
+		length = $(this).val().length;
+		console.log(length);
+		if (length < 1) {
+			$("#btnSave").prop( "disabled", true );
+		} else {
+			$("#btnSave").prop( "disabled", false );
+		}
+	});
+	
 
-    if ( form.newState.value != '' )
-        form.saveBtn.disabled = false;
+	// Delete a state
+	$("#btnDelete").click(function() {
+    		StateStuff( 'delete', $("#runState").val( ));
+	});
 
-    // PP if we are in 'default' state, disable delete
-    // you can still save
-    if (element.value.toLowerCase() == 'default' )
-    {
-	form.saveBtn.disabled = false;
- 	form.deleteBtn.disabled = true;
-    }
 
-}
+	// Save a new state
+	$("#btnSave").click(function() {
+		StateStuff( 'save', undefined, $("#newState").val() );
+		
+	});
 
-function saveState( element )
-{
-    var form = element.form;
+	// Change state
+	$("#btnApply").click(function() {
+		StateStuff( 'state', $("#runState").val() );
+	});
 
-    form.view.value = currentView;
-    form.action.value = 'save';
-    form.submit();
-}
+	function StateStuff( action, runState, newState ){
+		var formData = {
+			'view' : 'console',
+			'action' : action,
+			'apply' : 1,
+			'runState' : runState,
+			'newState' : newState
+		};
+		console.log(formData);
 
-function deleteState( element )
-{
-    var form = element.form;
-    form.view.value = currentView;
-    form.action.value = 'delete';
-    form.submit();
-}
+		$("#pleasewait").toggleClass("hidden");
 
-if ( applying )
-{
-    function submitForm()
-    {
-        $('contentForm').submit();
-    }
-    window.addEvent( 'domready', function() { submitForm.delay( 1000 ); } );
-}
+		$.ajax({
+			type: 'POST',
+			url: '/index.php',
+			data: formData,
+			dataType: 'html',
+			enocde: true
+		}).done(function(data) {
+			location.reload();
+		});
+
+
+	}
+
+
+
+});

@@ -37,6 +37,11 @@
 #include <linux/videodev2.h>
 #endif // HAVE_LINUX_VIDEODEV2_H
 
+// Required on systems with v4l1 but without v4l2 headers
+#ifndef VIDEO_MAX_FRAME
+#define VIDEO_MAX_FRAME               32
+#endif
+
 #include "zm_ffmpeg.h"
 
 //

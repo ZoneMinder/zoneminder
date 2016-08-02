@@ -5,17 +5,23 @@ Maintainer: Dmitry Smirnov <onlyjob@debian.org>
 Uploaders: Vagrant Cascadian <vagrant@debian.org>
 Build-Depends: debhelper (>= 9), python-sphinx | python3-sphinx, apache2-dev, dh-linktree
               ,cmake
-			  ,libavcodec-dev, libavformat-dev (>= 3:0.svn20090204), libswscale-dev (>= 3:0.svn20090204), libavutil-dev, libavdevice-dev
+              ,libavcodec-dev, libavformat-dev (>= 3:0.svn20090204), libswscale-dev (>= 3:0.svn20090204), libavutil-dev, libavdevice-dev
               ,libbz2-dev
               ,libgcrypt-dev
               ,libcurl4-gnutls-dev
               ,libgnutls-openssl-dev
-			  ,libjpeg8-dev|libjpeg9-dev|libjpeg62-turbo-dev, 
+              ,libjpeg8-dev|libjpeg9-dev|libjpeg62-turbo-dev, 
               ,libmysqlclient-dev
               ,libpcre3-dev
               ,libpolkit-gobject-1-dev
               ,libv4l-dev (>= 0.8.3) [!hurd-any]
               ,libvlc-dev
+              ,libdate-manip-perl
+              ,libdbd-mysql-perl
+              ,libphp-serialization-perl
+              ,libsys-mmap-perl [!hurd-any]
+              ,libwww-perl
+              ,libdata-uuid-perl 
 # Unbundled (dh_linktree):
         ,libjs-jquery
         ,libjs-mootools
@@ -37,14 +43,15 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libmodule-load-conditional-perl
         ,libnet-sftp-foreign-perl
 #       ,libzoneminder-perl (= ${source:Version})
-          ,libarchive-zip-perl
-          ,libdbd-mysql-perl
-          ,libdevice-serialport-perl
-          ,libimage-info-perl
-          ,libjson-any-perl
-          ,libsys-mmap-perl [!hurd-any]
-          ,liburi-encode-perl
-          ,libwww-perl
+        ,libarchive-zip-perl
+        ,libdbd-mysql-perl
+        ,libdevice-serialport-perl
+        ,libimage-info-perl
+        ,libjson-any-perl
+        ,libsys-mmap-perl [!hurd-any]
+        ,liburi-encode-perl
+        ,libwww-perl
+        ,libdata-uuid-perl 
         ,mysql-client | virtual-mysql-client
         ,perl-modules
         ,php5-mysql, php5-gd

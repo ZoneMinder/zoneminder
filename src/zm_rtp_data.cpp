@@ -67,13 +67,17 @@ int RtpDataThread::run()
 
   SockAddrInet localAddr;
   UdpInetServer rtpDataSocket;
-  if ( mRtpSource.getLocalHost() != "" )
-    localAddr.resolve( mRtpSource.getLocalHost().c_str(), mRtpSource.getLocalDataPort(), "udp" );
+  if ( mRtpSource.getLocalHost() != "" ) {
+    if ( !rtpDataSocket.bind( mRtpSource.getLocalHost().c_str(), mRtpSource.getLocalDataPort() ) )
+      Fatal( "Failed to bind RTP server" );
+    Debug( 3, "Bound to %s:%d",  mRtpSource.getLocalHost().c_str(), mRtpSource.getLocalDataPort() );
+  }
   else
-    localAddr.resolve( mRtpSource.getLocalDataPort(), "udp" );
-  if ( !rtpDataSocket.bind( localAddr ) )
-    Fatal( "Failed to bind RTP server" );
-  Debug( 3, "Bound to %s:%d",  mRtpSource.getLocalHost().c_str(), mRtpSource.getLocalDataPort() );
+  {
+    if ( !rtpDataSocket.bind( mRtspThread.getAddressFamily() == AF_INET6 ? "::" : "0.0.0.0", mRtpSource.getLocalDataPort() ) )
+      Fatal( "Failed to bind RTP server" );
+    Debug( 3, "Bound to %s:%d",  mRtpSource.getLocalHost().c_str(), mRtpSource.getLocalDataPort() );
+  }
 
   Select select( 3 );
   select.addReader( &rtpDataSocket );

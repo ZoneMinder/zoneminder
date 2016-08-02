@@ -49,10 +49,9 @@ New installs
    Change ZM_DB_USER and ZM_DB_PASS to the values you created in the previous
    step.
 
-   Additionally, you must also edit 
-   /usr/share/zoneminder/www/api/app/Config/database.php in a similar manner.
-   Scroll down and change login and password to the values you created in the
-   previous step.
+   This version of zoneminder no longer requires you to make a similar change 
+   to the credentials in /usr/share/zoneminder/www/api/app/Config/database.php 
+   This now happens dynamically. Do *not* make any changes to this file.
 
 4. Edit /etc/php.ini, uncomment the date.timezone line, and add your local
    timezone.  PHP will complain loudly if this is not set, or if it is set
@@ -113,10 +112,9 @@ Upgrades
    Compare /etc/zm/zm.conf to /etc/zm/zm.conf.rpmnew. Verify that zm.conf
    contains any new config settings that may be in zm.conf.rpmnew.
 
-   Additionally, you must also edit 
-   /usr/share/zoneminder/www/api/app/Config/database.php in a similar manner.
-   Scroll down and change login and password to the values you used
-   previsouly.
+   This version of zoneminder no longer requires you to make a similar change 
+   to the credentials in /usr/share/zoneminder/www/api/app/Config/database.php 
+   This now happens dynamically. Do *not* make any changes to this file.
 
 2. Verify permissions of the zmuser account.
 

@@ -150,11 +150,11 @@ int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint
     Error("NULL Input or output buffer");
     return -1;
   }
-  if(in_pf == 0 || out_pf == 0) {
-    Error("Invalid input or output pixel formats");
-    return -2;
-  }
-  if(!width || !height) {
+  //  if(in_pf == 0 || out_pf == 0) {
+  //    Error("Invalid input or output pixel formats");
+  //    return -2;
+  //  }
+  if (!width || !height) {
     Error("Invalid width or height");
     return -3;
   }
@@ -170,30 +170,50 @@ int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint
 #endif
 
   /* Check the buffer sizes */
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+  size_t insize = av_image_get_buffer_size(in_pf, width, height,1);
+#else
   size_t insize = avpicture_get_size(in_pf, width, height);
+#endif
   if(insize != in_buffer_size) {
     Error("The input buffer size does not match the expected size for the input format. Required: %d Available: %d", insize, in_buffer_size);
     return -4;
   }
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+  size_t outsize = av_image_get_buffer_size(out_pf, width, height,1);
+#else
   size_t outsize = avpicture_get_size(out_pf, width, height);
+#endif
   if(outsize < out_buffer_size) {
     Error("The output buffer is undersized for the output format. Required: %d Available: %d", outsize, out_buffer_size);
     return -5;
   }
 
   /* Get the context */
-  swscale_ctx = sws_getCachedContext( NULL, width, height, in_pf, width, height, out_pf, 0, NULL, NULL, NULL );
+  swscale_ctx = sws_getCachedContext(swscale_ctx, width, height, in_pf, width, height, out_pf, 0, NULL, NULL, NULL);
   if(swscale_ctx == NULL) {
     Error("Failed getting swscale context");
     return -6;
   }
 
   /* Fill in the buffers */
-  if(!avpicture_fill( (AVPicture*)input_avframe, (uint8_t*)in_buffer, in_pf, width, height ) ) {
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+  if (av_image_fill_arrays(input_avframe->data, input_avframe->linesize,
+                           (uint8_t*) in_buffer, in_pf, width, height, 1) <= 0) {
+#else
+  if (avpicture_fill((AVPicture*) input_avframe, (uint8_t*) in_buffer,
+                     in_pf, width, height) <= 0) {
+#endif
     Error("Failed filling input frame with input buffer");
     return -7;
   }
-  if(!avpicture_fill( (AVPicture*)output_avframe, out_buffer, out_pf, width, height ) ) {
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+  if (av_image_fill_arrays(output_avframe->data, output_avframe->linesize,
+                           out_buffer, out_pf, width, height, 1) <= 0) {
+#else
+  if (avpicture_fill((AVPicture*) output_avframe, out_buffer, out_pf, width,
+                     height) <= 0) {
+#endif
     Error("Failed filling output frame with output buffer");
     return -8;
   }
@@ -322,8 +342,7 @@ int hacked_up_context2_for_older_ffmpeg(AVFormatContext **avctx, AVOutputFormat 
   }
 }
 
-static void zm_log_fps(double d, const char *postfix)
-{
+static void zm_log_fps(double d, const char *postfix) {
   uint64_t v = lrintf(d * 100);
   if (!v) {
     Debug(3, "%1.4f %s", d, postfix);
@@ -341,15 +360,8 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
   int flags = (is_output ? ic->oformat->flags : ic->iformat->flags);
   AVStream *st = ic->streams[i];
   AVDictionaryEntry *lang = av_dict_get(st->metadata, "language", NULL, 0);
-  unsigned char *separator = ic->dump_separator;
-  char **codec_separator = (char **)av_opt_ptr(st->codec->av_class, st->codec, "dump_separator");
-  int use_format_separator = !*codec_separator;
 
-  if (use_format_separator)
-    *codec_separator = av_strdup((const char *)separator);
   avcodec_string(buf, sizeof(buf), st->codec, is_output);
-  if (use_format_separator)
-    av_freep(codec_separator);
   Debug(3, "    Stream #%d:%d", index, i);
 
   /* the pid is an important information, so we display it */
@@ -381,7 +393,7 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
     int tbc = st->codec->time_base.den && st->codec->time_base.num;
 
     if (fps || tbr || tbn || tbc)
-      Debug(3, "%s", separator);
+      Debug(3, "\n" );
 
     if (fps)
       zm_log_fps(av_q2d(st->avg_frame_rate), tbr || tbn || tbc ? "fps, " : "fps");

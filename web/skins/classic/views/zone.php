@@ -75,8 +75,9 @@ if ( !isset($newZone) )
     else
     {
         $zone = array(
-            'Name' => translate('New'),
             'Id' => 0,
+            'Name' => translate('New'),
+            'Type'  =>  'Active',
             'MonitorId' => $monitor->Id(),
             'NumCoords' => 4,
             'Coords' => sprintf( "%d,%d %d,%d, %d,%d %d,%d", $minX, $minY, $maxX, $minY, $maxX, $maxY, $minX, $maxY ),
@@ -217,7 +218,22 @@ xhtmlHeaders(__FILE__, translate('Zone') );
             <div id="imageFrame" style="position: relative; width: <?php echo reScale( $monitor->Width(), $scale ) ?>px; height: <?php echo reScale( $monitor->Height(), $scale ) ?>px;">
                 <?php echo $StreamHTML; ?>
                 <svg id="zoneSVG" class="zones" style="position: absolute; top: 0; left: 0; width: <?php echo reScale( $monitor->Width(), $scale ) ?>px; height: <?php echo reScale( $monitor->Height(), $scale ) ?>px; background: none;">
-                  <polygon id="zonePoly" points="<?php echo $zone['AreaCoords'] ?>" class="<?php echo $zone['Type'] ?>"/>
+<?php
+if ( $zone['Id'] ) {
+  $other_zones = dbFetchAll( 'SELECT * FROM Zones WHERE MonitorId = ? AND Id != ?', NULL, array( $monitor->Id(), $zone['Id'] ) );
+} else {
+  $other_zones = dbFetchAll( 'SELECT * FROM Zones WHERE MonitorId = ?', NULL, array( $monitor->Id() ) );
+}
+if ( count( $other_zones ) ) {
+  $html = '';
+  foreach( $other_zones as $other_zone ) {
+    $other_zone['AreaCoords'] = preg_replace( '/\s+/', ',', $other_zone['Coords'] );
+    $html .= '<polygon id="zonePoly'.$other_zone['Id'].'" points="'. $other_zone['AreaCoords'] .'" class="'. $other_zone['Type'] .'"/>';
+  }
+  echo $html;
+}
+?>
+                  <polygon id="zonePoly" points="<?php echo $zone['AreaCoords'] ?>" class="Editing <?php echo $zone['Type'] ?>"/>
                   Sorry, your browser does not support inline SVG
                 </svg>
             </div>

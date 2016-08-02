@@ -239,6 +239,8 @@ int FfmpegCamera::OpenFfmpeg() {
 
   Debug ( 2, "OpenFfmpeg called." );
 
+  int ret;
+
   mOpenStart = time(NULL);
   mIsOpening = true;
 
@@ -247,37 +249,26 @@ int FfmpegCamera::OpenFfmpeg() {
   Debug ( 1, "Calling av_open_input_file" );
   if ( av_open_input_file( &mFormatContext, mPath.c_str(), NULL, 0, NULL ) !=0 )
 #else
-    // Handle options
-    AVDictionary *opts = 0;
-  StringVector opVect = split(Options(), ",");
+  // Handle options
+  AVDictionary *opts = 0;
+  ret = av_dict_parse_string(&opts, Options().c_str(), "=", ",", 0);
+  if (ret < 0) {
+    Warning("Could not parse ffmpeg input options list '%s'\n", Options().c_str());
+  }
 
   // Set transport method as specified by method field, rtpUni is default
-  if ( Method() == "rtpMulti" )
-    opVect.push_back("rtsp_transport=udp_multicast");
-  else if ( Method() == "rtpRtsp" )
-    opVect.push_back("rtsp_transport=tcp");
-  else if ( Method() == "rtpRtspHttp" )
-    opVect.push_back("rtsp_transport=http");
+  if (Method() == "rtpMulti") {
+    ret = av_dict_set(&opts, "rtsp_transport", "udp_multicast", 0);
+  } else if (Method() == "rtpRtsp") {
+    ret = av_dict_set(&opts, "rtsp_transport", "tcp", 0);
+  } else if (Method() == "rtpRtspHttp") {
+    ret = av_dict_set(&opts, "rtsp_transport", "http", 0);
+  }
 
-  Debug(2, "Number of Options: %d",opVect.size());
-  for (size_t i=0; i<opVect.size(); i++)
-  {
-    StringVector parts = split(opVect[i],"=");
-    if (parts.size() > 1) {
-      parts[0] = trimSpaces(parts[0]);
-      parts[1] = trimSpaces(parts[1]);
-      if ( av_dict_set(&opts, parts[0].c_str(), parts[1].c_str(), 0) == 0 ) {
-        Debug(2, "set option %d '%s' to '%s'", i,  parts[0].c_str(), parts[1].c_str());
-      }
-      else
-      {
-        Warning( "Error trying to set option %d '%s' to '%s'", i, parts[0].c_str(), parts[1].c_str() );
-      }
+  if (ret < 0) {
+    Warning("Could not set rtsp_transport method '%s'\n", Method().c_str());
+  }
 
-    } else {
-      Warning( "Unable to parse ffmpeg option %d '%s', expecting key=value", i, opVect[i].c_str() );
-    }
-  }    
   Debug ( 1, "Calling avformat_open_input" );
 
   mFormatContext = avformat_alloc_context( );

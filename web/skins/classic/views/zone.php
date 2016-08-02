@@ -75,8 +75,9 @@ if ( !isset($newZone) )
     else
     {
         $zone = array(
-            'Name' => translate('New'),
             'Id' => 0,
+            'Name' => translate('New'),
+            'Type'  =>  'Active',
             'MonitorId' => $monitor->Id(),
             'NumCoords' => 4,
             'Coords' => sprintf( "%d,%d %d,%d, %d,%d %d,%d", $minX, $minY, $maxX, $minY, $maxX, $maxY, $minX, $maxY ),
@@ -232,7 +233,7 @@ if ( count( $other_zones ) ) {
   echo $html;
 }
 ?>
-                  <polygon id="zonePoly" points="<?php echo $zone['AreaCoords'] ?>" class="<?php echo $zone['Type'] ?>"/>
+                  <polygon id="zonePoly" points="<?php echo $zone['AreaCoords'] ?>" class="Editing <?php echo $zone['Type'] ?>"/>
                   Sorry, your browser does not support inline SVG
                 </svg>
             </div>

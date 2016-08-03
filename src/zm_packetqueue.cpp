@@ -32,7 +32,7 @@ zm_packetqueue::zm_packetqueue()
 zm_packetqueue::~zm_packetqueue() {
 }
 
-bool zm_packetqueue::queueVideoPacket(AVPacket* packet){
+bool zm_packetqueue::queueVideoPacket(AVPacket* packet) {
   return queuePacket(VideoQueue, packet);
 }
 

@@ -115,7 +115,7 @@ sub Path {
 
   if ( @_ > 1 ) {
     $$event{Path} = $_[1];
-    if ( ! -e  $$event{Path} ) {
+    if ( ! -e $$event{Path} ) {
       Error("Setting path for event $$event{Id} to $_[1] but does not exist!");
     }
   }
@@ -338,6 +338,13 @@ sub check_for_in_filesystem {
     return 1 if @files;
   }
   return 0;
+}
+
+sub age {
+  if ( ! $_[0]{age} ) {
+    $_[0]{age} = (time() - ($^T - ((-M $_[0]->Path() ) * 24*60*60)));
+  }
+  return $_[0]{age};
 }
 
 1;

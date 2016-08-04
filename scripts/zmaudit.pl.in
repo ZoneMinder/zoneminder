@@ -56,7 +56,6 @@ use bytes;
 #
 # ==========================================================================
 
-use constant MAX_AGED_DIRS => 10; # Number of event dirs to check age on
 use constant RECOVER_TAG => "(r)"; # Tag to append to event name when recovered
 use constant RECOVER_TEXT => "Recovered."; # Text to append to event notes when recovered
 
@@ -205,7 +204,7 @@ MAIN: while( $loop ) {
           Debug( "Checking day dir $day_dir" );
           ( $day_dir ) = ( $day_dir =~ /^(.*)$/ ); # De-taint
           if ( ! chdir( $day_dir ) ) {
-            Error( "Can't chdir to $$Storage{Path}/$monitor_dir/'$day_dir': $!" );
+            Error( "Can't chdir to '$$Storage{Path}/$monitor_dir/$day_dir': $!" );
             next;
           }
           if ( ! opendir( DIR, "." ) ) {
@@ -222,38 +221,34 @@ MAIN: while( $loop ) {
             }
             Debug( "Checking link $event_link" );
             ( my $event = $event_link ) =~ s/^.*\.//;
+            #Event path is hour/minute/sec
             my $event_path = readlink( $event_link );
 
             if ( !-e $event_path ) {
               aud_print( "Event link $day_dir/$event_link does not point to valid target" );
               if ( confirm() ) {
                 ( $event_link ) = ( $event_link =~ /^(.*)$/ ); # De-taint
-                  unlink( $event_link );
+                unlink( $event_link );
                 $cleaned = 1;
               }
             } else {
+              Debug( "Checking link $event_link points to $event_path " );
               my $Event = $fs_events->{$event} = new ZoneMinder::Event();
               $$Event{Id} = $event;
-              $$Event{Path} = $event_path;
+              $$Event{Path} = join('/', $Storage->Path(), $monitor_dir,$day_dir,$event_path);
               $Event->MonitorId( $monitor_dir );
               $Event->StorageId( $Storage->Id() );
-              if ( $count++ > MAX_AGED_DIRS ) {
-                $$Event{age} = -1;
-              } else {
-                $$Event{age} = (time() - ($^T - ((-M $event_path ) * 24*60*60)));
-              }
-
             } # event path exists
           } # end foreach event_link
           chdir( $Storage->Path() );
         } # end foreach day dir
       } else {
         if ( ! chdir( $monitor_dir ) ) {
-          Error( "Can't chdir directory $$Storage{Path}/'$monitor_dir': $!" );
+          Error( "Can't chdir directory '$$Storage{Path}/$monitor_dir': $!" );
           next;
         }
         if ( ! opendir( DIR, "." ) ) {
-          Error( "Can't open directory $$Storage{Path}/'$monitor_dir': $!" );
+          Error( "Can't open directory '$$Storage{Path}/$monitor_dir': $!" );
           next;
         }
         my @temp_events = sort { $b <=> $a } grep { -d $_ && $_ =~ /^\d+$/ } readdir( DIR );
@@ -265,16 +260,10 @@ MAIN: while( $loop ) {
           #$$Event{Path} = $event_path;
           $Event->MonitorId( $monitor_dir );
           $Event->StorageId( $Storage->Id() );
-          if ( $count++ > MAX_AGED_DIRS ) {
-            $$Event{age} = -1;
-          } else {
-            $$Event{age} = (time() - ($^T - ((-M $event ) * 24*60*60)));
-          }
-
         } # end foreach event
         chdir( $Storage->Path() );
       } # if USE_DEEP_STORAGE
-      Debug( "Got ".int(keys(%$fs_events))." events\n" );
+      Debug( "Got ".int(keys(%$fs_events))." events for monitor $monitor_dir\n" );
 
       delete_empty_directories(  $monitor_dir );
     } # end foreach monitor
@@ -289,16 +278,19 @@ MAIN: while( $loop ) {
 
           my $Event = $fs_events->{$fs_event_id};
 
-          my $age = $$Event{age};
 
-          if ( !defined($db_events->{$fs_event_id}) && ($age < 0 || ($age > $Config{ZM_AUDIT_MIN_AGE})) ) {
-            aud_print( "Filesystem event '$$Storage{Path}/$monitor_id/$fs_event_id' does not exist in database" );
-            if ( confirm() ) {
-              $Event->delete_files();
-              $cleaned = 1;
-              delete $fs_events->{$fs_event_id};
-            } # end if confirm
-          } # end if ! in db events and old enough
+          if ( ! defined( $db_events->{$fs_event_id} ) ) {
+            my $age = $Event->age();
+
+            if ( $age > $Config{ZM_AUDIT_MIN_AGE} ) {
+              aud_print( "Filesystem event '".$Event->Path()."' does not exist in database and is $age seconds old" );
+              if ( confirm() ) {
+                $Event->delete_files();
+                $cleaned = 1;
+                delete $fs_events->{$fs_event_id};
+              } # end if confirm
+            } # end if old enough
+          } # end if ! in db events
         } # end foreach fs event
       } else {
         aud_print( "Filesystem monitor '$monitor_id' in $$Storage{Path} does not exist in database" );

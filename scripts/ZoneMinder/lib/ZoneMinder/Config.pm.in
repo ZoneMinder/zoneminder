@@ -136,7 +136,7 @@ sub loadConfigFromDB {
 #print( "Name = '$name'\n" );
     my $option = $options_hash{$name};
     if ( !$option ) {
-      warn( "No option '$name' found, removing" );
+      warn( "No option '$name' found, removing.\n" );
       next;
     }
 #next if ( $option->{category} eq 'hidden' );

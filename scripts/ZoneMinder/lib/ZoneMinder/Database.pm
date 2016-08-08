@@ -70,45 +70,39 @@ use Carp;
 
 our $dbh = undef;
 
-sub zmDbConnect
-{
-    my $force = shift;
-    if ( $force )
-    {
-         zmDbDisconnect();
-    }
-    if ( ( ! defined( $dbh ) ) or ! $dbh->ping() ) {
-        my ( $host, $port ) = ( $ZoneMinder::Config::Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
+sub zmDbConnect {
+  my $force = shift;
+  if ( $force ) {
+    zmDbDisconnect();
+  }
+  if ( ( ! defined( $dbh ) ) or ! $dbh->ping() ) {
+    my ( $host, $portOrSocket ) = ( $ZoneMinder::Config::Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
+    my $socket;
 
-        if ( defined($port) )
-        {
-            $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
-                                .";host=".$host
-                                .";port=".$port
-                                , $Config{ZM_DB_USER}
-                                , $Config{ZM_DB_PASS}
-            );
-        }
-        else
-        {
-            $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
-                                .";host=".$Config{ZM_DB_HOST}
-                                , $Config{ZM_DB_USER}
-                                , $Config{ZM_DB_PASS}
-            );
-        }
-        $dbh->trace( 0 );
+    if ( defined($portOrSocket) ) {
+      if ( $portOrSocket =~ /^\// ) {
+        $socket = ";mysql_socket=".$portOrSocket;
+      } else {
+        $socket = ";host=".$host.";port=".$portOrSocket;
+      }
+    } else {
+      $socket = ";host=".$Config{ZM_DB_HOST}; 
     }
-    return( $dbh );
+    $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
+        .$socket
+        , $Config{ZM_DB_USER}
+        , $Config{ZM_DB_PASS}
+        );
+    $dbh->trace( 0 );
+  }
+  return( $dbh );
 }
 
-sub zmDbDisconnect
-{
-    if ( defined( $dbh ) )
-    {
-        $dbh->disconnect();
-        $dbh = undef;
-    }
+sub zmDbDisconnect {
+  if ( defined( $dbh ) ) {
+    $dbh->disconnect();
+    $dbh = undef;
+  }
 }
 
 use constant DB_MON_ALL => 0; # All monitors
@@ -118,88 +112,74 @@ use constant DB_MON_MOTION => 3; # All monitors that are doing motion detection
 use constant DB_MON_RECORD => 4; # All monitors that are doing unconditional recording
 use constant DB_MON_PASSIVE => 5; # All monitors that are in nodect state
 
-sub zmDbGetMonitors
-{
-    zmDbConnect();
+sub zmDbGetMonitors {
+  zmDbConnect();
 
-    my $function = shift || DB_MON_ALL;
-    my $sql = "select * from Monitors";
+  my $function = shift || DB_MON_ALL;
+  my $sql = "select * from Monitors";
 
-    if ( $function )
-    {
-        if ( $function == DB_MON_CAPT )
-        {
-            $sql .= " where Function >= 'Monitor'";
-        }
-        elsif ( $function == DB_MON_ACTIVE )
-        {
-            $sql .= " where Function > 'Monitor'";
-        }
-        elsif ( $function == DB_MON_MOTION )
-        {
-            $sql .= " where Function = 'Modect' or Function = 'Mocord'";
-        }
-        elsif ( $function == DB_MON_RECORD )
-        {
-            $sql .= " where Function = 'Record' or Function = 'Mocord'";
-        }
-        elsif ( $function == DB_MON_PASSIVE )
-        {
-            $sql .= " where Function = 'Nodect'";
-        }
+  if ( $function ) {
+    if ( $function == DB_MON_CAPT ) {
+      $sql .= " where Function >= 'Monitor'";
+    } elsif ( $function == DB_MON_ACTIVE ) {
+      $sql .= " where Function > 'Monitor'";
+    } elsif ( $function == DB_MON_MOTION ) {
+      $sql .= " where Function = 'Modect' or Function = 'Mocord'";
+    } elsif ( $function == DB_MON_RECORD ) {
+      $sql .= " where Function = 'Record' or Function = 'Mocord'";
+    } elsif ( $function == DB_MON_PASSIVE ) {
+      $sql .= " where Function = 'Nodect'";
     }
-    my $sth = $dbh->prepare_cached( $sql )
-        or croak( "Can't prepare '$sql': ".$dbh->errstr() );
-    my $res = $sth->execute()
-        or croak( "Can't execute '$sql': ".$sth->errstr() );
+  }
+  my $sth = $dbh->prepare_cached( $sql )
+    or croak( "Can't prepare '$sql': ".$dbh->errstr() );
+  my $res = $sth->execute()
+    or croak( "Can't execute '$sql': ".$sth->errstr() );
 
-    my @monitors;
-    while( my $monitor = $sth->fetchrow_hashref() )
-    {
-        push( @monitors, $monitor );
-    }
-    $sth->finish();
-    return( \@monitors );
+  my @monitors;
+  while( my $monitor = $sth->fetchrow_hashref() ) {
+    push( @monitors, $monitor );
+  }
+  $sth->finish();
+  return( \@monitors );
 }
 
-sub zmDbGetMonitor
-{
-    zmDbConnect();
+sub zmDbGetMonitor {
+  zmDbConnect();
 
-    my $id = shift;
+  my $id = shift;
 
-    return( undef ) if ( !defined($id) );
+  return( undef ) if ( !defined($id) );
 
-    my $sql = "select * from Monitors where Id = ?";
-    my $sth = $dbh->prepare_cached( $sql )
-        or croak( "Can't prepare '$sql': ".$dbh->errstr() );
-    my $res = $sth->execute( $id )
-        or croak( "Can't execute '$sql': ".$sth->errstr() );
-    my $monitor = $sth->fetchrow_hashref();
+  my $sql = "select * from Monitors where Id = ?";
+  my $sth = $dbh->prepare_cached( $sql )
+    or croak( "Can't prepare '$sql': ".$dbh->errstr() );
+  my $res = $sth->execute( $id )
+    or croak( "Can't execute '$sql': ".$sth->errstr() );
+  my $monitor = $sth->fetchrow_hashref();
 
-    return( $monitor );
+  return( $monitor );
 }
 
-sub zmDbGetMonitorAndControl
-{
-    zmDbConnect();
+sub zmDbGetMonitorAndControl {
+  zmDbConnect();
 
-    my $id = shift;
+  my $id = shift;
 
-    return( undef ) if ( !defined($id) );
+  return( undef ) if ( !defined($id) );
 
-    my $sql = "SELECT C.*,M.*,C.Protocol
-               FROM Monitors as M
-               INNER JOIN Controls as C on (M.ControlId = C.Id)
-               WHERE M.Id = ?"
+  my $sql = "SELECT C.*,M.*,C.Protocol
+    FROM Monitors as M
+    INNER JOIN Controls as C on (M.ControlId = C.Id)
+    WHERE M.Id = ?"
     ;
-    my $sth = $dbh->prepare_cached( $sql )
-        or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-    my $res = $sth->execute( $id )
-        or Fatal( "Can't execute '$sql': ".$sth->errstr() );
-    my $monitor = $sth->fetchrow_hashref();
+  my $sth = $dbh->prepare_cached( $sql )
+    or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+  my $res = $sth->execute( $id )
+    or Fatal( "Can't execute '$sql': ".$sth->errstr() );
+  my $monitor = $sth->fetchrow_hashref();
 
-    return( $monitor );
+  return( $monitor );
 }
 
 1;

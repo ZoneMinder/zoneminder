@@ -243,6 +243,7 @@ function getNavBarHTML() {
   </div>
   <div class="pull-right">
 	  <?php echo makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="'.$versionClass.'">v'.ZM_VERSION.'</span>', canEdit( 'System' ) ) ?>
+      <h3 id="development"><center><?php echo ZM_WEB_CONSOLE_BANNER ?></center></h3>
   </div>
   <ul class="list-inline">
 	  <li><?php echo translate('Load') ?>: <?php echo getLoad() ?></li>

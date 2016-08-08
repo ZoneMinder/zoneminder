@@ -1549,6 +1549,20 @@ our @options =
         category    => "web",
     },
     {
+        name        => "ZM_WEB_CONSOLE_BANNER",
+        default     => "",
+        description => "Arbitrary text message near the top of the console",
+        help        => qqq("
+            Allows the administrator to place an arbitrary text message
+            near the top of the web console. This is useful for the developers
+            to display a message which indicates the running instance of
+            ZoneMinder is a development snapshot, but it can also be used for
+            any other purpose as well.
+        "),
+        type        => $types{string},
+        category    => "web",
+    },
+    {
         name        => "ZM_WEB_RESIZE_CONSOLE",
         default     => "yes",
         description => "Should the console window resize itself to fit",

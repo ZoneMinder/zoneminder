@@ -460,25 +460,29 @@ sub databaseLevel
             {
                 if ( !$this->{dbh} )
                 {
-                    my ( $host, $port ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
+                    my $socket;
+                    my ( $host, $portOrSocket ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
 
-                    if ( defined($port) )
+                    if ( defined($portOrSocket) )
                     {
-                        $this->{dbh} = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
-                                                    .";host=".$host
-                                                    .";port=".$port
-                                                    , $Config{ZM_DB_USER}
-                                                    , $Config{ZM_DB_PASS}
-                        );
+                        if ( $portOrSocket =~ /^\// )
+                        {
+                            $socket = ";mysql_socket=".$portOrSocket;
+                        }
+                        else
+                        {
+                            $socket = ";host=".$host.";port=".$portOrSocket;
+                        }
                     }
                     else
                     {
-                        $this->{dbh} = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
-                                                    .";host=".$Config{ZM_DB_HOST}
-                                                    , $Config{ZM_DB_USER}
-                                                    , $Config{ZM_DB_PASS}
-                        );
+                        $socket = ";host=".$Config{ZM_DB_HOST};
                     }
+                    $this->{dbh} = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
+                                                .$socket
+                                                , $Config{ZM_DB_USER}
+                                                , $Config{ZM_DB_PASS}
+                    );
                     if ( !$this->{dbh} )
                     {
                         $databaseLevel = NOLOG;

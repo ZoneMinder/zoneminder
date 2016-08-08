@@ -367,16 +367,8 @@ Logger::Level Logger::databaseLevel( Logger::Level databaseLevel )
           my_bool reconnect = 1;
           if ( mysql_options( &mDbConnection, MYSQL_OPT_RECONNECT, &reconnect ) )
             Fatal( "Can't set database auto reconnect option: %s", mysql_error( &mDbConnection ) );
-          std::string::size_type colonIndex = staticConfig.DB_HOST.find( ":" );
-          if ( colonIndex == std::string::npos )
-          {
-            if ( !mysql_real_connect( &mDbConnection, staticConfig.DB_HOST.c_str(), staticConfig.DB_USER.c_str(), staticConfig.DB_PASS.c_str(), NULL, 0, NULL, 0 ) ) 
-            {
-              Fatal( "Can't connect to database: %s", mysql_error( &mDbConnection ) );
-              exit( mysql_errno( &mDbConnection ) );
-            }
-          }
-          else
+          std::string::size_type colonIndex = staticConfig.DB_HOST.find( ":/" );
+          if ( colonIndex != std::string::npos )
           {
             std::string dbHost = staticConfig.DB_HOST.substr( 0, colonIndex );
             std::string dbPortOrSocket = staticConfig.DB_HOST.substr( colonIndex+1 );
@@ -395,6 +387,14 @@ Logger::Level Logger::databaseLevel( Logger::Level databaseLevel )
                 Fatal( "Can't connect to database: %s", mysql_error( &mDbConnection ) );
                 exit( mysql_errno( &mDbConnection ) );
               }
+            }
+          }
+          else
+          {
+            if ( !mysql_real_connect( &mDbConnection, staticConfig.DB_HOST.c_str(), staticConfig.DB_USER.c_str(), staticConfig.DB_PASS.c_str(), NULL, 0, NULL, 0 ) ) 
+            {
+              Fatal( "Can't connect to database: %s", mysql_error( &mDbConnection ) );
+              exit( mysql_errno( &mDbConnection ) );
             }
           }
           unsigned long mysqlVersion = mysql_get_server_version( &mDbConnection );

@@ -276,7 +276,7 @@ protected:
   #define av_err2str(errnum) av_make_error_string(errnum).c_str()
 
   /* The following is copied directly from newer ffmpeg */
-  #if LIBAVUTIL_VERSION_CHECK(52, 6, 0, 0, 0)
+  #if LIBAVUTIL_VERSION_CHECK(52, 7, 0, 17, 100)
   #else
     int av_dict_parse_string(AVDictionary **pm, const char *str,
                             const char *key_val_sep, const char *pairs_sep,

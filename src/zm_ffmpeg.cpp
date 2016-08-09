@@ -70,7 +70,7 @@ enum _AVPIXELFORMAT GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subp
   return pf;
 }
 /* The following is copied directly from newer ffmpeg. */
-#if LIBAVUTIL_VERSION_CHECK(52, 6, 0, 6, 0)
+#if LIBAVUTIL_VERSION_CHECK(52, 7, 0, 17, 100)
 #else
 static int parse_key_value_pair(AVDictionary **pm, const char **buf,
                                 const char *key_val_sep, const char *pairs_sep,

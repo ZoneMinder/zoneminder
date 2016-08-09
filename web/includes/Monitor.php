@@ -106,8 +106,8 @@ private $control_fields = array(
 );
 
   public function __construct( $IdOrRow ) {
-    $row = NULL;
     if ( $IdOrRow ) {
+      $row = NULL;
       if ( is_integer( $IdOrRow ) or is_numeric( $IdOrRow ) ) {
         $row = dbFetchOne( 'SELECT * FROM Monitors WHERE Id=?', NULL, array( $IdOrRow ) );
         if ( ! $row ) {
@@ -119,33 +119,33 @@ private $control_fields = array(
         Error("Unknown argument passed to Monitor Constructor ($IdOrRow)");
         return;
       }
-    } # end if isset($IdOrRow)
 
-    if ( $row ) {
-      foreach ($row as $k => $v) {
-        $this->{$k} = $v;
-      }
-      if ( $this->{'Controllable'} ) {
-        $s = dbFetchOne( 'SELECT * FROM Controls WHERE Id=?', NULL, array( $this->{'ControlId'} ) );
-        foreach ($s as $k => $v) {
-          if ( $k == 'Id' ) {
-            continue;
+      if ( $row ) {
+        foreach ($row as $k => $v) {
+          $this->{$k} = $v;
+        }
+        if ( $this->{'Controllable'} ) {
+          $s = dbFetchOne( 'SELECT * FROM Controls WHERE Id=?', NULL, array( $this->{'ControlId'} ) );
+          foreach ($s as $k => $v) {
+            if ( $k == 'Id' ) {
+              continue;
 # The reason for these is that the name overlaps Monitor fields.
-          } else if ( $k == 'Protocol' ) {
-            $this->{'ControlProtocol'} = $v;
-          } else if ( $k == 'Name' ) {
-            $this->{'ControlName'} = $v;
-          } else if ( $k == 'Type' ) {
-            $this->{'ControlType'} = $v;
-          } else {
-            $this->{$k} = $v;
+            } else if ( $k == 'Protocol' ) {
+              $this->{'ControlProtocol'} = $v;
+            } else if ( $k == 'Name' ) {
+              $this->{'ControlName'} = $v;
+            } else if ( $k == 'Type' ) {
+              $this->{'ControlType'} = $v;
+            } else {
+              $this->{$k} = $v;
+            }
           }
         }
-      }
 
-    } else {
-      Error("No row for Monitor " . $IdOrRow );
-    }
+      } else {
+        Error("No row for Monitor " . $IdOrRow );
+      }
+    } # end if isset($IdOrRow)
   } // end function __construct
   public function Server() {
     return new Server( $this->{'ServerId'} );
@@ -221,6 +221,10 @@ private $control_fields = array(
         $this->{$k} = implode(',',$v);
       } else if ( is_string( $v ) ) {
         $this->{$k} = trim( $v );
+      } else if ( is_integer( $v ) ) {
+        $this->{$k} = $v;
+      } else if ( is_bool( $v ) ) {
+        $this->{$k} = $v;
       } else {
         Error( "Unknown type $k => $v of var " . gettype( $v ) );
         $this->{$k} = $v;

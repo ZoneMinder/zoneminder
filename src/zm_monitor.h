@@ -153,6 +153,19 @@ protected:
     void* padding;
   };
 
+    //TODO: Technically we can't exclude this struct when people don't have avformat as the Memory.pm module doesn't know about avformat
+#if 1
+    //sizeOf(VideoStoreData) expected to be 4104 bytes on 32bit and 64bit
+    typedef struct
+    {
+        uint32_t size;
+        char event_file[4096];
+        uint32_t recording; //bool arch dependent so use uint32 instead
+        //uint32_t frameNumber;
+    } VideoStoreData;
+
+#endif // HAVE_LIBAVFORMAT
+
   class MonitorLink
   {
   protected:
@@ -173,6 +186,7 @@ protected:
 
     volatile SharedData  *shared_data;
     volatile TriggerData  *trigger_data;
+    volatile VideoStoreData *video_store_data;
 
     int        last_state;
     int        last_event;
@@ -220,6 +234,13 @@ protected:
   unsigned int  v4l_captures_per_frame;
   Orientation    orientation;      // Whether the image has to be rotated at all
   unsigned int  deinterlacing;
+
+  int savejpegspref;
+  int videowriterpref;
+  std::string encoderparams;
+  std::vector<EncoderParameter_t> encoderparamsvec;
+  bool      record_audio;     // Whether to store the audio that we receive
+
   int        brightness;        // The statically saved brightness of the camera
   int        contrast;        // The statically saved contrast of the camera
   int        hue;          // The statically saved hue of the camera
@@ -284,6 +305,7 @@ protected:
 
   SharedData    *shared_data;
   TriggerData    *trigger_data;
+  VideoStoreData  *video_store_data;
 
   Snapshot    *image_buffer;
   Snapshot    next_buffer; /* Used by four field deinterlacing */
@@ -307,7 +329,47 @@ protected:
 public:
 // OurCheckAlarms seems to be unused. Check it on zm_monitor.cpp for more info.
 //bool OurCheckAlarms( Zone *zone, const Image *pImage );
-  Monitor( int p_id, const char *p_name, unsigned int p_server_id, int p_function, bool p_enabled, const char *p_linked_monitors, Camera *p_camera, int p_orientation, unsigned int p_deinterlacing, const char *p_event_prefix, const char *p_label_format, const Coord &p_label_coord, int label_size, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_stream_replay_buffer, int p_alarm_frame_count, int p_section_length, int p_frame_skip, int p_motion_frame_skip, double p_analysis_fps, unsigned int p_analysis_update_delay, int p_capture_delay, int p_alarm_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, int p_alarm_ref_blend_perc, bool p_track_motion, Rgb p_signal_check_colour, bool p_embed_exif, Purpose p_purpose, int p_n_zones=0, Zone *p_zones[]=0 );
+  Monitor(
+    int p_id,
+    const char *p_name,
+    unsigned int p_server_id,
+    int p_function,
+    bool p_enabled,
+    const char *p_linked_monitors,
+    Camera *p_camera,
+    int p_orientation,
+    unsigned int p_deinterlacing,
+    int p_savejpegs,
+    int p_videowriter,
+    std::string p_encoderparams,
+    bool	p_record_audio,
+    const char *p_event_prefix,
+    const char *p_label_format,
+    const Coord &p_label_coord,
+    int label_size,
+    int p_image_buffer_count,
+    int p_warmup_count,
+    int p_pre_event_count,
+    int p_post_event_count,
+    int p_stream_replay_buffer,
+    int p_alarm_frame_count,
+    int p_section_length,
+    int p_frame_skip,
+    int p_motion_frame_skip,
+    double p_analysis_fps,
+    unsigned int p_analysis_update_delay,
+    int p_capture_delay,
+    int p_alarm_capture_delay,
+    int p_fps_report_interval,
+    int p_ref_blend_perc,
+    int p_alarm_ref_blend_perc,
+    bool p_track_motion,
+    Rgb p_signal_check_colour,
+    bool p_embed_exif,
+    Purpose p_purpose,
+    int p_n_zones=0,
+    Zone *p_zones[]=0
+  );
   ~Monitor();
 
   void AddZones( int p_n_zones, Zone *p_zones[] );
@@ -363,6 +425,9 @@ public:
   unsigned int Colours() const { return( camera->Colours() ); }
   unsigned int SubpixelOrder() const { return( camera->SubpixelOrder() ); }
     
+  int GetOptSaveJPEGs() const { return( savejpegspref ); }
+  int GetOptVideoWriter() const { return( videowriterpref ); }
+  const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return( &encoderparamsvec ); }	  
  
   State GetState() const;
   int GetImage( int index=-1, int scale=100 );

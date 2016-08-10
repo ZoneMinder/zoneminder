@@ -525,6 +525,7 @@ if ( !empty($action) )
                 'DoNativeMotDet' => 'toggle',
                 'Exif' => 'toggle',
                 'RTSPDescribe' => 'toggle',
+                'RecordAudio' => 'toggle',
             );
 
             $columns = getTableColumns( 'Monitors' );

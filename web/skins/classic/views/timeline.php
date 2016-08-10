@@ -811,7 +811,18 @@ xhtmlHeaders(__FILE__, translate('Timeline') );
     <div id="content" class="chartSize">
       <div id="topPanel" class="graphWidth">
         <div id="imagePanel">
-          <div id="image" class="imageHeight"><img id="imageSrc" class="imageWidth" src="graphics/transparent.gif" alt="<?php echo translate('ViewEvent') ?>" title="<?php echo translate('ViewEvent') ?>"/></div>
+          <div id="image" class="imageHeight">
+		        <img id="imageSrc" class="imageWidth" src="graphics/transparent.gif" alt="<?php echo translate('ViewEvent') ?>" title="<?php echo translate('ViewEvent') ?>"/>
+<?php
+//due to chrome bug, has to enable https://code.google.com/p/chromium/issues/detail?id=472300
+//crossorigin has to be added below to make caption work in chrome
+?>
+			<video id="preview" width="100%" controls crossorigin="anonymous">
+				<source src="<?php echo "/events/".getEventPath($event)."/event.mp4"; ?>" type="video/mp4">
+Your browser does not support the video tag.
+			</video>
+
+</div>
         </div>
         <div id="dataPanel">
           <div id="textPanel">
@@ -921,6 +932,10 @@ foreach( array_keys($monEventSlots) as $monitorId )
 <?php
     unset( $currEventSlots );
     $currEventSlots = &$monEventSlots[$monitorId];
+    $monitorMouseover = $mouseover;
+    if ($monitors[$monitorId]['SaveJPEGs'] == 2) {
+        $monitorMouseover = false;
+    }
     for ( $i = 0; $i < $chart['graph']['width']; $i++ )
     {
         if ( isset($currEventSlots[$i]) )
@@ -928,7 +943,7 @@ foreach( array_keys($monEventSlots) as $monitorId )
             unset( $slot );
             $slot = &$currEventSlots[$i];
 
-            if ( $mouseover )
+            if ( $monitorMouseover )
             {
                 $behaviours = array(
                     'onclick="'.getSlotShowEventBehaviour( $slot ).'"',
@@ -968,5 +983,6 @@ foreach( array_keys($monEventSlots) as $monitorId )
       </div>
     </div>
   </div>
+<script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.10.6/moment.min.js"></script>
 </body>
 </html>

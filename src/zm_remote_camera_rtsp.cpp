@@ -28,8 +28,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-RemoteCameraRtsp::RemoteCameraRtsp( int p_id, const std::string &p_method, const std::string &p_host, const std::string &p_port, const std::string &p_path, int p_width, int p_height, bool p_rtsp_describe, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio ) :
-  RemoteCamera( p_id, "rtsp", p_host, p_port, p_path, p_width, p_height, p_colours, p_brightness, p_contrast, p_hue, p_colour, p_capture, p_record_audio ),
+RemoteCameraRtsp::RemoteCameraRtsp( unsigned int p_monitor_id, const std::string &p_method, const std::string &p_host, const std::string &p_port, const std::string &p_path, int p_width, int p_height, bool p_rtsp_describe, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio ) :
+  RemoteCamera( p_monitor_id, "rtsp", p_host, p_port, p_path, p_width, p_height, p_colours, p_brightness, p_contrast, p_hue, p_colour, p_capture, p_record_audio ),
   rtsp_describe( p_rtsp_describe ),
   rtspThread( 0 )
 
@@ -43,7 +43,7 @@ RemoteCameraRtsp::RemoteCameraRtsp( int p_id, const std::string &p_method, const
   else if ( p_method == "rtpRtspHttp" )
     method = RtspThread::RTP_RTSP_HTTP;
   else
-    Fatal( "Unrecognised method '%s' when creating RTSP camera %d", p_method.c_str(), id );
+    Fatal( "Unrecognised method '%s' when creating RTSP camera %d", p_method.c_str(), monitor_id );
 
   if ( capture )
   {
@@ -137,7 +137,7 @@ void RemoteCameraRtsp::Terminate()
 
 int RemoteCameraRtsp::Connect()
 {
-  rtspThread = new RtspThread( id, method, protocol, host, port, path, auth, rtsp_describe );
+  rtspThread = new RtspThread( monitor_id, method, protocol, host, port, path, auth, rtsp_describe );
 
   rtspThread->start();
 

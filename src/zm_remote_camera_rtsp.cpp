@@ -467,7 +467,11 @@ int RemoteCameraRtsp::CaptureAndRecord( Image &image, bool recording, char* even
           if ( recording && !wasRecording ) {
             //Instantiate the video storage module
 
-            videoStore = new VideoStore((const char *)event_file, "mp4", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime);
+            videoStore = new VideoStore((const char *)event_file, "mp4",
+                mFormatContext->streams[mVideoStreamId],
+                mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],
+                startTime,
+                this->getMonitor()->getOrientation() );
             wasRecording = true;
             strcpy(oldDirectory, event_file);
 
@@ -487,7 +491,11 @@ int RemoteCameraRtsp::CaptureAndRecord( Image &image, bool recording, char* even
               videoStore = NULL;
             }
 
-            videoStore = new VideoStore((const char *)event_file, "mp4", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime);
+            videoStore = new VideoStore((const char *)event_file, "mp4",
+                mFormatContext->streams[mVideoStreamId],
+                mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],
+                startTime,
+                this->getMonitor()->getOrientation() );
             strcpy( oldDirectory, event_file );
           }
 
@@ -537,7 +545,7 @@ int RemoteCameraRtsp::CaptureAndRecord( Image &image, bool recording, char* even
       } // end if video or audio packet
      
 #if LIBAVCODEC_VERSION_CHECK(57, 8, 0, 12, 100)
-    av_packet_unref( &packet);
+    av_packet_unref( &packet );
 #else
     av_free_packet( &packet );
 #endif

@@ -35,7 +35,8 @@ extern "C"{
 VideoStore::VideoStore(const char *filename_in, const char *format_in,
     AVStream *input_st,
     AVStream *inpaud_st,
-    int64_t nStartTime
+    int64_t nStartTime,
+    Monitor::Orientation orientation
     ) {
 
   AVDictionary *pmetadata = NULL;
@@ -91,10 +92,47 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
         "%s\n", av_make_error_string(ret).c_str());
   }
 
+  if ( video_st->sample_aspect_ratio.den != video_st->codec->sample_aspect_ratio.den ) {
+         Warning("Fixingample_aspect_ratio.den");
+         video_st->sample_aspect_ratio.den = video_st->codec->sample_aspect_ratio.den;
+  }
+  if ( video_st->sample_aspect_ratio.num != input_st->codec->sample_aspect_ratio.num ) {
+         Warning("Fixingample_aspect_ratio.num");
+         video_st->sample_aspect_ratio.num = input_st->codec->sample_aspect_ratio.num;
+  }
+  if ( video_st->codec->codec_id != input_st->codec->codec_id ) {
+         Warning("Fixing video_st->codec->codec_id");
+         video_st->codec->codec_id = input_st->codec->codec_id;
+  }
+  if ( ! video_st->codec->time_base.num ) {
+         Warning("video_st->codec->time_base.num is not set%d/%d. Fixing by setting it to 1", video_st->codec->time_base.num, video_st->codec->time_base.den); 
+         Warning("video_st->codec->time_base.num is not set%d/%d. Fixing by setting it to 1", video_st->time_base.num, video_st->time_base.den);       
+         video_st->codec->time_base.num = video_st->time_base.num;
+         video_st->codec->time_base.den = video_st->time_base.den;
+  }
+
   video_st->codec->codec_tag = 0;
   if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
     video_st->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
   }
+
+  if ( orientation ) {
+    if ( orientation == Monitor::ROTATE_0 ) {
+
+    } else if ( orientation == Monitor::ROTATE_90 ) {
+      dsr = av_dict_set( &video_st->metadata, "rotate", "90", 0);
+      if (dsr < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__ );
+    } else if ( orientation == Monitor::ROTATE_180 ) {
+      dsr = av_dict_set( &video_st->metadata, "rotate", "180", 0);
+      if (dsr < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__ );
+    } else if ( orientation == Monitor::ROTATE_270 ) {
+      dsr = av_dict_set( &video_st->metadata, "rotate", "270", 0);
+      if (dsr < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__ );
+    } else {
+      Warning( "Unsupported Orientation(%d)", orientation );
+    }
+  }
+
 
   if (inpaud_st) {
     audio_st = avformat_new_stream(oc, inpaud_st->codec->codec);
@@ -102,7 +140,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
       Error("Unable to create audio out stream\n");
       audio_st = NULL;
     } else {
-      ret=avcodec_copy_context(audio_st->codec, inpaud_st->codec);
+      ret = avcodec_copy_context(audio_st->codec, inpaud_st->codec);
       if (ret < 0) {
         Fatal("Unable to copy audio context %s\n", av_make_error_string(ret).c_str());
       }   

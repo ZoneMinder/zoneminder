@@ -47,7 +47,11 @@ Camera::Camera( int p_id, SourceType p_type, int p_width, int p_height, int p_co
   }
 }
 
-Camera::~Camera()
-{
+Camera::~Camera() {
 }
 
+Monitor *Camera::getMonitor() {
+  if ( ! monitor )
+    monitor = Monitor::Load( id, false, Monitor::QUERY );
+  return monitor;
+} 

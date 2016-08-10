@@ -291,36 +291,6 @@ void StreamBase::openComms()
   if ( connkey > 0 )
   {
 
-    snprintf( sock_path_lock, sizeof(sock_path_lock), "%s/zms-%06d.lock", config.path_socks, connkey);
-
-    lock_fd = open(sock_path_lock, O_CREAT|O_WRONLY, S_IRUSR | S_IWUSR);
-    if ( lock_fd <= 0 )
-    {
-      Error("Unable to open sock lock file %s: %s", sock_path_lock, strerror(errno) );
-      lock_fd = 0;
-    }
-    else if ( flock(lock_fd, LOCK_EX) != 0 )
-    {
-      Error("Unable to lock sock lock file %s: %s", sock_path_lock, strerror(errno) );
-
-      close(lock_fd);
-      lock_fd = 0;
-    }
-    else
-    {
-      Debug( 1, "We have obtained a lock on %s fd: %d", sock_path_lock, lock_fd);
-    }
-
-
-    sd = socket( AF_UNIX, SOCK_DGRAM, 0 );
-    if ( sd < 0 )
-    {
-      Fatal( "Can't create socket: %s", strerror(errno) );
-    }
-
-    snprintf( loc_sock_path, sizeof(loc_sock_path), "%s/zms-%06ds.sock", config.path_socks, connkey );
-    unlink( loc_sock_path );
-
 		unsigned int length = snprintf( sock_path_lock, sizeof(sock_path_lock), "%s/zms-%06d.lock", config.path_socks, connkey);
     if ( length >= sizeof(sock_path_lock) ) {
       Warning("Socket lock path was truncated.");
@@ -362,7 +332,7 @@ void StreamBase::openComms()
 
     strncpy( loc_addr.sun_path, loc_sock_path, sizeof(loc_addr.sun_path) );
     loc_addr.sun_family = AF_UNIX;
-    if ( bind( sd, (struct sockaddr *)&loc_addr, strlen(loc_addr.sun_path)+sizeof(loc_addr.sun_family))+1 < 0 )
+    if ( bind( sd, (struct sockaddr *)&loc_addr, strlen(loc_addr.sun_path)+sizeof(loc_addr.sun_family)+1 ) < 0 )
     {
       Fatal( "Can't bind: %s", strerror(errno) );
     }

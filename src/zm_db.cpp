@@ -37,12 +37,10 @@ void zmDbConnect()
   my_bool reconnect = 1;
   if ( mysql_options( &dbconn, MYSQL_OPT_RECONNECT, &reconnect ) )
     Fatal( "Can't set database auto reconnect option: %s", mysql_error( &dbconn ) );
-  std::string::size_type colonIndex = staticConfig.DB_HOST.find( ":/" );
-  if ( colonIndex != std::string::npos )
+  std::string::size_type colonIndex = staticConfig.DB_HOST.find( ":" );
+  if ( colonIndex == std::string::npos )
   {
-    std::string dbHost = staticConfig.DB_HOST.substr( 0, colonIndex );
-    std::string dbPort = staticConfig.DB_HOST.substr( colonIndex+1 );
-    if ( !mysql_real_connect( &dbconn, dbHost.c_str(), staticConfig.DB_USER.c_str(), staticConfig.DB_PASS.c_str(), 0, atoi(dbPort.c_str()), 0, 0 ) )
+    if ( !mysql_real_connect( &dbconn, staticConfig.DB_HOST.c_str(), staticConfig.DB_USER.c_str(), staticConfig.DB_PASS.c_str(), NULL, 0, NULL, 0 ) )
     {
       Error( "Can't connect to server: %s", mysql_error( &dbconn ) );
       exit( mysql_errno( &dbconn ) );
@@ -50,10 +48,24 @@ void zmDbConnect()
   }
   else
   {
-    if ( !mysql_real_connect( &dbconn, staticConfig.DB_HOST.c_str(), staticConfig.DB_USER.c_str(), staticConfig.DB_PASS.c_str(), 0, 0, 0, 0 ) )
+    std::string dbHost = staticConfig.DB_HOST.substr( 0, colonIndex );
+    std::string dbPortOrSocket = staticConfig.DB_HOST.substr( colonIndex+1 );
+    if ( dbPortOrSocket[0] == '/' )
     {
-      Error( "Can't connect to server: %s", mysql_error( &dbconn ) );
-      exit( mysql_errno( &dbconn ) );
+      if ( !mysql_real_connect( &dbconn, NULL, staticConfig.DB_USER.c_str(), staticConfig.DB_PASS.c_str(), NULL, 0, dbPortOrSocket.c_str(), 0 ) )
+      {
+        Error( "Can't connect to server: %s", mysql_error( &dbconn ) );
+        exit( mysql_errno( &dbconn ) );
+      }
+
+    }
+    else
+    {
+      if ( !mysql_real_connect( &dbconn, dbHost.c_str(), staticConfig.DB_USER.c_str(), staticConfig.DB_PASS.c_str(), NULL, atoi(dbPortOrSocket.c_str()), NULL, 0 ) )
+      {
+        Error( "Can't connect to server: %s", mysql_error( &dbconn ) );
+        exit( mysql_errno( &dbconn ) );
+      }
     }
   }
   if ( mysql_select_db( &dbconn, staticConfig.DB_NAME.c_str() ) )

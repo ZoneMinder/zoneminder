@@ -412,15 +412,12 @@ if ( $version )
         {
             my ( $host, $port ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
             my $command = "mysqldump";
-			$command .= " -h".$host if defined($host);
+            $command .= " -h".$host if defined($host);
             $command .= " -P".$port if defined($port);
             if ( $dbUser )
             {
-                $command .= " -u".$dbUser;
-                if ( $dbPass )
-                {
-                    $command .= " -p".$dbPass;
-                }
+                $command .= ' -u'.$dbUser;
+                $command .= ' -p"'.$dbPass.'"' if $dbPass;
             }
             my $backup = "@ZM_TMPDIR@/".$Config{ZM_DB_NAME}."-".$version.".dump";
             $command .= " --add-drop-table --databases ".$Config{ZM_DB_NAME}." > ".$backup;
@@ -458,10 +455,7 @@ if ( $version )
         if ( $dbUser )
         {
             $command .= " -u".$dbUser;
-            if ( $dbPass )
-            {
-                $command .= " -p".$dbPass;
-            }
+            $command .= ' -p"'.$dbPass.'"' if $dbPass;
         }
         $command .= " ".$Config{ZM_DB_NAME}." < ";
         if ( $updateDir )

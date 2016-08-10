@@ -38,7 +38,7 @@ class Camera
 protected:
   typedef enum { LOCAL_SRC, REMOTE_SRC, FILE_SRC, FFMPEG_SRC, LIBVLC_SRC, CURL_SRC } SourceType;
 
-  int           id; // This is actually monitor id
+  unsigned int  monitor_id;
   Monitor *     monitor; // Null on instantiation, set as soon as possible.
   SourceType    type;
   unsigned int  width;
@@ -55,10 +55,10 @@ protected:
   bool    record_audio;
 
 public:
-  Camera( int p_id, SourceType p_type, int p_width, int p_height, int p_colours, int p_subpixelorder, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
+  Camera( unsigned int p_monitor_id, SourceType p_type, int p_width, int p_height, int p_colours, int p_subpixelorder, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
   virtual ~Camera();
 
-  int getId() const { return( id ); }
+  unsigned int getId() const { return( monitor_id ); }
   Monitor *getMonitor();
   SourceType Type() const { return( type ); }
   bool IsLocal() const { return( type == LOCAL_SRC ); }

@@ -414,7 +414,7 @@ sub generateVideo
             or Fatal( "Can't execute '$sql': ".$sth->errstr() );
         if ( wantarray() )
         {
-            return( $format, sprintf( "%s/%s", getEventPath( $event ), $output ) );
+            return( $format, $output );
         }
     }
     return( 1 );

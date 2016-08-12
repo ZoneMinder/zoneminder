@@ -41,6 +41,7 @@ if [ "$1" = "configure" ]; then
                 deb-systemd-invoke stop zoneminder.service || exit $?
                 zmupdate.pl --nointeractive
                 zmupdate.pl --nointeractive -f
+                echo "Done Updating, starting ZoneMinder"
                 deb-systemd-invoke start zoneminder.service || exit $?
 
             else

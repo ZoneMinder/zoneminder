@@ -67,7 +67,26 @@ define( "ZM_BASE_PROTOCOL", $protocol );
 // Use relative URL's instead
 define( "ZM_BASE_URL", "" );
 
-$system_timezone = preg_replace( "/\r|\n/", '', file_get_contents('/etc/timezone') );
+$system_timezone = '';
+if (file_exists('/etc/timezone')) {
+    // Ubuntu / Debian.
+    $system_timezone = preg_replace( "/\r|\n/", '', file_get_contents('/etc/timezone') );
+} elseif (file_exists('/etc/sysconfig/clock')) {
+    // RHEL / CentOS
+    $data = parse_ini_file('/etc/sysconfig/clock');
+    if (!empty($data['ZONE'])) {
+        $system_timezone = $data['ZONE'];
+    }
+} else if (is_link('/etc/localtime')) {
+    // Mac OS X (and older Linuxes)    
+    // /etc/localtime is a symlink to the 
+    // timezone in /usr/share/zoneinfo.
+    $filename = readlink('/etc/localtime');
+    if (strpos($filename, '/usr/share/zoneinfo/') === 0) {
+        $system_timezone = substr($filename, 20);
+    }
+}
+
 $php_timezone = ini_get('date.timezone');
 
 // Check time zone is set

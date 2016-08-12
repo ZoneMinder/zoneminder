@@ -82,7 +82,7 @@ xhtmlHeaders(__FILE__, translate('Frame')." - ".$event['Id']." - ".$Frame->Frame
 <?php if ( $imageData['hasAnalImage'] ) { ?>
 <a href="?view=frame&amp;eid=<?php echo $event['Id'] ?>&amp;fid=<?php echo $Frame->FrameId() ?>&amp;scale=<?php echo $scale ?>&amp;show=<?php echo $imageData['isAnalImage']?"capt":"anal" ?>">
 <?php } ?>
-<img src="<?php echo $Frame->getImageSrc($imageData['isAnalImage']?'capture':'analyse') ?>" width="<?php echo reScale( $event['Width'], $event['DefaultScale'], $scale ) ?>" height="<?php echo reScale( $event['Height'], $event['DefaultScale'], $scale ) ?>" alt="<?php echo $Frame->EventId()."-".$Frame->FrameId() ?>" class="<?php echo $imageData['imageClass'] ?>"/>
+<img src="<?php echo $Frame->getImageSrc($imageData['isAnalImage']?'analyse':'capture') ?>" width="<?php echo reScale( $event['Width'], $event['DefaultScale'], $scale ) ?>" height="<?php echo reScale( $event['Height'], $event['DefaultScale'], $scale ) ?>" alt="<?php echo $Frame->EventId()."-".$Frame->FrameId() ?>" class="<?php echo $imageData['imageClass'] ?>"/>
 <?php if ( $imageData['hasAnalImage'] ) { ?></a><?php } ?>
 
       <p id="controls">

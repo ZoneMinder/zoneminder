@@ -67,10 +67,15 @@ define( "ZM_BASE_PROTOCOL", $protocol );
 // Use relative URL's instead
 define( "ZM_BASE_URL", "" );
 
+$system_timezone = preg_replace( "/\r|\n/", '', file_get_contents('/etc/timezone') );
+$php_timezone = ini_get('date.timezone');
+
 // Check time zone is set
-if (!ini_get('date.timezone') || !date_default_timezone_set(ini_get('date.timezone'))) {
-    date_default_timezone_set('UTC');
-    Fatal( "ZoneMinder is not installed properly: php's date.timezone is not set to a valid timezone" );
+if (! $php_timezone || !date_default_timezone_set(ini_get('date.timezone'))) {
+  date_default_timezone_set('UTC');
+  Fatal( "ZoneMinder is not installed properly: php's date.timezone is not set to a valid timezone" );
+} else if ( $system_timezone != $php_timezone ) {
+  Warning( "System timezone is set to $system_timezone, but php's is set to $php_timezone. This can cause weird problems." );
 }
 
 if ( isset($_GET['skin']) )

@@ -32,6 +32,7 @@ extern "C" {
 #include <libavutil/avutil.h>
 #include <libavutil/base64.h>
 #include <libavutil/mathematics.h>
+#include <libavutil/avstring.h>
 
 /* LIBAVUTIL_VERSION_CHECK checks for the right version of libav and FFmpeg
  * The original source is vlc (in modules/codec/avcodec/avcommon_compat.h)
@@ -274,7 +275,15 @@ protected:
   #undef av_err2str
   #define av_err2str(errnum) av_make_error_string(errnum).c_str()
 
-  #endif // __cplusplus
+  /* The following is copied directly from newer ffmpeg */
+  #if LIBAVUTIL_VERSION_CHECK(52, 7, 0, 17, 100)
+  #else
+    int av_dict_parse_string(AVDictionary **pm, const char *str,
+                            const char *key_val_sep, const char *pairs_sep,
+                            int flags);
+  #endif
+
+#endif // __cplusplus
 
 
 #endif // ( HAVE_LIBAVUTIL_AVUTIL_H || HAVE_LIBAVCODEC_AVCODEC_H || HAVE_LIBAVFORMAT_AVFORMAT_H || HAVE_LIBAVDEVICE_AVDEVICE_H )

@@ -15,7 +15,7 @@ This is still a bit of a work in progress.
 2. Build ZoneMinder container
 ```sudo docker build -t yourname/zoneminder github.com/ZoneMinder/ZoneMinder```
 3. Run it
-```CID=$(sudo docker run -d -p 222:22 -p 8080:80 -name zoneminder yourname/zoneminder)```
+```CID=$(sudo docker run -d -p 222:22 -p 8080:80 --name zoneminder yourname/zoneminder)```
 4. Use it -- you can now SSH to port 222 on your host as user root with password root.
 You can also browse to your host on port 8080 to access the zoneminder web interface
 

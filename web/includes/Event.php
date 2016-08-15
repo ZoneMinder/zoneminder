@@ -28,7 +28,7 @@ class Event {
     }
   } // end function __construct
   public function Storage() {
-    return new Storage( $this->{'StorageId'} );
+    return new Storage( isset($this->{'StorageId'}) ? $this->{'StorageId'} : NULL );
   }
   public function __call( $fn, array $args){
     if(isset($this->{$fn})){

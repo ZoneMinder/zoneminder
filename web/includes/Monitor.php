@@ -105,7 +105,7 @@ private $control_fields = array(
   'NumScanPaths' => '0',
 );
 
-  public function __construct( $IdOrRow ) {
+  public function __construct( $IdOrRow = NULL ) {
     if ( $IdOrRow ) {
       $row = NULL;
       if ( is_integer( $IdOrRow ) or is_numeric( $IdOrRow ) ) {

@@ -69,12 +69,7 @@ use IO::Handle;
 use autouse 'Pod::Usage'=>qw(pod2usage);
 #use Data::Dumper;
 
-if ( ! $Config{ZM_SERVER_HOST} ) {
-        use constant SOCK_FILE => $Config{ZM_PATH_SOCKS}.'/zmdc.sock';
-}
-else {
-        use constant SOCK_FILE => $Config{ZM_PATH_SOCKS}.'/zmdc'.$Config{ZM_SERVER_ID}.'.sock';
-}
+use constant SOCK_FILE => $Config{ZM_PATH_SOCKS}.'/zmdc'.($Config{ZM_SERVER_ID}?$Config{ZM_SERVER_ID}:'').'.sock';
 
 $| = 1;
 

@@ -42,6 +42,24 @@ Logger *Logger::smInstance = 0;
 Logger::StringMap Logger::smCodes;
 Logger::IntMap Logger::smSyslogPriorities;
 
+#ifdef __APPLE__
+// can't find basename on OSX though it seems to exist in libgen
+// credit: http://www.math.unl.edu/~rdieter1/OpenStep/Developer/PortingTips/nscompatlib/basename.c
+char * basename (const char *name)
+{
+  const char *base = name;
+
+  while (*name)
+    {
+      if (*name++ == '/')
+        {
+          base = name;
+        }
+    }
+  return (char *) base;
+}
+#endif
+
 #if 0
 static void subtractTime( struct timeval * const tp1, struct timeval * const tp2 )
 {

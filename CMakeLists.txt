@@ -232,7 +232,7 @@ check_type_size("ucontext_t" HAVE_UCONTEXT_T)
 
 # *** LIBRARY CHECKS ***
 
-if (UNIX)
+if (UNIX AND NOT APPLE)
     include (CheckLibraryExists)
     CHECK_LIBRARY_EXISTS(rt clock_gettime "time.h" HAVE_CLOCK_GETTIME)
     if(NOT HAVE_CLOCK_GETTIME)
@@ -240,7 +240,7 @@ if (UNIX)
     else(NOT HAVE_CLOCK_GETTIME)
         list(APPEND ZM_BIN_LIBS "-lrt")
     endif(NOT HAVE_CLOCK_GETTIME)
-endif(UNIX)
+endif(UNIX AND NOT APPLE)
 
 # zlib
 find_package(ZLIB)
@@ -381,14 +381,16 @@ else(GNUTLS_LIBRARIES)
 endif(GNUTLS_LIBRARIES)
 
 # mysqlclient (using find_library and find_path)
-find_library(MYSQLCLIENT_LIBRARIES mysqlclient PATH_SUFFIXES mysql)
+find_library(MYSQLCLIENT_LIBRARIES NAMES mysqlclient mysqlclient_r PATHS /opt/local/lib PATH_SUFFIXES mysql mysql56/mysql )
+	message (STATUS "SQL lib Found: " ${MYSQLCLIENT_LIBRARIES})
 if(MYSQLCLIENT_LIBRARIES)
 	set(HAVE_LIBMYSQLCLIENT 1)
 	list(APPEND ZM_BIN_LIBS "${MYSQLCLIENT_LIBRARIES}")
-	find_path(MYSQLCLIENT_INCLUDE_DIR mysql/mysql.h)
+	find_path(MYSQLCLIENT_INCLUDE_DIR NAMES "mysql/mysql.h" PATHS  "/opt/local/include/mysql56")
 	if(MYSQLCLIENT_INCLUDE_DIR)
 		include_directories("${MYSQLCLIENT_INCLUDE_DIR}")
 		set(CMAKE_REQUIRED_INCLUDES "${MYSQLCLIENT_INCLUDE_DIR}")
+		message (STATUS "SQL header found: " ${MYSQLCLIENT_INCLUDE_DIR})
 	endif(MYSQLCLIENT_INCLUDE_DIR)
 	mark_as_advanced(FORCE MYSQLCLIENT_LIBRARIES MYSQLCLIENT_INCLUDE_DIR)
 	check_include_file("mysql/mysql.h" HAVE_MYSQL_H)
@@ -659,11 +661,13 @@ message(STATUS "Using web user: ${ZM_WEB_USER}")
 message(STATUS "Using web group: ${ZM_WEB_GROUP}")
 
 # Check for polkit
-find_package(Polkit)
-if(NOT POLKIT_FOUND)
-	message(FATAL_ERROR 
-            "Running ZoneMinder requires polkit. Building ZoneMinder requires the polkit development package.")
-endif(NOT POLKIT_FOUND)
+#if (NOT APPLE)
+	find_package(Polkit)
+	if(NOT POLKIT_FOUND)
+		message(FATAL_ERROR 
+		    "Running ZoneMinder requires polkit. Building ZoneMinder requires the polkit development package.")
+	endif(NOT POLKIT_FOUND)
+#endif (NOT APPLE)
 
 # Some variables that zm expects
 set(ZM_PID "${ZM_RUNDIR}/zm.pid")

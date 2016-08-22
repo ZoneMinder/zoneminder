@@ -143,14 +143,14 @@ socket( CLIENT, PF_UNIX, SOCK_STREAM, 0 ) or Fatal( "Can't open socket: $!" );
 my $saddr = sockaddr_un( SOCK_FILE );
 my $server_up = connect( CLIENT, $saddr );
 if ( !$server_up ) {
-    if ( $command eq "logrot" ) {
+    if ( $command eq 'logrot' ) {
         exit();
     }
-    if ( $command eq "check" ) {
+    if ( $command eq 'check' ) {
         print( "stopped\n" );
         exit();
-    } elsif ( $command ne "startup" ) {
-        print( "Unable to connect to server\n" );
+    } elsif ( $command ne 'startup' ) {
+        print( "Unable to connect to server using socket at " . SOCK_FILE . "\n" );
         exit( -1 );
     }
     # The server isn't there
@@ -174,10 +174,10 @@ if ( !$server_up ) {
         Fatal( "Can't fork: $!" );
     }
 }
-if ( $command eq "check" && !$daemon ) {
+if ( $command eq 'check' && !$daemon ) {
     print( "running\n" );
     exit();
-} elsif ( $command eq "startup" ) {
+} elsif ( $command eq 'startup' ) {
     # Our work here is done
     exit() if ( !$server_up );
 }
@@ -224,7 +224,7 @@ sub run {
 
     logInit();
 
-    dPrint( ZoneMinder::Logger::INFO, "Server starting at "
+    dPrint( ZoneMinder::Logger::INFO, 'Server starting at '
         .strftime( '%y/%m/%d %H:%M:%S', localtime() )
         ."\n"
     );
@@ -239,7 +239,7 @@ sub run {
     killAll( 1 );
 
     socket( SERVER, PF_UNIX, SOCK_STREAM, 0 ) or Fatal( "Can't open socket: $!" );
-    unlink( main::SOCK_FILE ) or Error( "Unable to unlink " . main::SOCK_FILE .". Error message was: $!" ) if ( -e main::SOCK_FILE );
+    unlink( main::SOCK_FILE ) or Error( 'Unable to unlink ' . main::SOCK_FILE .". Error message was: $!" ) if ( -e main::SOCK_FILE );
     bind( SERVER, $saddr ) or Fatal( "Can't bind to " . main::SOCK_FILE . ": $!" );
     listen( SERVER, SOMAXCONN ) or Fatal( "Can't listen: $!" );
 
@@ -293,7 +293,7 @@ sub run {
                 }
                 close( CLIENT );
             } else {
-                Fatal( "Bogus descriptor" );
+                Fatal( 'Bogus descriptor' );
             }
         } elsif ( $nfound < 0 ) {
             if ( $! == EINTR ) {
@@ -311,12 +311,12 @@ sub run {
             restartPending();
         }
     }
-    dPrint( ZoneMinder::Logger::INFO, "Server exiting at "
+    dPrint( ZoneMinder::Logger::INFO, 'Server exiting at '
         .strftime( '%y/%m/%d %H:%M:%S', localtime() )
         ."\n"
     );
-    unlink( main::SOCK_FILE ) or Error( "Unable to unlink " . main::SOCK_FILE .". Error message was: $!" ) if ( -e main::SOCK_FILE );
-    unlink( ZM_PID ) or Error( "Unable to unlink " . ZM_PID .". Error message was: $!" ) if ( -e ZM_PID );
+    unlink( main::SOCK_FILE ) or Error( 'Unable to unlink ' . main::SOCK_FILE .". Error message was: $!" ) if ( -e main::SOCK_FILE );
+    unlink( ZM_PID ) or Error( 'Unable to unlink ' . ZM_PID .". Error message was: $!" ) if ( -e ZM_PID );
     exit();
 }
 

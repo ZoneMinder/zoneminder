@@ -162,7 +162,11 @@ private $control_fields = array(
       if ( isset( $this->control_fields{$fn} ) ) {
         return $this->control_fields{$fn};
       } else {
-        Warning( "Unknown function call Monitor->$fn" );
+
+        $backTrace = debug_backtrace();
+        $file = $backTrace[1]['file'];
+        $line = $backTrace[1]['line'];
+        Warning( "Unknown function call Monitor->$fn from $file:$line" );
       }
     }
   }

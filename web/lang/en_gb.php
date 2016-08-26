@@ -233,6 +233,7 @@ $SLANG = array(
     'CloneMonitor'          => 'Clone Monitor',
     'Close'                 => 'Close',
     'Colour'                => 'Colour',
+	'ConcurrentFilter'      => 'Run filter concurrently',
     'Command'               => 'Command',
     'Config'                => 'Config',
     'ConfiguredFor'         => 'Configured for',

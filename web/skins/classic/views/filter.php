@@ -30,6 +30,8 @@ foreach ( dbFetchAll( "select * from Filters order by Name" ) as $row )
     $filterNames[$row['Name']] = $row['Name'];
     if ( $row['Background'] )
         $filterNames[$row['Name']] .= "*";
+    if ( $row['Concurrent'] )
+        $filterNames[$row['Name']] .= "&";
     if ( !empty($_REQUEST['reload']) && isset($_REQUEST['filterName']) && $_REQUEST['filterName'] == $row['Name'] )
         $dbFilter = $row;
 }

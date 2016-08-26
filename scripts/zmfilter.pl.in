@@ -39,7 +39,7 @@ matching events.
 
 
 -f{filter name}, --filter={filter name}  - The name of a specific filter to run
---filter_id={filter id}                  - The id of a specific filter to run
+-i{filter id}, --id={filter id}          - The id of a specific filter to run
 -v, --version                            - Print ZoneMinder version
 
 =cut

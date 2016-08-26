@@ -1,7 +1,7 @@
 # ==========================================================================
 #
 # Perl WS-Discovery implementation
-# Copyright (C) Jan M. Hochstein
+# Copyright (C) 2014  Jan M. Hochstein
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -61,16 +61,19 @@ sub _notify_response
 }
 
 sub send_multi() {
-  my ($self, $address, $port, $data) = @_;
+  my ($self, $address, $port, $utf8_string) = @_;
 
   my $destination = $address . ':' . $port;
   my $socket = IO::Socket::Multicast->new(PROTO => 'udp', 
       LocalPort=>$port, PeerAddr=>$destination, ReuseAddr=>1)
       
       or die 'Cannot open multicast socket to ' . ${address} . ':' . ${port};
+
+  my $bytes = $utf8_string;
+  utf8::encode($bytes);
       
   $socket->mcast_ttl(1);
-  $socket->send($data);
+  $socket->send($bytes);
 }
 
 sub receive_multi() {
@@ -142,17 +145,18 @@ sub send_receive {
     }
     
     if($last_response) {
-      $self->code();
-      $self->message();
-      $self->is_success(1);
-      $self->status('OK');
+      $self->set_code();
+      $self->set_message("");
+      $self->set_is_success(1);
+      $self->set_status('OK');
     }
     else{
-      $self->code();
-      $self->message();
-      $self->is_success(0);
-      $self->status('TIMEOUT');
+      $self->set_code();
+      $self->set_message("Timed out waiting for response");
+      $self->set_is_success(0);
+      $self->set_status('TIMEOUT');
     }
+
     return $last_response;
 }
 

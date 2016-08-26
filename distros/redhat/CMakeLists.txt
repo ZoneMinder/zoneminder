@@ -15,27 +15,17 @@ else(ZM_TARGET_DISTRO STREQUAL "el7")
 	configure_file(zoneminder.el6.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.el6.conf @ONLY)
 endif(ZM_TARGET_DISTRO STREQUAL "el7")
 
-# Download jscalendar & move files into position
-file(DOWNLOAD http://skylineservers.dl.sourceforge.net/project/jscalendar/jscalendar/1.0/jscalendar-1.0.zip ${CMAKE_CURRENT_SOURCE_DIR}/jscalendar-1.0.zip LOG jsc_log STATUS download_jsc)
-#message(STATUS "Log of jscalender script was: ${jsc_log}")
-if(download_jsc EQUAL 0)
-	message(STATUS "Jscalander successfully downloaded.  Installing...")
-	execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/jscalendar.sh WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} ERROR_VARIABLE unzip_jsc)
-	message(STATUS "Status of jscalender script was: ${unzip_jsc}")
-else(download_jsc EQUAL 0)
-	message(STATUS "Unable to download optional jscalander. Skipping...")
-endif(download_jsc EQUAL 0)
-
-# Cambozola is now packaged in zmrepo
-# Download cambozola & move files into position
-#file(DOWNLOAD http://www.andywilcock.com/code/cambozola/cambozola-0.931.tar.gz ${CMAKE_CURRENT_SOURCE_DIR}/cambozola-0.931.tar.gz STATUS download_camb)
-#if(download_camb EQUAL 0)
-#	message(STATUS "Cambozola successfully downloaded.  Installing...")
-#	execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/cambozola.sh WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} ERROR_VARIABLE untar_camb)
-#	message(STATUS "Status of cambozola script was: ${untar_camb}")
-#else(download_camb EQUAL 0)
-#	message(STATUS "Unable to download optional Cambozola. Skipping...")
-#endif(download_camb EQUAL 0)
+# Unpack jscalendar & move files into position
+message(STATUS "Unpacking and Installing jscalendar...")
+execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/jscalendar.sh 
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} 
+                ERROR_VARIABLE unzip_jsc
+               )
+if("${unzip_jsc}" STREQUAL "")
+    message(STATUS "jscalendar successfully installed.")
+else("${unzip_jsc}" STREQUAL "")
+    message(FATAL_ERROR "\nAn error occured while jscalendar was being processed:\n${unzip_jsc}")
+endif("${unzip_jsc}" STREQUAL "")
 
 # Create several empty folders
 file(MAKE_DIRECTORY sock swap zoneminder zoneminder-upload events images temp)
@@ -59,6 +49,8 @@ install(CODE "execute_process(COMMAND ln -sf ../../java/cambozola.jar \"\$ENV{DE
 
 # Install auxiliary files required to run zoneminder on CentOS
 install(FILES redalert.wav DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/www/sounds PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+install(DIRECTORY jscalendar-1.0/ DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/www/tools/jscalendar)
+
 if(ZM_TARGET_DISTRO STREQUAL "el7")
 	install(FILES zoneminder.el7.conf DESTINATION /etc/httpd/conf.d RENAME zoneminder.conf PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
 	install(FILES zoneminder.el7.logrotate DESTINATION /etc/logrotate.d RENAME zoneminder PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
@@ -70,12 +62,3 @@ else(ZM_TARGET_DISTRO STREQUAL "el7")
 	install(FILES zoneminder.sysvinit DESTINATION /etc/rc.d/init.d RENAME zoneminder PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
 endif(ZM_TARGET_DISTRO STREQUAL "el7")
 
-# Install jscalendar
-if(unzip_jsc STREQUAL "")
-	install(DIRECTORY jscalendar-1.0/ DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/www/tools/jscalendar)
-endif(unzip_jsc STREQUAL "")
-
-# Install cambozola
-if(untar_camb STREQUAL "")
-	install(FILES cambozola-0.931/dist/cambozola.jar DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/www)
-endif(untar_camb STREQUAL "")

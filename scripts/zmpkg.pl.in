@@ -52,7 +52,7 @@ use Time::HiRes qw/gettimeofday/;
 use autouse 'Pod::Usage'=>qw(pod2usage);
 
 # Detaint our environment
-$ENV{PATH}  = '/bin:/usr/bin';
+$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 my $store_state=""; # PP - will remember state name passed
@@ -226,7 +226,12 @@ if ( $command =~ /^(?:start|restart)$/ )
         zmMemTidy();
         runCommand( "zmdc.pl startup" );
 
-		Info( "Starting up services" . ( $Config{ZM_SERVER_ID} ? " for server $Config{ZM_SERVER_ID}\n" : "\n" ) );
+        if ( $Config{ZM_SERVER_ID} ) {
+            Info( "Multi-server configuration detected. Starting up services for server $Config{ZM_SERVER_ID}\n");
+        } else {
+            Info( "Single server configuration detected. Starting up services." );
+        }
+
         my $sql = $Config{ZM_SERVER_ID} ? 'SELECT * FROM Monitors WHERE ServerId=?' : 'SELECT * FROM Monitors';
         my $sth = $dbh->prepare_cached( $sql )
             or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
@@ -284,6 +289,10 @@ if ( $command =~ /^(?:start|restart)$/ )
         if ( $Config{ZM_CHECK_FOR_UPDATES} )
         {
             runCommand( "zmdc.pl start zmupdate.pl -c" );
+        }
+        if ( $Config{ZM_TELEMETRY_DATA} )
+        {
+            runCommand( "zmdc.pl start zmtelemetry.pl" );
         }
     }
     else

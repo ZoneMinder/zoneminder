@@ -804,7 +804,7 @@ sub sendEmail
                     
                     $ssmtp_location = qx('which ssmtp');
                     if ( !$ssmtp_location ) {
-                        Error( "Can't find ssmtp, trying MIME::Lite->send" );
+                        Debug( "Can't find ssmtp, trying MIME::Lite->send" );
                         MIME::Lite->send( "smtp", $Config{ZM_EMAIL_HOST}, Timeout=>60 );
                         $mail->send();
                     } else {
@@ -918,7 +918,7 @@ sub sendMessage
                     
                     $ssmtp_location = qx('which ssmtp');
                     if ( !$ssmtp_location ) {
-                        Error( "Can't find ssmtp, trying MIME::Lite->send" );
+                        Debug( "Can't find ssmtp, trying MIME::Lite->send" );
                         MIME::Lite->send( "smtp", $Config{ZM_EMAIL_HOST}, Timeout=>60 );
                         $mail->send();
                     } else {

@@ -914,8 +914,29 @@ sub sendMessage
                 );
             }
             ### Send the Message
-            MIME::Lite->send( "smtp", $Config{ZM_EMAIL_HOST}, Timeout=>60 );
-            $mail->send();
+			if ( $Config{ZM_SSMTP_MAIL} ){
+
+                my $ssmtp_location = $Config{ZM_SSMTP_PATH};
+
+                if( ! $ssmtp_location ){
+
+                	$ssmtp_location = qx('which ssmtp');
+					
+					if ( logDebugging() )
+   					{			
+				        Debug( "which ssmtp: $ssmtp_location - set ssmtp path in options to suppress this message\n" );
+				    }
+
+                }
+
+                $mail->send( 'sendmail', $ssmtp_location, $Config{ZM_MESSAGE_ADDRESS} );
+
+			}else{
+
+                MIME::Lite->send( "smtp", $Config{ZM_EMAIL_HOST}, Timeout=>60 );
+                $mail->send();
+			}
+
         }
         else
         {

@@ -799,8 +799,9 @@ sub sendEmail
             if ( $Config{ZM_SSMTP_MAIL} ) {
                 my $ssmtp_location = $Config{ZM_SSMTP_PATH};
                 if( !$ssmtp_location ) {
-                    if ( logDebugging() )
+                    if ( logDebugging() ) {
                         Debug( "which ssmtp: $ssmtp_location - set ssmtp path in options to suppress this message\n" );
+                    }
                     
                     $ssmtp_location = qx('which ssmtp');
                     if ( !$ssmtp_location ) {
@@ -913,8 +914,9 @@ sub sendMessage
             if ( $Config{ZM_SSMTP_MAIL} ) {
                 my $ssmtp_location = $Config{ZM_SSMTP_PATH};
                 if( !$ssmtp_location ) {
-                    if ( logDebugging() )
+                    if ( logDebugging() ) {
                         Debug( "which ssmtp: $ssmtp_location - set ssmtp path in options to suppress this message\n" );
+                    }
                     
                     $ssmtp_location = qx('which ssmtp');
                     if ( !$ssmtp_location ) {

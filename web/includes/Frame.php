@@ -34,7 +34,7 @@ class Frame {
     return new Event( $this->{'EventId'} );
   }
   public function __call( $fn, array $args){
-    if(isset($this->{$fn})){
+    if( array_key_exists( $fn, $this ) ) {
       return $this->{$fn};
 #array_unshift($args, $this);
 #call_user_func_array( $this->{$fn}, $args);

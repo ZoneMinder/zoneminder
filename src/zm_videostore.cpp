@@ -91,13 +91,17 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
         av_make_error_string(ret).c_str());
   }
 
-  if ( video_st->sample_aspect_ratio.den != video_st->codec->sample_aspect_ratio.den ) {
-	  Warning("Fixingample_aspect_ratio.den");
-	  video_st->sample_aspect_ratio.den = video_st->codec->sample_aspect_ratio.den;
+  if ( input_st->codec->sample_aspect_ratio.den && ( video_st->sample_aspect_ratio.den != input_st->codec->sample_aspect_ratio.den ) ) {
+	  Warning("Fixing sample_aspect_ratio.den from (%d) to (%d)", video_st->sample_aspect_ratio.den, input_st->codec->sample_aspect_ratio.den );
+	  video_st->sample_aspect_ratio.den = input_st->codec->sample_aspect_ratio.den;
+  } else {
+    Debug(3, "aspect ratio denominator is (%d)", video_st->sample_aspect_ratio.den  );
   }
-  if ( video_st->sample_aspect_ratio.num != input_st->codec->sample_aspect_ratio.num ) {
-	  Warning("Fixingample_aspect_ratio.num");
+  if ( input_st->codec->sample_aspect_ratio.num && ( video_st->sample_aspect_ratio.num != input_st->codec->sample_aspect_ratio.num ) ) {
+	  Warning("Fixing sample_aspect_ratio.num from video_st(%d) to input_st(%d)", video_st->sample_aspect_ratio.num, input_st->codec->sample_aspect_ratio.num );
 	  video_st->sample_aspect_ratio.num = input_st->codec->sample_aspect_ratio.num;
+  } else {
+    Debug(3, "aspect ratio numerator is (%d)", video_st->sample_aspect_ratio.num  );
   }
   if ( video_st->codec->codec_id != input_st->codec->codec_id ) {
 	  Warning("Fixing video_st->codec->codec_id");

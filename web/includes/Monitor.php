@@ -154,12 +154,12 @@ private $control_fields = array(
 	if ( count( $args )  ) {
 		$this->{$fn} = $args[0];
 	}
-    if ( isset( $this->{$fn} ) ) {
+    if ( array_key_exists( $fn, $this )  {
       return $this->{$fn};
         #array_unshift($args, $this);
         #call_user_func_array( $this->{$fn}, $args);
 		} else {
-      if ( isset( $this->control_fields{$fn} ) ) {
+      if ( array_key_exists( $fn, $this->control_fields ) ) {
         return $this->control_fields{$fn};
       } else {
 
@@ -171,7 +171,7 @@ private $control_fields = array(
     }
   }
   public function getStreamSrc( $args, $querySep='&amp;' ) {
-    if ( isset($this->{'ServerId'}) and $this->{'ServerId'} ) {
+    if ( isset($this->{'ServerId'}) ) {
       $Server = new Server( $this->{'ServerId'} );
       $streamSrc = ZM_BASE_PROTOCOL.'://'.$Server->Hostname().ZM_PATH_ZMS;
     } else {

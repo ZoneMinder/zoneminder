@@ -31,7 +31,7 @@ class Event {
     return new Storage( isset($this->{'StorageId'}) ? $this->{'StorageId'} : NULL );
   }
   public function __call( $fn, array $args){
-    if( array_key_exists( $fn, $this ) ) {
+    if ( array_key_exists( $fn, $this ) ) {
       return $this->{$fn};
 #array_unshift($args, $this);
 #call_user_func_array( $this->{$fn}, $args);
@@ -119,7 +119,7 @@ class Event {
   } # end Event->delete
 
 public function getStreamSrc( $args, $querySep='&amp;' ) {
-    return ZM_BASE_PATH.'/index.php?view=view_video&eid='.$this->{'Id'};
+    return ( ZM_BASE_PATH != '' ? ZM_BASE_PATH : '' ).'/index.php?view=view_video&eid='.$this->{'Id'};
 
     $streamSrc = ZM_BASE_URL.ZM_PATH_ZMS;
 

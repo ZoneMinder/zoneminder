@@ -18,7 +18,10 @@
 // 
 
 #include "zm.h"
+
 #include "zm_curl_camera.h"
+
+#include "zm_packetqueue.h"
 
 #if HAVE_LIBCURL
 

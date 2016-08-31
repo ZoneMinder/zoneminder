@@ -23,6 +23,7 @@
 #include "zm_camera.h"
 #include "zm_buffer.h"
 #include "zm_regexp.h"
+#include "zm_packetqueue.h"
 
 #include <sys/param.h>
 

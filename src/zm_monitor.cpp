@@ -1996,7 +1996,7 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
       track_motion,
       signal_check_colour,
       embed_exif,
-      purpose,
+                              purpose,
       0,
       0
     );
@@ -2181,7 +2181,7 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
       track_motion,
       RGB_WHITE,
       embed_exif,
-      purpose,
+                              purpose,
       0,
       0
     );
@@ -2830,8 +2830,10 @@ int Monitor::Capture()
     /* Capture a new next image */
     
     //Check if FFMPEG camera
-    if((GetOptVideoWriter() == 2) && camera->SupportsNativeVideo()){
-      captureResult = camera->CaptureAndRecord(*(next_buffer.image), video_store_data->recording, video_store_data->event_file);
+    if((GetOptVideoWriter() == 2) && camera->SupportsNativeVideo()) {
+      captureResult = camera->CaptureAndRecord(*(next_buffer.image),
+                                               video_store_data->recording,
+                                               video_store_data->event_file);
     }else{
       captureResult = camera->Capture(*(next_buffer.image));
     }
@@ -4152,6 +4154,7 @@ void Monitor::SingleImageZip( int scale)
   fprintf( stdout, "Content-Type: image/x-rgbz\r\n\r\n" );
   fwrite( img_buffer, img_buffer_size, 1, stdout );
 }
+
 unsigned int Monitor::Colours() const { return( camera->Colours() ); }
 unsigned int Monitor::SubpixelOrder() const { return( camera->SubpixelOrder() ); }
 int Monitor::PrimeCapture() {

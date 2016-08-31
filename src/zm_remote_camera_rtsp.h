@@ -27,6 +27,7 @@
 #include "zm_rtsp.h"
 #include "zm_ffmpeg.h"
 #include "zm_videostore.h"
+#include "zm_packetqueue.h"
 
 //
 // Class representing 'rtsp' cameras, i.e. those which are

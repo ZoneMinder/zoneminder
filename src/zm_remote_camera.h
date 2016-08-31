@@ -22,6 +22,7 @@
 
 #include "zm_camera.h"
 #include "zm_rtsp_auth.h"
+#include "zm_packetqueue.h"
 
 #include <string>
 #include <sys/types.h>

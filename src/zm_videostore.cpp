@@ -114,6 +114,25 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 	  video_st->codec->time_base.den = video_st->time_base.den;
   }
 
+  if ( video_st->sample_aspect_ratio.den != video_st->codec->sample_aspect_ratio.den ) {
+         Warning("Fixingample_aspect_ratio.den");
+         video_st->sample_aspect_ratio.den = video_st->codec->sample_aspect_ratio.den;
+  }
+  if ( video_st->sample_aspect_ratio.num != input_st->codec->sample_aspect_ratio.num ) {
+         Warning("Fixingample_aspect_ratio.num");
+         video_st->sample_aspect_ratio.num = input_st->codec->sample_aspect_ratio.num;
+  }
+  if ( video_st->codec->codec_id != input_st->codec->codec_id ) {
+         Warning("Fixing video_st->codec->codec_id");
+         video_st->codec->codec_id = input_st->codec->codec_id;
+  }
+  if ( ! video_st->codec->time_base.num ) {
+         Warning("video_st->codec->time_base.num is not set%d/%d. Fixing by setting it to 1", video_st->codec->time_base.num, video_st->codec->time_base.den); 
+         Warning("video_st->codec->time_base.num is not set%d/%d. Fixing by setting it to 1", video_st->time_base.num, video_st->time_base.den);       
+         video_st->codec->time_base.num = video_st->time_base.num;
+         video_st->codec->time_base.den = video_st->time_base.den;
+  }
+
   video_st->codec->codec_tag = 0;
   if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
     video_st->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;

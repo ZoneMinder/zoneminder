@@ -203,10 +203,10 @@ int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint
   //    Error("Invalid input or output pixel formats");
   //    return -2;
   //  }
-  //  if(!width || !height) {
-  //    Error("Invalid width or height");
-  //    return -3;
-  //  }
+  if (!width || !height) {
+    Error("Invalid width or height");
+    return -3;
+  }
 
 #if LIBSWSCALE_VERSION_CHECK(0, 8, 0, 8, 0)
   /* Warn if the input or output pixelformat is not supported */
@@ -240,7 +240,7 @@ int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint
   }
 
   /* Get the context */
-  swscale_ctx = sws_getCachedContext( swscale_ctx, width, height, in_pf, width, height, out_pf, SWS_FAST_BILINEAR, NULL, NULL, NULL );
+  swscale_ctx = sws_getCachedContext(swscale_ctx, width, height, in_pf, width, height, out_pf, 0, NULL, NULL, NULL);
   if(swscale_ctx == NULL) {
     Error("Failed getting swscale context");
     return -6;

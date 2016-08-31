@@ -23,6 +23,7 @@
 #include "zm.h"
 #include "zm_camera.h"
 #include "zm_image.h"
+#include "zm_packetqueue.h"
 
 #if ZM_HAS_V4L
 

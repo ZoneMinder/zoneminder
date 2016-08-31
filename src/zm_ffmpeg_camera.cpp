@@ -532,6 +532,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
   }
 
   AVPacket packet;
+  AVPacket queuedpacket;
   uint8_t* directbuffer;
 
   /* Request a writeable buffer of the target image */
@@ -580,17 +581,17 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
 
         avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height);
 
-        //Keep the last keyframe so we can establish immediate video
-        if(packet.flags & AV_PKT_FLAG_KEY) {
-          //Debug(4, "Have keyframe");   
-          //av_copy_packet(&lastKeyframePkt, &packet);
-          //TODO I think we need to store the key frame location for seeking as part of the event
-        }
+          //Buffer video packets
+          if (!recording) { 
+            if(packet.flags & AV_PKT_FLAG_KEY) {
+            //              packetqueue->clearQueues();
+            }
+          //            packetqueue->queueVideoPacket(&packet);
+          }
 
-        //Video recording
-        if ( recording && !wasRecording ) {
-          //Instantiate the video storage module
-          Debug(3, "recording and ! wasRecording %s", event_file);
+          //Video recording
+          if ( recording && !wasRecording ) {
+            //Instantiate the video storage module
 
           if (record_audio) {
             if (mAudioStreamId == -1) {
@@ -600,6 +601,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
                                           NULL,
                                           startTime,
                                           this->getMonitor()->getOrientation());
+
             } else {
               Debug(3, "Video module initiated with audio stream");
               videoStore = new VideoStore((const char *) event_file, "mp4",

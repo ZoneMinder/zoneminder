@@ -64,6 +64,7 @@ class FfmpegCamera : public Camera
     bool                wasRecording;
     VideoStore          *videoStore;
     char                oldDirectory[4096];
+    zm_packetqueue    packetqueue;
 
     // Last Key frame
     AVPacket            lastKeyframePkt;

@@ -25,6 +25,7 @@
 #include "zm_buffer.h"
 #include "zm_regexp.h"
 #include "zm_utils.h"
+#include "zm_packetqueue.h"
 
 //
 // Class representing 'http' cameras, i.e. those which are

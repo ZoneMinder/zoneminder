@@ -370,6 +370,7 @@ public:
     Rgb p_signal_check_colour,
     bool p_embed_exif,
     Purpose p_purpose,
+    zm_packetqueue packetqueue,
     int p_n_zones=0,
     Zone *p_zones[]=0
   );

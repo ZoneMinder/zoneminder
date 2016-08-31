@@ -314,7 +314,7 @@ int cURLCamera::PostCapture()
   return( 0 );
 }
 
-int cURLCamera::CaptureAndRecord(Image &image, bool recording, char* event_directory, zm_packetqueue* packetqueue)
+int cURLCamera::CaptureAndRecord(Image &image, bool recording, char* event_directory)
 {
 	Error("Capture and Record not implemented for the cURL camera type");
     // Nothing to do here

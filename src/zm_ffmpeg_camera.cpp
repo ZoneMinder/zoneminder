@@ -509,7 +509,8 @@ void *FfmpegCamera::ReopenFfmpegThreadCallback(void *ctx){
 }
 
 //Function to handle capture and store
-int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_file, zm_packetqueue* packetqueue ){
+
+int FfmpegCamera::CaptureAndRecord(Image &image, bool recording, char* event_file) {
   if (!mCanCapture){
     return -1;
   }
@@ -581,9 +582,9 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
           //Buffer video packets
           if (!recording) { 
             if(packet.flags & AV_PKT_FLAG_KEY) {
-              packetqueue->clearQueues();
+            //              packetqueue->clearQueues();
             }
-            packetqueue->queueVideoPacket(&packet);
+          //            packetqueue->queueVideoPacket(&packet);
           }
 
           //Video recording
@@ -617,13 +618,13 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
           }
             wasRecording = true;
             strcpy(oldDirectory, event_file);
-            while (packetqueue->popVideoPacket(&queuedpacket)) {
-              int ret = videoStore->writeVideoFramePacket(&packet, mFormatContext->streams[mVideoStreamId]); //, &lastKeyframePkt);
-              if (ret < 0) {//Less than zero and we skipped a frame
-                av_free_packet(&packet);
-                return 0;  
-              }
-            }
+          //            while (packetqueue->popVideoPacket(&queuedpacket)) {
+          //              int ret = videoStore->writeVideoFramePacket(&packet, mFormatContext->streams[mVideoStreamId]); //, &lastKeyframePkt);
+          //              if (ret < 0) {//Less than zero and we skipped a frame
+          //                av_free_packet(&packet);
+          //                return 0;
+          //              }
+          //            }
 
           } else if ( ( ! recording ) && wasRecording && videoStore ) {
             Info("Deleting videoStore instance");

@@ -26,7 +26,6 @@
 //#include "zm_utils.h"
 #include "zm_ffmpeg.h"
 #include "zm_videostore.h"
-#include "zm_packetqueue.h"
 
 //
 // Class representing 'ffmpeg' cameras, i.e. those which are
@@ -88,7 +87,7 @@ public:
   int PrimeCapture();
   int PreCapture();
   int Capture( Image &image );
-  int CaptureAndRecord( Image &image, bool recording, char* event_directory, zm_packetqueue* packetqueue );
+  int CaptureAndRecord( Image &image, bool recording, char* event_directory );
   int PostCapture();
 };
 

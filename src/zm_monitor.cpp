@@ -304,9 +304,10 @@ Monitor::Monitor(
   bool p_track_motion,
   Rgb p_signal_check_colour,
   bool p_embed_exif,
-  Purpose p_purpose,
+    Purpose p_purpose,
+    zm_packetqueue p_packetqueue,
   int p_n_zones,
-  Zone *p_zones[]
+    Zone *p_zones[]
 ) : id( p_id ),
   server_id( p_server_id ),
   function( (Function)p_function ),
@@ -2254,7 +2255,8 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
       track_motion,
       signal_check_colour,
       embed_exif,
-      purpose,
+                              purpose,
+                              packetqueue,
       0,
       0
     );
@@ -2441,7 +2443,8 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
       track_motion,
       RGB_WHITE,
       embed_exif,
-      purpose,
+                              purpose,
+                              packetqueue,
       0,
       0
 
@@ -3113,8 +3116,7 @@ int Monitor::Capture()
     if((GetOptVideoWriter() == 2) && camera->SupportsNativeVideo()) {
       captureResult = camera->CaptureAndRecord(*(next_buffer.image),
                                                video_store_data->recording,
-                                               video_store_data->event_file,
-                                               packetqueue);
+                                               video_store_data->event_file);
     }else{
       captureResult = camera->Capture(*(next_buffer.image));
     }
@@ -3128,7 +3130,7 @@ int Monitor::Capture()
     //Check if FFMPEG camera
     if((GetOptVideoWriter() == 2) && camera->SupportsNativeVideo()){
       //Warning("ZMC: Recording: %d", video_store_data->recording);
-      captureResult = camera->CaptureAndRecord(*capture_image, video_store_data->recording, video_store_data->event_file, packetqueue);
+      captureResult = camera->CaptureAndRecord(*capture_image, video_store_data->recording, video_store_data->event_file);
     }else{
       /* Capture directly into image buffer, avoiding the need to memcpy() */
       captureResult = camera->Capture(*capture_image);

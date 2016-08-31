@@ -213,9 +213,13 @@ function getStreamCmdResponse( respObj, respText )
     else {
         checkStreamForErrors("getStreamCmdResponse",respObj);//log them
         // Try to reload the image stream.
-        var streamImg = document.getElementById('liveStream');
-        if ( streamImg )
+        var streamImg = document.getElementById('liveStream'+monitorId);
+        if ( streamImg ) {
             streamImg.src = streamImg.src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
+            console.log("Changing lviestream src to " + streamImg.src);
+        } else {
+          console.log("Unable to find streamImg liveStream");
+        }
     }
 
     var streamCmdTimeout = statusRefreshTimeout;

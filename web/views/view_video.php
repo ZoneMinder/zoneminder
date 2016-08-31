@@ -25,36 +25,74 @@
 //      Does not support scaling at this time.
 //
 
-if ( !canView( 'Events' ) )
-{
-    $view = "error";
-    return;
+if ( !canView( 'Events' ) ) {
+  $view = "error";
+  return;
 }
 
-require_once('includes/Storage.php');
 require_once('includes/Event.php');
 
-
-$Storage = NULL;
 $errorText = false;
+$path = '';
+
 if ( ! empty($_REQUEST['eid'] ) ) {
-    $Event = new Event( $_REQUEST['eid'] );
-    $Storage = $Event->Storage();
-    $path = $Event->Relative_Path().'/'.$Event->DefaultVideo();
+  $Event = new Event( $_REQUEST['eid'] );
+  $path = $Event->Path().'/'.$Event->DefaultVideo();
 	Debug("Path: $path");
 } else {
-    $errorText = "No video path";
+  $errorText = "No video path";
 }
 
-if ( $errorText )
-    Error( $errorText );
-else{
-# FIXME guess it from the video file
-	header( 'Content-type: video/mp4' );
-    if ( ! readfile( $Storage->Path().'/'.$path ) ) {
-		Error("No bytes read from ". $Storage->Path() . '/'.$path );
-	} else {
-		Debug("Success sending " . $Storage->Path().'/'.$path );
-    }
+if ( $errorText ) {
+  Error( $errorText );
+  header ("HTTP/1.0 404 Not Found");
+  die();
+} 
+
+$size = filesize($path);
+
+$fh = @fopen($path,'rb');
+if ( ! $fh ) {
+  header ("HTTP/1.0 404 Not Found");
+  die();
 }
+
+$begin = 0;
+$end = $size;
+
+if ( isset( $_SERVER['HTTP_RANGE'] ) ) {
+  Debug("Using Range " . $_SERVER['HTTP_RANGE'] );
+  if ( preg_match( '/bytes=\h*(\d+)-(\d*)[\D.*]?/i', $_SERVER['HTTP_RANGE'], $matches) ) {
+    $begin = intval( $matches[1] );
+    if ( ! empty( $matches[2]) ) {
+      $end = intval( $matches[2] );
+    }
+    Debug("Using Range $begin $end size: $size");
+  }
+} # end if HTTP_RANGE
+
+if ( $begin > 0 || $end < $size ) {
+  header('HTTP/1.0 206 Partial Content');
+} else {
+  header('HTTP/1.0 200 OK');
+}
+
+header('Content-type: video/mp4');
+header('Accept-Ranges: bytes');
+header('Content-Length:'.($end-$begin));
+header("Content-Disposition: inline;");
+header("Content-Range: bytes $begin-$end/$size");
+header("Content-Transfer-Encoding: binary\n");
+header('Connection: close');
+
+$cur = $begin;
+fseek( $fh, $begin, 0 );
+
+while( ! feof( $fh ) && $cur < $end && ( connection_status() == 0 ) ) {
+  #Error("Sending $cur");
+  print fread( $fh, min( 1024*16, $end - $cur ) );
+  $cur += 1024*16;
+  usleep(100);
+}
+
 ?>

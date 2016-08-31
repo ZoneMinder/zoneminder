@@ -600,27 +600,27 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
               this->getMonitor()->getOrientation() );
         }
         strcpy(oldDirectory, event_file);
-      } // end if ! wasRecording
 
-      // Need to write out all the frames from the last keyframe?
-      unsigned int packet_count = 0;
-      while ( packetqueue.popPacket( &queued_packet ) ) {
-        packet_count += 1;
-        //Write the packet to our video store
-        if ( queued_packet.stream_index == mVideoStreamId ) {
-          ret = videoStore->writeVideoFramePacket(&queued_packet, mFormatContext->streams[mVideoStreamId]);
-        } else if ( queued_packet.stream_index == mAudioStreamId ) {
-          //ret = videoStore->writeAudioFramePacket(&queued_packet, mFormatContext->streams[mAudioStreamId]);
-        } else {
-          Warning("Unknown stream id in queued packet (%d)", queued_packet.stream_index );
-          ret = -1;
-        }
-        if ( ret < 0 ) {
-          //Less than zero and we skipped a frame
-          //av_free_packet( &queued_packet );
-        }
-      } // end while packets in the packetqueue
-      Debug(2, "Wrote %d queued packets", packet_count );
+        // Need to write out all the frames from the last keyframe?
+        unsigned int packet_count = 0;
+        while ( packetqueue.popPacket( &queued_packet ) ) {
+          packet_count += 1;
+          //Write the packet to our video store
+          if ( queued_packet.stream_index == mVideoStreamId ) {
+            ret = videoStore->writeVideoFramePacket(&queued_packet, mFormatContext->streams[mVideoStreamId]);
+          } else if ( queued_packet.stream_index == mAudioStreamId ) {
+            //ret = videoStore->writeAudioFramePacket(&queued_packet, mFormatContext->streams[mAudioStreamId]);
+          } else {
+            Warning("Unknown stream id in queued packet (%d)", queued_packet.stream_index );
+            ret = -1;
+          }
+          if ( ret < 0 ) {
+            //Less than zero and we skipped a frame
+            //av_free_packet( &queued_packet );
+          }
+        } // end while packets in the packetqueue
+        Debug(2, "Wrote %d queued packets", packet_count );
+      } // end if ! wasRecording
     } else {
       if ( videoStore ) {
         Info("Deleting videoStore instance");
@@ -634,7 +634,6 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
       }
       packetqueue.queuePacket(&packet);
     } // end if
-
 
     if ( packet.stream_index == mVideoStreamId ) {
 #if LIBAVCODEC_VERSION_CHECK(52, 23, 0, 23, 0)

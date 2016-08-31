@@ -26,6 +26,7 @@
 //#include "zm_utils.h"
 #include "zm_ffmpeg.h"
 #include "zm_videostore.h"
+#include "zm_packetqueue.h"
 
 //
 // Class representing 'ffmpeg' cameras, i.e. those which are
@@ -67,7 +68,7 @@ class FfmpegCamera : public Camera
     zm_packetqueue    packetqueue;
 
     // Last Key frame
-    AVPacket            lastKeyframePkt;
+    //AVPacket            lastKeyframePkt;
 
 #if HAVE_LIBSWSCALE
     struct SwsContext   *mConvertContext;

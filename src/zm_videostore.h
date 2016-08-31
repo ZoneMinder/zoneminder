@@ -10,10 +10,10 @@
 class VideoStore {
 private:
 
-	AVOutputFormat *fmt;
+	AVOutputFormat *output_format;
 	AVFormatContext *oc;
-	AVStream *video_st;
-	AVStream *audio_st;
+	AVStream *video_stream;
+	AVStream *audio_stream;
     
 	const char *filename;
 	const char *format;
@@ -28,7 +28,7 @@ private:
   int64_t filter_in_rescale_delta_last;
 
 public:
-	VideoStore(const char *filename_in, const char *format_in, AVStream *input_st, AVStream *inpaud_st, int64_t nStartTime, Monitor::Orientation p_orientation );
+	VideoStore(const char *filename_in, const char *format_in, AVStream *input_video_stream, AVStream *input_audio_stream, int64_t nStartTime, Monitor::Orientation p_orientation );
 	~VideoStore();
 
   int writeVideoFramePacket(AVPacket *pkt, AVStream *input_st);//, AVPacket *lastKeyframePkt);

@@ -33,12 +33,11 @@ extern "C"{
 }
 
 VideoStore::VideoStore(const char *filename_in, const char *format_in,
-    AVStream *input_st,
-    AVStream *inpaud_st,
+    AVStream *input_video_stream,
+    AVStream *input_audio_stream,
     int64_t nStartTime,
     Monitor::Orientation orientation
     ) {
-
 
   //store inputs in variables local to class
   filename = filename_in;
@@ -78,109 +77,115 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
   oc->metadata = pmetadata;
 
-  fmt = oc->oformat;
+  output_format = oc->oformat;
 
-  video_st = avformat_new_stream(oc, (AVCodec *)input_st->codec->codec);
-  if (!video_st) {
+  video_stream = avformat_new_stream(oc, (AVCodec *)input_video_stream->codec->codec);
+  if (!video_stream) {
     Fatal("Unable to create video out stream\n");
   }
 
-  ret = avcodec_copy_context(video_st->codec, input_st->codec);
+  ret = avcodec_copy_context(video_stream->codec, input_video_stream->codec);
   if (ret < 0) { 
     Fatal("Unable to copy input video context to output video context %s\n", 
         av_make_error_string(ret).c_str());
   }
 
-  if ( input_st->codec->sample_aspect_ratio.den && ( video_st->sample_aspect_ratio.den != input_st->codec->sample_aspect_ratio.den ) ) {
-	  Warning("Fixing sample_aspect_ratio.den from (%d) to (%d)", video_st->sample_aspect_ratio.den, input_st->codec->sample_aspect_ratio.den );
-	  video_st->sample_aspect_ratio.den = input_st->codec->sample_aspect_ratio.den;
+  if ( input_video_stream->codec->sample_aspect_ratio.den && ( video_stream->sample_aspect_ratio.den != input_video_stream->codec->sample_aspect_ratio.den ) ) {
+	  Warning("Fixing sample_aspect_ratio.den from (%d) to (%d)", video_stream->sample_aspect_ratio.den, input_video_stream->codec->sample_aspect_ratio.den );
+	  video_stream->sample_aspect_ratio.den = input_video_stream->codec->sample_aspect_ratio.den;
   } else {
-    Debug(3, "aspect ratio denominator is (%d)", video_st->sample_aspect_ratio.den  );
+    Debug(3, "aspect ratio denominator is (%d)", video_stream->sample_aspect_ratio.den  );
   }
-  if ( input_st->codec->sample_aspect_ratio.num && ( video_st->sample_aspect_ratio.num != input_st->codec->sample_aspect_ratio.num ) ) {
-	  Warning("Fixing sample_aspect_ratio.num from video_st(%d) to input_st(%d)", video_st->sample_aspect_ratio.num, input_st->codec->sample_aspect_ratio.num );
-	  video_st->sample_aspect_ratio.num = input_st->codec->sample_aspect_ratio.num;
+  if ( input_video_stream->codec->sample_aspect_ratio.num && ( video_stream->sample_aspect_ratio.num != input_video_stream->codec->sample_aspect_ratio.num ) ) {
+	  Warning("Fixing sample_aspect_ratio.num from video_stream(%d) to input_video_stream(%d)", video_stream->sample_aspect_ratio.num, input_video_stream->codec->sample_aspect_ratio.num );
+	  video_stream->sample_aspect_ratio.num = input_video_stream->codec->sample_aspect_ratio.num;
   } else {
-    Debug(3, "aspect ratio numerator is (%d)", video_st->sample_aspect_ratio.num  );
+    Debug(3, "aspect ratio numerator is (%d)", video_stream->sample_aspect_ratio.num  );
   }
-  if ( video_st->codec->codec_id != input_st->codec->codec_id ) {
-	  Warning("Fixing video_st->codec->codec_id");
-	  video_st->codec->codec_id = input_st->codec->codec_id;
+  if ( video_stream->codec->codec_id != input_video_stream->codec->codec_id ) {
+	  Warning("Fixing video_stream->codec->codec_id");
+	  video_stream->codec->codec_id = input_video_stream->codec->codec_id;
   }
-  if ( ! video_st->codec->time_base.num ) {
-	  Warning("video_st->codec->time_base.num is not set%d/%d. Fixing by setting it to 1", video_st->codec->time_base.num, video_st->codec->time_base.den);	
-	  Warning("video_st->codec->time_base.num is not set%d/%d. Fixing by setting it to 1", video_st->time_base.num, video_st->time_base.den);	
-	  video_st->codec->time_base.num = video_st->time_base.num;
-	  video_st->codec->time_base.den = video_st->time_base.den;
+  if ( ! video_stream->codec->time_base.num ) {
+	  Warning("video_stream->codec->time_base.num is not set%d/%d. Fixing by setting it to 1", video_stream->codec->time_base.num, video_stream->codec->time_base.den);	
+	  Warning("video_stream->codec->time_base.num is not set%d/%d. Fixing by setting it to 1", video_stream->time_base.num, video_stream->time_base.den);	
+	  video_stream->codec->time_base.num = video_stream->time_base.num;
+	  video_stream->codec->time_base.den = video_stream->time_base.den;
   }
 
-  if ( video_st->sample_aspect_ratio.den != video_st->codec->sample_aspect_ratio.den ) {
+  if ( video_stream->sample_aspect_ratio.den != video_stream->codec->sample_aspect_ratio.den ) {
          Warning("Fixingample_aspect_ratio.den");
-         video_st->sample_aspect_ratio.den = video_st->codec->sample_aspect_ratio.den;
+         video_stream->sample_aspect_ratio.den = video_stream->codec->sample_aspect_ratio.den;
   }
-  if ( video_st->sample_aspect_ratio.num != input_st->codec->sample_aspect_ratio.num ) {
+  if ( video_stream->sample_aspect_ratio.num != input_video_stream->codec->sample_aspect_ratio.num ) {
          Warning("Fixingample_aspect_ratio.num");
-         video_st->sample_aspect_ratio.num = input_st->codec->sample_aspect_ratio.num;
+         video_stream->sample_aspect_ratio.num = input_video_stream->codec->sample_aspect_ratio.num;
   }
-  if ( video_st->codec->codec_id != input_st->codec->codec_id ) {
-         Warning("Fixing video_st->codec->codec_id");
-         video_st->codec->codec_id = input_st->codec->codec_id;
+  if ( video_stream->codec->codec_id != input_video_stream->codec->codec_id ) {
+         Warning("Fixing video_stream->codec->codec_id");
+         video_stream->codec->codec_id = input_video_stream->codec->codec_id;
   }
-  if ( ! video_st->codec->time_base.num ) {
-         Warning("video_st->codec->time_base.num is not set%d/%d. Fixing by setting it to 1", video_st->codec->time_base.num, video_st->codec->time_base.den); 
-         Warning("video_st->codec->time_base.num is not set%d/%d. Fixing by setting it to 1", video_st->time_base.num, video_st->time_base.den);       
-         video_st->codec->time_base.num = video_st->time_base.num;
-         video_st->codec->time_base.den = video_st->time_base.den;
+  if ( ! video_stream->codec->time_base.num ) {
+         Warning("video_stream->codec->time_base.num is not set%d/%d. Fixing by setting it to 1", video_stream->codec->time_base.num, video_stream->codec->time_base.den); 
+         Warning("video_stream->codec->time_base.num is not set%d/%d. Fixing by setting it to 1", video_stream->time_base.num, video_stream->time_base.den);       
+         video_stream->codec->time_base.num = video_stream->time_base.num;
+         video_stream->codec->time_base.den = video_stream->time_base.den;
   }
 
-  video_st->codec->codec_tag = 0;
+  video_stream->codec->codec_tag = 0;
   if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
-    video_st->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
+    video_stream->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
   }
 
   if ( orientation ) {
     if ( orientation == Monitor::ROTATE_0 ) {
 
     } else if ( orientation == Monitor::ROTATE_90 ) {
-      dsr = av_dict_set( &video_st->metadata, "rotate", "90", 0);
+      dsr = av_dict_set( &video_stream->metadata, "rotate", "90", 0);
       if (dsr < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__ );
     } else if ( orientation == Monitor::ROTATE_180 ) {
-      dsr = av_dict_set( &video_st->metadata, "rotate", "180", 0);
+      dsr = av_dict_set( &video_stream->metadata, "rotate", "180", 0);
       if (dsr < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__ );
     } else if ( orientation == Monitor::ROTATE_270 ) {
-      dsr = av_dict_set( &video_st->metadata, "rotate", "270", 0);
+      dsr = av_dict_set( &video_stream->metadata, "rotate", "270", 0);
       if (dsr < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__ );
     } else {
       Warning( "Unsupported Orientation(%d)", orientation );
     }
   }
 
-  if (inpaud_st) {
-    audio_st = avformat_new_stream(oc, (AVCodec *)inpaud_st->codec->codec);
-    if (!audio_st) {
-      Error("Unable to create audio out stream\n");
-      audio_st = NULL;
+  if (input_audio_stream) {
+
+    if ( audio_stream->codec->codec_id != AV_CODEC_ID_AAC ) {
+      Warning("Can't transcode to AAC at this time");
+      audio_stream = NULL;
     } else {
-      ret = avcodec_copy_context(audio_st->codec, inpaud_st->codec);
+
+      audio_stream = avformat_new_stream(oc, (AVCodec *)input_audio_stream->codec->codec);
+      if (!audio_stream) {
+        Error("Unable to create audio out stream\n");
+        audio_stream = NULL;
+      }
+      ret = avcodec_copy_context(audio_stream->codec, input_audio_stream->codec);
       if (ret < 0) {
         Fatal("Unable to copy audio context %s\n", av_make_error_string(ret).c_str());
       }   
-      audio_st->codec->codec_tag = 0;
-      if ( audio_st->codec->channels > 1 ) {
+      audio_stream->codec->codec_tag = 0;
+      if ( audio_stream->codec->channels > 1 ) {
         Warning("Audio isn't mono, changing it.");
-        audio_st->codec->channels = 1;
+        audio_stream->codec->channels = 1;
       }
       if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
-        audio_st->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
+        audio_stream->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
       }
-    }
+    } // end if is AAC
   } else {
     Debug(3, "No Audio output stream");
-    audio_st = NULL;
+    audio_stream = NULL;
   }    
 
   /* open the output file, if needed */
-  if (!(fmt->flags & AVFMT_NOFILE)) {
+  if (!(output_format->flags & AVFMT_NOFILE)) {
     ret = avio_open2(&oc->pb, filename, AVIO_FLAG_WRITE,NULL,NULL);
     if (ret < 0) {
       Fatal("Could not open output file '%s': %s\n", filename,
@@ -225,15 +230,15 @@ VideoStore::~VideoStore(){
   // I wonder if we should be closing the file first.
   // I also wonder if we really need to be doing all the context allocation/de-allocation constantly, or whether we can just re-use it.  Just do a file open/close/writeheader/etc.
   // What if we were only doing audio recording?
-  if ( video_st ) {
-    avcodec_close(video_st->codec);
+  if ( video_stream ) {
+    avcodec_close(video_stream->codec);
   }
-  if (audio_st) {
-    avcodec_close(audio_st->codec);
+  if (audio_stream) {
+    avcodec_close(audio_stream->codec);
   }
 
   // WHen will be not using a file ?
-  if (!(fmt->flags & AVFMT_NOFILE)) {
+  if (!(output_format->flags & AVFMT_NOFILE)) {
     /* Close the output file. */
     if ( int rc = avio_close(oc->pb) ) {
       Error("Error closing avio %s",  av_err2str( rc ) );
@@ -263,38 +268,42 @@ void VideoStore::dumpPacket( AVPacket *pkt ){
   Info("%s:%d:DEBUG: %s", __FILE__, __LINE__, b);
 }
 
-int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st){//, AVPacket *lastKeyframePkt){
+int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_video_stream){//, AVPacket *lastKeyframePkt){
 
-  Debug(3, "before ost_tbcket starttime %d, timebase%d", startTime, video_st->time_base );
-  zm_dump_stream_format( oc, ipkt->stream_index, 0, 1 );
-  int64_t ost_tb_start_time = av_rescale_q(startTime, AV_TIME_BASE_Q, video_st->time_base);
+  Debug(2, "writeVideoFrame");
+  Debug(3, "before ost_tbcket starttime %d, timebase%d", startTime, video_stream->time_base );
+  //zm_dump_stream_format( oc, ipkt->stream_index, 0, 1 );
+  Debug(2, "writeVideoFrame %x", video_stream);
+  int64_t ost_tb_start_time = av_rescale_q(startTime, AV_TIME_BASE_Q, video_stream->time_base);
   Debug(3, "before ost_tbcket starttime %d, ost_tbcket %d", startTime, ost_tb_start_time );
+  Debug(2, "writeVideoFrame");
 
   AVPacket opkt, safepkt;
   AVPicture pict;
 
+  Debug(2, "writeVideoFrame init_packet");
   av_init_packet(&opkt);
 
   //Scale the PTS of the outgoing packet to be the correct time base
   if (ipkt->pts != AV_NOPTS_VALUE) {
-    opkt.pts = av_rescale_q(ipkt->pts-startPts, input_st->time_base, video_st->time_base) - ost_tb_start_time;
-	Debug(3, "opkt.pts = %d from ipkt->pts(%d) - startPts(%d), input->time_base(%d) video_st->time-base(%d)", opkt.pts, ipkt->pts, startPts, input_st->time_base, video_st->time_base );
+    opkt.pts = av_rescale_q(ipkt->pts-startPts, input_video_stream->time_base, video_stream->time_base) - ost_tb_start_time;
+	Debug(3, "opkt.pts = %d from ipkt->pts(%d) - startPts(%d), input->time_base(%d) video_stream->time-base(%d)", opkt.pts, ipkt->pts, startPts, input_video_stream->time_base, video_stream->time_base );
   } else {
     opkt.pts = AV_NOPTS_VALUE;
   }
 
   //Scale the DTS of the outgoing packet to be the correct time base
   if(ipkt->dts == AV_NOPTS_VALUE) {
-    opkt.dts = av_rescale_q(input_st->cur_dts-startDts, AV_TIME_BASE_Q, video_st->time_base);
-	Debug(3, "opkt.dts = %d from input_st->cur_dts(%d) - startDts(%d), video_st->time-base(%d)", opkt.dts, input_st->cur_dts, startDts, video_st->time_base );
+    opkt.dts = av_rescale_q(input_video_stream->cur_dts-startDts, AV_TIME_BASE_Q, video_stream->time_base);
+	Debug(3, "opkt.dts = %d from input_video_stream->cur_dts(%d) - startDts(%d), video_stream->time-base(%d)", opkt.dts, input_video_stream->cur_dts, startDts, video_stream->time_base );
   } else {
-    opkt.dts = av_rescale_q(ipkt->dts-startDts, input_st->time_base, video_st->time_base);
-	Debug(3, "opkt.dts = %d from ipkt->dts(%d) - startDts(%d), video_st->time-base(%d)", opkt.dts, ipkt->dts, startDts, video_st->time_base );
+    opkt.dts = av_rescale_q(ipkt->dts-startDts, input_video_stream->time_base, video_stream->time_base);
+	Debug(3, "opkt.dts = %d from ipkt->dts(%d) - startDts(%d), video_stream->time-base(%d)", opkt.dts, ipkt->dts, startDts, video_stream->time_base );
   }
 
   opkt.dts -= ost_tb_start_time;
 
-  opkt.duration = av_rescale_q(ipkt->duration, input_st->time_base, video_st->time_base);
+  opkt.duration = av_rescale_q(ipkt->duration, input_video_stream->time_base, video_stream->time_base);
   opkt.flags = ipkt->flags;
   opkt.pos=-1;
 
@@ -303,9 +312,9 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st){//, AV
   opkt.stream_index = ipkt->stream_index;
   /*opkt.flags |= AV_PKT_FLAG_KEY;*/
 
-  if (video_st->codec->codec_type == AVMEDIA_TYPE_VIDEO && (fmt->flags & AVFMT_RAWPICTURE)) {
+  if (video_stream->codec->codec_type == AVMEDIA_TYPE_VIDEO && (output_format->flags & AVFMT_RAWPICTURE)) {
     /* store AVPicture in AVPacket, as expected by the output format */
-    avpicture_fill(&pict, opkt.data, video_st->codec->pix_fmt, video_st->codec->width, video_st->codec->height);
+    avpicture_fill(&pict, opkt.data, video_stream->codec->pix_fmt, video_stream->codec->width, video_stream->codec->height);
     opkt.data = (uint8_t *)&pict;
     opkt.size = sizeof(AVPicture);
     opkt.flags |= AV_PKT_FLAG_KEY;
@@ -340,10 +349,11 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st){//, AV
 
 }
 
-int VideoStore::writeAudioFramePacket(AVPacket *ipkt, AVStream *input_st){
+int VideoStore::writeAudioFramePacket(AVPacket *ipkt, AVStream *input_video_stream){
+  Debug(2, "writeAudioFrame");
 
-  if(!audio_st) {
-    Error("Called writeAudioFramePacket when no audio_st");
+  if(!audio_stream) {
+    Error("Called writeAudioFramePacket when no audio_stream");
     return -1;//FIXME -ve return codes do not free packet in ffmpeg_camera at the moment
   }
   /*if(!keyframeMessage)
@@ -351,7 +361,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt, AVStream *input_st){
   //zm_dump_stream_format( oc, ipkt->stream_index, 0, 1 );
 
   // What is this doing?  Getting the time of the start of this video chunk? Does that actually make sense?
-  int64_t ost_tb_start_time = av_rescale_q(startTime, AV_TIME_BASE_Q, audio_st->time_base);
+  int64_t ost_tb_start_time = av_rescale_q(startTime, AV_TIME_BASE_Q, audio_stream->time_base);
 
   AVPacket opkt;
 
@@ -361,7 +371,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt, AVStream *input_st){
   //Scale the PTS of the outgoing packet to be the correct time base
   if (ipkt->pts != AV_NOPTS_VALUE) {
     Debug(3, "Rescaling output pts");
-    opkt.pts = av_rescale_q(ipkt->pts-startPts, input_st->time_base, audio_st->time_base) - ost_tb_start_time;
+    opkt.pts = av_rescale_q(ipkt->pts-startPts, input_video_stream->time_base, audio_stream->time_base) - ost_tb_start_time;
   } else {
     Debug(3, "Setting output pts to AV_NOPTS_VALUE");
     opkt.pts = AV_NOPTS_VALUE;
@@ -370,30 +380,30 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt, AVStream *input_st){
   //Scale the DTS of the outgoing packet to be the correct time base
   if(ipkt->dts == AV_NOPTS_VALUE) {
     Debug(4, "ipkt->dts == AV_NOPTS_VALUE %d to %d",  AV_NOPTS_VALUE, opkt.dts );
-    opkt.dts = av_rescale_q(input_st->cur_dts-startDts, AV_TIME_BASE_Q, audio_st->time_base);
+    opkt.dts = av_rescale_q(input_video_stream->cur_dts-startDts, AV_TIME_BASE_Q, audio_stream->time_base);
     Debug(4, "ipkt->dts == AV_NOPTS_VALUE %d to %d",  AV_NOPTS_VALUE, opkt.dts );
   } else {
     Debug(4, "ipkt->dts != AV_NOPTS_VALUE %d to %d",  AV_NOPTS_VALUE, opkt.dts );
-    opkt.dts = av_rescale_q(ipkt->dts-startDts, input_st->time_base, audio_st->time_base);
+    opkt.dts = av_rescale_q(ipkt->dts-startDts, input_video_stream->time_base, audio_stream->time_base);
     Debug(4, "ipkt->dts != AV_NOPTS_VALUE %d to %d",  AV_NOPTS_VALUE, opkt.dts );
   }
   opkt.dts -= ost_tb_start_time;
 
   // Seems like it would be really weird for the codec type to NOT be audiu
-  if (audio_st->codec->codec_type == AVMEDIA_TYPE_AUDIO && ipkt->dts != AV_NOPTS_VALUE) {
+  if (audio_stream->codec->codec_type == AVMEDIA_TYPE_AUDIO && ipkt->dts != AV_NOPTS_VALUE) {
     Debug( 4, "code is audio, dts != AV_NOPTS_VALUE " );
-    int duration = av_get_audio_frame_duration(input_st->codec, ipkt->size);
+    int duration = av_get_audio_frame_duration(input_video_stream->codec, ipkt->size);
     if(!duration)
-      duration = input_st->codec->frame_size;
+      duration = input_video_stream->codec->frame_size;
 
     //FIXME where to get filter_in_rescale_delta_last
     //FIXME av_rescale_delta doesn't exist in ubuntu vivid libavtools
-    opkt.dts = opkt.pts = av_rescale_delta(input_st->time_base, ipkt->dts,
-        (AVRational){1, input_st->codec->sample_rate}, duration, &filter_in_rescale_delta_last,
-        audio_st->time_base) - ost_tb_start_time;
+    opkt.dts = opkt.pts = av_rescale_delta(input_video_stream->time_base, ipkt->dts,
+        (AVRational){1, input_video_stream->codec->sample_rate}, duration, &filter_in_rescale_delta_last,
+        audio_stream->time_base) - ost_tb_start_time;
   }
 
-  opkt.duration = av_rescale_q(ipkt->duration, input_st->time_base, audio_st->time_base);
+  opkt.duration = av_rescale_q(ipkt->duration, input_video_stream->time_base, audio_stream->time_base);
   opkt.pos=-1;
   opkt.flags = ipkt->flags;
 

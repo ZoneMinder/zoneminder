@@ -36,7 +36,7 @@ function changeScale()
     //streamCmdScale( scale );
 
     /*Stream could be an applet so can't use moo tools*/ 
-    var streamImg = document.getElementById('liveStream');
+    var streamImg = document.getElementById('liveStream'+monitorId);
     if ( streamImg ) {
         streamImg.style.width = newWidth + "px";
         streamImg.style.height = newHeight + "px";

@@ -355,7 +355,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt, AVStream *input_video_stre
 
   if(!audio_stream) {
     Error("Called writeAudioFramePacket when no audio_stream");
-    return -1;//FIXME -ve return codes do not free packet in ffmpeg_camera at the moment
+    return 0;//FIXME -ve return codes do not free packet in ffmpeg_camera at the moment
   }
   /*if(!keyframeMessage)
     return -1;*/

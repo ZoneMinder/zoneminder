@@ -358,6 +358,7 @@ int FfmpegCamera::OpenFfmpeg() {
 
   Debug ( 1, "Found decoder" );
   zm_dump_stream_format( mFormatContext, mVideoStreamId, 0, 0 );
+  zm_dump_stream_format( mFormatContext, mAudioStreamId, 0, 0 );
 
   // Open the codec
 #if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
@@ -532,7 +533,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
   }
 
   AVPacket packet;
-  AVPacket queuedpacket;
+  AVPacket queued_packet;
   uint8_t* directbuffer;
 
   /* Request a writeable buffer of the target image */
@@ -566,6 +567,15 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
       return( -1 );
     }
     Debug( 5, "Got packet from stream %d", packet.stream_index );
+
+    //Buffer video packets
+    if ( ! recording ) { 
+      if ( packet.flags & AV_PKT_FLAG_KEY ) {
+        packetqueue.clearQueue();
+      }
+      packetqueue.queuePacket(&packet);
+    }
+
     if ( packet.stream_index == mVideoStreamId ) {
 #if LIBAVCODEC_VERSION_CHECK(52, 23, 0, 23, 0)
       if ( avcodec_decode_video2( mCodecContext, mRawFrame, &frameComplete, &packet ) < 0 )
@@ -581,17 +591,9 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
 
         avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height);
 
-          //Buffer video packets
-          if (!recording) { 
-            if(packet.flags & AV_PKT_FLAG_KEY) {
-            //              packetqueue->clearQueues();
-            }
-          //            packetqueue->queueVideoPacket(&packet);
-          }
-
-          //Video recording
-          if ( recording && !wasRecording ) {
-            //Instantiate the video storage module
+        //Video recording
+        if ( recording && !wasRecording ) {
+          //Instantiate the video storage module
 
           if (record_audio) {
             if (mAudioStreamId == -1) {
@@ -622,6 +624,18 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
           strcpy(oldDirectory, event_file);
 
           // Need to write out all the frames from the last keyframe?
+          unsigned int packet_count = 0;
+          while ( packetqueue.popPacket( &queued_packet ) ) {
+            packet_count += 1;
+            //Write the packet to our video store
+            int ret = videoStore->writeVideoFramePacket(&queued_packet, mFormatContext->streams[mVideoStreamId]);//, &lastKeyframePkt);
+            if ( ret < 0 ) {
+              //Less than zero and we skipped a frame
+              av_free_packet( &queued_packet );
+              return 0;
+            }
+          } // end while packets in the packetqueue
+          Debug(2, "Wrote %d queued packets", packet_count );
 
         } else if ( ( ! recording ) && wasRecording && videoStore ) {
           Info("Deleting videoStore instance");
@@ -666,6 +680,20 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
                                         this->getMonitor()->getOrientation() );
           }
           strcpy(oldDirectory, event_file);
+
+          // Need to write out all the frames from the last keyframe?
+          unsigned int packet_count = 0;
+          while ( packetqueue.popPacket( &queued_packet ) ) {
+            packet_count += 1;
+            //Write the packet to our video store
+            int ret = videoStore->writeVideoFramePacket(&queued_packet, mFormatContext->streams[mVideoStreamId]);//, &lastKeyframePkt);
+            if ( ret < 0 ) {
+              //Less than zero and we skipped a frame
+              av_free_packet( &queued_packet );
+              return 0;
+            }
+          } // end while packets in the packetqueue
+          Debug(2, "Wrote %d queued packets", packet_count );
         }
 
         if ( videoStore && recording ) {

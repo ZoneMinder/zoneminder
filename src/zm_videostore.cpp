@@ -156,10 +156,11 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
   if (input_audio_stream) {
 
-    if ( audio_stream->codec->codec_id != AV_CODEC_ID_AAC ) {
+    if ( input_audio_stream->codec->codec_id != AV_CODEC_ID_AAC ) {
       Warning("Can't transcode to AAC at this time");
       audio_stream = NULL;
     } else {
+      Debug(3, "Got something other than AAC (%d)", input_audio_stream->codec->codec_id );
 
       audio_stream = avformat_new_stream(oc, (AVCodec *)input_audio_stream->codec->codec);
       if (!audio_stream) {

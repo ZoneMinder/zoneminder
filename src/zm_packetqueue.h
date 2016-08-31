@@ -33,19 +33,13 @@ class zm_packetqueue {
 public:
     zm_packetqueue();
     virtual ~zm_packetqueue();
-    bool queuePacket(std::queue<AVPacket>& pktQueue, AVPacket* packet);
-    bool queueVideoPacket(AVPacket* packet);
-    bool queueAudioPacket(AVPacket* packet);
-    bool popPacket(std::queue<AVPacket>& pktQueue, AVPacket* packet);
+    bool queuePacket( AVPacket* packet );
+    bool popPacket( AVPacket* packet );
     bool popVideoPacket(AVPacket* packet);
     bool popAudioPacket(AVPacket* packet);
-    void clearQueues();
-    void clearQueue(std::queue<AVPacket>& pktQueue);
+    void clearQueue( );
 private:
-    int                     MaxVideoQueueSize;
-    int                     MaxAudioQueueSize;
-    std::queue<AVPacket>    VideoQueue;
-    std::queue<AVPacket>    AudioQueue;
+    std::queue<AVPacket>    pktQueue;
 
 };
 

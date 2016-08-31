@@ -378,7 +378,7 @@ int RemoteCameraRtsp::Capture( Image &image )
 
 //Function to handle capture and store
 
-int RemoteCameraRtsp::CaptureAndRecord(Image &image, bool recording, char* event_file, zm_packetqueue* packetqueue) {
+int RemoteCameraRtsp::CaptureAndRecord(Image &image, bool recording, char* event_file ) {
   AVPacket packet;
   uint8_t* directbuffer;
   int frameComplete = false;

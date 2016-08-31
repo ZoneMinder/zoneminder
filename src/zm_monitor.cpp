@@ -304,10 +304,9 @@ Monitor::Monitor(
   bool p_track_motion,
   Rgb p_signal_check_colour,
   bool p_embed_exif,
-    Purpose p_purpose,
-    zm_packetqueue p_packetqueue,
+  Purpose p_purpose,
   int p_n_zones,
-    Zone *p_zones[]
+  Zone *p_zones[]
 ) : id( p_id ),
   server_id( p_server_id ),
   function( (Function)p_function ),
@@ -2256,7 +2255,6 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
       signal_check_colour,
       embed_exif,
                               purpose,
-                              packetqueue,
       0,
       0
     );
@@ -2444,7 +2442,6 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
       RGB_WHITE,
       embed_exif,
                               purpose,
-                              packetqueue,
       0,
       0
 
@@ -3102,7 +3099,6 @@ int Monitor::Capture()
 
   int index = image_count%image_buffer_count;
   Image* capture_image = image_buffer[index].image;
-  zm_packetqueue* packetqueue = NULL;
 
   if ( (deinterlacing & 0xff) == 4) {
     if ( FirstCapture != 1 ) {

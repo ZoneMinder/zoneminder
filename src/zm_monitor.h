@@ -32,7 +32,6 @@
 class Monitor;
 #include "zm_camera.h"
 #include "zm_utils.h"
-#include "zm_packetqueue.h"
 
 #include "zm_image_analyser.h"
 
@@ -370,7 +369,6 @@ public:
     Rgb p_signal_check_colour,
     bool p_embed_exif,
     Purpose p_purpose,
-    zm_packetqueue packetqueue,
     int p_n_zones=0,
     Zone *p_zones[]=0
   );

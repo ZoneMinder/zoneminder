@@ -58,7 +58,6 @@ RemoteCameraRtsp::RemoteCameraRtsp( unsigned int p_monitor_id, const std::string
   mRawFrame = NULL;
   mFrame = NULL;
   frameCount = 0;
-  wasRecording = false;
   startTime=0;
   
 #if HAVE_LIBSWSCALE
@@ -402,18 +401,47 @@ int RemoteCameraRtsp::CaptureAndRecord(Image &image, bool recording, char* event
   uint8_t* directbuffer;
   int frameComplete = false;
   
-  /* Request a writeable buffer of the target image */
-  directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
-  if(directbuffer == NULL) {
-    Error("Failed requesting writeable buffer for the captured image.");
-    return (-1);
-  }
   
   while ( true ) {
 
+// WHY Are we clearing it? Might be something good in it.
     buffer.clear();
+
     if ( !rtspThread->isRunning() )
       return (-1);
+
+    //Video recording
+    if ( recording ) {
+      // The directory we are recording to is no longer tied to the current event. 
+      // Need to re-init the videostore with the correct directory and start recording again
+      // Not sure why we are only doing this on keyframe, al
+      if ( videoStore && (strcmp(oldDirectory, event_file)!=0) ) {
+        //don't open new videostore until we're on a key frame..would this require an offset adjustment for the event as a result?...if we store our key frame location with the event will that be enough?
+        Info("Re-starting video storage module");
+        if ( videoStore ) {
+          delete videoStore;
+          videoStore = NULL;
+        }
+      } // end if changed to new event
+
+      if ( ! videoStore ) {
+        //Instantiate the video storage module
+
+        videoStore = new VideoStore((const char *)event_file, "mp4",
+            mFormatContext->streams[mVideoStreamId],
+            mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],
+            startTime,
+            this->getMonitor()->getOrientation() );
+        strcpy(oldDirectory, event_file);
+      } // end if ! videoStore
+
+    } else {
+      if ( videoStore ) {
+        Info("Deleting videoStore instance");
+        delete videoStore;
+        videoStore = NULL;
+      }
+    } // end if recording or not
 
     if ( rtspThread->getFrame( buffer ) ) {
       Debug( 3, "Read frame %d bytes", buffer.size() );
@@ -423,7 +451,7 @@ int RemoteCameraRtsp::CaptureAndRecord(Image &image, bool recording, char* event
       if ( !buffer.size() )
         return( -1 );
 
-      if(mCodecContext->codec_id == AV_CODEC_ID_H264) {
+      if ( mCodecContext->codec_id == AV_CODEC_ID_H264 ) {
         // SPS and PPS frames should be saved and appended to IDR frames
         int nalType = (buffer.head()[3] & 0x1f);
         
@@ -446,14 +474,14 @@ int RemoteCameraRtsp::CaptureAndRecord(Image &image, bool recording, char* event
 
       av_init_packet( &packet );
       
-      // Why are we checking for it being the video stream? Because it might be audio or something else.
-      // Um... we just initialized packet... we can't be testing for what it is yet....
-      if ( packet.stream_index == mVideoStreamId ) {
-      
-        while ( !frameComplete && buffer.size() > 0 ) {
-          packet.data = buffer.head();
-          packet.size = buffer.size();
+      // Keep decoding until a complete frame is had.
+      while ( !frameComplete && buffer.size() > 0 ) {
+        packet.data = buffer.head();
+        packet.size = buffer.size();
 
+        // Why are we checking for it being the video stream? Because it might be audio or something else.
+        // Um... we just initialized packet... we can't be testing for what it is yet....
+        if ( packet.stream_index == mVideoStreamId ) {
           // So this does the decode
 #if LIBAVCODEC_VERSION_CHECK(52, 23, 0, 23, 0)
           int len = avcodec_decode_video2( mCodecContext, mRawFrame, &frameComplete, &packet );
@@ -471,71 +499,44 @@ int RemoteCameraRtsp::CaptureAndRecord(Image &image, bool recording, char* event
           //Hexdump( 0, buffer.head(), buffer.size() );
 
           buffer -= len;
-        } // end while get & decode a frame
 
-        if ( frameComplete ) {
+          if ( frameComplete ) {
 
-          Debug( 3, "Got frame %d", frameCount );
+            Debug( 3, "Got frame %d", frameCount );
 
-#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-          av_image_fill_arrays(mFrame->data, mFrame->linesize,
-              directbuffer, imagePixFormat, width, height, 1);
-#else
-          avpicture_fill( (AVPicture *)mFrame, directbuffer,
-              imagePixFormat, width, height);
-#endif
-
-          //Video recording
-          if ( recording && !wasRecording ) {
-            //Instantiate the video storage module
-
-            videoStore = new VideoStore((const char *)event_file, "mp4",
-                mFormatContext->streams[mVideoStreamId],
-                mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],
-                startTime,
-                this->getMonitor()->getOrientation() );
-            wasRecording = true;
-            strcpy(oldDirectory, event_file);
-
-          } else if ( !recording && wasRecording && videoStore ) {
-            // Why are we deleting the videostore? Becase for soem reason we are no longer recording? How does that happen?
-            Info("Deleting videoStore instance");
-            delete videoStore;
-            videoStore = NULL;
-          }
-
-          //The directory we are recording to is no longer tied to the current event. Need to re-init the videostore with the correct directory and start recording again
-          if ( recording && wasRecording && (strcmp(oldDirectory, event_file)!=0) && (packet.flags & AV_PKT_FLAG_KEY) ) {
-            //don't open new videostore until we're on a key frame..would this require an offset adjustment for the event as a result?...if we store our key frame location with the event will that be enough?
-            Info("Re-starting video storage module");
-            if ( videoStore ) {
-              delete videoStore;
-              videoStore = NULL;
+            /* Request a writeable buffer of the target image */
+            directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
+            if(directbuffer == NULL) {
+              Error("Failed requesting writeable buffer for the captured image.");
+              return (-1);
             }
 
-            videoStore = new VideoStore((const char *)event_file, "mp4",
-                mFormatContext->streams[mVideoStreamId],
-                mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],
-                startTime,
-                this->getMonitor()->getOrientation() );
-            strcpy( oldDirectory, event_file );
-          }
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+            av_image_fill_arrays(mFrame->data, mFrame->linesize,
+                directbuffer, imagePixFormat, width, height, 1);
+#else
+            avpicture_fill( (AVPicture *)mFrame, directbuffer,
+                imagePixFormat, width, height);
+#endif
 
-          if ( videoStore && recording ) {
+          } // endif frameComplete
+
+          if ( videoStore ) {
             //Write the packet to our video store
             int ret = videoStore->writeVideoFramePacket(&packet, mFormatContext->streams[mVideoStreamId]);//, &lastKeyframePkt);
             if ( ret < 0 ) {//Less than zero and we skipped a frame
+// Should not 
               av_free_packet( &packet );
               return 0;
             }
-          }
+          } // end if videoStore, so we are recording
 
 #if HAVE_LIBSWSCALE
           // Why are we re-scaling after writing out the packet?
-          if(mConvertContext == NULL) {
+          if ( mConvertContext == NULL ) {
               mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
 
-              if(mConvertContext == NULL)
+              if ( mConvertContext == NULL )
                   Fatal( "Unable to create conversion context");
           }
 
@@ -547,22 +548,19 @@ int RemoteCameraRtsp::CaptureAndRecord(Image &image, bool recording, char* event
 
           frameCount++;
 
-        } /* frame complete */
       } else if ( packet.stream_index == mAudioStreamId ) {
         Debug( 4, "Got audio packet" );
-        if ( videoStore && recording ) {
-          if ( record_audio ) {
-            Debug( 4, "Storing Audio packet" );
-            //Write the packet to our video store
-            int ret = videoStore->writeAudioFramePacket(&packet, mFormatContext->streams[packet.stream_index]); //FIXME no relevance of last key frame
-            if ( ret < 0 ) { //Less than zero and we skipped a frame
+        if ( videoStore && record_audio ) {
+          Debug( 4, "Storing Audio packet" );
+          //Write the packet to our video store
+          int ret = videoStore->writeAudioFramePacket(&packet, mFormatContext->streams[packet.stream_index]); //FIXME no relevance of last key frame
+          if ( ret < 0 ) { //Less than zero and we skipped a frame
 #if LIBAVCODEC_VERSION_CHECK(57, 8, 0, 12, 100)
-              av_packet_unref( &packet );
+            av_packet_unref( &packet );
 #else
-              av_free_packet( &packet );
+            av_free_packet( &packet );
 #endif
-              return 0;
-            }
+            return 0;
           }
         }
       } // end if video or audio packet
@@ -572,18 +570,18 @@ int RemoteCameraRtsp::CaptureAndRecord(Image &image, bool recording, char* event
 #else
       av_free_packet( &packet );
 #endif
-    } /* getFrame() */
-   
-    if(frameComplete)
-      return (0);
-  } // end while true
+    } // end while ! framecomplete and buffer.size()
+  if(frameComplete)
+    return (0);
+  } /* getFrame() */
 
-    // can never get here.
+} // end while true
+
+// can never get here.
   return (0) ;
 } // int RemoteCameraRtsp::CaptureAndRecord( Image &image, bool recording, char* event_file ) 
 
-int RemoteCameraRtsp::PostCapture()
-{
+int RemoteCameraRtsp::PostCapture() {
   return( 0 );
 }
 #endif // HAVE_LIBAVFORMAT

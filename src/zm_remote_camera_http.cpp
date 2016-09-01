@@ -192,6 +192,8 @@ int RemoteCameraHttp::ReadData( Buffer &buffer, int bytes_expected )
 
     if ( total_bytes_to_read == 0 )
     {
+      if( mode == SINGLE_IMAGE )
+		  return( 0 );
       // If socket is closed locally, then select will fail, but if it is closed remotely
       // then we have an exception on our socket.. but no data.
       Debug( 3, "Socket closed remotely" );

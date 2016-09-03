@@ -12,7 +12,7 @@ class ZonesController extends AppController {
  *      
  * @var array
  */     
-        public $components = array('RequestHandler');
+public $components = array('RequestHandler');
 
 public function beforeFilter() {
         parent::beforeFilter();
@@ -23,6 +23,22 @@ public function beforeFilter() {
                 return;
         }
 
+}
+
+// Find all zones which belong to a MonitorId
+public function forMonitor($id = null) {
+	$this->loadModel('Monitor');
+	if (!$this->Monitor->exists($id)) {
+		throw new NotFoundException(__('Invalid monitor'));
+	}
+	$this->Zone->recursive = -1;
+	$zones = $this->Zone->find('all', array(
+		'conditions' => array('MonitorId' => $id)
+	));
+	$this->set(array(
+		'zones' => $zones,
+		'_serialize' => array('zones')
+	));
 }
 public function index() {
 	$this->Zone->recursive = -1;

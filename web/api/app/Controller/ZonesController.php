@@ -7,23 +7,41 @@ App::uses('AppController', 'Controller');
  */
 class ZonesController extends AppController {
 
-// Find all zones which belong to a MonitorId
-	public function forMonitor($id = null) {
-		$this->loadModel('Monitor');
-		if (!$this->Monitor->exists($id)) {
-			throw new NotFoundException(__('Invalid monitor'));
-		}
+/**
+ * Components
+ *      
+ * @var array
+ */     
+        public $components = array('RequestHandler');
 
-		$this->Zone->recursive = -1;
+public function beforeFilter() {
+        parent::beforeFilter();
+        $canView = $this->Session->Read('monitorPermission');
+        if ($canView =='None')
+        {
+                throw new UnauthorizedException(__('Insufficient Privileges'));
+                return;
+        }
 
-		$zones = $this->Zone->find('all', array(
-			'conditions' => array('MonitorId' => $id)
-		));
-		$this->set(array(
-			'zones' => $zones,
-			'_serialize' => array('zones')
-		));
+}
+public function index() {
+	$this->Zone->recursive = -1;
+	
+	$allowedMonitors=preg_split ('@,@', $this->Session->Read('allowedMonitors'),NULL, PREG_SPLIT_NO_EMPTY);
+	if (!empty($allowedMonitors))
+	{
+		$mon_options = array('Zones.MonitorId' => $allowedMonitors);
 	}
+	else
+	{
+		$mon_options='';
+	}
+	$zones = $this->Zone->find('all',$mon_options);
+        	$this->set(array(
+        	    'zones' => $zones,
+        	    '_serialize' => array('zones')
+        	));
+}
 /**
  * add method
  *

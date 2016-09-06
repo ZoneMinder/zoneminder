@@ -472,11 +472,15 @@ int FfmpegCamera::CloseFfmpeg(){
   }
 #endif
 
-  if (mVideoCodecContext)
-{
+  if (mVideoCodecContext) {
     avcodec_close(mVideoCodecContext);
     mVideoCodecContext = NULL; // Freed by av_close_input_file
   }
+  if (mAudioCodecContext) {
+    avcodec_close(mAudioCodecContext);
+    mAudioCodecContext = NULL; // Freed by av_close_input_file
+  }
+
   if ( mFormatContext )
   {
 #if !LIBAVFORMAT_VERSION_CHECK(53, 17, 0, 25, 0)
@@ -657,7 +661,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
 #if LIBAVCODEC_VERSION_CHECK(52, 23, 0, 23, 0)
       if (avcodec_decode_video2(mVideoCodecContext, mRawFrame, &frameComplete, &packet) < 0)
 #else
-      if ( avcodec_decode_video( mCodecContext, mRawFrame, &frameComplete, packet.data, packet.size ) < 0 )
+      if (avcodec_decode_video(mVideoCodecContext, mRawFrame, &frameComplete, packet.data, packet.size) < 0)
 #endif
         Fatal( "Unable to decode frame at frame %d", frameCount );
 

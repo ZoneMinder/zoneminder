@@ -45,8 +45,10 @@ class FfmpegCamera : public Camera
     AVFormatContext     *mFormatContext;
     int                 mVideoStreamId;
     int                 mAudioStreamId;
-    AVCodecContext      *mCodecContext;
-    AVCodec             *mCodec;
+    AVCodecContext      *mVideoCodecContext;
+    AVCodecContext      *mAudioCodecContext;
+    AVCodec             *mVideoCodec;
+    AVCodec             *mAudioCodec;
     AVFrame             *mRawFrame; 
     AVFrame             *mFrame;
     _AVPIXELFORMAT         imagePixFormat;

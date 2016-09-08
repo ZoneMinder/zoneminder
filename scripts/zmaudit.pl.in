@@ -56,7 +56,7 @@ use bytes;
 #
 # ==========================================================================
 
-use constant RECOVER_TAG => "(r)"; # Tag to append to event name when recovered
+use constant RECOVER_TAG => '(r)'; # Tag to append to event name when recovered
 use constant RECOVER_TEXT => "Recovered."; # Text to append to event notes when recovered
 
 # ==========================================================================
@@ -105,8 +105,7 @@ if ( $version ) {
     print( ZoneMinder::Base::ZM_VERSION . "\n");
     exit(0);
 }
-if ( ($report + $interactive + $continuous) > 1 )
-{
+if ( ($report + $interactive + $continuous) > 1 ) {
     print( STDERR "Error, only one option may be specified\n" );
     pod2usage(-exitstatus => -1);
 }
@@ -129,13 +128,13 @@ MAIN: while( $loop ) {
     $dbh = zmDbConnect();
 
     if ( $continuous ) {
-      Error("Unable to connect to database");
+      Error('Unable to connect to database');
 # if we are running continuously, then just skip to the next
 # interval, otherwise we are a one off run, so wait a second and
 # retry until someone kills us.
       sleep( $Config{ZM_AUDIT_CHECK_INTERVAL} );
     } else {
-      Fatal("Unable to connect to database");
+      Fatal('Unable to connect to database');
     } # end if
   } # end while can't connect to the db
 
@@ -154,12 +153,12 @@ MAIN: while( $loop ) {
 
   my %Monitors;
   my $db_monitors;
-  my $monitorSelectSql = "select * from Monitors order by Id";
+  my $monitorSelectSql = 'select * from Monitors order by Id';
   my $monitorSelectSth = $dbh->prepare_cached( $monitorSelectSql )
     or Fatal( "Can't prepare '$monitorSelectSql': ".$dbh->errstr() );
 
-  my $eventSelectSql = "SELECT Id, (unix_timestamp() - unix_timestamp(StartTime)) as Age
-    FROM Events WHERE MonitorId = ? ORDER BY Id";
+  my $eventSelectSql = 'SELECT Id, (unix_timestamp() - unix_timestamp(StartTime)) as Age
+    FROM Events WHERE MonitorId = ? ORDER BY Id';
   my $eventSelectSth = $dbh->prepare_cached( $eventSelectSql )
     or Fatal( "Can't prepare '$eventSelectSql': ".$dbh->errstr() );
 
@@ -176,7 +175,7 @@ MAIN: while( $loop ) {
     while ( my $event = $eventSelectSth->fetchrow_hashref() ) {
       $db_events->{$event->{Id}} = $event->{Age};
     }
-    Debug( "Got ".int(keys(%$db_events))." events\n" );
+    Debug( 'Got '.int(keys(%$db_events))." events\n" );
   }
 
   my $fs_monitors;
@@ -185,11 +184,14 @@ MAIN: while( $loop ) {
       ZoneMinder::Storage->find( ($Config{ZM_SERVER_ID} ? ( ServerId => $Config{ZM_SERVER_ID} ) : () ) ),
       new ZoneMinder::Storage(),
       ) {
-    Debug("Checking events in " . $Storage->Path() );
-    chdir( $Storage->Path() );
+    Debug('Checking events in ' . $Storage->Path() );
+    if ( ! chdir( $Storage->Path() ) ) {
+      Error( 'Unable to change dir to ' . $Storage->Path() );
+      next;
+    } # end if
 
     # Please note that this glob will take all files beginning with a digit. 
-    foreach my $monitor ( glob("[0-9]*") ) {
+    foreach my $monitor ( glob('[0-9]*') ) {
       next if $monitor =~ /\D/;
 
       Debug( "Found filesystem monitor '$monitor'" );
@@ -207,7 +209,7 @@ MAIN: while( $loop ) {
             Error( "Can't chdir to '$$Storage{Path}/$monitor_dir/$day_dir': $!" );
             next;
           }
-          if ( ! opendir( DIR, "." ) ) {
+          if ( ! opendir( DIR, '.' ) ) {
             Error( "Can't open directory $$Storage{Path}/$monitor_dir/'$day_dir': $!" );
             next;
           }
@@ -263,7 +265,7 @@ MAIN: while( $loop ) {
         } # end foreach event
         chdir( $Storage->Path() );
       } # if USE_DEEP_STORAGE
-      Debug( "Got ".int(keys(%$fs_events))." events for monitor $monitor_dir\n" );
+      Debug( 'Got '.int(keys(%$fs_events))." events for monitor $monitor_dir\n" );
 
       delete_empty_directories(  $monitor_dir );
     } # end foreach monitor
@@ -303,7 +305,7 @@ MAIN: while( $loop ) {
     } # end foreach monitor/filesystem events
 
     my $monitor_links;
-    foreach my $link ( glob("*") ) {
+    foreach my $link ( glob('*') ) {
       next if ( !-l $link );
       next if ( -e $link );
 
@@ -319,16 +321,16 @@ MAIN: while( $loop ) {
   redo MAIN if ( $cleaned );
 
   $cleaned = 0;
-  my $deleteMonitorSql = "delete low_priority from Monitors where Id = ?";
+  my $deleteMonitorSql = 'delete low_priority from Monitors where Id = ?';
   my $deleteMonitorSth = $dbh->prepare_cached( $deleteMonitorSql )
     or Fatal( "Can't prepare '$deleteMonitorSql': ".$dbh->errstr() );
-  my $deleteEventSql = "delete low_priority from Events where Id = ?";
+  my $deleteEventSql = 'delete low_priority from Events where Id = ?';
   my $deleteEventSth = $dbh->prepare_cached( $deleteEventSql )
     or Fatal( "Can't prepare '$deleteEventSql': ".$dbh->errstr() );
-  my $deleteFramesSql = "delete low_priority from Frames where EventId = ?";
+  my $deleteFramesSql = 'delete low_priority from Frames where EventId = ?';
   my $deleteFramesSth = $dbh->prepare_cached( $deleteFramesSql )
     or Fatal( "Can't prepare '$deleteFramesSql': ".$dbh->errstr() );
-  my $deleteStatsSql = "delete low_priority from Stats where EventId = ?";
+  my $deleteStatsSql = 'delete low_priority from Stats where EventId = ?';
   my $deleteStatsSth = $dbh->prepare_cached( $deleteStatsSql )
     or Fatal( "Can't prepare '$deleteStatsSql': ".$dbh->errstr() );
 
@@ -349,10 +351,10 @@ Debug("Event $db_event is not in fs.");
             next;
           } 
           if ( $Event->check_for_in_filesystem() ) {
-            Debug("Database events apparent exists at " . $Event->Path() );
+            Debug('Database events apparent exists at ' . $Event->Path() );
           } else {
             if ( $age > $Config{ZM_AUDIT_MIN_AGE} ) {
-              aud_print( "Database event '$db_monitor/$db_event' does not exist at " . $Event->Path()." in filesystem" );
+              aud_print( "Database event '$db_monitor/$db_event' does not exist at " . $Event->Path().' in filesystem' );
               if ( confirm() ) {
                 $Event->delete();
                 $cleaned = 1;
@@ -368,7 +370,7 @@ Debug("Event $db_event is not in fs.");
     } else {
       my $Monitor = new ZoneMinder::Monitor( $db_monitor );
       my $Storage = $Monitor->Storage();
-      aud_print( "Database monitor '$db_monitor' does not exist in filesystem, should have been at ".$Storage->Path()."\n" );
+      aud_print( "Database monitor '$db_monitor' does not exist in filesystem, should have been at ".$Storage->Path().'/'.$Monitor->Id()."\n" );
 #if ( confirm() )
 #{
 # We don't actually do this in case it's new
@@ -383,9 +385,9 @@ Debug("Event $db_event is not in fs.");
 
 # Remove orphaned events (with no monitor)
   $cleaned = 0;
-  my $selectOrphanedEventsSql = "SELECT Events.Id, Events.Name
+  my $selectOrphanedEventsSql = 'SELECT Events.Id, Events.Name
     FROM Events LEFT JOIN Monitors ON (Events.MonitorId = Monitors.Id)
-    WHERE isnull(Monitors.Id)";
+    WHERE isnull(Monitors.Id)';
   my $selectOrphanedEventsSth = $dbh->prepare_cached( $selectOrphanedEventsSql )
     or Fatal( "Can't prepare '$selectOrphanedEventsSql': ".$dbh->errstr() );
   $res = $selectOrphanedEventsSth->execute()
@@ -403,8 +405,8 @@ Debug("Event $db_event is not in fs.");
 
 # Remove empty events (with no frames)
   $cleaned = 0;
-  my $selectEmptyEventsSql = "SELECT E.Id AS Id, E.StartTime, F.EventId FROM Events as E LEFT JOIN Frames as F ON (E.Id = F.EventId)
-    WHERE isnull(F.EventId) AND now() - interval ".$Config{ZM_AUDIT_MIN_AGE}." second > E.StartTime";
+  my $selectEmptyEventsSql = 'SELECT E.Id AS Id, E.StartTime, F.EventId FROM Events as E LEFT JOIN Frames as F ON (E.Id = F.EventId)
+    WHERE isnull(F.EventId) AND now() - interval '.$Config{ZM_AUDIT_MIN_AGE}.' second > E.StartTime';
   my $selectEmptyEventsSth = $dbh->prepare_cached( $selectEmptyEventsSql )
     or Fatal( "Can't prepare '$selectEmptyEventsSql': ".$dbh->errstr() );
   $res = $selectEmptyEventsSth->execute()
@@ -421,8 +423,8 @@ Debug("Event $db_event is not in fs.");
 
 # Remove orphaned frame records
   $cleaned = 0;
-  my $selectOrphanedFramesSql = "SELECT DISTINCT EventId FROM Frames
-    WHERE EventId NOT IN (SELECT Id FROM Events)";
+  my $selectOrphanedFramesSql = 'SELECT DISTINCT EventId FROM Frames
+    WHERE EventId NOT IN (SELECT Id FROM Events)';
   my $selectOrphanedFramesSth = $dbh->prepare_cached( $selectOrphanedFramesSql )
     or Fatal( "Can't prepare '$selectOrphanedFramesSql': ".$dbh->errstr() );
   $res = $selectOrphanedFramesSth->execute()
@@ -439,8 +441,8 @@ Debug("Event $db_event is not in fs.");
 
 # Remove orphaned stats records
   $cleaned = 0;
-  my $selectOrphanedStatsSql = "SELECT DISTINCT EventId FROM Stats
-    WHERE EventId NOT IN (SELECT Id FROM Events)";
+  my $selectOrphanedStatsSql = 'SELECT DISTINCT EventId FROM Stats
+    WHERE EventId NOT IN (SELECT Id FROM Events)';
   my $selectOrphanedStatsSth = $dbh->prepare_cached( $selectOrphanedStatsSql )
     or Fatal( "Can't prepare '$selectOrphanedStatsSql': ".$dbh->errstr() );
   $res = $selectOrphanedStatsSth->execute()
@@ -468,15 +470,15 @@ Debug("Event $db_event is not in fs.");
 #FROM Events as E
 #INNER JOIN Frames as F on E.Id = F.EventId
 #WHERE isnull(E.Frames) or isnull(E.EndTime)
-#GROUP BY E.Id HAVING EndTime < (now() - interval ".$Config{ZM_AUDIT_MIN_AGE}." second)"
+#GROUP BY E.Id HAVING EndTime < (now() - interval ".$Config{ZM_AUDIT_MIN_AGE}.' second)'
 #;
-    "SELECT *, unix_timestamp(StartTime) AS TimeStamp FROM Events WHERE EndTime IS NULL AND StartTime < (now() - interval ".$Config{ZM_AUDIT_MIN_AGE}." second)";
+    'SELECT *, unix_timestamp(StartTime) AS TimeStamp FROM Events WHERE EndTime IS NULL AND StartTime < (now() - interval '.$Config{ZM_AUDIT_MIN_AGE}.' second)';
 
-  my $selectFrameDataSql = "SELECT max(TimeStamp) as EndTime, unix_timestamp(max(TimeStamp)) AS EndTimeStamp, max(FrameId) as Frames,
+  my $selectFrameDataSql = 'SELECT max(TimeStamp) as EndTime, unix_timestamp(max(TimeStamp)) AS EndTimeStamp, max(FrameId) as Frames,
      count(if(Score>0,1,NULL)) as AlarmFrames,
      sum(Score) as TotScore,
      max(Score) as MaxScore
-       FROM Frames WHERE EventId=?";
+       FROM Frames WHERE EventId=?';
   my $selectFrameDataSth = $dbh->prepare_cached($selectFrameDataSql)
     or Fatal( "Can't prepare '$selectFrameDataSql': ".$dbh->errstr() );
 
@@ -507,7 +509,7 @@ Debug("Event $db_event is not in fs.");
       my $frame = $selectFrameDataSth->fetchrow_hashref();
       if ( $frame ) {
         $res = $updateUnclosedEventsSth->execute(
-           sprintf("%s%d%s",
+           sprintf('%s%d%s',
              $Monitors{$event->{MonitorId}}->{EventPrefix},
              $event->{Id},
              RECOVER_TAG
@@ -526,15 +528,15 @@ Debug("Event $db_event is not in fs.");
            $event->{Id}
           ) or Fatal( "Can't execute: ".$updateUnclosedEventsSth->errstr() );
       } else {
-        Error("SHOULD DELETE");
+        Error('SHOULD DELETE');
       } # end if has frame data
     }
   } # end while unclosed event
 
 # Now delete any old image files
   if ( my @old_files = grep { -M > $max_image_age } <$image_path/*.{jpg,gif,wbmp}> ) {
-    aud_print( "Deleting ".int(@old_files)." old images\n" );
-    my $untainted_old_files = join( ";", @old_files );
+    aud_print( 'Deleting '.int(@old_files)." old images\n" );
+    my $untainted_old_files = join( ';', @old_files );
     ( $untainted_old_files ) = ( $untainted_old_files =~ /^(.*)$/ );
     unlink( split( /;/, $untainted_old_files ) );
   }
@@ -547,7 +549,7 @@ Debug("Event $db_event is not in fs.");
   if ( $Config{ZM_LOG_DATABASE_LIMIT} ) {
     if ( $Config{ZM_LOG_DATABASE_LIMIT} =~ /^\d+$/ ) {
       # Number of rows
-      my $selectLogRowCountSql = "SELECT count(*) as Rows from Logs";
+      my $selectLogRowCountSql = 'SELECT count(*) as Rows from Logs';
       my $selectLogRowCountSth = $dbh->prepare_cached( $selectLogRowCountSql )
       or Fatal( "Can't prepare '$selectLogRowCountSql': ".$dbh->errstr() );
       $res = $selectLogRowCountSth->execute()
@@ -555,13 +557,13 @@ Debug("Event $db_event is not in fs.");
       my $row = $selectLogRowCountSth->fetchrow_hashref();
       my $logRows = $row->{Rows};
       if ( $logRows > $Config{ZM_LOG_DATABASE_LIMIT} ) {
-        my $deleteLogByRowsSql = "DELETE low_priority FROM Logs ORDER BY TimeKey ASC LIMIT ?";
+        my $deleteLogByRowsSql = 'DELETE low_priority FROM Logs ORDER BY TimeKey ASC LIMIT ?';
         my $deleteLogByRowsSth = $dbh->prepare_cached( $deleteLogByRowsSql )
         or Fatal( "Can't prepare '$deleteLogByRowsSql': ".$dbh->errstr() );
         $res = $deleteLogByRowsSth->execute( $logRows - $Config{ZM_LOG_DATABASE_LIMIT} )
         or Fatal( "Can't execute: ".$deleteLogByRowsSth->errstr() );
         if ( $deleteLogByRowsSth->rows() ) {
-          aud_print( "Deleted ".$deleteLogByRowsSth->rows()
+          aud_print( 'Deleted '.$deleteLogByRowsSth->rows()
             ." log table entries by count\n" );
         }
       }
@@ -569,13 +571,13 @@ Debug("Event $db_event is not in fs.");
       # Time of record
       my $deleteLogByTimeSql =
       "DELETE low_priority FROM Logs
-      WHERE TimeKey < unix_timestamp(now() - interval ".$Config{ZM_LOG_DATABASE_LIMIT}.")";
+      WHERE TimeKey < unix_timestamp(now() - interval ".$Config{ZM_LOG_DATABASE_LIMIT}.')';
       my $deleteLogByTimeSth = $dbh->prepare_cached( $deleteLogByTimeSql )
       or Fatal( "Can't prepare '$deleteLogByTimeSql': ".$dbh->errstr() );
       $res = $deleteLogByTimeSth->execute()
       or Fatal( "Can't execute: ".$deleteLogByTimeSth->errstr() );
       if ( $deleteLogByTimeSth->rows() ){
-        aud_print( "Deleted ".$deleteLogByTimeSth->rows()
+        aud_print( 'Deleted '.$deleteLogByTimeSth->rows()
           ." log table entries by time\n" );
       }
     }
@@ -597,8 +599,8 @@ sub aud_print {
 }
 
 sub confirm {
-  my $prompt = shift || "delete";
-  my $action = shift || "deleting";
+  my $prompt = shift || 'delete';
+  my $action = shift || 'deleting';
 
   my $yesno = 0;
   if ( $report ) {

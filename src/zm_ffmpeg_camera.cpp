@@ -222,11 +222,7 @@ int FfmpegCamera::Capture( Image &image )
     } else {
       Debug( 4, "Different stream_index %d", packet.stream_index );
     } // end if packet.stream_index == mVideoStreamId
-#if LIBAVCODEC_VERSION_CHECK(57, 8, 0, 12, 100)
-    av_packet_unref( &packet);
-#else
-    av_free_packet( &packet );
-#endif
+    zm_av_unref_packet( &packet );
   } // end while ! frameComplete
   return (0);
 } // FfmpegCamera::Capture
@@ -550,8 +546,9 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
     mReopenThread = 0;
   }
 
-  AVPacket packet;
-  AVPacket queued_packet;
+  // We are now allocating dynamically because we need to queue these and may go out of scope.
+  AVPacket *packet = (AVPacket *)av_malloc(sizeof(AVPacket));
+  av_init_packet( packet);
 
   if (mVideoCodecContext->codec_id != AV_CODEC_ID_H264) {
     Error( "Input stream is not h264.  The stored event file may not be viewable in browser." );
@@ -559,7 +556,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
 
   int frameComplete = false;
   while ( !frameComplete ) {
-    int avResult = av_read_frame( mFormatContext, &packet );
+    int avResult = av_read_frame( mFormatContext, packet );
     if ( avResult < 0 ) {
       char errbuf[AV_ERROR_MAX_STRING_SIZE];
       av_strerror(avResult, errbuf, AV_ERROR_MAX_STRING_SIZE);
@@ -573,10 +570,10 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
           ReopenFfmpeg();
       }
 
-      Error( "Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, avResult, errbuf );
+      Error( "Unable to read packet from stream %d: error %d \"%s\".", packet->stream_index, avResult, errbuf );
       return( -1 );
     }
-    Debug( 5, "Got packet from stream %d", packet.stream_index );
+    Debug( 5, "Got packet from stream %d", packet->stream_index );
 
     //Video recording
     if ( recording ) {
@@ -584,7 +581,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
       // The directory we are recording to is no longer tied to the current event. 
       // Need to re-init the videostore with the correct directory and start recording again
       // for efficiency's sake, we should test for keyframe before we test for directory change...
-      if ( videoStore && (packet.flags & AV_PKT_FLAG_KEY) && (strcmp(oldDirectory, event_file) != 0 ) ) {
+      if ( videoStore && (packet->flags & AV_PKT_FLAG_KEY) && (strcmp(oldDirectory, event_file) != 0 ) ) {
         // don't open new videostore until we're on a key frame..would this require an offset adjustment for the event as a result?...
         // if we store our key frame location with the event will that be enough?
         Info("Re-starting video storage module");
@@ -624,21 +621,22 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
 
         // Need to write out all the frames from the last keyframe?
         unsigned int packet_count = 0;
-        while ( packetqueue.popPacket( &queued_packet ) ) {
+        AVPacket *queued_packet;
+        while ( ( queued_packet = packetqueue.popPacket() ) ) {
           packet_count += 1;
           //Write the packet to our video store
-          if ( queued_packet.stream_index == mVideoStreamId ) {
-            ret = videoStore->writeVideoFramePacket(&queued_packet, mFormatContext->streams[mVideoStreamId]);
-          } else if ( queued_packet.stream_index == mAudioStreamId ) {
+          if ( queued_packet->stream_index == mVideoStreamId ) {
+            ret = videoStore->writeVideoFramePacket( queued_packet, mFormatContext->streams[mVideoStreamId]);
+          } else if ( queued_packet->stream_index == mAudioStreamId ) {
             //ret = videoStore->writeAudioFramePacket(&queued_packet, mFormatContext->streams[mAudioStreamId]);
           } else {
-            Warning("Unknown stream id in queued packet (%d)", queued_packet.stream_index );
+            Warning("Unknown stream id in queued packet (%d)", queued_packet->stream_index );
             ret = -1;
           }
           if ( ret < 0 ) {
             //Less than zero and we skipped a frame
-            //av_free_packet( &queued_packet );
           }
+          zm_av_unref_packet( queued_packet );
         } // end while packets in the packetqueue
         Debug(2, "Wrote %d queued packets", packet_count );
       } // end if ! wasRecording
@@ -650,17 +648,17 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
       }
 
       //Buffer video packets
-      if ( packet.flags & AV_PKT_FLAG_KEY ) {
+      if ( packet->flags & AV_PKT_FLAG_KEY ) {
         packetqueue.clearQueue();
       }
-      packetqueue.queuePacket(&packet);
+      packetqueue.queuePacket(packet);
     } // end if
 
-    if ( packet.stream_index == mVideoStreamId ) {
+    if ( packet->stream_index == mVideoStreamId ) {
 #if LIBAVCODEC_VERSION_CHECK(52, 23, 0, 23, 0)
-      if (avcodec_decode_video2(mVideoCodecContext, mRawFrame, &frameComplete, &packet) < 0)
+      if (avcodec_decode_video2(mVideoCodecContext, mRawFrame, &frameComplete, packet) < 0)
 #else
-      if (avcodec_decode_video(mVideoCodecContext, mRawFrame, &frameComplete, packet.data, packet.size) < 0)
+      if (avcodec_decode_video(mVideoCodecContext, mRawFrame, &frameComplete, packet->data, packet->size) < 0)
 #endif
         Fatal( "Unable to decode frame at frame %d", frameCount );
 
@@ -673,18 +671,18 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
 
         /* Request a writeable buffer of the target image */
         directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
-        if( directbuffer == NULL ) {
+        if ( directbuffer == NULL ) {
           Error("Failed requesting writeable buffer for the captured image.");
-          av_free_packet( &packet );
+          zm_av_unref_packet( packet );
           return (-1);
         }
         avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height);
 
         if ( videoStore && recording ) {
           //Write the packet to our video store
-          int ret = videoStore->writeVideoFramePacket(&packet, mFormatContext->streams[mVideoStreamId]);//, &lastKeyframePkt);
+          int ret = videoStore->writeVideoFramePacket( packet, mFormatContext->streams[mVideoStreamId] );
           if ( ret < 0 ) { //Less than zero and we skipped a frame
-            av_free_packet( &packet );
+            zm_av_unref_packet( packet );
             return 0;
           }
         }
@@ -713,16 +711,16 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
       } else {
         Debug( 3, "Not framecomplete after av_read_frame" );
       } // end if frameComplete
-    } else if ( packet.stream_index == mAudioStreamId ) { //FIXME best way to copy all other streams
-      Debug( 4, "Audio stream index %d", packet.stream_index );
+    } else if ( packet->stream_index == mAudioStreamId ) { //FIXME best way to copy all other streams
+      Debug( 4, "Audio stream index %d", packet->stream_index );
       if ( videoStore ) {
         if ( record_audio ) {
-          Debug(3, "Recording audio packet streamindex(%d) packetstreamindex(%d)", mAudioStreamId, packet.stream_index );
+          Debug(3, "Recording audio packet streamindex(%d) packetstreamindex(%d)", mAudioStreamId, packet->stream_index );
           //Write the packet to our video store
           //FIXME no relevance of last key frame
-          int ret = videoStore->writeAudioFramePacket( &packet, mFormatContext->streams[packet.stream_index] );
+          int ret = videoStore->writeAudioFramePacket( packet, mFormatContext->streams[packet->stream_index] );
           if ( ret < 0 ) {//Less than zero and we skipped a frame
-            av_free_packet( &packet );
+            zm_av_unref_packet( packet );
             return 0;
           }
         } else {
@@ -731,12 +729,12 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
       }
     } else {
 #if LIBAVUTIL_VERSION_CHECK(54, 23, 0, 23, 0)
-      Debug( 3, "Some other stream index %d, %s", packet.stream_index, av_get_media_type_string( mFormatContext->streams[packet.stream_index]->codec->codec_type) );
+      Debug( 3, "Some other stream index %d, %s", packet->stream_index, av_get_media_type_string( mFormatContext->streams[packet->stream_index]->codec->codec_type) );
 #else
-      Debug( 3, "Some other stream index %d", packet.stream_index );
+      Debug( 3, "Some other stream index %d", packet->stream_index );
 #endif
     }
-    av_free_packet( &packet );
+    zm_av_unref_packet( packet );
   } // end while ! frameComplete
   return (frameCount);
 }

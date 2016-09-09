@@ -546,9 +546,6 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
     mReopenThread = 0;
   }
 
-  // We are now allocating dynamically because we need to queue these and may go out of scope.
-  AVPacket *packet = (AVPacket *)av_malloc(sizeof(AVPacket));
-  av_init_packet( packet);
 
   if (mVideoCodecContext->codec_id != AV_CODEC_ID_H264) {
     Error( "Input stream is not h264.  The stored event file may not be viewable in browser." );
@@ -556,6 +553,9 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
 
   int frameComplete = false;
   while ( !frameComplete ) {
+  // We are now allocating dynamically because we need to queue these and may go out of scope.
+  AVPacket *packet = (AVPacket *)av_malloc(sizeof(AVPacket));
+  av_init_packet( packet);
     int avResult = av_read_frame( mFormatContext, packet );
     if ( avResult < 0 ) {
       char errbuf[AV_ERROR_MAX_STRING_SIZE];
@@ -640,6 +640,13 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
         } // end while packets in the packetqueue
         Debug(2, "Wrote %d queued packets", packet_count );
       } // end if ! wasRecording
+
+      //Write the packet to our video store
+      int ret = videoStore->writeVideoFramePacket( packet, mFormatContext->streams[mVideoStreamId] );
+      if ( ret < 0 ) { //Less than zero and we skipped a frame
+        zm_av_unref_packet( packet );
+        return 0;
+      }
     } else {
       if ( videoStore ) {
         Info("Deleting videoStore instance");
@@ -677,15 +684,6 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
           return (-1);
         }
         avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height);
-
-        if ( videoStore && recording ) {
-          //Write the packet to our video store
-          int ret = videoStore->writeVideoFramePacket( packet, mFormatContext->streams[mVideoStreamId] );
-          if ( ret < 0 ) { //Less than zero and we skipped a frame
-            zm_av_unref_packet( packet );
-            return 0;
-          }
-        }
 
 #if HAVE_LIBSWSCALE
         if ( mConvertContext == NULL ) {

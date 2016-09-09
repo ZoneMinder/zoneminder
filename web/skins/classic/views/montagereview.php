@@ -250,7 +250,6 @@ input[type=range]::-ms-tooltip {
   <div id="page">
     <div id="header">
       <div id="headerButtons">
-        <a href="./"><?php echo translate('Console') ?></a>
         <a href="#" onclick="closeWindow();"><?php echo translate('Close') ?></a>
       </div>
       <h2><?php echo translate('Montage Review') ?></h2>

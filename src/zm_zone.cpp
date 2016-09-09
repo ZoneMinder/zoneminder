@@ -46,7 +46,7 @@ void Zone::Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_
 	min_blobs = p_min_blobs;
 	max_blobs = p_max_blobs;
 	overload_frames = p_overload_frames;
-        extend_alarm_frames = p_extend_alarm_frames;
+  extend_alarm_frames = p_extend_alarm_frames;
 
 	Debug( 1, "Initialised zone %d/%s - %d - %dx%d - Rgb:%06x, CM:%d, MnAT:%d, MxAT:%d, MnAP:%d, MxAP:%d, FB:%dx%d, MnFP:%d, MxFP:%d, MnBS:%d, MxBS:%d, MnB:%d, MxB:%d, OF: %d, AF: %d", id, label, type, polygon.Width(), polygon.Height(), alarm_rgb, check_method, min_pixel_threshold, max_pixel_threshold, min_alarm_pixels, max_alarm_pixels, filter_box.X(), filter_box.Y(), min_filter_pixels, max_filter_pixels, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs, overload_frames, extend_alarm_frames );
 
@@ -960,11 +960,12 @@ int Zone::Load( Monitor *monitor, Zone **&zones )
 	zones = new Zone *[n_zones];
 	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
 	{
+    zones[i] = NULL;
 		int col = 0;
 
 		int Id = atoi(dbrow[col++]);
 		const char *Name = dbrow[col++];
-		int Type = atoi(dbrow[col++]);
+		ZoneType Type = (ZoneType) atoi(dbrow[col++]);
 		const char *Units = dbrow[col++];
 		const char *Coords = dbrow[col++];
 		int AlarmRGB = dbrow[col]?atoi(dbrow[col]):0; col++;
@@ -991,14 +992,14 @@ int Zone::Load( Monitor *monitor, Zone **&zones )
 		Polygon polygon;
 		if ( !ParsePolygonString( Coords, polygon ) ) {
 			Error( "Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring", Coords, Id, Name, monitor->Name() );
-            continue;
-        }
+      continue;
+    }
 
 		if ( polygon.LoX() < 0 || polygon.HiX() >= (int)monitor->Width() 
            || polygon.LoY() < 0 || polygon.HiY() >= (int)monitor->Height() ) {
 			Error( "Zone %d/%s for monitor %s extends outside of image dimensions, (%d,%d), (%d,%d), ignoring", Id, Name, monitor->Name(), polygon.LoX(), polygon.LoY(), polygon.HiX(), polygon.HiY() );
-            continue;
-        }
+      continue;
+    }
 
 		if ( false && !strcmp( Units, "Percent" ) )
 		{
@@ -1010,20 +1011,15 @@ int Zone::Load( Monitor *monitor, Zone **&zones )
 			MaxBlobPixels = (MaxBlobPixels*polygon.Area())/100;
 		}
 
-		if ( atoi(dbrow[2]) == Zone::INACTIVE )
-		{
+		if ( Type == INACTIVE ) {
 			zones[i] = new Zone( monitor, Id, Name, polygon );
+		} else if ( Type == PRIVACY ) {
+      zones[i] = new Zone( monitor, Id, Name, Type, polygon );
+    } else {
+			zones[i] = new Zone( monitor, Id, Name, Type, polygon, AlarmRGB, (Zone::CheckMethod)CheckMethod, MinPixelThreshold, MaxPixelThreshold, MinAlarmPixels, MaxAlarmPixels, Coord( FilterX, FilterY ), MinFilterPixels, MaxFilterPixels, MinBlobPixels, MaxBlobPixels, MinBlobs, MaxBlobs, OverloadFrames, ExtendAlarmFrames );
 		}
-                else if ( atoi(dbrow[2]) == Zone::PRIVACY )
-                {
-                        zones[i] = new Zone( monitor, Id, Name, (Zone::ZoneType)Type, polygon );
-                }
-		{
-			zones[i] = new Zone( monitor, Id, Name, (Zone::ZoneType)Type, polygon, AlarmRGB, (Zone::CheckMethod)CheckMethod, MinPixelThreshold, MaxPixelThreshold, MinAlarmPixels, MaxAlarmPixels, Coord( FilterX, FilterY ), MinFilterPixels, MaxFilterPixels, MinBlobPixels, MaxBlobPixels, MinBlobs, MaxBlobs, OverloadFrames, ExtendAlarmFrames );
-		}
-	}
-	if ( mysql_errno( &dbconn ) )
-	{
+	} // end foreach row in zones table
+	if ( mysql_errno( &dbconn ) ) {
 		Error( "Can't fetch row: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}

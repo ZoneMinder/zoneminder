@@ -269,7 +269,7 @@ void VideoStore::dumpPacket( AVPacket *pkt ){
   Info("%s:%d:DEBUG: %s", __FILE__, __LINE__, b);
 }
 
-int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_video_stream){//, AVPacket *lastKeyframePkt){
+int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_video_stream){
 
   Debug(2, "writeVideoFrame");
   Debug(3, "before ost_tbcket starttime %d, timebase%d", startTime, video_stream->time_base );
@@ -279,7 +279,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_video_stre
   Debug(3, "before ost_tbcket starttime %d, ost_tbcket %d", startTime, ost_tb_start_time );
   Debug(2, "writeVideoFrame");
 
-  AVPacket opkt, safepkt;
+  AVPacket opkt;
   AVPicture pict;
 
   Debug(2, "writeVideoFrame init_packet");
@@ -321,7 +321,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_video_stre
     opkt.flags |= AV_PKT_FLAG_KEY;
   }
 
-  memcpy(&safepkt, &opkt, sizeof(AVPacket));
+  //memcpy(&safepkt, &opkt, sizeof(AVPacket));
 
   if ((opkt.data == NULL)||(opkt.size < 1)) {
     Warning("%s:%d: Mangled AVPacket: discarding frame", __FILE__, __LINE__ ); 
@@ -340,11 +340,11 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_video_stre
     if(ret<0){
       // There's nothing we can really do if the frame is rejected, just drop it and get on with the next
       Warning("%s:%d: Writing frame [av_interleaved_write_frame()] failed: %s(%d)  ", __FILE__, __LINE__,  av_make_error_string(ret).c_str(), (ret));
-      dumpPacket(&safepkt);
+      dumpPacket(&opkt);
     }
   }
 
-  av_free_packet(&opkt); 
+  zm_av_unref_packet(&opkt); 
 
   return 0;
 
@@ -418,6 +418,6 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt, AVStream *input_video_stre
     Fatal("Error encoding audio frame packet: %s\n", av_make_error_string(ret).c_str());
   }
   Debug(4,"Success writing audio frame" ); 
-  av_free_packet(&opkt);
+  zm_av_unref_packet(&opkt);
   return 0;
 }

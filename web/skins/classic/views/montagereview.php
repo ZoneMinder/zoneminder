@@ -239,7 +239,7 @@ foreach( dbFetchAll( $monitorsSql ) as $row )
 
 
 
-xhtmlHeaders(__FILE__, translate('montagereview') );
+xhtmlHeaders(__FILE__, translate('MontageReview') );
 ?>
 <style>
 input[type=range]::-ms-tooltip {
@@ -252,7 +252,7 @@ input[type=range]::-ms-tooltip {
       <div id="headerButtons">
         <a href="#" onclick="closeWindow();"><?php echo translate('Close') ?></a>
       </div>
-      <h2><?php echo translate('Montage Review') ?></h2>
+      <h2><?php echo translate('MontageReview') ?></h2>
     </div>
     <div id='ScaleDiv' style='display: inline-flex; border: 1px solid black;'>
         <label style='margin:5px;' for=scaleslider><?php echo translate('Scale')?></label>

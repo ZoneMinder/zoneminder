@@ -60,6 +60,7 @@ public:
 
   unsigned int getId() const { return( monitor_id ); }
   Monitor *getMonitor();
+  void  setMonitor( Monitor *p_monitor );
   SourceType Type() const { return( type ); }
   bool IsLocal() const { return( type == LOCAL_SRC ); }
   bool IsRemote() const { return( type == REMOTE_SRC ); }

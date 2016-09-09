@@ -55,3 +55,8 @@ Monitor *Camera::getMonitor() {
     monitor = Monitor::Load( monitor_id, false, Monitor::QUERY );
   return monitor;
 } 
+
+void Camera::setMonitor( Monitor *p_monitor ) {
+  monitor = p_monitor;
+  monitor_id = monitor->Id();
+}

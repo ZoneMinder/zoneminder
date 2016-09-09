@@ -18,6 +18,7 @@
 
 
 #include "zm_packetqueue.h"
+#include "zm_ffmpeg.h"
 
 #define VIDEO_QUEUESIZE 200
 #define AUDIO_QUEUESIZE 50
@@ -34,28 +35,34 @@ zm_packetqueue::~zm_packetqueue() {
 
 bool zm_packetqueue::queuePacket( AVPacket* packet ) {
     
-  AVPacket input_ref = { 0 };
-  if ( av_packet_ref(&input_ref, packet) < 0 ) {
-		return false;
-	}
-	pktQueue.push(*packet);
+  //AVPacket *input_ref = (AVPacket *)av_malloc(sizeof(AVPacket));
+  //if ( av_packet_ref( input_ref, packet ) < 0 ) {
+    //free(input_ref);
+		//return false;
+	//}
+	pktQueue.push( packet );
 
 	return true;
 }
 
-bool zm_packetqueue::popPacket( AVPacket* packet ) {
+AVPacket* zm_packetqueue::popPacket( ) {
 	if ( pktQueue.empty() ) {
-		return false;
+		return NULL;
 	}
 
-	*packet = pktQueue.front();
+	AVPacket *packet = pktQueue.front();
 	pktQueue.pop();
 
-	return true;
+	return packet;
 }
 
 void zm_packetqueue::clearQueue() {
+  AVPacket *packet = NULL;
 	while(!pktQueue.empty()) {
-		pktQueue.pop();
+  
+    packet = pktQueue.front();
+    pktQueue.pop();
+    // If we clear it, then no freeing gets done, whereas when we pop off, we assume that the packet was freed somewhere else.
+    zm_av_unref_packet( packet );
 	}
 }

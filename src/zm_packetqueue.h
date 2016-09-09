@@ -34,12 +34,12 @@ public:
     zm_packetqueue();
     virtual ~zm_packetqueue();
     bool queuePacket( AVPacket* packet );
-    bool popPacket( AVPacket* packet );
+    AVPacket * popPacket( );
     bool popVideoPacket(AVPacket* packet);
     bool popAudioPacket(AVPacket* packet);
     void clearQueue( );
 private:
-    std::queue<AVPacket>    pktQueue;
+    std::queue<AVPacket *>    pktQueue;
 
 };
 

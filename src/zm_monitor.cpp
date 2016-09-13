@@ -250,7 +250,7 @@ Monitor::Monitor(
   int p_orientation,
   unsigned int p_deinterlacing,
   int p_savejpegs,
-  int p_videowriter,
+  VideoWriter p_videowriter,
   std::string p_encoderparams,
   bool p_record_audio,
   const char *p_event_prefix,
@@ -289,7 +289,7 @@ Monitor::Monitor(
   orientation( (Orientation)p_orientation ),
   deinterlacing( p_deinterlacing ),
   savejpegspref( p_savejpegs ),
-  videowriterpref( p_videowriter ),
+  videowriter( p_videowriter ),
   encoderparams( p_encoderparams ),
   record_audio( p_record_audio ),
   label_coord( p_label_coord ),
@@ -1893,7 +1893,7 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
     unsigned int deinterlacing = atoi(dbrow[col]); col++;
 
     int savejpegs = atoi(dbrow[col]); col++;
-    int videowriter = atoi(dbrow[col]); col++;
+    VideoWriter videowriter = (VideoWriter)atoi(dbrow[col]); col++;
     std::string encoderparams = dbrow[col] ? dbrow[col] : ""; col++;
     bool record_audio = (*dbrow[col] != '0'); col++;
 
@@ -2064,7 +2064,7 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
     unsigned int deinterlacing = atoi(dbrow[col]); col++;
     bool rtsp_describe = (dbrow[col] && *dbrow[col] != '0'); col++;
     int savejpegs = atoi(dbrow[col]); col++;
-    int videowriter = atoi(dbrow[col]); col++;
+    VideoWriter videowriter = (VideoWriter)atoi(dbrow[col]); col++;
     std::string encoderparams = dbrow[col] ? dbrow[col] : ""; col++;
     bool record_audio = (*dbrow[col] != '0'); col++;
 
@@ -2243,7 +2243,7 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
     unsigned int deinterlacing = atoi(dbrow[col]); col++;
 
     int savejpegs = atoi(dbrow[col]); col++;
-    int videowriter = atoi(dbrow[col]); col++;
+    VideoWriter videowriter = (VideoWriter)atoi(dbrow[col]); col++;
     std::string encoderparams =  dbrow[col]; col++;
     bool record_audio = (*dbrow[col] != '0'); col++;
 
@@ -2397,7 +2397,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
     unsigned int deinterlacing = atoi(dbrow[col]); col++;
 
     int savejpegs = atoi(dbrow[col]); col++;
-    int videowriter = atoi(dbrow[col]); col++;
+    VideoWriter videowriter = (VideoWriter)atoi(dbrow[col]); col++;
     std::string encoderparams =  dbrow[col] ? dbrow[col] : ""; col++;
     bool record_audio = (*dbrow[col] != '0'); col++;
 
@@ -2568,7 +2568,7 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
   unsigned int deinterlacing = atoi(dbrow[col]); col++;
   bool rtsp_describe = (dbrow[col] && *dbrow[col] != '0'); col++;
   int savejpegs = atoi(dbrow[col]); col++;
-  int videowriter = atoi(dbrow[col]); col++;
+  VideoWriter videowriter = (VideoWriter)atoi(dbrow[col]); col++;
   std::string encoderparams =  dbrow[col] ? dbrow[col] : ""; col++;
   bool record_audio = (*dbrow[col] != '0'); col++;
 
@@ -2813,15 +2813,19 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
   return( monitor );
 }
 
-int Monitor::Capture()
-{
-  static int FirstCapture = 1;
+/* Returns 0 on success, even if no new images are available (transient error)
+ * Returns -1 on failure.
+ */
+int Monitor::Capture() {
+  static int FirstCapture = 1; // Used in de-interlacing to indicate whether this is the even or odd image
   int captureResult;
 
-  int index = image_count%image_buffer_count;
+  unsigned int index = image_count%image_buffer_count;
   Image* capture_image = image_buffer[index].image;
 
-  if ( (deinterlacing & 0xff) == 4) {
+  unsigned int deinterlacing_value = deinterlacing & 0xff;
+
+  if ( deinterlacing_value == 4) {
     if ( FirstCapture != 1 ) {
       /* Copy the next image into the shared memory */
       capture_image->CopyBuffer(*(next_buffer.image)); 
@@ -2830,20 +2834,21 @@ int Monitor::Capture()
     /* Capture a new next image */
     
     //Check if FFMPEG camera
-    if((GetOptVideoWriter() == 2) && camera->SupportsNativeVideo()){
+    // Icon: I don't think we can support de-interlacing on ffmpeg input.... most of the time it will be h264 or mpeg4
+    if(( videowriter == H264PASSTHROUGH ) && camera->SupportsNativeVideo()){
       captureResult = camera->CaptureAndRecord(*(next_buffer.image), video_store_data->recording, video_store_data->event_file);
     }else{
       captureResult = camera->Capture(*(next_buffer.image));
     }
 
     if ( FirstCapture ) {
-          FirstCapture = 0;
-          return 0;
-      }
+      FirstCapture = 0;
+      return 0;
+    }
 
   } else {
     //Check if FFMPEG camera
-    if((GetOptVideoWriter() == 2) && camera->SupportsNativeVideo()){
+    if ( (videowriter == H264PASSTHROUGH ) && camera->SupportsNativeVideo()){
       //Warning("ZMC: Recording: %d", video_store_data->recording);
       captureResult = camera->CaptureAndRecord(*capture_image, video_store_data->recording, video_store_data->event_file);
     }else{
@@ -2852,7 +2857,8 @@ int Monitor::Capture()
     }
   }
   
-  if((GetOptVideoWriter() == 2) && captureResult > 0){
+  // CaptureAndRecord returns # of frames captured I think
+  if ( ( videowriter == H264PASSTHROUGH ) && ( captureResult > 0 ) ) {
     //video_store_data->frameNumber = captureResult;
     captureResult = 0;
   }
@@ -2871,18 +2877,17 @@ int Monitor::Capture()
   if ( captureResult == 1 ) {
     
     /* Deinterlacing */
-    if ( (deinterlacing & 0xff) == 1 ) {
+    if ( deinterlacing_value == 1 ) {
       capture_image->Deinterlace_Discard();
-    } else if ( (deinterlacing & 0xff) == 2 ) {
+    } else if ( deinterlacing_value == 2 ) {
       capture_image->Deinterlace_Linear();
-    } else if ( (deinterlacing & 0xff) == 3 ) {
+    } else if ( deinterlacing_value == 3 ) {
       capture_image->Deinterlace_Blend();
-    } else if ( (deinterlacing & 0xff) == 4 ) {
+    } else if ( deinterlacing_value == 4 ) {
       capture_image->Deinterlace_4Field( next_buffer.image, (deinterlacing>>8)&0xff );
-    } else if ( (deinterlacing & 0xff) == 5 ) {
+    } else if ( deinterlacing_value == 5 ) {
       capture_image->Deinterlace_Blend_CustomRatio( (deinterlacing>>8)&0xff );
     }
-    
     
     if ( orientation != ROTATE_0 ) {
       switch ( orientation ) {
@@ -2903,17 +2908,13 @@ int Monitor::Capture()
         }
       }
     }
-  } // end if captureResults == 1
-
-  // if true? let's get rid of this.
-  if ( true ) {
 
     if ( capture_image->Size() > camera->ImageSize() ) {
       Error( "Captured image %d does not match expected size %d check width, height and colour depth",capture_image->Size(),camera->ImageSize() );
       return( -1 );
     }
 
-    if ( ((unsigned int)index == shared_data->last_read_index) && (function > MONITOR) ) {
+    if ( (index == shared_data->last_read_index) && (function > MONITOR) ) {
       Warning( "Buffer overrun at index %d, image %d, slow down capture, speed up analysis or increase ring buffer size", index, image_count );
       time_t now = time(0);
       double approxFps = double(image_buffer_count)/double(now-image_buffer[index].timestamp->tv_sec);
@@ -2946,6 +2947,7 @@ int Monitor::Capture()
       last_fps_time = now;
     }
 
+    // Icon: I'm not sure these should be here. They have nothing to do with capturing
     if ( shared_data->action & GET_SETTINGS ) {
       shared_data->brightness = camera->Brightness();
       shared_data->hue = camera->Hue();
@@ -2961,7 +2963,7 @@ int Monitor::Capture()
       shared_data->action &= ~SET_SETTINGS;
     }
     return( 0 );
-  }
+  } // end if captureResults == 1 which is success I think
   shared_data->signal = false;
   return( -1 );
 }

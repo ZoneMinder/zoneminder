@@ -3304,16 +3304,15 @@ void Monitor::TimestampImage( Image *ts_image, const struct timeval *ts_time ) c
   }
 }
 
-bool Monitor::closeEvent()
-{
-  video_store_data->recording = false;
-  if ( event )
+bool Monitor::closeEvent() {
+  if (event)
   {
     if ( function == RECORD || function == MOCORD )
     {
       gettimeofday( &(event->EndTime()), NULL );
     }
     delete event;
+    video_store_data->recording = false;
     event = 0;
     return( true );
   }

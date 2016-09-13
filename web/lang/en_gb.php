@@ -496,6 +496,7 @@ $SLANG = array(
     'MonitorProbe'          => 'Monitor Probe',
     'Monitors'              => 'Monitors',
     'Montage'               => 'Montage',
+    'MontageReview'         => 'Montage Review',
     'Month'                 => 'Month',
     'Move'                  => 'Move',
     'MtgDefault'            => 'Default',              // Added 2013.08.15.

@@ -455,17 +455,14 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
 
   if (st->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
     int fps = st->avg_frame_rate.den && st->avg_frame_rate.num;
-    int tbr = st->r_frame_rate.den && st->r_frame_rate.num;
     int tbn = st->time_base.den && st->time_base.num;
     int tbc = st->codec->time_base.den && st->codec->time_base.num;
 
-    if (fps || tbr || tbn || tbc)
+    if (fps || tbn || tbc)
       Debug(3, "\n" );
 
     if (fps)
-      zm_log_fps(av_q2d(st->avg_frame_rate), tbr || tbn || tbc ? "fps, " : "fps");
-    if (tbr)
-      zm_log_fps(av_q2d(st->r_frame_rate), tbn || tbc ? "tbr, " : "tbr");
+      zm_log_fps(av_q2d(st->avg_frame_rate), tbn || tbc ? "fps, " : "fps");
     if (tbn)
       zm_log_fps(1 / av_q2d(st->time_base), tbc ? "tbn, " : "tbn");
     if (tbc)

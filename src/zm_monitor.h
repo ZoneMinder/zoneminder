@@ -419,16 +419,16 @@ public:
   inline bool Exif() {
     return( embed_exif );
   }
-  Orientation getOrientation()const;
+  Orientation getOrientation() const;
 
   unsigned int Width() const { return width; }
   unsigned int Height() const { return height; }
   unsigned int Colours() const;
   unsigned int SubpixelOrder() const;
-
+    
   int GetOptSaveJPEGs() const { return( savejpegspref ); }
   int GetOptVideoWriter() const { return( videowriterpref ); }
-  const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return( &encoderparamsvec ); }    
+  const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return( &encoderparamsvec ); }
  
   State GetState() const;
   int GetImage( int index=-1, int scale=100 );

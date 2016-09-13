@@ -600,6 +600,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
                                           NULL,
                                           startTime,
                                           this->getMonitor()->getOrientation());
+
             } else {
               Debug(3, "Video module initiated with audio stream");
               videoStore = new VideoStore((const char *) event_file, "mp4",

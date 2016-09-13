@@ -6,6 +6,7 @@ notifications:
 branches:
   except:
     - modern
+cache: ccache
 addons:
   sauce_connect:
     username: "zoneminder"

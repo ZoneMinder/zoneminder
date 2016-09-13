@@ -35,8 +35,10 @@ static short *g_u_table;
 static short *b_u_table;
 __attribute__((aligned(16))) static const uint8_t movemask[16] = {0,4,8,12,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
 
-jpeg_compress_struct *Image::jpg_ccinfo[101] = { 0 };
-jpeg_decompress_struct *Image::jpg_dcinfo = 0;
+jpeg_compress_struct *Image::writejpg_ccinfo[101] = { 0 };
+jpeg_compress_struct *Image::encodejpg_ccinfo[101] = { 0 };
+jpeg_decompress_struct *Image::readjpg_dcinfo = 0;
+jpeg_decompress_struct *Image::decodejpg_dcinfo = 0;
 struct zm_error_mgr Image::jpg_err;
 
 /* Pointer to blend function. */
@@ -151,11 +153,17 @@ Image::~Image()
     delete[] b_u_table;
     initialised = false;
   }
-  if ( jpg_dcinfo )
+  if ( readjpg_dcinfo )
   {
-    jpeg_destroy_decompress( jpg_dcinfo );
-    delete jpg_dcinfo;
-    jpg_dcinfo = 0;
+    jpeg_destroy_decompress( readjpg_dcinfo );
+    delete readjpg_dcinfo;
+    readjpg_dcinfo = 0;
+  }
+  if ( decodejpg_dcinfo )
+  {
+    jpeg_destroy_decompress( decodejpg_dcinfo );
+    delete decodejpg_dcinfo;
+    decodejpg_dcinfo = 0;
   }
 }
 
@@ -316,7 +324,7 @@ uint8_t* Image::WriteBuffer(const unsigned int p_width, const unsigned int p_hei
   }
   
   if(!p_height || !p_width) {
-    Error("WriteBuffer called with invaid width or height: %d %d",p_width,p_height);
+    Error("WriteBuffer called with invalid width or height: %d %d",p_width,p_height);
     return NULL;
   }
   
@@ -653,11 +661,11 @@ bool Image::WriteRaw( const char *filename ) const
 bool Image::ReadJpeg( const char *filename, unsigned int p_colours, unsigned int p_subpixelorder)
 {
   unsigned int new_width, new_height, new_colours, new_subpixelorder;
-  struct jpeg_decompress_struct *cinfo = jpg_dcinfo;
+  struct jpeg_decompress_struct *cinfo = readjpg_dcinfo;
 
   if ( !cinfo )
   {
-    cinfo = jpg_dcinfo = new jpeg_decompress_struct;
+    cinfo = readjpg_dcinfo = new jpeg_decompress_struct;
     cinfo->err = jpeg_std_error( &jpg_err.pub );
     jpg_err.pub.error_exit = zm_jpeg_error_exit;
     jpg_err.pub.emit_message = zm_jpeg_emit_message;
@@ -814,11 +822,11 @@ bool Image::WriteJpeg( const char *filename, int quality_override, struct timeva
   }
   int quality = quality_override?quality_override:config.jpeg_file_quality;
 
-  struct jpeg_compress_struct *cinfo = jpg_ccinfo[quality];
+  struct jpeg_compress_struct *cinfo = writejpg_ccinfo[quality];
 
   if ( !cinfo )
   {
-    cinfo = jpg_ccinfo[quality] = new jpeg_compress_struct;
+    cinfo = writejpg_ccinfo[quality] = new jpeg_compress_struct;
     cinfo->err = jpeg_std_error( &jpg_err.pub );
     jpg_err.pub.error_exit = zm_jpeg_error_exit;
     jpg_err.pub.emit_message = zm_jpeg_emit_message;
@@ -945,11 +953,11 @@ bool Image::WriteJpeg( const char *filename, int quality_override, struct timeva
 bool Image::DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size, unsigned int p_colours, unsigned int p_subpixelorder)
 {
   unsigned int new_width, new_height, new_colours, new_subpixelorder;
-  struct jpeg_decompress_struct *cinfo = jpg_dcinfo;
+  struct jpeg_decompress_struct *cinfo = decodejpg_dcinfo;
 
   if ( !cinfo )
   {
-    cinfo = jpg_dcinfo = new jpeg_decompress_struct;
+    cinfo = decodejpg_dcinfo = new jpeg_decompress_struct;
     cinfo->err = jpeg_std_error( &jpg_err.pub );
     jpg_err.pub.error_exit = zm_jpeg_error_exit;
     jpg_err.pub.emit_message = zm_jpeg_emit_message;
@@ -1079,11 +1087,11 @@ bool Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_over
 
   int quality = quality_override?quality_override:config.jpeg_stream_quality;
 
-  struct jpeg_compress_struct *cinfo = jpg_ccinfo[quality];
+  struct jpeg_compress_struct *cinfo = encodejpg_ccinfo[quality];
 
   if ( !cinfo )
   {
-    cinfo = jpg_ccinfo[quality] = new jpeg_compress_struct;
+    cinfo = encodejpg_ccinfo[quality] = new jpeg_compress_struct;
     cinfo->err = jpeg_std_error( &jpg_err.pub );
     jpg_err.pub.error_exit = zm_jpeg_error_exit;
     jpg_err.pub.emit_message = zm_jpeg_emit_message;

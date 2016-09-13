@@ -70,7 +70,7 @@ class Frame {
   }
 
   public function getImageSrc( ) {
-    return ZM_BASE_URL.'/index.php?view=image&fid='.$this->{'Id'};
+    return $_SERVER['PHP_SELF'].'?view=image&fid='.$this->{'Id'};
   } // end function getImageSrc
 
 	public static function find( $parameters = array(), $limit = NULL ) {

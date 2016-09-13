@@ -75,6 +75,10 @@ $| = 1;
 
 $ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
+if ( $Config{ZM_LD_PRELOAD} ) {
+  Debug("Adding ENV{LD_PRELOAD} = $Config{ZM_LD_PRELOAD}");
+  $ENV{LD_PRELOAD} = $Config{ZM_LD_PRELOAD};
+}
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 my @daemons = (
@@ -88,7 +92,7 @@ my @daemons = (
     'zmwatch.pl',
     'zmupdate.pl',
     'zmtrack.pl',
-    'zmtelemetry.pl',
+    'zmtelemetry.pl'
 );
 
 my $command = shift @ARGV;
@@ -258,7 +262,7 @@ sub run
     killAll( 1 );
 
     socket( SERVER, PF_UNIX, SOCK_STREAM, 0 ) or Fatal( "Can't open socket: $!" );
-    unlink( main::SOCK_FILE ) or Error( "Unable to unlink " . main::SOCK_FILE );
+    unlink( main::SOCK_FILE ) or Error( "Unable to unlink " . main::SOCK_FILE .". Error message was: $!" ) if ( -e main::SOCK_FILE );
     bind( SERVER, $saddr ) or Fatal( "Can't bind to " . main::SOCK_FILE . ": $!" );
     listen( SERVER, SOMAXCONN ) or Fatal( "Can't listen: $!" );
 
@@ -370,8 +374,8 @@ sub run
         .strftime( '%y/%m/%d %H:%M:%S', localtime() )
         ."\n"
     );
-    unlink( main::SOCK_FILE );
-    unlink( ZM_PID );
+    unlink( main::SOCK_FILE ) or Error( "Unable to unlink " . main::SOCK_FILE .". Error message was: $!" ) if ( -e main::SOCK_FILE );
+    unlink( ZM_PID ) or Error( "Unable to unlink " . ZM_PID .". Error message was: $!" ) if ( -e ZM_PID );
     exit();
 }
 
@@ -756,8 +760,8 @@ sub shutdownAll
         .strftime( '%y/%m/%d %H:%M:%S', localtime() )
         ."\n"
     );
-    unlink( main::SOCK_FILE );
-    unlink( ZM_PID );
+    unlink( main::SOCK_FILE ) or Error( "Unable to unlink " . main::SOCK_FILE .". Error message was: $!" ) if ( -e main::SOCK_FILE );
+    unlink( ZM_PID ) or Error( "Unable to unlink " . ZM_PID .". Error message was: $!" ) if ( -e ZM_PID );
     close( CLIENT );
     close( SERVER );
     exit();

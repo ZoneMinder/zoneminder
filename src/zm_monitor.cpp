@@ -3304,16 +3304,15 @@ void Monitor::TimestampImage( Image *ts_image, const struct timeval *ts_time ) c
   }
 }
 
-bool Monitor::closeEvent()
-{
-  video_store_data->recording = false;
-  if ( event )
+bool Monitor::closeEvent() {
+  if (event)
   {
     if ( function == RECORD || function == MOCORD )
     {
       gettimeofday( &(event->EndTime()), NULL );
     }
     delete event;
+    video_store_data->recording = false;
     event = 0;
     return( true );
   }
@@ -4446,3 +4445,16 @@ void Monitor::SingleImageZip( int scale)
   fprintf( stdout, "Content-Type: image/x-rgbz\r\n\r\n" );
   fwrite( img_buffer, img_buffer_size, 1, stdout );
 }
+
+unsigned int Monitor::Colours() const { return( camera->Colours() ); }
+unsigned int Monitor::SubpixelOrder() const { return( camera->SubpixelOrder() ); }
+int Monitor::PrimeCapture() {
+  return( camera->PrimeCapture() );
+}
+int Monitor::PreCapture() {
+  return( camera->PreCapture() );
+}
+int Monitor::PostCapture() {
+  return( camera->PostCapture() );
+}
+Monitor::Orientation Monitor::getOrientation()const { return orientation; }

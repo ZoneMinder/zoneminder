@@ -20,8 +20,8 @@
 #include "zm.h"
 #include "zm_camera.h"
 
-Camera::Camera( int p_id, SourceType p_type, int p_width, int p_height, int p_colours, int p_subpixelorder, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio ) :
-    id( p_id ),
+Camera::Camera( unsigned int p_monitor_id, SourceType p_type, int p_width, int p_height, int p_colours, int p_subpixelorder, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio ) :
+    monitor_id( p_monitor_id ),
     type( p_type ),
     width( p_width),
     height( p_height ),
@@ -37,7 +37,7 @@ Camera::Camera( int p_id, SourceType p_type, int p_width, int p_height, int p_co
   pixels = width * height;
   imagesize = pixels * colours;
   
-  Debug(2,"New camera id: %d width: %d height: %d colours: %d subpixelorder: %d capture: %d",id,width,height,colours,subpixelorder,capture);
+  Debug(2,"New camera id: %d width: %d height: %d colours: %d subpixelorder: %d capture: %d",monitor_id,width,height,colours,subpixelorder,capture);
   
   /* Because many loops are unrolled and work on 16 colours/time or 4 pixels/time, we have to meet requirements */
   if((colours == ZM_COLOUR_GRAY8 || colours == ZM_COLOUR_RGB32) && (imagesize % 16) != 0) {
@@ -47,7 +47,11 @@ Camera::Camera( int p_id, SourceType p_type, int p_width, int p_height, int p_co
   }
 }
 
-Camera::~Camera()
-{
+Camera::~Camera() {
 }
 
+Monitor *Camera::getMonitor() {
+  if ( ! monitor )
+    monitor = Monitor::Load( monitor_id, false, Monitor::QUERY );
+  return monitor;
+} 

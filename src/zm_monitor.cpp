@@ -640,9 +640,10 @@ Monitor::~Monitor()
       privacy_bitmask = NULL;
     }
   if ( mem_ptr ) {
-    if ( event )
+    if ( event ) {
       Info( "%s: %03d - Closing event %d, shutting down", name, image_count, event->Id() );
-    closeEvent();
+      closeEvent();
+    }
 
     if ( (deinterlacing & 0xff) == 4)
     {

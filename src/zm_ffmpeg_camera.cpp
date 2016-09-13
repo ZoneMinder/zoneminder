@@ -602,6 +602,7 @@ Debug(5, "After av_read_frame (%d)", avResult );
                                           NULL,
                                           startTime,
                                           this->getMonitor()->getOrientation());
+
             } else {
               Debug(3, "Video module initiated with audio stream");
               videoStore = new VideoStore((const char *) event_file, "mp4",

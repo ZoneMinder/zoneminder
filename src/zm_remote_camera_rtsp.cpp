@@ -488,7 +488,11 @@ int RemoteCameraRtsp::CaptureAndRecord( Image &image, bool recording, char* even
           if ( recording && !wasRecording ) {
             //Instantiate the video storage module
 
-            videoStore = new VideoStore((const char *)event_file, "mp4", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime, this->getMonitor()->getOrientation() );
+            videoStore = new VideoStore((const char *)event_file, "mp4",
+                mFormatContext->streams[mVideoStreamId],
+                mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],
+                startTime,
+                this->getMonitor()->getOrientation() );
             wasRecording = true;
             strcpy(oldDirectory, event_file);
 
@@ -508,7 +512,11 @@ int RemoteCameraRtsp::CaptureAndRecord( Image &image, bool recording, char* even
               videoStore = NULL;
             }
 
-            videoStore = new VideoStore((const char *)event_file, "mp4", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime, this->getMonitor()->getOrientation() );
+            videoStore = new VideoStore((const char *)event_file, "mp4",
+                mFormatContext->streams[mVideoStreamId],
+                mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],
+                startTime,
+                this->getMonitor()->getOrientation() );
             strcpy( oldDirectory, event_file );
           }
 

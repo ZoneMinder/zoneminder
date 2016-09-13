@@ -654,7 +654,7 @@ sub deleteSwapImage {
 sub delete_empty_directories {
   my $DIR;
   if ( ! opendir( $DIR, $_[0] ) ) {
-    Error( "delete_empty_directories: Can't open directory '".getcwd()."$_[0]': $!" );
+    Error( "delete_empty_directories: Can't open directory '".getcwd()."/$_[0]': $!" );
     return;
   }
   my @contents = map { $_ eq '.' or $_ eq '..' ? () : $_ } readdir( $DIR );

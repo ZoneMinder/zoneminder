@@ -22,7 +22,9 @@ Build-Depends: debhelper (>= 9), dh-systemd, python-sphinx | python3-sphinx, apa
               ,libphp-serialization-perl
               ,libsys-mmap-perl [!hurd-any]
               ,libwww-perl
-              ,libdata-uuid-perl 
+              ,libdata-uuid-perl
+              ,libx264-dev
+              ,libmp4v2-dev
 # Unbundled (dh_linktree):
         ,libjs-jquery
         ,libjs-mootools
@@ -55,7 +57,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libio-socket-multicast-perl
         ,libdigest-sha-perl
         ,libsys-cpu-perl, libsys-meminfo-perl
-        ,libdata-uuid-perl 
+        ,libdata-uuid-perl
         ,mysql-client | virtual-mysql-client
         ,perl-modules
         ,php5-mysql | php-mysql, php5-gd | php-gd

@@ -547,7 +547,9 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
 
   int frameComplete = false;
   while ( !frameComplete ) {
+Debug(5, "Before av_read_frame");
     int avResult = av_read_frame( mFormatContext, &packet );
+Debug(5, "After av_read_frame (%d)", avResult );
     if ( avResult < 0 ) {
       char errbuf[AV_ERROR_MAX_STRING_SIZE];
       av_strerror(avResult, errbuf, AV_ERROR_MAX_STRING_SIZE);

@@ -22,15 +22,15 @@ if ( !canView( 'Events' ) ) {
   $view = "error";
   return;
 }
-$selectName = "filterName";
+$selectName = "filterId";
 $filterNames = array( ''=>translate('ChooseFilter') );
-foreach ( dbFetchAll( "select * from Filters order by Name" ) as $row ) {
-  $filterNames[$row['Name']] = $row['Name'];
+foreach ( dbFetchAll( "select * from Filters order by Id" ) as $row ) {
+  $filterNames[$row['Id']] = $row['Name'];
   if ( $row['Background'] )
-    $filterNames[$row['Name']] .= "*";
+    $filterNames[$row['Id']] .= "*";
   if ( $row['Concurrent'] )
-    $filterNames[$row['Name']] .= "&";
-  if ( !empty($_REQUEST['reload']) && isset($_REQUEST['filterName']) && $_REQUEST['filterName'] == $row['Name'] )
+    $filterNames[$row['Id']] .= "&";
+  if ( !empty($_REQUEST['reload']) && isset($_REQUEST['filterId']) && $_REQUEST['filterId'] == $row['Id'] )
     $dbFilter = $row;
 }
 
@@ -57,7 +57,7 @@ if ( isset( $_REQUEST['reload'] ) and ! $_REQUEST['reload'] ) {
   $dbFilter['AutoUpload'] = isset( $_REQUEST['AutoUpload'] );
   $dbFilter['AutoVideo'] = isset( $_REQUEST['AutoVideo'] );
   $dbFilter['AutoDelete'] = isset( $_REQUEST['AutoDelete'] );
-  $dbFilter['Name'] = $_REQUEST['filterName'];
+  $dbFilter['Name'] = $_REQUEST['filterId'];
 }
 
 $conjunctionTypes = array(

@@ -232,7 +232,7 @@ if ( !empty($action) ) {
       }
       if ( !empty($_REQUEST['fid']) )
       {
-        dbQuery( 'DELETE FROM Filters WHERE Name=?', array( $_REQUEST['fid'] ) );
+        dbQuery( 'DELETE FROM Filters WHERE Id=?', array( $_REQUEST['filterId'] ) );
         //$refreshParent = true;
       }
     }

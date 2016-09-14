@@ -24,7 +24,7 @@ if ( !canView( 'Events' ) ) {
 }
 $selectName = "filterId";
 $filterNames = array( ''=>translate('ChooseFilter') );
-foreach ( dbFetchAll( "select * from Filters order by Id" ) as $row ) {
+foreach ( dbFetchAll( "select * from Filters order by Name" ) as $row ) {
   $filterNames[$row['Id']] = $row['Name'];
   if ( $row['Background'] )
     $filterNames[$row['Id']] .= "*";
@@ -328,7 +328,7 @@ if ( ZM_OPT_MESSAGE ) {
           <input type="button" value="<?php echo translate('Save') ?>" onclick="saveFilter( this );"/>
 <?php } ?>
 <?php if ( canEdit( 'Events' ) && isset($dbFilter) && $dbFilter['Name'] ) { ?>
-          <input type="button" value="<?php echo translate('Delete') ?>" onclick="deleteFilter( this, '<?php echo $dbFilter['Name'] ?>' );"/>
+          <input type="button" value="<?php echo translate('Delete') ?>" onclick="deleteFilter( this, <?php echo $dbFilter['Id'] ?>, '<?php echo $dbFilter['Name'] ?>' );"/>
 <?php } ?>
           <input type="button" value="<?php echo translate('Reset') ?>" onclick="submitToFilter( this, 1 );"/>
         </div>

@@ -24,12 +24,12 @@ if ( !canEdit( 'Events' ) )
     return;
 }
 
-$selectName = "filterName";
-$newSelectName = "new".ucfirst($selectName);
-foreach ( dbFetchAll( "select * from Filters order by Name" ) as $row )
+$selectName = "filterId";
+$newSelectName = "newFilterName";
+foreach ( dbFetchAll( "select * from Filters order by Id" ) as $row )
 {
-    $filterNames[$row['Name']] = $row['Name'];
-    if ( $_REQUEST['filterName'] == $row['Name'] )
+    $filterNames[$row['Id']] = $row['Name'];
+    if ( $_REQUEST['filterId'] == $row['Id'] )
     {
         $filterData = $row;
     }

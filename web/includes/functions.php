@@ -1461,17 +1461,30 @@ function getLoad() {
 }
 
 function getDiskPercent() {
-  $total = disk_total_space(ZM_DIR_EVENTS);
-  if ( ! $total ) {
-    Error("disk_total_space returned false for " . ZM_DIR_EVENTS );
-    return 0;
+  if ( !empty(ZM_DIR_EVENTS) ) {
+    $total = disk_total_space(ZM_DIR_EVENTS);
+    if ( ! $total ) {
+      Error("disk_total_space returned false for " . ZM_DIR_EVENTS );
+      return 0;
+    }
+    $free = disk_free_space(ZM_DIR_EVENTS);
+    if ( ! $free ) {
+      Error("disk_free_space returned false for " . ZM_DIR_EVENTS );
+    }
+    $space = round(($total - $free) / $total * 100);
+    $spaceString = 'Default '.$space.'%';
   }
-  $free = disk_free_space(ZM_DIR_EVENTS);
-  if ( ! $free ) {
-    Error("disk_free_space returned false for " . ZM_DIR_EVENTS );
+  else {
+      $spaceString = '';
   }
-  $space = round(($total - $free) / $total * 100);
-  return( $space );
+  $storageAreas = dbFetchAll("select path, name from Storage order by Id");
+  foreach($storageAreas as $storagePath) {
+      $storageTotal = disk_total_space($storagePath['path']);
+      $storageFree = disk_free_space($storagePath['path']);
+      $storageSpace = round(($storageTotal - $storageFree) / $storageTotal * 100);
+      $spaceString .= ', '.$storagePath['name'].' '.$storageSpace;
+  }
+  return( $spaceString );
 }
 
 function getDiskBlocks() {

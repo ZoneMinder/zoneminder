@@ -96,26 +96,33 @@ while( 1 ) {
         Debug( "LastWriteTime is not defined." );
         next;
       }
+      Debug( "LastWriteTime is = $image_time." );
       if ( !$image_time ) {
-# We can't get the last capture time so can't be sure it's died.
-        Debug( "LastWriteTime is = $image_time." );
+				my $startup_time = zmGetStartupTime( $monitor );
+				if ( $now - $startup_time > $max_image_delay ) {
+					Info( "Restarting capture daemon for ".$monitor->{Name}.", no image since startup. Startup time was $startup_time - now $now > $max_image_delay\n" );
+					$restart = 1;
+				} else {
+# We can't get the last capture time so can't be sure it's died, it might just be starting up.
         next;
+				}
       }
-
-      my $max_image_delay = ( $monitor->{MaxFPS}
-          &&($monitor->{MaxFPS}>0)
-          &&($monitor->{MaxFPS}<1)
-          ) ? (3/$monitor->{MaxFPS})
-        : $Config{ZM_WATCH_MAX_DELAY}
-      ;
-      my $image_delay = $now-$image_time;
-      Debug( "Monitor $monitor->{Id} last captured $image_delay seconds ago, max is $max_image_delay\n" );
-      if ( $image_delay > $max_image_delay ) {
-        Info( "Restarting capture daemon for "
-            .$monitor->{Name}.", time since last capture $image_delay seconds ($now-$image_time)\n"
-            );
-        $restart = 1;
-      }
+			if ( ! $restart ) {
+				my $max_image_delay = ( $monitor->{MaxFPS}
+						&&($monitor->{MaxFPS}>0)
+						&&($monitor->{MaxFPS}<1)
+						) ? (3/$monitor->{MaxFPS})
+					: $Config{ZM_WATCH_MAX_DELAY}
+				;
+				my $image_delay = $now-$image_time;
+				Debug( "Monitor $monitor->{Id} last captured $image_delay seconds ago, max is $max_image_delay\n" );
+				if ( $image_delay > $max_image_delay ) {
+					Info( "Restarting capture daemon for "
+							.$monitor->{Name}.", time since last capture $image_delay seconds ($now-$image_time)\n"
+							);
+					$restart = 1;
+				}
+			} # end if ! restart 
     } else {
       Info( "Restarting capture daemon for ".$monitor->{Name}.", shared data not valid\n" );
       $restart = 1;

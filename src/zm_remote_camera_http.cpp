@@ -310,6 +310,7 @@ int RemoteCameraHttp::GetResponse()
             static RegExpr *content_type_expr = 0;
 
             while ( ! ( buffer_len = ReadData( buffer ) ) ) {
+							Debug(4, "Timeout waiting for REGEXP HEADER");
             }
             if ( buffer_len < 0 ) {
               Error( "Unable to read header data" );
@@ -483,6 +484,7 @@ int RemoteCameraHttp::GetResponse()
             {
               Debug( 3, "Unable to extract subheader from stream, retrying" );
               while ( ! ( buffer_len = ReadData( buffer ) ) ) {
+								Debug(4, "Timeout waiting to extract subheader");
               }
               if ( buffer_len < 0 ) {
                 Error( "Unable to extract subheader data" );
@@ -535,6 +537,7 @@ int RemoteCameraHttp::GetResponse()
               while ( !content_length )
               {
                 while ( ! ( buffer_len = ReadData( buffer ) ) ) {
+								Debug(4, "Timeout waiting for content");
                 }
                 if ( buffer_len < 0 ) {
                   Error( "Unable to read content" );
@@ -660,6 +663,7 @@ int RemoteCameraHttp::GetResponse()
         case HEADERCONT :
           {
             while ( ! ( buffer_len = ReadData( buffer ) ) ) {
+								Debug(4, "Timeout waiting for HEADERCONT");
             }
             if ( buffer_len < 0 ) {
               Error( "Unable to read header" );
@@ -1009,6 +1013,7 @@ int RemoteCameraHttp::GetResponse()
             {
               Debug( 3, "Unable to extract subheader from stream, retrying" );
               while ( ! ( buffer_len = ReadData( buffer ) ) ) {
+								Debug(4, "Timeout waiting to extra subheader non regexp");
               }
               if ( buffer_len < 0 ) {
                 Error( "Unable to read subheader" );
@@ -1059,6 +1064,7 @@ int RemoteCameraHttp::GetResponse()
               while ( (long)buffer.size() < content_length )
               {
                 //int buffer_len = ReadData( buffer, content_length-buffer.size() );
+								Debug(4, "getting mroe data");
                 if ( ReadData( buffer ) < 0 ) {
                   Error( "Unable to read content" );
                   return( -1 );
@@ -1071,6 +1077,7 @@ int RemoteCameraHttp::GetResponse()
               int content_pos = 0;
               while ( !content_length )
               {
+								Debug(4, "!content_length, ReadData");
                 buffer_len = ReadData( buffer );
                 if ( buffer_len < 0 )
                 {

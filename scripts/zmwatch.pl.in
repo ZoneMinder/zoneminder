@@ -99,8 +99,8 @@ while( 1 ) {
       Debug( "LastWriteTime is = $image_time." );
       if ( !$image_time ) {
 				my $startup_time = zmGetStartupTime( $monitor );
-				if ( $now - $startup_time > $max_image_delay ) {
-					Info( "Restarting capture daemon for ".$monitor->{Name}.", no image since startup. Startup time was $startup_time - now $now > $max_image_delay\n" );
+				if ( $now - $startup_time > $Config{ZM_WATCH_MAX_DELAY} ) {
+					Info( "Restarting capture daemon for ".$monitor->{Name}.", no image since startup. Startup time was $startup_time - now $now > $Config{ZM_WATCH_MAX_DELAY}\n" );
 					$restart = 1;
 				} else {
 # We can't get the last capture time so can't be sure it's died, it might just be starting up.

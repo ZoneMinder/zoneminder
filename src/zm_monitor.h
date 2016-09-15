@@ -220,12 +220,6 @@ class Monitor
       inline time_t getLastConnectTime() const {
         return( last_connect_time );
       }
-			inline time_t getStartupTime() const {
-				return( shared_data->startup_time );
-			}
-			inline void setStartupTime( time_t p_time ) {
-				shared_data->startup_time = p_time;
-			}
 
       bool connect();
       bool disconnect();
@@ -462,6 +456,12 @@ public:
   void ForceAlarmOff();
   void CancelForced();
   TriggerState GetTriggerState() const { return( (TriggerState)(trigger_data?trigger_data->trigger_state:TRIGGER_CANCEL )); }
+	inline time_t getStartupTime() const {
+		return( shared_data->startup_time );
+	}
+	inline void setStartupTime( time_t p_time ) {
+		shared_data->startup_time = p_time;
+	}
 
   void actionReload();
   void actionEnable();

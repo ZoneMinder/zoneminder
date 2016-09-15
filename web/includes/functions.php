@@ -1471,7 +1471,15 @@ function getDiskPercent() {
     Error("disk_free_space returned false for " . ZM_DIR_EVENTS );
   }
   $space = round(($total - $free) / $total * 100);
-  return( $space );
+  $spaceString = 'Default '.$space.'%';
+  $storageAreas = dbFetchAll("select path, name from Storage order by Id");
+  foreach($storageAreas as $storagePath) {
+      $storageTotal = disk_total_space($storagePath['path']);
+      $storageFree = disk_free_space($storagePath['path']);
+      $storageSpace = round(($storageTotal - $storageFree) / $storageTotal * 100);
+      $spaceString .= ', '.$storagePath['name'].' '.$storageSpace;
+  }
+  return( $spaceString );
 }
 
 function getDiskBlocks() {

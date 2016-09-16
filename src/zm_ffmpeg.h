@@ -328,5 +328,10 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
 #else
     #define zm_av_unref_packet( packet ) av_free_packet( packet ) 
 #endif
+#if LIBAVCODEC_VERSION_CHECK(52, 23, 0, 23, 0)
+      #define zm_avcodec_decode_video( context, rawFrame, frameComplete, packet ) avcodec_decode_video2( context, rawFrame, frameComplete, packet )
+#else
+      #define zm_avcodec_decode_video(context, rawFrame, frameComplete, packet ) avcodec_decode_video( context, rawFrame, frameComplete, packet->data, packet->size)
+#endif
 
 #endif // ZM_FFMPEG_H

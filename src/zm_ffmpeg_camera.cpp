@@ -532,6 +532,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
     return -1;
   }
   int ret;
+  static char errbuf[AV_ERROR_MAX_STRING_SIZE];
   
   // If the reopen thread has a value, but mCanCapture != 0, then we have just reopened the connection to the ffmpeg device, and we can clean up the thread.
   if (mReopenThread != 0) {
@@ -553,26 +554,25 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
 
   int frameComplete = false;
   while ( !frameComplete ) {
-  // We are now allocating dynamically because we need to queue these and may go out of scope.
-  AVPacket *packet = (AVPacket *)av_malloc(sizeof(AVPacket));
-  av_init_packet( packet);
+    // We are now allocating dynamically because we need to queue these and may go out of scope.
+    AVPacket *packet = (AVPacket *)av_malloc(sizeof(AVPacket));
+    av_init_packet( packet);
 Debug(5, "Before av_read_frame");
-    int avResult = av_read_frame( mFormatContext, packet );
-Debug(5, "After av_read_frame (%d)", avResult );
-    if ( avResult < 0 ) {
-      char errbuf[AV_ERROR_MAX_STRING_SIZE];
-      av_strerror(avResult, errbuf, AV_ERROR_MAX_STRING_SIZE);
+    ret = av_read_frame( mFormatContext, packet );
+Debug(5, "After av_read_frame (%d)", ret );
+    if ( ret < 0 ) {
+      av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
       if (
           // Check if EOF.
-          (avResult == AVERROR_EOF || (mFormatContext->pb && mFormatContext->pb->eof_reached)) ||
+          (ret == AVERROR_EOF || (mFormatContext->pb && mFormatContext->pb->eof_reached)) ||
           // Check for Connection failure.
-          (avResult == -110)
+          (ret == -110)
       ) {
           Info( "av_read_frame returned \"%s\". Reopening stream.", errbuf);
           ReopenFfmpeg();
       }
 
-      Error( "Unable to read packet from stream %d: error %d \"%s\".", packet->stream_index, avResult, errbuf );
+      Error( "Unable to read packet from stream %d: error %d \"%s\".", packet->stream_index, ret, errbuf );
       return( -1 );
     }
     Debug( 5, "Got packet from stream %d", packet->stream_index );
@@ -664,12 +664,13 @@ Debug(5, "After av_read_frame (%d)", avResult );
     } // end if
 
     if ( packet->stream_index == mVideoStreamId ) {
-#if LIBAVCODEC_VERSION_CHECK(52, 23, 0, 23, 0)
-      if (avcodec_decode_video2(mVideoCodecContext, mRawFrame, &frameComplete, packet) < 0)
-#else
-      if (avcodec_decode_video(mVideoCodecContext, mRawFrame, &frameComplete, packet->data, packet->size) < 0)
-#endif
-        Fatal( "Unable to decode frame at frame %d", frameCount );
+      ret = zm_avcodec_decode_video( mVideoCodecContext, mRawFrame, &frameComplete, packet );
+      if ( ret < 0 ) {
+        av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
+        Error( "Unable to decode frame at frame %d: %s, continuing", frameCount, errbuf );
+        zm_av_unref_packet( packet );
+        continue;
+      }
 
       Debug( 4, "Decoded video packet at frame %d", frameCount );
 

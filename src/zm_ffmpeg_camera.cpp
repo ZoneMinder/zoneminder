@@ -556,7 +556,9 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
   // We are now allocating dynamically because we need to queue these and may go out of scope.
   AVPacket *packet = (AVPacket *)av_malloc(sizeof(AVPacket));
   av_init_packet( packet);
+Debug(5, "Before av_read_frame");
     int avResult = av_read_frame( mFormatContext, packet );
+Debug(5, "After av_read_frame (%d)", avResult );
     if ( avResult < 0 ) {
       char errbuf[AV_ERROR_MAX_STRING_SIZE];
       av_strerror(avResult, errbuf, AV_ERROR_MAX_STRING_SIZE);

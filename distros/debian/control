@@ -11,7 +11,7 @@ Build-Depends: debhelper (>= 9), cmake
     , libavcodec-dev, libavformat-dev (>= 3:0.svn20090204), libswscale-dev (>= 3:0.svn20090204), libavutil-dev
     , libv4l-dev (>= 0.8.3)
     , libbz2-dev
-    , libav-tools
+    , ffmpeg | libav-tools
     , libnetpbm10-dev
     , libavdevice-dev
     , libvlccore-dev, libvlc-dev
@@ -42,7 +42,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
     , libsys-cpu-perl, libsys-meminfo-perl
     , libdata-uuid-perl
     , libpcre3
-    , libav-tools, libavdevice53
+    , ffmpeg | libav-tools, libavdevice53
     , rsyslog | system-log-daemon
     , netpbm , libjpeg8
     , zip

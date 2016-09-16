@@ -50,7 +50,7 @@ SET @s = (SELECT IF(
     AND column_name = 'StorageId'
     ) > 0,
 "SELECT 'Column StorageId exists in Events'",
-"ALTER TABLE Events ADD `StorageId` smallint(5) unsigned AFTER `MonitorId`"
+"ALTER TABLE Events ADD `StorageId` smallint(5) unsigned NOT NULL default 0 AFTER `MonitorId`"
 ));
 
 PREPARE stmt FROM @s;

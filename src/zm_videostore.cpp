@@ -392,16 +392,19 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt, AVStream *input_video_stre
 
   // Seems like it would be really weird for the codec type to NOT be audiu
   if (audio_stream->codec->codec_type == AVMEDIA_TYPE_AUDIO && ipkt->dts != AV_NOPTS_VALUE) {
-    Debug( 4, "code is audio, dts != AV_NOPTS_VALUE " );
     int duration = av_get_audio_frame_duration(input_video_stream->codec, ipkt->size);
-    if(!duration)
+    Debug( 4, "code is audio, dts != AV_NOPTS_VALUE got duration(%d)", duration );
+    if ( ! duration ) {
       duration = input_video_stream->codec->frame_size;
+      Warning( "got no duration from av_get_audio_frame_duration.  Using frame size(%d)", duration );
+    }
 
     //FIXME where to get filter_in_rescale_delta_last
     //FIXME av_rescale_delta doesn't exist in ubuntu vivid libavtools
     opkt.dts = opkt.pts = av_rescale_delta(input_video_stream->time_base, ipkt->dts,
         (AVRational){1, input_video_stream->codec->sample_rate}, duration, &filter_in_rescale_delta_last,
         audio_stream->time_base) - ost_tb_start_time;
+    Debug(4, "rescaled dts is: (%d)", opkt.dts );
   }
 
   opkt.duration = av_rescale_q(ipkt->duration, input_video_stream->time_base, audio_stream->time_base);

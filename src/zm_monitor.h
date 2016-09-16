@@ -88,6 +88,12 @@ class Monitor
     TAPE
   } State;
 
+  typedef enum {
+    DISABLED,
+    X264ENCODE,
+    H264PASSTHROUGH,
+  } VideoWriter;
+
   protected:
   typedef std::set<Zone *> ZoneSet;
 
@@ -174,15 +180,15 @@ class Monitor
       char      name[64];
 
       bool      connected;
-      time_t      last_connect_time;
+      time_t    last_connect_time;
 
 #if ZM_MEM_MAPPED
-      int        map_fd;
+      int       map_fd;
       char      mem_file[PATH_MAX];
 #else // ZM_MEM_MAPPED
-      int        shm_id;
+      int       shm_id;
 #endif // ZM_MEM_MAPPED
-      off_t      mem_size;
+      off_t     mem_size;
       unsigned char  *mem_ptr;
 
       volatile SharedData  *shared_data;
@@ -235,7 +241,7 @@ class Monitor
   unsigned int  deinterlacing;
 
   int savejpegspref;
-  int videowriterpref;
+  VideoWriter videowriter;
   std::string encoderparams;
   std::vector<EncoderParameter_t> encoderparamsvec;
   bool      record_audio;      // Whether to store the audio that we receive
@@ -328,6 +334,7 @@ class Monitor
 
 public:
   Monitor( int p_id );
+
 // OurCheckAlarms seems to be unused. Check it on zm_monitor.cpp for more info.
 //bool OurCheckAlarms( Zone *zone, const Image *pImage );
   Monitor( 
@@ -342,7 +349,7 @@ public:
     int p_orientation,
     unsigned int p_deinterlacing,
     int p_savejpegs,
-    int p_videowriter,
+    VideoWriter p_videowriter,
     std::string p_encoderparams,
     bool  p_record_audio,
     const char *p_event_prefix,
@@ -426,8 +433,8 @@ public:
   unsigned int SubpixelOrder() const;
     
   int GetOptSaveJPEGs() const { return( savejpegspref ); }
-  int GetOptVideoWriter() const { return( videowriterpref ); }
-  const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return( &encoderparamsvec ); }
+  VideoWriter GetOptVideoWriter() const { return( videowriter ); }
+  const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return( &encoderparamsvec ); }    
  
   State GetState() const;
   int GetImage( int index=-1, int scale=100 );

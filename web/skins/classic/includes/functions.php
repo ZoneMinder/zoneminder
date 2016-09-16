@@ -79,8 +79,8 @@ function xhtmlHeaders( $file, $title )
   <script type="text/javascript" src="js/mootools.ext.js"></script>
 <?php if ( !in_array($basename, $bad_views) ) { ?>
   <!--<script type="text/javascript" src="js/overlay.js"></script>-->
-  <script type="text/javascript" src="/skins/<?php echo $skin; ?>/js/jquery-1.11.3.js"></script>
-  <script type="text/javascript" src="/skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
+  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery-1.11.3.js"></script>
+  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
   <script type="text/javascript">
   //<![CDATA[
   <!--
@@ -91,7 +91,7 @@ var $j = jQuery.noConflict();
   //-->
   //]]>
 </script>
-  <script type="text/javascript" src="/skins/<?php echo $skin; ?>/views/js/state.js"></script>
+  <script type="text/javascript" src="skins/<?php echo $skin; ?>/views/js/state.js"></script>
 <?php } ?>
 <?php if ( $title == 'Login' && (defined('ZM_OPT_USE_GOOG_RECAPTCHA') && ZM_OPT_USE_GOOG_RECAPTCHA) ) { ?>
   <script src='https://www.google.com/recaptcha/api.js'></script>
@@ -249,7 +249,7 @@ function getNavBarHTML() {
   </div>
   <ul class="list-inline">
 	  <li><?php echo translate('Load') ?>: <?php echo getLoad() ?></li>
-	  <li><?php echo translate('Disk') ?>: <?php echo getDiskPercent() ?>%</li>
+	  <li><?php echo translate('Storage') ?>: <?php echo getDiskPercent() ?>%</li>
   </ul>
 </div> <!-- End .footer -->
 

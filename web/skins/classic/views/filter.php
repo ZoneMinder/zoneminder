@@ -22,15 +22,15 @@ if ( !canView( 'Events' ) ) {
   $view = "error";
   return;
 }
-$selectName = "filterName";
+$selectName = "filterId";
 $filterNames = array( ''=>translate('ChooseFilter') );
 foreach ( dbFetchAll( "select * from Filters order by Name" ) as $row ) {
-  $filterNames[$row['Name']] = $row['Name'];
+  $filterNames[$row['Id']] = $row['Name'];
   if ( $row['Background'] )
-    $filterNames[$row['Name']] .= "*";
+    $filterNames[$row['Id']] .= "*";
   if ( $row['Concurrent'] )
-    $filterNames[$row['Name']] .= "&";
-  if ( !empty($_REQUEST['reload']) && isset($_REQUEST['filterName']) && $_REQUEST['filterName'] == $row['Name'] )
+    $filterNames[$row['Id']] .= "&";
+  if ( !empty($_REQUEST['reload']) && isset($_REQUEST['filterId']) && $_REQUEST['filterId'] == $row['Id'] )
     $dbFilter = $row;
 }
 
@@ -57,7 +57,7 @@ if ( isset( $_REQUEST['reload'] ) and ! $_REQUEST['reload'] ) {
   $dbFilter['AutoUpload'] = isset( $_REQUEST['AutoUpload'] );
   $dbFilter['AutoVideo'] = isset( $_REQUEST['AutoVideo'] );
   $dbFilter['AutoDelete'] = isset( $_REQUEST['AutoDelete'] );
-  $dbFilter['Name'] = $_REQUEST['filterName'];
+  $dbFilter['Name'] = $_REQUEST['filterId'];
 }
 
 $conjunctionTypes = array(
@@ -231,7 +231,7 @@ for ( $i = 0; isset($_REQUEST['filter']) && $i < count($_REQUEST['filter']['term
 <?php
         } elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "StorageId" ) {
             $storageareas = array();
-            $storageareas['NULL'] = 'Default ' . ZM_DIR_EVENTS;
+            $storageareas[0] = 'Default ' . ZM_DIR_EVENTS;
             foreach ( dbFetchAll( "SELECT Id,Name FROM Storage ORDER BY lower(Name) ASC" ) as $storage ) {
               $storageareas[$storage['Id']] = $storage['Name'];
             }
@@ -328,7 +328,7 @@ if ( ZM_OPT_MESSAGE ) {
           <input type="button" value="<?php echo translate('Save') ?>" onclick="saveFilter( this );"/>
 <?php } ?>
 <?php if ( canEdit( 'Events' ) && isset($dbFilter) && $dbFilter['Name'] ) { ?>
-          <input type="button" value="<?php echo translate('Delete') ?>" onclick="deleteFilter( this, '<?php echo $dbFilter['Name'] ?>' );"/>
+          <input type="button" value="<?php echo translate('Delete') ?>" onclick="deleteFilter( this, <?php echo $dbFilter['Id'] ?>, '<?php echo $dbFilter['Name'] ?>' );"/>
 <?php } ?>
           <input type="button" value="<?php echo translate('Reset') ?>" onclick="submitToFilter( this, 1 );"/>
         </div>

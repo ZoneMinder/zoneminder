@@ -139,16 +139,25 @@ if ( !empty($action) ) {
       {
         if ( !empty($_REQUEST['execute']) )
           $tempFilterName = "_TempFilter".time();
-        if ( isset($tempFilterName) )
+        if ( isset($tempFilterName) ) {
           $filterName = $tempFilterName;
-        elseif ( !empty($_REQUEST['newFilterName']) )
+        }
+        elseif ( !empty($_REQUEST['newFilterName']) ) {
           $filterName = $_REQUEST['newFilterName'];
-        if ( !empty($filterName) )
+          $sql = "replace into Filters set Name = ".dbEscape($filterName).",";
+          $endSql = '';
+        }
+        else {
+          $doUpdate = 1;
+          $sql = "update Filters set";
+          $endSql = "where Id = ".$_REQUEST['filterId'];
+        }
+        if ( !empty($filterName) || $doUpdate )
         {
           $_REQUEST['filter']['sort_field'] = validStr($_REQUEST['sort_field']);
           $_REQUEST['filter']['sort_asc'] = validStr($_REQUEST['sort_asc']);
           $_REQUEST['filter']['limit'] = validInt($_REQUEST['limit']);
-          $sql = "replace into Filters set Name = ".dbEscape($filterName).", Query = ".dbEscape(jsonEncode($_REQUEST['filter']));
+          $sql .= " Query = ".dbEscape(jsonEncode($_REQUEST['filter']));
           if ( !empty($_REQUEST['AutoArchive']) )
             $sql .= ", AutoArchive = ".dbEscape($_REQUEST['AutoArchive']);
           if ( !empty($_REQUEST['AutoVideo']) )
@@ -167,6 +176,7 @@ if ( !empty($action) ) {
             $sql .= ", Background = ".dbEscape($_REQUEST['background']);
           if ( !empty($_REQUEST['concurrent']) )
             $sql .= ", Concurrent = ".dbEscape($_REQUEST['concurrent']);
+          $sql .= $endSql;
           dbQuery( $sql );
           $refreshParent = true;
         }
@@ -222,7 +232,7 @@ if ( !empty($action) ) {
       }
       if ( !empty($_REQUEST['fid']) )
       {
-        dbQuery( 'DELETE FROM Filters WHERE Name=?', array( $_REQUEST['fid'] ) );
+        dbQuery( 'DELETE FROM Filters WHERE Id=?', array( $_REQUEST['filterId'] ) );
         //$refreshParent = true;
       }
     }

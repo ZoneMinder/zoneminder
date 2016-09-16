@@ -128,14 +128,18 @@ class Monitor
      ** Shared memory layout should be identical for both 32bit and 64bit and is multiples of 16.
      */  
     union {                     /* +64   */
-      time_t last_write_time;
+      time_t startup_time;			/* When the zmc process started.  zmwatch uses this to see how long the process has been running without getting any images */
       uint64_t extrapad1;
     };
-    union {            /* +72   */
-      time_t last_read_time;
+    union {                     /* +72   */
+      time_t last_write_time;
       uint64_t extrapad2;
     };
-    uint8_t control_state[256];  /* +80   */
+    union {            /* +80   */
+      time_t last_read_time;
+      uint64_t extrapad3;
+    };
+    uint8_t control_state[256];  /* +88   */
 
   } SharedData;
 
@@ -452,6 +456,12 @@ public:
   void ForceAlarmOff();
   void CancelForced();
   TriggerState GetTriggerState() const { return( (TriggerState)(trigger_data?trigger_data->trigger_state:TRIGGER_CANCEL )); }
+	inline time_t getStartupTime() const {
+		return( shared_data->startup_time );
+	}
+	inline void setStartupTime( time_t p_time ) {
+		shared_data->startup_time = p_time;
+	}
 
   void actionReload();
   void actionEnable();

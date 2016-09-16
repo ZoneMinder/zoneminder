@@ -683,7 +683,7 @@ switch ( $tab )
         </td></tr>
         <tr><td><?php echo translate('StorageArea') ?></td><td>
         <?php
-        $storage_areas = array(''=>'Default');
+        $storage_areas = array(0=>'Default');
       $result = dbQuery( 'SELECT * FROM Storage ORDER BY Name');
       $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Storage' );
       foreach ( $results as $row => $storage_obj ) {

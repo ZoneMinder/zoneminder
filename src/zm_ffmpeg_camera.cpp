@@ -650,18 +650,19 @@ Debug(5, "After av_read_frame (%d)", ret );
         return 0;
       }
     } else {
+      // Not recording
       if ( videoStore ) {
         Info("Deleting videoStore instance");
         delete videoStore;
         videoStore = NULL;
       }
-
-      //Buffer video packets
-      if ( packet->flags & AV_PKT_FLAG_KEY ) {
-        packetqueue.clearQueue();
-      }
-      packetqueue.queuePacket(packet);
     } // end if
+
+    //Buffer video packets
+    if ( packet->flags & AV_PKT_FLAG_KEY ) {
+      packetqueue.clearQueue();
+    }
+    packetqueue.queuePacket(packet);
 
     if ( packet->stream_index == mVideoStreamId ) {
       ret = zm_avcodec_decode_video( mVideoCodecContext, mRawFrame, &frameComplete, packet );

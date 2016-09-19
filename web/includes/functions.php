@@ -1477,12 +1477,12 @@ function getDiskPercent() {
   else {
       $spaceString = '';
   }
-  $storageAreas = dbFetchAll("select path, name from Storage order by Id");
-  foreach($storageAreas as $storagePath) {
-      $storageTotal = disk_total_space($storagePath['path']);
-      $storageFree = disk_free_space($storagePath['path']);
+  $storageAreas = Storage::find_all();
+  foreach($storageAreas as $storageArea) {
+      $storageTotal = disk_total_space($storageArea->Path);
+      $storageFree = disk_free_space($storageArea->Path);
       $storageSpace = round(($storageTotal - $storageFree) / $storageTotal * 100);
-      $spaceString .= ', '.$storagePath['name'].' '.$storageSpace;
+      $spaceString .= ', '.$storageArea->Name.' '.$storageSpace.'%';
   }
   return( $spaceString );
 }

@@ -483,11 +483,9 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt, AVStream *input_audio_stre
   opkt.stream_index = ipkt->stream_index;
 
   if ( audio_output_codec ) {
-
-  
-
     AVFrame *input_frame;
     AVFrame *output_frame;
+    
   // Need to re-encode
 if ( 0 ) {
   //avcodec_send_packet( input_audio_stream->codec, ipkt);
@@ -498,7 +496,7 @@ if ( 0 ) {
 } else {
 
     /** Create a new frame to store the audio samples. */
-    if (!(input_frame = av_frame_alloc())) {
+    if (!(input_frame = zm_av_frame_alloc())) {
         Error("Could not allocate input frame");
         zm_av_unref_packet(&opkt);
         return 0;
@@ -523,14 +521,15 @@ if ( 0 ) {
     }
     if ( data_present ) {
 
-uint8_t **converted_input_samples = NULL;
+int frame_size = input_frame->nb_samples;
+uint8_t *converted_input_samples = NULL;
 
     /**
      * Allocate as many pointers as there are audio channels.
      * Each pointer will later point to the audio samples of the corresponding
      * channels (although it may be NULL for interleaved formats).
      */
-    if (!(converted_input_samples = calloc( audio_output_context->channels, sizeof(*converted_input_samples)))) {
+    if (!( converted_input_samples = (uint8_t *)calloc( audio_output_context->channels, sizeof(*converted_input_samples))) ) {
         Error( "Could not allocate converted input sample pointers\n");
         return 0;
     }
@@ -538,30 +537,30 @@ uint8_t **converted_input_samples = NULL;
      * Allocate memory for the samples of all channels in one consecutive
      * block for convenience.
      */
-    if ((ret = av_samples_alloc(converted_input_samples, NULL,
+    if ((ret = av_samples_alloc( &converted_input_samples, NULL,
                                   audio_output_context->channels,
                                   frame_size,
                                   audio_output_context->sample_fmt, 0)) < 0) {
 Error( "Could not allocate converted input samples (error '%s')\n",
 av_make_error_string(ret).c_str() );
                
-        av_freep(&(converted_input_samples)[0]);
-        free(*converted_input_samples);
+        av_freep(converted_input_samples);
+        free(converted_input_samples);
         return 0;
     }
 
-        if ((ret = av_audio_fifo_realloc(fifo, av_audio_fifo_size(fifo) + frame_size)) < 0) {
+    if ((ret = av_audio_fifo_realloc(fifo, av_audio_fifo_size(fifo) + frame_size)) < 0) {
         Error( "Could not reallocate FIFO\n");
         return 0;
     }
     /** Store the new samples in the FIFO buffer. */
-    if (av_audio_fifo_write(fifo, (void **)converted_input_samples, frame_size) < frame_size) {
+    if (av_audio_fifo_write(fifo, (void **)&converted_input_samples, frame_size) < frame_size) {
         Error( "Could not write data to FIFO\n");
         return 0;
     }
 
       /** Create a new frame to store the audio samples. */
-      if (!(output_frame = av_frame_alloc())) {
+      if (!(output_frame = zm_av_frame_alloc())) {
         Error("Could not allocate output frame");
         av_frame_free(&input_frame);
         zm_av_unref_packet(&opkt);

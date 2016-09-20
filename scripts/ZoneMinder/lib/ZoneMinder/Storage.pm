@@ -96,7 +96,7 @@ sub Path {
 		$_[0]{Path} = $_[1];
 	}
 	if ( ! ( $_[0]{Id} or $_[0]{Path} ) ) {
-		$_[0]{Path} = $Config{ZM_DIR_EVENTS};
+		$_[0]{Path} = ($Config{ZM_DIR_EVENTS}=~/^\//) ? $Config{ZM_DIR_EVENTS} : ($Config{ZM_PATH_WEB}.'/'.$Config{ZM_DIR_EVENTS})
 	}
 	return $_[0]{Path};
 } # end sub Path

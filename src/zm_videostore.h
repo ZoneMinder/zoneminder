@@ -14,6 +14,11 @@ private:
 	AVFormatContext *oc;
 	AVStream *video_stream;
 	AVStream *audio_stream;
+
+  // The following are used when encoding the audio stream to AAC
+  AVCodec *audio_output_codec;
+  AVCodecContext *audio_output_context;
+  int data_present;
     
 	const char *filename;
 	const char *format;

@@ -356,20 +356,6 @@ int FfmpegCamera::OpenFfmpeg() {
   } else {
     Debug(1, "Video Found decoder");
     zm_dump_stream_format(mFormatContext, mVideoStreamId, 0, 0);
-  }
-
-  if (mAudioStreamId >= 0) {
-    mAudioCodecContext = mFormatContext->streams[mAudioStreamId]->codec;
-    if ((mAudioCodec = avcodec_find_decoder(mAudioCodecContext->codec_id)) == NULL) {
-      Debug(1, "Can't find codec for audio stream from %s", mPath.c_str());
-    } else {
-      Debug(1, "Audio Found decoder");
-      zm_dump_stream_format(mFormatContext, mAudioStreamId, 0, 0);
-    }
-  }
-
-  //
-
   // Open the codec
 #if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
   Debug ( 1, "Calling avcodec_open" );
@@ -379,6 +365,29 @@ int FfmpegCamera::OpenFfmpeg() {
   if (avcodec_open2(mVideoCodecContext, mVideoCodec, 0) < 0)
 #endif
     Fatal( "Unable to open codec for video stream from %s", mPath.c_str() );
+  }
+
+  if (mAudioStreamId >= 0) {
+    mAudioCodecContext = mFormatContext->streams[mAudioStreamId]->codec;
+    if ((mAudioCodec = avcodec_find_decoder(mAudioCodecContext->codec_id)) == NULL) {
+      Debug(1, "Can't find codec for audio stream from %s", mPath.c_str());
+    } else {
+      Debug(1, "Audio Found decoder");
+      zm_dump_stream_format(mFormatContext, mAudioStreamId, 0, 0);
+  // Open the codec
+#if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
+  Debug ( 1, "Calling avcodec_open" );
+  if (avcodec_open(mAudioCodecContext, mAudioCodec) < 0)
+#else
+    Debug ( 1, "Calling avcodec_open2" );
+  if (avcodec_open2(mAudioCodecContext, mAudioCodec, 0) < 0)
+#endif
+    Fatal( "Unable to open codec for video stream from %s", mPath.c_str() );
+    }
+  }
+
+  //
+
 
   Debug ( 1, "Opened codec" );
 
@@ -556,7 +565,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
   while ( !frameComplete ) {
     // We are now allocating dynamically because we need to queue these and may go out of scope.
     AVPacket *packet = (AVPacket *)av_malloc(sizeof(AVPacket));
-    av_init_packet( packet);
+    av_init_packet( packet );
 Debug(5, "Before av_read_frame");
     ret = av_read_frame( mFormatContext, packet );
 Debug(5, "After av_read_frame (%d)", ret );
@@ -627,10 +636,11 @@ Debug(5, "After av_read_frame (%d)", ret );
         while ( ( queued_packet = packetqueue.popPacket() ) ) {
           packet_count += 1;
           //Write the packet to our video store
+      Debug(2, "Writing queued packet stream: %d  KEY %d", queued_packet->stream_index, packet->flags & AV_PKT_FLAG_KEY );
           if ( queued_packet->stream_index == mVideoStreamId ) {
             ret = videoStore->writeVideoFramePacket( queued_packet, mFormatContext->streams[mVideoStreamId]);
           } else if ( queued_packet->stream_index == mAudioStreamId ) {
-            //ret = videoStore->writeAudioFramePacket(&queued_packet, mFormatContext->streams[mAudioStreamId]);
+            ret = videoStore->writeAudioFramePacket( queued_packet, mFormatContext->streams[mAudioStreamId]);
           } else {
             Warning("Unknown stream id in queued packet (%d)", queued_packet->stream_index );
             ret = -1;
@@ -643,12 +653,6 @@ Debug(5, "After av_read_frame (%d)", ret );
         Debug(2, "Wrote %d queued packets", packet_count );
       } // end if ! wasRecording
 
-      //Write the packet to our video store
-      int ret = videoStore->writeVideoFramePacket( packet, mFormatContext->streams[mVideoStreamId] );
-      if ( ret < 0 ) { //Less than zero and we skipped a frame
-        zm_av_unref_packet( packet );
-        return 0;
-      }
     } else {
       // Not recording
       if ( videoStore ) {
@@ -656,15 +660,23 @@ Debug(5, "After av_read_frame (%d)", ret );
         delete videoStore;
         videoStore = NULL;
       }
+
+      //Buffer video packets, since we are not recording
+      if ( (packet->stream_index == mVideoStreamId) && ( packet->flags & AV_PKT_FLAG_KEY ) ) {
+        packetqueue.clearQueue();
+      }
+      packetqueue.queuePacket(packet);
     } // end if
 
-    //Buffer video packets
-    if ( packet->flags & AV_PKT_FLAG_KEY ) {
-      packetqueue.clearQueue();
-    }
-    packetqueue.queuePacket(packet);
-
     if ( packet->stream_index == mVideoStreamId ) {
+       if ( videoStore ) {
+        //Write the packet to our video store
+        int ret = videoStore->writeVideoFramePacket( packet, mFormatContext->streams[mVideoStreamId] );
+        if ( ret < 0 ) { //Less than zero and we skipped a frame
+          zm_av_unref_packet( packet );
+          return 0;
+        }
+      }
       ret = zm_avcodec_decode_video( mVideoCodecContext, mRawFrame, &frameComplete, packet );
       if ( ret < 0 ) {
         av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );

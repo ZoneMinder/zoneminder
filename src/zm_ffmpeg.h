@@ -334,4 +334,6 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
       #define zm_avcodec_decode_video(context, rawFrame, frameComplete, packet ) avcodec_decode_video( context, rawFrame, frameComplete, packet->data, packet->size)
 #endif
 
+int check_sample_fmt(AVCodec *codec, enum AVSampleFormat sample_fmt);
+
 #endif // ZM_FFMPEG_H

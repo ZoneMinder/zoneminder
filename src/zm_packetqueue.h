@@ -38,6 +38,7 @@ public:
     bool popVideoPacket(AVPacket* packet);
     bool popAudioPacket(AVPacket* packet);
     void clearQueue( );
+    unsigned int size();
 private:
     std::queue<AVPacket *>    pktQueue;
 

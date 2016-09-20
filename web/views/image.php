@@ -39,8 +39,6 @@ if ( !canView( 'Events' ) ) {
 require_once('includes/Event.php');
 require_once('includes/Frame.php');
 
-header( 'Content-type: image/jpeg' );
-
 // Compatibility for PHP 5.4 
 if (!function_exists('imagescale')) {
   function imagescale($image, $new_width, $new_height = -1, $mode = 0) {
@@ -85,6 +83,10 @@ if ( empty($_REQUEST['path']) ) {
       $retval = 0;
       exec( $command, $output, $retval );
       Debug("Retval: $retval, output: " . implode("\n", $output));
+      if ( ! file_exists( $path ) ) {
+        header("HTTP/1.0 404 Not Found");
+        Fatal("Can't create frame images from video for this event (".$Event->DefaultVideo() );
+      }
     } else {
       header("HTTP/1.0 404 Not Found");
       Fatal("Can't create frame images from video becuase there is no video file for this event (".$Event->DefaultVideo() );
@@ -138,6 +140,8 @@ if( !empty($_REQUEST['height']) ) {
 }
 
 
+header( 'Content-type: image/jpeg' );
+
 if ( $errorText ) {
   Error( $errorText );
 } else {
@@ -167,13 +171,8 @@ if ( $errorText ) {
   
     # Slight optimisation, thumbnails always specify width and height, so we can cache them.
     $scaled_path = preg_replace('/\.jpg$/', "-${width}x${height}.jpg", $path );
-    if ( file_exists( $scaled_path ) ) {
-      Debug( "Using cached scaled image at $scaled_path.");
-      if ( ! readfile( $scaled_path ) ) {
-        Error("No bytes read from scaled image". $scaled_path );
-      }
-    } else {
-      Debug( "Cached scaled image does not exist at $scaled_path. Creating it");
+    if ( ! file_exists( $scaled_path ) or ! readfile( $scaled_path ) ) {
+      Debug( "Cached scaled image does not exist at $scaled_path or is no good.. Creating it");
       ob_start();
       if ( ! $i )
         $i = imagecreatefromjpeg( $path );

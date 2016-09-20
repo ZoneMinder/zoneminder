@@ -206,11 +206,11 @@ MAIN: while( $loop ) {
           Debug( "Checking day dir $day_dir" );
           ( $day_dir ) = ( $day_dir =~ /^(.*)$/ ); # De-taint
           if ( ! chdir( $day_dir ) ) {
-            Error( "Can't chdir to '$$Storage{Path}/$monitor_dir/$day_dir': $!" );
+            Error( "Can't chdir to '$$Storage{Path}/$day_dir': $!" );
             next;
           }
           if ( ! opendir( DIR, '.' ) ) {
-            Error( "Can't open directory $$Storage{Path}/$monitor_dir/'$day_dir': $!" );
+            Error( "Can't open directory '$$Storage{Path}/$day_dir': $!" );
             next;
           }
           my @event_links = sort { $b <=> $a } grep { -l $_ } readdir( DIR );
@@ -237,7 +237,7 @@ MAIN: while( $loop ) {
               Debug( "Checking link $event_link points to $event_path " );
               my $Event = $fs_events->{$event} = new ZoneMinder::Event();
               $$Event{Id} = $event;
-              $$Event{Path} = join('/', $Storage->Path(), $monitor_dir,$day_dir,$event_path);
+              $$Event{Path} = join('/', $Storage->Path(), $day_dir,$event_path);
               $Event->MonitorId( $monitor_dir );
               $Event->StorageId( $Storage->Id() );
             } # event path exists

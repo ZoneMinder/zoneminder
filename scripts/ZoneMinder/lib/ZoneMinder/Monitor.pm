@@ -28,29 +28,13 @@ use 5.006;
 use strict;
 use warnings;
 
-require Exporter;
 require ZoneMinder::Base;
+require ZoneMinder::Object;
+require ZoneMinder::Storage;
+require ZoneMinder::Server;
 
-our @ISA = qw(Exporter ZoneMinder::Base);
-
-# Items to export into callers namespace by default. Note: do not export
-# names by default without a very good reason. Use EXPORT_OK instead.
-# Do not simply export all your public functions/methods/constants.
-
-# This allows declaration   use ZoneMinder ':all';
-# If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
-# will save memory.
-our %EXPORT_TAGS = (
-    'functions' => [ qw(
-    ) ]
-);
-push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
-
-our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
-
-our @EXPORT = qw();
-
-our $VERSION = $ZoneMinder::Base::VERSION;
+#our @ISA = qw(Exporter ZoneMinder::Base);
+use parent qw(ZoneMinder::Object);
 
 # ==========================================================================
 #
@@ -61,39 +45,11 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Database qw(:all);
-require ZoneMinder::Server;
-require ZoneMinder::Storage;
 
 use POSIX;
-
-sub new {
-    my ( $parent, $id, $data ) = @_;
-
-	my $self = {};
-	bless $self, $parent;
-	if ( ( $$self{Id} = $id ) or $data ) {
-#$log->debug("loading $parent $id") if $debug or DEBUG_ALL;
-		$self->load( $data );
-	}
-	return $self;
-} # end sub new
-
-sub load {
-	my ( $self, $data ) = @_;
-	my $type = ref $self;
-	if ( ! $data ) {
-#$log->debug("Object::load Loading from db $type");
-		$data = $ZoneMinder::Database::dbh->selectrow_hashref( 'SELECT * FROM Monitors WHERE Id=?', {}, $$self{Id} );
-		if ( ! $data ) {
-			if ( $ZoneMinder::Database::dbh->errstr ) {
-				Error( "Failure to load Monitor record for $$self{id}: Reason: " . $ZoneMinder::Database::dbh->errstr );
-			} # end if
-		} # end if
-	} # end if ! $data
-	if ( $data and %$data ) {
-		@$self{keys %$data} = values %$data;
-	} # end if
-} # end sub load
+use vars qw/ $table $primary_key /;
+$table = 'Monitors';
+$primary_key = 'Id';
 
 sub Server {
 	return new ZoneMinder::Server( $_[0]{ServerId} );

@@ -19,23 +19,26 @@
 //
 
 if ( !canView( 'Events' ) ) {
-  $view = "error";
+  $view = 'error';
   return;
 }
-$selectName = "filterId";
+$selectName = 'Id';
 $filterNames = array( ''=>translate('ChooseFilter') );
+$dbFilter = NULL;
+
 foreach ( dbFetchAll( "select * from Filters order by Name" ) as $row ) {
   $filterNames[$row['Id']] = $row['Name'];
   if ( $row['Background'] )
     $filterNames[$row['Id']] .= "*";
   if ( $row['Concurrent'] )
     $filterNames[$row['Id']] .= "&";
-  if ( !empty($_REQUEST['reload']) && isset($_REQUEST['filterId']) && $_REQUEST['filterId'] == $row['Id'] )
+  if ( !empty($_REQUEST['reload']) && isset($_REQUEST['Id']) && $_REQUEST['Id'] == $row['Id'] ) {
     $dbFilter = $row;
+  }
 }
 
-$backgroundStr = "";
-if ( isset($dbFilter) ) {
+$backgroundStr = '';
+if ( $dbFilter ) {
   if ( $dbFilter['Background'] ) 
     $backgroundStr = '['.strtolower(translate('Background')).']';
   $_REQUEST['filter'] = jsonDecode( $dbFilter['Query'] );
@@ -57,7 +60,7 @@ if ( isset( $_REQUEST['reload'] ) and ! $_REQUEST['reload'] ) {
   $dbFilter['AutoUpload'] = isset( $_REQUEST['AutoUpload'] );
   $dbFilter['AutoVideo'] = isset( $_REQUEST['AutoVideo'] );
   $dbFilter['AutoDelete'] = isset( $_REQUEST['AutoDelete'] );
-  $dbFilter['Name'] = $_REQUEST['filterId'];
+  $dbFilter['Name'] = $_REQUEST['Id'];
 }
 
 $conjunctionTypes = array(
@@ -163,7 +166,7 @@ xhtmlHeaders(__FILE__, translate('EventFilter') );
         <input type="hidden" name="action" value=""/>
         <input type="hidden" name="subaction" value=""/>
         <input type="hidden" name="line" value=""/>
-        <input type="hidden" name="fid" value=""/>
+        <input type="hidden" name="object" value="filter"/>
         <hr/>
         <div id="filterSelector"><label for="<?php echo $selectName ?>"><?php echo translate('UseFilter') ?></label><?php if ( count($filterNames) > 1 ) { echo buildSelect( $selectName, $filterNames, "submitToFilter( this, 1 );" ); } else { ?><select disabled="disabled"><option><?php echo translate('NoSavedFilters') ?></option></select><?php } ?><?php echo $backgroundStr ?></div>
         <hr/>

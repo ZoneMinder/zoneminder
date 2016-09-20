@@ -290,6 +290,7 @@ int FfmpegCamera::OpenFfmpeg() {
   Debug ( 1, "Opened input" );
 
   Info( "Stream open %s", mPath.c_str() );
+  startTime=av_gettime();//FIXME here or after find_Stream_info
 
   //FIXME can speed up initial analysis but need sensible parameters...
   //mFormatContext->probesize = 32;
@@ -601,7 +602,6 @@ Debug(5, "After av_read_frame (%d)", ret );
 
       if ( ! videoStore ) {
         //Instantiate the video storage module
-  startTime=av_gettime();//FIXME here or after find_Stream_info
 
         if (record_audio) {
           if (mAudioStreamId == -1) {

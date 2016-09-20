@@ -249,7 +249,7 @@ function getNavBarHTML() {
   </div>
   <ul class="list-inline">
 	  <li><?php echo translate('Load') ?>: <?php echo getLoad() ?></li>
-	  <li><?php echo translate('Storage') ?>: <?php echo getDiskPercent() ?>%</li>
+	  <li><?php echo translate('Storage') ?>: <?php echo getDiskPercent() ?></li>
   </ul>
 </div> <!-- End .footer -->
 

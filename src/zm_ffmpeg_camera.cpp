@@ -392,18 +392,10 @@ int FfmpegCamera::OpenFfmpeg() {
   Debug ( 1, "Opened codec" );
 
   // Allocate space for the native video frame
-#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
-  mRawFrame = av_frame_alloc();
-#else
-  mRawFrame = avcodec_alloc_frame();
-#endif
+  mRawFrame = zm_av_frame_alloc();
 
   // Allocate space for the converted video frame
-#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
-  mFrame = av_frame_alloc();
-#else
-  mFrame = avcodec_alloc_frame();
-#endif
+  mFrame = zm_av_frame_alloc();
 
   if(mRawFrame == NULL || mFrame == NULL)
     Fatal( "Unable to allocate frame for %s", mPath.c_str() );

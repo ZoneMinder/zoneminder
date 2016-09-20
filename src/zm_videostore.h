@@ -2,6 +2,7 @@
 #define ZM_VIDEOSTORE_H
 
 #include "zm_ffmpeg.h"
+#include "libavutil/audio_fifo.h"
 
 #if HAVE_LIBAVCODEC
 
@@ -19,6 +20,8 @@ private:
   AVCodec *audio_output_codec;
   AVCodecContext *audio_output_context;
   int data_present;
+  AVAudioFifo *fifo;
+  int output_frame_size;
     
 	const char *filename;
 	const char *format;

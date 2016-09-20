@@ -206,6 +206,13 @@ Debug(2, "Have audio_output_context");
             av_strerror(ret, error_buffer, sizeof(error_buffer));
             Fatal( "could not open codec (%d) (%s)\n", ret, error_buffer );
           } else {
+    /** Create the FIFO buffer based on the specified output sample format. */
+    if (!(fifo = av_audio_fifo_alloc(audio_output_context->sample_fmt,
+                                      audio_output_context->channels, 1))) {
+        Error("Could not allocate FIFO\n");
+        return;
+    }
+  output_frame_size = audio_output_context->frame_size;
             Debug(2, "Success opening AAC codec");
           } 
           av_dict_free(&opts);
@@ -514,60 +521,101 @@ if ( 0 ) {
         zm_av_unref_packet(&opkt);
         return 0;
     }
-    
-    /** Create a new frame to store the audio samples. */
-    if (!(output_frame = av_frame_alloc())) {
+    if ( data_present ) {
+
+uint8_t **converted_input_samples = NULL;
+
+    /**
+     * Allocate as many pointers as there are audio channels.
+     * Each pointer will later point to the audio samples of the corresponding
+     * channels (although it may be NULL for interleaved formats).
+     */
+    if (!(converted_input_samples = calloc( audio_output_context->channels, sizeof(*converted_input_samples)))) {
+        Error( "Could not allocate converted input sample pointers\n");
+        return 0;
+    }
+    /**
+     * Allocate memory for the samples of all channels in one consecutive
+     * block for convenience.
+     */
+    if ((ret = av_samples_alloc(converted_input_samples, NULL,
+                                  audio_output_context->channels,
+                                  frame_size,
+                                  audio_output_context->sample_fmt, 0)) < 0) {
+Error( "Could not allocate converted input samples (error '%s')\n",
+av_make_error_string(ret).c_str() );
+               
+        av_freep(&(converted_input_samples)[0]);
+        free(*converted_input_samples);
+        return 0;
+    }
+
+        if ((ret = av_audio_fifo_realloc(fifo, av_audio_fifo_size(fifo) + frame_size)) < 0) {
+        Error( "Could not reallocate FIFO\n");
+        return 0;
+    }
+    /** Store the new samples in the FIFO buffer. */
+    if (av_audio_fifo_write(fifo, (void **)converted_input_samples, frame_size) < frame_size) {
+        Error( "Could not write data to FIFO\n");
+        return 0;
+    }
+
+      /** Create a new frame to store the audio samples. */
+      if (!(output_frame = av_frame_alloc())) {
         Error("Could not allocate output frame");
         av_frame_free(&input_frame);
         zm_av_unref_packet(&opkt);
         return 0;
-    } else {
-      Debug(2, "Got output frame alloc");
-    }
-    /**
-     * Set the frame's parameters, especially its size and format.
-     * av_frame_get_buffer needs this to allocate memory for the
-     * audio samples of the frame.
-     * Default channel layouts based on the number of channels
-     * are assumed for simplicity.
-     */
-    output_frame->nb_samples     = audio_stream->codec->frame_size;
-    output_frame->channel_layout = audio_output_context->channel_layout;
-    output_frame->channels = audio_output_context->channels;
-    output_frame->format         = audio_output_context->sample_fmt;
-    output_frame->sample_rate    = audio_output_context->sample_rate;
-    /**
-     * Allocate the samples of the created frame. This call will make
-     * sure that the audio frame can hold as many samples as specified.
-     */
-    Debug(2, "getting buffer");
-    if (( ret = av_frame_get_buffer( output_frame, 0)) < 0) {
+      } else {
+        Debug(2, "Got output frame alloc");
+      }
+      /**
+       * Set the frame's parameters, especially its size and format.
+       * av_frame_get_buffer needs this to allocate memory for the
+       * audio samples of the frame.
+       * Default channel layouts based on the number of channels
+       * are assumed for simplicity.
+       */
+      output_frame->nb_samples     = audio_stream->codec->frame_size;
+      output_frame->channel_layout = audio_output_context->channel_layout;
+      output_frame->channels = audio_output_context->channels;
+      output_frame->format         = audio_output_context->sample_fmt;
+      output_frame->sample_rate    = audio_output_context->sample_rate;
+      /**
+       * Allocate the samples of the created frame. This call will make
+       * sure that the audio frame can hold as many samples as specified.
+       */
+      Debug(2, "getting buffer");
+      if (( ret = av_frame_get_buffer( output_frame, 0)) < 0) {
         Error( "Couldnt allocate output frame buffer samples (error '%s')",
-                av_make_error_string(ret).c_str() );
+            av_make_error_string(ret).c_str() );
         Error("Frame: samples(%d) layout (%d) format(%d) rate(%d)", output_frame->nb_samples,
-output_frame->channel_layout, output_frame->format , output_frame->sample_rate 
- );
+            output_frame->channel_layout, output_frame->format , output_frame->sample_rate 
+            );
         av_frame_free(&input_frame);
         av_frame_free(&output_frame);
         zm_av_unref_packet(&opkt);
         return 0;
-    }
+      }
 
-    /** Set a timestamp based on the sample rate for the container. */
-    if (output_frame) {
+      /** Set a timestamp based on the sample rate for the container. */
+      if (output_frame) {
         output_frame->pts = opkt.pts;
-    }
-    /**
-     * Encode the audio frame and store it in the temporary packet.
-     * The output audio stream encoder is used to do this.
-     */
-    if (( ret = avcodec_encode_audio2( audio_output_context, &opkt,
-                                       input_frame, &data_present )) < 0) {
+      }
+      /**
+       * Encode the audio frame and store it in the temporary packet.
+       * The output audio stream encoder is used to do this.
+       */
+      if (( ret = avcodec_encode_audio2( audio_output_context, &opkt,
+              input_frame, &data_present )) < 0) {
         Error( "Could not encode frame (error '%s')",
-                av_make_error_string(ret).c_str());
+            av_make_error_string(ret).c_str());
         zm_av_unref_packet(&opkt);
         return 0;
-    }
+      }
+    } else {
+  Debug(2, "Not data present" );
+    } // end if data_present
 }
   } else {
     opkt.data = ipkt->data;

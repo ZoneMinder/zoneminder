@@ -450,6 +450,7 @@ function getEventDefaultVideoPath( $event ) {
 }
 
 function deletePath( $path ) {
+Error("deletePath $path");
   if ( is_dir( $path ) ) {
     system( escapeshellcmd( "rm -rf ".$path ) );
   } else {
@@ -1220,6 +1221,8 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
   $filter['sql'] = '';
   $filter['fields'] = '';
 
+  $StorageArea = NULL;
+
   if ( isset($filter['terms']) && count($filter['terms']) ) {
     for ( $i = 0; $i < count($filter['terms']); $i++ ) {
       if ( isset($filter['terms'][$i]['cnj']) ) {
@@ -1270,10 +1273,27 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
             $filter['sql'] .= 'E.'.$filter['terms'][$i]['attr'];
             break;
           case 'DiskPercent':
-            $filter['sql'] .= getDiskPercent();
+            // Need to specify a storage area, so need to look through other terms looking for a storage area, else we default to ZM_EVENTS_PATH
+            if ( ! $StorageArea ) {
+              for ( $j = $i; $j < count($filter['terms']); $j++ ) {
+                if ( isset($filter['terms'][$i]['attr']) and $filter['terms'][$i]['attr'] == 'StorageId' ) {
+                  $StorageArea = new Storage(  $filter['terms'][$i]['val'] );
+                }
+              } // end foreach remaining term
+            } // end no StorageArea found yet
+
+            $filter['sql'] .= getDiskPercent( $StorageArea );
             break;
           case 'DiskBlocks':
-            $filter['sql'] .= getDiskBlocks();
+            // Need to specify a storage area, so need to look through other terms looking for a storage area, else we default to ZM_EVENTS_PATH
+            if ( ! $StorageArea ) {
+              for ( $j = $i; $j < count($filter['terms']); $j++ ) {
+                if ( isset($filter['terms'][$i]['attr']) and $filter['terms'][$i]['attr'] == 'StorageId' ) {
+                  $StorageArea = new Storage(  $filter['terms'][$i]['val'] );
+                }
+              } // end foreach remaining term
+            } // end no StorageArea found yet
+            $filter['sql'] .= getDiskBlocks( $StorageArea );
             break;
           case 'SystemLoad':
             $filter['sql'] .= getLoad();
@@ -1294,6 +1314,10 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
               } else {
                 $value = dbEscape($value);
               }
+            case 'StorageId':
+              $StorageArea = new Storage( $value );
+              $value = dbEscape($value);
+              break;
             case 'DateTime':
               $value = "'".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."'";
               break;
@@ -1460,35 +1484,15 @@ function getLoad() {
   return( $load[0] );
 }
 
-function getDiskPercent() {
-  if ( !empty(ZM_DIR_EVENTS) ) {
-    $total = disk_total_space(ZM_DIR_EVENTS);
-    if ( ! $total ) {
-      Error("disk_total_space returned false for " . ZM_DIR_EVENTS );
-      return 0;
-    }
-    $free = disk_free_space(ZM_DIR_EVENTS);
-    if ( ! $free ) {
-      Error("disk_free_space returned false for " . ZM_DIR_EVENTS );
-    }
-    $space = round(($total - $free) / $total * 100);
-    $spaceString = 'Default '.$space.'%';
-  }
-  else {
-      $spaceString = '';
-  }
-  $storageAreas = Storage::find_all();
-  foreach($storageAreas as $storageArea) {
-      $storageTotal = disk_total_space($storageArea->Path);
-      $storageFree = disk_free_space($storageArea->Path);
-      $storageSpace = round(($storageTotal - $storageFree) / $storageTotal * 100);
-      $spaceString .= ', '.$storageArea->Name.' '.$storageSpace.'%';
-  }
-  return( $spaceString );
+function getDiskPercent( $StorageArea = NULL ) {
+  if ( ! $StorageArea ) $StorageArea = new Storage();
+  
+  return $StorageArea->disk_usage_percent();
 }
 
 function getDiskBlocks() {
-  $df = shell_exec( 'df '.ZM_DIR_EVENTS );
+  if ( ! $StorageArea ) $StorageArea = new Storage();
+  $df = shell_exec( 'df '.$StorageArea->Path() );
   $space = -1;
   if ( preg_match( '/\s(\d+)\s+\d+\s+\d+%/ms', $df, $matches ) )
     $space = $matches[1];

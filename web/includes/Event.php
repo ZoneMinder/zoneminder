@@ -73,7 +73,7 @@ class Event {
 
   }
 
-  public function LinkPath() {
+  public function Link_Path() {
     if ( ZM_USE_DEEP_STORAGE ) {
       return $this->{'MonitorId'} .'/'.strftime( "%y/%m/%d/.", $this->Time()).$this->{'Id'};
     }
@@ -82,6 +82,7 @@ class Event {
   }
 
   public function delete() {
+    # This wouldn't work with foreign keys
     dbQuery( 'DELETE FROM Events WHERE Id = ?', array($this->{'Id'}) );
     if ( !ZM_OPT_FAST_DELETE ) {
       dbQuery( 'DELETE FROM Stats WHERE EventId = ?', array($this->{'Id'}) );
@@ -90,15 +91,28 @@ class Event {
 
 # Assumption: All events haev a start time
         $start_date = date_parse( $this->{'StartTime'} );
+        if ( ! $start_date ) {
+          Error("Unable to parse start time for event " . $this->{'Id'} . ' not deleting files.' );
+          return;
+        }
         $start_date['year'] = $start_date['year'] % 100;
 
         $Storage = $this->Storage();
 # So this is  because ZM creates a link under teh day pointing to the time that the event happened. 
+        if ( ! $this->Link_Path() ) {
+          Error("Unable to determine link path for event " . $this->{'Id'} . ' not deleting files.' );
+          return;
+        }
+        
         $eventlink_path = $Storage->Path().'/'.$this->Link_Path();
 
         if ( $id_files = glob( $eventlink_path ) ) {
+          if ( ! $eventPath = readlink($id_files[0]) ) {
+            Error("Unable to read link at $id_files[0]");
+            return;
+          }
 # I know we are using arrays here, but really there can only ever be 1 in the array
-          $eventPath = preg_replace( '/\.'.$event['Id'].'$/', readlink($id_files[0]), $id_files[0] );
+          $eventPath = preg_replace( '/\.'.$this->{'Id'}.'$/', $eventPath, $id_files[0] );
           deletePath( $eventPath );
           deletePath( $id_files[0] );
           $pathParts = explode(  '/', $eventPath );
@@ -118,7 +132,7 @@ class Event {
     } # ! ZM_OPT_FAST_DELETE
   } # end Event->delete
 
-public function getStreamSrc( $args, $querySep='&amp;' ) {
+  public function getStreamSrc( $args, $querySep='&amp;' ) {
     return ( ZM_BASE_PATH != '/' ? ZM_BASE_PATH : '' ).'/index.php?view=view_video&eid='.$this->{'Id'};
 
     $streamSrc = ZM_BASE_URL.ZM_PATH_ZMS;

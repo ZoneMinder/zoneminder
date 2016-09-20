@@ -37,10 +37,14 @@ bool zm_packetqueue::queuePacket( AVPacket* packet ) {
     
   //AVPacket *input_ref = (AVPacket *)av_malloc(sizeof(AVPacket));
   //if ( av_packet_ref( input_ref, packet ) < 0 ) {
-    //free(input_ref);
-		//return false;
-	//}
+  if ( av_packet_ref( packet, packet ) < 0 ) {
+Error("error refing packet");
+    //av_free_packet(input_ref);
+		return false;
+	}
+ 
 	pktQueue.push( packet );
+	//pktQueue.push( input_ref );
 
 	return true;
 }
@@ -65,4 +69,8 @@ void zm_packetqueue::clearQueue() {
     // If we clear it, then no freeing gets done, whereas when we pop off, we assume that the packet was freed somewhere else.
     zm_av_unref_packet( packet );
 	}
+}
+
+unsigned int zm_packetqueue::size() {
+  return pktQueue.size();
 }

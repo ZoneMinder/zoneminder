@@ -240,9 +240,9 @@ void VideoStore::dumpPacket( AVPacket *pkt ){
 
 int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st){//, AVPacket *lastKeyframePkt){
 
-  Debug(3, "before ost_tbcket %d", startTime );
-  zm_dump_stream_format( oc, ipkt->stream_index, 0, 1 );
-  Debug(3, "before ost_tbcket %d", startTime );
+  //Debug(3, "before ost_tbcket %d", startTime );
+  //zm_dump_stream_format( oc, ipkt->stream_index, 0, 1 );
+  //Debug(3, "before ost_tbcket %d", startTime );
   int64_t ost_tb_start_time = av_rescale_q(startTime, AV_TIME_BASE_Q, video_st->time_base);
 
   AVPacket opkt, safepkt;

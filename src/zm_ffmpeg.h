@@ -324,7 +324,7 @@ static av_always_inline av_const int64_t av_clip64_c(int64_t a, int64_t amin, in
 
 void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output);
 #if LIBAVCODEC_VERSION_CHECK(57, 8, 0, 12, 100)
-    #define zm_av_unref_packet( packet ) av_unref_packet( packet )
+    #define zm_av_unref_packet( packet ) av_packet_unref( packet )
 #else
     #define zm_av_unref_packet( packet ) av_free_packet( packet ) 
 #endif

@@ -326,33 +326,43 @@ void VideoStore::dumpPacket( AVPacket *pkt ){
       , pkt->pos
       , pkt->convergence_duration
       );
-  Info("%s:%d:DEBUG: %s", __FILE__, __LINE__, b);
+  Debug(1, "%s:%d:DEBUG: %s", __FILE__, __LINE__, b);
 }
 
 int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_video_stream){
 
   Debug(4, "writeVideoFrame");
-  Debug(3, "before ost_tbcket starttime %d, timebase%d", startTime, video_stream->time_base );
+  //Debug(3, "before ost_tbcket starttime %d, timebase%d", startTime, video_stream->time_base );
   //zm_dump_stream_format( oc, ipkt->stream_index, 0, 1 );
   int64_t ost_tb_start_time = av_rescale_q(startTime, AV_TIME_BASE_Q, video_stream->time_base);
-  Debug(2, "before ost_tbcket starttime %d, ost_tbcket %d", startTime, ost_tb_start_time );
+  //Debug(2, "before ost_tbcket starttime %d, ost_tbcket %d", startTime, ost_tb_start_time );
 
   AVPacket opkt;
   AVPicture pict;
 
-  Debug(2, "writeVideoFrame init_packet");
+  Debug(4, "writeVideoFrame init_packet");
   av_init_packet(&opkt);
+    Debug(3, "Time bases input stream time base(%d/%d) input codec tb: (%d/%d) video_stream->time-base(%d/%d) output codec tb (%d/%d)", 
+        input_video_stream->time_base.num,
+        input_video_stream->time_base.den,
+        input_video_stream->codec->time_base.num,
+        input_video_stream->codec->time_base.den,
+        video_stream->time_base.num,
+        video_stream->time_base.den,
+        video_stream->codec->time_base.num,
+        video_stream->codec->time_base.den
+        );
 
 if ( 1 ) {
+  //Scale the PTS of the outgoing packet to be the correct time base
+  if (ipkt->pts != AV_NOPTS_VALUE) {
     if ( ! startPts ) {
       //never gets set, so the first packet can set it.
       startPts = ipkt->pts;
-  }
-  //Scale the PTS of the outgoing packet to be the correct time base
-  if (ipkt->pts != AV_NOPTS_VALUE) {
-      opkt.pts = av_rescale_q(ipkt->pts-startPts, input_video_stream->time_base, video_stream->time_base);
+    }
+    opkt.pts = av_rescale_q(ipkt->pts-startPts, input_video_stream->time_base, video_stream->time_base);
  //- ost_tb_start_time;
-	Debug(3, "opkt.pts = %d from ipkt->pts(%d) - startPts(%d), input->time_base(%d) video_stream->time-base(%d)", opkt.pts, ipkt->pts, startPts, input_video_stream->time_base, video_stream->time_base );
+    Debug(3, "opkt.pts = %d from ipkt->pts(%d) - startPts(%d)", opkt.pts, ipkt->pts, startPts );
   } else {
     Debug(3, "opkt.pts = undef");
     opkt.pts = AV_NOPTS_VALUE;
@@ -362,22 +372,13 @@ if ( 1 ) {
   if(ipkt->dts == AV_NOPTS_VALUE) {
     if ( ! startDts ) startDts = input_video_stream->cur_dts;
     opkt.dts = av_rescale_q(input_video_stream->cur_dts-startDts, AV_TIME_BASE_Q, video_stream->time_base);
-    Debug(3, "opkt.dts = %d from input_video_stream->cur_dts(%d) - startDts(%d), input time based(%d/%d) video_stream->time-base(%d/%d)", 
-        opkt.dts, input_video_stream->cur_dts, startDts, 
-        input_video_stream->time_base.num,
-        input_video_stream->time_base.den,
-        video_stream->time_base.num,
-        video_stream->time_base.den
+    Debug(3, "opkt.dts = %d from input_video_stream->cur_dts(%d) - startDts(%d)", 
+        opkt.dts, input_video_stream->cur_dts, startDts
         );
   } else {
     if ( ! startDts ) startDts = ipkt->dts;
     opkt.dts = av_rescale_q(ipkt->dts - startDts, input_video_stream->time_base, video_stream->time_base);
-    Debug(3, "opkt.dts = %d from ipkt->dts(%d) - startDts(%d), input time base (%d/%d) video_stream->time-base(%d/%d)", opkt.dts, ipkt->dts, startDts, 
-        input_video_stream->time_base.num,
-        input_video_stream->time_base.den,
-        video_stream->time_base.num,
-        video_stream->time_base.den
-        );
+    Debug(3, "opkt.dts = %d from ipkt->dts(%d) - startDts(%d)", opkt.dts, ipkt->dts, startDts );
   }
   if ( opkt.dts > opkt.pts ) {
     Warning("opkt.dts(%d) must be <= opkt.pts(%d). Decompression must happen before presentation.", opkt.dts, opkt.pts );
@@ -425,7 +426,7 @@ Debug(4, "Not video and RAWPICTURE");
     int ret;
 
     prevDts = opkt.dts; // Unsure if av_interleaved_write_frame() clobbers opkt.dts when out of order, so storing in advance
-      dumpPacket(&opkt);
+    dumpPacket(&opkt);
     ret = av_interleaved_write_frame(oc, &opkt);
     if(ret<0){
       // There's nothing we can really do if the frame is rejected, just drop it and get on with the next

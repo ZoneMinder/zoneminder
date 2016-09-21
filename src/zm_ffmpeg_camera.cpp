@@ -566,6 +566,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
     // We are now allocating dynamically because we need to queue these and may go out of scope.
     AVPacket *packet = (AVPacket *)av_malloc(sizeof(AVPacket));
     av_init_packet( packet );
+
 Debug(5, "Before av_read_frame");
     ret = av_read_frame( mFormatContext, packet );
 Debug(5, "After av_read_frame (%d)", ret );
@@ -649,6 +650,7 @@ Debug(5, "After av_read_frame (%d)", ret );
             //Less than zero and we skipped a frame
           }
           zm_av_unref_packet( queued_packet );
+          av_free( queued_packet );
         } // end while packets in the packetqueue
         Debug(2, "Wrote %d queued packets", packet_count );
       } // end if ! wasRecording
@@ -748,8 +750,10 @@ Debug(5, "After av_read_frame (%d)", ret );
       Debug( 3, "Some other stream index %d", packet->stream_index );
 #endif
     }
-    if ( videoStore )
-    zm_av_unref_packet( packet );
+    if ( videoStore ) {
+      zm_av_unref_packet( packet );
+      av_free( packet );
+    }
   } // end while ! frameComplete
   return (frameCount);
 }

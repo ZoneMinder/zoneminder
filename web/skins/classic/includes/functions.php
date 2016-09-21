@@ -249,7 +249,14 @@ function getNavBarHTML() {
   </div>
   <ul class="list-inline">
 	  <li><?php echo translate('Load') ?>: <?php echo getLoad() ?></li>
-	  <li><?php echo translate('Storage') ?>: <?php echo getDiskPercent() ?></li>
+	  <li><?php echo translate('Storage') ?>: <?php
+
+    $storage_areas = Storage::find_all();
+    array_push( $storage_areas, new Storage() );
+  $func =  function($S){ return $S->Name() . ': ' . $S->disk_usage_percent().'%'; };
+
+  echo implode( ', ', array_map ( $func, $storage_areas ) );
+?></li>
   </ul>
 </div> <!-- End .footer -->
 

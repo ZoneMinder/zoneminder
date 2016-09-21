@@ -167,7 +167,7 @@ int FfmpegCamera::Capture( Image &image )
       Error( "Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, avResult, errbuf );
       return( -1 );
     }
-    Debug( 5, "Got packet from stream %d", packet.stream_index );
+    Debug( 5, "Got packet from stream %d dts (%d) pts(%d)", packet.stream_index, packet.pts, packet.dts );
     // What about audio stream? Maybe someday we could do sound detection...
     if ( packet.stream_index == mVideoStreamId ) {
 #if LIBAVCODEC_VERSION_CHECK(52, 23, 0, 23, 0)
@@ -290,7 +290,6 @@ int FfmpegCamera::OpenFfmpeg() {
   Debug ( 1, "Opened input" );
 
   Info( "Stream open %s", mPath.c_str() );
-  startTime=av_gettime();//FIXME here or after find_Stream_info
 
   //FIXME can speed up initial analysis but need sensible parameters...
   //mFormatContext->probesize = 32;
@@ -305,6 +304,7 @@ int FfmpegCamera::OpenFfmpeg() {
 #endif
     Fatal( "Unable to find stream info from %s due to: %s", mPath.c_str(), strerror(errno) );
 
+  startTime=av_gettime();//FIXME here or after find_Stream_info
   Debug ( 1, "Got stream info" );
 
   // Find first video stream present
@@ -584,7 +584,7 @@ Debug(5, "After av_read_frame (%d)", ret );
       Error( "Unable to read packet from stream %d: error %d \"%s\".", packet->stream_index, ret, errbuf );
       return( -1 );
     }
-    Debug( 5, "Got packet from stream %d", packet->stream_index );
+    Debug( 4, "Got packet from stream %d dts (%d) pts(%d)", packet->stream_index, packet->dts, packet->pts );
 
     //Video recording
     if ( recording ) {
@@ -636,7 +636,7 @@ Debug(5, "After av_read_frame (%d)", ret );
         while ( ( queued_packet = packetqueue.popPacket() ) ) {
           packet_count += 1;
           //Write the packet to our video store
-      Debug(2, "Writing queued packet stream: %d  KEY %d", queued_packet->stream_index, packet->flags & AV_PKT_FLAG_KEY );
+      Debug(2, "Writing queued packet stream: %d  KEY %d, remaining (%d)", queued_packet->stream_index, packet->flags & AV_PKT_FLAG_KEY, packetqueue.size() );
           if ( queued_packet->stream_index == mVideoStreamId ) {
             ret = videoStore->writeVideoFramePacket( queued_packet, mFormatContext->streams[mVideoStreamId]);
           } else if ( queued_packet->stream_index == mAudioStreamId ) {
@@ -748,6 +748,7 @@ Debug(5, "After av_read_frame (%d)", ret );
       Debug( 3, "Some other stream index %d", packet->stream_index );
 #endif
     }
+    if ( videoStore )
     zm_av_unref_packet( packet );
   } // end while ! frameComplete
   return (frameCount);

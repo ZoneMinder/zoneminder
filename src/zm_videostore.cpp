@@ -274,6 +274,7 @@ Debug(2, "Have audio_output_context");
   startDts = 0;
   filter_in_rescale_delta_last = AV_NOPTS_VALUE;
 
+  // now - when streaming started
   startTime=av_gettime()-nStartTime;//oc->start_time;
   Info("VideoStore startTime=%d\n",startTime);
 } // VideoStore::VideoStore
@@ -342,26 +343,39 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_video_stre
   Debug(2, "writeVideoFrame init_packet");
   av_init_packet(&opkt);
 
+if ( 1 ) {
+    if ( ! startPts ) {
+      //never gets set, so the first packet can set it.
+      startPts = ipkt->pts;
+  }
   //Scale the PTS of the outgoing packet to be the correct time base
   if (ipkt->pts != AV_NOPTS_VALUE) {
-    opkt.pts = av_rescale_q(ipkt->pts-startPts, input_video_stream->time_base, video_stream->time_base) - ost_tb_start_time;
+      opkt.pts = av_rescale_q(ipkt->pts-startPts, input_video_stream->time_base, video_stream->time_base);
+ //- ost_tb_start_time;
 	Debug(3, "opkt.pts = %d from ipkt->pts(%d) - startPts(%d), input->time_base(%d) video_stream->time-base(%d)", opkt.pts, ipkt->pts, startPts, input_video_stream->time_base, video_stream->time_base );
   } else {
+    Debug(3, "opkt.pts = undef");
     opkt.pts = AV_NOPTS_VALUE;
   }
+    if ( ! startDts ) {
+      startDts = input_video_stream->cur_dts;
+}
 
   //Scale the DTS of the outgoing packet to be the correct time base
   if(ipkt->dts == AV_NOPTS_VALUE) {
     opkt.dts = av_rescale_q(input_video_stream->cur_dts-startDts, AV_TIME_BASE_Q, video_stream->time_base);
-	Debug(3, "opkt.dts = %d from input_video_stream->cur_dts(%d) - startDts(%d), video_stream->time-base(%d)", opkt.dts, input_video_stream->cur_dts, startDts, video_stream->time_base );
+    Debug(3, "opkt.dts = %d from input_video_stream->cur_dts(%d) - startDts(%d), video_stream->time-base(%d)", opkt.dts, input_video_stream->cur_dts, startDts, video_stream->time_base );
   } else {
     opkt.dts = av_rescale_q(ipkt->dts-startDts, input_video_stream->time_base, video_stream->time_base);
 	Debug(3, "opkt.dts = %d from ipkt->dts(%d) - startDts(%d), video_stream->time-base(%d)", opkt.dts, ipkt->dts, startDts, video_stream->time_base );
   }
 
-  opkt.dts -= ost_tb_start_time;
+  //opkt.dts -= ost_tb_start_time;
 
   opkt.duration = av_rescale_q(ipkt->duration, input_video_stream->time_base, video_stream->time_base);
+} else {
+  av_packet_rescale_ts( &opkt, input_video_stream->time_base, video_stream->time_base );
+}
   opkt.flags = ipkt->flags;
   opkt.pos=-1;
 

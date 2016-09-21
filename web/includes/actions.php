@@ -124,36 +124,31 @@ if ( !empty($action) ) {
   }
 
   // Event scope actions, view permissions only required
-  if ( canView( 'Events' ) )
-  {
-    if ( $action == "filter" )
-    {
-      if ( !empty($_REQUEST['subaction']) )
-      {
+  if ( canView( 'Events' ) ) {
+
+    if ( $action == 'filter' ) {
+      if ( !empty($_REQUEST['subaction']) ) {
         if ( $_REQUEST['subaction'] == "addterm" )
           $_REQUEST['filter'] = addFilterTerm( $_REQUEST['filter'], $_REQUEST['line'] );
         elseif ( $_REQUEST['subaction'] == "delterm" )
           $_REQUEST['filter'] = delFilterTerm( $_REQUEST['filter'], $_REQUEST['line'] );
-      }
-      elseif ( canEdit( 'Events' ) )
-      {
-        if ( !empty($_REQUEST['execute']) )
-          $tempFilterName = "_TempFilter".time();
-        if ( isset($tempFilterName) ) {
-          $filterName = $tempFilterName;
-        }
-        elseif ( !empty($_REQUEST['newFilterName']) ) {
+      } elseif ( canEdit( 'Events' ) ) {
+        $sql = '';
+        $endSql = '';
+        $filterName = '';
+        if ( !empty($_REQUEST['execute']) ) {
+          // TempFilterName is used in event listing later on
+          $tempFilterName = $filterName = "_TempFilter".time();
+        } elseif ( !empty($_REQUEST['newFilterName']) ) {
           $filterName = $_REQUEST['newFilterName'];
-          $sql = "replace into Filters set Name = ".dbEscape($filterName).",";
-          $endSql = '';
         }
-        else {
-          $doUpdate = 1;
-          $sql = "update Filters set";
-          $endSql = "where Id = ".$_REQUEST['filterId'];
+        if ( $filterName ) {
+          $sql = "REPLACE INTO Filters SET Name = ".dbEscape($filterName).",";
+        } else {
+          $sql = 'UPDATE Filters SET';
+          $endSql = "where Id = ".$_REQUEST['Id'];
         }
-        if ( !empty($filterName) || $doUpdate )
-        {
+        if ( !empty($filterName) || $endSql ) {
           $_REQUEST['filter']['sort_field'] = validStr($_REQUEST['sort_field']);
           $_REQUEST['filter']['sort_asc'] = validStr($_REQUEST['sort_asc']);
           $_REQUEST['filter']['limit'] = validInt($_REQUEST['limit']);
@@ -180,9 +175,9 @@ if ( !empty($action) ) {
           dbQuery( $sql );
           $refreshParent = true;
         }
-      }
-    }
-  }
+      } // end if canedit events
+    } // end if action == filter
+  } // end if canview events
 
   // Event scope actions, edit permissions required
   if ( canEdit( 'Events' ) )
@@ -223,17 +218,18 @@ if ( !empty($action) ) {
         }
       }
     }
-    elseif ( $action == "delete" )
+    elseif ( $action == 'delete' )
     {
       foreach( getAffectedIds( 'markEid' ) as $markEid )
       {
         deleteEvent( $markEid );
         $refreshParent = true;
       }
-      if ( !empty($_REQUEST['fid']) )
-      {
-        dbQuery( 'DELETE FROM Filters WHERE Id=?', array( $_REQUEST['filterId'] ) );
-        //$refreshParent = true;
+      if ( isset( $_REQUEST['object'] ) and ( $_REQUEST['object'] == 'filter' ) ) {
+        if ( !empty($_REQUEST['Id']) ) {
+          dbQuery( 'DELETE FROM Filters WHERE Id=?', array( $_REQUEST['Id'] ) );
+          //$refreshParent = true;
+        }
       }
     }
   }

@@ -80,15 +80,19 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
   output_format = oc->oformat;
 
+  video_stream = avformat_new_stream(oc, (AVCodec *)video_stream->codec->codec);
+  if (!video_stream) {
+    Fatal("Unable to create video out stream\n");
+  } else {
+    Debug(3, "Success creating video out stream" );
+  }
+
   ret = avcodec_copy_context(video_stream->codec, input_video_stream->codec);
   if (ret < 0) { 
     Fatal("Unable to copy input video context to output video context %s\n", 
         av_make_error_string(ret).c_str());
-  }
-
-  video_stream = avformat_new_stream(oc, (AVCodec *)video_stream->codec->codec);
-  if (!video_stream) {
-    Fatal("Unable to create video out stream\n");
+  } else {
+    Debug(3, "Success copying context" );
   }
 
  Debug(3, "Time bases input stream time base(%d/%d) input codec tb: (%d/%d) video_stream->time-base(%d/%d) output codec tb (%d/%d)", 
@@ -101,8 +105,6 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
         video_stream->codec->time_base.num,
         video_stream->codec->time_base.den
         );
-
-
 
   if ( input_video_stream->codec->sample_aspect_ratio.den && ( video_stream->sample_aspect_ratio.den != input_video_stream->codec->sample_aspect_ratio.den ) ) {
 	  Warning("Fixing sample_aspect_ratio.den from (%d) to (%d)", video_stream->sample_aspect_ratio.den, input_video_stream->codec->sample_aspect_ratio.den );

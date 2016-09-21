@@ -91,6 +91,18 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
     Fatal("Unable to create video out stream\n");
   }
 
+ Debug(3, "Time bases input stream time base(%d/%d) input codec tb: (%d/%d) video_stream->time-base(%d/%d) output codec tb (%d/%d)", 
+        input_video_stream->time_base.num,
+        input_video_stream->time_base.den,
+        input_video_stream->codec->time_base.num,
+        input_video_stream->codec->time_base.den,
+        video_stream->time_base.num,
+        video_stream->time_base.den,
+        video_stream->codec->time_base.num,
+        video_stream->codec->time_base.den
+        );
+
+
 
   if ( input_video_stream->codec->sample_aspect_ratio.den && ( video_stream->sample_aspect_ratio.den != input_video_stream->codec->sample_aspect_ratio.den ) ) {
 	  Warning("Fixing sample_aspect_ratio.den from (%d) to (%d)", video_stream->sample_aspect_ratio.den, input_video_stream->codec->sample_aspect_ratio.den );

@@ -357,12 +357,6 @@ void VideoStore::dumpPacket( AVPacket *pkt ){
 
 int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_video_stream){
 
-  Debug(4, "writeVideoFrame");
-  //Debug(3, "before ost_tbcket starttime %d, timebase%d", startTime, video_stream->time_base );
-  //zm_dump_stream_format( oc, ipkt->stream_index, 0, 1 );
-  int64_t ost_tb_start_time = av_rescale_q(startTime, AV_TIME_BASE_Q, video_stream->time_base);
-  //Debug(2, "before ost_tbcket starttime %d, ost_tbcket %d", startTime, ost_tb_start_time );
-
   AVPacket opkt;
   AVPicture pict;
 
@@ -412,13 +406,15 @@ if ( 1 ) {
 
   opkt.data = ipkt->data;
   opkt.size = ipkt->size;
+
+  // Some camera have audio on stream 0 and video on stream 1.  So when we remove the audio, video stream has to go on 0
   if ( ipkt->stream_index > 0 and ! audio_stream ) {
-Warning("Setting stream index to 0 instead of %d", ipkt->stream_index );
-  opkt.stream_index = 0;
+    Debug(1,"Setting stream index to 0 instead of %d", ipkt->stream_index );
+    opkt.stream_index = 0;
   } else {
-  opkt.stream_index = ipkt->stream_index;
+    opkt.stream_index = ipkt->stream_index;
   }
-  
+
   /*opkt.flags |= AV_PKT_FLAG_KEY;*/
 
   if (video_stream->codec->codec_type == AVMEDIA_TYPE_VIDEO && (output_format->flags & AVFMT_RAWPICTURE)) {

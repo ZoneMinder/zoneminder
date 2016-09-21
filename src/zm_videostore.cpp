@@ -80,16 +80,17 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
   output_format = oc->oformat;
 
-  video_stream = avformat_new_stream(oc, (AVCodec *)input_video_stream->codec->codec);
-  if (!video_stream) {
-    Fatal("Unable to create video out stream\n");
-  }
-
   ret = avcodec_copy_context(video_stream->codec, input_video_stream->codec);
   if (ret < 0) { 
     Fatal("Unable to copy input video context to output video context %s\n", 
         av_make_error_string(ret).c_str());
   }
+
+  video_stream = avformat_new_stream(oc, (AVCodec *)video_stream->codec->codec);
+  if (!video_stream) {
+    Fatal("Unable to create video out stream\n");
+  }
+
 
   if ( input_video_stream->codec->sample_aspect_ratio.den && ( video_stream->sample_aspect_ratio.den != input_video_stream->codec->sample_aspect_ratio.den ) ) {
 	  Warning("Fixing sample_aspect_ratio.den from (%d) to (%d)", video_stream->sample_aspect_ratio.den, input_video_stream->codec->sample_aspect_ratio.den );
@@ -133,7 +134,18 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
          video_stream->codec->time_base.den = video_stream->time_base.den;
   }
 
-  video_stream->codec->codec_tag = 0;
+       // WHY?
+  //video_stream->codec->codec_tag = 0;
+  if (!video_stream->codec->codec_tag) {
+         if (! oc->oformat->codec_tag
+                         || av_codec_get_id (oc->oformat->codec_tag, input_video_stream->codec->codec_tag) == video_stream->codec->codec_id
+                         || av_codec_get_tag(oc->oformat->codec_tag, input_video_stream->codec->codec_id) <= 0) {
+                 Warning("Setting codec tag");
+                 video_stream->codec->codec_tag = input_video_stream->codec->codec_tag;
+         }
+  }
+
+
   if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
     video_stream->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
   }
@@ -342,16 +354,6 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_video_stre
 
   Debug(4, "writeVideoFrame init_packet");
   av_init_packet(&opkt);
-    Debug(3, "Time bases input stream time base(%d/%d) input codec tb: (%d/%d) video_stream->time-base(%d/%d) output codec tb (%d/%d)", 
-        input_video_stream->time_base.num,
-        input_video_stream->time_base.den,
-        input_video_stream->codec->time_base.num,
-        input_video_stream->codec->time_base.den,
-        video_stream->time_base.num,
-        video_stream->time_base.den,
-        video_stream->codec->time_base.num,
-        video_stream->codec->time_base.den
-        );
 
 if ( 1 ) {
   //Scale the PTS of the outgoing packet to be the correct time base

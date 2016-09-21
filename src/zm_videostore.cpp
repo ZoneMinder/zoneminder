@@ -365,7 +365,7 @@ if ( 1 ) {
     Debug(3, "opkt.dts = %d from input_video_stream->cur_dts(%d) - startDts(%d), input time based(%d/%d) video_stream->time-base(%d/%d)", 
         opkt.dts, input_video_stream->cur_dts, startDts, 
         input_video_stream->time_base.num,
-        input_video_stream->time_base.den
+        input_video_stream->time_base.den,
         video_stream->time_base.num,
         video_stream->time_base.den
         );
@@ -374,7 +374,7 @@ if ( 1 ) {
     opkt.dts = av_rescale_q(ipkt->dts - startDts, input_video_stream->time_base, video_stream->time_base);
     Debug(3, "opkt.dts = %d from ipkt->dts(%d) - startDts(%d), input time base (%d/%d) video_stream->time-base(%d/%d)", opkt.dts, ipkt->dts, startDts, 
         input_video_stream->time_base.num,
-        input_video_stream->time_base.den
+        input_video_stream->time_base.den,
         video_stream->time_base.num,
         video_stream->time_base.den
         );

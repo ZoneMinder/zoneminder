@@ -425,6 +425,7 @@ Debug(4, "Not video and RAWPICTURE");
     int ret;
 
     prevDts = opkt.dts; // Unsure if av_interleaved_write_frame() clobbers opkt.dts when out of order, so storing in advance
+      dumpPacket(&opkt);
     ret = av_interleaved_write_frame(oc, &opkt);
     if(ret<0){
       // There's nothing we can really do if the frame is rejected, just drop it and get on with the next

@@ -463,9 +463,9 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
     if (fps)
       zm_log_fps(av_q2d(st->avg_frame_rate), tbn || tbc ? "fps, " : "fps");
     if (tbn)
-      zm_log_fps(1 / av_q2d(st->time_base), tbc ? "tbn, " : "tbn");
+      zm_log_fps(1 / av_q2d(st->time_base), tbc ? "stream tb numerator , " : "stream tb numerator");
     if (tbc)
-      zm_log_fps(1 / av_q2d(st->codec->time_base), "tbc");
+      zm_log_fps(1 / av_q2d(st->codec->time_base), "codec time base:");
   }
 
   if (st->disposition & AV_DISPOSITION_DEFAULT)

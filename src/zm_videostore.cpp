@@ -80,7 +80,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
   output_format = oc->oformat;
 
-  video_stream = avformat_new_stream(oc, (AVCodec *)video_stream->codec->codec);
+  video_stream = avformat_new_stream(oc, input_video_stream->codec->codec);
   if (!video_stream) {
     Fatal("Unable to create video out stream\n");
   } else {
@@ -412,7 +412,13 @@ if ( 1 ) {
 
   opkt.data = ipkt->data;
   opkt.size = ipkt->size;
+  if ( ipkt->stream_index > 0 and ! audio_stream ) {
+Warning("Setting stream index to 0 instead of %d", ipkt->stream_index );
+  opkt.stream_index = 0;
+  } else {
   opkt.stream_index = ipkt->stream_index;
+  }
+  
   /*opkt.flags |= AV_PKT_FLAG_KEY;*/
 
   if (video_stream->codec->codec_type == AVMEDIA_TYPE_VIDEO && (output_format->flags & AVFMT_RAWPICTURE)) {

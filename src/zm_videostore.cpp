@@ -357,17 +357,27 @@ if ( 1 ) {
     Debug(3, "opkt.pts = undef");
     opkt.pts = AV_NOPTS_VALUE;
   }
-}
 
   //Scale the DTS of the outgoing packet to be the correct time base
   if(ipkt->dts == AV_NOPTS_VALUE) {
     if ( ! startDts ) startDts = input_video_stream->cur_dts;
     opkt.dts = av_rescale_q(input_video_stream->cur_dts-startDts, AV_TIME_BASE_Q, video_stream->time_base);
-    Debug(3, "opkt.dts = %d from input_video_stream->cur_dts(%d) - startDts(%d), video_stream->time-base(%d)", opkt.dts, input_video_stream->cur_dts, startDts, video_stream->time_base );
+    Debug(3, "opkt.dts = %d from input_video_stream->cur_dts(%d) - startDts(%d), input time based(%d/%d) video_stream->time-base(%d/%d)", 
+        opkt.dts, input_video_stream->cur_dts, startDts, 
+        input_video_stream->time_base.num,
+        input_video_stream->time_base.den
+        video_stream->time_base.num,
+        video_stream->time_base.den
+        );
   } else {
     if ( ! startDts ) startDts = ipkt->dts;
     opkt.dts = av_rescale_q(ipkt->dts - startDts, input_video_stream->time_base, video_stream->time_base);
-	Debug(3, "opkt.dts = %d from ipkt->dts(%d) - startDts(%d), video_stream->time-base(%d)", opkt.dts, ipkt->dts, startDts, video_stream->time_base );
+    Debug(3, "opkt.dts = %d from ipkt->dts(%d) - startDts(%d), input time base (%d/%d) video_stream->time-base(%d/%d)", opkt.dts, ipkt->dts, startDts, 
+        input_video_stream->time_base.num,
+        input_video_stream->time_base.den
+        video_stream->time_base.num,
+        video_stream->time_base.den
+        );
   }
   if ( opkt.dts > opkt.pts ) {
     Warning("opkt.dts(%d) must be <= opkt.pts(%d). Decompression must happen before presentation.", opkt.dts, opkt.pts );
@@ -396,7 +406,7 @@ Debug(3, "video and RAWPICTURE");
     opkt.size = sizeof(AVPicture);
     opkt.flags |= AV_PKT_FLAG_KEY;
    } else {
-Debug(3, "Not video and RAWPICTURE");
+Debug(4, "Not video and RAWPICTURE");
   }
 
   //memcpy(&safepkt, &opkt, sizeof(AVPacket));

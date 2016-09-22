@@ -85,6 +85,10 @@ header("Content-Range: bytes $begin-$end/$size");
 header("Content-Transfer-Encoding: binary\n");
 header('Connection: close');
 
+// Apparently without these we get a few extra bytes of output at the end...
+ob_clean();
+flush();
+
 $cur = $begin;
 fseek( $fh, $begin, 0 );
 
@@ -94,5 +98,3 @@ while( ! feof( $fh ) && $cur < $end && ( connection_status() == 0 ) ) {
   $cur += 1024*16;
   usleep(100);
 }
-
-?>

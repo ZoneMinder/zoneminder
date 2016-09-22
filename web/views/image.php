@@ -141,6 +141,8 @@ if( !empty($_REQUEST['height']) ) {
 
 
 header( 'Content-type: image/jpeg' );
+ob_clean();
+flush();
 
 if ( $errorText ) {
   Error( $errorText );
@@ -187,4 +189,3 @@ if ( $errorText ) {
     }
   }
 }
-?>

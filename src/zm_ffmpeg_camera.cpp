@@ -146,8 +146,6 @@ int FfmpegCamera::Capture( Image &image )
     mReopenThread = 0;
   }
 
-  AVPacket packet;
-
   int frameComplete = false;
   while ( !frameComplete ) {
     int avResult = av_read_frame( mFormatContext, &packet );
@@ -386,9 +384,6 @@ int FfmpegCamera::OpenFfmpeg() {
     }
   }
 
-  //
-
-
   Debug ( 1, "Opened codec" );
 
   // Allocate space for the native video frame
@@ -563,13 +558,12 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
 
   int frameComplete = false;
   while ( !frameComplete ) {
-    // We are now allocating dynamically because we need to queue these and may go out of scope.
-    AVPacket *packet = (AVPacket *)av_malloc(sizeof(AVPacket));
-    av_init_packet( packet );
+Debug(2, "Before av_init_packe");
+    av_init_packet( &packet );
 
-Debug(5, "Before av_read_frame");
-    ret = av_read_frame( mFormatContext, packet );
-Debug(5, "After av_read_frame (%d)", ret );
+Debug(2, "Before av_read_frame");
+    ret = av_read_frame( mFormatContext, &packet );
+Debug(2, "After av_read_frame (%d)", ret );
     if ( ret < 0 ) {
       av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
       if (
@@ -582,21 +576,33 @@ Debug(5, "After av_read_frame (%d)", ret );
           ReopenFfmpeg();
       }
 
-      Error( "Unable to read packet from stream %d: error %d \"%s\".", packet->stream_index, ret, errbuf );
+      Error( "Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, ret, errbuf );
       return( -1 );
     }
-    Debug( 4, "Got packet from stream %d dts (%d) pts(%d)", packet->stream_index, packet->dts, packet->pts );
+    Debug( 3, "Got packet from stream %d dts (%d) pts(%d) key?(%d)", packet.stream_index, packet.dts, packet.pts, packet.flags & AV_PKT_FLAG_KEY );
+    //av_packet_ref( &packet, &packet );
 
     //Video recording
     if ( recording ) {
-
+Debug(3, "recording:");
       // The directory we are recording to is no longer tied to the current event. 
       // Need to re-init the videostore with the correct directory and start recording again
       // for efficiency's sake, we should test for keyframe before we test for directory change...
-      if ( videoStore && (packet->flags & AV_PKT_FLAG_KEY) && (strcmp(oldDirectory, event_file) != 0 ) ) {
+      if ( videoStore && (packet.flags & AV_PKT_FLAG_KEY) && (strcmp(oldDirectory, event_file) != 0 ) ) {
         // don't open new videostore until we're on a key frame..would this require an offset adjustment for the event as a result?...
         // if we store our key frame location with the event will that be enough?
         Info("Re-starting video storage module");
+
+        // I don't know if this is important or not... but I figure we might as well write this last packet out to the store before closing it.
+        // Also don't know how much it matters for audio.
+        if ( packet.stream_index == mVideoStreamId ) {
+          //Write the packet to our video store
+          int ret = videoStore->writeVideoFramePacket( &packet );
+          if ( ret < 0 ) { //Less than zero and we skipped a frame
+            Warning("Error writing last packet to videostore.");
+          }
+        } // end if video
+
         delete videoStore;
         videoStore = NULL;
       }
@@ -637,11 +643,11 @@ Debug(5, "After av_read_frame (%d)", ret );
         while ( ( queued_packet = packetqueue.popPacket() ) ) {
           packet_count += 1;
           //Write the packet to our video store
-      Debug(2, "Writing queued packet stream: %d  KEY %d, remaining (%d)", queued_packet->stream_index, packet->flags & AV_PKT_FLAG_KEY, packetqueue.size() );
+      Debug(2, "Writing queued packet stream: %d  KEY %d, remaining (%d)", queued_packet->stream_index, queued_packet->flags & AV_PKT_FLAG_KEY, packetqueue.size() );
           if ( queued_packet->stream_index == mVideoStreamId ) {
-            ret = videoStore->writeVideoFramePacket( queued_packet, mFormatContext->streams[mVideoStreamId]);
+            ret = videoStore->writeVideoFramePacket( queued_packet );
           } else if ( queued_packet->stream_index == mAudioStreamId ) {
-            ret = videoStore->writeAudioFramePacket( queued_packet, mFormatContext->streams[mAudioStreamId]);
+            ret = videoStore->writeAudioFramePacket( queued_packet );
           } else {
             Warning("Unknown stream id in queued packet (%d)", queued_packet->stream_index );
             ret = -1;
@@ -663,27 +669,32 @@ Debug(5, "After av_read_frame (%d)", ret );
         videoStore = NULL;
       }
 
-      //Buffer video packets, since we are not recording
-      if ( (packet->stream_index == mVideoStreamId) && ( packet->flags & AV_PKT_FLAG_KEY ) ) {
+      //Buffer video packets, since we are not recording. All audio packets are keyframes, so only if it's a video keyframe
+      if ( (packet.stream_index == mVideoStreamId) && ( packet.flags & AV_PKT_FLAG_KEY ) ) {
+        Debug(3, "Clearing queue");
         packetqueue.clearQueue();
       }
-      packetqueue.queuePacket(packet);
-    } // end if
+      if ( packet.stream_index != mAudioStreamId || record_audio ) {
+Debug(3, "Queuing");
+        packetqueue.queuePacket( &packet );
+      }
+    } // end if recording or not
 
-    if ( packet->stream_index == mVideoStreamId ) {
+    if ( packet.stream_index == mVideoStreamId ) {
        if ( videoStore ) {
         //Write the packet to our video store
-        int ret = videoStore->writeVideoFramePacket( packet, mFormatContext->streams[mVideoStreamId] );
+        int ret = videoStore->writeVideoFramePacket( &packet );
         if ( ret < 0 ) { //Less than zero and we skipped a frame
-          zm_av_unref_packet( packet );
+          zm_av_unref_packet( &packet );
           return 0;
         }
       }
-      ret = zm_avcodec_decode_video( mVideoCodecContext, mRawFrame, &frameComplete, packet );
+      Debug(3, "about to decode video" );
+      ret = zm_avcodec_decode_video( mVideoCodecContext, mRawFrame, &frameComplete, &packet );
       if ( ret < 0 ) {
         av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
         Error( "Unable to decode frame at frame %d: %s, continuing", frameCount, errbuf );
-        zm_av_unref_packet( packet );
+        zm_av_unref_packet( &packet );
         continue;
       }
 
@@ -698,7 +709,7 @@ Debug(5, "After av_read_frame (%d)", ret );
         directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
         if ( directbuffer == NULL ) {
           Error("Failed requesting writeable buffer for the captured image.");
-          zm_av_unref_packet( packet );
+          zm_av_unref_packet( &packet );
           return (-1);
         }
         avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height);
@@ -727,16 +738,16 @@ Debug(5, "After av_read_frame (%d)", ret );
       } else {
         Debug( 3, "Not framecomplete after av_read_frame" );
       } // end if frameComplete
-    } else if ( packet->stream_index == mAudioStreamId ) { //FIXME best way to copy all other streams
-      Debug( 4, "Audio stream index %d", packet->stream_index );
+    } else if ( packet.stream_index == mAudioStreamId ) { //FIXME best way to copy all other streams
       if ( videoStore ) {
         if ( record_audio ) {
-          Debug(3, "Recording audio packet streamindex(%d) packetstreamindex(%d)", mAudioStreamId, packet->stream_index );
+          Debug(3, "Recording audio packet streamindex(%d) packetstreamindex(%d)", mAudioStreamId, packet.stream_index );
           //Write the packet to our video store
           //FIXME no relevance of last key frame
-          int ret = videoStore->writeAudioFramePacket( packet, mFormatContext->streams[packet->stream_index] );
+          int ret = videoStore->writeAudioFramePacket( &packet );
           if ( ret < 0 ) {//Less than zero and we skipped a frame
-            zm_av_unref_packet( packet );
+            Warning("Failure to write audio packet.");
+            zm_av_unref_packet( &packet );
             return 0;
           }
         } else {
@@ -745,15 +756,16 @@ Debug(5, "After av_read_frame (%d)", ret );
       }
     } else {
 #if LIBAVUTIL_VERSION_CHECK(54, 23, 0, 23, 0)
-      Debug( 3, "Some other stream index %d, %s", packet->stream_index, av_get_media_type_string( mFormatContext->streams[packet->stream_index]->codec->codec_type) );
+      Debug( 3, "Some other stream index %d, %s", packet.stream_index, av_get_media_type_string( mFormatContext->streams[packet.stream_index]->codec->codec_type) );
 #else
-      Debug( 3, "Some other stream index %d", packet->stream_index );
+      Debug( 3, "Some other stream index %d", packet.stream_index );
 #endif
     }
-    if ( videoStore ) {
-      zm_av_unref_packet( packet );
-      av_free( packet );
-    }
+    //if ( videoStore ) {
+      
+      // the packet contents are ref counted... when queuing, we allocate another packet and reference it with that one, so we should always need to unref here, which should not affect the queued version.
+      zm_av_unref_packet( &packet );
+    //}
   } // end while ! frameComplete
   return (frameCount);
 }

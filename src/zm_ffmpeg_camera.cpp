@@ -558,12 +558,12 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
 
   int frameComplete = false;
   while ( !frameComplete ) {
-Debug(2, "Before av_init_packe");
+Debug(5, "Before av_init_packe");
     av_init_packet( &packet );
 
-Debug(2, "Before av_read_frame");
+Debug(5, "Before av_read_frame");
     ret = av_read_frame( mFormatContext, &packet );
-Debug(2, "After av_read_frame (%d)", ret );
+Debug(5, "After av_read_frame (%d)", ret );
     if ( ret < 0 ) {
       av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
       if (
@@ -584,7 +584,6 @@ Debug(2, "After av_read_frame (%d)", ret );
 
     //Video recording
     if ( recording ) {
-Debug(3, "recording:");
       // The directory we are recording to is no longer tied to the current event. 
       // Need to re-init the videostore with the correct directory and start recording again
       // for efficiency's sake, we should test for keyframe before we test for directory change...

@@ -544,6 +544,23 @@ if(NOT ZM_NO_FFMPEG)
 		set(optlibsnotfound "${optlibsnotfound} SWScale")
 	endif(SWSCALE_LIBRARIES)
 
+	# rescale (using find_library and find_path)
+	find_library(SWRESAMPLE_LIBRARIES swresample)
+	if(SWRESAMPLE_LIBRARIES)
+		set(HAVE_LIBSWRESAMPLE 1)
+		list(APPEND ZM_BIN_LIBS "${SWRESAMPLE_LIBRARIES}")
+		find_path(SWRESAMPLE_INCLUDE_DIR "libswresample/swresample.h" /usr/include/ffmpeg)
+		if(SWRESAMPLE_INCLUDE_DIR)
+			include_directories("${SWRESAMPLE_INCLUDE_DIR}")
+			set(CMAKE_REQUIRED_INCLUDES "${SWRESAMPLE_INCLUDE_DIR}")
+		endif(SWRESAMPLE_INCLUDE_DIR)
+		mark_as_advanced(FORCE SWRESAMPLE_LIBRARIES SWRESAMPLE_INCLUDE_DIR)
+		check_include_file("libswresample/swresample.h" HAVE_LIBSWRESAMPLE_SWRESAMPLE_H)
+		set(optlibsfound "${optlibsfound} SWResample")
+	else(SWRESAMPLE_LIBRARIES)
+		set(optlibsnotfound "${optlibsnotfound} SWResample")
+	endif(SWRESAMPLE_LIBRARIES)
+
 	# Find the path to the ffmpeg executable
 	find_program(FFMPEG_EXECUTABLE 
 		NAMES ffmpeg avconv

@@ -38,16 +38,12 @@ bool zm_packetqueue::queuePacket( AVPacket* packet ) {
   AVPacket *input_ref = (AVPacket *)av_malloc(sizeof(AVPacket));
   av_init_packet( input_ref );
   if ( av_packet_ref( input_ref, packet ) < 0 ) {
-Error("error refing packet");
+    Error("error refing packet");
     av_free(input_ref);
 		return false;
-  } else {
- Debug(3, "made a ref");
 	}
  
 	pktQueue.push( input_ref );
- Debug(3, "queued");
-	//pktQueue.push( input_ref );
 
 	return true;
 }

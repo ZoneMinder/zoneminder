@@ -2,7 +2,11 @@
 #define ZM_VIDEOSTORE_H
 
 #include "zm_ffmpeg.h"
+extern "C"  {
 #include "libavutil/audio_fifo.h"
+
+#include "libswresample/swresample.h"
+}
 
 #if HAVE_LIBAVCODEC
 
@@ -20,6 +24,10 @@ private:
 	AVStream *video_input_stream;
 	AVStream *audio_input_stream;
 
+    // we are transcoding
+    AVFrame *input_frame;
+    AVFrame *output_frame;
+
   AVCodecContext *video_input_context;
   AVCodecContext *audio_input_context;
 
@@ -29,6 +37,8 @@ private:
   int data_present;
   AVAudioFifo *fifo;
   int output_frame_size;
+    SwrContext *resample_context = NULL;
+uint8_t *converted_input_samples = NULL;
     
 	const char *filename;
 	const char *format;

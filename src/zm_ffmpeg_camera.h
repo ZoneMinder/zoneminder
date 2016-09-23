@@ -53,6 +53,12 @@ class FfmpegCamera : public Camera
     AVFrame             *mFrame;
     _AVPIXELFORMAT      imagePixFormat;
 
+  // Need to keep track of these because apparently the stream can start with values for pts/dts and then subsequent packets start at zero.
+  int64_t audio_last_pts;
+  int64_t audio_last_dts;
+  int64_t video_last_pts;
+  int64_t video_last_dts;
+
     // Used to store the incoming packet, it will get copied when queued. 
     // We only ever need one at a time, so instead of constantly allocating
     // and freeing this structure, we will just make it a member of the object.

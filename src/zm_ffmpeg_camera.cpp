@@ -63,6 +63,10 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::stri
   mOpenStart = 0;
   mReopenThread = 0;
   videoStore = NULL;
+  audio_last_pts = 0;
+  audio_last_dts = 0;
+  video_last_pts = 0;
+  video_last_dts = 0;
 
 #if HAVE_LIBSWSCALE  
   mConvertContext = NULL;
@@ -661,12 +665,18 @@ Debug(5, "After av_read_frame (%d)", ret );
       }
 
       //Buffer video packets, since we are not recording. All audio packets are keyframes, so only if it's a video keyframe
-      if ( (packet.stream_index == mVideoStreamId) && ( packet.flags & AV_PKT_FLAG_KEY ) ) {
-        Debug(3, "Clearing queue");
-        packetqueue.clearQueue();
-      }
+      if ( packet.stream_index == mVideoStreamId) {
+        if ( packet.flags & AV_PKT_FLAG_KEY ) {
+          Debug(3, "Clearing queue");
+          packetqueue.clearQueue();
+        }
+        if ( packet.pts && video_last_pts > packet.pts ) {
+          Debug(3, "Clearing queue due to out of order pts");
+          packetqueue.clearQueue();
+        }
+      } 
+
       if ( packet.stream_index != mAudioStreamId || record_audio ) {
-Debug(3, "Queuing");
         packetqueue.queuePacket( &packet );
       }
     } // end if recording or not

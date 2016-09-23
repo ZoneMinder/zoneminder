@@ -523,7 +523,7 @@ int RemoteCameraRtsp::CaptureAndRecord(Image &image, bool recording, char* event
 
           if ( videoStore ) {
             //Write the packet to our video store
-            int ret = videoStore->writeVideoFramePacket(&packet, mFormatContext->streams[mVideoStreamId]);//, &lastKeyframePkt);
+            int ret = videoStore->writeVideoFramePacket(&packet);//, &lastKeyframePkt);
             if ( ret < 0 ) {//Less than zero and we skipped a frame
 // Should not 
               av_free_packet( &packet );
@@ -553,7 +553,7 @@ int RemoteCameraRtsp::CaptureAndRecord(Image &image, bool recording, char* event
         if ( videoStore && record_audio ) {
           Debug( 4, "Storing Audio packet" );
           //Write the packet to our video store
-          int ret = videoStore->writeAudioFramePacket(&packet, mFormatContext->streams[packet.stream_index]); //FIXME no relevance of last key frame
+          int ret = videoStore->writeAudioFramePacket( &packet ); //FIXME no relevance of last key frame
           if ( ret < 0 ) { //Less than zero and we skipped a frame
 #if LIBAVCODEC_VERSION_CHECK(57, 8, 0, 12, 100)
             av_packet_unref( &packet );

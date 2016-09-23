@@ -179,6 +179,12 @@ Image::~Image()
     delete decodejpg_dcinfo;
     decodejpg_dcinfo = 0;
   }
+  for ( unsigned int quality=0; quality <= 100; quality += 1 ) {
+    if ( writejpg_ccinfo[quality] ) {
+      delete writejpg_ccinfo[quality];
+      writejpg_ccinfo[quality] = NULL;
+    }
+  } // end foreach quality
 }
 
 void Image::Initialise()

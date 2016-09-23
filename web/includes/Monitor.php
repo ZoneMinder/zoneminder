@@ -171,7 +171,7 @@ private $control_fields = array(
     }
   }
   public function getStreamSrc( $args, $querySep='&amp;' ) {
-    if ( isset($this->{'ServerId'}) ) {
+    if ( isset($this->{'ServerId'}) and $this->{'ServerId'} ) {
       $Server = new Server( $this->{'ServerId'} );
       $streamSrc = ZM_BASE_PROTOCOL.'://'.$Server->Hostname().ZM_PATH_ZMS;
     } else {

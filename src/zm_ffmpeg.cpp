@@ -424,6 +424,7 @@ static void zm_log_fps(double d, const char *postfix) {
 /* "user interface" functions */
 void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output) {
   char buf[256];
+  Debug(1, "Dumping stream index i(%d) index(%d)", i, index );
   int flags = (is_output ? ic->oformat->flags : ic->iformat->flags);
   AVStream *st = ic->streams[i];
   AVDictionaryEntry *lang = av_dict_get(st->metadata, "language", NULL, 0);
@@ -437,8 +438,7 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
     Debug(1, "[0x%x]", st->id);
   if (lang)
     Debug(1, "(%s)", lang->value);
-  av_log(NULL, AV_LOG_DEBUG, ", %d, %d/%d", st->codec_info_nb_frames,
-      st->time_base.num, st->time_base.den);
+  Debug(1, ", %d, %d/%d", st->codec_info_nb_frames, st->time_base.num, st->time_base.den);
   Debug(1, ": %s", buf);
 
   if (st->sample_aspect_ratio.num && // default
@@ -464,9 +464,9 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
     if (fps)
       zm_log_fps(av_q2d(st->avg_frame_rate), tbn || tbc ? "fps, " : "fps");
     if (tbn)
-      zm_log_fps(1 / av_q2d(st->time_base), tbc ? "tbn, " : "tbn");
+      zm_log_fps(1 / av_q2d(st->time_base), tbc ? "stream tb numerator , " : "stream tb numerator");
     if (tbc)
-      zm_log_fps(1 / av_q2d(st->codec->time_base), "tbc");
+      zm_log_fps(1 / av_q2d(st->codec->time_base), "codec time base:");
   }
 
   if (st->disposition & AV_DISPOSITION_DEFAULT)

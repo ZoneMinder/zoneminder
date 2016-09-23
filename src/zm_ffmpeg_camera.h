@@ -36,8 +36,8 @@ class FfmpegCamera : public Camera
 {
   protected:
     std::string         mPath;
-    std::string      mMethod;
-    std::string      mOptions;
+    std::string         mMethod;
+    std::string         mOptions;
 
     int frameCount;    
 
@@ -51,7 +51,12 @@ class FfmpegCamera : public Camera
     AVCodec             *mAudioCodec;
     AVFrame             *mRawFrame; 
     AVFrame             *mFrame;
-    _AVPIXELFORMAT         imagePixFormat;
+    _AVPIXELFORMAT      imagePixFormat;
+
+    // Used to store the incoming packet, it will get copied when queued. 
+    // We only ever need one at a time, so instead of constantly allocating
+    // and freeing this structure, we will just make it a member of the object.
+    AVPacket packet;       
 
     int OpenFfmpeg();
     int ReopenFfmpeg();
@@ -67,10 +72,8 @@ class FfmpegCamera : public Camera
     bool                wasRecording;
     VideoStore          *videoStore;
     char                oldDirectory[4096];
-    zm_packetqueue    packetqueue;
-
-    // Last Key frame
-    //AVPacket            lastKeyframePkt;
+    unsigned int        old_event_id;
+    zm_packetqueue      packetqueue;
 
 #if HAVE_LIBSWSCALE
     struct SwsContext   *mConvertContext;

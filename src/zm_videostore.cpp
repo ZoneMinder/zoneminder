@@ -274,9 +274,19 @@ Debug(2, "Have audio_output_context");
             audio_output_context->sample_fmt = AV_SAMPLE_FMT_FLTP;
           }
   
+ Debug(3, "Audio Time bases input stream time base(%d/%d) input codec tb: (%d/%d) video_output_stream->time-base(%d/%d) output codec tb (%d/%d)", 
+        audio_input_stream->time_base.num,
+        audio_input_stream->time_base.den,
+        audio_input_context->time_base.num,
+        audio_input_context->time_base.den,
+        audio_output_stream->time_base.num,
+        audio_output_stream->time_base.den,
+        audio_output_context->time_base.num,
+        audio_output_context->time_base.den
+        );
           /** Set the sample rate for the container. */
-          audio_output_stream->time_base.den = audio_input_context->sample_rate;
-          audio_output_stream->time_base.num = 1;
+          //audio_output_stream->time_base.den = audio_input_context->sample_rate;
+          //audio_output_stream->time_base.num = 1;
 
           ret = avcodec_open2(audio_output_context, audio_output_codec, &opts );
           if ( ret < 0 ) {
@@ -293,16 +303,6 @@ Debug(2, "Have audio_output_context");
               audio_output_context->frame_size,
               audio_output_context->refcounted_frames
               );
- Debug(3, "Audio Time bases input stream time base(%d/%d) input codec tb: (%d/%d) video_output_stream->time-base(%d/%d) output codec tb (%d/%d)", 
-        audio_input_stream->time_base.num,
-        audio_input_stream->time_base.den,
-        audio_input_context->time_base.num,
-        audio_input_context->time_base.den,
-        audio_output_stream->time_base.num,
-        audio_output_stream->time_base.den,
-        audio_output_context->time_base.num,
-        audio_output_context->time_base.den
-        );
 #if 1
     /** Create the FIFO buffer based on the specified output sample format. */
     if (!(fifo = av_audio_fifo_alloc(audio_output_context->sample_fmt,
@@ -414,6 +414,16 @@ av_make_error_string(ret).c_str() );
         audio_output_context->flags |= CODEC_FLAG_GLOBAL_HEADER;
       }
     } // end if is AAC
+ Debug(3, "Audio Time bases input stream time base(%d/%d) input codec tb: (%d/%d) video_output_stream->time-base(%d/%d) output codec tb (%d/%d)", 
+        audio_input_stream->time_base.num,
+        audio_input_stream->time_base.den,
+        audio_input_context->time_base.num,
+        audio_input_context->time_base.den,
+        audio_output_stream->time_base.num,
+        audio_output_stream->time_base.den,
+        audio_output_context->time_base.num,
+        audio_output_context->time_base.den
+        );
   } else {
     Debug(3, "No Audio output stream");
     audio_output_stream = NULL;
@@ -520,7 +530,8 @@ int VideoStore::writeVideoFramePacket( AVPacket *ipkt ) {
 if ( 1 ) {
   //Scale the PTS of the outgoing packet to be the correct time base
   if (ipkt->pts != AV_NOPTS_VALUE) {
-    if ( ! video_start_pts ) {
+    if ( video_start_pts < ipkt->pts ) {
+      Debug(1, "Resetting video_start_pts from (%d) to (%d)",  video_start_pts, ipkt->pts );
       //never gets set, so the first packet can set it.
       video_start_pts = ipkt->pts;
     }
@@ -535,13 +546,19 @@ if ( 1 ) {
   //Scale the DTS of the outgoing packet to be the correct time base
   if(ipkt->dts == AV_NOPTS_VALUE) {
     // why are we using cur_dts instead of packet.dts?
-    if ( ! video_start_dts ) video_start_dts = video_input_stream->cur_dts;
+    if ( video_start_dts < video_input_stream->cur_dts ) {
+      Debug(1, "Resetting video_start_dts from (%d) to (%d) p.dts was (%d)",  video_start_dts, video_input_stream->cur_dts, ipkt->dts );
+      video_start_dts = video_input_stream->cur_dts;
+    }
     opkt.dts = av_rescale_q(video_input_stream->cur_dts - video_start_dts, AV_TIME_BASE_Q, video_output_stream->time_base);
     Debug(3, "opkt.dts = %d from video_input_stream->cur_dts(%d) - startDts(%d)", 
         opkt.dts, video_input_stream->cur_dts, video_start_dts
         );
   } else {
-    if ( ! video_start_dts ) video_start_dts = ipkt->dts;
+    if ( video_start_dts < ipkt->dts ) {
+      Debug(1, "Resetting video_start_dts from (%d) to (%d)",  video_start_dts, ipkt->dts );
+      video_start_dts = video_input_stream->cur_dts;
+    }
     opkt.dts = av_rescale_q(ipkt->dts - video_start_dts, video_input_stream->time_base, video_output_stream->time_base);
     Debug(3, "opkt.dts = %d from ipkt->dts(%d) - startDts(%d)", opkt.dts, ipkt->dts, video_start_dts );
   }
@@ -635,7 +652,8 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
 
  //Scale the PTS of the outgoing packet to be the correct time base
   if (ipkt->pts != AV_NOPTS_VALUE) {
-    if ( ! audio_start_pts ) {
+    if ( audio_start_pts < ipkt->pts ) {
+      Debug(1, "Resetting audeo_start_pts from (%d) to (%d)",  audio_start_pts, ipkt->pts );
       //never gets set, so the first packet can set it.
       audio_start_pts = ipkt->pts;
     }
@@ -647,7 +665,10 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
 
   //Scale the DTS of the outgoing packet to be the correct time base
   if(ipkt->dts == AV_NOPTS_VALUE) {
-    if ( ! audio_start_dts ) audio_start_dts = audio_input_stream->cur_dts;
+    if ( audio_start_dts < audio_input_stream->cur_dts ) {
+      Debug(1, "Resetting audeo_start_pts from (%d) to (%d)",  audio_start_pts, audio_input_stream->cur_dts );
+      audio_start_dts = audio_input_stream->cur_dts;
+    }
     opkt.dts = av_rescale_q(audio_input_stream->cur_dts - audio_start_dts, AV_TIME_BASE_Q, audio_output_stream->time_base);
     Debug(2, "opkt.dts = %d from video_input_stream->cur_dts(%d) - startDts(%d)",
         opkt.dts, audio_input_stream->cur_dts, audio_start_dts
@@ -661,8 +682,8 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
     Debug(1,"opkt.dts(%d) must be <= opkt.pts(%d). Decompression must happen before presentation.", opkt.dts, opkt.pts );
     opkt.dts = opkt.pts;
   }
-    opkt.pts = AV_NOPTS_VALUE;
-    opkt.dts = AV_NOPTS_VALUE;
+    //opkt.pts = AV_NOPTS_VALUE;
+    //opkt.dts = AV_NOPTS_VALUE;
 
   opkt.duration = av_rescale_q(ipkt->duration, audio_input_stream->time_base, audio_output_stream->time_base);
   // pkt.pos:  byte position in stream, -1 if unknown 

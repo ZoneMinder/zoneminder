@@ -49,7 +49,7 @@ Storage::Storage( unsigned int p_id ) {
 	if ( p_id ) {
 		char sql[ZM_SQL_SML_BUFSIZ];
 		snprintf( sql, sizeof(sql), "SELECT Id, Name, Path from Storage WHERE Id=%d", p_id );
-		Debug(1,"Loading Storage for %d using %s", p_id, sql );
+		Debug(2,"Loading Storage for %d using %s", p_id, sql );
 		zmDbRow dbrow;
 		if ( ! dbrow.fetch( sql ) ) {
 			Error( "Unable to load storage area for id %d: %s", p_id, mysql_error( &dbconn ) );
@@ -58,13 +58,18 @@ Storage::Storage( unsigned int p_id ) {
 			id = atoi( dbrow[index++] );
 			strncpy( name, dbrow[index++], sizeof(name) );
 			strncpy( path, dbrow[index++], sizeof(path) );
-			Info( "Loaded Storage area %d '%s'", id, this->Name() );
+			Debug( 1, "Loaded Storage area %d '%s'", id, this->Name() );
 		}
 	}
 	if ( ! id ) {
-		Debug(1,"No id passed to Storage constructor.  Using default path %s instead", config.dir_events );
+    if ( config.dir_events[0] != '/' ) {
+      // not using an absolute path. Make it one by appending ZM_PATH_WEB
+      snprintf( path, sizeof(path), "%s/%s", config.dir_events, staticConfig.PATH_WEB.c_str() );
+    } else {
+      strncpy(path, config.dir_events, sizeof(path) );
+    }
+		Debug(1,"No id passed to Storage constructor.  Using default path %s instead", path );
 		strcpy(name, "Default");
-		strncpy(path, config.dir_events, sizeof(path) );
 	}
 
 }

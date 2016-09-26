@@ -85,6 +85,8 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::stri
 
 FfmpegCamera::~FfmpegCamera()
 {
+
+
   CloseFfmpeg();
 
   if ( capture )
@@ -575,15 +577,20 @@ Debug(5, "After av_read_frame (%d)", ret );
       Error( "Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, ret, errbuf );
       return( -1 );
     }
-    Debug( 3, "Got packet from stream %d dts (%d) pts(%d) key?(%d)", packet.stream_index, packet.dts, packet.pts, packet.flags & AV_PKT_FLAG_KEY );
-    //av_packet_ref( &packet, &packet );
+
+    int key_frame = packet.flags & AV_PKT_FLAG_KEY;
+
+    Debug( 3, "Got packet from stream %d packet pts (%d) dts(%d), key?(%d)", 
+        packet.stream_index, packet.pts, packet.dts, 
+        key_frame
+        );
 
     //Video recording
     if ( recording ) {
       // The directory we are recording to is no longer tied to the current event. 
       // Need to re-init the videostore with the correct directory and start recording again
       // for efficiency's sake, we should test for keyframe before we test for directory change...
-      if ( videoStore && (packet.flags & AV_PKT_FLAG_KEY) && (strcmp(oldDirectory, event_file) != 0 ) ) {
+      if ( videoStore && key_frame && (strcmp(oldDirectory, event_file) != 0 ) ) {
         // don't open new videostore until we're on a key frame..would this require an offset adjustment for the event as a result?...
         // if we store our key frame location with the event will that be enough?
         Info("Re-starting video storage module");
@@ -638,7 +645,7 @@ Debug(5, "After av_read_frame (%d)", ret );
         while ( ( queued_packet = packetqueue.popPacket() ) ) {
           packet_count += 1;
           //Write the packet to our video store
-      Debug(2, "Writing queued packet stream: %d  KEY %d, remaining (%d)", queued_packet->stream_index, queued_packet->flags & AV_PKT_FLAG_KEY, packetqueue.size() );
+          Debug(2, "Writing queued packet stream: %d  KEY %d, remaining (%d)", queued_packet->stream_index, queued_packet->flags & AV_PKT_FLAG_KEY, packetqueue.size() );
           if ( queued_packet->stream_index == mVideoStreamId ) {
             ret = videoStore->writeVideoFramePacket( queued_packet );
           } else if ( queued_packet->stream_index == mAudioStreamId ) {
@@ -666,17 +673,21 @@ Debug(5, "After av_read_frame (%d)", ret );
 
       //Buffer video packets, since we are not recording. All audio packets are keyframes, so only if it's a video keyframe
       if ( packet.stream_index == mVideoStreamId) {
-        if ( packet.flags & AV_PKT_FLAG_KEY ) {
+        if ( key_frame ) {
           Debug(3, "Clearing queue");
           packetqueue.clearQueue();
         }
         if ( packet.pts && video_last_pts > packet.pts ) {
-          Debug(3, "Clearing queue due to out of order pts");
+          Warning( "Clearing queue due to out of order pts");
           packetqueue.clearQueue();
         }
       } 
 
-      if ( packet.stream_index != mAudioStreamId || record_audio ) {
+      if ( 
+          ( packet.stream_index != mAudioStreamId || record_audio ) 
+          &&
+          ( key_frame || packetqueue.size() )
+         ) {
         packetqueue.queuePacket( &packet );
       }
     } // end if recording or not

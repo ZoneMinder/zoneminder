@@ -52,7 +52,6 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
   Info("Opening video storage stream %s format: %s\n", filename, format);
 
-  int ret;
   static char error_buffer[255];
   //Init everything we need, shouldn't have to do this, ffmpeg_camera or something else will call it.
   //av_register_all();
@@ -115,6 +114,10 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
     Debug(3, "Success copying context" );
   }
 #endif
+
+  // Just copy them from the input, no reason to choose different
+  video_output_context->time_base = video_input_context->time_base;
+  video_output_stream->time_base = video_input_stream->time_base;
 
   Debug(3, "Time bases: VIDEO input stream (%d/%d) input codec: (%d/%d) output stream: (%d/%d) output codec (%d/%d)", 
         video_input_stream->time_base.num,
@@ -260,17 +263,8 @@ Debug(2, "Have audio_output_context");
           audio_output_context->sample_fmt = AV_SAMPLE_FMT_FLTP;
         }
 
-        Debug(3, "Audio Time bases input stream (%d/%d) input codec: (%d/%d) output_stream (%d/%d) output codec (%d/%d)", 
-            audio_input_stream->time_base.num,
-            audio_input_stream->time_base.den,
-            audio_input_context->time_base.num,
-            audio_input_context->time_base.den,
-            audio_output_stream->time_base.num,
-            audio_output_stream->time_base.den,
-            audio_output_context->time_base.num,
-            audio_output_context->time_base.den
-            );
-        audio_output_stream->time_base = (AVRational){ 1, audio_output_context->sample_rate };
+        //audio_output_stream->time_base = audio_input_stream->time_base;
+        audio_output_context->time_base = (AVRational){ 1, audio_output_context->sample_rate };
 
         Debug(3, "Audio Time bases input stream (%d/%d) input codec: (%d/%d) output_stream (%d/%d) output codec (%d/%d)", 
             audio_input_stream->time_base.num,
@@ -282,9 +276,6 @@ Debug(2, "Have audio_output_context");
             audio_output_context->time_base.num,
             audio_output_context->time_base.den
             );
-        /** Set the sample rate for the container. */
-        //audio_output_stream->time_base.den = audio_input_context->sample_rate;
-        //audio_output_stream->time_base.num = 1;
 
         ret = avcodec_open2(audio_output_context, audio_output_codec, &opts );
         if ( ret < 0 ) {
@@ -409,19 +400,11 @@ Debug(2, "Have audio_output_context");
         Debug(3, "Audio is mono");
       }
     } // end if is AAC
-      if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
-        audio_output_context->flags |= CODEC_FLAG_GLOBAL_HEADER;
-      }
- Debug(3, "Audio Time bases input stream time base(%d/%d) input codec tb: (%d/%d) video_output_stream->time-base(%d/%d) output codec tb (%d/%d)", 
-        audio_input_stream->time_base.num,
-        audio_input_stream->time_base.den,
-        audio_input_context->time_base.num,
-        audio_input_context->time_base.den,
-        audio_output_stream->time_base.num,
-        audio_output_stream->time_base.den,
-        audio_output_context->time_base.num,
-        audio_output_context->time_base.den
-        );
+
+    if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
+      audio_output_context->flags |= CODEC_FLAG_GLOBAL_HEADER;
+    }
+
   } else {
     Debug(3, "No Audio output stream");
     audio_output_stream = NULL;
@@ -469,6 +452,40 @@ Debug(2, "Have audio_output_context");
 
 
 VideoStore::~VideoStore(){
+  if ( audio_output_codec ) {
+Debug(1, "Have audio encoder, need to flush it's output" );
+    // Do we need to flush the outputs?  I have no idea.
+    AVPacket pkt;
+    int got_packet;
+    av_init_packet(&pkt);
+    pkt.data = NULL;
+    pkt.size = 0;
+    int64_t size;
+
+    while(1) {
+      ret = avcodec_encode_audio2( audio_output_context, &pkt, NULL, &got_packet );
+      if (ret < 0) {
+        Error("ERror encoding audio while flushing");
+        break;
+      }
+Debug(1, "Have audio encoder, need to flush it's output" );
+      size += pkt.size;
+      if (!got_packet) {
+        break;
+      }
+Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts, pkt.dts, pkt.duration );
+      if (pkt.pts != AV_NOPTS_VALUE)
+        pkt.pts = av_rescale_q(pkt.pts, audio_output_context->time_base, audio_output_stream->time_base);
+      if (pkt.dts != AV_NOPTS_VALUE)
+        pkt.dts = av_rescale_q(pkt.dts, audio_output_context->time_base, audio_output_stream->time_base);
+      if (pkt.duration > 0)
+        pkt.duration = av_rescale_q(pkt.duration, audio_output_context->time_base, audio_output_stream->time_base);
+Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts, pkt.dts, pkt.duration );
+      pkt.stream_index = audio_output_stream->index;
+      av_interleaved_write_frame( oc, &pkt );
+      zm_av_unref_packet( &pkt );
+    } // while 1
+  }
   /* Write the trailer before close */
   if ( int rc = av_write_trailer(oc) ) {
     Error("Error writing trailer %s",  av_err2str( rc ) );
@@ -626,7 +643,6 @@ Debug(4, "Not video and RAWPICTURE");
     dumpPacket(&opkt);
 
   } else {
-    int ret;
 
     prevDts = opkt.dts; // Unsure if av_interleaved_write_frame() clobbers opkt.dts when out of order, so storing in advance
     ret = av_interleaved_write_frame(oc, &opkt);
@@ -654,15 +670,12 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
     return -1;*/
   //zm_dump_stream_format( oc, ipkt->stream_index, 0, 1 );
 
-  int ret;
-
-
   av_init_packet(&opkt);
   Debug(5, "after init packet" );
 
 #if 1
  //Scale the PTS of the outgoing packet to be the correct time base
-  if (ipkt->pts != AV_NOPTS_VALUE) {
+  if ( ipkt->pts != AV_NOPTS_VALUE ) {
     if ( (!audio_start_pts) || ( audio_start_pts > ipkt->pts ) ) {
       Debug(1, "Resetting audeo_start_pts from (%d) to (%d)",  audio_start_pts, ipkt->pts );
       //never gets set, so the first packet can set it.
@@ -677,7 +690,7 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
   //Scale the DTS of the outgoing packet to be the correct time base
   if(ipkt->dts == AV_NOPTS_VALUE) {
     if ( (!audio_start_dts) || (audio_start_dts > audio_input_stream->cur_dts ) ) {
-      Debug(1, "Resetting audeo_start_pts from (%d) to (%d)",  audio_start_dts, audio_input_stream->cur_dts );
+      Debug(1, "Resetting audio_start_pts from (%d) to cur_dts (%d)",  audio_start_dts, audio_input_stream->cur_dts );
       audio_start_dts = audio_input_stream->cur_dts;
     }
     opkt.dts = av_rescale_q(audio_input_stream->cur_dts - audio_start_dts, AV_TIME_BASE_Q, audio_output_stream->time_base);
@@ -685,7 +698,7 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
         opkt.dts, audio_input_stream->cur_dts, audio_start_dts
         );
   } else {
-    if ( (!audio_start_dts) || ( audio_start_dts > ipkt->dts ) ) {
+    if ( ( ! audio_start_dts ) || ( audio_start_dts > ipkt->dts ) ) {
       Debug(1, "Resetting audeo_start_dts from (%d) to (%d)",  audio_start_dts, ipkt->dts );
       audio_start_dts = ipkt->dts;
     }
@@ -750,8 +763,6 @@ av_codec_is_encoder( audio_output_context->codec)
   av_frame_unref( input_frame );
 #else
 
-  // convert the packet to the codec timebase from the stream timebase
-  av_packet_rescale_ts( ipkt, audio_input_stream->time_base, audio_input_context->time_base );
 
     /**
      * Decode the audio frame stored in the packet.
@@ -802,11 +813,6 @@ av_codec_is_encoder( audio_output_context->codec)
       return 0;
     }
 
-    /** Create a new frame to store the audio samples. */
-    if (!(output_frame = zm_av_frame_alloc())) {
-      Error("Could not allocate output frame");
-      return 0;
-    }
     /**
      * Set the frame's parameters, especially its size and format.
      * av_frame_get_buffer needs this to allocate memory for the
@@ -834,15 +840,19 @@ av_codec_is_encoder( audio_output_context->codec)
       return 0;
     }
 
-    /** Set a timestamp based on the sample rate for the container. */
-    if (output_frame) {
-      output_frame->pts = av_frame_get_best_effort_timestamp(output_frame);
-    }
     Debug(4, "About to read");
     if (av_audio_fifo_read(fifo, (void **)output_frame->data, frame_size) < frame_size) {
       Error( "Could not read data from FIFO\n");
       return 0;
     }
+
+    /** Set a timestamp based on the sample rate for the container. */
+    output_frame->pts = av_rescale_q( opkt.pts, audio_output_context->time_base, audio_output_stream->time_base );
+
+  // convert the packet to the codec timebase from the stream timebase
+Debug(3, "output_frame->pts(%d) best effort(%d)", output_frame->pts, 
+av_frame_get_best_effort_timestamp(output_frame)
+ );
     /**
      * Encode the audio frame and store it in the temporary packet.
      * The output audio stream encoder is used to do this.
@@ -859,9 +869,24 @@ av_codec_is_encoder( audio_output_context->codec)
       zm_av_unref_packet(&opkt);
       return 0;
     }
+  
+
+Debug(2, "opkt dts (%d) pts(%d) duration:(%d)", opkt.dts, opkt.pts, opkt.duration );
 
     // Convert tb from code back to stream
-    av_packet_rescale_ts(&opkt, audio_output_context->time_base, audio_output_stream->time_base);
+    //av_packet_rescale_ts(&opkt, audio_output_context->time_base, audio_output_stream->time_base);
+if (opkt.pts != AV_NOPTS_VALUE)  {
+             opkt.pts      = av_rescale_q( opkt.pts,      audio_output_context->time_base, audio_output_stream->time_base);
+}
+         if ( opkt.dts != AV_NOPTS_VALUE)
+             opkt.dts      = av_rescale_q( opkt.dts,      audio_output_context->time_base, audio_output_stream->time_base);
+         if ( opkt.duration > 0)
+             opkt.duration = av_rescale_q( opkt.duration, audio_output_context->time_base, audio_output_stream->time_base);
+Debug(2, "opkt dts (%d) pts(%d) duration:(%d) pos(%d) ", opkt.dts, opkt.pts, opkt.duration, opkt.pos );
+
+
+//opkt.dts = AV_NOPTS_VALUE;
+ 
 
 #endif
   } else {

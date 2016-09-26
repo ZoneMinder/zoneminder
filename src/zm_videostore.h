@@ -32,6 +32,7 @@ private:
 
   AVCodecContext *video_input_context;
   AVCodecContext *audio_input_context;
+  int ret;
 
   // The following are used when encoding the audio stream to AAC
   AVCodec *audio_output_codec;
@@ -52,6 +53,9 @@ uint8_t *converted_input_samples = NULL;
   int64_t video_start_dts;
   int64_t audio_start_pts;
   int64_t audio_start_dts;
+
+  int64_t start_pts;
+  int64_t start_dts;
 
 	int64_t prevDts;
   int64_t filter_in_rescale_delta_last;

@@ -2833,7 +2833,7 @@ int Monitor::Capture() {
 
   unsigned int deinterlacing_value = deinterlacing & 0xff;
 
-  if ( deinterlacing_value == 4) {
+  if ( deinterlacing_value == 4 ) {
     if ( FirstCapture != 1 ) {
       /* Copy the next image into the shared memory */
       capture_image->CopyBuffer(*(next_buffer.image)); 

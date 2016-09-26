@@ -24,6 +24,8 @@ private:
 	AVStream *video_input_stream;
 	AVStream *audio_input_stream;
 
+  // Move this into the object so that we aren't constantly allocating/deallocating it on the stack
+  AVPacket opkt;
     // we are transcoding
     AVFrame *input_frame;
     AVFrame *output_frame;

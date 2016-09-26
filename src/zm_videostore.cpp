@@ -206,6 +206,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
   audio_output_codec = NULL;
   audio_input_context = NULL;
+  resample_context = NULL;
 
   if (audio_input_stream) {
     audio_input_context = audio_input_stream->codec;
@@ -236,7 +237,7 @@ Debug(2, "Have audio_output_context");
           audio_output_context->sample_fmt = audio_input_context->sample_fmt;
           //audio_output_context->refcounted_frames = 1;
 
-        if (audio_output_codec->supported_samplerates) {
+          if (audio_output_codec->supported_samplerates) {
             int found = 0;
             for ( unsigned int i = 0; audio_output_codec->supported_samplerates[i]; i++) {
               if ( audio_output_context->sample_rate == audio_output_codec->supported_samplerates[i] ) {
@@ -250,7 +251,7 @@ Debug(2, "Have audio_output_context");
               audio_output_context->sample_rate = audio_output_codec->supported_samplerates[0];
               Debug(1, "Sampel rate is no good, setting to (%d)", audio_output_codec->supported_samplerates[0] );
             }
-        }
+          }
 
         /* check that the encoder supports s16 pcm input */
         if (!check_sample_fmt( audio_output_codec, audio_output_context->sample_fmt)) {
@@ -258,6 +259,18 @@ Debug(2, "Have audio_output_context");
               av_get_sample_fmt_name( audio_output_context->sample_fmt));
           audio_output_context->sample_fmt = AV_SAMPLE_FMT_FLTP;
         }
+
+        Debug(3, "Audio Time bases input stream (%d/%d) input codec: (%d/%d) output_stream (%d/%d) output codec (%d/%d)", 
+            audio_input_stream->time_base.num,
+            audio_input_stream->time_base.den,
+            audio_input_context->time_base.num,
+            audio_input_context->time_base.den,
+            audio_output_stream->time_base.num,
+            audio_output_stream->time_base.den,
+            audio_output_context->time_base.num,
+            audio_output_context->time_base.den
+            );
+        audio_output_stream->time_base = (AVRational){ 1, audio_output_context->sample_rate };
 
         Debug(3, "Audio Time bases input stream (%d/%d) input codec: (%d/%d) output_stream (%d/%d) output codec (%d/%d)", 
             audio_input_stream->time_base.num,
@@ -429,13 +442,13 @@ Debug(2, "Have audio_output_context");
   //os->ctx_inited = 1;
   //avio_flush(ctx->pb);
   //av_dict_free(&opts);
+  zm_dump_stream_format( oc, 0, 0, 1 );
+  if ( audio_output_stream ) 
+    zm_dump_stream_format( oc, 1, 0, 1 );
 
   /* Write the stream header, if any. */
   ret = avformat_write_header(oc, NULL);
   if (ret < 0) {
-    zm_dump_stream_format( oc, 0, 0, 1 );
-    if ( audio_output_stream ) 
-      zm_dump_stream_format( oc, 1, 0, 1 );
     Error("Error occurred when writing output file header to %s: %s\n",
         filename,
         av_make_error_string(ret).c_str());
@@ -485,13 +498,16 @@ VideoStore::~VideoStore(){
 
   /* free the stream */
   avformat_free_context(oc);
+
+  if ( resample_context )
+    swr_free( &resample_context );
 }
 
 
 void VideoStore::dumpPacket( AVPacket *pkt ){
   char b[10240];
 
-  snprintf(b, sizeof(b), " pts: %" PRId64 ", dts: %" PRId64 ", data: %p, size: %d, sindex: %d, dflags: %04x, s-pos: %" PRId64 ", c-duration: %" PRId64 "\n"
+  snprintf(b, sizeof(b), " pts: %" PRId64 ", dts: %" PRId64 ", data: %p, size: %d, sindex: %d, dflags: %04x, s-pos: %" PRId64 ", c-duration: %d\n"
       , pkt->pts
       , pkt->dts
       , pkt->data
@@ -506,8 +522,6 @@ void VideoStore::dumpPacket( AVPacket *pkt ){
 
 int VideoStore::writeVideoFramePacket( AVPacket *ipkt ) {
 
-  AVPacket opkt;
-  AVPicture pict;
 
   Debug(4, "writeVideoFrame init_packet");
   av_init_packet(&opkt);
@@ -585,6 +599,7 @@ if ( opkt.dts != AV_NOPTS_VALUE ) {
 
 #if 0
   if (video_output_context->codec_type == AVMEDIA_TYPE_VIDEO && (output_format->flags & AVFMT_RAWPICTURE)) {
+  AVPicture pict;
 Debug(3, "video and RAWPICTURE");
     /* store AVPicture in AVPacket, as expected by the output format */
     avpicture_fill(&pict, opkt.data, video_output_context->pix_fmt, video_output_context->width, video_output_context->height, 0);
@@ -641,7 +656,6 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
 
   int ret;
 
-  AVPacket opkt;
 
   av_init_packet(&opkt);
   Debug(5, "after init packet" );

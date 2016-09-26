@@ -573,8 +573,8 @@ if ( 1 ) {
 }
 
 if ( opkt.dts != AV_NOPTS_VALUE ) {
-  int64_t max = audio_output_stream->cur_dts + !(oc->oformat->flags & AVFMT_TS_NONSTRICT);
-  if (audio_output_stream->cur_dts && audio_output_stream->cur_dts != AV_NOPTS_VALUE &&  max > opkt.dts) {
+    int64_t max = video_output_stream->cur_dts + !(oc->oformat->flags & AVFMT_TS_NONSTRICT);
+    if (video_output_stream->cur_dts && video_output_stream->cur_dts != AV_NOPTS_VALUE && max > opkt.dts) {
     Warning("st:%d PTS: %"PRId64" DTS: %"PRId64" < %"PRId64" invalid, clipping\n", opkt.stream_index, opkt.pts, opkt.dts, max);
     if( opkt.pts >= opkt.dts)
       opkt.pts = FFMAX(opkt.pts, max);

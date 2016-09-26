@@ -568,7 +568,11 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
 #else
       if ( avcodec_decode_video( mCodecContext, mRawFrame, &frameComplete, packet.data, packet.size ) < 0 )
 #endif
-        Fatal( "Unable to decode frame at frame %d", frameCount );
+      {
+        Error( "Unable to decode frame at frame %d, continuing...", frameCount );
+        av_free_packet( &packet );
+        continue;
+      }
 
         Debug( 4, "Decoded video packet at frame %d", frameCount );
 

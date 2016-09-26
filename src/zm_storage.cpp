@@ -64,7 +64,7 @@ Storage::Storage( unsigned int p_id ) {
 	if ( ! id ) {
     if ( config.dir_events[0] != '/' ) {
       // not using an absolute path. Make it one by appending ZM_PATH_WEB
-      snprintf(path, sizeof (path), "%s/%s", staticConfig.PATH_WEB.c_str(), config.dir_events);
+      snprintf ( path, sizeof (path), "%s/%s", staticConfig.PATH_WEB.c_str ( ), config.dir_events );
     } else {
       strncpy(path, config.dir_events, sizeof(path) );
     }

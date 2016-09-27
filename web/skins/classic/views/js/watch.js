@@ -208,6 +208,12 @@ function getStreamCmdResponse( respObj, respText )
             }
             $('enableDisableAlarms').removeClass( 'hidden' );
         }
+        if ( streamStatus.auth ) {
+          // Try to reload the image stream.
+          var streamImg = document.getElementById('liveStream');
+          if ( streamImg )
+              streamImg.src = streamImg.src.replace( /auth=\w+/i, 'auth='+streamStatus.auth );
+        } // end if haev a new auth hash
     }
     else {
         checkStreamForErrors("getStreamCmdResponse",respObj);//log them

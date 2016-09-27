@@ -4,23 +4,24 @@ function setButtonState( element, butClass )
     element.disabled = (butClass != 'inactive');
 }
 
-function changeScale()
-{
-    var scale = $('scale').get('value');
-    var baseWidth = eventData.Width;
-    var baseHeight = eventData.Height;
-    var newWidth = ( baseWidth * scale ) / SCALE_BASE;
-    var newHeight = ( baseHeight * scale ) / SCALE_BASE;
+function changeScale() {
+  var scale = $('scale').get('value');
+  var baseWidth = eventData.Width;
+  var baseHeight = eventData.Height;
+  var newWidth = ( baseWidth * scale ) / SCALE_BASE;
+  var newHeight = ( baseHeight * scale ) / SCALE_BASE;
 
-	if(vid) {
+	if ( vid ) {
+    // Using video.js
 		vid.width = newWidth;
 		vid.height = newHeight;
 	} else {
-        	streamScale( scale );
+    streamScale( scale );
 		var streamImg = document.getElementById('evtStream');
 		streamImg.style.width = newWidth + "px";
 		streamImg.style.height = newHeight + "px";
 	}
+  Cookie.write( 'zmEventScale'+eventData.monitorId, scale, { duration: 10*365 } );
 }
 
 function changeReplayMode()

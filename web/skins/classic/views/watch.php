@@ -28,18 +28,21 @@ if ( !canView( 'Stream' ) ) {
 // This is for input sanitation
 $mid = intval( $_REQUEST['mid'] ); 
 if ( ! visibleMonitor( $mid ) ) {
-    $view = 'error';
-    return;
+  $view = 'error';
+  return;
 }
 
 $monitor = new Monitor( $mid );
 
 $showPtzControls = ( ZM_OPT_CONTROL && $monitor->Controllable() && canView( 'Control' ) );
 
-if ( isset( $_REQUEST['scale'] ) )
-    $scale = validInt($_REQUEST['scale']);
-else
-    $scale = reScale( SCALE_BASE, $monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE );
+if ( isset( $_REQUEST['scale'] ) ) {
+  $scale = validInt($_REQUEST['scale']);
+} else if ( isset( $_COOKIE['zmWatchScale'.$mid] ) ) {
+  $scale = $_COOKIE['zmWatchScale'.$mid];
+} else {
+  $scale = reScale( SCALE_BASE, $monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE );
+}
 
 $connkey = generateConnKey();
 
@@ -58,8 +61,7 @@ xhtmlHeaders( __FILE__, $monitor->Name()." - ".translate('Feed') );
         <div id="closeControl"><a href="#" onclick="closeWindow(); return( false );"><?php echo translate('Close') ?></a></div>
         <div id="menuControls">
 <?php
-if ( canView( 'Control' ) && $monitor->Type() == 'Local' )
-{
+if ( canView( 'Control' ) && $monitor->Type() == 'Local' ) {
 ?>
           <div id="settingsControl"><?php echo makePopupLink( '?view=settings&amp;mid='.$monitor->Id(), 'zmSettings'.$monitor->Id(), 'settings', translate('Settings'), true, 'id="settingsLink"' ) ?></div>
 <?php
@@ -103,8 +105,7 @@ if ( canEdit( 'Monitors' ) ) {
         <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue"></span>x</span>
       </div>
 <?php
-if ( $showPtzControls )
-{
+if ( $showPtzControls ) {
     foreach ( getSkinIncludes( 'includes/control_functions.php' ) as $includeFile )
         require_once $includeFile;
 ?>
@@ -113,8 +114,7 @@ if ( $showPtzControls )
       </div>
 <?php
 }
-if ( canView( 'Events' ) )
-{
+if ( canView( 'Events' ) ) {
 ?>
       <div id="events">
         <table id="eventList" cellspacing="0">
@@ -135,14 +135,12 @@ if ( canView( 'Events' ) )
       </div>
 <?php
 }
-if ( ZM_WEB_SOUND_ON_ALARM )
-{
+if ( ZM_WEB_SOUND_ON_ALARM ) {
     $soundSrc = ZM_DIR_SOUNDS.'/'.ZM_WEB_ALARM_SOUND;
 ?>
       <div id="alarmSound" class="hidden">
 <?php
-    if ( ZM_WEB_USE_OBJECT_TAGS && isWindows() )
-    {
+    if ( ZM_WEB_USE_OBJECT_TAGS && isWindows() ) {
 ?>
         <object id="MediaPlayer" width="0" height="0"
           classid="CLSID:22D6F312-B0F6-11D0-94AB-0080C74C7E95"
@@ -159,9 +157,7 @@ if ( ZM_WEB_SOUND_ON_ALARM )
           </embed>
         </object>
 <?php
-    }
-    else
-    {
+    } else {
 ?>
         <embed src="<?php echo $soundSrc ?>"
           autostart="true"

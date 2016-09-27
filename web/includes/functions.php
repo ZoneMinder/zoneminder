@@ -152,7 +152,13 @@ function generateAuthHash( $useRemoteAddr ) {
       $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$time[2].$time[3].$time[4].$time[5];
     }
     $auth = md5( $authKey );
-    $_SESSION{'AuthHashGeneratedAt'} = time();
+    if ( session_status() == PHP_SESSION_NONE ) {
+      session_start();
+      $_SESSION['AuthHashGeneratedAt'] = time();
+      session_write_close();
+    } else {
+      $_SESSION['AuthHashGeneratedAt'] = time();
+    }
   } else {
     $auth = "";
   }

@@ -112,10 +112,7 @@ switch ( $data['type'] )
           $time = time();
           // Regenerate auth hash after 1 hour
           if ( $_SESSION['AuthHashGeneratedAt'] < $time - 3600 ) {
-             // generateAuthHash needs to be able to set $_SESSION['AuthHashGeneratedAt'] so we need to reopen the session
-            session_start();
             $data['auth'] = generateAuthHash( ZM_AUTH_HASH_IPS );
-            session_write_close();
           } 
         }
         ajaxResponse( array( 'status'=>$data ) );
@@ -131,10 +128,7 @@ switch ( $data['type'] )
           $time = time();
           // Regenerate auth hash after 1 hour
           if ( $_SESSION['AuthHashGeneratedAt'] < $time - 3600 ) {
-             // generateAuthHash needs to be able to set $_SESSION['AuthHashGeneratedAt'] so we need to reopen the session
-            session_start();
             $data['auth'] = generateAuthHash( ZM_AUTH_HASH_IPS );
-            session_write_close();
           } 
         }
         ajaxResponse( array( 'status'=>$data ) );

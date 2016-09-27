@@ -14,6 +14,7 @@ extern "C"  {
 
 class VideoStore {
 private:
+  unsigned int packets_written;
 
 	AVOutputFormat *output_format;
 	AVFormatContext *oc;
@@ -26,9 +27,9 @@ private:
 
   // Move this into the object so that we aren't constantly allocating/deallocating it on the stack
   AVPacket opkt;
-    // we are transcoding
-    AVFrame *input_frame;
-    AVFrame *output_frame;
+  // we are transcoding
+  AVFrame *input_frame;
+  AVFrame *output_frame;
 
   AVCodecContext *video_input_context;
   AVCodecContext *audio_input_context;
@@ -40,8 +41,8 @@ private:
   int data_present;
   AVAudioFifo *fifo;
   int output_frame_size;
-    SwrContext *resample_context = NULL;
-uint8_t *converted_input_samples = NULL;
+  SwrContext *resample_context = NULL;
+  uint8_t *converted_input_samples = NULL;
     
 	const char *filename;
 	const char *format;

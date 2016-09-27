@@ -5,7 +5,9 @@
 extern "C"  {
 #include "libavutil/audio_fifo.h"
 
+#ifdef HAVE_LIBSWRESAMPLE
 #include "libswresample/swresample.h"
+#endif
 }
 
 #if HAVE_LIBAVCODEC
@@ -41,7 +43,9 @@ private:
   int data_present;
   AVAudioFifo *fifo;
   int output_frame_size;
+#ifdef HAVE_LIBSWRESAMPLE
   SwrContext *resample_context = NULL;
+#endif
   uint8_t *converted_input_samples = NULL;
     
 	const char *filename;

@@ -78,9 +78,9 @@ $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 if ( $Config{ZM_LD_PRELOAD} ) {
   Debug("Adding ENV{LD_PRELOAD} = $Config{ZM_LD_PRELOAD}");
   $ENV{LD_PRELOAD} = $Config{ZM_LD_PRELOAD};
-  foreach my $lib ( split(/\w+/, $ENV{LD_PRELOAD} ) ) {
+  foreach my $lib ( split(/\s+/, $ENV{LD_PRELOAD} ) ) {
     if ( ! -e $lib ) {
-      Warning("LD_PRELOAD lib $lib does not exist.");
+      Warning("LD_PRELOAD lib $lib does not exist from LD_PRELOAD $ENV{LD_PRELOAD}.");
     }
   }
 }

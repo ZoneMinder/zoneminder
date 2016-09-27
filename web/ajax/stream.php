@@ -106,8 +106,15 @@ switch ( $data['type'] )
         $data =  unpack( "ltype/imonitor/istate/dfps/ilevel/irate/ddelay/izoom/Cdelayed/Cpaused/Cenabled/Cforced", $msg );
         $data['fps'] = sprintf( "%.2f", $data['fps'] );
         $data['rate'] /= RATE_BASE;
-        $data['delay'] = sprintf( "%.2f", $data['delay'] );
-        $data['zoom'] = sprintf( "%.1f", $data['zoom']/SCALE_BASE );
+        $data['delay'] = round( $data['delay'], 2 );
+        $data['zoom'] = round( $data['zoom']/SCALE_BASE, 1 );
+        if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == "hashed" ) {
+          $time = time();
+          // Regenerate auth hash after 1 hour
+          if ( $_SESSION['AuthHashGeneratedAt'] < $time - 3600 ) {
+            $data['auth'] = generateAuthHash( ZM_AUTH_HASH_IPS );
+          } 
+        }
         ajaxResponse( array( 'status'=>$data ) );
         break;
     }
@@ -116,7 +123,14 @@ switch ( $data['type'] )
         $data =  unpack( "ltype/ievent/iprogress/irate/izoom/Cpaused", $msg );
         //$data['progress'] = sprintf( "%.2f", $data['progress'] );
         $data['rate'] /= RATE_BASE;
-        $data['zoom'] = sprintf( "%.1f", $data['zoom']/SCALE_BASE );
+        $data['zoom'] = round( $data['zoom']/SCALE_BASE, 1 );
+        if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == "hashed" ) {
+          $time = time();
+          // Regenerate auth hash after 1 hour
+          if ( $_SESSION['AuthHashGeneratedAt'] < $time - 3600 ) {
+            $data['auth'] = generateAuthHash( ZM_AUTH_HASH_IPS );
+          } 
+        }
         ajaxResponse( array( 'status'=>$data ) );
         break;
     }

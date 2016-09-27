@@ -609,7 +609,7 @@ Debug(5, "After av_read_frame (%d)", ret );
         videoStore = NULL;
       }
 
-      if ( ! videoStore ) {
+      if ( ( ! videoStore )&& key_frame && ( packet.stream_index == mVideoStreamId ) ) {
         //Instantiate the video storage module
 
         if (record_audio) {

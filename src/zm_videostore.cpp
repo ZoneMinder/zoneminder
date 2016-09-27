@@ -52,7 +52,6 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
   Info("Opening video storage stream %s format: %s\n", filename, format);
 
-  static char error_buffer[255];
   //Init everything we need, shouldn't have to do this, ffmpeg_camera or something else will call it.
   //av_register_all();
 
@@ -209,12 +208,13 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
   audio_output_codec = NULL;
   audio_input_context = NULL;
-  resample_context = NULL;
 
   if (audio_input_stream) {
     audio_input_context = audio_input_stream->codec;
 
     if ( audio_input_context->codec_id != AV_CODEC_ID_AAC ) {
+#ifdef HAVE_LIBSWRESAMPLE
+  resample_context = NULL;
       avcodec_string(error_buffer, sizeof(error_buffer), audio_input_context, 0 );
       Debug(3, "Got something other than AAC (%s)", error_buffer );
       audio_output_stream = NULL;
@@ -377,7 +377,9 @@ Debug(2, "Have audio_output_context");
       } else {
         Error( "could not find codec for AAC\n");
       }
-
+#else
+Error("Not build with libswressample library.");
+#endif
     } else {
       Debug(3, "Got AAC" );
 
@@ -516,8 +518,10 @@ Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts, pkt.dts
   /* free the stream */
   avformat_free_context(oc);
 
+#ifdef HAVE_LIBSWRESAMPLE
   if ( resample_context )
     swr_free( &resample_context );
+#endif
 }
 
 
@@ -724,6 +728,7 @@ Debug(2, "Stream index is %d", opkt.stream_index );
 
   if ( audio_output_codec ) {
 
+#ifdef HAVE_LIBSWRESAMPLE
   // Need to re-encode
 #if 0
   ret = avcodec_send_packet( audio_input_context, ipkt );
@@ -888,6 +893,7 @@ Debug(2, "opkt dts (%d) pts(%d) duration:(%d) pos(%d) ", opkt.dts, opkt.pts, opk
 //opkt.dts = AV_NOPTS_VALUE;
  
 
+#endif
 #endif
   } else {
     opkt.data = ipkt->data;

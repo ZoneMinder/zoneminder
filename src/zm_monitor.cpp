@@ -453,6 +453,10 @@ Monitor::Monitor(
   storage = new Storage( storage_id );
   Debug(1, "Storage path: %s", storage->Path() );
 
+  //Set video recording flag for event start constructor and easy reference in code
+  // TODO: Use enum instead of the # 2. Makes for easier reading
+  videoRecording = ((GetOptVideoWriter() == H264PASSTHROUGH) && camera->SupportsNativeVideo());
+
   if ( purpose == ANALYSIS ) {
     static char path[PATH_MAX];
 
@@ -1162,7 +1166,7 @@ bool Monitor::CheckSignal( const Image *image ) {
 
 bool Monitor::Analyse() {
   if ( shared_data->last_read_index == shared_data->last_write_index ) {
-        // I wonder how often this happens. Maybe if this happens we should sleep or something?
+    // I wonder how often this happens. Maybe if this happens we should sleep or something?
     return( false );
   }
 
@@ -1265,9 +1269,6 @@ bool Monitor::Analyse() {
 
     Debug(3, "Motion detection is enabled signal(%d) signal_change(%d)", signal, signal_change);
     
-    //Set video recording flag for event start constructor and easy reference in code
-    // TODO: Use enum instead of the # 2. Makes for easier reading
-    bool videoRecording = ((GetOptVideoWriter() == 2) && camera->SupportsNativeVideo());
     
     if ( trigger_data->trigger_state != TRIGGER_OFF ) {
       unsigned int score = 0;
@@ -2846,7 +2847,7 @@ int Monitor::Capture() {
     if(( videowriter == H264PASSTHROUGH ) && camera->SupportsNativeVideo()){
       captureResult = camera->CaptureAndRecord(*(next_buffer.image),
                                                video_store_data->recording,
-                                               video_store_data->event_file);
+                                               video_store_data->event_file );
     }else{
       captureResult = camera->Capture(*(next_buffer.image));
     }

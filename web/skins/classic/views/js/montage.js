@@ -86,6 +86,12 @@ function Monitor( monitorData )
                     $('alarmSound').addClass( 'hidden' );
                 }
             }
+            if ( this.status.auth ) {
+              // Try to reload the image stream.
+              if ( stream )
+                stream.src = stream.src.replace( /auth=\w+/i, 'auth='+this.status.auth );
+              console.log("Changed auth to " + this.status.auth );
+            } // end if haev a new auth hash
         }
         else
         {

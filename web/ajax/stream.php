@@ -108,7 +108,16 @@ switch ( $data['type'] )
         $data['rate'] /= RATE_BASE;
         $data['delay'] = round( $data['delay'], 2 );
         $data['zoom'] = round( $data['zoom']/SCALE_BASE, 1 );
-        $data['auth'] = generateAuthHash( ZM_AUTH_HASH_IPS );
+        if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == "hashed" ) {
+          $time = time();
+          // Regenerate auth hash after 1 hour
+          if ( $_SESSION['AuthHashGeneratedAt'] < $time - 3600 ) {
+             // generateAuthHash needs to be able to set $_SESSION['AuthHashGeneratedAt'] so we need to reopen the session
+            session_start();
+            $data['auth'] = generateAuthHash( ZM_AUTH_HASH_IPS );
+            session_write_close();
+          } 
+        }
         ajaxResponse( array( 'status'=>$data ) );
         break;
     }
@@ -118,7 +127,16 @@ switch ( $data['type'] )
         //$data['progress'] = sprintf( "%.2f", $data['progress'] );
         $data['rate'] /= RATE_BASE;
         $data['zoom'] = round( $data['zoom']/SCALE_BASE, 1 );
-        $data['auth'] = generateAuthHash( ZM_AUTH_HASH_IPS );
+        if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == "hashed" ) {
+          $time = time();
+          // Regenerate auth hash after 1 hour
+          if ( $_SESSION['AuthHashGeneratedAt'] < $time - 3600 ) {
+             // generateAuthHash needs to be able to set $_SESSION['AuthHashGeneratedAt'] so we need to reopen the session
+            session_start();
+            $data['auth'] = generateAuthHash( ZM_AUTH_HASH_IPS );
+            session_write_close();
+          } 
+        }
         ajaxResponse( array( 'status'=>$data ) );
         break;
     }

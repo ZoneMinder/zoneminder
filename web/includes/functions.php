@@ -109,16 +109,23 @@ function CORSHeaders() {
 
 function getAuthUser( $auth ) {
   if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == "hashed" && !empty($auth) ) {
-    $remoteAddr = "";
+    $remoteAddr = '';
     if ( ZM_AUTH_HASH_IPS ) {
       $remoteAddr = $_SERVER['REMOTE_ADDR'];
       if ( !$remoteAddr ) {
         Error( "Can't determine remote address for authentication, using empty string" );
-        $remoteAddr = "";
+        $remoteAddr = '';
       }
     }
 
-    $sql = "select Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds from Users where Enabled = 1";
+    if ( $_SESSION['username'] ) {
+      # Most of the time we will be logged in already and the session will have our username, so we can significantly speed up our hash testing by only looking at our user.
+      # Only really important if you have a lot of users.
+      $sql = "SELECT Username, Password FROM Users WHERE Enabled = 1 AND Username='".$_SESSION['username']."'";
+    } else {
+      $sql = "SELECT Username, Password FROM Users WHERE Enabled = 1";
+    }
+
     foreach ( dbFetchAll( $sql ) as $user ) {
       $now = time();
       for ( $i = 0; $i < 2; $i++, $now -= (60*60) ) { // Try for last two hours
@@ -145,6 +152,7 @@ function generateAuthHash( $useRemoteAddr ) {
       $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$time[2].$time[3].$time[4].$time[5];
     }
     $auth = md5( $authKey );
+    $_SESSION{'AuthHashGeneratedAt'} = time();
   } else {
     $auth = "";
   }

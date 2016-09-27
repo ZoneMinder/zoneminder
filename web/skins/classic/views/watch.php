@@ -20,16 +20,15 @@
 
 require_once('includes/Monitor.php');
 
-if ( !canView( 'Stream' ) )
-{
-    $view = "error";
-    return;
+if ( !canView( 'Stream' ) ) {
+  $view = 'error';
+  return;
 }
 
 // This is for input sanitation
 $mid = intval( $_REQUEST['mid'] ); 
 if ( ! visibleMonitor( $mid ) ) {
-    $view = "error";
+    $view = 'error';
     return;
 }
 
@@ -59,7 +58,7 @@ xhtmlHeaders( __FILE__, $monitor->Name()." - ".translate('Feed') );
         <div id="closeControl"><a href="#" onclick="closeWindow(); return( false );"><?php echo translate('Close') ?></a></div>
         <div id="menuControls">
 <?php
-if ( canView( 'Control' ) && $monitor->Type() == "Local" )
+if ( canView( 'Control' ) && $monitor->Type() == 'Local' )
 {
 ?>
           <div id="settingsControl"><?php echo makePopupLink( '?view=settings&amp;mid='.$monitor->Id(), 'zmSettings'.$monitor->Id(), 'settings', translate('Settings'), true, 'id="settingsLink"' ) ?></div>
@@ -69,19 +68,13 @@ if ( canView( 'Control' ) && $monitor->Type() == "Local" )
           <div id="scaleControl"><?php echo translate('Scale') ?>: <?php echo buildSelect( "scale", $scales, "changeScale( this );" ); ?></div>
         </div>
       </div>
-      <div id="imageFeed">
-<?php echo getStreamHTML( $monitor, $scale ); ?>
-      </div>
+      <div id="imageFeed"><?php echo getStreamHTML( $monitor, $scale ); ?></div>
       <div id="monitorStatus">
-<?php
-if ( canEdit( 'Monitors' ) )
-{
-?>
+<?php if ( canEdit( 'Monitors' ) ) { ?>
         <div id="enableDisableAlarms"><a id="enableAlarmsLink" href="#" onclick="cmdEnableAlarms(); return( false );" class="hidden"><?php echo translate('EnableAlarms') ?></a><a id="disableAlarmsLink" href="#" onclick="cmdDisableAlarms(); return( false );" class="hidden"><?php echo translate('DisableAlarms') ?></a></div>
 <?php
 }
-if ( canEdit( 'Monitors' ) )
-{
+if ( canEdit( 'Monitors' ) ) {
 ?>
         <div id="forceCancelAlarm">
             <a id="forceAlarmLink" href="#" onclick="cmdForceAlarm();"><?php echo translate('ForceAlarm') ?></a>

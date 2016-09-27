@@ -73,6 +73,13 @@ function getCmdResponse( respObj, respText )
 
     updateProgressBar();
 
+    if ( streamStatus.auth ) {
+      // Try to reload the image stream.
+      var streamImg = document.getElementById('evtStream');
+      if ( streamImg )
+        streamImg.src = streamImg.src.replace( /auth=\w+/i, 'auth='+streamStatus.auth );
+    } // end if haev a new auth hash
+
     streamCmdTimer = streamQuery.delay( streamTimeout );
 }
 

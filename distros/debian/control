@@ -42,7 +42,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
     , libsys-cpu-perl, libsys-meminfo-perl
     , libdata-uuid-perl
     , libpcre3
-    , ffmpeg | libav-tools, libavdevice53
+    , ffmpeg | libav-tools, libavdevice53 | libavdevice55 | libavdevice57
     , rsyslog | system-log-daemon
     , netpbm
     , zip

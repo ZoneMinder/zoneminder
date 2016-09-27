@@ -6,7 +6,7 @@ Build-Depends: debhelper (>= 9), cmake
     , libphp-serialization-perl
     , libgnutls28-dev | libgnutls-dev
     , libmysqlclient-dev | libmariadbclient-dev
-    , libjpeg8-dev
+    , libjpeg-dev
     , libpcre3-dev
     , libavcodec-dev, libavformat-dev (>= 3:0.svn20090204), libswscale-dev (>= 3:0.svn20090204), libavutil-dev
     , libv4l-dev (>= 0.8.3)
@@ -44,7 +44,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
     , libpcre3
     , ffmpeg | libav-tools, libavdevice53
     , rsyslog | system-log-daemon
-    , netpbm , libjpeg8
+    , netpbm
     , zip
     , libvlccore5 | libvlccore7, libvlc5
     , libpolkit-gobject-1-0, php5-gd

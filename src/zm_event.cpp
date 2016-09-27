@@ -99,6 +99,9 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
   tot_score = 0;
   max_score = 0;
 
+  char id_file[PATH_MAX];
+  struct stat statbuf;
+
   if ( config.use_deep_storage ) {
     char *path_ptr = path;
     path_ptr += snprintf( path_ptr, sizeof(path), "%s/%d", storage->Path(), monitor->Id() );
@@ -117,11 +120,12 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     for ( unsigned int i = 0; i < sizeof(dt_parts)/sizeof(*dt_parts); i++ ) {
       path_ptr += snprintf( path_ptr, sizeof(path)-(path_ptr-path), "/%02d", dt_parts[i] );
 
-      struct stat statbuf;
       errno = 0;
+      // Do we really need to stat it?  Perhaps we could do that on error, instead
       if ( stat( path, &statbuf ) ) {
         if ( errno == ENOENT || errno == ENOTDIR ) {
           if ( mkdir( path, 0755 ) ) {
+            // FIXME This should not be fatal.  Should probably move to a different storage area.
             Fatal( "Can't mkdir %s: %s", path, strerror(errno));
           }
         } else {
@@ -133,21 +137,14 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
       else if ( i >= 3 )
         time_path_ptr += snprintf( time_path_ptr, sizeof(time_path)-(time_path_ptr-time_path), "%s%02d", i>3?"/":"", dt_parts[i] );
     }
-    char id_file[PATH_MAX];
     // Create event id symlink
     snprintf( id_file, sizeof(id_file), "%s/.%d", date_path, id );
     if ( symlink( time_path, id_file ) < 0 )
       Fatal( "Can't symlink %s -> %s: %s", id_file, path, strerror(errno));
     // Create empty id tag file
-    snprintf( id_file, sizeof(id_file), "%s/.%d", path, id );
-    if ( FILE *id_fp = fopen( id_file, "w" ) )
-      fclose( id_fp );
-    else
-      Fatal( "Can't fopen %s: %s", id_file, strerror(errno));
   } else {
     snprintf( path, sizeof(path), "%s/%d/%d", storage->Path(), monitor->Id(), id );
 
-    struct stat statbuf;
     errno = 0;
     stat( path, &statbuf );
     if ( errno == ENOENT || errno == ENOTDIR ) {
@@ -155,14 +152,15 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
         Error( "Can't mkdir %s: %s", path, strerror(errno));
       }
     }
-    char id_file[PATH_MAX];
-    // Create empty id tag file
-    snprintf( id_file, sizeof(id_file), "%s/.%d", path, id );
-    if ( FILE *id_fp = fopen( id_file, "w" ) )
-      fclose( id_fp );
-    else
-      Fatal( "Can't fopen %s: %s", id_file, strerror(errno));
-  }
+  } // deep storage or not
+
+  // Create empty id tag file
+  snprintf( id_file, sizeof(id_file), "%s/.%d", path, id );
+  if ( FILE *id_fp = fopen( id_file, "w" ) )
+    fclose( id_fp );
+  else
+    Fatal( "Can't fopen %s: %s", id_file, strerror(errno));
+
   last_db_frame = 0;
 
   video_name[0] = 0;
@@ -173,8 +171,6 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     int nRet; 
     snprintf( video_name, sizeof(video_name), "%d-%s", id, "video.mp4" );
     snprintf( video_file, sizeof(video_file), video_file_format, path, video_name );
-    snprintf( timecodes_name, sizeof(timecodes_name), "%d-%s", id, "video.timecodes" );
-    snprintf( timecodes_file, sizeof(timecodes_file), video_file_format, path, timecodes_name );
 
     /* X264 MP4 video writer */
     if(monitor->GetOptVideoWriter() == 1) {
@@ -187,6 +183,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     }
 
     if(videowriter != NULL) {
+
       /* Open the video stream */
       nRet = videowriter->Open();
       if(nRet != 0) {
@@ -195,6 +192,8 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
         videowriter = NULL;
       }
 
+      snprintf( timecodes_name, sizeof(timecodes_name), "%d-%s", id, "video.timecodes" );
+      snprintf( timecodes_file, sizeof(timecodes_file), video_file_format, path, timecodes_name );
       /* Create timecodes file */
       timecodes_fd = fopen(timecodes_file, "wb");
       if(timecodes_fd == NULL) {
@@ -209,12 +208,13 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
 }
 
 Event::~Event() {
+  static char sql[ZM_SQL_MED_BUFSIZ];
+  struct DeltaTimeval delta_time;
+  DELTA_TIMEVAL( delta_time, end_time, start_time, DT_PREC_2 );
+
   if ( frames > last_db_frame ) {
-    struct DeltaTimeval delta_time;
-    DELTA_TIMEVAL( delta_time, end_time, start_time, DT_PREC_2 );
 
     Debug( 1, "Adding closing frame %d to DB", frames );
-    static char sql[ZM_SQL_SML_BUFSIZ];
     snprintf( sql, sizeof(sql), "insert into Frames ( EventId, FrameId, TimeStamp, Delta ) values ( %d, %d, from_unixtime( %ld ), %s%ld.%02ld )", id, frames, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec );
     if ( mysql_query( &dbconn, sql ) ) {
       Error( "Can't insert frame: %s", mysql_error( &dbconn ) );
@@ -237,11 +237,6 @@ Event::~Event() {
     fclose(timecodes_fd);
     timecodes_fd = NULL;
   }
-
-  static char sql[ZM_SQL_MED_BUFSIZ];
-
-  struct DeltaTimeval delta_time;
-  DELTA_TIMEVAL( delta_time, end_time, start_time, DT_PREC_2 );
 
   snprintf( sql, sizeof(sql), "update Events set Name='%s%d', EndTime = from_unixtime( %ld ), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo = '%s' where Id = %d", monitor->EventPrefix(), id, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, frames, alarm_frames, tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score, video_name, id );
   if ( mysql_query( &dbconn, sql ) )

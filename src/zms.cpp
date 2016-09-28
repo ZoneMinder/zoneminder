@@ -41,6 +41,8 @@ bool ValidateAccess( User *user, int mon_id ) {
 	if ( !allowed ) {
 		Error( "Error, insufficient privileges for requested action" );
 		exit( -1 );
+  } else {
+    Debug( 1, "User allowed.");
 	}
 	return( allowed );
 }

@@ -32,6 +32,8 @@
 #include <stdlib.h>
 #include <limits.h>
 
+#include <libv4l2.h>
+
 /* Workaround for GNU/kFreeBSD */
 #if defined(__FreeBSD_kernel__)
 #ifndef ENODATA
@@ -46,8 +48,8 @@ static int vidioctl( int fd, int request, void *arg )
   int result = -1;
   do
   {
-    result = ioctl( fd, request, arg );
-  } while ( result == -1 && errno == EINTR );
+    result = v4l2_ioctl( fd, request, arg );
+  } while ( result == -1 && ( ( errno == EINTR ) || (errno == EAGAIN)) );
   return( result );
 }
 
@@ -824,7 +826,7 @@ void LocalCamera::Initialise()
         v4l2_data.reqbufs.count = 1;
       }
     } else {
-      v4l2_data.reqbufs.count = 8;
+      v4l2_data.reqbufs.count = 2;
     }
     Debug( 3, "Request buffers count is %d", v4l2_data.reqbufs.count );
 
@@ -868,9 +870,9 @@ void LocalCamera::Initialise()
         Fatal( "Unable to query video buffer: %s", strerror(errno) );
 
       v4l2_data.buffers[i].length = vid_buf.length;
-      v4l2_data.buffers[i].start = mmap( NULL, vid_buf.length, PROT_READ|PROT_WRITE, MAP_SHARED, vid_fd, vid_buf.m.offset );
+      v4l2_data.buffers[i].start = v4l2_mmap( NULL, vid_buf.length, PROT_READ|PROT_WRITE, MAP_SHARED, vid_fd, vid_buf.m.offset );
 
-      if ( v4l2_data.buffers[i].start == MAP_FAILED )
+      if ( MAP_FAILED == v4l2_data.buffers[i].start )
         Fatal( "Can't map video buffer %d (%d bytes) to memory: %s(%d)", i, vid_buf.length, strerror(errno), errno );
 
 #if HAVE_LIBSWSCALE

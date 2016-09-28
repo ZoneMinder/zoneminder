@@ -145,19 +145,25 @@ function getAuthUser( $auth ) {
 
 function generateAuthHash( $useRemoteAddr ) {
   if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == "hashed" ) {
-    $time = localtime();
-    if ( $useRemoteAddr ) {
-      $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$_SESSION['remoteAddr'].$time[2].$time[3].$time[4].$time[5];
+    if ( $_SESSION['AuthHashGeneratedAt'] < time() - 3600 or ! isset($_SESSION['AuthHash']) ) {
+      # Don't both regenerating Auth Hash if an hour hasn't gone by yet
+      $time = localtime();
+      if ( $useRemoteAddr ) {
+        $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$_SESSION['remoteAddr'].$time[2].$time[3].$time[4].$time[5];
+      } else {
+        $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$time[2].$time[3].$time[4].$time[5];
+      }
+      $auth = md5( $authKey );
+      if ( session_status() == PHP_SESSION_NONE ) {
+        session_start();
+        $_SESSION['AuthHashGeneratedAt'] = time();
+        $_SESSION['AuthHash'] = $auth;
+        session_write_close();
+      } else {
+        $_SESSION['AuthHashGeneratedAt'] = time();
+      }
     } else {
-      $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$time[2].$time[3].$time[4].$time[5];
-    }
-    $auth = md5( $authKey );
-    if ( session_status() == PHP_SESSION_NONE ) {
-      session_start();
-      $_SESSION['AuthHashGeneratedAt'] = time();
-      session_write_close();
-    } else {
-      $_SESSION['AuthHashGeneratedAt'] = time();
+      return $_SESSION['AuthHash'];
     }
   } else {
     $auth = "";

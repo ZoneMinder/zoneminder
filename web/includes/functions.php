@@ -160,6 +160,7 @@ function generateAuthHash( $useRemoteAddr ) {
         $_SESSION['AuthHash'] = $auth;
         session_write_close();
       } else {
+        $_SESSION['AuthHash'] = $auth;
         $_SESSION['AuthHashGeneratedAt'] = time();
       }
     } else {

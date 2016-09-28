@@ -32,7 +32,12 @@ Storage::Storage() {
 	Warning("Instantiating default Storage Object. Should not happen.");
 	id = 0;
 	strcpy(name, "Default");
-	strncpy(path, config.dir_events, sizeof(path) );
+  if ( config.dir_events[0] != '/' ) {
+    // not using an absolute path. Make it one by appending ZM_PATH_WEB
+    snprintf( path, sizeof (path), "%s/%s", staticConfig.PATH_WEB.c_str( ), config.dir_events );
+  } else {
+    strncpy(path, config.dir_events, sizeof(path) );
+  }
 }
 
 Storage::Storage( MYSQL_ROW &dbrow ) {

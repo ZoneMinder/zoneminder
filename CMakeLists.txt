@@ -608,6 +608,12 @@ if((NOT HAVE_LIBCRYPTO) AND (NOT HAVE_LIBGNUTLS))
             "ZoneMinder requires crypto or gnutls but none were found on your system")
 endif((NOT HAVE_LIBCRYPTO) AND (NOT HAVE_LIBGNUTLS))
 
+include(FindV4L2)
+if(V4L2_FOUND)
+	list(APPEND ZM_BIN_LIBS "${V4L2_LIBRARY}")
+	set(optlibsfound "${optlibsfound} v4l2")
+endif(V4L2_FOUND)
+
 # Check for V4L header files and enable ZM_HAS_V4L, ZM_HAS_V4L1, ZM_HAS_V4L2 accordingly
 # Setting to zeros first is required because ZM uses #define for these
 set(ZM_HAS_V4L 0)

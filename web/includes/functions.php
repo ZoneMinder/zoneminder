@@ -65,10 +65,7 @@ function userLogin( $username, $password="", $passwordHashed=false ) {
 
 function userLogout() {
   global $user;
-  $username = $user['Username'];
-
-  Info( "User \"$username\" logged out" );
-
+  Info( 'User "'.$user['Username'].'" logged out' );
   unset( $_SESSION['user'] );
   unset( $user );
 
@@ -121,9 +118,9 @@ function getAuthUser( $auth ) {
     if ( $_SESSION['username'] ) {
       # Most of the time we will be logged in already and the session will have our username, so we can significantly speed up our hash testing by only looking at our user.
       # Only really important if you have a lot of users.
-      $sql = "SELECT Username, Password FROM Users WHERE Enabled = 1 AND Username='".$_SESSION['username']."'";
+      $sql = "SELECT * FROM Users WHERE Enabled = 1 AND Username='".$_SESSION['username']."'";
     } else {
-      $sql = 'SELECT Username, Password FROM Users WHERE Enabled = 1';
+      $sql = 'SELECT * FROM Users WHERE Enabled = 1';
     }
 
     foreach ( dbFetchAll( $sql ) as $user ) {

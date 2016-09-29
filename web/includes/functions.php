@@ -161,6 +161,7 @@ function generateAuthHash( $useRemoteAddr ) {
       $_SESSION['AuthHash'] = $auth;
       $_SESSION['AuthHashGeneratedAt'] = time();
     } # end if AuthHash is not cached
+    return $_SESSION['AuthHash'];
   } else {
     $auth = "";
   }

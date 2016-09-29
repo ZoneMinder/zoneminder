@@ -18,9 +18,8 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-if ( !canView( 'Events' ) )
-{
-    $view = "error";
+if ( !canView( 'Events' ) ) {
+    $view = 'error';
     return;
 }
 
@@ -117,8 +116,7 @@ xhtmlHeaders(__FILE__, translate('Event') );
       <div id="menuBar2">
         <div id="closeWindow"><a href="#" onclick="closeWindow();"><?php echo translate('Close') ?></a></div>
 <?php
-if ( canEdit( 'Events' ) )
-{
+if ( canEdit( 'Events' ) ) {
 ?>
         <div id="deleteEvent"><a href="#" onclick="deleteEvent()"><?php echo translate('Delete') ?></a></div>
         <div id="editEvent"><a href="#" onclick="editEvent()"><?php echo translate('Edit') ?></a></div>
@@ -126,13 +124,11 @@ if ( canEdit( 'Events' ) )
         <div id="unarchiveEvent" class="hidden"><a href="#" onclick="unarchiveEvent()"><?php echo translate('Unarchive') ?></a></div>
 <?php
 }
-if ( canView( 'Events' ) )
-{
+if ( canView( 'Events' ) ) {
 ?>
         <div id="framesEvent"><a href="#" onclick="showEventFrames()"><?php echo translate('Frames') ?></a></div>
 <?php
-if ( $event['SaveJPEGs'] & 3 )
-{
+if ( $event['SaveJPEGs'] & 3 ) { // frames or analysis
 ?>
         <div id="stillsEvent"<?php if ( $streamMode == 'still' ) { ?> class="hidden"<?php } ?>><a href="#" onclick="showStills()"><?php echo translate('Stills') ?></a></div>
 <?php
@@ -143,8 +139,7 @@ if ( $event['SaveJPEGs'] & 3 )
       </div>
       <div id="eventVideo" class="">
 <?php
-if ( $event['DefaultVideo'] )
-{
+if ( $event['DefaultVideo'] ) {
 ?>
         <div id="videoFeed">
           <video id="videoobj" class="video-js vjs-default-skin" width="<?php echo reScale( $event['Width'], $scale ) ?>" height="<?php echo reScale( $event['Height'], $scale ) ?>" data-setup='{ "controls": true, "playbackRates": [0.5, 1, 1.5, 2, 4, 8, 16, 32, 64, 128, 256], "autoplay": true, "preload": "auto", "plugins": { "zoomrotate": { "rotate": "<?php echo $Rotation ?>", "zoom": "<?php echo $Zoom ?>"}}}'>
@@ -166,26 +161,18 @@ addVideoTimingTrack(document.getElementById('videoobj'), LabelFormat, monitorNam
 </script>
 
 <?php
-}
-else
-{
+} 
 ?>
-        <div id="imageFeed">
+        <div id="imageFeed" <?php if ( $event['DefaultVideo'] ) { ?>class="hidden"<?php } ?> >
 <?php
-if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT )
-{
+if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
     $streamSrc = getStreamSrc( array( "source=event", "mode=mpeg", "event=".$eid, "frame=".$fid, "scale=".$scale, "rate=".$rate, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_REPLAY_FORMAT, "replay=".$replayMode ) );
     outputVideoStream( "evtStream", $streamSrc, reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ), ZM_MPEG_LIVE_FORMAT );
-}
-else
-{
+} else {
     $streamSrc = getStreamSrc( array( "source=event", "mode=jpeg", "event=".$eid, "frame=".$fid, "scale=".$scale, "rate=".$rate, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "replay=".$replayMode) );
-    if ( canStreamNative() )
-    {
+    if ( canStreamNative() ) {
         outputImageStream( "evtStream", $streamSrc, reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ), validHtmlStr($event['Name']) );
-    }
-    else
-    {
+    } else {
         outputHelperStream( "evtStream", $streamSrc, reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ) );
     }
 }
@@ -210,22 +197,17 @@ else
         </div>
         <div id="progressBar" class="invisible">
 <?php
-        for ( $i = 0; $i < $panelSections; $i++ )
-        {
+        for ( $i = 0; $i < $panelSections; $i++ ) {
 ?>
            <div class="progressBox" id="progressBox<?php echo $i ?>" title=""></div>
 <?php
         }
 ?>
     </div>
-<?php
-}
-?>
         </div>
       </div>
 <?php
-if ($event['SaveJPEGs'] & 3)
-{
+if ($event['SaveJPEGs'] & 3) { // frames or analysis
 ?>
       <div id="eventStills" class="hidden">
         <div id="eventThumbsPanel">

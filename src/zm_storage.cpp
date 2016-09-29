@@ -76,7 +76,6 @@ Storage::Storage( unsigned int p_id ) {
 		Debug(1,"No id passed to Storage constructor.  Using default path %s instead", path );
 		strcpy(name, "Default");
 	}
-
 }
 
 Storage::~Storage() {

@@ -18,9 +18,8 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-if ( !canView( 'Events' ) )
-{
-    $view = "error";
+if ( !canView( 'Events' ) ) {
+    $view = 'error';
     return;
 }
 
@@ -56,7 +55,13 @@ if ( isset( $_REQUEST['scale'] ) )
 else
     $scale = max( reScale( SCALE_BASE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
 
-$imageData = getImageSrc( $event, $frame, $scale, (isset($_REQUEST['show']) && $_REQUEST['show']=="capt") );
+$show = 'capt';
+if ( isset($_REQUEST['show']) ) {
+  $show = $_REQUEST['show'];
+#} else if ( $imageData['hasAnalImage'] ) {
+  #$show = 'anal';
+}
+$imageData = getImageSrc( $event, $frame, $scale, ($show=="capt") );
 
 $imagePath = $imageData['thumbPath'];
 $eventPath = $imageData['eventPath'];
@@ -79,23 +84,16 @@ xhtmlHeaders(__FILE__, translate('Frame')." - ".$event['Id']." - ".$Frame->Frame
     </div>
     <div id="content">
       <p id="image">
-<?php if ( in_array($event['VideoWriter'],array("1","2")) ) { ?>
-<img src="?view=image&eid=<?php echo $event['Id'] ?>&fid=<?php echo $Frame->FrameId() ?>&scale=<?php echo $event['DefaultScale'] ?>&amp;show=<?php echo $imageData['isAnalImage']?"capt":"anal" ?>" class="<?php echo $imageData['imageClass'] ?>" width="<?php echo reScale( $event['Width'], $event['DefaultScale'], $scale ) ?>" height="<?php echo reScale( $event['Height'], $event['DefaultScale'], $scale ) ?>" alt="<?php echo $Frame->EventId()."-".$Frame->FrameId() ?>">
-<?php } else {
-if ( $imageData['hasAnalImage'] ) { ?>
-<a href="?view=frame&amp;eid=<?php echo $event['Id'] ?>&amp;fid=<?php echo $Frame->FrameId() ?>&amp;scale=<?php echo $scale ?>&amp;show=<?php echo $imageData['isAnalImage']?'capt':'anal' ?>">
-<?php } ?>
-<img src="<?php echo $Frame->getImageSrc($imageData['isAnalImage']?'analyse':'capture') ?>" width="<?php echo reScale( $event['Width'], $event['DefaultScale'], $scale ) ?>" height="<?php echo reScale( $event['Height'], $event['DefaultScale'], $scale ) ?>" alt="<?php echo $Frame->EventId()."-".$Frame->FrameId() ?>" class="<?php echo $imageData['imageClass'] ?>"/>
-<?php if ( $imageData['hasAnalImage'] ) { ?></a><?php } ?>
-<?php } ?>
-</p>
+        <a href="?view=frame&amp;eid=<?php echo $event['Id'] ?>&amp;fid=<?php echo $Frame->FrameId() ?>&amp;scale=<?php echo $scale ?>&amp;show=<?php echo $show == 'anal' ? 'capt':'anal' ?>">
+        <img src="<?php echo $Frame->getImageSrc($imageData['isAnalImage']?'analyse':'capture') ?>" width="<?php echo reScale( $event['Width'], $event['DefaultScale'], $scale ) ?>" height="<?php echo reScale( $event['Height'], $event['DefaultScale'], $scale ) ?>" alt="<?php echo $Frame->EventId()."-".$Frame->FrameId() ?>" class="<?php echo $imageData['imageClass'] ?>"/>
+      </p>
       <p id="controls">
 <?php if ( $Frame->FrameId() > 1 ) { ?>
-        <a id="firstLink" href="?view=frame&amp;eid=<?php echo $event['Id'] ?>&amp;fid=<?php echo $firstFid ?>&amp;scale=<?php echo $scale ?>"><?php echo translate('First') ?></a>
-        <a id="prevLink" href="?view=frame&amp;eid=<?php echo $event['Id'] ?>&amp;fid=<?php echo $prevFid ?>&amp;scale=<?php echo $scale ?>"><?php echo translate('Prev') ?></a>
+        <a id="firstLink" href="?view=frame&amp;eid=<?php echo $event['Id'] ?>&amp;fid=<?php echo $firstFid ?>&amp;scale=<?php echo $scale ?>&amp;show=<?php echo $show ?>"><?php echo translate('First') ?></a>
+        <a id="prevLink" href="?view=frame&amp;eid=<?php echo $event['Id'] ?>&amp;fid=<?php echo $prevFid ?>&amp;scale=<?php echo $scale ?>&amp;show=<?php echo $show ?>"><?php echo translate('Prev') ?></a>
 <?php } if ( $Frame->FrameId() < $maxFid ) { ?>
-        <a id="nextLink" href="?view=frame&amp;eid=<?php echo $event['Id'] ?>&amp;fid=<?php echo $nextFid ?>&amp;scale=<?php echo $scale ?>"><?php echo translate('Next') ?></a>
-        <a id="lastLink" href="?view=frame&amp;eid=<?php echo $event['Id'] ?>&amp;fid=<?php echo $lastFid ?>&amp;scale=<?php echo $scale ?>"><?php echo translate('Last') ?></a>
+        <a id="nextLink" href="?view=frame&amp;eid=<?php echo $event['Id'] ?>&amp;fid=<?php echo $nextFid ?>&amp;scale=<?php echo $scale ?>&amp;show=<?php echo $show ?>"><?php echo translate('Next') ?></a>
+        <a id="lastLink" href="?view=frame&amp;eid=<?php echo $event['Id'] ?>&amp;fid=<?php echo $lastFid ?>&amp;scale=<?php echo $scale ?>&amp;show=<?php echo $show ?>"><?php echo translate('Last') ?></a>
 <?php } ?>
       </p>
 <?php if (file_exists ($dImagePath)) { ?>

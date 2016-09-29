@@ -74,8 +74,9 @@ if ( empty($_REQUEST['path']) ) {
   }
 
   if ( ! file_exists( $path ) ) {
+Debug( "$path does not exist");
 # Generate the frame JPG
-    if ( $Event->DefaultVideo() ) {
+    if ( $show == 'capt' and $Event->DefaultVideo() ) {
       $command ='ffmpeg -i '.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
 #$command ='ffmpeg -v 0 -i '.$Storage->Path().'/'.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
       Debug( "Running $command" );

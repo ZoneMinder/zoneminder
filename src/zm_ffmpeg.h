@@ -337,7 +337,7 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
 #if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
   #define zm_av_frame_alloc() av_frame_alloc()
 #else
-  #define zm_av_frame_alloc avcodec_alloc_frame()
+  #define zm_av_frame_alloc() avcodec_alloc_frame()
 #endif
 
 

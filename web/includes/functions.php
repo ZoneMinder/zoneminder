@@ -141,7 +141,7 @@ function getAuthUser( $auth ) {
 }
 
 function generateAuthHash( $useRemoteAddr ) {
-  if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == "hashed" ) {
+  if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == 'hashed' ) {
     # regenerate a hash at half the liftetime of a hash, an hour is 3600 so half is 1800
     if ( ( $_SESSION['AuthHashGeneratedAt'] < time() - ( ZM_AUTH_HASH_TTL * 1800 ) ) or ! isset($_SESSION['AuthHash']) ) {
       $time = localtime();
@@ -156,7 +156,9 @@ function generateAuthHash( $useRemoteAddr ) {
       }
       $_SESSION['AuthHash'] = $auth;
       $_SESSION['AuthHashGeneratedAt'] = time();
+Warning("Generating new auth $auth");
     } # end if AuthHash is not cached
+Warning("Using auth " . $_SESSION['AuthHash'] );
     return $_SESSION['AuthHash'];
   } else {
     $auth = "";

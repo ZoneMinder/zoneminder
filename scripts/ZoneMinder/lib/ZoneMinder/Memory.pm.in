@@ -67,6 +67,7 @@ our %EXPORT_TAGS = (
         zmIsAlarmed
         zmInAlarm
         zmHasAlarmed
+        zmGetStartupTime
         zmGetLastEvent
         zmGetLastWriteTime
         zmGetLastReadTime

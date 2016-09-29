@@ -108,8 +108,8 @@ function CORSHeaders() {
 }
 
 function getAuthUser( $auth ) {
-  if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == "hashed" && !empty($auth) ) {
-    $remoteAddr = "";
+  if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == 'hashed' && !empty($auth) ) {
+    $remoteAddr = '';
     if ( ZM_AUTH_HASH_IPS ) {
       $remoteAddr = $_SERVER['REMOTE_ADDR'];
       if ( !$remoteAddr ) {
@@ -118,10 +118,17 @@ function getAuthUser( $auth ) {
       }
     }
 
-    $sql = "select Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds from Users where Enabled = 1";
+    if ( $_SESSION['username'] ) {
+      # Most of the time we will be logged in already and the session will have our username, so we can significantly speed up our hash testing by only looking at our user.
+      # Only really important if you have a lot of users.
+      $sql = "SELECT Username, Password FROM Users WHERE Enabled = 1 AND Username='".$_SESSION['username']."'";
+    } else {
+      $sql = 'SELECT Username, Password FROM Users WHERE Enabled = 1';
+    }
+
     foreach ( dbFetchAll( $sql ) as $user ) {
       $now = time();
-      for ( $i = 0; $i < 2; $i++, $now -= (60*60) ) { // Try for last two hours
+      for ( $i = 0; $i < ZM_AUTH_HASH_TTL; $i++, $now -= (3600) ) { // Try for last two hours
         $time = localtime( $now );
         $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$remoteAddr.$time[2].$time[3].$time[4].$time[5];
         $authHash = md5( $authKey );
@@ -129,29 +136,31 @@ function getAuthUser( $auth ) {
         if ( $auth == $authHash ) {
           return( $user );
         }
-      }
-    }
-  }
+      } // end foreach hour
+    } // end foreach user
+  } // end if using auth hash
   Error( "Unable to authenticate user from auth hash '$auth'" );
   return( false );
 }
 
 function generateAuthHash( $useRemoteAddr ) {
   if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == "hashed" ) {
-    $time = localtime();
-    if ( $useRemoteAddr ) {
-      $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$_SESSION['remoteAddr'].$time[2].$time[3].$time[4].$time[5];
-    } else {
-      $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$time[2].$time[3].$time[4].$time[5];
-    }
-    $auth = md5( $authKey );
-    if ( session_status() == PHP_SESSION_NONE ) {
-      session_start();
+    # regenerate a hash at half the liftetime of a hash, an hour is 3600 so half is 1800
+    if ( ( $_SESSION['AuthHashGeneratedAt'] < time() - ( ZM_AUTH_HASH_TTL * 1800 ) ) or ! isset($_SESSION['AuthHash']) ) {
+# Don't both regenerating Auth Hash if an hour hasn't gone by yet
+      $time = localtime();
+      if ( $useRemoteAddr ) {
+        $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$_SESSION['remoteAddr'].$time[2].$time[3].$time[4].$time[5];
+      } else {
+        $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$time[2].$time[3].$time[4].$time[5];
+      }
+      $auth = md5( $authKey );
+      if ( session_status() == PHP_SESSION_NONE ) {
+        Warning("Session is not active. AuthHash will not be cached.");
+      }
+      $_SESSION['AuthHash'] = $auth;
       $_SESSION['AuthHashGeneratedAt'] = time();
-      session_write_close();
-    } else {
-      $_SESSION['AuthHashGeneratedAt'] = time();
-    }
+    } # end if AuthHash is not cached
   } else {
     $auth = "";
   }

@@ -378,7 +378,7 @@ Debug(2, "Have audio_output_context");
         Error( "could not find codec for AAC\n");
       }
 #else
-Error("Not build with libswressample library.");
+Error("Not build with libswresample library. Cannot do audio conversion to AAC");
 #endif
     } else {
       Debug(3, "Got AAC" );

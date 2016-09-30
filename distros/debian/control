@@ -9,11 +9,11 @@ Build-Depends: debhelper (>= 9), cmake
     , libjpeg-dev
     , libpcre3-dev
     , libavcodec-dev, libavformat-dev (>= 3:0.svn20090204), libswscale-dev (>= 3:0.svn20090204), libavutil-dev
+    , libavdevice-dev
     , libv4l-dev (>= 0.8.3)
     , libbz2-dev
     , ffmpeg | libav-tools
     , libnetpbm10-dev
-    , libavdevice-dev
     , libvlccore-dev, libvlc-dev
     , libcurl4-gnutls-dev | libcurl4-nss-dev | libcurl4-openssl-dev
     , libgcrypt11-dev, libpolkit-gobject-1-dev

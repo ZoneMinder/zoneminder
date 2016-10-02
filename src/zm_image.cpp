@@ -179,17 +179,12 @@ Image::~Image()
     delete decodejpg_dcinfo;
     decodejpg_dcinfo = 0;
   }
-#if 0
-// This creates a memleak because it isn't de-allocating the structures and it's doing it on every Image construct/destruct.
-// We need to refactor this code big time.
-
   for ( unsigned int quality=0; quality <= 100; quality += 1 ) {
     if ( writejpg_ccinfo[quality] ) {
       delete writejpg_ccinfo[quality];
       writejpg_ccinfo[quality] = NULL;
     }
   } // end foreach quality
-#endif
 }
 
 void Image::Initialise()
@@ -950,12 +945,12 @@ bool Image::WriteJpeg( const char *filename, int quality_override, struct timeva
       #define EXIFTIMES_MS_OFFSET 0x36   // three decimal digits for milliseconds
       #define EXIFTIMES_MS_LEN  0x03
       #define EXIFTIMES_OFFSET  0x3E   // 19 characters format '2015:07:21 13:14:45' not including quotes
-      #define EXIFTIMES_LEN     0x13   /o/ = 1reateCompress
+      #define EXIFTIMES_LEN     0x13   // = 19
       #define EXIF_CODE       0xE1
 
       char timebuf[64], msbuf[64];
       strftime(timebuf, sizeof timebuf, "%Y:%m:%d %H:%M:%S", localtime(&(timestamp.tv_sec)));
-      snprintf(msbuf, sizeof msbuf, "%06d",(int)(timestamp.jpeg_CreateCompresstv_usec));  // we only use milliseconds because that's all defined in exif, but this is the whole microseconds because we have it
+      snprintf(msbuf, sizeof msbuf, "%06d",(int)(timestamp.tv_usec));  // we only use milliseconds because that's all defined in exif, but this is the whole microseconds because we have it
       unsigned char exiftimes[82] = {
          0x45, 0x78, 0x69, 0x66, 0x00, 0x00, 0x49, 0x49, 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00, 0x01, 0x00,
          0x69, 0x87, 0x04, 0x00, 0x01, 0x00, 0x00, 0x00, 0x1A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,

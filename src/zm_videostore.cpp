@@ -214,7 +214,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
     if ( audio_input_context->codec_id != AV_CODEC_ID_AAC ) {
 #ifdef HAVE_LIBSWRESAMPLE
-  resample_context = NULL;
+      resample_context = NULL;
       avcodec_string(error_buffer, sizeof(error_buffer), audio_input_context, 0 );
       Debug(3, "Got something other than AAC (%s)", error_buffer );
       audio_output_stream = NULL;
@@ -378,7 +378,8 @@ Debug(2, "Have audio_output_context");
         Error( "could not find codec for AAC\n");
       }
 #else
-Error("Not build with libswressample library.");
+      Error("Not build with libswressample library.");
+      audio_output_stream = NULL;
 #endif
     } else {
       Debug(3, "Got AAC" );

@@ -144,21 +144,26 @@ function generateAuthHash( $useRemoteAddr ) {
   if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == 'hashed' ) {
     # regenerate a hash at half the liftetime of a hash, an hour is 3600 so half is 1800
     if ( ( $_SESSION['AuthHashGeneratedAt'] < time() - ( ZM_AUTH_HASH_TTL * 1800 ) ) or ! isset($_SESSION['AuthHash']) ) {
-      $time = localtime();
-      if ( $useRemoteAddr ) {
-        $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$_SESSION['remoteAddr'].$time[2].$time[3].$time[4].$time[5];
+      if ( ! ( $_SESSION['username'] and $_SESSION['passwordHash'] ) ) {
+        Warning("Can't generate auth hash until we are logged in");
       } else {
-        $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$time[2].$time[3].$time[4].$time[5];
+        $time = localtime();
+        if ( $useRemoteAddr ) {
+          $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$_SESSION['remoteAddr'].$time[2].$time[3].$time[4].$time[5];
+        } else {
+          $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$time[2].$time[3].$time[4].$time[5];
+        }
+        $auth = md5( $authKey );
+        if ( session_status() == PHP_SESSION_NONE ) {
+          Warning("Session is not active. AuthHash will not be cached.");
+        }
+        $_SESSION['AuthHash'] = $auth;
+        $_SESSION['AuthHashGeneratedAt'] = time();
+        Debug("Generating new auth $auth at " . $_SESSION['AuthHashGeneratedAt']. " using $authKey" );
       }
-      $auth = md5( $authKey );
-      if ( session_status() == PHP_SESSION_NONE ) {
-        Warning("Session is not active. AuthHash will not be cached.");
-      }
-      $_SESSION['AuthHash'] = $auth;
-      $_SESSION['AuthHashGeneratedAt'] = time();
-Warning("Generating new auth $auth");
+    } else {
+      Debug("Using auth " . $_SESSION['AuthHash'] );
     } # end if AuthHash is not cached
-Warning("Using auth " . $_SESSION['AuthHash'] );
     return $_SESSION['AuthHash'];
   } else {
     $auth = "";

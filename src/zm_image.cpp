@@ -179,12 +179,17 @@ Image::~Image()
     delete decodejpg_dcinfo;
     decodejpg_dcinfo = 0;
   }
+#if 0
++// This creates a memleak because it isn't de-allocating the structures and it's doing it on every Image construct/destruct.
++// We need to refactor this code big time.
+
   for ( unsigned int quality=0; quality <= 100; quality += 1 ) {
     if ( writejpg_ccinfo[quality] ) {
       delete writejpg_ccinfo[quality];
       writejpg_ccinfo[quality] = NULL;
     }
   } // end foreach quality
+#endif
 }
 
 void Image::Initialise()

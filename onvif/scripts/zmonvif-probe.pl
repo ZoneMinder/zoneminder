@@ -1,4 +1,5 @@
 #!/usr/bin/perl -w
+use strict;
 #
 # ==========================================================================
 #
@@ -196,7 +197,7 @@ sub discover
           To => { value => 'urn:schemas-xmlsoap-org:ws:2005:04:discovery' },
           })
         );
-#  print $result . "\n";
+    print $result . "\n" if $verbose;
 
     interpret_messages($svc_discover, \%services, @responses);
     @responses = ();
@@ -206,17 +207,17 @@ sub discover
     if($verbose) {
       print "Probing for SOAP 1.2\n"
     }
-    $svc_discover = WSDiscovery10::Interfaces::WSDiscovery::WSDiscoveryPort->new({
+    my $svc_discover = WSDiscovery10::Interfaces::WSDiscovery::WSDiscoveryPort->new({
 #    no_dispatch => '1',
         });
     $svc_discover->set_soap_version('1.2');
 
 # copies of the same Probe message must have the same MessageID. 
 # This is not a copy. So we generate a new uuid.
-    $uuid = $uuid_gen->create_str();
+    my $uuid = $uuid_gen->create_str();
 
 # Everyone else, like the nodejs onvif code and odm only ask for NetworkVideoTransmitter
-    $result = $svc_discover->ProbeOp(
+    my $result = $svc_discover->ProbeOp(
         { # WSDiscovery::Types::ProbeType
         xmlattr => { 'xmlns:dn'  => 'http://www.onvif.org/ver10/network/wsdl', },
         Types => 'dn:NetworkVideoTransmitter', # QNameListType
@@ -228,10 +229,10 @@ sub discover
           To => { value => 'urn:schemas-xmlsoap-org:ws:2005:04:discovery' },
           })
         );
-#  print $result . "\n";
+    print $result . "\n" if $verbose;
+    interpret_messages($svc_discover, \%services, @responses);
   } # end if doing soap 1.2
 
-  interpret_messages($svc_discover, \%services, @responses);
 }
 
 

@@ -18,41 +18,40 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-if ( !canEdit( 'Monitors' ) )
-{
-    $view = "error";
+if ( !canEdit( 'Monitors' ) ) {
+    $view = 'error';
     return;
 }
 
 $cameras = array();
 $cameras[0] = translate('ChooseDetectedCamera');
 
+$profiles = array();
+$profiles[0] = translate('ChooseDetectedProfile');
 
-function execONVIF( $cmd )
-{
-  exec( escapeshellcmd(ZM_PATH_BIN . "/zmonvif-probe.pl $cmd"), $output, $status );
- 
-  if ( $status )
+function execONVIF( $cmd ) {
+  $shell_command = escapeshellcmd(ZM_PATH_BIN . "/zmonvif-probe.pl $cmd");
+
+  exec( $shell_command, $output, $status );
+
+  if ( $status ) {
     $html_output = implode( '<br/>', $output );
     Fatal( "Unable to probe network cameras, status is '$status'. Output was:<br/><br/>
         $html_output<br/><br/>
-        Please the following command from a command line for more information:<br/><br/>".
-        ZM_PATH_BIN . "/zmonvif-probe.pl $cmd" );
+        Please the following command from a command line for more information:<br/><br/>$shell_command"
+        );
+  }
 
   return $output;
 }
 
-function probeCameras( $localIp )
-{
+function probeCameras( $localIp ) {
     $cameras = array();
     $count = 0;
-    if ( $lines = @execONVIF( "probe" ) )
-    {
-        foreach ( $lines as $line )
-        {
+    if ( $lines = @execONVIF( 'probe' ) ) {
+        foreach ( $lines as $line ) {
            $line = rtrim( $line );
-            if ( preg_match( '|^(.+),(.+),\s\((.*)\)$|', $line, $matches ) )
-            {
+            if ( preg_match( '|^(.+),(.+),\s\((.*)\)$|', $line, $matches ) ) {
                 $device_ep = $matches[1];
                 $soapversion = $matches[2];
                 $camera = array(
@@ -65,15 +64,12 @@ function probeCameras( $localIp )
                     ),
                 );
                 foreach ( preg_split('|,\s*|', $matches[3]) as $attr_val ) {
-                  if( preg_match( '|(.+)=\'(.*)\'|', $attr_val, $tokens ) )
-                  {
+                  if( preg_match( '|(.+)=\'(.*)\'|', $attr_val, $tokens ) ) {
                     if($tokens[1] == "hardware") {
                       $camera['model'] = $tokens[2];
-                    }
-                    elseif($tokens[1] == "name") {
+                    } elseif($tokens[1] == "name") {
                       $camera['monitor']['Name'] = $tokens[2];
-                    }
-                    elseif($tokens[1] == "location") {
+                    } elseif($tokens[1] == "location") {
 //                      $camera['location'] = $tokens[2];
                     }
 
@@ -86,21 +82,16 @@ function probeCameras( $localIp )
     return( $cameras );
 }
 
-function probeProfiles( $device_ep, $soapversion, $username, $password )
-{
+function probeProfiles( $device_ep, $soapversion, $username, $password ) {
     $profiles = array();
     $count = 0;
-    if ( $lines = @execONVIF( "profiles $device_ep $soapversion $username $password" ) )
-    {
-        foreach ( $lines as $line )
-        {
+    if ( $lines = @execONVIF( "profiles $device_ep $soapversion $username $password" ) ) {
+        foreach ( $lines as $line ) {
             $line = rtrim( $line );
-            if ( preg_match( '|^(.+),\s*(.+),\s*(.+),\s*(.+),\s*(.+),\s*(.+),\s*(.+)\s*$|', $line, $matches ) )
-            {
+            if ( preg_match( '|^(.+),\s*(.+),\s*(.+),\s*(.+),\s*(.+),\s*(.+),\s*(.+)\s*$|', $line, $matches ) ) {
                 $stream_uri = $matches[7];
                 // add user@pass to URI
-                if( preg_match( '|^(\S+://)(.+)$|', $stream_uri, $tokens ) ) 
-                {
+                if( preg_match( '|^(\S+://)(.+)$|', $stream_uri, $tokens ) ) {
                   $stream_uri = $tokens[1].$username.':'.$password.'@'.$tokens[2];
                 }
             
@@ -133,25 +124,19 @@ xhtmlHeaders(__FILE__, translate('MonitorProbe') );
 if( !isset($_REQUEST['step']) || ($_REQUEST['step'] == "1")) {
 
   $monitors = array();
-  foreach ( dbFetchAll( "select Id, Name, Host from Monitors where Type = 'Remote' order by Host" ) as $monitor )
-  {
-      if ( preg_match( '/^(.+)@(.+)$/', $monitor['Host'], $matches ) )
-      {
+  foreach ( dbFetchAll( "select Id, Name, Host from Monitors where Type = 'Remote' order by Host" ) as $monitor ) {
+      if ( preg_match( '/^(.+)@(.+)$/', $monitor['Host'], $matches ) ) {
           //echo "1: ".$matches[2]." = ".gethostbyname($matches[2])."<br/>";
           $monitors[gethostbyname($matches[2])] = $monitor;
-      }
-      else
-      {
+      } else {
           //echo "2: ".$monitor['Host']." = ".gethostbyname($monitor['Host'])."<br/>";
           $monitors[gethostbyname($monitor['Host'])] = $monitor;
       }
   }
 
   $detcameras = probeCameras( '' );
-  foreach ( $detcameras as $camera )
-  {
-    if ( preg_match( '|([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)|', $camera['monitor']['Host'], $matches ) )
-    {
+  foreach ( $detcameras as $camera ) {
+    if ( preg_match( '|([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)|', $camera['monitor']['Host'], $matches ) ) {
       $ip = $matches[1];
     }
     $host = $ip;
@@ -220,15 +205,14 @@ if( !isset($_REQUEST['step']) || ($_REQUEST['step'] == "1")) {
 } 
 else if($_REQUEST['step'] == "2") 
 {
-  if ( empty($_REQUEST['probe']) || empty($_REQUEST['username']) || 
-       empty($_REQUEST['password']) )
-    Fatal("Internal error. Please re-open this page.");
+  if ( empty($_REQUEST['probe']) ) 
+    Fatal("No probe passed in request. Please go back and try again.");
+#|| empty($_REQUEST['username']) || 
+       #empty($_REQUEST['password']) )
     
   $probe = unserialize(base64_decode($_REQUEST['probe']));
-  foreach ( $probe as $name=>$value )
-  {
-      if ( isset($value) )
-      {
+  foreach ( $probe as $name=>$value ) {
+      if ( isset($value) ) {
           $monitor[$name] = $value;
       }
   }
@@ -237,8 +221,7 @@ else if($_REQUEST['step'] == "2")
   //print $monitor['Host'].", ".$_REQUEST['username'].", ".$_REQUEST['password']."<br/>";
 
   $detprofiles = probeProfiles( $monitor['Host'], $monitor['SOAP'], $_REQUEST['username'], $_REQUEST['password']);
-  foreach ( $detprofiles as $profile )
-  {
+  foreach ( $detprofiles as $profile ) {
        $monitor = $camera['monitor'];
        
        $sourceString = "${profile['Name']} : ${profile['Encoding']}" .
@@ -252,11 +235,11 @@ else if($_REQUEST['step'] == "2")
        $monitor['Path'] = $profile['Path'];
 //       $sourceDesc = htmlspecialchars(serialize($monitor));
        $sourceDesc = base64_encode(serialize($monitor));
-       $cameras[$sourceDesc] = $sourceString;
+       $profiles[$sourceDesc] = $sourceString;
   }
 
-  if ( count($cameras) <= 0 )
-      $cameras[0] = translate('NoDetectedCameras');
+  if ( count($profiles) <= 0 )
+      $profiles[0] = translate('NoDetectedProfiles');
 
 ?>
 <body>
@@ -273,7 +256,7 @@ else if($_REQUEST['step'] == "2")
           <?php echo translate('ProfileProbeIntro') ?>
         </p>
         <p>
-          <label for="probe"><?php echo translate('DetectedProfiles') ?></label><?php echo buildSelect( "probe", $cameras, 'configureButtons( this )' ); ?>
+          <label for="probe"><?php echo translate('DetectedProfiles') ?></label><?php echo buildSelect( 'probe', $profiles, 'configureButtons( this )' ); ?>
         </p>
         <div id="contentButtons">
           <input type="button" name="prevBtn" value="<?php echo translate('Prev') ?>" onclick="gotoStep1( this )"/>

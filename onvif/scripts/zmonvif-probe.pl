@@ -374,7 +374,7 @@ else {
   my $url_svc_device = shift;
   $soap_version = shift;
   my $username = shift;
-  my $password = shift;
+  my $password = @_ ? shift : '';
 
   $client = ONVIF::Client->new( { 
       'url_svc_device' => $url_svc_device, 

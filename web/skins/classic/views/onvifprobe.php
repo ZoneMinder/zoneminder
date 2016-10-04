@@ -27,6 +27,8 @@ if ( !canEdit( 'Monitors' ) )
 $cameras = array();
 $cameras[0] = translate('ChooseDetectedCamera');
 
+$profiles = array();
+$profiles[0] = translate('ChooseDetectedProfile');
 
 function execONVIF( $cmd ) {
   $shell_command = escapeshellcmd(ZM_PATH_BIN . "/zmonvif-probe.pl $cmd");
@@ -255,11 +257,11 @@ else if($_REQUEST['step'] == "2")
        $monitor['Path'] = $profile['Path'];
 //       $sourceDesc = htmlspecialchars(serialize($monitor));
        $sourceDesc = base64_encode(serialize($monitor));
-       $cameras[$sourceDesc] = $sourceString;
+       $profiles[$sourceDesc] = $sourceString;
   }
 
-  if ( count($cameras) <= 0 )
-      $cameras[0] = translate('NoDetectedCameras');
+  if ( count($profiles) <= 0 )
+      $profiles[0] = translate('NoDetectedProfiles');
 
 ?>
 <body>
@@ -276,7 +278,7 @@ else if($_REQUEST['step'] == "2")
           <?php echo translate('ProfileProbeIntro') ?>
         </p>
         <p>
-          <label for="probe"><?php echo translate('DetectedProfiles') ?></label><?php echo buildSelect( "probe", $cameras, 'configureButtons( this )' ); ?>
+          <label for="probe"><?php echo translate('DetectedProfiles') ?></label><?php echo buildSelect( 'probe', $profiles, 'configureButtons( this )' ); ?>
         </p>
         <div id="contentButtons">
           <input type="button" name="prevBtn" value="<?php echo translate('Prev') ?>" onclick="gotoStep1( this )"/>

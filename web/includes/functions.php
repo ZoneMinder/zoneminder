@@ -141,32 +141,30 @@ function getAuthUser( $auth ) {
 }
 
 function generateAuthHash( $useRemoteAddr ) {
-  if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == 'hashed' ) {
+  if ( ZM_OPT_USE_AUTH and ZM_AUTH_RELAY == 'hashed' and $_SESSION['username'] and $_SESSION['passwordHash'] ) {
     # regenerate a hash at half the liftetime of a hash, an hour is 3600 so half is 1800
     if ( ( $_SESSION['AuthHashGeneratedAt'] < time() - ( ZM_AUTH_HASH_TTL * 1800 ) ) or ! isset($_SESSION['AuthHash']) ) {
-      if ( ! ( $_SESSION['username'] and $_SESSION['passwordHash'] ) ) {
-        Warning("Can't generate auth hash until we are logged in");
+      # Don't both regenerating Auth Hash if an hour hasn't gone by yet
+      $time = localtime();
+      $authKey = '';
+      if ( $useRemoteAddr ) {
+        $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$_SESSION['remoteAddr'].$time[2].$time[3].$time[4].$time[5];
       } else {
-        $time = localtime();
-        if ( $useRemoteAddr ) {
-          $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$_SESSION['remoteAddr'].$time[2].$time[3].$time[4].$time[5];
-        } else {
-          $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$time[2].$time[3].$time[4].$time[5];
-        }
-        $auth = md5( $authKey );
-        if ( session_status() == PHP_SESSION_NONE ) {
-          Warning("Session is not active. AuthHash will not be cached.");
-        }
-        $_SESSION['AuthHash'] = $auth;
-        $_SESSION['AuthHashGeneratedAt'] = time();
-        Debug("Generating new auth $auth at " . $_SESSION['AuthHashGeneratedAt']. " using $authKey" );
+        $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$time[2].$time[3].$time[4].$time[5];
       }
+      $auth = md5( $authKey );
+      if ( session_status() == PHP_SESSION_NONE ) {
+        Warning("Session is not active. AuthHash will not be cached.");
+      }
+      $_SESSION['AuthHash'] = $auth;
+      $_SESSION['AuthHashGeneratedAt'] = time();
+      Debug("Generated new auth $auth at " . $_SESSION['AuthHashGeneratedAt']. " using $authKey" );
     } else {
-      Debug("Using auth " . $_SESSION['AuthHash'] );
+      Debug( "Using cached auth " . $_SESSION['AuthHash'] );
     } # end if AuthHash is not cached
     return $_SESSION['AuthHash'];
   } else {
-    $auth = "";
+    $auth = '';
   }
   return( $auth );
 }

@@ -28,12 +28,18 @@ $cameras = array();
 $cameras[0] = translate('ChooseDetectedCamera');
 
 
-function execONVIF( $cmd )
-{
-  exec( escapeshellcmd(ZM_PATH_BIN . "/zmonvif-probe.pl $cmd"), $output, $status );
- 
-  if ( $status )
-    Fatal( "Unable to probe network cameras, status is '$status'" );
+function execONVIF( $cmd ) {
+  $shell_command = escapeshellcmd(ZM_PATH_BIN . "/zmonvif-probe.pl $cmd");
+
+  exec( $shell_command, $output, $status );
+
+  if ( $status ) {
+    $html_output = implode( '<br/>', $output );
+    Fatal( "Unable to probe network cameras, status is '$status'. Output was:<br/><br/>
+        $html_output<br/><br/>
+        Please the following command from a command line for more information:<br/><br/>$shell_command"
+        );
+  }
 
   return $output;
 }

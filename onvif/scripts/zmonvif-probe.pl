@@ -210,11 +210,11 @@ sub discover
   # This is not a copy. So we generate a new uuid.
   $uuid = $uuid_gen->create_str();
 
+   # Everyone else, like the nodejs onvif code and odm only ask for NetworkVideoTransmitter
   $result = $svc_discover->ProbeOp(
     { # WSDiscovery::Types::ProbeType
-      xmlattr => { 'xmlns:dn'  => 'http://www.onvif.org/ver10/network/wsdl',
-                   'xmlns:tds' => 'http://www.onvif.org/ver10/device/wsdl', },
-      Types => 'dn:NetworkVideoTransmitter tds:Device', # QNameListType
+      xmlattr => { 'xmlns:dn'  => 'http://www.onvif.org/ver10/network/wsdl', },
+      Types => 'dn:NetworkVideoTransmitter', # QNameListType
       Scopes =>  { value => '' },
     },
     WSDiscovery10::Elements::Header->new({

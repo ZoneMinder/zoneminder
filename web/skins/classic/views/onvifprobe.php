@@ -222,9 +222,10 @@ if( !isset($_REQUEST['step']) || ($_REQUEST['step'] == "1")) {
 } 
 else if($_REQUEST['step'] == "2") 
 {
-  if ( empty($_REQUEST['probe']) || empty($_REQUEST['username']) || 
-       empty($_REQUEST['password']) )
-    Fatal("Internal error. Please re-open this page.");
+  if ( empty($_REQUEST['probe']) ) 
+    Fatal("No probe passed in request. Please go back and try again.");
+#|| empty($_REQUEST['username']) || 
+       #empty($_REQUEST['password']) )
     
   $probe = unserialize(base64_decode($_REQUEST['probe']));
   foreach ( $probe as $name=>$value )

@@ -371,11 +371,10 @@ if($action eq "probe") {
 }
 else {
 # all other actions need URI and credentials
-  my $url_svc_device = shift;
-  $soap_version = shift;
-  my $username = @_ ? shift : '';
-  my $password = @_ ? shift : '';
-print "Username: $username";
+  my $url_svc_device = shift @ARGV;
+  $soap_version = shift @ARGV;
+  my $username = @ARGV ? shift @ARGV : '';
+  my $password = @ARGV ? shift @ARGV: '';
 
   $client = ONVIF::Client->new( { 
       'url_svc_device' => $url_svc_device, 

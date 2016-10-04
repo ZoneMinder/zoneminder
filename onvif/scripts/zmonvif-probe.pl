@@ -373,8 +373,9 @@ else {
 # all other actions need URI and credentials
   my $url_svc_device = shift;
   $soap_version = shift;
-  my $username = shift;
+  my $username = @_ ? shift : '';
   my $password = @_ ? shift : '';
+print "Username: $username";
 
   $client = ONVIF::Client->new( { 
       'url_svc_device' => $url_svc_device, 

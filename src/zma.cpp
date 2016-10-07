@@ -198,6 +198,7 @@ int main( int argc, char *argv[] )
   {
     fprintf( stderr, "Can't find monitor with id of %d\n", id );
   }
+  Image::Deinitialise();
   logTerm();
   zmDbClose();
   return( 0 );

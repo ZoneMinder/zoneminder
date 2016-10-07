@@ -77,6 +77,8 @@ my %soap_version_of  :ATTR(:default<('1.1')>);
 sub service
 {
   my ($self, $serviceName, $attr) = @_;
+#print "service: " . $services_of{${$self}}{$serviceName}{$attr} . "\n";
+# Please note that the Std::Class::Fast docs say not to use ident.
   $services_of{ident $self}{$serviceName}{$attr};
 }
 
@@ -113,27 +115,59 @@ sub set_soap_version
   delete $serializer_of{ ident $self };
 }
 
-sub get_service_urls
-{
+sub get_service_urls {
   my ($self) = @_;
 
   my $result = $self->service('device', 'ep')->GetServices( {
     IncludeCapability =>  'true', # boolean
     },,
   );
-
-  die $result if not $result;
-#  print $result . "\n";
-
- foreach  my $svc ( @{ $result->get_Service() } ) {
-    my $short_name = $namespace_map{$svc->get_Namespace()};    
-    my $url_svc = $svc->get_XAddr()->get_value();
-    if(defined $short_name && defined $url_svc) {
+  if ( $result ) {
+    foreach  my $svc ( @{ $result->get_Service() } ) {
+      my $short_name = $namespace_map{$svc->get_Namespace()};    
+      my $url_svc = $svc->get_XAddr()->get_value();
+      if(defined $short_name && defined $url_svc) {
 #      print "Got $short_name service\n";
-      $self->set_service($short_name, 'url', $url_svc);
+        $self->set_service($short_name, 'url', $url_svc);
+      }
     }
+ # } else {
+    #print "No results from GetServices: $result\n";
   }
-}
+
+  # Some devices do not support getServices, so we have to try getCapabilities
+
+  $result = $self->service('device', 'ep')->GetCapabilities( {}, , );
+  if ( ! $result ) {
+    print "No results from GetCapabilities: $result\n";
+    return;
+  }
+  # Result is a GetCapabilitiesResponse
+  foreach my $capabilities ( @{ $result->get_Capabilities() } ) {
+    foreach my $capability ( 'PTZ', 'Media', 'Imaging', 'Events', 'Device' ) {
+      if ( my $function = $capabilities->can( "get_$capability" ) ) {
+        my $Services = $function->( $capabilities );
+        if ( ! $Services ) {
+          print "Nothing returned ffrom get_$capability\n";
+        } else {
+          foreach my $svc ( @{ $Services } ) {
+            # The capability versions don't have a namespace, so just lowercase them.
+            my $short_name = lc $capability;
+            my $url_svc = $svc->get_XAddr()->get_value();
+            if( defined $url_svc) {
+#      print "Got $short_name service\n";
+              $self->set_service($short_name, 'url', $url_svc);
+            }
+          } # end foreach svr
+        }
+      } else {
+        print "No $capability function\n";
+
+      } # end if has a get_ function
+    } # end foreach capability
+  } # end foreach capabilities
+
+} # end sub get_service_urls
 
 sub http_digest {
   my ($service, $username, $password) = @_;

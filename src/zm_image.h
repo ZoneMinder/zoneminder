@@ -137,7 +137,6 @@ protected:
 	static jpeg_decompress_struct *decodejpg_dcinfo;
 	static struct zm_error_mgr jpg_err;
 
-protected:
 	unsigned int width;
 	unsigned int height;
 	unsigned int pixels;

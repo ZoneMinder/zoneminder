@@ -359,7 +359,6 @@ int main( int argc, char *argv[] )
   delete [] last_capture_times;
 
   Image::Deinitialise();
-
   logTerm();
   zmDbClose();
 

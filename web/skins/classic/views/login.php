@@ -41,7 +41,7 @@ xhtmlHeaders(__FILE__, translate('Login') );
           <tbody>
             <tr>
               <td class="colLeft"><?php echo translate('Username') ?></td>
-              <td class="colRight"><input type="text" name="username" value="<?php echo isset($_REQUEST['username'])?validHtmlStr($_REQUEST['username']):"" ?>" size="12"/></td>
+              <td class="colRight"><input type="text" name="username" autocorrect="off" autocapitalize="off" spellcheck="false" value="<?php echo isset($_REQUEST['username'])?validHtmlStr($_REQUEST['username']):"" ?>" size="12"/></td>
             </tr>
             <tr>
               <td class="colLeft"><?php echo translate('Password') ?></td>

@@ -44,8 +44,8 @@ else
 
 if ( isset( $_REQUEST['scale'] ) ) {
   $scale = validInt($_REQUEST['scale']);
-} else if ( isset( $_COOKIE['zmWatchScale'.$event['MonitorId'] ) ) {
-  $scale = $_COOKIE['zmEventScale'.$event['MonitorId'];
+} else if ( isset( $_COOKIE['zmWatchScale'.$event['MonitorId']] ) ) {
+  $scale = $_COOKIE['zmEventScale'.$event['MonitorId']];
 } else {
   $scale = reScale( SCALE_BASE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
 }

@@ -220,6 +220,7 @@ function getNavBarHTML() {
 ?>
 					<li><?php echo makePopupLink( '?view=cycle&amp;group='.$cycleGroup, 'zmCycle'.$cycleGroup, array( 'cycle', $cycleWidth, $cycleHeight ), translate('Cycle'), $running ) ?></li>
 					<li><?php echo makePopupLink( '?view=montage&amp;group='.$cycleGroup, 'zmMontage'.$cycleGroup, 'montage', translate('Montage'), $running ) ?></li>
+					<li><?php echo makePopupLink( '?view=montagereview&amp;group='.$cycleGroup, 'zmMontageReview'.$cycleGroup, 'montagereview', translate('MontageReview'), $running ) ?></li>
 <?php } ?>
 		</ul>
 

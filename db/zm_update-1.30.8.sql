@@ -10,7 +10,7 @@ SET @s = (SELECT IF(
 	AND column_name = 'Orientation'
 	) > 0,
 "SELECT 'Column Orientation exists in Events'",
-"ALTER TABLE `Events` ADD `Orientation`  enum('0','90','180','270','hori','vert') NOT NULL default '0' AFTER Notes",
+"ALTER TABLE `Events` ADD `Orientation`  enum('0','90','180','270','hori','vert') NOT NULL default '0' AFTER `Notes`"
 ));
 
 PREPARE stmt FROM @s;

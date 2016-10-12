@@ -507,3 +507,13 @@ int check_sample_fmt(AVCodec *codec, enum AVSampleFormat sample_fmt) {
   }
   return 0;
 }
+
+#if LIBAVCODEC_VERSION_CHECK(56, 8, 0, 60, 100)
+#else
+unsigned int zm_av_packet_ref( AVPacket *dst, AVPacket *src ) {
+  dst->data = reinterpret_cast<uint8_t*>(new uint64_t[(src->size + FF_INPUT_BUFFER_PADDING_SIZE)/sizeof(uint64_t) + 1]);
+  memcpy(dst->data, src->data, src->size );
+  return 0;
+}
+#endif
+

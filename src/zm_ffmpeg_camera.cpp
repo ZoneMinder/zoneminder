@@ -222,7 +222,7 @@ int FfmpegCamera::Capture( Image &image )
     } else {
       Debug( 4, "Different stream_index %d", packet.stream_index );
     } // end if packet.stream_index == mVideoStreamId
-    zm_av_unref_packet( &packet );
+    zm_av_packet_unref( &packet );
   } // end while ! frameComplete
   return (0);
 } // FfmpegCamera::Capture
@@ -657,7 +657,7 @@ Debug(5, "After av_read_frame (%d)", ret );
           if ( ret < 0 ) {
             //Less than zero and we skipped a frame
           }
-          zm_av_unref_packet( queued_packet );
+          zm_av_packet_unref( queued_packet );
           av_free( queued_packet );
         } // end while packets in the packetqueue
         Debug(2, "Wrote %d queued packets", packet_count );
@@ -697,7 +697,7 @@ Debug(5, "After av_read_frame (%d)", ret );
         //Write the packet to our video store
         int ret = videoStore->writeVideoFramePacket( &packet );
         if ( ret < 0 ) { //Less than zero and we skipped a frame
-          zm_av_unref_packet( &packet );
+          zm_av_packet_unref( &packet );
           return 0;
         }
       }
@@ -706,7 +706,7 @@ Debug(5, "After av_read_frame (%d)", ret );
       if ( ret < 0 ) {
         av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
         Error( "Unable to decode frame at frame %d: %s, continuing", frameCount, errbuf );
-        zm_av_unref_packet( &packet );
+        zm_av_packet_unref( &packet );
         continue;
       }
 
@@ -721,7 +721,7 @@ Debug(5, "After av_read_frame (%d)", ret );
         directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
         if ( directbuffer == NULL ) {
           Error("Failed requesting writeable buffer for the captured image.");
-          zm_av_unref_packet( &packet );
+          zm_av_packet_unref( &packet );
           return (-1);
         }
         avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height);
@@ -745,7 +745,7 @@ Debug(5, "After av_read_frame (%d)", ret );
           int ret = videoStore->writeAudioFramePacket( &packet );
           if ( ret < 0 ) {//Less than zero and we skipped a frame
             Warning("Failure to write audio packet.");
-            zm_av_unref_packet( &packet );
+            zm_av_packet_unref( &packet );
             return 0;
           }
         } else {
@@ -762,7 +762,7 @@ Debug(5, "After av_read_frame (%d)", ret );
     //if ( videoStore ) {
       
       // the packet contents are ref counted... when queuing, we allocate another packet and reference it with that one, so we should always need to unref here, which should not affect the queued version.
-      zm_av_unref_packet( &packet );
+      zm_av_packet_unref( &packet );
     //}
   } // end while ! frameComplete
   return (frameCount);

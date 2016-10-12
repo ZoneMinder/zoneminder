@@ -324,9 +324,11 @@ static av_always_inline av_const int64_t av_clip64_c(int64_t a, int64_t amin, in
 
 void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output);
 #if LIBAVCODEC_VERSION_CHECK(56, 8, 0, 60, 100)
-    #define zm_av_unref_packet( packet ) av_packet_unref( packet )
+    #define zm_av_packet_unref( packet ) av_packet_unref( packet )
+    #define zm_av_packet_ref( dst, src ) av_packet_ref( dst, src )
 #else
-    #define zm_av_unref_packet( packet ) av_free_packet( packet ) 
+    #define zm_av_packet_unref( packet ) av_free_packet( packet )
+unsigned int zm_av_packet_ref( AVPacket *dst, AVPacket *src );
 #endif
 #if LIBAVCODEC_VERSION_CHECK(52, 23, 0, 23, 0)
       #define zm_avcodec_decode_video( context, rawFrame, frameComplete, packet ) avcodec_decode_video2( context, rawFrame, frameComplete, packet )
@@ -337,7 +339,7 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
 #if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
   #define zm_av_frame_alloc() av_frame_alloc()
 #else
-  #define zm_av_frame_alloc avcodec_alloc_frame()
+  #define zm_av_frame_alloc() avcodec_alloc_frame()
 #endif
 
 

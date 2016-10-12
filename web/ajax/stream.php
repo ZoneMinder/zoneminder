@@ -110,8 +110,8 @@ switch ( $data['type'] )
         $data['zoom'] = round( $data['zoom']/SCALE_BASE, 1 );
         if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == "hashed" ) {
           $time = time();
-          // Regenerate auth hash after 1 hour
-          if ( $_SESSION['AuthHashGeneratedAt'] < $time - 3600 ) {
+          // Regenerate auth hash after half the lifetime of the hash
+          if ( $_SESSION['AuthHashGeneratedAt'] < $time - (ZM_AUTH_HASH_TTL * 1800) ) {
             $data['auth'] = generateAuthHash( ZM_AUTH_HASH_IPS );
           } 
         }
@@ -126,8 +126,8 @@ switch ( $data['type'] )
         $data['zoom'] = round( $data['zoom']/SCALE_BASE, 1 );
         if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == "hashed" ) {
           $time = time();
-          // Regenerate auth hash after 1 hour
-          if ( $_SESSION['AuthHashGeneratedAt'] < $time - 3600 ) {
+          // Regenerate auth hash after half the lifetime of the hash
+          if ( $_SESSION['AuthHashGeneratedAt'] < $time - (ZM_AUTH_HASH_TTL * 1800) ) {
             $data['auth'] = generateAuthHash( ZM_AUTH_HASH_IPS );
           } 
         }

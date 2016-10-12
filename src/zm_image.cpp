@@ -152,11 +152,13 @@ Image::Image( const Image &p_image )
   strncpy( text, p_image.text, sizeof(text) );
 }
 
-Image::~Image()
-{
+Image::~Image() {
   DumpImgBuffer();
-  if ( initialised )
-  {
+}
+
+/* Should be called as part of program shutdown to free everything */
+void Image::Deinitialise() {
+  if ( initialised ) {
 	  /*
     delete[] y_table;
     delete[] uv_table;
@@ -166,25 +168,25 @@ Image::~Image()
     delete[] b_u_table;
 	 */
     initialised = false;
-  }
-  if ( readjpg_dcinfo )
-  {
-    jpeg_destroy_decompress( readjpg_dcinfo );
-    delete readjpg_dcinfo;
-    readjpg_dcinfo = 0;
-  }
-  if ( decodejpg_dcinfo )
-  {
-    jpeg_destroy_decompress( decodejpg_dcinfo );
-    delete decodejpg_dcinfo;
-    decodejpg_dcinfo = 0;
-  }
-  for ( unsigned int quality=0; quality <= 100; quality += 1 ) {
-    if ( writejpg_ccinfo[quality] ) {
-      delete writejpg_ccinfo[quality];
-      writejpg_ccinfo[quality] = NULL;
+    if ( readjpg_dcinfo ) {
+      jpeg_destroy_decompress( readjpg_dcinfo );
+      delete readjpg_dcinfo;
+      readjpg_dcinfo = 0;
     }
-  } // end foreach quality
+    if ( decodejpg_dcinfo )
+    {
+      jpeg_destroy_decompress( decodejpg_dcinfo );
+      delete decodejpg_dcinfo;
+      decodejpg_dcinfo = 0;
+    }
+    for ( unsigned int quality=0; quality <= 100; quality += 1 ) {
+      if ( writejpg_ccinfo[quality] ) {
+        jpeg_destroy_compress( writejpg_ccinfo[quality] );
+        delete writejpg_ccinfo[quality];
+        writejpg_ccinfo[quality] = NULL;
+      }
+    } // end foreach quality
+  }
 }
 
 void Image::Initialise()

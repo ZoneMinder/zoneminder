@@ -86,7 +86,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
   output_format = oc->oformat;
 
-  video_output_stream = avformat_new_stream(oc, video_input_context->codec);
+  video_output_stream = avformat_new_stream(oc, (AVCodec*)video_input_context->codec);
   if (!video_output_stream) {
     Fatal("Unable to create video out stream\n");
   } else {
@@ -214,7 +214,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
     if ( audio_input_context->codec_id != AV_CODEC_ID_AAC ) {
 #ifdef HAVE_LIBSWRESAMPLE
-  resample_context = NULL;
+      resample_context = NULL;
       avcodec_string(error_buffer, sizeof(error_buffer), audio_input_context, 0 );
       Debug(3, "Got something other than AAC (%s)", error_buffer );
       audio_output_stream = NULL;
@@ -378,12 +378,13 @@ Debug(2, "Have audio_output_context");
         Error( "could not find codec for AAC\n");
       }
 #else
-Error("Not build with libswressample library.");
+      Error("Not built with libswresample library. Cannot do audio conversion to AAC");
+      audio_output_stream = NULL;
 #endif
     } else {
       Debug(3, "Got AAC" );
 
-      audio_output_stream = avformat_new_stream(oc, audio_input_context->codec);
+      audio_output_stream = avformat_new_stream(oc, (AVCodec*)audio_input_context->codec);
       if ( ! audio_output_stream ) {
         Error("Unable to create audio out stream\n");
         audio_output_stream = NULL;
@@ -485,7 +486,7 @@ Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts, pkt.dts
 Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts, pkt.dts, pkt.duration );
       pkt.stream_index = audio_output_stream->index;
       av_interleaved_write_frame( oc, &pkt );
-      zm_av_unref_packet( &pkt );
+      zm_av_packet_unref( &pkt );
     } // while 1
   }
   /* Write the trailer before close */
@@ -590,7 +591,7 @@ if ( 1 ) {
   opkt.duration = av_rescale_q(ipkt->duration, video_input_stream->time_base, video_output_stream->time_base);
 } else {
   // Using this results in super fast video output, might be because it should be using the codec time base instead of stream tb
-  av_packet_rescale_ts( &opkt, video_input_stream->time_base, video_output_stream->time_base );
+  //av_packet_rescale_ts( &opkt, video_input_stream->time_base, video_output_stream->time_base );
 }
 
 if ( opkt.dts != AV_NOPTS_VALUE ) {
@@ -657,7 +658,7 @@ Debug(4, "Not video and RAWPICTURE");
     }
   }
 
-  zm_av_unref_packet(&opkt); 
+  zm_av_packet_unref(&opkt); 
 
   return 0;
 
@@ -781,12 +782,12 @@ av_codec_is_encoder( audio_output_context->codec)
                 av_make_error_string(ret).c_str());
         dumpPacket( ipkt );
         av_frame_free(&input_frame);
-        zm_av_unref_packet(&opkt);
+        zm_av_packet_unref(&opkt);
         return 0;
     }
     if ( ! data_present ) {
       Debug(2, "Not ready to transcode a frame yet.");
-      zm_av_unref_packet(&opkt);
+      zm_av_packet_unref(&opkt);
       return 0;
     }
 
@@ -841,7 +842,7 @@ av_codec_is_encoder( audio_output_context->codec)
       Error("Frame: samples(%d) layout (%d) format(%d) rate(%d)", output_frame->nb_samples,
           output_frame->channel_layout, output_frame->format , output_frame->sample_rate 
           );
-      zm_av_unref_packet(&opkt);
+      zm_av_packet_unref(&opkt);
       return 0;
     }
 
@@ -866,12 +867,12 @@ av_frame_get_best_effort_timestamp(output_frame)
             output_frame, &data_present )) < 0) {
       Error( "Could not encode frame (error '%s')",
           av_make_error_string(ret).c_str());
-      zm_av_unref_packet(&opkt);
+      zm_av_packet_unref(&opkt);
       return 0;
     }
     if ( ! data_present ) {
       Debug(2, "Not ready to output a frame yet.");
-      zm_av_unref_packet(&opkt);
+      zm_av_packet_unref(&opkt);
       return 0;
     }
   
@@ -909,6 +910,6 @@ Debug(2, "opkt dts (%d) pts(%d) duration:(%d) pos(%d) ", opkt.dts, opkt.pts, opk
   } else {
     Debug(2,"Success writing audio frame" ); 
   }
-  zm_av_unref_packet(&opkt);
+  zm_av_packet_unref(&opkt);
   return 0;
 }

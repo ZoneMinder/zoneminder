@@ -14,6 +14,10 @@ class Event {
       } elseif ( is_array( $IdOrRow ) ) {
         $row = $IdOrRow;
       } else {
+        $backTrace = debug_backtrace();
+        $file = $backTrace[1]['file'];
+        $line = $backTrace[1]['line'];
+        Error("Unknown argument passed to Event Constructor from $file:$line)");
         Error("Unknown argument passed to Event Constructor ($IdOrRow)");
         return;
       }
@@ -29,6 +33,9 @@ class Event {
   } // end function __construct
   public function Storage() {
     return new Storage( isset($this->{'StorageId'}) ? $this->{'StorageId'} : NULL );
+  }
+  public function Monitor() {
+    return new Monitor( isset($this->{'MonitorId'}) ? $this->{'MonitorId'} : NULL );
   }
   public function __call( $fn, array $args){
     if ( array_key_exists( $fn, $this ) ) {

@@ -39,14 +39,14 @@ if ( $user['MonitorIds'] ) {
 if ( isset( $_REQUEST['rate'] ) )
     $rate = validInt($_REQUEST['rate']);
 else
-    $rate = reScale( RATE_BASE, $Event->DefaultRate(), ZM_WEB_DEFAULT_RATE );
+    $rate = reScale( RATE_BASE, $Monitor->DefaultRate(), ZM_WEB_DEFAULT_RATE );
 
 if ( isset( $_REQUEST['scale'] ) ) {
   $scale = validInt($_REQUEST['scale']);
 } else if ( isset( $_COOKIE['zmWatchScale'.$Event->MonitorId()] ) ) {
   $scale = $_COOKIE['zmEventScale'.$Event->MonitorId()];
 } else {
-  $scale = reScale( SCALE_BASE, $Event->DefaultScale(), ZM_WEB_DEFAULT_SCALE );
+  $scale = reScale( SCALE_BASE, $Monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE );
 }
 
 $replayModes = array(
@@ -96,6 +96,11 @@ xhtmlHeaders(__FILE__, translate('Event') );
 <body>
   <div id="page">
     <div id="content">
+<?php 
+if ( ! $Event->Id() ) {
+  echo 'Event was not found.';
+} else {
+?>
       <div id="dataBar">
         <table id="dataTable" class="major" cellspacing="0">
           <tr>
@@ -132,7 +137,7 @@ if ( $Event->SaveJPEGs() & 3 ) { // Analysis or Jpegs
 ?>
         <div id="stillsEvent"<?php if ( $streamMode == 'still' ) { ?> class="hidden"<?php } ?>><a href="#" onclick="showStills()"><?php echo translate('Stills') ?></a></div>
 <?php
-}
+} // has frames or analysis
 ?>
         <div id="videoEvent"<?php if ( $streamMode == 'video' ) { ?> class="hidden"<?php } ?>><a href="#" onclick="showVideo()"><?php echo translate('Video') ?></a></div>
         <div id="exportEvent"><a href="#" onclick="exportEvent()"><?php echo translate('Export')  ?></a></div>
@@ -143,27 +148,26 @@ if ( $Event->DefaultVideo() ) {
 ?>
         <div id="videoFeed">
           <video id="videoobj" class="video-js vjs-default-skin" width="<?php echo reScale( $Event->Width(), $scale ) ?>" height="<?php echo reScale( $Event->Height(), $scale ) ?>" data-setup='{ "controls": true, "playbackRates": [0.5, 1, 1.5, 2, 4, 8, 16, 32, 64, 128, 256], "autoplay": true, "preload": "auto", "plugins": { "zoomrotate": { "rotate": "<?php echo $Rotation ?>", "zoom": "<?php echo $Zoom ?>"}}}'>
-          <source src="<?php echo getEventDefaultVideoPath($Event) ?>" type="video/mp4">
+          <source src="<?php echo $Event->getStreamSrc( array( "mode=mpeg&format=h264" ) ); ?>" type="video/mp4">
           Your browser does not support the video tag.
           </video>
         </div>
-<!--script>includeVideoJs();</script-->
-<link href="//vjs.zencdn.net/4.11/video-js.css" rel="stylesheet">
-<script src="//vjs.zencdn.net/4.11/video.js"></script>
-<script src="./js/videojs.zoomrotate.js"></script>
-<script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.10.6/moment.min.js"></script>
-<script>
-var LabelFormat = "<?php echo validJsStr($Event->LabelFormat())?>";
-var monitorName = "<?php echo validJsStr($Event->MonitorName())?>";
-var duration = <?php echo $Event->Length() ?>, startTime = '<?php echo $Event->StartTime() ?>';
+        <!--script>includeVideoJs();</script-->
+        <link href="//vjs.zencdn.net/4.11/video-js.css" rel="stylesheet">
+        <script src="//vjs.zencdn.net/4.11/video.js"></script>
+        <script src="./js/videojs.zoomrotate.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.10.6/moment.min.js"></script>
+        <script>
+        var LabelFormat = "<?php echo validJsStr($Monitor->LabelFormat())?>";
+        var monitorName = "<?php echo validJsStr($Monitor->Name())?>";
+        var duration = <?php echo $Event->Length() ?>, startTime = '<?php echo $Event->StartTime() ?>';
 
-addVideoTimingTrack(document.getElementById('videoobj'), LabelFormat, monitorName, duration, startTime);
-</script>
-
+        addVideoTimingTrack(document.getElementById('videoobj'), LabelFormat, monitorName, duration, startTime);
+        </script>
 <?php
-} 
+}  // end if DefaultVideo
 ?>
-        <div id="imageFeed" <?php if ( $event['DefaultVideo'] ) { ?>class="hidden"<?php } ?> >
+        <div id="imageFeed" <?php if ( $Event->DefaultVideo() ) { ?>class="hidden"<?php } ?> >
 <?php
 if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
     $streamSrc = getStreamSrc( array( "source=event", "mode=mpeg", "event=".$eid, "frame=".$fid, "scale=".$scale, "rate=".$rate, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_REPLAY_FORMAT, "replay=".$replayMode ) );
@@ -241,8 +245,9 @@ if ($Event->SaveJPEGs() & 3) { // frames or analysis
       </div>
 <?php
 } // end if SaveJPEGs() & 3 Analysis or Jpegs
-}
+} // end if canView
+} // end if Event exists
 ?>
-  </div>
+  </div><!--page-->
 </body>
 </html>

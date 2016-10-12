@@ -26,11 +26,11 @@ var SCALE_BASE = <?php echo SCALE_BASE ?>;
 var connKey = '<?php echo $connkey ?>';
 
 var eventData = {
-    Id: '<?php echo $event['Id'] ?>',
-    MonitorId: '<?php echo $event['MonitorId'] ?>',
-    Width: '<?php echo $event['Width'] ?>',
-    Height: '<?php echo $event['Height'] ?>',
-    Length: '<?php echo $event['Length'] ?>'
+    Id: '<?php echo $Event->Id() ?>',
+    MonitorId: '<?php echo $Event->MonitorId() ?>',
+    Width: '<?php echo $Event->Width() ?>',
+    Height: '<?php echo $Event->Height() ?>',
+    Length: '<?php echo $Event->Length() ?>'
 };
 
 var filterQuery = '<?php echo isset($filterQuery)?validJsStr($filterQuery):'' ?>';

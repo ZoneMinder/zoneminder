@@ -6,7 +6,7 @@ if ( empty($_REQUEST['id']) && empty($_REQUEST['eids']) ) {
 
 if ( canView( 'Events' ) ) {
     switch ( $_REQUEST['action'] ) {
-        case "video" : {
+        case 'video' : {
             if ( empty($_REQUEST['videoFormat']) ) {
                 ajaxError( "Video Generation Failure, no format given" );
             } elseif ( empty($_REQUEST['rate']) ) {
@@ -77,11 +77,9 @@ if ( canView( 'Events' ) ) {
     }
 }
 
-if ( canEdit( 'Events' ) )
-{
-    switch ( $_REQUEST['action'] )
-    {
-        case "rename" :
+if ( canEdit( 'Events' ) ) {
+    switch ( $_REQUEST['action'] ) {
+        case 'rename' :
         {
             if ( !empty($_REQUEST['eventName']) )
                 dbQuery( 'UPDATE Events SET Name = ? WHERE Id = ?', array( $_REQUEST['eventName'], $_REQUEST['id'] ) );
@@ -90,24 +88,29 @@ if ( canEdit( 'Events' ) )
             ajaxResponse( array( 'refreshEvent'=>true, 'refreshParent'=>true ) );
             break;
         }
-        case "eventdetail" :
+        case 'eventdetail' :
         {
             dbQuery( 'UPDATE Events SET Cause = ?, Notes = ? WHERE Id = ?', array( $_REQUEST['newEvent']['Cause'], $_REQUEST['newEvent']['Notes'], $_REQUEST['id'] ) );
             ajaxResponse( array( 'refreshEvent'=>true, 'refreshParent'=>true ) );
             break;
         }
-        case "archive" :
-        case "unarchive" :
+        case 'archive' :
+        case 'unarchive' :
         {
             $archiveVal = ($_REQUEST['action'] == "archive")?1:0;
             dbQuery( 'UPDATE Events SET Archived = ? WHERE Id = ?', array( $archiveVal, $_REQUEST['id']) );
             ajaxResponse( array( 'refreshEvent'=>true, 'refreshParent'=>false ) );
             break;
         }
-        case "delete" :
+        case 'delete' :
         {
-            deleteEvent( $_REQUEST['id'] );
-            ajaxResponse( array( 'refreshEvent'=>false, 'refreshParent'=>true ) );
+            $Event = new Event( $_REQUEST['id'] );
+            if ( ! $Event->Id() ) {
+              ajaxResponse( array( 'refreshEvent'=>false, 'refreshParent'=>true, 'message'=> 'Event not found.' ) );
+            } else {
+              $Event->delete();
+              ajaxResponse( array( 'refreshEvent'=>false, 'refreshParent'=>true ) );
+            }
             break;
         }
     }

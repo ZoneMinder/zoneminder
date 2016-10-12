@@ -84,7 +84,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
   static char sql[ZM_SQL_MED_BUFSIZ];
 
   struct tm *stime = localtime( &start_time.tv_sec );
-  snprintf( sql, sizeof(sql), "insert into Events ( MonitorId, StorageId, Name, StartTime, Width, Height, Cause, Notes, Videoed ) values ( %d, %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s', %d )", monitor->Id(), storage->Id(), start_time.tv_sec, monitor->Width(), monitor->Height(), cause.c_str(), notes.c_str(), videoEvent );
+  snprintf( sql, sizeof(sql), "insert into Events ( MonitorId, StorageId, Name, StartTime, Width, Height, Cause, Notes, Orientation, Videoed ) values ( %d, %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s', %d, %d )", monitor->Id(), storage->Id(), start_time.tv_sec, monitor->Width(), monitor->Height(), cause.c_str(), notes.c_str(), monitor->getOrientation(), videoEvent );
   if ( mysql_query( &dbconn, sql ) ) {
     Error( "Can't insert event: %s. sql was (%s)", mysql_error( &dbconn ), sql );
     exit( mysql_errno( &dbconn ) );
@@ -1243,7 +1243,14 @@ bool EventStream::sendFrame( int delta_us ) {
   static struct stat filestat;
   FILE *fdj = NULL;
 
+  if ( monitor->GetOptSaveJPEGs() & 1) {
   snprintf( filepath, sizeof(filepath), Event::capture_file_format, event_data->path, curr_frame_id );
+  } else if ( monitor->GetOptSaveJPEGs() & 2 ) {
+  snprintf( filepath, sizeof(filepath), Event::analyse_file_format, event_data->path, curr_frame_id );
+  } else {
+    Fatal("JPEGS not saved.zms is not capable of streaming jpegs from mp4 yet");
+    return false;
+  }
 
 #if HAVE_LIBAVCODEC
   if ( type == STREAM_MPEG ) {

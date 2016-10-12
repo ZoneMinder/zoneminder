@@ -1,7 +1,9 @@
 function setButtonState( element, butClass )
 {
+  if ( element ) {
     element.className = butClass;
     element.disabled = (butClass != 'inactive');
+  }
 }
 
 function changeScale() {
@@ -87,7 +89,7 @@ function getCmdResponse( respObj, respText )
     streamCmdTimer = streamQuery.delay( streamTimeout );
 }
 
-var streamReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'chain', onSuccess: getCmdResponse } );
+var streamReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'chain', onSuccess: getCmdResponse } );
 
 function streamPause( action )
 {
@@ -251,7 +253,7 @@ function getEventResponse( respObj, respText )
     nearEventsQuery( eventData.Id );
 }
 
-var eventReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getEventResponse } );
+var eventReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getEventResponse } );
 
 function eventQuery( eventId )
 {
@@ -277,7 +279,7 @@ function getNearEventsResponse( respObj, respText )
     $('nextEventBtn').disabled = !nextEventId;
 }
 
-var nearEventsReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getNearEventsResponse } );
+var nearEventsReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getNearEventsResponse } );
 
 function nearEventsQuery( eventId )
 {
@@ -386,8 +388,12 @@ function hideEventImageComplete()
 {
     var eventImg = $('eventImage');
     var thumbImg = $('eventThumb'+$('eventImage').getProperty( 'alt' ));
+    if ( thumbImg ) {
     thumbImg.removeClass('selected');
     thumbImg.setOpacity( 1.0 );
+    } else {
+      console.log("Unable to find eventThumb at " + 'eventThumb'+$('eventImage').getProperty( 'alt' ) );
+    }
     $('prevImageBtn').disabled = true;
     $('nextImageBtn').disabled = true;
     $('eventImagePanel').setStyle( 'display', 'none' );
@@ -447,7 +453,7 @@ function getFrameResponse( respObj, respText )
     loadEventThumb( eventData, frame, respObj.loopback=="true" );
 }
 
-var frameReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'chain', onSuccess: getFrameResponse } );
+var frameReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'chain', onSuccess: getFrameResponse } );
 
 function frameQuery( eventId, frameId, loadImage )
 {
@@ -589,7 +595,7 @@ function getActResponse( respObj, respText )
         eventQuery( eventData.Id );
 }
 
-var actReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getActResponse } );
+var actReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getActResponse } );
 
 function actQuery( action, parms )
 {
@@ -639,6 +645,7 @@ function showEventFrames()
 function showVideo()
 {
     $('eventStills').addClass( 'hidden' );
+    $('imageFeed').addClass('hidden');
     $('eventVideo').removeClass( 'hidden' );
     
     $('stillsEvent').removeClass( 'hidden' );
@@ -651,7 +658,17 @@ function showVideo()
 function showStills()
 {
     $('eventStills').removeClass( 'hidden' );
+    $('imageFeed').removeClass('hidden');
     $('eventVideo').addClass( 'hidden' );		
+
+    if (vid && ( vid.paused != true ) ) {
+      // Pause the video
+      vid.pause();
+
+      // Update the button text to 'Play'
+       //if ( playButton )
+        //playButton.innerHTML = "Play";
+    }
 	
     $('stillsEvent').addClass( 'hidden' );
     $('videoEvent').removeClass( 'hidden' );
@@ -659,8 +676,7 @@ function showStills()
     streamMode = 'stills';
 	
     streamPause( true );
-    if ( !scroll )
-    {
+    if ( !scroll ) {
         scroll = new Fx.Scroll( 'eventThumbs', {
             wait: false,
             duration: 500,
@@ -745,6 +761,7 @@ function handleClick( event )
 }
 function setupListener()
 {
+// I think this stuff was to use our existing buttons instead of the videojs controls. 
 
 	// Buttons
 	var playButton = document.getElementById("play-pause");
@@ -840,42 +857,38 @@ function setupListener()
 	});
 }
 
-function initPage()
-{
-    //FIXME prevent blocking...not sure what is happening or best way to unblock
-	vid=$('videoobj');
-        if (vid)
-    {
-	/*setupListener();
-	vid.removeAttribute("controls");
-       /* window.videoobj.oncanplay=null;
-        window.videoobj.currentTime=window.videoobj.currentTime-1;
-        window.videoobj.currentTime=window.videoobj.currentTime+1;//may not be symetrical of course
-        
-        vid.onstalled=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;} 
-        vid.onwaiting=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;}
-        vid.onloadstart=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;}
-        vid.onplay=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;}
-        vid.onplaying=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;}
-        //window.vid.hide();//does not help
-        var sources = window.videoobj.getElementsByTagName('source');
-        sources[0].src=null;
-        window.videoobj.load();
-        streamPlay();    */
-    }
-    else
-    {
-        streamCmdTimer = streamQuery.delay( 250 );
-        eventQuery.pass( eventData.Id ).delay( 500 );
+function initPage() {
+  //FIXME prevent blocking...not sure what is happening or best way to unblock
+  vid = videojs("videoobj");
+  if ( vid ) {
+/*
+    setupListener();
+      vid.removeAttribute("controls");
+    /* window.videoobj.oncanplay=null;
+    window.videoobj.currentTime=window.videoobj.currentTime-1;
+    window.videoobj.currentTime=window.videoobj.currentTime+1;//may not be symetrical of course
 
-        if ( canStreamNative )
-        {
-            var streamImg = $('imageFeed').getElement('img');
-            if ( !streamImg )
-                streamImg = $('imageFeed').getElement('object');
-            $(streamImg).addEvent( 'click', function( event ) { handleClick( event ); } );
-        }
+    vid.onstalled=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;} 
+    vid.onwaiting=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;}
+    vid.onloadstart=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;}
+    vid.onplay=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;}
+    vid.onplaying=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;}
+    //window.vid.hide();//does not help
+    var sources = window.videoobj.getElementsByTagName('source');
+    sources[0].src=null;
+    window.videoobj.load();
+    streamPlay();    */
+  } else {
+    streamCmdTimer = streamQuery.delay( 250 );
+    eventQuery.pass( eventData.Id ).delay( 500 );
+
+    if ( canStreamNative ) {
+      var streamImg = $('imageFeed').getElement('img');
+      if ( !streamImg )
+        streamImg = $('imageFeed').getElement('object');
+      $(streamImg).addEvent( 'click', function( event ) { handleClick( event ); } );
     }
+  }
 }
 
 // Kick everything off

@@ -4178,4 +4178,4 @@ int Monitor::PreCapture() {
 int Monitor::PostCapture() {
   return( camera->PostCapture() );
 }
-Monitor::Orientation Monitor::getOrientation()const { return orientation; }
+Monitor::Orientation Monitor::getOrientation() const { return orientation; }

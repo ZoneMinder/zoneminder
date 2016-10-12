@@ -468,10 +468,11 @@ function getEventDefaultVideoPath( $event ) {
 }
 
 function deletePath( $path ) {
-Error("deletePath $path");
   if ( is_dir( $path ) ) {
+Debug("deletePath rm -rf $path");
     system( escapeshellcmd( "rm -rf ".$path ) );
   } else {
+Debug("deletePath unlink $path");
     unlink( $path );
   }
 }
@@ -486,6 +487,8 @@ function deleteEvent( $event ) {
   if ( gettype($event) != 'array' ) {
 # $event could be an eid, so turn it into an event hash
     $event = new Event( $event );
+  } else {
+Debug("Event type: " . gettype($event));
   }
 
   global $user;

@@ -49,10 +49,9 @@ New installs
    Change ZM_DB_USER and ZM_DB_PASS to the values you created in the previous
    step.
 
-   Additionally, you must also edit 
-   /usr/share/zoneminder/www/api/app/Config/database.php in a similar manner.
-   Scroll down and change login and password to the values you created in the
-   previous step.
+   This version of zoneminder no longer requires you to make a similar change 
+   to the credentials in /usr/share/zoneminder/www/api/app/Config/database.php 
+   This now happens dynamically. Do *not* make any changes to this file.
 
 4. Edit /etc/php.ini, uncomment the date.timezone line, and add your local
    timezone.  PHP will complain loudly if this is not set, or if it is set
@@ -98,6 +97,15 @@ New installs
 	sudo systemctl enable zoneminder
 	sudo systemctl start zoneminder
 
+9. The Fedora repos have a ZoneMinder package available, but it does not
+   support ffmpeg or libvlc, which many modern IP cameras require. Most users
+   will want to prevent the ZoneMinder package in the Fedora repos from
+   overwriting the ZoneMinder package in zmrepo, during a future dnf update. To
+   prevent that from happening you must edit /etc/yum.repos.d/fedora.repo
+   and /etc/yum.repos.d/fedora-updates.repo. Add the line "exclude=zoneminder*"
+   without the quotes under the [fedora] and [fedora-updates] blocks,
+   respectively.
+
 Upgrades
 ========
 
@@ -113,10 +121,9 @@ Upgrades
    Compare /etc/zm/zm.conf to /etc/zm/zm.conf.rpmnew. Verify that zm.conf
    contains any new config settings that may be in zm.conf.rpmnew.
 
-   Additionally, you must also edit 
-   /usr/share/zoneminder/www/api/app/Config/database.php in a similar manner.
-   Scroll down and change login and password to the values you used
-   previsouly.
+   This version of zoneminder no longer requires you to make a similar change 
+   to the credentials in /usr/share/zoneminder/www/api/app/Config/database.php 
+   This now happens dynamically. Do *not* make any changes to this file.
 
 2. Verify permissions of the zmuser account.
 

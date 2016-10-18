@@ -10,6 +10,7 @@ If you have changed the value of an option you should then ‘save’ it. A numb
    options/options_display
    options/options_system
    options/options_config
+   options/options_servers
    options/options_paths
    options/options_web
    options/options_images

@@ -698,7 +698,7 @@ Now go to http://zoneminder_IP/ and stop the ZM service.  Continue to http://zon
 
 I upgraded by distribution and ZM stopped working
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Some possibilties (Incomplete list and subject to correction)
+Some possibilities (Incomplete list and subject to correction)
 ``[[/usr/local/bin/zmfix: /usr/lib/libmysqlclient.so.15: version `MYSQL_5.0' not found (required by /usr/local/bin/zmfix)]]``  :: Solution: Recompile and reinstall Zoneminder.
 Any time you update a major version that ZoneMinder depends on, you need to recompile ZoneMinder.
 

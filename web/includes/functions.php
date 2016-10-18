@@ -1335,6 +1335,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
               } else {
                 $value = dbEscape($value);
               }
+              break;
             case 'StorageId':
               $StorageArea = new Storage( $value );
               $value = dbEscape($value);

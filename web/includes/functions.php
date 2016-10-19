@@ -544,6 +544,28 @@ function makePopupButton( $url, $winName, $winSize, $buttonValue, $condition=1, 
   return( $string );
 }
 
+function htmlSelect( $name, $contents, $values, $behaviours=false ) {
+
+  $behaviourText = "";
+  if ( !empty($behaviours) ) {
+    if ( is_array($behaviours) ) {
+      foreach ( $behaviours as $event=>$action ) {
+        $behaviourText .= ' '.$event.'="'.$action.'"';
+      }
+    } else {
+      $behaviourText = ' onchange="'.$behaviours.'"';
+    }
+  }
+
+  $html = "<select name=\"$name\" id=\"$name\"$behaviourText>";
+  foreach ( $contents as $value=>$text ) {
+    $selected = is_array( $values ) ? in_array( $value, $values ) : $value==$values;
+    $html .= "<option value=\"$value\"".($selected?" selected=\"selected\"":'').">$text</option>";
+  }
+  $html .= "</select>";
+  return $html;
+}
+
 function truncText( $text, $length, $deslash=1 ) {       
   return( preg_replace( "/^(.{".$length.",}?)\b.*$/", "\\1&hellip;", ($deslash?stripslashes($text):$text) ) );       
 }               

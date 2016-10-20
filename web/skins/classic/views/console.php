@@ -22,6 +22,8 @@ $servers = Server::find_all();
 require_once('includes/Storage.php');
 $storage_areas = Storage::find_all();
 $show_storage_areas = count($storage_areas) > 1 and canEdit( 'System' ) ? 1 : 0;
+if ( $running == null ) 
+  $running = daemonCheck();
 
 $eventCounts = array(
     array(

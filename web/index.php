@@ -137,7 +137,10 @@ if ( ZM_OPT_USE_AUTH ) {
 
 require_once( 'includes/lang.php' );
 require_once( 'includes/functions.php' );
-#$running = daemonCheck();
+
+# Running is global but only do the daemonCheck if it is actually needed
+$running = null;
+#= daemonCheck();
 #$states = dbFetchAll( 'SELECT * FROM States' );
 #foreach ( $states as $state ) {
   #if ( $state['IsActive'] == 1 ) {

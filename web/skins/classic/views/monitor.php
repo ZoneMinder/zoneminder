@@ -137,7 +137,7 @@ if ( ! empty($_REQUEST['mid']) ) {
                   'V4LMultiBuffer'  =>  '',
                   'V4LCapturesPerFrame'  =>  1,
                   'ServerId'  =>  $Server['Id'],
-                  'StorageId'  => '',
+                  'StorageId'  => '0',
                   ) );
     } # end if $_REQUEST['dupID']
 } # end if $_REQUEST['mid']
@@ -511,7 +511,8 @@ foreach ( $tabs as $name=>$value ) {
 if ( $tab != 'general' ) {
 ?>
     <input type="hidden" name="newMonitor[Name]" value="<?php echo validHtmlStr($monitor->Name) ?>"/>
-    <input type="hidden" name="newMonitor[ServerId]" value="<?php echo validHtmlStr($monitor->ServerId) ?>"/>
+    <input type="hidden" name="newMonitor[ServerId]" value="<?php echo validHtmlStr($monitor->ServerId() ) ?>"/>
+    <input type="hidden" name="newMonitor[StorageId]" value="<?= validHtmlStr($monitor->StorageId() ) ?>"/>
     <input type="hidden" name="newMonitor[Type]" value="<?php echo validHtmlStr($monitor->Type) ?>"/>
     <input type="hidden" name="newMonitor[Function]" value="<?php echo validHtmlStr($monitor->Function) ?>"/>
     <input type="hidden" name="newMonitor[Enabled]" value="<?php echo validHtmlStr($monitor->Enabled) ?>"/>
@@ -589,11 +590,6 @@ if ( $tab != 'source' || ($monitor->Type != 'Remote' && $monitor->Protocol != 'r
 {
   ?>
     <input type="hidden" name="newMonitor[RTSPDescribe]" value="<?php echo validHtmlStr($monitor->RTSPDescribe) ?>"/>
-    <?php
-}
-if ( $tab != 'storage' ) {
-  ?>
-    <input type="hidden" name="newMonitor[StorageId]" value="<?= validHtmlStr($monitor->StorageId) ?>"/>
     <?php
 }
 if ( $tab != 'timestamp' )

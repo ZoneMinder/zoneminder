@@ -62,12 +62,12 @@ if ( empty($_REQUEST['path']) ) {
       if ( ! $Frame ) {
         Fatal("No Frame found for event(".$_REQUEST['eid'].") and frame id(".$_REQUEST['fid'].")");
       }
-      $path = $Event->Path().'/'.sprintf("%'.0".ZM_EVENT_IMAGE_DIGITS.'d',$_REQUEST['fid']).'-'.$show.'.jpg';
+      $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d',$_REQUEST['fid']).'-'.$show.'.jpg';
     } else {
 # If we are only specifying fid, then the fid must be the primary key into the frames table. But when the event is specified, then it is the frame #
       $Frame = new Frame( $_REQUEST['fid'] );
       $Event = new Event( $Frame->EventId() );
-      $path = $Event->Path().'/'.sprintf("%'.0".ZM_EVENT_IMAGE_DIGITS.'d',$Frame->FrameId()).'-'.$show.'.jpg';
+      $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d',$Frame->FrameId()).'-'.$show.'.jpg';
     }
   } else {
     $errorText = "No image path";
@@ -76,7 +76,7 @@ if ( empty($_REQUEST['path']) ) {
   if ( ! file_exists( $path ) ) {
 Debug( "$path does not exist");
 # Generate the frame JPG
-    if ( $show == 'capt' and $Event->DefaultVideo() ) {
+    if ( $show == 'capture' and $Event->DefaultVideo() ) {
       $command ='ffmpeg -i '.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
 #$command ='ffmpeg -v 0 -i '.$Storage->Path().'/'.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
       Debug( "Running $command" );
@@ -98,7 +98,7 @@ Debug( "$path does not exist");
   $path = $_REQUEST['path'];
   if ( !empty($user['MonitorIds']) ) {
     $imageOk = false;
-    $pathMonId = substr( $path, 0, strspn( $path, "1234567890" ) );
+    $pathMonId = substr( $path, 0, strspn( $path, '1234567890' ) );
     foreach ( preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) as $monId ) {
       if ( $pathMonId == $monId ) {
         $imageOk = true;
@@ -106,10 +106,10 @@ Debug( "$path does not exist");
       }
     }
     if ( !$imageOk )
-      $errorText = "No image permissions";
+      $errorText = 'No image permissions';
   }
   if ( ! file_exists( $path ) ) {
-    header("HTTP/1.0 404 Not Found");
+    header('HTTP/1.0 404 Not Found');
     Fatal("Image not found at $path");
   }
 }
@@ -140,7 +140,6 @@ if( !empty($_REQUEST['height']) ) {
   }
 }
 
-
 header( 'Content-type: image/jpeg' );
 ob_clean();
 flush();
@@ -168,7 +167,7 @@ if ( $errorText ) {
         $height = ($width * $oldHeight) / $oldWidth;
       }
       if ( $width == $oldWidth && $height == $oldHeight) {
-        Warning( "No change to width despite scaling." );
+        Warning( 'No change to width despite scaling.' );
       }
     }
   

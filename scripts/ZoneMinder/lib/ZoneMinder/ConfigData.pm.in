@@ -1700,7 +1700,7 @@ our @options =
     },
     {
         name        => "ZM_OPT_FAST_DELETE",
-        default     => "yes",
+        default     => "no",
         description => "Delete only event database records for speed",
         help        => qqq("
             Normally an event created as the result of an alarm consists of
@@ -1711,7 +1711,8 @@ our @options =
             option which means that the browser client only deletes the key
             entries in the events table, which means the events will no
             longer appear in the listing, and leaves the zmaudit daemon to
-            clear up the rest later.
+            clear up the rest later. Note that this feature is less relevant
+            with modern hardware. Recommend this feature be left off.
         "),
         type        => $types{boolean},
         category    => "system",

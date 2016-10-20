@@ -186,7 +186,7 @@ function getNavBarHTML() {
   global $CLANG;
   global $VLANG;
   global $status;
-  global $running;
+  $running = daemonCheck();
   global $user;
   global $bwArray;
 ?>

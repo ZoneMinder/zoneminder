@@ -137,15 +137,15 @@ if ( ZM_OPT_USE_AUTH ) {
 
 require_once( 'includes/lang.php' );
 require_once( 'includes/functions.php' );
-$running = daemonCheck();
-$states = dbFetchAll( 'SELECT * FROM States' );
-foreach ( $states as $state ) {
-  if ( $state['IsActive'] == 1 ) {
-    $run_state = $state['Name'];
-    break;
-  }
-}
-$status = $running?translate('Running'):translate('Stopped');
+#$running = daemonCheck();
+#$states = dbFetchAll( 'SELECT * FROM States' );
+#foreach ( $states as $state ) {
+  #if ( $state['IsActive'] == 1 ) {
+    #$run_state = $state['Name'];
+    #break;
+  #}
+#}
+#$status = $running?translate('Running'):translate('Stopped');
 #$run_state = dbFetchOne('SELECT Name FROM States WHERE IsActive = 1', 'Name' );
 
 # Add Cross domain access headers
@@ -157,10 +157,10 @@ if ( !is_writable(ZM_DIR_EVENTS) || !is_writable(ZM_DIR_IMAGES) ) {
 }
 
 if ( isset($_REQUEST['view']) )
-$view = detaintPath($_REQUEST['view']);
+  $view = detaintPath($_REQUEST['view']);
 
 if ( isset($_REQUEST['request']) )
-$request = detaintPath($_REQUEST['request']);
+  $request = detaintPath($_REQUEST['request']);
 
 foreach ( getSkinIncludes( 'skin.php' ) as $includeFile )
   require_once $includeFile;

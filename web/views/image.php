@@ -70,7 +70,7 @@ if ( empty($_REQUEST['path']) ) {
       $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d',$Frame->FrameId()).'-'.$show.'.jpg';
     }
   } else {
-    $errorText = "No image path";
+    $errorText = 'No image path';
   }
 
   if ( ! file_exists( $path ) ) {

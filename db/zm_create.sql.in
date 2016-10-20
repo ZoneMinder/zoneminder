@@ -401,6 +401,8 @@ CREATE TABLE `Monitors` (
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
+CREATE INDEX `Monitors_ServerId_idx` ON `Monitors` (`ServerId`);
+
 --
 -- Table structure for table `States`
 -- PP - Added IsActive to track custom run states
@@ -430,6 +432,9 @@ CREATE TABLE `Servers` (
   `State_Id`	int(10) unsigned,
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
+
+CREATE INDEX `Servers_Name_idx` ON `Servers` (`Name`);
+
 --
 -- Table structure for table `Stats`
 --

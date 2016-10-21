@@ -361,7 +361,7 @@ function outputControlStream( $src, $width, $height, $monitor, $scale, $target )
 }
 
 function outputHelperStream( $id, $src, $width, $height, $title="" ) {
-        echo getOutputHelperStream( $id, $src, $width, $height, $title );
+        echo getHelperStream( $id, $src, $width, $height, $title );
 }
 function getHelperStream( $id, $src, $width, $height, $title="" ) {
     return '<applet id="'.$id.'" code="com.charliemouse.cambozola.Viewer"

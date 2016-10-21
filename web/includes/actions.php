@@ -291,7 +291,6 @@ if ( !empty($action) ) {
 
         $monitor['Function'] = $newFunction;
         $monitor['Enabled'] = $newEnabled;
-        //if ( $cookies ) session_write_close();
         if ( daemonCheck() ) {
           $restart = ($oldFunction == 'None') || ($newFunction == 'None') || ($newEnabled != $oldEnabled);
           zmaControl( $monitor, 'stop' );
@@ -378,8 +377,7 @@ if ( !empty($action) ) {
 
       $refreshParent = true;
       fixSequences();
-    }
-    if ( $action == 'delete' ) {
+    } elseif ( $action == 'delete' ) {
       if ( isset($_REQUEST['markZids']) ) {
         $deletedZid = 0;
         foreach( $_REQUEST['markZids'] as $markZid ) {
@@ -402,12 +400,13 @@ if ( !empty($action) ) {
           $refreshParent = true;
         } // end if deletedzid
       } // end if isset($_REQUEST['markZids'])
-    } // end if action == delete
-  }
+    } // end if action 
+  } // end if $mid and canEdit($mid)
 
   // Monitor edit actions, monitor id derived, require edit permissions for that monitor
   if ( canEdit( 'Monitors' ) ) {
     if ( $action == 'monitor' ) {
+      $mid = 0;
       if ( !empty($_REQUEST['mid']) ) {
         $mid = validInt($_REQUEST['mid']);
         $monitor = dbFetchOne( 'SELECT * FROM Monitors WHERE Id = ?', NULL, array($mid) );
@@ -440,9 +439,8 @@ if ( !empty($action) ) {
       $changes = getFormChanges( $monitor, $_REQUEST['newMonitor'], $types, $columns );
 
       if ( count( $changes ) ) {
-        if ( !empty($_REQUEST['mid']) ) {
-          $mid = validInt($_REQUEST['mid']);
-          dbQuery( "update Monitors set ".implode( ", ", $changes )." where Id =?", array($mid) );
+        if ( $mid ) {
+          dbQuery( 'UPDATE Monitors SET '.implode( ", ", $changes ).' WHERE Id =?', array($mid) );
           if ( isset($changes['Name']) ) {
             $saferOldName = basename( $monitor['Name'] );
             $saferNewName = basename( $_REQUEST['newMonitor']['Name'] );
@@ -480,12 +478,12 @@ if ( !empty($action) ) {
               }
             }
           }
-        } elseif ( !$user['MonitorIds'] ) {
+        } elseif ( ! $user['MonitorIds'] ) { // Can only create new monitors if we are not restricted to specific monitors
 # FIXME This is actually a race condition. Should lock the table.
           $maxSeq = dbFetchOne( 'SELECT max(Sequence) AS MaxSequence FROM Monitors', 'MaxSequence' );
           $changes[] = 'Sequence = '.($maxSeq+1);
 
-          dbQuery( "insert into Monitors set ".implode( ", ", $changes ) );
+          dbQuery( 'INSERT INTO Monitors SET '.implode( ', ', $changes ) );
           $mid = dbInsertId();
           $zoneArea = $_REQUEST['newMonitor']['Width'] * $_REQUEST['newMonitor']['Height'];
           dbQuery( "insert into Zones set MonitorId = ?, Name = 'All', Type = 'Active', Units = 'Percent', NumCoords = 4, Coords = ?, Area=?, AlarmRGB = 0xff0000, CheckMethod = 'Blobs', MinPixelThreshold = 25, MinAlarmPixels=?, MaxAlarmPixels=?, FilterX = 3, FilterY = 3, MinFilterPixels=?, MaxFilterPixels=?, MinBlobPixels=?, MinBlobs = 1", array( $mid, sprintf( "%d,%d %d,%d %d,%d %d,%d", 0, 0, $_REQUEST['newMonitor']['Width']-1, 0, $_REQUEST['newMonitor']['Width']-1, $_REQUEST['newMonitor']['Height']-1, 0, $_REQUEST['newMonitor']['Height']-1 ), $zoneArea, intval(($zoneArea*3)/100), intval(($zoneArea*75)/100), intval(($zoneArea*3)/100), intval(($zoneArea*75)/100), intval(($zoneArea*2)/100)  ) );
@@ -496,6 +494,8 @@ if ( !empty($action) ) {
           if ( isset($_COOKIE['zmGroup']) ) {
             dbQuery( "UPDATE Groups SET MonitorIds = concat(MonitorIds,',".$mid."') WHERE Id=?", array($_COOKIE['zmGroup']) );
           }
+        } else {
+          Error("Users with Monitors restrictions cannot create new monitors.");
         }
         $restart = true;
       }
@@ -518,14 +518,16 @@ if ( !empty($action) ) {
       }
 
       if ( $restart ) {
-        $monitor = dbFetchOne( 'SELECT * FROM Monitors WHERE Id = ?', NULL, array($mid) );
+        $new_monitor = dbFetchOne( 'SELECT * FROM Monitors WHERE Id = ?', NULL, array($mid) );
         //fixDevices();
         //if ( $cookies )
         //session_write_close();
         if ( daemonCheck() ) {
           zmaControl( $monitor, 'stop' );
-          zmcControl( $monitor, 'restart' );
-          zmaControl( $monitor, 'start' );
+          zmcControl( $monitor, 'stop' );
+
+          zmcControl( $new_monitor, 'start' );
+          zmaControl( $new_monitor, 'start' );
         }
         if ( $monitor['Controllable'] ) {
           require_once( 'control_functions.php' );

@@ -80,8 +80,8 @@ xhtmlHeaders(__FILE__, translate('Frame')." - ".$Event->Id()." - ".$Frame->Frame
         <?php if ( canEdit( 'Events' ) ) { ?><a href="?view=none&amp;action=delete&amp;markEid=<?php echo $Event->Id() ?>"><?php echo translate('Delete') ?></a><?php } ?>
         <a href="#" onclick="closeWindow(); return( false );"><?php echo translate('Close') ?></a>
       </div>
-      <h2><?php echo translate('Frame') ?> <?php echo $Event->Id()."-".$Frame->FrameId()." (".$Frame->Score().")" ?></h2>
       <div id="scaleControl"><label for="scale"><?php echo translate('Scale') ?></label><?php echo buildSelect( "scale", $scales, "changeScale();" ); ?></div>
+      <h2><?php echo translate('Frame') ?> <?php echo $Event->Id()."-".$Frame->FrameId()." (".$Frame->Score().")" ?></h2>
        <input type="hidden" name="base_width" id="base_width" value="<?php echo $Event->Width(); ?>"/>
        <input type="hidden" name="base_height" id="base_height" value="<?php echo $Event->Height(); ?>"/>
     </form>

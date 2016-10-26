@@ -1,3 +1,19 @@
+#header h2 {
+  float: left;
+  margin-right: 10px;
+}
+#header:after {
+	content: ".";
+	display: block;
+	height: 0;
+	font-size: 0;
+	clear: both;
+	visibility: hidden;
+}
+#scaleControl {
+  float: left;
+}
+
 #controls {
     width: 80%;
     text-align: center;

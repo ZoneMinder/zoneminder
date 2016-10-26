@@ -536,10 +536,6 @@ function makePopupButton( $url, $winName, $winSize, $buttonValue, $condition=1, 
   return( $string );
 }
 
-function truncText( $text, $length, $deslash=1 ) {       
-  return( preg_replace( "/^(.{".$length.",}?)\b.*$/", "\\1&hellip;", ($deslash?stripslashes($text):$text) ) );       
-}               
-
 function htmlSelect( $name, $contents, $values, $behaviours=false ) {
 
   $behaviourText = "";
@@ -561,6 +557,10 @@ function htmlSelect( $name, $contents, $values, $behaviours=false ) {
   $html .= "</select>";
   return $html;
 }
+
+function truncText( $text, $length, $deslash=1 ) {       
+  return( preg_replace( "/^(.{".$length.",}?)\b.*$/", "\\1&hellip;", ($deslash?stripslashes($text):$text) ) );       
+}               
 
 function buildSelect( $name, $contents, $behaviours=false )
 {

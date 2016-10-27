@@ -95,7 +95,14 @@ var $j = jQuery.noConflict();
 <?php } ?>
 <?php if ( $title == 'Login' && (defined('ZM_OPT_USE_GOOG_RECAPTCHA') && ZM_OPT_USE_GOOG_RECAPTCHA) ) { ?>
   <script src='https://www.google.com/recaptcha/api.js'></script>
-<?php }
+<?php } else if ( $title == 'Event' ) {
+?>
+        <link href="//vjs.zencdn.net/4.11/video-js.css" rel="stylesheet">
+        <script src="//vjs.zencdn.net/4.11/video.js"></script>
+        <script src="./js/videojs.zoomrotate.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.10.6/moment.min.js"></script>
+<?php
+    }
     if ( $skinJsPhpFile )
     {
 ?>

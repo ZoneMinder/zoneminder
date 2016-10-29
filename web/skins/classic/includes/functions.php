@@ -74,6 +74,9 @@ function xhtmlHeaders( $file, $title )
   <script type="text/javascript" src="/skins/<?php echo $css; ?>/js/jquery.min.js"></script>
   <script type="text/javascript" src="/skins/<?php echo $css; ?>/js/bootstrap.min.js"></script
 <?php
+<?php if ( $title == 'Login' && (defined('ZM_OPT_USE_GOOG_RECAPTCHA') && ZM_OPT_USE_GOOG_RECAPTCHA) ) { ?>
+  <script src='https://www.google.com/recaptcha/api.js'></script>
+<?php }
     if ( $skinJsPhpFile )
     {
 ?>

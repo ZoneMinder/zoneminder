@@ -71,6 +71,8 @@ function xhtmlHeaders( $file, $title )
   <script type="text/javascript" src="js/mootools.ext.js"></script>
   <script type="text/javascript" src="js/logger.js"></script>
   <script type="text/javascript" src="js/overlay.js"></script>
+  <script type="text/javascript" src="/skins/<?php echo $css; ?>/js/jquery.min.js"></script>
+  <script type="text/javascript" src="/skins/<?php echo $css; ?>/js/bootstrap.min.js"></script
 <?php
     if ( $skinJsPhpFile )
     {

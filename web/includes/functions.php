@@ -570,7 +570,7 @@ function truncText( $text, $length, $deslash=1 ) {
   return( preg_replace( "/^(.{".$length.",}?)\b.*$/", "\\1&hellip;", ($deslash?stripslashes($text):$text) ) );       
 }               
 
-function buildSelect( $name, $contents, $behaviours=false ) {
+function buildSelect( $name, $contents, $behaviours=false, $class=false ) {
   $value = "";
   if ( preg_match( "/^\s*(\w+)\s*(\[.*\])?\s*$/", $name, $matches ) && count($matches) > 2 ) {
     $arr = $matches[1];
@@ -603,7 +603,7 @@ function buildSelect( $name, $contents, $behaviours=false ) {
     }
   }
   ?>
-  <select name="<?php echo $name ?>" id="<?php echo $name ?>"<?php echo $behaviourText ?>>
+  <select name="<?php echo $name ?>" id="<?php echo $name ?>" class="<?php echo $class ?>"<?php echo $behaviourText ?>>
   <?php
   foreach ( $contents as $contentValue => $contentText ) {
   ?>

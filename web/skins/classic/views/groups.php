@@ -43,10 +43,8 @@ foreach( dbFetchAll( $sql ) as $row )
 xhtmlHeaders(__FILE__, translate('Groups') );
 ?>
 <body>
+  <?php include("skins/$skin/views/header.php") ?>
   <div id="page">
-    <div id="header">
-      <h2><?php echo translate('Groups') ?></h2>
-    </div>
     <div id="content">
       <form name="groupsForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="none"/>

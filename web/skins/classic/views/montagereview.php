@@ -247,13 +247,10 @@ input[type=range]::-ms-tooltip {
 }
 </style>
 <body>
+
+  <?php include("skins/$skin/views/header.php") ?>
+  <?php include("skins/$skin/views/montageheader.php") ?>
   <div id="page">
-    <div id="header">
-      <div id="headerButtons">
-        <a href="#" onclick="closeWindow();"><?php echo translate('Close') ?></a>
-      </div>
-      <h2><?php echo translate('MontageReview') ?></h2>
-    </div>
     <div id='ScaleDiv' style='display: inline-flex; border: 1px solid black;'>
         <label style='margin:5px;' for=scaleslider><?php echo translate('Scale')?></label>
         <input id=scaleslider type=range min=0.1 max=1.0 value=<?php echo $defaultScale ?> step=0.10 width=20% onchange='setScale(this.value)' oninput='showScale(this.value)'/>

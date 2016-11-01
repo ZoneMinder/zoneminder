@@ -69,8 +69,6 @@ foreach( dbFetchAll( $sql ) as $row )
     $monitors[] = new Monitor( $row );
 }
 
-$focusWindow = true;
-
 $layouts = array(
     'montage_freeform.css' => translate('MtgDefault'),
     'montage_2wide.css' => translate('Mtg2widgrd'),
@@ -85,25 +83,9 @@ if ( isset($_COOKIE['zmMontageLayout']) )
 xhtmlHeaders(__FILE__, translate('Montage') );
 ?>
 <body>
+  <?php include("skins/$skin/views/header.php") ?>
+  <?php include("skins/$skin/views/montageheader.php") ?>
   <div id="page">
-    <div id="header">
-      <div id="headerButtons">
-<?php
-if ( $showControl )
-{
-?>
-        <a href="#" onclick="createPopup( '?view=control', 'zmControl', 'control' )"><?php echo translate('Control') ?></a>
-<?php
-}
-?>
-        <a href="#" onclick="closeWindow()"><?php echo translate('Close') ?></a>
-      </div>
-      <h2><?php echo translate('Montage') ?></h2>
-      <div id="headerControl">
-        <span id="scaleControl"><?php echo translate('Scale') ?>: <?php echo buildSelect( 'scale', $scales, 'changeScale(this);' ); ?></span> 
-        <label for="layout"><?php echo translate('Layout') ?>:</label><?php echo buildSelect( 'layout', $layouts, 'selectLayout(this);' )?>
-      </div>
-    </div>
     <div id="content">
       <div id="monitors">
 <?php

@@ -49,92 +49,87 @@ if ( isset($_REQUEST['tab']) )
 else
     $tab = "system";
 
-$focusWindow = true;
-
 xhtmlHeaders( __FILE__, translate('Options') );
+
+# Have to do this stuff up here before including header.php because fof the cookie setting
+$skin_options = array_map( 'basename', glob('skins/*',GLOB_ONLYDIR) );
+if($tab == 'skins') {
+    $current_skin = $_COOKIE['zmSkin'];
+    $reload = false;
+    if ( isset($_GET['skin-choice']) && ( $_GET['skin-choice'] != $current_skin ) ) {
+        setcookie('zmSkin',$_GET['skin-choice'], time()+3600*24*30*12*10 );
+        //header("Location: index.php?view=options&tab=skins&reset_parent=1");
+        $reload = true;
+    }
+    $current_css = $_COOKIE['zmCSS'];
+Error("Current css $current_css");
+    if ( isset($_GET['css-choice']) and ( $_GET['css-choice'] != $current_css ) ) {
+Error("setting css $current_css to " .  $_GET['css-choice']);
+        setcookie('zmCSS',$_GET['css-choice'], time()+3600*24*30*12*10 );
+        //header("Location: index.php?view=options&tab=skins&reset_parent=1");
+        $reload = true;
+    }
+    if ( $reload )
+        echo "<script type=\"text/javascript\">if(window.opener){window.opener.location.reload();}window.location.href=\"{$_SERVER['PHP_SELF']}?view={$view}&tab={$tab}\"</script>";
+} # end if tab == skins
+
 ?>
 <body>
-  <div id="page">
-    <div id="header">
-      <h2><?php echo translate('Options') ?></h2>
-    </div>
-    <div id="content">
-      <ul class="tabList">
+
+    <?php include("skins/$skin/views/header.php") ?>
+
+    <div class="container-fluid">
+<div class="row">
+	<div class="col-sm-2 sidebar">
+      <ul class="nav nav-pills nav-stacked">
 <?php
 foreach ( $tabs as $name=>$value )
 {
-    if ( $tab == $name )
-    {
 ?>
-        <li class="active"><?php echo $value ?></li>
+        <li<?php echo $tab == $name ? ' class="active"' : '' ?>><a href="?view=<?php echo $view ?>&amp;tab=<?php echo $name ?>"><?php echo $value ?></a></li>
 <?php
-    }
-    else
-    {
-?>
-        <li><a href="?view=<?php echo $view ?>&amp;tab=<?php echo $name ?>"><?php echo $value ?></a></li>
-<?php
-    }
 }
 ?>
       </ul>
-      <div class="clear"></div>
+	</div>
+
+	<div class="col-sm-10 col-sm-offset-2">
+      <div id="options">
 <?php 
-$skin_options = array_map( 'basename', glob('skins/*',GLOB_ONLYDIR) );
 if($tab == 'skins') {
-	$current_skin = $_COOKIE['zmSkin'];
-	$reload = false;
-	if ( isset($_GET['skin-choice']) && ( $_GET['skin-choice'] != $current_skin ) ) {
-		setcookie('zmSkin',$_GET['skin-choice'], time()+3600*24*30*12*10 );
-		//header("Location: index.php?view=options&tab=skins&reset_parent=1");
-		$reload = true;
-	}
-	$current_css = $_COOKIE['zmCSS'];
-	if ( isset($_GET['css-choice']) and ( $_GET['css-choice'] != $current_css ) ) {
-		setcookie('zmCSS',$_GET['css-choice'], time()+3600*24*30*12*10 );
-		//header("Location: index.php?view=options&tab=skins&reset_parent=1");
-		$reload = true;
-	}
-
-	if ( $reload ) 
-		echo "<script type=\"text/javascript\">window.opener.location.reload();window.location.href=\"{$_SERVER['PHP_SELF']}?view={$view}&tab={$tab}\"</script>";
-
 ?>
-	<form name="optionsForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+	<form name="optionsForm" class="form-horizontal" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
-		<table class="contentTable major optionTable" cellspacing="0">
-			<thead><tr><th><?php echo translate('Name') ?></th><th><?php echo translate('Description') ?></th> <th><?php echo translate('Value') ?></th></tr></thead>
-			<tbody>
-				<tr>
-					<td>ZM_SKIN</td>
-					<td><?php echo translate('SkinDescription'); ?></td>
-					<td><select name="skin-choice">
+<div class="form-group">
+					<label for="skin-choice" class="col-sm-3 control-label">ZM_SKIN</label>
+					<div class="col-sm-6">
+					<select name="skin-choice" class="form-control">
 						<?php
 							foreach($skin_options as $dir) {
 								echo '<option value="'.$dir.'" '.($current_skin==$dir ? 'SELECTED="SELECTED"' : '').'>'.$dir.'</option>';
 							}
 						?>
-						</select>
-					</td>
-				</tr>
-				<tr>
-					<td>ZM_CSS</td>
-					<td><?php echo translate('CSSDescription'); ?></td>
-					<td><select name="css-choice">
+					</select>
+					<span class="help-block"><?php echo translate('SkinDescription'); ?></span>
+					</div>
+</div>
+
+<div class="form-group">
+					<label for="css-choice" class="col-sm-3 control-label">ZM_CSS</label>
+					<div class="col-sm-6">
+					<select name="css-choice" class="form-control">
 						<?php
 							foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDIR) ) as $dir) {
 								echo '<option value="'.$dir.'" '.($current_css==$dir ? 'SELECTED="SELECTED"' : '').'>'.$dir.'</option>';
 							}
 						?>
-						</select>
-					</td>
-				</tr>
-			</tbody>
-		</table>
+					</select>
+					<span class="help-block"><?php echo translate('CSSDescription'); ?></span>
+					</div>
+</div>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('Save') ?>"<?php echo $canEdit?'':' disabled="disabled"' ?>/>
-		  <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
+          <input type="submit" class="btn btn-primary btn-lg" value="<?php echo translate('Save') ?>"<?php echo $canEdit?'':' disabled="disabled"' ?>/>
         </div>
      </form>
 	
@@ -147,7 +142,7 @@ elseif ( $tab == "users" )
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
         <input type="hidden" name="action" value="delete"/>
-        <table id="contentTable" class="major userTable" cellspacing="0">
+        <table id="contentTable" class="table table-striped" cellspacing="0">
           <thead>
             <tr>
               <th class="colUsername"><?php echo translate('Username') ?></th>
@@ -205,7 +200,8 @@ elseif ( $tab == "users" )
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="button" value="<?php echo translate('AddNewUser') ?>" onclick="createPopup( '?view=user&amp;uid=0', 'zmUser', 'user' );"<?php if ( !canEdit( 'System' ) ) { ?> disabled="disabled"<?php } ?>/><input type="submit" name="deleteBtn" value="<?php echo translate('Delete') ?>" disabled="disabled"/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
+          <input type="button" class="btn btn-primary btn-lg" value="<?php echo translate('AddNewUser') ?>" onclick="createPopup( '?view=user&amp;uid=0', 'zmUser', 'user' );"<?php if ( !canEdit( 'System' ) ) { ?> disabled="disabled"<?php } ?>/>
+          <input type="submit" class="btn btn-danger btn-lg" name="deleteBtn" value="<?php echo translate('Delete') ?>" disabled="disabled"/>
         </div>
       </form>
 <?php
@@ -215,7 +211,7 @@ elseif ( $tab == "users" )
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
         <input type="hidden" name="action" value="delete"/>
         <input type="hidden" name="object" value="server"/>
-        <table id="contentTable" class="major serversTable" cellspacing="0">
+        <table id="contentTable" class="table table-striped" cellspacing="0">
           <thead>
             <tr>
               <th class="colName"><?php echo translate('name') ?></th>
@@ -234,7 +230,8 @@ elseif ( $tab == "users" )
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="button" value="<?php echo translate('AddNewServer') ?>" onclick="createPopup( '?view=server&amp;id=0', 'zmServer', 'server' );"<?php if ( !canEdit( 'System' ) ) { ?> disabled="disabled"<?php } ?>/><input type="submit" name="deleteBtn" value="<?php echo translate('Delete') ?>" disabled="disabled"/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
+          <input type="button" class="btn btn-primary btn-lg" value="<?php echo translate('AddNewServer') ?>" onclick="createPopup( '?view=server&amp;id=0', 'zmServer', 'server' );"<?php if ( !canEdit( 'System' ) ) { ?> disabled="disabled"<?php } ?>/>
+          <input type="submit" class="btn btn-danger btn-lg" name="deleteBtn" value="<?php echo translate('Delete') ?>" disabled="disabled"/>
         </div>
       </form>
 
@@ -247,19 +244,10 @@ elseif ( $tab == "users" )
 
     }
 ?>
-      <form name="optionsForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="optionsForm" class="form-horizontal" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
         <input type="hidden" name="action" value="options"/>
-        <table id="contentTable" class="major optionTable" cellspacing="0">
-          <thead>
-            <tr>
-              <th><?php echo translate('Name') ?></th>
-              <th><?php echo translate('Description') ?></th>
-              <th><?php echo translate('Value') ?></th>
-            </tr>
-          </thead>
-          <tbody>
 <?php
     $configCat = $configCats[$tab];
     foreach ( $configCat as $name=>$value )
@@ -267,26 +255,25 @@ elseif ( $tab == "users" )
         $shortName = preg_replace( '/^ZM_/', '', $name );
         $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]['Prompt']:$value['Prompt'];
 ?>
-            <tr>
-              <td><?php echo $shortName ?></td>
-              <td><?php echo validHtmlStr($optionPromptText) ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option='.$name, 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td>
+            <div class="form-group">
+              <label for="<?php echo $name ?>" class="col-sm-3 control-label"><?php echo $shortName ?></label>
+              <div class="col-sm-6">
 <?php   
         if ( $value['Type'] == "boolean" )
         {
 ?>
-              <td><input type="checkbox" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="1"<?php if ( $value['Value'] ) { ?> checked="checked"<?php } ?><?php echo $canEdit?'':' disabled="disabled"' ?>/></td>
+              <input type="checkbox" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="1"<?php if ( $value['Value'] ) { ?> checked="checked"<?php } ?><?php echo $canEdit?'':' disabled="disabled"' ?>/>
 <?php
         }
         elseif ( preg_match( "/\|/", $value['Hint'] ) )
         {
 ?>
-              <td class="nowrap">
 <?php
             $options = explode( '|', $value['Hint'] );
             if ( count( $options ) > 3 )
             {
 ?>
-                <select name="newConfig[<?php echo $name ?>]"<?php echo $canEdit?'':' disabled="disabled"' ?>>
+                <select class="form-control" name="newConfig[<?php echo $name ?>]"<?php echo $canEdit?'':' disabled="disabled"' ?>>
 <?php
                 foreach ( $options as $option )
                 {
@@ -321,59 +308,64 @@ elseif ( $tab == "users" )
                         $optionLabel = $optionValue = $option;
                     }
 ?>
-                <span><input type="radio" id="<?php echo $name.'_'.preg_replace( '/[^a-zA-Z0-9]/', '', $optionValue ) ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo $optionValue ?>"<?php if ( $value['Value'] == $optionValue ) { ?> checked="checked"<?php } ?><?php echo $canEdit?'':' disabled="disabled"' ?>/>&nbsp;<?php echo htmlspecialchars($optionLabel) ?></span>
+                <label>
+                  <input type="radio" id="<?php echo $name.'_'.preg_replace( '/[^a-zA-Z0-9]/', '', $optionValue ) ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo $optionValue ?>"<?php if ( $value['Value'] == $optionValue ) { ?> checked="checked"<?php } ?><?php echo $canEdit?'':' disabled="disabled"' ?>/>
+                  <?php echo htmlspecialchars($optionLabel) ?>
+                </label>
 <?php
                 }
             }
 ?>
-              </td>
 <?php
         }
         elseif ( $value['Type'] == "text" )
         {
 ?>
-              <td><textarea id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" rows="5" cols="40"<?php echo $canEdit?'':' disabled="disabled"' ?>><?php echo validHtmlStr($value['Value']) ?></textarea></td>
+              <textarea class="form-control" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" rows="5" cols="40"<?php echo $canEdit?'':' disabled="disabled"' ?>><?php echo validHtmlStr($value['Value']) ?></textarea>
 <?php
         }
         elseif ( $value['Type'] == "integer" )
         {
 ?>
-              <td><input type="text" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" class="small"<?php echo $canEdit?'':' disabled="disabled"' ?>/></td>
+              <input type="number" class="form-control" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" class="small"<?php echo $canEdit?'':' disabled="disabled"' ?>/>
 <?php
         }
         elseif ( $value['Type'] == "hexadecimal" )
         {
 ?>
-              <td><input type="text" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" class="medium"<?php echo $canEdit?'':' disabled="disabled"' ?>/></td>
+              <input type="text" class="form-control" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" class="medium"<?php echo $canEdit?'':' disabled="disabled"' ?>/>
 <?php
         }
         elseif ( $value['Type'] == "decimal" )
         {
 ?>
-              <td><input type="text" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" class="small"<?php echo $canEdit?'':' disabled="disabled"' ?>/></td>
+              <input type="text" class="form-control" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" class="small"<?php echo $canEdit?'':' disabled="disabled"' ?>/>
 <?php
         }
         else
         {
 ?>
-              <td><input type="text" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" class="large"<?php echo $canEdit?'':' disabled="disabled"' ?>/></td>
+              <input type="text" class="form-control" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" class="large"<?php echo $canEdit?'':' disabled="disabled"' ?>/>
 <?php
         }
 ?>
-            </tr>
+              <span class="help-block"><?php echo validHtmlStr($optionPromptText) ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option='.$name, 'zmOptionHelp', 'optionhelp', '?' ) ?>)</span>
+	    </div><!-- End .col-sm-9 -->
+            </div><!-- End .form-group -->
 <?php
     }
 ?>
-          </tbody>
-        </table>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('Save') ?>"<?php echo $canEdit?'':' disabled="disabled"' ?>/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
+          <input type="submit" class="btn btn-primary btn-lg" value="<?php echo translate('Save') ?>"<?php echo $canEdit?'':' disabled="disabled"' ?>/>
         </div>
       </form>
 <?php
 }
 ?>
+
+    </div><!-- end #options -->
+	</div>
+</div> <!-- end row -->
     </div>
-  </div>
 </body>
 </html>

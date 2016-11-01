@@ -22,11 +22,13 @@
 
 #include "zm_camera.h"
 #include "zm_rtsp_auth.h"
+#include "zm_packetqueue.h"
 
 #include <string>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <arpa/inet.h>
 
 //
 // Class representing 'remote' cameras, i.e. those which are
@@ -55,7 +57,22 @@ protected:
   struct addrinfo *hp;
 
 public:
-  RemoteCamera( int p_id, const std::string &p_proto, const std::string &p_host, const std::string &p_port, const std::string &p_path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
+  RemoteCamera(
+    unsigned int p_monitor_id,
+    const std::string &p_proto,
+    const std::string &p_host,
+    const std::string &p_port,
+    const std::string &p_path,
+    int p_width,
+    int p_height,
+    int p_colours,
+    int p_brightness,
+    int p_contrast,
+    int p_hue,
+    int p_colour,
+    bool p_capture,
+    bool p_record_audio
+  );
   virtual ~RemoteCamera();
 
   const std::string &Protocol() const { return( protocol ); }
@@ -73,6 +90,7 @@ public:
   virtual int PreCapture() = 0;
   virtual int Capture( Image &image ) = 0;
   virtual int PostCapture() = 0;
+  virtual int CaptureAndRecord( Image &image, bool recording, char* event_directory )=0;
 };
 
 #endif // ZM_REMOTE_CAMERA_H

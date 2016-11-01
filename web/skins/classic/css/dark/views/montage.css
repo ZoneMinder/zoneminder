@@ -42,4 +42,9 @@
 #monitors .monitorState {
     margin: 2px auto;
     text-align: center;
+    border: 0;
 }
+#monitors .alert .monitorState {
+    border: 0;
+}
+

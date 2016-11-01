@@ -18,34 +18,36 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-if ( !canView( 'Events' ) )
-{
-    $view = "error";
-    return;
+if ( !canView( 'Events' ) ) {
+  $view = 'error';
+  return;
 }
-$selectName = "filterName";
+$selectName = 'Id';
 $filterNames = array( ''=>translate('ChooseFilter') );
-foreach ( dbFetchAll( "select * from Filters order by Name" ) as $row )
-{
-    $filterNames[$row['Name']] = $row['Name'];
-    if ( $row['Background'] )
-        $filterNames[$row['Name']] .= "*";
-    if ( !empty($_REQUEST['reload']) && isset($_REQUEST['filterName']) && $_REQUEST['filterName'] == $row['Name'] )
-        $dbFilter = $row;
+$dbFilter = NULL;
+
+foreach ( dbFetchAll( "select * from Filters order by Name" ) as $row ) {
+  $filterNames[$row['Id']] = $row['Name'];
+  if ( $row['Background'] )
+    $filterNames[$row['Id']] .= "*";
+  if ( $row['Concurrent'] )
+    $filterNames[$row['Id']] .= "&";
+  if ( !empty($_REQUEST['reload']) && isset($_REQUEST['Id']) && $_REQUEST['Id'] == $row['Id'] ) {
+    $dbFilter = $row;
+  }
 }
 
-$backgroundStr = "";
-if ( isset($dbFilter) )
-{
-    if ( $dbFilter['Background'] ) 
-        $backgroundStr = '['.strtolower(translate('Background')).']';
-    $_REQUEST['filter'] = jsonDecode( $dbFilter['Query'] );
-    $_REQUEST['sort_field'] = isset($_REQUEST['filter']['sort_field'])?$_REQUEST['filter']['sort_field']:"DateTime";
-    $_REQUEST['sort_asc'] = isset($_REQUEST['filter']['sort_asc'])?$_REQUEST['filter']['sort_asc']:"1";
-    $_REQUEST['limit'] = isset($_REQUEST['filter']['limit'])?$_REQUEST['filter']['limit']:"";
-    unset( $_REQUEST['filter']['sort_field'] );
-    unset( $_REQUEST['filter']['sort_asc'] );
-    unset( $_REQUEST['filter']['limit'] );
+$backgroundStr = '';
+if ( $dbFilter ) {
+  if ( $dbFilter['Background'] ) 
+    $backgroundStr = '['.strtolower(translate('Background')).']';
+  $_REQUEST['filter'] = jsonDecode( $dbFilter['Query'] );
+  $_REQUEST['sort_field'] = isset($_REQUEST['filter']['sort_field'])?$_REQUEST['filter']['sort_field']:"DateTime";
+  $_REQUEST['sort_asc'] = isset($_REQUEST['filter']['sort_asc'])?$_REQUEST['filter']['sort_asc']:"1";
+  $_REQUEST['limit'] = isset($_REQUEST['filter']['limit'])?$_REQUEST['filter']['limit']:"";
+  unset( $_REQUEST['filter']['sort_field'] );
+  unset( $_REQUEST['filter']['sort_asc'] );
+  unset( $_REQUEST['filter']['limit'] );
 }
 
 # reload is set when the dropdown is changed. 
@@ -58,7 +60,7 @@ if ( isset( $_REQUEST['reload'] ) and ! $_REQUEST['reload'] ) {
   $dbFilter['AutoUpload'] = isset( $_REQUEST['AutoUpload'] );
   $dbFilter['AutoVideo'] = isset( $_REQUEST['AutoVideo'] );
   $dbFilter['AutoDelete'] = isset( $_REQUEST['AutoDelete'] );
-  $dbFilter['Name'] = $_REQUEST['filterName'];
+  $dbFilter['Name'] = $_REQUEST['Id'];
 }
 
 $conjunctionTypes = array(
@@ -67,13 +69,11 @@ $conjunctionTypes = array(
 );
 $obracketTypes = array(); 
 $cbracketTypes = array();
-if ( isset($_REQUEST['filter']['terms']) )
-{
-    for ( $i = 0; $i <= count($_REQUEST['filter']['terms'])-2; $i++ )
-    {
-        $obracketTypes[$i] = str_repeat( "(", $i );
-        $cbracketTypes[$i] = str_repeat( ")", $i );
-    }
+if ( isset($_REQUEST['filter']['terms']) ) {
+  for ( $i = 0; $i <= count($_REQUEST['filter']['terms'])-2; $i++ ) {
+    $obracketTypes[$i] = str_repeat( "(", $i );
+    $cbracketTypes[$i] = str_repeat( ")", $i );
+  }
 }
 
 $attrTypes = array(
@@ -97,8 +97,8 @@ $attrTypes = array(
     'DiskPercent' => translate('AttrDiskPercent'),
     'DiskBlocks'  => translate('AttrDiskBlocks'),
     'SystemLoad'  => translate('AttrSystemLoad'),
-	'ServerId'    => translate('AttrServerId'),
-	'ServerName'  => translate('AttrServerName'),
+    'StorageId'   => translate('AttrStorageArea'),
+    'ServerId'    => translate('AttrServer'),
 );
 $opTypes = array(
     '='   => translate('OpEq'),
@@ -117,8 +117,7 @@ $archiveTypes = array(
     '1' => translate('ArchArchived')
 );
 $weekdays = array();
-for ( $i = 0; $i < 7; $i++ )
-{
+for ( $i = 0; $i < 7; $i++ ) {
     $weekdays[$i] = strftime( "%A", mktime( 12, 0, 0, 1, $i+1, 2001 ) );
 }
 $sort_fields = array(
@@ -139,10 +138,9 @@ $sort_dirns = array(
     '1' => translate('SortAsc'),
     '0'  => translate('SortDesc')
 );
-if ( empty($_REQUEST['sort_field']) )
-{
-    $_REQUEST['sort_field'] = ZM_WEB_EVENT_SORT_FIELD; 
-    $_REQUEST['sort_asc'] = (ZM_WEB_EVENT_SORT_ORDER == "asc");
+if ( empty($_REQUEST['sort_field']) ) {
+  $_REQUEST['sort_field'] = ZM_WEB_EVENT_SORT_FIELD; 
+  $_REQUEST['sort_asc'] = (ZM_WEB_EVENT_SORT_ORDER == "asc");
 }
 
 $hasCal = file_exists( 'tools/jscalendar/calendar.js' );
@@ -168,26 +166,22 @@ xhtmlHeaders(__FILE__, translate('EventFilter') );
         <input type="hidden" name="action" value=""/>
         <input type="hidden" name="subaction" value=""/>
         <input type="hidden" name="line" value=""/>
-        <input type="hidden" name="fid" value=""/>
+        <input type="hidden" name="object" value="filter"/>
         <hr/>
         <div id="filterSelector"><label for="<?php echo $selectName ?>"><?php echo translate('UseFilter') ?></label><?php if ( count($filterNames) > 1 ) { echo buildSelect( $selectName, $filterNames, "submitToFilter( this, 1 );" ); } else { ?><select disabled="disabled"><option><?php echo translate('NoSavedFilters') ?></option></select><?php } ?><?php echo $backgroundStr ?></div>
         <hr/>
         <table id="fieldsTable" class="filterTable" cellspacing="0">
           <tbody>
 <?php
-for ( $i = 0; isset($_REQUEST['filter']) && $i < count($_REQUEST['filter']['terms']); $i++ )
-{
+for ( $i = 0; isset($_REQUEST['filter']) && $i < count($_REQUEST['filter']['terms']); $i++ ) {
 ?>
             <tr>
 <?php
-    if ( $i == 0 )
-    {
+    if ( $i == 0 ) {
 ?>
               <td>&nbsp;</td>
 <?php
-    }
-    else
-    {
+    } else {
 ?>
               <td><?php echo buildSelect( "filter[terms][$i][cnj]", $conjunctionTypes ); ?></td>
 <?php
@@ -196,43 +190,31 @@ for ( $i = 0; isset($_REQUEST['filter']) && $i < count($_REQUEST['filter']['term
               <td><?php if ( count($_REQUEST['filter']['terms']) > 2 ) { echo buildSelect( "filter[terms][$i][obr]", $obracketTypes ); } else { ?>&nbsp;<?php } ?></td>
               <td><?php echo buildSelect( "filter[terms][$i][attr]", $attrTypes, "clearValue( this, $i ); submitToFilter( this, 0 );" ); ?></td>
 <?php
-    if ( isset($_REQUEST['filter']['terms'][$i]['attr']) )
-    {
-        if ( $_REQUEST['filter']['terms'][$i]['attr'] == "Archived" )
-        {
+    if ( isset($_REQUEST['filter']['terms'][$i]['attr']) ) {
+        if ( $_REQUEST['filter']['terms'][$i]['attr'] == "Archived" ) {
 ?>
               <td><?php echo translate('OpEq') ?><input type="hidden" name="filter[terms][<?php echo $i ?>][op]" value="="/></td>
               <td><?php echo buildSelect( "filter[terms][$i][val]", $archiveTypes ); ?></td>
 <?php
-        }
-        elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "DateTime" )
-        {
+        } elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "DateTime" ) {
 ?>
               <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
               <td><input name="filter[terms][<?php echo $i ?>][val]" id="filter[terms][<?php echo $i ?>][val]" value="<?php echo isset($_REQUEST['filter']['terms'][$i]['val'])?validHtmlStr($_REQUEST['filter']['terms'][$i]['val']):'' ?>"/><?php if ( $hasCal ) { ?><script type="text/javascript">Calendar.setup( { inputField: "filter[terms][<?php echo $i ?>][val]", ifFormat: "%Y-%m-%d %H:%M", showsTime: true, timeFormat: "24", showOthers: true, weekNumbers: false });</script><?php } ?></td>
 <?php
-        }
-        elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "Date" )
-        {
+        } elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "Date" ) {
 ?>
               <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
               <td><input name="filter[terms][<?php echo $i ?>][val]" id="filter[terms][<?php echo $i ?>][val]" value="<?php echo isset($_REQUEST['filter']['terms'][$i]['val'])?validHtmlStr($_REQUEST['filter']['terms'][$i]['val']):'' ?>"/><?php if ( $hasCal ) { ?><script type="text/javascript">Calendar.setup( { inputField: "filter[terms][<?php echo $i ?>][val]", ifFormat: "%Y-%m-%d", showOthers: true, weekNumbers: false });</script><?php } ?></td>
 <?php
-        }
-        elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "Weekday" )
-        {
+        } elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "Weekday" ) {
 ?>
               <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
               <td><?php echo buildSelect( "filter[terms][$i][val]", $weekdays ); ?></td>
 <?php
-        }
-        elseif ( false && $_REQUEST['filter']['terms'][$i]['attr'] == "MonitorName" )
-        {
+        } elseif ( false && $_REQUEST['filter']['terms'][$i]['attr'] == "MonitorName" ) {
             $monitors = array();
-            foreach ( dbFetchAll( "select Id,Name from Monitors order by Sequence asc" ) as $monitor )
-            {
-                if ( visibleMonitor( $monitor['Id'] ) )
-                {
+            foreach ( dbFetchAll( "select Id,Name from Monitors order by Sequence asc" ) as $monitor ) {
+                if ( visibleMonitor( $monitor['Id'] ) ) {
                     $monitors[$monitor['Name']] = $monitor['Name'];
                 }
             }
@@ -240,17 +222,33 @@ for ( $i = 0; isset($_REQUEST['filter']) && $i < count($_REQUEST['filter']['term
               <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
               <td><?php echo buildSelect( "filter[terms][$i][val]", $monitors ); ?></td>
 <?php
-        }
-        else
-        {
+        } elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "ServerId" ) {
+          $servers = array();
+          $servers['ZM_SERVER_ID'] = 'Current Server';
+          foreach ( dbFetchAll( "SELECT Id,Name FROM Servers ORDER BY lower(Name) ASC" ) as $server ) {
+            $servers[$server['Id']] = $server['Name'];
+          }
+?>
+          <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
+          <td><?php echo buildSelect( "filter[terms][$i][val]", $servers ); ?></td>
+<?php
+        } elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "StorageId" ) {
+            $storageareas = array();
+            $storageareas[0] = 'Default ' . ZM_DIR_EVENTS;
+            foreach ( dbFetchAll( "SELECT Id,Name FROM Storage ORDER BY lower(Name) ASC" ) as $storage ) {
+              $storageareas[$storage['Id']] = $storage['Name'];
+            }
+?>
+              <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
+              <td><?php echo buildSelect( "filter[terms][$i][val]", $storageareas ); ?></td>
+<?php
+        } else {
 ?>
               <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
               <td><input name="filter[terms][<?php echo $i ?>][val]" value="<?php echo $_REQUEST['filter']['terms'][$i]['val'] ?>"/></td>
 <?php
         }
-    }
-    else
-    {
+    } else {
 ?>
               <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
               <td><input name="filter[terms][<?php echo $i ?>][val]" value="<?php echo isset($_REQUEST['filter']['terms'][$i]['val'])?$_REQUEST['filter']['terms'][$i]['val']:'' ?>"/></td>
@@ -282,8 +280,7 @@ for ( $i = 0; isset($_REQUEST['filter']) && $i < count($_REQUEST['filter']['term
               <td><input type="checkbox" name="AutoArchive" value="1"<?php if ( !empty($dbFilter['AutoArchive']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
             </tr>
 <?php
-if ( ZM_OPT_FFMPEG )
-{
+if ( ZM_OPT_FFMPEG ) {
 ?>
             <tr>
               <td><?php echo translate('FilterVideoEvents') ?></td>
@@ -291,8 +288,7 @@ if ( ZM_OPT_FFMPEG )
             </tr>
 <?php
 }
-if ( ZM_OPT_UPLOAD )
-{
+if ( ZM_OPT_UPLOAD ) {
 ?>
             <tr>
               <td><?php echo translate('FilterUploadEvents') ?></td>
@@ -300,8 +296,7 @@ if ( ZM_OPT_UPLOAD )
             </tr>
 <?php
 }
-if ( ZM_OPT_EMAIL )
-{
+if ( ZM_OPT_EMAIL ) {
 ?>
             <tr>
               <td><?php echo translate('FilterEmailEvents') ?></td>
@@ -309,8 +304,7 @@ if ( ZM_OPT_EMAIL )
             </tr>
 <?php
 }
-if ( ZM_OPT_MESSAGE )
-{
+if ( ZM_OPT_MESSAGE ) {
 ?>
             <tr>
               <td><?php echo translate('FilterMessageEvents') ?></td>
@@ -337,7 +331,7 @@ if ( ZM_OPT_MESSAGE )
           <input type="button" value="<?php echo translate('Save') ?>" onclick="saveFilter( this );"/>
 <?php } ?>
 <?php if ( canEdit( 'Events' ) && isset($dbFilter) && $dbFilter['Name'] ) { ?>
-          <input type="button" value="<?php echo translate('Delete') ?>" onclick="deleteFilter( this, '<?php echo $dbFilter['Name'] ?>' );"/>
+          <input type="button" value="<?php echo translate('Delete') ?>" onclick="deleteFilter( this, <?php echo $dbFilter['Id'] ?>, '<?php echo $dbFilter['Name'] ?>' );"/>
 <?php } ?>
           <input type="button" value="<?php echo translate('Reset') ?>" onclick="submitToFilter( this, 1 );"/>
         </div>

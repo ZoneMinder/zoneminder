@@ -5,11 +5,9 @@ Maintainer: Dmitry Smirnov <onlyjob@debian.org>
 Uploaders: Vagrant Cascadian <vagrant@debian.org>
 Build-Depends: debhelper (>= 9), dh-systemd, python-sphinx | python3-sphinx, apache2-dev, dh-linktree
               ,cmake
-              ,libavdevice-dev (>= 6:10~)
-              ,libavcodec-dev (>= 6:10~)
-              ,libavformat-dev  (>= 6:10~)
-              ,libavutil-dev (>= 6:10~)
-              ,libswscale-dev (>= 6:10~)
+              ,libx264-dev, libmp4v2-dev
+              ,libavcodec-dev, libavformat-dev, libswscale-dev, libavutil-dev, libavdevice-dev 
+              ,libboost-dev
               ,libbz2-dev
               ,libgcrypt-dev
               ,libcurl4-gnutls-dev
@@ -25,7 +23,9 @@ Build-Depends: debhelper (>= 9), dh-systemd, python-sphinx | python3-sphinx, apa
               ,libphp-serialization-perl
               ,libsys-mmap-perl [!hurd-any]
               ,libwww-perl
-              ,libdata-uuid-perl 
+              ,libdata-uuid-perl
+              ,libx264-dev
+              ,libmp4v2-dev
 # Unbundled (dh_linktree):
         ,libjs-jquery
         ,libjs-mootools
@@ -38,11 +38,9 @@ Package: zoneminder
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,javascript-common
-        ,libav-tools
-        ,libdate-manip-perl
+        ,libav-tools | ffmpeg
+        ,libdate-manip-perl, libmime-lite-perl, libmime-tools-perl
         ,libdbd-mysql-perl
-        ,libmime-lite-perl
-        ,libmime-tools-perl
         ,libphp-serialization-perl
         ,libmodule-load-conditional-perl
         ,libnet-sftp-foreign-perl
@@ -60,7 +58,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libio-socket-multicast-perl
         ,libdigest-sha-perl
         ,libsys-cpu-perl, libsys-meminfo-perl
-        ,libdata-uuid-perl 
+        ,libdata-uuid-perl
         ,mysql-client | virtual-mysql-client
         ,perl-modules
         ,php5-mysql | php-mysql, php5-gd | php-gd

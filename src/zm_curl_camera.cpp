@@ -18,7 +18,10 @@
 // 
 
 #include "zm.h"
+
 #include "zm_curl_camera.h"
+
+#include "zm_packetqueue.h"
 
 #if HAVE_LIBCURL
 
@@ -30,28 +33,24 @@ const char* content_type_match = "Content-Type:";
 size_t content_length_match_len;
 size_t content_type_match_len;
 
-cURLCamera::cURLCamera( int p_id, const std::string &p_path, const std::string &p_user, const std::string &p_pass, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) :
-  Camera( p_id, CURL_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture ),
+cURLCamera::cURLCamera( int p_id, const std::string &p_path, const std::string &p_user, const std::string &p_pass, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio ) :
+  Camera( p_id, CURL_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture, p_record_audio ),
   mPath( p_path ), mUser( p_user ), mPass ( p_pass ), bTerminate( false ), bReset( false ), mode ( MODE_UNSET )
 {
 
-  if ( capture )
-  {
+  if ( capture ) {
     Initialise();
   }
 }
 
-cURLCamera::~cURLCamera()
-{
-  if ( capture )
-  {
+cURLCamera::~cURLCamera() {
+  if ( capture ) {
 
     Terminate();
   }
 }
 
-void cURLCamera::Initialise()
-{
+void cURLCamera::Initialise() {
   content_length_match_len = strlen(content_length_match);
   content_type_match_len = strlen(content_type_match);
 
@@ -88,8 +87,7 @@ void cURLCamera::Initialise()
   }
 }
 
-void cURLCamera::Terminate()
-{
+void cURLCamera::Terminate() {
   /* Signal the thread to terminate */
   bTerminate = true;
 
@@ -108,20 +106,17 @@ void cURLCamera::Terminate()
 
 }
 
-int cURLCamera::PrimeCapture()
-{
+int cURLCamera::PrimeCapture() {
   //Info( "Priming capture from %s", mPath.c_str() );
   return 0;
 }
 
-int cURLCamera::PreCapture()
-{
-  // Nothing to do here
-  return( 0 );
+int cURLCamera::PreCapture() {
+    // Nothing to do here
+    return( 0 );
 }
 
-int cURLCamera::Capture( Image &image )
-{
+int cURLCamera::Capture( Image &image ) {
   bool frameComplete = false;
 
   /* MODE_STREAM specific variables */
@@ -305,14 +300,19 @@ int cURLCamera::Capture( Image &image )
   return 0;
 }
 
-int cURLCamera::PostCapture()
-{
+int cURLCamera::PostCapture() {
+    // Nothing to do here
+    return( 0 );
+}
+
+int cURLCamera::CaptureAndRecord( Image &image, bool recording, char* event_directory ) {
+  Error("Capture and Record not implemented for the cURL camera type");
   // Nothing to do here
   return( 0 );
 }
 
-size_t cURLCamera::data_callback(void *buffer, size_t size, size_t nmemb, void *userdata)
-{
+
+size_t cURLCamera::data_callback(void *buffer, size_t size, size_t nmemb, void *userdata) {
   lock();
 
   /* Append the data we just received to our buffer */
@@ -333,8 +333,7 @@ size_t cURLCamera::data_callback(void *buffer, size_t size, size_t nmemb, void *
 
 
 
-size_t cURLCamera::header_callback( void *buffer, size_t size, size_t nmemb, void *userdata)
-{
+size_t cURLCamera::header_callback( void *buffer, size_t size, size_t nmemb, void *userdata) {
   std::string header;
   header.assign((const char*)buffer, size*nmemb);
   
@@ -374,8 +373,7 @@ size_t cURLCamera::header_callback( void *buffer, size_t size, size_t nmemb, voi
   return size*nmemb;
 }
 
-void* cURLCamera::thread_func()
-{
+void* cURLCamera::thread_func() {
   long tRet;
   double dSize;
 
@@ -521,8 +519,7 @@ int cURLCamera::unlock() {
   return nRet;
 }
 
-int cURLCamera::progress_callback(void *userdata, double dltotal, double dlnow, double ultotal, double ulnow)
-{
+int cURLCamera::progress_callback(void *userdata, double dltotal, double dlnow, double ultotal, double ulnow) {
   /* Signal the curl thread to terminate */
   if(bTerminate)
     return -10;
@@ -531,25 +528,20 @@ int cURLCamera::progress_callback(void *userdata, double dltotal, double dlnow, 
 }
 
 /* These functions call the functions in the class for the correct object */
-size_t data_callback_dispatcher(void *buffer, size_t size, size_t nmemb, void *userdata)
-{
+size_t data_callback_dispatcher(void *buffer, size_t size, size_t nmemb, void *userdata) {
   return ((cURLCamera*)userdata)->data_callback(buffer,size,nmemb,userdata);
 }
 
-size_t header_callback_dispatcher(void *buffer, size_t size, size_t nmemb, void *userdata)
-{
+size_t header_callback_dispatcher(void *buffer, size_t size, size_t nmemb, void *userdata) {
   return ((cURLCamera*)userdata)->header_callback(buffer,size,nmemb,userdata);
 }
 
-int progress_callback_dispatcher(void *userdata, double dltotal, double dlnow, double ultotal, double ulnow)
-{
+int progress_callback_dispatcher(void *userdata, double dltotal, double dlnow, double ultotal, double ulnow) {
   return ((cURLCamera*)userdata)->progress_callback(userdata,dltotal,dlnow,ultotal,ulnow);
 }
 
 void* thread_func_dispatcher(void* object) {
   return ((cURLCamera*)object)->thread_func();
 }
-
-
 
 #endif // HAVE_LIBCURL

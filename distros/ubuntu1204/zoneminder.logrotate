@@ -2,9 +2,11 @@
     missingok
     notifempty
     sharedscripts
+    delaycompress
+    compress
     postrotate
         /usr/bin/zmpkg.pl logrot >>/dev/null 2>&1 || :
     endscript
-    weekly
-    rotate 3
+    daily
+    rotate 7
 }

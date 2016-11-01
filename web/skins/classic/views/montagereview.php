@@ -100,6 +100,8 @@ if ( !canView( 'Events' ) )
     return;
 }
 
+require_once( 'includes/Monitor.php' );
+
 if ( !empty($_REQUEST['group']) )
 {
     $group = $_REQUEST['group'];
@@ -117,7 +119,7 @@ else
 // Note we round up just a bit on the end time as otherwise you get gaps, like 59.78 to 00 in the next second, which can give blank frames when moved through slowly.
 
 $eventsSql = "
-  select E.Id,E.Name,UNIX_TIMESTAMP(E.StartTime) as StartTimeSecs,
+  select E.Id,E.Name,E.StorageId,UNIX_TIMESTAMP(E.StartTime) as StartTimeSecs,
          case when E.EndTime is null then (Select UNIX_TIMESTAMP(DATE_ADD(E.StartTime, Interval max(Delta)+0.5 Second)) from Frames F where F.EventId=E.Id)
               else UNIX_TIMESTAMP(E.EndTime)
          end as CalcEndTimeSecs, E.Length,
@@ -149,7 +151,7 @@ if ( !empty($user['MonitorIds']) )
 
     $eventsSql   .= $monFilterSql;
     $monitorsSQL .= $monFilterSql;
-    $frameSql    .= $monFilterSql;
+    $frameSql    .= ' AND e.MonitorId IN ('.$user['MonitorIds'].')';
 }
 
 // Parse input parameters -- note for future, validate/clean up better in case we don't get called from self.
@@ -222,12 +224,12 @@ if( isset($minTime) && isset($maxTime) )
     $eventsSql .= "having CalcEndTimeSecs > '" . $minTimeSecs . "' and StartTimeSecs < '" . $maxTimeSecs . "'";
     $frameSql .= "and TimeStamp > '" . $minTime . "' and TimeStamp < '" . $maxTime . "'";
 }
-$frameSql .= "group by E.Id, E.MonitorId, F.TimeStamp order by E.MonitorId, F.TimeStamp asc";
+$frameSql .= "group by E.Id, E.MonitorId, F.TimeStamp, F.Delta  order by E.MonitorId, F.TimeStamp asc";
 
 // This loads all monitors the user can see - even if we don't have data for one we still show all for switch to live.
 
 $monitors = array();
-$monitorsSql .= " order by Sequence asc ";
+$monitorsSql .= ' ORDER BY Sequence ASC ';
 $index=0;
 foreach( dbFetchAll( $monitorsSql ) as $row )
 {
@@ -254,42 +256,39 @@ input[type=range]::-ms-tooltip {
       </div>
       <h2><?php echo translate('MontageReview') ?></h2>
     </div>
-    <div id='ScaleDiv' style='display: inline-flex; border: 1px solid black;'>
-        <label style='margin:5px;' for=scaleslider><?php echo translate('Scale')?></label>
+    <div id="ScaleDiv" style="display: inline-flex; border: 1px solid black;">
+        <label style="margin:5px;" for="scaleslider"><?php echo translate('Scale')?></label>
         <input id=scaleslider type=range min=0.1 max=1.0 value=<?php echo $defaultScale ?> step=0.10 width=20% onchange='setScale(this.value)' oninput='showScale(this.value)'/>
         <span style='margin:5px;' id=scaleslideroutput><?php echo number_format((float)$defaultScale,2,'.','')?> x</span>
     </div>
-    <div id='SpeedDiv' style='display: inline-flex; border: 1px solid black;'>
+    <div id="SpeedDiv" style='display: inline-flex; border: 1px solid black;'>
         <label style='margin:5px;' for=speedslider><?php echo translate('Speed') ?></label>
         <input id=speedslider type=range min=0 max=<?php echo count($speeds)-1?> value=<?php echo $speedIndex ?> step=1 wdth=20% onchange='setSpeed(this.value)' oninput='showSpeed(this.value)'/>
         <span style='margin:5px;' id=speedslideroutput><?php echo $speeds[$speedIndex] ?> fps</span>
     </div>
     <div style='display: inline-flex; border: 1px solid black; flex-flow: row wrap;'>
-        <button type='button' id=panleft   onclick='panleft()     '>&lt; <?php echo translate('Pan') ?></button>
-        <button type='button' id=zoomin    onclick='zoomin()           '><?php echo translate('In +') ?></button>
-        <button type='button' id=zoomout   onclick='zoomout()          '><?php echo translate('Out -') ?></button>
-        <button type='button' id=lasteight onclick='lastEight()        '><?php echo translate('8 Hour') ?></button>
-        <button type='button' id=lasthour  onclick='lastHour()         '><?php echo translate('1 Hour') ?></button>
-        <button type='button' id=allof     onclick='allof()            '><?php echo translate('All Events') ?></button>
-        <button type='button' id=live      onclick='setLive(1-liveMode)'><?php echo translate('Live') ?></button>
-        <button type='button' id=fit       onclick='setFit(1-fitMode)  '><?php echo translate('Fit') ?></button>
-        <button type='button' id=panright  onclick='panright()         '><?php echo translate('Pan') ?> &gt;</button>
+        <button type="button" id=panleft   onclick='panleft()     '>&lt; <?php echo translate('Pan') ?></button>
+        <button type="button" id=zoomin    onclick='zoomin()           '><?php echo translate('In +') ?></button>
+        <button type="button" id=zoomout   onclick='zoomout()          '><?php echo translate('Out -') ?></button>
+        <button type="button" id=lasteight onclick='lastEight()        '><?php echo translate('8 Hour') ?></button>
+        <button type="button" id=lasthour  onclick='lastHour()         '><?php echo translate('1 Hour') ?></button>
+        <button type="button" id=allof     onclick='allof()            '><?php echo translate('All Events') ?></button>
+        <button type="button" id=live      onclick='setLive(1-liveMode)'><?php echo translate('Live') ?></button>
+        <button type="button" id=fit       onclick='setFit(1-fitMode)  '><?php echo translate('Fit') ?></button>
+        <button type="button" id=panright  onclick='panright()         '><?php echo translate('Pan') ?> &gt;</button>
     </div>
-    <div id=timelinediv style='position:relative; width:93%;'>
-        <canvas id=timeline style='border:1px solid;' onmousemove='mmove(event)' ontouchmove='tmove(event)' onmousedown='mdown(event)' onmouseup='mup(event)' onmouseout='mout(event)' ></canvas>
-        <span id=scrubleft ></span>
-        <span id=scrubright ></span>
-        <span id=scruboutput ></span>
+    <div id="timelinediv" style="position:relative; width:93%;">
+        <canvas id="timeline" style="border:1px solid;" onmousemove="mmove(event);" ontouchmove="tmove(event);" onmousedown="mdown(event);" onmouseup="mup(event);" onmouseout="mout(event);"></canvas>
+        <span id="scrubleft"></span>
+        <span id="scrubright"></span>
+        <span id="scruboutput"></span>
     </div>
 <?php
 // Monitor images - these had to be loaded after the monitors used were determined (after loading events)
 
 echo "<div id='monitors' style='position:relative; background-color:black;' width='100%' height='100%'>\n";
-foreach ($monitors as $m)
-{
-    {
-          echo "<canvas width='" . $m['Width'] * $defaultScale . "px' height='"  . $m['Height'] * $defaultScale . "px' id='Monitor" . $m['Id'] . "' style='border:3px solid " . $m['WebColour'] . "' onclick='clickMonitor(event," . $m['Id'] . ")'>No Canvas Support!!</canvas>\n";
-    }
+foreach ($monitors as $m) {
+  echo "<canvas width='" . $m['Width'] * $defaultScale . "px' height='"  . $m['Height'] * $defaultScale . "px' id='Monitor" . $m['Id'] . "' style='border:3px solid " . $m['WebColour'] . "' onclick='clickMonitor(event," . $m['Id'] . ")'>No Canvas Support!!</canvas>\n";
 }
 echo "</div>\n";
 echo "<p id='fps'>evaluating fps</p>\n";
@@ -329,8 +328,7 @@ $maxTimeSecs = strtotime("1950-01-01 01:01:01");
 $index=0;
 $anyAlarms=false;
 
-foreach( dbFetchAll( $eventsSql ) as $event )
-{
+foreach( dbFetchAll( $eventsSql ) as $event ) {
     if( $minTimeSecs > $event['StartTimeSecs'])   $minTimeSecs=$event['StartTimeSecs'];
     if( $maxTimeSecs < $event['CalcEndTimeSecs']) $maxTimeSecs=$event['CalcEndTimeSecs'];
     echo "eMonId[$index]=" . $event['MonitorId'] . "; eId[$index]=" . $event['Id'] . "; ";
@@ -347,30 +345,25 @@ foreach( dbFetchAll( $eventsSql ) as $event )
     echo "\n";
 }
 
-if($index == 0)  // if there is no data set the min/max to the passed in values
-{
-    if(isset($minTime) && isset($maxTime))
-    {
-        $minTimeSecs = strtotime($minTime);
-        $maxTimeSecs = strtotime($maxTime);
-    }
-    else // this is the case of no passed in times AND no data -- just set something arbitrary
-    {
-        $minTimeSecs=strtotime('1950-06-01 01:01:01');  // random time so there's something to display
-        $maxTimeSecs=strtotime('2020-06-02 02:02:02');
-    }
+// if there is no data set the min/max to the passed in values
+if($index == 0)  {
+  if(isset($minTime) && isset($maxTime)) {
+    $minTimeSecs = strtotime($minTime);
+    $maxTimeSecs = strtotime($maxTime);
+  } else {
+    // this is the case of no passed in times AND no data -- just set something arbitrary
+    $minTimeSecs=strtotime('1950-06-01 01:01:01');  // random time so there's something to display
+    $maxTimeSecs=strtotime('2020-06-02 02:02:02');
+  }
 }
 
 // We only reset the calling time if there was no calling time
-if(!isset($minTime) || !isset($maxTime))
-{
-    $maxTime = strftime($maxTimeSecs);
-    $minTime = strftime($minTimeSecs);
-}
-else
-{
-    $minTimeSecs = strtotime($minTime);
-    $maxTimeSecs = strtotime($maxTime);
+if(!isset($minTime) || !isset($maxTime)) {
+  $maxTime = strftime($maxTimeSecs);
+  $minTime = strftime($minTimeSecs);
+} else {
+  $minTimeSecs = strtotime($minTime);
+  $maxTimeSecs = strtotime($maxTime);
 }
 
 // If we had any alarms in those events, this builds the list of all alarm frames, but consolidated down to (nearly) contiguous segments 
@@ -387,41 +380,37 @@ $fromSecs=-1;
 $toSecs=-1;
 $maxScore=-1;
 
-if($anyAlarms)
-    foreach( dbFetchAll ($frameSql) as $frame )
-    {
-        if($mId<0)
-        {
-            $mId=$frame['MonitorId'];
-            $fromSecs=$frame['TimeStampSecs'];
-            $toSecs=$frame['TimeStampSecs'];
-            $maxScore=$frame['Score'];
-        }
-        else if ($mId != $frame['MonitorId'] || $frame['TimeStampSecs'] - $toSecs > 10) // dump this one start a new
-        {
-            $index++;
-            echo "  fMonId[$index]=" . $mId . ";";
-            echo "  fTimeFromSecs[$index]=" . $fromSecs . ";";
-            echo "  fTimeToSecs[$index]=" . $toSecs . ";";
-            echo "  fScore[$index]=" . $maxScore . ";\n";
-            $mId=$frame['MonitorId'];
-            $fromSecs=$frame['TimeStampSecs'];
-            $toSecs=$frame['TimeStampSecs'];
-            $maxScore=$frame['Score'];
-        }
-        else  // just add this one on
-        {
-            $toSecs=$frame['TimeStampSecs'];
-            if($maxScore < $frame['Score']) $maxScore=$frame['Score'];
-        }
+if($anyAlarms) {
+  foreach( dbFetchAll ($frameSql) as $frame ) {
+    if($mId<0) {
+      $mId=$frame['MonitorId'];
+      $fromSecs=$frame['TimeStampSecs'];
+      $toSecs=$frame['TimeStampSecs'];
+      $maxScore=$frame['Score'];
+    } else if ($mId != $frame['MonitorId'] || $frame['TimeStampSecs'] - $toSecs > 10) {
+      // dump this one start a new
+      $index++;
+      echo "  fMonId[$index]=" . $mId . ";";
+      echo "  fTimeFromSecs[$index]=" . $fromSecs . ";";
+      echo "  fTimeToSecs[$index]=" . $toSecs . ";";
+      echo "  fScore[$index]=" . $maxScore . ";\n";
+      $mId=$frame['MonitorId'];
+      $fromSecs=$frame['TimeStampSecs'];
+      $toSecs=$frame['TimeStampSecs'];
+      $maxScore=$frame['Score'];
+    } else {
+      // just add this one on
+      $toSecs=$frame['TimeStampSecs'];
+      if($maxScore < $frame['Score']) $maxScore=$frame['Score'];
     }
-    if($mId>0)
-    {
-            echo "  fMonId[$index]=" . $mId . ";";
-            echo "  fTimeFromSecs[$index]=" . $fromSecs . ";";
-            echo "  fTimeToSecs[$index]=" . $toSecs . ";";
-            echo "  fScore[$index]=" . $maxScore . ";\n";
-    }
+  }
+}
+if($mId>0) {
+  echo "  fMonId[$index]=" . $mId . ";";
+  echo "  fTimeFromSecs[$index]=" . $fromSecs . ";";
+  echo "  fTimeToSecs[$index]=" . $toSecs . ";";
+  echo "  fScore[$index]=" . $maxScore . ";\n";
+}
 
 echo "var maxScore=$maxScore;\n";  // used to skip frame load if we find no alarms.
 echo "var monitorName = [];\n";
@@ -444,17 +433,15 @@ echo "var monitorPtr = []; // monitorName[monitorPtr[0]] is first monitor\n";
 $numMonitors=0;  // this array is indexed by the monitor ID for faster access later, so it may be sparse
 $avgArea=floatval(0);  // Calculations the normalizing scale
 
-foreach ($monitors as $m)
-{
-    $avgArea = $avgArea + floatval($m['Width'] * $m['Height']);
-    $numMonitors++;
+foreach ($monitors as $m) {
+  $avgArea = $avgArea + floatval($m['Width'] * $m['Height']);
+  $numMonitors++;
 }
 
 if($numMonitors>0) $avgArea= $avgArea / $numMonitors;
 
 $numMonitors=0;
-foreach ($monitors as $m)
-{
+foreach ($monitors as $m) {
     echo "  monitorLoading["         . $m['Id'] . "]=false;  ";
     echo "  monitorImageObject["     . $m['Id'] . "]=null;  ";
     echo "  monitorLoadingStageURL[" . $m['Id'] . "] = ''; ";
@@ -541,35 +528,28 @@ function evaluateLoadTimes()
     $('fps').innerHTML="Display refresh rate is " + (1000 / currentDisplayInterval).toFixed(1) + " per second, avgFrac=" + avgFrac.toFixed(3) + ".";
 }
 
-function SetImageSource(monId,val)
-{
-    if(liveMode==1)
-    {   // This uses the standard php routine to set up the url and authentication, but because it is called repeatedly the built in random number is not usable, so one is appended below for two total (yuck)
-        var effectiveScale = (100.0 * monitorCanvasObj[monId].width) / monitorWidth[monId];
-        var $x =  "<?php echo getStreamSrc( array("mode=single"),"&" )?>" + "&monitor=" + monId.toString() +  "&scale=" + effectiveScale +  Math.random().toString() ;
-        return $x;
-    }
-    else
-    {
-        var zeropad = <?php echo  sprintf("\"%0" . ZM_EVENT_IMAGE_DIGITS . "d\"",0); ?>;
-        for(var i=0; i<ePath.length; i++)  // Search for a match
-        {
-            if(eMonId[i]==monId && val >= eStartSecs[i] && val <= eEndSecs[i])
-            {
-                var frame=parseInt((val - eStartSecs[i])/(eEndSecs[i]-eStartSecs[i])*eventFrames[i])+1;
-//                img = ePath[i] + zeropad.substr(frame.toString().length) + frame.toString() + "-capture.jpg";
-                  img = "index.php?view=image&path=" + ePath[i].substring(6) + zeropad.substr(frame.toString().length) + frame.toString() + "-capture.jpg" + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
-               return img;
-            }
-        }
-        return "no data";
-    }
+function SetImageSource(monId,val) {
+  if(liveMode==1) {
+    // This uses the standard php routine to set up the url and authentication, but because it is called repeatedly the built in random number is not usable, so one is appended below for two total (yuck)
+    var effectiveScale = (100.0 * monitorCanvasObj[monId].width) / monitorWidth[monId];
+    var $x =  "<?php echo getStreamSrc( array("mode=single"),"&" )?>" + "&monitor=" + monId.toString() +  "&scale=" + effectiveScale +  Math.random().toString() ;
+    return $x;
+  } else {
+    var zeropad = <?php echo  sprintf("\"%0" . ZM_EVENT_IMAGE_DIGITS . "d\"",0); ?>;
+    for(var i=0, eIdlength = eId.length; i<eIdlength; i++) {
+      // Search for a match 
+      if(eMonId[i]==monId && val >= eStartSecs[i] && val <= eEndSecs[i]) {
+        var frame=parseInt((val - eStartSecs[i])/(eEndSecs[i]-eStartSecs[i])*eventFrames[i])+1;
+        img = "index.php?view=image&eid=" + eId[i] + '&fid='+frame + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
+        return img;
+      }
+    } // end for
+    return "no data";
+  }
 }
 
-function imagedone(obj, monId, success)
-{
-    if(success)
-    {
+function imagedone(obj, monId, success) {
+    if(success) {
         monitorCanvasCtx[monId].drawImage( monitorImageObject[monId], 0, 0, monitorCanvasObj[monId].width, monitorCanvasObj[monId].height);
         var iconSize=(Math.max(monitorCanvasObj[monId].width,monitorCanvasObj[monId].height) * 0.10);
         monitorCanvasCtx[monId].font = "600 " + iconSize.toString() + "px Arial";
@@ -582,10 +562,10 @@ function imagedone(obj, monId, success)
         evaluateLoadTimes();
     }
     monitorLoading[monId]=false;
-    if(!success) // if we had a failrue queue up the no-data image
+    if(!success) {
+      // if we had a failrue queue up the no-data image
         loadImage2Monitor(monId,"no data");  // leave the staged URL if there is one, just ignore it here.
-    else
-    {
+    } else {
         if(monitorLoadingStageURL[monId]=="") return;
         loadImage2Monitor(monId,monitorLoadingStageURL[monId]);
         monitorLoadingStageURL[monId]="";
@@ -593,24 +573,19 @@ function imagedone(obj, monId, success)
     return;
 }
 
-function loadImage2Monitor(monId,url)
-{
-    if(monitorLoading[monId] && monitorImageObject[monId].src != url )  // never queue the same image twice (if it's loading it has to be defined, right?
-    {
-       monitorLoadingStageURL[monId]=url;   // we don't care if we are overriting, it means it didn't change fast enough
-    }
-    else
-    {
+function loadImage2Monitor(monId,url) {
+    if(monitorLoading[monId] && monitorImageObject[monId].src != url ) {
+      // never queue the same image twice (if it's loading it has to be defined, right?
+      monitorLoadingStageURL[monId]=url;   // we don't care if we are overriting, it means it didn't change fast enough
+    } else {
         var skipthis=0;
         if( typeof monitorImageObject[monId] !== "undefined" && monitorImageObject[monId] != null && monitorImageObject[monId].src == url ) return;   // do nothing if it's the same
-        if( monitorImageObject[monId] == null )
-        {
+        if( monitorImageObject[monId] == null ) {
             monitorImageObject[monId]=new Image();
             monitorImageObject[monId].onload  = function() {imagedone(this, monId,true )};
             monitorImageObject[monId].onerror = function() {imagedone(this, monId,false)};
         }
-        if(url=='no data')
-        {
+        if(url=='no data') {
             monitorCanvasCtx[monId].fillStyle="white";
             monitorCanvasCtx[monId].fillRect(0,0,monitorCanvasObj[monId].width,monitorCanvasObj[monId].height);
             var textSize=monitorCanvasObj[monId].width * 0.15;
@@ -619,43 +594,38 @@ function loadImage2Monitor(monId,url)
             monitorCanvasCtx[monId].fillStyle="black";
             var textWidth = monitorCanvasCtx[monId].measureText(text).width;
             monitorCanvasCtx[monId].fillText(text,monitorCanvasObj[monId].width/2 - textWidth/2,monitorCanvasObj[monId].height/2);
-        }
-        else
-        {
+        } else {
             monitorLoading[monId]=true;
             monitorLoadStartTimems[monId]=new Date().getTime();
             monitorImageObject[monId].src=url;  // starts a load but doesn't refresh yet, wait until ready
         }
     }
 }
-function timerFire()
-{
-    // See if we need to reschedule
-    if(currentDisplayInterval != timerInterval || currentSpeed == 0) // zero just turn off interrupts
-    {
-        clearInterval(timerObj);
-        timerInterval=currentDisplayInterval;
-        if(currentSpeed>0 || liveMode!=0) timerObj=setInterval(timerFire,timerInterval);  // don't fire out of live mode if speed is zero
-    }
+function timerFire() {
+  // See if we need to reschedule
+  if(currentDisplayInterval != timerInterval || currentSpeed == 0) {
+    // zero just turn off interrupts
+    clearInterval(timerObj);
+    timerInterval=currentDisplayInterval;
+    if(currentSpeed>0 || liveMode!=0) timerObj=setInterval(timerFire,timerInterval);  // don't fire out of live mode if speed is zero
+  }
 
-    if (liveMode) outputUpdate(currentTimeSecs); // In live mode we basically do nothing but redisplay
-    else if (currentTimeSecs + playSecsperInterval >= maxTimeSecs) // beyond the end just stop
-    {
-        setSpeed(0);
-        outputUpdate(currentTimeSecs);
-    }
-    else outputUpdate(currentTimeSecs + playSecsperInterval);
-    return;
+  if (liveMode) outputUpdate(currentTimeSecs); // In live mode we basically do nothing but redisplay
+  else if (currentTimeSecs + playSecsperInterval >= maxTimeSecs) // beyond the end just stop
+  {
+    setSpeed(0);
+    outputUpdate(currentTimeSecs);
+  }
+  else outputUpdate(currentTimeSecs + playSecsperInterval);
+  return;
 }
 
-function drawSliderOnGraph(val)
-{
+function drawSliderOnGraph(val) {
     var sliderWidth=10;
     var sliderLineWidth=1;
     var sliderHeight=cHeight;
 
-    if(liveMode==1)
-    {
+    if(liveMode==1) {
         val=Math.floor( Date.now() / 1000);
     }
     // Set some sizes
@@ -664,8 +634,8 @@ function drawSliderOnGraph(val)
     var labbottom=parseInt(cHeight * 0.2 / (numMonitors+1)).toString() + "px";  // This is positioning same as row labels below, but from bottom so 1-position
     var labfont=labelpx + "px Georgia";  // set this like below row labels
 
-    if(numMonitors>0) // if we have no data to display don't do the slider itself 
-    {
+    if(numMonitors>0) {
+      // if we have no data to display don't do the slider itself 
         var sliderX=parseInt( (val - minTimeSecs) / rangeTimeSecs * cWidth - sliderWidth/2);  // position left side of slider
         if(sliderX < 0) sliderX=0;
         if(sliderX+sliderWidth > cWidth) sliderX=cWidth-sliderWidth-1;
@@ -895,18 +865,17 @@ HTMLCanvasElement.prototype.relMouseCoords = relMouseCoords;
 // These are the functions for mouse movement in the timeline.  Note that touch is treated as a mouse move with mouse down
 
 var mouseisdown=false;
-function mdown(event) {mouseisdown=true; mmove(event)}
+function mdown(event) {mouseisdown=true; mmove(event);}
 function mup(event)   {mouseisdown=false;}
 function mout(event)  {mouseisdown=false;} // if we go outside treat it as release
 function tmove(event) {mouseisdown=true; mmove(event);}
 
-function mmove(event)
-{
-    if(mouseisdown) // only do anything if the mouse is depressed while on the sheet
-    {
-        var sec = minTimeSecs + rangeTimeSecs / event.target.width * event.target.relMouseCoords(event).x;
-        outputUpdate(sec);
-    }
+function mmove(event) {
+  if(mouseisdown) {
+    // only do anything if the mouse is depressed while on the sheet
+    var sec = minTimeSecs + rangeTimeSecs / event.target.width * event.target.relMouseCoords(event).x;
+    outputUpdate(sec);
+  }
 }
 
 function secs2dbstr (s)

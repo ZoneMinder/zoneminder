@@ -332,6 +332,19 @@ our @options =
         category    => "system",
     },
     {
+        name        => 'ZM_AUTH_HASH_TTL',
+        default     => '2',
+        description => 'The number of hours that an authentication hash is valid for.',
+        help        => qqq("The default has traditionally been 2 hours. A new hash will
+            automatically be regenerated at half this value."),
+        requires    => [
+                            { name=>'ZM_OPT_USE_AUTH', value=>'yes' },
+                            { name=>'ZM_AUTH_RELAY', value=>'hashed' }
+                       ],
+        type        => $types{integer},
+        category    => 'system',
+    },
+    {
         name        => "ZM_AUTH_HASH_LOGINS",
         default     => "no",
         description => "Allow login by authentication hash",
@@ -392,7 +405,7 @@ our @options =
 	requires	=> [
 				{name=>"ZM_OPT_USE_AUTH", value=>"yes"}
 			  ],
-	type		=> $types {boolean},
+	type		=> $types{boolean},
 	category	=> "system",
     },
 	
@@ -408,7 +421,7 @@ our @options =
 	requires	=> [
 				{name=>"ZM_OPT_USE_GOOG_RECAPTCHA", value=>"yes"}
 			  ],
-	type		=> $types {string},
+	type		=> $types{string},
 	category	=> "system",
     },
     {
@@ -423,11 +436,9 @@ our @options =
 	requires	=> [
 				{name=>"ZM_OPT_USE_GOOG_RECAPTCHA", value=>"yes"}
 			  ],
-	type		=> $types {string},
+	type		=> $types{string},
 	category	=> "system",
     },
-    
-
     {
         name        => "ZM_DIR_EVENTS",
         default     => "events",

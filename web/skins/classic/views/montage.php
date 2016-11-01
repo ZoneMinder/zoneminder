@@ -20,53 +20,42 @@
 
 if ( !canView( 'Stream' ) )
 {
-    $view = "error";
+    $view = 'error';
     return;
 }
 
 require_once( 'includes/Monitor.php' );
 
-$groupSql = "";
-if ( !empty($_REQUEST['group']) )
-{
-    $row = dbFetchOne( 'select * from Groups where Id = ?', NULL, array($_REQUEST['group']) );
+$groupSql = '';
+if ( !empty($_REQUEST['group']) ) {
+	$row = dbFetchOne( 'select * from Groups where Id = ?', NULL, array($_REQUEST['group']) );
 	$sql = "select * from Monitors where Function != 'None' and find_in_set( Id, '".$row['MonitorIds']."' ) order by Sequence";
 } else { 
 	$sql = "select * from Monitors where Function != 'None' order by Sequence";
 }
 
-$maxWidth = 0;
-$maxHeight = 0;
 $showControl = false;
-$index = 0;
 $monitors = array();
-foreach( dbFetchAll( $sql ) as $row )
-{
-    if ( !visibleMonitor( $row['Id'] ) )
-    {
-        continue;
-    }
-    
-    if ( isset( $_REQUEST['scale'] ) )
-        $scale = validInt($_REQUEST['scale']);
-    else if ( isset( $_COOKIE['zmMontageScale'] ) )
-        $scale = $_COOKIE['zmMontageScale'];
-    else
-        $scale = reScale( SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
 
-    $scaleWidth = reScale( $row['Width'], $scale );
-    $scaleHeight = reScale( $row['Height'], $scale );
-    if ( $maxWidth < $scaleWidth )
-        $maxWidth = $scaleWidth;
-    if ( $maxHeight < $scaleHeight )
-        $maxHeight = $scaleHeight;
-    if ( ZM_OPT_CONTROL && $row['ControlId'] )
-        $showControl = true;
-    $row['index'] = $index++;
-    $row['scaleWidth'] = $scaleWidth;
-    $row['scaleHeight'] = $scaleHeight;
-    $row['connKey'] = generateConnKey();
-    $monitors[] = new Monitor( $row );
+foreach( dbFetchAll( $sql ) as $row ) {
+	if ( !visibleMonitor( $row['Id'] ) ) {
+		continue;
+	}
+
+	if ( isset( $_REQUEST['scale'] ) )
+		$scale = validInt($_REQUEST['scale']);
+	else if ( isset( $_COOKIE['zmMontageScale'] ) )
+		$scale = $_COOKIE['zmMontageScale'];
+	else
+		$scale = reScale( SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+
+	$row['Scale'] = $scale;
+	$row['PopupScale'] = reScale( SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+
+	if ( ZM_OPT_CONTROL && $row['ControlId'] )
+		$showControl = true;
+	$row['connKey'] = generateConnKey();
+	$monitors[] = new Monitor( $row );
 }
 
 $focusWindow = true;
@@ -110,37 +99,17 @@ if ( $showControl )
 foreach ( $monitors as $monitor )
 {
     $connkey = $monitor->connKey(); // Minor hack
-    if ( !isset( $scale ) )
-        $scale = reScale( SCALE_BASE, $monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE );
 ?>
-        <div id="monitorFrame<?php echo $monitor->index() ?>" class="monitorFrame">
-          <div id="monitor<?php echo $monitor->index() ?>" class="monitor idle">
-            <div id="imageFeed<?php echo $monitor->index() ?>" class="imageFeed" onclick="createPopup( '?view=watch&amp;mid=<?php echo $monitor->Id() ?>', 'zmWatch<?php echo $monitor->Id() ?>', 'watch', <?php echo $monitor->scaleWidth() ?>, <?php echo $monitor->scaleHeight() ?> );">
-<?php
-if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT )
-{
-    $streamSrc = $monitor->getStreamSrc( array( "mode=mpeg", "scale=".$scale, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_LIVE_FORMAT ) );
-    outputVideoStream( "liveStream".$monitor->Id(), $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), ZM_MPEG_LIVE_FORMAT );
-}
-else
-{
-    $streamSrc = $monitor->getStreamSrc( array( "mode=jpeg", "scale=".$scale, "maxfps=".ZM_WEB_VIDEO_MAXFPS ) );
-    if ( canStreamNative() )
-    {
-        outputImageStream( "liveStream".$monitor->Id(), $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), validHtmlStr($monitor->Name()) );
-    }
-    else
-    {
-        outputHelperStream( "liveStream".$monitor->Id(), $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ) );
-    }
-}
-?>
+        <div id="monitorFrame<?php echo $monitor->Id() ?>" class="monitorFrame" title="<?php echo $monitor->Id() . ' ' .$monitor->Name() ?>">
+          <div id="monitor<?php echo $monitor->Id() ?>" class="monitor idle">
+            <div id="imageFeed<?php echo $monitor->Id() ?>" class="imageFeed" onclick="createPopup( '?view=watch&amp;mid=<?php echo $monitor->Id() ?>', 'zmWatch<?php echo $monitor->Id() ?>', 'watch', <?php echo reScale( $monitor->Width(), $monitor->PopupScale() ); ?>, <?php echo reScale( $monitor->Height(), $monitor->PopupScale() ); ?> );">
+						<?php echo getStreamHTML( $monitor, $monitor->Scale() ); ?>
             </div>
 <?php
     if ( !ZM_WEB_COMPACT_MONTAGE )
     {
 ?>
-            <div id="monitorState<?php echo $monitor->index() ?>" class="monitorState idle"><?php echo translate('State') ?>:&nbsp;<span id="stateValue<?php echo $monitor->index() ?>"></span>&nbsp;-&nbsp;<span id="fpsValue<?php echo $monitor->index() ?>"></span>&nbsp;fps</div>
+            <div id="monitorState<?php echo $monitor->Id() ?>" class="monitorState idle"><?php echo translate('State') ?>:&nbsp;<span id="stateValue<?php echo $monitor->Id() ?>"></span>&nbsp;-&nbsp;<span id="fpsValue<?php echo $monitor->Id() ?>"></span>&nbsp;fps</div>
 <?php
     }
 ?>

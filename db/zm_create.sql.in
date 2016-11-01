@@ -184,6 +184,7 @@ DROP TABLE IF EXISTS `Events`;
 CREATE TABLE `Events` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `MonitorId` int(10) unsigned NOT NULL default '0',
+  `StorageId`	smallint(5) unsigned default 0,
   `Name` varchar(64) NOT NULL default '',
   `Cause` varchar(32) NOT NULL default '',
   `StartTime` datetime default NULL,
@@ -193,6 +194,7 @@ CREATE TABLE `Events` (
   `Length` decimal(10,2) NOT NULL default '0.00',
   `Frames` int(10) unsigned default NULL,
   `AlarmFrames` int(10) unsigned default NULL,
+  `DefaultVideo` VARCHAR( 64 ) NOT NULL,
   `TotScore` int(10) unsigned NOT NULL default '0',
   `AvgScore` smallint(5) unsigned default '0',
   `MaxScore` smallint(5) unsigned default '0',
@@ -203,6 +205,7 @@ CREATE TABLE `Events` (
   `Messaged` tinyint(3) unsigned NOT NULL default '0',
   `Executed` tinyint(3) unsigned NOT NULL default '0',
   `Notes` text,
+  `Orientation` enum('0','90','180','270','hori','vert') NOT NULL default '0',
   PRIMARY KEY (`Id`,`MonitorId`),
   KEY `MonitorId` (`MonitorId`),
   KEY `StartTime` (`StartTime`),
@@ -216,6 +219,7 @@ CREATE TABLE `Events` (
 
 DROP TABLE IF EXISTS `Filters`;
 CREATE TABLE `Filters` (
+  `Id` int(10) unsigned NOT NULL auto_increment,
   `Name` varchar(64) NOT NULL default '',
   `Query` text NOT NULL,
   `AutoArchive` tinyint(3) unsigned NOT NULL default '0',
@@ -227,7 +231,9 @@ CREATE TABLE `Filters` (
   `AutoExecuteCmd` tinytext,
   `AutoDelete` tinyint(3) unsigned NOT NULL default '0',
   `Background` tinyint(1) unsigned NOT NULL default '0',
-  PRIMARY KEY (`Name`)
+  `Concurrent` tinyint(1) unsigned NOT NULL default '0',
+  PRIMARY KEY (`Id`),
+  KEY `Name` (`Name`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --
@@ -319,38 +325,43 @@ CREATE TABLE `Monitors` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `Name` varchar(64) NOT NULL default '',
   `ServerId` int(10) unsigned,
+  `StorageId`	smallint(5) unsigned default 0,
   `Type` enum('Local','Remote','File','Ffmpeg','Libvlc','cURL') NOT NULL default 'Local',
   `Function` enum('None','Monitor','Modect','Record','Mocord','Nodect') NOT NULL default 'Monitor',
   `Enabled` tinyint(3) unsigned NOT NULL default '1',
-  `LinkedMonitors` varchar(255) NOT NULL default '',
+  `LinkedMonitors` varchar(255),
   `Triggers` set('X10') NOT NULL default '',
   `Device` tinytext NOT NULL default '',
   `Channel` tinyint(3) unsigned NOT NULL default '0',
   `Format` int(10) unsigned NOT NULL default '0',
   `V4LMultiBuffer`	tinyint(1) unsigned,
   `V4LCapturesPerFrame`	tinyint(3) unsigned,
-  `Protocol` varchar(16) NOT NULL default '',
+  `Protocol` varchar(16),
   `Method` varchar(16) NOT NULL default '',
-  `Host` varchar(64) NOT NULL default '',
+  `Host` varchar(64),
   `Port` varchar(8) NOT NULL default '',
   `SubPath` varchar(64) NOT NULL default '',
   `Path` varchar(255) NOT NULL default '',
-  `Options` varchar(255) not null default '',
-  `User` varchar(64) NOT NULL default '',
-  `Pass` varchar(64) NOT NULL default '',
+  `Options` varchar(255),
+  `User` varchar(64),
+  `Pass` varchar(64),
   `Width` smallint(5) unsigned NOT NULL default '0',
   `Height` smallint(5) unsigned NOT NULL default '0',
   `Colours` tinyint(3) unsigned NOT NULL default '1',
   `Palette` int(10) unsigned NOT NULL default '0',
   `Orientation` enum('0','90','180','270','hori','vert') NOT NULL default '0',
   `Deinterlacing` int(10) unsigned NOT NULL default '0',
-  `RTSPDescribe` tinyint(1) unsigned NOT NULL default '0',
+  `SaveJPEGs` TINYINT NOT NULL DEFAULT '3' ,
+  `VideoWriter` TINYINT NOT NULL DEFAULT '0',
+  `EncoderParameters` TEXT NOT NULL,
+  `RecordAudio` TINYINT NOT NULL DEFAULT '0',
+  `RTSPDescribe` tinyint(1) unsigned,
   `Brightness` mediumint(7) NOT NULL default '-1',
   `Contrast` mediumint(7) NOT NULL default '-1',
   `Hue` mediumint(7) NOT NULL default '-1',
   `Colour` mediumint(7) NOT NULL default '-1',
   `EventPrefix` varchar(32) NOT NULL default 'Event-',
-  `LabelFormat` varchar(64) NOT NULL default '%N - %y/%m/%d %H:%M:%S',
+  `LabelFormat` varchar(64) default '%N - %y/%m/%d %H:%M:%S',
   `LabelX` smallint(5) unsigned NOT NULL default '0',
   `LabelY` smallint(5) unsigned NOT NULL default '0',
   `LabelSize` smallint(5) unsigned NOT NULL DEFAULT '1',
@@ -371,14 +382,14 @@ CREATE TABLE `Monitors` (
   `RefBlendPerc` tinyint(3) unsigned NOT NULL default '6',
   `AlarmRefBlendPerc` tinyint(3) unsigned NOT NULL default '6',
   `Controllable` tinyint(3) unsigned NOT NULL default '0',
-  `ControlId` int(10) unsigned NOT NULL default '0',
+  `ControlId` int(10) unsigned,
   `ControlDevice` varchar(255) default NULL,
   `ControlAddress` varchar(255) default NULL,
   `AutoStopTimeout` decimal(5,2) default NULL,
   `TrackMotion` tinyint(3) unsigned NOT NULL default '0',
-  `TrackDelay` smallint(5) unsigned NOT NULL default '0',
+  `TrackDelay` smallint(5) unsigned,
   `ReturnLocation` tinyint(3) NOT NULL default '-1',
-  `ReturnDelay` smallint(5) unsigned NOT NULL default '0',
+  `ReturnDelay` smallint(5) unsigned,
   `DefaultView` enum('Events','Control') NOT NULL default 'Events',
   `DefaultRate` smallint(5) unsigned NOT NULL default '100',
   `DefaultScale` smallint(5) unsigned NOT NULL default '100',
@@ -386,8 +397,11 @@ CREATE TABLE `Monitors` (
   `WebColour` varchar(32) NOT NULL default 'red',
   `Exif` tinyint(1) unsigned NOT NULL default '0',
   `Sequence` smallint(5) unsigned default NULL,
+  `Orientation` enum('0','90','180','270','hori','vert') NOT NULL default '0',
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
+
+CREATE INDEX `Monitors_ServerId_idx` ON `Monitors` (`ServerId`);
 
 --
 -- Table structure for table `States`
@@ -418,6 +432,9 @@ CREATE TABLE `Servers` (
   `State_Id`	int(10) unsigned,
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
+
+CREATE INDEX `Servers_Name_idx` ON `Servers` (`Name`);
+
 --
 -- Table structure for table `Stats`
 --
@@ -467,7 +484,7 @@ CREATE TABLE `Users` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `Username` varchar(32) character set latin1 collate latin1_bin NOT NULL default '',
   `Password` varchar(64) NOT NULL default '',
-  `Language` varchar(8) NOT NULL default '',
+  `Language` varchar(8),
   `Enabled` tinyint(3) unsigned NOT NULL default '1',
   `Stream` enum('None','View') NOT NULL default 'None',
   `Events` enum('None','View','Edit') NOT NULL default 'None',
@@ -476,8 +493,8 @@ CREATE TABLE `Users` (
   `Groups` enum('None','View','Edit') NOT NULL default 'None',
   `Devices` enum('None','View','Edit') NOT NULL default 'None',
   `System` enum('None','View','Edit') NOT NULL default 'None',
-  `MaxBandwidth` varchar(16) NOT NULL default '',
-  `MonitorIds` tinytext NOT NULL,
+  `MaxBandwidth` varchar(16),
+  `MonitorIds` tinytext,
   PRIMARY KEY (`Id`),
   UNIQUE KEY `UC_Username` (`Username`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
@@ -544,6 +561,19 @@ CREATE TABLE `Zones` (
   KEY `MonitorId` (`MonitorId`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
+DROP TABLE IF EXISTS `Storage`;
+CREATE TABLE `Storage` (
+	`Id`	smallint(5) unsigned NOT NULL auto_increment,
+	`Path`	varchar(64)	NOT NULL default '',
+	`Name`	varchar(64) NOT NULL default '',
+	PRIMARY KEY (`Id`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
+--
+-- Create a default storage location
+--
+insert into Storage VALUES (NULL, '/var/lib/zoneminder/events', 'Default' );
+
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
 /*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
@@ -564,7 +594,7 @@ insert into Users VALUES (NULL,'admin',password('admin'),'',1,'View','Edit','Edi
 --
 -- Add a sample filter to purge the oldest 100 events when the disk is 95% full
 --
-insert into Filters values ('PurgeWhenFull','{"sort_field":"Id","terms":[{"val":0,"attr":"Archived","op":"="},{"cnj":"and","val":95,"attr":"DiskPercent","op":">="}],"limit":100,"sort_asc":1}',0,0,0,0,0,0,'',1,1);
+insert into Filters values (NULL,'PurgeWhenFull','{"sort_field":"Id","terms":[{"val":0,"attr":"Archived","op":"="},{"cnj":"and","val":95,"attr":"DiskPercent","op":">="}],"limit":100,"sort_asc":1}',0,0,0,0,0,0,'',1,1,0);
 
 --
 -- Add in some sample control protocol definitions
@@ -685,3 +715,4 @@ INSERT INTO ZonePresets VALUES (7,'Best, high sensitivity','Active','Percent','B
 -- This section is autogenerated by zmconfgen.pl
 -- Do not edit this file as any changes will be overwritten
 --
+

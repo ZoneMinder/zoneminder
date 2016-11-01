@@ -25,6 +25,8 @@
 #include "zm_buffer.h"
 //#include "zm_utils.h"
 #include "zm_ffmpeg.h"
+#include "zm_videostore.h"
+#include "zm_packetqueue.h"
 
 //
 // Class representing 'ffmpeg' cameras, i.e. those which are
@@ -32,52 +34,75 @@
 //
 class FfmpegCamera : public Camera
 {
-protected:
-  std::string     mPath;
-  std::string      mMethod;
-  std::string      mOptions;
+  protected:
+    std::string         mPath;
+    std::string         mMethod;
+    std::string         mOptions;
 
-  int frameCount;  
+    int frameCount;    
 
 #if HAVE_LIBAVFORMAT
-  AVFormatContext   *mFormatContext;
-  int         mVideoStreamId;
-  AVCodecContext    *mCodecContext;
-  AVCodec       *mCodec;
-  AVFrame       *mRawFrame; 
-  AVFrame       *mFrame;
-  _AVPIXELFORMAT     imagePixFormat;
+    AVFormatContext     *mFormatContext;
+    int                 mVideoStreamId;
+    int                 mAudioStreamId;
+    AVCodecContext      *mVideoCodecContext;
+    AVCodecContext      *mAudioCodecContext;
+    AVCodec             *mVideoCodec;
+    AVCodec             *mAudioCodec;
+    AVFrame             *mRawFrame; 
+    AVFrame             *mFrame;
+    _AVPIXELFORMAT      imagePixFormat;
 
-  int OpenFfmpeg();
-  int ReopenFfmpeg();
-  int CloseFfmpeg();
-  static int FfmpegInterruptCallback(void *ctx);
-  static void* ReopenFfmpegThreadCallback(void *ctx);
-  bool mIsOpening;
-  bool mCanCapture;
-  int mOpenStart;
-  pthread_t mReopenThread;
+  // Need to keep track of these because apparently the stream can start with values for pts/dts and then subsequent packets start at zero.
+  int64_t audio_last_pts;
+  int64_t audio_last_dts;
+  int64_t video_last_pts;
+  int64_t video_last_dts;
+
+    // Used to store the incoming packet, it will get copied when queued. 
+    // We only ever need one at a time, so instead of constantly allocating
+    // and freeing this structure, we will just make it a member of the object.
+    AVPacket packet;       
+
+    int OpenFfmpeg();
+    int ReopenFfmpeg();
+    int CloseFfmpeg();
+    static int FfmpegInterruptCallback(void *ctx);
+    static void* ReopenFfmpegThreadCallback(void *ctx);
+    bool mIsOpening;
+    bool mCanCapture;
+    int mOpenStart;
+    pthread_t mReopenThread;
 #endif // HAVE_LIBAVFORMAT
 
+    bool                wasRecording;
+    VideoStore          *videoStore;
+    char                oldDirectory[4096];
+    unsigned int        old_event_id;
+    zm_packetqueue      packetqueue;
+
 #if HAVE_LIBSWSCALE
-  struct SwsContext   *mConvertContext;
+    struct SwsContext   *mConvertContext;
 #endif
 
-public:
-  FfmpegCamera( int p_id, const std::string &path, const std::string &p_method, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
-  ~FfmpegCamera();
+    int64_t             startTime;
 
-  const std::string &Path() const { return( mPath ); }
-  const std::string &Options() const { return( mOptions ); } 
-  const std::string &Method() const { return( mMethod ); }
+  public:
+    FfmpegCamera( int p_id, const std::string &path, const std::string &p_method, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
+    ~FfmpegCamera();
 
-  void Initialise();
-  void Terminate();
+    const std::string &Path() const { return( mPath ); }
+    const std::string &Options() const { return( mOptions ); } 
+    const std::string &Method() const { return( mMethod ); }
 
-  int PrimeCapture();
-  int PreCapture();
-  int Capture( Image &image );
-  int PostCapture();
+    void Initialise();
+    void Terminate();
+
+    int PrimeCapture();
+    int PreCapture();
+    int Capture( Image &image );
+    int CaptureAndRecord( Image &image, bool recording, char* event_directory );
+    int PostCapture();
 };
 
 #endif // ZM_FFMPEG_CAMERA_H

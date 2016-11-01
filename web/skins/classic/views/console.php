@@ -18,8 +18,12 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-require_once('includes/Server.php');
 $servers = Server::find_all();
+require_once('includes/Storage.php');
+$storage_areas = Storage::find_all();
+$show_storage_areas = count($storage_areas) > 1 and canEdit( 'System' ) ? 1 : 0;
+if ( $running == null ) 
+  $running = daemonCheck();
 
 $eventCounts = array(
     array(
@@ -28,6 +32,7 @@ $eventCounts = array(
             "terms" => array(
             )
         ),
+        "total" => 0,
     ),
     array(
         "title" => translate('Hour'),
@@ -36,6 +41,7 @@ $eventCounts = array(
                 array( "attr" => "DateTime", "op" => ">=", "val" => "-1 hour" ),
             )
         ),
+        "total" => 0,
     ),
     array(
         "title" => translate('Day'),
@@ -44,6 +50,7 @@ $eventCounts = array(
                 array( "attr" => "DateTime", "op" => ">=", "val" => "-1 day" ),
             )
         ),
+        "total" => 0,
     ),
     array(
         "title" => translate('Week'),
@@ -52,6 +59,7 @@ $eventCounts = array(
                 array( "attr" => "DateTime", "op" => ">=", "val" => "-7 day" ),
             )
         ),
+        "total" => 0,
     ),
     array(
         "title" => translate('Month'),
@@ -60,6 +68,7 @@ $eventCounts = array(
                 array( "attr" => "DateTime", "op" => ">=", "val" => "-1 month" ),
             )
         ),
+        "total" => 0,
     ),
     array(
         "title" => translate('Archived'),
@@ -68,181 +77,60 @@ $eventCounts = array(
                 array( "attr" => "Archived", "op" => "=", "val" => "1" ),
             )
         ),
+        "total" => 0,
     ),
 );
 
-$running = daemonCheck();
-$status = $running?translate('Running'):translate('Stopped');
-$run_state = dbFetchOne('select Name from States where  IsActive = 1', 'Name' );
+$displayMonitors = NULL;
 
-$group = NULL;
-if ( ! empty($_COOKIE['zmGroup']) ) {
-    if ( $group = dbFetchOne( 'select * from Groups where Id = ?', NULL, array($_COOKIE['zmGroup'])) )
-        $groupIds = array_flip(explode( ',', $group['MonitorIds'] ));
+# Also populates displayMonitors
+$navbar = getNavBarHTML();
+$zoneCount = 0;
+
+for( $i = 0; $i < count($displayMonitors); $i += 1 ) {
+  $monitor = $displayMonitors[$i];
+  $monitor['zmc'] = zmcStatus( $monitor );
+  $monitor['zma'] = zmaStatus( $monitor );
+  $monitor['ZoneCount'] = dbFetchOne( 'select count(Id) as ZoneCount from Zones where MonitorId = ?', 'ZoneCount', array($monitor['Id']) );
+  $counts = array();
+  for ( $j = 0; $j < count($eventCounts); $j += 1 ) {
+    $filter = addFilterTerm( $eventCounts[$j]['filter'], count($eventCounts[$j]['filter']['terms']), array( "cnj" => "and", "attr" => "MonitorId", "op" => "=", "val" => $monitor['Id'] ) );
+    parseFilter( $filter );
+    $counts[] = "count(if(1".$filter['sql'].",1,NULL)) as EventCount$j";
+    $monitor['eventCounts'][$j]['filter'] = $filter;
+  }
+  $sql = "select ".join($counts,", ")." from Events as E where MonitorId = ?";
+  $counts = dbFetchOne( $sql, NULL, array($monitor['Id']) );
+  if ( $counts )
+    $displayMonitors[$i] = $monitor = array_merge( $monitor, $counts );
+  for ( $j = 0; $j < count($eventCounts); $j += 1 ) {
+    $eventCounts[$j]['total'] += $monitor['EventCount'.$j];
+  }
+  $zoneCount += $monitor['ZoneCount'];
 }
 
 noCacheHeaders();
 
-$maxWidth = 0;
-$maxHeight = 0;
-$cycleCount = 0;
-$minSequence = 0;
-$maxSequence = 1;
-$seqIdList = array();
-$monitors = dbFetchAll( "select * from Monitors order by Sequence asc" );
-$displayMonitors = array();
-for ( $i = 0; $i < count($monitors); $i++ )
-{
-    if ( !visibleMonitor( $monitors[$i]['Id'] ) )
-    {
-        continue;
-    }
-    if ( $group && !empty($groupIds) && !array_key_exists( $monitors[$i]['Id'], $groupIds ) )
-    {
-        continue;
-    }
-    $monitors[$i]['Show'] = true;
-    if ( empty($minSequence) || ($monitors[$i]['Sequence'] < $minSequence) )
-    {
-        $minSequence = $monitors[$i]['Sequence'];
-    }
-    if ( $monitors[$i]['Sequence'] > $maxSequence )
-    {
-        $maxSequence = $monitors[$i]['Sequence'];
-    }
-    $monitors[$i]['zmc'] = zmcStatus( $monitors[$i] );
-    $monitors[$i]['zma'] = zmaStatus( $monitors[$i] );
-    $monitors[$i]['ZoneCount'] = dbFetchOne( 'select count(Id) as ZoneCount from Zones where MonitorId = ?', 'ZoneCount', array($monitors[$i]['Id']) );
-    $counts = array();
-    for ( $j = 0; $j < count($eventCounts); $j++ )
-    {
-        $filter = addFilterTerm( $eventCounts[$j]['filter'], count($eventCounts[$j]['filter']['terms']), array( "cnj" => "and", "attr" => "MonitorId", "op" => "=", "val" => $monitors[$i]['Id'] ) );
-        parseFilter( $filter );
-        $counts[] = "count(if(1".$filter['sql'].",1,NULL)) as EventCount$j";
-        $monitors[$i]['eventCounts'][$j]['filter'] = $filter;
-    }
-    $sql = "select ".join($counts,", ")." from Events as E where MonitorId = ?";
-    $counts = dbFetchOne( $sql, NULL, array($monitors[$i]['Id']) );
-    if ( $monitors[$i]['Function'] != 'None' )
-    {
-        $cycleCount++;
-        $scaleWidth = reScale( $monitors[$i]['Width'], $monitors[$i]['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
-        $scaleHeight = reScale( $monitors[$i]['Height'], $monitors[$i]['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
-        if ( $maxWidth < $scaleWidth ) $maxWidth = $scaleWidth;
-        if ( $maxHeight < $scaleHeight ) $maxHeight = $scaleHeight;
-    }
-    if ( $counts ) $monitors[$i] = array_merge( $monitors[$i], $counts );
-    $seqIdList[] = $monitors[$i]['Id'];
-    $displayMonitors[] = $monitors[$i];
-}
-$lastId = 0;
-$seqIdUpList = array();
-foreach ( $seqIdList as $seqId )
-{
-    if ( !empty($lastId) )
-        $seqIdUpList[$seqId] = $lastId;
-    else
-        $seqIdUpList[$seqId] = $seqId;
-    $lastId = $seqId;
-}
-$lastId = 0;
-$seqIdDownList = array();
-foreach ( array_reverse($seqIdList) as $seqId )
-{
-    if ( !empty($lastId) )
-        $seqIdDownList[$seqId] = $lastId;
-    else
-        $seqIdDownList[$seqId] = $seqId;
-    $lastId = $seqId;
-}
-
-$cycleWidth = $maxWidth;
-$cycleHeight = $maxHeight;
-
-$eventsView = ZM_WEB_EVENTS_VIEW;
-$eventsWindow = 'zm'.ucfirst(ZM_WEB_EVENTS_VIEW);
-
-$eventCount = 0;
-for ( $i = 0; $i < count($eventCounts); $i++ )
-{
-    $eventCounts[$i]['total'] = 0;
-}
-$zoneCount = 0;
-foreach( $displayMonitors as $monitor )
-{
-    for ( $i = 0; $i < count($eventCounts); $i++ )
-    {
-        $eventCounts[$i]['total'] += $monitor['EventCount'.$i];
-    }
-    $zoneCount += $monitor['ZoneCount'];
-}
-
 $seqUpFile = getSkinFile( 'graphics/seq-u.gif' );
 $seqDownFile = getSkinFile( 'graphics/seq-d.gif' );
-
-$versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText':'';
-
+$eventsView = ZM_WEB_EVENTS_VIEW;
+$eventsWindow = 'zm'.ucfirst(ZM_WEB_EVENTS_VIEW);
 $left_columns = 3;
 if ( count($servers) ) $left_columns += 1;
 if ( ZM_WEB_ID_ON_CONSOLE ) $left_columns += 1;
+if ( $show_storage_areas ) $left_columns += 1;
 
 xhtmlHeaders( __FILE__, translate('Console') );
 ?>
 <body>
-  <div id="page">
     <form name="monitorForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
     <input type="hidden" name="view" value="<?php echo $view ?>"/>
     <input type="hidden" name="action" value=""/>
-    <div id="header">
-      <h3 id="systemTime"><?php echo preg_match( '/%/', DATE_FMT_CONSOLE_LONG )?strftime( DATE_FMT_CONSOLE_LONG ):date( DATE_FMT_CONSOLE_LONG ) ?></h3>
-      <h3 id="systemStats"><?php echo translate('Load') ?>: <?php echo getLoad() ?> / <?php echo translate('Disk') ?>: <?php echo getDiskPercent() ?>%</h3>
-      <h2 id="title"><a href="http://www.zoneminder.com" target="ZoneMinder">ZoneMinder</a> <?php echo translate('Console') ?> - <?php echo makePopupLink( '?view=state', 'zmState', 'state', $status, canEdit( 'System' ) ) ?> - <?php echo $run_state ?> <?php echo makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="'.$versionClass.'">v'.ZM_VERSION.'</span>', canEdit( 'System' ) ) ?></h2>
-      <div class="clear"></div>
-      <h3 id="development"><center><?php echo ZM_WEB_CONSOLE_BANNER ?></center></h3>
-      <div id="monitorSummary"><?php echo makePopupLink( '?view=groups', 'zmGroups', 'groups', sprintf( $CLANG['MonitorCount'], count($displayMonitors), zmVlang( $VLANG['Monitor'], count($displayMonitors) ) ).($group?' ('.$group['Name'].')':''), canView( 'Groups' ) ); ?></div>
-<?php
-if ( ZM_OPT_X10 && canView( 'Devices' ) )
-{
-?>
-      <div id="devices"><?php echo makePopupLink( '?view=devices', 'zmDevices', 'devices', translate('Devices') ) ?></div>
-<?php
-}
-if ( canView( 'System' ) )
-{
-?>
-      <div id="options"><?php echo makePopupLink( '?view=options', 'zmOptions', 'options', translate('Options') ) ?><?php if ( logToDatabase() > Logger::NOLOG ) { ?> / <?php echo makePopupLink( '?view=log', 'zmLog', 'log', '<span class="'.logState().'">'.translate('Log').'</span>' ) ?><?php } ?></div>
-<?php
-}
-if ( canView( 'Stream' ) && $cycleCount > 1 )
-{
-    $cycleGroup = isset($_COOKIE['zmGroup'])?$_COOKIE['zmGroup']:0;
-?>
-      <div id="cycleMontage">
-           <?php echo makePopupLink( '?view=cycle&amp;group='.$cycleGroup, 'zmCycle'.$cycleGroup, array( 'cycle', $cycleWidth, $cycleHeight ), translate('Cycle'), $running ) ?>&nbsp;/&nbsp;
-           <?php echo makePopupLink( '?view=montage&amp;group='.$cycleGroup, 'zmMontage'.$cycleGroup, 'montage', translate('Montage'), $running ) ?>&nbsp;/&nbsp;
-           <?php echo makePopupLink( '?view=montagereview&amp;group='.$cycleGroup, 'zmMontage'.$cycleGroup, 'montagereview', translate('Montage Review'), $running ) ?>
-      </div>
-<?php
-}
-else
-{
-?>
-<?php
-}
-?>
-      <h3 id="loginBandwidth"><?php
-if ( ZM_OPT_USE_AUTH )
-{
-?><?php echo translate('LoggedInAs') ?> <?php echo makePopupLink( '?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == "builtin") ) ?>, <?php echo strtolower( translate('ConfiguredFor') ) ?><?php
-}
-else
-{
-?><?php echo translate('ConfiguredFor') ?><?php
-}
-?>&nbsp;<?php echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', $bwArray[$_COOKIE['zmBandwidth']], ($user && $user['MaxBandwidth'] != 'low' ) ) ?> <?php echo translate('BandwidthHead') ?></h3>
-    </div>
-    <div id="content">
-      <table id="consoleTable" cellspacing="0">
+
+    <?php echo $navbar ?>
+
+    <div class="container-fluid">
+      <table class="table table-striped table-hover table-condensed">
         <thead>
           <tr>
 <?php if ( ZM_WEB_ID_ON_CONSOLE ) { ?>
@@ -254,6 +142,9 @@ else
             <th class="colServer"><?php echo translate('Server') ?></th>
 <?php } ?>
             <th class="colSource"><?php echo translate('Source') ?></th>
+<?php if ( $show_storage_areas ) { ?>
+            <th class="colStorage"><?php echo translate('Storage') ?></th>
+<?php } ?>
 <?php
 for ( $i = 0; $i < count($eventCounts); $i++ )
 {
@@ -277,8 +168,8 @@ if ( canEdit('Monitors') )
         <tfoot>
           <tr>
             <td class="colLeftButtons" colspan="<?php echo $left_columns ?>">
-              <input type="button" value="<?php echo translate('Refresh') ?>" onclick="location.reload(true);"/>
-          <input type="button" name="addBtn" value="<?php echo translate('AddNewMonitor') ?>" onclick="addMonitor( this )"/>
+              <input type="button" class="btn btn-primary" value="<?php echo translate('Refresh') ?>" onclick="location.reload(true);"/>
+              <input type="button" class="btn btn-primary" name="addBtn" value="<?php echo translate('AddNewMonitor') ?>" onclick="addMonitor( this )"/>
               <!-- <?php echo makePopupButton( '?view=monitor', 'zmMonitor0', 'monitor', translate('AddNewMonitor'), (canEdit( 'Monitors' ) && !$user['MonitorIds']) ) ?> -->
               <?php echo makePopupButton( '?view=filter&amp;filter[terms][0][attr]=DateTime&amp;filter[terms][0][op]=%3c&amp;filter[terms][0][val]=now', 'zmFilter', 'filter', translate('Filters'), canView( 'Events' ) ) ?>
             </td>
@@ -292,15 +183,16 @@ for ( $i = 0; $i < count($eventCounts); $i++ )
 }
 ?>
             <td class="colZones"><?php echo $zoneCount ?></td>
-            <td class="colRightButtons" colspan="<?php echo canEdit('Monitors')?2:1 ?>"><input type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editMonitor( this )" disabled="disabled"/><input type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteMonitor( this )" disabled="disabled"/></td>
+            <td><input class="btn btn-primary" type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editMonitor( this )" disabled="disabled"/></td>
+            <td><input class="btn btn-danger" type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteMonitor( this )" disabled="disabled"/></td>
           </tr>
         </tfoot>
         <tbody>
 <?php
-foreach( $displayMonitors as $monitor )
-{
+for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
+  $monitor = $displayMonitors[$monitor_i];
 ?>
-          <tr>
+          <tr title="<?php echo $monitor['Id'] ?>">
 <?php
     if ( !$monitor['zmc'] )
         $dclass = "errorText";
@@ -352,6 +244,12 @@ echo $Server->Name();
 <?php } else { ?>
             <td class="colSource">&nbsp;</td>
 <?php } ?>
+<?php if ( $show_storage_areas ) { ?>
+			<td class="colStorage"><?php 
+$Storage = new Storage( $monitor['StorageId'] );
+echo $Storage->Name();
+?></td>
+<?php } ?>
 <?php
     for ( $i = 0; $i < count($eventCounts); $i++ )
     {
@@ -365,19 +263,38 @@ echo $Server->Name();
     if ( canEdit('Monitors') )
     {
 ?>
-            <td class="colOrder"><?php echo makeLink( '?view='.$view.'&amp;action=sequence&amp;mid='.$monitor['Id'].'&amp;smid='.$seqIdUpList[$monitor['Id']], '<img src="'.$seqUpFile.'" alt="Up"/>', $monitor['Sequence']>$minSequence ) ?><?php echo makeLink( '?view='.$view.'&amp;action=sequence&amp;mid='.$monitor['Id'].'&amp;smid='.$seqIdDownList[$monitor['Id']], '<img src="'.$seqDownFile.'" alt="Down"/>', $monitor['Sequence']<$maxSequence ) ?></td>
+            <td class="colOrder">
+<?php 
+  if ( $monitor_i ) {
+    echo makeLink( '?view='.$view.'&amp;action=sequence&amp;mid='.$monitor['Id'].'&amp;smid='.$displayMonitors[$monitor_i-1]['Id'], '<img src="'.$seqUpFile.'" alt="Up"/>' );
+  } else {
+    echo '<img src="'.$seqUpFile.'" alt="Up"/>';
+  }
+  if ( $monitor_i<count($displayMonitors)-1 ) {
+    echo makeLink( '?view='.$view.'&amp;action=sequence&amp;mid='.$monitor['Id'].'&amp;smid='.$displayMonitors[$monitor_i+1]['Id'], '<img src="'.$seqDownFile.'" alt="Down"/>' );
+  } else {
+    echo '<img src="'.$seqDownFile.'" alt="Down"/>';
+  }
+?>
+            </td>
 <?php
     }
 ?>
             <td class="colMark"><input type="checkbox" name="markMids[]" value="<?php echo $monitor['Id'] ?>" onclick="setButtonStates( this )"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></td>
           </tr>
 <?php
-}
+} # end for eacho monitor
 ?>
         </tbody>
       </table>
     </div>
+
+
     </form>
-  </div>
+<?php
+if ( canEdit('System') ) {
+  include("skins/$skin/views/state.php");
+}
+?>
 </body>
 </html>

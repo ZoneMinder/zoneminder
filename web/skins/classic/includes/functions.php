@@ -76,8 +76,6 @@ function xhtmlHeaders( $file, $title )
   <script type="text/javascript" src="js/mootools.ext.js"></script>
   <script type="text/javascript" src="js/logger.js"></script>
   <script type="text/javascript" src="js/overlay.js"></script>
-  <script type="text/javascript" src="/skins/<?php echo $css; ?>/views/js/state.js.php"></script>
-  <script type="text/javascript" src="/skins/<?php echo $css; ?>/views/js/state.js"></script>
 <?php if ( $title == 'Login' && (defined('ZM_OPT_USE_GOOG_RECAPTCHA') && ZM_OPT_USE_GOOG_RECAPTCHA) ) { ?>
   <script src='https://www.google.com/recaptcha/api.js'></script>
 <?php }

@@ -47,7 +47,7 @@ xhtmlHeaders(__FILE__, translate('Groups') );
   <div id="page">
     <div id="content">
       <form name="groupsForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
-        <input type="hidden" name="view" value="none"/>
+        <input type="hidden" name="view" value="groups"/>
         <input type="hidden" name="action" value="setgroup"/>
         <table id="contentTable" class="major" cellspacing="0">
           <thead>
@@ -77,7 +77,6 @@ xhtmlHeaders(__FILE__, translate('Groups') );
           <input type="button" value="<?php echo translate('New') ?>" onclick="newGroup()"<?php echo canEdit('Groups')?'':' disabled="disabled"' ?>/>
           <input type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editGroup( this )"<?php echo $selected&&canEdit('Groups')?'':' disabled="disabled"' ?>/>
           <input type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteGroup( this )"<?php echo $selected&&canEdit('Groups')?'':' disabled="disabled"' ?>/>
-          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
         </div>
       </form>
     </div>

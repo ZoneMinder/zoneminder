@@ -169,6 +169,10 @@ noCacheHeaders();
 $seqUpFile = getSkinFile( 'graphics/seq-u.gif' );
 $seqDownFile = getSkinFile( 'graphics/seq-d.gif' );
 
+$left_columns = 3;
+if ( count($servers) ) $left_columns += 1;
+if ( ZM_WEB_ID_ON_CONSOLE ) $left_columns += 1;
+
 xhtmlHeaders( __FILE__, translate('Console') );
 ?>
 <body>
@@ -182,6 +186,9 @@ xhtmlHeaders( __FILE__, translate('Console') );
       <table class="table table-striped table-hover table-condensed">
         <thead>
           <tr>
+<?php if ( ZM_WEB_ID_ON_CONSOLE ) { ?>
+            <th class="colId"><?php echo translate('Id') ?></th>
+<?php } ?>
             <th class="colName"><?php echo translate('Name') ?></th>
             <th class="colFunction"><?php echo translate('Function') ?></th>
 <?php if ( count($servers) ) { ?>
@@ -210,7 +217,7 @@ if ( canEdit('Monitors') )
         </thead>
         <tfoot>
           <tr>
-            <td class="colLeftButtons" colspan="<?php echo count($servers) ? 4 : 3 ?>">
+            <td class="colLeftButtons" colspan="<?php echo $left_columns ?>">
               <input type="button" class="btn btn-primary" name="addBtn" value="<?php echo translate('AddNewMonitor') ?>" onclick="addMonitor( this );"/>
             </td>
 <?php
@@ -254,6 +261,9 @@ foreach( $displayMonitors as $monitor )
         $fclass .= " disabledText";
     $scale = max( reScale( SCALE_BASE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
 ?>
+<?php if ( ZM_WEB_ID_ON_CONSOLE ) { ?>
+            <td class="colId"><?php echo makePopupLink( '?view=watch&amp;mid='.$monitor['Id'], 'zmWatch'.$monitor['Id'], array( 'watch', reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ) ), $monitor['Id'], $running && ($monitor['Function'] != 'None') && canView( 'Stream' ) ) ?></td>
+<?php } ?>
             <td class="colName"><?php echo makePopupLink( '?view=watch&amp;mid='.$monitor['Id'], 'zmWatch'.$monitor['Id'], array( 'watch', reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ) ), $monitor['Name'], $running && ($monitor['Function'] != 'None') && canView( 'Stream' ) ) ?></td>
             <td class="colFunction"><?php echo makePopupLink( '?view=function&amp;mid='.$monitor['Id'], 'zmFunction', 'function', '<span class="'.$fclass.'">'.translate('Fn'.$monitor['Function']).( empty($monitor['Enabled']) ? ', disabled' : '' ) .'</span>', canEdit( 'Monitors' ) ) ?></td>
 <?php if ( count($servers) ) { ?>

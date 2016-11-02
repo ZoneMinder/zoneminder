@@ -2,47 +2,6 @@
 xhtmlHeaders(__FILE__, translate('Login') );
 ?>
 <body>
-<style>
-body {
-	background-color: #f8f8f8;
-}
-
-input[type="text"] {
-	margin-bottom: -1px;
-	border-bottom-right-radius: 0;
-	border-bottom-left-radius: 0;
-}
-
-input[type="password"] {
-	margin-bottom: 10px;
-	border-top-left-radius: 0;
-	border-top-right-radius: 0;
-}
-
-input[type="submit"] {
-	margin-top: 20px;
-}
-
-form {
-	max-width: 450px;
-	padding: 40px 60px;
-	margin: 15px auto;
-	border: 1px solid #e7e7e7;
-	background-color: #fff;
-	box-shadow: 0 0 6px 0 rgba(0,0,0,0.08);
-}
-
-.form-control {
-	height: 54px;
-}
-
-h1 {
-	font-size: 250%;
-	margin-top: 0;
-	margin-bottom: 15px;
-}
-
-</style>
 	<div class="container">
 		<form class="center-block" name="loginForm" id="loginForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
 			<input type="hidden" name="action" value="login"/>

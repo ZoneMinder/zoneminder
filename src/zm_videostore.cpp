@@ -404,8 +404,10 @@ Debug(2, "Have audio_output_context");
       }
     } // end if is AAC
 
+if ( audio_output_stream ) {
     if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
       audio_output_context->flags |= CODEC_FLAG_GLOBAL_HEADER;
+    }
     }
 
   } else {
@@ -668,7 +670,7 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
   Debug(4, "writeAudioFrame");
 
   if(!audio_output_stream) {
-    Error("Called writeAudioFramePacket when no audio_output_stream");
+    Debug(1, "Called writeAudioFramePacket when no audio_output_stream");
     return 0;//FIXME -ve return codes do not free packet in ffmpeg_camera at the moment
   }
   /*if(!keyframeMessage)

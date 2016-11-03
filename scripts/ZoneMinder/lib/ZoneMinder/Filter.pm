@@ -503,7 +503,7 @@ None by default.
 
 Mention other useful documentation such as the documentation of
 related modules or operating system documentation (such as man pages
-    in UNIX), or any relevant external documentation such as RFCs or
+in UNIX), or any relevant external documentation such as RFCs or
 standards.
 
 If you have a mailing list set up for your module, mention it here.
@@ -520,7 +520,7 @@ Copyright (C) 2001-2008  Philip Coombes
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.3 or,
-   at your option, any later version of Perl 5 you may have available.
+at your option, any later version of Perl 5 you may have available.
 
 
-   =cut
+=cut

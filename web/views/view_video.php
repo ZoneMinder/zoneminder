@@ -101,5 +101,5 @@ while( ! feof( $fh ) && $cur < $end && ( connection_status() == 0 ) ) {
   usleep(100);
 }
 
-fclose();
+fclose( $fh );
 exit();

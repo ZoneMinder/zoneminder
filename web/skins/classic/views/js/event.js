@@ -1,3 +1,5 @@
+var vid = null;
+
 function setButtonState( element, butClass )
 {
   if ( element ) {
@@ -214,7 +216,9 @@ function getEventResponse( respObj, respText )
         return;
 
     eventData = respObj.event;
-    if ( !$('eventStills').hasClass( 'hidden' ) && currEventId != eventData.Id )
+    var eventStills = $('eventStills');
+  
+    if ( eventStills && !$('eventStills').hasClass( 'hidden' ) && currEventId != eventData.Id )
         resetEventStills();
     currEventId = eventData.Id;
 
@@ -275,8 +279,10 @@ function getNearEventsResponse( respObj, respText )
     PrevEventDefVideoPath = respObj.nearevents.PrevEventDefVideoPath;
     NextEventDefVideoPath = respObj.nearevents.NextEventDefVideoPath;
 
-    $('prevEventBtn').disabled = !prevEventId;
-    $('nextEventBtn').disabled = !nextEventId;
+    var prevEventBtn = $('prevEventBtn');
+    if ( prevEventBtn ) prevEventBtn.disabled = !prevEventId;
+    var nextEventBtn = $('nextEventBtn');
+    if ( nextEventBtn ) nextEventBtn.disabled = !nextEventId;
 }
 
 var nearEventsReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getNearEventsResponse } );
@@ -859,7 +865,9 @@ function setupListener()
 
 function initPage() {
   //FIXME prevent blocking...not sure what is happening or best way to unblock
-  vid = videojs("videoobj");
+  if ( $('videoobj') ) {
+    vid = videojs("videoobj");
+  }
   if ( vid ) {
 /*
     setupListener();

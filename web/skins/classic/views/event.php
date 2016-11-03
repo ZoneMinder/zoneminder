@@ -153,10 +153,6 @@ if ( $Event->DefaultVideo() ) {
           </video>
         </div>
         <!--script>includeVideoJs();</script-->
-        <link href="//vjs.zencdn.net/4.11/video-js.css" rel="stylesheet">
-        <script src="//vjs.zencdn.net/4.11/video.js"></script>
-        <script src="./js/videojs.zoomrotate.js"></script>
-        <script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.10.6/moment.min.js"></script>
         <script>
         var LabelFormat = "<?php echo validJsStr($Monitor->LabelFormat())?>";
         var monitorName = "<?php echo validJsStr($Monitor->Name())?>";

@@ -94,10 +94,11 @@ flush();
 $cur = $begin;
 fseek( $fh, $begin, 0 );
 
-while( ! feof( $fh ) && $cur < $end && ( connection_status() == 0 ) ) {
-  #Error("Sending $cur");
-  print fread( $fh, min( 1024*16, $end - $cur ) );
-  $cur += 1024*16;
+while( $length && ( ! feof( $fh ) ) && ( connection_status() == 0 ) ) {
+  $amount = min( 1024*16, $length );
+
+  print fread( $fh, $amount );
+  $length -= $amount;
   usleep(100);
 }
 

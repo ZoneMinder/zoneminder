@@ -25,7 +25,7 @@ function changeScale() {
 		streamImg.style.width = newWidth + "px";
 		streamImg.style.height = newHeight + "px";
 	}
-  Cookie.write( 'zmEventScale'+eventData.monitorId, scale, { duration: 10*365 } );
+  Cookie.write( 'zmEventScale'+eventData.MonitorId, scale, { duration: 10*365 } );
 }
 
 function changeReplayMode()

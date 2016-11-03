@@ -58,7 +58,8 @@ if ( ! $fh ) {
 }
 
 $begin = 0;
-$end = $size;
+$end = $size-1;
+$length = $size;
 
 if ( isset( $_SERVER['HTTP_RANGE'] ) ) {
   Debug("Using Range " . $_SERVER['HTTP_RANGE'] );
@@ -67,23 +68,24 @@ if ( isset( $_SERVER['HTTP_RANGE'] ) ) {
     if ( ! empty( $matches[2]) ) {
       $end = intval( $matches[2] );
     }
-    Debug("Using Range $begin $end size: $size");
+    $length = $end - $begin + 1;
+    Debug("Using Range $begin $end size: $size, length: $length");
   }
 } # end if HTTP_RANGE
 
-if ( $begin > 0 || $end < $size ) {
+header('Content-type: video/mp4');
+header('Accept-Ranges: bytes');
+header('Content-Length: '.$length);
+header("Content-Disposition: inline;");
+if ( $begin > 0 || $end < $size-1 ) {
   header('HTTP/1.0 206 Partial Content');
+  header("Content-Range: bytes $begin-$end/$size");
+  header("Content-Transfer-Encoding: binary\n");
+  header('Connection: close');
 } else {
   header('HTTP/1.0 200 OK');
 }
 
-header('Content-type: video/mp4');
-header('Accept-Ranges: bytes');
-header('Content-Length:'.($end-$begin));
-header("Content-Disposition: inline;");
-header("Content-Range: bytes $begin-$end/$size");
-header("Content-Transfer-Encoding: binary\n");
-header('Connection: close');
 
 // Apparently without these we get a few extra bytes of output at the end...
 ob_clean();
@@ -98,3 +100,6 @@ while( ! feof( $fh ) && $cur < $end && ( connection_status() == 0 ) ) {
   $cur += 1024*16;
   usleep(100);
 }
+
+fclose();
+exit();

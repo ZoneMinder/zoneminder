@@ -27,13 +27,21 @@ if ( !canEdit( 'Monitors' ) )
 $cameras = array();
 $cameras[0] = translate('ChooseDetectedCamera');
 
+$profiles = array();
+$profiles[0] = translate('ChooseDetectedProfile');
 
-function execONVIF( $cmd )
-{
-  exec( escapeshellcmd(ZM_PATH_BIN . "/zmonvif-probe.pl $cmd"), $output, $status );
- 
-  if ( $status )
-    Fatal( "Unable to probe network cameras, status is '$status'" );
+function execONVIF( $cmd ) {
+  $shell_command = escapeshellcmd(ZM_PATH_BIN . "/zmonvif-probe.pl $cmd");
+
+  exec( $shell_command, $output, $status );
+
+  if ( $status ) {
+    $html_output = implode( '<br/>', $output );
+    Fatal( "Unable to probe network cameras, status is '$status'. Output was:<br/><br/>
+        $html_output<br/><br/>
+        Please the following command from a command line for more information:<br/><br/>$shell_command"
+        );
+  }
 
   return $output;
 }
@@ -216,9 +224,10 @@ if( !isset($_REQUEST['step']) || ($_REQUEST['step'] == "1")) {
 } 
 else if($_REQUEST['step'] == "2") 
 {
-  if ( empty($_REQUEST['probe']) || empty($_REQUEST['username']) || 
-       empty($_REQUEST['password']) )
-    Fatal("Internal error. Please re-open this page.");
+  if ( empty($_REQUEST['probe']) ) 
+    Fatal("No probe passed in request. Please go back and try again.");
+#|| empty($_REQUEST['username']) || 
+       #empty($_REQUEST['password']) )
     
   $probe = unserialize(base64_decode($_REQUEST['probe']));
   foreach ( $probe as $name=>$value )
@@ -248,11 +257,11 @@ else if($_REQUEST['step'] == "2")
        $monitor['Path'] = $profile['Path'];
 //       $sourceDesc = htmlspecialchars(serialize($monitor));
        $sourceDesc = base64_encode(serialize($monitor));
-       $cameras[$sourceDesc] = $sourceString;
+       $profiles[$sourceDesc] = $sourceString;
   }
 
-  if ( count($cameras) <= 0 )
-      $cameras[0] = translate('NoDetectedCameras');
+  if ( count($profiles) <= 0 )
+      $profiles[0] = translate('NoDetectedProfiles');
 
 ?>
 <body>
@@ -269,7 +278,7 @@ else if($_REQUEST['step'] == "2")
           <?php echo translate('ProfileProbeIntro') ?>
         </p>
         <p>
-          <label for="probe"><?php echo translate('DetectedProfiles') ?></label><?php echo buildSelect( "probe", $cameras, 'configureButtons( this )' ); ?>
+          <label for="probe"><?php echo translate('DetectedProfiles') ?></label><?php echo buildSelect( 'probe', $profiles, 'configureButtons( this )' ); ?>
         </p>
         <div id="contentButtons">
           <input type="button" name="prevBtn" value="<?php echo translate('Prev') ?>" onclick="gotoStep1( this )"/>

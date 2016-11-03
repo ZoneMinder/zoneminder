@@ -152,11 +152,13 @@ Image::Image( const Image &p_image )
   strncpy( text, p_image.text, sizeof(text) );
 }
 
-Image::~Image()
-{
+Image::~Image() {
   DumpImgBuffer();
-  if ( initialised )
-  {
+}
+
+/* Should be called as part of program shutdown to free everything */
+void Image::Deinitialise() {
+  if ( initialised ) {
 	  /*
     delete[] y_table;
     delete[] uv_table;
@@ -166,18 +168,24 @@ Image::~Image()
     delete[] b_u_table;
 	 */
     initialised = false;
-  }
-  if ( readjpg_dcinfo )
-  {
-    jpeg_destroy_decompress( readjpg_dcinfo );
-    delete readjpg_dcinfo;
-    readjpg_dcinfo = 0;
-  }
-  if ( decodejpg_dcinfo )
-  {
-    jpeg_destroy_decompress( decodejpg_dcinfo );
-    delete decodejpg_dcinfo;
-    decodejpg_dcinfo = 0;
+    if ( readjpg_dcinfo ) {
+      jpeg_destroy_decompress( readjpg_dcinfo );
+      delete readjpg_dcinfo;
+      readjpg_dcinfo = 0;
+    }
+    if ( decodejpg_dcinfo )
+    {
+      jpeg_destroy_decompress( decodejpg_dcinfo );
+      delete decodejpg_dcinfo;
+      decodejpg_dcinfo = 0;
+    }
+    for ( unsigned int quality=0; quality <= 100; quality += 1 ) {
+      if ( writejpg_ccinfo[quality] ) {
+        jpeg_destroy_compress( writejpg_ccinfo[quality] );
+        delete writejpg_ccinfo[quality];
+        writejpg_ccinfo[quality] = NULL;
+      }
+    } // end foreach quality
   }
 }
 
@@ -187,14 +195,14 @@ void Image::Initialise()
   if(config.fast_image_blends) {
     if(config.cpu_extensions && sseversion >= 20) {
       fptr_blend = &sse2_fastblend; /* SSE2 fast blend */
-      Debug(2,"Blend: Using SSE2 fast blend function");
+      Debug(4,"Blend: Using SSE2 fast blend function");
     } else {
       fptr_blend = &std_fastblend;  /* standard fast blend */
-      Debug(2,"Blend: Using fast blend function");
+      Debug(4,"Blend: Using fast blend function");
     }
   } else {
     fptr_blend = &std_blend;
-    Debug(2,"Blend: Using standard blend function");
+    Debug(4,"Blend: Using standard blend function");
   }
   
   __attribute__((aligned(16))) uint8_t blend1[16] = {142,255,159,91,88,227,0,52,37,80,152,97,104,252,90,82};
@@ -223,7 +231,7 @@ void Image::Initialise()
       fptr_delta8_argb = &ssse3_delta8_argb;
       fptr_delta8_abgr = &ssse3_delta8_abgr;
       fptr_delta8_gray8 = &sse2_delta8_gray8;
-      Debug(2,"Delta: Using SSSE3 delta functions");
+      Debug(4,"Delta: Using SSSE3 delta functions");
     } else if(sseversion >= 20) {
       /* SSE2 available */
       fptr_delta8_rgba = &sse2_delta8_rgba;
@@ -240,7 +248,7 @@ void Image::Initialise()
       // fptr_delta8_argb = &std_delta8_argb;
       // fptr_delta8_abgr = &std_delta8_abgr;
       fptr_delta8_gray8 = &sse2_delta8_gray8;
-      Debug(2,"Delta: Using SSE2 delta functions");
+      Debug(4,"Delta: Using SSE2 delta functions");
     } else {
       /* No suitable SSE version available */
       fptr_delta8_rgba = &std_delta8_rgba;
@@ -248,7 +256,7 @@ void Image::Initialise()
       fptr_delta8_argb = &std_delta8_argb;
       fptr_delta8_abgr = &std_delta8_abgr;
       fptr_delta8_gray8 = &std_delta8_gray8;
-      Debug(2,"Delta: Using standard delta functions");
+      Debug(4,"Delta: Using standard delta functions");
     }
   } else {
     /* CPU extensions disabled */
@@ -257,7 +265,7 @@ void Image::Initialise()
     fptr_delta8_argb = &std_delta8_argb;
     fptr_delta8_abgr = &std_delta8_abgr;
     fptr_delta8_gray8 = &std_delta8_gray8;
-    Debug(2,"Delta: CPU extensions disabled, using standard delta functions");
+    Debug(4,"Delta: CPU extensions disabled, using standard delta functions");
   }
   
   /* Use SSSE3 deinterlace functions? */
@@ -267,23 +275,23 @@ void Image::Initialise()
     fptr_deinterlace_4field_argb = &ssse3_deinterlace_4field_argb;
     fptr_deinterlace_4field_abgr = &ssse3_deinterlace_4field_abgr;
     fptr_deinterlace_4field_gray8 = &ssse3_deinterlace_4field_gray8;
-    Debug(2,"Deinterlace: Using SSSE3 delta functions");
+    Debug(4,"Deinterlace: Using SSSE3 delta functions");
   } else {
     fptr_deinterlace_4field_rgba = &std_deinterlace_4field_rgba;
     fptr_deinterlace_4field_bgra = &std_deinterlace_4field_bgra;
     fptr_deinterlace_4field_argb = &std_deinterlace_4field_argb;
     fptr_deinterlace_4field_abgr = &std_deinterlace_4field_abgr;
     fptr_deinterlace_4field_gray8 = &std_deinterlace_4field_gray8;
-    Debug(2,"Deinterlace: Using standard delta functions");
+    Debug(4,"Deinterlace: Using standard delta functions");
   }
   
   /* Use SSE2 aligned memory copy? */
   if(config.cpu_extensions && sseversion >= 20) {
     fptr_imgbufcpy = &sse2_aligned_memcpy;
-    Debug(2,"Image buffer copy: Using SSE2 aligned memcpy");
+    Debug(4,"Image buffer copy: Using SSE2 aligned memcpy");
   } else {
     fptr_imgbufcpy = &memcpy;
-    Debug(2,"Image buffer copy: Using standard memcpy");
+    Debug(4,"Image buffer copy: Using standard memcpy");
   }
   
   /* Code below relocated from zm_local_camera */

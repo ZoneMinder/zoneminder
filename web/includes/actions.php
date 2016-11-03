@@ -338,7 +338,9 @@ if ( !empty($action) )
             $monitor = dbFetchOne( "SELECT * FROM Monitors WHERE Id=?", NULL, array($mid) );
 
             $newFunction = validStr($_REQUEST['newFunction']);
-			$newEnabled = isset( $_REQUEST['newEnabled'] ) and $_REQUEST['newEnabled'] != "1" ? "0" : "1";
+            # Because we use a checkbox, it won't get passed in the request. So not being in _REQUEST means 0
+            $newEnabled = ( !isset( $_REQUEST['newEnabled'] ) or $_REQUEST['newEnabled'] != '1' ) ? '0' : '1';
+
             $oldFunction = $monitor['Function'];
             $oldEnabled = $monitor['Enabled'];
             if ( $newFunction != $oldFunction || $newEnabled != $oldEnabled )

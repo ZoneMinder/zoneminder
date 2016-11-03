@@ -1,4 +1,5 @@
 #!/usr/bin/perl -w
+use strict;
 #
 # ==========================================================================
 #
@@ -41,6 +42,7 @@ require WSDiscovery::TransportUDP;
 # Globals
 
 my $verbose = 0;
+my $soap_version = undef;
 my $client;
 
 # =========================================================================
@@ -171,61 +173,66 @@ sub discover
   my %services;
 
   my $uuid_gen = Data::UUID->new();
+ 
+  if ( ( ! $soap_version ) or ( $soap_version eq '1.1' ) ) {
 
-  if($verbose) {
-    print "Probing for SOAP 1.1\n"
-  }
-  my $svc_discover = WSDiscovery10::Interfaces::WSDiscovery::WSDiscoveryPort->new({ 
+    if($verbose) {
+      print "Probing for SOAP 1.1\n"
+    }
+    my $svc_discover = WSDiscovery10::Interfaces::WSDiscovery::WSDiscoveryPort->new({ 
 #    no_dispatch => '1',
-  });
-  $svc_discover->set_soap_version('1.1');
+        });
+    $svc_discover->set_soap_version('1.1');
 
-  my $uuid = $uuid_gen->create_str();
+    my $uuid = $uuid_gen->create_str();
 
-  my $result = $svc_discover->ProbeOp(
-    { # WSDiscovery::Types::ProbeType
-      Types => 'http://www.onvif.org/ver10/network/wsdl:NetworkVideoTransmitter http://www.onvif.org/ver10/device/wsdl:Device', # QNameListType
-      Scopes =>  { value => '' },
-    },
-    WSDiscovery10::Elements::Header->new({
-      Action => { value => 'http://schemas.xmlsoap.org/ws/2005/04/discovery/Probe' },
-      MessageID => { value => "urn:uuid:$uuid" }, 
-      To => { value => 'urn:schemas-xmlsoap-org:ws:2005:04:discovery' },
-    })
-  );
-#  print $result . "\n";
+    my $result = $svc_discover->ProbeOp(
+        { # WSDiscovery::Types::ProbeType
+        Types => 'http://www.onvif.org/ver10/network/wsdl:NetworkVideoTransmitter http://www.onvif.org/ver10/device/wsdl:Device', # QNameListType
+        Scopes =>  { value => '' },
+        },
+        WSDiscovery10::Elements::Header->new({
+          Action => { value => 'http://schemas.xmlsoap.org/ws/2005/04/discovery/Probe' },
+          MessageID => { value => "urn:uuid:$uuid" }, 
+          To => { value => 'urn:schemas-xmlsoap-org:ws:2005:04:discovery' },
+          })
+        );
+    print $result . "\n" if $verbose;
 
-  interpret_messages($svc_discover, \%services, @responses);
-  @responses = ();
+    interpret_messages($svc_discover, \%services, @responses);
+    @responses = ();
+  } # end if doing soap 1.1
 
-  if($verbose) {
-    print "Probing for SOAP 1.2\n"
-  }
-  $svc_discover = WSDiscovery10::Interfaces::WSDiscovery::WSDiscoveryPort->new({
+  if ( ( ! $soap_version ) or ( $soap_version eq '1.2' ) ) {
+    if($verbose) {
+      print "Probing for SOAP 1.2\n"
+    }
+    my $svc_discover = WSDiscovery10::Interfaces::WSDiscovery::WSDiscoveryPort->new({
 #    no_dispatch => '1',
-  });
-  $svc_discover->set_soap_version('1.2');
+        });
+    $svc_discover->set_soap_version('1.2');
 
-  # copies of the same Probe message must have the same MessageID. 
-  # This is not a copy. So we generate a new uuid.
-  $uuid = $uuid_gen->create_str();
+# copies of the same Probe message must have the same MessageID. 
+# This is not a copy. So we generate a new uuid.
+    my $uuid = $uuid_gen->create_str();
 
-  $result = $svc_discover->ProbeOp(
-    { # WSDiscovery::Types::ProbeType
-      xmlattr => { 'xmlns:dn'  => 'http://www.onvif.org/ver10/network/wsdl',
-                   'xmlns:tds' => 'http://www.onvif.org/ver10/device/wsdl', },
-      Types => 'dn:NetworkVideoTransmitter tds:Device', # QNameListType
-      Scopes =>  { value => '' },
-    },
-    WSDiscovery10::Elements::Header->new({
-      Action => { value => 'http://schemas.xmlsoap.org/ws/2005/04/discovery/Probe' },
-      MessageID => { value => "urn:uuid:$uuid" }, 
-      To => { value => 'urn:schemas-xmlsoap-org:ws:2005:04:discovery' },
-    })
-  );
-#  print $result . "\n";
+# Everyone else, like the nodejs onvif code and odm only ask for NetworkVideoTransmitter
+    my $result = $svc_discover->ProbeOp(
+        { # WSDiscovery::Types::ProbeType
+        xmlattr => { 'xmlns:dn'  => 'http://www.onvif.org/ver10/network/wsdl', },
+        Types => 'dn:NetworkVideoTransmitter', # QNameListType
+        Scopes =>  { value => '' },
+        },
+        WSDiscovery10::Elements::Header->new({
+          Action => { value => 'http://schemas.xmlsoap.org/ws/2005/04/discovery/Probe' },
+          MessageID => { value => "urn:uuid:$uuid" }, 
+          To => { value => 'urn:schemas-xmlsoap-org:ws:2005:04:discovery' },
+          })
+        );
+    print $result . "\n" if $verbose;
+    interpret_messages($svc_discover, \%services, @responses);
+  } # end if doing soap 1.2
 
-  interpret_messages($svc_discover, \%services, @responses);
 }
 
 
@@ -321,7 +328,7 @@ my $OPTIONS = "v";
 sub HELP_MESSAGE
 {
   my ($fh, $pkg, $ver, $opts) = @_;
-  print $fh "Usage: " . __FILE__ . " [-v] probe \n";
+  print $fh "Usage: " . __FILE__ . " [-v] probe <soap version>\n";
   print $fh "       " . __FILE__ . " [-v] <command> <device URI> <soap version> <user> <password>\n";
   print $fh  <<EOF
   Commands are:
@@ -359,14 +366,15 @@ if(!defined $action) {
 }
 
 if($action eq "probe") {
+  $soap_version = shift;
   discover();
 }
 else {
 # all other actions need URI and credentials
-  my $url_svc_device = shift;
-  my $soap_version = shift;
-  my $username = shift;
-  my $password = shift;
+  my $url_svc_device = shift @ARGV;
+  $soap_version = shift @ARGV;
+  my $username = @ARGV ? shift @ARGV : '';
+  my $password = @ARGV ? shift @ARGV: '';
 
   $client = ONVIF::Client->new( { 
       'url_svc_device' => $url_svc_device, 

@@ -32,8 +32,7 @@ function changeScale()
     var newWidth = ( monitorWidth * scale ) / SCALE_BASE;
     var newHeight = ( monitorHeight * scale ) / SCALE_BASE;
 
-    // This causes FF3 to kill the stream now, ok with FF2
-    //streamCmdScale( scale );
+    Cookie.write( 'zmWatchScale'+monitorId, scale, { duration: 10*365 } );
 
     /*Stream could be an applet so can't use moo tools*/ 
     var streamImg = document.getElementById('liveStream');

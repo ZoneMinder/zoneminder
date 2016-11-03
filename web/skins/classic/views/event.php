@@ -30,7 +30,7 @@ $Event = new Event( $eid );
 $Monitor = $Event->Monitor();
 if ( $user['MonitorIds'] ) {
   $monitor_ids = explode( ',', $user['MonitorIds'] );
-  if ( count($monitor_ids) and ! in_array( $Event->MonitorId(), $monitors_ids ) ) {
+  if ( count($monitor_ids) and ! in_array( $Event->MonitorId(), $monitor_ids ) ) {
     $view = 'error';
     return;
   }

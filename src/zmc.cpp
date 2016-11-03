@@ -344,10 +344,11 @@ int main( int argc, char *argv[] )
           }
         }
         gettimeofday( &(last_capture_times[i]), NULL );
-      }
-    }
+      } // end if next_delay <= min_delay || next_delays[i] <= 0 )
+
+    } // end foreach n_monitors
     sigprocmask( SIG_UNBLOCK, &block_set, 0 );
-  }
+  } // end while ! zm_terminate
   for ( int i = 0; i < n_monitors; i++ )
   {
     delete monitors[i];

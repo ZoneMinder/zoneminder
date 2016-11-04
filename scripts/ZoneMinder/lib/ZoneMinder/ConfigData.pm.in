@@ -2617,10 +2617,13 @@ body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% s
         default     => "yes",
         description => "Create analysed alarm images with motion outlined",
         help        => qqq("
-            When enabled, for all alert frames within an event, all
-            detected motion within zones that use blob as the 'Alarm
-            Check Method' will be outlined in red. Note that this will
-            incur some overhead.
+            By default during an alarm ZoneMinder records both the raw
+            captured image and one that has been analysed and had areas
+            where motion was detected outlined. This can be very useful
+            during zone configuration or in analysing why events occurred.
+            However it also incurs some overhead and in a stable system may
+            no longer be necessary. This parameter allows you to switch the
+            generation of these images off.
         "),
         type        => $types{boolean},
         category    => "config",

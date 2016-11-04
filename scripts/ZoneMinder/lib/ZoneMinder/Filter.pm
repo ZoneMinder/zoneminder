@@ -143,18 +143,15 @@ sub Execute {
 
   my $sql = $self->Sql();
 
-  if ( $self->{HasDiskPercent} )
-  {
+  if ( $self->{HasDiskPercent} ) {
     my $disk_percent = getDiskPercent();
     $sql =~ s/zmDiskPercent/$disk_percent/g;
   }
-  if ( $self->{HasDiskBlocks} )
-  {
+  if ( $self->{HasDiskBlocks} ) {
     my $disk_blocks = getDiskBlocks();
     $sql =~ s/zmDiskBlocks/$disk_blocks/g;
   }
-  if ( $self->{HasSystemLoad} )
-  {
+  if ( $self->{HasSystemLoad} ) {
     my $load = getLoad();
     $sql =~ s/zmSystemLoad/$load/g;
   }
@@ -162,8 +159,7 @@ sub Execute {
   my $sth = $$self{dbh}->prepare_cached( $sql )
     or Fatal( "Can't prepare '$sql': ".$$self{dbh}->errstr() );
   my $res = $sth->execute();
-  if ( !$res )
-  {
+  if ( !$res ) {
     Error( "Can't execute filter '$sql', ignoring: ".$sth->errstr() );
     return;
   }
@@ -300,103 +296,69 @@ sub Sql {
       } # end foreach term
     } # end if terms
 
-    if ( $self->{Sql} )
-    {
-      if ( $self->{AutoMessage} )
-      {
+    if ( $self->{Sql} ) {
+      if ( $self->{AutoMessage} ) {
 # Include all events, including events that are still ongoing
 # and have no EndTime yet
         $sql .= " and ( ".$self->{Sql}." )";
-      }
-      else
-      {
+      } else {
 # Only include closed events (events with valid EndTime)
         $sql .= " where not isnull(E.EndTime) and ( ".$self->{Sql}." )";
       }
     }
     my @auto_terms;
-    if ( $self->{AutoArchive} )
-    {
+    if ( $self->{AutoArchive} ) {
       push( @auto_terms, "E.Archived = 0" )
     }
-    if ( $self->{AutoVideo} )
-    {
+    if ( $self->{AutoVideo} ) {
       push( @auto_terms, "E.Videoed = 0" )
     }
-    if ( $self->{AutoUpload} )
-    {
+    if ( $self->{AutoUpload} ) {
       push( @auto_terms, "E.Uploaded = 0" )
     }
-    if ( $self->{AutoEmail} )
-    {
+    if ( $self->{AutoEmail} ) {
       push( @auto_terms, "E.Emailed = 0" )
     }
-    if ( $self->{AutoMessage} )
-    {
+    if ( $self->{AutoMessage} ) {
       push( @auto_terms, "E.Messaged = 0" )
     }
-    if ( $self->{AutoExecute} )
-    {
+    if ( $self->{AutoExecute} ) {
       push( @auto_terms, "E.Executed = 0" )
     }
-    if ( @auto_terms )
-    {
+    if ( @auto_terms ) {
       $sql .= " and ( ".join( " or ", @auto_terms )." )";
     }
-    if ( !$filter_expr->{sort_field} )
-    {
+    if ( !$filter_expr->{sort_field} ) {
       $filter_expr->{sort_field} = 'StartTime';
       $filter_expr->{sort_asc} = 0;
     }
     my $sort_column = '';
-    if ( $filter_expr->{sort_field} eq 'Id' )
-    {
+    if ( $filter_expr->{sort_field} eq 'Id' ) {
       $sort_column = "E.Id";
-    }
-    elsif ( $filter_expr->{sort_field} eq 'MonitorName' )
-    {
+    } elsif ( $filter_expr->{sort_field} eq 'MonitorName' ) {
       $sort_column = "M.Name";
-    }
-    elsif ( $filter_expr->{sort_field} eq 'Name' )
-    {
+    } elsif ( $filter_expr->{sort_field} eq 'Name' ) {
       $sort_column = "E.Name";
-    }
-    elsif ( $filter_expr->{sort_field} eq 'StartTime' )
-    {
+    } elsif ( $filter_expr->{sort_field} eq 'StartTime' ) {
       $sort_column = "E.StartTime";
-    }
-    elsif ( $filter_expr->{sort_field} eq 'Secs' )
-    {
+    } elsif ( $filter_expr->{sort_field} eq 'Secs' ) {
       $sort_column = "E.Length";
-    }
-    elsif ( $filter_expr->{sort_field} eq 'Frames' )
-    {
+    } elsif ( $filter_expr->{sort_field} eq 'Frames' ) {
       $sort_column = "E.Frames";
-    }
-    elsif ( $filter_expr->{sort_field} eq 'AlarmFrames' )
-    {
+    } elsif ( $filter_expr->{sort_field} eq 'AlarmFrames' ) {
       $sort_column = "E.AlarmFrames";
-    }
-    elsif ( $filter_expr->{sort_field} eq 'TotScore' )
-    {
+    } elsif ( $filter_expr->{sort_field} eq 'TotScore' ) {
       $sort_column = "E.TotScore";
-    }
-    elsif ( $filter_expr->{sort_field} eq 'AvgScore' )
-    {
+    } elsif ( $filter_expr->{sort_field} eq 'AvgScore' ) {
       $sort_column = "E.AvgScore";
-    }
-    elsif ( $filter_expr->{sort_field} eq 'MaxScore' )
-    {
+    } elsif ( $filter_expr->{sort_field} eq 'MaxScore' ) {
       $sort_column = "E.MaxScore";
-    }
-    else
-    {
+    } else {
       $sort_column = "E.StartTime";
     }
     my $sort_order = $filter_expr->{sort_asc}?"asc":"desc";
     $sql .= " order by ".$sort_column." ".$sort_order;
-    if ( $filter_expr->{limit} )
-    {
+    if ( $filter_expr->{limit} ) {
       $sql .= " limit 0,".$filter_expr->{limit};
     }
     Debug( "SQL:$sql\n" );
@@ -405,35 +367,31 @@ sub Sql {
   return $self->{Sql};
 } # end sub Sql
 
-sub getDiskPercent
-{
+sub getDiskPercent {
   my $command = "df .";
   my $df = qx( $command );
   my $space = -1;
-  if ( $df =~ /\s(\d+)%/ms )
-  {
+  if ( $df =~ /\s(\d+)%/ms ) {
     $space = $1;
   }
   return( $space );
 }
-sub getDiskBlocks
-{
+
+sub getDiskBlocks {
   my $command = "df .";
   my $df = qx( $command );
   my $space = -1;
-  if ( $df =~ /\s(\d+)\s+\d+\s+\d+%/ms )
-  {
+  if ( $df =~ /\s(\d+)\s+\d+\s+\d+%/ms ) {
     $space = $1;
   }
   return( $space );
 }
-sub getLoad
-{
+
+sub getLoad {
   my $command = "uptime .";
   my $uptime = qx( $command );
   my $load = -1;
-  if ( $uptime =~ /load average:\s+([\d.]+)/ms )
-  {
+  if ( $uptime =~ /load average:\s+([\d.]+)/ms ) {
     $load = $1;
     Info( "Load: $load" );
   }
@@ -443,8 +401,7 @@ sub getLoad
 #
 # More or less replicates the equivalent PHP function
 #
-sub strtotime
-{
+sub strtotime {
   my $dt_str = shift;
   return( Date::Manip::UnixDate( $dt_str, '%s' ) );
 }
@@ -452,20 +409,17 @@ sub strtotime
 #
 # More or less replicates the equivalent PHP function
 #
-sub str_repeat
-{
+sub str_repeat {
   my $string = shift;
   my $count = shift;
   return( ${string}x${count} );
 }
 
 # Formats a date into MySQL format
-sub DateTimeToSQL
-{
+sub DateTimeToSQL {
   my $dt_str = shift;
   my $dt_val = strtotime( $dt_str );
-  if ( !$dt_val )
-  {
+  if ( !$dt_val ) {
     Error( "Unable to parse date string '$dt_str'\n" );
     return( undef );
   }

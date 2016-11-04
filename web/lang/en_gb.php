@@ -518,6 +518,7 @@ $SLANG = array(
     'NewUser'               => 'New User',
     'Next'                  => 'Next',
     'NoDetectedCameras'     => 'No Detected Cameras',
+    'NoDetectedProfiles'    => 'No Detected Profiles',
     'NoFramesRecorded'      => 'There are no frames recorded for this event',
     'NoGroup'               => 'No Group',
     'NoneAvailable'         => 'None available',

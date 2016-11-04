@@ -88,7 +88,7 @@ sub load {
     if ( ! $data ) {
       Error( "Failure to load Filter record for $$self{Id}: Reason: " . $$self{dbh}->errstr );
     } else {
-      Debug( 3, "Loaded Filter $$self{Id}" );  
+      Debug( 3, "Loaded Filter $$self{Id}" );
     } # end if
   } # end if ! $data
   if ( $data and %$data ) {

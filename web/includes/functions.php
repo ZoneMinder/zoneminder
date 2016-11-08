@@ -2129,4 +2129,37 @@ function getStreamHTML( $monitor, $scale=100 ) {
     }
 } // end function getStreamHTML
 
+function check_timezone() {
+  $system_timezone = '';
+  if (is_link('/etc/localtime')) {
+    // /etc/localtime is a symlink to the 
+    // timezone in /usr/share/zoneinfo.
+    $filename = readlink('/etc/localtime');
+    if (strpos($filename, '/usr/share/zoneinfo/') === 0) {
+      $system_timezone = substr($filename, 20);
+    } elseif( strpos($filename, '/var/db/zoneinfo/') === 0) {
+      $system_timezone = substr($filename, 17);
+    }
+  } elseif (file_exists('/etc/timezone')) {
+    // Ubuntu / Debian.
+    $system_timezone = preg_replace( "/\r|\n/", '', file_get_contents('/etc/timezone') );
+  } elseif (file_exists('/etc/sysconfig/clock')) {
+    // RHEL / CentOS
+    $data = parse_ini_file('/etc/sysconfig/clock');
+    if (!empty($data['ZONE'])) {
+      $system_timezone = $data['ZONE'];
+    }
+  }
+
+  $php_timezone = ini_get('date.timezone');
+
+  // Check time zone is set
+  if (! $php_timezone || !date_default_timezone_set(ini_get('date.timezone'))) {
+    date_default_timezone_set('UTC');
+    Fatal( "ZoneMinder is not installed properly: php's date.timezone is not set to a valid timezone" );
+  } else if ( $system_timezone != $php_timezone ) {
+    Warning( "System timezone is set to $system_timezone, but php's is set to $php_timezone. This can cause weird problems." );
+  }
+}
+
 ?>

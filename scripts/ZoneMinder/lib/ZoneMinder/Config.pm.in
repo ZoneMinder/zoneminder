@@ -200,8 +200,7 @@ sub saveConfigToDB {
       $option->{db_requires} = join( ";",
           map {
             my $value = $_->{value};
-            $value = ($value eq "yes") ? 1 : 0;
-            if ( $options_hash{$_->{name}}->{db_type} eq "boolean" );
+            $value = ($value eq "yes") ? 1 : 0 if ( $options_hash{$_->{name}}->{db_type} eq "boolean" );
             ( "$_->{name}=$value" )
           } @$requires
           );

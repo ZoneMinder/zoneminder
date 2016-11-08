@@ -54,57 +54,57 @@ $primary_key = 'Id';
 use POSIX;
 
 sub Time {
-	if ( @_ > 1 ) {
-		$_[0]{Time} = $_[1];
-	}
-	if ( ! defined $_[0]{Time} ) {
+  if ( @_ > 1 ) {
+    $_[0]{Time} = $_[1];
+  }
+  if ( ! defined $_[0]{Time} ) {
 
-		$_[0]{Time} = Date::Parse::str2time( $_[0]{StartTime} );
-	}
-	return $_[0]{Time};
+    $_[0]{Time} = Date::Parse::str2time( $_[0]{StartTime} );
+  }
+  return $_[0]{Time};
 }
 
 sub Name {
-	if ( @_ > 1 ) {
-		$_[0]{Name} = $_[1];
-	}
-	return $_[0]{Name};
+  if ( @_ > 1 ) {
+    $_[0]{Name} = $_[1];
+  }
+  return $_[0]{Name};
 } # end sub Path
 
 sub find {
-	shift if $_[0] eq 'ZoneMinder::Event';
-	my %sql_filters = @_;
+  shift if $_[0] eq 'ZoneMinder::Event';
+  my %sql_filters = @_;
 
-	my $sql = 'SELECT * FROM Events';
-	my @sql_filters;
-	my @sql_values;
+  my $sql = 'SELECT * FROM Events';
+  my @sql_filters;
+  my @sql_values;
 
   if ( exists $sql_filters{Name} ) {
     push @sql_filters , ' Name = ? ';
     push @sql_values, $sql_filters{Name};
   }
 
-	$sql .= ' WHERE ' . join(' AND ', @sql_filters ) if @sql_filters;
-	$sql .= ' LIMIT ' . $sql_filters{limit} if $sql_filters{limit};
+  $sql .= ' WHERE ' . join(' AND ', @sql_filters ) if @sql_filters;
+  $sql .= ' LIMIT ' . $sql_filters{limit} if $sql_filters{limit};
 
   my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
     or Fatal( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
   my $res = $sth->execute( @sql_values )
     or Fatal( "Can't execute '$sql': ".$sth->errstr() );
 
-	my @results;
+  my @results;
 
-	while( my $db_filter = $sth->fetchrow_hashref() ) {
-		my $filter = new ZoneMinder::Event( $$db_filter{Id}, $db_filter );
-		push @results, $filter;
-	} # end while
+  while( my $db_filter = $sth->fetchrow_hashref() ) {
+    my $filter = new ZoneMinder::Event( $$db_filter{Id}, $db_filter );
+    push @results, $filter;
+  } # end while
   $sth->finish();
-	return @results;
+  return @results;
 }
 
 sub find_one {
-	my @results = find(@_);
-	return $results[0] if @results;
+  my @results = find(@_);
+  return $results[0] if @results;
 }
 
 sub getPath {
@@ -149,93 +149,93 @@ sub Path {
 }
 
 sub GenerateVideo {
-	my ( $self, $rate, $fps, $scale, $size, $overwrite, $format ) = @_;
+  my ( $self, $rate, $fps, $scale, $size, $overwrite, $format ) = @_;
 
-	my $event_path = $self->getPath( );
-	chdir( $event_path );
-	( my $video_name = $self->{Name} ) =~ s/\s/_/g;
+  my $event_path = $self->getPath( );
+  chdir( $event_path );
+  ( my $video_name = $self->{Name} ) =~ s/\s/_/g;
 
-	my @file_parts;
-	if ( $rate ) {
-		my $file_rate = $rate;
-		$file_rate =~ s/\./_/;
-		$file_rate =~ s/_00//;
-		$file_rate =~ s/(_\d+)0+$/$1/;
-		$file_rate = 'r'.$file_rate;
-		push( @file_parts, $file_rate );
-	} elsif ( $fps ) {
-		my $file_fps = $fps;
-		$file_fps =~ s/\./_/;
-		$file_fps =~ s/_00//;
-		$file_fps =~ s/(_\d+)0+$/$1/;
-		$file_fps = 'R'.$file_fps;
-		push( @file_parts, $file_fps );
-	}
+  my @file_parts;
+  if ( $rate ) {
+    my $file_rate = $rate;
+    $file_rate =~ s/\./_/;
+    $file_rate =~ s/_00//;
+    $file_rate =~ s/(_\d+)0+$/$1/;
+    $file_rate = 'r'.$file_rate;
+    push( @file_parts, $file_rate );
+  } elsif ( $fps ) {
+    my $file_fps = $fps;
+    $file_fps =~ s/\./_/;
+    $file_fps =~ s/_00//;
+    $file_fps =~ s/(_\d+)0+$/$1/;
+    $file_fps = 'R'.$file_fps;
+    push( @file_parts, $file_fps );
+  }
 
-	if ( $scale ) {
-		my $file_scale = $scale;
-		$file_scale =~ s/\./_/;
-		$file_scale =~ s/_00//;
-		$file_scale =~ s/(_\d+)0+$/$1/;
-		$file_scale = 's'.$file_scale;
-		push( @file_parts, $file_scale );
-	} elsif ( $size ) {
-		my $file_size = 'S'.$size;
-		push( @file_parts, $file_size );
-	}
-	my $video_file = "$video_name-".$file_parts[0]."-".$file_parts[1].".$format";
-	if ( $overwrite || !-s $video_file ) {
-		Info( "Creating video file $video_file for event $self->{Id}\n" );
+  if ( $scale ) {
+    my $file_scale = $scale;
+    $file_scale =~ s/\./_/;
+    $file_scale =~ s/_00//;
+    $file_scale =~ s/(_\d+)0+$/$1/;
+    $file_scale = 's'.$file_scale;
+    push( @file_parts, $file_scale );
+  } elsif ( $size ) {
+    my $file_size = 'S'.$size;
+    push( @file_parts, $file_size );
+  }
+  my $video_file = "$video_name-".$file_parts[0]."-".$file_parts[1].".$format";
+  if ( $overwrite || !-s $video_file ) {
+    Info( "Creating video file $video_file for event $self->{Id}\n" );
 
-		my $frame_rate = sprintf( "%.2f", $self->{Frames}/$self->{FullLength} );
-		if ( $rate ) {
-			if ( $rate != 1.0 ) {
-				$frame_rate *= $rate;
-			}
-		} elsif ( $fps ) {
-			$frame_rate = $fps;
-		}
+    my $frame_rate = sprintf( "%.2f", $self->{Frames}/$self->{FullLength} );
+    if ( $rate ) {
+      if ( $rate != 1.0 ) {
+        $frame_rate *= $rate;
+      }
+    } elsif ( $fps ) {
+      $frame_rate = $fps;
+    }
 
-		my $width = $self->{MonitorWidth};
-		my $height = $self->{MonitorHeight};
-		my $video_size = " ${width}x${height}";
+    my $width = $self->{MonitorWidth};
+    my $height = $self->{MonitorHeight};
+    my $video_size = " ${width}x${height}";
 
-		if ( $scale ) {
-			if ( $scale != 1.0 ) {
-				$width = int($width*$scale);
-				$height = int($height*$scale);
-				$video_size = " ${width}x${height}";
-			}
-		} elsif ( $size ) {
-			$video_size = $size;
-		}
-		my $command = $Config{ZM_PATH_FFMPEG}
-		." -y -r $frame_rate "
-			.$Config{ZM_FFMPEG_INPUT_OPTIONS}
-		.' -i ' . ( $$self{DefaultVideo} ? $$self{DefaultVideo} : '%0'.$Config{ZM_EVENT_IMAGE_DIGITS} .'d-capture.jpg' )
+    if ( $scale ) {
+      if ( $scale != 1.0 ) {
+        $width = int($width*$scale);
+        $height = int($height*$scale);
+        $video_size = " ${width}x${height}";
+      }
+    } elsif ( $size ) {
+      $video_size = $size;
+    }
+    my $command = $Config{ZM_PATH_FFMPEG}
+    ." -y -r $frame_rate "
+      .$Config{ZM_FFMPEG_INPUT_OPTIONS}
+    .' -i ' . ( $$self{DefaultVideo} ? $$self{DefaultVideo} : '%0'.$Config{ZM_EVENT_IMAGE_DIGITS} .'d-capture.jpg' )
 #. " -f concat -i /tmp/event_files.txt"
-			." -s $video_size "
-			.$Config{ZM_FFMPEG_OUTPUT_OPTIONS}
-		." '$video_file' > ffmpeg.log 2>&1"
-			;
-		Debug( $command."\n" );
-		my $output = qx($command);
+      ." -s $video_size "
+      .$Config{ZM_FFMPEG_OUTPUT_OPTIONS}
+    ." '$video_file' > ffmpeg.log 2>&1"
+      ;
+    Debug( $command."\n" );
+    my $output = qx($command);
 
-		my $status = $? >> 8;
-		if ( $status ) {
-			Error( "Unable to generate video, check "
-					.$event_path."/ffmpeg.log for details"
-				 );
-			return;
-		}
+    my $status = $? >> 8;
+    if ( $status ) {
+      Error( "Unable to generate video, check "
+          .$event_path."/ffmpeg.log for details"
+          );
+      return;
+    }
 
-		Info( "Finished $video_file\n" );
-		return $event_path.'/'.$video_file;
-	} else {
-		Info( "Video file $video_file already exists for event $self->{Id}\n" );
-		return $event_path.'/'.$video_file;
-	}
-	return;	
+    Info( "Finished $video_file\n" );
+    return $event_path.'/'.$video_file;
+  } else {
+    Info( "Video file $video_file already exists for event $self->{Id}\n" );
+    return $event_path.'/'.$video_file;
+  }
+  return;  
 } # end sub GenerateVideo
 
 sub delete {
@@ -297,12 +297,12 @@ sub delete_files {
       ( $link_path ) = ( $links[0] =~ /^(.*)$/ ); # De-taint
 #Debug( "LP2:$link_path" );
 
-      ( my $day_path = $link_path ) =~ s/\.\d+//;
+        ( my $day_path = $link_path ) =~ s/\.\d+//;
 #Debug( "DP:$day_path" );
       my $event_path = $day_path.readlink( $link_path );
       ( $event_path ) = ( $event_path =~ /^(.*)$/ ); # De-taint
 #Debug( "EP:$event_path" );
-      my $command = "/bin/rm -rf $event_path";
+        my $command = "/bin/rm -rf $event_path";
 #Debug( "C:$command" );
       ZoneMinder::General::executeShellCommand( $command );
 
@@ -329,10 +329,10 @@ sub delete_files {
 } # end sub delete_files
 
 sub Storage {
-	return new ZoneMinder::Storage( $_[0]{StorageId} );
+  return new ZoneMinder::Storage( $_[0]{StorageId} );
 }
 sub check_for_in_filesystem {
-	my $path = $_[0]->Path();
+  my $path = $_[0]->Path();
   if ( $path ) {
     my @files = glob( $path . '/*' );
     return 1 if @files;
@@ -357,8 +357,8 @@ ZoneMinder::Database - Perl extension for blah blah blah
 
 =head1 SYNOPSIS
 
-  use ZoneMinder::Event;
-  blah blah blah
+use ZoneMinder::Event;
+blah blah blah
 
 =head1 DESCRIPTION
 

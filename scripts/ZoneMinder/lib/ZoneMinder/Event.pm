@@ -235,7 +235,7 @@ sub GenerateVideo {
     Info( "Video file $video_file already exists for event $self->{Id}\n" );
     return $event_path.'/'.$video_file;
   }
-  return;  
+  return;
 } # end sub GenerateVideo
 
 sub delete {

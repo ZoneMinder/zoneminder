@@ -45,17 +45,17 @@ our $AUTOLOAD;
 
 sub new
 {
-    my $class = shift;
-    my $id = shift;
-    my $self = {};
-    $self->{name} = "PelcoD";
-    if ( !defined($id) )
-    {
-        Fatal( "No monitor defined when invoking protocol ".$self->{name} );
-    }
-    $self->{id} = $id;
-    bless( $self, $class );
-    return $self;
+  my $class = shift;
+  my $id = shift;
+  my $self = {};
+  $self->{name} = "PelcoD";
+  if ( !defined($id) )
+  {
+    Fatal( "No monitor defined when invoking protocol ".$self->{name} );
+  }
+  $self->{id} = $id;
+  bless( $self, $class );
+  return $self;
 }
 
 sub DESTROY
@@ -64,91 +64,91 @@ sub DESTROY
 
 sub AUTOLOAD
 {
-    my $self = shift;
-    my $class = ref($self) || croak( "$self not object" );
-    my $name = $AUTOLOAD;
-    $name =~ s/.*://;
-    if ( exists($self->{$name}) )
-    {
-        return( $self->{$name} );
-    }
-    croak( "Can't access $name member of object of class $class" );
+  my $self = shift;
+  my $class = ref($self) || croak( "$self not object" );
+  my $name = $AUTOLOAD;
+  $name =~ s/.*://;
+  if ( exists($self->{$name}) )
+  {
+    return( $self->{$name} );
+  }
+  croak( "Can't access $name member of object of class $class" );
 }
 
 sub getKey
 {
-    my $self = shift;
-    return( $self->{id} );
+  my $self = shift;
+  return( $self->{id} );
 }
 
 sub open
 {
-    my $self = shift;
-    Fatal( "No open method defined for protocol ".$self->{name} );
+  my $self = shift;
+  Fatal( "No open method defined for protocol ".$self->{name} );
 }
 
 sub close
 {
-    my $self = shift;
-    Fatal( "No close method defined for protocol ".$self->{name} );
+  my $self = shift;
+  Fatal( "No close method defined for protocol ".$self->{name} );
 }
 
 sub loadMonitor
 {
-    my $self = shift;
-    if ( !$self->{Monitor} )
+  my $self = shift;
+  if ( !$self->{Monitor} )
+  {
+    if ( !($self->{Monitor} = zmDbGetMonitor( $self->{id} )) )
     {
-        if ( !($self->{Monitor} = zmDbGetMonitor( $self->{id} )) )
-        {
-            Fatal( "Monitor id ".$self->{id}." not found or not controllable" );
-        }
-        if ( defined($self->{Monitor}->{AutoStopTimeout}) )
-        {
-            # Convert to microseconds.
-            $self->{Monitor}->{AutoStopTimeout} = int(1000000*$self->{Monitor}->{AutoStopTimeout});
-        }
+      Fatal( "Monitor id ".$self->{id}." not found or not controllable" );
     }
+    if ( defined($self->{Monitor}->{AutoStopTimeout}) )
+    {
+# Convert to microseconds.
+      $self->{Monitor}->{AutoStopTimeout} = int(1000000*$self->{Monitor}->{AutoStopTimeout});
+    }
+  }
 }
 
 sub getParam
 {
-    my $self = shift;
-    my $params = shift;
-    my $name = shift;
-    my $default = shift;
+  my $self = shift;
+  my $params = shift;
+  my $name = shift;
+  my $default = shift;
 
-    if ( defined($params->{$name}) )
-    {
-        return( $params->{$name} );
-    }
-    elsif ( defined($default) )
-    {
-        return( $default );
-    }
-    Fatal( "Missing mandatory parameter '$name'" );
+  if ( defined($params->{$name}) )
+  {
+    return( $params->{$name} );
+  }
+  elsif ( defined($default) )
+  {
+    return( $default );
+  }
+  Fatal( "Missing mandatory parameter '$name'" );
 }
 
 sub executeCommand
 {
-    my $self = shift;
-    my $params = shift;
+  my $self = shift;
+  my $params = shift;
 
-    $self->loadMonitor();
+  $self->loadMonitor();
 
-    my $command = $params->{command};
-    delete $params->{command};
+  my $command = $params->{command};
+  delete $params->{command};
 
-    #if ( !defined($self->{$command}) )
-    #{
-        #Fatal( "Unsupported command '$command'" );
-    #}
-    &{$self->{$command}}( $self, $params );
+#if ( !defined($self->{$command}) )
+#{
+#Fatal( "Unsupported command '$command'" );
+#}
+  &{$self->{$command}}( $self, $params );
 }
 
 sub printMsg
 {
-    my $self = shift;
-    Fatal( "No printMsg method defined for protocol ".$self->{name} );
+  my $self = shift;
+  Fatal( "No printMsg method defined for protocol ".$self->{name} );
 }
 
 1;
@@ -161,8 +161,8 @@ ZoneMinder::Database - Perl extension for blah blah blah
 
 =head1 SYNOPSIS
 
-  use ZoneMinder::Database;
-  blah blah blah
+use ZoneMinder::Database;
+blah blah blah
 
 =head1 DESCRIPTION
 

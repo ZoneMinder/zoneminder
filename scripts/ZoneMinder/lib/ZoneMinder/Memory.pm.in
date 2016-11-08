@@ -77,8 +77,8 @@ our %EXPORT_TAGS = (
       zmMonitorResume
       zmTriggerEventOn
       zmTriggerEventOff
-    zmTriggerEventCancel
-    zmTriggerShowtext
+      zmTriggerEventCancel
+      zmTriggerShowtext
     ) ],
     );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
@@ -927,7 +927,7 @@ harmless, extreme care must be taken when writing to mapped memory,
 especially in the shared_data section as this is normally written to only
 by monitor capture and analysis processes.
 
-shared_data         The general mapped memory section
+shared_data       The general mapped memory section
 size              The size, in bytes, of this section
 valid             Flag indicating whether this section has been initialised
 active            Flag indicating whether this monitor is active (enabled/disabled)
@@ -946,7 +946,7 @@ contrast          Read/write location for the current monitor contrast
 alarm_x           Image x co-ordinate (from left) of the centre of the last motion event, -1 if none
 alarm_y           Image y co-ordinate (from top) of the centre of the last motion event, -1 if none
 
-trigger_data        The triggered event mapped memory section
+trigger_data      The triggered event mapped memory section
 size              The size, in bytes of this section
 trigger_state     The current trigger state, see the TRIGGER constants below
 trigger_score     The current triggered event score

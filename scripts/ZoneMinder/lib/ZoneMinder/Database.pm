@@ -42,13 +42,13 @@ our @ISA = qw(Exporter ZoneMinder::Base);
 # will save memory.
 our %EXPORT_TAGS = (
     'functions' => [ qw(
-        zmDbConnect
-        zmDbDisconnect
-        zmDbGetMonitors
-        zmDbGetMonitor
-        zmDbGetMonitorAndControl
-    ) ]
-);
+      zmDbConnect
+      zmDbDisconnect
+      zmDbGetMonitors
+      zmDbGetMonitor
+      zmDbGetMonitorAndControl
+      ) ]
+    );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
 
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
@@ -192,8 +192,8 @@ ZoneMinder::Database - Perl extension for blah blah blah
 
 =head1 SYNOPSIS
 
-  use ZoneMinder::Database;
-  blah blah blah
+use ZoneMinder::Database;
+blah blah blah
 
 =head1 DESCRIPTION
 

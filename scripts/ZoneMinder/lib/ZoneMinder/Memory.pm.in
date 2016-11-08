@@ -386,7 +386,7 @@ sub zmMemWrite {
 
   while ( my ( $field, $value ) = each( %$field_values ) ) {
     my ( $section, $element ) = split( /[\/:.]/, $field );
-    if ( !$section || !$element ); {
+    if ( !$section || !$element ) {
       Fatal( "Invalid shared data selector '$field'" );
     }
 

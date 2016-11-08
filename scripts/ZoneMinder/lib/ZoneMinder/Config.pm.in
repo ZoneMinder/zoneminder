@@ -46,14 +46,14 @@ our @EXPORT_CONFIG = qw( %Config ); # Get populated by BEGIN
 
 our %EXPORT_TAGS = (
     functions => [ qw(
-        zmConfigLoad
-        loadConfigFromDB
-        saveConfigToDB
-    ) ],
+      zmConfigLoad
+      loadConfigFromDB
+      saveConfigToDB
+      ) ],
     constants => [ qw(
-        ZM_PID
-    ) ]
-);
+      ZM_PID
+      ) ]
+    );
 push( @{$EXPORT_TAGS{config}}, @EXPORT_CONFIG );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
 
@@ -71,69 +71,69 @@ use Carp;
 # Load the config from the database into the symbol table
 BEGIN
 {
-    my $config_file = ZM_CONFIG;
-    open( my $CONFIG, "<", $config_file )
-        or croak( "Can't open config file '$config_file': $!" );
-    foreach my $str ( <$CONFIG> )
-    {
-        next if ( $str =~ /^\s*$/ );
-        next if ( $str =~ /^\s*#/ );
-        my ( $name, $value ) = $str =~ /^\s*([^=\s]+)\s*=\s*(.*?)\s*$/;
-        if ( ! $name ) {
-            print( STDERR "Warning, bad line in $config_file: $str\n" );
-            next;
-        } # end if
-        $name =~ tr/a-z/A-Z/;
-        $Config{$name} = $value;
-    }
-    close( $CONFIG );
+  my $config_file = ZM_CONFIG;
+  open( my $CONFIG, "<", $config_file )
+    or croak( "Can't open config file '$config_file': $!" );
+  foreach my $str ( <$CONFIG> )
+  {
+    next if ( $str =~ /^\s*$/ );
+    next if ( $str =~ /^\s*#/ );
+    my ( $name, $value ) = $str =~ /^\s*([^=\s]+)\s*=\s*(.*?)\s*$/;
+    if ( ! $name ) {
+      print( STDERR "Warning, bad line in $config_file: $str\n" );
+      next;
+    } # end if
+    $name =~ tr/a-z/A-Z/;
+    $Config{$name} = $value;
+  }
+  close( $CONFIG );
 
-    use DBI;
-    my $socket;
-    my ( $host, $portOrSocket ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
+  use DBI;
+  my $socket;
+  my ( $host, $portOrSocket ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
 
-    if ( defined($portOrSocket) )
+  if ( defined($portOrSocket) )
+  {
+    if ( $portOrSocket =~ /^\// )
     {
-        if ( $portOrSocket =~ /^\// )
-        {
-            $socket = ";mysql_socket=".$portOrSocket;
-        }
-        else
-        {
-            $socket = ";host=".$host.";port=".$portOrSocket;
-        }
+      $socket = ";mysql_socket=".$portOrSocket;
     }
     else
     {
-        $socket = ";host=".$Config{ZM_DB_HOST}; 
+      $socket = ";host=".$host.";port=".$portOrSocket;
     }
-    my $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
-                           .$socket
-                           , $Config{ZM_DB_USER}
-                           , $Config{ZM_DB_PASS}
-    ) or croak( "Can't connect to db" );
-    my $sql = 'select * from Config';
-    my $sth = $dbh->prepare_cached( $sql ) or croak( "Can't prepare '$sql': ".$dbh->errstr() );
-    my $res = $sth->execute() or croak( "Can't execute: ".$sth->errstr() );
-    while( my $config = $sth->fetchrow_hashref() ) {
-        $Config{$config->{Name}} = $config->{Value};
+  }
+  else
+  {
+    $socket = ";host=".$Config{ZM_DB_HOST}; 
+  }
+  my $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
+      .$socket
+      , $Config{ZM_DB_USER}
+      , $Config{ZM_DB_PASS}
+      ) or croak( "Can't connect to db" );
+  my $sql = 'select * from Config';
+  my $sth = $dbh->prepare_cached( $sql ) or croak( "Can't prepare '$sql': ".$dbh->errstr() );
+  my $res = $sth->execute() or croak( "Can't execute: ".$sth->errstr() );
+  while( my $config = $sth->fetchrow_hashref() ) {
+    $Config{$config->{Name}} = $config->{Value};
+  }
+  $sth->finish();
+#$dbh->disconnect();
+  if ( ! exists $Config{ZM_SERVER_ID} ) {
+    $Config{ZM_SERVER_ID} = undef;
+    $sth = $dbh->prepare_cached( 'SELECT * FROM Servers WHERE Name=?' );
+    if ( $Config{ZM_SERVER_NAME} ) {
+      $res = $sth->execute( $Config{ZM_SERVER_NAME} );
+      my $result = $sth->fetchrow_hashref();
+      $Config{ZM_SERVER_ID} = $$result{Id};
+    } elsif ( $Config{ZM_SERVER_HOST} ) {
+      $res = $sth->execute( $Config{ZM_SERVER_HOST} );
+      my $result = $sth->fetchrow_hashref();
+      $Config{ZM_SERVER_ID} = $$result{Id};
     }
     $sth->finish();
-    #$dbh->disconnect();
-    if ( ! exists $Config{ZM_SERVER_ID} ) {
-      $Config{ZM_SERVER_ID} = undef;
-      $sth = $dbh->prepare_cached( 'SELECT * FROM Servers WHERE Name=?' );
-      if ( $Config{ZM_SERVER_NAME} ) {
-        $res = $sth->execute( $Config{ZM_SERVER_NAME} );
-        my $result = $sth->fetchrow_hashref();
-        $Config{ZM_SERVER_ID} = $$result{Id};
-      } elsif ( $Config{ZM_SERVER_HOST} ) {
-        $res = $sth->execute( $Config{ZM_SERVER_HOST} );
-        my $result = $sth->fetchrow_hashref();
-        $Config{ZM_SERVER_ID} = $$result{Id};
-      }
-      $sth->finish();
-    }
+  }
 }
 
 sub loadConfigFromDB {
@@ -315,7 +315,7 @@ Copyright (C) 2001-2008  Philip Coombes
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.3 or,
-   at your option, any later version of Perl 5 you may have available.
+at your option, any later version of Perl 5 you may have available.
 
 
-   =cut
+=cut

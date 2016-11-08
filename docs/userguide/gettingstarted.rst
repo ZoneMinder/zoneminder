@@ -16,7 +16,7 @@ We strongly recommend enabling authentication right away. There are some situati
 .. image:: images/getting-started-enable-auth.png
 
 * The relevant portions to change are marked in red above
-* Enable OPT_USE_ATH - this automatically switches to authentication mode with a default user (more on that later)
+* Enable OPT_USE_AUTH - this automatically switches to authentication mode with a default user (more on that later)
 * Select a random string for AUTH_HASH_SECRET - this is used to make the authentication logic more secure, so 
   please generate your own string and please don't use the same value in the example.
 * The other options highlighed above should already be set, but if not, please make sure they are

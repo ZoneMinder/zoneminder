@@ -41,10 +41,14 @@ if ( isset( $_REQUEST['rate'] ) )
     $rate = validInt($_REQUEST['rate']);
 else
     $rate = reScale( RATE_BASE, $event['DefaultRate'], ZM_WEB_DEFAULT_RATE );
-if ( isset( $_REQUEST['scale'] ) )
-    $scale = validInt($_REQUEST['scale']);
-else
-    $scale = reScale( SCALE_BASE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+
+if ( isset( $_REQUEST['scale'] ) ) {
+  $scale = validInt($_REQUEST['scale']);
+} else if ( isset( $_COOKIE['zmEventScale'.$event['MonitorId']] ) ) {
+  $scale = $_COOKIE['zmEventScale'.$event['MonitorId']];
+} else {
+  $scale = reScale( SCALE_BASE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+}
 
 $replayModes = array(
     'single' => translate('ReplaySingle'),

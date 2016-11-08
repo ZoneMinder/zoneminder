@@ -30,7 +30,7 @@ This is the recommended method to install ZoneMinder onto your system. ZoneMinde
 - RHEL/CentOS and clones via [zmrepo](http://zmrepo.zoneminder.com/)
 - Fedora via [zmrepo](http://zmrepo.zoneminder.com/)
 - OpenSuse via [third party repository](http://www.zoneminder.com/wiki/index.php/Installing_using_ZoneMinder_RPMs_for_SuSE)
-- Maegia from their default repository
+- Mageia from their default repository
 
 If a repository that hosts ZoneMinder packages is not available for your distro, then you are encouraged to build your own package, rather than build from source.  While each distro is different in ways that set it apart from all the others, they are often similar enough to allow you to adapt another distro's package building instructions to your own.
 

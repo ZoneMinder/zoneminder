@@ -697,7 +697,7 @@ switch ( $tab )
         foreach ( getEnumValues( 'Monitors', 'Function' ) as $optFunction )
         {
 ?>
-              <option value="<?php echo $optFunction ?>"<?php if ( $optFunction == $newMonitor['Function'] ) { ?> selected="selected"<?php } ?>><?php echo $optFunction ?></option>
+              <option value="<?php echo $optFunction ?>"<?php if ( $optFunction == $newMonitor['Function'] ) { ?> selected="selected"<?php } ?>><?php echo translate('Fn'.$optFunction) ?></option>
 <?php
         }
 ?>

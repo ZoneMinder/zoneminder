@@ -71,7 +71,7 @@ class DATABASE_CONFIG {
 		'password' => ZM_DB_PASS,
 		'database' => ZM_DB_NAME,
 		'prefix' => '',
-		//'encoding' => 'utf8',
+		'encoding' => 'utf8',
 	);
 
 	public $test = array(

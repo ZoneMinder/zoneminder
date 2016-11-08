@@ -69,8 +69,8 @@ class Frame {
 
   }
 
-  public function getImageSrc( ) {
-    return $_SERVER['PHP_SELF'].'?view=image&fid='.$this->{'Id'};
+  public function getImageSrc( $show='capture' ) {
+    return $_SERVER['PHP_SELF'].'?view=image&fid='.$this->{'Id'}.'&show='.$show;;
   } // end function getImageSrc
 
 	public static function find( $parameters = array(), $limit = NULL ) {

@@ -544,6 +544,28 @@ function makePopupButton( $url, $winName, $winSize, $buttonValue, $condition=1, 
   return( $string );
 }
 
+function htmlSelect( $name, $contents, $values, $behaviours=false ) {
+
+  $behaviourText = "";
+  if ( !empty($behaviours) ) {
+    if ( is_array($behaviours) ) {
+      foreach ( $behaviours as $event=>$action ) {
+        $behaviourText .= ' '.$event.'="'.$action.'"';
+      }
+    } else {
+      $behaviourText = ' onchange="'.$behaviours.'"';
+    }
+  }
+
+  $html = "<select name=\"$name\" id=\"$name\"$behaviourText>";
+  foreach ( $contents as $value=>$text ) {
+    $selected = is_array( $values ) ? in_array( $value, $values ) : $value==$values;
+    $html .= "<option value=\"$value\"".($selected?" selected=\"selected\"":'').">$text</option>";
+  }
+  $html .= "</select>";
+  return $html;
+}
+
 function truncText( $text, $length, $deslash=1 ) {       
   return( preg_replace( "/^(.{".$length.",}?)\b.*$/", "\\1&hellip;", ($deslash?stripslashes($text):$text) ) );       
 }               
@@ -840,10 +862,10 @@ function zmcControl( $monitor, $mode=false ) {
 }
 
 function zmaControl( $monitor, $mode=false ) {
+  if ( !is_array( $monitor ) ) {
+    $monitor = dbFetchOne( "select C.*, M.* from Monitors as M left join Controls as C on (M.ControlId = C.Id ) where M.Id=?", NULL, array($monitor) );
+  }
   if ( (!defined('ZM_SERVER_ID')) or ( ZM_SERVER_ID==$monitor['ServerId'] ) ) {
-    if ( !is_array( $monitor ) ) {
-      $monitor = dbFetchOne( "select C.*, M.* from Monitors as M left join Controls as C on (M.ControlId = C.Id ) where M.Id=?", NULL, array($monitor) );
-    }
     if ( !$monitor || $monitor['Function'] == 'None' || $monitor['Function'] == 'Monitor' || $mode == "stop" ) {
       if ( ZM_OPT_CONTROL ) {
         daemonControl( "stop", "zmtrack.pl", "-m ".$monitor['Id'] );
@@ -873,7 +895,7 @@ function zmaControl( $monitor, $mode=false ) {
         daemonControl( "reload", "zma", "-m ".$monitor['Id'] );
       }
     }
-  }
+  } // end if we are on the recording server
 }
 
 function initDaemonStatus() {

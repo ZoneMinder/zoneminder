@@ -65,14 +65,12 @@ use Carp;
 
 our $configInitialised = 0;
 
-sub INIT
-{
+sub INIT {
   initialiseConfig();
 }
 
 # Types
-our %types = 
-(
+our %types = (
   string => {
     db_type     => "string",
     hint        => "string",
@@ -270,7 +268,7 @@ our @options = (
       db_type     => "string",
       hint        => "hashed|plain|none",
       pattern     => qr|^([hpn])|i,
-      format      => q( ($1 =~ /^h/) ? "hashed" : ($1 =~ /^p/ ? "plain" : "none" ))
+      format      => q( ($1 =~ /^h/) ? "hashed" : ($1 =~ /^p/ ? "plain" : "none" ) )
     },
     category    => "system",
   },
@@ -3897,21 +3895,16 @@ our %options_hash = map { ( $_->{name}, $_ ) } @options;
 
 # This function should never need to be called explicitly, except if 
 # this module is 'require'd rather than 'use'd. See zmconfgen.pl.
-sub initialiseConfig
-{
+sub initialiseConfig {
   return if ( $configInitialised );
 
 # Do some initial data munging to finish the data structures
 # Create option ids
   my $option_id = 0;
-  foreach my $option ( @options )
-  {
-    if ( defined($option->{default}) )
-    {
+  foreach my $option ( @options ) {
+    if ( defined($option->{default}) ) {
       $option->{value} = $option->{default}
-    }
-    else
-    {
+    } else {
       $option->{value} = '';
     }
 #next if ( $option->{category} eq 'hidden' );

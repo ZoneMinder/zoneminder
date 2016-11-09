@@ -2158,7 +2158,7 @@ function check_timezone() {
     date_default_timezone_set('UTC');
     Fatal( "ZoneMinder is not installed properly: php's date.timezone is not set to a valid timezone" );
   } else if ( $system_timezone != $php_timezone ) {
-    Warning( "System timezone is set to $system_timezone, but php's is set to $php_timezone. This can cause weird problems." );
+    Warning( "System timezone is set to $system_timezone, but php's is set to $php_timezone. This can cause authentication problems and weirdness when searching for events." );
   }
 }
 

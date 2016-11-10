@@ -153,7 +153,9 @@ if ( $pages > 1 )
 if ( $pagination )
 {
 ?>
-        <h3 class="pagination"><?php echo $pagination ?></h3>
+	<ul class="pagination">
+        <?php echo $pagination ?>
+	</ul>
 <?php
 }
 ?>

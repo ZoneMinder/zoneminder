@@ -13,6 +13,7 @@ function changeScale()
     var newHeight = ( baseHeight * scale ) / SCALE_BASE;
 
     streamScale( scale );
+    Cookie.write( 'zmEventScale'+eventData.MonitorId, scale, { duration: 10*365 } );
 
     /*Stream could be an applet so can't use moo tools*/ 
     var streamImg = document.getElementById('evtStream');

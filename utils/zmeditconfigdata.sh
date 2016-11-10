@@ -53,10 +53,10 @@ escaped="$(echo $temp | sed 's/\//\\\//g')"
 }
 
 # Assign variables once they are properly escaped
-escape $1
-variable=$escaped
-escape $2
-default=$escaped
+escape "$1"
+variable="$escaped"
+escape "$2"
+default="$escaped"
 
 # Set the path to ConfigData
 if [ -n "$3" ]; then
@@ -82,7 +82,7 @@ fi
 # Don't stare too closely. You will burn your eyes out.
 sed -i '/.*'${variable}'.*/{
 	$!{ N
-	s/\(.*'${variable}'.*\n.*\)\"\(.*\)\"/\1\"'${default}'\"/
+	s/\(.*'${variable}'.*\n.*\)\"\(.*\)\"/\1\"'"${default}"'\"/
 	t yes
 	P
 	D

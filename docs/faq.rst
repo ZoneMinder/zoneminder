@@ -96,22 +96,16 @@ A sample output on Ubuntu:
 
 ::
 
-	pp@camerapc:~$ df -h
+	pp@camerapc:~$ df -h|grep "Filesystem\|shm"
 	Filesystem                 Size  Used Avail Use% Mounted on
-	/dev/sda1                  226G   96G  119G  45% /
-	none                       4.0K     0  4.0K   0% /sys/fs/cgroup
-	udev                       1.8G  4.0K  1.8G   1% /dev
-	tmpfs                      371M  816K  370M   1% /run
-	none                       5.0M     0  5.0M   0% /run/lock
 	tmpfs                      2.6G  923M  1.7G  36% /run/shm
-	none                       100M     0  100M   0% /run/user
 
 
-The key item here is tmpfs --> the example above shows we have allocated 1.7G of mapped memory space of which 36% is used which is a healthy number. If you are seeing this to go beyond 70% you should probaby increase mapped memory
+The key item here is tmpfs --> the example above shows we have allocated 1.7G of mapped memory space of which 36% is used which is a healthy number. If you are seeing ``Use%`` going beyond 70% you should probaby increase the mapped memory.
 
-
-If you want to increase this limit to 70% of your memory, add the following to ``/etc/fstab``
-``tmpfs /run/shm tmpfs defaults,noexec,nosuid,size=70% 0 0``
+For example, if you want to increase this limit to 70% of your memory, add the following to ``/etc/fstab``
+``tmpfs SHMPATH tmpfs defaults,noexec,nosuid,size=70% 0 0``
+where SHMPATH is the ``Mounted on`` path.  Here, that would be ``/run/shm``.  Other systems may be ``/dev/shm``.
 
 
 What does a 'Can't shmget: Invalid argument' error in my logs mean? (and my camera does not display at higher resolutions)

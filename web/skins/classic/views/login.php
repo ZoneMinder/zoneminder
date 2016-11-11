@@ -17,11 +17,11 @@ xhtmlHeaders(__FILE__, translate('Login') );
 
 				<h1>ZoneMinder <?php echo translate('Login') ?></h1>
 	
-				<label for="inputEmail" class="sr-only"><?php echo translate('Username') ?></label>
-				<input type="text" name="username" class="form-control" placeholder="Username" required autofocus />
+				<label for="inputUsername" class="sr-only"><?php echo translate('Username') ?></label>
+				<input type="text" id="inputUsername" name="username" class="form-control" placeholder="Username" required autofocus />
 	
 				<label for="inputPassword" class="sr-only"><?php echo translate('Password') ?></label>
-				<input type="password" name="password" value="" size="12" class="form-control" placeholder="Password" required />
+				<input type="password" id="inputPassword" name="password" class="form-control" placeholder="Password" required />
 	
 				<?php
 				if (defined('ZM_OPT_USE_GOOG_RECAPTCHA') 

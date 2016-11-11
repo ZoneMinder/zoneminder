@@ -1,1 +1,1 @@
-var failed = <?php echo $_REQUEST['view']?'true':'false' ?>;
+var failed = <?php echo $_SESSION['loginFailed']?'true':'false' ?>;

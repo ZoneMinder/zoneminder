@@ -20,11 +20,20 @@ input[type="submit"] {
 
 form {
 	max-width: 450px;
-	padding: 40px 60px;
 	margin: 15px auto;
 	border: 1px solid #e7e7e7;
 	background-color: #fff;
 	box-shadow: 0 0 6px 0 rgba(0,0,0,0.08);
+}
+
+form .alarm {
+	font-size:180%;
+	padding:20px;
+	border-bottom: 1px solid #e7e7e7;
+}
+
+#loginform {
+	padding: 40px 60px;
 }
 
 .form-control {

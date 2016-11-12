@@ -1429,15 +1429,15 @@ function getLoad() {
   return( $load[0] );
 }
 
-function getDiskPercent() {
-  $total = disk_total_space(ZM_DIR_EVENTS);
+function getDiskPercent($path = ZM_DIR_EVENTS) {
+  $total = disk_total_space($path);
   if ( ! $total ) {
-    Error("disk_total_space returned false for " . ZM_DIR_EVENTS );
+    Error("disk_total_space returned false for " . $path );
     return 0;
   }
-  $free = disk_free_space(ZM_DIR_EVENTS);
+  $free = disk_free_space($path);
   if ( ! $free ) {
-    Error("disk_free_space returned false for " . ZM_DIR_EVENTS );
+    Error("disk_free_space returned false for " . $path );
   }
   $space = round(($total - $free) / $total * 100);
   return( $space );

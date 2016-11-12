@@ -269,6 +269,7 @@ if ( canView( 'Stream' ) && $cycleCount > 1 ) {
   $func =  function($S){ return $S->Name() . ': ' . $S->disk_usage_percent().'%'; };
 
   echo implode( ', ', array_map ( $func, $storage_areas ) );
+  echo ' ' . ZM_PATH_MAP .': '. getDiskPercent(ZM_PATH_MAP).'%';
 ?></li>
   </ul>
 </div> <!-- End .footer -->

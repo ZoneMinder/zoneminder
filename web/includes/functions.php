@@ -1207,7 +1207,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
               } // end foreach remaining term
             } // end no StorageArea found yet
 
-            $filter['sql'] .= getDiskPercent( $StorageArea );
+            $filter['sql'] .= getDiskPercent( $StorageArea->Path() );
             break;
           case 'DiskBlocks':
             // Need to specify a storage area, so need to look through other terms looking for a storage area, else we default to ZM_EVENTS_PATH
@@ -1410,10 +1410,18 @@ function getLoad() {
   return( $load[0] );
 }
 
-function getDiskPercent( $StorageArea = NULL ) {
-  if ( ! $StorageArea ) $StorageArea = new Storage();
-  
-  return $StorageArea->disk_usage_percent();
+function getDiskPercent($path = ZM_DIR_EVENTS) {
+  $total = disk_total_space($path);
+  if ( ! $total ) {
+    Error("disk_total_space returned false for " . $path );
+    return 0;
+  }
+  $free = disk_free_space($path);
+  if ( ! $free ) {
+    Error("disk_free_space returned false for " . $path );
+  }
+  $space = round(($total - $free) / $total * 100);
+  return( $space );
 }
 
 function getDiskBlocks() {

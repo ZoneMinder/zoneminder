@@ -496,7 +496,7 @@ function getEventCmdResponse( respObj, respText )
                 link.set( 'text', event.AvgScore+'/'+event.MaxScore );
                 link.inject( row.getElement( 'td.colScore' ) );
 
-                link = new Element( 'a', { 'href': '#', 'title': deleteString, 'events': { 'click': function( event ) { deleteEvent( event, event.Id ); }.bind( link ), 'mouseover': highlightRow.pass( row ), 'mouseout': highlightRow.pass( row ) } });
+                link = new Element( 'a', { 'href': '#', 'title': deleteString, 'events': { 'click': function( e ) { deleteEvent( e, event.Id ); }.bind( link ), 'mouseover': highlightRow.pass( row ), 'mouseout': highlightRow.pass( row ) } });
                 link.set( 'text', 'X' );
                 link.inject( row.getElement( 'td.colDelete' ) );
 

@@ -19,7 +19,7 @@
 // 
 
 // Only load new js & css in these views
-$new_views = array('login');
+$new_views = array('login', 'console');
 
 function xhtmlHeaders( $file, $title )
 {

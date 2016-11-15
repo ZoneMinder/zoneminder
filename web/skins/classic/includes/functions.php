@@ -47,7 +47,6 @@ function xhtmlHeaders( $file, $title )
   <meta name="viewport" content="width=device-width, initial-scale=1, maxiumum-scale=1.0, user-scalable=no">
   <title><?php echo ZM_WEB_TITLE_PREFIX ?> - <?php echo validHtmlStr($title) ?></title>
   <link rel="icon" type="image/ico" href="graphics/favicon.ico"/>
-  <link rel="shortcut icon" href="graphics/favicon.ico"/>
 <?php if ( in_array($basename, $new_views) ) { ?>
   <link rel="stylesheet" href="css/bootstrap.min.css" type="text/css"/>
 <?php } else { ?>

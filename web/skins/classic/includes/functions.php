@@ -48,10 +48,11 @@ function xhtmlHeaders( $file, $title )
   <title><?php echo ZM_WEB_TITLE_PREFIX ?> - <?php echo validHtmlStr($title) ?></title>
   <link rel="icon" type="image/ico" href="graphics/favicon.ico"/>
   <link rel="shortcut icon" href="graphics/favicon.ico"/>
-  <link rel="stylesheet" href="css/reset.css" type="text/css"/>
-  <link rel="stylesheet" href="css/overlay.css" type="text/css"/>
 <?php if ( in_array($basename, $new_views) ) { ?>
   <link rel="stylesheet" href="css/bootstrap.min.css" type="text/css"/>
+<?php } else { ?>
+  <link rel="stylesheet" href="css/reset.css" type="text/css"/>
+  <link rel="stylesheet" href="css/overlay.css" type="text/css"/>
 <?php } ?>
   <link rel="stylesheet" href="<?php echo $skinCssFile ?>" type="text/css" media="screen"/>
 <?php

@@ -18,7 +18,8 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // 
 
-
+// Only load new js & css in these views
+$new_views = array('login');
 
 function xhtmlHeaders( $file, $title )
 {
@@ -49,7 +50,9 @@ function xhtmlHeaders( $file, $title )
   <link rel="shortcut icon" href="graphics/favicon.ico"/>
   <link rel="stylesheet" href="css/reset.css" type="text/css"/>
   <link rel="stylesheet" href="css/overlay.css" type="text/css"/>
+<?php if ( in_array($basename, $new_views) ) { ?>
   <link rel="stylesheet" href="css/bootstrap.min.css" type="text/css"/>
+<?php } ?>
   <link rel="stylesheet" href="<?php echo $skinCssFile ?>" type="text/css" media="screen"/>
 <?php
     if ( $viewCssFile )

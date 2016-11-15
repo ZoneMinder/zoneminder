@@ -52,11 +52,13 @@ function userLogin( $username, $password="", $passwordHashed=false ) {
   if ( $dbUser = dbFetchOne( $sql, NULL, $sql_values ) ) {
     Info( "Login successful for user \"$username\"" );
     $_SESSION['user'] = $user = $dbUser;
+    unset($_SESSION['loginFailed']);
     if ( ZM_AUTH_TYPE == "builtin" ) {
       $_SESSION['passwordHash'] = $user['Password'];
     }
   } else {
     Warning( "Login denied for user \"$username\"" );
+    $_SESSION['loginFailed'] = true;
     unset( $user );
   }
   if ( $cookies )

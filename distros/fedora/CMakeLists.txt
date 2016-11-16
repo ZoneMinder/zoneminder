@@ -3,11 +3,17 @@
 # Display a message to show the Fedora build options are being processed.
 message([STATUS] "Starting Fedora Build Options" ...)
 
-# Create the ZoneMinder Apache config file
+# Process config files
 configure_file(zoneminder.service.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.service @ONLY)
-configure_file(zoneminder.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.conf @ONLY)
 configure_file(zoneminder.tmpfiles.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.tmpfiles @ONLY)
 configure_file(zoneminder.logrotate.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.logrotate @ONLY)
+if(ZM_WEB_USER STREQUAL "nginx")
+    configure_file(nginx/zoneminder.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.conf @ONLY)
+    configure_file(nginx/zoneminder.php-fpm.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.php-fpm.conf @ONLY)
+    configure_file(nginx/README.Fedora ${CMAKE_CURRENT_SOURCE_DIR}/README.Fedora COPYONLY)
+else(ZM_WEB_USER STREQUAL "nginx")
+    configure_file(zoneminder.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.conf @ONLY)
+endif(ZM_WEB_USER STREQUAL "nginx")
 
 # Unpack jscalendar & move files into position
 message(STATUS "Unpacking and Installing jscalendar...")
@@ -42,7 +48,13 @@ install(CODE "execute_process(COMMAND ln -sf ../../../../../../var/lib/zoneminde
 install(CODE "execute_process(COMMAND ln -sf ../../java/cambozola.jar \"\$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/www/cambozola.jar\")")
 
 # Install auxiliary files required to run zoneminder on Fedora
-install(FILES zoneminder.conf DESTINATION /etc/httpd/conf.d PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
+if(ZM_WEB_USER STREQUAL "nginx")
+    install(FILES zoneminder.conf DESTINATION /etc/nginx/default.d PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
+    install(FILES zoneminder.php-fpm.conf DESTINATION /etc/php-fpm.d PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ RENAME zoneminder.conf)
+else(ZM_WEB_USER STREQUAL "nginx")
+    install(FILES zoneminder.conf DESTINATION /etc/httpd/conf.d PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
+endif(ZM_WEB_USER STREQUAL "nginx")
+
 install(FILES zoneminder.logrotate DESTINATION /etc/logrotate.d RENAME zoneminder PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
 install(FILES ../../misc/zoneminder-tmpfiles.conf DESTINATION /etc/tmpfiles.d RENAME zoneminder.conf PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
 install(FILES redalert.wav DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/www/sounds PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)

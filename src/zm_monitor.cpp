@@ -674,6 +674,15 @@ Monitor::~Monitor()
     if ( munmap( mem_ptr, mem_size ) < 0 )
       Fatal( "Can't munmap: %s", strerror(errno) );
     close( map_fd );
+
+    if ( purpose == CAPTURE ) {
+        char mmap_path[PATH_MAX] = "";
+        snprintf( mmap_path, sizeof(mmap_path), "%s/zm.mmap.%d", config.path_map, id );
+
+        if ( unlink( mmap_path ) < 0 ) {
+            Warning( "Can't unlink '%s': %s", mmap_path, strerror(errno) );
+        }
+    }
 #else // ZM_MEM_MAPPED
     struct shmid_ds shm_data;
     if ( shmctl( shm_id, IPC_STAT, &shm_data ) < 0 ) {

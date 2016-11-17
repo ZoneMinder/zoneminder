@@ -552,9 +552,9 @@ sub uploadArchFile
             $sftpOptions{timeout} = $Config{ZM_UPLOAD_TIMEOUT}
                 if $Config{ZM_UPLOAD_TIMEOUT};
             my @more_ssh_args;
-            push @more_ssh_args, ['-o'=>'StrictHostKeyChecking=no']
-				if ! $Config{ZM_UPLOAD_STRICT};
-            push @more_ssh_args, ['-v']
+            push @more_ssh_args, '-o'=>'StrictHostKeyChecking=no'
+		if ! $Config{ZM_UPLOAD_STRICT};
+            push @more_ssh_args, '-v'
                 if $Config{ZM_UPLOAD_DEBUG};
             $sftpOptions{more} = [@more_ssh_args];
             my $sftp = Net::SFTP::Foreign->new( $Config{ZM_UPLOAD_HOST}, %sftpOptions );

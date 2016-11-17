@@ -1,0 +1,5 @@
+# Change the user and group of the default pool to the web server account
+[www]
+
+user = @WEB_USER@
+group = @WEB_GROUP@

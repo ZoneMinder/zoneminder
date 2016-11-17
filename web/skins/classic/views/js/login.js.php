@@ -1,1 +1,1 @@
-var failed = <?php echo $_SESSION['loginFailed']?'true':'false' ?>;
+var failed = <?php echo isset($_SESSION['loginFailed'])?'true':'false' ?>;

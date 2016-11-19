@@ -4216,9 +4216,6 @@ void MonitorStream::runStream()
   }
   if ( buffered_playback )
   {
-    char swap_path[PATH_MAX] = "";
-
-    snprintf( swap_path, sizeof(swap_path), "%s/zmswap-m%d/zmswap-q%06d", config.path_swap, monitor->Id(), connkey );
     Debug( 1, "Cleaning swap files from %s", swap_path );
     struct stat stat_buf;
     if ( stat( swap_path, &stat_buf ) < 0 )

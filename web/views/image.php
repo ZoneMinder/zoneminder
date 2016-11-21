@@ -53,22 +53,27 @@ if (!function_exists('imagescale')) {
 }
 
 $errorText = false;
+$filename = '';
+
 if ( empty($_REQUEST['path']) ) {
   if ( ! empty($_REQUEST['fid']) ) {
     $show = empty($_REQUEST['show']) ? 'capture' : $_REQUEST['show'];
+    $Frame = null;
+    $Event = null;
+ 
     if ( ! empty($_REQUEST['eid'] ) ) {
       $Event = new Event( $_REQUEST['eid'] );
       $Frame = Frame::find_one( array( 'EventId' => $_REQUEST['eid'], 'FrameId' => $_REQUEST['fid'] ) );
       if ( ! $Frame ) {
         Fatal("No Frame found for event(".$_REQUEST['eid'].") and frame id(".$_REQUEST['fid'].")");
       }
-      $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d',$_REQUEST['fid']).'-'.$show.'.jpg';
     } else {
 # If we are only specifying fid, then the fid must be the primary key into the frames table. But when the event is specified, then it is the frame #
       $Frame = new Frame( $_REQUEST['fid'] );
       $Event = new Event( $Frame->EventId() );
-      $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d',$Frame->FrameId()).'-'.$show.'.jpg';
     }
+    $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d',$Frame->FrameId()).'-'.$show.'.jpg';
+    
   } else {
     $errorText = 'No image path';
   }
@@ -141,6 +146,10 @@ if( !empty($_REQUEST['height']) ) {
 }
 
 header( 'Content-type: image/jpeg' );
+
+# This is so that Save Image As give a useful filename
+$filename = $Event->MonitorId().'_'.$Event->Id().'_'.$Frame->FrameId().'.jpg';
+header('Content-Disposition: inline; filename="' . $filename . '"');
 ob_clean();
 flush();
 

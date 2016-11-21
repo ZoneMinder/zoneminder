@@ -10,6 +10,10 @@
     width: 99%;
 }
 
+#monitors .monitor {
+  min-width: 180px;
+}
+
 #monitors .alarm {
     color: #ff0000;
 }

@@ -17,7 +17,8 @@ $versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText'
 
 
 ?>
-<div class="navbar navbar-inverse navbar-fixed-top">
+<div id="navHeader" class="navbar-fixed-top">
+<div class="navbar navbar-inverse">
 	<div class="container-fluid">
 		<div class="navbar-header">
 			<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#main-header-nav" aria-expanded="false">
@@ -64,6 +65,23 @@ $versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText'
 <?php } ?>
 </div>
 
+
+
 		</div><!-- End .navbar-collapse -->
 	</div> <!-- End .container-fluid -->
 </div> <!-- End .navbar .navbar-default -->
+
+<nav class="navbar navbar-inverse">
+	<div class="container-fluid">
+		<ul class="nav navbar-nav navbar-left">
+			<li><?php echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', $bwArray[$_COOKIE['zmBandwidth']] . ' Bandwidth', ($user && $user['MaxBandwidth'] != 'low' ) ) ?></li>
+		</ul>
+		<ul class="nav navbar-nav navbar-right">
+			<li><?php echo makePopupLink( '?view=version', 'zmVersion', 'version', 'v'.ZM_VERSION, canEdit( 'System' ) ) ?></li>
+			<li><a href="#"><?php echo translate('Load') ?>: <?php echo getLoad() ?></a></li>
+			<li><a href="#"><?php echo translate('Disk') ?>: <?php echo getDiskPercent() ?>%</a></li>
+		</ul>
+	</div>
+</nav>
+
+</div> <!-- End header container -->

@@ -317,22 +317,6 @@ echo $Server->Name();
       </table>
     </div>
 
-<div id="footer">
-
-
-<div class="pull-left">
-<?php echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', $bwArray[$_COOKIE['zmBandwidth']], ($user && $user['MaxBandwidth'] != 'low' ) ) ?> <?php echo translate('BandwidthHead') ?>
-</div>
-
-<div class="pull-right">
-	<?php echo makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="'.$versionClass.'">v'.ZM_VERSION.'</span>', canEdit( 'System' ) ) ?>
-</div>
-<ul class="list-inline">
-	<li><?php echo translate('Load') ?>: <?php echo getLoad() ?></li>
-	<li><?php echo translate('Disk') ?>: <?php echo getDiskPercent() ?>%</li>
-</ul>
-</div> <!-- End .footer -->
-
     </form>
 </body>
 </html>

@@ -26,7 +26,7 @@ body {
     font-size: 18px;
     color: #333333;
     font-weight: normal;
-	padding-top: 70px;
+	padding-top: 130px;
 }
 
 h1 {
@@ -489,4 +489,14 @@ margin-left: -20px;
 
 #options {
 	font-size:90%;
+}
+
+.navbar {
+	background:rgba(0,0,0,0);
+	border: 0;
+	margin-bottom: 0;
+}
+
+#navHeader {
+	background-color:#222;
 }

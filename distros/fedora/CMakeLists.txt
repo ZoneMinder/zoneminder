@@ -4,15 +4,16 @@
 message([STATUS] "Starting Fedora Build Options" ...)
 
 # Process config files
-configure_file(zoneminder.service.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.service @ONLY)
 configure_file(zoneminder.tmpfiles.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.tmpfiles @ONLY)
 configure_file(zoneminder.logrotate.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.logrotate @ONLY)
 if(ZM_WEB_USER STREQUAL "nginx")
     configure_file(nginx/zoneminder.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.conf @ONLY)
+    configure_file(nginx/zoneminder.service.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.service @ONLY)
     configure_file(nginx/zoneminder.php-fpm.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.php-fpm.conf @ONLY)
     configure_file(nginx/README.Fedora ${CMAKE_CURRENT_SOURCE_DIR}/README.Fedora COPYONLY)
 else(ZM_WEB_USER STREQUAL "nginx")
     configure_file(zoneminder.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.conf @ONLY)
+    configure_file(zoneminder.service.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.service @ONLY)
 endif(ZM_WEB_USER STREQUAL "nginx")
 
 # Unpack jscalendar & move files into position

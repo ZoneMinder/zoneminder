@@ -85,6 +85,7 @@ while( 1 ) {
   while( my $monitor = $sth->fetchrow_hashref() ) {
     next if $monitor->{Function} eq 'None';
     my $restart = 0;
+    zmMemInvalidate( $monitor );
     if ( zmMemVerify( $monitor )
         && zmMemRead( $monitor, "shared_data:valid" )
        )

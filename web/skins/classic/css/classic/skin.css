@@ -24,7 +24,7 @@
 body {
     font-family: Verdana, Arial, Helvetica, sans-serif;
     font-size: 18px;
-    color: #333333;
+    color: #bbb;
     font-weight: normal;
 	padding-top: 130px;
 	padding-bottom:25px;
@@ -178,10 +178,8 @@ ul.tabList li.active a {
     background-color: #eeeeee;
 }
 
-#content table.major thead tr th {
-    padding-top: 6px;
-    padding-bottom: 6px;
-    vertical-align: middle;
+thead tr{
+	background-color: #282828;
 }
 
 #content table.major tfoot td {
@@ -238,7 +236,6 @@ ul.tabList li.active a {
 
 #content table > tbody > tr:hover
 {
-    background-color: #EEE;
 }
 
 .overlay {
@@ -341,15 +338,15 @@ th.table-th-sort-rev span.table-th-sort-span {
 }
 
 .table-tr-odd {
-    background-color: #f8f8f8;
 }
 
-#logTable {
+table {
 	margin-top: 20px;
+	background-color: #282828;
 }
 
-#logTable tr {
-	background-color: #eee;
+tr:nth-child(2n) {
+	background-color: rgba(0,0,0,.1);
 }
 
 /*
@@ -518,7 +515,9 @@ label {
 
 #page .navbar {
 	background-color: #282828;
-border-top: 1px solid #2d2d2d;
-border-bottom: 1px solid #0e0e0e;
+	border-top: 1px solid #2d2d2d;
 }
 
+.table > tbody > tr > td, .table > tbody > tr > th, .table > tfoot > tr > td, .table > tfoot > tr > th, .table > thead > tr > td, .table > thead > tr > th {
+	border: none;
+}

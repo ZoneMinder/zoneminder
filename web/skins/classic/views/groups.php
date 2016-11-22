@@ -44,12 +44,11 @@ xhtmlHeaders(__FILE__, translate('Groups') );
 ?>
 <body>
   <?php include("skins/$skin/views/header.php") ?>
-  <div id="page">
-    <div id="content">
+  <div class="container">
       <form name="groupsForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="groups"/>
         <input type="hidden" name="action" value="setgroup"/>
-        <table id="contentTable" class="major" cellspacing="0">
+        <table class="table table-condensed">
           <thead>
             <tr>
               <th class="colName"><?php echo translate('Name') ?></th>
@@ -58,7 +57,7 @@ xhtmlHeaders(__FILE__, translate('Groups') );
             </tr>
           </thead>
           <tbody>
-            <tr class="highlight">
+            <tr>
               <td class="colName"><?php echo translate('NoGroup') ?></td>
               <td class="colIds"><?php echo translate('All') ?></td>
               <td class="colSelect"><input type="radio" name="gid" value="0"<?php echo !$selected?' checked="checked"':'' ?> onclick="configureButtons( this );"/></td>
@@ -72,14 +71,11 @@ xhtmlHeaders(__FILE__, translate('Groups') );
 <?php } ?>
           </tbody>
         </table>
-        <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('Apply') ?>"/>
-          <input type="button" value="<?php echo translate('New') ?>" onclick="newGroup()"<?php echo canEdit('Groups')?'':' disabled="disabled"' ?>/>
-          <input type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editGroup( this )"<?php echo $selected&&canEdit('Groups')?'':' disabled="disabled"' ?>/>
-          <input type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteGroup( this )"<?php echo $selected&&canEdit('Groups')?'':' disabled="disabled"' ?>/>
-        </div>
+          <input class="btn btn-default" type="submit" value="<?php echo translate('Apply') ?>"/>
+          <input class="btn btn-default" type="button" value="<?php echo translate('New') ?>" onclick="newGroup()"<?php echo canEdit('Groups')?'':' disabled="disabled"' ?>/>
+          <input class="btn btn-default" type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editGroup( this )"<?php echo $selected&&canEdit('Groups')?'':' disabled="disabled"' ?>/>
+          <input class="btn btn-default" type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteGroup( this )"<?php echo $selected&&canEdit('Groups')?'':' disabled="disabled"' ?>/>
       </form>
-    </div>
   </div>
 </body>
 </html>

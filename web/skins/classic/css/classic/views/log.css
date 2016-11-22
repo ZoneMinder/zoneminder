@@ -16,24 +16,6 @@
     line-height: 15px;
 }
 
-tr.log-fat td {
-    background-color:#ffcccc;
-    font-weight: bold;
-}
-
-tr.log-err td {
-    background-color:#ffcccc;
-}
-
-tr.log-war td {
-    background-color: #ffe4b5;
-}
-
-tr.log-dbg td {
-    color: #666666;
-    font-style: italic;
-}
-
 #exportLog label {
     vertical-align: middle;
 }

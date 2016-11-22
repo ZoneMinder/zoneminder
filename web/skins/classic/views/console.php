@@ -183,7 +183,7 @@ xhtmlHeaders( __FILE__, translate('Console') );
     <?php include("skins/$skin/views/header.php") ?>
 
     <div class="container-fluid">
-      <table class="table table-hover table-condensed">
+      <table class="table table-condensed">
         <thead>
           <tr>
 <?php if ( ZM_WEB_ID_ON_CONSOLE ) { ?>

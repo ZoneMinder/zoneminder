@@ -72,13 +72,13 @@ function logResponse( respObj )
                         delete log.Message;
                         row.tr.store( 'log', log );
                         if ( log.Level <= -3 )
-                            row.tr.addClass( 'log-fat' );
+                            row.tr.addClass( 'danger' );
                         else if ( log.Level <= -2 )
-                            row.tr.addClass( 'log-err' );
+                            row.tr.addClass( 'danger' );
                         else if ( log.Level <= -1 )
-                            row.tr.addClass( 'log-war' );
+                            row.tr.addClass( 'warning' );
                         else if ( log.Level > 0 )
-                            row.tr.addClass( 'log-dbg' );
+                            row.tr.addClass( 'info' );
                         if ( !firstLoad )
                         {
                             var color = document.defaultView.getComputedStyle(row.tr,null).getPropertyValue('color');
@@ -297,7 +297,6 @@ function initPage()
         logCodes[''+i] = 'DB'+i;
     logTable = new HtmlTable( $('logTable'),
         {
-            zebra: true,
             sortable: true,
             sortReverse: true
         }

@@ -71,7 +71,7 @@ if ( $Config{ZM_TELEMETRY_DATA} )
 {
     print( "Update agent starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 
-    my $lastCheck = $Config{ZM_TELEMETRY_LAST_CHECK};
+    my $lastCheck = $Config{ZM_TELEMETRY_LAST_UPLOAD};
 
     while( 1 ) {
         my $now = time();

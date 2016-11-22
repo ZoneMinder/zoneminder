@@ -27,7 +27,7 @@ if ( !canView( 'Events' ) )
 $eid = validInt( $_REQUEST['eid'] );
 $fid = !empty($_REQUEST['fid'])?validInt($_REQUEST['fid']):1;
 
-$sql = 'SELECT E.*,M.Name AS MonitorName,M.Width,M.Height,M.DefaultRate,M.DefaultScale FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = ?';
+$sql = 'SELECT E.*,M.Name AS MonitorName,E.Width,E.Height,M.DefaultRate,M.DefaultScale FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = ?';
 $sql_values = array( $eid );
 
 if ( $user['MonitorIds'] ) {
@@ -41,10 +41,14 @@ if ( isset( $_REQUEST['rate'] ) )
     $rate = validInt($_REQUEST['rate']);
 else
     $rate = reScale( RATE_BASE, $event['DefaultRate'], ZM_WEB_DEFAULT_RATE );
-if ( isset( $_REQUEST['scale'] ) )
-    $scale = validInt($_REQUEST['scale']);
-else
-    $scale = reScale( SCALE_BASE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+
+if ( isset( $_REQUEST['scale'] ) ) {
+  $scale = validInt($_REQUEST['scale']);
+} else if ( isset( $_COOKIE['zmEventScale'.$event['MonitorId']] ) ) {
+  $scale = $_COOKIE['zmEventScale'.$event['MonitorId']];
+} else {
+  $scale = reScale( SCALE_BASE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+}
 
 $replayModes = array(
     'single' => translate('ReplaySingle'),

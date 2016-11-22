@@ -1,10 +1,11 @@
 var requestQueue = new Request.Queue( { concurrent: 2 } );
 
-function Monitor( index, id, connKey )
+function Monitor( index, monitorData )
 {
     this.index = index;
-    this.id = id;
-    this.connKey = connKey;
+    this.id = monitorData.id;
+    this.connKey = monitorData.connKey;
+    this.server_url = monitorData.server_url;
     this.status = null;
     this.alarmState = STATE_IDLE;
     this.lastAlarmState = STATE_IDLE;
@@ -110,7 +111,7 @@ function Monitor( index, id, connKey )
         this.streamCmdReq.send( this.streamCmdParms+"&command="+CMD_QUERY );
     }
 
-    this.streamCmdReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, onSuccess: this.getStreamCmdResponse.bind( this ), onTimeout: this.streamCmdQuery.bind( this, true ), link: 'cancel' } );
+    this.streamCmdReq = new Request.JSON( { url: this.server_url, method: 'get', timeout: AJAX_TIMEOUT, onSuccess: this.getStreamCmdResponse.bind( this ), onTimeout: this.streamCmdQuery.bind( this, true ), link: 'cancel' } );
 
     requestQueue.addRequest( "cmdReq"+this.id, this.streamCmdReq );
 }
@@ -146,7 +147,7 @@ function initPage()
 {
     for ( var i = 0; i < monitorData.length; i++ )
     {
-        monitors[i] = new Monitor( i, monitorData[i].id, monitorData[i].connKey );
+        monitors[i] = new Monitor( i, monitorData[i] );
         var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
         monitors[i].start( delay );
     }

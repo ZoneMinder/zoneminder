@@ -11,12 +11,20 @@ Build-Depends: debhelper (>= 9), cmake
     , libavcodec-dev, libavformat-dev (>= 3:0.svn20090204), libswscale-dev (>= 3:0.svn20090204), libavutil-dev
     , libv4l-dev (>= 0.8.3)
     , libbz2-dev
-    , libav-tools
+    , ffmpeg | libav-tools
     , libnetpbm10-dev
     , libavdevice-dev
     , libvlccore-dev, libvlc-dev
     , libcurl4-gnutls-dev | libcurl4-nss-dev | libcurl4-openssl-dev
     , libgcrypt11-dev, libpolkit-gobject-1-dev
+    , libphp-serialization-perl
+    , libdate-manip-perl, libmime-lite-perl, libmime-tools-perl, libdbd-mysql-perl
+    , libwww-perl, libarchive-tar-perl, libarchive-zip-perl, libdevice-serialport-perl
+    , libmodule-load-perl, libsys-mmap-perl, libjson-any-perl
+    , libnet-sftp-foreign-perl, libio-pty-perl, libexpect-perl
+    , libdata-dump-perl, libclass-std-fast-perl, libsoap-wsdl-perl, libio-socket-multicast-perl, libdigest-sha-perl
+    , libsys-cpu-perl, libsys-meminfo-perl
+    , libdata-uuid-perl
 Standards-Version: 3.9.4
 
 Package: zoneminder
@@ -32,8 +40,9 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
     , libnet-sftp-foreign-perl, libio-pty-perl, libexpect-perl
     , libdata-dump-perl, libclass-std-fast-perl, libsoap-wsdl-perl, libio-socket-multicast-perl, libdigest-sha-perl
     , libsys-cpu-perl, libsys-meminfo-perl
+    , libdata-uuid-perl
     , libpcre3
-    , libav-tools, libavdevice53
+    , ffmpeg | libav-tools, libavdevice53
     , rsyslog | system-log-daemon
     , netpbm , libjpeg8
     , zip

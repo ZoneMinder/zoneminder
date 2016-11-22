@@ -33,31 +33,31 @@
 class RemoteCameraHttp : public RemoteCamera
 {
 protected:
-	std::string request;
-	struct timeval timeout;
-	//struct hostent *hp;
-	//struct sockaddr_in sa;
-	int sd;
-	Buffer buffer;
-	enum { SINGLE_IMAGE, MULTI_IMAGE } mode;
-	enum { UNDEF, JPEG, X_RGB, X_RGBZ } format;
-	enum { HEADER, HEADERCONT, SUBHEADER, SUBHEADERCONT, CONTENT } state;
-    enum { SIMPLE, REGEXP } method;
+  std::string request;
+  struct timeval timeout;
+  //struct hostent *hp;
+  //struct sockaddr_in sa;
+  int sd;
+  Buffer buffer;
+  enum { SINGLE_IMAGE, MULTI_IMAGE } mode;
+  enum { UNDEF, JPEG, X_RGB, X_RGBZ } format;
+  enum { HEADER, HEADERCONT, SUBHEADER, SUBHEADERCONT, CONTENT } state;
+  enum { SIMPLE, REGEXP } method;
 
 public:
-	RemoteCameraHttp( int p_id, const std::string &method, const std::string &host, const std::string &port, const std::string &path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
-	~RemoteCameraHttp();
+  RemoteCameraHttp( int p_id, const std::string &method, const std::string &host, const std::string &port, const std::string &path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
+  ~RemoteCameraHttp();
 
-	void Initialise();
-	void Terminate() { Disconnect(); }
-	int Connect();
-	int Disconnect();
-	int SendRequest();
-	int ReadData( Buffer &buffer, int bytes_expected=0 );
-	int GetResponse();
-	int PreCapture();
-	int Capture( Image &image );
-	int PostCapture();
+  void Initialise();
+  void Terminate() { Disconnect(); }
+  int Connect();
+  int Disconnect();
+  int SendRequest();
+  int ReadData( Buffer &buffer, int bytes_expected=0 );
+  int GetResponse();
+  int PreCapture();
+  int Capture( Image &image );
+  int PostCapture();
 };
 
 #endif // ZM_REMOTE_CAMERA_HTTP_H

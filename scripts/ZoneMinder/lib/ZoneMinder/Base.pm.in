@@ -58,7 +58,7 @@ ZoneMinder::Base - Base perl module for ZoneMinder
 
 =head1 SYNOPSIS
 
-  use ZoneMinder::Base;
+use ZoneMinder::Base;
 
 =head1 DESCRIPTION
 

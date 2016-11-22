@@ -23,7 +23,12 @@ our $typemap_1 = {
                'ProbeMatches/ProbeMatch/Types' => 'WSDiscovery10::Types::QNameListType',
                'ProbeMatches/ProbeMatch/EndpointReference' => 'WSDiscovery10::Types::EndpointReferenceType',
                'ProbeMatches/ProbeMatch/EndpointReference/ReferenceProperties' => 'WSDiscovery10::Types::ReferencePropertiesType',
-               'ProbeMatches/ProbeMatch/EndpointReference/PortType' => 'WSDiscovery10::Types::AttributedQName'
+               'ProbeMatches/ProbeMatch/EndpointReference/PortType' => 'WSDiscovery10::Types::AttributedQName',
+               'MessageID' => '__SKIP__',
+               'RelatesTo' => '__SKIP__',
+               'To' => '__SKIP__',
+               'Action' => '__SKIP__',
+               'AppSequence' => '__SKIP__',
              };
 ;
 

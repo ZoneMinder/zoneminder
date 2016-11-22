@@ -344,6 +344,14 @@ th.table-th-sort-rev span.table-th-sort-span {
     background-color: #f8f8f8;
 }
 
+#logTable {
+	margin-top: 20px;
+}
+
+#logTable tr {
+	background-color: #eee;
+}
+
 /*
  * Primary layout styles
  */
@@ -443,7 +451,7 @@ th.table-th-sort-rev span.table-th-sort-span {
 .nav.nav-pills.nav-stacked.col-md-2 > li > a {
 }
 
-#options label {
+label {
 	color: #eee;
 }
 
@@ -507,3 +515,10 @@ th.table-th-sort-rev span.table-th-sort-span {
 	overflow: hidden;
 	white-space: nowrap;
 }
+
+#page .navbar {
+	background-color: #282828;
+border-top: 1px solid #2d2d2d;
+border-bottom: 1px solid #0e0e0e;
+}
+

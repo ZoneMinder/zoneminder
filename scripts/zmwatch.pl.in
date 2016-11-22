@@ -87,6 +87,10 @@ while( 1 )
     {
         next if $monitor->{Function} eq 'None';
         my $restart = 0;
+        # Prevent open handles building up if we have connect to shared memory
+        # Many of our error checks below do a next without closing the mem handle.
+        # zmMemInvalidate will just return of nothing is open, so we can just do this here.
+        zmMemInvalidate( $monitor );
         if ( zmMemVerify( $monitor )
              && zmMemRead( $monitor, "shared_data:valid" )
         )

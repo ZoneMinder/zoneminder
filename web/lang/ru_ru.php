@@ -1,4 +1,3 @@
-
 <?php
 //
 // ZoneMinder web UK English language file, $Date$, $Revision$

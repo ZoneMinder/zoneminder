@@ -42,43 +42,43 @@ our @ISA = qw(Exporter ZoneMinder::Base);
 # will save memory.
 our %EXPORT_TAGS = (
     'constants' => [ qw(
-        DEBUG
-        INFO
-        WARNING
-        ERROR
-        FATAL
-        PANIC
-        NOLOG
-    ) ],
+      DEBUG
+      INFO
+      WARNING
+      ERROR
+      FATAL
+      PANIC
+      NOLOG
+      ) ],
     'functions' => [ qw(
-        logInit
-        logReinit
-        logTerm
-        logSetSignal
-        logClearSignal
-        logDebugging
-        logLevel
-        logTermLevel
-        logDatabaseLevel
-        logFileLevel
-        logSyslogLevel
-        Mark
-        Dump
-        Debug
-        Info
-        Warning
-        Error
-        Fatal
-        Panic
-    ) ]
-);
-push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
+      logInit
+      logReinit
+      logTerm
+      logSetSignal
+      logClearSignal
+      logDebugging
+      logLevel
+      logTermLevel
+      logDatabaseLevel
+      logFileLevel
+      logSyslogLevel
+      Mark
+      Dump
+      Debug
+      Info
+      Warning
+      Error
+      Fatal
+      Panic
+      ) ]
+    );
+    push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
 
-our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
+    our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 
-our @EXPORT = qw();
+    our @EXPORT = qw();
 
-our $VERSION = $ZoneMinder::Base::VERSION;
+    our $VERSION = $ZoneMinder::Base::VERSION;
 
 # ==========================================================================
 #
@@ -86,25 +86,25 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 #
 # ==========================================================================
 
-use ZoneMinder::Config qw(:all);
+    use ZoneMinder::Config qw(:all);
 
-use DBI;
-use Carp;
-use POSIX;
-use IO::Handle;
-use Data::Dumper;
-use Time::HiRes qw/gettimeofday/;
-use Sys::Syslog;
+    use DBI;
+    use Carp;
+    use POSIX;
+    use IO::Handle;
+    use Data::Dumper;
+    use Time::HiRes qw/gettimeofday/;
+    use Sys::Syslog;
 
-use constant {
-    DEBUG => 1,
-    INFO => 0,
-    WARNING => -1,
-    ERROR => -2,
-    FATAL => -3,
-    PANIC => -4,
-    NOLOG => -5
-};
+    use constant {
+      DEBUG => 1,
+            INFO => 0,
+            WARNING => -1,
+            ERROR => -2,
+            FATAL => -3,
+            PANIC => -4,
+            NOLOG => -5
+    };
 
 our %codes = (
     &DEBUG => "DBG",
@@ -114,7 +114,7 @@ our %codes = (
     &FATAL => "FAT",
     &PANIC => "PNC",
     &NOLOG => "OFF"
-);
+    );
 
 our %priorities = (
     &DEBUG => "debug",
@@ -123,668 +123,668 @@ our %priorities = (
     &ERROR => "err",
     &FATAL => "err",
     &PANIC => "err"
-);
+    );
 
 our $logger;
 our $LOGFILE;
 
 sub new
 {
-    my $class = shift;
-    my $this = {};
+  my $class = shift;
+  my $this = {};
 
-    $this->{initialised} = undef;
+  $this->{initialised} = undef;
 
-    #$this->{id} = "zmundef";
-    ( $this->{id} ) = $0 =~ m|^(?:.*/)?([^/]+?)(?:\.[^/.]+)?$|;
-    $this->{idRoot} = $this->{id};
-    $this->{idArgs} = "";
+#$this->{id} = "zmundef";
+  ( $this->{id} ) = $0 =~ m|^(?:.*/)?([^/]+?)(?:\.[^/.]+)?$|;
+  $this->{idRoot} = $this->{id};
+  $this->{idArgs} = "";
 
-    $this->{level} = INFO;
-    $this->{termLevel} = NOLOG;
-    $this->{databaseLevel} = NOLOG;
-    $this->{fileLevel} = NOLOG;
-    $this->{syslogLevel} = NOLOG;
-    $this->{effectiveLevel} = INFO;
+  $this->{level} = INFO;
+  $this->{termLevel} = NOLOG;
+  $this->{databaseLevel} = NOLOG;
+  $this->{fileLevel} = NOLOG;
+  $this->{syslogLevel} = NOLOG;
+  $this->{effectiveLevel} = INFO;
 
-    $this->{autoFlush} = 1;
-    $this->{hasTerm} = -t STDERR;
+  $this->{autoFlush} = 1;
+  $this->{hasTerm} = -t STDERR;
 
-    ( $this->{fileName} = $0 ) =~ s|^.*/||;
-    $this->{logPath} = $Config{ZM_PATH_LOGS};
-    $this->{logFile} = $this->{logPath}."/".$this->{id}.".log";
+  ( $this->{fileName} = $0 ) =~ s|^.*/||;
+  $this->{logPath} = $Config{ZM_PATH_LOGS};
+  $this->{logFile} = $this->{logPath}."/".$this->{id}.".log";
 
-    $this->{trace} = 0;
+  $this->{trace} = 0;
 
-    bless( $this, $class );
-    return $this;
+  bless( $this, $class );
+  return $this;
 }
 
 sub BEGIN
 {
-    # Fake the config variables that are used in case they are not defined yet
-    # Only really necessary to support upgrade from previous version
-    if ( !eval('defined($Config{ZM_LOG_DEBUG})') )
-    {
-        no strict 'subs';
-        no strict 'refs';
-        my %dbgConfig = (
-            ZM_LOG_LEVEL_DATABASE => 0,
-            ZM_LOG_LEVEL_FILE => 0,
-            ZM_LOG_LEVEL_SYSLOG => 0,
-            ZM_LOG_DEBUG => 0,
-            ZM_LOG_DEBUG_TARGET => "",
-            ZM_LOG_DEBUG_LEVEL => 1,
-            ZM_LOG_DEBUG_FILE => "" 
+# Fake the config variables that are used in case they are not defined yet
+# Only really necessary to support upgrade from previous version
+  if ( !eval('defined($Config{ZM_LOG_DEBUG})') )
+  {
+    no strict 'subs';
+    no strict 'refs';
+    my %dbgConfig = (
+        ZM_LOG_LEVEL_DATABASE => 0,
+        ZM_LOG_LEVEL_FILE => 0,
+        ZM_LOG_LEVEL_SYSLOG => 0,
+        ZM_LOG_DEBUG => 0,
+        ZM_LOG_DEBUG_TARGET => "",
+        ZM_LOG_DEBUG_LEVEL => 1,
+        ZM_LOG_DEBUG_FILE => "" 
         );
-        while ( my ( $name, $value ) = each( %dbgConfig ) )
-        {
-            *{$name} = sub { $value };
-        }
-        use strict 'subs';
-        use strict 'refs';
+    while ( my ( $name, $value ) = each( %dbgConfig ) )
+    {
+      *{$name} = sub { $value };
     }
+    use strict 'subs';
+    use strict 'refs';
+  }
 }
 
 sub DESTROY
 {
-    my $this = shift;
-    $this->terminate();
+  my $this = shift;
+  $this->terminate();
 }
 
 sub initialise( @ )
 {
-    my $this = shift;
-    my %options = @_;
+  my $this = shift;
+  my %options = @_;
 
-    $this->{id} = $options{id} if ( defined($options{id}) );
+  $this->{id} = $options{id} if ( defined($options{id}) );
 
-    $this->{logPath} = $options{logPath} if ( defined($options{logPath}) );
+  $this->{logPath} = $options{logPath} if ( defined($options{logPath}) );
 
-    my $tempLogFile;
-    $tempLogFile = $this->{logPath}."/".$this->{id}.".log";
-    $tempLogFile = $options{logFile} if ( defined($options{logFile}) );
-    if ( my $logFile = $this->getTargettedEnv('LOG_FILE') )
-    {
-        $tempLogFile = $logFile;
-    }
+  my $tempLogFile;
+  $tempLogFile = $this->{logPath}."/".$this->{id}.".log";
+  $tempLogFile = $options{logFile} if ( defined($options{logFile}) );
+  if ( my $logFile = $this->getTargettedEnv('LOG_FILE') )
+  {
+    $tempLogFile = $logFile;
+  }
 
-    my $tempLevel = INFO;
-    my $tempTermLevel = $this->{termLevel};
-    my $tempDatabaseLevel = $this->{databaseLevel};
-    my $tempFileLevel = $this->{fileLevel};
-    my $tempSyslogLevel = $this->{syslogLevel};
+  my $tempLevel = INFO;
+  my $tempTermLevel = $this->{termLevel};
+  my $tempDatabaseLevel = $this->{databaseLevel};
+  my $tempFileLevel = $this->{fileLevel};
+  my $tempSyslogLevel = $this->{syslogLevel};
 
-    $tempTermLevel = $options{termLevel} if ( defined($options{termLevel}) );
-    if ( defined($options{databaseLevel}) )
-    {
-        $tempDatabaseLevel = $options{databaseLevel};
-    }
-    else
-    {
-        $tempDatabaseLevel = $Config{ZM_LOG_LEVEL_DATABASE};
-    }
-    if ( defined($options{fileLevel}) )
-    {
-        $tempFileLevel = $options{fileLevel};
-    }
-    else
-    {
-        $tempFileLevel = $Config{ZM_LOG_LEVEL_FILE};
-    }
-    if ( defined($options{syslogLevel}) )
-    {
-        $tempSyslogLevel = $options{syslogLevel};
-    }
-    else
-    {
-        $tempSyslogLevel = $Config{ZM_LOG_LEVEL_SYSLOG};
-    }
+  $tempTermLevel = $options{termLevel} if ( defined($options{termLevel}) );
+  if ( defined($options{databaseLevel}) )
+  {
+    $tempDatabaseLevel = $options{databaseLevel};
+  }
+  else
+  {
+    $tempDatabaseLevel = $Config{ZM_LOG_LEVEL_DATABASE};
+  }
+  if ( defined($options{fileLevel}) )
+  {
+    $tempFileLevel = $options{fileLevel};
+  }
+  else
+  {
+    $tempFileLevel = $Config{ZM_LOG_LEVEL_FILE};
+  }
+  if ( defined($options{syslogLevel}) )
+  {
+    $tempSyslogLevel = $options{syslogLevel};
+  }
+  else
+  {
+    $tempSyslogLevel = $Config{ZM_LOG_LEVEL_SYSLOG};
+  }
 
-    if ( defined($ENV{'LOG_PRINT'}) )
+  if ( defined($ENV{'LOG_PRINT'}) )
+  {
+    $tempTermLevel = $ENV{'LOG_PRINT'}? DEBUG : NOLOG;
+  }
+
+  my $level;
+  $tempLevel = $level if ( defined($level = $this->getTargettedEnv('LOG_LEVEL')) );
+
+  $tempTermLevel = $level if ( defined($level = $this->getTargettedEnv('LOG_LEVEL_TERM')) );
+  $tempDatabaseLevel = $level if ( defined($level = $this->getTargettedEnv('LOG_LEVEL_DATABASE')) );
+  $tempFileLevel = $level if ( defined($level = $this->getTargettedEnv('LOG_LEVEL_FILE')) );
+  $tempSyslogLevel = $level if ( defined($level = $this->getTargettedEnv('LOG_LEVEL_SYSLOG')) );
+
+  if ( $Config{ZM_LOG_DEBUG} )
+  {
+    foreach my $target ( split( /\|/, $Config{ZM_LOG_DEBUG_TARGET} ) )
     {
-        $tempTermLevel = $ENV{'LOG_PRINT'}? DEBUG : NOLOG;
-    }
-
-    my $level;
-    $tempLevel = $level if ( defined($level = $this->getTargettedEnv('LOG_LEVEL')) );
-
-    $tempTermLevel = $level if ( defined($level = $this->getTargettedEnv('LOG_LEVEL_TERM')) );
-    $tempDatabaseLevel = $level if ( defined($level = $this->getTargettedEnv('LOG_LEVEL_DATABASE')) );
-    $tempFileLevel = $level if ( defined($level = $this->getTargettedEnv('LOG_LEVEL_FILE')) );
-    $tempSyslogLevel = $level if ( defined($level = $this->getTargettedEnv('LOG_LEVEL_SYSLOG')) );
-
-    if ( $Config{ZM_LOG_DEBUG} )
-    {
-        foreach my $target ( split( /\|/, $Config{ZM_LOG_DEBUG_TARGET} ) )
+      if ( $target eq $this->{id}
+          || $target eq "_".$this->{id}
+          || $target eq $this->{idRoot}
+          || $target eq "_".$this->{idRoot}
+          || $target eq ""
+         )
+      {
+        if ( $Config{ZM_LOG_DEBUG_LEVEL} > NOLOG )
         {
-            if ( $target eq $this->{id}
-                 || $target eq "_".$this->{id}
-                 || $target eq $this->{idRoot}
-                 || $target eq "_".$this->{idRoot}
-                 || $target eq ""
-            )
-            {
-                if ( $Config{ZM_LOG_DEBUG_LEVEL} > NOLOG )
-                {
-                    $tempLevel = $this->limit( $Config{ZM_LOG_DEBUG_LEVEL} );
-                    if ( $Config{ZM_LOG_DEBUG_FILE} ne "" )
-                    {
-                        $tempLogFile = $Config{ZM_LOG_DEBUG_FILE};
-                        $tempFileLevel = $tempLevel;
-                    }
-                }
-            }
+          $tempLevel = $this->limit( $Config{ZM_LOG_DEBUG_LEVEL} );
+          if ( $Config{ZM_LOG_DEBUG_FILE} ne "" )
+          {
+            $tempLogFile = $Config{ZM_LOG_DEBUG_FILE};
+            $tempFileLevel = $tempLevel;
+          }
         }
+      }
     }
+  }
 
-    $this->logFile( $tempLogFile );
+  $this->logFile( $tempLogFile );
 
-    $this->termLevel( $tempTermLevel );
-    $this->databaseLevel( $tempDatabaseLevel );
-    $this->fileLevel( $tempFileLevel );
-    $this->syslogLevel( $tempSyslogLevel );
+  $this->termLevel( $tempTermLevel );
+  $this->databaseLevel( $tempDatabaseLevel );
+  $this->fileLevel( $tempFileLevel );
+  $this->syslogLevel( $tempSyslogLevel );
 
-    $this->level( $tempLevel );
+  $this->level( $tempLevel );
 
-    $this->{trace} = $options{trace} if ( defined($options{trace}) );
+  $this->{trace} = $options{trace} if ( defined($options{trace}) );
 
-    $this->{autoFlush} = $ENV{'LOG_FLUSH'}?1:0 if ( defined($ENV{'LOG_FLUSH'}) );
+  $this->{autoFlush} = $ENV{'LOG_FLUSH'}?1:0 if ( defined($ENV{'LOG_FLUSH'}) );
 
-    $this->{initialised} = !undef;
+  $this->{initialised} = !undef;
 
-    Debug( "LogOpts: level=".$codes{$this->{level}}
-            ."/".$codes{$this->{effectiveLevel}}
-            .", screen=".$codes{$this->{termLevel}}
-            .", database=".$codes{$this->{databaseLevel}}
-            .", logfile=".$codes{$this->{fileLevel}}
-            ."->".$this->{logFile}
-            .", syslog=".$codes{$this->{syslogLevel}}
-    );
+  Debug( "LogOpts: level=".$codes{$this->{level}}
+      ."/".$codes{$this->{effectiveLevel}}
+      .", screen=".$codes{$this->{termLevel}}
+      .", database=".$codes{$this->{databaseLevel}}
+      .", logfile=".$codes{$this->{fileLevel}}
+      ."->".$this->{logFile}
+      .", syslog=".$codes{$this->{syslogLevel}}
+      );
 }
 
 sub terminate
 {
-    my $this = shift;
-    return unless ( $this->{initialised} );
-    $this->syslogLevel( NOLOG );
-    $this->fileLevel( NOLOG );
-    $this->databaseLevel( NOLOG );
-    $this->termLevel( NOLOG );
+  my $this = shift;
+  return unless ( $this->{initialised} );
+  $this->syslogLevel( NOLOG );
+  $this->fileLevel( NOLOG );
+  $this->databaseLevel( NOLOG );
+  $this->termLevel( NOLOG );
 }
 
 sub reinitialise
 {
-    my $this = shift;
+  my $this = shift;
 
-    return unless ( $this->{initialised} );
+  return unless ( $this->{initialised} );
 
-    # Bit of a nasty hack to reopen connections to log files and the DB
-    my $syslogLevel = $this->syslogLevel();
-    $this->syslogLevel( NOLOG );
-    my $logfileLevel = $this->fileLevel();
-    $this->fileLevel( NOLOG );
-    my $databaseLevel = $this->databaseLevel();
-    $this->databaseLevel( NOLOG );
-    my $screenLevel = $this->termLevel();
-    $this->termLevel( NOLOG );
+# Bit of a nasty hack to reopen connections to log files and the DB
+  my $syslogLevel = $this->syslogLevel();
+  $this->syslogLevel( NOLOG );
+  my $logfileLevel = $this->fileLevel();
+  $this->fileLevel( NOLOG );
+  my $databaseLevel = $this->databaseLevel();
+  $this->databaseLevel( NOLOG );
+  my $screenLevel = $this->termLevel();
+  $this->termLevel( NOLOG );
 
-    $this->syslogLevel( $syslogLevel ) if ( $syslogLevel > NOLOG );
-    $this->fileLevel( $logfileLevel ) if ( $logfileLevel > NOLOG );
-    $this->databaseLevel( $databaseLevel ) if ( $databaseLevel > NOLOG );
-    $this->databaseLevel( $databaseLevel ) if ( $databaseLevel > NOLOG );
+  $this->syslogLevel( $syslogLevel ) if ( $syslogLevel > NOLOG );
+  $this->fileLevel( $logfileLevel ) if ( $logfileLevel > NOLOG );
+  $this->databaseLevel( $databaseLevel ) if ( $databaseLevel > NOLOG );
+  $this->databaseLevel( $databaseLevel ) if ( $databaseLevel > NOLOG );
 }
 
 sub limit
 {
-    my $this = shift;
-    my $level = shift;
-    return( DEBUG ) if ( $level > DEBUG );
-    return( NOLOG ) if ( $level < NOLOG );
-    return( $level );
+  my $this = shift;
+  my $level = shift;
+  return( DEBUG ) if ( $level > DEBUG );
+  return( NOLOG ) if ( $level < NOLOG );
+  return( $level );
 }
 
 sub getTargettedEnv
 {
-    my $this = shift;
-    my $name = shift;
-    my $envName = $name."_".$this->{id};
-    my $value;
+  my $this = shift;
+  my $name = shift;
+  my $envName = $name."_".$this->{id};
+  my $value;
+  $value = $ENV{$envName} if ( defined($ENV{$envName}) );
+  if ( !defined($value) && $this->{id} ne $this->{idRoot} )
+  {
+    $envName = $name."_".$this->{idRoot};
     $value = $ENV{$envName} if ( defined($ENV{$envName}) );
-    if ( !defined($value) && $this->{id} ne $this->{idRoot} )
-    {
-        $envName = $name."_".$this->{idRoot};
-        $value = $ENV{$envName} if ( defined($ENV{$envName}) );
-    }
-    if ( !defined($value) )
-    {
-        $value = $ENV{$name} if ( defined($ENV{$name}) );
-    }
-    if ( defined($value) )
-    {
-        ( $value ) = $value =~ m/(.*)/;
-    }
-    return( $value );
+  }
+  if ( !defined($value) )
+  {
+    $value = $ENV{$name} if ( defined($ENV{$name}) );
+  }
+  if ( defined($value) )
+  {
+    ( $value ) = $value =~ m/(.*)/;
+  }
+  return( $value );
 }
 
 sub fetch
 {
-    if ( !$logger )
-    {
-        $logger = ZoneMinder::Logger->new();
-        $logger->initialise( 'syslogLevel'=>INFO, 'databaseLevel'=>INFO );
-    }
-    return( $logger );
+  if ( !$logger )
+  {
+    $logger = ZoneMinder::Logger->new();
+    $logger->initialise( 'syslogLevel'=>INFO, 'databaseLevel'=>INFO );
+  }
+  return( $logger );
 }
 
 sub id
 {
-    my $this = shift;
-    my $id = shift;
-    if ( defined($id) && $this->{id} ne $id )
-    {
-        # Remove whitespace
-        $id =~ s/\S//g;
-        # Replace non-alphanum with underscore
-        $id =~ s/[^a-zA-Z_]/_/g;
+  my $this = shift;
+  my $id = shift;
+  if ( defined($id) && $this->{id} ne $id )
+  {
+# Remove whitespace
+    $id =~ s/\S//g;
+# Replace non-alphanum with underscore
+    $id =~ s/[^a-zA-Z_]/_/g;
 
-        if ( $this->{id} ne $id )
-        {
-            $this->{id} = $this->{idRoot} = $id;
-            if ( $id =~ /^([^_]+)_(.+)$/ )
-            {
-                $this->{idRoot} = $1;
-                $this->{idArgs} = $2;
-            }
-        }
+    if ( $this->{id} ne $id )
+    {
+      $this->{id} = $this->{idRoot} = $id;
+      if ( $id =~ /^([^_]+)_(.+)$/ )
+      {
+        $this->{idRoot} = $1;
+        $this->{idArgs} = $2;
+      }
     }
-    return( $this->{id} );
+  }
+  return( $this->{id} );
 }
 
 sub level
 {
-    my $this = shift;
-    my $level = shift;
-    if ( defined($level) )
-    {
-        $this->{level} = $this->limit( $level );
-        $this->{effectiveLevel} = NOLOG;
-        $this->{effectiveLevel} = $this->{termLevel} if ( $this->{termLevel} > $this->{effectiveLevel} );
-        $this->{effectiveLevel} = $this->{databaseLevel} if ( $this->{databaseLevel} > $this->{effectiveLevel} );
-        $this->{effectiveLevel} = $this->{fileLevel} if ( $this->{fileLevel} > $this->{effectiveLevel} );
-        $this->{effectiveLevel} = $this->{syslogLevel} if ( $this->{syslogLevel} > $this->{level} );
-        $this->{effectiveLevel} = $this->{level} if ( $this->{effectiveLevel} > $this->{level} );
-    }
-    return( $this->{level} );
+  my $this = shift;
+  my $level = shift;
+  if ( defined($level) )
+  {
+    $this->{level} = $this->limit( $level );
+    $this->{effectiveLevel} = NOLOG;
+    $this->{effectiveLevel} = $this->{termLevel} if ( $this->{termLevel} > $this->{effectiveLevel} );
+    $this->{effectiveLevel} = $this->{databaseLevel} if ( $this->{databaseLevel} > $this->{effectiveLevel} );
+    $this->{effectiveLevel} = $this->{fileLevel} if ( $this->{fileLevel} > $this->{effectiveLevel} );
+    $this->{effectiveLevel} = $this->{syslogLevel} if ( $this->{syslogLevel} > $this->{level} );
+    $this->{effectiveLevel} = $this->{level} if ( $this->{effectiveLevel} > $this->{level} );
+  }
+  return( $this->{level} );
 }
 
 sub debugOn
 {
-    my $this = shift;
-    return( $this->{effectiveLevel} >= DEBUG );
+  my $this = shift;
+  return( $this->{effectiveLevel} >= DEBUG );
 }
 
 sub trace
 {
-    my $this = shift;
-    $this->{trace} = $_[0] if ( @_ );
-    return( $this->{trace} );
+  my $this = shift;
+  $this->{trace} = $_[0] if ( @_ );
+  return( $this->{trace} );
 }
 
 sub termLevel
 {
-    my $this = shift;
-    my $termLevel = shift;
-    if ( defined($termLevel) )
+  my $this = shift;
+  my $termLevel = shift;
+  if ( defined($termLevel) )
+  {
+    $termLevel = NOLOG if ( !$this->{hasTerm} );
+    $termLevel = $this->limit( $termLevel );
+    if ( $this->{termLevel} != $termLevel )
     {
-        $termLevel = NOLOG if ( !$this->{hasTerm} );
-        $termLevel = $this->limit( $termLevel );
-        if ( $this->{termLevel} != $termLevel )
-        {
-            $this->{termLevel} = $termLevel;
-        }
+      $this->{termLevel} = $termLevel;
     }
-    return( $this->{termLevel} );
+  }
+  return( $this->{termLevel} );
 }
 
 sub databaseLevel
 {
-    my $this = shift;
-    my $databaseLevel = shift;
-    if ( defined($databaseLevel) )
+  my $this = shift;
+  my $databaseLevel = shift;
+  if ( defined($databaseLevel) )
+  {
+    $databaseLevel = $this->limit( $databaseLevel );
+    if ( $this->{databaseLevel} != $databaseLevel )
     {
-        $databaseLevel = $this->limit( $databaseLevel );
-        if ( $this->{databaseLevel} != $databaseLevel )
+      if ( $databaseLevel > NOLOG && $this->{databaseLevel} <= NOLOG )
+      {
+        if ( !$this->{dbh} )
         {
-            if ( $databaseLevel > NOLOG && $this->{databaseLevel} <= NOLOG )
-            {
-                if ( !$this->{dbh} )
-                {
-                    my $socket;
-                    my ( $host, $portOrSocket ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
+          my $socket;
+          my ( $host, $portOrSocket ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
 
-                    if ( defined($portOrSocket) )
-                    {
-                        if ( $portOrSocket =~ /^\// )
-                        {
-                            $socket = ";mysql_socket=".$portOrSocket;
-                        }
-                        else
-                        {
-                            $socket = ";host=".$host.";port=".$portOrSocket;
-                        }
-                    }
-                    else
-                    {
-                        $socket = ";host=".$Config{ZM_DB_HOST};
-                    }
-                    $this->{dbh} = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
-                                                .$socket
-                                                , $Config{ZM_DB_USER}
-                                                , $Config{ZM_DB_PASS}
-                    );
-                    if ( !$this->{dbh} )
-                    {
-                        $databaseLevel = NOLOG;
-                        Error( "Unable to write log entries to DB, can't connect to database '"
-                               .$Config{ZM_DB_NAME}
-                               ."' on host '"
-                               .$Config{ZM_DB_HOST}
-                               ."'"
-                        );
-                    }
-                    else
-                    {
-                        $this->{dbh}->{AutoCommit} = 1;
-                        Fatal( "Can't set AutoCommit on in database connection" )
-                            unless( $this->{dbh}->{AutoCommit} );
-                        $this->{dbh}->{mysql_auto_reconnect} = 1;
-                        Fatal( "Can't set mysql_auto_reconnect on in database connection" )
-                            unless( $this->{dbh}->{mysql_auto_reconnect} );
-                        $this->{dbh}->trace( 0 );
-                    }
-                }
-            }
-            elsif ( $databaseLevel <= NOLOG && $this->{databaseLevel} > NOLOG )
+          if ( defined($portOrSocket) )
+          {
+            if ( $portOrSocket =~ /^\// )
             {
-                if ( $this->{dbh} )
-                {
-                    $this->{dbh}->disconnect();
-                    undef($this->{dbh});
-                }
+              $socket = ";mysql_socket=".$portOrSocket;
             }
-            $this->{databaseLevel} = $databaseLevel;
+            else
+            {
+              $socket = ";host=".$host.";port=".$portOrSocket;
+            }
+          }
+          else
+          {
+            $socket = ";host=".$Config{ZM_DB_HOST};
+          }
+          $this->{dbh} = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
+              .$socket
+              , $Config{ZM_DB_USER}
+              , $Config{ZM_DB_PASS}
+              );
+          if ( !$this->{dbh} )
+          {
+            $databaseLevel = NOLOG;
+            Error( "Unable to write log entries to DB, can't connect to database '"
+                .$Config{ZM_DB_NAME}
+                ."' on host '"
+                .$Config{ZM_DB_HOST}
+                ."'"
+                );
+          }
+          else
+          {
+            $this->{dbh}->{AutoCommit} = 1;
+            Fatal( "Can't set AutoCommit on in database connection" )
+              unless( $this->{dbh}->{AutoCommit} );
+            $this->{dbh}->{mysql_auto_reconnect} = 1;
+            Fatal( "Can't set mysql_auto_reconnect on in database connection" )
+              unless( $this->{dbh}->{mysql_auto_reconnect} );
+            $this->{dbh}->trace( 0 );
+          }
         }
+      }
+      elsif ( $databaseLevel <= NOLOG && $this->{databaseLevel} > NOLOG )
+      {
+        if ( $this->{dbh} )
+        {
+          $this->{dbh}->disconnect();
+          undef($this->{dbh});
+        }
+      }
+      $this->{databaseLevel} = $databaseLevel;
     }
-    return( $this->{databaseLevel} );
+  }
+  return( $this->{databaseLevel} );
 }
 
 sub fileLevel
 {
-    my $this = shift;
-    my $fileLevel = shift;
-    if ( defined($fileLevel) )
+  my $this = shift;
+  my $fileLevel = shift;
+  if ( defined($fileLevel) )
+  {
+    $fileLevel = $this->limit($fileLevel);
+    if ( $this->{fileLevel} != $fileLevel )
     {
-        $fileLevel = $this->limit($fileLevel);
-        if ( $this->{fileLevel} != $fileLevel )
-        {
-            $this->closeFile() if ( $this->{fileLevel} > NOLOG );
-            $this->{fileLevel} = $fileLevel;
-            $this->openFile() if ( $this->{fileLevel} > NOLOG );
-        }
+      $this->closeFile() if ( $this->{fileLevel} > NOLOG );
+      $this->{fileLevel} = $fileLevel;
+      $this->openFile() if ( $this->{fileLevel} > NOLOG );
     }
-    return( $this->{fileLevel} );
+  }
+  return( $this->{fileLevel} );
 }
 
 sub syslogLevel
 {
-    my $this = shift;
-    my $syslogLevel = shift;
-    if ( defined($syslogLevel) )
+  my $this = shift;
+  my $syslogLevel = shift;
+  if ( defined($syslogLevel) )
+  {
+    $syslogLevel = $this->limit($syslogLevel);
+    if ( $this->{syslogLevel} != $syslogLevel )
     {
-        $syslogLevel = $this->limit($syslogLevel);
-        if ( $this->{syslogLevel} != $syslogLevel )
-        {
-            $this->closeSyslog() if ( $syslogLevel <= NOLOG && $this->{syslogLevel} > NOLOG );
-            $this->openSyslog() if ( $syslogLevel > NOLOG && $this->{syslogLevel} <= NOLOG );
-            $this->{syslogLevel} = $syslogLevel;
-        }
+      $this->closeSyslog() if ( $syslogLevel <= NOLOG && $this->{syslogLevel} > NOLOG );
+      $this->openSyslog() if ( $syslogLevel > NOLOG && $this->{syslogLevel} <= NOLOG );
+      $this->{syslogLevel} = $syslogLevel;
     }
-    return( $this->{syslogLevel} );
+  }
+  return( $this->{syslogLevel} );
 }
 
 sub openSyslog
 {
-    my $this = shift;
-    openlog( $this->{id}, "pid", "local1" );
+  my $this = shift;
+  openlog( $this->{id}, "pid", "local1" );
 }
 
 sub closeSyslog
 {
-    my $this = shift;
-    #closelog();
+  my $this = shift;
+#closelog();
 }
 
 sub logFile
 {
-    my $this = shift;
-    my $logFile = shift;
-    if ( $logFile =~ /^(.+)\+$/ )
-    {
-        $this->{logFile} = $1.'.'.$$;
-    }
-    else
-    {
-        $this->{logFile} = $logFile;
-    }
+  my $this = shift;
+  my $logFile = shift;
+  if ( $logFile =~ /^(.+)\+$/ )
+  {
+    $this->{logFile} = $1.'.'.$$;
+  }
+  else
+  {
+    $this->{logFile} = $logFile;
+  }
 }
 
 sub openFile
 {
-    my $this = shift;
-    if ( open( $LOGFILE, ">>", $this->{logFile} ) )
-    {
-        $LOGFILE->autoflush() if ( $this->{autoFlush} );
+  my $this = shift;
+  if ( open( $LOGFILE, ">>", $this->{logFile} ) )
+  {
+    $LOGFILE->autoflush() if ( $this->{autoFlush} );
 
-        my $webUid = (getpwnam( $Config{ZM_WEB_USER} ))[2];
-        my $webGid = (getgrnam( $Config{ZM_WEB_GROUP} ))[2];
-        if ( $> == 0 )
-        {
-            chown( $webUid, $webGid, $this->{logFile} )
-                or Fatal( "Can't change permissions on log file '"
-                          .$this->{logFile}."': $!"
-                        )
-        }
-    }
-    else
+    my $webUid = (getpwnam( $Config{ZM_WEB_USER} ))[2];
+    my $webGid = (getgrnam( $Config{ZM_WEB_GROUP} ))[2];
+    if ( $> == 0 )
     {
-        $this->fileLevel( NOLOG );
-        Error( "Can't open log file '".$this->{logFile}."': $!" );
+      chown( $webUid, $webGid, $this->{logFile} )
+        or Fatal( "Can't change permissions on log file '"
+            .$this->{logFile}."': $!"
+            )
     }
+  }
+  else
+  {
+    $this->fileLevel( NOLOG );
+    Error( "Can't open log file '".$this->{logFile}."': $!" );
+  }
 }
 
 sub closeFile
 {
-    my $this = shift;
-    close( $LOGFILE ) if ( fileno($LOGFILE) );
+  my $this = shift;
+  close( $LOGFILE ) if ( fileno($LOGFILE) );
 }
 
 sub logPrint
 {
-    my $this = shift;
-    my $level = shift;
-    my $string = shift;
+  my $this = shift;
+  my $level = shift;
+  my $string = shift;
 
-    if ( $level <= $this->{effectiveLevel} )
-    {
-        $string =~ s/[\r\n]+$//g;
+  if ( $level <= $this->{effectiveLevel} )
+  {
+    $string =~ s/[\r\n]+$//g;
 
-        my $code = $codes{$level};
+    my $code = $codes{$level};
 
-        my ($seconds, $microseconds) = gettimeofday();
-        my $message = sprintf(
-            "%s.%06d %s[%d].%s [%s]"
-            , strftime( "%x %H:%M:%S"
-                        ,localtime( $seconds )
-                      )
-            , $microseconds
-            , $this->{id}
-            , $$
-            , $code
-            , $string
+    my ($seconds, $microseconds) = gettimeofday();
+    my $message = sprintf(
+        "%s.%06d %s[%d].%s [%s]"
+        , strftime( "%x %H:%M:%S"
+          ,localtime( $seconds )
+          )
+        , $microseconds
+        , $this->{id}
+        , $$
+        , $code
+        , $string
         );
-        if ( $this->{trace} )
-        {
-            $message = Carp::shortmess( $message );
-        }
-        else
-        {
-            $message = $message."\n";
-        }
-        syslog( $priorities{$level}, $code." [%s]", $string )
-            if ( $level <= $this->{syslogLevel} );
-        print( $LOGFILE $message ) if ( $level <= $this->{fileLevel} );
-        if ( $level <= $this->{databaseLevel} )
-        {
-            my $sql = "insert into Logs ( TimeKey, Component, Pid, Level, Code, Message, File, Line ) values ( ?, ?, ?, ?, ?, ?, ?, NULL )";
-            $this->{sth} = $this->{dbh}->prepare_cached( $sql );
-            if ( !$this->{sth} )
-            {
-                $this->{databaseLevel} = NOLOG;
-                Fatal( "Can't prepare log entry '$sql': ".$this->{dbh}->errstr() );
-            }
-            my $res = $this->{sth}->execute( $seconds+($microseconds/1000000.0)
-                                            , $this->{id}
-                                            , $$
-                                            , $level
-                                            , $code
-                                            , $string
-                                            , $this->{fileName}
-            );
-            if ( !$res )
-            {
-                $this->{databaseLevel} = NOLOG;
-                Fatal( "Can't execute log entry '$sql': ".$this->{sth}->errstr() );
-            }
-        }
-        print( STDERR $message ) if ( $level <= $this->{termLevel} );
+    if ( $this->{trace} )
+    {
+      $message = Carp::shortmess( $message );
     }
+    else
+    {
+      $message = $message."\n";
+    }
+    syslog( $priorities{$level}, $code." [%s]", $string )
+      if ( $level <= $this->{syslogLevel} );
+    print( $LOGFILE $message ) if ( $level <= $this->{fileLevel} );
+    if ( $level <= $this->{databaseLevel} )
+    {
+      my $sql = "insert into Logs ( TimeKey, Component, Pid, Level, Code, Message, File, Line ) values ( ?, ?, ?, ?, ?, ?, ?, NULL )";
+      $this->{sth} = $this->{dbh}->prepare_cached( $sql );
+      if ( !$this->{sth} )
+      {
+        $this->{databaseLevel} = NOLOG;
+        Fatal( "Can't prepare log entry '$sql': ".$this->{dbh}->errstr() );
+      }
+      my $res = $this->{sth}->execute( $seconds+($microseconds/1000000.0)
+          , $this->{id}
+          , $$
+          , $level
+          , $code
+          , $string
+          , $this->{fileName}
+          );
+      if ( !$res )
+      {
+        $this->{databaseLevel} = NOLOG;
+        Fatal( "Can't execute log entry '$sql': ".$this->{sth}->errstr() );
+      }
+    }
+    print( STDERR $message ) if ( $level <= $this->{termLevel} );
+  }
 }
 
 sub logInit( ;@ )
 {
-    my %options = @_ ? @_ : ();
-    $logger = ZoneMinder::Logger->new() if ( !$logger );
-    $logger->initialise( %options );
+  my %options = @_ ? @_ : ();
+  $logger = ZoneMinder::Logger->new() if ( !$logger );
+  $logger->initialise( %options );
 }
 
 sub logReinit
 {
-    fetch()->reinitialise();
+  fetch()->reinitialise();
 }
 
 sub logTerm
 {
-    return unless ( $logger );
-    $logger->terminate();
-    $logger = undef;
+  return unless ( $logger );
+  $logger->terminate();
+  $logger = undef;
 }
 
 sub logHupHandler
 {
-    my $savedErrno = $!;
-    return unless( $logger );
-    fetch()->reinitialise();
-    logSetSignal();
-    $! = $savedErrno;
+  my $savedErrno = $!;
+  return unless( $logger );
+  fetch()->reinitialise();
+  logSetSignal();
+  $! = $savedErrno;
 }
 
 sub logSetSignal
 {
-    $SIG{HUP} = \&logHupHandler;
+  $SIG{HUP} = \&logHupHandler;
 }
 
 sub logClearSignal
 {
-    $SIG{HUP} = 'DEFAULT';
+  $SIG{HUP} = 'DEFAULT';
 }
 
 sub logLevel
 {
-    return( fetch()->level( @_ ) );
+  return( fetch()->level( @_ ) );
 }
 
 sub logDebugging
 {
-    return( fetch()->debugOn() );
+  return( fetch()->debugOn() );
 }
 
 sub logTermLevel
 {
-    return( fetch()->termLevel( @_ ) );
+  return( fetch()->termLevel( @_ ) );
 }
 
 sub logDatabaseLevel
 {
-    return( fetch()->databaseLevel( @_ ) );
+  return( fetch()->databaseLevel( @_ ) );
 }
 
 sub logFileLevel
 {
-    return( fetch()->fileLevel( @_ ) );
+  return( fetch()->fileLevel( @_ ) );
 }
 
 sub logSyslogLevel
 {
-    return( fetch()->syslogLevel( @_ ) );
+  return( fetch()->syslogLevel( @_ ) );
 }
 
 sub Mark
 {
-    my $level = shift;
-    $level = DEBUG unless( defined($level) );
-    my $tag = "Mark";
-    fetch()->logPrint( $level, $tag );
+  my $level = shift;
+  $level = DEBUG unless( defined($level) );
+  my $tag = "Mark";
+  fetch()->logPrint( $level, $tag );
 }
 
 sub Dump
 {
-    my $var = shift;
-    my $label = shift;
-    $label = "VAR" unless( defined($label) );
-    fetch()->logPrint( DEBUG, Data::Dumper->Dump( [ $var ], [ $label ] ) );
+  my $var = shift;
+  my $label = shift;
+  $label = "VAR" unless( defined($label) );
+  fetch()->logPrint( DEBUG, Data::Dumper->Dump( [ $var ], [ $label ] ) );
 }
 
 sub Debug( @ )
 {
-    fetch()->logPrint( DEBUG, @_ );
+  fetch()->logPrint( DEBUG, @_ );
 }
 
 sub Info( @ )
 {
-    fetch()->logPrint( INFO, @_ );
+  fetch()->logPrint( INFO, @_ );
 }
 
 sub Warning( @ )
 {
-    fetch()->logPrint( WARNING, @_ );
+  fetch()->logPrint( WARNING, @_ );
 }
 
 sub Error( @ )
 {
-    fetch()->logPrint( ERROR, @_ );
+  fetch()->logPrint( ERROR, @_ );
 }
 
 sub Fatal( @ )
 {
-    fetch()->logPrint( FATAL, @_ );
-    exit( -1 );
+  fetch()->logPrint( FATAL, @_ );
+  exit( -1 );
 }
 
 sub Panic( @ )
 {
-    fetch()->logPrint( PANIC, @_ );
-    confess( $_[0] );
+  fetch()->logPrint( PANIC, @_ );
+  confess( $_[0] );
 }
 
 1;
@@ -796,17 +796,17 @@ ZoneMinder::Logger - ZoneMinder Logger module
 
 =head1 SYNOPSIS
 
-  use ZoneMinder::Logger;
-  use ZoneMinder::Logger qw(:all);
+use ZoneMinder::Logger;
+use ZoneMinder::Logger qw(:all);
 
-  logInit( "myproc", DEBUG );
+logInit( "myproc", DEBUG );
 
-  Debug( "This is what is happening" );
-  Info( "Something interesting is happening" );
-  Warning( "Something might be going wrong." );
-  Error( "Something has gone wrong!!" );
-  Fatal( "Something has gone badly wrong, gotta stop!!" );
-  Panic( "Something fundamental has gone wrong, die with stack trace );
+Debug( "This is what is happening" );
+Info( "Something interesting is happening" );
+Warning( "Something might be going wrong." );
+Error( "Something has gone wrong!!" );
+Fatal( "Something has gone badly wrong, gotta stop!!" );
+Panic( "Something fundamental has gone wrong, die with stack trace );
 
 =head1 DESCRIPTION
 
@@ -837,15 +837,15 @@ compulsory arguments are $id which must be a string that will identify
 debug coming from this script in mixed logs. Other options may be provided
 as below,
 
- Option        Default        Description
- ---------     ---------      -----------
- level         INFO       The initial debug level which defines which statements are output and which are ignored
- trace         0          Whether to use the Carp::shortmess format in debug statements to identify where the debug was emitted from
- termLevel     NOLOG      At what level debug is written to terminal standard error, 0 is no, 1 is yes, 2 is write only if terminal
- databaseLevel INFO       At what level debug is written to the Log table in the database;
- fileLevel     NOLOG      At what level debug is written to a log file of the format of <id>.log in the standard log directory.
- syslogLevel   INFO       At what level debug is written to syslog.
- 
+Option        Default        Description
+---------     ---------      -----------
+level         INFO       The initial debug level which defines which statements are output and which are ignored
+trace         0          Whether to use the Carp::shortmess format in debug statements to identify where the debug was emitted from
+termLevel     NOLOG      At what level debug is written to terminal standard error, 0 is no, 1 is yes, 2 is write only if terminal
+databaseLevel INFO       At what level debug is written to the Log table in the database;
+fileLevel     NOLOG      At what level debug is written to a log file of the format of <id>.log in the standard log directory.
+syslogLevel   INFO       At what level debug is written to syslog.
+
 To disable any of these action entirely set to NOLOG
 
 =item logTerm ();

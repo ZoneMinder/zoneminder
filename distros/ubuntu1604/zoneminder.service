@@ -15,6 +15,7 @@ ExecReload=/usr/bin/zmpkg.pl restart
 ExecStop=/usr/bin/zmpkg.pl stop
 PIDFile=/var/run/zm/zm.pid
 Restart=on-abnormal
+Environment=TZ=:/etc/localtime
 
 [Install]
 WantedBy=multi-user.target

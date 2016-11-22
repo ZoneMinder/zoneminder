@@ -44,10 +44,13 @@ else
 
 $showPtzControls = ( ZM_OPT_CONTROL && $monitor->Controllable() && canView( 'Control' ) );
 
-if ( isset( $_REQUEST['scale'] ) )
-    $scale = validInt($_REQUEST['scale']);
-else
-    $scale = reScale( SCALE_BASE, $monitor->DefaultScale, ZM_WEB_DEFAULT_SCALE );
+if ( isset( $_REQUEST['scale'] ) ) {
+  $scale = validInt($_REQUEST['scale']);
+} else if ( isset( $_COOKIE['zmWatchScale'.$mid] ) ) {
+  $scale = $_COOKIE['zmWatchScale'.$mid];
+} else {
+  $scale = reScale( SCALE_BASE, $monitor->DefaultScale, ZM_WEB_DEFAULT_SCALE );
+}
 
 $connkey = generateConnKey();
 

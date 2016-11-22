@@ -9,6 +9,9 @@ mount -t tmpfs -o rw,nosuid,nodev,noexec,relatime,size=512M tmpfs /dev/shm
 # Start MySQL
 /usr/bin/mysqld_safe & 
 
+# Ensure we shut down mysql cleanly later:
+trap close_mysql SIGTERM
+
 # Give MySQL time to wake up
 SECONDS_LEFT=120
 while true; do
@@ -27,18 +30,6 @@ while true; do
   fi
 done
 
-# Create the ZoneMinder database
-mysql -u root < db/zm_create.sql
-
-# Add the ZoneMinder DB user
-mysql -u root -e "grant insert,select,update,delete,lock tables,alter on zm.* to 'zmuser'@'localhost' identified by 'zmpass';"
-
-# Activate CGI
-a2enmod cgi
-
-# Activate modrewrite
-a2enmod rewrite
-
 # Restart apache
 service apache2 restart
 
@@ -46,4 +37,14 @@ service apache2 restart
 /usr/local/bin/zmpkg.pl start
 
 # Start SSHD
-/usr/sbin/sshd -D
+/usr/sbin/sshd
+
+while :
+do
+    sleep 3600
+done
+
+function close_mysql {
+    kill $(cat /var/run/mysqld/mysqld.pid)
+    sleep 5
+}

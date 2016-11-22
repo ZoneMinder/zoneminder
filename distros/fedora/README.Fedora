@@ -97,6 +97,15 @@ New installs
 	sudo systemctl enable zoneminder
 	sudo systemctl start zoneminder
 
+9. The Fedora repos have a ZoneMinder package available, but it does not
+   support ffmpeg or libvlc, which many modern IP cameras require. Most users
+   will want to prevent the ZoneMinder package in the Fedora repos from
+   overwriting the ZoneMinder package in zmrepo, during a future dnf update. To
+   prevent that from happening you must edit /etc/yum.repos.d/fedora.repo
+   and /etc/yum.repos.d/fedora-updates.repo. Add the line "exclude=zoneminder*"
+   without the quotes under the [fedora] and [fedora-updates] blocks,
+   respectively.
+
 Upgrades
 ========
 

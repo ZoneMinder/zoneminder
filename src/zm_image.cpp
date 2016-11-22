@@ -26,6 +26,18 @@
 #include <sys/stat.h>
 #include <errno.h>
 
+static unsigned char y_table_global[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19, 20, 22, 23, 24, 25, 26, 27, 29, 30, 31, 32, 33, 34, 36, 37, 38, 39, 40, 41, 43, 44, 45, 46, 47, 48, 50, 51, 52, 53, 54, 55, 57, 58, 59, 60, 61, 62, 64, 65, 66, 67, 68, 69, 71, 72, 73, 74, 75, 76, 78, 79, 80, 81, 82, 83, 85, 86, 87, 88, 89, 90, 91, 93, 94, 95, 96, 97, 98, 100, 101, 102, 103, 104, 105, 107, 108, 109, 110, 111, 112, 114, 115, 116, 117, 118, 119, 121, 122, 123, 124, 125, 126, 128, 129, 130, 131, 132, 133, 135, 136, 137, 138, 139, 140, 142, 143, 144, 145, 146, 147, 149, 150, 151, 152, 153, 154, 156, 157, 158, 159, 160, 161, 163, 164, 165, 166, 167, 168, 170, 171, 172, 173, 174, 175, 176, 178, 179, 180, 181, 182, 183, 185, 186, 187, 188, 189, 190, 192, 193, 194, 195, 196, 197, 199, 200, 201, 202, 203, 204, 206, 207, 208, 209, 210, 211, 213, 214, 215, 216, 217, 218, 220, 221, 222, 223, 224, 225, 227, 228, 229, 230, 231, 232, 234, 235, 236, 237, 238, 239, 241, 242, 243, 244, 245, 246, 248, 249, 250, 251, 252, 253, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255};
+
+static signed char uv_table_global[] = {-127, -127, -127, -127, -127, -127, -127, -127, -127, -127, -127, -127, -127, -127, -127, -127, -127, -125, -124, -123, -122, -121, -120, -119, -117, -116, -115, -114, -113, -112, -111, -109, -108, -107, -106, -105, -104, -103, -102, -100, -99, -98, -97, -96, -95, -94, -92, -91, -90, -89, -88, -87, -86, -85, -83, -82, -81, -80, -79, -78, -77, -75, -74, -73, -72, -71, -70, -69, -68, -66, -65, -64, -63, -62, -61, -60, -58, -57, -56, -55, -54, -53, -52, -51, -49, -48, -47, -46, -45, -44, -43, -41, -40, -39, -38, -37, -36, -35, -34, -32, -31, -30, -29, -28, -27, -26, -24, -23, -22, -21, -20, -19, -18, -17, -15, -14, -13, -12, -11, -10, -9, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 22, 23, 24, 26, 27, 28, 29, 30, 31, 32, 34, 35, 36, 37, 38, 39, 40, 41, 43, 44, 45, 46, 47, 48, 49, 51, 52, 53, 54, 55, 56, 57, 58, 60, 61, 62, 63, 64, 65, 66, 68, 69, 70, 71, 72, 73, 74, 75, 77, 78, 79, 80, 81, 82, 83, 85, 86, 87, 88, 89, 90, 91, 92, 94, 95, 96, 97, 98, 99, 100, 102, 103, 104, 105, 106, 107, 108, 109, 111, 112, 113, 114, 115, 116, 117, 119, 120, 121, 122, 123, 124, 125, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127};
+
+static short r_v_table_global[] = {-179, -178, -176, -175, -173, -172, -171, -169, -168, -166, -165, -164, -162, -161, -159, -158, -157, -155, -154, -152, -151, -150, -148, -147, -145, -144, -143, -141, -140, -138, -137, -135, -134, -133, -131, -130, -128, -127, -126, -124, -123, -121, -120, -119, -117, -116, -114, -113, -112, -110, -109, -107, -106, -105, -103, -102, -100, -99, -98, -96, -95, -93, -92, -91, -89, -88, -86, -85, -84, -82, -81, -79, -78, -77, -75, -74, -72, -71, -70, -68, -67, -65, -64, -63, -61, -60, -58, -57, -56, -54, -53, -51, -50, -49, -47, -46, -44, -43, -42, -40, -39, -37, -36, -35, -33, -32, -30, -29, -28, -26, -25, -23, -22, -21, -19, -18, -16, -15, -14, -12, -11, -9, -8, -7, -5, -4, -2, -1, 0, 1, 2, 4, 5, 7, 8, 9, 11, 12, 14, 15, 16, 18, 19, 21, 22, 23, 25, 26, 28, 29, 30, 32, 33, 35, 36, 37, 39, 40, 42, 43, 44, 46, 47, 49, 50, 51, 53, 54, 56, 57, 58, 60, 61, 63, 64, 65, 67, 68, 70, 71, 72, 74, 75, 77, 78, 79, 81, 82, 84, 85, 86, 88, 89, 91, 92, 93, 95, 96, 98, 99, 100, 102, 103, 105, 106, 107, 109, 110, 112, 113, 114, 116, 117, 119, 120, 121, 123, 124, 126, 127, 128, 130, 131, 133, 134, 135, 137, 138, 140, 141, 143, 144, 145, 147, 148, 150, 151, 152, 154, 155, 157, 158, 159, 161, 162, 164, 165, 166, 168, 169, 171, 172, 173, 175, 176};
+
+static short g_u_table_global[] = {-44, -43, -43, -43, -42, -42, -41, -41, -41, -40, -40, -40, -39, -39, -39, -38, -38, -38, -37, -37, -37, -36, -36, -36, -35, -35, -35, -34, -34, -34, -33, -33, -33, -32, -32, -31, -31, -31, -30, -30, -30, -29, -29, -29, -28, -28, -28, -27, -27, -27, -26, -26, -26, -25, -25, -25, -24, -24, -24, -23, -23, -23, -22, -22, -22, -21, -21, -20, -20, -20, -19, -19, -19, -18, -18, -18, -17, -17, -17, -16, -16, -16, -15, -15, -15, -14, -14, -14, -13, -13, -13, -12, -12, -12, -11, -11, -11, -10, -10, -9, -9, -9, -8, -8, -8, -7, -7, -7, -6, -6, -6, -5, -5, -5, -4, -4, -4, -3, -3, -3, -2, -2, -2, -1, -1, -1, 0, 0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9, 10, 10, 11, 11, 11, 12, 12, 12, 13, 13, 13, 14, 14, 14, 15, 15, 15, 16, 16, 16, 17, 17, 17, 18, 18, 18, 19, 19, 19, 20, 20, 20, 21, 21, 22, 22, 22, 23, 23, 23, 24, 24, 24, 25, 25, 25, 26, 26, 26, 27, 27, 27, 28, 28, 28, 29, 29, 29, 30, 30, 30, 31, 31, 31, 32, 32, 33, 33, 33, 34, 34, 34, 35, 35, 35, 36, 36, 36, 37, 37, 37, 38, 38, 38, 39, 39, 39, 40, 40, 40, 41, 41, 41, 42, 42, 43, 43};
+
+static short g_v_table_global[] = {-91, -90, -89, -89, -88, -87, -87, -86, -85, -84, -84, -83, -82, -82, -81, -80, -79, -79, -78, -77, -77, -76, -75, -74, -74, -73, -72, -72, -71, -70, -69, -69, -68, -67, -67, -66, -65, -64, -64, -63, -62, -62, -61, -60, -59, -59, -58, -57, -57, -56, -55, -54, -54, -53, -52, -52, -51, -50, -49, -49, -48, -47, -47, -46, -45, -44, -44, -43, -42, -42, -41, -40, -39, -39, -38, -37, -37, -36, -35, -34, -34, -33, -32, -32, -31, -30, -29, -29, -28, -27, -27, -26, -25, -24, -24, -23, -22, -22, -21, -20, -19, -19, -18, -17, -17, -16, -15, -14, -14, -13, -12, -12, -11, -10, -9, -9, -8, -7, -7, -6, -5, -4, -4, -3, -2, -2, -1, 0, 0, 0, 1, 2, 2, 3, 4, 4, 5, 6, 7, 7, 8, 9, 9, 10, 11, 12, 12, 13, 14, 14, 15, 16, 17, 17, 18, 19, 19, 20, 21, 22, 22, 23, 24, 24, 25, 26, 27, 27, 28, 29, 29, 30, 31, 32, 32, 33, 34, 34, 35, 36, 37, 37, 38, 39, 39, 40, 41, 42, 42, 43, 44, 44, 45, 46, 47, 47, 48, 49, 49, 50, 51, 52, 52, 53, 54, 54, 55, 56, 57, 57, 58, 59, 59, 60, 61, 62, 62, 63, 64, 64, 65, 66, 67, 67, 68, 69, 69, 70, 71, 72, 72, 73, 74, 74, 75, 76, 77, 77, 78, 79, 79, 80, 81, 82, 82, 83, 84, 84, 85, 86, 87, 87, 88, 89, 89};
+
+static short b_u_table_global[] = {-226, -225, -223, -221, -219, -217, -216, -214, -212, -210, -209, -207, -205, -203, -202, -200, -198, -196, -194, -193, -191, -189, -187, -186, -184, -182, -180, -178, -177, -175, -173, -171, -170, -168, -166, -164, -163, -161, -159, -157, -155, -154, -152, -150, -148, -147, -145, -143, -141, -139, -138, -136, -134, -132, -131, -129, -127, -125, -124, -122, -120, -118, -116, -115, -113, -111, -109, -108, -106, -104, -102, -101, -99, -97, -95, -93, -92, -90, -88, -86, -85, -83, -81, -79, -77, -76, -74, -72, -70, -69, -67, -65, -63, -62, -60, -58, -56, -54, -53, -51, -49, -47, -46, -44, -42, -40, -38, -37, -35, -33, -31, -30, -28, -26, -24, -23, -21, -19, -17, -15, -14, -12, -10, -8, -7, -5, -3, -1, 0, 1, 3, 5, 7, 8, 10, 12, 14, 15, 17, 19, 21, 23, 24, 26, 28, 30, 31, 33, 35, 37, 38, 40, 42, 44, 46, 47, 49, 51, 53, 54, 56, 58, 60, 62, 63, 65, 67, 69, 70, 72, 74, 76, 77, 79, 81, 83, 85, 86, 88, 90, 92, 93, 95, 97, 99, 101, 102, 104, 106, 108, 109, 111, 113, 115, 116, 118, 120, 122, 124, 125, 127, 129, 131, 132, 134, 136, 138, 139, 141, 143, 145, 147, 148, 150, 152, 154, 155, 157, 159, 161, 163, 164, 166, 168, 170, 171, 173, 175, 177, 178, 180, 182, 184, 186, 187, 189, 191, 193, 194, 196, 198, 200, 202, 203, 205, 207, 209, 210, 212, 214, 216, 217, 219, 221, 223};
+
 bool Image::initialised = false;
 static unsigned char *y_table;
 static signed char *uv_table;
@@ -140,30 +152,40 @@ Image::Image( const Image &p_image )
   strncpy( text, p_image.text, sizeof(text) );
 }
 
-Image::~Image()
-{
+Image::~Image() {
   DumpImgBuffer();
-  if ( initialised )
-  {
+}
+
+/* Should be called as part of program shutdown to free everything */
+void Image::Deinitialise() {
+  if ( initialised ) {
+	  /*
     delete[] y_table;
     delete[] uv_table;
     delete[] r_v_table;
     delete[] g_v_table;
     delete[] g_u_table;
     delete[] b_u_table;
+	 */
     initialised = false;
-  }
-  if ( readjpg_dcinfo )
-  {
-    jpeg_destroy_decompress( readjpg_dcinfo );
-    delete readjpg_dcinfo;
-    readjpg_dcinfo = 0;
-  }
-  if ( decodejpg_dcinfo )
-  {
-    jpeg_destroy_decompress( decodejpg_dcinfo );
-    delete decodejpg_dcinfo;
-    decodejpg_dcinfo = 0;
+    if ( readjpg_dcinfo ) {
+      jpeg_destroy_decompress( readjpg_dcinfo );
+      delete readjpg_dcinfo;
+      readjpg_dcinfo = 0;
+    }
+    if ( decodejpg_dcinfo )
+    {
+      jpeg_destroy_decompress( decodejpg_dcinfo );
+      delete decodejpg_dcinfo;
+      decodejpg_dcinfo = 0;
+    }
+    for ( unsigned int quality=0; quality <= 100; quality += 1 ) {
+      if ( writejpg_ccinfo[quality] ) {
+        jpeg_destroy_compress( writejpg_ccinfo[quality] );
+        delete writejpg_ccinfo[quality];
+        writejpg_ccinfo[quality] = NULL;
+      }
+    } // end foreach quality
   }
 }
 
@@ -173,14 +195,14 @@ void Image::Initialise()
   if(config.fast_image_blends) {
     if(config.cpu_extensions && sseversion >= 20) {
       fptr_blend = &sse2_fastblend; /* SSE2 fast blend */
-      Debug(2,"Blend: Using SSE2 fast blend function");
+      Debug(4,"Blend: Using SSE2 fast blend function");
     } else {
       fptr_blend = &std_fastblend;  /* standard fast blend */
-      Debug(2,"Blend: Using fast blend function");
+      Debug(4,"Blend: Using fast blend function");
     }
   } else {
     fptr_blend = &std_blend;
-    Debug(2,"Blend: Using standard blend function");
+    Debug(4,"Blend: Using standard blend function");
   }
   
   __attribute__((aligned(16))) uint8_t blend1[16] = {142,255,159,91,88,227,0,52,37,80,152,97,104,252,90,82};
@@ -209,7 +231,7 @@ void Image::Initialise()
       fptr_delta8_argb = &ssse3_delta8_argb;
       fptr_delta8_abgr = &ssse3_delta8_abgr;
       fptr_delta8_gray8 = &sse2_delta8_gray8;
-      Debug(2,"Delta: Using SSSE3 delta functions");
+      Debug(4,"Delta: Using SSSE3 delta functions");
     } else if(sseversion >= 20) {
       /* SSE2 available */
       fptr_delta8_rgba = &sse2_delta8_rgba;
@@ -226,7 +248,7 @@ void Image::Initialise()
       // fptr_delta8_argb = &std_delta8_argb;
       // fptr_delta8_abgr = &std_delta8_abgr;
       fptr_delta8_gray8 = &sse2_delta8_gray8;
-      Debug(2,"Delta: Using SSE2 delta functions");
+      Debug(4,"Delta: Using SSE2 delta functions");
     } else {
       /* No suitable SSE version available */
       fptr_delta8_rgba = &std_delta8_rgba;
@@ -234,7 +256,7 @@ void Image::Initialise()
       fptr_delta8_argb = &std_delta8_argb;
       fptr_delta8_abgr = &std_delta8_abgr;
       fptr_delta8_gray8 = &std_delta8_gray8;
-      Debug(2,"Delta: Using standard delta functions");
+      Debug(4,"Delta: Using standard delta functions");
     }
   } else {
     /* CPU extensions disabled */
@@ -243,7 +265,7 @@ void Image::Initialise()
     fptr_delta8_argb = &std_delta8_argb;
     fptr_delta8_abgr = &std_delta8_abgr;
     fptr_delta8_gray8 = &std_delta8_gray8;
-    Debug(2,"Delta: CPU extensions disabled, using standard delta functions");
+    Debug(4,"Delta: CPU extensions disabled, using standard delta functions");
   }
   
   /* Use SSSE3 deinterlace functions? */
@@ -253,28 +275,35 @@ void Image::Initialise()
     fptr_deinterlace_4field_argb = &ssse3_deinterlace_4field_argb;
     fptr_deinterlace_4field_abgr = &ssse3_deinterlace_4field_abgr;
     fptr_deinterlace_4field_gray8 = &ssse3_deinterlace_4field_gray8;
-    Debug(2,"Deinterlace: Using SSSE3 delta functions");
+    Debug(4,"Deinterlace: Using SSSE3 delta functions");
   } else {
     fptr_deinterlace_4field_rgba = &std_deinterlace_4field_rgba;
     fptr_deinterlace_4field_bgra = &std_deinterlace_4field_bgra;
     fptr_deinterlace_4field_argb = &std_deinterlace_4field_argb;
     fptr_deinterlace_4field_abgr = &std_deinterlace_4field_abgr;
     fptr_deinterlace_4field_gray8 = &std_deinterlace_4field_gray8;
-    Debug(2,"Deinterlace: Using standard delta functions");
+    Debug(4,"Deinterlace: Using standard delta functions");
   }
   
   /* Use SSE2 aligned memory copy? */
   if(config.cpu_extensions && sseversion >= 20) {
     fptr_imgbufcpy = &sse2_aligned_memcpy;
-    Debug(2,"Image buffer copy: Using SSE2 aligned memcpy");
+    Debug(4,"Image buffer copy: Using SSE2 aligned memcpy");
   } else {
     fptr_imgbufcpy = &memcpy;
-    Debug(2,"Image buffer copy: Using standard memcpy");
+    Debug(4,"Image buffer copy: Using standard memcpy");
   }
   
   /* Code below relocated from zm_local_camera */
   Debug( 3, "Setting up static colour tables" );
   
+  y_table = y_table_global;
+  uv_table = uv_table_global;
+  r_v_table = r_v_table_global;
+  g_v_table = g_v_table_global;
+  g_u_table = g_u_table_global;
+  b_u_table = b_u_table_global;
+  /*
   y_table = new unsigned char[256];
   for ( int i = 0; i <= 255; i++ )
   {
@@ -310,6 +339,7 @@ void Image::Initialise()
     g_v_table[i] = (714*(i-128))/1000;
     b_u_table[i] = (1772*(i-128))/1000;
   }
+   */
   
   initialised = true;
 }
@@ -324,7 +354,7 @@ uint8_t* Image::WriteBuffer(const unsigned int p_width, const unsigned int p_hei
   }
   
   if(!p_height || !p_width) {
-    Error("WriteBuffer called with invaid width or height: %d %d",p_width,p_height);
+    Error("WriteBuffer called with invalid width or height: %d %d",p_width,p_height);
     return NULL;
   }
   

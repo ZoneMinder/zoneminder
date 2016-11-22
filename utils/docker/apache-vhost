@@ -1,5 +1,5 @@
 <VirtualHost *:80>
-        DocumentRoot /var/www/zm
+        DocumentRoot /usr/local/share/zoneminder
         DirectoryIndex index.php
 
         ScriptAlias /cgi-bin/ /usr/lib/cgi-bin/

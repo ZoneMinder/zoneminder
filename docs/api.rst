@@ -89,7 +89,7 @@ This API changes monitor 1 to Modect and Enabled
 
 ::
 
-  curl -XPOST http://server/zm/api/monitors/1.json -d "Monitor[Function]=Modect&Monitor[Enabled]:true"
+  curl -XPOST http://server/zm/api/monitors/1.json -d "Monitor[Function]=Modect&Monitor[Enabled]=1"
 
 Add a monitor
 ^^^^^^^^^^^^^^
@@ -209,7 +209,7 @@ Return a list of events for a specific monitor Id =5
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ::
 
-  curl -XGET http://server/zm/api/events/events/index/MonitorId:5.json``
+  curl -XGET http://server/zm/api/events/index/MonitorId:5.json
 
 
 Note that the same pagination logic applies if the list is too long
@@ -220,7 +220,7 @@ Return a list of events for a specific monitor within a specific date/time range
 
 ::
 
-  http://server/zm/api/events/events/index/MonitorId:5/StartTime >=:2015-05-15 18:43:56/EndTime <=:2015-05-16 18:43:56.json
+  http://server/zm/api/events/index/MonitorId:5/StartTime >=:2015-05-15 18:43:56/EndTime <=:2015-05-16 18:43:56.json
 
 
 To try this in CuRL, you need to URL escape the spaces like so:
@@ -272,7 +272,17 @@ This returns the full list of configuration parameters:
 
 Each configuration parameter has an Id, Name, Value and other fields. Chances are you are likely only going to focus on these 3.
 
-(Example of changing config TBD)
+The edit function of the Configs API is a little quirky at the moment. Its format deviates from the usual edit flow of other APIs. This will be fixed, eventually. For now, to change the "Value" of ZM_X10_HOUSE_CODE from A to B:
+
+::
+
+    curl -XPUT http://server/zm/api/configs/edit/ZM_X10_HOUSE_CODE.json  -d "Config[Value]=B"
+
+To validate changes have been made:
+
+::
+
+    curl -XGET http://server/zm/api/configs/view/ZM_X10_HOUSE_CODE.json 
 
 Run State Apis
 ^^^^^^^^^^^^^^^
@@ -340,5 +350,5 @@ ZM APIs have various APIs that help you in determining host (aka ZM) daemon stat
 
   curl -XGET  http://server/zm/api/host/daemonCheck.json # 1 = ZM running 0=not running
   curl -XGET  http://server/zm/api/host/getLoad.json # returns current load of ZM
-  curl -XGET  http://server/zm/api/host/getDiskPercent.json # returns in GB (not percentage), disk usage per monitor (that is,   space taken to store various event related information,images etc. per monitor) ``
+  curl -XGET  http://server/zm/api/host/getDiskPercent.json # returns in GB (not percentage), disk usage per monitor (that is,   space taken to store various event related information,images etc. per monitor)
 

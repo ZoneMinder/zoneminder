@@ -1,5 +1,10 @@
-<div class="navbar navbar-default">
-	<div class="container">
+<nav class="navbar navbar-default" id="pageNav">
+	<div class="container-fluid">
+<?php if ($view == 'cycle') { ?>
+		<h2 class="navbar-text"><?php echo translate('Cycle') ?> - <?php echo validHtmlStr($monitor['Name']) ?></h2>
+<?php } else { ?>
+		<h2 class="navbar-text"><?php echo ucfirst(translate($view)) ?></h2>
+<?php } ?>
 <?php if ($view == 'montage' ) { ?>
 		<div class="navbar-form navbar-left">
 			<div class="form-group">
@@ -26,4 +31,4 @@
 <?php } ?>
 		</ul>
 	</div>
-</div>
+</nav>

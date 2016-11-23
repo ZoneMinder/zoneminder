@@ -89,11 +89,8 @@ xhtmlHeaders(__FILE__, translate('CycleWatch') );
 ?>
 <body>
   <?php include("skins/$skin/views/header.php") ?>
-  <?php include("skins/$skin/views/montageheader.php") ?>
-  <div id="page">
-    <div id="header">
-      <h2><?php echo translate('Cycle') ?> - <?php echo validHtmlStr($monitor['Name']) ?></h2>
-    </div>
+  <div class="container-fluid">
+    <?php include("skins/$skin/views/montageheader.php") ?>
     <div id="content">
       <div id="imageFeed">
 <?php

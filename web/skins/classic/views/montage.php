@@ -84,9 +84,8 @@ xhtmlHeaders(__FILE__, translate('Montage') );
 ?>
 <body>
   <?php include("skins/$skin/views/header.php") ?>
+  <div class="container-fluid">
   <?php include("skins/$skin/views/montageheader.php") ?>
-  <div id="page">
-    <div id="content">
       <div id="monitors">
 <?php
 foreach ( $monitors as $monitor )
@@ -132,7 +131,6 @@ else
 }
 ?>
       </div>
-    </div>
   </div>
 </body>
 </html>

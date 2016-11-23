@@ -515,6 +515,10 @@ label {
 	border-top: 1px solid #2d2d2d;
 }
 
+#pageNav h2.navbar-text {
+	margin-bottom:0;
+}
+
 .table > tbody > tr > td, .table > tbody > tr > th, .table > tfoot > tr > td, .table > tfoot > tr > th, .table > thead > tr > td, .table > thead > tr > th {
 	border: none;
 }
@@ -531,4 +535,9 @@ label {
 
 .zmpanel .list-group-item, #logTable, th {
 	text-align: center;
+}
+
+#content {
+	text-align: center;
+	margin-top:5px;
 }

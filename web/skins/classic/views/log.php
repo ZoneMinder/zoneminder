@@ -29,8 +29,8 @@ xhtmlHeaders(__FILE__, translate('SystemLog') );
 <body>
 
     <?php include("skins/$skin/views/header.php") ?>
-  <div id="page">
-    <div class="navbar navbar-default">
+  <div class="container-fluid">
+    <div class="navbar navbar-default" id="pageNav">
       <div class="navbar">
             <p class="navbar-text"><?php echo translate('Updated') ?>: <span id="lastUpdate"></span></p>
             <p class="navbar-text"><?php echo translate('State') ?>: <span id="logState"></span></p>

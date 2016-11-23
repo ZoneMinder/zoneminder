@@ -1,0 +1,6 @@
+            <tr><td><?php echo translate('ImageBufferSize') ?></td><td><input type="text" name="newMonitor[ImageBufferCount]" value="<?php echo validHtmlStr($newMonitor['ImageBufferCount']) ?>" size="6"/></td></tr>
+            <tr><td><?php echo translate('WarmupFrames') ?></td><td><input type="text" name="newMonitor[WarmupCount]" value="<?php echo validHtmlStr($newMonitor['WarmupCount']) ?>" size="4"/></td></tr>
+            <tr><td><?php echo translate('PreEventImageBuffer') ?></td><td><input type="text" name="newMonitor[PreEventCount]" value="<?php echo validHtmlStr($newMonitor['PreEventCount']) ?>" size="4"/></td></tr>
+            <tr><td><?php echo translate('PostEventImageBuffer') ?></td><td><input type="text" name="newMonitor[PostEventCount]" value="<?php echo validHtmlStr($newMonitor['PostEventCount']) ?>" size="4"/></td></tr>
+            <tr><td><?php echo translate('StreamReplayBuffer') ?></td><td><input type="text" name="newMonitor[StreamReplayBuffer]" value="<?php echo validHtmlStr($newMonitor['StreamReplayBuffer']) ?>" size="6"/></td></tr>
+<tr><td><?php echo translate('AlarmFrameCount') ?></td><td><input type="text" name="newMonitor[AlarmFrameCount]" value="<?php echo validHtmlStr($newMonitor['AlarmFrameCount']) ?>" size="4"/></td></tr>

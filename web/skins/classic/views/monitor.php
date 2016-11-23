@@ -460,8 +460,17 @@ $label_size = array(
 xhtmlHeaders(__FILE__, translate('Monitor')." - ".validHtmlStr($monitor['Name']) );
 ?>
 <body>
-  <div id="page">
-    <div id="header">
+
+<div class="container-fluid">
+
+	<?php include("skins/$skin/views/header.php") ?>
+
+	<div class="navbar navbar-default" id="pageNav">
+		<div class="container-fluid">
+			<h2 class="navbar-text"><?php echo translate('Monitor') ?> - <?php echo validHtmlStr($monitor['Name']) ?><?php if ( !empty($monitor['Id']) ) { ?> (<?php echo $monitor['Id'] ?>)<?php } ?></h2>
+
+			<div class="navbar-right">
+
 <?php
 if ( canEdit( 'Monitors' ) )
 {
@@ -481,24 +490,24 @@ if ( isset ($_REQUEST['dupId']))
 }
 ?>
 
-      <div id="headerButtons">
-        <a href="#" onclick="createPopup( '?view=monitorprobe&amp;mid=<?php echo $monitor['Id'] ?>', 'zmMonitorProbe<?php echo $monitor['Id'] ?>', 'monitorprobe' ); return( false );"><?php echo translate('Probe') ?></a>
+        <a class="btn btn-default navbar-btn" href="#" onclick="createPopup( '?view=monitorprobe&amp;mid=<?php echo $monitor['Id'] ?>', 'zmMonitorProbe<?php echo $monitor['Id'] ?>', 'monitorprobe' ); return( false );"><?php echo translate('Probe') ?></a>
   <?php
   if ( ZM_HAS_ONVIF )
   {
   ?>
-          <a href="#" onclick="createPopup( '?view=onvifprobe&amp;mid=<?php echo $monitor['Id'] ?>', 'zmOnvifProbe<?php echo $monitor['Id'] ?>', 'onvifprobe' ); return( false );"><?php echo  translate('OnvifProbe') ?></a>
+          <a class="btn btn-default navbar-btn" href="#" onclick="createPopup( '?view=onvifprobe&amp;mid=<?php echo $monitor['Id'] ?>', 'zmOnvifProbe<?php echo $monitor['Id'] ?>', 'onvifprobe' ); return( false );"><?php echo  translate('OnvifProbe') ?></a>
   <?php
   }
   ?>
-        <a href="#" onclick="createPopup( '?view=monitorpreset&amp;mid=<?php echo $monitor['Id'] ?>', 'zmMonitorPreset<?php echo $monitor['Id'] ?>', 'monitorpreset' ); return( false );"><?php echo translate('Presets') ?></a>
-      </div>
+        <a class="btn btn-default navbar-btn" href="#" onclick="createPopup( '?view=monitorpreset&amp;mid=<?php echo $monitor['Id'] ?>', 'zmMonitorPreset<?php echo $monitor['Id'] ?>', 'monitorpreset' ); return( false );"><?php echo translate('Presets') ?></a>
 <?php
 }
 ?>
-      <h2><?php echo translate('Monitor') ?> - <?php echo validHtmlStr($monitor['Name']) ?><?php if ( !empty($monitor['Id']) ) { ?> (<?php echo $monitor['Id'] ?>)<?php } ?></h2>
-    </div>
-    <div id="content">
+			</div><!-- end .navbar-right -->
+		</div><!-- end .container-fluid -->
+	</div><!-- end #pageNav -->
+
+  <div id="page">
       <ul class="tabList">
 <?php
 foreach ( $tabs as $name=>$value )
@@ -984,9 +993,8 @@ switch ( $tab )
 ?>
           </tbody>
         </table>
-        <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('Save') ?>"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
-        </div>
+
+        <input class="btn btn-primary" type="submit" value="<?php echo translate('Save') ?>"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
         
       </form>
     </div>

@@ -31,57 +31,64 @@ xhtmlHeaders(__FILE__, translate('SystemLog') );
     <?php include("skins/$skin/views/header.php") ?>
   <div class="container-fluid">
     <div class="navbar navbar-default" id="pageNav">
-      <div class="navbar">
-            <p class="navbar-text"><?php echo translate('Updated') ?>: <span id="lastUpdate"></span></p>
-            <p class="navbar-text"><?php echo translate('State') ?>: <span id="logState"></span></p>
-            <p class="navbar-text"><?php echo translate('Total') ?>: <span id="totalLogs"></span></p>
-            <p class="navbar-text"><?php echo translate('Available') ?>: <span id="availLogs"></span></p>
-            <p class="navbar-text"><?php echo translate('Displaying') ?>: <span id="displayLogs"></span></p>
+      <div class="container-fluid">
+		<h2 class="navbar-text"><?php echo ucfirst($view) ?></h2>
+		<div class="navbar-right">
+			<p class="navbar-text"><?php echo translate('Updated') ?>: <span id="lastUpdate"></span></p>
+			<p class="navbar-text"><?php echo translate('State') ?>: <span id="logState"></span></p>
+			<p class="navbar-text"><?php echo translate('Total') ?>: <span id="totalLogs"></span></p>
+			<p class="navbar-text"><?php echo translate('Available') ?>: <span id="availLogs"></span></p>
+			<p class="navbar-text"><?php echo translate('Displaying') ?>: <span id="displayLogs"></span></p>
+		</div>
       </div>
     </div>
-    <div id="content">
-      <div id="filters">
-	<form class="form-horizontal">
+
+	<form class="form-horizontal zmpanel">
 		<div class="row">
 			<div class="col-md-2">
-				<input type="button" class="btn btn-default btn-block" value="<?php echo translate('More') ?>" onclick="expandLog()"/>
-				<input type="button" class="btn btn-default btn-block" value="<?php echo translate('Clear') ?>" onclick="clearLog()"/>
-				<input type="button" class="btn btn-default btn-block" value="<?php echo translate('Refresh') ?>" onclick="refreshLog()"/>
-				<input type="button" class="btn btn-default btn-block" value="<?php echo translate('Export') ?>" onclick="exportLog()"/>
+				<div class="list-group">
+					<button type="button" class="list-group-item" onclick="expandLog()"><?php echo translate('More') ?></button>
+					<button type="button" class="list-group-item" onclick="clearLog()"><?php echo translate('Clear') ?></button>
+					<button type="button" class="list-group-item" onclick="refreshLog()"><?php echo translate('Refresh') ?></button>
+					<button type="button" class="list-group-item" onclick="exportLog()"><?php echo translate('Export') ?></button>
+					<button type="button" class="list-group-item" onclick="resetLog()"><?php echo translate('Reset') ?></button>
+				</div>
 			</div>
 			<div class="col-md-5">
-        <div class="form-group"><label class="col-sm-4 control-label" for="filter[Component]"><?php echo translate('Component') ?> </label>
-		<div class="col-sm-8"><select class="form-control" id="filter[Component]" onchange="filterLog(this)"><option value="">-----</option></select></div>
-	</div>
-
-        <div class="form-group"><label class="col-sm-4 control-label" for="filter[ServerId]"><?php echo translate('Server') ?> </label>
-		<div class="col-sm-8"><select class="form-control" id="filter[ServerId]" onchange="filterLog(this)"><option value="">-----</option></select></div>
-	</div>
-
-        <div class="form-group"><label class="col-sm-4 control-label" for="filter[Pid]"><?php echo translate('Pid') ?> </label>
-		<div class="col-sm-8"><select class="form-control" id="filter[Pid]" onchange="filterLog(this)"><option value="">-----</option></select></div>
-	</div>
+			        <div class="form-group">
+					<label class="col-sm-4 control-label" for="filter[Component]"><?php echo translate('Component') ?> </label>
+					<div class="col-sm-8"><select class="form-control" id="filter[Component]" onchange="filterLog(this)"><option value="">-----</option></select></div>
+				</div>
+			
+			        <div class="form-group">
+					<label class="col-sm-4 control-label" for="filter[ServerId]"><?php echo translate('Server') ?> </label>
+					<div class="col-sm-8"><select class="form-control" id="filter[ServerId]" onchange="filterLog(this)"><option value="">-----</option></select></div>
+				</div>
+			
+			        <div class="form-group">
+					<label class="col-sm-4 control-label" for="filter[Pid]"><?php echo translate('Pid') ?> </label>
+					<div class="col-sm-8"><select class="form-control" id="filter[Pid]" onchange="filterLog(this)"><option value="">-----</option></select></div>
+				</div>
 
 			</div>
 			<div class="col-md-5">
-        <div class="form-group"><label class="col-sm-4 control-label" for="filter[Level]"><?php echo translate('Level') ?> </label>
-		<div class="col-sm-8"><select class="form-control" id="filter[Level]" onchange="filterLog(this)"><option value="">---</option></select></div>
-	</div>
-
-        <div class="form-group"><label class="col-sm-4 control-label" for="filter[File]"><?php echo translate('File') ?> </label>
-		<div class="col-sm-8"><select class="form-control" id="filter[File]" onchange="filterLog(this)"><option value="">------</option></select></div>
-	</div>
-
-        <div class="form-group"><label class="col-sm-4 control-label" for="filter[Line]"><?php echo translate('Line') ?> </label>
-		<div class="col-sm-8"><select class="form-control" id="filter[Line]" onchange="filterLog(this)"><option value="">----</option></select></div>
-	</div>
-
-
+			        <div class="form-group">
+					<label class="col-sm-4 control-label" for="filter[Level]"><?php echo translate('Level') ?> </label>
+					<div class="col-sm-8"><select class="form-control" id="filter[Level]" onchange="filterLog(this)"><option value="">---</option></select></div>
+				</div>
+			
+			        <div class="form-group">
+					<label class="col-sm-4 control-label" for="filter[File]"><?php echo translate('File') ?> </label>
+					<div class="col-sm-8"><select class="form-control" id="filter[File]" onchange="filterLog(this)"><option value="">------</option></select></div>
+				</div>
+			
+			        <div class="form-group">
+					<label class="col-sm-4 control-label" for="filter[Line]"><?php echo translate('Line') ?> </label>
+					<div class="col-sm-8"><select class="form-control" id="filter[Line]" onchange="filterLog(this)"><option value="">----</option></select></div>
+				</div>
 			</div>
-		</div>
-        <input type="reset" class="btn btn-default" value="<?php echo translate('Reset') ?>" onclick="resetLog()"/>
+		</div><!-- End .row -->
 	</form>
-      </div>
 
       <form name="logForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
@@ -104,7 +111,6 @@ xhtmlHeaders(__FILE__, translate('SystemLog') );
         <div id="contentButtons">
         </div>
       </form>
-    </div>
   </div>
   <div id="exportLog" class="overlay">
     <div class="overlayHeader">
@@ -115,25 +121,25 @@ xhtmlHeaders(__FILE__, translate('SystemLog') );
         <form id="exportForm" action="" method="post">
           <fieldset>
             <legend><?php echo translate('SelectLog') ?></legend>
-            <label for="selectorAll"><?php echo translate('All') ?></label><input type="radio" id="selectorAll" name="selector" value="all"/>
-            <label for="selectorFilter"><?php echo translate('Filter') ?></label><input type="radio" id="selectorFilter" name="selector" value="filter"/>
-            <label for="selectorCurrent"><?php echo translate('Current') ?></label><input type="radio" id="selectorCurrent" name="selector" value="current" title="<?php echo translate('ChooseLogSelection') ?>" data-validators="validate-one-required"/>
+            <label class="radio-inline" for="selectorAll"><input type="radio" id="selectorAll" name="selector" value="all"/> <?php echo translate('All') ?></label>
+            <label class="radio-inline" for="selectorFilter"><input type="radio" id="selectorFilter" name="selector" value="filter"/> <?php echo translate('Filter') ?></label>
+            <label class="radio-inline" for="selectorCurrent"><input type="radio" id="selectorCurrent" name="selector" value="current" title="<?php echo translate('ChooseLogSelection') ?>" data-validators="validate-one-required"/> <?php echo translate('Current') ?></label>
           </fieldset>
           <fieldset>
             <legend><?php echo translate('SelectFormat') ?></legend>
-            <label for="formatText">TXT</label><input type="radio" id="formatText" name="format" value="text"/>
-            <label for="formatTSV">TSV</label><input type="radio" id="formatTSV" name="format" value="tsv"/>
-            <label for="formatXML">HTML</label><input type="radio" id="formatHTML" name="format" value="html"/>
-            <label for="formatXML">XML</label><input type="radio" id="formatXML" name="format" value="xml" title="<?php echo translate('ChooseLogFormat') ?>" class="validate-one-required"/>
+            <label class="radio-inline" for="formatText"> <input type="radio" id="formatText" name="format" value="text"/> TXT</label>
+            <label class="radio-inline" for="formatTSV"> <input type="radio" id="formatTSV" name="format" value="tsv"/> TSV</label>
+            <label class="radio-inline" for="formatHTML"> <input type="radio" id="formatHTML" name="format" value="html"/> HTML</label>
+            <label class="radio-inline" for="formatXML"> <input type="radio" id="formatXML" name="format" value="xml" title="<?php echo translate('ChooseLogFormat') ?>" class="validate-one-required"/> XML</label>
           </fieldset>
           <div id="exportError">
             <?php echo translate('ExportFailed') ?>: <span id="exportErrorText"></span>
           </div>
-          <input type="button" id="exportButton" value="<?php echo translate('Export') ?>" onclick="exportRequest()"/>
-          <input type="button" value="<?php echo translate('Cancel') ?>" class="overlayCloser"/>
+          <input class="btn btn-default" type="button" id="exportButton" value="<?php echo translate('Export') ?>" onclick="exportRequest()"/>
+          <input class="btn btn-default" type="button" value="<?php echo translate('Cancel') ?>" class="overlayCloser" onclick="$('exportLog').overlayHide()"/>
         </form>
-      </div>
     </div>
   </div>
+</div>
 </body>
 </html>

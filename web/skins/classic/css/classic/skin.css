@@ -41,8 +41,6 @@ h1 {
 
 h2 {
     font-family: inherit;
-	margin-left: 20px;
-	margin-bottom: 20px;
     font-size: 25px;
     color: #eee;
     font-weight: 400;
@@ -246,6 +244,12 @@ thead tr{
     background-color: #f8f8f8;
 }
 
+.overlay legend {
+	width:auto;
+	margin-bottom:0;
+	border-bottom: none;
+}
+
 .validation-advice {
     padding: 4px;
     color: #dc143c;
@@ -253,7 +257,7 @@ thead tr{
 
 fieldset {
     border: 1px solid black;
-    padding: 4px;
+    padding: 14px;
     margin-bottom: 8px;
     border-radius: 2px;
     -moz-border-radius: 2px;
@@ -390,13 +394,6 @@ tr:nth-child(2n) {
     margin-left: 4px;
 }
 
-#content {
-    width: 96%;
-    margin: 8px auto;
-    line-height: 130%;
-    text-align: center;
-}
-
 #content p {
     margin-top: 4px;
 }
@@ -520,4 +517,18 @@ label {
 
 .table > tbody > tr > td, .table > tbody > tr > th, .table > tfoot > tr > td, .table > tfoot > tr > th, .table > thead > tr > td, .table > thead > tr > th {
 	border: none;
+}
+
+.zmpanel {
+	padding:10px;
+	margin:20px 0 20px 0;
+	background-color: #282828;
+	border: 1px solid transparent;
+	border-radius: 4px;
+	-webkit-box-shadow: 0 1px 1px rgba(0,0,0,.05);
+	box-shadow: 0 1px 1px rgba(0,0,0,.05);
+}
+
+.zmpanel .list-group-item, #logTable, th {
+	text-align: center;
 }

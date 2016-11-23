@@ -19,7 +19,7 @@
 // 
 
 // Only load new js & css in these views
-$new_views = array('login', 'console', 'options', 'log', 'groups');
+$new_views = array('login', 'console', 'options', 'log', 'groups', 'montage');
 
 function xhtmlHeaders( $file, $title )
 {
@@ -47,12 +47,8 @@ function xhtmlHeaders( $file, $title )
   <meta name="viewport" content="width=device-width, initial-scale=1, maxiumum-scale=1.0, user-scalable=no">
   <title><?php echo ZM_WEB_TITLE_PREFIX ?> - <?php echo validHtmlStr($title) ?></title>
   <link rel="icon" type="image/ico" href="graphics/favicon.ico"/>
-<?php if ( in_array($basename, $new_views) ) { ?>
   <link rel="stylesheet" href="css/bootstrap.min.css" type="text/css"/>
-<?php } else { ?>
-  <link rel="stylesheet" href="css/reset.css" type="text/css"/>
   <link rel="stylesheet" href="css/overlay.css" type="text/css"/>
-<?php } ?>
   <link rel="stylesheet" href="<?php echo $skinCssFile ?>" type="text/css" media="screen"/>
 <?php
     if ( $viewCssFile )

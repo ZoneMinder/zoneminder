@@ -47,3 +47,7 @@
 .overlayContent {
     padding: 4px 4px 6px;
 }
+
+#exportForm > fieldset > label {
+	color: #000;
+}

@@ -71,14 +71,6 @@ function logResponse( respObj )
                         var row = logTable.push( [ { content: log.DateTime, properties: { style: 'white-space: nowrap' }}, log.Component, log.Server, log.Pid, log.Code, log.Message, log.File, log.Line ] );
                         delete log.Message;
                         row.tr.store( 'log', log );
-                        if ( log.Level <= -3 )
-                            row.tr.addClass( 'danger' );
-                        else if ( log.Level <= -2 )
-                            row.tr.addClass( 'danger' );
-                        else if ( log.Level <= -1 )
-                            row.tr.addClass( 'warning' );
-                        else if ( log.Level > 0 )
-                            row.tr.addClass( 'info' );
                         if ( !firstLoad )
                         {
                             var color = document.defaultView.getComputedStyle(row.tr,null).getPropertyValue('color');

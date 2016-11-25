@@ -472,6 +472,7 @@ xhtmlHeaders(__FILE__, translate('Monitor')." - ".validHtmlStr($monitor['Name'])
 
 			<div class="navbar-right">
 				<input class="btn btn-primary" type="submit" value="<?php echo translate('Save') ?>"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
+				<a href="?view=console" class="btn btn-default">Cancel</a>
 <?php
 if ( canEdit( 'Monitors' ) ) {
 

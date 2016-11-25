@@ -45,6 +45,15 @@
 <div class="form-group">
 <label class="col-sm-3 control-label"><?php echo translate('WebColour') ?></label><div class="col-sm-3"><input class="form-control" type="text" name="newMonitor[WebColour]" value="<?php echo validHtmlStr($newMonitor['WebColour']) ?>" onchange="$('WebSwatch').setStyle( 'backgroundColor', this.value )"/><span id="WebSwatch" class="swatch" style="background-color: <?php echo validHtmlStr($newMonitor['WebColour']) ?>;">&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
 </div>
+
+
 <div class="form-group">
-<label class="col-sm-3 control-label"><?php echo translate('Exif') ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option=OPTIONS_EXIF', 'zmOptionHelp', 'optionhelp', '?' ) ?>) </label><div class="col-sm-3"><input class="form-control" type="checkbox" name="newMonitor[Exif]" value="1"<?php if ( !empty($newMonitor['Exif']) ) { ?> checked="checked"<?php } ?>/></div>
+<div class="col-sm-3 col-sm-offset-3">
+<div class="checkbox">
+<label>
+<input type="checkbox" name="newMonitor[Exif]" value="1"<?php if ( !empty($newMonitor['Exif']) ) { ?> checked="checked"<?php } ?>/>
+<?php echo translate('Exif') ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option=OPTIONS_EXIF', 'zmOptionHelp', 'optionhelp', '?' ) ?>)
+</label>
+</div>
+</div>
 </div>

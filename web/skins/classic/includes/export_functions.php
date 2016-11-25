@@ -142,8 +142,6 @@ function exportEventDetail( $event, $exportFrames, $exportImages )
 
 function exportEventFrames( $event, $exportDetail, $exportImages )
 {
-    global $SLANG;
-
     $sql = "SELECT *, unix_timestamp( TimeStamp ) AS UnixTimeStamp FROM Frames WHERE EventID = ? ORDER BY FrameId";
     $frames = dbFetchAll( $sql, NULL, array( $event['Id'] ) );
 
@@ -230,8 +228,6 @@ function exportEventFrames( $event, $exportDetail, $exportImages )
 
 function exportEventImages( $event, $exportDetail, $exportFrames, $myfilelist )
 {
-    global $SLANG;
-
     ob_start();
     exportHeader( translate('Images')." ".$event['Id'] );
 	
@@ -589,7 +585,6 @@ else if (document.layers) window.onload=start_slider;
 
 function exportEventImagesMaster( $eids )
 {
-    global $SLANG;
     ob_start();
     exportHeader( translate('Images').' Master' );
 ?>

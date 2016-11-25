@@ -464,13 +464,14 @@ xhtmlHeaders(__FILE__, translate('Monitor')." - ".validHtmlStr($monitor['Name'])
 <div class="container-fluid">
 
 	<?php include("skins/$skin/views/header.php") ?>
+<form class="form-horizontal" name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" onsubmit="return validateForm( this )">
 
 	<div class="navbar navbar-default" id="pageNav">
 		<div class="container-fluid">
 			<h2 class="navbar-text"><?php echo translate('Monitor') ?> - <?php echo validHtmlStr($monitor['Name']) ?><?php if ( !empty($monitor['Id']) ) { ?> (<?php echo $monitor['Id'] ?>)<?php } ?></h2>
 
 			<div class="navbar-right">
-
+				<input class="btn btn-primary" type="submit" value="<?php echo translate('Save') ?>"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
 <?php
 if ( canEdit( 'Monitors' ) ) {
 
@@ -503,7 +504,6 @@ if ( canEdit( 'Monitors' ) ) {
         <li><a href="#" onclick="submitTab( '<?php echo $name ?>' ); return( false );"><?php echo $value ?></a></li>
 <?php } } ?>
       </ul>
-      <form class="form-horizontal" name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" onsubmit="return validateForm( this )">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
         <input type="hidden" name="action" value="monitor"/>
@@ -635,7 +635,6 @@ switch ( $tab ) {
     }
 } ?>
 
-        <input class="btn btn-primary" type="submit" value="<?php echo translate('Save') ?>"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
         
       </form>
     </div>

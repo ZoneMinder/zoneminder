@@ -2131,4 +2131,16 @@ function getStreamHTML( $monitor, $scale=100 ) {
     }
 } // end function getStreamHTML
 
+function updateAvailable() {
+	if ( ZM_DYN_DB_VERSION && (ZM_DYN_DB_VERSION != ZM_VERSION) ) {
+		$version = 'mismatch';
+	} elseif ( verNum( ZM_DYN_LAST_VERSION ) <= verNum( ZM_VERSION ) ) {
+		$version = 'ok';
+	} else {
+		$version = 'update';
+	}
+
+	return($version);
+}
+
 ?>

@@ -29,6 +29,7 @@ $canEdit = canEdit( 'System' );
 $tabs = array();
 $tabs['skins'] = translate('Display');
 $tabs['system'] = translate('System');
+$tabs['version'] = translate('Version');
 $tabs['config'] = translate('Config');
 $tabs['servers'] = translate('Servers');
 $tabs['paths'] = translate('Paths');
@@ -73,6 +74,19 @@ Error("setting css $current_css to " .  $_GET['css-choice']);
         echo "<script type=\"text/javascript\">if(window.opener){window.opener.location.reload();}window.location.href=\"{$_SERVER['PHP_SELF']}?view={$view}&tab={$tab}\"</script>";
 } # end if tab == skins
 
+$version = updateAvailable();
+$version_icon = 'glyphicon ';
+switch ($version) {
+	case "mismastch":
+		$version_icon .= ' glyphicon-alert';
+		break;
+	case "update":
+		$version_icon .= ' glyphicon-exclamation-sign';
+		break;
+	case "ok":
+		$version_icon .= ' glyphicon-ok-circle';
+		break;
+}
 ?>
 <body>
 
@@ -83,22 +97,19 @@ Error("setting css $current_css to " .  $_GET['css-choice']);
 <div class="row">
 	<div class="col-sm-3">
       <ul class="nav nav-pills nav-stacked" id="navOptions">
-<?php
-foreach ( $tabs as $name=>$value )
-{
-?>
+<?php foreach ( $tabs as $name=>$value ) {
+	if ( $name == 'version' ) { ?>
+        <li<?php echo $tab == $name ? ' class="active"' : '' ?>><a href="?view=<?php echo $view ?>&amp;tab=<?php echo $name ?>"><span class="pull-right <?php echo $version_icon ?>"></span><?php echo $value ?></a></li>
+	<?php } else { ?>
         <li<?php echo $tab == $name ? ' class="active"' : '' ?>><a href="?view=<?php echo $view ?>&amp;tab=<?php echo $name ?>"><?php echo $value ?></a></li>
-<?php
-}
-?>
+	<?php } ?>
+<?php } ?>
       </ul>
 	</div>
 
 	<div class="col-sm-9">
       <div id="options">
-<?php 
-if($tab == 'skins') {
-?>
+<?php if($tab == 'skins') { ?>
 	<form name="optionsForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
@@ -131,8 +142,21 @@ if($tab == 'skins') {
      </form>
 	
       <?php
-}
-elseif ( $tab == "users" )
+} elseif ( $tab  == 'version' ) {
+
+if ( $version == 'mismatch' ) { ?>
+      <p class="errorText"><?php echo sprintf( $CLANG['VersionMismatch'], ZM_VERSION, ZM_DYN_DB_VERSION ) ?></p>
+      <p><?php echo translate('RunLocalUpdate') ?></p>
+<?php } elseif ( $version == 'ok' ) { ?>
+      <p class="text-success"><?php echo sprintf( $CLANG['RunningRecentVer'], ZM_VERSION ) ?></p>
+      <p><?php echo translate('UpdateNotNecessary') ?></p>
+<?php } else { ?>
+        <p class="text-info"><?php echo translate('UpdateAvailable') ?></p>
+        <p><?php echo sprintf( $CLANG['LatestRelease'], ZM_DYN_LAST_VERSION, ZM_VERSION ) ?></p>
+	<a href="https://github.com/ZoneMinder/ZoneMinder/releases/latest" target="_blank">Please install manually.</a>
+<?php }
+
+} elseif ( $tab == "users" )
 {
 ?>
       <form name="userForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
@@ -245,6 +269,7 @@ elseif ( $tab == "users" )
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
         <input type="hidden" name="action" value="options"/>
+
 <?php
     $configCat = $configCats[$tab];
     foreach ( $configCat as $name=>$value )

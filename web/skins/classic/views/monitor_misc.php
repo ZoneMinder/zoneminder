@@ -37,13 +37,13 @@
 {
 	?>
 		<div class="form-group">
-		<label class="col-sm-3 control-label"><?php echo translate('SignalCheckColour') ?></label><div class="col-sm-3"><input class="form-control" type="text" name="newMonitor[SignalCheckColour]" value="<?php echo validHtmlStr($newMonitor['SignalCheckColour']) ?>" onchange="$('SignalCheckSwatch').setStyle( 'backgroundColor', this.value )"/><span id="SignalCheckSwatch" class="swatch" style="background-color: <?php echo $newMonitor['SignalCheckColour'] ?>;">&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+		<label class="col-sm-3 control-label"><?php echo translate('SignalCheckColour') ?></label><div class="col-sm-3"><input style="color: <?php echo $newMonitor['SignalCheckColour'] ?>;" class="form-control" type="text" name="newMonitor[SignalCheckColour]" value="<?php echo validHtmlStr($newMonitor['SignalCheckColour']) ?>" onchange="$('SignalCheckSwatch').setStyle( 'backgroundColor', this.value )"/></div>
 		</div>
 		<?php
 }
 ?>
 <div class="form-group">
-<label class="col-sm-3 control-label"><?php echo translate('WebColour') ?></label><div class="col-sm-3"><input class="form-control" type="text" name="newMonitor[WebColour]" value="<?php echo validHtmlStr($newMonitor['WebColour']) ?>" onchange="$('WebSwatch').setStyle( 'backgroundColor', this.value )"/><span id="WebSwatch" class="swatch" style="background-color: <?php echo validHtmlStr($newMonitor['WebColour']) ?>;">&nbsp;&nbsp;&nbsp;&nbsp;</span></div>
+<label class="col-sm-3 control-label"><?php echo translate('WebColour') ?></label><div class="col-sm-3"><input style="color: <?php echo validHtmlStr($newMonitor['WebColour']) ?>;"  class="form-control" type="text" name="newMonitor[WebColour]" value="<?php echo validHtmlStr($newMonitor['WebColour']) ?>" onchange="$('WebSwatch').setStyle( 'backgroundColor', this.value )"/></div>
 </div>
 
 

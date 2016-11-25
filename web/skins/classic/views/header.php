@@ -13,9 +13,17 @@ if ( ! empty($_COOKIE['zmGroup']) ) {
 }
 
 
-$versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText':'';
-
-
+switch (updateAvailable()) {
+	case "mismastch":
+		$version_alert .= 'text-danger';
+		break;
+	case "update":
+		$version_alert .= 'text-warning';
+		break;
+	case "ok":
+		$version_alert .= '';
+		break;
+}
 ?>
 <div id="navHeader" class="navbar-fixed-top">
 <div class="navbar navbar-inverse">
@@ -77,7 +85,7 @@ $versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText'
 			<li><?php echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', $bwArray[$_COOKIE['zmBandwidth']] . ' Bandwidth', ($user && $user['MaxBandwidth'] != 'low' ) ) ?></li>
 		</ul>
 		<ul class="nav navbar-nav navbar-right">
-			<li><?php echo makePopupLink( '?view=version', 'zmVersion', 'version', 'v'.ZM_VERSION, canEdit( 'System' ) ) ?></li>
+			<li><a href="?view=options&amp;tab=version"><span class="<?php echo $version_alert ?>">v<?php echo ZM_VERSION ?></a></span></li>
 			<li><a href="#"><?php echo translate('Load') ?>: <?php echo getLoad() ?></a></li>
 			<li><a href="#"><?php echo translate('Disk') ?>: <?php echo getDiskPercent() ?>%</a></li>
 		</ul>

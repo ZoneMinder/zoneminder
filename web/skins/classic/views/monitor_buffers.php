@@ -1,6 +1,18 @@
-            <tr><td><?php echo translate('ImageBufferSize') ?></td><td><input type="text" name="newMonitor[ImageBufferCount]" value="<?php echo validHtmlStr($newMonitor['ImageBufferCount']) ?>" size="6"/></td></tr>
-            <tr><td><?php echo translate('WarmupFrames') ?></td><td><input type="text" name="newMonitor[WarmupCount]" value="<?php echo validHtmlStr($newMonitor['WarmupCount']) ?>" size="4"/></td></tr>
-            <tr><td><?php echo translate('PreEventImageBuffer') ?></td><td><input type="text" name="newMonitor[PreEventCount]" value="<?php echo validHtmlStr($newMonitor['PreEventCount']) ?>" size="4"/></td></tr>
-            <tr><td><?php echo translate('PostEventImageBuffer') ?></td><td><input type="text" name="newMonitor[PostEventCount]" value="<?php echo validHtmlStr($newMonitor['PostEventCount']) ?>" size="4"/></td></tr>
-            <tr><td><?php echo translate('StreamReplayBuffer') ?></td><td><input type="text" name="newMonitor[StreamReplayBuffer]" value="<?php echo validHtmlStr($newMonitor['StreamReplayBuffer']) ?>" size="6"/></td></tr>
-<tr><td><?php echo translate('AlarmFrameCount') ?></td><td><input type="text" name="newMonitor[AlarmFrameCount]" value="<?php echo validHtmlStr($newMonitor['AlarmFrameCount']) ?>" size="4"/></td></tr>
+<div class="form-group">
+<label class="col-sm-3 control-label"><?php echo translate('ImageBufferSize') ?></label><div class="col-sm-3"><input class="form-control" type="number" name="newMonitor[ImageBufferCount]" value="<?php echo validHtmlStr($newMonitor['ImageBufferCount']) ?>"/></div>
+</div>
+<div class="form-group">
+<label class="col-sm-3 control-label"><?php echo translate('WarmupFrames') ?></label><div class="col-sm-3"><input class="form-control" type="number" name="newMonitor[WarmupCount]" value="<?php echo validHtmlStr($newMonitor['WarmupCount']) ?>"/></div>
+</div>
+<div class="form-group">
+<label class="col-sm-3 control-label"><?php echo translate('PreEventImageBuffer') ?></label><div class="col-sm-3"><input class="form-control" type="number" name="newMonitor[PreEventCount]" value="<?php echo validHtmlStr($newMonitor['PreEventCount']) ?>"/></div>
+</div>
+<div class="form-group">
+<label class="col-sm-3 control-label"><?php echo translate('PostEventImageBuffer') ?></label><div class="col-sm-3"><input class="form-control" type="number" name="newMonitor[PostEventCount]" value="<?php echo validHtmlStr($newMonitor['PostEventCount']) ?>"/></div>
+</div>
+<div class="form-group">
+<label class="col-sm-3 control-label"><?php echo translate('StreamReplayBuffer') ?></label><div class="col-sm-3"><input class="form-control" type="number" name="newMonitor[StreamReplayBuffer]" value="<?php echo validHtmlStr($newMonitor['StreamReplayBuffer']) ?>"/></div>
+</div>
+<div class="form-group">
+<label class="col-sm-3 control-label"><?php echo translate('AlarmFrameCount') ?></label><div class="col-sm-3"><input class="form-control" type="number" name="newMonitor[AlarmFrameCount]" value="<?php echo validHtmlStr($newMonitor['AlarmFrameCount']) ?>"/></div>
+</div>

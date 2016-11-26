@@ -116,32 +116,38 @@ xhtmlHeaders(__FILE__, translate('Events') );
 
 ?>
 <body>
-  <div id="page">
-    <div id="header">
-      <div id="headerButtons">
-<?php
-if ( $pages > 1 )
-{
-    if ( !empty($page) )
-    {
-?>
-        <a href="?view=<?php echo $view ?>&amp;page=0<?php echo $filterQuery ?><?php echo $sortQuery ?>&amp;limit=<?php echo $limit ?>"><?php echo translate('ViewAll') ?></a>
-<?php
-    }
-    else
-    {
-?>
-        <a href="?view=<?php echo $view ?>&amp;page=1<?php echo $filterQuery ?><?php echo $sortQuery ?>&amp;limit=<?php echo $limit ?>"><?php echo translate('ViewPaged') ?></a>
-<?php
-    }
-}
-?>
-        <a href="#" onclick="closeWindows();"><?php echo translate('Close') ?></a>
-      </div>
-      <h2><?php echo sprintf( $CLANG['EventCount'], $nEvents, zmVlang( $VLANG['Event'], $nEvents ) ) ?></h2>
-    </div>
-    <div id="content">
+  <div class="container-fluid">
+	<?php include("skins/$skin/views/header.php") ?>
       <form name="contentForm" id="contentForm" method="post" action="">
+	<nav class="navbar navbar-default" id="pageNav">
+		<div class="container-fluid">
+			<h2 class="navbar-text"><?php echo sprintf( $CLANG['EventCount'], $nEvents, zmVlang( $VLANG['Event'], $nEvents ) ) ?></h2>
+
+<div class="pull-right">
+<a class="btn btn-default navbar-btn" id="refreshLink" href="#" onclick="location.reload(true);"><?php echo translate('Refresh') ?></a>
+<a class="btn btn-default navbar-btn" id="filterLink" href="#" onclick="createPopup( '?view=filter&amp;page=<?php echo $page ?><?php echo $filterQuery ?>', 'zmFilter', 'filter' );"><?php echo translate('Filter') ?></a>
+<a class="btn btn-default navbar-btn" id="timelineLink" href="#" onclick="createPopup( '?view=timeline<?php echo $filterQuery ?>', 'zmTimeline', 'timeline' );"><?php echo translate('Timeline') ?></a>
+
+<?php if ( ( $pages > 1 ) && ( !empty($page) ) ) { ?>
+        <a class="btn btn-default navbar-btn" href="?view=<?php echo $view ?>&amp;page=0<?php echo $filterQuery ?><?php echo $sortQuery ?>&amp;limit=<?php echo $limit ?>"><?php echo translate('ViewAll') ?></a>
+<?php } else { ?>
+        <a class="btn btn-default navbar-btn" href="?view=<?php echo $view ?>&amp;page=1<?php echo $filterQuery ?><?php echo $sortQuery ?>&amp;limit=<?php echo $limit ?>"><?php echo translate('ViewPaged') ?></a>
+<?php } ?>
+
+<?php if ( true || canEdit( 'Events' ) ) { ?>
+<input class="btn btn-default navbar-btn" type="button" name="viewBtn" value="<?php echo translate('View') ?>" onclick="viewEvents( this, 'markEids' );" disabled="disabled"/>
+<input class="btn btn-default navbar-btn" type="button" name="archiveBtn" value="<?php echo translate('Archive') ?>" onclick="archiveEvents( this, 'markEids' )" disabled="disabled"/>
+<input class="btn btn-default navbar-btn" type="button" name="unarchiveBtn" value="<?php echo translate('Unarchive') ?>" onclick="unarchiveEvents( this, 'markEids' );" disabled="disabled"/>
+<input class="btn btn-default navbar-btn" type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editEvents( this, 'markEids' )" disabled="disabled"/>
+<input class="btn btn-default navbar-btn" type="button" name="exportBtn" value="<?php echo translate('Export') ?>" onclick="exportEvents( this, 'markEids' )" disabled="disabled"/>
+<input class="btn btn-default navbar-btn" type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteEvents( this, 'markEids' );" disabled="disabled"/>
+<?php } ?>
+
+</div>
+		</div>
+	</nav>
+
+<div style="text-align: center;">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value=""/>
         <input type="hidden" name="page" value="<?php echo $page ?>"/>
@@ -149,29 +155,17 @@ if ( $pages > 1 )
         <input type="hidden" name="sort_field" value="<?php echo validHtmlStr($_REQUEST['sort_field']) ?>"/>
         <input type="hidden" name="sort_asc" value="<?php echo validHtmlStr($_REQUEST['sort_asc']) ?>"/>
         <input type="hidden" name="limit" value="<?php echo $limit ?>"/>
-<?php
-if ( $pagination )
-{
-?>
+<?php if ( $pagination ) { ?>
 	<ul class="pagination">
         <?php echo $pagination ?>
 	</ul>
-<?php
-}
-?>
-        <p id="controls">
-          <a id="refreshLink" href="#" onclick="location.reload(true);"><?php echo translate('Refresh') ?></a>
-          <a id="filterLink" href="#" onclick="createPopup( '?view=filter&amp;page=<?php echo $page ?><?php echo $filterQuery ?>', 'zmFilter', 'filter' );"><?php echo translate('ShowFilterWindow') ?></a>
-          <a id="timelineLink" href="#" onclick="createPopup( '?view=timeline<?php echo $filterQuery ?>', 'zmTimeline', 'timeline' );"><?php echo translate('ShowTimeline') ?></a>
-        </p>
-        <table id="contentTable" class="major" cellspacing="0">
+<?php } ?>
+        <table class="table table-condensed">
           <tbody>
 <?php
 $count = 0;
-foreach ( $events as $event )
-{
-    if ( ($count++%ZM_WEB_EVENTS_PER_PAGE) == 0 )
-    {
+foreach ( $events as $event ) {
+    if ( ($count++%ZM_WEB_EVENTS_PER_PAGE) == 0 ) {
 ?>
             <tr>
               <th class="colId"><a href="<?php echo sortHeader( 'Id' ) ?>"><?php echo translate('Id') ?><?php echo sortTag( 'Id' ) ?></a></th>
@@ -185,14 +179,9 @@ foreach ( $events as $event )
               <th class="colTotScore"><a href="<?php echo sortHeader( 'TotScore' ) ?>"><?php echo translate('TotalBrScore') ?><?php echo sortTag( 'TotScore' ) ?></a></th>
               <th class="colAvgScore"><a href="<?php echo sortHeader( 'AvgScore' ) ?>"><?php echo translate('AvgBrScore') ?><?php echo sortTag( 'AvgScore' ) ?></a></th>
               <th class="colMaxScore"><a href="<?php echo sortHeader( 'MaxScore' ) ?>"><?php echo translate('MaxBrScore') ?><?php echo sortTag( 'MaxScore' ) ?></a></th>
-<?php
-        if ( ZM_WEB_LIST_THUMBS )
-        {
-?>
+<?php if ( ZM_WEB_LIST_THUMBS ) { ?>
               <th class="colThumbnail"><?php echo translate('Thumbnail') ?></th>
-<?php
-        }
-?>
+<?php } ?>
               <th class="colMark"><input type="checkbox" name="toggleCheck" value="1" onclick="toggleCheckbox( this, 'markEids' );"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>/></th>
             </tr>
 <?php
@@ -212,16 +201,12 @@ foreach ( $events as $event )
               <td class="colAvgScore"><?php echo $event['AvgScore'] ?></td>
               <td class="colMaxScore"><?php echo makePopupLink( '?view=frame&amp;eid='.$event['Id'].'&amp;fid=0', 'zmImage', array( 'image', reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ) ), $event['MaxScore'] ) ?></td>
 <?php
-    if ( ZM_WEB_LIST_THUMBS )
-    {
-        if ( $thumbData = createListThumbnail( $event ) )
-        {
+    if ( ZM_WEB_LIST_THUMBS ) {
+        if ( $thumbData = createListThumbnail( $event ) ) {
 ?>
               <td class="colThumbnail"><?php echo makePopupLink( '?view=frame&amp;eid='.$event['Id'].'&amp;fid='.$thumbData['FrameId'], 'zmImage', array( 'image', reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ) ), '<img src="'.viewImagePath( $thumbData['Path'] ).'" width="'.$thumbData['Width'].'" height="'.$thumbData['Height'].'" alt="'.$thumbData['FrameId'].'/'.$event['MaxScore'].'"/>' ) ?></td>
 <?php
-        }
-        else
-        {
+        } else {
 ?>
               <td class="colThumbnail">&nbsp;</td>
 <?php
@@ -235,29 +220,13 @@ foreach ( $events as $event )
 ?>
           </tbody>
         </table>
-<?php
-if ( $pagination )
-{
-?>
-        <h3 class="pagination"><?php echo $pagination ?></h3>
-<?php
-}
-if ( true || canEdit( 'Events' ) )
-{
-?>
-        <div id="contentButtons">
-          <input type="button" name="viewBtn" value="<?php echo translate('View') ?>" onclick="viewEvents( this, 'markEids' );" disabled="disabled"/>
-          <input type="button" name="archiveBtn" value="<?php echo translate('Archive') ?>" onclick="archiveEvents( this, 'markEids' )" disabled="disabled"/>
-          <input type="button" name="unarchiveBtn" value="<?php echo translate('Unarchive') ?>" onclick="unarchiveEvents( this, 'markEids' );" disabled="disabled"/>
-          <input type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editEvents( this, 'markEids' )" disabled="disabled"/>
-          <input type="button" name="exportBtn" value="<?php echo translate('Export') ?>" onclick="exportEvents( this, 'markEids' )" disabled="disabled"/>
-          <input type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteEvents( this, 'markEids' );" disabled="disabled"/>
-        </div>
-<?php
-}
-?>
+<?php if ( $pagination ) { ?>
+	<ul class="pagination">
+        <?php echo $pagination ?>
+	</ul>
+<?php } ?>
+</div>
       </form>
-    </div>
   </div>
 </body>
 </html>

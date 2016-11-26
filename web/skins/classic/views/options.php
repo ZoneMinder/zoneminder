@@ -93,6 +93,11 @@ switch ($version) {
     <?php include("skins/$skin/views/header.php") ?>
 
     <div class="container">
+<nav class="navbar navbar-default" id="pageNav">
+	<div class="container-fluid">
+		<h2 class="navbar-text">Options / <?php echo ucfirst($tab) ?></h2>
+	</div>
+</nav>
 
 <div class="row">
 	<div class="col-sm-3">

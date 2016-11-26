@@ -295,7 +295,7 @@ echo $Server->Name();
     for ( $i = 0; $i < count($eventCounts); $i++ )
     {
 ?>
-            <td class="colEvents"><?php echo makePopupLink( '?view='.$eventsView.'&amp;page=1'.$monitor['eventCounts'][$i]['filter']['query'], $eventsWindow, $eventsView, $monitor['EventCount'.$i], canView( 'Events' ) ) ?></td>
+            <td class="colEvents"><?php echo makeLink( '?view='.$eventsView.'&amp;page=1'.$monitor['eventCounts'][$i]['filter']['query'], $monitor['EventCount'.$i], canView( 'Events' ) ) ?></td>
 <?php
     }
 ?>

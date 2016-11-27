@@ -333,7 +333,7 @@ bool Event::OpenFrameSocket( int monitor_id )
   strncpy( addr.sun_path, sock_path, sizeof(addr.sun_path) );
   addr.sun_family = AF_UNIX;
 
-  if ( connect( sd, (struct sockaddr *)&addr, strlen(addr.sun_path)+sizeof(addr.sun_family)) < 0 )
+  if ( connect( sd, (struct sockaddr *)&addr, strlen(addr.sun_path)+sizeof(addr.sun_family)+1) < 0 )
   {
     Warning( "Can't connect to frame server: %s", strerror(errno) );
     close( sd );

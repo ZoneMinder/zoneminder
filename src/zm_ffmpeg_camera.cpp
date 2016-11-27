@@ -238,6 +238,8 @@ int FfmpegCamera::OpenFfmpeg() {
 
   Debug ( 2, "OpenFfmpeg called." );
 
+  int ret;
+
   mOpenStart = time(NULL);
   mIsOpening = true;
 
@@ -248,37 +250,24 @@ int FfmpegCamera::OpenFfmpeg() {
 #else
   // Handle options
   AVDictionary *opts = 0;
-  StringVector opVect = split(Options(), ",");
-  
-  // Set transport method as specified by method field, rtpUni is default
-  if ( Method() == "rtpMulti" )
-    opVect.push_back("rtsp_transport=udp_multicast");
-  else if ( Method() == "rtpRtsp" )
-    opVect.push_back("rtsp_transport=tcp");
-  else if ( Method() == "rtpRtspHttp" )
-    opVect.push_back("rtsp_transport=http");
-  
-    Debug(2, "Number of Options: %d",opVect.size());
-  for (size_t i=0; i<opVect.size(); i++)
-  {
-    StringVector parts = split(opVect[i],"=");
-    if (parts.size() > 1) {
-      parts[0] = trimSpaces(parts[0]);
-      parts[1] = trimSpaces(parts[1]);
-      if ( av_dict_set(&opts, parts[0].c_str(), parts[1].c_str(), 0) == 0 ) {
-        Debug(2, "set option %d '%s' to '%s'", i,  parts[0].c_str(), parts[1].c_str());
-      }
-      else
-      {
-        Warning( "Error trying to set option %d '%s' to '%s'", i, parts[0].c_str(), parts[1].c_str() );
-      }
-        
-    }
-     else
-     {
-       Warning( "Unable to parse ffmpeg option %d '%s', expecting key=value", i, opVect[i].c_str() );
-     }
+  ret = av_dict_parse_string(&opts, Options().c_str(), "=", ",", 0);
+  if (ret < 0) {
+    Warning("Could not parse ffmpeg input options list '%s'\n", Options().c_str());
   }
+
+  // Set transport method as specified by method field, rtpUni is default
+  if (Method() == "rtpMulti") {
+    ret = av_dict_set(&opts, "rtsp_transport", "udp_multicast", 0);
+  } else if (Method() == "rtpRtsp") {
+    ret = av_dict_set(&opts, "rtsp_transport", "tcp", 0);
+  } else if (Method() == "rtpRtspHttp") {
+    ret = av_dict_set(&opts, "rtsp_transport", "http", 0);
+  }
+
+  if (ret < 0) {
+    Warning("Could not set rtsp_transport method '%s'\n", Method().c_str());
+  }
+
   Debug ( 1, "Calling avformat_open_input" );
 
   mFormatContext = avformat_alloc_context( );
@@ -579,7 +568,11 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
 #else
       if ( avcodec_decode_video( mCodecContext, mRawFrame, &frameComplete, packet.data, packet.size ) < 0 )
 #endif
-        Fatal( "Unable to decode frame at frame %d", frameCount );
+      {
+        Error( "Unable to decode frame at frame %d, continuing...", frameCount );
+        av_free_packet( &packet );
+        continue;
+      }
 
         Debug( 4, "Decoded video packet at frame %d", frameCount );
 
@@ -597,7 +590,31 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
           if ( recording && !wasRecording ) {
             //Instantiate the video storage module
 
-            videoStore = new VideoStore((const char *)event_file, "mp4", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime);
+          if (record_audio) {
+            if (mAudioStreamId == -1) {
+              Debug(3, "Record Audio on but no audio stream found");
+              videoStore = new VideoStore((const char *) event_file, "mp4",
+                                          mFormatContext->streams[mVideoStreamId],
+                                          NULL,
+                                          startTime,
+                                          this->getMonitor()->getOrientation());
+
+            } else {
+              Debug(3, "Video module initiated with audio stream");
+              videoStore = new VideoStore((const char *) event_file, "mp4",
+                                          mFormatContext->streams[mVideoStreamId],
+                                          mFormatContext->streams[mAudioStreamId],
+                                          startTime,
+                                          this->getMonitor()->getOrientation());
+            }
+          } else {
+            Debug(3, "Record_audio is false so exclude audio stream");
+            videoStore = new VideoStore((const char *) event_file, "mp4",
+                                        mFormatContext->streams[mVideoStreamId],
+                                        NULL,
+                                        startTime,
+                                        this->getMonitor()->getOrientation());
+          }
             wasRecording = true;
             strcpy(oldDirectory, event_file);
             
@@ -606,24 +623,51 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
             delete videoStore;
             videoStore = NULL;
           }
-          
-          //The directory we are recording to is no longer tied to the current event. Need to re-init the videostore with the correct directory and start recording again
-          if ( recording && wasRecording && (strcmp(oldDirectory, event_file) != 0 ) && (packet.flags & AV_PKT_FLAG_KEY) ) {
-			      // don't open new videostore until we're on a key frame..would this require an offset adjustment for the event as a result?...
-			      // if we store our key frame location with the event will that be enough?
+
+        //          The directory we are recording to is no longer tied to the current
+        //          event. Need to re-init the videostore with the correct directory and
+        //          start recording again
+        if (recording && wasRecording && (strcmp(oldDirectory, event_file) != 0)
+            && (packet.flags & AV_PKT_FLAG_KEY)) {
+          //			Don't open new videostore until we're on a key frame..would this
+          //          require an offset adjustment for the event as a result?...if we store
+          //			our key frame location with the event will that be enough?
             Info("Re-starting video storage module");
             if(videoStore){
               delete videoStore;
               videoStore = NULL;
-            }
+          }
 
-            videoStore = new VideoStore((const char *)event_file, "mp4", mFormatContext->streams[mVideoStreamId],mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],startTime);
+          if (record_audio) {
+            if (mAudioStreamId == -1) {
+              Debug(3, "Record Audio on but no audio stream found");
+              videoStore = new VideoStore((const char *) event_file, "mp4",
+                                          mFormatContext->streams[mVideoStreamId],
+                                          NULL,
+                                          startTime,
+                                          this->getMonitor()->getOrientation());
+            } else {
+              Debug(3, "Video module initiated with audio stream");
+              videoStore = new VideoStore((const char *) event_file, "mp4",
+                                          mFormatContext->streams[mVideoStreamId],
+                                          mFormatContext->streams[mAudioStreamId],
+                                          startTime,
+                                          this->getMonitor()->getOrientation());
+            }
+          } else {
+            Debug(3, "Record_audio is false so exclude audio stream");
+            videoStore = new VideoStore((const char *) event_file, "mp4",
+                                        mFormatContext->streams[mVideoStreamId],
+                                        NULL, startTime,
+                                        this->getMonitor()->getOrientation());
+          }
             strcpy(oldDirectory, event_file);
           }
           
           if ( videoStore && recording ) {
             //Write the packet to our video store
-            int ret = videoStore->writeVideoFramePacket(&packet, mFormatContext->streams[mVideoStreamId]);//, &lastKeyframePkt);
+          int ret = videoStore->writeVideoFramePacket(&packet,
+                                                      mFormatContext->streams[mVideoStreamId]); //, &lastKeyframePkt);
             if(ret<0){//Less than zero and we skipped a frame
               av_free_packet( &packet );
               return 0;
@@ -632,13 +676,20 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
                 
 #if HAVE_LIBSWSCALE
           if ( mConvertContext == NULL ) {
-            mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
+          mConvertContext = sws_getContext(mCodecContext->width,
+                                           mCodecContext->height,
+                                           mCodecContext->pix_fmt,
+                                           width, height,
+                                           imagePixFormat, SWS_BICUBIC, NULL,
+                                           NULL, NULL);
             if ( mConvertContext == NULL )
               Fatal( "Unable to create conversion context for %s", mPath.c_str() );
-          }
+        }
 
-          if ( sws_scale( mConvertContext, mRawFrame->data, mRawFrame->linesize, 0, mCodecContext->height, mFrame->data, mFrame->linesize ) < 0 )
-            Fatal( "Unable to convert raw format %u to target format %u at frame %d", mCodecContext->pix_fmt, imagePixFormat, frameCount );
+        if (sws_scale(mConvertContext, mRawFrame->data, mRawFrame->linesize,
+                      0, mCodecContext->height, mFrame->data, mFrame->linesize) < 0)
+          Fatal("Unable to convert raw format %u to target format %u at frame %d",
+                mCodecContext->pix_fmt, imagePixFormat, frameCount);
 #else // HAVE_LIBSWSCALE
           Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
 #endif // HAVE_LIBSWSCALE
@@ -650,7 +701,8 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
           if ( record_audio ) {
             Debug(4, "Recording audio packet" );
             //Write the packet to our video store
-            int ret = videoStore->writeAudioFramePacket(&packet, mFormatContext->streams[packet.stream_index]); //FIXME no relevance of last key frame
+          int ret = videoStore->writeAudioFramePacket(&packet,
+                                                      mFormatContext->streams[packet.stream_index]); //FIXME no relevance of last key frame
             if ( ret < 0 ) {//Less than zero and we skipped a frame
               av_free_packet( &packet );
             return 0;      

@@ -16,7 +16,9 @@ function changeScale()
 		vid.width = newWidth;
 		vid.height = newHeight;
 	} else {
-        	streamScale( scale );
+    streamScale( scale );
+    Cookie.write( 'zmEventScale'+eventData.MonitorId, scale, { duration: 10*365 } );
+    /*Stream could be an applet so can't use moo tools*/ 
 		var streamImg = document.getElementById('evtStream');
 		streamImg.style.width = newWidth + "px";
 		streamImg.style.height = newHeight + "px";

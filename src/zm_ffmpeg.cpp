@@ -79,6 +79,55 @@ enum _AVPIXELFORMAT GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subp
 
   return pf;
 }
+/* The following is copied directly from newer ffmpeg. */
+#if LIBAVUTIL_VERSION_CHECK(52, 7, 0, 17, 100)
+#else
+static int parse_key_value_pair(AVDictionary **pm, const char **buf,
+                                const char *key_val_sep, const char *pairs_sep,
+                                int flags)
+{
+    char *key = av_get_token(buf, key_val_sep);
+    char *val = NULL;
+    int ret;
+
+    if (key && *key && strspn(*buf, key_val_sep)) {
+        (*buf)++;
+        val = av_get_token(buf, pairs_sep);
+    }
+
+    if (key && *key && val && *val)
+        ret = av_dict_set(pm, key, val, flags);
+    else
+        ret = AVERROR(EINVAL);
+
+    av_freep(&key);
+    av_freep(&val);
+
+    return ret;
+}
+int av_dict_parse_string(AVDictionary **pm, const char *str,
+                            const char *key_val_sep, const char *pairs_sep,
+                            int flags)
+   {
+       int ret;
+   
+       if (!str)
+          return 0;
+   
+       /* ignore STRDUP flags */
+       flags &= ~(AV_DICT_DONT_STRDUP_KEY | AV_DICT_DONT_STRDUP_VAL);
+   
+       while (*str) {
+           if ((ret = parse_key_value_pair(pm, &str, key_val_sep, pairs_sep, flags)) < 0)
+              return ret;
+   
+           if (*str)
+               str++;
+       }
+   
+       return 0;
+  }
+#endif
 #endif // HAVE_LIBAVUTIL
 
 #if HAVE_LIBSWSCALE && HAVE_LIBAVUTIL
@@ -150,11 +199,11 @@ int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint
     Error("NULL Input or output buffer");
     return -1;
   }
-  if(in_pf == 0 || out_pf == 0) {
-    Error("Invalid input or output pixel formats");
-    return -2;
-  }
-  if(!width || !height) {
+  //  if(in_pf == 0 || out_pf == 0) {
+  //    Error("Invalid input or output pixel formats");
+  //    return -2;
+  //  }
+  if (!width || !height) {
     Error("Invalid width or height");
     return -3;
   }
@@ -190,18 +239,30 @@ int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint
   }
 
   /* Get the context */
-  swscale_ctx = sws_getCachedContext( NULL, width, height, in_pf, width, height, out_pf, 0, NULL, NULL, NULL );
+  swscale_ctx = sws_getCachedContext(swscale_ctx, width, height, in_pf, width, height, out_pf, 0, NULL, NULL, NULL);
   if(swscale_ctx == NULL) {
     Error("Failed getting swscale context");
     return -6;
   }
 
   /* Fill in the buffers */
-  if(!avpicture_fill( (AVPicture*)input_avframe, (uint8_t*)in_buffer, in_pf, width, height ) ) {
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+  if (av_image_fill_arrays(input_avframe->data, input_avframe->linesize,
+                           (uint8_t*) in_buffer, in_pf, width, height, 1) <= 0) {
+#else
+  if (avpicture_fill((AVPicture*) input_avframe, (uint8_t*) in_buffer,
+                     in_pf, width, height) <= 0) {
+#endif
     Error("Failed filling input frame with input buffer");
     return -7;
   }
-  if(!avpicture_fill( (AVPicture*)output_avframe, out_buffer, out_pf, width, height ) ) {
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+  if (av_image_fill_arrays(output_avframe->data, output_avframe->linesize,
+                           out_buffer, out_pf, width, height, 1) <= 0) {
+#else
+  if (avpicture_fill((AVPicture*) output_avframe, out_buffer, out_pf, width,
+                     height) <= 0) {
+#endif
     Error("Failed filling output frame with output buffer");
     return -8;
   }
@@ -249,6 +310,7 @@ int SWScale::ConvertDefaults(const uint8_t* in_buffer, const size_t in_buffer_si
   return Convert(in_buffer,in_buffer_size,out_buffer,out_buffer_size,default_input_pf,default_output_pf,default_width,default_height);
 }
 #endif // HAVE_LIBSWSCALE && HAVE_LIBAVUTIL
+
 
 #endif // HAVE_LIBAVCODEC || HAVE_LIBAVUTIL || HAVE_LIBSWSCALE
 
@@ -330,8 +392,7 @@ int hacked_up_context2_for_older_ffmpeg(AVFormatContext **avctx, AVOutputFormat 
   }
 }
 
-static void zm_log_fps(double d, const char *postfix)
-{
+static void zm_log_fps(double d, const char *postfix) {
   uint64_t v = lrintf(d * 100);
   if (!v) {
     Debug(3, "%1.4f %s", d, postfix);
@@ -346,6 +407,7 @@ static void zm_log_fps(double d, const char *postfix)
 /* "user interface" functions */
 void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output) {
   char buf[256];
+  Debug(1, "Dumping stream index i(%d) index(%d)", i, index );
   int flags = (is_output ? ic->oformat->flags : ic->iformat->flags);
   AVStream *st = ic->streams[i];
   AVDictionaryEntry *lang = av_dict_get(st->metadata, "language", NULL, 0);
@@ -377,17 +439,14 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
 
   if (st->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
     int fps = st->avg_frame_rate.den && st->avg_frame_rate.num;
-    int tbr = st->r_frame_rate.den && st->r_frame_rate.num;
     int tbn = st->time_base.den && st->time_base.num;
     int tbc = st->codec->time_base.den && st->codec->time_base.num;
 
-    if (fps || tbr || tbn || tbc)
+    if (fps || tbn || tbc)
       Debug(3, "\n" );
 
     if (fps)
-      zm_log_fps(av_q2d(st->avg_frame_rate), tbr || tbn || tbc ? "fps, " : "fps");
-    if (tbr)
-      zm_log_fps(av_q2d(st->r_frame_rate), tbn || tbc ? "tbr, " : "tbr");
+      zm_log_fps(av_q2d(st->avg_frame_rate), tbn || tbc ? "fps, " : "fps");
     if (tbn)
       zm_log_fps(1 / av_q2d(st->time_base), tbc ? "tbn, " : "tbn");
     if (tbc)

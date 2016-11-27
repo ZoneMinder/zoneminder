@@ -48,8 +48,7 @@ foreach( dbFetchAll( $sql ) as $row )
 foreach ( getSkinIncludes( 'includes/control_functions.php' ) as $includeFile )
     require_once $includeFile;
 
-$sql = 'SELECT C.*,M.* FROM Monitors AS M INNER JOIN Controls AS C ON (M.ControlId = C.Id ) WHERE M.Id = ?';
-$monitor = dbFetchOne( $sql, NULL, array( $mid ) );
+$monitor = new Monitor( $mid );
 
 $focusWindow = true;
 

@@ -7,7 +7,6 @@ Build-Depends: debhelper (>= 9), dh-systemd, python-sphinx | python3-sphinx, apa
               ,cmake
               ,libx264-dev, libmp4v2-dev
               ,libavcodec-dev, libavformat-dev, libswscale-dev
-	      #, libswresample-dev
 	      , libavutil-dev, libavdevice-dev 
               ,libboost-dev
               ,libbz2-dev

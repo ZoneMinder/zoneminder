@@ -81,10 +81,8 @@ switch (updateAvailable()) {
 
 <nav class="navbar navbar-inverse">
 	<div class="container-fluid">
-		<ul class="nav navbar-nav navbar-left">
-			<li><?php echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', $bwArray[$_COOKIE['zmBandwidth']] . ' Bandwidth', ($user && $user['MaxBandwidth'] != 'low' ) ) ?></li>
-		</ul>
 		<ul class="nav navbar-nav navbar-right">
+			<li><?php echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', $bwArray[$_COOKIE['zmBandwidth']] . ' Bandwidth', ($user && $user['MaxBandwidth'] != 'low' ) ) ?></li>
 			<li><a href="?view=options&amp;tab=version"><span class="<?php echo $version_alert ?>">v<?php echo ZM_VERSION ?></span></a></li>
 			<li><a href="#"><?php echo translate('Load') ?>: <?php echo getLoad() ?></a></li>
 			<li><a href="#"><?php echo translate('Disk') ?>: <?php echo getDiskPercent() ?>%</a></li>

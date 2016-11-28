@@ -70,6 +70,12 @@ $eventCounts = array(
     ),
 );
 
+$group = NULL;
+if ( ! empty($_COOKIE['zmGroup']) ) {
+	if ( $group = dbFetchOne( 'select * from Groups where Id = ?', NULL, array($_COOKIE['zmGroup'])) )
+		$groupIds = array_flip(explode( ',', $group['MonitorIds'] ));
+}
+
 $maxWidth = 0;
 $maxHeight = 0;
 $cycleCount = 0;
@@ -183,6 +189,19 @@ xhtmlHeaders( __FILE__, translate('Console') );
     <?php include("skins/$skin/views/header.php") ?>
 
     <div class="container-fluid">
+
+<div class="navbar navbar-default" id="pageNav">
+	<div class="container-fluid">
+		<h2 class="navbar-text">Console</h2>
+		<div class="pull-right">
+			<?php echo makeLink( '?view=groups', sprintf( $CLANG['MonitorCount'], count($displayMonitors), zmVlang( $VLANG['Monitor'], count($displayMonitors) ) ).($group?' ('.$group['Name'].')':''), canView( 'Groups' ), 'class="btn btn-default navbar-btn"' ); ?>
+			<?php echo makePopupLink( '?view=filter&amp;filter[terms][0][attr]=DateTime&amp;filter[terms][0][op]=%3c&amp;filter[terms][0][val]=now', 'zmFilter', 'filter', translate('Filters'), canView( 'Events' ), 'class="btn btn-default navbar-btn"' ) ?>
+		</div>
+<center><?php echo ZM_WEB_CONSOLE_BANNER ?></center>
+	</div>
+</div>
+
+
       <table class="table table-condensed">
         <thead>
           <tr>

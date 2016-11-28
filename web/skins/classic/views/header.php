@@ -6,11 +6,6 @@ $running = daemonCheck();
 $status = $running?translate('Running'):translate('Stopped');
 $run_state = dbFetchOne('select Name from States where  IsActive = 1', 'Name' );
 
-$group = NULL;
-if ( ! empty($_COOKIE['zmGroup']) ) {
-	if ( $group = dbFetchOne( 'select * from Groups where Id = ?', NULL, array($_COOKIE['zmGroup'])) )
-		$groupIds = array_flip(explode( ',', $group['MonitorIds'] ));
-}
 
 
 switch (updateAvailable()) {
@@ -50,8 +45,6 @@ switch (updateAvailable()) {
 <?php if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
 			<li><a href="/?view=devices">Devices</a></li>
 <?php } ?>
-			<li><a href="?view=groups">Groups</a></li>
-			<li><?php echo makePopupLink( '?view=filter&amp;filter[terms][0][attr]=DateTime&amp;filter[terms][0][op]=%3c&amp;filter[terms][0][val]=now', 'zmFilter', 'filter', translate('Filters'), canView( 'Events' ) ) ?></li>
 
 <?php if ( canView( 'Stream' ) ) {
 	$cycleGroup = isset($_COOKIE['zmGroup'])?$_COOKIE['zmGroup']:0;

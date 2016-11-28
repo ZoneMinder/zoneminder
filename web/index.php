@@ -178,14 +178,14 @@ if ( ZM_OPT_USE_AUTH && ZM_AUTH_HASH_LOGINS ) {
     generateAuthHash( ZM_AUTH_HASH_IPS );
   }
 }
-# If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
-if ( ZM_OPT_USE_AUTH && ! isset($user) && $view != 'login' ) {
-  $view = 'login';
-}
 
 if ( isset($_REQUEST['action']) ) {
   $action = detaintPath($_REQUEST['action']);
   require_once( 'includes/actions.php' );
+}
+# If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
+if ( ZM_OPT_USE_AUTH && ! isset($user) && $view != 'login' ) {
+  $view = 'login';
 }
 
 # Only one request can open the session file at a time, so let's close the session here to improve concurrency.

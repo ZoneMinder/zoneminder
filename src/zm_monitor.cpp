@@ -384,6 +384,20 @@ Monitor::Monitor(
   Debug( 1, "mem.size=%d", mem_size );
   mem_ptr = NULL;
 
+  char monitor_dir[PATH_MAX] = "";
+  snprintf( monitor_dir, sizeof(monitor_dir), "%s/%d", config.dir_events, monitor->Id() );
+  struct stat statbuf;
+
+      if ( stat( monitor_dir, &statbuf ) ) {
+        if ( errno == ENOENT || errno == ENOTDIR ) {
+          if ( mkdir( monitor_dir, 0755 ) ) {
+            Fatal( "Can't mkdir %s: %s", monitor_dir, strerror(errno));
+          }
+        } else {
+          Warning( "Error stat'ing %s, may be fatal. error is %s", monitor_dir, strerror(errno));
+        }
+      }
+
   if ( purpose == CAPTURE ) {
 
     this->connect();

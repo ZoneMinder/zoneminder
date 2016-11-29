@@ -181,8 +181,10 @@ if ( ZM_OPT_USE_AUTH && ZM_AUTH_HASH_LOGINS ) {
 
 if ( isset($_REQUEST['action']) ) {
   $action = detaintPath($_REQUEST['action']);
-  require_once( 'includes/actions.php' );
 }
+# Need to include actions because it does auth
+require_once( 'includes/actions.php' );
+
 # If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
 if ( ZM_OPT_USE_AUTH && ! isset($user) && $view != 'login' ) {
   $view = 'login';

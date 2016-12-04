@@ -377,7 +377,7 @@ int RemoteCameraRtsp::Capture( Image &image )
 }
 
 //Function to handle capture and store
-int RemoteCameraRtsp::CaptureAndRecord( Image &image, bool recording, char* event_file ) {
+int RemoteCameraRtsp::CaptureAndRecord( Image &image, int recording, char* event_file ) {
   AVPacket packet;
   uint8_t* directbuffer;
   int frameComplete = false;
@@ -556,7 +556,7 @@ int RemoteCameraRtsp::CaptureAndRecord( Image &image, bool recording, char* even
   
   } // end while true
   return (0) ;
-} // int RemoteCameraRtsp::CaptureAndRecord( Image &image, bool recording, char* event_file ) 
+} // int RemoteCameraRtsp::CaptureAndRecord( Image &image, int recording, char* event_file ) 
 
 int RemoteCameraRtsp::PostCapture()
 {

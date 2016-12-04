@@ -509,7 +509,7 @@ void *FfmpegCamera::ReopenFfmpegThreadCallback(void *ctx){
 }
 
 //Function to handle capture and store
-int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_file ){
+int FfmpegCamera::CaptureAndRecord( Image &image, int recording, char* event_file ){
   if (!mCanCapture){
     return -1;
   }
@@ -533,9 +533,11 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
   
   /* Request a writeable buffer of the target image */
   directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
-  if( directbuffer == NULL ) {
-    Error("Failed requesting writeable buffer for the captured image.");
-    return (-1);
+  if( recording != 2 ) {
+    if( directbuffer == NULL ) {
+      Error("Failed requesting writeable buffer for the captured image.");
+      return (-1);
+    }
   }
   
   if ( mCodecContext->codec_id != AV_CODEC_ID_H264 ) {
@@ -563,6 +565,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
     }
     Debug( 5, "Got packet from stream %d", packet.stream_index );
     if ( packet.stream_index == mVideoStreamId ) {
+            if( recording != 2 ) {
 #if LIBAVCODEC_VERSION_CHECK(52, 23, 0, 23, 0)
       if ( avcodec_decode_video2( mCodecContext, mRawFrame, &frameComplete, &packet ) < 0 )
 #else
@@ -586,6 +589,47 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
             av_copy_packet(&lastKeyframePkt, &packet);*/
           //TODO I think we need to store the key frame location for seeking as part of the event
           
+#if HAVE_LIBSWSCALE
+          if ( mConvertContext == NULL ) {
+          mConvertContext = sws_getContext(mCodecContext->width,
+                                           mCodecContext->height,
+                                           mCodecContext->pix_fmt,
+                                           width, height,
+                                           imagePixFormat, SWS_BICUBIC, NULL,
+                                           NULL, NULL);
+            if ( mConvertContext == NULL )
+              Fatal( "Unable to create conversion context for %s", mPath.c_str() );
+        }
+
+        if (sws_scale(mConvertContext, mRawFrame->data, mRawFrame->linesize,
+                      0, mCodecContext->height, mFrame->data, mFrame->linesize) < 0)
+          Fatal("Unable to convert raw format %u to target format %u at frame %d",
+                mCodecContext->pix_fmt, imagePixFormat, frameCount);
+#else // HAVE_LIBSWSCALE
+          Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
+#endif // HAVE_LIBSWSCALE
+
+          frameCount++;
+/*#if HAVE_LIBSWSCALE
+                    if(mConvertContext == NULL) {
+                        mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
+                        if(mConvertContext == NULL)
+                            Fatal( "Unable to create conversion context for %s", mPath.c_str() );
+                    }
+	
+                    if ( sws_scale( mConvertContext, mRawFrame->data, mRawFrame->linesize, 0, mCodecContext->height, mFrame->data, mFrame->linesize ) < 0 )
+                        Fatal( "Unable to convert raw format %u to target format %u at frame %d", mCodecContext->pix_fmt, imagePixFormat, frameCount );
+#else // HAVE_LIBSWSCALE
+                    Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
+#endif // HAVE_LIBSWSCALE
+ 
+                    frameCount++;
+*/		}
+            } else {
+		frameComplete = true;
+		frameCount++;
+            }
+
           //Video recording
           if ( recording && !wasRecording ) {
             //Instantiate the video storage module
@@ -674,28 +718,6 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
             }
           }
                 
-#if HAVE_LIBSWSCALE
-          if ( mConvertContext == NULL ) {
-          mConvertContext = sws_getContext(mCodecContext->width,
-                                           mCodecContext->height,
-                                           mCodecContext->pix_fmt,
-                                           width, height,
-                                           imagePixFormat, SWS_BICUBIC, NULL,
-                                           NULL, NULL);
-            if ( mConvertContext == NULL )
-              Fatal( "Unable to create conversion context for %s", mPath.c_str() );
-        }
-
-        if (sws_scale(mConvertContext, mRawFrame->data, mRawFrame->linesize,
-                      0, mCodecContext->height, mFrame->data, mFrame->linesize) < 0)
-          Fatal("Unable to convert raw format %u to target format %u at frame %d",
-                mCodecContext->pix_fmt, imagePixFormat, frameCount);
-#else // HAVE_LIBSWSCALE
-          Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
-#endif // HAVE_LIBSWSCALE
-
-          frameCount++;
-        } // end if frameComplete
       } else if ( packet.stream_index == mAudioStreamId ) { //FIXME best way to copy all other streams
         if ( videoStore && recording ) {
           if ( record_audio ) {

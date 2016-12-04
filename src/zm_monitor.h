@@ -421,6 +421,10 @@ public:
   {
     return( embed_exif );
   }
+  inline bool RecordOnly()
+  {
+	return ( function == RECORD && GetOptVideoWriter() == 2 );
+  }
   Orientation getOrientation() const;
 
   unsigned int Width() const { return width; }

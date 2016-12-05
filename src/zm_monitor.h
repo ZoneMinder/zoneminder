@@ -423,7 +423,7 @@ public:
   }
   inline bool RecordOnly()
   {
-	return ( function == RECORD && GetOptVideoWriter() == 2 );
+	return ( ( function == RECORD || function == NODECT ) && GetOptVideoWriter() == 2 );
   }
   Orientation getOrientation() const;
 

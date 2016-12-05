@@ -532,8 +532,8 @@ int FfmpegCamera::CaptureAndRecord( Image &image, int recording, char* event_fil
   uint8_t* directbuffer;
   
   /* Request a writeable buffer of the target image */
-  directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
   if( recording != 2 ) {
+    directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
     if( directbuffer == NULL ) {
       Error("Failed requesting writeable buffer for the captured image.");
       return (-1);
@@ -565,7 +565,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, int recording, char* event_fil
     }
     Debug( 5, "Got packet from stream %d", packet.stream_index );
     if ( packet.stream_index == mVideoStreamId ) {
-            if( recording != 2 ) {
+      if( recording != 2 ) {
 #if LIBAVCODEC_VERSION_CHECK(52, 23, 0, 23, 0)
       if ( avcodec_decode_video2( mCodecContext, mRawFrame, &frameComplete, &packet ) < 0 )
 #else

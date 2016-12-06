@@ -431,7 +431,7 @@ int RemoteCameraRtsp::CaptureAndRecord(Image &image, bool recording, char* event
             mFormatContext->streams[mVideoStreamId],
             mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],
             startTime,
-            this->getMonitor()->getOrientation() );
+            this->getMonitor() );
         strcpy(oldDirectory, event_file);
       } // end if ! videoStore
 

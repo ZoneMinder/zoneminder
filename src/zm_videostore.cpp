@@ -36,7 +36,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
     AVStream *p_video_input_stream,
     AVStream *p_audio_input_stream,
     int64_t nStartTime,
-    Monitor::Orientation orientation
+    Monitor * monitor
     ) {
   video_input_stream = p_video_input_stream;
   audio_input_stream = p_audio_input_stream;
@@ -189,6 +189,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
     video_output_context->flags |= CODEC_FLAG_GLOBAL_HEADER;
   }
 
+	Monitor::Orientation orientation = monitor->getOrientation();
   if ( orientation ) {
     if ( orientation == Monitor::ROTATE_0 ) {
 

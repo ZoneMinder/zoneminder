@@ -138,22 +138,18 @@ sub find_one {
   return $results[0] if @results;
 }
 
-sub getEventPath
-{
+sub getEventPath {
   my $event = shift;
 
   my $event_path = "";
-  if ( $Config{ZM_USE_DEEP_STORAGE} )
-  {
+  if ( $Config{ZM_USE_DEEP_STORAGE} ) {
     $event_path = $Config{ZM_DIR_EVENTS}
     .'/'.$event->{MonitorId}
     .'/'.strftime( "%y/%m/%d/%H/%M/%S",
         localtime($event->{Time})
         )
       ;
-  }
-  else
-  {
+  } else {
     $event_path = $Config{ZM_DIR_EVENTS}
     .'/'.$event->{MonitorId}
     .'/'.$event->{Id}
@@ -176,17 +172,14 @@ sub GenerateVideo {
   ( my $video_name = $self->{Name} ) =~ s/\s/_/g;
 
   my @file_parts;
-  if ( $rate )
-  {
+  if ( $rate ) {
     my $file_rate = $rate;
     $file_rate =~ s/\./_/;
     $file_rate =~ s/_00//;
     $file_rate =~ s/(_\d+)0+$/$1/;
     $file_rate = 'r'.$file_rate;
     push( @file_parts, $file_rate );
-  }
-  elsif ( $fps )
-  {
+  } elsif ( $fps ) {
     my $file_fps = $fps;
     $file_fps =~ s/\./_/;
     $file_fps =~ s/_00//;
@@ -195,35 +188,27 @@ sub GenerateVideo {
     push( @file_parts, $file_fps );
   }
 
-  if ( $scale )
-  {
+  if ( $scale ) {
     my $file_scale = $scale;
     $file_scale =~ s/\./_/;
     $file_scale =~ s/_00//;
     $file_scale =~ s/(_\d+)0+$/$1/;
     $file_scale = 's'.$file_scale;
     push( @file_parts, $file_scale );
-  }
-  elsif ( $size )
-  {
+  } elsif ( $size ) {
     my $file_size = 'S'.$size;
     push( @file_parts, $file_size );
   }
   my $video_file = "$video_name-".$file_parts[0]."-".$file_parts[1].".$format";
-  if ( $overwrite || !-s $video_file )
-  {
+  if ( $overwrite || !-s $video_file ) {
     Info( "Creating video file $video_file for event $self->{Id}\n" );
 
     my $frame_rate = sprintf( "%.2f", $self->{Frames}/$self->{FullLength} );
-    if ( $rate )
-    {
-      if ( $rate != 1.0 )
-      {
+    if ( $rate ) {
+      if ( $rate != 1.0 ) {
         $frame_rate *= $rate;
       }
-    }
-    elsif ( $fps )
-    {
+    } elsif ( $fps ) {
       $frame_rate = $fps;
     }
 
@@ -231,17 +216,13 @@ sub GenerateVideo {
     my $height = $self->{MonitorHeight};
     my $video_size = " ${width}x${height}";
 
-    if ( $scale )
-    {
-      if ( $scale != 1.0 )
-      {
+    if ( $scale ) {
+      if ( $scale != 1.0 ) {
         $width = int($width*$scale);
         $height = int($height*$scale);
         $video_size = " ${width}x${height}";
       }
-    }
-    elsif ( $size )
-    {
+    } elsif ( $size ) {
       $video_size = $size;
     }
     my $command = $Config{ZM_PATH_FFMPEG}
@@ -259,8 +240,7 @@ sub GenerateVideo {
     my $output = qx($command);
 
     my $status = $? >> 8;
-    if ( $status )
-    {
+    if ( $status ) {
       Error( "Unable to generate video, check "
           .$event_path."/ffmpeg.log for details"
           );

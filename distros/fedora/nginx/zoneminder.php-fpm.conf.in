@@ -3,3 +3,8 @@
 
 user = @WEB_USER@
 group = @WEB_GROUP@
+
+# Uncomment these on machines with little memory
+#pm = ondemand
+#pm.max_children = 10
+#pm.process_idle_timeout = 10s

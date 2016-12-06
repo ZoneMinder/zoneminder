@@ -70,31 +70,22 @@ use Carp;
 
 our $dbh = undef;
 
-sub zmDbConnect
-{
+sub zmDbConnect {
   my $force = shift;
-  if ( $force )
-  {
+  if ( $force ) {
     zmDbDisconnect();
   }
-  if ( !defined( $dbh ) )
-  {
+  if ( !defined( $dbh ) ) {
     my $socket;
     my ( $host, $portOrSocket ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
 
-    if ( defined($portOrSocket) )
-    {
-      if ( $portOrSocket =~ /^\// )
-      {
+    if ( defined($portOrSocket) ) {
+      if ( $portOrSocket =~ /^\// ) {
         $socket = ";mysql_socket=".$portOrSocket;
-      }
-      else
-      {
+      } else {
         $socket = ";host=".$host.";port=".$portOrSocket;
       }
-    }
-    else
-    {
+    } else {
       $socket = ";host=".$Config{ZM_DB_HOST}; 
     }
     $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
@@ -107,10 +98,8 @@ sub zmDbConnect
   return( $dbh );
 }
 
-sub zmDbDisconnect
-{
-  if ( defined( $dbh ) )
-  {
+sub zmDbDisconnect {
+  if ( defined( $dbh ) ) {
     $dbh->disconnect();
     $dbh = undef;
   }
@@ -123,33 +112,22 @@ use constant DB_MON_MOTION => 3; # All monitors that are doing motion detection
 use constant DB_MON_RECORD => 4; # All monitors that are doing unconditional recording
 use constant DB_MON_PASSIVE => 5; # All monitors that are in nodect state
 
-sub zmDbGetMonitors
-{
+sub zmDbGetMonitors {
   zmDbConnect();
 
   my $function = shift || DB_MON_ALL;
   my $sql = "select * from Monitors";
 
-  if ( $function )
-  {
-    if ( $function == DB_MON_CAPT )
-    {
+  if ( $function ) {
+    if ( $function == DB_MON_CAPT ) {
       $sql .= " where Function >= 'Monitor'";
-    }
-    elsif ( $function == DB_MON_ACTIVE )
-    {
+    } elsif ( $function == DB_MON_ACTIVE ) {
       $sql .= " where Function > 'Monitor'";
-    }
-    elsif ( $function == DB_MON_MOTION )
-    {
+    } elsif ( $function == DB_MON_MOTION ) {
       $sql .= " where Function = 'Modect' or Function = 'Mocord'";
-    }
-    elsif ( $function == DB_MON_RECORD )
-    {
+    } elsif ( $function == DB_MON_RECORD ) {
       $sql .= " where Function = 'Record' or Function = 'Mocord'";
-    }
-    elsif ( $function == DB_MON_PASSIVE )
-    {
+    } elsif ( $function == DB_MON_PASSIVE ) {
       $sql .= " where Function = 'Nodect'";
     }
   }
@@ -159,16 +137,14 @@ sub zmDbGetMonitors
     or croak( "Can't execute '$sql': ".$sth->errstr() );
 
   my @monitors;
-  while( my $monitor = $sth->fetchrow_hashref() )
-  {
+  while( my $monitor = $sth->fetchrow_hashref() ) {
     push( @monitors, $monitor );
   }
   $sth->finish();
   return( \@monitors );
 }
 
-sub zmDbGetMonitor
-{
+sub zmDbGetMonitor {
   zmDbConnect();
 
   my $id = shift;
@@ -185,8 +161,7 @@ sub zmDbGetMonitor
   return( $monitor );
 }
 
-sub zmDbGetMonitorAndControl
-{
+sub zmDbGetMonitorAndControl {
   zmDbConnect();
 
   my $id = shift;

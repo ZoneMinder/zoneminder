@@ -63,9 +63,15 @@ class Server {
         ) );
       $values = array_values( $parameters );
     }
-    if ( $limit ) {
-      $sql .= ' LIMIT ' . $limit;
-    }
+		if ( is_integer( $limit ) ) {
+			$sql .= ' LIMIT ' . $limit;
+		} else {
+			$backTrace = debug_backtrace();
+			$file = $backTrace[1]['file'];
+			$line = $backTrace[1]['line'];
+			Error("Invalid value for limit($limit) passed to Server::find from $file:$line");
+			return;
+		}
     $results = dbFetchAll( $sql, NULL, $values );
     if ( $results ) {
       return array_map( function($id){ return new Server($id); }, $results );

@@ -2626,7 +2626,7 @@ our @options = (
         This can be used by the experimental motion tracking feature or
         your own custom extensions. In the alarmed or filtered pixels
         mode this is a simple midpoint between the extents of the
-        detected pxiesl. However in the blob method this can instead be
+        detected pixels. However in the blob method this can instead be
         calculated using weighted pixel locations to give more accurate
         positioning for irregularly shaped blobs. This method, while
         more precise is also slower and so is turned off by default.

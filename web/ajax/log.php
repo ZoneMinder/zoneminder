@@ -47,7 +47,7 @@ switch ( $_REQUEST['task'] )
         $limit = 100;
 				if ( isset($_POST['limit']) ) {
 					if ( ( !is_integer( $_POST['limit'] ) and !ctype_digit($_POST['limit']) ) ) {
-						Error("Invalid value for limit " . ?$_POST['limit'] );
+						Error("Invalid value for limit " . $_POST['limit'] );
 					} else {
 						$limit = $_POST['limit'];
 					}

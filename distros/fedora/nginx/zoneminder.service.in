@@ -1,9 +1,10 @@
-# ZoneMinder systemd unit file for CentOS 7
+# ZoneMinder systemd unit file for Fedora
+# Replace mariadb with community-mysql if using mysql service instead of mariadb
 
 [Unit]
 Description=ZoneMinder CCTV recording and security system
-After=network.target mariadb.service httpd.service
-Requires=mariadb.service httpd.service
+After=network.target mariadb.service nginx.service php-fpm.service fcgiwrap.service
+Requires=mariadb.service nginx.service php-fpm.service fcgiwrap.service
 
 [Service]
 User=@WEB_USER@
@@ -16,4 +17,3 @@ Environment=TZ=/etc/localtime
 
 [Install]
 WantedBy=multi-user.target
-

@@ -13,6 +13,7 @@ ExecStart=@BINDIR@/zmpkg.pl start
 ExecReload=@BINDIR@/zmpkg.pl restart
 ExecStop=@BINDIR@/zmpkg.pl stop
 PIDFile="@ZM_RUNDIR@/zm.pid"
+Environment=TZ=/etc/localtime
 
 [Install]
 WantedBy=multi-user.target

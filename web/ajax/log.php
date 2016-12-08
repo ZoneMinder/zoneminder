@@ -46,7 +46,7 @@ switch ( $_REQUEST['task'] )
         $maxTime = isset($_POST['maxTime'])?$_POST['maxTime']:NULL;
         $limit = 100;
 				if ( isset($_POST['limit']) ) {
-					if ( ! is_integer( $_POST['limit'] ) ) {
+					if ( ( !is_integer( $_POST['limit'] ) and !ctype_digit($_POST['limit']) ) ) {
 						Error("Invalid value for limit " . ?$_POST['limit'] );
 					} else {
 						$limit = $_POST['limit'];
@@ -57,7 +57,7 @@ switch ( $_REQUEST['task'] )
 					if ( ! in_array( $_POST['sortField'], $filterFields ) and ( $_POST['sortField'] != 'TimeKey' ) ) {
 						Error("Invalid sort field " . $_POST['sortField'] );
 					} else {
-						$sortField = $_POST['sortField']
+						$sortField = $_POST['sortField'];
 					}
 				}
         $sortOrder = (isset($_POST['sortOrder']) and $_POST['sortOrder']) == 'asc' ? 'asc':'desc';
@@ -173,7 +173,7 @@ switch ( $_REQUEST['task'] )
           if ( ! in_array( $_POST['sortField'], $filterFields ) and ( $_POST['sortField'] != 'TimeKey' ) ) {
             Error("Invalid sort field " . $_POST['sortField'] );
           } else {
-            $sortField = $_POST['sortField']
+            $sortField = $_POST['sortField'];
           }
         }
         $sortOrder = (isset($_POST['sortOrder']) and $_POST['sortOrder']) == 'asc' ? 'asc':'desc';

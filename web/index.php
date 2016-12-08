@@ -118,7 +118,7 @@ session_set_cookie_params(
     $currentCookieParams["path"], 
     $currentCookieParams["domain"],
     $currentCookieParams["secure"], 
-    true,
+    true
 ); 
 
 ini_set( 'session.name', 'ZMSESSID' );

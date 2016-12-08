@@ -6,7 +6,7 @@ class Frame {
   public function __construct( $IdOrRow ) {
     $row = NULL;
     if ( $IdOrRow ) {
-      if ( is_integer( $IdOrRow ) ) {
+      if ( is_integer( $IdOrRow ) or ctype_digit($IdOrRow) ) {
         $row = dbFetchOne( 'SELECT * FROM Frames WHERE Id=?', NULL, array( $IdOrRow ) );
         if ( ! $row ) {
           Error("Unable to load Frame record for Id=" . $IdOrRow );
@@ -84,7 +84,7 @@ class Frame {
 			$values = array_values( $parameters );
 		}
 		if ( $limit ) {
-			if ( is_integer( $limit ) ) {
+			if ( is_integer( $limit ) or ctype_digit( $limit ) ) {
 				$sql .= ' LIMIT ' . $limit;
 			} else {
         $backTrace = debug_backtrace();

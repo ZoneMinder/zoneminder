@@ -5,7 +5,7 @@ class Server {
   public function __construct( $IdOrRow = NULL ) {
     $row = NULL;
     if ( $IdOrRow ) {
-      if ( is_integer( $IdOrRow ) or is_numeric( $IdOrRow ) ) {
+      if ( is_integer( $IdOrRow ) or ctype_digit( $IdOrRow ) ) {
         $row = dbFetchOne( 'SELECT * FROM Servers WHERE Id=?', NULL, array( $IdOrRow ) );
         if ( ! $row ) {
           Error("Unable to load Server record for Id=" . $IdOrRow );
@@ -63,7 +63,7 @@ class Server {
         ) );
       $values = array_values( $parameters );
     }
-		if ( is_integer( $limit ) ) {
+		if ( is_integer( $limit ) or ctype_digit( $limit ) ) {
 			$sql .= ' LIMIT ' . $limit;
 		} else {
 			$backTrace = debug_backtrace();

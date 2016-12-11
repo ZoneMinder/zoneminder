@@ -220,7 +220,8 @@ if ( canView( 'Stream' ) && $cycleCount > 1 )
       <div id="cycleMontage">
            <?php echo makePopupLink( '?view=cycle&amp;group='.$cycleGroup, 'zmCycle'.$cycleGroup, array( 'cycle', $cycleWidth, $cycleHeight ), translate('Cycle'), $running ) ?>&nbsp;/&nbsp;
            <?php echo makePopupLink( '?view=montage&amp;group='.$cycleGroup, 'zmMontage'.$cycleGroup, 'montage', translate('Montage'), $running ) ?>&nbsp;/&nbsp;
-           <?php echo makePopupLink( '?view=montagereview&amp;group='.$cycleGroup, 'zmMontage'.$cycleGroup, 'montagereview', translate('Montage Review'), $running ) ?>
+           <?php echo makePopupLink( '?view=montagereview&amp;group='.$cycleGroup, 'zmMontage'.$cycleGroup, 'montagereview', translate('Montage Review'), $running ) ?>&nbsp;/&nbsp;
+		   <?php echo makePopupLink( '?view=gridview&amp;group='.$cycleGroup, 'zmGridView'.$cycleGroup, 'montage', translate('Grid view'), $running ) ?>
       </div>
 <?php
 }

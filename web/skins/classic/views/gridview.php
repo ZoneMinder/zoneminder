@@ -35,7 +35,7 @@ foreach( dbFetchAll( $sql ) as $row )
 
 $columns = isset( $_GET['columns'] ) ? validInt($_GET['columns']) : 3;
 
-xhtmlHeaders(__FILE__, translate('Montage') );
+xhtmlHeaders(__FILE__, translate('GridView') );
 ?>
 <body>
 <table id="viewTable" width="100%" height="900">

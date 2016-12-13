@@ -38,7 +38,7 @@ Package: zoneminder
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,javascript-common
-        ,libav-tools | ffmpeg
+        ,ffmpeg | libav-tools
         ,libdate-manip-perl, libmime-lite-perl, libmime-tools-perl
         ,libdbd-mysql-perl
         ,libphp-serialization-perl

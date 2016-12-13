@@ -43,14 +43,12 @@ use ZoneMinder::Database qw(:all);
 
 our $AUTOLOAD;
 
-sub new
-{
+sub new {
   my $class = shift;
   my $id = shift;
   my $self = {};
   $self->{name} = "PelcoD";
-  if ( !defined($id) )
-  {
+  if ( !defined($id) ) {
     Fatal( "No monitor defined when invoking protocol ".$self->{name} );
   }
   $self->{id} = $id;
@@ -58,12 +56,10 @@ sub new
   return $self;
 }
 
-sub DESTROY
-{
+sub DESTROY {
 }
 
-sub AUTOLOAD
-{
+sub AUTOLOAD {
   my $self = shift;
   my $class = ref($self) || croak( "$self not object" );
   my $name = $AUTOLOAD;
@@ -75,61 +71,49 @@ sub AUTOLOAD
   croak( "Can't access $name member of object of class $class" );
 }
 
-sub getKey
-{
+sub getKey {
   my $self = shift;
   return( $self->{id} );
 }
 
-sub open
-{
+sub open {
   my $self = shift;
   Fatal( "No open method defined for protocol ".$self->{name} );
 }
 
-sub close
-{
+sub close {
   my $self = shift;
   Fatal( "No close method defined for protocol ".$self->{name} );
 }
 
-sub loadMonitor
-{
+sub loadMonitor {
   my $self = shift;
-  if ( !$self->{Monitor} )
-  {
-    if ( !($self->{Monitor} = zmDbGetMonitor( $self->{id} )) )
-    {
+  if ( !$self->{Monitor} ) {
+    if ( !($self->{Monitor} = zmDbGetMonitor( $self->{id} )) ) {
       Fatal( "Monitor id ".$self->{id}." not found or not controllable" );
     }
-    if ( defined($self->{Monitor}->{AutoStopTimeout}) )
-    {
+    if ( defined($self->{Monitor}->{AutoStopTimeout}) ) {
 # Convert to microseconds.
       $self->{Monitor}->{AutoStopTimeout} = int(1000000*$self->{Monitor}->{AutoStopTimeout});
     }
   }
 }
 
-sub getParam
-{
+sub getParam {
   my $self = shift;
   my $params = shift;
   my $name = shift;
   my $default = shift;
 
-  if ( defined($params->{$name}) )
-  {
+  if ( defined($params->{$name}) ) {
     return( $params->{$name} );
-  }
-  elsif ( defined($default) )
-  {
+  } elsif ( defined($default) ) {
     return( $default );
   }
   Fatal( "Missing mandatory parameter '$name'" );
 }
 
-sub executeCommand
-{
+sub executeCommand {
   my $self = shift;
   my $params = shift;
 
@@ -145,8 +129,7 @@ sub executeCommand
   &{$self->{$command}}( $self, $params );
 }
 
-sub printMsg
-{
+sub printMsg {
   my $self = shift;
   Fatal( "No printMsg method defined for protocol ".$self->{name} );
 }

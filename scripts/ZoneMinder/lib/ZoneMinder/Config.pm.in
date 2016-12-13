@@ -69,13 +69,11 @@ use constant ZM_CONFIG => "@ZM_CONFIG@"; # Path to the ZoneMinder config file
 use Carp;
 
 # Load the config from the database into the symbol table
-BEGIN
-{
+BEGIN {
   my $config_file = ZM_CONFIG;
   open( my $CONFIG, "<", $config_file )
     or croak( "Can't open config file '$config_file': $!" );
-  foreach my $str ( <$CONFIG> )
-  {
+  foreach my $str ( <$CONFIG> ) {
     next if ( $str =~ /^\s*$/ );
     next if ( $str =~ /^\s*#/ );
     my ( $name, $value ) = $str =~ /^\s*([^=\s]+)\s*=\s*(.*?)\s*$/;
@@ -92,19 +90,13 @@ BEGIN
   my $socket;
   my ( $host, $portOrSocket ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
 
-  if ( defined($portOrSocket) )
-  {
-    if ( $portOrSocket =~ /^\// )
-    {
+  if ( defined($portOrSocket) ) {
+    if ( $portOrSocket =~ /^\// ) {
       $socket = ";mysql_socket=".$portOrSocket;
-    }
-    else
-    {
+    } else {
       $socket = ";host=".$host.";port=".$portOrSocket;
     }
-  }
-  else
-  {
+  } else {
     $socket = ";host=".$Config{ZM_DB_HOST}; 
   }
   my $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
@@ -134,7 +126,7 @@ BEGIN
     }
     $sth->finish();
   }
-}
+} # end BEGIN
 
 sub loadConfigFromDB {
   print( "Loading config from DB\n" );
@@ -169,13 +161,12 @@ sub loadConfigFromDB {
   }
   $sth->finish();
   return( $option_count );
-}
+} # end sub loadConfigFromDB
 
 sub saveConfigToDB {
   print( "Saving config to DB\n" );
   my $dbh = ZoneMinder::Database::zmDbConnect();
-  if ( !$dbh )
-  {
+  if ( !$dbh ) {
     print( "Error: unable to save options to database: $DBI::errstr\n" );
     return( 0 );
   }
@@ -193,40 +184,26 @@ sub saveConfigToDB {
   $sql = "replace into Config set Id = ?, Name = ?, Value = ?, Type = ?, DefaultValue = ?, Hint = ?, Pattern = ?, Format = ?, Prompt = ?, Help = ?, Category = ?, Readonly = ?, Requires = ?";
   my $sth = $dbh->prepare_cached( $sql )
     or croak( "Can't prepare '$sql': ".$dbh->errstr() );
-  foreach my $option ( @options )
-  {
+  foreach my $option ( @options ) {
 #next if ( $option->{category} eq 'hidden' );
 #print( $option->{name}."\n" ) if ( !$option->{category} );
     $option->{db_type} = $option->{type}->{db_type};
     $option->{db_hint} = $option->{type}->{hint};
     $option->{db_pattern} = $option->{type}->{pattern};
     $option->{db_format} = $option->{type}->{format};
-    if ( $option->{db_type} eq "boolean" )
-    {
-      $option->{db_value} = ($option->{value} eq "yes")
-        ? "1"
-        : "0"
-        ;
-    }
-    else
-    {
+    if ( $option->{db_type} eq "boolean" ) {
+      $option->{db_value} = ($option->{value} eq "yes") ? "1" : "0";
+    } else {
       $option->{db_value} = $option->{value};
     }
-    if ( my $requires = $option->{requires} )
-    {
+    if ( my $requires = $option->{requires} ) {
       $option->{db_requires} = join( ";",
           map {
-          my $value = $_->{value};
-          $value = ($value eq "yes")
-          ? 1
-          : 0
-          if ( $options_hash{$_->{name}}->{db_type} eq "boolean" )
-          ; ( "$_->{name}=$value" )
+            my $value = $_->{value};
+            $value = ($value eq "yes") ? 1 : 0 if ( $options_hash{$_->{name}}->{db_type} eq "boolean" );
+            ( "$_->{name}=$value" )
           } @$requires
           );
-    }
-    else
-    {
     }
     my $res = $sth->execute(
         $option->{id},
@@ -243,12 +220,12 @@ sub saveConfigToDB {
         $option->{readonly} ? 1 : 0,
         $option->{db_requires}
         ) or croak( "Can't execute: ".$sth->errstr() );
-  }
+  } # end foreach option
   $sth->finish();
 
   $dbh->do('UNLOCK TABLES');
   $dbh->{AutoCommit} = $ac;
-}
+} # end sub saveConfigToDB
 
 1;
 __END__

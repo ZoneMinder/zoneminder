@@ -30,7 +30,7 @@ function getControlCommands( $monitor )
     $cmds['PresetGoto'] = "presetGoto";
     $cmds['PresetHome'] = "presetHome";
 
-    if ( !empty($monitor->CanZoom) )
+    if ( !empty($monitor->CanZoom()) )
     {
         if ( $monitor->CanZoomCon() )
             $cmds['ZoomRoot'] = "zoomCon";
@@ -45,7 +45,7 @@ function getControlCommands( $monitor )
         $cmds['ZoomMan'] = "zoomMan";
     }
 
-    if ( !empty($monitor->CanFocus) )
+    if ( !empty($monitor->CanFocus()) )
     {
         if ( $monitor->CanFocusCon() )
             $cmds['FocusRoot'] = "focusCon";
@@ -60,7 +60,7 @@ function getControlCommands( $monitor )
         $cmds['FocusMan'] = "focusMan";
     }
 
-    if ( !empty($monitor->CanIris) )
+    if ( !empty($monitor->CanIris()) )
     {
         if ( $monitor->CanIrisCon() )
             $cmds['IrisRoot'] = "irisCon";
@@ -75,7 +75,7 @@ function getControlCommands( $monitor )
         $cmds['IrisMan'] = "irisMan";
     }
 
-    if ( !empty($monitor->CanWhite) )
+    if ( !empty($monitor->CanWhite()) )
     {
         if ( $monitor->CanWhiteCon() )
             $cmds['WhiteRoot'] = "whiteCon";
@@ -89,7 +89,7 @@ function getControlCommands( $monitor )
         $cmds['WhiteMan'] = "whiteMan";
     }
 
-    if ( !empty($monitor->CanGain) )
+    if ( !empty($monitor->CanGain()) )
     {
         if ( $monitor->CanGainCon() )
             $cmds['GainRoot'] = "gainCon";
@@ -103,7 +103,7 @@ function getControlCommands( $monitor )
         $cmds['GainMan'] = "gainMan";
     }
 
-    if ( !empty($monitor->CanMove) )
+    if ( !empty($monitor->CanMove()) )
     {
         if ( $monitor->CanMoveCon() )
         {
@@ -243,12 +243,12 @@ function controlPanTilt( $monitor, $cmds )
     ob_start();
 ?>
 <div class="pantiltControls">
-  <div class="pantilLabel"><?php echo translate('PanTilt') ?></div>
+  <div class="pantiltLabel"><?php echo translate('PanTilt') ?></div>
   <div class="pantiltButtons">
 <?php
-    $hasPan = $monitor->CanPan;
-    $hasTilt = $monitor->CanTilt;
-    $hasDiag = $hasPan && $hasTilt && $monitor->CanMoveDiag;
+    $hasPan = $monitor->CanPan();
+    $hasTilt = $monitor->CanTilt();
+    $hasDiag = $hasPan && $hasTilt && $monitor->CanMoveDiag();
 ?>
       <div class="arrowBtn upLeftBtn<?php echo $hasDiag?'':' invisible' ?>" onclick="controlCmd('<?php echo $cmds['MoveUpLeft'] ?>',event,-1,-1)"></div>
       <div class="arrowBtn upBtn<?php echo $hasTilt?'':' invisible' ?>" onclick="controlCmd('<?php echo $cmds['MoveUp'] ?>',event,0,-1)"></div>
@@ -278,7 +278,7 @@ function controlPresets( $monitor, $cmds )
         $labels[$row['Preset']] = $row['Label'];
     }
 
-    $presetBreak = (int)(($monitor->NumPresets+1)/((int)(($monitor->NumPresets-1)/MAX_PRESETS)+1));
+    $presetBreak = (int)(($monitor->NumPresets()+1)/((int)(($monitor->NumPresets()-1)/MAX_PRESETS)+1));
 
     ob_start();
 ?>
@@ -286,7 +286,7 @@ function controlPresets( $monitor, $cmds )
   <!--<div><?php echo translate('Presets') ?></div>-->
   <div>
 <?php
-    for ( $i = 1; $i <= $monitor->NumPresets; $i++ )
+    for ( $i = 1; $i <= $monitor->NumPresets(); $i++ )
     {
 ?><input type="button" class="ptzNumBtn" title="<?php echo isset($labels[$i])?$labels[$i]:"" ?>" value="<?php echo $i ?>" onclick="controlCmd('<?php echo $cmds['PresetGoto'] ?><?php echo $i ?>');"/><?php
         if ( $i && (($i%$presetBreak) == 0) )

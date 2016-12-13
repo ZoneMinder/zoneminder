@@ -1,1 +1,0 @@
-zoneminder.f24.spec

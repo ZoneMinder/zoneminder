@@ -10,7 +10,7 @@
 
     DocumentRoot "@WEB_PREFIX@"
     <Directory "@WEB_PREFIX@">
-        Options FollowSymLinks
+        Options -Indexes +FollowSymLinks
         AllowOverride All
     </Directory>
 

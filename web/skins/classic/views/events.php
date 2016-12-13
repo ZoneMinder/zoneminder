@@ -185,8 +185,10 @@ foreach ( $events as $event )
               <th class="colTotScore"><a href="<?php echo sortHeader( 'TotScore' ) ?>"><?php echo translate('TotalBrScore') ?><?php echo sortTag( 'TotScore' ) ?></a></th>
               <th class="colAvgScore"><a href="<?php echo sortHeader( 'AvgScore' ) ?>"><?php echo translate('AvgBrScore') ?><?php echo sortTag( 'AvgScore' ) ?></a></th>
               <th class="colMaxScore"><a href="<?php echo sortHeader( 'MaxScore' ) ?>"><?php echo translate('MaxBrScore') ?><?php echo sortTag( 'MaxScore' ) ?></a></th>
+<?php if ( ZM_WEB_EVENT_DISK_SPACE ) { ?>
               <th class="colDiskSpace"><a href="<?php echo sortHeader( 'DiskSpace' ) ?>"><?php echo translate('DiskSpace') ?><?php echo sortTag( 'DiskSpace' ) ?></a></th>
 <?php
+			}
         if ( ZM_WEB_LIST_THUMBS )
         {
 ?>
@@ -212,8 +214,10 @@ foreach ( $events as $event )
               <td class="colTotScore"><?php echo $event->TotScore() ?></td>
               <td class="colAvgScore"><?php echo $event->AvgScore() ?></td>
               <td class="colMaxScore"><?php echo makePopupLink( '?view=frame&amp;eid='.$event->Id().'&amp;fid=0', 'zmImage', array( 'image', reScale( $event->Width(), $scale ), reScale( $event->Height(), $scale ) ), $event->MaxScore() ) ?></td>
+<?php if ( ZM_WEB_EVENT_DISK_SPACE ) { ?>
               <td class="colDiskSpace"><?php echo human_filesize( $event->DiskSpace() ) ?></td>
 <?php
+		}
     if ( ZM_WEB_LIST_THUMBS )
     {
         if ( $thumbData = $event->createListThumbnail() )

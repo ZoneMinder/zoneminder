@@ -155,16 +155,24 @@ function resizeTable() {
 	Array.from(viewTable.rows).forEach(function(row) {
 		Array.from(row.cells).forEach(function(cell) {
 			var liveStream = document.getElementById("monitorFrame" + monitorFrameCounter).getElementsByTagName('img')[0];
-			var oldHeight = parseInt(liveStream.getAttribute('height'));
-			var oldWidth = parseInt(liveStream.getAttribute('width'));
-			var heightScale = (rowHeight/oldHeight);	
-			var widthScale = (cellWidth/oldWidth);
+			var origHeight = parseInt(liveStream.getAttribute('origheight'));
+			var origWidth = parseInt(liveStream.getAttribute('origwidth'));
+			if (isNaN(origHeight)){
+				origHeight = parseInt(liveStream.getAttribute('height'));
+				liveStream.setAttribute("origheight", origHeight);
+			}
+			if (isNaN(origWidth)){
+				origWidth = parseInt(liveStream.getAttribute('width'));
+				liveStream.setAttribute("origwidth", origWidth);
+			}
+			var heightScale = (rowHeight/origHeight);	
+			var widthScale = (cellWidth/origWidth);
 			if (heightScale < widthScale){
 				liveStream.setAttribute("height", rowHeight);
-				liveStream.setAttribute("width", heightScale * parseInt(oldWidth));
+				liveStream.setAttribute("width", heightScale * parseInt(origWidth));
 			}else{
 				liveStream.setAttribute("width", cellWidth);
-				liveStream.setAttribute("height", widthScale * parseInt(oldHeight));
+				liveStream.setAttribute("height", widthScale * parseInt(origHeight));
 			}
 			++monitorFrameCounter;
 		});

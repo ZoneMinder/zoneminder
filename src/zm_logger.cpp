@@ -619,10 +619,10 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
       if ( mysql_query( &mDbConnection, sql ) )
       {
 				Level tempDatabaseLevel = mDatabaseLevel;
-        databaseLevel( NOLOG );
-        Error( "Can't insert log entry: sql(%s) error(%s)", sql,  mysql_error( &mDbConnection ) );
-        databaseLevel(tempDatabaseLevel);
-      }
+				databaseLevel( NOLOG );
+				Error( "Can't insert log entry: sql(%s) error(%s)", sql,  mysql_error( &mDbConnection ) );
+				databaseLevel(tempDatabaseLevel);
+			}
     }
     if ( level <= mSyslogLevel )
     {

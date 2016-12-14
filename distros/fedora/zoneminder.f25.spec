@@ -83,7 +83,7 @@ too much degradation of performance.
 
 %build
 %cmake \
-	-DZM_TARGET_DISTRO="%{dist}" \
+	-DZM_TARGET_DISTRO="fc%{fedora}" \
 %{?_without_ffmpeg:-DZM_NO_FFMPEG=ON} \
 %{?_without_x10:-DZM_NO_X10=ON} \
 	.

@@ -293,7 +293,7 @@ MAIN: while( $loop ) {
         if ( confirm() )
         {
             ( $link ) = ( $link =~ /^(.*)$/ ); # De-taint
-            my $command = "rm $link";
+            my $command = qq`rm "$link"`;
             executeShellCommand( $command );
             $cleaned = 1;
         }

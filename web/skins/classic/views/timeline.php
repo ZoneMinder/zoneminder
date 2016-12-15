@@ -143,11 +143,11 @@ foreach( dbFetchAll( $monitorsSql ) as $row )
 }
 
 $rangeSql = "select min(E.StartTime) as MinTime, max(E.EndTime) as MaxTime from Events as E inner join Monitors as M on (E.MonitorId = M.Id) where not isnull(E.StartTime) and not isnull(E.EndTime)";
-$eventsSql = "select E.Id,E.Name,E.StartTime,E.EndTime,E.Length,E.Frames,E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId from Events as E inner join Monitors as M on (E.MonitorId = M.Id) where not isnull(StartTime)";
+$eventsSql = "select * from Events where not isnull(StartTime)";
 
 if ( !empty($user['MonitorIds']) )
 {
-    $monFilterSql = ' AND M.Id IN ('.$user['MonitorIds'].')';
+    $monFilterSql = ' AND MonitorId IN ('.$user['MonitorIds'].')';
 
     $rangeSql .= $monFilterSql;
     $eventsSql .= $monFilterSql;
@@ -818,7 +818,7 @@ xhtmlHeaders(__FILE__, translate('Timeline') );
 //crossorigin has to be added below to make caption work in chrome
 ?>
 			<video id="preview" width="100%" controls crossorigin="anonymous">
-				<source src="<?php echo "/events/".getEventPath($event)."/event.mp4"; ?>" type="video/mp4">
+				<source src="<?php echo getEventDefaultVideoPath($event); ?>" type="video/mp4">
 Your browser does not support the video tag.
 			</video>
 

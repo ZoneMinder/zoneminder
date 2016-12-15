@@ -983,8 +983,8 @@ function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $ov
       if ( ! file_exists( $eventPath.'/'.$captImage ) ) {
           # Generate the frame JPG
           if ( $event['DefaultVideo'] ) {
-              $command ='ffmpeg -v 0 -i '.$eventPath.'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$frame['FrameId'].'),setpts=PTS-STARTPTS" '.$eventPath.'/'.$captImage;
-              system( $command, $output, $retval );
+              $command ='ffmpeg -v 0 -i '.$eventPath.'/'.$event['DefaultVideo'].' -vf "select=gte(n\\,'.$frame['FrameId'].'),setpts=PTS-STARTPTS" '.$eventPath.'/'.$captImage;
+              system( $command, $retval );
           } else {
               Error("Can't create frame images from video because there is no video file for this event " );
           }

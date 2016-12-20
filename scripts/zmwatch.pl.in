@@ -85,11 +85,15 @@ while( 1 ) {
   while( my $monitor = $sth->fetchrow_hashref() ) {
     next if $monitor->{Function} eq 'None';
     my $restart = 0;
-    zmMemInvalidate( $monitor );
+    # Prevent open handles building up if we have connect to shared memory
+    # Many of our error checks below do a next without closing the mem handle.
+    # zmMemDetach will just return of nothing is open, so we can just do this here.
+    zmMemDetach( $monitor );
     if ( zmMemVerify( $monitor )
         && zmMemRead( $monitor, "shared_data:valid" )
        )
     {
+<<<<<<< HEAD
 # Check we have got an image recently
       my $image_time = zmGetLastWriteTime( $monitor );
       if ( !defined($image_time) ) {
@@ -174,8 +178,8 @@ while( 1 ) {
         runCommand( $command );
       } # end if restart
     } # end if check analysis daemon
-# Prevent open handles building up if we have connect to shared memory
-    zmMemInvalidate( $monitor );
+    # Prevent open handles building up if we have connect to shared memory
+    zmMemDetach( $monitor ); # Close our file handle to the zmc process we are about to end
   } # end foreach monitor
   sleep( $Config{ZM_WATCH_CHECK_INTERVAL} );
 } # end while (1)

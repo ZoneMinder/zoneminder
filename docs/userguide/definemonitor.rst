@@ -108,6 +108,10 @@ Orientation
 Remote
 ^^^^^^
 
+Remote Protocol
+    Choices are currently HTTP and RTSP. Before RTSP became the industry standard, many ip cameras streamed directly from their web portal. If you have an ip camera that does not speak RTSP then choose HTTP here. If you camera does speak RTSP then you should change your source type to ffmpeg instead of selecting RTSP here. The Remote -> RTSP method is no longer being maintained and may go away at some point in the future.
+Remote Method
+    When HTTP is the Remote Protocol, your choices are Simple and Regexp. Most should choose Simple. When RTSP is the Remote Protocol, your choices are RTP/Unicast, RTP/Multicast, RTP/RTSP, RTP,RTSP,HTTP. Try each of these to determine which works with your camera. Most cameras will use either RTP/Unicast (UDP) or RTP/RTSP (TCP). 
 Remote Host/Port/Path 
     Use these fields to enter the full URL of the camera. Basically if your camera is at http://camserver.home.net:8192/cameras/camera1.jpg then these fields will be camserver.home.net, 8192 and /cameras/camera1.jpg respectively. Leave the port at 80 if there is no special port required. If you require authentication to access your camera then add this onto the host name in the form <username>:<password>@<hostname>.com. This will usually be 32 or 24 bit colour even if the image looks black and white. Look in Supported Hardware > Network Cameras section, how to obtain these strings that may apply to your camera. 
 Remote Image Colours 

@@ -418,7 +418,7 @@ while( 1 )
         foreach my $monitor ( values(%monitors) )
         {
             # Free up any used memory handle
-            zmMemInvalidate( $monitor );
+            zmMemDetach( $monitor );
         }
         loadMonitors();
     }

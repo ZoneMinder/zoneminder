@@ -89,8 +89,8 @@ while( 1 )
         my $restart = 0;
         # Prevent open handles building up if we have connect to shared memory
         # Many of our error checks below do a next without closing the mem handle.
-        # zmMemInvalidate will just return of nothing is open, so we can just do this here.
-        zmMemInvalidate( $monitor );
+        # zmMemDetach will just return of nothing is open, so we can just do this here.
+        zmMemDetach( $monitor );
         if ( zmMemVerify( $monitor )
              && zmMemRead( $monitor, "shared_data:valid" )
         )
@@ -141,6 +141,7 @@ while( 1 )
             {
                 $command = "zmdc.pl restart zmc -m $monitor->{Id}";
             }
+            zmMemDetach( $monitor ); # Close our file handle to the zmc process we are about to end
             runCommand( $command );
         }
         elsif ( $monitor->{Function} ne 'Monitor' )
@@ -184,7 +185,7 @@ while( 1 )
             } # end if restart
         } # end if check analysis daemon
         # Prevent open handles building up if we have connect to shared memory
-        zmMemInvalidate( $monitor );
+        zmMemDetach( $monitor );
     } # end foreach monitor
     sleep( $Config{ZM_WATCH_CHECK_INTERVAL} );
 } # end while (1)

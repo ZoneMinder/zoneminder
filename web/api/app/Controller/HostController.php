@@ -99,7 +99,18 @@ class HostController extends AppController {
 		));
 	}
 
+    function getTimeZone()
+    {
+        //http://php.net/manual/en/function.date-default-timezone-get.php
+        $tz = date_default_timezone_get();
+        $this->set(array(
+            'tz' => $tz,
+			'_serialize' => array('tz')
+        ));
+    }
+
 	function getVersion() {
+		//throw new UnauthorizedException(__('API Disabled'));
 		$version = Configure::read('ZM_VERSION');
 		// not going to use the ZM_API_VERSION
 		// requires recompilation and dependency on ZM upgrade

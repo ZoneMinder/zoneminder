@@ -52,11 +52,13 @@ function userLogin( $username, $password="", $passwordHashed=false ) {
   if ( $dbUser = dbFetchOne( $sql, NULL, $sql_values ) ) {
     Info( "Login successful for user \"$username\"" );
     $_SESSION['user'] = $user = $dbUser;
+    unset($_SESSION['loginFailed']);
     if ( ZM_AUTH_TYPE == "builtin" ) {
       $_SESSION['passwordHash'] = $user['Password'];
     }
   } else {
     Warning( "Login denied for user \"$username\"" );
+    $_SESSION['loginFailed'] = true;
     unset( $user );
   }
   if ( $cookies )
@@ -559,6 +561,28 @@ function makePopupButton( $url, $winName, $winSize, $buttonValue, $condition=1, 
     $popupParms = "'".$url."', '".$winName."', '".$winSize."'";
   $string = '<input type="button" value="'.$buttonValue.'" onclick="createPopup( '.$popupParms.' ); return( false );"'.($condition?'':' disabled="disabled"').($options?(' '.$options):'').'/>';
   return( $string );
+}
+
+function htmlSelect( $name, $contents, $values, $behaviours=false ) {
+
+  $behaviourText = "";
+  if ( !empty($behaviours) ) {
+    if ( is_array($behaviours) ) {
+      foreach ( $behaviours as $event=>$action ) {
+        $behaviourText .= ' '.$event.'="'.$action.'"';
+      }
+    } else {
+      $behaviourText = ' onchange="'.$behaviours.'"';
+    }
+  }
+
+  $html = "<select name=\"$name\" id=\"$name\"$behaviourText>";
+  foreach ( $contents as $value=>$text ) {
+    $selected = is_array( $values ) ? in_array( $value, $values ) : $value==$values;
+    $html .= "<option value=\"$value\"".($selected?" selected=\"selected\"":'').">$text</option>";
+  }
+  $html .= "</select>";
+  return $html;
 }
 
 function truncText( $text, $length, $deslash=1 ) {       
@@ -1424,15 +1448,15 @@ function getLoad() {
   return( $load[0] );
 }
 
-function getDiskPercent() {
-  $total = disk_total_space(ZM_DIR_EVENTS);
+function getDiskPercent($path = ZM_DIR_EVENTS) {
+  $total = disk_total_space($path);
   if ( ! $total ) {
-    Error("disk_total_space returned false for " . ZM_DIR_EVENTS );
+    Error("disk_total_space returned false for " . $path );
     return 0;
   }
-  $free = disk_free_space(ZM_DIR_EVENTS);
+  $free = disk_free_space($path);
   if ( ! $free ) {
-    Error("disk_free_space returned false for " . ZM_DIR_EVENTS );
+    Error("disk_free_space returned false for " . $path );
   }
   $space = round(($total - $free) / $total * 100);
   return( $space );

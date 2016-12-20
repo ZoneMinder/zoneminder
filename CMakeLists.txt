@@ -147,10 +147,10 @@ set(ZM_PERL_SEARCH_PATH "" CACHE PATH
 	where ZM_PERL_MM_PARMS has been modified such that ZoneMinder's Perl modules are 
 	installed outside Perl's default search path.")
 set(ZM_TARGET_DISTRO "" CACHE STRING 
-    "Build ZoneMinder for a specific distribution.  Currently, valid names are: f23, f24, el6, el7, OS13, FreeBSD")
+    "Build ZoneMinder for a specific distribution.  Currently, valid names are: fc24, fc25, el6, el7, OS13, FreeBSD")
 
 # Reassign some variables if a target distro has been specified
-if((ZM_TARGET_DISTRO STREQUAL "f23") OR (ZM_TARGET_DISTRO STREQUAL "f24"))
+if((ZM_TARGET_DISTRO STREQUAL "fc24") OR (ZM_TARGET_DISTRO STREQUAL "fc25"))
 	set(ZM_RUNDIR "/var/run/zoneminder")
 	set(ZM_SOCKDIR "/var/lib/zoneminder/sock")
 	set(ZM_TMPDIR "/var/lib/zoneminder/temp")
@@ -193,7 +193,7 @@ elseif(ZM_TARGET_DISTRO STREQUAL "FreeBSD")
         set(ZM_WEBDIR "/usr/local/share/zoneminder/www")
         set(ZM_CGIDIR "/usr/local/libexec/zoneminder/cgi-bin")
         set(ZM_PERL_MM_PARMS "INSTALLDIRS=site")
-endif((ZM_TARGET_DISTRO STREQUAL "f23") OR (ZM_TARGET_DISTRO STREQUAL "f24"))
+endif((ZM_TARGET_DISTRO STREQUAL "fc24") OR (ZM_TARGET_DISTRO STREQUAL "fc25"))
 
 # Required for certain checks to work
 set(CMAKE_EXTRA_INCLUDE_FILES 
@@ -708,13 +708,13 @@ if(ZM_ONVIF)
 endif(ZM_ONVIF)
 
 # Process distro subdirectories
-if((ZM_TARGET_DISTRO STREQUAL "f23") OR (ZM_TARGET_DISTRO STREQUAL "f24"))
+if((ZM_TARGET_DISTRO STREQUAL "fc24") OR (ZM_TARGET_DISTRO STREQUAL "fc25"))
 	add_subdirectory(distros/fedora)
 elseif((ZM_TARGET_DISTRO STREQUAL "el6") OR (ZM_TARGET_DISTRO STREQUAL "el7"))
 	add_subdirectory(distros/redhat)
 elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
 	add_subdirectory(distros/opensuse)
-endif((ZM_TARGET_DISTRO STREQUAL "f23") OR (ZM_TARGET_DISTRO STREQUAL "f24"))
+endif((ZM_TARGET_DISTRO STREQUAL "fc24") OR (ZM_TARGET_DISTRO STREQUAL "fc25"))
 
 # Print optional libraries detection status
 message(STATUS "Optional libraries found:${optlibsfound}")

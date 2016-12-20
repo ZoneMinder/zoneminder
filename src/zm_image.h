@@ -137,7 +137,6 @@ protected:
 	static jpeg_decompress_struct *decodejpg_dcinfo;
 	static struct zm_error_mgr jpg_err;
 
-protected:
 	unsigned int width;
 	unsigned int height;
 	unsigned int pixels;
@@ -150,8 +149,6 @@ protected:
 	int holdbuffer; /* Hold the buffer instead of replacing it with new one */
 	char text[1024];
 
-protected:
-	static void Initialise();
 
 public:
 	Image();
@@ -159,6 +156,8 @@ public:
 	Image( int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer=0);
 	Image( const Image &p_image );
 	~Image();
+	static void Initialise();
+	static void Deinitialise();
 
 	inline unsigned int Width() const { return( width ); }
 	inline unsigned int Height() const { return( height ); }

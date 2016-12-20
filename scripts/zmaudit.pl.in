@@ -312,7 +312,7 @@ MAIN: while( $loop ) {
       aud_print( "Filesystem monitor link '$link' does not point to valid monitor directory" );
       if ( confirm() ) {
         ( $link ) = ( $link =~ /^(.*)$/ ); # De-taint
-          my $command = "rm $link";
+        my $command = qq`rm "$link"`;
         executeShellCommand( $command );
         $cleaned = 1;
       }

@@ -69,7 +69,7 @@ too much degradation of performance.
 
 %build
 %cmake \
-	-DZM_TARGET_DISTRO="el7" \
+	-DZM_TARGET_DISTRO="el%{rhel}" \
 	.
 
 make %{?_smp_mflags}

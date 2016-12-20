@@ -618,8 +618,10 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
       snprintf( sql, sizeof(sql), "insert into Logs ( TimeKey, Component, ServerId, Pid, Level, Code, Message, File, Line ) values ( %ld.%06ld, '%s', %d, %d, %d, '%s', '%s', '%s', %d )", timeVal.tv_sec, timeVal.tv_usec, mId.c_str(), staticConfig.SERVER_ID, tid, level, classString, escapedString, file, line );
       if ( mysql_query( &mDbConnection, sql ) )
       {
+        Level tempDatabaseLevel = mDatabaseLevel;
         databaseLevel( NOLOG );
-        Error( "Can't insert log entry: %s", mysql_error( &mDbConnection ) );
+        Error( "Can't insert log entry: sql(%s) error(%s)", sql,  mysql_error( &mDbConnection ) );
+        databaseLevel(tempDatabaseLevel);
       }
     }
     if ( level <= mSyslogLevel )

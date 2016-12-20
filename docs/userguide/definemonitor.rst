@@ -74,6 +74,7 @@ FFmpeg
     This is the recommended source type for most modern ip cameras.
 Source Path 
     Use this field to enter the full URL of the stream or file your camera supports. This is usually an RTSP url. There are several methods to learn this:
+    
         * Check the documentation that came with your camera
         * Look for your camera in the hardware compatibilty list in the wiki http://wiki.zoneminder.com/Hardware_Compatibilty_List
         * Try ZoneMinder's new ONVIF probe feature

@@ -1551,6 +1551,19 @@ our @options = (
     category    => "web",
   },
   {
+    name        => 'ZM_WEB_EVENT_DISK_SPACE',
+    default     => '',
+    description => "Whether to show disk space used by each event.",
+    help        => qqq("Adds another column to the listing of events 
+        showing the disk space used by the event.  This will impart a small
+        overhead as it will call du on the event directory.  In practice 
+        this overhead is fairly small but may be noticeable on IO-constrained
+        systems.
+        "),
+    type        => $types{string},
+    category    => "web",
+  },
+  {
     name        => "ZM_WEB_RESIZE_CONSOLE",
     default     => "yes",
     description => "Should the console window resize itself to fit",

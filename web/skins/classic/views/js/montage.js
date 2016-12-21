@@ -136,8 +136,11 @@ function changeScale()
         var newHeight = ( monitorData[x].height * scale ) / SCALE_BASE;
         /*Stream could be an applet so can't use moo tools*/ 
         var streamImg = document.getElementById( 'liveStream'+monitor.id );
-        streamImg.style.width = newWidth + "px";
-        streamImg.style.height = newHeight + "px";
+        if ( streamImg ) {
+          streamImg.src = streamImg.src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
+          streamImg.style.width = newWidth + "px";
+          streamImg.style.height = newHeight + "px";
+        }
     }
     Cookie.write( 'zmMontageScale', scale, { duration: 10*365 } );
 }

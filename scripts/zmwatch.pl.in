@@ -93,7 +93,6 @@ while( 1 ) {
         && zmMemRead( $monitor, "shared_data:valid" )
        )
     {
-<<<<<<< HEAD
 # Check we have got an image recently
       my $image_time = zmGetLastWriteTime( $monitor );
       if ( !defined($image_time) ) {

@@ -201,6 +201,15 @@ int RemoteCameraHttp::ReadData( Buffer &buffer, int bytes_expected )
   if( n_found == 0 )
   {
     Debug( 4, "Select timed out timeout was %d secs %d usecs", temp_timeout.tv_sec, temp_timeout.tv_usec );
+    int error = 0;
+    socklen_t len = sizeof (error);
+    int retval = getsockopt (sd, SOL_SOCKET, SO_ERROR, &error, &len);
+    if(retval != 0 ) {
+      Debug( 1, "error getting socket error code %s", strerror(retval) );
+    }
+    if (error != 0) {
+      return -1;
+    }
     // Why are we disconnecting?  It's just a timeout, meaning that data wasn't available.
     //Disconnect();
     return( 0 );

@@ -90,7 +90,7 @@ Requires(post): %{_bindir}/less
 
 %description
 ZoneMinder is a set of applications which is intended to provide a complete
-solution allowing you to capture, analyse, record and monitor any cameras you
+solution allowing you to capture, analyze, record and monitor any cameras you
 have attached to a Linux based machine. It is designed to run on kernels which
 support the Video For Linux (V4L) interface and has been tested with cameras
 attached to BTTV cards, various USB cameras and IP network cameras. It is
@@ -112,10 +112,10 @@ too much degradation of performance.
 
 %build
 %cmake \
-	-DZM_WEB_USER="%{zmuid_final}" \
-	-DZM_WEB_GROUP="%{zmuid_final}" \
-	-DZM_TARGET_DISTRO="%{zmtargetdistro}" \
-	.
+        -DZM_WEB_USER="%{zmuid_final}" \
+        -DZM_WEB_GROUP="%{zmuid_final}" \
+        -DZM_TARGET_DISTRO="%{zmtargetdistro}" \
+        .
 
 make %{?_smp_mflags}
 
@@ -123,10 +123,8 @@ make %{?_smp_mflags}
 export DESTDIR=%{buildroot}
 make install
 
-# Must manually remove packlist files from older Perls which don't support the NO_PACKLIST flag
-%if 0%{?with_init_sysv}
-find $RPM_BUILD_ROOT -type f -name .packlist -delete
-%endif
+# Remove unwanted files and folders
+find %{buildroot} \( -name .packlist -or -name .git -or -name .gitignore -or -name .gitattributes -or -name .travis.yml \) -type f -delete > /dev/null 2>&1 || :
 
 %post
 %if 0%{?with_init_sysv}
@@ -307,7 +305,7 @@ rm -rf %{_docdir}/%{name}-%{version}
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) /run/zoneminder
 
 %changelog
-* Fri Dec 24 2016 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.1 
+* Fri Dec 23 2016 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.1 
 - Consolidate fedora/centos spec files
 - Add preliminary nginx support
 - New contact email

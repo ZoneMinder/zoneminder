@@ -5,8 +5,8 @@ What's New
    "/cgi-bin-zm/zms". This has been to done to avoid this bug:
    https://bugzilla.redhat.com/show_bug.cgi?id=973067
 
-   IMPORTANT: You must manually inspect the value for PATH_ZMS under Options
-   and verify it is set to "/cgi-bin-zm/nph-zms". Failure to do so will result
+   IMPORTANT: You must manually verify the value of PATH_ZMS under Options.
+   Make sure it is set to "/cgi-bin-zm/nph-zms". Failure to do so will result
    in a broken system. You have been warned.
 
 2. Due to the active state of the ZoneMinder project, we now recommend granting
@@ -22,19 +22,17 @@ What's New
 New installs
 ============
 
-1. This package supports either community-mysql-server or mariadb-server with
-   mariadb being the preferred choice. Unless you are already using MariaDB or
-   Mysql server, you need to ensure that the server is configured to start
-   during boot and properly secured by running:
+1. Unless you are already using MariaDB server, you need to ensure that the
+   server is configured to start during boot and properly secured by running:
 
-	sudo yum install mariadb-server
+	sudo dnf install mariadb-server
 	sudo systemctl enable mariadb
 	sudo systemctl start  mariadb.service
 	mysql_secure_installation
 
-2. Assuming the database is local and using the password for the root account
-   set during the previous step, you will need to create the ZoneMinder
-   database and configure a database account for ZoneMinder to use:
+2. Using the password for the root account set during the previous step, you
+   will need to create the ZoneMinder database and configure a database
+   account for ZoneMinder to use:
 
      mysql -uroot -p < /usr/share/zoneminder/db/zm_create.sql
      mysql -uroot -p -e "grant all on zm.* to \
@@ -64,7 +62,7 @@ New installs
 5. Disable SELinux 
 
    We currently do not have the resources to create and maintain an accurate
-   SELinux policy for ZoneMinder on Fedora. We will gladly accept pull
+   SELinux policy for ZoneMinder on CentOS 7. We will gladly accept pull
    reqeusts from anyone who wishes to do the work. In the meantime, SELinux
    will need to be disabled or put into permissive mode.
    
@@ -97,15 +95,6 @@ New installs
 	sudo systemctl enable zoneminder
 	sudo systemctl start zoneminder
 
-9. The Fedora repos have a ZoneMinder package available, but it does not
-   support ffmpeg or libvlc, which many modern IP cameras require. Most users
-   will want to prevent the ZoneMinder package in the Fedora repos from
-   overwriting the ZoneMinder package in zmrepo, during a future dnf update. To
-   prevent that from happening you must edit /etc/yum.repos.d/fedora.repo
-   and /etc/yum.repos.d/fedora-updates.repo. Add the line "exclude=zoneminder*"
-   without the quotes under the [fedora] and [fedora-updates] blocks,
-   respectively.
-
 Upgrades
 ========
 
@@ -134,7 +123,7 @@ Upgrades
      mysql -uroot -p -e "show grants for zmuser@localhost;"
 
    See step 2 of the Installation section to add missing permissions.
-   
+
 3. Verify the ZoneMinder Apache configuration file in the folder 
    /etc/httpd/conf.d. You will have a file called "zoneminder.conf" and there
    may also be a file called "zoneminder.conf.rpmnew". If the rpmnew file

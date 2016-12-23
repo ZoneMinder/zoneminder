@@ -1,31 +1,57 @@
-%define zmuid $(id -un)
-%define zmgid $(id -gn)
-%define zmuid_final apache
-%define zmgid_final apache
+%global zmuid $(id -un)
+%global zmgid $(id -gn)
+%global zmuid_final apache
+%global zmgid_final apache
 
+%if "%{zmuid_final}" == "nginx"
+    %global with_nginx 1
+    %global wwwconfdir /etc/nginx/default.d
+%else
+    %global wwwconfdir /etc/httpd/conf.d
+%endif
+
+%global sslcert %{_sysconfdir}/pki/tls/certs/localhost.crt
+%global sslkey %{_sysconfdir}/pki/tls/private/localhost.key
+
+# This will tell zoneminder's cmake process we are building against a known distro
+%global zmtargetdistro %{?rhel:el%{rhel}}%{!?rhel:fc%{fedora}}
+
+# Include files for SysV init or systemd
+%if 0%{?fedora} >= 15 || 0%{?rhel} >= 7
+%global with_init_systemd 1
+%else
+%global with_init_sysv 1
+%endif
+
+# php-mysql deprecated in f25
+%if 0%{?fedora} >= 25
+%global with_php_mysqlnd 1
+%else
+%global with_php_mysql 1
+%endif
+
+%global readme_suffix %{?rhel:Redhat%{?rhel}}%{!?rhel:Fedora}
 %global _hardened_build 1
 
-### Delete the lines below to build with ffmpeg and/or x10
-%define _without_ffmpeg 1
-%define _without_x10 1
-
 Name: zoneminder
-Version: 1.27
+Version: 1.30.1
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
 # jscalendar is LGPL (any version): http://www.dynarch.com/projects/calendar/
 # Mootools is inder the MIT license: http://mootools.net/
+# CakePHP is under the MIT license: https://github.com/cakephp/cakephp
 License: GPLv2+ and LGPLv2+ and MIT
 URL: http://www.zoneminder.com/
 
 #Source: https://github.com/ZoneMinder/ZoneMinder/archive/v%{version}.tar.gz
 Source: ZoneMinder-%{version}.tar.gz
 
-Patch1: zoneminder-1.26.0-defaults.patch
-
-BuildRequires: cmake gnutls-devel systemd-units bzip2-devel
-BuildRequires: community-mysql-devel pcre-devel libjpeg-turbo-devel
+%{?with_init_systemd:BuildRequires: systemd systemd-devel mariadb-devel perl-podlators}
+%{?with_init_sysv:BuildRequires: mysql-devel}
+BuildRequires: cmake >= 2.8.7
+BuildRequires: gnutls-devel bzip2-devel
+BuildRequires: pcre-devel libjpeg-turbo-devel
 BuildRequires: perl(Archive::Tar) perl(Archive::Zip)
 BuildRequires: perl(Date::Manip) perl(DBD::mysql)
 BuildRequires: perl(ExtUtils::MakeMaker) perl(LWP::UserAgent)
@@ -33,26 +59,34 @@ BuildRequires: perl(MIME::Entity) perl(MIME::Lite)
 BuildRequires: perl(PHP::Serialization) perl(Sys::Mmap)
 BuildRequires: perl(Time::HiRes) perl(Net::SFTP::Foreign)
 BuildRequires: perl(Expect) perl(Sys::Syslog)
-BuildRequires: gcc gcc-c++ vlc-devel libcurl-devel
-%{!?_without_ffmpeg:BuildRequires: ffmpeg-devel}
-%{!?_without_x10:BuildRequires: perl(X10::ActiveHome) perl(Astro::SunTime)}
-# cmake needs the following installed at build time due to the way it auto-detects certain parameters
-BuildRequires:  httpd polkit-devel
-%{!?_without_ffmpeg:BuildRequires: ffmpeg}
+BuildRequires: perl(X10::ActiveHome) perl(Astro::SunTime)
+BuildRequires: gcc gcc-c++ vlc-devel libcurl-devel libv4l-devel
+BuildRequires: ffmpeg-devel polkit-devel
+BuildRequires: ffmpeg
 
-Requires: httpd php php-mysql cambozola polkit
-Requires: libjpeg-turbo vlc-core libcurl
+%{?with_nginx:Requires: nginx fcgiwrap php-fpm}
+%{!?with_nginx:Requires: httpd}
+%{?with_php_mysqlnd:Requires: php-mysqlnd}
+%{?with_php_mysql:Requires: php-mysql}
+Requires: php-common php-gd cambozola polkit net-tools psmisc
+Requires: libjpeg-turbo vlc-core libcurl ffmpeg
 Requires: perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires: perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)
 Requires: perl(MIME::Entity) perl(MIME::Lite) perl(Net::SMTP) perl(Net::FTP)
 Requires: perl(LWP::Protocol::https)
-%{!?_without_ffmpeg:Requires: ffmpeg}
 
-Requires(post): systemd-units systemd-sysv
-Requires(post): /usr/bin/gpasswd
-Requires(post): /usr/bin/less
-Requires(preun): systemd-units
-Requires(postun): systemd-units
+%{?with_init_systemd:%{systemd_requires}}
+%{?with_init_sysv:Requires(post): /sbin/chkconfig}
+%{?with_init_sysv:Requires(post): %{_bindir}/checkmodule}
+%{?with_init_sysv:Requires(post): %{_bindir}/semodule_package}
+%{?with_init_sysv:Requires(post): %{_sbindir}/semodule}
+%{?with_init_sysv:Requires(preun): /sbin/chkconfig}
+%{?with_init_sysv:Requires(preun): /sbin/service}
+%{?with_init_sysv:Requires(preun): %{_sbindir}/semodule}
+%{?with_init_sysv:Requires(postun): /sbin/service}
+
+Requires(post): %{_bindir}/gpasswd
+Requires(post): %{_bindir}/less
 
 %description
 ZoneMinder is a set of applications which is intended to provide a complete
@@ -66,14 +100,21 @@ too much degradation of performance.
 %prep
 %setup -q -n ZoneMinder-%{version}
 
-%patch1 -p0 -b .defaults
-#%patch2 -p0 -b .noffmpeg
+# Change the following default values
+./utils/zmeditconfigdata.sh ZM_PATH_ZMS /cgi-bin-zm/nph-zms
+./utils/zmeditconfigdata.sh ZM_OPT_CAMBOZOLA yes
+./utils/zmeditconfigdata.sh ZM_PATH_SWAP /dev/shm
+./utils/zmeditconfigdata.sh ZM_UPLOAD_FTP_LOC_DIR /var/spool/zoneminder-upload
+./utils/zmeditconfigdata.sh ZM_OPT_CONTROL yes
+./utils/zmeditconfigdata.sh ZM_CHECK_FOR_UPDATES no
+./utils/zmeditconfigdata.sh ZM_DYN_SHOW_DONATE_REMINDER no
+./utils/zmeditconfigdata.sh ZM_OPT_FAST_DELETE no
 
 %build
 %cmake \
-	-DZM_TARGET_DISTRO="f19" \
-%{?_without_ffmpeg:-DZM_NO_FFMPEG=ON} \
-%{?_without_x10:-DZM_NO_X10=ON} \
+	-DZM_WEB_USER="%{zmuid_final}" \
+	-DZM_WEB_GROUP="%{zmuid_final}" \
+	-DZM_TARGET_DISTRO="%{zmtargetdistro}" \
 	.
 
 make %{?_smp_mflags}
@@ -82,53 +123,143 @@ make %{?_smp_mflags}
 export DESTDIR=%{buildroot}
 make install
 
+# Must manually remove packlist files from older Perls which don't support the NO_PACKLIST flag
+%if 0%{?with_init_sysv}
+find $RPM_BUILD_ROOT -type f -name .packlist -delete
+%endif
+
 %post
+%if 0%{?with_init_sysv}
+/sbin/chkconfig --add zoneminder
+/sbin/chkconfig zoneminder on
+
+# Create and load zoneminder selinux policy module
+echo -e "\nCreating and installing a ZoneMinder SELinux policy module. Please wait.\n"
+%{_bindir}/checkmodule -M -m -o %{_docdir}/%{name}-%{version}/local_zoneminder.mod %{_docdir}/%{name}-%{version}/local_zoneminder.te > /dev/null 2>&1 || :
+%{_bindir}/semodule_package -o %{_docdir}/%{name}-%{version}/local_zoneminder.pp -m %{_docdir}/%{name}-%{version}/local_zoneminder.mod > /dev/null 2>&1 || :
+%{_sbindir}/semodule -i %{_docdir}/%{name}-%{version}/local_zoneminder.pp > /dev/null 2>&1 || :
+
+%endif
+
+%if 0%{?with_init_systemd}
+# Initial installation
 if [ $1 -eq 1 ] ; then
-    # Initial installation
     /bin/systemctl daemon-reload >/dev/null 2>&1 || :
+fi
+%endif
+
+# Upgrade from a previous version of zoneminder 
+if [ $1 -eq 2 ] ; then
+
+    # Add any new PTZ control configurations to the database (will not overwrite)
+    %{_bindir}/zmcamtool.pl --import >/dev/null 2>&1 || :
+
+    # Freshen the database
+    %{_bindir}/zmupdate.pl -f  >/dev/null 2>&1 || :
+
+    # We can't run this automatically when new sql account permissions need to
+    # be manually added first
+    # Run zmupdate non-interactively
+    #%{_bindir}/zmupdate.pl --nointeractive
 fi
 
 # Allow zoneminder access to local video sources, serial ports, and x10
-/usr/bin/gpasswd -a %{zmuid_final} video
-/usr/bin/gpasswd -a %{zmuid_final} dialout
+%{_bindir}/gpasswd -a %{zmuid_final} video >/dev/null 2>&1 || :
+%{_bindir}/gpasswd -a %{zmuid_final} dialout >/dev/null 2>&1 || :
 
-# Display the README for post installation instructions
-/usr/bin/less %{_docdir}/%{name}-%{version}/README.Fedora
+# Warn the end user to read the README file
+echo -e "\nVERY IMPORTANT: Before starting ZoneMinder, read README.%{readme_suffix} to finish the\ninstallation or upgrade!\n"
+echo -e "\nThe README file is located here: %{_docdir}/%{name}\n"
+
+%if 0%{?with_nginx}
+# Nginx does not create an SSL certificate like the apache package does so lets do that here
+if [ -f %{sslkey} -o -f %{sslcert} ]; then
+   exit 0
+fi
+
+umask 077
+%{_bindir}/openssl genrsa -rand /proc/apm:/proc/cpuinfo:/proc/dma:/proc/filesystems:/proc/interrupts:/proc/ioports:/proc/pci:/proc/rtc:/proc/uptime 2048 > %{sslkey} 2> /dev/null
+
+FQDN=`hostname`
+# A >59 char FQDN means "root@FQDN" exceeds 64-char max length for emailAddress
+if [ "x${FQDN}" = "x" -o ${#FQDN} -gt 59 ]; then
+   FQDN=localhost.localdomain
+fi
+
+cat << EOF | %{_bindir}/openssl req -new -key %{sslkey} \
+         -x509 -sha256 -days 365 -set_serial $RANDOM -extensions v3_req \
+         -out %{sslcert} 2>/dev/null
+--
+SomeState
+SomeCity
+SomeOrganization
+SomeOrganizationalUnit
+${FQDN}
+root@${FQDN}
+EOF
+%endif
 
 %preun
-if [ $1 -eq 0 ] ; then
-    # Package removal, not upgrade
-    /bin/systemctl --no-reload disable zoneminder.service > /dev/null 2>&1 || :
-    /bin/systemctl stop zoneminder.service > /dev/null 2>&1 || :
+%if 0%{?with_init_sysv}
+if [ $1 -eq 0 ]; then
+    /sbin/service zoneminder stop > /dev/null 2>&1 || :
+    /sbin/chkconfig --del zoneminder
+    echo -e "\nRemoving ZoneMinder SELinux policy module. Please wait.\n"
+    %{_sbindir}/semodule -r local_zoneminder.pp
 fi
+%endif
+
+%if 0%{?with_init_systemd}
+%systemd_preun %{name}.service
+%endif
 
 %postun
-/bin/systemctl daemon-reload >/dev/null 2>&1 || :
-if [ $1 -ge 1 ] ; then
-    # Package upgrade, not uninstall
-    /bin/systemctl try-restart zoneminder.service >/dev/null 2>&1 || :
+%if 0%{?with_init_sysv}
+if [ $1 -ge 1 ]; then
+    /sbin/service zoneminder condrestart > /dev/null 2>&1 || :
 fi
 
+# Remove the doc folder. 
+rm -rf %{_docdir}/%{name}-%{version}
+%endif
+
+%if 0%{?with_init_systemd}
+/bin/systemctl daemon-reload >/dev/null 2>&1 || :
+%systemd_postun_with_restart %{name}.service
+%endif
+
+%if 0%{?with_init_systemd}
 %triggerun -- zoneminder < 1.25.0-4
 # Save the current service runlevel info
 # User must manually run systemd-sysv-convert --apply zoneminder
 # to migrate them to systemd targets
-/usr/bin/systemd-sysv-convert --save zoneminder >/dev/null 2>&1 ||:
+%{_bindir}/systemd-sysv-convert --save zoneminder >/dev/null 2>&1 ||:
 
 # Run these because the SysV package being removed won't do them
 /sbin/chkconfig --del zoneminder >/dev/null 2>&1 || :
 /bin/systemctl try-restart zoneminder.service >/dev/null 2>&1 || :
-
+%endif
 
 %files
 %defattr(-,root,root,-)
-%doc AUTHORS COPYING README.md distros/fedora/README.Fedora distros/fedora/jscalendar-doc
-%config %attr(640,root,%{zmgid_final}) /etc/zm.conf
-%config(noreplace) %attr(644,root,root) /etc/httpd/conf.d/zoneminder.conf
-%config(noreplace) /etc/tmpfiles.d/zoneminder.conf
+%doc AUTHORS COPYING README.md distros/redhat/readme/README.%{readme_suffix} distros/redhat/readme/README.https distros/redhat/jscalendar-doc
+%config(noreplace) %attr(640,root,%{zmgid_final}) /etc/zm/zm.conf
+%config(noreplace) %attr(644,root,root) %{wwwconfdir}/zoneminder.conf
 %config(noreplace) /etc/logrotate.d/zoneminder
 
+%if 0%{?with_nginx}
+%config(noreplace) %{_sysconfdir}/php-fpm.d/zoneminder.conf
+%endif
+
+%if 0%{?with_init_systemd}
+%config(noreplace) /etc/tmpfiles.d/zoneminder.conf
 %{_unitdir}/zoneminder.service
+%endif
+
+%if 0%{?with_init_sysv}
+%doc distros/redhat/misc/local_zoneminder.te
+%attr(755,root,root) %{_initrddir}/zoneminder
+%endif
 
 %{_bindir}/zma
 %{_bindir}/zmaudit.pl
@@ -137,8 +268,6 @@ fi
 %{_bindir}/zmdc.pl
 %{_bindir}/zmf
 %{_bindir}/zmfilter.pl
-# zmfix removed from zoneminder 1.26.6
-#%attr(4755,root,root) %{_bindir}/zmfix
 %{_bindir}/zmpkg.pl
 %{_bindir}/zmtrack.pl
 %{_bindir}/zmtrigger.pl
@@ -148,15 +277,15 @@ fi
 %{_bindir}/zmwatch.pl
 %{_bindir}/zmcamtool.pl
 %{_bindir}/zmsystemctl.pl
-%{!?_without_x10:%{_bindir}/zmx10.pl}
+%{_bindir}/zmtelemetry.pl
+%{_bindir}/zmx10.pl
 %{_bindir}/zmonvif-probe.pl
 
 %{perl_vendorlib}/ZoneMinder*
-%{perl_vendorlib}/%{_arch}-linux-thread-multi/auto/ZoneMinder*
 %{perl_vendorlib}/ONVIF*
 %{perl_vendorlib}/WSDiscovery*
 %{perl_vendorlib}/WSSecurity*
-%{perl_vendorlib}/%{_arch}-linux-thread-multi/auto/ONVIF*
+%{perl_vendorlib}/WSNotification*
 %{_mandir}/man*/*
 %dir %{_libexecdir}/zoneminder
 %{_libexecdir}/zoneminder/cgi-bin
@@ -167,20 +296,33 @@ fi
 %{_datadir}/polkit-1/actions/com.zoneminder.systemctl.policy
 %{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
 
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) /var/lib/zoneminder
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) /var/lib/zoneminder/events
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) /var/lib/zoneminder/images
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) /var/lib/zoneminder/sock
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) /var/lib/zoneminder/swap
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) /var/lib/zoneminder/temp
+%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder
+%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/events
+%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/images
+%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/sock
+%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/swap
+%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/temp
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) /var/log/zoneminder
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) /var/spool/zoneminder-upload
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) /run/zoneminder
 
-
 %changelog
-* Sun Aug 03 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.27 
-- Include ONVIF support files
+* Fri Dec 24 2016 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.1 
+- Consolidate fedora/centos spec files
+- Add preliminary nginx support
+- New contact email
+
+* Thu Mar 3 2016 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.30.0 
+- Bump version fo 1.30.0 release.
+
+* Sat Nov 21 2015 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.29.0 
+- Bump version for 1.29.0 release on Fedora 23.
+
+* Sat Feb 14 2015 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.28.1 
+- Bump version for 1.28.1 release on Fedora 21.
+
+* Sun Oct 5 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.28.0 
+- Bump version for 1.28.0 release.
 
 * Fri Mar 14 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.27 
 - Tweak build requirements for cmake

@@ -142,7 +142,7 @@ echo -e "\nCreating and installing a ZoneMinder SELinux policy module. Please wa
 %if 0%{?with_init_systemd}
 # Initial installation
 if [ $1 -eq 1 ] ; then
-    /bin/systemctl daemon-reload >/dev/null 2>&1 || :
+    %systemd_post %{name}.service
 fi
 %endif
 
@@ -222,7 +222,6 @@ rm -rf %{_docdir}/%{name}-%{version}
 %endif
 
 %if 0%{?with_init_systemd}
-/bin/systemctl daemon-reload >/dev/null 2>&1 || :
 %systemd_postun_with_restart %{name}.service
 %endif
 

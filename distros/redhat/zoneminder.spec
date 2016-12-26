@@ -250,7 +250,7 @@ rm -rf %{_docdir}/%{name}-%{version}
 %endif
 
 %if 0%{?with_init_systemd}
-%config(noreplace) /etc/tmpfiles.d/zoneminder.conf
+%{_tmpfilesdir}/zoneminder.conf
 %{_unitdir}/zoneminder.service
 %endif
 
@@ -305,41 +305,41 @@ rm -rf %{_docdir}/%{name}-%{version}
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) /run/zoneminder
 
 %changelog
-* Fri Dec 23 2016 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.1 
+* Fri Dec 23 2016 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.1-1 
 - Consolidate fedora/centos spec files
 - Add preliminary nginx support
 - New contact email
 
-* Thu Mar 3 2016 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.30.0 
+* Thu Mar 3 2016 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.30.0-1 
 - Bump version fo 1.30.0 release.
 
-* Sat Nov 21 2015 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.29.0 
+* Sat Nov 21 2015 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.29.0-1 
 - Bump version for 1.29.0 release on Fedora 23.
 
-* Sat Feb 14 2015 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.28.1 
+* Sat Feb 14 2015 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.28.1-1 
 - Bump version for 1.28.1 release on Fedora 21.
 
-* Sun Oct 5 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.28.0 
+* Sun Oct 5 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.28.0-1 
 - Bump version for 1.28.0 release.
 
-* Fri Mar 14 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.27 
+* Fri Mar 14 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.27-1 
 - Tweak build requirements for cmake
 
-* Sat Feb 01 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.27
+* Sat Feb 01 2014 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.27-1
 - Add zmcamtool.pl. Bump version for 1.27 release. 
 
-* Mon Dec 16 2013 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.26.5
+* Mon Dec 16 2013 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.26.5-1
 - This is a bug fixe release
 - RTSP fixes, cmake enhancements, couple other misc fixes
 
-* Mon Oct 07 2013 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.26.4
+* Mon Oct 07 2013 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.26.4-1
 - Initial cmake build.
 
-* Sat Oct 05 2013 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.26.4
+* Sat Oct 05 2013 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.26.4-1
 - Fedora specific path changes have been moved to zoneminder-1.26.0-defaults.patch
 - All files are now part of the zoneminder source tree. Update specfile accordingly.
 
-* Sat Sep 21 2013 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.26.3
+* Sat Sep 21 2013 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.26.3-1
 - Initial rebuild for ZoneMinder 1.26.3 release.
 
 * Fri Feb 15 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.25.0-13

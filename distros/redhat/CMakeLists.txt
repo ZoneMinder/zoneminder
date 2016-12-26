@@ -82,6 +82,6 @@ if(ZM_TARGET_DISTRO STREQUAL "el6")
 	install(FILES zoneminder.sysvinit DESTINATION /etc/rc.d/init.d RENAME zoneminder PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
 else(ZM_TARGET_DISTRO STREQUAL "el6")
 	install(FILES zoneminder.service DESTINATION /usr/lib/systemd/system PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
-	install(FILES zoneminder.tmpfiles DESTINATION /etc/tmpfiles.d RENAME zoneminder.conf PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
+	install(FILES zoneminder.tmpfiles DESTINATION /usr/lib/tmpfiles.d RENAME zoneminder.conf PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
 endif(ZM_TARGET_DISTRO STREQUAL "el6")
 

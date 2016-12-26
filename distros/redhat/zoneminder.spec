@@ -250,7 +250,7 @@ rm -rf %{_docdir}/%{name}-%{version}
 %endif
 
 %if 0%{?with_init_systemd}
-%config(noreplace) /etc/tmpfiles.d/zoneminder.conf
+%{_tmpfilesdir}/zoneminder.conf
 %{_unitdir}/zoneminder.service
 %endif
 

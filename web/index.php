@@ -109,7 +109,6 @@ define( "ZM_SKIN_PATH", "skins/$skin" );
 $skinBase = array(); // To allow for inheritance of skins
 if ( !file_exists( ZM_SKIN_PATH ) )
     Fatal( "Invalid skin '$skin'" );
-require_once( ZM_SKIN_PATH.'/includes/init.php' );
 $skinBase[] = $skin;
 
 ini_set( "session.name", "ZMSESSID" );

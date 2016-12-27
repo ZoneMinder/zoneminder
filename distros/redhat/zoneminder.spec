@@ -44,10 +44,9 @@ Group: System Environment/Daemons
 License: GPLv2+ and LGPLv2+ and MIT
 URL: http://www.zoneminder.com/
 
-#Source: https://github.com/ZoneMinder/ZoneMinder/archive/v%{version}.tar.gz
 Source: ZoneMinder-%{version}.tar.gz
 
-%{?with_init_systemd:BuildRequires: systemd systemd-devel mariadb-devel perl-podlators}
+%{?with_init_systemd:BuildRequires: systemd-devel mariadb-devel perl-podlators}
 %{?with_init_sysv:BuildRequires: mysql-devel}
 BuildRequires: cmake >= 2.8.7
 BuildRequires: gnutls-devel bzip2-devel
@@ -59,10 +58,8 @@ BuildRequires: perl(MIME::Entity) perl(MIME::Lite)
 BuildRequires: perl(PHP::Serialization) perl(Sys::Mmap)
 BuildRequires: perl(Time::HiRes) perl(Net::SFTP::Foreign)
 BuildRequires: perl(Expect) perl(Sys::Syslog)
-BuildRequires: perl(X10::ActiveHome) perl(Astro::SunTime)
 BuildRequires: gcc gcc-c++ vlc-devel libcurl-devel libv4l-devel
 BuildRequires: ffmpeg-devel polkit-devel
-BuildRequires: ffmpeg
 
 %{?with_nginx:Requires: nginx fcgiwrap php-fpm}
 %{!?with_nginx:Requires: httpd}
@@ -73,9 +70,12 @@ Requires: libjpeg-turbo vlc-core libcurl ffmpeg
 Requires: perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires: perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)
 Requires: perl(MIME::Entity) perl(MIME::Lite) perl(Net::SMTP) perl(Net::FTP)
-Requires: perl(LWP::Protocol::https)
+Requires: perl(LWP::Protocol::https) perl(X10::ActiveHome) perl(Astro::SunTime)
 
-%{?with_init_systemd:%{systemd_requires}}
+%{?with_init_systemd:Requires(post): systemd systemd-sysv}
+%{?with_init_systemd:Requires(preun): systemd}
+%{?with_init_systemd:Requires(postun): systemd}
+
 %{?with_init_sysv:Requires(post): /sbin/chkconfig}
 %{?with_init_sysv:Requires(post): %{_bindir}/checkmodule}
 %{?with_init_sysv:Requires(post): %{_bindir}/semodule_package}
@@ -158,7 +158,7 @@ if [ $1 -eq 2 ] ; then
     # We can't run this automatically when new sql account permissions need to
     # be manually added first
     # Run zmupdate non-interactively
-    #%{_bindir}/zmupdate.pl --nointeractive
+    # zmupdate.pl --nointeractive
 fi
 
 # Allow zoneminder access to local video sources, serial ports, and x10
@@ -301,7 +301,7 @@ rm -rf %{_docdir}/%{name}-%{version}
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/temp
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) /var/log/zoneminder
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) /var/spool/zoneminder-upload
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) /run/zoneminder
+%dir %attr(755,%{zmuid_final},%{zmgid_final}) %ghost /run/zoneminder
 
 %changelog
 * Fri Dec 23 2016 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.1-1 

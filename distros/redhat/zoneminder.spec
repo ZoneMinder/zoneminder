@@ -1,7 +1,8 @@
-%global zmuid $(id -un)
-%global zmgid $(id -gn)
 %global zmuid_final apache
 %global zmgid_final apache
+
+# In some cases older distros do not have this macro defined
+%{!?make_build: %global make_build %{__make} %{?_smp_mflags} }
 
 %if "%{zmuid_final}" == "nginx"
     %global with_nginx 1
@@ -35,7 +36,7 @@
 
 Name: zoneminder
 Version: 1.30.1
-Release: 1%{?dist}
+Release: 2%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
 # jscalendar is LGPL (any version): http://www.dynarch.com/projects/calendar/
@@ -98,7 +99,7 @@ designed to support as many cameras as you can attach to your computer without
 too much degradation of performance.
 
 %prep
-%setup -q -n ZoneMinder-%{version}
+%autosetup -n ZoneMinder-%{version}
 
 # Change the following default values
 ./utils/zmeditconfigdata.sh ZM_PATH_ZMS /cgi-bin-zm/nph-zms
@@ -117,11 +118,10 @@ too much degradation of performance.
         -DZM_TARGET_DISTRO="%{zmtargetdistro}" \
         .
 
-make %{?_smp_mflags}
+%make_build
 
 %install
-export DESTDIR=%{buildroot}
-make install
+%make_install
 
 # Remove unwanted files and folders
 find %{buildroot} \( -name .packlist -or -name .git -or -name .gitignore -or -name .gitattributes -or -name .travis.yml \) -type f -delete > /dev/null 2>&1 || :
@@ -238,8 +238,8 @@ rm -rf %{_docdir}/%{name}-%{version}
 %endif
 
 %files
-%defattr(-,root,root,-)
-%doc AUTHORS COPYING README.md distros/redhat/readme/README.%{readme_suffix} distros/redhat/readme/README.https distros/redhat/jscalendar-doc
+%license COPYING
+%doc AUTHORS README.md distros/redhat/readme/README.%{readme_suffix} distros/redhat/readme/README.https distros/redhat/jscalendar-doc
 %config(noreplace) %attr(640,root,%{zmgid_final}) /etc/zm/zm.conf
 %config(noreplace) %attr(644,root,root) %{wwwconfdir}/zoneminder.conf
 %config(noreplace) /etc/logrotate.d/zoneminder
@@ -258,25 +258,7 @@ rm -rf %{_docdir}/%{name}-%{version}
 %attr(755,root,root) %{_initrddir}/zoneminder
 %endif
 
-%{_bindir}/zma
-%{_bindir}/zmaudit.pl
-%{_bindir}/zmc
-%{_bindir}/zmcontrol.pl
-%{_bindir}/zmdc.pl
-%{_bindir}/zmf
-%{_bindir}/zmfilter.pl
-%{_bindir}/zmpkg.pl
-%{_bindir}/zmtrack.pl
-%{_bindir}/zmtrigger.pl
-%{_bindir}/zmu
-%{_bindir}/zmupdate.pl
-%{_bindir}/zmvideo.pl
-%{_bindir}/zmwatch.pl
-%{_bindir}/zmcamtool.pl
-%{_bindir}/zmsystemctl.pl
-%{_bindir}/zmtelemetry.pl
-%{_bindir}/zmx10.pl
-%{_bindir}/zmonvif-probe.pl
+%{_bindir}/*
 
 %{perl_vendorlib}/ZoneMinder*
 %{perl_vendorlib}/ONVIF*
@@ -304,6 +286,9 @@ rm -rf %{_docdir}/%{name}-%{version}
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %ghost /run/zoneminder
 
 %changelog
+* Wed Dec 28 2016 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.1-2 
+- Changes from rpmfusion #4393
+
 * Fri Dec 23 2016 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.1-1 
 - Consolidate fedora/centos spec files
 - Add preliminary nginx support

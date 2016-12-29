@@ -1,7 +1,7 @@
 HTTPS is now a requirement
 ==========================
 
-This package now depends on Apache's mod_ssl pacakge. This will automatically
+This package now depends on Apache's mod_ssl package. This will automatically
 be installed along with ZoneMinder. Upon installation, the mod_ssl package
 will create a default, self-signed certificate. This is the certificate that
 ZoneMinder will use out of the box. 

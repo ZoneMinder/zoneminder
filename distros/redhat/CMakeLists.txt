@@ -42,7 +42,7 @@ execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/misc/jscalendar.sh
 if("${unzip_jsc}" STREQUAL "")
     message(STATUS "jscalendar successfully installed.")
 else("${unzip_jsc}" STREQUAL "")
-    message(FATAL_ERROR "\nAn error occured while jscalendar was being processed:\n${unzip_jsc}")
+    message(FATAL_ERROR "\nAn error occurred while jscalendar was being processed:\n${unzip_jsc}")
 endif("${unzip_jsc}" STREQUAL "")
 
 # Create several empty folders

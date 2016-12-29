@@ -825,7 +825,7 @@ $VLANG = array(
 // in to generate the correct noun form.
 //
 // In languages such as English this is fairly simple 
-// Note this still has to be used with printf etc to get the right formating
+// Note this still has to be used with printf etc to get the right formatting
 function zmVlang( $langVarArray, $count )
 {
     krsort( $langVarArray );
@@ -913,7 +913,7 @@ $OLANG = array(
 		'Help' => "Enable this option to embed EXIF data into each jpeg frame."
 	),
 	'OPTIONS_RTSPDESCRIBE' => array(
-		'Help' => "Sometimes, during the intial RTSP handshake, the camera will send an updated media URL. ".
+		'Help' => "Sometimes, during the initial RTSP handshake, the camera will send an updated media URL. ".
 		          "Enable this option to tell ZoneMinder to use this URL. Disable this option to ignore the ".
 		          "value from the camera and use the value as entered in the monitor configuration~~~~". 
 		          "Generally this should be enabled. However, there are cases where the camera can get its".

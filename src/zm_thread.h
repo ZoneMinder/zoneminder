@@ -224,7 +224,7 @@ protected:
 #endif
   bool  mStarted;
   bool  mRunning;
-  int   status;		// Used in various funcions to get around return a local variable
+  int   status;		// Used in various functions to get around return a local variable
 
 protected:
   Thread();

@@ -482,7 +482,7 @@ function deleteEvent( $event, $mid=false ) {
         $start_date = date_parse( $event['StartTime'] );
         $start_date['year'] = $start_date['year'] % 100;
 
-# So this is  because ZM creates a link under teh day pointing to the time that the event happened. 
+# So this is  because ZM creates a link under the day pointing to the time that the event happened. 
         $eventlink_path = sprintf('%s/%d/%02d/%02d/%02d/.%d', ZM_DIR_EVENTS, $mid, $start_date['year'], $start_date['month'], $start_date['day'], $event['Id'] );
 
         if ( $id_files = glob( $eventlink_path ) ) {
@@ -2137,6 +2137,6 @@ function folder_size($dir) {
         $size += is_file($each) ? filesize($each) : folderSize($each);
     }
     return $size;
-} // end fucntion folder_size
+} // end function folder_size
 
 ?>

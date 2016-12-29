@@ -29,7 +29,7 @@
 
 extern "C"
 {
-/* Stuff for overriden error handlers */
+/* Stuff for overridden error handlers */
 struct zm_error_mgr
 {
   struct jpeg_error_mgr pub;

@@ -143,7 +143,7 @@ foreach( dbFetchAll( $monitorsSql ) as $row )
 }
 
 $rangeSql = "select min(E.StartTime) as MinTime, max(E.EndTime) as MaxTime from Events as E inner join Monitors as M on (E.MonitorId = M.Id) where not isnull(E.StartTime) and not isnull(E.EndTime)";
-$eventsSql = "select * from Events where not isnull(StartTime)";
+$eventsSql = "SELECT * FROM Events WHERE NOT isnull(StartTime)";
 
 if ( !empty($user['MonitorIds']) )
 {
@@ -309,7 +309,7 @@ $midTime = strftime( STRF_FMT_DATETIME_DB, $midTimeT );
 
 if ( isset($minTime) && isset($maxTime) )
 {
-    $eventsSql .= " and E.EndTime >= '$minTime' and E.StartTime <= '$maxTime'";
+    $eventsSql .= " and EndTime >= '$minTime' and StartTime <= '$maxTime'";
 }
 
 $eventsSql .= " order by Id asc";

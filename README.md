@@ -10,7 +10,8 @@ Thanks to @chriswiggins and @mastertheknife for their work, @SteveGilvarry is no
 ```
 ALTER TABLE `Monitors` ADD `SaveJPEGs` TINYINT NOT NULL DEFAULT '3' AFTER `Deinterlacing` ,
 ADD `VideoWriter` TINYINT NOT NULL DEFAULT '0' AFTER `SaveJPEGs` ,
-ADD `EncoderParameters` TEXT NOT NULL AFTER `VideoWriter` ;
+ADD `EncoderParameters` TEXT NOT NULL AFTER `VideoWriter` ,
+ADD `RecordAudio` TINYINT NOT NULL DEFAULT '0' AFTER `EncoderParameters` ; 
 
 ALTER TABLE `Events` ADD `DefaultVideo` VARCHAR( 64 ) NOT NULL AFTER `AlarmFrames` ;
 ```

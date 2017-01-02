@@ -71,9 +71,9 @@ $statusData = array(
             "DefaultScale" => true,
             "WebColour" => true,
             "Sequence" => true,
-            "MinEventId" => array( "sql" => "min(Events.Id)", "table" => "Events", "join" => "Events.MonitorId = Monitors.Id", "group" => "Events.MonitorId" ),
-            "MaxEventId" => array( "sql" => "max(Events.Id)", "table" => "Events", "join" => "Events.MonitorId = Monitors.Id", "group" => "Events.MonitorId" ),
-            "TotalEvents" => array( "sql" => "count(Events.Id)", "table" => "Events", "join" => "Events.MonitorId = Monitors.Id", "group" => "Events.MonitorId" ),
+            "MinEventId" => array( "sql" => "(SELECT min(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id" ),
+            "MaxEventId" => array( "sql" => "(SELECT max(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id" ),
+            "TotalEvents" => array( "sql" => "(SELECT count(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id" ),
             "Status" => array( "zmu" => "-m ".escapeshellarg($_REQUEST['id'][0])." -s" ),
             "FrameRate" => array( "zmu" => "-m ".escapeshellarg($_REQUEST['id'][0])." -f" ),
         ),
@@ -129,10 +129,10 @@ $statusData = array(
             "Messaged" => true,
             "Executed" => true,
             "Notes" => true,
-            "MinFrameId" => array( "sql" => "min(Frames.FrameId)", "table" => "Frames", "join" => "Events.Id = Frames.EventId", "group" => "Frames.EventId"  ),
-            "MaxFrameId" => array( "sql" => "max(Frames.FrameId)", "table" => "Frames", "join" => "Events.Id = Frames.EventId", "group" => "Frames.EventId"  ),
-            "MinFrameDelta" => array( "sql" => "min(Frames.Delta)", "table" => "Frames", "join" => "Events.Id = Frames.EventId", "group" => "Frames.EventId"  ),
-            "MaxFrameDelta" => array( "sql" => "max(Frames.Delta)", "table" => "Frames", "join" => "Events.Id = Frames.EventId", "group" => "Frames.EventId"  ),
+            "MinFrameId" => array( "sql" => "(SELECT min(Frames.FrameId) FROM Frames WHERE EventId=Events.Id)" ),
+            "MaxFrameId" => array( "sql" => "(SELECT max(Frames.FrameId) FROM Frames WHERE Events.Id = Frames.EventId)" ),
+            "MinFrameDelta" => array( "sql" => "(SELECT min(Frames.Delta) FROM Frames WHERE Events.Id = Frames.EventId)" ),
+            "MaxFrameDelta" => array( "sql" => "(SELECT max(Frames.Delta) FROM Frames WHERE Events.Id = Frames.EventId)" ),
             //"Path" => array( "postFunc" => "getEventPath" ),
         ),
     ),
@@ -386,7 +386,7 @@ function getNearEvents()
     else
         $midSql = '';
 
-    $sql = "select E.* as Id from Events as E inner join Monitors as M on E.MonitorId = M.Id where ".dbEscape($sortColumn)." ".($sortOrder=='asc'?'<=':'>=')." '".$event[$_REQUEST['sort_field']]."'".$_REQUEST['filter']['sql'].$midSql." order by $sortColumn ".($sortOrder=='asc'?'desc':'asc');
+    $sql = "select E.Id as Id from Events as E inner join Monitors as M on E.MonitorId = M.Id where ".dbEscape($sortColumn)." ".($sortOrder=='asc'?'<=':'>=')." '".$event[$_REQUEST['sort_field']]."'".$_REQUEST['filter']['sql'].$midSql." order by $sortColumn ".($sortOrder=='asc'?'desc':'asc');
     $result = dbQuery( $sql );
     while ( $id = dbFetchNext( $result, 'Id' ) )
     {
@@ -397,7 +397,7 @@ function getNearEvents()
         }
     }
 
-    $sql = "select E.* as Id from Events as E inner join Monitors as M on E.MonitorId = M.Id where $sortColumn ".($sortOrder=='asc'?'>=':'<=')." '".$event[$_REQUEST['sort_field']]."'".$_REQUEST['filter']['sql'].$midSql." order by $sortColumn $sortOrder";
+    $sql = "select E.Id as Id from Events as E inner join Monitors as M on E.MonitorId = M.Id where $sortColumn ".($sortOrder=='asc'?'>=':'<=')." '".$event[$_REQUEST['sort_field']]."'".$_REQUEST['filter']['sql'].$midSql." order by $sortColumn $sortOrder";
     $result = dbQuery( $sql );
     while ( $id = dbFetchNext( $result, 'Id' ) )
     {

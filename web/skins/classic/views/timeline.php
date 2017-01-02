@@ -14,7 +14,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
 if ( !canView( 'Events' ) )
@@ -143,11 +143,11 @@ foreach( dbFetchAll( $monitorsSql ) as $row )
 }
 
 $rangeSql = "select min(E.StartTime) as MinTime, max(E.EndTime) as MaxTime from Events as E inner join Monitors as M on (E.MonitorId = M.Id) where not isnull(E.StartTime) and not isnull(E.EndTime)";
-$eventsSql = "SELECT * FROM Events WHERE NOT isnull(StartTime)";
+$eventsSql = "SELECT * FROM Events AS E WHERE NOT isnull(StartTime)";
 
 if ( !empty($user['MonitorIds']) )
 {
-    $monFilterSql = ' AND MonitorId IN ('.$user['MonitorIds'].')';
+    $monFilterSql = ' AND E.MonitorId IN ('.$user['MonitorIds'].')';
 
     $rangeSql .= $monFilterSql;
     $eventsSql .= $monFilterSql;

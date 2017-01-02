@@ -15,7 +15,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 // Compatibility functions
@@ -2132,7 +2132,8 @@ function folder_size($dir) {
         $size += is_file($each) ? filesize($each) : folderSize($each);
     }
     return $size;
-} // end fucntion folder_size
+} // end function folder_size
+
 function human_filesize($bytes, $decimals = 2) {
   $sz = 'BKMGTP';
   $factor = floor((strlen($bytes) - 1) / 3);

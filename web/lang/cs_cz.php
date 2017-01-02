@@ -15,7 +15,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
 // ZoneMinder Czech Translation by Lukas Pokorny/Mlada Boleslav
@@ -814,7 +814,7 @@ $VLANG = array(
 // in to generate the correct noun form.
 //
 // In languages such as English this is fairly simple 
-// Note this still has to be used with printf etc to get the right formating
+// Note this still has to be used with printf etc to get the right formatting
 function zmVlang( $langVarArray, $count )
 {
     krsort( $langVarArray );

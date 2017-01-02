@@ -258,7 +258,25 @@ rm -rf %{_docdir}/%{name}-%{version}
 %attr(755,root,root) %{_initrddir}/zoneminder
 %endif
 
-%{_bindir}/*
+%{_bindir}/zma
+%{_bindir}/zmaudit.pl
+%{_bindir}/zmc
+%{_bindir}/zmcontrol.pl
+%{_bindir}/zmdc.pl
+%{_bindir}/zmf
+%{_bindir}/zmfilter.pl
+%{_bindir}/zmpkg.pl
+%{_bindir}/zmtrack.pl
+%{_bindir}/zmtrigger.pl
+%{_bindir}/zmu
+%{_bindir}/zmupdate.pl
+%{_bindir}/zmvideo.pl
+%{_bindir}/zmwatch.pl
+%{_bindir}/zmcamtool.pl
+%{_bindir}/zmsystemctl.pl
+%{_bindir}/zmtelemetry.pl
+%{_bindir}/zmx10.pl
+%{_bindir}/zmonvif-probe.pl
 
 %{perl_vendorlib}/ZoneMinder*
 %{perl_vendorlib}/ONVIF*

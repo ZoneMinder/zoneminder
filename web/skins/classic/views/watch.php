@@ -33,14 +33,7 @@ if ( ! visibleMonitor( $mid ) ) {
     return;
 }
 
-$sql = 'SELECT C.*, M.* FROM Monitors AS M LEFT JOIN Controls AS C ON (M.ControlId = C.Id ) WHERE M.Id = ?';
 $monitor = new Monitor( $mid );
-#dbFetchOne( $sql, NULL, array( $_REQUEST['mid'] ) );
-
-if ( isset($_REQUEST['showControls']) )
-    $showControls = validInt($_REQUEST['showControls']);
-else
-    $showControls = (canView( 'Control' ) && ($monitor->DefaultView() == 'Control'));
 
 $showPtzControls = ( ZM_OPT_CONTROL && $monitor->Controllable() && canView( 'Control' ) );
 
@@ -84,23 +77,6 @@ xhtmlHeaders( __FILE__, $monitor->Name()." - ".translate('Feed') );
         <div id="monitorName"><?php echo $monitor->Name() ?></div>
         <div id="closeControl"><a href="#" onclick="closeWindow(); return( false );"><?php echo translate('Close') ?></a></div>
         <div id="menuControls">
-<?php
-if ( $showPtzControls )
-{
-    if ( canView( 'Control' ) )
-    {
-?>
-          <div id="controlControl"<?php echo $showControls?' class="hidden"':'' ?>><a id="controlLink" href="#" onclick="showPtzControls(); return( false );"><?php echo translate('Control') ?></a></div>
-<?php
-    }
-    if ( canView( 'Events' ) )
-    {
-?>
-          <div id="eventsControl"<?php echo $showControls?'':' class="hidden"' ?>><a id="eventsLink" href="#" onclick="showEvents(); return( false );"><?php echo translate('Events') ?></a></div>
-<?php
-    }
-}
-?>
 <?php
 if ( canView( 'Control' ) && $monitor->Type() == "Local" )
 {
@@ -171,7 +147,7 @@ if ( $showPtzControls )
     foreach ( getSkinIncludes( 'includes/control_functions.php' ) as $includeFile )
         require_once $includeFile;
 ?>
-      <div id="ptzControls" class="ptzControls<?php echo $showControls?'':' hidden' ?>">
+      <div id="ptzControls" class="ptzControls">
 <?php echo ptzControls( $monitor ) ?>
       </div>
 <?php
@@ -179,7 +155,7 @@ if ( $showPtzControls )
 if ( canView( 'Events' ) )
 {
 ?>
-      <div id="events"<?php echo $showControls?' class="hidden"':'' ?>>
+      <div id="events">
         <table id="eventList" cellspacing="0">
           <thead>
             <tr>

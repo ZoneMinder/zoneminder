@@ -93,7 +93,7 @@ class Event {
         $start_date['year'] = $start_date['year'] % 100;
 
         $Storage = $this->Storage();
-# So this is  because ZM creates a link under teh day pointing to the time that the event happened. 
+# So this is  because ZM creates a link under the day pointing to the time that the event happened. 
         $eventlink_path = $Storage->Path().'/'.$this->Link_Path();
 
         if ( $id_files = glob( $eventlink_path ) ) {
@@ -148,5 +148,8 @@ public function getStreamSrc( $args, $querySep='&amp;' ) {
 
     return( $streamSrc );
   } // end function getStreamSrc
+  function DiskSpace() {
+    return folder_size( $this->Path() );
+  }
 } # end class
 ?>

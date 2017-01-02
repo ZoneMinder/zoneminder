@@ -1,1 +1,0 @@
-zoneminder.f25.spec

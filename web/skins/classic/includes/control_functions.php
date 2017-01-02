@@ -15,7 +15,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 function getControlCommands( $monitor )
@@ -30,7 +30,7 @@ function getControlCommands( $monitor )
     $cmds['PresetGoto'] = "presetGoto";
     $cmds['PresetHome'] = "presetHome";
 
-    if ( !empty($monitor->CanZoom()) )
+    if ( $monitor->CanZoom() )
     {
         if ( $monitor->CanZoomCon() )
             $cmds['ZoomRoot'] = "zoomCon";
@@ -45,7 +45,7 @@ function getControlCommands( $monitor )
         $cmds['ZoomMan'] = "zoomMan";
     }
 
-    if ( !empty($monitor->CanFocus()) )
+    if ( $monitor->CanFocus() )
     {
         if ( $monitor->CanFocusCon() )
             $cmds['FocusRoot'] = "focusCon";
@@ -60,7 +60,7 @@ function getControlCommands( $monitor )
         $cmds['FocusMan'] = "focusMan";
     }
 
-    if ( !empty($monitor->CanIris()) )
+    if ( $monitor->CanIris() )
     {
         if ( $monitor->CanIrisCon() )
             $cmds['IrisRoot'] = "irisCon";
@@ -75,7 +75,7 @@ function getControlCommands( $monitor )
         $cmds['IrisMan'] = "irisMan";
     }
 
-    if ( !empty($monitor->CanWhite()) )
+    if ( $monitor->CanWhite() )
     {
         if ( $monitor->CanWhiteCon() )
             $cmds['WhiteRoot'] = "whiteCon";
@@ -89,7 +89,7 @@ function getControlCommands( $monitor )
         $cmds['WhiteMan'] = "whiteMan";
     }
 
-    if ( !empty($monitor->CanGain()) )
+    if ( $monitor->CanGain() )
     {
         if ( $monitor->CanGainCon() )
             $cmds['GainRoot'] = "gainCon";
@@ -103,7 +103,7 @@ function getControlCommands( $monitor )
         $cmds['GainMan'] = "gainMan";
     }
 
-    if ( !empty($monitor->CanMove()) )
+    if ( $monitor->CanMove() )
     {
         if ( $monitor->CanMoveCon() )
         {

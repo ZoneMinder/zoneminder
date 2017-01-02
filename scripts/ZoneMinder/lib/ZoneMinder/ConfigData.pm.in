@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # ==========================================================================
 #
@@ -1546,6 +1546,19 @@ our @options = (
         to display a message which indicates the running instance of
         ZoneMinder is a development snapshot, but it can also be used for
         any other purpose as well.
+        "),
+    type        => $types{string},
+    category    => "web",
+  },
+  {
+    name        => 'ZM_WEB_EVENT_DISK_SPACE',
+    default     => '',
+    description => "Whether to show disk space used by each event.",
+    help        => qqq("Adds another column to the listing of events 
+        showing the disk space used by the event.  This will impart a small
+        overhead as it will call du on the event directory.  In practice 
+        this overhead is fairly small but may be noticeable on IO-constrained
+        systems.
         "),
     type        => $types{string},
     category    => "web",

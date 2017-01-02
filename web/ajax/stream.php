@@ -52,7 +52,7 @@ while ( !file_exists($remSockFile) && $max_socket_tries-- ) { //sometimes we are
 }
 
 if ( !file_exists($remSockFile) ) {
-  ajaxError("Socket $ramSocketFile does not exist.  This file is created by zms, and since it does not exist, either zms did not run, or zms exited early.  Please check your zms logs and ensure that CGI is enabled in apache and check that the PATH_ZMS is set correctly.  Make sure that ZM is actually recording.  If you are trying to view a live stream and the capture process (zmc) is not running then zms will exit. Please go to http://zoneminder.readthedocs.io/en/latest/faq.html#why-can-t-i-see-streamed-images-when-i-can-see-stills-in-the-zone-window-etc for more information.");
+  ajaxError("Socket $remSocketFile does not exist.  This file is created by zms, and since it does not exist, either zms did not run, or zms exited early.  Please check your zms logs and ensure that CGI is enabled in apache and check that the PATH_ZMS is set correctly.  Make sure that ZM is actually recording.  If you are trying to view a live stream and the capture process (zmc) is not running then zms will exit. Please go to http://zoneminder.readthedocs.io/en/latest/faq.html#why-can-t-i-see-streamed-images-when-i-can-see-stills-in-the-zone-window-etc for more information.");
 } else {
   if ( !@socket_sendto( $socket, $msg, strlen($msg), 0, $remSockFile ) ) {
     ajaxError( "socket_sendto( $remSockFile ) failed: ".socket_strerror(socket_last_error()) );

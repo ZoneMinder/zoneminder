@@ -74,6 +74,7 @@ FFmpeg
     This is the recommended source type for most modern ip cameras.
 Source Path 
     Use this field to enter the full URL of the stream or file your camera supports. This is usually an RTSP url. There are several methods to learn this:
+    
         * Check the documentation that came with your camera
         * Look for your camera in the hardware compatibilty list in the wiki http://wiki.zoneminder.com/Hardware_Compatibilty_List
         * Try ZoneMinder's new ONVIF probe feature
@@ -115,7 +116,7 @@ Remote
 ^^^^^^
 
 Remote Protocol
-    Choices are currently HTTP and RTSP. Before RTSP became the industry standard, many ip cameras streamed directly from their web portal. If you have an ip camera that does not speak RTSP then choose HTTP here. If you camera does speak RTSP then you should change your source type to ffmpeg instead of selecting RTSP here. The Remote -> RTSP method is no longer being maintained and may go away at some point in the future.
+    Choices are currently HTTP and RTSP. Before RTSP became the industry standard, many ip cameras streamed directly from their web portal. If you have an ip camera that does not speak RTSP then choose HTTP here. **If you camera does speak RTSP then you should change your source type to ffmpeg instead of selecting RTSP here.** The Remote -> RTSP method is no longer being maintained and may go away at some point in the future.
 Remote Method
     When HTTP is the Remote Protocol, your choices are Simple and Regexp. Most should choose Simple. When RTSP is the Remote Protocol, your choices are RTP/Unicast, RTP/Multicast, RTP/RTSP, RTP,RTSP,HTTP. Try each of these to determine which works with your camera. Most cameras will use either RTP/Unicast (UDP) or RTP/RTSP (TCP). 
 Remote Host/Port/Path 

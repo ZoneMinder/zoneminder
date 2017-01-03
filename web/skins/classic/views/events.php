@@ -15,7 +15,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
 if ( !canView( 'Events' ) || (!empty($_REQUEST['execute']) && !canEdit('Events')) )
@@ -23,6 +23,8 @@ if ( !canView( 'Events' ) || (!empty($_REQUEST['execute']) && !canEdit('Events')
     $view = "error";
     return;
 }
+
+require_once( 'includes/Event.php' );
 
 if ( !empty($_REQUEST['execute']) )
 {
@@ -93,17 +95,17 @@ $maxHeight = 0;
 $archived = false;
 $unarchived = false;
 $events = array();
-foreach ( dbFetchAll( $eventsSql ) as $event )
+foreach ( dbFetchAll( $eventsSql ) as $event_row )
 {
-    $events[] = new Event( $event );
+    $events[] = $event = new Event( $event_row );
 
    # Doesn this code do anything? 
     $scale = max( reScale( SCALE_BASE, $event->DefaultScale(), ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
-    $eventWidth = reScale( $event['Width'], $scale );
-    $eventHeight = reScale( $event['Height'], $scale );
+    $eventWidth = reScale( $event_row['Width'], $scale );
+    $eventHeight = reScale( $event_row['Height'], $scale );
     if ( $maxWidth < $eventWidth ) $maxWidth = $eventWidth;
     if ( $maxHeight < $eventHeight ) $maxHeight = $eventHeight;
-    if ( $event['Archived'] )
+    if ( $event_row['Archived'] )
         $archived = true;
     else
         $unarchived = true;
@@ -220,10 +222,10 @@ foreach ( $events as $event )
 		}
     if ( ZM_WEB_LIST_THUMBS )
     {
-        if ( $thumbData = createListThumbnail( $event ) )
+        if ( $thumbData = $event->createListThumbnail() )
         {
 ?>
-              <td class="colThumbnail"><?php echo makePopupLink( '?view=frame&amp;eid='.$event->Id().'&amp;fid='.$thumbData['FrameId'], 'zmImage', array( 'image', reScale( $event->Width(), $scale ), reScale( $event->Height(), $scale ) ), '<img src="'.viewImagePath( $thumbData['Path'] ).'" width="'.$thumbData['Width'].'" height="'.$thumbData['Height'].'" alt="'.$thumbData['FrameId'].'/'.$event->MaxScore().'"/>' ) ?></td>
+              <td class="colThumbnail"><?php echo makePopupLink( '?view=frame&amp;eid='.$event->Id().'&amp;fid='.$thumbData['FrameId'], 'zmImage', array( 'image', reScale( $event->Width(), $scale ), reScale( $event->Height(), $scale ) ), '<img src="?view=image&amp;eid='.$event->Id().'&amp;fid='.$thumbData['FrameId'].'&amp;width='.$thumbData['Width'].'&amp;height='.$thumbData['Height'].'" width="'.$thumbData['Width'].'" height="'.$thumbData['Height'].'" alt="'.$thumbData['FrameId'].'/'.$event->MaxScore().'"/>' ) ?></td>
 <?php
         }
         else

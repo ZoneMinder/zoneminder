@@ -5,10 +5,10 @@
 %{!?make_build: %global make_build %{__make} %{?_smp_mflags} }
 
 %if "%{zmuid_final}" == "nginx"
-    %global with_nginx 1
-    %global wwwconfdir /etc/nginx/default.d
+%global with_nginx 1
+%global wwwconfdir /etc/nginx/default.d
 %else
-    %global wwwconfdir /etc/httpd/conf.d
+%global wwwconfdir /etc/httpd/conf.d
 %endif
 
 %global sslcert %{_sysconfdir}/pki/tls/certs/localhost.crt
@@ -50,6 +50,7 @@ Source: ZoneMinder-%{version}.tar.gz
 %{?with_init_systemd:BuildRequires: systemd-devel mariadb-devel perl-podlators}
 %{?with_init_sysv:BuildRequires: mysql-devel}
 BuildRequires: cmake >= 2.8.7
+BuildRequires: perl-generators
 BuildRequires: gnutls-devel bzip2-devel
 BuildRequires: pcre-devel libjpeg-turbo-devel
 BuildRequires: perl(Archive::Tar) perl(Archive::Zip)
@@ -301,7 +302,7 @@ rm -rf %{_docdir}/%{name}-%{version}
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/temp
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) /var/log/zoneminder
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) /var/spool/zoneminder-upload
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) %ghost /run/zoneminder
+%dir %attr(755,%{zmuid_final},%{zmgid_final}) %ghost /var/run/zoneminder
 
 %changelog
 * Wed Dec 28 2016 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.1-2 

@@ -24,6 +24,8 @@ if ( !canView( 'Events' ) || (!empty($_REQUEST['execute']) && !canEdit('Events')
     return;
 }
 
+require_once( 'includes/Event.php' );
+
 if ( !empty($_REQUEST['execute']) )
 {
     executeFilter( $tempFilterName );
@@ -93,17 +95,17 @@ $maxHeight = 0;
 $archived = false;
 $unarchived = false;
 $events = array();
-foreach ( dbFetchAll( $eventsSql ) as $event )
+foreach ( dbFetchAll( $eventsSql ) as $event_row )
 {
-    $events[] = new Event( $event );
+    $events[] = $event = new Event( $event_row );
 
    # Doesn this code do anything? 
-    $scale = max( reScale( SCALE_BASE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
-    $eventWidth = reScale( $event['Width'], $scale );
-    $eventHeight = reScale( $event['Height'], $scale );
+    $scale = max( reScale( SCALE_BASE, $event->DefaultScale(), ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
+    $eventWidth = reScale( $event_row['Width'], $scale );
+    $eventHeight = reScale( $event_row['Height'], $scale );
     if ( $maxWidth < $eventWidth ) $maxWidth = $eventWidth;
     if ( $maxHeight < $eventHeight ) $maxHeight = $eventHeight;
-    if ( $event['Archived'] )
+    if ( $event_row['Archived'] )
         $archived = true;
     else
         $unarchived = true;

@@ -64,7 +64,7 @@ BuildRequires: gcc gcc-c++ vlc-devel libcurl-devel libv4l-devel
 BuildRequires: ffmpeg-devel polkit-devel
 
 %{?with_nginx:Requires: nginx fcgiwrap php-fpm}
-%{!?with_nginx:Requires: httpd}
+%{!?with_nginx:Requires: httpd php}
 %{?with_php_mysqlnd:Requires: php-mysqlnd}
 %{?with_php_mysql:Requires: php-mysql}
 Requires: php-common php-gd cambozola polkit net-tools psmisc

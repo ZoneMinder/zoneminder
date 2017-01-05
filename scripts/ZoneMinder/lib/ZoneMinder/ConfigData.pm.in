@@ -2828,6 +2828,22 @@ our @options = (
     category    => 'dynamic',
   },
   {
+    name        => 'ZM_TELEMETRY_INTERVAL',
+    default     => '14*24*60*60',
+    description => 'Interval in seconds between telemetry updates.',
+    help        => 'This value can be expressed as a mathematical expression for ease.',
+    type        => $types{string},
+    category    => 'system',
+  },
+  {
+    name        => 'ZM_TELEMETRY_SERVER_ENDPOINT',
+    default     => 'https://zmanon:2b2d0b4skps@telemetry.zoneminder.com/zmtelemetry/testing5',
+    description => 'URL that ZoneMinder will send usage data to',
+    help        => '',
+    type        => $types{url},
+    category    => 'system',
+  },
+  {
     name        => 'ZM_UPDATE_CHECK_PROXY',
     default     => '',
     description => 'Proxy url if required to access zoneminder.com',

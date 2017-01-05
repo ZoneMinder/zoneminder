@@ -140,7 +140,11 @@ sub new {
   $this->{idArgs} = "";
 
   $this->{level} = INFO;
+if (-t STDIN) {
+  $this->{termLevel} = INFO;
+} else {
   $this->{termLevel} = NOLOG;
+}
   $this->{databaseLevel} = NOLOG;
   $this->{fileLevel} = NOLOG;
   $this->{syslogLevel} = NOLOG;

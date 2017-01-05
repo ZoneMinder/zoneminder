@@ -61,21 +61,35 @@ $ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
-use constant CHECK_INTERVAL => (14*24*60*60); # Interval between version checks
-
 # Setting these as contants for now. 
-# Alternatively, we can put these in the dB and then retrieve using the Config hash.
-use constant ZM_TELEMETRY_SERVER_ENDPOINT => 'https://zmanon:2b2d0b4skps@telemetry.zoneminder.com/zmtelemetry/testing5';
 
-if ( $Config{ZM_TELEMETRY_DATA} )
+my $force;
+# Interval between version checks
+my $interval;
+my $version;
+
+GetOptions(
+  force     => \$force,
+  interval  => \$interval,
+  version   => \$version
+);
+if ( $version ) {
+    print( ZoneMinder::Base::ZM_VERSION . "\n");
+    exit(0);
+}
+if ( ! defined $interval ) {
+  $interval = eval($Config{ZM_TELEMETRY_INTERVAL});
+}
+
+if ( $Config{ZM_TELEMETRY_DATA} or $force )
 {
-    print( "Update agent starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+    Info( "Update agent starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 
     my $lastCheck = $Config{ZM_TELEMETRY_LAST_UPLOAD};
 
     while( 1 ) {
         my $now = time();
-        if ( ($now-$lastCheck) > CHECK_INTERVAL ) {
+        if ( ( ($now-$lastCheck) > $interval ) or $force ) {
             Info( "Collecting data to send to ZoneMinder Telemetry server." );
             my $dbh = zmDbConnect();
             # Build the telemetry hash
@@ -105,10 +119,12 @@ if ( $Config{ZM_TELEMETRY_DATA} )
                 my $res = $sth->execute( "$lastCheck" ) or die( "Can't execute: ".$sth->errstr() );
                 $sth->finish();
             }
+        } else {
+          Debug( "Update agent sleeping because ($now-$lastCheck=".($now-$lastCheck)." > " . $interval );
         }
         sleep( 3600 );
     }
-    print( "Update agent exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+    Info( "Update agent exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
 }
 
 ###############
@@ -142,7 +158,7 @@ sub sendData {
     my $msg = shift;
 
     my $ua = LWP::UserAgent->new;
-    my $server_endpoint = ZM_TELEMETRY_SERVER_ENDPOINT;
+    my $server_endpoint = $Config{ZM_TELEMETRY_SERVER_ENDPOINT};
 
     if ( $Config{ZM_UPDATE_CHECK_PROXY} ) {
         $ua->proxy( "https", $Config{ZM_UPDATE_CHECK_PROXY} );
@@ -340,4 +356,5 @@ sub linuxDistro {
 return ($kernel, $distro, $version);
 }
 
-
+1;
+__END__

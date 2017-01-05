@@ -15,7 +15,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 // Compatibility functions
@@ -143,7 +143,7 @@ function getAuthUser( $auth ) {
 }
 
 function generateAuthHash( $useRemoteAddr ) {
-  if ( ZM_OPT_USE_AUTH and ZM_AUTH_RELAY == 'hashed' and $_SESSION['username'] and $_SESSION['passwordHash'] ) {
+  if ( ZM_OPT_USE_AUTH and ZM_AUTH_RELAY == 'hashed' and isset($_SESSION['username']) and $_SESSION['passwordHash'] ) {
     # regenerate a hash at half the liftetime of a hash, an hour is 3600 so half is 1800
     if ( ( ! isset($_SESSION['AuthHash']) ) or ( $_SESSION['AuthHashGeneratedAt'] < time() - ( ZM_AUTH_HASH_TTL * 1800 ) ) ) {
       # Don't both regenerating Auth Hash if an hour hasn't gone by yet
@@ -2132,7 +2132,8 @@ function folder_size($dir) {
         $size += is_file($each) ? filesize($each) : folderSize($each);
     }
     return $size;
-} // end fucntion folder_size
+} // end function folder_size
+
 function human_filesize($bytes, $decimals = 2) {
   $sz = 'BKMGTP';
   $factor = floor((strlen($bytes) - 1) / 3);

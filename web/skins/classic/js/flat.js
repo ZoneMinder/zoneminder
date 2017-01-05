@@ -14,7 +14,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
 //
@@ -24,7 +24,7 @@
 
 // Javascript window sizes
 var popupSizes = {
-    'bandwidth':    { 'width': 300, 'height': 120 },
+    'bandwidth':    { 'width': 300, 'height': 200 },
     'console':      { 'width': 750, 'height': 312 },
     'control':      { 'width': 380, 'height': 480 },
     'controlcaps':  { 'width': 780, 'height': 320 },

@@ -6,7 +6,7 @@ class Frame {
   public function __construct( $IdOrRow ) {
     $row = NULL;
     if ( $IdOrRow ) {
-      if ( is_integer( $IdOrRow ) or is_numeric( $IdOrRow ) ) {
+      if ( is_integer( $IdOrRow ) or ctype_digit($IdOrRow) ) {
         $row = dbFetchOne( 'SELECT * FROM Frames WHERE Id=?', NULL, array( $IdOrRow ) );
         if ( ! $row ) {
           Error("Unable to load Frame record for Id=" . $IdOrRow );
@@ -70,7 +70,7 @@ class Frame {
   }
 
   public function getImageSrc( $show='capture' ) {
-    return $_SERVER['PHP_SELF'].'?view=image&fid='.$this->{'Id'}.'&show='.$show.'&filename='.$this->{'MonitorId'}.'_'.$this->{'EventId'}.'_'.$this->{'FrameId'}.'.jpg';
+    return $_SERVER['PHP_SELF'].'?view=image&fid='.$this->{'Id'}.'&show='.$show.'&filename='.$this->Event()->MonitorId().'_'.$this->{'EventId'}.'_'.$this->{'FrameId'}.'.jpg';
   } // end function getImageSrc
 
 	public static function find( $parameters = array(), $limit = NULL ) {
@@ -84,7 +84,15 @@ class Frame {
 			$values = array_values( $parameters );
 		}
 		if ( $limit ) {
-			$sql .= ' LIMIT ' . $limit;
+			if ( is_integer( $limit ) or ctype_digit( $limit ) ) {
+				$sql .= ' LIMIT ' . $limit;
+			} else {
+        $backTrace = debug_backtrace();
+        $file = $backTrace[1]['file'];
+        $line = $backTrace[1]['line'];
+				Error("Invalid value for limit($limit) passed to Frame::find from $file:$line");
+				return;
+			}
 		}
 		$results = dbFetchAll( $sql, NULL, $values );
 		if ( $results ) {

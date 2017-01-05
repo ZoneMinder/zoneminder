@@ -15,7 +15,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 error_reporting( E_ALL );
@@ -108,8 +108,17 @@ define( 'ZM_SKIN_PATH', "skins/$skin" );
 $skinBase = array(); // To allow for inheritance of skins
 if ( !file_exists( ZM_SKIN_PATH ) )
   Fatal( "Invalid skin '$skin'" );
-require_once( ZM_SKIN_PATH.'/includes/init.php' );
 $skinBase[] = $skin;
+
+$currentCookieParams = session_get_cookie_params(); 
+Debug('Setting cookie parameters to lifetime('.$currentCookieParams['lifetime'].') path('.$currentCookieParams['path'].') domain ('.$currentCookieParams['domain'].') secure('.$currentCookieParams['secure'].') httpOnly(1)');
+session_set_cookie_params( 
+    $currentCookieParams["lifetime"], 
+    $currentCookieParams["path"], 
+    $currentCookieParams["domain"],
+    $currentCookieParams["secure"], 
+    true
+); 
 
 ini_set( 'session.name', 'ZMSESSID' );
 
@@ -178,14 +187,16 @@ if ( ZM_OPT_USE_AUTH && ZM_AUTH_HASH_LOGINS ) {
     generateAuthHash( ZM_AUTH_HASH_IPS );
   }
 }
-# If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
-if ( ZM_OPT_USE_AUTH && ! isset($user) && $view != 'login' ) {
-  $view = 'login';
-}
 
 if ( isset($_REQUEST['action']) ) {
   $action = detaintPath($_REQUEST['action']);
-  require_once( 'includes/actions.php' );
+}
+# Need to include actions because it does auth
+require_once( 'includes/actions.php' );
+
+# If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
+if ( ZM_OPT_USE_AUTH && ! isset($user) && $view != 'login' ) {
+  $view = 'login';
 }
 
 # Only one request can open the session file at a time, so let's close the session here to improve concurrency.

@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # ==========================================================================
 #
@@ -32,7 +32,7 @@ require Exporter;
 
 our @ISA = qw(Exporter);
 
-use constant ZM_VERSION => "@VERSION@";
+use constant ZM_VERSION => '@VERSION@';
 
 # Items to export into callers namespace by default. Note: do not export
 # names by default without a very good reason. Use EXPORT_OK instead.
@@ -47,7 +47,7 @@ our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 
 our @EXPORT = qw();
 
-our $VERSION = "@VERSION@";
+our $VERSION = '@VERSION@';
 
 1;
 __END__

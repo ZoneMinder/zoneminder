@@ -14,7 +14,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 #include "zm.h"
@@ -346,6 +346,10 @@ int FfmpegCamera::OpenFfmpeg() {
   Debug ( 3, "Found audio stream at index %d", mAudioStreamId );
 
   mVideoCodecContext = mFormatContext->streams[mVideoStreamId]->codec;
+	// STolen from ispy
+	//this fixes issues with rtsp streams!! woot.
+	//mVideoCodecContext->flags2 |= CODEC_FLAG2_FAST | CODEC_FLAG2_CHUNKS | CODEC_FLAG_LOW_DELAY;  // Enable faster H264 decode.
+	mVideoCodecContext->flags2 |= CODEC_FLAG2_FAST | CODEC_FLAG_LOW_DELAY;
 
   // Try and get the codec from the codec context
   if ((mVideoCodec = avcodec_find_decoder(mVideoCodecContext->codec_id)) == NULL) {
@@ -619,7 +623,7 @@ Debug(5, "After av_read_frame (%d)", ret );
                 mFormatContext->streams[mVideoStreamId],
                 NULL,
                 startTime,
-                this->getMonitor()->getOrientation());
+                this->getMonitor());
 
           } else {
             Debug(3, "Video module initiated with audio stream");
@@ -627,7 +631,7 @@ Debug(5, "After av_read_frame (%d)", ret );
                 mFormatContext->streams[mVideoStreamId],
                 mFormatContext->streams[mAudioStreamId],
                 startTime,
-                this->getMonitor()->getOrientation());
+                this->getMonitor());
           }
         } else {
           Debug(3, "Record_audio is false so exclude audio stream");
@@ -635,7 +639,7 @@ Debug(5, "After av_read_frame (%d)", ret );
               mFormatContext->streams[mVideoStreamId],
               NULL,
               startTime,
-              this->getMonitor()->getOrientation() );
+              this->getMonitor());
         }
         strcpy(oldDirectory, event_file);
 

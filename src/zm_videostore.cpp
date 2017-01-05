@@ -36,7 +36,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
     AVStream *p_video_input_stream,
     AVStream *p_audio_input_stream,
     int64_t nStartTime,
-    Monitor::Orientation orientation
+    Monitor * monitor
     ) {
   video_input_stream = p_video_input_stream;
   audio_input_stream = p_audio_input_stream;
@@ -189,6 +189,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
     video_output_context->flags |= CODEC_FLAG_GLOBAL_HEADER;
   }
 
+	Monitor::Orientation orientation = monitor->getOrientation();
   if ( orientation ) {
     if ( orientation == Monitor::ROTATE_0 ) {
 
@@ -215,6 +216,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
     if ( audio_input_context->codec_id != AV_CODEC_ID_AAC ) {
 #ifdef HAVE_LIBSWRESAMPLE
       resample_context = NULL;
+			char error_buffer[256];
       avcodec_string(error_buffer, sizeof(error_buffer), audio_input_context, 0 );
       Debug(3, "Got something other than AAC (%s)", error_buffer );
       audio_output_stream = NULL;
@@ -531,7 +533,7 @@ Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts, pkt.dts
 void VideoStore::dumpPacket( AVPacket *pkt ){
   char b[10240];
 
-  snprintf(b, sizeof(b), " pts: %" PRId64 ", dts: %" PRId64 ", data: %p, size: %d, sindex: %d, dflags: %04x, s-pos: %" PRId64 ", c-duration: %d\n"
+  snprintf(b, sizeof(b), " pts: %" PRId64 ", dts: %" PRId64 ", data: %p, size: %d, sindex: %d, dflags: %04x, s-pos: %" PRId64 ", c-duration: %" PRId64 "\n"
       , pkt->pts
       , pkt->dts
       , pkt->data

@@ -14,7 +14,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 #include "zm_remote_camera_http.h"
@@ -201,6 +201,15 @@ int RemoteCameraHttp::ReadData( Buffer &buffer, int bytes_expected )
   if( n_found == 0 )
   {
     Debug( 4, "Select timed out timeout was %d secs %d usecs", temp_timeout.tv_sec, temp_timeout.tv_usec );
+    int error = 0;
+    socklen_t len = sizeof (error);
+    int retval = getsockopt (sd, SOL_SOCKET, SO_ERROR, &error, &len);
+    if(retval != 0 ) {
+      Debug( 1, "error getting socket error code %s", strerror(retval) );
+    }
+    if (error != 0) {
+      return -1;
+    }
     // Why are we disconnecting?  It's just a timeout, meaning that data wasn't available.
     //Disconnect();
     return( 0 );
@@ -228,6 +237,15 @@ int RemoteCameraHttp::ReadData( Buffer &buffer, int bytes_expected )
     if ( total_bytes_to_read == 0 )
     {
       if( mode == SINGLE_IMAGE ) {
+    int error = 0;
+    socklen_t len = sizeof (error);
+    int retval = getsockopt (sd, SOL_SOCKET, SO_ERROR, &error, &len);
+    if(retval != 0 ) {
+      Debug( 1, "error getting socket error code %s", strerror(retval) );
+    }
+    if (error != 0) {
+      return -1;
+    }
         // Case where we are grabbing a single jpg, but no content-length was given, so the expectation is that we read until close.
 		    return( 0 );
       }

@@ -8,7 +8,7 @@ How can I stop ZoneMinder filling up my disk?
 ---------------------------------------------
 
 Recent versions of ZoneMinder come with a filter you can use for this purpose already included. 
-The filter is called **PurgeWhenFull** and to find it, choose one of the event counts from the console page, for instance events in the last hour, for one of your monitors. **Note** that this filter is automatically enabled if you do a frresh install of ZoneMinder including creating a new Database. If you already have an existing Database and are upgrading Zoneminder, it will retain the settings of the filter (which in earlier releases was disabled by default). So you may want to check if PurgeWhenFull is enabled and if not, enable it.
+The filter is called **PurgeWhenFull** and to find it, choose one of the event counts from the console page, for instance events in the last hour, for one of your monitors. **Note** that this filter is automatically enabled if you do a fresh install of ZoneMinder including creating a new database. If you already have an existing database and are upgrading ZoneMinder, it will retain the settings of the filter (which in earlier releases was disabled by default). So you may want to check if PurgeWhenFull is enabled and if not, enable it.
 
 To enable it, go to Web Console, click on any of your Events of any of your monitors.
 This will bring up an event listing and a filter window.
@@ -36,7 +36,7 @@ There are two methods for ZM to remove files when they are deleted that can be f
 
 ZM_OPT_FAST_DELETE:
 
-Normally an event created as the result of an alarm consists of entries in one or more database tables plus the various files associated with it. When deleting events in the browser it can take a long time to remove all of this if your are trying to do a lot of events at once. It is recommended that you set this option which means that the browser client only deletes the key entries in the events table, which means the events will no longer appear in the listing, and leaves the zmaudit daemon to clear up the rest later.
+Normally an event created as the result of an alarm consists of entries in one or more database tables plus the various files associated with it. When deleting events in the browser it can take a long time to remove all of this if you are trying to do a lot of events at once. If you are running on an older or under-powered system, you may want to set this option which means that the browser client only deletes the key entries in the events table, which means the events will no longer appear in the listing, and leaves the zmaudit daemon to clear up the rest later. If you do so, disk space will not be freed immediately so you will need to run zmaudit more frequently.  On modern systems, we recommend that you leave this off.
 
 
 
@@ -257,7 +257,7 @@ Why can't I see streamed images when I can see stills in the Zone window etc?
 
 This issue is normally down to one of two causes
 
-1) You are using Internet Explorer and are trying to view multi-part jpeg streams. IE does not support these streams directly, unlike most other browsers. You will need to install Cambozola or another multi-part jpeg aware pluging to view them. To do this you will need to obtain the applet from the Downloads page and install the cambozola.jar file in the same directly as the ZoneMinder php files. Then find the ZoneMinder Options->Images page and enable ZM_OPT_CAMBOZOLA and enter the web path to the .jar file in ZM_PATH_CAMBOZOLA. This will ordinarily just be cambozola.jar. Provided (Options / B/W tabs) WEB_H_CAN_STREAM is set to auto and WEB_H_STREAM_METHOD is set to jpeg then Cambozola should be loaded next time you try and view a stream.
+1) You are using Internet Explorer and are trying to view multi-part jpeg streams. IE does not support these streams directly, unlike most other browsers. You will need to install Cambozola or another multi-part jpeg aware plugin to view them. To do this you will need to obtain the applet from the Downloads page and install the cambozola.jar file in the same directory as the ZoneMinder php files. Then find the ZoneMinder Options->Images page and enable ZM_OPT_CAMBOZOLA and enter the web path to the .jar file in ZM_PATH_CAMBOZOLA. This will ordinarily just be cambozola.jar. Provided (Options / B/W tabs) WEB_H_CAN_STREAM is set to auto and WEB_H_STREAM_METHOD is set to jpeg then Cambozola should be loaded next time you try and view a stream.
 
 '''NOTE''': If you find that the Cambozola applet loads in IE but the applet just displays the version # of Cambozola and the author's name (as opposed to seeing the streaming images), you may need to chmod (''-rwxrwxr-x'') your (''usr/share/zoneminder/'') cambozola.jar:
 
@@ -268,6 +268,10 @@ This issue is normally down to one of two causes
 Once I did this, images started to stream for me.
 
 2) The other common cause for being unable to view streams is that you have installed the ZoneMinder cgi binaries (zms and nph-zms) in a different directory than your web server is expecting. Make sure that the --with-cgidir option you use to the ZoneMinder configure script is the same as the CGI directory configure for your web server. If you are using Apache, which is the most common one, then in your httpd.conf file there should be a line like ``ScriptAlias /cgi-bin/ "/var/www/cgi-bin/"`` where the last directory in the quotes is the one you have specified. If not then change one or the other to match. Be warned that configuring apache can be complex so changing the one passed to the ZoneMinder configure (and then rebuilding and reinstalling) is recommended in the first instance. If you change the apache config you will need to restart apache for the changes to take effect. If you still cannot see stream reliably then try changing Options->Paths->ZM_PATH_ZMS to just use zms if nph-zms is specified, or vice versa. Also check in your apache error logs.
+
+Also, please check the value of the ZM_PATH_ZMS setting under the Paths Options tab.  It is where you configure the URL to the zms or nph-zms CGI executable.  Under most Debian-based distros this value should be /zm/cgi-bin/nph-zms but in the past may have been /cgi-bin/nph-zms or you may have configured it to be something else.  
+
+Lastly, please look for errors created by the zmc processes.  If zmc isn't running, then zms will not be able to get an image from it and will exit.
 
 I have several monitors configured but when I load the Montage view in FireFox why can I only see two? or, Why don't all my cameras display when I use the Montage view in FireFox?
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

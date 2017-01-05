@@ -2839,8 +2839,7 @@ our @options = (
     name        => 'ZM_TELEMETRY_SERVER_ENDPOINT',
     default     => 'https://zmanon:2b2d0b4skps@telemetry.zoneminder.com/zmtelemetry/testing5',
     description => 'URL that ZoneMinder will send usage data to',
-    help        => qqq("
-        "),
+    help        => '',
     type        => $types{url},
     category    => 'system',
   },

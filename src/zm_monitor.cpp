@@ -380,7 +380,7 @@ Monitor::Monitor(
   mem_ptr = NULL;
 
   char monitor_dir[PATH_MAX] = "";
-  snprintf( monitor_dir, sizeof(monitor_dir), "%s/%d", config.dir_events, Id );
+  snprintf( monitor_dir, sizeof(monitor_dir), "%s/%d", config.dir_events, id );
   struct stat statbuf;
 
       if ( stat( monitor_dir, &statbuf ) ) {

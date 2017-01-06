@@ -71,6 +71,7 @@ script:
   - sudo zmfilter.pl -f purgewhenfull
 
 after_success:
+  - ln -s ./distros/redhat ./rpm
   - git submodule update --init --recursive
   - git describe --long
   - git clone https://github.com/packpack/packpack.git packpack

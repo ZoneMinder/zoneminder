@@ -119,8 +119,8 @@ if ( $Config{ZM_TELEMETRY_DATA} or $force )
                 my $res = $sth->execute( "$lastCheck" ) or die( "Can't execute: ".$sth->errstr() );
                 $sth->finish();
             }
-        } else {
-          Debug( "Update agent sleeping because ($now-$lastCheck=".($now-$lastCheck)." > " . $interval );
+        } elsif (-t STDIN) {
+          print "Update agent sleeping for 1 hour because ($now-$lastCheck=".($now-$lastCheck)." > " . $interval . "\n";
         }
         sleep( 3600 );
     }

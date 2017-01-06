@@ -7,10 +7,7 @@ notifications:
 branches:
   except:
     - modern
-cache: 
-     - ccache
-    directories:
-     - $HOME/.cache
+cache: ccache
 
 addons:
   sauce_connect:

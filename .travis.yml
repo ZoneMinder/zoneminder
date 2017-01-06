@@ -1,6 +1,5 @@
-language: 
-    - cpp
-    - C
+language: cpp
+
 sudo: required
 dist: trusty
 notifications:

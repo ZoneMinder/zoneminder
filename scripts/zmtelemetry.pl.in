@@ -83,7 +83,7 @@ if ( ! defined $interval ) {
 
 if ( $Config{ZM_TELEMETRY_DATA} or $force )
 {
-    Info( "Update agent starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+    print "Update agent starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n";
 
     my $lastCheck = $Config{ZM_TELEMETRY_LAST_UPLOAD};
 
@@ -124,7 +124,7 @@ if ( $Config{ZM_TELEMETRY_DATA} or $force )
         }
         sleep( 3600 );
     }
-    Info( "Update agent exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+    print "Update agent exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n";
 }
 
 ###############

@@ -2827,7 +2827,7 @@ our @options = (
     help        => qqq("
         "),
     type        => $types{url},
-    category    => 'system',
+    category    => 'hidden',
   },
   {
     name        => "ZM_TELEMETRY_LAST_UPLOAD",

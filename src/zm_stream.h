@@ -32,11 +32,11 @@ class Monitor;
 
 class StreamBase
 {
-public:
+  public:
     typedef enum { JPEG, RAW, ZIP, MPEG } StreamType;
-	typedef enum { SINGLE, STREAM, ALL, ALL_GAPLESS } StreamMode;
+    typedef enum { SINGLE, STREAM, ALL, ALL_GAPLESS } StreamMode;
 
-protected:
+  protected:
     static const int MAX_STREAM_DELAY = 5; // Seconds
 
     static const StreamType DEFAULT_TYPE = JPEG;
@@ -46,25 +46,25 @@ protected:
     enum { DEFAULT_MAXFPS=10 };
     enum { DEFAULT_BITRATE=100000 };
 
-protected:
+  protected:
     typedef struct {
-        int msg_type;
-        char msg_data[16];
+      int msg_type;
+      char msg_data[16];
     } CmdMsg;
 
     typedef struct {
-        int msg_type;
-        char msg_data[256];
+      int msg_type;
+      char msg_data[256];
     } DataMsg;
 
     typedef enum { MSG_CMD=1, MSG_DATA_WATCH, MSG_DATA_EVENT } MsgType;
     typedef enum { CMD_NONE=0, CMD_PAUSE, CMD_PLAY, CMD_STOP, CMD_FASTFWD, CMD_SLOWFWD, CMD_SLOWREV, CMD_FASTREV, CMD_ZOOMIN, CMD_ZOOMOUT, CMD_PAN, CMD_SCALE, CMD_PREV, CMD_NEXT, CMD_SEEK, CMD_VARPLAY, CMD_GET_IMAGE, CMD_QUERY=99 } MsgCommand;
 
-protected:
+  protected:
     Monitor *monitor;
 
     StreamType type;
-	StreamMode	mode;
+    StreamMode  mode;
     const char *format; // used to pass to ffmpeg libs
     int replay_rate;
     int scale;
@@ -73,15 +73,15 @@ protected:
     int bitrate;
     unsigned short x, y;
 
-protected:
+  protected:
     int connkey;
     int sd;
-	char loc_sock_path[PATH_MAX];
+    char loc_sock_path[PATH_MAX];
     struct sockaddr_un loc_addr;
-	char rem_sock_path[PATH_MAX];
+    char rem_sock_path[PATH_MAX];
     struct sockaddr_un rem_addr;
 
-protected:
+  protected:
     bool paused;
     int step;
 
@@ -100,7 +100,7 @@ protected:
 
     CmdMsg msg;
 
-protected:
+  protected:
     bool loadMonitor( int monitor_id );
     bool checkInitialised();
     void updateFrameRate( double fps );
@@ -109,73 +109,73 @@ protected:
     bool checkCommandQueue();
     virtual void processCommand( const CmdMsg *msg )=0;
 
-public:
+  public:
     StreamBase()
     {
-        monitor = 0;
+      monitor = 0;
 
-        type = DEFAULT_TYPE;
-		mode = STREAM;
-        format = "";
-        replay_rate = DEFAULT_RATE;
-        scale = DEFAULT_SCALE;
-        zoom = DEFAULT_ZOOM;
-        maxfps = DEFAULT_MAXFPS;
-        bitrate = DEFAULT_BITRATE;
+      type = DEFAULT_TYPE;
+      mode = STREAM;
+      format = "";
+      replay_rate = DEFAULT_RATE;
+      scale = DEFAULT_SCALE;
+      zoom = DEFAULT_ZOOM;
+      maxfps = DEFAULT_MAXFPS;
+      bitrate = DEFAULT_BITRATE;
 
-        paused = false;
-        step = 0;
-        x = 0;
-        y = 0;
+      paused = false;
+      step = 0;
+      x = 0;
+      y = 0;
 
-        connkey = 0;
-        sd = -1;
-        memset( &loc_sock_path, 0, sizeof(loc_sock_path) );
-        memset( &loc_addr, 0, sizeof(loc_addr) );
-        memset( &rem_sock_path, 0, sizeof(rem_sock_path) );
-        memset( &rem_addr, 0, sizeof(rem_addr) );
+      connkey = 0;
+      sd = -1;
+      memset( &loc_sock_path, 0, sizeof(loc_sock_path) );
+      memset( &loc_addr, 0, sizeof(loc_addr) );
+      memset( &rem_sock_path, 0, sizeof(rem_sock_path) );
+      memset( &rem_addr, 0, sizeof(rem_addr) );
 
-        base_fps = 0.0;
-        effective_fps = 0.0;
-        frame_mod = 1;
+      base_fps = 0.0;
+      effective_fps = 0.0;
+      frame_mod = 1;
 
 #if HAVE_LIBAVCODEC     
-        vid_stream = 0;
+      vid_stream = 0;
 #endif // HAVE_LIBAVCODEC     
     }
     virtual ~StreamBase();
 
-	void setStreamType( StreamType p_type )
+    void setStreamType( StreamType p_type )
     {
-        type = p_type;
+      type = p_type;
     }
-	void setStreamMode( StreamMode p_mode )
+    void setStreamMode( StreamMode p_mode )
     {
-        mode = p_mode;
+      mode = p_mode;
     }
-	void setStreamFormat( const char *p_format )
+    void setStreamFormat( const char *p_format )
     {
-        format = p_format;
+      format = p_format;
     }
-	void setStreamScale( int p_scale )
+    void setStreamScale( int p_scale )
     {
-        scale = p_scale;
+      scale = p_scale;
     }
-	void setStreamReplayRate( int p_rate )
+    void setStreamReplayRate( int p_rate )
     {
-        replay_rate = p_rate;
+      replay_rate = p_rate;
     }
-	void setStreamMaxFPS( double p_maxfps )
+    void setStreamMaxFPS( double p_maxfps )
     {
-        maxfps = p_maxfps;
+      maxfps = p_maxfps;
     }
-	void setStreamBitrate( int p_bitrate )
+    void setStreamBitrate( int p_bitrate )
     {
-        bitrate = p_bitrate;
+      bitrate = p_bitrate;
     }
-	void setStreamQueue( int p_connkey )
+    void setStreamQueue( int p_connkey )
     {
-        connkey = p_connkey;
+      connkey = p_connkey;
     }
     virtual void openComms();
     virtual void closeComms();

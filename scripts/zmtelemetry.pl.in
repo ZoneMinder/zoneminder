@@ -63,7 +63,7 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 # Setting these as contants for now. 
 
-my $force;
+my $force = 0;
 # Interval between version checks
 my $interval;
 my $version;
@@ -89,8 +89,14 @@ if ( $Config{ZM_TELEMETRY_DATA} or $force )
 
     while( 1 ) {
         my $now = time();
+        my $since_last_check = $now-$lastCheck;
+        Debug(" Last Check time (now($now) - lastCheck($lastCheck)) = $since_last_check > interval($interval) or force($force)");
+        if ( $since_last_check < 0 ) {
+          Warning( "Seconds since last check is negative! Which means that lastCheck is in the future!" );
+          next;
+        }
         if ( ( ($now-$lastCheck) > $interval ) or $force ) {
-            Info( "Collecting data to send to ZoneMinder Telemetry server." );
+            print "Collecting data to send to ZoneMinder Telemetry server.\n";
             my $dbh = zmDbConnect();
             # Build the telemetry hash
             # We should keep *BSD systems in mind when calling system commands
@@ -112,16 +118,17 @@ if ( $Config{ZM_TELEMETRY_DATA} or $force )
             my $result = jsonEncode( \%telemetry );
 
             if ( sendData($result) ) {
-                $lastCheck = $now;
 
-                my $sql = "update Config set Value = ? where Name = 'ZM_TELEMETRY_LAST_UPLOAD'";
+                my $sql = q`UPDATE Config SET Value = ? WHERE Name = 'ZM_TELEMETRY_LAST_UPLOAD'`;
                 my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-                my $res = $sth->execute( "$lastCheck" ) or die( "Can't execute: ".$sth->errstr() );
+                my $res = $sth->execute( $now ) or die( "Can't execute: ".$sth->errstr() );
                 $sth->finish();
+                $Config{ZM_TELEMETRY_LAST_UPLOAD} = $now;
             }
-        } elsif (-t STDIN) {
-          print "Update agent sleeping for 1 hour because ($now-$lastCheck=".($now-$lastCheck)." > " . $interval . "\n";
-        }
+            zmDbDisconnect();
+        } elsif ( -t STDIN ) {
+          print "Update agent sleeping for 1 hour because ($now-$lastCheck=$since_last_check > $interval\n";
+        } 
         sleep( 3600 );
     }
     print "Update agent exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n";

@@ -64,7 +64,8 @@ public:
   typedef std::map<std::string,StringSet> StringSetMap;
 
 protected:
-  typedef enum { NORMAL, BULK, ALARM } FrameType;
+  typedef enum { NORMAL=0, BULK, ALARM } FrameType;
+  static const constexpr char * const frame_type_names[] = { "Normal", "Bulk", "Alarm" };
 
   struct PreAlarmData
   {

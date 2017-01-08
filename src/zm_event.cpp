@@ -566,17 +566,17 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
   struct DeltaTimeval delta_time;
   DELTA_TIMEVAL( delta_time, timestamp, start_time, DT_PREC_2 );
 
-  const char *frame_type = score>0?"Alarm":(score<0?"Bulk":"Normal");
+  FrameType frame_type = score>0?ALARM:(score<0?BULK:NORMAL);
   if ( score < 0 )
     score = 0;
 
-  bool db_frame = (strcmp(frame_type,"Bulk") != 0) || ((frames%config.bulk_frame_interval)==0) || !frames;
+  bool db_frame = ( frame_type != BULK ) || ((frames%config.bulk_frame_interval)==0) || !frames;
   if ( db_frame )
   {
 
-    Debug( 1, "Adding frame %d of type \"%s\" to DB", frames, frame_type );
+    Debug( 1, "Adding frame %d of type \"%s\" to DB", frames, frame_type_names[frame_type] );
     static char sql[ZM_SQL_MED_BUFSIZ];
-    snprintf( sql, sizeof(sql), "insert into Frames ( EventId, FrameId, Type, TimeStamp, Delta, Score ) values ( %d, %d, '%s', from_unixtime( %ld ), %s%ld.%02ld, %d )", id, frames, frame_type, timestamp.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, score );
+    snprintf( sql, sizeof(sql), "insert into Frames ( EventId, FrameId, Type, TimeStamp, Delta, Score ) values ( %d, %d, '%s', from_unixtime( %ld ), %s%ld.%02ld, %d )", id, frames, frame_type_names[frame_type], timestamp.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, score );
     if ( mysql_query( &dbconn, sql ) )
     {
       Error( "Can't insert frame: %s", mysql_error( &dbconn ) );
@@ -585,7 +585,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
     last_db_frame = frames;
 
     // We are writing a Bulk frame
-    if ( !strcmp( frame_type,"Bulk") )
+    if ( frame_type == BULK )
     {
       snprintf( sql, sizeof(sql), "update Events set Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d where Id = %d", delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, frames, alarm_frames, tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score, id );
       if ( mysql_query( &dbconn, sql ) )
@@ -598,8 +598,8 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
 
   end_time = timestamp;
 
-    // We are writing an Alarm frame
-    if ( !strcmp( frame_type,"Alarm") )
+  // We are writing an Alarm frame
+  if ( frame_type == ALARM )
   {
     alarm_frames++;
 

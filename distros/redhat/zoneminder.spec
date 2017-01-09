@@ -99,7 +99,6 @@ Requires: psmisc
 Requires: polkit
 Requires: libjpeg-turbo
 Requires: vlc-core
-Requires: libcurl
 Requires: ffmpeg
 Requires: perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires: perl(DBD::mysql)
@@ -110,7 +109,6 @@ Requires: perl(MIME::Lite)
 Requires: perl(Net::SMTP)
 Requires: perl(Net::FTP)
 Requires: perl(LWP::Protocol::https)
-Requires: perl(X10::ActiveHome)
 
 %{?with_init_systemd:Requires(post): systemd}
 %{?with_init_systemd:Requires(post): systemd-sysv}

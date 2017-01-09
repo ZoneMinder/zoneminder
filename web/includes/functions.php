@@ -1188,7 +1188,6 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
           case 'Name':
           case 'MonitorId':
           case 'StorageId':
-                  $StorageArea = new Storage(  $filter['terms'][$i]['val'] );
           case 'Length':
           case 'Frames':
           case 'AlarmFrames':
@@ -1203,11 +1202,12 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
           case 'DiskPercent':
             // Need to specify a storage area, so need to look through other terms looking for a storage area, else we default to ZM_EVENTS_PATH
             if ( ! $StorageArea ) {
-              for ( $j = $i; $j < count($filter['terms']); $j++ ) {
+              for ( $j = 0; $j < count($filter['terms']); $j++ ) {
                 if ( isset($filter['terms'][$j]['attr']) and $filter['terms'][$j]['attr'] == 'StorageId' ) {
                   $StorageArea = new Storage(  $filter['terms'][$j]['val'] );
                 }
               } // end foreach remaining term
+              if ( ! $StorageArea ) $StorageArea = new Storage();
             } // end no StorageArea found yet
 
             $filter['sql'] .= getDiskPercent( $StorageArea->Path() );

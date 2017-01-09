@@ -146,7 +146,7 @@ mv -f crud-%{crud_version} ./web/api/app/Plugin/Crud
 ./utils/zmeditconfigdata.sh ZM_PATH_ZMS /cgi-bin-zm/nph-zms
 ./utils/zmeditconfigdata.sh ZM_OPT_CAMBOZOLA yes
 ./utils/zmeditconfigdata.sh ZM_PATH_SWAP /dev/shm
-./utils/zmeditconfigdata.sh ZM_UPLOAD_FTP_LOC_DIR /var/spool/zoneminder-upload
+./utils/zmeditconfigdata.sh ZM_UPLOAD_FTP_LOC_DIR %{_localstatedir}/spool/zoneminder-upload
 ./utils/zmeditconfigdata.sh ZM_OPT_CONTROL yes
 ./utils/zmeditconfigdata.sh ZM_CHECK_FOR_UPDATES no
 ./utils/zmeditconfigdata.sh ZM_DYN_SHOW_DONATE_REMINDER no
@@ -338,9 +338,9 @@ rm -rf %{_docdir}/%{name}-%{version}
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/sock
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/swap
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/temp
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) /var/log/zoneminder
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) /var/spool/zoneminder-upload
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) %ghost /var/run/zoneminder
+%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/log/zoneminder
+%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/spool/zoneminder-upload
+%dir %attr(755,%{zmuid_final},%{zmgid_final}) %ghost %{_localstatedir}/run/zoneminder
 
 %changelog
 * Wed Dec 28 2016 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.1-2 

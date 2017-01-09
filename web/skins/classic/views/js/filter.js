@@ -81,7 +81,7 @@ function saveFilter( element )
 
 function deleteFilter( element, id, name )
 {
-    if ( confirm( deleteSavedFilterString+" '"+name+"'" ) )
+    if ( confirm( deleteSavedFilterString+" '"+name+"'?" ) )
     {
         var form = element.form;
         form.action.value = 'delete';

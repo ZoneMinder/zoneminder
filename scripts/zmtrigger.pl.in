@@ -423,7 +423,7 @@ while( 1 )
         foreach my $monitor ( values(%monitors) )
         {
             # Free up any used memory handle
-            zmMemDetach( $monitor );
+            zmMemInvalidate( $monitor );
         }
         loadMonitors();
         $needsReload = 0;

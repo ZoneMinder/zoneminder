@@ -580,7 +580,7 @@ sub loadTasks
                 }
             }
         }
-        zmMemDetach( $monitor );
+        zmMemInvalidate( $monitor );
     }
 }
 

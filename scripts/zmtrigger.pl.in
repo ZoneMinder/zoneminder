@@ -117,7 +117,7 @@ use bytes;
 # ==========================================================================
 
 use constant MAX_CONNECT_DELAY => 10;
-use constant MONITOR_RELOAD_INTERVAL => 300;
+use constant MONITOR_RELOAD_INTERVAL => 30;
 use constant SELECT_TIMEOUT => 0.25;
 
 # ==========================================================================
@@ -320,7 +320,7 @@ while( 1 )
                          ]
         );
 
-        #print( "$monitor->{Id}: S:$state, LE:$last_event\n" );
+        print( "$monitor->{Id}: S:$state, LE:$last_event\n" );
         #print( "$monitor->{Id}: mS:$monitor->{LastState}, mLE:$monitor->{LastEvent}\n" );
         if ( $state == STATE_ALARM
              || $state == STATE_ALERT
@@ -415,8 +415,10 @@ while( 1 )
     # If necessary reload monitors
     if ( (time() - $monitor_reload_time) > MONITOR_RELOAD_INTERVAL )
     {
+print "TIme to reload Monitors " . join(',',keys %monitors ). "\n";
         foreach my $monitor ( values(%monitors) )
         {
+print "imvalidating $$monitor{Id}\n";
             # Free up any used memory handle
             zmMemInvalidate( $monitor );
         }
@@ -443,7 +445,10 @@ sub loadMonitors
         or Fatal( "Can't execute: ".$sth->errstr() );
     while( my $monitor = $sth->fetchrow_hashref() )
     {
-        next if ( !zmMemVerify( $monitor ) ); # Check shared memory ok
+        next
+ if ( !zmMemVerify( $monitor ) ) {
+; # Check shared memory ok
+}
 
         if ( defined($monitors{$monitor->{Id}}->{LastState}) )
         {

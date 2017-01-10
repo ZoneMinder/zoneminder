@@ -246,10 +246,12 @@ sub zmMemInit {
 sub zmMemVerify {
   my $monitor = shift;
   if ( !zmMemAttach( $monitor, $mem_size ) ) {
+print "no attach for $$monitor{Id} $mem_size\n";
     return( undef );
   }
 
   my $mem_key = zmMemKey( $monitor );
+print "mem_key for $$monitor{Id} $mem_key\n";
   if ( !defined($mem_verified->{$mem_key}) ) {
     my $sd_size = zmMemRead( $monitor, "shared_data:size", 1 );
     if ( $sd_size != $mem_data->{shared_data}->{size} ) {
@@ -365,6 +367,7 @@ sub zmMemRead {
 sub zmMemInvalidate {
   my $monitor = shift;
   my $mem_key = zmMemKey($monitor);
+print "zmMemInvalidate $$monitor{Id} $mem_key\n";
   if ( $mem_key ) {
     delete $mem_verified->{$mem_key};
     zmMemDetach( $monitor );

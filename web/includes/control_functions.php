@@ -9,7 +9,7 @@ function buildControlCommand( $monitor )
         $slow = 0.9; // Threshold for slow speed/timeouts
         $turbo = 0.9; // Threshold for turbo speed
 
-        if ( preg_match( '/^([a-z]+)([A-Z][a-z]+)([A-Z][a-z]+)+$/', $_REQUEST['control'], $matches ) )
+        if ( preg_match( '/^([a-z]+)([A-Z][a-z]+)([A-Za-z]+)+$/', $_REQUEST['control'], $matches ) )
         {
             $command = $matches[1];
             $mode = $matches[2];
@@ -278,6 +278,8 @@ function buildControlCommand( $monitor )
                     }
                 }
             }
+        } else {
+          Error("Invalid control parameter: " . $_REQUEST['control'] );
         }
     }
     elseif ( isset($_REQUEST['x']) && isset($_REQUEST['y']) )

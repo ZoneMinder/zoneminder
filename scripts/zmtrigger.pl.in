@@ -198,6 +198,7 @@ my %spawned_connections;
 my %monitors;
 
 my $monitor_reload_time = 0;
+my $needsReload = 0;
 
 $! = undef;
 my $rin = '';
@@ -313,6 +314,19 @@ while( 1 )
     my @out_messages;
     foreach my $monitor ( values(%monitors) )
     {
+        my $memVerified = 1;
+        if ( !zmMemRead($monitor, "shared_data:valid")  ) {
+          # Shared data is invalid, attempt to reconnect
+          zmMemInvalidate($monitor);
+          $memVerified = zmMemVerify($monitor);
+        }
+
+        if ( ! $memVerified ) {
+          # Our attempt to verify the memory handle failed. We should reload the monitors.
+          $needsReload = 1;
+          next;
+        }
+
         my ( $state, $last_event )
             = zmMemRead( $monitor,
                          [ "shared_data:state",
@@ -413,7 +427,7 @@ while( 1 )
     }
 
     # If necessary reload monitors
-    if ( (time() - $monitor_reload_time) > MONITOR_RELOAD_INTERVAL )
+    if ( $needsReload || ((time() - $monitor_reload_time) > MONITOR_RELOAD_INTERVAL ))
     {
         foreach my $monitor ( values(%monitors) )
         {
@@ -421,6 +435,7 @@ while( 1 )
             zmMemInvalidate( $monitor );
         }
         loadMonitors();
+        $needsReload = 0;
     }
 }
 Info( "Trigger daemon exiting\n" );

@@ -87,10 +87,7 @@ while( 1 )
     {
         next if $monitor->{Function} eq 'None';
         my $restart = 0;
-        if ( zmMemVerify( $monitor )
-             && zmMemRead( $monitor, "shared_data:valid" )
-        )
-        {
+        if ( zmMemVerify( $monitor ) ) {
             # Check we have got an image recently
             my $image_time = zmGetLastWriteTime( $monitor );
             if ( !defined($image_time) ) {

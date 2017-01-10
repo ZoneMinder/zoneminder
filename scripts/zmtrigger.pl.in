@@ -314,15 +314,10 @@ while( 1 )
     my @out_messages;
     foreach my $monitor ( values(%monitors) )
     {
-        my $memVerified = 1;
-        if ( !zmMemRead($monitor, "shared_data:valid")  ) {
-          # Shared data is invalid, attempt to reconnect
-          zmMemInvalidate($monitor);
-          $memVerified = zmMemVerify($monitor);
-        }
 
-        if ( ! $memVerified ) {
+        if ( ! zmMemVerify($monitor) ) {
           # Our attempt to verify the memory handle failed. We should reload the monitors.
+          # Don't need to zmMemInvalidate because the monitor reload will do it.
           $needsReload = 1;
           next;
         }

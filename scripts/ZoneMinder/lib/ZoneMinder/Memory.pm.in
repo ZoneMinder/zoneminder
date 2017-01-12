@@ -364,7 +364,6 @@ sub zmMemRead {
 
 sub zmMemInvalidate {
   my $monitor = shift;
-print 'zmMemInvalidate\n';
   my $mem_key = zmMemKey($monitor);
   if ( $mem_key ) {
     delete $mem_verified->{$mem_key};

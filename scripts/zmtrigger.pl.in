@@ -117,8 +117,8 @@ use bytes;
 # ==========================================================================
 
 use constant MAX_CONNECT_DELAY => 10;
-use constant MONITOR_RELOAD_INTERVAL => 30;
-use constant SELECT_TIMEOUT => 2.25;
+use constant MONITOR_RELOAD_INTERVAL => 300;
+use constant SELECT_TIMEOUT => 0.25;
 
 # ==========================================================================
 #

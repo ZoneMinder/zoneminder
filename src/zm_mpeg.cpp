@@ -42,10 +42,11 @@ VideoStream::MimeData VideoStream::mime_data[] = {
 
 void VideoStream::Initialise( )
 {
-  if ( logDebugging() )
+  if ( logDebugging() ) {
     av_log_set_level( AV_LOG_DEBUG );
-  else
+  } else {
     av_log_set_level( AV_LOG_QUIET );
+  }
 
   av_register_all( );
 #if LIBAVFORMAT_VERSION_CHECK(53, 13, 0, 19, 0)

@@ -196,9 +196,10 @@ foreach my $connection ( @in_select_connections )
 
 my %spawned_connections;
 my %monitors;
-
 my $monitor_reload_time = 0;
 my $needsReload = 0;
+loadMonitors();
+
 
 $! = undef;
 my $rin = '';

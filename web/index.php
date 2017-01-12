@@ -112,6 +112,16 @@ if ( !file_exists( ZM_SKIN_PATH ) )
 require_once( ZM_SKIN_PATH.'/includes/init.php' );
 $skinBase[] = $skin;
 
+$currentCookieParams = session_get_cookie_params(); 
+Debug('Setting cookie parameters to lifetime('.$currentCookieParams['lifetime'].') path('.$currentCookieParams['path'].') domain ('.$currentCookieParams['domain'].') secure('.$currentCookieParams['secure'].') httpOnly(1)');
+session_set_cookie_params( 
+    $currentCookieParams["lifetime"], 
+    $currentCookieParams["path"], 
+    $currentCookieParams["domain"],
+    $currentCookieParams["secure"], 
+    true
+); 
+
 ini_set( "session.name", "ZMSESSID" );
 
 session_start();

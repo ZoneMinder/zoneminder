@@ -120,8 +120,6 @@ sub zmMemAttach
         $monitor->{MMapHandle} = \*MMAP;
         $monitor->{MMapAddr} = $mmap_addr;
         $monitor->{MMap} = \$mmap;
-    } else {
-print "$$monitor{Id} already defined at $$monitor{MMapAddr}\n";
     }
     return( !undef );
 }

@@ -295,8 +295,6 @@ while( 1 ) {
 # Our attempt to verify the memory handle failed. We should reload the monitors.
       $needsReload = 1;
       next;
-    } else {
-      print "have good zmMemVerify $$monitor{Id}\n";
     }
 
     my ( $state, $last_event ) = zmMemRead( $monitor,

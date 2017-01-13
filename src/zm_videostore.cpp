@@ -493,6 +493,10 @@ Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts, pkt.dts
       zm_av_packet_unref( &pkt );
     } // while 1
   }
+
+  // Flush Queues
+  av_interleaved_write_frame( oc, NULL );
+
   /* Write the trailer before close */
   if ( int rc = av_write_trailer(oc) ) {
     Error("Error writing trailer %s",  av_err2str( rc ) );

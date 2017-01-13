@@ -54,12 +54,12 @@ if (!function_exists('imagescale')) {
 
 $errorText = false;
 $filename = '';
+$Frame = null;
+$Event = null;
 
 if ( empty($_REQUEST['path']) ) {
   if ( ! empty($_REQUEST['fid']) ) {
     $show = empty($_REQUEST['show']) ? 'capture' : $_REQUEST['show'];
-    $Frame = null;
-    $Event = null;
  
     if ( ! empty($_REQUEST['eid'] ) ) {
       $Event = new Event( $_REQUEST['eid'] );
@@ -148,8 +148,10 @@ if( !empty($_REQUEST['height']) ) {
 header( 'Content-type: image/jpeg' );
 
 # This is so that Save Image As give a useful filename
+if ( $Event ) {
 $filename = $Event->MonitorId().'_'.$Event->Id().'_'.$Frame->FrameId().'.jpg';
 header('Content-Disposition: inline; filename="' . $filename . '"');
+}
 ob_clean();
 flush();
 

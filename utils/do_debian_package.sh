@@ -102,7 +102,7 @@ zoneminder ($VERSION-$DISTRO) $DISTRO; urgency=medium
 
   * Release $VERSION
 
- -- $AUTHOR <iconnor@connortechnology.com>  $DATE
+ -- $AUTHOR  $DATE
 
 EOF
 else
@@ -111,7 +111,7 @@ zoneminder ($VERSION-$DISTRO-$SNAPSHOT) $DISTRO; urgency=medium
 
   * 
 
- -- $AUTHOR <iconnor@connortechnology.com>  $DATE
+ -- $AUTHOR  $DATE
 
 EOF
 fi;

@@ -127,6 +127,7 @@ $SLANG = array(
     'AttrMonitorName'       => 'Monitor Name',
     'AttrServerId'          => 'Server Id',
     'AttrServerName'        => 'Server Name',
+    'AttrStateId'           => 'Run State',
     'AttrName'              => 'Name',
     'AttrNotes'             => 'Notes',
     'AttrSystemLoad'        => 'System Load',

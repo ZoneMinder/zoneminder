@@ -99,6 +99,7 @@ $attrTypes = array(
     'SystemLoad'  => translate('AttrSystemLoad'),
     'StorageId'   => translate('AttrStorageArea'),
     'ServerId'    => translate('AttrServer'),
+    'StateId'     => translate('AttrStateId'),
 );
 $opTypes = array(
     '='   => translate('OpEq'),
@@ -206,7 +207,20 @@ for ( $i = 0; isset($_REQUEST['filter']) && $i < count($_REQUEST['filter']['term
               <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
               <td><input name="filter[terms][<?php echo $i ?>][val]" id="filter[terms][<?php echo $i ?>][val]" value="<?php echo isset($_REQUEST['filter']['terms'][$i]['val'])?validHtmlStr($_REQUEST['filter']['terms'][$i]['val']):'' ?>"/><?php if ( $hasCal ) { ?><script type="text/javascript">Calendar.setup( { inputField: "filter[terms][<?php echo $i ?>][val]", ifFormat: "%Y-%m-%d", showOthers: true, weekNumbers: false });</script><?php } ?></td>
 <?php
-        } elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "Weekday" ) {
+        }
+        elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "StateId" )
+        {
+            $states = array();
+            foreach ( dbFetchAll( 'SELECT Id,Name FROM States ORDER BY lower(Name) ASC' ) as $state_row ) {
+              $states[$state_row['Id']] = $state_row['Name'];
+            }
+?>
+            <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
+            <td><?php echo buildSelect( "filter[terms][$i][val]", $states ); ?></td>
+<?php
+        }
+        elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "Weekday" )
+        {
 ?>
               <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
               <td><?php echo buildSelect( "filter[terms][$i][val]", $weekdays ); ?></td>

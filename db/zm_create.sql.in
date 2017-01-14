@@ -205,6 +205,7 @@ CREATE TABLE `Events` (
   `Messaged` tinyint(3) unsigned NOT NULL default '0',
   `Executed` tinyint(3) unsigned NOT NULL default '0',
   `Notes` text,
+  `StateId` int(10) unsigned NOT NULL,
   `Orientation` enum('0','90','180','270','hori','vert') NOT NULL default '0',
   PRIMARY KEY (`Id`,`MonitorId`),
   KEY `MonitorId` (`MonitorId`),

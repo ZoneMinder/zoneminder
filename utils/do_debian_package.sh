@@ -90,10 +90,14 @@ fi;
 sudo apt-get install devscripts equivs
 sudo mk-build-deps -ir ./debian/control
 
-if [ -z `hostname -d` ] ; then
-    AUTHOR="`getent passwd $USER | cut -d ':' -f 5 | cut -d ',' -f 1` <`whoami`@`hostname`.local>"
+if [ "$DEBEMAIL" != "" ] && [ "$DEBFULLNAME" != "" ]; then
+    AUTHOR="$DEBFULLNAME <$DEBEMAIL>"
 else
-    AUTHOR="`getent passwd $USER | cut -d ':' -f 5 | cut -d ',' -f 1` <`whoami`@`hostname`>"
+  if [ -z `hostname -d` ] ; then
+      AUTHOR="`getent passwd $USER | cut -d ':' -f 5 | cut -d ',' -f 1` <`whoami`@`hostname`.local>"
+  else
+      AUTHOR="`getent passwd $USER | cut -d ':' -f 5 | cut -d ',' -f 1` <`whoami`@`hostname`>"
+  fi
 fi
 
 if [ "$SNAPSHOT" == "stable" ]; then
@@ -121,14 +125,18 @@ fi;
 #tar zcf zoneminder_$VERSION-$DISTRO.orig.tar.gz zoneminder_$VERSION-$DISTRO-$SNAPSHOT.orig
 #cd zoneminder_$VERSION-$DISTRO-$SNAPSHOT.orig
 if [ $TYPE == "binary" ]; then
-	debuild
+	DEBUILD=debuild
 else
   if [ $TYPE == "local" ]; then
-    debuild -i -us -uc -b
+    DEBUILD="debuild -i -us -uc -b"
   else 
-    debuild -S -sa
+    DEBUILD="debuild -S -sa"
   fi;
 fi;
+if [ "$DEBSIGN_KEYID" != "" ]; then
+  DEBUILD="$DEBUILD -k$DEBSIGN_KEYID"
+fi
+$DEBUILD
 
 cd ../
 read -p "Do you want to keep the checked out version of Zoneminder (incase you want to modify it later) [y/N]"

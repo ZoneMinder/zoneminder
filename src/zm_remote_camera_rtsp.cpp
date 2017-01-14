@@ -378,11 +378,7 @@ int RemoteCameraRtsp::Capture( Image &image ) {
 
       } /* frame complete */
        
-  #if LIBAVCODEC_VERSION_CHECK(57, 8, 0, 12, 100)
-      av_packet_unref( &packet );
-  #else
-      av_free_packet( &packet );
-  #endif
+      zm_av_packet_unref( &packet );
     } /* getFrame() */
    
     if(frameComplete)
@@ -526,7 +522,7 @@ int RemoteCameraRtsp::CaptureAndRecord(Image &image, bool recording, char* event
             int ret = videoStore->writeVideoFramePacket(&packet);//, &lastKeyframePkt);
             if ( ret < 0 ) {//Less than zero and we skipped a frame
 // Should not 
-              av_free_packet( &packet );
+              zm_av_packet_unref( &packet );
               return 0;
             }
           } // end if videoStore, so we are recording
@@ -555,21 +551,13 @@ int RemoteCameraRtsp::CaptureAndRecord(Image &image, bool recording, char* event
           //Write the packet to our video store
           int ret = videoStore->writeAudioFramePacket( &packet ); //FIXME no relevance of last key frame
           if ( ret < 0 ) { //Less than zero and we skipped a frame
-#if LIBAVCODEC_VERSION_CHECK(57, 8, 0, 12, 100)
-            av_packet_unref( &packet );
-#else
-            av_free_packet( &packet );
-#endif
+            zm_av_packet_unref( &packet );
             return 0;
           }
         }
       } // end if video or audio packet
      
-#if LIBAVCODEC_VERSION_CHECK(57, 8, 0, 12, 100)
-      av_packet_unref( &packet );
-#else
-      av_free_packet( &packet );
-#endif
+      zm_av_packet_unref( &packet );
     } // end while ! framecomplete and buffer.size()
   if(frameComplete)
     return (0);

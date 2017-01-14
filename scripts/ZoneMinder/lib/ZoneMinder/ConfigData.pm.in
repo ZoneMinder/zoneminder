@@ -2841,7 +2841,7 @@ our @options = (
     description => 'URL that ZoneMinder will send usage data to',
     help        => '',
     type        => $types{url},
-    category    => 'system',
+    category    => 'hidden',
   },
   {
     name        => 'ZM_UPDATE_CHECK_PROXY',

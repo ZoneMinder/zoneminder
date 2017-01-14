@@ -85,10 +85,7 @@ while( 1 ) {
   while( my $monitor = $sth->fetchrow_hashref() ) {
     next if $monitor->{Function} eq 'None';
     my $restart = 0;
-    if ( zmMemVerify( $monitor )
-        && zmMemRead( $monitor, "shared_data:valid" )
-       )
-    {
+    if ( zmMemVerify( $monitor ) ) {
 # Check we have got an image recently
       my $image_time = zmGetLastWriteTime( $monitor );
       if ( !defined($image_time) ) {
@@ -104,8 +101,8 @@ while( 1 ) {
 					Info( "Restarting capture daemon for ".$monitor->{Name}.", no image since startup. Startup time was $startup_time - now $now > $Config{ZM_WATCH_MAX_DELAY}\n" );
 					$restart = 1;
 				} else {
-# We can't get the last capture time so can't be sure it's died, it might just be starting up.
-    zmMemInvalidate( $monitor );
+          # We can't get the last capture time so can't be sure it's died, it might just be starting up.
+          zmMemInvalidate( $monitor );
         next;
 				}
       }

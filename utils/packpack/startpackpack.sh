@@ -7,6 +7,7 @@
 
 ln -s distros/redhat rpm
 mkdir -p build
+curl https://zmrepo.zoneminder.com/f/25/i386/zmrepo-25-1.fc25.noarch.rpm > build/zmrepo-25-1.fc25.noarch.rpm
 curl -L https://github.com/FriendsOfCake/crud/archive/v3.0.10.tar.gz > build/crud-3.0.10.tar.gz
 git clone https://github.com/packpack/packpack.git packpack
 patch -p1 < utils/packpack/autosetup.patch

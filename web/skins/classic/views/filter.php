@@ -220,7 +220,7 @@ for ( $i = 0; isset($_REQUEST['filter']) && $i < count($_REQUEST['filter']['term
               <td><input name="filter[terms][<?php echo $i ?>][val]" id="filter[terms][<?php echo $i ?>][val]" value="<?php echo isset($_REQUEST['filter']['terms'][$i]['val'])?validHtmlStr($_REQUEST['filter']['terms'][$i]['val']):'' ?>"/><?php if ( $hasCal ) { ?><script type="text/javascript">Calendar.setup( { inputField: "filter[terms][<?php echo $i ?>][val]", ifFormat: "%Y-%m-%d", showOthers: true, weekNumbers: false });</script><?php } ?></td>
 <?php
         }
-        elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "ServerId" )
+        elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "StateId" )
         {
             $states = array();
             foreach ( dbFetchAll( 'SELECT Id,Name FROM States ORDER BY lower(Name) ASC' ) as $state_row ) {

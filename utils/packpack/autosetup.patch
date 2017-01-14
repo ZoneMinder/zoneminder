@@ -1,5 +1,5 @@
---- packpack/pack/rpm.mk	2017-01-14 14:01:50.364217882 -0600
-+++ packpack/pack/rpm.mk.new	2017-01-14 14:01:19.594985311 -0600
+--- a/packpack/pack/rpm.mk	2017-01-14 14:01:50.364217882 -0600
++++ b/packpack/pack/rpm.mk	2017-01-14 14:01:19.594985311 -0600
 @@ -23,11 +23,13 @@
  		-e 's/Release:\([ ]*\).*/Release: $(RELEASE)%{dist}/' \
  		-e 's/Source0:\([ ]*\).*/Source0: $(TARBALL)/' \

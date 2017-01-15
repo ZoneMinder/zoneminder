@@ -1,9 +1,6 @@
 %global zmuid_final apache
 %global zmgid_final apache
 
-# Stock Centos 6 does not have this macro defined
-%{!?make_build: %global make_build %{__make} %{?_smp_mflags} }
-
 # Crud is configured as a git submodule
 %global crud_version 3.0.10
 
@@ -56,6 +53,7 @@ Source1: https://github.com/FriendsOfCake/crud/archive/v%{crud_version}.tar.gz#/
 %{?with_init_systemd:BuildRequires: mariadb-devel}
 %{?with_init_systemd:BuildRequires: perl-podlators}
 %{?with_init_sysv:BuildRequires: mysql-devel}
+%{?el6:BuildRequires: epel-rpm-macros}
 BuildRequires: cmake >= 2.8.7
 BuildRequires: gnutls-devel
 BuildRequires: bzip2-devel

@@ -8,18 +8,48 @@ exit;
 
 fi
 
+for i in "$@"
+do
+case $i in
+    -b=*|--branch=*)
+    BRANCH="${i#*=}"
+    shift # past argument=value
+    ;;
+    -d=*|--distro=*)
+    DISTRO="${i#*=}"
+    shift # past argument=value
+    ;;
+    -i=*|--interactive=*)
+    INTERACTIVE="${i#*=}"
+    shift # past argument=value
+    ;;
+    -s=*|--snapshot=*)
+    SNAPSHOT="${i#*=}"
+    shift # past argument=value
+    ;;
+    -t=*|--type=*)
+    TYPE="${i#*=}"
+    shift # past argument=value
+    ;;
+    -f=*|--fork=*)
+    GITHUB_FORK="${i#*=}"
+    shift # past argument=value
+    ;;
+    --default)
+    DEFAULT=YES
+    shift # past argument with no value
+    ;;
+    *)
+            # unknown option
+    ;;
+esac
+done
 
 DATE=`date -R`
-DISTRO=$1
-SNAPSHOT=$2
-
-TYPE=$3
 if [ "$TYPE" == "" ]; then
   echo "Defaulting to source build"
   TYPE="source";
 fi;
-BRANCH=$4
-GITHUB_FORK=$5
 if [ "$GITHUB_FORK" == "" ]; then
   echo "Defaulting to ZoneMinder upstream git"
   GITHUB_FORK="ZoneMinder"
@@ -139,15 +169,21 @@ fi
 $DEBUILD
 
 cd ../
-read -p "Do you want to keep the checked out version of Zoneminder (incase you want to modify it later) [y/N]"
-[[ $REPLY == [yY] ]] && { mv $DIRECTORY zoneminder_release; echo "The checked out copy is preserved in zoneminder_release"; } || { rm -fr $DIRECTORY; echo "The checked out copy has been deleted"; }
-echo "Done!"
+if [ "$INTERACTIVE" != "no" ]; then
+  read -p "Do you want to keep the checked out version of Zoneminder (incase you want to modify it later) [y/N]"
+  [[ $REPLY == [yY] ]] && { mv $DIRECTORY zoneminder_release; echo "The checked out copy is preserved in zoneminder_release"; } || { rm -fr $DIRECTORY; echo "The checked out copy has been deleted"; }
+  echo "Done!"
+else 
+  rm -fr $DIRECTORY; echo "The checked out copy has been deleted";
+fi
 
 if [ $TYPE == "binary" ]; then
-	echo "Not doing dput since it's a binary release. Do you want to install it? (Y/N)"
-  read install
-  if [ "$install" == "Y" ]; then
-      sudo dpkg -i $DIRECTORY*.deb
+  if [ "$INTERACTIVE" != "no" ]; then
+    echo "Not doing dput since it's a binary release. Do you want to install it? (Y/N)"
+    read install
+    if [ "$install" == "Y" ]; then
+        sudo dpkg -i $DIRECTORY*.deb
+    fi;
   fi;
 else
 	SC="";
@@ -164,8 +200,11 @@ else
 		fi;
 	fi;
 
-	echo "Ready to dput $SC to $PPA ? Y/N...";
-	read dput
+  dput="Y";
+  if [ "$INTERACTIVE" != "no" ]; then
+    echo "Ready to dput $SC to $PPA ? Y/N...";
+    read dput
+  fi
 	if [ "$dput" == "Y" -o "$dput" == "y" ]; then
 		dput $PPA $SC
 	fi;

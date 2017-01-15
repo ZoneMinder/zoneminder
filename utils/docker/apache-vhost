@@ -2,11 +2,11 @@
         DocumentRoot /usr/local/share/zoneminder/www
         DirectoryIndex index.php
 
-        ScriptAlias /cgi-bin/ /usr/lib/cgi-bin/
+        ScriptAlias /cgi-bin/ /usr/local/libexec/zoneminder/cgi-bin/
         <Directory />
                 Require all granted
         </Directory>
-        <Directory "/usr/lib/cgi-bin">
+        <Directory "/usr/local/libexec/zoneminder/cgi-bin">
                 AllowOverride None
                 Options +ExecCGI -MultiViews +SymLinksIfOwnerMatch
                 Require all granted

@@ -91,7 +91,7 @@ sub zmDbConnect {
       $socket = ";host=".$Config{ZM_DB_HOST}; 
     }
     $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
-        .$socket . ($options?'.'.join(';', map { $_.'='.$$options{$_} } keys %{$options} ))
+        .$socket . ($options?';'.join(';', map { $_.'='.$$options{$_} } keys %{$options} ) : '' )
         , $Config{ZM_DB_USER}
         , $Config{ZM_DB_PASS}
         );

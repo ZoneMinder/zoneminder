@@ -1,6 +1,9 @@
 %global zmuid_final apache
 %global zmgid_final apache
 
+# Stock Centos 6 does not have this macro defined
+%{!?make_build: %global make_build %{__make} %{?_smp_mflags} }
+
 # Crud is configured as a git submodule
 %global crud_version 3.0.10
 

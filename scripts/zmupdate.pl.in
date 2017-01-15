@@ -457,7 +457,7 @@ if ( $version )
         close $fh;
         $dbh->do($sql) or die $dbh->errstr();
         print( "\nDatabase successfully upgraded to version $version.\n" );
-        my $sql = "update Config set Value = ? where Name = 'ZM_DYN_DB_VERSION'";
+        $sql = "update Config set Value = ? where Name = 'ZM_DYN_DB_VERSION'";
         my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
         my $res = $sth->execute( $version ) or die( "Can't execute: ".$sth->errstr() );
     }

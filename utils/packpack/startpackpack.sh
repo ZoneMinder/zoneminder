@@ -3,7 +3,7 @@
 # Written by Andrew Bauer
 
 # Check to see if this script has access to all the commands it needs
-for CMD in set echo curl repoquery git ln mkdir patch; do
+for CMD in set echo curl repoquery git ln mkdir patch rmdir; do
   type $CMD &> /dev/null
 
   if [ $? -ne 0 ]; then
@@ -30,16 +30,24 @@ else
     git clone https://github.com/packpack/packpack.git packpack
 fi
 
-# Steps common to Redhat distros
-if [ "${OS}" == "el" ] || [ "${OS}" == "fedora" ]; then
-    CRUDVER="3.0.10"
-    echo "Retrieving Crud submodule..."
+# The rpm specfile requires we download the tarball and manually move it into place
+# Might as well do this for Debian as well, rather than git submodule init
+CRUDVER="3.0.10"
+if [ -e "build/crud-${CRUDVER}.tar.gz" ]; then
+    echo "Found existing Crud ${CRUDVER} tarball..."
+else
+    echo "Retrieving Crud ${CRUDVER} submodule..."
     curl -L https://github.com/FriendsOfCake/crud/archive/v${CRUDVER}.tar.gz > build/crud-${CRUDVER}.tar.gz
-
     if [ $? -ne 0 ]; then
         echo "ERROR: Crud tarball retreival failed..."
         exit -1
     fi
+fi
+
+
+# Steps common to Redhat distros
+if [ "${OS}" == "el" ] || [ "${OS}" == "fedora" ]; then
+    echo "Begin Redhat build..."
 
     # %autosetup support has been merged upstream. No need to patch
     #patch -p1 < utils/packpack/autosetup.patch
@@ -67,9 +75,23 @@ if [ "${OS}" == "el" ] || [ "${OS}" == "fedora" ]; then
 
 # Steps common the Debian based distros
 elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ]; then
+    echo "Begin Debian build..."
 
-    echo Do some stuff here
+    # Uncompress the Crud tarball and move it into place    
+    tar -xzf build/crud-${CRUDVER}.tar.gz
+    rmdir web/api/app/Plugin/Crud
+    mv -f crud-${CRUDVER} web/api/app/Plugin/Crud
 
+    if [ ${DIST} == "trusty" ] || [ ${DIST} == "precise" ]; then
+        ln -sf distros/ubuntu1204 debian
+    elif [ ${DIST} == "wheezy" ]; then 
+        ln -sf distros/debian debian
+    else 
+        ln -sf distros/ubuntu1604 debian
+    fi
+
+    echo "Starting packpack..."
+    packpack/packpack
 fi
 
 

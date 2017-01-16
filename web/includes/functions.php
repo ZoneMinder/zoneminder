@@ -873,21 +873,12 @@ function zmaControl( $monitor, $mode=false ) {
         daemonControl( "stop", "zmtrack.pl", "-m ".$monitor['Id'] );
       }
       daemonControl( "stop", "zma", "-m ".$monitor['Id'] );
-      if ( ZM_OPT_FRAME_SERVER ) {
-        daemonControl( "stop", "zmf", "-m ".$monitor['Id'] );
-      }
     } else {
       if ( $mode == "restart" ) {
         if ( ZM_OPT_CONTROL ) {
           daemonControl( "stop", "zmtrack.pl", "-m ".$monitor['Id'] );
         }
         daemonControl( "stop", "zma", "-m ".$monitor['Id'] );
-        if ( ZM_OPT_FRAME_SERVER ) {
-          daemonControl( "stop", "zmf", "-m ".$monitor['Id'] );
-        }
-      }
-      if ( ZM_OPT_FRAME_SERVER ) {
-        daemonControl( "start", "zmf", "-m ".$monitor['Id'] );
       }
       daemonControl( "start", "zma", "-m ".$monitor['Id'] );
       if ( ZM_OPT_CONTROL && $monitor['Controllable'] && $monitor['TrackMotion'] && ( $monitor['Function'] == 'Modect' || $monitor['Function'] == 'Mocord' ) ) {

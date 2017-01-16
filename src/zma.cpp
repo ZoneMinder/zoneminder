@@ -141,11 +141,6 @@ int main( int argc, char *argv[] )
   {
     Info( "In mode %d/%d, warming up", monitor->GetFunction(), monitor->Enabled() );
 
-    if ( config.opt_frame_server )
-    {
-      Event::OpenFrameSocket( monitor->Id() );
-    }
-
     zmSetDefaultHupHandler();
     zmSetDefaultTermHandler();
     zmSetDefaultDieHandler();

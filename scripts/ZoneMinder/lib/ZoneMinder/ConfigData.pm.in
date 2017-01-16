@@ -2697,47 +2697,6 @@ our @options = (
     category    => "config",
   },
   {
-    name        => "ZM_OPT_FRAME_SERVER",
-    default     => "no",
-    description => "Should analysis farm out the writing of images to disk",
-  #requires   => [ { name => "ZM_OPT_ADAPTIVE_SKIP", value => "yes" } ],
-    help        => qqq("
-        In some circumstances it is possible for a slow disk to take so
-        long writing images to disk that it causes the analysis daemon
-        to fall behind especially during high frame rate events.
-        Setting this option to yes enables a frame server daemon (zmf)
-        which will be sent the images from the analysis daemon and will
-        do the actual writing of images itself freeing up the analysis
-        daemon to get on with other things. Should this transmission
-        fail or other permanent or transient error occur, this function
-        will fall back to the analysis daemon.
-        "),
-    type        => $types{boolean},
-    category    => "system",
-  },
-  {
-    name        => "ZM_FRAME_SOCKET_SIZE",
-    default     => "0",
-    description => "Specify the frame server socket buffer size if non-standard",
-    requires    => [ { name => "ZM_OPT_FRAME_SERVER", value => "yes" } ],
-    help        => qqq("
-        For large captured images it is possible for the writes from
-        the analysis daemon to the frame server to fail as the amount
-        to be written exceeds the default buffer size. While the images
-        are then written by the analysis daemon so no data is lost, it
-        defeats the object of the frame server daemon in the first
-        place. You can use this option to indicate that a larger buffer
-        size should be used. Note that you may have to change the
-        existing maximum socket buffer size on your system via sysctl
-        (or in /proc/sys/net/core/wmem_max) to allow this new size to
-        be set. Alternatively you can change the default buffer size on
-        your system in the same way in which case that will be used
-        with no change necessary in this option
-        "),
-    type        => $types{integer},
-    category    => "system",
-  },
-  {
     name        => "ZM_OPT_CONTROL",
     default     => "no",
     description => "Support controllable (e.g. PTZ) cameras",

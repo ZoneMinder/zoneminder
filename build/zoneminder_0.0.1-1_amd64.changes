@@ -1,0 +1,36 @@
+Format: 1.8
+Date: Mon, 16 Jan 2017 14:30:56 +0000
+Source: zoneminder
+Binary: zoneminder zoneminder-doc zoneminder-dbg
+Architecture: source amd64 all
+Version: 0.0.1-1
+Distribution: UNRELEASED
+Urgency: medium
+Maintainer: Dmitry Smirnov <onlyjob@debian.org>
+Changed-By: PackPack <build@tarantool.org>
+Description:
+ zoneminder - video camera security and surveillance solution
+ zoneminder-dbg - Zoneminder -- debugging symbols
+ zoneminder-doc - ZoneMinder documentation
+Changes:
+ zoneminder (0.0.1-1) UNRELEASED; urgency=medium
+ .
+   * Automated build
+Checksums-Sha1:
+ fd752fbd8062560ce40cb9d8b40fc527ee6a19a3 1437 zoneminder_0.0.1-1.dsc
+ 12323d19c3162b637d77225dc35884570e68d3cc 8560812 zoneminder_0.0.1-1.tar.xz
+ f462c114a008c456a382179c510e13bf77c24e84 15778224 zoneminder-dbg_0.0.1-1_amd64.deb
+ 9a6f5f47788e4ef5981146e88051cce64c3af2e5 5279822 zoneminder-doc_0.0.1-1_all.deb
+ f8bb76ac456158e5581a944cb36e772659633ccd 6062224 zoneminder_0.0.1-1_amd64.deb
+Checksums-Sha256:
+ f715293f7ccca919284d8bd37eeefc67491a415775adc617c1e6518a19654c6a 1437 zoneminder_0.0.1-1.dsc
+ 409bda9379113acb6b910c3c2f174cbe5f52d484f774b016bc746f82f3720876 8560812 zoneminder_0.0.1-1.tar.xz
+ 7acddb8e8b80cbf9f46cecd3af391b5901d839a0dc782fcba075d0308287f11d 15778224 zoneminder-dbg_0.0.1-1_amd64.deb
+ 0533671c98073785bb5b2c362b90c2b455e6109f0a75bed1cbb92da2139438ec 5279822 zoneminder-doc_0.0.1-1_all.deb
+ 50dd13c1353ce6321a93e42823fdeac00165cb203c46eda9281e6d53688c2e6a 6062224 zoneminder_0.0.1-1_amd64.deb
+Files:
+ c95a93b548b217779c32b85b9344537b 1437 net optional zoneminder_0.0.1-1.dsc
+ 766a443eddca4aba97b99eaa3e44e600 8560812 net optional zoneminder_0.0.1-1.tar.xz
+ 858572962e27a75f55a5c9b422a4d5c8 15778224 debug extra zoneminder-dbg_0.0.1-1_amd64.deb
+ 5eb22e715496e5d4001b455070f081d8 5279822 doc optional zoneminder-doc_0.0.1-1_all.deb
+ a732cc42c90e03b2bd4f7f6ed4a9f1d5 6062224 net optional zoneminder_0.0.1-1_amd64.deb

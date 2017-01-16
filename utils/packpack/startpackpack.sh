@@ -1,23 +1,23 @@
-#!/bin/sh
+#!/bin/bash
 # packpack setup file for the ZoneMinder project
 # Written by Andrew Bauer
 
 # Check to see if this script has access to all the commands it needs
 for CMD in set echo curl repoquery git ln mkdir patch rmdir; do
-  type $CMD &> /dev/null
+  type $CMD 2>&1 > /dev/null
 
   if [ $? -ne 0 ]; then
     echo
     echo "ERROR: The script cannot find the required command \"${CMD}\"."
     echo
-    exit -1
+    exit $?
   fi
 done
 
 # Verify OS & DIST environment variables have been set before calling this script
 if [ -z "${OS}" ] || [ -z "${DIST}" ]; then
     echo "ERROR: both OS and DIST environment variables must be set"
-    exit -1
+    exit 1
 fi
 
 # Steps common to all builds
@@ -40,10 +40,9 @@ else
     curl -L https://github.com/FriendsOfCake/crud/archive/v${CRUDVER}.tar.gz > build/crud-${CRUDVER}.tar.gz
     if [ $? -ne 0 ]; then
         echo "ERROR: Crud tarball retreival failed..."
-        exit -1
+        exit $?
     fi
 fi
-
 
 # Steps common to Redhat distros
 if [ "${OS}" == "el" ] || [ "${OS}" == "fedora" ]; then
@@ -67,7 +66,11 @@ if [ "${OS}" == "el" ] || [ "${OS}" == "fedora" ]; then
         curl $result > build/zmrepo.noarch.rpm
     else
         echo "ERROR: Failed to retrieve zmrepo rpm..."
-        echo -1
+        if [ $? -ne 0  ]; then
+            echo $?
+        else
+            echo 1
+        fi
     fi
 
     echo "Starting packpack..."

@@ -184,6 +184,13 @@ if [ $TYPE == "binary" ]; then
     if [ "$install" == "Y" ]; then
         sudo dpkg -i $DIRECTORY*.deb
     fi;
+    if [ "$DISTRO" == "jessie" ]; then
+        echo "Do you want to upload this binary to zmrepo? (y/N)"
+        read install
+        if [ "$install" == "Y" ]; then
+          scp "zoneminder_*-${VERSION}-${DISTRO}*" "zmrepo.connortechnology.com:zmrepo/debian-${BRANCH}/"
+        fi;
+    fi;
   fi;
 else
 	SC="";

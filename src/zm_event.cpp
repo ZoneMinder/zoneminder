@@ -184,7 +184,6 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
   /* Save as video */
 
   if ( monitor->GetOptVideoWriter() != 0 ) {
-    int nRet; 
     snprintf( video_name, sizeof(video_name), "%d-%s", id, "video.mp4" );
     snprintf( video_file, sizeof(video_file), video_file_format, path, video_name );
 
@@ -201,7 +200,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     if(videowriter != NULL) {
 
       /* Open the video stream */
-      nRet = videowriter->Open();
+      int nRet = videowriter->Open();
       if(nRet != 0) {
         Error("Failed opening video stream");
         delete videowriter;
@@ -221,7 +220,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     videowriter = NULL;
   }
 
-}
+} // Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string &p_cause, const StringSetMap &p_noteSetMap, bool p_videoEvent )
 
 Event::~Event() {
   static char sql[ZM_SQL_MED_BUFSIZ];
@@ -283,7 +282,7 @@ bool Event::OpenFrameSocket( int monitor_id ) {
     close( sd );
   }
 
-  sd = socket( AF_UNIX, SOCK_STREAM, 0);
+  sd = socket( AF_UNIX, SOCK_STREAM, 0 );
   if ( sd < 0 ) {
     Error( "Can't create socket: %s", strerror(errno) );
     return( false );

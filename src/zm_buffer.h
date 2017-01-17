@@ -153,7 +153,7 @@ public:
         mHead = mTail = mStorage;
       else if ( level )
       {
-        if ( (mHead-mStorage) > mSize )
+        if ( ((unsigned int)mHead-(unsigned int)mStorage) > mSize )
         {
           memcpy( mStorage, mHead, mSize );
           mHead = mStorage;

@@ -31,6 +31,10 @@ case $i in
     TYPE="${i#*=}"
     shift # past argument=value
     ;;
+    -u=*|--urgency=*)
+    URGENCY="${i#*=}"
+    shift # past argument=value
+    ;;
     -f=*|--fork=*)
     GITHUB_FORK="${i#*=}"
     shift # past argument=value
@@ -66,6 +70,10 @@ else
     BRANCH="master";
   fi;
 fi;
+if [ "$URGENCY" = "" ]; then
+  URGENCY="medium"
+fi;
+
 
 # Instead of cloning from github each time, if we have a fork lying around, update it and pull from there instead.
 if [ ! -d "${GITHUB_FORK}_zoneminder_release" ]; then 
@@ -132,7 +140,7 @@ fi
 
 if [ "$SNAPSHOT" == "stable" ]; then
 cat <<EOF > debian/changelog
-zoneminder ($VERSION-$DISTRO) $DISTRO; urgency=medium
+zoneminder ($VERSION-$DISTRO) $DISTRO; urgency=$URGENCY
 
   * Release $VERSION
 
@@ -141,7 +149,7 @@ zoneminder ($VERSION-$DISTRO) $DISTRO; urgency=medium
 EOF
 else
 cat <<EOF > debian/changelog
-zoneminder ($VERSION-$DISTRO-$SNAPSHOT) $DISTRO; urgency=medium
+zoneminder ($VERSION-$DISTRO-$SNAPSHOT) $DISTRO; urgency=$URGENCY
 
   * 
 

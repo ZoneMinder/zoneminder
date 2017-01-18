@@ -379,19 +379,22 @@ Monitor::Monitor(
   Debug( 1, "mem.size=%d", mem_size );
   mem_ptr = NULL;
 
+  storage = new Storage( storage_id );
+  Debug(1, "Storage path: %s", storage->Path() );
+  // Should maybe store this for later use
   char monitor_dir[PATH_MAX] = "";
-  snprintf( monitor_dir, sizeof(monitor_dir), "%s/%d", config.dir_events, id );
+  snprintf( monitor_dir, sizeof(monitor_dir), "%s/%d", storage->Path(), id );
   struct stat statbuf;
 
-      if ( stat( monitor_dir, &statbuf ) ) {
-        if ( errno == ENOENT || errno == ENOTDIR ) {
-          if ( mkdir( monitor_dir, 0755 ) ) {
-            Fatal( "Can't mkdir %s: %s", monitor_dir, strerror(errno));
-          }
-        } else {
-          Warning( "Error stat'ing %s, may be fatal. error is %s", monitor_dir, strerror(errno));
-        }
+  if ( stat( monitor_dir, &statbuf ) ) {
+    if ( errno == ENOENT || errno == ENOTDIR ) {
+      if ( mkdir( monitor_dir, 0755 ) ) {
+        Error( "Can't mkdir %s: %s", monitor_dir, strerror(errno));
       }
+    } else {
+      Warning( "Error stat'ing %s, may be fatal. error is %s", monitor_dir, strerror(errno));
+    }
+  }
 
   if ( purpose == CAPTURE ) {
 
@@ -459,44 +462,12 @@ Monitor::Monitor(
   Debug( 1, "Monitor %s LBF = '%s', LBX = %d, LBY = %d, LBS = %d", name, label_format, label_coord.X(), label_coord.Y(), label_size );
   Debug( 1, "Monitor %s IBC = %d, WUC = %d, pEC = %d, PEC = %d, EAF = %d, FRI = %d, RBP = %d, ARBP = %d, FM = %d", name, image_buffer_count, warmup_count, pre_event_count, post_event_count, alarm_frame_count, fps_report_interval, ref_blend_perc, alarm_ref_blend_perc, track_motion );
 
-  storage = new Storage( storage_id );
-  Debug(1, "Storage path: %s", storage->Path() );
 
   //Set video recording flag for event start constructor and easy reference in code
   // TODO: Use enum instead of the # 2. Makes for easier reading
   videoRecording = ((GetOptVideoWriter() == H264PASSTHROUGH) && camera->SupportsNativeVideo());
 
   if ( purpose == ANALYSIS ) {
-    static char path[PATH_MAX];
-
-    strncpy( path, storage->Path(), sizeof(path) );
-
-    struct stat statbuf;
-    errno = 0;
-    stat( path, &statbuf );
-    if ( errno == ENOENT || errno == ENOTDIR ) {
-      if ( mkdir( path, 0755 ) ) {
-        Error( "Can't make %s: %s", path, strerror(errno));
-      }
-    }
-
-    snprintf( path, sizeof(path), "%s/%d", storage->Path(), id );
-
-    errno = 0;
-    stat( path, &statbuf );
-    if ( errno == ENOENT || errno == ENOTDIR ) {
-      if ( mkdir( path, 0755 ) ) {
-        Error( "Can't make %s: %s", path, strerror(errno));
-      }
-      char temp_path[PATH_MAX];
-      snprintf( temp_path, sizeof(temp_path), "%d", id );
-      if ( chdir( storage->Path() ) < 0 )
-        Fatal( "Can't change directory to '%s': %s", storage->Path(), strerror(errno) );
-      if ( symlink( temp_path, name ) < 0 )
-        Fatal( "Can't symlink '%s' to '%s': %s", temp_path, name, strerror(errno) );
-      if ( chdir( ".." ) < 0 )
-        Fatal( "Can't change to parent directory: %s", strerror(errno) );
-    }
 
     while( shared_data->last_write_index == (unsigned int)image_buffer_count 
          && shared_data->last_write_time == 0) {

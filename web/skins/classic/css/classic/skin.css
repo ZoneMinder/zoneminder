@@ -102,6 +102,9 @@ input[disabled] {
     color: #888888;
 }
 
+img {
+  display: inline-block;
+}
 img.normal {
     border: white solid 1px;
 }

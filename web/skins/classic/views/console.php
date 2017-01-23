@@ -111,8 +111,6 @@ for( $i = 0; $i < count($displayMonitors); $i += 1 ) {
 
 noCacheHeaders();
 
-$seqUpFile = getSkinFile( 'graphics/seq-u.gif' );
-$seqDownFile = getSkinFile( 'graphics/seq-d.gif' );
 $eventsView = ZM_WEB_EVENTS_VIEW;
 $eventsWindow = 'zm'.ucfirst(ZM_WEB_EVENTS_VIEW);
 $left_columns = 3;
@@ -154,14 +152,6 @@ for ( $i = 0; $i < count($eventCounts); $i++ )
 }
 ?>
             <th class="colZones"><?php echo translate('Zones') ?></th>
-<?php
-if ( canEdit('Monitors') )
-{
-?>
-            <th class="colOrder"><?php echo translate('Order') ?></th>
-<?php
-}
-?>
             <th class="colMark"><?php echo translate('Mark') ?></th>
           </tr>
         </thead>
@@ -172,6 +162,7 @@ if ( canEdit('Monitors') )
               <input type="button" class="btn btn-primary" name="addBtn" value="<?php echo translate('AddNewMonitor') ?>" onclick="addMonitor( this )"/>
               <!-- <?php echo makePopupButton( '?view=monitor', 'zmMonitor0', 'monitor', translate('AddNewMonitor'), (canEdit( 'Monitors' ) && !$user['MonitorIds']) ) ?> -->
               <?php echo makePopupButton( '?view=filter&amp;filter[terms][0][attr]=DateTime&amp;filter[terms][0][op]=%3c&amp;filter[terms][0][val]=now', 'zmFilter', 'filter', translate('Filters'), canView( 'Events' ) ) ?>
+            <input class="btn btn-primary" type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editMonitor( this )" disabled="disabled"/>
             </td>
 <?php
 for ( $i = 0; $i < count($eventCounts); $i++ )
@@ -183,16 +174,15 @@ for ( $i = 0; $i < count($eventCounts); $i++ )
 }
 ?>
             <td class="colZones"><?php echo $zoneCount ?></td>
-            <td><input class="btn btn-primary" type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editMonitor( this )" disabled="disabled"/></td>
             <td><input class="btn btn-danger" type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteMonitor( this )" disabled="disabled"/></td>
           </tr>
         </tfoot>
-        <tbody>
+        <tbody id="consoleTableBody">
 <?php
 for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   $monitor = $displayMonitors[$monitor_i];
 ?>
-          <tr title="<?php echo $monitor['Id'] ?>">
+          <tr id="<?php echo 'monitor_id-'.$monitor['Id'] ?>" title="<?php echo $monitor['Id'] ?>">
 <?php
     if ( !$monitor['zmc'] )
         $dclass = "errorText";
@@ -259,27 +249,6 @@ echo $Storage->Name();
     }
 ?>
             <td class="colZones"><?php echo makePopupLink( '?view=zones&amp;mid='.$monitor['Id'], 'zmZones', array( 'zones', $monitor['Width'], $monitor['Height'] ), $monitor['ZoneCount'], $running && canView( 'Monitors' ) ) ?></td>
-<?php
-    if ( canEdit('Monitors') )
-    {
-?>
-            <td class="colOrder">
-<?php 
-  if ( $monitor_i ) {
-    echo makeLink( '?view='.$view.'&amp;action=sequence&amp;mid='.$monitor['Id'].'&amp;smid='.$displayMonitors[$monitor_i-1]['Id'], '<img src="'.$seqUpFile.'" alt="Up"/>' );
-  } else {
-    echo '<img src="'.$seqUpFile.'" alt="Up"/>';
-  }
-  if ( $monitor_i<count($displayMonitors)-1 ) {
-    echo makeLink( '?view='.$view.'&amp;action=sequence&amp;mid='.$monitor['Id'].'&amp;smid='.$displayMonitors[$monitor_i+1]['Id'], '<img src="'.$seqDownFile.'" alt="Down"/>' );
-  } else {
-    echo '<img src="'.$seqDownFile.'" alt="Down"/>';
-  }
-?>
-            </td>
-<?php
-    }
-?>
             <td class="colMark"><input type="checkbox" name="markMids[]" value="<?php echo $monitor['Id'] ?>" onclick="setButtonStates( this )"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></td>
           </tr>
 <?php
@@ -297,4 +266,13 @@ if ( canEdit('System') ) {
 }
 ?>
 </body>
+<script>
+  $j( function() {
+    $j( "#consoleTableBody" ).sortable({
+        update: applySort,
+        axis:'Y' } );
+    $j( "#consoleTableBody" ).disableSelection();
+  } );
+</script>
+
 </html>

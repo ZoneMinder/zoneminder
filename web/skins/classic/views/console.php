@@ -162,7 +162,8 @@ for ( $i = 0; $i < count($eventCounts); $i++ )
               <input type="button" class="btn btn-primary" name="addBtn" value="<?php echo translate('AddNewMonitor') ?>" onclick="addMonitor( this )"/>
               <!-- <?php echo makePopupButton( '?view=monitor', 'zmMonitor0', 'monitor', translate('AddNewMonitor'), (canEdit( 'Monitors' ) && !$user['MonitorIds']) ) ?> -->
               <?php echo makePopupButton( '?view=filter&amp;filter[terms][0][attr]=DateTime&amp;filter[terms][0][op]=%3c&amp;filter[terms][0][val]=now', 'zmFilter', 'filter', translate('Filters'), canView( 'Events' ) ) ?>
-            <input class="btn btn-primary" type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editMonitor( this )" disabled="disabled"/>
+              <input class="btn btn-primary" type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editMonitor( this )" disabled="disabled"/>
+              <input class="btn btn-danger" type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteMonitor( this )" disabled="disabled"/>
             </td>
 <?php
 for ( $i = 0; $i < count($eventCounts); $i++ )
@@ -174,7 +175,7 @@ for ( $i = 0; $i < count($eventCounts); $i++ )
 }
 ?>
             <td class="colZones"><?php echo $zoneCount ?></td>
-            <td><input class="btn btn-danger" type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteMonitor( this )" disabled="disabled"/></td>
+            <td> </td>
           </tr>
         </tfoot>
         <tbody id="consoleTableBody">
@@ -249,7 +250,10 @@ echo $Storage->Name();
     }
 ?>
             <td class="colZones"><?php echo makePopupLink( '?view=zones&amp;mid='.$monitor['Id'], 'zmZones', array( 'zones', $monitor['Width'], $monitor['Height'] ), $monitor['ZoneCount'], $running && canView( 'Monitors' ) ) ?></td>
-            <td class="colMark"><input type="checkbox" name="markMids[]" value="<?php echo $monitor['Id'] ?>" onclick="setButtonStates( this )"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></td>
+            <td class="colMark">
+            <input type="checkbox" name="markMids[]" value="<?php echo $monitor['Id'] ?>" onclick="setButtonStates( this )"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
+<span class="glyphicon glyphicon-sort"></span>
+            </td>
           </tr>
 <?php
 } # end for eacho monitor
@@ -269,6 +273,7 @@ if ( canEdit('System') ) {
 <script>
   $j( function() {
     $j( "#consoleTableBody" ).sortable({
+        handle: ".glyphicon-sort",
         update: applySort,
         axis:'Y' } );
     $j( "#consoleTableBody" ).disableSelection();

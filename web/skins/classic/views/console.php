@@ -152,7 +152,9 @@ for ( $i = 0; $i < count($eventCounts); $i++ )
 }
 ?>
             <th class="colZones"><?php echo translate('Zones') ?></th>
+<?php if ( canEdit( 'Monitors' ) ) { ?>
             <th class="colMark"><?php echo translate('Mark') ?></th>
+<?php } ?>
           </tr>
         </thead>
         <tfoot>
@@ -175,7 +177,9 @@ for ( $i = 0; $i < count($eventCounts); $i++ )
 }
 ?>
             <td class="colZones"><?php echo $zoneCount ?></td>
+<?php if ( canEdit( 'Monitors' ) ) { ?>
             <td> </td>
+<?php } ?>
           </tr>
         </tfoot>
         <tbody id="consoleTableBody">
@@ -236,24 +240,22 @@ echo $Server->Name();
             <td class="colSource">&nbsp;</td>
 <?php } ?>
 <?php if ( $show_storage_areas ) { ?>
-			<td class="colStorage"><?php 
-$Storage = new Storage( $monitor['StorageId'] );
-echo $Storage->Name();
-?></td>
+			<td class="colStorage"><?php $Storage = new Storage( $monitor['StorageId'] ); echo $Storage->Name(); ?></td>
 <?php } ?>
 <?php
-    for ( $i = 0; $i < count($eventCounts); $i++ )
-    {
+    for ( $i = 0; $i < count($eventCounts); $i++ ) {
 ?>
             <td class="colEvents"><?php echo makePopupLink( '?view='.$eventsView.'&amp;page=1'.$monitor['eventCounts'][$i]['filter']['query'], $eventsWindow, $eventsView, $monitor['EventCount'.$i], canView( 'Events' ) ) ?></td>
 <?php
     }
 ?>
             <td class="colZones"><?php echo makePopupLink( '?view=zones&amp;mid='.$monitor['Id'], 'zmZones', array( 'zones', $monitor['Width'], $monitor['Height'] ), $monitor['ZoneCount'], $running && canView( 'Monitors' ) ) ?></td>
+<?php if ( canEdit( 'Monitors' ) ) { ?>
             <td class="colMark">
             <input type="checkbox" name="markMids[]" value="<?php echo $monitor['Id'] ?>" onclick="setButtonStates( this )"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
 <span class="glyphicon glyphicon-sort"></span>
             </td>
+<?php } ?>
           </tr>
 <?php
 } # end for eacho monitor

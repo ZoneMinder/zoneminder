@@ -80,6 +80,7 @@ function xhtmlHeaders( $file, $title )
 <?php if ( !in_array($basename, $bad_views) ) { ?>
   <!--<script type="text/javascript" src="js/overlay.js"></script>-->
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery-1.11.3.js"></script>
+<script src="https://code.jquery.com/ui/1.11.3/jquery-ui.js"></script>
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
   <script type="text/javascript">
   //<![CDATA[

@@ -79,8 +79,10 @@ if ( empty($_REQUEST['path']) )
     $errorText = "No image path";
   }
 } else {
-    $path = realpath(ZM_DIR_EVENTS . '/' . $_REQUEST['path']);
-    if(strpos($path, ZM_DIR_EVENTS) == 0 && strpos($path, ZM_DIR_EVENTS) === true) {   
+    $dir_events = realpath(ZM_DIR_EVENTS);
+    $path = realpath($dir_events . '/' . $_REQUEST['path']);
+
+    if(strpos($path, $dir_events) == 0) {   
         if ( !empty($user['MonitorIds']) ) {
             $imageOk = false;
             $pathMonId = substr( $path, 0, strspn( $path, "1234567890" ) );

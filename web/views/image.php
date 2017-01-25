@@ -81,8 +81,9 @@ if ( empty($_REQUEST['path']) )
 } else {
     $dir_events = realpath(ZM_DIR_EVENTS);
     $path = realpath($dir_events . '/' . $_REQUEST['path']);
+    $pos = strpos($path, $dir_events);
 
-    if(strpos($path, $dir_events) == 0) {   
+    if($pos == 0 && $pos !== false) {
         if ( !empty($user['MonitorIds']) ) {
             $imageOk = false;
             $pathMonId = substr( $path, 0, strspn( $path, "1234567890" ) );

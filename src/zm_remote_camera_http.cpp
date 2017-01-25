@@ -380,7 +380,7 @@ int RemoteCameraHttp::GetResponse()
             }
 
             if ( !content_type_expr )
-              content_type_expr = new RegExpr( "Content-type: ?(.+?)(?:; ?boundary=(.+?))?\r?\n", PCRE_CASELESS );
+              content_type_expr = new RegExpr( "Content-type: ?(.+?)(?:; ?boundary=\x22?(.+?)\x22?)?\r?\n", PCRE_CASELESS );
             if ( content_type_expr->Match( header, header_len ) >= 2 )
             {
               content_type = content_type_expr->MatchString( 1 );

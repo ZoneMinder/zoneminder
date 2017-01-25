@@ -1,14 +1,14 @@
 %global zmuid_final apache
 %global zmgid_final apache
 
-# In some cases older distros do not have this macro defined
-%{!?make_build: %global make_build %{__make} %{?_smp_mflags} }
+# Crud is configured as a git submodule
+%global crud_version 3.0.10
 
 %if "%{zmuid_final}" == "nginx"
-    %global with_nginx 1
-    %global wwwconfdir /etc/nginx/default.d
+%global with_nginx 1
+%global wwwconfdir /etc/nginx/default.d
 %else
-    %global wwwconfdir /etc/httpd/conf.d
+%global wwwconfdir /etc/httpd/conf.d
 %endif
 
 %global sslcert %{_sysconfdir}/pki/tls/certs/localhost.crt
@@ -42,38 +42,77 @@ Group: System Environment/Daemons
 # jscalendar is LGPL (any version): http://www.dynarch.com/projects/calendar/
 # Mootools is inder the MIT license: http://mootools.net/
 # CakePHP is under the MIT license: https://github.com/cakephp/cakephp
+# Crud is under the MIT license: https://github.com/FriendsOfCake/crud
 License: GPLv2+ and LGPLv2+ and MIT
 URL: http://www.zoneminder.com/
 
-Source: ZoneMinder-%{version}.tar.gz
+Source0: https://github.com/ZoneMinder/ZoneMinder/archive/v%{version}.tar.gz#/%{name}-%{version}.tar.gz
+Source1: https://github.com/FriendsOfCake/crud/archive/v%{crud_version}.tar.gz#/crud-%{crud_version}.tar.gz
 
-%{?with_init_systemd:BuildRequires: systemd-devel mariadb-devel perl-podlators}
+%{?with_init_systemd:BuildRequires: systemd-devel}
+%{?with_init_systemd:BuildRequires: mariadb-devel}
+%{?with_init_systemd:BuildRequires: perl-podlators}
 %{?with_init_sysv:BuildRequires: mysql-devel}
+%{?el6:BuildRequires: epel-rpm-macros}
 BuildRequires: cmake >= 2.8.7
-BuildRequires: gnutls-devel bzip2-devel
-BuildRequires: pcre-devel libjpeg-turbo-devel
-BuildRequires: perl(Archive::Tar) perl(Archive::Zip)
-BuildRequires: perl(Date::Manip) perl(DBD::mysql)
-BuildRequires: perl(ExtUtils::MakeMaker) perl(LWP::UserAgent)
-BuildRequires: perl(MIME::Entity) perl(MIME::Lite)
-BuildRequires: perl(PHP::Serialization) perl(Sys::Mmap)
-BuildRequires: perl(Time::HiRes) perl(Net::SFTP::Foreign)
-BuildRequires: perl(Expect) perl(Sys::Syslog)
-BuildRequires: gcc gcc-c++ vlc-devel libcurl-devel libv4l-devel
-BuildRequires: ffmpeg-devel polkit-devel
+BuildRequires: gnutls-devel
+BuildRequires: bzip2-devel
+BuildRequires: pcre-devel 
+BuildRequires: libjpeg-turbo-devel
+BuildRequires: findutils
+BuildRequires: coreutils
+BuildRequires: perl
+BuildRequires: perl-generators
+BuildRequires: perl(Archive::Tar)
+BuildRequires: perl(Archive::Zip)
+BuildRequires: perl(Date::Manip)
+BuildRequires: perl(DBD::mysql)
+BuildRequires: perl(ExtUtils::MakeMaker)
+BuildRequires: perl(LWP::UserAgent)
+BuildRequires: perl(MIME::Entity)
+BuildRequires: perl(MIME::Lite)
+BuildRequires: perl(PHP::Serialization)
+BuildRequires: perl(Sys::Mmap)
+BuildRequires: perl(Time::HiRes)
+BuildRequires: perl(Net::SFTP::Foreign)
+BuildRequires: perl(Expect)
+BuildRequires: perl(Sys::Syslog)
+BuildRequires: gcc 
+BuildRequires: gcc-c++
+BuildRequires: vlc-devel
+BuildRequires: libcurl-devel
+BuildRequires: libv4l-devel
+BuildRequires: ffmpeg-devel
+BuildRequires: polkit-devel
 
-%{?with_nginx:Requires: nginx fcgiwrap php-fpm}
-%{!?with_nginx:Requires: httpd}
+%{?with_nginx:Requires: nginx}
+%{?with_nginx:Requires: fcgiwrap}
+%{?with_nginx:Requires: php-fpm}
+%{!?with_nginx:Requires: httpd php}
+%{!?with_nginx:Requires: php}
 %{?with_php_mysqlnd:Requires: php-mysqlnd}
 %{?with_php_mysql:Requires: php-mysql}
-Requires: php-common php-gd cambozola polkit net-tools psmisc
-Requires: libjpeg-turbo vlc-core libcurl ffmpeg
+Requires: php-common
+Requires: php-gd
+Requires: cambozola
+Requires: net-tools
+Requires: psmisc
+Requires: polkit
+Requires: libjpeg-turbo
+Requires: vlc-core
+Requires: ffmpeg
 Requires: perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
-Requires: perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)
-Requires: perl(MIME::Entity) perl(MIME::Lite) perl(Net::SMTP) perl(Net::FTP)
-Requires: perl(LWP::Protocol::https) perl(X10::ActiveHome) perl(Astro::SunTime)
+Requires: perl(DBD::mysql)
+Requires: perl(Archive::Tar)
+Requires: perl(Archive::Zip)
+Requires: perl(MIME::Entity)
+Requires: perl(MIME::Lite)
+Requires: perl(Net::SMTP)
+Requires: perl(Net::FTP)
+Requires: perl(LWP::Protocol::https)
 
-%{?with_init_systemd:Requires(post): systemd systemd-sysv}
+%{?with_init_systemd:Requires(post): systemd}
+%{?with_init_systemd:Requires(post): systemd-sysv}
 %{?with_init_systemd:Requires(preun): systemd}
 %{?with_init_systemd:Requires(postun): systemd}
 
@@ -99,13 +138,16 @@ designed to support as many cameras as you can attach to your computer without
 too much degradation of performance.
 
 %prep
-%autosetup -n ZoneMinder-%{version}
+%autosetup
+%autosetup -a 1
+rmdir ./web/api/app/Plugin/Crud
+mv -f crud-%{crud_version} ./web/api/app/Plugin/Crud
 
 # Change the following default values
 ./utils/zmeditconfigdata.sh ZM_PATH_ZMS /cgi-bin-zm/nph-zms
 ./utils/zmeditconfigdata.sh ZM_OPT_CAMBOZOLA yes
 ./utils/zmeditconfigdata.sh ZM_PATH_SWAP /dev/shm
-./utils/zmeditconfigdata.sh ZM_UPLOAD_FTP_LOC_DIR /var/spool/zoneminder-upload
+./utils/zmeditconfigdata.sh ZM_UPLOAD_FTP_LOC_DIR %{_localstatedir}/spool/zoneminder-upload
 ./utils/zmeditconfigdata.sh ZM_OPT_CONTROL yes
 ./utils/zmeditconfigdata.sh ZM_CHECK_FOR_UPDATES no
 ./utils/zmeditconfigdata.sh ZM_DYN_SHOW_DONATE_REMINDER no
@@ -258,7 +300,25 @@ rm -rf %{_docdir}/%{name}-%{version}
 %attr(755,root,root) %{_initrddir}/zoneminder
 %endif
 
-%{_bindir}/*
+%{_bindir}/zma
+%{_bindir}/zmaudit.pl
+%{_bindir}/zmc
+%{_bindir}/zmcontrol.pl
+%{_bindir}/zmdc.pl
+%{_bindir}/zmf
+%{_bindir}/zmfilter.pl
+%{_bindir}/zmpkg.pl
+%{_bindir}/zmtrack.pl
+%{_bindir}/zmtrigger.pl
+%{_bindir}/zmu
+%{_bindir}/zmupdate.pl
+%{_bindir}/zmvideo.pl
+%{_bindir}/zmwatch.pl
+%{_bindir}/zmcamtool.pl
+%{_bindir}/zmsystemctl.pl
+%{_bindir}/zmtelemetry.pl
+%{_bindir}/zmx10.pl
+%{_bindir}/zmonvif-probe.pl
 
 %{perl_vendorlib}/ZoneMinder*
 %{perl_vendorlib}/ONVIF*
@@ -266,11 +326,9 @@ rm -rf %{_docdir}/%{name}-%{version}
 %{perl_vendorlib}/WSSecurity*
 %{perl_vendorlib}/WSNotification*
 %{_mandir}/man*/*
-%dir %{_libexecdir}/zoneminder
-%{_libexecdir}/zoneminder/cgi-bin
-%dir %{_datadir}/zoneminder
-%{_datadir}/zoneminder/db
-%{_datadir}/zoneminder/www
+
+%{_libexecdir}/zoneminder/
+%{_datadir}/zoneminder/
 
 %{_datadir}/polkit-1/actions/com.zoneminder.systemctl.policy
 %{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
@@ -281,9 +339,9 @@ rm -rf %{_docdir}/%{name}-%{version}
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/sock
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/swap
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/temp
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) /var/log/zoneminder
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) /var/spool/zoneminder-upload
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) %ghost /run/zoneminder
+%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/log/zoneminder
+%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/spool/zoneminder-upload
+%dir %attr(755,%{zmuid_final},%{zmgid_final}) %ghost %{_localstatedir}/run/zoneminder
 
 %changelog
 * Wed Dec 28 2016 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.1-2 

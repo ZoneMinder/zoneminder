@@ -78,24 +78,23 @@ if ( empty($_REQUEST['path']) )
   } else {
     $errorText = "No image path";
   }
-}
-else
-{
-    $path = ZM_DIR_EVENTS . '/' . $_REQUEST['path'];
-    if ( !empty($user['MonitorIds']) )
-    {
-        $imageOk = false;
-        $pathMonId = substr( $path, 0, strspn( $path, "1234567890" ) );
-        foreach ( preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) as $monId )
-        {
-            if ( $pathMonId == $monId )
-            {
-                $imageOk = true;
-                break;
+} else {
+    $path = realpath(ZM_DIR_EVENTS . '/' . $_REQUEST['path']);
+    if(strpos($path, ZM_DIR_EVENTS) == 0 && strpos($path, ZM_DIR_EVENTS) === true) {   
+        if ( !empty($user['MonitorIds']) ) {
+            $imageOk = false;
+            $pathMonId = substr( $path, 0, strspn( $path, "1234567890" ) );
+            foreach ( preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) as $monId ) {
+                if ( $pathMonId == $monId ) {
+                    $imageOk = true;
+                    break;
+                }
             }
+            if ( !$imageOk )
+                $errorText = "No image permissions";
         }
-        if ( !$imageOk )
-            $errorText = "No image permissions";
+    } else {
+            $errorText = "Invalid image path";
     }
 }
 

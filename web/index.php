@@ -15,7 +15,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 error_reporting( E_ALL );
@@ -49,6 +49,7 @@ if ( false )
 require_once( 'includes/config.php' );
 require_once( 'includes/logger.php' );
 require_once( 'includes/Server.php' );
+require_once( 'includes/Storage.php' );
 require_once( 'includes/Monitor.php' );
 
 if ( isset($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] == 'on' )
@@ -109,8 +110,17 @@ define( "ZM_SKIN_PATH", "skins/$skin" );
 $skinBase = array(); // To allow for inheritance of skins
 if ( !file_exists( ZM_SKIN_PATH ) )
     Fatal( "Invalid skin '$skin'" );
-require_once( ZM_SKIN_PATH.'/includes/init.php' );
 $skinBase[] = $skin;
+
+$currentCookieParams = session_get_cookie_params(); 
+Debug('Setting cookie parameters to lifetime('.$currentCookieParams['lifetime'].') path('.$currentCookieParams['path'].') domain ('.$currentCookieParams['domain'].') secure('.$currentCookieParams['secure'].') httpOnly(1)');
+session_set_cookie_params( 
+    $currentCookieParams["lifetime"], 
+    $currentCookieParams["path"], 
+    $currentCookieParams["domain"],
+    $currentCookieParams["secure"], 
+    true
+); 
 
 ini_set( "session.name", "ZMSESSID" );
 

@@ -15,7 +15,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
 // Calling sequence:   ... /zm/index.php?view=image&path=/monid/path/image.jpg&scale=nnn&width=wwww&height=hhhhh
@@ -78,24 +78,26 @@ if ( empty($_REQUEST['path']) )
   } else {
     $errorText = "No image path";
   }
-}
-else
-{
-    $path = ZM_DIR_EVENTS . '/' . $_REQUEST['path'];
-    if ( !empty($user['MonitorIds']) )
-    {
-        $imageOk = false;
-        $pathMonId = substr( $path, 0, strspn( $path, "1234567890" ) );
-        foreach ( preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) as $monId )
-        {
-            if ( $pathMonId == $monId )
-            {
-                $imageOk = true;
-                break;
+} else {
+    $dir_events = realpath(ZM_DIR_EVENTS);
+    $path = realpath($dir_events . '/' . $_REQUEST['path']);
+    $pos = strpos($path, $dir_events);
+
+    if($pos == 0 && $pos !== false) {
+        if ( !empty($user['MonitorIds']) ) {
+            $imageOk = false;
+            $pathMonId = substr( $path, 0, strspn( $path, "1234567890" ) );
+            foreach ( preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) as $monId ) {
+                if ( $pathMonId == $monId ) {
+                    $imageOk = true;
+                    break;
+                }
             }
+            if ( !$imageOk )
+                $errorText = "No image permissions";
         }
-        if ( !$imageOk )
-            $errorText = "No image permissions";
+    } else {
+            $errorText = "Invalid image path";
     }
 }
 

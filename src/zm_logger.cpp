@@ -14,7 +14,7 @@
  * 
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */ 
 
 #include "zm_logger.h"
@@ -618,8 +618,10 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
       snprintf( sql, sizeof(sql), "insert into Logs ( TimeKey, Component, ServerId, Pid, Level, Code, Message, File, Line ) values ( %ld.%06ld, '%s', %d, %d, %d, '%s', '%s', '%s', %d )", timeVal.tv_sec, timeVal.tv_usec, mId.c_str(), staticConfig.SERVER_ID, tid, level, classString, escapedString, file, line );
       if ( mysql_query( &mDbConnection, sql ) )
       {
+        Level tempDatabaseLevel = mDatabaseLevel;
         databaseLevel( NOLOG );
-        Error( "Can't insert log entry: %s", mysql_error( &mDbConnection ) );
+        Error( "Can't insert log entry: sql(%s) error(%s)", sql,  mysql_error( &mDbConnection ) );
+        databaseLevel(tempDatabaseLevel);
       }
     }
     if ( level <= mSyslogLevel )

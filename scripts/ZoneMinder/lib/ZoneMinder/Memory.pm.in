@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # ==========================================================================
 #
@@ -180,7 +180,6 @@ our $mem_data = {
 };
 
 our $mem_size = 0;
-our $mem_verified = {};
 
 sub zmMemInit {
   my $offset = 0;
@@ -249,8 +248,6 @@ sub zmMemVerify {
     return( undef );
   }
 
-  my $mem_key = zmMemKey( $monitor );
-  if ( !defined($mem_verified->{$mem_key}) ) {
     my $sd_size = zmMemRead( $monitor, "shared_data:size", 1 );
     if ( $sd_size != $mem_data->{shared_data}->{size} ) {
       if ( $sd_size ) {
@@ -292,8 +289,11 @@ sub zmMemVerify {
       }
       return( undef );
     }
-    $mem_verified->{$mem_key} = !undef;
-  }
+    if ( !zmMemRead($monitor, "shared_data:valid",1) ) {
+        Error( "Shared data not valid for monitor $$monitor{Id}" );
+        return( undef );
+    }
+
   return( !undef );
 }
 
@@ -366,7 +366,6 @@ sub zmMemInvalidate {
   my $monitor = shift;
   my $mem_key = zmMemKey($monitor);
   if ( $mem_key ) {
-    delete $mem_verified->{$mem_key};
     zmMemDetach( $monitor );
   }
 }

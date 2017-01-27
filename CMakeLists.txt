@@ -2,7 +2,7 @@
 # Created by mastertheknife (Kfir Itzhak)
 # For more information and installation, see the INSTALL file
 #
-cmake_minimum_required (VERSION 2.6)
+cmake_minimum_required (VERSION 2.8.7)
 project (zoneminder)
 file (STRINGS "version" zoneminder_VERSION)
 # make API version a minor of ZM version
@@ -163,6 +163,7 @@ elseif(ZM_TARGET_DISTRO STREQUAL "el6")
 	set(ZM_SOCKDIR "/var/lib/zoneminder/sock")
 	set(ZM_TMPDIR "/var/lib/zoneminder/temp")
 	set(ZM_LOGDIR "/var/log/zoneminder")
+	set(ZM_CONFIG_DIR "/etc/zm")
 	set(ZM_WEBDIR "/usr/share/zoneminder/www")
 	set(ZM_CGIDIR "/usr/libexec/zoneminder/cgi-bin")
 elseif(ZM_TARGET_DISTRO STREQUAL "el7")
@@ -709,7 +710,7 @@ endif(ZM_ONVIF)
 
 # Process distro subdirectories
 if((ZM_TARGET_DISTRO STREQUAL "fc24") OR (ZM_TARGET_DISTRO STREQUAL "fc25"))
-	add_subdirectory(distros/fedora)
+	add_subdirectory(distros/redhat)
 elseif((ZM_TARGET_DISTRO STREQUAL "el6") OR (ZM_TARGET_DISTRO STREQUAL "el7"))
 	add_subdirectory(distros/redhat)
 elseif(ZM_TARGET_DISTRO STREQUAL "OS13")

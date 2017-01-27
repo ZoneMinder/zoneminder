@@ -15,7 +15,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 // Compatibility functions
@@ -483,7 +483,7 @@ function deleteEvent( $event, $mid=false ) {
         $start_date = date_parse( $event['StartTime'] );
         $start_date['year'] = $start_date['year'] % 100;
 
-# So this is  because ZM creates a link under teh day pointing to the time that the event happened. 
+# So this is  because ZM creates a link under the day pointing to the time that the event happened. 
         $eventlink_path = sprintf('%s/%d/%02d/%02d/%02d/.%d', ZM_DIR_EVENTS, $mid, $start_date['year'], $start_date['month'], $start_date['day'], $event['Id'] );
 
         if ( $id_files = glob( $eventlink_path ) ) {
@@ -2131,5 +2131,13 @@ function getStreamHTML( $monitor, $scale=100 ) {
         return getImageStill( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
     }
 } // end function getStreamHTML
+
+function folder_size($dir) {
+    $size = 0;
+    foreach (glob(rtrim($dir, '/').'/*', GLOB_NOSORT) as $each) {
+        $size += is_file($each) ? filesize($each) : folderSize($each);
+    }
+    return $size;
+} // end function folder_size
 
 ?>

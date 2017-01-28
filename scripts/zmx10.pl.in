@@ -474,7 +474,11 @@ sub loadTasks
         or Fatal( "Can't execute: ".$sth->errstr() );
     while( my $monitor = $sth->fetchrow_hashref() )
     {
-        next if ( !zmMemVerify( $monitor ) ); # Check shared memory ok
+# Check shared memory ok
+      if ( !zmMemVerify( $monitor ) ) {
+        zmMemInvalidate( $monitor );
+        next ;
+      }
 
         $monitor_hash{$monitor->{Id}} = $monitor;
 

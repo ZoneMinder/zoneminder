@@ -53,6 +53,7 @@ Source1: https://github.com/FriendsOfCake/crud/archive/v%{crud_version}.tar.gz#/
 %{?with_init_systemd:BuildRequires: mariadb-devel}
 %{?with_init_systemd:BuildRequires: perl-podlators}
 %{?with_init_sysv:BuildRequires: mysql-devel}
+%{?el6:BuildRequires: epel-rpm-macros}
 BuildRequires: cmake >= 2.8.7
 BuildRequires: gnutls-devel
 BuildRequires: bzip2-devel

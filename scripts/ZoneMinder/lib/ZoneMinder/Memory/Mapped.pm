@@ -104,20 +104,21 @@ sub zmMemAttach
             );
             return ( undef );
         }
-        if ( !open( MMAP, "+<", $mmap_file ) )
+        my $MMAP;
+        if ( !open( $MMAP, "+<", $mmap_file ) )
         {
             Error( sprintf( "Can't open memory map file '%s': $!\n", $mmap_file ) );
             return( undef );
         }
         my $mmap = undef;
-        my $mmap_addr = mmap( $mmap, $size, PROT_READ|PROT_WRITE, MAP_SHARED, \*MMAP );
+        my $mmap_addr = mmap( $mmap, $size, PROT_READ|PROT_WRITE, MAP_SHARED, $MMAP );
         if ( !$mmap_addr || !$mmap )
         {
             Error( sprintf( "Can't mmap to file '%s': $!\n", $mmap_file ) );
-            close( MMAP );
+            close( $MMAP );
             return( undef );
         }
-        $monitor->{MMapHandle} = \*MMAP;
+        $monitor->{MMapHandle} = $MMAP;
         $monitor->{MMapAddr} = $mmap_addr;
         $monitor->{MMap} = \$mmap;
     }

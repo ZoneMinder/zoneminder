@@ -342,7 +342,7 @@ CREATE TABLE `Monitors` (
   `Host` varchar(64),
   `Port` varchar(8) NOT NULL default '',
   `SubPath` varchar(64) NOT NULL default '',
-  `Path` varchar(255) NOT NULL default '',
+  `Path` varchar(255),
   `Options` varchar(255),
   `User` varchar(64),
   `Pass` varchar(64),
@@ -398,7 +398,6 @@ CREATE TABLE `Monitors` (
   `WebColour` varchar(32) NOT NULL default 'red',
   `Exif` tinyint(1) unsigned NOT NULL default '0',
   `Sequence` smallint(5) unsigned default NULL,
-  `Orientation` enum('0','90','180','270','hori','vert') NOT NULL default '0',
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 

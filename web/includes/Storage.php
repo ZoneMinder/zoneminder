@@ -65,6 +65,14 @@ class Storage {
   }
   public function disk_usage_percent() {
     $path = $this->Path();
+    if ( ! $path ) {
+      Warning("Storage::disk_usage_percent: path is empty");
+      return 0;
+    } else if ( ! file_exists( $path ) ) {
+      Warning("Storage::disk_usage_percent: path $path does not exist");
+      return 0;
+    }
+      
     $total = disk_total_space( $path );
     if ( ! $total ) {
       Error("disk_total_space returned false for " . $path );

@@ -266,7 +266,13 @@ if ( canView( 'Stream' ) && $cycleCount > 1 ) {
 	  <li><?php echo translate('Storage') ?>: <?php
 
     $storage_areas = Storage::find_all();
+    $storage_paths = null;
+    foreach ( $storage_areas as $area ) {
+      $storage_paths[$area->Path()] = $area;
+    }
+    if ( ! $storage_paths[ZM_DIR_EVENTS] ) {
     array_push( $storage_areas, new Storage() );
+    }
   $func =  function($S){ return $S->Name() . ': ' . $S->disk_usage_percent().'%'; };
 
   echo implode( ', ', array_map ( $func, $storage_areas ) );

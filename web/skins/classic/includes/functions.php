@@ -80,9 +80,9 @@ function xhtmlHeaders( $file, $title )
 <?php if ( !in_array($basename, $bad_views) ) { ?>
   <!--<script type="text/javascript" src="js/overlay.js"></script>-->
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery-1.11.3.js"></script>
-<script src="https://code.jquery.com/ui/1.11.3/jquery-ui.js"></script>
+  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery-ui.js"></script>
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
-  <script type="text/javascript">
+<script type="text/javascript">
   //<![CDATA[
   <!--
 var $j = jQuery.noConflict();
@@ -266,7 +266,13 @@ if ( canView( 'Stream' ) && $cycleCount > 1 ) {
 	  <li><?php echo translate('Storage') ?>: <?php
 
     $storage_areas = Storage::find_all();
-    array_push( $storage_areas, new Storage() );
+    $storage_paths = null;
+    foreach ( $storage_areas as $area ) {
+      $storage_paths[$area->Path()] = $area;
+    }
+    if ( ! isset($storage_paths[ZM_DIR_EVENTS]) ) {
+		array_push( $storage_areas, new Storage() );
+    }
   $func =  function($S){ return $S->Name() . ': ' . $S->disk_usage_percent().'%'; };
 
   echo implode( ', ', array_map ( $func, $storage_areas ) );

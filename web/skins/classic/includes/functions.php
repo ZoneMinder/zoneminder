@@ -270,8 +270,8 @@ if ( canView( 'Stream' ) && $cycleCount > 1 ) {
     foreach ( $storage_areas as $area ) {
       $storage_paths[$area->Path()] = $area;
     }
-    if ( ! $storage_paths[ZM_DIR_EVENTS] ) {
-    array_push( $storage_areas, new Storage() );
+    if ( ! isset($storage_paths[ZM_DIR_EVENTS]) ) {
+		array_push( $storage_areas, new Storage() );
     }
   $func =  function($S){ return $S->Name() . ': ' . $S->disk_usage_percent().'%'; };
 

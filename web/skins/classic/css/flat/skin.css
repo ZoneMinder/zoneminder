@@ -95,7 +95,7 @@ input,textarea,select,button {
     color: #333333;
 }
 
-input[type=text], input[type=password], textarea, select {
+input[type=text], input[type=password], input[type="url"], textarea, select {
     padding: 1px;
 }
 
@@ -359,6 +359,7 @@ th.table-th-sort-rev span.table-th-sort-span {
 }
 
 #header {
+    width: 96%;
     line-height: 24px;
     text-align: left;
     background-color: #383836;

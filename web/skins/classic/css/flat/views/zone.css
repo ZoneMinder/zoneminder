@@ -98,7 +98,7 @@
 	stroke-width: 0;
 }
 .zones polygon.Editing {
-	stroke-width: 2px;
+  stroke-width: 2px;
 }
 .Active {
 	stroke: #ff0000;

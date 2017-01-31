@@ -21,7 +21,3 @@ input.large {
 #contentTable.userTable .colMonitor, #contentTable.userTable .colUsername {
     text-align: left;
 }
-
-body {
-    padding-top:81px;
-}

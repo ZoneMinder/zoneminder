@@ -240,7 +240,7 @@ elseif ( $tab == "users" )
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
         <input type="hidden" name="action" value="delete"/>
         <input type="hidden" name="object" value="storage"/>
-        <table id="contentTable" class="major storageTable" cellspacing="0">
+        <table id="contentTable" class="table table-striped" cellspacing="0">
           <thead>
             <tr>
               <th class="colId"><?php echo translate('Id') ?></th>

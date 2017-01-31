@@ -386,13 +386,13 @@ find_library(MYSQLCLIENT_LIBRARIES mysqlclient PATH_SUFFIXES mysql)
 if(MYSQLCLIENT_LIBRARIES)
 	set(HAVE_LIBMYSQLCLIENT 1)
 	list(APPEND ZM_BIN_LIBS "${MYSQLCLIENT_LIBRARIES}")
-	find_path(MYSQLCLIENT_INCLUDE_DIR mysql/mysql.h)
+	find_path(MYSQLCLIENT_INCLUDE_DIR mysql.h /usr/local/include/mysql /usr/include/mysql)
 	if(MYSQLCLIENT_INCLUDE_DIR)
 		include_directories("${MYSQLCLIENT_INCLUDE_DIR}")
 		set(CMAKE_REQUIRED_INCLUDES "${MYSQLCLIENT_INCLUDE_DIR}")
 	endif(MYSQLCLIENT_INCLUDE_DIR)
 	mark_as_advanced(FORCE MYSQLCLIENT_LIBRARIES MYSQLCLIENT_INCLUDE_DIR)
-	check_include_file("mysql/mysql.h" HAVE_MYSQL_H)
+	check_include_file("mysql.h" HAVE_MYSQL_H)
 	if(NOT HAVE_MYSQL_H)
 		message(FATAL_ERROR 
                     "ZoneMinder requires MySQL headers - check that MySQL development packages are installed")
@@ -660,11 +660,13 @@ message(STATUS "Using web user: ${ZM_WEB_USER}")
 message(STATUS "Using web group: ${ZM_WEB_GROUP}")
 
 # Check for polkit
-find_package(Polkit)
-if(NOT POLKIT_FOUND)
-	message(FATAL_ERROR 
-            "Running ZoneMinder requires polkit. Building ZoneMinder requires the polkit development package.")
-endif(NOT POLKIT_FOUND)
+if(NOT BSD)
+    find_package(Polkit)
+    if(NOT POLKIT_FOUND)
+        message(FATAL_ERROR
+                "Running ZoneMinder requires polkit. Building ZoneMinder requires the polkit development package.")
+    endif(NOT POLKIT_FOUND)
+endif(NOT BSD)
 
 # Some variables that zm expects
 set(ZM_PID "${ZM_RUNDIR}/zm.pid")

@@ -31,9 +31,9 @@
 #include <signal.h>
 #include <stdarg.h>
 #include <errno.h>
+#include <libgen.h>
 #ifdef __FreeBSD__
 #include <sys/thr.h>
-#include <libgen.h>
 #endif
 
 bool Logger::smInitialised = false;
@@ -515,8 +515,9 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
     va_list     argPtr;
     struct timeval  timeVal;
 
-    const char * const file = basename(filepath);
-    
+    char *filecopy = strdup(filepath);
+    const char * const file = basename(filecopy);
+
     if ( level < PANIC || level > DEBUG9 )
       Panic( "Invalid logger level %d", level );
 
@@ -630,6 +631,8 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
       //priority |= LOG_DAEMON;
       syslog( priority, "%s [%s]", classString, syslogStart );
     }
+
+    free(filecopy);
 
     if ( level <= FATAL )
     {

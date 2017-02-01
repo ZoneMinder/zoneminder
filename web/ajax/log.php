@@ -76,7 +76,7 @@ switch ( $_REQUEST['task'] )
         }
 
         foreach ( $filter as $field=>$value ) {
-          if ( ! in_array( $field, $fileFields ) ) {
+          if ( ! in_array( $field, $filterFields ) ) {
             Error("$field is not in valid filter fields");
             continue;
           }

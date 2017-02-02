@@ -82,7 +82,7 @@ function xhtmlHeaders( $file, $title )
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery-1.11.3.js"></script>
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery-ui-1.11.3.js"></script>
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
-<script type="text/javascript">
+  <script type="text/javascript">
   //<![CDATA[
   <!--
 var $j = jQuery.noConflict();
@@ -263,18 +263,17 @@ if ( canView( 'Stream' ) && $cycleCount > 1 ) {
   </div>
   <ul class="list-inline">
 	  <li><?php echo translate('Load') ?>: <?php echo getLoad() ?></li>
-	  <li><?php echo translate('Storage') ?>: <?php
-
-    $storage_areas = Storage::find_all();
-    $storage_paths = null;
-    foreach ( $storage_areas as $area ) {
-      $storage_paths[$area->Path()] = $area;
-    }
-    if ( ! isset($storage_paths[ZM_DIR_EVENTS]) ) {
-		array_push( $storage_areas, new Storage() );
-    }
+	  <li><?php echo translate('Storage') ?>:
+<?php
+  $storage_areas = Storage::find_all();
+  $storage_paths = null;
+  foreach ( $storage_areas as $area ) {
+    $storage_paths[$area->Path()] = $area;
+  }
+  if ( ! isset($storage_paths[ZM_DIR_EVENTS]) ) {
+    array_push( $storage_areas, new Storage() );
+  }
   $func =  function($S){ return $S->Name() . ': ' . $S->disk_usage_percent().'%'; };
-
   echo implode( ', ', array_map ( $func, $storage_areas ) );
   echo ' ' . ZM_PATH_MAP .': '. getDiskPercent(ZM_PATH_MAP).'%';
 ?></li>

@@ -178,7 +178,7 @@ bool Monitor::MonitorLink::disconnect() {
     connected = false;
 
 #if ZM_MEM_MAPPED
-    if ( mem_ptr > 0 ) {
+    if ( mem_ptr > (void *)0 ) {
       msync( mem_ptr, mem_size, MS_ASYNC );
       munmap( mem_ptr, mem_size );
     }

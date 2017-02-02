@@ -375,7 +375,7 @@ th.table-th-sort-rev span.table-th-sort-span {
 }
 
 #header {
-    width: 96%;
+    width: 100%;
     line-height: 24px;
     text-align: left;
     margin-bottom: 10px;
@@ -514,22 +514,26 @@ input[type=submit]:disabled {
   font-size: 20px;
 }
 
+.container-fluid {
+  position: relative;
+}
+
 .sidebar {
-    position: fixed;
-    top: 81px;
-    bottom: 0;
-    left: 0;
-    z-index: 1000;
-    display: block;
-    padding: 20px;
-    overflow-x: hidden;
-    overflow-y: auto;
-    border-right: 1px solid #eeeeee;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1000;
+  display: block;
+  padding: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border-right: 1px solid #eeeeee;
 }
 
 .sidebar ul {
-margin-right: -21px;
-margin-bottom: 20px;
-margin-left: -20px;
+  margin-right: 0;
+  margin-bottom: 20px;
+  margin-left: 0;
 }
 

@@ -351,7 +351,7 @@ th.table-th-sort-rev span.table-th-sort-span {
 }
 
 #header {
-    width: 96%;
+    width: 100%;
     line-height: 24px;
     margin: 8px auto;
     text-align: left;
@@ -461,14 +461,18 @@ th.table-th-sort-rev span.table-th-sort-span {
 	font-size: 20px;
 }
 
+.container-fluid {
+  position: relative;
+}
+
 .sidebar {
-    position: fixed;
-    top: 87px;
+    position: absolute;
+    top: 0;
     bottom: 0;
     left: 0;
     z-index: 1000;
     display: block;
-    padding: 20px;
+    padding: 0;
     overflow-x: hidden;
     overflow-y: auto;
     background-color: #f5f5f5;
@@ -476,9 +480,9 @@ th.table-th-sort-rev span.table-th-sort-span {
 }
 
 .sidebar ul {
-margin-right: -21px;
+margin-right: 0px;
 margin-bottom: 20px;
-margin-left: -20px;
+margin-left: 0px;
 }
 
 .nav-pills > li > a {

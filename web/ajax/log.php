@@ -1,5 +1,9 @@
 <?php
 
+# Moved up here because it is used in several spots.
+# These are the valid columns that you can filter on.
+$filterFields = array( 'Component', 'ServerId', 'Pid', 'Level', 'File', 'Line' );
+
 switch ( $_REQUEST['task'] )
 {
     case 'create' :
@@ -31,68 +35,85 @@ switch ( $_REQUEST['task'] )
         if ( !canView( 'System' ) )
             ajaxError( 'Insufficient permissions to view log entries' );
 
-		$servers = Server::find_all();
-		$servers_by_Id = array();
-		# There is probably a better way to do this.
-		foreach ( $servers as $server ) {
-			$servers_by_Id[$server->Id()] = $server;
-		}
+        $servers = Server::find_all();
+        $servers_by_Id = array();
+# There is probably a better way to do this.
+        foreach ( $servers as $server ) {
+          $servers_by_Id[$server->Id()] = $server;
+        }
 
         $minTime = isset($_POST['minTime'])?$_POST['minTime']:NULL;
         $maxTime = isset($_POST['maxTime'])?$_POST['maxTime']:NULL;
-        $limit = isset($_POST['limit'])?$_POST['limit']:100;
-        $filter = isset($_POST['filter'])?$_POST['filter']:array();
-        $sortField = isset($_POST['sortField'])?$_POST['sortField']:'TimeKey';
+        $limit = 100;
+        if ( isset($_POST['limit']) ) {
+          if ( ( !is_integer( $_POST['limit'] ) and !ctype_digit($_POST['limit']) ) ) {
+            Error("Invalid value for limit " . $_POST['limit'] );
+          } else {
+            $limit = $_POST['limit'];
+          }
+        }
+        $sortField = 'TimeKey';
+        if ( isset($_POST['sortField']) ) {
+          if ( ! in_array( $_POST['sortField'], $filterFields ) and ( $_POST['sortField'] != 'TimeKey' ) ) {
+            Error("Invalid sort field " . $_POST['sortField'] );
+          } else {
+            $sortField = $_POST['sortField'];
+          }
+        }
         $sortOrder = (isset($_POST['sortOrder']) and $_POST['sortOrder']) == 'asc' ? 'asc':'desc';
+        $filter = isset($_POST['filter'])?$_POST['filter']:array();
 
-        $filterFields = array( 'Component', 'ServerId', 'Pid', 'Level', 'File', 'Line' );
-
-        $total = dbFetchOne( "SELECT count(*) AS Total FROM Logs", 'Total' );
+        $total = dbFetchOne( 'SELECT count(*) AS Total FROM Logs', 'Total' );
         $sql = 'SELECT * FROM Logs';
         $where = array();
-		$values = array();
+        $values = array();
         if ( $minTime ) {
-            $where[] = "TimeKey > ?";
-			$values[] = $minTime;
+          $where[] = "TimeKey > ?";
+          $values[] = $minTime;
         } elseif ( $maxTime ) {
-            $where[] = "TimeKey < ?";
-			$values[] = $maxTime;
-		}
+          $where[] = "TimeKey < ?";
+          $values[] = $maxTime;
+        }
+
         foreach ( $filter as $field=>$value ) {
-            if ( $field == 'Level' ){
-                $where[] = $field." <= ?";
-				$values[] = $value;
-            } else {
-                $where[] = $field." = ?";
-				$values[] = $value;
-			}
-		}
+          if ( ! in_array( $field, $filterFields ) ) {
+            Error("$field is not in valid filter fields");
+            continue;
+          }
+          if ( $field == 'Level' ){
+            $where[] = $field." <= ?";
+            $values[] = $value;
+          } else {
+            $where[] = $field." = ?";
+            $values[] = $value;
+          }
+        }
         if ( count($where) )
-            $sql.= ' WHERE '.join( ' AND ', $where );
+          $sql.= ' WHERE '.join( ' AND ', $where );
         $sql .= " order by ".$sortField." ".$sortOrder." limit ".$limit;
         $logs = array();
         foreach ( dbFetchAll( $sql, NULL, $values ) as $log ) {
             $log['DateTime'] = preg_replace( '/^\d+/', strftime( "%Y-%m-%d %H:%M:%S", intval($log['TimeKey']) ), $log['TimeKey'] );
-			$log['Server'] = ( $log['ServerId'] and isset($servers_by_Id[$log['ServerId']]) ) ? $servers_by_Id[$log['ServerId']]->Name() : '';
+            $log['Server'] = ( $log['ServerId'] and isset($servers_by_Id[$log['ServerId']]) ) ? $servers_by_Id[$log['ServerId']]->Name() : '';
             $logs[] = $log;
         }
         $options = array();
         $where = array();
-		$values = array();
+        $values = array();
         foreach( $filter as $field=>$value ) {
             if ( $field == 'Level' ) {
                 $where[$field] = $field." <= ?";
-				$values[$field] = $value;
+                $values[$field] = $value;
             } else {
                 $where[$field] = $field." = ?";
-				$values[$field] = $value;
-			} 
-		}
+                $values[$field] = $value;
+            } 
+        }
         foreach( $filterFields as $field )
         {
             $sql = "SELECT DISTINCT $field FROM Logs WHERE NOT isnull($field)";
             $fieldWhere = array_diff_key( $where, array( $field=>true ) );
-			$fieldValues = array_diff_key( $values, array( $field=>true ) );
+            $fieldValues = array_diff_key( $values, array( $field=>true ) );
             if ( count($fieldWhere) )
                 $sql.= " AND ".join( ' AND ', $fieldWhere );
             $sql.= " ORDER BY $field ASC";
@@ -108,7 +129,7 @@ switch ( $_REQUEST['task'] )
             {
                 foreach( dbFetchAll( $sql, $field, array_values($fieldValues) ) as $value )
                         $options['ServerId'][$value] = ( $value and isset($servers_by_Id[$value]) ) ? $servers_by_Id[$value]->Name() : '';
-				
+
             }
             else
             {
@@ -147,44 +168,51 @@ switch ( $_REQUEST['task'] )
         }
         //$limit = isset($_POST['limit'])?$_POST['limit']:1000;
         $filter = isset($_POST['filter'])?$_POST['filter']:array();
-        $sortField = isset($_POST['sortField'])?$_POST['sortField']:'TimeKey';
-        $sortOrder = isset($_POST['sortOrder'])?$_POST['sortOrder']:'asc';
+        $sortField = 'TimeKey';
+        if ( isset($_POST['sortField']) ) {
+          if ( ! in_array( $_POST['sortField'], $filterFields ) and ( $_POST['sortField'] != 'TimeKey' ) ) {
+            Error("Invalid sort field " . $_POST['sortField'] );
+          } else {
+            $sortField = $_POST['sortField'];
+          }
+        }
+        $sortOrder = (isset($_POST['sortOrder']) and $_POST['sortOrder']) == 'asc' ? 'asc':'desc';
 
-		$servers = Server::find_all();
-		$servers_by_Id = array();
-		# There is probably a better way to do this.
-		foreach ( $servers as $server ) {
-			$servers_by_Id[$server->Id()] = $server;
-		}
+        $servers = Server::find_all();
+        $servers_by_Id = array();
+        # There is probably a better way to do this.
+        foreach ( $servers as $server ) {
+          $servers_by_Id[$server->Id()] = $server;
+        }
 
         $sql = "select * from Logs";
         $where = array();
-		$values = array();
+        $values = array();
         if ( $minTime )
         {
             preg_match( '/(.+)(\.\d+)/', $minTime, $matches );
             $minTime = strtotime($matches[1]).$matches[2];
             $where[] = "TimeKey >= ?";
-			$values[] = $minTime;
+            $values[] = $minTime;
         }
         if ( $maxTime )
         {
             preg_match( '/(.+)(\.\d+)/', $maxTime, $matches );
             $maxTime = strtotime($matches[1]).$matches[2];
             $where[] = "TimeKey <= ?";
-			$values[] = $maxTime;
+            $values[] = $maxTime;
         }
         foreach ( $filter as $field=>$value ) {
             if ( $value != '' ) {
                 if ( $field == 'Level' ) {
                     $where[] = $field." <= ?";
-					$values[] = $value;
+                    $values[] = $value;
                 } else {
                     $where[] = $field." = ?'";
-					$values[] = $value;
-				}
-			}
-		}
+                    $values[] = $value;
+                }
+            }
+        }
         if ( count($where) )
             $sql.= " where ".join( " and ", $where );
         $sql .= " order by ".$sortField." ".$sortOrder;
@@ -216,7 +244,7 @@ switch ( $_REQUEST['task'] )
         foreach ( dbFetchAll( $sql, NULL, $values ) as $log )
         {
             $log['DateTime'] = preg_replace( '/^\d+/', strftime( "%Y-%m-%d %H:%M:%S", intval($log['TimeKey']) ), $log['TimeKey'] );
-			$log['Server'] = ( $log['ServerId'] and isset($servers_by_Id[$log['ServerId']]) ) ? $servers_by_Id[$log['ServerId']]->Name() : '';
+            $log['Server'] = ( $log['ServerId'] and isset($servers_by_Id[$log['ServerId']]) ) ? $servers_by_Id[$log['ServerId']]->Name() : '';
             $logs[] = $log;
         }
         switch( $format )
@@ -234,20 +262,20 @@ switch ( $_REQUEST['task'] )
             }
             case 'tsv' :
             {
-				# This line doesn't need fprintf, it could use fwrite
+# This line doesn't need fprintf, it could use fwrite
                 fprintf( $exportFP, join( "\t",
-					translate('DateTime'),
-					translate('Component'),
-					translate('Server'),
-					translate('Pid'),
-					translate('Level'),
-					translate('Message'),
-					translate('File'),
-					translate('Line')
-					   )."\n" );
+											translate('DateTime'),
+											translate('Component'),
+											translate('Server'),
+											translate('Pid'),
+											translate('Level'),
+											translate('Message'),
+											translate('File'),
+											translate('Line')
+											)."\n" );
                 foreach ( $logs as $log )
                 {
-					fprintf( $exportFP, "%s\t%s\t%s\t%d\t%s\t%s\t%s\t%s\n", $log['DateTime'], $log['Component'], $log['Server'], $log['Pid'], $log['Code'], $log['Message'], $log['File'], $log['Line'] );
+									fprintf( $exportFP, "%s\t%s\t%s\t%d\t%s\t%s\t%s\t%s\n", $log['DateTime'], $log['Component'], $log['Server'], $log['Pid'], $log['Code'], $log['Message'], $log['File'], $log['Line'] );
                 }
                 break;
             }

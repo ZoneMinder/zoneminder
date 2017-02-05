@@ -905,11 +905,11 @@ $OLANG = array(
 		          "\"loglevel=debug\" Set verbosity of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
 	),
         'OPTIONS_RTSPTrans' => array(
-		'Help' => "This sets the lower RTSP Transport Protocol for FFmpeg.~~ ".
-                          "TCP - Use TCP (interleaving within the RTSP control channel) as lower transport protocol.~~".
-                          "UDP - Use UDP as lower transport protocol~~".
-                          "UDP Multicast - Use UDP Multicast as lower transport protocol~~".
-                          "HTTP - Use HTTP tunneling as lower transport protocol, which is useful for passing proxies.~~"
+		'Help' => "This sets the RTSP Transport Protocol for FFmpeg.~~ ".
+                          "TCP - Use TCP (interleaving within the RTSP control channel) as transport protocol.~~".
+                          "UDP - Use UDP as transport protocol. Higher resolution cameras have experienced some 'smearing' while using UDP, if so try TCP~~".
+                          "UDP Multicast - Use UDP Multicast as transport protocol~~".
+                          "HTTP - Use HTTP tunneling as transport protocol, which is useful for passing proxies.~~"
 	),
 	'OPTIONS_LIBVLC' => array(
 		'Help' => "Parameters in this field are passed on to libVLC. Multiple parameters can be separated by ,~~ ".

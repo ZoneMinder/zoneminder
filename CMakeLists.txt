@@ -85,7 +85,8 @@ mark_as_advanced(
     ZM_PERL_MM_PARMS 
     ZM_PERL_SEARCH_PATH 
     ZM_TARGET_DISTRO 
-    ZM_CONFIG_DIR)
+    ZM_CONFIG_DIR
+    ZM_SYSTEMD)
 
 set(ZM_RUNDIR "/var/run/zm" CACHE PATH 
     "Location of transient process files, default: /var/run/zm")
@@ -148,6 +149,8 @@ set(ZM_PERL_SEARCH_PATH "" CACHE PATH
 	installed outside Perl's default search path.")
 set(ZM_TARGET_DISTRO "" CACHE STRING 
     "Build ZoneMinder for a specific distribution.  Currently, valid names are: fc24, fc25, el6, el7, OS13, FreeBSD")
+set(ZM_SYSTEMD "OFF" CACHE BOOL 
+    "Set to ON to force building ZM with systemd support. default: OFF")
 
 # Reassign some variables if a target distro has been specified
 if((ZM_TARGET_DISTRO STREQUAL "fc24") OR (ZM_TARGET_DISTRO STREQUAL "fc25"))
@@ -204,6 +207,11 @@ set(CMAKE_EXTRA_INCLUDE_FILES
 include_directories("${CMAKE_BINARY_DIR}")
 # This is required to enable searching in lib64 (if exists), do not change
 set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS ON)
+
+# Set the systemd flag if systemd is autodetected or ZM_SYSTEMD has been set
+if(ZM_SYSTEMD OR (IS_DIRECTORY /usr/lib/systemd/system) OR (IS_DIRECTORY /lib/systemd/system))
+    set(WITH_SYSTEMD 1)
+endif(ZM_SYSTEMD OR (IS_DIRECTORY /usr/lib/systemd/system) OR (IS_DIRECTORY /lib/systemd/system))
 
 # System checks
 check_include_file("libv4l1-videodev.h" HAVE_LIBV4L1_VIDEODEV_H)
@@ -659,14 +667,14 @@ endif(NOT ZM_WEB_GROUP)
 message(STATUS "Using web user: ${ZM_WEB_USER}")
 message(STATUS "Using web group: ${ZM_WEB_GROUP}")
 
-# Check for polkit
-if(NOT BSD)
+if(WITH_SYSTEMD)
+    # Check for polkit
     find_package(Polkit)
     if(NOT POLKIT_FOUND)
-        message(FATAL_ERROR
+	    message(FATAL_ERROR 
                 "Running ZoneMinder requires polkit. Building ZoneMinder requires the polkit development package.")
     endif(NOT POLKIT_FOUND)
-endif(NOT BSD)
+endif(WITH_SYSTEMD)
 
 # Some variables that zm expects
 set(ZM_PID "${ZM_RUNDIR}/zm.pid")

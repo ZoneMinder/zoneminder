@@ -222,7 +222,7 @@ bool Monitor::MonitorLink::disconnect()
       }
     }
 
-    if ( shmdt( mem_ptr ) < (void *)0 )
+    if ( shmdt( mem_ptr ) < 0 )
     {
       Debug( 3, "Can't shmdt: %s", strerror(errno) );
       return( false );

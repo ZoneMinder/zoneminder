@@ -81,7 +81,7 @@ BuildRequires: polkit-devel
 %{?with_nginx:Requires: nginx}
 %{?with_nginx:Requires: fcgiwrap}
 %{?with_nginx:Requires: php-fpm}
-%{!?with_nginx:Requires: httpd php}
+%{!?with_nginx:Requires: httpd}
 %{!?with_nginx:Requires: php}
 Requires: php-mysqli
 Requires: php-common

@@ -24,19 +24,12 @@
 %global with_init_sysv 1
 %endif
 
-# php-mysql deprecated in f25
-%if 0%{?fedora} >= 25
-%global with_php_mysqlnd 1
-%else
-%global with_php_mysql 1
-%endif
-
 %global readme_suffix %{?rhel:Redhat%{?rhel}}%{!?rhel:Fedora}
 %global _hardened_build 1
 
 Name: zoneminder
-Version: 1.30.1
-Release: 2%{?dist}
+Version: 1.30.2
+Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
 # jscalendar is LGPL (any version): http://www.dynarch.com/projects/calendar/
@@ -90,8 +83,7 @@ BuildRequires: polkit-devel
 %{?with_nginx:Requires: php-fpm}
 %{!?with_nginx:Requires: httpd php}
 %{!?with_nginx:Requires: php}
-%{?with_php_mysqlnd:Requires: php-mysqlnd}
-%{?with_php_mysql:Requires: php-mysql}
+Requires: php-mysqli
 Requires: php-common
 Requires: php-gd
 Requires: cambozola
@@ -344,6 +336,9 @@ rm -rf %{_docdir}/%{name}-%{version}
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %ghost %{_localstatedir}/run/zoneminder
 
 %changelog
+* Wed Feb 08 2017 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.2-1
+- Bump version for 1.30.2 release
+
 * Wed Dec 28 2016 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.1-2 
 - Changes from rpmfusion #4393
 

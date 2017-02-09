@@ -6,9 +6,9 @@
 
 %if "%{zmuid_final}" == "nginx"
 %global with_nginx 1
-%global wwwconfdir /etc/nginx/default.d
+%global wwwconfdir %{_sysconfdir}/nginx/default.d
 %else
-%global wwwconfdir /etc/httpd/conf.d
+%global wwwconfdir %{_sysconfdir}/httpd/conf.d
 %endif
 
 %global sslcert %{_sysconfdir}/pki/tls/certs/localhost.crt
@@ -274,9 +274,9 @@ rm -rf %{_docdir}/%{name}-%{version}
 %files
 %license COPYING
 %doc AUTHORS README.md distros/redhat/readme/README.%{readme_suffix} distros/redhat/readme/README.https distros/redhat/jscalendar-doc
-%config(noreplace) %attr(640,root,%{zmgid_final}) /etc/zm/zm.conf
+%config(noreplace) %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm/zm.conf
 %config(noreplace) %attr(644,root,root) %{wwwconfdir}/zoneminder.conf
-%config(noreplace) /etc/logrotate.d/zoneminder
+%config(noreplace) %{_sysconfdir}/logrotate.d/zoneminder
 
 %if 0%{?with_nginx}
 %config(noreplace) %{_sysconfdir}/php-fpm.d/zoneminder.conf

@@ -119,9 +119,6 @@ Debug( "$path does not exist");
     }
   } else {
     $errorText = "Invalid image path";
-    }
-    if ( !$imageOk )
-      $errorText = 'No image permissions';
   }
   if ( ! file_exists( $path ) ) {
     header('HTTP/1.0 404 Not Found');

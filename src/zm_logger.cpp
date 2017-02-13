@@ -521,8 +521,6 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
         if ( level < PANIC || level > DEBUG9 )
             Panic( "Invalid logger level %d", level );
 
-        strncpy( classString, smCodes[level].c_str(), sizeof(classString) );
-
         gettimeofday( &timeVal, NULL );
 
     #if 0
@@ -571,7 +569,7 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
                     timeString,
                     mId.c_str(),
                     tid,
-                    classString,
+                    smCodes[level].c_str(),
                     file,
                     line
                 );

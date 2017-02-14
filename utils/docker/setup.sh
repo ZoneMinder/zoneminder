@@ -1,7 +1,10 @@
 #!/bin/bash
 
 # Start MySQL
-/usr/bin/mysqld_safe & 
+# For Xenial the following won't start mysqld
+#/usr/bin/mysqld_safe & 
+# Use this instead:
+service mysql start
 
 # Give MySQL time to wake up
 SECONDS_LEFT=120

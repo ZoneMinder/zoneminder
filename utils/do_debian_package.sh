@@ -87,6 +87,9 @@ else
       echo "Defaulting to master branch";
       BRANCH="master";
     fi;
+    if [ "$SNAPSHOT" == "NOW" ]; then
+      SNAPSHOT=`date +%Y%m%d%H%M%S`;
+    fi;
   fi;
 fi
 

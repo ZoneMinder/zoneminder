@@ -572,7 +572,7 @@ CREATE TABLE `Storage` (
 --
 -- Create a default storage location
 --
-insert into Storage VALUES (NULL, '/var/lib/zoneminder/events', 'Default' );
+insert into Storage VALUES (NULL, '/var/cache/zoneminder/events', 'Default' );
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;

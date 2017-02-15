@@ -80,10 +80,15 @@ if [ "${OS}" == "el" ] || [ "${OS}" == "fedora" ]; then
 elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ]; then
     echo "Begin Debian build..."
 
-    # Uncompress the Crud tarball and move it into place    
-    tar -xzf build/crud-${CRUDVER}.tar.gz
-    rmdir web/api/app/Plugin/Crud
-    mv -f crud-${CRUDVER} web/api/app/Plugin/Crud
+    # Uncompress the Crud tarball and move it into place
+    if [ -e "web/api/app/Plugin/Crud/LICENSE.txt" ]; then
+        echo "Crud plugin already installed..."
+    else     
+        echo "Unpacking Crud plugin..."
+        tar -xzf build/crud-${CRUDVER}.tar.gz
+        rmdir web/api/app/Plugin/Crud
+        mv -f crud-${CRUDVER} web/api/app/Plugin/Crud
+    fi
 
     if [ ${DIST} == "trusty" ] || [ ${DIST} == "precise" ]; then
         ln -sf distros/ubuntu1204 debian

@@ -832,9 +832,9 @@ function packageControl( $command ) {
 function daemonControl( $command, $daemon=false, $args=false ) {
   $string = ZM_PATH_BIN."/zmdc.pl $command";
   if ( $daemon ) {
-    $string .= " $daemon";
+    $string .= escapeshellarg(" $daemon");
     if ( $args ) {
-      $string .= " $args";
+      $string .= escapeshellarg(" $args");
     }
   }
   $string .= " 2>/dev/null >&- <&- >/dev/null";
@@ -944,9 +944,9 @@ function zmaStatus( $monitor ) {
 function daemonCheck( $daemon=false, $args=false ) {
   $string = ZM_PATH_BIN."/zmdc.pl check";
   if ( $daemon ) {
-    $string .= " $daemon";
+    $string .= escapeshellarg(" $daemon");
     if ( $args )
-      $string .= " $args";
+      $string .= escapeshellarg(" $args");
   }
   $result = exec( $string );
   return( preg_match( '/running/', $result ) );
@@ -1447,7 +1447,7 @@ function getDiskPercent($path = ZM_DIR_EVENTS) {
 }
 
 function getDiskBlocks() {
-  $df = shell_exec( 'df '.ZM_DIR_EVENTS );
+  $df = shell_exec( 'df '.escapeshellarg(ZM_DIR_EVENTS) );
   $space = -1;
   if ( preg_match( '/\s(\d+)\s+\d+\s+\d+%/ms', $df, $matches ) )
     $space = $matches[1];

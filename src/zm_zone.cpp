@@ -270,7 +270,11 @@ bool Zone::CheckAlarms( const Image *delta_image )
     return (false);
   }
   
-  score = (100*alarm_pixels)/polygon.Area();
+  if (max_alarm_pixels != 0) 
+    score = (100*alarm_pixels)/max_alarm_pixels;
+  else
+    score = (100*alarm_pixels)/polygon.Area();
+
   if(score < 1)
     score = 1; /* Fix for score of 0 when frame meets thresholds but alarmed area is not big enough */
   Debug( 5, "Current score is %d", score );
@@ -364,8 +368,12 @@ bool Zone::CheckAlarms( const Image *delta_image )
       /* No filtered pixels */
       return (false);
     }
-    
-    score = (100*alarm_filter_pixels)/(polygon.Area());
+
+    if (max_filter_pixels != 0)
+      score = (100*alarm_filter_pixels)/(max_filter_pixels);
+    else
+      score = (100*alarm_filter_pixels)/polygon.Area();
+
     if(score < 1)
       score = 1; /* Fix for score of 0 when frame meets thresholds but alarmed area is not big enough */
     Debug( 5, "Current score is %d", score );
@@ -664,7 +672,11 @@ bool Zone::CheckAlarms( const Image *delta_image )
         return (false);
       }
       
-      score = (100*alarm_blob_pixels)/(polygon.Area());
+      if (max_blob_pixels != 0)
+         score = (100*alarm_blob_pixels)/(max_blob_pixels);
+       else 
+         score = (100*alarm_blob_pixels)/polygon.Area();
+
       if(score < 1)
         score = 1; /* Fix for score of 0 when frame meets thresholds but alarmed area is not big enough */
       Debug( 5, "Current score is %d", score );

@@ -982,6 +982,7 @@ sub executeCommand
 
     my $command = $filter->{AutoExecuteCmd};
     $command .= " $event_path";
+    $command = substituteTags( $command, $filter, $event );
 
     Info( "Executing '$command'\n" );
     my $output = qx($command);

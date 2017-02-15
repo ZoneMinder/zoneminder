@@ -307,7 +307,7 @@ $dbh->ping();
         }
         if ( $filter->{AutoExecute} )
         {
-            if ( !$event->{Execute} )
+            if ( !$event->{Executed} )
             {
                 $delete_ok = undef if ( !executeCommand( $filter, $event ) );
             }

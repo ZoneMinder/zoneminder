@@ -684,16 +684,28 @@ sub substituteTags
         $text =~ s/%EPIM%/$url?view=frame&mid=$event->{MonitorId}&eid=$event->{Id}&fid=$max_alarm_frame->{FrameId}/g;
         if ( $attachments_ref && $text =~ s/%EI1%//g )
         {
-            push( @$attachments_ref,
-                {
-                    type=>"image/jpeg",
-                    path=>sprintf(
-                        "%s/%0".$Config{ZM_EVENT_IMAGE_DIGITS}."d-capture.jpg",
-                        getEventPath( $event ),
-                        $first_alarm_frame->{FrameId}
-                    )
-                }
+            my $path_prefix = sprintf(
+                "%s/%0".$Config{ZM_EVENT_IMAGE_DIGITS}."d",
+                getEventPath($event),
+                $first_alarm_frame->{FrameId}
             );
+
+            # check if a frame file exists. If the file doesn't exist and we use H264 try to extract it from .mp4 video
+            if ( -e $path_prefix."-capture.jpg"
+                || ( -e $path_prefix."-video.mp4"
+                    && !system("ffmpeg -v 0 -i ".$path_prefix
+                        ."-video.mp4 -vf 'select=gte(n\\,".$max_alarm_frame."),setpts=PTS-STARTPTS' -f image2 "
+                        .$path_prefix."-capture.jpg"
+                    )
+                )
+            ) {
+                push( @$attachments_ref,
+                    {
+                        type=>"image/jpeg",
+                        path=>$path_prefix."-capture.jpg"
+                    }
+                );
+            }
         }
         if ( $attachments_ref && $text =~ s/%EIM%//g )
         {
@@ -702,16 +714,28 @@ sub substituteTags
                  || ($first_alarm_frame->{FrameId} != $max_alarm_frame->{FrameId} )
             )
             {
-                push( @$attachments_ref,
-                    {
-                        type=>"image/jpeg",
-                        path=>sprintf(
-                            "%s/%0".$Config{ZM_EVENT_IMAGE_DIGITS}."d-capture.jpg",
-                            getEventPath( $event ),
-                            $max_alarm_frame->{FrameId}
-                        )
-                    }
+                my $path_prefix = sprintf(
+                    "%s/%0".$Config{ZM_EVENT_IMAGE_DIGITS}."d",
+                    getEventPath($event),
+                    $max_alarm_frame->{FrameId}
                 );
+
+                # check if a frame file exists. If the file doesn't exist and we use H264 try to extract it from .mp4 video
+                if ( -e $path_prefix."-capture.jpg"
+                    || ( -e $path_prefix."-video.mp4"
+                        && !system("ffmpeg -v 0 -i ".$path_prefix
+                          ."-video.mp4 -vf 'select=gte(n\\,".$max_alarm_frame."),setpts=PTS-STARTPTS' -f image2 "
+                          .$path_prefix."-capture.jpg"
+                        )
+                    )
+                ) {
+                    push( @$attachments_ref,
+                        {
+                            type=>"image/jpeg",
+                            path=>$path_prefix."-capture.jpg"
+                        }
+                    );
+                }
             }
         }
     }
@@ -1006,4 +1030,3 @@ sub executeCommand
     }
     return( 1 );
 }
-

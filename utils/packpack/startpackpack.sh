@@ -80,6 +80,9 @@ if [ "${OS}" == "el" ] || [ "${OS}" == "fedora" ]; then
 elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ]; then
     echo "Begin Debian build..."
 
+    # patch packpack to remove "debian" from the source tarball filename
+    patch -p1 < utils/packpack/deb.mk.patch
+
     # Uncompress the Crud tarball and move it into place
     if [ -e "web/api/app/Plugin/Crud/LICENSE.txt" ]; then
         echo "Crud plugin already installed..."

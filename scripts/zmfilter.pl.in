@@ -686,12 +686,14 @@ sub substituteTags
         {
             my $image_path = sprintf("%s/%0".$Config{ZM_EVENT_IMAGE_DIGITS}."d-capture.jpg",
                 getEventPath($event), $first_alarm_frame->{FrameId});
-            my $video_path =  sprintf("%s/-video.mp4", getEventPath($event));
+            my $video_path =  sprintf("%s/%d-video.mp4", getEventPath($event), $event->{Id});
+
+           Debug("ffmpeg -v 0 -i ".$video_path." -vf 'select=gte(n\\," .$first_alarm_frame->{FrameId}."),setpts=PTS-STARTPTS' -vframes 1 -f image2 ".$image_path);
 
             # check if a frame file exists. If the file doesn't exist and we use H264 try to extract it from .mp4 video
             if ( -e $image_path || ( -e $video_path
                     && !system("ffmpeg -v 0 -i ".$video_path." -vf 'select=gte(n\\,"
-                        .$first_alarm_frame->{FrameId}."),setpts=PTS-STARTPTS' -f image2 ".$image_path
+                        .$first_alarm_frame->{FrameId}."),setpts=PTS-STARTPTS' -vframes 1 -f image2 ".$image_path
                     )
                 )
             ) {
@@ -712,12 +714,12 @@ sub substituteTags
             {
                 my $image_path = sprintf("%s/%0".$Config{ZM_EVENT_IMAGE_DIGITS}."d-capture.jpg",
                     getEventPath($event), $max_alarm_frame->{FrameId});
-                my $video_path =  sprintf("%s/-video.mp4", getEventPath($event));
+                my $video_path =  sprintf("%s/%d-video.mp4", getEventPath($event), $event->{Id});
 
                 # check if a frame file exists. If the file doesn't exist and we use H264 try to extract it from .mp4 video
                 if ( -e $image_path || ( -e $video_path
                         && !system("ffmpeg -v 0 -i ".$video_path." -vf 'select=gte(n\\,"
-                            .$max_alarm_frame->{FrameId}."),setpts=PTS-STARTPTS' -f image2 ".$image_path
+                            .$max_alarm_frame->{FrameId}."),setpts=PTS-STARTPTS' -vframes 1 -f image2 ".$image_path
                         )
                     )
                 ) {

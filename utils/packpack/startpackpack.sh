@@ -87,7 +87,10 @@ elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ]; then
     echo "Begin Debian build..."
 
     # patch packpack to remove "debian" from the source tarball filename
-    patch -p1 < utils/packpack/deb.mk.patch
+    patch --dry-run --silent -f -p1 < utils/packpack/deb.mk.patch 2>/dev/null
+    if [ $? -eq 0 ]; then
+        patch -p1 < utils/packpack/deb.mk.patch
+    fi
 
     # Uncompress the Crud tarball and move it into place
     if [ -e "web/api/app/Plugin/Crud/LICENSE.txt" ]; then

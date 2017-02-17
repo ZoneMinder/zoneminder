@@ -2137,7 +2137,14 @@ function folder_size($dir) {
     foreach (glob(rtrim($dir, '/').'/*', GLOB_NOSORT) as $each) {
         $size += is_file($each) ? filesize($each) : folderSize($each);
     }
-    return $size;
+    //return $size . ' bytes';
+    return human_filesize($size);
 } // end function folder_size
+
+function human_filesize($bytes, $decimals = 2) {
+  $sz = 'BKMGTP';
+  $factor = floor((strlen($bytes) - 1) / 3);
+  return sprintf("%.{$decimals}f", $bytes / pow(1024, $factor)) . @$sz[$factor];
+}
 
 ?>

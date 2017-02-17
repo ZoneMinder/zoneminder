@@ -7,7 +7,7 @@ umount /dev/shm
 mount -t tmpfs -o rw,nosuid,nodev,noexec,relatime,size=512M tmpfs /dev/shm
 
 # Start MySQL
-/usr/bin/mysqld_safe & 
+service mysql start
 
 # Ensure we shut down mysql cleanly later:
 trap close_mysql SIGTERM

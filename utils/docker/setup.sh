@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Start MySQL
-/usr/bin/mysqld_safe & 
+service mysql start
 
 # Give MySQL time to wake up
 SECONDS_LEFT=120

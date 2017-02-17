@@ -87,12 +87,12 @@ else
       echo "Defaulting to master branch";
       BRANCH="master";
     fi;
+    if [ "$SNAPSHOT" == "NOW" ]; then
+      SNAPSHOT=`date +%Y%m%d%H%M%S`;
+    fi;
   fi;
 fi
 
-if [ "$URGENCY" = "" ]; then
-  URGENCY="medium"
-fi;
 
 # Instead of cloning from github each time, if we have a fork lying around, update it and pull from there instead.
 if [ ! -d "${GITHUB_FORK}_zoneminder_release" ]; then 
@@ -159,6 +159,10 @@ else
   fi
 fi
 
+if [ "$URGENCY" = "" ]; then
+  URGENCY="medium"
+fi;
+
 if [ "$SNAPSHOT" == "stable" ]; then
 cat <<EOF > debian/changelog
 zoneminder ($VERSION-$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
@@ -182,6 +186,7 @@ fi;
 # Auto-install all ZoneMinder's depedencies using the Debian control file
 sudo apt-get install devscripts equivs
 sudo mk-build-deps -ir ./debian/control
+echo "Status: $?"
 
 #rm -rf .git
 #rm .gitignore
@@ -201,6 +206,7 @@ if [ "$DEBSIGN_KEYID" != "" ]; then
   DEBUILD="$DEBUILD -k$DEBSIGN_KEYID"
 fi
 $DEBUILD
+echo "Status: $?"
 
 cd ../
 if [ "$INTERACTIVE" != "no" ]; then
@@ -222,7 +228,7 @@ if [ $TYPE == "binary" ]; then
         echo "Do you want to upload this binary to zmrepo? (y/N)"
         read install
         if [ "$install" == "Y" ]; then
-          scp "zoneminder_*-${VERSION}-${DISTRO}*" "zmrepo.connortechnology.com:zmrepo/debian-${BRANCH}/"
+          scp "zoneminder_*-${VERSION}-${DISTRO}*" "zmrepo@zmrepo.connortechnology.com:debian/${BRANCH}/mini-dinstall/incoming/"
         fi;
     fi;
   fi;

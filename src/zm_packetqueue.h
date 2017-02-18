@@ -24,6 +24,7 @@
 //#include <boost/interprocess/containers/map.hpp>
 //#include <boost/interprocess/allocators/allocator.hpp>
 #include <queue>
+#include "zm_packet.h"
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -33,18 +34,17 @@ class zm_packetqueue {
 public:
     zm_packetqueue();
     virtual ~zm_packetqueue();
+    bool queuePacket( AVPacket* packet, struct timeval *timestamp );
+    bool queuePacket( ZMPacket* packet );
     bool queuePacket( AVPacket* packet );
-    AVPacket * popPacket( );
-    bool popVideoPacket(AVPacket* packet);
-    bool popAudioPacket(AVPacket* packet);
+    ZMPacket * popPacket( );
+    bool popVideoPacket(ZMPacket* packet);
+    bool popAudioPacket(ZMPacket* packet);
     void clearQueue( );
     unsigned int size();
 private:
-    std::queue<AVPacket *>    pktQueue;
+    std::queue<ZMPacket *>    pktQueue;
 
 };
 
-
-
 #endif /* ZM_PACKETQUEUE_H */
-

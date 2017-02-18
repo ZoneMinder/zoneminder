@@ -470,7 +470,11 @@ Debug(1, "Have audio encoder, need to flush it's output" );
     int64_t size;
 
     while(1) {
+#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
+      ret = avcodec_receive_packet( audio_output_context, &pkt );
+#else
       ret = avcodec_encode_audio2( audio_output_context, &pkt, NULL, &got_packet );
+#endif
       if (ret < 0) {
         Error("ERror encoding audio while flushing");
         break;
@@ -871,8 +875,11 @@ av_frame_get_best_effort_timestamp(output_frame)
      * Encode the audio frame and store it in the temporary packet.
      * The output audio stream encoder is used to do this.
      */
-    if (( ret = avcodec_encode_audio2( audio_output_context, &opkt,
-            output_frame, &data_present )) < 0) {
+#if LIBAVCODEC_VERSION_CHECK(58, 0, 0, 0, 0)
+    if (( ret = avcodec_receive_packet( audio_output_context, &opkt )) < 0 ) {
+#else
+    if (( ret = avcodec_encode_audio2( audio_output_context, &opkt, output_frame, &data_present )) < 0) {
+#endif
       Error( "Could not encode frame (error '%s')",
           av_make_error_string(ret).c_str());
       zm_av_packet_unref(&opkt);

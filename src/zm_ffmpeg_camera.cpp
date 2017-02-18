@@ -63,6 +63,7 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::stri
   mOpenStart = 0;
   mReopenThread = 0;
   videoStore = NULL;
+  video_last_pts = 0;
 
 #if HAVE_LIBSWSCALE  
   mConvertContext = NULL;
@@ -645,24 +646,24 @@ Debug(5, "After av_read_frame (%d)", ret );
 
         // Need to write out all the frames from the last keyframe?
         unsigned int packet_count = 0;
-        AVPacket *queued_packet;
+        ZMPacket *queued_packet;
         while ( ( queued_packet = packetqueue.popPacket() ) ) {
+          AVPacket *avp = queued_packet->av_packet();
           packet_count += 1;
           //Write the packet to our video store
-          Debug(2, "Writing queued packet stream: %d  KEY %d, remaining (%d)", queued_packet->stream_index, queued_packet->flags & AV_PKT_FLAG_KEY, packetqueue.size() );
-          if ( queued_packet->stream_index == mVideoStreamId ) {
-            ret = videoStore->writeVideoFramePacket( queued_packet );
-          } else if ( queued_packet->stream_index == mAudioStreamId ) {
-            ret = videoStore->writeAudioFramePacket( queued_packet );
+          Debug(2, "Writing queued packet stream: %d  KEY %d, remaining (%d)", avp->stream_index, avp->flags & AV_PKT_FLAG_KEY, packetqueue.size() );
+          if ( avp->stream_index == mVideoStreamId ) {
+            ret = videoStore->writeVideoFramePacket( avp );
+          } else if ( avp->stream_index == mAudioStreamId ) {
+            ret = videoStore->writeAudioFramePacket( avp );
           } else {
-            Warning("Unknown stream id in queued packet (%d)", queued_packet->stream_index );
+            Warning("Unknown stream id in queued packet (%d)", avp->stream_index );
             ret = -1;
           }
           if ( ret < 0 ) {
             //Less than zero and we skipped a frame
           }
-          zm_av_packet_unref( queued_packet );
-          av_free( queued_packet );
+          delete queued_packet;
         } // end while packets in the packetqueue
         Debug(2, "Wrote %d queued packets", packet_count );
       } // end if ! wasRecording
@@ -682,7 +683,7 @@ Debug(5, "After av_read_frame (%d)", ret );
           packetqueue.clearQueue();
         }
         if ( packet.pts && video_last_pts > packet.pts ) {
-          Warning( "Clearing queue due to out of order pts");
+          Warning( "Clearing queue due to out of order pts packet.pts=%d video_last_pts=%d", packet.pts, video_last_pts );
           packetqueue.clearQueue();
         }
       } 
@@ -706,6 +707,24 @@ Debug(5, "After av_read_frame (%d)", ret );
         }
       }
       Debug(4, "about to decode video" );
+      
+#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
+      ret = avcodec_send_packet( mVideoCodecContext, &packet );
+      if ( ret < 0 ) {
+        av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
+        Error( "Unable to send packet at frame %d: %s, continuing", frameCount, errbuf );
+        zm_av_packet_unref( &packet );
+        continue;
+      }
+      ret = avcodec_receive_frame( mVideoCodecContext, mRawFrame );
+      if ( ret < 0 ) {
+        av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
+        Error( "Unable to send packet at frame %d: %s, continuing", frameCount, errbuf );
+        zm_av_packet_unref( &packet );
+        continue;
+      }
+      frameComplete = 1;
+# else
       ret = zm_avcodec_decode_video( mVideoCodecContext, mRawFrame, &frameComplete, &packet );
       if ( ret < 0 ) {
         av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
@@ -713,6 +732,7 @@ Debug(5, "After av_read_frame (%d)", ret );
         zm_av_packet_unref( &packet );
         continue;
       }
+#endif
 
       Debug( 4, "Decoded video packet at frame %d", frameCount );
 
@@ -728,7 +748,9 @@ Debug(5, "After av_read_frame (%d)", ret );
           zm_av_packet_unref( &packet );
           return (-1);
         }
-        avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height);
+//        avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height);
+        av_image_fill_arrays(mFrame->data, mFrame->linesize, directbuffer, imagePixFormat, width, height, 1);
+
 
         if (sws_scale(mConvertContext, mRawFrame->data, mRawFrame->linesize,
                       0, mVideoCodecContext->height, mFrame->data, mFrame->linesize) < 0) {
@@ -758,7 +780,7 @@ Debug(5, "After av_read_frame (%d)", ret );
       }
     } else {
 #if LIBAVUTIL_VERSION_CHECK(54, 23, 0, 23, 0)
-      Debug( 3, "Some other stream index %d, %s", packet.stream_index, av_get_media_type_string( mFormatContext->streams[packet.stream_index]->codec->codec_type) );
+      Debug( 3, "Some other stream index %d, %s", packet.stream_index, av_get_media_type_string( mFormatContext->streams[packet.stream_index]->codecpar->codec_type) );
 #else
       Debug( 3, "Some other stream index %d", packet.stream_index );
 #endif

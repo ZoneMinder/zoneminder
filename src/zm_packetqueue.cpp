@@ -33,41 +33,38 @@ zm_packetqueue::~zm_packetqueue() {
 
 }
 
-bool zm_packetqueue::queuePacket( AVPacket* packet ) {
+bool zm_packetqueue::queuePacket( ZMPacket* zm_packet ) {
+	pktQueue.push( zm_packet );
+
+	return true;
+}
+bool zm_packetqueue::queuePacket( AVPacket* av_packet ) {
     
-  AVPacket *input_ref = (AVPacket *)av_malloc(sizeof(AVPacket));
-  av_init_packet( input_ref );
-  if ( zm_av_packet_ref( input_ref, packet ) < 0 ) {
-    Error("error refing packet");
-    av_free(input_ref);
-		return false;
-	}
+  ZMPacket *zm_packet = new ZMPacket( av_packet );
  
-	pktQueue.push( input_ref );
+	pktQueue.push( zm_packet );
 
 	return true;
 }
 
-AVPacket* zm_packetqueue::popPacket( ) {
+ZMPacket* zm_packetqueue::popPacket( ) {
 	if ( pktQueue.empty() ) {
 		return NULL;
 	}
 
-	AVPacket *packet = pktQueue.front();
+	ZMPacket *packet = pktQueue.front();
 	pktQueue.pop();
 
 	return packet;
 }
 
 void zm_packetqueue::clearQueue() {
-  AVPacket *packet = NULL;
+  ZMPacket *packet = NULL;
 	while(!pktQueue.empty()) {
   
     packet = pktQueue.front();
     pktQueue.pop();
-    // If we clear it, then no freeing gets done, whereas when we pop off, we assume that the packet was freed somewhere else.
-    zm_av_packet_unref( packet );
-    av_free( packet );
+    delete packet;
 	}
 }
 

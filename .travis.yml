@@ -21,14 +21,13 @@ env:
     - OS=ubuntu DIST=xenial
 compiler:
     - gcc
-    - clang
 services:
     - mysql
     - docker
 addons:
   apt:
     sources:
-    # We need this ppa for  libsys-meminfo-perl 
+    # We need this ppa for libsys-meminfo-perl 
     - sourceline: 'ppa:iconnor/zoneminder'
     - key_url: 'http://keyserver.ubuntu.com:11371/pks/lookup?op=get&search=0x4D0BF748776FFB04'
     packages:

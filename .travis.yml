@@ -40,10 +40,10 @@ addons:
 script:
   - utils/packpack/startpackpack.sh
   - if [ ${OS} == "ubuntu" ] && [ ${DIST} == "trusty" ]; then 
-    gdebi --non-interactive build/zoneminder_*amd64.deb; 
+    sudo gdebi --non-interactive build/zoneminder_*amd64.deb; 
     mysql -uzmuser -pzmpass zm < db/test.monitor.sql; 
-    sudo zmpkg.pl start; 
-    sudo zmfilter.pl -f purgewhenfull;
+    sudo /usr/bin/zmpkg.pl start; 
+    sudo /usr/bin/zmfilter.pl -f purgewhenfull;
     fi
 deploy:
   # Deploy packages to PackageCloud

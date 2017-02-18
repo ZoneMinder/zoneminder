@@ -17,7 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # ==========================================================================
 
@@ -51,7 +51,7 @@ use bytes;
 #
 # ==========================================================================
 
-use constant CAUSE_STRING => "X10"; # What gets written as the cause of any events
+use constant CAUSE_STRING => 'X10'; # What gets written as the cause of any events
 
 # ==========================================================================
 #
@@ -93,11 +93,11 @@ if ( $version ) {
     exit(0);
 }
 
-die( "No command given" ) unless( $command );
-die( "No unit code given" )
+die( 'No command given' ) unless( $command );
+die( 'No unit code given' )
     unless( $unit_code || ($command =~ /(?:start|status|shutdown)/) );
 
-if ( $command eq "start" )
+if ( $command eq 'start' )
 {
     X10Server::runServer();
     exit();
@@ -201,7 +201,7 @@ sub runServer
     vec( $rin, fileno(SERVER),1) = 1;
     vec( $rin, $x10->select_fds(),1) = 1;
     my $timeout = 0.2;
-    #print( "F:".fileno(SERVER)."\n" );
+    #print( 'F:'.fileno(SERVER)."\n" );
     my $reload = undef;
     my $reload_count = 0;
     my $reload_limit = $Config{ZM_X10_DB_RELOAD_INTERVAL} / $timeout;
@@ -259,14 +259,14 @@ sub runServer
                 {
                     if ( $device )
                     {
-                        dPrint( ZoneMinder::Logger::DEBUG, $unit_code." ".$device->{status}."\n" );
+                        dPrint( ZoneMinder::Logger::DEBUG, $unit_code.' '.$device->{status}."\n" );
                     }
                     else
                     {
                         foreach my $unit_code ( sort( keys(%device_hash) ) )
                         {
                             my $device = $device_hash{$unit_code};
-                            dPrint( ZoneMinder::Logger::DEBUG, $unit_code." ".$device->{status}."\n" );
+                            dPrint( ZoneMinder::Logger::DEBUG, $unit_code.' '.$device->{status}."\n" );
                         }
                     }
                 }
@@ -299,7 +299,7 @@ sub runServer
             }
             else
             {
-                Fatal( "Bogus descriptor" );
+                Fatal( 'Bogus descriptor' );
             }
         }
         elsif ( $nfound < 0 )
@@ -330,14 +330,14 @@ sub runServer
                     ) # Gone into alarm state
                     {
                         Debug( "Applying ON_list for $monitor_id\n" );
-                        $task_list = $monitor->{"ON_list"};
+                        $task_list = $monitor->{'ON_list'};
                     }
                     elsif ( ($state == STATE_IDLE && $monitor->{LastState} != STATE_IDLE)
                             || ($state == STATE_TAPE && $monitor->{LastState} != STATE_TAPE)
                     ) # Come out of alarm state
                     {
                         Debug( "Applying OFF_list for $monitor_id\n" );
-                        $task_list = $monitor->{"OFF_list"};
+                        $task_list = $monitor->{'OFF_list'};
                     }
                     if ( $task_list )
                     {
@@ -394,7 +394,7 @@ sub addToDeviceList
                                              };
     }
 
-    my $task = { type=>"device",
+    my $task = { type=>'device',
                  monitor=>$monitor,
                  address=>$device->{appliance}->address(),
                  function=>$function
@@ -404,10 +404,10 @@ sub addToDeviceList
         $task->{limit} = $limit
     }
 
-    my $task_list = $device->{$event."_list"};
+    my $task_list = $device->{$event.'_list'};
     if ( !$task_list )
     {
-        $task_list = $device->{$event."_list"} = [];
+        $task_list = $device->{$event.'_list'} = [];
     }
     push( @$task_list, $task );
 }
@@ -431,7 +431,7 @@ sub addToMonitorList
                                              };
     }
 
-    my $task = { type=>"monitor",
+    my $task = { type=>'monitor',
                  device=>$device,
                  id=>$monitor->{Id},
                  function=>$function
@@ -441,10 +441,10 @@ sub addToMonitorList
         $task->{limit} = $limit;
     }
 
-    my $task_list = $monitor->{$event."_list"};
+    my $task_list = $monitor->{$event.'_list'};
     if ( !$task_list )
     {
-        $task_list = $monitor->{$event."_list"} = [];
+        $task_list = $monitor->{$event.'_list'} = [];
     }
     push( @$task_list, $task );
 }
@@ -474,7 +474,11 @@ sub loadTasks
         or Fatal( "Can't execute: ".$sth->errstr() );
     while( my $monitor = $sth->fetchrow_hashref() )
     {
-        next if ( !zmMemVerify( $monitor ) ); # Check shared memory ok
+# Check shared memory ok
+      if ( !zmMemVerify( $monitor ) ) {
+        zmMemInvalidate( $monitor );
+        next ;
+      }
 
         $monitor_hash{$monitor->{Id}} = $monitor;
 
@@ -492,20 +496,20 @@ sub loadTasks
                     if ( !$modifier || $modifier eq '+' )
                     {
                         addToDeviceList( $unit_code,
-                                         "ON",
+                                         'ON',
                                          $monitor,
-                                         !$invert ? "start_active"
-                                                  : "stop_active",
+                                         !$invert ? 'start_active'
+                                                  : 'stop_active',
                                          $limit
                         );
                     }
                     if ( !$modifier || $modifier eq '-' )
                     {
                         addToDeviceList( $unit_code,
-                                         "OFF",
+                                         'OFF',
                                          $monitor,
-                                         !$invert ? "stop_active"
-                                                  : "start_active",
+                                         !$invert ? 'stop_active'
+                                                  : 'start_active',
                                          $limit
                         );
                     }
@@ -526,20 +530,20 @@ sub loadTasks
                     if ( !$modifier || $modifier eq '+' )
                     {
                         addToDeviceList( $unit_code,
-                                         "ON",
+                                         'ON',
                                          $monitor,
-                                         !$invert ? "start_alarm"
-                                                  : "stop_alarm",
+                                         !$invert ? 'start_alarm'
+                                                  : 'stop_alarm',
                                          $limit
                         );
                     }
                     if ( !$modifier || $modifier eq '-' )
                     {
                         addToDeviceList( $unit_code,
-                                         "OFF",
+                                         'OFF',
                                          $monitor,
-                                         !$invert ? "stop_alarm"
-                                                  : "start_alarm",
+                                         !$invert ? 'stop_alarm'
+                                                  : 'start_alarm',
                                          $limit
                         );
                     }
@@ -560,20 +564,20 @@ sub loadTasks
                     if ( !$modifier || $modifier eq '+' )
                     {
                         addToMonitorList( $monitor,
-                                          "ON",
+                                          'ON',
                                           $unit_code,
-                                          !$invert ? "on"
-                                                   : "off",
+                                          !$invert ? 'on'
+                                                   : 'off',
                                           $limit
                         );
                     }
                     if ( !$modifier || $modifier eq '-' )
                     {
                         addToMonitorList( $monitor,
-                                          "OFF",
+                                          'OFF',
                                           $unit_code,
-                                          !$invert ? "off"
-                                                   : "on",
+                                          !$invert ? 'off'
+                                                   : 'on',
                                           $limit
                         );
                     }
@@ -600,7 +604,7 @@ sub addPendingTask
             {
                 push( @$new_pending_list, $pending_task )
             }
-            elsif ( $task->{type} eq "device" )
+            elsif ( $task->{type} eq 'device' )
             {
                 if (( $task->{monitor}->{Id} != $pending_task->{monitor}->{Id} )
                 || ( $task->{function} ne $pending_task->{function} ))
@@ -608,7 +612,7 @@ sub addPendingTask
                     push( @$new_pending_list, $pending_task )
                 }
             }
-            elsif ( $task->{type} eq "monitor" )
+            elsif ( $task->{type} eq 'monitor' )
             {
                 if (( $task->{device}->{appliance}->unit_code()
                       != $pending_task->{device}->{appliance}->unit_code()
@@ -637,7 +641,7 @@ sub addPendingTask
         $pending_list = $pending_tasks{$end_time} = [];
     }
     my $pending_task;
-    if ( $task->{type} eq "device" )
+    if ( $task->{type} eq 'device' )
     {
         $pending_task = { type=>$task->{type},
                           monitor=>$task->{monitor},
@@ -645,7 +649,7 @@ sub addPendingTask
         };
         $pending_task->{function} =~ s/start/stop/;
     }
-    elsif ( $task->{type} eq "monitor" )
+    elsif ( $task->{type} eq 'monitor' )
     {
         $pending_task = { type=>$task->{type},
                           device=>$task->{device},
@@ -660,13 +664,13 @@ sub processTask
 {
     my $task = shift;
 
-    if ( $task->{type} eq "device" )
+    if ( $task->{type} eq 'device' )
     {
         my ( $instruction, $class ) = ( $task->{function} =~ /^(.+)_(.+)$/ );
 
-        if ( $class eq "active" )
+        if ( $class eq 'active' )
         {
-            if ( $instruction eq "start" )
+            if ( $instruction eq 'start' )
             {
                 zmMonitorEnable( $task->{monitor} );
                 if ( $task->{limit} )
@@ -674,14 +678,14 @@ sub processTask
                     addPendingTask( $task );
                 }
             }
-            elsif( $instruction eq "stop" )
+            elsif( $instruction eq 'stop' )
             {
                 zmMonitorDisable( $task->{monitor} );
             }
         }
-        elsif( $class eq "alarm" )
+        elsif( $class eq 'alarm' )
         {
-            if ( $instruction eq "start" )
+            if ( $instruction eq 'start' )
             {
                 zmTriggerEventOn( $task->{monitor},
                                   0,
@@ -693,15 +697,15 @@ sub processTask
                     addPendingTask( $task );
                 }
             }
-            elsif( $instruction eq "stop" )
+            elsif( $instruction eq 'stop' )
             {
                 zmTriggerEventCancel( $task->{monitor} );
             }
         }
     }
-    elsif( $task->{type} eq "monitor" )
+    elsif( $task->{type} eq 'monitor' )
     {
-        if ( $task->{function} eq "on" )
+        if ( $task->{function} eq 'on' )
         {
             $task->{device}->{appliance}->on();
             if ( $task->{limit} )
@@ -709,7 +713,7 @@ sub processTask
                 addPendingTask( $task );
             }
         }
-        elsif ( $task->{function} eq "off" )
+        elsif ( $task->{function} eq 'off' )
         {
             $task->{device}->{appliance}->off();
         }
@@ -762,7 +766,7 @@ sub x10listen
             }
             next if ( $event->func() !~ /(?:ON|OFF)/ );
             $device->{status} = $event->func();
-            my $task_list = $device->{$event->func()."_list"};
+            my $task_list = $device->{$event->func().'_list'};
             if ( $task_list )
             {
                 foreach my $task ( @$task_list )

@@ -6,7 +6,8 @@ Uploaders: Vagrant Cascadian <vagrant@debian.org>
 Build-Depends: debhelper (>= 9), dh-systemd, python-sphinx | python3-sphinx, apache2-dev, dh-linktree
               ,cmake
               ,libx264-dev, libmp4v2-dev
-              ,libavcodec-dev, libavformat-dev, libswscale-dev, libswresample-dev, libavutil-dev, libavdevice-dev 
+              ,libavcodec-dev, libavformat-dev, libswscale-dev
+	      , libavutil-dev, libavdevice-dev 
               ,libboost-dev
               ,libbz2-dev
               ,libgcrypt-dev
@@ -38,7 +39,7 @@ Package: zoneminder
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,javascript-common
-        ,libav-tools | ffmpeg
+        ,ffmpeg | libav-tools
         ,libdate-manip-perl, libmime-lite-perl, libmime-tools-perl
         ,libdbd-mysql-perl
         ,libphp-serialization-perl

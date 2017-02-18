@@ -19,3 +19,6 @@ SET @s = (SELECT IF(
 
 PREPARE stmt FROM @s;
 EXECUTE stmt;
+
+
+ALTER TABLE Users MODIFY MonitorIds TEXT NOT NULL;

@@ -15,7 +15,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
 if ( !canView( 'Events' ) ) {
@@ -99,6 +99,7 @@ $attrTypes = array(
     'SystemLoad'  => translate('AttrSystemLoad'),
     'StorageId'   => translate('AttrStorageArea'),
     'ServerId'    => translate('AttrServer'),
+    'StateId'     => translate('AttrStateId'),
 );
 $opTypes = array(
     '='   => translate('OpEq'),
@@ -205,6 +206,15 @@ for ( $i = 0; isset($_REQUEST['filter']) && $i < count($_REQUEST['filter']['term
 ?>
               <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
               <td><input name="filter[terms][<?php echo $i ?>][val]" id="filter[terms][<?php echo $i ?>][val]" value="<?php echo isset($_REQUEST['filter']['terms'][$i]['val'])?validHtmlStr($_REQUEST['filter']['terms'][$i]['val']):'' ?>"/><?php if ( $hasCal ) { ?><script type="text/javascript">Calendar.setup( { inputField: "filter[terms][<?php echo $i ?>][val]", ifFormat: "%Y-%m-%d", showOthers: true, weekNumbers: false });</script><?php } ?></td>
+<?php
+        } elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "StateId" ) {
+            $states = array();
+            foreach ( dbFetchAll( 'SELECT Id,Name FROM States ORDER BY lower(Name) ASC' ) as $state_row ) {
+              $states[$state_row['Id']] = $state_row['Name'];
+            }
+?>
+            <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
+            <td><?php echo buildSelect( "filter[terms][$i][val]", $states ); ?></td>
 <?php
         } elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "Weekday" ) {
 ?>

@@ -36,7 +36,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
     AVStream *p_video_input_stream,
     AVStream *p_audio_input_stream,
     int64_t nStartTime,
-    Monitor::Orientation orientation
+    Monitor * monitor
     ) {
   video_input_stream = p_video_input_stream;
   audio_input_stream = p_audio_input_stream;
@@ -95,7 +95,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
   video_output_context = video_output_stream->codec;
 
-#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
+#if LIBAVCODEC_VERSION_CHECK(58, 0, 0, 0, 0)
   Debug(2, "setting parameters");
   ret = avcodec_parameters_to_context( video_output_context, video_input_stream->codecpar );
   if ( ret < 0 ) {
@@ -189,6 +189,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
     video_output_context->flags |= CODEC_FLAG_GLOBAL_HEADER;
   }
 
+	Monitor::Orientation orientation = monitor->getOrientation();
   if ( orientation ) {
     if ( orientation == Monitor::ROTATE_0 ) {
 
@@ -215,6 +216,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
     if ( audio_input_context->codec_id != AV_CODEC_ID_AAC ) {
 #ifdef HAVE_LIBSWRESAMPLE
       resample_context = NULL;
+			char error_buffer[256];
       avcodec_string(error_buffer, sizeof(error_buffer), audio_input_context, 0 );
       Debug(3, "Got something other than AAC (%s)", error_buffer );
       audio_output_stream = NULL;
@@ -258,7 +260,7 @@ Debug(2, "Have audio_output_context");
 
         /* check that the encoder supports s16 pcm input */
         if (!check_sample_fmt( audio_output_codec, audio_output_context->sample_fmt)) {
-          Error( "Encoder does not support sample format %s, setting to FLTP",
+          Debug( 3, "Encoder does not support sample format %s, setting to FLTP",
               av_get_sample_fmt_name( audio_output_context->sample_fmt));
           audio_output_context->sample_fmt = AV_SAMPLE_FMT_FLTP;
         }
@@ -472,7 +474,11 @@ Debug(1, "Have audio encoder, need to flush it's output" );
     int64_t size;
 
     while(1) {
+#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
+      ret = avcodec_receive_packet( audio_output_context, &pkt );
+#else
       ret = avcodec_encode_audio2( audio_output_context, &pkt, NULL, &got_packet );
+#endif
       if (ret < 0) {
         Error("ERror encoding audio while flushing");
         break;
@@ -495,6 +501,10 @@ Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts, pkt.dts
       zm_av_packet_unref( &pkt );
     } // while 1
   }
+
+  // Flush Queues
+  av_interleaved_write_frame( oc, NULL );
+
   /* Write the trailer before close */
   if ( int rc = av_write_trailer(oc) ) {
     Error("Error writing trailer %s",  av_err2str( rc ) );
@@ -603,7 +613,7 @@ if ( 1 ) {
 if ( opkt.dts != AV_NOPTS_VALUE ) {
   int64_t max = video_output_stream->cur_dts + !(oc->oformat->flags & AVFMT_TS_NONSTRICT);
   if ( video_output_stream->cur_dts && ( video_output_stream->cur_dts != AV_NOPTS_VALUE ) && ( max > opkt.dts ) ) {
-    Warning("st:%d PTS: %"PRId64" DTS: %"PRId64" < %"PRId64" invalid, clipping", opkt.stream_index, opkt.pts, opkt.dts, max);
+    Warning("st:%d PTS: %" PRId64 " DTS: %" PRId64 " < %" PRId64 " invalid, clipping", opkt.stream_index, opkt.pts, opkt.dts, max);
     if( opkt.pts >= opkt.dts)
       opkt.pts = FFMAX(opkt.pts, max);
     opkt.dts = max;
@@ -869,8 +879,11 @@ av_frame_get_best_effort_timestamp(output_frame)
      * Encode the audio frame and store it in the temporary packet.
      * The output audio stream encoder is used to do this.
      */
-    if (( ret = avcodec_encode_audio2( audio_output_context, &opkt,
-            output_frame, &data_present )) < 0) {
+#if LIBAVCODEC_VERSION_CHECK(58, 0, 0, 0, 0)
+    if (( ret = avcodec_receive_packet( audio_output_context, &opkt )) < 0 ) {
+#else
+    if (( ret = avcodec_encode_audio2( audio_output_context, &opkt, output_frame, &data_present )) < 0) {
+#endif
       Error( "Could not encode frame (error '%s')",
           av_make_error_string(ret).c_str());
       zm_av_packet_unref(&opkt);

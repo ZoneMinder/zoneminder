@@ -429,7 +429,7 @@ zoneminder (1.24.2-4.1) unstable; urgency=low
 zoneminder (1.24.2-4) unstable; urgency=high
   * Update init.d to list mysql dependency
     (closes: #583505)
-  * Change depenency from libmime-perl to libmime-tools-perl
+  * Change dependency from libmime-perl to libmime-tools-perl
     (closes: #585589)
   * Problems in changelog format fixed
     (closes: #585592)
@@ -466,7 +466,7 @@ zoneminder (1.24.1-1) unstable; urgency=high
     (closes: #497640)
   * Change syslog dependency to rsyslog.
     (closes: #526918)
-  * Add missing perl depenency.
+  * Add missing perl dependency.
   * Restore patch to disable "check for updates" by default.
   * Removed spurious '$' in init script.
     (closes: #486064)

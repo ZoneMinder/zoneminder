@@ -194,7 +194,7 @@ CREATE TABLE `Events` (
   `Length` decimal(10,2) NOT NULL default '0.00',
   `Frames` int(10) unsigned default NULL,
   `AlarmFrames` int(10) unsigned default NULL,
-  `DefaultVideo` VARCHAR( 64 ) NOT NULL,
+  `DefaultVideo` VARCHAR( 64 ) DEFAULT '' NOT NULL,
   `TotScore` int(10) unsigned NOT NULL default '0',
   `AvgScore` smallint(5) unsigned default '0',
   `MaxScore` smallint(5) unsigned default '0',
@@ -205,6 +205,7 @@ CREATE TABLE `Events` (
   `Messaged` tinyint(3) unsigned NOT NULL default '0',
   `Executed` tinyint(3) unsigned NOT NULL default '0',
   `Notes` text,
+  `StateId` int(10) unsigned NOT NULL,
   `Orientation` enum('0','90','180','270','hori','vert') NOT NULL default '0',
   PRIMARY KEY (`Id`,`MonitorId`),
   KEY `MonitorId` (`MonitorId`),
@@ -341,7 +342,7 @@ CREATE TABLE `Monitors` (
   `Host` varchar(64),
   `Port` varchar(8) NOT NULL default '',
   `SubPath` varchar(64) NOT NULL default '',
-  `Path` varchar(255) NOT NULL default '',
+  `Path` varchar(255),
   `Options` varchar(255),
   `User` varchar(64),
   `Pass` varchar(64),
@@ -397,7 +398,6 @@ CREATE TABLE `Monitors` (
   `WebColour` varchar(32) NOT NULL default 'red',
   `Exif` tinyint(1) unsigned NOT NULL default '0',
   `Sequence` smallint(5) unsigned default NULL,
-  `Orientation` enum('0','90','180','270','hori','vert') NOT NULL default '0',
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
@@ -572,7 +572,7 @@ CREATE TABLE `Storage` (
 --
 -- Create a default storage location
 --
-insert into Storage VALUES (NULL, '/var/lib/zoneminder/events', 'Default' );
+insert into Storage VALUES (NULL, '/var/cache/zoneminder/events', 'Default' );
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
@@ -625,6 +625,7 @@ INSERT INTO `Controls` VALUES (NULL,'IPCC 7210W','Libvlc','IPCC7210W', 1, 1, 1, 
 INSERT INTO `Controls` VALUES (NULL,'Vivotek ePTZ','Remote','Vivotek_ePTZ',0,0,1,1,0,0,0,1,0,0,0,0,1,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,1,0,0,0,0,1,0,5,0,0,1,0,0,0,0,1,0,5,0,0,0,0);
 INSERT INTO `Controls` VALUES (NULL,'Netcat ONVIF','Ffmpeg','Netcat',0,0,1,1,0,0,0,1,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,100,5,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,100,5,5,0,0,0,1,255,1,1,1,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0);
 INSERT INTO `Controls` VALUES (NULL,'Keekoon','Remote','Keekoon', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 6, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `Controls` VALUES (NULL,'HikVision','Local','',0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,20,1,1,1,1,0,0,0,1,1,0,0,0,0,1,1,100,0,0,1,0,0,0,0,1,1,100,1,0,0,0);
 
 --
 -- Add some monitor preset values
@@ -697,6 +698,8 @@ INSERT INTO MonitorPresets VALUES (NULL,'Foscam FI9821W FFMPEG H.264','Ffmpeg',N
 INSERT INTO MonitorPresets VALUES (NULL,'Loftek Sentinel PTZ, 640x480, mjpeg','Remote','http',0,0,NULL,NULL,'<ip-address>','80','/videostream.cgi?user=<username>&pwd=<password>&resolution=32&rate=11',NULL,640,480,4,NULL,1,'13','','<username>:<pwd>@<ip-address>',100,100);
 INSERT INTO MonitorPresets VALUES (NULL,'Airlink 777W PTZ, 640x480, mjpeg','Remote','http',0,0,NULL,NULL,'<username>:<password>@<ip-address>','80','/cgi/mjpg/mjpg.cgi',NULL,640,480,4,NULL,1,'7','','<username>:<pwd>@<ip-address>',100,100);
 INSERT INTO MonitorPresets VALUES (NULL,'SunEyes SP-P1802SWPTZ','Libvlc','/dev/video<?>','0',255,'','rtpMulti','','80','rtsp://<ip-address>:554/11','',1920,1080,0,0.00,1,'16','-speed=64','<ip-address>:<port>',100,33);
+INSERT INTO MonitorPresets VALUES (NULL,'Qihan IP, 1280x720, RTP/RTSP','Ffmpeg','rtsp','rtpRtsp',255,'rtsp','rtpRtsp',NULL,554,'rtsp://<ip-address>/tcp_live/ch0_0',NULL,1280,720,3,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Qihan IP, 1920x1080, RTP/RTSP','Ffmpeg','rtsp','rtpRtsp',255,'rtsp','rtpRtsp',NULL,554,'rtsp://<ip-address>/tcp_live/ch0_0',NULL,1920,1080,3,NULL,0,NULL,NULL,NULL,100,100);
 
 --
 -- Add some zone preset values

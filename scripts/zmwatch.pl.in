@@ -17,7 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # ==========================================================================
 
@@ -85,16 +85,13 @@ while( 1 ) {
   while( my $monitor = $sth->fetchrow_hashref() ) {
     next if $monitor->{Function} eq 'None';
     my $restart = 0;
-    zmMemInvalidate( $monitor );
-    if ( zmMemVerify( $monitor )
-        && zmMemRead( $monitor, "shared_data:valid" )
-       )
-    {
+    if ( zmMemVerify( $monitor ) ) {
 # Check we have got an image recently
       my $image_time = zmGetLastWriteTime( $monitor );
       if ( !defined($image_time) ) {
 # Can't read from shared data
         Debug( "LastWriteTime is not defined." );
+        zmMemInvalidate( $monitor );
         next;
       }
       Debug( "LastWriteTime is = $image_time." );
@@ -104,7 +101,8 @@ while( 1 ) {
 					Info( "Restarting capture daemon for ".$monitor->{Name}.", no image since startup. Startup time was $startup_time - now $now > $Config{ZM_WATCH_MAX_DELAY}\n" );
 					$restart = 1;
 				} else {
-# We can't get the last capture time so can't be sure it's died, it might just be starting up.
+          # We can't get the last capture time so can't be sure it's died, it might just be starting up.
+          zmMemInvalidate( $monitor );
         next;
 				}
       }
@@ -174,8 +172,8 @@ while( 1 ) {
         runCommand( $command );
       } # end if restart
     } # end if check analysis daemon
-# Prevent open handles building up if we have connect to shared memory
-    zmMemInvalidate( $monitor );
+    # Prevent open handles building up if we have connect to shared memory
+    zmMemInvalidate( $monitor ); # Close our file handle to the zmc process we are about to end
   } # end foreach monitor
   sleep( $Config{ZM_WATCH_CHECK_INTERVAL} );
 } # end while (1)

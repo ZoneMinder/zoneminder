@@ -66,7 +66,7 @@ private:
   int64_t filter_in_rescale_delta_last;
 
 public:
-	VideoStore(const char *filename_in, const char *format_in, AVStream *video_input_stream, AVStream *audio_input_stream, int64_t nStartTime, Monitor::Orientation p_orientation );
+	VideoStore(const char *filename_in, const char *format_in, AVStream *video_input_stream, AVStream *audio_input_stream, int64_t nStartTime, Monitor * p_monitor );
 	~VideoStore();
 
   int writeVideoFramePacket( AVPacket *pkt );

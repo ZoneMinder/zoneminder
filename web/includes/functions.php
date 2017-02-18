@@ -15,7 +15,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 // Compatibility functions
@@ -56,6 +56,7 @@ function userLogin( $username, $password="", $passwordHashed=false ) {
     if ( ZM_AUTH_TYPE == "builtin" ) {
       $_SESSION['passwordHash'] = $user['Password'];
     }
+    session_regenerate_id();
   } else {
     Warning( "Login denied for user \"$username\"" );
     $_SESSION['loginFailed'] = true;
@@ -92,12 +93,12 @@ function CORSHeaders() {
 # Only need CORSHeaders in the event that there are multiple servers in use.
       return;
     }
-    foreach( dbFetchAll( 'SELECT * FROM Servers' ) as $row ) {
+    foreach( $servers as $row ) {
       $Server = new Server( $row );
       if ( $_SERVER['HTTP_ORIGIN'] == $Server->Url() ) {
-        $valid = true;
         header("Access-Control-Allow-Origin: " . $Server->Url() );
         header("Access-Control-Allow-Headers: x-requested-with,x-request");
+        $valid = true;
       }
     }
     if ( ! $valid ) {
@@ -1196,17 +1197,19 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
           case 'MaxScore':
           case 'Cause':
           case 'Notes':
+          case 'StateId':
           case 'Archived':
             $filter['sql'] .= 'E.'.$filter['terms'][$i]['attr'];
             break;
           case 'DiskPercent':
             // Need to specify a storage area, so need to look through other terms looking for a storage area, else we default to ZM_EVENTS_PATH
             if ( ! $StorageArea ) {
-              for ( $j = $i; $j < count($filter['terms']); $j++ ) {
-                if ( isset($filter['terms'][$i]['attr']) and $filter['terms'][$i]['attr'] == 'StorageId' ) {
-                  $StorageArea = new Storage(  $filter['terms'][$i]['val'] );
+              for ( $j = 0; $j < count($filter['terms']); $j++ ) {
+                if ( isset($filter['terms'][$j]['attr']) and $filter['terms'][$j]['attr'] == 'StorageId' ) {
+                  $StorageArea = new Storage(  $filter['terms'][$j]['val'] );
                 }
               } // end foreach remaining term
+              if ( ! $StorageArea ) $StorageArea = new Storage();
             } // end no StorageArea found yet
 
             $filter['sql'] .= getDiskPercent( $StorageArea->Path() );
@@ -2132,7 +2135,8 @@ function folder_size($dir) {
         $size += is_file($each) ? filesize($each) : folderSize($each);
     }
     return $size;
-} // end fucntion folder_size
+} // end function folder_size
+
 function human_filesize($bytes, $decimals = 2) {
   $sz = 'BKMGTP';
   $factor = floor((strlen($bytes) - 1) / 3);

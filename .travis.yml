@@ -38,7 +38,9 @@ addons:
     - curl
 script:
   - utils/packpack/startpackpack.sh
+    # TO-DO move the following to an external script file
   - if [ ${OS} == "ubuntu" ] && [ ${DIST} == "trusty" ]; then 
+    set -ev;
     sudo gdebi --non-interactive build/zoneminder_*amd64.deb;
     sudo chmod 644 /etc/zm/zm.conf; 
     mysql -uzmuser -pzmpass zm < db/test.monitor.sql; 

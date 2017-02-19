@@ -39,7 +39,8 @@ addons:
 script:
   - utils/packpack/startpackpack.sh
   - if [ ${OS} == "ubuntu" ] && [ ${DIST} == "trusty" ]; then 
-    sudo gdebi --non-interactive build/zoneminder_*amd64.deb; 
+    sudo gdebi --non-interactive build/zoneminder_*amd64.deb;
+    sudo chmod 644 /etc/zm/zm.conf; 
     mysql -uzmuser -pzmpass zm < db/test.monitor.sql; 
     sudo /usr/bin/zmpkg.pl start; 
     sudo /usr/bin/zmfilter.pl -f purgewhenfull;

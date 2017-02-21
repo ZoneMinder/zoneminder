@@ -722,7 +722,7 @@ switch ( $tab )
         </td>
         </tr>
         <tr><td><?php echo translate('AnalysisFPS') ?></td><td><input type="text" name="newMonitor[AnalysisFPS]" value="<?php echo validHtmlStr($monitor->AnalysisFPS) ?>" size="6"/></td></tr>
-        <?php if ( $monitor->Type != "Local" && $monitor->Type != "File" ) { ?>
+        <?php if ( $monitor->Type() != "Local" && $monitor->Type() != "File" ) { ?>
             <tr>
               <td><?php echo translate('MaximumFPS') ?>&nbsp;(<?php echo makePopupLink('?view=optionhelp&amp;option=OPTIONS_MAXFPS', 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td>
               <td><input type="text" onclick="document.getElementById('newMonitor[MaxFPS]').innerHTML= ' CAUTION: See the help text'" name="newMonitor[MaxFPS]" value="<?php echo validHtmlStr($monitor->MaxFPS) ?>" size="5"/><span id="newMonitor[MaxFPS]" style="color:red"></span></td>
@@ -738,8 +738,18 @@ switch ( $tab )
         }
         if ( ZM_FAST_IMAGE_BLENDS ) {
         ?>
-          <tr><td><?php echo translate('RefImageBlendPct') ?></td><td><select name="newMonitor[RefBlendPerc]"><?php foreach ( $fastblendopts as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->RefBlendPerc ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
-          <tr><td><?php echo translate('AlmRefImageBlendPct') ?></td><td><select name="newMonitor[AlarmRefBlendPerc]"><?php foreach ( $fastblendopts_alarm as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->AlarmRefBlendPerc ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
+          <tr>
+            <td><?php echo translate('RefImageBlendPct') ?></td>
+            <td><select name="newMonitor[RefBlendPerc]"><?php foreach ( $fastblendopts as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->RefBlendPerc() ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td>
+          </tr>
+          <tr>  
+            <td><?php echo translate('AlarmRefImageBlendPct') ?></td>
+            <td>
+              <select name="newMonitor[AlarmRefBlendPerc]">
+                <?php foreach ( $fastblendopts_alarm as $name => $value ) { ?>
+                  <option value="<?php echo $value ?>"<?php if ( $value == $monitor->AlarmRefBlendPerc() ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option>
+                <?php } ?>
+              </select></td></tr>
           <?php
       } else {
         ?>

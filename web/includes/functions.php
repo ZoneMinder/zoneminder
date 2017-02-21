@@ -1434,12 +1434,12 @@ function getLoad() {
 
 function getDiskPercent($path = ZM_DIR_EVENTS) {
   $total = disk_total_space($path);
-  if ( ! $total ) {
+  if ( $total === false ) {
     Error("disk_total_space returned false for " . $path );
     return 0;
   }
   $free = disk_free_space($path);
-  if ( ! $free ) {
+  if ( $free === false ) {
     Error("disk_free_space returned false for " . $path );
   }
   $space = round(($total - $free) / $total * 100);

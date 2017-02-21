@@ -81,7 +81,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
   fmt = oc->oformat;
 
-  video_st = avformat_new_stream(oc, input_st->codec->codec);
+  video_st = avformat_new_stream(oc, (AVCodec *)input_st->codec->codec);
   if (!video_st) {
     Fatal("Unable to create video out stream\n");
   }

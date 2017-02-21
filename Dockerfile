@@ -42,22 +42,12 @@ ADD utils/docker/start.sh /tmp/start.sh
 # give files in /usr/local/share/zoneminder/
 RUN chown -R www-data:www-data /usr/local/share/zoneminder/
 
-# Creating SSH privilege escalation dir
-RUN mkdir /var/run/sshd
-
 # Adding apache virtual hosts file
 ADD utils/docker/apache-vhost /etc/apache2/sites-available/000-default.conf
 ADD utils/docker/phpdate.ini /etc/php/7.0/apache2/conf.d/25-phpdate.ini
 
-# Set the root passwd
-RUN echo 'root:root' | chpasswd
-
-# Add a user we can actually login with
-RUN useradd -m -s /bin/bash -G sudo zoneminder
-RUN echo 'zoneminder:zoneminder' | chpasswd
-
-# Expose ssh and http ports
-EXPOSE 22 80
+# Expose http ports
+EXPOSE 80
 
 # Initial database and apache setup:
 RUN "/ZoneMinder/utils/docker/setup.sh"

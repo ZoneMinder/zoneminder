@@ -36,6 +36,20 @@ if ( !empty($_REQUEST['group']) ) {
 
 $showControl = false;
 $monitors = array();
+$widths = array( 
+	''	=> 'auto',
+	160 => 160,
+	320 => 320,
+	352	=> 352,
+	640 => 640,
+	1280 => 1280 );
+$heights = array( 
+		''	=> 'auto',
+	240 => 240,
+	480 => 480,
+);
+	
+
 
 foreach( dbFetchAll( $sql ) as $row ) {
 	if ( !visibleMonitor( $row['Id'] ) ) {
@@ -56,6 +70,12 @@ foreach( dbFetchAll( $sql ) as $row ) {
 		$showControl = true;
 	$row['connKey'] = generateConnKey();
 	$monitors[] = new Monitor( $row );
+	if ( ! isset( $widths[$row['Width']] ) ) {
+		$widths[$row['Width']] = $row['Width'];
+	}
+	if ( ! isset( $heights[$row['Height']] ) ) {
+		$heights[$row['Height']] = $row['Height'];
+	}
 }
 
 $focusWindow = true;
@@ -70,6 +90,7 @@ $layouts = array(
 
 if ( isset($_COOKIE['zmMontageLayout']) )
     $layout = $_COOKIE['zmMontageLayout'];
+
 
 xhtmlHeaders(__FILE__, translate('Montage') );
 ?>
@@ -89,6 +110,8 @@ if ( $showControl )
       </div>
       <h2><?php echo translate('Montage') ?></h2>
       <div id="headerControl">
+		<span id="widthControl"><?php echo translate('Width') ?>: <?php echo buildSelect( 'width', $widths, 'changeWidth(this);' ); ?></span>
+		<span id="heightControl"><?php echo translate('Height') ?>: <?php echo buildSelect( 'height', $widths, 'changeHeight(this);' ); ?></span>
         <span id="scaleControl"><?php echo translate('Scale') ?>: <?php echo buildSelect( 'scale', $scales, 'changeScale(this);' ); ?></span> 
         <label for="layout"><?php echo translate('Layout') ?>:</label><?php echo buildSelect( 'layout', $layouts, 'selectLayout(this);' )?>
       </div>

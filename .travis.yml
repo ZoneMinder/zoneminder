@@ -45,14 +45,9 @@ before_deploy:
 - ssh-add /tmp/deploy_rsa
 
 deploy:
-  provider: packagecloud
-  username: "${PACKAGECLOUD_USER}"
-  repository: "${PACKAGECLOUD_REPO}"
-  token: "${PACKAGECLOUD_TOKEN}"
-  dist: "${OS}/${DIST}"
-  package_glob: build/*.{deb,rpm}
+  provider: script
   skip_cleanup: true
+  script: utils/packpack/rsync_xfer.sh
   on:
     branch: master
-    condition: -n "${OS}" && -n "${DIST}" && -n "${PACKAGECLOUD_TOKEN}"
 

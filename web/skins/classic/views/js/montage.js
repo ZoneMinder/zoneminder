@@ -130,12 +130,45 @@ function selectLayout( element )
     Cookie.write( 'zmMontageLayout', $(element).get('value'), { duration: 10*365 } );
 }
 
-function changeScale()
-{
+function changeWidth() {
+    var width = $('width').get('value');
+
+    for ( var x = 0; x < monitors.length; x++ ) {
+        var monitor = monitors[x];
+        /*Stream could be an applet so can't use moo tools*/ 
+        var streamImg = document.getElementById( 'liveStream'+monitor.id );
+        if ( streamImg ) {
+          streamImg.src = streamImg.src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
+          streamImg.style.width = width + "px";
+          streamImg.style.height = '';
+        }
+    }
+    $('height').set('value', '');
+    $('scale').set('value', '');
+    Cookie.write( 'zmMontageScale', '', { duration: 10*365 } );
+    Cookie.write( 'zmMontageWidth', width, { duration: 10*365 } );
+    Cookie.write( 'zmMontageHeight', '', { duration: 10*365 } );
+} // end function changeWidth()
+
+function changeHeight() {
+    var height = $('height').get('value');
+
+    for ( var x = 0; x < monitors.length; x++ ) {
+        var monitor = monitors[x];
+        /*Stream could be an applet so can't use moo tools*/ 
+        var streamImg = document.getElementById( 'liveStream'+monitor.id );
+        if ( streamImg ) {
+          streamImg.src = streamImg.src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
+          streamImg.style.height = height + "px";
+        }
+    }
+    Cookie.write( 'zmMontageheight', height, { duration: 10*365 } );
+} // end function changeHeight()
+
+function changeScale() {
     var scale = $('scale').get('value');
 
-    for ( var x = 0; x < monitors.length; x++ )
-    {
+    for ( var x = 0; x < monitors.length; x++ ) {
         var monitor = monitors[x];
         var newWidth = ( monitorData[x].width * scale ) / SCALE_BASE;
         var newHeight = ( monitorData[x].height * scale ) / SCALE_BASE;
@@ -149,6 +182,24 @@ function changeScale()
     }
     Cookie.write( 'zmMontageScale', scale, { duration: 10*365 } );
 }
+function changeScale() {
+    var scale = $('scale').get('value');
+
+    for ( var x = 0; x < monitors.length; x++ ) {
+        var monitor = monitors[x];
+        var newWidth = ( monitorData[x].width * scale ) / SCALE_BASE;
+        var newHeight = ( monitorData[x].height * scale ) / SCALE_BASE;
+        /*Stream could be an applet so can't use moo tools*/ 
+        var streamImg = document.getElementById( 'liveStream'+monitor.id );
+        if ( streamImg ) {
+          streamImg.src = streamImg.src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
+          streamImg.style.width = newWidth + "px";
+          streamImg.style.height = newHeight + "px";
+        }
+    }
+    Cookie.write( 'zmMontageScale', scale, { duration: 10*365 } );
+}
+
 
 var monitors = new Array();
 function initPage()

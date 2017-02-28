@@ -60,8 +60,8 @@ foreach( dbFetchAll( $sql ) as $row ) {
 		$scale = validInt($_REQUEST['scale']);
 	else if ( isset( $_COOKIE['zmMontageScale'] ) )
 		$scale = $_COOKIE['zmMontageScale'];
-	else
-		$scale = reScale( SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+	#else
+		#$scale = reScale( SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
 
 	$row['Scale'] = $scale;
 	$row['PopupScale'] = reScale( SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
@@ -90,6 +90,12 @@ $layouts = array(
 
 if ( isset($_COOKIE['zmMontageLayout']) )
     $layout = $_COOKIE['zmMontageLayout'];
+$width = 0;
+$height = 0;
+if ( isset($_COOKIE['zmMontageWidth']) and $_COOKIE['zmMontageWidth'] )
+	$width  = $_COOKIE['zmMontageWidth'];
+if ( isset($_COOKIE['zmMontageHeight']) and $_COOKIE['zmMontageHeight'] )
+	$height  = $_COOKIE['zmMontageHeight'];
 
 
 xhtmlHeaders(__FILE__, translate('Montage') );
@@ -110,10 +116,10 @@ if ( $showControl )
       </div>
       <h2><?php echo translate('Montage') ?></h2>
       <div id="headerControl">
-		<span id="widthControl"><?php echo translate('Width') ?>: <?php echo buildSelect( 'width', $widths, 'changeWidth(this);' ); ?></span>
-		<span id="heightControl"><?php echo translate('Height') ?>: <?php echo buildSelect( 'height', $widths, 'changeHeight(this);' ); ?></span>
-        <span id="scaleControl"><?php echo translate('Scale') ?>: <?php echo buildSelect( 'scale', $scales, 'changeScale(this);' ); ?></span> 
-        <label for="layout"><?php echo translate('Layout') ?>:</label><?php echo buildSelect( 'layout', $layouts, 'selectLayout(this);' )?>
+		<span id="widthControl"><label><?php echo translate('Width') ?>:</label><?php echo buildSelect( 'width', $widths, 'changeWidth(this);' ); ?></span>
+		<span id="heightControl"><label><?php echo translate('Height') ?>:</label><?php echo buildSelect( 'height', $heights, 'changeHeight(this);' ); ?></span>
+        <span id="scaleControl"><label><?php echo translate('Scale') ?>:</label><?php echo buildSelect( 'scale', $scales, 'changeScale(this);' ); ?></span> 
+        <span id="layoutControl"><label for="layout"><?php echo translate('Layout') ?>:</label><?php echo buildSelect( 'layout', $layouts, 'selectLayout(this);' )?></span>
       </div>
     </div>
     <div id="content">
@@ -126,7 +132,7 @@ foreach ( $monitors as $monitor )
         <div id="monitorFrame<?php echo $monitor->Id() ?>" class="monitorFrame" title="<?php echo $monitor->Id() . ' ' .$monitor->Name() ?>">
           <div id="monitor<?php echo $monitor->Id() ?>" class="monitor idle">
             <div id="imageFeed<?php echo $monitor->Id() ?>" class="imageFeed" onclick="createPopup( '?view=watch&amp;mid=<?php echo $monitor->Id() ?>', 'zmWatch<?php echo $monitor->Id() ?>', 'watch', <?php echo reScale( $monitor->Width(), $monitor->PopupScale() ); ?>, <?php echo reScale( $monitor->Height(), $monitor->PopupScale() ); ?> );">
-						<?php echo getStreamHTML( $monitor, $monitor->Scale() ); ?>
+	    <?php echo getStreamHTML( $monitor, new array( 'scale'=>$monitor->Scale(), ( $width ? 'width'=>$width : () ), ( $height ? 'height'=>$height : () ) ) ); ?>
             </div>
 <?php
     if ( !ZM_WEB_COMPACT_MONTAGE )

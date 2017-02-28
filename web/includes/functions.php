@@ -2096,13 +2096,30 @@ function validHtmlStr( $input ) {
   return( htmlspecialchars( $input, ENT_QUOTES ) );
 }
 
-function getStreamHTML( $monitor, $scale=100, $mode='stream' ) {
+function getStreamHTML( $monitor, $options = array() ) {
+
+	if ( isset($options['scale']) ) {
+		$options['width'] = reScale( $monitor->Width(), $options['scale'] );
+		$options['height'] = reScale( $monitor->Height(), $options['scale'] );
+	}
+	if ( ! isset($options['mode'] ) ) {
+		$options['mode'] = 'stream';
+	}
+	$width = NULL;
+	if ( $options['scale'] != 100 ) {
+		$width = 
+
   //FIXME, the width and height of the image need to be scaled.
   if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
-    $streamSrc = $monitor->getStreamSrc( array( 'mode=mpeg', 'scale='.$scale, 'bitrate='.ZM_WEB_VIDEO_BITRATE, 'maxfps='.ZM_WEB_VIDEO_MAXFPS, 'format='.ZM_MPEG_LIVE_FORMAT ) );
-    return getVideoStream( 'liveStream'.$monitor->Id(), $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
+    $streamSrc = $monitor->getStreamSrc( array( 'mode=mpeg', 'scale='.$options['scale'], 'bitrate='.ZM_WEB_VIDEO_BITRATE, 'maxfps='.ZM_WEB_VIDEO_MAXFPS, 'format='.ZM_MPEG_LIVE_FORMAT ) );
+
+    return getVideoStream( 'liveStream'.$monitor->Id(), $streamSrc, $options, ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
   } else if ( $mode == 'stream' and canStream() ) {
-    $streamSrc = $monitor->getStreamSrc( array( 'mode=jpeg', 'scale='.$scale, 'maxfps='.ZM_WEB_VIDEO_MAXFPS, 'buffer='.$monitor->StreamReplayBuffer() ) );
+    $streamSrc = $monitor->getStreamSrc( array( 'mode=jpeg', 
+			    ( isset($options['scale']) ? 'scale='.$options['scale'] : () ),
+			    ( isset($options['width']) ? 'width='.$options['width'] : () ),
+			    ( isset($options['height']) ? 'height='.$options['height'] : () ),
+ 'maxfps='.ZM_WEB_VIDEO_MAXFPS, 'buffer='.$monitor->StreamReplayBuffer() ) );
     if ( canStreamNative() )
       return getImageStream( 'liveStream'.$monitor->Id(), $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
     elseif ( canStreamApplet() )

@@ -48,11 +48,11 @@ fi
 if [ "${OS}" == "el" ] || [ "${OS}" == "fedora" ]; then
     echo "Begin Redhat build..."
 
-    # fix %autosetup support
-    patch --dry-run --silent -f -p1 < utils/packpack/fixautosetup.patch 2>/dev/null
-    if [ $? -eq 0 ]; then
-        patch -p1 < utils/packpack/fixautosetup.patch
-    fi
+    # fix %autosetup support - no longer needed
+    #patch --dry-run --silent -f -p1 < utils/packpack/fixautosetup.patch 2>/dev/null
+    #if [ $? -eq 0 ]; then
+    #    patch -p1 < utils/packpack/fixautosetup.patch
+    #fi
 
     ln -sf distros/redhat rpm
 

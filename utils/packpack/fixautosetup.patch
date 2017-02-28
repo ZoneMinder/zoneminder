@@ -9,8 +9,8 @@ Subject: [PATCH] config sed to replace only the first occurance of %autosetup
 
 diff --git a/pack/rpm.mk b/pack/rpm.mk
 index 7ead710..a17a9b9 100644
---- a/pack/rpm.mk
-+++ b/pack/rpm.mk
+--- a/packpack/pack/rpm.mk
++++ b/packpack/pack/rpm.mk
 @@ -24,7 +24,7 @@ $(BUILDDIR)/$(RPMSPEC): $(RPMSPECIN)
  		-e 's/Release:\([ ]*\).*/Release: $(RELEASE)%{dist}/' \
  		-e 's/Source0:\([ ]*\).*/Source0: $(TARBALL)/' \

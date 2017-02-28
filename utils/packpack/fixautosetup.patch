@@ -1,0 +1,22 @@
+From fed25ab3e7609478d80b4d49916c6b22def1588c Mon Sep 17 00:00:00 2001
+From: Andy Bauer <knnniggett@hotmail.com>
+Date: Mon, 27 Feb 2017 20:31:21 -0600
+Subject: [PATCH] config sed to replace only the first occurance of %autosetup
+
+---
+ pack/rpm.mk | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/pack/rpm.mk b/pack/rpm.mk
+index 7ead710..a17a9b9 100644
+--- a/pack/rpm.mk
++++ b/pack/rpm.mk
+@@ -24,7 +24,7 @@ $(BUILDDIR)/$(RPMSPEC): $(RPMSPECIN)
+ 		-e 's/Release:\([ ]*\).*/Release: $(RELEASE)%{dist}/' \
+ 		-e 's/Source0:\([ ]*\).*/Source0: $(TARBALL)/' \
+ 		-e 's/%setup.*/%setup -q -n $(PRODUCT)-$(VERSION)/' \
+-		-e 's/%autosetup.*/%autosetup -n $(PRODUCT)-$(VERSION)/' \
++		-e '0,/%autosetup.*/ s/%autosetup.*/%autosetup -n $(PRODUCT)-$(VERSION)/' \
+ 		-i $@.tmp
+ 	grep -F "Version: $(VERSION)" $@.tmp && \
+ 		grep -F "Release: $(RELEASE)" $@.tmp && \

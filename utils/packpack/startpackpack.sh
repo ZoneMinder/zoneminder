@@ -48,8 +48,12 @@ fi
 if [ "${OS}" == "el" ] || [ "${OS}" == "fedora" ]; then
     echo "Begin Redhat build..."
 
-    # %autosetup support has been merged upstream. No need to patch
-    #patch -p1 < utils/packpack/autosetup.patch
+    # fix %autosetup support
+    patch --dry-run --silent -f -p1 < utils/packpack/fixautosetup.patch 2>/dev/null
+    if [ $? -eq 0 ]; then
+        patch -p1 < utils/packpack/fixautosetup.patch
+    fi
+
     ln -sf distros/redhat rpm
 
     # The rpm specfile requires the Crud submodule folder to be empty

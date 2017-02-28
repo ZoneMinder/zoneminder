@@ -11,7 +11,7 @@ for CMD in sshfs rsync find fusermount mkdir; do
     echo
     echo "ERROR: The script cannot find the required command \"${CMD}\"."
     echo
-    exit $?
+    exit 1
   fi
 done
 

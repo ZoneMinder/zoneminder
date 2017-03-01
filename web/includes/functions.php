@@ -337,9 +337,9 @@ function outputImageStream( $id, $src, $width, $height, $title="" ) {
 
 function getImageStream( $id, $src, $width, $height, $title="" ) {
   if ( canStreamIframe() ) {
-      return '<iframe id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" width="'. validInt($width)." height=".validInt($height).'"/>';
+      return '<iframe id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" '.($width? ' width="'. validInt($width).'"' : '').($height?' height="'.validInt($height).'"' : '' ).'/>';
   } else {
-      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" width="'. validInt($width) .'" height="'. validInt( $height ).'"/>';
+      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'"'.($width? ' width="'. validInt($width) .'"': '').($height ? ' height="'. validInt( $height ).'"':'').'/>';
   }
 }
 
@@ -2105,31 +2105,29 @@ function getStreamHTML( $monitor, $options = array() ) {
 	if ( ! isset($options['mode'] ) ) {
 		$options['mode'] = 'stream';
 	}
-	$width = NULL;
-	if ( $options['scale'] != 100 ) {
-		$width = 
+  $options['maxfps'] = ZM_WEB_VIDEO_MAXFPS;
+  if ( $monitor->StreamReplayBuffer() )
+    $options['buffer'] = $monitor->StreamReplayBuffer();
 
   //FIXME, the width and height of the image need to be scaled.
   if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
-    $streamSrc = $monitor->getStreamSrc( array( 'mode=mpeg', 'scale='.$options['scale'], 'bitrate='.ZM_WEB_VIDEO_BITRATE, 'maxfps='.ZM_WEB_VIDEO_MAXFPS, 'format='.ZM_MPEG_LIVE_FORMAT ) );
+    $streamSrc = $monitor->getStreamSrc( array( 'mode'=>'mpeg', 'scale'=>$options['scale'], 'bitrate'=>ZM_WEB_VIDEO_BITRATE, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'format' => ZM_MPEG_LIVE_FORMAT ) );
 
     return getVideoStream( 'liveStream'.$monitor->Id(), $streamSrc, $options, ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
-  } else if ( $mode == 'stream' and canStream() ) {
-    $streamSrc = $monitor->getStreamSrc( array( 'mode=jpeg', 
-			    ( isset($options['scale']) ? 'scale='.$options['scale'] : () ),
-			    ( isset($options['width']) ? 'width='.$options['width'] : () ),
-			    ( isset($options['height']) ? 'height='.$options['height'] : () ),
- 'maxfps='.ZM_WEB_VIDEO_MAXFPS, 'buffer='.$monitor->StreamReplayBuffer() ) );
+  } else if ( $options['mode'] == 'stream' and canStream() ) {
+    $options['mode'] = 'jpeg';
+    $streamSrc = $monitor->getStreamSrc( $options );
+
     if ( canStreamNative() )
-      return getImageStream( 'liveStream'.$monitor->Id(), $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
+      return getImageStream( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], (isset($options['height'])?$options['height']:NULL), $monitor->Name() );
     elseif ( canStreamApplet() )
-      return getHelperStream( 'liveStream'.$monitor->Id(), $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
+      return getHelperStream( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], (isset($options['height'])?$options['height']:NULL), $monitor->Name() );
   } else {
-    $streamSrc = $monitor->getStreamSrc( array( 'mode=single', 'scale='.$scale ) );
+    $streamSrc = $monitor->getStreamSrc( $options );
     if ( $mode == 'stream' ) {
       Info( 'The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.' );
     }
-    return getImageStill( 'liveStream'.$monitor->Id(), $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
+    return getImageStill( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], $monitor->Name() );
   }
 } // end function getStreamHTML
 

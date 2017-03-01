@@ -90,13 +90,14 @@ $layouts = array(
 
 if ( isset($_COOKIE['zmMontageLayout']) )
     $layout = $_COOKIE['zmMontageLayout'];
-$width = 0;
-$height = 0;
-if ( isset($_COOKIE['zmMontageWidth']) and $_COOKIE['zmMontageWidth'] )
-	$width  = $_COOKIE['zmMontageWidth'];
-if ( isset($_COOKIE['zmMontageHeight']) and $_COOKIE['zmMontageHeight'] )
-	$height  = $_COOKIE['zmMontageHeight'];
 
+$options = array();
+if ( isset($_COOKIE['zmMontageWidth']) and $_COOKIE['zmMontageWidth'] )
+  $options['width'] = $_COOKIE['zmMontageWidth'];
+if ( isset($_COOKIE['zmMontageHeight']) and $_COOKIE['zmMontageHeight'] )
+	$options['height']  = $_COOKIE['zmMontageHeight'];
+if ( $scale ) 
+  $options['scale'] = $scale;
 
 xhtmlHeaders(__FILE__, translate('Montage') );
 ?>
@@ -132,7 +133,7 @@ foreach ( $monitors as $monitor )
         <div id="monitorFrame<?php echo $monitor->Id() ?>" class="monitorFrame" title="<?php echo $monitor->Id() . ' ' .$monitor->Name() ?>">
           <div id="monitor<?php echo $monitor->Id() ?>" class="monitor idle">
             <div id="imageFeed<?php echo $monitor->Id() ?>" class="imageFeed" onclick="createPopup( '?view=watch&amp;mid=<?php echo $monitor->Id() ?>', 'zmWatch<?php echo $monitor->Id() ?>', 'watch', <?php echo reScale( $monitor->Width(), $monitor->PopupScale() ); ?>, <?php echo reScale( $monitor->Height(), $monitor->PopupScale() ); ?> );">
-	    <?php echo getStreamHTML( $monitor, new array( 'scale'=>$monitor->Scale(), ( $width ? 'width'=>$width : () ), ( $height ? 'height'=>$height : () ) ) ); ?>
+	    <?php echo getStreamHTML( $monitor, $options ); ?>
             </div>
 <?php
     if ( !ZM_WEB_COMPACT_MONTAGE )

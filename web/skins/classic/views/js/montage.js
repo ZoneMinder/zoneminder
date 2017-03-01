@@ -144,8 +144,8 @@ function changeWidth() {
         }
     }
     $('height').set('value', '');
-    $('scale').set('value', '');
-    Cookie.write( 'zmMontageScale', '', { duration: 10*365 } );
+    $('scale').set('value', 100 );
+    Cookie.write( 'zmMontageScale', 100, { duration: 10*365 } );
     Cookie.write( 'zmMontageWidth', width, { duration: 10*365 } );
     Cookie.write( 'zmMontageHeight', '', { duration: 10*365 } );
 } // end function changeWidth()
@@ -162,7 +162,11 @@ function changeHeight() {
           streamImg.style.height = height + "px";
         }
     }
+    $('width').set('value', '' );
+    $('scale').set('value', 100 );
     Cookie.write( 'zmMontageheight', height, { duration: 10*365 } );
+    Cookie.write( 'zmMontageScale', 100, { duration: 10*365 } );
+    Cookie.write( 'zmMontageWidth', '', { duration: 10*365 } );
 } // end function changeHeight()
 
 function changeScale() {
@@ -180,7 +184,11 @@ function changeScale() {
           streamImg.style.height = newHeight + "px";
         }
     }
+    $('width').set('value', '');
+    $('height').set('value', '');
     Cookie.write( 'zmMontageScale', scale, { duration: 10*365 } );
+    Cookie.write( 'zmMontageWidth', '', { duration: 10*365 } );
+    Cookie.write( 'zmMontageHeight', '', { duration: 10*365 } );
 }
 function changeScale() {
     var scale = $('scale').get('value');

@@ -10,7 +10,7 @@ for CMD in set echo curl repoquery git ln mkdir patch rmdir; do
     echo
     echo "ERROR: The script cannot find the required command \"${CMD}\"."
     echo
-    exit $?
+    exit 1
   fi
 done
 
@@ -40,7 +40,7 @@ else
     curl -L https://github.com/FriendsOfCake/crud/archive/v${CRUDVER}.tar.gz > build/crud-${CRUDVER}.tar.gz
     if [ $? -ne 0 ]; then
         echo "ERROR: Crud tarball retreival failed..."
-        exit $?
+        exit 1
     fi
 fi
 
@@ -48,7 +48,7 @@ fi
 if [ "${OS}" == "el" ] || [ "${OS}" == "fedora" ]; then
     echo "Begin Redhat build..."
 
-    # fix %autosetup support - no longer needed
+    # fix %autosetup support - fixed upstream
     #patch --dry-run --silent -f -p1 < utils/packpack/fixautosetup.patch 2>/dev/null
     #if [ $? -eq 0 ]; then
     #    patch -p1 < utils/packpack/fixautosetup.patch
@@ -76,25 +76,22 @@ if [ "${OS}" == "el" ] || [ "${OS}" == "fedora" ]; then
         curl $result > build/zmrepo.noarch.rpm
     else
         echo "ERROR: Failed to retrieve zmrepo rpm..."
-        if [ $? -ne 0  ]; then
-            echo $?
-        else
-            echo 1
-        fi
+        echo 1
     fi
 
     echo "Starting packpack..."
     packpack/packpack -f utils/packpack/redhat_package.mk redhat_package
 
-# Steps common the Debian based distros
+# Steps common to Debian based distros
 elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ]; then
     echo "Begin Debian build..."
 
     # patch packpack to remove "debian" from the source tarball filename
-    patch --dry-run --silent -f -p1 < utils/packpack/deb.mk.patch 2>/dev/null
-    if [ $? -eq 0 ]; then
-        patch -p1 < utils/packpack/deb.mk.patch
-    fi
+    # fixed upstream
+    # patch --dry-run --silent -f -p1 < utils/packpack/deb.mk.patch 2>/dev/null
+    #if [ $? -eq 0 ]; then
+    #    patch -p1 < utils/packpack/deb.mk.patch
+    #fi
 
     # Uncompress the Crud tarball and move it into place
     if [ -e "web/api/app/Plugin/Crud/LICENSE.txt" ]; then

@@ -15,19 +15,23 @@ for CMD in sshfs rsync find fusermount mkdir; do
   fi
 done
 
-mkdir -p ./zmrepo
-ssh_mntchk="$(sshfs zmrepo@zmrepo.zoneminder.com:./ ./zmrepo -o workaround=rename,reconnect)"
+# We only want to deploy packages during cron events
+# See https://docs.travis-ci.com/user/cron-jobs/
+if [ "${TRAVIS_EVENT_TYPE}" == "cron" ]; then
 
-if [ -z "$ssh_mntchk" ]; then
-    # Don't keep packages older than 5 days
-    find ./zmrepo -maxdepth 1 -type f -mtime +5 -delete
-    rsync --ignore-errors ./build/ ./zmrepo/
-    fusermount -zu zmrepo
-else
-    echo
-    echo "ERROR: Attempt to mount zmrepo.zoneminder.com failed!"
-    echo "sshfs gave the following error message:"
-    echo \"$ssh_mntchk\"
-    echo
+    mkdir -p ./zmrepo
+    ssh_mntchk="$(sshfs zmrepo@zmrepo.zoneminder.com:./ ./zmrepo -o workaround=rename,reconnect)"
+
+    if [ -z "$ssh_mntchk" ]; then
+        # Don't keep packages older than 5 days
+        find ./zmrepo -maxdepth 1 -type f -mtime +5 -delete
+        rsync --ignore-errors ./build/ ./zmrepo/
+        fusermount -zu zmrepo
+    else
+        echo
+        echo "ERROR: Attempt to mount zmrepo.zoneminder.com failed!"
+        echo "sshfs gave the following error message:"
+        echo \"$ssh_mntchk\"
+        echo
+    fi
 fi
-

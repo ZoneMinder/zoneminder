@@ -24,7 +24,7 @@ checksanity () {
     done
 
     # Verify OS & DIST environment variables have been set before calling this script
-    if [ -z "${OS}" ] || [ -z "${DIST}" ]; then
+    if [ -z "${OS}" ] || [ -z ""${DIST}"" ]; then
         echo "ERROR: both OS and DIST environment variables must be set"
         exit 1
     fi
@@ -54,6 +54,29 @@ commonprep () {
             exit 1
         fi
     fi
+}
+
+# Uncompress the Crud tarball and move it into place
+movecrud () {
+    if [ -e "web/api/app/Plugin/Crud/LICENSE.txt" ]; then
+        echo "Crud plugin already installed..."
+    else     
+        echo "Unpacking Crud plugin..."
+        tar -xzf build/crud-${CRUDVER}.tar.gz
+        rmdir web/api/app/Plugin/Crud
+        mv -f crud-${CRUDVER} web/api/app/Plugin/Crud
+    fi
+}
+
+# previsouly part of installzm.sh
+# install the trusty deb and test zoneminder
+installtrusty () {
+    # Install and test the zoneminder package (only) for Ubuntu Trusty
+    sudo gdebi --non-interactive build/zoneminder_*amd64.deb
+    sudo chmod 644 /etc/zm/zm.conf 
+    mysql -uzmuser -pzmpass zm < db/test.monitor.sql
+    sudo /usr/bin/zmpkg.pl start
+    sudo /usr/bin/zmfilter.pl -f purgewhenfull
 }
 
 ################
@@ -93,7 +116,7 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ]; then
         fi
 
         # Let repoquery determine the full url and filename of the zmrepo rpm we are interested in
-        result=`repoquery --repofrompath=zmpackpack,https://zmrepo.zoneminder.com/${zmrepodistro}/${DIST}/x86_64/ --repoid=zmpackpack --qf="%{location}" zmrepo 2> /dev/null`
+        result=`repoquery --repofrompath=zmpackpack,https://zmrepo.zoneminder.com/${zmrepodistro}/"${DIST}"/x86_64/ --repoid=zmpackpack --qf="%{location}" zmrepo 2> /dev/null`
 
         if [ -n "$result" ] && [ $? -eq 0  ]; then
             echo "Retrieving ZMREPO rpm..."
@@ -117,19 +140,11 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ]; then
         #    patch -p1 < utils/packpack/deb.mk.patch
         #fi
 
-        # Uncompress the Crud tarball and move it into place
-        if [ -e "web/api/app/Plugin/Crud/LICENSE.txt" ]; then
-            echo "Crud plugin already installed..."
-        else     
-            echo "Unpacking Crud plugin..."
-            tar -xzf build/crud-${CRUDVER}.tar.gz
-            rmdir web/api/app/Plugin/Crud
-            mv -f crud-${CRUDVER} web/api/app/Plugin/Crud
-        fi
+        movecrud
 
-        if [ ${DIST} == "trusty" ] || [ ${DIST} == "precise" ]; then
+        if [ "${DIST}" == "trusty" ] || [ "${DIST}" == "precise" ]; then
             ln -sf distros/ubuntu1204 debian
-        elif [ ${DIST} == "wheezy" ]; then 
+        elif [ "${DIST}" == "wheezy" ]; then 
             ln -sf distros/debian debian
         else 
             ln -sf distros/ubuntu1604 debian
@@ -137,25 +152,22 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ]; then
 
         echo "Starting packpack..."
         packpack/packpack
+
+        if [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ]; then
+            installtrusty
+        fi
     fi
 
 # We were not triggered via cron so just build and test trusty
-elif [ "${OS}" == "debian" ] && [ ${DIST} == "trusty" ]; then
+elif [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ]; then
     commonprep
-
-    # Uncompress the Crud tarball and move it into place
-    if [ -e "web/api/app/Plugin/Crud/LICENSE.txt" ]; then
-        echo "Crud plugin already installed..."
-    else     
-        echo "Unpacking Crud plugin..."
-        tar -xzf build/crud-${CRUDVER}.tar.gz
-        rmdir web/api/app/Plugin/Crud
-        mv -f crud-${CRUDVER} web/api/app/Plugin/Crud
-    fi
+    movecrud
 
     ln -sf distros/ubuntu1204 debian
 
     echo "Starting packpack..."
     packpack/packpack
+
+    installtrusty
 fi
 

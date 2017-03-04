@@ -35,7 +35,6 @@ services:
 - docker
 script:
 - utils/packpack/startpackpack.sh
-- utils/packpack/installzm.sh
 
 before_deploy:
 - openssl aes-256-cbc -K $encrypted_92a2ad18ba0b_key -iv $encrypted_92a2ad18ba0b_iv

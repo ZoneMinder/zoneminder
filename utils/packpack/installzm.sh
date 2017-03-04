@@ -1,4 +1,5 @@
 #!/bin/bash
+# No longer needed. This was incorporated into startpackpack.sh
 
 # Required, so that Travis marks the build as failed if any of the steps below fail
 set -ev

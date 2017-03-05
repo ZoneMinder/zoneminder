@@ -60,8 +60,8 @@ override_dh_fixperms:
 	dh_fixperms
 	#
 	# As requested by the Debian Webapps Policy Manual §3.2.1
-	chown root:www-data debian/zoneminder-core/etc/zm/zm.conf
-	chmod 640 debian/zoneminder-core/etc/zm/zm.conf
+	chown root:www-data $(CURDIR)/debian/zoneminder/etc/zm/zm.conf
+	chmod 640 $(CURDIR)/debian/zoneminder/etc/zm/zm.conf
 
 override_dh_installinit:
 	dh_installinit --no-start

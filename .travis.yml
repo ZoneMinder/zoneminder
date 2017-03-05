@@ -47,7 +47,6 @@ deploy:
   provider: script
   skip_cleanup: true
   script: utils/packpack/rsync_xfer.sh
-# Re-enable after testing is complete
-#  on:
-#    branch: master
+  on:
+    branch: master
 

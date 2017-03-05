@@ -2,9 +2,6 @@
 # packpack setup file for the ZoneMinder project
 # Written by Andrew Bauer
 
-# Required, so that Travis marks the build as failed if any of the steps below fail
-set -ev
-
 ###############
 # SUBROUTINES #
 ###############
@@ -176,3 +173,6 @@ elif [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ]; then
         installtrusty
     fi
 fi
+
+exit 0
+

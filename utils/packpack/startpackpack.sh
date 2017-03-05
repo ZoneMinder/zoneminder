@@ -150,9 +150,7 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
         echo "Begin Debian build..."
 
         # patch debian build scripts to apply correct permissions to zm.conf
-        set +e
-        patch --silent -f -p1 < utils/packpack/fixdebperms.patch 2>/dev/null
-        set -e
+        patch --silent -f -p1 < utils/packpack/fixdebperms.patch 2>&1 > /dev/null
 
         movecrud
 
@@ -177,9 +175,7 @@ elif [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ]; then
     echo "Begin Ubuntu Trusty build..."
 
     # patch debian build scripts to apply correct permissions to zm.conf
-    set +e
-    patch --silent -f -p1 < utils/packpack/fixdebperms.patch 2>/dev/null
-    set -e
+    patch --silent -f -p1 < utils/packpack/fixdebperms.patch 2>&1 > /dev/null
 
     commonprep
     movecrud
@@ -194,4 +190,7 @@ elif [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ]; then
         installtrusty
     fi
 fi
+
+exit 0
+
 

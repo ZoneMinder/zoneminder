@@ -1,18 +1,6 @@
-From cfeb12fc73a22782858754a335775e3bdab36956 Mon Sep 17 00:00:00 2001
-From: Andy Bauer <knnniggett@hotmail.com>
-Date: Sun, 5 Mar 2017 10:37:44 -0600
-Subject: [PATCH 1/2] fix permissions on zm.conf in deb pkg scripts
-
----
- distros/ubuntu1204/rules | 6 ++++--
- distros/ubuntu1604/rules | 6 ++++--
- 2 files changed, 8 insertions(+), 4 deletions(-)
-
-diff --git a/distros/ubuntu1204/rules b/distros/ubuntu1204/rules
-index b467c87..3f5c41c 100755
---- a/distros/ubuntu1204/rules
-+++ b/distros/ubuntu1204/rules
-@@ -58,8 +58,10 @@ override_dh_auto_install:
+--- a/distros/ubuntu1204/rules	2017-03-05 11:46:18.707725975 -0600
++++ b/distros/ubuntu1204/rules	2017-03-05 12:33:30.639678284 -0600
+@@ -58,8 +58,10 @@
  
  override_dh_fixperms:
  	dh_fixperms
@@ -20,64 +8,21 @@ index b467c87..3f5c41c 100755
 -	chmod -c o-r $(CURDIR)/debian/zoneminder/etc/zm/zm.conf
 +	#
 +	# As requested by the Debian Webapps Policy Manual §3.2.1
-+	chown root:www-data debian/zoneminder-core/etc/zm/zm.conf
-+	chmod 640 debian/zoneminder-core/etc/zm/zm.conf
- 
- override_dh_installinit:
- 	dh_installinit --no-start
-diff --git a/distros/ubuntu1604/rules b/distros/ubuntu1604/rules
-index bf8012a..15c953e 100755
---- a/distros/ubuntu1604/rules
-+++ b/distros/ubuntu1604/rules
-@@ -58,8 +58,10 @@ override_dh_auto_install:
- 
- override_dh_fixperms:
- 	dh_fixperms
--	## 637685
--	chmod -c o-r $(CURDIR)/debian/zoneminder/etc/zm/zm.conf
-+	#
-+	# As requested by the Debian Webapps Policy Manual §3.2.1
-+	chown root:www-data debian/zoneminder-core/etc/zm/zm.conf
-+	chmod 640 debian/zoneminder-core/etc/zm/zm.conf
- 
- override_dh_installinit:
- 	dh_installinit --no-start
-
-From f66408b9983ef1161f0fa753d71dd0ed0b2fdb6b Mon Sep 17 00:00:00 2001
-From: Andy Bauer <knnniggett@hotmail.com>
-Date: Sun, 5 Mar 2017 10:50:09 -0600
-Subject: [PATCH 2/2] update the path to zm.conf
-
----
- distros/ubuntu1204/rules | 4 ++--
- distros/ubuntu1604/rules | 4 ++--
- 2 files changed, 4 insertions(+), 4 deletions(-)
-
-diff --git a/distros/ubuntu1204/rules b/distros/ubuntu1204/rules
-index 3f5c41c..2b54a21 100755
---- a/distros/ubuntu1204/rules
-+++ b/distros/ubuntu1204/rules
-@@ -60,8 +60,8 @@ override_dh_fixperms:
- 	dh_fixperms
- 	#
- 	# As requested by the Debian Webapps Policy Manual §3.2.1
--	chown root:www-data debian/zoneminder-core/etc/zm/zm.conf
--	chmod 640 debian/zoneminder-core/etc/zm/zm.conf
 +	chown root:www-data $(CURDIR)/debian/zoneminder/etc/zm/zm.conf
 +	chmod 640 $(CURDIR)/debian/zoneminder/etc/zm/zm.conf
  
  override_dh_installinit:
  	dh_installinit --no-start
-diff --git a/distros/ubuntu1604/rules b/distros/ubuntu1604/rules
-index 15c953e..c7fb001 100755
---- a/distros/ubuntu1604/rules
-+++ b/distros/ubuntu1604/rules
-@@ -60,8 +60,8 @@ override_dh_fixperms:
+--- a/distros/ubuntu1604/rules	2017-03-05 11:46:18.707725975 -0600
++++ b/distros/ubuntu1604/rules	2017-03-05 12:35:43.960426310 -0600
+@@ -58,8 +58,10 @@
+ 
+ override_dh_fixperms:
  	dh_fixperms
- 	#
- 	# As requested by the Debian Webapps Policy Manual §3.2.1
--	chown root:www-data debian/zoneminder-core/etc/zm/zm.conf
--	chmod 640 debian/zoneminder-core/etc/zm/zm.conf
+-	## 637685
+-	chmod -c o-r $(CURDIR)/debian/zoneminder/etc/zm/zm.conf
++	#
++	# As requested by the Debian Webapps Policy Manual §3.2.1
 +	chown root:www-data $(CURDIR)/debian/zoneminder/etc/zm/zm.conf
 +	chmod 640 $(CURDIR)/debian/zoneminder/etc/zm/zm.conf
  

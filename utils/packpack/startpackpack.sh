@@ -84,8 +84,6 @@ installtrusty () {
 
     # Install and test the zoneminder package (only) for Ubuntu Trusty
     sudo gdebi --non-interactive build/zoneminder_*amd64.deb
-    sudo chmod 644 /etc/zm/zm.conf 
-    sudo chgrp www-data /etc/zm/zm.conf
     mysql -uzmuser -pzmpass zm < db/test.monitor.sql
     sudo /usr/bin/zmpkg.pl start
     sudo /usr/bin/zmfilter.pl -f purgewhenfull
@@ -151,12 +149,11 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
     elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ]; then
         echo "Begin Debian build..."
 
-        # patch packpack to remove "debian" from the source tarball filename
-        # fixed upstream
-        # patch --dry-run --silent -f -p1 < utils/packpack/deb.mk.patch 2>/dev/null
-        #if [ $? -eq 0 ]; then
-        #    patch -p1 < utils/packpack/deb.mk.patch
-        #fi
+        # patch debian build scripts to apply correct permissions to zm.conf
+        patch --dry-run --silent -f -p1 < utils/packpack/fixdebperms.patch 2>/dev/null
+        if [ $? -eq 0 ]; then
+            patch -p1 < utils/packpack/fixdebperms.patch
+        fi
 
         movecrud
 
@@ -178,6 +175,14 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
 
 # We were not triggered via cron so just build and test trusty
 elif [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ]; then
+    echo "Begin Ubuntu Trusty build..."
+
+    # patch debian build scripts to apply correct permissions to zm.conf
+    patch --dry-run --silent -f -p1 < utils/packpack/fixdebperms.patch 2>/dev/null
+    if [ $? -eq 0 ]; then
+        patch -p1 < utils/packpack/fixdebperms.patch
+    fi
+
     commonprep
     movecrud
 

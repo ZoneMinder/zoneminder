@@ -86,6 +86,12 @@ installtrusty () {
 
 checksanity
 
+# Set VERSION to x.xx.x e.g. 1.30.2
+# Set RELEASE to x where x is number of commits since release
+# Creates zoneminder packages in the format: zoneminder-{version}-{release}
+export VERSION=$(git describe --long --always | sed -n 's/^\([0-9\.]*\)-\([0-9]*\)-\([a-z0-9]*\)/\1/p')
+export RELEASE=$(git describe --long --always | sed -n 's/^\([0-9\.]*\)-\([0-9]*\)-\([a-z0-9]*\)/\2/p')
+
 # We don't want to build packages for all supported distros after every commit
 # Only build all packages when executed via cron
 # See https://docs.travis-ci.com/user/cron-jobs/

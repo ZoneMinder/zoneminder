@@ -133,7 +133,7 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
             curl $result > build/zmrepo.noarch.rpm
         else
             echo "ERROR: Failed to retrieve zmrepo rpm..."
-            echo 1
+            exit 1
         fi
 
         echo "Starting packpack..."

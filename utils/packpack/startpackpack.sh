@@ -12,7 +12,7 @@ set -ev
 # General sanity checks
 checksanity () {
     # Check to see if this script has access to all the commands it needs
-    for CMD in set echo curl repoquery git ln mkdir patch rmdir gdebi; do
+    for CMD in set echo curl repoquery git ln mkdir patch rmdir; do
       type $CMD 2>&1 > /dev/null
 
       if [ $? -ne 0 ]; then
@@ -71,6 +71,17 @@ movecrud () {
 # previsouly part of installzm.sh
 # install the trusty deb and test zoneminder
 installtrusty () {
+
+    # Check we've got gdebi installed
+    type gdebi 2>&1 > /dev/null
+
+    if [ $? -ne 0 ]; then
+      echo
+      echo "ERROR: The script cannot find the required command \"gdebi\"."
+      echo
+      exit 1
+    fi
+
     # Install and test the zoneminder package (only) for Ubuntu Trusty
     sudo gdebi --non-interactive build/zoneminder_*amd64.deb
     sudo chmod 644 /etc/zm/zm.conf 
@@ -175,6 +186,9 @@ elif [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ]; then
     echo "Starting packpack..."
     packpack/packpack
 
-    installtrusty
+    # If we are running inside Travis then attempt to install the deb we just built
+    if [ "${TRAVIS}" == "true" ]; then
+        installtrusty
+    fi
 fi
 

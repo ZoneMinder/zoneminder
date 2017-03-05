@@ -12,7 +12,7 @@ set -ev
 # General sanity checks
 checksanity () {
     # Check to see if this script has access to all the commands it needs
-    for CMD in set echo curl repoquery git ln mkdir patch rmdir; do
+    for CMD in set echo curl repoquery git ln mkdir patch rmdir gdebi; do
       type $CMD 2>&1 > /dev/null
 
       if [ $? -ne 0 ]; then

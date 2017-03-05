@@ -106,7 +106,7 @@ export RELEASE=$(git describe --long --always | sed -n 's/^\([0-9\.]*\)-\([0-9]*
 # We don't want to build packages for all supported distros after every commit
 # Only build all packages when executed via cron
 # See https://docs.travis-ci.com/user/cron-jobs/
-if [ "${TRAVIS_EVENT_TYPE}" == "cron" ]; then
+if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
     commonprep
 
     # Steps common to Redhat distros
@@ -171,7 +171,7 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ]; then
         echo "Starting packpack..."
         packpack/packpack
 
-        if [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ]; then
+        if [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ] && [ "${TRAVIS}" == "true" ]; then
             installtrusty
         fi
     fi

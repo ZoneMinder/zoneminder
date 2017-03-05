@@ -12,7 +12,7 @@ set -ev
 # General sanity checks
 checksanity () {
     # Check to see if this script has access to all the commands it needs
-    for CMD in set echo curl repoquery git ln mkdir patch rmdir; do
+    for CMD in set echo curl repoquery git ln mkdir rmdir; do
       type $CMD 2>&1 > /dev/null
 
       if [ $? -ne 0 ]; then
@@ -111,12 +111,6 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
     if [ "${OS}" == "el" ] || [ "${OS}" == "fedora" ]; then
         echo "Begin Redhat build..."
 
-        # fix %autosetup support - fixed upstream
-        #patch --dry-run --silent -f -p1 < utils/packpack/fixautosetup.patch 2>/dev/null
-        #if [ $? -eq 0 ]; then
-        #    patch -p1 < utils/packpack/fixautosetup.patch
-        #fi
-
         ln -sf distros/redhat rpm
 
         # The rpm specfile requires the Crud submodule folder to be empty
@@ -148,10 +142,6 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
     # Steps common to Debian based distros
     elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ]; then
         echo "Begin Debian build..."
-
-        # patch debian build scripts to apply correct permissions to zm.conf
-        patch --silent -f -p1 < utils/packpack/fixdebperms.patch 2>&1 > /dev/null
-
         movecrud
 
         if [ "${DIST}" == "trusty" ] || [ "${DIST}" == "precise" ]; then
@@ -173,10 +163,6 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
 # We were not triggered via cron so just build and test trusty
 elif [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ]; then
     echo "Begin Ubuntu Trusty build..."
-
-    # patch debian build scripts to apply correct permissions to zm.conf
-    patch --silent -f -p1 < utils/packpack/fixdebperms.patch 2>&1 > /dev/null
-
     commonprep
     movecrud
 
@@ -190,7 +176,3 @@ elif [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ]; then
         installtrusty
     fi
 fi
-
-exit 0
-
-

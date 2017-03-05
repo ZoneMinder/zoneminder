@@ -149,12 +149,6 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
     elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ]; then
         echo "Begin Debian build..."
 
-        # patch debian build scripts to apply correct permissions to zm.conf
-        patch --dry-run --silent -f -p1 < utils/packpack/fixdebperms.patch 2>/dev/null
-        if [ $? -eq 0 ]; then
-            patch -p1 < utils/packpack/fixdebperms.patch
-        fi
-
         movecrud
 
         if [ "${DIST}" == "trusty" ] || [ "${DIST}" == "precise" ]; then
@@ -164,6 +158,14 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
         else 
             ln -sf distros/ubuntu1604 debian
         fi
+
+        # patch debian build scripts to apply correct permissions to zm.conf
+        set +e
+        patch --dry-run --silent -f -p1 < utils/packpack/fixdebperms.patch 2>/dev/null
+        if [ $? -eq 0 ]; then
+            patch -p1 < utils/packpack/fixdebperms.patch
+        fi
+        set -e
 
         echo "Starting packpack..."
         packpack/packpack
@@ -177,16 +179,18 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
 elif [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ]; then
     echo "Begin Ubuntu Trusty build..."
 
-    # patch debian build scripts to apply correct permissions to zm.conf
-    patch --dry-run --silent -f -p1 < utils/packpack/fixdebperms.patch 2>/dev/null
-    if [ $? -eq 0 ]; then
-        patch -p1 < utils/packpack/fixdebperms.patch
-    fi
-
     commonprep
     movecrud
 
     ln -sf distros/ubuntu1204 debian
+
+    # patch debian build scripts to apply correct permissions to zm.conf
+    set +e
+    patch --dry-run --silent -f -p1 < utils/packpack/fixdebperms.patch 2>/dev/null
+    if [ $? -eq 0 ]; then
+        patch -p1 < utils/packpack/fixdebperms.patch
+    fi
+    set -e
 
     echo "Starting packpack..."
     packpack/packpack

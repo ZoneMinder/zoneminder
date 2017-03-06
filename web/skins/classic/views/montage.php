@@ -18,8 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView( 'Stream' ) )
-{
+if ( !canView( 'Stream' ) ) {
     $view = 'error';
     return;
 }
@@ -99,8 +98,7 @@ xhtmlHeaders(__FILE__, translate('Montage') );
     <div id="header">
       <div id="headerButtons">
 <?php
-if ( $showControl )
-{
+if ( $showControl ) {
 ?>
         <a href="#" onclick="createPopup( '?view=control', 'zmControl', 'control' )"><?php echo translate('Control') ?></a>
 <?php
@@ -112,15 +110,14 @@ if ( $showControl )
       <div id="headerControl">
 		<span id="widthControl"><?php echo translate('Width') ?>: <?php echo buildSelect( 'width', $widths, 'changeWidth(this);' ); ?></span>
 		<span id="heightControl"><?php echo translate('Height') ?>: <?php echo buildSelect( 'height', $widths, 'changeHeight(this);' ); ?></span>
-        <span id="scaleControl"><?php echo translate('Scale') ?>: <?php echo buildSelect( 'scale', $scales, 'changeScale(this);' ); ?></span> 
+        <span id="scaleControl"><label><?php echo translate('Scale') ?></label>: <?php echo buildSelect( 'scale', $scales, 'changeScale(this);' ); ?></span> 
         <label for="layout"><?php echo translate('Layout') ?>:</label><?php echo buildSelect( 'layout', $layouts, 'selectLayout(this);' )?>
       </div>
     </div>
     <div id="content">
       <div id="monitors">
 <?php
-foreach ( $monitors as $monitor )
-{
+foreach ( $monitors as $monitor ) {
     $connkey = $monitor->connKey(); // Minor hack
 ?>
         <div id="monitorFrame<?php echo $monitor->Id() ?>" class="monitorFrame" title="<?php echo $monitor->Id() . ' ' .$monitor->Name() ?>">
@@ -129,8 +126,7 @@ foreach ( $monitors as $monitor )
 						<?php echo getStreamHTML( $monitor, $monitor->Scale() ); ?>
             </div>
 <?php
-    if ( !ZM_WEB_COMPACT_MONTAGE )
-    {
+    if ( !ZM_WEB_COMPACT_MONTAGE ) {
 ?>
             <div id="monitorState<?php echo $monitor->Id() ?>" class="monitorState idle"><?php echo translate('State') ?>:&nbsp;<span id="stateValue<?php echo $monitor->Id() ?>"></span>&nbsp;-&nbsp;<span id="fpsValue<?php echo $monitor->Id() ?>"></span>&nbsp;fps</div>
 <?php

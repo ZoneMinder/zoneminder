@@ -194,7 +194,7 @@ CREATE TABLE `Events` (
   `Length` decimal(10,2) NOT NULL default '0.00',
   `Frames` int(10) unsigned default NULL,
   `AlarmFrames` int(10) unsigned default NULL,
-  `DefaultVideo` VARCHAR( 64 ) NOT NULL,
+  `DefaultVideo` VARCHAR( 64 ) DEFAULT '' NOT NULL,
   `TotScore` int(10) unsigned NOT NULL default '0',
   `AvgScore` smallint(5) unsigned default '0',
   `MaxScore` smallint(5) unsigned default '0',
@@ -572,7 +572,7 @@ CREATE TABLE `Storage` (
 --
 -- Create a default storage location
 --
-insert into Storage VALUES (NULL, '/var/lib/zoneminder/events', 'Default' );
+insert into Storage VALUES (NULL, '/var/cache/zoneminder/events', 'Default' );
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;

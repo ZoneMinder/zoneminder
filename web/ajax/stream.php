@@ -113,11 +113,13 @@ switch ( $data['type'] )
         $data['delay'] = round( $data['delay'], 2 );
         $data['zoom'] = round( $data['zoom']/SCALE_BASE, 1 );
         if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == "hashed" ) {
+          session_start();
           $time = time();
           // Regenerate auth hash after half the lifetime of the hash
           if ( $_SESSION['AuthHashGeneratedAt'] < $time - (ZM_AUTH_HASH_TTL * 1800) ) {
             $data['auth'] = generateAuthHash( ZM_AUTH_HASH_IPS );
           } 
+          session_write_close();
         }
         ajaxResponse( array( 'status'=>$data ) );
         break;
@@ -129,11 +131,13 @@ switch ( $data['type'] )
         $data['rate'] /= RATE_BASE;
         $data['zoom'] = round( $data['zoom']/SCALE_BASE, 1 );
         if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == "hashed" ) {
+          session_start();
           $time = time();
           // Regenerate auth hash after half the lifetime of the hash
           if ( $_SESSION['AuthHashGeneratedAt'] < $time - (ZM_AUTH_HASH_TTL * 1800) ) {
             $data['auth'] = generateAuthHash( ZM_AUTH_HASH_IPS );
           } 
+          session_write_close();
         }
         ajaxResponse( array( 'status'=>$data ) );
         break;

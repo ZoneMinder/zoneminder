@@ -80,10 +80,20 @@ installtrusty () {
     fi
 
     # Install and test the zoneminder package (only) for Ubuntu Trusty
-    sudo gdebi --non-interactive build/zoneminder_${VERSION}-${RELEASE}_amd64.deb
-    mysql -uzmuser -pzmpass zm < db/test.monitor.sql
-    sudo /usr/bin/zmpkg.pl start
-    sudo /usr/bin/zmfilter.pl -f purgewhenfull
+    pkgname="build/zoneminder_${VERSION}-${RELEASE}_amd64.deb"
+
+    if [ -e $pkgname ]; then
+        sudo gdebi --non-interactive $pkgname
+        mysql -uzmuser -pzmpass zm < db/test.monitor.sql
+        sudo /usr/bin/zmpkg.pl start
+        sudo /usr/bin/zmfilter.pl -f purgewhenfull
+    else
+      echo
+      echo "ERROR: The script cannot find the package $pkgname"
+      echo "Check the Travis log for a build failure."
+      echo
+      exit 99
+    fi
 }
 
 ################

@@ -189,8 +189,7 @@ int RemoteCameraHttp::SendRequest()
  * > 0 is the # of bytes read.
  */
 
-int RemoteCameraHttp::ReadData( Buffer &buffer, int bytes_expected )
-{
+int RemoteCameraHttp::ReadData( Buffer &buffer, unsigned int bytes_expected ) {
   fd_set rfds;
   FD_ZERO(&rfds);
   FD_SET(sd, &rfds);
@@ -198,8 +197,7 @@ int RemoteCameraHttp::ReadData( Buffer &buffer, int bytes_expected )
   struct timeval temp_timeout = timeout;
 
   int n_found = select( sd+1, &rfds, NULL, NULL, &temp_timeout );
-  if( n_found == 0 )
-  {
+  if( n_found == 0 ) {
     Debug( 4, "Select timed out timeout was %d secs %d usecs", temp_timeout.tv_sec, temp_timeout.tv_usec );
     int error = 0;
     socklen_t len = sizeof (error);
@@ -213,39 +211,32 @@ int RemoteCameraHttp::ReadData( Buffer &buffer, int bytes_expected )
     // Why are we disconnecting?  It's just a timeout, meaning that data wasn't available.
     //Disconnect();
     return( 0 );
-  }
-  else if ( n_found < 0)
-  {
+  } else if ( n_found < 0) {
     Error( "Select error: %s", strerror(errno) );
     return( -1 );
   }
 
-  int total_bytes_to_read = 0;
+  unsigned int total_bytes_to_read = 0;
 
-  if ( bytes_expected )
-  {
+  if ( bytes_expected ) {
     total_bytes_to_read = bytes_expected;
-  }
-  else
-  {
-    if ( ioctl( sd, FIONREAD, &total_bytes_to_read ) < 0 )
-    {
+  } else {
+    if ( ioctl( sd, FIONREAD, &total_bytes_to_read ) < 0 ) {
       Error( "Can't ioctl(): %s", strerror(errno) );
       return( -1 );
     }
 
-    if ( total_bytes_to_read == 0 )
-    {
+    if ( total_bytes_to_read == 0 ) {
       if( mode == SINGLE_IMAGE ) {
-    int error = 0;
-    socklen_t len = sizeof (error);
-    int retval = getsockopt (sd, SOL_SOCKET, SO_ERROR, &error, &len);
-    if(retval != 0 ) {
-      Debug( 1, "error getting socket error code %s", strerror(retval) );
-    }
-    if (error != 0) {
-      return -1;
-    }
+        int error = 0;
+        socklen_t len = sizeof (error);
+        int retval = getsockopt( sd, SOL_SOCKET, SO_ERROR, &error, &len );
+        if(retval != 0 ) {
+          Debug( 1, "error getting socket error code %s", strerror(retval) );
+        }
+        if (error != 0) {
+          return -1;
+        }
         // Case where we are grabbing a single jpg, but no content-length was given, so the expectation is that we read until close.
 		    return( 0 );
       }
@@ -263,34 +254,27 @@ int RemoteCameraHttp::ReadData( Buffer &buffer, int bytes_expected )
     } else {
       Debug(3, "Just getting %d", total_bytes_to_read );
     }
-  }
+  } // end if bytes_expected or not
   Debug( 3, "Expecting %d bytes", total_bytes_to_read );
 
   int total_bytes_read = 0;
-  do
-  {
+  do {
     int bytes_read = buffer.read_into( sd, total_bytes_to_read );
-    if ( bytes_read < 0)
-    {
+    if ( bytes_read < 0 ) {
       Error( "Read error: %s", strerror(errno) );
       return( -1 );
-    }
-    else if ( bytes_read == 0)
-    {
+    } else if ( bytes_read == 0 ) {
       Debug( 2, "Socket closed" );
       //Disconnect(); // Disconnect is done outside of ReadData now.
       return( -1 );
-    }
-    else if ( bytes_read < total_bytes_to_read )
-    {
+    } else if ( bytes_read < total_bytes_to_read ) {
       Error( "Incomplete read, expected %d, got %d", total_bytes_to_read, bytes_read );
       return( -1 );
     }
     Debug( 3, "Read %d bytes", bytes_read );
     total_bytes_read += bytes_read;
     total_bytes_to_read -= bytes_read;
-  }
-  while ( total_bytes_to_read );
+  } while ( total_bytes_to_read );
 
   Debug( 4, buffer );
 

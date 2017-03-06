@@ -260,7 +260,7 @@ Debug(2, "Have audio_output_context");
 
         /* check that the encoder supports s16 pcm input */
         if (!check_sample_fmt( audio_output_codec, audio_output_context->sample_fmt)) {
-          Error( "Encoder does not support sample format %s, setting to FLTP",
+          Debug( 3, "Encoder does not support sample format %s, setting to FLTP",
               av_get_sample_fmt_name( audio_output_context->sample_fmt));
           audio_output_context->sample_fmt = AV_SAMPLE_FMT_FLTP;
         }

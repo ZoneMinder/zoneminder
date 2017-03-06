@@ -102,12 +102,6 @@ installtrusty () {
 
 checksanity
 
-# Set VERSION to x.xx.x e.g. 1.30.2
-# Set RELEASE to x where x is number of commits since release
-# Creates zoneminder packages in the format: zoneminder-{version}-{release}
-export VERSION=$(git describe --long --always | sed -n 's/^\([0-9\.]*\)-\([0-9]*\)-\([a-z0-9]*\)/\1/p')
-export RELEASE=$(git describe --long --always | sed -n 's/^\([0-9\.]*\)-\([0-9]*\)-\([a-z0-9]*\)/\2/p')
-
 # We don't want to build packages for all supported distros after every commit
 # Only build all packages when executed via cron
 # See https://docs.travis-ci.com/user/cron-jobs/
@@ -117,6 +111,12 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
     # Steps common to Redhat distros
     if [ "${OS}" == "el" ] || [ "${OS}" == "fedora" ]; then
         echo "Begin Redhat build..."
+
+        # Set VERSION to x.xx.x e.g. 1.30.2
+        # Set RELEASE to x where x is number of commits since release
+        # Creates zoneminder packages in the format: zoneminder-{version}-{release}
+        export VERSION=$(git describe --long --always | sed -n 's/^\([0-9\.]*\)-\([0-9]*\)-\([a-z0-9]*\)/\1/p')
+        export RELEASE=$(git describe --long --always | sed -n 's/^\([0-9\.]*\)-\([0-9]*\)-\([a-z0-9]*\)/\2/p')
 
         ln -sf distros/redhat rpm
 
@@ -149,6 +149,15 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
     # Steps common to Debian based distros
     elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ]; then
         echo "Begin Debian build..."
+
+        # Set VERSION to x.xx.x+x e.g. 1.30.2+15
+        # the last x is number of commits since release
+        # Creates zoneminder packages in the format: zoneminder-{version}-{release}
+        zmver=$(git describe --long --always | sed -n 's/^\([0-9\.]*\)-\([0-9]*\)-\([a-z0-9]*\)/\1/p')
+        commitnum=$(git describe --long --always | sed -n 's/^\([0-9\.]*\)-\([0-9]*\)-\([a-z0-9]*\)/\2/p')
+        export VERSION="$zmver+$commitnum"
+        export RELEASE="${DIST}"
+
         movecrud
 
         if [ "${DIST}" == "trusty" ] || [ "${DIST}" == "precise" ]; then

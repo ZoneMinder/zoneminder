@@ -28,6 +28,8 @@ env:
   - OS=fedora DIST=25
   - OS=ubuntu DIST=trusty
   - OS=ubuntu DIST=xenial
+  - OS=ubuntu DIST=trusty ARCH=i386
+  - OS=ubuntu DIST=xenial ARCH=i386
 compiler:
 - gcc
 services:

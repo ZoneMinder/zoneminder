@@ -25,6 +25,18 @@ checksanity () {
         echo "ERROR: both OS and DIST environment variables must be set"
         exit 1
     fi
+
+    if [ -z "${ARCH}" ]; then
+        ARCH="x86_64"
+    fi
+
+    if [[ "${ARCH}" != "x86_64" && "${ARCH}" != "i386" && "${ARCH}" != "armhf" ]]; then
+        echo
+        echo "ERROR: Unsupported architecture specified \"${ARCH}\"."
+        echo
+        exit 1
+    fi
+
 }
 
 # Steps common to all builds
@@ -187,7 +199,7 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
         echo "Starting packpack..."
         packpack/packpack
 
-        if [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ] && [ "${TRAVIS}" == "true" ]; then
+        if [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ] && [ "${ARCH}" == "x86_64" ] && [ "${TRAVIS}" == "true" ]; then
             installtrusty
         fi
     fi
@@ -206,7 +218,7 @@ elif [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ]; then
     packpack/packpack
 
     # If we are running inside Travis then attempt to install the deb we just built
-    if [ "${TRAVIS}" == "true" ]; then
+    if [ "${TRAVIS}" == "true" ] && [ "${ARCH}" == "x86_64" ]; then
         installtrusty
     fi
 fi

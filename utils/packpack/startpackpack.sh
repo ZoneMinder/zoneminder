@@ -118,6 +118,11 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
         export VERSION=$(git describe --long --always | sed -n 's/^\([0-9\.]*\)-\([0-9]*\)-\([a-z0-9]*\)/\1/p')
         export RELEASE=$(git describe --long --always | sed -n 's/^\([0-9\.]*\)-\([0-9]*\)-\([a-z0-9]*\)/\2/p')
 
+        echo
+        echo "Packpack VERSION has been set to: ${VERSION}"
+        echo "Packpack RELEASE has been set to: ${RELEASE}"
+        echo
+
         ln -sf distros/redhat rpm
 
         # The rpm specfile requires the Crud submodule folder to be empty
@@ -157,6 +162,11 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
         commitnum=$(git describe --long --always | sed -n 's/^\([0-9\.]*\)-\([0-9]*\)-\([a-z0-9]*\)/\2/p')
         export VERSION="$zmver+$commitnum"
         export RELEASE="${DIST}"
+
+        echo
+        echo "Packpack VERSION has been set to: ${VERSION}"
+        echo "Packpack RELEASE has been set to: ${RELEASE}"
+        echo
 
         movecrud
 

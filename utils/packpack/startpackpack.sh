@@ -96,6 +96,24 @@ installtrusty () {
     fi
 }
 
+# This sets the naming convention for the deb packages
+setdebpkgver () {
+
+    # Set VERSION to x.xx.x+x e.g. 1.30.2+15
+    # the last x is number of commits since release
+    # Creates zoneminder packages in the format: zoneminder-{version}-{release}
+    zmver=$(git describe --long --always | sed -n 's/^\([0-9\.]*\)-\([0-9]*\)-\([a-z0-9]*\)/\1/p')
+    commitnum=$(git describe --long --always | sed -n 's/^\([0-9\.]*\)-\([0-9]*\)-\([a-z0-9]*\)/\2/p')
+    export VERSION="$zmver+$commitnum"
+    export RELEASE="${DIST}"
+
+    echo
+    echo "Packpack VERSION has been set to: ${VERSION}"
+    echo "Packpack RELEASE has been set to: ${RELEASE}"
+    echo
+
+}
+
 ################
 # MAIN PROGRAM #
 ################
@@ -153,21 +171,9 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
 
     # Steps common to Debian based distros
     elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ]; then
-        echo "Begin Debian build..."
+        echo "Begin ${OS} ${DIST} build..."
 
-        # Set VERSION to x.xx.x+x e.g. 1.30.2+15
-        # the last x is number of commits since release
-        # Creates zoneminder packages in the format: zoneminder-{version}-{release}
-        zmver=$(git describe --long --always | sed -n 's/^\([0-9\.]*\)-\([0-9]*\)-\([a-z0-9]*\)/\1/p')
-        commitnum=$(git describe --long --always | sed -n 's/^\([0-9\.]*\)-\([0-9]*\)-\([a-z0-9]*\)/\2/p')
-        export VERSION="$zmver+$commitnum"
-        export RELEASE="${DIST}"
-
-        echo
-        echo "Packpack VERSION has been set to: ${VERSION}"
-        echo "Packpack RELEASE has been set to: ${RELEASE}"
-        echo
-
+        setdebpkgver
         movecrud
 
         if [ "${DIST}" == "trusty" ] || [ "${DIST}" == "precise" ]; then
@@ -190,20 +196,8 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
 elif [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ]; then
     echo "Begin Ubuntu Trusty build..."
 
-    # Set VERSION to x.xx.x+x e.g. 1.30.2+15
-    # the last x is number of commits since release
-    # Creates zoneminder packages in the format: zoneminder-{version}-{release}
-    zmver=$(git describe --long --always | sed -n 's/^\([0-9\.]*\)-\([0-9]*\)-\([a-z0-9]*\)/\1/p')
-    commitnum=$(git describe --long --always | sed -n 's/^\([0-9\.]*\)-\([0-9]*\)-\([a-z0-9]*\)/\2/p')
-    export VERSION="$zmver+$commitnum"
-    export RELEASE="${DIST}"
-
-    echo
-    echo "Packpack VERSION has been set to: ${VERSION}"
-    echo "Packpack RELEASE has been set to: ${RELEASE}"
-    echo
-
     commonprep
+    setdebpkgver
     movecrud
 
     ln -sf distros/ubuntu1204 debian

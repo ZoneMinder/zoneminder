@@ -205,7 +205,7 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
     fi
 
 # We were not triggered via cron so just build and test trusty
-elif [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ]; then
+elif [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ] && [ "${ARCH}" == "x86_64" ]; then
     echo "Begin Ubuntu Trusty build..."
 
     commonprep
@@ -218,7 +218,7 @@ elif [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ]; then
     packpack/packpack
 
     # If we are running inside Travis then attempt to install the deb we just built
-    if [ "${TRAVIS}" == "true" ] && [ "${ARCH}" == "x86_64" ]; then
+    if [ "${TRAVIS}" == "true" ]; then
         installtrusty
     fi
 fi

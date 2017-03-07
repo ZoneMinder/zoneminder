@@ -156,10 +156,8 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
         ln -sf distros/redhat rpm
 
         # The rpm specfile requires the Crud submodule folder to be empty
-        if [ -e "web/api/app/Plugin/Crud/LICENSE.txt" ]; then
-            rm -rf web/api/app/Plugin/Crud
-            mkdir web/api/app/Plugin/Crud
-        fi
+        rm -rf web/api/app/Plugin/Crud
+        mkdir web/api/app/Plugin/Crud
 
         if [ "${OS}" == "el" ]; then
             zmrepodistro=${OS}

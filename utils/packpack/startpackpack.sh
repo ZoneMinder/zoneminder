@@ -21,7 +21,7 @@ checksanity () {
     done
 
     # Verify OS & DIST environment variables have been set before calling this script
-    if [ -z "${OS}" ] || [ -z ""${DIST}"" ]; then
+    if [ -z "${OS}" ] || [ -z "${DIST}" ]; then
         echo "ERROR: both OS and DIST environment variables must be set"
         exit 1
     fi

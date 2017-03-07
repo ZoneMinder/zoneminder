@@ -176,6 +176,7 @@ function changeScale() {
         var streamImg = document.getElementById( 'liveStream'+monitor.id );
         if ( streamImg ) {
 		  var src = streamImg.src;
+		streamImg.src='';
 
           streamImg.style.width = newWidth + "px";
           streamImg.style.height = newHeight + "px";

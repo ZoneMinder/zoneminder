@@ -35,6 +35,20 @@ if ( !empty($_REQUEST['group']) ) {
 
 $showControl = false;
 $monitors = array();
+$widths = array( 
+	''	=> 'auto',
+	160 => 160,
+	320 => 320,
+	352	=> 352,
+	640 => 640,
+	1280 => 1280 );
+$heights = array( 
+		''	=> 'auto',
+	240 => 240,
+	480 => 480,
+);
+	
+
 
 foreach( dbFetchAll( $sql ) as $row ) {
 	if ( !visibleMonitor( $row['Id'] ) ) {
@@ -45,8 +59,8 @@ foreach( dbFetchAll( $sql ) as $row ) {
 		$scale = validInt($_REQUEST['scale']);
 	else if ( isset( $_COOKIE['zmMontageScale'] ) )
 		$scale = $_COOKIE['zmMontageScale'];
-	else
-		$scale = reScale( SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+	#else
+		#$scale = reScale( SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
 
 	$row['Scale'] = $scale;
 	$row['PopupScale'] = reScale( SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
@@ -55,6 +69,12 @@ foreach( dbFetchAll( $sql ) as $row ) {
 		$showControl = true;
 	$row['connKey'] = generateConnKey();
 	$monitors[] = new Monitor( $row );
+	if ( ! isset( $widths[$row['Width']] ) ) {
+		$widths[$row['Width']] = $row['Width'];
+	}
+	if ( ! isset( $heights[$row['Height']] ) ) {
+		$heights[$row['Height']] = $row['Height'];
+	}
 }
 
 $focusWindow = true;
@@ -69,6 +89,14 @@ $layouts = array(
 
 if ( isset($_COOKIE['zmMontageLayout']) )
     $layout = $_COOKIE['zmMontageLayout'];
+
+$options = array();
+if ( isset($_COOKIE['zmMontageWidth']) and $_COOKIE['zmMontageWidth'] )
+  $options['width'] = $_COOKIE['zmMontageWidth'];
+if ( isset($_COOKIE['zmMontageHeight']) and $_COOKIE['zmMontageHeight'] )
+	$options['height']  = $_COOKIE['zmMontageHeight'];
+if ( $scale ) 
+  $options['scale'] = $scale;
 
 xhtmlHeaders(__FILE__, translate('Montage') );
 ?>
@@ -87,8 +115,10 @@ if ( $showControl ) {
       </div>
       <h2><?php echo translate('Montage') ?></h2>
       <div id="headerControl">
-        <span id="scaleControl"><label><?php echo translate('Scale') ?></label>: <?php echo buildSelect( 'scale', $scales, 'changeScale(this);' ); ?></span> 
-        <label for="layout"><?php echo translate('Layout') ?>:</label><?php echo buildSelect( 'layout', $layouts, 'selectLayout(this);' )?>
+		<span id="widthControl"><label><?php echo translate('Width') ?>:</label><?php echo htmlSelect( 'width', $widths, $options['width'], 'changeWidth(this);' ); ?></span>
+		<span id="heightControl"><label><?php echo translate('Height') ?>:</label><?php echo htmlSelect( 'height', $heights, $options['height'], 'changeHeight(this);' ); ?></span>
+        <span id="scaleControl"><label><?php echo translate('Scale') ?>:</label><?php echo htmlSelect( 'scale', $scales, $scale, 'changeScale(this);' ); ?></span> 
+        <span id="layoutControl"><label for="layout"><?php echo translate('Layout') ?>:</label><?php echo htmlSelect( 'layout', $layouts, $layout, 'selectLayout(this);' )?></span>
       </div>
     </div>
     <div id="content">
@@ -100,7 +130,7 @@ foreach ( $monitors as $monitor ) {
         <div id="monitorFrame<?php echo $monitor->Id() ?>" class="monitorFrame" title="<?php echo $monitor->Id() . ' ' .$monitor->Name() ?>">
           <div id="monitor<?php echo $monitor->Id() ?>" class="monitor idle">
             <div id="imageFeed<?php echo $monitor->Id() ?>" class="imageFeed" onclick="createPopup( '?view=watch&amp;mid=<?php echo $monitor->Id() ?>', 'zmWatch<?php echo $monitor->Id() ?>', 'watch', <?php echo reScale( $monitor->Width(), $monitor->PopupScale() ); ?>, <?php echo reScale( $monitor->Height(), $monitor->PopupScale() ); ?> );">
-						<?php echo getStreamHTML( $monitor, $monitor->Scale() ); ?>
+	    <?php echo getStreamHTML( $monitor, $options ); ?>
             </div>
 <?php
     if ( !ZM_WEB_COMPACT_MONTAGE ) {

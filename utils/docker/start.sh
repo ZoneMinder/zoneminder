@@ -7,7 +7,8 @@ umount /dev/shm
 mount -t tmpfs -o rw,nosuid,nodev,noexec,relatime,size=512M tmpfs /dev/shm
 
 # Start MySQL
-service mysql start
+test -e /var/run/mysqld || install -m 755 -o mysql -g root -d /var/run/mysqld
+su - mysql -s /bin/sh -c "/usr/bin/mysqld_safe > /dev/null 2>&1 &"
 
 # Ensure we shut down mysql cleanly later:
 trap close_mysql SIGTERM

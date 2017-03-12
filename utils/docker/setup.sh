@@ -1,7 +1,9 @@
 #!/bin/bash
 
 # Start MySQL
-service mysql start
+test -e /var/run/mysqld || install -m 755 -o mysql -g root -d /var/run/mysqld
+su - mysql -s /bin/sh -c "/usr/bin/mysqld_safe > /dev/null 2>&1 &"
+
 
 # Give MySQL time to wake up
 SECONDS_LEFT=120

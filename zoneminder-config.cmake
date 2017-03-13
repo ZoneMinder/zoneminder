@@ -55,6 +55,8 @@
 #cmakedefine HAVE_LIBSWSCALE_SWSCALE_H 1
 #cmakedefine HAVE_LIBVLC 1
 #cmakedefine HAVE_VLC_VLC_H 1
+#cmakedefine HAVE_LIBX264 1
+#cmakedefine HAVE_X264_H 1
 
 /* Authenication checks */
 #cmakedefine HAVE_MD5_OPENSSL 1

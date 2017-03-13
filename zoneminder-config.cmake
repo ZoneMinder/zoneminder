@@ -53,10 +53,14 @@
 #cmakedefine HAVE_LIBAVUTIL_MATHEMATICS_H 1
 #cmakedefine HAVE_LIBSWSCALE 1
 #cmakedefine HAVE_LIBSWSCALE_SWSCALE_H 1
+#cmakedefine HAVE_LIBSWRESAMPLE 1
+#cmakedefine HAVE_LIBSWRESMAPLE_SWSCALE_H 1
 #cmakedefine HAVE_LIBVLC 1
 #cmakedefine HAVE_VLC_VLC_H 1
 #cmakedefine HAVE_LIBX264 1
 #cmakedefine HAVE_X264_H 1
+#cmakedefine HAVE_LIBMP4V2 1
+#cmakedefine HAVE_MP4V2_H 1
 
 /* Authenication checks */
 #cmakedefine HAVE_MD5_OPENSSL 1

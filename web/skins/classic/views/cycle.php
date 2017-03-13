@@ -82,7 +82,7 @@ xhtmlHeaders(__FILE__, translate('CycleWatch') );
     </div>
     <div id="content">
       <div id="imageFeed">
-      <?php echo getStreamHTML( $monitor, $scale, $mode ); ?>
+      <?php echo getStreamHTML( $monitor, array( 'scale'=>$scale, 'mode'=>$mode ) ); ?>
       </div>
     </div>
   </div>

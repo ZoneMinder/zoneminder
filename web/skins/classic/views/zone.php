@@ -122,7 +122,7 @@ $connkey = generateConnKey();
 $streamSrc = '';
 $streamMode = '';
 # Have to do this here, because the .js.php references somethings figured out when generating the streamHTML
-$StreamHTML = getStreamHTML( $monitor, $scale );
+$StreamHTML = getStreamHTML( $monitor, array('scale'=>$scale) );
 
 xhtmlHeaders(__FILE__, translate('Zone') );
 ?>

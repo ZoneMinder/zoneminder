@@ -3773,14 +3773,22 @@ __attribute__((noinline,__target__("ssse3")))
 void ssse3_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
   
+  /* XMM0 - zero - kept */
+  /* XMM1,2 - General purpose */
+  /* XMM3 - multipiler */
+  /* XMM4 - divide mask - kept */
+  /* XMM5 - unused */
+  /* XMM6 - unused */
+  /* XMM7 - unused */
+
   __asm__ __volatile__ (
   "mov $0x1F1F1F1F, %%eax\n\t"
   "movd %%eax, %%xmm4\n\t"
   "pshufd $0x0, %%xmm4, %%xmm4\n\t"
-  "mov $0xff, %%eax\n\t"
-  "movd %%eax, %%xmm0\n\t"
-  "pshufd $0x0, %%xmm0, %%xmm0\n\t"
-  "movdqa %4, %%xmm5\n\t"
+  "mov $0x00010502, %%eax\n\t"
+  "movd %%eax, %%xmm3\n\t"
+  "pshufd $0x0, %%xmm3, %%xmm3\n\t"
+  "pxor %%xmm0, %%xmm0\n\t"
   "sub $0x10, %0\n\t"
   "sub $0x10, %1\n\t"
   "sub $0x4, %2\n\t"
@@ -3792,29 +3800,17 @@ void ssse3_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result
   "pand %%xmm4, %%xmm1\n\t"
   "pand %%xmm4, %%xmm2\n\t"
   "psubb %%xmm2, %%xmm1\n\t"
-  "pabsb %%xmm1, %%xmm3\n\t"
-  "movdqa %%xmm3, %%xmm2\n\t"
-  "psrld $0x8, %%xmm2\n\t"
-  "pand %%xmm0, %%xmm2\n\t"
-  "movdqa %%xmm2, %%xmm1\n\t"
-  "pslld $0x2, %%xmm2\n\t"
-  "paddd %%xmm1, %%xmm2\n\t"
-  "movdqa %%xmm3, %%xmm1\n\t"
-  "pand %%xmm0, %%xmm1\n\t"
-  "paddd %%xmm1, %%xmm1\n\t"
-  "paddd %%xmm2, %%xmm1\n\t"
-  "movdqa %%xmm3, %%xmm2\n\t"
-  "psrld $0x10, %%xmm2\n\t"
-  "pand %%xmm0, %%xmm2\n\t"
-  "paddd %%xmm2, %%xmm1\n\t"
-  "pshufb %%xmm5, %%xmm1\n\t"
+  "pabsb %%xmm1, %%xmm1\n\t"
+  "pmaddubsw %%xmm3, %%xmm1\n\t"
+  "phaddw %%xmm0, %%xmm1\n\t"
+  "packuswb %%xmm1, %%xmm1\n\t"
   "movd %%xmm1, %%eax\n\t"
   "movnti %%eax, (%2,%3)\n\t"
   "sub $0x4, %3\n\t"
   "jnz ssse3_delta8_rgba_iter\n\t"
   :
-  : "r" (col1), "r" (col2), "r" (result), "r" (count), "m" (*movemask)
-  : "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "cc", "memory"
+  : "r" (col1), "r" (col2), "r" (result), "r" (count)
+  : "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "cc", "memory"
   );
 #else
   Panic("SSE function called on a non x86\\x86-64 platform");
@@ -3828,14 +3824,22 @@ __attribute__((noinline,__target__("ssse3")))
 void ssse3_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
   
+  /* XMM0 - zero - kept */
+  /* XMM1,2 - General purpose */
+  /* XMM3 - multipiler */
+  /* XMM4 - divide mask - kept */
+  /* XMM5 - unused */
+  /* XMM6 - unused */
+  /* XMM7 - unused */
+
   __asm__ __volatile__ (
   "mov $0x1F1F1F1F, %%eax\n\t"
   "movd %%eax, %%xmm4\n\t"
   "pshufd $0x0, %%xmm4, %%xmm4\n\t"
-  "mov $0xff, %%eax\n\t"
-  "movd %%eax, %%xmm0\n\t"
-  "pshufd $0x0, %%xmm0, %%xmm0\n\t"
-  "movdqa %4, %%xmm5\n\t"
+  "mov $0x00020501, %%eax\n\t"
+  "movd %%eax, %%xmm3\n\t"
+  "pshufd $0x0, %%xmm3, %%xmm3\n\t"
+  "pxor %%xmm0, %%xmm0\n\t"
   "sub $0x10, %0\n\t"
   "sub $0x10, %1\n\t"
   "sub $0x4, %2\n\t"
@@ -3847,29 +3851,17 @@ void ssse3_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result
   "pand %%xmm4, %%xmm1\n\t"
   "pand %%xmm4, %%xmm2\n\t"
   "psubb %%xmm2, %%xmm1\n\t"
-  "pabsb %%xmm1, %%xmm3\n\t"
-  "movdqa %%xmm3, %%xmm2\n\t"
-  "psrld $0x8, %%xmm2\n\t"
-  "pand %%xmm0, %%xmm2\n\t"
-  "movdqa %%xmm2, %%xmm1\n\t"
-  "pslld $0x2, %%xmm2\n\t"
-  "paddd %%xmm1, %%xmm2\n\t"
-  "movdqa %%xmm3, %%xmm1\n\t"
-  "pand %%xmm0, %%xmm1\n\t"
-  "paddd %%xmm2, %%xmm1\n\t"
-  "movdqa %%xmm3, %%xmm2\n\t"
-  "psrld $0x10, %%xmm2\n\t"
-  "pand %%xmm0, %%xmm2\n\t"
-  "paddd %%xmm2, %%xmm2\n\t"
-  "paddd %%xmm2, %%xmm1\n\t"
-  "pshufb %%xmm5, %%xmm1\n\t"
+  "pabsb %%xmm1, %%xmm1\n\t"
+  "pmaddubsw %%xmm3, %%xmm1\n\t"
+  "phaddw %%xmm0, %%xmm1\n\t"
+  "packuswb %%xmm1, %%xmm1\n\t"
   "movd %%xmm1, %%eax\n\t"
   "movnti %%eax, (%2,%3)\n\t"
   "sub $0x4, %3\n\t"
   "jnz ssse3_delta8_bgra_iter\n\t"
   :
-  : "r" (col1), "r" (col2), "r" (result), "r" (count), "m" (*movemask)
-  : "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "cc", "memory"
+  : "r" (col1), "r" (col2), "r" (result), "r" (count)
+  : "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "cc", "memory"
   );
 #else
   Panic("SSE function called on a non x86\\x86-64 platform");
@@ -3883,14 +3875,22 @@ __attribute__((noinline,__target__("ssse3")))
 void ssse3_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
   
+  /* XMM0 - zero - kept */
+  /* XMM1,2 - General purpose */
+  /* XMM3 - multipiler */
+  /* XMM4 - divide mask - kept */
+  /* XMM5 - unused */
+  /* XMM6 - unused */
+  /* XMM7 - unused */
+
   __asm__ __volatile__ (
   "mov $0x1F1F1F1F, %%eax\n\t"
   "movd %%eax, %%xmm4\n\t"
   "pshufd $0x0, %%xmm4, %%xmm4\n\t"
-  "mov $0xff, %%eax\n\t"
-  "movd %%eax, %%xmm0\n\t"
-  "pshufd $0x0, %%xmm0, %%xmm0\n\t"
-  "movdqa %4, %%xmm5\n\t"
+  "mov $0x01050200, %%eax\n\t"
+  "movd %%eax, %%xmm3\n\t"
+  "pshufd $0x0, %%xmm3, %%xmm3\n\t"
+  "pxor %%xmm0, %%xmm0\n\t"
   "sub $0x10, %0\n\t"
   "sub $0x10, %1\n\t"
   "sub $0x4, %2\n\t"
@@ -3902,30 +3902,17 @@ void ssse3_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result
   "pand %%xmm4, %%xmm1\n\t"
   "pand %%xmm4, %%xmm2\n\t"
   "psubb %%xmm2, %%xmm1\n\t"
-  "pabsb %%xmm1, %%xmm3\n\t"
-  "movdqa %%xmm3, %%xmm2\n\t"
-  "psrld $0x10, %%xmm2\n\t"
-  "pand %%xmm0, %%xmm2\n\t"
-  "movdqa %%xmm2, %%xmm1\n\t"
-  "pslld $0x2, %%xmm2\n\t"
-  "paddd %%xmm1, %%xmm2\n\t"
-  "movdqa %%xmm3, %%xmm1\n\t"
-  "psrld $0x8, %%xmm1\n\t"
-  "pand %%xmm0, %%xmm1\n\t"
-  "paddd %%xmm1, %%xmm1\n\t"
-  "paddd %%xmm2, %%xmm1\n\t"
-  "movdqa %%xmm3, %%xmm2\n\t"
-  "psrld $0x18, %%xmm2\n\t"
-  "pand %%xmm0, %%xmm2\n\t"
-  "paddd %%xmm2, %%xmm1\n\t"
-  "pshufb %%xmm5, %%xmm1\n\t"
+  "pabsb %%xmm1, %%xmm1\n\t"
+  "pmaddubsw %%xmm3, %%xmm1\n\t"
+  "phaddw %%xmm0, %%xmm1\n\t"
+  "packuswb %%xmm1, %%xmm1\n\t"
   "movd %%xmm1, %%eax\n\t"
   "movnti %%eax, (%2,%3)\n\t"
   "sub $0x4, %3\n\t"
   "jnz ssse3_delta8_argb_iter\n\t"
   :
-  : "r" (col1), "r" (col2), "r" (result), "r" (count), "m" (*movemask)
-  : "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "cc", "memory"
+  : "r" (col1), "r" (col2), "r" (result), "r" (count)
+  : "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "cc", "memory"
   );
 #else
   Panic("SSE function called on a non x86\\x86-64 platform");
@@ -3939,14 +3926,22 @@ __attribute__((noinline,__target__("ssse3")))
 void ssse3_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
   
+  /* XMM0 - zero - kept */
+  /* XMM1,2 - General purpose */
+  /* XMM3 - multipiler */
+  /* XMM4 - divide mask - kept */
+  /* XMM5 - unused */
+  /* XMM6 - unused */
+  /* XMM7 - unused */
+
   __asm__ __volatile__ (
   "mov $0x1F1F1F1F, %%eax\n\t"
   "movd %%eax, %%xmm4\n\t"
   "pshufd $0x0, %%xmm4, %%xmm4\n\t"
-  "mov $0xff, %%eax\n\t"
-  "movd %%eax, %%xmm0\n\t"
-  "pshufd $0x0, %%xmm0, %%xmm0\n\t"
-  "movdqa %4, %%xmm5\n\t"
+  "mov $0x02050100, %%eax\n\t"
+  "movd %%eax, %%xmm3\n\t"
+  "pshufd $0x0, %%xmm3, %%xmm3\n\t"
+  "pxor %%xmm0, %%xmm0\n\t"
   "sub $0x10, %0\n\t"
   "sub $0x10, %1\n\t"
   "sub $0x4, %2\n\t"
@@ -3958,30 +3953,17 @@ void ssse3_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result
   "pand %%xmm4, %%xmm1\n\t"
   "pand %%xmm4, %%xmm2\n\t"
   "psubb %%xmm2, %%xmm1\n\t"
-  "pabsb %%xmm1, %%xmm3\n\t"
-  "movdqa %%xmm3, %%xmm2\n\t"
-  "psrld $0x10, %%xmm2\n\t"
-  "pand %%xmm0, %%xmm2\n\t"
-  "movdqa %%xmm2, %%xmm1\n\t"
-  "pslld $0x2, %%xmm2\n\t"
-  "paddd %%xmm1, %%xmm2\n\t"
-  "movdqa %%xmm3, %%xmm1\n\t"
-  "psrld $0x8, %%xmm1\n\t"
-  "pand %%xmm0, %%xmm1\n\t"
-  "paddd %%xmm2, %%xmm1\n\t"
-  "movdqa %%xmm3, %%xmm2\n\t"
-  "psrld $0x18, %%xmm2\n\t"
-  "pand %%xmm0, %%xmm2\n\t"
-  "paddd %%xmm2, %%xmm2\n\t"
-  "paddd %%xmm2, %%xmm1\n\t"
-  "pshufb %%xmm5, %%xmm1\n\t"
+  "pabsb %%xmm1, %%xmm1\n\t"
+  "pmaddubsw %%xmm3, %%xmm1\n\t"
+  "phaddw %%xmm0, %%xmm1\n\t"
+  "packuswb %%xmm1, %%xmm1\n\t"
   "movd %%xmm1, %%eax\n\t"
   "movnti %%eax, (%2,%3)\n\t"
   "sub $0x4, %3\n\t"
   "jnz ssse3_delta8_abgr_iter\n\t"
   :
-  : "r" (col1), "r" (col2), "r" (result), "r" (count), "m" (*movemask)
-  : "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "cc", "memory"
+  : "r" (col1), "r" (col2), "r" (result), "r" (count)
+  : "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "cc", "memory"
   );
 #else
   Panic("SSE function called on a non x86\\x86-64 platform");

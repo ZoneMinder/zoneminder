@@ -2080,35 +2080,54 @@ void Image::DeColourise()
   subpixelorder = ZM_SUBPIX_ORDER_NONE;
   size = width * height;
   
-  if ( colours == ZM_COLOUR_RGB32 )
-  {
+  if(colours == ZM_COLOUR_RGB32 && config.cpu_extensions && sseversion >= 35) {
+    /* Use SSSE3 functions */  
     switch(subpixelorder) {
       case ZM_SUBPIX_ORDER_BGRA:
-      std_convert_bgra_gray8(buffer,buffer,pixels);
+      ssse3_convert_bgra_gray8(buffer,buffer,pixels);
       break;
       case ZM_SUBPIX_ORDER_ARGB:
-      std_convert_argb_gray8(buffer,buffer,pixels);
+      ssse3_convert_argb_gray8(buffer,buffer,pixels);
       break;
       case ZM_SUBPIX_ORDER_ABGR:
-      std_convert_abgr_gray8(buffer,buffer,pixels);
+      ssse3_convert_abgr_gray8(buffer,buffer,pixels);
       break;
       case ZM_SUBPIX_ORDER_RGBA:
       default:
-      std_convert_rgba_gray8(buffer,buffer,pixels);
+      ssse3_convert_rgba_gray8(buffer,buffer,pixels);
       break;
     }
   } else {
-    /* Assume RGB24 */
-    switch(subpixelorder) {
-      case ZM_SUBPIX_ORDER_BGR:
-      std_convert_bgr_gray8(buffer,buffer,pixels);
-      break;
-      case ZM_SUBPIX_ORDER_RGB:
-      default:
-      std_convert_rgb_gray8(buffer,buffer,pixels);
-      break;
-    }
-    
+    /* Use standard functions */
+    if ( colours == ZM_COLOUR_RGB32 )
+    {
+      switch(subpixelorder) {
+        case ZM_SUBPIX_ORDER_BGRA:
+        ssse3_convert_bgra_gray8(buffer,buffer,pixels);
+        break;
+        case ZM_SUBPIX_ORDER_ARGB:
+        ssse3_convert_argb_gray8(buffer,buffer,pixels);
+        break;
+        case ZM_SUBPIX_ORDER_ABGR:
+        ssse3_convert_abgr_gray8(buffer,buffer,pixels);
+        break;
+        case ZM_SUBPIX_ORDER_RGBA:
+        default:
+        ssse3_convert_rgba_gray8(buffer,buffer,pixels);
+        break;
+      }
+    } else {
+      /* Assume RGB24 */
+      switch(subpixelorder) {
+        case ZM_SUBPIX_ORDER_BGR:
+        std_convert_bgr_gray8(buffer,buffer,pixels);
+        break;
+        case ZM_SUBPIX_ORDER_RGB:
+        default:
+        std_convert_rgb_gray8(buffer,buffer,pixels);
+        break;
+      }
+    }  
   }
 }
 
@@ -4196,6 +4215,117 @@ void ssse3_convert_rgba_gray8(const uint8_t* col1, uint8_t* result, unsigned lon
   "movnti %%eax, (%1,%2)\n\t"
   "sub $0x4, %2\n\t"
   "jnz ssse3_convert_rgba_gray8_iter\n\t"
+  :
+  : "r" (col1), "r" (result), "r" (count)
+  : "%eax", "%xmm0", "%xmm1", "%xmm3", "%xmm4", "cc", "memory"
+  );
+#else
+  Panic("SSE function called on a non x86\\x86-64 platform");
+#endif
+}
+
+/* BGRA to grayscale SSSE3 */
+#if defined(__i386__) || defined(__x86_64__)
+__attribute__((noinline,__target__("ssse3")))
+#endif
+void ssse3_convert_bgra_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
+#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
+
+  __asm__ __volatile__ (
+  "mov $0x1F1F1F1F, %%eax\n\t"
+  "movd %%eax, %%xmm4\n\t"
+  "pshufd $0x0, %%xmm4, %%xmm4\n\t"
+  "mov $0x00020501, %%eax\n\t"
+  "movd %%eax, %%xmm3\n\t"
+  "pshufd $0x0, %%xmm3, %%xmm3\n\t"
+  "pxor %%xmm0, %%xmm0\n\t"
+  "sub $0x10, %0\n\t"
+  "sub $0x4, %1\n\t"
+  "ssse3_convert_bgra_gray8_iter:\n\t"
+  "movdqa (%0,%2,4), %%xmm1\n\t"
+  "psrlq $0x3, %%xmm1\n\t"
+  "pand %%xmm4, %%xmm1\n\t"
+  "pmaddubsw %%xmm3, %%xmm1\n\t"
+  "phaddw %%xmm0, %%xmm1\n\t"
+  "packuswb %%xmm1, %%xmm1\n\t"
+  "movd %%xmm1, %%eax\n\t"
+  "movnti %%eax, (%1,%2)\n\t"
+  "sub $0x4, %2\n\t"
+  "jnz ssse3_convert_bgra_gray8_iter\n\t"
+  :
+  : "r" (col1), "r" (result), "r" (count)
+  : "%eax", "%xmm0", "%xmm1", "%xmm3", "%xmm4", "cc", "memory"
+  );
+#else
+  Panic("SSE function called on a non x86\\x86-64 platform");
+#endif
+}
+
+/* ARGB to grayscale SSSE3 */
+#if defined(__i386__) || defined(__x86_64__)
+__attribute__((noinline,__target__("ssse3")))
+#endif
+void ssse3_convert_argb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
+#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
+
+  __asm__ __volatile__ (
+  "mov $0x1F1F1F1F, %%eax\n\t"
+  "movd %%eax, %%xmm4\n\t"
+  "pshufd $0x0, %%xmm4, %%xmm4\n\t"
+  "mov $0x01050200, %%eax\n\t"
+  "movd %%eax, %%xmm3\n\t"
+  "pshufd $0x0, %%xmm3, %%xmm3\n\t"
+  "pxor %%xmm0, %%xmm0\n\t"
+  "sub $0x10, %0\n\t"
+  "sub $0x4, %1\n\t"
+  "ssse3_convert_argb_gray8_iter:\n\t"
+  "movdqa (%0,%2,4), %%xmm1\n\t"
+  "psrlq $0x3, %%xmm1\n\t"
+  "pand %%xmm4, %%xmm1\n\t"
+  "pmaddubsw %%xmm3, %%xmm1\n\t"
+  "phaddw %%xmm0, %%xmm1\n\t"
+  "packuswb %%xmm1, %%xmm1\n\t"
+  "movd %%xmm1, %%eax\n\t"
+  "movnti %%eax, (%1,%2)\n\t"
+  "sub $0x4, %2\n\t"
+  "jnz ssse3_convert_argb_gray8_iter\n\t"
+  :
+  : "r" (col1), "r" (result), "r" (count)
+  : "%eax", "%xmm0", "%xmm1", "%xmm3", "%xmm4", "cc", "memory"
+  );
+#else
+  Panic("SSE function called on a non x86\\x86-64 platform");
+#endif
+}
+
+/* ABGR to grayscale SSSE3 */
+#if defined(__i386__) || defined(__x86_64__)
+__attribute__((noinline,__target__("ssse3")))
+#endif
+void ssse3_convert_abgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
+#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
+
+  __asm__ __volatile__ (
+  "mov $0x1F1F1F1F, %%eax\n\t"
+  "movd %%eax, %%xmm4\n\t"
+  "pshufd $0x0, %%xmm4, %%xmm4\n\t"
+  "mov $0x02050100, %%eax\n\t"
+  "movd %%eax, %%xmm3\n\t"
+  "pshufd $0x0, %%xmm3, %%xmm3\n\t"
+  "pxor %%xmm0, %%xmm0\n\t"
+  "sub $0x10, %0\n\t"
+  "sub $0x4, %1\n\t"
+  "ssse3_convert_abgr_gray8_iter:\n\t"
+  "movdqa (%0,%2,4), %%xmm1\n\t"
+  "psrlq $0x3, %%xmm1\n\t"
+  "pand %%xmm4, %%xmm1\n\t"
+  "pmaddubsw %%xmm3, %%xmm1\n\t"
+  "phaddw %%xmm0, %%xmm1\n\t"
+  "packuswb %%xmm1, %%xmm1\n\t"
+  "movd %%xmm1, %%eax\n\t"
+  "movnti %%eax, (%1,%2)\n\t"
+  "sub $0x4, %2\n\t"
+  "jnz ssse3_convert_abgr_gray8_iter\n\t"
   :
   : "r" (col1), "r" (result), "r" (count)
   : "%eax", "%xmm0", "%xmm1", "%xmm3", "%xmm4", "cc", "memory"

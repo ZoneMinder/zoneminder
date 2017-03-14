@@ -2103,17 +2103,17 @@ void Image::DeColourise()
     {
       switch(subpixelorder) {
         case ZM_SUBPIX_ORDER_BGRA:
-        ssse3_convert_bgra_gray8(buffer,buffer,pixels);
+        std_convert_bgra_gray8(buffer,buffer,pixels);
         break;
         case ZM_SUBPIX_ORDER_ARGB:
-        ssse3_convert_argb_gray8(buffer,buffer,pixels);
+        std_convert_argb_gray8(buffer,buffer,pixels);
         break;
         case ZM_SUBPIX_ORDER_ABGR:
-        ssse3_convert_abgr_gray8(buffer,buffer,pixels);
+        std_convert_abgr_gray8(buffer,buffer,pixels);
         break;
         case ZM_SUBPIX_ORDER_RGBA:
         default:
-        ssse3_convert_rgba_gray8(buffer,buffer,pixels);
+        std_convert_rgba_gray8(buffer,buffer,pixels);
         break;
       }
     } else {

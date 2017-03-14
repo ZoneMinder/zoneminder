@@ -279,6 +279,7 @@ void Image::Initialise()
   fptr_deinterlace_4field_gray8 = &std_deinterlace_4field_gray8;
   Debug(4,"Deinterlace: Using standard functions");
   
+#if defined(__i386__) && !defined(__x86_64__)
   /* Use SSE2 aligned memory copy? */
   if(config.cpu_extensions && sseversion >= 20) {
     fptr_imgbufcpy = &sse2_aligned_memcpy;
@@ -287,6 +288,10 @@ void Image::Initialise()
     fptr_imgbufcpy = &memcpy;
     Debug(4,"Image buffer copy: Using standard memcpy");
   }
+#else
+  fptr_imgbufcpy = &memcpy;
+  Debug(4,"Image buffer copy: Using standard memcpy");
+#endif
   
   /* Code below relocated from zm_local_camera */
   Debug( 3, "Setting up static colour tables" );

@@ -614,6 +614,7 @@ $SLANG = array(
     'Rewind'                => 'Rewind',
     'RotateLeft'            => 'Rotate Left',
     'RotateRight'           => 'Rotate Right',
+    'RTSPTransport'         => 'RTSP Transport Protocol',
     'RunLocalUpdate'        => 'Please run zmupdate.pl to update',
     'RunMode'               => 'Run Mode',
     'Running'               => 'Running',
@@ -902,6 +903,13 @@ $OLANG = array(
 		          "\"allowed_media_types=video\" Set datatype to request fromcam (audio, video, data)~~~~".
 		          "\"reorder_queue_size=nnn\" Set number of packets to buffer for handling of reordered packets~~~~".
 		          "\"loglevel=debug\" Set verbosity of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
+	),
+        'OPTIONS_RTSPTrans' => array(
+		'Help' => "This sets the RTSP Transport Protocol for FFmpeg.~~ ".
+                          "TCP - Use TCP (interleaving within the RTSP control channel) as transport protocol.~~".
+                          "UDP - Use UDP as transport protocol. Higher resolution cameras have experienced some 'smearing' while using UDP, if so try TCP~~".
+                          "UDP Multicast - Use UDP Multicast as transport protocol~~".
+                          "HTTP - Use HTTP tunneling as transport protocol, which is useful for passing proxies.~~"
 	),
 	'OPTIONS_LIBVLC' => array(
 		'Help' => "Parameters in this field are passed on to libVLC. Multiple parameters can be separated by ,~~ ".

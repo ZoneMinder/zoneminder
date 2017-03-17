@@ -943,6 +943,7 @@ bool Zone::ParseZoneString( const char *zone_string, int &zone_id, int &colour, 
 
 int Zone::Load( Monitor *monitor, Zone **&zones )
 {
+<<<<<<< HEAD
 	static char sql[ZM_SQL_MED_BUFSIZ];
 	snprintf( sql, sizeof(sql), "select Id,Name,Type+0,Units,Coords,AlarmRGB,CheckMethod+0,MinPixelThreshold,MaxPixelThreshold,MinAlarmPixels,MaxAlarmPixels,FilterX,FilterY,MinFilterPixels,MaxFilterPixels,MinBlobPixels,MaxBlobPixels,MinBlobs,MaxBlobs,OverloadFrames,ExtendAlarmFrames from Zones where MonitorId = %d order by Type, Id", monitor->Id() );
 	if ( mysql_query( &dbconn, sql ) )
@@ -995,17 +996,18 @@ int Zone::Load( Monitor *monitor, Zone **&zones )
 		Polygon polygon;
 		if ( !ParsePolygonString( Coords, polygon ) ) {
 			Error( "Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring", Coords, Id, Name, monitor->Name() );
+      n_zones -= 1;
       continue;
     }
 
 		if ( polygon.LoX() < 0 || polygon.HiX() >= (int)monitor->Width() 
            || polygon.LoY() < 0 || polygon.HiY() >= (int)monitor->Height() ) {
 			Error( "Zone %d/%s for monitor %s extends outside of image dimensions, (%d,%d), (%d,%d), ignoring", Id, Name, monitor->Name(), polygon.LoX(), polygon.LoY(), polygon.HiX(), polygon.HiY() );
+      n_zones -= 1;
       continue;
     }
 
-		if ( false && !strcmp( Units, "Percent" ) )
-		{
+		if ( false && !strcmp( Units, "Percent" ) ) {
 			MinAlarmPixels = (MinAlarmPixels*polygon.Area())/100;
 			MaxAlarmPixels = (MaxAlarmPixels*polygon.Area())/100;
 			MinFilterPixels = (MinFilterPixels*polygon.Area())/100;

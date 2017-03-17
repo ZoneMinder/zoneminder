@@ -943,18 +943,15 @@ bool Zone::ParseZoneString( const char *zone_string, int &zone_id, int &colour, 
 
 int Zone::Load( Monitor *monitor, Zone **&zones )
 {
-<<<<<<< HEAD
 	static char sql[ZM_SQL_MED_BUFSIZ];
 	snprintf( sql, sizeof(sql), "select Id,Name,Type+0,Units,Coords,AlarmRGB,CheckMethod+0,MinPixelThreshold,MaxPixelThreshold,MinAlarmPixels,MaxAlarmPixels,FilterX,FilterY,MinFilterPixels,MaxFilterPixels,MinBlobPixels,MaxBlobPixels,MinBlobs,MaxBlobs,OverloadFrames,ExtendAlarmFrames from Zones where MonitorId = %d order by Type, Id", monitor->Id() );
-	if ( mysql_query( &dbconn, sql ) )
-	{
+	if ( mysql_query( &dbconn, sql ) ) {
 		Error( "Can't run query: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 
 	MYSQL_RES *result = mysql_store_result( &dbconn );
-	if ( !result )
-	{
+	if ( !result ) {
 		Error( "Can't use query result: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
@@ -962,8 +959,7 @@ int Zone::Load( Monitor *monitor, Zone **&zones )
 	Debug( 1, "Got %d zones for monitor %s", n_zones, monitor->Name() );
 	delete[] zones;
 	zones = new Zone *[n_zones];
-	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
-	{
+	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ ) {
     zones[i] = NULL;
 		int col = 0;
 

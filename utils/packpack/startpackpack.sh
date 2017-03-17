@@ -153,7 +153,7 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
         echo "Packpack RELEASE has been set to: ${RELEASE}"
         echo
 
-        ln -sf distros/redhat rpm
+        ln -sfT distros/redhat rpm
 
         # The rpm specfile requires the Crud submodule folder to be empty
         rm -rf web/api/app/Plugin/Crud
@@ -187,11 +187,11 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
         movecrud
 
         if [ "${DIST}" == "trusty" ] || [ "${DIST}" == "precise" ]; then
-            ln -sf distros/ubuntu1204 debian
+            ln -sfT distros/ubuntu1204 debian
         elif [ "${DIST}" == "wheezy" ]; then 
-            ln -sf distros/debian debian
+            ln -sfT distros/debian debian
         else 
-            ln -sf distros/ubuntu1604 debian
+            ln -sfT distros/ubuntu1604 debian
         fi
 
         echo "Starting packpack..."
@@ -210,7 +210,7 @@ elif [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ] && [ "${ARCH}" == "x86
     setdebpkgver
     movecrud
 
-    ln -sf distros/ubuntu1204 debian
+    ln -sfT distros/ubuntu1204 debian
 
     echo "Starting packpack..."
     packpack/packpack

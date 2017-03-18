@@ -22,7 +22,7 @@ var logTimeout = maxSampleTime;
 var firstLoad = true;
 var initialDisplayLimit = 200;
 var sortReversed = false;
-var filterFields = [ 'Component', 'ServerId', 'Pid', 'Level', 'File', 'Line'];
+var filterFields = ['Component', 'ServerId', 'Pid', 'Level', 'File', 'Line'];
 var options = {};
 
 function buildFetchParms( parms )
@@ -68,7 +68,7 @@ function logResponse( respObj )
                             maxLogTime = log.TimeKey;
                         if ( !minLogTime || log.TimeKey < minLogTime )
                             minLogTime = log.TimeKey;
-                        var row = logTable.push( [ { content: log.DateTime, properties: { style: 'white-space: nowrap' }}, log.Component, log.Server, log.Pid, log.Code, log.Message, log.File, log.Line ] );
+                        var row = logTable.push( [{ content: log.DateTime, properties: { style: 'white-space: nowrap' }}, log.Component, log.Server, log.Pid, log.Code, log.Message, log.File, log.Line] );
                         delete log.Message;
                         row.tr.store( 'log', log );
                         if ( log.Level <= -3 )
@@ -81,7 +81,7 @@ function logResponse( respObj )
                             row.tr.addClass( 'log-dbg' );
                         if ( !firstLoad )
                         {
-                            var color = document.defaultView.getComputedStyle(row.tr,null).getPropertyValue('color');
+                            var color = document.defaultView.getComputedStyle(row.tr, null).getPropertyValue('color');
                             var colorParts = color.match(/^rgb.*\((\d+),\s*(\d+),\s*(\d+)/);
                             rowOrigColor = '#' + parseInt(colorParts[1]).toString(16) + parseInt(colorParts[2]).toString(16) + parseInt(colorParts[3]).toString(16);
                             new Fx.Tween( row.tr, { duration: 10000, transition: Fx.Transitions.Sine } ).start( 'color', '#6495ED', rowOrigColor );
@@ -90,15 +90,15 @@ function logResponse( respObj )
                 );
                 options = respObj.options;
                 updateFilterSelectors();
-                $('lastUpdate').set('text',respObj.updated);
-                $('logState').set('text',respObj.state);
+                $('lastUpdate').set('text', respObj.updated);
+                $('logState').set('text', respObj.state);
                 $('logState').removeClass('ok');
                 $('logState').removeClass('alert');
                 $('logState').removeClass('alarm');
                 $('logState').addClass(respObj.state);
-                $('totalLogs').set('text',respObj.total);
-                $('availLogs').set('text',respObj.available);
-                $('displayLogs').set('text',logCount);
+                $('totalLogs').set('text', respObj.total);
+                $('availLogs').set('text', respObj.available);
+                $('displayLogs').set('text', logCount);
                 if ( firstLoad )
                 {
                     if ( logCount < displayLimit )
@@ -123,7 +123,7 @@ function logResponse( respObj )
         }
     }
     logTimer = fetchNextLogs.delay( logTimeout );
-} 
+}
 
 function refreshLog()
 {
@@ -151,7 +151,7 @@ function clearLog()
     logCount = 0;
     logTimeout = maxSampleTime;
     displayLimit = initialDisplayLimit;
-    $('displayLogs').set('text',logCount);
+    $('displayLogs').set('text', logCount);
     options = {};
     logTable.empty();
 }
@@ -265,12 +265,12 @@ function updateFilterSelectors()
                         selector.options[selector.options.length] = new Option( value, label );
                     }
                 );
-            } 
+            }
             else if ( key == 'ServerId' )
             {
 				Object.each(values,
                     function( value, label )
-                    {   
+                    {
                         selector.options[selector.options.length] = new Option( value, label );
                     }
                 );
@@ -285,7 +285,7 @@ function updateFilterSelectors()
                 );
             }
             if ( filter[key] )
-                selector.set('value',filter[key]);
+                selector.set('value', filter[key]);
         }
     );
 }
@@ -315,13 +315,13 @@ function initPage()
                 if ( sortReversed )
                     startIndex = displayLimit;
                 else
-                    startIndex = 0;;
+                    startIndex = 0;
                 for ( var i = startIndex; logCount > displayLimit; i++ )
                 {
                     rows[i].destroy();
                     logCount--;
                 }
-                $('displayLogs').set('text',logCount);
+                $('displayLogs').set('text', logCount);
             }
         }
     );

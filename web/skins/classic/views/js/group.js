@@ -9,7 +9,6 @@ if ( refreshParent )
 }
 
 function configureButtons( element ) {
-
     if ( canEditGroups ) {
         var form = element.form;
         form.saveBtn.disabled = (element.value == 0);

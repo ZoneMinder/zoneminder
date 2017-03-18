@@ -114,10 +114,10 @@ function loadEventImage( imagePath, eid, fid, width, height )
     var imageSrc = $('imageSrc');
     imageSrc.setProperty( 'src', imagePrefix+imagePath );
     imageSrc.removeEvent( 'click' );
-    imageSrc.addEvent( 'click', showEvent.pass( [ eid, fid, width, height ] ) );
+    imageSrc.addEvent( 'click', showEvent.pass( [eid, fid, width, height] ) );
     var eventData = $('eventData');
     eventData.removeEvent( 'click' );
-    eventData.addEvent( 'click', showEvent.pass( [ eid, fid, width, height ] ) );
+    eventData.addEvent( 'click', showEvent.pass( [eid, fid, width, height] ) );
 }
 
 function tlZoomBounds( minTime, maxTime )

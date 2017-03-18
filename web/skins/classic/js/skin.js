@@ -31,11 +31,11 @@ function checkSize() {
         var h = window.outerHeight;
         var prevH = h;
         if (h > screen.availHeight)
-            h  = screen.availHeight;
+            h = screen.availHeight;
         if (w > screen.availWidth)
-            w  = screen.availWidth;
+            w = screen.availWidth;
         if (w != prevW || h != prevH)
-            window.resizeTo(w,h);
+            window.resizeTo(w, h);
     }
 }
 
@@ -56,7 +56,7 @@ function getPopupSize( tag, width, height )
     if ( popupSize.width && popupSize.height )
     {
         if ( width || height )
-            Warning( "Ignoring passed dimensions "+width+"x"+height+" when getting popup size for tag '"+tag+"'"  );
+            Warning( "Ignoring passed dimensions "+width+"x"+height+" when getting popup size for tag '"+tag+"'" );
         return( popupSize );
     }
     if ( popupSize.addWidth )

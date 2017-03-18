@@ -26,7 +26,7 @@ function controlCmd( control, event, xtell, ytell )
         var x = xEvent.page.x - l;
         var y = xEvent.page.y - t;
 
-        if  ( xtell )
+        if ( xtell )
         {
             var xge = parseInt( (x*100)/coords.width );
             if ( xtell == -1 )
@@ -35,7 +35,7 @@ function controlCmd( control, event, xtell, ytell )
                 xge = 2*(50 - xge);
             locParms += "&xge="+xge;
         }
-        if  ( ytell )
+        if ( ytell )
         {
             var yge = parseInt( (y*100)/coords.height );
             if ( ytell == -1 )

@@ -46,7 +46,7 @@ function logReport( level, message, file, line )
         return;
 
     if ( arguments && arguments.callee && arguments.callee.caller && arguments.callee.caller.name )
-        message += ' - '+arguments.callee.caller.caller.name+'()'; 
+        message += ' - '+arguments.callee.caller.caller.name+'()';
 
     if ( !debugReq )
     {
@@ -115,4 +115,4 @@ window.onerror =
     function( message, url, line )
     {
         logReport( "ERR", message, url, line );
-    }
+    };

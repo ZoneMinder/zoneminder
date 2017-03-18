@@ -84,7 +84,7 @@ var Overlay = new Class({
     showAnimation:function()
     {
         showOverlay();
-        
+
         //console.log( "Showing overlay loading" );
         if ( !this.loading )
         {
@@ -116,7 +116,7 @@ function setupOverlays()
             overlay.getElements('.overlayCloser').each(
                 function( closer )
                 {
-                    closer.addEvent( 'click', function() { overlay.element.hide(); } )   
+                    closer.addEvent( 'click', function() { overlay.element.hide(); } );
                 }
             );
             overlay.overlayShow = function() { overlay.element.show(); };

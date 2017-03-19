@@ -54,10 +54,11 @@ inline int min( int a, int b )
   return( a<=b?a:b );
 }
 
-void ssedetect();
 void* sse2_aligned_memcpy(void* dest, const void* src, size_t bytes);
 void timespec_diff(struct timespec *start, struct timespec *end, struct timespec *diff);
 
+void hwcaps_detect();
 extern unsigned int sseversion;
+extern unsigned int neonversion;
 
 #endif // ZM_UTILS_H

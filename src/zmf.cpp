@@ -202,7 +202,7 @@ int main( int argc, char *argv[] )
 
   logInit( "zmf" );
   
-  ssedetect();
+  hwcaps_detect();
 
   Monitor *monitor = Monitor::Load( id, false, Monitor::QUERY );
 

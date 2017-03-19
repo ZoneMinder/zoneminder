@@ -3295,6 +3295,7 @@ __attribute__((noinline)) void std_fastblend(const uint8_t* col1, const uint8_t*
 __attribute__((noinline,__target__("fpu=neon")))
 #endif
 void neon32_armv7_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent) {
+#if defined(__arm__)
   static int8_t divider = 0;
   static double current_blendpercent = 0.0;
 
@@ -3346,6 +3347,9 @@ void neon32_armv7_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* r
   : "r" (col1), "r" (col2), "r" (result), "r" (count), "g" (divider)
   : "%r12", "%q0", "%q1", "%q2", "%q3", "cc", "memory"
   );
+#else
+  Panic("Neon function called on a non ARM platform");
+#endif
 }
 
 __attribute__((noinline)) void std_blend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent) {
@@ -3574,7 +3578,7 @@ __attribute__((noinline)) void std_delta8_abgr(const uint8_t* col1, const uint8_
 #if defined(__arm__)
 __attribute__((noinline,__target__("fpu=neon")))
 #endif
-void neon32_armv7_delta8_gray8(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count) {
+void neon32_armv7_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if defined(__arm__)
 
   /* Q0(D0,D1) = col1 */
@@ -3601,7 +3605,7 @@ void neon32_armv7_delta8_gray8(uint8_t* col1, uint8_t* col2, uint8_t* result, un
 #if defined(__arm__)
 __attribute__((noinline,__target__("fpu=neon")))
 #endif
-void neon32_armv7_delta8_rgb32(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count, uint32_t multiplier) {
+void neon32_armv7_delta8_rgb32(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, uint32_t multiplier) {
 #if defined(__arm__)
 
   /* Q0(D0,D1) = col1 */
@@ -3633,22 +3637,22 @@ void neon32_armv7_delta8_rgb32(uint8_t* col1, uint8_t* col2, uint8_t* result, un
 }
 
 /* RGB32: RGBA Neon for AArch32 */
-void neon32_armv7_delta8_rgba(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count) {
+void neon32_armv7_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
   neon32_armv7_delta8_rgb32(col1, col2, result, count, 0x00010502);
 }
 
 /* RGB32: BGRA Neon for AArch32 */
-void neon32_armv7_delta8_bgra(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count) {
+void neon32_armv7_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
   neon32_armv7_delta8_rgb32(col1, col2, result, count, 0x00020501);
 }
 
 /* RGB32: ARGB Neon for AArch32 */
-void neon32_armv7_delta8_argb(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count) {
+void neon32_armv7_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
   neon32_armv7_delta8_rgb32(col1, col2, result, count, 0x01050200);
 }
 
 /* RGB32: ABGR Neon for AArch32 */
-void neon32_armv7_delta8_abgr(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count) {
+void neon32_armv7_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
   neon32_armv7_delta8_rgb32(col1, col2, result, count, 0x02050100);
 }
 

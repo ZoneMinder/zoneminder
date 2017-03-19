@@ -248,10 +248,18 @@ void hwcaps_detect() {
   "mov $0x0,%%ecx\n\t"
   "mov $0x7,%%eax\n\t"
   "cpuid\n\t"
-  "pushl %%ebx\n\t"
+#ifdef __x86_64__
+  "push %%rbx\n\t"
+#else
+  "push %%ebx\n\t"
+#endif
   "mov $0x1,%%eax\n\t"
   "cpuid\n\t"
-  "popl %%ebx\n\t"
+#ifdef __x86_64__
+  "pop %%rbx\n\t"
+#else
+  "pop %%ebx\n\t"
+#endif
   : "=d" (r_edx), "=c" (r_ecx), "=b" (r_ebx)
   :
   : "%eax"

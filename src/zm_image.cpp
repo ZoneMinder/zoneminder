@@ -196,6 +196,9 @@ void Image::Initialise()
     if(config.cpu_extensions && sseversion >= 20) {
       fptr_blend = &sse2_fastblend; /* SSE2 fast blend */
       Debug(4,"Blend: Using SSE2 fast blend function");
+    } else if(config.cpu_extensions && neonversion >= 1) {
+      fptr_blend = &neon32_armv7_fastblend;  /* ARM Neon fast blend */
+      Debug(4,"Blend: Using ARM Neon fast blend function");
     } else {
       fptr_blend = &std_fastblend;  /* standard fast blend */
       Debug(4,"Blend: Using fast blend function");
@@ -3285,6 +3288,64 @@ __attribute__((noinline)) void std_fastblend(const uint8_t* col1, const uint8_t*
     col2 += 16;
     result += 16;
   }
+}
+
+/* FastBlend Neon for AArch32 */
+#if defined(__arm__)
+__attribute__((noinline,__target__("fpu=neon")))
+#endif
+void neon32_armv7_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent) {
+  static int8_t divider = 0;
+  static double current_blendpercent = 0.0;
+
+  if(current_blendpercent != blendpercent) {
+    /* Attempt to match the blending percent to one of the possible values */
+    if(blendpercent < 2.34375) {
+      // 1.5625% blending
+      divider = 6;
+    } else if(blendpercent >= 2.34375 && blendpercent < 4.6875) {
+      // 3.125% blending
+      divider = 5;
+    } else if(blendpercent >= 4.6875 && blendpercent < 9.375) {
+      // 6.25% blending
+      divider = 4;
+    } else if(blendpercent >= 9.375 && blendpercent < 18.75) {
+      // 12.5% blending
+      divider = 3;
+    } else if(blendpercent >= 18.75 && blendpercent < 37.5) {
+      // 25% blending
+      divider = 2;
+    } else if(blendpercent >= 37.5) {
+      // 50% blending
+      divider = 1;
+    }
+    // We only have instruction to shift left by a variable, going negative shifts right :)
+    divider *= -1;
+    current_blendpercent = blendpercent;
+  }
+
+  /* Q0(D0,D1) = col1 */
+  /* Q1(D2,D3) = col2 */
+  /* Q2(D4,D5) = col1 backup */
+  /* Q3(D6,D7) = divider */
+
+  __asm__ __volatile__ (
+  "mov r12, %4\n\t"
+  "vdup.8 q3, r12\n\t"
+  "neon32_armv7_fastblend_iter:\n\t"
+  "vldm %0!, {q0}\n\t"
+  "vldm %1!, {q1}\n\t"
+  "vrshl.u8 q2, q0, q3\n\t"
+  "vrshl.u8 q1, q1, q3\n\t"
+  "vsub.i8 q1, q1, q2\n\t"
+  "vadd.i8 q1, q1, q0\n\t"
+  "vstm %2!, {q1}\n\t"
+  "subs %3, %3, #16\n\t"
+  "bne neon32_armv7_fastblend_iter\n\t"
+  :
+  : "r" (col1), "r" (col2), "r" (result), "r" (count), "g" (divider)
+  : "%r12", "%q0", "%q1", "%q2", "%q3", "cc", "memory"
+  );
 }
 
 __attribute__((noinline)) void std_blend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent) {

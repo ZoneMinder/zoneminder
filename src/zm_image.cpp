@@ -249,6 +249,14 @@ void Image::Initialise()
       // fptr_delta8_abgr = &std_delta8_abgr;
       fptr_delta8_gray8 = &sse2_delta8_gray8;
       Debug(4,"Delta: Using SSE2 delta functions");
+    } else if(neonversion >= 1) {
+      /* ARM Neon available */
+      fptr_delta8_rgba = &neon32_armv7_delta8_rgba;
+      fptr_delta8_bgra = &neon32_armv7_delta8_bgra;
+      fptr_delta8_argb = &neon32_armv7_delta8_argb;
+      fptr_delta8_abgr = &neon32_armv7_delta8_abgr;
+      fptr_delta8_gray8 = &neon32_armv7_delta8_gray8;
+      Debug(4,"Delta: Using ARM Neon delta functions");
     } else {
       /* No suitable SSE version available */
       fptr_delta8_rgba = &std_delta8_rgba;
@@ -3499,6 +3507,88 @@ __attribute__((noinline)) void std_delta8_abgr(const uint8_t* col1, const uint8_
     col2 += 16;
     result += 4;
   }
+}
+
+/* Grayscale Neon for AArch32 */
+#if defined(__arm__)
+__attribute__((noinline,__target__("fpu=neon")))
+#endif
+void neon32_armv7_delta8_gray8(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count) {
+#if defined(__arm__)
+
+  /* Q0(D0,D1) = col1 */
+  /* Q1(D2,D3) = col2 */
+
+  __asm__ __volatile__ (
+  "neon32_armv7_delta8_gray8_iter:\n\t"
+  "vldm %0!, {q0}\n\t"
+  "vldm %1!, {q1}\n\t"
+  "vabd.u8 q0, q0, q1\n\t"
+  "vstm %2!, {q0}\n\t"
+  "subs %3, %3, #16\n\t"
+  "bne neon32_armv7_delta8_gray8_iter\n\t"
+  :
+  : "r" (col1), "r" (col2), "r" (result), "r" (count)
+  : "%q0", "%q1", "cc", "memory"
+  );
+#else
+  Panic("Neon function called on a non ARM platform");
+#endif
+}
+
+/* RGB32 Neon for AArch32 */
+#if defined(__arm__)
+__attribute__((noinline,__target__("fpu=neon")))
+#endif
+void neon32_armv7_delta8_rgb32(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count, uint32_t multiplier) {
+#if defined(__arm__)
+
+  /* Q0(D0,D1) = col1 */
+  /* Q1(D2,D3) = col2 */
+  /* Q2(D4,D5) = multiplier */
+
+  __asm__ __volatile__ (
+  "mov r12, %4\n\t"
+  "vdup.32 q2, r12\n\t"
+  "neon32_armv7_delta8_rgb32_iter:\n\t"
+  "vldm %0!, {q0}\n\t"
+  "vldm %1!, {q1}\n\t"
+  "vabd.u8 q0, q0, q1\n\t"
+  "vrshr.u8 q0, q0, #3\n\t"
+  "vmul.i8 q0, q0, q2\n\t"
+  "vpadd.i8 d0, d0, d1\n\t"
+  "vpadd.i8 d2, d2, d3\n\t"
+  "vpadd.i8 d0, d0, d2\n\t"
+  "vst1.32 {d0[0]}, [%2]!\n\t"
+  "subs %3, %3, #4\n\t"
+  "bne neon32_armv7_delta8_rgb32_iter\n\t"
+  :
+  : "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (multiplier)
+  : "%r12", "%q0", "%q1", "%q2", "cc", "memory"
+  );
+#else
+  Panic("Neon function called on a non ARM platform");
+#endif
+}
+
+/* RGB32: RGBA Neon for AArch32 */
+void neon32_armv7_delta8_rgba(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count) {
+  neon32_armv7_delta8_rgb32(col1, col2, result, count, 0x00010502);
+}
+
+/* RGB32: BGRA Neon for AArch32 */
+void neon32_armv7_delta8_bgra(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count) {
+  neon32_armv7_delta8_rgb32(col1, col2, result, count, 0x00020501);
+}
+
+/* RGB32: ARGB Neon for AArch32 */
+void neon32_armv7_delta8_argb(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count) {
+  neon32_armv7_delta8_rgb32(col1, col2, result, count, 0x01050200);
+}
+
+/* RGB32: ABGR Neon for AArch32 */
+void neon32_armv7_delta8_abgr(uint8_t* col1, uint8_t* col2, uint8_t* result, unsigned long count) {
+  neon32_armv7_delta8_rgb32(col1, col2, result, count, 0x02050100);
 }
 
 /* Grayscale SSE2 */

@@ -2143,4 +2143,8 @@ function folder_size($dir) {
     return $size;
 } // end function folder_size
 
+function csrf_startup() {
+    csrf_conf('rewrite-js', 'includes/csrf/csrf-magic.js');
+}
+
 ?>

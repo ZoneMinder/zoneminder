@@ -147,6 +147,7 @@ else
 
 require_once( 'includes/lang.php' );
 require_once( 'includes/functions.php' );
+require_once( 'includes/csrf/csrf-magic.php' );
 
 # Add Cross domain access headers
 CORSHeaders();

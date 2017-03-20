@@ -25,6 +25,10 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+#ifdef HAVE_CURL_CURL_H
+#include <curl/curl.h>
+#endif
+
 unsigned int sseversion = 0;
 
 std::string trimSet(std::string str, std::string trimset) {
@@ -343,5 +347,20 @@ void timespec_diff(struct timespec *start, struct timespec *end, struct timespec
     diff->tv_sec = end->tv_sec-start->tv_sec;
     diff->tv_nsec = end->tv_nsec-start->tv_nsec;
   }
+}
+
+std::string UriDecode( const std::string &encoded ) {
+#ifdef HAVE_LIBCURL 
+  CURL *curl = curl_easy_init();
+    int outlength;
+    char *cres = curl_easy_unescape(curl, encoded.c_str(), encoded.length(), &outlength);
+    std::string res(cres, cres + outlength);
+    curl_free(cres);
+    curl_easy_cleanup(curl);
+    return res;
+#else
+Warning("ZM Compiled without LIBCURL.  UriDecoding not implemented.");
+  return encoded;
+#endif
 }
 

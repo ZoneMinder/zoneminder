@@ -227,7 +227,7 @@ int RemoteCameraHttp::ReadData( Buffer &buffer, unsigned int bytes_expected ) {
     }
 
     if ( total_bytes_to_read == 0 ) {
-      if( mode == SINGLE_IMAGE ) {
+      if ( mode == SINGLE_IMAGE ) {
         int error = 0;
         socklen_t len = sizeof (error);
         int retval = getsockopt( sd, SOL_SOCKET, SO_ERROR, &error, &len );

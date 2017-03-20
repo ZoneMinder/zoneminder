@@ -148,7 +148,7 @@ int main( int argc, const char *argv[] )
 			else if ( config.opt_use_auth ) {
 				if ( strcmp( config.auth_relay, "none" ) == 0 ) {
 					if ( !strcmp( name, "user" ) ) {
-            username = value;
+            username = UriDecode( value );
 					}
 				} else {
 					//if ( strcmp( config.auth_relay, "hashed" ) == 0 )
@@ -160,7 +160,7 @@ int main( int argc, const char *argv[] )
 					//else if ( strcmp( config.auth_relay, "plain" ) == 0 )
 					{
 						if ( !strcmp( name, "user" ) ) {
-              username = UriDecode(value);
+              username = UriDecode( value );
 						}
 						if ( !strcmp( name, "pass" ) ) {
               password = UriDecode( password );

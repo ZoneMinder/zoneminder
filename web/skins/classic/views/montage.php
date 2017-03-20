@@ -55,6 +55,7 @@ foreach( dbFetchAll( $sql ) as $row ) {
 		continue;
 	}
 
+  $scale = null;
 	if ( isset( $_REQUEST['scale'] ) )
 		$scale = validInt($_REQUEST['scale']);
 	else if ( isset( $_COOKIE['zmMontageScale'] ) )

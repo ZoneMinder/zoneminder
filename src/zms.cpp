@@ -66,9 +66,9 @@ int main( int argc, const char *argv[] )
 	unsigned int bitrate = 100000;
 	unsigned int ttl = 0;
   EventStream::StreamMode replay = EventStream::MODE_SINGLE;
-	char username[64] = "";
-	char password[64] = "";
-	char auth[64] = "";
+  std::string username;
+  std::string password;
+  char auth[64] = "";
   unsigned int connkey = 0;
   unsigned int playback_buffer = 0;
 
@@ -148,7 +148,7 @@ int main( int argc, const char *argv[] )
 			else if ( config.opt_use_auth ) {
 				if ( strcmp( config.auth_relay, "none" ) == 0 ) {
 					if ( !strcmp( name, "user" ) ) {
-						strncpy( username, value, sizeof(username) );
+            username = value;
 					}
 				} else {
 					//if ( strcmp( config.auth_relay, "hashed" ) == 0 )
@@ -160,10 +160,10 @@ int main( int argc, const char *argv[] )
 					//else if ( strcmp( config.auth_relay, "plain" ) == 0 )
 					{
 						if ( !strcmp( name, "user" ) ) {
-							strncpy( username, value, sizeof(username) );
+              username = UriDecode(value);
 						}
 						if ( !strcmp( name, "pass" ) ) {
-							strncpy( password, value, sizeof(password) );
+              password = UriDecode( password );
 						}
 					}
 				}
@@ -175,8 +175,8 @@ int main( int argc, const char *argv[] )
 		User *user = 0;
 
 		if ( strcmp( config.auth_relay, "none" ) == 0 ) {
-			if ( *username ) {
-				user = zmLoadUser( username );
+			if ( username.length() ) {
+				user = zmLoadUser( username.c_str() );
 			}
 		} else {
 			//if ( strcmp( config.auth_relay, "hashed" ) == 0 )
@@ -187,8 +187,8 @@ int main( int argc, const char *argv[] )
 			}
 			//else if ( strcmp( config.auth_relay, "plain" ) == 0 )
 			{
-				if ( *username && *password ) {
-					user = zmLoadUser( username, password );
+				if ( username.length() && password.length() ) {
+					user = zmLoadUser( username.c_str(), password.c_str() );
 				}
 			}
 		} // auth is none or something else

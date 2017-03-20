@@ -24,7 +24,9 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
+#if defined(__arm__)
 #include <sys/auxv.h>
+#endif
 
 unsigned int sseversion = 0;
 unsigned int neonversion = 0;

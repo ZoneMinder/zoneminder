@@ -236,19 +236,6 @@ int RemoteCameraHttp::ReadData( Buffer &buffer, int bytes_expected )
 
     if ( total_bytes_to_read == 0 )
     {
-      if( mode == SINGLE_IMAGE ) {
-    int error = 0;
-    socklen_t len = sizeof (error);
-    int retval = getsockopt (sd, SOL_SOCKET, SO_ERROR, &error, &len);
-    if(retval != 0 ) {
-      Debug( 1, "error getting socket error code %s", strerror(retval) );
-    }
-    if (error != 0) {
-      return -1;
-    }
-        // Case where we are grabbing a single jpg, but no content-length was given, so the expectation is that we read until close.
-		    return( 0 );
-      }
       // If socket is closed locally, then select will fail, but if it is closed remotely
       // then we have an exception on our socket.. but no data.
       Debug( 3, "Socket closed remotely" );

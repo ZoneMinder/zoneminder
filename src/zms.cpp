@@ -164,7 +164,7 @@ int main( int argc, const char *argv[] )
         {
           if ( !strcmp( name, "user" ) )
           {
-            username = value;
+            username = UriDecode( value );
           }
         }
         else
@@ -180,7 +180,7 @@ int main( int argc, const char *argv[] )
           {
             if ( !strcmp( name, "user" ) )
             {
-              username = UriDecode(value);
+              username = UriDecode( value );
             }
             if ( !strcmp( name, "pass" ) )
             {

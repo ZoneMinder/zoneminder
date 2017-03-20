@@ -18,15 +18,14 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-if ( !canEdit( 'System' ) )
-{
-    $view = "error";
+if ( !canEdit( 'System' ) ) {
+    $view = 'error';
     return;
 }
 
 if ( $_REQUEST['id'] ) {
 	if ( !($newStorage = dbFetchOne( 'SELECT * FROM Storage WHERE Id = ?', NULL, ARRAY($_REQUEST['id'])) ) ) {
-		$view = "error";
+		$view = 'error';
 		return;
 	}
 } else {
@@ -52,17 +51,17 @@ xhtmlHeaders(__FILE__, translate('Storage')." - ".$newStorage['Name'] );
         <table id="contentTable" class="major" cellspacing="0">
           <tbody>
             <tr>
-              <th scope="row"><?php echo translate('StorageName') ?></th>
+              <th scope="row"><?php echo translate('Name') ?></th>
               <td><input type="text" name="newStorage[Name]" value="<?php echo $newStorage['Name'] ?>"/></td>
             </tr>
             <tr>
-              <th scope="row"><?php echo translate('StoragePath') ?></th>
-              <td><input type="text" name="newStorage[Path]" value="<?php echo $newStorage['Path'] ?>"/></td>
+              <th scope="row"><?php echo translate('Path') ?></th>
+              <td><input type="url" name="newStorage[Path]" value="<?php echo $newStorage['Path'] ?>"/></td>
             </tr>
           </tbody>
         </table>
         <div id="contentButtons">
-		<input type="hidden" name="action" value="Save"/>
+          <input type="hidden" name="action" value="Save"/>
           <input type="submit" value="<?php echo translate('Save') ?>"/>
           <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
         </div>

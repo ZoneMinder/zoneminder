@@ -14,7 +14,7 @@
  * 
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */ 
 
 #include "zm_logger.h"
@@ -510,18 +510,16 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
 {
     if ( level <= mEffectiveLevel )
     {
-        char            classString[4];
         char            timeString[64];
         char            logString[8192];
         va_list         argPtr;
         struct timeval  timeVal;
 
         const char * const file = basename(filepath);
+        const char *classString = smCodes[level].c_str();
         
         if ( level < PANIC || level > DEBUG9 )
             Panic( "Invalid logger level %d", level );
-
-        strncpy( classString, smCodes[level].c_str(), sizeof(classString) );
 
         gettimeofday( &timeVal, NULL );
 

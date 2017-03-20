@@ -15,7 +15,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 define( "DB_LOG_OFF", 0 );
@@ -44,6 +44,7 @@ function dbConnect()
 
 	try {
 		$dbConn = new PDO( ZM_DB_TYPE . $socket . ';dbname='.ZM_DB_NAME, ZM_DB_USER, ZM_DB_PASS );
+		$dbConn->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
 		$dbConn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 	} catch(PDOException $ex ) {
 		echo "Unable to connect to ZM db." . $ex->getMessage();

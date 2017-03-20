@@ -95,7 +95,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
   video_output_context = video_output_stream->codec;
 
-#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
+#if LIBAVCODEC_VERSION_CHECK(58, 0, 0, 0, 0)
   Debug(2, "setting parameters");
   ret = avcodec_parameters_to_context( video_output_context, video_input_stream->codecpar );
   if ( ret < 0 ) {
@@ -260,7 +260,7 @@ Debug(2, "Have audio_output_context");
 
         /* check that the encoder supports s16 pcm input */
         if (!check_sample_fmt( audio_output_codec, audio_output_context->sample_fmt)) {
-          Error( "Encoder does not support sample format %s, setting to FLTP",
+          Debug( 3, "Encoder does not support sample format %s, setting to FLTP",
               av_get_sample_fmt_name( audio_output_context->sample_fmt));
           audio_output_context->sample_fmt = AV_SAMPLE_FMT_FLTP;
         }
@@ -493,6 +493,10 @@ Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts, pkt.dts
       zm_av_packet_unref( &pkt );
     } // while 1
   }
+
+  // Flush Queues
+  av_interleaved_write_frame( oc, NULL );
+
   /* Write the trailer before close */
   if ( int rc = av_write_trailer(oc) ) {
     Error("Error writing trailer %s",  av_err2str( rc ) );
@@ -601,7 +605,7 @@ if ( 1 ) {
 if ( opkt.dts != AV_NOPTS_VALUE ) {
   int64_t max = video_output_stream->cur_dts + !(oc->oformat->flags & AVFMT_TS_NONSTRICT);
   if ( video_output_stream->cur_dts && ( video_output_stream->cur_dts != AV_NOPTS_VALUE ) && ( max > opkt.dts ) ) {
-    Warning("st:%d PTS: %"PRId64" DTS: %"PRId64" < %"PRId64" invalid, clipping", opkt.stream_index, opkt.pts, opkt.dts, max);
+    Warning("st:%d PTS: %" PRId64 " DTS: %" PRId64 " < %" PRId64 " invalid, clipping", opkt.stream_index, opkt.pts, opkt.dts, max);
     if( opkt.pts >= opkt.dts)
       opkt.pts = FFMAX(opkt.pts, max);
     opkt.dts = max;

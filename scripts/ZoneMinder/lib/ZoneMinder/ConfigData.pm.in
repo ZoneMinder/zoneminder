@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # ==========================================================================
 #
@@ -2826,6 +2826,22 @@ our @options = (
     type        => $types{integer},
     readonly    => 1,
     category    => 'dynamic',
+  },
+  {
+    name        => 'ZM_TELEMETRY_INTERVAL',
+    default     => '14*24*60*60',
+    description => 'Interval in seconds between telemetry updates.',
+    help        => 'This value can be expressed as a mathematical expression for ease.',
+    type        => $types{string},
+    category    => 'system',
+  },
+  {
+    name        => 'ZM_TELEMETRY_SERVER_ENDPOINT',
+    default     => 'https://zmanon:2b2d0b4skps@telemetry.zoneminder.com/zmtelemetry/testing5',
+    description => 'URL that ZoneMinder will send usage data to',
+    help        => '',
+    type        => $types{url},
+    category    => 'hidden',
   },
   {
     name        => 'ZM_UPDATE_CHECK_PROXY',

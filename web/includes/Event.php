@@ -82,7 +82,7 @@ class Event {
       dbQuery( 'DELETE FROM Frames WHERE EventId = ?', array($this->{'Id'}) );
       if ( ZM_USE_DEEP_STORAGE ) {
 
-# Assumption: All events haev a start time
+# Assumption: All events have a start time
         $start_date = date_parse( $this->{'StartTime'} );
         if ( ! $start_date ) {
           Error('Unable to parse start time for event ' . $this->{'Id'} . ' not deleting files.' );
@@ -90,7 +90,7 @@ class Event {
         }
         $start_date['year'] = $start_date['year'] % 100;
 
-# So this is  because ZM creates a link under teh day pointing to the time that the event happened. 
+# So this is because ZM creates a link under the day pointing to the time that the event happened. 
         $link_path = $this->Link_Path();
         if ( ! $link_path ) {
           Error('Unable to determine link path for event ' . $this->{'Id'} . ' not deleting files.' );
@@ -196,7 +196,7 @@ class Event {
   } // end function createListThumbnail
 
   function getImageSrc( $frame, $scale=SCALE_BASE, $captureOnly=false, $overwrite=false ) {
-    $Storage = new Storage( $this->{'StorageId'} );
+    $Storage = new Storage(  isset($this->{'StorageId'}) ? $this->{'StorageId'} : NULL  );
     $Event = $this;
     $eventPath = $Event->Path();
 

@@ -14,7 +14,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
 
@@ -94,23 +94,19 @@
 //          - Add auth tokens to zms call for those using authorization
 //
 
-if ( !canView( 'Events' ) )
-{
+if ( !canView( 'Events' ) ) {
     $view = "error";
     return;
 }
 
 require_once( 'includes/Monitor.php' );
 
-if ( !empty($_REQUEST['group']) )
-{
+if ( !empty($_REQUEST['group']) ) {
     $group = $_REQUEST['group'];
     $row = dbFetchOne( 'select * from Groups where Id = ?', NULL, array($_REQUEST['group']) );
     $monitorsSql = "select * from Monitors where Function != 'None' and find_in_set( Id, '".$row['MonitorIds']."' ) ";
-}
-else
-{
-    $monitorsSql = "select *  from Monitors ";
+} else {
+    $monitorsSql = "select * from Monitors ";
     $group = "";
 }
 
@@ -151,7 +147,7 @@ if ( !empty($user['MonitorIds']) )
 
     $eventsSql   .= $monFilterSql;
     $monitorsSQL .= $monFilterSql;
-    $frameSql    .= ' AND e.MonitorId IN ('.$user['MonitorIds'].')';
+    $frameSql    .= ' AND E.MonitorId IN ('.$user['MonitorIds'].')';
 }
 
 // Parse input parameters -- note for future, validate/clean up better in case we don't get called from self.

@@ -15,7 +15,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
 // Calling sequence:   ... /zm/index.php?view=image&path=/monid/path/image.jpg&scale=nnn&width=wwww&height=hhhhh
@@ -54,12 +54,12 @@ if (!function_exists('imagescale')) {
 
 $errorText = false;
 $filename = '';
+$Frame = null;
+$Event = null;
 
 if ( empty($_REQUEST['path']) ) {
   if ( ! empty($_REQUEST['fid']) ) {
     $show = empty($_REQUEST['show']) ? 'capture' : $_REQUEST['show'];
-    $Frame = null;
-    $Event = null;
  
     if ( ! empty($_REQUEST['eid'] ) ) {
       $Event = new Event( $_REQUEST['eid'] );
@@ -100,18 +100,25 @@ Debug( "$path does not exist");
   }
 
 } else {
-  $path = $_REQUEST['path'];
-  if ( !empty($user['MonitorIds']) ) {
-    $imageOk = false;
-    $pathMonId = substr( $path, 0, strspn( $path, '1234567890' ) );
-    foreach ( preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) as $monId ) {
-      if ( $pathMonId == $monId ) {
-        $imageOk = true;
-        break;
+  $dir_events = realpath(ZM_DIR_EVENTS);
+  $path = realpath($dir_events . '/' . $_REQUEST['path']);
+  $pos = strpos($path, $dir_events);
+
+  if($pos == 0 && $pos !== false) {
+    if ( !empty($user['MonitorIds']) ) {
+      $imageOk = false;
+      $pathMonId = substr( $path, 0, strspn( $path, "1234567890" ) );
+      foreach ( preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) as $monId ) {
+        if ( $pathMonId == $monId ) {
+          $imageOk = true;
+          break;
+        }
       }
+      if ( !$imageOk )
+        $errorText = "No image permissions";
     }
-    if ( !$imageOk )
-      $errorText = 'No image permissions';
+  } else {
+    $errorText = "Invalid image path";
   }
   if ( ! file_exists( $path ) ) {
     header('HTTP/1.0 404 Not Found');
@@ -148,8 +155,10 @@ if( !empty($_REQUEST['height']) ) {
 header( 'Content-type: image/jpeg' );
 
 # This is so that Save Image As give a useful filename
-$filename = $Event->MonitorId().'_'.$Event->Id().'_'.$Frame->FrameId().'.jpg';
-header('Content-Disposition: inline; filename="' . $filename . '"');
+if ( $Event ) {
+  $filename = $Event->MonitorId().'_'.$Event->Id().'_'.$Frame->FrameId().'.jpg';
+  header('Content-Disposition: inline; filename="' . $filename . '"');
+}
 ob_clean();
 flush();
 

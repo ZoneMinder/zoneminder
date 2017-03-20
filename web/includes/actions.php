@@ -15,7 +15,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
 
@@ -440,6 +440,10 @@ if ( !empty($action) ) {
 
       if ( count( $changes ) ) {
         if ( $mid ) {
+
+          # If we change anything that changes the shared mem size, zma can complain.  So let's stop first.
+          zmaControl( $monitor, 'stop' );
+          zmcControl( $monitor, 'stop' );
           dbQuery( 'UPDATE Monitors SET '.implode( ", ", $changes ).' WHERE Id =?', array($mid) );
           if ( isset($changes['Name']) ) {
             $saferOldName = basename( $monitor['Name'] );
@@ -522,17 +526,15 @@ if ( !empty($action) ) {
         //fixDevices();
         //if ( $cookies )
         //session_write_close();
-        if ( daemonCheck() ) {
-          zmaControl( $monitor, 'stop' );
-          zmcControl( $monitor, 'stop' );
 
-          zmcControl( $new_monitor, 'start' );
-          zmaControl( $new_monitor, 'start' );
-        }
+        zmcControl( $new_monitor, 'start' );
+        zmaControl( $new_monitor, 'start' );
+
         if ( $monitor['Controllable'] ) {
           require_once( 'control_functions.php' );
           sendControlCommand( $mid, 'quit' );
         } 
+        // really should thump zmwatch and maybe zmtrigger too.
         //daemonControl( 'restart', 'zmwatch.pl' );
         $refreshParent = true;
       } // end if restart
@@ -567,12 +569,12 @@ if ( !empty($action) ) {
 
                 deletePath( ZM_DIR_EVENTS.'/'.basename($monitor['Name']) );
                 deletePath( ZM_DIR_EVENTS.'/'.$monitor['Id'] ); // I'm trusting the Id.  
-              }
-            }
-          }
-        }
-      }
-    }
+              } // end if ZM_OPT_FAST_DELETE
+            } // end if found the monitor in the db
+          } // end if canedit this monitor
+        } // end foreach monitor in MarkMid
+      } // markMids is set and we aren't limited to specific monitors
+    } // end if action == Delete
   }
 
   // Device view actions

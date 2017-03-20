@@ -14,7 +14,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
 #include <fcntl.h>
@@ -57,6 +57,7 @@ char Event::general_file_format[PATH_MAX];
 char Event::video_file_format[PATH_MAX];
 
 int Event::pre_alarm_count = 0;
+
 Event::PreAlarmData Event::pre_alarm_data[MAX_PRE_ALARM_FRAMES] = { { 0 } };
 
 Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string &p_cause, const StringSetMap &p_noteSetMap, bool p_videoEvent ) :
@@ -81,10 +82,26 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
 
   Storage * storage = monitor->getStorage();
 
-  static char sql[ZM_SQL_MED_BUFSIZ];
+  unsigned int state_id = 0;
+  zmDbRow dbrow;
+  if ( dbrow.fetch( "SELECT Id FROM States WHERE IsActive=1") ) {
+    state_id = atoi(dbrow[0]);
+  }
 
+  static char sql[ZM_SQL_MED_BUFSIZ];
   struct tm *stime = localtime( &start_time.tv_sec );
-  snprintf( sql, sizeof(sql), "insert into Events ( MonitorId, StorageId, Name, StartTime, Width, Height, Cause, Notes, Orientation, Videoed ) values ( %d, %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s', %d, %d )", monitor->Id(), storage->Id(), start_time.tv_sec, monitor->Width(), monitor->Height(), cause.c_str(), notes.c_str(), monitor->getOrientation(), videoEvent );
+  snprintf( sql, sizeof(sql), "insert into Events ( MonitorId, StorageId, Name, StartTime, Width, Height, Cause, Notes, StateId, Orientation, Videoed ) values ( %d, %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s', %d, %d, %d )", 
+      monitor->Id(), 
+      storage->Id(),
+      start_time.tv_sec,
+      monitor->Width(),
+      monitor->Height(),
+      cause.c_str(),
+      notes.c_str(), 
+      state_id,
+      monitor->getOrientation(),
+      videoEvent
+      );
   if ( mysql_query( &dbconn, sql ) ) {
     Error( "Can't insert event: %s. sql was (%s)", mysql_error( &dbconn ), sql );
     exit( mysql_errno( &dbconn ) );
@@ -168,7 +185,6 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
   /* Save as video */
 
   if ( monitor->GetOptVideoWriter() != 0 ) {
-    int nRet; 
     snprintf( video_name, sizeof(video_name), "%d-%s", id, "video.mp4" );
     snprintf( video_file, sizeof(video_file), video_file_format, path, video_name );
 
@@ -177,7 +193,6 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
 #if ZM_HAVE_VIDEOWRITER_X264MP4
       videowriter = new X264MP4Writer(video_file, monitor->Width(), monitor->Height(), monitor->Colours(), monitor->SubpixelOrder(), monitor->GetOptEncoderParams());
 #else
-      videowriter = NULL;
       Error("ZoneMinder was not compiled with the X264 MP4 video writer, check dependencies (x264 and mp4v2)");
 #endif
     }
@@ -185,7 +200,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     if(videowriter != NULL) {
 
       /* Open the video stream */
-      nRet = videowriter->Open();
+      int nRet = videowriter->Open();
       if(nRet != 0) {
         Error("Failed opening video stream");
         delete videowriter;
@@ -205,7 +220,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     videowriter = NULL;
   }
 
-}
+} // Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string &p_cause, const StringSetMap &p_noteSetMap, bool p_videoEvent )
 
 Event::~Event() {
   static char sql[ZM_SQL_MED_BUFSIZ];
@@ -267,7 +282,7 @@ bool Event::OpenFrameSocket( int monitor_id ) {
     close( sd );
   }
 
-  sd = socket( AF_UNIX, SOCK_STREAM, 0);
+  sd = socket( AF_UNIX, SOCK_STREAM, 0 );
   if ( sd < 0 ) {
     Error( "Can't create socket: %s", strerror(errno) );
     return( false );

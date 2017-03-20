@@ -94,4 +94,15 @@ function initPage()
         createPopup( '?view=donate', 'zmDonate', 'donate' );
 }
 
+function applySort(event, ui) {
+  var monitor_ids = $j(this).sortable('toArray');
+  var ajax = new Request.JSON( {
+      url: '/index.php?request=console',
+      data: { monitor_ids: monitor_ids, action: 'sort' },
+      method: 'post',
+      timeout: AJAX_TIMEOUT
+      } );
+  ajax.send();
+} // end function applySort(event,ui)
+
 window.addEvent( 'domready', initPage );

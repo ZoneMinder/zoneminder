@@ -15,7 +15,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
 // ZoneMinder <your language> Translation by <your name>
@@ -127,6 +127,7 @@ $SLANG = array(
     'AttrMonitorName'       => 'Monitor Name',
     'AttrStorageArea'       => 'Storage Area',
     'AttrServer'            => 'Server',
+    'AttrStateId'           => 'Run State',
     'AttrName'              => 'Name',
     'AttrNotes'             => 'Notes',
     'AttrSystemLoad'        => 'System Load',
@@ -617,6 +618,7 @@ $SLANG = array(
     'Rewind'                => 'Rewind',
     'RotateLeft'            => 'Rotate Left',
     'RotateRight'           => 'Rotate Right',
+    'RTSPTransport'         => 'RTSP Transport Protocol',
     'RunLocalUpdate'        => 'Please run zmupdate.pl to update',
     'RunMode'               => 'Run Mode',
     'Running'               => 'Running',
@@ -830,7 +832,7 @@ $VLANG = array(
 // in to generate the correct noun form.
 //
 // In languages such as English this is fairly simple 
-// Note this still has to be used with printf etc to get the right formating
+// Note this still has to be used with printf etc to get the right formatting
 function zmVlang( $langVarArray, $count )
 {
     krsort( $langVarArray );
@@ -908,6 +910,13 @@ $OLANG = array(
 		          "\"reorder_queue_size=nnn\" Set number of packets to buffer for handling of reordered packets~~~~".
 		          "\"loglevel=debug\" Set verbosity of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
 	),
+        'OPTIONS_RTSPTrans' => array(
+		'Help' => "This sets the RTSP Transport Protocol for FFmpeg.~~ ".
+                          "TCP - Use TCP (interleaving within the RTSP control channel) as transport protocol.~~".
+                          "UDP - Use UDP as transport protocol. Higher resolution cameras have experienced some 'smearing' while using UDP, if so try TCP~~".
+                          "UDP Multicast - Use UDP Multicast as transport protocol~~".
+                          "HTTP - Use HTTP tunneling as transport protocol, which is useful for passing proxies.~~"
+	),
 	'OPTIONS_LIBVLC' => array(
 		'Help' => "Parameters in this field are passed on to libVLC. Multiple parameters can be separated by ,~~ ".
 		          "Examples (do not enter quotes)~~~~".
@@ -918,7 +927,7 @@ $OLANG = array(
 		'Help' => "Enable this option to embed EXIF data into each jpeg frame."
 	),
 	'OPTIONS_RTSPDESCRIBE' => array(
-		'Help' => "Sometimes, during the intial RTSP handshake, the camera will send an updated media URL. ".
+		'Help' => "Sometimes, during the initial RTSP handshake, the camera will send an updated media URL. ".
 		          "Enable this option to tell ZoneMinder to use this URL. Disable this option to ignore the ".
 		          "value from the camera and use the value as entered in the monitor configuration~~~~". 
 		          "Generally this should be enabled. However, there are cases where the camera can get its".

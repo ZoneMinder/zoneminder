@@ -17,7 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # ==========================================================================
 
@@ -116,7 +116,7 @@ GetOptions(
     'dir:s'          =>\$updateDir
 ) or pod2usage(-exitstatus => -1);
 
-my $dbh = zmDbConnect();
+my $dbh = zmDbConnect(undef, { mysql_multi_statements=>1 } );
 $Config{ZM_DB_USER} = $dbUser;
 $Config{ZM_DB_PASS} = $dbPass;
 
@@ -449,46 +449,18 @@ if ( $version )
         my $dbh = shift;
         my $version = shift;
 
-        my ( $host, $port ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
-        my $command = "mysql -h".$host;
-        $command .= " -P".$port if defined($port);
-        if ( $dbUser )
-        {
-            $command .= " -u".$dbUser;
-            $command .= ' -p"'.$dbPass.'"' if $dbPass;
-        }
-        $command .= " ".$Config{ZM_DB_NAME}." < ";
-        if ( $updateDir )
-        {
-            $command .= $updateDir;
-        }
-        else
-        {
-            $command .= $Config{ZM_PATH_DATA}."/db";
-        }
-        $command .= "/zm_update-".$version.".sql";
+        my $file = ( $updateDir ? $updateDir : $Config{ZM_PATH_DATA}.'/db' ) . "/zm_update-$version.sql";
 
-        print( "Executing '$command'\n" ) if ( logDebugging() );
-        my $output = qx($command);
-        my $status = $? >> 8;
-        if ( $status || logDebugging() )
-        {
-                chomp( $output );
-                print( "Output: $output\n" );
-        }
-        if ( $status )
-        {
-            die( "Command '$command' exited with status: $status\n" );
-        }
-        else
-        {
-            print( "\nDatabase successfully upgraded to version $version.\n" );
-            my $sql = "update Config set Value = ? where Name = 'ZM_DYN_DB_VERSION'";
-            my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-            my $res = $sth->execute( $version ) or die( "Can't execute: ".$sth->errstr() );
-        }
+        open( my $fh, '<', $file ) or die "Unable to open $file $!";
+        $/ = undef;
+        my $sql = <$fh>;
+        close $fh;
+        $dbh->do($sql) or die $dbh->errstr();
+        print( "\nDatabase successfully upgraded to version $version.\n" );
+        $sql = "update Config set Value = ? where Name = 'ZM_DYN_DB_VERSION'";
+        my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+        my $res = $sth->execute( $version ) or die( "Can't execute: ".$sth->errstr() );
     }
-
 
     print( "\nUpgrading database to version ".ZM_VERSION."\n" );
 

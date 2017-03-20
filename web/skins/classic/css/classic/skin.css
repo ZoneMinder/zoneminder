@@ -14,7 +14,7 @@
  * 
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */ 
 
 /*
@@ -102,6 +102,9 @@ input[disabled] {
     color: #888888;
 }
 
+img {
+  display: inline-block;
+}
 img.normal {
     border: white solid 1px;
 }
@@ -348,7 +351,7 @@ th.table-th-sort-rev span.table-th-sort-span {
 }
 
 #header {
-    width: 96%;
+    width: 100%;
     line-height: 24px;
     margin: 8px auto;
     text-align: left;
@@ -363,7 +366,6 @@ th.table-th-sort-rev span.table-th-sort-span {
 }
 
 #headerControl {
-    width: 50%;
     text-align: center;
     margin: 0 auto;
 }
@@ -458,14 +460,18 @@ th.table-th-sort-rev span.table-th-sort-span {
 	font-size: 20px;
 }
 
+.container-fluid {
+  position: relative;
+}
+
 .sidebar {
-    position: fixed;
-    top: 95px;
+    position: absolute;
+    top: 0;
     bottom: 0;
     left: 0;
     z-index: 1000;
     display: block;
-    padding: 20px;
+    padding: 0;
     overflow-x: hidden;
     overflow-y: auto;
     background-color: #f5f5f5;
@@ -473,9 +479,9 @@ th.table-th-sort-rev span.table-th-sort-span {
 }
 
 .sidebar ul {
-margin-right: -21px;
+margin-right: 0px;
 margin-bottom: 20px;
-margin-left: -20px;
+margin-left: 0px;
 }
 
 .nav-pills > li > a {

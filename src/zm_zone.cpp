@@ -14,7 +14,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 #include "zm.h"
@@ -945,15 +945,13 @@ int Zone::Load( Monitor *monitor, Zone **&zones )
 {
 	static char sql[ZM_SQL_MED_BUFSIZ];
 	snprintf( sql, sizeof(sql), "select Id,Name,Type+0,Units,Coords,AlarmRGB,CheckMethod+0,MinPixelThreshold,MaxPixelThreshold,MinAlarmPixels,MaxAlarmPixels,FilterX,FilterY,MinFilterPixels,MaxFilterPixels,MinBlobPixels,MaxBlobPixels,MinBlobs,MaxBlobs,OverloadFrames,ExtendAlarmFrames from Zones where MonitorId = %d order by Type, Id", monitor->Id() );
-	if ( mysql_query( &dbconn, sql ) )
-	{
+	if ( mysql_query( &dbconn, sql ) ) {
 		Error( "Can't run query: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
 
 	MYSQL_RES *result = mysql_store_result( &dbconn );
-	if ( !result )
-	{
+	if ( !result ) {
 		Error( "Can't use query result: %s", mysql_error( &dbconn ) );
 		exit( mysql_errno( &dbconn ) );
 	}
@@ -961,8 +959,7 @@ int Zone::Load( Monitor *monitor, Zone **&zones )
 	Debug( 1, "Got %d zones for monitor %s", n_zones, monitor->Name() );
 	delete[] zones;
 	zones = new Zone *[n_zones];
-	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
-	{
+	for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ ) {
     zones[i] = NULL;
 		int col = 0;
 
@@ -995,17 +992,18 @@ int Zone::Load( Monitor *monitor, Zone **&zones )
 		Polygon polygon;
 		if ( !ParsePolygonString( Coords, polygon ) ) {
 			Error( "Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring", Coords, Id, Name, monitor->Name() );
+      n_zones -= 1;
       continue;
     }
 
 		if ( polygon.LoX() < 0 || polygon.HiX() >= (int)monitor->Width() 
            || polygon.LoY() < 0 || polygon.HiY() >= (int)monitor->Height() ) {
 			Error( "Zone %d/%s for monitor %s extends outside of image dimensions, (%d,%d), (%d,%d), ignoring", Id, Name, monitor->Name(), polygon.LoX(), polygon.LoY(), polygon.HiX(), polygon.HiY() );
+      n_zones -= 1;
       continue;
     }
 
-		if ( false && !strcmp( Units, "Percent" ) )
-		{
+		if ( false && !strcmp( Units, "Percent" ) ) {
 			MinAlarmPixels = (MinAlarmPixels*polygon.Area())/100;
 			MaxAlarmPixels = (MaxAlarmPixels*polygon.Area())/100;
 			MinFilterPixels = (MinFilterPixels*polygon.Area())/100;

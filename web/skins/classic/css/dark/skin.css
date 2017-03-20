@@ -14,7 +14,7 @@
  * 
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */ 
 
 /*
@@ -22,8 +22,8 @@
  */
 
 body {
-    font-family: Verdana, Arial, Helvetica, sans-serif;
-    font-size: 10px;
+    font-family: "Open Sans", Verdana, Arial, Helvetica, sans-serif;
+    font-size: 13px;
     color: #dddddd;
     background-color: #222222;
     font-weight: normal;
@@ -91,13 +91,16 @@ label {
 
 input,textarea,select,button {
     border: 1px #8f8fc2 solid;
+    padding: 10px;
+    border-radius: 2px;
     font-family: inherit;
+    font-weight: 400;
     font-size: 100%;
     color: #eeeeee;
     background-color: #444444;
 }
 
-input[type=text], input[type=password], textarea {
+input[type=text], input[type=password], input[type="url"], textarea, select {
     padding: 1px;
 }
 
@@ -107,6 +110,10 @@ input.noborder {
 
 input[disabled] {
     color: #777777;
+}
+
+img {
+  display: inline-block;
 }
 
 img.normal {
@@ -146,7 +153,7 @@ ul.tabList li {
     margin: 0 2px 0 0;
     background: #444444;
     text-align: center;
-    padding: 3px 4px;
+    padding: 5px 10px;
 }
 
 ul.tabList li a {
@@ -194,8 +201,8 @@ ul.tabList li.active a {
 }
 
 #content table.major th, #content table.major td {
-    border: 1px solid #8f8fc2;
-    padding: 3px;
+    border-bottom: 2px solid #8f8fc2;
+    padding: 5px 10px;
     text-align: left;
 }
 
@@ -368,10 +375,12 @@ th.table-th-sort-rev span.table-th-sort-span {
 }
 
 #header {
-    width: 96%;
+    width: 100%;
     line-height: 24px;
-    margin: 8px auto;
     text-align: left;
+    margin-bottom: 10px;
+    padding: 10px 20px;
+    font-weight: 300;
 }
 
 #header h2 {
@@ -383,7 +392,6 @@ th.table-th-sort-rev span.table-th-sort-span {
 }
 
 #headerControl {
-    width: 50%;
     text-align: center;
     margin: 0 auto;
 }
@@ -433,7 +441,7 @@ th.table-th-sort-rev span.table-th-sort-span {
 }
 
 #content table input[type=submit], #content table input[type=button], #content table button {
-    margin-top: 0;
+    margin-top: 1px;
 }
 
 #contentButtons {
@@ -449,5 +457,83 @@ th.table-th-sort-rev span.table-th-sort-span {
 #footer {
     width: 96%;
     margin: 8px auto;
+}
+
+input[type=button],
+input[type=submit] {
+    background-color: #3498db;
+    color: #fff;
+    border-color: #3498db;
+    text-transform: uppercase;
+    font-weight: 200;
+    padding: 5px 10px;
+    cursor: pointer;
+}
+
+input[type=button]:hover,
+input[type=submit]:hover {
+    background-color: #34a2ee;
+
+}
+
+
+/* PP - make it easy to identify disabled buttons */
+
+input[type=button]:disabled,
+input[type=submit]:disabled {
+    background-color: #aaaaaa;
+    border-color: #bbbbbb;
+
+}
+
+/*
+ * Console table for the main event table
+ */
+
+#consoleTable td, #consoleTable th {
+    padding: 5px;
+    border-bottom: 2px solid #f2f2f2;
+}
+
+#consoleTable input[type=button] {
+    margin-right: 3px !important;
+}
+
+#consoleTable tfoot {
+    background-color: #f2f2f2;
+}
+
+.navbar{
+  margin-bottom: 0 !important;
+  border-radius: 0;
+  color: #03A9F4 !important;
+}
+
+.navbar-brand {
+  font-weight: bold;
+  font-size: 20px;
+}
+
+.container-fluid {
+  position: relative;
+}
+
+.sidebar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1000;
+  display: block;
+  padding: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border-right: 1px solid #eeeeee;
+}
+
+.sidebar ul {
+  margin-right: 0;
+  margin-bottom: 20px;
+  margin-left: 0;
 }
 

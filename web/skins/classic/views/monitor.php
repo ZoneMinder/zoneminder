@@ -15,7 +15,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
 require_once( 'includes/Server.php');
@@ -210,8 +210,8 @@ $sourceTypes = array(
     'Libvlc' => translate('Libvlc'),
     'cURL'   => "cURL (HTTP(S) only)"
     );
-if ( !ZM_HAS_V4L )
-  unset($sourceTypes['Local']);
+  if ( !ZM_HAS_V4L )
+    unset($sourceTypes['Local']);
 
   $localMethods = array(
       'v4l2' => "Video For Linux version 2",
@@ -233,6 +233,13 @@ if ( !ZM_HAS_V4L1 )
       "rtpRtsp"     => "RTP/RTSP",
       "rtpRtspHttp" => "RTP/RTSP/HTTP"
       );
+
+  $rtspFFMpegMethods = array(
+      "rtpRtsp"     => "TCP",
+      "rtpUni"      => "UDP",
+      "rtpMulti"    => "UDP Multicast",
+      "rtpRtspHttp" => "HTTP Tunnel"
+  );
 
   $httpMethods = array(
       "simple"   => "Simple",
@@ -722,7 +729,7 @@ switch ( $tab )
         </td>
         </tr>
         <tr><td><?php echo translate('AnalysisFPS') ?></td><td><input type="text" name="newMonitor[AnalysisFPS]" value="<?php echo validHtmlStr($monitor->AnalysisFPS) ?>" size="6"/></td></tr>
-        <?php if ( $monitor->Type != "Local" && $monitor->Type != "File" ) { ?>
+        <?php if ( $monitor->Type() != "Local" && $monitor->Type() != "File" ) { ?>
             <tr>
               <td><?php echo translate('MaximumFPS') ?>&nbsp;(<?php echo makePopupLink('?view=optionhelp&amp;option=OPTIONS_MAXFPS', 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td>
               <td><input type="text" onclick="document.getElementById('newMonitor[MaxFPS]').innerHTML= ' CAUTION: See the help text'" name="newMonitor[MaxFPS]" value="<?php echo validHtmlStr($monitor->MaxFPS) ?>" size="5"/><span id="newMonitor[MaxFPS]" style="color:red"></span></td>
@@ -738,8 +745,18 @@ switch ( $tab )
         }
         if ( ZM_FAST_IMAGE_BLENDS ) {
         ?>
-          <tr><td><?php echo translate('RefImageBlendPct') ?></td><td><select name="newMonitor[RefBlendPerc]"><?php foreach ( $fastblendopts as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->RefBlendPerc ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
-          <tr><td><?php echo translate('AlmRefImageBlendPct') ?></td><td><select name="newMonitor[AlarmRefBlendPerc]"><?php foreach ( $fastblendopts_alarm as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->AlarmRefBlendPerc ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
+          <tr>
+            <td><?php echo translate('RefImageBlendPct') ?></td>
+            <td><select name="newMonitor[RefBlendPerc]"><?php foreach ( $fastblendopts as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->RefBlendPerc() ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td>
+          </tr>
+          <tr>  
+            <td><?php echo translate('AlarmRefImageBlendPct') ?></td>
+            <td>
+              <select name="newMonitor[AlarmRefBlendPerc]">
+                <?php foreach ( $fastblendopts_alarm as $name => $value ) { ?>
+                  <option value="<?php echo $value ?>"<?php if ( $value == $monitor->AlarmRefBlendPerc() ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option>
+                <?php } ?>
+              </select></td></tr>
           <?php
       } else {
         ?>
@@ -780,23 +797,15 @@ switch ( $tab )
         ?>
           <tr><td><?php echo translate('DevicePath') ?></td><td><input type="text" name="newMonitor[Device]" value="<?php echo validHtmlStr($monitor->Device) ?>" size="24"/></td></tr>
           <tr><td><?php echo translate('CaptureMethod') ?></td><td><?php echo htmlSelect( "newMonitor[Method]", $localMethods, $monitor->Method(), "submitTab( '$tab' );" ); ?></td></tr>
-          <?php
-          if ( ZM_HAS_V4L1 && $monitor->Method == 'v4l1' ) {
-            ?>
+          <?php if ( ZM_HAS_V4L1 && $monitor->Method == 'v4l1' ) { ?>
               <tr><td><?php echo translate('DeviceChannel') ?></td><td><select name="newMonitor[Channel]"><?php foreach ( $v4l1DeviceChannels as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->Channel ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
               <tr><td><?php echo translate('DeviceFormat') ?></td><td><select name="newMonitor[Format]"><?php foreach ( $v4l1DeviceFormats as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->Format ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
               <tr><td><?php echo translate('CapturePalette') ?></td><td><select name="newMonitor[Palette]"><?php foreach ( $v4l1LocalPalettes as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->Palette ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
-              <?php
-          }
-          else
-          {
-            ?>
+        <?php } else { ?>
               <tr><td><?php echo translate('DeviceChannel') ?></td><td><select name="newMonitor[Channel]"><?php foreach ( $v4l2DeviceChannels as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->Channel ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
               <tr><td><?php echo translate('DeviceFormat') ?></td><td><select name="newMonitor[Format]"><?php foreach ( $v4l2DeviceFormats as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->Format ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
               <tr><td><?php echo translate('CapturePalette') ?></td><td><select name="newMonitor[Palette]"><?php foreach ( $v4l2LocalPalettes as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->Palette ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
-              <?php
-          }
-        ?>
+          <?php } ?>
           <tr><td><?php echo translate('V4LMultiBuffer') ?></td><td>
           <input type="radio" name="newMonitor[V4LMultiBuffer]" id="newMonitor[V4LMultiBuffer]1" value="1" <?php echo ( $monitor->V4LMultiBuffer == 1 ? 'checked="checked"' : '' ) ?>/>
           <label for="newMonitor[V4LMultiBuffer]1">Yes</label>
@@ -806,57 +815,34 @@ switch ( $tab )
           <label for="newMonitor[V4LMultiBuffer]">Use Config Value</label>
           </td></tr>
           <tr><td><?php echo translate('V4LCapturesPerFrame') ?></td><td><input type="number" name="newMonitor[V4LCapturesPerFrame]" value="<?php echo $monitor->V4LCapturesPerFrame ?>"/></td></tr>
-          <?php
-      } elseif ( $monitor->Type == "Remote" ) {
-        ?>
+          <?php } elseif ( $monitor->Type == "Remote" ) { ?>
           <tr><td><?php echo translate('RemoteProtocol') ?></td><td><?php echo htmlSelect( "newMonitor[Protocol]", $remoteProtocols, $monitor->Protocol(), "updateMethods( this );if(this.value=='rtsp'){\$('RTSPDescribe').setStyle('display','table-row');}else{\$('RTSPDescribe').hide();}" ); ?></td></tr>
-          <?php
-          if ( empty($monitor->Protocol) || $monitor->Protocol == "http" ) {
-            ?>
+          <?php if ( empty($monitor->Protocol) || $monitor->Protocol == "http" ) { ?>
               <tr><td><?php echo translate('RemoteMethod') ?></td><td><?php echo htmlSelect( "newMonitor[Method]", $httpMethods, $monitor->Method() ); ?></td></tr>
-              <?php
-          } else {
-            ?>
+          <?php } else { ?>
               <tr><td><?php echo translate('RemoteMethod') ?></td><td><?php echo htmlSelect( "newMonitor[Method]", $rtspMethods, $monitor->Method() ); ?></td></tr>
-              <?php
-          }
-        ?>
+          <?php } ?>
           <tr><td><?php echo translate('RemoteHostName') ?></td><td><input type="text" name="newMonitor[Host]" value="<?php echo validHtmlStr($monitor->Host) ?>" size="36"/></td></tr>
           <tr><td><?php echo translate('RemoteHostPort') ?></td><td><input type="text" name="newMonitor[Port]" value="<?php echo validHtmlStr($monitor->Port) ?>" size="6"/></td></tr>
           <tr><td><?php echo translate('RemoteHostPath') ?></td><td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path) ?>" size="36"/></td></tr>
-          <?php
-      }
-      elseif ( $monitor->Type == "File" )
-      {
-        ?>
+        <?php } elseif ( $monitor->Type == "File" ) { ?>
           <tr><td><?php echo translate('SourcePath') ?></td><td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path) ?>" size="36"/></td></tr>
-          <?php
-      }
-      elseif ( $monitor->Type == "cURL" )
-      {
-        ?>
+        <?php } elseif ( $monitor->Type == "cURL" ) { ?>
           <tr><td><?php echo "URL" ?></td><td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path) ?>" size="36"/></td></tr>
           <tr><td><?php echo "Username" ?></td><td><input type="text" name="newMonitor[User]" value="<?php echo validHtmlStr($monitor->User) ?>" size="12"/></td></tr>
           <tr><td><?php echo "Password" ?></td><td><input type="text" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass) ?>" size="12"/></td></tr>
-          <?php
-      }
-      elseif ( $monitor->Type == "Ffmpeg" || $monitor->Type == "Libvlc")
-      {
-        ?>
+        <?php } elseif ( $monitor->Type == "Ffmpeg" || $monitor->Type == "Libvlc") { ?>
           <tr><td><?php echo translate('SourcePath') ?></td><td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path) ?>" size="36"/></td></tr>
-          <tr><td><?php echo translate('RemoteMethod') ?></td><td><?php echo htmlSelect( "newMonitor[Method]", $rtspMethods, $monitor->Method() ); ?></td></tr>
+          <tr><td><?php echo translate('RemoteMethod') ?>&nbsp;(<?php echo makePopupLink('?view=optionhelp&amp;option=OPTIONS_RTSPTrans', 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td><td><?php echo htmlSelect( "newMonitor[Method]", $rtspFFMpegMethods, $monitor->Method() ); ?></td></tr>
           <tr><td><?php echo translate('Options') ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option=OPTIONS_'.strtoupper($monitor->Type), 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td><td><input type="text" name="newMonitor[Options]" value="<?php echo validHtmlStr($monitor->Options) ?>" size="36"/></td></tr>
-          <?php
-      }
-      ?>
+        <?php } ?>
         <tr><td><?php echo translate('TargetColorspace') ?></td><td><select name="newMonitor[Colours]"><?php foreach ( $Colours as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->Colours ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
         <tr><td><?php echo translate('CaptureWidth') ?> (<?php echo translate('Pixels') ?>)</td><td><input type="text" name="newMonitor[Width]" value="<?php echo validHtmlStr($monitor->Width) ?>" size="4" onkeyup="updateMonitorDimensions(this);"/></td></tr>
         <tr><td><?php echo translate('CaptureHeight') ?> (<?php echo translate('Pixels') ?>)</td><td><input type="text" name="newMonitor[Height]" value="<?php echo validHtmlStr($monitor->Height) ?>" size="4" onkeyup="updateMonitorDimensions(this);"/></td></tr>
         <tr><td><?php echo translate('PreserveAspect') ?></td><td><input type="checkbox" name="preserveAspectRatio" value="1"/></td></tr> 
         <tr><td><?php echo translate('Orientation') ?></td><td><select name="newMonitor[Orientation]"><?php foreach ( $orientations as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->Orientation ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
         <?php
-        if ( $monitor->Type == "Local" )
-        {
+        if ( $monitor->Type == "Local" ) {
           ?>
             <tr><td><?php echo translate('Deinterlacing') ?></td><td><select name="newMonitor[Deinterlacing]"><?php foreach ( $deinterlaceopts_v4l2 as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->Deinterlacing ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
             <?php

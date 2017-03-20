@@ -14,7 +14,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 //#include "zm_logger.h"
@@ -24,6 +24,10 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
+
+#ifdef HAVE_CURL_CURL_H
+#include <curl/curl.h>
+#endif
 
 unsigned int sseversion = 0;
 
@@ -343,5 +347,20 @@ void timespec_diff(struct timespec *start, struct timespec *end, struct timespec
     diff->tv_sec = end->tv_sec-start->tv_sec;
     diff->tv_nsec = end->tv_nsec-start->tv_nsec;
   }
+}
+
+std::string UriDecode( const std::string &encoded ) {
+#ifdef HAVE_LIBCURL 
+  CURL *curl = curl_easy_init();
+    int outlength;
+    char *cres = curl_easy_unescape(curl, encoded.c_str(), encoded.length(), &outlength);
+    std::string res(cres, cres + outlength);
+    curl_free(cres);
+    curl_easy_cleanup(curl);
+    return res;
+#else
+Warning("ZM Compiled without LIBCURL.  UriDecoding not implemented.");
+  return encoded;
+#endif
 }
 

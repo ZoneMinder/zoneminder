@@ -15,7 +15,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
 if ( !canView( 'Monitors' ) )
@@ -48,21 +48,14 @@ xhtmlHeaders(__FILE__, translate('Zones') );
       <h2><?php echo translate('Zones') ?></h2>
     </div>
     <div id="content" style="width:<?php echo $monitor->Width() ?>px; height:<?php echo $monitor->Height() ?>px; position:relative; margin: 0 auto;">
-      <?php echo getStreamHTML( $monitor ); ?>
-      <svg class="zones" width="<?php echo $monitor->Width() ?>" height="<?php echo $monitor->Height() ?>" style="position:absolute; top: 0; left: 0; background: none;">
-<?php
-      foreach( array_reverse($zones) as $zone ) {
-?>
-        <polygon points="<?php echo $zone['AreaCoords'] ?>" class="<?php echo $zone['Type']?>" onclick="streamCmdQuit( true ); createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>', 'zmZone', 'zone', <?php echo $monitor->Width ?>, <?php echo $monitor->Height ?> ); return( false );"/>
-<?php
-      } // end foreach zone
-?>
-          Sorry, your browser does not support inline SVG
-        </svg>
       <form name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value="delete"/>
         <input type="hidden" name="mid" value="<?php echo $mid ?>"/>
+        <div id="contentButtons">
+          <input type="button" value="<?php echo translate('AddNewZone') ?>" onclick="createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=0', 'zmZone', 'zone', <?php echo $monitor->Width() ?>, <?php echo $monitor->Height() ?> );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
+          <input type="submit" name="deleteBtn" value="<?php echo translate('Delete') ?>" disabled="disabled"/>
+        </div>
         <table id="contentTable" class="major" cellspacing="0">
           <thead>
             <tr>
@@ -88,9 +81,18 @@ foreach( $zones as $zone )
 ?>
           </tbody>
         </table>
-        <div id="contentButtons">
-          <input type="button" value="<?php echo translate('AddNewZone') ?>" onclick="createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=0', 'zmZone', 'zone', <?php echo $monitor->Width() ?>, <?php echo $monitor->Height() ?> );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
-          <input type="submit" name="deleteBtn" value="<?php echo translate('Delete') ?>" disabled="disabled"/>
+        <div class="ZonesImage" style="position:relative; clear:both;">
+      <?php echo getStreamHTML( $monitor ); ?>
+      <svg class="zones" width="<?php echo $monitor->Width() ?>" height="<?php echo $monitor->Height() ?>" style="position:absolute; top: 0; left: 0; background: none;">
+<?php
+      foreach( array_reverse($zones) as $zone ) {
+?>
+        <polygon points="<?php echo $zone['AreaCoords'] ?>" class="<?php echo $zone['Type']?>" onclick="streamCmdQuit( true ); createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>', 'zmZone', 'zone', <?php echo $monitor->Width ?>, <?php echo $monitor->Height ?> ); return( false );"/>
+<?php
+      } // end foreach zone
+?>
+          Sorry, your browser does not support inline SVG
+        </svg>
         </div>
       </form>
     </div>

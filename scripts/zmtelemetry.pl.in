@@ -2,7 +2,7 @@
 #
 # ==========================================================================
 #
-# ZoneMinder Update Script, $Date$, $Revision$
+# ZoneMinder Telemetry Upload Script, $Date$, $Revision$
 # Copyright (C) 2001-2008 Philip Coombes
 #
 # This program is free software; you can redistribute it and/or
@@ -17,33 +17,9 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # ==========================================================================
-
-=head1 NAME
-
-zmtelemetry.pl - Send usage information to the ZoneMinder development team
-
-=head1 SYNOPSIS
-
- zmtelemetry.pl
-
-=head1 DESCRIPTION
-
-This script collects usage information of the local system and sends it to the
-ZoneMinder development team. This data will be used to determine things like
-who and where our customers are, how big their systems are, the underlying
-hardware and operating system, etc. This is being done for the sole purpoase of
-creating a better product for our target audience. This script is intended to
-be completely transparent to the end user, and can be disabled from the web
-console under Options.
-
-=head1 OPTIONS
-
-none currently
-
-=cut
 use strict;
 use bytes;
 
@@ -61,22 +37,47 @@ $ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
-use constant CHECK_INTERVAL => (14*24*60*60); # Interval between version checks
-
 # Setting these as contants for now. 
-# Alternatively, we can put these in the dB and then retrieve using the Config hash.
-use constant ZM_TELEMETRY_SERVER_ENDPOINT => 'https://zmanon:2b2d0b4skps@telemetry.zoneminder.com/zmtelemetry/testing5';
 
-if ( $Config{ZM_TELEMETRY_DATA} )
+my $help = 0;
+my $force = 0;
+# Interval between version checks
+my $interval;
+my $version;
+
+GetOptions(
+  force     => \$force,
+  help      => \$help,
+  interval  => \$interval,
+  version   => \$version
+);
+if ( $version ) {
+    print( ZoneMinder::Base::ZM_VERSION . "\n");
+    exit(0);
+}
+if ( $help ) {
+    pod2usage(-exitstatus => -1);
+}
+if ( ! defined $interval ) {
+  $interval = eval($Config{ZM_TELEMETRY_INTERVAL});
+}
+
+if ( $Config{ZM_TELEMETRY_DATA} or $force )
 {
-    print( "Update agent starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+    print "Update agent starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n";
 
     my $lastCheck = $Config{ZM_TELEMETRY_LAST_UPLOAD};
 
     while( 1 ) {
         my $now = time();
-        if ( ($now-$lastCheck) > CHECK_INTERVAL ) {
-            Info( "Collecting data to send to ZoneMinder Telemetry server." );
+        my $since_last_check = $now-$lastCheck;
+        Debug(" Last Check time (now($now) - lastCheck($lastCheck)) = $since_last_check > interval($interval) or force($force)");
+        if ( $since_last_check < 0 ) {
+          Warning( "Seconds since last check is negative! Which means that lastCheck is in the future!" );
+          next;
+        }
+        if ( ( ($now-$lastCheck) > $interval ) or $force ) {
+            print "Collecting data to send to ZoneMinder Telemetry server.\n";
             my $dbh = zmDbConnect();
             # Build the telemetry hash
             # We should keep *BSD systems in mind when calling system commands
@@ -98,17 +99,20 @@ if ( $Config{ZM_TELEMETRY_DATA} )
             my $result = jsonEncode( \%telemetry );
 
             if ( sendData($result) ) {
-                $lastCheck = $now;
 
-                my $sql = "update Config set Value = ? where Name = 'ZM_TELEMETRY_LAST_UPLOAD'";
+                my $sql = q`UPDATE Config SET Value = ? WHERE Name = 'ZM_TELEMETRY_LAST_UPLOAD'`;
                 my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-                my $res = $sth->execute( "$lastCheck" ) or die( "Can't execute: ".$sth->errstr() );
+                my $res = $sth->execute( $now ) or die( "Can't execute: ".$sth->errstr() );
                 $sth->finish();
+                $Config{ZM_TELEMETRY_LAST_UPLOAD} = $now;
             }
-        }
+            zmDbDisconnect();
+        } elsif ( -t STDIN ) {
+          print "Update agent sleeping for 1 hour because ($now-$lastCheck=$since_last_check > $interval\n";
+        } 
         sleep( 3600 );
     }
-    print( "Update agent exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+    print "Update agent exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n";
 }
 
 ###############
@@ -142,7 +146,7 @@ sub sendData {
     my $msg = shift;
 
     my $ua = LWP::UserAgent->new;
-    my $server_endpoint = ZM_TELEMETRY_SERVER_ENDPOINT;
+    my $server_endpoint = $Config{ZM_TELEMETRY_SERVER_ENDPOINT};
 
     if ( $Config{ZM_UPDATE_CHECK_PROXY} ) {
         $ua->proxy( "https", $Config{ZM_UPDATE_CHECK_PROXY} );
@@ -340,4 +344,37 @@ sub linuxDistro {
 return ($kernel, $distro, $version);
 }
 
+1;
+__END__
 
+
+=head1 NAME
+
+zmtelemetry.pl - Send usage information to the ZoneMinder development team
+
+=head1 SYNOPSIS
+
+ zmtelemetry.pl [--force] [--help] [--interval=seconds] [--version]
+
+=head1 DESCRIPTION
+
+This script collects usage information of the local system and sends it to the
+ZoneMinder development team. This data will be used to determine things like
+who and where our customers are, how big their systems are, the underlying
+hardware and operating system, etc. This is being done for the sole purpoase of
+creating a better product for our target audience. This script is intended to
+be completely transparent to the end user, and can be disabled from the web
+console under Options.
+
+=head1 OPTIONS
+
+ --force        Force the script to upload it's data instead of waiting
+                for the defined interval since last upload.
+ --help         Display usage information
+ --interval     Override the default configured interval since last upload. 
+                The value should be given in seconds, but can be an expression
+                such as 24*60*60.
+ --version      Output the version of ZoneMinder.
+ 
+
+=cut

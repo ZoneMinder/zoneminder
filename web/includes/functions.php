@@ -2102,7 +2102,7 @@ function validHtmlStr( $input ) {
 
 function getStreamHTML( $monitor, $options = array() ) {
 
-	if ( isset($options['scale']) ) {
+	if ( isset($options['scale']) and $options['scale'] ) {
 		$options['width'] = reScale( $monitor->Width(), $options['scale'] );
 		$options['height'] = reScale( $monitor->Height(), $options['scale'] );
 	}

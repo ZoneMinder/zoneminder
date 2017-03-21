@@ -2123,15 +2123,27 @@ function getStreamHTML( $monitor, $options = array() ) {
     $streamSrc = $monitor->getStreamSrc( $options );
 
     if ( canStreamNative() )
-      return getImageStream( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], (isset($options['height'])?$options['height']:NULL), $monitor->Name() );
+      return getImageStream( 'liveStream'.$monitor->Id(), $streamSrc, 
+          ( isset($options['width']) ? $options['width'] : NULL ),
+          ( isset($options['height']) ? $options['height'] : NULL ),
+          $monitor->Name()
+          );
     elseif ( canStreamApplet() )
-      return getHelperStream( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], (isset($options['height'])?$options['height']:NULL), $monitor->Name() );
+      return getHelperStream( 'liveStream'.$monitor->Id(), $streamSrc,
+          ( isset($options['width']) ? $options['width'] : NULL ),
+          ( isset($options['height']) ? $options['height'] : NULL ),
+          $monitor->Name()
+          );
   } else {
     $streamSrc = $monitor->getStreamSrc( $options );
     if ( $mode == 'stream' ) {
       Info( 'The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.' );
     }
-    return getImageStill( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], $monitor->Name() );
+    return getImageStill( 'liveStream'.$monitor->Id(), $streamSrc, 
+          ( isset($options['width']) ? $options['width'] : NULL ),
+          ( isset($options['height']) ? $options['height'] : NULL ),
+          $monitor->Name()
+        );
   }
 } // end function getStreamHTML
 

@@ -27,6 +27,9 @@ if ( version_compare( phpversion(), "4.3.0", "<") ) {
   }
 }
 
+require_once( 'logger.php' );
+require_once( 'database.php' );
+
 function userLogin( $username, $password="", $passwordHashed=false ) {
   global $user, $cookies;
 

@@ -91,7 +91,7 @@ class AppController extends Controller {
       if( ! $this->Session->Read('user.Username') ) {
         throw new UnauthorizedException(__('Not Authenticated'));
         return;
-      } else if ( ! $this->Session->Read('user.Username') ) {
+      } else if ( ! $this->Session->Read('user.Enabled') ) {
         throw new UnauthorizedException(__('User is not enabled'));
         return;
       }

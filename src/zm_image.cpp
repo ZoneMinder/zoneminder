@@ -3784,33 +3784,31 @@ void sse2_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result,
 #endif
 }
 
-/* RGB32: RGBA SSSE3 */
+/* RGB32 SSSE3 */
 #if defined(__i386__) || defined(__x86_64__)
 __attribute__((noinline,__target__("ssse3")))
 #endif
-void ssse3_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+void ssse3_delta8_rgb32(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, uint32_t multiplier) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
-  
-  /* XMM0 - zero - kept */
-  /* XMM1,2 - General purpose */
-  /* XMM3 - multipiler */
-  /* XMM4 - divide mask - kept */
-  /* XMM5 - unused */
-  /* XMM6 - unused */
-  /* XMM7 - unused */
+
+  /* XMM0 - zero */
+  /* XMM1 - col1 */
+  /* XMM2 - col2 */
+  /* XMM3 - multiplier */
+  /* XMM4 - divide mask */
 
   __asm__ __volatile__ (
   "mov $0x1F1F1F1F, %%eax\n\t"
   "movd %%eax, %%xmm4\n\t"
   "pshufd $0x0, %%xmm4, %%xmm4\n\t"
-  "mov $0x00010502, %%eax\n\t"
+  "mov %4, %%eax\n\t"
   "movd %%eax, %%xmm3\n\t"
   "pshufd $0x0, %%xmm3, %%xmm3\n\t"
   "pxor %%xmm0, %%xmm0\n\t"
   "sub $0x10, %0\n\t"
   "sub $0x10, %1\n\t"
   "sub $0x4, %2\n\t"
-  "ssse3_delta8_rgba_iter:\n\t"
+  "ssse3_delta8_rgb32_iter:\n\t"
   "movdqa (%0,%3,4), %%xmm1\n\t"
   "movdqa (%1,%3,4), %%xmm2\n\t"
   "psrlq $0x3, %%xmm1\n\t"
@@ -3825,167 +3823,34 @@ void ssse3_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result
   "movd %%xmm1, %%eax\n\t"
   "movnti %%eax, (%2,%3)\n\t"
   "sub $0x4, %3\n\t"
-  "jnz ssse3_delta8_rgba_iter\n\t"
+  "jnz ssse3_delta8_rgb32_iter\n\t"
   :
-  : "r" (col1), "r" (col2), "r" (result), "r" (count)
+  : "r" (col1), "r" (col2), "r" (result), "r" (count), "g" (multiplier)
   : "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "cc", "memory"
   );
 #else
   Panic("SSE function called on a non x86\\x86-64 platform");
 #endif
+}
+
+/* RGB32: RGBA SSSE3 */
+void ssse3_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+  ssse3_delta8_rgb32(col1, col2, result, count, 0x00010502);
 }
 
 /* RGB32: BGRA SSSE3 */
-#if defined(__i386__) || defined(__x86_64__)
-__attribute__((noinline,__target__("ssse3")))
-#endif
 void ssse3_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
-#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
-  
-  /* XMM0 - zero - kept */
-  /* XMM1,2 - General purpose */
-  /* XMM3 - multipiler */
-  /* XMM4 - divide mask - kept */
-  /* XMM5 - unused */
-  /* XMM6 - unused */
-  /* XMM7 - unused */
-
-  __asm__ __volatile__ (
-  "mov $0x1F1F1F1F, %%eax\n\t"
-  "movd %%eax, %%xmm4\n\t"
-  "pshufd $0x0, %%xmm4, %%xmm4\n\t"
-  "mov $0x00020501, %%eax\n\t"
-  "movd %%eax, %%xmm3\n\t"
-  "pshufd $0x0, %%xmm3, %%xmm3\n\t"
-  "pxor %%xmm0, %%xmm0\n\t"
-  "sub $0x10, %0\n\t"
-  "sub $0x10, %1\n\t"
-  "sub $0x4, %2\n\t"
-  "ssse3_delta8_bgra_iter:\n\t"
-  "movdqa (%0,%3,4), %%xmm1\n\t"
-  "movdqa (%1,%3,4), %%xmm2\n\t"
-  "psrlq $0x3, %%xmm1\n\t"
-  "psrlq $0x3, %%xmm2\n\t"
-  "pand %%xmm4, %%xmm1\n\t"
-  "pand %%xmm4, %%xmm2\n\t"
-  "psubb %%xmm2, %%xmm1\n\t"
-  "pabsb %%xmm1, %%xmm1\n\t"
-  "pmaddubsw %%xmm3, %%xmm1\n\t"
-  "phaddw %%xmm0, %%xmm1\n\t"
-  "packuswb %%xmm1, %%xmm1\n\t"
-  "movd %%xmm1, %%eax\n\t"
-  "movnti %%eax, (%2,%3)\n\t"
-  "sub $0x4, %3\n\t"
-  "jnz ssse3_delta8_bgra_iter\n\t"
-  :
-  : "r" (col1), "r" (col2), "r" (result), "r" (count)
-  : "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "cc", "memory"
-  );
-#else
-  Panic("SSE function called on a non x86\\x86-64 platform");
-#endif
+  ssse3_delta8_rgb32(col1, col2, result, count, 0x00020501);
 }
 
 /* RGB32: ARGB SSSE3 */
-#if defined(__i386__) || defined(__x86_64__)
-__attribute__((noinline,__target__("ssse3")))
-#endif
 void ssse3_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
-#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
-  
-  /* XMM0 - zero - kept */
-  /* XMM1,2 - General purpose */
-  /* XMM3 - multipiler */
-  /* XMM4 - divide mask - kept */
-  /* XMM5 - unused */
-  /* XMM6 - unused */
-  /* XMM7 - unused */
-
-  __asm__ __volatile__ (
-  "mov $0x1F1F1F1F, %%eax\n\t"
-  "movd %%eax, %%xmm4\n\t"
-  "pshufd $0x0, %%xmm4, %%xmm4\n\t"
-  "mov $0x01050200, %%eax\n\t"
-  "movd %%eax, %%xmm3\n\t"
-  "pshufd $0x0, %%xmm3, %%xmm3\n\t"
-  "pxor %%xmm0, %%xmm0\n\t"
-  "sub $0x10, %0\n\t"
-  "sub $0x10, %1\n\t"
-  "sub $0x4, %2\n\t"
-  "ssse3_delta8_argb_iter:\n\t"
-  "movdqa (%0,%3,4), %%xmm1\n\t"
-  "movdqa (%1,%3,4), %%xmm2\n\t"
-  "psrlq $0x3, %%xmm1\n\t"
-  "psrlq $0x3, %%xmm2\n\t"
-  "pand %%xmm4, %%xmm1\n\t"
-  "pand %%xmm4, %%xmm2\n\t"
-  "psubb %%xmm2, %%xmm1\n\t"
-  "pabsb %%xmm1, %%xmm1\n\t"
-  "pmaddubsw %%xmm3, %%xmm1\n\t"
-  "phaddw %%xmm0, %%xmm1\n\t"
-  "packuswb %%xmm1, %%xmm1\n\t"
-  "movd %%xmm1, %%eax\n\t"
-  "movnti %%eax, (%2,%3)\n\t"
-  "sub $0x4, %3\n\t"
-  "jnz ssse3_delta8_argb_iter\n\t"
-  :
-  : "r" (col1), "r" (col2), "r" (result), "r" (count)
-  : "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "cc", "memory"
-  );
-#else
-  Panic("SSE function called on a non x86\\x86-64 platform");
-#endif
+  ssse3_delta8_rgb32(col1, col2, result, count, 0x01050200);
 }
 
 /* RGB32: ABGR SSSE3 */
-#if defined(__i386__) || defined(__x86_64__)
-__attribute__((noinline,__target__("ssse3")))
-#endif
 void ssse3_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
-#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
-  
-  /* XMM0 - zero - kept */
-  /* XMM1,2 - General purpose */
-  /* XMM3 - multipiler */
-  /* XMM4 - divide mask - kept */
-  /* XMM5 - unused */
-  /* XMM6 - unused */
-  /* XMM7 - unused */
-
-  __asm__ __volatile__ (
-  "mov $0x1F1F1F1F, %%eax\n\t"
-  "movd %%eax, %%xmm4\n\t"
-  "pshufd $0x0, %%xmm4, %%xmm4\n\t"
-  "mov $0x02050100, %%eax\n\t"
-  "movd %%eax, %%xmm3\n\t"
-  "pshufd $0x0, %%xmm3, %%xmm3\n\t"
-  "pxor %%xmm0, %%xmm0\n\t"
-  "sub $0x10, %0\n\t"
-  "sub $0x10, %1\n\t"
-  "sub $0x4, %2\n\t"
-  "ssse3_delta8_abgr_iter:\n\t"
-  "movdqa (%0,%3,4), %%xmm1\n\t"
-  "movdqa (%1,%3,4), %%xmm2\n\t"
-  "psrlq $0x3, %%xmm1\n\t"
-  "psrlq $0x3, %%xmm2\n\t"
-  "pand %%xmm4, %%xmm1\n\t"
-  "pand %%xmm4, %%xmm2\n\t"
-  "psubb %%xmm2, %%xmm1\n\t"
-  "pabsb %%xmm1, %%xmm1\n\t"
-  "pmaddubsw %%xmm3, %%xmm1\n\t"
-  "phaddw %%xmm0, %%xmm1\n\t"
-  "packuswb %%xmm1, %%xmm1\n\t"
-  "movd %%xmm1, %%eax\n\t"
-  "movnti %%eax, (%2,%3)\n\t"
-  "sub $0x4, %3\n\t"
-  "jnz ssse3_delta8_abgr_iter\n\t"
-  :
-  : "r" (col1), "r" (col2), "r" (result), "r" (count)
-  : "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "cc", "memory"
-  );
-#else
-  Panic("SSE function called on a non x86\\x86-64 platform");
-#endif
+  ssse3_delta8_rgb32(col1, col2, result, count, 0x02050100);
 }
 
 
@@ -4187,24 +4052,29 @@ __attribute__((noinline)) void std_convert_yuyv_gray8(const uint8_t* col1, uint8
   }
 }
 
-/* RGBA to grayscale SSSE3 */
+/* RGB32 to grayscale SSSE3 */
 #if defined(__i386__) || defined(__x86_64__)
 __attribute__((noinline,__target__("ssse3")))
 #endif
-void ssse3_convert_rgba_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
+void ssse3_convert_rgb32_gray8(const uint8_t* col1, uint8_t* result, unsigned long count, uint32_t multiplier) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
+
+  /* XMM0 - zero */
+  /* XMM1 - col1 */
+  /* XMM3 - multiplier */
+  /* XMM4 - divide mask */
 
   __asm__ __volatile__ (
   "mov $0x1F1F1F1F, %%eax\n\t"
   "movd %%eax, %%xmm4\n\t"
   "pshufd $0x0, %%xmm4, %%xmm4\n\t"
-  "mov $0x00010502, %%eax\n\t"
+  "mov %3, %%eax\n\t"
   "movd %%eax, %%xmm3\n\t"
   "pshufd $0x0, %%xmm3, %%xmm3\n\t"
   "pxor %%xmm0, %%xmm0\n\t"
   "sub $0x10, %0\n\t"
   "sub $0x4, %1\n\t"
-  "ssse3_convert_rgba_gray8_iter:\n\t"
+  "ssse3_convert_rgb32_gray8_iter:\n\t"
   "movdqa (%0,%2,4), %%xmm1\n\t"
   "psrlq $0x3, %%xmm1\n\t"
   "pand %%xmm4, %%xmm1\n\t"
@@ -4214,125 +4084,34 @@ void ssse3_convert_rgba_gray8(const uint8_t* col1, uint8_t* result, unsigned lon
   "movd %%xmm1, %%eax\n\t"
   "movnti %%eax, (%1,%2)\n\t"
   "sub $0x4, %2\n\t"
-  "jnz ssse3_convert_rgba_gray8_iter\n\t"
+  "jnz ssse3_convert_rgb32_gray8_iter\n\t"
   :
-  : "r" (col1), "r" (result), "r" (count)
+  : "r" (col1), "r" (result), "r" (count), "g" (multiplier)
   : "%eax", "%xmm0", "%xmm1", "%xmm3", "%xmm4", "cc", "memory"
   );
 #else
   Panic("SSE function called on a non x86\\x86-64 platform");
 #endif
+}
+
+/* RGBA to grayscale SSSE3 */
+void ssse3_convert_rgba_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
+  ssse3_convert_rgb32_gray8(col1, result, count, 0x00010502);
 }
 
 /* BGRA to grayscale SSSE3 */
-#if defined(__i386__) || defined(__x86_64__)
-__attribute__((noinline,__target__("ssse3")))
-#endif
 void ssse3_convert_bgra_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
-#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
-
-  __asm__ __volatile__ (
-  "mov $0x1F1F1F1F, %%eax\n\t"
-  "movd %%eax, %%xmm4\n\t"
-  "pshufd $0x0, %%xmm4, %%xmm4\n\t"
-  "mov $0x00020501, %%eax\n\t"
-  "movd %%eax, %%xmm3\n\t"
-  "pshufd $0x0, %%xmm3, %%xmm3\n\t"
-  "pxor %%xmm0, %%xmm0\n\t"
-  "sub $0x10, %0\n\t"
-  "sub $0x4, %1\n\t"
-  "ssse3_convert_bgra_gray8_iter:\n\t"
-  "movdqa (%0,%2,4), %%xmm1\n\t"
-  "psrlq $0x3, %%xmm1\n\t"
-  "pand %%xmm4, %%xmm1\n\t"
-  "pmaddubsw %%xmm3, %%xmm1\n\t"
-  "phaddw %%xmm0, %%xmm1\n\t"
-  "packuswb %%xmm1, %%xmm1\n\t"
-  "movd %%xmm1, %%eax\n\t"
-  "movnti %%eax, (%1,%2)\n\t"
-  "sub $0x4, %2\n\t"
-  "jnz ssse3_convert_bgra_gray8_iter\n\t"
-  :
-  : "r" (col1), "r" (result), "r" (count)
-  : "%eax", "%xmm0", "%xmm1", "%xmm3", "%xmm4", "cc", "memory"
-  );
-#else
-  Panic("SSE function called on a non x86\\x86-64 platform");
-#endif
+  ssse3_convert_rgb32_gray8(col1, result, count, 0x00020501);
 }
 
 /* ARGB to grayscale SSSE3 */
-#if defined(__i386__) || defined(__x86_64__)
-__attribute__((noinline,__target__("ssse3")))
-#endif
 void ssse3_convert_argb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
-#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
-
-  __asm__ __volatile__ (
-  "mov $0x1F1F1F1F, %%eax\n\t"
-  "movd %%eax, %%xmm4\n\t"
-  "pshufd $0x0, %%xmm4, %%xmm4\n\t"
-  "mov $0x01050200, %%eax\n\t"
-  "movd %%eax, %%xmm3\n\t"
-  "pshufd $0x0, %%xmm3, %%xmm3\n\t"
-  "pxor %%xmm0, %%xmm0\n\t"
-  "sub $0x10, %0\n\t"
-  "sub $0x4, %1\n\t"
-  "ssse3_convert_argb_gray8_iter:\n\t"
-  "movdqa (%0,%2,4), %%xmm1\n\t"
-  "psrlq $0x3, %%xmm1\n\t"
-  "pand %%xmm4, %%xmm1\n\t"
-  "pmaddubsw %%xmm3, %%xmm1\n\t"
-  "phaddw %%xmm0, %%xmm1\n\t"
-  "packuswb %%xmm1, %%xmm1\n\t"
-  "movd %%xmm1, %%eax\n\t"
-  "movnti %%eax, (%1,%2)\n\t"
-  "sub $0x4, %2\n\t"
-  "jnz ssse3_convert_argb_gray8_iter\n\t"
-  :
-  : "r" (col1), "r" (result), "r" (count)
-  : "%eax", "%xmm0", "%xmm1", "%xmm3", "%xmm4", "cc", "memory"
-  );
-#else
-  Panic("SSE function called on a non x86\\x86-64 platform");
-#endif
+  ssse3_convert_rgb32_gray8(col1, result, count, 0x01050200);
 }
 
 /* ABGR to grayscale SSSE3 */
-#if defined(__i386__) || defined(__x86_64__)
-__attribute__((noinline,__target__("ssse3")))
-#endif
 void ssse3_convert_abgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
-#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
-
-  __asm__ __volatile__ (
-  "mov $0x1F1F1F1F, %%eax\n\t"
-  "movd %%eax, %%xmm4\n\t"
-  "pshufd $0x0, %%xmm4, %%xmm4\n\t"
-  "mov $0x02050100, %%eax\n\t"
-  "movd %%eax, %%xmm3\n\t"
-  "pshufd $0x0, %%xmm3, %%xmm3\n\t"
-  "pxor %%xmm0, %%xmm0\n\t"
-  "sub $0x10, %0\n\t"
-  "sub $0x4, %1\n\t"
-  "ssse3_convert_abgr_gray8_iter:\n\t"
-  "movdqa (%0,%2,4), %%xmm1\n\t"
-  "psrlq $0x3, %%xmm1\n\t"
-  "pand %%xmm4, %%xmm1\n\t"
-  "pmaddubsw %%xmm3, %%xmm1\n\t"
-  "phaddw %%xmm0, %%xmm1\n\t"
-  "packuswb %%xmm1, %%xmm1\n\t"
-  "movd %%xmm1, %%eax\n\t"
-  "movnti %%eax, (%1,%2)\n\t"
-  "sub $0x4, %2\n\t"
-  "jnz ssse3_convert_abgr_gray8_iter\n\t"
-  :
-  : "r" (col1), "r" (result), "r" (count)
-  : "%eax", "%xmm0", "%xmm1", "%xmm3", "%xmm4", "cc", "memory"
-  );
-#else
-  Panic("SSE function called on a non x86\\x86-64 platform");
-#endif
+  ssse3_convert_rgb32_gray8(col1, result, count, 0x02050100);
 }
 
 /* Converts a YUYV image into grayscale by extracting the Y channel */

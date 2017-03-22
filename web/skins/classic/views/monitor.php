@@ -247,6 +247,13 @@ $rtspMethods = array(
     "rtpRtspHttp" => "RTP/RTSP/HTTP"
 );
 
+$rtspFFMpegMethods = array(
+    "rtpRtsp"     => "TCP",
+    "rtpUni"      => "UDP",
+    "rtpMulti"    => "UDP Multicast",
+    "rtpRtspHttp" => "HTTP Tunnel"
+);
+
 $httpMethods = array(
     "simple"   => "Simple",
     "regexp"   => "Regexp",
@@ -886,7 +893,7 @@ switch ( $tab )
         {
 ?>
       <tr><td><?php echo translate('SourcePath') ?></td><td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($newMonitor['Path']) ?>" size="36"/></td></tr>
-            <tr><td><?php echo translate('RemoteMethod') ?></td><td><?php echo buildSelect( "newMonitor[Method]", $rtspMethods ); ?></td></tr>
+            <tr><td><?php echo translate('RemoteMethod') ?>&nbsp;(<?php echo makePopupLink('?view=optionhelp&amp;option=OPTIONS_RTSPTrans', 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td><td><?php echo buildSelect( "newMonitor[Method]", $rtspFFMpegMethods ); ?></td></tr>
       <tr><td><?php echo translate('Options') ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option=OPTIONS_'.strtoupper($newMonitor['Type']), 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td><td><input type="text" name="newMonitor[Options]" value="<?php echo validHtmlStr($newMonitor['Options']) ?>" size="36"/></td></tr>
 <?php
         }

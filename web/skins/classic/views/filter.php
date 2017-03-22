@@ -97,8 +97,7 @@ $attrTypes = array(
     'DiskPercent' => translate('AttrDiskPercent'),
     'DiskBlocks'  => translate('AttrDiskBlocks'),
     'SystemLoad'  => translate('AttrSystemLoad'),
-	'ServerId'    => translate('AttrServerId'),
-	'ServerName'  => translate('AttrServerName'),
+    'ServerId'    => translate('AttrServer'),
 );
 $opTypes = array(
     '='   => translate('OpEq'),
@@ -239,6 +238,18 @@ for ( $i = 0; isset($_REQUEST['filter']) && $i < count($_REQUEST['filter']['term
 ?>
               <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
               <td><?php echo buildSelect( "filter[terms][$i][val]", $monitors ); ?></td>
+<?php
+        }
+        elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "ServerId" )
+        {
+            $servers = array();
+            $servers['ZM_SERVER_ID'] = 'Current Server';
+            foreach ( dbFetchAll( "SELECT Id,Name FROM Servers ORDER BY lower(Name) ASC" ) as $server ) {
+              $servers[$server['Id']] = $server['Name'];
+            }
+?>
+            <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
+            <td><?php echo buildSelect( "filter[terms][$i][val]", $servers ); ?></td>
 <?php
         }
         else

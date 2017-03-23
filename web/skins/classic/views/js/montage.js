@@ -130,25 +130,70 @@ function selectLayout( element )
     Cookie.write( 'zmMontageLayout', $(element).get('value'), { duration: 10*365 } );
 }
 
-function changeScale()
-{
+function changeWidth() {
+    var width = $('width').get('value');
+
+    for ( var x = 0; x < monitors.length; x++ ) {
+        var monitor = monitors[x];
+        /*Stream could be an applet so can't use moo tools*/ 
+        var streamImg = document.getElementById( 'liveStream'+monitor.id );
+        if ( streamImg ) {
+          streamImg.src = streamImg.src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
+          streamImg.style.width = width + "px";
+          streamImg.style.height = '';
+        }
+    }
+    $('scale').set('value', '' );
+    Cookie.write( 'zmMontageScale', '', { duration: 10*365 } );
+    Cookie.write( 'zmMontageWidth', width, { duration: 10*365 } );
+} // end function changeWidth()
+
+function changeHeight() {
+    var height = $('height').get('value');
+
+    for ( var x = 0; x < monitors.length; x++ ) {
+        var monitor = monitors[x];
+        /*Stream could be an applet so can't use moo tools*/ 
+        var streamImg = document.getElementById( 'liveStream'+monitor.id );
+        if ( streamImg ) {
+          streamImg.src = streamImg.src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
+          streamImg.style.height = height + "px";
+        }
+    }
+    $('scale').set('value', '' );
+    Cookie.write( 'zmMontageHeight', height, { duration: 10*365 } );
+    Cookie.write( 'zmMontageScale', '', { duration: 10*365 } );
+} // end function changeHeight()
+
+function changeScale() {
     var scale = $('scale').get('value');
 
-    for ( var x = 0; x < monitors.length; x++ )
-    {
+    for ( var x = 0; x < monitors.length; x++ ) {
         var monitor = monitors[x];
         var newWidth = ( monitorData[x].width * scale ) / SCALE_BASE;
         var newHeight = ( monitorData[x].height * scale ) / SCALE_BASE;
         /*Stream could be an applet so can't use moo tools*/ 
         var streamImg = document.getElementById( 'liveStream'+monitor.id );
         if ( streamImg ) {
-          streamImg.src = streamImg.src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
+		  var src = streamImg.src;
+		streamImg.src='';
+
           streamImg.style.width = newWidth + "px";
           streamImg.style.height = newHeight + "px";
+          //src = src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
+          src = src.replace(/scale=[\.\d]+/i,'scale='+ scale );
+          src = src.replace(/width=[\.\d]+/i,'width='+newWidth );
+          src = src.replace(/height=[\.\d]+/i,'height='+newHeight );
+          streamImg.src = src;
         }
     }
+    $('width').set('value', '');
+    $('height').set('value', '');
     Cookie.write( 'zmMontageScale', scale, { duration: 10*365 } );
+    Cookie.write( 'zmMontageWidth', '', { duration: 10*365 } );
+    Cookie.write( 'zmMontageHeight', '', { duration: 10*365 } );
 }
+
 
 var monitors = new Array();
 function initPage()

@@ -100,18 +100,25 @@ Debug( "$path does not exist");
   }
 
 } else {
-  $path = $_REQUEST['path'];
-  if ( !empty($user['MonitorIds']) ) {
-    $imageOk = false;
-    $pathMonId = substr( $path, 0, strspn( $path, '1234567890' ) );
-    foreach ( preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) as $monId ) {
-      if ( $pathMonId == $monId ) {
-        $imageOk = true;
-        break;
+  $dir_events = realpath(ZM_DIR_EVENTS);
+  $path = realpath($dir_events . '/' . $_REQUEST['path']);
+  $pos = strpos($path, $dir_events);
+
+  if($pos == 0 && $pos !== false) {
+    if ( !empty($user['MonitorIds']) ) {
+      $imageOk = false;
+      $pathMonId = substr( $path, 0, strspn( $path, "1234567890" ) );
+      foreach ( preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) as $monId ) {
+        if ( $pathMonId == $monId ) {
+          $imageOk = true;
+          break;
+        }
       }
+      if ( !$imageOk )
+        $errorText = "No image permissions";
     }
-    if ( !$imageOk )
-      $errorText = 'No image permissions';
+  } else {
+    $errorText = "Invalid image path";
   }
   if ( ! file_exists( $path ) ) {
     header('HTTP/1.0 404 Not Found');
@@ -149,8 +156,8 @@ header( 'Content-type: image/jpeg' );
 
 # This is so that Save Image As give a useful filename
 if ( $Event ) {
-$filename = $Event->MonitorId().'_'.$Event->Id().'_'.$Frame->FrameId().'.jpg';
-header('Content-Disposition: inline; filename="' . $filename . '"');
+  $filename = $Event->MonitorId().'_'.$Event->Id().'_'.$Frame->FrameId().'.jpg';
+  header('Content-Disposition: inline; filename="' . $filename . '"');
 }
 ob_clean();
 flush();

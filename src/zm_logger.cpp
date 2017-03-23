@@ -510,18 +510,16 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
 {
     if ( level <= mEffectiveLevel )
     {
-        char            classString[4];
         char            timeString[64];
         char            logString[8192];
         va_list         argPtr;
         struct timeval  timeVal;
 
         const char * const file = basename(filepath);
+        const char *classString = smCodes[level].c_str();
         
         if ( level < PANIC || level > DEBUG9 )
             Panic( "Invalid logger level %d", level );
-
-        strncpy( classString, smCodes[level].c_str(), sizeof(classString) );
 
         gettimeofday( &timeVal, NULL );
 

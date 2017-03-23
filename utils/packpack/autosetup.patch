@@ -1,0 +1,17 @@
+--- a/packpack/pack/rpm.mk	2017-01-14 14:01:50.364217882 -0600
++++ b/packpack/pack/rpm.mk	2017-01-14 14:01:19.594985311 -0600
+@@ -23,11 +23,13 @@
+ 		-e 's/Release:\([ ]*\).*/Release: $(RELEASE)%{dist}/' \
+ 		-e 's/Source0:\([ ]*\).*/Source0: $(TARBALL)/' \
+ 		-e 's/%setup .*/%setup -q -n $(PRODUCT)-$(VERSION)/' \
++		-e 's/%autosetup -n .*/%autosetup -n $(PRODUCT)-$(VERSION)/' \
+ 		-i $@.tmp
+ 	grep -F "Version: $(VERSION)" $@.tmp && \
+ 		grep -F "Release: $(RELEASE)" $@.tmp && \
+ 		grep -F "Source0: $(TARBALL)" $@.tmp && \
+-		grep -F "%setup -q -n $(PRODUCT)-$(VERSION)" $@.tmp || \
++		(grep -F "%setup -q -n $(PRODUCT)-$(VERSION)" $@.tmp || \
++		grep -F "%autosetup" $@.tmp) || \
+ 		(echo "Failed to patch RPM spec" && exit 1)
+ 	@ mv -f $@.tmp $@
+ 	@echo

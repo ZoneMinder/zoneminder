@@ -80,7 +80,7 @@ function xhtmlHeaders( $file, $title )
 <?php if ( !in_array($basename, $bad_views) ) { ?>
   <!--<script type="text/javascript" src="js/overlay.js"></script>-->
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery-1.11.3.js"></script>
-<script src="https://code.jquery.com/ui/1.11.3/jquery-ui.js"></script>
+  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery-ui-1.11.3.js"></script>
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
   <script type="text/javascript">
   //<![CDATA[
@@ -200,7 +200,7 @@ function getNavBarHTML() {
   global $user;
   global $bwArray;
 ?>
-<div class="navbar navbar-inverse navbar-fixed-top">
+<div class="navbar navbar-inverse navbar-static-top">
 	<div class="container-fluid">
 		<div class="navbar-header">
 			<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#main-header-nav" aria-expanded="false">
@@ -263,18 +263,17 @@ if ( canView( 'Stream' ) && $cycleCount > 1 ) {
   </div>
   <ul class="list-inline">
 	  <li><?php echo translate('Load') ?>: <?php echo getLoad() ?></li>
-	  <li><?php echo translate('Storage') ?>: <?php
-
-    $storage_areas = Storage::find_all();
-    $storage_paths = null;
-    foreach ( $storage_areas as $area ) {
-      $storage_paths[$area->Path()] = $area;
-    }
-    if ( ! $storage_paths[ZM_DIR_EVENTS] ) {
+	  <li><?php echo translate('Storage') ?>:
+<?php
+  $storage_areas = Storage::find_all();
+  $storage_paths = null;
+  foreach ( $storage_areas as $area ) {
+    $storage_paths[$area->Path()] = $area;
+  }
+  if ( ! isset($storage_paths[ZM_DIR_EVENTS]) ) {
     array_push( $storage_areas, new Storage() );
-    }
+  }
   $func =  function($S){ return $S->Name() . ': ' . $S->disk_usage_percent().'%'; };
-
   echo implode( ', ', array_map ( $func, $storage_areas ) );
   echo ' ' . ZM_PATH_MAP .': '. getDiskPercent(ZM_PATH_MAP).'%';
 ?></li>

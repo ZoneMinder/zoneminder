@@ -56,6 +56,7 @@ function userLogin( $username, $password="", $passwordHashed=false ) {
     if ( ZM_AUTH_TYPE == "builtin" ) {
       $_SESSION['passwordHash'] = $user['Password'];
     }
+    session_regenerate_id();
   } else {
     Warning( "Login denied for user \"$username\"" );
     $_SESSION['loginFailed'] = true;
@@ -337,9 +338,9 @@ function outputImageStream( $id, $src, $width, $height, $title="" ) {
 
 function getImageStream( $id, $src, $width, $height, $title="" ) {
   if ( canStreamIframe() ) {
-      return '<iframe id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" width="'. validInt($width)." height=".validInt($height).'"/>';
+      return '<iframe id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" '.($width? ' width="'. validInt($width).'"' : '').($height?' height="'.validInt($height).'"' : '' ).'/>';
   } else {
-      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" width="'. validInt($width) .'" height="'. validInt( $height ).'"/>';
+      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.($width? ' width:'. validInt($width) .'px;': '').($height ? ' height:'. validInt( $height ).'px;':'').'"/>';
   }
 }
 
@@ -830,9 +831,9 @@ function packageControl( $command ) {
 function daemonControl( $command, $daemon=false, $args=false ) {
   $string = ZM_PATH_BIN."/zmdc.pl $command";
   if ( $daemon ) {
-    $string .= " $daemon";
+    $string .= escapeshellarg(" $daemon");
     if ( $args ) {
-      $string .= " $args";
+      $string .= escapeshellarg(" $args");
     }
   }
   $string .= " 2>/dev/null >&- <&- >/dev/null";
@@ -961,9 +962,9 @@ function zmaStatus( $monitor ) {
 function daemonCheck( $daemon=false, $args=false ) {
   $string = ZM_PATH_BIN."/zmdc.pl check";
   if ( $daemon ) {
-    $string .= " $daemon";
+    $string .= escapeshellarg(" $daemon");
     if ( $args )
-      $string .= " $args";
+      $string .= escapeshellarg(" $args");
   }
   $result = exec( $string );
   return( preg_match( '/running/', $result ) );
@@ -1416,21 +1417,24 @@ function getLoad() {
 
 function getDiskPercent($path = ZM_DIR_EVENTS) {
   $total = disk_total_space($path);
-  if ( ! $total ) {
-    Error("disk_total_space returned false for " . $path );
+  if ( $total === false ) {
+    Error("disk_total_space returned false. Verify the web account user has access to " . $path );
     return 0;
+  } elseif ( $total == 0 ) {
+    Error("disk_total_space indicates the following path has a filesystem size of zero bytes" . $path );
+    return 100;
   }
   $free = disk_free_space($path);
-  if ( ! $free ) {
-    Error("disk_free_space returned false for " . $path );
+  if ( $free === false ) {
+    Error("disk_free_space returned false. Verify the web account user has access to " . $path );
   }
-  $space = round(($total - $free) / $total * 100);
+  $space = round((($total - $free) / $total) * 100);
   return( $space );
 }
 
 function getDiskBlocks() {
   if ( ! $StorageArea ) $StorageArea = new Storage();
-  $df = shell_exec( 'df '.$StorageArea->Path() );
+  $df = shell_exec( 'df '.escapeshellarg($StorageArea->Path() ));
   $space = -1;
   if ( preg_match( '/\s(\d+)\s+\d+\s+\d+%/ms', $df, $matches ) )
     $space = $matches[1];
@@ -2096,23 +2100,38 @@ function validHtmlStr( $input ) {
   return( htmlspecialchars( $input, ENT_QUOTES ) );
 }
 
-function getStreamHTML( $monitor, $scale=100, $mode='stream' ) {
+function getStreamHTML( $monitor, $options = array() ) {
+
+	if ( isset($options['scale']) ) {
+		$options['width'] = reScale( $monitor->Width(), $options['scale'] );
+		$options['height'] = reScale( $monitor->Height(), $options['scale'] );
+	}
+	if ( ! isset($options['mode'] ) ) {
+		$options['mode'] = 'stream';
+	}
+  $options['maxfps'] = ZM_WEB_VIDEO_MAXFPS;
+  if ( $monitor->StreamReplayBuffer() )
+    $options['buffer'] = $monitor->StreamReplayBuffer();
+
   //FIXME, the width and height of the image need to be scaled.
   if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
-    $streamSrc = $monitor->getStreamSrc( array( 'mode=mpeg', 'scale='.$scale, 'bitrate='.ZM_WEB_VIDEO_BITRATE, 'maxfps='.ZM_WEB_VIDEO_MAXFPS, 'format='.ZM_MPEG_LIVE_FORMAT ) );
-    return getVideoStream( 'liveStream'.$monitor->Id(), $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
-  } else if ( $mode == 'stream' and canStream() ) {
-    $streamSrc = $monitor->getStreamSrc( array( 'mode=jpeg', 'scale='.$scale, 'maxfps='.ZM_WEB_VIDEO_MAXFPS, 'buffer='.$monitor->StreamReplayBuffer() ) );
+    $streamSrc = $monitor->getStreamSrc( array( 'mode'=>'mpeg', 'scale'=>$options['scale'], 'bitrate'=>ZM_WEB_VIDEO_BITRATE, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'format' => ZM_MPEG_LIVE_FORMAT ) );
+
+    return getVideoStream( 'liveStream'.$monitor->Id(), $streamSrc, $options, ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
+  } else if ( $options['mode'] == 'stream' and canStream() ) {
+    $options['mode'] = 'jpeg';
+    $streamSrc = $monitor->getStreamSrc( $options );
+
     if ( canStreamNative() )
-      return getImageStream( 'liveStream'.$monitor->Id(), $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
+      return getImageStream( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], (isset($options['height'])?$options['height']:NULL), $monitor->Name() );
     elseif ( canStreamApplet() )
-      return getHelperStream( 'liveStream'.$monitor->Id(), $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
+      return getHelperStream( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], (isset($options['height'])?$options['height']:NULL), $monitor->Name() );
   } else {
-    $streamSrc = $monitor->getStreamSrc( array( 'mode=single', 'scale='.$scale ) );
+    $streamSrc = $monitor->getStreamSrc( $options );
     if ( $mode == 'stream' ) {
       Info( 'The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.' );
     }
-    return getImageStill( 'liveStream'.$monitor->Id(), $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
+    return getImageStill( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], $monitor->Name() );
   }
 } // end function getStreamHTML
 

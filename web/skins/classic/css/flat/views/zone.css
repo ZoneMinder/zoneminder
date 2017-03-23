@@ -95,10 +95,10 @@
 }
 .zones polygon {
 	fill-opacity: 0.25;
-	stroke-width: 0;
+  stroke-width: 0;
 }
 .zones polygon.Editing {
-	stroke-width: 2px;
+  stroke-width: 2px;
 }
 .Active {
 	stroke: #ff0000;

@@ -97,9 +97,9 @@ function initPage()
 function applySort(event, ui) {
   var monitor_ids = $j(this).sortable('toArray');
   var ajax = new Request.JSON( {
-      url: '/index.php?request=console', 
+      url: '/index.php?request=console',
       data: { monitor_ids: monitor_ids, action: 'sort' },
-      method: 'post', 
+      method: 'post',
       timeout: AJAX_TIMEOUT
       } );
   ajax.send();

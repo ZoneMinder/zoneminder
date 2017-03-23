@@ -57,6 +57,7 @@ char Event::general_file_format[PATH_MAX];
 char Event::video_file_format[PATH_MAX];
 
 int Event::pre_alarm_count = 0;
+
 Event::PreAlarmData Event::pre_alarm_data[MAX_PRE_ALARM_FRAMES] = { { 0 } };
 
 Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string &p_cause, const StringSetMap &p_noteSetMap, bool p_videoEvent ) :
@@ -192,7 +193,6 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
 #if ZM_HAVE_VIDEOWRITER_X264MP4
       videowriter = new X264MP4Writer(video_file, monitor->Width(), monitor->Height(), monitor->Colours(), monitor->SubpixelOrder(), monitor->GetOptEncoderParams());
 #else
-      videowriter = NULL;
       Error("ZoneMinder was not compiled with the X264 MP4 video writer, check dependencies (x264 and mp4v2)");
 #endif
     }

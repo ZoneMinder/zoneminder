@@ -23,6 +23,10 @@ case $i in
     INTERACTIVE="${i#*=}"
     shift # past argument=value
     ;;
+    -r=*|--release=*)
+    RELEASE="${i#*=}"
+    shift
+    ;;
     -s=*|--snapshot=*)
     SNAPSHOT="${i#*=}"
     shift # past argument=value
@@ -38,6 +42,10 @@ case $i in
     -f=*|--fork=*)
     GITHUB_FORK="${i#*=}"
     shift # past argument=value
+    ;;
+    -v=*|--version=*)
+    PACKAGE_VERSION="${i#*=}"
+    shift
     ;;
     --default)
     DEFAULT=YES
@@ -59,20 +67,31 @@ if [ "$GITHUB_FORK" == "" ]; then
   GITHUB_FORK="ZoneMinder"
 fi;
 
-if [ "$SNAPSHOT" == "stable" ]; then
-	if [ "$BRANCH" == "" ]; then
-    BRANCH=$(git describe --tags $(git rev-list --tags --max-count=1));
-    echo "Latest stable branch is $BRANCH";
-	fi;
+# Release is a special mode...  it uploads to the release ppa and cannot have a snapshot
+if [ "$RELEASE" != "" ]; then
+  if [ "$SNAPSHOT" != "" ]; then
+    echo "Releases cannot have a snapshot.... exiting."
+  fi
+  if [ "$GITHUB_FORK" != "" ]; then
+    echo "Releases cannot have a fork.... exiting."
+  fi
+  BRANCH=$RELEASE
 else
-	if [ "$BRANCH" == "" ]; then
-    echo "Defaulting to master branch";
-    BRANCH="master";
+  if [ "$SNAPSHOT" == "stable" ]; then
+    if [ "$BRANCH" == "" ]; then
+      BRANCH=$(git describe --tags $(git rev-list --tags --max-count=1));
+      echo "Latest stable branch is $BRANCH";
+    fi;
+  else
+    if [ "$BRANCH" == "" ]; then
+      echo "Defaulting to master branch";
+      BRANCH="master";
+    fi;
+    if [ "$SNAPSHOT" == "NOW" ]; then
+      SNAPSHOT=`date +%Y%m%d%H%M%S`;
+    fi;
   fi;
-fi;
-if [ "$URGENCY" = "" ]; then
-  URGENCY="medium"
-fi;
+fi
 
 
 # Instead of cloning from github each time, if we have a fork lying around, update it and pull from there instead.
@@ -97,17 +116,23 @@ else
 fi;
 
 cd "${GITHUB_FORK}_zoneminder_release"
-git checkout $BRANCH
+if [ $RELEASE ]; then
+  git checkout $RELEASE
+else
+  git checkout $BRANCH
+fi;
 cd ../
 
 VERSION=`cat ${GITHUB_FORK}_zoneminder_release/version`
+
 if [ $VERSION == "" ]; then
 	exit 1;
 fi;
-DIRECTORY="zoneminder_$VERSION-$DISTRO";
 if [ "$SNAPSHOT" != "stable" ] && [ "$SNAPSHOT" != "" ]; then
-	DIRECTORY="$DIRECTORY-$SNAPSHOT";
+  VERSION="$VERSION~$SNAPSHOT";
 fi;
+
+DIRECTORY="zoneminder_$VERSION-$DISTRO${PACKAGE_VERSION}";
 echo "Doing $TYPE release $DIRECTORY";
 mv "${GITHUB_FORK}_zoneminder_release" "$DIRECTORY.orig";
 cd "$DIRECTORY.orig";
@@ -124,10 +149,6 @@ else
   fi;
 fi;
 
-# Auto-install all ZoneMinder's depedencies using the Debian control file
-sudo apt-get install devscripts equivs
-sudo mk-build-deps -ir ./debian/control
-
 if [ "$DEBEMAIL" != "" ] && [ "$DEBFULLNAME" != "" ]; then
     AUTHOR="$DEBFULLNAME <$DEBEMAIL>"
 else
@@ -138,9 +159,13 @@ else
   fi
 fi
 
+if [ "$URGENCY" = "" ]; then
+  URGENCY="medium"
+fi;
+
 if [ "$SNAPSHOT" == "stable" ]; then
 cat <<EOF > debian/changelog
-zoneminder ($VERSION-$DISTRO) $DISTRO; urgency=$URGENCY
+zoneminder ($VERSION-$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
 
   * Release $VERSION
 
@@ -149,7 +174,7 @@ zoneminder ($VERSION-$DISTRO) $DISTRO; urgency=$URGENCY
 EOF
 else
 cat <<EOF > debian/changelog
-zoneminder ($VERSION-$DISTRO-$SNAPSHOT) $DISTRO; urgency=$URGENCY
+zoneminder ($VERSION-$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
 
   * 
 
@@ -157,6 +182,12 @@ zoneminder ($VERSION-$DISTRO-$SNAPSHOT) $DISTRO; urgency=$URGENCY
 
 EOF
 fi;
+
+# Auto-install all ZoneMinder's depedencies using the Debian control file
+sudo apt-get install devscripts equivs
+sudo mk-build-deps -ir ./debian/control
+echo "Status: $?"
+
 #rm -rf .git
 #rm .gitignore
 #cd ../
@@ -175,6 +206,7 @@ if [ "$DEBSIGN_KEYID" != "" ]; then
   DEBUILD="$DEBUILD -k$DEBSIGN_KEYID"
 fi
 $DEBUILD
+echo "Status: $?"
 
 cd ../
 if [ "$INTERACTIVE" != "no" ]; then
@@ -196,18 +228,16 @@ if [ $TYPE == "binary" ]; then
         echo "Do you want to upload this binary to zmrepo? (y/N)"
         read install
         if [ "$install" == "Y" ]; then
-          scp "zoneminder_*-${VERSION}-${DISTRO}*" "zmrepo.connortechnology.com:zmrepo/debian-${BRANCH}/"
+          scp "zoneminder_*-${VERSION}-${DISTRO}*" "zmrepo@zmrepo.connortechnology.com:debian/${BRANCH}/mini-dinstall/incoming/"
         fi;
     fi;
   fi;
 else
-	SC="";
+  SC="zoneminder_${VERSION}-${DISTRO}${PACKAGE_VERSION}_source.changes";
 	PPA="";
-	if [ "$SNAPSHOT" == "stable" ]; then
+	if [ "$RELEASE" != "" ]; then
 			PPA="ppa:iconnor/zoneminder";
-			SC="zoneminder_${VERSION}-${DISTRO}_source.changes";
 	else
-		SC="zoneminder_${VERSION}-${DISTRO}-${SNAPSHOT}_source.changes";
 		if [ "$BRANCH" == "" ]; then
 			PPA="ppa:iconnor/zoneminder-master";
 		else 

@@ -194,10 +194,10 @@ foreach my $connection ( @in_select_connections ) {
 
 my %spawned_connections;
 my %monitors;
-loadMonitors();
-
 my $monitor_reload_time = 0;
 my $needsReload = 0;
+loadMonitors();
+
 
 $! = undef;
 my $rin = '';
@@ -287,12 +287,13 @@ while( 1 ) {
     }
   }
 
-# Check for alarms that might have happened
+  # Check for alarms that might have happened
   my @out_messages;
   foreach my $monitor ( values(%monitors) ) {
 
     if ( ! zmMemVerify($monitor) ) {
-# Our attempt to verify the memory handle failed. We should reload the monitors.
+      # Our attempt to verify the memory handle failed. We should reload the monitors.
+      # Don't need to zmMemInvalidate because the monitor reload will do it.
       $needsReload = 1;
       next;
     }

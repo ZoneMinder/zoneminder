@@ -86,8 +86,8 @@ int main( int argc, const char *argv[] )
 	zmLoadConfig();
 
 	logInit( "zms" );
-	
-	ssedetect();
+  
+	hwcaps_detect();
 
 	zmSetDefaultTermHandler();
 	zmSetDefaultDieHandler();

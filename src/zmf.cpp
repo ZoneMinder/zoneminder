@@ -138,170 +138,154 @@ void Usage()
 
 int main( int argc, char *argv[] )
 {
-	self = argv[0];
+  self = argv[0];
 
-	srand( getpid() * time( 0 ) );
+  srand( getpid() * time( 0 ) );
 
-	int id = -1;
+  int id = -1;
 
-	static struct option long_options[] = {
-		{"monitor", 1, 0, 'm'},
-		{"help", 0, 0, 'h'},
-		{"version", 0, 0, 'v'},
-		{0, 0, 0, 0}
-	};
+  static struct option long_options[] = {
+    {"monitor", 1, 0, 'm'},
+    {"help", 0, 0, 'h'},
+    {"version", 0, 0, 'v'},
+    {0, 0, 0, 0}
+  };
 
-	while (1)
-	{
-		int option_index = 0;
+  while (1)
+  {
+    int option_index = 0;
 
-		int c = getopt_long (argc, argv, "m:h:v", long_options, &option_index);
-		if (c == -1)
-		{
-			break;
-		}
+    int c = getopt_long (argc, argv, "m:h:v", long_options, &option_index);
+    if (c == -1)
+    {
+      break;
+    }
 
-		switch (c)
-		{
-			case 'm':
-				id = atoi(optarg);
-				break;
-			case 'h':
-			case '?':
-				Usage();
-				break;
-			case 'v':
-				std::cout << ZM_VERSION << "\n";
-				exit(0);
-			default:
-				//fprintf( stderr, "?? getopt returned character code 0%o ??\n", c );
-				break;
-		}
-	}
+    switch (c)
+    {
+      case 'm':
+        id = atoi(optarg);
+        break;
+      case 'h':
+      case '?':
+        Usage();
+        break;
+      case 'v':
+        std::cout << ZM_VERSION << "\n";
+        exit(0);
+      default:
+        //fprintf( stderr, "?? getopt returned character code 0%o ??\n", c );
+        break;
+    }
+  }
 
-	if (optind < argc)
-	{
-		fprintf( stderr, "Extraneous options, " );
-		while (optind < argc)
-			printf ("%s ", argv[optind++]);
-		printf ("\n");
-		Usage();
-	}
+  if (optind < argc)
+  {
+    fprintf( stderr, "Extraneous options, " );
+    while (optind < argc)
+      printf ("%s ", argv[optind++]);
+    printf ("\n");
+    Usage();
+  }
 
-	if ( id < 0 )
-	{
-		fprintf( stderr, "Bogus monitor %d\n", id );
-		Usage();
-		exit( 0 );
-	}
+  if ( id < 0 )
+  {
+    fprintf( stderr, "Bogus monitor %d\n", id );
+    Usage();
+    exit( 0 );
+  }
 
-	char log_id_string[16];
-	snprintf( log_id_string, sizeof(log_id_string), "m%d", id );
+  char log_id_string[16];
+  snprintf( log_id_string, sizeof(log_id_string), "m%d", id );
 
-	zmLoadConfig();
+  zmLoadConfig();
 
-	logInit( "zmf" );
-	
-	ssedetect();
+  logInit( "zmf" );
+  
+  hwcaps_detect();
 
-	Monitor *monitor = Monitor::Load( id, false, Monitor::QUERY );
+  Monitor *monitor = Monitor::Load( id, false, Monitor::QUERY );
 
-	if ( !monitor )
-	{
-		fprintf( stderr, "Can't find monitor with id of %d\n", id );
-		exit( -1 );
-	}
-	Storage *Storage = monitor->getStorage();
+  if ( !monitor )
+  {
+    fprintf( stderr, "Can't find monitor with id of %d\n", id );
+    exit( -1 );
+  }
 
-	char capt_path[PATH_MAX];
-	char anal_path[PATH_MAX];
-	snprintf( capt_path, sizeof(capt_path), "%s/%d/%%s/%%0%dd-capture.jpg", Storage->Path(), monitor->Id(), config.event_image_digits );
-	snprintf( anal_path, sizeof(anal_path), "%s/%d/%%s/%%0%dd-analyse.jpg", Storage->Path(), monitor->Id(), config.event_image_digits );
-	zmSetDefaultTermHandler();
-	zmSetDefaultDieHandler();
+  Storage *Storage = monitor->getStorage();
 
-	sigset_t block_set;
-	sigemptyset( &block_set );
+  char capt_path[PATH_MAX];
+  char anal_path[PATH_MAX];
+  snprintf( capt_path, sizeof(capt_path), "%s/%d/%%s/%%0%dd-capture.jpg", Storage->Path(), monitor->Id(), config.event_image_digits );
+  snprintf( anal_path, sizeof(anal_path), "%s/%d/%%s/%%0%dd-analyse.jpg", Storage->Path(), monitor->Id(), config.event_image_digits );
+  zmSetDefaultTermHandler();
+  zmSetDefaultDieHandler();
 
-	int sd = OpenSocket( monitor->Id() );
+  sigset_t block_set;
+  sigemptyset( &block_set );
 
-	FrameHeader frame_header = { 0, 0, false, 0 };
-	//unsigned char *image_data = 0;
+  int sd = OpenSocket( monitor->Id() );
 
-	fd_set rfds;
+  FrameHeader frame_header = { 0, 0, false, 0 };
+  //unsigned char *image_data = 0;
 
-	struct timeval timeout;
-	timeout.tv_sec = 1;
-	timeout.tv_usec = 0;
-	while( 1 )
-	{
-		struct timeval temp_timeout = timeout;
+  fd_set rfds;
 
-		FD_ZERO(&rfds);
-		FD_SET(sd, &rfds);
-		int n_found = select( sd+1, &rfds, NULL, NULL, &temp_timeout );
-		if( n_found == 0 )
-		{
-			Debug( 1, "Select timed out" );
-			continue;
-		}
-		else if ( n_found < 0)
-		{
-			Error( "Select error: %s", strerror(errno) );
-			ReopenSocket( sd, monitor->Id() );
-			continue;
-		}
+  struct timeval timeout;
+  timeout.tv_sec = 1;
+  timeout.tv_usec = 0;
+  while( 1 )
+  {
+    struct timeval temp_timeout = timeout;
 
-		sigprocmask( SIG_BLOCK, &block_set, 0 );
+    FD_ZERO(&rfds);
+    FD_SET(sd, &rfds);
+    int n_found = select( sd+1, &rfds, NULL, NULL, &temp_timeout );
+    if( n_found == 0 )
+    {
+      Debug( 1, "Select timed out" );
+      continue;
+    }
+    else if ( n_found < 0)
+    {
+      Error( "Select error: %s", strerror(errno) );
+      ReopenSocket( sd, monitor->Id() );
+      continue;
+    }
 
-		int n_bytes = read( sd, &frame_header, sizeof(frame_header) );
-		if ( n_bytes != sizeof(frame_header) )
-		{
-			if ( n_bytes < 0 )
-			{
-				Error( "Can't read frame header: %s", strerror(errno) );
-			}
-			else if ( n_bytes > 0 )
-			{
-				Error( "Incomplete read of frame header, %d bytes only", n_bytes );
-			}
-			else
-			{
-				Warning( "Socket closed at remote end" );
-			}
-			ReopenSocket( sd, monitor->Id() );
-			continue;
-		}
-		Debug( 1, "Read frame header, expecting %ld bytes of image", frame_header.image_length );
-		static unsigned char image_data[ZM_MAX_IMAGE_SIZE];
+    sigprocmask( SIG_BLOCK, &block_set, 0 );
 
-                // Read for pipe and loop until bytes expected have been read or an error occurs
-                int bytes_read = 0;
-                do
-		{
-                        n_bytes = read( sd, image_data+bytes_read, frame_header.image_length-bytes_read );
-                        if (n_bytes < 0) break; // break on error
-                        if (n_bytes < (int)frame_header.image_length)
-			{
-                                // print some informational messages 
-                                if (bytes_read == 0)
-                                {
-                                        Debug(4,"Image read : Short read %d bytes of %d expected bytes",n_bytes,frame_header.image_length);
-                                }
-                                else if (bytes_read+n_bytes == (int)frame_header.image_length)
-                                {
-                                        Debug(5,"Image read : Read rest of short read: %d bytes read total of %d bytes",n_bytes,frame_header.image_length);
-                                }
-                                else
-                                {
-                                        Debug(6,"Image read : continuing, read %d bytes (%d so far)", n_bytes, bytes_read+n_bytes);
-                                }
-			}
-                        bytes_read+= n_bytes;
-                } while (n_bytes>0 && (bytes_read < (ssize_t)frame_header.image_length) );
+    int n_bytes = read( sd, &frame_header, sizeof(frame_header) );
+    if ( n_bytes != sizeof(frame_header) )
+    {
+      if ( n_bytes < 0 )
+      {
+        Error( "Can't read frame header: %s", strerror(errno) );
+      }
+      else if ( n_bytes > 0 )
+      {
+        Error( "Incomplete read of frame header, %d bytes only", n_bytes );
+      }
+      else
+      {
+        Warning( "Socket closed at remote end" );
+      }
+      ReopenSocket( sd, monitor->Id() );
+      continue;
+    }
+    Debug( 1, "Read frame header, expecting %ld bytes of image", frame_header.image_length );
+    static unsigned char image_data[ZM_MAX_IMAGE_SIZE];
 
-                // Print errors if there was a problem
-                if ( n_bytes < 1 )
+        // Read for pipe and loop until bytes expected have been read or an error occurs
+        int bytes_read = 0;
+        do
+    {
+            n_bytes = read( sd, image_data+bytes_read, frame_header.image_length-bytes_read );
+            if (n_bytes < 0) break; // break on error
+            if (n_bytes < (int)frame_header.image_length)
+      {
+                // print some informational messages 
+                if (bytes_read == 0)
                 {
                         Error( "Only read %d bytes of %d\n", bytes_read, frame_header.image_length);
                         if ( n_bytes < 0 )

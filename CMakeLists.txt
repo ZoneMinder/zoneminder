@@ -66,6 +66,13 @@ set(CMAKE_CXX_FLAGS_DEBUG "-Wall -D__STDC_CONSTANT_MACROS -g")
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
+IF(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
+add_definitions (-mfpu=neon)
+ELSE(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
+
+ENDIF(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
+
+
 # Modules that we need:
 include (GNUInstallDirs)
 include (CheckIncludeFile)

@@ -133,37 +133,50 @@ if ( !empty($action) ) {
           $filterName = $_REQUEST['newFilterName'];
         }
         if ( $filterName ) {
-          $sql = "REPLACE INTO Filters SET Name = ".dbEscape($filterName).",";
+          # Replace will teplace any filter with the same Id 
+          # Since we aren't specifying the Id , this is effectively an insert
+          $sql = 'REPLACE INTO Filters SET Name = '.dbEscape($filterName).',';
         } else {
           $sql = 'UPDATE Filters SET';
-          $endSql = "where Id = ".$_REQUEST['Id'];
+          $endSql = 'WHERE Id = '.$_REQUEST['Id'];
         }
+
+        # endSql is only set if ! filterName... so... woulnd't this always be true
         if ( !empty($filterName) || $endSql ) {
           $_REQUEST['filter']['sort_field'] = validStr($_REQUEST['sort_field']);
           $_REQUEST['filter']['sort_asc'] = validStr($_REQUEST['sort_asc']);
           $_REQUEST['filter']['limit'] = validInt($_REQUEST['limit']);
-          $sql .= " Query = ".dbEscape(jsonEncode($_REQUEST['filter']));
+          $sql .= ' Query = '.dbEscape(jsonEncode($_REQUEST['filter']));
           if ( !empty($_REQUEST['AutoArchive']) )
-            $sql .= ", AutoArchive = ".dbEscape($_REQUEST['AutoArchive']);
+            $sql .= ', AutoArchive = '.dbEscape($_REQUEST['AutoArchive']);
           if ( !empty($_REQUEST['AutoVideo']) )
-            $sql .= ", AutoVideo = ".dbEscape($_REQUEST['AutoVideo']);
+            $sql .= ', AutoVideo = '.dbEscape($_REQUEST['AutoVideo']);
           if ( !empty($_REQUEST['AutoUpload']) )
-            $sql .= ", AutoUpload = ".dbEscape($_REQUEST['AutoUpload']);
+            $sql .= ', AutoUpload = '.dbEscape($_REQUEST['AutoUpload']);
           if ( !empty($_REQUEST['AutoEmail']) )
-            $sql .= ", AutoEmail = ".dbEscape($_REQUEST['AutoEmail']);
+            $sql .= ', AutoEmail = '.dbEscape($_REQUEST['AutoEmail']);
           if ( !empty($_REQUEST['AutoMessage']) )
-            $sql .= ", AutoMessage = ".dbEscape($_REQUEST['AutoMessage']);
+            $sql .= ', AutoMessage = '.dbEscape($_REQUEST['AutoMessage']);
           if ( !empty($_REQUEST['AutoExecute']) && !empty($_REQUEST['AutoExecuteCmd']) )
-            $sql .= ", AutoExecute = ".dbEscape($_REQUEST['AutoExecute']).", AutoExecuteCmd = ".dbEscape($_REQUEST['AutoExecuteCmd']);
+            $sql .= ', AutoExecute = '.dbEscape($_REQUEST['AutoExecute']).", AutoExecuteCmd = ".dbEscape($_REQUEST['AutoExecuteCmd']);
           if ( !empty($_REQUEST['AutoDelete']) )
-            $sql .= ", AutoDelete = ".dbEscape($_REQUEST['AutoDelete']);
+            $sql .= ', AutoDelete = '.dbEscape($_REQUEST['AutoDelete']);
           if ( !empty($_REQUEST['background']) )
-            $sql .= ", Background = ".dbEscape($_REQUEST['background']);
+            $sql .= ', Background = '.dbEscape($_REQUEST['background']);
           if ( !empty($_REQUEST['concurrent']) )
-            $sql .= ", Concurrent = ".dbEscape($_REQUEST['concurrent']);
+            $sql .= ', Concurrent = '.dbEscape($_REQUEST['concurrent']);
           $sql .= $endSql;
           dbQuery( $sql );
-          $refreshParent = true;
+          if ( $filterName ) {
+            $filter = dbFetchOne( 'SELECT * FROM Filters WHERE Name=?', NULL, array($filterName) );
+            if ( $filter ) {
+              # This won't work yet because refreshparent refreshes the old filter.  Need to do a redirect instead of a refresh.
+              $_REQUEST['Id'] = $filter['Id'];
+            } else {
+              Error("No new Id despite new name");
+            }
+          }
+          $refreshParent = '/index.php?view=filter&Id='.$_REQUEST['Id'];
         }
       } // end if canedit events
     } // end if action == filter

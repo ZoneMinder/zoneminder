@@ -186,10 +186,13 @@ function refreshWindow()
     window.location.reload( true );
 }
 
-function refreshParentWindow()
-{
-    if ( window.opener )
-        window.opener.location.reload( true );
+function refreshParentWindow() {
+  if ( window.opener ) {
+    if ( refreshParent == true ) 
+      window.opener.location.reload( true );
+    else 
+      window.opener.location.href = refreshParent;
+  }
 }
 
 //Shows a message if there is an error in the streamObj or the stream doesn't exist.  Returns true if error, false otherwise.
@@ -270,20 +273,18 @@ function configureDeleteButton( element )
     form.deleteBtn.disabled = !checked;
 }
 
-function confirmDelete( message )
-{
+function confirmDelete( message ) {
     return( confirm( message?message:'Are you sure you wish to delete?' ) );
 }
 
-if ( refreshParent )
-{
+if ( refreshParent ) {
     refreshParentWindow();
 }
 
-if ( focusWindow )
-{
+if ( focusWindow ) {
     windowToFront();
 }
+
 window.addEvent( 'domready', checkSize);
 
 function convertLabelFormat(LabelFormat, monitorName){

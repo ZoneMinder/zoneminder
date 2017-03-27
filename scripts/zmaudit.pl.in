@@ -41,10 +41,12 @@ yet.
 
 =head1 OPTIONS
 
- -r, --report               - Just report don't actually do anything
- -i, --interactive          - Ask before applying any changes
  -c, --continuous           - Run continuously
+ -i, --interactive          - Ask before applying any changes
+ -m, --monitor_id          - Restrict zmaudit actions to events pertaining to the specified monitor id
+ -r, --report               - Just report don't actually do anything
  -v, --version              - Print the installed version of ZoneMinder
+  
 
 =cut
 use strict;
@@ -89,15 +91,17 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 my $report = 0;
 my $interactive = 0;
 my $continuous = 0;
+my $monitor_id = 0;
 my $version;
 
 logInit();
 logSetSignal();
 
 GetOptions(
-    'report'        =>\$report,
     'interactive'   =>\$interactive,
     'continuous'    =>\$continuous,
+    'monitor_id=s'  =>\$monitor_id,
+    'report'        =>\$report,
     'version'       =>\$version
 ) or pod2usage(-exitstatus => -1);
 
@@ -153,7 +157,7 @@ MAIN: while( $loop ) {
 
   my %Monitors;
   my $db_monitors;
-  my $monitorSelectSql = 'select * from Monitors order by Id';
+  my $monitorSelectSql = $monitor_id ? 'SELECT * FRO Monitors WHERE Id=?' : 'SELECT * FROM Monitors ORDER BY Id';
   my $monitorSelectSth = $dbh->prepare_cached( $monitorSelectSql )
     or Fatal( "Can't prepare '$monitorSelectSql': ".$dbh->errstr() );
 
@@ -163,7 +167,7 @@ MAIN: while( $loop ) {
     or Fatal( "Can't prepare '$eventSelectSql': ".$dbh->errstr() );
 
   $cleaned = 0;
-  my $res = $monitorSelectSth->execute()
+  my $res = $monitorSelectSth->execute( $monitor_id ? $monitor_id : () )
     or Fatal( "Can't execute: ".$monitorSelectSth->errstr() );
   while( my $monitor = $monitorSelectSth->fetchrow_hashref() ) {
     $Monitors{$$monitor{Id}} = $monitor;

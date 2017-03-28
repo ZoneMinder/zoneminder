@@ -170,6 +170,11 @@ if ( isset($_REQUEST['action']) )
 foreach ( getSkinIncludes( 'skin.php' ) as $includeFile )
     require_once $includeFile;
 
+# The only variable we really need to set is action. The others are informal.
+isset($view) || $view = NULL;
+isset($request) || $request = NULL;
+isset($action) || $action = NULL;
+
 if ( ZM_ENABLE_CSRF_MAGIC && $action != 'login' ) {
     Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");
     csrf_check();

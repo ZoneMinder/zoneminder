@@ -23,7 +23,7 @@
  * a boolean false if the CSRF check failed. This allows for tighter integration
  * with your system.
  */
-$GLOBALS['csrf']['defer'] = false;
+$GLOBALS['csrf']['defer'] = true;
 
 /**
  * This is the amount of seconds you wish to allow before any token becomes

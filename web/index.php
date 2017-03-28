@@ -170,6 +170,11 @@ if ( isset($_REQUEST['action']) )
 foreach ( getSkinIncludes( 'skin.php' ) as $includeFile )
     require_once $includeFile;
 
+if ( ZM_ENABLE_CSRF_MAGIC && $action != 'login' ) {
+    Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");
+    csrf_check();
+}
+
 require_once( 'includes/actions.php' );
 
 # If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.

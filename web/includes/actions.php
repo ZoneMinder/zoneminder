@@ -525,7 +525,7 @@ if ( !empty($action) ) {
             dbQuery( "update TriggersX10 set ".implode( ", ", $x10Changes )." where MonitorId=?", array($mid) );
           } elseif ( !$user['MonitorIds'] ) {
             if ( !$x10Monitor ) {
-              dbQuery( "insert into TriggersX10 set MonitorId = ?".implode( ", ", $x10Changes ), array( $mid ) );
+              dbQuery( "insert into TriggersX10 set MonitorId = ?, ".implode( ", ", $x10Changes ), array( $mid ) );
             } else {
               dbQuery( "delete from TriggersX10 where MonitorId = ?", array($mid) );
             }

@@ -338,7 +338,10 @@ MAIN: while( $loop ) {
   my $deleteStatsSth = $dbh->prepare_cached( $deleteStatsSql )
     or Fatal( "Can't prepare '$deleteStatsSql': ".$dbh->errstr() );
 
+  # Foreach database monitor and it's list of events.
   while ( my ( $db_monitor, $db_events ) = each(%$db_monitors) ) {
+
+    # If we found the monitor in the file system
     if ( my $fs_events = $fs_monitors->{$db_monitor} ) {
       next if ! $db_events;
 
@@ -355,7 +358,7 @@ Debug("Event $db_event is not in fs.");
             next;
           } 
           if ( $Event->check_for_in_filesystem() ) {
-            Debug('Database events apparent exists at ' . $Event->Path() );
+            Debug('Database events apparently exists at ' . $Event->Path() );
           } else {
             if ( $age > $Config{ZM_AUDIT_MIN_AGE} ) {
               aud_print( "Database event '$db_monitor/$db_event' does not exist at " . $Event->Path().' in filesystem' );

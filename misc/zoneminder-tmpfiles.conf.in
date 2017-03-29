@@ -1,4 +1,9 @@
 D @ZM_RUNDIR@ 0755 @WEB_USER@ @WEB_GROUP@
 D @ZM_TMPDIR@ 0755 @WEB_USER@ @WEB_GROUP@
 D @ZM_SOCKDIR@ 0755 @WEB_USER@ @WEB_GROUP@
-
+D @ZM_WEBDIR@/api/app/tmp 0755 @WEB_USER@ @WEB_GROUP@
+D @ZM_WEBDIR@/api/app/tmp/logs 0755 @WEB_USER@ @WEB_GROUP@
+D @ZM_WEBDIR@/api/app/tmp/cache 0755 @WEB_USER@ @WEB_GROUP@
+D @ZM_WEBDIR@/api/app/tmp/cache/models 0755 @WEB_USER@ @WEB_GROUP@
+D @ZM_WEBDIR@/api/app/tmp/cache/persistent 0755 @WEB_USER@ @WEB_GROUP@
+D @ZM_WEBDIR@/api/app/tmp/cache/views 0755 @WEB_USER@ @WEB_GROUP@

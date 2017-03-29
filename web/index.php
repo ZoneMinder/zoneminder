@@ -146,6 +146,7 @@ if ( ZM_OPT_USE_AUTH ) {
 
 require_once( 'includes/lang.php' );
 require_once( 'includes/functions.php' );
+require_once( 'includes/csrf/csrf-magic.php' );
 
 # Running is global but only do the daemonCheck if it is actually needed
 $running = null;
@@ -197,6 +198,16 @@ require_once( 'includes/actions.php' );
 # If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
 if ( ZM_OPT_USE_AUTH && ! isset($user) && $view != 'login' ) {
   $view = 'login';
+}
+
+# The only variable we really need to set is action. The others are informal.
+isset($view) || $view = NULL;
+isset($request) || $request = NULL;
+isset($action) || $action = NULL;
+
+if ( ZM_ENABLE_CSRF_MAGIC && $action != 'login' ) {
+    Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");
+    csrf_check();
 }
 
 # Only one request can open the session file at a time, so let's close the session here to improve concurrency.

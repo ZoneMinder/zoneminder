@@ -835,12 +835,13 @@ if ( !empty($action) ) {
       if ( count( $changes ) ) {
         if ( !empty($_REQUEST['uid']) ) {
           dbQuery( "update Users set ".implode( ", ", $changes )." where Id = ?", array($_REQUEST['uid']) );
+          # If we are updating the logged in user, then update our session user data.
+          if ( $user and ( $dbUser['Username'] == $user['Username'] ) )
+            userLogin( $dbUser['Username'], $dbUser['Password'] );
         } else {
           dbQuery( "insert into Users set ".implode( ", ", $changes ) );
         }
         $refreshParent = true;
-        if ( $dbUser['Username'] == $user['Username'] )
-          userLogin( $dbUser['Username'], $dbUser['Password'] );
       }
       $view = 'none';
     } elseif ( $action == 'state' ) {

@@ -150,16 +150,6 @@ require_once( 'includes/csrf/csrf-magic.php' );
 
 # Running is global but only do the daemonCheck if it is actually needed
 $running = null;
-#= daemonCheck();
-#$states = dbFetchAll( 'SELECT * FROM States' );
-#foreach ( $states as $state ) {
-  #if ( $state['IsActive'] == 1 ) {
-    #$run_state = $state['Name'];
-    #break;
-  #}
-#}
-#$status = $running?translate('Running'):translate('Stopped');
-#$run_state = dbFetchOne('SELECT Name FROM States WHERE IsActive = 1', 'Name' );
 
 # Add Cross domain access headers
 CORSHeaders();
@@ -192,13 +182,6 @@ if ( ZM_OPT_USE_AUTH && ZM_AUTH_HASH_LOGINS ) {
 if ( isset($_REQUEST['action']) ) {
   $action = detaintPath($_REQUEST['action']);
 }
-# Need to include actions because it does auth
-require_once( 'includes/actions.php' );
-
-# If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
-if ( ZM_OPT_USE_AUTH && ! isset($user) && $view != 'login' ) {
-  $view = 'login';
-}
 
 # The only variable we really need to set is action. The others are informal.
 isset($view) || $view = NULL;
@@ -208,6 +191,14 @@ isset($action) || $action = NULL;
 if ( ZM_ENABLE_CSRF_MAGIC && $action != 'login' ) {
     Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");
     csrf_check();
+}
+
+# Need to include actions because it does auth
+require_once( 'includes/actions.php' );
+
+# If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
+if ( ZM_OPT_USE_AUTH && ! isset($user) && $view != 'login' ) {
+  $view = 'login';
 }
 
 # Only one request can open the session file at a time, so let's close the session here to improve concurrency.

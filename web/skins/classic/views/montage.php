@@ -27,10 +27,10 @@ require_once( 'includes/Monitor.php' );
 
 $groupSql = '';
 if ( !empty($_REQUEST['group']) ) {
-  $row = dbFetchOne( 'select * from Groups where Id = ?', NULL, array($_REQUEST['group']) );
-  $sql = "select * from Monitors where Function != 'None' and find_in_set( Id, '".$row['MonitorIds']."' ) order by Sequence";
+  $row = dbFetchOne( 'SELECT * FROM Groups WHERE Id = ?', NULL, array($_REQUEST['group']) );
+  $sql = "SELECT * FROM Monitors WHERE Function != 'None' AND find_in_set( Id, '".$row['MonitorIds']."' ) ORDER BY Sequence";
 } else { 
-  $sql = "select * from Monitors where Function != 'None' order by Sequence";
+  $sql = "SELECT * FROM Monitors WHERE Function != 'None' ORDER BY Sequence";
 }
 
 $showControl = false;

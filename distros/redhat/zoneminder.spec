@@ -29,7 +29,7 @@
 
 Name: zoneminder
 Version: 1.30.2
-Release: 1%{?dist}
+Release: 2%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
 # jscalendar is LGPL (any version): http://www.dynarch.com/projects/calendar/
@@ -39,7 +39,7 @@ Group: System Environment/Daemons
 License: GPLv2+ and LGPLv2+ and MIT
 URL: http://www.zoneminder.com/
 
-Source0: https://github.com/ZoneMinder/ZoneMinder/archive/v%{version}.tar.gz#/%{name}-%{version}.tar.gz
+Source0: https://github.com/ZoneMinder/ZoneMinder/archive/%{version}.tar.gz#/%{name}-%{version}.tar.gz
 Source1: https://github.com/FriendsOfCake/crud/archive/v%{crud_version}.tar.gz#/crud-%{crud_version}.tar.gz
 
 %{?with_init_systemd:BuildRequires: systemd-devel}
@@ -336,8 +336,11 @@ rm -rf %{_docdir}/%{name}-%{version}
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %ghost %{_localstatedir}/run/zoneminder
 
 %changelog
+* Thu Mar 30 2017 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.2-2
+- 1.30.2 release
+
 * Wed Feb 08 2017 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.2-1
-- Bump version for 1.30.2 release
+- Bump version for 1.30.2 release candidate 1
 
 * Wed Dec 28 2016 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.1-2 
 - Changes from rpmfusion #4393

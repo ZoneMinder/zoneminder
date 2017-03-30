@@ -246,30 +246,50 @@ void hwcaps_detect() {
   /* x86 or x86-64 processor */
   uint32_t r_edx, r_ecx, r_ebx;
 
+#ifdef __x86_64__
   __asm__ __volatile__(
+  "push %%rbx\n\t"
   "mov $0x0,%%ecx\n\t"
   "mov $0x7,%%eax\n\t"
   "cpuid\n\t"
-#ifdef __x86_64__
   "push %%rbx\n\t"
-#else
-  "push %%ebx\n\t"
-#endif
   "mov $0x1,%%eax\n\t"
   "cpuid\n\t"
-#ifdef __x86_64__
+  "pop %%rax\n\t"
   "pop %%rbx\n\t"
-#else
-  "pop %%ebx\n\t"
-#endif
-  : "=d" (r_edx), "=c" (r_ecx), "=b" (r_ebx)
+  : "=d" (r_edx), "=c" (r_ecx), "=a" (r_ebx)
   :
-  : "%eax"
+  :
   );
-	
+#else
+  __asm__ __volatile__(
+  "push %%ebx\n\t"
+  "mov $0x0,%%ecx\n\t"
+  "mov $0x7,%%eax\n\t"
+  "cpuid\n\t"
+  "push %%ebx\n\t"
+  "mov $0x1,%%eax\n\t"
+  "cpuid\n\t"
+  "pop %%eax\n\t"
+  "pop %%ebx\n\t"
+  : "=d" (r_edx), "=c" (r_ecx), "=a" (r_ebx)
+  :
+  :
+  );
+#endif
+
   if (r_ebx & 0x00000020) {
     sseversion = 52; /* AVX2 */
     Debug(1,"Detected a x86\\x86-64 processor with AVX2");
+  } else if (r_ecx & 0x10000000) {
+    sseversion = 51; /* AVX */
+    Debug(1,"Detected a x86\\x86-64 processor with AVX");
+  } else if (r_ecx & 0x00100000) {
+    sseversion = 42; /* SSE4.2 */
+    Debug(1,"Detected a x86\\x86-64 processor with SSE4.2");
+  } else if (r_ecx & 0x00080000) {
+    sseversion = 41; /* SSE4.1 */
+    Debug(1,"Detected a x86\\x86-64 processor with SSE4.1");
   } else if (r_ecx & 0x00000200) {
     sseversion = 35; /* SSSE3 */
     Debug(1,"Detected a x86\\x86-64 processor with SSSE3");

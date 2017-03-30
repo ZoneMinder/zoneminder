@@ -95,34 +95,35 @@
 //
 
 if ( !canView( 'Events' ) ) {
-    $view = "error";
+    $view = 'error';
     return;
 }
 
 require_once( 'includes/Monitor.php' );
 
+# FIXME THere is no way to select group at this time.
 if ( !empty($_REQUEST['group']) ) {
     $group = $_REQUEST['group'];
-    $row = dbFetchOne( 'select * from Groups where Id = ?', NULL, array($_REQUEST['group']) );
-    $monitorsSql = "select * from Monitors where Function != 'None' and find_in_set( Id, '".$row['MonitorIds']."' ) ";
+    $row = dbFetchOne( 'SELECT * FROM Groups WHERE Id = ?', NULL, array($_REQUEST['group']) );
+    $monitorsSql = "SELECT * FROM Monitors WHERE Function != 'None' AND find_in_set( Id, '".$row['MonitorIds']."' ) ";
 } else {
-    $monitorsSql = "select * from Monitors ";
-    $group = "";
+    $monitorsSql = "SELECT * FROM Monitors WHERE 1>0";
+    $group = '';
 }
 
 // Note that this finds incomplete events as well, and any frame records written, but still cannot "see" to the end frame
 // if the bulk record has not been written - to be able to include more current frames reduce bulk frame sizes (event size can be large)
 // Note we round up just a bit on the end time as otherwise you get gaps, like 59.78 to 00 in the next second, which can give blank frames when moved through slowly.
 
-$eventsSql = "
-  select E.Id,E.Name,E.StorageId,UNIX_TIMESTAMP(E.StartTime) as StartTimeSecs,
-         case when E.EndTime is null then (Select UNIX_TIMESTAMP(DATE_ADD(E.StartTime, Interval max(Delta)+0.5 Second)) from Frames F where F.EventId=E.Id)
-              else UNIX_TIMESTAMP(E.EndTime)
-         end as CalcEndTimeSecs, E.Length,
-         case when E.Frames is null then (Select count(*) from Frames F where F.EventId=E.Id) else E.Frames end as Frames,E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId
-  from Events as E
-  inner join Monitors as M on (E.MonitorId = M.Id)
-  where not isnull(E.Frames) and not isnull(StartTime) ";
+$eventsSql = '
+  SELECT E.Id,E.Name,E.StorageId,UNIX_TIMESTAMP(E.StartTime) AS StartTimeSecs,
+         CASE WHEN E.EndTime IS NULL THEN (SELECT UNIX_TIMESTAMP(DATE_ADD(E.StartTime, Interval max(Delta)+0.5 Second)) FROM Frames F WHERE F.EventId=E.Id)
+              ELSE UNIX_TIMESTAMP(E.EndTime)
+         END AS CalcEndTimeSecs, E.Length,
+         CASE WHEN E.Frames IS NULL THEN (Select count(*) FROM Frames F WHERE F.EventId=E.Id) ELSE E.Frames END AS Frames,E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId
+  FROM Events AS E
+  INNER JOIN Monitors AS M ON (E.MonitorId = M.Id)
+  WHERE NOT isnull(E.Frames) AND NOT isnull(StartTime)';
 
 
 
@@ -133,20 +134,19 @@ $eventsSql = "
 //    where not isnull(E.Frames) and not isnull(StartTime) ";
 
 // Note that the delta value seems more accurate than the time stamp for some reason.
-$frameSql = "
-    select E.Id as eId, E.MonitorId, UNIX_TIMESTAMP(DATE_ADD(E.StartTime, Interval Delta Second)) as TimeStampSecs, max(F.Score) as Score
-    from Events as E
-    inner join Frames as F on (F.EventId = E.Id)
-    where not isnull(StartTime) and F.Score>0 ";
+$frameSql = '
+    SELECT E.Id AS eId, E.MonitorId, UNIX_TIMESTAMP(DATE_ADD(E.StartTime, Interval Delta Second)) AS TimeStampSecs, max(F.Score) AS Score
+    FROM Events AS E
+    INNER JOIN Frames AS F ON (F.EventId = E.Id)
+    WHERE NOT isnull(StartTime) AND F.Score>0';
 
 // This program only calls itself with the time range involved -- it does all monitors (the user can see, in the called group) all the time
 
-if ( !empty($user['MonitorIds']) )
-{
+if ( ! empty( $user['MonitorIds'] ) ) {
     $monFilterSql = ' AND M.Id IN ('.$user['MonitorIds'].')';
 
     $eventsSql   .= $monFilterSql;
-    $monitorsSQL .= $monFilterSql;
+    $monitorsSql .= ' AND Id IN ('.$user['MonitorIds'].')';
     $frameSql    .= ' AND E.MonitorId IN ('.$user['MonitorIds'].')';
 }
 
@@ -156,86 +156,81 @@ if ( !empty($user['MonitorIds']) )
 // The default (nothing at all specified) is for 1 hour so we do not read the whole database
 
 
-if ( !isset($_REQUEST['minTime']) && !isset($_REQUEST['maxTime']) )
-{
-    $maxTime=strftime("%c",time());
-    $minTime=strftime("%c",time() - 3600);
+if ( !isset($_REQUEST['minTime']) && !isset($_REQUEST['maxTime']) ) {
+  $maxTime = strftime("%c",time());
+  $minTime = strftime("%c",time() - 3600);
 }
 if ( isset($_REQUEST['minTime']) )
-    $minTime = validHtmlStr($_REQUEST['minTime']);
+  $minTime = validHtmlStr($_REQUEST['minTime']);
 
 if ( isset($_REQUEST['maxTime']) )
-    $maxTime = validHtmlStr($_REQUEST['maxTime']);
+  $maxTime = validHtmlStr($_REQUEST['maxTime']);
 
 // AS a special case a "all" is passed in as an exterme interval - if so , clear them here and let the database query find them
 
-if ( (strtotime($maxTime) - strtotime($minTime))/(365*24*3600) > 30 ) // test years
-{
-    $minTime=null;
-    $maxTime=null;
+if ( (strtotime($maxTime) - strtotime($minTime))/(365*24*3600) > 30 ) {
+  // test years
+  $minTime = null;
+  $maxTime = null;
 }
 
 $fitMode=1;
 if (isset($_REQUEST['fit']) && $_REQUEST['fit']=='0' )
-    $fitMode=0;
+  $fitMode = 0;
 
 if ( isset($_REQUEST['scale']) )
-    $defaultScale=validHtmlStr($_REQUEST['scale']);
+  $defaultScale = validHtmlStr($_REQUEST['scale']);
 else
-    $defaultScale=1;
+  $defaultScale = 1;
 
 $speeds=[0, 0.1, 0.25, 0.5, 0.75, 1.0, 1.5, 2, 3, 5, 10, 20, 50];
 
 if (isset($_REQUEST['speed']) )
-    $defaultSpeed=validHtmlStr($_REQUEST['speed']);
+  $defaultSpeed = validHtmlStr($_REQUEST['speed']);
 else
-    $defaultSpeed=1;
+  $defaultSpeed = 1;
 
 $speedIndex=5; // default to 1x
-for ($i=0; $i<count($speeds); $i++)
-    if($speeds[$i]==$defaultSpeed)
-    {
-        $speedIndex=$i;
-        break;
-    }
+for ($i=0; $i<count($speeds); $i++) {
+  if($speeds[$i]==$defaultSpeed) {
+    $speedIndex=$i;
+    break;
+  }
+}
 
 if (isset($_REQUEST['current']) )
-    $defaultCurrentTime=validHtmlStr($_REQUEST['current']);
+  $defaultCurrentTime=validHtmlStr($_REQUEST['current']);
 
 
 $initialModeIsLive=1;
 if(isset($_REQUEST['live']) && $_REQUEST['live']=='0' )
-    $initialModeIsLive=0;
+  $initialModeIsLive=0;
 
 $initialDisplayInterval=1000;
 if(isset($_REQUEST['displayinterval']))
-    $initialDisplayInterval=validHtmlStr($_REQUEST['displayinterval']);
+  $initialDisplayInterval=validHtmlStr($_REQUEST['displayinterval']);
 
-$eventsSql .= "group by E.Id,E.Name,E.StartTime,E.Length,E.Frames,E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId ";
+$eventsSql .= ' GROUP BY E.Id,E.Name,E.StartTime,E.Length,E.Frames,E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId';
 
-if( isset($minTime) && isset($maxTime) )
-{
-    $minTimeSecs = strtotime($minTime);
-    $maxTimeSecs = strtotime($maxTime);
-    $eventsSql .= "having CalcEndTimeSecs > '" . $minTimeSecs . "' and StartTimeSecs < '" . $maxTimeSecs . "'";
-    $frameSql .= "and TimeStamp > '" . $minTime . "' and TimeStamp < '" . $maxTime . "'";
+if( isset($minTime) && isset($maxTime) ) {
+  $minTimeSecs = strtotime($minTime);
+  $maxTimeSecs = strtotime($maxTime);
+  $eventsSql .= " HAVING CalcEndTimeSecs > '" . $minTimeSecs . "' AND StartTimeSecs < '" . $maxTimeSecs . "'";
+  $frameSql .= " AND TimeStamp > '" . $minTime . "' AND TimeStamp < '" . $maxTime . "'";
 }
-$frameSql .= "group by E.Id, E.MonitorId, F.TimeStamp, F.Delta  order by E.MonitorId, F.TimeStamp asc";
+$frameSql .= ' GROUP BY E.Id, E.MonitorId, F.TimeStamp, F.Delta ORDER BY E.MonitorId, F.TimeStamp ASC';
 
 // This loads all monitors the user can see - even if we don't have data for one we still show all for switch to live.
 
 $monitors = array();
-$monitorsSql .= ' ORDER BY Sequence ASC ';
+$monitorsSql .= ' ORDER BY Sequence ASC';
 $index=0;
-foreach( dbFetchAll( $monitorsSql ) as $row )
-{
-    $monitors[$index] = $row;
-    $index = $index + 1;
+foreach( dbFetchAll( $monitorsSql ) as $row ) {
+  $monitors[$index] = $row;
+  $index = $index + 1;
 }
 
 // These are zoom ranges per visible monitor
-
-
 
 xhtmlHeaders(__FILE__, translate('MontageReview') );
 ?>
@@ -252,29 +247,29 @@ input[type=range]::-ms-tooltip {
       </div>
       <h2><?php echo translate('MontageReview') ?></h2>
     </div>
-    <div id="ScaleDiv" style="display: inline-flex; border: 1px solid black;">
-        <label style="margin:5px;" for="scaleslider"><?php echo translate('Scale')?></label>
-        <input id=scaleslider type=range min=0.1 max=1.0 value=<?php echo $defaultScale ?> step=0.10 width=20% onchange='setScale(this.value)' oninput='showScale(this.value)'/>
-        <span style='margin:5px;' id=scaleslideroutput><?php echo number_format((float)$defaultScale,2,'.','')?> x</span>
+    <div id="ScaleDiv">
+        <label for="scaleslider"><?php echo translate('Scale')?></label>
+        <input id="scaleslider" type="range" min="0.1" max="1.0" value="<?php echo $defaultScale ?>" step="0.10" onchange="setScale(this.value);" oninput="showScale(this.value);"/>
+        <span id="scaleslideroutput"><?php echo number_format((float)$defaultScale,2,'.','')?> x</span>
     </div>
-    <div id="SpeedDiv" style='display: inline-flex; border: 1px solid black;'>
-        <label style='margin:5px;' for=speedslider><?php echo translate('Speed') ?></label>
-        <input id=speedslider type=range min=0 max=<?php echo count($speeds)-1?> value=<?php echo $speedIndex ?> step=1 wdth=20% onchange='setSpeed(this.value)' oninput='showSpeed(this.value)'/>
-        <span style='margin:5px;' id=speedslideroutput><?php echo $speeds[$speedIndex] ?> fps</span>
+    <div id="SpeedDiv">
+        <label for="speedslider"><?php echo translate('Speed') ?></label>
+        <input id="speedslider" type="range" min="0" max="<?php echo count($speeds)-1?>" value="<?php echo $speedIndex ?>" step="1" onchange="setSpeed(this.value);" oninput="showSpeed(this.value);"/>
+        <span id="speedslideroutput"><?php echo $speeds[$speedIndex] ?> fps</span>
     </div>
-    <div style='display: inline-flex; border: 1px solid black; flex-flow: row wrap;'>
-        <button type="button" id=panleft   onclick='panleft()     '>&lt; <?php echo translate('Pan') ?></button>
-        <button type="button" id=zoomin    onclick='zoomin()           '><?php echo translate('In +') ?></button>
-        <button type="button" id=zoomout   onclick='zoomout()          '><?php echo translate('Out -') ?></button>
-        <button type="button" id=lasteight onclick='lastEight()        '><?php echo translate('8 Hour') ?></button>
-        <button type="button" id=lasthour  onclick='lastHour()         '><?php echo translate('1 Hour') ?></button>
-        <button type="button" id=allof     onclick='allof()            '><?php echo translate('All Events') ?></button>
-        <button type="button" id=live      onclick='setLive(1-liveMode)'><?php echo translate('Live') ?></button>
-        <button type="button" id=fit       onclick='setFit(1-fitMode)  '><?php echo translate('Fit') ?></button>
-        <button type="button" id=panright  onclick='panright()         '><?php echo translate('Pan') ?> &gt;</button>
+    <div style="display: inline-flex; border: 1px solid black; flex-flow: row wrap;">
+        <button type="button" id="panleft"   onclick="panleft();"         >&lt; <?php echo translate('Pan') ?></button>
+        <button type="button" id="zoomin"    onclick="zoomin();"           ><?php echo translate('In +') ?></button>
+        <button type="button" id="zoomout"   onclick="zoomout();"          ><?php echo translate('Out -') ?></button>
+        <button type="button" id="lasteight" onclick="lastEight();"        ><?php echo translate('8 Hour') ?></button>
+        <button type="button" id="lasthour"  onclick="lastHour();"         ><?php echo translate('1 Hour') ?></button>
+        <button type="button" id="allof"     onclick="allof();"            ><?php echo translate('All Events') ?></button>
+        <button type="button" id="live"      onclick="setLive(1-liveMode);"><?php echo translate('Live') ?></button>
+        <button type="button" id="fit"       onclick="setFit(1-fitMode);"  ><?php echo translate('Fit') ?></button>
+        <button type="button" id="panright"  onclick="panright();"         ><?php echo translate('Pan') ?> &gt;</button>
     </div>
-    <div id="timelinediv" style="position:relative; width:93%;">
-        <canvas id="timeline" style="border:1px solid;" onmousemove="mmove(event);" ontouchmove="tmove(event);" onmousedown="mdown(event);" onmouseup="mup(event);" onmouseout="mout(event);"></canvas>
+    <div id="timelinediv">
+        <canvas id="timeline" onmousemove="mmove(event);" ontouchmove="tmove(event);" onmousedown="mdown(event);" onmouseup="mup(event);" onmouseout="mout(event);"></canvas>
         <span id="scrubleft"></span>
         <span id="scrubright"></span>
         <span id="scruboutput"></span>
@@ -282,14 +277,13 @@ input[type=range]::-ms-tooltip {
 <?php
 // Monitor images - these had to be loaded after the monitors used were determined (after loading events)
 
-echo "<div id='monitors' style='position:relative; background-color:black;' width='100%' height='100%'>\n";
+echo '<div id="monitors">';
 foreach ($monitors as $m) {
-  echo "<canvas width='" . $m['Width'] * $defaultScale . "px' height='"  . $m['Height'] * $defaultScale . "px' id='Monitor" . $m['Id'] . "' style='border:3px solid " . $m['WebColour'] . "' onclick='clickMonitor(event," . $m['Id'] . ")'>No Canvas Support!!</canvas>\n";
+  echo '<canvas width="' . $m['Width'] * $defaultScale . 'px" height="'  . $m['Height'] * $defaultScale . 'px" id="Monitor' . $m['Id'] . '" style="border:3px solid ' . $m['WebColour'] . '" onclick="clickMonitor(event,' . $m['Id'] . ')">No Canvas Support!!</canvas>';
 }
 echo "</div>\n";
-echo "<p id='fps'>evaluating fps</p>\n";
-echo "<script>\n";
-
+echo "<p id=\"fps\">evaluating fps</p>\n";
+echo "<script type=\"text/javascript\">\n";
 ?>
 
 var currentScale=<?php echo $defaultScale?>;
@@ -325,19 +319,22 @@ $index=0;
 $anyAlarms=false;
 
 foreach( dbFetchAll( $eventsSql ) as $event ) {
-    if( $minTimeSecs > $event['StartTimeSecs'])   $minTimeSecs=$event['StartTimeSecs'];
-    if( $maxTimeSecs < $event['CalcEndTimeSecs']) $maxTimeSecs=$event['CalcEndTimeSecs'];
-    echo "eMonId[$index]=" . $event['MonitorId'] . "; eId[$index]=" . $event['Id'] . "; ";
-    echo "eStartSecs[$index]=" . $event['StartTimeSecs'] . "; eEndSecs[$index]=" . $event['CalcEndTimeSecs'] . "; ";
-    echo "eventFrames[$index]=" . $event['Frames'] . "; ";
+    if( $minTimeSecs > $event['StartTimeSecs'])   $minTimeSecs = $event['StartTimeSecs'];
+    if( $maxTimeSecs < $event['CalcEndTimeSecs']) $maxTimeSecs = $event['CalcEndTimeSecs'];
+    echo "eMonId[$index]=" . $event['MonitorId'] . ";
+    eId[$index]=" . $event['Id'] . ";
+    eStartSecs[$index]=" . $event['StartTimeSecs'] . ";
+    eEndSecs[$index]=" . $event['CalcEndTimeSecs'] . ";
+    eventFrames[$index]=" . $event['Frames'] . "; ";
 
+    // NO GOOD, need to use view=image
     if ( ZM_USE_DEEP_STORAGE )
         echo "ePath[$index] = \"events/" . $event['MonitorId'] . "/" . strftime("%y/%m/%d/%H/%M/%S", $event['StartTimeSecs']) . "/\";" ;
     else
         echo "ePath[$index] = \"events/" . $event['MonitorId'] . "/" . $event['Id'] . "/\";" ;
-    $index=$index+1;
+    $index = $index + 1;
     if($event['MaxScore']>0)
-        $anyAlarms=true;
+        $anyAlarms = true;
     echo "\n";
 }
 
@@ -463,13 +460,13 @@ echo "var minTimeSecs="     . $minTimeSecs . ";\n";
 echo "var maxTimeSecs="     . $maxTimeSecs . ";\n";
 echo "var rangeTimeSecs="   . ( $maxTimeSecs - $minTimeSecs + 1) . ";\n";
 if(isset($defaultCurrentTime))
-    echo "var currentTimeSecs=" . strtotime($defaultCurrentTime) . ";\n";
+  echo "var currentTimeSecs=" . strtotime($defaultCurrentTime) . ";\n";
 else
-    echo "var currentTimeSecs=" . ($minTimeSecs + $maxTimeSecs)/2 . ";\n";
+  echo "var currentTimeSecs=" . ($minTimeSecs + $maxTimeSecs)/2 . ";\n";
 
 echo "var speeds=[";
 for ($i=0; $i<count($speeds); $i++)
-    echo (($i>0)?", ":"") . $speeds[$i];
+  echo (($i>0)?", ":"") . $speeds[$i];
 echo "];\n";
 ?>
 
@@ -481,24 +478,23 @@ var ctx=canvas.getContext('2d');
 var underSlider;    // use this to hold what is hidden by the slider
 var underSliderX;   // Where the above was taken from (left side, Y is zero)
 
-function evaluateLoadTimes()
-{   // Only consider it a completed event if we load ALL monitors, then zero all and start again
+function evaluateLoadTimes() {
+    // Only consider it a completed event if we load ALL monitors, then zero all and start again
     var start=0;
     var end=0;
     if(liveMode!=1 && currentSpeed==0) return;  // don't evaluate when we are not moving as we can do nothing really fast.
-    for(var i=0; i<monitorIndex.length; i++)
-        if( monitorName[i]>"")
-        {
+    for(var i=0; i<monitorIndex.length; i++) {
+        if( monitorName[i]>"") {
             if( monitorLoadEndTimems[i]==0) return;   // if we have a monitor with no time yet just wait
             if( start == 0 || start > monitorLoadStartTimems[i] ) start = monitorLoadStartTimems[i];
             if( end   == 0 || end   < monitorLoadEndTimems[i]   ) end   = monitorLoadEndTimems[i];
         }
+    }
     if(start==0 || end==0) return; // we really should not get here
-    for(var i=0; i<numMonitors; i++)
-        {
-            monitorLoadStartTimems[monitorPtr[i]]=0;
-            monitorLoadEndTimems[monitorPtr[i]]=0;
-        }
+    for(var i=0; i<numMonitors; i++) {
+        monitorLoadStartTimems[monitorPtr[i]]=0;
+        monitorLoadEndTimems[monitorPtr[i]]=0;
+    }
     freeTimeLastIntervals[imageLoadTimesEvaluated++] = 1 - ((end - start)/currentDisplayInterval);
     if( imageLoadTimesEvaluated < imageLoadTimesNeeded ) return;
     var avgFrac=0;

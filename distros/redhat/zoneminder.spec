@@ -39,7 +39,7 @@ Group: System Environment/Daemons
 License: GPLv2+ and LGPLv2+ and MIT
 URL: http://www.zoneminder.com/
 
-Source0: https://github.com/ZoneMinder/ZoneMinder/archive/%{version}.tar.gz#/%{name}-%{version}.tar.gz
+Source0: https://github.com/ZoneMinder/ZoneMinder/archive/%{version}.tar.gz#/zoneminder-%{version}.tar.gz
 Source1: https://github.com/FriendsOfCake/crud/archive/v%{crud_version}.tar.gz#/crud-%{crud_version}.tar.gz
 
 %{?with_init_systemd:BuildRequires: systemd-devel}
@@ -130,8 +130,8 @@ designed to support as many cameras as you can attach to your computer without
 too much degradation of performance.
 
 %prep
-%autosetup
-%autosetup -a 1
+%autosetup -n ZoneMinder-%{version}
+%autosetup -a 1 -n ZoneMinder-%{version}
 rmdir ./web/api/app/Plugin/Crud
 mv -f crud-%{crud_version} ./web/api/app/Plugin/Crud
 

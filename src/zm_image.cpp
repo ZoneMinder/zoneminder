@@ -3291,11 +3291,11 @@ __attribute__((noinline)) void std_fastblend(const uint8_t* col1, const uint8_t*
 }
 
 /* FastBlend Neon for AArch32 */
-#if defined(__arm__)
+#if (defined(__arm__) && !defined(ZM_STRIP_NEON))
 __attribute__((noinline,__target__("fpu=neon")))
 #endif
 void neon32_armv7_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent) {
-#if defined(__arm__)
+#if (defined(__arm__) && !defined(ZM_STRIP_NEON))
   static int8_t divider = 0;
   static double current_blendpercent = 0.0;
 
@@ -3348,7 +3348,7 @@ void neon32_armv7_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* r
   : "%r12", "%q0", "%q1", "%q2", "%q3", "cc", "memory"
   );
 #else
-  Panic("Neon function called on a non ARM platform");
+  Panic("Neon function called on a non-ARM platform or Neon code is absent");
 #endif
 }
 
@@ -3575,11 +3575,11 @@ __attribute__((noinline)) void std_delta8_abgr(const uint8_t* col1, const uint8_
 }
 
 /* Grayscale Neon for AArch32 */
-#if defined(__arm__)
+#if (defined(__arm__) && !defined(ZM_STRIP_NEON))
 __attribute__((noinline,__target__("fpu=neon")))
 #endif
 void neon32_armv7_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
-#if defined(__arm__)
+#if (defined(__arm__) && !defined(ZM_STRIP_NEON))
 
   /* Q0(D0,D1) = col1 */
   /* Q1(D2,D3) = col2 */
@@ -3597,16 +3597,16 @@ void neon32_armv7_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t
   : "%q0", "%q1", "cc", "memory"
   );
 #else
-  Panic("Neon function called on a non ARM platform");
+  Panic("Neon function called on a non-ARM platform or Neon code is absent");
 #endif
 }
 
 /* RGB32 Neon for AArch32 */
-#if defined(__arm__)
+#if (defined(__arm__) && !defined(ZM_STRIP_NEON))
 __attribute__((noinline,__target__("fpu=neon")))
 #endif
 void neon32_armv7_delta8_rgb32(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, uint32_t multiplier) {
-#if defined(__arm__)
+#if (defined(__arm__) && !defined(ZM_STRIP_NEON))
 
   /* Q0(D0,D1) = col1 */
   /* Q1(D2,D3) = col2 */
@@ -3632,7 +3632,7 @@ void neon32_armv7_delta8_rgb32(const uint8_t* col1, const uint8_t* col2, uint8_t
   : "%r12", "%q0", "%q1", "%q2", "cc", "memory"
   );
 #else
-  Panic("Neon function called on a non ARM platform");
+  Panic("Neon function called on a non-ARM platform or Neon code is absent");
 #endif
 }
 

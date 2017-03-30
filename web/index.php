@@ -190,7 +190,10 @@ isset($action) || $action = NULL;
 
 if ( ZM_ENABLE_CSRF_MAGIC && $action != 'login' ) {
     Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");
-    csrf_check();
+    if ( ! csrf_check() ) {
+      Warning( "Failed csrf_check()" );
+      return;
+    }
 }
 
 # Need to include actions because it does auth

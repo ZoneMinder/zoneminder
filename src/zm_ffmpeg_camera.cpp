@@ -675,16 +675,22 @@ Debug(5, "After av_read_frame (%d)", ret );
         videoStore = NULL;
       }
 
-      //Buffer video packets, since we are not recording. All audio packets are keyframes, so only if it's a video keyframe
+      // Buffer video packets, since we are not recording.
+      // All audio packets are keyframes, so only if it's a video keyframe
       if ( packet.stream_index == mVideoStreamId) {
         if ( key_frame ) {
           Debug(3, "Clearing queue");
           packetqueue.clearQueue();
-        }
-        if ( packet.pts && video_last_pts > packet.pts ) {
-          Warning( "Clearing queue due to out of order pts");
+        } 
+#if 0
+// Not sure this is valid.  While a camera will PROBABLY always have an increasing pts... it doesn't have to.
+// Also, I think there are integer wrap-around issues.
+
+else if ( packet.pts && video_last_pts > packet.pts ) {
+          Warning( "Clearing queue due to out of order pts packet.pts(%d) < video_last_pts(%d)");
           packetqueue.clearQueue();
         }
+#endif
       } 
 
       if ( 

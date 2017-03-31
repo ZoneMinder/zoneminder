@@ -638,6 +638,7 @@ Monitor::~Monitor() {
     close( map_fd );
 
     if ( purpose == CAPTURE ) {
+        // How about we store this in the object on instantiation so that we don't have to do this again.
         char mmap_path[PATH_MAX] = "";
         snprintf( mmap_path, sizeof(mmap_path), "%s/zm.mmap.%d", config.path_map, id );
 
@@ -3584,7 +3585,7 @@ bool MonitorStream::sendFrame( const char *filepath, struct timeval *timestamp )
     fprintf( stdout, "Content-Length: %d\r\n", img_buffer_size );
     fprintf( stdout, "Content-Type: image/jpeg\r\n\r\n" );
     if ( fwrite( img_buffer, img_buffer_size, 1, stdout ) != 1 ) {
-      if ( !zm_terminate )
+      if ( ! zm_terminate )
         Error( "Unable to send stream frame: %s", strerror(errno) );
       return( false );
     }
@@ -3678,7 +3679,7 @@ bool MonitorStream::sendFrame( Image *image, struct timeval *timestamp ) {
   }
   last_frame_sent = TV_2_FLOAT( now );
   return( true );
-}
+} // end bool MonitorStream::sendFrame( Image *image, struct timeval *timestamp )
 
 void MonitorStream::runStream() {
   if ( type == STREAM_SINGLE ) {
@@ -3804,7 +3805,7 @@ void MonitorStream::runStream() {
               if ( temp_index%frame_mod == 0 ) {
                 Debug( 2, "Sending delayed frame %d", temp_index );
                 // Send the next frame
-                if ( !sendFrame( temp_image_buffer[temp_index].file_name, &temp_image_buffer[temp_index].timestamp ) )
+                if ( ! sendFrame( temp_image_buffer[temp_index].file_name, &temp_image_buffer[temp_index].timestamp ) )
                   zm_terminate = true;
                 memcpy( &last_frame_timestamp, &(swap_image->timestamp), sizeof(last_frame_timestamp) );
                 //frame_sent = true;

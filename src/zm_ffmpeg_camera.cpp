@@ -42,8 +42,7 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::stri
   mMethod( p_method ),
   mOptions( p_options )
 {
-  if ( capture )
-  {
+  if ( capture ) {
     Initialise();
   }
 
@@ -83,20 +82,19 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::stri
 
 }
 
-FfmpegCamera::~FfmpegCamera()
-{
+FfmpegCamera::~FfmpegCamera() {
 
-
+  if ( videoStore ) {
+    delete videoStore;
+  }
   CloseFfmpeg();
 
-  if ( capture )
-  {
+  if ( capture ) {
     Terminate();
   }
 }
 
-void FfmpegCamera::Initialise()
-{
+void FfmpegCamera::Initialise() {
   if ( logDebugging() )
     av_log_set_level( AV_LOG_DEBUG ); 
   else
@@ -106,12 +104,10 @@ void FfmpegCamera::Initialise()
   avformat_network_init();
 }
 
-void FfmpegCamera::Terminate()
-{
+void FfmpegCamera::Terminate() {
 }
 
-int FfmpegCamera::PrimeCapture()
-{
+int FfmpegCamera::PrimeCapture() {
   mVideoStreamId = -1;
   mAudioStreamId = -1;
   Info( "Priming capture from %s", mPath.c_str() );

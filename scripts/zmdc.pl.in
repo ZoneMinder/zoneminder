@@ -473,7 +473,7 @@ sub kill_until_dead {
     }
 
     sigprocmask(SIG_UNBLOCK, $blockset) or die "dying at unblock...\n";
-    usleep( 1 );
+    usleep( 100 );
     sigprocmask(SIG_BLOCK, $blockset, $sigset ) or die "dying at block...\n";
   }
 }

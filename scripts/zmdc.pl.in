@@ -66,6 +66,7 @@ use ZoneMinder;
 use POSIX;
 use Socket;
 use IO::Handle;
+use Time::HiRes qw(usleep);
 use autouse 'Pod::Usage'=>qw(pod2usage);
 #use Data::Dumper;
 
@@ -456,20 +457,25 @@ sub send_stop {
 } # end sub send_stop
 
 sub kill_until_dead {
-    my ( $process ) = @_;
-    # Now check it has actually gone away, if not kill -9 it
-    my $count = 0;
-    while( $process and $$process{pid} and kill( 0, $$process{pid} ) ) {
-        if ( $count++ > 5 ) {
-            dPrint( ZoneMinder::Logger::WARNING, "'$$process{command}' has not stopped at "
-                .strftime( '%y/%m/%d %H:%M:%S', localtime() )
-                .". Sending KILL to pid $$process{pid}\n"
-            );
-            kill( 'KILL', $$process{pid} );
-        }
-        
-        sleep( 1 );
+  my ( $process ) = @_;
+# Now check it has actually gone away, if not kill -9 it
+  my $count = 0;
+  my $sigset = POSIX::SigSet->new;
+  my $blockset = POSIX::SigSet->new(SIGINT);
+  sigprocmask(SIG_BLOCK, $blockset, $sigset ) or die "dying at block...\n";
+  while( $process and $$process{pid} and kill( 0, $$process{pid} ) ) {
+    if ( $count++ > 5 ) {
+      dPrint( ZoneMinder::Logger::WARNING, "'$$process{command}' has not stopped at "
+          .strftime( '%y/%m/%d %H:%M:%S', localtime() )
+          .". Sending KILL to pid $$process{pid}\n"
+          );
+      kill( 'KILL', $$process{pid} );
     }
+
+    sigprocmask(SIG_UNBLOCK, $blockset) or die "dying at unblock...\n";
+    usleep( 1 );
+    sigprocmask(SIG_BLOCK, $blockset, $sigset ) or die "dying at block...\n";
+  }
 }
 
 sub _stop {

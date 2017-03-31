@@ -66,7 +66,7 @@ foreach( dbFetchAll( $sql ) as $row ) {
   $row['Scale'] = $scale;
   $row['PopupScale'] = reScale( SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
 
-  if ( ZM_OPT_CONTROL && $row['ControlId'] )
+  if ( ZM_OPT_CONTROL && $row['ControlId'] && $row['Controllable'] )
     $showControl = true;
   $row['connKey'] = generateConnKey();
   $monitors[] = new Monitor( $row );

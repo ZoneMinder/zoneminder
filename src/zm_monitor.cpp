@@ -1380,7 +1380,8 @@ bool Monitor::Analyse() {
               }
             }
           } // end if section_length
-          if ( !event ) {
+
+          if ( ! event ) {
 
             // Create event
             event = new Event( this, *timestamp, "Continuous", noteSetMap, videoRecording );
@@ -1443,7 +1444,7 @@ bool Monitor::Analyse() {
 								}
                 event->AddFrames( pre_event_images, images, timestamps );
               }
-            }
+            } // end if false or config.overlap_timed_events
           } // end if ! event
         }
         if ( score ) {

@@ -132,8 +132,8 @@ too much degradation of performance.
 %prep
 %autosetup -n ZoneMinder-%{version}
 %autosetup -a 1 -n ZoneMinder-%{version}
-rmdir ./web/api/app/Plugin/Crud
-mv -f crud-%{crud_version} ./web/api/app/Plugin/Crud
+%{__rm} -rf ./web/api/app/Plugin/Crud
+%{__mv} -f crud-%{crud_version} ./web/api/app/Plugin/Crud
 
 # Change the following default values
 ./utils/zmeditconfigdata.sh ZM_PATH_ZMS /cgi-bin-zm/nph-zms

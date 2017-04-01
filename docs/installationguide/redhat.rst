@@ -187,11 +187,13 @@ The tarball from the previsouly installed SRPM should be there. This is the name
 
 Note that we are overwriting the original tarball. If you wish to keep the original tarball then create a copy prior to creating the new tarball.
 
-Now build a new src.rpm:
+From the root of the local ZoneMinder git repo, execute the following:
 
 ::
 
-    rpmbuild -bs --nodeps ~/rpmbuild/SPECS/zoneminder.el7.spec
+    rpmbuild -bs --nodeps distros/redhat/zoneminder.spec
+
+Notice we used the rpm specfile that is part of the latest master branch you just downloaded, rather than the one that may be in your ~/rpmbbuild/SOURCES folder.
 
 This step will overwrite the SRPM you originally downloaded, so you may want to back it up prior to completing this step. Note that the name of the specfile will vary slightly depending on the target distro.
 

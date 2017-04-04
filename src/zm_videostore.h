@@ -54,15 +54,16 @@ private:
   bool keyframeMessage;
   int keyframeSkipNumber;
     
-  int64_t video_start_pts;
-  int64_t video_start_dts;
-  int64_t audio_start_pts;
-  int64_t audio_start_dts;
+  // These are for input
+  int64_t video_last_pts;
+  int64_t video_last_dts;
+  int64_t audio_last_pts;
+  int64_t audio_last_dts;
 
-  int64_t start_pts;
-  int64_t start_dts;
+  // These are for output, should start at zero.  We assume they do not wrap because we just aren't going to save files that big.
+  int64_t previous_pts;
+  int64_t previous_dts;
 
-	int64_t prevDts;
   int64_t filter_in_rescale_delta_last;
 
 public:

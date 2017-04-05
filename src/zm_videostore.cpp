@@ -598,16 +598,16 @@ int VideoStore::writeVideoFramePacket( AVPacket *ipkt ) {
           );
       video_last_dts = video_input_stream->cur_dts;
     } else {
-      if ( ipkt.dts < video_last_dts ) {
+      if ( ipkt->dts < video_last_dts ) {
         Debug(1, "Resetting video_last_dts from (%d) to (%d)",  video_last_dts, ipkt->dts );
-        opkt.dts = previous_dts + av_rescale_q( ipkt.dts,  video_input_stream->time_base, video_output_stream->time_base);
+        opkt.dts = previous_dts + av_rescale_q( ipkt->dts,  video_input_stream->time_base, video_output_stream->time_base);
       } else {
-        opkt.dts = previous_dts + av_rescale_q( ipkt.dts - video_last_dts, video_input_stream->time_base, video_output_stream->time_base);
+        opkt.dts = previous_dts + av_rescale_q( ipkt->dts - video_last_dts, video_input_stream->time_base, video_output_stream->time_base);
       }
       Debug(3, "opkt.dts = %d from ipkt.dts(%d) - previus_dts(%d)", 
-          opkt.dts, ipkt.dts, video_last_dts
+          opkt.dts, ipkt->dts, video_last_dts
           );
-      video_last_dts = ipkt.dts;
+      video_last_dts = ipkt->dts;
     }
   }
   if ( opkt.dts > opkt.pts ) {

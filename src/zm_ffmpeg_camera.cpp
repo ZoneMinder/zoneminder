@@ -430,6 +430,10 @@ int FfmpegCamera::OpenFfmpeg() {
   Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
 #endif // HAVE_LIBSWSCALE
 
+  if ( mVideoCodecContext->width != width || mVideoCodecContext->height != height ) {
+    Warning( "Monitor dimensions are %dx%d but camera is sending %dx%d", width, height, mVideoCodecContext->width, mVideoCodecContext->height );
+  }
+
   mCanCapture = true;
 
   return 0;

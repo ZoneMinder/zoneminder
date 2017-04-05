@@ -1620,7 +1620,8 @@ bool Monitor::Analyse() {
       }
       shared_data->state = state = IDLE;
       last_section_mod = 0;
-    }
+    } // end if ( trigger_data->trigger_state != TRIGGER_OFF )
+
     if ( (!signal_change && signal) && (function == MODECT || function == MOCORD) ) {
       if ( state == ALARM ) {
          ref_image.Blend( *snap_image, alarm_ref_blend_perc );
@@ -1629,9 +1630,9 @@ bool Monitor::Analyse() {
       }
     }
     last_signal = signal;
-  }
+  } // end if Enabled()
 
-  shared_data->last_read_index = index%image_buffer_count;
+  shared_data->last_read_index = index % image_buffer_count;
   //shared_data->last_read_time = image_buffer[index].timestamp->tv_sec;
   shared_data->last_read_time = now.tv_sec;
 

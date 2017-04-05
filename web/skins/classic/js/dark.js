@@ -66,6 +66,6 @@ var popupSizes = {
     'video':        { 'width': 420, 'height': 360 },
     'videoview':    { 'addWidth': 48, 'addHeight': 80 },
     'watch':        { 'addWidth': 96, 'minWidth': 420, 'addHeight': 384 },
-    'zone':         { 'addWidth': 450, 'addHeight': 200, 'minHeight': 450 },
+    'zone':         { 'addWidth': 520, 'addHeight': 260, 'minHeight': 600 },
     'zones':        { 'addWidth': 72, 'addHeight': 232 }
 };

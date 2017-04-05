@@ -103,6 +103,7 @@ if ( !empty($action) ) {
     userLogin( $username, $password );
     $refreshParent = true;
     $view = 'console';
+    $redirect = true;
   } else if ( $action == 'logout' ) {
     userLogout();
     $refreshParent = true;

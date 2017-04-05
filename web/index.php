@@ -159,9 +159,13 @@ if ( !is_writable(ZM_DIR_EVENTS) || !is_writable(ZM_DIR_IMAGES) ) {
   Error( "Cannot write to content dirs('".ZM_DIR_EVENTS."','".ZM_DIR_IMAGES."').  Check that these exist and are owned by the web account user");
 }
 
+# Globals
+$redirect = null;
+$view = null;
 if ( isset($_REQUEST['view']) )
   $view = detaintPath($_REQUEST['view']);
 
+$request = null;
 if ( isset($_REQUEST['request']) )
   $request = detaintPath($_REQUEST['request']);
 
@@ -200,13 +204,18 @@ if ( ZM_ENABLE_CSRF_MAGIC && $action != 'login' ) {
 require_once( 'includes/actions.php' );
 
 # If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
-if ( ZM_OPT_USE_AUTH && ! isset($user) && $view != 'login' ) {
+if ( ZM_OPT_USE_AUTH && ! isset($user) ) {
   $view = 'login';
 }
 
 # Only one request can open the session file at a time, so let's close the session here to improve concurrency.
 # Any file/page that sets session variables must re-open it.
 session_write_close();
+
+if ( $redirect ) {
+  header('Location: /index.php?view='.$view);
+  return;
+}
 
 if ( isset( $_REQUEST['request'] ) ) {
   foreach ( getSkinIncludes( 'ajax/'.$request.'.php', true, true ) as $includeFile ) {

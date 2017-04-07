@@ -461,10 +461,10 @@ sub kill_until_dead {
 # Now check it has actually gone away, if not kill -9 it
   my $count = 0;
   my $sigset = POSIX::SigSet->new;
-  my $blockset = POSIX::SigSet->new(SIGINT);
+  my $blockset = POSIX::SigSet->new(SIGCHLD);
   sigprocmask(SIG_BLOCK, $blockset, $sigset ) or die "dying at block...\n";
   while( $process and $$process{pid} and kill( 0, $$process{pid} ) ) {
-    if ( $count++ > 5 ) {
+    if ( $count++ > 50 ) {
       dPrint( ZoneMinder::Logger::WARNING, "'$$process{command}' has not stopped at "
           .strftime( '%y/%m/%d %H:%M:%S', localtime() )
           .". Sending KILL to pid $$process{pid}\n"

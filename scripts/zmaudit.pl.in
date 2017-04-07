@@ -271,7 +271,7 @@ MAIN: while( $loop ) {
       } # if USE_DEEP_STORAGE
       Debug( 'Got '.int(keys(%$fs_events))." events for monitor $monitor_dir\n" );
 
-      delete_empty_directories(  $monitor_dir );
+      #delete_empty_directories(  $monitor_dir );
     } # end foreach monitor
     redo MAIN if ( $cleaned );
 
@@ -660,6 +660,7 @@ sub deleteSwapImage {
 
 sub delete_empty_directories {
   my $DIR;
+  Debug("delete_empty_directories $_[0]");
   if ( ! opendir( $DIR, $_[0] ) ) {
     Error( "delete_empty_directories: Can't open directory '".getcwd()."/$_[0]': $!" );
     return;

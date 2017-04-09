@@ -42,8 +42,7 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::stri
   mMethod( p_method ),
   mOptions( p_options )
 {
-  if ( capture )
-  {
+  if ( capture ) {
     Initialise();
   }
 
@@ -83,20 +82,19 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::stri
 
 }
 
-FfmpegCamera::~FfmpegCamera()
-{
+FfmpegCamera::~FfmpegCamera() {
 
-
+  if ( videoStore ) {
+    delete videoStore;
+  }
   CloseFfmpeg();
 
-  if ( capture )
-  {
+  if ( capture ) {
     Terminate();
   }
 }
 
-void FfmpegCamera::Initialise()
-{
+void FfmpegCamera::Initialise() {
   if ( logDebugging() )
     av_log_set_level( AV_LOG_DEBUG ); 
   else
@@ -106,12 +104,10 @@ void FfmpegCamera::Initialise()
   avformat_network_init();
 }
 
-void FfmpegCamera::Terminate()
-{
+void FfmpegCamera::Terminate() {
 }
 
-int FfmpegCamera::PrimeCapture()
-{
+int FfmpegCamera::PrimeCapture() {
   mVideoStreamId = -1;
   mAudioStreamId = -1;
   Info( "Priming capture from %s", mPath.c_str() );
@@ -434,6 +430,10 @@ int FfmpegCamera::OpenFfmpeg() {
   Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
 #endif // HAVE_LIBSWSCALE
 
+  if ( mVideoCodecContext->width != width || mVideoCodecContext->height != height ) {
+    Warning( "Monitor dimensions are %dx%d but camera is sending %dx%d", width, height, mVideoCodecContext->width, mVideoCodecContext->height );
+  }
+
   mCanCapture = true;
 
   return 0;
@@ -675,16 +675,22 @@ Debug(5, "After av_read_frame (%d)", ret );
         videoStore = NULL;
       }
 
-      //Buffer video packets, since we are not recording. All audio packets are keyframes, so only if it's a video keyframe
+      // Buffer video packets, since we are not recording.
+      // All audio packets are keyframes, so only if it's a video keyframe
       if ( packet.stream_index == mVideoStreamId) {
         if ( key_frame ) {
           Debug(3, "Clearing queue");
           packetqueue.clearQueue();
-        }
-        if ( packet.pts && video_last_pts > packet.pts ) {
-          Warning( "Clearing queue due to out of order pts");
+        } 
+#if 0
+// Not sure this is valid.  While a camera will PROBABLY always have an increasing pts... it doesn't have to.
+// Also, I think there are integer wrap-around issues.
+
+else if ( packet.pts && video_last_pts > packet.pts ) {
+          Warning( "Clearing queue due to out of order pts packet.pts(%d) < video_last_pts(%d)");
           packetqueue.clearQueue();
         }
+#endif
       } 
 
       if ( 

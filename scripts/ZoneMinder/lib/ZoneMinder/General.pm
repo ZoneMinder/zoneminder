@@ -179,7 +179,7 @@ sub runCommand {
 sub getEventPath {
   my $event = shift;
 
-  my $Storage = new ZoneMinder::Storage( $$event{Id} );
+  my $Storage = new ZoneMinder::Storage( $$event{StorageId} );
   my $event_path = join( '/', 
       $Storage->Path(),
       $event->{MonitorId},

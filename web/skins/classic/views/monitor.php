@@ -768,22 +768,22 @@ switch ( $tab )
         <tr><td><?php echo translate('Triggers') ?></td><td>
         <?php
         $optTriggers = getSetValues( 'Monitors', 'Triggers' );
-      $breakCount = (int)(ceil(count($optTriggers)));
-      $breakCount = min( 3, $breakCount );
-      $optCount = 0;
-      foreach( $optTriggers as $optTrigger )
-      {
-        if ( !ZM_OPT_X10 && $optTrigger == 'X10' )
-          continue;
-        if ( $optCount && ($optCount%$breakCount == 0) )
-          echo "</br>";
-        ?>
-          <input type="checkbox" name="newMonitor[Triggers][]" value="<?php echo $optTrigger ?>"<?php if ( isset($monitor->Triggers) && in_array( $optTrigger, $monitor->Triggers ) ) { ?> checked="checked"<?php } ?>/>&nbsp;<?php echo $optTrigger ?>
-          <?php
+        $breakCount = (int)(ceil(count($optTriggers)));
+        $breakCount = min( 3, $breakCount );
+        $optCount = 0;
+        foreach( $optTriggers as $optTrigger ) {
+          if ( ( ! ZM_OPT_X10 ) && ( $optTrigger == 'X10' ) )
+            continue;
+          if ( $optCount && ($optCount%$breakCount == 0) )
+            echo '</br>';
+          echo '<input type="checkbox" name="newMonitor[Triggers][]" value="'. $optTrigger .'"';
+          if ( isset($monitor->Triggers) && is_array( $monitor->Triggers ) and in_array( $optTrigger, $monitor->Triggers ) ) {
+            echo ' checked="checked"';
+          }
+          echo '/>&nbsp;'. $optTrigger ;
           $optCount ++;
       }
-      if ( !$optCount )
-      {
+      if ( !$optCount ) {
         ?>
           <em><?php echo translate('NoneAvailable') ?></em>
           <?php

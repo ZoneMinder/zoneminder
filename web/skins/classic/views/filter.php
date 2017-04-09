@@ -26,13 +26,13 @@ $selectName = 'Id';
 $filterNames = array( ''=>translate('ChooseFilter') );
 $dbFilter = NULL;
 
-foreach ( dbFetchAll( "select * from Filters order by Name" ) as $row ) {
+foreach ( dbFetchAll( 'SELECT * FROM Filters ORDER BY Name' ) as $row ) {
   $filterNames[$row['Id']] = $row['Name'];
   if ( $row['Background'] )
-    $filterNames[$row['Id']] .= "*";
+    $filterNames[$row['Id']] .= '*';
   if ( $row['Concurrent'] )
-    $filterNames[$row['Id']] .= "&";
-  if ( !empty($_REQUEST['reload']) && isset($_REQUEST['Id']) && $_REQUEST['Id'] == $row['Id'] ) {
+    $filterNames[$row['Id']] .= '&';
+  if ( isset($_REQUEST['Id']) && $_REQUEST['Id'] == $row['Id'] ) {
     $dbFilter = $row;
   }
 }
@@ -41,10 +41,12 @@ $backgroundStr = '';
 if ( $dbFilter ) {
   if ( $dbFilter['Background'] ) 
     $backgroundStr = '['.strtolower(translate('Background')).']';
+  if ( $dbFilter['Concurrent'] ) 
+    $backgroundStr .= '['.strtolower(translate('Concurrent')).']';
   $_REQUEST['filter'] = jsonDecode( $dbFilter['Query'] );
-  $_REQUEST['sort_field'] = isset($_REQUEST['filter']['sort_field'])?$_REQUEST['filter']['sort_field']:"DateTime";
-  $_REQUEST['sort_asc'] = isset($_REQUEST['filter']['sort_asc'])?$_REQUEST['filter']['sort_asc']:"1";
-  $_REQUEST['limit'] = isset($_REQUEST['filter']['limit'])?$_REQUEST['filter']['limit']:"";
+  $_REQUEST['sort_field'] = isset($_REQUEST['filter']['sort_field'])?$_REQUEST['filter']['sort_field']:'DateTime';
+  $_REQUEST['sort_asc'] = isset($_REQUEST['filter']['sort_asc'])?$_REQUEST['filter']['sort_asc']:'1';
+  $_REQUEST['limit'] = isset($_REQUEST['filter']['limit'])?$_REQUEST['filter']['limit']:'';
   unset( $_REQUEST['filter']['sort_field'] );
   unset( $_REQUEST['filter']['sort_asc'] );
   unset( $_REQUEST['filter']['limit'] );
@@ -71,8 +73,8 @@ $obracketTypes = array();
 $cbracketTypes = array();
 if ( isset($_REQUEST['filter']['terms']) ) {
   for ( $i = 0; $i <= count($_REQUEST['filter']['terms'])-2; $i++ ) {
-    $obracketTypes[$i] = str_repeat( "(", $i );
-    $cbracketTypes[$i] = str_repeat( ")", $i );
+    $obracketTypes[$i] = str_repeat( '(', $i );
+    $cbracketTypes[$i] = str_repeat( ')', $i );
   }
 }
 

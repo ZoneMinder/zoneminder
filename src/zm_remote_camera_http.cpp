@@ -267,7 +267,7 @@ int RemoteCameraHttp::ReadData( Buffer &buffer, unsigned int bytes_expected ) {
       Debug( 2, "Socket closed" );
       //Disconnect(); // Disconnect is done outside of ReadData now.
       return( -1 );
-    } else if ( bytes_read < total_bytes_to_read ) {
+    } else if ( (unsigned int)bytes_read < total_bytes_to_read ) {
       Error( "Incomplete read, expected %d, got %d", total_bytes_to_read, bytes_read );
       return( -1 );
     }

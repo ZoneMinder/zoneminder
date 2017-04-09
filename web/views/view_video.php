@@ -26,7 +26,7 @@
 //
 
 if ( !canView( 'Events' ) ) {
-  $view = "error";
+  $view = 'error';
   return;
 }
 
@@ -45,7 +45,7 @@ if ( ! empty($_REQUEST['eid'] ) ) {
 
 if ( $errorText ) {
   Error( $errorText );
-  header ("HTTP/1.0 404 Not Found");
+  header ('HTTP/1.0 404 Not Found');
   die();
 } 
 
@@ -99,7 +99,8 @@ while( $length && ( ! feof( $fh ) ) && ( connection_status() == 0 ) ) {
 
   print fread( $fh, $amount );
   $length -= $amount;
-  usleep(100);
+  usleep(10);
+  flush();
 }
 
 fclose( $fh );

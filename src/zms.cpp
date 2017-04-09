@@ -161,9 +161,11 @@ int main( int argc, const char *argv[] )
 					{
 						if ( !strcmp( name, "user" ) ) {
               username = UriDecode( value );
+              Debug( 1, "Have %s for username", username.c_str() );
 						}
 						if ( !strcmp( name, "pass" ) ) {
-              password = UriDecode( password );
+              password = UriDecode( value );
+              Debug( 1, "Have %s for password", password.c_str() );
 						}
 					}
 				}
@@ -183,12 +185,16 @@ int main( int argc, const char *argv[] )
 			{
 				if ( *auth ) {
 					user = zmLoadAuthUser( auth, config.auth_hash_ips );
+        } else {
+          Debug( 1, "Need both username and password" );
 				}
 			}
 			//else if ( strcmp( config.auth_relay, "plain" ) == 0 )
 			{
 				if ( username.length() && password.length() ) {
 					user = zmLoadUser( username.c_str(), password.c_str() );
+        } else {
+          Debug( 1, "Need both username and password" );
 				}
 			}
 		} // auth is none or something else

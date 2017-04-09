@@ -67,6 +67,24 @@ set(CMAKE_CXX_FLAGS_DEBUG "-Wall -D__STDC_CONSTANT_MACROS -g")
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
+# GCC below 6.0 doesn't support __target__("fpu=neon") attribute, required for compiling ARM Neon code, otherwise compilation fails.
+# Must use -mfpu=neon compiler flag instead, but only do that for processors that support neon, otherwise strip the neon code alltogether,
+# because passing -fmpu=neon is unsafe to processors that don't support neon
+IF(CMAKE_SYSTEM_PROCESSOR MATCHES "^arm" AND CMAKE_SYSTEM_NAME MATCHES "Linux")
+	IF(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
+		EXEC_PROGRAM(grep ARGS " neon " "/proc/cpuinfo" OUTPUT_VARIABLE neonoutput RETURN_VALUE neonresult)
+		IF(neonresult EQUAL 0)
+			set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -mfpu=neon")
+			set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -mfpu=neon")
+			set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -mfpu=neon")
+			set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -mfpu=neon")
+		ELSE(neonresult EQUAL 0)
+			add_definitions(-DZM_STRIP_NEON=1)
+			message(STATUS "ARM Neon is not available on this processor. Neon functions will be absent")
+		ENDIF(neonresult EQUAL 0)
+	ENDIF(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
+ENDIF(CMAKE_SYSTEM_PROCESSOR MATCHES "^arm" AND CMAKE_SYSTEM_NAME MATCHES "Linux")
+
 # Modules that we need:
 include (GNUInstallDirs)
 include (CheckIncludeFile)
@@ -403,6 +421,59 @@ else(MYSQLCLIENT_LIBRARIES)
             "ZoneMinder requires mysqlclient but it was not found on your system")
 endif(MYSQLCLIENT_LIBRARIES)
 
+# x264 (using find_library and find_path)
+find_library(X264_LIBRARIES x264)
+if(X264_LIBRARIES)
+	set(HAVE_LIBX264 1)
+	list(APPEND ZM_BIN_LIBS "${X264_LIBRARIES}")
+	find_path(X264_INCLUDE_DIR x264.h)
+	if(X264_INCLUDE_DIR)
+		include_directories("${X264_INCLUDE_DIR}")
+		set(CMAKE_REQUIRED_INCLUDES "${X264_INCLUDE_DIR}")
+	endif(X264_INCLUDE_DIR)
+	mark_as_advanced(FORCE X264_LIBRARIES X264_INCLUDE_DIR)
+	check_include_files("stdint.h;x264.h" HAVE_X264_H)
+	set(optlibsfound "${optlibsfound} x264")
+else(X264_LIBRARIES)
+	set(optlibsnotfound "${optlibsnotfound} x264")
+endif(X264_LIBRARIES)
+
+# mp4v2 (using find_library and find_path)
+find_library(MP4V2_LIBRARIES mp4v2)
+if(MP4V2_LIBRARIES)
+	set(HAVE_LIBMP4V2 1)
+	list(APPEND ZM_BIN_LIBS "${MP4V2_LIBRARIES}")
+
+        # mp4v2/mp4v2.h
+	find_path(MP4V2_INCLUDE_DIR mp4v2/mp4v2.h)
+	if(MP4V2_INCLUDE_DIR)
+		include_directories("${MP4V2_INCLUDE_DIR}")
+		set(CMAKE_REQUIRED_INCLUDES "${MP4V2_INCLUDE_DIR}")
+	endif(MP4V2_INCLUDE_DIR)
+	check_include_file("mp4v2/mp4v2.h" HAVE_MP4V2_MP4V2_H)
+
+        # mp4v2.h
+	find_path(MP4V2_INCLUDE_DIR mp4v2.h)
+	if(MP4V2_INCLUDE_DIR)
+		include_directories("${MP4V2_INCLUDE_DIR}")
+		set(CMAKE_REQUIRED_INCLUDES "${MP4V2_INCLUDE_DIR}")
+	endif(MP4V2_INCLUDE_DIR)
+	check_include_file("mp4v2.h" HAVE_MP4V2_H)
+
+	# mp4.h
+	find_path(MP4V2_INCLUDE_DIR mp4.h)
+	if(MP4V2_INCLUDE_DIR)
+		include_directories("${MP4V2_INCLUDE_DIR}")
+		set(CMAKE_REQUIRED_INCLUDES "${MP4V2_INCLUDE_DIR}")
+	endif(MP4V2_INCLUDE_DIR)
+	check_include_file("mp4.h" HAVE_MP4_H)
+
+	mark_as_advanced(FORCE MP4V2_LIBRARIES MP4V2_INCLUDE_DIR)
+	set(optlibsfound "${optlibsfound} mp4v2")
+else(MP4V2_LIBRARIES)
+	set(optlibsnotfound "${optlibsnotfound} mp4v2")
+endif(MP4V2_LIBRARIES)
+
 set(PATH_FFMPEG "")
 set(OPT_FFMPEG "no")
 # Do not check for ffmpeg if ZM_NO_FFMPEG is on
@@ -493,6 +564,23 @@ if(NOT ZM_NO_FFMPEG)
 		set(optlibsnotfound "${optlibsnotfound} SWScale")
 	endif(SWSCALE_LIBRARIES)
 
+	# rescale (using find_library and find_path)
+	find_library(SWRESAMPLE_LIBRARIES swresample)
+	if(SWRESAMPLE_LIBRARIES)
+		set(HAVE_LIBSWRESAMPLE 1)
+		list(APPEND ZM_BIN_LIBS "${SWRESAMPLE_LIBRARIES}")
+		find_path(SWRESAMPLE_INCLUDE_DIR "libswresample/swresample.h" /usr/include/ffmpeg)
+		if(SWRESAMPLE_INCLUDE_DIR)
+			include_directories("${SWRESAMPLE_INCLUDE_DIR}")
+			set(CMAKE_REQUIRED_INCLUDES "${SWRESAMPLE_INCLUDE_DIR}")
+		endif(SWRESAMPLE_INCLUDE_DIR)
+		mark_as_advanced(FORCE SWRESAMPLE_LIBRARIES SWRESAMPLE_INCLUDE_DIR)
+		check_include_file("libswresample/swresample.h" HAVE_LIBSWRESAMPLE_SWRESAMPLE_H)
+		set(optlibsfound "${optlibsfound} SWResample")
+	else(SWRESAMPLE_LIBRARIES)
+		set(optlibsnotfound "${optlibsnotfound} SWResample")
+	endif(SWRESAMPLE_LIBRARIES)
+
 	# Find the path to the ffmpeg executable
 	find_program(FFMPEG_EXECUTABLE 
 		NAMES ffmpeg avconv
@@ -524,6 +612,13 @@ if(NOT ZM_NO_LIBVLC)
 		set(optlibsnotfound "${optlibsnotfound} libVLC")
 	endif(LIBVLC_LIBRARIES)
 endif(NOT ZM_NO_LIBVLC)
+
+find_package(Boost 1.36.0)
+if(Boost_FOUND)
+  include_directories(${Boost_INCLUDE_DIRS})
+  set(CMAKE_REQUIRED_INCLUDES "${Boost_INCLUDE_DIRS}")
+  list(APPEND ZM_BIN_LIBS "${Boost_LIBRARIES}")
+endif()
 
 # *** END OF LIBRARY CHECKS ***
 

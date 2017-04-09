@@ -27,7 +27,7 @@ zmfilter.pl - ZoneMinder tool to filter events
 
 =head1 SYNOPSIS
 
- zmfilter.pl [-f <filter name>,--filter=<filter name>] | -v, --version
+ zmfilter.pl [-f <filter name>,--filter=<filter name>] [--filter_id=<filter id>] | -v, --version
 
 =head1 DESCRIPTION
 
@@ -37,7 +37,9 @@ matching events.
 
 =head1 OPTIONS
 
+ 
  -f{filter name}, --filter={filter name}  - The name of a specific filter to run
+ --filter_id={filter id}                  - The id of a specific filter to run
  -v, --version                            - Print ZoneMinder version
 
 =cut
@@ -60,7 +62,6 @@ use constant START_DELAY => 5; # How long to wait before starting
 
 @EXTRA_PERL_LIB@
 use ZoneMinder;
-require ZoneMinder::Filter;
 use DBI;
 use POSIX;
 use Time::HiRes qw/gettimeofday/;
@@ -68,6 +69,24 @@ use Time::HiRes qw/gettimeofday/;
 use Getopt::Long;
 use autouse 'Pod::Usage'=>qw(pod2usage);
 use autouse 'Data::Dumper'=>qw(Dumper);
+
+my $filter_name = "";
+my $filter_id;
+my $version = 0;
+
+GetOptions(
+    'filter=s'      =>\$filter_name,
+    'filter_id=s'   =>\$filter_id,
+    'version'       =>\$version
+) or pod2usage(-exitstatus => -1);
+
+if ( $version ) {
+    print ZoneMinder::Base::ZM_VERSION . "\n";
+    exit(0);
+}
+
+require ZoneMinder::Event;
+require ZoneMinder::Filter;
 
 use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)
              ? $Config{ZM_DIR_EVENTS}
@@ -134,20 +153,6 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 my $delay = $Config{ZM_FILTER_EXECUTE_INTERVAL};
 my $event_id = 0;
-my $filter_parm = "";
-my $version = 0;
-
-#
-
-GetOptions(
-    'filter=s'      =>\$filter_parm,
-    'version'       =>\$version
-) or pod2usage(-exitstatus => -1);
-
-if ( $version ) {
-    print ZoneMinder::Base::ZM_VERSION . "\n";
-    exit(0);
-}
 
 if ( ! EVENT_PATH ) {
     Error( "No event path defined. Config was $Config{ZM_DIR_EVENTS}\n" );
@@ -158,39 +163,42 @@ chdir( EVENT_PATH );
 
 my $dbh = zmDbConnect();
 
-if ( $filter_parm )
-{
-    Info( "Scanning for events using filter '$filter_parm'\n" );
-}
-else
-{
+if ( $filter_name ) {
+    Info( "Scanning for events using filter '$filter_name'\n" );
+} elsif ( $filter_id ) {
+    Info( "Scanning for events using filter id '$filter_id'\n" );
+} else {
     Info( "Scanning for events\n" );
 }
 
-if ( !$filter_parm )
-{
+if ( ! ( $filter_name or $filter_id ) ) {
     sleep( START_DELAY );
 }
 
 my $filters;
 my $last_action = 0;
 
-while( 1 )
-{
+while( 1 ) {
     my $now = time;
-    if ( ($now - $last_action) > $Config{ZM_FILTER_RELOAD_DELAY} )
-    {
+    if ( ($now - $last_action) > $Config{ZM_FILTER_RELOAD_DELAY} ) {
         Debug( "Reloading filters\n" );
         $last_action = $now;
-        $filters = getFilters( $filter_parm );
+        $filters = getFilters( { Name=>$filter_name, Id=>$filter_id } );
     }
 
-    foreach my $filter ( @$filters )
-    {
-        checkFilter( $filter );
+	foreach my $filter ( @$filters ) {
+		if ( $$filter{Concurrent} and ! ( $filter_id or $filter_name ) ) {
+			my ( $proc ) = $0 =~ /(\S+)/;
+			my ( $id ) = $$filter{Id} =~ /(\d+)/;
+			Debug("Running concurrent filter process $proc --filter_id $$filter{Id} => $id for $$filter{Name}");
+
+			system( qq`$proc --filter "$$filter{Name}" &` );
+		} else {
+			checkFilter( $filter );
+		}
     }
 
-    last if ( $filter_parm );
+    last if ( $filter_name or $filter_id );
 
     Debug( "Sleeping for $delay seconds\n" );
     sleep( $delay );
@@ -198,16 +206,18 @@ while( 1 )
 
 sub getFilters
 {
-    my $filter_name = shift;
+    my $sql_filters = @_ ? shift : {};
+	my @sql_values;
 
     my @filters;
     my $sql = "SELECT * FROM Filters WHERE";
-    if ( $filter_name )
-    {
+    if ( $$sql_filters{Name} ) {
         $sql .= " Name = ? and";
-    }
-    else
-    {
+		push @sql_values, $$sql_filters{Name};
+    } elsif ( $$sql_filters{Id} ) {
+        $sql .= " Id = ? and";
+		push @sql_values, $$sql_filters{Id};
+    } else {
         $sql .= " Background = 1 and";
     }
     $sql .= "(  AutoArchive = 1
@@ -220,17 +230,8 @@ sub getFilters
              ) ORDER BY Name";
     my $sth = $dbh->prepare_cached( $sql )
         or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-    my $res;
-    if ( $filter_name )
-    {
-        $res = $sth->execute( $filter_name )
-            or Fatal( "Can't execute '$sql': ".$sth->errstr() );
-    }
-    else
-    {
-        $res = $sth->execute()
-            or Fatal( "Can't execute '$sql': ".$sth->errstr() );
-    }
+	my $res = $sth->execute( @sql_values )
+		or Fatal( "Can't execute '$sql': ".$sth->errstr() );
     FILTER: while( my $db_filter = $sth->fetchrow_hashref() )
     {
 		my $filter = new ZoneMinder::Filter( $$db_filter{Id}, $db_filter );
@@ -244,7 +245,12 @@ sub getFilters
 		push( @filters, $filter );
     }
     $sth->finish();
-	Debug( "Got " . @filters . " filters" );
+	if ( ! @filters ) {
+        Warning("No filter found for $sql with values(@sql_values)");
+    } else {
+        Debug( "Got " . @filters . " filters" );
+    }
+
     return( \@filters );
 }
 
@@ -307,7 +313,7 @@ $dbh->ping();
         }
         if ( $filter->{AutoExecute} )
         {
-            if ( !$event->{Execute} )
+            if ( !$event->{Executed} )
             {
                 $delete_ok = undef if ( !executeCommand( $filter, $event ) );
             }
@@ -316,30 +322,8 @@ $dbh->ping();
         {
             if ( $delete_ok )
             {
-                Info( "Deleting event $event->{Id} from Monitor $event->{MonitorId}\n" );
-                # Do it individually to avoid locking up the table for new events
-                my $sql = "delete from Events where Id = ?";
-                my $sth = $dbh->prepare_cached( $sql )
-                    or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-                my $res = $sth->execute( $event->{Id} )
-                    or Fatal( "Can't execute '$sql': ".$sth->errstr() );
-
-                if ( ! $Config{ZM_OPT_FAST_DELETE} )
-                {
-                    my $sql = "delete from Frames where EventId = ?";
-                    my $sth = $dbh->prepare_cached( $sql )
-                        or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-                    my $res = $sth->execute( $event->{Id} )
-                        or Fatal( "Can't execute '$sql': ".$sth->errstr() );
-
-                    $sql = "delete from Stats where EventId = ?";
-                    $sth = $dbh->prepare_cached( $sql )
-                        or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-                    $res = $sth->execute( $event->{Id} )
-                        or Fatal( "Can't execute '$sql': ".$sth->errstr() );
-
-                    deleteEventFiles( $event->{Id}, $event->{MonitorId} );
-                }
+				my $Event = new ZoneMinder::Event( $$event{Id}, $event );
+				$Event->delete();
             }
             else
             {

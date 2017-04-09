@@ -75,9 +75,11 @@ sub zmDbConnect {
   if ( $force ) {
     zmDbDisconnect();
   }
-  if ( !defined( $dbh ) ) {
+  my $options = shift;
+
+  if ( ( ! defined( $dbh ) ) or ! $dbh->ping() ) {
+    my ( $host, $portOrSocket ) = ( $ZoneMinder::Config::Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
     my $socket;
-    my ( $host, $portOrSocket ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
 
     if ( defined($portOrSocket) ) {
       if ( $portOrSocket =~ /^\// ) {
@@ -89,7 +91,7 @@ sub zmDbConnect {
       $socket = ";host=".$Config{ZM_DB_HOST}; 
     }
     $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
-        .$socket
+        .$socket . ($options?';'.join(';', map { $_.'='.$$options{$_} } keys %{$options} ) : '' )
         , $Config{ZM_DB_USER}
         , $Config{ZM_DB_PASS}
         );

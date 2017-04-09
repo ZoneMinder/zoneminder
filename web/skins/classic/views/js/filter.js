@@ -79,14 +79,13 @@ function saveFilter( element )
     form.submit();
 }
 
-function deleteFilter( element, name )
+function deleteFilter( element, id, name )
 {
-    if ( confirm( deleteSavedFilterString+" '"+name+"'" ) )
+    if ( confirm( deleteSavedFilterString+" '"+name+"'?" ) )
     {
         var form = element.form;
         form.action.value = 'delete';
-        form.fid.value = name;
-        submitToFilter( element, 1 );
+        submitToFilter( element, 0 );
     }
 }
 

@@ -19,7 +19,7 @@
 // 
 
 // Compatibility functions
-if ( version_compare( phpversion(), "4.3.0", "<") ) {
+if ( version_compare( phpversion(), '4.3.0', '<') ) {
   function ob_get_clean() {
     $buffer = ob_get_contents();
     ob_end_clean();
@@ -27,24 +27,24 @@ if ( version_compare( phpversion(), "4.3.0", "<") ) {
   }
 }
 
-function userLogin( $username, $password="", $passwordHashed=false ) {
+function userLogin( $username, $password='', $passwordHashed=false ) {
   global $user, $cookies;
 
-  $sql = "select * from Users where Enabled = 1";
+  $sql = 'SELECT * FROM Users WHERE Enabled = 1';
   $sql_values = NULL;
-  if ( ZM_AUTH_TYPE == "builtin" ) {
+  if ( ZM_AUTH_TYPE == 'builtin' ) {
     if ( $passwordHashed ) {
-      $sql .= " AND Username=? AND Password=?";
+      $sql .= ' AND Username=? AND Password=?';
     } else {
-      $sql .= " AND Username=? AND Password=password(?)";
+      $sql .= ' AND Username=? AND Password=password(?)';
     }
     $sql_values = array( $username, $password );
   } else {
-    $sql .= " AND Username = ?";
+    $sql .= ' AND Username = ?';
     $sql_values = array( $username );
   }
   $_SESSION['username'] = $username;
-  if ( ZM_AUTH_RELAY == "plain" ) {
+  if ( ZM_AUTH_RELAY == 'plain' ) {
     // Need to save this in session
     $_SESSION['password'] = $password;
   }
@@ -56,6 +56,7 @@ function userLogin( $username, $password="", $passwordHashed=false ) {
     if ( ZM_AUTH_TYPE == "builtin" ) {
       $_SESSION['passwordHash'] = $user['Password'];
     }
+    session_regenerate_id();
   } else {
     Warning( "Login denied for user \"$username\"" );
     $_SESSION['loginFailed'] = true;
@@ -67,10 +68,7 @@ function userLogin( $username, $password="", $passwordHashed=false ) {
 
 function userLogout() {
   global $user;
-  $username = $user['Username'];
-
-  Info( "User \"$username\" logged out" );
-
+  Info( 'User "'.$user['Username'].'" logged out' );
   unset( $_SESSION['user'] );
   unset( $user );
 
@@ -95,12 +93,12 @@ function CORSHeaders() {
 # Only need CORSHeaders in the event that there are multiple servers in use.
       return;
     }
-    foreach( dbFetchAll( 'SELECT * FROM Servers' ) as $row ) {
+    foreach( $servers as $row ) {
       $Server = new Server( $row );
       if ( $_SERVER['HTTP_ORIGIN'] == $Server->Url() ) {
-        $valid = true;
         header("Access-Control-Allow-Origin: " . $Server->Url() );
         header("Access-Control-Allow-Headers: x-requested-with,x-request");
+        $valid = true;
       }
     }
     if ( ! $valid ) {
@@ -110,20 +108,27 @@ function CORSHeaders() {
 }
 
 function getAuthUser( $auth ) {
-  if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == "hashed" && !empty($auth) ) {
-    $remoteAddr = "";
+  if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == 'hashed' && !empty($auth) ) {
+    $remoteAddr = '';
     if ( ZM_AUTH_HASH_IPS ) {
       $remoteAddr = $_SERVER['REMOTE_ADDR'];
       if ( !$remoteAddr ) {
         Error( "Can't determine remote address for authentication, using empty string" );
-        $remoteAddr = "";
+        $remoteAddr = '';
       }
     }
 
-    $sql = "select Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds from Users where Enabled = 1";
+    if ( $_SESSION['username'] ) {
+      # Most of the time we will be logged in already and the session will have our username, so we can significantly speed up our hash testing by only looking at our user.
+      # Only really important if you have a lot of users.
+      $sql = "SELECT * FROM Users WHERE Enabled = 1 AND Username='".$_SESSION['username']."'";
+    } else {
+      $sql = 'SELECT * FROM Users WHERE Enabled = 1';
+    }
+
     foreach ( dbFetchAll( $sql ) as $user ) {
       $now = time();
-      for ( $i = 0; $i < 2; $i++, $now -= (60*60) ) { // Try for last two hours
+      for ( $i = 0; $i < ZM_AUTH_HASH_TTL; $i++, $now -= (3600) ) { // Try for last two hours
         $time = localtime( $now );
         $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$remoteAddr.$time[2].$time[3].$time[4].$time[5];
         $authHash = md5( $authKey );
@@ -131,24 +136,38 @@ function getAuthUser( $auth ) {
         if ( $auth == $authHash ) {
           return( $user );
         }
-      }
-    }
-  }
+      } // end foreach hour
+    } // end foreach user
+  } // end if using auth hash
   Error( "Unable to authenticate user from auth hash '$auth'" );
   return( false );
 }
 
 function generateAuthHash( $useRemoteAddr ) {
-  if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == "hashed" ) {
-    $time = localtime();
-    if ( $useRemoteAddr ) {
-      $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$_SESSION['remoteAddr'].$time[2].$time[3].$time[4].$time[5];
+  if ( ZM_OPT_USE_AUTH and ZM_AUTH_RELAY == 'hashed' and isset($_SESSION['username']) and $_SESSION['passwordHash'] ) {
+    # regenerate a hash at half the liftetime of a hash, an hour is 3600 so half is 1800
+    if ( ( ! isset($_SESSION['AuthHash']) ) or ( $_SESSION['AuthHashGeneratedAt'] < time() - ( ZM_AUTH_HASH_TTL * 1800 ) ) ) {
+      # Don't both regenerating Auth Hash if an hour hasn't gone by yet
+      $time = localtime();
+      $authKey = '';
+      if ( $useRemoteAddr ) {
+        $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$_SESSION['remoteAddr'].$time[2].$time[3].$time[4].$time[5];
+      } else {
+        $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$time[2].$time[3].$time[4].$time[5];
+      }
+      $auth = md5( $authKey );
+      if ( session_status() == PHP_SESSION_NONE ) {
+        Warning("Session is not active. AuthHash will not be cached.");
+      }
+      $_SESSION['AuthHash'] = $auth;
+      $_SESSION['AuthHashGeneratedAt'] = time();
+      Debug("Generated new auth $auth at " . $_SESSION['AuthHashGeneratedAt']. " using $authKey" );
     } else {
-      $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$time[2].$time[3].$time[4].$time[5];
-    }
-    $auth = md5( $authKey );
+      Debug( "Using cached auth " . $_SESSION['AuthHash'] );
+    } # end if AuthHash is not cached
+    return $_SESSION['AuthHash'];
   } else {
-    $auth = "";
+    $auth = '';
   }
   return( $auth );
 }
@@ -319,9 +338,9 @@ function outputImageStream( $id, $src, $width, $height, $title="" ) {
 
 function getImageStream( $id, $src, $width, $height, $title="" ) {
   if ( canStreamIframe() ) {
-      return '<iframe id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" width="'. validInt($width)." height=".validInt($height).'"/>';
+      return '<iframe id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" '.($width? ' width="'. validInt($width).'"' : '').($height?' height="'.validInt($height).'"' : '' ).'/>';
   } else {
-      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" width="'. validInt($width) .'" height="'. validInt( $height ).'"/>';
+      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.($width? ' width:'. validInt($width) .'px;': '').($height ? ' height:'. validInt( $height ).'px;':'').'"/>';
   }
 }
 
@@ -331,21 +350,13 @@ function outputControlStream( $src, $width, $height, $monitor, $scale, $target )
     <input type="hidden" name="view" value="blank">
     <input type="hidden" name="mid" value="<?php echo $monitor['Id'] ?>">
     <input type="hidden" name="action" value="control">
-    <?php
-    if ( $monitor['CanMoveMap'] ) {
-    ?>
-    <input type="hidden" name="control" value="moveMap">
-    <?php
-    } elseif ( $monitor['CanMoveRel'] ) {
-    ?>
-    <input type="hidden" name="control" value="movePseudoMap">
-    <?php
-    } elseif ( $monitor['CanMoveCon'] ) {
-    ?>
-    <input type="hidden" name="control" value="moveConMap">
-    <?php
-    }
-    ?>
+<?php if ( $monitor['CanMoveMap'] ) { ?>
+      <input type="hidden" name="control" value="moveMap">
+    <?php } elseif ( $monitor['CanMoveRel'] ) { ?>
+      <input type="hidden" name="control" value="movePseudoMap">
+    <?php } elseif ( $monitor['CanMoveCon'] ) { ?>
+      <input type="hidden" name="control" value="moveConMap">
+    <?php } ?>
     <input type="hidden" name="scale" value="<?php echo $scale ?>">
     <input type="image" src="<?php echo $src ?>" width="<?php echo $width ?>" height="<?php echo $height ?>">
   </form>
@@ -353,17 +364,18 @@ function outputControlStream( $src, $width, $height, $monitor, $scale, $target )
 }
 
 function outputHelperStream( $id, $src, $width, $height, $title="" ) {
-?>
-  <applet id="<?php echo $id ?>" code="com.charliemouse.cambozola.Viewer"
-  archive="<?php echo ZM_PATH_CAMBOZOLA ?>"
-  align="middle"
-  width="<?php echo $width ?>"
-  height="<?php echo $height ?>"
-  title="<?php echo $title ?>">
-  <param name="accessories" value="none"/>
-  <param name="url" value="<?php echo $src ?>"/>
-  </applet>
-<?php
+        echo getHelperStream( $id, $src, $width, $height, $title );
+}
+function getHelperStream( $id, $src, $width, $height, $title="" ) {
+    return '<applet id="'.$id.'" code="com.charliemouse.cambozola.Viewer"
+    archive="'. ZM_PATH_CAMBOZOLA .'" 
+    align="middle"
+    width="'. $width .'"
+    height="'. $height .'"
+    title="'. $title .'">
+    <param name="accessories" value="none"/>
+    <param name="url" value="'. $src .'"/>
+    </applet>';
 }
 
 function outputImageStill( $id, $src, $width, $height, $title="" ) {
@@ -373,43 +385,50 @@ function getImageStill( $id, $src, $width, $height, $title="" ) {
   return '<img id="'.$id.'" src="'.$src.'" alt="'.$title.'" width="'.$width.'" height="'.$height.'"/>';
 }
 
-function outputControlStill( $src, $width, $height, $monitor, $scale, $target ) {
-?>
-  <form name="ctrlForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" target="<?php echo $target ?>">
+function outputControlStill( $src, $width, $height, $monitor, $scale, $target )
+{
+  ?>
+    <form name="ctrlForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" target="<?php echo $target ?>">
     <input type="hidden" name="view" value="blank">
     <input type="hidden" name="mid" value="<?php echo $monitor['Id'] ?>">
     <input type="hidden" name="action" value="control">
     <?php
     if ( $monitor['CanMoveMap'] ) {
     ?>
-    <input type="hidden" name="control" value="moveMap">
+      <input type="hidden" name="control" value="moveMap">
     <?php
     } elseif ( $monitor['CanMoveRel'] ) {
     ?>
-    <input type="hidden" name="control" value="movePseudoMap">
+      <input type="hidden" name="control" value="movePseudoMap">
     <?php
     } elseif ( $monitor['CanMoveCon'] ) {
     ?>
-    <input type="hidden" name="control" value="moveConMap">
+      <input type="hidden" name="control" value="moveConMap">
     <?php
     }
     ?>
     <input type="hidden" name="scale" value="<?php echo $scale ?>">
     <input type="image" src="<?php echo $src ?>" width="<?php echo $width ?>" height="<?php echo $height ?>">
     </form>
-<?php
+    <?php
 }
 
 // Incoming args are shell-escaped. This function must escape any further arguments it cannot guarantee.
 function getZmuCommand( $args ) {
   $zmuCommand = ZMU_PATH;
 
-  if ( ZM_OPT_USE_AUTH ) {
-    if ( ZM_AUTH_RELAY == "hashed" ) {
+  if ( ZM_OPT_USE_AUTH )
+  {
+    if ( ZM_AUTH_RELAY == "hashed" )
+    {
       $zmuCommand .= " -A ".generateAuthHash( false );
-    } elseif ( ZM_AUTH_RELAY == "plain" ) {
+    }
+    elseif ( ZM_AUTH_RELAY == "plain" )
+    {
       $zmuCommand .= " -U " .escapeshellarg($_SESSION['username'])." -P ".escapeshellarg($_SESSION['password']);
-    } elseif ( ZM_AUTH_RELAY == "none" ) {
+    }
+    elseif ( ZM_AUTH_RELAY == "none" )
+    {
       $zmuCommand .= " -U ".escapeshellarg($_SESSION['username']);
     }
   }
@@ -445,16 +464,24 @@ function getEventPath( $event ) {
   return( $eventPath );
 }
 
+function getEventDefaultVideoPath( $event ) {
+  $Event = new Event( $event );
+  return $Event->getStreamSrc( array( "mode=mpeg&format=h264" ) );
+  //$Event->Path().'/'.$event['DefaultVideo'];
+}
 
 function deletePath( $path ) {
   if ( is_dir( $path ) ) {
+Debug("deletePath rm -rf $path");
     system( escapeshellcmd( "rm -rf ".$path ) );
   } else {
+Debug("deletePath unlink $path");
     unlink( $path );
   }
 }
 
-function deleteEvent( $event, $mid=false ) { 
+function deleteEvent( $event ) {
+
   if ( empty($event) ) {
     Error( "Empty event passed to deleteEvent.");
     return;
@@ -462,49 +489,15 @@ function deleteEvent( $event, $mid=false ) {
 
   if ( gettype($event) != 'array' ) {
 # $event could be an eid, so turn it into an event hash
-    $event = dbFetchOne( 'SELECT Id, MonitorId, StartTime FROM Events WHERE Id=?', NULL, array( $event ) );
+    $event = new Event( $event );
+  } else {
+Debug("Event type: " . gettype($event));
   }
 
   global $user;
 
-  if ( !$mid )
-    $mid = $event['MonitorId'];
-
   if ( $user['Events'] == 'Edit' ) {
-
-    dbQuery( 'DELETE FROM Events WHERE Id = ?', array($event['Id']) );
-    if ( !ZM_OPT_FAST_DELETE ) {
-      dbQuery( 'DELETE FROM Stats WHERE EventId = ?', array($event['Id']) );
-      dbQuery( 'DELETE FROM Frames WHERE EventId = ?', array($event['Id']) );
-      if ( ZM_USE_DEEP_STORAGE ) {
-
-# Assumption: All events haev a start time
-        $start_date = date_parse( $event['StartTime'] );
-        $start_date['year'] = $start_date['year'] % 100;
-
-# So this is  because ZM creates a link under the day pointing to the time that the event happened. 
-        $eventlink_path = sprintf('%s/%d/%02d/%02d/%02d/.%d', ZM_DIR_EVENTS, $mid, $start_date['year'], $start_date['month'], $start_date['day'], $event['Id'] );
-
-        if ( $id_files = glob( $eventlink_path ) ) {
-# I know we are using arrays here, but really there can only ever be 1 in the array
-          $eventPath = preg_replace( '/\.'.$event['Id'].'$/', readlink($id_files[0]), $id_files[0] );
-          deletePath( $eventPath );
-          deletePath( $id_files[0] );
-          $pathParts = explode(  '/', $eventPath );
-          for ( $i = count($pathParts)-1; $i >= 2; $i-- ) {
-            $deletePath = join( '/', array_slice( $pathParts, 0, $i ) );
-            if ( !glob( $deletePath."/*" ) ) {
-              deletePath( $deletePath );
-            }
-          }
-        } else {
-          Warning( "Found no event files under $eventlink_path" );
-        } # end if found files
-      } else {
-        $eventPath = implode( '/', array( ZM_DIR_EVENTS, $mid, $event['Id'] ) );
-        deletePath( $eventPath );
-      } # USE_DEEP_STORAGE OR NOT
-    } # ! ZM_OPT_FAST_DELETE
+    $event->delete();
   } # CAN EDIT
 }
 
@@ -529,11 +522,11 @@ function makePopupLink( $url, $winName, $winSize, $label, $condition=1, $options
       $popupParms = "'".$url."', '".$winName."', '".$winSize."'";
 
     $string .= '<a href="'.$url.'" onclick="createPopup( '.$popupParms.' ); return( false );"'.($options?(' '.$options):'').'>';
+  } else {
+    $string .= '<a>';
   }
   $string .= $label;
-  if ( $condition ) {
     $string .= '</a>';
-  }
   return( $string );
 }
 
@@ -542,7 +535,7 @@ function makePopupButton( $url, $winName, $winSize, $buttonValue, $condition=1, 
     $popupParms = "'".$url."', '".$winName."', '".$winSize[0]."', ".$winSize[1].", ".$winSize[2];
   else
     $popupParms = "'".$url."', '".$winName."', '".$winSize."'";
-  $string = '<input type="button" value="'.$buttonValue.'" onclick="createPopup( '.$popupParms.' ); return( false );"'.($condition?'':' disabled="disabled"').($options?(' '.$options):'').'/>';
+  $string = '<input class="btn btn-primary" type="button" value="'.$buttonValue.'" onclick="createPopup( '.$popupParms.' ); return( false );"'.($condition?'':' disabled="disabled"').($options?(' '.$options):'').'/>';
   return( $string );
 }
 
@@ -572,7 +565,8 @@ function truncText( $text, $length, $deslash=1 ) {
   return( preg_replace( "/^(.{".$length.",}?)\b.*$/", "\\1&hellip;", ($deslash?stripslashes($text):$text) ) );       
 }               
 
-function buildSelect( $name, $contents, $behaviours=false ) {
+function buildSelect( $name, $contents, $behaviours=false )
+{
   $value = "";
   if ( preg_match( "/^\s*(\w+)\s*(\[.*\])?\s*$/", $name, $matches ) && count($matches) > 2 ) {
     $arr = $matches[1];
@@ -696,7 +690,11 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
       default :
         {
           if ( !isset($values[$key]) || ($values[$key] != $value) ) {
-            $changes[$key] = "$key = ".dbEscape(trim($value));
+            if ( ! isset($value) || $value == '' ) {
+              $changes[$key] = "$key = NULL";
+            } else {
+              $changes[$key] = "$key = ".dbEscape(trim($value));
+            }
           }
           break;
         }
@@ -709,7 +707,9 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
           if ( !isset($newValues[$key]) && !empty($value) ) {
             $changes[$key] = "$key = 0";
           }
-        } else if ( $types[$key] == 'set' ) {
+        }
+        else if ( $types[$key] == 'set' )
+        {
           $changes[$key] = "$key = ''";
         }
       }
@@ -829,37 +829,57 @@ function packageControl( $command ) {
 }
 
 function daemonControl( $command, $daemon=false, $args=false ) {
-  $string = ZM_PATH_BIN."/zmdc.pl $command";
+  $string = escapeshellcmd(ZM_PATH_BIN).'/zmdc.pl '.$command;
   if ( $daemon ) {
-    $string .= " $daemon";
+    #$string .= ' ' .  $daemon;
+    $string .= ' ' . $daemon;
     if ( $args ) {
-      $string .= " $args";
+      $string .= ' ' . $args;
+      #$string .= ' ' . $args;
     }
   }
-  $string .= " 2>/dev/null >&- <&- >/dev/null";
+  $string .= ' 2>/dev/null >&- <&- >/dev/null';
+Debug("exec $string");
   exec( $string );
 }
 
 function zmcControl( $monitor, $mode=false ) {
   if ( (!defined('ZM_SERVER_ID')) or ( ZM_SERVER_ID==$monitor['ServerId'] ) ) {
     $row = NULL;
-    if ( $monitor['Type'] == "Local" ) {
-      $row = dbFetchOne( "select count(if(Function!='None',1,NULL)) as ActiveCount from Monitors where Device = ?", NULL, array($monitor['Device']) );
-      $zmcArgs = "-d ".$monitor['Device'];
+    if ( $monitor['Type'] == 'Local' ) {
+      $row = dbFetchOne( "SELECT count(if(Function!='None',1,NULL)) AS ActiveCount FROM Monitors WHERE Device = ?", NULL, array($monitor['Device']) );
+      $zmcArgs = '-d '.escapeshellarg( $monitor['Device'] );
     } else {
-      $row = dbFetchOne( "select count(if(Function!='None',1,NULL)) as ActiveCount from Monitors where Id = ?", NULL, array($monitor['Id']) );
-      $zmcArgs = "-m ".$monitor['Id'];
+      $row = dbFetchOne( "SELECT count(if(Function!='None',1,NULL)) AS ActiveCount FROM Monitors WHERE Id = ?", NULL, array($monitor['Id']) );
+      $zmcArgs = '-m '.$monitor['Id'];
     }
     $activeCount = $row['ActiveCount'];
-
-    if ( !$activeCount || $mode == "stop" ) {
-      daemonControl( "stop", "zmc", $zmcArgs );
+    if ( (!$activeCount) || ($mode == 'stop') ) {
+      daemonControl( 'stop', 'zmc', $zmcArgs );
     } else {
-      if ( $mode == "restart" ) {
-        daemonControl( "stop", "zmc", $zmcArgs );
+      if ( $mode == 'restart' ) {
+        daemonControl( 'stop', 'zmc', $zmcArgs );
       }
-      daemonControl( "start", "zmc", $zmcArgs );
+      daemonControl( 'start', 'zmc', $zmcArgs );
     }
+  } else {
+    $Server = new Server( $monitor['ServerId'] );
+
+    #$url = $Server->Url() . '/zm/api/monitors.json?auth='.generateAuthHash( $_SESSION['remoteAddr'] );
+    $url = $Server->Url() . '/zm/api/monitors.json?user='.$_SESSION['username'].'&pass='.$_SESSION['passwordHash'];
+    $data = array('Monitor[Function]' => $monitor['Function'] );
+
+    // use key 'http' even if you send the request to https://...
+    $options = array(
+        'http' => array(
+          'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+          'method'  => 'POST',
+          'content' => http_build_query($data)
+          )
+        );
+    $context  = stream_context_create($options);
+    $result = file_get_contents($url, false, $context);
+    if ($result === FALSE) { /* Handle error */ }
   }
 }
 
@@ -918,34 +938,34 @@ function daemonStatus( $daemon, $args=false ) {
 
   initDaemonStatus();
 
-  $string = "$daemon";
+  $string = $daemon;
   if ( $args )
-    $string .= " $args";
+    $string .= ' ' . $args;
   return( strpos( $daemon_status, "'$string' running" ) !== false );
 }
 
 function zmcStatus( $monitor ) {
   if ( $monitor['Type'] == 'Local' ) {
-    $zmcArgs = "-d ".$monitor['Device'];
+    $zmcArgs = '-d '.$monitor['Device'];
   } else {
-    $zmcArgs = "-m ".$monitor['Id'];
+    $zmcArgs = '-m '.$monitor['Id'];
   }
-  return( daemonStatus( "zmc", $zmcArgs ) );
+  return( daemonStatus( 'zmc', $zmcArgs ) );
 }
 
 function zmaStatus( $monitor ) {
   if ( is_array( $monitor ) ) {
     $monitor = $monitor['Id'];
   }
-  return( daemonStatus( "zma", "-m $monitor" ) );
+  return( daemonStatus( 'zma', "-m $monitor" ) );
 }
 
 function daemonCheck( $daemon=false, $args=false ) {
   $string = ZM_PATH_BIN."/zmdc.pl check";
   if ( $daemon ) {
-    $string .= " $daemon";
+    $string .= ' ' . escapeshellarg( $daemon );
     if ( $args )
-      $string .= " $args";
+      $string .= ' ' . escapeshellarg( $args );
   }
   $result = exec( $string );
   return( preg_match( '/running/', $result ) );
@@ -953,98 +973,23 @@ function daemonCheck( $daemon=false, $args=false ) {
 
 function zmcCheck( $monitor ) {
   if ( $monitor['Type'] == 'Local' ) {
-    $zmcArgs = "-d ".$monitor['Device'];
+    $zmcArgs = '-d '.$monitor['Device'];
   } else {
-    $zmcArgs = "-m ".$monitor['Id'];
+    $zmcArgs = '-m '.$monitor['Id'];
   }
-  return( daemonCheck( "zmc", $zmcArgs ) );
+  return( daemonCheck( 'zmc', $zmcArgs ) );
 }
 
 function zmaCheck( $monitor ) {
   if ( is_array( $monitor ) ) {
     $monitor = $monitor['Id'];
   }
-  return( daemonCheck( "zma", "-m $monitor" ) );
+  return( daemonCheck( 'zma', "-m $monitor" ) );
 }
 
 function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $overwrite=false ) {
-  $eventPath = getEventPath( $event );
-
-  if ( !is_array($frame) )
-    $frame = array( 'FrameId'=>$frame, 'Type'=>'' );
-
-  //echo "S:$scale, CO:$captureOnly<br>";
-  $captImage = sprintf( "%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $frame['FrameId'] );
-  $captPath = $eventPath.'/'.$captImage;
-  $thumbCaptPath = ZM_DIR_IMAGES.'/'.$event['Id'].'-'.$captImage;
-  //echo "CI:$captImage, CP:$captPath, TCP:$thumbCaptPath<br>";
-
-  $analImage = sprintf( "%0".ZM_EVENT_IMAGE_DIGITS."d-analyse.jpg", $frame['FrameId'] );
-  $analPath = $eventPath.'/'.$analImage;
-  $analFile =  ZM_DIR_EVENTS."/".$analPath;
-  $thumbAnalPath = ZM_DIR_IMAGES.'/'.$event['Id'].'-'.$analImage;
-  //echo "AI:$analImage, AP:$analPath, TAP:$thumbAnalPath<br>";
-
-  $alarmFrame = $frame['Type']=='Alarm';
-
-  $hasAnalImage = $alarmFrame && file_exists( $analFile ) && filesize( $analFile );
-  $isAnalImage = $hasAnalImage && !$captureOnly;
-
-  if ( !ZM_WEB_SCALE_THUMBS || $scale >= SCALE_BASE || !function_exists( 'imagecreatefromjpeg' ) ) {
-    $imagePath = $thumbPath = $isAnalImage?$analPath:$captPath;
-    $imageFile = ZM_DIR_EVENTS."/".$imagePath;
-    $thumbFile = ZM_DIR_EVENTS."/".$thumbPath;
-  } else {
-    if ( version_compare( phpversion(), "4.3.10", ">=") )
-      $fraction = sprintf( "%.3F", $scale/SCALE_BASE );
-    else
-      $fraction = sprintf( "%.3f", $scale/SCALE_BASE );
-    $scale = (int)round( $scale );
-
-    $thumbCaptPath = preg_replace( "/\.jpg$/", "-$scale.jpg", $thumbCaptPath );
-    $thumbAnalPath = preg_replace( "/\.jpg$/", "-$scale.jpg", $thumbAnalPath );
-
-    if ( $isAnalImage ) {
-      $imagePath = $analPath;
-      $thumbPath = $thumbAnalPath;
-    } else {
-      $imagePath = $captPath;
-      $thumbPath = $thumbCaptPath;
-    }
-
-    $imageFile = ZM_DIR_EVENTS."/".$imagePath;
-    //$thumbFile = ZM_DIR_EVENTS."/".$thumbPath;
-    $thumbFile = $thumbPath;
-    if ( $overwrite || !file_exists( $thumbFile ) || !filesize( $thumbFile ) ) {
-      // Get new dimensions
-      list( $imageWidth, $imageHeight ) = getimagesize( $imageFile );
-      $thumbWidth = $imageWidth * $fraction;
-      $thumbHeight = $imageHeight * $fraction;
-
-      // Resample
-      $thumbImage = imagecreatetruecolor( $thumbWidth, $thumbHeight );
-      $image = imagecreatefromjpeg( $imageFile );
-      imagecopyresampled( $thumbImage, $image, 0, 0, 0, 0, $thumbWidth, $thumbHeight, $imageWidth, $imageHeight );
-
-      if ( !imagejpeg( $thumbImage, $thumbFile ) )
-        Error( "Can't create thumbnail '$thumbPath'" );
-    }
-  }
-
-  $imageData = array(
-      'eventPath' => $eventPath,
-      'imagePath' => $imagePath,
-      'thumbPath' => $thumbPath,
-      'imageFile' => $imageFile,
-      'thumbFile' => $thumbFile,
-      'imageClass' => $alarmFrame?"alarm":"normal",
-      'isAnalImage' => $isAnalImage,
-      'hasAnalImage' => $hasAnalImage,
-      );
-
-  //echo "IP:$imagePath<br>";
-  //echo "TP:$thumbPath<br>";
-  return( $imageData );
+  $Event = new Event( $event );
+  return $Event->getImageSrc( $frame, $scale, $captureOnly, $overwrite );
 }
 
 function viewImagePath( $path, $querySep='&amp;' ) {
@@ -1058,6 +1003,7 @@ function viewImagePath( $path, $querySep='&amp;' ) {
 }
 
 function createListThumbnail( $event, $overwrite=false ) {
+# Load the frame with the highest score to use as a thumbnail
   if ( !($frame = dbFetchOne( "SELECT * FROM Frames WHERE EventId=? AND Score=? ORDER BY FrameId LIMIT 1", NULL, array( $event['Id'], $event['MaxScore'] ) )) )
     return( false );
 
@@ -1076,6 +1022,9 @@ function createListThumbnail( $event, $overwrite=false ) {
   }
 
   $imageData = getImageSrc( $event, $frame, $scale, false, $overwrite );
+  if ( ! $imageData ) {
+    return ( false );
+  }
   $thumbData = $frame;
   $thumbData['Path'] = $imageData['thumbPath'];
   $thumbData['Width'] = (int)$thumbWidth;
@@ -1201,6 +1150,8 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
   $filter['sql'] = '';
   $filter['fields'] = '';
 
+  $StorageArea = NULL;
+
   if ( isset($filter['terms']) && count($filter['terms']) ) {
     for ( $i = 0; $i < count($filter['terms']); $i++ ) {
       if ( isset($filter['terms'][$i]['cnj']) ) {
@@ -1220,6 +1171,9 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
           case 'MonitorName':
             $filter['sql'] .= 'M.'.preg_replace( '/^Monitor/', '', $filter['terms'][$i]['attr'] );
             break;
+          case 'ServerId':
+            $filter['sql'] .= 'M.ServerId';
+            break;
           case 'DateTime':
             $filter['sql'] .= "E.StartTime";
             break;
@@ -1235,6 +1189,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
           case 'Id':
           case 'Name':
           case 'MonitorId':
+          case 'StorageId':
           case 'Length':
           case 'Frames':
           case 'AlarmFrames':
@@ -1243,14 +1198,33 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
           case 'MaxScore':
           case 'Cause':
           case 'Notes':
+          case 'StateId':
           case 'Archived':
             $filter['sql'] .= 'E.'.$filter['terms'][$i]['attr'];
             break;
           case 'DiskPercent':
-            $filter['sql'] .= getDiskPercent();
+            // Need to specify a storage area, so need to look through other terms looking for a storage area, else we default to ZM_EVENTS_PATH
+            if ( ! $StorageArea ) {
+              for ( $j = 0; $j < count($filter['terms']); $j++ ) {
+                if ( isset($filter['terms'][$j]['attr']) and $filter['terms'][$j]['attr'] == 'StorageId' ) {
+                  $StorageArea = new Storage(  $filter['terms'][$j]['val'] );
+                }
+              } // end foreach remaining term
+              if ( ! $StorageArea ) $StorageArea = new Storage();
+            } // end no StorageArea found yet
+
+            $filter['sql'] .= getDiskPercent( $StorageArea->Path() );
             break;
           case 'DiskBlocks':
-            $filter['sql'] .= getDiskBlocks();
+            // Need to specify a storage area, so need to look through other terms looking for a storage area, else we default to ZM_EVENTS_PATH
+            if ( ! $StorageArea ) {
+              for ( $j = $i; $j < count($filter['terms']); $j++ ) {
+                if ( isset($filter['terms'][$i]['attr']) and $filter['terms'][$i]['attr'] == 'StorageId' ) {
+                  $StorageArea = new Storage(  $filter['terms'][$i]['val'] );
+                }
+              } // end foreach remaining term
+            } // end no StorageArea found yet
+            $filter['sql'] .= getDiskBlocks( $StorageArea );
             break;
           case 'SystemLoad':
             $filter['sql'] .= getLoad();
@@ -1263,6 +1237,17 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
             case 'Name':
             case 'Cause':
             case 'Notes':
+              $value = dbEscape($value);
+              break;
+            case 'ServerId':
+              if ( $value == 'ZM_SERVER_ID' ) {
+                $value = ZM_SERVER_ID;
+              } else {
+                $value = dbEscape($value);
+              }
+              break;
+            case 'StorageId':
+              $StorageArea = new Storage( $value );
               $value = dbEscape($value);
               break;
             case 'DateTime':
@@ -1420,9 +1405,9 @@ function sortHeader( $field, $querySep='&amp;' ) {
 function sortTag( $field ) {
   if ( $_REQUEST['sort_field'] == $field )
     if ( $_REQUEST['sort_asc'] )
-      return( "(^)" );
+      return( '(^)' );
     else
-      return( "(v)" );
+      return( '(v)' );
   return( false );
 }
 
@@ -1433,20 +1418,24 @@ function getLoad() {
 
 function getDiskPercent($path = ZM_DIR_EVENTS) {
   $total = disk_total_space($path);
-  if ( ! $total ) {
-    Error("disk_total_space returned false for " . $path );
+  if ( $total === false ) {
+    Error('disk_total_space returned false. Verify the web account user has access to ' . $path );
     return 0;
+  } elseif ( $total == 0 ) {
+    Error('disk_total_space indicates the following path has a filesystem size of zero bytes' . $path );
+    return 100;
   }
   $free = disk_free_space($path);
-  if ( ! $free ) {
-    Error("disk_free_space returned false for " . $path );
+  if ( $free === false ) {
+    Error('disk_free_space returned false. Verify the web account user has access to ' . $path );
   }
-  $space = round(($total - $free) / $total * 100);
+  $space = round((($total - $free) / $total) * 100);
   return( $space );
 }
 
 function getDiskBlocks() {
-  $df = shell_exec( 'df '.ZM_DIR_EVENTS );
+  if ( ! $StorageArea ) $StorageArea = new Storage();
+  $df = shell_exec( 'df '.escapeshellarg($StorageArea->Path() ));
   $space = -1;
   if ( preg_match( '/\s(\d+)\s+\d+\s+\d+%/ms', $df, $matches ) )
     $space = $matches[1];
@@ -2112,24 +2101,64 @@ function validHtmlStr( $input ) {
   return( htmlspecialchars( $input, ENT_QUOTES ) );
 }
 
-function getStreamHTML( $monitor, $scale=100 ) {
-//FIXME, the width and height of the image need to be scaled.
-    if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
-        $streamSrc = $monitor->getStreamSrc( array( "mode=mpeg", "scale=".$scale, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_LIVE_FORMAT ) );
-        return getVideoStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
-    } else if ( canStream() ) {
-        $streamSrc = $monitor->getStreamSrc( array( 'mode=jpeg', 'scale='.$scale, 'maxfps='.ZM_WEB_VIDEO_MAXFPS, 'buffer='.$monitor->StreamReplayBuffer() ) );
-        if ( canStreamNative() ) {
-            return getImageStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
-        } elseif ( canStreamApplet() ) {
-            return getHelperStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
-        }
-    } else {
-        $streamSrc = $monitor->getStreamSrc( array( 'mode=single', "scale=".$scale ) );
-        Info( "The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.");
-        return getImageStill( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
+function getStreamHTML( $monitor, $options = array() ) {
+
+	if ( isset($options['scale']) ) {
+		$options['width'] = reScale( $monitor->Width(), $options['scale'] );
+		$options['height'] = reScale( $monitor->Height(), $options['scale'] );
+	}
+	if ( ! isset($options['mode'] ) ) {
+		$options['mode'] = 'stream';
+	}
+  $options['maxfps'] = ZM_WEB_VIDEO_MAXFPS;
+  if ( $monitor->StreamReplayBuffer() )
+    $options['buffer'] = $monitor->StreamReplayBuffer();
+
+  //FIXME, the width and height of the image need to be scaled.
+  if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
+    $streamSrc = $monitor->getStreamSrc( array( 'mode'=>'mpeg', 'scale'=>$options['scale'], 'bitrate'=>ZM_WEB_VIDEO_BITRATE, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'format' => ZM_MPEG_LIVE_FORMAT ) );
+
+    return getVideoStream( 'liveStream'.$monitor->Id(), $streamSrc, $options, ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
+  } else if ( $options['mode'] == 'stream' and canStream() ) {
+    $options['mode'] = 'jpeg';
+    $streamSrc = $monitor->getStreamSrc( $options );
+
+    if ( canStreamNative() )
+      return getImageStream( 'liveStream'.$monitor->Id(), $streamSrc, 
+          ( isset($options['width']) ? $options['width'] : NULL ),
+          ( isset($options['height']) ? $options['height'] : NULL ),
+          $monitor->Name()
+          );
+    elseif ( canStreamApplet() )
+      return getHelperStream( 'liveStream'.$monitor->Id(), $streamSrc,
+          ( isset($options['width']) ? $options['width'] : NULL ),
+          ( isset($options['height']) ? $options['height'] : NULL ),
+          $monitor->Name()
+          );
+  } else {
+    $streamSrc = $monitor->getStreamSrc( $options );
+    if ( $mode == 'stream' ) {
+      Info( 'The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.' );
     }
+    return getImageStill( 'liveStream'.$monitor->Id(), $streamSrc, 
+          ( isset($options['width']) ? $options['width'] : NULL ),
+          ( isset($options['height']) ? $options['height'] : NULL ),
+          $monitor->Name()
+        );
+  }
 } // end function getStreamHTML
+
+function getStreamMode( ) {
+  $streamMode = '';
+  if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
+    $streamMode = 'mpeg';
+  } elseif ( canStream() ) {
+    $streamMode = 'jpeg';
+  } else {
+    $streamMode = 'single';
+    Info( 'The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.' );
+  }
+} // end function getStreamMode
 
 function folder_size($dir) {
     $size = 0;
@@ -2138,5 +2167,15 @@ function folder_size($dir) {
     }
     return $size;
 } // end function folder_size
+
+function human_filesize($bytes, $decimals = 2) {
+  $sz = 'BKMGTP';
+  $factor = floor((strlen($bytes) - 1) / 3);
+  return sprintf("%.{$decimals}f", $bytes / pow(1024, $factor)) . @$sz[$factor];
+}
+
+function csrf_startup() {
+    csrf_conf('rewrite-js', 'includes/csrf/csrf-magic.js');
+}
 
 ?>

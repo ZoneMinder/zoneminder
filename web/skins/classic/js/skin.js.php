@@ -35,7 +35,18 @@ var canViewSystem = <?php echo canView('System' )?'true':'false' ?>;
 
 var canEditGroups = <?php echo canEdit('Groups' )?'true':'false' ?>;
 
-var refreshParent = <?php echo !empty($refreshParent)?'true':'false' ?>;
+var refreshParent = <?php
+if ( ! empty($refreshParent) ) {
+  if ( $refreshParent == true ) {
+    echo 'true';
+    return;
+  } else if ( $refreshParent ) {
+    echo "'$refreshParent'";
+    return;
+  } 
+}
+echo 'false';
+?>;
 
 var focusWindow = <?php echo !empty($focusWindow)?'true':'false' ?>;
 

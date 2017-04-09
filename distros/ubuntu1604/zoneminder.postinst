@@ -12,6 +12,10 @@ if [ "$1" = "configure" ]; then
     if [ -z "$2" ]; then
         chown www-data:www-data /var/cache/zoneminder /var/cache/zoneminder/*
     fi
+    if [ ! -e "/etc/apache2/mods-enabled/cgi.load" ]; then
+      echo "The cgi module is not enabled in apache2.  I am enabling it using a2enmod cgi."
+      a2enmod cgi
+    fi
 
 	# Do this every time the package is installed or upgraded
 

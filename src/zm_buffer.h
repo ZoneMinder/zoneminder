@@ -153,7 +153,7 @@ public:
         mHead = mTail = mStorage;
       else if ( level )
       {
-        if ( (mHead-mStorage) > mSize )
+        if ( ((uintptr_t)mHead-(uintptr_t)mStorage) > mSize )
         {
           memcpy( mStorage, mHead, mSize );
           mHead = mStorage;

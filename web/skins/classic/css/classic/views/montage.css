@@ -9,6 +9,9 @@
 #content {
     width: 99%;
 }
+#monitors .monitor {
+  min-width: 180px;
+}
 
 #monitors .alarm {
     color: #ff0000;
@@ -42,4 +45,8 @@
 #monitors .monitorState {
     margin: 2px auto;
     text-align: center;
+    border: 0;
+}
+#monitors .alert .monitorState {
+    border: 0;
 }

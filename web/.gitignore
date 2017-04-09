@@ -8,6 +8,7 @@
 /build
 /dist
 /tags
+/app/webroot/events
 
 # OS generated files #
 ######################

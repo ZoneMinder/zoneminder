@@ -44,6 +44,7 @@ function dbConnect()
 
 	try {
 		$dbConn = new PDO( ZM_DB_TYPE . $socket . ';dbname='.ZM_DB_NAME, ZM_DB_USER, ZM_DB_PASS );
+		$dbConn->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
 		$dbConn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 	} catch(PDOException $ex ) {
 		echo "Unable to connect to ZM db." . $ex->getMessage();

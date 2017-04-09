@@ -28,30 +28,13 @@ use 5.006;
 use strict;
 use warnings;
 
-require Exporter;
 require ZoneMinder::Base;
+require ZoneMinder::Object;
+require ZoneMinder::Storage;
 require Date::Manip;
 
-our @ISA = qw(Exporter ZoneMinder::Base);
-
-# Items to export into callers namespace by default. Note: do not export
-# names by default without a very good reason. Use EXPORT_OK instead.
-# Do not simply export all your public functions/methods/constants.
-
-# This allows declaration   use ZoneMinder ':all';
-# If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
-# will save memory.
-our %EXPORT_TAGS = (
-    'functions' => [ qw(
-      ) ]
-    );
-push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
-
-our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
-
-our @EXPORT = qw();
-
-our $VERSION = $ZoneMinder::Base::VERSION;
+#our @ISA = qw(ZoneMinder::Object);
+use parent qw(ZoneMinder::Object);
 
 # ==========================================================================
 #
@@ -62,39 +45,24 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Database qw(:all);
+require Date::Parse;
+
+use vars qw/ $table $primary_key /;
+$table = 'Events';
+$primary_key = 'Id';
 
 use POSIX;
 
-sub new {
-  my ( $parent, $id, $data ) = @_;
-
-  my $self = {};
-  bless $self, $parent;
-  $$self{dbh} = $ZoneMinder::Database::dbh;
-#zmDbConnect();
-  if ( ( $$self{Id} = $id ) or $data ) {
-#$log->debug("loading $parent $id") if $debug or DEBUG_ALL;
-    $self->load( $data );
+sub Time {
+  if ( @_ > 1 ) {
+    $_[0]{Time} = $_[1];
   }
-  return $self;
-} # end sub new
+  if ( ! defined $_[0]{Time} ) {
 
-sub load {
-  my ( $self, $data ) = @_;
-  my $type = ref $self;
-  if ( ! $data ) {
-#$log->debug("Object::load Loading from db $type");
-    $data = $$self{dbh}->selectrow_hashref( 'SELECT * FROM Events WHERE Id=?', {}, $$self{Id} );
-    if ( ! $data ) {
-      Error( "Failure to load Event record for $$self{Id}: Reason: " . $$self{dbh}->errstr );
-    } else {
-      Debug( 3, "Loaded Event $$self{Id}" );	
-    } # end if
-  } # end if ! $data
-  if ( $data and %$data ) {
-    @$self{keys %$data} = values %$data;
-  } # end if
-} # end sub load
+    $_[0]{Time} = Date::Parse::str2time( $_[0]{StartTime} );
+  }
+  return $_[0]{Time};
+}
 
 sub Name {
   if ( @_ > 1 ) {
@@ -130,6 +98,7 @@ sub find {
     my $filter = new ZoneMinder::Event( $$db_filter{Id}, $db_filter );
     push @results, $filter;
   } # end while
+  $sth->finish();
   return @results;
 }
 
@@ -138,36 +107,51 @@ sub find_one {
   return $results[0] if @results;
 }
 
-sub getEventPath {
+sub getPath {
+  return Path( @_ );
+}
+sub Path {
   my $event = shift;
 
-  my $event_path = "";
-  if ( $Config{ZM_USE_DEEP_STORAGE} ) {
-    $event_path = $Config{ZM_DIR_EVENTS}
-    .'/'.$event->{MonitorId}
-    .'/'.strftime( "%y/%m/%d/%H/%M/%S",
-        localtime($event->{Time})
-        )
-      ;
-  } else {
-    $event_path = $Config{ZM_DIR_EVENTS}
-    .'/'.$event->{MonitorId}
-    .'/'.$event->{Id}
-    ;
+  if ( @_ > 1 ) {
+    $$event{Path} = $_[1];
+    if ( ! -e $$event{Path} ) {
+      Error("Setting path for event $$event{Id} to $_[1] but does not exist!");
+    }
   }
 
-  if ( index($Config{ZM_DIR_EVENTS},'/') != 0 ){
-    $event_path = $Config{ZM_PATH_WEB}
-    .'/'.$event_path
-      ;
-  }
-  return( $event_path );
+  if ( ! $$event{Path} ) {
+    my $Storage = $event->Storage();
+
+    if ( $Config{ZM_USE_DEEP_STORAGE} ) {
+      if ( $event->Time() ) {
+        $$event{Path} = join('/',
+            $Storage->Path(),
+            $event->{MonitorId},
+            strftime( "%y/%m/%d/%H/%M/%S",
+              localtime($event->Time())
+              ),
+            );
+      } else {
+        Error("Event $$event{Id} has no value for Time(), unable to determine path");
+        $$event{Path} = '';
+      }
+    } else {
+      $$event{Path} = join('/',
+          $Storage->Path(),
+          $event->{MonitorId},
+          $event->{Id},
+          );
+    }
+  } # end if
+
+  return $$event{Path};
 }
 
 sub GenerateVideo {
   my ( $self, $rate, $fps, $scale, $size, $overwrite, $format ) = @_;
 
-  my $event_path = getEventPath( $self );
+  my $event_path = $self->getPath( );
   chdir( $event_path );
   ( my $video_name = $self->{Name} ) =~ s/\s/_/g;
 
@@ -228,9 +212,7 @@ sub GenerateVideo {
     my $command = $Config{ZM_PATH_FFMPEG}
     ." -y -r $frame_rate "
       .$Config{ZM_FFMPEG_INPUT_OPTIONS}
-    ." -i %0"
-      .$Config{ZM_EVENT_IMAGE_DIGITS}
-    ."d-capture.jpg -s $video_size "
+    .' -i ' . ( $$self{DefaultVideo} ? $$self{DefaultVideo} : '%0'.$Config{ZM_EVENT_IMAGE_DIGITS} .'d-capture.jpg' )
 #. " -f concat -i /tmp/event_files.txt"
       ." -s $video_size "
       .$Config{ZM_FFMPEG_OUTPUT_OPTIONS}
@@ -253,8 +235,121 @@ sub GenerateVideo {
     Info( "Video file $video_file already exists for event $self->{Id}\n" );
     return $event_path.'/'.$video_file;
   }
-  return;	
+  return;
 } # end sub GenerateVideo
+
+sub delete {
+  my $event = $_[0];
+  Info( "Deleting event $event->{Id} from Monitor $event->{MonitorId} $event->{StartTime}\n" );
+  $ZoneMinder::Database::dbh->ping();
+# Do it individually to avoid locking up the table for new events
+  my $sql = 'delete from Events where Id = ?';
+  my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
+    or Fatal( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
+  my $res = $sth->execute( $event->{Id} )
+    or Fatal( "Can't execute '$sql': ".$sth->errstr() );
+  $sth->finish();
+
+  if ( ! $Config{ZM_OPT_FAST_DELETE} ) {
+    my $sql = 'delete from Frames where EventId = ?';
+    my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
+      or Fatal( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
+    my $res = $sth->execute( $event->{Id} )
+      or Fatal( "Can't execute '$sql': ".$sth->errstr() );
+    $sth->finish();
+
+    $sql = 'delete from Stats where EventId = ?';
+    $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
+      or Fatal( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
+    $res = $sth->execute( $event->{Id} )
+      or Fatal( "Can't execute '$sql': ".$sth->errstr() );
+    $sth->finish();
+
+    $event->delete_files( );
+  } else {
+    Debug('Not deleting frames, stats and files for speed.');
+  }
+} # end sub delete
+
+
+sub delete_files {
+
+  my $Storage = new ZoneMinder::Storage( $_[0]{StorageId} );
+  my $storage_path = $Storage->Path();
+
+  if ( ! $storage_path ) {
+    Fatal("Empty storage path when deleting files for event $_[0]{Id} with storage id $_[0]{StorageId} ");
+    return;
+  }
+
+  chdir ( $storage_path );
+
+  if ( $Config{ZM_USE_DEEP_STORAGE} ) {
+    if ( ! $_[0]{MonitorId} ) {
+      Error("No monitor id assigned to event $_[0]{Id}");
+      return;
+    }
+    Debug("Deleting files for Event $_[0]{Id} from $storage_path.");
+    my $link_path = $_[0]{MonitorId}."/*/*/*/.".$_[0]{Id};
+#Debug( "LP1:$link_path" );
+    my @links = glob($link_path);
+#Debug( "L:".$links[0].": $!" );
+    if ( @links ) {
+      ( $link_path ) = ( $links[0] =~ /^(.*)$/ ); # De-taint
+#Debug( "LP2:$link_path" );
+
+        ( my $day_path = $link_path ) =~ s/\.\d+//;
+#Debug( "DP:$day_path" );
+      my $event_path = $day_path.readlink( $link_path );
+      ( $event_path ) = ( $event_path =~ /^(.*)$/ ); # De-taint
+#Debug( "EP:$event_path" );
+        my $command = "/bin/rm -rf $event_path";
+#Debug( "C:$command" );
+      ZoneMinder::General::executeShellCommand( $command );
+
+      unlink( $link_path ) or Error( "Unable to unlink '$link_path': $!" );
+
+      my @path_parts = split( /\//, $event_path );
+      for ( my $i = int(@path_parts)-2; $i >= 1; $i-- ) {
+        my $delete_path = join( '/', @path_parts[0..$i] );
+#Debug( "DP$i:$delete_path" );
+        my @has_files = glob( join('/', $storage_path,$delete_path,'*' ) );
+#Debug( "HF1:".$has_files[0] ) if ( @has_files );
+        last if ( @has_files );
+        @has_files = glob( join('/', $storage_path, $delete_path, '.[0-9]*' ) );
+#Debug( "HF2:".$has_files[0] ) if ( @has_files );
+        last if ( @has_files );
+        my $command = "/bin/rm -rf $storage_path/$delete_path";
+        ZoneMinder::General::executeShellCommand( $command );
+      }
+    }
+  } else {
+    my $command = "/bin/rm -rf $storage_path/$_[0]{MonitorId}/$_[0]{Id}";
+    ZoneMinder::General::executeShellCommand( $command );
+  }
+} # end sub delete_files
+
+sub Storage {
+  return new ZoneMinder::Storage( $_[0]{StorageId} );
+}
+
+sub check_for_in_filesystem {
+  my $path = $_[0]->Path();
+  if ( $path ) {
+    my @files = glob( $path . '/*' );
+Debug("Checking for files for event $_[0]{Id} at $path using glob $path/* found " . scalar @files . " files");
+    return 1 if @files;
+  }
+Debug("Checking for files for event $_[0]{Id} at $path using glob $path/* found no files");
+  return 0;
+}
+
+sub age {
+  if ( ! $_[0]{age} ) {
+    $_[0]{age} = (time() - ($^T - ((-M $_[0]->Path() ) * 24*60*60)));
+  }
+  return $_[0]{age};
+}
 
 1;
 __END__

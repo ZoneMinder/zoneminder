@@ -122,8 +122,8 @@ protected:
 	}
 
 public:
-	enum { CHAR_HEIGHT=11, CHAR_WIDTH=6 };
-	enum { LINE_HEIGHT=CHAR_HEIGHT+0 };
+	enum { ZM_CHAR_HEIGHT=11, ZM_CHAR_WIDTH=6 };
+	enum { LINE_HEIGHT=ZM_CHAR_HEIGHT+0 };
 
 protected:
 	static bool initialised;
@@ -264,6 +264,7 @@ public:
 /* Blend functions */
 void sse2_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent);
 void std_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent);
+void neon32_armv7_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent);
 void std_blend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent);
 
 /* Delta functions */
@@ -274,6 +275,11 @@ void std_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, 
 void std_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
 void std_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
 void std_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void neon32_armv7_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void neon32_armv7_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void neon32_armv7_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void neon32_armv7_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void neon32_armv7_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
 void sse2_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
 void sse2_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
 void sse2_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
@@ -293,6 +299,9 @@ void std_convert_argb_gray8(const uint8_t* col1, uint8_t* result, unsigned long 
 void std_convert_abgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
 void std_convert_yuyv_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
 void ssse3_convert_rgba_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void ssse3_convert_bgra_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void ssse3_convert_argb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void ssse3_convert_abgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
 void ssse3_convert_yuyv_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
 void zm_convert_yuyv_rgb(const uint8_t* col1, uint8_t* result, unsigned long count);
 void zm_convert_yuyv_rgba(const uint8_t* col1, uint8_t* result, unsigned long count);
@@ -309,8 +318,3 @@ void std_deinterlace_4field_rgba(uint8_t* col1, uint8_t* col2, unsigned int thre
 void std_deinterlace_4field_bgra(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height);
 void std_deinterlace_4field_argb(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height);
 void std_deinterlace_4field_abgr(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height);
-void ssse3_deinterlace_4field_gray8(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height);
-void ssse3_deinterlace_4field_rgba(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height);
-void ssse3_deinterlace_4field_bgra(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height);
-void ssse3_deinterlace_4field_argb(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height);
-void ssse3_deinterlace_4field_abgr(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height);

@@ -122,7 +122,7 @@ $connkey = generateConnKey();
 $streamSrc = '';
 $streamMode = '';
 # Have to do this here, because the .js.php references somethings figured out when generating the streamHTML
-$StreamHTML = getStreamHTML( $monitor, $scale );
+$StreamHTML = getStreamHTML( $monitor, array('scale'=>$scale) );
 
 xhtmlHeaders(__FILE__, translate('Zone') );
 ?>
@@ -162,7 +162,13 @@ xhtmlHeaders(__FILE__, translate('Zone') );
               </tr>
               <tr>
                 <th scope="row"><?php echo translate('ZoneAlarmColour') ?></th>
-                <td colspan="2"><input type="text" name="newAlarmRgbR" value="<?php echo ($newZone['AlarmRGB']>>16)&0xff ?>" size="3" onchange="limitRange( this, 0, 255 )"/>&nbsp;/&nbsp;<input type="text" name="newAlarmRgbG" value="<?php echo ($newZone['AlarmRGB']>>8)&0xff ?>" size="3" onchange="limitRange( this, 0, 255 )"/>&nbsp;/&nbsp;<input type="text" name="newAlarmRgbB" value="<?php echo $newZone['AlarmRGB']&0xff ?>" size="3" onchange="limitRange( this, 0, 255 )"/></td>
+                <td colspan="2">
+                  <input type="text" name="newAlarmRgbR" value="<?php echo ($newZone['AlarmRGB']>>16)&0xff ?>" size="3" onchange="limitRange( this, 0, 255 )"/>
+                  /
+                  <input type="text" name="newAlarmRgbG" value="<?php echo ($newZone['AlarmRGB']>>8)&0xff ?>" size="3" onchange="limitRange( this, 0, 255 )"/>
+                  /
+                  <input type="text" name="newAlarmRgbB" value="<?php echo $newZone['AlarmRGB']&0xff ?>" size="3" onchange="limitRange( this, 0, 255 )"/>
+                </td>
               </tr>
               <tr>
                 <th scope="row"><?php echo translate('CheckMethod') ?></th>

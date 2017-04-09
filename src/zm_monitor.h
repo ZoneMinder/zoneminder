@@ -29,7 +29,9 @@
 #include "zm_rgb.h"
 #include "zm_zone.h"
 #include "zm_event.h"
+class Monitor;
 #include "zm_camera.h"
+#include "zm_storage.h"
 #include "zm_utils.h"
 
 #include "zm_image_analyser.h"
@@ -47,9 +49,9 @@
 //
 class Monitor
 {
-friend class MonitorStream;
+  friend class MonitorStream;
 
-public:
+  public:
   typedef enum
   {
     QUERY=0,
@@ -86,7 +88,13 @@ public:
     TAPE
   } State;
 
-protected:
+  typedef enum {
+    DISABLED,
+    X264ENCODE,
+    H264PASSTHROUGH,
+  } VideoWriter;
+
+  protected:
   typedef std::set<Zone *> ZoneSet;
 
   typedef enum { GET_SETTINGS=0x1, SET_SETTINGS=0x2, RELOAD=0x4, SUSPEND=0x10, RESUME=0x20 } Action;
@@ -96,43 +104,47 @@ protected:
   /* sizeof(SharedData) expected to be 336 bytes on 32bit and 64bit */
   typedef struct
   {
-    uint32_t size;         /* +0  */
-    uint32_t last_write_index;   /* +4  */ 
-    uint32_t last_read_index;    /* +8  */
-    uint32_t state;        /* +12   */
-    uint32_t last_event;       /* +16   */
-    uint32_t action;         /* +20   */
-    int32_t brightness;      /* +24   */
-    int32_t hue;           /* +28   */
-    int32_t colour;        /* +32   */
-    int32_t contrast;        /* +36   */
-    int32_t alarm_x;         /* +40   */
-    int32_t alarm_y;         /* +44   */
-    uint8_t valid;         /* +48   */
-    uint8_t active;        /* +49   */
-    uint8_t signal;        /* +50   */
-    uint8_t format;        /* +51   */
-    uint32_t imagesize;      /* +52   */
-    uint32_t epadding1;      /* +56   */
-    uint32_t epadding2;      /* +60   */
+    uint32_t size;              /* +0    */
+    uint32_t last_write_index;  /* +4    */ 
+    uint32_t last_read_index;   /* +8    */
+    uint32_t state;             /* +12   */
+    uint32_t last_event;        /* +16   */
+    uint32_t action;            /* +20   */
+    int32_t brightness;         /* +24   */
+    int32_t hue;                /* +28   */
+    int32_t colour;             /* +32   */
+    int32_t contrast;           /* +36   */
+    int32_t alarm_x;            /* +40   */
+    int32_t alarm_y;            /* +44   */
+    uint8_t valid;              /* +48   */
+    uint8_t active;             /* +49   */
+    uint8_t signal;             /* +50   */
+    uint8_t format;             /* +51   */
+    uint32_t imagesize;         /* +52   */
+    uint32_t epadding1;         /* +56   */
+    uint32_t epadding2;         /* +60   */
     /* 
-    ** This keeps 32bit time_t and 64bit time_t identical and compatible as long as time is before 2038.
-    ** Shared memory layout should be identical for both 32bit and 64bit and is multiples of 16.
-    */  
-    union {            /* +64  */
-        time_t last_write_time;
-        uint64_t extrapad1;
+     ** This keeps 32bit time_t and 64bit time_t identical and compatible as long as time is before 2038.
+     ** Shared memory layout should be identical for both 32bit and 64bit and is multiples of 16.
+     */  
+    union {                     /* +64   */
+      time_t startup_time;			/* When the zmc process started.  zmwatch uses this to see how long the process has been running without getting any images */
+      uint64_t extrapad1;
     };
-    union {            /* +72   */
-        time_t last_read_time;
-        uint64_t extrapad2;
+    union {                     /* +72   */
+      time_t last_write_time;
+      uint64_t extrapad2;
     };
-    uint8_t control_state[256];  /* +80   */
-    
+    union {            /* +80   */
+      time_t last_read_time;
+      uint64_t extrapad3;
+    };
+    uint8_t control_state[256];  /* +88   */
+
   } SharedData;
 
   typedef enum { TRIGGER_CANCEL, TRIGGER_ON, TRIGGER_OFF } TriggerState;
-  
+
   /* sizeof(TriggerData) expected to be 560 on 32bit & and 64bit */
   typedef struct
   {
@@ -153,73 +165,92 @@ protected:
     void* padding;
   };
 
-  class MonitorLink
+  //TODO: Technically we can't exclude this struct when people don't have avformat as the Memory.pm module doesn't know about avformat
+#if 1
+  //sizeOf(VideoStoreData) expected to be 4104 bytes on 32bit and 64bit
+  typedef struct
   {
-  protected:
-    unsigned int  id;
-    char      name[64];
+    uint32_t size;
+    char event_file[4096];
+    uint32_t recording; //bool arch dependent so use uint32 instead
+    //uint32_t frameNumber;
+  } VideoStoreData;
 
-    bool      connected;
-    time_t      last_connect_time;
+#endif // HAVE_LIBAVFORMAT
+
+  class MonitorLink {
+    protected:
+      unsigned int  id;
+      char      name[64];
+
+      bool      connected;
+      time_t    last_connect_time;
 
 #if ZM_MEM_MAPPED
-    int        map_fd;
-    char      mem_file[PATH_MAX];
+      int       map_fd;
+      char      mem_file[PATH_MAX];
 #else // ZM_MEM_MAPPED
-    int       shm_id;
+      int       shm_id;
 #endif // ZM_MEM_MAPPED
-    off_t  mem_size;
-    unsigned char  *mem_ptr;
+      off_t     mem_size;
+      unsigned char  *mem_ptr;
 
-    volatile SharedData  *shared_data;
-    volatile TriggerData  *trigger_data;
+      volatile SharedData  *shared_data;
+      volatile TriggerData  *trigger_data;
+      volatile VideoStoreData *video_store_data;
 
-    int        last_state;
-    int        last_event;
+      int        last_state;
+      int        last_event;
 
-  public:
-    MonitorLink( int p_id, const char *p_name );
-    ~MonitorLink();
 
-    inline int Id() const
-    {
-      return( id );
-    }
-    inline const char *Name() const
-    {
-      return( name );
-    }
+    public:
+      MonitorLink( int p_id, const char *p_name );
+      ~MonitorLink();
 
-    inline bool isConnected() const
-    {   
-      return( connected );
-    }
-    inline time_t getLastConnectTime() const
-    {
-      return( last_connect_time );
-    }
+      inline int Id() const {
+        return( id );
+      }
+      inline const char *Name() const {
+        return( name );
+      }
 
-    bool connect();
-    bool disconnect();
+      inline bool isConnected() const {   
+        return( connected );
+      }
+      inline time_t getLastConnectTime() const {
+        return( last_connect_time );
+      }
 
-    bool isAlarmed();
-    bool inAlarm();
-    bool hasAlarmed();
+      bool connect();
+      bool disconnect();
+
+      bool isAlarmed();
+      bool inAlarm();
+      bool hasAlarmed();
   };
 
-protected:
+  protected:
   // These are read from the DB and thereafter remain unchanged
   unsigned int  id;
   char      name[64];
-  unsigned int  server_id;
-  Function    function;        // What the monitor is doing
-  bool      enabled;        // Whether the monitor is enabled or asleep
-  unsigned int  width;          // Normally the same as the camera, but not if partly rotated
-  unsigned int  height;          // Normally the same as the camera, but not if partly rotated
+  unsigned int  server_id;        // Id of the Server object
+  unsigned int  storage_id;        // Id of the Storage Object, which currently will just provide a path, but in future may do more.
+  Function    function;          // What the monitor is doing
+  bool      enabled;          // Whether the monitor is enabled or asleep
+  unsigned int    width;            // Normally the same as the camera, but not if partly rotated
+  unsigned int    height;            // Normally the same as the camera, but not if partly rotated
   bool      v4l_multi_buffer;
   unsigned int  v4l_captures_per_frame;
   Orientation    orientation;      // Whether the image has to be rotated at all
   unsigned int  deinterlacing;
+bool videoRecording;
+
+  int savejpegspref;
+  VideoWriter videowriter;
+  std::string encoderparams;
+  std::vector<EncoderParameter_t> encoderparamsvec;
+  bool      record_audio;      // Whether to store the audio that we receive
+
   int        brightness;        // The statically saved brightness of the camera
   int        contrast;        // The statically saved contrast of the camera
   int        hue;          // The statically saved hue of the camera
@@ -227,20 +258,20 @@ protected:
   char      event_prefix[64];    // The prefix applied to event names as they are created
   char      label_format[64];    // The format of the timestamp on the images
   Coord      label_coord;      // The coordinates of the timestamp on the images
-  int      label_size;         // Size of the timestamp on the images
+  int        label_size;         // Size of the timestamp on the images
   int        image_buffer_count;   // Size of circular image buffer, at least twice the size of the pre_event_count
   int        pre_event_buffer_count;   // Size of dedicated circular pre event buffer used when analysis is not performed at capturing framerate,
-                                  // value is pre_event_count + alarm_frame_count - 1
+  // value is pre_event_count + alarm_frame_count - 1
   int        warmup_count;      // How many images to process before looking for events
   int        pre_event_count;    // How many images to hold and prepend to an alarm event
   int        post_event_count;    // How many unalarmed images must occur before the alarm state is reset
   int        stream_replay_buffer;   // How many frames to store to support DVR functions, IGNORED from this object, passed directly into zms now
   int        section_length;      // How long events should last in continuous modes
-  bool        adaptive_skip;        // Whether to use the newer adaptive algorithm for this monitor
+  bool      adaptive_skip;        // Whether to use the newer adaptive algorithm for this monitor
   int        frame_skip;        // How many frames to skip in continuous modes
   int        motion_frame_skip;      // How many frames to skip in motion detection
-  double        analysis_fps;  // Target framerate for video analysis
-  unsigned int      analysis_update_delay;  //  How long we wait before updating analysis parameters
+  double      analysis_fps;  // Target framerate for video analysis
+  unsigned int  analysis_update_delay;  //  How long we wait before updating analysis parameters
   int        capture_delay;      // How long we wait between capture frames
   int        alarm_capture_delay;  // How long we wait between capture frames when in alarm state
   int        alarm_frame_count;    // How many alarm frames are required before an event is triggered
@@ -248,8 +279,8 @@ protected:
   int        ref_blend_perc;      // Percentage of new image going into reference image.
   int        alarm_ref_blend_perc;      // Percentage of new image going into reference image during alarm.
   bool      track_motion;      // Whether this monitor tries to track detected motion 
-  Rgb       signal_check_colour;  // The colour that the camera will emit when no video signal detected
-    bool              embed_exif; // Whether to embed Exif data into each image frame or not
+  Rgb         signal_check_colour;  // The colour that the camera will emit when no video signal detected
+  bool              embed_exif; // Whether to embed Exif data into each image frame or not
 
   double      fps;
   Image      delta_image;
@@ -269,7 +300,7 @@ protected:
   time_t      start_time;
   time_t      last_fps_time;
   time_t      auto_resume_time;
-    unsigned int      last_motion_score;
+  unsigned int      last_motion_score;
 
   EventCloseMode  event_close_mode;
 
@@ -281,9 +312,11 @@ protected:
 #endif // ZM_MEM_MAPPED
   off_t        mem_size;
   unsigned char  *mem_ptr;
+  Storage      *storage;
 
   SharedData    *shared_data;
   TriggerData    *trigger_data;
+  VideoStoreData  *video_store_data;
 
   Snapshot    *image_buffer;
   Snapshot    next_buffer; /* Used by four field deinterlacing */
@@ -305,64 +338,108 @@ protected:
   MonitorLink    **linked_monitors;
 
 public:
+  Monitor( int p_id );
+
 // OurCheckAlarms seems to be unused. Check it on zm_monitor.cpp for more info.
 //bool OurCheckAlarms( Zone *zone, const Image *pImage );
-  Monitor( int p_id, const char *p_name, unsigned int p_server_id, int p_function, bool p_enabled, const char *p_linked_monitors, Camera *p_camera, int p_orientation, unsigned int p_deinterlacing, const char *p_event_prefix, const char *p_label_format, const Coord &p_label_coord, int label_size, int p_image_buffer_count, int p_warmup_count, int p_pre_event_count, int p_post_event_count, int p_stream_replay_buffer, int p_alarm_frame_count, int p_section_length, int p_frame_skip, int p_motion_frame_skip, double p_analysis_fps, unsigned int p_analysis_update_delay, int p_capture_delay, int p_alarm_capture_delay, int p_fps_report_interval, int p_ref_blend_perc, int p_alarm_ref_blend_perc, bool p_track_motion, Rgb p_signal_check_colour, bool p_embed_exif, Purpose p_purpose, int p_n_zones=0, Zone *p_zones[]=0 );
+  Monitor( 
+    int p_id,
+    const char *p_name,
+    unsigned int p_server_id,
+    unsigned int p_storage_id,
+    int p_function,
+    bool p_enabled,
+    const char *p_linked_monitors,
+    Camera *p_camera,
+    int p_orientation,
+    unsigned int p_deinterlacing,
+    int p_savejpegs,
+    VideoWriter p_videowriter,
+    std::string p_encoderparams,
+    bool  p_record_audio,
+    const char *p_event_prefix,
+    const char *p_label_format,
+    const Coord &p_label_coord,
+    int label_size,
+    int p_image_buffer_count,
+    int p_warmup_count,
+    int p_pre_event_count,
+    int p_post_event_count,
+    int p_stream_replay_buffer,
+    int p_alarm_frame_count,
+    int p_section_length,
+    int p_frame_skip,
+    int p_motion_frame_skip,
+    double p_analysis_fps,
+    unsigned int p_analysis_update_delay,
+    int p_capture_delay,
+    int p_alarm_capture_delay,
+    int p_fps_report_interval,
+    int p_ref_blend_perc,
+    int p_alarm_ref_blend_perc,
+    bool p_track_motion,
+    Rgb p_signal_check_colour,
+    bool p_embed_exif,
+    Purpose p_purpose,
+    int p_n_zones=0,
+    Zone *p_zones[]=0
+  );
   ~Monitor();
 
   void AddZones( int p_n_zones, Zone *p_zones[] );
   void AddPrivacyBitmask( Zone *p_zones[] );
 
   bool connect();
-  inline int ShmValid() const
-  {
+  inline int ShmValid() const {
     return( shared_data->valid );
   }
 
-  inline int Id() const
-  {
+  inline int Id() const {
     return( id );
   }
-  inline const char *Name() const
-  {
+  inline const char *Name() const {
     return( name );
   }
-  inline Function GetFunction() const
-  {
+  inline Storage *getStorage() {
+    if ( ! storage ) {
+      storage = new Storage( storage_id );
+    }
+    return( storage );
+  }
+  inline Function GetFunction() const {
     return( function );
   }
-  inline bool Enabled()
-  {
+  inline bool Enabled() {
     if ( function <= MONITOR )
       return( false );
     return( enabled );
   }
-  inline const char *EventPrefix() const
-  {
+  inline const char *EventPrefix() const {
     return( event_prefix );
   }
-  inline bool Ready()
-  {
+  inline bool Ready() {
     if ( function <= MONITOR )
       return( false );
     return( image_count > ready_count );
   }
-  inline bool Active()
-  {
+  inline bool Active() {
     if ( function <= MONITOR )
       return( false );
     return( enabled && shared_data->active );
   }
-  inline bool Exif()
-  {
+  inline bool Exif() {
     return( embed_exif );
   }
+  Orientation getOrientation() const;
 
-  unsigned int Width() const { return( width ); }
-  unsigned int Height() const { return( height ); }
-  unsigned int Colours() const { return( camera->Colours() ); }
-  unsigned int SubpixelOrder() const { return( camera->SubpixelOrder() ); }
+  unsigned int Width() const { return width; }
+  unsigned int Height() const { return height; }
+  unsigned int Colours() const;
+  unsigned int SubpixelOrder() const;
     
+  int GetOptSaveJPEGs() const { return( savejpegspref ); }
+  VideoWriter GetOptVideoWriter() const { return( videowriter ); }
+  const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return( &encoderparamsvec ); }    
  
   State GetState() const;
   int GetImage( int index=-1, int scale=100 );
@@ -380,6 +457,12 @@ public:
   void ForceAlarmOff();
   void CancelForced();
   TriggerState GetTriggerState() const { return( (TriggerState)(trigger_data?trigger_data->trigger_state:TRIGGER_CANCEL )); }
+	inline time_t getStartupTime() const {
+		return( shared_data->startup_time );
+	}
+	inline void setStartupTime( time_t p_time ) {
+		shared_data->startup_time = p_time;
+	}
 
   void actionReload();
   void actionEnable();
@@ -392,19 +475,10 @@ public:
   int actionColour( int p_colour=-1 );
   int actionContrast( int p_contrast=-1 );
 
-  inline int PrimeCapture()
-  {
-    return( camera->PrimeCapture() );
-  }
-  inline int PreCapture()
-  {
-    return( camera->PreCapture() );
-  }
+  int PrimeCapture();
+  int PreCapture();
   int Capture();
-  int PostCapture()
-  {
-    return( camera->PostCapture() );
-  }
+  int PostCapture();
 
   unsigned int DetectMotion( const Image &comp_image, Event::StringSet &zoneSet );
    // DetectBlack seems to be unused. Check it on zm_monitor.cpp for more info.
@@ -445,54 +519,49 @@ public:
 
 #define MOD_ADD( var, delta, limit ) (((var)+(limit)+(delta))%(limit))
 
-class MonitorStream : public StreamBase
-{
-protected:
-  typedef struct SwapImage {
-    bool      valid;
-    struct timeval  timestamp;
-    char      file_name[PATH_MAX];
-  } SwapImage;
+class MonitorStream : public StreamBase {
+  protected:
+    typedef struct SwapImage {
+      bool            valid;
+      struct timeval  timestamp;
+      char            file_name[PATH_MAX];
+    } SwapImage;
 
-private:
-  SwapImage *temp_image_buffer;
-  int temp_image_buffer_count;
-  int temp_read_index;
-  int temp_write_index;
+  private:
+    SwapImage *temp_image_buffer;
+    int temp_image_buffer_count;
+    int temp_read_index;
+    int temp_write_index;
 
-protected:
-  time_t ttl;
+  protected:
+    time_t ttl;
 
-protected:
-  int playback_buffer;
-  bool delayed;
+  protected:
+    int playback_buffer;
+    bool delayed;
 
-  int frame_count;
+    int frame_count;
 
-protected:
-  bool checkSwapPath( const char *path, bool create_path );
+  protected:
+    bool checkSwapPath( const char *path, bool create_path );
 
-  bool sendFrame( const char *filepath, struct timeval *timestamp );
-  bool sendFrame( Image *image, struct timeval *timestamp );
-  void processCommand( const CmdMsg *msg );
+    bool sendFrame( const char *filepath, struct timeval *timestamp );
+    bool sendFrame( Image *image, struct timeval *timestamp );
+    void processCommand( const CmdMsg *msg );
 
-public:
-  MonitorStream() : playback_buffer( 0 ), delayed( false ), frame_count( 0 )
-  {
-  }
-  void setStreamBuffer( int p_playback_buffer )
-  {
-    playback_buffer = p_playback_buffer;
-  }
-  void setStreamTTL( time_t p_ttl )
-  {
-    ttl = p_ttl;
-  }
-  bool setStreamStart( int monitor_id )
-  {
-    return loadMonitor( monitor_id );
-  }
-  void runStream();
+  public:
+    MonitorStream() : playback_buffer( 0 ), delayed( false ), frame_count( 0 ) {
+    }
+    void setStreamBuffer( int p_playback_buffer ) {
+      playback_buffer = p_playback_buffer;
+    }
+    void setStreamTTL( time_t p_ttl ) {
+      ttl = p_ttl;
+    }
+    bool setStreamStart( int monitor_id ) {
+      return loadMonitor( monitor_id );
+    }
+    void runStream();
 };
 
 #endif // ZM_MONITOR_H

@@ -48,7 +48,7 @@ use bytes;
 use autouse 'Pod::Usage'=>qw(pod2usage);
 
 @EXTRA_PERL_LIB@
-use ZoneMinder::Logger qw(:all);
+use ZoneMinder;
 
 my $command = $ARGV[0];
 

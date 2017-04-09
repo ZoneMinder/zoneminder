@@ -10,12 +10,19 @@
     width: 99%;
 }
 
+#monitors .monitor {
+  min-width: 180px;
+}
+
 #monitors .alarm {
     color: #ff0000;
 }
 
 #monitors .alert {
     color: #ffa500;
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
 }
 
 #monitors .imageFeed {
@@ -25,6 +32,9 @@
 
 #monitors .imageFeed img {
     border: 2px solid #ffffff;
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
 }
 
 #monitors .imageFeed img.idle {
@@ -42,4 +52,8 @@
 #monitors .monitorState {
     margin: 2px auto;
     text-align: center;
+    border: 0;
+}
+#monitors .alert .monitorState {
+    border: 0;
 }

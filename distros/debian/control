@@ -6,14 +6,14 @@ Build-Depends: debhelper (>= 9), cmake
     , libphp-serialization-perl
     , libgnutls28-dev | libgnutls-dev
     , libmysqlclient-dev | libmariadbclient-dev
-    , libjpeg8-dev
+    , libjpeg-dev
     , libpcre3-dev
     , libavcodec-dev, libavformat-dev (>= 3:0.svn20090204), libswscale-dev (>= 3:0.svn20090204), libavutil-dev
+    , libavdevice-dev
     , libv4l-dev (>= 0.8.3)
     , libbz2-dev
     , ffmpeg | libav-tools
     , libnetpbm10-dev
-    , libavdevice-dev
     , libvlccore-dev, libvlc-dev
     , libcurl4-gnutls-dev | libcurl4-nss-dev | libcurl4-openssl-dev
     , libgcrypt11-dev, libpolkit-gobject-1-dev
@@ -42,11 +42,11 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
     , libsys-cpu-perl, libsys-meminfo-perl
     , libdata-uuid-perl
     , libpcre3
-    , ffmpeg | libav-tools, libavdevice53
+    , ffmpeg | libav-tools, libavdevice53 | libavdevice55 | libavdevice57
     , rsyslog | system-log-daemon
-    , netpbm , libjpeg8
+    , netpbm
     , zip
-    , libvlccore5 | libvlccore7, libvlc5
+    , libvlccore5 | libvlccore7 | libvlccore8, libvlc5
     , libpolkit-gobject-1-0, php5-gd
 Recommends: mysql-server | mariadb-server
 Description: Video camera security and surveillance solution

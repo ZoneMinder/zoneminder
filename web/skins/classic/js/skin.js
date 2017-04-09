@@ -186,10 +186,13 @@ function refreshWindow()
     window.location.reload( true );
 }
 
-function refreshParentWindow()
-{
-    if ( window.opener )
-        window.opener.location.reload( true );
+function refreshParentWindow() {
+  if ( window.opener ) {
+    if ( refreshParent == true ) 
+      window.opener.location.reload( true );
+    else 
+      window.opener.location.href = refreshParent;
+  }
 }
 
 //Shows a message if there is an error in the streamObj or the stream doesn't exist.  Returns true if error, false otherwise.
@@ -270,19 +273,52 @@ function configureDeleteButton( element )
     form.deleteBtn.disabled = !checked;
 }
 
-function confirmDelete( message )
-{
+function confirmDelete( message ) {
     return( confirm( message?message:'Are you sure you wish to delete?' ) );
 }
 
-if ( refreshParent )
-{
+if ( refreshParent ) {
     refreshParentWindow();
 }
 
-if ( focusWindow )
-{
+if ( focusWindow ) {
     windowToFront();
 }
+
 window.addEvent( 'domready', checkSize);
+
+function convertLabelFormat(LabelFormat, monitorName){
+	//convert label format from strftime to moment's format (modified from
+	//https://raw.githubusercontent.com/benjaminoakes/moment-strftime/master/lib/moment-strftime.js
+	//added %f and %N below (TODO: add %Q)
+	var replacements = { a: 'ddd', A: 'dddd', b: 'MMM', B: 'MMMM', d: 'DD', e: 'D', F: 'YYYY-MM-DD', H: 'HH', I: 'hh', j: 'DDDD', k: 'H', l: 'h', m: 'MM', M: 'mm', p: 'A', S: 'ss', u: 'E', w: 'd', W: 'WW', y: 'YY', Y: 'YYYY', z: 'ZZ', Z: 'z', 'f': 'SS', 'N': "["+monitorName+"]", '%': '%' };
+	var momentLabelFormat = Object.keys(replacements).reduce(function (momentFormat, key) {
+	      var value = replacements[key];
+	      return momentFormat.replace("%" + key, value);
+	}, LabelFormat);
+	return momentLabelFormat;
+}
+
+function addVideoTimingTrack(video, LabelFormat, monitorName, duration, startTime){
+	var labelFormat = convertLabelFormat(LabelFormat, monitorName);
+	var webvttformat = 'HH:mm:ss.SSS', webvttdata="WEBVTT\n\n";
+
+	startTime = moment(startTime);
+
+	var seconds = moment({s:0}), endduration = moment({s:duration});
+	while(seconds.isBefore(endduration)){
+		webvttdata += seconds.format(webvttformat) + " --> ";
+		seconds.add(1,'s');
+		webvttdata += seconds.format(webvttformat) + "\n";
+		webvttdata += startTime.format(labelFormat) + "\n\n";
+		startTime.add(1, 's');
+	}
+	var track = document.createElement('track');
+	track.kind = "captions";
+	track.srclang = "en";
+	track.label = "English";
+	track['default'] = true;
+	track.src = 'data:plain/text;charset=utf-8,'+encodeURIComponent(webvttdata);
+	video.appendChild(track);
+}
 

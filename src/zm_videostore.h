@@ -8,6 +8,9 @@ extern "C"  {
 #ifdef HAVE_LIBSWRESAMPLE
 #include "libswresample/swresample.h"
 #endif
+#ifdef HAVE_LIBAVRESAMPLE
+#include "libavresample/avresample.h"
+#endif
 }
 
 #if HAVE_LIBAVCODEC
@@ -44,7 +47,10 @@ private:
   AVAudioFifo *fifo;
   int output_frame_size;
 #ifdef HAVE_LIBSWRESAMPLE
-  SwrContext *resample_context = NULL;
+  //SwrContext *resample_context = NULL;
+#endif
+#ifdef HAVE_LIBAVRESAMPLE
+AVAudioResampleContext* resample_context;
 #endif
   uint8_t *converted_input_samples = NULL;
     
@@ -65,6 +71,8 @@ private:
   int64_t previous_dts;
 
   int64_t filter_in_rescale_delta_last;
+
+  bool setup_resampler();
 
 public:
 	VideoStore(const char *filename_in, const char *format_in, AVStream *video_input_stream, AVStream *audio_input_stream, int64_t nStartTime, Monitor * p_monitor );

@@ -56,6 +56,7 @@ $errorText = false;
 $filename = '';
 $Frame = null;
 $Event = null;
+$path = null;
 
 if ( empty($_REQUEST['path']) ) {
   if ( ! empty($_REQUEST['fid']) ) {
@@ -75,7 +76,9 @@ if ( empty($_REQUEST['path']) ) {
     $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d',$Frame->FrameId()).'-'.$show.'.jpg';
     
   } else {
-    $errorText = 'No image path';
+    Fatal("No Frame ID specified");
+    header("HTTP/1.0 404 Not Found");
+    return;
   }
 
   if ( ! file_exists( $path ) ) {

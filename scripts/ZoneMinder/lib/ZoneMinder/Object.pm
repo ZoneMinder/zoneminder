@@ -45,70 +45,69 @@ use ZoneMinder::Database qw(:all);
 use vars qw/ $AUTOLOAD /;
 
 sub new {
-    my ( $parent, $id, $data ) = @_;
+  my ( $parent, $id, $data ) = @_;
 
-	my $self = {};
-	bless $self, $parent;
-		no strict 'refs';
-		my $primary_key = ${$parent.'::primary_key'};
-		if ( ! $primary_key ) {
-			Error( 'NO primary_key for type ' . $parent );
-			return;
-		} # end if
-	if ( ( $$self{$primary_key} = $id ) or $data ) {
+  my $self = {};
+  bless $self, $parent;
+  no strict 'refs';
+  my $primary_key = ${$parent.'::primary_key'};
+  if ( ! $primary_key ) {
+    Error( 'NO primary_key for type ' . $parent );
+    return;
+  } # end if
+  if ( ( $$self{$primary_key} = $id ) or $data ) {
 #$log->debug("loading $parent $id") if $debug or DEBUG_ALL;
-		$self->load( $data );
-	}
-	return $self;
+    $self->load( $data );
+  }
+  return $self;
 } # end sub new
 
 sub load {
-	my ( $self, $data ) = @_;
-	my $type = ref $self;
-	if ( ! $data ) {
-		no strict 'refs';
-		my $table = ${$type.'::table'};
-		if ( ! $table ) {
-			Error( 'NO table for type ' . $type );
-			return;
-		} # end if
-		my $primary_key = ${$type.'::primary_key'};
-		if ( ! $primary_key ) {
-			Error( 'NO primary_key for type ' . $type );
-			return;
-		} # end if
+  my ( $self, $data ) = @_;
+  my $type = ref $self;
+  if ( ! $data ) {
+    no strict 'refs';
+    my $table = ${$type.'::table'};
+    if ( ! $table ) {
+      Error( 'NO table for type ' . $type );
+      return;
+    } # end if
+    my $primary_key = ${$type.'::primary_key'};
+    if ( ! $primary_key ) {
+      Error( 'NO primary_key for type ' . $type );
+      return;
+    } # end if
 
-		if ( ! $$self{$primary_key} ) { 
-			my ( $caller, undef, $line ) = caller;
-			Error( (ref $self) . "::load called without $primary_key from $caller:$line");
-		} else {
-	#$log->debug("Object::load Loading from db $type");
-			Debug("Loading $type from $table WHERE $primary_key = $$self{$primary_key}");
-			$data = $ZoneMinder::Database::dbh->selectrow_hashref( "SELECT * FROM $table WHERE $primary_key=?", {}, $$self{$primary_key} );
-			if ( ! $data ) {
-				if ( $ZoneMinder::Database::dbh->errstr ) {
-					Error( "Failure to load Object record for $$self{$primary_key}: Reason: " . $ZoneMinder::Database::dbh->errstr );
-				} else {
-			Debug("No Results Loading $type from $table WHERE $primary_key = $$self{$primary_key}");
-					
-				} # end if
-			} # end if
-		} # end if
-	} # end if ! $data
-	if ( $data and %$data ) {
-		@$self{keys %$data} = values %$data;
-	} # end if
+    if ( ! $$self{$primary_key} ) { 
+      my ( $caller, undef, $line ) = caller;
+      Error( (ref $self) . "::load called without $primary_key from $caller:$line");
+    } else {
+#$log->debug("Object::load Loading from db $type");
+      Debug("Loading $type from $table WHERE $primary_key = $$self{$primary_key}");
+      $data = $ZoneMinder::Database::dbh->selectrow_hashref( "SELECT * FROM $table WHERE $primary_key=?", {}, $$self{$primary_key} );
+      if ( ! $data ) {
+        if ( $ZoneMinder::Database::dbh->errstr ) {
+          Error( "Failure to load Object record for $$self{$primary_key}: Reason: " . $ZoneMinder::Database::dbh->errstr );
+        } else {
+          Debug("No Results Loading $type from $table WHERE $primary_key = $$self{$primary_key}");
+        } # end if
+      } # end if
+    } # end if
+  } # end if ! $data
+  if ( $data and %$data ) {
+    @$self{keys %$data} = values %$data;
+  } # end if
 } # end sub load
 
 sub AUTOLOAD {
-    my ( $self, $newvalue ) = @_;
-    my $type = ref($_[0]);
-    my $name = $AUTOLOAD;
-    $name =~ s/.*://;
-   if ( @_ > 1 ) {
-        return $_[0]{$name} = $_[1];
-	}
-return $_[0]{$name};
+  my ( $self, $newvalue ) = @_;
+  my $type = ref($_[0]);
+  my $name = $AUTOLOAD;
+  $name =~ s/.*://;
+  if ( @_ > 1 ) {
+    return $_[0]{$name} = $_[1];
+  }
+  return $_[0]{$name};
 }
 
 

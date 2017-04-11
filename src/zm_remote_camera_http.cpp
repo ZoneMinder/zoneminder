@@ -227,7 +227,7 @@ int RemoteCameraHttp::ReadData( Buffer &buffer, unsigned int bytes_expected ) {
     }
 
     if ( total_bytes_to_read == 0 ) {
-      if( mode == SINGLE_IMAGE ) {
+      if ( mode == SINGLE_IMAGE ) {
         int error = 0;
         socklen_t len = sizeof (error);
         int retval = getsockopt( sd, SOL_SOCKET, SO_ERROR, &error, &len );
@@ -267,7 +267,7 @@ int RemoteCameraHttp::ReadData( Buffer &buffer, unsigned int bytes_expected ) {
       Debug( 2, "Socket closed" );
       //Disconnect(); // Disconnect is done outside of ReadData now.
       return( -1 );
-    } else if ( bytes_read < total_bytes_to_read ) {
+    } else if ( (unsigned int)bytes_read < total_bytes_to_read ) {
       Error( "Incomplete read, expected %d, got %d", total_bytes_to_read, bytes_read );
       return( -1 );
     }

@@ -18,7 +18,7 @@
 //
 
 if ( !canView( 'Events' ) ) {
-    $view = "error";
+    $view = 'error';
     return;
 }
 
@@ -33,8 +33,8 @@ foreach ( getSkinIncludes( 'includes/timeline_functions.php' ) as $includeFile )
 //
 
 // When the chart range is years
-define( "STRF_TL_AXIS_RANGE_YEAR1", "%b %Y" );
-define( "STRF_TL_AXIS_RANGE_YEAR2", STRF_TL_AXIS_RANGE_YEAR1 );
+define( 'STRF_TL_AXIS_RANGE_YEAR1', '%b %Y' );
+define( 'STRF_TL_AXIS_RANGE_YEAR2', STRF_TL_AXIS_RANGE_YEAR1 );
 
 // When the chart range is months
 define( "STRF_TL_AXIS_RANGE_MONTH1", "%b" );
@@ -140,8 +140,8 @@ foreach( dbFetchAll( $monitorsSql ) as $row ) {
   $monitors[$row['Id']] = $row;
 }
 
-$rangeSql = "select min(E.StartTime) as MinTime, max(E.EndTime) as MaxTime from Events as E inner join Monitors as M on (E.MonitorId = M.Id) where not isnull(E.StartTime) and not isnull(E.EndTime)";
-$eventsSql = "select E.Id,E.Name,E.StartTime,E.EndTime,E.Length,E.Frames,E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId from Events as E inner join Monitors as M on (E.MonitorId = M.Id) where not isnull(StartTime)";
+$rangeSql = 'select min(E.StartTime) as MinTime, max(E.EndTime) as MaxTime from Events as E inner join Monitors as M on (E.MonitorId = M.Id) where not isnull(E.StartTime) and not isnull(E.EndTime)';
+$eventsSql = 'select E.* from Events as E inner join Monitors as M on (E.MonitorId = M.Id) where not isnull(StartTime)';
 
 if ( !empty($user['MonitorIds']) ) {
   $monFilterSql = ' AND M.Id IN ('.$user['MonitorIds'].')';
@@ -706,10 +706,12 @@ xhtmlHeaders(__FILE__, translate('Timeline') );
 //due to chrome bug, has to enable https://code.google.com/p/chromium/issues/detail?id=472300
 //crossorigin has to be added below to make caption work in chrome
 ?>
+<!--
 			<video id="preview" width="100%" controls crossorigin="anonymous">
 				<source src="" type="video/mp4">
 Your browser does not support the video tag.
 			</video>
+o-->
 
 </div>
         </div>

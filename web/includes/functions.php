@@ -19,7 +19,7 @@
 // 
 
 // Compatibility functions
-if ( version_compare( phpversion(), "4.3.0", "<") ) {
+if ( version_compare( phpversion(), '4.3.0', '<') ) {
   function ob_get_clean() {
     $buffer = ob_get_contents();
     ob_end_clean();
@@ -27,24 +27,24 @@ if ( version_compare( phpversion(), "4.3.0", "<") ) {
   }
 }
 
-function userLogin( $username, $password="", $passwordHashed=false ) {
+function userLogin( $username, $password='', $passwordHashed=false ) {
   global $user, $cookies;
 
-  $sql = "select * from Users where Enabled = 1";
+  $sql = 'SELECT * FROM Users WHERE Enabled = 1';
   $sql_values = NULL;
-  if ( ZM_AUTH_TYPE == "builtin" ) {
+  if ( ZM_AUTH_TYPE == 'builtin' ) {
     if ( $passwordHashed ) {
-      $sql .= " AND Username=? AND Password=?";
+      $sql .= ' AND Username=? AND Password=?';
     } else {
-      $sql .= " AND Username=? AND Password=password(?)";
+      $sql .= ' AND Username=? AND Password=password(?)';
     }
     $sql_values = array( $username, $password );
   } else {
-    $sql .= " AND Username = ?";
+    $sql .= ' AND Username = ?';
     $sql_values = array( $username );
   }
   $_SESSION['username'] = $username;
-  if ( ZM_AUTH_RELAY == "plain" ) {
+  if ( ZM_AUTH_RELAY == 'plain' ) {
     // Need to save this in session
     $_SESSION['password'] = $password;
   }
@@ -338,9 +338,9 @@ function outputImageStream( $id, $src, $width, $height, $title="" ) {
 
 function getImageStream( $id, $src, $width, $height, $title="" ) {
   if ( canStreamIframe() ) {
-      return '<iframe id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" width="'. validInt($width)." height=".validInt($height).'"/>';
+      return '<iframe id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" '.($width? ' width="'. validInt($width).'"' : '').($height?' height="'.validInt($height).'"' : '' ).'/>';
   } else {
-      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" width="'. validInt($width) .'" height="'. validInt( $height ).'"/>';
+      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.($width? ' width:'. validInt($width) .'px;': '').($height ? ' height:'. validInt( $height ).'px;':'').'"/>';
   }
 }
 
@@ -829,36 +829,38 @@ function packageControl( $command ) {
 }
 
 function daemonControl( $command, $daemon=false, $args=false ) {
-  $string = ZM_PATH_BIN."/zmdc.pl $command";
+  $string = escapeshellcmd(ZM_PATH_BIN).'/zmdc.pl '.$command;
   if ( $daemon ) {
-    $string .= " $daemon";
+    #$string .= ' ' .  $daemon;
+    $string .= ' ' . $daemon;
     if ( $args ) {
-      $string .= " $args";
+      $string .= ' ' . $args;
+      #$string .= ' ' . $args;
     }
   }
-  $string .= " 2>/dev/null >&- <&- >/dev/null";
+  $string .= ' 2>/dev/null >&- <&- >/dev/null';
+Debug("exec $string");
   exec( $string );
 }
 
 function zmcControl( $monitor, $mode=false ) {
   if ( (!defined('ZM_SERVER_ID')) or ( ZM_SERVER_ID==$monitor['ServerId'] ) ) {
     $row = NULL;
-    if ( $monitor['Type'] == "Local" ) {
-      $row = dbFetchOne( "select count(if(Function!='None',1,NULL)) as ActiveCount from Monitors where Device = ?", NULL, array($monitor['Device']) );
-      $zmcArgs = "-d ".$monitor['Device'];
+    if ( $monitor['Type'] == 'Local' ) {
+      $row = dbFetchOne( "SELECT count(if(Function!='None',1,NULL)) AS ActiveCount FROM Monitors WHERE Device = ?", NULL, array($monitor['Device']) );
+      $zmcArgs = '-d '.escapeshellarg( $monitor['Device'] );
     } else {
-      $row = dbFetchOne( "select count(if(Function!='None',1,NULL)) as ActiveCount from Monitors where Id = ?", NULL, array($monitor['Id']) );
-      $zmcArgs = "-m ".$monitor['Id'];
+      $row = dbFetchOne( "SELECT count(if(Function!='None',1,NULL)) AS ActiveCount FROM Monitors WHERE Id = ?", NULL, array($monitor['Id']) );
+      $zmcArgs = '-m '.$monitor['Id'];
     }
     $activeCount = $row['ActiveCount'];
-
-    if ( !$activeCount || $mode == "stop" ) {
-      daemonControl( "stop", "zmc", $zmcArgs );
+    if ( (!$activeCount) || ($mode == 'stop') ) {
+      daemonControl( 'stop', 'zmc', $zmcArgs );
     } else {
-      if ( $mode == "restart" ) {
-        daemonControl( "stop", "zmc", $zmcArgs );
+      if ( $mode == 'restart' ) {
+        daemonControl( 'stop', 'zmc', $zmcArgs );
       }
-      daemonControl( "start", "zmc", $zmcArgs );
+      daemonControl( 'start', 'zmc', $zmcArgs );
     }
   } else {
     $Server = new Server( $monitor['ServerId'] );
@@ -878,7 +880,6 @@ function zmcControl( $monitor, $mode=false ) {
     $context  = stream_context_create($options);
     $result = file_get_contents($url, false, $context);
     if ($result === FALSE) { /* Handle error */ }
-
   }
 }
 
@@ -937,34 +938,34 @@ function daemonStatus( $daemon, $args=false ) {
 
   initDaemonStatus();
 
-  $string = "$daemon";
+  $string = $daemon;
   if ( $args )
-    $string .= " $args";
+    $string .= ' ' . $args;
   return( strpos( $daemon_status, "'$string' running" ) !== false );
 }
 
 function zmcStatus( $monitor ) {
   if ( $monitor['Type'] == 'Local' ) {
-    $zmcArgs = "-d ".$monitor['Device'];
+    $zmcArgs = '-d '.$monitor['Device'];
   } else {
-    $zmcArgs = "-m ".$monitor['Id'];
+    $zmcArgs = '-m '.$monitor['Id'];
   }
-  return( daemonStatus( "zmc", $zmcArgs ) );
+  return( daemonStatus( 'zmc', $zmcArgs ) );
 }
 
 function zmaStatus( $monitor ) {
   if ( is_array( $monitor ) ) {
     $monitor = $monitor['Id'];
   }
-  return( daemonStatus( "zma", "-m $monitor" ) );
+  return( daemonStatus( 'zma', "-m $monitor" ) );
 }
 
 function daemonCheck( $daemon=false, $args=false ) {
   $string = ZM_PATH_BIN."/zmdc.pl check";
   if ( $daemon ) {
-    $string .= " $daemon";
+    $string .= ' ' . escapeshellarg( $daemon );
     if ( $args )
-      $string .= " $args";
+      $string .= ' ' . escapeshellarg( $args );
   }
   $result = exec( $string );
   return( preg_match( '/running/', $result ) );
@@ -972,18 +973,18 @@ function daemonCheck( $daemon=false, $args=false ) {
 
 function zmcCheck( $monitor ) {
   if ( $monitor['Type'] == 'Local' ) {
-    $zmcArgs = "-d ".$monitor['Device'];
+    $zmcArgs = '-d '.$monitor['Device'];
   } else {
-    $zmcArgs = "-m ".$monitor['Id'];
+    $zmcArgs = '-m '.$monitor['Id'];
   }
-  return( daemonCheck( "zmc", $zmcArgs ) );
+  return( daemonCheck( 'zmc', $zmcArgs ) );
 }
 
 function zmaCheck( $monitor ) {
   if ( is_array( $monitor ) ) {
     $monitor = $monitor['Id'];
   }
-  return( daemonCheck( "zma", "-m $monitor" ) );
+  return( daemonCheck( 'zma', "-m $monitor" ) );
 }
 
 function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $overwrite=false ) {
@@ -1404,9 +1405,9 @@ function sortHeader( $field, $querySep='&amp;' ) {
 function sortTag( $field ) {
   if ( $_REQUEST['sort_field'] == $field )
     if ( $_REQUEST['sort_asc'] )
-      return( "(^)" );
+      return( '(^)' );
     else
-      return( "(v)" );
+      return( '(v)' );
   return( false );
 }
 
@@ -1417,21 +1418,24 @@ function getLoad() {
 
 function getDiskPercent($path = ZM_DIR_EVENTS) {
   $total = disk_total_space($path);
-  if ( ! $total ) {
-    Error("disk_total_space returned false for " . $path );
+  if ( $total === false ) {
+    Error('disk_total_space returned false. Verify the web account user has access to ' . $path );
     return 0;
+  } elseif ( $total == 0 ) {
+    Error('disk_total_space indicates the following path has a filesystem size of zero bytes' . $path );
+    return 100;
   }
   $free = disk_free_space($path);
-  if ( ! $free ) {
-    Error("disk_free_space returned false for " . $path );
+  if ( $free === false ) {
+    Error('disk_free_space returned false. Verify the web account user has access to ' . $path );
   }
-  $space = round(($total - $free) / $total * 100);
+  $space = round((($total - $free) / $total) * 100);
   return( $space );
 }
 
 function getDiskBlocks() {
   if ( ! $StorageArea ) $StorageArea = new Storage();
-  $df = shell_exec( 'df '.$StorageArea->Path() );
+  $df = shell_exec( 'df '.escapeshellarg($StorageArea->Path() ));
   $space = -1;
   if ( preg_match( '/\s(\d+)\s+\d+\s+\d+%/ms', $df, $matches ) )
     $space = $matches[1];
@@ -2097,23 +2101,50 @@ function validHtmlStr( $input ) {
   return( htmlspecialchars( $input, ENT_QUOTES ) );
 }
 
-function getStreamHTML( $monitor, $scale=100, $mode='stream' ) {
+function getStreamHTML( $monitor, $options = array() ) {
+
+	if ( isset($options['scale']) ) {
+		$options['width'] = reScale( $monitor->Width(), $options['scale'] );
+		$options['height'] = reScale( $monitor->Height(), $options['scale'] );
+	}
+	if ( ! isset($options['mode'] ) ) {
+		$options['mode'] = 'stream';
+	}
+  $options['maxfps'] = ZM_WEB_VIDEO_MAXFPS;
+  if ( $monitor->StreamReplayBuffer() )
+    $options['buffer'] = $monitor->StreamReplayBuffer();
+
   //FIXME, the width and height of the image need to be scaled.
   if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
-    $streamSrc = $monitor->getStreamSrc( array( 'mode=mpeg', 'scale='.$scale, 'bitrate='.ZM_WEB_VIDEO_BITRATE, 'maxfps='.ZM_WEB_VIDEO_MAXFPS, 'format='.ZM_MPEG_LIVE_FORMAT ) );
-    return getVideoStream( 'liveStream'.$monitor->Id(), $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
-  } else if ( $mode == 'stream' and canStream() ) {
-    $streamSrc = $monitor->getStreamSrc( array( 'mode=jpeg', 'scale='.$scale, 'maxfps='.ZM_WEB_VIDEO_MAXFPS, 'buffer='.$monitor->StreamReplayBuffer() ) );
+    $streamSrc = $monitor->getStreamSrc( array( 'mode'=>'mpeg', 'scale'=>$options['scale'], 'bitrate'=>ZM_WEB_VIDEO_BITRATE, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'format' => ZM_MPEG_LIVE_FORMAT ) );
+
+    return getVideoStream( 'liveStream'.$monitor->Id(), $streamSrc, $options, ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
+  } else if ( $options['mode'] == 'stream' and canStream() ) {
+    $options['mode'] = 'jpeg';
+    $streamSrc = $monitor->getStreamSrc( $options );
+
     if ( canStreamNative() )
-      return getImageStream( 'liveStream'.$monitor->Id(), $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
+      return getImageStream( 'liveStream'.$monitor->Id(), $streamSrc, 
+          ( isset($options['width']) ? $options['width'] : NULL ),
+          ( isset($options['height']) ? $options['height'] : NULL ),
+          $monitor->Name()
+          );
     elseif ( canStreamApplet() )
-      return getHelperStream( 'liveStream'.$monitor->Id(), $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
+      return getHelperStream( 'liveStream'.$monitor->Id(), $streamSrc,
+          ( isset($options['width']) ? $options['width'] : NULL ),
+          ( isset($options['height']) ? $options['height'] : NULL ),
+          $monitor->Name()
+          );
   } else {
-    $streamSrc = $monitor->getStreamSrc( array( 'mode=single', 'scale='.$scale ) );
+    $streamSrc = $monitor->getStreamSrc( $options );
     if ( $mode == 'stream' ) {
       Info( 'The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.' );
     }
-    return getImageStill( 'liveStream'.$monitor->Id(), $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
+    return getImageStill( 'liveStream'.$monitor->Id(), $streamSrc, 
+          ( isset($options['width']) ? $options['width'] : NULL ),
+          ( isset($options['height']) ? $options['height'] : NULL ),
+          $monitor->Name()
+        );
   }
 } // end function getStreamHTML
 
@@ -2141,6 +2172,10 @@ function human_filesize($bytes, $decimals = 2) {
   $sz = 'BKMGTP';
   $factor = floor((strlen($bytes) - 1) / 3);
   return sprintf("%.{$decimals}f", $bytes / pow(1024, $factor)) . @$sz[$factor];
+}
+
+function csrf_startup() {
+    csrf_conf('rewrite-js', 'includes/csrf/csrf-magic.js');
 }
 
 ?>

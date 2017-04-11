@@ -143,7 +143,7 @@ private $control_fields = array(
         }
 
       } else {
-        Error("No row for Monitor " . $IdOrRow );
+        Error('No row for Monitor ' . $IdOrRow );
       }
     } # end if isset($IdOrRow)
   } // end function __construct
@@ -170,6 +170,7 @@ private $control_fields = array(
       }
     }
   }
+
   public function getStreamSrc( $args, $querySep='&amp;' ) {
     if ( isset($this->{'ServerId'}) and $this->{'ServerId'} ) {
       $Server = new Server( $this->{'ServerId'} );
@@ -178,27 +179,27 @@ private $control_fields = array(
       $streamSrc = ZM_BASE_URL.ZM_PATH_ZMS;
     }
 
-    $args[] = "monitor=".$this->{'Id'};
+    $args['monitor'] = $this->{'Id'};
 
     if ( ZM_OPT_USE_AUTH ) {
-      if ( ZM_AUTH_RELAY == "hashed" ) {
-        $args[] = "auth=".generateAuthHash( ZM_AUTH_HASH_IPS );
-      } elseif ( ZM_AUTH_RELAY == "plain" ) {
-        $args[] = "user=".$_SESSION['username'];
-        $args[] = "pass=".$_SESSION['password'];
-      } elseif ( ZM_AUTH_RELAY == "none" ) {
-        $args[] = "user=".$_SESSION['username'];
+      if ( ZM_AUTH_RELAY == 'hashed' ) {
+        $args['auth'] = generateAuthHash( ZM_AUTH_HASH_IPS );
+      } elseif ( ZM_AUTH_RELAY == 'plain' ) {
+        $args['user'] = $_SESSION['username'];
+        $args['pass'] = $_SESSION['password'];
+      } elseif ( ZM_AUTH_RELAY == 'none' ) {
+        $args['user'] = $_SESSION['username'];
       }
     }
-    if ( !in_array( "mode=single", $args ) && !empty($GLOBALS['connkey']) ) {
-      $args[] = "connkey=".$GLOBALS['connkey'];
+    if ( ( (!isset($args['mode'])) or ( $args['mode'] != 'single' ) ) && !empty($GLOBALS['connkey']) ) {
+      $args['connkey'] = $GLOBALS['connkey'];
     }
     if ( ZM_RAND_STREAM ) {
-      $args[] = "rand=".time();
+      $args['rand'] = time();
     }
 
     if ( count($args) ) {
-      $streamSrc .= "?".join( $querySep, $args );
+      $streamSrc .= '?'.http_build_query( $args,'', $querySep );
     }
 
     return( $streamSrc );

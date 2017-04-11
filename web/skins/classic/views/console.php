@@ -146,7 +146,7 @@ xhtmlHeaders( __FILE__, translate('Console') );
 <?php for ( $i = 0; $i < count($eventCounts); $i++ ) { ?>
             <th class="colEvents"><?php echo $eventCounts[$i]['title'] ?></th>
 <?php } ?>
-            <th class="colZones"><?php echo translate('Zones') ?></th>
+            <th class="colZones"><a href="<?php echo $_SERVER['PHP_SELF'] ?>?view=zones_overview"><?php echo translate('Zones') ?></a></th>
 <?php if ( canEdit('Monitors') ) { ?>
             <th class="colMark"><?php echo translate('Mark') ?></th>
 <?php } ?>

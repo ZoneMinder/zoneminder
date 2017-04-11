@@ -241,6 +241,7 @@ sub GenerateVideo {
 sub delete {
   my $event = $_[0];
   Info( "Deleting event $event->{Id} from Monitor $event->{MonitorId} $event->{StartTime}\n" );
+  $ZoneMinder::Database::dbh->ping();
 # Do it individually to avoid locking up the table for new events
   my $sql = 'delete from Events where Id = ?';
   my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
@@ -331,12 +332,15 @@ sub delete_files {
 sub Storage {
   return new ZoneMinder::Storage( $_[0]{StorageId} );
 }
+
 sub check_for_in_filesystem {
   my $path = $_[0]->Path();
   if ( $path ) {
     my @files = glob( $path . '/*' );
+Debug("Checking for files for event $_[0]{Id} at $path using glob $path/* found " . scalar @files . " files");
     return 1 if @files;
   }
+Debug("Checking for files for event $_[0]{Id} at $path using glob $path/* found no files");
   return 0;
 }
 

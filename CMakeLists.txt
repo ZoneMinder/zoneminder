@@ -2,11 +2,12 @@
 # Created by mastertheknife (Kfir Itzhak)
 # For more information and installation, see the INSTALL file
 #
-cmake_minimum_required (VERSION 2.8.7)
+cmake_minimum_required (VERSION 3.1.0)
 project (zoneminder)
 file (STRINGS "version" zoneminder_VERSION)
 # make API version a minor of ZM version
 set(zoneminder_API_VERSION "${zoneminder_VERSION}.1")
+set (CMAKE_CXX_STANDARD 11)
 
 # Make sure the submodules are there
 if( NOT EXISTS "${CMAKE_SOURCE_DIR}/web/api/app/Plugin/Crud/Lib/CrudControllerTrait.php" )
@@ -65,6 +66,24 @@ set(CMAKE_C_FLAGS_DEBUG "-Wall -D__STDC_CONSTANT_MACROS -g")
 set(CMAKE_CXX_FLAGS_DEBUG "-Wall -D__STDC_CONSTANT_MACROS -g")
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
+
+# GCC below 6.0 doesn't support __target__("fpu=neon") attribute, required for compiling ARM Neon code, otherwise compilation fails.
+# Must use -mfpu=neon compiler flag instead, but only do that for processors that support neon, otherwise strip the neon code alltogether,
+# because passing -fmpu=neon is unsafe to processors that don't support neon
+IF(CMAKE_SYSTEM_PROCESSOR MATCHES "^arm" AND CMAKE_SYSTEM_NAME MATCHES "Linux")
+	IF(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
+		EXEC_PROGRAM(grep ARGS " neon " "/proc/cpuinfo" OUTPUT_VARIABLE neonoutput RETURN_VALUE neonresult)
+		IF(neonresult EQUAL 0)
+			set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -mfpu=neon")
+			set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -mfpu=neon")
+			set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -mfpu=neon")
+			set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -mfpu=neon")
+		ELSE(neonresult EQUAL 0)
+			add_definitions(-DZM_STRIP_NEON=1)
+			message(STATUS "ARM Neon is not available on this processor. Neon functions will be absent")
+		ENDIF(neonresult EQUAL 0)
+	ENDIF(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
+ENDIF(CMAKE_SYSTEM_PROCESSOR MATCHES "^arm" AND CMAKE_SYSTEM_NAME MATCHES "Linux")
 
 # Modules that we need:
 include (GNUInstallDirs)
@@ -546,21 +565,21 @@ if(NOT ZM_NO_FFMPEG)
 	endif(SWSCALE_LIBRARIES)
 
 	# rescale (using find_library and find_path)
-	find_library(SWRESAMPLE_LIBRARIES swresample)
-	if(SWRESAMPLE_LIBRARIES)
-		set(HAVE_LIBSWRESAMPLE 1)
-		list(APPEND ZM_BIN_LIBS "${SWRESAMPLE_LIBRARIES}")
-		find_path(SWRESAMPLE_INCLUDE_DIR "libswresample/swresample.h" /usr/include/ffmpeg)
-		if(SWRESAMPLE_INCLUDE_DIR)
-			include_directories("${SWRESAMPLE_INCLUDE_DIR}")
-			set(CMAKE_REQUIRED_INCLUDES "${SWRESAMPLE_INCLUDE_DIR}")
-		endif(SWRESAMPLE_INCLUDE_DIR)
-		mark_as_advanced(FORCE SWRESAMPLE_LIBRARIES SWRESAMPLE_INCLUDE_DIR)
-		check_include_file("libswresample/swresample.h" HAVE_LIBSWRESAMPLE_SWRESAMPLE_H)
-		set(optlibsfound "${optlibsfound} SWResample")
-	else(SWRESAMPLE_LIBRARIES)
-		set(optlibsnotfound "${optlibsnotfound} SWResample")
-	endif(SWRESAMPLE_LIBRARIES)
+	find_library(AVRESAMPLE_LIBRARIES avresample)
+	if(AVRESAMPLE_LIBRARIES)
+		set(HAVE_LIBAVRESAMPLE 1)
+		list(APPEND ZM_BIN_LIBS "${AVRESAMPLE_LIBRARIES}")
+		find_path(AVRESAMPLE_INCLUDE_DIR "libavresample/avresample.h" /usr/include/ffmpeg)
+		if(AVRESAMPLE_INCLUDE_DIR)
+			include_directories("${AVRESAMPLE_INCLUDE_DIR}")
+			set(CMAKE_REQUIRED_INCLUDES "${AVRESAMPLE_INCLUDE_DIR}")
+		endif(AVRESAMPLE_INCLUDE_DIR)
+		mark_as_advanced(FORCE AVRESAMPLE_LIBRARIES AVRESAMPLE_INCLUDE_DIR)
+		check_include_file("libavresample/avresample.h" HAVE_LIBAVRESAMPLE_AVRESAMPLE_H)
+		set(optlibsfound "${optlibsfound} AVResample")
+	else(AVRESAMPLE_LIBRARIES)
+		set(optlibsnotfound "${optlibsnotfound} AVResample")
+	endif(AVRESAMPLE_LIBRARIES)
 
 	# Find the path to the ffmpeg executable
 	find_program(FFMPEG_EXECUTABLE 

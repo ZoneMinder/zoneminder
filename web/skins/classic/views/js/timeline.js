@@ -111,7 +111,7 @@ function previewEvent( eventId, frameId )
             if ( event['frames'][frameId] )
             {
                 showEventDetail( event['frames'][frameId]['html'] );
-                var imagePath = event.frames[frameId].Image.imagePath;
+                var imagePath = '/index.php?view=image&eid='+eventId+'&fid='+frameId;
                 var videoName = event.DefaultVideo;
                 loadEventImage( imagePath, eventId, frameId, event.Width, event.Height, event.Frames/event.Length, videoName, event.Length, event.StartTime, monitors[event.MonitorId]);
                 return;
@@ -125,11 +125,10 @@ function loadEventImage( imagePath, eid, fid, width, height, fps, videoName, dur
 {
     var vid= $('preview');
     var imageSrc = $('imageSrc');
-    if(videoName)
-    {
+    if ( videoName && vid ) {
         vid.show();
         imageSrc.hide();
-        var newsource=imagePrefix+imagePath.slice(0,imagePath.lastIndexOf('/'))+"/"+videoName;
+        var newsource=imagePath.slice(0,imagePath.lastIndexOf('/'))+"/"+videoName;
         //console.log(newsource);
         //console.log(sources[0].src.slice(-newsource.length));
         if(newsource!=vid.currentSrc.slice(-newsource.length) || vid.readyState==0)
@@ -154,9 +153,9 @@ function loadEventImage( imagePath, eid, fid, width, height, fps, videoName, dur
     }
     else
     {
-        vid.hide();
+        if ( vid ) vid.hide();
         imageSrc.show();
-        imageSrc.setProperty( 'src', imagePrefix+imagePath );
+        imageSrc.setProperty( 'src', imagePath );
         imageSrc.removeEvent( 'click' );
         imageSrc.addEvent( 'click', showEvent.pass( [ eid, fid, width, height ] ) );
     }

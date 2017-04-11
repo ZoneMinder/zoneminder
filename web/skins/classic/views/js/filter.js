@@ -85,7 +85,7 @@ function deleteFilter( element, id, name )
     {
         var form = element.form;
         form.action.value = 'delete';
-        submitToFilter( element, 1 );
+        submitToFilter( element, 0 );
     }
 }
 

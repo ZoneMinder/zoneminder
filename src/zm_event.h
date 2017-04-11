@@ -65,7 +65,8 @@ class Event {
     typedef std::map<std::string,StringSet> StringSetMap;
 
   protected:
-    typedef enum { NORMAL, BULK, ALARM } FrameType;
+    typedef enum { NORMAL=0, BULK, ALARM } FrameType;
+    static constexpr const char * frame_type_names[3] = { "Normal", "Bulk", "Alarm" };
 
     struct PreAlarmData {
       Image *image;

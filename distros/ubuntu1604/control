@@ -7,26 +7,24 @@ Build-Depends: debhelper (>= 9), dh-systemd, python-sphinx | python3-sphinx, apa
               ,cmake
               ,libx264-dev, libmp4v2-dev
               ,libavcodec-dev, libavformat-dev, libswscale-dev
-	      , libavutil-dev, libavdevice-dev 
+              ,libavutil-dev, libavdevice-dev 
               ,libboost-dev
               ,libbz2-dev
               ,libgcrypt-dev
               ,libcurl4-gnutls-dev
               ,libgnutls-openssl-dev
-              ,libjpeg-dev
+              , libjpeg8-dev | libjpeg9-dev | libjpeg62-turbo-dev
               ,libmysqlclient-dev
               ,libpcre3-dev
               ,libpolkit-gobject-1-dev
               ,libv4l-dev (>= 0.8.3) [!hurd-any]
-              ,libvlc-dev
+              ,libvlc-dev,
               ,libdate-manip-perl
               ,libdbd-mysql-perl
               ,libphp-serialization-perl
               ,libsys-mmap-perl [!hurd-any]
               ,libwww-perl
               ,libdata-uuid-perl
-              ,libx264-dev
-              ,libmp4v2-dev
 # Unbundled (dh_linktree):
         ,libjs-jquery
         ,libjs-mootools
@@ -39,6 +37,7 @@ Package: zoneminder
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,javascript-common
+        ,libmp4v2-2, libx264-142|libx264-148, libswscale-ffmpeg3|libswscale4|libswscale3
         ,ffmpeg | libav-tools
         ,libdate-manip-perl, libmime-lite-perl, libmime-tools-perl
         ,libdbd-mysql-perl
@@ -66,6 +65,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,policykit-1
         ,rsyslog | system-log-daemon
         ,zip
+        ,libprce3
 Recommends: ${misc:Recommends}
            ,libapache2-mod-php5 | libapache2-mod-php | php5-fpm | php-fpm
            ,mysql-server | virtual-mysql-server

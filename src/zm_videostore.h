@@ -8,6 +8,9 @@ extern "C"  {
 #ifdef HAVE_LIBSWRESAMPLE
 #include "libswresample/swresample.h"
 #endif
+#ifdef HAVE_LIBAVRESAMPLE
+#include "libavresample/avresample.h"
+#endif
 }
 
 #if HAVE_LIBAVCODEC
@@ -44,7 +47,10 @@ private:
   AVAudioFifo *fifo;
   int output_frame_size;
 #ifdef HAVE_LIBSWRESAMPLE
-  SwrContext *resample_context = NULL;
+  //SwrContext *resample_context = NULL;
+#endif
+#ifdef HAVE_LIBAVRESAMPLE
+AVAudioResampleContext* resample_context;
 #endif
   uint8_t *converted_input_samples = NULL;
     
@@ -54,16 +60,19 @@ private:
   bool keyframeMessage;
   int keyframeSkipNumber;
     
-  int64_t video_start_pts;
-  int64_t video_start_dts;
-  int64_t audio_start_pts;
-  int64_t audio_start_dts;
+  // These are for input
+  int64_t video_last_pts;
+  int64_t video_last_dts;
+  int64_t audio_last_pts;
+  int64_t audio_last_dts;
 
-  int64_t start_pts;
-  int64_t start_dts;
+  // These are for output, should start at zero.  We assume they do not wrap because we just aren't going to save files that big.
+  int64_t previous_pts;
+  int64_t previous_dts;
 
-	int64_t prevDts;
   int64_t filter_in_rescale_delta_last;
+
+  bool setup_resampler();
 
 public:
 	VideoStore(const char *filename_in, const char *format_in, AVStream *video_input_stream, AVStream *audio_input_stream, int64_t nStartTime, Monitor * p_monitor );

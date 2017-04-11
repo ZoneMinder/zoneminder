@@ -1,4 +1,3 @@
-//
 // ZoneMinder Video Storage Implementation
 // Written by Chris Wiggins
 // http://chriswiggins.co.nz
@@ -214,175 +213,14 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
     audio_input_context = audio_input_stream->codec;
 
     if ( audio_input_context->codec_id != AV_CODEC_ID_AAC ) {
-#ifdef HAVE_LIBSWRESAMPLE
       resample_context = NULL;
-			char error_buffer[256];
+			static char error_buffer[256];
       avcodec_string(error_buffer, sizeof(error_buffer), audio_input_context, 0 );
       Debug(3, "Got something other than AAC (%s)", error_buffer );
       audio_output_stream = NULL;
-
-      audio_output_codec = avcodec_find_encoder(AV_CODEC_ID_AAC);
-      if ( audio_output_codec ) {
-Debug(2, "Have audio output codec");
-        audio_output_stream = avformat_new_stream( oc, audio_output_codec );
-
-        audio_output_context = audio_output_stream->codec;
-
-        if ( audio_output_context ) {
-
-Debug(2, "Have audio_output_context");
-          AVDictionary *opts = NULL;
-          av_dict_set(&opts, "strict", "experimental", 0);
-
-          /* put sample parameters */
-          audio_output_context->bit_rate = audio_input_context->bit_rate;
-          audio_output_context->sample_rate = audio_input_context->sample_rate;
-          audio_output_context->channels = audio_input_context->channels;
-          audio_output_context->channel_layout = audio_input_context->channel_layout;
-          audio_output_context->sample_fmt = audio_input_context->sample_fmt;
-          //audio_output_context->refcounted_frames = 1;
-
-          if (audio_output_codec->supported_samplerates) {
-            int found = 0;
-            for ( unsigned int i = 0; audio_output_codec->supported_samplerates[i]; i++) {
-              if ( audio_output_context->sample_rate == audio_output_codec->supported_samplerates[i] ) {
-                found = 1;
-                break;
-              }
-            }
-            if ( found ) {
-              Debug(3, "Sample rate is good");
-            } else {
-              audio_output_context->sample_rate = audio_output_codec->supported_samplerates[0];
-              Debug(1, "Sampel rate is no good, setting to (%d)", audio_output_codec->supported_samplerates[0] );
-            }
-          }
-
-        /* check that the encoder supports s16 pcm input */
-        if (!check_sample_fmt( audio_output_codec, audio_output_context->sample_fmt)) {
-          Debug( 3, "Encoder does not support sample format %s, setting to FLTP",
-              av_get_sample_fmt_name( audio_output_context->sample_fmt));
-          audio_output_context->sample_fmt = AV_SAMPLE_FMT_FLTP;
-        }
-
-        //audio_output_stream->time_base = audio_input_stream->time_base;
-        audio_output_context->time_base = (AVRational){ 1, audio_output_context->sample_rate };
-
-        Debug(3, "Audio Time bases input stream (%d/%d) input codec: (%d/%d) output_stream (%d/%d) output codec (%d/%d)", 
-            audio_input_stream->time_base.num,
-            audio_input_stream->time_base.den,
-            audio_input_context->time_base.num,
-            audio_input_context->time_base.den,
-            audio_output_stream->time_base.num,
-            audio_output_stream->time_base.den,
-            audio_output_context->time_base.num,
-            audio_output_context->time_base.den
-            );
-
-        ret = avcodec_open2(audio_output_context, audio_output_codec, &opts );
-        if ( ret < 0 ) {
-          av_strerror(ret, error_buffer, sizeof(error_buffer));
-          Fatal( "could not open codec (%d) (%s)\n", ret, error_buffer );
-        } else {
-
-          Debug(1, "Audio output bit_rate (%d) sample_rate(%d) channels(%d) fmt(%d) layout(%d) frame_size(%d), refcounted_frames(%d)", 
-              audio_output_context->bit_rate,
-              audio_output_context->sample_rate,
-              audio_output_context->channels,
-              audio_output_context->sample_fmt,
-              audio_output_context->channel_layout,
-              audio_output_context->frame_size,
-              audio_output_context->refcounted_frames
-              );
-#if 1
-          /** Create the FIFO buffer based on the specified output sample format. */
-          if (!(fifo = av_audio_fifo_alloc(audio_output_context->sample_fmt,
-                  audio_output_context->channels, 1))) {
-            Error("Could not allocate FIFO\n");
-            return;
-          }
-#endif
-          output_frame_size = audio_output_context->frame_size;
-          /** Create a new frame to store the audio samples. */
-          if (!(input_frame = zm_av_frame_alloc())) {
-            Error("Could not allocate input frame");
-            return;
-          }
-
-          /** Create a new frame to store the audio samples. */
-          if (!(output_frame = zm_av_frame_alloc())) {
-            Error("Could not allocate output frame");
-            av_frame_free(&input_frame);
-            return;
-          }
-          /**
-         * Create a resampler context for the conversion.
-         * Set the conversion parameters.
-         * Default channel layouts based on the number of channels
-         * are assumed for simplicity (they are sometimes not detected
-         * properly by the demuxer and/or decoder).
-         */
-        resample_context = swr_alloc_set_opts(NULL,
-                                              av_get_default_channel_layout(audio_output_context->channels),
-                                              audio_output_context->sample_fmt,
-                                              audio_output_context->sample_rate,
-                                              av_get_default_channel_layout( audio_input_context->channels),
-                                              audio_input_context->sample_fmt,
-                                              audio_input_context->sample_rate,
-                                              0, NULL);
-        if (!resample_context) {
-            Error( "Could not allocate resample context\n");
-            return;
-        }
-        /**
-        * Perform a sanity check so that the number of converted samples is
-        * not greater than the number of samples to be converted.
-        * If the sample rates differ, this case has to be handled differently
-        */
-        av_assert0(audio_output_context->sample_rate == audio_input_context->sample_rate);
-        /** Open the resampler with the specified parameters. */
-        if ((ret = swr_init(resample_context)) < 0) {
-            Error( "Could not open resample context\n");
-            swr_free(&resample_context);
-            return;
-        }
-        /**
-         * Allocate as many pointers as there are audio channels.
-         * Each pointer will later point to the audio samples of the corresponding
-         * channels (although it may be NULL for interleaved formats).
-         */
-        if (!( converted_input_samples = (uint8_t *)calloc( audio_output_context->channels, sizeof(*converted_input_samples))) ) {
-          Error( "Could not allocate converted input sample pointers\n");
-          return;
-        }
-        /**
-         * Allocate memory for the samples of all channels in one consecutive
-         * block for convenience.
-         */
-        if ((ret = av_samples_alloc( &converted_input_samples, NULL,
-                audio_output_context->channels,
-                audio_output_context->frame_size,
-                audio_output_context->sample_fmt, 0)) < 0) {
-          Error( "Could not allocate converted input samples (error '%s')\n",
-              av_make_error_string(ret).c_str() );
-
-          av_freep(converted_input_samples);
-          free(converted_input_samples);
-          return;
-        }
-        Debug(2, "Success opening AAC codec");
-        } 
-        av_dict_free(&opts);
-        } else {
-          Error( "could not allocate codec context for AAC\n");
-        }
-      } else {
-        Error( "could not find codec for AAC\n");
+      if ( ! setup_resampler() ) {
+        return;
       }
-#else
-      Error("Not built with libswresample library. Cannot do audio conversion to AAC");
-      audio_output_stream = NULL;
-#endif
     } else {
       Debug(3, "Got AAC" );
 
@@ -390,32 +228,32 @@ Debug(2, "Have audio_output_context");
       if ( ! audio_output_stream ) {
         Error("Unable to create audio out stream\n");
         audio_output_stream = NULL;
-      }
-      audio_output_context = audio_output_stream->codec;
-
-      ret = avcodec_copy_context(audio_output_context, audio_input_context);
-      if (ret < 0) {
-        Fatal("Unable to copy audio context %s\n", av_make_error_string(ret).c_str());
-      }   
-      audio_output_context->codec_tag = 0;
-      if ( audio_output_context->channels > 1 ) {
-        Warning("Audio isn't mono, changing it.");
-        audio_output_context->channels = 1;
       } else {
-        Debug(3, "Audio is mono");
-      }
+        audio_output_context = audio_output_stream->codec;
+
+        ret = avcodec_copy_context(audio_output_context, audio_input_context);
+        if (ret < 0) {
+          Error("Unable to copy audio context %s\n", av_make_error_string(ret).c_str());
+          audio_output_stream = NULL;
+        } else {
+          audio_output_context->codec_tag = 0;
+          if ( audio_output_context->channels > 1 ) {
+            Warning("Audio isn't mono, changing it.");
+            audio_output_context->channels = 1;
+          } else {
+            Debug(3, "Audio is mono");
+          }
+        }   
+      } // end if audio_output_stream
     } // end if is AAC
 
-if ( audio_output_stream ) {
-    if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
-      audio_output_context->flags |= CODEC_FLAG_GLOBAL_HEADER;
-    }
+    if ( audio_output_stream ) {
+      if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
+        audio_output_context->flags |= CODEC_FLAG_GLOBAL_HEADER;
+      }
     }
 
-  } else {
-    Debug(3, "No Audio output stream");
-    audio_output_stream = NULL;
-  }    
+  } // end if audio_input_stream
 
   /* open the output file, if needed */
   if (!(output_format->flags & AVFMT_NOFILE)) {
@@ -529,8 +367,242 @@ Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts, pkt.dts
   avformat_free_context(oc);
 
 #ifdef HAVE_LIBSWRESAMPLE
-  if ( resample_context )
-    swr_free( &resample_context );
+  //if ( resample_context )
+    //swr_free( &resample_context );
+#endif
+}
+
+bool VideoStore::setup_resampler() {
+#ifdef HAVE_LIBSWRESAMPLE
+			static char error_buffer[256];
+
+    audio_output_codec = avcodec_find_encoder(AV_CODEC_ID_AAC);
+    if ( ! audio_output_codec ) {
+        Error("Could not find codec for AAC");
+      return false;
+    }
+    Debug(2, "Have audio output codec");
+
+    audio_output_stream = avformat_new_stream( oc, audio_output_codec );
+    audio_output_context = audio_output_stream->codec;
+
+    if ( ! audio_output_context ) {
+      Error( "could not allocate codec context for AAC\n");
+      audio_output_stream = NULL;
+      return false;
+    }
+
+    Debug(2, "Have audio_output_context");
+
+    AVDictionary *opts = NULL;
+    av_dict_set(&opts, "strict", "experimental", 0);
+
+    /* put sample parameters */
+    audio_output_context->bit_rate = audio_input_context->bit_rate;
+    audio_output_context->sample_rate = audio_input_context->sample_rate;
+    audio_output_context->channels = audio_input_context->channels;
+    audio_output_context->channel_layout = audio_input_context->channel_layout;
+    audio_output_context->sample_fmt = audio_input_context->sample_fmt;
+    //audio_output_context->refcounted_frames = 1;
+
+    if (audio_output_codec->supported_samplerates) {
+      int found = 0;
+      for ( unsigned int i = 0; audio_output_codec->supported_samplerates[i]; i++) {
+        if ( audio_output_context->sample_rate == audio_output_codec->supported_samplerates[i] ) {
+          found = 1;
+          break;
+        }
+      }
+      if ( found ) {
+        Debug(3, "Sample rate is good");
+      } else {
+        audio_output_context->sample_rate = audio_output_codec->supported_samplerates[0];
+        Debug(1, "Sampel rate is no good, setting to (%d)", audio_output_codec->supported_samplerates[0] );
+      }
+    }
+
+    /* check that the encoder supports s16 pcm input */
+    if (!check_sample_fmt( audio_output_codec, audio_output_context->sample_fmt)) {
+      Debug( 3, "Encoder does not support sample format %s, setting to FLTP",
+          av_get_sample_fmt_name( audio_output_context->sample_fmt));
+      audio_output_context->sample_fmt = AV_SAMPLE_FMT_FLTP;
+    }
+
+    //audio_output_stream->time_base = audio_input_stream->time_base;
+    audio_output_context->time_base = (AVRational){ 1, audio_output_context->sample_rate };
+
+    Debug(3, "Audio Time bases input stream (%d/%d) input codec: (%d/%d) output_stream (%d/%d) output codec (%d/%d)", 
+        audio_input_stream->time_base.num,
+        audio_input_stream->time_base.den,
+        audio_input_context->time_base.num,
+        audio_input_context->time_base.den,
+        audio_output_stream->time_base.num,
+        audio_output_stream->time_base.den,
+        audio_output_context->time_base.num,
+        audio_output_context->time_base.den
+        );
+
+    ret = avcodec_open2(audio_output_context, audio_output_codec, &opts );
+    av_dict_free(&opts);
+    if ( ret < 0 ) {
+      av_strerror(ret, error_buffer, sizeof(error_buffer));
+      Fatal( "could not open codec (%d) (%s)\n", ret, error_buffer );
+      audio_output_codec = NULL;
+      audio_output_context = NULL;
+      audio_output_stream = NULL;
+      return false;
+    } 
+
+    Debug(1, "Audio output bit_rate (%d) sample_rate(%d) channels(%d) fmt(%d) layout(%d) frame_size(%d), refcounted_frames(%d)", 
+        audio_output_context->bit_rate,
+        audio_output_context->sample_rate,
+        audio_output_context->channels,
+        audio_output_context->sample_fmt,
+        audio_output_context->channel_layout,
+        audio_output_context->frame_size,
+        audio_output_context->refcounted_frames
+        );
+#if 1
+    /** Create the FIFO buffer based on the specified output sample format. */
+    if (!(fifo = av_audio_fifo_alloc(audio_output_context->sample_fmt,
+            audio_output_context->channels, 1))) {
+      Error("Could not allocate FIFO\n");
+      return false;
+    }
+#endif
+    output_frame_size = audio_output_context->frame_size;
+    /** Create a new frame to store the audio samples. */
+    if (!(input_frame = zm_av_frame_alloc())) {
+      Error("Could not allocate input frame");
+      return false;
+    }
+
+    /** Create a new frame to store the audio samples. */
+    if (!(output_frame = zm_av_frame_alloc())) {
+      Error("Could not allocate output frame");
+      av_frame_free(&input_frame);
+      return false;
+    }
+
+#if 0
+    /**
+     * Create a resampler context for the conversion.
+     * Set the conversion parameters.
+     * Default channel layouts based on the number of channels
+     * are assumed for simplicity (they are sometimes not detected
+     * properly by the demuxer and/or decoder).
+     */
+    resample_context = swr_alloc_set_opts(NULL,
+        av_get_default_channel_layout(audio_output_context->channels),
+        audio_output_context->sample_fmt,
+        audio_output_context->sample_rate,
+        av_get_default_channel_layout( audio_input_context->channels),
+        audio_input_context->sample_fmt,
+        audio_input_context->sample_rate,
+        0, NULL);
+
+    if (!resample_context) {
+      Error( "Could not allocate resample context\n");
+      return;
+    }
+    /**
+     * Perform a sanity check so that the number of converted samples is
+     * not greater than the number of samples to be converted.
+     * If the sample rates differ, this case has to be handled differently
+     */
+    av_assert0(audio_output_context->sample_rate == audio_input_context->sample_rate);
+    /** Open the resampler with the specified parameters. */
+    if ((ret = swr_init(resample_context)) < 0) {
+      Error( "Could not open resample context\n");
+      swr_free(&resample_context);
+      return;
+    }
+#else 
+    // Setup the audio resampler
+    resample_context = avresample_alloc_context();
+    if (!resample_context) {
+      Error( "Could not allocate resample context\n");
+      return false;
+    }
+
+    // Some formats (i.e. WAV) do not produce the proper channel layout
+    if ( audio_input_context->channel_layout == 0 ) {
+      Error( "Could not allocate resample context channgel_layout\n");
+    //av_opt_set_int( resample_context, "in_channel_layout",  av_get_channel_layout( m_profile->channels == 1 ? "mono" : "stereo" ), 0 );
+    } else {
+      av_opt_set_int( resample_context, "in_channel_layout",  audio_input_context->channel_layout, 0 );
+    }
+
+    av_opt_set_int( resample_context, "in_sample_fmt",     audio_input_context->sample_fmt, 0);
+    av_opt_set_int( resample_context, "in_sample_rate",    audio_input_context->sample_rate, 0);
+    av_opt_set_int( resample_context, "in_channels",       audio_input_context->channels,0);
+    av_opt_set_int( resample_context, "out_channel_layout", audio_output_context->channel_layout, 0);
+    av_opt_set_int( resample_context, "out_sample_fmt",     audio_output_context->sample_fmt, 0);
+    av_opt_set_int( resample_context, "out_sample_rate",    audio_output_context->sample_rate, 0);
+    av_opt_set_int( resample_context, "out_channels",       audio_output_context->channels, 0);
+
+    ret = avresample_open( resample_context );
+    if ( ret < 0 ) {
+      Error( "Could not open resample context\n");
+      return false;
+    }
+
+#if 0
+    /**
+     * Allocate as many pointers as there are audio channels.
+     * Each pointer will later point to the audio samples of the corresponding
+     * channels (although it may be NULL for interleaved formats).
+     */
+    if (!( converted_input_samples = (uint8_t *)calloc( audio_output_context->channels, sizeof(*converted_input_samples))) ) {
+      Error( "Could not allocate converted input sample pointers\n");
+      return;
+    }
+    /**
+     * Allocate memory for the samples of all channels in one consecutive
+     * block for convenience.
+     */
+    if ((ret = av_samples_alloc( &converted_input_samples, NULL,
+            audio_output_context->channels,
+            audio_output_context->frame_size,
+            audio_output_context->sample_fmt, 0)) < 0) {
+      Error( "Could not allocate converted input samples (error '%s')\n",
+          av_make_error_string(ret).c_str() );
+
+      av_freep(converted_input_samples);
+      free(converted_input_samples);
+      return;
+    }
+#endif
+
+    output_frame->nb_samples = audio_output_context->frame_size;
+    output_frame->format = audio_output_context->sample_fmt;
+    output_frame->channel_layout = audio_output_context->channel_layout;
+
+    // The codec gives us the frame size, in samples, we calculate the size of the samples buffer in bytes
+    unsigned int audioSampleBuffer_size = av_samples_get_buffer_size( NULL, audio_output_context->channels, audio_output_context->frame_size, audio_output_context->sample_fmt, 0 );
+    converted_input_samples = (uint8_t*) av_malloc( audioSampleBuffer_size );
+
+    if ( !converted_input_samples ) { 
+      Error( "Could not allocate converted input sample pointers\n");
+      return false;
+    }
+
+    // Setup the data pointers in the AVFrame
+    if ( avcodec_fill_audio_frame( 
+          output_frame, 
+          audio_output_context->channels, 
+          audio_output_context->sample_fmt, 
+          (const uint8_t*) converted_input_samples, 
+          audioSampleBuffer_size, 0 ) < 0 ) {
+      Error( "Could not allocate converted input sample pointers\n");
+      return false;
+    }
+
+#endif
+return true;
+#else
+Error("Not built with libswresample library. Cannot do audio conversion to AAC");
+return false;
 #endif
 }
 
@@ -634,47 +706,47 @@ int VideoStore::writeVideoFramePacket( AVPacket *ipkt ) {
 
 #if 0
   if (video_output_context->codec_type == AVMEDIA_TYPE_VIDEO && (output_format->flags & AVFMT_RAWPICTURE)) {
-  AVPicture pict;
-Debug(3, "video and RAWPICTURE");
+    AVPicture pict;
+    Debug(3, "video and RAWPICTURE");
     /* store AVPicture in AVPacket, as expected by the output format */
     avpicture_fill(&pict, opkt.data, video_output_context->pix_fmt, video_output_context->width, video_output_context->height, 0);
-  av_image_fill_arrays( 
-    opkt.data = (uint8_t *)&pict;
-    opkt.size = sizeof(AVPicture);
-    opkt.flags |= AV_PKT_FLAG_KEY;
-   } else {
-Debug(4, "Not video and RAWPICTURE");
-  }
+    av_image_fill_arrays( 
+        opkt.data = (uint8_t *)&pict;
+        opkt.size = sizeof(AVPicture);
+        opkt.flags |= AV_PKT_FLAG_KEY;
+        } else {
+        Debug(4, "Not video and RAWPICTURE");
+        }
 #endif
 
-  AVPacket safepkt;
-  memcpy(&safepkt, &opkt, sizeof(AVPacket));
+        AVPacket safepkt;
+        memcpy(&safepkt, &opkt, sizeof(AVPacket));
 
-  if ((opkt.data == NULL)||(opkt.size < 1)) {
-    Warning("%s:%d: Mangled AVPacket: discarding frame", __FILE__, __LINE__ ); 
-    dumpPacket( ipkt);
-    dumpPacket(&opkt);
+        if ((opkt.data == NULL)||(opkt.size < 1)) {
+        Warning("%s:%d: Mangled AVPacket: discarding frame", __FILE__, __LINE__ ); 
+        dumpPacket( ipkt);
+        dumpPacket(&opkt);
 
-  } else if ((previous_dts > 0) && (previous_dts > opkt.dts)) {
-    Warning("%s:%d: DTS out of order: %lld \u226E %lld; discarding frame", __FILE__, __LINE__, previous_dts, opkt.dts); 
-    previous_dts = opkt.dts; 
-    dumpPacket(&opkt);
+        } else if ((previous_dts > 0) && (previous_dts > opkt.dts)) {
+        Warning("%s:%d: DTS out of order: %lld \u226E %lld; discarding frame", __FILE__, __LINE__, previous_dts, opkt.dts); 
+        previous_dts = opkt.dts; 
+        dumpPacket(&opkt);
 
-  } else {
+        } else {
 
-    previous_dts = opkt.dts; // Unsure if av_interleaved_write_frame() clobbers opkt.dts when out of order, so storing in advance
-    previous_pts = opkt.pts;
-    ret = av_interleaved_write_frame(oc, &opkt);
-    if(ret<0){
-      // There's nothing we can really do if the frame is rejected, just drop it and get on with the next
-      Warning("%s:%d: Writing frame [av_interleaved_write_frame()] failed: %s(%d)  ", __FILE__, __LINE__,  av_make_error_string(ret).c_str(), (ret));
-      dumpPacket(&safepkt);
-    }
-  }
+          previous_dts = opkt.dts; // Unsure if av_interleaved_write_frame() clobbers opkt.dts when out of order, so storing in advance
+          previous_pts = opkt.pts;
+          ret = av_interleaved_write_frame(oc, &opkt);
+          if(ret<0){
+            // There's nothing we can really do if the frame is rejected, just drop it and get on with the next
+            Warning("%s:%d: Writing frame [av_interleaved_write_frame()] failed: %s(%d)  ", __FILE__, __LINE__,  av_make_error_string(ret).c_str(), (ret));
+            dumpPacket(&safepkt);
+          }
+        }
 
-  zm_av_packet_unref(&opkt); 
+        zm_av_packet_unref(&opkt); 
 
-  return 0;
+        return 0;
 
 }
 
@@ -693,7 +765,7 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
   Debug(5, "after init packet" );
 
 #if 1
- //Scale the PTS of the outgoing packet to be the correct time base
+  //Scale the PTS of the outgoing packet to be the correct time base
   if ( ipkt->pts != AV_NOPTS_VALUE ) {
     if ( !audio_last_pts ) {
       opkt.pts = 0;
@@ -739,10 +811,10 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
     Debug(1,"opkt.dts(%d) must be <= opkt.pts(%d). Decompression must happen before presentation.", opkt.dts, opkt.pts );
     opkt.dts = opkt.pts;
   }
-    //opkt.pts = AV_NOPTS_VALUE;
-    //opkt.dts = AV_NOPTS_VALUE;
+  //opkt.pts = AV_NOPTS_VALUE;
+  //opkt.dts = AV_NOPTS_VALUE;
 
-    // I wonder if we could just use duration instead of all the hoop jumping above?
+  // I wonder if we could just use duration instead of all the hoop jumping above?
   opkt.duration = av_rescale_q(ipkt->duration, audio_input_stream->time_base, audio_output_stream->time_base);
 #else
 #endif
@@ -751,48 +823,48 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
   opkt.pos = -1;
   opkt.flags = ipkt->flags;
   opkt.stream_index = ipkt->stream_index;
-Debug(2, "Stream index is %d", opkt.stream_index );
+  Debug(2, "Stream index is %d", opkt.stream_index );
 
   if ( audio_output_codec ) {
 
 #ifdef HAVE_LIBSWRESAMPLE
-  // Need to re-encode
+    // Need to re-encode
 #if 0
-  ret = avcodec_send_packet( audio_input_context, ipkt );
-  if ( ret < 0 ) {
-    Error("avcodec_send_packet fail %s", av_make_error_string(ret).c_str());
-    return 0;
-  }
+    ret = avcodec_send_packet( audio_input_context, ipkt );
+    if ( ret < 0 ) {
+      Error("avcodec_send_packet fail %s", av_make_error_string(ret).c_str());
+      return 0;
+    }
 
-  ret = avcodec_receive_frame( audio_input_context, input_frame );
-  if ( ret < 0 ) {
-    Error("avcodec_receive_frame fail %s", av_make_error_string(ret).c_str());
-    return 0;
-  }
-Debug(2, "Frame: samples(%d), format(%d), sample_rate(%d), channel layout(%d) refd(%d)", 
-input_frame->nb_samples,
-input_frame->format,
-input_frame->sample_rate,
-input_frame->channel_layout,
-audio_output_context->refcounted_frames
-);
+    ret = avcodec_receive_frame( audio_input_context, input_frame );
+    if ( ret < 0 ) {
+      Error("avcodec_receive_frame fail %s", av_make_error_string(ret).c_str());
+      return 0;
+    }
+    Debug(2, "Frame: samples(%d), format(%d), sample_rate(%d), channel layout(%d) refd(%d)", 
+        input_frame->nb_samples,
+        input_frame->format,
+        input_frame->sample_rate,
+        input_frame->channel_layout,
+        audio_output_context->refcounted_frames
+        );
 
-  ret = avcodec_send_frame( audio_output_context, input_frame );
-  if ( ret < 0 ) {
+    ret = avcodec_send_frame( audio_output_context, input_frame );
+    if ( ret < 0 ) {
+      av_frame_unref( input_frame );
+      Error("avcodec_send_frame fail(%d),  %s codec is open(%d) is_encoder(%d)", ret, av_make_error_string(ret).c_str(),
+          avcodec_is_open( audio_output_context ),
+          av_codec_is_encoder( audio_output_context->codec)
+          );
+      return 0;
+    }
+    ret = avcodec_receive_packet( audio_output_context, &opkt );
+    if ( ret < 0 ) {
+      av_frame_unref( input_frame );
+      Error("avcodec_receive_packet fail %s", av_make_error_string(ret).c_str());
+      return 0;
+    }
     av_frame_unref( input_frame );
-    Error("avcodec_send_frame fail(%d),  %s codec is open(%d) is_encoder(%d)", ret, av_make_error_string(ret).c_str(),
-avcodec_is_open( audio_output_context ),
-av_codec_is_encoder( audio_output_context->codec)
-);
-    return 0;
-  }
-  ret = avcodec_receive_packet( audio_output_context, &opkt );
-  if ( ret < 0 ) {
-    av_frame_unref( input_frame );
-    Error("avcodec_receive_packet fail %s", av_make_error_string(ret).c_str());
-    return 0;
-  }
-  av_frame_unref( input_frame );
 #else
 
 
@@ -803,13 +875,13 @@ av_codec_is_encoder( audio_output_context->codec)
      * to flush it.
      */
     if ((ret = avcodec_decode_audio4(audio_input_context, input_frame,
-                                       &data_present, ipkt)) < 0) {
-        Error( "Could not decode frame (error '%s')\n",
-                av_make_error_string(ret).c_str());
-        dumpPacket( ipkt );
-        av_frame_free(&input_frame);
-        zm_av_packet_unref(&opkt);
-        return 0;
+            &data_present, ipkt)) < 0) {
+      Error( "Could not decode frame (error '%s')\n",
+          av_make_error_string(ret).c_str());
+      dumpPacket( ipkt );
+      av_frame_free(&input_frame);
+      zm_av_packet_unref(&opkt);
+      return 0;
     }
     if ( ! data_present ) {
       Debug(2, "Not ready to transcode a frame yet.");
@@ -820,7 +892,33 @@ av_codec_is_encoder( audio_output_context->codec)
     int frame_size = input_frame->nb_samples;
     Debug(4, "Frame size: %d", frame_size );
 
+#if 1 
+// Resample the input into the audioSampleBuffer until we proceed the whole decoded data
+      if ( (ret = avresample_convert( resample_context,
+                      NULL,
+                      0,
+                      0,
+                      input_frame->data,
+                      0,
+                      input_frame->nb_samples )) < 0 )
+      {
+      Error( "Could not resample frame (error '%s')\n",
+          av_make_error_string(ret).c_str());
+      return 0;
+      }
 
+      if ( avresample_available( resample_context ) < output_frame->nb_samples ) {
+        Debug(1, "No enough samples yet");
+        return 0;
+      }
+// Read a frame audio data from the resample fifo
+        if ( avresample_read( resample_context, output_frame->data, output_frame->nb_samples ) != output_frame->nb_samples )
+        {
+          Warning( "Error reading resampled audio: " );
+          return 0;
+        }
+
+#else
     Debug(4, "About to convert");
 
     /** Convert the samples using the resampler. */
@@ -877,14 +975,15 @@ av_codec_is_encoder( audio_output_context->codec)
       Error( "Could not read data from FIFO\n");
       return 0;
     }
+#endif
 
     /** Set a timestamp based on the sample rate for the container. */
     output_frame->pts = av_rescale_q( opkt.pts, audio_output_context->time_base, audio_output_stream->time_base );
 
-  // convert the packet to the codec timebase from the stream timebase
-Debug(3, "output_frame->pts(%d) best effort(%d)", output_frame->pts, 
-av_frame_get_best_effort_timestamp(output_frame)
- );
+    // convert the packet to the codec timebase from the stream timebase
+    Debug(3, "output_frame->pts(%d) best effort(%d)", output_frame->pts, 
+        av_frame_get_best_effort_timestamp(output_frame)
+        );
     /**
      * Encode the audio frame and store it in the temporary packet.
      * The output audio stream encoder is used to do this.
@@ -901,24 +1000,24 @@ av_frame_get_best_effort_timestamp(output_frame)
       zm_av_packet_unref(&opkt);
       return 0;
     }
-  
 
-Debug(2, "opkt dts (%d) pts(%d) duration:(%d)", opkt.dts, opkt.pts, opkt.duration );
+
+    Debug(2, "opkt dts (%d) pts(%d) duration:(%d)", opkt.dts, opkt.pts, opkt.duration );
 
     // Convert tb from code back to stream
     //av_packet_rescale_ts(&opkt, audio_output_context->time_base, audio_output_stream->time_base);
-if (opkt.pts != AV_NOPTS_VALUE)  {
-             opkt.pts      = av_rescale_q( opkt.pts,      audio_output_context->time_base, audio_output_stream->time_base);
-}
-         if ( opkt.dts != AV_NOPTS_VALUE)
-             opkt.dts      = av_rescale_q( opkt.dts,      audio_output_context->time_base, audio_output_stream->time_base);
-         if ( opkt.duration > 0)
-             opkt.duration = av_rescale_q( opkt.duration, audio_output_context->time_base, audio_output_stream->time_base);
-Debug(2, "opkt dts (%d) pts(%d) duration:(%d) pos(%d) ", opkt.dts, opkt.pts, opkt.duration, opkt.pos );
+    if (opkt.pts != AV_NOPTS_VALUE)  {
+      opkt.pts      = av_rescale_q( opkt.pts,      audio_output_context->time_base, audio_output_stream->time_base);
+    }
+    if ( opkt.dts != AV_NOPTS_VALUE)
+      opkt.dts      = av_rescale_q( opkt.dts,      audio_output_context->time_base, audio_output_stream->time_base);
+    if ( opkt.duration > 0)
+      opkt.duration = av_rescale_q( opkt.duration, audio_output_context->time_base, audio_output_stream->time_base);
+    Debug(2, "opkt dts (%d) pts(%d) duration:(%d) pos(%d) ", opkt.dts, opkt.pts, opkt.duration, opkt.pos );
 
 
-//opkt.dts = AV_NOPTS_VALUE;
- 
+    //opkt.dts = AV_NOPTS_VALUE;
+
 
 #endif
 #endif

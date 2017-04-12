@@ -224,8 +224,7 @@ int FfmpegCamera::Capture( Image &image )
   return (0);
 } // FfmpegCamera::Capture
 
-int FfmpegCamera::PostCapture()
-{
+int FfmpegCamera::PostCapture() {
   // Nothing to do here
   return( 0 );
 }
@@ -301,7 +300,7 @@ int FfmpegCamera::OpenFfmpeg() {
 #endif
     Fatal( "Unable to find stream info from %s due to: %s", mPath.c_str(), strerror(errno) );
 
-  startTime=av_gettime();//FIXME here or after find_Stream_info
+  startTime = av_gettime();//FIXME here or after find_Stream_info
   Debug ( 1, "Got stream info" );
 
   // Find first video stream present
@@ -333,7 +332,7 @@ int FfmpegCamera::OpenFfmpeg() {
         Debug(2, "Have another audio stream." );
       }
     }
-  }
+  } // end foreach stream
   if ( mVideoStreamId == -1 )
     Fatal( "Unable to locate video stream in %s", mPath.c_str() );
   if ( mAudioStreamId == -1 )
@@ -431,7 +430,7 @@ int FfmpegCamera::OpenFfmpeg() {
   Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
 #endif // HAVE_LIBSWSCALE
 
-  if ( mVideoCodecContext->width != width || mVideoCodecContext->height != height ) {
+  if ( (unsigned int)mVideoCodecContext->width != width || (unsigned int)mVideoCodecContext->height != height ) {
     Warning( "Monitor dimensions are %dx%d but camera is sending %dx%d", width, height, mVideoCodecContext->width, mVideoCodecContext->height );
   }
 
@@ -534,7 +533,7 @@ void *FfmpegCamera::ReopenFfmpegThreadCallback(void *ctx){
 }
 
 //Function to handle capture and store
-int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_file ) {
+int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event_file ) {
   if (!mCanCapture){
     return -1;
   }
@@ -554,19 +553,15 @@ int FfmpegCamera::CaptureAndRecord( Image &image, bool recording, char* event_fi
     mReopenThread = 0;
   }
 
-
   if (mVideoCodecContext->codec_id != AV_CODEC_ID_H264) {
     Error( "Input stream is not h264.  The stored event file may not be viewable in browser." );
   }
 
   int frameComplete = false;
-  while ( !frameComplete ) {
-Debug(5, "Before av_init_packe");
+  while ( ! frameComplete ) {
     av_init_packet( &packet );
 
-Debug(5, "Before av_read_frame");
     ret = av_read_frame( mFormatContext, &packet );
-Debug(5, "After av_read_frame (%d)", ret );
     if ( ret < 0 ) {
       av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
       if (
@@ -591,7 +586,7 @@ Debug(5, "After av_read_frame (%d)", ret );
         );
 
     //Video recording
-    if ( recording ) {
+    if ( recording.tv_sec ) {
       // The directory we are recording to is no longer tied to the current event. 
       // Need to re-init the videostore with the correct directory and start recording again
       // for efficiency's sake, we should test for keyframe before we test for directory change...
@@ -612,9 +607,9 @@ Debug(5, "After av_read_frame (%d)", ret );
 
         delete videoStore;
         videoStore = NULL;
-      }
+      } // end if end of recording
 
-      if ( ( ! videoStore )&& key_frame && ( packet.stream_index == mVideoStreamId ) ) {
+      if ( ( ! videoStore ) && key_frame && ( packet.stream_index == mVideoStreamId ) ) {
         //Instantiate the video storage module
 
         if (record_audio) {
@@ -645,10 +640,15 @@ Debug(5, "After av_read_frame (%d)", ret );
         strcpy(oldDirectory, event_file);
 
         // Need to write out all the frames from the last keyframe?
+        // No... need to write out all frames from when the event began. Due to PreEventFrames, this could be more than since the last keyframe.
         unsigned int packet_count = 0;
         ZMPacket *queued_packet;
+
+        packetqueue.clear_unwanted_packets( &recording, mVideoStreamId );
+
         while ( ( queued_packet = packetqueue.popPacket() ) ) {
           AVPacket *avp = queued_packet->av_packet();
+            
           packet_count += 1;
           //Write the packet to our video store
           Debug(2, "Writing queued packet stream: %d  KEY %d, remaining (%d)", avp->stream_index, avp->flags & AV_PKT_FLAG_KEY, packetqueue.size() );
@@ -681,7 +681,7 @@ Debug(5, "After av_read_frame (%d)", ret );
       if ( packet.stream_index == mVideoStreamId) {
         if ( key_frame ) {
           Debug(3, "Clearing queue");
-          packetqueue.clearQueue();
+          packetqueue.clearQueue( monitor->GetPreEventCount(), mVideoStreamId );
         } 
 #if 0
 // Not sure this is valid.  While a camera will PROBABLY always have an increasing pts... it doesn't have to.

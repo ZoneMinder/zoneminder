@@ -172,7 +172,7 @@ class Monitor
   {
     uint32_t size;
     char event_file[4096];
-    uint32_t recording; //bool arch dependent so use uint32 instead
+    timeval recording;     // used as both bool and a pointer to the timestamp when recording should begin
     //uint32_t frameNumber;
   } VideoStoreData;
 
@@ -441,9 +441,10 @@ public:
   VideoWriter GetOptVideoWriter() const { return( videowriter ); }
   const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return( &encoderparamsvec ); }    
  
+  unsigned int GetPreEventCount() const { return pre_event_count; };
   State GetState() const;
   int GetImage( int index=-1, int scale=100 );
-Snapshot *getSnapshot();
+  Snapshot *getSnapshot();
   struct timeval GetTimestamp( int index=-1 ) const;
   void UpdateAdaptiveSkip();
   useconds_t GetAnalysisRate();

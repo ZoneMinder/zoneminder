@@ -27,6 +27,9 @@ mysql -u root < db/zm_create.sql
 # Add the ZoneMinder DB user
 mysql -u root -e "grant insert,select,update,delete,lock tables,alter on zm.* to 'zmuser'@'localhost' identified by 'zmpass';"
 
+# Make ZM_LOGDIR
+mkdir /var/log/zm
+
 # Activate CGI
 a2enmod cgi
 

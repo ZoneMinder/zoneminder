@@ -5,13 +5,22 @@
 # Some values may need to manually adjusted to suit your setup
 #
 <VirtualHost *:80>
-    ServerName @WEB_HOST@
     ServerAdmin webmaster@localhost
 
     DocumentRoot "@WEB_PREFIX@"
+    Alias /zm/ "@WEB_PREFIX@/"
     <Directory "@WEB_PREFIX@">
         Options -Indexes +FollowSymLinks
         AllowOverride All
+        <IfModule mod_authz_core.c>
+           # Apache 2.4
+           Require all granted
+        </IfModule>
+        <IfModule !mod_authz_core.c>
+            # Apache 2.2
+            Order deny,allow
+            Allow from all
+        </IfModule>
     </Directory>
 
     ScriptAlias /cgi-bin "@CGI_PREFIX@"

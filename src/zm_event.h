@@ -65,7 +65,8 @@ class Event {
     typedef std::map<std::string,StringSet> StringSetMap;
 
   protected:
-    typedef enum { NORMAL, BULK, ALARM } FrameType;
+    typedef enum { NORMAL=0, BULK, ALARM } FrameType;
+    static constexpr const char * frame_type_names[3] = { "Normal", "Bulk", "Alarm" };
 
     struct PreAlarmData {
       Image *image;
@@ -130,6 +131,7 @@ class Event {
 
     const struct timeval &StartTime() const { return( start_time ); }
     const struct timeval &EndTime() const { return( end_time ); }
+    struct timeval &StartTime() { return( start_time ); }
     struct timeval &EndTime() { return( end_time ); }
 
     bool SendFrameImage( const Image *image, bool alarm_frame=false );

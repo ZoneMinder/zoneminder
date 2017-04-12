@@ -20,7 +20,7 @@
 #include "zm.h"
 #include "zm_camera.h"
 
-Camera::Camera( unsigned int p_monitor_id, SourceType p_type, int p_width, int p_height, int p_colours, int p_subpixelorder, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio ) :
+Camera::Camera( unsigned int p_monitor_id, SourceType p_type, unsigned int p_width, unsigned int p_height, int p_colours, int p_subpixelorder, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio ) :
     monitor_id( p_monitor_id ),
     type( p_type ),
     width( p_width),

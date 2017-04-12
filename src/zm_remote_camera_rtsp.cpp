@@ -392,7 +392,7 @@ int RemoteCameraRtsp::Capture( Image &image ) {
 
 //Function to handle capture and store
 
-int RemoteCameraRtsp::CaptureAndRecord(Image &image, bool recording, char* event_file ) {
+int RemoteCameraRtsp::CaptureAndRecord(Image &image, timeval recording, char* event_file ) {
   AVPacket packet;
   uint8_t* directbuffer;
   int frameComplete = false;
@@ -407,7 +407,7 @@ int RemoteCameraRtsp::CaptureAndRecord(Image &image, bool recording, char* event
       return (-1);
 
     //Video recording
-    if ( recording ) {
+    if ( recording.tv_sec ) {
       // The directory we are recording to is no longer tied to the current event. 
       // Need to re-init the videostore with the correct directory and start recording again
       // Not sure why we are only doing this on keyframe, al

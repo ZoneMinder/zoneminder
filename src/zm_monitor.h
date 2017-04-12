@@ -172,7 +172,7 @@ class Monitor
   {
     uint32_t size;
     char event_file[4096];
-    uint32_t recording; //bool arch dependent so use uint32 instead
+    timeval recording;     // used as both bool and a pointer to the timestamp when recording should begin
     //uint32_t frameNumber;
   } VideoStoreData;
 
@@ -441,8 +441,10 @@ public:
   VideoWriter GetOptVideoWriter() const { return( videowriter ); }
   const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return( &encoderparamsvec ); }    
  
+  unsigned int GetPreEventCount() const { return pre_event_count; };
   State GetState() const;
   int GetImage( int index=-1, int scale=100 );
+  Snapshot *getSnapshot();
   struct timeval GetTimestamp( int index=-1 ) const;
   void UpdateAdaptiveSkip();
   useconds_t GetAnalysisRate();
@@ -509,59 +511,11 @@ public:
   //void StreamImages( int scale=100, int maxfps=10, time_t ttl=0, int msq_id=0 );
   //void StreamImagesRaw( int scale=100, int maxfps=10, time_t ttl=0 );
   //void StreamImagesZip( int scale=100, int maxfps=10, time_t ttl=0 );
-  void SingleImage( int scale=100 );
-  void SingleImageRaw( int scale=100 );
-  void SingleImageZip( int scale=100 );
 #if HAVE_LIBAVCODEC
   //void StreamMpeg( const char *format, int scale=100, int maxfps=10, int bitrate=100000 );
 #endif // HAVE_LIBAVCODEC
 };
 
 #define MOD_ADD( var, delta, limit ) (((var)+(limit)+(delta))%(limit))
-
-class MonitorStream : public StreamBase {
-  protected:
-    typedef struct SwapImage {
-      bool            valid;
-      struct timeval  timestamp;
-      char            file_name[PATH_MAX];
-    } SwapImage;
-
-  private:
-    SwapImage *temp_image_buffer;
-    int temp_image_buffer_count;
-    int temp_read_index;
-    int temp_write_index;
-
-  protected:
-    time_t ttl;
-
-  protected:
-    int playback_buffer;
-    bool delayed;
-
-    int frame_count;
-
-  protected:
-    bool checkSwapPath( const char *path, bool create_path );
-
-    bool sendFrame( const char *filepath, struct timeval *timestamp );
-    bool sendFrame( Image *image, struct timeval *timestamp );
-    void processCommand( const CmdMsg *msg );
-
-  public:
-    MonitorStream() : playback_buffer( 0 ), delayed( false ), frame_count( 0 ) {
-    }
-    void setStreamBuffer( int p_playback_buffer ) {
-      playback_buffer = p_playback_buffer;
-    }
-    void setStreamTTL( time_t p_ttl ) {
-      ttl = p_ttl;
-    }
-    bool setStreamStart( int monitor_id ) {
-      return loadMonitor( monitor_id );
-    }
-    void runStream();
-};
 
 #endif // ZM_MONITOR_H

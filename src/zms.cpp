@@ -25,6 +25,7 @@
 #include "zm_user.h"
 #include "zm_signal.h"
 #include "zm_monitor.h"
+#include "zm_monitorstream.h"
 
 bool ValidateAccess( User *user, int mon_id ) {
 	bool allowed = true;

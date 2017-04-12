@@ -2,11 +2,12 @@
 # Created by mastertheknife (Kfir Itzhak)
 # For more information and installation, see the INSTALL file
 #
-cmake_minimum_required (VERSION 2.8.7)
+cmake_minimum_required (VERSION 3.1.0)
 project (zoneminder)
 file (STRINGS "version" zoneminder_VERSION)
 # make API version a minor of ZM version
 set(zoneminder_API_VERSION "${zoneminder_VERSION}.1")
+set (CMAKE_CXX_STANDARD 11)
 
 # Make sure the submodules are there
 if( NOT EXISTS "${CMAKE_SOURCE_DIR}/web/api/app/Plugin/Crud/Lib/CrudControllerTrait.php" )
@@ -564,21 +565,21 @@ if(NOT ZM_NO_FFMPEG)
 	endif(SWSCALE_LIBRARIES)
 
 	# rescale (using find_library and find_path)
-	find_library(SWRESAMPLE_LIBRARIES swresample)
-	if(SWRESAMPLE_LIBRARIES)
-		set(HAVE_LIBSWRESAMPLE 1)
-		list(APPEND ZM_BIN_LIBS "${SWRESAMPLE_LIBRARIES}")
-		find_path(SWRESAMPLE_INCLUDE_DIR "libswresample/swresample.h" /usr/include/ffmpeg)
-		if(SWRESAMPLE_INCLUDE_DIR)
-			include_directories("${SWRESAMPLE_INCLUDE_DIR}")
-			set(CMAKE_REQUIRED_INCLUDES "${SWRESAMPLE_INCLUDE_DIR}")
-		endif(SWRESAMPLE_INCLUDE_DIR)
-		mark_as_advanced(FORCE SWRESAMPLE_LIBRARIES SWRESAMPLE_INCLUDE_DIR)
-		check_include_file("libswresample/swresample.h" HAVE_LIBSWRESAMPLE_SWRESAMPLE_H)
-		set(optlibsfound "${optlibsfound} SWResample")
-	else(SWRESAMPLE_LIBRARIES)
-		set(optlibsnotfound "${optlibsnotfound} SWResample")
-	endif(SWRESAMPLE_LIBRARIES)
+	find_library(AVRESAMPLE_LIBRARIES avresample)
+	if(AVRESAMPLE_LIBRARIES)
+		set(HAVE_LIBAVRESAMPLE 1)
+		list(APPEND ZM_BIN_LIBS "${AVRESAMPLE_LIBRARIES}")
+		find_path(AVRESAMPLE_INCLUDE_DIR "libavresample/avresample.h" /usr/include/ffmpeg)
+		if(AVRESAMPLE_INCLUDE_DIR)
+			include_directories("${AVRESAMPLE_INCLUDE_DIR}")
+			set(CMAKE_REQUIRED_INCLUDES "${AVRESAMPLE_INCLUDE_DIR}")
+		endif(AVRESAMPLE_INCLUDE_DIR)
+		mark_as_advanced(FORCE AVRESAMPLE_LIBRARIES AVRESAMPLE_INCLUDE_DIR)
+		check_include_file("libavresample/avresample.h" HAVE_LIBAVRESAMPLE_AVRESAMPLE_H)
+		set(optlibsfound "${optlibsfound} AVResample")
+	else(AVRESAMPLE_LIBRARIES)
+		set(optlibsnotfound "${optlibsnotfound} AVResample")
+	endif(AVRESAMPLE_LIBRARIES)
 
 	# Find the path to the ffmpeg executable
 	find_program(FFMPEG_EXECUTABLE 

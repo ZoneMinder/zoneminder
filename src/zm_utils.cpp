@@ -390,6 +390,18 @@ void timespec_diff(struct timespec *start, struct timespec *end, struct timespec
   }
 }
 
+char *timeval_to_string( struct timeval tv ) {
+  time_t nowtime;
+  struct tm *nowtm;
+  char tmbuf[64], buf[64];
+
+  nowtime = tv.tv_sec;
+  nowtm = localtime(&nowtime);
+  strftime(tmbuf, sizeof tmbuf, "%Y-%m-%d %H:%M:%S", nowtm);
+  snprintf(buf, sizeof buf, "%s.%06ld", tmbuf, tv.tv_usec);
+  return buf;
+}
+
 std::string UriDecode( const std::string &encoded ) {
 #ifdef HAVE_LIBCURL 
   CURL *curl = curl_easy_init();

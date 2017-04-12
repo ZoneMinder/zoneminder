@@ -132,8 +132,8 @@ too much degradation of performance.
 %prep
 %autosetup -n ZoneMinder-%{version}
 %autosetup -a 1 -n ZoneMinder-%{version}
-rmdir ./web/api/app/Plugin/Crud
-mv -f crud-%{crud_version} ./web/api/app/Plugin/Crud
+%{__rm} -rf ./web/api/app/Plugin/Crud
+%{__mv} -f crud-%{crud_version} ./web/api/app/Plugin/Crud
 
 # Change the following default values
 ./utils/zmeditconfigdata.sh ZM_PATH_ZMS /cgi-bin-zm/nph-zms
@@ -333,7 +333,14 @@ rm -rf %{_docdir}/%{name}-%{version}
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/temp
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/log/zoneminder
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/spool/zoneminder-upload
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) %ghost %{_localstatedir}/run/zoneminder
+%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/run/zoneminder
+
+# cakephp requires its cache folders to pre-exist
+%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/temp/logs
+%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/temp/cache
+%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/temp/cache/views
+%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/temp/cache/models
+%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/temp/cache/persistent
 
 %changelog
 * Thu Mar 30 2017 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.2-2

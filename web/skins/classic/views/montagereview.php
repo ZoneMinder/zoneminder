@@ -143,9 +143,7 @@ $frameSql = '
 // This program only calls itself with the time range involved -- it does all monitors (the user can see, in the called group) all the time
 
 if ( ! empty( $user['MonitorIds'] ) ) {
-    $monFilterSql = ' AND M.Id IN ('.$user['MonitorIds'].')';
-
-    $eventsSql   .= $monFilterSql;
+    $eventsSql   .= ' AND M.Id IN ('.$user['MonitorIds'].')';
     $monitorsSql .= ' AND Id IN ('.$user['MonitorIds'].')';
     $frameSql    .= ' AND E.MonitorId IN ('.$user['MonitorIds'].')';
 }

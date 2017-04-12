@@ -61,6 +61,7 @@ void hwcaps_detect();
 extern unsigned int sseversion;
 extern unsigned int neonversion;
 
+char *timeval_to_string( struct timeval tv );
 std::string UriDecode( const std::string &encoded );
 
 #endif // ZM_UTILS_H

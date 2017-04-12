@@ -162,7 +162,7 @@ public:
   int PreCapture();
   int Capture( Image &image );
   int PostCapture();
-  int CaptureAndRecord( Image &image, bool recording, char* event_directory ) {return(0);};
+  int CaptureAndRecord( Image &image, timeval recording, char* event_directory ) {return(0);};
 
   static bool GetCurrentSettings( const char *device, char *output, int version, bool verbose );
 };

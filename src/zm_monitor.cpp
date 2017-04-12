@@ -425,7 +425,7 @@ Monitor::Monitor(
     trigger_data->trigger_text[0] = 0;
     trigger_data->trigger_showtext[0] = 0;
     shared_data->valid = true;
-    video_store_data->recording = false;
+    video_store_data->recording = (struct timeval){0};
     snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "nothing");
     video_store_data->size = sizeof(VideoStoreData);
     //video_store_data->frameNumber = 0;
@@ -1389,8 +1389,8 @@ bool Monitor::Analyse() {
             shared_data->last_event = event->Id();
             //set up video store data
             snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
-            video_store_data->recording = true;
-
+            video_store_data->recording = event->StartTime();
+      
             Info( "%s: %03d - Opening new event %d, section start", name, image_count, event->Id() );
 
             /* To prevent cancelling out an existing alert\prealarm\alarm state */
@@ -1492,7 +1492,7 @@ bool Monitor::Analyse() {
                 shared_data->last_event = event->Id();
                 //set up video store data
                 snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
-                video_store_data->recording = true;
+                video_store_data->recording = event->StartTime();
 
                 Info( "%s: %03d - Opening new event %d, alarm start", name, image_count, event->Id() );
 
@@ -1601,9 +1601,11 @@ bool Monitor::Analyse() {
               event->updateNotes( noteSetMap );
           } else if ( state == TAPE ) {
             //Video Storage: activate only for supported cameras. Event::AddFrame knows whether or not we are recording video and saves frames accordingly
-            if((GetOptVideoWriter() == 2) && camera->SupportsNativeVideo()) {
-              video_store_data->recording = true;
-            }
+            //if((GetOptVideoWriter() == 2) && camera->SupportsNativeVideo()) {
+              // I don't think this is required, and causes problems, as the event file hasn't been setup yet.
+              //Warning("In state TAPE, 
+              //video_store_data->recording = event->StartTime();
+            //}
             if ( !(image_count%(frame_skip+1)) ) {
               if ( config.bulk_frame_interval > 1 ) {
                 event->AddFrame( snap_image, *timestamp, (event->Frames()<pre_event_count?0:-1) );
@@ -3010,7 +3012,7 @@ bool Monitor::closeEvent() {
       gettimeofday( &(event->EndTime()), NULL );
     }
     delete event;
-    video_store_data->recording = false;
+    video_store_data->recording = (struct timeval){0};
     event = 0;
     return( true );
   }

@@ -33,7 +33,7 @@ const char* content_type_match = "Content-Type:";
 size_t content_length_match_len;
 size_t content_type_match_len;
 
-cURLCamera::cURLCamera( int p_id, const std::string &p_path, const std::string &p_user, const std::string &p_pass, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio ) :
+cURLCamera::cURLCamera( int p_id, const std::string &p_path, const std::string &p_user, const std::string &p_pass, unsigned int p_width, unsigned int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio ) :
   Camera( p_id, CURL_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture, p_record_audio ),
   mPath( p_path ), mUser( p_user ), mPass ( p_pass ), bTerminate( false ), bReset( false ), mode ( MODE_UNSET )
 {
@@ -305,7 +305,7 @@ int cURLCamera::PostCapture() {
     return( 0 );
 }
 
-int cURLCamera::CaptureAndRecord( Image &image, bool recording, char* event_directory ) {
+int cURLCamera::CaptureAndRecord( Image &image, struct timeval recording, char* event_directory ) {
   Error("Capture and Record not implemented for the cURL camera type");
   // Nothing to do here
   return( 0 );

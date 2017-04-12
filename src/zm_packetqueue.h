@@ -23,7 +23,7 @@
 //#include <boost/interprocess/managed_shared_memory.hpp>
 //#include <boost/interprocess/containers/map.hpp>
 //#include <boost/interprocess/allocators/allocator.hpp>
-#include <queue>
+#include <list>
 #include "zm_packet.h"
 
 extern "C" {
@@ -40,10 +40,12 @@ public:
     ZMPacket * popPacket( );
     bool popVideoPacket(ZMPacket* packet);
     bool popAudioPacket(ZMPacket* packet);
+    unsigned int clearQueue( unsigned int video_frames_to_keep, int stream_id );
     void clearQueue( );
     unsigned int size();
+    void clear_unwanted_packets( timeval *recording, int mVideoStreamId );
 private:
-    std::queue<ZMPacket *>    pktQueue;
+    std::list<ZMPacket *>    pktQueue;
 
 };
 

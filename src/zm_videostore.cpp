@@ -538,6 +538,8 @@ void VideoStore::dumpPacket( AVPacket *pkt ){
 int VideoStore::writeVideoFramePacket( AVPacket *ipkt ) {
   av_init_packet(&opkt);
 
+  int duration;
+
   //Scale the PTS of the outgoing packet to be the correct time base
   if (ipkt->pts != AV_NOPTS_VALUE) {
 
@@ -555,6 +557,7 @@ int VideoStore::writeVideoFramePacket( AVPacket *ipkt ) {
       }
     }
     Debug(3, "opkt.pts = %d from ipkt->pts(%d) - last_pts(%d)", opkt.pts, ipkt->pts, video_last_pts );
+    duration = ipkt->pts - video_last_pts;
     video_last_pts = ipkt->pts;
   } else {
     Debug(3, "opkt.pts = undef");
@@ -567,7 +570,8 @@ int VideoStore::writeVideoFramePacket( AVPacket *ipkt ) {
   if ( ! video_last_dts ) {
     // This is the first packet.
     opkt.dts = 0;
-    Debug(1, "Starting video video_last_pts will become (%d)", ipkt->dts );
+    Debug(1, "Starting video video_last_dts will become (%d)", ipkt->dts );
+    video_last_dts = ipkt->dts;
   } else {
     if ( ipkt->dts == AV_NOPTS_VALUE ) {
       // why are we using cur_dts instead of packet.dts? I think cur_dts is in AV_TIME_BASE_Q, but ipkt.dts is in video_input_stream->time_base
@@ -599,7 +603,11 @@ int VideoStore::writeVideoFramePacket( AVPacket *ipkt ) {
     opkt.dts = opkt.pts;
   }
 
-  opkt.duration = av_rescale_q(ipkt->duration, video_input_stream->time_base, video_output_stream->time_base);
+  if ( ipkt->duration == AV_NOPTS_VALUE ) {
+    opkt.duration = av_rescale_q( duration, video_input_stream->time_base, video_output_stream->time_base);
+  } else {
+    opkt.duration = av_rescale_q(ipkt->duration, video_input_stream->time_base, video_output_stream->time_base);
+  }
   opkt.flags = ipkt->flags;
   opkt.pos=-1;
 
@@ -614,51 +622,35 @@ int VideoStore::writeVideoFramePacket( AVPacket *ipkt ) {
     opkt.stream_index = ipkt->stream_index;
   }
 
-  /*opkt.flags |= AV_PKT_FLAG_KEY;*/
+  AVPacket safepkt;
+  memcpy(&safepkt, &opkt, sizeof(AVPacket));
 
-#if 0
-  if (video_output_context->codec_type == AVMEDIA_TYPE_VIDEO && (output_format->flags & AVFMT_RAWPICTURE)) {
-    AVPicture pict;
-    Debug(3, "video and RAWPICTURE");
-    /* store AVPicture in AVPacket, as expected by the output format */
-    avpicture_fill(&pict, opkt.data, video_output_context->pix_fmt, video_output_context->width, video_output_context->height, 0);
-    av_image_fill_arrays( 
-        opkt.data = (uint8_t *)&pict;
-        opkt.size = sizeof(AVPicture);
-        opkt.flags |= AV_PKT_FLAG_KEY;
-        } else {
-        Debug(4, "Not video and RAWPICTURE");
-        }
-#endif
+Debug(1, "writing video packet pts(%d) dts(%d) duration(%d)", opkt.pts, opkt.dts, opkt.duration );
+  if ((opkt.data == NULL)||(opkt.size < 1)) {
+    Warning("%s:%d: Mangled AVPacket: discarding frame", __FILE__, __LINE__ ); 
+    dumpPacket( ipkt);
+    dumpPacket(&opkt);
 
-        AVPacket safepkt;
-        memcpy(&safepkt, &opkt, sizeof(AVPacket));
+  } else if ((previous_dts > 0) && (previous_dts > opkt.dts)) {
+    Warning("%s:%d: DTS out of order: %lld \u226E %lld; discarding frame", __FILE__, __LINE__, previous_dts, opkt.dts); 
+    previous_dts = opkt.dts; 
+    dumpPacket(&opkt);
 
-        if ((opkt.data == NULL)||(opkt.size < 1)) {
-        Warning("%s:%d: Mangled AVPacket: discarding frame", __FILE__, __LINE__ ); 
-        dumpPacket( ipkt);
-        dumpPacket(&opkt);
+  } else {
 
-        } else if ((previous_dts > 0) && (previous_dts > opkt.dts)) {
-        Warning("%s:%d: DTS out of order: %lld \u226E %lld; discarding frame", __FILE__, __LINE__, previous_dts, opkt.dts); 
-        previous_dts = opkt.dts; 
-        dumpPacket(&opkt);
+    previous_dts = opkt.dts; // Unsure if av_interleaved_write_frame() clobbers opkt.dts when out of order, so storing in advance
+    previous_pts = opkt.pts;
+    ret = av_interleaved_write_frame(oc, &opkt);
+    if(ret<0){
+      // There's nothing we can really do if the frame is rejected, just drop it and get on with the next
+      Warning("%s:%d: Writing frame [av_interleaved_write_frame()] failed: %s(%d)  ", __FILE__, __LINE__,  av_make_error_string(ret).c_str(), (ret));
+      dumpPacket(&safepkt);
+    }
+  }
 
-        } else {
+  zm_av_packet_unref(&opkt); 
 
-          previous_dts = opkt.dts; // Unsure if av_interleaved_write_frame() clobbers opkt.dts when out of order, so storing in advance
-          previous_pts = opkt.pts;
-          ret = av_interleaved_write_frame(oc, &opkt);
-          if(ret<0){
-            // There's nothing we can really do if the frame is rejected, just drop it and get on with the next
-            Warning("%s:%d: Writing frame [av_interleaved_write_frame()] failed: %s(%d)  ", __FILE__, __LINE__,  av_make_error_string(ret).c_str(), (ret));
-            dumpPacket(&safepkt);
-          }
-        }
-
-        zm_av_packet_unref(&opkt); 
-
-        return 0;
+  return 0;
 
 }
 

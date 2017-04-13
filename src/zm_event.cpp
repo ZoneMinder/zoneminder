@@ -55,7 +55,7 @@ char Event::capture_file_format[PATH_MAX];
 char Event::analyse_file_format[PATH_MAX];
 char Event::general_file_format[PATH_MAX];
 char Event::video_file_format[PATH_MAX];
-constexpr const char * Event::frame_type_names[3];
+const char * Event::frame_type_names[3] = { "Normal", "Bulk", "Alarm" };
 
 int Event::pre_alarm_count = 0;
 

@@ -393,7 +393,7 @@ void timespec_diff(struct timespec *start, struct timespec *end, struct timespec
 char *timeval_to_string( struct timeval tv ) {
   time_t nowtime;
   struct tm *nowtm;
-  char tmbuf[64], buf[64];
+  static char tmbuf[64], buf[64];
 
   nowtime = tv.tv_sec;
   nowtm = localtime(&nowtime);

@@ -677,11 +677,7 @@ LocalCamera::~LocalCamera()
     sws_freeContext(imgConversionContext);
     imgConversionContext = NULL;
 
-#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
     av_frame_free( &tmpPicture );
-#else
-    av_freep( &tmpPicture );
-#endif
   }
 #endif
 }

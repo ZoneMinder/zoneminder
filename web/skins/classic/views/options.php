@@ -57,6 +57,7 @@ xhtmlHeaders( __FILE__, translate('Options') );
   <div id="page">
     <div id="header">
       <h2><?php echo translate('Options') ?></h2>
+      <input id="btnToggleAdvanced" type="button" onclick="toggleAdvanced();" value="Show Advanced"></input>
     </div>
     <div id="content">
       <ul class="tabList">
@@ -267,7 +268,7 @@ elseif ( $tab == "users" )
         $shortName = preg_replace( '/^ZM_/', '', $name );
         $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]['Prompt']:$value['Prompt'];
 ?>
-            <tr>
+            <tr <?php echo ($value['Advanced'] == 0) ? '' : 'class="advanced"'; ?>>
               <td><?php echo $shortName ?></td>
               <td><?php echo validHtmlStr($optionPromptText) ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option='.$name, 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td>
 <?php   

@@ -65,7 +65,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,policykit-1
         ,rsyslog | system-log-daemon
         ,zip
-        ,libprce3
+        ,libpcre3
 Recommends: ${misc:Recommends}
            ,libapache2-mod-php5 | libapache2-mod-php | php5-fpm | php-fpm
            ,mysql-server | virtual-mysql-server

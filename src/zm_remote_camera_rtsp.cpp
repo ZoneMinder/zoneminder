@@ -81,13 +81,8 @@ RemoteCameraRtsp::RemoteCameraRtsp( unsigned int p_monitor_id, const std::string
 
 RemoteCameraRtsp::~RemoteCameraRtsp()
 {
-#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
   av_frame_free( &mFrame );
   av_frame_free( &mRawFrame );
-#else
-  av_freep( &mFrame );
-  av_freep( &mRawFrame );
-#endif
   
 #if HAVE_LIBSWSCALE
   if ( mConvertContext )

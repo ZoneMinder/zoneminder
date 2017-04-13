@@ -406,14 +406,13 @@ bool VideoStore::setup_resampler() {
     return false;
   } 
 
-  Debug(1, "Audio output bit_rate (%d) sample_rate(%d) channels(%d) fmt(%d) layout(%d) frame_size(%d), refcounted_frames(%d)", 
+  Debug(1, "Audio output bit_rate (%d) sample_rate(%d) channels(%d) fmt(%d) layout(%d) frame_size(%d)", 
       audio_output_context->bit_rate,
       audio_output_context->sample_rate,
       audio_output_context->channels,
       audio_output_context->sample_fmt,
       audio_output_context->channel_layout,
-      audio_output_context->frame_size,
-      audio_output_context->refcounted_frames
+      audio_output_context->frame_size
       );
 
   output_frame_size = audio_output_context->frame_size;
@@ -426,7 +425,7 @@ bool VideoStore::setup_resampler() {
   /** Create a new frame to store the audio samples. */
   if (!(output_frame = zm_av_frame_alloc())) {
     Error("Could not allocate output frame");
-    av_frame_free(&input_frame);
+    av_frame_free( &input_frame );
     return false;
   }
 
@@ -715,8 +714,8 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
       Error( "Could not decode frame (error '%s')\n",
           av_make_error_string(ret).c_str());
       dumpPacket( ipkt );
-      av_frame_free(&input_frame);
-      zm_av_packet_unref(&opkt);
+      av_frame_free( &input_frame );
+      zm_av_packet_unref( &opkt );
       return 0;
     }
     if ( ! data_present ) {

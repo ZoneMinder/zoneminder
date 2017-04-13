@@ -66,7 +66,7 @@ class Event {
 
   protected:
     typedef enum { NORMAL=0, BULK, ALARM } FrameType;
-    static constexpr const char * frame_type_names[3] = { "Normal", "Bulk", "Alarm" };
+    static const char * frame_type_names[3];
 
     struct PreAlarmData {
       Image *image;

@@ -458,13 +458,8 @@ int FfmpegCamera::CloseFfmpeg(){
 
   mCanCapture = false;
 
-#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
   av_frame_free( &mFrame );
   av_frame_free( &mRawFrame );
-#else
-  av_freep( &mFrame );
-  av_freep( &mRawFrame );
-#endif
 
 #if HAVE_LIBSWSCALE
   if ( mConvertContext )
@@ -754,8 +749,11 @@ else if ( packet.pts && video_last_pts > packet.pts ) {
           zm_av_packet_unref( &packet );
           return (-1);
         }
-//        avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height);
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
         av_image_fill_arrays(mFrame->data, mFrame->linesize, directbuffer, imagePixFormat, width, height, 1);
+#else
+        avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height);
+#endif
 
 
         if (sws_scale(mConvertContext, mRawFrame->data, mRawFrame->linesize,

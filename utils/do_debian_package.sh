@@ -62,21 +62,23 @@ if [ "$TYPE" == "" ]; then
   echo "Defaulting to source build"
   TYPE="source";
 fi;
-if [ "$GITHUB_FORK" == "" ]; then
-  echo "Defaulting to ZoneMinder upstream git"
-  GITHUB_FORK="ZoneMinder"
-fi;
 
 # Release is a special mode...  it uploads to the release ppa and cannot have a snapshot
 if [ "$RELEASE" != "" ]; then
   if [ "$SNAPSHOT" != "" ]; then
     echo "Releases cannot have a snapshot.... exiting."
+    exit 0;
   fi
-  if [ "$GITHUB_FORK" != "" ]; then
-    echo "Releases cannot have a fork.... exiting."
+  if [ "$GITHUB_FORK" != "" ] && [ "$GITHUB_FORK" != "ZoneMinder" ]; then
+    echo "Releases cannot have a fork ($GITHUB_FORK).... exiting."
+    exit 0;
   fi
-  BRANCH=$RELEASE
+  BRANCH="release-$RELEASE"
 else
+  if [ "$GITHUB_FORK" == "" ]; then
+    echo "Defaulting to ZoneMinder upstream git"
+    GITHUB_FORK="ZoneMinder"
+  fi;
   if [ "$SNAPSHOT" == "stable" ]; then
     if [ "$BRANCH" == "" ]; then
       BRANCH=$(git describe --tags $(git rev-list --tags --max-count=1));
@@ -99,6 +101,8 @@ if [ ! -d "${GITHUB_FORK}_zoneminder_release" ]; then
   if [ -d "${GITHUB_FORK}_ZoneMinder.git" ]; then
     echo "Using local clone ${GITHUB_FORK}_ZoneMinder.git to pull from."
     cd "${GITHUB_FORK}_ZoneMinder.git"
+    echo "git pull..."
+    git pull
     echo "git checkout $BRANCH"
     git checkout $BRANCH
     echo "git pull..."

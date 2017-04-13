@@ -1,0 +1,46 @@
+#
+# ZoneMinder Apache configuration file
+# With SSLRequire and HTTPS auto redirect
+# Modify this configuration to suit your requirements
+#
+
+# Auto Redirect HTTP requests to HTTPS
+RewriteEngine On
+RewriteCond %{HTTPS} !=on
+RewriteRule ^/?(zm)(.*) https://%{SERVER_NAME}/$1$2 [R,L]
+
+Alias /zm "@ZM_WEBDIR@"
+<Directory "@ZM_WEBDIR@">
+    # explicitly set index.php as the only directoryindex
+    DirectoryIndex disabled
+    DirectoryIndex index.php
+    SSLRequireSSL
+    Options -Indexes +MultiViews +FollowSymLinks
+    AllowOverride All
+    <IfModule mod_authz_core.c>
+       # Apache 2.4
+       Require all granted
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        # Apache 2.2
+        Order deny,allow
+        Allow from all
+    </IfModule>
+</Directory>
+
+ScriptAlias /cgi-bin-zm "@ZM_CGIDIR@"
+<Directory "@ZM_CGIDIR@">
+    SSLRequireSSL
+    AllowOverride All
+    Options +ExecCGI +FollowSymLinks
+    <IfModule mod_authz_core.c>
+       # Apache 2.4
+       Require all granted
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        # Apache 2.2
+        Order deny,allow
+        Allow from all
+    </IfModule>
+</Directory>
+

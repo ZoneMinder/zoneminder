@@ -17,7 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # ==========================================================================
 
@@ -87,20 +87,19 @@ while( 1 )
     {
         next if $monitor->{Function} eq 'None';
         my $restart = 0;
-        if ( zmMemVerify( $monitor )
-             && zmMemRead( $monitor, "shared_data:valid" )
-        )
-        {
+        if ( zmMemVerify( $monitor ) ) {
             # Check we have got an image recently
             my $image_time = zmGetLastWriteTime( $monitor );
             if ( !defined($image_time) ) {
 				 # Can't read from shared data
 				Debug( "LastWriteTime is not defined." );
+        zmMemInvalidate( $monitor );
 				next;
 			}
             if ( !$image_time ) {
 				# We can't get the last capture time so can't be sure it's died.
 				Debug( "LastWriteTime is = $image_time." );
+        zmMemInvalidate( $monitor );
 				next;
 			}
 

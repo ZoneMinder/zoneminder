@@ -14,7 +14,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 #include "zm_remote_camera_http.h"
@@ -192,8 +192,6 @@ int RemoteCameraHttp::ReadData( Buffer &buffer, int bytes_expected )
 
     if ( total_bytes_to_read == 0 )
     {
-      if( mode == SINGLE_IMAGE )
-		  return( 0 );
       // If socket is closed locally, then select will fail, but if it is closed remotely
       // then we have an exception on our socket.. but no data.
       Debug( 3, "Socket closed remotely" );
@@ -345,7 +343,7 @@ int RemoteCameraHttp::GetResponse()
             }
 
             if ( !content_type_expr )
-              content_type_expr = new RegExpr( "Content-type: ?(.+?)(?:; ?boundary=(.+?))?\r?\n", PCRE_CASELESS );
+              content_type_expr = new RegExpr( "Content-type: ?(.+?)(?:; ?boundary=\x22?(.+?)\x22?)?\r?\n", PCRE_CASELESS );
             if ( content_type_expr->Match( header, header_len ) >= 2 )
             {
               content_type = content_type_expr->MatchString( 1 );

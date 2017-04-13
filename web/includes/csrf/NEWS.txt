@@ -1,0 +1,69 @@
+
+                            [[     news     ]]
+
+1.0.4 released 2013-07-17
+
+  [SECURITY FIXES]
+
+    - When secret key was not explicitly set, it was not being used
+      by the csrf_hash() function.  Thanks sparticvs for reporting.
+
+  [FEATURES]
+
+    - The default 'CSRF check failed' page now offers a handy 'Try
+      again' button, which resubmits the form.
+
+  [BUG FIXES]
+
+    - The fix for 1.0.3 inadvertantly turned off XMLHttpRequest
+      overloading for all browsers; it has now been fixed to only
+      apply to IE.
+
+1.0.3 released 2012-01-31
+
+ [BUG FIXES]
+
+    - Internet Explorer 8 adds support for XMLHttpRequest.prototype,
+      but this support is broken for method overloading.  We
+      explicitly disable JavaScript overloading for Internet Explorer.
+      Thanks Kelly Lu for reporting. <lubird@gmail.com>
+
+    - A global declaration was omitted, resulting in a variable
+      not being properly introduced in PHP 5.3.  Thanks Whitney Beck for
+      reporting. <whitney.a.beck@gmail.com>
+
+1.0.2 released 2009-03-08
+
+ [SECURITY FIXES]
+
+    - Due to a typo, csrf-magic accidentally treated the secret key
+      as always present.  This means that there was a possible CSRF
+      attack against users without any cookies.  No attacks in the
+      wild were known at the time of this release.  Thanks Jakub
+      Vrána for reporting.
+
+1.0.1 released 2008-11-02
+
+ [NEW FEATURES]
+
+    - Support for composite tokens; this also fixes a bug with using
+      IP-based tokens for users with cookies disabled.
+
+    - Native support cookie tokens; use csrf_conf('cookie', $name) to
+      specify the name of a cookie that the CSRF token should be
+      placed in.  This is useful if you have a Squid cache, and need
+      to configure it to ignore this token.
+
+    - Tips/tricks section in README.txt.
+
+    - There is now a two hour expiration time on all tokens.  This
+      can be modified using csrf_conf('expires', $seconds).
+
+    - ClickJacking protection using an iframe breaker.  Disable with
+      csrf_conf('frame-breaker', false).
+
+ [BUG FIXES]
+
+    - CsrfMagic.send() incorrectly submitted GET requests twice,
+      once without the magic token and once with the token.  Reported
+      by Kelly Lu <lubird@gmail.com>.

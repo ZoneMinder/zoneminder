@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # ==========================================================================
 #
@@ -104,20 +104,21 @@ sub zmMemAttach
             );
             return ( undef );
         }
-        if ( !open( MMAP, "+<", $mmap_file ) )
+        my $MMAP;
+        if ( !open( $MMAP, "+<", $mmap_file ) )
         {
             Error( sprintf( "Can't open memory map file '%s': $!\n", $mmap_file ) );
             return( undef );
         }
         my $mmap = undef;
-        my $mmap_addr = mmap( $mmap, $size, PROT_READ|PROT_WRITE, MAP_SHARED, \*MMAP );
+        my $mmap_addr = mmap( $mmap, $size, PROT_READ|PROT_WRITE, MAP_SHARED, $MMAP );
         if ( !$mmap_addr || !$mmap )
         {
             Error( sprintf( "Can't mmap to file '%s': $!\n", $mmap_file ) );
-            close( MMAP );
+            close( $MMAP );
             return( undef );
         }
-        $monitor->{MMapHandle} = \*MMAP;
+        $monitor->{MMapHandle} = $MMAP;
         $monitor->{MMapAddr} = $mmap_addr;
         $monitor->{MMap} = \$mmap;
     }

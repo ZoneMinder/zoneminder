@@ -10,7 +10,7 @@ RUN apt-get update && \
 	libdbi-perl libarchive-zip-perl libdate-manip-perl libdevice-serialport-perl libmime-perl libpcre3 \
 	libwww-perl libdbd-mysql-perl libsys-mmap-perl yasm cmake libjpeg-turbo8-dev \
 	libjpeg-turbo8 libtheora-dev libvorbis-dev libvpx-dev libx264-dev libmp4v2-dev libav-tools mysql-client \
-	apache2 php5 php5-mysql apache2-mpm-prefork libapache2-mod-php5 php5-cli openssh-server \
+	apache2 php5 php5-mysql apache2-mpm-prefork libapache2-mod-php5 php5-cli \
 	mysql-server libvlc-dev libvlc5 libvlccore-dev libvlccore7 vlc-data libcurl4-openssl-dev \
 	libavformat-dev libswscale-dev libavutil-dev libavcodec-dev libavfilter-dev \
 	libavresample-dev libavdevice-dev libpostproc-dev libv4l-dev libtool libnetpbm10-dev \
@@ -42,22 +42,12 @@ ADD utils/docker/start.sh /tmp/start.sh
 # give files in /usr/local/share/zoneminder/
 RUN chown -R www-data:www-data /usr/local/share/zoneminder/
 
-# Creating SSH privilege escalation dir
-RUN mkdir /var/run/sshd
-
 # Adding apache virtual hosts file
-ADD utils/docker/apache-vhost /etc/apache2/sites-available/000-default.conf
+RUN cp misc/apache.conf /etc/apache2/sites-available/000-default.conf
 ADD utils/docker/phpdate.ini /etc/php5/apache2/conf.d/25-phpdate.ini
 
-# Set the root passwd
-RUN echo 'root:root' | chpasswd
-
-# Add a user we can actually login with
-RUN useradd -m -s /bin/bash -G sudo zoneminder
-RUN echo 'zoneminder:zoneminder' | chpasswd
-
-# Expose ssh and http ports
-EXPOSE 22 80
+# Expose http ports
+EXPOSE 80
 
 # Initial database and apache setup:
 RUN "/ZoneMinder/utils/docker/setup.sh"

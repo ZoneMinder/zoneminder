@@ -14,7 +14,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 #include <sys/ipc.h>
@@ -69,8 +69,8 @@ int main( int argc, const char *argv[] )
   unsigned int bitrate = 100000;
   unsigned int ttl = 0;
   EventStream::StreamMode replay = EventStream::MODE_SINGLE;
-  char username[64] = "";
-  char password[64] = "";
+  std::string username;
+  std::string password;
   char auth[64] = "";
   unsigned int connkey = 0;
   unsigned int playback_buffer = 0;
@@ -164,7 +164,7 @@ int main( int argc, const char *argv[] )
         {
           if ( !strcmp( name, "user" ) )
           {
-            strncpy( username, value, sizeof(username) );
+            username = value;
           }
         }
         else
@@ -180,11 +180,11 @@ int main( int argc, const char *argv[] )
           {
             if ( !strcmp( name, "user" ) )
             {
-              strncpy( username, value, sizeof(username) );
+              username = UriDecode(value);
             }
             if ( !strcmp( name, "pass" ) )
             {
-              strncpy( password, value, sizeof(password) );
+              password = UriDecode( password );
             }
           }
         }
@@ -198,9 +198,9 @@ int main( int argc, const char *argv[] )
 
     if ( strcmp( config.auth_relay, "none" ) == 0 )
     {
-      if ( *username )
+      if ( username.length() )
       {
-        user = zmLoadUser( username );
+        user = zmLoadUser( username.c_str() );
       }
     }
     else
@@ -214,9 +214,9 @@ int main( int argc, const char *argv[] )
       }
       //else if ( strcmp( config.auth_relay, "plain" ) == 0 )
       {
-        if ( *username && *password )
+        if ( username.length() && password.length() )
         {
-          user = zmLoadUser( username, password );
+          user = zmLoadUser( username.c_str(), password.c_str() );
         }
       }
     }

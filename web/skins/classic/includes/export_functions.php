@@ -15,7 +15,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 function exportHeader( $title )
@@ -142,8 +142,6 @@ function exportEventDetail( $event, $exportFrames, $exportImages )
 
 function exportEventFrames( $event, $exportDetail, $exportImages )
 {
-    global $SLANG;
-
     $sql = "SELECT *, unix_timestamp( TimeStamp ) AS UnixTimeStamp FROM Frames WHERE EventID = ? ORDER BY FrameId";
     $frames = dbFetchAll( $sql, NULL, array( $event['Id'] ) );
 
@@ -230,8 +228,6 @@ function exportEventFrames( $event, $exportDetail, $exportImages )
 
 function exportEventImages( $event, $exportDetail, $exportFrames, $myfilelist )
 {
-    global $SLANG;
-
     ob_start();
     exportHeader( translate('Images')." ".$event['Id'] );
 	
@@ -589,7 +585,6 @@ else if (document.layers) window.onload=start_slider;
 
 function exportEventImagesMaster( $eids )
 {
-    global $SLANG;
     ob_start();
     exportHeader( translate('Images').' Master' );
 ?>

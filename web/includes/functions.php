@@ -15,7 +15,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 // Compatibility functions
@@ -56,6 +56,7 @@ function userLogin( $username, $password="", $passwordHashed=false ) {
     if ( ZM_AUTH_TYPE == "builtin" ) {
       $_SESSION['passwordHash'] = $user['Password'];
     }
+    session_regenerate_id();
   } else {
     Warning( "Login denied for user \"$username\"" );
     $_SESSION['loginFailed'] = true;
@@ -482,7 +483,7 @@ function deleteEvent( $event, $mid=false ) {
         $start_date = date_parse( $event['StartTime'] );
         $start_date['year'] = $start_date['year'] % 100;
 
-# So this is  because ZM creates a link under teh day pointing to the time that the event happened. 
+# So this is  because ZM creates a link under the day pointing to the time that the event happened. 
         $eventlink_path = sprintf('%s/%d/%02d/%02d/%02d/.%d', ZM_DIR_EVENTS, $mid, $start_date['year'], $start_date['month'], $start_date['day'], $event['Id'] );
 
         if ( $id_files = glob( $eventlink_path ) ) {
@@ -831,9 +832,9 @@ function packageControl( $command ) {
 function daemonControl( $command, $daemon=false, $args=false ) {
   $string = ZM_PATH_BIN."/zmdc.pl $command";
   if ( $daemon ) {
-    $string .= " $daemon";
+    $string .= escapeshellarg(" $daemon");
     if ( $args ) {
-      $string .= " $args";
+      $string .= escapeshellarg(" $args");
     }
   }
   $string .= " 2>/dev/null >&- <&- >/dev/null";
@@ -943,9 +944,9 @@ function zmaStatus( $monitor ) {
 function daemonCheck( $daemon=false, $args=false ) {
   $string = ZM_PATH_BIN."/zmdc.pl check";
   if ( $daemon ) {
-    $string .= " $daemon";
+    $string .= escapeshellarg(" $daemon");
     if ( $args )
-      $string .= " $args";
+      $string .= escapeshellarg(" $args");
   }
   $result = exec( $string );
   return( preg_match( '/running/', $result ) );
@@ -1220,6 +1221,9 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
           case 'MonitorName':
             $filter['sql'] .= 'M.'.preg_replace( '/^Monitor/', '', $filter['terms'][$i]['attr'] );
             break;
+          case 'ServerId':
+            $filter['sql'] .= 'M.ServerId';
+            break;
           case 'DateTime':
             $filter['sql'] .= "E.StartTime";
             break;
@@ -1264,6 +1268,13 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
             case 'Cause':
             case 'Notes':
               $value = dbEscape($value);
+              break;
+            case 'ServerId':
+              if ( $value == 'ZM_SERVER_ID' ) {
+                $value = ZM_SERVER_ID;
+              } else {
+                $value = dbEscape($value);
+              }
               break;
             case 'DateTime':
               $value = "'".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."'";
@@ -1433,20 +1444,23 @@ function getLoad() {
 
 function getDiskPercent($path = ZM_DIR_EVENTS) {
   $total = disk_total_space($path);
-  if ( ! $total ) {
-    Error("disk_total_space returned false for " . $path );
+  if ( $total === false ) {
+    Error("disk_total_space returned false. Verify the web account user has access to " . $path );
     return 0;
+  } elseif ( $total == 0 ) {
+    Error("disk_total_space indicates the following path has a filesystem size of zero bytes" . $path );
+    return 100;
   }
   $free = disk_free_space($path);
-  if ( ! $free ) {
-    Error("disk_free_space returned false for " . $path );
+  if ( $free === false ) {
+    Error("disk_free_space returned false. Verify the web account user has access to " . $path );
   }
-  $space = round(($total - $free) / $total * 100);
+  $space = round((($total - $free) / $total) * 100);
   return( $space );
 }
 
 function getDiskBlocks() {
-  $df = shell_exec( 'df '.ZM_DIR_EVENTS );
+  $df = shell_exec( 'df '.escapeshellarg(ZM_DIR_EVENTS) );
   $space = -1;
   if ( preg_match( '/\s(\d+)\s+\d+\s+\d+%/ms', $df, $matches ) )
     $space = $matches[1];
@@ -2141,6 +2155,18 @@ function updateAvailable() {
 	}
 
 	return($version);
+}
+
+function folder_size($dir) {
+    $size = 0;
+    foreach (glob(rtrim($dir, '/').'/*', GLOB_NOSORT) as $each) {
+        $size += is_file($each) ? filesize($each) : folderSize($each);
+    }
+    return $size;
+} // end function folder_size
+
+function csrf_startup() {
+    csrf_conf('rewrite-js', 'includes/csrf/csrf-magic.js');
 }
 
 ?>

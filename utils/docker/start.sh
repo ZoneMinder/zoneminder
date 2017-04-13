@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Prepare proper amount of shared memory
-# For H.264 cameras it may be necessary to increase the amout of shared memory
+# For H.264 cameras it may be necessary to increase the amount of shared memory
 # to 2048 megabytes.
 umount /dev/shm
 mount -t tmpfs -o rw,nosuid,nodev,noexec,relatime,size=512M tmpfs /dev/shm
@@ -35,9 +35,6 @@ service apache2 restart
 
 # Start ZoneMinder
 /usr/local/bin/zmpkg.pl start
-
-# Start SSHD
-/usr/sbin/sshd
 
 while :
 do

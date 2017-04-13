@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # ==========================================================================
 #
@@ -76,13 +76,11 @@ use ZoneMinder::Database qw(:all);
 use POSIX;
 
 # For running general shell commands
-sub executeShellCommand
-{
+sub executeShellCommand {
   my $command = shift;
   my $output = qx( $command );
   my $status = $? >> 8;
-  if ( $status || logDebugging() )
-  {
+  if ( $status || logDebugging() ) {
     Debug( "Command: $command\n" );
     chomp( $output );
     Debug( "Output: $output\n" );
@@ -90,13 +88,11 @@ sub executeShellCommand
   return( $status );
 }
 
-sub getCmdFormat
-{
+sub getCmdFormat {
   Debug( "Testing valid shell syntax\n" );
 
   my ( $name ) = getpwuid( $> );
-  if ( $name eq $Config{ZM_WEB_USER} )
-  {
+  if ( $name eq $Config{ZM_WEB_USER} ) {
     Debug( "Running as '$name', su commands not needed\n" );
     return( "" );
   }
@@ -107,15 +103,14 @@ sub getCmdFormat
   my $suffix = "";
   my $command = $prefix.$null_command.$suffix;
   Debug( "Testing \"$command\"\n" );
-  my $output = qx($command);
+  my $output = qx($command 2>&1);
   my $status = $? >> 8;
-  if ( !$status )
-  {
+  $output //= $!;
+  
+  if ( !$status ) {
     Debug( "Test ok, using format \"$prefix<command>$suffix\"\n" );
     return( $prefix, $suffix );
-  }
-  else
-  {
+  } else {
     chomp( $output );
     Debug( "Test failed, '$output'\n" );
 
@@ -123,15 +118,14 @@ sub getCmdFormat
     $suffix = "'";
     $command = $prefix.$null_command.$suffix;
     Debug( "Testing \"$command\"\n" );
-    my $output = qx($command);
+    my $output = qx($command 2>&1);
     my $status = $? >> 8;
-    if ( !$status )
-    {
+    $output //= $!;
+    
+    if ( !$status ) {
       Debug( "Test ok, using format \"$prefix<command>$suffix\"\n" );
       return( $prefix, $suffix );
-    }
-    else
-    {
+    } else {
       chomp( $output );
       Debug( "Test failed, '$output'\n" );
 
@@ -139,15 +133,14 @@ sub getCmdFormat
       $suffix = "'";
       $command = $prefix.$null_command.$suffix;
       Debug( "Testing \"$command\"\n" );
-      $output = qx($command);
+      $output = qx($command 2>&1);
       $status = $? >> 8;
-      if ( !$status )
-      {
+      $output //= $!;
+      
+      if ( !$status ) {
         Debug( "Test ok, using format \"$prefix<command>$suffix\"\n" );
         return( $prefix, $suffix );
-      }
-      else
-      {
+      } else {
         chomp( $output );
         Debug( "Test failed, '$output'\n" );
       }
@@ -161,10 +154,8 @@ our $testedShellSyntax = 0;
 our ( $cmdPrefix, $cmdSuffix );
 
 # For running ZM daemons etc
-sub runCommand
-{
-  if ( !$testedShellSyntax )
-  {
+sub runCommand {
+  if ( !$testedShellSyntax ) {
 # Determine the appropriate syntax for the su command
     ( $cmdPrefix, $cmdSuffix ) = getCmdFormat();
     $testedShellSyntax = !undef;
@@ -172,52 +163,43 @@ sub runCommand
 
   my $command = shift;
   $command = $Config{ZM_PATH_BIN}."/".$command;
-  if ( $cmdPrefix )
-  {
+  if ( $cmdPrefix ) {
     $command = $cmdPrefix.$command.$cmdSuffix;
   }
   Debug( "Command: $command\n" );
   my $output = qx($command);
   my $status = $? >> 8;
   chomp( $output );
-  if ( $status || logDebugging() )
-  {
-    if ( $status )
-    {
+  if ( $status || logDebugging() ) {
+    if ( $status ) {
       Error( "Unable to run \"$command\", output is \"$output\"\n" );
       exit( -1 );
-    }
-    else
-    {
+    } else {
       Debug( "Output: $output\n" );
     }
   }
   return( $output );
 }
 
-sub getEventPath
-{
+sub getEventPath {
   my $event = shift;
 
   my $event_path = "";
-  if ( $Config{ZM_USE_DEEP_STORAGE} )
-  {
+  if ( $Config{ZM_USE_DEEP_STORAGE} ) {
     $event_path = $Config{ZM_DIR_EVENTS}
     .'/'.$event->{MonitorId}
     .'/'.strftime( "%y/%m/%d/%H/%M/%S",
         localtime($event->{Time})
         )
       ;
-  }
-  else
-  {
+  } else {
     $event_path = $Config{ZM_DIR_EVENTS}
     .'/'.$event->{MonitorId}
     .'/'.$event->{Id}
     ;
   }
 
-  if ( index($Config{ZM_DIR_EVENTS},'/') != 0 ){
+  if ( index($Config{ZM_DIR_EVENTS},'/') != 0 ) {
     $event_path = $Config{ZM_PATH_WEB}
     .'/'.$event_path
       ;
@@ -225,8 +207,7 @@ sub getEventPath
   return( $event_path );
 }
 
-sub createEventPath
-{
+sub createEventPath {
 #
 # WARNING assumes running from events directory
 #
@@ -236,8 +217,7 @@ sub createEventPath
   : ($Config{ZM_PATH_WEB}.'/'.$Config{ZM_DIR_EVENTS});
   my $eventPath = $eventRootPath.'/'.$event->{MonitorId};
 
-  if ( $Config{ZM_USE_DEEP_STORAGE} )
-  {
+  if ( $Config{ZM_USE_DEEP_STORAGE} ) {
     my @startTime = localtime( $event->{StartTime} );
 
     my @datetimeParts = ();
@@ -269,9 +249,7 @@ sub createEventPath
       or Fatal( "Can't open $idFile: $!" );
     close( $ID_FP );
     setFileOwner( $idFile );
-  }
-  else
-  {
+  } else {
     makePath( $event->{Id}, $eventPath );
     $eventPath .= '/'.$event->{Id};
 
@@ -289,13 +267,10 @@ use Data::Dumper;
 our $_setFileOwner = undef;
 our ( $_ownerUid, $_ownerGid );
 
-sub _checkProcessOwner
-{
-  if ( !defined($_setFileOwner) )
-  {
+sub _checkProcessOwner {
+  if ( !defined($_setFileOwner) ) {
     my ( $processOwner ) = getpwuid( $> );
-    if ( $processOwner ne $Config{ZM_WEB_USER} )
-    {
+    if ( $processOwner ne $Config{ZM_WEB_USER} ) {
 # Not running as web user, so should be root in which case chown
 # the temporary directory
       ( my $ownerName, my $ownerPass, $_ownerUid, $_ownerGid )
@@ -304,21 +279,17 @@ sub _checkProcessOwner
             .$Config{ZM_WEB_USER}."': $!"
             );
       $_setFileOwner = 1;
-    }
-    else
-    {
+    } else {
       $_setFileOwner = 0;
     }
   }
   return( $_setFileOwner );
 }
 
-sub setFileOwner
-{
+sub setFileOwner {
   my $file = shift;
 
-  if ( _checkProcessOwner() )
-  {
+  if ( _checkProcessOwner() ) {
     chown( $_ownerUid, $_ownerGid, $file )
       or Fatal( "Can't change ownership of file '$file' to '"
           .$Config{ZM_WEB_USER}.":".$Config{ZM_WEB_GROUP}."': $!"
@@ -328,12 +299,9 @@ sub setFileOwner
 
 our $_hasImageInfo = undef;
 
-sub _checkForImageInfo
-{
-  if ( !defined($_hasImageInfo) )
-  {
-    my $result = eval
-    {
+sub _checkForImageInfo {
+  if ( !defined($_hasImageInfo) ) {
+    my $result = eval {
       require Image::Info;
       Image::Info->import();
     };
@@ -342,8 +310,7 @@ sub _checkForImageInfo
   return( $_hasImageInfo );
 }
 
-sub createEvent
-{
+sub createEvent {
   my $event = shift;
 
   Debug( "Creating event" );
@@ -353,12 +320,9 @@ sub createEvent
 
   my $dbh = zmDbConnect();
 
-  if ( $event->{monitor} )
-  {
+  if ( $event->{monitor} ) {
     $event->{MonitorId} = $event->{monitor}->{Id};
-  }
-  elsif ( $event->{MonitorId} )
-  {
+  } elsif ( $event->{MonitorId} ) {
     my $sql = "select * from Monitors where Id = ?";
     my $sth = $dbh->prepare_cached( $sql )
       or Fatal( "Can't prepare sql '$sql': ".$dbh->errstr() );
@@ -369,9 +333,7 @@ sub createEvent
           .$event->{MonitorId}."'"
           );
     $sth->finish();
-  }
-  else
-  {
+  } else {
     Fatal( "Unable to create event, no monitor or monitor id supplied" );
   }
   $event->{Name} = "New Event" unless( $event->{Name} );
@@ -379,21 +341,15 @@ sub createEvent
   $event->{TotScore} = $event->{MaxScore} = 0;
 
   my $lastTimestamp = 0.0;
-  foreach my $frame ( @{$event->{frames}} )
-  {
-    if ( !$event->{Width} )
-    {
-      if ( $_hasImageInfo )
-      {
+  foreach my $frame ( @{$event->{frames}} ) {
+    if ( !$event->{Width} ) {
+      if ( $_hasImageInfo ) {
         my $imageInfo = Image::Info::image_info( $frame->{imagePath} );
-        if ( $imageInfo->{error} )
-        {
+        if ( $imageInfo->{error} ) {
           Error( "Unable to extract image info from '"
               .$frame->{imagePath}."': ".$imageInfo->{error}
               );
-        }
-        else
-        {
+        } else {
           ( $event->{Width}, $event->{Height} ) = Image::Info::dim( $imageInfo );
         }
       }
@@ -418,8 +374,7 @@ sub createEvent
       );
 
   my ( @fields, @formats, @values );
-  while ( my ( $field, $value ) = each( %$event ) )
-  {
+  while ( my ( $field, $value ) = each( %$event ) ) {
     next unless $field =~ /^[A-Z]/;
     push( @fields, $field );
     push( @formats, ($formats{$field} or '?') );
@@ -436,8 +391,7 @@ sub createEvent
   $event->{Id} = $dbh->{mysql_insertid};
   Info( "Created event ".$event->{Id} );
 
-  if ( $event->{EndTime} )
-  {
+  if ( $event->{EndTime} ) {
     $event->{Name} = $event->{monitor}->{EventPrefix}.$event->{Id}
     if ( $event->{Name} eq 'New Event' );
     my $sql = "update Events set Name = ? where Id = ?";
@@ -453,14 +407,12 @@ sub createEvent
       TimeStamp => 'from_unixtime(?)',
       );
   my $frameId = 1;
-  foreach my $frame ( @{$event->{frames}} )
-  {
+  foreach my $frame ( @{$event->{frames}} ) {
     $frame->{EventId} = $event->{Id};
     $frame->{FrameId} = $frameId++;
 
     my ( @fields, @formats, @values );
-    while ( my ( $field, $value ) = each( %$frame ) )
-    {
+    while ( my ( $field, $value ) = each( %$frame ) ) {
       next unless $field =~ /^[A-Z]/;
       push( @fields, $field );
       push( @formats, ($frameFormats{$field} or '?') );
@@ -475,8 +427,7 @@ sub createEvent
     my $res = $sth->execute( @values )
       or Fatal( "Can't execute sql '$sql': ".$sth->errstr() );
 #$frame->{FrameId} = $dbh->{mysql_insertid};
-    if ( $frame->{imagePath} )
-    {
+    if ( $frame->{imagePath} ) {
       $frame->{capturePath} = sprintf(
           "%s/%0".$Config{ZM_EVENT_IMAGE_DIGITS}
           ."d-capture.jpg"
@@ -488,8 +439,7 @@ sub createEvent
             ." to ".$frame->{capturePath}.": $!"
             );
       setFileOwner( $frame->{capturePath} );
-      if ( 0 && $Config{ZM_CREATE_ANALYSIS_IMAGES} )
-      {
+      if ( 0 && $Config{ZM_CREATE_ANALYSIS_IMAGES} ) {
         $frame->{analysePath} = sprintf(
             "%s/%0".$Config{ZM_EVENT_IMAGE_DIGITS}
             ."d-analyse.jpg"
@@ -506,20 +456,17 @@ sub createEvent
   }
 }
 
-sub addEventImage
-{
+sub addEventImage {
   my $event = shift;
   my $frame = shift;
 
 # TBD
 }
 
-sub updateEvent
-{
+sub updateEvent {
   my $event = shift;
 
-  if ( !$event->{EventId} )
-  {
+  if ( !$event->{EventId} ) {
     Error( "Unable to update event, no event id supplied" );
     return( 0 );
   }
@@ -535,8 +482,7 @@ sub updateEvent
       );
 
   my ( @values, @sets );
-  while ( my ( $field, $value ) = each( %$event ) )
-  {
+  while ( my ( $field, $value ) = each( %$event ) ) {
     next if ( $field eq 'Id' );
     push( @values, $event->{$field} );
     push( @sets, $field." = ".($formats{$field} or '?') );
@@ -550,8 +496,7 @@ sub updateEvent
     or Fatal( "Can't execute sql '$sql': ".$sth->errstr() );
 }
 
-sub deleteEventFiles
-{
+sub deleteEventFiles {
 #
 # WARNING assumes running from events directory
 #
@@ -559,14 +504,12 @@ sub deleteEventFiles
   my $monitor_id = shift;
   $monitor_id = '*' if ( !defined($monitor_id) );
 
-  if ( $Config{ZM_USE_DEEP_STORAGE} )
-  {
+  if ( $Config{ZM_USE_DEEP_STORAGE} ) {
     my $link_path = $monitor_id."/*/*/*/.".$event_id;
 #Debug( "LP1:$link_path" );
     my @links = glob($link_path);
 #Debug( "L:".$links[0].": $!" );
-    if ( @links )
-    {
+    if ( @links ) {
       ( $link_path ) = ( $links[0] =~ /^(.*)$/ ); # De-taint
 #Debug( "LP2:$link_path" );
 
@@ -581,8 +524,7 @@ sub deleteEventFiles
 
       unlink( $link_path ) or Error( "Unable to unlink '$link_path': $!" );
       my @path_parts = split( /\//, $event_path );
-      for ( my $i = int(@path_parts)-2; $i >= 1; $i-- )
-      {
+      for ( my $i = int(@path_parts)-2; $i >= 1; $i-- ) {
         my $delete_path = join( '/', @path_parts[0..$i] );
 #Debug( "DP$i:$delete_path" );
         my @has_files = glob( $delete_path."/*" );
@@ -595,16 +537,13 @@ sub deleteEventFiles
         executeShellCommand( $command );
       }
     }
-  }
-  else
-  {
+  } else {
     my $command = "/bin/rm -rf $monitor_id/$event_id";
     executeShellCommand( $command );
   }
 }
 
-sub makePath
-{
+sub makePath {
   my $path = shift;
   my $root = shift;
   $root = (( $path =~ m|^/| )?'':'.' ) unless( $root );
@@ -612,17 +551,12 @@ sub makePath
   Debug( "Creating path '$path' in $root'\n" );
   my @parts = split( '/', $path );
   my $fullPath = $root;
-  foreach my $dir ( @parts )
-  {
+  foreach my $dir ( @parts ) {
     $fullPath .= '/'.$dir;
-    if ( !-d $fullPath )
-    {
-      if ( -e $fullPath )
-      {
+    if ( !-d $fullPath ) {
+      if ( -e $fullPath ) {
         Fatal( "Can't create '$fullPath', already exists as non directory" );
-      }
-      else
-      {
+      } else {
         Debug( "Creating '$fullPath'\n" );
         mkdir( $fullPath, 0755 ) or Fatal( "Can't mkdir '$fullPath': $!" );
         setFileOwner( $fullPath );
@@ -635,11 +569,9 @@ sub makePath
 our $testedJSON = 0;
 our $hasJSONAny = 0;
 
-sub _testJSON
-{
+sub _testJSON {
   return if ( $testedJSON );
-  my $result = eval
-  {
+  my $result = eval {
     require JSON::Any;
     JSON::Any->import();
   };
@@ -647,8 +579,7 @@ sub _testJSON
   $hasJSONAny = 1 if ( $result );
 }
 
-sub _getJSONType
-{
+sub _getJSONType {
   my $value = shift;
   return( 'null' ) unless( defined($value) );
   return( 'integer' ) if ( $value =~ /^\d+$/ );
@@ -660,64 +591,46 @@ sub _getJSONType
 
 sub jsonEncode;
 
-sub jsonEncode
-{
+sub jsonEncode {
   my $value = shift;
 
   _testJSON();
-  if ( $hasJSONAny )
-  {
+  if ( $hasJSONAny ) {
     my $string = eval { JSON::Any->objToJson( $value ) };
     Fatal( "Unable to encode object to JSON: $@" ) unless( $string );
     return( $string );
   }
 
   my $type = _getJSONType($value);
-  if ( $type eq 'integer' || $type eq 'double' )
-  {
+  if ( $type eq 'integer' || $type eq 'double' ) {
     return( $value );
-  }
-  elsif ( $type eq 'boolean' )
-  {
+  } elsif ( $type eq 'boolean' ) {
     return( $value?'true':'false' );
-  }
-  elsif ( $type eq 'string' )
-  {
+  } elsif ( $type eq 'string' ) {
     $value =~ s|(["\\/])|\\$1|g;
     $value =~ s|\r?\n|\n|g;
     return( '"'.$value.'"' );
-  }
-  elsif ( $type eq 'null' )
-  {
+  } elsif ( $type eq 'null' ) {
     return( 'null' );
-  }
-  elsif ( $type eq 'array' )
-  {
+  } elsif ( $type eq 'array' ) {
     return( '['.join( ',', map { jsonEncode( $_ ) } @$value ).']' );
-  }
-  elsif ( $type eq 'hash' )
-  {
+  } elsif ( $type eq 'hash' ) {
     my $result = '{';
-    while ( my ( $subKey=>$subValue ) = each( %$value ) )
-    {
+    while ( my ( $subKey=>$subValue ) = each( %$value ) ) {
       $result .= ',' if ( $result ne '{' );
       $result .= '"'.$subKey.'":'.jsonEncode( $subValue );
     }
     return( $result.'}' );
-  }
-  else
-  {
+  } else {
     Fatal( "Unexpected type '$type'" );
   }
 }
 
-sub jsonDecode
-{
+sub jsonDecode {
   my $value = shift;
 
   _testJSON();
-  if ( $hasJSONAny )
-  {
+  if ( $hasJSONAny ) {
     my $object = eval { JSON::Any->jsonToObj( $value ) };
     Fatal( "Unable to decode JSON string '$value': $@" ) unless( $object );
     return( $object );
@@ -727,41 +640,27 @@ sub jsonDecode
   my $unescape = 0;
   my $out = '';
   my @chars = split( //, $value );
-  for ( my $i = 0; $i < @chars; $i++ )
-  {
-    if ( !$comment )
-    {
-      if ( $chars[$i] eq ':' )
-      {
+  for ( my $i = 0; $i < @chars; $i++ ) {
+    if ( !$comment ) {
+      if ( $chars[$i] eq ':' ) {
         $out .= '=>';
-      }
-      else
-      {
+      } else {
         $out .= $chars[$i];         
       }
-    }
-    elsif ( !$unescape )
-    {
-      if ( $chars[$i] eq '\\' )
-      {
+    } elsif ( !$unescape ) {
+      if ( $chars[$i] eq '\\' ) {
         $unescape = 1;
-      }
-      else
-      {
+      } else {
         $out .= $chars[$i];
       }
-    }
-    else
-    {
-      if ( $chars[$i] ne '/' )
-      {
+    } else {
+      if ( $chars[$i] ne '/' ) {
         $out .= '\\';
       }
       $out .= $chars[$i];
       $unescape = 0;
     }
-    if ( $chars[$i] eq '"' )
-    {
+    if ( $chars[$i] eq '"' ) {
       $comment = !$comment;
     }
   }

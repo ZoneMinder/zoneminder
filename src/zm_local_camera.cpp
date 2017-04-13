@@ -14,7 +14,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 #include "zm.h"
@@ -348,7 +348,7 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
       palette = V4L2_PIX_FMT_YUYV;
     } else {
       if(capture) {
-        Info("Selected capture palette: %s (%c%c%c%c)", palette_desc, palette&0xff, (palette>>8)&0xff, (palette>>16)&0xff, (palette>>24)&0xff);
+        Info("Selected capture palette: %s (0x%02hhx%02hhx%02hhx%02hhx)", palette_desc, (palette>>24)&0xff, (palette>>16)&0xff, (palette>>8)&0xff, (palette)&0xff);
       }
     }
   }
@@ -409,7 +409,8 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
     } else {
       if( capture )
 #if HAVE_LIBSWSCALE
-        Info("No direct match for the selected palette (%c%c%c%c) and target colorspace (%d). Format conversion is required, performance penalty expected", (capturePixFormat)&0xff,((capturePixFormat>>8)&0xff),((capturePixFormat>>16)&0xff),((capturePixFormat>>24)&0xff), colours );
+        Info("No direct match for the selected palette (0x%02hhx%02hhx%02hhx%02hhx) and target colorspace (%02u). Format conversion is required, performance penalty expected",
+            (capturePixFormat>>24)&0xff,((capturePixFormat>>16)&0xff),((capturePixFormat>>8)&0xff),((capturePixFormat)&0xff), colours);
 #else
         Info("No direct match for the selected palette and target colorspace. Format conversion is required, performance penalty expected");
 #endif
@@ -427,16 +428,18 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
         subpixelorder = ZM_SUBPIX_ORDER_NONE;
         imagePixFormat = AV_PIX_FMT_GRAY8;
       } else {
-        Panic("Unexpected colours: %d",colours);
+        Panic("Unexpected colours: %u",colours);
       }
       if( capture ) {
 #if LIBSWSCALE_VERSION_CHECK(0, 8, 0, 8, 0)
         if(!sws_isSupportedInput(capturePixFormat)) {
-          Error("swscale does not support the used capture format: %c%c%c%c",(capturePixFormat)&0xff,((capturePixFormat>>8)&0xff),((capturePixFormat>>16)&0xff),((capturePixFormat>>24)&0xff));
+          Error("swscale does not support the used capture format: 0x%02hhx%02hhx%02hhx%02hhx",
+              (capturePixFormat>>24)&0xff,((capturePixFormat>>16)&0xff),((capturePixFormat>>8)&0xff),((capturePixFormat)&0xff));
           conversion_type = 2; /* Try ZM format conversions */
         }
         if(!sws_isSupportedOutput(imagePixFormat)) {
-          Error("swscale does not support the target format: %c%c%c%c",(imagePixFormat)&0xff,((imagePixFormat>>8)&0xff),((imagePixFormat>>16)&0xff),((imagePixFormat>>24)&0xff));
+          Error("swscale does not support the target format: 0x%02hhx%02hhx%02hhx%02hhx",
+              (imagePixFormat>>24)&0xff,((imagePixFormat>>16)&0xff),((imagePixFormat>>8)&0xff),((imagePixFormat)&0xff));
           conversion_type = 2; /* Try ZM format conversions */
         }
 #endif
@@ -545,7 +548,7 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
         subpixelorder = ZM_SUBPIX_ORDER_NONE;
         imagePixFormat = AV_PIX_FMT_GRAY8;
       } else {
-        Panic("Unexpected colours: %d",colours);
+        Panic("Unexpected colours: %u",colours);
       }
       if( capture ) {
         if(!sws_isSupportedInput(capturePixFormat)) {
@@ -613,7 +616,7 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
 #endif // ZM_HAS_V4L1  
 
   last_camera = this;
-  Debug(3,"Selected subpixelorder: %d",subpixelorder);
+  Debug(3,"Selected subpixelorder: %u",subpixelorder);
 
 #if HAVE_LIBSWSCALE
   /* Initialize swscale stuff */
@@ -632,7 +635,7 @@ LocalCamera::LocalCamera( int p_id, const std::string &p_device, int p_channel, 
     int pSize = avpicture_get_size( imagePixFormat, width, height );
 #endif
     if( (unsigned int)pSize != imagesize) {
-      Fatal("Image size mismatch. Required: %d Available: %d",pSize,imagesize);
+      Fatal("Image size mismatch. Required: %d Available: %u",pSize,imagesize);
     }
     
     imgConversionContext = sws_getContext(width, height, capturePixFormat, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
@@ -789,7 +792,7 @@ void LocalCamera::Initialise()
           Debug(3,"Failed to get updated JPEG compression options: %s", strerror(errno) );
         } else {
           Debug(4, "JPEG quality: %d",jpeg_comp.quality);
-          Debug(4, "JPEG markers: %#x",jpeg_comp.jpeg_markers);
+          Debug(4, "JPEG markers: 0x%x",jpeg_comp.jpeg_markers);
         }
       }
     }
@@ -853,7 +856,7 @@ void LocalCamera::Initialise()
       v4l2_data.buffers[i].start = mmap( NULL, vid_buf.length, PROT_READ|PROT_WRITE, MAP_SHARED, vid_fd, vid_buf.m.offset );
 
       if ( v4l2_data.buffers[i].start == MAP_FAILED )
-        Fatal( "Can't map video buffer %d (%d bytes) to memory: %s(%d)", i, vid_buf.length, strerror(errno), errno );
+        Fatal( "Can't map video buffer %u (%u bytes) to memory: %s(%d)", i, vid_buf.length, strerror(errno), errno );
 
 #if HAVE_LIBSWSCALE
 #if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
@@ -1177,7 +1180,8 @@ uint32_t LocalCamera::AutoSelectFormat(int p_colours) {
     strcpy(fmt_desc[nIndex], (const char*)(fmtinfo.description));
     fmt_fcc[nIndex] = fmtinfo.pixelformat;
     
-    Debug(6, "Got format: %s (%c%c%c%c) at index %d",fmt_desc[nIndex],fmt_fcc[nIndex]&0xff, (fmt_fcc[nIndex]>>8)&0xff, (fmt_fcc[nIndex]>>16)&0xff, (fmt_fcc[nIndex]>>24)&0xff ,nIndex);
+    Debug(6, "Got format: %s (0x%02hhx%02hhx%02hhx%02hhx) at index %d",
+        fmt_desc[nIndex], (fmt_fcc[nIndex]>>24)&0xff, (fmt_fcc[nIndex]>>16)&0xff, (fmt_fcc[nIndex]>>8)&0xff, (fmt_fcc[nIndex])&0xff ,nIndex);
     
     /* Proceed to the next index */
     memset(&fmtinfo, 0, sizeof(fmtinfo));
@@ -1205,12 +1209,14 @@ uint32_t LocalCamera::AutoSelectFormat(int p_colours) {
   for( unsigned int i=0; i < n_preferedformats && nIndexUsed < 0; i++ ) {
     for( unsigned int j=0; j < nIndex; j++ ) {
       if( preferedformats[i] == fmt_fcc[j] ) {
-        Debug(6, "Choosing format: %s (%c%c%c%c) at index %d",fmt_desc[j],fmt_fcc[j]&0xff, (fmt_fcc[j]>>8)&0xff, (fmt_fcc[j]>>16)&0xff, (fmt_fcc[j]>>24)&0xff ,j);
+        Debug(6, "Choosing format: %s (0x%02hhx%02hhx%02hhx%02hhx) at index %u",
+            fmt_desc[j],fmt_fcc[j]&0xff, (fmt_fcc[j]>>8)&0xff, (fmt_fcc[j]>>16)&0xff, (fmt_fcc[j]>>24)&0xff ,j);
         /* Found a format! */
         nIndexUsed = j;
         break;
       } else {
-        Debug(6, "No match for format: %s (%c%c%c%c) at index %d",fmt_desc[j],fmt_fcc[j]&0xff, (fmt_fcc[j]>>8)&0xff, (fmt_fcc[j]>>16)&0xff, (fmt_fcc[j]>>24)&0xff ,j);
+        Debug(6, "No match for format: %s (0x%02hhx%02hhx%02hhx%02hhx) at index %u",
+            fmt_desc[j],fmt_fcc[j]&0xff, (fmt_fcc[j]>>8)&0xff, (fmt_fcc[j]>>16)&0xff, (fmt_fcc[j]>>24)&0xff ,j);
       }
     }
   }
@@ -1385,9 +1391,11 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
           }
         }
         if ( verbose )
-          sprintf( output+strlen(output), "  %s (%c%c%c%c)\n", format.description, format.pixelformat&0xff, (format.pixelformat>>8)&0xff, (format.pixelformat>>16)&0xff, (format.pixelformat>>24)&0xff );
+          sprintf( output+strlen(output), "  %s (0x%02hhx%02hhx%02hhx%02hhx)\n",
+              format.description, (format.pixelformat>>24)&0xff, (format.pixelformat>>16)&0xff, (format.pixelformat>>8)&0xff, format.pixelformat&0xff);
         else
-          sprintf( output+strlen(output), "%c%c%c%c/", format.pixelformat&0xff, (format.pixelformat>>8)&0xff, (format.pixelformat>>16)&0xff, (format.pixelformat>>24)&0xff );
+          sprintf( output+strlen(output), "0x%02hhx%02hhx%02hhx%02hhx/",
+              (format.pixelformat>>24)&0xff, (format.pixelformat>>16)&0xff, (format.pixelformat>>8)&0xff, (format.pixelformat)&0xff);
       }
       while ( formatIndex++ >= 0 );
       if ( !verbose )

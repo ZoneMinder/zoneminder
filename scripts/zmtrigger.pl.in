@@ -17,7 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # ==========================================================================
 
@@ -196,8 +196,10 @@ foreach my $connection ( @in_select_connections )
 
 my %spawned_connections;
 my %monitors;
-
 my $monitor_reload_time = 0;
+my $needsReload = 0;
+loadMonitors();
+
 
 $! = undef;
 my $rin = '';
@@ -313,6 +315,14 @@ while( 1 )
     my @out_messages;
     foreach my $monitor ( values(%monitors) )
     {
+
+        if ( ! zmMemVerify($monitor) ) {
+          # Our attempt to verify the memory handle failed. We should reload the monitors.
+          # Don't need to zmMemInvalidate because the monitor reload will do it.
+          $needsReload = 1;
+          next;
+        }
+
         my ( $state, $last_event )
             = zmMemRead( $monitor,
                          [ "shared_data:state",
@@ -413,7 +423,7 @@ while( 1 )
     }
 
     # If necessary reload monitors
-    if ( (time() - $monitor_reload_time) > MONITOR_RELOAD_INTERVAL )
+    if ( $needsReload || ((time() - $monitor_reload_time) > MONITOR_RELOAD_INTERVAL ))
     {
         foreach my $monitor ( values(%monitors) )
         {
@@ -421,6 +431,7 @@ while( 1 )
             zmMemInvalidate( $monitor );
         }
         loadMonitors();
+        $needsReload = 0;
     }
 }
 Info( "Trigger daemon exiting\n" );
@@ -443,7 +454,11 @@ sub loadMonitors
         or Fatal( "Can't execute: ".$sth->errstr() );
     while( my $monitor = $sth->fetchrow_hashref() )
     {
-        next if ( !zmMemVerify( $monitor ) ); # Check shared memory ok
+          # Check shared memory ok
+          if ( !zmMemVerify( $monitor ) ) {
+            zmMemInvalidate( $monitor );
+            next;
+          }
 
         if ( defined($monitors{$monitor->{Id}}->{LastState}) )
         {

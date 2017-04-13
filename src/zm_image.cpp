@@ -14,7 +14,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 #include "zm.h"
 #include "zm_font.h"
@@ -1768,7 +1768,7 @@ const Coord Image::centreCoord( const char *text ) const
     line = text+index;
     line_no++;
   }
-  int x = (width - (max_line_len * CHAR_WIDTH) ) / 2;
+  int x = (width - (max_line_len * ZM_CHAR_WIDTH) ) / 2;
   int y = (height - (line_no * LINE_HEIGHT) ) / 2;
   return( Coord( x, y ) );
 }
@@ -1858,7 +1858,7 @@ void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int
   while ( (index < text_len) && (line_len = strcspn( line, "\n" )) )
   {
 
-    unsigned int line_width = line_len * CHAR_WIDTH * size;
+    unsigned int line_width = line_len * ZM_CHAR_WIDTH * size;
 
     unsigned int lo_line_x = coord.X();
     unsigned int lo_line_y = coord.Y() + (line_no * LINE_HEIGHT * size);
@@ -1889,17 +1889,17 @@ void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int
     if ( colours == ZM_COLOUR_GRAY8 )
     {
       unsigned char *ptr = &buffer[(lo_line_y*width)+lo_line_x];
-      for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < (CHAR_HEIGHT * size); y++, r++, ptr += width )
+      for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < (ZM_CHAR_HEIGHT * size); y++, r++, ptr += width )
       {
         unsigned char *temp_ptr = ptr;
         for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ )
         {
           int f;
           if (size == 2)
-            f = bigfontdata[(line[c] * CHAR_HEIGHT * size) + r];
+            f = bigfontdata[(line[c] * ZM_CHAR_HEIGHT * size) + r];
           else
-            f = fontdata[(line[c] * CHAR_HEIGHT) + r];
-          for ( unsigned int i = 0; i < (CHAR_WIDTH * size) && x < hi_line_x; i++, x++, temp_ptr++ )
+            f = fontdata[(line[c] * ZM_CHAR_HEIGHT) + r];
+          for ( unsigned int i = 0; i < (ZM_CHAR_WIDTH * size) && x < hi_line_x; i++, x++, temp_ptr++ )
           {
             if ( f & (zm_text_bitmask >> i) )
             {
@@ -1919,17 +1919,17 @@ void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int
       unsigned int wc = width * colours;
 
       unsigned char *ptr = &buffer[((lo_line_y*width)+lo_line_x)*colours];
-      for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < (CHAR_HEIGHT * size); y++, r++, ptr += wc )
+      for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < (ZM_CHAR_HEIGHT * size); y++, r++, ptr += wc )
       {
         unsigned char *temp_ptr = ptr;
         for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ )
         {
           int f;
           if (size == 2)
-            f = bigfontdata[(line[c] * CHAR_HEIGHT * size) + r];
+            f = bigfontdata[(line[c] * ZM_CHAR_HEIGHT * size) + r];
           else
-            f = fontdata[(line[c] * CHAR_HEIGHT) + r];
-          for ( unsigned int i = 0; i < (CHAR_WIDTH * size) && x < hi_line_x; i++, x++, temp_ptr += colours )
+            f = fontdata[(line[c] * ZM_CHAR_HEIGHT) + r];
+          for ( unsigned int i = 0; i < (ZM_CHAR_WIDTH * size) && x < hi_line_x; i++, x++, temp_ptr += colours )
           {
             if ( f & (zm_text_bitmask >> i) )
             {
@@ -1955,17 +1955,17 @@ void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int
       unsigned int wc = width * colours;
 
       uint8_t *ptr = &buffer[((lo_line_y*width)+lo_line_x)<<2];
-      for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < (CHAR_HEIGHT * size); y++, r++, ptr += wc )
+      for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < (ZM_CHAR_HEIGHT * size); y++, r++, ptr += wc )
       {
         Rgb* temp_ptr = (Rgb*)ptr;
         for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ )
         {
           int f;
           if (size == 2)
-            f = bigfontdata[(line[c] * CHAR_HEIGHT * size) + r];
+            f = bigfontdata[(line[c] * ZM_CHAR_HEIGHT * size) + r];
           else
-            f = fontdata[(line[c] * CHAR_HEIGHT) + r];
-          for ( unsigned int i = 0; i < (CHAR_WIDTH * size) && x < hi_line_x; i++, x++, temp_ptr++ )
+            f = fontdata[(line[c] * ZM_CHAR_HEIGHT) + r];
+          for ( unsigned int i = 0; i < (ZM_CHAR_WIDTH * size) && x < hi_line_x; i++, x++, temp_ptr++ )
           {
             if ( f & (zm_text_bitmask >> i) )
             {

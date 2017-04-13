@@ -14,7 +14,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
 //
@@ -24,7 +24,7 @@
 
 // Javascript window sizes
 var popupSizes = {
-    'bandwidth':    { 'width': 300, 'height': 120 },
+    'bandwidth':    { 'width': 300, 'height': 140 },
     'console':      { 'width': 750, 'height': 312 },
     'control':      { 'width': 380, 'height': 480 },
     'controlcaps':  { 'width': 780, 'height': 320 },
@@ -49,20 +49,20 @@ var popupSizes = {
     'login':        { 'width': 720, 'height': 480 },
     'logout':       { 'width': 260, 'height': 150 },
     'monitor':      { 'width': 550, 'height': 700 },
-    'monitorpreset':{ 'width': 440, 'height': 200 },
-    'monitorprobe': { 'width': 500, 'height': 240 },
+    'monitorpreset':{ 'width': 440, 'height': 210 },
+    'monitorprobe': { 'width': 500, 'height': 275 },
     'monitorselect':{ 'width': 160, 'height': 200 },
     'montage':      { 'width': -1, 'height': -1 },
     'onvifprobe':   { 'width': 500, 'height': 300 },
     'optionhelp':   { 'width': 400, 'height': 320 },
     'options':      { 'width': 1000, 'height': 660 },
     'preset':       { 'width': 300, 'height': 120 },
-    'settings':     { 'width': 220, 'height': 225 },
+    'settings':     { 'width': 220, 'height': 235 },
     'state':        { 'width': 400, 'height': 170 },
     'stats':        { 'width': 840, 'height': 200 },
     'timeline':     { 'width': 760, 'height': 540 },
     'user':         { 'width': 360, 'height': 420 },
-    'version':      { 'width': 360, 'height': 140 },
+    'version':      { 'width': 360, 'height': 185 },
     'video':        { 'width': 420, 'height': 360 },
     'videoview':    { 'addWidth': 48, 'addHeight': 80 },
     'watch':        { 'addWidth': 96, 'minWidth': 420, 'addHeight': 384 },

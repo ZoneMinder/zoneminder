@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # ==========================================================================
 #
@@ -65,14 +65,12 @@ use Carp;
 
 our $configInitialised = 0;
 
-sub INIT
-{
+sub INIT {
   initialiseConfig();
 }
 
 # Types
-our %types =
-(
+our %types = (
   string => {
      db_type     => "string",
      hint        => "string",
@@ -96,10 +94,7 @@ our %types =
      hint        => "yes|no",
      pattern     => qr|^([yn])|i,
      check       => q( $1 ),
-     format      => q( ($1 =~ /^y/)
-       ? "yes"
-       : "no"
-       )
+     format      => q( ($1 =~ /^y/) ? "yes" : "no" )
    },
    integer => {
      db_type     => "integer",
@@ -123,10 +118,7 @@ our %types =
      db_type     => "string",
      hint        => "auto|yes|no",
      pattern     => qr|^([ayn])|i, check=>q( $1 ),
-     format      => q( ($1 =~ /^y/)
-       ? "yes"
-       : ($1 =~ /^n/ ? "no" : "auto" )
-       )
+     format      => q( ($1 =~ /^y/) ? "yes" : ($1 =~ /^n/ ? "no" : "auto" ) )
    },
    abs_path => {
      db_type     => "string",
@@ -178,8 +170,7 @@ sub qqq {    ## Un-pad paragraph of text.
   return $_;
 }
 
-our @options =
-(
+our @options = (
   {
     name        => "ZM_SKIN_DEFAULT",
     default     => "classic",
@@ -283,10 +274,7 @@ our @options =
       db_type     => "string",
       hint        => "hashed|plain|none",
       pattern     => qr|^([hpn])|i,
-      format      => q( ($1 =~ /^h/)
-        ? "hashed"
-        : ($1 =~ /^p/ ? "plain" : "none" )
-        )
+      format      => q( ($1 =~ /^h/) ? "hashed" : ($1 =~ /^p/ ? "plain" : "none" ) )
     },
     category    => "system",
   },
@@ -354,6 +342,26 @@ our @options =
       { name=>"ZM_OPT_USE_AUTH", value=>"yes" },
       { name=>"ZM_AUTH_RELAY", value=>"hashed" }
     ],
+    type        => $types{boolean},
+    category    => "system",
+  },
+  {
+    name        => "ZM_ENABLE_CSRF_MAGIC",
+    default     => "no",
+    description => "Enable csrf-magic library",
+    help        => qqq("
+      CSRF stands for Cross-Site Request Forgery which, under specific
+      circumstances, can allow an attacker to perform any task your
+      ZoneMinder user account has permission to perform. To accomplish
+      this, the attacker must write a very specific web page and get
+      you to navigate to it, while you are logged into the ZoneMinder
+      web console at the same time. Enabling ZM_ENABLE_CSRF_MAGIC will
+      help mitigate these kinds of attackes. Be warned this feature
+      is experimental and may cause problems, particularly with the API.
+      If you find a false positive and can document how to reproduce it,
+      then please report it. This feature defaults to OFF currently due to
+      its experimental nature.
+    "),
     type        => $types{boolean},
     category    => "system",
   },
@@ -1563,6 +1571,19 @@ our @options =
     category    => "web",
   },
   {
+    name        => 'ZM_WEB_EVENT_DISK_SPACE',
+    default     => '',
+    description => "Whether to show disk space used by each event.",
+    help        => qqq("Adds another column to the listing of events 
+        showing the disk space used by the event.  This will impart a small
+        overhead as it will call du on the event directory.  In practice 
+        this overhead is fairly small but may be noticeable on IO-constrained
+        systems.
+        "),
+    type        => $types{string},
+    category    => "web",
+  },
+  {
     name        => "ZM_WEB_RESIZE_CONSOLE",
     default     => "yes",
     description => "Should the console window resize itself to fit",
@@ -2638,7 +2659,7 @@ our @options =
         This can be used by the experimental motion tracking feature or
         your own custom extensions. In the alarmed or filtered pixels
         mode this is a simple midpoint between the extents of the
-        detected pxiesl. However in the blob method this can instead be
+        detected pixels. However in the blob method this can instead be
         calculated using weighted pixel locations to give more accurate
         positioning for irregularly shaped blobs. This method, while
         more precise is also slower and so is turned off by default.
@@ -3902,21 +3923,16 @@ our %options_hash = map { ( $_->{name}, $_ ) } @options;
 
 # This function should never need to be called explicitly, except if 
 # this module is 'require'd rather than 'use'd. See zmconfgen.pl.
-sub initialiseConfig
-{
+sub initialiseConfig {
   return if ( $configInitialised );
 
 # Do some initial data munging to finish the data structures
 # Create option ids
   my $option_id = 0;
-  foreach my $option ( @options )
-  {
-    if ( defined($option->{default}) )
-    {
+  foreach my $option ( @options ) {
+    if ( defined($option->{default}) ) {
       $option->{value} = $option->{default}
-    }
-    else
-    {
+    } else {
       $option->{value} = '';
     }
 #next if ( $option->{category} eq 'hidden' );

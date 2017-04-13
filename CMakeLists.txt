@@ -2,12 +2,11 @@
 # Created by mastertheknife (Kfir Itzhak)
 # For more information and installation, see the INSTALL file
 #
-cmake_minimum_required (VERSION 3.1.0)
+cmake_minimum_required (VERSION 2.8.7)
 project (zoneminder)
 file (STRINGS "version" zoneminder_VERSION)
 # make API version a minor of ZM version
 set(zoneminder_API_VERSION "${zoneminder_VERSION}.1")
-set (CMAKE_CXX_STANDARD 11)
 
 # Make sure the submodules are there
 if( NOT EXISTS "${CMAKE_SOURCE_DIR}/web/api/app/Plugin/Crud/Lib/CrudControllerTrait.php" )

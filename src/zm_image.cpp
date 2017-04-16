@@ -208,15 +208,31 @@ void Image::Initialise()
     Debug(4,"Blend: Using standard blend function");
   }
   
-  __attribute__((aligned(16))) uint8_t blend1[16] = {142,255,159,91,88,227,0,52,37,80,152,97,104,252,90,82};
-  __attribute__((aligned(16))) uint8_t blend2[16] = {129,56,136,96,119,149,94,29,96,176,1,144,230,203,111,172};
-  __attribute__((aligned(16))) uint8_t blendres[16];
-  __attribute__((aligned(16))) uint8_t blendexp[16] = {141,231,157,92,91,217,11,49,45,92,133,103,119,246,92,93}; /* Expected results for 12.5% blend */
-  
-  (*fptr_blend)(blend1,blend2,blendres,16,12.5);
-  
+  __attribute__((aligned(64))) uint8_t blend1[128] = {
+    86,58,54,63,149,62,209,34,148,46,186,176,9,236,193,254,113,146,228,220,123,164,92,98,9,72,67,156,63,118,96,167,
+    48,224,106,176,201,245,223,219,198,50,100,31,68,77,33,76,166,90,254,128,191,82,84,32,3,171,147,248,14,196,141,179,
+    79,237,121,11,132,37,194,225,45,171,169,167,56,64,193,85,147,33,97,221,94,97,90,44,191,248,65,8,17,240,167,207,
+    224,23,71,74,81,1,46,110,227,94,163,170,55,155,52,147,224,154,237,35,255,26,229,11,223,242,118,155,82,37,189,2
+  };
+  __attribute__((aligned(64))) uint8_t blend2[128] = {
+    92,188,203,118,121,231,252,218,126,88,80,72,123,16,91,131,109,0,57,56,95,204,74,8,137,94,6,69,18,146,229,194,
+    146,230,13,146,95,48,185,65,162,47,152,172,184,111,245,143,247,105,49,42,89,37,145,255,221,200,103,80,98,39,14,227,
+    227,46,46,59,248,7,83,20,157,79,36,161,237,55,77,175,232,200,38,170,198,239,89,19,82,88,130,120,203,184,141,117,
+    228,140,150,107,103,195,74,130,42,11,150,70,176,204,198,188,38,252,174,104,128,106,31,17,141,231,62,104,179,29,143,130
+  };
+  __attribute__((aligned(64))) uint8_t blendexp[128] = {
+    86,73,71,69,145,82,214,56,145,51,173,163,22,209,180,239,112,128,207,200,119,168,89,87,24,74,59,145,57,121,111,170,
+    59,224,94,172,188,221,218,200,193,49,106,47,81,81,58,84,175,91,229,117,178,76,91,58,29,174,141,227,24,177,125,184,
+    96,214,112,16,145,33,180,200,58,159,153,166,77,62,179,95,157,53,89,214,106,114,89,41,177,228,72,21,39,233,163,196,
+    224,37,80,77,83,24,49,112,204,84,161,158,69,160,69,151,201,165,229,43,239,35,205,11,213,240,111,148,93,36,183,17
+  };
+  __attribute__((aligned(64))) uint8_t blendres[128];
+
+  /* Run the blend function */
+  (*fptr_blend)(blend1,blend2,blendres,128,12.0);
+
   /* Compare results with expected results */
-  for(int i=0;i<16;i++) {
+  for(int i=0;i<128;i++) {
     if(abs(blendexp[i] - blendres[i]) > 3) {
       Panic("Blend function failed self-test: Results differ from the expected results");
     }
@@ -277,6 +293,50 @@ void Image::Initialise()
     fptr_delta8_abgr = &std_delta8_abgr;
     fptr_delta8_gray8 = &std_delta8_gray8;
     Debug(4,"Delta: CPU extensions disabled, using standard delta functions");
+  }
+
+  __attribute__((aligned(64))) uint8_t delta8_1[128] = {
+    221,22,234,254,8,140,15,28,166,13,203,56,92,250,79,225,19,59,241,145,253,33,87,204,97,168,229,180,3,108,205,177,
+    41,108,65,149,4,87,16,240,56,50,135,64,153,3,219,214,239,55,169,180,167,45,243,56,191,119,145,250,102,145,73,32,
+    207,213,189,167,147,83,217,30,113,51,142,125,219,97,60,5,135,195,95,133,21,197,150,82,134,93,198,97,97,49,117,24,
+    242,253,242,5,190,71,182,1,0,69,25,181,139,84,242,79,150,158,29,215,98,100,245,16,86,165,18,98,46,100,139,19
+  };
+  __attribute__((aligned(64))) uint8_t delta8_2[128] = {
+    236,22,153,161,50,141,15,130,89,251,33,5,140,201,225,194,138,76,248,89,25,26,29,93,250,251,48,157,41,126,140,152,
+    170,177,134,14,234,99,3,105,217,76,38,233,89,30,93,48,234,40,202,80,184,4,250,71,183,249,76,78,184,148,185,120,
+    137,214,238,57,50,93,29,60,99,207,40,15,43,28,177,118,60,231,90,47,198,251,250,241,212,114,249,17,95,161,216,218,
+    51,178,137,161,213,108,35,72,65,24,5,176,110,15,0,2,137,58,0,133,197,1,122,169,175,33,223,138,37,114,52,186
+  };
+  __attribute__((aligned(64))) uint8_t delta8_gray8_exp[128] = {
+    15,0,81,93,42,1,0,102,77,238,170,51,48,49,146,31,119,17,7,56,228,7,58,111,153,83,181,23,38,18,65,25,
+    129,69,69,135,230,12,13,135,161,26,97,169,64,27,126,166,5,15,33,100,17,41,7,15,8,130,69,172,82,3,112,88,
+    70,1,49,110,97,10,188,30,14,156,102,110,176,69,117,113,75,36,5,86,177,54,100,159,78,21,51,80,2,112,99,194,
+    191,75,105,156,23,37,147,71,65,45,20,5,29,69,242,77,13,100,29,82,99,99,123,153,89,132,205,40,9,14,87,167
+  };
+  __attribute__((aligned(64))) uint8_t delta8_rgba_exp[32] = {
+    73,25,148,105,20,64,129,49,85,43,106,123,47,13,102,92,58,126,110,110,29,109,54,124,114,114,19,179,51,127,154,97
+  };
+  __attribute__((aligned(64))) uint8_t delta8_gray8_res[128];
+  __attribute__((aligned(64))) uint8_t delta8_rgba_res[128];
+
+  /* Run the delta8 grayscale function */
+  (*fptr_delta8_gray8)(delta8_1,delta8_2,delta8_gray8_exp,128);
+
+  /* Compare results with expected results */
+  for(int i=0;i<128;i++) {
+    if(abs(delta8_gray8_exp[i] - delta8_gray8_res[i]) > 7) {
+      Panic("Delta grayscale function failed self-test: Results differ from the expected results");
+    }
+  }
+
+  /* Run the delta8 RGBA function */
+  (*fptr_delta8_rgba)(delta8_1,delta8_2,delta8_rgba_exp,32);
+
+  /* Compare results with expected results */
+  for(int i=0;i<32;i++) {
+    if(abs(delta8_rgba_exp[i] - delta8_rgba_res[i]) > 7) {
+      Panic("Delta RGBA function failed self-test: Results differ from the expected results");
+    }
   }
   
   /* Use SSSE3 deinterlace functions? */
@@ -3325,27 +3385,50 @@ void neon32_armv7_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* r
     current_blendpercent = blendpercent;
   }
 
-  /* Q0(D0,D1) = col1 */
-  /* Q1(D2,D3) = col2 */
-  /* Q2(D4,D5) = col1 backup */
-  /* Q3(D6,D7) = divider */
+  /* Q0(D0,D1)    = col1+0 */
+  /* Q1(D2,D3)    = col1+16 */
+  /* Q2(D4,D5)    = col1+32 */
+  /* Q3(D6,D7)    = col1+48 */
+  /* Q4(D8,D9)    = col2+0 */
+  /* Q5(D10,D11)  = col2+16 */
+  /* Q6(D12,D13)  = col2+32 */
+  /* Q7(D14,D15)  = col2+48 */
+  /* Q8(D16,D17)  = col1tmp+0 */
+  /* Q9(D18,D19)  = col1tmp+16 */
+  /* Q10(D20,D21) = col1tmp+32 */
+  /* Q11(D22,D23) = col1tmp+48 */
+  /* Q12(D24,D25) = divider */
 
   __asm__ __volatile__ (
   "mov r12, %4\n\t"
-  "vdup.8 q3, r12\n\t"
+  "vdup.8 q12, r12\n\t"
   "neon32_armv7_fastblend_iter:\n\t"
-  "vldm %0!, {q0}\n\t"
-  "vldm %1!, {q1}\n\t"
-  "vrshl.u8 q2, q0, q3\n\t"
-  "vrshl.u8 q1, q1, q3\n\t"
-  "vsub.i8 q1, q1, q2\n\t"
-  "vadd.i8 q1, q1, q0\n\t"
-  "vstm %2!, {q1}\n\t"
-  "subs %3, %3, #16\n\t"
+  "pld [%0,#256]\n\t"
+  "pld [%1,#256]\n\t"
+  "vldm %0!, {q0,q1,q2,q3}\n\t"
+  "vldm %1!, {q4,q5,q6,q7}\n\t"
+  "vrshl.u8 q8, q0, q12\n\t"
+  "vrshl.u8 q9, q1, q12\n\t"
+  "vrshl.u8 q10, q2, q12\n\t"
+  "vrshl.u8 q11, q3, q12\n\t"
+  "vrshl.u8 q4, q4, q12\n\t"
+  "vrshl.u8 q5, q5, q12\n\t"
+  "vrshl.u8 q6, q6, q12\n\t"
+  "vrshl.u8 q7, q7, q12\n\t"
+  "vsub.i8 q4, q4, q8\n\t"
+  "vsub.i8 q5, q5, q9\n\t"
+  "vsub.i8 q6, q6, q10\n\t"
+  "vsub.i8 q7, q7, q11\n\t"
+  "vadd.i8 q4, q4, q0\n\t"
+  "vadd.i8 q5, q5, q1\n\t"
+  "vadd.i8 q6, q6, q2\n\t"
+  "vadd.i8 q7, q7, q3\n\t"
+  "vstm %2!, {q4,q5,q6,q7}\n\t"
+  "subs %3, %3, #64\n\t"
   "bne neon32_armv7_fastblend_iter\n\t"
   :
-  : "r" (col1), "r" (col2), "r" (result), "r" (count), "g" (divider)
-  : "%r12", "%q0", "%q1", "%q2", "%q3", "cc", "memory"
+  : "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (divider)
+  : "%r12", "%q0", "%q1", "%q2", "%q3", "%q4", "%q5", "%q6", "%q7", "%q8", "%q9", "%q10", "%q11", "%q12", "cc", "memory"
   );
 #else
   Panic("Neon function called on a non-ARM platform or Neon code is absent");
@@ -3581,20 +3664,31 @@ __attribute__((noinline,__target__("fpu=neon")))
 void neon32_armv7_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if (defined(__arm__) && !defined(ZM_STRIP_NEON))
 
-  /* Q0(D0,D1) = col1 */
-  /* Q1(D2,D3) = col2 */
+  /* Q0(D0,D1)   = col1+0 */
+  /* Q1(D2,D3)   = col1+16 */
+  /* Q2(D4,D5)   = col1+32 */
+  /* Q3(D6,D7)   = col1+48 */
+  /* Q4(D8,D9)   = col2+0 */
+  /* Q5(D10,D11) = col2+16 */
+  /* Q6(D12,D13) = col2+32 */
+  /* Q7(D14,D15) = col2+48 */
 
   __asm__ __volatile__ (
   "neon32_armv7_delta8_gray8_iter:\n\t"
-  "vldm %0!, {q0}\n\t"
-  "vldm %1!, {q1}\n\t"
-  "vabd.u8 q0, q0, q1\n\t"
-  "vstm %2!, {q0}\n\t"
-  "subs %3, %3, #16\n\t"
+  "pld [%0,#256]\n\t"
+  "pld [%1,#256]\n\t"
+  "vldm %0!, {q0,q1,q2,q3}\n\t"
+  "vldm %1!, {q4,q5,q6,q7}\n\t"
+  "vabd.u8 q0, q0, q4\n\t"
+  "vabd.u8 q1, q1, q5\n\t"
+  "vabd.u8 q2, q2, q6\n\t"
+  "vabd.u8 q3, q3, q7\n\t"
+  "vstm %2!, {q0,q1,q2,q3}\n\t"
+  "subs %3, %3, #64\n\t"
   "bne neon32_armv7_delta8_gray8_iter\n\t"
   :
   : "r" (col1), "r" (col2), "r" (result), "r" (count)
-  : "%q0", "%q1", "cc", "memory"
+  : "%q0", "%q1", "%q2", "%q3", "%q4", "%q5", "%q6", "%q7", "cc", "memory"
   );
 #else
   Panic("Neon function called on a non-ARM platform or Neon code is absent");
@@ -3608,29 +3702,52 @@ __attribute__((noinline,__target__("fpu=neon")))
 void neon32_armv7_delta8_rgb32(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, uint32_t multiplier) {
 #if (defined(__arm__) && !defined(ZM_STRIP_NEON))
 
-  /* Q0(D0,D1) = col1 */
-  /* Q1(D2,D3) = col2 */
-  /* Q2(D4,D5) = multiplier */
+  /* Q0(D0,D1)   = col1+0 */
+  /* Q1(D2,D3)   = col1+16 */
+  /* Q2(D4,D5)   = col1+32 */
+  /* Q3(D6,D7)   = col1+48 */
+  /* Q4(D8,D9)   = col2+0 */
+  /* Q5(D10,D11) = col2+16 */
+  /* Q6(D12,D13) = col2+32 */
+  /* Q7(D14,D15) = col2+48 */
+  /* Q8(D16,D17) = multiplier */
 
   __asm__ __volatile__ (
   "mov r12, %4\n\t"
-  "vdup.32 q2, r12\n\t"
+  "vdup.32 q8, r12\n\t"
   "neon32_armv7_delta8_rgb32_iter:\n\t"
-  "vldm %0!, {q0}\n\t"
-  "vldm %1!, {q1}\n\t"
-  "vabd.u8 q0, q0, q1\n\t"
+  "pld [%0,#256]\n\t"
+  "pld [%1,#256]\n\t"
+  "vldm %0!, {q0,q1,q2,q3}\n\t"
+  "vldm %1!, {q4,q5,q6,q7}\n\t"
+  "vabd.u8 q0, q0, q4\n\t"
+  "vabd.u8 q1, q1, q5\n\t"
+  "vabd.u8 q2, q2, q6\n\t"
+  "vabd.u8 q3, q3, q7\n\t"
   "vrshr.u8 q0, q0, #3\n\t"
-  "vmul.i8 q0, q0, q2\n\t"
+  "vrshr.u8 q1, q1, #3\n\t"
+  "vrshr.u8 q2, q2, #3\n\t"
+  "vrshr.u8 q3, q3, #3\n\t"
+  "vmul.i8 q0, q0, q8\n\t"
+  "vmul.i8 q1, q1, q8\n\t"
+  "vmul.i8 q2, q2, q8\n\t"
+  "vmul.i8 q3, q3, q8\n\t"
   "vpadd.i8 d0, d0, d1\n\t"
   "vpadd.i8 d2, d2, d3\n\t"
-  "vpadd.i8 d0, d0, d2\n\t"
-  "vst1.32 {d0[0]}, [%2]!\n\t"
-  "subs %3, %3, #4\n\t"
+  "vpadd.i8 d4, d4, d5\n\t"
+  "vpadd.i8 d6, d6, d7\n\t"
+  "vpadd.i8 d0, d0, d0\n\t"
+  "vpadd.i8 d1, d2, d2\n\t"
+  "vpadd.i8 d2, d4, d4\n\t"
+  "vpadd.i8 d3, d6, d6\n\t"
+  "vst4.32 {d0[0],d1[0],d2[0],d3[0]}, [%2]!\n\t"
+  "subs %3, %3, #16\n\t"
   "bne neon32_armv7_delta8_rgb32_iter\n\t"
   :
   : "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (multiplier)
-  : "%r12", "%q0", "%q1", "%q2", "cc", "memory"
+  : "%r12", "%q0", "%q1", "%q2", "%q3", "%q4", "%q5", "%q6", "%q7", "%q8", "cc", "memory"
   );
+}
 #else
   Panic("Neon function called on a non-ARM platform or Neon code is absent");
 #endif

@@ -18,6 +18,9 @@
  * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
+// Force Cake's temp folder = ZoneMinder's temp folder
+define('TMP', '@ZM_TMPDIR@');
+
 define('TIME_START', microtime(true));
 
 if (!defined('E_DEPRECATED')) {

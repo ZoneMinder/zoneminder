@@ -233,8 +233,8 @@ sub run {
     if ( open( my $PID, '>', ZM_PID ) ) {
         print( $PID $$ );
         close( $PID );
-	} else {
-		Error( "Can't open pid file at " . ZM_PID );
+    } else {
+      Error( "Can't open pid file at " . ZM_PID );
     }
 
     killAll( 1 );
@@ -408,6 +408,7 @@ sub start {
         }
 
         logTerm();
+        zmDbDisconnect();
 
         my $fd = 0;
         while( $fd < POSIX::sysconf( &POSIX::_SC_OPEN_MAX ) ) {

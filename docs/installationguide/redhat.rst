@@ -178,12 +178,11 @@ We want to turn this into a tarball, but first we need to figure out what to nam
 
     ls ~/rpmbuild/SOURCES
 
-The tarball from the previsouly installed SRPM should be there. This is the name we will use.  For this example, the name is ZoneMinder-1.28.1.tar.gz.  From the local ZoneMinder git repository, execute the following:
+The tarball from the previsouly installed SRPM should be there. This is the name we will use.  For this example, the name is ZoneMinder-1.28.1.tar.gz. From the root folder of the local ZoneMinder git repository, execute the following:
 
 ::
 
-    git archive --prefix=ZoneMinder-1.28.1/ -o zoneminder-1.28.1.tar.gz HEAD
-    mv zoneminder-1.28.1.tar.gz ~/rpmbuld/SOURCES/
+    git archive --prefix=ZoneMinder-1.28.1/ -o ~/rpmbuld/SOURCES/zoneminder-1.28.1.tar.gz HEAD
 
 Note that we are overwriting the original tarball. If you wish to keep the original tarball then create a copy prior to creating the new tarball.
 

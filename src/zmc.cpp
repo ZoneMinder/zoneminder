@@ -27,7 +27,6 @@ zmc - The ZoneMinder Capture daemon
 
  zmc -d <device_path>
  zmc --device <device_path>
- zmc -r <proto> -H <host> -P <port> -p <path>
  zmc -f <file_path>
  zmc --file <file_path>
  zmc -m <monitor_id>
@@ -45,7 +44,6 @@ possible, this should run at more or less constant speed.
 =head1 OPTIONS
 
  -d, --device <device_path>         - For local cameras, device to access. e.g /dev/video0 etc
- -r <proto> -H <host> -P <port> -p <path> - For remote cameras
  -f, --file <file_path>           - For local images, jpg file to access.
  -m, --monitor_id             - ID of the monitor to analyse
  -h, --help                 - Display usage information
@@ -82,7 +80,6 @@ void Usage() {
 #else
   fprintf( stderr, "  -d, --device <device_path>         : For local cameras, device to access. E.g /dev/video0 etc\n" );
 #endif
-  fprintf( stderr, "  -r <proto> -H <host> -P <port> -p <path> : For remote cameras\n" );
   fprintf( stderr, "  -f, --file <file_path>           : For local images, jpg file to access.\n" );
   fprintf( stderr, "  -m, --monitor <monitor_id>         : For sources associated with a single monitor\n" );
   fprintf( stderr, "  -h, --help                 : This screen\n" );

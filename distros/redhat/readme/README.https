@@ -23,3 +23,7 @@ here are a couple of considerations you may want to take.
    directives found in /etc/httpd/conf.d/zoneminder.conf. You should also
    comment out the HTTP -> HTTPS Rewrite rule.
 
+3. Install a fully signed certificate from letsencrypt. See the Letsencrypt
+   site for more information. https://letsencrypt.org/
+   This service is totally free!
+

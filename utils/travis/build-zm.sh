@@ -24,10 +24,6 @@ build_zm() {
 	make
 	sudo make install
 
-	if [ "$ZM_BUILDMETHOD" = "cmake" ]; then
-		sudo ./zmlinkcontent.sh
-	fi
-
 }
 
 build_zm | with_timestamps

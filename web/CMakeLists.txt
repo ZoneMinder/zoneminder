@@ -13,6 +13,9 @@ install(DIRECTORY api ajax css fonts graphics includes js lang skins tools views
 install(FILES index.php DESTINATION "${ZM_WEBDIR}")
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/includes/config.php" DESTINATION "${ZM_WEBDIR}/includes")
 
+# Install the content dirs
+install(CODE "execute_process(COMMAND \"${CMAKE_BINARY_DIR}/zmlinkcontent.sh\" -z \"${CMAKE_BINARY_DIR}/zm.conf\")")
+
 # Install the api config files (if its not in the source directory)
 if(NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR))
 	install(FILES "${CMAKE_CURRENT_BINARY_DIR}/api/app/Config/core.php" DESTINATION "${ZM_WEBDIR}/api/app/Config")

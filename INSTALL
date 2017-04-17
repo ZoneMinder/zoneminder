@@ -1,3 +1,7 @@
+
+
+This change is to trigger a Travis build
+A
 Installing ZoneMinder with cmake
 --------------------------------
 Starting with ZoneMinder 1.26.4, ZoneMinder can now be installed using cmake. This requires cmake version 2.6 or newer.

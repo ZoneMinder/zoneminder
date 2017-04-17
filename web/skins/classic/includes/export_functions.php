@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 //
 // ZoneMinder web export function library, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes

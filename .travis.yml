@@ -40,7 +40,6 @@ script:
 
 before_deploy:
 - openssl aes-256-cbc -K $encrypted_62a62750aa73_key -iv $encrypted_62a62750aa73_iv -in ./utils/packpack/deploy_rsa.enc -out /tmp/deploy_rsa -d
-- openssl aes-256-cbc -K $encrypted_79c141371182_key -iv $encrypted_79c141371182_iv -in ./utils/packpack/deploy_rsa.enc -out /tmp/deploy_rsa -d
 - eval "$(ssh-agent -s)"
 - chmod 600 /tmp/deploy_rsa
 - ssh-add /tmp/deploy_rsa

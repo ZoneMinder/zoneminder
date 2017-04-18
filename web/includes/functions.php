@@ -697,7 +697,11 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
       default :
         {
           if ( !isset($values[$key]) || ($values[$key] != $value) ) {
-            $changes[$key] = "$key = ".dbEscape(trim($value));
+            if ( ! isset($value) || $value == '' ) {
+              $changes[$key] = "$key = NULL";
+            } else {
+              $changes[$key] = "$key = ".dbEscape(trim($value));
+            }
           }
           break;
         }

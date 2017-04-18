@@ -37,6 +37,8 @@ if [ "$BRANCH" != "" ]; then
 	git checkout $BRANCH
 	cd ../
 fi;
+# lets leave a hook for local modifications
+read -p "ZoneMinder repo cloned. Press any key to continue..."
 VERSION=`cat zoneminder_release/version`
 if [ $VERSION == "" ]; then
 	exit 1;

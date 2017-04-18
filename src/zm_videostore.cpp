@@ -165,7 +165,9 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   audio_output_codec = NULL;
   audio_input_context = NULL;
   audio_output_stream = NULL;
+#ifdef HAVE_LIBAVRESAMPLE
   resample_context = NULL;
+#endif
 
   if (audio_input_stream) {
     audio_input_context = audio_input_stream->codec;
@@ -305,10 +307,12 @@ Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts, pkt.dts
   }
   if (audio_output_stream) {
     avcodec_close(audio_output_context);
+#ifdef HAVE_LIBAVRESAMPLE
     if ( resample_context ) {
       avresample_close( resample_context );
       avresample_free( &resample_context );
     }
+#endif
   }
 
   // WHen will be not using a file ?

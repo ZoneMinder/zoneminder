@@ -5,9 +5,6 @@
 extern "C"  {
 #include "libavutil/audio_fifo.h"
 
-#ifdef HAVE_LIBSWRESAMPLE
-#include "libswresample/swresample.h"
-#endif
 #ifdef HAVE_LIBAVRESAMPLE
 #include "libavresample/avresample.h"
 #endif
@@ -46,9 +43,6 @@ private:
   int data_present;
   AVAudioFifo *fifo;
   int output_frame_size;
-#ifdef HAVE_LIBSWRESAMPLE
-  //SwrContext *resample_context = NULL;
-#endif
 #ifdef HAVE_LIBAVRESAMPLE
 AVAudioResampleContext* resample_context;
 #endif

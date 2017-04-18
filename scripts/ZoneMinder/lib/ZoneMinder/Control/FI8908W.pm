@@ -215,6 +215,55 @@ sub presetHome
     $self->sendCmd( 'decoder_control.cgi?command=25&' );
 }
 
+sub moveRelUp
+{
+    my $self = shift;
+    Debug( "Move Up" );
+    $self->sendCmd( 'decoder_control.cgi?command=0&onestep=1&' );
+}
+
+#Down Arrow
+sub moveRelDown
+{
+    my $self = shift;
+    Debug( "Move Down" );
+    $self->sendCmd( 'decoder_control.cgi?command=2&onestep=1&' );
+}
+
+#Left Arrow
+sub moveRelLeft
+{
+    my $self = shift;
+    Debug( "Move Left" );
+    $self->sendCmd( 'decoder_control.cgi?command=6&onestep=1&' );
+}
+
+#Right Arrow
+sub moveRelRight
+{
+    my $self = shift;
+    Debug( "Move Right" );
+    $self->sendCmd( 'decoder_control.cgi?command=4&onestep=1&' );
+}
+
+#Go to preset
+sub presetGoto
+{
+    my $self = shift;
+    my $params = shift;
+    my $preset = $self->getParam( $params, 'preset' );
+    my $result = undef;
+    if ( $preset > 0 && $preset <= 32 ) {
+        my $command=31+(($preset-1) * 2);
+        Debug( "Goto Preset $preset with command $command" );
+        $result=$self->sendCmd( 'decoder_control.cgi?command=' . $command . '&' );
+    }
+    else {
+        Error( "Unsupported preset $preset : must be between 1 and 32" );
+    }
+    return $result;
+}
+
 1;
 
 __END__

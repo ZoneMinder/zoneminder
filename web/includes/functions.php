@@ -831,15 +831,13 @@ function packageControl( $command ) {
 function daemonControl( $command, $daemon=false, $args=false ) {
   $string = escapeshellcmd(ZM_PATH_BIN).'/zmdc.pl '.$command;
   if ( $daemon ) {
-    #$string .= ' ' .  $daemon;
     $string .= ' ' . $daemon;
     if ( $args ) {
       $string .= ' ' . $args;
-      #$string .= ' ' . $args;
     }
   }
-  $string .= ' 2>/dev/null >&- <&- >/dev/null';
-Debug("exec $string");
+  $string = escapeshellcmd( $string );
+  #$string .= ' 2>/dev/null >&- <&- >/dev/null';
   exec( $string );
 }
 
@@ -963,10 +961,11 @@ function zmaStatus( $monitor ) {
 function daemonCheck( $daemon=false, $args=false ) {
   $string = ZM_PATH_BIN."/zmdc.pl check";
   if ( $daemon ) {
-    $string .= ' ' . escapeshellarg( $daemon );
+    $string .= ' ' . $daemon;
     if ( $args )
-      $string .= ' ' . escapeshellarg( $args );
+      $string .= ' '. $args;
   }
+  $string = escapeshellcmd( $string );
   $result = exec( $string );
   return( preg_match( '/running/', $result ) );
 }

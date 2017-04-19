@@ -416,7 +416,7 @@ bool Event::WriteFrameImage( Image *image, struct timeval timestamp, const char 
   Image* ImgToWrite;
   Image* ts_image = NULL;
 
-  if ( config.timestamp_on_capture )  // stash the image we plan to use in another pointer regardless if timestamped.
+  if ( !config.timestamp_on_capture )  // stash the image we plan to use in another pointer regardless if timestamped.
   {
     ts_image = new Image(*image);
     monitor->TimestampImage( ts_image, &timestamp );

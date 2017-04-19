@@ -346,6 +346,26 @@ our @options = (
     category    => "system",
   },
   {
+    name        => "ZM_ENABLE_CSRF_MAGIC",
+    default     => "no",
+    description => "Enable csrf-magic library",
+    help        => qqq("
+      CSRF stands for Cross-Site Request Forgery which, under specific
+      circumstances, can allow an attacker to perform any task your
+      ZoneMinder user account has permission to perform. To accomplish
+      this, the attacker must write a very specific web page and get
+      you to navigate to it, while you are logged into the ZoneMinder
+      web console at the same time. Enabling ZM_ENABLE_CSRF_MAGIC will
+      help mitigate these kinds of attackes. Be warned this feature
+      is experimental and may cause problems, particularly with the API.
+      If you find a false positive and can document how to reproduce it,
+      then please report it. This feature defaults to OFF currently due to
+      its experimental nature.
+    "),
+    type        => $types{boolean},
+    category    => "system",
+  },
+  {
     name        => "ZM_OPT_USE_API",
     default     => "yes",
     description => "Enable ZoneMinder APIs",

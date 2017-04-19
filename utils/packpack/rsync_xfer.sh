@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Required, so that Travis marks the build as failed if any of the steps below fail
-set -ev
-
 # Check to see if this script has access to all the commands it needs
 for CMD in sshfs rsync find fusermount mkdir; do
   type $CMD 2>&1 > /dev/null
@@ -23,6 +20,11 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ]; then
     ssh_mntchk="$(sshfs zmrepo@zmrepo.zoneminder.com:./ ./zmrepo -o workaround=rename,reconnect)"
 
     if [ -z "$ssh_mntchk" ]; then
+        echo
+        echo "Remote filesystem mounted successfully."
+        echo "Being transfering files..."
+        echo
+
         # Don't keep packages older than 5 days
         find ./zmrepo -maxdepth 1 -type f -mtime +5 -delete
         rsync --ignore-errors --verbose ./build/ ./zmrepo/
@@ -33,5 +35,6 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ]; then
         echo "sshfs gave the following error message:"
         echo \"$ssh_mntchk\"
         echo
+        exit 99
     fi
 fi

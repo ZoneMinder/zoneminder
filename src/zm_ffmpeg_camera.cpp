@@ -575,7 +575,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
 
     int key_frame = packet.flags & AV_PKT_FLAG_KEY;
 
-    Debug( 3, "Got packet from stream %d packet pts (%d) dts(%d), key?(%d)", 
+    Debug( 4, "Got packet from stream %d packet pts (%d) dts(%d), key?(%d)", 
         packet.stream_index, packet.pts, packet.dts, 
         key_frame
         );

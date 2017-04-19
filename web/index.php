@@ -192,7 +192,7 @@ isset($view) || $view = NULL;
 isset($request) || $request = NULL;
 isset($action) || $action = NULL;
 
-if ( ZM_ENABLE_CSRF_MAGIC && $action != 'login' ) {
+if ( ZM_ENABLE_CSRF_MAGIC && ( $action != 'login' ) && ( $view != 'view_video' ) ) {
     Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");
     if ( ! csrf_check() ) {
       Warning( "Failed csrf_check()" );

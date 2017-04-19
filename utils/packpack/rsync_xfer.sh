@@ -22,7 +22,7 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ]; then
     if [ -z "$ssh_mntchk" ]; then
         echo
         echo "Remote filesystem mounted successfully."
-        echo "Being transfering files..."
+        echo "Begin transfering files..."
         echo
 
         # Don't keep packages older than 5 days

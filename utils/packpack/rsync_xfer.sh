@@ -25,7 +25,7 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ]; then
     if [ -z "$ssh_mntchk" ]; then
         # Don't keep packages older than 5 days
         find ./zmrepo -maxdepth 1 -type f -mtime +5 -delete
-        rsync --ignore-errors ./build/ ./zmrepo/
+        rsync --ignore-errors --verbose ./build/ ./zmrepo/
         fusermount -zu zmrepo
     else
         echo

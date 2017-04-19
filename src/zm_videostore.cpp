@@ -666,6 +666,7 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
   }
 
 
+#ifdef HAVE_LIBAVRESAMPLE
   if ( audio_output_codec ) {
 
 #if 0
@@ -785,6 +786,7 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
       return 0;
     }
 
+#endif
 #endif
   } else {
     av_init_packet(&opkt);

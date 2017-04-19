@@ -41,6 +41,7 @@ if ( ! empty($refreshParent) ) {
     echo 'true';
     return;
   } else if ( $refreshParent ) {
+    # This is to tell the parent to refresh to a specific URL
     echo "'$refreshParent'";
     return;
   } 

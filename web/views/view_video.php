@@ -35,6 +35,8 @@ require_once('includes/Event.php');
 $errorText = false;
 $path = '';
 
+$Event = null;
+
 if ( ! empty($_REQUEST['eid'] ) ) {
   $Event = new Event( $_REQUEST['eid'] );
   $path = $Event->Path().'/'.$Event->DefaultVideo();
@@ -73,10 +75,16 @@ if ( isset( $_SERVER['HTTP_RANGE'] ) ) {
   }
 } # end if HTTP_RANGE
 
+
 header('Content-type: video/mp4');
 header('Accept-Ranges: bytes');
 header('Content-Length: '.$length);
-header("Content-Disposition: inline;");
+# This is so that Save Image As give a useful filename
+if ( $Event ) {
+  header('Content-Disposition: inline; filename="' . $Event->DefaultVideo() . '"');
+} else {
+  header("Content-Disposition: inline;");
+}
 if ( $begin > 0 || $end < $size-1 ) {
   header('HTTP/1.0 206 Partial Content');
   header("Content-Range: bytes $begin-$end/$size");

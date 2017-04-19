@@ -1755,6 +1755,25 @@ function coordsToPoints( $coords ) {
   return( $points );
 }
 
+function limitPoints( &$points, $min_x, $min_y, $max_x, $max_y ) {
+  foreach ( $points as &$point ) {
+    if ( $point['x'] < $min_x ) {
+      Debug('Limiting point x'.$point['x'].' to min_x ' . $min_x );
+      $point['x'] = $min_x;
+    } else if ( $point['x'] > $max_x ) {
+      Debug('Limiting point x'.$point['x'].' to max_x ' . $max_x );
+      $point['x'] = $max_x;
+    }
+    if ( $point['y'] < $min_y ) { 
+      Debug('Limiting point y'.$point['y'].' to min_y ' . $min_y );
+      $point['y'] = $min_y;
+    } else if ( $point['y'] > $max_y ) {
+      Debug('Limiting point y'.$point['y'].' to max_y ' . $max_y );
+      $point['y'] = $max_y;
+    }
+  } // end foreach point
+} // end function limitPoints( $points, $min_x, $min_y, $max_x, $max_y )
+
 function getLanguages() {
   $langs = array();
   foreach ( glob("lang/*_*.php") as $file ) {

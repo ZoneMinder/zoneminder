@@ -22,8 +22,7 @@
 // Don't load in additional JS to these views
 $bad_views = array('monitor', 'log');
 
-function xhtmlHeaders( $file, $title )
-{
+function xhtmlHeaders( $file, $title ) {
     global $css;
     global $skin;
     $skinCssFile = getSkinFile( 'css/'.$css.'/skin.css' );
@@ -55,14 +54,12 @@ function xhtmlHeaders( $file, $title )
   <link rel="stylesheet" href="css/bootstrap.min.css" type="text/css"/>
   <link rel="stylesheet" href="<?php echo $skinCssFile ?>" type="text/css" media="screen"/>
 <?php
-    if ( $viewCssFile )
-    {
+    if ( $viewCssFile ) {
 ?>
   <link rel="stylesheet" href="<?php echo $viewCssFile ?>" type="text/css" media="screen"/>
 <?php
     }
-    if ( $viewCssPhpFile )
-    {
+    if ( $viewCssPhpFile ) {
 ?>
   <style type="text/css">
   /*<![CDATA[*/
@@ -98,10 +95,10 @@ var $j = jQuery.noConflict();
   <script src='https://www.google.com/recaptcha/api.js'></script>
 <?php } else if ( $title == 'Event' ) {
 ?>
-        <link href="//vjs.zencdn.net/4.11/video-js.css" rel="stylesheet">
-        <script src="//vjs.zencdn.net/4.11/video.js"></script>
+        <link href="skins/<?php echo $skin; ?>/js/vjs-4.11/video-js.css" rel="stylesheet">
+        <script src="skins/<?php echo $skin; ?>/js/vjs-4.11/video.js"></script>
         <script src="./js/videojs.zoomrotate.js"></script>
-        <script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.10.6/moment.min.js"></script>
+        <script src="skins/<?php echo $skin; ?>/js/moment.min.js"></script>
 <?php
     }
     if ( $skinJsPhpFile )

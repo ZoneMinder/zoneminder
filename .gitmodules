@@ -2,3 +2,6 @@
 	path = web/api/app/Plugin/Crud
 	url = https://github.com/FriendsOfCake/crud.git
 	branch = 3.0
+[submodule "web/skins/classic/js/video.js"]
+	path = web/skins/classic/js/video.js
+	url = https://github.com/videojs/video.js

@@ -26,8 +26,8 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ]; then
         echo
 
         # Don't keep packages older than 5 days
-        find ./zmrepo -maxdepth 1 -type f -mtime +5 -delete
-        rsync --ignore-errors --verbose ./build/ ./zmrepo/
+        find ./zmrepo/travis/ -maxdepth 1 -type f -mtime +5 -delete
+        rsync -avzh --ignore-errors build zmrepo/travis/
         fusermount -zu zmrepo
     else
         echo

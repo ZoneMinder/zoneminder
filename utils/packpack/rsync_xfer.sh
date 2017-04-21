@@ -16,6 +16,16 @@ done
 # See https://docs.travis-ci.com/user/cron-jobs/
 if [ "${TRAVIS_EVENT_TYPE}" == "cron" ]; then
 
+    if [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ]; then
+        targetfolder="travis"
+    else
+        targetfolder="travis"
+    fi
+
+    echo
+    echo "Target subfolder set to $targetfolder"
+    echo
+
     mkdir -p ./zmrepo
     ssh_mntchk="$(sshfs zmrepo@zmrepo.zoneminder.com:./ ./zmrepo -o workaround=rename,reconnect)"
 
@@ -26,8 +36,8 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ]; then
         echo
 
         # Don't keep packages older than 5 days
-        find ./zmrepo/travis/ -maxdepth 1 -type f -mtime +5 -delete
-        rsync -vzh --ignore-errors build/* zmrepo/travis/
+        find ./zmrepo/$targetfolder/ -maxdepth 1 -type f -mtime +5 -delete
+        rsync -vzh --ignore-errors build/* zmrepo/$targetfolder/
         fusermount -zu zmrepo
     else
         echo

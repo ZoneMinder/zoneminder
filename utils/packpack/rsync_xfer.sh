@@ -17,7 +17,7 @@ done
 if [ "${TRAVIS_EVENT_TYPE}" == "cron" ]; then
 
     if [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ]; then
-        targetfolder="travis"
+        targetfolder="debian"
     else
         targetfolder="travis"
     fi

@@ -42,8 +42,6 @@ Note that these commands are just an example and might not be secure enough for 
 
 7. If you have chosen to change the ZoneMinder database account credentials to something other than zmuser/zmpass, you must now update zm.conf on each ZoneMinder Server. Change ZM_DB_USER and ZM_DB_PASS to the values you created in the previous step.
 
-Additionally, you must also edit /usr/share/zoneminder/www/api/app/Config/database.php in a similar manner on each ZoneMinder Server. Scroll down and change login and password to the values you created in the previous step.
-
 8. All ZoneMinders Servers must share a common events folder. This can be done in any manner supported by the underlying operating system. From the Storage Server, share/export a folder to be used for ZoneMinder events.
 
 9. From each ZoneMinder Server, mount the shared events folder on the Storage Server to the events folder on the local ZoneMinder Server.

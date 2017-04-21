@@ -34,7 +34,8 @@ ZM_WEB_GROUP=@WEB_GROUP@
 # ZoneMinder database type: so far only mysql is supported
 ZM_DB_TYPE=@ZM_DB_TYPE@
 
-# ZoneMinder database hostname or ip address
+# ZoneMinder database hostname or ip address and optionally port or unix socket
+# Acceptable formats include hostname[:port], ip_address[:port], or localhost:unix_socket
 ZM_DB_HOST=@ZM_DB_HOST@
 
 # ZoneMinder database name

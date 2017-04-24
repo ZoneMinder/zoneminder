@@ -6,7 +6,9 @@ if ( canEdit( 'Monitors' ) ) {
         {
           $monitor_ids = $_POST['monitor_ids'];
           # Two concurrent sorts could generate odd sortings... so lock the table.
-          dbQuery( 'LOCK TABLES Monitors WRITE' );
+          global $dbConn;
+          $dbConn->beginTransaction();
+          $dbConn->exec( 'LOCK TABLES Monitors WRITE' );
           for ( $i = 0; $i < count($monitor_ids); $i += 1 ) {
             $monitor_id = $monitor_ids[$i];
             $monitor_id = preg_replace( '/^monitor_id-/', '', $monitor_id );
@@ -16,7 +18,9 @@ if ( canEdit( 'Monitors' ) ) {
             }
             dbQuery( 'UPDATE Monitors SET Sequence=? WHERE Id=?', array( $i, $monitor_id ) );
           } // end for each monitor_id
-          dbQuery('UNLOCK TABLES');
+          $dbConn->commit();
+          $dbConn->exec('UNLOCK TABLES');
+        
           return;
       } // end case sort
       default:

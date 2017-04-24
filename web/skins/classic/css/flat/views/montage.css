@@ -31,7 +31,8 @@
   position: relative;
 }
 
-#monitors .imageFeed img {
+#monitors .imageFeed img,
+#monitors .imageFeed svg {
     border: 2px solid #ffffff;
     margin: 0;
     padding: 0;
@@ -62,7 +63,6 @@
 
 .zones polygon {
   fill-opacity: 0.25;
-  stroke-width: 2px;
 }
 .Active {
   stroke: #ff0000;

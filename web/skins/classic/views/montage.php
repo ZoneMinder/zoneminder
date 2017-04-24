@@ -34,7 +34,12 @@ if ( !empty($_REQUEST['group']) ) {
 }
 
 $showControl = false;
-$showZones = true;
+$showZones = false;
+if ( isset( $_REQUEST['showZones'] ) ) {
+  if ( $_REQUEST['showZones'] == 1 ) {
+    $showZones = true;
+  }
+}
 $monitors = array();
 $widths = array( 
   ''  => 'auto',
@@ -50,19 +55,17 @@ $heights = array(
   480 => 480,
 );
 
+$width_scale = $height_scale = $scale = null;
+
+if ( isset( $_REQUEST['scale'] ) )
+  $scale = validInt($_REQUEST['scale']);
+else if ( isset( $_COOKIE['zmMontageScale'] ) )
+  $scale = $_COOKIE['zmMontageScale'];
+
 foreach( dbFetchAll( $sql ) as $row ) {
   if ( !visibleMonitor( $row['Id'] ) ) {
     continue;
   }
-
-  $width_scale = $height_scale = $scale = null;
-  
-  if ( isset( $_REQUEST['scale'] ) )
-    $scale = validInt($_REQUEST['scale']);
-  else if ( isset( $_COOKIE['zmMontageScale'] ) )
-    $scale = $_COOKIE['zmMontageScale'];
-  #else
-    #$scale = reScale( SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
 
   $row['Scale'] = $scale;
   $row['PopupScale'] = reScale( SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
@@ -116,6 +119,15 @@ if ( $showControl ) {
         <a href="#" onclick="createPopup( '?view=control', 'zmControl', 'control' )"><?php echo translate('Control') ?></a>
 <?php
 }
+if ( $showZones ) {
+?>
+        <a href="<?php echo $_SERVER['PHP_SELF'].'?view=montage&showZones=0'; ?>">Hide Zones</a>
+<?php
+} else {
+?>
+        <a href="<?php echo $_SERVER['PHP_SELF'].'?view=montage&showZones=1'; ?>">Show Zones</a>
+<?php
+}
 ?>
         <a href="#" onclick="closeWindow()"><?php echo translate('Close') ?></a>
       </div>
@@ -141,13 +153,21 @@ foreach ( $monitors as $monitor ) {
               if ( $showZones ) { 
                 $height = null;
                 $width = null;
-                if ( $options['width'] and ! $options['height'] ) {
-                  $scale =  $options['width'] / $monitor->Width();
-                  $height = $monitor->Height() * $scale;
-                } else if ( $options['height'] and ! $options['width'] ) {
-                  
-                  $scale = $options['height'] / $monitor->Height();
+                if ( $options['width'] ) {
+                  $width = $options['width'];
+                  if ( ! $options['height'] ) {
+                    $scale = (int)( 100 * $options['width'] / $monitor->Width() );
+                    $height = reScale( $monitor->Height(), $scale );
+                  }
+                } else if ( $options['height'] ) {
+                  $height =  $options['height'];
+                  if ( ! $options['width'] ) {
+                    $scale = (int)( 100 * $options['height'] / $monitor->Height() );
+                    $width = reScale( $monitor->Width(), $scale );
+                  }
+                } else if ( $scale ) {
                   $width = $monitor->Width() * $scale;
+                  $height = $monitor->Height() * $scale;
                 } 
 
                 $zones = array();
@@ -155,7 +175,6 @@ foreach ( $monitors as $monitor ) {
                   $row['Points'] = coordsToPoints( $row['Coords'] );
 
                   if ( $scale ) {
-Debug(" Scale: $scale" );
                     limitPoints( $row['Points'], 0, 0, $monitor->Width(), $monitor->Height() );
                     scalePoints( $row['Points'], $scale );
                   } else {
@@ -171,7 +190,7 @@ Debug(" Scale: $scale" );
 
 ?>
 
-            <svg class="zones" width="<?php echo $options['width'] ? $options['width'] : reScale( $monitor->Width(), $scale ) ?>" height="<?php echo $options['height'] ? $options['height'] : reScale( $monitor->Height(), $scale ) ?>" style="position:absolute; top: 0; left: 0; background: none;">
+            <svg class="zones" width="<?php echo $width ?>" height="<?php echo $height ?>" style="position:absolute; top: 0; left: 0; background: none;">
             <?php
             foreach( array_reverse($zones) as $zone ) {
               ?>

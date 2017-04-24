@@ -666,8 +666,8 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
   }
 
 
-#ifdef HAVE_LIBAVRESAMPLE
   if ( audio_output_codec ) {
+#ifdef HAVE_LIBAVRESAMPLE
 
 #if 0
     ret = avcodec_send_packet( audio_input_context, ipkt );

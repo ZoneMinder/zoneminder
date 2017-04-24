@@ -63,6 +63,11 @@ if [ "$TYPE" == "" ]; then
   TYPE="source";
 fi;
 
+if [ "$DISTRO" == "" ]; then
+  DISTRO=`lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`;
+  echo "Guessed distro as $DISTRO";
+fi;
+
 # Release is a special mode...  it uploads to the release ppa and cannot have a snapshot
 if [ "$RELEASE" != "" ]; then
   if [ "$SNAPSHOT" != "" ]; then

@@ -98,10 +98,10 @@ var $j = jQuery.noConflict();
   <script src='https://www.google.com/recaptcha/api.js'></script>
 <?php } else if ( $title == 'Event' ) {
 ?>
-        <link href="//vjs.zencdn.net/4.11/video-js.css" rel="stylesheet">
-        <script src="//vjs.zencdn.net/4.11/video.js"></script>
+        <link href="skins/<?php echo $skin; ?>/js/video-js.css" rel="stylesheet">
+        <script src="skins/<?php echo $skin; ?>/js/video.js"></script>
         <script src="./js/videojs.zoomrotate.js"></script>
-        <script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.10.6/moment.min.js"></script>
+        <script src="skins/<?php echo $skin; ?>/js/moment.min.js"></script>
 <?php
     }
     if ( $skinJsPhpFile )

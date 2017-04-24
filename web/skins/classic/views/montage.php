@@ -19,8 +19,8 @@
 //
 
 if ( !canView( 'Stream' ) ) {
-    $view = 'error';
-    return;
+  $view = 'error';
+  return;
 }
 
 require_once( 'includes/Monitor.php' );
@@ -34,6 +34,7 @@ if ( !empty($_REQUEST['group']) ) {
 }
 
 $showControl = false;
+$showZones = true;
 $monitors = array();
 $widths = array( 
   ''  => 'auto',
@@ -42,20 +43,20 @@ $widths = array(
   352  => 352,
   640 => 640,
   1280 => 1280 );
+
 $heights = array( 
   ''  => 'auto',
   240 => 240,
   480 => 480,
 );
-  
-
 
 foreach( dbFetchAll( $sql ) as $row ) {
   if ( !visibleMonitor( $row['Id'] ) ) {
     continue;
   }
 
-  $scale = null;
+  $width_scale = $height_scale = $scale = null;
+  
   if ( isset( $_REQUEST['scale'] ) )
     $scale = validInt($_REQUEST['scale']);
   else if ( isset( $_COOKIE['zmMontageScale'] ) )
@@ -76,20 +77,20 @@ foreach( dbFetchAll( $sql ) as $row ) {
   if ( ! isset( $heights[$row['Height']] ) ) {
     $heights[$row['Height']] = $row['Height'];
   }
-}
+} # end foreach Monitor
 
 $focusWindow = true;
 
 $layouts = array(
-    'montage_freeform.css' => translate('MtgDefault'),
-    'montage_2wide.css' => translate('Mtg2widgrd'),
-    'montage_3wide.css' => translate('Mtg3widgrd'),
-    'montage_4wide.css' => translate('Mtg4widgrd'),
-    'montage_3wide50enlarge.css' => translate('Mtg3widgrx'),
+  'montage_freeform.css' => translate('MtgDefault'),
+  'montage_2wide.css' => translate('Mtg2widgrd'),
+  'montage_3wide.css' => translate('Mtg3widgrd'),
+  'montage_4wide.css' => translate('Mtg4widgrd'),
+  'montage_3wide50enlarge.css' => translate('Mtg3widgrx'),
 );
 
 if ( isset($_COOKIE['zmMontageLayout']) )
-    $layout = $_COOKIE['zmMontageLayout'];
+  $layout = $_COOKIE['zmMontageLayout'];
 
 $options = array();
 if ( isset($_COOKIE['zmMontageWidth']) and $_COOKIE['zmMontageWidth'] )
@@ -135,7 +136,52 @@ foreach ( $monitors as $monitor ) {
         <div id="monitorFrame<?php echo $monitor->Id() ?>" class="monitorFrame" title="<?php echo $monitor->Id() . ' ' .$monitor->Name() ?>">
           <div id="monitor<?php echo $monitor->Id() ?>" class="monitor idle">
             <div id="imageFeed<?php echo $monitor->Id() ?>" class="imageFeed" onclick="createPopup( '?view=watch&amp;mid=<?php echo $monitor->Id() ?>', 'zmWatch<?php echo $monitor->Id() ?>', 'watch', <?php echo reScale( $monitor->Width(), $monitor->PopupScale() ); ?>, <?php echo reScale( $monitor->Height(), $monitor->PopupScale() ); ?> );">
-            <?php echo getStreamHTML( $monitor, $options ); ?>
+            <?php 
+              echo getStreamHTML( $monitor, $options );
+              if ( $showZones ) { 
+                $height = null;
+                $width = null;
+                if ( $options['width'] and ! $options['height'] ) {
+                  $scale =  $options['width'] / $monitor->Width();
+                  $height = $monitor->Height() * $scale;
+                } else if ( $options['height'] and ! $options['width'] ) {
+                  
+                  $scale = $options['height'] / $monitor->Height();
+                  $width = $monitor->Width() * $scale;
+                } 
+
+                $zones = array();
+                foreach( dbFetchAll( 'SELECT * FROM Zones WHERE MonitorId=? ORDER BY Area DESC', NULL, array($monitor->Id()) ) as $row ) {
+                  $row['Points'] = coordsToPoints( $row['Coords'] );
+
+                  if ( $scale ) {
+Debug(" Scale: $scale" );
+                    limitPoints( $row['Points'], 0, 0, $monitor->Width(), $monitor->Height() );
+                    scalePoints( $row['Points'], $scale );
+                  } else {
+                    limitPoints( $row['Points'], 0, 0, 
+                        ( $width ? $width-1 : $monitor->Width()-1 ),
+                        ( $height ? $height-1 : $monitor->Height()-1 )
+                        );
+                  }
+                  $row['Coords'] = pointsToCoords( $row['Points'] );
+                  $row['AreaCoords'] = preg_replace( '/\s+/', ',', $row['Coords'] );
+                  $zones[] = $row;
+                }
+
+?>
+
+            <svg class="zones" width="<?php echo $options['width'] ? $options['width'] : reScale( $monitor->Width(), $scale ) ?>" height="<?php echo $options['height'] ? $options['height'] : reScale( $monitor->Height(), $scale ) ?>" style="position:absolute; top: 0; left: 0; background: none;">
+            <?php
+            foreach( array_reverse($zones) as $zone ) {
+              ?>
+                <polygon points="<?php echo $zone['AreaCoords'] ?>" class="<?php echo $zone['Type']?>" />
+                <?php
+            } // end foreach zone
+?>
+  Sorry, your browser does not support inline SVG
+  </svg>
+<?php } # end if showZones ?>
             </div>
 <?php
     if ( !ZM_WEB_COMPACT_MONTAGE ) {

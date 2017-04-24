@@ -1774,6 +1774,13 @@ function limitPoints( &$points, $min_x, $min_y, $max_x, $max_y ) {
   } // end foreach point
 } // end function limitPoints( $points, $min_x, $min_y, $max_x, $max_y )
 
+function scalePoints( &$points, $scale ) {
+  foreach ( $points as &$point ) {
+    $point['x'] = reScale( $point['x'], $scale );
+    $point['y'] = reScale( $point['y'], $scale );
+  }
+}
+
 function getLanguages() {
   $langs = array();
   foreach ( glob("lang/*_*.php") as $file ) {

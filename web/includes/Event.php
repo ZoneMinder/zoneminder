@@ -196,7 +196,7 @@ class Event {
   } // end function createListThumbnail
 
   function getImageSrc( $frame, $scale=SCALE_BASE, $captureOnly=false, $overwrite=false ) {
-    $Storage = new Storage( $this->{'StorageId'} );
+    $Storage = new Storage(  isset($this->{'StorageId'}) ? $this->{'StorageId'} : NULL  );
     $Event = $this;
     $eventPath = $Event->Path();
 

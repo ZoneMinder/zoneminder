@@ -528,7 +528,7 @@ function Error( $string )
 function Fatal( $string )
 {
     Logger::fetch()->logPrint( Logger::FATAL, $string );
-    die( $string );
+    die( htmlentities($string) );
 }
 
 function Panic( $string )

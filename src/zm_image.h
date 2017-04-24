@@ -122,8 +122,8 @@ protected:
 	}
 
 public:
-	enum { CHAR_HEIGHT=11, CHAR_WIDTH=6 };
-	enum { LINE_HEIGHT=CHAR_HEIGHT+0 };
+	enum { ZM_CHAR_HEIGHT=11, ZM_CHAR_WIDTH=6 };
+	enum { LINE_HEIGHT=ZM_CHAR_HEIGHT+0 };
 
 protected:
 	static bool initialised;

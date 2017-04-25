@@ -33,7 +33,7 @@ function dbConnect()
 	if (strpos(ZM_DB_HOST, ':')) {
 		// Host variable may carry a port or socket.
 		list($host, $portOrSocket) = explode(':', ZM_DB_HOST, 2);
-			if (is_numeric($portOrSocket)) {
+			if (ctype_digit($portOrSocket)) {
 				$socket = ':host='.$host . ';port='.$portOrSocket;
 			} else {
 				$socket = ':unix_socket='.$portOrSocket;

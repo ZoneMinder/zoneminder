@@ -1,0 +1,8 @@
+[Desktop Entry]
+Version=1.0
+Type=Link
+Name=ZoneMinder
+Comment=
+Icon=/usr/share/zoneminder/www/graphics/favicon.ico
+URL=http://localhost/zm/\r
+Categories=GNOME;AudioVideo;Video;Recorder;

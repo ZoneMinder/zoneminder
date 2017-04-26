@@ -749,3 +749,5 @@ if(CCACHE_FOUND)
         set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
         set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
 endif(CCACHE_FOUND)
+
+INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/misc/zoneminder.desktop DESTINATION share/applications)

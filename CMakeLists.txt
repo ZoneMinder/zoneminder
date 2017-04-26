@@ -751,3 +751,4 @@ if(CCACHE_FOUND)
 endif(CCACHE_FOUND)
 
 INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/misc/zoneminder.desktop DESTINATION share/applications)
+install(DIRECTORY icons DESTINATION "${CMAKE_INSTALL_DATADIR}/zoneminder/")

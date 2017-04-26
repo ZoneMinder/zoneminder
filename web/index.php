@@ -104,6 +104,7 @@ if ( ! in_array( $css, $css_skins ) ) {
 
 define( 'ZM_BASE_PATH', dirname( $_SERVER['REQUEST_URI'] ) );
 define( 'ZM_SKIN_PATH', "skins/$skin" );
+define( 'ZM_SKIN_NAME', $skin );
 
 $skinBase = array(); // To allow for inheritance of skins
 if ( !file_exists( ZM_SKIN_PATH ) )

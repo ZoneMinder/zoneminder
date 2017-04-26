@@ -182,7 +182,7 @@ The tarball from the previsouly installed SRPM should be there. This is the name
 
 ::
 
-    git archive --prefix=ZoneMinder-1.28.1/ -o ~/rpmbuld/SOURCES/zoneminder-1.28.1.tar.gz HEAD
+    git archive --prefix=ZoneMinder-1.28.1/ -o ~/rpmbuild/SOURCES/zoneminder-1.28.1.tar.gz HEAD
 
 Note that we are overwriting the original tarball. If you wish to keep the original tarball then create a copy prior to creating the new tarball.
 

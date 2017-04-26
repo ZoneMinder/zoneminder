@@ -27,7 +27,7 @@ function exportHeader( $title )
   <title><?php echo $title ?></title>
   <style type="text/css">
   <!--
-<?php include( ZM_SKIN_PATH.'/css/export.css' ); ?>
+<?php include( ZM_SKIN_PATH.'/css/'.ZM_SKIN_NAME.'/export.css' ); ?>
 	
 
 ul.tabs {

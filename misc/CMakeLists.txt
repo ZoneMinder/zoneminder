@@ -15,4 +15,4 @@ configure_file(zoneminder-tmpfiles.conf.in "${CMAKE_CURRENT_BINARY_DIR}/zonemind
 # Install Policykit rules and actions into the proper folders
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/com.zoneminder.systemctl.policy" DESTINATION "${PC_POLKIT_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/polkit-1/actions")
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/com.zoneminder.systemctl.rules" DESTINATION "${PC_POLKIT_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/polkit-1/rules.d")
-INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/zoneminder.desktop DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/applications")
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zoneminder.desktop" DESTINATION "${CMAKE_INSTALL_DATADIR}/applications")

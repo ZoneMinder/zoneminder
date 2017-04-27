@@ -151,12 +151,12 @@ cd "$DIRECTORY.orig";
 git submodule init
 git submodule update --init --recursive
 if [ "$DISTRO" == "trusty" ] || [ "$DISTRO" == "precise" ]; then 
-	ln -sf distros/ubuntu1204 debian
+	mv distros/ubuntu1204 debian
 else 
   if [ "$DISTRO" == "wheezy" ]; then 
-    ln -sf distros/debian debian
+    mv distros/debian debian
   else 
-    ln -sf distros/ubuntu1604 debian
+    mv distros/ubuntu1604 debian
   fi;
 fi;
 

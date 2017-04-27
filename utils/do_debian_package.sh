@@ -215,7 +215,7 @@ if [ "$DEBSIGN_KEYID" != "" ]; then
   DEBUILD="$DEBUILD -k$DEBSIGN_KEYID"
 fi
 $DEBUILD
-if [ $? ]; then
+if [ "$?" != "0" ]; then
 echo "Error status code is: $?"
   echo "Build failed.";
   exit $?;

@@ -194,20 +194,24 @@ zoneminder ($VERSION-$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
 EOF
 fi;
 
-# Auto-install all ZoneMinder's depedencies using the Debian control file
-sudo apt-get install devscripts equivs
-sudo mk-build-deps -ir ./debian/control
-echo "Status: $?"
+rm -rf .git
+rm .gitignore
+cd ../
+tar zcf $DIRECTORY.orig.tar.gz $DIRECTORY.orig
+cd $DIRECTORY.orig
 
-#rm -rf .git
-#rm .gitignore
-#cd ../
-#tar zcf zoneminder_$VERSION-$DISTRO.orig.tar.gz zoneminder_$VERSION-$DISTRO-$SNAPSHOT.orig
-#cd zoneminder_$VERSION-$DISTRO-$SNAPSHOT.orig
 if [ $TYPE == "binary" ]; then
+  # Auto-install all ZoneMinder's depedencies using the Debian control file
+  sudo apt-get install devscripts equivs
+  sudo mk-build-deps -ir ./debian/control
+  echo "Status: $?"
 	DEBUILD=debuild
 else
   if [ $TYPE == "local" ]; then
+    # Auto-install all ZoneMinder's depedencies using the Debian control file
+    sudo apt-get install devscripts equivs
+    sudo mk-build-deps -ir ./debian/control
+    echo "Status: $?"
     DEBUILD="debuild -i -us -uc -b"
   else 
     DEBUILD="debuild -S -sa"

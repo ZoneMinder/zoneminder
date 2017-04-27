@@ -143,7 +143,7 @@ if [ "$SNAPSHOT" != "stable" ] && [ "$SNAPSHOT" != "" ]; then
   VERSION="$VERSION~$SNAPSHOT";
 fi;
 
-DIRECTORY="zoneminder_$VERSION-$DISTRO${PACKAGE_VERSION}";
+DIRECTORY="zoneminder_$VERSION";
 echo "Doing $TYPE release $DIRECTORY";
 mv "${GITHUB_FORK}_zoneminder_release" "$DIRECTORY.orig";
 cd "$DIRECTORY.orig";

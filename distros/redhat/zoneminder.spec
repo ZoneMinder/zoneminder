@@ -29,7 +29,7 @@
 
 Name: zoneminder
 Version: 1.30.2
-Release: 1%{?dist}
+Release: 2%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
 # jscalendar is LGPL (any version): http://www.dynarch.com/projects/calendar/
@@ -39,7 +39,7 @@ Group: System Environment/Daemons
 License: GPLv2+ and LGPLv2+ and MIT
 URL: http://www.zoneminder.com/
 
-Source0: https://github.com/ZoneMinder/ZoneMinder/archive/v%{version}.tar.gz#/%{name}-%{version}.tar.gz
+Source0: https://github.com/ZoneMinder/ZoneMinder/archive/%{version}.tar.gz#/zoneminder-%{version}.tar.gz
 Source1: https://github.com/FriendsOfCake/crud/archive/v%{crud_version}.tar.gz#/crud-%{crud_version}.tar.gz
 
 %{?with_init_systemd:BuildRequires: systemd-devel}
@@ -86,6 +86,8 @@ BuildRequires: polkit-devel
 Requires: php-mysqli
 Requires: php-common
 Requires: php-gd
+%{?fedora:Requires: php-pecl-apcu-bc}
+%{?rhel:Requires: php-pecl-apcu}
 Requires: cambozola
 Requires: net-tools
 Requires: psmisc
@@ -130,10 +132,10 @@ designed to support as many cameras as you can attach to your computer without
 too much degradation of performance.
 
 %prep
-%autosetup
-%autosetup -a 1
-rmdir ./web/api/app/Plugin/Crud
-mv -f crud-%{crud_version} ./web/api/app/Plugin/Crud
+%autosetup -n ZoneMinder-%{version}
+%autosetup -a 1 -n ZoneMinder-%{version}
+%{__rm} -rf ./web/api/app/Plugin/Crud
+%{__mv} -f crud-%{crud_version} ./web/api/app/Plugin/Crud
 
 # Change the following default values
 ./utils/zmeditconfigdata.sh ZM_PATH_ZMS /cgi-bin-zm/nph-zms
@@ -333,11 +335,14 @@ rm -rf %{_docdir}/%{name}-%{version}
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/temp
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/log/zoneminder
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/spool/zoneminder-upload
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) %ghost %{_localstatedir}/run/zoneminder
+%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/run/zoneminder
 
 %changelog
+* Thu Mar 30 2017 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.2-2
+- 1.30.2 release
+
 * Wed Feb 08 2017 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.2-1
-- Bump version for 1.30.2 release
+- Bump version for 1.30.2 release candidate 1
 
 * Wed Dec 28 2016 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.1-2 
 - Changes from rpmfusion #4393

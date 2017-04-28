@@ -145,11 +145,9 @@ $frameSql = "
 
 if ( !empty($user['MonitorIds']) )
 {
-    $monFilterSql = ' AND M.Id IN ('.$user['MonitorIds'].')';
-
-    $eventsSql   .= $monFilterSql;
-    $monitorsSQL .= $monFilterSql;
-    $frameSql    .= $monFilterSql;
+    $eventsSql   .= ' AND M.Id IN ('.$user['MonitorIds'].')';
+    $monitorsSql .= ' AND Id IN ('.$user['MonitorIds'].')';
+    $frameSql    .= ' AND E.MonitorId IN ('.$user['MonitorIds'].')';
 }
 
 // Parse input parameters -- note for future, validate/clean up better in case we don't get called from self.

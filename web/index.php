@@ -105,6 +105,7 @@ if ( ! in_array( $css, $css_skins ) ) {
 }
 
 define( "ZM_BASE_PATH", dirname( $_SERVER['REQUEST_URI'] ) );
+define( "ZM_SKIN_NAME", $skin );
 define( "ZM_SKIN_PATH", "skins/$skin" );
 
 $skinBase = array(); // To allow for inheritance of skins
@@ -147,6 +148,7 @@ else
 
 require_once( 'includes/lang.php' );
 require_once( 'includes/functions.php' );
+require_once( 'includes/csrf/csrf-magic.php' );
 
 # Add Cross domain access headers
 CORSHeaders();
@@ -168,6 +170,16 @@ if ( isset($_REQUEST['action']) )
 
 foreach ( getSkinIncludes( 'skin.php' ) as $includeFile )
     require_once $includeFile;
+
+# The only variable we really need to set is action. The others are informal.
+isset($view) || $view = NULL;
+isset($request) || $request = NULL;
+isset($action) || $action = NULL;
+
+if ( ZM_ENABLE_CSRF_MAGIC && $action != 'login' ) {
+    Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");
+    csrf_check();
+}
 
 require_once( 'includes/actions.php' );
 

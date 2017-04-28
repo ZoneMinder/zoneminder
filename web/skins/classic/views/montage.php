@@ -166,8 +166,8 @@ foreach ( $monitors as $monitor ) {
                     $width = reScale( $monitor->Width(), $scale );
                   }
                 } else if ( $scale ) {
-                  $width = $monitor->Width() * $scale;
-                  $height = $monitor->Height() * $scale;
+                  $width = reScale( $monitor->Width(), $scale );
+                  $height = reScale( $monitor->Height(), $scale );
                 } 
 
                 $zones = array();

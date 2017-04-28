@@ -263,6 +263,12 @@ if ( canView( 'Stream' ) && $cycleCount > 1 ) {
   </div>
   <ul class="list-inline">
 	  <li><?php echo translate('Load') ?>: <?php echo getLoad() ?></li>
+<?php 
+  $connections = dbFetchOne( "SHOW status WHERE variable_name='threads_connected'", 'Value' );
+  $max_connections = dbFetchOne( "SHOW variables WHERE variable_name='max_connections'", 'Value' );
+  $percent_used = 100 * $connections / $max_connections;
+  echo '<li'. ( $percent_used > 90 ? ' class="warning"' : '' ).'>'.translate('DB').':'.$connections.'/'.$max_connections.'</li>';
+?>
 	  <li><?php echo translate('Storage') ?>:
 <?php
   $storage_areas = Storage::find_all();

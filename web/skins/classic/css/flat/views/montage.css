@@ -12,14 +12,19 @@
 
 #monitors .monitor {
   min-width: 180px;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
 }
 
 #monitors .alarm {
     color: #ff0000;
+    border: none;
 }
 
 #monitors .alert {
     color: #ffa500;
+    border: none;
     margin: 0;
     padding: 0;
     border-radius: 0;
@@ -55,7 +60,8 @@
     margin: 2px auto;
     text-align: center;
     border: 0;
-  min-height: 16px;
+    padding: 0;
+    min-height: 16px;
 }
 #monitors .alert .monitorState {
     border: 0;

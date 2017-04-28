@@ -175,7 +175,7 @@ if ( ! $server_up ) {
       $attempts++;
       Error("Waiting for zmdc.pl server process, attempt $attempts" );
       Fatal( "Can't connect: $!" ) if ($attempts > MAX_CONNECT_DELAY);
-      usleep(100);
+      usleep(20000);
     } # end while
   } elsif ( defined($cpid) ) {
     ZMServer::run();

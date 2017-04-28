@@ -56,7 +56,6 @@ use bytes;
 
 # in useconds, not seconds.
 use constant MAX_CONNECT_DELAY => 10*1000*1000;
-use constant KILL_DELAY => 10*1000; # 1/10th of a second
 
 # ==========================================================================
 #
@@ -222,6 +221,8 @@ use Socket;
 use IO::Handle;
 use Time::HiRes qw(usleep);
 #use Data::Dumper;
+
+use constant KILL_DELAY => 100*1000; # 1/10th of a second
 
 our %cmd_hash;
 our %pid_hash;

@@ -22,3 +22,6 @@ input.large {
     text-align: left;
 }
 
+.advanced {
+  display: none;
+}

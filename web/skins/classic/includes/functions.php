@@ -98,10 +98,10 @@ var $j = jQuery.noConflict();
   <script src='https://www.google.com/recaptcha/api.js'></script>
 <?php } else if ( $title == 'Event' ) {
 ?>
-        <link href="//vjs.zencdn.net/4.11/video-js.css" rel="stylesheet">
-        <script src="//vjs.zencdn.net/4.11/video.js"></script>
+        <link href="skins/<?php echo $skin; ?>/js/video-js.css" rel="stylesheet">
+        <script src="skins/<?php echo $skin; ?>/js/video.js"></script>
         <script src="./js/videojs.zoomrotate.js"></script>
-        <script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.10.6/moment.min.js"></script>
+        <script src="skins/<?php echo $skin; ?>/js/moment.min.js"></script>
 <?php
     }
     if ( $skinJsPhpFile )
@@ -263,6 +263,12 @@ if ( canView( 'Stream' ) && $cycleCount > 1 ) {
   </div>
   <ul class="list-inline">
 	  <li><?php echo translate('Load') ?>: <?php echo getLoad() ?></li>
+<?php 
+  $connections = dbFetchOne( "SHOW status WHERE variable_name='threads_connected'", 'Value' );
+  $max_connections = dbFetchOne( "SHOW variables WHERE variable_name='max_connections'", 'Value' );
+  $percent_used = 100 * $connections / $max_connections;
+  echo '<li'. ( $percent_used > 90 ? ' class="warning"' : '' ).'>'.translate('DB').':'.$connections.'/'.$max_connections.'</li>';
+?>
 	  <li><?php echo translate('Storage') ?>:
 <?php
   $storage_areas = Storage::find_all();

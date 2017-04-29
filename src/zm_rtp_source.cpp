@@ -312,9 +312,10 @@ bool RtpSource::handlePacket( const unsigned char *packet, size_t packetLen )
               extraHeader = 2;
               break;
             }
-          default: {
-                     Debug(3, "Unhandled nalType %d", nalType );
-                   }
+          default: 
+            {
+              Debug(3, "Unhandled nalType %d", nalType );
+            }
         }
 
         // Append NAL frame start code
@@ -332,7 +333,7 @@ bool RtpSource::handlePacket( const unsigned char *packet, size_t packetLen )
     {
       if ( mFrameGood )
       {
-        Debug( 2, "Got new frame %d, %d bytes", mFrameCount, mFrame.size() );
+        Debug( 3, "Got new frame %d, %d bytes", mFrameCount, mFrame.size() );
 
         mFrameProcessed.setValueImmediate( false );
         mFrameReady.updateValueSignal( true );

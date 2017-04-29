@@ -831,15 +831,13 @@ function packageControl( $command ) {
 function daemonControl( $command, $daemon=false, $args=false ) {
   $string = escapeshellcmd(ZM_PATH_BIN).'/zmdc.pl '.$command;
   if ( $daemon ) {
-    #$string .= ' ' .  $daemon;
     $string .= ' ' . $daemon;
     if ( $args ) {
       $string .= ' ' . $args;
-      #$string .= ' ' . $args;
     }
   }
-  $string .= ' 2>/dev/null >&- <&- >/dev/null';
-Debug("exec $string");
+  $string = escapeshellcmd( $string );
+  #$string .= ' 2>/dev/null >&- <&- >/dev/null';
   exec( $string );
 }
 
@@ -963,10 +961,11 @@ function zmaStatus( $monitor ) {
 function daemonCheck( $daemon=false, $args=false ) {
   $string = ZM_PATH_BIN."/zmdc.pl check";
   if ( $daemon ) {
-    $string .= ' ' . escapeshellarg( $daemon );
+    $string .= ' ' . $daemon;
     if ( $args )
-      $string .= ' ' . escapeshellarg( $args );
+      $string .= ' '. $args;
   }
+  $string = escapeshellcmd( $string );
   $result = exec( $string );
   return( preg_match( '/running/', $result ) );
 }
@@ -1754,6 +1753,32 @@ function coordsToPoints( $coords ) {
     return( false );
   }
   return( $points );
+}
+
+function limitPoints( &$points, $min_x, $min_y, $max_x, $max_y ) {
+  foreach ( $points as &$point ) {
+    if ( $point['x'] < $min_x ) {
+      Debug('Limiting point x'.$point['x'].' to min_x ' . $min_x );
+      $point['x'] = $min_x;
+    } else if ( $point['x'] > $max_x ) {
+      Debug('Limiting point x'.$point['x'].' to max_x ' . $max_x );
+      $point['x'] = $max_x;
+    }
+    if ( $point['y'] < $min_y ) { 
+      Debug('Limiting point y'.$point['y'].' to min_y ' . $min_y );
+      $point['y'] = $min_y;
+    } else if ( $point['y'] > $max_y ) {
+      Debug('Limiting point y'.$point['y'].' to max_y ' . $max_y );
+      $point['y'] = $max_y;
+    }
+  } // end foreach point
+} // end function limitPoints( $points, $min_x, $min_y, $max_x, $max_y )
+
+function scalePoints( &$points, $scale ) {
+  foreach ( $points as &$point ) {
+    $point['x'] = reScale( $point['x'], $scale );
+    $point['y'] = reScale( $point['y'], $scale );
+  }
 }
 
 function getLanguages() {

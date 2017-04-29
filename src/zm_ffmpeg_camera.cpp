@@ -575,7 +575,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
 
     int key_frame = packet.flags & AV_PKT_FLAG_KEY;
 
-    Debug( 3, "Got packet from stream %d packet pts (%d) dts(%d), key?(%d)", 
+    Debug( 4, "Got packet from stream %d packet pts (%d) dts(%d), key?(%d)", 
         packet.stream_index, packet.pts, packet.dts, 
         key_frame
         );
@@ -631,7 +631,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
               NULL,
               startTime,
               this->getMonitor());
-        }
+        } // end if record_audio
         strcpy(oldDirectory, event_file);
 
         // Need to write out all the frames from the last keyframe?
@@ -661,7 +661,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
           delete queued_packet;
         } // end while packets in the packetqueue
         Debug(2, "Wrote %d queued packets", packet_count );
-      } // end if ! wasRecording
+      } // end if ! was recording
 
     } else {
       // Not recording

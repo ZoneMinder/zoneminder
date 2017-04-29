@@ -128,6 +128,20 @@ my $loop = 1;
 my $cleaned = 0;
 MAIN: while( $loop ) {
 
+  if ( ! exists $Config{ZM_AUDIT_MIN_AGE} ) {
+    Fatal("ZM_AUDIT_MIN_AGE is not set in config.");
+  }
+
+  if ( $continuous ) {
+    # if we are running continuously, then just skip to the next
+    # interval, otherwise we are a one off run, so wait a second and
+    # retry until someone kills us.
+    sleep( $Config{ZM_AUDIT_CHECK_INTERVAL} );
+  } else {
+    sleep 1;
+  } # end if
+
+  # After a long sleep, we may need to reconnect to the db
   while ( ! ( $dbh and $dbh->ping() ) ) {
     $dbh = zmDbConnect();
 
@@ -142,19 +156,6 @@ MAIN: while( $loop ) {
     } # end if
   } # end while can't connect to the db
 
-  if ( $continuous ) {
-    # if we are running continuously, then just skip to the next
-    # interval, otherwise we are a one off run, so wait a second and
-    # retry until someone kills us.
-    sleep( $Config{ZM_AUDIT_CHECK_INTERVAL} );
-  } else {
-    sleep 1;
-  } # end if
-
-  if ( ! exists $Config{ZM_AUDIT_MIN_AGE} ) {
-    Fatal("ZM_AUDIT_MIN_AGE is not set in config.");
-  }
-
   my %Monitors;
   my $db_monitors;
   my $monitorSelectSql = $monitor_id ? 'SELECT * FRO Monitors WHERE Id=?' : 'SELECT * FROM Monitors ORDER BY Id';
@@ -168,7 +169,7 @@ MAIN: while( $loop ) {
 
   $cleaned = 0;
   my $res = $monitorSelectSth->execute( $monitor_id ? $monitor_id : () )
-    or Fatal( "Can't execute: ".$monitorSelectSth->errstr() );
+    or Fatal( "Can't execute: $monitorSelectSql ".$monitorSelectSth->errstr() );
   while( my $monitor = $monitorSelectSth->fetchrow_hashref() ) {
     $Monitors{$$monitor{Id}} = $monitor;
 

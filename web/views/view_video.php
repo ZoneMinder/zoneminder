@@ -35,17 +35,19 @@ require_once('includes/Event.php');
 $errorText = false;
 $path = '';
 
+$Event = null;
+
 if ( ! empty($_REQUEST['eid'] ) ) {
   $Event = new Event( $_REQUEST['eid'] );
   $path = $Event->Path().'/'.$Event->DefaultVideo();
 	Debug("Path: $path");
 } else {
-  $errorText = "No video path";
+  $errorText = 'No video path';
 }
 
 if ( $errorText ) {
   Error( $errorText );
-  header ('HTTP/1.0 404 Not Found');
+  header('HTTP/1.0 404 Not Found');
   die();
 } 
 
@@ -53,7 +55,7 @@ $size = filesize($path);
 
 $fh = @fopen($path,'rb');
 if ( ! $fh ) {
-  header ("HTTP/1.0 404 Not Found");
+  header('HTTP/1.0 404 Not Found');
   die();
 }
 
@@ -73,10 +75,16 @@ if ( isset( $_SERVER['HTTP_RANGE'] ) ) {
   }
 } # end if HTTP_RANGE
 
+
 header('Content-type: video/mp4');
 header('Accept-Ranges: bytes');
 header('Content-Length: '.$length);
-header("Content-Disposition: inline;");
+# This is so that Save Image As give a useful filename
+if ( $Event ) {
+  header('Content-Disposition: inline; filename="' . $Event->DefaultVideo() . '"');
+} else {
+  header("Content-Disposition: inline;");
+}
 if ( $begin > 0 || $end < $size-1 ) {
   header('HTTP/1.0 206 Partial Content');
   header("Content-Range: bytes $begin-$end/$size");
@@ -85,7 +93,6 @@ if ( $begin > 0 || $end < $size-1 ) {
 } else {
   header('HTTP/1.0 200 OK');
 }
-
 
 // Apparently without these we get a few extra bytes of output at the end...
 ob_clean();

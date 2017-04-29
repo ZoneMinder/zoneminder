@@ -67,7 +67,6 @@ class DATABASE_CONFIG {
 	public $default = array(
 		'datasource' => 'Database/Mysql',
 		'persistent' => false,
-		'host' => ZM_DB_HOST,
 		'login' => ZM_DB_USER,
 		'password' => ZM_DB_PASS,
 		'database' => ZM_DB_NAME,
@@ -89,7 +88,7 @@ class DATABASE_CONFIG {
 	public function __construct() {
 		if (strpos(ZM_DB_HOST, ':')):
 			$array = explode(':', ZM_DB_HOST, 2);
-                        if (is_numeric($array[1])):
+                        if (ctype_digit($array[1])):
 				$this->default['host'] = $array[0];
 				$this->default['port'] = $array[1];
 			else:

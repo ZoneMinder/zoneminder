@@ -28,7 +28,7 @@ override_dh_auto_configure:
 
 override_dh_clean:
 	dh_clean $(MANPAGES1)
-	$(RM) -r docs/_build docs/installationguide
+	$(RM) -r docs/_build
 
 build-indep:
 	#$(MAKE) -C docs text

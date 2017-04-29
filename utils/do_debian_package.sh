@@ -63,6 +63,13 @@ if [ "$TYPE" == "" ]; then
   TYPE="source";
 fi;
 
+if [ "$DISTRO" == "" ]; then
+  DISTRO=`lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`;
+  echo "Defaulting to $DISTRO for distribution";
+else
+  echo "Building for $DISTRO";
+fi;
+
 # Release is a special mode...  it uploads to the release ppa and cannot have a snapshot
 if [ "$RELEASE" != "" ]; then
   if [ "$SNAPSHOT" != "" ]; then
@@ -136,7 +143,7 @@ if [ "$SNAPSHOT" != "stable" ] && [ "$SNAPSHOT" != "" ]; then
   VERSION="$VERSION~$SNAPSHOT";
 fi;
 
-DIRECTORY="zoneminder_$VERSION-$DISTRO${PACKAGE_VERSION}";
+DIRECTORY="zoneminder_$VERSION";
 echo "Doing $TYPE release $DIRECTORY";
 mv "${GITHUB_FORK}_zoneminder_release" "$DIRECTORY.orig";
 cd "$DIRECTORY.orig";
@@ -144,12 +151,12 @@ cd "$DIRECTORY.orig";
 git submodule init
 git submodule update --init --recursive
 if [ "$DISTRO" == "trusty" ] || [ "$DISTRO" == "precise" ]; then 
-	ln -sf distros/ubuntu1204 debian
+	mv distros/ubuntu1204 debian
 else 
   if [ "$DISTRO" == "wheezy" ]; then 
-    ln -sf distros/debian debian
+    mv distros/debian debian
   else 
-    ln -sf distros/ubuntu1604 debian
+    mv distros/ubuntu1604 debian
   fi;
 fi;
 
@@ -187,20 +194,24 @@ zoneminder ($VERSION-$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
 EOF
 fi;
 
-# Auto-install all ZoneMinder's depedencies using the Debian control file
-sudo apt-get install devscripts equivs
-sudo mk-build-deps -ir ./debian/control
-echo "Status: $?"
+rm -rf .git
+rm .gitignore
+cd ../
+tar zcf $DIRECTORY.orig.tar.gz $DIRECTORY.orig
+cd $DIRECTORY.orig
 
-#rm -rf .git
-#rm .gitignore
-#cd ../
-#tar zcf zoneminder_$VERSION-$DISTRO.orig.tar.gz zoneminder_$VERSION-$DISTRO-$SNAPSHOT.orig
-#cd zoneminder_$VERSION-$DISTRO-$SNAPSHOT.orig
 if [ $TYPE == "binary" ]; then
+  # Auto-install all ZoneMinder's depedencies using the Debian control file
+  sudo apt-get install devscripts equivs
+  sudo mk-build-deps -ir ./debian/control
+  echo "Status: $?"
 	DEBUILD=debuild
 else
   if [ $TYPE == "local" ]; then
+    # Auto-install all ZoneMinder's depedencies using the Debian control file
+    sudo apt-get install devscripts equivs
+    sudo mk-build-deps -ir ./debian/control
+    echo "Status: $?"
     DEBUILD="debuild -i -us -uc -b"
   else 
     DEBUILD="debuild -S -sa"
@@ -210,7 +221,11 @@ if [ "$DEBSIGN_KEYID" != "" ]; then
   DEBUILD="$DEBUILD -k$DEBSIGN_KEYID"
 fi
 $DEBUILD
-echo "Status: $?"
+if [ $? -ne 0 ]; then
+echo "Error status code is: $?"
+  echo "Build failed.";
+  exit $?;
+fi;
 
 cd ../
 if [ "$INTERACTIVE" != "no" ]; then

@@ -844,3 +844,5 @@ if(CCACHE_FOUND)
         set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
         set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
 endif(CCACHE_FOUND)
+
+install(DIRECTORY icons DESTINATION "${CMAKE_INSTALL_DATADIR}/zoneminder/")

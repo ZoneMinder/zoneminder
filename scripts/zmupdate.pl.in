@@ -412,12 +412,12 @@ if ( $version )
         {
             my ( $host, $portOrSocket ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
             my $command = "mysqldump";
-	    if ( defined($portOrSocket) )
-	    {
+            if ( defined($portOrSocket) )
+            {
                 if ( $portOrSocket =~ /^\// )
-		{
+                {
                     $command .= " -S".$portOrSocket;
-		}
+                }
                 else
                 {
                     $command .= " -h".$host." -P".$portOrSocket;

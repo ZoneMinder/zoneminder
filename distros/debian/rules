@@ -27,9 +27,9 @@ override_dh_auto_configure:
 override_dh_auto_install:
 	dh_auto_install --buildsystem=cmake
 	install -D -m 0644 debian/apache.conf  $(INSTDIR)/etc/zm/apache.conf
-	rm $(INSTDIR)/usr/share/zoneminder/www/api/lib/Cake/LICENSE.txt
-	rm $(INSTDIR)/usr/share/zoneminder/www/api/.gitignore
-	rm -r $(INSTDIR)/usr/share/zoneminder/www/api/lib/Cake/Test
+	rm -f $(INSTDIR)/usr/share/zoneminder/www/api/lib/Cake/LICENSE.txt
+	rm -f $(INSTDIR)/usr/share/zoneminder/www/api/.gitignore
+	rm -rf  $(INSTDIR)/usr/share/zoneminder/www/api/lib/Cake/Test
 
 override_dh_auto_test:
 	# do not run tests...

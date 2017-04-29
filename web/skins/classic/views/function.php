@@ -18,9 +18,8 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canEdit( 'Monitors' ) )
-{
-    $view = "error";
+if ( !canEdit( 'Monitors' ) ) {
+    $view = 'error';
     return;
 }
 
@@ -43,8 +42,7 @@ xhtmlHeaders(__FILE__, translate('Function')." - ".validHtmlStr($monitor['Name']
         <p>
           <select name="newFunction">
 <?php
-foreach ( getEnumValues( 'Monitors', 'Function' ) as $optFunction )
-{
+foreach ( getEnumValues( 'Monitors', 'Function' ) as $optFunction ) {
 ?>
             <option value="<?php echo $optFunction ?>"<?php if ( $optFunction == $monitor['Function'] ) { ?> selected="selected"<?php } ?>><?php echo translate('Fn'.$optFunction) ?></option>
 <?php

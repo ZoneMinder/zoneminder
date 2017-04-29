@@ -133,7 +133,7 @@ int main( int argc, char *argv[] )
 
   logInit( log_id_string );
   
-  ssedetect();
+  hwcaps_detect();
 
   Monitor *monitor = Monitor::Load( id, true, Monitor::ANALYSIS );
 

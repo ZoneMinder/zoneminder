@@ -24,6 +24,8 @@ if ( !canView( 'Events' ) )
     return;
 }
 
+require_once('includes/Event.php');
+
 $eid = validInt($_REQUEST['eid']);
 
 $sql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultRate,M.DefaultScale FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = ?';
@@ -45,7 +47,8 @@ if ( isset( $_REQUEST['scale'] ) )
 else
     $scale = reScale( SCALE_BASE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
 
-$eventPath = ZM_DIR_EVENTS.'/'.getEventPath( $event );
+$Event = new Event( $event['Id'] );
+$eventPath = $Event->Path();
 
 $videoFormats = array();
 $ffmpegFormats = preg_split( '/\s+/', ZM_FFMPEG_FORMATS );

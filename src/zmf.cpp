@@ -42,9 +42,9 @@ them itself.
 
 =head1 OPTIONS
 
- -m, --monitor_id         - ID of the monitor to use
- -h, --help             - Display usage information
- -v, --version          - Print the installed version of ZoneMinder
+ -m, --monitor_id                 - ID of the monitor to use
+ -h, --help                       - Display usage information
+ -v, --version                    - Print the installed version of ZoneMinder
 
 =cut
 
@@ -73,67 +73,67 @@ them itself.
 
 int OpenSocket( int monitor_id )
 {
-  int sd = socket( AF_UNIX, SOCK_STREAM, 0);
-  if ( sd < 0 )
-  {
-    Error( "Can't create socket: %s", strerror(errno) );
-    return( -1 );
-  }
+	int sd = socket( AF_UNIX, SOCK_STREAM, 0);
+	if ( sd < 0 )
+	{
+		Error( "Can't create socket: %s", strerror(errno) );
+		return( -1 );
+	}
 
-  char sock_path[PATH_MAX] = "";
-  snprintf( sock_path, sizeof(sock_path), "%s/zmf-%d.sock", config.path_socks, monitor_id );
-  if ( unlink( sock_path ) < 0 )
-  {
-    Warning( "Can't unlink '%s': %s", sock_path, strerror(errno) );
-  }
+	char sock_path[PATH_MAX] = "";
+	snprintf( sock_path, sizeof(sock_path), "%s/zmf-%d.sock", config.path_socks, monitor_id );
+	if ( unlink( sock_path ) < 0 )
+	{
+		Warning( "Can't unlink '%s': %s", sock_path, strerror(errno) );
+	}
 
-  struct sockaddr_un addr;
+	struct sockaddr_un addr;
 
-  strncpy( addr.sun_path, sock_path, sizeof(addr.sun_path) );
-  addr.sun_family = AF_UNIX;
+	strncpy( addr.sun_path, sock_path, sizeof(addr.sun_path) );
+	addr.sun_family = AF_UNIX;
 
-  if ( bind( sd, (struct sockaddr *)&addr, strlen(addr.sun_path)+sizeof(addr.sun_family)) < 0 )
-  {
-    Error( "Can't bind: %s", strerror(errno) );
-    exit( -1 );
-  }
+	if ( bind( sd, (struct sockaddr *)&addr, strlen(addr.sun_path)+sizeof(addr.sun_family)) < 0 )
+	{
+		Error( "Can't bind: %s", strerror(errno) );
+		exit( -1 );
+	}
 
-  if ( listen( sd, SOMAXCONN ) < 0 )
-  {
-    Error( "Can't listen: %s", strerror(errno) );
-    return( -1 );
-  }
+	if ( listen( sd, SOMAXCONN ) < 0 )
+	{
+		Error( "Can't listen: %s", strerror(errno) );
+		return( -1 );
+	}
 
-  struct sockaddr_un rem_addr;
-  socklen_t rem_addr_len = sizeof(rem_addr);
-  int new_sd = -1;
-  if ( (new_sd = accept( sd, (struct sockaddr *)&rem_addr, &rem_addr_len )) < 0 )
-  {
-    Error( "Can't accept: %s", strerror(errno) );
-    exit( -1 );
-  }
-  close( sd );
+	struct sockaddr_un rem_addr;
+	socklen_t rem_addr_len = sizeof(rem_addr);
+	int new_sd = -1;
+	if ( (new_sd = accept( sd, (struct sockaddr *)&rem_addr, &rem_addr_len )) < 0 )
+	{
+		Error( "Can't accept: %s", strerror(errno) );
+		exit( -1 );
+	}
+	close( sd );
 
-  sd = new_sd;
+	sd = new_sd;
 
-  Info( "Frame server socket open, awaiting images" );
-  return( sd );
+	Info( "Frame server socket open, awaiting images" );
+	return( sd );
 }
 
 int ReopenSocket( int &sd, int monitor_id )
 {
-  close( sd );
-  return( sd = OpenSocket( monitor_id ) );
+	close( sd );
+	return( sd = OpenSocket( monitor_id ) );
 }
 
 void Usage()
 {
-  fprintf( stderr, "zmf -m <monitor_id>\n" );
-  fprintf( stderr, "Options:\n" );
-  fprintf( stderr, "  -m, --monitor <monitor_id>   : Specify which monitor to use\n" );
-  fprintf( stderr, "  -h, --help           : This screen\n" );
-  fprintf( stderr, "  -v, --version        : Report the installed version of ZoneMinder\n" );
-  exit( 0 );
+	fprintf( stderr, "zmf -m <monitor_id>\n" );
+	fprintf( stderr, "Options:\n" );
+	fprintf( stderr, "  -m, --monitor <monitor_id>   : Specify which monitor to use\n" );
+	fprintf( stderr, "  -h, --help                   : This screen\n" );
+	fprintf( stderr, "  -v, --version                : Report the installed version of ZoneMinder\n" );
+	exit( 0 );
 }
 
 int main( int argc, char *argv[] )
@@ -202,7 +202,7 @@ int main( int argc, char *argv[] )
 
   logInit( "zmf" );
   
-  ssedetect();
+  hwcaps_detect();
 
   Monitor *monitor = Monitor::Load( id, false, Monitor::QUERY );
 
@@ -212,10 +212,12 @@ int main( int argc, char *argv[] )
     exit( -1 );
   }
 
+  Storage *Storage = monitor->getStorage();
+
   char capt_path[PATH_MAX];
   char anal_path[PATH_MAX];
-  snprintf( capt_path, sizeof(capt_path), "%s/%d/%%s/%%0%dd-capture.jpg", config.dir_events, monitor->Id(), config.event_image_digits );
-  snprintf( anal_path, sizeof(anal_path), "%s/%d/%%s/%%0%dd-analyse.jpg", config.dir_events, monitor->Id(), config.event_image_digits );
+  snprintf( capt_path, sizeof(capt_path), "%s/%d/%%s/%%0%dd-capture.jpg", Storage->Path(), monitor->Id(), config.event_image_digits );
+  snprintf( anal_path, sizeof(anal_path), "%s/%d/%%s/%%0%dd-analyse.jpg", Storage->Path(), monitor->Id(), config.event_image_digits );
   zmSetDefaultTermHandler();
   zmSetDefaultDieHandler();
 
@@ -285,66 +287,67 @@ int main( int argc, char *argv[] )
                 // print some informational messages 
                 if (bytes_read == 0)
                 {
-                    Debug(4,"Image read : Short read %d bytes of %d expected bytes",n_bytes,frame_header.image_length);
-                }
-                else if (bytes_read+n_bytes == (int)frame_header.image_length)
+			Debug(4,"Image read : Short read %d bytes of %d expected bytes",n_bytes,frame_header.image_length);
+                                }
+                               else if (bytes_read+n_bytes == (int)frame_header.image_length)
+                                {
+                                        Debug(5,"Image read : Read rest of short read: %d bytes read total of %d bytes",n_bytes,frame_header.image_length);
+                                }
+                                else
+                                {
+                                        Debug(6,"Image read : continuing, read %d bytes (%d so far)", n_bytes, bytes_read+n_bytes);
+                                }
+                       }
+                        bytes_read+= n_bytes;
+                } while (n_bytes>0 && (bytes_read < (ssize_t)frame_header.image_length) );
+
+                // Print errors if there was a problem
+                if ( n_bytes < 1 )
                 {
-                    Debug(5,"Image read : Read rest of short read: %d bytes read total of %d bytes",n_bytes,frame_header.image_length);
+
+                        Error( "Only read %d bytes of %d\n", bytes_read, frame_header.image_length);
+                        if ( n_bytes < 0 )
+			{
+                                Error( "Can't read frame image data: %s", strerror(errno) );
+			}
+			else
+			{
+				Warning( "Socket closed at remote end" );
+			}
+			ReopenSocket( sd, monitor->Id() );
+			continue;
+		}
+
+		static char subpath[PATH_MAX] = "";
+                if ( config.use_deep_storage )
+                {
+                    struct tm *time = localtime( &frame_header.event_time );
+                    snprintf( subpath, sizeof(subpath), "%02d/%02d/%02d/%02d/%02d/%02d", time->tm_year-100, time->tm_mon+1, time->tm_mday, time->tm_hour, time->tm_min, time->tm_sec );
                 }
                 else
                 {
-                    Debug(6,"Image read : continuing, read %d bytes (%d so far)", n_bytes, bytes_read+n_bytes);
+                    snprintf( subpath, sizeof(subpath), "%ld", frame_header.event_id );
                 }
-      }
-            bytes_read+= n_bytes;
-        } while (n_bytes>0 && (bytes_read < (ssize_t)frame_header.image_length) );
 
-        // Print errors if there was a problem
-        if ( n_bytes < 1 )
-        {
-            Error( "Only read %d bytes of %d\n", bytes_read, frame_header.image_length);
-            if ( n_bytes < 0 )
-      {
-                Error( "Can't read frame image data: %s", strerror(errno) );
-      }
-      else
-      {
-        Warning( "Socket closed at remote end" );
-      }
-      ReopenSocket( sd, monitor->Id() );
-      continue;
-    }
+		static char path[PATH_MAX] = "";
+		snprintf( path, sizeof(path), frame_header.alarm_frame?anal_path:capt_path, subpath, frame_header.frame_id );
+		Debug( 1, "Got image, writing to %s", path );
 
-    static char subpath[PATH_MAX] = "";
-        if ( config.use_deep_storage )
-        {
-          struct tm *time = localtime( &frame_header.event_time );
-          snprintf( subpath, sizeof(subpath), "%02d/%02d/%02d/%02d/%02d/%02d", time->tm_year-100, time->tm_mon+1, time->tm_mday, time->tm_hour, time->tm_min, time->tm_sec );
-        }
-        else
-        {
-          snprintf( subpath, sizeof(subpath), "%ld", frame_header.event_id );
-        }
+		FILE *fd = 0;
+		if ( (fd = fopen( path, "w" )) < 0 )
+		{
+			Error( "Can't fopen '%s': %s", path, strerror(errno) );
+			exit( -1 );
+		}
+		if ( 0 == fwrite( image_data, frame_header.image_length, 1, fd ) )
+		{
+			Error( "Can't fwrite image data: %s", strerror(errno) );
+			exit( -1 );
+		}
+		fclose( fd );
 
-    static char path[PATH_MAX] = "";
-    snprintf( path, sizeof(path), frame_header.alarm_frame?anal_path:capt_path, subpath, frame_header.frame_id );
-    Debug( 1, "Got image, writing to %s", path );
-
-    FILE *fd = 0;
-    if ( (fd = fopen( path, "w" )) < 0 )
-    {
-      Error( "Can't fopen '%s': %s", path, strerror(errno) );
-      exit( -1 );
-    }
-    if ( 0 == fwrite( image_data, frame_header.image_length, 1, fd ) )
-    {
-      Error( "Can't fwrite image data: %s", strerror(errno) );
-      exit( -1 );
-    }
-    fclose( fd );
-
-    sigprocmask( SIG_UNBLOCK, &block_set, 0 );
-  }
-  logTerm();
-  zmDbClose();
+		sigprocmask( SIG_UNBLOCK, &block_set, 0 );
+	}
+	logTerm();
+	zmDbClose();
 }

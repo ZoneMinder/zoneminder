@@ -18,21 +18,18 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canEdit( 'Events' ) )
-{
-    $view = "error";
+if ( !canEdit( 'Events' ) ) {
+    $view = 'error';
     return;
 }
 
-$selectName = "filterName";
-$newSelectName = "new".ucfirst($selectName);
-foreach ( dbFetchAll( "select * from Filters order by Name" ) as $row )
-{
-    $filterNames[$row['Name']] = $row['Name'];
-    if ( $_REQUEST['filterName'] == $row['Name'] )
-    {
-        $filterData = $row;
-    }
+$selectName = 'Id';
+$newSelectName = 'newFilterName';
+foreach ( dbFetchAll( 'SELECT * FROM Filters ORDER BY Name' ) as $row ) {
+  $filterNames[$row['Id']] = $row['Name'];
+  if ( $_REQUEST['Id'] == $row['Id'] ) {
+    $filterData = $row;
+  }
 }
 
 $focusWindow = true;
@@ -64,17 +61,21 @@ xhtmlHeaders(__FILE__, translate('SaveFilter') );
         <input type="hidden" name="AutoExecute" value="<?php echo requestVar( 'AutoExecute' ) ?>"/>
         <input type="hidden" name="AutoExecuteCmd" value="<?php echo requestVar( 'AutoExecuteCmd' ) ?>"/>
         <input type="hidden" name="AutoDelete" value="<?php echo requestVar( 'AutoDelete' ) ?>"/>
+        <input type="hidden" name="Id" value="<?php echo $filterData['Id'] ?>"/>
 <?php if ( count($filterNames) ) { ?>
         <p>
           <label for="<?php echo $selectName ?>"><?php echo translate('SaveAs') ?></label><?php echo buildSelect( $selectName, $filterNames ); ?><label for="<?php echo $newSelectName ?>"><?php echo translate('OrEnterNewName') ?></label><input type="text" size="32" id="<?php echo $newSelectName ?>" name="<?php echo $newSelectName ?>" value="<?php echo requestVar('filterName') ?>"/>
         </p>
 <?php } else { ?>
         <p>
-          <label for="<?php echo $newSelectName ?>"><?php echo translate('EnterNewFilterName') ?></label><input type="text" size="32" id="<?php echo $newSelectName ?>" name="<?php echo $newSelectName ?>" value="">
+          <label for="<?php echo $newSelectName ?>"><?php echo translate('EnterNewFilterName') ?></label><input type="text" id="<?php echo $newSelectName ?>" name="<?php echo $newSelectName ?>" />
         </p>
 <?php } ?>
         <p>
           <label for="background"><?php echo translate('BackgroundFilter') ?></label><input type="checkbox" id="background" name="background" value="1"<?php if ( !empty($filterData['Background']) ) { ?> checked="checked"<?php } ?>/>
+        </p>
+        <p>
+          <label for="concurrent"><?php echo translate('ConcurrentFilter') ?></label><input type="checkbox" id="concurrent" name="concurrent" value="1"<?php if ( !empty($filterData['Concurrent']) ) { ?> checked="checked"<?php } ?>/>
         </p>
         <div id="contentButtons">
           <input type="submit" value="<?php echo translate('Save') ?>"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>

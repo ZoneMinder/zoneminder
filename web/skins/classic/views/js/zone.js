@@ -1,89 +1,60 @@
-function validateForm( form )
-{
+function validateForm( form ) {
     var errors = new Array();
-    if ( selfIntersecting )
-    {
+    if ( selfIntersecting ) {
         errors[errors.length] = selfIntersectingString;
     }
-    if ( form.elements['newZone[Type]'].value != 'Inactive' && form.elements['newZone[Type]'].value != 'Privacy' )
-    {
-        if ( !form.newAlarmRgbR.value || !form.newAlarmRgbG.value || !form.newAlarmRgbB.value )
-        {
+    if ( form.elements['newZone[Type]'].value != 'Inactive' && form.elements['newZone[Type]'].value != 'Privacy' ) {
+        if ( !form.newAlarmRgbR.value || !form.newAlarmRgbG.value || !form.newAlarmRgbB.value ) {
             errors[errors.length] = alarmRGBUnsetString;
         }
         form.elements['newZone[AlarmRGB]'].value = (form.newAlarmRgbR.value<<16)|(form.newAlarmRgbG.value<<8)|form.newAlarmRgbB.value;
-        if ( !form.elements['newZone[MinPixelThreshold]'].value || (parseInt(form.elements['newZone[MinPixelThreshold]'].value) <= 0 ) )
-        {
+        if ( !form.elements['newZone[MinPixelThreshold]'].value || (parseInt(form.elements['newZone[MinPixelThreshold]'].value) <= 0 ) ) {
             errors[errors.length] = minPixelThresUnsetString;
-        }
-        else if ( (parseInt(form.elements['newZone[MinPixelThreshold]'].value) >= parseInt(form.elements['newZone[MaxPixelThreshold]'].value)) && (parseInt(form.elements['newZone[MaxPixelThreshold]'].value) > 0) )
-        {
+        } else if ( (parseInt(form.elements['newZone[MinPixelThreshold]'].value) >= parseInt(form.elements['newZone[MaxPixelThreshold]'].value)) && (parseInt(form.elements['newZone[MaxPixelThreshold]'].value) > 0) ) {
             errors[errors.length] = minPixelThresLtMaxString;
         }
-        if ( form.elements['newZone[CheckMethod]'].value == 'FilteredPixels' || form.elements['newZone[CheckMethod]'].value == 'Blobs' )
-        {
-            if ( !form.elements['newZone[FilterX]'].value || !form.elements['newZone[FilterY]'].value )
-            {
+        if ( form.elements['newZone[CheckMethod]'].value == 'FilteredPixels' || form.elements['newZone[CheckMethod]'].value == 'Blobs' ) {
+            if ( !form.elements['newZone[FilterX]'].value || !form.elements['newZone[FilterY]'].value ) {
                 errors[errors.length] = filterUnsetString;
             }
         }
-        if ( !form.elements['newZone[MinAlarmPixels]'].value || (parseFloat(form.elements['newZone[MinAlarmPixels]'].value) <= 0 ) )
-        {
+        if ( !form.elements['newZone[MinAlarmPixels]'].value || (parseFloat(form.elements['newZone[MinAlarmPixels]'].value) <= 0 ) ) {
             errors[errors.length] = minAlarmAreaUnsetString;
-        }
-        else if ( (parseFloat(form.elements['newZone[MinAlarmPixels]'].value) >= parseFloat(form.elements['newZone[MaxAlarmPixels]'].value)) && (parseFloat(form.elements['newZone[MaxAlarmPixels]'].value) > 0) )
-        {
+        } else if ( (parseFloat(form.elements['newZone[MinAlarmPixels]'].value) >= parseFloat(form.elements['newZone[MaxAlarmPixels]'].value)) && (parseFloat(form.elements['newZone[MaxAlarmPixels]'].value) > 0) ) {
             errors[errors.length] = minAlarmAreaLtMaxString;
         }
-        if ( form.elements['newZone[CheckMethod]'].value == 'FilteredPixels' || form.elements['newZone[CheckMethod]'].value == 'Blobs' )
-        {
-            if ( !form.elements['newZone[MinFilterPixels]'].value || (parseFloat(form.elements['newZone[MinFilterPixels]'].value) <= 0 ) )
-            {
+        if ( form.elements['newZone[CheckMethod]'].value == 'FilteredPixels' || form.elements['newZone[CheckMethod]'].value == 'Blobs' ) {
+            if ( !form.elements['newZone[MinFilterPixels]'].value || (parseFloat(form.elements['newZone[MinFilterPixels]'].value) <= 0 ) ) {
                 errors[errors.length] = minFilterAreaUnsetString;
-            }
-            else if ( (parseFloat(form.elements['newZone[MinFilterPixels]'].value) >= parseFloat(form.elements['newZone[MaxFilterPixels]'].value)) && (parseFloat(form.elements['newZone[MaxFilterPixels]'].value) > 0) )
-            {
+            } else if ( (parseFloat(form.elements['newZone[MinFilterPixels]'].value) >= parseFloat(form.elements['newZone[MaxFilterPixels]'].value)) && (parseFloat(form.elements['newZone[MaxFilterPixels]'].value) > 0) ) {
                 errors[errors.length] = minFilterAreaLtMaxString;
-            }
-            else if ( parseFloat(form.elements['newZone[MinAlarmPixels]'].value) < parseFloat(form.elements['newZone[MinFilterPixels]'].value) )
-            {
+            } else if ( parseFloat(form.elements['newZone[MinAlarmPixels]'].value) < parseFloat(form.elements['newZone[MinFilterPixels]'].value) ) {
                 errors[errors.length] = minFilterLtMinAlarmString;
             }
-            if ( form.elements['newZone[CheckMethod]'].value == 'Blobs' )
-            {
-                if ( !form.elements['newZone[MinBlobPixels]'].value || (parseFloat(form.elements['newZone[MinBlobPixels]'].value) <= 0 ) )
-                {
+            if ( form.elements['newZone[CheckMethod]'].value == 'Blobs' ) {
+                if ( !form.elements['newZone[MinBlobPixels]'].value || (parseFloat(form.elements['newZone[MinBlobPixels]'].value) <= 0 ) ) {
                     errors[errors.length] = minBlobAreaUnsetString;
-                }
-                else if ( (parseFloat(form.elements['newZone[MinBlobPixels]'].value) >= parseFloat(form.elements['newZone[MaxBlobPixels]'].value)) && (parseFloat(form.elements['newZone[MaxBlobPixels]'].value) > 0) )
-                {
+                } else if ( (parseFloat(form.elements['newZone[MinBlobPixels]'].value) >= parseFloat(form.elements['newZone[MaxBlobPixels]'].value)) && (parseFloat(form.elements['newZone[MaxBlobPixels]'].value) > 0) ) {
                     errors[errors.length] = minBlobAreaLtMaxString;
-                }
-                else if ( parseFloat(form.elements['newZone[MinFilterPixels]'].value) < parseFloat(form.elements['newZone[MinBlobPixels]'].value) )
-                {
+                } else if ( parseFloat(form.elements['newZone[MinFilterPixels]'].value) < parseFloat(form.elements['newZone[MinBlobPixels]'].value) ) {
                     errors[errors.length] = minBlobLtMinFilterString;
                 }
-                if ( !form.elements['newZone[MinBlobs]'].value || (parseInt(form.elements['newZone[MinBlobs]'].value) <= 0 ) )
-                {
+                if ( !form.elements['newZone[MinBlobs]'].value || (parseInt(form.elements['newZone[MinBlobs]'].value) <= 0 ) ) {
                     errors[errors.length] = minBlobsUnsetString;
-                }
-                else if ( (parseInt(form.elements['newZone[MinBlobs]'].value) >= parseInt(form.elements['newZone[MaxBlobs]'].value)) && (parseInt(form.elements['newZone[MaxBlobs]'].value) > 0) )
-                {
+                } else if ( (parseInt(form.elements['newZone[MinBlobs]'].value) >= parseInt(form.elements['newZone[MaxBlobs]'].value)) && (parseInt(form.elements['newZone[MaxBlobs]'].value) > 0) ) {
                     errors[errors.length] = minBlobsLtMaxString;
                 }
             }
         }
     }
-    if ( errors.length )
-    {
+    if ( errors.length ) {
         alert( errors.join( "\n" ) );
         return( false );
     }
     return( true );
 }
 
-function submitForm( form )
-{
+function submitForm( form ) {
     form.elements['newZone[AlarmRGB]'].value = (form.newAlarmRgbR.value<<16)|(form.newAlarmRgbG.value<<8)|form.newAlarmRgbB.value;
     form.elements['newZone[NumCoords]'].value = zone['Points'].length;
     form.elements['newZone[Coords]'].value = getCoordString();
@@ -92,11 +63,9 @@ function submitForm( form )
     form.submit();
 }
 
-function applyZoneType()
-{
+function applyZoneType() {
     var form = document.zoneForm;
-    if ( form.elements['newZone[Type]'].value == 'Inactive' || form.elements['newZone[Type]'].value == 'Privacy' )
-    {
+    if ( form.elements['newZone[Type]'].value == 'Inactive' || form.elements['newZone[Type]'].value == 'Privacy' ) {
         form.presetSelector.disabled = true;
         form.newAlarmRgbR.disabled = true;
         form.newAlarmRgbG.disabled = true;
@@ -116,9 +85,7 @@ function applyZoneType()
         form.elements['newZone[MaxBlobs]'].disabled = true;
         form.elements['newZone[OverloadFrames]'].disabled = true;
         form.elements['newZone[ExtendAlarmFrames]'].disabled = true;
-    }
-    else if ( form.elements['newZone[Type]'].value == 'Preclusive' )
-    {
+    } else if ( form.elements['newZone[Type]'].value == 'Preclusive' ) {
         form.presetSelector.disabled = false;
         form.newAlarmRgbR.disabled = true;
         form.newAlarmRgbG.disabled = true;
@@ -131,9 +98,7 @@ function applyZoneType()
         form.elements['newZone[OverloadFrames]'].disabled = false;
         form.elements['newZone[ExtendAlarmFrames]'].disabled = false;
         applyCheckMethod();
-    }
-    else
-    {
+    } else {
         form.presetSelector.disabled = false;
         form.newAlarmRgbR.disabled = false;
         form.newAlarmRgbG.disabled = false;
@@ -149,11 +114,9 @@ function applyZoneType()
     }
 }
 
-function applyCheckMethod()
-{
+function applyCheckMethod() {
     var form = document.zoneForm;
-    if ( form.elements['newZone[CheckMethod]'].value == 'AlarmedPixels' )
-    {
+    if ( form.elements['newZone[CheckMethod]'].value == 'AlarmedPixels' ) {
         form.elements['newZone[FilterX]'].disabled = true;
         form.elements['newZone[FilterY]'].disabled = true;
         form.elements['newZone[MinFilterPixels]'].disabled = true;
@@ -162,9 +125,7 @@ function applyCheckMethod()
         form.elements['newZone[MaxBlobPixels]'].disabled = true;
         form.elements['newZone[MinBlobs]'].disabled = true;
         form.elements['newZone[MaxBlobs]'].disabled = true;
-    }
-    else if ( form.elements['newZone[CheckMethod]'].value == 'FilteredPixels' )
-    {
+    } else if ( form.elements['newZone[CheckMethod]'].value == 'FilteredPixels' ) {
         form.elements['newZone[FilterX]'].disabled = false;
         form.elements['newZone[FilterY]'].disabled = false;
         form.elements['newZone[MinFilterPixels]'].disabled = false;
@@ -173,9 +134,7 @@ function applyCheckMethod()
         form.elements['newZone[MaxBlobPixels]'].disabled = true;
         form.elements['newZone[MinBlobs]'].disabled = true;
         form.elements['newZone[MaxBlobs]'].disabled = true;
-    }
-    else
-    {
+    } else {
         form.elements['newZone[FilterX]'].disabled = false;
         form.elements['newZone[FilterY]'].disabled = false;
         form.elements['newZone[MinFilterPixels]'].disabled = false;
@@ -187,13 +146,11 @@ function applyCheckMethod()
     }
 }
 
-function applyPreset()
-{
+function applyPreset() {
     var form = document.zoneForm;
     var presetId = $('presetSelector').get('value');
 
-    if ( presets[presetId] )
-    {
+    if ( presets[presetId] ) {
         var preset = presets[presetId];
 
         form.elements['newZone[Units]'].selectedIndex = preset['UnitsIndex'];
@@ -218,25 +175,21 @@ function applyPreset()
     }
 }
 
-function toPixels( field, maxValue )
-{
+function toPixels( field, maxValue ) {
     if ( field.value != '' )
         field.value = Math.round((field.value*maxValue)/100);
 }
 
-function toPercent( field, maxValue )
-{
+function toPercent( field, maxValue ) {
     if ( field.value != '' )
         field.value = Math.round((100*100*field.value)/maxValue)/100;
 }
 
-function applyZoneUnits()
-{
+function applyZoneUnits() {
     var area = zone.Area;
 
     var form = document.zoneForm;
-    if ( form.elements['newZone[Units]'].value == 'Pixels' )
-    {
+    if ( form.elements['newZone[Units]'].value == 'Pixels' ) {
         form.elements['newZone[TempArea]'].value = area;
         toPixels( form.elements['newZone[MinAlarmPixels]'], area );
         toPixels( form.elements['newZone[MaxAlarmPixels]'], area );
@@ -244,9 +197,7 @@ function applyZoneUnits()
         toPixels( form.elements['newZone[MaxFilterPixels]'], area );
         toPixels( form.elements['newZone[MinBlobPixels]'], area );
         toPixels( form.elements['newZone[MaxBlobPixels]'], area );
-    }
-    else
-    {
+    } else {
         form.elements['newZone[TempArea]'].value = Math.round( area/monitorArea * 100 );
         toPercent( form.elements['newZone[MinAlarmPixels]'], area );
         toPercent( form.elements['newZone[MaxAlarmPixels]'], area );
@@ -257,63 +208,54 @@ function applyZoneUnits()
     }
 }
 
-function limitRange( field, minValue, maxValue )
-{
-    field.value = constrainValue( parseInt(field.value), parseInt(minValue), parseInt(maxValue) );
+function limitRange( field, minValue, maxValue ) {
+    if ( field.value != '' )
+      field.value = constrainValue( parseInt(field.value), parseInt(minValue), parseInt(maxValue) );
 }
 
-function limitFilter( field )
-{
+function limitFilter( field ) {
     field.value = (Math.floor((field.value-1)/2)*2) + 1;
     field.value = constrainValue(parseInt(field.value), 3, 15);
 }
 
-function limitArea( field )
-{
+function limitArea( field ) {
     var minValue = 0;
     var maxValue = zone.Area;
-    if ( document.zoneForm.elements['newZone[Units]'].value == "Percent" )
-    {
+    if ( document.zoneForm.elements['newZone[Units]'].value == "Percent" ) {
         maxValue = 100;
     }
     limitRange( field, minValue, maxValue );
 }
 
-function highlightOn( index )
-{
+function highlightOn( index ) {
     $('row'+index).addClass( 'highlight' );
     $('point'+index).addClass( 'highlight' );
 }
 
-function highlightOff( index )
-{
+function highlightOff( index ) {
     $('row'+index).removeClass( 'highlight' );
     $('point'+index).removeClass( 'highlight' );
 }
 
-function setActivePoint( index )
-{
+function setActivePoint( index ) {
     highlightOff( index );
     $('row'+index).addClass( 'active' );
     $('point'+index).addClass( 'active' );
 }
 
-function unsetActivePoint( index )
-{
+function unsetActivePoint( index ) {
     $('row'+index).removeClass( 'active' );
     $('point'+index).removeClass( 'active' );
 }
 
-function getCoordString()
-{
+function getCoordString() {
     var coords = new Array();
     for ( var i = 0; i < zone['Points'].length; i++ )
         coords[coords.length] = zone['Points'][i].x+','+zone['Points'][i].y;
     return( coords.join( " " ) );
 }
 
-function updateZoneImage()
-{
+function updateZoneImage() {
     var SVG = $('zoneSVG');
     var Poly = $('zonePoly');
     Poly.points.clear();
@@ -325,15 +267,13 @@ function updateZoneImage()
     }
 }
 
-function fixActivePoint( index )
-{
+function fixActivePoint( index ) {
     updateActivePoint( index );
     unsetActivePoint( index );
     updateZoneImage();
 }
 
-function constrainValue( value, loVal, hiVal )
-{
+function constrainValue( value, loVal, hiVal ) {
     if ( value < loVal ) {
         return loVal;
     }
@@ -343,8 +283,7 @@ function constrainValue( value, loVal, hiVal )
     return value;
 }
 
-function updateActivePoint( index )
-{
+function updateActivePoint( index ) {
     var point = $('point'+index);
     var x = constrainValue( point.getStyle( 'left' ).toInt(), 0, maxX );
     var y = constrainValue( point.getStyle( 'top' ).toInt(), 0, maxY );
@@ -359,8 +298,7 @@ function updateActivePoint( index )
     updateArea();
 }
 
-function addPoint( index )
-{
+function addPoint( index ) {
     var nextIndex = index+1;
     if ( index >= (zone['Points'].length-1) )
         nextIndex = 0;
@@ -376,15 +314,13 @@ function addPoint( index )
     //setActivePoint( nextIndex );
 }
 
-function delPoint( index )
-{
+function delPoint( index ) {
     zone['Points'].splice( index, 1 );
     drawZonePoints();
 }
 
-function limitPointValue( point, loVal, hiVal )
-{
-    point.value = constrainValue(point.value, loVal, hiVal)
+function limitPointValue( point, loVal, hiVal ) {
+    point.value = constrainValue(point.value, loVal, hiVal);
 }
 
 function updateArea( ) {
@@ -402,8 +338,7 @@ function updateArea( ) {
   }
 }
 
-function updateX( index )
-{
+function updateX( index ) {
     limitPointValue( $('newZone[Points]['+index+'][x]'), 0, maxX );
 
     var point = $('point'+index);
@@ -415,8 +350,7 @@ function updateX( index )
     Point.x = x;
 }
 
-function updateY( index )
-{
+function updateY( index ) {
     limitPointValue( $('newZone[Points]['+index+'][y]'), 0, maxY );
 
     var point = $('point'+index);
@@ -428,14 +362,11 @@ function updateY( index )
     Point.y = y;
 }
 
-function saveChanges( element )
-{
+function saveChanges( element ) {
     var form = element.form;
-    if ( validateForm( form ) )
-    {
+    if ( validateForm( form ) ) {
         submitForm( form );
-        if ( form.elements['newZone[Type]'].value == 'Privacy' )
-        {
+        if ( form.elements['newZone[Type]'].value == 'Privacy' ) {
             alert( 'Capture process for this monitor will be restarted for the Privacy zone changes to take effect.' );
         }
         return( true );
@@ -443,22 +374,24 @@ function saveChanges( element )
     return( false );
 }
 
-function drawZonePoints()
-{
+function drawZonePoints() {
     $('imageFrame').getElements( 'div.zonePoint' ).each( function( element ) { element.destroy(); } );
-    for ( var i = 0; i < zone['Points'].length; i++ )
-    {
+    for ( var i = 0; i < zone['Points'].length; i++ ) {
         var div = new Element( 'div', { 'id': 'point'+i, 'class': 'zonePoint', 'title': 'Point '+(i+1), 'styles': { 'left': zone['Points'][i].x, 'top': zone['Points'][i].y } } );
         div.addEvent( 'mouseover', highlightOn.pass( i ) );
         div.addEvent( 'mouseout', highlightOff.pass( i ) );
         div.inject( $('imageFrame') );
-        div.makeDraggable( { 'container': $('imageFrame'), 'onStart': setActivePoint.pass( i ), 'onComplete': fixActivePoint.pass( i ), 'onDrag': updateActivePoint.pass( i ) } );
+        div.makeDraggable( { 
+          'container': $('imageFrame'),
+          'onStart': setActivePoint.pass( i ), 
+          'onComplete': fixActivePoint.pass( i ),
+          'onDrag': updateActivePoint.pass( i )
+          } );
     }
 
     var tables = $('zonePoints').getElements( 'table' );
     tables.each( function( table ) { table.getElement( 'tbody' ).empty(); } );
-    for ( var i = 0; i < zone['Points'].length; i++ )
-    {
+    for ( var i = 0; i < zone['Points'].length; i++ ) {
         var row = new Element( 'tr', { 'id': 'row'+i } );
         row.addEvents( { 'mouseover': highlightOn.pass( i ), 'mouseout': highlightOff.pass( i ) } );
         var cell = new Element( 'td' );
@@ -642,28 +575,19 @@ function statusCmdQuery() {
     statusCmdReq.send();
 }
 
-var tempImage = null;
-
 function fetchImage( streamImage ) {
-    var now = new Date();
-    if ( !tempImage )
-        tempImage = new Element( 'img' );
-    tempImage.setProperty( 'src', streamSrc+'&'+now.getTime() );
-    $(streamImage).setProperty( 'src', tempImage.getProperty( 'src' ) );
+  streamImage.src = streamImage.src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
 }
 
 function appletRefresh() {
-    if ( streamStatus && (!streamStatus.paused && !streamStatus.delayed) )
-    {
+    if ( streamStatus && (!streamStatus.paused && !streamStatus.delayed) ) {
         var streamImg = $('liveStream');
         var parent = streamImg.getParent();
         streamImg.dispose();
         streamImg.inject( parent );
         if ( appletRefreshTime )
             appletRefresh.delay( appletRefreshTime*1000 );
-    }
-    else
-    {
+    } else {
         appletRefresh.delay( 15*1000 ); //if we are paused or delayed check every 15 seconds if we are live yet...
     }
 }

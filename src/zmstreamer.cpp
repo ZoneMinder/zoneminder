@@ -200,7 +200,7 @@ int main(int argc, char** argv) {
 
   logInit("zmstreamer");
   
-  ssedetect();
+  hwcaps_detect();
 
   // Setting stream parameters
   MonitorStream stream;

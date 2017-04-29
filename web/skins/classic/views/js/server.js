@@ -1,12 +1,9 @@
-function validateForm( form, newServer )
-{
+function validateForm( form, newServer ) {
     var errors = new Array();
-    if ( !form.elements['newServer[Name]'].value )
-    {
+    if ( !form.elements['newServer[Name]'].value ) {
         errors[errors.length] = "You must supply a name";
     }
-    if ( errors.length )
-    {
+    if ( errors.length ) {
         alert( errors.join( "\n" ) );
         return( false );
     }

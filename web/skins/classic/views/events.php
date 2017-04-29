@@ -32,7 +32,7 @@ if ( !empty($_REQUEST['execute']) )
 }
 
 $countSql = 'SELECT count(E.Id) AS EventCount FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId) WHERE';
-$eventsSql = 'SELECT E.*,M.Name AS MonitorName FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId) WHERE';
+$eventsSql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultScale FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId) WHERE';
 if ( $user['MonitorIds'] ) {
 	$user_monitor_ids = ' M.Id in ('.$user['MonitorIds'].')';
 	$countSql .= $user_monitor_ids;
@@ -217,7 +217,7 @@ foreach ( $events as $event )
               <td class="colAvgScore"><?php echo $event->AvgScore() ?></td>
               <td class="colMaxScore"><?php echo makePopupLink( '?view=frame&amp;eid='.$event->Id().'&amp;fid=0', 'zmImage', array( 'image', reScale( $event->Width(), $scale ), reScale( $event->Height(), $scale ) ), $event->MaxScore() ) ?></td>
 <?php if ( ZM_WEB_EVENT_DISK_SPACE ) { ?>
-              <td class="colDiskSpace"><?php echo $event->DiskSpace() ?></td>
+              <td class="colDiskSpace"><?php echo human_filesize( $event->DiskSpace() ) ?></td>
 <?php
 		}
     if ( ZM_WEB_LIST_THUMBS )

@@ -1,0 +1,3 @@
+usr/share/zoneminder/db
+usr/share/dbconfig-common/data/zoneminder/install
+usr/share/dbconfig-common/data/zoneminder/upgrade/mysql

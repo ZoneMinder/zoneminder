@@ -28,31 +28,15 @@ use 5.006;
 use strict;
 use warnings;
 
-require Exporter;
 require ZoneMinder::Base;
 require Date::Manip;
 
-our @ISA = qw(Exporter ZoneMinder::Base);
+use parent qw(ZoneMinder::Object);
+#our @ISA = qw(ZoneMinder::Object);
 
-# Items to export into callers namespace by default. Note: do not export
-# names by default without a very good reason. Use EXPORT_OK instead.
-# Do not simply export all your public functions/methods/constants.
-
-# This allows declaration   use ZoneMinder ':all';
-# If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
-# will save memory.
-our %EXPORT_TAGS = (
-    'functions' => [ qw(
-      ) ]
-    );
-push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
-
-our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
-
-our @EXPORT = qw();
-
-our $VERSION = $ZoneMinder::Base::VERSION;
-
+use vars qw/ $table $primary_key /;
+$table = 'Events';
+$primary_key = 'Id';
 # ==========================================================================
 #
 # General Utility Functions
@@ -62,39 +46,10 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Database qw(:all);
+require ZoneMinder::Storage;
+require ZoneMinder::Server;
 
 use POSIX;
-
-sub new {
-  my ( $parent, $id, $data ) = @_;
-
-  my $self = {};
-  bless $self, $parent;
-  $$self{dbh} = $ZoneMinder::Database::dbh;
-#zmDbConnect();
-  if ( ( $$self{Id} = $id ) or $data ) {
-#$log->debug("loading $parent $id") if $debug or DEBUG_ALL;
-    $self->load( $data );
-  }
-  return $self;
-} # end sub new
-
-sub load {
-  my ( $self, $data ) = @_;
-  my $type = ref $self;
-  if ( ! $data ) {
-#$log->debug("Object::load Loading from db $type");
-    $data = $$self{dbh}->selectrow_hashref( 'SELECT * FROM Filter WHERE Id=?', {}, $$self{Id} );
-    if ( ! $data ) {
-      Error( "Failure to load Filter record for $$self{Id}: Reason: " . $$self{dbh}->errstr );
-    } else {
-      Debug( 3, "Loaded Filter $$self{Id}" );
-    } # end if
-  } # end if ! $data
-  if ( $data and %$data ) {
-    @$self{keys %$data} = values %$data;
-  } # end if
-} # end sub load
 
 sub Name {
   if ( @_ > 1 ) {
@@ -142,11 +97,10 @@ sub find_one {
 
 sub Execute {
   my $self = $_[0];
-
   my $sql = $self->Sql();
 
   if ( $self->{HasDiskPercent} ) {
-    my $disk_percent = getDiskPercent();
+    my $disk_percent = getDiskPercent( $$self{Storage} ? $$self{Storage}->Path() : () );
     $sql =~ s/zmDiskPercent/$disk_percent/g;
   }
   if ( $self->{HasDiskBlocks} ) {
@@ -158,8 +112,9 @@ sub Execute {
     $sql =~ s/zmSystemLoad/$load/g;
   }
 
-  my $sth = $$self{dbh}->prepare_cached( $sql )
-    or Fatal( "Can't prepare '$sql': ".$$self{dbh}->errstr() );
+  Debug("Filter::Execute SQL ($sql)");
+  my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
+    or Fatal( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
   my $res = $sth->execute();
   if ( !$res ) {
     Error( "Can't execute filter '$sql', ignoring: ".$sth->errstr() );
@@ -171,6 +126,7 @@ sub Execute {
     push @results, $event;
   }
   $sth->finish();
+  Debug("Loaded " . @results . " events for filter $_[0]{Name} using query ($sql)");
   return @results;
 }
 
@@ -240,6 +196,9 @@ sub Sql {
                 # This gets used later, I forget for what
                 $$self{Server} = new ZoneMinder::Server( $temp_value );
               }
+            } elsif ( $term->{attr} eq 'StorageId' ) {
+              $value = "'$temp_value'";
+              $$self{Storage} = new ZoneMinder::Storage( $temp_value );
             } elsif ( $term->{attr} eq 'Name'
                 || $term->{attr} eq 'Cause'
                 || $term->{attr} eq 'Notes'
@@ -295,22 +254,24 @@ sub Sql {
     } # end if terms
 
     if ( $self->{Sql} ) {
-      if ( $self->{AutoMessage} ) {
+      #if ( $self->{AutoMessage} ) {
 # Include all events, including events that are still ongoing
 # and have no EndTime yet
         $sql .= " and ( ".$self->{Sql}." )";
-      } else {
+      #} else {
 # Only include closed events (events with valid EndTime)
-        $sql .= " where not isnull(E.EndTime) and ( ".$self->{Sql}." )";
-      }
+        #$sql .= " where not isnull(E.EndTime) and ( ".$self->{Sql}." )";
+      #}
     }
     my @auto_terms;
     if ( $self->{AutoArchive} ) {
       push @auto_terms, "E.Archived = 0";
     }
-    if ( $self->{AutoVideo} ) {
-      push @auto_terms, "E.Videoed = 0";
-    }
+    # Don't do this, it prevents re-generation and concatenation.
+    # If the file already exists, then the video won't be re-recreated
+    #if ( $self->{AutoVideo} ) {
+      #push @auto_terms, "E.Videoed = 0";
+    #}
     if ( $self->{AutoUpload} ) {
       push @auto_terms, "E.Uploaded = 0";
     }
@@ -359,14 +320,13 @@ sub Sql {
     if ( $filter_expr->{limit} ) {
       $sql .= " limit 0,".$filter_expr->{limit};
     }
-    Debug( "SQL:$sql\n" );
     $self->{Sql} = $sql;
   } # end if has Sql
   return $self->{Sql};
 } # end sub Sql
 
 sub getDiskPercent {
-  my $command = "df .";
+  my $command = "df " . ($_[0] ? $_[0] : '.');
   my $df = qx( $command );
   my $space = -1;
   if ( $df =~ /\s(\d+)%/ms ) {

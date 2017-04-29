@@ -30,6 +30,7 @@ use warnings;
 
 require Exporter;
 require ZoneMinder::Base;
+require ZoneMinder::Storage;
 
 our @ISA = qw(Exporter ZoneMinder::Base);
 
@@ -184,26 +185,13 @@ sub runCommand {
 sub getEventPath {
   my $event = shift;
 
-  my $event_path = "";
-  if ( $Config{ZM_USE_DEEP_STORAGE} ) {
-    $event_path = $Config{ZM_DIR_EVENTS}
-    .'/'.$event->{MonitorId}
-    .'/'.strftime( "%y/%m/%d/%H/%M/%S",
-        localtime($event->{Time})
-        )
-      ;
-  } else {
-    $event_path = $Config{ZM_DIR_EVENTS}
-    .'/'.$event->{MonitorId}
-    .'/'.$event->{Id}
-    ;
-  }
+  my $Storage = new ZoneMinder::Storage( $$event{StorageId} );
+  my $event_path = join( '/', 
+      $Storage->Path(),
+      $event->{MonitorId},
+      ( $Config{ZM_USE_DEEP_STORAGE} ? strftime( "%y/%m/%d/%H/%M/%S", localtime($event->{Time}) ) : $event->{Id} ),
+      );
 
-  if ( index($Config{ZM_DIR_EVENTS},'/') != 0 ) {
-    $event_path = $Config{ZM_PATH_WEB}
-    .'/'.$event_path
-      ;
-  }
   return( $event_path );
 }
 
@@ -212,10 +200,8 @@ sub createEventPath {
 # WARNING assumes running from events directory
 #
   my $event = shift;
-  my $eventRootPath = ($Config{ZM_DIR_EVENTS}=~m|/|)
-    ? $Config{ZM_DIR_EVENTS}
-  : ($Config{ZM_PATH_WEB}.'/'.$Config{ZM_DIR_EVENTS});
-  my $eventPath = $eventRootPath.'/'.$event->{MonitorId};
+  my $Storage = new ZoneMinder::Storage( $$event{Id} );
+  my $eventPath = $Storage->Path() . '/'.$event->{MonitorId};
 
   if ( $Config{ZM_USE_DEEP_STORAGE} ) {
     my @startTime = localtime( $event->{StartTime} );
@@ -706,7 +692,7 @@ None by default.
 
 Mention other useful documentation such as the documentation of
 related modules or operating system documentation (such as man pages
-in UNIX), or any relevant external documentation such as RFCs or
+    in UNIX), or any relevant external documentation such as RFCs or
 standards.
 
 If you have a mailing list set up for your module, mention it here.

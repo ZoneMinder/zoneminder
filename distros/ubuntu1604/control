@@ -61,7 +61,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libdata-uuid-perl
         ,mysql-client | virtual-mysql-client
         ,perl-modules
-        ,php5-mysql | php-mysql, php5-gd | php-gd
+        ,php5-mysql | php-mysql, php5-gd | php-gd , php-apcu , php-apcu-bc
         ,policykit-1
         ,rsyslog | system-log-daemon
         ,zip

@@ -28,8 +28,8 @@
 %global _hardened_build 1
 
 Name: zoneminder
-Version: 1.30.2
-Release: 2%{?dist}
+Version: 1.30.3
+Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
 # jscalendar is LGPL (any version): http://www.dynarch.com/projects/calendar/
@@ -338,6 +338,9 @@ rm -rf %{_docdir}/%{name}-%{version}
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/run/zoneminder
 
 %changelog
+* Tue May 02 2017 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.3-1
+- 1.30.3 release
+
 * Thu Mar 30 2017 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.2-2
 - 1.30.2 release
 

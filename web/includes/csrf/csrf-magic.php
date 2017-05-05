@@ -198,7 +198,10 @@ Debug("POST[$name] is set as " . $_POST[$name] );
         // we don't regenerate a token and check it because some token creation
         // schemes are volatile.
         $tokens = $_POST[$name];
-        if (!csrf_check_tokens($tokens)) break;
+        if (!csrf_check_tokens($tokens)) {
+Debug("Failed checking tokens");
+break;
+}
         $ok = true;
     } while (false);
     if ($fatal && !$ok) {
@@ -231,13 +234,13 @@ function csrf_get_tokens() {
     csrf_start();
 
     // These are "strong" algorithms that don't require per se a secret
+    if ($GLOBALS['csrf']['key']) return 'key:' . csrf_hash($GLOBALS['csrf']['key']) . $ip;
     if (session_id()) return 'sid:' . csrf_hash(session_id()) . $ip;
     if ($GLOBALS['csrf']['cookie']) {
         $val = csrf_generate_secret();
         setcookie($GLOBALS['csrf']['cookie'], $val);
         return 'cookie:' . csrf_hash($val) . $ip;
     }
-    if ($GLOBALS['csrf']['key']) return 'key:' . csrf_hash($GLOBALS['csrf']['key']) . $ip;
     // These further algorithms require a server-side secret
     if (!$secret) return 'invalid';
     if ($GLOBALS['csrf']['user'] !== false) {
@@ -321,7 +324,10 @@ return false;
     }
     switch ($type) {
         case 'sid':
+            {
+ Debug("Checking sid: $value === " . csrf_hash(session_id(), $time) );
             return $value === csrf_hash(session_id(), $time);
+            }
         case 'cookie':
             $n = $GLOBALS['csrf']['cookie'];
             if (!$n) return false;

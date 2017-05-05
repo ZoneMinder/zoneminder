@@ -222,9 +222,6 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
     }
   }
 
-  //av_dict_set(&opts, "movflags", "frag_custom+dash+delay_moov", 0);
-  //if ((ret = avformat_write_header(ctx, &opts)) < 0) {
-  //}
   //os->ctx_inited = 1;
   //avio_flush(ctx->pb);
   //av_dict_free(&opts);
@@ -232,13 +229,24 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   if ( audio_output_stream ) 
     zm_dump_stream_format( oc, 1, 0, 1 );
 
-  /* Write the stream header, if any. */
-  ret = avformat_write_header(oc, NULL);
+  AVDictionary * opts = NULL;
+  //av_dict_set(&opts, "movflags", "frag_custom+dash+delay_moov", 0);
+  //av_dict_set(&opts, "movflags", "frag_custom+dash+delay_moov", 0);
+  //av_dict_set(&opts, "movflags", "frag_keyframe+empty_moov+default_base_moof", 0);
+  if ((ret = avformat_write_header(oc, &opts)) < 0) {
+    Warning("Unable to set movflags to frag_custom+dash+delay_moov");
+    /* Write the stream header, if any. */
+    ret = avformat_write_header(oc, NULL);
+  } else if (av_dict_count(opts) != 0) {
+    Warning("some options not set\n");
+  }
   if (ret < 0) {
     Error("Error occurred when writing output file header to %s: %s\n",
         filename,
         av_make_error_string(ret).c_str());
   }
+  if ( opts )
+    av_dict_free(&opts);
 
   video_last_pts = 0;
   video_last_dts = 0;

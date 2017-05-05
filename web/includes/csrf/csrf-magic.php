@@ -201,6 +201,9 @@ Debug("POST[$name] is set as " . $_POST[$name] );
         if (!csrf_check_tokens($tokens)) {
 Debug("Failed checking tokens");
 break;
+
+} else {
+Debug("Token passed");
 }
         $ok = true;
     } while (false);
@@ -334,8 +337,12 @@ return false;
             if (!isset($_COOKIE[$n])) return false;
             return $value === csrf_hash($_COOKIE[$n], $time);
         case 'key':
-            if (!$GLOBALS['csrf']['key']) return false;
-            return $value === csrf_hash($GLOBALS['csrf']['key'], $time);
+            if (!$GLOBALS['csrf']['key']) {
+		    Debug("Checking key: no key set"  );
+		    return false;
+	    }
+ Debug("Checking sid: $value === " . csrf_hash($GLOBALS['csrf']['key'], $time) );
+	    return $value === csrf_hash($GLOBALS['csrf']['key'], $time);
         // We could disable these 'weaker' checks if 'key' was set, but
         // that doesn't make me feel good then about the cookie-based
         // implementation.

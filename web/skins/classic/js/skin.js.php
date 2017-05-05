@@ -52,3 +52,7 @@ echo 'false';
 var focusWindow = <?php echo !empty($focusWindow)?'true':'false' ?>;
 
 var imagePrefix = "<?php echo viewImagePath( "", '&' ) ?>";
+
+<?php if ( ZM_OPT_USE_AUTH && ZM_AUTH_HASH_LOGINS ) { ?>
+var auth_hash = '<?php echo $_SESSION['AuthHash']; ?>';
+<?php } ?>

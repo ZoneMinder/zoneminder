@@ -116,7 +116,7 @@ switch ( $data['type'] )
           session_start();
           $time = time();
           // Regenerate auth hash after half the lifetime of the hash
-          if ( $_SESSION['AuthHashGeneratedAt'] < $time - (ZM_AUTH_HASH_TTL * 1800) ) {
+          if ( (!isset($_SESSION['AuthHashGeneratedAt'])) or ( $_SESSION['AuthHashGeneratedAt'] < $time - (ZM_AUTH_HASH_TTL * 1800) ) ) {
             $data['auth'] = generateAuthHash( ZM_AUTH_HASH_IPS );
           } 
           session_write_close();
@@ -134,7 +134,7 @@ switch ( $data['type'] )
           session_start();
           $time = time();
           // Regenerate auth hash after half the lifetime of the hash
-          if ( $_SESSION['AuthHashGeneratedAt'] < $time - (ZM_AUTH_HASH_TTL * 1800) ) {
+          if ( (!isset($_SESSION['AuthHashGeneratedAt'])) or ( $_SESSION['AuthHashGeneratedAt'] < $time - (ZM_AUTH_HASH_TTL * 1800) ) ) {
             $data['auth'] = generateAuthHash( ZM_AUTH_HASH_IPS );
           } 
           session_write_close();

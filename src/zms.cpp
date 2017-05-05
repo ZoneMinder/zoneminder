@@ -180,11 +180,11 @@ int main( int argc, const char *argv[] )
           {
             if ( !strcmp( name, "user" ) )
             {
-              username = UriDecode(value);
+              username = UriDecode( value );
             }
             if ( !strcmp( name, "pass" ) )
             {
-              password = UriDecode( password );
+              password = UriDecode( value );
             }
           }
         }

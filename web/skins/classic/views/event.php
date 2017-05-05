@@ -127,7 +127,10 @@ if ( canEdit( 'Events' ) ) {
         <div id="editEvent"><a href="#" onclick="editEvent()"><?php echo translate('Edit') ?></a></div>
         <div id="archiveEvent" class="hidden"><a href="#" onclick="archiveEvent()"><?php echo translate('Archive') ?></a></div>
         <div id="unarchiveEvent" class="hidden"><a href="#" onclick="unarchiveEvent()"><?php echo translate('Unarchive') ?></a></div>
+<?php if ( $Event->DefaultVideo() ) { ?>
+<div id="downloadEventFile"><a href="<?php echo $Event->getStreamSrc()?>">Download MP4</a></div>
 <?php
+  } // end if Event->DefaultVideo
 } // end if can edit Events
 if ( canView( 'Events' ) ) {
 ?>
@@ -139,8 +142,8 @@ if ( $Event->SaveJPEGs() & 3 ) { // Analysis or Jpegs
 <?php
 } // has frames or analysis
 ?>
-        <div id="videoEvent"<?php if ( $streamMode == 'video' ) { ?> class="hidden"<?php } ?>><a href="#" onclick="showVideo()"><?php echo translate('Video') ?></a></div>
-        <div id="exportEvent"><a href="#" onclick="exportEvent()"><?php echo translate('Export')  ?></a></div>
+        <div id="videoEvent"><a href="#" onclick="videoEvent();"><?php echo translate('Video') ?></a></div>
+        <div id="exportEvent"><a href="#" onclick="exportEvent();"><?php echo translate('Export') ?></a></div>
       </div>
       <div id="eventVideo" class="">
 <?php

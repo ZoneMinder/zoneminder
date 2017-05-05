@@ -330,19 +330,23 @@ function streamCmdQuery() {
 var statusCmdParms = "view=request&request=status&entity=monitor&id="+monitorId+"&element[]=Status&element[]=FrameRate";
 if ( auth_hash )
   statusCmdParms += '&auth='+auth_hash;
-var statusCmdReq = new Request.JSON( { url: monitorUrl+thisUrl, method: 'post', data: statusCmdParms, timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getStatusCmdResponse } );
+var statusCmdReq = new Request.JSON( { url: monitorUrl+thisUrl, method: 'get', data: statusCmdParms, timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getStatusCmdResponse } );
 var statusCmdTimer = null;
 
 function getStatusCmdResponse( respObj, respText ) {
+console.log("Got statusCmdQuery");
   watchdogOk("status");
   if ( statusCmdTimer )
     statusCmdTimer = clearTimeout( statusCmdTimer );
 
   if ( respObj.result == 'Ok' ) {
+console.log("Got ok for status");
     $('fpsValue').set( 'text', respObj.monitor.FrameRate );
     setAlarmState( respObj.monitor.Status );
-  } else
+  } else {
+	console.log("Got bad response for status");
     checkStreamForErrors("getStatusCmdResponse",respObj);
+  }
 
   var statusCmdTimeout = statusRefreshTimeout;
   if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
@@ -351,6 +355,7 @@ function getStatusCmdResponse( respObj, respText ) {
 } 
 
 function statusCmdQuery() {
+console.log("Sending statusCmdQuery");
   statusCmdReq.send();
 }       
 

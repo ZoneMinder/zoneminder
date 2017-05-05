@@ -1262,7 +1262,12 @@ bool EventStream::sendFrame( int delta_us ) {
   if ( monitor->GetOptSaveJPEGs() & 1) {
   snprintf( filepath, sizeof(filepath), Event::capture_file_format, event_data->path, curr_frame_id );
   } else if ( monitor->GetOptSaveJPEGs() & 2 ) {
-  snprintf( filepath, sizeof(filepath), Event::analyse_file_format, event_data->path, curr_frame_id );
+    snprintf( filepath, sizeof(filepath), Event::analyse_file_format, event_data->path, curr_frame_id );
+    if ( stat( filepath, &filestat ) < 0 ) {
+        Debug(1, "%s not found, dalling back to capture");
+        snprintf( filepath, sizeof(filepath), Event::capture_file_format, event_data->path, curr_frame_id );
+    }
+
   } else {
     Fatal("JPEGS not saved.zms is not capable of streaming jpegs from mp4 yet");
     return false;

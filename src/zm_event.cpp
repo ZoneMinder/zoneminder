@@ -1491,6 +1491,8 @@ void EventStream::runStream() {
 
     if ( !paused ) {
       curr_frame_id += replay_rate>0?1:-1;
+      if ( (mode == MODE_SINGLE) && ((unsigned int)curr_frame_id == event_data->frame_count) )
+        curr_frame_id = 1;
       if ( send_frame && type != STREAM_MPEG ) {
         Debug( 3, "dUs: %d", delta_us );
         usleep( delta_us );
@@ -1498,7 +1500,7 @@ void EventStream::runStream() {
     } else {
       usleep( (unsigned long)((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2))) );
     }
-  }
+  } // end while ! zm_terminate
 #if HAVE_LIBAVCODEC
   if ( type == STREAM_MPEG )
     delete vid_stream;

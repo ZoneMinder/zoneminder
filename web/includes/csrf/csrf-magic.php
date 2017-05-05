@@ -52,7 +52,7 @@ $GLOBALS['csrf']['rewrite-js'] = false;
  * place it here. If you change this value, all previously generated tokens
  * will become invalid.
  */
-$GLOBALS['csrf']['secret'] = '';
+$GLOBALS['csrf']['secret'] = ZM_AUTH_HASH_SECRET;
 // nota bene: library code should use csrf_get_secret() and not access
 // this global directly
 
@@ -188,7 +188,13 @@ function csrf_check($fatal = true) {
     $ok = false;
     $tokens = '';
     do {
-        if (!isset($_POST[$name])) break;
+        if (!isset($_POST[$name])) {
+Debug("POST[$name] is not set");
+break;
+} else {
+Debug("POST[$name] is set as " . $_POST[$name] );
+
+}
         // we don't regenerate a token and check it because some token creation
         // schemes are volatile.
         $tokens = $_POST[$name];
@@ -296,12 +302,22 @@ function csrf_check_tokens($tokens) {
  * Checks if a token is valid.
  */
 function csrf_check_token($token) {
-    if (strpos($token, ':') === false) return false;
+Debug("Checking CSRF token $token");
+    if (strpos($token, ':') === false) { 
+Debug("Checking CSRF token $token bad because no :");
+      return false;
+    }
     list($type, $value) = explode(':', $token, 2);
-    if (strpos($value, ',') === false) return false;
+    if (strpos($value, ',') === false) {
+Debug("Checking CSRF token $token bad because no ,");
+      return false;
+    }
     list($x, $time) = explode(',', $token, 2);
     if ($GLOBALS['csrf']['expires']) {
-        if (time() > $time + $GLOBALS['csrf']['expires']) return false;
+        if (time() > $time + $GLOBALS['csrf']['expires']) {
+Debug("Checking CSRF token $token bad because expired");
+return false;
+        }
     }
     switch ($type) {
         case 'sid':

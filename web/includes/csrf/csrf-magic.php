@@ -102,7 +102,7 @@ $GLOBALS['csrf']['user'] = false;
  * tokens, and have Squid ignore that cookie for get requests, for anonymous
  * users. (If you haven't guessed, this scheme was(?) used for MediaWiki).
  */
-$GLOBALS['csrf']['key'] = false;
+$GLOBALS['csrf']['key'] = ZM_AUTH_HASH_SECRET;
 
 /**
  * The name of the magic CSRF token that will be placed in all forms, i.e.

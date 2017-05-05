@@ -118,7 +118,7 @@ function getAuthUser( $auth ) {
       }
     }
 
-    if ( $_SESSION['username'] ) {
+    if ( isset( $_SESSION['username'] ) ) {
       # Most of the time we will be logged in already and the session will have our username, so we can significantly speed up our hash testing by only looking at our user.
       # Only really important if you have a lot of users.
       $sql = "SELECT * FROM Users WHERE Enabled = 1 AND Username='".$_SESSION['username']."'";

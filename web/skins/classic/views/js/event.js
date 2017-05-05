@@ -701,6 +701,11 @@ function showFrameStats()
     createPopup( '?view=stats&eid='+eventData.Id+'&fid='+fid, 'zmStats', 'stats', eventData.Width, eventData.Height );
 }
 
+function videoEvent()
+{
+    createPopup( '?view=video&eid='+eventData.Id, 'zmVideo', 'video', eventData.Width, eventData.Height );
+}
+
 
 function drawProgressBar()
 {

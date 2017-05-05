@@ -1043,7 +1043,9 @@ function createVideo( $event, $format, $rate, $scale, $overwrite=false ) {
       $command .= " -s ".sprintf( "%.2f", ($scale/SCALE_BASE) );
   if ( $overwrite )
     $command .= " -o";
-  $result = exec( escapeshellcmd( $command ), $output, $status );
+  $command = escapeshellcmd( $command );
+  $result = exec( $command, $output, $status );
+Debug("generating Video $command: result($result outptu:(".implode("\n", $output )." status($status");
   return( $status?"":rtrim($result) );
 }
 

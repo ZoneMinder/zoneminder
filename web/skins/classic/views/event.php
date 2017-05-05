@@ -127,7 +127,10 @@ if ( canEdit( 'Events' ) ) {
         <div id="editEvent"><a href="#" onclick="editEvent()"><?php echo translate('Edit') ?></a></div>
         <div id="archiveEvent" class="hidden"><a href="#" onclick="archiveEvent()"><?php echo translate('Archive') ?></a></div>
         <div id="unarchiveEvent" class="hidden"><a href="#" onclick="unarchiveEvent()"><?php echo translate('Unarchive') ?></a></div>
+<?php if ( $Event->DefaultVideo() ) { ?>
+<div id="downloadEventFile"><a href="<?php echo $Event->getStreamSrc()?>">Download MP4</a></div>
 <?php
+  } // end if Event->DefaultVideo
 } // end if can edit Events
 if ( canView( 'Events' ) ) {
 ?>

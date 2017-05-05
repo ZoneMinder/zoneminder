@@ -334,15 +334,19 @@ var statusCmdReq = new Request.JSON( { url: monitorUrl+thisUrl, method: 'get', d
 var statusCmdTimer = null;
 
 function getStatusCmdResponse( respObj, respText ) {
+console.log("Got statusCmdQuery");
   watchdogOk("status");
   if ( statusCmdTimer )
     statusCmdTimer = clearTimeout( statusCmdTimer );
 
   if ( respObj.result == 'Ok' ) {
+console.log("Got ok for status");
     $('fpsValue').set( 'text', respObj.monitor.FrameRate );
     setAlarmState( respObj.monitor.Status );
-  } else
+  } else {
+	console.log("Got bad response for status");
     checkStreamForErrors("getStatusCmdResponse",respObj);
+  }
 
   var statusCmdTimeout = statusRefreshTimeout;
   if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
@@ -351,6 +355,7 @@ function getStatusCmdResponse( respObj, respText ) {
 } 
 
 function statusCmdQuery() {
+console.log("Sending statusCmdQuery");
   statusCmdReq.send();
 }       
 

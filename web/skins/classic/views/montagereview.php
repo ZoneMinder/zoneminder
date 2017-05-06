@@ -107,7 +107,7 @@ if ( !empty($_REQUEST['group']) ) {
     $row = dbFetchOne( 'SELECT * FROM Groups WHERE Id = ?', NULL, array($_REQUEST['group']) );
     $monitorsSql = "SELECT * FROM Monitors WHERE Function != 'None' AND find_in_set( Id, '".$row['MonitorIds']."' ) ";
 } else {
-    $monitorsSql = "SELECT * FROM Monitors WHERE 1>0";
+    $monitorsSql = "SELECT * FROM Monitors WHERE Function != 'None'";
     $group = '';
 }
 
@@ -124,8 +124,6 @@ $eventsSql = '
   FROM Events AS E
   INNER JOIN Monitors AS M ON (E.MonitorId = M.Id)
   WHERE NOT isnull(E.Frames) AND NOT isnull(StartTime)';
-
-
 
 //    select E.Id,E.Name,UNIX_TIMESTAMP(E.StartTime) as StartTimeSecs,UNIX_TIMESTAMP(max(DATE_ADD(E.StartTime, Interval Delta+0.5 Second))) as CalcEndTimeSecs, E.Length,max(F.FrameId) as Frames,E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId
 //    from Events as E

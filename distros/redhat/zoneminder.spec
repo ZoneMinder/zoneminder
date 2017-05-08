@@ -132,8 +132,7 @@ designed to support as many cameras as you can attach to your computer without
 too much degradation of performance.
 
 %prep
-%autosetup -p 1 -n ZoneMinder-%{version}
-%autosetup -N -a 1 -n ZoneMinder-%{version}
+%autosetup -p 1 -a 1 -n ZoneMinder-%{version}
 %{__rm} -rf ./web/api/app/Plugin/Crud
 %{__mv} -f crud-%{crud_version} ./web/api/app/Plugin/Crud
 

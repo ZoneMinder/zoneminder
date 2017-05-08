@@ -17,6 +17,11 @@
 # This will tell zoneminder's cmake process we are building against a known distro
 %global zmtargetdistro %{?rhel:el%{rhel}}%{!?rhel:fc%{fedora}}
 
+# Fedora >= 25 needs apcu backwards compatibility module
+%if 0%{?fedora} >= 25
+%global with_apcu_bc 1
+%endif
+
 # Include files for SysV init or systemd
 %if 0%{?fedora} >= 15 || 0%{?rhel} >= 7
 %global with_init_systemd 1
@@ -86,8 +91,8 @@ BuildRequires: polkit-devel
 Requires: php-mysqli
 Requires: php-common
 Requires: php-gd
-%{?fedora:Requires: php-pecl-apcu-bc}
-%{?rhel:Requires: php-pecl-apcu}
+Requires: php-pecl-apcu
+%{?with_apcu_bc:Requires: php-pecl-apcu-bc}
 Requires: cambozola
 Requires: net-tools
 Requires: psmisc

@@ -52,7 +52,9 @@ case $i in
     shift # past argument with no value
     ;;
     *)
-            # unknown option
+    # unknown option
+    read -p "Unknown option $i, continue? (Y|n)"
+    [[ $REPLY == [yY] ]] && { echo "continuing..."; } || exit 1;
     ;;
 esac
 done

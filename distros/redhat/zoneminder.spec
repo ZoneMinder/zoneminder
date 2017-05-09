@@ -33,7 +33,7 @@
 %global _hardened_build 1
 
 Name: zoneminder
-Version: 1.30.3
+Version: 1.30.4
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -342,6 +342,11 @@ rm -rf %{_docdir}/%{name}-%{version}
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/run/zoneminder
 
 %changelog
+* Tue May 09 2017 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.4-1
+- modify autosetup macro parameters
+- modify requirements for php-pecl-acpu-bc package
+- 1.30.4 release
+
 * Tue May 02 2017 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.3-1
 - 1.30.3 release
 

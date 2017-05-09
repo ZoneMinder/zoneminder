@@ -61,6 +61,8 @@ DATE=`date -R`
 if [ "$TYPE" == "" ]; then
   echo "Defaulting to source build"
   TYPE="source";
+else 
+  echo "Doing $TYPE build"
 fi;
 
 if [ "$DISTRO" == "" ]; then
@@ -79,6 +81,8 @@ if [ "$RELEASE" != "" ]; then
   if [ "$GITHUB_FORK" != "" ] && [ "$GITHUB_FORK" != "ZoneMinder" ]; then
     echo "Releases cannot have a fork ($GITHUB_FORK).... exiting."
     exit 0;
+  else
+    GITHUB_FORK="ZoneMinder";
   fi
   BRANCH="release-$RELEASE"
 else

@@ -256,15 +256,6 @@ void Image::Initialise()
       fptr_delta8_bgra = &sse2_delta8_bgra;
       fptr_delta8_argb = &sse2_delta8_argb;
       fptr_delta8_abgr = &sse2_delta8_abgr;
-      /*
-      ** On some systems, the 4 SSE2 algorithms above might be a little slower than
-      ** the standard algorithms, especially on early Pentium 4 processors.
-      ** In that case, comment out the 4 lines above and uncomment the 4 lines below
-      */
-      // fptr_delta8_rgba = &std_delta8_rgba;
-      // fptr_delta8_bgra = &std_delta8_bgra;
-      // fptr_delta8_argb = &std_delta8_argb;
-      // fptr_delta8_abgr = &std_delta8_abgr;
       fptr_delta8_gray8 = &sse2_delta8_gray8;
       Debug(4,"Delta: Using SSE2 delta functions");
     } else if(neonversion >= 1) {
@@ -293,20 +284,6 @@ void Image::Initialise()
     fptr_delta8_gray8 = &std_delta8_gray8;
     Debug(4,"Delta: CPU extensions disabled, using standard delta functions");
   }
- 
-  /* 
-     SSSE3 deinterlacing functions were removed because they were usually equal
-     or slower than the standard code (compiled with -O2 or better)
-     The function is too complicated to be vectorized efficiently
-  */
-  fptr_deinterlace_4field_rgba = &std_deinterlace_4field_rgba;
-  fptr_deinterlace_4field_bgra = &std_deinterlace_4field_bgra;
-  fptr_deinterlace_4field_argb = &std_deinterlace_4field_argb;
-  fptr_deinterlace_4field_abgr = &std_deinterlace_4field_abgr;
-  fptr_deinterlace_4field_gray8 = &std_deinterlace_4field_gray8;
-  Debug(4,"Deinterlace: Using standard functions");
-  
-#if defined(__i386__) && !defined(__x86_64__)
 
   __attribute__((aligned(64))) uint8_t delta8_1[128] = {
     221,22,234,254,8,140,15,28,166,13,203,56,92,250,79,225,19,59,241,145,253,33,87,204,97,168,229,180,3,108,205,177,
@@ -330,7 +307,7 @@ void Image::Initialise()
     73,25,148,105,20,64,129,49,85,43,106,123,47,13,102,92,58,126,110,110,29,109,54,124,114,114,19,179,51,127,154,97
   };
   __attribute__((aligned(64))) uint8_t delta8_gray8_res[128];
-  __attribute__((aligned(64))) uint8_t delta8_rgba_res[128];
+  __attribute__((aligned(64))) uint8_t delta8_rgba_res[32];
 
   /* Run the delta8 grayscale function */
   (*fptr_delta8_gray8)(delta8_1,delta8_2,delta8_gray8_exp,128);
@@ -351,24 +328,20 @@ void Image::Initialise()
       Panic("Delta RGBA function failed self-test: Results differ from the expected results");
     }
   }
-  
-  /* Use SSSE3 deinterlace functions? */
-  if(config.cpu_extensions && sseversion >= 35) {
-    fptr_deinterlace_4field_rgba = &ssse3_deinterlace_4field_rgba;
-    fptr_deinterlace_4field_bgra = &ssse3_deinterlace_4field_bgra;
-    fptr_deinterlace_4field_argb = &ssse3_deinterlace_4field_argb;
-    fptr_deinterlace_4field_abgr = &ssse3_deinterlace_4field_abgr;
-    fptr_deinterlace_4field_gray8 = &ssse3_deinterlace_4field_gray8;
-    Debug(4,"Deinterlace: Using SSSE3 delta functions");
-  } else {
-    fptr_deinterlace_4field_rgba = &std_deinterlace_4field_rgba;
-    fptr_deinterlace_4field_bgra = &std_deinterlace_4field_bgra;
-    fptr_deinterlace_4field_argb = &std_deinterlace_4field_argb;
-    fptr_deinterlace_4field_abgr = &std_deinterlace_4field_abgr;
-    fptr_deinterlace_4field_gray8 = &std_deinterlace_4field_gray8;
-    Debug(4,"Deinterlace: Using standard delta functions");
-  }
-  
+
+  /* 
+     SSSE3 deinterlacing functions were removed because they were usually equal
+     or slower than the standard code (compiled with -O2 or better)
+     The function is too complicated to be vectorized efficiently on SSSE3
+  */
+  fptr_deinterlace_4field_rgba = &std_deinterlace_4field_rgba;
+  fptr_deinterlace_4field_bgra = &std_deinterlace_4field_bgra;
+  fptr_deinterlace_4field_argb = &std_deinterlace_4field_argb;
+  fptr_deinterlace_4field_abgr = &std_deinterlace_4field_abgr;
+  fptr_deinterlace_4field_gray8 = &std_deinterlace_4field_gray8;
+  Debug(4,"Deinterlace: Using standard functions");
+
+#if defined(__i386__) && !defined(__x86_64__)
   /* Use SSE2 aligned memory copy? */
   if(config.cpu_extensions && sseversion >= 20) {
     fptr_imgbufcpy = &sse2_aligned_memcpy;

@@ -736,6 +736,9 @@ endif(zmconfgen_result EQUAL 0)
 install(CODE "
       if (NOT EXISTS \"${ZM_CONFIG_DIR}/zm.conf\")
       file(INSTALL \"${CMAKE_CURRENT_BINARY_DIR}/zm.conf\" DESTINATION \"${ZM_CONFIG_DIR}\")
+      else (NOT EXISTS \"${ZM_CONFIG_DIR}/zm.conf\")
+      file(RENAME \"${CMAKE_CURRENT_BINARY_DIR}/zm.conf\" \"${CMAKE_CURRENT_BINARY_DIR}/zm.conf.new\")
+      file(INSTALL \"${CMAKE_CURRENT_BINARY_DIR}/zm.conf.new\" DESTINATION \"${ZM_CONFIG_DIR}\")
       endif()
       ")
 

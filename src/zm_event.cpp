@@ -42,8 +42,6 @@ extern "C"
 #include "zm_sendfile.h"
 }
 
-#include "zmf.h"
-
 #if HAVE_SYS_SENDFILE_H
 #include <sys/sendfile.h>
 #endif
@@ -221,135 +219,6 @@ void Event::createNotes( std::string &notes )
 
 int Event::sd = -1;
 
-bool Event::OpenFrameSocket( int monitor_id )
-{
-  if ( sd > 0 )
-  {
-    close( sd );
-  }
-
-  sd = socket( AF_UNIX, SOCK_STREAM, 0);
-  if ( sd < 0 )
-  {
-    Error( "Can't create socket: %s", strerror(errno) );
-    return( false );
-  }
-
-  int socket_buffer_size = config.frame_socket_size;
-  if ( socket_buffer_size > 0 )
-  {
-    if ( setsockopt( sd, SOL_SOCKET, SO_SNDBUF, &socket_buffer_size, sizeof(socket_buffer_size) ) < 0 )
-    {
-      Error( "Can't get socket buffer size to %d, error = %s", socket_buffer_size, strerror(errno) );
-      close( sd );
-      sd = -1;
-      return( false );
-    }
-  }
-
-  int flags;
-  if ( (flags = fcntl( sd, F_GETFL )) < 0 )
-  {
-    Error( "Can't get socket flags, error = %s", strerror(errno) );
-    close( sd );
-    sd = -1;
-    return( false );
-  }
-  flags |= O_NONBLOCK;
-  if ( fcntl( sd, F_SETFL, flags ) < 0 )
-  {
-    Error( "Can't set socket flags, error = %s", strerror(errno) );
-    close( sd );
-    sd = -1;
-    return( false );
-  }
-
-  char sock_path[PATH_MAX] = "";
-  snprintf( sock_path, sizeof(sock_path), "%s/zmf-%d.sock", config.path_socks, monitor_id );
-
-  struct sockaddr_un addr;
-
-  strncpy( addr.sun_path, sock_path, sizeof(addr.sun_path) );
-  addr.sun_family = AF_UNIX;
-
-  if ( connect( sd, (struct sockaddr *)&addr, strlen(addr.sun_path)+sizeof(addr.sun_family)+1) < 0 )
-  {
-    Warning( "Can't connect to frame server: %s", strerror(errno) );
-    close( sd );
-    sd = -1;
-    return( false );
-  }
-
-  Debug( 1, "Opened connection to frame server" );
-  return( true );
-}
-
-bool Event::ValidateFrameSocket( int monitor_id )
-{
-  if ( sd < 0 )
-  {
-    return( OpenFrameSocket( monitor_id ) );
-  }
-  return( true );
-}
-
-bool Event::SendFrameImage( const Image *image, bool alarm_frame )
-{
-  if ( !ValidateFrameSocket( monitor->Id() ) )
-  {
-    return( false );
-  }
-
-  static int jpg_buffer_size = 0;
-  static unsigned char jpg_buffer[ZM_MAX_IMAGE_SIZE];
-
-  image->EncodeJpeg( jpg_buffer, &jpg_buffer_size, (alarm_frame&&(config.jpeg_alarm_file_quality>config.jpeg_file_quality))?config.jpeg_alarm_file_quality:config.jpeg_file_quality );
-
-  static FrameHeader frame_header;
-
-  frame_header.event_id = id;
-  if ( config.use_deep_storage )
-    frame_header.event_time = start_time.tv_sec;
-  frame_header.frame_id = frames;
-  frame_header.alarm_frame = alarm_frame;
-  frame_header.image_length = jpg_buffer_size;
-
-  struct iovec iovecs[2];
-  iovecs[0].iov_base = &frame_header;
-  iovecs[0].iov_len = sizeof(frame_header);
-  iovecs[1].iov_base = jpg_buffer;
-  iovecs[1].iov_len = jpg_buffer_size;
-
-  ssize_t writev_size = sizeof(frame_header)+jpg_buffer_size;
-  ssize_t writev_result = writev( sd, iovecs, sizeof(iovecs)/sizeof(*iovecs));
-  if ( writev_result != writev_size )
-  {
-    if ( writev_result < 0 )
-    {
-      if ( errno == EAGAIN )
-      {
-        Warning( "Blocking write detected" );
-      }
-      else
-      {
-        Error( "Can't write frame: %s", strerror(errno) );
-        close( sd );
-        sd = -1;
-      }
-    }
-    else
-    {
-      Error( "Incomplete frame write: %zd of %zd bytes written", writev_result, writev_size );
-      close( sd );
-      sd = -1;
-    }
-    return( false );
-  }
-  Debug( 1, "Wrote frame image, %d bytes", jpg_buffer_size );
-
-  return( true );
-}
-
 bool Event::WriteFrameImage( Image *image, struct timeval timestamp, const char *event_file, bool alarm_frame )
 {
   Image* ImgToWrite;
@@ -364,11 +233,9 @@ bool Event::WriteFrameImage( Image *image, struct timeval timestamp, const char 
   else
     ImgToWrite=image;
 
-  if ( !config.opt_frame_server || !SendFrameImage(ImgToWrite, alarm_frame) )
-  {
-    int thisquality = ( alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality) ) ? config.jpeg_alarm_file_quality : 0 ;   // quality to use, zero is default
-    ImgToWrite->WriteJpeg( event_file, thisquality, (monitor->Exif() ? timestamp : (timeval){0,0}) ); // exif is only timestamp at present this switches on or off for write
-  }
+  int thisquality = ( alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality) ) ? config.jpeg_alarm_file_quality : 0 ;   // quality to use, zero is default
+  ImgToWrite->WriteJpeg( event_file, thisquality, (monitor->Exif() ? timestamp : (timeval){0,0}) ); // exif is only timestamp at present this switches on or off for write
+
   if(ts_image) delete(ts_image); // clean up if used.
   return( true );
 }

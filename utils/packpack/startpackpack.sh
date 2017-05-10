@@ -9,7 +9,7 @@
 # General sanity checks
 checksanity () {
     # Check to see if this script has access to all the commands it needs
-    for CMD in set echo curl repoquery git ln mkdir rmdir; do
+    for CMD in set echo curl repoquery git ln mkdir rmdir cat patch; do
       type $CMD 2>&1 > /dev/null
 
       if [ $? -ne 0 ]; then
@@ -48,6 +48,12 @@ commonprep () {
     else
         echo "Cloning pakcpack github repo..."
         git clone https://github.com/packpack/packpack.git packpack
+    fi
+
+    # Patch packpack
+    patch --dry-run --silent -f -p1 < utils/packpack/packpack-rpm.patch
+    if [ $? -eq 0 ]; then
+        patch -p1 < utils/packpack/packpack-rpm.patch
     fi
 
     # The rpm specfile requires we download the tarball and manually move it into place
@@ -142,10 +148,10 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
     if [ "${OS}" == "el" ] || [ "${OS}" == "fedora" ]; then
         echo "Begin Redhat build..."
 
-        # Set VERSION to x.xx.x e.g. 1.30.2
-        # Set RELEASE to x where x is number of commits since release
+        # Set VERSION to the contents of the version file
+        # Set RELEASE to x where x is number of commits since the release shown on github
         # Creates zoneminder packages in the format: zoneminder-{version}-{release}
-        export VERSION=$(git describe --long --always | sed -n 's/^\([0-9\.]*\)-\([0-9]*\)-\([a-z0-9]*\)/\1/p')
+        export VERSION=$(cat version)
         export RELEASE=$(git describe --long --always | sed -n 's/^\([0-9\.]*\)-\([0-9]*\)-\([a-z0-9]*\)/\2/p')
 
         echo

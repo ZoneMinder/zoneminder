@@ -24,8 +24,16 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
+#if defined(__arm__)
+#include <sys/auxv.h>
+#endif
+
+#ifdef HAVE_CURL_CURL_H
+#include <curl/curl.h>
+#endif
 
 unsigned int sseversion = 0;
+unsigned int neonversion = 0;
 
 std::string trimSet(std::string str, std::string trimset) {
   // Trim Both leading and trailing sets
@@ -234,30 +242,59 @@ int pairsplit(const char* string, const char delim, std::string& name, std::stri
   return 0;
 }
 
-/* Sets sse_version  */
-void ssedetect() {
+/* Detect special hardware features, such as SIMD instruction sets */
+void hwcaps_detect() {
+  neonversion = 0;
+  sseversion = 0;
 #if (defined(__i386__) || defined(__x86_64__))
   /* x86 or x86-64 processor */
-  uint32_t r_edx, r_ecx;
-  
+  uint32_t r_edx, r_ecx, r_ebx;
+
+#ifdef __x86_64__
   __asm__ __volatile__(
-#if defined(__i386__)
-    "pushl %%ebx;\n\t"
-#endif
+  "push %%rbx\n\t"
+  "mov $0x0,%%ecx\n\t"
+  "mov $0x7,%%eax\n\t"
+  "cpuid\n\t"
+  "push %%rbx\n\t"
   "mov $0x1,%%eax\n\t"
   "cpuid\n\t"
-#if defined(__i386__)
-    "popl %%ebx;\n\t"
-#endif
-  : "=d" (r_edx), "=c" (r_ecx)
+  "pop %%rax\n\t"
+  "pop %%rbx\n\t"
+  : "=d" (r_edx), "=c" (r_ecx), "=a" (r_ebx)
   :
-  : "%eax"
-#if !defined(__i386__)
-       , "%ebx"
-#endif
+  :
   );
-  
-  if (r_ecx & 0x00000200) {
+#else
+  __asm__ __volatile__(
+  "push %%ebx\n\t"
+  "mov $0x0,%%ecx\n\t"
+  "mov $0x7,%%eax\n\t"
+  "cpuid\n\t"
+  "push %%ebx\n\t"
+  "mov $0x1,%%eax\n\t"
+  "cpuid\n\t"
+  "pop %%eax\n\t"
+  "pop %%ebx\n\t"
+  : "=d" (r_edx), "=c" (r_ecx), "=a" (r_ebx)
+  :
+  :
+  );
+#endif
+
+  if (r_ebx & 0x00000020) {
+    sseversion = 52; /* AVX2 */
+    Debug(1,"Detected a x86\\x86-64 processor with AVX2");
+  } else if (r_ecx & 0x10000000) {
+    sseversion = 51; /* AVX */
+    Debug(1,"Detected a x86\\x86-64 processor with AVX");
+  } else if (r_ecx & 0x00100000) {
+    sseversion = 42; /* SSE4.2 */
+    Debug(1,"Detected a x86\\x86-64 processor with SSE4.2");
+  } else if (r_ecx & 0x00080000) {
+    sseversion = 41; /* SSE4.1 */
+    Debug(1,"Detected a x86\\x86-64 processor with SSE4.1");
+  } else if (r_ecx & 0x00000200) {
     sseversion = 35; /* SSSE3 */
     Debug(1,"Detected a x86\\x86-64 processor with SSSE3");
   } else if (r_ecx & 0x00000001) {
@@ -272,12 +309,20 @@ void ssedetect() {
   } else {
     sseversion = 0;
     Debug(1,"Detected a x86\\x86-64 processor");
+  } 
+#elif defined(__arm__)
+  // ARM processor
+  // To see if it supports NEON, we need to get that information from the kernel
+  unsigned long auxval = getauxval(AT_HWCAP);
+  if (auxval & HWCAP_ARM_NEON) {
+    Debug(1,"Detected ARM processor with Neon");
+    neonversion = 1;
+  } else {
+    Debug(1,"Detected ARM processor");
   }
-  
 #else
-  /* Non x86 or x86-64 processor, SSE2 is not available */
-  Debug(1,"Detected a non x86\\x86-64 processor");
-  sseversion = 0;
+  // Unknown processor
+  Debug(1,"Detected unknown processor architecture");
 #endif
 }
 
@@ -343,5 +388,20 @@ void timespec_diff(struct timespec *start, struct timespec *end, struct timespec
     diff->tv_sec = end->tv_sec-start->tv_sec;
     diff->tv_nsec = end->tv_nsec-start->tv_nsec;
   }
+}
+
+std::string UriDecode( const std::string &encoded ) {
+#ifdef HAVE_LIBCURL 
+  CURL *curl = curl_easy_init();
+    int outlength;
+    char *cres = curl_easy_unescape(curl, encoded.c_str(), encoded.length(), &outlength);
+    std::string res(cres, cres + outlength);
+    curl_free(cres);
+    curl_easy_cleanup(curl);
+    return res;
+#else
+Warning("ZM Compiled without LIBCURL.  UriDecoding not implemented.");
+  return encoded;
+#endif
 }
 

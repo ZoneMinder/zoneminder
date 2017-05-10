@@ -66,6 +66,24 @@ set(CMAKE_CXX_FLAGS_DEBUG "-Wall -D__STDC_CONSTANT_MACROS -g")
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
+# GCC below 6.0 doesn't support __target__("fpu=neon") attribute, required for compiling ARM Neon code, otherwise compilation fails.
+# Must use -mfpu=neon compiler flag instead, but only do that for processors that support neon, otherwise strip the neon code alltogether,
+# because passing -fmpu=neon is unsafe to processors that don't support neon
+IF(CMAKE_SYSTEM_PROCESSOR MATCHES "^arm" AND CMAKE_SYSTEM_NAME MATCHES "Linux")
+	IF(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
+		EXEC_PROGRAM(grep ARGS " neon " "/proc/cpuinfo" OUTPUT_VARIABLE neonoutput RETURN_VALUE neonresult)
+		IF(neonresult EQUAL 0)
+			set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -mfpu=neon")
+			set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -mfpu=neon")
+			set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -mfpu=neon")
+			set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -mfpu=neon")
+		ELSE(neonresult EQUAL 0)
+			add_definitions(-DZM_STRIP_NEON=1)
+			message(STATUS "ARM Neon is not available on this processor. Neon functions will be absent")
+		ENDIF(neonresult EQUAL 0)
+	ENDIF(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
+ENDIF(CMAKE_SYSTEM_PROCESSOR MATCHES "^arm" AND CMAKE_SYSTEM_NAME MATCHES "Linux")
+
 # Modules that we need:
 include (GNUInstallDirs)
 include (CheckIncludeFile)
@@ -85,7 +103,8 @@ mark_as_advanced(
     ZM_PERL_MM_PARMS 
     ZM_PERL_SEARCH_PATH 
     ZM_TARGET_DISTRO 
-    ZM_CONFIG_DIR)
+    ZM_CONFIG_DIR
+    ZM_SYSTEMD)
 
 set(ZM_RUNDIR "/var/run/zm" CACHE PATH 
     "Location of transient process files, default: /var/run/zm")
@@ -148,6 +167,8 @@ set(ZM_PERL_SEARCH_PATH "" CACHE PATH
 	installed outside Perl's default search path.")
 set(ZM_TARGET_DISTRO "" CACHE STRING 
     "Build ZoneMinder for a specific distribution.  Currently, valid names are: fc24, fc25, el6, el7, OS13, FreeBSD")
+set(ZM_SYSTEMD "OFF" CACHE BOOL 
+    "Set to ON to force building ZM with systemd support. default: OFF")
 
 # Reassign some variables if a target distro has been specified
 if((ZM_TARGET_DISTRO STREQUAL "fc24") OR (ZM_TARGET_DISTRO STREQUAL "fc25"))
@@ -204,6 +225,11 @@ set(CMAKE_EXTRA_INCLUDE_FILES
 include_directories("${CMAKE_BINARY_DIR}")
 # This is required to enable searching in lib64 (if exists), do not change
 set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS ON)
+
+# Set the systemd flag if systemd is autodetected or ZM_SYSTEMD has been set
+if(ZM_SYSTEMD OR (IS_DIRECTORY /usr/lib/systemd/system) OR (IS_DIRECTORY /lib/systemd/system))
+    set(WITH_SYSTEMD 1)
+endif(ZM_SYSTEMD OR (IS_DIRECTORY /usr/lib/systemd/system) OR (IS_DIRECTORY /lib/systemd/system))
 
 # System checks
 check_include_file("libv4l1-videodev.h" HAVE_LIBV4L1_VIDEODEV_H)
@@ -386,13 +412,13 @@ find_library(MYSQLCLIENT_LIBRARIES mysqlclient PATH_SUFFIXES mysql)
 if(MYSQLCLIENT_LIBRARIES)
 	set(HAVE_LIBMYSQLCLIENT 1)
 	list(APPEND ZM_BIN_LIBS "${MYSQLCLIENT_LIBRARIES}")
-	find_path(MYSQLCLIENT_INCLUDE_DIR mysql/mysql.h)
+	find_path(MYSQLCLIENT_INCLUDE_DIR mysql.h PATH_SUFFIXES mysql)
 	if(MYSQLCLIENT_INCLUDE_DIR)
 		include_directories("${MYSQLCLIENT_INCLUDE_DIR}")
 		set(CMAKE_REQUIRED_INCLUDES "${MYSQLCLIENT_INCLUDE_DIR}")
 	endif(MYSQLCLIENT_INCLUDE_DIR)
 	mark_as_advanced(FORCE MYSQLCLIENT_LIBRARIES MYSQLCLIENT_INCLUDE_DIR)
-	check_include_file("mysql/mysql.h" HAVE_MYSQL_H)
+	check_include_file("mysql.h" HAVE_MYSQL_H)
 	if(NOT HAVE_MYSQL_H)
 		message(FATAL_ERROR 
                     "ZoneMinder requires MySQL headers - check that MySQL development packages are installed")
@@ -659,12 +685,14 @@ endif(NOT ZM_WEB_GROUP)
 message(STATUS "Using web user: ${ZM_WEB_USER}")
 message(STATUS "Using web group: ${ZM_WEB_GROUP}")
 
-# Check for polkit
-find_package(Polkit)
-if(NOT POLKIT_FOUND)
-	message(FATAL_ERROR 
-            "Running ZoneMinder requires polkit. Building ZoneMinder requires the polkit development package.")
-endif(NOT POLKIT_FOUND)
+if(WITH_SYSTEMD)
+    # Check for polkit
+    find_package(Polkit)
+    if(NOT POLKIT_FOUND)
+	    message(FATAL_ERROR 
+                "Running ZoneMinder requires polkit. Building ZoneMinder requires the polkit development package.")
+    endif(NOT POLKIT_FOUND)
+endif(WITH_SYSTEMD)
 
 # Some variables that zm expects
 set(ZM_PID "${ZM_RUNDIR}/zm.pid")

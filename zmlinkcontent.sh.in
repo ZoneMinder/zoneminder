@@ -69,7 +69,7 @@ if [ -n "$ZM_CONFIG" ]; then
 elif [ -f "zm.conf" ]; then
 	echo "Using local zm.conf"
 	source "zm.conf"
-elif [ -f "/etc/zm.conf"]; then
+elif [ -f "/etc/zm.conf" ]; then
 	echo "Using system zm.conf"
 	source "/etc/zm.conf"
 else

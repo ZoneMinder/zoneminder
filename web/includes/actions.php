@@ -617,7 +617,7 @@ if ( !empty($action) )
                     {
                         if ( !$x10Monitor )
                         {
-                            dbQuery( "insert into TriggersX10 set MonitorId = ?".implode( ", ", $x10Changes ), array( $mid ) );
+                            dbQuery( "insert into TriggersX10 set MonitorId = ?,".implode( ", ", $x10Changes ), array( $mid ) );
                         }
                         else
                         {

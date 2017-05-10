@@ -43,8 +43,8 @@ ADD utils/docker/start.sh /tmp/start.sh
 RUN chown -R www-data:www-data /usr/local/share/zoneminder/
 
 # Adding apache virtual hosts file
-ADD utils/docker/apache-vhost /etc/apache2/sites-available/000-default.conf
-ADD utils/docker/phpdate.ini /etc/php/7.0/apache2/conf.d/25-phpdate.ini
+RUN cp misc/apache.conf /etc/apache2/sites-available/000-default.conf
+ADD utils/docker/phpdate.ini /etc/php5/apache2/conf.d/25-phpdate.ini
 
 # Expose http port
 EXPOSE 80

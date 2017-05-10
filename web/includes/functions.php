@@ -832,12 +832,13 @@ function packageControl( $command ) {
 function daemonControl( $command, $daemon=false, $args=false ) {
   $string = ZM_PATH_BIN."/zmdc.pl $command";
   if ( $daemon ) {
-    $string .= " $daemon";
+    $string .= ' ' . $daemon;
     if ( $args ) {
-      $string .= " $args";
+      $string .= ' ' . $args;
     }
   }
-  $string .= " 2>/dev/null >&- <&- >/dev/null";
+  $string = escapeshellcmd( $string );
+  $string .= ' 2>/dev/null >&- <&- >/dev/null';
   exec( $string );
 }
 
@@ -874,21 +875,12 @@ function zmaControl( $monitor, $mode=false ) {
         daemonControl( "stop", "zmtrack.pl", "-m ".$monitor['Id'] );
       }
       daemonControl( "stop", "zma", "-m ".$monitor['Id'] );
-      if ( ZM_OPT_FRAME_SERVER ) {
-        daemonControl( "stop", "zmf", "-m ".$monitor['Id'] );
-      }
     } else {
       if ( $mode == "restart" ) {
         if ( ZM_OPT_CONTROL ) {
           daemonControl( "stop", "zmtrack.pl", "-m ".$monitor['Id'] );
         }
         daemonControl( "stop", "zma", "-m ".$monitor['Id'] );
-        if ( ZM_OPT_FRAME_SERVER ) {
-          daemonControl( "stop", "zmf", "-m ".$monitor['Id'] );
-        }
-      }
-      if ( ZM_OPT_FRAME_SERVER ) {
-        daemonControl( "start", "zmf", "-m ".$monitor['Id'] );
       }
       daemonControl( "start", "zma", "-m ".$monitor['Id'] );
       if ( ZM_OPT_CONTROL && $monitor['Controllable'] && $monitor['TrackMotion'] && ( $monitor['Function'] == 'Modect' || $monitor['Function'] == 'Mocord' ) ) {
@@ -944,10 +936,11 @@ function zmaStatus( $monitor ) {
 function daemonCheck( $daemon=false, $args=false ) {
   $string = ZM_PATH_BIN."/zmdc.pl check";
   if ( $daemon ) {
-    $string .= " $daemon";
+    $string .= ' ' . $daemon;
     if ( $args )
-      $string .= " $args";
+      $string .= ' '. $args;
   }
+  $string = escapeshellcmd( $string );
   $result = exec( $string );
   return( preg_match( '/running/', $result ) );
 }
@@ -1221,6 +1214,9 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
           case 'MonitorName':
             $filter['sql'] .= 'M.'.preg_replace( '/^Monitor/', '', $filter['terms'][$i]['attr'] );
             break;
+          case 'ServerId':
+            $filter['sql'] .= 'M.ServerId';
+            break;
           case 'DateTime':
             $filter['sql'] .= "E.StartTime";
             break;
@@ -1265,6 +1261,13 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
             case 'Cause':
             case 'Notes':
               $value = dbEscape($value);
+              break;
+            case 'ServerId':
+              if ( $value == 'ZM_SERVER_ID' ) {
+                $value = ZM_SERVER_ID;
+              } else {
+                $value = dbEscape($value);
+              }
               break;
             case 'DateTime':
               $value = "'".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."'";
@@ -1434,20 +1437,23 @@ function getLoad() {
 
 function getDiskPercent($path = ZM_DIR_EVENTS) {
   $total = disk_total_space($path);
-  if ( ! $total ) {
-    Error("disk_total_space returned false for " . $path );
+  if ( $total === false ) {
+    Error("disk_total_space returned false. Verify the web account user has access to " . $path );
     return 0;
+  } elseif ( $total == 0 ) {
+    Error("disk_total_space indicates the following path has a filesystem size of zero bytes" . $path );
+    return 100;
   }
   $free = disk_free_space($path);
-  if ( ! $free ) {
-    Error("disk_free_space returned false for " . $path );
+  if ( $free === false ) {
+    Error("disk_free_space returned false. Verify the web account user has access to " . $path );
   }
-  $space = round(($total - $free) / $total * 100);
+  $space = round((($total - $free) / $total) * 100);
   return( $space );
 }
 
 function getDiskBlocks() {
-  $df = shell_exec( 'df '.ZM_DIR_EVENTS );
+  $df = shell_exec( 'df '.escapeshellarg(ZM_DIR_EVENTS) );
   $space = -1;
   if ( preg_match( '/\s(\d+)\s+\d+\s+\d+%/ms', $df, $matches ) )
     $space = $matches[1];
@@ -2139,5 +2145,9 @@ function folder_size($dir) {
     }
     return $size;
 } // end function folder_size
+
+function csrf_startup() {
+    csrf_conf('rewrite-js', 'includes/csrf/csrf-magic.js');
+}
 
 ?>

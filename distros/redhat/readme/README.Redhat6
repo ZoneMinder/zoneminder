@@ -150,7 +150,8 @@ Upgrades
 
    sudo zmupdate.pl --user=root --pass=<mysql_root_pwd> --version=<from version>
 
-5. Now start zoneminder:
+5. Now restart the web server then start zoneminder:
 
+        sudo service httpd restart
 	sudo service zoneminder start
 

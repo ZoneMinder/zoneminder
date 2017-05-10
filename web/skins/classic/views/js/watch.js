@@ -34,13 +34,13 @@ function changeScale()
 
     Cookie.write( 'zmWatchScale'+monitorId, scale, { duration: 10*365 } );
 
-    /*Stream could be an applet so can't use moo tools*/ 
+    /*Stream could be an applet so can't use moo tools*/
     var streamImg = document.getElementById('liveStream');
     if ( streamImg ) {
         streamImg.style.width = newWidth + "px";
         streamImg.style.height = newHeight + "px";
 
-        streamImg.src = streamImg.src.replace(/scale=\d+/i,'scale='+scale);
+        streamImg.src = streamImg.src.replace(/scale=\d+/i, 'scale='+scale);
     } else {
         console.error("No element found for liveStream.");
     }
@@ -168,7 +168,7 @@ function getStreamCmdResponse( respObj, respText )
                     streamCmdFastRev( false );
             }
         }
-        else 
+        else
         {
             $('modeValue').set( 'text', "Live" );
             $('rate').addClass( 'hidden' );
@@ -210,18 +210,18 @@ function getStreamCmdResponse( respObj, respText )
         }
     }
     else {
-        checkStreamForErrors("getStreamCmdResponse",respObj);//log them
+        checkStreamForErrors("getStreamCmdResponse", respObj);//log them
         // Try to reload the image stream.
         var streamImg = document.getElementById('liveStream');
         if ( streamImg )
-            streamImg.src = streamImg.src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
+            streamImg.src = streamImg.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
     }
 
     var streamCmdTimeout = statusRefreshTimeout;
     if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
         streamCmdTimeout = streamCmdTimeout/5;
     streamCmdTimer = streamCmdQuery.delay( streamCmdTimeout );
-} 
+}
 
 function streamCmdPause( action )
 {
@@ -354,7 +354,7 @@ function streamCmdPan( x, y )
 function streamCmdQuery()
 {
     streamCmdReq.send( streamCmdParms+"&command="+CMD_QUERY );
-}       
+}
 
 var statusCmdParms = "view=request&request=status&entity=monitor&id="+monitorId+"&element[]=Status&element[]=FrameRate";
 var statusCmdReq = new Request.JSON( { url: monitorUrl+thisUrl, method: 'post', data: statusCmdParms, timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getStatusCmdResponse } );
@@ -372,18 +372,18 @@ function getStatusCmdResponse( respObj, respText )
         setAlarmState( respObj.monitor.Status );
     }
     else
-        checkStreamForErrors("getStatusCmdResponse",respObj);
+        checkStreamForErrors("getStatusCmdResponse", respObj);
 
     var statusCmdTimeout = statusRefreshTimeout;
     if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
         statusCmdTimeout = statusCmdTimeout/5;
     statusCmdTimer = statusCmdQuery.delay( statusCmdTimeout );
-} 
+}
 
 function statusCmdQuery()
 {
     statusCmdReq.send();
-}       
+}
 
 var alarmCmdParms = "view=request&request=alarm&id="+monitorId;
 var alarmCmdReq = new Request.JSON( { url: monitorUrl+thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getAlarmCmdResponse, onTimeout: streamCmdQuery } );
@@ -391,7 +391,7 @@ var alarmCmdFirst = true;
 
 function getAlarmCmdResponse( respObj, respText )
 {
-    checkStreamForErrors("getAlarmCmdResponse",respObj);
+    checkStreamForErrors("getAlarmCmdResponse", respObj);
 }
 
 function cmdDisableAlarms()
@@ -477,26 +477,26 @@ function getEventCmdResponse( respObj, respText )
 
                 var cells = row.getElements( 'td' );
 
-                var link = new Element( 'a', { 'href': '#', 'events': { 'click': createEventPopup.pass( [ event.Id, '&trms=1&attr1=MonitorId&op1=%3d&val1='+monitorId+'&page=1', event.Width, event.Height ] ) } });
+                var link = new Element( 'a', { 'href': '#', 'events': { 'click': createEventPopup.pass( [event.Id, '&trms=1&attr1=MonitorId&op1=%3d&val1='+monitorId+'&page=1', event.Width, event.Height] ) } });
                 link.set( 'text', event.Id );
                 link.inject( row.getElement( 'td.colId' ) );
 
-                link = new Element( 'a', { 'href': '#', 'events': { 'click': createEventPopup.pass( [ event.Id, '&trms=1&attr1=MonitorId&op1=%3d&val1='+monitorId+'&page=1', event.Width, event.Height ] ) } });
+                link = new Element( 'a', { 'href': '#', 'events': { 'click': createEventPopup.pass( [event.Id, '&trms=1&attr1=MonitorId&op1=%3d&val1='+monitorId+'&page=1', event.Width, event.Height] ) } });
                 link.set( 'text', event.Name );
                 link.inject( row.getElement( 'td.colName' ) );
 
                 row.getElement( 'td.colTime' ).set( 'text', event.StartTime );
                 row.getElement( 'td.colSecs' ).set( 'text', event.Length );
 
-                link = new Element( 'a', { 'href': '#', 'events': { 'click': createFramesPopup.pass( [ event.Id, event.Width, event.Height ] ) } });
+                link = new Element( 'a', { 'href': '#', 'events': { 'click': createFramesPopup.pass( [event.Id, event.Width, event.Height] ) } });
                 link.set( 'text', event.Frames+'/'+event.AlarmFrames );
                 link.inject( row.getElement( 'td.colFrames' ) );
 
-                link = new Element( 'a', { 'href': '#', 'events': { 'click': createFramePopup.pass( [ event.Id, '0', event.Width, event.Height ] ) } });
+                link = new Element( 'a', { 'href': '#', 'events': { 'click': createFramePopup.pass( [event.Id, '0', event.Width, event.Height] ) } });
                 link.set( 'text', event.AvgScore+'/'+event.MaxScore );
                 link.inject( row.getElement( 'td.colScore' ) );
 
-                link = new Element( 'a', { 'href': '#', 'title': deleteString, 'events': { 'click': function( e ) { deleteEvent( e, event.Id ); }.bind( link ), 'mouseover': highlightRow.pass( row ), 'mouseout': highlightRow.pass( row ) } });
+                link = new Element( 'a', { 'href': '#', 'title': deleteString, 'events': { 'click': function( e ) { deleteEvent( e, event.Id ); }, 'mouseover': highlightRow.pass( row ), 'mouseout': highlightRow.pass( row ) } });
                 link.set( 'text', 'X' );
                 link.inject( row.getElement( 'td.colDelete' ) );
 
@@ -537,7 +537,7 @@ function getEventCmdResponse( respObj, respText )
         }
     }
     else
-        checkStreamForErrors("getEventCmdResponse",respObj);
+        checkStreamForErrors("getEventCmdResponse", respObj);
 
     var eventCmdTimeout = eventsRefreshTimeout;
     if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
@@ -581,7 +581,7 @@ function controlCmd( control, event, xtell, ytell )
         var x = xEvent.page.x - l;
         var y = xEvent.page.y - t;
 
-        if  ( xtell )
+        if ( xtell )
         {
             var xge = parseInt( (x*100)/coords.width );
             if ( xtell == -1 )
@@ -590,7 +590,7 @@ function controlCmd( control, event, xtell, ytell )
                 xge = 2*(50 - xge);
             locParms += "&xge="+xge;
         }
-        if  ( ytell )
+        if ( ytell )
         {
             var yge = parseInt( (y*100)/coords.height );
             if ( ytell == -1 )
@@ -614,7 +614,7 @@ function controlCmdImage( x, y )
     controlReq.send( imageControlParms+"&x="+x+"&y="+y );
     if ( streamMode == "single" )
         fetchImage.pass( $('imageFeed').getElement('img') ).delay( 1000 );
-}       
+}
 
 var tempImage = null;
 function fetchImage( streamImage )
@@ -631,7 +631,7 @@ function handleClick( event )
     var target = event.target;
     var x = event.page.x - $(target).getLeft();
     var y = event.page.y - $(target).getTop();
-    
+
     if ( showMode == "events" || !imageControlMode )
     {
         if ( event.shift )
@@ -706,7 +706,7 @@ function initPage()
         streamCmdTimer = streamCmdQuery.delay( (Math.random()+0.1)*statusRefreshTimeout );
         watchdogCheck.pass('stream').periodical(statusRefreshTimeout*2);
     }
- 
+
     eventCmdTimer = eventCmdQuery.delay( (Math.random()+0.1)*statusRefreshTimeout );
     watchdogCheck.pass('event').periodical(eventsRefreshTimeout*2);
 

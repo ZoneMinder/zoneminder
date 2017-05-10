@@ -17,6 +17,11 @@
 # This will tell zoneminder's cmake process we are building against a known distro
 %global zmtargetdistro %{?rhel:el%{rhel}}%{!?rhel:fc%{fedora}}
 
+# Fedora >= 25 needs apcu backwards compatibility module
+%if 0%{?fedora} >= 25
+%global with_apcu_bc 1
+%endif
+
 # Include files for SysV init or systemd
 %if 0%{?fedora} >= 15 || 0%{?rhel} >= 7
 %global with_init_systemd 1
@@ -28,8 +33,8 @@
 %global _hardened_build 1
 
 Name: zoneminder
-Version: 1.30.2
-Release: 2%{?dist}
+Version: 1.30.4
+Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
 # jscalendar is LGPL (any version): http://www.dynarch.com/projects/calendar/
@@ -86,8 +91,8 @@ BuildRequires: polkit-devel
 Requires: php-mysqli
 Requires: php-common
 Requires: php-gd
-%{?fedora:Requires: php-pecl-apcu-bc}
-%{?rhel:Requires: php-pecl-apcu}
+Requires: php-pecl-apcu
+%{?with_apcu_bc:Requires: php-pecl-apcu-bc}
 Requires: cambozola
 Requires: net-tools
 Requires: psmisc
@@ -132,8 +137,7 @@ designed to support as many cameras as you can attach to your computer without
 too much degradation of performance.
 
 %prep
-%autosetup -n ZoneMinder-%{version}
-%autosetup -a 1 -n ZoneMinder-%{version}
+%autosetup -p 1 -a 1 -n ZoneMinder-%{version}
 %{__rm} -rf ./web/api/app/Plugin/Crud
 %{__mv} -f crud-%{crud_version} ./web/api/app/Plugin/Crud
 
@@ -338,6 +342,14 @@ rm -rf %{_docdir}/%{name}-%{version}
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/run/zoneminder
 
 %changelog
+* Tue May 09 2017 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.4-1
+- modify autosetup macro parameters
+- modify requirements for php-pecl-acpu-bc package
+- 1.30.4 release
+
+* Tue May 02 2017 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.3-1
+- 1.30.3 release
+
 * Thu Mar 30 2017 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.2-2
 - 1.30.2 release
 

@@ -358,24 +358,6 @@ Changed Default DB User
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 If you have changed your DB login/password from zmuser/zmpass, you need to
-update these values in zm.conf and the API's database.php file.
+update these values in zm.conf.
 
 1. Edit zm.conf to change ZM_DB_USER and ZM_DB_PASS to the values you used.
-
-2. Edit databse.php which can be found in the web server folder zoneminder/www/api/app/Config
-
-There is a class there called DATABASE_CONFIG -
-change the $default array to reflect your new details. Example:
-
-::
-
-        public $default = array(
-                        'datasource' => 'Database/Mysql',
-                        'persistent' => false,
-                        'host' => 'localhost',
-                        'login' => 'mynewDBusername',
-                        'password' => 'mynewDBpassword'
-                        'database' => 'zm',
-                        'prefix' => '',
-                        //'encoding' => 'utf8',
-                );

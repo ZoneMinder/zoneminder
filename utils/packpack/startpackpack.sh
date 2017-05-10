@@ -148,10 +148,10 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
     if [ "${OS}" == "el" ] || [ "${OS}" == "fedora" ]; then
         echo "Begin Redhat build..."
 
-        # Set VERSION to the contents of the version file
-        # Set RELEASE to x where x is number of commits since the release shown on github
+        # Set VERSION to x.xx.x e.g. 1.30.2
+        # Set RELEASE to x where x is number of commits since release
         # Creates zoneminder packages in the format: zoneminder-{version}-{release}
-        export VERSION=$(cat version)
+        export VERSION=$(git describe --long --always | sed -n 's/^\([0-9\.]*\)-\([0-9]*\)-\([a-z0-9]*\)/\1/p')
         export RELEASE=$(git describe --long --always | sed -n 's/^\([0-9\.]*\)-\([0-9]*\)-\([a-z0-9]*\)/\2/p')
 
         echo

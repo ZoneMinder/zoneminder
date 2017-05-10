@@ -52,7 +52,9 @@ case $i in
     shift # past argument with no value
     ;;
     *)
-            # unknown option
+    # unknown option
+    read -p "Unknown option $i, continue? (Y|n)"
+    [[ $REPLY == [yY] ]] && { echo "continuing..."; } || exit 1;
     ;;
 esac
 done
@@ -61,6 +63,8 @@ DATE=`date -R`
 if [ "$TYPE" == "" ]; then
   echo "Defaulting to source build"
   TYPE="source";
+else 
+  echo "Doing $TYPE build"
 fi;
 
 if [ "$DISTRO" == "" ]; then
@@ -79,6 +83,8 @@ if [ "$RELEASE" != "" ]; then
   if [ "$GITHUB_FORK" != "" ] && [ "$GITHUB_FORK" != "ZoneMinder" ]; then
     echo "Releases cannot have a fork ($GITHUB_FORK).... exiting."
     exit 0;
+  else
+    GITHUB_FORK="ZoneMinder";
   fi
   BRANCH="release-$RELEASE"
 else
@@ -127,11 +133,7 @@ else
 fi;
 
 cd "${GITHUB_FORK}_zoneminder_release"
-if [ $RELEASE ]; then
-  git checkout $RELEASE
-else
   git checkout $BRANCH
-fi;
 cd ../
 
 VERSION=`cat ${GITHUB_FORK}_zoneminder_release/version`
@@ -146,6 +148,11 @@ fi;
 DIRECTORY="zoneminder_$VERSION";
 echo "Doing $TYPE release $DIRECTORY";
 mv "${GITHUB_FORK}_zoneminder_release" "$DIRECTORY.orig";
+if [ $? -ne 0 ]; then
+  echo "Error status code is: $?"
+  echo "Setting up build dir failed.";
+  exit $?;
+fi;
 cd "$DIRECTORY.orig";
 
 git submodule init
@@ -214,6 +221,7 @@ else
     echo "Status: $?"
     DEBUILD="debuild -i -us -uc -b"
   else 
+    # Source build, don't need build depends.
     DEBUILD="debuild -S -sa"
   fi;
 fi;
@@ -230,10 +238,10 @@ fi;
 cd ../
 if [ "$INTERACTIVE" != "no" ]; then
   read -p "Do you want to keep the checked out version of Zoneminder (incase you want to modify it later) [y/N]"
-  [[ $REPLY == [yY] ]] && { mv $DIRECTORY zoneminder_release; echo "The checked out copy is preserved in zoneminder_release"; } || { rm -fr $DIRECTORY; echo "The checked out copy has been deleted"; }
+  [[ $REPLY == [yY] ]] && { mv "$DIRECTORY.orig" zoneminder_release; echo "The checked out copy is preserved in zoneminder_release"; } || { rm -fr "$DIRECTORY.orig"; echo "The checked out copy has been deleted"; }
   echo "Done!"
 else 
-  rm -fr $DIRECTORY; echo "The checked out copy has been deleted";
+  rm -fr "$DIRECTORY.orig"; echo "The checked out copy has been deleted";
 fi
 
 if [ $TYPE == "binary" ]; then
@@ -244,11 +252,19 @@ if [ $TYPE == "binary" ]; then
         sudo dpkg -i $DIRECTORY*.deb
     fi;
     if [ "$DISTRO" == "jessie" ]; then
-        echo "Do you want to upload this binary to zmrepo? (y/N)"
-        read install
-        if [ "$install" == "Y" ]; then
-          scp "zoneminder_*-${VERSION}-${DISTRO}*" "zmrepo@zmrepo.connortechnology.com:debian/${BRANCH}/mini-dinstall/incoming/"
+      echo "Do you want to upload this binary to zmrepo? (y/N)"
+      read install
+      if [ "$install" == "Y" ]; then
+        if [ "$RELEASE" != "" ]; then
+          scp "zoneminder_${VERSION}-${DISTRO}*" "zmrepo@zmrepo.connortechnology.com:debian/stable/mini-dinstall/incoming/"
+        else
+          if [ "$BRANCH" == "" ]; then
+            scp "zoneminder_${VERSION}-${DISTRO}*" "zmrepo@zmrepo.connortechnology.com:debian/master/mini-dinstall/incoming/"
+          else
+            scp "zoneminder_${VERSION}-${DISTRO}*" "zmrepo@zmrepo.connortechnology.com:debian/${BRANCH}/mini-dinstall/incoming/"
+          fi;
         fi;
+      fi;
     fi;
   fi;
 else

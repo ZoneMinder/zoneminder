@@ -118,7 +118,7 @@ function getAuthUser( $auth ) {
       }
     }
 
-    if ( $_SESSION['username'] ) {
+    if ( isset( $_SESSION['username'] ) ) {
       # Most of the time we will be logged in already and the session will have our username, so we can significantly speed up our hash testing by only looking at our user.
       # Only really important if you have a lot of users.
       $sql = "SELECT * FROM Users WHERE Enabled = 1 AND Username='".$_SESSION['username']."'";
@@ -891,21 +891,12 @@ function zmaControl( $monitor, $mode=false ) {
         daemonControl( "stop", "zmtrack.pl", "-m ".$monitor['Id'] );
       }
       daemonControl( "stop", "zma", "-m ".$monitor['Id'] );
-      if ( ZM_OPT_FRAME_SERVER ) {
-        daemonControl( "stop", "zmf", "-m ".$monitor['Id'] );
-      }
     } else {
       if ( $mode == "restart" ) {
         if ( ZM_OPT_CONTROL ) {
           daemonControl( "stop", "zmtrack.pl", "-m ".$monitor['Id'] );
         }
         daemonControl( "stop", "zma", "-m ".$monitor['Id'] );
-        if ( ZM_OPT_FRAME_SERVER ) {
-          daemonControl( "stop", "zmf", "-m ".$monitor['Id'] );
-        }
-      }
-      if ( ZM_OPT_FRAME_SERVER ) {
-        daemonControl( "start", "zmf", "-m ".$monitor['Id'] );
       }
       daemonControl( "start", "zma", "-m ".$monitor['Id'] );
       if ( ZM_OPT_CONTROL && $monitor['Controllable'] && $monitor['TrackMotion'] && ( $monitor['Function'] == 'Modect' || $monitor['Function'] == 'Mocord' ) ) {
@@ -1043,7 +1034,9 @@ function createVideo( $event, $format, $rate, $scale, $overwrite=false ) {
       $command .= " -s ".sprintf( "%.2f", ($scale/SCALE_BASE) );
   if ( $overwrite )
     $command .= " -o";
-  $result = exec( escapeshellcmd( $command ), $output, $status );
+  $command = escapeshellcmd( $command );
+  $result = exec( $command, $output, $status );
+Debug("generating Video $command: result($result outptu:(".implode("\n", $output )." status($status");
   return( $status?"":rtrim($result) );
 }
 

@@ -125,6 +125,7 @@ function loadEventImage( imagePath, eid, fid, width, height, fps, videoName, dur
 {
     var vid= $('preview');
     var imageSrc = $('imageSrc');
+<<<<<<< HEAD
     if ( videoName && vid ) {
         vid.show();
         imageSrc.hide();
@@ -160,9 +161,14 @@ function loadEventImage( imagePath, eid, fid, width, height, fps, videoName, dur
         imageSrc.addEvent( 'click', showEvent.pass( [ eid, fid, width, height ] ) );
     }
 
+=======
+    imageSrc.setProperty( 'src', imagePrefix+imagePath );
+    imageSrc.removeEvent( 'click' );
+    imageSrc.addEvent( 'click', showEvent.pass( [eid, fid, width, height] ) );
+>>>>>>> master
     var eventData = $('eventData');
     eventData.removeEvent( 'click' );
-    eventData.addEvent( 'click', showEvent.pass( [ eid, fid, width, height ] ) );
+    eventData.addEvent( 'click', showEvent.pass( [eid, fid, width, height] ) );
 }
 
 function tlZoomBounds( minTime, maxTime )

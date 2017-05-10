@@ -126,7 +126,7 @@ class Event {
     } # ! ZM_OPT_FAST_DELETE
   } # end Event->delete
 
-  public function getStreamSrc( $args, $querySep='&amp;' ) {
+  public function getStreamSrc( $args=array(), $querySep='&amp;' ) {
     if ( $this->{'DefaultVideo'} ) {
       return ( ZM_BASE_PATH != '/' ? ZM_BASE_PATH : '' ).'/index.php?view=view_video&eid='.$this->{'Id'};
     }

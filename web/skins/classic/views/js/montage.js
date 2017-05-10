@@ -14,7 +14,7 @@ function Monitor( monitorData )
     this.start = function( delay )
     {
         this.streamCmdTimer = this.streamCmdQuery.delay( delay, this );
-    }
+    };
 
     this.setStateClass = function( element, stateClass )
     {
@@ -28,7 +28,7 @@ function Monitor( monitorData )
                 element.removeClass( 'idle' );
             element.addClass( stateClass );
         }
-    }
+    };
 
     this.getStreamCmdResponse = function( respObj, respText )
     {
@@ -57,7 +57,7 @@ function Monitor( monitorData )
             }
             this.setStateClass( $('monitor'+this.id), stateClass );
 
-            /*Stream could be an applet so can't use moo tools*/ 
+            /*Stream could be an applet so can't use moo tools*/
             stream.className = stateClass;
 
             var isAlarmed = ( this.alarmState == STATE_ALARM || this.alarmState == STATE_ALERT );
@@ -98,15 +98,14 @@ function Monitor( monitorData )
             console.error( respObj.message );
             // Try to reload the image stream.
             if ( stream )
-                stream.src = stream.src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
-
+                stream.src = stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
         }
         var streamCmdTimeout = statusRefreshTimeout;
         if ( this.alarmState == STATE_ALARM || this.alarmState == STATE_ALERT )
             streamCmdTimeout = streamCmdTimeout/5;
         this.streamCmdTimer = this.streamCmdQuery.delay( streamCmdTimeout, this );
         this.lastAlarmState = this.alarmState;
-    }
+    };
 
     this.streamCmdQuery = function( resent )
     {
@@ -114,7 +113,7 @@ function Monitor( monitorData )
             //console.log( this.connKey+": Resending" );
         //this.streamCmdReq.cancel();
         this.streamCmdReq.send( this.streamCmdParms+"&command="+CMD_QUERY );
-    }
+    };
 
     this.streamCmdReq = new Request.JSON( { url: this.server_url, method: 'get', timeout: AJAX_TIMEOUT, onSuccess: this.getStreamCmdResponse.bind( this ), onTimeout: this.streamCmdQuery.bind( this, true ), link: 'cancel' } );
 
@@ -172,7 +171,7 @@ function changeScale() {
         var monitor = monitors[x];
         var newWidth = ( monitorData[x].width * scale ) / SCALE_BASE;
         var newHeight = ( monitorData[x].height * scale ) / SCALE_BASE;
-        /*Stream could be an applet so can't use moo tools*/ 
+        /*Stream could be an applet so can't use moo tools*/
         var streamImg = document.getElementById( 'liveStream'+monitor.id );
         if ( streamImg ) {
 		  var src = streamImg.src;

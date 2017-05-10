@@ -148,7 +148,7 @@ bool Monitor::MonitorLink::connect() {
       return( false );
     }
     mem_ptr = (unsigned char *)shmat( shm_id, 0, 0 );
-    if ( mem_ptr < 0 ) {
+    if ( mem_ptr < (void *)0 ) {
       Debug( 3, "Can't shmat link memory: %s", strerror(errno) );
       connected = false;
       return( false );
@@ -374,7 +374,7 @@ Monitor::Monitor(
        + sizeof(VideoStoreData) //Information to pass back to the capture process
        + (image_buffer_count*sizeof(struct timeval))
        + (image_buffer_count*camera->ImageSize())
-       + 64; /* Padding used to permit aligning the images buffer to 16 byte boundary */
+       + 64; /* Padding used to permit aligning the images buffer to 64 byte boundary */
 
   Debug( 1, "mem.size=%d", mem_size );
   mem_ptr = NULL;
@@ -530,7 +530,7 @@ bool Monitor::connect() {
     exit( -1 );
   }
   mem_ptr = (unsigned char *)shmat( shm_id, 0, 0 );
-  if ( mem_ptr < 0 ) {
+  if ( mem_ptr < (void *)0 ) {
     Error( "Can't shmat: %s", strerror(errno));
     exit( -1 );
   }
@@ -541,10 +541,10 @@ bool Monitor::connect() {
   struct timeval *shared_timestamps = (struct timeval *)((char *)video_store_data + sizeof(VideoStoreData));
   unsigned char *shared_images = (unsigned char *)((char *)shared_timestamps + (image_buffer_count*sizeof(struct timeval)));
   
-  if(((unsigned long)shared_images % 16) != 0) {
-    /* Align images buffer to nearest 16 byte boundary */
-    Debug(3,"Aligning shared memory images to the next 16 byte boundary");
-    shared_images = (uint8_t*)((unsigned long)shared_images + (16 - ((unsigned long)shared_images % 16)));
+  if(((unsigned long)shared_images % 64) != 0) {
+    /* Align images buffer to nearest 64 byte boundary */
+    Debug(3,"Aligning shared memory images to the next 64 byte boundary");
+    shared_images = (uint8_t*)((unsigned long)shared_images + (64 - ((unsigned long)shared_images % 64)));
   }
   Debug(3, "Allocating %d image buffers", image_buffer_count );
   image_buffer = new Snapshot[image_buffer_count];

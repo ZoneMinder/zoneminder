@@ -203,19 +203,17 @@ if ( $event_id ) {
   $concat_name = $filter_name if $concat_name eq '';
 }
 
-my $sql = " SELECT max(F.Delta)-min(F.Delta) as FullLength,
-   E.*,
-   unix_timestamp(E.StartTime) as Time,
+my $sql = " SELECT (SELECT max(Delta) FROM Frames WHERE EventId=Events.Id)-(SELECT min(Delta) FROM Frames WHERE EventId=Events.Id) as FullLength,
+   Events.*,
+   unix_timestamp(Events.StartTime) as Time,
    M.Name as MonitorName,
    M.Width as MonitorWidth,
    M.Height as MonitorHeight,
    M.Palette
-   FROM Frames as F
-   INNER JOIN Events as E on F.EventId = E.Id
-   INNER JOIN Monitors as M on E.MonitorId = M.Id
-   WHERE EventId = ?
-   GROUP BY F.EventId"
-   ;
+   FROM Events
+   INNER JOIN Monitors as M on Events.MonitorId = M.Id
+   WHERE Events.Id = ?
+   ";
 my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
 Debug($sql);
 

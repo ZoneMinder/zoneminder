@@ -23,10 +23,12 @@
 
 body {
     font-family: Verdana, Arial, Helvetica, sans-serif;
-    font-size: 10px;
-    color: #333333;
+    font-size: 18px;
+    color: #bbb;
     font-weight: normal;
-    text-align: center;
+	padding-top: 130px;
+	padding-bottom:25px;
+	background-color:rgb(31, 31, 31);
 }
 
 h1 {
@@ -39,9 +41,9 @@ h1 {
 
 h2 {
     font-family: inherit;
-    font-size: 110%;
-    color: #000066;
-    font-weight: bold;
+    font-size: 25px;
+    color: #eee;
+    font-weight: 400;
 }
 
 h3 {
@@ -55,13 +57,6 @@ h4 {
     font-family: inherit;
     font-size: 100%;
     color: #016A9d;
-}
-
-p {
-    font-family: inherit;
-    font-size: 100%;
-    color: #333333;
-    font-weight: normal;
 }
 
 th {
@@ -82,10 +77,6 @@ a:visited {
 a:hover {
     color: #666699;
     text-decoration: underline;
-}
-
-label {
-    margin-right: 4px;
 }
 
 input,textarea,select,button {
@@ -178,22 +169,14 @@ ul.tabList li.active a {
     background-color: #eeeeee;
 }
 
-#content table.major thead tr th {
-    padding-top: 6px;
-    padding-bottom: 6px;
-    vertical-align: middle;
+thead tr{
+	background-color: #282828;
 }
 
 #content table.major tfoot td {
     padding-top: 6px;
     padding-bottom: 6px;
     vertical-align: middle;
-}
-
-#content table.major th, #content table.major td {
-    border: 1px solid #7f7fb2;
-    padding: 3px;
-    text-align: left;
 }
 
 #content table.major th {
@@ -244,7 +227,6 @@ ul.tabList li.active a {
 
 #content table > tbody > tr:hover
 {
-    background-color: #EEE;
 }
 
 .overlay {
@@ -255,6 +237,12 @@ ul.tabList li.active a {
     background-color: #f8f8f8;
 }
 
+.overlay legend {
+	width:auto;
+	margin-bottom:0;
+	border-bottom: none;
+}
+
 .validation-advice {
     padding: 4px;
     color: #dc143c;
@@ -262,7 +250,7 @@ ul.tabList li.active a {
 
 fieldset {
     border: 1px solid black;
-    padding: 4px;
+    padding: 14px;
     margin-bottom: 8px;
     border-radius: 2px;
     -moz-border-radius: 2px;
@@ -347,7 +335,15 @@ th.table-th-sort-rev span.table-th-sort-span {
 }
 
 .table-tr-odd {
-    background-color: #f8f8f8;
+}
+
+table {
+	margin-top: 20px;
+	background-color: #282828;
+}
+
+tr:nth-child(2n) {
+	background-color: rgba(0,0,0,.1);
 }
 
 /*
@@ -391,13 +387,6 @@ th.table-th-sort-rev span.table-th-sort-span {
     margin-left: 4px;
 }
 
-#content {
-    width: 96%;
-    margin: 8px auto;
-    line-height: 130%;
-    text-align: center;
-}
-
 #content p {
     margin-top: 4px;
 }
@@ -438,7 +427,103 @@ th.table-th-sort-rev span.table-th-sort-span {
 }
 
 #footer {
-    width: 96%;
-    margin: 8px auto;
+    border-top: 1px solid #e7e7e7;
+    margin: 32px 0;
+    padding: 8px;
 }
 
+.nav.nav-pills.nav-stacked.col-md-2 {
+}
+
+.nav.nav-pills.nav-stacked.col-md-2 > li > a {
+}
+
+label {
+	color: #eee;
+}
+
+#options .form-group {
+	margin-bottom: 20px;
+
+}
+
+.navbar-brand {
+	color: #03A9F4 !important;
+	font-weight: bold;
+	font-size: 20px;
+}
+
+
+#options .help-block {
+	margin-top: 0;
+}
+
+#options {
+	font-size:90%;
+}
+
+#options input, #options select {
+	max-width: 25pc;
+}
+
+#options input[type=submit] {
+	margin-top:25px;
+}
+
+.navbar {
+	background:rgba(0,0,0,0);
+	border: 0;
+	margin-bottom: 0;
+}
+
+#navHeader {
+	background-color:#000;
+}
+
+#navOptions li {
+	margin: 0;
+}
+
+#navHeader li.active > a, #navOptions li.active > a {
+	color: #f9be03;
+}
+
+#navOptions a {
+	background-color: rgb(40, 40, 40);
+	border-bottom-color: rgb(35, 35, 35);
+	color: #999;
+	padding: 10px 20px;
+	border-bottom: 1px solid #232323;
+	overflow: hidden;
+	white-space: nowrap;
+}
+
+#pageNav h2.navbar-text {
+	margin-bottom:0;
+}
+
+.table > tbody > tr > td, .table > tbody > tr > th, .table > tfoot > tr > td, .table > tfoot > tr > th, .table > thead > tr > td, .table > thead > tr > th {
+	border: none;
+}
+
+.zmpanel, #pageNav {
+	margin:0 0 20px 0;
+	background-color: #282828;
+	border: 1px solid transparent;
+	border-radius: 4px;
+	-webkit-box-shadow: 0 1px 1px rgba(0,0,0,.05);
+	box-shadow: 0 1px 1px rgba(0,0,0,.05);
+}
+
+.zmPanel {
+	padding:10px;
+}
+
+.zmpanel .list-group-item, #logTable, th {
+	text-align: center;
+}
+
+#content {
+	text-align: center;
+	margin-top:5px;
+}

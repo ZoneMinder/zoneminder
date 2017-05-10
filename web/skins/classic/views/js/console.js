@@ -45,7 +45,7 @@ function addMonitor( element)
 			}
 	  }
 	  dupParam = (monitorId == -1 ) ? '': '&dupId='+monitorId;
-    createPopup( '?view=monitor'+dupParam, 'zmMonitor0','monitor' );
+    window.location.assign( '?view=monitor'+dupParam, 'zmMonitor0','monitor' );
 }
 
 function editMonitor( element )

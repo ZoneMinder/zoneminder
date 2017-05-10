@@ -1,7 +1,3 @@
-body {
-	background-color: #f8f8f8;
-}
-
 input[type="text"] {
 	margin-bottom: -1px;
 	border-bottom-right-radius: 0;
@@ -27,7 +23,7 @@ form {
 }
 
 form .alarm {
-	font-size:180%;
+	font-size:120%;
 	padding:20px;
 	border-bottom: 1px solid #e7e7e7;
 }
@@ -41,7 +37,7 @@ form .alarm {
 }
 
 h1 {
-	font-size: 250%;
+	font-size: 180%;
 	margin-top: 0;
 	margin-bottom: 15px;
 }

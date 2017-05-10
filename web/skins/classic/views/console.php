@@ -18,7 +18,6 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-require_once('includes/Server.php');
 $servers = Server::find_all();
 
 $eventCounts = array(
@@ -71,17 +70,11 @@ $eventCounts = array(
     ),
 );
 
-$running = daemonCheck();
-$status = $running?translate('Running'):translate('Stopped');
-$run_state = dbFetchOne('select Name from States where  IsActive = 1', 'Name' );
-
 $group = NULL;
 if ( ! empty($_COOKIE['zmGroup']) ) {
-    if ( $group = dbFetchOne( 'select * from Groups where Id = ?', NULL, array($_COOKIE['zmGroup'])) )
-        $groupIds = array_flip(explode( ',', $group['MonitorIds'] ));
+	if ( $group = dbFetchOne( 'select * from Groups where Id = ?', NULL, array($_COOKIE['zmGroup'])) )
+		$groupIds = array_flip(explode( ',', $group['MonitorIds'] ));
 }
-
-noCacheHeaders();
 
 $maxWidth = 0;
 $maxHeight = 0;
@@ -177,10 +170,10 @@ foreach( $displayMonitors as $monitor )
     $zoneCount += $monitor['ZoneCount'];
 }
 
+noCacheHeaders();
+
 $seqUpFile = getSkinFile( 'graphics/seq-u.gif' );
 $seqDownFile = getSkinFile( 'graphics/seq-d.gif' );
-
-$versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText':'';
 
 $left_columns = 3;
 if ( count($servers) ) $left_columns += 1;
@@ -189,60 +182,27 @@ if ( ZM_WEB_ID_ON_CONSOLE ) $left_columns += 1;
 xhtmlHeaders( __FILE__, translate('Console') );
 ?>
 <body>
-  <div id="page">
     <form name="monitorForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
     <input type="hidden" name="view" value="<?php echo $view ?>"/>
     <input type="hidden" name="action" value=""/>
-    <div id="header">
-      <h3 id="systemTime"><?php echo preg_match( '/%/', DATE_FMT_CONSOLE_LONG )?strftime( DATE_FMT_CONSOLE_LONG ):date( DATE_FMT_CONSOLE_LONG ) ?></h3>
-      <h3 id="systemStats"><?php echo translate('Load') ?>: <?php echo getLoad() ?> - <?php echo translate('Disk') ?>: <?php echo getDiskPercent() ?>% - <?php echo ZM_PATH_MAP ?>: <?php echo getDiskPercent(ZM_PATH_MAP) ?>%</h3>
-      <h2 id="title"><a href="http://www.zoneminder.com" target="ZoneMinder">ZoneMinder</a> <?php echo translate('Console') ?> - <?php echo makePopupLink( '?view=state', 'zmState', 'state', $status, canEdit( 'System' ) ) ?> - <?php echo $run_state ?> <?php echo makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="'.$versionClass.'">v'.ZM_VERSION.'</span>', canEdit( 'System' ) ) ?></h2>
-      <div class="clear"></div>
-      <h3 id="development"><center><?php echo ZM_WEB_CONSOLE_BANNER ?></center></h3>
-      <div id="monitorSummary"><?php echo makePopupLink( '?view=groups', 'zmGroups', 'groups', sprintf( $CLANG['MonitorCount'], count($displayMonitors), zmVlang( $VLANG['Monitor'], count($displayMonitors) ) ).($group?' ('.$group['Name'].')':''), canView( 'Groups' ) ); ?></div>
-<?php
-if ( ZM_OPT_X10 && canView( 'Devices' ) )
-{
-?>
-      <div id="devices"><?php echo makePopupLink( '?view=devices', 'zmDevices', 'devices', translate('Devices') ) ?></div>
-<?php
-}
-if ( canView( 'System' ) )
-{
-?>
-      <div id="options"><?php echo makePopupLink( '?view=options', 'zmOptions', 'options', translate('Options') ) ?><?php if ( logToDatabase() > Logger::NOLOG ) { ?> / <?php echo makePopupLink( '?view=log', 'zmLog', 'log', '<span class="'.logState().'">'.translate('Log').'</span>' ) ?><?php } ?></div>
-<?php
-}
-if ( canView( 'Stream' ) && $cycleCount > 1 )
-{
-    $cycleGroup = isset($_COOKIE['zmGroup'])?$_COOKIE['zmGroup']:0;
-?>
-      <div id="cycleMontage">
-           <?php echo makePopupLink( '?view=cycle&amp;group='.$cycleGroup, 'zmCycle'.$cycleGroup, array( 'cycle', $cycleWidth, $cycleHeight ), translate('Cycle'), $running ) ?>&nbsp;/&nbsp;
-           <?php echo makePopupLink( '?view=montage&amp;group='.$cycleGroup, 'zmMontage'.$cycleGroup, 'montage', translate('Montage'), $running ) ?>&nbsp;/&nbsp;
-           <?php echo makePopupLink( '?view=montagereview&amp;group='.$cycleGroup, 'zmMontage'.$cycleGroup, 'montagereview', translate('Montage Review'), $running ) ?>
-      </div>
-<?php
-}
-else
-{
-?>
-<?php
-}
-?>
-      <h3 id="loginBandwidth"><?php
-if ( ZM_OPT_USE_AUTH )
-{
-?><?php echo translate('LoggedInAs') ?> <?php echo makePopupLink( '?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == "builtin") ) ?>, <?php echo strtolower( translate('ConfiguredFor') ) ?><?php
-}
-else
-{
-?><?php echo translate('ConfiguredFor') ?><?php
-}
-?>&nbsp;<?php echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', $bwArray[$_COOKIE['zmBandwidth']], ($user && $user['MaxBandwidth'] != 'low' ) ) ?> <?php echo translate('BandwidthHead') ?></h3>
-    </div>
-    <div id="content">
-      <table id="consoleTable" cellspacing="0">
+
+    <?php include("skins/$skin/views/header.php") ?>
+
+    <div class="container-fluid">
+
+<div class="navbar navbar-default" id="pageNav">
+	<div class="container-fluid">
+		<h2 class="navbar-text">Console</h2>
+		<div class="pull-right">
+			<?php echo makeLink( '?view=groups', sprintf( $CLANG['MonitorCount'], count($displayMonitors), zmVlang( $VLANG['Monitor'], count($displayMonitors) ) ).($group?' ('.$group['Name'].')':''), canView( 'Groups' ), 'class="btn btn-default navbar-btn"' ); ?>
+			<?php echo makePopupLink( '?view=filter&amp;filter[terms][0][attr]=DateTime&amp;filter[terms][0][op]=%3c&amp;filter[terms][0][val]=now', 'zmFilter', 'filter', translate('Filters'), canView( 'Events' ), 'class="btn btn-default navbar-btn"' ) ?>
+		</div>
+<center><?php echo ZM_WEB_CONSOLE_BANNER ?></center>
+	</div>
+</div>
+
+
+      <table class="table table-condensed">
         <thead>
           <tr>
 <?php if ( ZM_WEB_ID_ON_CONSOLE ) { ?>
@@ -277,10 +237,7 @@ if ( canEdit('Monitors') )
         <tfoot>
           <tr>
             <td class="colLeftButtons" colspan="<?php echo $left_columns ?>">
-              <input type="button" value="<?php echo translate('Refresh') ?>" onclick="location.reload(true);"/>
-          <input type="button" name="addBtn" value="<?php echo translate('AddNewMonitor') ?>" onclick="addMonitor( this )"/>
-              <!-- <?php echo makePopupButton( '?view=monitor', 'zmMonitor0', 'monitor', translate('AddNewMonitor'), (canEdit( 'Monitors' ) && !$user['MonitorIds']) ) ?> -->
-              <?php echo makePopupButton( '?view=filter&amp;filter[terms][0][attr]=DateTime&amp;filter[terms][0][op]=%3c&amp;filter[terms][0][val]=now', 'zmFilter', 'filter', translate('Filters'), canView( 'Events' ) ) ?>
+              <input type="button" class="btn btn-primary" name="addBtn" value="<?php echo translate('AddNewMonitor') ?>" onclick="addMonitor( this );"/>
             </td>
 <?php
 for ( $i = 0; $i < count($eventCounts); $i++ )
@@ -292,7 +249,8 @@ for ( $i = 0; $i < count($eventCounts); $i++ )
 }
 ?>
             <td class="colZones"><?php echo $zoneCount ?></td>
-            <td class="colRightButtons" colspan="<?php echo canEdit('Monitors')?2:1 ?>"><input type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editMonitor( this )" disabled="disabled"/><input type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteMonitor( this )" disabled="disabled"/></td>
+            <td><input class="btn btn-primary" type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editMonitor( this )" disabled="disabled"/></td>
+            <td><input class="btn btn-danger" type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteMonitor( this )" disabled="disabled"/></td>
           </tr>
         </tfoot>
         <tbody>
@@ -334,11 +292,11 @@ echo $Server->Name();
  ?></td>
 <?php } ?>
 <?php if ( $monitor['Type'] == "Local" ) { ?>
-            <td class="colSource"><?php echo makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.$monitor['Device'].' ('.$monitor['Channel'].')</span>', canEdit( 'Monitors' ) ) ?></td>
+            <td class="colSource"><?php echo makeLink( '?view=monitor&amp;mid='.$monitor['Id'], '<span class="'.$dclass.'">'.$monitor['Device'].' ('.$monitor['Channel'].')</span>', canEdit( 'Monitors' ) ) ?></td>
 <?php } elseif ( $monitor['Type'] == "Remote" ) { ?>
-            <td class="colSource"><?php echo makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.preg_replace( '/^.*@/', '', $monitor['Host'] ).'</span>', canEdit( 'Monitors' ) ) ?></td>
+            <td class="colSource"><?php echo makeLink( '?view=monitor&amp;mid='.$monitor['Id'], '<span class="'.$dclass.'">'.preg_replace( '/^.*@/', '', $monitor['Host'] ).'</span>', canEdit( 'Monitors' ) ) ?></td>
 <?php } elseif ( $monitor['Type'] == "File" ) { ?>
-            <td class="colSource"><?php echo makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.preg_replace( '/^.*\//', '', $monitor['Path'] ).'</span>', canEdit( 'Monitors' ) ) ?></td>
+            <td class="colSource"><?php echo makeLink( '?view=monitor&amp;mid='.$monitor['Id'], '<span class="'.$dclass.'">'.preg_replace( '/^.*\//', '', $monitor['Path'] ).'</span>', canEdit( 'Monitors' ) ) ?></td>
 <?php } elseif ( $monitor['Type'] == "Ffmpeg" || $monitor['Type'] == "Libvlc" ) {
     $domain = parse_url( $monitor['Path'], PHP_URL_HOST );
     $shortpath = $domain ? $domain : preg_replace( '/^.*\//', '', $monitor['Path'] );
@@ -346,9 +304,9 @@ echo $Server->Name();
         $shortpath = 'Monitor ' . $monitor['Id'];
     }
 ?>
-            <td class="colSource"><?php echo makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.$shortpath.'</span>', canEdit( 'Monitors' ) ) ?></td>
+            <td class="colSource"><?php echo makeLink( '?view=monitor&amp;mid='.$monitor['Id'], '<span class="'.$dclass.'">'.$shortpath.'</span>', canEdit( 'Monitors' ) ) ?></td>
 <?php } elseif ( $monitor['Type'] == "cURL" ) { ?>
-            <td class="colSource"><?php echo makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.preg_replace( '/^.*\//', '', $monitor['Path'] ).'</span>', canEdit( 'Monitors' ) ) ?></td>
+            <td class="colSource"><?php echo makeLink( '?view=monitor&amp;mid='.$monitor['Id'], '<span class="'.$dclass.'">'.preg_replace( '/^.*\//', '', $monitor['Path'] ).'</span>', canEdit( 'Monitors' ) ) ?></td>
 <?php } else { ?>
             <td class="colSource">&nbsp;</td>
 <?php } ?>
@@ -356,11 +314,11 @@ echo $Server->Name();
     for ( $i = 0; $i < count($eventCounts); $i++ )
     {
 ?>
-            <td class="colEvents"><?php echo makePopupLink( '?view='.$eventsView.'&amp;page=1'.$monitor['eventCounts'][$i]['filter']['query'], $eventsWindow, $eventsView, $monitor['EventCount'.$i], canView( 'Events' ) ) ?></td>
+            <td class="colEvents"><?php echo makeLink( '?view='.$eventsView.'&amp;page=1'.$monitor['eventCounts'][$i]['filter']['query'], $monitor['EventCount'.$i], canView( 'Events' ) ) ?></td>
 <?php
     }
 ?>
-            <td class="colZones"><?php echo makePopupLink( '?view=zones&amp;mid='.$monitor['Id'], 'zmZones', array( 'zones', $monitor['Width'], $monitor['Height'] ), $monitor['ZoneCount'], $running && canView( 'Monitors' ) ) ?></td>
+            <td class="colZones"><?php echo makePopupLink( '?view=zones&amp;mid='.$monitor['Id'], 'zmZones', array( 'zones', $monitor['Width'], $monitor['Height'] ), $monitor['ZoneCount'], canView( 'Monitors' ) ) ?></td>
 <?php
     if ( canEdit('Monitors') )
     {
@@ -377,7 +335,7 @@ echo $Server->Name();
         </tbody>
       </table>
     </div>
+
     </form>
-  </div>
 </body>
 </html>

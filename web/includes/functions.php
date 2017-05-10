@@ -573,7 +573,7 @@ function truncText( $text, $length, $deslash=1 ) {
   return( preg_replace( "/^(.{".$length.",}?)\b.*$/", "\\1&hellip;", ($deslash?stripslashes($text):$text) ) );       
 }               
 
-function buildSelect( $name, $contents, $behaviours=false ) {
+function buildSelect( $name, $contents, $behaviours=false, $class=false ) {
   $value = "";
   if ( preg_match( "/^\s*(\w+)\s*(\[.*\])?\s*$/", $name, $matches ) && count($matches) > 2 ) {
     $arr = $matches[1];
@@ -606,7 +606,7 @@ function buildSelect( $name, $contents, $behaviours=false ) {
     }
   }
   ?>
-  <select name="<?php echo $name ?>" id="<?php echo $name ?>"<?php echo $behaviourText ?>>
+  <select name="<?php echo $name ?>" id="<?php echo $name ?>" class="<?php echo $class ?>"<?php echo $behaviourText ?>>
   <?php
   foreach ( $contents as $contentValue => $contentText ) {
   ?>
@@ -1362,9 +1362,9 @@ function getPagination( $pages, $page, $maxShortcuts, $query, $querySep='&amp;' 
 
       if ( $page > 1 ) {
         if ( false && $page > 2 ) {
-          $pageText .= '<a href="?view='.$view.$querySep.'page=1'.$query.'">&lt;&lt;</a>';
+          $pageText .= '<li><a href="?view='.$view.$querySep.'page=1'.$query.'">&lt;&lt;</a></li>';
         }
-        $pageText .= '<a href="?view='.$view.$querySep.'page='.($page-1).$query.'">&lt;</a>';
+        $pageText .= '<li><a href="?view='.$view.$querySep.'page='.($page-1).$query.'">&lt;</a></li>';
 
         $newPages = array();
         $pagesUsed = array();
@@ -1382,11 +1382,11 @@ function getPagination( $pages, $page, $maxShortcuts, $query, $querySep='&amp;' 
           array_unshift( $newPages, 1 );
 
         foreach ( $newPages as $newPage ) {
-          $pageText .= '<a href="?view='.$view.$querySep.'page='.$newPage.$query.'">'.$newPage.'</a>&nbsp;';
+          $pageText .= '<li><a href="?view='.$view.$querySep.'page='.$newPage.$query.'">'.$newPage.'</a></li>';
         }
 
       }
-      $pageText .= '-&nbsp;'.$page.'&nbsp;-';
+      $pageText .= '<li class="active"><span>'.$page.'<span class="sr-only">(current)</span></span></li>';
       if ( $page < $pages ) {
         $newPages = array();
         $pagesUsed = array();
@@ -1404,11 +1404,11 @@ function getPagination( $pages, $page, $maxShortcuts, $query, $querySep='&amp;' 
           array_push( $newPages, $pages );
 
         foreach ( $newPages as $newPage ) {
-          $pageText .= '&nbsp;<a href="?view='.$view.$querySep.'page='.$newPage.$query.'">'.$newPage.'</a>';
+          $pageText .= '<li><a href="?view='.$view.$querySep.'page='.$newPage.$query.'">'.$newPage.'</a></li>';
         }
-        $pageText .= '<a href="?view='.$view.$querySep.'page='.($page+1).$query.'">&gt;</a>';
+        $pageText .= '<li><a href="?view='.$view.$querySep.'page='.($page+1).$query.'">&gt;</a></li>';
         if ( false && $page < ($pages-1) ) {
-          $pageText .= '<a href="?view='.$view.$querySep.'page='.$pages.$query.'">&gt;&gt;</a>';
+          $pageText .= '<li><a href="?view='.$view.$querySep.'page='.$pages.$query.'">&gt;&gt;</a></li>';
         }
       }
     }
@@ -2137,6 +2137,18 @@ function getStreamHTML( $monitor, $scale=100 ) {
         return getImageStill( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
     }
 } // end function getStreamHTML
+
+function updateAvailable() {
+	if ( ZM_DYN_DB_VERSION && (ZM_DYN_DB_VERSION != ZM_VERSION) ) {
+		$version = 'mismatch';
+	} elseif ( verNum( ZM_DYN_LAST_VERSION ) <= verNum( ZM_VERSION ) ) {
+		$version = 'ok';
+	} else {
+		$version = 'update';
+	}
+
+	return($version);
+}
 
 function folder_size($dir) {
     $size = 0;

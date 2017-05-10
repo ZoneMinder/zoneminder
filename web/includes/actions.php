@@ -645,9 +645,8 @@ if ( !empty($action) )
 					sendControlCommand( $mid, 'quit' );
 				} 
                 //daemonControl( 'restart', 'zmwatch.pl' );
-                $refreshParent = true;
             }
-            $view = 'none';
+            $view = 'console';
         }
         if ( $action == "delete" )
         {

@@ -91,7 +91,7 @@ int main( int argc, const char *argv[] )
 
   logInit( "zms" );
   
-  ssedetect();
+  hwcaps_detect();
 
   zmSetDefaultTermHandler();
   zmSetDefaultDieHandler();

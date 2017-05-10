@@ -846,6 +846,7 @@ install(CODE "
       message(STATUS \"Not overwriting zm.conf.  Installing zm.conf.new instead.\")
       file(RENAME \"${CMAKE_CURRENT_BINARY_DIR}/zm.conf\" \"${CMAKE_CURRENT_BINARY_DIR}/zm.conf.new\")
       file(INSTALL \"${CMAKE_CURRENT_BINARY_DIR}/zm.conf.new\" DESTINATION \"${ZM_CONFIG_DIR}\")
+      file(RENAME \"${CMAKE_CURRENT_BINARY_DIR}/zm.conf.new\" \"${CMAKE_CURRENT_BINARY_DIR}/zm.conf\")
       endif()
       ")
 

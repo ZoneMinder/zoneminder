@@ -303,7 +303,6 @@ rm -rf %{_docdir}/%{name}-%{version}
 %{_bindir}/zmc
 %{_bindir}/zmcontrol.pl
 %{_bindir}/zmdc.pl
-%{_bindir}/zmf
 %{_bindir}/zmfilter.pl
 %{_bindir}/zmpkg.pl
 %{_bindir}/zmtrack.pl

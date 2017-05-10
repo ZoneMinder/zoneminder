@@ -76,7 +76,6 @@ $SLANG = array(
     '32BitColour'          => '32 битный цвет',          // Added - 2011-06-15
     '8BitGrey'             => '256 оттенков серого',
     'Action'               => 'Действие', 
-    'Actual'               => '1х',
     'AddNewControl'        => 'Добавить новый',
     'AddNewMonitor'        => 'Добавить монитор',
     'AddNewUser'           => 'Добавить пользователя',

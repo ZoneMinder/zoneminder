@@ -761,7 +761,15 @@ else(zmconfgen_result EQUAL 0)
 endif(zmconfgen_result EQUAL 0)
 
 # Install zm.conf
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zm.conf" DESTINATION "${ZM_CONFIG_DIR}")
+install(CODE "
+      if (NOT EXISTS \"${ZM_CONFIG_DIR}/zm.conf\")
+      file(INSTALL \"${CMAKE_CURRENT_BINARY_DIR}/zm.conf\" DESTINATION \"${ZM_CONFIG_DIR}\")
+      else (NOT EXISTS \"${ZM_CONFIG_DIR}/zm.conf\")
+      file(RENAME \"${CMAKE_CURRENT_BINARY_DIR}/zm.conf\" \"${CMAKE_CURRENT_BINARY_DIR}/zm.conf.new\")
+      file(INSTALL \"${CMAKE_CURRENT_BINARY_DIR}/zm.conf.new\" DESTINATION \"${ZM_CONFIG_DIR}\")
+      endif()
+      ")
+
 
 # Uninstall target
 configure_file(
@@ -777,3 +785,4 @@ if(CCACHE_FOUND)
         set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
         set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
 endif(CCACHE_FOUND)
+

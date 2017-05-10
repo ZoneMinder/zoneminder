@@ -21,18 +21,27 @@ function changeScale() {
 		vid.height = newHeight;
 	} else {
     streamScale( scale );
+<<<<<<< HEAD
 		var streamImg = document.getElementById('evtStream');
 		streamImg.style.width = newWidth + "px";
 		streamImg.style.height = newHeight + "px";
 	}
   Cookie.write( 'zmEventScale'+eventData.MonitorId, scale, { duration: 10*365 } );
+=======
+    Cookie.write( 'zmEventScale'+eventData.MonitorId, scale, { duration: 10*365 } );
+
+    /*Stream could be an applet so can't use moo tools*/
+    var streamImg = document.getElementById('evtStream');
+    streamImg.style.width = newWidth + "px";
+    streamImg.style.height = newHeight + "px";
+>>>>>>> master
 }
 
 function changeReplayMode()
 {
     var replayMode = $('replayMode').get('value');
 
-    Cookie.write( 'replayMode', replayMode, { duration: 10*365 })
+    Cookie.write( 'replayMode', replayMode, { duration: 10*365 });
 
     refreshWindow();
 }
@@ -45,7 +54,7 @@ var lastEventId = 0;
 
 function getCmdResponse( respObj, respText )
 {
-    if ( checkStreamForErrors( "getCmdResponse" ,respObj ) )
+    if ( checkStreamForErrors( "getCmdResponse", respObj ) )
         return;
 
     if ( streamCmdTimer )
@@ -65,7 +74,7 @@ function getCmdResponse( respObj, respText )
         $('rate').addClass( 'hidden' );
         streamPause( false );
     }
-    else 
+    else
     {
         $('modeValue').set( 'text', "Replay" );
         $('rateValue').set( 'text', streamStatus.rate );
@@ -203,9 +212,9 @@ function streamSeek( offset )
 }
 
 function streamQuery()
-{       
+{
     streamReq.send( streamParms+"&command="+CMD_QUERY );
-}       
+}
 
 var slider = null;
 var scroll = null;
@@ -455,7 +464,7 @@ function getFrameResponse( respObj, respText )
         eventData['frames'] = new Object();
 
     eventData['frames'][frame.FrameId] = frame;
-    
+
     loadEventThumb( eventData, frame, respObj.loopback=="true" );
 }
 
@@ -494,7 +503,7 @@ function checkFrames( eventId, frameId, loadImage )
         if ( !$('eventThumb'+fid) )
         {
             var img = new Element( 'img', { 'id': 'eventThumb'+fid, 'src': 'graphics/transparent.gif', 'alt': fid, 'class': 'placeholder' } );
-            img.addEvent( 'click', function () { eventData['frames'][fid] = null; checkFrames( eventId, fid ) } );
+            img.addEvent( 'click', function() { eventData['frames'][fid] = null; checkFrames( eventId, fid ); } );
             frameQuery( eventId, fid, loadImage && (fid == frameId) );
             var imgs = $('eventThumbs').getElements( 'img' );
             var injected = false;
@@ -723,7 +732,7 @@ function drawProgressBar()
             var offset = parseInt((index*eventData.Length)/$$(cells).length);
             $(cell).setProperty( 'title', '+'+secsToTime(offset)+'s' );
             $(cell).removeEvent( 'click' );
-            $(cell).addEvent( 'click', function(){ streamSeek( offset ); } );
+            $(cell).addEvent( 'click', function() { streamSeek( offset ); } );
             barWidth += $(cell).getCoordinates().width;
         }
     );
@@ -764,7 +773,7 @@ function handleClick( event )
     var target = event.target;
     var x = event.page.x - $(target).getLeft();
     var y = event.page.y - $(target).getTop();
-    
+
     if ( event.shift )
         streamPan( x, y );
     else

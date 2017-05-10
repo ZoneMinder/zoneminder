@@ -31,9 +31,9 @@
 #include <signal.h>
 #include <stdarg.h>
 #include <errno.h>
+#include <libgen.h>
 #ifdef __FreeBSD__
 #include <sys/thr.h>
-#include <libgen.h>
 #endif
 
 bool Logger::smInitialised = false;
@@ -515,7 +515,8 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
         va_list         argPtr;
         struct timeval  timeVal;
 
-        const char * const file = basename(filepath);
+        char *filecopy = strdup(filepath);
+        const char * const file = basename(filecopy);
         const char *classString = smCodes[level].c_str();
         
         if ( level < PANIC || level > DEBUG9 )
@@ -630,6 +631,7 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
             syslog( priority, "%s [%s] [%s]", classString, mId.c_str(), syslogStart );
         }
 
+        free(filecopy);
         if ( level <= FATAL )
         {
             if ( level <= PANIC )

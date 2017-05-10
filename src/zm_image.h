@@ -54,7 +54,7 @@ extern imgbufcpy_fptr_t fptr_imgbufcpy;
 
 /* Should be called from Image class functions */
 inline static uint8_t* AllocBuffer(size_t p_bufsize) {
-	uint8_t* buffer = (uint8_t*)zm_mallocaligned(16,p_bufsize);
+	uint8_t* buffer = (uint8_t*)zm_mallocaligned(64,p_bufsize);
 	if(buffer == NULL)
 		Fatal("Memory allocation failed: %s",strerror(errno));
 	

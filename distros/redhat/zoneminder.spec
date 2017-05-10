@@ -50,6 +50,7 @@ Source1: https://github.com/FriendsOfCake/crud/archive/v%{crud_version}.tar.gz#/
 %{?with_init_systemd:BuildRequires: systemd-devel}
 %{?with_init_systemd:BuildRequires: mariadb-devel}
 %{?with_init_systemd:BuildRequires: perl-podlators}
+%{?with_init_systemd:BuildRequires: polkit-devel}
 %{?with_init_sysv:BuildRequires: mysql-devel}
 %{?el6:BuildRequires: epel-rpm-macros}
 BuildRequires: cmake >= 2.8.7
@@ -81,7 +82,6 @@ BuildRequires: vlc-devel
 BuildRequires: libcurl-devel
 BuildRequires: libv4l-devel
 BuildRequires: ffmpeg-devel
-BuildRequires: polkit-devel
 
 %{?with_nginx:Requires: nginx}
 %{?with_nginx:Requires: fcgiwrap}
@@ -291,6 +291,8 @@ rm -rf %{_docdir}/%{name}-%{version}
 %if 0%{?with_init_systemd}
 %{_tmpfilesdir}/zoneminder.conf
 %{_unitdir}/zoneminder.service
+%{_datadir}/polkit-1/actions/com.zoneminder.systemctl.policy
+%{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
 %endif
 
 %if 0%{?with_init_sysv}
@@ -326,9 +328,6 @@ rm -rf %{_docdir}/%{name}-%{version}
 
 %{_libexecdir}/zoneminder/
 %{_datadir}/zoneminder/
-
-%{_datadir}/polkit-1/actions/com.zoneminder.systemctl.policy
-%{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
 
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/events

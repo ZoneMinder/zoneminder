@@ -182,8 +182,8 @@ int LibvlcCamera::PrimeCapture()
 
   mLibvlcData.bufferSize = width * height * mBpp;
   // Libvlc wants 32 byte alignment for images (should in theory do this for all image lines)
-  mLibvlcData.buffer = (uint8_t*)zm_mallocaligned(32, mLibvlcData.bufferSize);
-  mLibvlcData.prevBuffer = (uint8_t*)zm_mallocaligned(32, mLibvlcData.bufferSize);
+  mLibvlcData.buffer = (uint8_t*)zm_mallocaligned(64, mLibvlcData.bufferSize);
+  mLibvlcData.prevBuffer = (uint8_t*)zm_mallocaligned(64, mLibvlcData.bufferSize);
   
   mLibvlcData.newImage.setValueImmediate(false);
 

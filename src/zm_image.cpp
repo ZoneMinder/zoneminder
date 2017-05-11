@@ -233,7 +233,7 @@ void Image::Initialise()
   /* Compare results with expected results */
   for(int i=0;i<128;i++) {
     if(abs(blendexp[i] - blendres[i]) > 3) {
-      Panic("Blend function failed self-test: Results differ from the expected results");
+      Panic("Blend function failed self-test: Results differ from the expected results. Column %u Expected %u Got %u",i,blendexp[i],blendres[i]);
     }
   }
   
@@ -304,28 +304,28 @@ void Image::Initialise()
     191,75,105,156,23,37,147,71,65,45,20,5,29,69,242,77,13,100,29,82,99,99,123,153,89,132,205,40,9,14,87,167
   };
   __attribute__((aligned(64))) uint8_t delta8_rgba_exp[32] = {
-    73,25,148,105,20,64,129,49,85,43,106,123,47,13,102,92,58,126,110,110,29,109,54,124,114,114,19,179,51,127,154,97
+    13,11,189,60,41,68,112,28,84,66,68,48,14,30,91,36,24,54,113,101,41,90,39,82,107,47,46,80,69,102,130,21
   };
   __attribute__((aligned(64))) uint8_t delta8_gray8_res[128];
   __attribute__((aligned(64))) uint8_t delta8_rgba_res[32];
 
   /* Run the delta8 grayscale function */
-  (*fptr_delta8_gray8)(delta8_1,delta8_2,delta8_gray8_exp,128);
+  (*fptr_delta8_gray8)(delta8_1,delta8_2,delta8_gray8_res,128);
 
   /* Compare results with expected results */
   for(int i=0;i<128;i++) {
     if(abs(delta8_gray8_exp[i] - delta8_gray8_res[i]) > 7) {
-      Panic("Delta grayscale function failed self-test: Results differ from the expected results");
+      Panic("Delta grayscale function failed self-test: Results differ from the expected results. Column %u Expected %u Got %u\n",i,delta8_gray8_exp[i],delta8_gray8_res[i]);
     }
   }
 
   /* Run the delta8 RGBA function */
-  (*fptr_delta8_rgba)(delta8_1,delta8_2,delta8_rgba_exp,32);
+  (*fptr_delta8_rgba)(delta8_1,delta8_2,delta8_rgba_res,32);
 
   /* Compare results with expected results */
   for(int i=0;i<32;i++) {
     if(abs(delta8_rgba_exp[i] - delta8_rgba_res[i]) > 7) {
-      Panic("Delta RGBA function failed self-test: Results differ from the expected results");
+      Panic("Delta RGBA function failed self-test: Results differ from the expected results. Column %u Expected %u Got %u",i,delta8_rgba_exp[i],delta8_rgba_res[i]);
     }
   }
 

@@ -315,7 +315,7 @@ void Image::Initialise()
   /* Compare results with expected results */
   for(int i=0;i<128;i++) {
     if(abs(delta8_gray8_exp[i] - delta8_gray8_res[i]) > 7) {
-      Panic("Delta grayscale function failed self-test: Results differ from the expected results. Column %u Expected %u Got %u\n",i,delta8_gray8_exp[i],delta8_gray8_res[i]);
+      Panic("Delta grayscale function failed self-test: Results differ from the expected results. Column %u Expected %u Got %u",i,delta8_gray8_exp[i],delta8_gray8_res[i]);
     }
   }
 

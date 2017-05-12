@@ -3754,7 +3754,6 @@ void neon32_armv7_delta8_rgb32(const uint8_t* col1, const uint8_t* col2, uint8_t
   : "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (multiplier)
   : "%r12", "%q0", "%q1", "%q2", "%q3", "%q4", "%q5", "%q6", "%q7", "%q8", "cc", "memory"
   );
-}
 #else
   Panic("Neon function called on a non-ARM platform or Neon code is absent");
 #endif

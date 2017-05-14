@@ -196,8 +196,15 @@ void Image::Initialise()
       fptr_blend = &sse2_fastblend; /* SSE2 fast blend */
       Debug(4,"Blend: Using SSE2 fast blend function");
     } else if(config.cpu_extensions && neonversion >= 1) {
-      fptr_blend = &neon32_armv7_fastblend;  /* ARM Neon fast blend */
-      Debug(4,"Blend: Using ARM Neon fast blend function");
+#if defined(__aarch64__)
+      fptr_blend = &neon64_armv8_fastblend;  /* ARM Neon (AArch64) fast blend */
+      Debug(4,"Blend: Using ARM Neon (AArch64) fast blend function");
+#elif defined(__arm__)
+      fptr_blend = &neon32_armv7_fastblend;  /* ARM Neon (AArch32) fast blend */
+      Debug(4,"Blend: Using ARM Neon (AArch32) fast blend function");
+#else
+      Panic("Bug: Non ARM platform but neon present");
+#endif
     } else {
       fptr_blend = &std_fastblend;  /* standard fast blend */
       Debug(4,"Blend: Using fast blend function");
@@ -260,12 +267,23 @@ void Image::Initialise()
       Debug(4,"Delta: Using SSE2 delta functions");
     } else if(neonversion >= 1) {
       /* ARM Neon available */
+#if defined(__aarch64__)
+      fptr_delta8_rgba = &neon64_armv8_delta8_rgba;
+      fptr_delta8_bgra = &neon64_armv8_delta8_bgra;
+      fptr_delta8_argb = &neon64_armv8_delta8_argb;
+      fptr_delta8_abgr = &neon64_armv8_delta8_abgr;
+      fptr_delta8_gray8 = &neon64_armv8_delta8_gray8;
+      Debug(4,"Delta: Using ARM Neon (AArch64) delta functions");
+#elif defined(__arm__)
       fptr_delta8_rgba = &neon32_armv7_delta8_rgba;
       fptr_delta8_bgra = &neon32_armv7_delta8_bgra;
       fptr_delta8_argb = &neon32_armv7_delta8_argb;
       fptr_delta8_abgr = &neon32_armv7_delta8_abgr;
       fptr_delta8_gray8 = &neon32_armv7_delta8_gray8;
-      Debug(4,"Delta: Using ARM Neon delta functions");
+      Debug(4,"Delta: Using ARM Neon (AArch32) delta functions");
+#else
+      Panic("Bug: Non ARM platform but neon present");
+#endif
     } else {
       /* No suitable SSE version available */
       fptr_delta8_rgba = &std_delta8_rgba;
@@ -3410,10 +3428,10 @@ void neon32_armv7_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* r
   "mov r12, %4\n\t"
   "vdup.8 q12, r12\n\t"
   "neon32_armv7_fastblend_iter:\n\t"
-  "pld [%0,#256]\n\t"
-  "pld [%1,#256]\n\t"
   "vldm %0!, {q0,q1,q2,q3}\n\t"
   "vldm %1!, {q4,q5,q6,q7}\n\t"
+  "pld [%0, #256]\n\t"
+  "pld [%1, #256]\n\t"
   "vrshl.u8 q8, q0, q12\n\t"
   "vrshl.u8 q9, q1, q12\n\t"
   "vrshl.u8 q10, q2, q12\n\t"
@@ -3437,6 +3455,90 @@ void neon32_armv7_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* r
   : "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (divider)
   : "%r12", "%q0", "%q1", "%q2", "%q3", "%q4", "%q5", "%q6", "%q7", "%q8", "%q9", "%q10", "%q11", "%q12", "cc", "memory"
   );
+#else
+  Panic("Neon function called on a non-ARM platform or Neon code is absent");
+#endif
+}
+
+__attribute__((noinline)) void neon64_armv8_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent) {
+#if (defined(__aarch64__) && !defined(ZM_STRIP_NEON))
+  static int8_t divider = 0;
+  static double current_blendpercent = 0.0;
+
+  if(current_blendpercent != blendpercent) {
+    /* Attempt to match the blending percent to one of the possible values */
+    if(blendpercent < 2.34375) {
+      // 1.5625% blending
+      divider = 6;
+    } else if(blendpercent >= 2.34375 && blendpercent < 4.6875) {
+      // 3.125% blending
+      divider = 5;
+    } else if(blendpercent >= 4.6875 && blendpercent < 9.375) {
+      // 6.25% blending
+      divider = 4;
+    } else if(blendpercent >= 9.375 && blendpercent < 18.75) {
+      // 12.5% blending
+      divider = 3;
+    } else if(blendpercent >= 18.75 && blendpercent < 37.5) {
+      // 25% blending
+      divider = 2;
+    } else if(blendpercent >= 37.5) {
+      // 50% blending
+      divider = 1;
+    }
+    // We only have instruction to shift left by a variable, going negative shifts right :)
+    divider *= -1;
+    current_blendpercent = blendpercent;
+  }
+
+  /* V16 = col1+0     */
+  /* V17 = col1+16    */
+  /* V18 = col1+32    */
+  /* V19 = col1+48    */
+  /* V20 = col2+0     */
+  /* V21 = col2+16    */
+  /* V22 = col2+32    */
+  /* V23 = col2+48    */
+  /* V24 = col1tmp+0  */
+  /* V25 = col1tmp+16 */
+  /* V26 = col1tmp+32 */
+  /* V27 = col1tmp+48 */
+  /* V28 = divider    */
+
+  __asm__ __volatile__ (
+  "mov x12, %4\n\t"
+  "dup v28.16b, w12\n\t"
+  "neon64_armv8_fastblend_iter:\n\t"
+  "ldp q16, q17, [%0], #32\n\t"
+  "ldp q18, q19, [%0], #32\n\t"
+  "ldp q20, q21, [%1], #32\n\t"
+  "ldp q22, q23, [%1], #32\n\t"
+  "prfm pldl1keep, [%0, #256]\n\t"
+  "prfm pldl1keep, [%1, #256]\n\t"
+  "urshl v24.16b, v16.16b, v28.16b\n\t"
+  "urshl v25.16b, v17.16b, v28.16b\n\t"
+  "urshl v26.16b, v18.16b, v28.16b\n\t"
+  "urshl v27.16b, v19.16b, v28.16b\n\t"
+  "urshl v20.16b, v20.16b, v28.16b\n\t"
+  "urshl v21.16b, v21.16b, v28.16b\n\t"
+  "urshl v22.16b, v22.16b, v28.16b\n\t"
+  "urshl v23.16b, v23.16b, v28.16b\n\t"
+  "sub v20.16b, v20.16b, v24.16b\n\t"
+  "sub v21.16b, v21.16b, v25.16b\n\t"
+  "sub v22.16b, v22.16b, v26.16b\n\t"
+  "sub v23.16b, v23.16b, v27.16b\n\t"
+  "add v20.16b, v20.16b, v16.16b\n\t"
+  "add v21.16b, v21.16b, v17.16b\n\t"
+  "add v22.16b, v22.16b, v18.16b\n\t"
+  "add v23.16b, v23.16b, v19.16b\n\t"
+  "stp q20, q21, [%2], #32\n\t"
+  "stp q22, q23, [%2], #32\n\t"
+  "subs %3, %3, #64\n\t"
+  "bne neon64_armv8_fastblend_iter\n\t"
+  :
+  : "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (divider)
+  : "%x12", "%v16", "%v17", "%v18", "%v19", "%v20", "%v21", "%v22", "%v23", "%v24", "%v25", "%v26", "%v27", "%v28", "cc", "memory"
+);
 #else
   Panic("Neon function called on a non-ARM platform or Neon code is absent");
 #endif
@@ -3682,10 +3784,10 @@ void neon32_armv7_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t
 
   __asm__ __volatile__ (
   "neon32_armv7_delta8_gray8_iter:\n\t"
-  "pld [%0,#256]\n\t"
-  "pld [%1,#256]\n\t"
   "vldm %0!, {q0,q1,q2,q3}\n\t"
   "vldm %1!, {q4,q5,q6,q7}\n\t"
+  "pld [%0, #512]\n\t"
+  "pld [%1, #512]\n\t"
   "vabd.u8 q0, q0, q4\n\t"
   "vabd.u8 q1, q1, q5\n\t"
   "vabd.u8 q2, q2, q6\n\t"
@@ -3696,6 +3798,44 @@ void neon32_armv7_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t
   :
   : "r" (col1), "r" (col2), "r" (result), "r" (count)
   : "%q0", "%q1", "%q2", "%q3", "%q4", "%q5", "%q6", "%q7", "cc", "memory"
+  );
+#else
+  Panic("Neon function called on a non-ARM platform or Neon code is absent");
+#endif
+}
+
+/* Grayscale Neon for AArch64 */
+__attribute__((noinline)) void neon64_armv8_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+#if (defined(__aarch64__) && !defined(ZM_STRIP_NEON))
+
+  /* V16 = col1+0  */
+  /* V17 = col1+16 */
+  /* V18 = col1+32 */
+  /* V19 = col1+48 */
+  /* V20 = col2+0  */
+  /* V21 = col2+16 */
+  /* V22 = col2+32 */
+  /* V23 = col2+48 */
+
+  __asm__ __volatile__ (
+  "neon64_armv8_delta8_gray8_iter:\n\t"
+  "ldp q16, q17, [%0], #32\n\t"
+  "ldp q18, q19, [%0], #32\n\t"
+  "ldp q20, q21, [%1], #32\n\t"
+  "ldp q22, q23, [%1], #32\n\t"
+  "prfm pldl1keep, [%0, #512]\n\t"
+  "prfm pldl1keep, [%1, #512]\n\t"
+  "uabd v16.16b, v16.16b, v20.16b\n\t"
+  "uabd v17.16b, v17.16b, v21.16b\n\t"
+  "uabd v18.16b, v18.16b, v22.16b\n\t"
+  "uabd v19.16b, v19.16b, v23.16b\n\t"
+  "stp q16, q17, [%2], #32\n\t"
+  "stp q18, q19, [%2], #32\n\t"
+  "subs %3, %3, #64\n\t"
+  "bne neon64_armv8_delta8_gray8_iter\n\t"
+  :
+  : "r" (col1), "r" (col2), "r" (result), "r" (count)
+  : "%v16", "%v17", "%v18", "%v19", "%v20", "%v21", "%v22", "%v23", "cc", "memory"
   );
 #else
   Panic("Neon function called on a non-ARM platform or Neon code is absent");
@@ -3723,10 +3863,10 @@ void neon32_armv7_delta8_rgb32(const uint8_t* col1, const uint8_t* col2, uint8_t
   "mov r12, %4\n\t"
   "vdup.32 q8, r12\n\t"
   "neon32_armv7_delta8_rgb32_iter:\n\t"
-  "pld [%0,#256]\n\t"
-  "pld [%1,#256]\n\t"
   "vldm %0!, {q0,q1,q2,q3}\n\t"
   "vldm %1!, {q4,q5,q6,q7}\n\t"
+  "pld [%0, #256]\n\t"
+  "pld [%1, #256]\n\t"
   "vabd.u8 q0, q0, q4\n\t"
   "vabd.u8 q1, q1, q5\n\t"
   "vabd.u8 q2, q2, q6\n\t"
@@ -3759,6 +3899,62 @@ void neon32_armv7_delta8_rgb32(const uint8_t* col1, const uint8_t* col2, uint8_t
 #endif
 }
 
+/* RGB32 Neon for AArch64 */
+__attribute__((noinline)) void neon64_armv8_delta8_rgb32(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, uint32_t multiplier) {
+#if (defined(__aarch64__) && !defined(ZM_STRIP_NEON))
+
+  /* V16 = col1+0  */
+  /* V17 = col1+16 */
+  /* V18 = col1+32  */
+  /* V19 = col1+48 */
+  /* V20 = col2+0  */
+  /* V21 = col2+16 */
+  /* V22 = col2+32 */
+  /* V23 = col2+48 */
+  /* V24 = multiplier */
+
+  __asm__ __volatile__ (
+  "mov x12, %4\n\t"
+  "dup v24.4s, w12\n\t"
+  "neon64_armv8_delta8_rgb32_iter:\n\t"
+  "ldp q16, q17, [%0], #32\n\t"
+  "ldp q18, q19, [%0], #32\n\t"
+  "ldp q20, q21, [%1], #32\n\t"
+  "ldp q22, q23, [%1], #32\n\t"
+  "prfm pldl1keep, [%0, #256]\n\t"
+  "prfm pldl1keep, [%1, #256]\n\t"
+  "uabd v16.16b, v16.16b, v20.16b\n\t"
+  "uabd v17.16b, v17.16b, v21.16b\n\t"
+  "uabd v18.16b, v18.16b, v22.16b\n\t"
+  "uabd v19.16b, v19.16b, v23.16b\n\t"
+  "urshr v16.16b, v16.16b, #3\n\t"
+  "urshr v17.16b, v17.16b, #3\n\t"
+  "urshr v18.16b, v18.16b, #3\n\t"
+  "urshr v19.16b, v19.16b, #3\n\t"
+  "mul v16.16b, v16.16b, v24.16b\n\t"
+  "mul v17.16b, v17.16b, v24.16b\n\t"
+  "mul v18.16b, v18.16b, v24.16b\n\t"
+  "mul v19.16b, v19.16b, v24.16b\n\t"
+  "addp v16.16b, v16.16b, v16.16b\n\t"
+  "addp v17.16b, v17.16b, v17.16b\n\t"
+  "addp v18.16b, v18.16b, v18.16b\n\t"
+  "addp v19.16b, v19.16b, v19.16b\n\t"
+  "addp v16.16b, v16.16b, v16.16b\n\t"
+  "addp v17.16b, v17.16b, v17.16b\n\t"
+  "addp v18.16b, v18.16b, v18.16b\n\t"
+  "addp v19.16b, v19.16b, v19.16b\n\t"
+  "st4 {v16.s, v17.s, v18.s, v19.s}[0], [%2], #16\n\t"
+  "subs %3, %3, #16\n\t"
+  "bne neon64_armv8_delta8_rgb32_iter\n\t"
+  :
+  : "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (multiplier)
+  : "%x12", "%v16", "%v17", "%v18", "%v19", "%v20", "%v21", "%v22", "%v23", "%v24", "cc", "memory"
+  );
+#else
+  Panic("Neon function called on a non-ARM platform or Neon code is absent");
+#endif
+}
+
 /* RGB32: RGBA Neon for AArch32 */
 void neon32_armv7_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
   neon32_armv7_delta8_rgb32(col1, col2, result, count, 0x00010502);
@@ -3777,6 +3973,26 @@ void neon32_armv7_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t*
 /* RGB32: ABGR Neon for AArch32 */
 void neon32_armv7_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
   neon32_armv7_delta8_rgb32(col1, col2, result, count, 0x02050100);
+}
+
+/* RGB32: RGBA Neon for AArch64 */
+void neon64_armv8_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+  neon64_armv8_delta8_rgb32(col1, col2, result, count, 0x00010502);
+}
+
+/* RGB32: BGRA Neon for AArch64 */
+void neon64_armv8_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+  neon64_armv8_delta8_rgb32(col1, col2, result, count, 0x00020501);
+}
+
+/* RGB32: ARGB Neon for AArch64 */
+void neon64_armv8_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+  neon64_armv8_delta8_rgb32(col1, col2, result, count, 0x01050200);
+}
+
+/* RGB32: ABGR Neon for AArch64 */
+void neon64_armv8_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+  neon64_armv8_delta8_rgb32(col1, col2, result, count, 0x02050100);
 }
 
 /* Grayscale SSE2 */

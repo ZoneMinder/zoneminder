@@ -243,6 +243,9 @@ function parseFilterToTree( $filter )
                         case 'Weekday':
                             $value = "weekday( '".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."' )";
                             break;
+                        case 'Notes':
+                            $value = "'".$value."'";
+                            break;
                     }
                     $valueList[] = $value;
                 }

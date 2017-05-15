@@ -311,15 +311,20 @@ void hwcaps_detect() {
     Debug(1,"Detected a x86\\x86-64 processor");
   } 
 #elif defined(__arm__)
-  // ARM processor
+  // ARM processor in 32bit mode
   // To see if it supports NEON, we need to get that information from the kernel
   unsigned long auxval = getauxval(AT_HWCAP);
   if (auxval & HWCAP_ARM_NEON) {
-    Debug(1,"Detected ARM processor with Neon");
+    Debug(1,"Detected ARM (AArch32) processor with Neon");
     neonversion = 1;
   } else {
-    Debug(1,"Detected ARM processor");
+    Debug(1,"Detected ARM (AArch32) processor");
   }
+#elif defined(__aarch64__)
+  // ARM processor in 64bit mode
+  // Neon is mandatory, no need to check for it
+  neonversion = 1;
+  Debug(1,"Detected ARM (AArch64) processor with Neon");
 #else
   // Unknown processor
   Debug(1,"Detected unknown processor architecture");

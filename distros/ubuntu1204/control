@@ -54,7 +54,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libdata-uuid-perl 
         ,mysql-client | virtual-mysql-client
         ,perl-modules
-        ,php5-mysql, php5-gd, php5-apcu
+        ,php5-mysql, php5-gd, php5-apcu, php-apc
         ,policykit-1
         ,rsyslog | system-log-daemon
         ,zip

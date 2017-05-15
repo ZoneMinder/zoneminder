@@ -1,6 +1,5 @@
 function checkState( element )
 {
-
     var form = element.form;
 
     var minIndex = running?2:1;
@@ -23,9 +22,8 @@ function checkState( element )
     if (element.value.toLowerCase() == 'default' )
     {
 	form.saveBtn.disabled = false;
- 	form.deleteBtn.disabled = true;
+        form.deleteBtn.disabled = true;
     }
-
 }
 
 function saveState( element )

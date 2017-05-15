@@ -251,10 +251,6 @@ if ( $command =~ /^(?:start|restart)$/ )
                 }
                 if ( $monitor->{Function} ne 'Monitor' )
                 {
-                    if ( $Config{ZM_OPT_FRAME_SERVER} )
-                    {
-                        runCommand( "zmdc.pl start zmf -m $monitor->{Id}" );
-                    }
                     runCommand( "zmdc.pl start zma -m $monitor->{Id}" );
                 }
                 if ( $Config{ZM_OPT_CONTROL} )

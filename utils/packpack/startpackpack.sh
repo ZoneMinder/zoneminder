@@ -9,7 +9,7 @@
 # General sanity checks
 checksanity () {
     # Check to see if this script has access to all the commands it needs
-    for CMD in set echo curl repoquery git ln mkdir rmdir; do
+    for CMD in set echo curl repoquery git ln mkdir rmdir cat patch; do
       type $CMD 2>&1 > /dev/null
 
       if [ $? -ne 0 ]; then
@@ -48,6 +48,12 @@ commonprep () {
     else
         echo "Cloning pakcpack github repo..."
         git clone https://github.com/packpack/packpack.git packpack
+    fi
+
+    # Patch packpack
+    patch --dry-run --silent -f -p1 < utils/packpack/packpack-rpm.patch
+    if [ $? -eq 0 ]; then
+        patch -p1 < utils/packpack/packpack-rpm.patch
     fi
 
     # The rpm specfile requires we download the tarball and manually move it into place

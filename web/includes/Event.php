@@ -126,8 +126,10 @@ class Event {
     } # ! ZM_OPT_FAST_DELETE
   } # end Event->delete
 
-  public function getStreamSrc( $args, $querySep='&amp;' ) {
-    return ( ZM_BASE_PATH != '/' ? ZM_BASE_PATH : '' ).'/index.php?view=view_video&eid='.$this->{'Id'};
+  public function getStreamSrc( $args=array(), $querySep='&amp;' ) {
+    if ( $this->{'DefaultVideo'} ) {
+      return ( ZM_BASE_PATH != '/' ? ZM_BASE_PATH : '' ).'/index.php?view=view_video&eid='.$this->{'Id'};
+    }
 
     $streamSrc = ZM_BASE_URL.ZM_PATH_ZMS;
 
@@ -217,12 +219,13 @@ class Event {
             return '';
           } 
             
-          $command ='ffmpeg -v 0 -i '.$videoPath.' -vf "select=gte(n\\,'.$frame['FrameId'].'),setpts=PTS-STARTPTS" '.$eventPath.'/'.$captImage;
-          Logger::Debug( "Running $command" );
+          #$command ='ffmpeg -v 0 -i '.$videoPath.' -vf "select=gte(n\\,'.$frame['FrameId'].'),setpts=PTS-STARTPTS" '.$eventPath.'/'.$captImage;
+          $command ='ffmpeg -ss '. $frame['Delta'] .' -i '.$videoPath.' -frames:v 1 '.$eventPath.'/'.$captImage;
+          Debug( "Running $command" );
           $output = array();
           $retval = 0;
           exec( $command, $output, $retval );
-          Logger::Debug("Retval: $retval, output: " . implode("\n", $output));
+          Debug("Retval: $retval, output: " . implode("\n", $output));
         } else {
           Error("Can't create frame images from video becuase there is no video file for this event (".$Event->DefaultVideo() );
         }

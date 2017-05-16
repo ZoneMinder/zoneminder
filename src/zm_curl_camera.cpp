@@ -311,7 +311,6 @@ int cURLCamera::CaptureAndRecord( Image &image, struct timeval recording, char* 
   return( 0 );
 }
 
-
 size_t cURLCamera::data_callback(void *buffer, size_t size, size_t nmemb, void *userdata) {
   lock();
 
@@ -330,8 +329,6 @@ size_t cURLCamera::data_callback(void *buffer, size_t size, size_t nmemb, void *
   /* Return bytes processed */
   return size*nmemb;
 }
-
-
 
 size_t cURLCamera::header_callback( void *buffer, size_t size, size_t nmemb, void *userdata) {
   std::string header;

@@ -42,12 +42,6 @@
 #cmakedefine HAVE_GNUTLS_GNUTLS_H 1
 #cmakedefine HAVE_LIBMYSQLCLIENT 1
 #cmakedefine HAVE_MYSQL_H 1
-#cmakedefine HAVE_LIBX264 1
-#cmakedefine HAVE_X264_H 1
-#cmakedefine HAVE_LIBMP4V2 1
-#cmakedefine HAVE_MP4V2_MP4V2_H 1
-#cmakedefine HAVE_MP4V2_H 1
-#cmakedefine HAVE_MP4_H 1
 #cmakedefine HAVE_LIBAVFORMAT 1
 #cmakedefine HAVE_LIBAVFORMAT_AVFORMAT_H 1
 #cmakedefine HAVE_LIBAVCODEC 1
@@ -59,8 +53,16 @@
 #cmakedefine HAVE_LIBAVUTIL_MATHEMATICS_H 1
 #cmakedefine HAVE_LIBSWSCALE 1
 #cmakedefine HAVE_LIBSWSCALE_SWSCALE_H 1
+#cmakedefine HAVE_LIBAVRESAMPLE 1
+#cmakedefine HAVE_LIBAVRESAMPLE_AVRESAMPLE_H 1
 #cmakedefine HAVE_LIBVLC 1
 #cmakedefine HAVE_VLC_VLC_H 1
+#cmakedefine HAVE_LIBX264 1
+#cmakedefine HAVE_X264_H 1
+#cmakedefine HAVE_LIBMP4V2 1
+#cmakedefine HAVE_MP4_H 1
+#cmakedefine HAVE_MP4V2_H 1
+#cmakedefine HAVE_MP4V2_MP4V2_H 1
 
 /* Authenication checks */
 #cmakedefine HAVE_MD5_OPENSSL 1

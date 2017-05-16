@@ -87,5 +87,5 @@ int FileCamera::Capture( Image &image )
 
 int FileCamera::PostCapture()
 {
-  return( 0 );
+    return( 0 );
 }

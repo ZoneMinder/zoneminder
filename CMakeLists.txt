@@ -571,6 +571,23 @@ if(NOT ZM_NO_FFMPEG)
 		set(optlibsnotfound "${optlibsnotfound} SWScale")
 	endif(SWSCALE_LIBRARIES)
 
+	# rescale (using find_library and find_path)
+	find_library(AVRESAMPLE_LIBRARIES avresample)
+	if(AVRESAMPLE_LIBRARIES)
+		set(HAVE_LIBAVRESAMPLE 1)
+		list(APPEND ZM_BIN_LIBS "${AVRESAMPLE_LIBRARIES}")
+		find_path(AVRESAMPLE_INCLUDE_DIR "libavresample/avresample.h" /usr/include/ffmpeg)
+		if(AVRESAMPLE_INCLUDE_DIR)
+			include_directories("${AVRESAMPLE_INCLUDE_DIR}")
+			set(CMAKE_REQUIRED_INCLUDES "${AVRESAMPLE_INCLUDE_DIR}")
+		endif(AVRESAMPLE_INCLUDE_DIR)
+		mark_as_advanced(FORCE AVRESAMPLE_LIBRARIES AVRESAMPLE_INCLUDE_DIR)
+		check_include_file("libavresample/avresample.h" HAVE_LIBAVRESAMPLE_AVRESAMPLE_H)
+		set(optlibsfound "${optlibsfound} AVResample")
+	else(AVRESAMPLE_LIBRARIES)
+		set(optlibsnotfound "${optlibsnotfound} AVResample")
+	endif(AVRESAMPLE_LIBRARIES)
+
 	# Find the path to the ffmpeg executable
 	find_program(FFMPEG_EXECUTABLE 
 		NAMES ffmpeg avconv
@@ -602,6 +619,13 @@ if(NOT ZM_NO_LIBVLC)
 		set(optlibsnotfound "${optlibsnotfound} libVLC")
 	endif(LIBVLC_LIBRARIES)
 endif(NOT ZM_NO_LIBVLC)
+
+find_package(Boost 1.36.0)
+if(Boost_FOUND)
+  include_directories(${Boost_INCLUDE_DIRS})
+  set(CMAKE_REQUIRED_INCLUDES "${Boost_INCLUDE_DIRS}")
+  list(APPEND ZM_BIN_LIBS "${Boost_LIBRARIES}")
+endif()
 
 # *** END OF LIBRARY CHECKS ***
 

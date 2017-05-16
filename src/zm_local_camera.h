@@ -23,6 +23,7 @@
 #include "zm.h"
 #include "zm_camera.h"
 #include "zm_image.h"
+#include "zm_packetqueue.h"
 
 #if ZM_HAS_V4L
 
@@ -52,31 +53,31 @@ class LocalCamera : public Camera
 {
 protected:
 #if ZM_HAS_V4L2
-  struct V4L2MappedBuffer
-  {
-    void  *start;
-    size_t  length;
-  };
+    struct V4L2MappedBuffer
+    {
+        void    *start;
+        size_t  length;
+    };
 
-  struct V4L2Data
-  {
-    v4l2_cropcap    cropcap;
-    v4l2_crop       crop;
-    v4l2_format     fmt;
-    v4l2_requestbuffers reqbufs;
-    V4L2MappedBuffer  *buffers;
-    v4l2_buffer     *bufptr;
-  };
+    struct V4L2Data
+    {
+        v4l2_cropcap        cropcap;
+        v4l2_crop           crop;
+        v4l2_format         fmt;
+        v4l2_requestbuffers reqbufs;
+        V4L2MappedBuffer    *buffers;
+        v4l2_buffer         *bufptr;
+    };
 #endif // ZM_HAS_V4L2
 
 #if ZM_HAS_V4L1
-  struct V4L1Data
-  {
-    int active_frame;
-    video_mbuf frames;
-    video_mmap *buffers;
-    unsigned char *bufptr;
-  };
+    struct V4L1Data
+    {
+        int active_frame;
+        video_mbuf frames;
+        video_mmap *buffers;
+        unsigned char *bufptr;
+    };
 #endif // ZM_HAS_V4L1
 
 protected:
@@ -104,21 +105,21 @@ protected:
   unsigned int v4l_captures_per_frame;
 
 #if ZM_HAS_V4L2
-  static V4L2Data     v4l2_data;
+  static V4L2Data         v4l2_data;
 #endif // ZM_HAS_V4L2
 #if ZM_HAS_V4L1
-  static V4L1Data     v4l1_data;
+  static V4L1Data         v4l1_data;
 #endif // ZM_HAS_V4L1
 
 #if HAVE_LIBSWSCALE
-  static AVFrame    **capturePictures;
-  _AVPIXELFORMAT       imagePixFormat;
-  _AVPIXELFORMAT       capturePixFormat;
+  static AVFrame      **capturePictures;
+  _AVPIXELFORMAT         imagePixFormat;
+  _AVPIXELFORMAT         capturePixFormat;
   struct SwsContext   *imgConversionContext;
-  AVFrame         *tmpPicture;  
+  AVFrame             *tmpPicture;    
 #endif // HAVE_LIBSWSCALE
 
-  static LocalCamera    *last_camera;
+  static LocalCamera      *last_camera;
 
 public:
   LocalCamera(
@@ -161,7 +162,7 @@ public:
   int PreCapture();
   int Capture( Image &image );
   int PostCapture();
-  int CaptureAndRecord( Image &image, bool recording, char* event_directory ) {return(0);};
+  int CaptureAndRecord( Image &image, timeval recording, char* event_directory ) {return(0);};
 
   static bool GetCurrentSettings( const char *device, char *output, int version, bool verbose );
 };

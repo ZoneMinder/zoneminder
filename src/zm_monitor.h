@@ -46,20 +46,17 @@ class Monitor;
 // This is the main class for monitors. Each monitor is associated
 // with a camera and is effectively a collector for events.
 //
-class Monitor
-{
-friend class MonitorStream;
+class Monitor {
+  friend class MonitorStream;
 
 public:
-  typedef enum
-  {
+  typedef enum {
     QUERY=0,
     CAPTURE,
     ANALYSIS
   } Purpose;
 
-  typedef enum
-  {
+  typedef enum {
     NONE=1,
     MONITOR,
     MODECT,
@@ -68,8 +65,7 @@ public:
     NODECT
   } Function;
 
-  typedef enum
-  { 
+  typedef enum { 
     ROTATE_0=1,
     ROTATE_90,
     ROTATE_180,
@@ -78,14 +74,19 @@ public:
     FLIP_VERT
   } Orientation;
 
-  typedef enum
-  {
+  typedef enum {
     IDLE,
     PREALARM,
     ALARM,
     ALERT,
     TAPE
   } State;
+
+  typedef enum {
+    DISABLED,
+    X264ENCODE,
+    H264PASSTHROUGH,
+  } VideoWriter;
 
 protected:
   typedef std::set<Zone *> ZoneSet;
@@ -95,8 +96,7 @@ protected:
   typedef enum { CLOSE_TIME, CLOSE_IDLE, CLOSE_ALARM } EventCloseMode;
 
   /* sizeof(SharedData) expected to be 336 bytes on 32bit and 64bit */
-  typedef struct
-  {
+  typedef struct {
     uint32_t size;         /* +0  */
     uint32_t last_write_index;   /* +4  */ 
     uint32_t last_read_index;    /* +8  */
@@ -121,12 +121,12 @@ protected:
     ** Shared memory layout should be identical for both 32bit and 64bit and is multiples of 16.
     */  
     union {            /* +64  */
-        time_t last_write_time;
-        uint64_t extrapad1;
+      time_t last_write_time;
+      uint64_t extrapad1;
     };
     union {            /* +72   */
-        time_t last_read_time;
-        uint64_t extrapad2;
+      time_t last_read_time;
+      uint64_t extrapad2;
     };
     uint8_t control_state[256];  /* +80   */
     
@@ -135,8 +135,7 @@ protected:
   typedef enum { TRIGGER_CANCEL, TRIGGER_ON, TRIGGER_OFF } TriggerState;
   
   /* sizeof(TriggerData) expected to be 560 on 32bit & and 64bit */
-  typedef struct
-  {
+  typedef struct {
     uint32_t size;
     uint32_t trigger_state;
     uint32_t trigger_score;
@@ -147,28 +146,25 @@ protected:
   } TriggerData;
 
   /* sizeof(Snapshot) expected to be 16 bytes on 32bit and 32 bytes on 64bit */
-  struct Snapshot
-  {
+  struct Snapshot {
     struct timeval  *timestamp;
     Image  *image;
     void* padding;
   };
 
-    //TODO: Technically we can't exclude this struct when people don't have avformat as the Memory.pm module doesn't know about avformat
+  //TODO: Technically we can't exclude this struct when people don't have avformat as the Memory.pm module doesn't know about avformat
 #if 1
-    //sizeOf(VideoStoreData) expected to be 4104 bytes on 32bit and 64bit
-    typedef struct
-    {
-        uint32_t size;
-        char event_file[4096];
-        uint32_t recording; //bool arch dependent so use uint32 instead
-        //uint32_t frameNumber;
-    } VideoStoreData;
+  //sizeOf(VideoStoreData) expected to be 4104 bytes on 32bit and 64bit
+  typedef struct {
+    uint32_t size;
+    char event_file[4096];
+    timeval recording; //bool arch dependent so use uint32 instead
+    //uint32_t frameNumber;
+  } VideoStoreData;
 
 #endif // HAVE_LIBAVFORMAT
 
-  class MonitorLink
-  {
+  class MonitorLink {
   protected:
     unsigned int  id;
     char      name[64];
@@ -196,21 +192,17 @@ protected:
     MonitorLink( int p_id, const char *p_name );
     ~MonitorLink();
 
-    inline int Id() const
-    {
+    inline int Id() const {
       return( id );
     }
-    inline const char *Name() const
-    {
+    inline const char *Name() const {
       return( name );
     }
 
-    inline bool isConnected() const
-    {   
+    inline bool isConnected() const {   
       return( connected );
     }
-    inline time_t getLastConnectTime() const
-    {
+    inline time_t getLastConnectTime() const {
       return( last_connect_time );
     }
 
@@ -237,7 +229,7 @@ protected:
   unsigned int  deinterlacing;
 
   int savejpegspref;
-  int videowriterpref;
+  VideoWriter videowriter;
   std::string encoderparams;
   std::vector<EncoderParameter_t> encoderparamsvec;
   bool      record_audio;     // Whether to store the audio that we receive
@@ -271,7 +263,7 @@ protected:
   int        alarm_ref_blend_perc;      // Percentage of new image going into reference image during alarm.
   bool      track_motion;      // Whether this monitor tries to track detected motion 
   Rgb       signal_check_colour;  // The colour that the camera will emit when no video signal detected
-    bool              embed_exif; // Whether to embed Exif data into each image frame or not
+  bool              embed_exif; // Whether to embed Exif data into each image frame or not
 
   double      fps;
   Image      delta_image;
@@ -291,7 +283,7 @@ protected:
   time_t      start_time;
   time_t      last_fps_time;
   time_t      auto_resume_time;
-    unsigned int      last_motion_score;
+  unsigned int      last_motion_score;
 
   EventCloseMode  event_close_mode;
 
@@ -342,7 +334,7 @@ public:
     int p_orientation,
     unsigned int p_deinterlacing,
     int p_savejpegs,
-    int p_videowriter,
+    VideoWriter p_videowriter,
     std::string p_encoderparams,
     bool	p_record_audio,
     const char *p_event_prefix,
@@ -378,47 +370,38 @@ public:
   void AddPrivacyBitmask( Zone *p_zones[] );
 
   bool connect();
-  inline int ShmValid() const
-  {
+  inline int ShmValid() const {
     return( shared_data->valid );
   }
 
-  inline int Id() const
-  {
+  inline int Id() const {
     return( id );
   }
-  inline const char *Name() const
-  {
+  inline const char *Name() const {
     return( name );
   }
-  inline Function GetFunction() const
-  {
+  inline Function GetFunction() const {
     return( function );
   }
-  inline bool Enabled()
-  {
+  inline bool Enabled() {
     if ( function <= MONITOR )
       return( false );
     return( enabled );
   }
-  inline const char *EventPrefix() const
-  {
+  inline const char *EventPrefix() const {
     return( event_prefix );
   }
-  inline bool Ready()
-  {
+  inline bool Ready() {
     if ( function <= MONITOR )
       return( false );
     return( image_count > ready_count );
   }
-  inline bool Active()
-  {
+  inline bool Active() {
     if ( function <= MONITOR )
       return( false );
     return( enabled && shared_data->active );
   }
-  inline bool Exif()
-  {
+  inline bool Exif() {
     return( embed_exif );
   }
   Orientation getOrientation() const;
@@ -429,9 +412,10 @@ public:
   unsigned int SubpixelOrder() const;
     
   int GetOptSaveJPEGs() const { return( savejpegspref ); }
-  int GetOptVideoWriter() const { return( videowriterpref ); }
+  VideoWriter GetOptVideoWriter() const { return( videowriter ); }
   const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return( &encoderparamsvec ); }
  
+  unsigned int GetPreEventCount() const { return pre_event_count; };
   State GetState() const;
   int GetImage( int index=-1, int scale=100 );
   struct timeval GetTimestamp( int index=-1 ) const;
@@ -504,8 +488,7 @@ public:
 
 #define MOD_ADD( var, delta, limit ) (((var)+(limit)+(delta))%(limit))
 
-class MonitorStream : public StreamBase
-{
+class MonitorStream : public StreamBase {
 protected:
   typedef struct SwapImage {
     bool      valid;
@@ -536,19 +519,15 @@ protected:
   void processCommand( const CmdMsg *msg );
 
 public:
-  MonitorStream() : playback_buffer( 0 ), delayed( false ), frame_count( 0 )
-  {
+  MonitorStream() : playback_buffer( 0 ), delayed( false ), frame_count( 0 ) {
   }
-  void setStreamBuffer( int p_playback_buffer )
-  {
+  void setStreamBuffer( int p_playback_buffer ) {
     playback_buffer = p_playback_buffer;
   }
-  void setStreamTTL( time_t p_ttl )
-  {
+  void setStreamTTL( time_t p_ttl ) {
     ttl = p_ttl;
   }
-  bool setStreamStart( int monitor_id )
-  {
+  bool setStreamStart( int monitor_id ) {
     return loadMonitor( monitor_id );
   }
   void runStream();

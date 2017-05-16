@@ -88,6 +88,31 @@ class AppController extends Controller {
         }
       }
 
+      if ( isset($_REQUEST['auth']) ) {
+        require_once "../../../includes/functions.php";
+
+        // Define some defines required by getAuthUser in functions.php
+        $defines = array('ZM_AUTH_HASH_IPS', 'ZM_AUTH_HASH_SECRET', 'ZM_AUTH_RELAY', 'ZM_OPT_USE_AUTH');
+        $configQuery = array(
+                             'conditions' => array('OR' => array('Name' => $defines)),
+                             'fields' => array('Name', 'Value')
+                             );
+        $config = $this->Config->find('list', $configQuery);
+
+        foreach ($defines as $define) {
+          define($define, $config[$define]);
+        }
+
+        $user = getAuthUser($_REQUEST['auth']);
+        if ( ! $user ) {
+          throw new UnauthorizedException(__('User not found'));
+          return;
+        } else {
+          $this->Session->Write( 'user.Username', $user['Username'] );
+          $this->Session->Write( 'user.Enabled', $user['Enabled'] );
+        }
+      }
+
       if( ! $this->Session->Read('user.Username') ) {
         throw new UnauthorizedException(__('Not Authenticated'));
         return;

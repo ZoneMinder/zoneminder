@@ -88,7 +88,7 @@ function dbLog( $sql, $update=false )
     global $dbLogLevel;
     $noExecute = $update && ($dbLogLevel >= DB_LOG_DEBUG);
     if ( $dbLogLevel > DB_LOG_OFF )
-        Debug( "SQL-LOG: $sql".($noExecute?" (not executed)":"") );
+        Logger::Debug( "SQL-LOG: $sql".($noExecute?" (not executed)":"") );
     return( $noExecute );
 }
 

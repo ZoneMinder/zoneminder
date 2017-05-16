@@ -71,9 +71,9 @@ $statusData = array(
             "DefaultScale" => true,
             "WebColour" => true,
             "Sequence" => true,
-            "MinEventId" => array( "sql" => "min(Events.Id)", "table" => "Events", "join" => "Events.MonitorId = Monitors.Id", "group" => "Events.MonitorId" ),
-            "MaxEventId" => array( "sql" => "max(Events.Id)", "table" => "Events", "join" => "Events.MonitorId = Monitors.Id", "group" => "Events.MonitorId" ),
-            "TotalEvents" => array( "sql" => "count(Events.Id)", "table" => "Events", "join" => "Events.MonitorId = Monitors.Id", "group" => "Events.MonitorId" ),
+            "MinEventId" => array( "sql" => "(SELECT min(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id" ),
+            "MaxEventId" => array( "sql" => "(SELECT max(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id" ),
+            "TotalEvents" => array( "sql" => "(SELECT count(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id" ),
             "Status" => array( "zmu" => "-m ".escapeshellarg($_REQUEST['id'][0])." -s" ),
             "FrameRate" => array( "zmu" => "-m ".escapeshellarg($_REQUEST['id'][0])." -f" ),
         ),
@@ -117,6 +117,7 @@ $statusData = array(
             "Height" => true,
             "Length" => true,
             "Frames" => true,
+            "DefaultVideo" => true,
             "AlarmFrames" => true,
             "TotScore" => true,
             "AvgScore" => true,
@@ -128,10 +129,10 @@ $statusData = array(
             "Messaged" => true,
             "Executed" => true,
             "Notes" => true,
-            "MinFrameId" => array( "sql" => "min(Frames.FrameId)", "table" => "Frames", "join" => "Events.Id = Frames.EventId", "group" => "Frames.EventId"  ),
-            "MaxFrameId" => array( "sql" => "max(Frames.FrameId)", "table" => "Frames", "join" => "Events.Id = Frames.EventId", "group" => "Frames.EventId"  ),
-            "MinFrameDelta" => array( "sql" => "min(Frames.Delta)", "table" => "Frames", "join" => "Events.Id = Frames.EventId", "group" => "Frames.EventId"  ),
-            "MaxFrameDelta" => array( "sql" => "max(Frames.Delta)", "table" => "Frames", "join" => "Events.Id = Frames.EventId", "group" => "Frames.EventId"  ),
+            "MinFrameId" => array( "sql" => "(SELECT min(Frames.FrameId) FROM Frames WHERE EventId=Events.Id)" ),
+            "MaxFrameId" => array( "sql" => "(SELECT max(Frames.FrameId) FROM Frames WHERE Events.Id = Frames.EventId)" ),
+            "MinFrameDelta" => array( "sql" => "(SELECT min(Frames.Delta) FROM Frames WHERE Events.Id = Frames.EventId)" ),
+            "MaxFrameDelta" => array( "sql" => "(SELECT max(Frames.Delta) FROM Frames WHERE Events.Id = Frames.EventId)" ),
             //"Path" => array( "postFunc" => "getEventPath" ),
         ),
     ),
@@ -391,7 +392,7 @@ function getNearEvents()
     {
         if ( $id == $eventId )
         {
-            $prevId = dbFetchNext( $result, 'Id' );
+            $prevEvent = dbFetchNext( $result );
             break;
         }
     }
@@ -402,14 +403,16 @@ function getNearEvents()
     {
         if ( $id == $eventId )
         {
-            $nextId = dbFetchNext( $result, 'Id' );
+            $nextEvent = dbFetchNext( $result );
             break;
         }
     }
 
     $result = array( 'EventId'=>$eventId );
-    $result['PrevEventId'] = empty($prevId)?0:$prevId;
-    $result['NextEventId'] = empty($nextId)?0:$nextId;
+    $result['PrevEventId'] = empty($prevEvent)?0:$prevEvent['Id'];
+    $result['NextEventId'] = empty($nextEvent)?0:$nextEvent['Id'];
+    $result['PrevEventDefVideoPath'] = empty($prevEvent)?0:(getEventDefaultVideoPath($prevEvent));
+    $result['NextEventDefVideoPath'] = empty($nextEvent)?0:(getEventDefaultVideoPath($nextEvent));
     return( $result );
 }
 

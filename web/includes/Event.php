@@ -218,11 +218,11 @@ class Event {
           } 
             
           $command ='ffmpeg -v 0 -i '.$videoPath.' -vf "select=gte(n\\,'.$frame['FrameId'].'),setpts=PTS-STARTPTS" '.$eventPath.'/'.$captImage;
-          Debug( "Running $command" );
+          Logger::Debug( "Running $command" );
           $output = array();
           $retval = 0;
           exec( $command, $output, $retval );
-          Debug("Retval: $retval, output: " . implode("\n", $output));
+          Logger::Debug("Retval: $retval, output: " . implode("\n", $output));
         } else {
           Error("Can't create frame images from video becuase there is no video file for this event (".$Event->DefaultVideo() );
         }

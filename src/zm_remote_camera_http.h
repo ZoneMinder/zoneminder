@@ -53,12 +53,12 @@ public:
   int Connect();
   int Disconnect();
   int SendRequest();
-  int ReadData( Buffer &buffer, int bytes_expected=0 );
+  int ReadData( Buffer &buffer, unsigned int bytes_expected=0 );
   int GetResponse();
   int PreCapture();
   int Capture( Image &image );
   int PostCapture();
-  int CaptureAndRecord( Image &image, bool recording, char* event_directory ) {return(0);};
+  int CaptureAndRecord( Image &image, timeval recording, char* event_directory ) {return(0);};
 };
 
 #endif // ZM_REMOTE_CAMERA_HTTP_H

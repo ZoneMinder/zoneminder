@@ -189,7 +189,7 @@ int RemoteCameraHttp::SendRequest()
  * > 0 is the # of bytes read.
  */
 
-int RemoteCameraHttp::ReadData( Buffer &buffer, int bytes_expected )
+int RemoteCameraHttp::ReadData( Buffer &buffer, unsigned int bytes_expected )
 {
   fd_set rfds;
   FD_ZERO(&rfds);

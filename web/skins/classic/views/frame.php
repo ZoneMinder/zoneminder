@@ -88,12 +88,16 @@ xhtmlHeaders(__FILE__, translate('Frame')." - ".$Event->Id()." - ".$Frame->Frame
     </div>
     <div id="content">
       <p id="image">
-<?php if ( $imageData['hasAnalImage'] ) { ?>
+<?php if ( in_array($event['VideoWriter'],array("1","2")) ) { ?>
+<img src="?view=image-ffmpeg&eid=<?php echo $event['Id'] ?>&fid=<?php echo $frame['FrameId'] ?>&scale=<?php echo $event['DefaultScale'] ?>" class="<?php echo $imageData['imageClass'] ?>">
+<?php } else {
+if ( $imageData['hasAnalImage'] ) { ?>
 <a href="?view=frame&amp;eid=<?php echo $Event->Id() ?>&amp;fid=<?php echo $Frame->FrameId() ?>&amp;scale=<?php echo $scale ?>&amp;show=<?php echo $imageData['isAnalImage']?"capt":"anal" ?>">
 <?php } ?>
 <img id="frameImg" src="<?php echo $Frame->getImageSrc($imageData['isAnalImage']?'analyse':'capture') ?>" width="<?php echo reScale( $Event->Width(), $Event->DefaultScale(), $scale ) ?>" height="<?php echo reScale( $Event->Height(), $Event->DefaultScale(), $scale ) ?>" alt="<?php echo $Frame->EventId()."-".$Frame->FrameId() ?>" class="<?php echo $imageData['imageClass'] ?>"/>
 <?php if ( $imageData['hasAnalImage'] ) { ?></a><?php } ?>
-
+<?php } ?>
+</p>
       <p id="controls">
 <?php if ( $Frame->FrameId() > 1 ) { ?>
         <a id="firstLink" href="?view=frame&amp;eid=<?php echo $Event->Id() ?>&amp;fid=<?php echo $firstFid ?>&amp;scale=<?php echo $scale ?>"><?php echo translate('First') ?></a>

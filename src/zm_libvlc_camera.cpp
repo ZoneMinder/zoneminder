@@ -27,11 +27,11 @@ void* LibvlcLockBuffer(void* opaque, void** planes)
 {
   LibvlcPrivateData* data = (LibvlcPrivateData*)opaque;
   data->mutex.lock();
-  
+
   uint8_t* buffer = data->buffer;
   data->buffer = data->prevBuffer;
   data->prevBuffer = buffer;
-  
+
   *planes = data->buffer;
   return NULL;
 }
@@ -39,7 +39,7 @@ void* LibvlcLockBuffer(void* opaque, void** planes)
 void LibvlcUnlockBuffer(void* opaque, void* picture, void *const *planes)
 {
   LibvlcPrivateData* data = (LibvlcPrivateData*)opaque;
-  
+
   bool newFrame = false;
   for(uint32_t i = 0; i < data->bufferSize; i++)
   {
@@ -50,7 +50,7 @@ void LibvlcUnlockBuffer(void* opaque, void* picture, void *const *planes)
     }
   }
   data->mutex.unlock();
-  
+
   time_t now;
   time(&now);
   // Return frames slightly faster than 1fps (if time() supports greater than one second resolution)
@@ -89,7 +89,7 @@ LibvlcCamera::LibvlcCamera( int p_id, const std::string &p_path, const std::stri
   } else {
     Panic("Unexpected colours: %d",colours);
   }
-  
+
   if ( capture )
   {
     Initialise();
@@ -143,9 +143,9 @@ void LibvlcCamera::Terminate()
 int LibvlcCamera::PrimeCapture()
 {
   Info("Priming capture from %s", mPath.c_str());
-  
+
   StringVector opVect = split(Options(), ",");
-  
+
   // Set transport method as specified by method field, rtpUni is default
   if ( Method() == "rtpMulti" )
     opVect.push_back("--rtsp-mcast");
@@ -168,11 +168,11 @@ int LibvlcCamera::PrimeCapture()
   mLibvlcInstance = libvlc_new (opVect.size(), (const char* const*)mOptArgV);
   if(mLibvlcInstance == NULL)
     Fatal("Unable to create libvlc instance due to: %s", libvlc_errmsg());
-   
+
   mLibvlcMedia = libvlc_media_new_location(mLibvlcInstance, mPath.c_str());
   if(mLibvlcMedia == NULL)
     Fatal("Unable to open input %s due to: %s", mPath.c_str(), libvlc_errmsg());
-  
+
   mLibvlcMediaPlayer = libvlc_media_player_new_from_media(mLibvlcMedia);
   if(mLibvlcMediaPlayer == NULL)
     Fatal("Unable to create player for %s due to: %s", mPath.c_str(), libvlc_errmsg());
@@ -188,12 +188,12 @@ int LibvlcCamera::PrimeCapture()
   mLibvlcData.newImage.setValueImmediate(false);
 
   libvlc_media_player_play(mLibvlcMediaPlayer);
-  
+
   return(0);
 }
 
 int LibvlcCamera::PreCapture()
-{  
+{    
   return(0);
 }
 
@@ -207,12 +207,12 @@ int LibvlcCamera::Capture( Image &image )
   image.Assign(width, height, colours, subpixelorder, mLibvlcData.buffer, width * height * mBpp);
   mLibvlcData.newImage.setValueImmediate(false);
   mLibvlcData.mutex.unlock();
-  
+
   return (0);
 }
 
 // Should not return -1 as cancels capture. Always wait for image if available.
-int LibvlcCamera::CaptureAndRecord( Image &image, bool recording, char* event_directory )
+int LibvlcCamera::CaptureAndRecord(Image &image, timeval recording, char* event_directory)
 {
   while(!mLibvlcData.newImage.getValueImmediate())
     mLibvlcData.newImage.getUpdatedValue(1);

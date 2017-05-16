@@ -47,19 +47,20 @@ protected:
   unsigned int  subpixelorder;
   unsigned int  pixels;
   unsigned int  imagesize;
-  int        brightness;
-  int        hue;
-  int        colour;
-  int        contrast;
-  bool    capture;
-  bool    record_audio;
+  int           brightness;
+  int           hue;
+  int           colour;
+  int           contrast;
+  bool          capture;
+  bool          record_audio;
 
 public:
-  Camera( unsigned int p_monitor_id, SourceType p_type, int p_width, int p_height, int p_colours, int p_subpixelorder, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
+  Camera( unsigned int p_monitor_id, SourceType p_type, unsigned int p_width, unsigned int p_height, int p_colours, int p_subpixelorder, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
   virtual ~Camera();
 
   unsigned int getId() const { return( monitor_id ); }
   Monitor *getMonitor();
+  void  setMonitor( Monitor *p_monitor );
   SourceType Type() const { return( type ); }
   bool IsLocal() const { return( type == LOCAL_SRC ); }
   bool IsRemote() const { return( type == REMOTE_SRC ); }
@@ -80,14 +81,14 @@ public:
   virtual int Contrast( int/*p_contrast*/=-1 ) { return( -1 ); }
 
   bool CanCapture() const { return( capture ); }
-  
+
   bool SupportsNativeVideo() const { return( (type == FFMPEG_SRC )||(type == REMOTE_SRC)); }
-  
+
   virtual int PrimeCapture() { return( 0 ); }
   virtual int PreCapture()=0;
   virtual int Capture( Image &image )=0;
   virtual int PostCapture()=0;
-  virtual int CaptureAndRecord( Image &image, bool recording, char* event_directory)=0;
+  virtual int CaptureAndRecord( Image &image, timeval recording, char* event_directory ) = 0;
 };
 
 #endif // ZM_CAMERA_H

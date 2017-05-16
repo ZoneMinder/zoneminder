@@ -74,8 +74,7 @@ static deinterlace_4field_fptr_t fptr_deinterlace_4field_gray8;
 /* Pointer to image buffer memory copy function */
 imgbufcpy_fptr_t fptr_imgbufcpy;
 
-Image::Image()
-{
+Image::Image() {
   if ( !initialised )
     Initialise();
   width = 0;
@@ -91,8 +90,7 @@ Image::Image()
   text[0] = '\0';
 }
 
-Image::Image( const char *filename )
-{
+Image::Image( const char *filename ) {
   if ( !initialised )
     Initialise();
   width = 0;
@@ -158,14 +156,14 @@ Image::~Image() {
 /* Should be called as part of program shutdown to free everything */
 void Image::Deinitialise() {
   if ( initialised ) {
-	  /*
-    delete[] y_table;
-    delete[] uv_table;
-    delete[] r_v_table;
-    delete[] g_v_table;
-    delete[] g_u_table;
-    delete[] b_u_table;
-	 */
+    /*
+       delete[] y_table;
+       delete[] uv_table;
+       delete[] r_v_table;
+       delete[] g_v_table;
+       delete[] g_u_table;
+       delete[] b_u_table;
+     */
     initialised = false;
     if ( readjpg_dcinfo ) {
       jpeg_destroy_decompress( readjpg_dcinfo );
@@ -243,10 +241,10 @@ void Image::Initialise()
       Panic("Blend function failed self-test: Results differ from the expected results. Column %u Expected %u Got %u",i,blendexp[i],blendres[i]);
     }
   }
-  
+
   fptr_delta8_rgb = &std_delta8_rgb;
   fptr_delta8_bgr = &std_delta8_bgr;
-  
+
   /* Assign the delta functions */
   if(config.cpu_extensions) {
     if(sseversion >= 35) {
@@ -372,10 +370,10 @@ void Image::Initialise()
   fptr_imgbufcpy = &memcpy;
   Debug(4,"Image buffer copy: Using standard memcpy");
 #endif
-  
+
   /* Code below relocated from zm_local_camera */
   Debug( 3, "Setting up static colour tables" );
-  
+
   y_table = y_table_global;
   uv_table = uv_table_global;
   r_v_table = r_v_table_global;
@@ -383,63 +381,63 @@ void Image::Initialise()
   g_u_table = g_u_table_global;
   b_u_table = b_u_table_global;
   /*
-  y_table = new unsigned char[256];
-  for ( int i = 0; i <= 255; i++ )
-  {
-    unsigned char c = i;
-    if ( c <= 16 )
-      y_table[c] = 0;
-    else if ( c >= 235 )
-      y_table[c] = 255;
-    else
-      y_table[c] = (255*(c-16))/219;
-  }
+     y_table = new unsigned char[256];
+     for ( int i = 0; i <= 255; i++ )
+     {
+     unsigned char c = i;
+     if ( c <= 16 )
+     y_table[c] = 0;
+     else if ( c >= 235 )
+     y_table[c] = 255;
+     else
+     y_table[c] = (255*(c-16))/219;
+     }
 
-  uv_table = new signed char[256];
-  for ( int i = 0; i <= 255; i++ )
-  {
-    unsigned char c = i;
-    if ( c <= 16 )
-      uv_table[c] = -127;
-    else if ( c >= 240 )
-      uv_table[c] = 127;
-    else
-      uv_table[c] = (127*(c-128))/112;
-  }
+     uv_table = new signed char[256];
+     for ( int i = 0; i <= 255; i++ )
+     {
+     unsigned char c = i;
+     if ( c <= 16 )
+     uv_table[c] = -127;
+     else if ( c >= 240 )
+     uv_table[c] = 127;
+     else
+     uv_table[c] = (127*(c-128))/112;
+     }
 
-  r_v_table = new short[255];
-  g_v_table = new short[255];
-  g_u_table = new short[255];
-  b_u_table = new short[255];
-  for ( int i = 0; i < 255; i++ )
-  {
-    r_v_table[i] = (1402*(i-128))/1000;
-    g_u_table[i] = (344*(i-128))/1000;
-    g_v_table[i] = (714*(i-128))/1000;
-    b_u_table[i] = (1772*(i-128))/1000;
-  }
+     r_v_table = new short[255];
+     g_v_table = new short[255];
+     g_u_table = new short[255];
+     b_u_table = new short[255];
+     for ( int i = 0; i < 255; i++ )
+     {
+     r_v_table[i] = (1402*(i-128))/1000;
+     g_u_table[i] = (344*(i-128))/1000;
+     g_v_table[i] = (714*(i-128))/1000;
+     b_u_table[i] = (1772*(i-128))/1000;
+     }
    */
-  
+
   initialised = true;
 }
 
 /* Requests a writeable buffer to the image. This is safer than buffer() because this way we can guarantee that a buffer of required size exists */
 uint8_t* Image::WriteBuffer(const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder) {
   unsigned int newsize;
-  
+
   if(p_colours != ZM_COLOUR_GRAY8 && p_colours != ZM_COLOUR_RGB24 && p_colours != ZM_COLOUR_RGB32) {
     Error("WriteBuffer called with unexpected colours: %d",p_colours);
     return NULL;
   }
-  
+
   if(!p_height || !p_width) {
     Error("WriteBuffer called with invalid width or height: %d %d",p_width,p_height);
     return NULL;
   }
-  
+
   if(p_width != width || p_height != height || p_colours != colours || p_subpixelorder != subpixelorder) {
     newsize = (p_width * p_height) * p_colours;
-    
+
     if(buffer == NULL) {
       AllocImgBuffer(newsize);
     } else {
@@ -454,7 +452,7 @@ uint8_t* Image::WriteBuffer(const unsigned int p_width, const unsigned int p_hei
         }
       }
     }
-    
+
     width = p_width;
     height = p_height;
     colours = p_colours;
@@ -462,9 +460,9 @@ uint8_t* Image::WriteBuffer(const unsigned int p_width, const unsigned int p_hei
     pixels = height*width;
     size = newsize; 
   }
-  
+
   return buffer; 
-  
+
 }
 
 /* Assign an existing buffer to the image instead of copying from a source buffer. The goal is to reduce the amount of memory copying and increase efficiency and buffer reusing. */
@@ -485,12 +483,12 @@ void Image::AssignDirect( const unsigned int p_width, const unsigned int p_heigh
   }
 
   unsigned int new_buffer_size = ((p_width*p_height)*p_colours);
-  
+
   if(buffer_size < new_buffer_size) {
     Error("Attempt to directly assign buffer from an undersized buffer of size: %zu, needed %dx%d*%d colours = %zu",buffer_size, p_width, p_height, p_colours, new_buffer_size );
     return;
   }
-  
+
   if(holdbuffer && buffer) {
     if(new_buffer_size > allocation) {
       Error("Held buffer is undersized for assigned buffer");
@@ -502,55 +500,55 @@ void Image::AssignDirect( const unsigned int p_width, const unsigned int p_heigh
       subpixelorder = p_subpixelorder;
       pixels = height*width;
       size = new_buffer_size; // was pixels*colours, but we already calculated it above as new_buffer_size
-      
+
       /* Copy into the held buffer */
       if(new_buffer != buffer)
         (*fptr_imgbufcpy)(buffer, new_buffer, size);
-      
+
       /* Free the new buffer */
       DumpBuffer(new_buffer, p_buffertype);
     }
   } else {
     /* Free an existing buffer if any */
     DumpImgBuffer();
-    
+
     width = p_width;
     height = p_height;
     colours = p_colours;
     subpixelorder = p_subpixelorder;
     pixels = height*width;
     size = new_buffer_size; // was pixels*colours, but we already calculated it above as new_buffer_size
-  
+
     allocation = buffer_size;
     buffertype = p_buffertype;
     buffer = new_buffer;
   }
-  
+
 }
 
 void Image::Assign(const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder, const uint8_t* new_buffer, const size_t buffer_size) {
   unsigned int new_size = (p_width * p_height) * p_colours;
-  
+
   if(new_buffer == NULL) {
     Error("Attempt to assign buffer from a NULL pointer");
     return;
   }
-  
+
   if(buffer_size < new_size) {
     Error("Attempt to assign buffer from an undersized buffer of size: %zu",buffer_size);
     return;
   }
-  
+
   if(!p_height || !p_width) {
     Error("Attempt to assign buffer with invalid width or height: %d %d",p_width,p_height);
     return;
   }
-  
+
   if(p_colours != ZM_COLOUR_GRAY8 && p_colours != ZM_COLOUR_RGB24 && p_colours != ZM_COLOUR_RGB32) {
     Error("Attempt to assign buffer with unexpected colours per pixel: %d",p_colours);
     return;
   }
-  
+
   if ( !buffer || p_width != width || p_height != height || p_colours != colours || p_subpixelorder != subpixelorder) {
 
     if (holdbuffer && buffer) {
@@ -564,7 +562,7 @@ void Image::Assign(const unsigned int p_width, const unsigned int p_height, cons
         AllocImgBuffer(new_size);
       }
     }
-    
+
     width = p_width;
     height = p_height;
     pixels = width*height;
@@ -572,25 +570,25 @@ void Image::Assign(const unsigned int p_width, const unsigned int p_height, cons
     subpixelorder = p_subpixelorder;
     size = new_size;
   }
-  
+
   if(new_buffer != buffer)
     (*fptr_imgbufcpy)(buffer, new_buffer, size);
-  
+
 }
 
 void Image::Assign( const Image &image ) {
   unsigned int new_size = (image.width * image.height) * image.colours;
-  
+
   if(image.buffer == NULL) {
     Error("Attempt to assign image with an empty buffer");
     return;
   }
-  
+
   if(image.colours != ZM_COLOUR_GRAY8 && image.colours != ZM_COLOUR_RGB24 && image.colours != ZM_COLOUR_RGB32) {
     Error("Attempt to assign image with unexpected colours per pixel: %d",image.colours);
     return;
   }
-  
+
   if ( !buffer || image.width != width || image.height != height || image.colours != colours || image.subpixelorder != subpixelorder) {
 
     if (holdbuffer && buffer) {
@@ -604,7 +602,7 @@ void Image::Assign( const Image &image ) {
         AllocImgBuffer(new_size);
       }
     }
-    
+
     width = image.width;
     height = image.height;
     pixels = width*height;
@@ -612,7 +610,7 @@ void Image::Assign( const Image &image ) {
     subpixelorder = image.subpixelorder;
     size = new_size;
   }
-  
+
   if(image.buffer != buffer)
     (*fptr_imgbufcpy)(buffer, image.buffer, size);
 }
@@ -623,14 +621,14 @@ Image *Image::HighlightEdges( Rgb colour, unsigned int p_colours, unsigned int p
   {
     Panic( "Attempt to highlight image edges when colours = %d", colours );
   }
-  
+
   /* Convert the colour's RGBA subpixel order into the image's subpixel order */
   colour = rgb_convert(colour,p_subpixelorder);
-  
+
   /* Create a new image of the target format */
   Image *high_image = new Image( width, height, p_colours, p_subpixelorder );
   uint8_t* high_buff = high_image->WriteBuffer(width, height, p_colours, p_subpixelorder);
-  
+
   /* Set image to all black */
   high_image->Clear();
 
@@ -638,7 +636,7 @@ Image *Image::HighlightEdges( Rgb colour, unsigned int p_colours, unsigned int p
   unsigned int lo_y = limits?limits->Lo().Y():0;
   unsigned int hi_x = limits?limits->Hi().X():width-1;
   unsigned int hi_y = limits?limits->Hi().Y():height-1;
-  
+
   if ( p_colours == ZM_COLOUR_GRAY8 )
   {
     for ( unsigned int y = lo_y; y <= hi_y; y++ )
@@ -710,7 +708,7 @@ Image *Image::HighlightEdges( Rgb colour, unsigned int p_colours, unsigned int p
       }
     }
   }
-  
+
   return( high_image );
 }
 
@@ -806,7 +804,7 @@ bool Image::ReadJpeg( const char *filename, unsigned int p_colours, unsigned int
     fclose( infile );
     return( false );
   }
-  
+
   /* Check if the image has at least one huffman table defined. If not, use the standard ones */
   /* This is required for the MJPEG capture palette of USB devices */
   if(cinfo->dc_huff_tbl_ptrs[0] == NULL) {
@@ -820,67 +818,67 @@ bool Image::ReadJpeg( const char *filename, unsigned int p_colours, unsigned int
   {
     Debug(9,"Image dimensions differ. Old: %ux%u New: %ux%u",width,height,new_width,new_height);
   }
-  
+
   switch(p_colours) {
     case ZM_COLOUR_GRAY8:
-    {
-    cinfo->out_color_space = JCS_GRAYSCALE;
-    new_colours = ZM_COLOUR_GRAY8;
-    new_subpixelorder = ZM_SUBPIX_ORDER_NONE;
-    break;
-    }
+      {
+        cinfo->out_color_space = JCS_GRAYSCALE;
+        new_colours = ZM_COLOUR_GRAY8;
+        new_subpixelorder = ZM_SUBPIX_ORDER_NONE;
+        break;
+      }
     case ZM_COLOUR_RGB32:
-    {
+      {
 #ifdef JCS_EXTENSIONS
-    new_colours = ZM_COLOUR_RGB32;
-    if(p_subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
-      cinfo->out_color_space = JCS_EXT_BGRX;
-      new_subpixelorder = ZM_SUBPIX_ORDER_BGRA;
-    } else if(p_subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
-      cinfo->out_color_space = JCS_EXT_XRGB;
-      new_subpixelorder = ZM_SUBPIX_ORDER_ARGB;
-    } else if(p_subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
-      cinfo->out_color_space = JCS_EXT_XBGR;
-      new_subpixelorder = ZM_SUBPIX_ORDER_ABGR;
-    } else {
-      /* Assume RGBA */
-      cinfo->out_color_space = JCS_EXT_RGBX;
-      new_subpixelorder = ZM_SUBPIX_ORDER_RGBA;
-    }
-    break;    
+        new_colours = ZM_COLOUR_RGB32;
+        if(p_subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
+          cinfo->out_color_space = JCS_EXT_BGRX;
+          new_subpixelorder = ZM_SUBPIX_ORDER_BGRA;
+        } else if(p_subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
+          cinfo->out_color_space = JCS_EXT_XRGB;
+          new_subpixelorder = ZM_SUBPIX_ORDER_ARGB;
+        } else if(p_subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
+          cinfo->out_color_space = JCS_EXT_XBGR;
+          new_subpixelorder = ZM_SUBPIX_ORDER_ABGR;
+        } else {
+          /* Assume RGBA */
+          cinfo->out_color_space = JCS_EXT_RGBX;
+          new_subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+        }
+        break;    
 #else
-    Warning("libjpeg-turbo is required for reading a JPEG directly into a RGB32 buffer, reading into a RGB24 buffer instead.");
+        Warning("libjpeg-turbo is required for reading a JPEG directly into a RGB32 buffer, reading into a RGB24 buffer instead.");
 #endif
-    }
+      }
     case ZM_COLOUR_RGB24:
     default:
-    {
-    new_colours = ZM_COLOUR_RGB24;
-    if(p_subpixelorder == ZM_SUBPIX_ORDER_BGR) {
+      {
+        new_colours = ZM_COLOUR_RGB24;
+        if(p_subpixelorder == ZM_SUBPIX_ORDER_BGR) {
 #ifdef JCS_EXTENSIONS    
-      cinfo->out_color_space = JCS_EXT_BGR;  
-      new_subpixelorder = ZM_SUBPIX_ORDER_BGR;
+          cinfo->out_color_space = JCS_EXT_BGR;  
+          new_subpixelorder = ZM_SUBPIX_ORDER_BGR;
 #else
-      Warning("libjpeg-turbo is required for reading a JPEG directly into a BGR24 buffer, reading into a RGB24 buffer instead.");    
-      cinfo->out_color_space = JCS_RGB;  
-      new_subpixelorder = ZM_SUBPIX_ORDER_RGB;
+          Warning("libjpeg-turbo is required for reading a JPEG directly into a BGR24 buffer, reading into a RGB24 buffer instead.");    
+          cinfo->out_color_space = JCS_RGB;  
+          new_subpixelorder = ZM_SUBPIX_ORDER_RGB;
 #endif
-    } else {
-      /* Assume RGB */
-/*
+        } else {
+          /* Assume RGB */
+          /*
 #ifdef JCS_EXTENSIONS
-      cinfo->out_color_space = JCS_EXT_RGB;
+cinfo->out_color_space = JCS_EXT_RGB;
 #else
-      cinfo->out_color_space = JCS_RGB;
+cinfo->out_color_space = JCS_RGB;
 #endif
-*/
-      cinfo->out_color_space = JCS_RGB;
-      new_subpixelorder = ZM_SUBPIX_ORDER_RGB;
-    }
-    break;
-    }
+           */
+          cinfo->out_color_space = JCS_RGB;
+          new_subpixelorder = ZM_SUBPIX_ORDER_RGB;
+        }
+        break;
+      }
   }
-  
+
   if(WriteBuffer(new_width, new_height, new_colours, new_subpixelorder) == NULL) {
     Error("Failed requesting writeable buffer for reading JPEG image.");
     jpeg_abort_decompress( cinfo );
@@ -952,97 +950,97 @@ bool Image::WriteJpeg( const char *filename, int quality_override, struct timeva
 
   cinfo->image_width = width;   /* image width and height, in pixels */
   cinfo->image_height = height;
-  
+
   switch(colours) {
     case ZM_COLOUR_GRAY8:
-    {
-    cinfo->input_components = 1;
-    cinfo->in_color_space = JCS_GRAYSCALE;
-    break;
-    }
+      {
+        cinfo->input_components = 1;
+        cinfo->in_color_space = JCS_GRAYSCALE;
+        break;
+      }
     case ZM_COLOUR_RGB32:
-    {
+      {
 #ifdef JCS_EXTENSIONS
-    cinfo->input_components = 4;
-    if(subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
-      cinfo->in_color_space = JCS_EXT_BGRX;
-    } else if(subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
-      cinfo->in_color_space = JCS_EXT_XRGB;
-    } else if(subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
-      cinfo->in_color_space = JCS_EXT_XBGR;
-    } else {
-      /* Assume RGBA */
-      cinfo->in_color_space = JCS_EXT_RGBX;
-    }  
+        cinfo->input_components = 4;
+        if(subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
+          cinfo->in_color_space = JCS_EXT_BGRX;
+        } else if(subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
+          cinfo->in_color_space = JCS_EXT_XRGB;
+        } else if(subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
+          cinfo->in_color_space = JCS_EXT_XBGR;
+        } else {
+          /* Assume RGBA */
+          cinfo->in_color_space = JCS_EXT_RGBX;
+        }  
 #else
-    Error("libjpeg-turbo is required for JPEG encoding directly from RGB32 source");
-    jpeg_abort_compress( cinfo );
-    fclose(outfile);
-    return(false);
+        Error("libjpeg-turbo is required for JPEG encoding directly from RGB32 source");
+        jpeg_abort_compress( cinfo );
+        fclose(outfile);
+        return(false);
 #endif
-    break;
-    }
+        break;
+      }
     case ZM_COLOUR_RGB24:
     default:
-    {
-    cinfo->input_components = 3;
-    if(subpixelorder == ZM_SUBPIX_ORDER_BGR) {
+      {
+        cinfo->input_components = 3;
+        if(subpixelorder == ZM_SUBPIX_ORDER_BGR) {
 #ifdef JCS_EXTENSIONS   
-      cinfo->in_color_space = JCS_EXT_BGR;
+          cinfo->in_color_space = JCS_EXT_BGR;
 #else
-      Error("libjpeg-turbo is required for JPEG encoding directly from BGR24 source");
-      jpeg_abort_compress( cinfo );
-      fclose(outfile);
-      return(false);                                          
+          Error("libjpeg-turbo is required for JPEG encoding directly from BGR24 source");
+          jpeg_abort_compress( cinfo );
+          fclose(outfile);
+          return(false);                                          
 #endif
-    } else {
-      /* Assume RGB */
-/*
+        } else {
+          /* Assume RGB */
+          /*
 #ifdef JCS_EXTENSIONS
-      cinfo->out_color_space = JCS_EXT_RGB;
+cinfo->out_color_space = JCS_EXT_RGB;
 #else
-      cinfo->out_color_space = JCS_RGB;
+cinfo->out_color_space = JCS_RGB;
 #endif
-*/
-      cinfo->in_color_space = JCS_RGB;
-    }
-    break;
-    }
+           */
+          cinfo->in_color_space = JCS_RGB;
+        }
+        break;
+      }
   }
-  
+
   jpeg_set_defaults( cinfo );
   jpeg_set_quality( cinfo, quality, FALSE );
   cinfo->dct_method = JDCT_FASTEST;
 
   jpeg_start_compress( cinfo, TRUE );
-  if ( config.add_jpeg_comments && text[0] )
-  {
+  if ( config.add_jpeg_comments && text[0] ) {
     jpeg_write_marker( cinfo, JPEG_COM, (const JOCTET *)text, strlen(text) );
   }
-    // If we have a non-zero time (meaning a parameter was passed in), then form a simple exif segment with that time as DateTimeOriginal and SubsecTimeOriginal
-    // No timestamp just leave off the exif section.
-    if(timestamp.tv_sec)
-    {
-      #define EXIFTIMES_MS_OFFSET 0x36   // three decimal digits for milliseconds
-      #define EXIFTIMES_MS_LEN  0x03
-      #define EXIFTIMES_OFFSET  0x3E   // 19 characters format '2015:07:21 13:14:45' not including quotes
-      #define EXIFTIMES_LEN     0x13   // = 19
-      #define EXIF_CODE       0xE1
+  // If we have a non-zero time (meaning a parameter was passed in), then form a simple exif segment with that time as DateTimeOriginal and SubsecTimeOriginal
+  // No timestamp just leave off the exif section.
+  if(timestamp.tv_sec)
+  {
+#define EXIFTIMES_MS_OFFSET 0x36   // three decimal digits for milliseconds
+#define EXIFTIMES_MS_LEN  0x03
+#define EXIFTIMES_OFFSET  0x3E   // 19 characters format '2015:07:21 13:14:45' not including quotes
+#define EXIFTIMES_LEN     0x13   // = 19
+#define EXIF_CODE       0xE1
 
-      char timebuf[64], msbuf[64];
-      strftime(timebuf, sizeof timebuf, "%Y:%m:%d %H:%M:%S", localtime(&(timestamp.tv_sec)));
-      snprintf(msbuf, sizeof msbuf, "%06d",(int)(timestamp.tv_usec));  // we only use milliseconds because that's all defined in exif, but this is the whole microseconds because we have it
-      unsigned char exiftimes[82] = {
-         0x45, 0x78, 0x69, 0x66, 0x00, 0x00, 0x49, 0x49, 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00, 0x01, 0x00,
-         0x69, 0x87, 0x04, 0x00, 0x01, 0x00, 0x00, 0x00, 0x1A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-         0x02, 0x00, 0x03, 0x90, 0x02, 0x00, 0x14, 0x00, 0x00, 0x00, 0x38, 0x00, 0x00, 0x00, 0x91, 0x92,
-         0x02, 0x00, 0x04, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff,
-         0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-         0xff, 0x00 };
-      memcpy(&exiftimes[EXIFTIMES_OFFSET],  timebuf,EXIFTIMES_LEN);
-      memcpy(&exiftimes[EXIFTIMES_MS_OFFSET], msbuf  ,EXIFTIMES_MS_LEN);
-      jpeg_write_marker (cinfo, EXIF_CODE, (const JOCTET *)exiftimes, sizeof(exiftimes) );
-    }
+    // This is a lot of stuff to allocate on the stack.  Recommend char *timebuf[64];
+    char timebuf[64], msbuf[64];
+    strftime(timebuf, sizeof timebuf, "%Y:%m:%d %H:%M:%S", localtime(&(timestamp.tv_sec)));
+    snprintf(msbuf, sizeof msbuf, "%06d",(int)(timestamp.tv_usec));  // we only use milliseconds because that's all defined in exif, but this is the whole microseconds because we have it
+    unsigned char exiftimes[82] = {
+      0x45, 0x78, 0x69, 0x66, 0x00, 0x00, 0x49, 0x49, 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00, 0x01, 0x00,
+      0x69, 0x87, 0x04, 0x00, 0x01, 0x00, 0x00, 0x00, 0x1A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x02, 0x00, 0x03, 0x90, 0x02, 0x00, 0x14, 0x00, 0x00, 0x00, 0x38, 0x00, 0x00, 0x00, 0x91, 0x92,
+      0x02, 0x00, 0x04, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff,
+      0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+      0xff, 0x00 };
+    memcpy(&exiftimes[EXIFTIMES_OFFSET], timebuf,EXIFTIMES_LEN);
+    memcpy(&exiftimes[EXIFTIMES_MS_OFFSET], msbuf, EXIFTIMES_MS_LEN);
+    jpeg_write_marker( cinfo, EXIF_CODE, (const JOCTET *)exiftimes, sizeof(exiftimes) );
+  }
 
   JSAMPROW row_pointer;  /* pointer to a single row */
   int row_stride = cinfo->image_width * colours; /* physical row width in buffer */
@@ -1089,7 +1087,7 @@ bool Image::DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size, unsigned int 
     jpeg_abort_decompress( cinfo );
     return( false );
   }
-  
+
   /* Check if the image has at least one huffman table defined. If not, use the standard ones */
   /* This is required for the MJPEG capture palette of USB devices */
   if(cinfo->dc_huff_tbl_ptrs[0] == NULL) {
@@ -1103,67 +1101,67 @@ bool Image::DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size, unsigned int 
   {
     Debug(9,"Image dimensions differ. Old: %ux%u New: %ux%u",width,height,new_width,new_height);
   }
-  
+
   switch(p_colours) {
     case ZM_COLOUR_GRAY8:
-    {
-    cinfo->out_color_space = JCS_GRAYSCALE;
-    new_colours = ZM_COLOUR_GRAY8;
-    new_subpixelorder = ZM_SUBPIX_ORDER_NONE;
-    break;
-    }
+      {
+        cinfo->out_color_space = JCS_GRAYSCALE;
+        new_colours = ZM_COLOUR_GRAY8;
+        new_subpixelorder = ZM_SUBPIX_ORDER_NONE;
+        break;
+      }
     case ZM_COLOUR_RGB32:
-    {
+      {
 #ifdef JCS_EXTENSIONS
-    new_colours = ZM_COLOUR_RGB32;
-    if(p_subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
-      cinfo->out_color_space = JCS_EXT_BGRX;
-      new_subpixelorder = ZM_SUBPIX_ORDER_BGRA;
-    } else if(p_subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
-      cinfo->out_color_space = JCS_EXT_XRGB;
-      new_subpixelorder = ZM_SUBPIX_ORDER_ARGB;
-    } else if(p_subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
-      cinfo->out_color_space = JCS_EXT_XBGR;
-      new_subpixelorder = ZM_SUBPIX_ORDER_ABGR;
-    } else {
-      /* Assume RGBA */
-      cinfo->out_color_space = JCS_EXT_RGBX;
-      new_subpixelorder = ZM_SUBPIX_ORDER_RGBA;
-    }
-    break;    
+        new_colours = ZM_COLOUR_RGB32;
+        if(p_subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
+          cinfo->out_color_space = JCS_EXT_BGRX;
+          new_subpixelorder = ZM_SUBPIX_ORDER_BGRA;
+        } else if(p_subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
+          cinfo->out_color_space = JCS_EXT_XRGB;
+          new_subpixelorder = ZM_SUBPIX_ORDER_ARGB;
+        } else if(p_subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
+          cinfo->out_color_space = JCS_EXT_XBGR;
+          new_subpixelorder = ZM_SUBPIX_ORDER_ABGR;
+        } else {
+          /* Assume RGBA */
+          cinfo->out_color_space = JCS_EXT_RGBX;
+          new_subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+        }
+        break;    
 #else
-    Warning("libjpeg-turbo is required for reading a JPEG directly into a RGB32 buffer, reading into a RGB24 buffer instead.");
+        Warning("libjpeg-turbo is required for reading a JPEG directly into a RGB32 buffer, reading into a RGB24 buffer instead.");
 #endif
-    }
+      }
     case ZM_COLOUR_RGB24:
     default:
-    {
-    new_colours = ZM_COLOUR_RGB24;
-    if(p_subpixelorder == ZM_SUBPIX_ORDER_BGR) {
+      {
+        new_colours = ZM_COLOUR_RGB24;
+        if(p_subpixelorder == ZM_SUBPIX_ORDER_BGR) {
 #ifdef JCS_EXTENSIONS    
-      cinfo->out_color_space = JCS_EXT_BGR;  
-      new_subpixelorder = ZM_SUBPIX_ORDER_BGR;
+          cinfo->out_color_space = JCS_EXT_BGR;  
+          new_subpixelorder = ZM_SUBPIX_ORDER_BGR;
 #else
-      Warning("libjpeg-turbo is required for reading a JPEG directly into a BGR24 buffer, reading into a RGB24 buffer instead.");    
-      cinfo->out_color_space = JCS_RGB;  
-      new_subpixelorder = ZM_SUBPIX_ORDER_RGB;
+          Warning("libjpeg-turbo is required for reading a JPEG directly into a BGR24 buffer, reading into a RGB24 buffer instead.");    
+          cinfo->out_color_space = JCS_RGB;  
+          new_subpixelorder = ZM_SUBPIX_ORDER_RGB;
 #endif
-    } else {
-      /* Assume RGB */
-/*
+        } else {
+          /* Assume RGB */
+          /*
 #ifdef JCS_EXTENSIONS
-      cinfo->out_color_space = JCS_EXT_RGB;
+cinfo->out_color_space = JCS_EXT_RGB;
 #else
-      cinfo->out_color_space = JCS_RGB;
+cinfo->out_color_space = JCS_RGB;
 #endif
-*/
-      cinfo->out_color_space = JCS_RGB;
-      new_subpixelorder = ZM_SUBPIX_ORDER_RGB;
-    }
-    break;
-    }
+           */
+          cinfo->out_color_space = JCS_RGB;
+          new_subpixelorder = ZM_SUBPIX_ORDER_RGB;
+        }
+        break;
+      }
   }
-  
+
   if(WriteBuffer(new_width, new_height, new_colours, new_subpixelorder) == NULL) {
     Error("Failed requesting writeable buffer for reading JPEG image.");
     jpeg_abort_decompress( cinfo );
@@ -1214,59 +1212,59 @@ bool Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_over
 
   switch(colours) {
     case ZM_COLOUR_GRAY8:
-    {
-    cinfo->input_components = 1;
-    cinfo->in_color_space = JCS_GRAYSCALE;
-    break;
-    }
+      {
+        cinfo->input_components = 1;
+        cinfo->in_color_space = JCS_GRAYSCALE;
+        break;
+      }
     case ZM_COLOUR_RGB32:
-    {
+      {
 #ifdef JCS_EXTENSIONS
-    cinfo->input_components = 4;
-    if(subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
-      cinfo->in_color_space = JCS_EXT_BGRX;
-    } else if(subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
-      cinfo->in_color_space = JCS_EXT_XRGB;
-    } else if(subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
-      cinfo->in_color_space = JCS_EXT_XBGR;
-    } else {
-      /* Assume RGBA */
-      cinfo->in_color_space = JCS_EXT_RGBX;
-    } 
+        cinfo->input_components = 4;
+        if(subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
+          cinfo->in_color_space = JCS_EXT_BGRX;
+        } else if(subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
+          cinfo->in_color_space = JCS_EXT_XRGB;
+        } else if(subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
+          cinfo->in_color_space = JCS_EXT_XBGR;
+        } else {
+          /* Assume RGBA */
+          cinfo->in_color_space = JCS_EXT_RGBX;
+        } 
 #else
-    Error("libjpeg-turbo is required for JPEG encoding directly from RGB32 source");
-    jpeg_abort_compress( cinfo );
-    return(false);
+        Error("libjpeg-turbo is required for JPEG encoding directly from RGB32 source");
+        jpeg_abort_compress( cinfo );
+        return(false);
 #endif
-    break;
-    }
+        break;
+      }
     case ZM_COLOUR_RGB24:
     default:
-    {
-    cinfo->input_components = 3;
-    if(subpixelorder == ZM_SUBPIX_ORDER_BGR) {
+      {
+        cinfo->input_components = 3;
+        if(subpixelorder == ZM_SUBPIX_ORDER_BGR) {
 #ifdef JCS_EXTENSIONS   
-      cinfo->in_color_space = JCS_EXT_BGR;
+          cinfo->in_color_space = JCS_EXT_BGR;
 #else
-      Error("libjpeg-turbo is required for JPEG encoding directly from BGR24 source");
-      jpeg_abort_compress( cinfo );
-      return(false);                                          
+          Error("libjpeg-turbo is required for JPEG encoding directly from BGR24 source");
+          jpeg_abort_compress( cinfo );
+          return(false);                                          
 #endif
-    } else {
-      /* Assume RGB */
-/*
+        } else {
+          /* Assume RGB */
+          /*
 #ifdef JCS_EXTENSIONS
-      cinfo->out_color_space = JCS_EXT_RGB;
+cinfo->out_color_space = JCS_EXT_RGB;
 #else
-      cinfo->out_color_space = JCS_RGB;
+cinfo->out_color_space = JCS_RGB;
 #endif
-*/
-      cinfo->in_color_space = JCS_RGB;
-    }
-    break;
-    }
+           */
+          cinfo->in_color_space = JCS_RGB;
+        }
+        break;
+      }
   }
-  
+
   jpeg_set_defaults( cinfo );
   jpeg_set_quality( cinfo, quality, FALSE );
   cinfo->dct_method = JDCT_FASTEST;
@@ -1339,7 +1337,7 @@ bool Image::Crop( unsigned int lo_x, unsigned int lo_y, unsigned int hi_x, unsig
 
   unsigned int new_size = new_width*new_height*colours;
   uint8_t *new_buffer = AllocBuffer(new_size);
-  
+
   unsigned int new_stride = new_width*colours;
   for ( unsigned int y = lo_y, ny = 0; y <= hi_y; y++, ny++ )
   {
@@ -1366,17 +1364,17 @@ void Image::Overlay( const Image &image )
   {
     Panic( "Attempt to overlay different sized images, expected %dx%d, got %dx%d", width, height, image.width, image.height );
   }
-  
+
   if( colours == image.colours && subpixelorder != image.subpixelorder ) {
     Warning("Attempt to overlay images of same format but with different subpixel order.");
   }
-  
+
   /* Grayscale ontop of grayscale - complete */
   if ( colours == ZM_COLOUR_GRAY8 && image.colours == ZM_COLOUR_GRAY8 ) {
     const uint8_t* const max_ptr = buffer+size;
     const uint8_t* psrc = image.buffer;
     uint8_t* pdest = buffer;
-    
+
     while( pdest < max_ptr )
     {
       if ( *psrc )
@@ -1386,15 +1384,15 @@ void Image::Overlay( const Image &image )
       pdest++;
       psrc++;
     }
-  
-  /* RGB24 ontop of grayscale - convert to same format first - complete */
+
+    /* RGB24 ontop of grayscale - convert to same format first - complete */
   } else if ( colours == ZM_COLOUR_GRAY8 && image.colours == ZM_COLOUR_RGB24 ) {
     Colourise(image.colours, image.subpixelorder);
-    
+
     const uint8_t* const max_ptr = buffer+size;
     const uint8_t* psrc = image.buffer;
     uint8_t* pdest = buffer;
-    
+
     while( pdest < max_ptr )
     {
       if ( RED_PTR_RGBA(psrc) || GREEN_PTR_RGBA(psrc) || BLUE_PTR_RGBA(psrc) )
@@ -1406,15 +1404,15 @@ void Image::Overlay( const Image &image )
       pdest += 3;
       psrc += 3;
     }
-  
-  /* RGB32 ontop of grayscale - convert to same format first - complete */
+
+    /* RGB32 ontop of grayscale - convert to same format first - complete */
   } else if( colours == ZM_COLOUR_GRAY8 && image.colours == ZM_COLOUR_RGB32 ) {
     Colourise(image.colours, image.subpixelorder);
-    
+
     const Rgb* const max_ptr = (Rgb*)(buffer+size);
     const Rgb* prsrc = (Rgb*)image.buffer; 
     Rgb* prdest = (Rgb*)buffer;
-    
+
     if(subpixelorder == ZM_SUBPIX_ORDER_RGBA || subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
       /* RGB\BGR\RGBA\BGRA subpixel order - Alpha byte is last */
       while (prdest < max_ptr) {
@@ -1436,13 +1434,13 @@ void Image::Overlay( const Image &image )
         prsrc++;
       }
     }
-  
-  /* Grayscale ontop of RGB24 - complete */
+
+    /* Grayscale ontop of RGB24 - complete */
   } else if ( colours == ZM_COLOUR_RGB24 && image.colours == ZM_COLOUR_GRAY8 ) {
     const uint8_t* const max_ptr = buffer+size;
     const uint8_t* psrc = image.buffer;
     uint8_t* pdest = buffer;
-    
+
     while( pdest < max_ptr )
     {
       if ( *psrc )
@@ -1452,13 +1450,13 @@ void Image::Overlay( const Image &image )
       pdest += 3;
       psrc++;
     }
-  
-  /* RGB24 ontop of RGB24 - not complete. need to take care of different subpixel orders */
+
+    /* RGB24 ontop of RGB24 - not complete. need to take care of different subpixel orders */
   } else if ( colours == ZM_COLOUR_RGB24 && image.colours == ZM_COLOUR_RGB24 ) {
     const uint8_t* const max_ptr = buffer+size;
     const uint8_t* psrc = image.buffer;
     uint8_t* pdest = buffer;
-    
+
     while( pdest < max_ptr )
     {
       if ( RED_PTR_RGBA(psrc) || GREEN_PTR_RGBA(psrc) || BLUE_PTR_RGBA(psrc) )
@@ -1470,17 +1468,17 @@ void Image::Overlay( const Image &image )
       pdest += 3;
       psrc += 3;
     } 
-  
-  /* RGB32 ontop of RGB24 - TO BE DONE */
+
+    /* RGB32 ontop of RGB24 - TO BE DONE */
   } else if ( colours == ZM_COLOUR_RGB24 && image.colours == ZM_COLOUR_RGB32 ) {
     Error("Overlay of RGB32 ontop of RGB24 is not supported.");
-  
-  /* Grayscale ontop of RGB32 - complete */
+
+    /* Grayscale ontop of RGB32 - complete */
   } else if ( colours == ZM_COLOUR_RGB32 && image.colours == ZM_COLOUR_GRAY8 ) {
     const Rgb* const max_ptr = (Rgb*)(buffer+size);
     Rgb* prdest = (Rgb*)buffer;
     const uint8_t* psrc = image.buffer;
-    
+
     if(subpixelorder == ZM_SUBPIX_ORDER_RGBA || subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
       /* RGBA\BGRA subpixel order - Alpha byte is last */
       while (prdest < max_ptr) {
@@ -1502,17 +1500,17 @@ void Image::Overlay( const Image &image )
         psrc++;
       }
     }
-  
-  /* RGB24 ontop of RGB32 - TO BE DONE */
+
+    /* RGB24 ontop of RGB32 - TO BE DONE */
   } else if ( colours == ZM_COLOUR_RGB32 && image.colours == ZM_COLOUR_RGB24 ) {
     Error("Overlay of RGB24 ontop of RGB32 is not supported.");
-  
-  /* RGB32 ontop of RGB32 - not complete. need to take care of different subpixel orders */
+
+    /* RGB32 ontop of RGB32 - not complete. need to take care of different subpixel orders */
   } else if ( colours == ZM_COLOUR_RGB32 && image.colours == ZM_COLOUR_RGB32 ) {
     const Rgb* const max_ptr = (Rgb*)(buffer+size);
     Rgb* prdest = (Rgb*)buffer;
     const Rgb* prsrc = (Rgb*)image.buffer; 
-    
+
     if(image.subpixelorder == ZM_SUBPIX_ORDER_RGBA || image.subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
       /* RGB\BGR\RGBA\BGRA subpixel order - Alpha byte is last */
       while (prdest < max_ptr) {
@@ -1535,7 +1533,7 @@ void Image::Overlay( const Image &image )
       }
     }
   }
-  
+
 }
 
 /* RGB32 compatible: complete */
@@ -1600,7 +1598,7 @@ void Image::Overlay( const Image &image, unsigned int x, unsigned int y )
   } else {
     Error("Overlay called with unexpected colours: %d", colours);
   }
-  
+
 }
 
 void Image::Blend( const Image &image, int transparency )
@@ -1611,33 +1609,33 @@ void Image::Blend( const Image &image, int transparency )
   unsigned long milpixels;
 #endif
   uint8_t* new_buffer;
-  
+
   if ( !(width == image.width && height == image.height && colours == image.colours && subpixelorder == image.subpixelorder) )
   {
     Panic( "Attempt to blend different sized images, expected %dx%dx%d %d, got %dx%dx%d %d", width, height, colours, subpixelorder, image.width, image.height, image.colours, image.subpixelorder );
   }
-  
+
   if(transparency <= 0)
     return;
-  
+
   new_buffer = AllocBuffer(size);
-  
+
 #ifdef ZM_IMAGE_PROFILING
   clock_gettime(CLOCK_THREAD_CPUTIME_ID,&start);
 #endif
-  
+
   /* Do the blending */
   (*fptr_blend)(buffer, image.buffer, new_buffer, size, transparency);
-  
+
 #ifdef ZM_IMAGE_PROFILING
   clock_gettime(CLOCK_THREAD_CPUTIME_ID,&end);
   timespec_diff(&start,&end,&diff);
-  
+
   executetime = (1000000000ull * diff.tv_sec) + diff.tv_nsec;
   milpixels = (unsigned long)((long double)size)/((((long double)executetime)/1000));
   Debug(5, "Blend: %u colours blended in %llu nanoseconds, %lu million colours/s\n",size,executetime,milpixels);
 #endif
-  
+
   AssignDirect( width, height, colours, subpixelorder, new_buffer, size, ZM_BUFTYPE_ZM);
 }
 
@@ -1729,6 +1727,8 @@ Image *Image::Highlight( unsigned int n_images, Image *images[], const Rgb thres
   unsigned int size = result->size;
   for ( unsigned int c = 0; c < colours; c++ )
   {
+    unsigned int ref_colour_rgb = RGB_VAL(ref_colour,c);
+
     for ( unsigned int i = 0; i < size; i++ )
     {
       unsigned int count = 0;
@@ -1737,7 +1737,7 @@ Image *Image::Highlight( unsigned int n_images, Image *images[], const Rgb thres
       {
         uint8_t *psrc = images[j]->buffer+c;
 
-	    unsigned int diff = ((*psrc)-RGB_VAL(ref_colour,c)) > 0 ? (*psrc)-RGB_VAL(ref_colour,c) : RGB_VAL(ref_colour,c) - (*psrc);
+	    unsigned int diff = ((*psrc)-ref_colour_rgb) > 0 ? (*psrc)-ref_colour_rgb : ref_colour_rgb - (*psrc);
 
 	    if (diff >= RGB_VAL(threshold,c))
         {
@@ -1760,63 +1760,63 @@ void Image::Delta( const Image &image, Image* targetimage) const
   unsigned long long executetime;
   unsigned long milpixels;
 #endif
-  
+
   if ( !(width == image.width && height == image.height && colours == image.colours && subpixelorder == image.subpixelorder) )
   {
     Panic( "Attempt to get delta of different sized images, expected %dx%dx%d %d, got %dx%dx%d %d", width, height, colours, subpixelorder, image.width, image.height, image.colours, image.subpixelorder);
   }
-  
+
   uint8_t *pdiff = targetimage->WriteBuffer(width, height, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE);
-  
+
   if(pdiff == NULL) {
     Panic("Failed requesting writeable buffer for storing the delta image");
   }
-  
+
 #ifdef ZM_IMAGE_PROFILING
   clock_gettime(CLOCK_THREAD_CPUTIME_ID,&start);
 #endif
-  
+
   switch(colours) {
     case ZM_COLOUR_RGB24:
-    {
-    if(subpixelorder == ZM_SUBPIX_ORDER_BGR) {
-      /* BGR subpixel order */
-      (*fptr_delta8_bgr)(buffer, image.buffer, pdiff, pixels);
-    } else {
-      /* Assume RGB subpixel order */
-      (*fptr_delta8_rgb)(buffer, image.buffer, pdiff, pixels);
-    }
-    break;
-    }
+      {
+        if(subpixelorder == ZM_SUBPIX_ORDER_BGR) {
+          /* BGR subpixel order */
+          (*fptr_delta8_bgr)(buffer, image.buffer, pdiff, pixels);
+        } else {
+          /* Assume RGB subpixel order */
+          (*fptr_delta8_rgb)(buffer, image.buffer, pdiff, pixels);
+        }
+        break;
+      }
     case ZM_COLOUR_RGB32:
-    {
-    if(subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
-      /* ARGB subpixel order */
-      (*fptr_delta8_argb)(buffer, image.buffer, pdiff, pixels);
-    } else if(subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
-      /* ABGR subpixel order */
-      (*fptr_delta8_abgr)(buffer, image.buffer, pdiff, pixels);
-    } else if(subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
-      /* BGRA subpixel order */
-      (*fptr_delta8_bgra)(buffer, image.buffer, pdiff, pixels);
-    } else {
-      /* Assume RGBA subpixel order */
-      (*fptr_delta8_rgba)(buffer, image.buffer, pdiff, pixels);
-    }
-    break;
-    }
+      {
+        if(subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
+          /* ARGB subpixel order */
+          (*fptr_delta8_argb)(buffer, image.buffer, pdiff, pixels);
+        } else if(subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
+          /* ABGR subpixel order */
+          (*fptr_delta8_abgr)(buffer, image.buffer, pdiff, pixels);
+        } else if(subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
+          /* BGRA subpixel order */
+          (*fptr_delta8_bgra)(buffer, image.buffer, pdiff, pixels);
+        } else {
+          /* Assume RGBA subpixel order */
+          (*fptr_delta8_rgba)(buffer, image.buffer, pdiff, pixels);
+        }
+        break;
+      }
     case ZM_COLOUR_GRAY8:
-    (*fptr_delta8_gray8)(buffer, image.buffer, pdiff, pixels);
-    break;
+      (*fptr_delta8_gray8)(buffer, image.buffer, pdiff, pixels);
+      break;
     default:
-    Panic("Delta called with unexpected colours: %d",colours);
-    break;
+      Panic("Delta called with unexpected colours: %d",colours);
+      break;
   }
-  
+
 #ifdef ZM_IMAGE_PROFILING
   clock_gettime(CLOCK_THREAD_CPUTIME_ID,&end);
   timespec_diff(&start,&end,&diff);
-  
+
   executetime = (1000000000ull * diff.tv_sec) + diff.tv_nsec;
   milpixels = (unsigned long)((long double)pixels)/((((long double)executetime)/1000));
   Debug(5, "Delta: %u delta pixels generated in %llu nanoseconds, %lu million pixels/s\n",pixels,executetime,milpixels);
@@ -1887,7 +1887,7 @@ void Image::MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour 
       }
     }
     else if ( colours == ZM_COLOUR_RGB32 )
-  {
+    {
       for ( unsigned int x = 0; x < width; x++, ptr += colours )
       {
         Rgb *temp_ptr = (Rgb*)ptr;
@@ -1895,10 +1895,10 @@ void Image::MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour 
           *temp_ptr = pixel_rgb_col;
         i++;
       }
-  } else {
-    Panic("MaskPrivacy called with unexpected colours: %d", colours);
-    return;
-  }
+    } else {
+      Panic("MaskPrivacy called with unexpected colours: %d", colours);
+      return;
+    }
 
   }
 }
@@ -1920,7 +1920,7 @@ void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int
   const uint8_t fg_bw_col = fg_colour & 0xff;
   const Rgb fg_rgb_col = rgb_convert(fg_colour,subpixelorder);
   const bool fg_trans = (fg_colour == RGB_TRANSPARENT);
-  
+
   const uint8_t bg_r_col = RED_VAL_RGBA(bg_colour);
   const uint8_t bg_g_col = GREEN_VAL_RGBA(bg_colour);
   const uint8_t bg_b_col = BLUE_VAL_RGBA(bg_colour);
@@ -2028,7 +2028,7 @@ void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int
       }
     } 
     else if ( colours == ZM_COLOUR_RGB32 )
-  {
+    {
       unsigned int wc = width * colours;
 
       uint8_t *ptr = &buffer[((lo_line_y*width)+lo_line_x)<<2];
@@ -2048,22 +2048,22 @@ void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int
             {
               if ( !fg_trans )
               {
-        *temp_ptr = fg_rgb_col;
+                *temp_ptr = fg_rgb_col;
               }
             }
             else if ( !bg_trans )
             {
-        *temp_ptr = bg_rgb_col;
+              *temp_ptr = bg_rgb_col;
             }
           }
         }
       } 
-  
-  } else {
-    Panic("Annotate called with unexpected colours: %d",colours);
-    return;
-  }
-  
+
+    } else {
+      Panic("Annotate called with unexpected colours: %d",colours);
+      return;
+    }
+
     index += line_len;
     while ( text[index] == '\n' )
     {
@@ -2074,18 +2074,14 @@ void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int
   }
 }
 
-void Image::Timestamp( const char *label, const time_t when, const Coord &coord, const int size )
-{
+void Image::Timestamp( const char *label, const time_t when, const Coord &coord, const int size ) {
   char time_text[64];
   strftime( time_text, sizeof(time_text), "%y/%m/%d %H:%M:%S", localtime( &when ) );
   char text[64];
-  if ( label )
-  {
+  if ( label ) {
     snprintf( text, sizeof(text), "%s - %s", label, time_text );
     Annotate( text, coord, size );
-  }
-  else
-  {
+  } else {
     Annotate( time_text, coord, size );
   }
 }
@@ -2094,21 +2090,21 @@ void Image::Timestamp( const char *label, const time_t when, const Coord &coord,
 void Image::Colourise(const unsigned int p_reqcolours, const unsigned int p_reqsubpixelorder)
 {
   Debug(9, "Colourise: Req colours: %u Req subpixel order: %u Current colours: %u Current subpixel order: %u",p_reqcolours,p_reqsubpixelorder,colours,subpixelorder);
-  
+
   if ( colours != ZM_COLOUR_GRAY8) {
     Warning("Target image is already colourised, colours: %u",colours);
     return;
   }
-  
+
   if ( p_reqcolours == ZM_COLOUR_RGB32 ) {
     /* RGB32 */
     Rgb* new_buffer = (Rgb*)AllocBuffer(pixels*sizeof(Rgb));
-    
+
     const uint8_t *psrc = buffer;
     Rgb* pdest = new_buffer;
     Rgb subpixel;
     Rgb newpixel;
-    
+
     if ( p_reqsubpixelorder == ZM_SUBPIX_ORDER_ABGR || p_reqsubpixelorder == ZM_SUBPIX_ORDER_ARGB) {
       /* ARGB\ABGR subpixel order. alpha byte is first (mem+0), so we need to shift the pixel left in the end */
       for(unsigned int i=0;i<pixels;i++) {
@@ -2133,22 +2129,22 @@ void Image::Colourise(const unsigned int p_reqcolours, const unsigned int p_reqs
   } else if(p_reqcolours == ZM_COLOUR_RGB24 ) {
     /* RGB24 */
     uint8_t *new_buffer = AllocBuffer(pixels*3);
-    
+
     uint8_t *pdest = new_buffer;
     const uint8_t *psrc = buffer;
-    
+
     for(unsigned int i=0;i<(unsigned int)pixels;i++, pdest += 3)
     {
       RED_PTR_RGBA(pdest) = GREEN_PTR_RGBA(pdest) = BLUE_PTR_RGBA(pdest) = psrc[i];
     }
-    
+
     /* Directly assign the new buffer and make sure it will be freed when not needed anymore */
     AssignDirect( width, height, p_reqcolours, p_reqsubpixelorder, new_buffer, pixels*3, ZM_BUFTYPE_ZM);
   } else {
     Error("Colourise called with unexpected colours: %d",colours);
     return;
   }
-  
+
 }
 
 /* RGB32 compatible: complete */
@@ -2157,23 +2153,23 @@ void Image::DeColourise()
   colours = ZM_COLOUR_GRAY8;
   subpixelorder = ZM_SUBPIX_ORDER_NONE;
   size = width * height;
-  
+
   if(colours == ZM_COLOUR_RGB32 && config.cpu_extensions && sseversion >= 35) {
     /* Use SSSE3 functions */  
     switch(subpixelorder) {
       case ZM_SUBPIX_ORDER_BGRA:
-      ssse3_convert_bgra_gray8(buffer,buffer,pixels);
-      break;
+        ssse3_convert_bgra_gray8(buffer,buffer,pixels);
+        break;
       case ZM_SUBPIX_ORDER_ARGB:
-      ssse3_convert_argb_gray8(buffer,buffer,pixels);
-      break;
+        ssse3_convert_argb_gray8(buffer,buffer,pixels);
+        break;
       case ZM_SUBPIX_ORDER_ABGR:
-      ssse3_convert_abgr_gray8(buffer,buffer,pixels);
-      break;
+        ssse3_convert_abgr_gray8(buffer,buffer,pixels);
+        break;
       case ZM_SUBPIX_ORDER_RGBA:
       default:
-      ssse3_convert_rgba_gray8(buffer,buffer,pixels);
-      break;
+        ssse3_convert_rgba_gray8(buffer,buffer,pixels);
+        break;
     }
   } else {
     /* Use standard functions */
@@ -2181,29 +2177,29 @@ void Image::DeColourise()
     {
       switch(subpixelorder) {
         case ZM_SUBPIX_ORDER_BGRA:
-        std_convert_bgra_gray8(buffer,buffer,pixels);
-        break;
+          std_convert_bgra_gray8(buffer,buffer,pixels);
+          break;
         case ZM_SUBPIX_ORDER_ARGB:
-        std_convert_argb_gray8(buffer,buffer,pixels);
-        break;
+          std_convert_argb_gray8(buffer,buffer,pixels);
+          break;
         case ZM_SUBPIX_ORDER_ABGR:
-        std_convert_abgr_gray8(buffer,buffer,pixels);
-        break;
+          std_convert_abgr_gray8(buffer,buffer,pixels);
+          break;
         case ZM_SUBPIX_ORDER_RGBA:
         default:
-        std_convert_rgba_gray8(buffer,buffer,pixels);
-        break;
+          std_convert_rgba_gray8(buffer,buffer,pixels);
+          break;
       }
     } else {
       /* Assume RGB24 */
       switch(subpixelorder) {
         case ZM_SUBPIX_ORDER_BGR:
-        std_convert_bgr_gray8(buffer,buffer,pixels);
-        break;
+          std_convert_bgr_gray8(buffer,buffer,pixels);
+          break;
         case ZM_SUBPIX_ORDER_RGB:
         default:
-        std_convert_rgb_gray8(buffer,buffer,pixels);
-        break;
+          std_convert_rgb_gray8(buffer,buffer,pixels);
+          break;
       }
     }  
   }
@@ -2216,10 +2212,10 @@ void Image::Fill( Rgb colour, const Box *limits )
   {
     Panic( "Attempt to fill image with unexpected colours %d", colours );
   }
-  
+
   /* Convert the colour's RGBA subpixel order into the image's subpixel order */
   colour = rgb_convert(colour,subpixelorder);
-  
+
   unsigned int lo_x = limits?limits->Lo().X():0;
   unsigned int lo_y = limits?limits->Lo().Y():0;
   unsigned int hi_x = limits?limits->Hi().X():width-1;
@@ -2253,7 +2249,7 @@ void Image::Fill( Rgb colour, const Box *limits )
     for ( unsigned int y = lo_y; y <= (unsigned int)hi_y; y++ )
     {
       Rgb *p = (Rgb*)&buffer[((y*width)+lo_x)<<2];
-      
+
       for ( unsigned int x = lo_x; x <= (unsigned int)hi_x; x++, p++)
       {
         /* Fast, copies the entire pixel in a single pass */ 
@@ -2269,12 +2265,12 @@ void Image::Fill( Rgb colour, int density, const Box *limits )
   /* Allow the faster version to be used if density is not used (density=1) */
   if(density <= 1)
     return Fill(colour,limits);
-  
+
   if ( !(colours == ZM_COLOUR_GRAY8 || colours == ZM_COLOUR_RGB24 || colours == ZM_COLOUR_RGB32  ) )
   {
     Panic( "Attempt to fill image with unexpected colours %d", colours );
   }
-  
+
   /* Convert the colour's RGBA subpixel order into the image's subpixel order */
   colour = rgb_convert(colour,subpixelorder);
 
@@ -2323,7 +2319,7 @@ void Image::Fill( Rgb colour, int density, const Box *limits )
       }
     }
   }  
-  
+
 }
 
 /* RGB32 compatible: complete */
@@ -2333,10 +2329,10 @@ void Image::Outline( Rgb colour, const Polygon &polygon )
   {
     Panic( "Attempt to outline image with unexpected colours %d", colours );
   }
-  
+
   /* Convert the colour's RGBA subpixel order into the image's subpixel order */
   colour = rgb_convert(colour,subpixelorder);
-  
+
   int n_coords = polygon.getNumCoords();
   for ( int j = 0, i = n_coords-1; j < n_coords; i = j++ )
   {
@@ -2430,7 +2426,7 @@ void Image::Outline( Rgb colour, const Polygon &polygon )
           *(Rgb*)(buffer+(((int(round(y))*width)+x)<<2)) = colour;
         }
       }
-      
+
     }
   }
 }
@@ -2442,7 +2438,7 @@ void Image::Fill( Rgb colour, int density, const Polygon &polygon )
   {
     Panic( "Attempt to fill image with unexpected colours %d", colours );
   }
-  
+
   /* Convert the colour's RGBA subpixel order into the image's subpixel order */
   colour = rgb_convert(colour,subpixelorder);
 
@@ -2588,7 +2584,7 @@ void Image::Fill( Rgb colour, const Polygon &polygon )
 /* RGB32 compatible: complete */
 void Image::Rotate( int angle )
 {
-  
+
   angle %= 360;
 
   if ( !angle )
@@ -2599,7 +2595,7 @@ void Image::Rotate( int angle )
   {
     return;
   }
-  
+
   unsigned int new_height = height;
   unsigned int new_width = width;
   uint8_t* rotate_buffer = AllocBuffer(size);
@@ -2607,157 +2603,157 @@ void Image::Rotate( int angle )
   switch( angle )
   {
     case 90 :
-    {
-      new_height = width;
-      new_width = height;
+      {
+        new_height = width;
+        new_width = height;
 
-      unsigned int line_bytes = new_width*colours;
-      unsigned char *s_ptr = buffer;
+        unsigned int line_bytes = new_width*colours;
+        unsigned char *s_ptr = buffer;
 
-      if ( colours == ZM_COLOUR_GRAY8 )
-      {
-        unsigned char *d_ptr;
-        for ( unsigned int i = new_width; i > 0; i-- )
+        if ( colours == ZM_COLOUR_GRAY8 )
         {
-          d_ptr = rotate_buffer+(i-1);
-          for ( unsigned int j = new_height; j > 0; j-- )
+          unsigned char *d_ptr;
+          for ( unsigned int i = new_width; i > 0; i-- )
           {
-            *d_ptr = *s_ptr++;
-            d_ptr += line_bytes;
+            d_ptr = rotate_buffer+(i-1);
+            for ( unsigned int j = new_height; j > 0; j-- )
+            {
+              *d_ptr = *s_ptr++;
+              d_ptr += line_bytes;
+            }
           }
         }
-      }
-      else if ( colours == ZM_COLOUR_RGB32 )
-      {
-        Rgb* s_rptr = (Rgb*)s_ptr;
-        Rgb* d_rptr;
-        for ( unsigned int i = new_width; i > 0; i-- )
+        else if ( colours == ZM_COLOUR_RGB32 )
         {
-          d_rptr = (Rgb*)(rotate_buffer+((i-1)<<2));
-          for ( unsigned int j = new_height; j > 0; j-- )
+          Rgb* s_rptr = (Rgb*)s_ptr;
+          Rgb* d_rptr;
+          for ( unsigned int i = new_width; i > 0; i-- )
           {
-            *d_rptr = *s_rptr++;
-            d_rptr += new_width;
+            d_rptr = (Rgb*)(rotate_buffer+((i-1)<<2));
+            for ( unsigned int j = new_height; j > 0; j-- )
+            {
+              *d_rptr = *s_rptr++;
+              d_rptr += new_width;
+            }
           }
         }
-      }
-      else /* Assume RGB24 */
-      {
-        unsigned char *d_ptr;
-        for ( unsigned int i = new_width; i > 0; i-- )
+        else /* Assume RGB24 */
         {
-          d_ptr = rotate_buffer+((i-1)*3);
-          for ( unsigned int j = new_height; j > 0; j-- )
+          unsigned char *d_ptr;
+          for ( unsigned int i = new_width; i > 0; i-- )
           {
-            *d_ptr = *s_ptr++;
-            *(d_ptr+1) = *s_ptr++;
-            *(d_ptr+2) = *s_ptr++;
-            d_ptr += line_bytes;
+            d_ptr = rotate_buffer+((i-1)*3);
+            for ( unsigned int j = new_height; j > 0; j-- )
+            {
+              *d_ptr = *s_ptr++;
+              *(d_ptr+1) = *s_ptr++;
+              *(d_ptr+2) = *s_ptr++;
+              d_ptr += line_bytes;
+            }
           }
         }
+        break;
       }
-      break;
-    }
     case 180 :
-    {
-      unsigned char *s_ptr = buffer+size;
-      unsigned char *d_ptr = rotate_buffer;
+      {
+        unsigned char *s_ptr = buffer+size;
+        unsigned char *d_ptr = rotate_buffer;
 
-      if ( colours == ZM_COLOUR_GRAY8 )
-      {
-        while( s_ptr > buffer )
+        if ( colours == ZM_COLOUR_GRAY8 )
         {
-          s_ptr--;
-          *d_ptr++ = *s_ptr;
-        }
-      }
-      else if ( colours == ZM_COLOUR_RGB32 )
-      {
-        Rgb* s_rptr = (Rgb*)s_ptr;
-        Rgb* d_rptr = (Rgb*)d_ptr;
-        while( s_rptr > (Rgb*)buffer )
-        {
-          s_rptr--;
-          *d_rptr++ = *s_rptr;
-        }
-      }
-      else /* Assume RGB24 */
-      {
-        while( s_ptr > buffer )
-        {
-          s_ptr -= 3;
-          *d_ptr++ = *s_ptr;
-          *d_ptr++ = *(s_ptr+1);
-          *d_ptr++ = *(s_ptr+2);
-        }
-      }
-      break;
-    }
-    case 270 :
-    {
-      new_height = width;
-      new_width = height;
-
-      unsigned int line_bytes = new_width*colours;
-      unsigned char *s_ptr = buffer+size;
-
-      if ( colours == ZM_COLOUR_GRAY8 )
-      {
-        unsigned char *d_ptr;
-        for ( unsigned int i = new_width; i > 0; i-- )
-        {
-          d_ptr = rotate_buffer+(i-1);
-          for ( unsigned int j = new_height; j > 0; j-- )
+          while( s_ptr > buffer )
           {
             s_ptr--;
-            *d_ptr = *s_ptr;
-            d_ptr += line_bytes;
+            *d_ptr++ = *s_ptr;
           }
         }
-      }
-      else if ( colours == ZM_COLOUR_RGB32 )
-      {
-        Rgb* s_rptr = (Rgb*)s_ptr;
-        Rgb* d_rptr;
-        for ( unsigned int i = new_width; i > 0; i-- )
+        else if ( colours == ZM_COLOUR_RGB32 )
         {
-          d_rptr = (Rgb*)(rotate_buffer+((i-1)<<2));
-          for ( unsigned int j = new_height; j > 0; j-- )
+          Rgb* s_rptr = (Rgb*)s_ptr;
+          Rgb* d_rptr = (Rgb*)d_ptr;
+          while( s_rptr > (Rgb*)buffer )
           {
             s_rptr--;
-            *d_rptr = *s_rptr;
-            d_rptr += new_width;
+            *d_rptr++ = *s_rptr;
           }
         }
-      }
-      else /* Assume RGB24 */
-      {
-        unsigned char *d_ptr;
-        for ( unsigned int i = new_width; i > 0; i-- )
+        else /* Assume RGB24 */
         {
-          d_ptr = rotate_buffer+((i-1)*3);
-          for ( unsigned int j = new_height; j > 0; j-- )
+          while( s_ptr > buffer )
           {
-            *(d_ptr+2) = *(--s_ptr);
-            *(d_ptr+1) = *(--s_ptr);
-            *d_ptr = *(--s_ptr);
-            d_ptr += line_bytes;
+            s_ptr -= 3;
+            *d_ptr++ = *s_ptr;
+            *d_ptr++ = *(s_ptr+1);
+            *d_ptr++ = *(s_ptr+2);
           }
         }
+        break;
       }
-      break;
-    }
+    case 270 :
+      {
+        new_height = width;
+        new_width = height;
+
+        unsigned int line_bytes = new_width*colours;
+        unsigned char *s_ptr = buffer+size;
+
+        if ( colours == ZM_COLOUR_GRAY8 )
+        {
+          unsigned char *d_ptr;
+          for ( unsigned int i = new_width; i > 0; i-- )
+          {
+            d_ptr = rotate_buffer+(i-1);
+            for ( unsigned int j = new_height; j > 0; j-- )
+            {
+              s_ptr--;
+              *d_ptr = *s_ptr;
+              d_ptr += line_bytes;
+            }
+          }
+        }
+        else if ( colours == ZM_COLOUR_RGB32 )
+        {
+          Rgb* s_rptr = (Rgb*)s_ptr;
+          Rgb* d_rptr;
+          for ( unsigned int i = new_width; i > 0; i-- )
+          {
+            d_rptr = (Rgb*)(rotate_buffer+((i-1)<<2));
+            for ( unsigned int j = new_height; j > 0; j-- )
+            {
+              s_rptr--;
+              *d_rptr = *s_rptr;
+              d_rptr += new_width;
+            }
+          }
+        }
+        else /* Assume RGB24 */
+        {
+          unsigned char *d_ptr;
+          for ( unsigned int i = new_width; i > 0; i-- )
+          {
+            d_ptr = rotate_buffer+((i-1)*3);
+            for ( unsigned int j = new_height; j > 0; j-- )
+            {
+              *(d_ptr+2) = *(--s_ptr);
+              *(d_ptr+1) = *(--s_ptr);
+              *d_ptr = *(--s_ptr);
+              d_ptr += line_bytes;
+            }
+          }
+        }
+        break;
+      }
   }
- 
+
   AssignDirect( new_width, new_height, colours, subpixelorder, rotate_buffer, size, ZM_BUFTYPE_ZM);
-  
+
 }
 
 /* RGB32 compatible: complete */
 void Image::Flip( bool leftright )
 {
   uint8_t* flip_buffer = AllocBuffer(size);
-  
+
   unsigned int line_bytes = width*colours;
   unsigned int line_bytes2 = 2*line_bytes;
   if ( leftright )
@@ -2822,9 +2818,9 @@ void Image::Flip( bool leftright )
       d_ptr += line_bytes;
     }
   }
-  
+
   AssignDirect( width, height, colours, subpixelorder, flip_buffer, size, ZM_BUFTYPE_ZM);
-  
+
 }
 
 void Image::Scale( unsigned int factor )
@@ -2841,11 +2837,11 @@ void Image::Scale( unsigned int factor )
 
   unsigned int new_width = (width*factor)/ZM_SCALE_BASE;
   unsigned int new_height = (height*factor)/ZM_SCALE_BASE;
-  
+
   size_t scale_buffer_size = (new_width+1) * (new_height+1) * colours;
-  
+
   uint8_t* scale_buffer = AllocBuffer(scale_buffer_size);
-  
+
   if ( factor > ZM_SCALE_BASE )
   {
     unsigned char *pd = scale_buffer;
@@ -2912,7 +2908,7 @@ void Image::Scale( unsigned int factor )
         {
           w_count += factor;
           w_index = w_count/ZM_SCALE_BASE;
-          
+
           if ( w_index > last_w_index )
           {
             for ( unsigned int c = 0; c < colours; c++ )
@@ -2932,15 +2928,15 @@ void Image::Scale( unsigned int factor )
     new_width = last_w_index;
     new_height = last_h_index;
   }
-  
+
   AssignDirect( new_width, new_height, colours, subpixelorder, scale_buffer, scale_buffer_size, ZM_BUFTYPE_ZM);
-  
+
 }
 
 void Image::Deinterlace_Discard()
 {
   /* Simple deinterlacing. Copy the even lines into the odd lines */
-  
+
   if ( colours == ZM_COLOUR_GRAY8 )
   {
     const uint8_t *psrc;
@@ -2984,16 +2980,16 @@ void Image::Deinterlace_Discard()
   } else {
     Error("Deinterlace called with unexpected colours: %d", colours);
   }
-  
+
 }
 
 void Image::Deinterlace_Linear()
 {
   /* Simple deinterlacing. The odd lines are average of the line above and line below */
-  
+
   const uint8_t *pbelow, *pabove;
   uint8_t *pcurrent;
-  
+
   if ( colours == ZM_COLOUR_GRAY8 )
   {
     for (unsigned int y = 1; y < (unsigned int)(height-1); y += 2)
@@ -3060,15 +3056,15 @@ void Image::Deinterlace_Linear()
   } else {
     Error("Deinterlace called with unexpected colours: %d", colours);
   }
-  
+
 }
 
 void Image::Deinterlace_Blend()
 {
   /* Simple deinterlacing. Blend the fields together. 50% blend */
-  
+
   uint8_t *pabove, *pcurrent;
-  
+
   if ( colours == ZM_COLOUR_GRAY8 )
   {
     for (unsigned int y = 1; y < (unsigned int)height; y += 2)
@@ -3117,7 +3113,7 @@ void Image::Deinterlace_Blend()
   } else {
     Error("Deinterlace called with unexpected colours: %d", colours);
   }
-  
+
 }
 
 void Image::Deinterlace_Blend_CustomRatio(int divider)
@@ -3127,14 +3123,14 @@ void Image::Deinterlace_Blend_CustomRatio(int divider)
   /* 2 = 25% blending   */
   /* 3 = 12.% blending  */
   /* 4 = 6.25% blending */
-  
+
   uint8_t *pabove, *pcurrent;
   uint8_t subpix1, subpix2;
-  
+
   if ( divider < 1 || divider > 4 ) {
     Error("Deinterlace called with invalid blend ratio");
   }
-  
+
   if ( colours == ZM_COLOUR_GRAY8 )
   {
     for (unsigned int y = 1; y < (unsigned int)height; y += 2)
@@ -3199,7 +3195,7 @@ void Image::Deinterlace_Blend_CustomRatio(int divider)
   } else {
     Error("Deinterlace called with unexpected colours: %d", colours);
   }
-  
+
 }
 
 
@@ -3209,44 +3205,44 @@ void Image::Deinterlace_4Field(const Image* next_image, unsigned int threshold)
   {
     Panic( "Attempt to deinterlace different sized images, expected %dx%dx%d %d, got %dx%dx%d %d", width, height, colours, subpixelorder, next_image->width, next_image->height, next_image->colours, next_image->subpixelorder);
   }
-  
+
   switch(colours) {
     case ZM_COLOUR_RGB24:
-    {
-    if(subpixelorder == ZM_SUBPIX_ORDER_BGR) {
-      /* BGR subpixel order */
-      std_deinterlace_4field_bgr(buffer, next_image->buffer, threshold, width, height);
-    } else {
-      /* Assume RGB subpixel order */
-      std_deinterlace_4field_rgb(buffer, next_image->buffer, threshold, width, height);
-    }
-    break;
-    }
+      {
+        if(subpixelorder == ZM_SUBPIX_ORDER_BGR) {
+          /* BGR subpixel order */
+          std_deinterlace_4field_bgr(buffer, next_image->buffer, threshold, width, height);
+        } else {
+          /* Assume RGB subpixel order */
+          std_deinterlace_4field_rgb(buffer, next_image->buffer, threshold, width, height);
+        }
+        break;
+      }
     case ZM_COLOUR_RGB32:
-    {
-    if(subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
-      /* ARGB subpixel order */
-      (*fptr_deinterlace_4field_argb)(buffer, next_image->buffer, threshold, width, height);
-    } else if(subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
-      /* ABGR subpixel order */
-      (*fptr_deinterlace_4field_abgr)(buffer, next_image->buffer, threshold, width, height);
-    } else if(subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
-      /* BGRA subpixel order */
-      (*fptr_deinterlace_4field_bgra)(buffer, next_image->buffer, threshold, width, height);
-    } else {
-      /* Assume RGBA subpixel order */
-      (*fptr_deinterlace_4field_rgba)(buffer, next_image->buffer, threshold, width, height);
-    }
-    break;
-    }
+      {
+        if(subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
+          /* ARGB subpixel order */
+          (*fptr_deinterlace_4field_argb)(buffer, next_image->buffer, threshold, width, height);
+        } else if(subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
+          /* ABGR subpixel order */
+          (*fptr_deinterlace_4field_abgr)(buffer, next_image->buffer, threshold, width, height);
+        } else if(subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
+          /* BGRA subpixel order */
+          (*fptr_deinterlace_4field_bgra)(buffer, next_image->buffer, threshold, width, height);
+        } else {
+          /* Assume RGBA subpixel order */
+          (*fptr_deinterlace_4field_rgba)(buffer, next_image->buffer, threshold, width, height);
+        }
+        break;
+      }
     case ZM_COLOUR_GRAY8:
-    (*fptr_deinterlace_4field_gray8)(buffer, next_image->buffer, threshold, width, height);
-    break;
+      (*fptr_deinterlace_4field_gray8)(buffer, next_image->buffer, threshold, width, height);
+      break;
     default:
-    Panic("Deinterlace_4Field called with unexpected colours: %d",colours);
-    break;
+      Panic("Deinterlace_4Field called with unexpected colours: %d",colours);
+      break;
   }
-  
+
 }
 
 
@@ -3261,7 +3257,7 @@ void sse2_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, u
   static uint32_t divider = 0;
   static uint32_t clearmask = 0;
   static double current_blendpercent = 0.0;
-  
+
   if(current_blendpercent != blendpercent) {
     /* Attempt to match the blending percent to one of the possible values */
     if(blendpercent < 2.34375) {
@@ -3293,29 +3289,29 @@ void sse2_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, u
   }
 
   __asm__ __volatile__(
-  "movd %4, %%xmm3\n\t"
-  "movd %5, %%xmm4\n\t"
-  "pshufd $0x0, %%xmm3, %%xmm3\n\t"
-  "sub $0x10, %0\n\t"
-  "sub $0x10, %1\n\t"
-  "sub $0x10, %2\n\t"
-  "sse2_fastblend_iter:\n\t"
-  "movdqa (%0,%3),%%xmm0\n\t"
-  "movdqa %%xmm0,%%xmm2\n\t"
-  "movdqa (%1,%3),%%xmm1\n\t"
-  "psrlq  %%xmm4,%%xmm0\n\t"
-  "psrlq  %%xmm4,%%xmm1\n\t"
-  "pand   %%xmm3,%%xmm1\n\t"
-  "pand   %%xmm3,%%xmm0\n\t"
-  "psubb  %%xmm0,%%xmm1\n\t"
-  "paddb  %%xmm2,%%xmm1\n\t"
-  "movntdq %%xmm1,(%2,%3)\n\t"
-  "sub $0x10, %3\n\t"
-  "jnz sse2_fastblend_iter\n\t"
-  :
-  : "r" (col1), "r" (col2), "r" (result), "r" (count), "m" (clearmask), "m" (divider)
-  : "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "cc", "memory"
-  );
+      "movd %4, %%xmm3\n\t"
+      "movd %5, %%xmm4\n\t"
+      "pshufd $0x0, %%xmm3, %%xmm3\n\t"
+      "sub $0x10, %0\n\t"
+      "sub $0x10, %1\n\t"
+      "sub $0x10, %2\n\t"
+      "sse2_fastblend_iter:\n\t"
+      "movdqa (%0,%3),%%xmm0\n\t"
+      "movdqa %%xmm0,%%xmm2\n\t"
+      "movdqa (%1,%3),%%xmm1\n\t"
+      "psrlq  %%xmm4,%%xmm0\n\t"
+      "psrlq  %%xmm4,%%xmm1\n\t"
+      "pand   %%xmm3,%%xmm1\n\t"
+      "pand   %%xmm3,%%xmm0\n\t"
+      "psubb  %%xmm0,%%xmm1\n\t"
+      "paddb  %%xmm2,%%xmm1\n\t"
+      "movntdq %%xmm1,(%2,%3)\n\t"
+      "sub $0x10, %3\n\t"
+      "jnz sse2_fastblend_iter\n\t"
+      :
+      : "r" (col1), "r" (col2), "r" (result), "r" (count), "m" (clearmask), "m" (divider)
+      : "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "cc", "memory"
+        );
 #else
   Panic("SSE function called on a non x86\\x86-64 platform");
 #endif
@@ -3325,7 +3321,7 @@ __attribute__((noinline)) void std_fastblend(const uint8_t* col1, const uint8_t*
   static int divider = 0;
   static double current_blendpercent = 0.0;
   const uint8_t* const max_ptr = result + count;
-  
+
   if(current_blendpercent != blendpercent) {
     /* Attempt to match the blending percent to one of the possible values */
     if(blendpercent < 2.34375) {
@@ -3349,7 +3345,7 @@ __attribute__((noinline)) void std_fastblend(const uint8_t* col1, const uint8_t*
     }
     current_blendpercent = blendpercent;
   }
-  
+
 
   while(result < max_ptr) {
     result[0] = ((col2[0] - col1[0])>>divider) + col1[0];
@@ -3368,7 +3364,7 @@ __attribute__((noinline)) void std_fastblend(const uint8_t* col1, const uint8_t*
     result[13] = ((col2[13] - col1[13])>>divider) + col1[13];
     result[14] = ((col2[14] - col1[14])>>divider) + col1[14];
     result[15] = ((col2[15] - col1[15])>>divider) + col1[15];
-    
+
     col1 += 16;
     col2 += 16;
     result += 16;
@@ -3548,10 +3544,10 @@ __attribute__((noinline)) void std_blend(const uint8_t* col1, const uint8_t* col
   double divide = blendpercent / 100.0;
   double opacity = 1.0 - divide;
   const uint8_t* const max_ptr = result + count;
-  
+
   while(result < max_ptr) {
     *result++ = (*col1++ * opacity) + (*col2++ * divide);
-    
+
   } 
 }
 
@@ -3561,7 +3557,7 @@ __attribute__((noinline)) void std_blend(const uint8_t* col1, const uint8_t* col
 __attribute__((noinline)) void std_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
   /* Loop unrolling is used to work on 16 bytes (16 grayscale pixels) at a time */  
   const uint8_t* const max_ptr = result + count;
-  
+
   while(result < max_ptr) {
     result[0] = abs(col1[0] - col2[0]);
     result[1] = abs(col1[1] - col2[1]);
@@ -3579,7 +3575,7 @@ __attribute__((noinline)) void std_delta8_gray8(const uint8_t* col1, const uint8
     result[13] = abs(col1[13] - col2[13]);
     result[14] = abs(col1[14] - col2[14]);
     result[15] = abs(col1[15] - col2[15]);
-    
+
     col1 += 16;
     col2 += 16;
     result += 16;
@@ -3591,7 +3587,7 @@ __attribute__((noinline)) void std_delta8_rgb(const uint8_t* col1, const uint8_t
   /* Loop unrolling is used to work on 12 bytes (4 rgb24 pixels) at a time */
   int r,g,b;  
   const uint8_t* const max_ptr = result + count;
-  
+
   while(result < max_ptr) {
     r = abs(col1[0] - col2[0]);
     g = abs(col1[1] - col2[1]);
@@ -3609,7 +3605,7 @@ __attribute__((noinline)) void std_delta8_rgb(const uint8_t* col1, const uint8_t
     g = abs(col1[10] - col2[10]);
     b = abs(col1[11] - col2[11]);
     result[3] = (r + r + b + g + g + g + g + g)>>3;
-    
+
     col1 += 12;
     col2 += 12;
     result += 4;
@@ -3621,7 +3617,7 @@ __attribute__((noinline)) void std_delta8_bgr(const uint8_t* col1, const uint8_t
   /* Loop unrolling is used to work on 12 bytes (4 rgb24 pixels) at a time */
   int r,g,b;  
   const uint8_t* const max_ptr = result + count;
-  
+
   while(result < max_ptr) {
     b = abs(col1[0] - col2[0]);
     g = abs(col1[1] - col2[1]);
@@ -3639,7 +3635,7 @@ __attribute__((noinline)) void std_delta8_bgr(const uint8_t* col1, const uint8_t
     g = abs(col1[10] - col2[10]);
     r = abs(col1[11] - col2[11]);
     result[3] = (r + r + b + g + g + g + g + g)>>3;
-    
+
     col1 += 12;
     col2 += 12;
     result += 4;
@@ -3651,7 +3647,7 @@ __attribute__((noinline)) void std_delta8_rgba(const uint8_t* col1, const uint8_
   /* Loop unrolling is used to work on 16 bytes (4 rgb32 pixels) at a time */
   int r,g,b;  
   const uint8_t* const max_ptr = result + count;
-  
+
   while(result < max_ptr) {
     r = abs(col1[0] - col2[0]);
     g = abs(col1[1] - col2[1]);
@@ -3669,7 +3665,7 @@ __attribute__((noinline)) void std_delta8_rgba(const uint8_t* col1, const uint8_
     g = abs(col1[13] - col2[13]);
     b = abs(col1[14] - col2[14]);
     result[3] = (r + r + b + g + g + g + g + g)>>3;
-    
+
     col1 += 16;
     col2 += 16;
     result += 4;
@@ -3681,7 +3677,7 @@ __attribute__((noinline)) void std_delta8_bgra(const uint8_t* col1, const uint8_
   /* Loop unrolling is used to work on 16 bytes (4 rgb32 pixels) at a time */
   int r,g,b;  
   const uint8_t* const max_ptr = result + count;
-  
+
   while(result < max_ptr) {
     b = abs(col1[0] - col2[0]);
     g = abs(col1[1] - col2[1]);
@@ -3699,7 +3695,7 @@ __attribute__((noinline)) void std_delta8_bgra(const uint8_t* col1, const uint8_
     g = abs(col1[13] - col2[13]);
     r = abs(col1[14] - col2[14]);
     result[3] = (r + r + b + g + g + g + g + g)>>3;
-    
+
     col1 += 16;
     col2 += 16;
     result += 4;
@@ -3711,7 +3707,7 @@ __attribute__((noinline)) void std_delta8_argb(const uint8_t* col1, const uint8_
   /* Loop unrolling is used to work on 16 bytes (4 rgb32 pixels) at a time */
   int r,g,b;  
   const uint8_t* const max_ptr = result + count;
-  
+
   while(result < max_ptr) {
     r = abs(col1[1] - col2[1]);
     g = abs(col1[2] - col2[2]);
@@ -3729,7 +3725,7 @@ __attribute__((noinline)) void std_delta8_argb(const uint8_t* col1, const uint8_
     g = abs(col1[14] - col2[14]);
     b = abs(col1[15] - col2[15]);
     result[3] = (r + r + b + g + g + g + g + g)>>3;
-    
+
     col1 += 16;
     col2 += 16;
     result += 4;
@@ -3741,7 +3737,7 @@ __attribute__((noinline)) void std_delta8_abgr(const uint8_t* col1, const uint8_
   /* Loop unrolling is used to work on 16 bytes (4 rgb32 pixels) at a time */
   int r,g,b;  
   const uint8_t* const max_ptr = result + count;
-  
+
   while(result < max_ptr) {
     b = abs(col1[1] - col2[1]);
     g = abs(col1[2] - col2[2]);
@@ -3759,7 +3755,7 @@ __attribute__((noinline)) void std_delta8_abgr(const uint8_t* col1, const uint8_
     g = abs(col1[14] - col2[14]);
     r = abs(col1[15] - col2[15]);
     result[3] = (r + r + b + g + g + g + g + g)>>3;
-    
+
     col1 += 16;
     col2 += 16;
     result += 4;
@@ -4003,24 +3999,24 @@ void sse2_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
 
   __asm__ __volatile__ (
-  "sub $0x10, %0\n\t"
-  "sub $0x10, %1\n\t"
-  "sub $0x10, %2\n\t"
-  "sse2_delta8_gray8_iter:\n\t"
-  "movdqa (%0,%3), %%xmm1\n\t"
-  "movdqa (%1,%3), %%xmm2\n\t"
-  "movdqa %%xmm1, %%xmm3\n\t"
-  "movdqa %%xmm2, %%xmm4\n\t"
-  "pmaxub %%xmm1, %%xmm2\n\t"
-  "pminub %%xmm3, %%xmm4\n\t"
-  "psubb  %%xmm4, %%xmm2\n\t"
-  "movntdq %%xmm2, (%2,%3)\n\t"
-  "sub $0x10, %3\n\t"
-  "jnz sse2_delta8_gray8_iter\n\t"
-  :
-  : "r" (col1), "r" (col2), "r" (result), "r" (count)
-  : "%xmm1", "%xmm2", "%xmm3", "%xmm4", "cc", "memory"
-  );
+      "sub $0x10, %0\n\t"
+      "sub $0x10, %1\n\t"
+      "sub $0x10, %2\n\t"
+      "sse2_delta8_gray8_iter:\n\t"
+      "movdqa (%0,%3), %%xmm1\n\t"
+      "movdqa (%1,%3), %%xmm2\n\t"
+      "movdqa %%xmm1, %%xmm3\n\t"
+      "movdqa %%xmm2, %%xmm4\n\t"
+      "pmaxub %%xmm1, %%xmm2\n\t"
+      "pminub %%xmm3, %%xmm4\n\t"
+      "psubb  %%xmm4, %%xmm2\n\t"
+      "movntdq %%xmm2, (%2,%3)\n\t"
+      "sub $0x10, %3\n\t"
+      "jnz sse2_delta8_gray8_iter\n\t"
+      :
+      : "r" (col1), "r" (col2), "r" (result), "r" (count)
+      : "%xmm1", "%xmm2", "%xmm3", "%xmm4", "cc", "memory"
+      );
 #else
   Panic("SSE function called on a non x86\\x86-64 platform");
 #endif
@@ -4032,53 +4028,53 @@ __attribute__((noinline,__target__("sse2")))
 #endif
 void sse2_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
-  
+
   __asm__ __volatile__ (
-  "mov $0x1F1F1F1F, %%eax\n\t"
-  "movd %%eax, %%xmm4\n\t"
-  "pshufd $0x0, %%xmm4, %%xmm4\n\t"
-  "mov $0xff, %%eax\n\t"
-  "movd %%eax, %%xmm0\n\t"
-  "pshufd $0x0, %%xmm0, %%xmm0\n\t"
-  "sub $0x10, %0\n\t"
-  "sub $0x10, %1\n\t"
-  "sub $0x4, %2\n\t"
-  "sse2_delta8_rgba_iter:\n\t"
-  "movdqa (%0,%3,4), %%xmm1\n\t"
-  "movdqa (%1,%3,4), %%xmm2\n\t"
-  "psrlq $0x3, %%xmm1\n\t"
-  "psrlq $0x3, %%xmm2\n\t"
-  "pand %%xmm4, %%xmm1\n\t"
-  "pand %%xmm4, %%xmm2\n\t"
-  "movdqa %%xmm1, %%xmm5\n\t"
-  "movdqa %%xmm2, %%xmm6\n\t"
-  "pmaxub %%xmm1, %%xmm2\n\t"
-  "pminub %%xmm5, %%xmm6\n\t"
-  "psubb %%xmm6, %%xmm2\n\t"
-  "movdqa %%xmm2, %%xmm3\n\t"
-  "psrld $0x8, %%xmm2\n\t"
-  "pand %%xmm0, %%xmm2\n\t"
-  "movdqa %%xmm2, %%xmm1\n\t"
-  "pslld $0x2, %%xmm2\n\t"
-  "paddd %%xmm1, %%xmm2\n\t"
-  "movdqa %%xmm3, %%xmm1\n\t"
-  "pand %%xmm0, %%xmm1\n\t"
-  "paddd %%xmm1, %%xmm1\n\t"
-  "paddd %%xmm2, %%xmm1\n\t"
-  "movdqa %%xmm3, %%xmm2\n\t"
-  "psrld $0x10, %%xmm2\n\t"
-  "pand %%xmm0, %%xmm2\n\t"
-  "paddd %%xmm2, %%xmm1\n\t"
-  "packssdw %%xmm1, %%xmm1\n\t"
-  "packuswb %%xmm1, %%xmm1\n\t"
-  "movd %%xmm1, %%eax\n\t"
-  "movnti %%eax, (%2,%3)\n\t"
-  "sub $0x4, %3\n\t"
-  "jnz sse2_delta8_rgba_iter\n\t"
-  :
-  : "r" (col1), "r" (col2), "r" (result), "r" (count)
-  : "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "cc", "memory"
-  );
+      "mov $0x1F1F1F1F, %%eax\n\t"
+      "movd %%eax, %%xmm4\n\t"
+      "pshufd $0x0, %%xmm4, %%xmm4\n\t"
+      "mov $0xff, %%eax\n\t"
+      "movd %%eax, %%xmm0\n\t"
+      "pshufd $0x0, %%xmm0, %%xmm0\n\t"
+      "sub $0x10, %0\n\t"
+      "sub $0x10, %1\n\t"
+      "sub $0x4, %2\n\t"
+      "sse2_delta8_rgba_iter:\n\t"
+      "movdqa (%0,%3,4), %%xmm1\n\t"
+      "movdqa (%1,%3,4), %%xmm2\n\t"
+      "psrlq $0x3, %%xmm1\n\t"
+      "psrlq $0x3, %%xmm2\n\t"
+      "pand %%xmm4, %%xmm1\n\t"
+      "pand %%xmm4, %%xmm2\n\t"
+      "movdqa %%xmm1, %%xmm5\n\t"
+      "movdqa %%xmm2, %%xmm6\n\t"
+      "pmaxub %%xmm1, %%xmm2\n\t"
+      "pminub %%xmm5, %%xmm6\n\t"
+      "psubb %%xmm6, %%xmm2\n\t"
+      "movdqa %%xmm2, %%xmm3\n\t"
+      "psrld $0x8, %%xmm2\n\t"
+      "pand %%xmm0, %%xmm2\n\t"
+      "movdqa %%xmm2, %%xmm1\n\t"
+      "pslld $0x2, %%xmm2\n\t"
+      "paddd %%xmm1, %%xmm2\n\t"
+      "movdqa %%xmm3, %%xmm1\n\t"
+      "pand %%xmm0, %%xmm1\n\t"
+      "paddd %%xmm1, %%xmm1\n\t"
+      "paddd %%xmm2, %%xmm1\n\t"
+      "movdqa %%xmm3, %%xmm2\n\t"
+      "psrld $0x10, %%xmm2\n\t"
+      "pand %%xmm0, %%xmm2\n\t"
+      "paddd %%xmm2, %%xmm1\n\t"
+      "packssdw %%xmm1, %%xmm1\n\t"
+      "packuswb %%xmm1, %%xmm1\n\t"
+      "movd %%xmm1, %%eax\n\t"
+      "movnti %%eax, (%2,%3)\n\t"
+      "sub $0x4, %3\n\t"
+      "jnz sse2_delta8_rgba_iter\n\t"
+      :
+      : "r" (col1), "r" (col2), "r" (result), "r" (count)
+      : "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "cc", "memory"
+        );
 #else
   Panic("SSE function called on a non x86\\x86-64 platform");
 #endif
@@ -4090,53 +4086,53 @@ __attribute__((noinline,__target__("sse2")))
 #endif
 void sse2_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
-  
+
   __asm__ __volatile__ (
-  "mov $0x1F1F1F1F, %%eax\n\t"
-  "movd %%eax, %%xmm4\n\t"
-  "pshufd $0x0, %%xmm4, %%xmm4\n\t"
-  "mov $0xff, %%eax\n\t"
-  "movd %%eax, %%xmm0\n\t"
-  "pshufd $0x0, %%xmm0, %%xmm0\n\t"
-  "sub $0x10, %0\n\t"
-  "sub $0x10, %1\n\t"
-  "sub $0x4, %2\n\t"
-  "sse2_delta8_bgra_iter:\n\t"
-  "movdqa (%0,%3,4), %%xmm1\n\t"
-  "movdqa (%1,%3,4), %%xmm2\n\t"
-  "psrlq $0x3, %%xmm1\n\t"
-  "psrlq $0x3, %%xmm2\n\t"
-  "pand %%xmm4, %%xmm1\n\t"
-  "pand %%xmm4, %%xmm2\n\t"
-  "movdqa %%xmm1, %%xmm5\n\t"
-  "movdqa %%xmm2, %%xmm6\n\t"
-  "pmaxub %%xmm1, %%xmm2\n\t"
-  "pminub %%xmm5, %%xmm6\n\t"
-  "psubb %%xmm6, %%xmm2\n\t"
-  "movdqa %%xmm2, %%xmm3\n\t"
-  "psrld $0x8, %%xmm2\n\t"
-  "pand %%xmm0, %%xmm2\n\t"
-  "movdqa %%xmm2, %%xmm1\n\t"
-  "pslld $0x2, %%xmm2\n\t"
-  "paddd %%xmm1, %%xmm2\n\t"
-  "movdqa %%xmm3, %%xmm1\n\t"
-  "pand %%xmm0, %%xmm1\n\t"
-  "paddd %%xmm2, %%xmm1\n\t"
-  "movdqa %%xmm3, %%xmm2\n\t"
-  "psrld $0x10, %%xmm2\n\t"
-  "pand %%xmm0, %%xmm2\n\t"
-  "paddd %%xmm2, %%xmm2\n\t"
-  "paddd %%xmm2, %%xmm1\n\t"
-  "packssdw %%xmm1, %%xmm1\n\t"
-  "packuswb %%xmm1, %%xmm1\n\t"
-  "movd %%xmm1, %%eax\n\t"
-  "movnti %%eax, (%2,%3)\n\t"
-  "sub $0x4, %3\n\t"
-  "jnz sse2_delta8_bgra_iter\n\t"
-  :
-  : "r" (col1), "r" (col2), "r" (result), "r" (count)
-  : "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "cc", "memory"
-  );
+      "mov $0x1F1F1F1F, %%eax\n\t"
+      "movd %%eax, %%xmm4\n\t"
+      "pshufd $0x0, %%xmm4, %%xmm4\n\t"
+      "mov $0xff, %%eax\n\t"
+      "movd %%eax, %%xmm0\n\t"
+      "pshufd $0x0, %%xmm0, %%xmm0\n\t"
+      "sub $0x10, %0\n\t"
+      "sub $0x10, %1\n\t"
+      "sub $0x4, %2\n\t"
+      "sse2_delta8_bgra_iter:\n\t"
+      "movdqa (%0,%3,4), %%xmm1\n\t"
+      "movdqa (%1,%3,4), %%xmm2\n\t"
+      "psrlq $0x3, %%xmm1\n\t"
+      "psrlq $0x3, %%xmm2\n\t"
+      "pand %%xmm4, %%xmm1\n\t"
+      "pand %%xmm4, %%xmm2\n\t"
+      "movdqa %%xmm1, %%xmm5\n\t"
+      "movdqa %%xmm2, %%xmm6\n\t"
+      "pmaxub %%xmm1, %%xmm2\n\t"
+      "pminub %%xmm5, %%xmm6\n\t"
+      "psubb %%xmm6, %%xmm2\n\t"
+      "movdqa %%xmm2, %%xmm3\n\t"
+      "psrld $0x8, %%xmm2\n\t"
+      "pand %%xmm0, %%xmm2\n\t"
+      "movdqa %%xmm2, %%xmm1\n\t"
+      "pslld $0x2, %%xmm2\n\t"
+      "paddd %%xmm1, %%xmm2\n\t"
+      "movdqa %%xmm3, %%xmm1\n\t"
+      "pand %%xmm0, %%xmm1\n\t"
+      "paddd %%xmm2, %%xmm1\n\t"
+      "movdqa %%xmm3, %%xmm2\n\t"
+      "psrld $0x10, %%xmm2\n\t"
+      "pand %%xmm0, %%xmm2\n\t"
+      "paddd %%xmm2, %%xmm2\n\t"
+      "paddd %%xmm2, %%xmm1\n\t"
+      "packssdw %%xmm1, %%xmm1\n\t"
+      "packuswb %%xmm1, %%xmm1\n\t"
+      "movd %%xmm1, %%eax\n\t"
+      "movnti %%eax, (%2,%3)\n\t"
+      "sub $0x4, %3\n\t"
+      "jnz sse2_delta8_bgra_iter\n\t"
+      :
+      : "r" (col1), "r" (col2), "r" (result), "r" (count)
+      : "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "cc", "memory"
+        );
 #else
   Panic("SSE function called on a non x86\\x86-64 platform");
 #endif
@@ -4148,54 +4144,54 @@ __attribute__((noinline,__target__("sse2")))
 #endif
 void sse2_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
-  
+
   __asm__ __volatile__ (
-  "mov $0x1F1F1F1F, %%eax\n\t"
-  "movd %%eax, %%xmm4\n\t"
-  "pshufd $0x0, %%xmm4, %%xmm4\n\t"
-  "mov $0xff, %%eax\n\t"
-  "movd %%eax, %%xmm0\n\t"
-  "pshufd $0x0, %%xmm0, %%xmm0\n\t"
-  "sub $0x10, %0\n\t"
-  "sub $0x10, %1\n\t"
-  "sub $0x4, %2\n\t"
-  "sse2_delta8_argb_iter:\n\t"
-  "movdqa (%0,%3,4), %%xmm1\n\t"
-  "movdqa (%1,%3,4), %%xmm2\n\t"
-  "psrlq $0x3, %%xmm1\n\t"
-  "psrlq $0x3, %%xmm2\n\t"
-  "pand %%xmm4, %%xmm1\n\t"
-  "pand %%xmm4, %%xmm2\n\t"
-  "movdqa %%xmm1, %%xmm5\n\t"
-  "movdqa %%xmm2, %%xmm6\n\t"
-  "pmaxub %%xmm1, %%xmm2\n\t"
-  "pminub %%xmm5, %%xmm6\n\t"
-  "psubb %%xmm6, %%xmm2\n\t"
-  "movdqa %%xmm2, %%xmm3\n\t"
-  "psrld $0x10, %%xmm2\n\t"
-  "pand %%xmm0, %%xmm2\n\t"
-  "movdqa %%xmm2, %%xmm1\n\t"
-  "pslld $0x2, %%xmm2\n\t"
-  "paddd %%xmm1, %%xmm2\n\t"
-  "movdqa %%xmm3, %%xmm1\n\t"
-  "psrld $0x8, %%xmm1\n\t"
-  "pand %%xmm0, %%xmm1\n\t"
-  "paddd %%xmm1, %%xmm1\n\t"
-  "paddd %%xmm2, %%xmm1\n\t"
-  "movdqa %%xmm3, %%xmm2\n\t"
-  "psrld $0x18, %%xmm2\n\t"
-  "pand %%xmm0, %%xmm2\n\t"
-  "paddd %%xmm2, %%xmm1\n\t"
-  "packssdw %%xmm1, %%xmm1\n\t"
-  "packuswb %%xmm1, %%xmm1\n\t"
-  "movd %%xmm1, %%eax\n\t"
-  "movnti %%eax, (%2,%3)\n\t"
-  "sub $0x4, %3\n\t"
-  "jnz sse2_delta8_argb_iter\n\t"
-  :
-  : "r" (col1), "r" (col2), "r" (result), "r" (count)
-  : "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "cc", "memory"
-  );
+      "mov $0x1F1F1F1F, %%eax\n\t"
+      "movd %%eax, %%xmm4\n\t"
+      "pshufd $0x0, %%xmm4, %%xmm4\n\t"
+      "mov $0xff, %%eax\n\t"
+      "movd %%eax, %%xmm0\n\t"
+      "pshufd $0x0, %%xmm0, %%xmm0\n\t"
+      "sub $0x10, %0\n\t"
+      "sub $0x10, %1\n\t"
+      "sub $0x4, %2\n\t"
+      "sse2_delta8_argb_iter:\n\t"
+      "movdqa (%0,%3,4), %%xmm1\n\t"
+      "movdqa (%1,%3,4), %%xmm2\n\t"
+      "psrlq $0x3, %%xmm1\n\t"
+      "psrlq $0x3, %%xmm2\n\t"
+      "pand %%xmm4, %%xmm1\n\t"
+      "pand %%xmm4, %%xmm2\n\t"
+      "movdqa %%xmm1, %%xmm5\n\t"
+      "movdqa %%xmm2, %%xmm6\n\t"
+      "pmaxub %%xmm1, %%xmm2\n\t"
+      "pminub %%xmm5, %%xmm6\n\t"
+      "psubb %%xmm6, %%xmm2\n\t"
+      "movdqa %%xmm2, %%xmm3\n\t"
+      "psrld $0x10, %%xmm2\n\t"
+      "pand %%xmm0, %%xmm2\n\t"
+      "movdqa %%xmm2, %%xmm1\n\t"
+      "pslld $0x2, %%xmm2\n\t"
+      "paddd %%xmm1, %%xmm2\n\t"
+      "movdqa %%xmm3, %%xmm1\n\t"
+      "psrld $0x8, %%xmm1\n\t"
+      "pand %%xmm0, %%xmm1\n\t"
+      "paddd %%xmm1, %%xmm1\n\t"
+      "paddd %%xmm2, %%xmm1\n\t"
+      "movdqa %%xmm3, %%xmm2\n\t"
+      "psrld $0x18, %%xmm2\n\t"
+      "pand %%xmm0, %%xmm2\n\t"
+      "paddd %%xmm2, %%xmm1\n\t"
+      "packssdw %%xmm1, %%xmm1\n\t"
+      "packuswb %%xmm1, %%xmm1\n\t"
+      "movd %%xmm1, %%eax\n\t"
+      "movnti %%eax, (%2,%3)\n\t"
+      "sub $0x4, %3\n\t"
+      "jnz sse2_delta8_argb_iter\n\t"
+      :
+      : "r" (col1), "r" (col2), "r" (result), "r" (count)
+      : "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "cc", "memory"
+        );
 #else
   Panic("SSE function called on a non x86\\x86-64 platform");
 #endif
@@ -4207,54 +4203,54 @@ __attribute__((noinline,__target__("sse2")))
 #endif
 void sse2_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
-  
+
   __asm__ __volatile__ (
-  "mov $0x1F1F1F1F, %%eax\n\t"
-  "movd %%eax, %%xmm4\n\t"
-  "pshufd $0x0, %%xmm4, %%xmm4\n\t"
-  "mov $0xff, %%eax\n\t"
-  "movd %%eax, %%xmm0\n\t"
-  "pshufd $0x0, %%xmm0, %%xmm0\n\t"
-  "sub $0x10, %0\n\t"
-  "sub $0x10, %1\n\t"
-  "sub $0x4, %2\n\t"
-  "sse2_delta8_abgr_iter:\n\t"
-  "movdqa (%0,%3,4), %%xmm1\n\t"
-  "movdqa (%1,%3,4), %%xmm2\n\t"
-  "psrlq $0x3, %%xmm1\n\t"
-  "psrlq $0x3, %%xmm2\n\t"
-  "pand %%xmm4, %%xmm1\n\t"
-  "pand %%xmm4, %%xmm2\n\t"
-  "movdqa %%xmm1, %%xmm5\n\t"
-  "movdqa %%xmm2, %%xmm6\n\t"
-  "pmaxub %%xmm1, %%xmm2\n\t"
-  "pminub %%xmm5, %%xmm6\n\t"
-  "psubb %%xmm6, %%xmm2\n\t"
-  "movdqa %%xmm2, %%xmm3\n\t"
-  "psrld $0x10, %%xmm2\n\t"
-  "pand %%xmm0, %%xmm2\n\t"
-  "movdqa %%xmm2, %%xmm1\n\t"
-  "pslld $0x2, %%xmm2\n\t"
-  "paddd %%xmm1, %%xmm2\n\t"
-  "movdqa %%xmm3, %%xmm1\n\t"
-  "psrld $0x8, %%xmm1\n\t"
-  "pand %%xmm0, %%xmm1\n\t"
-  "paddd %%xmm2, %%xmm1\n\t"
-  "movdqa %%xmm3, %%xmm2\n\t"
-  "psrld $0x18, %%xmm2\n\t"
-  "pand %%xmm0, %%xmm2\n\t"
-  "paddd %%xmm2, %%xmm2\n\t"
-  "paddd %%xmm2, %%xmm1\n\t"
-  "packssdw %%xmm1, %%xmm1\n\t"
-  "packuswb %%xmm1, %%xmm1\n\t"
-  "movd %%xmm1, %%eax\n\t"
-  "movnti %%eax, (%2,%3)\n\t"
-  "sub $0x4, %3\n\t"
-  "jnz sse2_delta8_abgr_iter\n\t"
-  :
-  : "r" (col1), "r" (col2), "r" (result), "r" (count)
-  : "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "cc", "memory"
-  );
+      "mov $0x1F1F1F1F, %%eax\n\t"
+      "movd %%eax, %%xmm4\n\t"
+      "pshufd $0x0, %%xmm4, %%xmm4\n\t"
+      "mov $0xff, %%eax\n\t"
+      "movd %%eax, %%xmm0\n\t"
+      "pshufd $0x0, %%xmm0, %%xmm0\n\t"
+      "sub $0x10, %0\n\t"
+      "sub $0x10, %1\n\t"
+      "sub $0x4, %2\n\t"
+      "sse2_delta8_abgr_iter:\n\t"
+      "movdqa (%0,%3,4), %%xmm1\n\t"
+      "movdqa (%1,%3,4), %%xmm2\n\t"
+      "psrlq $0x3, %%xmm1\n\t"
+      "psrlq $0x3, %%xmm2\n\t"
+      "pand %%xmm4, %%xmm1\n\t"
+      "pand %%xmm4, %%xmm2\n\t"
+      "movdqa %%xmm1, %%xmm5\n\t"
+      "movdqa %%xmm2, %%xmm6\n\t"
+      "pmaxub %%xmm1, %%xmm2\n\t"
+      "pminub %%xmm5, %%xmm6\n\t"
+      "psubb %%xmm6, %%xmm2\n\t"
+      "movdqa %%xmm2, %%xmm3\n\t"
+      "psrld $0x10, %%xmm2\n\t"
+      "pand %%xmm0, %%xmm2\n\t"
+      "movdqa %%xmm2, %%xmm1\n\t"
+      "pslld $0x2, %%xmm2\n\t"
+      "paddd %%xmm1, %%xmm2\n\t"
+      "movdqa %%xmm3, %%xmm1\n\t"
+      "psrld $0x8, %%xmm1\n\t"
+      "pand %%xmm0, %%xmm1\n\t"
+      "paddd %%xmm2, %%xmm1\n\t"
+      "movdqa %%xmm3, %%xmm2\n\t"
+      "psrld $0x18, %%xmm2\n\t"
+      "pand %%xmm0, %%xmm2\n\t"
+      "paddd %%xmm2, %%xmm2\n\t"
+      "paddd %%xmm2, %%xmm1\n\t"
+      "packssdw %%xmm1, %%xmm1\n\t"
+      "packuswb %%xmm1, %%xmm1\n\t"
+      "movd %%xmm1, %%eax\n\t"
+      "movnti %%eax, (%2,%3)\n\t"
+      "sub $0x4, %3\n\t"
+      "jnz sse2_delta8_abgr_iter\n\t"
+      :
+      : "r" (col1), "r" (col2), "r" (result), "r" (count)
+      : "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "cc", "memory"
+        );
 #else
   Panic("SSE function called on a non x86\\x86-64 platform");
 #endif
@@ -4274,36 +4270,36 @@ void ssse3_delta8_rgb32(const uint8_t* col1, const uint8_t* col2, uint8_t* resul
   /* XMM4 - divide mask */
 
   __asm__ __volatile__ (
-  "mov $0x1F1F1F1F, %%eax\n\t"
-  "movd %%eax, %%xmm4\n\t"
-  "pshufd $0x0, %%xmm4, %%xmm4\n\t"
-  "mov %4, %%eax\n\t"
-  "movd %%eax, %%xmm3\n\t"
-  "pshufd $0x0, %%xmm3, %%xmm3\n\t"
-  "pxor %%xmm0, %%xmm0\n\t"
-  "sub $0x10, %0\n\t"
-  "sub $0x10, %1\n\t"
-  "sub $0x4, %2\n\t"
-  "ssse3_delta8_rgb32_iter:\n\t"
-  "movdqa (%0,%3,4), %%xmm1\n\t"
-  "movdqa (%1,%3,4), %%xmm2\n\t"
-  "psrlq $0x3, %%xmm1\n\t"
-  "psrlq $0x3, %%xmm2\n\t"
-  "pand %%xmm4, %%xmm1\n\t"
-  "pand %%xmm4, %%xmm2\n\t"
-  "psubb %%xmm2, %%xmm1\n\t"
-  "pabsb %%xmm1, %%xmm1\n\t"
-  "pmaddubsw %%xmm3, %%xmm1\n\t"
-  "phaddw %%xmm0, %%xmm1\n\t"
-  "packuswb %%xmm1, %%xmm1\n\t"
-  "movd %%xmm1, %%eax\n\t"
-  "movnti %%eax, (%2,%3)\n\t"
-  "sub $0x4, %3\n\t"
-  "jnz ssse3_delta8_rgb32_iter\n\t"
-  :
-  : "r" (col1), "r" (col2), "r" (result), "r" (count), "g" (multiplier)
-  : "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "cc", "memory"
-  );
+      "mov $0x1F1F1F1F, %%eax\n\t"
+      "movd %%eax, %%xmm4\n\t"
+      "pshufd $0x0, %%xmm4, %%xmm4\n\t"
+      "mov %4, %%eax\n\t"
+      "movd %%eax, %%xmm3\n\t"
+      "pshufd $0x0, %%xmm3, %%xmm3\n\t"
+      "pxor %%xmm0, %%xmm0\n\t"
+      "sub $0x10, %0\n\t"
+      "sub $0x10, %1\n\t"
+      "sub $0x4, %2\n\t"
+      "ssse3_delta8_rgb32_iter:\n\t"
+      "movdqa (%0,%3,4), %%xmm1\n\t"
+      "movdqa (%1,%3,4), %%xmm2\n\t"
+      "psrlq $0x3, %%xmm1\n\t"
+      "psrlq $0x3, %%xmm2\n\t"
+      "pand %%xmm4, %%xmm1\n\t"
+      "pand %%xmm4, %%xmm2\n\t"
+      "psubb %%xmm2, %%xmm1\n\t"
+      "pabsb %%xmm1, %%xmm1\n\t"
+      "pmaddubsw %%xmm3, %%xmm1\n\t"
+      "phaddw %%xmm0, %%xmm1\n\t"
+      "packuswb %%xmm1, %%xmm1\n\t"
+      "movd %%xmm1, %%eax\n\t"
+      "movnti %%eax, (%2,%3)\n\t"
+      "sub $0x4, %3\n\t"
+      "jnz ssse3_delta8_rgb32_iter\n\t"
+      :
+      : "r" (col1), "r" (col2), "r" (result), "r" (count), "g" (multiplier)
+      : "%eax", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "cc", "memory"
+        );
 #else
   Panic("SSE function called on a non x86\\x86-64 platform");
 #endif
@@ -4336,7 +4332,7 @@ void ssse3_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result
 __attribute__((noinline)) void std_convert_rgb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
   unsigned int r,g,b;  
   const uint8_t* const max_ptr = result + count;
-  
+
   while(result < max_ptr) {
     r = col1[0];
     g = col1[1];
@@ -4354,7 +4350,7 @@ __attribute__((noinline)) void std_convert_rgb_gray8(const uint8_t* col1, uint8_
     g = col1[10];
     b = col1[11];
     result[3] = (r + r + b + g + g + g + g + g)>>3;
-    
+
     col1 += 12;
     result += 4;
   }
@@ -4364,7 +4360,7 @@ __attribute__((noinline)) void std_convert_rgb_gray8(const uint8_t* col1, uint8_
 __attribute__((noinline)) void std_convert_bgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
   unsigned int r,g,b;  
   const uint8_t* const max_ptr = result + count;
-  
+
   while(result < max_ptr) {
     b = col1[0];
     g = col1[1];
@@ -4382,7 +4378,7 @@ __attribute__((noinline)) void std_convert_bgr_gray8(const uint8_t* col1, uint8_
     g = col1[10];
     r = col1[11];
     result[3] = (r + r + b + g + g + g + g + g)>>3;
-    
+
     col1 += 12;
     result += 4;
   }
@@ -4392,7 +4388,7 @@ __attribute__((noinline)) void std_convert_bgr_gray8(const uint8_t* col1, uint8_
 __attribute__((noinline)) void std_convert_rgba_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
   unsigned int r,g,b;  
   const uint8_t* const max_ptr = result + count;
-  
+
   while(result < max_ptr) {
     r = col1[0];
     g = col1[1];
@@ -4410,7 +4406,7 @@ __attribute__((noinline)) void std_convert_rgba_gray8(const uint8_t* col1, uint8
     g = col1[13];
     b = col1[14];
     result[3] = (r + r + b + g + g + g + g + g)>>3;
-    
+
     col1 += 16;
     result += 4;
   }
@@ -4420,7 +4416,7 @@ __attribute__((noinline)) void std_convert_rgba_gray8(const uint8_t* col1, uint8
 __attribute__((noinline)) void std_convert_bgra_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
   unsigned int r,g,b;  
   const uint8_t* const max_ptr = result + count;
-  
+
   while(result < max_ptr) {
     b = col1[0];
     g = col1[1];
@@ -4438,7 +4434,7 @@ __attribute__((noinline)) void std_convert_bgra_gray8(const uint8_t* col1, uint8
     g = col1[13];
     r = col1[14];
     result[3] = (r + r + b + g + g + g + g + g)>>3;
-    
+
     col1 += 16;
     result += 4;
   }
@@ -4448,7 +4444,7 @@ __attribute__((noinline)) void std_convert_bgra_gray8(const uint8_t* col1, uint8
 __attribute__((noinline)) void std_convert_argb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
   unsigned int r,g,b;  
   const uint8_t* const max_ptr = result + count;
-  
+
   while(result < max_ptr) {
     r = col1[1];
     g = col1[2];
@@ -4466,7 +4462,7 @@ __attribute__((noinline)) void std_convert_argb_gray8(const uint8_t* col1, uint8
     g = col1[14];
     b = col1[15];
     result[3] = (r + r + b + g + g + g + g + g)>>3;
-    
+
     col1 += 16;
     result += 4;
   }
@@ -4476,7 +4472,7 @@ __attribute__((noinline)) void std_convert_argb_gray8(const uint8_t* col1, uint8
 __attribute__((noinline)) void std_convert_abgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
   unsigned int r,g,b;  
   const uint8_t* const max_ptr = result + count;
-  
+
   while(result < max_ptr) {
     b = col1[1];
     g = col1[2];
@@ -4494,7 +4490,7 @@ __attribute__((noinline)) void std_convert_abgr_gray8(const uint8_t* col1, uint8
     g = col1[14];
     r = col1[15];
     result[3] = (r + r + b + g + g + g + g + g)>>3;
-    
+
     col1 += 16;
     result += 4;
   }
@@ -4504,7 +4500,7 @@ __attribute__((noinline)) void std_convert_abgr_gray8(const uint8_t* col1, uint8
 __attribute__((noinline)) void std_convert_yuyv_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
   const uint16_t* yuvbuf = (const uint16_t*)col1;
   const uint8_t* const max_ptr = result + count;
-  
+
   while(result < max_ptr) {
     result[0] = (uint8_t)yuvbuf[0];
     result[1] = (uint8_t)yuvbuf[1];
@@ -4522,7 +4518,7 @@ __attribute__((noinline)) void std_convert_yuyv_gray8(const uint8_t* col1, uint8
     result[13] = (uint8_t)yuvbuf[13];
     result[14] = (uint8_t)yuvbuf[14];
     result[15] = (uint8_t)yuvbuf[15];
-    
+
     yuvbuf += 16;
     result += 16;
   }
@@ -4541,30 +4537,30 @@ void ssse3_convert_rgb32_gray8(const uint8_t* col1, uint8_t* result, unsigned lo
   /* XMM4 - divide mask */
 
   __asm__ __volatile__ (
-  "mov $0x1F1F1F1F, %%eax\n\t"
-  "movd %%eax, %%xmm4\n\t"
-  "pshufd $0x0, %%xmm4, %%xmm4\n\t"
-  "mov %3, %%eax\n\t"
-  "movd %%eax, %%xmm3\n\t"
-  "pshufd $0x0, %%xmm3, %%xmm3\n\t"
-  "pxor %%xmm0, %%xmm0\n\t"
-  "sub $0x10, %0\n\t"
-  "sub $0x4, %1\n\t"
-  "ssse3_convert_rgb32_gray8_iter:\n\t"
-  "movdqa (%0,%2,4), %%xmm1\n\t"
-  "psrlq $0x3, %%xmm1\n\t"
-  "pand %%xmm4, %%xmm1\n\t"
-  "pmaddubsw %%xmm3, %%xmm1\n\t"
-  "phaddw %%xmm0, %%xmm1\n\t"
-  "packuswb %%xmm1, %%xmm1\n\t"
-  "movd %%xmm1, %%eax\n\t"
-  "movnti %%eax, (%1,%2)\n\t"
-  "sub $0x4, %2\n\t"
-  "jnz ssse3_convert_rgb32_gray8_iter\n\t"
-  :
-  : "r" (col1), "r" (result), "r" (count), "g" (multiplier)
-  : "%eax", "%xmm0", "%xmm1", "%xmm3", "%xmm4", "cc", "memory"
-  );
+      "mov $0x1F1F1F1F, %%eax\n\t"
+      "movd %%eax, %%xmm4\n\t"
+      "pshufd $0x0, %%xmm4, %%xmm4\n\t"
+      "mov %3, %%eax\n\t"
+      "movd %%eax, %%xmm3\n\t"
+      "pshufd $0x0, %%xmm3, %%xmm3\n\t"
+      "pxor %%xmm0, %%xmm0\n\t"
+      "sub $0x10, %0\n\t"
+      "sub $0x4, %1\n\t"
+      "ssse3_convert_rgb32_gray8_iter:\n\t"
+      "movdqa (%0,%2,4), %%xmm1\n\t"
+      "psrlq $0x3, %%xmm1\n\t"
+      "pand %%xmm4, %%xmm1\n\t"
+      "pmaddubsw %%xmm3, %%xmm1\n\t"
+      "phaddw %%xmm0, %%xmm1\n\t"
+      "packuswb %%xmm1, %%xmm1\n\t"
+      "movd %%xmm1, %%eax\n\t"
+      "movnti %%eax, (%1,%2)\n\t"
+      "sub $0x4, %2\n\t"
+      "jnz ssse3_convert_rgb32_gray8_iter\n\t"
+      :
+      : "r" (col1), "r" (result), "r" (count), "g" (multiplier)
+      : "%eax", "%xmm0", "%xmm1", "%xmm3", "%xmm4", "cc", "memory"
+        );
 #else
   Panic("SSE function called on a non x86\\x86-64 platform");
 #endif
@@ -4597,10 +4593,10 @@ __attribute__((noinline,__target__("ssse3")))
 void ssse3_convert_yuyv_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
   unsigned long i = 0;
-  
+
   __attribute__((aligned(16))) static const uint8_t movemask1[16] = {0,2,4,6,8,10,12,14,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
   __attribute__((aligned(16))) static const uint8_t movemask2[16] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0,2,4,6,8,10,12,14};
-  
+
   /* XMM0 - General purpose */
   /* XMM1 - General purpose */
   /* XMM2 - unused */
@@ -4611,28 +4607,28 @@ void ssse3_convert_yuyv_gray8(const uint8_t* col1, uint8_t* result, unsigned lon
   /* XMM7 - unused */
 
   __asm__ __volatile__ (
-  "movdqa %4, %%xmm3\n\t"
-  "movdqa %5, %%xmm4\n\t"
-  "algo_ssse3_convert_yuyv_gray8:\n\t"
-  "movdqa (%0), %%xmm0\n\t"
-  "pshufb %%xmm3, %%xmm0\n\t"
-  "movdqa 0x10(%0), %%xmm1\n\t"
-  "pshufb %%xmm4, %%xmm1\n\t"
-  "por %%xmm1, %%xmm0\n\t"
-  "movntdq %%xmm0, (%1)\n\t"
-  "add $0x10, %3\n\t"
-  "add $0x10, %1\n\t"
-  "add $0x20, %0\n\t"
-  "cmp %2, %3\n\t"
-  "jb algo_ssse3_convert_yuyv_gray8\n\t"
-  :
+      "movdqa %4, %%xmm3\n\t"
+      "movdqa %5, %%xmm4\n\t"
+      "algo_ssse3_convert_yuyv_gray8:\n\t"
+      "movdqa (%0), %%xmm0\n\t"
+      "pshufb %%xmm3, %%xmm0\n\t"
+      "movdqa 0x10(%0), %%xmm1\n\t"
+      "pshufb %%xmm4, %%xmm1\n\t"
+      "por %%xmm1, %%xmm0\n\t"
+      "movntdq %%xmm0, (%1)\n\t"
+      "add $0x10, %3\n\t"
+      "add $0x10, %1\n\t"
+      "add $0x20, %0\n\t"
+      "cmp %2, %3\n\t"
+      "jb algo_ssse3_convert_yuyv_gray8\n\t"
+      :
 #if (defined(_DEBUG) && !defined(__x86_64__)) /* Use one less register to allow compilation to success on 32bit with omit frame pointer disabled */
-  : "r" (col1), "r" (result), "m" (count), "r" (i), "m" (*movemask1), "m" (*movemask2)
+      : "r" (col1), "r" (result), "m" (count), "r" (i), "m" (*movemask1), "m" (*movemask2)
 #else
-  : "r" (col1), "r" (result), "r" (count), "r" (i), "m" (*movemask1), "m" (*movemask2)
+      : "r" (col1), "r" (result), "r" (count), "r" (i), "m" (*movemask1), "m" (*movemask2)
 #endif
-  : "%xmm3", "%xmm4", "cc", "memory"
-  );
+      : "%xmm3", "%xmm4", "cc", "memory"
+      );
 #else
   Panic("SSE function called on a non x86\\x86-64 platform");
 #endif
@@ -4651,11 +4647,11 @@ __attribute__((noinline)) void zm_convert_yuyv_rgb(const uint8_t* col1, uint8_t*
     r = y1 + r_v_table[v];
     g = y1 - (g_u_table[u]+g_v_table[v]);
     b = y1 + b_u_table[u];
-    
+
     result[0] = r<0?0:(r>255?255:r);
     result[1] = g<0?0:(g>255?255:g);
     result[2] = b<0?0:(b>255?255:b);
-    
+
     r = y2 + r_v_table[v];
     g = y2 - (g_u_table[u]+g_v_table[v]);
     b = y2 + b_u_table[u];
@@ -4664,7 +4660,7 @@ __attribute__((noinline)) void zm_convert_yuyv_rgb(const uint8_t* col1, uint8_t*
     result[4] = g<0?0:(g>255?255:g);
     result[5] = b<0?0:(b>255?255:b);
   }
-  
+
 }
 
 /* YUYV to RGBA - modified the one above */
@@ -4680,11 +4676,11 @@ __attribute__((noinline)) void zm_convert_yuyv_rgba(const uint8_t* col1, uint8_t
     r = y1 + r_v_table[v];
     g = y1 - (g_u_table[u]+g_v_table[v]);
     b = y1 + b_u_table[u];
-    
+
     result[0] = r<0?0:(r>255?255:r);
     result[1] = g<0?0:(g>255?255:g);
     result[2] = b<0?0:(b>255?255:b);
-    
+
     r = y2 + r_v_table[v];
     g = y2 - (g_u_table[u]+g_v_table[v]);
     b = y2 + b_u_table[u];
@@ -4693,7 +4689,7 @@ __attribute__((noinline)) void zm_convert_yuyv_rgba(const uint8_t* col1, uint8_t
     result[5] = g<0?0:(g>255?255:g);
     result[6] = b<0?0:(b>255?255:b);
   }
-  
+
 }
 
 /* RGB555 to RGB24 - relocated from zm_local_camera.cpp */
@@ -4780,9 +4776,9 @@ __attribute__((noinline)) void std_deinterlace_4field_gray8(uint8_t* col1, uint8
     pabove += width;
     pnabove += width;
     pbelow += width;
-    
+
   }
-  
+
   /* Special case for the last line */
   max_ptr2 = pcurrent + width;
   while(pcurrent < max_ptr2) {
@@ -4839,29 +4835,29 @@ __attribute__((noinline)) void std_deinterlace_4field_rgb(uint8_t* col1, uint8_t
     pabove += row_width;
     pnabove += row_width;
     pbelow += row_width;
-    
+
   }
-  
+
   /* Special case for the last line */
   max_ptr2 = pcurrent + row_width;
   while(pcurrent < max_ptr2) {
-      r = abs(pnabove[0] - pabove[0]);
-      g = abs(pnabove[1] - pabove[1]);
-      b = abs(pnabove[2] - pabove[2]);
-      delta1 = (r + r + b + g + g + g + g + g)>>3;
-      r = abs(pncurrent[0] - pcurrent[0]);
-      g = abs(pncurrent[1] - pcurrent[1]);
-      b = abs(pncurrent[2] - pcurrent[2]);
-      delta2 = (r + r + b + g + g + g + g + g)>>3;
-      if(((delta1 + delta2) >> 1) >= threshold) {
-        pcurrent[0] = pabove[0];
-        pcurrent[1] = pabove[1];
-        pcurrent[2] = pabove[2];
-      }
-      pabove += 3;
-      pnabove += 3;
-      pcurrent += 3;
-      pncurrent += 3;
+    r = abs(pnabove[0] - pabove[0]);
+    g = abs(pnabove[1] - pabove[1]);
+    b = abs(pnabove[2] - pabove[2]);
+    delta1 = (r + r + b + g + g + g + g + g)>>3;
+    r = abs(pncurrent[0] - pcurrent[0]);
+    g = abs(pncurrent[1] - pcurrent[1]);
+    b = abs(pncurrent[2] - pcurrent[2]);
+    delta2 = (r + r + b + g + g + g + g + g)>>3;
+    if(((delta1 + delta2) >> 1) >= threshold) {
+      pcurrent[0] = pabove[0];
+      pcurrent[1] = pabove[1];
+      pcurrent[2] = pabove[2];
+    }
+    pabove += 3;
+    pnabove += 3;
+    pcurrent += 3;
+    pncurrent += 3;
   }
 }
 
@@ -4908,29 +4904,29 @@ __attribute__((noinline)) void std_deinterlace_4field_bgr(uint8_t* col1, uint8_t
     pabove += row_width;
     pnabove += row_width;
     pbelow += row_width;
-    
+
   }
-  
+
   /* Special case for the last line */
   max_ptr2 = pcurrent + row_width;
   while(pcurrent < max_ptr2) {
-      b = abs(pnabove[0] - pabove[0]);
-      g = abs(pnabove[1] - pabove[1]);
-      r = abs(pnabove[2] - pabove[2]);
-      delta1 = (r + r + b + g + g + g + g + g)>>3;
-      b = abs(pncurrent[0] - pcurrent[0]);
-      g = abs(pncurrent[1] - pcurrent[1]);
-      r = abs(pncurrent[2] - pcurrent[2]);
-      delta2 = (r + r + b + g + g + g + g + g)>>3;
-      if(((delta1 + delta2) >> 1) >= threshold) {
-        pcurrent[0] = pabove[0];
-        pcurrent[1] = pabove[1];
-        pcurrent[2] = pabove[2];
-      }
-      pabove += 3;
-      pnabove += 3;
-      pcurrent += 3;
-      pncurrent += 3;
+    b = abs(pnabove[0] - pabove[0]);
+    g = abs(pnabove[1] - pabove[1]);
+    r = abs(pnabove[2] - pabove[2]);
+    delta1 = (r + r + b + g + g + g + g + g)>>3;
+    b = abs(pncurrent[0] - pcurrent[0]);
+    g = abs(pncurrent[1] - pcurrent[1]);
+    r = abs(pncurrent[2] - pcurrent[2]);
+    delta2 = (r + r + b + g + g + g + g + g)>>3;
+    if(((delta1 + delta2) >> 1) >= threshold) {
+      pcurrent[0] = pabove[0];
+      pcurrent[1] = pabove[1];
+      pcurrent[2] = pabove[2];
+    }
+    pabove += 3;
+    pnabove += 3;
+    pcurrent += 3;
+    pncurrent += 3;
   }
 }
 
@@ -4977,29 +4973,29 @@ __attribute__((noinline)) void std_deinterlace_4field_rgba(uint8_t* col1, uint8_
     pabove += row_width;
     pnabove += row_width;
     pbelow += row_width;
-    
+
   }
-  
+
   /* Special case for the last line */
   max_ptr2 = pcurrent + row_width;
   while(pcurrent < max_ptr2) {
-      r = abs(pnabove[0] - pabove[0]);
-      g = abs(pnabove[1] - pabove[1]);
-      b = abs(pnabove[2] - pabove[2]);
-      delta1 = (r + r + b + g + g + g + g + g)>>3;
-      r = abs(pncurrent[0] - pcurrent[0]);
-      g = abs(pncurrent[1] - pcurrent[1]);
-      b = abs(pncurrent[2] - pcurrent[2]);
-      delta2 = (r + r + b + g + g + g + g + g)>>3;
-      if(((delta1 + delta2) >> 1) >= threshold) {
-        pcurrent[0] = pabove[0];
-        pcurrent[1] = pabove[1];
-        pcurrent[2] = pabove[2];
-      }
-      pabove += 4;
-      pnabove += 4;
-      pcurrent += 4;
-      pncurrent += 4;
+    r = abs(pnabove[0] - pabove[0]);
+    g = abs(pnabove[1] - pabove[1]);
+    b = abs(pnabove[2] - pabove[2]);
+    delta1 = (r + r + b + g + g + g + g + g)>>3;
+    r = abs(pncurrent[0] - pcurrent[0]);
+    g = abs(pncurrent[1] - pcurrent[1]);
+    b = abs(pncurrent[2] - pcurrent[2]);
+    delta2 = (r + r + b + g + g + g + g + g)>>3;
+    if(((delta1 + delta2) >> 1) >= threshold) {
+      pcurrent[0] = pabove[0];
+      pcurrent[1] = pabove[1];
+      pcurrent[2] = pabove[2];
+    }
+    pabove += 4;
+    pnabove += 4;
+    pcurrent += 4;
+    pncurrent += 4;
   }
 }
 
@@ -5046,29 +5042,29 @@ __attribute__((noinline)) void std_deinterlace_4field_bgra(uint8_t* col1, uint8_
     pabove += row_width;
     pnabove += row_width;
     pbelow += row_width;
-    
+
   }
-  
+
   /* Special case for the last line */
   max_ptr2 = pcurrent + row_width;
   while(pcurrent < max_ptr2) {
-      b = abs(pnabove[0] - pabove[0]);
-      g = abs(pnabove[1] - pabove[1]);
-      r = abs(pnabove[2] - pabove[2]);
-      delta1 = (r + r + b + g + g + g + g + g)>>3;
-      b = abs(pncurrent[0] - pcurrent[0]);
-      g = abs(pncurrent[1] - pcurrent[1]);
-      r = abs(pncurrent[2] - pcurrent[2]);
-      delta2 = (r + r + b + g + g + g + g + g)>>3;
-      if(((delta1 + delta2) >> 1) >= threshold) {
-        pcurrent[0] = pabove[0];
-        pcurrent[1] = pabove[1];
-        pcurrent[2] = pabove[2];
-      }
-      pabove += 4;
-      pnabove += 4;
-      pcurrent += 4;
-      pncurrent += 4;
+    b = abs(pnabove[0] - pabove[0]);
+    g = abs(pnabove[1] - pabove[1]);
+    r = abs(pnabove[2] - pabove[2]);
+    delta1 = (r + r + b + g + g + g + g + g)>>3;
+    b = abs(pncurrent[0] - pcurrent[0]);
+    g = abs(pncurrent[1] - pcurrent[1]);
+    r = abs(pncurrent[2] - pcurrent[2]);
+    delta2 = (r + r + b + g + g + g + g + g)>>3;
+    if(((delta1 + delta2) >> 1) >= threshold) {
+      pcurrent[0] = pabove[0];
+      pcurrent[1] = pabove[1];
+      pcurrent[2] = pabove[2];
+    }
+    pabove += 4;
+    pnabove += 4;
+    pcurrent += 4;
+    pncurrent += 4;
   }
 }
 
@@ -5115,29 +5111,29 @@ __attribute__((noinline)) void std_deinterlace_4field_argb(uint8_t* col1, uint8_
     pabove += row_width;
     pnabove += row_width;
     pbelow += row_width;
-    
+
   }
-  
+
   /* Special case for the last line */
   max_ptr2 = pcurrent + row_width;
   while(pcurrent < max_ptr2) {
-      r = abs(pnabove[1] - pabove[1]);
-      g = abs(pnabove[2] - pabove[2]);
-      b = abs(pnabove[3] - pabove[3]);
-      delta1 = (r + r + b + g + g + g + g + g)>>3;
-      r = abs(pncurrent[1] - pcurrent[1]);
-      g = abs(pncurrent[2] - pcurrent[2]);
-      b = abs(pncurrent[3] - pcurrent[3]);
-      delta2 = (r + r + b + g + g + g + g + g)>>3;
-      if(((delta1 + delta2) >> 1) >= threshold) {
-        pcurrent[1] = pabove[1];
-        pcurrent[2] = pabove[2];
-        pcurrent[3] = pabove[3];
-      }
-      pabove += 4;
-      pnabove += 4;
-      pcurrent += 4;
-      pncurrent += 4;
+    r = abs(pnabove[1] - pabove[1]);
+    g = abs(pnabove[2] - pabove[2]);
+    b = abs(pnabove[3] - pabove[3]);
+    delta1 = (r + r + b + g + g + g + g + g)>>3;
+    r = abs(pncurrent[1] - pcurrent[1]);
+    g = abs(pncurrent[2] - pcurrent[2]);
+    b = abs(pncurrent[3] - pcurrent[3]);
+    delta2 = (r + r + b + g + g + g + g + g)>>3;
+    if(((delta1 + delta2) >> 1) >= threshold) {
+      pcurrent[1] = pabove[1];
+      pcurrent[2] = pabove[2];
+      pcurrent[3] = pabove[3];
+    }
+    pabove += 4;
+    pnabove += 4;
+    pcurrent += 4;
+    pncurrent += 4;
   }
 }
 
@@ -5184,28 +5180,28 @@ __attribute__((noinline)) void std_deinterlace_4field_abgr(uint8_t* col1, uint8_
     pabove += row_width;
     pnabove += row_width;
     pbelow += row_width;
-    
+
   }
-  
+
   /* Special case for the last line */
   max_ptr2 = pcurrent + row_width;
   while(pcurrent < max_ptr2) {
-      b = abs(pnabove[1] - pabove[1]);
-      g = abs(pnabove[2] - pabove[2]);
-      r = abs(pnabove[3] - pabove[3]);
-      delta1 = (r + r + b + g + g + g + g + g)>>3;
-      b = abs(pncurrent[1] - pcurrent[1]);
-      g = abs(pncurrent[2] - pcurrent[2]);
-      r = abs(pncurrent[3] - pcurrent[3]);
-      delta2 = (r + r + b + g + g + g + g + g)>>3;
-      if(((delta1 + delta2) >> 1) >= threshold) {
-        pcurrent[1] = pabove[1];
-        pcurrent[2] = pabove[2];
-        pcurrent[3] = pabove[3];
-      }
-      pabove += 4;
-      pnabove += 4;
-      pcurrent += 4;
-      pncurrent += 4;
+    b = abs(pnabove[1] - pabove[1]);
+    g = abs(pnabove[2] - pabove[2]);
+    r = abs(pnabove[3] - pabove[3]);
+    delta1 = (r + r + b + g + g + g + g + g)>>3;
+    b = abs(pncurrent[1] - pcurrent[1]);
+    g = abs(pncurrent[2] - pcurrent[2]);
+    r = abs(pncurrent[3] - pcurrent[3]);
+    delta2 = (r + r + b + g + g + g + g + g)>>3;
+    if(((delta1 + delta2) >> 1) >= threshold) {
+      pcurrent[1] = pabove[1];
+      pcurrent[2] = pabove[2];
+      pcurrent[3] = pabove[3];
+    }
+    pabove += 4;
+    pnabove += 4;
+    pcurrent += 4;
+    pncurrent += 4;
   }
 }

@@ -1,4 +1,3 @@
-//
 // ZoneMinder Video Storage Implementation
 // Written by Chris Wiggins
 // http://chriswiggins.co.nz
@@ -29,18 +28,19 @@
 #include "zm_videostore.h"
 
 extern "C"{
-#include "libavutil/time.h"
+  #include "libavutil/time.h"
 }
 
 VideoStore::VideoStore(const char *filename_in, const char *format_in,
-    AVStream *input_st,
-    AVStream *inpaud_st,
+    AVStream *p_video_input_stream,
+    AVStream *p_audio_input_stream,
     int64_t nStartTime,
-    Monitor::Orientation orientation
+    Monitor * monitor
     ) {
+  video_input_stream = p_video_input_stream;
+  audio_input_stream = p_audio_input_stream;
 
-  AVDictionary *pmetadata = NULL;
-  int dsr;
+  video_input_context = video_input_stream->codec;
 
   //store inputs in variables local to class
   filename = filename_in;
@@ -49,11 +49,10 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   keyframeMessage = false;
   keyframeSkipNumber = 0;
 
-  Info("Opening video storage stream %s format: %d\n", filename, format);
+  Info("Opening video storage stream %s format: %s\n", filename, format);
 
-  //Init everything we need
-  int ret;
-  av_register_all();
+  //Init everything we need, shouldn't have to do this, ffmpeg_camera or something else will call it.
+  //av_register_all();
 
   ret = avformat_alloc_output_context2(&oc, NULL, NULL, filename);
   if ( ret < 0 ) {
@@ -62,6 +61,8 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
         filename,
         av_make_error_string(ret).c_str()
         );
+  } else {
+    Debug(2, "Success alocateing output context");
   }
 
   //Couldn't deduce format from filename, trying from format name
@@ -72,90 +73,148 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
           " could not be assigned based on filename or format %s",
           filename, format);
     }
+  } else {
+    Debug(2, "Success alocateing output context");
   }
 
-  dsr = av_dict_set(&pmetadata, "title", "Zoneminder Security Recording", 0);
+  AVDictionary *pmetadata = NULL;
+  int dsr = av_dict_set(&pmetadata, "title", "Zoneminder Security Recording", 0);
   if (dsr < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__ );
 
   oc->metadata = pmetadata;
 
-  fmt = oc->oformat;
+  output_format = oc->oformat;
 
-  video_st = avformat_new_stream(oc, (AVCodec *)input_st->codec->codec);
-  if (!video_st) {
+  video_output_stream = avformat_new_stream(oc, (AVCodec*)video_input_context->codec);
+  if (!video_output_stream) {
     Fatal("Unable to create video out stream\n");
+  } else {
+    Debug(2, "Success creating video out stream" );
   }
 
-  ret = avcodec_copy_context(video_st->codec, input_st->codec);
+  video_output_context = video_output_stream->codec;
+
+#if LIBAVCODEC_VERSION_CHECK(58, 0, 0, 0, 0)
+  Debug(2, "setting parameters");
+  ret = avcodec_parameters_to_context( video_output_context, video_input_stream->codecpar );
+  if ( ret < 0 ) {
+    Error( "Could not initialize stream parameteres");
+    return;
+  } else {
+    Debug(2, "Success getting parameters");
+  }
+#else
+  ret = avcodec_copy_context(video_output_context, video_input_context );
   if (ret < 0) { 
-    Fatal("Unable to copy input video context to output video context "
-        "%s\n", av_make_error_string(ret).c_str());
+    Fatal("Unable to copy input video context to output video context %s\n", 
+        av_make_error_string(ret).c_str());
+  } else {
+    Debug(3, "Success copying context" );
+  }
+#endif
+
+  // Just copy them from the input, no reason to choose different
+  video_output_context->time_base = video_input_context->time_base;
+  video_output_stream->time_base = video_input_stream->time_base;
+
+  Debug(3, "Time bases: VIDEO input stream (%d/%d) input codec: (%d/%d) output stream: (%d/%d) output codec (%d/%d)", 
+        video_input_stream->time_base.num,
+        video_input_stream->time_base.den,
+        video_input_context->time_base.num,
+        video_input_context->time_base.den,
+        video_output_stream->time_base.num,
+        video_output_stream->time_base.den,
+        video_output_context->time_base.num,
+        video_output_context->time_base.den
+        );
+
+       // WHY?
+  //video_output_context->codec_tag = 0;
+  if (!video_output_context->codec_tag) {
+    Debug(2, "No codec_tag");
+    if (! oc->oformat->codec_tag
+        || av_codec_get_id (oc->oformat->codec_tag, video_input_context->codec_tag) == video_output_context->codec_id
+        || av_codec_get_tag(oc->oformat->codec_tag, video_input_context->codec_id) <= 0) {
+      Warning("Setting codec tag");
+      video_output_context->codec_tag = video_input_context->codec_tag;
+    }
   }
 
-  if ( video_st->sample_aspect_ratio.den != video_st->codec->sample_aspect_ratio.den ) {
-         Warning("Fixingample_aspect_ratio.den");
-         video_st->sample_aspect_ratio.den = video_st->codec->sample_aspect_ratio.den;
-  }
-  if ( video_st->sample_aspect_ratio.num != input_st->codec->sample_aspect_ratio.num ) {
-         Warning("Fixingample_aspect_ratio.num");
-         video_st->sample_aspect_ratio.num = input_st->codec->sample_aspect_ratio.num;
-  }
-  if ( video_st->codec->codec_id != input_st->codec->codec_id ) {
-         Warning("Fixing video_st->codec->codec_id");
-         video_st->codec->codec_id = input_st->codec->codec_id;
-  }
-  if ( ! video_st->codec->time_base.num ) {
-         Warning("video_st->codec->time_base.num is not set%d/%d. Fixing by setting it to 1", video_st->codec->time_base.num, video_st->codec->time_base.den); 
-         Warning("video_st->codec->time_base.num is not set%d/%d. Fixing by setting it to 1", video_st->time_base.num, video_st->time_base.den);       
-         video_st->codec->time_base.num = video_st->time_base.num;
-         video_st->codec->time_base.den = video_st->time_base.den;
-  }
-
-  video_st->codec->codec_tag = 0;
   if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
-    video_st->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
+    video_output_context->flags |= CODEC_FLAG_GLOBAL_HEADER;
   }
 
+	Monitor::Orientation orientation = monitor->getOrientation();
   if ( orientation ) {
     if ( orientation == Monitor::ROTATE_0 ) {
 
     } else if ( orientation == Monitor::ROTATE_90 ) {
-      dsr = av_dict_set( &video_st->metadata, "rotate", "90", 0);
+      dsr = av_dict_set( &video_output_stream->metadata, "rotate", "90", 0);
       if (dsr < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__ );
     } else if ( orientation == Monitor::ROTATE_180 ) {
-      dsr = av_dict_set( &video_st->metadata, "rotate", "180", 0);
+      dsr = av_dict_set( &video_output_stream->metadata, "rotate", "180", 0);
       if (dsr < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__ );
     } else if ( orientation == Monitor::ROTATE_270 ) {
-      dsr = av_dict_set( &video_st->metadata, "rotate", "270", 0);
+      dsr = av_dict_set( &video_output_stream->metadata, "rotate", "270", 0);
       if (dsr < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__ );
     } else {
       Warning( "Unsupported Orientation(%d)", orientation );
     }
   }
 
+  audio_output_codec = NULL;
+  audio_input_context = NULL;
+  audio_output_stream = NULL;
+#ifdef HAVE_LIBAVRESAMPLE
+  resample_context = NULL;
+#endif
 
-  if (inpaud_st) {
-    audio_st = avformat_new_stream(oc, inpaud_st->codec->codec);
-    if (!audio_st) {
-      Error("Unable to create audio out stream\n");
-      audio_st = NULL;
+  if (audio_input_stream) {
+    audio_input_context = audio_input_stream->codec;
+
+    if ( audio_input_context->codec_id != AV_CODEC_ID_AAC ) {
+			static char error_buffer[256];
+      avcodec_string(error_buffer, sizeof(error_buffer), audio_input_context, 0 );
+      Debug(3, "Got something other than AAC (%s)", error_buffer );
+      if ( ! setup_resampler() ) {
+        return;
+      }
     } else {
-      ret = avcodec_copy_context(audio_st->codec, inpaud_st->codec);
-      if (ret < 0) {
-        Fatal("Unable to copy audio context %s\n", av_make_error_string(ret).c_str());
-      }   
-      audio_st->codec->codec_tag = 0;
+      Debug(3, "Got AAC" );
+
+      audio_output_stream = avformat_new_stream(oc, (AVCodec*)audio_input_context->codec);
+      if ( ! audio_output_stream ) {
+        Error("Unable to create audio out stream\n");
+        audio_output_stream = NULL;
+      } else {
+        audio_output_context = audio_output_stream->codec;
+
+        ret = avcodec_copy_context(audio_output_context, audio_input_context);
+        if (ret < 0) {
+          Error("Unable to copy audio context %s\n", av_make_error_string(ret).c_str());
+          audio_output_stream = NULL;
+        } else {
+          audio_output_context->codec_tag = 0;
+          if ( audio_output_context->channels > 1 ) {
+            Warning("Audio isn't mono, changing it.");
+            audio_output_context->channels = 1;
+          } else {
+            Debug(3, "Audio is mono");
+          }
+        }   
+      } // end if audio_output_stream
+    } // end if is AAC
+
+    if ( audio_output_stream ) {
       if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
-        audio_st->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
+        audio_output_context->flags |= CODEC_FLAG_GLOBAL_HEADER;
       }
     }
-  } else {
-    Debug(3, "No Audio output stream");
-    audio_st = NULL;
-  }    
+
+  } // end if audio_input_stream
 
   /* open the output file, if needed */
-  if (!(fmt->flags & AVFMT_NOFILE)) {
+  if (!(output_format->flags & AVFMT_NOFILE)) {
     ret = avio_open2(&oc->pb, filename, AVIO_FLAG_WRITE,NULL,NULL);
     if (ret < 0) {
       Fatal("Could not open output file '%s': %s\n", filename,
@@ -163,33 +222,84 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
     }
   }
 
-  //av_dict_set(&opts, "movflags", "frag_custom+dash+delay_moov", 0);
-  //if ((ret = avformat_write_header(ctx, &opts)) < 0) {
-  //}
   //os->ctx_inited = 1;
   //avio_flush(ctx->pb);
   //av_dict_free(&opts);
+  zm_dump_stream_format( oc, 0, 0, 1 );
+  if ( audio_output_stream ) 
+    zm_dump_stream_format( oc, 1, 0, 1 );
 
-  /* Write the stream header, if any. */
-  ret = avformat_write_header(oc, NULL);
+  AVDictionary * opts = NULL;
+  //av_dict_set(&opts, "movflags", "frag_custom+dash+delay_moov", 0);
+  //av_dict_set(&opts, "movflags", "frag_custom+dash+delay_moov", 0);
+  //av_dict_set(&opts, "movflags", "frag_keyframe+empty_moov+default_base_moof", 0);
+  if ((ret = avformat_write_header(oc, &opts)) < 0) {
+    Warning("Unable to set movflags to frag_custom+dash+delay_moov");
+    /* Write the stream header, if any. */
+    ret = avformat_write_header(oc, NULL);
+  } else if (av_dict_count(opts) != 0) {
+    Warning("some options not set\n");
+  }
   if (ret < 0) {
-    zm_dump_stream_format( oc, 0, 0, 1 );
-    Fatal("Error occurred when writing output file header to %s: %s\n",
+    Error("Error occurred when writing output file header to %s: %s\n",
         filename,
         av_make_error_string(ret).c_str());
   }
+  if ( opts )
+    av_dict_free(&opts);
 
-  prevDts = 0;
-  startPts = 0;
-  startDts = 0;
-  filter_in_rescale_delta_last = AV_NOPTS_VALUE;
+  video_last_pts = 0;
+  video_last_dts = 0;
+  audio_last_pts = 0;
+  audio_last_dts = 0;
+  previous_pts = 0;
+  previous_dts = 0;
 
-  startTime=av_gettime()-nStartTime;//oc->start_time;
-  Info("VideoStore startTime=%d\n",startTime);
 } // VideoStore::VideoStore
 
 
 VideoStore::~VideoStore(){
+  if ( audio_output_codec ) {
+    // Do we need to flush the outputs?  I have no idea.
+    AVPacket pkt;
+    int got_packet;
+    av_init_packet(&pkt);
+    pkt.data = NULL;
+    pkt.size = 0;
+    int64_t size;
+
+    while(1) {
+#if LIBAVCODEC_VERSION_CHECK(58, 0, 0, 0, 0)
+      ret = avcodec_receive_packet( audio_output_context, &pkt );
+#else
+      ret = avcodec_encode_audio2( audio_output_context, &pkt, NULL, &got_packet );
+#endif
+      if (ret < 0) {
+        Error("ERror encoding audio while flushing");
+        break;
+      }
+Debug(1, "Have audio encoder, need to flush it's output" );
+      size += pkt.size;
+      if (!got_packet) {
+        break;
+      }
+Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts, pkt.dts, pkt.duration );
+      if (pkt.pts != AV_NOPTS_VALUE)
+        pkt.pts = av_rescale_q(pkt.pts, audio_output_context->time_base, audio_output_stream->time_base);
+      if (pkt.dts != AV_NOPTS_VALUE)
+        pkt.dts = av_rescale_q(pkt.dts, audio_output_context->time_base, audio_output_stream->time_base);
+      if (pkt.duration > 0)
+        pkt.duration = av_rescale_q(pkt.duration, audio_output_context->time_base, audio_output_stream->time_base);
+Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts, pkt.dts, pkt.duration );
+      pkt.stream_index = audio_output_stream->index;
+      av_interleaved_write_frame( oc, &pkt );
+      zm_av_packet_unref( &pkt );
+    } // while 1
+  }
+
+  // Flush Queues
+  av_interleaved_write_frame( oc, NULL );
+
   /* Write the trailer before close */
   if ( int rc = av_write_trailer(oc) ) {
     Error("Error writing trailer %s",  av_err2str( rc ) );
@@ -200,15 +310,21 @@ VideoStore::~VideoStore(){
   // I wonder if we should be closing the file first.
   // I also wonder if we really need to be doing all the context allocation/de-allocation constantly, or whether we can just re-use it.  Just do a file open/close/writeheader/etc.
   // What if we were only doing audio recording?
-  if ( video_st ) {
-    avcodec_close(video_st->codec);
+  if ( video_output_stream ) {
+    avcodec_close(video_output_context);
   }
-  if (audio_st) {
-    avcodec_close(audio_st->codec);
+  if (audio_output_stream) {
+    avcodec_close(audio_output_context);
+#ifdef HAVE_LIBAVRESAMPLE
+    if ( resample_context ) {
+      avresample_close( resample_context );
+      avresample_free( &resample_context );
+    }
+#endif
   }
 
   // WHen will be not using a file ?
-  if (!(fmt->flags & AVFMT_NOFILE)) {
+  if (!(output_format->flags & AVFMT_NOFILE)) {
     /* Close the output file. */
     if ( int rc = avio_close(oc->pb) ) {
       Error("Error closing avio %s",  av_err2str( rc ) );
@@ -219,6 +335,198 @@ VideoStore::~VideoStore(){
 
   /* free the stream */
   avformat_free_context(oc);
+}
+
+bool VideoStore::setup_resampler() {
+#ifdef HAVE_LIBAVRESAMPLE
+  static char error_buffer[256];
+
+  audio_output_codec = avcodec_find_encoder(AV_CODEC_ID_AAC);
+  if ( ! audio_output_codec ) {
+    Error("Could not find codec for AAC");
+    return false;
+  }
+  Debug(2, "Have audio output codec");
+
+  audio_output_stream = avformat_new_stream( oc, audio_output_codec );
+  audio_output_context = audio_output_stream->codec;
+
+  if ( ! audio_output_context ) {
+    Error( "could not allocate codec context for AAC\n");
+    audio_output_stream = NULL;
+    return false;
+  }
+
+  Debug(2, "Have audio_output_context");
+
+  AVDictionary *opts = NULL;
+  av_dict_set(&opts, "strict", "experimental", 0);
+
+  /* put sample parameters */
+  audio_output_context->bit_rate = audio_input_context->bit_rate;
+  audio_output_context->sample_rate = audio_input_context->sample_rate;
+  audio_output_context->channels = audio_input_context->channels;
+  audio_output_context->channel_layout = audio_input_context->channel_layout;
+  audio_output_context->sample_fmt = audio_input_context->sample_fmt;
+  //audio_output_context->refcounted_frames = 1;
+
+  if (audio_output_codec->supported_samplerates) {
+    int found = 0;
+    for ( unsigned int i = 0; audio_output_codec->supported_samplerates[i]; i++) {
+      if ( audio_output_context->sample_rate == audio_output_codec->supported_samplerates[i] ) {
+        found = 1;
+        break;
+      }
+    }
+    if ( found ) {
+      Debug(3, "Sample rate is good");
+    } else {
+      audio_output_context->sample_rate = audio_output_codec->supported_samplerates[0];
+      Debug(1, "Sampel rate is no good, setting to (%d)", audio_output_codec->supported_samplerates[0] );
+    }
+  }
+
+  /* check that the encoder supports s16 pcm input */
+  if (!check_sample_fmt( audio_output_codec, audio_output_context->sample_fmt)) {
+    Debug( 3, "Encoder does not support sample format %s, setting to FLTP",
+        av_get_sample_fmt_name( audio_output_context->sample_fmt));
+    audio_output_context->sample_fmt = AV_SAMPLE_FMT_FLTP;
+  }
+
+  //audio_output_stream->time_base = audio_input_stream->time_base;
+  audio_output_context->time_base = (AVRational){ 1, audio_output_context->sample_rate };
+
+  Debug(3, "Audio Time bases input stream (%d/%d) input codec: (%d/%d) output_stream (%d/%d) output codec (%d/%d)", 
+      audio_input_stream->time_base.num,
+      audio_input_stream->time_base.den,
+      audio_input_context->time_base.num,
+      audio_input_context->time_base.den,
+      audio_output_stream->time_base.num,
+      audio_output_stream->time_base.den,
+      audio_output_context->time_base.num,
+      audio_output_context->time_base.den
+      );
+
+  ret = avcodec_open2(audio_output_context, audio_output_codec, &opts );
+  av_dict_free(&opts);
+  if ( ret < 0 ) {
+    av_strerror(ret, error_buffer, sizeof(error_buffer));
+    Fatal( "could not open codec (%d) (%s)\n", ret, error_buffer );
+    audio_output_codec = NULL;
+    audio_output_context = NULL;
+    audio_output_stream = NULL;
+    return false;
+  } 
+
+  Debug(1, "Audio output bit_rate (%d) sample_rate(%d) channels(%d) fmt(%d) layout(%d) frame_size(%d)", 
+      audio_output_context->bit_rate,
+      audio_output_context->sample_rate,
+      audio_output_context->channels,
+      audio_output_context->sample_fmt,
+      audio_output_context->channel_layout,
+      audio_output_context->frame_size
+      );
+
+  output_frame_size = audio_output_context->frame_size;
+  /** Create a new frame to store the audio samples. */
+  if (!(input_frame = zm_av_frame_alloc())) {
+    Error("Could not allocate input frame");
+    return false;
+  }
+
+  /** Create a new frame to store the audio samples. */
+  if (!(output_frame = zm_av_frame_alloc())) {
+    Error("Could not allocate output frame");
+    av_frame_free( &input_frame );
+    return false;
+  }
+
+  // Setup the audio resampler
+  resample_context = avresample_alloc_context();
+  if ( ! resample_context ) {
+    Error( "Could not allocate resample context\n");
+    return false;
+  }
+
+  // Some formats (i.e. WAV) do not produce the proper channel layout
+  if ( audio_input_context->channel_layout == 0 ) {
+    Error( "Bad channel layout. Need to set it to mono.\n");
+    av_opt_set_int( resample_context, "in_channel_layout",  av_get_channel_layout( "mono" ), 0 );
+  } else {
+    av_opt_set_int( resample_context, "in_channel_layout",  audio_input_context->channel_layout, 0 );
+  }
+
+  av_opt_set_int( resample_context, "in_sample_fmt",     audio_input_context->sample_fmt, 0);
+  av_opt_set_int( resample_context, "in_sample_rate",    audio_input_context->sample_rate, 0);
+  av_opt_set_int( resample_context, "in_channels",       audio_input_context->channels,0);
+  //av_opt_set_int( resample_context, "out_channel_layout", audio_output_context->channel_layout, 0);
+  av_opt_set_int( resample_context, "out_channel_layout",  av_get_channel_layout( "mono" ), 0 );
+  av_opt_set_int( resample_context, "out_sample_fmt",     audio_output_context->sample_fmt, 0);
+  av_opt_set_int( resample_context, "out_sample_rate",    audio_output_context->sample_rate, 0);
+  av_opt_set_int( resample_context, "out_channels",       audio_output_context->channels, 0);
+
+  ret = avresample_open( resample_context );
+  if ( ret < 0 ) {
+    Error( "Could not open resample context\n");
+    return false;
+  }
+
+#if 0
+    /**
+     * Allocate as many pointers as there are audio channels.
+     * Each pointer will later point to the audio samples of the corresponding
+     * channels (although it may be NULL for interleaved formats).
+     */
+    if (!( converted_input_samples = (uint8_t *)calloc( audio_output_context->channels, sizeof(*converted_input_samples))) ) {
+      Error( "Could not allocate converted input sample pointers\n");
+      return;
+    }
+    /**
+     * Allocate memory for the samples of all channels in one consecutive
+     * block for convenience.
+     */
+    if ((ret = av_samples_alloc( &converted_input_samples, NULL,
+            audio_output_context->channels,
+            audio_output_context->frame_size,
+            audio_output_context->sample_fmt, 0)) < 0) {
+      Error( "Could not allocate converted input samples (error '%s')\n",
+          av_make_error_string(ret).c_str() );
+
+      av_freep(converted_input_samples);
+      free(converted_input_samples);
+      return;
+    }
+#endif
+
+    output_frame->nb_samples = audio_output_context->frame_size;
+    output_frame->format = audio_output_context->sample_fmt;
+    output_frame->channel_layout = audio_output_context->channel_layout;
+
+    // The codec gives us the frame size, in samples, we calculate the size of the samples buffer in bytes
+    unsigned int audioSampleBuffer_size = av_samples_get_buffer_size( NULL, audio_output_context->channels, audio_output_context->frame_size, audio_output_context->sample_fmt, 0 );
+    converted_input_samples = (uint8_t*) av_malloc( audioSampleBuffer_size );
+
+    if ( !converted_input_samples ) { 
+      Error( "Could not allocate converted input sample pointers\n");
+      return false;
+    }
+
+    // Setup the data pointers in the AVFrame
+    if ( avcodec_fill_audio_frame( 
+          output_frame, 
+          audio_output_context->channels, 
+          audio_output_context->sample_fmt, 
+          (const uint8_t*) converted_input_samples, 
+          audioSampleBuffer_size, 0 ) < 0 ) {
+      Error( "Could not allocate converted input sample pointers\n");
+      return false;
+    }
+
+    return true;
+#else
+    Error("Not built with libavresample library. Cannot do audio conversion to AAC");
+    return false;
+#endif
 }
 
 
@@ -233,40 +541,84 @@ void VideoStore::dumpPacket( AVPacket *pkt ){
       , pkt->stream_index
       , pkt->flags
       , pkt->pos
-      , pkt->convergence_duration
+      , pkt->duration
       );
-  Info("%s:%d:DEBUG: %s", __FILE__, __LINE__, b);
+  Debug(1, "%s:%d:DEBUG: %s", __FILE__, __LINE__, b);
 }
 
-int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st){//, AVPacket *lastKeyframePkt){
-
-  //Debug(3, "before ost_tbcket %d", startTime );
-  //zm_dump_stream_format( oc, ipkt->stream_index, 0, 1 );
-  //Debug(3, "before ost_tbcket %d", startTime );
-  int64_t ost_tb_start_time = av_rescale_q(startTime, AV_TIME_BASE_Q, video_st->time_base);
-
-  AVPacket opkt, safepkt;
-  AVPicture pict;
-
+int VideoStore::writeVideoFramePacket( AVPacket *ipkt ) {
   av_init_packet(&opkt);
+
+  int duration;
 
   //Scale the PTS of the outgoing packet to be the correct time base
   if (ipkt->pts != AV_NOPTS_VALUE) {
-    opkt.pts = av_rescale_q(ipkt->pts-startPts, input_st->time_base, video_st->time_base) - ost_tb_start_time;
+
+    if ( ! video_last_pts ) {
+      // This is the first packet.
+      opkt.pts = 0;
+      Debug(2, "Starting video video_last_pts will become (%d)", ipkt->pts );
+    } else {
+      if ( ipkt->pts < video_last_pts ) {
+        Debug(1, "Resetting video_last_pts from (%d) to (%d)",  video_last_pts, ipkt->pts );
+        // wrap around, need to figure out the distance FIXME having this wrong should cause a jump, but then play ok?
+        opkt.pts = previous_pts + av_rescale_q( ipkt->pts, video_input_stream->time_base, video_output_stream->time_base);
+      } else {
+        opkt.pts = previous_pts + av_rescale_q( ipkt->pts - video_last_pts, video_input_stream->time_base, video_output_stream->time_base);
+      }
+    }
+    Debug(3, "opkt.pts = %d from ipkt->pts(%d) - last_pts(%d)", opkt.pts, ipkt->pts, video_last_pts );
+    duration = ipkt->pts - video_last_pts;
+    video_last_pts = ipkt->pts;
   } else {
+    Debug(3, "opkt.pts = undef");
     opkt.pts = AV_NOPTS_VALUE;
   }
 
   //Scale the DTS of the outgoing packet to be the correct time base
-  if(ipkt->dts == AV_NOPTS_VALUE) {
-    opkt.dts = av_rescale_q(input_st->cur_dts-startDts, AV_TIME_BASE_Q, video_st->time_base);
+
+  // Just because the input stream wraps, doesn't mean the output needs to.  Really, if we are limiting ourselves to 10min segments I can't imagine every wrapping in the output.  So need to handle input wrap, without causing output wrap.
+  if ( ! video_last_dts ) {
+    // This is the first packet.
+    opkt.dts = 0;
+    Debug(1, "Starting video video_last_dts will become (%d)", ipkt->dts );
+    video_last_dts = ipkt->dts;
   } else {
-    opkt.dts = av_rescale_q(ipkt->dts-startDts, input_st->time_base, video_st->time_base);
+    if ( ipkt->dts == AV_NOPTS_VALUE ) {
+      // why are we using cur_dts instead of packet.dts? I think cur_dts is in AV_TIME_BASE_Q, but ipkt.dts is in video_input_stream->time_base
+      if ( video_input_stream->cur_dts < video_last_dts ) {
+        Debug(1, "Resetting video_last_dts from (%d) to (%d) p.dts was (%d)",  video_last_dts, video_input_stream->cur_dts, ipkt->dts );
+        opkt.dts = previous_dts + av_rescale_q(video_input_stream->cur_dts, AV_TIME_BASE_Q, video_output_stream->time_base);
+      } else {
+        opkt.dts = previous_dts + av_rescale_q(video_input_stream->cur_dts - video_last_dts, AV_TIME_BASE_Q, video_output_stream->time_base);
+      }
+      Debug(3, "opkt.dts = %d from video_input_stream->cur_dts(%d) - previus_dts(%d)", 
+          opkt.dts, video_input_stream->cur_dts, video_last_dts
+          );
+      video_last_dts = video_input_stream->cur_dts;
+    } else {
+      if ( ipkt->dts < video_last_dts ) {
+        Debug(1, "Resetting video_last_dts from (%d) to (%d)",  video_last_dts, ipkt->dts );
+        opkt.dts = previous_dts + av_rescale_q( ipkt->dts,  video_input_stream->time_base, video_output_stream->time_base);
+      } else {
+        opkt.dts = previous_dts + av_rescale_q( ipkt->dts - video_last_dts, video_input_stream->time_base, video_output_stream->time_base);
+      }
+      Debug(3, "opkt.dts = %d from ipkt.dts(%d) - previus_dts(%d)", 
+          opkt.dts, ipkt->dts, video_last_dts
+          );
+      video_last_dts = ipkt->dts;
+    }
+  }
+  if ( opkt.dts > opkt.pts ) {
+    Debug( 1, "opkt.dts(%d) must be <= opkt.pts(%d). Decompression must happen before presentation.", opkt.dts, opkt.pts );
+    opkt.dts = opkt.pts;
   }
 
-  opkt.dts -= ost_tb_start_time;
-
-  opkt.duration = av_rescale_q(ipkt->duration, input_st->time_base, video_st->time_base);
+  if ( ipkt->duration == AV_NOPTS_VALUE ) {
+    opkt.duration = av_rescale_q( duration, video_input_stream->time_base, video_output_stream->time_base);
+  } else {
+    opkt.duration = av_rescale_q(ipkt->duration, video_input_stream->time_base, video_output_stream->time_base);
+  }
   opkt.flags = ipkt->flags;
   opkt.pos=-1;
 
@@ -274,38 +626,31 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st){//, AV
   opkt.size = ipkt->size;
 
   // Some camera have audio on stream 0 and video on stream 1.  So when we remove the audio, video stream has to go on 0
-  if ( ipkt->stream_index > 0 and ! audio_st ) {
+  if ( ipkt->stream_index > 0 and ! audio_output_stream ) {
     Debug(1,"Setting stream index to 0 instead of %d", ipkt->stream_index );
     opkt.stream_index = 0;
   } else {
     opkt.stream_index = ipkt->stream_index;
   }
 
-  /*opkt.flags |= AV_PKT_FLAG_KEY;*/
-
-  if (video_st->codec->codec_type == AVMEDIA_TYPE_VIDEO && (fmt->flags & AVFMT_RAWPICTURE)) {
-    /* store AVPicture in AVPacket, as expected by the output format */
-    avpicture_fill(&pict, opkt.data, video_st->codec->pix_fmt, video_st->codec->width, video_st->codec->height);
-    opkt.data = (uint8_t *)&pict;
-    opkt.size = sizeof(AVPicture);
-    opkt.flags |= AV_PKT_FLAG_KEY;
-  }
-
+  AVPacket safepkt;
   memcpy(&safepkt, &opkt, sizeof(AVPacket));
 
+Debug(1, "writing video packet pts(%d) dts(%d) duration(%d)", opkt.pts, opkt.dts, opkt.duration );
   if ((opkt.data == NULL)||(opkt.size < 1)) {
     Warning("%s:%d: Mangled AVPacket: discarding frame", __FILE__, __LINE__ ); 
+    dumpPacket( ipkt);
     dumpPacket(&opkt);
 
-  } else if ((prevDts > 0) && (prevDts >= opkt.dts)) {
-    Warning("%s:%d: DTS out of order: %lld \u226E %lld; discarding frame", __FILE__, __LINE__, prevDts, opkt.dts); 
-    prevDts = opkt.dts; 
+  } else if ((previous_dts > 0) && (previous_dts > opkt.dts)) {
+    Warning("%s:%d: DTS out of order: %lld \u226E %lld; discarding frame", __FILE__, __LINE__, previous_dts, opkt.dts); 
+    previous_dts = opkt.dts; 
     dumpPacket(&opkt);
 
   } else {
-    int ret;
 
-    prevDts = opkt.dts; // Unsure if av_interleaved_write_frame() clobbers opkt.dts when out of order, so storing in advance
+    previous_dts = opkt.dts; // Unsure if av_interleaved_write_frame() clobbers opkt.dts when out of order, so storing in advance
+    previous_pts = opkt.pts;
     ret = av_interleaved_write_frame(oc, &opkt);
     if(ret<0){
       // There's nothing we can really do if the frame is rejected, just drop it and get on with the next
@@ -314,79 +659,218 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt, AVStream *input_st){//, AV
     }
   }
 
-  av_free_packet(&opkt); 
+  zm_av_packet_unref(&opkt); 
 
   return 0;
+
 }
 
-int VideoStore::writeAudioFramePacket(AVPacket *ipkt, AVStream *input_st){
+int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
+  Debug(4, "writeAudioFrame");
 
-  if(!audio_st) {
-    Error("Called writeAudioFramePacket when no audio_st");
-    return -1;//FIXME -ve return codes do not free packet in ffmpeg_camera at the moment
+  if(!audio_output_stream) {
+    Debug(1, "Called writeAudioFramePacket when no audio_output_stream");
+    return 0;//FIXME -ve return codes do not free packet in ffmpeg_camera at the moment
   }
-  /*if(!keyframeMessage)
-    return -1;*/
-  //zm_dump_stream_format( oc, ipkt->stream_index, 0, 1 );
 
-  // What is this doing?  Getting the time of the start of this video chunk? Does that actually make sense?
-  int64_t ost_tb_start_time = av_rescale_q(startTime, AV_TIME_BASE_Q, audio_st->time_base);
 
-  AVPacket opkt;
+  if ( audio_output_codec ) {
+#ifdef HAVE_LIBAVRESAMPLE
 
-  av_init_packet(&opkt);
-  Debug(3, "after init packet" );
+#if 0
+    ret = avcodec_send_packet( audio_input_context, ipkt );
+    if ( ret < 0 ) {
+      Error("avcodec_send_packet fail %s", av_make_error_string(ret).c_str());
+      return 0;
+    }
 
+    ret = avcodec_receive_frame( audio_input_context, input_frame );
+    if ( ret < 0 ) {
+      Error("avcodec_receive_frame fail %s", av_make_error_string(ret).c_str());
+      return 0;
+    }
+    Debug(2, "Frame: samples(%d), format(%d), sample_rate(%d), channel layout(%d) refd(%d)", 
+        input_frame->nb_samples,
+        input_frame->format,
+        input_frame->sample_rate,
+        input_frame->channel_layout,
+        audio_output_context->refcounted_frames
+        );
+
+    ret = avcodec_send_frame( audio_output_context, input_frame );
+    if ( ret < 0 ) {
+      av_frame_unref( input_frame );
+      Error("avcodec_send_frame fail(%d),  %s codec is open(%d) is_encoder(%d)", ret, av_make_error_string(ret).c_str(),
+          avcodec_is_open( audio_output_context ),
+          av_codec_is_encoder( audio_output_context->codec)
+          );
+      return 0;
+    }
+    ret = avcodec_receive_packet( audio_output_context, &opkt );
+    if ( ret < 0 ) {
+      av_frame_unref( input_frame );
+      Error("avcodec_receive_packet fail %s", av_make_error_string(ret).c_str());
+      return 0;
+    }
+    av_frame_unref( input_frame );
+#else
+
+
+    /**
+     * Decode the audio frame stored in the packet.
+     * The input audio stream decoder is used to do this.
+     * If we are at the end of the file, pass an empty packet to the decoder
+     * to flush it.
+     */
+    if ((ret = avcodec_decode_audio4(audio_input_context, input_frame,
+            &data_present, ipkt)) < 0) {
+      Error( "Could not decode frame (error '%s')\n",
+          av_make_error_string(ret).c_str());
+      dumpPacket( ipkt );
+      av_frame_free( &input_frame );
+      zm_av_packet_unref( &opkt );
+      return 0;
+    }
+    if ( ! data_present ) {
+      Debug(2, "Not ready to transcode a frame yet.");
+      zm_av_packet_unref(&opkt);
+      return 0;
+    }
+
+    int frame_size = input_frame->nb_samples;
+    Debug(4, "Frame size: %d", frame_size );
+
+    // Resample the input into the audioSampleBuffer until we proceed the whole decoded data
+    if ( (ret = avresample_convert( resample_context,
+            NULL,
+            0,
+            0,
+            input_frame->data,
+            0,
+            input_frame->nb_samples )) < 0 ) {
+      Error( "Could not resample frame (error '%s')\n",
+          av_make_error_string(ret).c_str());
+      return 0;
+    }
+
+    if ( avresample_available( resample_context ) < output_frame->nb_samples ) {
+      Debug(1, "No enough samples yet");
+      return 0;
+    }
+
+    // Read a frame audio data from the resample fifo
+    if ( avresample_read( resample_context, output_frame->data, output_frame->nb_samples ) != output_frame->nb_samples ) {
+      Warning( "Error reading resampled audio: " );
+      return 0;
+    }
+
+    av_init_packet(&opkt);
+    Debug(5, "after init packet" );
+
+    /** Set a timestamp based on the sample rate for the container. */
+    //output_frame->pts = av_rescale_q( opkt.pts, audio_output_context->time_base, audio_output_stream->time_base );
+
+    // convert the packet to the codec timebase from the stream timebase
+    //Debug(3, "output_frame->pts(%d) best effort(%d)", output_frame->pts, 
+        //av_frame_get_best_effort_timestamp(output_frame)
+        //);
+    /**
+     * Encode the audio frame and store it in the temporary packet.
+     * The output audio stream encoder is used to do this.
+     */
+#if LIBAVCODEC_VERSION_CHECK(58, 0, 0, 0, 0)
+    if (( ret = avcodec_receive_packet( audio_output_context, &opkt )) < 0 ) {
+#else
+    if (( ret = avcodec_encode_audio2( audio_output_context, &opkt, output_frame, &data_present )) < 0) {
+#endif
+      Error( "Could not encode frame (error '%s')",
+          av_make_error_string(ret).c_str());
+      zm_av_packet_unref(&opkt);
+      return 0;
+    }
+    if ( ! data_present ) {
+      Debug(2, "Not ready to output a frame yet.");
+      zm_av_packet_unref(&opkt);
+      return 0;
+    }
+
+#endif
+#endif
+  } else {
+    av_init_packet(&opkt);
+    Debug(5, "after init packet" );
+    opkt.data = ipkt->data;
+    opkt.size = ipkt->size;
+  }
+
+  // PTS is difficult, because of the buffering of the audio packets in the resampler.  So we have to do it once we actually have a packet... 
 
   //Scale the PTS of the outgoing packet to be the correct time base
-  if (ipkt->pts != AV_NOPTS_VALUE) {
-    Debug(3, "Rescaling output pts");
-    opkt.pts = av_rescale_q(ipkt->pts-startPts, input_st->time_base, audio_st->time_base) - ost_tb_start_time;
+  if ( ipkt->pts != AV_NOPTS_VALUE ) {
+    if ( !audio_last_pts ) {
+      opkt.pts = 0;
+    } else {
+      if ( audio_last_pts > ipkt->pts ) {
+        Debug(1, "Resetting audeo_start_pts from (%d) to (%d)",  audio_last_pts, ipkt->pts );
+      }
+      opkt.pts = previous_pts + av_rescale_q(ipkt->pts - audio_last_pts, audio_input_stream->time_base, audio_output_stream->time_base);
+      Debug(2, "opkt.pts = %d from ipkt->pts(%d) - last_pts(%d)", opkt.pts, ipkt->pts, audio_last_pts );
+    }
+    audio_last_pts = ipkt->pts;
   } else {
-    Debug(3, "Setting output pts to AV_NOPTS_VALUE");
+    Debug(2, "opkt.pts = undef");
     opkt.pts = AV_NOPTS_VALUE;
   }
 
   //Scale the DTS of the outgoing packet to be the correct time base
-  if(ipkt->dts == AV_NOPTS_VALUE) {
-    Debug(4, "ipkt->dts == AV_NOPTS_VALUE %d to %d",  AV_NOPTS_VALUE, opkt.dts );
-    opkt.dts = av_rescale_q(input_st->cur_dts-startDts, AV_TIME_BASE_Q, audio_st->time_base);
-    Debug(4, "ipkt->dts == AV_NOPTS_VALUE %d to %d",  AV_NOPTS_VALUE, opkt.dts );
+  if ( ! audio_last_dts ) {
+    opkt.dts = 0;
   } else {
-    Debug(4, "ipkt->dts != AV_NOPTS_VALUE %d to %d",  AV_NOPTS_VALUE, opkt.dts );
-    opkt.dts = av_rescale_q(ipkt->dts-startDts, input_st->time_base, audio_st->time_base);
-    Debug(4, "ipkt->dts != AV_NOPTS_VALUE %d to %d",  AV_NOPTS_VALUE, opkt.dts );
+    if( ipkt->dts == AV_NOPTS_VALUE ) {
+      // So if the input has no dts assigned... still need an output dts... so we use cur_dts?
+
+      if ( audio_last_dts > audio_input_stream->cur_dts ) {
+        Debug(1, "Resetting audio_last_pts from (%d) to cur_dts (%d)", audio_last_dts, audio_input_stream->cur_dts );
+        opkt.dts = previous_dts + av_rescale_q( audio_input_stream->cur_dts,  AV_TIME_BASE_Q, audio_output_stream->time_base);
+      } else {
+        opkt.dts = previous_dts + av_rescale_q( audio_input_stream->cur_dts - audio_last_dts, AV_TIME_BASE_Q, audio_output_stream->time_base);
+      }
+      audio_last_dts = audio_input_stream->cur_dts;
+      Debug(2, "opkt.dts = %d from video_input_stream->cur_dts(%d) - last_dts(%d)", opkt.dts, audio_input_stream->cur_dts, audio_last_dts );
+    } else {
+      if ( audio_last_dts > ipkt->dts ) {
+        Debug(1, "Resetting audio_last_dts from (%d) to (%d)",  audio_last_dts, ipkt->dts );
+        opkt.dts = previous_dts + av_rescale_q(ipkt->dts, audio_input_stream->time_base, audio_output_stream->time_base);
+      } else {
+        opkt.dts = previous_dts + av_rescale_q(ipkt->dts - audio_last_dts, audio_input_stream->time_base, audio_output_stream->time_base);
+      }
+      Debug(2, "opkt.dts = %d from ipkt->dts(%d) - last_dts(%d)", opkt.dts, ipkt->dts, audio_last_dts );
+    }
   }
-  opkt.dts -= ost_tb_start_time;
-
-  // Seems like it would be really weird for the codec type to NOT be audiu
-  if (audio_st->codec->codec_type == AVMEDIA_TYPE_AUDIO && ipkt->dts != AV_NOPTS_VALUE) {
-    Debug( 4, "code is audio, dts != AV_NOPTS_VALUE " );
-    int duration = av_get_audio_frame_duration(input_st->codec, ipkt->size);
-    if(!duration)
-      duration = input_st->codec->frame_size;
-
-    //FIXME where to get filter_in_rescale_delta_last
-    //FIXME av_rescale_delta doesn't exist in ubuntu vivid libavtools
-    opkt.dts = opkt.pts = av_rescale_delta(input_st->time_base, ipkt->dts,
-        (AVRational){1, input_st->codec->sample_rate}, duration, &filter_in_rescale_delta_last,
-        audio_st->time_base) - ost_tb_start_time;
+  if ( opkt.dts > opkt.pts ) {
+    Debug(1,"opkt.dts(%d) must be <= opkt.pts(%d). Decompression must happen before presentation.", opkt.dts, opkt.pts );
+    opkt.dts = opkt.pts;
   }
 
-  opkt.duration = av_rescale_q(ipkt->duration, input_st->time_base, audio_st->time_base);
-  opkt.pos=-1;
+  // I wonder if we could just use duration instead of all the hoop jumping above?
+  opkt.duration = av_rescale_q(ipkt->duration, audio_input_stream->time_base, audio_output_stream->time_base);
+
+  // pkt.pos:  byte position in stream, -1 if unknown 
+  opkt.pos = -1;
   opkt.flags = ipkt->flags;
-
-  opkt.data = ipkt->data;
-  opkt.size = ipkt->size;
   opkt.stream_index = ipkt->stream_index;
+  Debug(2, "Stream index is %d", opkt.stream_index );
 
-  int ret;
+  AVPacket safepkt;
+  memcpy(&safepkt, &opkt, sizeof(AVPacket));
   ret = av_interleaved_write_frame(oc, &opkt);
   if(ret!=0){
-    Fatal("Error encoding audio frame packet: %s\n", av_make_error_string(ret).c_str());
+    Error("Error writing audio frame packet: %s\n", av_make_error_string(ret).c_str());
+    dumpPacket(&safepkt);
+  } else {
+    Debug(2,"Success writing audio frame" ); 
   }
-  Debug(4,"Success writing audio frame" ); 
-  av_free_packet(&opkt);
+  zm_av_packet_unref(&opkt);
   return 0;
-}
+} // end int VideoStore::writeAudioFramePacket( AVPacket *ipkt )
+

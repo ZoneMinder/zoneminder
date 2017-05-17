@@ -238,9 +238,7 @@ Event::~Event() {
 
   /* Close the video file */
   if ( videowriter != NULL ) {
-    int nRet; 
-
-    nRet = videowriter->Close();
+    int nRet = videowriter->Close();
     if(nRet != 0) {
       Error("Failed closing video stream");
     }
@@ -253,8 +251,7 @@ Event::~Event() {
   }
 
   snprintf( sql, sizeof(sql), "update Events set Name='%s%d', EndTime = from_unixtime( %ld ), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo = '%s' where Id = %d", monitor->EventPrefix(), id, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, frames, alarm_frames, tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score, video_name, id );
-  if ( mysql_query( &dbconn, sql ) )
-  {
+  if ( mysql_query( &dbconn, sql ) ) {
     Error( "Can't update event: %s", mysql_error( &dbconn ) );
     exit( mysql_errno( &dbconn ) );
   }
@@ -607,14 +604,12 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
    */
 }
 
-bool EventStream::loadInitialEventData( int monitor_id, time_t event_time )
-{
+bool EventStream::loadInitialEventData( int monitor_id, time_t event_time ) {
   static char sql[ZM_SQL_SML_BUFSIZ];
 
   snprintf( sql, sizeof(sql), "select Id from Events where MonitorId = %d and unix_timestamp( EndTime ) > %ld order by Id asc limit 1", monitor_id, event_time );
 
-  if ( mysql_query( &dbconn, sql ) )
-  {
+  if ( mysql_query( &dbconn, sql ) ) {
     Error( "Can't run query: %s", mysql_error( &dbconn ) );
     exit( mysql_errno( &dbconn ) );
   }
@@ -1158,73 +1153,73 @@ bool EventStream::sendFrame( int delta_us ) {
 
   } else {
     AVFormatContext *pFormatCtx = NULL;
-    snprintf( filepath, sizeof(filepath), "%s/%d-video.mp4", event_data->path, event_date->id );
+    snprintf( filepath, sizeof(filepath), "%s/%d-video.mp4", event_data->path, event_data->id );
 
     // Open video file
-    if(avformat_open_input(&pFormatCtx, , NULL, 0, NULL)!=0)
+    if(avformat_open_input(&pFormatCtx, , NULL, 0, NULL)!=0) {
       return false; // Couldn't open file
     }
 
-int i;
-AVCodecContext *pCodecCtxOrig = NULL;
-AVCodecContext *pCodecCtx = NULL;
+    int i;
+    AVCodecContext *pCodecCtxOrig = NULL;
+    AVCodecContext *pCodecCtx = NULL;
 
-// Find the first video stream
-videoStream=-1;
-for(i=0; i<pFormatCtx->nb_streams; i++)
-  if(pFormatCtx->streams[i]->codec->codec_type==AVMEDIA_TYPE_VIDEO) {
-    videoStream=i;
-    break;
-  }
-if(videoStream==-1)
-  return -1; // Didn't find a video stream
+    // Find the first video stream
+    videoStream=-1;
+    for(i=0; i<pFormatCtx->nb_streams; i++)
+      if(pFormatCtx->streams[i]->codec->codec_type==AVMEDIA_TYPE_VIDEO) {
+        videoStream=i;
+        break;
+      }
+    if(videoStream==-1)
+      return -1; // Didn't find a video stream
 
-// Get a pointer to the codec context for the video stream
-pCodecCtx=pFormatCtx->streams[videoStream]->codec;
+    // Get a pointer to the codec context for the video stream
+    pCodecCtx=pFormatCtx->streams[videoStream]->codec;
     Fatal("JPEGS not saved.zms is not capable of streaming jpegs from mp4 yet");
     return false;
   }
 
-AVCodec *pCodec = NULL;
+  AVCodec *pCodec = NULL;
 
-// Find the decoder for the video stream
-pCodec=avcodec_find_decoder(pCodecCtx->codec_id);
-if(pCodec==NULL) {
-  fprintf(stderr, "Unsupported codec!\n");
-  return -1; // Codec not found
-}
-// Copy context
-pCodecCtx = avcodec_alloc_context3(pCodec);
-if(avcodec_copy_context(pCodecCtx, pCodecCtxOrig) != 0) {
-  fprintf(stderr, "Couldn't copy codec context");
-  return -1; // Error copying codec context
-}
-// Open codec
-if(avcodec_open2(pCodecCtx, pCodec)<0)
-  return -1; // Could not open codec
+  // Find the decoder for the video stream
+  pCodec=avcodec_find_decoder(pCodecCtx->codec_id);
+  if(pCodec==NULL) {
+    fprintf(stderr, "Unsupported codec!\n");
+    return -1; // Codec not found
+  }
+  // Copy context
+  pCodecCtx = avcodec_alloc_context3(pCodec);
+  if(avcodec_copy_context(pCodecCtx, pCodecCtxOrig) != 0) {
+    fprintf(stderr, "Couldn't copy codec context");
+    return -1; // Error copying codec context
+  }
+  // Open codec
+  if(avcodec_open2(pCodecCtx, pCodec)<0)
+    return -1; // Could not open codec
 
-AVFrame *pFrame = NULL;
+  AVFrame *pFrame = NULL;
 
-// Allocate video frame
-pFrame=av_frame_alloc();
+  // Allocate video frame
+  pFrame=av_frame_alloc();
 
-// Allocate an AVFrame structure
-pFrameRGB=av_frame_alloc();
-if(pFrameRGB==NULL)
-  return -1;
+  // Allocate an AVFrame structure
+  pFrameRGB=av_frame_alloc();
+  if(pFrameRGB==NULL)
+    return -1;
 
-uint8_t *buffer = NULL;
-int numBytes;
-// Determine required buffer size and allocate buffer
-numBytes=avpicture_get_size(PIX_FMT_RGB24, pCodecCtx->width,
-                            pCodecCtx->height);
-buffer=(uint8_t *)av_malloc(numBytes*sizeof(uint8_t));
+  uint8_t *buffer = NULL;
+  int numBytes;
+  // Determine required buffer size and allocate buffer
+  numBytes=avpicture_get_size(PIX_FMT_RGB24, pCodecCtx->width,
+      pCodecCtx->height);
+  buffer=(uint8_t *)av_malloc(numBytes*sizeof(uint8_t));
 
-// Assign appropriate parts of buffer to image planes in pFrameRGB
-// Note that pFrameRGB is an AVFrame, but AVFrame is a superset
-// of AVPicture
-avpicture_fill((AVPicture *)pFrameRGB, buffer, PIX_FMT_RGB24,
-                pCodecCtx->width, pCodecCtx->height);
+  // Assign appropriate parts of buffer to image planes in pFrameRGB
+  // Note that pFrameRGB is an AVFrame, but AVFrame is a superset
+  // of AVPicture
+  avpicture_fill((AVPicture *)pFrameRGB, buffer, PIX_FMT_RGB24,
+      pCodecCtx->width, pCodecCtx->height);
 
 #if HAVE_LIBAVCODEC
   if ( type == STREAM_MPEG ) {

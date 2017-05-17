@@ -462,7 +462,6 @@ Monitor::Monitor(
   Debug( 1, "Monitor %s LBF = '%s', LBX = %d, LBY = %d, LBS = %d", name, label_format, label_coord.X(), label_coord.Y(), label_size );
   Debug( 1, "Monitor %s IBC = %d, WUC = %d, pEC = %d, PEC = %d, EAF = %d, FRI = %d, RBP = %d, ARBP = %d, FM = %d", name, image_buffer_count, warmup_count, pre_event_count, post_event_count, alarm_frame_count, fps_report_interval, ref_blend_perc, alarm_ref_blend_perc, track_motion );
 
-
   //Set video recording flag for event start constructor and easy reference in code
   // TODO: Use enum instead of the # 2. Makes for easier reading
   videoRecording = ((GetOptVideoWriter() == H264PASSTHROUGH) && camera->SupportsNativeVideo());
@@ -642,9 +641,9 @@ Monitor::~Monitor() {
         char mmap_path[PATH_MAX] = "";
         snprintf( mmap_path, sizeof(mmap_path), "%s/zm.mmap.%d", config.path_map, id );
 
-        if ( unlink( mmap_path ) < 0 ) {
-            Warning( "Can't unlink '%s': %s", mmap_path, strerror(errno) );
-        }
+      if ( unlink( mmap_path ) < 0 ) {
+        Warning( "Can't unlink '%s': %s", mmap_path, strerror(errno) );
+      }
     }
 #else // ZM_MEM_MAPPED
     struct shmid_ds shm_data;
@@ -1147,7 +1146,6 @@ bool Monitor::CheckSignal( const Image *image ) {
             return true;
         }
       }
-    
     }
     return( false );
   }
@@ -1278,9 +1276,9 @@ bool Monitor::Analyse() {
         }
         if ( signal_change ) {
           const char *signalText;
-          if ( !signal )
+          if ( !signal ) {
             signalText = "Lost";
-          else {
+          } else {
             signalText = "Reacquired";
             score += 100;
           }
@@ -1301,6 +1299,7 @@ bool Monitor::Analyse() {
           shared_data->state = state = IDLE;
           shared_data->active = signal;
           ref_image = *snap_image;
+
         } else if ( signal && Active() && (function == MODECT || function == MOCORD) ) {
           Event::StringSet zoneSet;
           int motion_score = last_motion_score;
@@ -1353,7 +1352,6 @@ bool Monitor::Analyse() {
         }
         
         //TODO: What happens is the event closes and sets recording to false then recording to true again so quickly that our capture daemon never picks it up. Maybe need a refresh flag?
-				// iCON Dec 8 2016 This code doesnt seem to be in master.
         if ( (!signal_change && signal) && (function == RECORD || function == MOCORD) ) {
           if ( event ) {
             //TODO: We shouldn't have to do this every time. Not sure why it clears itself if this isn't here??
@@ -1390,7 +1388,7 @@ bool Monitor::Analyse() {
             //set up video store data
             snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
             video_store_data->recording = event->StartTime();
-      
+
             Info( "%s: %03d - Opening new event %d, section start", name, image_count, event->Id() );
 
             /* To prevent cancelling out an existing alert\prealarm\alarm state */
@@ -1442,7 +1440,8 @@ bool Monitor::Analyse() {
                     images[i] = image_buffer[pre_index].image;
                     pre_index = (pre_index + 1)%image_buffer_count;
                   }
-								}
+                }
+
                 event->AddFrames( pre_event_images, images, timestamps );
               }
             } // end if false or config.overlap_timed_events
@@ -1777,7 +1776,8 @@ void Monitor::ReloadLinkedMonitors( const char *p_linked_monitors ) {
             if ( link_ids[j] == link_id )
               break;
           }
-          if ( j == n_link_ids ) { // Not already found
+          if ( j == n_link_ids ) {
+            // Not already found
             link_ids[n_link_ids++] = link_id;
           }
         }
@@ -2837,7 +2837,7 @@ int Monitor::Capture() {
       captureResult = camera->CaptureAndRecord(*(next_buffer.image),
                                                video_store_data->recording,
                                                video_store_data->event_file );
-    }else{
+    } else {
       captureResult = camera->Capture(*(next_buffer.image));
     }
 
@@ -2848,7 +2848,7 @@ int Monitor::Capture() {
 
   } else {
     //Check if FFMPEG camera
-    if ( (videowriter == H264PASSTHROUGH ) && camera->SupportsNativeVideo()){
+    if ( (videowriter == H264PASSTHROUGH ) && camera->SupportsNativeVideo() ) {
       //Warning("ZMC: Recording: %d", video_store_data->recording);
       captureResult = camera->CaptureAndRecord(*capture_image, video_store_data->recording, video_store_data->event_file);
     }else{
@@ -2862,7 +2862,7 @@ int Monitor::Capture() {
     //video_store_data->frameNumber = captureResult;
     captureResult = 0;
   }
-  
+ 
   if ( captureResult != 0 ) {
     // Unable to capture image for temporary reason
     // Fake a signal loss image
@@ -3083,7 +3083,7 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
         }
         if (zone->CheckExtendAlarmCount()) {
           alarm=true;
-					zone->SetAlarm();
+          zone->SetAlarm();
         } else {
           zone->ClearAlarm();
         }
@@ -3094,7 +3094,7 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
   Coord alarm_centre;
   int top_score = -1;
 
-	if ( alarm ) {
+  if ( alarm ) {
     alarm = false;
     score = 0;
   } else {

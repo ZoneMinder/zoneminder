@@ -103,15 +103,15 @@ GetOptions(
     'monitor_id=s'  =>\$monitor_id,
     'report'        =>\$report,
     'version'       =>\$version
-) or pod2usage(-exitstatus => -1);
+    ) or pod2usage(-exitstatus => -1);
 
 if ( $version ) {
-    print( ZoneMinder::Base::ZM_VERSION . "\n");
-    exit(0);
+  print( ZoneMinder::Base::ZM_VERSION . "\n");
+  exit(0);
 }
 if ( ($report + $interactive + $continuous) > 1 ) {
-    print( STDERR "Error, only one option may be specified\n" );
-    pod2usage(-exitstatus => -1);
+  print( STDERR "Error, only one option may be specified\n" );
+  pod2usage(-exitstatus => -1);
 }
 
 my $dbh = zmDbConnect();
@@ -387,8 +387,7 @@ Debug("Event $db_event is not in fs.");
 #$cleaned = 1;
 #}
     }
-  } # end foreach db monitors
-
+  } # end foreach db_monitor
   redo MAIN if ( $cleaned );
 
 # Remove orphaned events (with no monitor)
@@ -489,7 +488,6 @@ Debug("Event $db_event is not in fs.");
        FROM Frames WHERE EventId=?';
   my $selectFrameDataSth = $dbh->prepare_cached($selectFrameDataSql)
     or Fatal( "Can't prepare '$selectFrameDataSql': ".$dbh->errstr() );
-
 
   my $selectUnclosedEventsSth = $dbh->prepare_cached( $selectUnclosedEventsSql )
     or Fatal( "Can't prepare '$selectUnclosedEventsSql': ".$dbh->errstr() );
@@ -599,7 +597,7 @@ exit( 0 );
 
 sub aud_print {
   my $string = shift;
-  if ( !$continuous ) {
+  if ( ! $continuous ) {
     print( $string );
   } else {
     Info( $string );
@@ -683,3 +681,5 @@ sub delete_empty_directories {
   closedir( $DIR );
 } # end sub delete_empty_directories
 
+1;
+__END__

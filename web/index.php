@@ -112,7 +112,7 @@ if ( !file_exists( ZM_SKIN_PATH ) )
 $skinBase[] = $skin;
 
 $currentCookieParams = session_get_cookie_params(); 
-Debug('Setting cookie parameters to lifetime('.$currentCookieParams['lifetime'].') path('.$currentCookieParams['path'].') domain ('.$currentCookieParams['domain'].') secure('.$currentCookieParams['secure'].') httpOnly(1)');
+Logger::Debug('Setting cookie parameters to lifetime('.$currentCookieParams['lifetime'].') path('.$currentCookieParams['path'].') domain ('.$currentCookieParams['domain'].') secure('.$currentCookieParams['secure'].') httpOnly(1)');
 session_set_cookie_params( 
     $currentCookieParams["lifetime"], 
     $currentCookieParams["path"], 
@@ -195,12 +195,9 @@ isset($view) || $view = NULL;
 isset($request) || $request = NULL;
 isset($action) || $action = NULL;
 
-if ( ZM_ENABLE_CSRF_MAGIC && ( $action != 'login' ) && ( $view != 'view_video' ) ) {
-    Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");
-    if ( ! csrf_check() ) {
-      Warning( "Failed csrf_check()" );
-      return;
-    }
+if ( ZM_ENABLE_CSRF_MAGIC ) {
+  Logger::Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");
+  csrf_check();
 }
 
 # Need to include actions because it does auth

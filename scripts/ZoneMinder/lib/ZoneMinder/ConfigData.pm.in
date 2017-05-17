@@ -512,6 +512,20 @@ our @options = (
     category    => 'paths',
   },
   {
+    name        => 'ZM_DIR_EXPORTS',
+    default     => '@ZM_TMPDIR@',
+    description => 'Directory where exported archives are stored',
+    help        => q`
+      This is the path to the exports directory where exported
+      tar.gz and zip archives are stored. By default this points to
+      ZoneMinder's temp folder, which often sits in ram. Since exported
+      archives can potentially become large, it is a good idea to move
+      this folder to some other location on machines with low memory.
+    `,
+    type        => $types{directory},
+    category    => 'paths',
+  },
+  {
     name        => 'ZM_PATH_ZMS',
     default     => '/cgi-bin/nph-zms',
     description => 'Web path to zms streaming server',

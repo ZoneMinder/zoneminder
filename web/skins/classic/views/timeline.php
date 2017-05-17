@@ -140,11 +140,11 @@ foreach( dbFetchAll( $monitorsSql ) as $row ) {
   $monitors[$row['Id']] = $row;
 }
 
-$rangeSql = 'select min(E.StartTime) as MinTime, max(E.EndTime) as MaxTime from Events as E inner join Monitors as M on (E.MonitorId = M.Id) where not isnull(E.StartTime) and not isnull(E.EndTime)';
-$eventsSql = 'select E.* from Events as E inner join Monitors as M on (E.MonitorId = M.Id) where not isnull(StartTime)';
+$rangeSql = 'SELECT min(StartTime) AS MinTime, max(EndTime) AS MaxTime FROM Events WHERE NOT isnull(StartTime) AND NOT isnull(EndTime)';
+$eventsSql = 'SELECT * FROM Events WHERE NOT isnull(StartTime)';
 
 if ( !empty($user['MonitorIds']) ) {
-  $monFilterSql = ' AND M.Id IN ('.$user['MonitorIds'].')';
+    $monFilterSql = ' AND MonitorId IN ('.$user['MonitorIds'].')';
 
   $rangeSql .= $monFilterSql;
   $eventsSql .= $monFilterSql;
@@ -287,7 +287,7 @@ $midTime = strftime( STRF_FMT_DATETIME_DB, $midTimeT );
 //echo "MxTt:$maxTimeT<br>";
 
 if ( isset($minTime) && isset($maxTime) ) {
-  $eventsSql .= " and E.EndTime >= '$minTime' and E.StartTime <= '$maxTime'";
+    $eventsSql .= " and EndTime >= '$minTime' and StartTime <= '$maxTime'";
 }
 
 $eventsSql .= " order by Id asc";
@@ -708,7 +708,7 @@ xhtmlHeaders(__FILE__, translate('Timeline') );
 ?>
 <!--
 			<video id="preview" width="100%" controls crossorigin="anonymous">
-				<source src="" type="video/mp4">
+				<source src="<?php echo getEventDefaultVideoPath($event); ?>" type="video/mp4">
 Your browser does not support the video tag.
 			</video>
 o-->

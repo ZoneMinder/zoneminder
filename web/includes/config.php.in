@@ -24,6 +24,7 @@
 define( "ZM_CONFIG", "@ZM_CONFIG@" );               // Path to config file
 // Define, and override any given in config file
 define( "ZM_VERSION", "@VERSION@" );               // Version
+define( "ZM_DIR_TEMP", "@ZM_TMPDIR@" );
 
 $configFile = ZM_CONFIG;
 $localConfigFile = basename($configFile);

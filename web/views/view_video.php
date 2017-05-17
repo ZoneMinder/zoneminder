@@ -75,7 +75,6 @@ if ( isset( $_SERVER['HTTP_RANGE'] ) ) {
   }
 } # end if HTTP_RANGE
 
-
 header('Content-type: video/mp4');
 header('Accept-Ranges: bytes');
 header('Content-Length: '.$length);
@@ -106,7 +105,7 @@ while( $length && ( ! feof( $fh ) ) && ( connection_status() == 0 ) ) {
 
   print fread( $fh, $amount );
   $length -= $amount;
-  usleep(10);
+  usleep(100);
   flush();
 }
 

@@ -47,20 +47,17 @@ class Monitor;
 // This is the main class for monitors. Each monitor is associated
 // with a camera and is effectively a collector for events.
 //
-class Monitor
-{
+class Monitor {
   friend class MonitorStream;
 
-  public:
-  typedef enum
-  {
+public:
+  typedef enum {
     QUERY=0,
     CAPTURE,
     ANALYSIS
   } Purpose;
 
-  typedef enum
-  {
+  typedef enum {
     NONE=1,
     MONITOR,
     MODECT,
@@ -69,8 +66,7 @@ class Monitor
     NODECT
   } Function;
 
-  typedef enum
-  { 
+  typedef enum { 
     ROTATE_0=1,
     ROTATE_90,
     ROTATE_180,
@@ -79,8 +75,7 @@ class Monitor
     FLIP_VERT
   } Orientation;
 
-  typedef enum
-  {
+  typedef enum {
     IDLE,
     PREALARM,
     ALARM,
@@ -94,7 +89,7 @@ class Monitor
     H264PASSTHROUGH,
   } VideoWriter;
 
-  protected:
+protected:
   typedef std::set<Zone *> ZoneSet;
 
   typedef enum { GET_SETTINGS=0x1, SET_SETTINGS=0x2, RELOAD=0x4, SUSPEND=0x10, RESUME=0x20 } Action;
@@ -102,8 +97,7 @@ class Monitor
   typedef enum { CLOSE_TIME, CLOSE_IDLE, CLOSE_ALARM } EventCloseMode;
 
   /* sizeof(SharedData) expected to be 336 bytes on 32bit and 64bit */
-  typedef struct
-  {
+  typedef struct {
     uint32_t size;              /* +0    */
     uint32_t last_write_index;  /* +4    */ 
     uint32_t last_read_index;   /* +8    */
@@ -146,8 +140,7 @@ class Monitor
   typedef enum { TRIGGER_CANCEL, TRIGGER_ON, TRIGGER_OFF } TriggerState;
 
   /* sizeof(TriggerData) expected to be 560 on 32bit & and 64bit */
-  typedef struct
-  {
+  typedef struct {
     uint32_t size;
     uint32_t trigger_state;
     uint32_t trigger_score;
@@ -158,8 +151,7 @@ class Monitor
   } TriggerData;
 
   /* sizeof(Snapshot) expected to be 16 bytes on 32bit and 32 bytes on 64bit */
-  struct Snapshot
-  {
+  struct Snapshot {
     struct timeval  *timestamp;
     Image  *image;
     void* padding;
@@ -168,8 +160,7 @@ class Monitor
   //TODO: Technically we can't exclude this struct when people don't have avformat as the Memory.pm module doesn't know about avformat
 #if 1
   //sizeOf(VideoStoreData) expected to be 4104 bytes on 32bit and 64bit
-  typedef struct
-  {
+  typedef struct {
     uint32_t size;
     char event_file[4096];
     timeval recording;     // used as both bool and a pointer to the timestamp when recording should begin
@@ -179,28 +170,28 @@ class Monitor
 #endif // HAVE_LIBAVFORMAT
 
   class MonitorLink {
-    protected:
-      unsigned int  id;
-      char      name[64];
+  protected:
+    unsigned int  id;
+    char      name[64];
 
-      bool      connected;
-      time_t    last_connect_time;
+    bool      connected;
+    time_t    last_connect_time;
 
 #if ZM_MEM_MAPPED
-      int       map_fd;
-      char      mem_file[PATH_MAX];
+    int       map_fd;
+    char      mem_file[PATH_MAX];
 #else // ZM_MEM_MAPPED
-      int       shm_id;
+    int       shm_id;
 #endif // ZM_MEM_MAPPED
-      off_t     mem_size;
-      unsigned char  *mem_ptr;
+    off_t     mem_size;
+    unsigned char  *mem_ptr;
 
-      volatile SharedData  *shared_data;
-      volatile TriggerData  *trigger_data;
-      volatile VideoStoreData *video_store_data;
+    volatile SharedData  *shared_data;
+    volatile TriggerData  *trigger_data;
+    volatile VideoStoreData *video_store_data;
 
-      int        last_state;
-      int        last_event;
+    int        last_state;
+    int        last_event;
 
 
     public:
@@ -439,7 +430,7 @@ public:
     
   int GetOptSaveJPEGs() const { return( savejpegspref ); }
   VideoWriter GetOptVideoWriter() const { return( videowriter ); }
-  const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return( &encoderparamsvec ); }    
+  const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return( &encoderparamsvec ); }
  
   unsigned int GetPreEventCount() const { return pre_event_count; };
   State GetState() const;

@@ -1,9 +1,10 @@
 #!/bin/bash
 
 # Start MySQL
-test -e /var/run/mysqld || install -m 755 -o mysql -g root -d /var/run/mysqld
-su - mysql -s /bin/sh -c "/usr/bin/mysqld_safe > /dev/null 2>&1 &"
-
+# For Xenial the following won't start mysqld
+#/usr/bin/mysqld_safe & 
+# Use this instead:
+service mysql start
 
 # Give MySQL time to wake up
 SECONDS_LEFT=120

@@ -410,10 +410,23 @@ if ( $version )
 
         if ( $response =~ /^[yY]$/ )
         {
-            my ( $host, $port ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
+            my ( $host, $portOrSocket ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
             my $command = "mysqldump";
-            $command .= " -h".$host if defined($host);
-            $command .= " -P".$port if defined($port);
+            if ( defined($portOrSocket) )
+            {
+                if ( $portOrSocket =~ /^\// )
+                {
+                    $command .= " -S".$portOrSocket;
+                }
+                else
+                {
+                    $command .= " -h".$host." -P".$portOrSocket;
+                }
+            }
+            else
+            {
+                $command .= " -h".$host; 
+            }
             if ( $dbUser )
             {
                 $command .= ' -u'.$dbUser;
@@ -449,9 +462,23 @@ if ( $version )
         my $dbh = shift;
         my $version = shift;
 
-        my ( $host, $port ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
-        my $command = "mysql -h".$host;
-        $command .= " -P".$port if defined($port);
+        my ( $host, $portOrSocket ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
+        my $command = "mysql";
+        if ( defined($portOrSocket) )
+        {
+            if ( $portOrSocket =~ /^\// )
+            {
+                $command .= " -S".$portOrSocket;
+            }
+            else
+            {
+                $command .= " -h".$host." -P".$portOrSocket;
+            }
+        }
+        else
+        {
+            $command .= " -h".$host; 
+        }
         if ( $dbUser )
         {
             $command .= " -u".$dbUser;

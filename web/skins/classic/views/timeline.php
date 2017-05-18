@@ -18,12 +18,12 @@
 //
 
 if ( !canView( 'Events' ) ) {
-    $view = 'error';
-    return;
+  $view = 'error';
+  return;
 }
 
 foreach ( getSkinIncludes( 'includes/timeline_functions.php' ) as $includeFile )
-    require_once $includeFile;
+  require_once $includeFile;
 
 //
 // Date/time formats used in charts 
@@ -64,11 +64,11 @@ define( "STRF_TL_AXIS_LABEL_SECOND", "%S" );
 
 $mouseover = true;
 if ( !isset($mouseover) )
-    $mouseover = true;
+  $mouseover = true;
 
 $mode = "overlay";
 if ( !isset($mode) )
-    $mode = "overlay";
+  $mode = "overlay";
 
 $minEventWidth = 3;
 $maxEventWidth = 6;
@@ -77,60 +77,60 @@ $chart = array(
     "width"=>700,
     "height"=>460,
     "image" => array(
-        "width"=>264,
-        "height"=>220,
-        "topOffset"=>20,
-    ),
+      "width"=>264,
+      "height"=>220,
+      "topOffset"=>20,
+      ),
     "imageText" => array(
-        "width"=>400,
-        "height"=>30,
-        "topOffset"=>20,
-    ),
+      "width"=>400,
+      "height"=>30,
+      "topOffset"=>20,
+      ),
     "graph" => array(
-        "width"=>600,
-        "height"=>160,
-        "topOffset"=>30,
-    ),
+      "width"=>600,
+      "height"=>160,
+      "topOffset"=>30,
+      ),
     "title" => array(
-        "topOffset"=>50
-    ),
+      "topOffset"=>50
+      ),
     "key" => array(
         "topOffset"=>50
-    ),
+        ),
     "axes" => array(
         "x" => array(
-            "height" => 20,
-        ),
+          "height" => 20,
+          ),
         "y" => array(
-            "width" => 30,
+          "width" => 30,
+          ),
         ),
-    ),
     "grid" => array(
         "x" => array(
-            "major" => array(
-                "max" => 12,
-                "min" => 4,
+          "major" => array(
+            "max" => 12,
+            "min" => 4,
             ),
-            "minor" => array(
-                "max" => 48,
-                "min" => 12,
+          "minor" => array(
+            "max" => 48,
+            "min" => 12,
             ),
-        ),
+          ),
         "y" => array(
-            "major" => array(
-                "max" => 8,
-                "min" => 1,
+          "major" => array(
+            "max" => 8,
+            "min" => 1,
             ),
-            "minor" => array(
-                "max" => 0,
-                "min" => 0,
+          "minor" => array(
+            "max" => 0,
+            "min" => 0,
             ),
+          ),
         ),
-    ),
 );
 
 $monitors = array();
-$monitorsSql = "select * from Monitors order by Sequence asc";
+$monitorsSql = 'SELECT * FROM Monitors ORDER BY Sequence ASC';
 //srand( 97981 );
 foreach( dbFetchAll( $monitorsSql ) as $row ) {
   //if ( empty($row['WebColour']) )
@@ -140,11 +140,11 @@ foreach( dbFetchAll( $monitorsSql ) as $row ) {
   $monitors[$row['Id']] = $row;
 }
 
-$rangeSql = 'SELECT min(StartTime) AS MinTime, max(EndTime) AS MaxTime FROM Events WHERE NOT isnull(StartTime) AND NOT isnull(EndTime)';
-$eventsSql = 'SELECT * FROM Events WHERE NOT isnull(StartTime)';
+$rangeSql = 'SELECT min(StartTime) AS MinTime, max(EndTime) AS MaxTime FROM Events AS E WHERE NOT isnull(StartTime) AND NOT isnull(EndTime)';
+$eventsSql = 'SELECT * FROM Events AS E WHERE NOT isnull(StartTime)';
 
 if ( !empty($user['MonitorIds']) ) {
-    $monFilterSql = ' AND MonitorId IN ('.$user['MonitorIds'].')';
+  $monFilterSql = ' AND MonitorId IN ('.$user['MonitorIds'].')';
 
   $rangeSql .= $monFilterSql;
   $eventsSql .= $monFilterSql;

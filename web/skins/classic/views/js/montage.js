@@ -1,7 +1,6 @@
 var requestQueue = new Request.Queue( { concurrent: 2 } );
 
-function Monitor( monitorData )
-{
+function Monitor( monitorData ) {
     this.id = monitorData.id;
     this.connKey = monitorData.connKey;
     this.server_url = monitorData.server_url;
@@ -11,15 +10,12 @@ function Monitor( monitorData )
     this.streamCmdParms = "view=request&request=stream&connkey="+this.connKey;
     this.streamCmdTimer = null;
 
-    this.start = function( delay )
-    {
+    this.start = function( delay ) {
         this.streamCmdTimer = this.streamCmdQuery.delay( delay, this );
     };
 
-    this.setStateClass = function( element, stateClass )
-    {
-        if ( !element.hasClass( stateClass ) )
-        {
+    this.setStateClass = function( element, stateClass ) {
+        if ( !element.hasClass( stateClass ) ) {
             if ( stateClass != 'alarm' )
                 element.removeClass( 'alarm' );
             if ( stateClass != 'alert' )
@@ -30,14 +26,12 @@ function Monitor( monitorData )
         }
     };
 
-    this.getStreamCmdResponse = function( respObj, respText )
-    {
+    this.getStreamCmdResponse = function( respObj, respText ) {
         if ( this.streamCmdTimer )
             this.streamCmdTimer = clearTimeout( this.streamCmdTimer );
 
         var stream = document.getElementById( "liveStream"+this.id );
-        if ( respObj.result == 'Ok' )
-        {
+        if ( respObj.result == 'Ok' ) {
             this.status = respObj.status;
             this.alarmState = this.status.state;
 
@@ -49,8 +43,7 @@ function Monitor( monitorData )
             else
                 stateClass = "idle";
 
-            if ( !COMPACT_MONTAGE )
-            {
+            if ( !COMPACT_MONTAGE ) {
                 $('fpsValue'+this.id).set( 'text', this.status.fps );
                 $('stateValue'+this.id).set( 'text', stateStrings[this.alarmState] );
                 this.setStateClass( $('monitorState'+this.id), stateClass );
@@ -66,22 +59,17 @@ function Monitor( monitorData )
             var newAlarm = ( isAlarmed && !wasAlarmed );
             var oldAlarm = ( !isAlarmed && wasAlarmed );
 
-            if ( newAlarm )
-            {
-                if ( false && SOUND_ON_ALARM )
-                {
+            if ( newAlarm ) {
+                if ( false && SOUND_ON_ALARM ) {
                     // Enable the alarm sound
                     $('alarmSound').removeClass( 'hidden' );
                 }
-                if ( POPUP_ON_ALARM )
-                {
+                if ( POPUP_ON_ALARM ) {
                     windowToFront();
                 }
             }
-            if ( false && SOUND_ON_ALARM )
-            {
-                if ( oldAlarm )
-                {
+            if ( false && SOUND_ON_ALARM ) {
+                if ( oldAlarm ) {
                     // Disable alarm sound
                     $('alarmSound').addClass( 'hidden' );
                 }
@@ -92,9 +80,7 @@ function Monitor( monitorData )
                 stream.src = stream.src.replace( /auth=\w+/i, 'auth='+this.status.auth );
               console.log("Changed auth to " + this.status.auth );
             } // end if haev a new auth hash
-        }
-        else
-        {
+        } else {
             console.error( respObj.message );
             // Try to reload the image stream.
             if ( stream )
@@ -107,8 +93,7 @@ function Monitor( monitorData )
         this.lastAlarmState = this.alarmState;
     };
 
-    this.streamCmdQuery = function( resent )
-    {
+    this.streamCmdQuery = function( resent ) {
         //if ( resent )
             //console.log( this.connKey+": Resending" );
         //this.streamCmdReq.cancel();
@@ -120,8 +105,7 @@ function Monitor( monitorData )
     requestQueue.addRequest( "cmdReq"+this.id, this.streamCmdReq );
 }
 
-function selectLayout( element )
-{
+function selectLayout( element ) {
 	var cssFile = skinPath+'/css/'+Cookie.read('zmCSS')+'/views/'+$(element).get('value');
     if ( $('dynamicStyles') )
         $('dynamicStyles').destroy();
@@ -195,10 +179,8 @@ function changeScale() {
 
 
 var monitors = new Array();
-function initPage()
-{
-    for ( var i = 0; i < monitorData.length; i++ )
-    {
+function initPage() {
+    for ( var i = 0; i < monitorData.length; i++ ) {
         monitors[i] = new Monitor( monitorData[i] );
         var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
         monitors[i].start( delay );

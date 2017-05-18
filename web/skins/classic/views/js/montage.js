@@ -1,156 +1,136 @@
 var requestQueue = new Request.Queue( { concurrent: 2 } );
 
-function Monitor( index, monitorData )
-{
-    this.index = index;
-    this.id = monitorData.id;
-    this.connKey = monitorData.connKey;
-    this.server_url = monitorData.server_url;
-    this.status = null;
-    this.alarmState = STATE_IDLE;
-    this.lastAlarmState = STATE_IDLE;
-    this.streamCmdParms = "view=request&request=stream&connkey="+this.connKey;
-    this.streamCmdTimer = null;
+function Monitor( index, monitorData ) {
+  this.index = index;
+  this.id = monitorData.id;
+  this.connKey = monitorData.connKey;
+  this.server_url = monitorData.server_url;
+  this.status = null;
+  this.alarmState = STATE_IDLE;
+  this.lastAlarmState = STATE_IDLE;
+  this.streamCmdParms = "view=request&request=stream&connkey="+this.connKey;
+  this.streamCmdTimer = null;
 
-    this.start = function( delay )
-    {
-        this.streamCmdTimer = this.streamCmdQuery.delay( delay, this );
-    };
+  this.start = function( delay ) {
+    this.streamCmdTimer = this.streamCmdQuery.delay( delay, this );
+  };
 
-    this.setStateClass = function( element, stateClass )
-    {
-        if ( !element.hasClass( stateClass ) )
-        {
-            if ( stateClass != 'alarm' )
-                element.removeClass( 'alarm' );
-            if ( stateClass != 'alert' )
-                element.removeClass( 'alert' );
-            if ( stateClass != 'idle' )
-                element.removeClass( 'idle' );
-            element.addClass( stateClass );
-        }
-    };
-
-    this.getStreamCmdResponse = function( respObj, respText )
-    {
-        if ( this.streamCmdTimer )
-            this.streamCmdTimer = clearTimeout( this.streamCmdTimer );
-
-        var stream = document.getElementById( "liveStream"+this.id );
-        if ( respObj.result == 'Ok' )
-        {
-            this.status = respObj.status;
-            this.alarmState = this.status.state;
-
-            var stateClass = "";
-            if ( this.alarmState == STATE_ALARM )
-                stateClass = "alarm";
-            else if ( this.alarmState == STATE_ALERT )
-                stateClass = "alert";
-            else
-                stateClass = "idle";
-
-            if ( !COMPACT_MONTAGE )
-            {
-                $('fpsValue'+this.index).set( 'text', this.status.fps );
-                $('stateValue'+this.index).set( 'text', stateStrings[this.alarmState] );
-                this.setStateClass( $('monitorState'+this.index), stateClass );
-            }
-            this.setStateClass( $('monitor'+this.index), stateClass );
-
-            /*Stream could be an applet so can't use moo tools*/
-            stream.className = stateClass;
-
-            var isAlarmed = ( this.alarmState == STATE_ALARM || this.alarmState == STATE_ALERT );
-            var wasAlarmed = ( this.lastAlarmState == STATE_ALARM || this.lastAlarmState == STATE_ALERT );
-
-            var newAlarm = ( isAlarmed && !wasAlarmed );
-            var oldAlarm = ( !isAlarmed && wasAlarmed );
-
-            if ( newAlarm )
-            {
-                if ( false && SOUND_ON_ALARM )
-                {
-                    // Enable the alarm sound
-                    $('alarmSound').removeClass( 'hidden' );
-                }
-                if ( POPUP_ON_ALARM )
-                {
-                    windowToFront();
-                }
-            }
-            if ( false && SOUND_ON_ALARM )
-            {
-                if ( oldAlarm )
-                {
-                    // Disable alarm sound
-                    $('alarmSound').addClass( 'hidden' );
-                }
-            }
-        }
-        else
-        {
-            console.error( respObj.message );
-            // Try to reload the image stream.
-            if ( stream )
-                stream.src = stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
-        }
-        var streamCmdTimeout = statusRefreshTimeout;
-        if ( this.alarmState == STATE_ALARM || this.alarmState == STATE_ALERT )
-            streamCmdTimeout = streamCmdTimeout/5;
-        this.streamCmdTimer = this.streamCmdQuery.delay( streamCmdTimeout, this );
-        this.lastAlarmState = this.alarmState;
-    };
-
-    this.streamCmdQuery = function( resent )
-    {
-        //if ( resent )
-            //console.log( this.connKey+": Resending" );
-        //this.streamCmdReq.cancel();
-        this.streamCmdReq.send( this.streamCmdParms+"&command="+CMD_QUERY );
-    };
-
-    this.streamCmdReq = new Request.JSON( { url: this.server_url, method: 'get', timeout: AJAX_TIMEOUT, onSuccess: this.getStreamCmdResponse.bind( this ), onTimeout: this.streamCmdQuery.bind( this, true ), link: 'cancel' } );
-
-    requestQueue.addRequest( "cmdReq"+this.id, this.streamCmdReq );
-}
-
-function selectLayout( element )
-{
-	var cssFile = skinPath+'/css/'+Cookie.read('zmCSS')+'/views/'+$(element).get('value');
-    if ( $('dynamicStyles') )
-        $('dynamicStyles').destroy();
-    new Asset.css( cssFile, { id: 'dynamicStyles' } );
-    Cookie.write( 'zmMontageLayout', $(element).get('value'), { duration: 10*365 } );
-}
-
-function changeScale()
-{
-    var scale = $('scale').get('value');
-
-    for ( var x = 0; x < monitors.length; x++ )
-    {
-        var monitor = monitors[x];
-        var newWidth = ( monitorData[x].width * scale ) / SCALE_BASE;
-        var newHeight = ( monitorData[x].height * scale ) / SCALE_BASE;
-        /*Stream could be an applet so can't use moo tools*/
-        var streamImg = document.getElementById( 'liveStream'+monitor.id );
-        streamImg.style.width = newWidth + "px";
-        streamImg.style.height = newHeight + "px";
+  this.setStateClass = function( element, stateClass ) {
+    if ( !element.hasClass( stateClass ) ) {
+      if ( stateClass != 'alarm' )
+        element.removeClass( 'alarm' );
+      if ( stateClass != 'alert' )
+        element.removeClass( 'alert' );
+      if ( stateClass != 'idle' )
+        element.removeClass( 'idle' );
+      element.addClass( stateClass );
     }
-    Cookie.write( 'zmMontageScale', scale, { duration: 10*365 } );
+  };
+
+  this.getStreamCmdResponse = function( respObj, respText ) {
+    if ( this.streamCmdTimer )
+      this.streamCmdTimer = clearTimeout( this.streamCmdTimer );
+
+    var stream = document.getElementById( "liveStream"+this.id );
+    if ( respObj.result == 'Ok' ) {
+      this.status = respObj.status;
+      this.alarmState = this.status.state;
+
+      var stateClass = "";
+      if ( this.alarmState == STATE_ALARM )
+        stateClass = "alarm";
+      else if ( this.alarmState == STATE_ALERT )
+        stateClass = "alert";
+      else
+        stateClass = "idle";
+
+      if ( !COMPACT_MONTAGE ) {
+        $('fpsValue'+this.index).set( 'text', this.status.fps );
+        $('stateValue'+this.index).set( 'text', stateStrings[this.alarmState] );
+        this.setStateClass( $('monitorState'+this.index), stateClass );
+      }
+      this.setStateClass( $('monitor'+this.index), stateClass );
+
+      /*Stream could be an applet so can't use moo tools*/
+      stream.className = stateClass;
+
+      var isAlarmed = ( this.alarmState == STATE_ALARM || this.alarmState == STATE_ALERT );
+      var wasAlarmed = ( this.lastAlarmState == STATE_ALARM || this.lastAlarmState == STATE_ALERT );
+
+      var newAlarm = ( isAlarmed && !wasAlarmed );
+      var oldAlarm = ( !isAlarmed && wasAlarmed );
+
+      if ( newAlarm ) {
+        if ( false && SOUND_ON_ALARM ) {
+          // Enable the alarm sound
+          $('alarmSound').removeClass( 'hidden' );
+        }
+        if ( POPUP_ON_ALARM ) {
+          windowToFront();
+        }
+      }
+      if ( false && SOUND_ON_ALARM ) {
+        if ( oldAlarm ) {
+          // Disable alarm sound
+          $('alarmSound').addClass( 'hidden' );
+        }
+      }
+    } else {
+      console.error( respObj.message );
+      // Try to reload the image stream.
+      if ( stream )
+        stream.src = stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
+    }
+    var streamCmdTimeout = statusRefreshTimeout;
+    if ( this.alarmState == STATE_ALARM || this.alarmState == STATE_ALERT )
+      streamCmdTimeout = streamCmdTimeout/5;
+    this.streamCmdTimer = this.streamCmdQuery.delay( streamCmdTimeout, this );
+    this.lastAlarmState = this.alarmState;
+  };
+
+  this.streamCmdQuery = function( resent ) {
+    //if ( resent )
+    //console.log( this.connKey+": Resending" );
+    //this.streamCmdReq.cancel();
+    this.streamCmdReq.send( this.streamCmdParms+"&command="+CMD_QUERY );
+  };
+
+  this.streamCmdReq = new Request.JSON( { url: this.server_url, method: 'get', timeout: AJAX_TIMEOUT, onSuccess: this.getStreamCmdResponse.bind( this ), onTimeout: this.streamCmdQuery.bind( this, true ), link: 'cancel' } );
+
+  requestQueue.addRequest( "cmdReq"+this.id, this.streamCmdReq );
+}
+
+function selectLayout( element ) {
+  var cssFile = skinPath+'/css/'+Cookie.read('zmCSS')+'/views/'+$(element).get('value');
+  if ( $('dynamicStyles') )
+    $('dynamicStyles').destroy();
+  new Asset.css( cssFile, { id: 'dynamicStyles' } );
+  Cookie.write( 'zmMontageLayout', $(element).get('value'), { duration: 10*365 } );
+}
+
+function changeScale() {
+  var scale = $('scale').get('value');
+
+  for ( var x = 0; x < monitors.length; x++ ) {
+    var monitor = monitors[x];
+    var newWidth = ( monitorData[x].width * scale ) / SCALE_BASE;
+    var newHeight = ( monitorData[x].height * scale ) / SCALE_BASE;
+    /*Stream could be an applet so can't use moo tools*/
+    var streamImg = document.getElementById( 'liveStream'+monitor.id );
+    streamImg.style.width = newWidth + "px";
+    streamImg.style.height = newHeight + "px";
+  }
+  Cookie.write( 'zmMontageScale', scale, { duration: 10*365 } );
 }
 
 var monitors = new Array();
-function initPage()
-{
-    for ( var i = 0; i < monitorData.length; i++ )
-    {
-        monitors[i] = new Monitor( i, monitorData[i] );
-        var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
-        monitors[i].start( delay );
-    }
-    selectLayout( $('layout') );
+function initPage() {
+  for ( var i = 0; i < monitorData.length; i++ ) {
+    monitors[i] = new Monitor( i, monitorData[i] );
+    var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
+    monitors[i].start( delay );
+  }
+  selectLayout( $('layout') );
 }
 
 // Kick everything off

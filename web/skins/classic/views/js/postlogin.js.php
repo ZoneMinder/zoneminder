@@ -9,8 +9,7 @@
 ?>
 
 (
-	function ()
-	{
+	function () {
 		// Append '?(GET query)' to URL if the GET query is not empty.
 		var querySuffix = "<?php
 			if (!empty($_POST["postLoginQuery"])) {

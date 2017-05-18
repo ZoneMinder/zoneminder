@@ -177,8 +177,8 @@ foreach( $displayMonitors as $monitor )
     $zoneCount += $monitor['ZoneCount'];
 }
 
-$seqUpFile = getSkinFile( 'graphics/seq-u.gif' );
-$seqDownFile = getSkinFile( 'graphics/seq-d.gif' );
+$seqUpFile = getSkinFile( 'graphics/seq-u.png' );
+$seqDownFile = getSkinFile( 'graphics/seq-d.png' );
 
 $versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText':'';
 

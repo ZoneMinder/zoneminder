@@ -161,9 +161,9 @@ function generateAuthHash( $useRemoteAddr ) {
       }
       $_SESSION['AuthHash'] = $auth;
       $_SESSION['AuthHashGeneratedAt'] = time();
-      Debug("Generated new auth $auth at " . $_SESSION['AuthHashGeneratedAt']. " using $authKey" );
+      Logger::Debug("Generated new auth $auth at " . $_SESSION['AuthHashGeneratedAt']. " using $authKey" );
     } else {
-      Debug( "Using cached auth " . $_SESSION['AuthHash'] );
+      Logger::Debug( "Using cached auth " . $_SESSION['AuthHash'] );
     } # end if AuthHash is not cached
     return $_SESSION['AuthHash'];
   } else {
@@ -472,10 +472,10 @@ function getEventDefaultVideoPath( $event ) {
 
 function deletePath( $path ) {
   if ( is_dir( $path ) ) {
-Debug("deletePath rm -rf $path");
+Logger::Debug("deletePath rm -rf $path");
     system( escapeshellcmd( "rm -rf ".$path ) );
   } else {
-Debug("deletePath unlink $path");
+Logger::Debug("deletePath unlink $path");
     unlink( $path );
   }
 }
@@ -491,7 +491,7 @@ function deleteEvent( $event ) {
 # $event could be an eid, so turn it into an event hash
     $event = new Event( $event );
   } else {
-Debug("Event type: " . gettype($event));
+Logger::Debug("Event type: " . gettype($event));
   }
 
   global $user;
@@ -1036,7 +1036,7 @@ function createVideo( $event, $format, $rate, $scale, $overwrite=false ) {
     $command .= " -o";
   $command = escapeshellcmd( $command );
   $result = exec( $command, $output, $status );
-Debug("generating Video $command: result($result outptu:(".implode("\n", $output )." status($status");
+Logger::Debug("generating Video $command: result($result outptu:(".implode("\n", $output )." status($status");
   return( $status?"":rtrim($result) );
 }
 
@@ -1751,17 +1751,17 @@ function coordsToPoints( $coords ) {
 function limitPoints( &$points, $min_x, $min_y, $max_x, $max_y ) {
   foreach ( $points as &$point ) {
     if ( $point['x'] < $min_x ) {
-      Debug('Limiting point x'.$point['x'].' to min_x ' . $min_x );
+      Logger::Debug('Limiting point x'.$point['x'].' to min_x ' . $min_x );
       $point['x'] = $min_x;
     } else if ( $point['x'] > $max_x ) {
-      Debug('Limiting point x'.$point['x'].' to max_x ' . $max_x );
+      Logger::Debug('Limiting point x'.$point['x'].' to max_x ' . $max_x );
       $point['x'] = $max_x;
     }
     if ( $point['y'] < $min_y ) { 
-      Debug('Limiting point y'.$point['y'].' to min_y ' . $min_y );
+      Logger::Debug('Limiting point y'.$point['y'].' to min_y ' . $min_y );
       $point['y'] = $min_y;
     } else if ( $point['y'] > $max_y ) {
-      Debug('Limiting point y'.$point['y'].' to max_y ' . $max_y );
+      Logger::Debug('Limiting point y'.$point['y'].' to max_y ' . $max_y );
       $point['y'] = $max_y;
     }
   } // end foreach point

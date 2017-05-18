@@ -1,6 +1,10 @@
+var vid = null;
+
 function setButtonState( element, butClass ) {
-  element.className = butClass;
-  element.disabled = (butClass != 'inactive');
+  if ( element ) {
+    element.className = butClass;
+    element.disabled = (butClass != 'inactive');
+  }
 }
 
 function changeScale() {
@@ -10,16 +14,16 @@ function changeScale() {
   var newWidth = ( baseWidth * scale ) / SCALE_BASE;
   var newHeight = ( baseHeight * scale ) / SCALE_BASE;
 
-	if(vid) {
+	if ( vid ) {
+    // Using video.js
 		vid.width = newWidth;
 		vid.height = newHeight;
 	} else {
     streamScale( scale );
+		var streamImg = document.getElementById('evtStream');
+		streamImg.style.width = newWidth + "px";
+		streamImg.style.height = newHeight + "px";
     Cookie.write( 'zmEventScale'+eventData.MonitorId, scale, { duration: 10*365 } );
-    /*Stream could be an applet so can't use moo tools*/ 
-    var streamImg = document.getElementById('evtStream');
-    streamImg.style.width = newWidth + "px";
-    streamImg.style.height = newHeight + "px";
   }
 }
 
@@ -70,10 +74,17 @@ function getCmdResponse( respObj, respText ) {
 
   updateProgressBar();
 
+  if ( streamStatus.auth ) {
+    // Try to reload the image stream.
+    var streamImg = document.getElementById('evtStream');
+    if ( streamImg )
+      streamImg.src = streamImg.src.replace( /auth=\w+/i, 'auth='+streamStatus.auth );
+  } // end if haev a new auth hash
+
   streamCmdTimer = streamQuery.delay( streamTimeout );
 }
 
-var streamReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'chain', onSuccess: getCmdResponse } );
+var streamReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'chain', onSuccess: getCmdResponse } );
 
 function streamPause( action ) {
   setButtonState( $('pauseBtn'), 'active' );
@@ -182,7 +193,9 @@ function getEventResponse( respObj, respText ) {
     return;
 
   eventData = respObj.event;
-  if ( !$('eventStills').hasClass( 'hidden' ) && currEventId != eventData.Id )
+  var eventStills = $('eventStills');
+
+  if ( eventStills && !$('eventStills').hasClass( 'hidden' ) && currEventId != eventData.Id )
     resetEventStills();
   currEventId = eventData.Id;
 
@@ -214,7 +227,7 @@ function getEventResponse( respObj, respText ) {
   nearEventsQuery( eventData.Id );
 }
 
-var eventReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getEventResponse } );
+var eventReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getEventResponse } );
 
 function eventQuery( eventId ) {
   var eventParms = "view=request&request=status&entity=event&id="+eventId;
@@ -234,11 +247,13 @@ function getNearEventsResponse( respObj, respText ) {
   PrevEventDefVideoPath = respObj.nearevents.PrevEventDefVideoPath;
   NextEventDefVideoPath = respObj.nearevents.NextEventDefVideoPath;
 
-  $('prevEventBtn').disabled = !prevEventId;
-  $('nextEventBtn').disabled = !nextEventId;
+  var prevEventBtn = $('prevEventBtn');
+  if ( prevEventBtn ) prevEventBtn.disabled = !prevEventId;
+  var nextEventBtn = $('nextEventBtn');
+  if ( nextEventBtn ) nextEventBtn.disabled = !nextEventId;
 }
 
-var nearEventsReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getNearEventsResponse } );
+var nearEventsReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getNearEventsResponse } );
 
 function nearEventsQuery( eventId ) {
   var parms = "view=request&request=status&entity=nearevents&id="+eventId;
@@ -263,7 +278,7 @@ function loadEventThumb( event, frame, loadImage ) {
           thumbImg.removeEvents( 'click' );
           thumbImg.addEvent( 'click', function() { locateImage( frame.FrameId, true ); } );
           if ( loadImage )
-          loadEventImage( event, frame );
+            loadEventImage( event, frame );
           } ).pass( loadImage )
       }
       );
@@ -337,8 +352,12 @@ function loadEventImage( event, frame ) {
 function hideEventImageComplete() {
   var eventImg = $('eventImage');
   var thumbImg = $('eventThumb'+$('eventImage').getProperty( 'alt' ));
-  thumbImg.removeClass('selected');
-  thumbImg.setOpacity( 1.0 );
+  if ( thumbImg ) {
+    thumbImg.removeClass('selected');
+    thumbImg.setOpacity( 1.0 );
+  } else {
+    console.log("Unable to find eventThumb at " + 'eventThumb'+$('eventImage').getProperty( 'alt' ) );
+  }
   $('prevImageBtn').disabled = true;
   $('nextImageBtn').disabled = true;
   $('eventImagePanel').setStyle( 'display', 'none' );
@@ -355,7 +374,7 @@ function resetEventStills() {
   $('eventThumbs').empty();
   if ( true || !slider ) {
     slider = new Slider( $('thumbsSlider'), $('thumbsKnob'), {
-        /*steps: eventData.Frames,*/
+      /*steps: eventData.Frames,*/
       onChange: function( step ) {
                   if ( !step )
                     step = 0;
@@ -392,7 +411,7 @@ function getFrameResponse( respObj, respText ) {
   loadEventThumb( eventData, frame, respObj.loopback=="true" );
 }
 
-var frameReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'chain', onSuccess: getFrameResponse } );
+var frameReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'chain', onSuccess: getFrameResponse } );
 
 function frameQuery( eventId, frameId, loadImage ) {
   var parms = "view=request&request=status&entity=frameimage&id[0]="+eventId+"&id[1]="+frameId+"&loopback="+loadImage;
@@ -510,7 +529,7 @@ function getActResponse( respObj, respText ) {
     eventQuery( eventData.Id );
 }
 
-var actReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getActResponse } );
+var actReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getActResponse } );
 
 function actQuery( action, parms ) {
   var actParms = "view=request&request=event&id="+eventData.Id+"&action="+action;
@@ -551,18 +570,28 @@ function showEventFrames() {
 
 function showVideo() {
   $('eventStills').addClass( 'hidden' );
+  $('imageFeed').addClass('hidden');
   $('eventVideo').removeClass( 'hidden' );
 
   $('stillsEvent').removeClass( 'hidden' );
   $('videoEvent').addClass( 'hidden' );
 
   streamMode = 'video';
-
 }
 
 function showStills() {
   $('eventStills').removeClass( 'hidden' );
+  $('imageFeed').removeClass('hidden');
   $('eventVideo').addClass( 'hidden' );		
+
+  if (vid && ( vid.paused != true ) ) {
+    // Pause the video
+    vid.pause();
+
+    // Update the button text to 'Play'
+    //if ( playButton )
+    //playButton.innerHTML = "Play";
+  }
 
   $('stillsEvent').addClass( 'hidden' );
   $('videoEvent').removeClass( 'hidden' );
@@ -577,7 +606,7 @@ function showStills() {
       offset: { 'x': 0, 'y': 0 },
       transition: Fx.Transitions.Quad.easeInOut
       }
-     );
+    );
   }
   resetEventStills();
   $(window).addEvent( 'resize', updateStillsSizes );
@@ -586,6 +615,10 @@ function showStills() {
 function showFrameStats() {
   var fid = $('eventImageNo').get('text');
   createPopup( '?view=stats&eid='+eventData.Id+'&fid='+fid, 'zmStats', 'stats', eventData.Width, eventData.Height );
+}
+
+function videoEvent() {
+  createPopup( '?view=video&eid='+eventData.Id, 'zmVideo', 'video', eventData.Width, eventData.Height );
 }
 
 
@@ -629,6 +662,8 @@ function updateProgressBar() {
         } // end if
       } // end function
     );
+    $('progressBar').setStyle( 'width', barWidth );
+    $('progressBar').removeClass( 'invisible' );
   } // end if eventData && streamStatus
 } // end function updateProgressBar()
 
@@ -740,9 +775,12 @@ function setupListener() {
 
 function initPage() {
   //FIXME prevent blocking...not sure what is happening or best way to unblock
-  vid=$('videoobj');
-  if (vid) {
-    /*setupListener();
+  if ( $('videoobj') ) {
+    vid = videojs("videoobj");
+  }
+  if ( vid ) {
+/*
+    setupListener();
       vid.removeAttribute("controls");
     /* window.videoobj.oncanplay=null;
     window.videoobj.currentTime=window.videoobj.currentTime-1;

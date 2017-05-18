@@ -838,7 +838,7 @@ else(zmconfgen_result EQUAL 0)
 endif(zmconfgen_result EQUAL 0)
 
 # Install zm.conf
-install(SCRIPT "
+install(CODE "
 if (NOT EXISTS \"${ZM_CONFIG_DIR}/zm.conf\")
   message(STATUS \"No zm.conf at ${CMAKE_CURRENT_BINARY_DIR}/zm.conf. Will install a new zm.conf\")
   install(FILES \"${CMAKE_CURRENT_BINARY_DIR}/zm.conf\" DESTINATION \"${ZM_CONFIG_DIR}\")

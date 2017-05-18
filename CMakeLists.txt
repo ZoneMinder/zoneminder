@@ -838,14 +838,16 @@ else(zmconfgen_result EQUAL 0)
 endif(zmconfgen_result EQUAL 0)
 
 # Install zm.conf
-if (NOT EXISTS "${ZM_CONFIG_DIR}/zm.conf")
-  message(STATUS "No zm.conf at ${CMAKE_CURRENT_BINARY_DIR}/zm.conf. Will install a new zm.conf")
-  install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zm.conf" DESTINATION "${ZM_CONFIG_DIR}")
-else (NOT EXISTS "${ZM_CONFIG_DIR}/zm.conf")
-  message(STATUS "Found zm.conf at ${CMAKE_CURRENT_BINARY_DIR}/zm.conf. Not overwriting.  Installing zm.conf.new instead.")
-  file(RENAME "${CMAKE_CURRENT_BINARY_DIR}/zm.conf" "${CMAKE_CURRENT_BINARY_DIR}/zm.conf.new")
-  install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zm.conf.new" DESTINATION "${ZM_CONFIG_DIR}")
-endif(NOT EXISTS "${ZM_CONFIG_DIR}/zm.conf")
+install(SCRIPT "
+if (NOT EXISTS \"${ZM_CONFIG_DIR}/zm.conf\")
+  message(STATUS \"No zm.conf at ${CMAKE_CURRENT_BINARY_DIR}/zm.conf. Will install a new zm.conf\")
+  install(FILES \"${CMAKE_CURRENT_BINARY_DIR}/zm.conf\" DESTINATION \"${ZM_CONFIG_DIR}\")
+else (NOT EXISTS \"${ZM_CONFIG_DIR}/zm.conf\")
+  message(STATUS \"Found zm.conf at ${CMAKE_CURRENT_BINARY_DIR}/zm.conf. Not overwriting.  Installing zm.conf.new instead.\")
+  file(RENAME \"${CMAKE_CURRENT_BINARY_DIR}/zm.conf\" \"${CMAKE_CURRENT_BINARY_DIR}/zm.conf.new\")
+  install(FILES \"${CMAKE_CURRENT_BINARY_DIR}/zm.conf.new\" DESTINATION \"${ZM_CONFIG_DIR}\")
+endif(NOT EXISTS \"${ZM_CONFIG_DIR}/zm.conf\")
+")
 
 
 # Uninstall target

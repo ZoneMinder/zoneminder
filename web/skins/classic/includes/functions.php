@@ -24,6 +24,7 @@ $new_views = array('login');
 function xhtmlHeaders( $file, $title )
 {
     global  $css;
+    global  $skin;
     $skinCssFile = getSkinFile( 'css/'.$css.'/skin.css' );
     $skinCssPhpFile = getSkinFile( 'css/'.$css.'/skin.css.php' );
 
@@ -44,7 +45,7 @@ function xhtmlHeaders( $file, $title )
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maxiumum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no">
   <title><?php echo ZM_WEB_TITLE_PREFIX ?> - <?php echo validHtmlStr($title) ?></title>
   <link rel="icon" type="image/ico" href="graphics/favicon.ico"/>
   <link rel="shortcut icon" href="graphics/favicon.ico"/>
@@ -81,6 +82,12 @@ function xhtmlHeaders( $file, $title )
   <script type="text/javascript" src="js/overlay.js"></script>
 <?php if ( $title == 'Login' && (defined('ZM_OPT_USE_GOOG_RECAPTCHA') && ZM_OPT_USE_GOOG_RECAPTCHA) ) { ?>
   <script src='https://www.google.com/recaptcha/api.js'></script>
+<?php } else if ( $title == 'Event' ) {
+?>
+  <link href="skins/<?php echo $skin ?>/js/video-js.css" rel="stylesheet">
+  <script src="skins/<?php echo $skin ?>/js/video.js"></script>
+  <script src="./js/videojs.zoomrotate.js"></script>
+  <script src="skins/<?php echo $skin ?>/js/moment.min.js"></script>
 <?php }
     if ( $skinJsPhpFile )
     {

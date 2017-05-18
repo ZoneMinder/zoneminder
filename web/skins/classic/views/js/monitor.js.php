@@ -73,8 +73,8 @@ function validateForm( form ) {
     if ( !form.elements['newMonitor[Format]'].value || !form.elements['newMonitor[Format]'].value.match( /^\d+$/ ) )
       errors[errors.length] = "<?php echo translate('BadFormat') ?>";
   } else if ( form.elements['newMonitor[Type]'].value == 'Remote' ) {
-    if ( !form.elements['newMonitor[Host]'].value || !form.elements['newMonitor[Host]'].value.match( /^[0-9a-zA-Z_.:@-]+$/ ) )
-      errors[errors.length] = "<?php echo translate('BadHost') ?>";
+    //if ( !form.elements['newMonitor[Host]'].value || !form.elements['newMonitor[Host]'].value.match( /^[0-9a-zA-Z_.:@-]+$/ ) )
+      //errors[errors.length] = "<?php echo translate('BadHost') ?>";
     if ( form.elements['newMonitor[Port]'].value && !form.elements['newMonitor[Port]'].value.match( /^\d+$/ ) )
       errors[errors.length] = "<?php echo translate('BadPort') ?>";
     //if ( !form.elements['newMonitor[Path]'].value )

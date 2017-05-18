@@ -38,7 +38,7 @@ $path = '';
 if ( ! empty($_REQUEST['eid'] ) ) {
   $Event = new Event( $_REQUEST['eid'] );
   $path = $Event->Path().'/'.$Event->DefaultVideo();
-	Debug("Path: $path");
+	Logger::Debug("Path: $path");
 } else {
   $errorText = "No video path";
 }
@@ -62,14 +62,14 @@ $end = $size-1;
 $length = $size;
 
 if ( isset( $_SERVER['HTTP_RANGE'] ) ) {
-  Debug("Using Range " . $_SERVER['HTTP_RANGE'] );
+  Logger::Debug("Using Range " . $_SERVER['HTTP_RANGE'] );
   if ( preg_match( '/bytes=\h*(\d+)-(\d*)[\D.*]?/i', $_SERVER['HTTP_RANGE'], $matches) ) {
     $begin = intval( $matches[1] );
     if ( ! empty( $matches[2]) ) {
       $end = intval( $matches[2] );
     }
     $length = $end - $begin + 1;
-    Debug("Using Range $begin $end size: $size, length: $length");
+    Logger::Debug("Using Range $begin $end size: $size, length: $length");
   }
 } # end if HTTP_RANGE
 

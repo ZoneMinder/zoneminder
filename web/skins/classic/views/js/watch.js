@@ -36,7 +36,7 @@ function changeScale() {
     streamImg.style.width = newWidth + "px";
     streamImg.style.height = newHeight + "px";
 
-    streamImg.src = streamImg.src.replace(/scale=\d+/i,'scale='+scale);
+    streamImg.src = streamImg.src.replace(/scale=\d+/i, 'scale='+scale);
   } else {
     console.error("No element found for liveStream.");
   }
@@ -207,7 +207,7 @@ function getStreamCmdResponse( respObj, respText ) {
   if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
     streamCmdTimeout = streamCmdTimeout/5;
   streamCmdTimer = streamCmdQuery.delay( streamCmdTimeout );
-} 
+}
 
 function streamCmdPause( action ) {
   setButtonState( $('pauseBtn'), 'active' );
@@ -325,7 +325,7 @@ function streamCmdPan( x, y ) {
 
 function streamCmdQuery() {
   streamCmdReq.send( streamCmdParms+"&command="+CMD_QUERY );
-}       
+}
 
 var statusCmdParms = "view=request&request=status&entity=monitor&id="+monitorId+"&element[]=Status&element[]=FrameRate";
 if ( auth_hash )
@@ -334,30 +334,25 @@ var statusCmdReq = new Request.JSON( { url: monitorUrl+thisUrl, method: 'get', d
 var statusCmdTimer = null;
 
 function getStatusCmdResponse( respObj, respText ) {
-console.log("Got statusCmdQuery");
   watchdogOk("status");
   if ( statusCmdTimer )
     statusCmdTimer = clearTimeout( statusCmdTimer );
 
   if ( respObj.result == 'Ok' ) {
-console.log("Got ok for status");
     $('fpsValue').set( 'text', respObj.monitor.FrameRate );
     setAlarmState( respObj.monitor.Status );
-  } else {
-	console.log("Got bad response for status");
-    checkStreamForErrors("getStatusCmdResponse",respObj);
-  }
+  } else
+    checkStreamForErrors("getStatusCmdResponse", respObj);
 
   var statusCmdTimeout = statusRefreshTimeout;
   if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
     statusCmdTimeout = statusCmdTimeout/5;
   statusCmdTimer = statusCmdQuery.delay( statusCmdTimeout );
-} 
+}
 
 function statusCmdQuery() {
-console.log("Sending statusCmdQuery");
   statusCmdReq.send();
-}       
+}
 
 var alarmCmdParms = "view=request&request=alarm&id="+monitorId;
 if ( auth_hash )
@@ -366,7 +361,7 @@ var alarmCmdReq = new Request.JSON( { url: monitorUrl+thisUrl, method: 'post', t
 var alarmCmdFirst = true;
 
 function getAlarmCmdResponse( respObj, respText ) {
-  checkStreamForErrors("getAlarmCmdResponse",respObj);
+  checkStreamForErrors("getAlarmCmdResponse", respObj);
 }
 
 function cmdDisableAlarms() {
@@ -494,7 +489,7 @@ function getEventCmdResponse( respObj, respText ) {
       rows.length--;
     }
   } else
-    checkStreamForErrors("getEventCmdResponse",respObj);
+    checkStreamForErrors("getEventCmdResponse", respObj);
 
   var eventCmdTimeout = eventsRefreshTimeout;
   if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
@@ -535,7 +530,7 @@ function controlCmd( control, event, xtell, ytell ) {
     var x = xEvent.page.x - l;
     var y = xEvent.page.y - t;
 
-    if  ( xtell ) {
+    if ( xtell ) {
       var xge = parseInt( (x*100)/coords.width );
       if ( xtell == -1 )
         xge = 100 - xge;

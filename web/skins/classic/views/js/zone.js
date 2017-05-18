@@ -449,10 +449,8 @@ function setAlarmState( currentAlarmState ) {
   var newAlarm = ( isAlarmed && !wasAlarmed );
   var oldAlarm = ( !isAlarmed && wasAlarmed );
 
-  if ( newAlarm )
-  {
-    if ( SOUND_ON_ALARM )
-    {
+  if ( newAlarm ) {
+    if ( SOUND_ON_ALARM ) {
       // Enable the alarm sound
       if ( !canPlayPauseAudio )
         $('alarmSound').removeClass( 'hidden' );
@@ -460,10 +458,8 @@ function setAlarmState( currentAlarmState ) {
         $('MediaPlayer').Play();
     }
   }
-  if ( SOUND_ON_ALARM )
-  {
-    if ( oldAlarm )
-    {
+  if ( SOUND_ON_ALARM ) {
+    if ( oldAlarm ) {
       // Disable alarm sound
       if ( !canPlayPauseAudio )
         $('alarmSound').addClass( 'hidden' );
@@ -493,8 +489,7 @@ function getStreamCmdResponse( respObj, respText ) {
 
     var delayString = secsToTime( streamStatus.delay );
 
-    if ( streamStatus.paused == true )
-    {
+    if ( streamStatus.paused == true ) {
       streamCmdPause( false );
     } else if ( streamStatus.delayed == true && streamStatus.rate == 1 ) {
       streamCmdPlay( false );
@@ -532,8 +527,7 @@ function streamCmdPause( action ) {
     streamCmdReq.send( streamCmdParms+"&command="+CMD_PAUSE );
 }
 
-function streamCmdPlay( action )
-{
+function streamCmdPlay( action ) {
   if ( action )
     streamCmdReq.send( streamCmdParms+"&command="+CMD_PLAY );
 }
@@ -556,12 +550,10 @@ function getStatusCmdResponse( respObj, respText ) {
   if ( statusCmdTimer )
     statusCmdTimer = clearTimeout( statusCmdTimer );
 
-  if ( respObj.result == 'Ok' )
-  {
+  if ( respObj.result == 'Ok' ) {
     $('fpsValue').set( 'text', respObj.monitor.FrameRate );
     setAlarmState( respObj.monitor.Status );
-  }
-  else
+  } else
     checkStreamForErrors("getStatusCmdResponse", respObj);
 
   var statusCmdTimeout = statusRefreshTimeout;

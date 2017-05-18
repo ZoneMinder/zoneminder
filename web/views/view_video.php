@@ -82,7 +82,7 @@ header('Content-Length: '.$length);
 if ( $Event ) {
   header('Content-Disposition: inline; filename="' . $Event->DefaultVideo() . '"');
 } else {
-  header("Content-Disposition: inline;");
+  header('Content-Disposition: inline;');
 }
 if ( $begin > 0 || $end < $size-1 ) {
   header('HTTP/1.0 206 Partial Content');
@@ -105,7 +105,8 @@ while( $length && ( ! feof( $fh ) ) && ( connection_status() == 0 ) ) {
 
   print fread( $fh, $amount );
   $length -= $amount;
-  usleep(100);
+  # Why introduce a speed limit?
+  #usleep(100);
   flush();
 }
 

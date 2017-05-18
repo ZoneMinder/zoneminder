@@ -189,21 +189,21 @@ function csrf_check($fatal = true) {
     $tokens = '';
     do {
         if (!isset($_POST[$name])) {
-Debug("POST[$name] is not set");
+Logger::Debug("POST[$name] is not set");
 break;
 } else {
-Debug("POST[$name] is set as " . $_POST[$name] );
+Logger::Debug("POST[$name] is set as " . $_POST[$name] );
 
 }
         // we don't regenerate a token and check it because some token creation
         // schemes are volatile.
         $tokens = $_POST[$name];
         if (!csrf_check_tokens($tokens)) {
-Debug("Failed checking tokens");
+Logger::Debug("Failed checking tokens");
 break;
 
 } else {
-Debug("Token passed");
+Logger::Debug("Token passed");
 }
         $ok = true;
     } while (false);
@@ -308,27 +308,27 @@ function csrf_check_tokens($tokens) {
  * Checks if a token is valid.
  */
 function csrf_check_token($token) {
-Debug("Checking CSRF token $token");
+Logger::Debug("Checking CSRF token $token");
     if (strpos($token, ':') === false) { 
-Debug("Checking CSRF token $token bad because no :");
+Logger::Debug("Checking CSRF token $token bad because no :");
       return false;
     }
     list($type, $value) = explode(':', $token, 2);
     if (strpos($value, ',') === false) {
-Debug("Checking CSRF token $token bad because no ,");
+Logger::Debug("Checking CSRF token $token bad because no ,");
       return false;
     }
     list($x, $time) = explode(',', $token, 2);
     if ($GLOBALS['csrf']['expires']) {
         if (time() > $time + $GLOBALS['csrf']['expires']) {
-Debug("Checking CSRF token $token bad because expired");
+Logger::Debug("Checking CSRF token $token bad because expired");
 return false;
         }
     }
     switch ($type) {
         case 'sid':
             {
- Debug("Checking sid: $value === " . csrf_hash(session_id(), $time) );
+ Logger::Debug("Checking sid: $value === " . csrf_hash(session_id(), $time) );
             return $value === csrf_hash(session_id(), $time);
             }
         case 'cookie':
@@ -338,10 +338,10 @@ return false;
             return $value === csrf_hash($_COOKIE[$n], $time);
         case 'key':
             if (!$GLOBALS['csrf']['key']) {
-		    Debug("Checking key: no key set"  );
+		    Logger::Debug("Checking key: no key set"  );
 		    return false;
 	    }
- Debug("Checking sid: $value === " . csrf_hash($GLOBALS['csrf']['key'], $time) );
+ Logger::Debug("Checking sid: $value === " . csrf_hash($GLOBALS['csrf']['key'], $time) );
 	    return $value === csrf_hash($GLOBALS['csrf']['key'], $time);
         // We could disable these 'weaker' checks if 'key' was set, but
         // that doesn't make me feel good then about the cookie-based

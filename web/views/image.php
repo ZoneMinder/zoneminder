@@ -33,8 +33,8 @@
 //
 
 if ( !canView( 'Events' ) ) {
-    $view = 'error';
-    return;
+  $view = 'error';
+  return;
 }
 require_once('includes/Event.php');
 require_once('includes/Frame.php');
@@ -82,36 +82,37 @@ if ( empty($_REQUEST['path']) ) {
   }
 
   if ( ! file_exists( $path ) ) {
-Debug( "$path does not exist");
+    Logger::Debug( "$path does not exist");
 # Generate the frame JPG
     if ( $show == 'capture' and $Event->DefaultVideo() ) {
       $command ='ffmpeg -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -frames:v 1 '.$path;
       #$command ='ffmpeg -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
 #$command ='ffmpeg -v 0 -i '.$Storage->Path().'/'.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
-      Debug( "Running $command" );
+      Logger::Debug( "Running $command" );
       $output = array();
       $retval = 0;
       exec( $command, $output, $retval );
-      Debug("Retval: $retval, output: " . implode("\n", $output));
+      Logger::Debug("Retval: $retval, output: " . implode("\n", $output));
       if ( ! file_exists( $path ) ) {
-        header("HTTP/1.0 404 Not Found");
+        header('HTTP/1.0 404 Not Found');
         Fatal("Can't create frame images from video for this event (".$Event->DefaultVideo() );
       }
     } else {
-      header("HTTP/1.0 404 Not Found");
+      header('HTTP/1.0 404 Not Found');
       Fatal("Can't create frame images from video becuase there is no video file for this event (".$Event->DefaultVideo() );
     }
   }
 
 } else {
+  Warning('Loading images by path is deprecated');
   $dir_events = realpath(ZM_DIR_EVENTS);
   $path = realpath($dir_events . '/' . $_REQUEST['path']);
   $pos = strpos($path, $dir_events);
 
-  if($pos == 0 && $pos !== false) {
-    if ( !empty($user['MonitorIds']) ) {
+  if ( $pos == 0 && $pos !== false ) {
+    if ( ! empty( $user['MonitorIds'] ) ) {
       $imageOk = false;
-      $pathMonId = substr( $path, 0, strspn( $path, "1234567890" ) );
+      $pathMonId = substr( $path, 0, strspn( $path, '1234567890' ) );
       foreach ( preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) as $monId ) {
         if ( $pathMonId == $monId ) {
           $imageOk = true;
@@ -119,10 +120,10 @@ Debug( "$path does not exist");
         }
       }
       if ( !$imageOk )
-        $errorText = "No image permissions";
+        $errorText = 'No image permissions';
     }
   } else {
-    $errorText = "Invalid image path";
+    $errorText = 'Invalid image path';
   }
   if ( ! file_exists( $path ) ) {
     header('HTTP/1.0 404 Not Found');
@@ -174,7 +175,7 @@ if ( $errorText ) {
       Error("No bytes read from ". $path );
     }
   } else {
-    Debug("Doing a scaled image: scale($scale) width($width) height($height)");
+    Logger::Debug("Doing a scaled image: scale($scale) width($width) height($height)");
     $i = 0;
     if ( ! ( $width && $height ) ) {
       $i = imagecreatefromjpeg( $path );
@@ -196,7 +197,7 @@ if ( $errorText ) {
     # Slight optimisation, thumbnails always specify width and height, so we can cache them.
     $scaled_path = preg_replace('/\.jpg$/', "-${width}x${height}.jpg", $path );
     if ( ! file_exists( $scaled_path ) or ! readfile( $scaled_path ) ) {
-      Debug( "Cached scaled image does not exist at $scaled_path or is no good.. Creating it");
+      Logger::Debug( "Cached scaled image does not exist at $scaled_path or is no good.. Creating it");
       ob_start();
       if ( ! $i )
         $i = imagecreatefromjpeg( $path );

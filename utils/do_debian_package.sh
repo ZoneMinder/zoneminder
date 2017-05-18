@@ -190,6 +190,13 @@ zoneminder ($VERSION-$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
  -- $AUTHOR  $DATE
 
 EOF
+cat <<EOF > debian/NEWS
+zoneminder ($VERSION-$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
+
+  * Release $VERSION
+
+ -- $AUTHOR  $DATE
+EOF
 else
 cat <<EOF > debian/changelog
 zoneminder ($VERSION-$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
@@ -197,7 +204,13 @@ zoneminder ($VERSION-$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
   * 
 
  -- $AUTHOR  $DATE
+EOF
+cat <<EOF > debian/changelog
+zoneminder ($VERSION-$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
 
+  * 
+
+ -- $AUTHOR  $DATE
 EOF
 fi;
 

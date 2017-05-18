@@ -846,8 +846,7 @@ else (NOT EXISTS "${ZM_CONFIG_DIR}/zm.conf")
   file(RENAME "${CMAKE_CURRENT_BINARY_DIR}/zm.conf" "${CMAKE_CURRENT_BINARY_DIR}/zm.conf.new")
   install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zm.conf.new" DESTINATION "${ZM_CONFIG_DIR}")
   file(RENAME "${CMAKE_CURRENT_BINARY_DIR}/zm.conf.new" "${CMAKE_CURRENT_BINARY_DIR}/zm.conf")
-endif()
-      #")
+endif(NOT EXISTS "${ZM_CONFIG_DIR}/zm.conf")
 
 
 # Uninstall target

@@ -92,7 +92,7 @@ if ( empty($_REQUEST['path']) ) {
       $output = array();
       $retval = 0;
       exec( $command, $output, $retval );
-      Logger::Debug("Retval: $retval, output: " . implode("\n", $output));
+      Logger::Debug("Command: $command, retval: $retval, output: " . implode("\n", $output));
       if ( ! file_exists( $path ) ) {
         header('HTTP/1.0 404 Not Found');
         Fatal("Can't create frame images from video for this event (".$Event->DefaultVideo() );

@@ -140,7 +140,7 @@ foreach( dbFetchAll( $monitorsSql ) as $row ) {
   $monitors[$row['Id']] = $row;
 }
 
-$rangeSql = 'SELECT min(StartTime) AS MinTime, max(EndTime) AS MaxTime FROM Events AS E WHERE NOT isnull(StartTime) AND NOT isnull(EndTime)';
+$rangeSql = 'SELECT min(E.StartTime) AS MinTime, max(E.EndTime) AS MaxTime FROM Events AS E INNER JOIN Monitors AS M ON (E.MonitorId = M.Id) WHERE NOT isnull(E.StartTime) AND NOT isnull(E.EndTime)';
 $eventsSql = 'SELECT * FROM Events AS E WHERE NOT isnull(StartTime)';
 
 if ( !empty($user['MonitorIds']) ) {

@@ -116,6 +116,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
   max_score = 0;
 
   struct stat statbuf;
+  char id_file[PATH_MAX];
 
   if ( config.use_deep_storage ) {
     char *path_ptr = path;
@@ -168,15 +169,12 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     }
   } // deep storage or not
 
-  {
-    char id_file[PATH_MAX];
-    // Create empty id tag file
-    snprintf( id_file, sizeof(id_file), "%s/.%d", path, id );
-    if ( FILE *id_fp = fopen( id_file, "w" ) )
-      fclose( id_fp );
-    else
-      Fatal( "Can't fopen %s: %s", id_file, strerror(errno));
-  }
+  // Create empty id tag file
+  snprintf( id_file, sizeof(id_file), "%s/.%d", path, id );
+  if ( FILE *id_fp = fopen( id_file, "w" ) )
+    fclose( id_fp );
+  else
+    Fatal( "Can't fopen %s: %s", id_file, strerror(errno));
 
   last_db_frame = 0;
 

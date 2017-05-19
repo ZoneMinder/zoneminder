@@ -1856,7 +1856,7 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
 
     int savejpegs = atoi(dbrow[col]); col++;
     VideoWriter videowriter = (VideoWriter)atoi(dbrow[col]); col++;
-    std::string encoderparams =  dbrow[col]; col++;
+    std::string encoderparams = dbrow[col] ? dbrow[col] : ""; col++;
     bool record_audio = (*dbrow[col] != '0'); col++;
 
     int brightness = atoi(dbrow[col]); col++;
@@ -1864,8 +1864,8 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
     int hue = atoi(dbrow[col]); col++;
     int colour = atoi(dbrow[col]); col++;
 
-    const char *event_prefix = dbrow[col]; col++;
-    const char *label_format = dbrow[col]; col++;
+    const char *event_prefix = dbrow[col] ? dbrow[col] : ""; col++;
+    const char *label_format = dbrow[col] ? dbrow[col] : ""; col++;
 
     int label_x = atoi(dbrow[col]); col++;
     int label_y = atoi(dbrow[col]); col++;
@@ -2009,11 +2009,11 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
     int enabled = atoi(dbrow[col]); col++;
     const char *linked_monitors = dbrow[col]; col++;
 
-    std::string protocol = dbrow[col]; col++;
-    std::string method = dbrow[col]; col++;
-    std::string host = dbrow[col]; col++;
-    std::string port = dbrow[col]; col++;
-    std::string path = dbrow[col]; col++;
+    std::string protocol = dbrow[col] ? dbrow[col] : ""; col++;
+    std::string method = dbrow[col] ? dbrow[col] : ""; col++;
+    std::string host = dbrow[col] ? dbrow[col] : ""; col++;
+    std::string port = dbrow[col] ? dbrow[col] : ""; col++;
+    std::string path = dbrow[col] ? dbrow[col] : ""; col++;
 
     int width = atoi(dbrow[col]); col++;
     int height = atoi(dbrow[col]); col++;
@@ -2021,10 +2021,10 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
     /* int palette = atoi(dbrow[col]); */ col++;
     Orientation orientation = (Orientation)atoi(dbrow[col]); col++;
     unsigned int deinterlacing = atoi(dbrow[col]); col++;
-    bool rtsp_describe = (*dbrow[col] != '0'); col++;
+    bool rtsp_describe = (dbrow[col] && *dbrow[col] != '0'); col++;
     int savejpegs = atoi(dbrow[col]); col++;
     VideoWriter videowriter = (VideoWriter)atoi(dbrow[col]); col++;
-    std::string encoderparams =  dbrow[col]; col++;
+    std::string encoderparams = dbrow[col] ? dbrow[col] : ""; col++;
     bool record_audio = (*dbrow[col] != '0'); col++;
 
     int brightness = atoi(dbrow[col]); col++;
@@ -2032,8 +2032,8 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
     int hue = atoi(dbrow[col]); col++;
     int colour = atoi(dbrow[col]); col++;
 
-    std::string event_prefix = dbrow[col]; col++;
-    std::string label_format = dbrow[col]; col++;
+    const char *event_prefix = dbrow[col] ? dbrow[col] : ""; col++;
+    const char *label_format = dbrow[col] ? dbrow[col] : ""; col++;
 
     int label_x = atoi(dbrow[col]); col++;
     int label_y = atoi(dbrow[col]); col++;
@@ -2116,8 +2116,8 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
       videowriter,
       encoderparams,
       record_audio,
-      event_prefix.c_str(),
-      label_format.c_str(),
+      event_prefix,
+      label_format,
       Coord( label_x, label_y ),
       label_size,
       image_buffer_count,
@@ -2210,9 +2210,9 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
     int hue = atoi(dbrow[col]); col++;
     int colour = atoi(dbrow[col]); col++;
 
-    const char *event_prefix = dbrow[col]; col++;
-    const char *label_format = dbrow[col]; col++;
-
+    const char *event_prefix = dbrow[col] ? dbrow[col] : ""; col++;
+    const char *label_format = dbrow[col] ? dbrow[col] : ""; col++;
+ 
     int label_x = atoi(dbrow[col]); col++;
     int label_y = atoi(dbrow[col]); col++;
     int label_size = atoi(dbrow[col]); col++;
@@ -2338,11 +2338,11 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
     unsigned int server_id = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
     int function = atoi(dbrow[col]); col++;
     int enabled = atoi(dbrow[col]); col++;
-    const char *linked_monitors = dbrow[col]; col++;
+    const char *linked_monitors = dbrow[col] ? dbrow[col] : ""; col++;
 
     const char *path = dbrow[col]; col++;
     const char *method = dbrow[col]; col++;
-    const char *options = dbrow[col]; col++;
+    const char *options = dbrow[col] ? dbrow[col] : ""; col++;
 
     int width = atoi(dbrow[col]); col++;
     int height = atoi(dbrow[col]); col++;
@@ -2353,7 +2353,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
 
     int savejpegs = atoi(dbrow[col]); col++;
     VideoWriter videowriter = (VideoWriter)atoi(dbrow[col]); col++;
-    std::string encoderparams =  dbrow[col]; col++;
+    std::string encoderparams =  dbrow[col] ? dbrow[col] : ""; col++;
     bool record_audio = (*dbrow[col] != '0'); col++;
 
     int brightness = atoi(dbrow[col]); col++;
@@ -2361,8 +2361,8 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
     int hue = atoi(dbrow[col]); col++;
     int colour = atoi(dbrow[col]); col++;
 
-    const char *event_prefix = dbrow[col]; col++;
-    const char *label_format = dbrow[col]; col++;
+    const char *event_prefix = dbrow[col] ? dbrow[col] : ""; col++;
+    const char *label_format = dbrow[col] ? dbrow[col] : ""; col++;
 
     int label_x = atoi(dbrow[col]); col++;
     int label_y = atoi(dbrow[col]); col++;
@@ -2377,10 +2377,12 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
     int section_length = atoi(dbrow[col]); col++;
     int frame_skip = atoi(dbrow[col]); col++;
     int motion_frame_skip = atoi(dbrow[col]); col++;
-    double analysis_fps = dbrow[col] ? strtod(dbrow[col], NULL) : 0; col++;
-    unsigned int analysis_update_delay = strtoul(dbrow[col++], NULL, 0);
-    int capture_delay = (dbrow[col]&&atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
-    int alarm_capture_delay = (dbrow[col]&&atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
+
+    double capture_fps = dbrow[col] ? atof(dbrow[col]) : 0;col++;
+    int capture_delay = capture_fps >0.0 ?int(DT_PREC_3/capture_fps):0; 
+    double alarm_capture_fps = dbrow[col] ? atof(dbrow[col]) : 0; col++;
+    int alarm_capture_delay = alarm_capture_fps > 0.0 ?int(DT_PREC_3/alarm_capture_fps):0;
+
     int fps_report_interval = atoi(dbrow[col]); col++;
     int ref_blend_perc = atoi(dbrow[col]); col++;
     int alarm_ref_blend_perc = atoi(dbrow[col]); col++;
@@ -2479,7 +2481,7 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
   std::string type = dbrow[col]; col++;
   int function = atoi(dbrow[col]); col++;
   int enabled = atoi(dbrow[col]); col++;
-  std::string linked_monitors = dbrow[col]; col++;
+  std::string linked_monitors = dbrow[col] ? dbrow[col] : ""; col++;
 
   std::string device = dbrow[col]; col++;
   int channel = atoi(dbrow[col]); col++;
@@ -2501,17 +2503,17 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
   } else {
     v4l_captures_per_frame = config.captures_per_frame;
   }
-Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
+  Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
   col++;
 
-  std::string protocol = dbrow[col]; col++;
-  std::string method = dbrow[col]; col++;
-  std::string host = dbrow[col]; col++;
-  std::string port = dbrow[col]; col++;
-  std::string path = dbrow[col]; col++;
-  std::string options = dbrow[col]; col++;
-  std::string user = dbrow[col]; col++;
-  std::string pass = dbrow[col]; col++;
+  std::string protocol = dbrow[col] ? dbrow[col] : ""; col++;
+  std::string method = dbrow[col] ? dbrow[col] : ""; col++;
+  std::string host = dbrow[col] ? dbrow[col] : ""; col++;
+  std::string port = dbrow[col] ? dbrow[col] : ""; col++;
+  std::string path = dbrow[col] ? dbrow[col] : ""; col++;
+  std::string options = dbrow[col] ? dbrow[col] : ""; col++;
+  std::string user = dbrow[col] ? dbrow[col] : ""; col++;
+  std::string pass = dbrow[col] ? dbrow[col] : ""; col++;
 
   int width = atoi(dbrow[col]); col++;
   int height = atoi(dbrow[col]); col++;
@@ -2519,10 +2521,10 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
   int palette = atoi(dbrow[col]); col++;
   Orientation orientation = (Orientation)atoi(dbrow[col]); col++;
   unsigned int deinterlacing = atoi(dbrow[col]); col++;
-  bool rtsp_describe = (*dbrow[col] != '0'); col++;
+  bool rtsp_describe = (dbrow[col] && *dbrow[col] != '0'); col++;
   int savejpegs = atoi(dbrow[col]); col++;
   VideoWriter videowriter = (VideoWriter)atoi(dbrow[col]); col++;
-  std::string encoderparams =  dbrow[col]; col++;
+  std::string encoderparams =  dbrow[col] ? dbrow[col] : ""; col++;
   bool record_audio = (*dbrow[col] != '0'); col++;
 
   int brightness = atoi(dbrow[col]); col++;
@@ -2530,8 +2532,8 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
   int hue = atoi(dbrow[col]); col++;
   int colour = atoi(dbrow[col]); col++;
 
-  std::string event_prefix = dbrow[col]; col++;
-  std::string label_format = dbrow[col]; col++;
+  const char * event_prefix = dbrow[col] ? dbrow[col] : ""; col++;
+  const char * label_format = dbrow[col] ? dbrow[col] : ""; col++;
 
   int label_x = atoi(dbrow[col]); col++;
   int label_y = atoi(dbrow[col]); col++;
@@ -2725,8 +2727,8 @@ Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
     videowriter,
     encoderparams,
     record_audio,
-    event_prefix.c_str(),
-    label_format.c_str(),
+    event_prefix,
+    label_format,
     Coord( label_x, label_y ),
     label_size,
     image_buffer_count,
@@ -2967,7 +2969,7 @@ bool Monitor::closeEvent() {
       gettimeofday( &(event->EndTime()), NULL );
     }
     delete event;
-    video_store_data->recording =  (struct timeval){0};;
+    video_store_data->recording = (struct timeval){0};
     event = 0;
     return( true );
   }
@@ -3986,4 +3988,4 @@ int Monitor::PreCapture() {
 int Monitor::PostCapture() {
   return( camera->PostCapture() );
 }
-Monitor::Orientation Monitor::getOrientation()const { return orientation; }
+Monitor::Orientation Monitor::getOrientation() const { return orientation; }

@@ -2378,6 +2378,8 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
     int frame_skip = atoi(dbrow[col]); col++;
     int motion_frame_skip = atoi(dbrow[col]); col++;
 
+    double analysis_fps = dbrow[col] ? strtod(dbrow[col], NULL) : 0; col++;
+    unsigned int analysis_update_delay = strtoul(dbrow[col++], NULL, 0);
     double capture_fps = dbrow[col] ? atof(dbrow[col]) : 0;col++;
     int capture_delay = capture_fps >0.0 ?int(DT_PREC_3/capture_fps):0; 
     double alarm_capture_fps = dbrow[col] ? atof(dbrow[col]) : 0; col++;

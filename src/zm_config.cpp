@@ -145,9 +145,9 @@ ConfigItem::ConfigItem( const char *p_name, const char *p_value, const char *con
   type = new char[strlen(p_type)+1];
   strcpy( type, p_type );
 
-	//Info( "Created new config item %s = %s (%s)\n", name, value, type );
+  //Info( "Created new config item %s = %s (%s)\n", name, value, type );
 
-	accessed = false;
+  accessed = false;
 }
 
 ConfigItem::~ConfigItem() {
@@ -185,7 +185,7 @@ bool ConfigItem::BooleanValue() const {
     exit( -1 );
   }
 
-	return( cfg_value.boolean_value );
+  return( cfg_value.boolean_value );
 }
 
 int ConfigItem::IntegerValue() const {
@@ -197,7 +197,7 @@ int ConfigItem::IntegerValue() const {
     exit( -1 );
   }
 
-	return( cfg_value.integer_value );
+  return( cfg_value.integer_value );
 }
 
 double ConfigItem::DecimalValue() const {
@@ -209,7 +209,7 @@ double ConfigItem::DecimalValue() const {
     exit( -1 );
   }
 
-	return( cfg_value.decimal_value );
+  return( cfg_value.decimal_value );
 }
 
 const char *ConfigItem::StringValue() const {
@@ -221,7 +221,7 @@ const char *ConfigItem::StringValue() const {
     exit( -1 );
   }
 
-	return( cfg_value.string_value );
+  return( cfg_value.string_value );
 }
 
 Config::Config() {

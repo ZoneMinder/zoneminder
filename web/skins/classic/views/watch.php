@@ -34,6 +34,7 @@ if ( ! visibleMonitor( $mid ) ) {
 
 $monitor = new Monitor( $mid );
 
+#Whether to show the controls button
 $showPtzControls = ( ZM_OPT_CONTROL && $monitor->Controllable() && canView( 'Control' ) );
 
 if ( isset( $_REQUEST['scale'] ) ) {

@@ -331,12 +331,12 @@ function getVideoStreamHTML( $id, $src, $width, $height, $format, $title="" ) {
       </embed>';
 }
 
-function outputImageStream( $id, $src, $width, $height, $title="" ) {
+function outputImageStream( $id, $src, $width, $height, $title='' ) {
   echo getImageStream( $id, $src, $width, $height, $title );
 }
 
 
-function getImageStream( $id, $src, $width, $height, $title="" ) {
+function getImageStream( $id, $src, $width, $height, $title='' ) {
   if ( canStreamIframe() ) {
       return '<iframe id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" '.($width? ' width="'. validInt($width).'"' : '').($height?' height="'.validInt($height).'"' : '' ).'/>';
   } else {

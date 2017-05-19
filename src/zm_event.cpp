@@ -826,14 +826,12 @@ void EventStream::processCommand( const CmdMsg *msg ) {
     case CMD_FASTFWD :
       {
         Debug( 1, "Got FAST FWD command" );
-        if ( paused )
-        {
+        if ( paused ) {
           // Clear paused flag
           paused = false;
         }
         // Set play rate
-        switch ( replay_rate )
-        {
+        switch ( replay_rate ) {
           case 2 * ZM_RATE_BASE :
             replay_rate = 5 * ZM_RATE_BASE;
             break;
@@ -878,14 +876,12 @@ void EventStream::processCommand( const CmdMsg *msg ) {
     case CMD_FASTREV :
       {
         Debug( 1, "Got FAST REV command" );
-        if ( paused )
-        {
+        if ( paused ) {
           // Clear paused flag
           paused = false;
         }
         // Set play rate
-        switch ( replay_rate )
-        {
+        switch ( replay_rate ) {
           case -2 * ZM_RATE_BASE :
             replay_rate = -5 * ZM_RATE_BASE;
             break;
@@ -910,8 +906,7 @@ void EventStream::processCommand( const CmdMsg *msg ) {
         x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
         y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
         Debug( 1, "Got ZOOM IN command, to %d,%d", x, y );
-        switch ( zoom )
-        {
+        switch ( zoom ) {
           case 100:
             zoom = 150;
             break;
@@ -934,8 +929,7 @@ void EventStream::processCommand( const CmdMsg *msg ) {
     case CMD_ZOOMOUT :
       {
         Debug( 1, "Got ZOOM OUT command" );
-        switch ( zoom )
-        {
+        switch ( zoom ) {
           case 500:
             zoom = 400;
             break;

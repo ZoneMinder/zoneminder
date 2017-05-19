@@ -463,7 +463,6 @@ Monitor::Monitor(
   Debug( 1, "Monitor %s IBC = %d, WUC = %d, pEC = %d, PEC = %d, EAF = %d, FRI = %d, RBP = %d, ARBP = %d, FM = %d", name, image_buffer_count, warmup_count, pre_event_count, post_event_count, alarm_frame_count, fps_report_interval, ref_blend_perc, alarm_ref_blend_perc, track_motion );
 
   //Set video recording flag for event start constructor and easy reference in code
-  // TODO: Use enum instead of the # 2. Makes for easier reading
   videoRecording = ((GetOptVideoWriter() == H264PASSTHROUGH) && camera->SupportsNativeVideo());
 
   if ( purpose == ANALYSIS ) {
@@ -2835,10 +2834,10 @@ int Monitor::Capture() {
     
     //Check if FFMPEG camera
     // Icon: I don't think we can support de-interlacing on ffmpeg input.... most of the time it will be h264 or mpeg4
-    if(( videowriter == H264PASSTHROUGH ) && camera->SupportsNativeVideo()){
+    if ( ( videowriter == H264PASSTHROUGH ) && camera->SupportsNativeVideo() ) {
       captureResult = camera->CaptureAndRecord(*(next_buffer.image),
-                                               video_store_data->recording,
-                                               video_store_data->event_file );
+          video_store_data->recording,
+          video_store_data->event_file );
     } else {
       captureResult = camera->Capture(*(next_buffer.image));
     }

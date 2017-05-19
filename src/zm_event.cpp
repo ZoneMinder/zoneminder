@@ -1133,14 +1133,14 @@ bool EventStream::sendFrame( int delta_us ) {
   static struct stat filestat;
   FILE *fdj = NULL;
 
-  // This needs to be abstracted.  
+  // This needs to be abstracted.  If we are saving jpgs, then load the capture file.  If we are only saving analysis frames, then send that.
   if ( monitor->GetOptSaveJPEGs() & 1 ) {
     snprintf( filepath, sizeof(filepath), Event::capture_file_format, event_data->path, curr_frame_id );
   } else if ( monitor->GetOptSaveJPEGs() & 2 ) {
     snprintf( filepath, sizeof(filepath), Event::analyse_file_format, event_data->path, curr_frame_id );
     if ( stat( filepath, &filestat ) < 0 ) {
-        Debug(1, "%s not found, dalling back to capture");
-        snprintf( filepath, sizeof(filepath), Event::capture_file_format, event_data->path, curr_frame_id );
+      Debug(1, "%s not found, dalling back to capture");
+      snprintf( filepath, sizeof(filepath), Event::capture_file_format, event_data->path, curr_frame_id );
     }
 
   } else {

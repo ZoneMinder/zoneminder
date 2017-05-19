@@ -175,9 +175,9 @@ foreach ( getSkinIncludes( 'skin.php' ) as $includeFile )
 
 if ( ZM_OPT_USE_AUTH && ZM_AUTH_HASH_LOGINS ) {
   if ( empty($user) && ! empty($_REQUEST['auth']) ) {
-Debug("Getting user from auth hash");
+Logger::Debug("Getting user from auth hash");
     if ( $authUser = getAuthUser( $_REQUEST['auth'] ) ) {
-Debug("Success Getting user from auth hash");
+Logger::Debug("Success Getting user from auth hash");
       userLogin( $authUser['Username'], $authUser['Password'], true );
     }
   } else if ( ! empty($user) ) {
@@ -205,7 +205,7 @@ require_once( 'includes/actions.php' );
 
 # If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
 if ( ZM_OPT_USE_AUTH && ! isset($user) ) {
-	Debug("Redirecting to login" );
+	Logger::Debug("Redirecting to login" );
   $view = 'login';
 }
 

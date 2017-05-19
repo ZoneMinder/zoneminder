@@ -18,12 +18,12 @@
 //
 
 if ( !canView( 'Events' ) ) {
-    $view = 'error';
-    return;
+  $view = 'error';
+  return;
 }
 
 foreach ( getSkinIncludes( 'includes/timeline_functions.php' ) as $includeFile )
-    require_once $includeFile;
+  require_once $includeFile;
 
 //
 // Date/time formats used in charts 
@@ -64,11 +64,11 @@ define( "STRF_TL_AXIS_LABEL_SECOND", "%S" );
 
 $mouseover = true;
 if ( !isset($mouseover) )
-    $mouseover = true;
+  $mouseover = true;
 
-$mode = "overlay";
+$mode = 'overlay';
 if ( !isset($mode) )
-    $mode = "overlay";
+  $mode = 'overlay';
 
 $minEventWidth = 3;
 $maxEventWidth = 6;
@@ -77,74 +77,75 @@ $chart = array(
     "width"=>700,
     "height"=>460,
     "image" => array(
-        "width"=>264,
-        "height"=>220,
-        "topOffset"=>20,
-    ),
+      "width"=>264,
+      "height"=>220,
+      "topOffset"=>20,
+      ),
     "imageText" => array(
-        "width"=>400,
-        "height"=>30,
-        "topOffset"=>20,
-    ),
+      "width"=>400,
+      "height"=>30,
+      "topOffset"=>20,
+      ),
     "graph" => array(
-        "width"=>600,
-        "height"=>160,
-        "topOffset"=>30,
-    ),
+      "width"=>600,
+      "height"=>160,
+      "topOffset"=>30,
+      ),
     "title" => array(
-        "topOffset"=>50
-    ),
+      "topOffset"=>50
+      ),
     "key" => array(
         "topOffset"=>50
-    ),
+        ),
     "axes" => array(
         "x" => array(
-            "height" => 20,
-        ),
+          "height" => 20,
+          ),
         "y" => array(
-            "width" => 30,
+          "width" => 30,
+          ),
         ),
-    ),
     "grid" => array(
         "x" => array(
-            "major" => array(
-                "max" => 12,
-                "min" => 4,
+          "major" => array(
+            "max" => 12,
+            "min" => 4,
             ),
-            "minor" => array(
-                "max" => 48,
-                "min" => 12,
+          "minor" => array(
+            "max" => 48,
+            "min" => 12,
             ),
-        ),
+          ),
         "y" => array(
-            "major" => array(
-                "max" => 8,
-                "min" => 1,
+          "major" => array(
+            "max" => 8,
+            "min" => 1,
             ),
-            "minor" => array(
-                "max" => 0,
-                "min" => 0,
+          "minor" => array(
+            "max" => 0,
+            "min" => 0,
             ),
+          ),
         ),
-    ),
 );
 
 $monitors = array();
-$monitorsSql = "select * from Monitors order by Sequence asc";
+$monitorsSql = 'SELECT * FROM Monitors ORDER BY Sequence ASC';
 //srand( 97981 );
 foreach( dbFetchAll( $monitorsSql ) as $row ) {
   //if ( empty($row['WebColour']) )
   //{
-  //$row['WebColour'] = sprintf( "#%02x%02x%02x", rand( 0, 255 ), rand( 0, 255), rand( 0, 255 ) );
+      //$row['WebColour'] = sprintf( "#%02x%02x%02x", rand( 0, 255 ), rand( 0, 255), rand( 0, 255 ) );
   //}
   $monitors[$row['Id']] = $row;
 }
 
-$rangeSql = 'SELECT min(StartTime) AS MinTime, max(EndTime) AS MaxTime FROM Events WHERE NOT isnull(StartTime) AND NOT isnull(EndTime)';
-$eventsSql = 'SELECT * FROM Events WHERE NOT isnull(StartTime)';
+# The as E, and joining with Monitors is required for the filterSQL filters.
+$rangeSql = 'SELECT min(E.StartTime) AS MinTime, max(E.EndTime) AS MaxTime FROM Events AS E INNER JOIN Monitors AS M ON (E.MonitorId = M.Id) WHERE NOT isnull(E.StartTime) AND NOT isnull(E.EndTime)';
+$eventsSql = 'SELECT * FROM Events AS E WHERE NOT isnull(StartTime)';
 
 if ( !empty($user['MonitorIds']) ) {
-    $monFilterSql = ' AND MonitorId IN ('.$user['MonitorIds'].')';
+  $monFilterSql = ' AND MonitorId IN ('.$user['MonitorIds'].')';
 
   $rangeSql .= $monFilterSql;
   $eventsSql .= $monFilterSql;
@@ -351,12 +352,12 @@ foreach( dbFetchAll( $eventsSql ) as $event ) {
   }
   if ( $event['MaxScore'] > 0 ) {
     if ( $startIndex == $endIndex ) {
-      $framesSql = "select FrameId,Score from Frames where EventId = ? and Score > 0 order by Score desc limit 1";
+      $framesSql = 'SELECT FrameId,Score FROM Frames WHERE EventId = ? AND Score > 0 ORDER BY Score DESC LIMIT 1';
       $frame = dbFetchOne( $framesSql, NULL, array($event['Id']) );
 
       $i = $startIndex;
       if ( !isset($currFrameSlots[$i]) ) {
-        $currFrameSlots[$i] = array( "count"=>1, "value"=>$event['MaxScore'], "event"=>$event, "frame"=>$frame );
+        $currFrameSlots[$i] = array( 'count'=>1, 'value'=>$event['MaxScore'], 'event'=>$event, 'frame'=>$frame );
       } else {
         $currFrameSlots[$i]['count']++;
         if ( $event['MaxScore'] > $currFrameSlots[$i]['value'] ) {
@@ -369,7 +370,7 @@ foreach( dbFetchAll( $eventsSql ) as $event ) {
         $chart['data']['y']['hi'] = $event['MaxScore'];
       }
     } else {
-      $framesSql = "select FrameId,Delta,unix_timestamp(TimeStamp) as TimeT,Score from Frames where EventId = ? and Score > 0";
+      $framesSql = 'SELECT FrameId,Delta,unix_timestamp(TimeStamp) AS TimeT,Score FROM Frames WHERE EventId = ? AND Score > 0';
       $result = dbQuery( $framesSql, array( $event['Id'] ) );
       while( $frame = dbFetchNext( $result ) ) {
         if ( $frame['Score'] == 0 )
@@ -383,7 +384,7 @@ foreach( dbFetchAll( $eventsSql ) as $event ) {
           continue;
 
         if ( !isset($currFrameSlots[$frameIndex]) ) {
-          $currFrameSlots[$frameIndex] = array( "count"=>1, "value"=>$frame['Score'], "event"=>$event, "frame"=>$frame );
+          $currFrameSlots[$frameIndex] = array( 'count'=>1, 'value'=>$frame['Score'], 'event'=>$event, 'frame'=>$frame );
         } else {
           $currFrameSlots[$frameIndex]['count']++;
           if ( $frame['Score'] > $currFrameSlots[$frameIndex]['value'] ) {
@@ -496,7 +497,7 @@ for ( $i = 0; $i < $chart['graph']['width']; $i++ ) {
         $frameSlots[$i][] = &$currFrameSlots[$i];
       }
     }
-  }
+  } # end foreach MonitorId
 }
 
 //print_r( $monEventSlots );
@@ -505,7 +506,7 @@ for ( $i = 0; $i < $chart['graph']['width']; $i++ ) {
 
 $graphHeight = $chart['graph']['height'];
 
-if ( $mode == "overlay" ) {
+if ( $mode == 'overlay' ) {
   $minEventBarHeight = 10;
   $maxEventBarHeight = 40;
 
@@ -527,7 +528,7 @@ if ( $mode == "overlay" ) {
     $chart['eventBars'][$monitorId] = array( 'top' => $top );
     $top += $chart['graph']['eventBarHeight']+1;
   }
-} elseif ( $mode == "split" ) {
+} else if ( $mode == 'split' ) {
   $minActivityBarHeight = 30;
   $minEventBarHeight = 10;
   $maxEventBarHeight = 40;
@@ -547,14 +548,11 @@ if ( $mode == "overlay" ) {
   }
   $chart['data']['y']['density'] = $chart['data']['y']['range']/$chart['graph']['activityBarHeight'];
 
-  ?>
-    <?php
-    $chart['activityBars'] = array();
+  $chart['activityBars'] = array();
   $chart['eventBars'] = array();
   $top = 0;
   $barCount = 1;
-  foreach ( array_keys($monitorIds) as $monitorId )
-  {
+  foreach ( array_keys($monitorIds) as $monitorId ) {
     $chart['eventBars'][$monitorId] = array( 'top' => $top );
     $chart['eventBars'][$monitorId] = array( 'top' => $top+$chart['graph']['activityBarHeight']+1 );
     $top +=  $chart['graph']['activityBarHeight']+1+$chart['graph']['eventBarHeight']+1;
@@ -565,123 +563,124 @@ preg_match( '/^(\d+)-(\d+)-(\d+) (\d+):(\d+)/', $minTime, $startMatches );
 preg_match( '/^(\d+)-(\d+)-(\d+) (\d+):(\d+)/', $maxTime, $endMatches );
 
 if ( $startMatches[1] != $endMatches[1] ) {
-    // Different years
-    $title = strftime( STRF_TL_AXIS_RANGE_YEAR1, $chart['data']['x']['lo'] )." - ".strftime( STRF_TL_AXIS_RANGE_YEAR2, $chart['data']['x']['hi'] );
+  // Different years
+  $title = strftime( STRF_TL_AXIS_RANGE_YEAR1, $chart['data']['x']['lo'] )." - ".strftime( STRF_TL_AXIS_RANGE_YEAR2, $chart['data']['x']['hi'] );
 } elseif ( $startMatches[2] != $endMatches[2] ) {
-    // Different months
-    $title = strftime( STRF_TL_AXIS_RANGE_MONTH1, $chart['data']['x']['lo'] )." - ".strftime( STRF_TL_AXIS_RANGE_MONTH2, $chart['data']['x']['hi'] );
+  // Different months
+  $title = strftime( STRF_TL_AXIS_RANGE_MONTH1, $chart['data']['x']['lo'] )." - ".strftime( STRF_TL_AXIS_RANGE_MONTH2, $chart['data']['x']['hi'] );
 } elseif ( $startMatches[3] != $endMatches[3] ) {
-    // Different dates
-    $title = strftime( STRF_TL_AXIS_RANGE_DAY1, $chart['data']['x']['lo'] )." - ".strftime( STRF_TL_AXIS_RANGE_DAY2, $chart['data']['x']['hi'] );
+  // Different dates
+  $title = strftime( STRF_TL_AXIS_RANGE_DAY1, $chart['data']['x']['lo'] )." - ".strftime( STRF_TL_AXIS_RANGE_DAY2, $chart['data']['x']['hi'] );
 } else {
-    // Different times
-    $title = strftime( STRF_TL_AXIS_RANGE_TIME1, $chart['data']['x']['lo'] )." - ".strftime( STRF_TL_AXIS_RANGE_TIME2, $chart['data']['x']['hi'] );
+  // Different times
+  $title = strftime( STRF_TL_AXIS_RANGE_TIME1, $chart['data']['x']['lo'] )." - ".strftime( STRF_TL_AXIS_RANGE_TIME2, $chart['data']['x']['hi'] );
 }
 
 function drawXGrid( $chart, $scale, $labelClass, $tickClass, $gridClass, $zoomClass=false ) {
-    ob_start();
-    $labelCount = 0;
-    $lastTick = 0;
-    unset( $lastLabel );
-    $labelCheck = isset($scale['labelCheck'])?$scale['labelCheck']:$scale['label'];
+  $html = '';
+  ob_start();
+  $labelCount = 0;
+  $lastTick = 0;
+  unset( $lastLabel );
+  $labelCheck = isset($scale['labelCheck'])?$scale['labelCheck']:$scale['label'];
 ?>
           <div id="xScale">
 <?php
-    for ( $i = 0; $i < $chart['graph']['width']; $i++ ) {
-        $x = $i - 1;
-        $timeOffset = (int)($chart['data']['x']['lo'] + ($i * $chart['data']['x']['density']));
-        if ( $scale['align'] > 1 ) {
-            $label = (int)(strftime( $labelCheck, $timeOffset )/$scale['align']);
-        } else {
-            $label = strftime( $labelCheck, $timeOffset );
-        }
-        if ( !isset($lastLabel) || ($lastLabel != $label) ) {
-            $labelCount++;
-        }
-        if ( $labelCount >= $scale['divisor'] ) {
-            $labelCount = 0;
-            if ( isset($lastLabel) ) {
-                if ( $labelClass ) {
-?>
-            <div class="<?php echo $labelClass ?>" style="left: <?php echo $x-25 ?>px;"><?php echo strftime( $scale['label'], $timeOffset ); ?></div>
-<?php
-                }
-                if ( $tickClass ) {
-?>
-            <div class="<?php echo $tickClass ?>" style="left: <?php echo $x ?>px;"></div>
-<?php
-                }
-                if ( $gridClass ) {
-?>
-            <div class="<?php echo $gridClass ?>" style="left: <?php echo $x ?>px;"></div>
-<?php
-                }
-                if ( $scale['name'] != 'second' && $zoomClass ) {
-                    $zoomMinTime = strftime( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($lastTick * $chart['data']['x']['density'])) );
-                    $zoomMaxTime = strftime( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($i * $chart['data']['x']['density'])) );
-?>
-            <div class="<?php echo $zoomClass ?>" style="left: <?php echo $lastTick-1 ?>px; width: <?php echo $i-$lastTick ?>px;" title="<?php echo translate('ZoomIn') ?>" onclick="tlZoomBounds( '<?php echo $zoomMinTime ?>', '<?php echo $zoomMaxTime ?>' )"></div>
-<?php
-                }
-                $lastTick = $i;
-            }
-        }
-        $lastLabel = $label;
+  for ( $i = 0; $i < $chart['graph']['width']; $i++ ) {
+    $x = $i - 1;
+    $timeOffset = (int)($chart['data']['x']['lo'] + ($i * $chart['data']['x']['density']));
+    if ( $scale['align'] > 1 ) {
+      $label = (int)(strftime( $labelCheck, $timeOffset )/$scale['align']);
+    } else {
+      $label = strftime( $labelCheck, $timeOffset );
     }
-    if ( $zoomClass ) {
-        $zoomMinTime = strftime( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($lastTick * $chart['data']['x']['density'])) );
-        $zoomMaxTime = strftime( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($i * $chart['data']['x']['density'])) );
-?>
-            <div class="<?php echo $zoomClass ?>" style="left: <?php echo $lastTick-1 ?>px; width: <?php echo $i-$lastTick ?>px;" title="<?php echo translate('ZoomIn') ?>" onclick="tlZoomBounds( '<?php echo $zoomMinTime ?>', '<?php echo $zoomMaxTime ?>' )"></div>
-<?php
+    if ( !isset($lastLabel) || ($lastLabel != $label) ) {
+      $labelCount++;
     }
-?>
-          </div>
-<?php
-    return( ob_get_clean() );
-}
-
-function drawYGrid( $chart, $scale, $labelClass, $tickClass, $gridClass ) {
-    ob_start();
-?>
-          <div id="yScale">
-<?php
-    for ( $i = 0; $i < $scale['lines']; $i++ ) {
-        $label = (int)($i * $scale['divisor']);
-        $y = $chart['graph']['eventsHeight']+(int)(($i * $scale['divisor'])/$chart['data']['y']['density'])-1;
+    if ( $labelCount >= $scale['divisor'] ) {
+      $labelCount = 0;
+      if ( isset($lastLabel) ) {
         if ( $labelClass ) {
 ?>
-            <div class="<?php echo $labelClass ?>" style="top: <?php echo $chart['graph']['height']-($y+8) ?>px;"><?php echo $label ?></div>
+            <div class="<?php echo $labelClass ?>" style="left: <?php echo $x-25 ?>px;"><?php echo strftime( $scale['label'], $timeOffset ); ?></div>
 <?php
         }
         if ( $tickClass ) {
 ?>
-            <div class="<?php echo $tickClass ?>" style="top: <?php echo $chart['graph']['height']-($y+2) ?>px;"></div>
+            <div class="<?php echo $tickClass ?>" style="left: <?php echo $x ?>px;"></div>
 <?php
         }
         if ( $gridClass ) {
 ?>
-            <div class="<?php echo $gridClass ?>" style="top: <?php echo $chart['graph']['height']-($y+2) ?>px;<?php echo $i <= 0?' border-top: solid 1px black;':'' ?>"></div>
+            <div class="<?php echo $gridClass ?>" style="left: <?php echo $x ?>px;"></div>
 <?php
         }
+        if ( $scale['name'] != 'second' && $zoomClass ) {
+          $zoomMinTime = strftime( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($lastTick * $chart['data']['x']['density'])) );
+          $zoomMaxTime = strftime( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($i * $chart['data']['x']['density'])) );
+?>
+            <div class="<?php echo $zoomClass ?>" style="left: <?php echo $lastTick-1 ?>px; width: <?php echo $i-$lastTick ?>px;" title="<?php echo translate('ZoomIn') ?>" onclick="tlZoomBounds( '<?php echo $zoomMinTime ?>', '<?php echo $zoomMaxTime ?>' )"></div>
+<?php
+        }
+        $lastTick = $i;
+      } # end if $lastLabel
     }
+    $lastLabel = $label;
+  } # end foreach width segment
+
+  if ( $zoomClass ) {
+    $zoomMinTime = strftime( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($lastTick * $chart['data']['x']['density'])) );
+    $zoomMaxTime = strftime( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($i * $chart['data']['x']['density'])) );
+?>
+            <div class="<?php echo $zoomClass ?>" style="left: <?php echo $lastTick-1 ?>px; width: <?php echo $i-$lastTick ?>px;" title="<?php echo translate('ZoomIn') ?>" onclick="tlZoomBounds( '<?php echo $zoomMinTime ?>', '<?php echo $zoomMaxTime ?>' )"></div>
+<?php
+  }
 ?>
           </div>
 <?php
+  return( ob_get_clean() );
+} # end function drawXGrid
 
-    return( ob_get_clean() );
-}
+function drawYGrid( $chart, $scale, $labelClass, $tickClass, $gridClass ) {
+  ob_start();
+?>
+  <div id="yScale">
+<?php
+  for ( $i = 0; $i < $scale['lines']; $i++ ) {
+    $label = (int)($i * $scale['divisor']);
+    $y = $chart['graph']['eventsHeight']+(int)(($i * $scale['divisor'])/$chart['data']['y']['density'])-1;
+    if ( $labelClass ) {
+?>
+       <div class="<?php echo $labelClass ?>" style="top: <?php echo $chart['graph']['height']-($y+8) ?>px;"><?php echo $label ?></div>
+<?php
+    }
+    if ( $tickClass ) {
+?>
+       <div class="<?php echo $tickClass ?>" style="top: <?php echo $chart['graph']['height']-($y+2) ?>px;"></div>
+<?php
+    }
+    if ( $gridClass ) {
+?>
+       <div class="<?php echo $gridClass ?>" style="top: <?php echo $chart['graph']['height']-($y+2) ?>px;<?php echo $i <= 0?' border-top: solid 1px black;':'' ?>"></div>
+<?php
+    }
+  } # end foreach line segment
+?>
+  </div>
+<?php
+  return( ob_get_clean() );
+} # end function drawYGrid
 
 function getSlotPreviewEventBehaviour( $slot ) {
-    return( "previewEvent( '".$slot['event']['Id']."', '".getSlotFrame( $slot )."' )" );
+  return( "previewEvent( '".$slot['event']['Id']."', '".getSlotFrame( $slot )."' )" );
 }
 
 function getSlotShowEventBehaviour( $slot ) {
-    global $monitors;
+  global $monitors;
 
-    $monitor = &$monitors[$slot['event']['MonitorId']];
+  $monitor = &$monitors[$slot['event']['MonitorId']];
 
-    return( "showEvent( '".$slot['event']['Id']."', '".getSlotFrame( $slot )."', '".reScale( $monitor['Width'], $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE )."', '".reScale( $monitor['Height'], $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE )."' )" );
+  return( "showEvent( '".$slot['event']['Id']."', '".getSlotFrame( $slot )."', '".reScale( $monitor['Width'], $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE )."', '".reScale( $monitor['Height'], $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE )."' )" );
 }
 
 $focusWindow = true;
@@ -713,7 +712,7 @@ Your browser does not support the video tag.
 			</video>
 o-->
 
-</div>
+          </div>
         </div>
         <div id="dataPanel">
           <div id="textPanel">
@@ -736,102 +735,102 @@ o-->
       <div id="chartPanel">
         <div id="chart" class="graphSize">
 <?php
-if ( $mode == "overlay" ) {
-    echo drawYGrid( $chart, $majYScale, "majLabelY", "majTickY", "majGridY graphWidth" );
+if ( $mode == 'overlay' ) {
+  echo drawYGrid( $chart, $majYScale, 'majLabelY', 'majTickY', 'majGridY graphWidth' );
 }
-echo drawXGrid( $chart, $majXScale, "majLabelX", "majTickX", "majGridX graphHeight", "zoom graphHeight" );
+echo drawXGrid( $chart, $majXScale, 'majLabelX', 'majTickX', 'majGridX graphHeight', 'zoom graphHeight' );
 
-if ( $mode == "overlay" ) {
+if ( $mode == 'overlay' ) {
 ?>
           <div id="activity" class="activitySize">
 <?php
     foreach ( $frameSlots as $index=>$slots ) {
-        foreach ( $slots as $slot ) {
-            $slotHeight = (int)($slot['value']/$chart['data']['y']['density']);
-    
-            if ( $slotHeight <= 0 )
-                continue;
-    
-            if ( $mouseover ) {
-                $behaviours = array(
-                    'onclick="'.getSlotShowEventBehaviour( $slot ).'"',
-                    'onmouseover="'.getSlotPreviewEventBehaviour( $slot ).'"'
-                );
-            } else {
-                $behaviours = array(
-                    'onclick="'.getSlotPreviewEventBehaviour( $slot ).'"'
-                );
-            }
+      foreach ( $slots as $slot ) {
+        $slotHeight = (int)($slot['value']/$chart['data']['y']['density']);
+
+        if ( $slotHeight <= 0 )
+          continue;
+
+        if ( $mouseover ) {
+          $behaviours = array(
+              'onclick="'.getSlotShowEventBehaviour( $slot ).'"',
+              'onmouseover="'.getSlotPreviewEventBehaviour( $slot ).'"'
+              );
+        } else {
+          $behaviours = array(
+              'onclick="'.getSlotPreviewEventBehaviour( $slot ).'"'
+              );
+        }
 ?>
             <div class="activity monitorColour<?php echo $slot['event']['MonitorId'] ?>" style="left: <?php echo $index ?>px; height: <?php echo $slotHeight ?>px;" <?php echo join( " ", $behaviours ) ?>></div>
 <?php
-        }
+      }
     }
 ?>
           </div>
 <?php
-} elseif ( $mode == "split" ) {
-    foreach( array_keys($monFrameSlots) as $monitorId ) {
+} elseif ( $mode == 'split' ) {
+  foreach( array_keys($monFrameSlots) as $monitorId ) {
 ?>
-          <div id="activity<?php echo $monitorId ?>">
+        <div id="activity<?php echo $monitorId ?>">
 <?php
-        unset( $currFrameSlots );
-        $currFrameSlots = &$monFrameSlots[$monitorId];
-        foreach ( $currFrameSlots as $index=>$slot ) {
-            $slotHeight = (int)($slot['value']/$chart['data']['y']['density']);
-    
-            if ( $slotHeight <= 0 )
-                continue;
-    
-            if ( $mouseover ) {
-                $behaviours = array(
-                    'onclick="'.getSlotShowEventBehaviour( $slot ).'"',
-                    'onmouseover="'.getSlotPreviewEventBehaviour( $slot ).'"'
-                );
-            } else {
-                $behaviours = array(
-                    'onclick="'.getSlotPreviewEventBehaviour( $slot ).'"'
-                );
-            }
-    ?>
-            <div class="activity activity<?php echo $slot['event']['MonitorId'] ?>" style="left: <?php echo $index ?>px; height: <?php echo $slotHeight ?>px;" <?php echo join( " ", $behaviours ) ?>></div>
-    <?php
-        }
+    unset( $currFrameSlots );
+    $currFrameSlots = &$monFrameSlots[$monitorId];
+    foreach ( $currFrameSlots as $index=>$slot ) {
+      $slotHeight = (int)($slot['value']/$chart['data']['y']['density']);
+
+      if ( $slotHeight <= 0 )
+        continue;
+
+      if ( $mouseover ) {
+        $behaviours = array(
+          'onclick="'.getSlotShowEventBehaviour( $slot ).'"',
+          'onmouseover="'.getSlotPreviewEventBehaviour( $slot ).'"'
+        );
+      } else {
+        $behaviours = array(
+          'onclick="'.getSlotPreviewEventBehaviour( $slot ).'"'
+        );
+      }
 ?>
-          </div>
+        <div class="activity activity<?php echo $slot['event']['MonitorId'] ?>" style="left: <?php echo $index ?>px; height: <?php echo $slotHeight ?>px;" <?php echo join( " ", $behaviours ) ?>></div>
 <?php
-    }
+    } # end foreach $currFrameSlots
+?>
+        </div>
+<?php
+  } # end foreach $MonitorId
 }
 foreach( array_keys($monEventSlots) as $monitorId ) {
 ?>
           <div id="events<?php echo $monitorId ?>" class="events eventsSize eventsPos<?php echo $monitorId ?>">
 <?php
-    unset( $currEventSlots );
-    $currEventSlots = &$monEventSlots[$monitorId];
-    $monitorMouseover = $mouseover;
-    if ($monitors[$monitorId]['SaveJPEGs'] == 2) {
-        $monitorMouseover = false;
-    }
-    for ( $i = 0; $i < $chart['graph']['width']; $i++ ) {
-        if ( isset($currEventSlots[$i]) ) {
-            unset( $slot );
-            $slot = &$currEventSlots[$i];
+  unset( $currEventSlots );
+  $currEventSlots = &$monEventSlots[$monitorId];
+  $monitorMouseover = $mouseover;
+  if ($monitors[$monitorId]['SaveJPEGs'] == 2) {
+    $monitorMouseover = false;
+  }
+  for ( $i = 0; $i < $chart['graph']['width']; $i++ ) {
+    if ( isset($currEventSlots[$i]) ) {
+      unset( $slot );
+      $slot = &$currEventSlots[$i];
 
-            if ( $monitorMouseover ) {
-                $behaviours = array(
-                    'onclick="'.getSlotShowEventBehaviour( $slot ).'"',
-                    'onmouseover="'.getSlotPreviewEventBehaviour( $slot ).'"'
-                );
-            } else {
-                $behaviours = array(
-                    'onclick="'.getSlotPreviewEventBehaviour( $slot ).'"'
-                );
-            }
+      if ( $monitorMouseover ) {
+        $behaviours = array(
+            'onclick="'.getSlotShowEventBehaviour( $slot ).'"',
+            'onmouseover="'.getSlotPreviewEventBehaviour( $slot ).'"'
+        );
+      } else {
+        $behaviours = array(
+            'onclick="'.getSlotPreviewEventBehaviour( $slot ).'"'
+        );
+      }
 ?>
             <div class="event eventsHeight monitorColour<?php echo $monitorId ?>" style="left: <?php echo $i ?>px; width: <?php echo $slot['width'] ?>px;" <?php echo join( " ", $behaviours ) ?>></div>
 <?php
-        }
-    }
+    } # end if isset($currEventSlots[$i])
+  } # end foreach width segment
 ?>
           </div>
 <?php

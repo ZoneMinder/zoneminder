@@ -206,11 +206,12 @@ protected:
     unsigned long   event_id;
     unsigned long   monitor_id;
     unsigned long   frame_count;
-    time_t      start_time;
-    double      duration;
-    char      path[PATH_MAX];
-    int       n_frames;
-    FrameData     *frames;
+    time_t          start_time;
+    double          duration;
+    char            path[PATH_MAX];
+    int             n_frames;
+    FrameData       *frames;
+    char            video_file[PATH_MAX];
   };
 
 protected:

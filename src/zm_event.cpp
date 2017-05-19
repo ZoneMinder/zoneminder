@@ -533,7 +533,16 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
 
     // We are writing a Bulk frame
     if ( frame_type == BULK ) {
-      snprintf( sql, sizeof(sql), "update Events set Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d where Id = %d", delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, frames, alarm_frames, tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score, id );
+      snprintf( sql, sizeof(sql), "update Events set Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d where Id = %d", 
+          ( delta_time.positive?"":"-" ),
+          delta_time.sec, delta_time.fsec,
+          frames, 
+          alarm_frames,
+          tot_score,
+          (int)(alarm_frames?(tot_score/alarm_frames):0),
+          max_score,
+          id
+          );
       if ( mysql_query( &dbconn, sql ) ) {
         Error( "Can't update event: %s", mysql_error( &dbconn ) );
         exit( mysql_errno( &dbconn ) );
@@ -562,37 +571,37 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
   }
 
   /* This makes viewing the diagnostic images impossible because it keeps deleting them
-     if ( config.record_diag_images ) {
-       char diag_glob[PATH_MAX] = "";
+  if ( config.record_diag_images ) {
+    char diag_glob[PATH_MAX] = "";
 
-       snprintf( diag_glob, sizeof(diag_glob), "%s/%d/diag-*.jpg", config.dir_events, monitor->Id() );
-       glob_t pglob;
-       int glob_status = glob( diag_glob, 0, 0, &pglob );
-       if ( glob_status != 0 ) {
-         if ( glob_status < 0 ) {
-           Error( "Can't glob '%s': %s", diag_glob, strerror(errno) );
-         } else {
-           Debug( 1, "Can't glob '%s': %d", diag_glob, glob_status );
-         }
-       } else {
-         char new_diag_path[PATH_MAX] = "";
-         for ( int i = 0; i < pglob.gl_pathc; i++ ) {
-           char *diag_path = pglob.gl_pathv[i];
+    snprintf( diag_glob, sizeof(diag_glob), "%s/%d/diag-*.jpg", config.dir_events, monitor->Id() );
+    glob_t pglob;
+    int glob_status = glob( diag_glob, 0, 0, &pglob );
+    if ( glob_status != 0 ) {
+      if ( glob_status < 0 ) {
+        Error( "Can't glob '%s': %s", diag_glob, strerror(errno) );
+      } else {
+        Debug( 1, "Can't glob '%s': %d", diag_glob, glob_status );
+      }
+    } else {
+      char new_diag_path[PATH_MAX] = "";
+      for ( int i = 0; i < pglob.gl_pathc; i++ ) {
+        char *diag_path = pglob.gl_pathv[i];
 
-           char *diag_file = strstr( diag_path, "diag-" );
+        char *diag_file = strstr( diag_path, "diag-" );
 
-           if ( diag_file ) {
-             snprintf( new_diag_path, sizeof(new_diag_path), general_file_format, path, frames, diag_file );
+        if ( diag_file ) {
+          snprintf( new_diag_path, sizeof(new_diag_path), general_file_format, path, frames, diag_file );
 
-             if ( rename( diag_path, new_diag_path ) < 0 ) {
-               Error( "Can't rename '%s' to '%s': %s", diag_path, new_diag_path, strerror(errno) );
-             }
-           }
-         }
-       }
-       globfree( &pglob );
-     }
-   */
+          if ( rename( diag_path, new_diag_path ) < 0 ) {
+            Error( "Can't rename '%s' to '%s': %s", diag_path, new_diag_path, strerror(errno) );
+          }
+        }
+      }
+    }
+    globfree( &pglob );
+  }
+  */
 }
 
 bool EventStream::loadInitialEventData( int monitor_id, time_t event_time ) {
@@ -658,7 +667,7 @@ bool EventStream::loadInitialEventData( int init_event_id, unsigned int init_fra
 bool EventStream::loadEventData( int event_id ) {
   static char sql[ZM_SQL_MED_BUFSIZ];
 
-  snprintf( sql, sizeof(sql), "select M.Id, M.Name, E.StorageId, E.Frames, unix_timestamp( StartTime ) as StartTimestamp, (SELECT max(Delta)-min(Delta) FROM Frames WHERE EventId=E.Id) as Duration,E.DefaultVideo from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = %d", event_id );
+  snprintf( sql, sizeof(sql), "select MonitorId, StorageId, Frames, unix_timestamp( StartTime ) as StartTimestamp, (SELECT max(Delta)-min(Delta) FROM Frames WHERE EventId=Events.Id) as Duration, DefaultVideo from Events Id = %d", event_id );
 
   if ( mysql_query( &dbconn, sql ) ) {
     Error( "Can't run query: %s", mysql_error( &dbconn ) );
@@ -686,9 +695,9 @@ bool EventStream::loadEventData( int event_id ) {
   event_data = new EventData;
   event_data->event_id = event_id;
   event_data->monitor_id = atoi( dbrow[0] );
-  event_data->start_time = atoi(dbrow[4]);
+  event_data->start_time = atoi(dbrow[3]);
 
-  event_data->storage_id = dbrow[2] ? atoi( dbrow[2] ) : 0;
+  event_data->storage_id = dbrow[1] ? atoi( dbrow[1] ) : 0;
   Storage * storage = new Storage( event_data->storage_id );
   const char *storage_path = storage->Path();
 
@@ -704,9 +713,9 @@ bool EventStream::loadEventData( int event_id ) {
     else
       snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%ld", staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id, event_data->event_id );
   }
-  event_data->frame_count = dbrow[3] == NULL ? 0 : atoi(dbrow[3]);
-  event_data->duration = atof(dbrow[5]);
-  strncpy( event_data->video_file, dbrow[6], sizeof( event_data->video_file )-1 );
+  event_data->frame_count = dbrow[2] == NULL ? 0 : atoi(dbrow[3]);
+  event_data->duration = atof(dbrow[4]);
+  strncpy( event_data->video_file, dbrow[5], sizeof( event_data->video_file )-1 );
 
   updateFrameRate( (double)event_data->frame_count/event_data->duration );
 

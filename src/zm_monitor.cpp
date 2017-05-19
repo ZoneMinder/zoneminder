@@ -1897,8 +1897,8 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
     int hue = atoi(dbrow[col]); col++;
     int colour = atoi(dbrow[col]); col++;
 
-    const char *event_prefix = dbrow[col]; col++;
-    const char *label_format = dbrow[col]; col++;
+    const char *event_prefix = dbrow[col] ? dbrow[col] : ""; col++;
+    const char *label_format = dbrow[col] ? dbrow[col] : ""; col++;
 
     int label_x = atoi(dbrow[col]); col++;
     int label_y = atoi(dbrow[col]); col++;
@@ -2067,8 +2067,8 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
     int hue = atoi(dbrow[col]); col++;
     int colour = atoi(dbrow[col]); col++;
 
-    std::string event_prefix = dbrow[col] ? dbrow[col] : ""; col++;
-    std::string label_format = dbrow[col] ? dbrow[col] : ""; col++;
+    const char *event_prefix = dbrow[col] ? dbrow[col] : ""; col++;
+    const char *label_format = dbrow[col] ? dbrow[col] : ""; col++;
 
     int label_x = atoi(dbrow[col]); col++;
     int label_y = atoi(dbrow[col]); col++;
@@ -2152,8 +2152,8 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
       videowriter,
       encoderparams,
       record_audio,
-      event_prefix.c_str(),
-      label_format.c_str(),
+      event_prefix,
+      label_format,
       Coord( label_x, label_y ),
       label_size,
       image_buffer_count,
@@ -2246,9 +2246,9 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
     int hue = atoi(dbrow[col]); col++;
     int colour = atoi(dbrow[col]); col++;
 
-    std::string event_prefix = dbrow[col] ? dbrow[col] : ""; col++;
-    std::string label_format = dbrow[col] ? dbrow[col] : ""; col++;
-
+    const char *event_prefix = dbrow[col] ? dbrow[col] : ""; col++;
+    const char *label_format = dbrow[col] ? dbrow[col] : ""; col++;
+ 
     int label_x = atoi(dbrow[col]); col++;
     int label_y = atoi(dbrow[col]); col++;
     int label_size = atoi(dbrow[col]); col++;
@@ -2399,8 +2399,8 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
     int hue = atoi(dbrow[col]); col++;
     int colour = atoi(dbrow[col]); col++;
 
-    std::string event_prefix = dbrow[col] ? dbrow[col] : ""; col++;
-    std::string label_format = dbrow[col] ? dbrow[col] : ""; col++;
+    const char *event_prefix = dbrow[col] ? dbrow[col] : ""; col++;
+    const char *label_format = dbrow[col] ? dbrow[col] : ""; col++;
 
     int label_x = atoi(dbrow[col]); col++;
     int label_y = atoi(dbrow[col]); col++;
@@ -2415,12 +2415,14 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
     int section_length = atoi(dbrow[col]); col++;
     int frame_skip = atoi(dbrow[col]); col++;
     int motion_frame_skip = atoi(dbrow[col]); col++;
+
     double analysis_fps = dbrow[col] ? strtod(dbrow[col], NULL) : 0; col++;
     unsigned int analysis_update_delay = strtoul(dbrow[col++], NULL, 0);
     double capture_fps = dbrow[col] ? atof(dbrow[col]) : 0;col++;
     int capture_delay = capture_fps >0.0 ?int(DT_PREC_3/capture_fps):0; 
     double alarm_capture_fps = dbrow[col] ? atof(dbrow[col]) : 0; col++;
     int alarm_capture_delay = alarm_capture_fps > 0.0 ?int(DT_PREC_3/alarm_capture_fps):0;
+
     int fps_report_interval = atoi(dbrow[col]); col++;
     int ref_blend_perc = atoi(dbrow[col]); col++;
     int alarm_ref_blend_perc = atoi(dbrow[col]); col++;
@@ -2573,8 +2575,8 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
   int hue = atoi(dbrow[col]); col++;
   int colour = atoi(dbrow[col]); col++;
 
-  std::string event_prefix = dbrow[col] ? dbrow[col] : ""; col++;
-  std::string label_format = dbrow[col] ? dbrow[col] : ""; col++;
+  const char * event_prefix = dbrow[col] ? dbrow[col] : ""; col++;
+  const char * label_format = dbrow[col] ? dbrow[col] : ""; col++;
 
   int label_x = atoi(dbrow[col]); col++;
   int label_y = atoi(dbrow[col]); col++;
@@ -2769,8 +2771,8 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
     videowriter,
     encoderparams,
     record_audio,
-    event_prefix.c_str(),
-    label_format.c_str(),
+    event_prefix,
+    label_format,
     Coord( label_x, label_y ),
     label_size,
     image_buffer_count,

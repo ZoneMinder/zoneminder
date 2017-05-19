@@ -42,8 +42,10 @@ var streamStatus = null;
 var lastEventId = 0;
 
 function getCmdResponse( respObj, respText ) {
-  if ( checkStreamForErrors( "getCmdResponse", respObj ) )
+  if ( checkStreamForErrors( "getCmdResponse", respObj ) ) {
+    console.log('Got an error from getCmdResponse');
     return;
+  }
 
   if ( streamCmdTimer )
     streamCmdTimer = clearTimeout( streamCmdTimer );
@@ -56,10 +58,12 @@ function getCmdResponse( respObj, respText ) {
     lastEventId = eventId;
   }
   if ( streamStatus.paused == true ) {
+    console.log('paused');
     $('modeValue').set( 'text', "Paused" );
     $('rate').addClass( 'hidden' );
     streamPause( false );
   } else {
+    console.log('playing');
     $('modeValue').set( 'text', "Replay" );
     $('rateValue').set( 'text', streamStatus.rate );
     $('rate').removeClass( 'hidden' );
@@ -189,8 +193,10 @@ var slider = null;
 var scroll = null;
 
 function getEventResponse( respObj, respText ) {
-  if ( checkStreamForErrors( "getEventResponse", respObj ) )
+  if ( checkStreamForErrors( "getEventResponse", respObj ) ) {
+    console.log("getEventResponse: errors" );
     return;
+  }
 
   eventData = respObj.event;
   var eventStills = $('eventStills');
@@ -221,6 +227,7 @@ function getEventResponse( respObj, respText ) {
       $('unarchiveEvent').addClass( 'hidden' );
     }
   }
+  // Technically, events can be different sizes, so may need to update the size of the image, but it might be better to have it stay scaled...
   //var eventImg = $('eventImage');
   //eventImg.setStyles( { 'width': eventData.width, 'height': eventData.height } );
   drawProgressBar();
@@ -621,50 +628,55 @@ function videoEvent() {
   createPopup( '?view=video&eid='+eventData.Id, 'zmVideo', 'video', eventData.Width, eventData.Height );
 }
 
-
+// Called on each event load, because each event can be a different length.
 function drawProgressBar() {
-  var barWidth = 0;
+  // Make it invisible so we don't see the update happen
   $('progressBar').addClass( 'invisible' );
+  var barWidth = 0;
   var cells = $('progressBar').getElements( 'div' );
-  var cellWidth = parseInt( eventData.Width/$$(cells).length );
-  $$(cells).forEach(
-      function( cell, index )
-      {
-      if ( index == 0 )
-      $(cell).setStyles( { 'left': barWidth, 'width': cellWidth, 'borderLeft': 0 } );
-      else
-      $(cell).setStyles( { 'left': barWidth, 'width': cellWidth } );
-      var offset = parseInt((index*eventData.Length)/$$(cells).length);
-      $(cell).setProperty( 'title', '+'+secsToTime(offset)+'s' );
-      $(cell).removeEvent( 'click' );
-      $(cell).addEvent( 'click', function() { streamSeek( offset ); } );
-      barWidth += $(cell).getCoordinates().width;
-      }
-      );
+  var cells_length = cells.length;
+
+  var cellWidth = parseInt( eventData.Width / cells_length );
+  for ( var index = 0; index < cells_length; index += 1 ) {
+    var cell = $( cells[index] );
+    if ( index == 0 ) 
+      cell.setStyles( { 'left': barWidth, 'width': cellWidth, 'borderLeft': 0 } );
+    else
+      cell.setStyles( { 'left': barWidth, 'width': cellWidth } );
+
+    var offset = parseInt( (index*eventData.Length)/cells_length );
+    cell.setProperty( 'title', '+'+secsToTime(offset)+'s' );
+    cell.removeEvent( 'click' );
+    cell.addEvent( 'click', function() { streamSeek( offset ); } );
+    barWidth += cell.getCoordinates().width;
+  }
   $('progressBar').setStyle( 'width', barWidth );
   $('progressBar').removeClass( 'invisible' );
 }
 
+// Changes the colour of the cells making up the completed progress bar
 function updateProgressBar() {
-  if ( eventData && streamStatus ) {
-    var cells = $('progressBar').getElements( 'div' );
-    var completeIndex = parseInt((($$(cells).length+1)*streamStatus.progress)/eventData.Length);
-    $$(cells).forEach(
-      function( cell, index ) {
-        if ( index < completeIndex ) {
-          if ( !$(cell).hasClass( 'complete' ) ) {
-            $(cell).addClass( 'complete' );
-          }
-        } else {
-          if ( $(cell).hasClass( 'complete' ) ) {
-            $(cell).removeClass( 'complete' );
-          }
-        } // end if
-      } // end function
-    );
-    $('progressBar').setStyle( 'width', barWidth );
-    $('progressBar').removeClass( 'invisible' );
-  } // end if eventData && streamStatus
+  if ( ! ( eventData && streamStatus ) ) {
+    return;
+  } // end if ! eventData && streamStatus
+  var cells = $('progressBar').getElements( 'div' );
+  var cells_length = cells.length;
+  var completeIndex = parseInt(((cells_length+1)*streamStatus.progress)/eventData.Length);
+  for ( var index = 0; index < cells_length; index += 1 ) {
+    var cell = $( cells[index] );
+    if ( index < completeIndex ) {
+      if ( !cell.hasClass( 'complete' ) ) {
+        cell.addClass( 'complete' );
+      }
+    } else {
+      if ( cell.hasClass( 'complete' ) ) {
+        cell.removeClass( 'complete' );
+      }
+    } // end if
+  } // end function
+  // ICON: Shouldn't have to set the width or make it visible
+  // $('progressBar').setStyle( 'width', barWidth );
+  // $('progressBar').removeClass( 'invisible' );
 } // end function updateProgressBar()
 
 function handleClick( event ) {

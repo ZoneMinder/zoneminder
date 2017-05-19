@@ -1094,7 +1094,20 @@ bool EventStream::sendFrame( int delta_us ) {
   static struct stat filestat;
   FILE *fdj = NULL;
 
-  snprintf( filepath, sizeof(filepath), Event::capture_file_format, event_data->path, curr_frame_id );
+  // This needs to be abstracted.  If we are saving jpgs, then load the capture file.  If we are only saving analysis frames, then send that.
+  if ( monitor->GetOptSaveJPEGs() & 1 ) {
+    snprintf( filepath, sizeof(filepath), Event::capture_file_format, event_data->path, curr_frame_id );
+  } else if ( monitor->GetOptSaveJPEGs() & 2 ) {
+    snprintf( filepath, sizeof(filepath), Event::analyse_file_format, event_data->path, curr_frame_id );
+    if ( stat( filepath, &filestat ) < 0 ) {
+      Debug(1, "%s not found, dalling back to capture");
+      snprintf( filepath, sizeof(filepath), Event::capture_file_format, event_data->path, curr_frame_id );
+    }
+
+  } else {
+    Fatal("JPEGS not saved.zms is not capable of streaming jpegs from mp4 yet");
+    return false;
+  }
 
 #if HAVE_LIBAVCODEC
   if ( type == STREAM_MPEG ) {
@@ -1321,7 +1334,7 @@ void EventStream::runStream() {
     } else {
       usleep( (unsigned long)((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2))) );
     }
-  }
+  } // end while ! zm_terminate
 #if HAVE_LIBAVCODEC
   if ( type == STREAM_MPEG )
     delete vid_stream;

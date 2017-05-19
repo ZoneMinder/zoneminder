@@ -444,6 +444,9 @@ Monitor::Monitor(
   Debug( 1, "Monitor %s LBF = '%s', LBX = %d, LBY = %d, LBS = %d", name, label_format, label_coord.X(), label_coord.Y(), label_size );
   Debug( 1, "Monitor %s IBC = %d, WUC = %d, pEC = %d, PEC = %d, EAF = %d, FRI = %d, RBP = %d, ARBP = %d, FM = %d", name, image_buffer_count, warmup_count, pre_event_count, post_event_count, alarm_frame_count, fps_report_interval, ref_blend_perc, alarm_ref_blend_perc, track_motion );
 
+  //Set video recording flag for event start constructor and easy reference in code
+  videoRecording = ((GetOptVideoWriter() == H264PASSTHROUGH) && camera->SupportsNativeVideo());
+
   if ( purpose == ANALYSIS ) {
     static char path[PATH_MAX];
 
@@ -1235,9 +1238,6 @@ bool Monitor::Analyse() {
   if ( Enabled() ) {
     bool signal = shared_data->signal;
     bool signal_change = (signal != last_signal);
-    //Set video recording flag for event start constructor and easy reference in code
-    // TODO: Use enum instead of the # 2. Makes for easier reading
-    bool videoRecording = ((GetOptVideoWriter() == 2) && camera->SupportsNativeVideo());
     
     if ( trigger_data->trigger_state != TRIGGER_OFF ) {
       unsigned int score = 0;
@@ -1592,7 +1592,8 @@ bool Monitor::Analyse() {
       }
       shared_data->state = state = IDLE;
       last_section_mod = 0;
-    }
+    } // end if ( trigger_data->trigger_state != TRIGGER_OFF )
+
     if ( (!signal_change && signal) && (function == MODECT || function == MOCORD) ) {
       if ( state == ALARM ) {
          ref_image.Blend( *snap_image, alarm_ref_blend_perc );
@@ -2792,7 +2793,9 @@ int Monitor::Capture() {
     
     //Check if FFMPEG camera
     if ( ( videowriter == H264PASSTHROUGH ) && camera->SupportsNativeVideo() ) {
-      captureResult = camera->CaptureAndRecord(*(next_buffer.image), video_store_data->recording, video_store_data->event_file);
+      captureResult = camera->CaptureAndRecord(*(next_buffer.image),
+          video_store_data->recording,
+          video_store_data->event_file );
     } else {
       captureResult = camera->Capture(*(next_buffer.image));
     }

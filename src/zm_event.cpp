@@ -95,6 +95,8 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
   tot_score = 0;
   max_score = 0;
 
+  struct stat statbuf;
+
   if ( config.use_deep_storage ) {
     char *path_ptr = path;
     path_ptr += snprintf( path_ptr, sizeof(path), "%s/%d", config.dir_events, monitor->Id() );
@@ -113,7 +115,6 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     for ( unsigned int i = 0; i < sizeof(dt_parts)/sizeof(*dt_parts); i++ ) {
       path_ptr += snprintf( path_ptr, sizeof(path)-(path_ptr-path), "/%02d", dt_parts[i] );
 
-      struct stat statbuf;
       errno = 0;
       if ( stat( path, &statbuf ) ) {
         if ( errno == ENOENT || errno == ENOTDIR ) {
@@ -134,16 +135,9 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     snprintf( id_file, sizeof(id_file), "%s/.%d", date_path, id );
     if ( symlink( time_path, id_file ) < 0 )
       Fatal( "Can't symlink %s -> %s: %s", id_file, path, strerror(errno));
-    // Create empty id tag file
-    snprintf( id_file, sizeof(id_file), "%s/.%d", path, id );
-    if ( FILE *id_fp = fopen( id_file, "w" ) )
-      fclose( id_fp );
-    else
-      Fatal( "Can't fopen %s: %s", id_file, strerror(errno));
   } else {
     snprintf( path, sizeof(path), "%s/%d/%d", config.dir_events, monitor->Id(), id );
 
-    struct stat statbuf;
     errno = 0;
     stat( path, &statbuf );
     if ( errno == ENOENT || errno == ENOTDIR ) {
@@ -151,6 +145,9 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
         Error( "Can't mkdir %s: %s", path, strerror(errno));
       }
     }
+  } // deep storage or not
+
+  {
     char id_file[PATH_MAX];
     // Create empty id tag file
     snprintf( id_file, sizeof(id_file), "%s/.%d", path, id );
@@ -158,7 +155,8 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
       fclose( id_fp );
     else
       Fatal( "Can't fopen %s: %s", id_file, strerror(errno));
-  } // deep storage or not
+  }
+
   last_db_frame = 0;
 
   video_name[0] = 0;

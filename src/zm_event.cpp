@@ -695,9 +695,9 @@ bool EventStream::loadEventData( int event_id ) {
   event_data = new EventData;
   event_data->event_id = event_id;
   event_data->monitor_id = atoi( dbrow[0] );
-  event_data->storage_id = dbrow[2] ? atoi( dbrow[2] ) : 0;
   event_data->start_time = atoi(dbrow[4]);
 
+  event_data->storage_id = dbrow[2] ? atoi( dbrow[2] ) : 0;
   Storage * storage = new Storage( event_data->storage_id );
   const char *storage_path = storage->Path();
 

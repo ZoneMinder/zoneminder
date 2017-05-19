@@ -156,7 +156,6 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     snprintf( id_file, sizeof(id_file), "%s/.%d", date_path, id );
     if ( symlink( time_path, id_file ) < 0 )
       Fatal( "Can't symlink %s -> %s: %s", id_file, path, strerror(errno));
-
   } else {
     snprintf( path, sizeof(path), "%s/%d/%d", storage->Path(), monitor->Id(), id );
 

@@ -27,7 +27,6 @@ $eid = validInt( $_REQUEST['eid'] );
 $fid = !empty($_REQUEST['fid'])?validInt($_REQUEST['fid']):1;
 
 $Event = new Event( $eid );
-$Monitor = $Event->Monitor();
 if ( $user['MonitorIds'] ) {
   $monitor_ids = explode( ',', $user['MonitorIds'] );
   if ( count($monitor_ids) and ! in_array( $Event->MonitorId(), $monitor_ids ) ) {
@@ -35,6 +34,7 @@ if ( $user['MonitorIds'] ) {
     return;
   }
 }
+$Monitor = $Event->Monitor();
 
 if ( isset( $_REQUEST['rate'] ) )
   $rate = validInt($_REQUEST['rate']);
@@ -116,7 +116,10 @@ if ( ! $Event->Id() ) {
       <div id="menuBar1">
         <div id="scaleControl"><label for="scale"><?php echo translate('Scale') ?></label><?php echo buildSelect( "scale", $scales, "changeScale();" ); ?></div>
         <div id="replayControl"><label for="replayMode"><?php echo translate('Replay') ?></label><?php echo buildSelect( "replayMode", $replayModes, "changeReplayMode();" ); ?></div>
-        <div id="nameControl"><input type="text" id="eventName" name="eventName" value="<?php echo validHtmlStr($Event->Name()) ?>" size="16"/><input type="button" value="<?php echo translate('Rename') ?>" onclick="renameEvent()"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>/></div>
+        <div id="nameControl">
+          <input type="text" id="eventName" name="eventName" value="<?php echo validHtmlStr($Event->Name()) ?>" />
+          <input type="button" value="<?php echo translate('Rename') ?>" onclick="renameEvent()"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>/>
+        </div>
       </div>
       <div id="menuBar2">
         <div id="closeWindow"><a href="#" onclick="closeWindow();"><?php echo translate('Close') ?></a></div>
@@ -129,7 +132,7 @@ if ( canEdit( 'Events' ) ) {
         <div id="unarchiveEvent" class="hidden"><a href="#" onclick="unarchiveEvent()"><?php echo translate('Unarchive') ?></a></div>
 <?php 
   if ( $Event->DefaultVideo() ) { ?>
-<div id="downloadEventFile"><a href="<?php echo $Event->getStreamSrc()?>">Download MP4</a></div>
+        <div id="downloadEventFile"><a href="<?php echo $Event->getStreamSrc()?>">Download MP4</a></div>
 <?php
   } // end if Event->DefaultVideo
 } // end if can edit Events
@@ -157,7 +160,7 @@ if ( $Event->DefaultVideo() ) {
           </video>
         </div>
         <!--script>includeVideoJs();</script-->
-        <script>
+        <script type="text/javascript">
         var LabelFormat = "<?php echo validJsStr($Monitor->LabelFormat())?>";
         var monitorName = "<?php echo validJsStr($Monitor->Name())?>";
         var duration = <?php echo $Event->Length() ?>, startTime = '<?php echo $Event->StartTime() ?>';

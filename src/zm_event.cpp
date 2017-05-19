@@ -320,7 +320,7 @@ bool Event::WriteFrameVideo( const Image *image, const struct timeval timestamp,
   }
 
   /* Add the frame to the timecodes file */
-  fprintf(timecodes_fd, "%u\n", timeMS); 
+  fprintf(timecodes_fd, "%u\n", timeMS);
 
   return( true );
 }
@@ -561,45 +561,35 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
   }
 
   /* This makes viewing the diagnostic images impossible because it keeps deleting them
-     if ( config.record_diag_images )
-     {
-     char diag_glob[PATH_MAX] = "";
+     if ( config.record_diag_images ) {
+       char diag_glob[PATH_MAX] = "";
 
-     snprintf( diag_glob, sizeof(diag_glob), "%s/%d/diag-*.jpg", config.dir_events, monitor->Id() );
-     glob_t pglob;
-     int glob_status = glob( diag_glob, 0, 0, &pglob );
-     if ( glob_status != 0 )
-     {
-     if ( glob_status < 0 )
-     {
-     Error( "Can't glob '%s': %s", diag_glob, strerror(errno) );
-     }
-     else
-     {
-     Debug( 1, "Can't glob '%s': %d", diag_glob, glob_status );
-     }
-     }
-     else
-     {
-     char new_diag_path[PATH_MAX] = "";
-     for ( int i = 0; i < pglob.gl_pathc; i++ )
-     {
-     char *diag_path = pglob.gl_pathv[i];
+       snprintf( diag_glob, sizeof(diag_glob), "%s/%d/diag-*.jpg", config.dir_events, monitor->Id() );
+       glob_t pglob;
+       int glob_status = glob( diag_glob, 0, 0, &pglob );
+       if ( glob_status != 0 ) {
+         if ( glob_status < 0 ) {
+           Error( "Can't glob '%s': %s", diag_glob, strerror(errno) );
+         } else {
+           Debug( 1, "Can't glob '%s': %d", diag_glob, glob_status );
+         }
+       } else {
+         char new_diag_path[PATH_MAX] = "";
+         for ( int i = 0; i < pglob.gl_pathc; i++ ) {
+           char *diag_path = pglob.gl_pathv[i];
 
-     char *diag_file = strstr( diag_path, "diag-" );
+           char *diag_file = strstr( diag_path, "diag-" );
 
-     if ( diag_file )
-     {
-     snprintf( new_diag_path, sizeof(new_diag_path), general_file_format, path, frames, diag_file );
+           if ( diag_file ) {
+             snprintf( new_diag_path, sizeof(new_diag_path), general_file_format, path, frames, diag_file );
 
-     if ( rename( diag_path, new_diag_path ) < 0 )
-     {
-     Error( "Can't rename '%s' to '%s': %s", diag_path, new_diag_path, strerror(errno) );
-     }
-     }
-     }
-     }
-     globfree( &pglob );
+             if ( rename( diag_path, new_diag_path ) < 0 ) {
+               Error( "Can't rename '%s' to '%s': %s", diag_path, new_diag_path, strerror(errno) );
+             }
+           }
+         }
+       }
+       globfree( &pglob );
      }
    */
 }
@@ -1189,7 +1179,7 @@ bool EventStream::sendFrame( int delta_us ) {
         Error( "Can't open %s: %s", filepath, strerror(errno) );
         return( false );
       }
-#if HAVE_SENDFILE            
+#if HAVE_SENDFILE
       if( fstat(fileno(fdj),&filestat) < 0 ) {
         Error( "Failed getting information about file %s: %s", filepath, strerror(errno) );
         return( false );
@@ -1243,7 +1233,7 @@ bool EventStream::sendFrame( int delta_us ) {
 
 
     if(send_raw) {
-#if HAVE_SENDFILE  
+#if HAVE_SENDFILE
       fprintf( stdout, "Content-Length: %d\r\n\r\n", (int)filestat.st_size );
       if(zm_sendfile(fileno(stdout), fileno(fdj), 0, (int)filestat.st_size) != (int)filestat.st_size) {
         /* sendfile() failed, use standard way instead */
@@ -1349,7 +1339,7 @@ void EventStream::runStream() {
         // if effective > base we should speed up frame delivery
         delta_us = (unsigned int)((delta_us * base_fps)/effective_fps);
         // but must not exceed maxfps
-        delta_us = max(delta_us, 1000000 / maxfps); 
+        delta_us = max(delta_us, 1000000 / maxfps);
         send_frame = true;
       }
     } else if ( step != 0 ) {

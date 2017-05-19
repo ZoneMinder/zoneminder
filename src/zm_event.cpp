@@ -142,7 +142,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
       Fatal( "Can't fopen %s: %s", id_file, strerror(errno));
   } else {
     snprintf( path, sizeof(path), "%s/%d/%d", config.dir_events, monitor->Id(), id );
-    
+
     struct stat statbuf;
     errno = 0;
     stat( path, &statbuf );
@@ -301,7 +301,7 @@ bool Event::WriteFrameVideo( const Image *image, const struct timeval timestamp,
   }
 
   /* Add the frame to the timecodes file */
-  fprintf(timecodes_fd, "%u\n", timeMS); 
+  fprintf(timecodes_fd, "%u\n", timeMS);
 
   return( true );
 }
@@ -540,7 +540,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
       }
     }
   }
-  
+
   /* This makes viewing the diagnostic images impossible because it keeps deleting them
   if ( config.record_diag_images )
   {
@@ -760,7 +760,7 @@ bool EventStream::loadEventData( int event_id ) {
 }
 
 void EventStream::processCommand( const CmdMsg *msg ) {
-  Debug( 2, "Got message, type %d, msg %d", msg->msg_type, msg->msg_data[0] )
+  Debug( 2, "Got message, type %d, msg %d", msg->msg_type, msg->msg_data[0] );
   // Check for incoming command
   switch( (MsgCommand)msg->msg_data[0] ) {
     case CMD_PAUSE :
@@ -1098,7 +1098,7 @@ bool EventStream::sendFrame( int delta_us ) {
   static char filepath[PATH_MAX];
   static struct stat filestat;
   FILE *fdj = NULL;
-  
+
   snprintf( filepath, sizeof(filepath), Event::capture_file_format, event_data->path, curr_frame_id );
 
 #if HAVE_LIBAVCODEC
@@ -1134,7 +1134,7 @@ bool EventStream::sendFrame( int delta_us ) {
         Error( "Can't open %s: %s", filepath, strerror(errno) );
         return( false );
       }
-#if HAVE_SENDFILE      
+#if HAVE_SENDFILE
       if( fstat(fileno(fdj),&filestat) < 0 ) {
         Error( "Failed getting information about file %s: %s", filepath, strerror(errno) );
         return( false );
@@ -1188,7 +1188,7 @@ bool EventStream::sendFrame( int delta_us ) {
 
 
     if(send_raw) {
-#if HAVE_SENDFILE  
+#if HAVE_SENDFILE
       fprintf( stdout, "Content-Length: %d\r\n\r\n", (int)filestat.st_size );
       if(zm_sendfile(fileno(stdout), fileno(fdj), 0, (int)filestat.st_size) != (int)filestat.st_size) {
         /* sendfile() failed, use standard way instead */
@@ -1213,7 +1213,7 @@ bool EventStream::sendFrame( int delta_us ) {
         return( false );
       }
     }
-  
+
     fprintf( stdout, "\r\n\r\n" );
     fflush( stdout );
   }
@@ -1294,7 +1294,7 @@ void EventStream::runStream() {
         // if effective > base we should speed up frame delivery
         delta_us = (unsigned int)((delta_us * base_fps)/effective_fps);
         // but must not exceed maxfps
-        delta_us = max(delta_us, 1000000 / maxfps); 
+        delta_us = max(delta_us, 1000000 / maxfps);
         send_frame = true;
       }
     } else if ( step != 0 ) {

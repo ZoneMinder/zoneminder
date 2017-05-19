@@ -764,232 +764,232 @@ void EventStream::processCommand( const CmdMsg *msg ) {
   // Check for incoming command
   switch( (MsgCommand)msg->msg_data[0] ) {
     case CMD_PAUSE :
-    {
-      Debug( 1, "Got PAUSE command" );
+      {
+        Debug( 1, "Got PAUSE command" );
 
-      // Set paused flag
-      paused = true;
-      replay_rate = ZM_RATE_BASE;
-      last_frame_sent = TV_2_FLOAT( now );
-      break;
-    }
+        // Set paused flag
+        paused = true;
+        replay_rate = ZM_RATE_BASE;
+        last_frame_sent = TV_2_FLOAT( now );
+        break;
+      }
     case CMD_PLAY :
-    {
-      Debug( 1, "Got PLAY command" );
-      if ( paused )
       {
-        // Clear paused flag
-        paused = false;
+        Debug( 1, "Got PLAY command" );
+        if ( paused )
+        {
+          // Clear paused flag
+          paused = false;
+        }
+
+        // If we are in single event mode and at the last frame, replay the current event
+        if ( (mode == MODE_SINGLE) && ((unsigned int)curr_frame_id == event_data->frame_count) )
+          curr_frame_id = 1;
+
+        replay_rate = ZM_RATE_BASE;
+        break;
       }
-
-    // If we are in single event mode and at the last frame, replay the current event
-    if ( (mode == MODE_SINGLE) && ((unsigned int)curr_frame_id == event_data->frame_count) )
-    curr_frame_id = 1;
-
-      replay_rate = ZM_RATE_BASE;
-      break;
-    }
     case CMD_VARPLAY :
-    {
-      Debug( 1, "Got VARPLAY command" );
-      if ( paused )
       {
-        // Clear paused flag
-        paused = false;
+        Debug( 1, "Got VARPLAY command" );
+        if ( paused )
+        {
+          // Clear paused flag
+          paused = false;
+        }
+        replay_rate = ntohs(((unsigned char)msg->msg_data[2]<<8)|(unsigned char)msg->msg_data[1])-32768;
+        break;
       }
-      replay_rate = ntohs(((unsigned char)msg->msg_data[2]<<8)|(unsigned char)msg->msg_data[1])-32768;
-      break;
-    }
     case CMD_STOP :
-    {
-      Debug( 1, "Got STOP command" );
+      {
+        Debug( 1, "Got STOP command" );
 
-      // Clear paused flag
-      paused = false;
-      break;
-    }
+        // Clear paused flag
+        paused = false;
+        break;
+      }
     case CMD_FASTFWD :
-    {
-      Debug( 1, "Got FAST FWD command" );
-      if ( paused ) {
-        // Clear paused flag
-        paused = false;
+      {
+        Debug( 1, "Got FAST FWD command" );
+        if ( paused ) {
+          // Clear paused flag
+          paused = false;
+        }
+        // Set play rate
+        switch ( replay_rate ) {
+          case 2 * ZM_RATE_BASE :
+            replay_rate = 5 * ZM_RATE_BASE;
+            break;
+          case 5 * ZM_RATE_BASE :
+            replay_rate = 10 * ZM_RATE_BASE;
+            break;
+          case 10 * ZM_RATE_BASE :
+            replay_rate = 25 * ZM_RATE_BASE;
+            break;
+          case 25 * ZM_RATE_BASE :
+          case 50 * ZM_RATE_BASE :
+            replay_rate = 50 * ZM_RATE_BASE;
+            break;
+          default :
+            replay_rate = 2 * ZM_RATE_BASE;
+            break;
+        }
+        break;
       }
-      // Set play rate
-      switch ( replay_rate ) {
-        case 2 * ZM_RATE_BASE :
-          replay_rate = 5 * ZM_RATE_BASE;
-          break;
-        case 5 * ZM_RATE_BASE :
-          replay_rate = 10 * ZM_RATE_BASE;
-          break;
-        case 10 * ZM_RATE_BASE :
-          replay_rate = 25 * ZM_RATE_BASE;
-          break;
-        case 25 * ZM_RATE_BASE :
-        case 50 * ZM_RATE_BASE :
-          replay_rate = 50 * ZM_RATE_BASE;
-          break;
-        default :
-          replay_rate = 2 * ZM_RATE_BASE;
-          break;
-      }
-      break;
-    }
     case CMD_SLOWFWD :
-    {
-      Debug( 1, "Got SLOW FWD command" );
-      // Set paused flag
-      paused = true;
-      // Set play rate
-      replay_rate = ZM_RATE_BASE;
-      // Set step
-      step = 1;
-      break;
-    }
+      {
+        Debug( 1, "Got SLOW FWD command" );
+        // Set paused flag
+        paused = true;
+        // Set play rate
+        replay_rate = ZM_RATE_BASE;
+        // Set step
+        step = 1;
+        break;
+      }
     case CMD_SLOWREV :
-    {
-      Debug( 1, "Got SLOW REV command" );
-      // Set paused flag
-      paused = true;
-      // Set play rate
-      replay_rate = ZM_RATE_BASE;
-      // Set step
-      step = -1;
-      break;
-    }
+      {
+        Debug( 1, "Got SLOW REV command" );
+        // Set paused flag
+        paused = true;
+        // Set play rate
+        replay_rate = ZM_RATE_BASE;
+        // Set step
+        step = -1;
+        break;
+      }
     case CMD_FASTREV :
-    {
-      Debug( 1, "Got FAST REV command" );
-      if ( paused ) {
-        // Clear paused flag
-        paused = false;
+      {
+        Debug( 1, "Got FAST REV command" );
+        if ( paused ) {
+          // Clear paused flag
+          paused = false;
+        }
+        // Set play rate
+        switch ( replay_rate ) {
+          case -2 * ZM_RATE_BASE :
+            replay_rate = -5 * ZM_RATE_BASE;
+            break;
+          case -5 * ZM_RATE_BASE :
+            replay_rate = -10 * ZM_RATE_BASE;
+            break;
+          case -10 * ZM_RATE_BASE :
+            replay_rate = -25 * ZM_RATE_BASE;
+            break;
+          case -25 * ZM_RATE_BASE :
+          case -50 * ZM_RATE_BASE :
+            replay_rate = -50 * ZM_RATE_BASE;
+            break;
+          default :
+            replay_rate = -2 * ZM_RATE_BASE;
+            break;
+        }
+        break;
       }
-      // Set play rate
-      switch ( replay_rate ) {
-        case -2 * ZM_RATE_BASE :
-          replay_rate = -5 * ZM_RATE_BASE;
-          break;
-        case -5 * ZM_RATE_BASE :
-          replay_rate = -10 * ZM_RATE_BASE;
-          break;
-        case -10 * ZM_RATE_BASE :
-          replay_rate = -25 * ZM_RATE_BASE;
-          break;
-        case -25 * ZM_RATE_BASE :
-        case -50 * ZM_RATE_BASE :
-          replay_rate = -50 * ZM_RATE_BASE;
-          break;
-        default :
-          replay_rate = -2 * ZM_RATE_BASE;
-          break;
-      }
-      break;
-    }
     case CMD_ZOOMIN :
-    {
-      x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
-      y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
-      Debug( 1, "Got ZOOM IN command, to %d,%d", x, y );
-      switch ( zoom ) {
-        case 100:
-          zoom = 150;
-          break;
-        case 150:
-          zoom = 200;
-          break;
-        case 200:
-          zoom = 300;
-          break;
-        case 300:
-          zoom = 400;
-          break;
-        case 400:
-        default :
-          zoom = 500;
-          break;
+      {
+        x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
+        y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
+        Debug( 1, "Got ZOOM IN command, to %d,%d", x, y );
+        switch ( zoom ) {
+          case 100:
+            zoom = 150;
+            break;
+          case 150:
+            zoom = 200;
+            break;
+          case 200:
+            zoom = 300;
+            break;
+          case 300:
+            zoom = 400;
+            break;
+          case 400:
+          default :
+            zoom = 500;
+            break;
+        }
+        break;
       }
-      break;
-    }
     case CMD_ZOOMOUT :
-    {
-      Debug( 1, "Got ZOOM OUT command" );
-      switch ( zoom ) {
-        case 500:
-          zoom = 400;
-          break;
-        case 400:
-          zoom = 300;
-          break;
-        case 300:
-          zoom = 200;
-          break;
-        case 200:
-          zoom = 150;
-          break;
-        case 150:
-        default :
-          zoom = 100;
-          break;
+      {
+        Debug( 1, "Got ZOOM OUT command" );
+        switch ( zoom ) {
+          case 500:
+            zoom = 400;
+            break;
+          case 400:
+            zoom = 300;
+            break;
+          case 300:
+            zoom = 200;
+            break;
+          case 200:
+            zoom = 150;
+            break;
+          case 150:
+          default :
+            zoom = 100;
+            break;
+        }
+        break;
       }
-      break;
-    }
     case CMD_PAN :
-    {
-      x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
-      y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
-      Debug( 1, "Got PAN command, to %d,%d", x, y );
-      break;
-    }
+      {
+        x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
+        y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
+        Debug( 1, "Got PAN command, to %d,%d", x, y );
+        break;
+      }
     case CMD_SCALE :
-    {
-      scale = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
-      Debug( 1, "Got SCALE command, to %d", scale );
-      break;
-    }
+      {
+        scale = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
+        Debug( 1, "Got SCALE command, to %d", scale );
+        break;
+      }
     case CMD_PREV :
-    {
-      Debug( 1, "Got PREV command" );
-      if ( replay_rate >= 0 )
-        curr_frame_id = 0;
-      else
-        curr_frame_id = event_data->frame_count+1;
-      paused = false;
-      forceEventChange = true;
-      break;
-    }
+      {
+        Debug( 1, "Got PREV command" );
+        if ( replay_rate >= 0 )
+          curr_frame_id = 0;
+        else
+          curr_frame_id = event_data->frame_count+1;
+        paused = false;
+        forceEventChange = true;
+        break;
+      }
     case CMD_NEXT :
-    {
-      Debug( 1, "Got NEXT command" );
-      if ( replay_rate >= 0 )
-        curr_frame_id = event_data->frame_count+1;
-      else
-        curr_frame_id = 0;
-      paused = false;
-      forceEventChange = true;
-      break;
-    }
+      {
+        Debug( 1, "Got NEXT command" );
+        if ( replay_rate >= 0 )
+          curr_frame_id = event_data->frame_count+1;
+        else
+          curr_frame_id = 0;
+        paused = false;
+        forceEventChange = true;
+        break;
+      }
     case CMD_SEEK :
-    {
-      int offset = ((unsigned char)msg->msg_data[1]<<24)|((unsigned char)msg->msg_data[2]<<16)|((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
-      curr_frame_id = (int)(event_data->frame_count*offset/event_data->duration);
-      Debug( 1, "Got SEEK command, to %d (new cfid: %d)", offset, curr_frame_id );
-      break;
-    }
+      {
+        int offset = ((unsigned char)msg->msg_data[1]<<24)|((unsigned char)msg->msg_data[2]<<16)|((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
+        curr_frame_id = (int)(event_data->frame_count*offset/event_data->duration);
+        Debug( 1, "Got SEEK command, to %d (new cfid: %d)", offset, curr_frame_id );
+        break;
+      }
     case CMD_QUERY :
-    {
-      Debug( 1, "Got QUERY command, sending STATUS" );
-      break;
-    }
-  case CMD_QUIT :
-    {
-       Info ("User initiated exit - CMD_QUIT");
-       break;
-    }
+      {
+        Debug( 1, "Got QUERY command, sending STATUS" );
+        break;
+      }
+    case CMD_QUIT :
+      {
+        Info ("User initiated exit - CMD_QUIT");
+        break;
+      }
     default :
-    {
-      // Do nothing, for now
-    }
+      {
+        // Do nothing, for now
+      }
   }
   struct {
     int event;

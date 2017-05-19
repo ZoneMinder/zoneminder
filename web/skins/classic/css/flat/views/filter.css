@@ -10,8 +10,9 @@ table.filterTable {
 }
 
 #fieldsTable input[type=button] {
-    width: 1.6em;
+    width: 1.8em;
     margin-left: 2px;
+    padding: 5px;
     text-align: center;
 }
 

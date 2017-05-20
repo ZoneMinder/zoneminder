@@ -17,6 +17,11 @@
 # This will tell zoneminder's cmake process we are building against a known distro
 %global zmtargetdistro %{?rhel:el%{rhel}}%{!?rhel:fc%{fedora}}
 
+# Fedora >= 25 needs apcu backwards compatibility module
+%if 0%{?fedora} >= 25
+%global with_apcu_bc 1
+%endif
+
 # Include files for SysV init or systemd
 %if 0%{?fedora} >= 15 || 0%{?rhel} >= 7
 %global with_init_systemd 1
@@ -28,8 +33,8 @@
 %global _hardened_build 1
 
 Name: zoneminder
-Version: 1.30.2
-Release: 2%{?dist}
+Version: 1.30.4
+Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
 # jscalendar is LGPL (any version): http://www.dynarch.com/projects/calendar/
@@ -45,6 +50,7 @@ Source1: https://github.com/FriendsOfCake/crud/archive/v%{crud_version}.tar.gz#/
 %{?with_init_systemd:BuildRequires: systemd-devel}
 %{?with_init_systemd:BuildRequires: mariadb-devel}
 %{?with_init_systemd:BuildRequires: perl-podlators}
+%{?with_init_systemd:BuildRequires: polkit-devel}
 %{?with_init_sysv:BuildRequires: mysql-devel}
 %{?el6:BuildRequires: epel-rpm-macros}
 BuildRequires: cmake >= 2.8.7
@@ -76,7 +82,6 @@ BuildRequires: vlc-devel
 BuildRequires: libcurl-devel
 BuildRequires: libv4l-devel
 BuildRequires: ffmpeg-devel
-BuildRequires: polkit-devel
 
 %{?with_nginx:Requires: nginx}
 %{?with_nginx:Requires: fcgiwrap}
@@ -86,6 +91,8 @@ BuildRequires: polkit-devel
 Requires: php-mysqli
 Requires: php-common
 Requires: php-gd
+Requires: php-pecl-apcu
+%{?with_apcu_bc:Requires: php-pecl-apcu-bc}
 Requires: cambozola
 Requires: net-tools
 Requires: psmisc
@@ -130,8 +137,7 @@ designed to support as many cameras as you can attach to your computer without
 too much degradation of performance.
 
 %prep
-%autosetup -n ZoneMinder-%{version}
-%autosetup -a 1 -n ZoneMinder-%{version}
+%autosetup -p 1 -a 1 -n ZoneMinder-%{version}
 %{__rm} -rf ./web/api/app/Plugin/Crud
 %{__mv} -f crud-%{crud_version} ./web/api/app/Plugin/Crud
 
@@ -285,6 +291,8 @@ rm -rf %{_docdir}/%{name}-%{version}
 %if 0%{?with_init_systemd}
 %{_tmpfilesdir}/zoneminder.conf
 %{_unitdir}/zoneminder.service
+%{_datadir}/polkit-1/actions/com.zoneminder.systemctl.policy
+%{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
 %endif
 
 %if 0%{?with_init_sysv}
@@ -297,7 +305,6 @@ rm -rf %{_docdir}/%{name}-%{version}
 %{_bindir}/zmc
 %{_bindir}/zmcontrol.pl
 %{_bindir}/zmdc.pl
-%{_bindir}/zmf
 %{_bindir}/zmfilter.pl
 %{_bindir}/zmpkg.pl
 %{_bindir}/zmtrack.pl
@@ -322,9 +329,6 @@ rm -rf %{_docdir}/%{name}-%{version}
 %{_libexecdir}/zoneminder/
 %{_datadir}/zoneminder/
 
-%{_datadir}/polkit-1/actions/com.zoneminder.systemctl.policy
-%{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
-
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/events
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/images
@@ -335,14 +339,15 @@ rm -rf %{_docdir}/%{name}-%{version}
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/spool/zoneminder-upload
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/run/zoneminder
 
-# cakephp requires its cache folders to pre-exist
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/temp/logs
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/temp/cache
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/temp/cache/views
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/temp/cache/models
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/temp/cache/persistent
-
 %changelog
+* Tue May 09 2017 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.4-1
+- modify autosetup macro parameters
+- modify requirements for php-pecl-acpu-bc package
+- 1.30.4 release
+
+* Tue May 02 2017 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.3-1
+- 1.30.3 release
+
 * Thu Mar 30 2017 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.2-2
 - 1.30.2 release
 

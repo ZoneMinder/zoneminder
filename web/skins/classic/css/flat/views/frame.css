@@ -1,3 +1,7 @@
+#scaleControl {
+  float: right;
+}
+
 #controls {
     width: 80%;
     text-align: center;

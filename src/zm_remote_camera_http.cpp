@@ -30,9 +30,39 @@
 #ifdef SOLARIS
 #include <sys/filio.h> // FIONREAD and friends
 #endif
+#ifdef __FreeBSD__
+#include <netinet/in.h>
+#endif
 
-RemoteCameraHttp::RemoteCameraHttp( int p_id, const std::string &p_method, const std::string &p_host, const std::string &p_port, const std::string &p_path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) :
-  RemoteCamera( p_id, "http", p_host, p_port, p_path, p_width, p_height, p_colours, p_brightness, p_contrast, p_hue, p_colour, p_capture )
+RemoteCameraHttp::RemoteCameraHttp(
+  unsigned int p_monitor_id,
+  const std::string &p_method,
+  const std::string &p_host,
+  const std::string &p_port,
+  const std::string &p_path,
+  int p_width, int p_height,
+  int p_colours,
+  int p_brightness,
+  int p_contrast,
+  int p_hue,
+  int p_colour,
+  bool p_capture,
+  bool p_record_audio ) :
+  RemoteCamera(
+    p_monitor_id,
+    "http",
+    p_host,
+    p_port,
+    p_path,
+    p_width,
+    p_height,
+    p_colours,
+    p_brightness,
+    p_contrast,
+    p_hue,
+    p_colour,
+    p_capture,
+    p_record_audio )
 {
   sd = -1;
 
@@ -44,7 +74,7 @@ RemoteCameraHttp::RemoteCameraHttp( int p_id, const std::string &p_method, const
   else if ( p_method == "regexp" )
     method = REGEXP;
   else
-    Fatal( "Unrecognised method '%s' when creating HTTP camera %d", p_method.c_str(), id );
+    Fatal( "Unrecognised method '%s' when creating HTTP camera %d", p_method.c_str(), monitor_id );
   if ( capture )
   {
     Initialise();
@@ -108,7 +138,12 @@ int RemoteCameraHttp::Connect()
     {
       close(sd);
       sd = -1;
-      Warning("Can't connect to remote camera: %s", strerror(errno) );
+      char buf[sizeof(struct in6_addr)];
+      struct sockaddr_in *addr;
+      addr = (struct sockaddr_in *)p->ai_addr; 
+      inet_ntop( AF_INET, &(addr->sin_addr), buf, INET6_ADDRSTRLEN );
+
+      Warning("Can't connect to remote camera mid: %d at %s: %s", monitor_id, buf, strerror(errno) );
       continue;
     }
 
@@ -154,7 +189,7 @@ int RemoteCameraHttp::SendRequest()
  * > 0 is the # of bytes read.
  */
 
-int RemoteCameraHttp::ReadData( Buffer &buffer, int bytes_expected )
+int RemoteCameraHttp::ReadData( Buffer &buffer, unsigned int bytes_expected )
 {
   fd_set rfds;
   FD_ZERO(&rfds);

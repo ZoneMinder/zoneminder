@@ -181,8 +181,9 @@ void Logger::initialise( const std::string &id, const Options &options ) {
           }
         }
       }
-    }
-  }
+    } // end foreach target
+  } // end if config.log_debug
+
 
   logFile( tempLogFile );
 
@@ -196,7 +197,6 @@ void Logger::initialise( const std::string &id, const Options &options ) {
   mFlush = (envPtr = getenv( "LOG_FLUSH")) ? atoi( envPtr ) : false;
 
   //mRuntime = (envPtr = getenv( "LOG_RUNTIME")) ? atoi( envPtr ) : false;
-
   {
     struct sigaction action;
     memset( &action, 0, sizeof(action) );
@@ -465,16 +465,13 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
     gettimeofday( &timeVal, NULL );
 
 #if 0
-    if ( logRuntime )
-    {
+    if ( logRuntime ) {
       static struct timeval logStart;
 
       subtractTime( &timeVal, &logStart );
 
       snprintf( timeString, sizeof(timeString), "%ld.%03ld", timeVal.tv_sec, timeVal.tv_usec/1000 );
-    }
-    else
-    {
+    } else {
 #endif
       char *timePtr = timeString;
       timePtr += strftime( timePtr, sizeof(timeString), "%x %H:%M:%S", localtime(&timeVal.tv_sec) );

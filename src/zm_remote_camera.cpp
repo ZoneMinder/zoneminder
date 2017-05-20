@@ -48,16 +48,14 @@ RemoteCamera::RemoteCamera(
     path = '/'+path;
 }
 
-RemoteCamera::~RemoteCamera()
-{
-  if(hp != NULL) {
+RemoteCamera::~RemoteCamera() {
+  if ( hp != NULL ) {
       freeaddrinfo(hp);
     hp = NULL;
   }
 }
 
-void RemoteCamera::Initialise()
-{
+void RemoteCamera::Initialise() {
   if( protocol.empty() )
     Fatal( "No protocol specified for remote camera" );
 
@@ -73,8 +71,7 @@ void RemoteCamera::Initialise()
   // Cache as much as we can to speed things up
   std::string::size_type authIndex = host.rfind( '@' );
 
-  if ( authIndex != std::string::npos )
-  {
+  if ( authIndex != std::string::npos ) {
     auth = host.substr( 0, authIndex );
     host.erase( 0, authIndex+1 );
     auth64 = base64Encode( auth );
@@ -82,7 +79,6 @@ void RemoteCamera::Initialise()
     authIndex = auth.rfind( ':' );
     username = auth.substr(0,authIndex);
     password = auth.substr( authIndex+1, auth.length() );
-
   }
 
   mNeedAuth = false;
@@ -94,9 +90,7 @@ void RemoteCamera::Initialise()
   hints.ai_socktype = SOCK_STREAM;
 
   int ret = getaddrinfo(host.c_str(), port.c_str(), &hints, &hp);
-  if ( ret != 0 )
-  {
+  if ( ret != 0 ) {
     Fatal( "Can't getaddrinfo(%s port %s): %s", host.c_str(), port.c_str(), gai_strerror(ret) );
   }
 }
-

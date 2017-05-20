@@ -330,12 +330,12 @@ void Event::updateNotes( const StringSetMap &newNoteSetMap ) {
                 noteSet.insert( newNote );
                 update = true;
               }
-            }
-          }
-        }
-      }
-    }
-  }
+            } // end for
+          } // end if ( noteSetMap.size() == 0
+        } // end if newNoteSetupMap.size() > 0
+      } // end foreach newNoteSetMap
+    } // end if have old notes
+  } // end if have new notes
 
   if ( update ) {
     std::string notes;

@@ -165,7 +165,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     snprintf( video_file, sizeof(video_file), video_file_format, path, video_name );
 
     /* X264 MP4 video writer */
-    if ( monitor->GetOptVideoWriter() == X264ENCODE ) {
+    if ( monitor->GetOptVideoWriter() == Monitor::X264ENCODE ) {
 #if ZM_HAVE_VIDEOWRITER_X264MP4
       videowriter = new X264MP4Writer(video_file, monitor->Width(), monitor->Height(), monitor->Colours(), monitor->SubpixelOrder(), monitor->GetOptEncoderParams());
 #else

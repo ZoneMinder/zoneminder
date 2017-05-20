@@ -27,6 +27,7 @@
 #include "zm_rtsp.h"
 #include "zm_ffmpeg.h"
 #include "zm_videostore.h"
+#include "zm_packetqueue.h"
 
 //
 // Class representing 'rtsp' cameras, i.e. those which are
@@ -52,16 +53,16 @@ protected:
   RtspThread *rtspThread;
 
   int frameCount;
-  
+
 #if HAVE_LIBAVFORMAT
-  AVFormatContext   *mFormatContext;
-  int         mVideoStreamId;
-  int         mAudioStreamId;
-  AVCodecContext    *mCodecContext;
-  AVCodec       *mCodec;
-  AVFrame       *mRawFrame; 
-  AVFrame       *mFrame;
-  _AVPIXELFORMAT     imagePixFormat;
+  AVFormatContext     *mFormatContext;
+  int                 mVideoStreamId;
+  int                 mAudioStreamId;
+  AVCodecContext      *mCodecContext;
+  AVCodec             *mCodec;
+  AVFrame             *mRawFrame; 
+  AVFrame             *mFrame;
+  _AVPIXELFORMAT         imagePixFormat;
 #endif // HAVE_LIBAVFORMAT
   bool                wasRecording;
   VideoStore          *videoStore;

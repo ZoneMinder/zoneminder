@@ -549,7 +549,7 @@ void VideoStore::dumpPacket( AVPacket *pkt ){
 int VideoStore::writeVideoFramePacket( AVPacket *ipkt ) {
   av_init_packet(&opkt);
 
-  int duration;
+  int duration = 0;
 
   //Scale the PTS of the outgoing packet to be the correct time base
   if (ipkt->pts != AV_NOPTS_VALUE) {

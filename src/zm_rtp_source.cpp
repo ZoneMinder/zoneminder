@@ -64,7 +64,7 @@ RtpSource::RtpSource( int id, const std::string &localHost, int localPortBase, c
   mLastSrTimeReal = tvZero();
   mLastSrTimeNtp = tvZero();
   mLastSrTimeRtp = 0;
-  
+
   if(mCodecId != AV_CODEC_ID_H264 && mCodecId != AV_CODEC_ID_MPEG4)
     Warning( "The device is using a codec that may not be supported. Do not be surprised if things don't work." );
 }
@@ -120,7 +120,7 @@ bool RtpSource::updateSeq( uint16_t seq )
   {
     if ( uDelta == 1 )
     {
-      Debug( 3, "Packet in sequence, gap %d", uDelta );
+      Debug( 4, "Packet in sequence, gap %d", uDelta );
     }
     else
     {
@@ -198,7 +198,7 @@ void RtpSource::updateRtcpData( uint32_t ntpTimeSecs, uint32_t ntpTimeFrac, uint
   struct timeval ntpTime = tvMake( ntpTimeSecs, suseconds_t((USEC_PER_SEC*(ntpTimeFrac>>16))/(1<<16)) );
 
   Debug( 5, "ntpTime: %ld.%06ld, rtpTime: %x", ntpTime.tv_sec, ntpTime.tv_usec, rtpTime );
-                           
+
   if ( mBaseTimeNtp.tv_sec == 0 )
   {
     mBaseTimeReal = tvNow();
@@ -276,54 +276,55 @@ bool RtpSource::handlePacket( const unsigned char *packet, size_t packetLen )
     if ( mFrameGood )
     {
       int extraHeader = 0;
-      
+
       if( mCodecId == AV_CODEC_ID_H264 )
       {
         int nalType = (packet[rtpHeaderSize] & 0x1f);
         Debug( 3, "Have H264 frame: nal type is %d", nalType );
-        
+
         switch (nalType)
         {
           case 24: // STAP-A
-          {
-            extraHeader = 2;
-            break;
-          }
+            {
+              extraHeader = 2;
+              break;
+            }
           case 25: // STAP-B
           case 26: // MTAP-16
           case 27: // MTAP-24
-          {
-            extraHeader = 3;
-            break;
-          }
-          // FU-A and FU-B
-          case 28: case 29:
-          {
-            // Is this NAL the first NAL in fragmentation sequence
-            if ( packet[rtpHeaderSize+1] & 0x80 )
             {
-              // Now we will form new header of frame
-              mFrame.append( "\x0\x0\x1\x0", 4 );
-              // Reconstruct NAL header from FU headers
-              *(mFrame+3) = (packet[rtpHeaderSize+1] & 0x1f) |
-                      (packet[rtpHeaderSize] & 0xe0);
+              extraHeader = 3;
+              break;
             }
-          
-            extraHeader = 2;
-            break;
-          }
-          default: {
-            Debug(3, "Unhandled nalType %d", nalType );
-          }
+            // FU-A and FU-B
+          case 28: case 29:
+            {
+              // Is this NAL the first NAL in fragmentation sequence
+              if ( packet[rtpHeaderSize+1] & 0x80 )
+              {
+                // Now we will form new header of frame
+                mFrame.append( "\x0\x0\x1\x0", 4 );
+                // Reconstruct NAL header from FU headers
+                *(mFrame+3) = (packet[rtpHeaderSize+1] & 0x1f) |
+                  (packet[rtpHeaderSize] & 0xe0);
+              }
+
+              extraHeader = 2;
+              break;
+            }
+          default: 
+            {
+              Debug(3, "Unhandled nalType %d", nalType );
+            }
         }
-        
+
         // Append NAL frame start code
         if ( !mFrame.size() )
           mFrame.append( "\x0\x0\x1", 3 );
       }
       mFrame.append( packet+rtpHeaderSize+extraHeader, packetLen-rtpHeaderSize-extraHeader ); 
-      } else {
-        Debug( 3, "NOT H264 frame: type is %d", mCodecId );
+    } else {
+      Debug( 3, "NOT H264 frame: type is %d", mCodecId );
     }
 
     Hexdump( 4, mFrame.head(), 16 );
@@ -332,12 +333,15 @@ bool RtpSource::handlePacket( const unsigned char *packet, size_t packetLen )
     {
       if ( mFrameGood )
       {
-        Debug( 2, "Got new frame %d, %d bytes", mFrameCount, mFrame.size() );
+        Debug( 3, "Got new frame %d, %d bytes", mFrameCount, mFrame.size() );
 
         mFrameProcessed.setValueImmediate( false );
         mFrameReady.updateValueSignal( true );
         if ( !mFrameProcessed.getValueImmediate() )
         {
+          // What is the point of this for loop? Is it just me, or will it call getUpdatedValue once or twice? Could it not be better written as
+          // if ( ! mFrameProcessed.getUpdatedValue( 1 ) && mFrameProcessed.getUpdatedValue( 1 ) ) return false;
+
           for ( int count = 0; !mFrameProcessed.getUpdatedValue( 1 ); count++ )
             if( count > 1 )
               return( false );
@@ -390,7 +394,7 @@ bool RtpSource::getFrame( Buffer &buffer )
   buffer = mFrame;
   mFrameReady.setValueImmediate( false );
   mFrameProcessed.updateValueSignal( true );
-  Debug( 3, "Copied %d bytes", buffer.size() );
+  Debug( 4, "Copied %d bytes", buffer.size() );
   return( true );
 }
 

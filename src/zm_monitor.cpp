@@ -1214,7 +1214,8 @@ bool Monitor::Analyse() {
       }
       shared_data->action &= ~RESUME;
     }
-  }
+  } // end if shared_data->action
+
   if ( auto_resume_time && (now.tv_sec >= auto_resume_time) ) {
     Info( "Auto resuming at count %d", image_count );
     shared_data->active = true;

@@ -6,7 +6,7 @@ Build-Depends: debhelper (>= 9), cmake
     , libphp-serialization-perl
     , libgnutls28-dev | libgnutls-dev
     , libmysqlclient-dev | libmariadbclient-dev
-    , libjpeg-dev
+    , libjpeg8-dev | libjpeg-dev
     , libpcre3-dev
     , libavcodec-dev, libavformat-dev (>= 3:0.svn20090204), libswscale-dev (>= 3:0.svn20090204), libavutil-dev
     , libavdevice-dev

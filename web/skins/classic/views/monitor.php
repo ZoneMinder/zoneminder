@@ -19,7 +19,6 @@
 //
 
 require_once( 'includes/Server.php');
-require_once( 'includes/Storage.php');
 
 if ( !canView( 'Monitors' ) ) {
   $view = "error";
@@ -29,7 +28,6 @@ if ( !canView( 'Monitors' ) ) {
 $tabs = array();
 $tabs["general"] = translate('General');
 $tabs["source"] = translate('Source');
-$tabs["storage"] = translate('Storage');
 $tabs["timestamp"] = translate('Timestamp');
 $tabs["buffers"] = translate('Buffers');
 if ( ZM_OPT_CONTROL && canView( 'Control' ) )
@@ -137,7 +135,6 @@ if ( ! empty($_REQUEST['mid']) ) {
                   'V4LMultiBuffer'  =>  '',
                   'V4LCapturesPerFrame'  =>  1,
                   'ServerId'  =>  $Server['Id'],
-                  'StorageId'  => '0',
                   ) );
     } # end if $_REQUEST['dupID']
 } # end if $_REQUEST['mid']
@@ -519,7 +516,6 @@ if ( $tab != 'general' ) {
 ?>
     <input type="hidden" name="newMonitor[Name]" value="<?php echo validHtmlStr($monitor->Name) ?>"/>
     <input type="hidden" name="newMonitor[ServerId]" value="<?php echo validHtmlStr($monitor->ServerId() ) ?>"/>
-    <input type="hidden" name="newMonitor[StorageId]" value="<?= validHtmlStr($monitor->StorageId() ) ?>"/>
     <input type="hidden" name="newMonitor[Type]" value="<?php echo validHtmlStr($monitor->Type) ?>"/>
     <input type="hidden" name="newMonitor[Function]" value="<?php echo validHtmlStr($monitor->Function) ?>"/>
     <input type="hidden" name="newMonitor[Enabled]" value="<?php echo validHtmlStr($monitor->Enabled) ?>"/>
@@ -682,17 +678,6 @@ switch ( $tab )
         $servers[$server_obj->Id()] = $server_obj->Name();
       }
       echo htmlSelect( "newMonitor[ServerId]", $servers, $monitor->ServerId() );
-      ?>
-        </td></tr>
-        <tr><td><?php echo translate('StorageArea') ?></td><td>
-        <?php
-        $storage_areas = array(0=>'Default');
-      $result = dbQuery( 'SELECT * FROM Storage ORDER BY Name');
-      $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Storage' );
-      foreach ( $results as $row => $storage_obj ) {
-        $storage_areas[$storage_obj->Id] = $storage_obj->Name();
-      }
-      echo htmlSelect( "newMonitor[StorageId]", $storage_areas, $monitor->StorageId() );
       ?>
         </td></tr>
         <tr><td><?php echo translate('SourceType') ?></td><td><?php echo htmlSelect( "newMonitor[Type]", $sourceTypes, $monitor->Type() ); ?></td></tr>

@@ -70,7 +70,11 @@ X264MP4Writer::X264MP4Writer(const char* p_path, const unsigned int p_width, con
 
 	/* Calculate the image sizes. We will need this for parameter checking */
 	zm_imgsize = colours * width * height;
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+  codec_imgsize = av_image_get_buffer_size( codec_pf, width, height, 1 );
+#else
 	codec_imgsize = avpicture_get_size( codec_pf, width, height);
+#endif
 	if(!codec_imgsize) {
 		Error("Failed calculating codec pixel format image size");
 	}

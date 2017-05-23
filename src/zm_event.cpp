@@ -187,7 +187,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     snprintf( video_file, sizeof(video_file), video_file_format, path, video_name );
 
     /* X264 MP4 video writer */
-    if(monitor->GetOptVideoWriter() == 1) {
+    if ( monitor->GetOptVideoWriter() == Monitor::X264ENCODE ) {
 #if ZM_HAVE_VIDEOWRITER_X264MP4
       videowriter = new X264MP4Writer(video_file, monitor->Width(), monitor->Height(), monitor->Colours(), monitor->SubpixelOrder(), monitor->GetOptEncoderParams());
 #else
@@ -195,8 +195,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
 #endif
     }
 
-    if(videowriter != NULL) {
-
+    if ( videowriter != NULL ) {
       /* Open the video stream */
       int nRet = videowriter->Open();
       if(nRet != 0) {
@@ -207,9 +206,10 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
 
       snprintf( timecodes_name, sizeof(timecodes_name), "%d-%s", id, "video.timecodes" );
       snprintf( timecodes_file, sizeof(timecodes_file), video_file_format, path, timecodes_name );
+
       /* Create timecodes file */
       timecodes_fd = fopen(timecodes_file, "wb");
-      if(timecodes_fd == NULL) {
+      if ( timecodes_fd == NULL ) {
         Error("Failed creating timecodes file");
       }
     }
@@ -353,12 +353,12 @@ void Event::updateNotes( const StringSetMap &newNoteSetMap ) {
                 noteSet.insert( newNote );
                 update = true;
               }
-            }
-          }
-        }
-      } // end for
-    } // end if ( noteSetMap.size() == 0
-  } // end if newNoteSetupMap.size() > 0
+            } // end for
+          } // end if ( noteSetMap.size() == 0
+        } // end if newNoteSetupMap.size() > 0
+      } // end foreach newNoteSetMap
+    } // end if have old notes
+  } // end if have new notes
 
   if ( update ) {
     std::string notes;

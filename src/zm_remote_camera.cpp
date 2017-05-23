@@ -44,37 +44,34 @@ RemoteCamera::RemoteCamera(
     path( p_path ),
     hp( 0 )
 {
-  if ( path[0] != '/' )
-    path = '/'+path;
+    if ( path[0] != '/' )
+        path = '/'+path;
 }
 
-RemoteCamera::~RemoteCamera()
-{
-  if(hp != NULL) {
+RemoteCamera::~RemoteCamera() {
+  if ( hp != NULL ) {
       freeaddrinfo(hp);
     hp = NULL;
   }
 }
 
-void RemoteCamera::Initialise()
-{
+void RemoteCamera::Initialise() {
   if( protocol.empty() )
     Fatal( "No protocol specified for remote camera" );
 
-  if( host.empty() )
-    Fatal( "No host specified for remote camera" );
+	if( host.empty() )
+		Fatal( "No host specified for remote camera" );
 
-  if( port.empty() )
-    Fatal( "No port specified for remote camera" );
+	if( port.empty() )
+		Fatal( "No port specified for remote camera" );
 
-  //if( path.empty() )
-    //Fatal( "No path specified for remote camera" );
+	//if( path.empty() )
+		//Fatal( "No path specified for remote camera" );
 
-  // Cache as much as we can to speed things up
+	// Cache as much as we can to speed things up
   std::string::size_type authIndex = host.rfind( '@' );
 
-  if ( authIndex != std::string::npos )
-  {
+  if ( authIndex != std::string::npos ) {
     auth = host.substr( 0, authIndex );
     host.erase( 0, authIndex+1 );
     auth64 = base64Encode( auth );
@@ -82,21 +79,18 @@ void RemoteCamera::Initialise()
     authIndex = auth.rfind( ':' );
     username = auth.substr(0,authIndex);
     password = auth.substr( authIndex+1, auth.length() );
-
   }
 
-  mNeedAuth = false;
-  mAuthenticator = new zm::Authenticator(username,password);
+    mNeedAuth = false;
+	mAuthenticator = new zm::Authenticator(username,password);
 
-  struct addrinfo hints;
-  memset(&hints, 0, sizeof(hints));
-  hints.ai_family = AF_UNSPEC;
-  hints.ai_socktype = SOCK_STREAM;
+	struct addrinfo hints;
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
 
   int ret = getaddrinfo(host.c_str(), port.c_str(), &hints, &hp);
-  if ( ret != 0 )
-  {
+  if ( ret != 0 ) {
     Fatal( "Can't getaddrinfo(%s port %s): %s", host.c_str(), port.c_str(), gai_strerror(ret) );
   }
 }
-

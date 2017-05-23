@@ -158,7 +158,7 @@ protected:
   typedef struct {
     uint32_t size;
     char event_file[4096];
-    timeval recording; //bool arch dependent so use uint32 instead
+    timeval recording;      // used as both bool and a pointer to the timestamp when recording should begin
     //uint32_t frameNumber;
   } VideoStoreData;
 
@@ -216,18 +216,18 @@ protected:
 
 protected:
   // These are read from the DB and thereafter remain unchanged
-  unsigned int  id;
-  char      name[64];
-  unsigned int  server_id;
-  Function    function;        // What the monitor is doing
-  bool      enabled;        // Whether the monitor is enabled or asleep
-  unsigned int  width;          // Normally the same as the camera, but not if partly rotated
-  unsigned int  height;          // Normally the same as the camera, but not if partly rotated
-  bool      v4l_multi_buffer;
-  unsigned int  v4l_captures_per_frame;
-  Orientation    orientation;      // Whether the image has to be rotated at all
-  unsigned int  deinterlacing;
-  bool videoRecording;
+  unsigned int    id;
+  char            name[64];
+  unsigned int    server_id;          // Id of the Server object
+  Function        function;           // What the monitor is doing
+  bool            enabled;            // Whether the monitor is enabled or asleep
+  unsigned int    width;              // Normally the same as the camera, but not if partly rotated
+  unsigned int    height;             // Normally the same as the camera, but not if partly rotated
+  bool            v4l_multi_buffer;
+  unsigned int    v4l_captures_per_frame;
+  Orientation     orientation;        // Whether the image has to be rotated at all
+  unsigned int    deinterlacing;
+  bool            videoRecording;
 
   int savejpegspref;
   VideoWriter videowriter;

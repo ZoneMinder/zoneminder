@@ -1,0 +1,15 @@
+#contentTable.major .colId, #contentTable.major .colType, #contentTable.major .colTimeStamp, #contentTable.major .colTimeDelta, #contentTable.major .colScore {
+    text-align: center;
+}
+
+tr.alarm {
+  background-color: #fa8072;
+}
+
+tr.bulk {
+  background-color: #cccccc;
+}
+
+tr.normal {
+  background-color: #ffffff;
+}

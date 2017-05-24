@@ -1,0 +1,97 @@
+#systemTime {
+    float: left;
+}
+
+#title {
+    margin: 0 auto;
+    text-align: center;
+    width: 50%;
+}
+
+#systemStats {
+    float: right;
+}
+
+#monitorSummary {
+    float: left;
+    text-align: left;
+    width: 20%;
+}
+
+#devices {
+    float: left;
+}
+
+#loginBandwidth {
+    margin: 0 auto;
+    text-align: center;
+    width: 40%;
+}
+
+#cycleMontage {
+    float: right;
+}
+
+#options {
+    float: right;
+    text-align: right;
+    width: 20%;
+}
+
+#consoleTable {
+    width: 100%;
+}
+
+#consoleTable tr.highlight {
+    background-color: #eeeeee;
+}
+
+#consoleTable thead th {
+    padding-bottom: 4px;
+    vertical-align: middle;
+}
+
+#consoleTable tfoot td {
+    padding-top: 4px;
+    vertical-align: middle;
+}
+
+#consoleTable th,td {
+    height: 16px;
+    text-align: left;
+}
+
+#consoleTable .colOrder {
+    text-align: center;
+}
+
+#consoleTable .colMark {
+    width: 32px;
+    text-align: center;
+}
+
+#consoleTable .colEvents {
+    text-align: right;
+}
+
+#consoleTable .colZones {
+    text-align: right;
+}
+
+#consoleTable .colLeftButtons {
+    text-align: left;
+}
+
+#consoleTable .colLeftButtons input {
+    margin-right: 24px;
+}
+
+#consoleTable .colRightButtons {
+    text-align: right;
+    padding-right: 8px;
+}
+
+#consoleTable .colRightButtons input {
+    margin: 0 8px;
+}
+

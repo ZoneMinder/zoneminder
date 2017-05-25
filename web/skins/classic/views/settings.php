@@ -15,7 +15,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
 if ( !canView( 'Control' ) )
@@ -36,12 +36,12 @@ $monitor['Colour'] = $colour;
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, validHtmlStr($monitor['Name'])." - ".$SLANG['Settings'] );
+xhtmlHeaders(__FILE__, validHtmlStr($monitor['Name'])." - ".translate('Settings') );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?php echo validHtmlStr($monitor['Name']) ?> - <?php echo $SLANG['Settings'] ?></h2>
+      <h2><?php echo validHtmlStr($monitor['Name']) ?> - <?php echo translate('Settings') ?></h2>
     </div>
     <div id="content">
       <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
@@ -51,25 +51,25 @@ xhtmlHeaders(__FILE__, validHtmlStr($monitor['Name'])." - ".$SLANG['Settings'] )
         <table id="contentTable" class="major" cellspacing="0">
           <tbody>
             <tr>
-              <th scope="row"><?php echo $SLANG['Brightness'] ?></th>
+              <th scope="row"><?php echo translate('Brightness') ?></th>
               <td><input type="text" name="newBrightness" value="<?php echo $monitor['Brightness'] ?>" size="8"<?php if ( !canView( 'Control' ) ) { ?> disabled="disabled"<?php } ?>/></td>
             </tr>
             <tr>
-              <th scope="row"><?php echo $SLANG['Contrast'] ?></th>
+              <th scope="row"><?php echo translate('Contrast') ?></th>
               <td><input type="text" name="newContrast" value="<?php echo $monitor['Contrast'] ?>" size="8"<?php if ( !canView( 'Control' ) ) { ?> disabled="disabled"<?php } ?>/></td>
             </tr>
             <tr>
-              <th scope="row"><?php echo $SLANG['Hue'] ?></th>
+              <th scope="row"><?php echo translate('Hue') ?></th>
               <td><input type="text" name="newHue" value="<?php echo $monitor['Hue'] ?>" size="8"<?php if ( !canView( 'Control' ) ) { ?> disabled="disabled"<?php } ?>/></td>
             </tr>
             <tr>
-              <th scope="row"><?php echo $SLANG['Colour'] ?></th>
+              <th scope="row"><?php echo translate('Colour') ?></th>
               <td><input type="text" name="newColour" value="<?php echo $monitor['Colour'] ?>" size="8"<?php if ( !canView( 'Control' ) ) { ?> disabled="disabled"<?php } ?>/></td>
             </tr>
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo $SLANG['Save'] ?>"<?php if ( !canView( 'Control' ) ) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo $SLANG['Close'] ?>" onclick="closeWindow()"/>
+          <input type="submit" value="<?php echo translate('Save') ?>"<?php if ( !canView( 'Control' ) ) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo translate('Close') ?>" onclick="closeWindow()"/>
         </div>
       </form>
     </div>

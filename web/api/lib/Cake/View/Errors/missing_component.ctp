@@ -1,7 +1,5 @@
 <?php
 /**
- *
- *
  * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
  * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
  *
@@ -25,7 +23,7 @@ $pluginDot = empty($plugin) ? null : $plugin . '.';
 </p>
 <p class="error">
 	<strong><?php echo __d('cake_dev', 'Error'); ?>: </strong>
-	<?php echo __d('cake_dev', 'Create the class %s below in file: %s', '<em>' . h($class) . '</em>', (empty($plugin) ? APP_DIR : CakePlugin::path($plugin)) . DS . 'Controller' . DS . 'Component' . DS . h($class) . '.php'); ?>
+	<?php echo __d('cake_dev', 'Create the class %s below in file: %s', '<em>' . h($class) . '</em>', (empty($plugin) ? APP_DIR . DS : CakePlugin::path($plugin)) . 'Controller' . DS . 'Component' . DS . h($class) . '.php'); ?>
 </p>
 <pre>
 &lt;?php
@@ -38,4 +36,6 @@ class <?php echo h($class); ?> extends Component {
 	<?php echo __d('cake_dev', 'If you want to customize this error message, create %s', APP_DIR . DS . 'View' . DS . 'Errors' . DS . 'missing_component.ctp'); ?>
 </p>
 
-<?php echo $this->element('exception_stack_trace'); ?>
+<?php
+echo $this->element('exception_stack_trace');
+?>

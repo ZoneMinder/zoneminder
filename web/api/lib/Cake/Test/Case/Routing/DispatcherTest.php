@@ -339,7 +339,7 @@ class SomePostsController extends AppController {
 /**
  * autoRender property
  *
- * @var boolean
+ * @var bool
  */
 	public $autoRender = false;
 
@@ -511,7 +511,7 @@ class TestFilterDispatcher extends DispatcherFilter {
  * TestFilterDispatcher::beforeDispatch()
  *
  * @param mixed $event
- * @return CakeResponse|boolean
+ * @return CakeResponse|bool
  */
 	public function beforeDispatch(CakeEvent $event) {
 		$event->stopPropagation();
@@ -589,6 +589,7 @@ class DispatcherTest extends CakeTestCase {
  * testParseParamsWithoutZerosAndEmptyPost method
  *
  * @return void
+ * @triggers DispatcherTest $Dispatcher, array('request' => $request)
  */
 	public function testParseParamsWithoutZerosAndEmptyPost() {
 		$Dispatcher = new Dispatcher();
@@ -607,6 +608,7 @@ class DispatcherTest extends CakeTestCase {
  * testParseParamsReturnsPostedData method
  *
  * @return void
+ * @triggers DispatcherTest $Dispatcher, array('request' => $request)
  */
 	public function testParseParamsReturnsPostedData() {
 		$_POST['testdata'] = "My Posted Content";
@@ -622,6 +624,7 @@ class DispatcherTest extends CakeTestCase {
  * testParseParamsWithSingleZero method
  *
  * @return void
+ * @triggers DispatcherTest $Dispatcher, array('request' => $test)
  */
 	public function testParseParamsWithSingleZero() {
 		$Dispatcher = new Dispatcher();
@@ -640,6 +643,7 @@ class DispatcherTest extends CakeTestCase {
  * testParseParamsWithManySingleZeros method
  *
  * @return void
+ * @triggers DispatcherTest $Dispatcher, array('request' => $test)
  */
 	public function testParseParamsWithManySingleZeros() {
 		$Dispatcher = new Dispatcher();
@@ -659,6 +663,7 @@ class DispatcherTest extends CakeTestCase {
  * testParseParamsWithManyZerosInEachSectionOfUrl method
  *
  * @return void
+ * @triggers DispatcherTest $Dispatcher, array('request' => $test)
  */
 	public function testParseParamsWithManyZerosInEachSectionOfUrl() {
 		$Dispatcher = new Dispatcher();
@@ -678,6 +683,7 @@ class DispatcherTest extends CakeTestCase {
  * testParseParamsWithMixedOneToManyZerosInEachSectionOfUrl method
  *
  * @return void
+ * @triggers DispatcherTest $Dispatcher, array('request' => $test)
  */
 	public function testParseParamsWithMixedOneToManyZerosInEachSectionOfUrl() {
 		$Dispatcher = new Dispatcher();
@@ -697,6 +703,8 @@ class DispatcherTest extends CakeTestCase {
  * testQueryStringOnRoot method
  *
  * @return void
+ * @triggers DispatcherTest $Dispatcher, array('request' => $request)
+ * @triggers DispatcherTest $Dispatcher, array('request' => $request)
  */
 	public function testQueryStringOnRoot() {
 		Router::reload();
@@ -928,6 +936,7 @@ class DispatcherTest extends CakeTestCase {
  * testPluginDispatch method
  *
  * @return void
+ * @triggers DispatcherTest $Dispatcher, array('request' => $url)
  */
 	public function testPluginDispatch() {
 		$_POST = array();
@@ -1328,6 +1337,16 @@ class DispatcherTest extends CakeTestCase {
 		$dispatcher->dispatch($request, $response);
 		$this->assertEquals('Dispatcher.afterDispatch', $request->params['eventName']);
 
+		$dispatcher = new TestDispatcher();
+		Configure::write('Dispatcher.filters', array(
+			'filterTest' => array('callable' => array($dispatcher, 'filterTest'), 'on' => 'before')
+		));
+
+		$request = new CakeRequest('/');
+		$response = $this->getMock('CakeResponse', array('send'));
+		$dispatcher->dispatch($request, $response);
+		$this->assertEquals('Dispatcher.beforeDispatch', $request->params['eventName']);
+
 		// Test that it is possible to skip the route connection process
 		$dispatcher = new TestDispatcher();
 		Configure::write('Dispatcher.filters', array(
@@ -1630,6 +1649,11 @@ class DispatcherTest extends CakeTestCase {
  * testHttpMethodOverrides method
  *
  * @return void
+ * @triggers DispatcherTest $dispatcher, array('request' => $request)
+ * @triggers DispatcherTest $dispatcher, array('request' => $request)
+ * @triggers DispatcherTest $dispatcher, array('request' => $request)
+ * @triggers DispatcherTest $dispatcher, array('request' => $request)
+ * @triggers DispatcherTest $dispatcher, array('request' => $request)
  */
 	public function testHttpMethodOverrides() {
 		Router::reload();

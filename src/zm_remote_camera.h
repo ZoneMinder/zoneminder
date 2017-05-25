@@ -14,7 +14,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 #ifndef ZM_REMOTE_CAMERA_H
@@ -27,6 +27,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <arpa/inet.h>
 
 //
 // Class representing 'remote' cameras, i.e. those which are
@@ -35,44 +36,60 @@
 class RemoteCamera : public Camera
 {
 protected:
-	std::string	protocol;
-	std::string	host;
-	std::string	port;
-	std::string	path;
-	std::string	auth;
-	std::string	username;
-	std::string	password;
-	std::string	auth64;
+  std::string  protocol;
+  std::string  host;
+  std::string  port;
+  std::string  path;
+  std::string  auth;
+  std::string  username;
+  std::string  password;
+  std::string  auth64;
 
-    // Reworked authentication system
-    // First try without authentication, even if we have a username and password
-    // on receiving a 401 response, select authentication method (basic or digest)
-    // fill required fields and set needAuth
-    // subsequent requests can set the required authentication header.
-    bool mNeedAuth;
-    Authenticator* mAuthenticator;
+  // Reworked authentication system
+  // First try without authentication, even if we have a username and password
+  // on receiving a 401 response, select authentication method (basic or digest)
+  // fill required fields and set needAuth
+  // subsequent requests can set the required authentication header.
+  bool mNeedAuth;
+  zm::Authenticator* mAuthenticator;
 protected:
-	struct addrinfo *hp;
+  struct addrinfo *hp;
 
 public:
-	RemoteCamera( int p_id, const std::string &p_proto, const std::string &p_host, const std::string &p_port, const std::string &p_path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
-	virtual ~RemoteCamera();
+  RemoteCamera(
+    unsigned int p_monitor_id,
+    const std::string &p_proto,
+    const std::string &p_host,
+    const std::string &p_port,
+    const std::string &p_path,
+    int p_width,
+    int p_height,
+    int p_colours,
+    int p_brightness,
+    int p_contrast,
+    int p_hue,
+    int p_colour,
+    bool p_capture,
+    bool p_record_audio
+  );
+  virtual ~RemoteCamera();
 
-	const std::string &Protocol() const { return( protocol ); }
-	const std::string &Host() const { return( host ); }
-	const std::string &Port() const { return( port ); }
-	const std::string &Path() const { return( path ); }
-	const std::string &Auth() const { return( auth ); }
-	const std::string &Username() const { return( username ); }
-	const std::string &Password() const { return( password ); }
+  const std::string &Protocol() const { return( protocol ); }
+  const std::string &Host() const { return( host ); }
+  const std::string &Port() const { return( port ); }
+  const std::string &Path() const { return( path ); }
+  const std::string &Auth() const { return( auth ); }
+  const std::string &Username() const { return( username ); }
+  const std::string &Password() const { return( password ); }
 
-	virtual void Initialise();
-	virtual void Terminate() = 0;
-	virtual int Connect() = 0;
-	virtual int Disconnect() = 0;
-	virtual int PreCapture() = 0;
-	virtual int Capture( Image &image ) = 0;
-	virtual int PostCapture() = 0;
+  virtual void Initialise();
+  virtual void Terminate() = 0;
+  virtual int Connect() = 0;
+  virtual int Disconnect() = 0;
+  virtual int PreCapture() = 0;
+  virtual int Capture( Image &image ) = 0;
+  virtual int PostCapture() = 0;
+  virtual int CaptureAndRecord( Image &image, timeval recording, char* event_directory )=0;
 };
 
 #endif // ZM_REMOTE_CAMERA_H

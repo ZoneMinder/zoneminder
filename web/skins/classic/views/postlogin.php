@@ -15,18 +15,18 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-xhtmlHeaders(__FILE__, $SLANG['LoggingIn'] );
+xhtmlHeaders(__FILE__, translate('LoggingIn') );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h1>ZoneMinder <?php echo $SLANG['Login'] ?></h1>
+      <h1>ZoneMinder <?php echo translate('Login') ?></h1>
     </div>
     <div id="content">
-      <h2><?php echo $SLANG['LoggingIn'] ?></h2>
+      <h2><?php echo translate('LoggingIn') ?></h2>
     </div>
   </div>
 </body>

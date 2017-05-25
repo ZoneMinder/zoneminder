@@ -15,7 +15,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
 //
@@ -32,6 +32,8 @@ var skinPath = "<?php echo ZM_SKIN_PATH ?>";
 
 var canEditSystem = <?php echo canEdit('System' )?'true':'false' ?>;
 var canViewSystem = <?php echo canView('System' )?'true':'false' ?>;
+
+var canEditGroups = <?php echo canEdit('Groups' )?'true':'false' ?>;
 
 var refreshParent = <?php echo !empty($refreshParent)?'true':'false' ?>;
 

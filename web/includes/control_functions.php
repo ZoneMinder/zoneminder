@@ -9,7 +9,7 @@ function buildControlCommand( $monitor )
         $slow = 0.9; // Threshold for slow speed/timeouts
         $turbo = 0.9; // Threshold for turbo speed
 
-        if ( preg_match( '/^([a-z]+)([A-Z][a-z]+)([A-Z][a-z]+)+$/', $_REQUEST['control'], $matches ) )
+        if ( preg_match( '/^([a-z]+)([A-Z][a-z]+)([A-Za-z]+)+$/', $_REQUEST['control'], $matches ) )
         {
             $command = $matches[1];
             $mode = $matches[2];
@@ -20,9 +20,9 @@ function buildControlCommand( $monitor )
                 case 'focus' :
                 {
                     $factor = $_REQUEST['yge']/100;
-                    if ( $monitor['HasFocusSpeed'] )
+                    if ( $monitor->HasFocusSpeed() )
                     {
-                        $speed = intval(round($monitor['MinFocusSpeed']+(($monitor['MaxFocusSpeed']-$monitor['MinFocusSpeed'])*$factor)));
+                        $speed = intval(round($monitor->MinFocusSpeed()+(($monitor->MaxFocusSpeed()-$monitor->MinFocusSpeed())*$factor)));
                         $ctrlCommand .= " --speed=".$speed;
                     }
                     switch( $mode )
@@ -30,15 +30,15 @@ function buildControlCommand( $monitor )
                         case 'Abs' :
                         case 'Rel' :
                         {
-                            $step = intval(round($monitor['MinFocusStep']+(($monitor['MaxFocusStep']-$monitor['MinFocusStep'])*$factor)));
+                            $step = intval(round($monitor->MinFocusStep()+(($monitor->MaxFocusStep()-$monitor->MinFocusStep())*$factor)));
                             $ctrlCommand .= " --step=".$step;
                             break;
                         }
                         case 'Con' :
                         {
-                            if ( $monitor['AutoStopTimeout'] )
+                            if ( $monitor->AutoStopTimeout() )
                             {
-                                $slowSpeed = intval(round($monitor['MinFocusSpeed']+(($monitor['MaxFocusSpeed']-$monitor['MinFocusSpeed'])*$slow)));
+                                $slowSpeed = intval(round($monitor->MinFocusSpeed()+(($monitor->MaxFocusSpeed()-$monitor->MinFocusSpeed())*$slow)));
                                 if ( $speed < $slowSpeed )
                                 {
                                     $ctrlCommand .= " --autostop";
@@ -52,9 +52,9 @@ function buildControlCommand( $monitor )
                 case 'zoom' :
                 {
                     $factor = $_REQUEST['yge']/100;
-                    if ( $monitor['HasZoomSpeed'] )
+                    if ( $monitor->HasZoomSpeed() )
                     {
-                        $speed = intval(round($monitor['MinZoomSpeed']+(($monitor['MaxZoomSpeed']-$monitor['MinZoomSpeed'])*$factor)));
+                        $speed = intval(round($monitor->MinZoomSpeed()+(($monitor->MaxZoomSpeed()-$monitor->MinZoomSpeed())*$factor)));
                         $ctrlCommand .= " --speed=".$speed;
                     }
                     switch( $mode )
@@ -62,15 +62,15 @@ function buildControlCommand( $monitor )
                         case 'Abs' :
                         case 'Rel' :
                         {
-                            $step = intval(round($monitor['MinZoomStep']+(($monitor['MaxZoomStep']-$monitor['MinZoomStep'])*$factor)));
+                            $step = intval(round($monitor->MinZoomStep()+(($monitor->MaxZoomStep()-$monitor->MinZoomStep())*$factor)));
                             $ctrlCommand .= " --step=".$step;
                             break;
                         }
                         case 'Con' :
                         {
-                            if ( $monitor['AutoStopTimeout'] )
+                            if ( $monitor->AutoStopTimeout() )
                             {
-                                $slowSpeed = intval(round($monitor['MinZoomSpeed']+(($monitor['MaxZoomSpeed']-$monitor['MinZoomSpeed'])*$slow)));
+                                $slowSpeed = intval(round($monitor->MinZoomSpeed()+(($monitor->MaxZoomSpeed()-$monitor->MinZoomSpeed())*$slow)));
                                 if ( $speed < $slowSpeed )
                                 {
                                     $ctrlCommand .= " --autostop";
@@ -84,9 +84,9 @@ function buildControlCommand( $monitor )
                 case 'iris' :
                 {
                     $factor = $_REQUEST['yge']/100;
-                    if ( $monitor['HasIrisSpeed'] )
+                    if ( $monitor->HasIrisSpeed() )
                     {
-                        $speed = intval(round($monitor['MinIrisSpeed']+(($monitor['MaxIrisSpeed']-$monitor['MinIrisSpeed'])*$factor)));
+                        $speed = intval(round($monitor->MinIrisSpeed()+(($monitor->MaxIrisSpeed()-$monitor->MinIrisSpeed())*$factor)));
                         $ctrlCommand .= " --speed=".$speed;
                     }
                     switch( $mode )
@@ -94,7 +94,7 @@ function buildControlCommand( $monitor )
                         case 'Abs' :
                         case 'Rel' :
                         {
-                            $step = intval(round($monitor['MinIrisStep']+(($monitor['MaxIrisStep']-$monitor['MinIrisStep'])*$factor)));
+                            $step = intval(round($monitor->MinIrisStep()+(($monitor->MaxIrisStep()-$monitor->MinIrisStep())*$factor)));
                             $ctrlCommand .= " --step=".$step;
                             break;
                         }
@@ -104,9 +104,9 @@ function buildControlCommand( $monitor )
                 case 'white' :
                 {
                     $factor = $_REQUEST['yge']/100;
-                    if ( $monitor['HasWhiteSpeed'] )
+                    if ( $monitor->HasWhiteSpeed() )
                     {
-                        $speed = intval(round($monitor['MinWhiteSpeed']+(($monitor['MaxWhiteSpeed']-$monitor['MinWhiteSpeed'])*$factor)));
+                        $speed = intval(round($monitor->MinWhiteSpeed()+(($monitor->MaxWhiteSpeed()-$monitor->MinWhiteSpeed())*$factor)));
                         $ctrlCommand .= " --speed=".$speed;
                     }
                     switch( $mode )
@@ -114,7 +114,7 @@ function buildControlCommand( $monitor )
                         case 'Abs' :
                         case 'Rel' :
                         {
-                            $step = intval(round($monitor['MinWhiteStep']+(($monitor['MaxWhiteStep']-$monitor['MinWhiteStep'])*$factor)));
+                            $step = intval(round($monitor->MinWhiteStep()+(($monitor->MaxWhiteStep()-$monitor->MinWhiteStep())*$factor)));
                             $ctrlCommand .= " --step=".$step;
                             break;
                         }
@@ -124,9 +124,9 @@ function buildControlCommand( $monitor )
                 case 'gain' :
                 {
                     $factor = $_REQUEST['yge']/100;
-                    if ( $monitor['HasGainSpeed'] )
+                    if ( $monitor->HasGainSpeed() )
                     {
-                        $speed = intval(round($monitor['MinGainSpeed']+(($monitor['MaxGainSpeed']-$monitor['MinGainSpeed'])*$factor)));
+                        $speed = intval(round($monitor->MinGainSpeed()+(($monitor->MaxGainSpeed()-$monitor->MinGainSpeed())*$factor)));
                         $ctrlCommand .= " --speed=".$speed;
                     }
                     switch( $mode )
@@ -134,7 +134,7 @@ function buildControlCommand( $monitor )
                         case 'Abs' :
                         case 'Rel' :
                         {
-                            $step = intval(round($monitor['MinGainStep']+(($monitor['MaxGainStep']-$monitor['MinGainStep'])*$factor)));
+                            $step = intval(round($monitor->MinGainStep()+(($monitor->MaxGainStep()-$monitor->MinGainStep())*$factor)));
                             $ctrlCommand .= " --step=".$step;
                             break;
                         }
@@ -146,7 +146,7 @@ function buildControlCommand( $monitor )
                     $xFactor = empty($_REQUEST['xge'])?0:$_REQUEST['xge']/100;
                     $yFactor = empty($_REQUEST['yge'])?0:$_REQUEST['yge']/100;
 
-                    if ( $monitor['Orientation'] != '0' )
+                    if ( $monitor->Orientation() != '0' )
                     {
                         $conversions = array(
                             '90' => array(
@@ -200,48 +200,48 @@ function buildControlCommand( $monitor )
                                 'DownRight' => 'UpRight',
                             ),
                         );
-                        $new_dirn = $conversions[$monitor['Orientation']][$dirn];
+                        $new_dirn = $conversions[$monitor->Orientation()][$dirn];
                         $_REQUEST['control'] = preg_replace( "/_$dirn\$/", "_$new_dirn", $_REQUEST['control'] );
                         $dirn = $new_dirn;
                     }
 
-                    if ( $monitor['HasPanSpeed'] && $xFactor )
+                    if ( $monitor->HasPanSpeed() && $xFactor )
                     {
-                        if ( $monitor['HasTurboPan'] )
+                        if ( $monitor->HasTurboPan() )
                         {
                             if ( $xFactor >= $turbo )
                             {
-                                $panSpeed = $monitor['TurboPanSpeed'];
+                                $panSpeed = $monitor->TurboPanSpeed();
                             }
                             else
                             {
                                 $xFactor = $xFactor/$turbo;
-                                $panSpeed = intval(round($monitor['MinPanSpeed']+(($monitor['MaxPanSpeed']-$monitor['MinPanSpeed'])*$xFactor)));
+                                $panSpeed = intval(round($monitor->MinPanSpeed()+(($monitor->MaxPanSpeed()-$monitor->MinPanSpeed())*$xFactor)));
                             }
                         }
                         else
                         {
-                            $panSpeed = intval(round($monitor['MinPanSpeed']+(($monitor['MaxPanSpeed']-$monitor['MinPanSpeed'])*$xFactor)));
+                            $panSpeed = intval(round($monitor->MinPanSpeed()+(($monitor->MaxPanSpeed()-$monitor->MinPanSpeed())*$xFactor)));
                         }
                         $ctrlCommand .= " --panspeed=".$panSpeed;
                     }
-                    if ( $monitor['HasTiltSpeed'] && $yFactor )
+                    if ( $monitor->HasTiltSpeed() && $yFactor )
                     {
-                        if ( $monitor['HasTurboTilt'] )
+                        if ( $monitor->HasTurboTilt() )
                         {
                             if ( $yFactor >= $turbo )
                             {
-                                $tiltSpeed = $monitor['TurboTiltSpeed'];
+                                $tiltSpeed = $monitor->TurboTiltSpeed();
                             }
                             else
                             {
                                 $yFactor = $yFactor/$turbo;
-                                $tiltSpeed = intval(round($monitor['MinTiltSpeed']+(($monitor['MaxTiltSpeed']-$monitor['MinTiltSpeed'])*$yFactor)));
+                                $tiltSpeed = intval(round($monitor->MinTiltSpeed()+(($monitor->MaxTiltSpeed()-$monitor->MinTiltSpeed())*$yFactor)));
                             }
                         }
                         else
                         {
-                            $tiltSpeed = intval(round($monitor['MinTiltSpeed']+(($monitor['MaxTiltSpeed']-$monitor['MinTiltSpeed'])*$yFactor)));
+                            $tiltSpeed = intval(round($monitor->MinTiltSpeed()+(($monitor->MaxTiltSpeed()-$monitor->MinTiltSpeed())*$yFactor)));
                         }
                         $ctrlCommand .= " --tiltspeed=".$tiltSpeed;
                     }
@@ -252,22 +252,22 @@ function buildControlCommand( $monitor )
                         {
                             if ( preg_match( '/(Left|Right)$/', $dirn ) )
                             {
-                                $panStep = intval(round($monitor['MinPanStep']+(($monitor['MaxPanStep']-$monitor['MinPanStep'])*$xFactor)));
+                                $panStep = intval(round($monitor->MinPanStep()+(($monitor->MaxPanStep()-$monitor->MinPanStep())*$xFactor)));
                                 $ctrlCommand .= " --panstep=".$panStep;
                             }
                             if ( preg_match( '/^(Up|Down)/', $dirn ) )
                             {
-                                $tiltStep = intval(round($monitor['MinTiltStep']+(($monitor['MaxTiltStep']-$monitor['MinTiltStep'])*$yFactor)));
+                                $tiltStep = intval(round($monitor->MinTiltStep()+(($monitor->MaxTiltStep()-$monitor->MinTiltStep())*$yFactor)));
                                 $ctrlCommand .= " --tiltstep=".$tiltStep;
                             }
                             break;
                         }
                         case 'Con' :
                         {
-                            if ( $monitor['AutoStopTimeout'] )
+                            if ( $monitor->AutoStopTimeout() )
                             {
-                                $slowPanSpeed = intval(round($monitor['MinPanSpeed']+(($monitor['MaxPanSpeed']-$monitor['MinPanSpeed'])*$slow)));
-                                $slowTiltSpeed = intval(round($monitor['MinTiltSpeed']+(($monitor['MaxTiltSpeed']-$monitor['MinTiltSpeed'])*$slow)));
+                                $slowPanSpeed = intval(round($monitor->MinPanSpeed()+(($monitor->MaxPanSpeed()-$monitor->MinPanSpeed())*$slow)));
+                                $slowTiltSpeed = intval(round($monitor->MinTiltSpeed()+(($monitor->MaxTiltSpeed()-$monitor->MinTiltSpeed())*$slow)));
                                 if ( (!isset($panSpeed) || ($panSpeed < $slowPanSpeed)) && (!isset($tiltSpeed) || ($tiltSpeed < $slowTiltSpeed)) )
                                 {
                                     $ctrlCommand .= " --autostop";
@@ -278,6 +278,8 @@ function buildControlCommand( $monitor )
                     }
                 }
             }
+        } else {
+          Error("Invalid control parameter: " . $_REQUEST['control'] );
         }
     }
     elseif ( isset($_REQUEST['x']) && isset($_REQUEST['y']) )
@@ -286,22 +288,22 @@ function buildControlCommand( $monitor )
         {
             $x = deScale( $_REQUEST['x'], $_REQUEST['scale'] );
             $y = deScale( $_REQUEST['y'], $_REQUEST['scale'] );
-            switch ( $monitor['Orientation'] )
+            switch ( $monitor->Orientation() )
             {
                 case '0' :
                 case '180' :
                 case 'hori' :
                 case 'vert' :
-                    $width = $monitor['Width'];
-                    $height = $monitor['Height'];
+                    $width = $monitor->Width();
+                    $height = $monitor->Height();
                     break;
                 case '90' :
                 case '270' :
-                    $width = $monitor['Height'];
-                    $height = $monitor['Width'];
+                    $width = $monitor->Height();
+                    $height = $monitor->Width();
                     break;
             }
-            switch ( $monitor['Orientation'] )
+            switch ( $monitor->Orientation() )
             {
                 case '90' :
                     $tempY = $y;
@@ -332,12 +334,12 @@ function buildControlCommand( $monitor )
             $x = deScale( $_REQUEST['x'], $_REQUEST['scale'] );
             $y = deScale( $_REQUEST['y'], $_REQUEST['scale'] );
             
-            $halfWidth = $monitor['Width'] / 2;
-            $halfHeight = $monitor['Height'] / 2;
+            $halfWidth = $monitor->Width() / 2;
+            $halfHeight = $monitor->Height() / 2;
             $xFactor = ($x - $halfWidth)/$halfWidth;
             $yFactor = ($y - $halfHeight)/$halfHeight;
 
-            switch ( $monitor['Orientation'] )
+            switch ( $monitor->Orientation() )
             {
                 case '90' :
                     $tempYFactor = $y;
@@ -396,52 +398,52 @@ function buildControlCommand( $monitor )
                 $xFactor = abs($xFactor);
                 $yFactor = abs($yFactor);
 
-                if ( $monitor['HasPanSpeed'] && $xFactor )
+                if ( $monitor->HasPanSpeed() && $xFactor )
                 {
-                    if ( $monitor['HasTurboPan'] )
+                    if ( $monitor->HasTurboPan() )
                     {
                         if ( $xFactor >= $turbo )
                         {
-                            $panSpeed = $monitor['TurboPanSpeed'];
+                            $panSpeed = $monitor->TurboPanSpeed();
                         }
                         else
                         {
                             $xFactor = $xFactor/$turbo;
-                            $panSpeed = intval(round($monitor['MinPanSpeed']+(($monitor['MaxPanSpeed']-$monitor['MinPanSpeed'])*$xFactor)));
+                            $panSpeed = intval(round($monitor->MinPanSpeed()+(($monitor->MaxPanSpeed()-$monitor->MinPanSpeed())*$xFactor)));
                         }
                     }
                     else
                     {
-                        $panSpeed = intval(round($monitor['MinPanSpeed']+(($monitor['MaxPanSpeed']-$monitor['MinPanSpeed'])*$xFactor)));
+                        $panSpeed = intval(round($monitor->MinPanSpeed()+(($monitor->MaxPanSpeed()-$monitor->MinPanSpeed())*$xFactor)));
                     }
                 }
-                if ( $monitor['HasTiltSpeed'] && $yFactor )
+                if ( $monitor->HasTiltSpeed() && $yFactor )
                 {
-                    if ( $monitor['HasTurboTilt'] )
+                    if ( $monitor->HasTurboTilt() )
                     {
                         if ( $yFactor >= $turbo )
                         {
-                            $tiltSpeed = $monitor['TurboTiltSpeed'];
+                            $tiltSpeed = $monitor->TurboTiltSpeed();
                         }
                         else
                         {
                             $yFactor = $yFactor/$turbo;
-                            $tiltSpeed = intval(round($monitor['MinTiltSpeed']+(($monitor['MaxTiltSpeed']-$monitor['MinTiltSpeed'])*$yFactor)));
+                            $tiltSpeed = intval(round($monitor->MinTiltSpeed()+(($monitor->MaxTiltSpeed()-$monitor->MinTiltSpeed())*$yFactor)));
                         }
                     }
                     else
                     {
-                        $tiltSpeed = intval(round($monitor['MinTiltSpeed']+(($monitor['MaxTiltSpeed']-$monitor['MinTiltSpeed'])*$yFactor)));
+                        $tiltSpeed = intval(round($monitor->MinTiltSpeed()+(($monitor->MaxTiltSpeed()-$monitor->MinTiltSpeed())*$yFactor)));
                     }
                 }
                 if ( preg_match( '/(Left|Right)$/', $dirn ) )
                 {
-                    $panStep = intval(round($monitor['MinPanStep']+(($monitor['MaxPanStep']-$monitor['MinPanStep'])*$xFactor)));
+                    $panStep = intval(round($monitor->MinPanStep()+(($monitor->MaxPanStep()-$monitor->MinPanStep())*$xFactor)));
                     $ctrlCommand .= " --panstep=".$panStep." --panspeed=".$panSpeed;
                 }
                 if ( preg_match( '/^(Up|Down)/', $dirn ) )
                 {
-                    $tiltStep = intval(round($monitor['MinTiltStep']+(($monitor['MaxTiltStep']-$monitor['MinTiltStep'])*$yFactor)));
+                    $tiltStep = intval(round($monitor->MinTiltStep()+(($monitor->MaxTiltStep()-$monitor->MinTiltStep())*$yFactor)));
                     $ctrlCommand .= " --tiltstep=".$tiltStep." --tiltspeed=".$tiltSpeed;
                 }
             }
@@ -451,12 +453,12 @@ function buildControlCommand( $monitor )
             $x = deScale( $_REQUEST['x'], $_REQUEST['scale'] );
             $y = deScale( $_REQUEST['y'], $_REQUEST['scale'] );
             
-            $halfWidth = $monitor['Width'] / 2;
-            $halfHeight = $monitor['Height'] / 2;
+            $halfWidth = $monitor->Width() / 2;
+            $halfHeight = $monitor->Height() / 2;
             $xFactor = ($x - $halfWidth)/$halfWidth;
             $yFactor = ($y - $halfHeight)/$halfHeight;
 
-            switch ( $monitor['Orientation'] )
+            switch ( $monitor->Orientation() )
             {
                 case '90' :
                     $tempYFactor = $y;
@@ -515,42 +517,42 @@ function buildControlCommand( $monitor )
                 $xFactor = abs($xFactor);
                 $yFactor = abs($yFactor);
 
-                if ( $monitor['HasPanSpeed'] && $xFactor )
+                if ( $monitor->HasPanSpeed() && $xFactor )
                 {
-                    if ( $monitor['HasTurboPan'] )
+                    if ( $monitor->HasTurboPan() )
                     {
                         if ( $xFactor >= $turbo )
                         {
-                            $panSpeed = $monitor['TurboPanSpeed'];
+                            $panSpeed = $monitor->TurboPanSpeed();
                         }
                         else
                         {
                             $xFactor = $xFactor/$turbo;
-                            $panSpeed = intval(round($monitor['MinPanSpeed']+(($monitor['MaxPanSpeed']-$monitor['MinPanSpeed'])*$xFactor)));
+                            $panSpeed = intval(round($monitor->MinPanSpeed()+(($monitor->MaxPanSpeed()-$monitor->MinPanSpeed())*$xFactor)));
                         }
                     }
                     else
                     {
-                        $panSpeed = intval(round($monitor['MinPanSpeed']+(($monitor['MaxPanSpeed']-$monitor['MinPanSpeed'])*$xFactor)));
+                        $panSpeed = intval(round($monitor->MinPanSpeed()+(($monitor->MaxPanSpeed()-$monitor->MinPanSpeed())*$xFactor)));
                     }
                 }
-                if ( $monitor['HasTiltSpeed'] && $yFactor )
+                if ( $monitor->HasTiltSpeed() && $yFactor )
                 {
-                    if ( $monitor['HasTurboTilt'] )
+                    if ( $monitor->HasTurboTilt() )
                     {
                         if ( $yFactor >= $turbo )
                         {
-                            $tiltSpeed = $monitor['TurboTiltSpeed'];
+                            $tiltSpeed = $monitor->TurboTiltSpeed();
                         }
                         else
                         {
                             $yFactor = $yFactor/$turbo;
-                            $tiltSpeed = intval(round($monitor['MinTiltSpeed']+(($monitor['MaxTiltSpeed']-$monitor['MinTiltSpeed'])*$yFactor)));
+                            $tiltSpeed = intval(round($monitor->MinTiltSpeed()+(($monitor->MaxTiltSpeed()-$monitor->MinTiltSpeed())*$yFactor)));
                         }
                     }
                     else
                     {
-                        $tiltSpeed = intval(round($monitor['MinTiltSpeed']+(($monitor['MaxTiltSpeed']-$monitor['MinTiltSpeed'])*$yFactor)));
+                        $tiltSpeed = intval(round($monitor->MinTiltSpeed()+(($monitor->MaxTiltSpeed()-$monitor->MinTiltSpeed())*$yFactor)));
                     }
                 }
                 if ( preg_match( '/(Left|Right)$/', $dirn ) )
@@ -561,10 +563,10 @@ function buildControlCommand( $monitor )
                 {
                     $ctrlCommand .= " --tiltspeed=".$tiltSpeed;
                 }
-                if ( $monitor['AutoStopTimeout'] )
+                if ( $monitor->AutoStopTimeout() )
                 {
-                    $slowPanSpeed = intval(round($monitor['MinPanSpeed']+(($monitor['MaxPanSpeed']-$monitor['MinPanSpeed'])*$slow)));
-                    $slowTiltSpeed = intval(round($monitor['MinTiltSpeed']+(($monitor['MaxTiltSpeed']-$monitor['MinTiltSpeed'])*$slow)));
+                    $slowPanSpeed = intval(round($monitor->MinPanSpeed()+(($monitor->MaxPanSpeed()-$monitor->MinPanSpeed())*$slow)));
+                    $slowTiltSpeed = intval(round($monitor->MinTiltSpeed()+(($monitor->MaxTiltSpeed()-$monitor->MinTiltSpeed())*$slow)));
                     if ( (!isset($panSpeed) || ($panSpeed < $slowPanSpeed)) && (!isset($tiltSpeed) || ($tiltSpeed < $slowTiltSpeed)) )
                     {
                         $ctrlCommand .= " --autostop";
@@ -603,9 +605,9 @@ function buildControlCommand( $monitor )
                                 break;
                             }
                         }
-                        if ( $monitor['HasFocusSpeed'] )
+                        if ( $monitor->HasFocusSpeed() )
                         {
-                            $speed = intval(round($monitor['MinFocusSpeed']+(($monitor['MaxFocusSpeed']-$monitor['MinFocusSpeed'])*$factor)));
+                            $speed = intval(round($monitor->MinFocusSpeed()+(($monitor->MaxFocusSpeed()-$monitor->MinFocusSpeed())*$factor)));
                             $ctrlCommand .= " --speed=".$speed;
                         }
                         switch( $mode )
@@ -613,15 +615,15 @@ function buildControlCommand( $monitor )
                             case 'Abs' :
                             case 'Rel' :
                             {
-                                $step = intval(round($monitor['MinFocusStep']+(($monitor['MaxFocusStep']-$monitor['MinFocusStep'])*$factor)));
+                                $step = intval(round($monitor->MinFocusStep()+(($monitor->MaxFocusStep()-$monitor->MinFocusStep())*$factor)));
                                 $ctrlCommand .= " --step=".$step;
                                 break;
                             }
                             case 'Con' :
                             {
-                                if ( $monitor['AutoStopTimeout'] )
+                                if ( $monitor->AutoStopTimeout() )
                                 {
-                                    $slowSpeed = intval(round($monitor['MinFocusSpeed']+(($monitor['MaxFocusSpeed']-$monitor['MinFocusSpeed'])*$slow)));
+                                    $slowSpeed = intval(round($monitor->MinFocusSpeed()+(($monitor->MaxFocusSpeed()-$monitor->MinFocusSpeed())*$slow)));
                                     if ( $speed < $slowSpeed )
                                     {
                                         $ctrlCommand .= " --autostop";
@@ -647,9 +649,9 @@ function buildControlCommand( $monitor )
                                 break;
                             }
                         }
-                        if ( $monitor['HasZoomSpeed'] )
+                        if ( $monitor->HasZoomSpeed() )
                         {
-                            $speed = intval(round($monitor['MinZoomSpeed']+(($monitor['MaxZoomSpeed']-$monitor['MinZoomSpeed'])*$factor)));
+                            $speed = intval(round($monitor->MinZoomSpeed()+(($monitor->MaxZoomSpeed()-$monitor->MinZoomSpeed())*$factor)));
                             $ctrlCommand .= " --speed=".$speed;
                         }
                         switch( $mode )
@@ -657,15 +659,15 @@ function buildControlCommand( $monitor )
                             case 'Abs' :
                             case 'Rel' :
                             {
-                                $step = intval(round($monitor['MinZoomStep']+(($monitor['MaxZoomStep']-$monitor['MinZoomStep'])*$factor)));
+                                $step = intval(round($monitor->MinZoomStep()+(($monitor->MaxZoomStep()-$monitor->MinZoomStep())*$factor)));
                                 $ctrlCommand .= " --step=".$step;
                                 break;
                             }
                             case 'Con' :
                             {
-                                if ( $monitor['AutoStopTimeout'] )
+                                if ( $monitor->AutoStopTimeout() )
                                 {
-                                    $slowSpeed = intval(round($monitor['MinZoomSpeed']+(($monitor['MaxZoomSpeed']-$monitor['MinZoomSpeed'])*$slow)));
+                                    $slowSpeed = intval(round($monitor->MinZoomSpeed()+(($monitor->MaxZoomSpeed()-$monitor->MinZoomSpeed())*$slow)));
                                     if ( $speed < $slowSpeed )
                                     {
                                         $ctrlCommand .= " --autostop";
@@ -691,9 +693,9 @@ function buildControlCommand( $monitor )
                                 break;
                             }
                         }
-                        if ( $monitor['HasIrisSpeed'] )
+                        if ( $monitor->HasIrisSpeed() )
                         {
-                            $speed = intval(round($monitor['MinIrisSpeed']+(($monitor['MaxIrisSpeed']-$monitor['MinIrisSpeed'])*$factor)));
+                            $speed = intval(round($monitor->MinIrisSpeed()+(($monitor->MaxIrisSpeed()-$monitor->MinIrisSpeed())*$factor)));
                             $ctrlCommand .= " --speed=".$speed;
                         }
                         switch( $mode )
@@ -701,7 +703,7 @@ function buildControlCommand( $monitor )
                             case 'Abs' :
                             case 'Rel' :
                             {
-                                $step = intval(round($monitor['MinIrisStep']+(($monitor['MaxIrisStep']-$monitor['MinIrisStep'])*$factor)));
+                                $step = intval(round($monitor->MinIrisStep()+(($monitor->MaxIrisStep()-$monitor->MinIrisStep())*$factor)));
                                 $ctrlCommand .= " --step=".$step;
                                 break;
                             }
@@ -723,9 +725,9 @@ function buildControlCommand( $monitor )
                                 break;
                             }
                         }
-                        if ( $monitor['HasWhiteSpeed'] )
+                        if ( $monitor->HasWhiteSpeed() )
                         {
-                            $speed = intval(round($monitor['MinWhiteSpeed']+(($monitor['MaxWhiteSpeed']-$monitor['MinWhiteSpeed'])*$factor)));
+                            $speed = intval(round($monitor->MinWhiteSpeed()+(($monitor->MaxWhiteSpeed()-$monitor->MinWhiteSpeed())*$factor)));
                             $ctrlCommand .= " --speed=".$speed;
                         }
                         switch( $mode )
@@ -733,7 +735,7 @@ function buildControlCommand( $monitor )
                             case 'Abs' :
                             case 'Rel' :
                             {
-                                $step = intval(round($monitor['MinWhiteStep']+(($monitor['MaxWhiteStep']-$monitor['MinWhiteStep'])*$factor)));
+                                $step = intval(round($monitor->MinWhiteStep()+(($monitor->MaxWhiteStep()-$monitor->MinWhiteStep())*$factor)));
                                 $ctrlCommand .= " --step=".$step;
                                 break;
                             }
@@ -755,9 +757,9 @@ function buildControlCommand( $monitor )
                                 break;
                             }
                         }
-                        if ( $monitor['HasGainSpeed'] )
+                        if ( $monitor->HasGainSpeed() )
                         {
-                            $speed = intval(round($monitor['MinGainSpeed']+(($monitor['MaxGainSpeed']-$monitor['MinGainSpeed'])*$factor)));
+                            $speed = intval(round($monitor->MinGainSpeed()+(($monitor->MaxGainSpeed()-$monitor->MinGainSpeed())*$factor)));
                             $ctrlCommand .= " --speed=".$speed;
                         }
                         switch( $mode )
@@ -765,7 +767,7 @@ function buildControlCommand( $monitor )
                             case 'Abs' :
                             case 'Rel' :
                             {
-                                $step = intval(round($monitor['MinGainStep']+(($monitor['MaxGainStep']-$monitor['MinGainStep'])*$factor)));
+                                $step = intval(round($monitor->MinGainStep()+(($monitor->MaxGainStep()-$monitor->MinGainStep())*$factor)));
                                 $ctrlCommand .= " --step=".$step;
                                 break;
                             }
@@ -794,7 +796,7 @@ function buildControlCommand( $monitor )
                             $xFactor = ($x+1)/$short_x;
                         }
 
-                        if ( $monitor['Orientation'] != '0' )
+                        if ( $monitor->Orientation() != '0' )
                         {
                             $conversions = array(
                                 '90' => array(
@@ -848,48 +850,48 @@ function buildControlCommand( $monitor )
                                     'DownRight' => 'UpRight',
                                 ),
                             );
-                            $new_dirn = $conversions[$monitor['Orientation']][$dirn];
+                            $new_dirn = $conversions[$monitor->Orientation()][$dirn];
                             $_REQUEST['control'] = preg_replace( "/_$dirn\$/", "_$new_dirn", $_REQUEST['control'] );
                             $dirn = $new_dirn;
                         }
 
-                        if ( $monitor['HasPanSpeed'] && $xFactor )
+                        if ( $monitor->HasPanSpeed() && $xFactor )
                         {
-                            if ( $monitor['HasTurboPan'] )
+                            if ( $monitor->HasTurboPan() )
                             {
                                 if ( $xFactor >= $turbo )
                                 {
-                                    $panSpeed = $monitor['TurboPanSpeed'];
+                                    $panSpeed = $monitor->TurboPanSpeed();
                                 }
                                 else
                                 {
                                     $xFactor = $xFactor/$turbo;
-                                    $panSpeed = intval(round($monitor['MinPanSpeed']+(($monitor['MaxPanSpeed']-$monitor['MinPanSpeed'])*$xFactor)));
+                                    $panSpeed = intval(round($monitor->MinPanSpeed()+(($monitor->MaxPanSpeed()-$monitor->MinPanSpeed())*$xFactor)));
                                 }
                             }
                             else
                             {
-                                $panSpeed = intval(round($monitor['MinPanSpeed']+(($monitor['MaxPanSpeed']-$monitor['MinPanSpeed'])*$xFactor)));
+                                $panSpeed = intval(round($monitor->MinPanSpeed()+(($monitor->MaxPanSpeed()-$monitor->MinPanSpeed())*$xFactor)));
                             }
                             $ctrlCommand .= " --panspeed=".$panSpeed;
                         }
-                        if ( $monitor['HasTiltSpeed'] && $yFactor )
+                        if ( $monitor->HasTiltSpeed() && $yFactor )
                         {
-                            if ( $monitor['HasTurboTilt'] )
+                            if ( $monitor->HasTurboTilt() )
                             {
                                 if ( $yFactor >= $turbo )
                                 {
-                                    $tiltSpeed = $monitor['TurboTiltSpeed'];
+                                    $tiltSpeed = $monitor->TurboTiltSpeed();
                                 }
                                 else
                                 {
                                     $yFactor = $yFactor/$turbo;
-                                    $tiltSpeed = intval(round($monitor['MinTiltSpeed']+(($monitor['MaxTiltSpeed']-$monitor['MinTiltSpeed'])*$yFactor)));
+                                    $tiltSpeed = intval(round($monitor->MinTiltSpeed()+(($monitor->MaxTiltSpeed()-$monitor->MinTiltSpeed())*$yFactor)));
                                 }
                             }
                             else
                             {
-                                $tiltSpeed = intval(round($monitor['MinTiltSpeed']+(($monitor['MaxTiltSpeed']-$monitor['MinTiltSpeed'])*$yFactor)));
+                                $tiltSpeed = intval(round($monitor->MinTiltSpeed()+(($monitor->MaxTiltSpeed()-$monitor->MinTiltSpeed())*$yFactor)));
                             }
                             $ctrlCommand .= " --tiltspeed=".$tiltSpeed;
                         }
@@ -900,22 +902,22 @@ function buildControlCommand( $monitor )
                             {
                                 if ( preg_match( '/(Left|Right)$/', $dirn ) )
                                 {
-                                    $panStep = intval(round($monitor['MinPanStep']+(($monitor['MaxPanStep']-$monitor['MinPanStep'])*$xFactor)));
+                                    $panStep = intval(round($monitor->MinPanStep()+(($monitor->MaxPanStep()-$monitor->MinPanStep())*$xFactor)));
                                     $ctrlCommand .= " --panstep=".$panStep;
                                 }
                                 if ( preg_match( '/^(Up|Down)/', $dirn ) )
                                 {
-                                    $tiltStep = intval(round($monitor['MinTiltStep']+(($monitor['MaxTiltStep']-$monitor['MinTiltStep'])*$yFactor)));
+                                    $tiltStep = intval(round($monitor->MinTiltStep()+(($monitor->MaxTiltStep()-$monitor->MinTiltStep())*$yFactor)));
                                     $ctrlCommand .= " --tiltstep=".$tiltStep;
                                 }
                                 break;
                             }
                             case 'Con' :
                             {
-                                if ( $monitor['AutoStopTimeout'] )
+                                if ( $monitor->AutoStopTimeout() )
                                 {
-                                    $slowPanSpeed = intval(round($monitor['MinPanSpeed']+(($monitor['MaxPanSpeed']-$monitor['MinPanSpeed'])*$slow)));
-                                    $slowTiltSpeed = intval(round($monitor['MinTiltSpeed']+(($monitor['MaxTiltSpeed']-$monitor['MinTiltSpeed'])*$slow)));
+                                    $slowPanSpeed = intval(round($monitor->MinPanSpeed()+(($monitor->MaxPanSpeed()-$monitor->MinPanSpeed())*$slow)));
+                                    $slowTiltSpeed = intval(round($monitor->MinTiltSpeed()+(($monitor->MaxTiltSpeed()-$monitor->MinTiltSpeed())*$slow)));
                                     if ( (!isset($panSpeed) || ($panSpeed < $slowPanSpeed)) && (!isset($tiltSpeed) || ($tiltSpeed < $slowTiltSpeed)) )
                                     {
                                         $ctrlCommand .= " --autostop";
@@ -943,12 +945,12 @@ function buildControlCommand( $monitor )
             if ( canEdit( 'Control' ) ) {
                 $preset = validInt($_REQUEST['preset']);
                 $newLabel = validJsStr($_REQUEST['newLabel']);
-                $row = dbFetchOne( 'SELECT * FROM ControlPresets WHERE MonitorId = ? AND Preset = ?', NULL, array( $monitor['Id'], $preset ) );
+                $row = dbFetchOne( 'SELECT * FROM ControlPresets WHERE MonitorId = ? AND Preset = ?', NULL, array( $monitor->Id(), $preset ) );
                 if ( $newLabel != $row['Label'] ) {
                     if ( $newLabel ) {
-						dbQuery( 'REPLACE INTO ControlPresets ( MonitorId, Preset, Label ) VALUES ( ?, ?, ? )', array( $monitor['Id'], $preset, $newLabel ) );
+						dbQuery( 'REPLACE INTO ControlPresets ( MonitorId, Preset, Label ) VALUES ( ?, ?, ? )', array( $monitor->Id(), $preset, $newLabel ) );
                     } else {
-                        dbQuery( 'DELETE FROM ControlPresets WHERE MonitorId = ? AND Preset = ?', array( $monitor['Id'], $preset ) );
+                        dbQuery( 'DELETE FROM ControlPresets WHERE MonitorId = ? AND Preset = ?', array( $monitor->Id(), $preset ) );
 					}
                 }
                 $ctrlCommand .= " --preset=".$preset;

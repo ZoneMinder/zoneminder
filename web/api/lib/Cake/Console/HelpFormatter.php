@@ -14,7 +14,7 @@
  * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
-App::uses('String', 'Utility');
+App::uses('CakeText', 'Utility');
 
 /**
  * HelpFormatter formats help for console shells. Can format to either
@@ -33,19 +33,19 @@ class HelpFormatter {
 /**
  * The maximum number of arguments shown when generating usage.
  *
- * @var integer
+ * @var int
  */
 	protected $_maxArgs = 6;
 
 /**
  * The maximum number of options shown when generating usage.
  *
- * @var integer
+ * @var int
  */
 	protected $_maxOptions = 6;
 
 /**
- * Build the help formatter for a an OptionParser
+ * Build the help formatter for an OptionParser
  *
  * @param ConsoleOptionParser $parser The option parser help is being generated for.
  */
@@ -56,7 +56,7 @@ class HelpFormatter {
 /**
  * Get the help as formatted text suitable for output on the command line.
  *
- * @param integer $width The width of the help output.
+ * @param int $width The width of the help output.
  * @return string
  */
 	public function text($width = 72) {
@@ -64,7 +64,7 @@ class HelpFormatter {
 		$out = array();
 		$description = $parser->description();
 		if (!empty($description)) {
-			$out[] = String::wrap($description, $width);
+			$out[] = CakeText::wrap($description, $width);
 			$out[] = '';
 		}
 		$out[] = __d('cake_console', '<info>Usage:</info>');
@@ -76,7 +76,7 @@ class HelpFormatter {
 			$out[] = '';
 			$max = $this->_getMaxLength($subcommands) + 2;
 			foreach ($subcommands as $command) {
-				$out[] = String::wrap($command->help($max), array(
+				$out[] = CakeText::wrap($command->help($max), array(
 					'width' => $width,
 					'indent' => str_repeat(' ', $max),
 					'indentAt' => 1
@@ -93,7 +93,7 @@ class HelpFormatter {
 			$out[] = __d('cake_console', '<info>Options:</info>');
 			$out[] = '';
 			foreach ($options as $option) {
-				$out[] = String::wrap($option->help($max), array(
+				$out[] = CakeText::wrap($option->help($max), array(
 					'width' => $width,
 					'indent' => str_repeat(' ', $max),
 					'indentAt' => 1
@@ -108,7 +108,7 @@ class HelpFormatter {
 			$out[] = __d('cake_console', '<info>Arguments:</info>');
 			$out[] = '';
 			foreach ($arguments as $argument) {
-				$out[] = String::wrap($argument->help($max), array(
+				$out[] = CakeText::wrap($argument->help($max), array(
 					'width' => $width,
 					'indent' => str_repeat(' ', $max),
 					'indentAt' => 1
@@ -118,7 +118,7 @@ class HelpFormatter {
 		}
 		$epilog = $parser->epilog();
 		if (!empty($epilog)) {
-			$out[] = String::wrap($epilog, $width);
+			$out[] = CakeText::wrap($epilog, $width);
 			$out[] = '';
 		}
 		return implode("\n", $out);
@@ -159,8 +159,8 @@ class HelpFormatter {
 /**
  * Iterate over a collection and find the longest named thing.
  *
- * @param array $collection
- * @return integer
+ * @param array $collection The collection to find a max length of.
+ * @return int
  */
 	protected function _getMaxLength($collection) {
 		$max = 0;
@@ -173,7 +173,7 @@ class HelpFormatter {
 /**
  * Get the help as an xml string.
  *
- * @param boolean $string Return the SimpleXml object or a string. Defaults to true.
+ * @param bool $string Return the SimpleXml object or a string. Defaults to true.
  * @return string|SimpleXmlElement See $string
  */
 	public function xml($string = true) {

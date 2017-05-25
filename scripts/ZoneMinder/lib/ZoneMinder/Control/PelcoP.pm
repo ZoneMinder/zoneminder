@@ -15,14 +15,14 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # ==========================================================================
 #
 # This module contains the implementation of the Pelco-P camera control
 # protocol
 #
-package ZoneMinder::Control::PelcoD;
+package ZoneMinder::Control::PelcoP;
 
 use 5.006;
 use strict;
@@ -133,8 +133,10 @@ sub sendCmd
 
     my $result = undef;
 
+    # Pelco P protocol checksum is created by XOR'ing the first seven bytes in the message
+    # including the first byte, the STX sync packet
     my $checksum = 0x00;
-    for ( my $i = 1; $i < int(@$cmd); $i++ )
+    for ( my $i = 0; $i < int(@$cmd); $i++ )
     {
         $checksum ^= $cmd->[$i];
     }

@@ -28,14 +28,14 @@ class HtmlCoverageReport extends BaseCoverageReport {
 /**
  * Holds the total number of processed rows.
  *
- * @var integer
+ * @var int
  */
 	protected $_total = 0;
 
 /**
  * Holds the total number of covered rows.
  *
- * @var integer
+ * @var int
  */
 	protected $_covered = 0;
 
@@ -127,7 +127,7 @@ HTML;
 /**
  * Guess the class name the test was for based on the test case filename.
  *
- * @param ReflectionClass $testReflection.
+ * @param ReflectionClass $testReflection The class to reflect
  * @return string Possible test subject name.
  */
 	protected function _guessSubjectName($testReflection) {
@@ -143,10 +143,10 @@ HTML;
 /**
  * Renders the HTML for a single line in the HTML diff.
  *
- * @param string $line
- * @param integer $linenumber
- * @param string $class
- * @param array $coveringTests
+ * @param string $line The line content.
+ * @param int $linenumber The line number
+ * @param string $class The classname to use.
+ * @param array $coveringTests The tests covering the line.
  * @return string
  */
 	protected function _paintLine($line, $linenumber, $class, $coveringTests) {
@@ -195,11 +195,12 @@ HTML;
 /**
  * Generate an HTML snippet for coverage headers
  *
- * @param string $filename
- * @param string $percent
+ * @param string $filename The file name being covered
+ * @param string $percent The percentage covered
  * @return string
  */
 	public function coverageHeader($filename, $percent) {
+		$hash = md5($filename);
 		$filename = basename($filename);
 		list($file) = explode('.', $filename);
 		$display = in_array($file, $this->_testNames) ? 'block' : 'none';
@@ -207,11 +208,11 @@ HTML;
 		return <<<HTML
 	<div class="coverage-container $primary" style="display:$display;">
 	<h4>
-		<a href="#coverage-$filename" onclick="coverage_show_hide('coverage-$filename');">
+		<a href="#coverage-$filename-$hash" onclick="coverage_show_hide('coverage-$filename-$hash');">
 			$filename Code coverage: $percent%
 		</a>
 	</h4>
-	<div class="code-coverage-results" id="coverage-$filename" style="display:none;">
+	<div class="code-coverage-results" id="coverage-$filename-$hash" style="display:none;">
 	<pre>
 HTML;
 	}

@@ -1,7 +1,17 @@
 #!/bin/bash
 
+# Prepare proper amount of shared memory
+# For H.264 cameras it may be necessary to increase the amount of shared memory
+# to 2048 megabytes.
+umount /dev/shm
+mount -t tmpfs -o rw,nosuid,nodev,noexec,relatime,size=512M tmpfs /dev/shm
+
 # Start MySQL
-/usr/bin/mysqld_safe & 
+test -e /var/run/mysqld || install -m 755 -o mysql -g root -d /var/run/mysqld
+su - mysql -s /bin/sh -c "/usr/bin/mysqld_safe > /dev/null 2>&1 &"
+
+# Ensure we shut down mysql cleanly later:
+trap close_mysql SIGTERM
 
 # Give MySQL time to wake up
 SECONDS_LEFT=120
@@ -21,17 +31,18 @@ while true; do
   fi
 done
 
-# Create the ZoneMinder database
-mysql -u root < db/zm_create.sql
-
-# Add the ZoneMinder DB user
-mysql -u root -e "grant insert,select,update,delete,lock tables,alter on zm.* to 'zm'@'localhost' identified by 'zm'"
-
 # Restart apache
 service apache2 restart
 
 # Start ZoneMinder
 /usr/local/bin/zmpkg.pl start
 
-# Start SSHD
-/usr/sbin/sshd -D
+while :
+do
+    sleep 3600
+done
+
+function close_mysql {
+    kill $(cat /var/run/mysqld/mysqld.pid)
+    sleep 5
+}

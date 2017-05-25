@@ -28,6 +28,7 @@ class Zone extends AppModel {
  */
 	public $displayField = 'Name';
 
+	public $recursive = -1;
 
 	//The Associations below have been created with all possible keys, those that are not needed can be removed
 

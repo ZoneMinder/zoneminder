@@ -15,7 +15,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
 // ZoneMinder <your language> Translation by <your name>
@@ -87,6 +87,7 @@ $SLANG = array(
     'Actual'                => 'Actual',
     'AddNewControl'         => 'Add New Control',
     'AddNewMonitor'         => 'Add New Monitor',
+    'AddNewServer'          => 'Add New Server',
     'AddNewUser'            => 'Add New User',
     'AddNewZone'            => 'Add New Zone',
     'Alarm'                 => 'Alarm',
@@ -96,9 +97,12 @@ $SLANG = array(
     'AlarmLimits'           => 'Alarm Limits',
     'AlarmMaximumFPS'       => 'Alarm Maximum FPS',
     'AlarmPx'               => 'Alarm Px',
+    'AlarmRefImageBlendPct' => 'Alarm Reference Image Blend %ge',
     'AlarmRGBUnset'         => 'You must set an alarm RGB colour',
     'Alert'                 => 'Alert',
     'All'                   => 'All',
+    'AnalysisFPS'           => 'Analysis FPS',
+    'AnalysisUpdateDelay'   => 'Analysis Update Delay',
     'Apply'                 => 'Apply',
     'ApplyingStateChange'   => 'Applying State Change',
     'ArchArchived'          => 'Archived Only',
@@ -121,6 +125,7 @@ $SLANG = array(
     'AttrMaxScore'          => 'Max. Score',
     'AttrMonitorId'         => 'Monitor Id',
     'AttrMonitorName'       => 'Monitor Name',
+    'AttrServer'            => 'Server',
     'AttrName'              => 'Name',
     'AttrNotes'             => 'Notes',
     'AttrSystemLoad'        => 'System Load',
@@ -136,6 +141,8 @@ $SLANG = array(
     'BackgroundFilter'      => 'Run filter in background',
     'BadAlarmFrameCount'    => 'Alarm frame count must be an integer of one or more',
     'BadAlarmMaxFPS'        => 'Alarm Maximum FPS must be a positive integer or floating point value',
+    'BadAnalysisFPS'        => 'Analysis FPS must be a positive integer or floating point value',
+    'BadAnalysisUpdateDelay'=> 'Analysis update delay must be set to an integer of zero or more',
     'BadChannel'            => 'Channel must be set to an integer of zero or more',
     'BadDevice'             => 'Device must be set to a valid value',
     'BadFormat'             => 'Format must be set to a valid value',
@@ -148,7 +155,7 @@ $SLANG = array(
     'BadLabelX'             => 'Label X co-ordinate must be set to an integer of zero or more',
     'BadLabelY'             => 'Label Y co-ordinate must be set to an integer of zero or more',
     'BadMaxFPS'             => 'Maximum FPS must be a positive integer or floating point value',
-    'BadNameChars'          => 'Names may only contain alphanumeric characters plus hyphen and underscore',
+    'BadNameChars'          => 'Names may only contain alphanumeric characters plus spaces, hyphen and underscore',
     'BadPalette'            => 'Palette must be set to a valid value',
     'BadColours'            => 'Target colour must be set to a valid value',
     'BadPath'               => 'Path must be set to a valid value',
@@ -168,6 +175,7 @@ $SLANG = array(
     'Blobs'                 => 'Blobs',
     'BlobSizes'             => 'Blob Sizes',
     'Brightness'            => 'Brightness',
+    'Buffer'                => 'Buffer',
     'Buffers'               => 'Buffers',
     'CanAutoFocus'          => 'Can Auto Focus',
     'CanAutoGain'           => 'Can Auto Gain',
@@ -221,6 +229,7 @@ $SLANG = array(
     'ChooseLogFormat'       => 'Choose a log format',
     'ChooseLogSelection'    => 'Choose a log selection',
     'ChoosePreset'          => 'Choose Preset',
+    'CloneMonitor'          => 'Clone Monitor',
     'Close'                 => 'Close',
     'Colour'                => 'Colour',
     'Command'               => 'Command',
@@ -241,6 +250,7 @@ $SLANG = array(
     'ControlDevice'         => 'Control Device',
     'Controllable'          => 'Controllable',
     'ControlType'           => 'Control Type',
+    'Current'               => 'Current',
     'Cycle'                 => 'Cycle',
     'CycleWatch'            => 'Cycle Watch',
     'Day'                   => 'Day',
@@ -248,12 +258,16 @@ $SLANG = array(
     'DefaultRate'           => 'Default Rate',
     'DefaultScale'          => 'Default Scale',
     'DefaultView'           => 'Default View',
+    'Deinterlacing'         => 'Deinterlacing',
+    'RTSPDescribe'         => 'Use RTSP Response Media URL',
+    'Delay'                 => 'Delay',
     'DeleteAndNext'         => 'Delete &amp; Next',
     'DeleteAndPrev'         => 'Delete &amp; Prev',
     'Delete'                => 'Delete',
     'DeleteSavedFilter'     => 'Delete saved filter',
     'Description'           => 'Description',
     'DetectedCameras'       => 'Detected Cameras',
+    'DetectedProfiles'      => 'Detected Profiles',
     'DeviceChannel'         => 'Device Channel',
     'DeviceFormat'          => 'Device Format',
     'DeviceNumber'          => 'Device Number',
@@ -296,6 +310,7 @@ $SLANG = array(
     'Exclude'               => 'Exclude',
     'Execute'               => 'Execute',
     'ExportDetails'         => 'Export Event Details',
+    'Exif'                  => 'Embed EXIF data into image',
     'Export'                => 'Export',
     'ExportFailed'          => 'Export Failed',
     'ExportFormat'          => 'Export File Format',
@@ -318,8 +333,10 @@ $SLANG = array(
     'FilterDeleteEvents'    => 'Delete all matches',
     'FilterEmailEvents'     => 'Email details of all matches',
     'FilterExecuteEvents'   => 'Execute command on all matches',
+    'FilterLog'             => 'Filter log',
     'FilterMessageEvents'   => 'Message details of all matches',
     'FilterPx'              => 'Filter Px',
+    'Filter'                => 'Filter',
     'Filters'               => 'Filters',
     'FilterUnset'           => 'You must specify a filter width and height',
     'FilterUploadEvents'    => 'Upload all matches',
@@ -369,6 +386,7 @@ $SLANG = array(
     'HighBW'                => 'High&nbsp;B/W',
     'High'                  => 'High',
     'Home'                  => 'Home',
+    'Hostname'				=> 'Hostname',
     'Hour'                  => 'Hour',
     'Hue'                   => 'Hue',
     'Id'                    => 'Id',
@@ -467,6 +485,7 @@ $SLANG = array(
     'MinZoomSpeed'          => 'Min Zoom Speed',
     'MinZoomStep'           => 'Min Zoom Step',
     'Misc'                  => 'Misc',
+    'Mode'                  => 'Mode',
     'MonitorIds'            => 'Monitor&nbsp;Ids',
     'Monitor'               => 'Monitor',
     'MonitorPresetIntro'    => 'Select an appropriate preset from the list below.<br/><br/>Please note that this may overwrite any values you already have configured for the current monitor.<br/><br/>',
@@ -475,6 +494,7 @@ $SLANG = array(
     'MonitorProbe'          => 'Monitor Probe',
     'Monitors'              => 'Monitors',
     'Montage'               => 'Montage',
+    'MontageReview'         => 'Montage Review',
     'Month'                 => 'Month',
     'Move'                  => 'Move',
     'MtgDefault'            => 'Default',              // Added 2013.08.15.
@@ -498,6 +518,7 @@ $SLANG = array(
     'NewUser'               => 'New User',
     'Next'                  => 'Next',
     'NoDetectedCameras'     => 'No Detected Cameras',
+    'NoDetectedProfiles'    => 'No Detected Profiles',
     'NoFramesRecorded'      => 'There are no frames recorded for this event',
     'NoGroup'               => 'No Group',
     'NoneAvailable'         => 'None available',
@@ -510,6 +531,9 @@ $SLANG = array(
     'NumPresets'            => 'Num Presets',
     'Off'                   => 'Off',
     'On'                    => 'On',
+    'OnvifProbe'            => 'ONVIF',
+    'OnvifProbeIntro'       => 'The list below shows detected ONVIF cameras and whether they are already being used or available for selection.<br/><br/>Select the desired entry from the list below.<br/><br/>Please note that not all cameras may be detected and that choosing a camera here may overwrite any values you already have configured for the current monitor.<br/><br/>',
+    'OnvifCredentialsIntro' => 'Please supply user name and password for the selected camera.<br/>If no user has been created for the camera then the user given here will be created with the given password.<br/><br/>',
     'Open'                  => 'Open',
     'OpEq'                  => 'equal to',
     'OpGtEq'                => 'greater than or equal to',
@@ -521,6 +545,7 @@ $SLANG = array(
     'OpNe'                  => 'not equal to',
     'OpNotIn'               => 'not in set',
     'OpNotMatches'          => 'does not match',
+    'OptionalEncoderParam'  => 'Optional Encoder Parameters',
     'OptionHelp'            => 'Option Help',
     'OptionRestartWarning'  => 'These changes may not come into effect fully\nwhile the system is running. When you have\nfinished making your changes please ensure that\nyou restart ZoneMinder.',
     'Options'               => 'Options',
@@ -555,8 +580,13 @@ $SLANG = array(
     'Presets'               => 'Presets',
     'Prev'                  => 'Prev',
     'Probe'                 => 'Probe',
+    'ProfileProbe'          => 'Stream Probe',
+    'ProfileProbeIntro'     => 'The list below shows the existing stream profiles of the selected camera .<br/><br/>Select the desired entry from the list below.<br/><br/>Please note that ZoneMinder cannot configure additional profiles and that choosing a camera here may overwrite any values you already have configured for the current monitor.<br/><br/>',
+    'Progress'              => 'Progress',
     'Protocol'              => 'Protocol',
     'Rate'                  => 'Rate',
+    'RecaptchaWarning'      => 'Your reCaptcha secret key is invalid. Please correct it, or reCaptcha will not work', // added Sep 24 2015 - PP
+	'RecordAudio'			=> 'Whether to store the audio stream when saving an event.',
     'Real'                  => 'Real',
     'Record'                => 'Record',
     'RefImageBlendPct'      => 'Reference Image Blend %ge',
@@ -585,12 +615,14 @@ $SLANG = array(
     'Rewind'                => 'Rewind',
     'RotateLeft'            => 'Rotate Left',
     'RotateRight'           => 'Rotate Right',
+    'RTSPTransport'         => 'RTSP Transport Protocol',
     'RunLocalUpdate'        => 'Please run zmupdate.pl to update',
     'RunMode'               => 'Run Mode',
     'Running'               => 'Running',
     'RunState'              => 'Run State',
     'SaveAs'                => 'Save as',
     'SaveFilter'            => 'Save Filter',
+    'SaveJPEGs'             => 'Save JPEGs',
     'Save'                  => 'Save',
     'Scale'                 => 'Scale',
     'Score'                 => 'Score',
@@ -642,6 +674,7 @@ $SLANG = array(
     'Stream'                => 'Stream',
     'Submit'                => 'Submit',
     'System'                => 'System',
+    'TargetColorspace'      => 'Target colorspace',
     'Tele'                  => 'Tele',
     'Thumbnail'             => 'Thumbnail',
     'Tilt'                  => 'Tilt',
@@ -654,6 +687,7 @@ $SLANG = array(
     'TimestampLabelFormat'  => 'Timestamp Label Format',
     'TimestampLabelX'       => 'Timestamp Label X',
     'TimestampLabelY'       => 'Timestamp Label Y',
+    'TimestampLabelSize'    => 'Font Size',
     'Timestamp'             => 'Timestamp',
     'TimeStamp'             => 'Time Stamp',
     'Time'                  => 'Time',
@@ -697,6 +731,7 @@ $SLANG = array(
     'VideoGenParms'         => 'Video Generation Parameters',
     'VideoGenSucceeded'     => 'Video Generation Succeeded!',
     'VideoSize'             => 'Video Size',
+    'VideoWriter'           => 'Video Writer',
     'Video'                 => 'Video',
     'ViewAll'               => 'View All',
     'ViewEvent'             => 'View Event',
@@ -794,7 +829,7 @@ $VLANG = array(
 // in to generate the correct noun form.
 //
 // In languages such as English this is fairly simple 
-// Note this still has to be used with printf etc to get the right formating
+// Note this still has to be used with printf etc to get the right formatting
 function zmVlang( $langVarArray, $count )
 {
     krsort( $langVarArray );
@@ -866,17 +901,43 @@ function zmVlang( $langVarArray, $count )
 // So for example, to override the help text for ZM_LANG_DEFAULT do
 $OLANG = array(
 	'OPTIONS_FFMPEG' => array(
-		'Help' => "Parameters in this field are passwd on to FFmpeg. Multiple parameters can be separated by ,~~ ".
+		'Help' => "Parameters in this field are passed on to FFmpeg. Multiple parameters can be separated by ,~~ ".
 		          "Examples (do not enter quotes)~~~~".
 		          "\"allowed_media_types=video\" Set datatype to request fromcam (audio, video, data)~~~~".
 		          "\"reorder_queue_size=nnn\" Set number of packets to buffer for handling of reordered packets~~~~".
-		          "\"loglevel=debug\" Set verbosiy of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
+		          "\"loglevel=debug\" Set verbosity of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
+	),
+        'OPTIONS_RTSPTrans' => array(
+		'Help' => "This sets the RTSP Transport Protocol for FFmpeg.~~ ".
+                          "TCP - Use TCP (interleaving within the RTSP control channel) as transport protocol.~~".
+                          "UDP - Use UDP as transport protocol. Higher resolution cameras have experienced some 'smearing' while using UDP, if so try TCP~~".
+                          "UDP Multicast - Use UDP Multicast as transport protocol~~".
+                          "HTTP - Use HTTP tunneling as transport protocol, which is useful for passing proxies.~~"
 	),
 	'OPTIONS_LIBVLC' => array(
-		'Help' => "Parameters in this field are passwd on to libVLC. Multiple parameters can be separated by ,~~ ".
+		'Help' => "Parameters in this field are passed on to libVLC. Multiple parameters can be separated by ,~~ ".
 		          "Examples (do not enter quotes)~~~~".
 		          "\"--rtp-client-port=nnn\" Set local port to use for rtp data~~~~". 
 		          "\"--verbose=2\" Set verbosity of libVLC"
+	),
+	'OPTIONS_EXIF' => array(
+		'Help' => "Enable this option to embed EXIF data into each jpeg frame."
+	),
+	'OPTIONS_RTSPDESCRIBE' => array(
+		'Help' => "Sometimes, during the initial RTSP handshake, the camera will send an updated media URL. ".
+		          "Enable this option to tell ZoneMinder to use this URL. Disable this option to ignore the ".
+		          "value from the camera and use the value as entered in the monitor configuration~~~~". 
+		          "Generally this should be enabled. However, there are cases where the camera can get its".
+		          "own URL incorrect, such as when the camera is streaming through a firewall"),
+	'OPTIONS_MAXFPS' => array(
+		'Help' => "This field has certain limitations when used for non-local devices.~~ ".
+		          "Failure to adhere to these limitations will cause a delay in live video, irregular frame skipping, ".
+		          "and missed events~~".
+		          "For streaming IP cameras, do not use this field to reduce the frame rate. Set the frame rate in the".
+                          " camera, instead. You can, however, use a value that is slightly higher than the frame rate in the camera. ".
+		          "In this case, this helps keep the cpu from being overtaxed in the event of a network problem.~~". 
+		          "Some, mostly older, IP cameras support snapshot mode. In this case ZoneMinder is actively polling the camera ".
+		          "for new images. In this case, it is safe to use the field."
 	),
 	
 //    'LANG_DEFAULT' => array(

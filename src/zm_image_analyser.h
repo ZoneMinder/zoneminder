@@ -6,7 +6,6 @@
 #include <list>
 #include <string>
 #include <stdexcept>
-#include <iostream>
 #include <memory>
 
 #include "zm.h"
@@ -23,18 +22,18 @@ using namespace std;
 //! Class for handling image detection.
 class ImageAnalyser {
   public:
-    
-    //!Default constructor.
-    ImageAnalyser() {};
+  
+  //!Default constructor.
+  ImageAnalyser() {};
 
-    //! Destructor.
-    ~ImageAnalyser();
+  //! Destructor.
+  ~ImageAnalyser();
 
-    //! Copy constructor.
-    ImageAnalyser(const ImageAnalyser& source);
+  //! Copy constructor.
+  ImageAnalyser(const ImageAnalyser& source);
 
-    //! Overloaded operator=.
-    ImageAnalyser& operator=(const ImageAnalyser& source);
+  //! Overloaded operator=.
+  ImageAnalyser& operator=(const ImageAnalyser& source);
 
 private: 
 

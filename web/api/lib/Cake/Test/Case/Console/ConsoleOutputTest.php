@@ -95,6 +95,27 @@ class ConsoleOutputTest extends CakeTestCase {
 	}
 
 /**
+ * test writing an array of messages.
+ *
+ * @return void
+ */
+	public function testOverwrite() {
+		$testString = "Text";
+
+		$this->output->expects($this->at(0))->method('_write')
+			->with($testString);
+
+		$this->output->expects($this->at(1))->method('_write')
+			->with("");
+
+		$this->output->expects($this->at(2))->method('_write')
+			->with("Overwriting text");
+
+		$this->output->write($testString, 0);
+		$this->output->overwrite("Overwriting text");
+	}
+
+/**
  * test getting a style.
  *
  * @return void
@@ -229,6 +250,17 @@ class ConsoleOutputTest extends CakeTestCase {
 			->with('Bad Regular');
 
 		$this->output->write('<error>Bad</error> Regular', false);
+	}
+
+/**
+ * test plain output when php://output, as php://output is
+ * not compatible with posix_ functions.
+ *
+ * @return void
+ */
+	public function testOutputAsPlainWhenOutputStream() {
+		$output = $this->getMock('ConsoleOutput', array('_write'), array('php://output'));
+		$this->assertEquals(ConsoleOutput::PLAIN, $output->outputAs());
 	}
 
 /**

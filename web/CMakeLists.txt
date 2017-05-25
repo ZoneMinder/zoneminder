@@ -9,7 +9,7 @@ add_subdirectory(tools/mootools)
 configure_file(includes/config.php.in "${CMAKE_CURRENT_BINARY_DIR}/includes/config.php" @ONLY)
 
 # Install the web files
-install(DIRECTORY api ajax css graphics includes js lang skins tools views DESTINATION "${ZM_WEBDIR}" PATTERN "*.in" EXCLUDE PATTERN "*Make*" EXCLUDE PATTERN "*cmake*" EXCLUDE)
+install(DIRECTORY api ajax css fonts graphics includes js lang skins tools views DESTINATION "${ZM_WEBDIR}" PATTERN "*.in" EXCLUDE PATTERN "*Make*" EXCLUDE PATTERN "*cmake*" EXCLUDE)
 install(FILES index.php DESTINATION "${ZM_WEBDIR}")
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/includes/config.php" DESTINATION "${ZM_WEBDIR}/includes")
 
@@ -17,6 +17,8 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/includes/config.php" DESTINATION "${Z
 if(NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR))
 	install(FILES "${CMAKE_CURRENT_BINARY_DIR}/api/app/Config/core.php" DESTINATION "${ZM_WEBDIR}/api/app/Config")
 	install(FILES "${CMAKE_CURRENT_BINARY_DIR}/api/app/Config/database.php" DESTINATION "${ZM_WEBDIR}/api/app/Config")
+	install(FILES "${CMAKE_CURRENT_BINARY_DIR}/api/app/Config/bootstrap.php" DESTINATION "${ZM_WEBDIR}/api/app/Config")
+	install(FILES "${CMAKE_CURRENT_BINARY_DIR}/api/lib/Cake/bootstrap.php" DESTINATION "${ZM_WEBDIR}/api/lib/Cake")
 endif(NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR))
 
 # Install the mootools symlinks (if its not in the source directory)

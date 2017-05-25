@@ -15,16 +15,16 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # ==========================================================================
 #
 # This module contains the implementation of the 3S camera control
 # protocol
-#Model:					N5071
-#Hardware Version:		00
-#Firmware Version:		V1.03_STD-1
-#Firmware Build Time:	Jun 19 2012 15:28:17
+#Model:                 N5071
+#Hardware Version:      00
+#Firmware Version:      V1.03_STD-1
+#Firmware Build Time:   Jun 19 2012 15:28:17
 
 package ZoneMinder::Control::3S;
 

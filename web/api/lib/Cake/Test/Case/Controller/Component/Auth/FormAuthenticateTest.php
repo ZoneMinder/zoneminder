@@ -1,7 +1,5 @@
 <?php
 /**
- * FormAuthenticateTest file
- *
  * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
  * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
  *
@@ -168,6 +166,13 @@ class FormAuthenticateTest extends CakeTestCase {
 
 		$request->data = array(
 			'User' => array(
+				'user' => array(),
+				'password' => 'my password'
+		));
+		$this->assertFalse($this->auth->authenticate($request, $this->response));
+
+		$request->data = array(
+			'User' => array(
 				'user' => 'mariano',
 				'password' => array('password1', 'password2')
 		));
@@ -227,6 +232,30 @@ class FormAuthenticateTest extends CakeTestCase {
 	}
 
 /**
+ * Test that username of 0 works.
+ *
+ * @return void
+ */
+	public function testAuthenticateUsernameZero() {
+		$User = ClassRegistry::init('User');
+		$User->updateAll(array('user' => $User->getDataSource()->value('0')), array('user' => 'mariano'));
+
+		$request = new CakeRequest('posts/index', false);
+		$request->data = array('User' => array(
+			'user' => '0',
+			'password' => 'password'
+		));
+
+		$expected = array(
+			'id' => 1,
+			'user' => '0',
+			'created' => '2007-03-17 01:16:23',
+			'updated' => '2007-03-17 01:18:31'
+		);
+		$this->assertEquals($expected, $this->auth->authenticate($request, $this->response));
+	}
+
+/**
  * test a model in a plugin.
  *
  * @return void
@@ -259,7 +288,7 @@ class FormAuthenticateTest extends CakeTestCase {
 			'username' => 'gwoo',
 			'created' => '2007-03-17 01:16:23'
 		);
-		$this->assertEquals(self::date(), $result['updated']);
+		$this->assertEquals(static::date(), $result['updated']);
 		unset($result['updated']);
 		$this->assertEquals($expected, $result);
 		CakePlugin::unload();

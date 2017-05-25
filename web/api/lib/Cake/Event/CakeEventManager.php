@@ -1,7 +1,5 @@
 <?php
 /**
- *
- *
  * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
  * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
  *
@@ -31,7 +29,7 @@ class CakeEventManager {
 /**
  * The default priority queue value for new, attached listeners
  *
- * @var integer
+ * @var int
  */
 	public static $defaultPriority = 10;
 
@@ -45,14 +43,14 @@ class CakeEventManager {
 /**
  * List of listener callbacks associated to
  *
- * @var object $Listeners
+ * @var object
  */
 	protected $_listeners = array();
 
 /**
  * Internal flag to distinguish a common manager from the singleton
  *
- * @var boolean
+ * @var bool
  */
 	protected $_isGlobal = false;
 
@@ -64,19 +62,19 @@ class CakeEventManager {
  *
  * If called with the first parameter, it will be set as the globally available instance
  *
- * @param CakeEventManager $manager
+ * @param CakeEventManager $manager Optional event manager instance.
  * @return CakeEventManager the global event manager
  */
 	public static function instance($manager = null) {
 		if ($manager instanceof CakeEventManager) {
-			self::$_generalManager = $manager;
+			static::$_generalManager = $manager;
 		}
-		if (empty(self::$_generalManager)) {
-			self::$_generalManager = new CakeEventManager();
+		if (empty(static::$_generalManager)) {
+			static::$_generalManager = new CakeEventManager();
 		}
 
-		self::$_generalManager->_isGlobal = true;
-		return self::$_generalManager;
+		static::$_generalManager->_isGlobal = true;
+		return static::$_generalManager;
 	}
 
 /**
@@ -107,7 +105,7 @@ class CakeEventManager {
 			$this->_attachSubscriber($callable);
 			return;
 		}
-		$options = $options + array('priority' => self::$defaultPriority, 'passParams' => false);
+		$options = $options + array('priority' => static::$defaultPriority, 'passParams' => false);
 		$this->_listeners[$eventKey][$options['priority']][] = array(
 			'callable' => $callable,
 			'passParams' => $options['passParams'],
@@ -118,7 +116,7 @@ class CakeEventManager {
  * Auxiliary function to attach all implemented callbacks of a CakeEventListener class instance
  * as individual methods on this manager
  *
- * @param CakeEventListener $subscriber
+ * @param CakeEventListener $subscriber Event listener.
  * @return void
  */
 	protected function _attachSubscriber(CakeEventListener $subscriber) {
@@ -223,6 +221,7 @@ class CakeEventManager {
  *
  * @param string|CakeEvent $event the event key name or instance of CakeEvent
  * @return CakeEvent
+ * @triggers $event
  */
 	public function dispatch($event) {
 		if (is_string($event)) {
@@ -256,7 +255,7 @@ class CakeEventManager {
 /**
  * Returns a list of all listeners for an eventKey in the order they should be called
  *
- * @param string $eventKey
+ * @param string $eventKey Event key.
  * @return array
  */
 	public function listeners($eventKey) {
@@ -266,7 +265,7 @@ class CakeEventManager {
 			$localListeners = $this->prioritisedListeners($eventKey);
 			$localListeners = empty($localListeners) ? array() : $localListeners;
 		}
-		$globalListeners = self::instance()->prioritisedListeners($eventKey);
+		$globalListeners = static::instance()->prioritisedListeners($eventKey);
 		$globalListeners = empty($globalListeners) ? array() : $globalListeners;
 
 		$priorities = array_merge(array_keys($globalListeners), array_keys($localListeners));
@@ -288,7 +287,7 @@ class CakeEventManager {
 /**
  * Returns the listeners for the specified event key indexed by priority
  *
- * @param string $eventKey
+ * @param string $eventKey Event key.
  * @return array
  */
 	public function prioritisedListeners($eventKey) {

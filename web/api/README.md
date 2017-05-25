@@ -11,4 +11,4 @@ In adition, Security.salt and Security.cipherSeed in app/Config/core.php should
 be changed.
 
 The API can run on a dedicated / separate instance, so long as it can access
-the database as ocnfigured in app/Config/database.php
+the database as configured in app/Config/database.php

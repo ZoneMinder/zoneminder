@@ -1,9 +1,16 @@
 Viewing Monitors
 ================
 
-As this point you should have one or more Monitors running with one or more Zones each. Returning to the main Console window you will see your monitors listed once more. The columns not explored so far are the Monitor name, and various event totals for certain periods of time. Clicking on any of the event totals will bring up a variation on the same window but click on the Monitor name for now. If it is not a link then this means that that monitor is not running so ensure that you have started ZoneMinder and that your Monitor function is not set to ‘None’. If the link works, clicking on it will pop another window up which should be scaled to contain a heading, an image from your monitor, a status and a list of recent events if any have been generated.
+ZoneMinder allows you to view a live feed of your configured monitors. Once can access this view by clicking on the "Name" column of any of the monitors
 
-Depending on whether you are able to view a streamed image or not the image frame will either be this stream or a series of stills. You have the option to change from one to the other (if available) at the centre of the top heading. Also along the top are a handful of other links. These let you change the scale of the image stream, modify image settings (for local devices) or close the window. If you have cameras that can be controlled, a ‘Control’ link should also be present which is described below.
+.. image:: images/viewmonitor-main.png
+	:width: 500px
+
+
+Clicking on the name produces a view similar to this:
+
+.. image:: images/viewmonitor-stream.png
+	:width: 500px
 
 The image should be self-explanatory but if it looks like garbage it is possible that the video configuration is wrong so look in your system error log and check for or report anything unusual. The centre of the window will have a tiny frame that just contains a status; this will be 'Idle', 'Alarm' or 'Alert' depending on the function of the Monitor and what's going on in the field of view. Idle means nothing is happening, Alarm means there is an alarm in progress and Alert means that an alarm has happened and the monitor is ‘cooling down’, if another alarm is generated in this time it will just become part of the same event. These indicators are colour coded in green, red and amber.
 

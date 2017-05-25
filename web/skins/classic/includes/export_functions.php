@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 //
 // ZoneMinder web export function library, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
@@ -15,7 +15,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 function exportHeader( $title )
@@ -27,7 +27,7 @@ function exportHeader( $title )
   <title><?php echo $title ?></title>
   <style type="text/css">
   <!--
-<?php include( ZM_SKIN_PATH.'/css/export.css' ); ?>
+<?php include( ZM_SKIN_PATH.'/css/'.ZM_SKIN_NAME.'/export.css' ); ?>
 	
 
 ul.tabs {
@@ -71,7 +71,7 @@ html ul.tabs li.active, html ul.tabs li.active a:hover  {
 }
   -->
   </style>
-   <script type="text/javascript" src="<?php echo ZM_SKIN_PATH; ?>/js/jquery-1.4.2.min.js"></script>
+   <script type="text/javascript" src="<?php echo ZM_SKIN_PATH; ?>/js/jquery.js"></script>
   <script type="text/javascript" language="javascript" charset="utf-8">
 
   /*==========[tab code]==========*/
@@ -103,14 +103,12 @@ html ul.tabs li.active, html ul.tabs li.active a:hover  {
 
 function exportEventDetail( $event, $exportFrames, $exportImages )
 {
-    global $SLANG;
-
     ob_start();
-    exportHeader( $SLANG['Event']." ".$event['Id'] );
+    exportHeader( translate('Event')." ".$event['Id'] );
 	
 	$otherlinks = '';
-	if( $exportFrames ) $otherlinks .= '<a href="zmEventFrames.html">'.$SLANG['Frames'].'</a>,';
-	if( $exportImages ) $otherlinks .= '<a href="zmEventImages.html">'.$SLANG['Images'].'</a>,';
+	if( $exportFrames ) $otherlinks .= '<a href="zmEventFrames.html">'.translate('Frames').'</a>,';
+	if( $exportImages ) $otherlinks .= '<a href="zmEventImages.html">'.translate('Images').'</a>,';
 	$otherlinks = substr($otherlinks,0,-1);
 
 
@@ -118,21 +116,21 @@ function exportEventDetail( $event, $exportFrames, $exportImages )
 <body>
   <div id="page">
     <div id="content">
-		<h2><?php echo $SLANG['Event'] ?>: <?php echo validHtmlStr($event['Name']) ?><?php if(!empty($otherlinks)) { ?> (<?php echo$otherlinks?>) <?php } ?></h2>
+		<h2><?php echo translate('Event') ?>: <?php echo validHtmlStr($event['Name']) ?><?php if(!empty($otherlinks)) { ?> (<?php echo$otherlinks?>) <?php } ?></h2>
       <table id="eventDetail">
-        <tr><th scope="row"><?php echo $SLANG['Id'] ?></th><td><?php echo $event['Id'] ?></td></tr>
-        <tr><th scope="row"><?php echo $SLANG['Name'] ?></th><td><?php echo validHtmlStr($event['Name']) ?></td></tr>
-        <tr><th scope="row"><?php echo $SLANG['Monitor'] ?></th><td><?php echo validHtmlStr($event['MonitorName']) ?> (<?php echo $event['MonitorId'] ?>)</td></tr>
-        <tr><th scope="row"><?php echo $SLANG['Cause'] ?></th><td><?php echo validHtmlStr($event['Cause']) ?></td></tr>
-        <tr><th scope="row"><?php echo $SLANG['Notes'] ?></th><td><?php echo validHtmlStr($event['Notes']) ?></td></tr>
-        <tr><th scope="row"><?php echo $SLANG['Time'] ?></th><td><?php echo strftime( STRF_FMT_DATETIME_SHORTER, strtotime($event['StartTime']) ) ?></td></tr>
-        <tr><th scope="row"><?php echo $SLANG['Duration'] ?></th><td><?php echo $event['Length'] ?></td></tr>
-        <tr><th scope="row"><?php echo $SLANG['Frames'] ?></th><td><?php echo $event['Frames'] ?></td></tr>
-        <tr><th scope="row"><?php echo $SLANG['AttrAlarmFrames'] ?></th><td><?php echo $event['AlarmFrames'] ?></td></tr>
-        <tr><th scope="row"><?php echo $SLANG['AttrTotalScore'] ?></th><td><?php echo $event['TotScore'] ?></td></tr>
-        <tr><th scope="row"><?php echo $SLANG['AttrAvgScore'] ?></th><td><?php echo $event['AvgScore'] ?></td></tr>
-        <tr><th scope="row"><?php echo $SLANG['AttrMaxScore'] ?></th><td><?php echo $event['MaxScore'] ?></td></tr>
-        <tr><th scope="row"><?php echo $SLANG['Archived'] ?></th><td><?php echo $event['Archived']?$SLANG['Yes']:$SLANG['No'] ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Id') ?></th><td><?php echo $event['Id'] ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Name') ?></th><td><?php echo validHtmlStr($event['Name']) ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Monitor') ?></th><td><?php echo validHtmlStr($event['MonitorName']) ?> (<?php echo $event['MonitorId'] ?>)</td></tr>
+        <tr><th scope="row"><?php echo translate('Cause') ?></th><td><?php echo validHtmlStr($event['Cause']) ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Notes') ?></th><td><?php echo validHtmlStr($event['Notes']) ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Time') ?></th><td><?php echo strftime( STRF_FMT_DATETIME_SHORTER, strtotime($event['StartTime']) ) ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Duration') ?></th><td><?php echo $event['Length'] ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Frames') ?></th><td><?php echo $event['Frames'] ?></td></tr>
+        <tr><th scope="row"><?php echo translate('AttrAlarmFrames') ?></th><td><?php echo $event['AlarmFrames'] ?></td></tr>
+        <tr><th scope="row"><?php echo translate('AttrTotalScore') ?></th><td><?php echo $event['TotScore'] ?></td></tr>
+        <tr><th scope="row"><?php echo translate('AttrAvgScore') ?></th><td><?php echo $event['AvgScore'] ?></td></tr>
+        <tr><th scope="row"><?php echo translate('AttrMaxScore') ?></th><td><?php echo $event['MaxScore'] ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Archived') ?></th><td><?php echo $event['Archived']?translate('Yes'):translate('No') ?></td></tr>
       </table>
     </div>
   </div>
@@ -144,36 +142,34 @@ function exportEventDetail( $event, $exportFrames, $exportImages )
 
 function exportEventFrames( $event, $exportDetail, $exportImages )
 {
-    global $SLANG;
-
     $sql = "SELECT *, unix_timestamp( TimeStamp ) AS UnixTimeStamp FROM Frames WHERE EventID = ? ORDER BY FrameId";
     $frames = dbFetchAll( $sql, NULL, array( $event['Id'] ) );
 
     ob_start();
-    exportHeader( $SLANG['Frames']." ".$event['Id'] );
+    exportHeader( translate('Frames')." ".$event['Id'] );
 	
 	$otherlinks = '';
-	if( $exportDetail ) $otherlinks .= '<a href="zmEventDetail.html">'.$SLANG['Event'].'</a>,';
-	if( $exportImages ) $otherlinks .= '<a href="zmEventImages.html">'.$SLANG['Images'].'</a>,';
+	if( $exportDetail ) $otherlinks .= '<a href="zmEventDetail.html">'.translate('Event').'</a>,';
+	if( $exportImages ) $otherlinks .= '<a href="zmEventImages.html">'.translate('Images').'</a>,';
 	$otherlinks = substr($otherlinks,0,-1);
 
 ?>
 <body>
   <div id="page">
     <div id="content">
-		<h2><?php echo $SLANG['Frames'] ?>: <?php echo validHtmlStr($event['Name']) ?><?php if(!empty($otherlinks)) { ?> (<?php echo$otherlinks?>) <?php } ?></h2>
+		<h2><?php echo translate('Frames') ?>: <?php echo validHtmlStr($event['Name']) ?><?php if(!empty($otherlinks)) { ?> (<?php echo$otherlinks?>) <?php } ?></h2>
       <table id="eventFrames">
         <tr>
-          <th><?php echo $SLANG['FrameId'] ?></th>
-          <th><?php echo $SLANG['Type'] ?></th>
-          <th><?php echo $SLANG['TimeStamp'] ?></th>
-          <th><?php echo $SLANG['TimeDelta'] ?></th>
-          <th><?php echo $SLANG['Score'] ?></th>
+          <th><?php echo translate('FrameId') ?></th>
+          <th><?php echo translate('Type') ?></th>
+          <th><?php echo translate('TimeStamp') ?></th>
+          <th><?php echo translate('TimeDelta') ?></th>
+          <th><?php echo translate('Score') ?></th>
 <?php
     if ( $exportImages )
     {
 ?>
-          <th><?php echo $SLANG['Image'] ?></th>
+          <th><?php echo translate('Image') ?></th>
 <?php
     }
 ?>
@@ -181,7 +177,7 @@ function exportEventFrames( $event, $exportDetail, $exportImages )
 <?php
     if ( count($frames) )
     {
-        $eventPath = mygetEventPath( $event );
+        $eventPath = ZM_DIR_EVENTS.'/'.mygetEventPath( $event );
         foreach ( $frames as $frame )
         {
             $imageFile = sprintf( "%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $frame['FrameId'] );
@@ -216,7 +212,7 @@ function exportEventFrames( $event, $exportDetail, $exportImages )
     {
 ?>
         <tr>
-          <td class="monoRow" colspan="<?php echo $exportImages?6:5 ?>"><?php echo $SLANG['NoFramesRecorded'] ?></td>
+          <td class="monoRow" colspan="<?php echo $exportImages?6:5 ?>"><?php echo translate('NoFramesRecorded') ?></td>
         </tr>
 <?php
     }
@@ -232,14 +228,12 @@ function exportEventFrames( $event, $exportDetail, $exportImages )
 
 function exportEventImages( $event, $exportDetail, $exportFrames, $myfilelist )
 {
-    global $SLANG;
-
     ob_start();
-    exportHeader( $SLANG['Images']." ".$event['Id'] );
+    exportHeader( translate('Images')." ".$event['Id'] );
 	
 	$otherlinks = '';
-	if( $exportDetail ) $otherlinks .= '<a href="zmEventDetail.html">'.$SLANG['Event'].'</a>,';
-	if( $exportFrames ) $otherlinks .= '<a href="zmEventFrames.html">'.$SLANG['Frames'].'</a>,';
+	if( $exportDetail ) $otherlinks .= '<a href="zmEventDetail.html">'.translate('Event').'</a>,';
+	if( $exportFrames ) $otherlinks .= '<a href="zmEventFrames.html">'.translate('Frames').'</a>,';
 	$otherlinks = substr($otherlinks,0,-1);
 
 	$filelist = array_keys($myfilelist);
@@ -259,7 +253,7 @@ function exportEventImages( $event, $exportDetail, $exportFrames, $myfilelist )
 .value_display {background-color: #bbb;color: #333;width: 30px;margin: 0 2px;text-align: right;font-size: 8pt;font-face: verdana, arial, helvetica, sans-serif;font-weight: bold;line-height: 12px;border: 0;cursor: default;}
 </style>
 
-<h2><?php echo $SLANG['Images'] ?>: <?php echo validHtmlStr($event['Name']) ?><?php if(!empty($otherlinks)) { ?> (<?php echo$otherlinks?>) <?php } ?></h2>
+<h2><?php echo translate('Images') ?>: <?php echo validHtmlStr($event['Name']) ?><?php if(!empty($otherlinks)) { ?> (<?php echo$otherlinks?>) <?php } ?></h2>
 
 <ilayer id="slidensmain" width=&{slidewidth}; height=&{slideheight}; bgColor=&{slidebgcolor}; visibility=hide>
 <layer id="slidenssub" width=&{slidewidth}; left=auto top=auto></layer>
@@ -591,18 +585,21 @@ else if (document.layers) window.onload=start_slider;
 
 function exportEventImagesMaster( $eids )
 {
-    global $SLANG;
     ob_start();
-    exportHeader( $SLANG['Images'].' Master' );
+    exportHeader( translate('Images').' Master' );
 ?>
 <body>
-<h2><?php echo $SLANG['Images'] ?> Master</h2>
+<h2><?php echo translate('Images') ?> Master</h2>
 <?php
 	foreach ($eids as $eid) {
 		//get monitor id and event id
-		$sql = 'SELECT E.MonitorId FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId) WHERE E.Id = ?';
+		$sql = 'SELECT E.MonitorId, E.StartTime, E.Id
+			FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId)
+			WHERE E.Id = ?
+		';
 		$event = dbFetchOne( $sql, NULL, array( $eid ) );
 		$eventMonitorId[$eid] = $event['MonitorId'];
+		$eventPath[$eid] = mygetEventPath( $event );
 	}
 	
 	$monitors = array_values(array_flip(array_flip($eventMonitorId))); //unique monitors and reindex the array
@@ -644,7 +641,7 @@ function exportEventImagesMaster( $eids )
 	<?php foreach($eids as $eid) 
 	{
 	?>
-		<div><a href="javascript:switchevent('<?php echo   $eventMonitorId[$eid].'/' . $eid; ?>/zmEventImages.html');"><?php echo$eid?></a></div>
+		<div><a href="javascript:switchevent('<?php echo   $eventPath[$eid]; ?>/zmEventImages.html');"><?php echo$eid?></a></div>
 		<?php
 	} 
 	?>
@@ -660,7 +657,7 @@ function exportEventImagesMaster( $eids )
 				if ($eventMonitorId[$eid] == $monitor)
 				{
 				?>	
-				<div><a href="javascript:switchevent('<?php echo   $eventMonitorId[$eid].'/' . $eid; ?>/zmEventImages.html');"><?php echo$eid?></a></div>	
+				<div><a href="javascript:switchevent('<?php echo   $eventPath[$eid]; ?>/zmEventImages.html');"><?php echo$eid?></a></div>
 				<?php
 				}
 			}
@@ -763,7 +760,7 @@ function exportFileList( $eid, $exportDetail, $exportFrames, $exportImages, $exp
     {
         $sql = 'SELECT E.Id,E.MonitorId,M.Name AS MonitorName,M.Width,M.Height,E.Name,E.Cause,E.Notes,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId) WHERE E.Id = ?';
         $event = dbFetchOne( $sql, NULL, array( $eid ) );
-		$eventPath =  mygetEventPath( $event );
+		$eventPath =  ZM_DIR_EVENTS.'/'.mygetEventPath( $event );
         $files = array();
         if ( $dir = opendir( $eventPath ) )
         {
@@ -893,7 +890,7 @@ function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $expo
 			{
 				$eids = array($eids);
 			}
-			$monitorPath = 'events/';
+			$monitorPath = ZM_DIR_EVENTS."/";
 			$html_eventMaster = 'zmEventImagesMaster_'.date('Ymd_His'). '.html';
 			if ( !($fp = fopen( $monitorPath."/".$html_eventMaster, "w" )) ) Fatal( "Can't open event images export file '$html_eventMaster'" );
 			fwrite( $fp, exportEventImagesMaster( $eids ) );
@@ -901,7 +898,7 @@ function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $expo
 			$exportFileList[] = $monitorPath."/".$html_eventMaster;
 		}
 
-        $listFile = "temp/".$export_listFile;
+        $listFile = ZM_DIR_EXPORTS."/".$export_listFile;
         if ( !($fp = fopen( $listFile, "w" )) )
         {
             Fatal( "Can't open event export list file '$listFile'" );
@@ -914,7 +911,7 @@ function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $expo
         $archive = "";
         if ( $exportFormat == "tar" )
         {
-            $archive = "temp/".$export_root.".tar.gz";
+            $archive = ZM_DIR_EXPORTS."/".$export_root.".tar.gz";
             @unlink( $archive );
             $command = "tar --create --gzip --file=$archive --files-from=$listFile";
             exec( escapeshellcmd( $command ), $output, $status );
@@ -928,8 +925,7 @@ function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $expo
         }
         elseif ( $exportFormat == "zip" )
         {
-            $archive = "temp/zm_export.zip";
-            $archive = "temp/".$export_root.".zip";
+            $archive = ZM_DIR_EXPORTS."/".$export_root.".zip";
             @unlink( $archive );
             $command = "cat ".escapeshellarg($listFile)." | zip -q ".escapeshellarg($archive)." -@";
 //cat zmFileList.txt | zip -q zm_export.zip -@
@@ -951,13 +947,13 @@ function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $expo
 		}
 
     }
-    return( $archive );
+    return( '?view=archive%26type='.$exportFormat );
 }
 function mygetEventPath( $event )
 {
     if ( ZM_USE_DEEP_STORAGE )
-        $eventPath = ZM_DIR_EVENTS.'/'.$event['MonitorId'].'/'.strftime( "%y/%m/%d/%H/%M/%S", strtotime($event['StartTime']) );
+        $eventPath = $event['MonitorId'].'/'.strftime( "%y/%m/%d/%H/%M/%S", strtotime($event['StartTime']) );
     else
-        $eventPath = ZM_DIR_EVENTS.'/'.$event['MonitorId'].'/'.$event['Id'];
+        $eventPath = $event['MonitorId'].'/'.$event['Id'];
     return( $eventPath );
 }

@@ -276,7 +276,7 @@ class ControllerTestCaseTest extends CakeTestCase {
  * @return void
  */
 	public function testTestAction() {
-		$Controller = $this->Case->generate('TestsApps');
+		$this->Case->generate('TestsApps');
 		$this->Case->testAction('/tests_apps/index');
 		$this->assertInternalType('array', $this->Case->controller->viewVars);
 
@@ -297,6 +297,30 @@ class ControllerTestCaseTest extends CakeTestCase {
 			'Location' => 'http://cakephp.org'
 		);
 		$this->assertEquals($expected, $results);
+		$this->assertSame(302, $Controller->response->statusCode());
+	}
+
+/**
+ * Test array URLs with testAction()
+ *
+ * @return void
+ */
+	public function testTestActionArrayUrls() {
+		$this->Case->generate('TestsApps');
+		$this->Case->testAction(array('controller' => 'tests_apps', 'action' => 'index'));
+		$this->assertInternalType('array', $this->Case->controller->viewVars);
+	}
+
+/**
+ * Test that file responses don't trigger errors.
+ *
+ * @return void
+ */
+	public function testActionWithFile() {
+		$Controller = $this->Case->generate('TestsApps');
+		$this->Case->testAction('/tests_apps/file');
+		$this->assertArrayHasKey('Content-Disposition', $Controller->response->header());
+		$this->assertArrayHasKey('Content-Length', $Controller->response->header());
 	}
 
 /**
@@ -428,7 +452,7 @@ class ControllerTestCaseTest extends CakeTestCase {
 	public function testTestActionGetData() {
 		$this->Case->autoMock = true;
 
-		$result = $this->Case->testAction('/tests_apps_posts/url_var', array(
+		$this->Case->testAction('/tests_apps_posts/url_var', array(
 			'method' => 'get',
 			'data' => array(
 				'some' => 'var',
@@ -450,7 +474,7 @@ class ControllerTestCaseTest extends CakeTestCase {
 		));
 		$this->assertEquals(array('gogo', 'val2'), $result['params']['pass']);
 
-		$result = $this->Case->testAction('/tests_apps_posts/url_var', array(
+		$this->Case->testAction('/tests_apps_posts/url_var', array(
 			'return' => 'vars',
 			'method' => 'get',
 			'data' => array(

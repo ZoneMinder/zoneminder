@@ -14,7 +14,7 @@
  * 
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */  
 
 #include "zm.h"
@@ -39,33 +39,33 @@
 class User
 {
 public:
-	typedef enum { PERM_NONE=1, PERM_VIEW, PERM_EDIT } Permission;
+  typedef enum { PERM_NONE=1, PERM_VIEW, PERM_EDIT } Permission;
 
 protected:
-	char username[32+1];
-	char password[64+1];
-	bool enabled;
-	Permission stream;
-	Permission events;
-	Permission control;
-	Permission monitors;
-	Permission system;
-	int *monitor_ids;
+  char username[32+1];
+  char password[64+1];
+  bool enabled;
+  Permission stream;
+  Permission events;
+  Permission control;
+  Permission monitors;
+  Permission system;
+  int *monitor_ids;
 
 public:
-	User();
-	User( MYSQL_ROW &dbrow );
-	~User();
+  User();
+  User( MYSQL_ROW &dbrow );
+  ~User();
 
-	const char *getUsername() const { return( username ); }
-	const char *getPassword() const { return( password ); }
-	bool isEnabled() const { return( enabled ); }
-	Permission getStream() const { return( stream ); }
-	Permission getEvents() const { return( events ); }
-	Permission getControl() const { return( control ); }
-	Permission getMonitors() const { return( monitors ); }
-	Permission getSystem() const { return( system ); }
-	bool canAccess( int monitor_id );
+  const char *getUsername() const { return( username ); }
+  const char *getPassword() const { return( password ); }
+  bool isEnabled() const { return( enabled ); }
+  Permission getStream() const { return( stream ); }
+  Permission getEvents() const { return( events ); }
+  Permission getControl() const { return( control ); }
+  Permission getMonitors() const { return( monitors ); }
+  Permission getSystem() const { return( system ); }
+  bool canAccess( int monitor_id );
 };
 
 User *zmLoadUser( const char *username, const char *password=0 );

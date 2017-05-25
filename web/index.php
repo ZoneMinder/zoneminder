@@ -15,7 +15,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 error_reporting( E_ALL );
@@ -48,6 +48,10 @@ if ( false )
 
 require_once( 'includes/config.php' );
 require_once( 'includes/logger.php' );
+require_once( 'includes/Server.php' );
+require_once( 'includes/Storage.php' );
+require_once( 'includes/Event.php' );
+require_once( 'includes/Monitor.php' );
 
 if ( isset($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] == 'on' )
 {
@@ -57,46 +61,80 @@ else
 {
     $protocol = 'http';
 }
-define( "ZM_BASE_URL", $protocol.'://'.$_SERVER['HTTP_HOST'] );
+define( "ZM_BASE_PROTOCOL", $protocol );
+
+// Absolute URL's are unnecessary and break compatibility with reverse proxies 
+// define( "ZM_BASE_URL", $protocol.'://'.$_SERVER['HTTP_HOST'] );
+
+// Use relative URL's instead
+define( "ZM_BASE_URL", "" );
+
+// Check time zone is set
+if (!ini_get('date.timezone') || !date_default_timezone_set(ini_get('date.timezone'))) {
+    date_default_timezone_set('UTC');
+    Fatal( "ZoneMinder is not installed properly: php's date.timezone is not set to a valid timezone" );
+}
 
 if ( isset($_GET['skin']) )
     $skin = $_GET['skin'];
 elseif ( isset($_COOKIE['zmSkin']) )
     $skin = $_COOKIE['zmSkin'];
-elseif ( ZM_SKIN_DEFAULT )
+elseif ( defined('ZM_SKIN_DEFAULT') )
 	$skin = ZM_SKIN_DEFAULT;
 else
     $skin = "classic";
+
+$skins = array_map( 'basename', glob('skins/*',GLOB_ONLYDIR) );
+if ( ! in_array( $skin, $skins ) ) {
+	Error( "Invalid skin '$skin' setting to " . $skins[0] );
+	$skin = $skins[0];
+}
 
 if ( isset($_GET['css']) )
 	$css = $_GET['css'];
 elseif ( isset($_COOKIE['zmCSS']) )
 	$css = $_COOKIE['zmCSS'];
-elseif (ZM_CSS_DEFAULT)
+elseif (defined('ZM_CSS_DEFAULT'))
 	$css = ZM_CSS_DEFAULT;
 else
 	$css = "classic";
 
+$css_skins = array_map( 'basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR) );
+if ( ! in_array( $css, $css_skins ) ) {
+	Error( "Invalid skin css '$css' setting to " . $css_skins[0] );
+	$css = $css_skins[0];
+}
+
 define( "ZM_BASE_PATH", dirname( $_SERVER['REQUEST_URI'] ) );
+define( "ZM_SKIN_NAME", $skin );
 define( "ZM_SKIN_PATH", "skins/$skin" );
 
 $skinBase = array(); // To allow for inheritance of skins
 if ( !file_exists( ZM_SKIN_PATH ) )
     Fatal( "Invalid skin '$skin'" );
-require_once( ZM_SKIN_PATH.'/includes/init.php' );
 $skinBase[] = $skin;
+
+$currentCookieParams = session_get_cookie_params(); 
+Logger::Debug('Setting cookie parameters to lifetime('.$currentCookieParams['lifetime'].') path('.$currentCookieParams['path'].') domain ('.$currentCookieParams['domain'].') secure('.$currentCookieParams['secure'].') httpOnly(1)');
+session_set_cookie_params( 
+    $currentCookieParams["lifetime"], 
+    $currentCookieParams["path"], 
+    $currentCookieParams["domain"],
+    $currentCookieParams["secure"], 
+    true
+); 
 
 ini_set( "session.name", "ZMSESSID" );
 
 session_start();
 
-if ( !isset($_SESSION['skin']) || isset($_REQUEST['skin']) )
+if ( !isset($_SESSION['skin']) || isset($_REQUEST['skin']) || !isset($_COOKIE['zmSkin']) || $_COOKIE['zmSkin'] != $skin )
 {
     $_SESSION['skin'] = $skin;
     setcookie( "zmSkin", $skin, time()+3600*24*30*12*10 );
 }
 
-if ( !isset($_SESSION['css']) || isset($_REQUEST['css']) ) {
+if ( !isset($_SESSION['css']) || isset($_REQUEST['css']) || !isset($_COOKIE['zmCSS']) || $_COOKIE['zmCSS'] != $css ) {
 	$_SESSION['css'] = $css;
 	setcookie( "zmCSS", $css, time()+3600*24*30*12*10 );
 }
@@ -111,6 +149,16 @@ else
 
 require_once( 'includes/lang.php' );
 require_once( 'includes/functions.php' );
+require_once( 'includes/csrf/csrf-magic.php' );
+
+# Add Cross domain access headers
+CORSHeaders();
+
+// Check for valid content dirs
+if ( !is_writable(ZM_DIR_EVENTS) || !is_writable(ZM_DIR_IMAGES) )
+{
+	Error( "Cannot write to content dirs('".ZM_DIR_EVENTS."','".ZM_DIR_IMAGES."').  Check that these exist and are owned by the web account user");
+}
 
 if ( isset($_REQUEST['view']) )
     $view = detaintPath($_REQUEST['view']);
@@ -124,12 +172,26 @@ if ( isset($_REQUEST['action']) )
 foreach ( getSkinIncludes( 'skin.php' ) as $includeFile )
     require_once $includeFile;
 
+# The only variable we really need to set is action. The others are informal.
+isset($view) || $view = NULL;
+isset($request) || $request = NULL;
+isset($action) || $action = NULL;
+
+if ( ZM_ENABLE_CSRF_MAGIC ) {
+    Logger::Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");
+    csrf_check();
+}
+
 require_once( 'includes/actions.php' );
 
 # If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
 if ( ZM_OPT_USE_AUTH && ! isset($user) && $view != 'login' ) {
     $view = 'login';
 }
+
+# Only one request can open the session file at a time, so let's close the session here to improve concurrency.
+# Any file/page that uses the session must re-open it.
+session_write_close();
 
 if ( isset( $_REQUEST['request'] ) )
 {

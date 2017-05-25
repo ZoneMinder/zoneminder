@@ -1,19 +1,25 @@
 <?php
 //
-// ZoneMinder web Estonian language file, $Date: 2009-03-31 
-//14:00:49 +0100 (Tue, 31 Mar 2009) $, $Revision: 2829 $ // Copyright (C) 
-//2001-2008 Philip Coombes // // This program is free software; you can 
-//redistribute it and/or // modify it under the terms of the GNU General 
-//Public License // as published by the Free Software Foundation; either 
-//version 2 // of the License, or (at your option) any later version. // 
-// This program is distributed in the hope that it will be useful, // 
-//but WITHOUT ANY WARRANTY; without even the implied warranty of // 
-//MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the // GNU 
-//General Public License for more details. // // You should have received 
-//a copy of the GNU General Public License // along with this program; if 
-//not, write to the Free Software // Foundation, Inc., 59 Temple Place - 
-//Suite 330, Boston, MA 02111-1307, USA. //
+// ZoneMinder web US Estonian language file, $Date$, $Revision$
+// Copyright (C) 2001-2008 Philip Coombes
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+//
 
+// $Date: 2009-03-31
+// $Revision: 2829
 // ZoneMinder estonian Translation by Seston seston@gmail.com 
 // Who would care assistance to help to translate texts, and all this at all. Alone is somehow boring business.... 
 //Kes viitsiks aidata tõlkida abitekste ja üldse kõike seda.Üksi on kuidagi igav ettevõtmine....
@@ -89,8 +95,11 @@ $SLANG = array(
     'AlarmMaximumFPS'       => 'Alarmi Maksimaalne FPS',
     'AlarmPx'               => 'Alarm Px',
     'AlarmRGBUnset'         => 'Sa pead panema alarmi RGB värvi',
+    'AlarmRefImageBlendPct'=> 'Alarm Reference Image Blend %ge', // Added - 2015-04-18
     'Alert'                 => 'Hoiatus',
     'All'                   => 'All',
+    'AnalysisFPS'          => 'Analysis FPS',           // Added - 2015-07-22
+    'AnalysisUpdateDelay'  => 'Analysis Update Delay',  // Added - 2015-07-23
     'Apply'                 => 'Apply',
     'ApplyingStateChange'   => 'Applying State Change',
     'ArchArchived'          => 'Arhiveeritud Ainult',
@@ -127,19 +136,21 @@ $SLANG = array(
     'BackgroundFilter'      => 'Käivita filter taustal',
     'BadAlarmFrameCount'    => 'Alarmi kaadri hulga ühik peab olema integer. Kas üks või rohkem',
     'BadAlarmMaxFPS'        => 'Alarmi maksimaalne FPS peab olema positiivne integer või floating point väärtus',
+    'BadAnalysisFPS'       => 'Analysis FPS must be a positive integer or floating point value', // Added - 2015-07-22
+    'BadAnalysisUpdateDelay'=> 'Analysis update delay must be set to an integer of zero or more', // Added - 2015-07-23
     'BadChannel'            => 'Kanal peab olema integer, null või rohkem',
     'BadColours'            => 'Sihtmärgi värv peab olema pandud õige väärtus', // Added - 2011-06-15
     'BadDevice'             => 'Seadmel peab olema õige väärtus',
     'BadFPSReportInterval'  => 'FPS raporteerimise intervall puhvri hulk peab olema integer, null või rohkem',
     'BadFormat'             => 'Formaadiks peab olema pandud õige väärtus',
     'BadFrameSkip'          => 'Kaadri vahelejätmise hulk peab olema integer, null või rohkem',
-    'BadMotionFrameSkip'    => 'Liikumise kaadri vahelejätmise hulk peab olema integer, null või rohkem',
     'BadHeight'             => 'Kõrguseks peab olema valitud õige väärtus',
     'BadHost'               => 'Host ipeab olema õige. Ip aadress või hostinimi, ei tohi sisaldada http://',
     'BadImageBufferCount'   => 'Pildi puhvri suurus peab olema integer, 10 või rohkem',
     'BadLabelX'             => 'Label X co-ordinate must be set to an integer of zero or more',
     'BadLabelY'             => 'Label Y co-ordinate must be set to an integer of zero or more',
     'BadMaxFPS'             => 'Maximum FPS must be a positive integer or floating point value',
+    'BadMotionFrameSkip'    => 'Liikumise kaadri vahelejätmise hulk peab olema integer, null või rohkem',
     'BadNameChars'          => 'Names may only contain alphanumeric characters plus hyphen and underscore',
     'BadPalette'            => 'Palette must be set to a valid value',
     'BadPath'               => 'Path must be set to a valid value',
@@ -159,7 +170,9 @@ $SLANG = array(
     'BlobSizes'             => 'Blob Sizes',
     'Blobs'                 => 'Blobs',
     'Brightness'            => 'Heledus',
+    'Buffer'               => 'Buffer',                 // Added - 2015-04-18
     'Buffers'               => 'Puhver',
+    'CSSDescription'       => 'Change the default css for this computer', // Added - 2015-04-18
     'CanAutoFocus'          => 'Can Auto Focus',
     'CanAutoGain'           => 'Can Auto Gain',
     'CanAutoIris'           => 'Can Auto Iris',
@@ -203,6 +216,7 @@ $SLANG = array(
     'CaptureHeight'         => 'Capture Height',
     'CaptureMethod'         => 'Capture Method',
     'CapturePalette'        => 'Capture Palette',
+    'CaptureResolution'    => 'Capture Resolution',     // Added - 2015-04-18
     'CaptureWidth'          => 'Capture Width',
     'Cause'                 => 'Cause',
     'CheckMethod'           => 'Alarm Check Method',
@@ -233,6 +247,7 @@ $SLANG = array(
     'ControlDevice'         => 'Control Device',
     'ControlType'           => 'Control Type',
     'Controllable'          => 'Controllable',
+    'Current'              => 'Current',                // Added - 2015-04-18
     'Cycle'                 => 'Cycle',
     'CycleWatch'            => 'Cycle Watch',
     'DateTime'              => 'Kuupäev/Aeg',              // Added - 2011-06-16
@@ -241,12 +256,15 @@ $SLANG = array(
     'DefaultRate'           => 'Default Kiirus',
     'DefaultScale'          => 'Default Suurus',
     'DefaultView'           => 'Default Vaade',
+    'Deinterlacing'        => 'Deinterlacing',          // Added - 2015-04-18
+    'Delay'                => 'Delay',                  // Added - 2015-04-18
     'Delete'                => 'Kustuta',
     'DeleteAndNext'         => 'Kustuta &amp; Järgmine',
     'DeleteAndPrev'         => 'Kustuta &amp; Eelmine',
     'DeleteSavedFilter'     => 'Kustuta salvestatud filter',
     'Description'           => 'Kirjeldus',
     'DetectedCameras'       => 'Tuvastatud kaamerad',
+    'DetectedProfiles'     => 'Detected Profiles',      // Added - 2015-04-18
     'Device'                => 'Seade',
     'DeviceChannel'         => 'Seadme Kanal',
     'DeviceFormat'          => 'Seadme Formaat',
@@ -258,6 +276,7 @@ $SLANG = array(
     'Disk'                  => 'Ketas',
     'Display'               => 'Ekraan',                // Added - 2011-03-02
     'Displaying'            => 'Väljapanek',             // Added - 2011-06-16
+    'DoNativeMotionDetection'=> 'Do Native Motion Detection', // Added - 2015-04-18
     'Donate'                => 'Palun Anneta',
     'DonateAlready'         => 'EI, Ma olen juba annetanud',
     'DonateEnticement'      => 'Sa oled juba kasutanud ZoneMinderit juba mõnda aega. Nüüd kus sa oled leidnud, et see on kasulik lisa sinu kodule  või sinu töökohale. Kuigi ZoneMinder on, jääb alatiseks, vabaks ja avatud lähtekoodiks, siiski selle arendamiseks kulub aega ja raha. Kui sa soovid meid aidata, siis toeta meid tuleviku arendusteks ja uute lisade loomiseks. Palun mõelge annetuse peale. Donating is, of course, optional but very much appreciated and you can donate as much or as little as you like.<br/><br/>If you would like to donate please select the option below or go to http://www.zoneminder.com/donate.html in your browser.<br/><br/>Thank you for using ZoneMinder and don\'t forget to visit the forums on ZoneMinder.com for support or suggestions about how to make your ZoneMinder experience even better.',
@@ -309,10 +328,12 @@ $SLANG = array(
     'Feed'                  => 'Feed',
     'Ffmpeg'                => 'Ffmpeg',
     'File'                  => 'Fail',
+    'Filter'               => 'Filter',                 // Added - 2015-04-18
     'FilterArchiveEvents'   => 'Archive all matches',
     'FilterDeleteEvents'    => 'Delete all matches',
     'FilterEmailEvents'     => 'Email details of all matches',
     'FilterExecuteEvents'   => 'Execute command on all matches',
+    'FilterLog'            => 'Filter log',             // Added - 2015-04-18
     'FilterMessageEvents'   => 'Message details of all matches',
     'FilterPx'              => 'Filter Px',
     'FilterUnset'           => 'You must specify a filter width and height',
@@ -322,12 +343,12 @@ $SLANG = array(
     'First'                 => 'Esimene',
     'FlippedHori'           => 'Flipped Horizontally',
     'FlippedVert'           => 'Flipped Vertically',
-    'FnNone'                => 'None',            // Added 2013.08.16.
-    'FnMonitor'             => 'Monitor',            // Added 2013.08.16.
-    'FnModect'              => 'Modect',            // Added 2013.08.16.
-    'FnRecord'              => 'Record',            // Added 2013.08.16.
     'FnMocord'              => 'Mocord',            // Added 2013.08.16.
+    'FnModect'              => 'Modect',            // Added 2013.08.16.
+    'FnMonitor'             => 'Monitor',            // Added 2013.08.16.
     'FnNodect'              => 'Nodect',            // Added 2013.08.16.
+    'FnNone'                => 'None',            // Added 2013.08.16.
+    'FnRecord'              => 'Record',            // Added 2013.08.16.
     'Focus'                 => 'Fookus',
     'ForceAlarm'            => 'Force Alarm',
     'Format'                => 'Format',
@@ -335,7 +356,6 @@ $SLANG = array(
     'FrameId'               => 'Frame Id',
     'FrameRate'             => 'Kaadri Sagedus',
     'FrameSkip'             => 'Frame Skip',
-    'MotionFrameSkip'       => 'Motion Frame Skip',
     'Frames'                => 'Kaadrid',
     'Func'                  => 'Func',
     'Function'              => 'Funktsioon',
@@ -462,6 +482,7 @@ $SLANG = array(
     'MinZoomSpeed'          => 'Min Zoom Speed',
     'MinZoomStep'           => 'Min Zoom Step',
     'Misc'                  => 'Misc',
+    'Mode'                 => 'Mode',                   // Added - 2015-04-18
     'Monitor'               => 'Monitor',
     'MonitorIds'            => 'Monitor&nbsp;Ids',
     'MonitorPreset'         => 'Monitor Preset',
@@ -472,12 +493,13 @@ $SLANG = array(
     'Montage'               => 'Montage',
     'Month'                 => 'Kuus',
     'More'                  => 'Veel',                   // Added - 2011-06-16
+    'MotionFrameSkip'       => 'Motion Frame Skip',
     'Move'                  => 'Liiguta',
-    'MtgDefault'            => 'Default',              // Added 2013.08.15.
     'Mtg2widgrd'            => '2-pildi ruudustik',              // Added 2013.08.15.
     'Mtg3widgrd'            => '3-pildi ruudustik',              // Added 2013.08.15.
-    'Mtg4widgrd'            => '4-pildi ruudustik',              // Added 2013.08.15.
     'Mtg3widgrx'            => '3-pildi ruudustik, skaleeritud, suurenda kui on alarm',              // Added 2013.08.15.
+    'Mtg4widgrd'            => '4-pildi ruudustik',              // Added 2013.08.15.
+    'MtgDefault'            => 'Default',              // Added 2013.08.15.
     'MustBeGe'              => 'peab olema suurem kui või võrdne ',
     'MustBeLe'              => 'peab olema väiksem kui või võrdne',
     'MustConfirmPassword'   => 'Sa pead kinnitama parooli',
@@ -506,6 +528,9 @@ $SLANG = array(
     'NumPresets'            => 'Num Presets',
     'Off'                   => 'Väljas',
     'On'                    => 'Sees',
+    'OnvifCredentialsIntro'=> 'Please supply user name and password for the selected camera.<br/>If no user has been created for the camera then the user given here will be created with the given password.<br/><br/>', // Added - 2015-04-18
+    'OnvifProbe'           => 'ONVIF',                  // Added - 2015-04-18
+    'OnvifProbeIntro'      => 'The list below shows detected ONVIF cameras and whether they are already being used or available for selection.<br/><br/>Select the desired entry from the list below.<br/><br/>Please note that not all cameras may be detected and that choosing a camera here may overwrite any values you already have configured for the current monitor.<br/><br/>', // Added - 2015-04-18
     'OpEq'                  => 'Võrdne',
     'OpGt'                  => 'Suurem kui',
     'OpGtEq'                => 'suurem kui või võrdne',
@@ -552,6 +577,9 @@ $SLANG = array(
     'Presets'               => 'Eelseaded',
     'Prev'                  => 'Prev',
     'Probe'                 => 'Probe',
+    'ProfileProbe'         => 'Stream Probe',           // Added - 2015-04-18
+    'ProfileProbeIntro'    => 'The list below shows the existing stream profiles of the selected camera .<br/><br/>Select the desired entry from the list below.<br/><br/>Please note that ZoneMinder cannot configure additional profiles and that choosing a camera here may overwrite any values you already have configured for the current monitor.<br/><br/>', // Added - 2015-04-18
+    'Progress'             => 'Progress',               // Added - 2015-04-18
     'Protocol'              => 'Protocol',
     'Rate'                  => 'Rate',
     'Real'                  => 'Reaaalne',
@@ -639,6 +667,7 @@ $SLANG = array(
     'Submit'                => 'Submit',
     'System'                => 'Süsteem',
     'SystemLog'             => 'Süsteemi Logi',             // Added - 2011-06-16
+    'TargetColorspace'     => 'Target colorspace',      // Added - 2015-04-18
     'Tele'                  => 'Tele',
     'Thumbnail'             => 'Thumbnail',
     'Tilt'                  => 'Tilt',
@@ -676,9 +705,13 @@ $SLANG = array(
     'UseFilter'             => 'Kasuta Filtrit',
     'UseFilterExprsPost'    => '&nbsp;filter&nbsp;expressions', // This is used at the end of the phrase 'use N filter expressions'
     'UseFilterExprsPre'     => 'Use&nbsp;', // This is used at the beginning of the phrase 'use N filter expressions'
+    'UsedPlugins'          => 'Used Plugins',           // Added - 2015-04-18
     'User'                  => 'Kasutaja',
     'Username'              => 'Kasutajanimi',
     'Users'                 => 'Kasutajad',
+    'V4L'                  => 'V4L',                    // Added - 2015-04-18
+    'V4LCapturesPerFrame'  => 'Captures Per Frame',     // Added - 2015-04-18
+    'V4LMultiBuffer'       => 'Multi Buffering',        // Added - 2015-04-18
     'Value'                 => 'Väärtus',
     'Version'               => 'Versioon',
     'VersionIgnore'         => 'Ignoreeri See Versioon',
@@ -718,6 +751,7 @@ $SLANG = array(
     'Zone'                  => 'Tsoon',
     'ZoneAlarmColour'       => 'Alarmi Värv (Red"Punane"/Green"Roheline"/Blue"Sinine")',
     'ZoneArea'              => 'Tsooni Ala',
+    'ZoneExtendAlarmFrames' => 'Extend Alarm Frame Count',
     'ZoneFilterSize'        => 'Filter Width/Height (pixels)',
     'ZoneMinMaxAlarmArea'   => 'Min/Max Alarmed Area',
     'ZoneMinMaxBlobArea'    => 'Min/Max Blob Area',
@@ -726,7 +760,6 @@ $SLANG = array(
     'ZoneMinMaxPixelThres'  => 'Min/Max Pixel Threshold (0-255)',
     'ZoneMinderLog'         => 'ZoneMinder Log',         // Added - 2011-06-17
     'ZoneOverloadFrames'    => 'Overload Frame Ignore Count',
-    'ZoneExtendAlarmFrames' => 'Extend Alarm Frame Count',
     'Zones'                 => 'Tsoone',
     'Zoom'                  => 'Suurenda',
     'ZoomIn'                => 'Suurenda lähemale',
@@ -787,7 +820,7 @@ $VLANG = array(
 // in to generate the correct noun form.
 //
 // In languages such as English this is fairly simple 
-// Note this still has to be used with printf etc to get the right formating
+// Note this still has to be used with printf etc to get the right formatting
 function zmVlang( $langVarArray, $count )
 {
     krsort( $langVarArray );
@@ -859,14 +892,14 @@ function zmVlang( $langVarArray, $count )
 // So for example, to override the help text for ZM_LANG_DEFAULT do
 $OLANG = array(
 	'OPTIONS_FFMPEG' => array(
-		'Help' => "Parameters in this field are passwd on to FFmpeg. Multiple parameters can be separated by ,~~ ".
+		'Help' => "Parameters in this field are passed on to FFmpeg. Multiple parameters can be separated by ,~~ ".
 		          "Examples (do not enter quotes)~~~~".
 		          "\"allowed_media_types=video\" Set datatype to request fromcam (audio, video, data)~~~~".
 		          "\"reorder_queue_size=nnn\" Set number of packets to buffer for handling of reordered packets~~~~".
-		          "\"loglevel=debug\" Set verbosiy of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
+		          "\"loglevel=debug\" Set verbosity of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
 	),
 	'OPTIONS_LIBVLC' => array(
-		'Help' => "Parameters in this field are passwd on to libVLC. Multiple parameters can be separated by ,~~ ".
+		'Help' => "Parameters in this field are passed on to libVLC. Multiple parameters can be separated by ,~~ ".
 		          "Examples (do not enter quotes)~~~~".
 		          "\"--rtp-client-port=nnn\" Set local port to use for rtp data~~~~". 
 		          "\"--verbose=2\" Set verbosity of libVLC"

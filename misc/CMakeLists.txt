@@ -12,7 +12,8 @@ configure_file(zoneminder-tmpfiles.conf.in "${CMAKE_CURRENT_BINARY_DIR}/zonemind
 # Do not install the misc files by default
 #install(FILES "${CMAKE_CURRENT_BINARY_DIR}/apache.conf" "${CMAKE_CURRENT_BINARY_DIR}/logrotate.conf" "${CMAKE_CURRENT_BINARY_DIR}/syslog.conf" DESTINATION "${CMAKE_INSTALL_DATADIR}/zoneminder/misc")
 
-# Install Policykit rules and actions into the proper folders
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/com.zoneminder.systemctl.policy" DESTINATION "${PC_POLKIT_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/polkit-1/actions")
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/com.zoneminder.systemctl.rules" DESTINATION "${PC_POLKIT_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/polkit-1/rules.d")
-
+# Install Policykit rules and actions into the proper folders only on systems with systemd
+if(WITH_SYSTEMD)
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/com.zoneminder.systemctl.policy" DESTINATION "${PC_POLKIT_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/polkit-1/actions")
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/com.zoneminder.systemctl.rules" DESTINATION "${PC_POLKIT_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/polkit-1/rules.d")
+endif(WITH_SYSTEMD)

@@ -14,7 +14,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 #ifndef ZM_REMOTE_CAMERA_HTTP_H
@@ -30,34 +30,34 @@
 // Class representing 'http' cameras, i.e. those which are
 // accessed over a network connection using http
 //
-class RemoteCameraHttp : public RemoteCamera
-{
+class RemoteCameraHttp : public RemoteCamera {
 protected:
-	std::string request;
-	struct timeval timeout;
-	//struct hostent *hp;
-	//struct sockaddr_in sa;
-	int sd;
-	Buffer buffer;
-	enum { SINGLE_IMAGE, MULTI_IMAGE } mode;
-	enum { UNDEF, JPEG, X_RGB, X_RGBZ } format;
-	enum { HEADER, HEADERCONT, SUBHEADER, SUBHEADERCONT, CONTENT } state;
-    enum { SIMPLE, REGEXP } method;
+  std::string request;
+  struct timeval timeout;
+  //struct hostent *hp;
+  //struct sockaddr_in sa;
+  int sd;
+  Buffer buffer;
+  enum { SINGLE_IMAGE, MULTI_IMAGE } mode;
+  enum { UNDEF, JPEG, X_RGB, X_RGBZ } format;
+  enum { HEADER, HEADERCONT, SUBHEADER, SUBHEADERCONT, CONTENT } state;
+  enum { SIMPLE, REGEXP } method;
 
 public:
-	RemoteCameraHttp( int p_id, const std::string &method, const std::string &host, const std::string &port, const std::string &path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
-	~RemoteCameraHttp();
+  RemoteCameraHttp( unsigned int p_monitor_id, const std::string &method, const std::string &host, const std::string &port, const std::string &path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
+  ~RemoteCameraHttp();
 
-	void Initialise();
-	void Terminate() { Disconnect(); }
-	int Connect();
-	int Disconnect();
-	int SendRequest();
-	int ReadData( Buffer &buffer, int bytes_expected=0 );
-	int GetResponse();
-	int PreCapture();
-	int Capture( Image &image );
-	int PostCapture();
+  void Initialise();
+  void Terminate() { Disconnect(); }
+  int Connect();
+  int Disconnect();
+  int SendRequest();
+  int ReadData( Buffer &buffer, unsigned int bytes_expected=0 );
+  int GetResponse();
+  int PreCapture();
+  int Capture( Image &image );
+  int PostCapture();
+  int CaptureAndRecord( Image &image, timeval recording, char* event_directory ) {return(0);};
 };
 
 #endif // ZM_REMOTE_CAMERA_HTTP_H

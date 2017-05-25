@@ -15,7 +15,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
 if ( !canView( 'Events' ) || (!empty($_REQUEST['execute']) && !canEdit('Events')) )
@@ -24,15 +24,17 @@ if ( !canView( 'Events' ) || (!empty($_REQUEST['execute']) && !canEdit('Events')
     return;
 }
 
+require_once( 'includes/Event.php' );
+
 if ( !empty($_REQUEST['execute']) )
 {
     executeFilter( $tempFilterName );
 }
 
 $countSql = 'SELECT count(E.Id) AS EventCount FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId) WHERE';
-$eventsSql = 'SELECT E.Id,E.MonitorId,M.Name AS MonitorName,M.DefaultScale,E.Name,E.Width,E.Height,E.Cause,E.Notes,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId) WHERE';
+$eventsSql = 'SELECT E.*,M.Name AS MonitorName FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId) WHERE';
 if ( $user['MonitorIds'] ) {
-	$user_monitor_ids = " M.Id in (".join( ",", preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) ).")";
+	$user_monitor_ids = ' M.Id in ('.$user['MonitorIds'].')';
 	$countSql .= $user_monitor_ids;
 	$eventsSql .= $user_monitor_ids;
 } else {
@@ -66,13 +68,11 @@ if ( !empty($limit) && $nEvents > $limit )
     $nEvents = $limit;
 }
 $pages = (int)ceil($nEvents/ZM_WEB_EVENTS_PER_PAGE);
-if ( $pages > 1 ) {
-    if ( !empty($page) ) {
-        if ( $page < 0 )
-            $page = 1;
-        if ( $page > $pages )
-            $page = $pages;
-    }
+if ( !empty($page) ) {
+    if ( $page < 0 )
+        $page = 1;
+    if ( $page > $pages )
+        $page = $pages;
 }
 if ( !empty($page) ) {
     $limitStart = (($page-1)*ZM_WEB_EVENTS_PER_PAGE);
@@ -95,15 +95,17 @@ $maxHeight = 0;
 $archived = false;
 $unarchived = false;
 $events = array();
-foreach ( dbFetchAll( $eventsSql ) as $event )
+foreach ( dbFetchAll( $eventsSql ) as $event_row )
 {
-    $events[] = $event;
-    $scale = max( reScale( SCALE_BASE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
-    $eventWidth = reScale( $event['Width'], $scale );
-    $eventHeight = reScale( $event['Height'], $scale );
+    $events[] = $event = new Event( $event_row );
+
+   # Doesn this code do anything? 
+    $scale = max( reScale( SCALE_BASE, $event->DefaultScale(), ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
+    $eventWidth = reScale( $event_row['Width'], $scale );
+    $eventHeight = reScale( $event_row['Height'], $scale );
     if ( $maxWidth < $eventWidth ) $maxWidth = $eventWidth;
     if ( $maxHeight < $eventHeight ) $maxHeight = $eventHeight;
-    if ( $event['Archived'] )
+    if ( $event_row['Archived'] )
         $archived = true;
     else
         $unarchived = true;
@@ -114,7 +116,7 @@ $pagination = getPagination( $pages, $page, $maxShortcuts, $filterQuery.$sortQue
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['Events'] );
+xhtmlHeaders(__FILE__, translate('Events') );
 
 ?>
 <body>
@@ -127,18 +129,18 @@ if ( $pages > 1 )
     if ( !empty($page) )
     {
 ?>
-        <a href="?view=<?php echo $view ?>&amp;page=0<?php echo $filterQuery ?><?php echo $sortQuery ?>&amp;limit=<?php echo $limit ?>"><?php echo $SLANG['ViewAll'] ?></a>
+        <a href="?view=<?php echo $view ?>&amp;page=0<?php echo $filterQuery ?><?php echo $sortQuery ?>&amp;limit=<?php echo $limit ?>"><?php echo translate('ViewAll') ?></a>
 <?php
     }
     else
     {
 ?>
-        <a href="?view=<?php echo $view ?>&amp;page=1<?php echo $filterQuery ?><?php echo $sortQuery ?>&amp;limit=<?php echo $limit ?>"><?php echo $SLANG['ViewPaged'] ?></a>
+        <a href="?view=<?php echo $view ?>&amp;page=1<?php echo $filterQuery ?><?php echo $sortQuery ?>&amp;limit=<?php echo $limit ?>"><?php echo translate('ViewPaged') ?></a>
 <?php
     }
 }
 ?>
-        <a href="#" onclick="closeWindows();"><?php echo $SLANG['Close'] ?></a>
+        <a href="#" onclick="closeWindows();"><?php echo translate('Close') ?></a>
       </div>
       <h2><?php echo sprintf( $CLANG['EventCount'], $nEvents, zmVlang( $VLANG['Event'], $nEvents ) ) ?></h2>
     </div>
@@ -160,9 +162,9 @@ if ( $pagination )
 }
 ?>
         <p id="controls">
-          <a id="refreshLink" href="#" onclick="location.reload(true);"><?php echo $SLANG['Refresh'] ?></a>
-          <a id="filterLink" href="#" onclick="createPopup( '?view=filter&amp;page=<?php echo $page ?><?php echo $filterQuery ?>', 'zmFilter', 'filter' );"><?php echo $SLANG['ShowFilterWindow'] ?></a>
-          <a id="timelineLink" href="#" onclick="createPopup( '?view=timeline<?php echo $filterQuery ?>', 'zmTimeline', 'timeline' );"><?php echo $SLANG['ShowTimeline'] ?></a>
+          <a id="refreshLink" href="#" onclick="location.reload(true);"><?php echo translate('Refresh') ?></a>
+          <a id="filterLink" href="#" onclick="createPopup( '?view=filter&amp;page=<?php echo $page ?><?php echo $filterQuery ?>', 'zmFilter', 'filter' );"><?php echo translate('ShowFilterWindow') ?></a>
+          <a id="timelineLink" href="#" onclick="createPopup( '?view=timeline<?php echo $filterQuery ?>', 'zmTimeline', 'timeline' );"><?php echo translate('ShowTimeline') ?></a>
         </p>
         <table id="contentTable" class="major" cellspacing="0">
           <tbody>
@@ -174,22 +176,25 @@ foreach ( $events as $event )
     {
 ?>
             <tr>
-              <th class="colId"><a href="<?php echo sortHeader( 'Id' ) ?>"><?php echo $SLANG['Id'] ?><?php echo sortTag( 'Id' ) ?></a></th>
-              <th class="colName"><a href="<?php echo sortHeader( 'Name' ) ?>"><?php echo $SLANG['Name'] ?><?php echo sortTag( 'Name' ) ?></a></th>
-              <th class="colMonitor"><a href="<?php echo sortHeader( 'MonitorName' ) ?>"><?php echo $SLANG['Monitor'] ?><?php echo sortTag( 'MonitorName' ) ?></a></th>
-              <th class="colCause"><a href="<?php echo sortHeader( 'Cause' ) ?>"><?php echo $SLANG['Cause'] ?><?php echo sortTag( 'Cause' ) ?></a></th>
-              <th class="colTime"><a href="<?php echo sortHeader( 'StartTime' ) ?>"><?php echo $SLANG['Time'] ?><?php echo sortTag( 'StartTime' ) ?></a></th>
-              <th class="colDuration"><a href="<?php echo sortHeader( 'Length' ) ?>"><?php echo $SLANG['Duration'] ?><?php echo sortTag( 'Length' ) ?></a></th>
-              <th class="colFrames"><a href="<?php echo sortHeader( 'Frames' ) ?>"><?php echo $SLANG['Frames'] ?><?php echo sortTag( 'Frames' ) ?></a></th>
-              <th class="colAlarmFrames"><a href="<?php echo sortHeader( 'AlarmFrames' ) ?>"><?php echo $SLANG['AlarmBrFrames'] ?><?php echo sortTag( 'AlarmFrames' ) ?></a></th>
-              <th class="colTotScore"><a href="<?php echo sortHeader( 'TotScore' ) ?>"><?php echo $SLANG['TotalBrScore'] ?><?php echo sortTag( 'TotScore' ) ?></a></th>
-              <th class="colAvgScore"><a href="<?php echo sortHeader( 'AvgScore' ) ?>"><?php echo $SLANG['AvgBrScore'] ?><?php echo sortTag( 'AvgScore' ) ?></a></th>
-              <th class="colMaxScore"><a href="<?php echo sortHeader( 'MaxScore' ) ?>"><?php echo $SLANG['MaxBrScore'] ?><?php echo sortTag( 'MaxScore' ) ?></a></th>
+              <th class="colId"><a href="<?php echo sortHeader( 'Id' ) ?>"><?php echo translate('Id') ?><?php echo sortTag( 'Id' ) ?></a></th>
+              <th class="colName"><a href="<?php echo sortHeader( 'Name' ) ?>"><?php echo translate('Name') ?><?php echo sortTag( 'Name' ) ?></a></th>
+              <th class="colMonitor"><a href="<?php echo sortHeader( 'MonitorName' ) ?>"><?php echo translate('Monitor') ?><?php echo sortTag( 'MonitorName' ) ?></a></th>
+              <th class="colCause"><a href="<?php echo sortHeader( 'Cause' ) ?>"><?php echo translate('Cause') ?><?php echo sortTag( 'Cause' ) ?></a></th>
+              <th class="colTime"><a href="<?php echo sortHeader( 'StartTime' ) ?>"><?php echo translate('Time') ?><?php echo sortTag( 'StartTime' ) ?></a></th>
+              <th class="colDuration"><a href="<?php echo sortHeader( 'Length' ) ?>"><?php echo translate('Duration') ?><?php echo sortTag( 'Length' ) ?></a></th>
+              <th class="colFrames"><a href="<?php echo sortHeader( 'Frames' ) ?>"><?php echo translate('Frames') ?><?php echo sortTag( 'Frames' ) ?></a></th>
+              <th class="colAlarmFrames"><a href="<?php echo sortHeader( 'AlarmFrames' ) ?>"><?php echo translate('AlarmBrFrames') ?><?php echo sortTag( 'AlarmFrames' ) ?></a></th>
+              <th class="colTotScore"><a href="<?php echo sortHeader( 'TotScore' ) ?>"><?php echo translate('TotalBrScore') ?><?php echo sortTag( 'TotScore' ) ?></a></th>
+              <th class="colAvgScore"><a href="<?php echo sortHeader( 'AvgScore' ) ?>"><?php echo translate('AvgBrScore') ?><?php echo sortTag( 'AvgScore' ) ?></a></th>
+              <th class="colMaxScore"><a href="<?php echo sortHeader( 'MaxScore' ) ?>"><?php echo translate('MaxBrScore') ?><?php echo sortTag( 'MaxScore' ) ?></a></th>
+<?php if ( ZM_WEB_EVENT_DISK_SPACE ) { ?>
+              <th class="colDiskSpace"><a href="<?php echo sortHeader( 'DiskSpace' ) ?>"><?php echo translate('DiskSpace') ?><?php echo sortTag( 'DiskSpace' ) ?></a></th>
 <?php
+			}
         if ( ZM_WEB_LIST_THUMBS )
         {
 ?>
-              <th class="colThumbnail"><?php echo $SLANG['Thumbnail'] ?></th>
+              <th class="colThumbnail"><?php echo translate('Thumbnail') ?></th>
 <?php
         }
 ?>
@@ -197,27 +202,30 @@ foreach ( $events as $event )
             </tr>
 <?php
     }
-        $scale = max( reScale( SCALE_BASE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
+        $scale = max( reScale( SCALE_BASE, $event->DefaultScale(), ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
 ?>
             <tr>
-              <td class="colId"><?php echo makePopupLink( '?view=event&amp;eid='.$event['Id'].$filterQuery.$sortQuery.'&amp;page=1', 'zmEvent', array( 'event', reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ) ), $event['Id'].($event['Archived']?'*':'') ) ?></td>
-              <td class="colName"><?php echo makePopupLink( '?view=event&amp;eid='.$event['Id'].$filterQuery.$sortQuery.'&amp;page=1', 'zmEvent', array( 'event', reScale( $event['Width'], $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), reScale( $event['Height'], $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ) ), validHtmlStr($event['Name']).($event['Archived']?'*':'' ) ) ?></td>
-              <td class="colMonitorName"><?php echo $event['MonitorName'] ?></td>
-              <td class="colCause"><?php echo makePopupLink( '?view=eventdetail&amp;eid='.$event['Id'], 'zmEventDetail', 'eventdetail', validHtmlStr($event['Cause']), canEdit( 'Events' ), 'title="'.htmlspecialchars($event['Notes']).'"' ) ?></td>
-              <td class="colTime"><?php echo strftime( STRF_FMT_DATETIME_SHORTER, strtotime($event['StartTime']) ) ?></td>
-              <td class="colDuration"><?php echo gmdate("H:i:s", $event['Length'] ) ?></td>
-              <td class="colFrames"><?php echo makePopupLink( '?view=frames&amp;eid='.$event['Id'], 'zmFrames', 'frames', $event['Frames'] ) ?></td>
-              <td class="colAlarmFrames"><?php echo makePopupLink( '?view=frames&amp;eid='.$event['Id'], 'zmFrames', 'frames', $event['AlarmFrames'] ) ?></td>
-              <td class="colTotScore"><?php echo $event['TotScore'] ?></td>
-              <td class="colAvgScore"><?php echo $event['AvgScore'] ?></td>
-              <td class="colMaxScore"><?php echo makePopupLink( '?view=frame&amp;eid='.$event['Id'].'&amp;fid=0', 'zmImage', array( 'image', reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ) ), $event['MaxScore'] ) ?></td>
+              <td class="colId"><?php echo makePopupLink( '?view=event&amp;eid='.$event->Id().$filterQuery.$sortQuery.'&amp;page=1', 'zmEvent', array( 'event', reScale( $event->Width(), $scale ), reScale( $event->Height(), $scale ) ), $event->Id().($event->Archived()?'*':'') ) ?></td>
+              <td class="colName"><?php echo makePopupLink( '?view=event&amp;eid='.$event->Id().$filterQuery.$sortQuery.'&amp;page=1', 'zmEvent', array( 'event', reScale( $event->Width(), $event->DefaultScale(), ZM_WEB_DEFAULT_SCALE ), reScale( $event->Height(), $event->DefaultScale(), ZM_WEB_DEFAULT_SCALE ) ), validHtmlStr($event->Name()).($event->Archived()?'*':'' ) ) ?></td>
+              <td class="colMonitorName"><?php echo $event->MonitorName() ?></td>
+              <td class="colCause"><?php echo makePopupLink( '?view=eventdetail&amp;eid='.$event->Id(), 'zmEventDetail', 'eventdetail', validHtmlStr($event->Cause()), canEdit( 'Events' ), 'title="'.htmlspecialchars($event->Notes()).'"' ) ?></td>
+              <td class="colTime"><?php echo strftime( STRF_FMT_DATETIME_SHORTER, strtotime($event->StartTime()) ) ?></td>
+              <td class="colDuration"><?php echo gmdate("H:i:s", $event->Length() ) ?></td>
+              <td class="colFrames"><?php echo makePopupLink( '?view=frames&amp;eid='.$event->Id(), 'zmFrames', 'frames', $event->Frames() ) ?></td>
+              <td class="colAlarmFrames"><?php echo makePopupLink( '?view=frames&amp;eid='.$event->Id(), 'zmFrames', 'frames', $event->AlarmFrames() ) ?></td>
+              <td class="colTotScore"><?php echo $event->TotScore() ?></td>
+              <td class="colAvgScore"><?php echo $event->AvgScore() ?></td>
+              <td class="colMaxScore"><?php echo makePopupLink( '?view=frame&amp;eid='.$event->Id().'&amp;fid=0', 'zmImage', array( 'image', reScale( $event->Width(), $scale ), reScale( $event->Height(), $scale ) ), $event->MaxScore() ) ?></td>
+<?php if ( ZM_WEB_EVENT_DISK_SPACE ) { ?>
+              <td class="colDiskSpace"><?php echo $event->DiskSpace() ?></td>
 <?php
+		}
     if ( ZM_WEB_LIST_THUMBS )
     {
-        if ( $thumbData = createListThumbnail( $event ) )
+        if ( $thumbData = $event->createListThumbnail() )
         {
 ?>
-              <td class="colThumbnail"><?php echo makePopupLink( '?view=frame&amp;eid='.$event['Id'].'&amp;fid='.$thumbData['FrameId'], 'zmImage', array( 'image', reScale( $event['Width'], $scale ), reScale( $event['Height'], $scale ) ), '<img src="'.viewImagePath( $thumbData['Path'] ).'" width="'.$thumbData['Width'].'" height="'.$thumbData['Height'].'" alt="'.$thumbData['FrameId'].'/'.$event['MaxScore'].'"/>' ) ?></td>
+              <td class="colThumbnail"><?php echo makePopupLink( '?view=frame&amp;eid='.$event->Id().'&amp;fid='.$thumbData['FrameId'], 'zmImage', array( 'image', reScale( $event->Width(), $scale ), reScale( $event->Height(), $scale ) ), '<img src="?view=image&amp;eid='.$event->Id().'&amp;fid='.$thumbData['FrameId'].'&amp;width='.$thumbData['Width'].'&amp;height='.$thumbData['Height'].'" width="'.$thumbData['Width'].'" height="'.$thumbData['Height'].'" alt="'.$thumbData['FrameId'].'/'.$event->MaxScore().'"/>' ) ?></td>
 <?php
         }
         else
@@ -228,7 +236,7 @@ foreach ( $events as $event )
         }
     }
 ?>
-              <td class="colMark"><input type="checkbox" name="markEids[]" value="<?php echo $event['Id'] ?>" onclick="configureButton( this, 'markEids' );"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>/></td>
+              <td class="colMark"><input type="checkbox" name="markEids[]" value="<?php echo $event->Id() ?>" onclick="configureButton( this, 'markEids' );"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>/></td>
             </tr>
 <?php
 }
@@ -246,12 +254,12 @@ if ( true || canEdit( 'Events' ) )
 {
 ?>
         <div id="contentButtons">
-          <input type="button" name="viewBtn" value="<?php echo $SLANG['View'] ?>" onclick="viewEvents( this, 'markEids' );" disabled="disabled"/>
-          <input type="button" name="archiveBtn" value="<?php echo $SLANG['Archive'] ?>" onclick="archiveEvents( this, 'markEids' )" disabled="disabled"/>
-          <input type="button" name="unarchiveBtn" value="<?php echo $SLANG['Unarchive'] ?>" onclick="unarchiveEvents( this, 'markEids' );" disabled="disabled"/>
-          <input type="button" name="editBtn" value="<?php echo $SLANG['Edit'] ?>" onclick="editEvents( this, 'markEids' )" disabled="disabled"/>
-          <input type="button" name="exportBtn" value="<?php echo $SLANG['Export'] ?>" onclick="exportEvents( this, 'markEids' )" disabled="disabled"/>
-          <input type="button" name="deleteBtn" value="<?php echo $SLANG['Delete'] ?>" onclick="deleteEvents( this, 'markEids' );" disabled="disabled"/>
+          <input type="button" name="viewBtn" value="<?php echo translate('View') ?>" onclick="viewEvents( this, 'markEids' );" disabled="disabled"/>
+          <input type="button" name="archiveBtn" value="<?php echo translate('Archive') ?>" onclick="archiveEvents( this, 'markEids' )" disabled="disabled"/>
+          <input type="button" name="unarchiveBtn" value="<?php echo translate('Unarchive') ?>" onclick="unarchiveEvents( this, 'markEids' );" disabled="disabled"/>
+          <input type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editEvents( this, 'markEids' )" disabled="disabled"/>
+          <input type="button" name="exportBtn" value="<?php echo translate('Export') ?>" onclick="exportEvents( this, 'markEids' )" disabled="disabled"/>
+          <input type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteEvents( this, 'markEids' );" disabled="disabled"/>
         </div>
 <?php
 }

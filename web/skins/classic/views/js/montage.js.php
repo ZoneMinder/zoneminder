@@ -8,11 +8,11 @@ var STATE_ALERT = <?php echo STATE_ALERT ?>;
 var STATE_TAPE = <?php echo STATE_TAPE ?>;
 
 var stateStrings = new Array();
-stateStrings[STATE_IDLE] = "<?php echo $SLANG['Idle'] ?>";
-stateStrings[STATE_PREALARM] = "<?php echo $SLANG['Idle'] ?>";
-stateStrings[STATE_ALARM] = "<?php echo $SLANG['Alarm'] ?>";
-stateStrings[STATE_ALERT] = "<?php echo $SLANG['Alert'] ?>";
-stateStrings[STATE_TAPE] = "<?php echo $SLANG['Record'] ?>";
+stateStrings[STATE_IDLE] = "<?php echo translate('Idle') ?>";
+stateStrings[STATE_PREALARM] = "<?php echo translate('Idle') ?>";
+stateStrings[STATE_ALARM] = "<?php echo translate('Alarm') ?>";
+stateStrings[STATE_ALERT] = "<?php echo translate('Alert') ?>";
+stateStrings[STATE_TAPE] = "<?php echo translate('Record') ?>";
 
 var CMD_QUERY = <?php echo CMD_QUERY ?>;
 
@@ -28,10 +28,15 @@ var canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
 
 var monitorData = new Array();
 <?php
-foreach ( $monitors as $monitor )
-{
+foreach ( $monitors as $monitor ) {
 ?>
-monitorData[monitorData.length] = { 'id': <?php echo $monitor['Id'] ?>, 'connKey': <?php echo $monitor['connKey'] ?>, 'width': <?php echo $monitor['Width'] ?>,'height':<?php echo $monitor['Height'] ?> };
+monitorData[monitorData.length] = { 
+	'id': <?php echo $monitor->Id() ?>, 
+	'connKey': <?php echo $monitor->connKey() ?>, 
+	'width': <?php echo $monitor->Width() ?>,
+	'height':<?php echo $monitor->Height() ?>,
+  'server_url': '<?php echo $monitor->Server()->Url().$_SERVER['PHP_SELF'] ?>'
+};
 <?php
 }
 ?>

@@ -52,15 +52,15 @@
 }
 
 #imageFrame div {
-    background-image: url(../../graphics/point-g.gif);
+    background-image: url(../../../graphics/point-g.gif);
 }
 
 #imageFrame div.highlight {
-    background-image: url(../../graphics/point-o.gif);
+    background-image: url(../../../graphics/point-o.gif);
 }
 
 #imageFrame div.active {
-    background-image: url(../../graphics/point-r.gif);
+    background-image: url(../../../graphics/point-r.gif);
 }
 
 #zonePoints {
@@ -92,4 +92,27 @@
 
 #zonePoints table a {
     margin: 0 2px;
+}
+.zones polygon {
+	fill-opacity: 0.25;
+  stroke-width: 0;
+}
+.zones polygon.Editing {
+	stroke-width: 2px;
+}
+.Active {
+	stroke: #ff0000;
+	fill: #ff0000;
+}
+.Inclusive {
+	stroke: #FFA500;
+	fill: #FFA500;
+}
+.Exclusive {
+	stroke: #800080;
+	fill: #800080;
+}
+.Preclusive {
+	stroke: #0000FF;
+	fill: #0000FF;
 }

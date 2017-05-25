@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # ==========================================================================
 #
@@ -44,40 +44,40 @@ use ZoneMinder::Logger qw(:all);
 
 sub new
 {
-	my $class = shift;
-	my $path = shift;
-	my $self = ZoneMinder::Trigger::Connection->new( @_ );
-	bless( $self, $class );
-	return $self;
+    my $class = shift;
+    my $path = shift;
+    my $self = ZoneMinder::Trigger::Connection->new( @_ );
+    bless( $self, $class );
+    return $self;
 }
 
 sub getMessages
 {
-	my $self = shift;
-	my $buffer = $self->{channel}->read();
+    my $self = shift;
+    my $buffer = $self->{channel}->read();
 
-	return( undef ) if ( !defined($buffer) );
+    return( undef ) if ( !defined($buffer) );
 
-	Debug( "Handling buffer '$buffer'\n" );
-	my @messages = grep { s/-/|/g; 1; } split( /\r?\n/, $buffer );
-	return( \@messages );
+    Debug( "Handling buffer '$buffer'\n" );
+    my @messages = grep { s/-/|/g; 1; } split( /\r?\n/, $buffer );
+    return( \@messages );
 }
 
 sub putMessages
 {
-	my $self = shift;
-	my $messages = shift;
+    my $self = shift;
+    my $messages = shift;
 
-	if ( @$messages )
-	{
-		my $buffer = join( "\n", grep{ s/\|/-/; 1; } @$messages );
-		$buffer .= "\n";
-		if ( !$self->{channel}->write( $buffer ) )
-		{
-			Error( "Unable to write buffer '".$buffer." to connection ".$self->{name}." (".$self->fileno().")\n" );
-		}
-	}
-	return( undef );
+    if ( @$messages )
+    {
+        my $buffer = join( "\n", grep{ s/\|/-/; 1; } @$messages );
+        $buffer .= "\n";
+        if ( !$self->{channel}->write( $buffer ) )
+        {
+            Error( "Unable to write buffer '".$buffer." to connection ".$self->{name}." (".$self->fileno().")\n" );
+        }
+    }
+    return( undef );
 }
 
 1;

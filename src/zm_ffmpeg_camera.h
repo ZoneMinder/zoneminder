@@ -14,7 +14,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 #ifndef ZM_FFMPEG_CAMERA_H
@@ -25,28 +25,43 @@
 #include "zm_buffer.h"
 //#include "zm_utils.h"
 #include "zm_ffmpeg.h"
+#include "zm_videostore.h"
+#include "zm_packetqueue.h"
 
 //
 // Class representing 'ffmpeg' cameras, i.e. those which are
 // accessed using ffmpeg multimedia framework
 //
-class FfmpegCamera : public Camera
-{
-protected:
+class FfmpegCamera : public Camera {
+  protected:
     std::string         mPath;
-    std::string			mMethod;
-    std::string			mOptions;
+    std::string         mMethod;
+    std::string         mOptions;
 
     int frameCount;    
 
 #if HAVE_LIBAVFORMAT
     AVFormatContext     *mFormatContext;
     int                 mVideoStreamId;
-    AVCodecContext      *mCodecContext;
-    AVCodec             *mCodec;
+    int                 mAudioStreamId;
+    AVCodecContext      *mVideoCodecContext;
+    AVCodecContext      *mAudioCodecContext;
+    AVCodec             *mVideoCodec;
+    AVCodec             *mAudioCodec;
     AVFrame             *mRawFrame; 
     AVFrame             *mFrame;
-    PixelFormat         imagePixFormat;
+    _AVPIXELFORMAT      imagePixFormat;
+
+    // Need to keep track of these because apparently the stream can start with values for pts/dts and then subsequent packets start at zero.
+    int64_t audio_last_pts;
+    int64_t audio_last_dts;
+    int64_t video_last_pts;
+    int64_t video_last_dts;
+
+    // Used to store the incoming packet, it will get copied when queued. 
+    // We only ever need one at a time, so instead of constantly allocating
+    // and freeing this structure, we will just make it a member of the object.
+    AVPacket packet;       
 
     int OpenFfmpeg();
     int ReopenFfmpeg();
@@ -59,25 +74,33 @@ protected:
     pthread_t mReopenThread;
 #endif // HAVE_LIBAVFORMAT
 
+    VideoStore          *videoStore;
+    char                oldDirectory[4096];
+    unsigned int        old_event_id;
+    zm_packetqueue      packetqueue;
+
 #if HAVE_LIBSWSCALE
-	struct SwsContext   *mConvertContext;
+    struct SwsContext   *mConvertContext;
 #endif
 
-public:
-	FfmpegCamera( int p_id, const std::string &path, const std::string &p_method, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
-	~FfmpegCamera();
+    int64_t             startTime;
+
+  public:
+    FfmpegCamera( int p_id, const std::string &path, const std::string &p_method, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
+    ~FfmpegCamera();
 
     const std::string &Path() const { return( mPath ); }
     const std::string &Options() const { return( mOptions ); } 
     const std::string &Method() const { return( mMethod ); }
 
-	void Initialise();
-	void Terminate();
+    void Initialise();
+    void Terminate();
 
-	int PrimeCapture();
-	int PreCapture();
-	int Capture( Image &image );
-	int PostCapture();
+    int PrimeCapture();
+    int PreCapture();
+    int Capture( Image &image );
+    int CaptureAndRecord( Image &image, timeval recording, char* event_directory );
+    int PostCapture();
 };
 
 #endif // ZM_FFMPEG_CAMERA_H

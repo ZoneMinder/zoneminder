@@ -8,13 +8,13 @@ var STATE_ALERT = <?php echo STATE_ALERT ?>;
 var STATE_TAPE = <?php echo STATE_TAPE ?>;
 
 var stateStrings = new Array();
-stateStrings[STATE_IDLE] = "<?php echo $SLANG['Idle'] ?>";
-stateStrings[STATE_PREALARM] = "<?php echo $SLANG['Idle'] ?>";
-stateStrings[STATE_ALARM] = "<?php echo $SLANG['Alarm'] ?>";
-stateStrings[STATE_ALERT] = "<?php echo $SLANG['Alert'] ?>";
-stateStrings[STATE_TAPE] = "<?php echo $SLANG['Record'] ?>";
+stateStrings[STATE_IDLE] = "<?php echo translate('Idle') ?>";
+stateStrings[STATE_PREALARM] = "<?php echo translate('Idle') ?>";
+stateStrings[STATE_ALARM] = "<?php echo translate('Alarm') ?>";
+stateStrings[STATE_ALERT] = "<?php echo translate('Alert') ?>";
+stateStrings[STATE_TAPE] = "<?php echo translate('Record') ?>";
 
-var deleteString = "<?php echo $SLANG['Delete'] ?>";
+var deleteString = "<?php echo translate('Delete') ?>";
 
 var CMD_NONE = <?php echo CMD_NONE ?>;
 var CMD_PAUSE = <?php echo CMD_PAUSE ?>;
@@ -44,9 +44,11 @@ var showMode = "<?php echo ($showPtzControls && !empty($control))?"control":"eve
 var connKey = '<?php echo $connkey ?>';
 var maxDisplayEvents = <?php echo 2 * MAX_EVENTS ?>;
 
-var monitorId = <?php echo $monitor['Id'] ?>;
-var monitorWidth = <?php echo $monitor['Width'] ?>;
-var monitorHeight = <?php echo $monitor['Height'] ?>;
+
+var monitorId = <?php echo $monitor->Id() ?>;
+var monitorWidth = <?php echo $monitor->Width() ?>;
+var monitorHeight = <?php echo $monitor->Height() ?>;
+var monitorUrl = '<?php echo ( $monitor->Server()->Url() ) ?>';
 
 var scale = <?php echo $scale ?>;
 
@@ -61,11 +63,11 @@ var canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
 
 var canPlayPauseAudio = Browser.ie;
 
-<?php if ( $monitor['CanMoveMap'] ) { ?>
+<?php if ( $monitor->CanMoveMap() ) { ?>
 var imageControlMode = "moveMap";
-<?php } elseif ( $monitor['CanMoveRel'] ) { ?>
+<?php } elseif ( $monitor->CanMoveRel() ) { ?>
 var imageControlMode = "movePseudoMap";
-<?php } elseif ( $monitor['CanMoveCon'] ) { ?>
+<?php } elseif ( $monitor->CanMoveCon() ) { ?>
 var imageControlMode = "moveConMap";
 <?php } else { ?>
 var imageControlMode = null;

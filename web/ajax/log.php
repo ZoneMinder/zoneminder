@@ -1,5 +1,9 @@
 <?php
 
+# Moved up here because it is used in several spots.
+# These are the valid columns that you can filter on.
+$filterFields = array( 'Component', 'ServerId', 'Pid', 'Level', 'File', 'Line' );
+
 switch ( $_REQUEST['task'] )
 {
     case 'create' :
@@ -31,60 +35,85 @@ switch ( $_REQUEST['task'] )
         if ( !canView( 'System' ) )
             ajaxError( 'Insufficient permissions to view log entries' );
 
+        $servers = Server::find_all();
+        $servers_by_Id = array();
+# There is probably a better way to do this.
+        foreach ( $servers as $server ) {
+          $servers_by_Id[$server->Id()] = $server;
+        }
+
         $minTime = isset($_POST['minTime'])?$_POST['minTime']:NULL;
         $maxTime = isset($_POST['maxTime'])?$_POST['maxTime']:NULL;
-        $limit = isset($_POST['limit'])?$_POST['limit']:100;
-        $filter = isset($_POST['filter'])?$_POST['filter']:array();
-        $sortField = isset($_POST['sortField'])?$_POST['sortField']:'TimeKey';
+        $limit = 100;
+        if ( isset($_POST['limit']) ) {
+          if ( ( !is_integer( $_POST['limit'] ) and !ctype_digit($_POST['limit']) ) ) {
+            Error("Invalid value for limit " . $_POST['limit'] );
+          } else {
+            $limit = $_POST['limit'];
+          }
+        }
+        $sortField = 'TimeKey';
+        if ( isset($_POST['sortField']) ) {
+          if ( ! in_array( $_POST['sortField'], $filterFields ) and ( $_POST['sortField'] != 'TimeKey' ) ) {
+            Error("Invalid sort field " . $_POST['sortField'] );
+          } else {
+            $sortField = $_POST['sortField'];
+          }
+        }
         $sortOrder = (isset($_POST['sortOrder']) and $_POST['sortOrder']) == 'asc' ? 'asc':'desc';
+        $filter = isset($_POST['filter'])?$_POST['filter']:array();
 
-        $filterFields = array( 'Component', 'Pid', 'Level', 'File', 'Line' );
-
-        $total = dbFetchOne( "SELECT count(*) AS Total FROM Logs", 'Total' );
+        $total = dbFetchOne( 'SELECT count(*) AS Total FROM Logs', 'Total' );
         $sql = 'SELECT * FROM Logs';
         $where = array();
-		$values = array();
+        $values = array();
         if ( $minTime ) {
-            $where[] = "TimeKey > ?";
-			$values[] = $minTime;
+          $where[] = "TimeKey > ?";
+          $values[] = $minTime;
         } elseif ( $maxTime ) {
-            $where[] = "TimeKey < ?";
-			$values[] = $maxTime;
-		}
+          $where[] = "TimeKey < ?";
+          $values[] = $maxTime;
+        }
+
         foreach ( $filter as $field=>$value ) {
-            if ( $field == 'Level' ){
-                $where[] = $field." <= ?";
-				$values[] = $value;
-            } else {
-                $where[] = $field." = ?";
-				$values[] = $value;
-			}
-		}
+          if ( ! in_array( $field, $filterFields ) ) {
+            Error("$field is not in valid filter fields");
+            continue;
+          }
+          if ( $field == 'Level' ){
+            $where[] = $field." <= ?";
+            $values[] = $value;
+          } else {
+            $where[] = $field." = ?";
+            $values[] = $value;
+          }
+        }
         if ( count($where) )
-            $sql.= ' WHERE '.join( ' AND ', $where );
+          $sql.= ' WHERE '.join( ' AND ', $where );
         $sql .= " order by ".$sortField." ".$sortOrder." limit ".$limit;
         $logs = array();
         foreach ( dbFetchAll( $sql, NULL, $values ) as $log ) {
             $log['DateTime'] = preg_replace( '/^\d+/', strftime( "%Y-%m-%d %H:%M:%S", intval($log['TimeKey']) ), $log['TimeKey'] );
+            $log['Server'] = ( $log['ServerId'] and isset($servers_by_Id[$log['ServerId']]) ) ? $servers_by_Id[$log['ServerId']]->Name() : '';
             $logs[] = $log;
         }
         $options = array();
         $where = array();
-		$values = array();
+        $values = array();
         foreach( $filter as $field=>$value ) {
             if ( $field == 'Level' ) {
                 $where[$field] = $field." <= ?";
-				$values[$field] = $value;
+                $values[$field] = $value;
             } else {
                 $where[$field] = $field." = ?";
-				$values[$field] = $value;
-			} 
-		}
+                $values[$field] = $value;
+            } 
+        }
         foreach( $filterFields as $field )
         {
             $sql = "SELECT DISTINCT $field FROM Logs WHERE NOT isnull($field)";
             $fieldWhere = array_diff_key( $where, array( $field=>true ) );
-			$fieldValues = array_diff_key( $values, array( $field=>true ) );
+            $fieldValues = array_diff_key( $values, array( $field=>true ) );
             if ( count($fieldWhere) )
                 $sql.= " AND ".join( ' AND ', $fieldWhere );
             $sql.= " ORDER BY $field ASC";
@@ -95,6 +124,12 @@ switch ( $_REQUEST['task'] )
                         $options[$field][$value] = Logger::$codes[$value];
                     else
                         $options[$field][$value] = "DB".$value;
+            }
+            elseif ( $field == 'ServerId' )
+            {
+                foreach( dbFetchAll( $sql, $field, array_values($fieldValues) ) as $value )
+                        $options['ServerId'][$value] = ( $value and isset($servers_by_Id[$value]) ) ? $servers_by_Id[$value]->Name() : '';
+
             }
             else
             {
@@ -133,37 +168,51 @@ switch ( $_REQUEST['task'] )
         }
         //$limit = isset($_POST['limit'])?$_POST['limit']:1000;
         $filter = isset($_POST['filter'])?$_POST['filter']:array();
-        $sortField = isset($_POST['sortField'])?$_POST['sortField']:'TimeKey';
-        $sortOrder = isset($_POST['sortOrder'])?$_POST['sortOrder']:'asc';
+        $sortField = 'TimeKey';
+        if ( isset($_POST['sortField']) ) {
+          if ( ! in_array( $_POST['sortField'], $filterFields ) and ( $_POST['sortField'] != 'TimeKey' ) ) {
+            Error("Invalid sort field " . $_POST['sortField'] );
+          } else {
+            $sortField = $_POST['sortField'];
+          }
+        }
+        $sortOrder = (isset($_POST['sortOrder']) and $_POST['sortOrder']) == 'asc' ? 'asc':'desc';
+
+        $servers = Server::find_all();
+        $servers_by_Id = array();
+        # There is probably a better way to do this.
+        foreach ( $servers as $server ) {
+          $servers_by_Id[$server->Id()] = $server;
+        }
 
         $sql = "select * from Logs";
         $where = array();
-		$values = array();
+        $values = array();
         if ( $minTime )
         {
             preg_match( '/(.+)(\.\d+)/', $minTime, $matches );
             $minTime = strtotime($matches[1]).$matches[2];
             $where[] = "TimeKey >= ?";
-			$values[] = $minTime;
+            $values[] = $minTime;
         }
         if ( $maxTime )
         {
             preg_match( '/(.+)(\.\d+)/', $maxTime, $matches );
             $maxTime = strtotime($matches[1]).$matches[2];
             $where[] = "TimeKey <= ?";
-			$values[] = $maxTime;
+            $values[] = $maxTime;
         }
         foreach ( $filter as $field=>$value ) {
             if ( $value != '' ) {
                 if ( $field == 'Level' ) {
                     $where[] = $field." <= ?";
-					$values[] = $value;
+                    $values[] = $value;
                 } else {
                     $where[] = $field." = ?'";
-					$values[] = $value;
-				}
-			}
-		}
+                    $values[] = $value;
+                }
+            }
+        }
         if ( count($where) )
             $sql.= " where ".join( " and ", $where );
         $sql .= " order by ".$sortField." ".$sortOrder;
@@ -195,6 +244,7 @@ switch ( $_REQUEST['task'] )
         foreach ( dbFetchAll( $sql, NULL, $values ) as $log )
         {
             $log['DateTime'] = preg_replace( '/^\d+/', strftime( "%Y-%m-%d %H:%M:%S", intval($log['TimeKey']) ), $log['TimeKey'] );
+            $log['Server'] = ( $log['ServerId'] and isset($servers_by_Id[$log['ServerId']]) ) ? $servers_by_Id[$log['ServerId']]->Name() : '';
             $logs[] = $log;
         }
         switch( $format )
@@ -212,10 +262,20 @@ switch ( $_REQUEST['task'] )
             }
             case 'tsv' :
             {
-                fprintf( $exportFP, $SLANG['DateTime']."\t".$SLANG['Component']."\t".$SLANG['Pid']."\t".$SLANG['Level']."\t".$SLANG['Message']."\t".$SLANG['File']."\t".$SLANG['Line']."\n" );
+# This line doesn't need fprintf, it could use fwrite
+                fprintf( $exportFP, join( "\t",
+											translate('DateTime'),
+											translate('Component'),
+											translate('Server'),
+											translate('Pid'),
+											translate('Level'),
+											translate('Message'),
+											translate('File'),
+											translate('Line')
+											)."\n" );
                 foreach ( $logs as $log )
                 {
-                    fprintf( $exportFP, "%s\t%s\t%d\t%s\t%s\t%s\t%s\n", $log['DateTime'], $log['Component'], $log['Pid'], $log['Code'], $log['Message'], $log['File'], $log['Line'] );
+									fprintf( $exportFP, "%s\t%s\t%s\t%d\t%s\t%s\t%s\t%s\n", $log['DateTime'], $log['Component'], $log['Server'], $log['Pid'], $log['Code'], $log['Message'], $log['File'], $log['Line'] );
                 }
                 break;
             }
@@ -225,7 +285,7 @@ switch ( $_REQUEST['task'] )
 '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <title>'.$SLANG['ZoneMinderLog'].'</title>
+    <title>'.translate('ZoneMinderLog').'</title>
     <style type="text/css">
 body, h3, p, table, td {
     font-family: Verdana, Arial, Helvetica, sans-serif;
@@ -260,12 +320,12 @@ tr.log-dbg td {
     </style>
   </head>
   <body>
-    <h3>'.$SLANG['ZoneMinderLog'].'</h3>
+    <h3>'.translate('ZoneMinderLog').'</h3>
     <p>'.htmlspecialchars(preg_match( '/%/', DATE_FMT_CONSOLE_LONG )?strftime( DATE_FMT_CONSOLE_LONG ):date( DATE_FMT_CONSOLE_LONG )).'</p>
-    <p>'.count($logs).' '.$SLANG['Logs'].'</p>
+    <p>'.count($logs).' '.translate('Logs').'</p>
     <table>
       <tbody>
-        <tr><th>'.$SLANG['DateTime'].'</th><th>'.$SLANG['Component'].'</th><th>'.$SLANG['Pid'].'</th><th>'.$SLANG['Level'].'</th><th>'.$SLANG['Message'].'</th><th>'.$SLANG['File'].'</th><th>'.$SLANG['Line'].'</th></tr>
+        <tr><th>'.translate('DateTime').'</th><th>'.translate('Component').'</th><th>'.translate('Server').'</th><th>'.translate('Pid').'</th><th>'.translate('Level').'</th><th>'.translate('Message').'</th><th>'.translate('File').'</th><th>'.translate('Line').'</th></tr>
 ' );
                 foreach ( $logs as $log )
                 {
@@ -275,7 +335,7 @@ tr.log-dbg td {
                     elseif ( $classLevel > Logger::DEBUG )
                         $classLevel = Logger::DEBUG;
                     $logClass = 'log-'.strtolower(Logger::$codes[$classLevel]);
-                    fprintf( $exportFP, "        <tr class=\"%s\"><td>%s</td><td>%s</td><td>%d</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n", $logClass, $log['DateTime'], $log['Component'], $log['Pid'], $log['Code'], $log['Message'], $log['File'], $log['Line'] );
+                    fprintf( $exportFP, "        <tr class=\"%s\"><td>%s</td><td>%s</td><td>%s</td><td>%d</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n", $logClass, $log['DateTime'], $log['Component'], $log['Server'], $log['Pid'], $log['Code'], $log['Message'], $log['File'], $log['Line'] );
                 }
                 fwrite( $exportFP, 
 '      </tbody>
@@ -288,7 +348,7 @@ tr.log-dbg td {
             {
                 fwrite( $exportFP,
 '<?xml version="1.0" encoding="utf-8"?>
-<logexport title="'.$SLANG['ZoneMinderLog'].'" date="'.htmlspecialchars(preg_match( '/%/', DATE_FMT_CONSOLE_LONG )?strftime( DATE_FMT_CONSOLE_LONG ):date( DATE_FMT_CONSOLE_LONG )).'">
+<logexport title="'.translate('ZoneMinderLog').'" date="'.htmlspecialchars(preg_match( '/%/', DATE_FMT_CONSOLE_LONG )?strftime( DATE_FMT_CONSOLE_LONG ):date( DATE_FMT_CONSOLE_LONG )).'">
   <selector>'.$_POST['selector'].'</selector>' );
                 foreach ( $filter as $field=>$value )
                     if ( $value != '' )
@@ -298,7 +358,7 @@ tr.log-dbg td {
   </filter>' );
                 fwrite( $exportFP, 
 '  <columns>
-    <column field="datetime">'.$SLANG['DateTime'].'</column><column field="component">'.$SLANG['Component'].'</column><column field="pid">'.$SLANG['Pid'].'</column><column field="level">'.$SLANG['Level'].'</column><column field="message">'.$SLANG['Message'].'</column><column field="file">'.$SLANG['File'].'</column><column field="line">'.$SLANG['Line'].'</column>
+    <column field="datetime">'.translate('DateTime').'</column><column field="component">'.translate('Component').'</column><column field="'.translate('Server').'</column><column field="pid">'.translate('Pid').'</column><column field="level">'.translate('Level').'</column><column field="message">'.translate('Message').'</column><column field="file">'.translate('File').'</column><column field="line">'.translate('Line').'</column>
   </columns>
   <logs count="'.count($logs).'">
 ' );
@@ -308,12 +368,13 @@ tr.log-dbg td {
 "    <log>
       <datetime>%s</datetime>
       <component>%s</component>
+      <server>%s</server>
       <pid>%d</pid>
       <level>%s</level>
       <message><![CDATA[%s]]></message>
       <file>%s</file>
       <line>%d</line>
-    </log>\n", $log['DateTime'], $log['Component'], $log['Pid'], $log['Code'], utf8_decode( $log['Message'] ), $log['File'], $log['Line'] );
+    </log>\n", $log['DateTime'], $log['Component'], $log['Server'], $log['Pid'], $log['Code'], utf8_decode( $log['Message'] ), $log['File'], $log['Line'] );
                 }
                 fwrite( $exportFP, 
 '  </logs>
@@ -361,7 +422,7 @@ tr.log-dbg td {
         }
 
         $exportFile = "zm-log.$exportExt";
-        $exportPath = "temp/zm-log-$exportKey.$exportExt";
+        $exportPath = ZM_PATH_SWAP."/zm-log-$exportKey.$exportExt";
 
         header( "Pragma: public" );
         header( "Expires: 0" );

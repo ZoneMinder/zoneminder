@@ -14,7 +14,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 #include "zm_timer.h"
@@ -24,96 +24,96 @@
 int Timer::TimerThread::mNextTimerId = 0;
 
 Timer::TimerThread::TimerThread( Timer &timer, int duration, bool repeat ) :
-    mTimerId( 0 ),
-    mTimer( timer ),
-    mDuration( duration ),
-    mRepeat( repeat ),
-    mReset( false ),
-    mExpiryFlag( true )
+  mTimerId( 0 ),
+  mTimer( timer ),
+  mDuration( duration ),
+  mRepeat( repeat ),
+  mReset( false ),
+  mExpiryFlag( true )
 {
-    mAccessMutex.lock();
-    mTimerId = mNextTimerId++;
-    Debug( 5, "Creating timer %d for %d seconds%s", mTimerId, mDuration, mRepeat?", repeating":"" );
-    mAccessMutex.unlock();
+  mAccessMutex.lock();
+  mTimerId = mNextTimerId++;
+  Debug( 5, "Creating timer %d for %d seconds%s", mTimerId, mDuration, mRepeat?", repeating":"" );
+  mAccessMutex.unlock();
 }
 
 Timer::TimerThread::~TimerThread()
 {
-    cancel();
+  cancel();
 }
 
 void Timer::TimerThread::cancel()
 {
-    mAccessMutex.lock();
-    if ( mRunning )
-    {
-        Debug( 4, "Cancelling timer %d", mTimerId );
-        mRepeat = false;
-        mReset = false;
-        mExpiryFlag.updateValueSignal( false );
-    }
-    mAccessMutex.unlock();
+  mAccessMutex.lock();
+  if ( mRunning )
+  {
+    Debug( 4, "Cancelling timer %d", mTimerId );
+    mRepeat = false;
+    mReset = false;
+    mExpiryFlag.updateValueSignal( false );
+  }
+  mAccessMutex.unlock();
 }
 
 void Timer::TimerThread::reset()
 {
-    mAccessMutex.lock();
-    if ( mRunning )
-    {
-        Debug( 4, "Resetting timer" );
-        mReset = true;
-        mExpiryFlag.updateValueSignal( false );
-    }
-    else
-    {
-        Error( "Attempting to reset expired timer %d", mTimerId );
-    }
-    mAccessMutex.unlock();
+  mAccessMutex.lock();
+  if ( mRunning )
+  {
+    Debug( 4, "Resetting timer" );
+    mReset = true;
+    mExpiryFlag.updateValueSignal( false );
+  }
+  else
+  {
+    Error( "Attempting to reset expired timer %d", mTimerId );
+  }
+  mAccessMutex.unlock();
 }
 
 int Timer::TimerThread::run()
 {
-    Debug( 4, "Starting timer %d for %d seconds", mTimerId, mDuration );
-    bool timerExpired = false;
-    do
+  Debug( 4, "Starting timer %d for %d seconds", mTimerId, mDuration );
+  bool timerExpired = false;
+  do
+  {
+    mAccessMutex.lock();
+    mReset = false;
+    mExpiryFlag.setValue( true );
+    mAccessMutex.unlock();
+    timerExpired = mExpiryFlag.getUpdatedValue( mDuration );
+    mAccessMutex.lock();
+    if ( timerExpired )
     {
-        mAccessMutex.lock();
-        mReset = false;
-        mExpiryFlag.setValue( true );
-        mAccessMutex.unlock();
-        timerExpired = mExpiryFlag.getUpdatedValue( mDuration );
-        mAccessMutex.lock();
-        if ( timerExpired )
-        {
-            Debug( 4, "Timer %d expired", mTimerId );
-            mTimer.expire();
-        }
-        else
-        {
-            Debug( 4, "Timer %d %s", mTimerId, mReset?"reset":"cancelled" );
-        }
-        mAccessMutex.unlock();
-    } while ( mRepeat || (mReset && !timerExpired) );
-    return( timerExpired );
+      Debug( 4, "Timer %d expired", mTimerId );
+      mTimer.expire();
+    }
+    else
+    {
+      Debug( 4, "Timer %d %s", mTimerId, mReset?"reset":"cancelled" );
+    }
+    mAccessMutex.unlock();
+  } while ( mRepeat || (mReset && !timerExpired) );
+  return( timerExpired );
 }
 
 Timer::Timer( int timeout, bool repeat ) : mTimerThread( *this, timeout, repeat )
 {
-    mTimerThread.start();
+  mTimerThread.start();
 }
 
 Timer::~Timer()
 {
-    //cancel();
+  //cancel();
 }
 
 void Timer::Timer::cancel()
 {
-    mTimerThread.cancel();
+  mTimerThread.cancel();
 }
 
 void Timer::Timer::reset()
 {
-    mTimerThread.reset();
+  mTimerThread.reset();
 }
 

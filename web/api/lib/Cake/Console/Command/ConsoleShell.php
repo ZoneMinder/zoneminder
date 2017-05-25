@@ -19,7 +19,7 @@ App::uses('AppShell', 'Console/Command');
  * Provides a very basic 'interactive' console for CakePHP apps.
  *
  * @package       Cake.Console.Command
- * @deprecated Deprecated since version 2.4, will be removed in 3.0
+ * @deprecated 3.0.0 Deprecated since version 2.4, will be removed in 3.0
  */
 class ConsoleShell extends AppShell {
 
@@ -193,7 +193,7 @@ class ConsoleShell extends AppShell {
 /**
  * Override main() to handle action
  *
- * @param string $command
+ * @param string $command The command to run.
  * @return void
  */
 	public function main($command = null) {
@@ -218,7 +218,7 @@ class ConsoleShell extends AppShell {
 /**
  * Determine the method to process the current command
  *
- * @param string $command
+ * @param string $command The command to run.
  * @return string or false
  */
 	protected function _method($command) {
@@ -256,7 +256,7 @@ class ConsoleShell extends AppShell {
 /**
  * Bind an association
  *
- * @param mixed $command
+ * @param mixed $command The command to run.
  * @return void
  */
 	protected function _bind($command) {
@@ -283,7 +283,7 @@ class ConsoleShell extends AppShell {
 /**
  * Unbind an association
  *
- * @param mixed $command
+ * @param mixed $command The command to run.
  * @return void
  */
 	protected function _unbind($command) {
@@ -303,7 +303,7 @@ class ConsoleShell extends AppShell {
 		$validCurrentAssociation = false;
 
 		foreach ($currentAssociations as $model => $currentAssociation) {
-			if ($model == $modelB && $association == $currentAssociation) {
+			if ($model === $modelB && $association === $currentAssociation) {
 				$validCurrentAssociation = true;
 			}
 		}
@@ -320,7 +320,7 @@ class ConsoleShell extends AppShell {
 /**
  * Perform a find
  *
- * @param mixed $command
+ * @param mixed $command The command to run.
  * @return void
  */
 	protected function _find($command) {
@@ -382,7 +382,7 @@ class ConsoleShell extends AppShell {
 /**
  * Save a record
  *
- * @param mixed $command
+ * @param mixed $command The command to run.
  * @return void
  */
 	protected function _save($command) {
@@ -406,7 +406,7 @@ class ConsoleShell extends AppShell {
 /**
  * Show the columns for a model
  *
- * @param mixed $command
+ * @param mixed $command The command to run.
  * @return void
  */
 	protected function _columns($command) {
@@ -455,7 +455,7 @@ class ConsoleShell extends AppShell {
 /**
  * Parse an array URL and show the equivalent URL as a string
  *
- * @param mixed $command
+ * @param mixed $command The command to run.
  * @return void
  */
 	protected function _routeToString($command) {
@@ -471,7 +471,7 @@ class ConsoleShell extends AppShell {
 /**
  * Parse a string URL and show as an array
  *
- * @param mixed $command
+ * @param mixed $command The command to run.
  * @return void
  */
 	protected function _routeToArray($command) {
@@ -483,8 +483,8 @@ class ConsoleShell extends AppShell {
 /**
  * Tells if the specified model is included in the list of available models
  *
- * @param string $modelToCheck
- * @return boolean true if is an available model, false otherwise
+ * @param string $modelToCheck The model to check.
+ * @return bool true if is an available model, false otherwise
  */
 	protected function _isValidModel($modelToCheck) {
 		return in_array($modelToCheck, $this->models);
@@ -494,7 +494,7 @@ class ConsoleShell extends AppShell {
  * Reloads the routes configuration from app/Config/routes.php, and compiles
  * all routes found
  *
- * @return boolean True if config reload was a success, otherwise false
+ * @return bool True if config reload was a success, otherwise false
  */
 	protected function _loadRoutes() {
 		Router::reload();

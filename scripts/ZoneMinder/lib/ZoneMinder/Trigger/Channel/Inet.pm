@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # ==========================================================================
 #
@@ -48,44 +48,54 @@ use Socket;
 
 sub new
 {
-	my $class = shift;
-	my %params = @_;
-	my $self = ZoneMinder::Trigger::Channel::Spawning->new();
-	$self->{selectable} = !undef;
-	$self->{port} = $params{port};
-	bless( $self, $class );
-	return $self;
+    my $class = shift;
+    my %params = @_;
+    my $self = ZoneMinder::Trigger::Channel::Spawning->new();
+    $self->{selectable} = !undef;
+    $self->{port} = $params{port};
+    bless( $self, $class );
+    return $self;
 }
 
-sub open()
+sub open
 {
-	my $self = shift;
-	local *sfh;
-	my $saddr = sockaddr_in( $self->{port}, INADDR_ANY );
-	socket( *sfh, PF_INET, SOCK_STREAM, getprotobyname('tcp') ) or croak( "Can't open socket: $!" );
-	setsockopt( *sfh, SOL_SOCKET, SO_REUSEADDR, 1 );
-	bind( *sfh, $saddr ) or croak( "Can't bind: $!" );
-	listen( *sfh, SOMAXCONN ) or croak( "Can't listen: $!" );
-	$self->{state} = 'open';
-	$self->{handle} = *sfh;
+    my $self = shift;
+    local *sfh;
+    if ( ! socket( *sfh, PF_INET, SOCK_STREAM, getprotobyname('tcp') ) ) {
+        Error( "Can't open socket: $!" );
+        croak( "Can't open socket: $!" );
+	}
+    setsockopt( *sfh, SOL_SOCKET, SO_REUSEADDR, 1 );
+
+    my $saddr = sockaddr_in( $self->{port}, INADDR_ANY );
+    if ( ! bind( *sfh, $saddr ) ) {
+		Error( "Can't bind to port $$self{port}: $!" );
+		croak( "Can't bind to port $$self{port}: $!" );
+	}
+    if ( ! listen( *sfh, SOMAXCONN ) ) {
+		Error( "Can't listen: $!" );
+		croak( "Can't listen: $!" );
+	}
+    $self->{state} = 'open';
+    $self->{handle} = *sfh;
 }
 
-sub _spawn( $ )
+sub _spawn
 {
-	my $self = shift;
-	my $new_handle = shift;
-	my $clone = $self->clone();
-	$clone->{handle} = $new_handle;
-	$clone->{state} = 'connected';
-	return( $clone );
+    my $self = shift;
+    my $new_handle = shift;
+    my $clone = $self->clone();
+    $clone->{handle} = $new_handle;
+    $clone->{state} = 'connected';
+    return( $clone );
 }
 
-sub accept()
+sub accept
 {
-	my $self = shift;
-	local *cfh;
-	my $paddr = accept( *cfh, $self->{handle} );
-	return( $self->_spawn( *cfh ) );
+    my $self = shift;
+    local *cfh;
+    my $paddr = accept( *cfh, $self->{handle} );
+    return( $self->_spawn( *cfh ) );
 }
 
 1;
@@ -94,7 +104,7 @@ __END__
 
 =head1 NAME
 
-ZoneMinder::Database - Perl extension for blah blah blah
+ZoneMinder::Trigger::Channel::Inet
 
 =head1 SYNOPSIS
 

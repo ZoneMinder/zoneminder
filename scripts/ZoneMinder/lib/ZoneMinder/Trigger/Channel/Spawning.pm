@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # ==========================================================================
 #
@@ -45,12 +45,12 @@ use ZoneMinder::Logger qw(:all);
 
 sub new
 {
-	my $class = shift;
-	my $port = shift;
-	my $self = ZoneMinder::Trigger::Channel::Handle->new();
-	$self->{spawns} = !undef;
-	bless( $self, $class );
-	return $self;
+    my $class = shift;
+    my $port = shift;
+    my $self = ZoneMinder::Trigger::Channel::Handle->new();
+    $self->{spawns} = !undef;
+    bless( $self, $class );
+    return $self;
 }
 
 sub spawns

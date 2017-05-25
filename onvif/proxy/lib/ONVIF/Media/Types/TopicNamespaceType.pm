@@ -1,0 +1,259 @@
+package ONVIF::Media::Types::TopicNamespaceType;
+use strict;
+use warnings;
+
+
+__PACKAGE__->_set_element_form_qualified(1);
+
+sub get_xmlns { 'http://docs.oasis-open.org/wsn/t-1' };
+
+our $XML_ATTRIBUTE_CLASS = 'ONVIF::Media::Types::TopicNamespaceType::_TopicNamespaceType::XmlAttr';
+
+sub __get_attr_class {
+    return $XML_ATTRIBUTE_CLASS;
+}
+
+
+use base qw(ONVIF::Media::Types::ExtensibleDocumented);
+# Variety: sequence
+use Class::Std::Fast::Storable constructor => 'none';
+use base qw(SOAP::WSDL::XSD::Typelib::ComplexType);
+
+Class::Std::initialize();
+
+{ # BLOCK to scope variables
+
+my %documentation_of :ATTR(:get<documentation>);
+my %Topic_of :ATTR(:get<Topic>);
+
+__PACKAGE__->_factory(
+    [ qw(        documentation
+        Topic
+
+    ) ],
+    {
+        'documentation' => \%documentation_of,
+        'Topic' => \%Topic_of,
+    },
+    {
+        'documentation' => 'ONVIF::Media::Types::Documentation',
+
+        'Topic' => 'ONVIF::Media::Types::TopicNamespaceType::_Topic',
+    },
+    {
+
+        'documentation' => 'documentation',
+        'Topic' => 'Topic',
+    }
+);
+
+} # end BLOCK
+
+
+
+
+package ONVIF::Media::Types::TopicNamespaceType::_Topic;
+use strict;
+use warnings;
+{
+our $XML_ATTRIBUTE_CLASS = 'ONVIF::Media::Types::TopicNamespaceType::_Topic::XmlAttr';
+
+sub __get_attr_class {
+    return $XML_ATTRIBUTE_CLASS;
+}
+
+
+use base qw(WSNotification::Types::TopicType);
+# Variety: sequence
+use Class::Std::Fast::Storable constructor => 'none';
+use base qw(SOAP::WSDL::XSD::Typelib::ComplexType);
+
+Class::Std::initialize();
+
+{ # BLOCK to scope variables
+
+my %documentation_of :ATTR(:get<documentation>);
+my %MessagePattern_of :ATTR(:get<MessagePattern>);
+my %Topic_of :ATTR(:get<Topic>);
+
+__PACKAGE__->_factory(
+    [ qw(        documentation
+        MessagePattern
+        Topic
+
+    ) ],
+    {
+        'documentation' => \%documentation_of,
+        'MessagePattern' => \%MessagePattern_of,
+        'Topic' => \%Topic_of,
+    },
+    {
+        'documentation' => 'ONVIF::Media::Types::Documentation',
+        'MessagePattern' => 'ONVIF::Media::Types::QueryExpressionType',
+        'Topic' => 'WSNotification::Types::TopicType',
+    },
+    {
+
+        'documentation' => 'documentation',
+        'MessagePattern' => 'MessagePattern',
+        'Topic' => 'Topic',
+    }
+);
+
+} # end BLOCK
+
+
+
+
+package ONVIF::Media::Types::TopicNamespaceType::_Topic::XmlAttr;
+use base qw(SOAP::WSDL::XSD::Typelib::AttributeSet);
+
+{ # BLOCK to scope variables
+
+my %parent_of :ATTR(:get<parent>);
+
+__PACKAGE__->_factory(
+    [ qw(
+        parent
+    ) ],
+    {
+
+        parent => \%parent_of,
+    },
+    {
+        parent => 'ONVIF::Media::Types::ConcreteTopicExpression',
+    }
+);
+
+} # end BLOCK
+
+
+}
+
+
+
+package ONVIF::Media::Types::TopicNamespaceType::_TopicNamespaceType::XmlAttr;
+use base qw(SOAP::WSDL::XSD::Typelib::AttributeSet);
+
+{ # BLOCK to scope variables
+
+my %name_of :ATTR(:get<name>);
+my %targetNamespace_of :ATTR(:get<targetNamespace>);
+my %final_of :ATTR(:get<final>);
+
+__PACKAGE__->_factory(
+    [ qw(
+        name
+        targetNamespace
+        final
+    ) ],
+    {
+
+        name => \%name_of,
+
+        targetNamespace => \%targetNamespace_of,
+
+        final => \%final_of,
+    },
+    {
+        name => 'SOAP::WSDL::XSD::Typelib::Builtin::NCName',
+        targetNamespace => 'SOAP::WSDL::XSD::Typelib::Builtin::anyURI',
+        final => 'SOAP::WSDL::XSD::Typelib::Builtin::boolean',
+    }
+);
+
+} # end BLOCK
+
+
+
+1;
+
+
+=pod
+
+=head1 NAME
+
+ONVIF::Media::Types::TopicNamespaceType
+
+=head1 DESCRIPTION
+
+Perl data type class for the XML Schema defined complexType
+TopicNamespaceType from the namespace http://docs.oasis-open.org/wsn/t-1.
+
+
+
+
+
+
+=head2 PROPERTIES
+
+The following properties may be accessed using get_PROPERTY / set_PROPERTY
+methods:
+
+=over
+
+=item * Topic
+
+
+
+
+=back
+
+
+=head1 METHODS
+
+=head2 new
+
+Constructor. The following data structure may be passed to new():
+
+ { # ONVIF::Media::Types::TopicNamespaceType
+   Topic =>  {
+   },
+ },
+
+
+
+=head2 attr
+
+NOTE: Attribute documentation is experimental, and may be inaccurate.
+See the correspondent WSDL/XML Schema if in question.
+
+This class has additional attributes, accessibly via the C<attr()> method.
+
+attr() returns an object of the class ONVIF::Media::Types::TopicNamespaceType::_TopicNamespaceType::XmlAttr.
+
+The following attributes can be accessed on this object via the corresponding
+get_/set_ methods:
+
+=over
+
+=item * name
+
+
+
+This attribute is of type L<SOAP::WSDL::XSD::Typelib::Builtin::NCName|SOAP::WSDL::XSD::Typelib::Builtin::NCName>.
+
+=item * targetNamespace
+
+
+
+This attribute is of type L<SOAP::WSDL::XSD::Typelib::Builtin::anyURI|SOAP::WSDL::XSD::Typelib::Builtin::anyURI>.
+
+=item * final
+
+
+
+This attribute is of type L<SOAP::WSDL::XSD::Typelib::Builtin::boolean|SOAP::WSDL::XSD::Typelib::Builtin::boolean>.
+
+
+=back
+
+
+
+
+=head1 AUTHOR
+
+Generated by SOAP::WSDL
+
+=cut
+

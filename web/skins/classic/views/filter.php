@@ -15,7 +15,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
 if ( !canView( 'Events' ) )
@@ -24,7 +24,7 @@ if ( !canView( 'Events' ) )
     return;
 }
 $selectName = "filterName";
-$filterNames = array( ''=>$SLANG['ChooseFilter'] );
+$filterNames = array( ''=>translate('ChooseFilter') );
 foreach ( dbFetchAll( "select * from Filters order by Name" ) as $row )
 {
     $filterNames[$row['Name']] = $row['Name'];
@@ -38,7 +38,7 @@ $backgroundStr = "";
 if ( isset($dbFilter) )
 {
     if ( $dbFilter['Background'] ) 
-        $backgroundStr = '['.strtolower($SLANG['Background']).']';
+        $backgroundStr = '['.strtolower(translate('Background')).']';
     $_REQUEST['filter'] = jsonDecode( $dbFilter['Query'] );
     $_REQUEST['sort_field'] = isset($_REQUEST['filter']['sort_field'])?$_REQUEST['filter']['sort_field']:"DateTime";
     $_REQUEST['sort_asc'] = isset($_REQUEST['filter']['sort_asc'])?$_REQUEST['filter']['sort_asc']:"1";
@@ -48,9 +48,22 @@ if ( isset($dbFilter) )
     unset( $_REQUEST['filter']['limit'] );
 }
 
+# reload is set when the dropdown is changed. 
+if ( isset( $_REQUEST['reload'] ) and ! $_REQUEST['reload'] ) {
+  $dbFilter['AutoArchive'] = isset( $_REQUEST['AutoArchive'] );
+  $dbFilter['AutoExecute'] = isset( $_REQUEST['AutoExecute'] );
+  $dbFilter['AutoExecuteCmd'] = $_REQUEST['AutoExecuteCmd'];
+  $dbFilter['AutoEmail'] = isset( $_REQUEST['AutoEmail'] );
+  $dbFilter['AutoMessage'] = isset( $_REQUEST['AutoMessage'] );
+  $dbFilter['AutoUpload'] = isset( $_REQUEST['AutoUpload'] );
+  $dbFilter['AutoVideo'] = isset( $_REQUEST['AutoVideo'] );
+  $dbFilter['AutoDelete'] = isset( $_REQUEST['AutoDelete'] );
+  $dbFilter['Name'] = $_REQUEST['filterName'];
+}
+
 $conjunctionTypes = array(
-    'and' => $SLANG['ConjAnd'],
-    'or'  => $SLANG['ConjOr']
+    'and' => translate('ConjAnd'),
+    'or'  => translate('ConjOr')
 );
 $obracketTypes = array(); 
 $cbracketTypes = array();
@@ -64,42 +77,43 @@ if ( isset($_REQUEST['filter']['terms']) )
 }
 
 $attrTypes = array(
-    'MonitorId'   => $SLANG['AttrMonitorId'],
-    'MonitorName' => $SLANG['AttrMonitorName'],
-    'Id'          => $SLANG['AttrId'],
-    'Name'        => $SLANG['AttrName'],
-    'Cause'       => $SLANG['AttrCause'],
-    'Notes'       => $SLANG['AttrNotes'],
-    'DateTime'    => $SLANG['AttrDateTime'],
-    'Date'        => $SLANG['AttrDate'],
-    'Time'        => $SLANG['AttrTime'],
-    'Weekday'     => $SLANG['AttrWeekday'],
-    'Length'      => $SLANG['AttrDuration'],
-    'Frames'      => $SLANG['AttrFrames'],
-    'AlarmFrames' => $SLANG['AttrAlarmFrames'],
-    'TotScore'    => $SLANG['AttrTotalScore'],
-    'AvgScore'    => $SLANG['AttrAvgScore'],
-    'MaxScore'    => $SLANG['AttrMaxScore'],
-    'Archived'    => $SLANG['AttrArchiveStatus'],
-    'DiskPercent' => $SLANG['AttrDiskPercent'],
-    'DiskBlocks'  => $SLANG['AttrDiskBlocks'],
-    'SystemLoad'  => $SLANG['AttrSystemLoad'],
+    'MonitorId'   => translate('AttrMonitorId'),
+    'MonitorName' => translate('AttrMonitorName'),
+    'Id'          => translate('AttrId'),
+    'Name'        => translate('AttrName'),
+    'Cause'       => translate('AttrCause'),
+    'Notes'       => translate('AttrNotes'),
+    'DateTime'    => translate('AttrDateTime'),
+    'Date'        => translate('AttrDate'),
+    'Time'        => translate('AttrTime'),
+    'Weekday'     => translate('AttrWeekday'),
+    'Length'      => translate('AttrDuration'),
+    'Frames'      => translate('AttrFrames'),
+    'AlarmFrames' => translate('AttrAlarmFrames'),
+    'TotScore'    => translate('AttrTotalScore'),
+    'AvgScore'    => translate('AttrAvgScore'),
+    'MaxScore'    => translate('AttrMaxScore'),
+    'Archived'    => translate('AttrArchiveStatus'),
+    'DiskPercent' => translate('AttrDiskPercent'),
+    'DiskBlocks'  => translate('AttrDiskBlocks'),
+    'SystemLoad'  => translate('AttrSystemLoad'),
+    'ServerId'    => translate('AttrServer'),
 );
 $opTypes = array(
-    '='   => $SLANG['OpEq'],
-    '!='  => $SLANG['OpNe'],
-    '>='  => $SLANG['OpGtEq'],
-    '>'   => $SLANG['OpGt'],
-    '<'   => $SLANG['OpLt'],
-    '<='  => $SLANG['OpLtEq'],
-    '=~'  => $SLANG['OpMatches'],
-    '!~'  => $SLANG['OpNotMatches'],
-    '=[]' => $SLANG['OpIn'],
-    '![]' => $SLANG['OpNotIn'],
+    '='   => translate('OpEq'),
+    '!='  => translate('OpNe'),
+    '>='  => translate('OpGtEq'),
+    '>'   => translate('OpGt'),
+    '<'   => translate('OpLt'),
+    '<='  => translate('OpLtEq'),
+    '=~'  => translate('OpMatches'),
+    '!~'  => translate('OpNotMatches'),
+    '=[]' => translate('OpIn'),
+    '![]' => translate('OpNotIn'),
 );
 $archiveTypes = array(
-    '0' => $SLANG['ArchUnarchived'],
-    '1' => $SLANG['ArchArchived']
+    '0' => translate('ArchUnarchived'),
+    '1' => translate('ArchArchived')
 );
 $weekdays = array();
 for ( $i = 0; $i < 7; $i++ )
@@ -107,22 +121,22 @@ for ( $i = 0; $i < 7; $i++ )
     $weekdays[$i] = strftime( "%A", mktime( 12, 0, 0, 1, $i+1, 2001 ) );
 }
 $sort_fields = array(
-    'Id'          => $SLANG['AttrId'],
-    'Name'        => $SLANG['AttrName'],
-    'Cause'       => $SLANG['AttrCause'],
-    'Notes'       => $SLANG['AttrNotes'],
-    'MonitorName' => $SLANG['AttrMonitorName'],
-    'DateTime'    => $SLANG['AttrDateTime'],
-    'Length'      => $SLANG['AttrDuration'],
-    'Frames'      => $SLANG['AttrFrames'],
-    'AlarmFrames' => $SLANG['AttrAlarmFrames'],
-    'TotScore'    => $SLANG['AttrTotalScore'],
-    'AvgScore'    => $SLANG['AttrAvgScore'],
-    'MaxScore'    => $SLANG['AttrMaxScore'],
+    'Id'          => translate('AttrId'),
+    'Name'        => translate('AttrName'),
+    'Cause'       => translate('AttrCause'),
+    'Notes'       => translate('AttrNotes'),
+    'MonitorName' => translate('AttrMonitorName'),
+    'DateTime'    => translate('AttrDateTime'),
+    'Length'      => translate('AttrDuration'),
+    'Frames'      => translate('AttrFrames'),
+    'AlarmFrames' => translate('AttrAlarmFrames'),
+    'TotScore'    => translate('AttrTotalScore'),
+    'AvgScore'    => translate('AttrAvgScore'),
+    'MaxScore'    => translate('AttrMaxScore'),
 );
 $sort_dirns = array(
-    '1' => $SLANG['SortAsc'],
-    '0'  => $SLANG['SortDesc']
+    '1' => translate('SortAsc'),
+    '0'  => translate('SortDesc')
 );
 if ( empty($_REQUEST['sort_field']) )
 {
@@ -134,15 +148,15 @@ $hasCal = file_exists( 'tools/jscalendar/calendar.js' );
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['EventFilter'] );
+xhtmlHeaders(__FILE__, translate('EventFilter') );
 ?>
 <body>
   <div id="page">
     <div id="header">
       <div id="headerButtons">
-        <a href="#" onclick="closeWindow();"><?php echo $SLANG['Close'] ?></a>
+        <a href="#" onclick="closeWindow();"><?php echo translate('Close') ?></a>
       </div>
-      <h2><?php echo $SLANG['EventFilter'] ?></h2>
+      <h2><?php echo translate('EventFilter') ?></h2>
     </div>
     <div id="content">
       <form name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
@@ -155,7 +169,7 @@ xhtmlHeaders(__FILE__, $SLANG['EventFilter'] );
         <input type="hidden" name="line" value=""/>
         <input type="hidden" name="fid" value=""/>
         <hr/>
-        <div id="filterSelector"><label for="<?php echo $selectName ?>"><?php echo $SLANG['UseFilter'] ?></label><?php if ( count($filterNames) > 1 ) { echo buildSelect( $selectName, $filterNames, "submitToFilter( this, 1 );" ); } else { ?><select disabled="disabled"><option><?php echo $SLANG['NoSavedFilters'] ?></option></select><?php } ?><?php echo $backgroundStr ?></div>
+        <div id="filterSelector"><label for="<?php echo $selectName ?>"><?php echo translate('UseFilter') ?></label><?php if ( count($filterNames) > 1 ) { echo buildSelect( $selectName, $filterNames, "submitToFilter( this, 1 );" ); } else { ?><select disabled="disabled"><option><?php echo translate('NoSavedFilters') ?></option></select><?php } ?><?php echo $backgroundStr ?></div>
         <hr/>
         <table id="fieldsTable" class="filterTable" cellspacing="0">
           <tbody>
@@ -186,7 +200,7 @@ for ( $i = 0; isset($_REQUEST['filter']) && $i < count($_REQUEST['filter']['term
         if ( $_REQUEST['filter']['terms'][$i]['attr'] == "Archived" )
         {
 ?>
-              <td><?php echo $SLANG['OpEq'] ?><input type="hidden" name="filter[terms][<?php echo $i ?>][op]" value="="/></td>
+              <td><?php echo translate('OpEq') ?><input type="hidden" name="filter[terms][<?php echo $i ?>][op]" value="="/></td>
               <td><?php echo buildSelect( "filter[terms][$i][val]", $archiveTypes ); ?></td>
 <?php
         }
@@ -226,6 +240,18 @@ for ( $i = 0; isset($_REQUEST['filter']) && $i < count($_REQUEST['filter']['term
               <td><?php echo buildSelect( "filter[terms][$i][val]", $monitors ); ?></td>
 <?php
         }
+        elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "ServerId" )
+        {
+            $servers = array();
+            $servers['ZM_SERVER_ID'] = 'Current Server';
+            foreach ( dbFetchAll( "SELECT Id,Name FROM Servers ORDER BY lower(Name) ASC" ) as $server ) {
+              $servers[$server['Id']] = $server['Name'];
+            }
+?>
+            <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
+            <td><?php echo buildSelect( "filter[terms][$i][val]", $servers ); ?></td>
+<?php
+        }
         else
         {
 ?>
@@ -254,8 +280,8 @@ for ( $i = 0; isset($_REQUEST['filter']) && $i < count($_REQUEST['filter']['term
         <table id="sortTable" class="filterTable" cellspacing="0">
           <tbody>
             <tr>
-              <td><label for="sort_field"><?php echo $SLANG['SortBy'] ?></label><?php echo buildSelect( "sort_field", $sort_fields ); ?><?php echo buildSelect( "sort_asc", $sort_dirns ); ?></td>
-              <td><label for="limit"><?php echo $SLANG['LimitResultsPre'] ?></label><input type="text" size="6" id="limit" name="limit" value="<?php echo isset($_REQUEST['limit'])?validInt($_REQUEST['limit']):"" ?>"/><?php echo $SLANG['LimitResultsPost'] ?></td>
+              <td><label for="sort_field"><?php echo translate('SortBy') ?></label><?php echo buildSelect( "sort_field", $sort_fields ); ?><?php echo buildSelect( "sort_asc", $sort_dirns ); ?></td>
+              <td><label for="limit"><?php echo translate('LimitResultsPre') ?></label><input type="text" size="6" id="limit" name="limit" value="<?php echo isset($_REQUEST['limit'])?validInt($_REQUEST['limit']):"" ?>"/><?php echo translate('LimitResultsPost') ?></td>
             </tr>
           </tbody>
         </table>
@@ -263,16 +289,16 @@ for ( $i = 0; isset($_REQUEST['filter']) && $i < count($_REQUEST['filter']['term
         <table id="actionsTable" class="filterTable" cellspacing="0">
           <tbody>
             <tr>
-              <td><?php echo $SLANG['FilterArchiveEvents'] ?></td>
-              <td><input type="checkbox" name="autoArchive" value="1"<?php if ( !empty($dbFilter['AutoArchive']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
+              <td><?php echo translate('FilterArchiveEvents') ?></td>
+              <td><input type="checkbox" name="AutoArchive" value="1"<?php if ( !empty($dbFilter['AutoArchive']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
             </tr>
 <?php
 if ( ZM_OPT_FFMPEG )
 {
 ?>
             <tr>
-              <td><?php echo $SLANG['FilterVideoEvents'] ?></td>
-              <td><input type="checkbox" name="autoVideo" value="1"<?php if ( !empty($dbFilter['AutoVideo']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
+              <td><?php echo translate('FilterVideoEvents') ?></td>
+              <td><input type="checkbox" name="AutoVideo" value="1"<?php if ( !empty($dbFilter['AutoVideo']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
             </tr>
 <?php
 }
@@ -280,8 +306,8 @@ if ( ZM_OPT_UPLOAD )
 {
 ?>
             <tr>
-              <td><?php echo $SLANG['FilterUploadEvents'] ?></td>
-              <td><input type="checkbox" name="autoUpload" value="1"<?php if ( !empty($dbFilter['AutoUpload']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
+              <td><?php echo translate('FilterUploadEvents') ?></td>
+              <td><input type="checkbox" name="AutoUpload" value="1"<?php if ( !empty($dbFilter['AutoUpload']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
             </tr>
 <?php
 }
@@ -289,8 +315,8 @@ if ( ZM_OPT_EMAIL )
 {
 ?>
             <tr>
-              <td><?php echo $SLANG['FilterEmailEvents'] ?></td>
-              <td><input type="checkbox" name="autoEmail" value="1"<?php if ( !empty($dbFilter['AutoEmail']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
+              <td><?php echo translate('FilterEmailEvents') ?></td>
+              <td><input type="checkbox" name="AutoEmail" value="1"<?php if ( !empty($dbFilter['AutoEmail']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
             </tr>
 <?php
 }
@@ -298,31 +324,33 @@ if ( ZM_OPT_MESSAGE )
 {
 ?>
             <tr>
-              <td><?php echo $SLANG['FilterMessageEvents'] ?></td>
-              <td><input type="checkbox" name="autoMessage" value="1"<?php if ( !empty($dbFilter['AutoMessage']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
+              <td><?php echo translate('FilterMessageEvents') ?></td>
+              <td><input type="checkbox" name="AutoMessage" value="1"<?php if ( !empty($dbFilter['AutoMessage']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
             </tr>
 <?php
 }
 ?>
             <tr>
-              <td><?php echo $SLANG['FilterExecuteEvents'] ?></td>
-              <td><input type="checkbox" name="autoExecute" value="1"<?php if ( !empty($dbFilter['AutoExecute']) ) { ?> checked="checked"<?php } ?>/><input type="text" name="autoExecuteCmd" value="<?php echo isset($dbFilter['AutoExecuteCmd'])?$dbFilter['AutoExecuteCmd']:"" ?>" size="32" maxlength="255" onchange="updateButtons( this )"/></td>
+              <td><?php echo translate('FilterExecuteEvents') ?></td>
+              <td><input type="checkbox" name="AutoExecute" value="1"<?php if ( !empty($dbFilter['AutoExecute']) ) { ?> checked="checked"<?php } ?>/><input type="text" name="AutoExecuteCmd" value="<?php echo isset($dbFilter['AutoExecuteCmd'])?$dbFilter['AutoExecuteCmd']:"" ?>" size="32" maxlength="255" onchange="updateButtons( this )"/></td>
             </tr>
             <tr>
-              <td><?php echo $SLANG['FilterDeleteEvents'] ?></td>
-              <td colspan="2"><input type="checkbox" name="autoDelete" value="1"<?php if ( !empty($dbFilter['AutoDelete']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
+              <td><?php echo translate('FilterDeleteEvents') ?></td>
+              <td colspan="2"><input type="checkbox" name="AutoDelete" value="1"<?php if ( !empty($dbFilter['AutoDelete']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
             </tr>
           </tbody>
         </table>
         <hr/>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo $SLANG['Submit'] ?>" onclick="submitToEvents( this );"/>
-          <input type="button" name="executeButton" id="executeButton" value="<?php echo $SLANG['Execute'] ?>" onclick="executeFilter( this );"/>
+          <input type="submit" value="<?php echo translate('Submit') ?>" onclick="submitToEvents( this );"/>
+          <input type="button" name="executeButton" id="executeButton" value="<?php echo translate('Execute') ?>" onclick="executeFilter( this );"/>
 <?php if ( canEdit( 'Events' ) ) { ?>
-          <input type="button" value="<?php echo $SLANG['Save'] ?>" onclick="saveFilter( this );"/><?php } ?>
-<?php if ( canEdit( 'Events' ) && isset($dbFilter) ) { ?>
-          <input type="button" value="<?php echo $SLANG['Delete'] ?>" onclick="deleteFilter( this, '<?php echo $dbFilter['Name'] ?>' );"/><?php } ?>
-          <input type="button" value="<?php echo $SLANG['Reset'] ?>" onclick="submitToFilter( this, 1 );"/>
+          <input type="button" value="<?php echo translate('Save') ?>" onclick="saveFilter( this );"/>
+<?php } ?>
+<?php if ( canEdit( 'Events' ) && isset($dbFilter) && $dbFilter['Name'] ) { ?>
+          <input type="button" value="<?php echo translate('Delete') ?>" onclick="deleteFilter( this, '<?php echo $dbFilter['Name'] ?>' );"/>
+<?php } ?>
+          <input type="button" value="<?php echo translate('Reset') ?>" onclick="submitToFilter( this, 1 );"/>
         </div>
       </form>
     </div>

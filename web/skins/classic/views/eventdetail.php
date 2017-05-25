@@ -15,7 +15,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
 if ( !canEdit( 'Events' ) )
@@ -61,9 +61,9 @@ else
 $focusWindow = true;
 
 if ( $mode == 'single' )
-    xhtmlHeaders(__FILE__, $SLANG['Event']." - ".$eid );
+    xhtmlHeaders(__FILE__, translate('Event')." - ".$eid );
 else
-    xhtmlHeaders(__FILE__, $SLANG['Events'] );
+    xhtmlHeaders(__FILE__, translate('Events') );
 ?>
 <body>
   <div id="page">
@@ -72,13 +72,13 @@ else
 if ( $mode == 'single' )
 {
 ?>
-      <h2><?php echo $SLANG['Event'] ?> <?php echo $eid ?></h2>
+      <h2><?php echo translate('Event') ?> <?php echo $eid ?></h2>
 <?php
 }
 else
 {
 ?>
-      <h2><?php echo $SLANG['Events'] ?></h2>
+      <h2><?php echo translate('Events') ?></h2>
 <?php
 }
 ?>
@@ -112,17 +112,17 @@ elseif ( $mode = 'multi' )
         <table id="contentTable" class="major" cellspacing="0">
           <tbody>
             <tr>
-              <th scope="row"><?php echo $SLANG['Cause'] ?></th>
+              <th scope="row"><?php echo translate('Cause') ?></th>
               <td><input type="text" name="newEvent[Cause]" value="<?php echo validHtmlStr($newEvent['Cause']) ?>" size="32"/></td>
             </tr>
             <tr>
-              <th scope="row"><?php echo $SLANG['Notes'] ?></th>
+              <th scope="row"><?php echo translate('Notes') ?></th>
               <td><textarea name="newEvent[Notes]" rows="6" cols="50"><?php echo validHtmlStr($newEvent['Notes']) ?></textarea></td>
             </tr>
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo $SLANG['Save'] ?>"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo $SLANG['Cancel'] ?>" onclick="closeWindow()"/>
+          <input type="submit" value="<?php echo translate('Save') ?>"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
         </div>
       </form>
     </div>

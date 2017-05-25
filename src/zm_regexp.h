@@ -14,7 +14,7 @@
  * 
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */  
 
 #include "zm.h"
@@ -35,29 +35,29 @@
 class RegExpr
 {
 protected:
-	pcre *regex;
-	pcre_extra *regextra;
-	int max_matches;
-	int *match_vectors;
-	mutable char **match_buffers;
-	int *match_lengths;
-	bool *match_valid;
+  pcre *regex;
+  pcre_extra *regextra;
+  int max_matches;
+  int *match_vectors;
+  mutable char **match_buffers;
+  int *match_lengths;
+  bool *match_valid;
 
 protected:
-	const char *match_string;
-	int n_matches;
-	
+  const char *match_string;
+  int n_matches;
+  
 protected:
-	bool ok;
+  bool ok;
 
 public:
-	RegExpr( const char *pattern, int cflags=0, int p_max_matches=32 );
-	~RegExpr();
-	bool Ok() const { return( ok ); }
-	int MatchCount() const { return( n_matches ); }
-	int Match( const char *subject_string, int subject_length, int flags=0 );
-	const char *MatchString( int match_index ) const;
-	int MatchLength( int match_index ) const;
+  RegExpr( const char *pattern, int cflags=0, int p_max_matches=32 );
+  ~RegExpr();
+  bool Ok() const { return( ok ); }
+  int MatchCount() const { return( n_matches ); }
+  int Match( const char *subject_string, int subject_length, int flags=0 );
+  const char *MatchString( int match_index ) const;
+  int MatchLength( int match_index ) const;
 };
 
 #endif // HAVE_LIBPCRE

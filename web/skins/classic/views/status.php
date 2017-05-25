@@ -15,7 +15,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
 if ( !canView( 'System' ) )
@@ -31,12 +31,12 @@ $refresh = ZM_WEB_REFRESH_STATUS;
 $url = '?view='.$view;
 noCacheHeaders();
 
-xhtmlHeaders(__FILE__, $SLANG['Status'] );
+xhtmlHeaders(__FILE__, translate('Status') );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?php echo $SLANG['Status'] ?></h2>
+      <h2><?php echo translate('Status') ?></h2>
     </div>
     <div id="content">
       <table id="contentTable" class="major" cellspacing="0">

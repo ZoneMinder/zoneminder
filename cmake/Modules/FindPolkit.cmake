@@ -19,7 +19,7 @@
     # use pkg-config to get the directories and then use these values
     # in the FIND_PATH() and FIND_LIBRARY() calls
     find_package(PkgConfig)
-    pkg_check_modules(PC_POLKIT polkit-gobject-1)
+    pkg_search_module(PC_POLKIT polkit-gobject-1 polkit)
     #pkg_check_modules(PC_POLKIT_AGENT polkit-agent-1)
     set(POLKIT_DEFINITIONS ${PC_POLKIT_CFLAGS_OTHER})
     endif (NOT WIN32)
@@ -31,8 +31,8 @@
     HINTS ${PC_POLKIT_INCLUDE_DIRS}
     )
     find_path( POLKIT_INCLUDE_DIR
-    NAMES polkit/polkit.h
-    PATH_SUFFIXES polkit-1
+    NAMES polkit/polkit.h libpolkit/libpolkit.h
+    PATH_SUFFIXES polkit-1 polkit
     HINTS ${PC_POLKIT_INCLUDE_DIRS}
     )
     #find_path( POLKIT_AGENT_INCLUDE_DIR
@@ -43,7 +43,7 @@
     #set(POLKIT_INCLUDE_DIRS ${GLIB2_INCLUDE_DIR} ${_POLKIT_INCLUDE_DIR})
     #set(POLKIT_AGENT_INCLUDE_DIRS ${GLIB2_INCLUDE_DIR} ${_POLKIT_AGENT_INCLUDE_DIR})
     find_library( POLKIT_LIBRARIES
-    NAMES polkit-gobject-1
+    NAMES polkit-gobject-1 polkit
     HINTS ${PC_POLKIT_LIBDIR}
     )
     #find_library( POLKIT_AGENT_LIBRARY

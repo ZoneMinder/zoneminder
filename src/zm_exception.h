@@ -14,7 +14,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 #ifndef ZM_EXCEPTION_H
@@ -27,42 +27,42 @@
 class Exception
 {
 protected:
-    typedef enum { INFO, WARNING, ERROR, FATAL } Severity;
+  typedef enum { INFO, WARNING, ERROR, FATAL } Severity;
 
 protected:
-    std::string mMessage;
-    Severity mSeverity;
+  std::string mMessage;
+  Severity mSeverity;
 
 public:
-    Exception( const std::string &message, Severity severity=ERROR ) : mMessage( message ), mSeverity( severity )
-    {
-    }
+  Exception( const std::string &message, Severity severity=ERROR ) : mMessage( message ), mSeverity( severity )
+  {
+  }
 
 public:
-    const std::string &getMessage() const
-    {
-        return( mMessage );
-    }
-    Severity getSeverity() const
-    {
-        return( mSeverity );
-    }
-    bool isInfo() const
-    {
-        return( mSeverity == INFO );
-    }
-    bool isWarning() const
-    {
-        return( mSeverity == WARNING );
-    }
-    bool isError() const
-    {
-        return( mSeverity == ERROR );
-    }
-    bool isFatal() const
-    {
-        return( mSeverity == FATAL );
-    }
+  const std::string &getMessage() const
+  {
+    return( mMessage );
+  }
+  Severity getSeverity() const
+  {
+    return( mSeverity );
+  }
+  bool isInfo() const
+  {
+    return( mSeverity == INFO );
+  }
+  bool isWarning() const
+  {
+    return( mSeverity == WARNING );
+  }
+  bool isError() const
+  {
+    return( mSeverity == ERROR );
+  }
+  bool isFatal() const
+  {
+    return( mSeverity == FATAL );
+  }
 };
 
 #endif // ZM_EXCEPTION_H

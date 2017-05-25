@@ -15,10 +15,10 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canEdit( 'System' ) )
+if ( !canEdit( 'Groups' ) )
 {
     $view = "error";
     return;
@@ -37,12 +37,12 @@ else
     );
 }
 
-xhtmlHeaders( __FILE__, $SLANG['Group']." - ".$newGroup['Name'] );
+xhtmlHeaders( __FILE__, translate('Group')." - ".$newGroup['Name'] );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?php echo $SLANG['Group'] ?> - <?php echo $newGroup['Name'] ?></h2>
+      <h2><?php echo translate('Group') ?> - <?php echo $newGroup['Name'] ?></h2>
     </div>
     <div id="content">
       <form name="groupForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
@@ -52,11 +52,11 @@ xhtmlHeaders( __FILE__, $SLANG['Group']." - ".$newGroup['Name'] );
         <table id="contentTable" class="major" cellspacing="0">
           <tbody>
             <tr>
-              <th scope="row"><?php echo $SLANG['Name'] ?></th>
+              <th scope="row"><?php echo translate('Name') ?></th>
               <td><input type="text" name="newGroup[Name]" value="<?php echo validHtmlStr($newGroup['Name']) ?>"/></td>
             </tr>
             <tr>
-              <th scope="row"><?php echo $SLANG['MonitorIds'] ?></th>
+              <th scope="row"><?php echo translate('MonitorIds') ?></th>
               <td>
                 <select name="newGroup[MonitorIds][]" size="4" multiple="multiple">
 <?php
@@ -67,7 +67,7 @@ xhtmlHeaders( __FILE__, $SLANG['Group']." - ".$newGroup['Name'] );
         if ( visibleMonitor( $monitor['Id'] ) )
         {
 ?>
-                  <option value="<?php echo $monitor['Id'] ?>"<?php if ( array_key_exists( $monitor['Id'], $monitorIds ) ) { ?> selected="selected"<?php } ?>><?php echo validHtmlStr($monitor['Name']) ?></option>
+                  <option value="<?php echo $monitor['Id'] ?>"<?php if ( array_key_exists( $monitor['Id'], $monitorIds ) ) { ?> selected="selected"<?php } ?> onclick="configureButtons( this );"><?php echo validHtmlStr($monitor['Name']) ?></option>
 <?php
         }
     }
@@ -78,8 +78,8 @@ xhtmlHeaders( __FILE__, $SLANG['Group']." - ".$newGroup['Name'] );
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo $SLANG['Save'] ?>"<?php if ( !canEdit( 'System' ) ) { ?> disabled="disabled"<?php } ?>/>
-          <input type="button" value="<?php echo $SLANG['Cancel'] ?>" onclick="closeWindow()"/>
+          <input type="submit" name="saveBtn" value="<?php echo translate('Save') ?>" disabled="disabled" />
+          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
         </div>
       </form>
     </div>

@@ -220,7 +220,7 @@ class AclShell extends AppShell {
  *
  * @param string $class Class name that is being used.
  * @param array $node Array of node information.
- * @param integer $indent indent level.
+ * @param int $indent indent level.
  * @return void
  */
 	protected function _outputNode($class, $node, $indent) {
@@ -519,7 +519,7 @@ class AclShell extends AppShell {
 /**
  * Checks that given node exists
  *
- * @return boolean Success
+ * @return bool Success
  */
 	public function nodeExists() {
 		if (!isset($this->args[0]) || !isset($this->args[1])) {
@@ -558,8 +558,8 @@ class AclShell extends AppShell {
  * or an array of properties to use in AcoNode::node()
  *
  * @param string $class Class type you want (Aro/Aco)
- * @param string|array $identifier A mixed identifier for finding the node.
- * @return integer Integer of NodeId. Will trigger an error if nothing is found.
+ * @param string|array|null $identifier A mixed identifier for finding the node, otherwise null.
+ * @return int Integer of NodeId. Will trigger an error if nothing is found.
  */
 	protected function _getNodeId($class, $identifier) {
 		$node = $this->Acl->{$class}->node($identifier);
@@ -568,7 +568,7 @@ class AclShell extends AppShell {
 				$identifier = var_export($identifier, true);
 			}
 			$this->error(__d('cake_console', 'Could not find node using reference "%s"', $identifier));
-			return;
+			return null;
 		}
 		return Hash::get($node, "0.{$class}.id");
 	}
@@ -579,8 +579,8 @@ class AclShell extends AppShell {
  * @return array aro, aco, action
  */
 	protected function _getParams() {
-		$aro = is_numeric($this->args[0]) ? intval($this->args[0]) : $this->args[0];
-		$aco = is_numeric($this->args[1]) ? intval($this->args[1]) : $this->args[1];
+		$aro = is_numeric($this->args[0]) ? (int)$this->args[0] : $this->args[0];
+		$aco = is_numeric($this->args[1]) ? (int)$this->args[1] : $this->args[1];
 		$aroName = $aro;
 		$acoName = $aco;
 

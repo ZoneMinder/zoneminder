@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # ==========================================================================
 #
@@ -46,115 +46,121 @@ our $AUTOLOAD;
 
 sub new
 {
-	my $class = shift;
-	my %params = @_;
-	my $self = {};
-	$self->{name} = $params{name};
-	$self->{channel} = $params{channel};
-	$self->{input} = $params{mode} =~ /r/i;
-	$self->{output} = $params{mode} =~ /w/i;
-	bless( $self, $class );
-	return $self;
+    my $class = shift;
+    my %params = @_;
+    my $self = {};
+    $self->{name} = $params{name};
+    $self->{channel} = $params{channel};
+    $self->{input} = $params{mode} =~ /r/i;
+    $self->{output} = $params{mode} =~ /w/i;
+    bless( $self, $class );
+    return $self;
 }
 
 sub clone
 {
-	my $self = shift;
-	my $clone = { %$self };
-	bless $clone, ref $self;
-	return( $clone );
+    my $self = shift;
+    my $clone = { %$self };
+    bless $clone, ref $self;
+    return( $clone );
 }
 
 sub spawns
 {
-	my $self = shift;
+    my $self = shift;
     return( $self->{channel}->spawns() );
 }
 
-sub _spawn( $ )
+sub _spawn
 {
-	my $self = shift;
-	my $new_channel = shift;
-	my $clone = $self->clone();
-	$clone->{channel} = $new_channel;
-	return( $clone );
+    my $self = shift;
+    my $new_channel = shift;
+    my $clone = $self->clone();
+    $clone->{channel} = $new_channel;
+    return( $clone );
 }
 
-sub accept()
+sub accept
 {
-	my $self = shift;
-	my $new_channel = $self->{channel}->accept();
-	return( $self->_spawn( $new_channel ) );
+    my $self = shift;
+    my $new_channel = $self->{channel}->accept();
+    return( $self->_spawn( $new_channel ) );
 }
 
-sub open()
+sub open
 {
-	my $self = shift;
-	return( $self->{channel}->open() );
+    my $self = shift;
+    return( $self->{channel}->open() );
 }
 
-sub close()
+sub close
 {
-	my $self = shift;
-	return( $self->{channel}->close() );
+    my $self = shift;
+    return( $self->{channel}->close() );
 }
 
-sub fileno()
+sub fileno
 {
-	my $self = shift;
-	return( $self->{channel}->fileno() );
+    my $self = shift;
+    return( $self->{channel}->fileno() );
 }
 
-sub isOpen()
+sub isOpen
 {
-	my $self = shift;
-	return( $self->{channel}->isOpen() );
+    my $self = shift;
+    return( $self->{channel}->isOpen() );
 }
 
-sub isConnected()
+sub isConnected
 {
-	my $self = shift;
-	return( $self->{channel}->isConnected() );
+    my $self = shift;
+    return( $self->{channel}->isConnected() );
 }
 
-sub canRead()
+sub canRead
 {
-	my $self = shift;
-	return( $self->{input} && $self->isConnected() );
+    my $self = shift;
+    return( $self->{input} && $self->isConnected() );
 }
 
-sub canWrite()
+sub canWrite
 {
-	my $self = shift;
-	return( $self->{output} && $self->isConnected() );
+    my $self = shift;
+    return( $self->{output} && $self->isConnected() );
 }
 
 sub getMessages
 {
-	my $self = shift;
-	my $buffer = $self->{channel}->read();
+    my $self = shift;
+    my $buffer = $self->{channel}->read();
 
-	return( undef ) if ( !defined($buffer) );
+    return( undef ) if ( !defined($buffer) );
 
-	my @messages = split( /\r?\n/, $buffer );
-	return( \@messages );
+    my @messages = split( /\r?\n/, $buffer );
+    return( \@messages );
 }
 
 sub putMessages
 {
-	my $self = shift;
-	my $messages = shift;
+    my $self = shift;
+    my $messages = shift;
 
-	if ( @$messages )
-	{
-		my $buffer = join( "\n", @$messages );
-		$buffer .= "\n";
-		if ( !$self->{channel}->write( $buffer ) )
-		{
-			Error( "Unable to write buffer '".$buffer." to connection ".$self->{name}." (".$self->fileno().")\n" );
-		}
-	}
-	return( undef );
+    if ( @$messages )
+    {
+        my $buffer = join( "\n", @$messages );
+        $buffer .= "\n";
+        if ( !$self->{channel}->write( $buffer ) )
+        {
+            Error( "Unable to write buffer '".$buffer
+                  ." to connection "
+                  .$self->{name}
+                  ." ("
+                  .$self->fileno()
+                  .")\n"
+            );
+        }
+    }
+    return( undef );
 }
 
 sub timedActions
@@ -167,22 +173,22 @@ sub DESTROY
 
 sub AUTOLOAD
 {
-	my $self = shift;
-	my $class = ref($self) || croak( "$self not object" );
-	my $name = $AUTOLOAD;
-	$name =~ s/.*://;
-	if ( exists($self->{$name}) )
-	{
-		return( $self->{$name} );
-	}
-	elsif ( defined($self->{channel}) )
-	{
-		if ( exists($self->{channel}->{$name}) )
-		{
-			return( $self->{channel}->{$name} );
-		}
-	}
-	croak( "Can't access $name member of object of class $class" );
+    my $self = shift;
+    my $class = ref($self) || croak( "$self not object" );
+    my $name = $AUTOLOAD;
+    $name =~ s/.*://;
+    if ( exists($self->{$name}) )
+    {
+        return( $self->{$name} );
+    }
+    elsif ( defined($self->{channel}) )
+    {
+        if ( exists($self->{channel}->{$name}) )
+        {
+            return( $self->{channel}->{$name} );
+        }
+    }
+    croak( "Can't access $name member of object of class $class" );
 }
 
 1;

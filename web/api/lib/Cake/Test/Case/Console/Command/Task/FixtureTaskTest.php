@@ -42,7 +42,7 @@ class FixtureTaskTest extends CakeTestCase {
 /**
  * Whether backup global state for each test method or not
  *
- * @var boolean
+ * @var bool
  */
 	public $backupGlobals = false;
 
@@ -186,6 +186,9 @@ class FixtureTaskTest extends CakeTestCase {
 		$this->Task->interactive = true;
 		$this->Task->expects($this->at(0))->method('in')
 			->will($this->returnValue('WHERE 1=1'));
+		$this->Task->expects($this->at(1))->method('in')
+			->with($this->anything(), $this->anything(), '3')
+			->will($this->returnValue('2'));
 
 		$this->Task->connection = 'test';
 		$this->Task->path = '/my/path/';
@@ -197,9 +200,8 @@ class FixtureTaskTest extends CakeTestCase {
 		$this->assertContains('class ArticleFixture extends CakeTestFixture', $result);
 		$this->assertContains('public $records', $result);
 		$this->assertContains('public $import', $result);
-		$this->assertContains("'title' => 'First Article'", $result, 'Missing import data %s');
-		$this->assertContains('Second Article', $result, 'Missing import data %s');
-		$this->assertContains('Third Article', $result, 'Missing import data %s');
+		$this->assertContains("'title' => 'First Article'", $result, 'Missing import data');
+		$this->assertContains('Second Article', $result, 'Missing import data');
 	}
 
 /**
@@ -244,7 +246,6 @@ class FixtureTaskTest extends CakeTestCase {
 
 /**
  * test that execute passes runs bake depending with named model.
- *
  *
  * @return void
  */

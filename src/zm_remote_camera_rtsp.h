@@ -14,7 +14,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 #ifndef ZM_REMOTE_CAMERA_RTSP_H
@@ -26,6 +26,8 @@
 #include "zm_utils.h"
 #include "zm_rtsp.h"
 #include "zm_ffmpeg.h"
+#include "zm_videostore.h"
+#include "zm_packetqueue.h"
 
 //
 // Class representing 'rtsp' cameras, i.e. those which are
@@ -35,49 +37,56 @@
 class RemoteCameraRtsp : public RemoteCamera
 {
 protected:
-	struct sockaddr_in rtsp_sa;
-	struct sockaddr_in rtcp_sa;
-	int rtsp_sd;
-	int rtp_sd;
-	int rtcp_sd;
+  struct sockaddr_in rtsp_sa;
+  struct sockaddr_in rtcp_sa;
+  int rtsp_sd;
+  int rtp_sd;
+  int rtcp_sd;
+  bool rtsp_describe;
 
-	Buffer buffer;
-    Buffer lastSps;
-    Buffer lastPps;
+  Buffer buffer;
+  Buffer lastSps;
+  Buffer lastPps;
 
-    RtspThread::RtspMethod method;
+  RtspThread::RtspMethod method;
 
-    RtspThread *rtspThread;
+  RtspThread *rtspThread;
 
-    int frameCount;
-    
+  int frameCount;
+
 #if HAVE_LIBAVFORMAT
-    AVFormatContext     *mFormatContext;
-    int                 mVideoStreamId;
-    AVCodecContext      *mCodecContext;
-    AVCodec             *mCodec;
-    AVFrame             *mRawFrame; 
-    AVFrame             *mFrame;
-    PixelFormat         imagePixFormat;
+  AVFormatContext     *mFormatContext;
+  int                 mVideoStreamId;
+  int                 mAudioStreamId;
+  AVCodecContext      *mCodecContext;
+  AVCodec             *mCodec;
+  AVFrame             *mRawFrame; 
+  AVFrame             *mFrame;
+  _AVPIXELFORMAT         imagePixFormat;
 #endif // HAVE_LIBAVFORMAT
+  bool                wasRecording;
+  VideoStore          *videoStore;
+  char                oldDirectory[4096];
+  int64_t             startTime;
 
 #if HAVE_LIBSWSCALE
-	struct SwsContext   *mConvertContext;
+  struct SwsContext   *mConvertContext;
 #endif
 
 public:
-	RemoteCameraRtsp( int p_id, const std::string &method, const std::string &host, const std::string &port, const std::string &path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
-	~RemoteCameraRtsp();
+  RemoteCameraRtsp( unsigned int p_monitor_id, const std::string &method, const std::string &host, const std::string &port, const std::string &path, int p_width, int p_height, bool p_rtsp_describe, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
+  ~RemoteCameraRtsp();
 
-	void Initialise();
-	void Terminate();
-    int Connect();
-    int Disconnect();
+  void Initialise();
+  void Terminate();
+  int Connect();
+  int Disconnect();
 
-	int PrimeCapture();
-	int PreCapture();
-	int Capture( Image &image );
-	int PostCapture();
+  int PrimeCapture();
+  int PreCapture();
+  int Capture( Image &image );
+  int PostCapture();
+  int CaptureAndRecord( Image &image, timeval recording, char* event_directory );
 };
 
 #endif // ZM_REMOTE_CAMERA_RTSP_H

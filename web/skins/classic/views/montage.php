@@ -15,7 +15,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
 if ( !canView( 'Stream' ) )
@@ -23,6 +23,8 @@ if ( !canView( 'Stream' ) )
     $view = "error";
     return;
 }
+
+require_once( 'includes/Monitor.php' );
 
 $groupSql = "";
 if ( !empty($_REQUEST['group']) )
@@ -58,29 +60,29 @@ foreach( dbFetchAll( $sql ) as $row )
         $maxWidth = $scaleWidth;
     if ( $maxHeight < $scaleHeight )
         $maxHeight = $scaleHeight;
-    if ( ZM_OPT_CONTROL && $row['ControlId'] )
+    if ( ZM_OPT_CONTROL && $row['ControlId'] && $row['Controllable'] )
         $showControl = true;
     $row['index'] = $index++;
     $row['scaleWidth'] = $scaleWidth;
     $row['scaleHeight'] = $scaleHeight;
     $row['connKey'] = generateConnKey();
-    $monitors[] = $row;
+    $monitors[] = new Monitor( $row );
 }
 
 $focusWindow = true;
 
 $layouts = array(
-    'montage_freeform.css' => $SLANG['MtgDefault'],
-    'montage_2wide.css' => $SLANG['Mtg2widgrd'],
-    'montage_3wide.css' => $SLANG['Mtg3widgrd'],
-    'montage_4wide.css' => $SLANG['Mtg4widgrd'],
-    'montage_3wide50enlarge.css' => $SLANG['Mtg3widgrx'],
+    'montage_freeform.css' => translate('MtgDefault'),
+    'montage_2wide.css' => translate('Mtg2widgrd'),
+    'montage_3wide.css' => translate('Mtg3widgrd'),
+    'montage_4wide.css' => translate('Mtg4widgrd'),
+    'montage_3wide50enlarge.css' => translate('Mtg3widgrx'),
 );
 
 if ( isset($_COOKIE['zmMontageLayout']) )
     $layout = $_COOKIE['zmMontageLayout'];
 
-xhtmlHeaders(__FILE__, $SLANG['Montage'] );
+xhtmlHeaders(__FILE__, translate('Montage') );
 ?>
 <body>
   <div id="page">
@@ -90,16 +92,16 @@ xhtmlHeaders(__FILE__, $SLANG['Montage'] );
 if ( $showControl )
 {
 ?>
-        <a href="#" onclick="createPopup( '?view=control', 'zmControl', 'control' )"><?php echo $SLANG['Control'] ?></a>
+        <a href="#" onclick="createPopup( '?view=control', 'zmControl', 'control' )"><?php echo translate('Control') ?></a>
 <?php
 }
 ?>
-        <a href="#" onclick="closeWindow()"><?php echo $SLANG['Close'] ?></a>
+        <a href="#" onclick="closeWindow()"><?php echo translate('Close') ?></a>
       </div>
-      <h2><?php echo $SLANG['Montage'] ?></h2>
+      <h2><?php echo translate('Montage') ?></h2>
       <div id="headerControl">
-        <span id="scaleControl"><?php echo $SLANG['Scale'] ?>: <?php echo buildSelect( 'scale', $scales, 'changeScale(this);' ); ?></span> 
-        <label for="layout"><?php echo $SLANG['Layout'] ?>:</label><?php echo buildSelect( 'layout', $layouts, 'selectLayout(this);' )?>
+        <span id="scaleControl"><?php echo translate('Scale') ?>: <?php echo buildSelect( 'scale', $scales, 'changeScale(this);' ); ?></span> 
+        <label for="layout"><?php echo translate('Layout') ?>:</label><?php echo buildSelect( 'layout', $layouts, 'selectLayout(this);' )?>
       </div>
     </div>
     <div id="content">
@@ -107,29 +109,29 @@ if ( $showControl )
 <?php
 foreach ( $monitors as $monitor )
 {
-    $connkey = $monitor['connKey']; // Minor hack
+    $connkey = $monitor->connKey(); // Minor hack
     if ( !isset( $scale ) )
-        $scale = reScale( SCALE_BASE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+        $scale = reScale( SCALE_BASE, $monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE );
 ?>
-        <div id="monitorFrame<?php echo $monitor['index'] ?>" class="monitorFrame">
-          <div id="monitor<?php echo $monitor['index'] ?>" class="monitor idle">
-            <div id="imageFeed<?php echo $monitor['index'] ?>" class="imageFeed" onclick="createPopup( '?view=watch&amp;mid=<?php echo $monitor['Id'] ?>', 'zmWatch<?php echo $monitor['Id'] ?>', 'watch', <?php echo $monitor['scaleWidth'] ?>, <?php echo $monitor['scaleHeight'] ?> );">
+        <div id="monitorFrame<?php echo $monitor->index() ?>" class="monitorFrame">
+          <div id="monitor<?php echo $monitor->index() ?>" class="monitor idle">
+            <div id="imageFeed<?php echo $monitor->index() ?>" class="imageFeed" onclick="createPopup( '?view=watch&amp;mid=<?php echo $monitor->Id() ?>', 'zmWatch<?php echo $monitor->Id() ?>', 'watch', <?php echo $monitor->scaleWidth() ?>, <?php echo $monitor->scaleHeight() ?> );">
 <?php
 if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT )
 {
-    $streamSrc = getStreamSrc( array( "mode=mpeg", "monitor=".$monitor['Id'], "scale=".$scale, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_LIVE_FORMAT ) );
-    outputVideoStream( "liveStream".$monitor['Id'], $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), ZM_MPEG_LIVE_FORMAT );
+    $streamSrc = $monitor->getStreamSrc( array( "mode=mpeg", "scale=".$scale, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_LIVE_FORMAT ) );
+    outputVideoStream( "liveStream".$monitor->Id(), $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), ZM_MPEG_LIVE_FORMAT );
 }
 else
 {
-    $streamSrc = getStreamSrc( array( "mode=jpeg", "monitor=".$monitor['Id'], "scale=".$scale, "maxfps=".ZM_WEB_VIDEO_MAXFPS ) );
+    $streamSrc = $monitor->getStreamSrc( array( "mode=jpeg", "scale=".$scale, "maxfps=".ZM_WEB_VIDEO_MAXFPS ) );
     if ( canStreamNative() )
     {
-        outputImageStream( "liveStream".$monitor['Id'], $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ), validHtmlStr($monitor['Name']) );
+        outputImageStream( "liveStream".$monitor->Id(), $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), validHtmlStr($monitor->Name()) );
     }
     else
     {
-        outputHelperStream( "liveStream".$monitor['Id'], $streamSrc, reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ) );
+        outputHelperStream( "liveStream".$monitor->Id(), $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ) );
     }
 }
 ?>
@@ -138,7 +140,7 @@ else
     if ( !ZM_WEB_COMPACT_MONTAGE )
     {
 ?>
-            <div id="monitorState<?php echo $monitor['index'] ?>" class="monitorState idle"><?php echo $SLANG['State'] ?>:&nbsp;<span id="stateValue<?php echo $monitor['index'] ?>"></span>&nbsp;-&nbsp;<span id="fpsValue<?php echo $monitor['index'] ?>"></span>&nbsp;fps</div>
+            <div id="monitorState<?php echo $monitor->index() ?>" class="monitorState idle"><?php echo translate('State') ?>:&nbsp;<span id="stateValue<?php echo $monitor->index() ?>"></span>&nbsp;-&nbsp;<span id="fpsValue<?php echo $monitor->index() ?>"></span>&nbsp;fps</div>
 <?php
     }
 ?>

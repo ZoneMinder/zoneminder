@@ -15,7 +15,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
 if ( !canView( 'Control' ) )
@@ -48,20 +48,19 @@ foreach( dbFetchAll( $sql ) as $row )
 foreach ( getSkinIncludes( 'includes/control_functions.php' ) as $includeFile )
     require_once $includeFile;
 
-$sql = 'SELECT C.*,M.* FROM Monitors AS M INNER JOIN Controls AS C ON (M.ControlId = C.Id ) WHERE M.Id = ?';
-$monitor = dbFetchOne( $sql, NULL, array( $mid ) );
+$monitor = new Monitor( $mid );
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['Control'] );
+xhtmlHeaders(__FILE__, translate('Control') );
 ?>
 <body>
   <div id="page">
     <div id="header">
       <div id="headerButtons">
-        <a href="#" onclick="closeWindow();"><?php echo $SLANG['Close'] ?></a>
+        <a href="#" onclick="closeWindow();"><?php echo translate('Close') ?></a>
       </div>
-      <h2><?php echo $SLANG['Control'] ?></h2>
+      <h2><?php echo translate('Control') ?></h2>
       <div id="headerControl">
         <form name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
           <input type="hidden" name="view" value="<?php echo $view ?>"/>

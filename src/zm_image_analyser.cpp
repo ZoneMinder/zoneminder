@@ -7,7 +7,7 @@
  */
 ImageAnalyser::ImageAnalyser(const ImageAnalyser& source)
 {
-    m_Detectors = source.m_Detectors;
+  m_Detectors = source.m_Detectors;
 }
 
 
@@ -17,18 +17,18 @@ ImageAnalyser::ImageAnalyser(const ImageAnalyser& source)
  */
 ImageAnalyser& ImageAnalyser::operator=(const ImageAnalyser& source)
 {
-    m_Detectors = source.m_Detectors;
-    return *this;
+  m_Detectors = source.m_Detectors;
+  return *this;
 }
 
 
 
 ImageAnalyser::~ImageAnalyser()
 {
-    for(DetectorsList::reverse_iterator It = m_Detectors.rbegin();
-        It != m_Detectors.rend();
-        ++It)
-      delete *It;
+  for(DetectorsList::reverse_iterator It = m_Detectors.rbegin();
+    It != m_Detectors.rend();
+    ++It)
+    delete *It;
 }
 
 
@@ -42,23 +42,23 @@ ImageAnalyser::~ImageAnalyser()
  */
 int ImageAnalyser::DoDetection(const Image &comp_image, Zone** zones, int n_numZones, Event::StringSetMap noteSetMap, std::string& det_cause)
 {
-    Event::StringSet zoneSet;
-    int score = 0;
+  Event::StringSet zoneSet;
+  int score = 0;
 
-    for(DetectorsList::iterator It = m_Detectors.begin();
-        It != m_Detectors.end();
-        ++It)
+  for(DetectorsList::iterator It = m_Detectors.begin();
+    It != m_Detectors.end();
+    ++It)
+  {
+    int detect_score = (*It)->Detect(comp_image, zones, n_numZones, zoneSet);
+    if (detect_score)
     {
-        int detect_score = (*It)->Detect(comp_image, zones, n_numZones, zoneSet);
-        if (detect_score)
-        {
-            score += detect_score;
-            noteSetMap[(*It)->getDetectionCause()] = zoneSet;
-            if (det_cause.length())
-                det_cause += ", ";
-            det_cause += (*It)->getDetectionCause();
-        }
+      score += detect_score;
+      noteSetMap[(*It)->getDetectionCause()] = zoneSet;
+      if (det_cause.length())
+        det_cause += ", ";
+      det_cause += (*It)->getDetectionCause();
     }
-    return score;
+  }
+  return score;
 }
 

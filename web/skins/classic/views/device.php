@@ -15,7 +15,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
 if ( !canEdit( 'Devices' ) )
@@ -33,12 +33,12 @@ if ( !empty($_REQUEST['did']) ) {
     );
 }
 
-xhtmlHeaders( __FILE__, $SLANG['Device']." - ".$newDevice['Name'] );
+xhtmlHeaders( __FILE__, translate('Device')." - ".$newDevice['Name'] );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?php echo $SLANG['Device']." - ".validHtmlStr($newDevice['Name']) ?></h2>
+      <h2><?php echo translate('Device')." - ".validHtmlStr($newDevice['Name']) ?></h2>
     </div>
     <div id="content">
       <form name="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
@@ -48,17 +48,17 @@ xhtmlHeaders( __FILE__, $SLANG['Device']." - ".$newDevice['Name'] );
         <table id="contentTable" class="major" cellspacing="0">
           <tbody>
             <tr>
-              <th scope="row"><?php echo $SLANG['Name'] ?></th>
+              <th scope="row"><?php echo translate('Name') ?></th>
               <td><input type="text" name="newDevice[Name]" value="<?php echo validHtmlStr($newDevice['Name']) ?>"/></td>
             </tr>
             <tr>
-              <th scope="row"><?php echo $SLANG['KeyString'] ?></th>
+              <th scope="row"><?php echo translate('KeyString') ?></th>
               <td><input type="text" name="newDevice[KeyString]" value="<?php echo validHtmlStr($newDevice['KeyString']) ?>"/></td>
             </tr>
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo $SLANG['Save'] ?>"<?php if ( !canEdit( 'Devices' ) ) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo $SLANG['Cancel'] ?>" onclick="closeWindow()"/>
+          <input type="submit" value="<?php echo translate('Save') ?>"<?php if ( !canEdit( 'Devices' ) ) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
         </div>
       </form>
     </div>

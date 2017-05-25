@@ -51,9 +51,7 @@ function xhtmlHeaders( $file, $title )
   <link rel="shortcut icon" href="graphics/favicon.ico"/>
   <link rel="stylesheet" href="css/reset.css" type="text/css"/>
   <link rel="stylesheet" href="css/overlay.css" type="text/css"/>
-<?php if ( in_array($basename, $new_views) ) { ?>
   <link rel="stylesheet" href="css/bootstrap.min.css" type="text/css"/>
-<?php } ?>
   <link rel="stylesheet" href="<?php echo $skinCssFile ?>" type="text/css" media="screen"/>
 <?php
     if ( $viewCssFile )
@@ -78,6 +76,20 @@ function xhtmlHeaders( $file, $title )
   <script type="text/javascript" src="tools/mootools/mootools-core.js"></script>
   <script type="text/javascript" src="tools/mootools/mootools-more.js"></script>
   <script type="text/javascript" src="js/mootools.ext.js"></script>
+  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery-1.11.3.js"></script>
+  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery-ui-1.11.3.js"></script>
+  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
+  <script type="text/javascript">
+  //<![CDATA[
+  <!--
+var $j = jQuery.noConflict();
+// $j is now an alias to the jQuery function; creating the new alias is optional.
+
+<?php include("skins/$skin/views/js/state.js.php")?>
+  //-->
+  //]]>
+</script>
+
   <script type="text/javascript" src="js/logger.js"></script>
   <script type="text/javascript" src="js/overlay.js"></script>
 <?php if ( $title == 'Login' && (defined('ZM_OPT_USE_GOOG_RECAPTCHA') && ZM_OPT_USE_GOOG_RECAPTCHA) ) { ?>

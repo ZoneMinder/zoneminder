@@ -31,8 +31,7 @@
 // Class representing 'http' cameras, i.e. those which are
 // accessed over a network connection using http
 //
-class RemoteCameraHttp : public RemoteCamera
-{
+class RemoteCameraHttp : public RemoteCamera {
 protected:
   std::string request;
   struct timeval timeout;

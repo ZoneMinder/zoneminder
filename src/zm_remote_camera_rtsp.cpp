@@ -45,8 +45,7 @@ RemoteCameraRtsp::RemoteCameraRtsp( unsigned int p_monitor_id, const std::string
   else
     Fatal( "Unrecognised method '%s' when creating RTSP camera %d", p_method.c_str(), monitor_id );
 
-  if ( capture )
-  {
+  if ( capture ) {
     Initialise();
   }
   
@@ -76,36 +75,30 @@ RemoteCameraRtsp::RemoteCameraRtsp( unsigned int p_monitor_id, const std::string
   } else {
     Panic("Unexpected colours: %d",colours);
   }
-  
-}
+} // end RemoteCameraRtsp::RemoteCameraRtsp(...)
 
-RemoteCameraRtsp::~RemoteCameraRtsp()
-{
+RemoteCameraRtsp::~RemoteCameraRtsp() {
   av_frame_free( &mFrame );
   av_frame_free( &mRawFrame );
   
 #if HAVE_LIBSWSCALE
-  if ( mConvertContext )
-  {
+  if ( mConvertContext ) {
     sws_freeContext( mConvertContext );
     mConvertContext = NULL;
   }
 #endif
 
-  if ( mCodecContext )
-  {
+  if ( mCodecContext ) {
      avcodec_close( mCodecContext );
      mCodecContext = NULL; // Freed by avformat_free_context in the destructor of RtspThread class
   }
 
-  if ( capture )
-  {
+  if ( capture ) {
     Terminate();
   }
 }
 
-void RemoteCameraRtsp::Initialise()
-{
+void RemoteCameraRtsp::Initialise() {
   RemoteCamera::Initialise();
 
   int max_size = width*height*colours;
@@ -124,13 +117,11 @@ void RemoteCameraRtsp::Initialise()
   Connect();
 }
 
-void RemoteCameraRtsp::Terminate()
-{
+void RemoteCameraRtsp::Terminate() {
   Disconnect();
 }
 
-int RemoteCameraRtsp::Connect()
-{
+int RemoteCameraRtsp::Connect() {
   rtspThread = new RtspThread( monitor_id, method, protocol, host, port, path, auth, rtsp_describe );
 
   rtspThread->start();
@@ -138,10 +129,8 @@ int RemoteCameraRtsp::Connect()
   return( 0 );
 }
 
-int RemoteCameraRtsp::Disconnect()
-{
-  if ( rtspThread )
-  {
+int RemoteCameraRtsp::Disconnect() {
+  if ( rtspThread ) {
     rtspThread->stop();
     rtspThread->join();
     delete rtspThread;
@@ -150,11 +139,9 @@ int RemoteCameraRtsp::Disconnect()
   return( 0 );
 }
 
-int RemoteCameraRtsp::PrimeCapture()
-{
+int RemoteCameraRtsp::PrimeCapture() {
   Debug( 2, "Waiting for sources" );
-  for ( int i = 0; i < 100 && !rtspThread->hasSources(); i++ )
-  {
+  for ( int i = 0; i < 100 && !rtspThread->hasSources(); i++ ) {
     usleep( 100000 );
   }
   if ( !rtspThread->hasSources() )
@@ -241,7 +228,7 @@ int RemoteCameraRtsp::PrimeCapture()
   int pSize = avpicture_get_size( imagePixFormat, width, height );
 #endif
 
-  if( (unsigned int)pSize != imagesize) {
+  if ( (unsigned int)pSize != imagesize ) {
     Fatal("Image size mismatch. Required: %d Available: %d",pSize,imagesize);
   }
 /*  
@@ -265,8 +252,7 @@ int RemoteCameraRtsp::PrimeCapture()
 int RemoteCameraRtsp::PreCapture() {
   if ( !rtspThread->isRunning() )
     return( -1 );
-  if ( !rtspThread->hasSources() )
-  {
+  if ( !rtspThread->hasSources() ) {
     Error( "Cannot precapture, no RTP sources" );
     return( -1 );
   }
@@ -303,25 +289,20 @@ int RemoteCameraRtsp::Capture( Image &image ) {
         int nalType = (buffer.head()[3] & 0x1f);
         
         // SPS The SPS NAL unit contains parameters that apply to a series of consecutive coded video pictures
-        if(nalType == 7)
-        {
+        if(nalType == 7) {
           lastSps = buffer;
           continue;
-        }
+        } else if(nalType == 8) {
         // PPS The PPS NAL unit contains parameters that apply to the decoding of one or more individual pictures inside a coded video sequence
-        else if(nalType == 8)
-        {
           lastPps = buffer;
           continue;
-        }
+        } else if(nalType == 5) {
         // IDR
-        else if(nalType == 5)
-        {
           buffer += lastSps;
           buffer += lastPps;
         }
-            } else {
-                Debug(3, "Not an h264 packet");
+      } else {
+        Debug(3, "Not an h264 packet");
       }
 
       av_init_packet( &packet );
@@ -382,7 +363,7 @@ int RemoteCameraRtsp::Capture( Image &image ) {
   } // end while true
 
   // can never get here.
-  return (0) ;
+  return (0);
 }
 
 //Function to handle capture and store
@@ -391,7 +372,6 @@ int RemoteCameraRtsp::CaptureAndRecord(Image &image, timeval recording, char* ev
   AVPacket packet;
   uint8_t* directbuffer;
   int frameComplete = false;
-  
   
   while ( true ) {
 
@@ -450,14 +430,12 @@ int RemoteCameraRtsp::CaptureAndRecord(Image &image, timeval recording, char* ev
         if(nalType == 7) {
           lastSps = buffer;
           continue;
-        }
+        } else if(nalType == 8) {
         // PPS
-        else if(nalType == 8) {
           lastPps = buffer;
           continue;
-        }
+        } else if(nalType == 5) {
         // IDR
-        else if(nalType == 5) {
           buffer += lastSps;
           buffer += lastPps;
         }
@@ -525,14 +503,14 @@ int RemoteCameraRtsp::CaptureAndRecord(Image &image, timeval recording, char* ev
 #if HAVE_LIBSWSCALE
           // Why are we re-scaling after writing out the packet?
           if ( mConvertContext == NULL ) {
-              mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
+            mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
 
-              if ( mConvertContext == NULL )
-                  Fatal( "Unable to create conversion context");
+            if ( mConvertContext == NULL )
+              Fatal( "Unable to create conversion context");
           }
 
           if ( sws_scale( mConvertContext, mRawFrame->data, mRawFrame->linesize, 0, mCodecContext->height, mFrame->data, mFrame->linesize ) < 0 )
-              Fatal( "Unable to convert raw format %u to target format %u at frame %d", mCodecContext->pix_fmt, imagePixFormat, frameCount );
+            Fatal( "Unable to convert raw format %u to target format %u at frame %d", mCodecContext->pix_fmt, imagePixFormat, frameCount );
 #else // HAVE_LIBSWSCALE
           Fatal( "You must compile ffmpeg with the --enable-swscale option to use RTSP cameras" );
 #endif // HAVE_LIBSWSCALE

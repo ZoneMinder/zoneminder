@@ -61,7 +61,6 @@
 #define MAP_LOCKED 0
 #endif
 
-//=============================================================================
 std::vector<std::string> split(const std::string &s, char delim) {
   std::vector<std::string> elems;
   std::stringstream ss(s);
@@ -71,7 +70,6 @@ std::vector<std::string> split(const std::string &s, char delim) {
   }
   return elems;
 }
-//=============================================================================
 
 Monitor::MonitorLink::MonitorLink( int p_id, const char *p_name ) : id( p_id ) {
   strncpy( name, p_name, sizeof(name) );
@@ -463,7 +461,6 @@ Monitor::Monitor(
   Debug( 1, "Monitor %s IBC = %d, WUC = %d, pEC = %d, PEC = %d, EAF = %d, FRI = %d, RBP = %d, ARBP = %d, FM = %d", name, image_buffer_count, warmup_count, pre_event_count, post_event_count, alarm_frame_count, fps_report_interval, ref_blend_perc, alarm_ref_blend_perc, track_motion );
 
   //Set video recording flag for event start constructor and easy reference in code
-  // TODO: Use enum instead of the # 2. Makes for easier reading
   videoRecording = ((GetOptVideoWriter() == H264PASSTHROUGH) && camera->SupportsNativeVideo());
 
   if ( purpose == ANALYSIS ) {
@@ -1229,7 +1226,7 @@ bool Monitor::Analyse() {
       }
       shared_data->action &= ~RESUME;
     }
-  } // end ifshared_data->action
+  } // end if shared_data->action
 
   if ( auto_resume_time && (now.tv_sec >= auto_resume_time) ) {
     Info( "Auto resuming at count %d", image_count );
@@ -1897,8 +1894,8 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
     int hue = atoi(dbrow[col]); col++;
     int colour = atoi(dbrow[col]); col++;
 
-    const char *event_prefix = dbrow[col]; col++;
-    const char *label_format = dbrow[col]; col++;
+    const char *event_prefix = dbrow[col] ? dbrow[col] : ""; col++;
+    const char *label_format = dbrow[col] ? dbrow[col] : ""; col++;
 
     int label_x = atoi(dbrow[col]); col++;
     int label_y = atoi(dbrow[col]); col++;
@@ -2067,8 +2064,8 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
     int hue = atoi(dbrow[col]); col++;
     int colour = atoi(dbrow[col]); col++;
 
-    std::string event_prefix = dbrow[col] ? dbrow[col] : ""; col++;
-    std::string label_format = dbrow[col] ? dbrow[col] : ""; col++;
+    const char *event_prefix = dbrow[col] ? dbrow[col] : ""; col++;
+    const char *label_format = dbrow[col] ? dbrow[col] : ""; col++;
 
     int label_x = atoi(dbrow[col]); col++;
     int label_y = atoi(dbrow[col]); col++;
@@ -2152,8 +2149,8 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
       videowriter,
       encoderparams,
       record_audio,
-      event_prefix.c_str(),
-      label_format.c_str(),
+      event_prefix,
+      label_format,
       Coord( label_x, label_y ),
       label_size,
       image_buffer_count,
@@ -2246,9 +2243,9 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
     int hue = atoi(dbrow[col]); col++;
     int colour = atoi(dbrow[col]); col++;
 
-    std::string event_prefix = dbrow[col] ? dbrow[col] : ""; col++;
-    std::string label_format = dbrow[col] ? dbrow[col] : ""; col++;
-
+    const char *event_prefix = dbrow[col] ? dbrow[col] : ""; col++;
+    const char *label_format = dbrow[col] ? dbrow[col] : ""; col++;
+ 
     int label_x = atoi(dbrow[col]); col++;
     int label_y = atoi(dbrow[col]); col++;
     int label_size = atoi(dbrow[col]); col++;
@@ -2301,8 +2298,8 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
       videowriter,
       encoderparams,
       record_audio,
-      event_prefix.c_str(),
-      label_format.c_str(),
+      event_prefix,
+      label_format,
       Coord( label_x, label_y ),
       label_size,
       image_buffer_count,
@@ -2399,8 +2396,8 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
     int hue = atoi(dbrow[col]); col++;
     int colour = atoi(dbrow[col]); col++;
 
-    std::string event_prefix = dbrow[col] ? dbrow[col] : ""; col++;
-    std::string label_format = dbrow[col] ? dbrow[col] : ""; col++;
+    const char *event_prefix = dbrow[col] ? dbrow[col] : ""; col++;
+    const char *label_format = dbrow[col] ? dbrow[col] : ""; col++;
 
     int label_x = atoi(dbrow[col]); col++;
     int label_y = atoi(dbrow[col]); col++;
@@ -2415,12 +2412,14 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
     int section_length = atoi(dbrow[col]); col++;
     int frame_skip = atoi(dbrow[col]); col++;
     int motion_frame_skip = atoi(dbrow[col]); col++;
+
     double analysis_fps = dbrow[col] ? strtod(dbrow[col], NULL) : 0; col++;
     unsigned int analysis_update_delay = strtoul(dbrow[col++], NULL, 0);
     double capture_fps = dbrow[col] ? atof(dbrow[col]) : 0;col++;
     int capture_delay = capture_fps >0.0 ?int(DT_PREC_3/capture_fps):0; 
     double alarm_capture_fps = dbrow[col] ? atof(dbrow[col]) : 0; col++;
     int alarm_capture_delay = alarm_capture_fps > 0.0 ?int(DT_PREC_3/alarm_capture_fps):0;
+
     int fps_report_interval = atoi(dbrow[col]); col++;
     int ref_blend_perc = atoi(dbrow[col]); col++;
     int alarm_ref_blend_perc = atoi(dbrow[col]); col++;
@@ -2458,8 +2457,8 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
       videowriter,
       encoderparams,
       record_audio,
-      event_prefix.c_str(),
-      label_format.c_str(),
+      event_prefix,
+      label_format,
       Coord( label_x, label_y ),
       label_size,
       image_buffer_count,
@@ -2573,8 +2572,8 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
   int hue = atoi(dbrow[col]); col++;
   int colour = atoi(dbrow[col]); col++;
 
-  std::string event_prefix = dbrow[col] ? dbrow[col] : ""; col++;
-  std::string label_format = dbrow[col] ? dbrow[col] : ""; col++;
+  const char * event_prefix = dbrow[col] ? dbrow[col] : ""; col++;
+  const char * label_format = dbrow[col] ? dbrow[col] : ""; col++;
 
   int label_x = atoi(dbrow[col]); col++;
   int label_y = atoi(dbrow[col]); col++;
@@ -2769,8 +2768,8 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
     videowriter,
     encoderparams,
     record_audio,
-    event_prefix.c_str(),
-    label_format.c_str(),
+    event_prefix,
+    label_format,
     Coord( label_x, label_y ),
     label_size,
     image_buffer_count,
@@ -2833,10 +2832,10 @@ int Monitor::Capture() {
     
     //Check if FFMPEG camera
     // Icon: I don't think we can support de-interlacing on ffmpeg input.... most of the time it will be h264 or mpeg4
-    if(( videowriter == H264PASSTHROUGH ) && camera->SupportsNativeVideo()){
+    if ( ( videowriter == H264PASSTHROUGH ) && camera->SupportsNativeVideo() ) {
       captureResult = camera->CaptureAndRecord(*(next_buffer.image),
-                                               video_store_data->recording,
-                                               video_store_data->event_file );
+          video_store_data->recording,
+          video_store_data->event_file );
     } else {
       captureResult = camera->Capture(*(next_buffer.image));
     }

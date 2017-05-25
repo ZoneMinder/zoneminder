@@ -115,8 +115,8 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
   tot_score = 0;
   max_score = 0;
 
-  char id_file[PATH_MAX];
   struct stat statbuf;
+  char id_file[PATH_MAX];
 
   if ( config.use_deep_storage ) {
     char *path_ptr = path;
@@ -157,7 +157,6 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     snprintf( id_file, sizeof(id_file), "%s/.%d", date_path, id );
     if ( symlink( time_path, id_file ) < 0 )
       Fatal( "Can't symlink %s -> %s: %s", id_file, path, strerror(errno));
-    // Create empty id tag file
   } else {
     snprintf( path, sizeof(path), "%s/%d/%d", storage->Path(), monitor->Id(), id );
 
@@ -188,7 +187,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     snprintf( video_file, sizeof(video_file), video_file_format, path, video_name );
 
     /* X264 MP4 video writer */
-    if(monitor->GetOptVideoWriter() == 1) {
+    if ( monitor->GetOptVideoWriter() == Monitor::X264ENCODE ) {
 #if ZM_HAVE_VIDEOWRITER_X264MP4
       videowriter = new X264MP4Writer(video_file, monitor->Width(), monitor->Height(), monitor->Colours(), monitor->SubpixelOrder(), monitor->GetOptEncoderParams());
 #else
@@ -196,8 +195,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
 #endif
     }
 
-    if(videowriter != NULL) {
-
+    if ( videowriter != NULL ) {
       /* Open the video stream */
       int nRet = videowriter->Open();
       if(nRet != 0) {
@@ -208,9 +206,10 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
 
       snprintf( timecodes_name, sizeof(timecodes_name), "%d-%s", id, "video.timecodes" );
       snprintf( timecodes_file, sizeof(timecodes_file), video_file_format, path, timecodes_name );
+
       /* Create timecodes file */
       timecodes_fd = fopen(timecodes_file, "wb");
-      if(timecodes_fd == NULL) {
+      if ( timecodes_fd == NULL ) {
         Error("Failed creating timecodes file");
       }
     }
@@ -320,7 +319,7 @@ bool Event::WriteFrameVideo( const Image *image, const struct timeval timestamp,
   }
 
   /* Add the frame to the timecodes file */
-  fprintf(timecodes_fd, "%u\n", timeMS); 
+  fprintf(timecodes_fd, "%u\n", timeMS);
 
   return( true );
 }
@@ -354,12 +353,12 @@ void Event::updateNotes( const StringSetMap &newNoteSetMap ) {
                 noteSet.insert( newNote );
                 update = true;
               }
-            }
-          }
-        }
-      } // end for
-    } // end if ( noteSetMap.size() == 0
-  } // end if newNoteSetupMap.size() > 0
+            } // end for
+          } // end if ( noteSetMap.size() == 0
+        } // end if newNoteSetupMap.size() > 0
+      } // end foreach newNoteSetMap
+    } // end if have old notes
+  } // end if have new notes
 
   if ( update ) {
     std::string notes;
@@ -532,7 +531,16 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
 
     // We are writing a Bulk frame
     if ( frame_type == BULK ) {
-      snprintf( sql, sizeof(sql), "update Events set Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d where Id = %d", delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, frames, alarm_frames, tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score, id );
+      snprintf( sql, sizeof(sql), "update Events set Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d where Id = %d", 
+          ( delta_time.positive?"":"-" ),
+          delta_time.sec, delta_time.fsec,
+          frames, 
+          alarm_frames,
+          tot_score,
+          (int)(alarm_frames?(tot_score/alarm_frames):0),
+          max_score,
+          id
+          );
       if ( mysql_query( &dbconn, sql ) ) {
         Error( "Can't update event: %s", mysql_error( &dbconn ) );
         exit( mysql_errno( &dbconn ) );
@@ -561,47 +569,37 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
   }
 
   /* This makes viewing the diagnostic images impossible because it keeps deleting them
-     if ( config.record_diag_images )
-     {
-     char diag_glob[PATH_MAX] = "";
+  if ( config.record_diag_images ) {
+    char diag_glob[PATH_MAX] = "";
 
-     snprintf( diag_glob, sizeof(diag_glob), "%s/%d/diag-*.jpg", config.dir_events, monitor->Id() );
-     glob_t pglob;
-     int glob_status = glob( diag_glob, 0, 0, &pglob );
-     if ( glob_status != 0 )
-     {
-     if ( glob_status < 0 )
-     {
-     Error( "Can't glob '%s': %s", diag_glob, strerror(errno) );
-     }
-     else
-     {
-     Debug( 1, "Can't glob '%s': %d", diag_glob, glob_status );
-     }
-     }
-     else
-     {
-     char new_diag_path[PATH_MAX] = "";
-     for ( int i = 0; i < pglob.gl_pathc; i++ )
-     {
-     char *diag_path = pglob.gl_pathv[i];
+    snprintf( diag_glob, sizeof(diag_glob), "%s/%d/diag-*.jpg", config.dir_events, monitor->Id() );
+    glob_t pglob;
+    int glob_status = glob( diag_glob, 0, 0, &pglob );
+    if ( glob_status != 0 ) {
+      if ( glob_status < 0 ) {
+        Error( "Can't glob '%s': %s", diag_glob, strerror(errno) );
+      } else {
+        Debug( 1, "Can't glob '%s': %d", diag_glob, glob_status );
+      }
+    } else {
+      char new_diag_path[PATH_MAX] = "";
+      for ( int i = 0; i < pglob.gl_pathc; i++ ) {
+        char *diag_path = pglob.gl_pathv[i];
 
-     char *diag_file = strstr( diag_path, "diag-" );
+        char *diag_file = strstr( diag_path, "diag-" );
 
-     if ( diag_file )
-     {
-     snprintf( new_diag_path, sizeof(new_diag_path), general_file_format, path, frames, diag_file );
+        if ( diag_file ) {
+          snprintf( new_diag_path, sizeof(new_diag_path), general_file_format, path, frames, diag_file );
 
-     if ( rename( diag_path, new_diag_path ) < 0 )
-     {
-     Error( "Can't rename '%s' to '%s': %s", diag_path, new_diag_path, strerror(errno) );
-     }
-     }
-     }
-     }
-     globfree( &pglob );
-     }
-   */
+          if ( rename( diag_path, new_diag_path ) < 0 ) {
+            Error( "Can't rename '%s' to '%s': %s", diag_path, new_diag_path, strerror(errno) );
+          }
+        }
+      }
+    }
+    globfree( &pglob );
+  }
+  */
 }
 
 bool EventStream::loadInitialEventData( int monitor_id, time_t event_time ) {
@@ -667,7 +665,7 @@ bool EventStream::loadInitialEventData( int init_event_id, unsigned int init_fra
 bool EventStream::loadEventData( int event_id ) {
   static char sql[ZM_SQL_MED_BUFSIZ];
 
-  snprintf( sql, sizeof(sql), "select M.Id, M.Name, E.StorageId, E.Frames, unix_timestamp( StartTime ) as StartTimestamp, (SELECT max(Delta)-min(Delta) FROM Frames WHERE EventId=E.Id) as Duration,E.DefaultVideo from Events as E inner join Monitors as M on E.MonitorId = M.Id where E.Id = %d", event_id );
+  snprintf( sql, sizeof(sql), "select MonitorId, StorageId, Frames, unix_timestamp( StartTime ) as StartTimestamp, (SELECT max(Delta)-min(Delta) FROM Frames WHERE EventId=Events.Id) as Duration, DefaultVideo from Events Id = %d", event_id );
 
   if ( mysql_query( &dbconn, sql ) ) {
     Error( "Can't run query: %s", mysql_error( &dbconn ) );
@@ -695,9 +693,9 @@ bool EventStream::loadEventData( int event_id ) {
   event_data = new EventData;
   event_data->event_id = event_id;
   event_data->monitor_id = atoi( dbrow[0] );
-  event_data->storage_id = dbrow[2] ? atoi( dbrow[2] ) : 0;
-  event_data->start_time = atoi(dbrow[4]);
+  event_data->start_time = atoi(dbrow[3]);
 
+  event_data->storage_id = dbrow[1] ? atoi( dbrow[1] ) : 0;
   Storage * storage = new Storage( event_data->storage_id );
   const char *storage_path = storage->Path();
 
@@ -713,9 +711,9 @@ bool EventStream::loadEventData( int event_id ) {
     else
       snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%ld", staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id, event_data->event_id );
   }
-  event_data->frame_count = dbrow[3] == NULL ? 0 : atoi(dbrow[3]);
-  event_data->duration = atof(dbrow[5]);
-  strncpy( event_data->video_file, dbrow[6], sizeof( event_data->video_file )-1 );
+  event_data->frame_count = dbrow[2] == NULL ? 0 : atoi(dbrow[3]);
+  event_data->duration = atof(dbrow[4]);
+  strncpy( event_data->video_file, dbrow[5], sizeof( event_data->video_file )-1 );
 
   updateFrameRate( (double)event_data->frame_count/event_data->duration );
 
@@ -785,243 +783,237 @@ bool EventStream::loadEventData( int event_id ) {
 }
 
 void EventStream::processCommand( const CmdMsg *msg ) {
-  Debug( 2, "Got message, type %d, msg %d", msg->msg_type, msg->msg_data[0] )
-    // Check for incoming command
-    switch( (MsgCommand)msg->msg_data[0] ) {
-      case CMD_PAUSE :
-        {
-          Debug( 1, "Got PAUSE command" );
+  Debug( 2, "Got message, type %d, msg %d", msg->msg_type, msg->msg_data[0] );
+  // Check for incoming command
+  switch( (MsgCommand)msg->msg_data[0] ) {
+    case CMD_PAUSE :
+      {
+        Debug( 1, "Got PAUSE command" );
 
-          // Set paused flag
-          paused = true;
-          replay_rate = ZM_RATE_BASE;
-          last_frame_sent = TV_2_FLOAT( now );
-          break;
-        }
-      case CMD_PLAY :
+        // Set paused flag
+        paused = true;
+        replay_rate = ZM_RATE_BASE;
+        last_frame_sent = TV_2_FLOAT( now );
+        break;
+      }
+    case CMD_PLAY :
+      {
+        Debug( 1, "Got PLAY command" );
+        if ( paused )
         {
-          Debug( 1, "Got PLAY command" );
-          if ( paused )
-          {
-            // Clear paused flag
-            paused = false;
-          }
-
-          // If we are in single event mode and at the last frame, replay the current event
-          if ( (mode == MODE_SINGLE) && ((unsigned int)curr_frame_id == event_data->frame_count) )
-            curr_frame_id = 1;
-
-          replay_rate = ZM_RATE_BASE;
-          break;
-        }
-      case CMD_VARPLAY :
-        {
-          Debug( 1, "Got VARPLAY command" );
-          if ( paused )
-          {
-            // Clear paused flag
-            paused = false;
-          }
-          replay_rate = ntohs(((unsigned char)msg->msg_data[2]<<8)|(unsigned char)msg->msg_data[1])-32768;
-          break;
-        }
-      case CMD_STOP :
-        {
-          Debug( 1, "Got STOP command" );
-
           // Clear paused flag
           paused = false;
-          break;
         }
-      case CMD_FASTFWD :
+
+        // If we are in single event mode and at the last frame, replay the current event
+        if ( (mode == MODE_SINGLE) && ((unsigned int)curr_frame_id == event_data->frame_count) )
+          curr_frame_id = 1;
+
+        replay_rate = ZM_RATE_BASE;
+        break;
+      }
+    case CMD_VARPLAY :
+      {
+        Debug( 1, "Got VARPLAY command" );
+        if ( paused )
         {
-          Debug( 1, "Got FAST FWD command" );
-          if ( paused )
-          {
-            // Clear paused flag
-            paused = false;
-          }
-          // Set play rate
-          switch ( replay_rate )
-          {
-            case 2 * ZM_RATE_BASE :
-              replay_rate = 5 * ZM_RATE_BASE;
-              break;
-            case 5 * ZM_RATE_BASE :
-              replay_rate = 10 * ZM_RATE_BASE;
-              break;
-            case 10 * ZM_RATE_BASE :
-              replay_rate = 25 * ZM_RATE_BASE;
-              break;
-            case 25 * ZM_RATE_BASE :
-            case 50 * ZM_RATE_BASE :
-              replay_rate = 50 * ZM_RATE_BASE;
-              break;
-            default :
-              replay_rate = 2 * ZM_RATE_BASE;
-              break;
-          }
-          break;
-        }
-      case CMD_SLOWFWD :
-        {
-          Debug( 1, "Got SLOW FWD command" );
-          // Set paused flag
-          paused = true;
-          // Set play rate
-          replay_rate = ZM_RATE_BASE;
-          // Set step
-          step = 1;
-          break;
-        }
-      case CMD_SLOWREV :
-        {
-          Debug( 1, "Got SLOW REV command" );
-          // Set paused flag
-          paused = true;
-          // Set play rate
-          replay_rate = ZM_RATE_BASE;
-          // Set step
-          step = -1;
-          break;
-        }
-      case CMD_FASTREV :
-        {
-          Debug( 1, "Got FAST REV command" );
-          if ( paused )
-          {
-            // Clear paused flag
-            paused = false;
-          }
-          // Set play rate
-          switch ( replay_rate )
-          {
-            case -2 * ZM_RATE_BASE :
-              replay_rate = -5 * ZM_RATE_BASE;
-              break;
-            case -5 * ZM_RATE_BASE :
-              replay_rate = -10 * ZM_RATE_BASE;
-              break;
-            case -10 * ZM_RATE_BASE :
-              replay_rate = -25 * ZM_RATE_BASE;
-              break;
-            case -25 * ZM_RATE_BASE :
-            case -50 * ZM_RATE_BASE :
-              replay_rate = -50 * ZM_RATE_BASE;
-              break;
-            default :
-              replay_rate = -2 * ZM_RATE_BASE;
-              break;
-          }
-          break;
-        }
-      case CMD_ZOOMIN :
-        {
-          x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
-          y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
-          Debug( 1, "Got ZOOM IN command, to %d,%d", x, y );
-          switch ( zoom )
-          {
-            case 100:
-              zoom = 150;
-              break;
-            case 150:
-              zoom = 200;
-              break;
-            case 200:
-              zoom = 300;
-              break;
-            case 300:
-              zoom = 400;
-              break;
-            case 400:
-            default :
-              zoom = 500;
-              break;
-          }
-          break;
-        }
-      case CMD_ZOOMOUT :
-        {
-          Debug( 1, "Got ZOOM OUT command" );
-          switch ( zoom )
-          {
-            case 500:
-              zoom = 400;
-              break;
-            case 400:
-              zoom = 300;
-              break;
-            case 300:
-              zoom = 200;
-              break;
-            case 200:
-              zoom = 150;
-              break;
-            case 150:
-            default :
-              zoom = 100;
-              break;
-          }
-          break;
-        }
-      case CMD_PAN :
-        {
-          x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
-          y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
-          Debug( 1, "Got PAN command, to %d,%d", x, y );
-          break;
-        }
-      case CMD_SCALE :
-        {
-          scale = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
-          Debug( 1, "Got SCALE command, to %d", scale );
-          break;
-        }
-      case CMD_PREV :
-        {
-          Debug( 1, "Got PREV command" );
-          if ( replay_rate >= 0 )
-            curr_frame_id = 0;
-          else
-            curr_frame_id = event_data->frame_count+1;
+          // Clear paused flag
           paused = false;
-          forceEventChange = true;
-          break;
         }
-      case CMD_NEXT :
-        {
-          Debug( 1, "Got NEXT command" );
-          if ( replay_rate >= 0 )
-            curr_frame_id = event_data->frame_count+1;
-          else
-            curr_frame_id = 0;
+        replay_rate = ntohs(((unsigned char)msg->msg_data[2]<<8)|(unsigned char)msg->msg_data[1])-32768;
+        break;
+      }
+    case CMD_STOP :
+      {
+        Debug( 1, "Got STOP command" );
+
+        // Clear paused flag
+        paused = false;
+        break;
+      }
+    case CMD_FASTFWD :
+      {
+        Debug( 1, "Got FAST FWD command" );
+        if ( paused ) {
+          // Clear paused flag
           paused = false;
-          forceEventChange = true;
-          break;
         }
-      case CMD_SEEK :
-        {
-          int offset = ((unsigned char)msg->msg_data[1]<<24)|((unsigned char)msg->msg_data[2]<<16)|((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
-          curr_frame_id = (int)(event_data->frame_count*offset/event_data->duration);
-          Debug( 1, "Got SEEK command, to %d (new cfid: %d)", offset, curr_frame_id );
-          break;
+        // Set play rate
+        switch ( replay_rate ) {
+          case 2 * ZM_RATE_BASE :
+            replay_rate = 5 * ZM_RATE_BASE;
+            break;
+          case 5 * ZM_RATE_BASE :
+            replay_rate = 10 * ZM_RATE_BASE;
+            break;
+          case 10 * ZM_RATE_BASE :
+            replay_rate = 25 * ZM_RATE_BASE;
+            break;
+          case 25 * ZM_RATE_BASE :
+          case 50 * ZM_RATE_BASE :
+            replay_rate = 50 * ZM_RATE_BASE;
+            break;
+          default :
+            replay_rate = 2 * ZM_RATE_BASE;
+            break;
         }
-      case CMD_QUERY :
-        {
-          Debug( 1, "Got QUERY command, sending STATUS" );
-          break;
+        break;
+      }
+    case CMD_SLOWFWD :
+      {
+        Debug( 1, "Got SLOW FWD command" );
+        // Set paused flag
+        paused = true;
+        // Set play rate
+        replay_rate = ZM_RATE_BASE;
+        // Set step
+        step = 1;
+        break;
+      }
+    case CMD_SLOWREV :
+      {
+        Debug( 1, "Got SLOW REV command" );
+        // Set paused flag
+        paused = true;
+        // Set play rate
+        replay_rate = ZM_RATE_BASE;
+        // Set step
+        step = -1;
+        break;
+      }
+    case CMD_FASTREV :
+      {
+        Debug( 1, "Got FAST REV command" );
+        if ( paused ) {
+          // Clear paused flag
+          paused = false;
         }
-      case CMD_QUIT :
-        {
-          Info ("User initiated exit - CMD_QUIT");
-          break;
+        // Set play rate
+        switch ( replay_rate ) {
+          case -2 * ZM_RATE_BASE :
+            replay_rate = -5 * ZM_RATE_BASE;
+            break;
+          case -5 * ZM_RATE_BASE :
+            replay_rate = -10 * ZM_RATE_BASE;
+            break;
+          case -10 * ZM_RATE_BASE :
+            replay_rate = -25 * ZM_RATE_BASE;
+            break;
+          case -25 * ZM_RATE_BASE :
+          case -50 * ZM_RATE_BASE :
+            replay_rate = -50 * ZM_RATE_BASE;
+            break;
+          default :
+            replay_rate = -2 * ZM_RATE_BASE;
+            break;
         }
-      default :
-        {
-          // Do nothing, for now
+        break;
+      }
+    case CMD_ZOOMIN :
+      {
+        x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
+        y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
+        Debug( 1, "Got ZOOM IN command, to %d,%d", x, y );
+        switch ( zoom ) {
+          case 100:
+            zoom = 150;
+            break;
+          case 150:
+            zoom = 200;
+            break;
+          case 200:
+            zoom = 300;
+            break;
+          case 300:
+            zoom = 400;
+            break;
+          case 400:
+          default :
+            zoom = 500;
+            break;
         }
-    }
+        break;
+      }
+    case CMD_ZOOMOUT :
+      {
+        Debug( 1, "Got ZOOM OUT command" );
+        switch ( zoom ) {
+          case 500:
+            zoom = 400;
+            break;
+          case 400:
+            zoom = 300;
+            break;
+          case 300:
+            zoom = 200;
+            break;
+          case 200:
+            zoom = 150;
+            break;
+          case 150:
+          default :
+            zoom = 100;
+            break;
+        }
+        break;
+      }
+    case CMD_PAN :
+      {
+        x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
+        y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
+        Debug( 1, "Got PAN command, to %d,%d", x, y );
+        break;
+      }
+    case CMD_SCALE :
+      {
+        scale = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
+        Debug( 1, "Got SCALE command, to %d", scale );
+        break;
+      }
+    case CMD_PREV :
+      {
+        Debug( 1, "Got PREV command" );
+        if ( replay_rate >= 0 )
+          curr_frame_id = 0;
+        else
+          curr_frame_id = event_data->frame_count+1;
+        paused = false;
+        forceEventChange = true;
+        break;
+      }
+    case CMD_NEXT :
+      {
+        Debug( 1, "Got NEXT command" );
+        if ( replay_rate >= 0 )
+          curr_frame_id = event_data->frame_count+1;
+        else
+          curr_frame_id = 0;
+        paused = false;
+        forceEventChange = true;
+        break;
+      }
+    case CMD_SEEK :
+      {
+        int offset = ((unsigned char)msg->msg_data[1]<<24)|((unsigned char)msg->msg_data[2]<<16)|((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
+        curr_frame_id = (int)(event_data->frame_count*offset/event_data->duration);
+        Debug( 1, "Got SEEK command, to %d (new cfid: %d)", offset, curr_frame_id );
+        break;
+      }
+    case CMD_QUERY :
+      {
+        Debug( 1, "Got QUERY command, sending STATUS" );
+        break;
+      }
+    case CMD_QUIT :
+      {
+        Info ("User initiated exit - CMD_QUIT");
+        break;
+      }
+    default :
+      {
+        // Do nothing, for now
+      }
+  }
   struct {
     int event;
     int progress;
@@ -1141,14 +1133,14 @@ bool EventStream::sendFrame( int delta_us ) {
   static struct stat filestat;
   FILE *fdj = NULL;
 
-  // This needs to be abstracted.  
+  // This needs to be abstracted.  If we are saving jpgs, then load the capture file.  If we are only saving analysis frames, then send that.
   if ( monitor->GetOptSaveJPEGs() & 1 ) {
     snprintf( filepath, sizeof(filepath), Event::capture_file_format, event_data->path, curr_frame_id );
   } else if ( monitor->GetOptSaveJPEGs() & 2 ) {
     snprintf( filepath, sizeof(filepath), Event::analyse_file_format, event_data->path, curr_frame_id );
     if ( stat( filepath, &filestat ) < 0 ) {
-        Debug(1, "%s not found, dalling back to capture");
-        snprintf( filepath, sizeof(filepath), Event::capture_file_format, event_data->path, curr_frame_id );
+      Debug(1, "%s not found, dalling back to capture");
+      snprintf( filepath, sizeof(filepath), Event::capture_file_format, event_data->path, curr_frame_id );
     }
 
   } else {
@@ -1189,7 +1181,7 @@ bool EventStream::sendFrame( int delta_us ) {
         Error( "Can't open %s: %s", filepath, strerror(errno) );
         return( false );
       }
-#if HAVE_SENDFILE            
+#if HAVE_SENDFILE
       if( fstat(fileno(fdj),&filestat) < 0 ) {
         Error( "Failed getting information about file %s: %s", filepath, strerror(errno) );
         return( false );
@@ -1243,7 +1235,7 @@ bool EventStream::sendFrame( int delta_us ) {
 
 
     if(send_raw) {
-#if HAVE_SENDFILE  
+#if HAVE_SENDFILE
       fprintf( stdout, "Content-Length: %d\r\n\r\n", (int)filestat.st_size );
       if(zm_sendfile(fileno(stdout), fileno(fdj), 0, (int)filestat.st_size) != (int)filestat.st_size) {
         /* sendfile() failed, use standard way instead */
@@ -1349,7 +1341,7 @@ void EventStream::runStream() {
         // if effective > base we should speed up frame delivery
         delta_us = (unsigned int)((delta_us * base_fps)/effective_fps);
         // but must not exceed maxfps
-        delta_us = max(delta_us, 1000000 / maxfps); 
+        delta_us = max(delta_us, 1000000 / maxfps);
         send_frame = true;
       }
     } else if ( step != 0 ) {

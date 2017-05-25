@@ -74,6 +74,15 @@ function initPage() {
     createPopup( '?view=version', 'zmVersion', 'version' );
   if ( showDonatePopup )
     createPopup( '?view=donate', 'zmDonate', 'donate' );
+
+  // Makes table sortable
+$j( function() {
+    $j( "#consoleTableBody" ).sortable({
+        handle: ".glyphicon-sort",
+        update: applySort,
+        axis:'Y' } );
+    $j( "#consoleTableBody" ).disableSelection();
+  } );
 }
 
 function applySort(event, ui) {

@@ -223,6 +223,8 @@ for ( $i = 0; $i < count($eventCounts); $i++ ) {
               <input type="button" name="addBtn" value="<?php echo translate('AddNewMonitor') ?>" onclick="addMonitor( this )"/>
               <!-- <?php echo makePopupButton( '?view=monitor', 'zmMonitor0', 'monitor', translate('AddNewMonitor'), (canEdit( 'Monitors' ) && !$user['MonitorIds']) ) ?> -->
               <?php echo makePopupButton( '?view=filter&amp;filter[terms][0][attr]=DateTime&amp;filter[terms][0][op]=%3c&amp;filter[terms][0][val]=now', 'zmFilter', 'filter', translate('Filters'), canView( 'Events' ) ) ?>
+              <input type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editMonitor( this )" disabled="disabled"/>
+              <input type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteMonitor( this )" disabled="disabled"/>
             </td>
 <?php
 for ( $i = 0; $i < count($eventCounts); $i++ ) {
@@ -233,14 +235,14 @@ for ( $i = 0; $i < count($eventCounts); $i++ ) {
 }
 ?>
             <td class="colZones"><?php echo $zoneCount ?></td>
-            <td class="colRightButtons" colspan="<?php echo canEdit('Monitors')?2:1 ?>"><input type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editMonitor( this )" disabled="disabled"/><input type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteMonitor( this )" disabled="disabled"/></td>
+            <td class="colMark"></td>
           </tr>
         </tfoot>
-        <tbody>
+        <tbody id="consoleTableBody">
 <?php
 foreach( $displayMonitors as $monitor ) {
 ?>
-          <tr>
+          <tr id="<?php echo 'monitor_id-'.$monitor['Id'] ?>">
 <?php
     if ( !$monitor['zmc'] ) {
       $dclass = "errorText";
@@ -304,19 +306,13 @@ echo $Server->Name();
               <span class="glyphicon glyphicon-sort"></span>
             </td>
           </tr>
+<?php
+}
+?>
         </tbody>
       </table>
     </div>
     </form>
   </div>
 </body>
-<script type="text/javscript">
-  $j( function() {
-    $j( "#consoleTableBody" ).sortable({
-        handle: ".glyphicon-sort",
-        update: applySort,
-        axis:'Y' } );
-    $j( "#consoleTableBody" ).disableSelection();
-  } );
-</script>
 </html>

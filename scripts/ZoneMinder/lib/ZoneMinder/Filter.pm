@@ -32,10 +32,9 @@ require ZoneMinder::Base;
 require Date::Manip;
 
 use parent qw(ZoneMinder::Object);
-#our @ISA = qw(ZoneMinder::Object);
 
 use vars qw/ $table $primary_key /;
-$table = 'Events';
+$table = 'Filters';
 $primary_key = 'Id';
 # ==========================================================================
 #

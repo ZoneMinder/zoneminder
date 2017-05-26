@@ -99,7 +99,7 @@ sub Execute {
   my $sql = $self->Sql();
 
   if ( $self->{HasDiskPercent} ) {
-    my $disk_percent = getDiskPercent( $$self{Storage} ? $$self{Storage}->Path() : () );
+    my $disk_percent = getDiskPercent();
     $sql =~ s/zmDiskPercent/$disk_percent/g;
   }
   if ( $self->{HasDiskBlocks} ) {
@@ -195,9 +195,6 @@ sub Sql {
                 # This gets used later, I forget for what
                 $$self{Server} = new ZoneMinder::Server( $temp_value );
               }
-            } elsif ( $term->{attr} eq 'StorageId' ) {
-              $value = "'$temp_value'";
-              $$self{Storage} = new ZoneMinder::Storage( $temp_value );
             } elsif ( $term->{attr} eq 'Name'
                 || $term->{attr} eq 'Cause'
                 || $term->{attr} eq 'Notes'

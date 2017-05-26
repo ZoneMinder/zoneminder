@@ -41,7 +41,7 @@ our @ISA = qw(Exporter ZoneMinder::Base);
 # If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
 # will save memory.
 our %EXPORT_TAGS = (
-    'data' => [ qw(
+    data => [ qw(
       %types
       @options
       %options_hash
@@ -49,7 +49,7 @@ our %EXPORT_TAGS = (
     );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
 
-our @EXPORT_OK = ( @{ $EXPORT_TAGS{'data'} } );
+our @EXPORT_OK = ( @{ $EXPORT_TAGS{data} } );
 
 our @EXPORT = qw();
 

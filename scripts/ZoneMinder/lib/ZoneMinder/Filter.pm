@@ -32,10 +32,9 @@ require ZoneMinder::Base;
 require Date::Manip;
 
 use parent qw(ZoneMinder::Object);
-#our @ISA = qw(ZoneMinder::Object);
 
 use vars qw/ $table $primary_key /;
-$table = 'Events';
+$table = 'Filters';
 $primary_key = 'Id';
 # ==========================================================================
 #
@@ -254,14 +253,14 @@ sub Sql {
     } # end if terms
 
     if ( $self->{Sql} ) {
-      #if ( $self->{AutoMessage} ) {
+      if ( $self->{AutoMessage} ) {
 # Include all events, including events that are still ongoing
 # and have no EndTime yet
         $sql .= " and ( ".$self->{Sql}." )";
-      #} else {
+      } else {
 # Only include closed events (events with valid EndTime)
-        #$sql .= " where not isnull(E.EndTime) and ( ".$self->{Sql}." )";
-      #}
+        $sql .= " where not isnull(E.EndTime) and ( ".$self->{Sql}." )";
+      }
     }
     my @auto_terms;
     if ( $self->{AutoArchive} ) {

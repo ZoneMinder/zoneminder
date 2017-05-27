@@ -259,22 +259,22 @@ fi
 
 if [ $TYPE == "binary" ]; then
   if [ "$INTERACTIVE" != "no" ]; then
-    echo "Not doing dput since it's a binary release. Do you want to install it? (Y/N)"
-    read install
-    if [ "$install" == [yY] ]; then
+    read -p "Not doing dput since it's a binary release. Do you want to install it? (Y/N)"
+    if [[ $REPLY == [yY] ]]; then
         sudo dpkg -i $DIRECTORY*.deb
+    else 
+	echo $REPLY;
     fi;
     if [ "$DISTRO" == "jessie" ]; then
-      echo "Do you want to upload this binary to zmrepo? (y/N)"
-      read install
-      if [ "$install" == [yY] ]; then
+      read -p "Do you want to upload this binary to zmrepo? (y/N)"
+      if [[ $REPLY == [yY] ]]; then
         if [ "$RELEASE" != "" ]; then
           scp "zoneminder_${VERSION}-${DISTRO}*" "zmrepo@zmrepo.connortechnology.com:debian/stable/mini-dinstall/incoming/"
         else
           if [ "$BRANCH" == "" ]; then
             scp "zoneminder_${VERSION}-${DISTRO}*" "zmrepo@zmrepo.connortechnology.com:debian/master/mini-dinstall/incoming/"
           else
-            scp "zoneminder_${VERSION}-${DISTRO}*" "zmrepo@zmrepo.connortechnology.com:debian/${BRANCH}/mini-dinstall/incoming/"
+            scp "$DIRECTORY-${DISTRO}*" "zmrepo@zmrepo.connortechnology.com:debian/${BRANCH}/mini-dinstall/incoming/"
           fi;
         fi;
       fi;

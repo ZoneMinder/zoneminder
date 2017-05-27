@@ -61,7 +61,6 @@
 #define MAP_LOCKED 0
 #endif
 
-//=============================================================================
 std::vector<std::string> split(const std::string &s, char delim) {
   std::vector<std::string> elems;
   std::stringstream ss(s);
@@ -71,7 +70,6 @@ std::vector<std::string> split(const std::string &s, char delim) {
   }
   return elems;
 }
-//=============================================================================
 
 Monitor::MonitorLink::MonitorLink( int p_id, const char *p_name ) : id( p_id ) {
   strncpy( name, p_name, sizeof(name) );
@@ -1228,7 +1226,7 @@ bool Monitor::Analyse() {
       }
       shared_data->action &= ~RESUME;
     }
-  } // end ifshared_data->action
+  } // end if shared_data->action
 
   if ( auto_resume_time && (now.tv_sec >= auto_resume_time) ) {
     Info( "Auto resuming at count %d", image_count );

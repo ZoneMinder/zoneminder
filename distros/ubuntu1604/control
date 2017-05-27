@@ -5,10 +5,19 @@ Maintainer: Dmitry Smirnov <onlyjob@debian.org>
 Uploaders: Vagrant Cascadian <vagrant@debian.org>
 Build-Depends: debhelper (>= 9), dh-systemd, python-sphinx | python3-sphinx, apache2-dev, dh-linktree
               ,cmake
+<<<<<<< HEAD
               ,libx264-dev, libmp4v2-dev
               ,libavcodec-dev, libavformat-dev, libswscale-dev
               ,libavutil-dev, libavdevice-dev, libavresample-dev
               ,libboost-dev
+=======
+              ,libboost-dev
+              ,libavdevice-dev (>= 6:10~)
+              ,libavcodec-dev (>= 6:10~)
+              ,libavformat-dev  (>= 6:10~)
+              ,libavutil-dev (>= 6:10~)
+              ,libswscale-dev (>= 6:10~)
+>>>>>>> dragndrop_monitor_sorting
               ,libbz2-dev
               ,libgcrypt-dev
               ,libcurl4-gnutls-dev

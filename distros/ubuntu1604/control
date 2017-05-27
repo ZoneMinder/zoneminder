@@ -21,7 +21,7 @@ Build-Depends: debhelper (>= 9), dh-systemd, python-sphinx | python3-sphinx, apa
               ,libpcre3-dev
               ,libpolkit-gobject-1-dev
               ,libv4l-dev (>= 0.8.3) [!hurd-any]
-              ,libvlc-dev,
+              ,libvlc-dev
               ,libdate-manip-perl
               ,libdbd-mysql-perl
               ,libphp-serialization-perl

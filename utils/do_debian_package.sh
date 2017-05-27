@@ -122,10 +122,10 @@ if [ ! -d "${GITHUB_FORK}_zoneminder_release" ]; then
     git pull
     cd ../
     echo "git clone ${GITHUB_FORK}_ZoneMinder.git ${GITHUB_FORK}_zoneminder_release"
-	  git clone "${GITHUB_FORK}_ZoneMinder.git" "${GITHUB_FORK}_zoneminder_release"
+    git clone "${GITHUB_FORK}_ZoneMinder.git" "${GITHUB_FORK}_zoneminder_release"
   else
     echo "git clone https://github.com/$GITHUB_FORK/ZoneMinder.git ${GITHUB_FORK}_zoneminder_release"
-	  git clone "https://github.com/$GITHUB_FORK/ZoneMinder.git" "${GITHUB_FORK}_zoneminder_release"
+    git clone "https://github.com/$GITHUB_FORK/ZoneMinder.git" "${GITHUB_FORK}_zoneminder_release"
   fi
 else
   echo "release dir already exists. Please remove it."
@@ -139,7 +139,7 @@ cd ../
 VERSION=`cat ${GITHUB_FORK}_zoneminder_release/version`
 
 if [ $VERSION == "" ]; then
-	exit 1;
+  exit 1;
 fi;
 if [ "$SNAPSHOT" != "stable" ] && [ "$SNAPSHOT" != "" ]; then
   VERSION="$VERSION~$SNAPSHOT";
@@ -158,7 +158,7 @@ cd "$DIRECTORY.orig";
 git submodule init
 git submodule update --init --recursive
 if [ "$DISTRO" == "trusty" ] || [ "$DISTRO" == "precise" ]; then 
-	mv distros/ubuntu1204 debian
+  mv distros/ubuntu1204 debian
 else 
   if [ "$DISTRO" == "wheezy" ]; then 
     mv distros/debian debian
@@ -225,7 +225,7 @@ if [ $TYPE == "binary" ]; then
   sudo apt-get install devscripts equivs
   sudo mk-build-deps -ir ./debian/control
   echo "Status: $?"
-	DEBUILD=debuild
+  DEBUILD=debuild
 else
   if [ $TYPE == "local" ]; then
     # Auto-install all ZoneMinder's depedencies using the Debian control file
@@ -259,22 +259,22 @@ fi
 
 if [ $TYPE == "binary" ]; then
   if [ "$INTERACTIVE" != "no" ]; then
-    echo "Not doing dput since it's a binary release. Do you want to install it? (Y/N)"
-    read install
-    if [ "$install" == "Y" ]; then
+    read -p "Not doing dput since it's a binary release. Do you want to install it? (Y/N)"
+    if [[ $REPLY == [yY] ]]; then
         sudo dpkg -i $DIRECTORY*.deb
+    else 
+	echo $REPLY;
     fi;
     if [ "$DISTRO" == "jessie" ]; then
-      echo "Do you want to upload this binary to zmrepo? (y/N)"
-      read install
-      if [ "$install" == "Y" ]; then
+      read -p "Do you want to upload this binary to zmrepo? (y/N)"
+      if [[ $REPLY == [yY] ]]; then
         if [ "$RELEASE" != "" ]; then
           scp "zoneminder_${VERSION}-${DISTRO}*" "zmrepo@zmrepo.connortechnology.com:debian/stable/mini-dinstall/incoming/"
         else
           if [ "$BRANCH" == "" ]; then
             scp "zoneminder_${VERSION}-${DISTRO}*" "zmrepo@zmrepo.connortechnology.com:debian/master/mini-dinstall/incoming/"
           else
-            scp "zoneminder_${VERSION}-${DISTRO}*" "zmrepo@zmrepo.connortechnology.com:debian/${BRANCH}/mini-dinstall/incoming/"
+            scp "$DIRECTORY-${DISTRO}*" "zmrepo@zmrepo.connortechnology.com:debian/${BRANCH}/mini-dinstall/incoming/"
           fi;
         fi;
       fi;
@@ -282,25 +282,25 @@ if [ $TYPE == "binary" ]; then
   fi;
 else
   SC="zoneminder_${VERSION}-${DISTRO}${PACKAGE_VERSION}_source.changes";
-	PPA="";
-	if [ "$RELEASE" != "" ]; then
-			PPA="ppa:iconnor/zoneminder";
-	else
-		if [ "$BRANCH" == "" ]; then
-			PPA="ppa:iconnor/zoneminder-master";
-		else 
-			PPA="ppa:iconnor/zoneminder-$BRANCH";
-		fi;
-	fi;
+  PPA="";
+  if [ "$RELEASE" != "" ]; then
+      PPA="ppa:iconnor/zoneminder";
+  else
+    if [ "$BRANCH" == "" ]; then
+      PPA="ppa:iconnor/zoneminder-master";
+    else 
+      PPA="ppa:iconnor/zoneminder-$BRANCH";
+    fi;
+  fi;
 
   dput="Y";
   if [ "$INTERACTIVE" != "no" ]; then
     echo "Ready to dput $SC to $PPA ? Y/N...";
     read dput
   fi
-	if [ "$dput" == "Y" -o "$dput" == "y" ]; then
-		dput $PPA $SC
-	fi;
+  if [ "$dput" == [Yy] ]; then
+    dput $PPA $SC
+  fi;
 fi;
 
 

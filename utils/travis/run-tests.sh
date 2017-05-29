@@ -10,7 +10,8 @@ with_timestamps() {
 }
 
 run_tests() {
-	mysql -uzmuser -pzmpass zm < ../../db/test.monitor.sql
+	mysql -uzmuser -pzmpass < ${TRAVIS_BUILD_DIR}/db/zm_create.sql
+	mysql -uzmuser -pzmpass zm < ${TRAVIS_BUILD_DIR}/db/test.monitor.sql
 	sudo zmu -l
 	sudo zmc -m1 &
 	sudo zma -m1 &

@@ -2,7 +2,6 @@
 
 set -e
 set -o pipefail
-set -x
 
 with_timestamps() {
 	while read -r line; do
@@ -22,7 +21,6 @@ bootstrap_zm() {
 	mysql -uroot -e "CREATE DATABASE IF NOT EXISTS zm"
 	mysql -uroot -e "GRANT ALL ON zm.* TO 'zmuser'@'localhost' IDENTIFIED BY 'zmpass'";
 	mysql -uroot -e "FLUSH PRIVILEGES"
-	mysql -uzmuser -pzmpass < ${TRAVIS_BUILD_DIR}/db/zm_create.sql
 
 }
 

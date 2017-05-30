@@ -27,6 +27,10 @@ if ( version_compare( phpversion(), '4.3.0', '<') ) {
   }
 }
 
+# We are requiring these because this file is getting included from the api, which hasn't already included them.
+require_once( 'logger.php' );
+require_once( 'database.php' );
+
 function userLogin( $username, $password='', $passwordHashed=false ) {
   global $user, $cookies;
 

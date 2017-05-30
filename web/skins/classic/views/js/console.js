@@ -74,6 +74,27 @@ function initPage() {
     createPopup( '?view=version', 'zmVersion', 'version' );
   if ( showDonatePopup )
     createPopup( '?view=donate', 'zmDonate', 'donate' );
+
+  // Makes table sortable
+$j( function() {
+    $j( "#consoleTableBody" ).sortable({
+        handle: ".glyphicon-sort",
+        update: applySort,
+        axis:'Y' } );
+    $j( "#consoleTableBody" ).disableSelection();
+  } );
 }
+
+function applySort(event, ui) {
+  var monitor_ids = $j(this).sortable('toArray');
+  var ajax = new Request.JSON( {
+      url: '/index.php?request=console',
+      data: { monitor_ids: monitor_ids, action: 'sort' },
+      method: 'post',
+      timeout: AJAX_TIMEOUT
+      } );
+  ajax.send();
+} // end function applySort(event,ui)
+
 
 window.addEvent( 'domready', initPage );

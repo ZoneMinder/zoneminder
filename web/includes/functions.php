@@ -700,8 +700,8 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
           }
           break;
         }
-    }
-  }
+    } // end switch
+  } // end foreach newvalues
   foreach( $values as $key=>$value ) {
     if ( !empty($columns[$key]) ) {
       if ( !empty($types[$key]) ) {
@@ -2069,8 +2069,7 @@ function getSkinFile( $file ) {
   return( $skinFile );
 }
 
-function getSkinIncludes( $file, $includeBase=false, $asOverride=false )
-{
+function getSkinIncludes( $file, $includeBase=false, $asOverride=false ) {
   global $skinBase;
   $skinFile = false;
   foreach ( $skinBase as $skin ) {

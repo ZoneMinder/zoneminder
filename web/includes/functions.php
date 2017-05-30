@@ -53,7 +53,7 @@ function userLogin( $username, $password='', $passwordHashed=false ) {
   }
   $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
   if ( $dbUser = dbFetchOne( $sql, NULL, $sql_values ) ) {
-    Info( "Login successful for user \"$username\'' );
+    Info( "Login successful for user \"$username\"" );
     $_SESSION['user'] = $user = $dbUser;
     unset($_SESSION['loginFailed']);
     if ( ZM_AUTH_TYPE == 'builtin' ) {
@@ -61,7 +61,7 @@ function userLogin( $username, $password='', $passwordHashed=false ) {
     }
     session_regenerate_id();
   } else {
-    Warning( "Login denied for user \"$username\'' );
+    Warning( "Login denied for user \"$username\"" );
     $_SESSION['loginFailed'] = true;
     unset( $user );
   }
@@ -569,7 +569,7 @@ function htmlSelect( $name, $contents, $values, $behaviours=false ) {
   $html = "<select name=\"$name\" id=\"$name\"$behaviourText>";
   foreach ( $contents as $value=>$text ) {
     $selected = is_array( $values ) ? in_array( $value, $values ) : $value==$values;
-    $html .= "<option value=\"$value\''.($selected?" selected=\"selected\'':'').">$text</option>";
+    $html .= "<option value=\"$value\"".($selected?" selected=\"selected\"":'').">$text</option>";
   }
   $html .= '</select>';
   return $html;

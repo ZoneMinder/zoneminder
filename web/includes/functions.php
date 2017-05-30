@@ -350,13 +350,21 @@ function outputControlStream( $src, $width, $height, $monitor, $scale, $target )
     <input type="hidden" name="view" value="blank">
     <input type="hidden" name="mid" value="<?php echo $monitor['Id'] ?>">
     <input type="hidden" name="action" value="control">
-<?php if ( $monitor['CanMoveMap'] ) { ?>
+    <?php
+    if ( $monitor['CanMoveMap'] ) {
+    ?>
       <input type="hidden" name="control" value="moveMap">
-    <?php } elseif ( $monitor['CanMoveRel'] ) { ?>
+    <?php
+    } elseif ( $monitor['CanMoveRel'] ) {
+    ?>
       <input type="hidden" name="control" value="movePseudoMap">
-    <?php } elseif ( $monitor['CanMoveCon'] ) { ?>
+    <?php
+    } elseif ( $monitor['CanMoveCon'] ) {
+    ?>
       <input type="hidden" name="control" value="moveConMap">
-    <?php } ?>
+    <?php
+    }
+    ?>
     <input type="hidden" name="scale" value="<?php echo $scale ?>">
     <input type="image" src="<?php echo $src ?>" width="<?php echo $width ?>" height="<?php echo $height ?>">
   </form>
@@ -387,29 +395,29 @@ function getImageStill( $id, $src, $width, $height, $title='' ) {
 
 function outputControlStill( $src, $width, $height, $monitor, $scale, $target ) {
   ?>
-    <form name="ctrlForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" target="<?php echo $target ?>">
+  <form name="ctrlForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" target="<?php echo $target ?>">
     <input type="hidden" name="view" value="blank">
     <input type="hidden" name="mid" value="<?php echo $monitor['Id'] ?>">
     <input type="hidden" name="action" value="control">
     <?php
     if ( $monitor['CanMoveMap'] ) {
     ?>
-      <input type="hidden" name="control" value="moveMap">
+    <input type="hidden" name="control" value="moveMap">
     <?php
     } elseif ( $monitor['CanMoveRel'] ) {
     ?>
-      <input type="hidden" name="control" value="movePseudoMap">
+    <input type="hidden" name="control" value="movePseudoMap">
     <?php
     } elseif ( $monitor['CanMoveCon'] ) {
     ?>
-      <input type="hidden" name="control" value="moveConMap">
+    <input type="hidden" name="control" value="moveConMap">
     <?php
     }
     ?>
     <input type="hidden" name="scale" value="<?php echo $scale ?>">
     <input type="image" src="<?php echo $src ?>" width="<?php echo $width ?>" height="<?php echo $height ?>">
-    </form>
-    <?php
+  </form>
+  <?php
 }
 
 // Incoming args are shell-escaped. This function must escape any further arguments it cannot guarantee.
@@ -465,10 +473,8 @@ function getEventDefaultVideoPath( $event ) {
 
 function deletePath( $path ) {
   if ( is_dir( $path ) ) {
-Logger::Debug("deletePath rm -rf $path");
     system( escapeshellcmd( 'rm -rf '.$path ) );
   } else {
-Logger::Debug("deletePath unlink $path");
     unlink( $path );
   }
 }
@@ -519,7 +525,7 @@ function makePopupLink( $url, $winName, $winSize, $label, $condition=1, $options
     $string .= '<a>';
   }
   $string .= $label;
-    $string .= '</a>';
+  $string .= '</a>';
   return( $string );
 }
 
@@ -838,12 +844,13 @@ function zmcControl( $monitor, $mode=false ) {
     $row = NULL;
     if ( $monitor['Type'] == 'Local' ) {
       $row = dbFetchOne( "SELECT count(if(Function!='None',1,NULL)) AS ActiveCount FROM Monitors WHERE Device = ?", NULL, array($monitor['Device']) );
-      $zmcArgs = '-d '.escapeshellarg( $monitor['Device'] );
+      $zmcArgs = '-d '.$monitor['Device'];
     } else {
       $row = dbFetchOne( "SELECT count(if(Function!='None',1,NULL)) AS ActiveCount FROM Monitors WHERE Id = ?", NULL, array($monitor['Id']) );
       $zmcArgs = '-m '.$monitor['Id'];
     }
     $activeCount = $row['ActiveCount'];
+
     if ( (!$activeCount) || ($mode == 'stop') ) {
       daemonControl( 'stop', 'zmc', $zmcArgs );
     } else {
@@ -985,7 +992,7 @@ function viewImagePath( $path, $querySep='&amp;' ) {
 }
 
 function createListThumbnail( $event, $overwrite=false ) {
-# Load the frame with the highest score to use as a thumbnail
+  # Load the frame with the highest score to use as a thumbnail
   if ( !($frame = dbFetchOne( "SELECT * FROM Frames WHERE EventId=? AND Score=? ORDER BY FrameId LIMIT 1", NULL, array( $event['Id'], $event['MaxScore'] ) )) )
     return( false );
 
@@ -1007,6 +1014,7 @@ function createListThumbnail( $event, $overwrite=false ) {
   if ( ! $imageData ) {
     return ( false );
   }
+
   $thumbData = $frame;
   $thumbData['Path'] = $imageData['thumbPath'];
   $thumbData['Width'] = (int)$thumbWidth;

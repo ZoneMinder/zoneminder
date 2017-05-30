@@ -19,32 +19,34 @@
 //
 
 require_once( 'includes/Server.php');
+require_once( 'includes/Storage.php');
 
 if ( !canView( 'Monitors' ) ) {
-  $view = "error";
+  $view = 'error';
   return;
 }
 
 $tabs = array();
 $tabs["general"] = translate('General');
 $tabs["source"] = translate('Source');
+$tabs["storage"] = translate('Storage');
 $tabs["timestamp"] = translate('Timestamp');
 $tabs["buffers"] = translate('Buffers');
 if ( ZM_OPT_CONTROL && canView( 'Control' ) )
-$tabs["control"] = translate('Control');
+  $tabs["control"] = translate('Control');
 if ( ZM_OPT_X10 )
   $tabs["x10"] = translate('X10');
-  $tabs["misc"] = translate('Misc');
+$tabs["misc"] = translate('Misc');
 
-  if ( isset($_REQUEST['tab']) )
+if ( isset($_REQUEST['tab']) )
   $tab = validHtmlStr($_REQUEST['tab']);
-  else
-  $tab = "general";
+else
+  $tab = 'general';
 
-  $Server = null;
-  if ( defined( 'ZM_SERVER_ID' ) ) {
-    $Server = dbFetchOne( 'SELECT * FROM Servers WHERE Id=?', NULL, array( ZM_SERVER_ID ) );
-  }
+$Server = null;
+if ( defined( 'ZM_SERVER_ID' ) ) {
+  $Server = dbFetchOne( 'SELECT * FROM Servers WHERE Id=?', NULL, array( ZM_SERVER_ID ) );
+}
 if ( ! $Server ) {
   $Server = array( 'Id' => '' );
 }
@@ -57,85 +59,86 @@ if ( ! empty($_REQUEST['mid']) ) {
 
   $nextId = getTableAutoInc( 'Monitors' );
   if ( ! empty( $_REQUEST['dupId'] ) ) {
-      $monitor = new Monitor( $_REQUEST['dupId'] );
-      if ( ZM_OPT_X10 )
-          $x10Monitor = dbFetchOne( 'SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['dupId']) );
-      $clonedName = $monitor->Name();
-      $monitor->Name( translate('Monitor').'-'.$nextId );
-	  $monitor->Id( $nextId );
+    $monitor = new Monitor( $_REQUEST['dupId'] );
+    if ( ZM_OPT_X10 )
+      $x10Monitor = dbFetchOne( 'SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['dupId']) );
+    $clonedName = $monitor->Name();
+    $monitor->Name( translate('Monitor').'-'.$nextId );
+    $monitor->Id( $nextId );
   } else {
-      $monitor = new Monitor();
-      $monitor->set( array(
-                  'Id' => 0,
-                  'Name' => translate('Monitor').'-'.$nextId,
-                  'Function' => "Monitor",
-                  'Enabled' => true,
-                  'LinkedMonitors' => "",
-                  'Type' => "",
-                  'Device' => "/dev/video0",
-                  'Channel' => "0",
-                  'Format' => 0x000000ff,
-                  'Protocol' => "",
-                  'Method' => "",
-                  'Host' => "",
-                  'Path' => "",
-                  'Options' => "",
-                  'Port' => "80",
-                  'User' => "",
-                  'Pass' => "",
-                  'Colours' => 3,
-                  'Palette' => 0,
-                  'Width' => "320",
-                  'Height' => "240",
-                  'Orientation' => "0",
-                  'Deinterlacing' => 0,
-                  'RTSPDescribe' => 0,
-                  'SaveJPEGs' => "3",
-                  'VideoWriter' => "0",
-                  'EncoderParameters' => "# Lines beginning with # are a comment \n# For changing quality, use the crf option\n# 1 is best, 51 is worst quality\n#crf=23\n",
-                  'RecordAudio' => '0',
-                  'LabelFormat' => '%N - %d/%m/%y %H:%M:%S',
-                  'LabelX' => 0,
-                  'LabelY' => 0,
-                  'LabelSize' => 1,
-                  'ImageBufferCount' => 50,
-                  'WarmupCount' => 25,
-                  'PreEventCount' => 25,
-                  'PostEventCount' => 25,
-                  'StreamReplayBuffer' => 1000,
-                  'AlarmFrameCount' => 1,
-                  'Controllable' => 0,
-                  'ControlId' => "",
-                  'ControlType' => 0,
-                  'ControlDevice' => "",
-                  'ControlAddress' => "",
-                  'AutoStopTimeout' => "",
-                  'TrackMotion' => 0,
-                  'TrackDelay' => "",
-                  'ReturnLocation' => -1,
-                  'ReturnDelay' => "",
-                  'SectionLength' => 600,
-                  'FrameSkip' => 0,
-                  'MotionFrameSkip' => 0,
-                  'EventPrefix' => 'Event-',
-                  'AnalysisFPS' => "",
-                  'AnalysisUpdateDelay' => 0,
-                  'MaxFPS' => "",
-                  'AlarmMaxFPS' => "",
-                  'FPSReportInterval' => 1000,
-                  'RefBlendPerc' => 6,
-                  'AlarmRefBlendPerc' => 6,
-                  'DefaultView' => 'Events',
-                  'DefaultRate' => '100',
-                  'DefaultScale' => '100',
-                  'SignalCheckColour' => '#0000c0',
-                  'WebColour' => 'red',
-                  'Exif' => '0',
-                  'Triggers' => "",
-                  'V4LMultiBuffer'  =>  '',
-                  'V4LCapturesPerFrame'  =>  1,
-                  'ServerId'  =>  $Server['Id'],
-                  ) );
+    $monitor = new Monitor();
+    $monitor->set( array(
+          'Id' => 0,
+          'Name' => translate('Monitor').'-'.$nextId,
+          'Function' => 'Monitor',
+          'Enabled' => true,
+          'LinkedMonitors' => "",
+          'Type' => "",
+          'Device' => "/dev/video0",
+          'Channel' => '0',
+          'Format' => 0x000000ff,
+          'Protocol' => "",
+          'Method' => "",
+          'Host' => "",
+          'Path' => "",
+          'Options' => "",
+          'Port' => '80',
+          'User' => "",
+          'Pass' => "",
+          'Colours' => 3,
+          'Palette' => 0,
+          'Width' => '320',
+          'Height' => '240',
+          'Orientation' => '0',
+          'Deinterlacing' => 0,
+          'RTSPDescribe' => 0,
+          'SaveJPEGs' => '3',
+          'VideoWriter' => '0',
+          'EncoderParameters' => "# Lines beginning with # are a comment \n# For changing quality, use the crf option\n# 1 is best, 51 is worst quality\n#crf=23\n",
+          'RecordAudio' => '0',
+          'LabelFormat' => '%N - %d/%m/%y %H:%M:%S',
+          'LabelX' => 0,
+          'LabelY' => 0,
+          'LabelSize' => 1,
+          'ImageBufferCount' => 50,
+          'WarmupCount' => 25,
+          'PreEventCount' => 25,
+          'PostEventCount' => 25,
+          'StreamReplayBuffer' => 1000,
+          'AlarmFrameCount' => 1,
+          'Controllable' => 0,
+          'ControlId' => "",
+          'ControlType' => 0,
+          'ControlDevice' => "",
+          'ControlAddress' => "",
+          'AutoStopTimeout' => "",
+          'TrackMotion' => 0,
+          'TrackDelay' => "",
+          'ReturnLocation' => -1,
+          'ReturnDelay' => "",
+          'SectionLength' => 600,
+          'FrameSkip' => 0,
+          'MotionFrameSkip' => 0,
+          'EventPrefix' => 'Event-',
+          'AnalysisFPS' => "",
+          'AnalysisUpdateDelay' => 0,
+          'MaxFPS' => "",
+          'AlarmMaxFPS' => "",
+          'FPSReportInterval' => 1000,
+          'RefBlendPerc' => 6,
+          'AlarmRefBlendPerc' => 6,
+          'DefaultView' => 'Events',
+          'DefaultRate' => '100',
+          'DefaultScale' => '100',
+          'SignalCheckColour' => '#0000c0',
+          'WebColour' => 'red',
+          'Exif' => '0',
+          'Triggers' => "",
+          'V4LMultiBuffer'  =>  '',
+          'V4LCapturesPerFrame'  =>  1,
+          'ServerId'  =>  $Server['Id'],
+          'StorageId'  => '0',
+          ) );
     } # end if $_REQUEST['dupID']
 } # end if $_REQUEST['mid']
 
@@ -149,7 +152,6 @@ if ( ZM_OPT_X10 && empty($x10Monitor) ) {
 
 function fourcc( $a, $b, $c, $d ) {
   return( ord($a) | (ord($b) << 8) | (ord($c) << 16) | (ord($d) << 24) );
-
 }
 
 if ( isset( $_REQUEST['newMonitor'] ) ) {
@@ -166,11 +168,11 @@ if ( isset( $_REQUEST['newMonitor'] ) ) {
 
 # What if it has less zeros?  This is not robust code.
 if ( $monitor->AnalysisFPS == '0.00' )
-$monitor->AnalysisFPS = '';
+  $monitor->AnalysisFPS = '';
 if ( $monitor->MaxFPS == '0.00' )
-$monitor->MaxFPS = '';
+  $monitor->MaxFPS = '';
 if ( $monitor->AlarmMaxFPS == '0.00' )
-$monitor->AlarmMaxFPS = '';
+  $monitor->AlarmMaxFPS = '';
 
 if ( !empty($_REQUEST['preset']) ) {
   $preset = dbFetchOne( 'SELECT Type, Device, Channel, Format, Protocol, Method, Host, Port, Path, Width, Height, Palette, MaxFPS, Controllable, ControlId, ControlDevice, ControlAddress, DefaultRate, DefaultScale FROM MonitorPresets WHERE Id = ?', NULL, array($_REQUEST['preset']) );
@@ -205,43 +207,44 @@ $sourceTypes = array(
     'File'   => translate('File'),
     'Ffmpeg' => translate('Ffmpeg'),
     'Libvlc' => translate('Libvlc'),
-    'cURL'   => "cURL (HTTP(S) only)"
+    'cURL'   => 'cURL (HTTP(S) only)'
     );
-  if ( !ZM_HAS_V4L )
-    unset($sourceTypes['Local']);
+if ( !ZM_HAS_V4L )
+  unset($sourceTypes['Local']);
 
-  $localMethods = array(
-      'v4l2' => "Video For Linux version 2",
-      'v4l1' => "Video For Linux version 1",
-      );
+$localMethods = array(
+    'v4l2' => 'Video For Linux version 2',
+    'v4l1' => 'Video For Linux version 1',
+    );
+
 if ( !ZM_HAS_V4L2 )
   unset($localMethods['v4l2']);
 if ( !ZM_HAS_V4L1 )
   unset($localMethods['v4l1']);
 
   $remoteProtocols = array(
-      "http" => "HTTP",
-      "rtsp" => "RTSP"
+      'http' => 'HTTP',
+      'rtsp' => 'RTSP'
       );
 
   $rtspMethods = array(
-      "rtpUni"      => "RTP/Unicast",
-      "rtpMulti"    => "RTP/Multicast",
-      "rtpRtsp"     => "RTP/RTSP",
-      "rtpRtspHttp" => "RTP/RTSP/HTTP"
+      'rtpUni'      => 'RTP/Unicast',
+      'rtpMulti'    => 'RTP/Multicast',
+      'rtpRtsp'     => 'RTP/RTSP',
+      'rtpRtspHttp' => 'RTP/RTSP/HTTP'
       );
 
   $rtspFFMpegMethods = array(
-      "rtpRtsp"     => "TCP",
-      "rtpUni"      => "UDP",
-      "rtpMulti"    => "UDP Multicast",
-      "rtpRtspHttp" => "HTTP Tunnel"
+      'rtpRtsp'     => 'TCP',
+      'rtpUni'      => 'UDP',
+      'rtpMulti'    => 'UDP Multicast',
+      'rtpRtspHttp' => 'HTTP Tunnel'
   );
 
   $httpMethods = array(
-      "simple"   => "Simple",
-      "regexp"   => "Regexp",
-      "jpegTags" => "JPEG Tags"
+      'simple'   => 'Simple',
+      'regexp'   => 'Regexp',
+      'jpegTags' => 'JPEG Tags'
       );
 if ( !ZM_PCRE )
   unset($httpMethods['regexp']);
@@ -250,14 +253,14 @@ if ( !ZM_PCRE )
 
   if ( ZM_HAS_V4L1 ) {
     $v4l1DeviceFormats = array(
-        "PAL"   => 0,
-        "NTSC"  => 1,
-        "SECAM" => 2,
-        "AUTO"  => 3,
-        "FMT4"  => 4,
-        "FMT5"  => 5,
-        "FMT6"  => 6,
-        "FMT7"  => 7
+        'PAL'   => 0,
+        'NTSC'  => 1,
+        'SECAM' => 2,
+        'AUTO'  => 3,
+        'FMT4'  => 4,
+        'FMT5'  => 5,
+        'FMT6'  => 6,
+        'FMT7'  => 7
         );
 
     $v4l1MaxChannels = 15;
@@ -267,48 +270,48 @@ if ( !ZM_PCRE )
 
     $v4l1LocalPalettes = array(
         translate('Grey')      => 1,
-        "BGR32"             => 5,
-        "BGR24"             => 4,
-        "*YUYV"              => 8,
-        "*RGB565"            => 3,
-        "*RGB555"            => 6,
-        "*YUV422"            => 7,
-        "*YUV422P"           => 13,
-        "*YUV420P"           => 15
+        'BGR32'             => 5,
+        'BGR24'             => 4,
+        '*YUYV'              => 8,
+        '*RGB565'            => 3,
+        '*RGB555'            => 6,
+        '*YUV422'            => 7,
+        '*YUV422P'           => 13,
+        '*YUV420P'           => 15
         );
   }
 
 if ( ZM_HAS_V4L2 )
 {
   $v4l2DeviceFormats = array(
-      "PAL"         => 0x000000ff,
-      "NTSC"        => 0x0000b000,
-      "PAL B"       => 0x00000001,
-      "PAL B1"      => 0x00000002,
-      "PAL G"       => 0x00000004,
-      "PAL H"       => 0x00000008,
-      "PAL I"       => 0x00000010,
-      "PAL D"       => 0x00000020,
-      "PAL D1"      => 0x00000040,
-      "PAL K"       => 0x00000080,
-      "PAL M"       => 0x00000100,
-      "PAL N"       => 0x00000200,
-      "PAL Nc"      => 0x00000400,
-      "PAL 60"      => 0x00000800,
-      "NTSC M"      => 0x00001000,
-      "NTSC M JP"   => 0x00002000,
-      "NTSC 443"    => 0x00004000,
-      "NTSC M KR"   => 0x00008000,
-      "SECAM B"     => 0x00010000,
-      "SECAM D"     => 0x00020000,
-      "SECAM G"     => 0x00040000,
-      "SECAM H"     => 0x00080000,
-      "SECAM K"     => 0x00100000,
-      "SECAM K1"    => 0x00200000,
-      "SECAM L"     => 0x00400000,
-      "SECAM LC"    => 0x00800000,
-      "ATSC 8 VSB"  => 0x01000000,
-      "ATSC 16 VSB" => 0x02000000,
+      'PAL'         => 0x000000ff,
+      'NTSC'        => 0x0000b000,
+      'PAL B'       => 0x00000001,
+      'PAL B1'      => 0x00000002,
+      'PAL G'       => 0x00000004,
+      'PAL H'       => 0x00000008,
+      'PAL I'       => 0x00000010,
+      'PAL D'       => 0x00000020,
+      'PAL D1'      => 0x00000040,
+      'PAL K'       => 0x00000080,
+      'PAL M'       => 0x00000100,
+      'PAL N'       => 0x00000200,
+      'PAL Nc'      => 0x00000400,
+      'PAL 60'      => 0x00000800,
+      'NTSC M'      => 0x00001000,
+      'NTSC M JP'   => 0x00002000,
+      'NTSC 443'    => 0x00004000,
+      'NTSC M KR'   => 0x00008000,
+      'SECAM B'     => 0x00010000,
+      'SECAM D'     => 0x00020000,
+      'SECAM G'     => 0x00040000,
+      'SECAM H'     => 0x00080000,
+      'SECAM K'     => 0x00100000,
+      'SECAM K1'    => 0x00200000,
+      'SECAM L'     => 0x00400000,
+      'SECAM LC'    => 0x00800000,
+      'ATSC 8 VSB'  => 0x01000000,
+      'ATSC 16 VSB' => 0x02000000,
       );
 
   $v4l2MaxChannels = 31;
@@ -317,71 +320,71 @@ if ( ZM_HAS_V4L2 )
     $v4l2DeviceChannels["$i"] = $i;
 
   $v4l2LocalPalettes = array(
-      "Auto" => 0, /* Automatic palette selection */
+      'Auto' => 0, /* Automatic palette selection */
 
       /*      Pixel format         FOURCC                        depth  Description  */
       translate('Grey') =>     fourcc('G','R','E','Y'), /*  8  Greyscale     */
-      "BGR32" =>    fourcc('B','G','R','4'), /* 32  BGR-8-8-8-8   */
-      "RGB32" =>    fourcc('R','G','B','4'), /* 32  RGB-8-8-8-8   */
-      "BGR24" =>    fourcc('B','G','R','3'), /* 24  BGR-8-8-8     */
-      "RGB24" =>    fourcc('R','G','B','3'), /* 24  RGB-8-8-8     */
-      "*YUYV" =>     fourcc('Y','U','Y','V'), /* 16  YUV 4:2:2     */
+      'BGR32' =>    fourcc('B','G','R','4'), /* 32  BGR-8-8-8-8   */
+      'RGB32' =>    fourcc('R','G','B','4'), /* 32  RGB-8-8-8-8   */
+      'BGR24' =>    fourcc('B','G','R','3'), /* 24  BGR-8-8-8     */
+      'RGB24' =>    fourcc('R','G','B','3'), /* 24  RGB-8-8-8     */
+      '*YUYV' =>     fourcc('Y','U','Y','V'), /* 16  YUV 4:2:2     */
 
       /* compressed formats */
-      "*JPEG" =>     fourcc('J','P','E','G'), /* JFIF JPEG     */
-      "*MJPEG" =>    fourcc('M','J','P','G'), /* Motion-JPEG   */
-      //"DV" =>       fourcc('d','v','s','d'), /* 1394          */
-      //"MPEG" =>     fourcc('M','P','E','G'), /* MPEG-1/2/4    */
+      '*JPEG' =>     fourcc('J','P','E','G'), /* JFIF JPEG     */
+      '*MJPEG' =>    fourcc('M','J','P','G'), /* Motion-JPEG   */
+      //'DV' =>       fourcc('d','v','s','d'), /* 1394          */
+      //'MPEG' =>     fourcc('M','P','E','G'), /* MPEG-1/2/4    */
 
-      //"RGB332" =>   fourcc('R','G','B','1'), /*  8  RGB-3-3-2     */
-      "*RGB444" =>   fourcc('R','4','4','4'), /* 16  xxxxrrrr ggggbbbb */
-      "*RGB555" =>   fourcc('R','G','B','O'), /* 16  RGB-5-5-5     */
-      "*RGB565" =>   fourcc('R','G','B','P'), /* 16  RGB-5-6-5     */
-      //"RGB555X" =>  fourcc('R','G','B','Q'), /* 16  RGB-5-5-5 BE  */
-      //"RGB565X" =>  fourcc('R','G','B','R'), /* 16  RGB-5-6-5 BE  */
-      //"Y16" =>      fourcc('Y','1','6',''), /* 16  Greyscale     */
-      //"PAL8" =>     fourcc('P','A','L','8'), /*  8  8-bit palette */
-      //"YVU410" =>   fourcc('Y','V','U','9'), /*  9  YVU 4:1:0     */
-      //"YVU420" =>   fourcc('Y','V','1','2'), /* 12  YVU 4:2:0     */
+      //'RGB332' =>   fourcc('R','G','B','1'), /*  8  RGB-3-3-2     */
+      '*RGB444' =>   fourcc('R','4','4','4'), /* 16  xxxxrrrr ggggbbbb */
+      '*RGB555' =>   fourcc('R','G','B','O'), /* 16  RGB-5-5-5     */
+      '*RGB565' =>   fourcc('R','G','B','P'), /* 16  RGB-5-6-5     */
+      //'RGB555X' =>  fourcc('R','G','B','Q'), /* 16  RGB-5-5-5 BE  */
+      //'RGB565X' =>  fourcc('R','G','B','R'), /* 16  RGB-5-6-5 BE  */
+      //'Y16' =>      fourcc('Y','1','6',''), /* 16  Greyscale     */
+      //'PAL8' =>     fourcc('P','A','L','8'), /*  8  8-bit palette */
+      //'YVU410' =>   fourcc('Y','V','U','9'), /*  9  YVU 4:1:0     */
+      //'YVU420' =>   fourcc('Y','V','1','2'), /* 12  YVU 4:2:0     */
 
-      "*UYVY" =>     fourcc('U','Y','V','Y'), /* 16  YUV 4:2:2     */
-      "*YUV422P" =>  fourcc('4','2','2','P'), /* 16  YVU422 planar */
-      "*YUV411P" =>  fourcc('4','1','1','P'), /* 16  YVU411 planar */
-      //"Y41P" =>     fourcc('Y','4','1','P'), /* 12  YUV 4:1:1     */
-      "*YUV444" =>   fourcc('Y','4','4','4'), /* 16  xxxxyyyy uuuuvvvv */
-      //"YUV555" =>   fourcc('Y','U','V','O'), /* 16  YUV-5-5-5     */
-      //"YUV565" =>   fourcc('Y','U','V','P'), /* 16  YUV-5-6-5     */
-      //"YUV32" =>    fourcc('Y','U','V','4'), /* 32  YUV-8-8-8-8   */
+      '*UYVY' =>     fourcc('U','Y','V','Y'), /* 16  YUV 4:2:2     */
+      '*YUV422P' =>  fourcc('4','2','2','P'), /* 16  YVU422 planar */
+      '*YUV411P' =>  fourcc('4','1','1','P'), /* 16  YVU411 planar */
+      //'Y41P' =>     fourcc('Y','4','1','P'), /* 12  YUV 4:1:1     */
+      '*YUV444' =>   fourcc('Y','4','4','4'), /* 16  xxxxyyyy uuuuvvvv */
+      //'YUV555' =>   fourcc('Y','U','V','O'), /* 16  YUV-5-5-5     */
+      //'YUV565' =>   fourcc('Y','U','V','P'), /* 16  YUV-5-6-5     */
+      //'YUV32' =>    fourcc('Y','U','V','4'), /* 32  YUV-8-8-8-8   */
 
       /* two planes -- one Y, one Cr + Cb interleaved  */
-      //"NV12" =>     fourcc('N','V','1','2'), /* 12  Y/CbCr 4:2:0  */
-      //"NV21" =>     fourcc('N','V','2','1'), /* 12  Y/CrCb 4:2:0  */
+      //'NV12' =>     fourcc('N','V','1','2'), /* 12  Y/CbCr 4:2:0  */
+      //'NV21' =>     fourcc('N','V','2','1'), /* 12  Y/CrCb 4:2:0  */
 
       /*  The following formats are not defined in the V4L2 specification */
-      "*YUV410" =>   fourcc('Y','U','V','9'), /*  9  YUV 4:1:0     */
-      "*YUV420" =>   fourcc('Y','U','1','2'), /* 12  YUV 4:2:0     */
-      //"YYUV" =>     fourcc('Y','Y','U','V'), /* 16  YUV 4:2:2     */
-      //"HI240" =>    fourcc('H','I','2','4'), /*  8  8-bit color   */
-      //"HM12" =>     fourcc('H','M','1','2'), /*  8  YUV 4:2:0 16x16 macroblocks */
+      '*YUV410' =>   fourcc('Y','U','V','9'), /*  9  YUV 4:1:0     */
+      '*YUV420' =>   fourcc('Y','U','1','2'), /* 12  YUV 4:2:0     */
+      //'YYUV' =>     fourcc('Y','Y','U','V'), /* 16  YUV 4:2:2     */
+      //'HI240' =>    fourcc('H','I','2','4'), /*  8  8-bit color   */
+      //'HM12' =>     fourcc('H','M','1','2'), /*  8  YUV 4:2:0 16x16 macroblocks */
 
       /* see http://www.siliconimaging.com/RGB%20Bayer.htm */
-      //"SBGGR8" =>   fourcc('B','A','8','1'), /*  8  BGBG.. GRGR.. */
-      //"SGBRG8" =>   fourcc('G','B','R','G'), /*  8  GBGB.. RGRG.. */
-      //"SBGGR16" =>  fourcc('B','Y','R','2'), /* 16  BGBG.. GRGR.. */
+      //'SBGGR8' =>   fourcc('B','A','8','1'), /*  8  BGBG.. GRGR.. */
+      //'SGBRG8' =>   fourcc('G','B','R','G'), /*  8  GBGB.. RGRG.. */
+      //'SBGGR16' =>  fourcc('B','Y','R','2'), /* 16  BGBG.. GRGR.. */
 
       /*  Vendor-specific formats   */
-      //"WNVA" =>     fourcc('W','N','V','A'), /* Winnov hw compress */
-      //"SN9C10X" =>  fourcc('S','9','1','0'), /* SN9C10x compression */
-      //"PWC1" =>     fourcc('P','W','C','1'), /* pwc older webcam */
-      //"PWC2" =>     fourcc('P','W','C','2'), /* pwc newer webcam */
-      //"ET61X251" => fourcc('E','6','2','5'), /* ET61X251 compression */
-      //"SPCA501" =>  fourcc('S','5','0','1'), /* YUYV per line */
-      //"SPCA505" =>  fourcc('S','5','0','5'), /* YYUV per line */
-      //"SPCA508" =>  fourcc('S','5','0','8'), /* YUVY per line */
-      //"SPCA561" =>  fourcc('S','5','6','1'), /* compressed GBRG bayer */
-      //"PAC207" =>   fourcc('P','2','0','7'), /* compressed BGGR bayer */
-      //"PJPG" =>     fourcc('P','J','P','G'), /* Pixart 73xx JPEG */
-      //"YVYU" =>     fourcc('Y','V','Y','U'), /* 16  YVU 4:2:2     */
+      //'WNVA' =>     fourcc('W','N','V','A'), /* Winnov hw compress */
+      //'SN9C10X' =>  fourcc('S','9','1','0'), /* SN9C10x compression */
+      //'PWC1' =>     fourcc('P','W','C','1'), /* pwc older webcam */
+      //'PWC2' =>     fourcc('P','W','C','2'), /* pwc newer webcam */
+      //'ET61X251' => fourcc('E','6','2','5'), /* ET61X251 compression */
+      //'SPCA501' =>  fourcc('S','5','0','1'), /* YUYV per line */
+      //'SPCA505' =>  fourcc('S','5','0','5'), /* YYUV per line */
+      //'SPCA508' =>  fourcc('S','5','0','8'), /* YUVY per line */
+      //'SPCA561' =>  fourcc('S','5','6','1'), /* compressed GBRG bayer */
+      //'PAC207' =>   fourcc('P','2','0','7'), /* compressed BGGR bayer */
+      //'PJPG' =>     fourcc('P','J','P','G'), /* Pixart 73xx JPEG */
+      //'YVYU' =>     fourcc('Y','V','Y','U'), /* 16  YVU 4:2:2     */
       );
 }
 
@@ -401,69 +404,69 @@ $orientations = array(
     );
 
 $deinterlaceopts = array(
-    "Disabled"                                            => 0x00000000,
-    "Four field motion adaptive - Soft"                   => 0x00001E04, /* 30 change */
-    "Four field motion adaptive - Medium"                 => 0x00001404, /* 20 change */
-    "Four field motion adaptive - Hard"                   => 0x00000A04, /* 10 change */
-    "Discard"                                             => 0x00000001,
-    "Linear"                                              => 0x00000002,
-    "Blend"                                               => 0x00000003,
-    "Blend (25%)"                                         => 0x00000205
+    'Disabled'                                            => 0x00000000,
+    'Four field motion adaptive - Soft'                   => 0x00001E04, /* 30 change */
+    'Four field motion adaptive - Medium'                 => 0x00001404, /* 20 change */
+    'Four field motion adaptive - Hard'                   => 0x00000A04, /* 10 change */
+    'Discard'                                             => 0x00000001,
+    'Linear'                                              => 0x00000002,
+    'Blend'                                               => 0x00000003,
+    'Blend (25%)'                                         => 0x00000205
     );
 
 $deinterlaceopts_v4l2 = array(
-    "Disabled"                                            => 0x00000000,
-    "Four field motion adaptive - Soft"                   => 0x00001E04, /* 30 change */
-    "Four field motion adaptive - Medium"                 => 0x00001404, /* 20 change */
-    "Four field motion adaptive - Hard"                   => 0x00000A04, /* 10 change */
-    "Discard"                                             => 0x00000001,
-    "Linear"                                              => 0x00000002,
-    "Blend"                                               => 0x00000003,
-    "Blend (25%)"                                         => 0x00000205,
-    "V4L2: Capture top field only"                        => 0x02000000,
-    "V4L2: Capture bottom field only"                     => 0x03000000,
-    "V4L2: Alternate fields (Bob)"                        => 0x07000000,
-    "V4L2: Progressive"                                   => 0x01000000,
-    "V4L2: Interlaced"                                    => 0x04000000
+    'Disabled'                                            => 0x00000000,
+    'Four field motion adaptive - Soft'                   => 0x00001E04, /* 30 change */
+    'Four field motion adaptive - Medium'                 => 0x00001404, /* 20 change */
+    'Four field motion adaptive - Hard'                   => 0x00000A04, /* 10 change */
+    'Discard'                                             => 0x00000001,
+    'Linear'                                              => 0x00000002,
+    'Blend'                                               => 0x00000003,
+    'Blend (25%)'                                         => 0x00000205,
+    'V4L2: Capture top field only'                        => 0x02000000,
+    'V4L2: Capture bottom field only'                     => 0x03000000,
+    'V4L2: Alternate fields (Bob)'                        => 0x07000000,
+    'V4L2: Progressive'                                   => 0x01000000,
+    'V4L2: Interlaced'                                    => 0x04000000
     );
 
 $fastblendopts = array(
-    "No blending"                                         => 0,
-    "1.5625%"                                             => 1,
-    "3.125%"                                              => 3,
-    "6.25% (Indoor)"                                      => 6,
-    "12.5% (Outdoor)"                                     => 12,
-    "25%"                                                 => 25,
-    "50%"                                                 => 50
+    'No blending'                                         => 0,
+    '1.5625%'                                             => 1,
+    '3.125%'                                              => 3,
+    '6.25% (Indoor)'                                      => 6,
+    '12.5% (Outdoor)'                                     => 12,
+    '25%'                                                 => 25,
+    '50%'                                                 => 50
     );
 
 $fastblendopts_alarm = array(
-    "No blending (Alarm lasts forever)"                   => 0,
-    "1.5625%"                                             => 1,
-    "3.125%"                                              => 3,
-    "6.25%"                                               => 6,
-    "12.5%"                                               => 12,
-    "25%"                                                 => 25,
-    "50% (Alarm lasts a moment)"                          => 50
+    'No blending (Alarm lasts forever)'                   => 0,
+    '1.5625%'                                             => 1,
+    '3.125%'                                              => 3,
+    '6.25%'                                               => 6,
+    '12.5%'                                               => 12,
+    '25%'                                                 => 25,
+    '50% (Alarm lasts a moment)'                          => 50
     );
 
 $label_size = array(
-    "Default"                                             => 1,
-    "Large"                                               => 2
+    'Default'                                             => 1,
+    'Large'                                               => 2
     );
 
 $savejpegopts = array(
-    "Disabled"                                            => 0,
-    "Frames only"                                         => 1,
-    "Analysis images only (if available)"                 => 2,
-    "Frames + Analysis images (if available)"             => 3,
-    "Snapshot Only"                                       => 4          
+    'Disabled'                                            => 0,
+    'Frames only'                                         => 1,
+    'Analysis images only (if available)'                 => 2,
+    'Frames + Analysis images (if available)'             => 3,
+    'Snapshot Only'                                       => 4          
     );
 
 $videowriteropts = array(
-    "Disabled"                                            => 0,
-    "X264 Encode"                                         => 1,
-    "H264 Camera Passthrough"                             => 2          
+    'Disabled'                                            => 0,
+    'X264 Encode'                                         => 1,
+    'H264 Camera Passthrough'                             => 2          
     );
 
 xhtmlHeaders(__FILE__, translate('Monitor')." - ".validHtmlStr($monitor->Name) );
@@ -516,6 +519,7 @@ if ( $tab != 'general' ) {
 ?>
     <input type="hidden" name="newMonitor[Name]" value="<?php echo validHtmlStr($monitor->Name) ?>"/>
     <input type="hidden" name="newMonitor[ServerId]" value="<?php echo validHtmlStr($monitor->ServerId() ) ?>"/>
+    <input type="hidden" name="newMonitor[StorageId]" value="<?= validHtmlStr($monitor->StorageId() ) ?>"/>
     <input type="hidden" name="newMonitor[Type]" value="<?php echo validHtmlStr($monitor->Type) ?>"/>
     <input type="hidden" name="newMonitor[Function]" value="<?php echo validHtmlStr($monitor->Function) ?>"/>
     <input type="hidden" name="newMonitor[Enabled]" value="<?php echo validHtmlStr($monitor->Enabled) ?>"/>
@@ -571,8 +575,7 @@ if ( $tab != 'source' || ($monitor->Type != 'Remote' && $monitor->Type != 'File'
     <input type="hidden" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass) ?>"/>
     <?php
 }
-if ( $tab != 'source' )
-{
+if ( $tab != 'source' ) {
   ?>
     <input type="hidden" name="newMonitor[Colours]" value="<?php echo validHtmlStr($monitor->Colours) ?>"/>
     <input type="hidden" name="newMonitor[Width]" value="<?php echo validHtmlStr($monitor->Width) ?>"/>
@@ -595,8 +598,7 @@ if ( $tab != 'source' || ($monitor->Type != 'Remote' && $monitor->Protocol != 'r
     <input type="hidden" name="newMonitor[RTSPDescribe]" value="<?php echo validHtmlStr($monitor->RTSPDescribe) ?>"/>
     <?php
 }
-if ( $tab != 'timestamp' )
-{
+if ( $tab != 'timestamp' ) {
   ?>
     <input type="hidden" name="newMonitor[LabelFormat]" value="<?php echo validHtmlStr($monitor->LabelFormat) ?>"/>
     <input type="hidden" name="newMonitor[LabelX]" value="<?php echo validHtmlStr($monitor->LabelX) ?>"/>
@@ -604,8 +606,7 @@ if ( $tab != 'timestamp' )
     <input type="hidden" name="newMonitor[LabelSize]" value="<?php echo validHtmlStr($monitor->LabelSize) ?>"/>
     <?php
 }
-if ( $tab != 'buffers' )
-{
+if ( $tab != 'buffers' ) {
   ?>
     <input type="hidden" name="newMonitor[ImageBufferCount]" value="<?php echo validHtmlStr($monitor->ImageBufferCount) ?>"/>
     <input type="hidden" name="newMonitor[WarmupCount]" value="<?php echo validHtmlStr($monitor->WarmupCount) ?>"/>
@@ -615,8 +616,7 @@ if ( $tab != 'buffers' )
     <input type="hidden" name="newMonitor[AlarmFrameCount]" value="<?php echo validHtmlStr($monitor->AlarmFrameCount) ?>"/>
     <?php
 }
-if ( ZM_OPT_CONTROL && $tab != 'control' )
-{
+if ( ZM_OPT_CONTROL && $tab != 'control' ) {
   ?>
     <input type="hidden" name="newMonitor[Controllable]" value="<?php echo validHtmlStr($monitor->Controllable) ?>"/>
     <input type="hidden" name="newMonitor[ControlId]" value="<?php echo validHtmlStr($monitor->ControlId) ?>"/>
@@ -629,16 +629,14 @@ if ( ZM_OPT_CONTROL && $tab != 'control' )
     <input type="hidden" name="newMonitor[ReturnDelay]" value="<?php echo validHtmlStr($monitor->ReturnDelay) ?>"/>
     <?php
 }
-if ( ZM_OPT_X10 && $tab != 'x10' )
-{
+if ( ZM_OPT_X10 && $tab != 'x10' ) {
   ?>
     <input type="hidden" name="newX10Monitor[Activation]" value="<?php echo validHtmlStr($newX10Monitor['Activation']) ?>"/>
     <input type="hidden" name="newX10Monitor[AlarmInput]" value="<?php echo validHtmlStr($newX10Monitor['AlarmInput']) ?>"/>
     <input type="hidden" name="newX10Monitor[AlarmOutput]" value="<?php echo validHtmlStr($newX10Monitor['AlarmOutput']) ?>"/>
     <?php
 }
-if ( $tab != 'misc' )
-{
+if ( $tab != 'misc' ) {
   ?>
     <input type="hidden" name="newMonitor[EventPrefix]" value="<?php echo validHtmlStr($monitor->EventPrefix) ?>"/>
     <input type="hidden" name="newMonitor[SectionLength]" value="<?php echo validHtmlStr($monitor->SectionLength) ?>"/>
@@ -653,8 +651,7 @@ if ( $tab != 'misc' )
     <input type="hidden" name="newMonitor[Exif]" value="<?php echo validHtmlStr($monitor->Exif) ?>"/>
     <?php
 }
-if ( ZM_HAS_V4L && ($tab != 'misc' || $monitor->Type != 'Local') )
-{
+if ( ZM_HAS_V4L && ($tab != 'misc' || $monitor->Type != 'Local') ) {
   ?>
     <input type="hidden" name="newMonitor[SignalCheckColour]" value="<?php echo validHtmlStr($monitor->SignalCheckColour) ?>"/>
     <?php
@@ -663,8 +660,7 @@ if ( ZM_HAS_V4L && ($tab != 'misc' || $monitor->Type != 'Local') )
 <table id="contentTable" class="major" cellspacing="0">
 <tbody>
   <?php
-switch ( $tab )
-{
+switch ( $tab ) {
   case 'general' :
     {
       ?>
@@ -672,19 +668,29 @@ switch ( $tab )
         <tr><td><?php echo translate('Server') ?></td><td>
         <?php 
         $servers = array(''=>'None');
-      $result = dbQuery( 'SELECT * FROM Servers ORDER BY Name');
-      $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Server' );
-      foreach ( $results as $row => $server_obj ) {
-        $servers[$server_obj->Id()] = $server_obj->Name();
-      }
-      echo htmlSelect( "newMonitor[ServerId]", $servers, $monitor->ServerId() );
+        $result = dbQuery( 'SELECT * FROM Servers ORDER BY Name');
+        $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Server' );
+        foreach ( $results as $row => $server_obj ) {
+          $servers[$server_obj->Id()] = $server_obj->Name();
+        }
+        echo htmlSelect( "newMonitor[ServerId]", $servers, $monitor->ServerId() );
+      ?>
+        </td></tr>
+        <tr><td><?php echo translate('StorageArea') ?></td><td>
+        <?php
+        $storage_areas = array(0=>'Default');
+        $result = dbQuery( 'SELECT * FROM Storage ORDER BY Name');
+        $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Storage' );
+        foreach ( $results as $row => $storage_obj ) {
+          $storage_areas[$storage_obj->Id] = $storage_obj->Name();
+        }
+        echo htmlSelect( 'newMonitor[StorageId]', $storage_areas, $monitor->StorageId() );
       ?>
         </td></tr>
         <tr><td><?php echo translate('SourceType') ?></td><td><?php echo htmlSelect( "newMonitor[Type]", $sourceTypes, $monitor->Type() ); ?></td></tr>
         <tr><td><?php echo translate('Function') ?></td><td><select name="newMonitor[Function]">
         <?php
-        foreach ( getEnumValues( 'Monitors', 'Function' ) as $optFunction )
-        {
+        foreach ( getEnumValues( 'Monitors', 'Function' ) as $optFunction ) {
           ?>
             <option value="<?php echo $optFunction ?>"<?php if ( $optFunction == $monitor->Function ) { ?> selected="selected"<?php } ?>><?php echo translate('Fn'.$optFunction) ?></option>
             <?php
@@ -698,23 +704,23 @@ switch ( $tab )
         <select name="monitorIds" size="4" multiple="multiple" onchange="updateLinkedMonitors( this )">
         <?php
         $monitors = dbFetchAll( "select Id,Name from Monitors order by Sequence asc" );
-      if ( !empty($monitor->LinkedMonitors) )
-        $monitorIds = array_flip( explode( ',', $monitor->LinkedMonitors ) );
-      else
-        $monitorIds = array();
-      foreach ( $monitors as $linked_monitor ) {
-        if ( (empty($monitor->Id) || ($monitor->Id != $linked_monitor['Id'])) && visibleMonitor( $linked_monitor['Id'] ) ) {
-          ?>
-            <option value="<?php echo $linked_monitor['Id'] ?>"<?php if ( array_key_exists( $linked_monitor['Id'], $monitorIds ) ) { ?> selected="selected"<?php } ?>><?php echo validHtmlStr($linked_monitor['Name']) ?></option>
-            <?php
+        if ( !empty($monitor->LinkedMonitors) )
+          $monitorIds = array_flip( explode( ',', $monitor->LinkedMonitors ) );
+        else
+          $monitorIds = array();
+        foreach ( $monitors as $linked_monitor ) {
+          if ( (empty($monitor->Id) || ($monitor->Id != $linked_monitor['Id'])) && visibleMonitor( $linked_monitor['Id'] ) ) {
+            ?>
+              <option value="<?php echo $linked_monitor['Id'] ?>"<?php if ( array_key_exists( $linked_monitor['Id'], $monitorIds ) ) { ?> selected="selected"<?php } ?>><?php echo validHtmlStr($linked_monitor['Name']) ?></option>
+              <?php
+          }
         }
-      }
       ?>
         </select>
         </td>
         </tr>
         <tr><td><?php echo translate('AnalysisFPS') ?></td><td><input type="text" name="newMonitor[AnalysisFPS]" value="<?php echo validHtmlStr($monitor->AnalysisFPS) ?>" size="6"/></td></tr>
-        <?php if ( $monitor->Type() != "Local" && $monitor->Type() != "File" ) { ?>
+        <?php if ( $monitor->Type() != 'Local' && $monitor->Type() != 'File' ) { ?>
             <tr>
               <td><?php echo translate('MaximumFPS') ?>&nbsp;(<?php echo makePopupLink('?view=optionhelp&amp;option=OPTIONS_MAXFPS', 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td>
               <td><input type="text" onclick="document.getElementById('newMonitor[MaxFPS]').innerHTML= ' CAUTION: See the help text'" name="newMonitor[MaxFPS]" value="<?php echo validHtmlStr($monitor->MaxFPS) ?>" size="5"/><span id="newMonitor[MaxFPS]" style="color:red"></span></td>
@@ -728,8 +734,7 @@ switch ( $tab )
             <tr><td><?php echo translate('AlarmMaximumFPS') ?></td><td><input type="text" name="newMonitor[AlarmMaxFPS]" value="<?php echo validHtmlStr($monitor->AlarmMaxFPS) ?>" size="5"/></td></tr>
         <?php
         }
-        if ( ZM_FAST_IMAGE_BLENDS ) {
-        ?>
+        if ( ZM_FAST_IMAGE_BLENDS ) { ?>
           <tr>
             <td><?php echo translate('RefImageBlendPct') ?></td>
             <td><select name="newMonitor[RefBlendPerc]"><?php foreach ( $fastblendopts as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->RefBlendPerc() ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td>
@@ -767,18 +772,20 @@ switch ( $tab )
           }
           echo '/>&nbsp;'. $optTrigger ;
           $optCount ++;
-      }
-      if ( !$optCount ) {
+        }
+        if ( !$optCount ) {
         ?>
           <em><?php echo translate('NoneAvailable') ?></em>
           <?php
-      }
+        }
       ?>
         </td></tr>
         <?php
         break;
-    } case 'source' : {
-      if ( ZM_HAS_V4L && $monitor->Type == "Local" ) {
+    }
+  case 'source' :
+    {
+      if ( ZM_HAS_V4L && $monitor->Type == 'Local' ) {
         ?>
           <tr><td><?php echo translate('DevicePath') ?></td><td><input type="text" name="newMonitor[Device]" value="<?php echo validHtmlStr($monitor->Device) ?>" size="24"/></td></tr>
           <tr><td><?php echo translate('CaptureMethod') ?></td><td><?php echo htmlSelect( "newMonitor[Method]", $localMethods, $monitor->Method(), "submitTab( '$tab' );" ); ?></td></tr>
@@ -810,13 +817,13 @@ switch ( $tab )
           <tr><td><?php echo translate('RemoteHostName') ?></td><td><input type="text" name="newMonitor[Host]" value="<?php echo validHtmlStr($monitor->Host) ?>" size="36"/></td></tr>
           <tr><td><?php echo translate('RemoteHostPort') ?></td><td><input type="text" name="newMonitor[Port]" value="<?php echo validHtmlStr($monitor->Port) ?>" size="6"/></td></tr>
           <tr><td><?php echo translate('RemoteHostPath') ?></td><td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path) ?>" size="36"/></td></tr>
-        <?php } elseif ( $monitor->Type == "File" ) { ?>
+        <?php } else if ( $monitor->Type == 'File' ) { ?>
           <tr><td><?php echo translate('SourcePath') ?></td><td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path) ?>" size="36"/></td></tr>
-        <?php } elseif ( $monitor->Type == "cURL" ) { ?>
+        <?php } elseif ( $monitor->Type == 'cURL' ) { ?>
           <tr><td><?php echo "URL" ?></td><td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path) ?>" size="36"/></td></tr>
           <tr><td><?php echo "Username" ?></td><td><input type="text" name="newMonitor[User]" value="<?php echo validHtmlStr($monitor->User) ?>" size="12"/></td></tr>
           <tr><td><?php echo "Password" ?></td><td><input type="text" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass) ?>" size="12"/></td></tr>
-        <?php } elseif ( $monitor->Type == "Ffmpeg" || $monitor->Type == "Libvlc") { ?>
+        <?php } elseif ( $monitor->Type == 'Ffmpeg' || $monitor->Type == 'Libvlc' ) { ?>
           <tr><td><?php echo translate('SourcePath') ?></td><td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path) ?>" size="36"/></td></tr>
           <tr><td><?php echo translate('RemoteMethod') ?>&nbsp;(<?php echo makePopupLink('?view=optionhelp&amp;option=OPTIONS_RTSPTrans', 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td><td><?php echo htmlSelect( "newMonitor[Method]", $rtspFFMpegMethods, $monitor->Method() ); ?></td></tr>
           <tr><td><?php echo translate('Options') ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option=OPTIONS_'.strtoupper($monitor->Type), 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td><td><input type="text" name="newMonitor[Options]" value="<?php echo validHtmlStr($monitor->Options) ?>" size="36"/></td></tr>
@@ -827,7 +834,7 @@ switch ( $tab )
         <tr><td><?php echo translate('PreserveAspect') ?></td><td><input type="checkbox" name="preserveAspectRatio" value="1"/></td></tr> 
         <tr><td><?php echo translate('Orientation') ?></td><td><select name="newMonitor[Orientation]"><?php foreach ( $orientations as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->Orientation ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
         <?php
-        if ( $monitor->Type == "Local" ) {
+        if ( $monitor->Type == 'Local' ) {
           ?>
             <tr><td><?php echo translate('Deinterlacing') ?></td><td><select name="newMonitor[Deinterlacing]"><?php foreach ( $deinterlaceopts_v4l2 as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->Deinterlacing ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
             <?php
@@ -838,8 +845,7 @@ switch ( $tab )
         }
       ?>
         <?php
-        if ( $monitor->Type == "Remote" )
-        {
+        if ( $monitor->Type == 'Remote' ) {
           ?>
             <tr id="RTSPDescribe"<?php if ( $monitor->Protocol != 'rtsp' ) { echo ' style="display:none;"'; } ?>><td><?php echo translate('RTSPDescribe') ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option=OPTIONS_RTSPDESCRIBE', 'zmOptionHelp', 'optionhelp', '?' ) ?>) </td><td><input type="checkbox" name="newMonitor[RTSPDescribe]" value="1"<?php if ( !empty($monitor->RTSPDescribe) ) { ?> checked="checked"<?php } ?>/></td></tr>
             <?php
@@ -920,8 +926,7 @@ switch ( $tab )
         <tr><td><?php echo translate('FPSReportInterval') ?></td><td><input type="text" name="newMonitor[FPSReportInterval]" value="<?php echo validHtmlStr($monitor->FPSReportInterval) ?>" size="6"/></td></tr>
         <tr><td><?php echo translate('DefaultView') ?></td><td><select name="newMonitor[DefaultView]">
         <?php
-        foreach ( getEnumValues( 'Monitors', 'DefaultView' ) as $opt_view )
-        {
+        foreach ( getEnumValues( 'Monitors', 'DefaultView' ) as $opt_view ) {
           if ( $opt_view == 'Control' && ( !ZM_OPT_CONTROL || !$monitor->Controllable ) )
             continue;
           ?>
@@ -933,7 +938,7 @@ switch ( $tab )
         <tr><td><?php echo translate('DefaultRate') ?></td><td><?php echo htmlSelect( "newMonitor[DefaultRate]", $rates, $monitor->DefaultRate() ); ?></td></tr>
         <tr><td><?php echo translate('DefaultScale') ?></td><td><?php echo htmlSelect( "newMonitor[DefaultScale]", $scales, $monitor->DefaultScale() ); ?></td></tr>
         <?php
-        if ( ZM_HAS_V4L && $monitor->Type == "Local" ) {
+        if ( ZM_HAS_V4L && $monitor->Type == 'Local' ) {
           ?>
             <tr><td><?php echo translate('SignalCheckColour') ?></td><td><input type="text" name="newMonitor[SignalCheckColour]" value="<?php echo validHtmlStr($monitor->SignalCheckColour) ?>" size="10" onchange="$('SignalCheckSwatch').setStyle( 'backgroundColor', this.value )"/><span id="SignalCheckSwatch" class="swatch" style="background-color: <?php echo $monitor->SignalCheckColour ?>;">&nbsp;&nbsp;&nbsp;&nbsp;</span></td></tr>
             <?php
@@ -955,5 +960,5 @@ switch ( $tab )
       </form>
     </div>
     </div>
-</body>
+  </body>
 </html>

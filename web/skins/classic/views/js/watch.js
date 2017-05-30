@@ -31,7 +31,7 @@ function changeScale() {
   Cookie.write( 'zmWatchScale'+monitorId, scale, { duration: 10*365 } );
 
   /*Stream could be an applet so can't use moo tools*/
-  var streamImg = document.getElementById('liveStream');
+  var streamImg = document.getElementById('liveStream'+monitorId);
   if ( streamImg ) {
     streamImg.style.width = newWidth + "px";
     streamImg.style.height = newHeight + "px";
@@ -146,14 +146,14 @@ function getStreamCmdResponse( respObj, respText ) {
           streamCmdSlowRev( false );
         else
           streamCmdFastRev( false );
-      }
+      } // rate
     } else {
       $('modeValue').set( 'text', "Live" );
       $('rate').addClass( 'hidden' );
       $('delay').addClass( 'hidden' );
       $('level').addClass( 'hidden' );
       streamCmdPlay( false );
-    }
+    } // end if paused or delayed
     $('zoomValue').set( 'text', streamStatus.zoom );
     if ( streamStatus.zoom == "1.0" )
       setButtonState( $('zoomOutBtn'), 'unavail' );

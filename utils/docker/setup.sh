@@ -62,6 +62,10 @@ setup_php() {
 
   # Setting timezone
   sed -i "s#;date.timezone =#date.timezone = $PHP_TIMEZONE#" /etc/php/7.0/apache2/php.ini
+  
+  # Settings rights for volume
+  chown -R www-data:www-data /var/lib/zoneminder/events
+  chown -R www-data:www-data /var/lib/zoneminder/images
 }
 
 

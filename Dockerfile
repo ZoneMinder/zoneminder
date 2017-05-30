@@ -99,11 +99,11 @@ RUN cp misc/apache.conf /etc/apache2/sites-available/000-default.conf
 # Expose http port
 EXPOSE 80
 
-VOLUME /recordings/images /recordings/events /var/lib/mysql /var/log/zm
+VOLUME /var/lib/zoneminder/images /var/lib/zoneminder/events /var/lib/mysql /var/log/zm
 
 # To speed up configuration testing, we put it here
 ADD utils/docker /ZoneMinder/utils/docker/
 
 CMD /ZoneMinder/utils/docker/setup.sh && /ZoneMinder/utils/docker/start.sh
 
-# Run example docker run -it -p 1080:80 -e PHP_TIMEZONE='Europe/Paris' -v /disk/zoneminder/events:/recordings/events -v /disk/zoneminder/images:/recordings/images -v /disk/zoneminder/mysql:/var/lib/mysql -v /disk/zoneminder/logs:/var/log/zm --name zoneminder zoneminder/zoneminder
+# Run example docker run -it -p 1080:80 -e PHP_TIMEZONE='Europe/Paris' -v /disk/zoneminder/events:/var/lib/zoneminder/events -v /disk/zoneminder/images:/var/lib/zoneminder/images -v /disk/zoneminder/mysql:/var/lib/mysql -v /disk/zoneminder/logs:/var/log/zm --name zoneminder zoneminder/zoneminder

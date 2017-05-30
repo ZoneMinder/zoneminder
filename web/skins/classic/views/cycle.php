@@ -19,15 +19,15 @@
 //
 
 if ( !canView( 'Stream' ) ) {
-  $view = "error";
+  $view = 'error';
   return;
 }
 
 if ( empty($_REQUEST['mode']) ) {
   if ( canStream() )
-    $mode = "stream";
+    $mode = 'stream';
   else
-    $mode = "still";
+    $mode = 'still';
 } else {
   $mode = validHtmlStr($_REQUEST['mode']);
 }

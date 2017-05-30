@@ -32,10 +32,9 @@ require ZoneMinder::Base;
 require Date::Manip;
 
 use parent qw(ZoneMinder::Object);
-#our @ISA = qw(ZoneMinder::Object);
 
 use vars qw/ $table $primary_key /;
-$table = 'Events';
+$table = 'Filters';
 $primary_key = 'Id';
 # ==========================================================================
 #
@@ -100,7 +99,7 @@ sub Execute {
   my $sql = $self->Sql();
 
   if ( $self->{HasDiskPercent} ) {
-    my $disk_percent = getDiskPercent( $$self{Storage} ? $$self{Storage}->Path() : () );
+    my $disk_percent = getDiskPercent();
     $sql =~ s/zmDiskPercent/$disk_percent/g;
   }
   if ( $self->{HasDiskBlocks} ) {
@@ -196,9 +195,6 @@ sub Sql {
                 # This gets used later, I forget for what
                 $$self{Server} = new ZoneMinder::Server( $temp_value );
               }
-            } elsif ( $term->{attr} eq 'StorageId' ) {
-              $value = "'$temp_value'";
-              $$self{Storage} = new ZoneMinder::Storage( $temp_value );
             } elsif ( $term->{attr} eq 'Name'
                 || $term->{attr} eq 'Cause'
                 || $term->{attr} eq 'Notes'
@@ -254,14 +250,14 @@ sub Sql {
     } # end if terms
 
     if ( $self->{Sql} ) {
-      #if ( $self->{AutoMessage} ) {
+      if ( $self->{AutoMessage} ) {
 # Include all events, including events that are still ongoing
 # and have no EndTime yet
         $sql .= " and ( ".$self->{Sql}." )";
-      #} else {
+      } else {
 # Only include closed events (events with valid EndTime)
-        #$sql .= " where not isnull(E.EndTime) and ( ".$self->{Sql}." )";
-      #}
+        $sql .= " where not isnull(E.EndTime) and ( ".$self->{Sql}." )";
+      }
     }
     my @auto_terms;
     if ( $self->{AutoArchive} ) {
@@ -269,9 +265,9 @@ sub Sql {
     }
     # Don't do this, it prevents re-generation and concatenation.
     # If the file already exists, then the video won't be re-recreated
-    #if ( $self->{AutoVideo} ) {
-      #push @auto_terms, "E.Videoed = 0";
-    #}
+    if ( $self->{AutoVideo} ) {
+      push @auto_terms, "E.Videoed = 0";
+    }
     if ( $self->{AutoUpload} ) {
       push @auto_terms, "E.Uploaded = 0";
     }

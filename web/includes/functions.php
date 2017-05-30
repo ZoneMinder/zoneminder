@@ -705,9 +705,7 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
           if ( !isset($newValues[$key]) && !empty($value) ) {
             $changes[$key] = "$key = 0";
           }
-        }
-        else if ( $types[$key] == 'set' )
-        {
+        } else if ( $types[$key] == 'set' ) {
           $changes[$key] = "$key = ''";
         }
       }

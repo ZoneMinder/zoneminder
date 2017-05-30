@@ -2196,7 +2196,7 @@ function getStreamHTML( $monitor, $options = array() ) {
 
 //FIXME, the width and height of the image need to be scaled.
     if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
-        $streamSrc = $monitor->getStreamSrc( array( 'mode'=>'mpeg', 'scale'=>$scale, 'bitrate'=>ZM_WEB_VIDEO_BITRATE, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'format'=>ZM_MPEG_LIVE_FORMAT ) );
+        $streamSrc = $monitor->getStreamSrc( array( 'mode'=>'mpeg', 'scale'=>$options['scale'], 'bitrate'=>ZM_WEB_VIDEO_BITRATE, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'format'=>ZM_MPEG_LIVE_FORMAT ) );
          return getVideoStream( 'liveStream'.$monitor->Id(), $streamSrc, $options, ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
  } else if ( $options['mode'] == 'stream' and canStream() ) {
     $options['mode'] = 'jpeg';

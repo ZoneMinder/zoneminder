@@ -371,10 +371,10 @@ function outputControlStream( $src, $width, $height, $monitor, $scale, $target )
 <?php
 }
 
-function outputHelperStream( $id, $src, $width, $height, $title="" ) {
+function outputHelperStream( $id, $src, $width, $height, $title='' ) {
   echo getHelperStream( $id, $src, $width, $height, $title );
 }
-function getHelperStream( $id, $src, $width, $height, $title="" ) {
+function getHelperStream( $id, $src, $width, $height, $title='' ) {
     return '<applet id="'.$id.'" code="com.charliemouse.cambozola.Viewer"
     archive="'. ZM_PATH_CAMBOZOLA .'" 
     align="middle"
@@ -1755,7 +1755,7 @@ function limitPoints( &$points, $min_x, $min_y, $max_x, $max_y ) {
       Logger::Debug('Limiting point x'.$point['x'].' to max_x ' . $max_x );
       $point['x'] = $max_x;
     }
-    if ( $point['y'] < $min_y ) { 
+    if ( $point['y'] < $min_y ) {
       Logger::Debug('Limiting point y'.$point['y'].' to min_y ' . $min_y );
       $point['y'] = $min_y;
     } else if ( $point['y'] > $max_y ) {
@@ -2119,13 +2119,13 @@ function validHtmlStr( $input ) {
 
 function getStreamHTML( $monitor, $options = array() ) {
 
-	if ( isset($options['scale']) ) {
-		$options['width'] = reScale( $monitor->Width(), $options['scale'] );
-		$options['height'] = reScale( $monitor->Height(), $options['scale'] );
-	}
-	if ( ! isset($options['mode'] ) ) {
-		$options['mode'] = 'stream';
-	}
+  if ( isset($options['scale']) ) {
+    $options['width'] = reScale( $monitor->Width(), $options['scale'] );
+    $options['height'] = reScale( $monitor->Height(), $options['scale'] );
+  }
+  if ( ! isset($options['mode'] ) ) {
+    $options['mode'] = 'stream';
+  }
   $options['maxfps'] = ZM_WEB_VIDEO_MAXFPS;
   if ( $monitor->StreamReplayBuffer() )
     $options['buffer'] = $monitor->StreamReplayBuffer();
@@ -2133,14 +2133,13 @@ function getStreamHTML( $monitor, $options = array() ) {
   //FIXME, the width and height of the image need to be scaled.
   if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
     $streamSrc = $monitor->getStreamSrc( array( 'mode'=>'mpeg', 'scale'=>$options['scale'], 'bitrate'=>ZM_WEB_VIDEO_BITRATE, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'format' => ZM_MPEG_LIVE_FORMAT ) );
-
     return getVideoStream( 'liveStream'.$monitor->Id(), $streamSrc, $options, ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
   } else if ( $options['mode'] == 'stream' and canStream() ) {
     $options['mode'] = 'jpeg';
     $streamSrc = $monitor->getStreamSrc( $options );
 
     if ( canStreamNative() )
-      return getImageStream( 'liveStream'.$monitor->Id(), $streamSrc, 
+      return getImageStream( 'liveStream'.$monitor->Id(), $streamSrc,
           ( isset($options['width']) ? $options['width'] : NULL ),
           ( isset($options['height']) ? $options['height'] : NULL ),
           $monitor->Name()
@@ -2156,7 +2155,7 @@ function getStreamHTML( $monitor, $options = array() ) {
     if ( $mode == 'stream' ) {
       Info( 'The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.' );
     }
-    return getImageStill( 'liveStream'.$monitor->Id(), $streamSrc, 
+    return getImageStill( 'liveStream'.$monitor->Id(), $streamSrc,
           ( isset($options['width']) ? $options['width'] : NULL ),
           ( isset($options['height']) ? $options['height'] : NULL ),
           $monitor->Name()

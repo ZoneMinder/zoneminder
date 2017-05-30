@@ -195,9 +195,9 @@ isset($view) || $view = NULL;
 isset($request) || $request = NULL;
 isset($action) || $action = NULL;
 
-if ( ZM_ENABLE_CSRF_MAGIC ) {
-  Logger::Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");
-  csrf_check();
+if ( ZM_ENABLE_CSRF_MAGIC && $action != 'login' ) {
+    Logger::Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");
+    csrf_check();
 }
 
 # Need to include actions because it does auth

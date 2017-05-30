@@ -1815,7 +1815,7 @@ our @options = (
       ZM_CAPTURES_PER_FRAME option and you should normally change the
       value of only one of the options at a time.  If you have
       different capture cards that need different values you can
-      ovveride them in each individual monitor on the source page.
+      override them in each individual monitor on the source page.
       `,
     type        => $types{boolean},
     category    => 'config',
@@ -1839,7 +1839,7 @@ our @options = (
       ZM_V4L_MULTI_BUFFER option and you should normally change the
       value of only one of the options at a time.  If you have
       different capture cards that need different values you can
-      ovveride them in each individual monitor on the source page.
+      override them in each individual monitor on the source page.
       `,
     type        => $types{integer},
     category    => 'config',

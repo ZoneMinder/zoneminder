@@ -2110,6 +2110,7 @@ our @options = (
       a remote ftp server. This option indicates the remote directory
       that ZoneMinder should use to upload event files to.
       `,
+    requires    => [ { name => 'ZM_OPT_UPLOAD', value => 'yes' } ],
     type        => $types{rel_path},
     category    => 'hidden',
   },

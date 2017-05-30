@@ -61,7 +61,15 @@ RUN apt-get update \
 	&& rm -rf /var/lib/apt/lists/*
 
 # Copy local code into our container
-ADD . /ZoneMinder
+ADD cmake /ZoneMinder/cmake/
+ADD db /ZoneMinder/db/
+ADD misc /ZoneMinder/misc/
+ADD onvif /ZoneMinder/onvif/
+ADD scripts /ZoneMinder/scripts/
+ADD src /ZoneMinder/src/
+ADD umutils /ZoneMinder/umutils/
+ADD web /ZoneMinder/web/
+ADD cmakecacheimport.sh CMakeLists.txt version zm.conf.in zmconfgen.pl.in zmlinkcontent.sh.in zoneminder-config.cmake /ZoneMinder/
 
 # Change into the ZoneMinder directory
 WORKDIR /ZoneMinder
@@ -92,6 +100,9 @@ RUN cp misc/apache.conf /etc/apache2/sites-available/000-default.conf
 EXPOSE 80
 
 VOLUME /recordings/images /recordings/events /var/lib/mysql /var/log/zm
+
+# To speed up configuration testing, we put it here
+ADD utils/docker /ZoneMinder/utils/docker/
 
 CMD /ZoneMinder/utils/docker/setup.sh && /ZoneMinder/utils/docker/start.sh
 

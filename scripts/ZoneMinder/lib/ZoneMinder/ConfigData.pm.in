@@ -397,7 +397,6 @@ our @options = (
     type        => $types{boolean},
     category    => 'system',
   },
-
   {
     name        => 'ZM_OPT_GOOG_RECAPTCHA_SITEKEY',
     default     => '...Insert your recaptcha site-key here...',
@@ -428,8 +427,6 @@ our @options = (
     type        => $types{string},
     category    => 'system',
   },
-
-
   {
     name        => 'ZM_DIR_EVENTS',
     default     => 'events',
@@ -1580,7 +1577,7 @@ our @options = (
   },
   {
     name        => 'ZM_WEB_EVENT_DISK_SPACE',
-    default     => '',
+    default     => 'no',
     description => 'Whether to show disk space used by each event.',
     help        => q`Adds another column to the listing of events
       showing the disk space used by the event.  This will impart a small
@@ -2498,7 +2495,6 @@ our @options = (
     category    => 'system',
   },
   {
-
     name        => 'ZM_RUN_AUDIT',
     default     => 'yes',
     description => 'Run zmaudit to check data consistency',
@@ -3370,7 +3366,7 @@ our @options = (
   {
     name        => 'ZM_WEB_M_DEFAULT_SCALE',
     default     => '100',
-    description => 'What the default scaling factor applied to \'live\' or \'event\' views is (%)',
+    description => q`'What the default scaling factor applied to 'live' or 'event' views is (%)`,
     help        => q`
       Normally ZoneMinder will display 'live' or 'event' streams in
       their native size. However if you have monitors with large
@@ -3633,7 +3629,7 @@ our @options = (
   {
     name        => 'ZM_WEB_L_DEFAULT_SCALE',
     default     => '100',
-    description => 'What the default scaling factor applied to \'live\' or \'event\' views is (%)',
+    description => q`What the default scaling factor applied to 'live' or 'event' views is (%)`,
     help        => q`
       Normally ZoneMinder will display 'live' or 'event' streams in
       their native size. However if you have monitors with large
@@ -3654,7 +3650,7 @@ our @options = (
   {
     name        => 'ZM_WEB_L_DEFAULT_RATE',
     default     => '100',
-    description => 'What the default replay rate factor applied to \'event\' views is (%)',
+    description => q`What the default replay rate factor applied to 'event' views is (%)`,
     help        => q`
       Normally ZoneMinder will display 'event' streams at their
       native rate, i.e. as close to real-time as possible. However if

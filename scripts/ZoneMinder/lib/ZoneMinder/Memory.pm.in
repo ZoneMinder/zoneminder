@@ -82,7 +82,7 @@ our %EXPORT_TAGS = (
     );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
 
-our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
+our @EXPORT_OK = ( @{ $EXPORT_TAGS{all} } );
 
 our @EXPORT = qw();
 
@@ -248,51 +248,51 @@ sub zmMemVerify {
     return( undef );
   }
 
-    my $sd_size = zmMemRead( $monitor, "shared_data:size", 1 );
-    if ( $sd_size != $mem_data->{shared_data}->{size} ) {
-      if ( $sd_size ) {
-        Error( "Shared data size conflict in shared_data for monitor "
-            .$monitor->{Name}
-            .", expected "
-            .$mem_data->{shared_data}->{size}
-            .", got "
-            .$sd_size
-            );
-      } else {
-        Debug( "Shared data size conflict in shared_data for monitor "
-            .$monitor->{Name}
-            .", expected "
-            .$mem_data->{shared_data}->{size}
-            .", got ".$sd_size
-            );
-      }
-      return( undef );
+  my $sd_size = zmMemRead( $monitor, 'shared_data:size', 1 );
+  if ( $sd_size != $mem_data->{shared_data}->{size} ) {
+    if ( $sd_size ) {
+      Error( "Shared data size conflict in shared_data for monitor "
+          .$monitor->{Name}
+          .", expected "
+          .$mem_data->{shared_data}->{size}
+          .", got "
+          .$sd_size
+          );
+    } else {
+      Debug( "Shared data size conflict in shared_data for monitor "
+          .$monitor->{Name}
+          .", expected "
+          .$mem_data->{shared_data}->{size}
+          .", got ".$sd_size
+          );
     }
-    my $td_size = zmMemRead( $monitor, "trigger_data:size", 1 );
-    if ( $td_size != $mem_data->{trigger_data}->{size} ) {
-      if ( $td_size ) {
-        Error( "Shared data size conflict in trigger_data for monitor "
-            .$monitor->{Name}
-            .", expected "
-            .$mem_data->{triggger_data}->{size}
-            .", got "
-            .$td_size
-            );
-      } else {
-        Debug( "Shared data size conflict in trigger_data for monitor "
-            .$monitor->{Name}
-            .", expected "
-            .$mem_data->{triggger_data}->{size}
-            .", got "
-            .$td_size
-            );
-      }
-      return( undef );
+    return( undef );
+  }
+  my $td_size = zmMemRead( $monitor, 'trigger_data:size', 1 );
+  if ( $td_size != $mem_data->{trigger_data}->{size} ) {
+    if ( $td_size ) {
+      Error( "Shared data size conflict in trigger_data for monitor "
+          .$monitor->{Name}
+          .", expected "
+          .$mem_data->{triggger_data}->{size}
+          .", got "
+          .$td_size
+          );
+    } else {
+      Debug( "Shared data size conflict in trigger_data for monitor "
+          .$monitor->{Name}
+          .", expected "
+          .$mem_data->{triggger_data}->{size}
+          .", got "
+          .$td_size
+          );
     }
-    if ( !zmMemRead($monitor, "shared_data:valid",1) ) {
-        Error( "Shared data not valid for monitor $$monitor{Id}" );
-        return( undef );
-    }
+    return( undef );
+  }
+  if ( !zmMemRead($monitor, 'shared_data:valid',1) ) {
+    Error( "Shared data not valid for monitor $$monitor{Id}" );
+    return( undef );
+  }
 
   return( !undef );
 }
@@ -326,15 +326,15 @@ sub zmMemRead {
     }
     my $value;
     if ( $type eq 'long' ) {
-      ( $value ) = unpack( "l!", $data );
+      ( $value ) = unpack( 'l!', $data );
     } elsif ( $type eq 'ulong' || $type eq 'size_t' ) {
-      ( $value ) = unpack( "L!", $data );
+      ( $value ) = unpack( 'L!', $data );
     } elsif ( $type eq 'int64' || $type eq 'time_t64' ) {
 # The 'q' type is only available on 64bit platforms, so use native.
-      ( $value ) = unpack( "l!", $data );
+      ( $value ) = unpack( 'l!', $data );
     } elsif ( $type eq 'uint64' ) {
 # The 'q' type is only available on 64bit platforms, so use native.
-      ( $value ) = unpack( "L!", $data );
+      ( $value ) = unpack( 'L!', $data );
     } elsif ( $type eq 'int32' ) {
       ( $value ) = unpack( 'l', $data );
     } elsif ( $type eq 'uint32' || $type eq 'bool4' ) {
@@ -421,7 +421,7 @@ sub zmMemWrite {
     } elsif ( $type =~ /^uint8\[\d+\]$/ ) {
       $data = pack( 'C'.$size, $value );
     } else {
-      Fatal( "Unexpected type \"$type\" found for \"$field\'' );
+      Fatal( "Unexpected type \"$type\" found for \"$field\"" );
     }
 
     if ( !zmMemPut( $monitor, $offset, $size, $data ) ) {

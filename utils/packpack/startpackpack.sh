@@ -46,7 +46,7 @@ commonprep () {
         echo "Checking packpack github repo for changes..."
         git -C packpack pull origin master
     else
-        echo "Cloning pakcpack github repo..."
+        echo "Cloning packpack github repo..."
         git clone https://github.com/packpack/packpack.git packpack
     fi
 

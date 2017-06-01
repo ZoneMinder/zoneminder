@@ -23,49 +23,49 @@ $servers = Server::find_all();
 
 $eventCounts = array(
     array(
-        "title" => translate('Events'),
-        "filter" => array(
-            "terms" => array(
+        'title' => translate('Events'),
+        'filter' => array(
+            'terms' => array(
             )
         ),
     ),
     array(
-        "title" => translate('Hour'),
-        "filter" => array(
-            "terms" => array(
-                array( "attr" => "DateTime", "op" => ">=", "val" => "-1 hour" ),
+        'title' => translate('Hour'),
+        'filter' => array(
+            'terms' => array(
+                array( 'attr' => "DateTime", 'op' => ">=", 'val' => "-1 hour" ),
             )
         ),
     ),
     array(
-        "title" => translate('Day'),
-        "filter" => array(
-            "terms" => array(
-                array( "attr" => "DateTime", "op" => ">=", "val" => "-1 day" ),
+        'title' => translate('Day'),
+        'filter' => array(
+            'terms' => array(
+                array( 'attr' => "DateTime", 'op' => ">=", 'val' => "-1 day" ),
             )
         ),
     ),
     array(
-        "title" => translate('Week'),
-        "filter" => array(
-            "terms" => array(
-                array( "attr" => "DateTime", "op" => ">=", "val" => "-7 day" ),
+        'title' => translate('Week'),
+        'filter' => array(
+            'terms' => array(
+                array( 'attr' => "DateTime", 'op' => ">=", 'val' => "-7 day" ),
             )
         ),
     ),
     array(
-        "title" => translate('Month'),
-        "filter" => array(
-            "terms" => array(
-                array( "attr" => "DateTime", "op" => ">=", "val" => "-1 month" ),
+        'title' => translate('Month'),
+        'filter' => array(
+            'terms' => array(
+                array( 'attr' => "DateTime", 'op' => ">=", 'val' => "-1 month" ),
             )
         ),
     ),
     array(
-        "title" => translate('Archived'),
-        "filter" => array(
-            "terms" => array(
-                array( "attr" => "Archived", "op" => "=", "val" => "1" ),
+        'title' => translate('Archived'),
+        'filter' => array(
+            'terms' => array(
+                array( 'attr' => "Archived", 'op' => "=", 'val' => "1" ),
             )
         ),
     ),
@@ -110,12 +110,12 @@ for ( $i = 0; $i < count($monitors); $i++ ) {
   $monitors[$i]['ZoneCount'] = dbFetchOne( 'select count(Id) as ZoneCount from Zones where MonitorId = ?', 'ZoneCount', array($monitors[$i]['Id']) );
   $counts = array();
   for ( $j = 0; $j < count($eventCounts); $j++ ) {
-    $filter = addFilterTerm( $eventCounts[$j]['filter'], count($eventCounts[$j]['filter']['terms']), array( "cnj" => "and", "attr" => "MonitorId", "op" => "=", "val" => $monitors[$i]['Id'] ) );
+    $filter = addFilterTerm( $eventCounts[$j]['filter'], count($eventCounts[$j]['filter']['terms']), array( 'cnj' => 'and', 'attr' => 'MonitorId', 'op' => '=', 'val' => $monitors[$i]['Id'] ) );
     parseFilter( $filter );
-    $counts[] = "count(if(1".$filter['sql'].",1,NULL)) as EventCount$j";
+    $counts[] = 'count(if(1'.$filter['sql'].",1,NULL)) as EventCount$j";
     $monitors[$i]['eventCounts'][$j]['filter'] = $filter;
   }
-  $sql = "select ".join($counts,", ")." from Events as E where MonitorId = ?";
+  $sql = 'select '.join($counts,", ").' from Events as E where MonitorId = ?';
   $counts = dbFetchOne( $sql, NULL, array($monitors[$i]['Id']) );
   if ( $monitors[$i]['Function'] != 'None' ) {
     $cycleCount++;
@@ -208,14 +208,11 @@ if ( canView( 'Stream' ) && $cycleCount > 1 ) {
         <?php echo makePopupLink( '?view=montagereview&amp;group='.$cycleGroup, 'zmMontage'.$cycleGroup, 'montagereview', translate('Montage Review'), $running ) ?>
       </div>
 <?php
-} else {
-?>
-<?php
 }
 ?>
       <h3 id="loginBandwidth"><?php
 if ( ZM_OPT_USE_AUTH ) {
-?><?php echo translate('LoggedInAs') ?> <?php echo makePopupLink( '?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == "builtin") ) ?>, <?php echo strtolower( translate('ConfiguredFor') ) ?><?php
+?><?php echo translate('LoggedInAs') ?> <?php echo makePopupLink( '?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == 'builtin') ) ?>, <?php echo strtolower( translate('ConfiguredFor') ) ?><?php
 } else {
 ?><?php echo translate('ConfiguredFor') ?><?php
 }
@@ -235,19 +232,19 @@ if ( ZM_OPT_USE_AUTH ) {
 <?php } ?>
             <th class="colSource"><?php echo translate('Source') ?></th>
 <?php
-for ( $i = 0; $i < count($eventCounts); $i++ ) {
+      for ( $i = 0; $i < count($eventCounts); $i++ ) {
 ?>
             <th class="colEvents"><?php echo $eventCounts[$i]['title'] ?></th>
 <?php
-}
+      }
 ?>
             <th class="colZones"><?php echo translate('Zones') ?></th>
 <?php
-if ( canEdit('Monitors') ) {
+      if ( canEdit('Monitors') ) {
 ?>
             <th class="colOrder"><?php echo translate('Order') ?></th>
 <?php
-}
+      }
 ?>
             <th class="colMark"><?php echo translate('Mark') ?></th>
           </tr>

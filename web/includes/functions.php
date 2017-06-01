@@ -1241,17 +1241,17 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
   if ( isset($filter['terms']) && count($filter['terms']) ) {
     for ( $i = 0; $i < count($filter['terms']); $i++ ) {
       if ( isset($filter['terms'][$i]['cnj']) ) {
-        $filter['query'] .= $querySep."filter[terms][$i][cnj]=".urlencode($filter['terms'][$i]['cnj']);
-        $filter['sql'] .= " ".$filter['terms'][$i]['cnj']." ";
+        $filter['query'] .= $querySep.urlencode("filter[terms][$i][cnj]").'='.urlencode($filter['terms'][$i]['cnj']);
+        $filter['sql'] .= ' '.$filter['terms'][$i]['cnj'].' ';
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][cnj]\" value=\"".htmlspecialchars($filter['terms'][$i]['cnj'])."\"/>\n";
       }
       if ( isset($filter['terms'][$i]['obr']) ) {
-        $filter['query'] .= $querySep."filter[terms][$i][obr]=".urlencode($filter['terms'][$i]['obr']);
-        $filter['sql'] .= " ".str_repeat( "(", $filter['terms'][$i]['obr'] )." ";
+        $filter['query'] .= $querySep.urlencode("filter[terms][$i][obr]").'='.urlencode($filter['terms'][$i]['obr']);
+        $filter['sql'] .= ' '.str_repeat( '(', $filter['terms'][$i]['obr'] ).' ';
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][obr]\" value=\"".htmlspecialchars($filter['terms'][$i]['obr'])."\"/>\n";
       }
       if ( isset($filter['terms'][$i]['attr']) ) {
-        $filter['query'] .= $querySep."filter[terms][$i][attr]=".urlencode($filter['terms'][$i]['attr']);
+        $filter['query'] .= $querySep.urlencode("filter[terms][$i][attr]").'='.urlencode($filter['terms'][$i]['attr']);
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][attr]\" value=\"".htmlspecialchars($filter['terms'][$i]['attr'])."\"/>\n";
         switch ( $filter['terms'][$i]['attr'] ) {
           case 'MonitorName':
@@ -1335,7 +1335,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
           case '>' :
           case '<' :
           case '<=' :
-            $filter['sql'] .= ' '.$filter['terms'][$i]['op']." $value";
+            $filter['sql'] .= ' '.$filter['terms'][$i]['op'].' '. $value;
             break;
           case '=~' :
             $filter['sql'] .= ' regexp '.$value;
@@ -1344,20 +1344,20 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
             $filter['sql'] .= ' not regexp '.$value;
             break;
           case '=[]' :
-            $filter['sql'] .= ' in ('.join( ",", $valueList ).')';
+            $filter['sql'] .= ' in ('.join( ',', $valueList ).')';
             break;
           case '![]' :
             $filter['sql'] .= ' not in ('.join( ',', $valueList ).')';
             break;
         }
 
-        $filter['query'] .= $querySep."filter[terms][$i][op]=".urlencode($filter['terms'][$i]['op']);
+        $filter['query'] .= $querySep.urlencode("filter[terms][$i][op]").'='.urlencode($filter['terms'][$i]['op']);
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][op]\" value=\"".htmlspecialchars($filter['terms'][$i]['op'])."\"/>\n";
-        $filter['query'] .= $querySep."filter[terms][$i][val]=".urlencode($filter['terms'][$i]['val']);
+        $filter['query'] .= $querySep.urlencode("filter[terms][$i][val]").'='.urlencode($filter['terms'][$i]['val']);
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][val]\" value=\"".htmlspecialchars($filter['terms'][$i]['val'])."\"/>\n";
       }
       if ( isset($filter['terms'][$i]['cbr']) ) {
-        $filter['query'] .= $querySep."filter[terms][$i][cbr]=".urlencode($filter['terms'][$i]['cbr']);
+        $filter['query'] .= $querySep.urlencode("filter[terms][$i][cbr]").'='.urlencode($filter['terms'][$i]['cbr']);
         $filter['sql'] .= ' '.str_repeat( ')', $filter['terms'][$i]['cbr'] ).' ';
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][cbr]\" value=\"".htmlspecialchars($filter['terms'][$i]['cbr'])."\"/>\n";
       }

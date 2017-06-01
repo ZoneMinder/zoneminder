@@ -60,7 +60,11 @@ if ( isset( $_REQUEST['scale'] ) ) {
   $scale = max( reScale( SCALE_BASE, $Monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
 }
 
-$imageData = $Event->getImageSrc( $frame, $scale );
+$imageData = $Event->getImageSrc( $frame, $scale, 0 );
+if ( ! $imageData ) {
+  Error("No data found for Event $eid frame $fid");
+  $imageData = array();
+}
 
 $show = 'capt';
 if ( isset($_REQUEST['show']) ) {

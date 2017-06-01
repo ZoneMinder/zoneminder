@@ -222,7 +222,7 @@ if ( ZM_OPT_USE_AUTH ) {
 ?>&nbsp;<?php echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', $bwArray[$_COOKIE['zmBandwidth']], ($user && $user['MaxBandwidth'] != 'low' ) ) ?> <?php echo translate('BandwidthHead') ?></h3>
     </div>
     <div id="content">
-      <table id="consoleTable" cellspacing="0">
+      <table id="consoleTable">
         <thead>
           <tr>
 <?php if ( ZM_WEB_ID_ON_CONSOLE ) { ?>

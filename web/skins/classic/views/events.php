@@ -19,14 +19,14 @@
 //
 
 if ( !canView( 'Events' ) || (!empty($_REQUEST['execute']) && !canEdit('Events')) ) {
-    $view = 'error';
-    return;
+  $view = 'error';
+  return;
 }
 
 require_once( 'includes/Event.php' );
 
 if ( !empty($_REQUEST['execute']) ) {
-    executeFilter( $tempFilterName );
+  executeFilter( $tempFilterName );
 }
 
 $countSql = 'SELECT count(E.Id) AS EventCount FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId) WHERE';
@@ -36,8 +36,8 @@ if ( $user['MonitorIds'] ) {
 	$countSql .= $user_monitor_ids;
 	$eventsSql .= $user_monitor_ids;
 } else {
-  $countSql .= " 1";
-  $eventsSql .= " 1";
+  $countSql .= ' 1';
+  $eventsSql .= ' 1';
 }
 
 parseSort();
@@ -45,23 +45,23 @@ parseFilter( $_REQUEST['filter'] );
 $filterQuery = $_REQUEST['filter']['query'];
 
 if ( $_REQUEST['filter']['sql'] ) {
-    $countSql .= $_REQUEST['filter']['sql'];
-    $eventsSql .= $_REQUEST['filter']['sql'];
+  $countSql .= $_REQUEST['filter']['sql'];
+  $eventsSql .= $_REQUEST['filter']['sql'];
 }
 $eventsSql .= " ORDER BY $sortColumn $sortOrder";
 
 if ( isset($_REQUEST['page']) )
-    $page = validInt($_REQUEST['page']);
+  $page = validInt($_REQUEST['page']);
 else
-    $page = 0;
+  $page = 0;
 if ( isset($_REQUEST['limit']) )
-    $limit = validInt($_REQUEST['limit']);
+  $limit = validInt($_REQUEST['limit']);
 else
-    $limit = 0;
+  $limit = 0;
 
 $nEvents = dbFetchOne( $countSql, 'EventCount' );
 if ( !empty($limit) && $nEvents > $limit ) {
-    $nEvents = $limit;
+  $nEvents = $limit;
 }
 $pages = (int)ceil($nEvents/ZM_WEB_EVENTS_PER_PAGE);
 if ( !empty($page) ) {
@@ -159,7 +159,7 @@ if ( $pagination ) {
 <?php
 $count = 0;
 foreach ( $events as $event ) {
-    if ( ($count++%ZM_WEB_EVENTS_PER_PAGE) == 0 ) {
+  if ( ($count++%ZM_WEB_EVENTS_PER_PAGE) == 0 ) {
 ?>
             <tr>
               <th class="colId"><a href="<?php echo sortHeader( 'Id' ) ?>"><?php echo translate('Id') ?><?php echo sortTag( 'Id' ) ?></a></th>

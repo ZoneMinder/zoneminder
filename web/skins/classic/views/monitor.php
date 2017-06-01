@@ -27,16 +27,16 @@ if ( !canView( 'Monitors' ) ) {
 }
 
 $tabs = array();
-$tabs["general"] = translate('General');
-$tabs["source"] = translate('Source');
-$tabs["storage"] = translate('Storage');
-$tabs["timestamp"] = translate('Timestamp');
-$tabs["buffers"] = translate('Buffers');
+$tabs['general'] = translate('General');
+$tabs['source'] = translate('Source');
+$tabs['storage'] = translate('Storage');
+$tabs['timestamp'] = translate('Timestamp');
+$tabs['buffers'] = translate('Buffers');
 if ( ZM_OPT_CONTROL && canView( 'Control' ) )
-  $tabs["control"] = translate('Control');
+  $tabs['control'] = translate('Control');
 if ( ZM_OPT_X10 )
-  $tabs["x10"] = translate('X10');
-$tabs["misc"] = translate('Misc');
+  $tabs['x10'] = translate('X10');
+$tabs['misc'] = translate('Misc');
 
 if ( isset($_REQUEST['tab']) )
   $tab = validHtmlStr($_REQUEST['tab']);
@@ -267,7 +267,7 @@ if ( ZM_HAS_V4L1 ) {
   $v4l1MaxChannels = 15;
   $v4l1DeviceChannels = array();
   for ( $i = 0; $i <= $v4l1MaxChannels; $i++ )
-    $v4l1DeviceChannels["$i"] = $i;
+    $v4l1DeviceChannels['$i'] = $i;
 
   $v4l1LocalPalettes = array(
       translate('Grey')    => 1,
@@ -317,7 +317,7 @@ if ( ZM_HAS_V4L2 ) {
   $v4l2MaxChannels = 31;
   $v4l2DeviceChannels = array();
   for ( $i = 0; $i <= $v4l2MaxChannels; $i++ )
-    $v4l2DeviceChannels["$i"] = $i;
+    $v4l2DeviceChannels[$i] = $i;
 
   $v4l2LocalPalettes = array(
       'Auto' => 0, /* Automatic palette selection */

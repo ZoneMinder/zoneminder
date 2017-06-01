@@ -122,6 +122,8 @@ setdebpkgver () {
     echo "Output of git describe: $(git describe)"
     echo "Output of git describe --debug --long --always: $(git describe --long --always --debug)"
     echo "Output of git describe --long --always: $(git describe --long --always)"
+    echo "Output of git tag -n: $(git tag -n)"
+    echo
     
     # Set VERSION to x.xx.x+x e.g. 1.30.2+15
     # the last x is number of commits since release

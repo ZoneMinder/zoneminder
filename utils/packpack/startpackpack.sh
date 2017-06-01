@@ -118,9 +118,10 @@ installtrusty () {
 setdebpkgver () {
 
     # DEBUG
-    git describe --long --always
-    git describe --long --always | sed -n 's/^\([0-9\.]*\)-\([0-9]*\)-\([a-z0-9]*\)/\1/p'
-    git describe --long --always | sed -n 's/^\([0-9\.]*\)-\([0-9]*\)-\([a-z0-9]*\)/\2/p'
+    echo
+    echo "Output of git describe: $(git describe)"
+    echo "Output of git describe --debug --long --always: $(git describe --long --always --debug)"
+    echo "Output of git describe --long --always: $(git describe --long --always)"
     
     # Set VERSION to x.xx.x+x e.g. 1.30.2+15
     # the last x is number of commits since release

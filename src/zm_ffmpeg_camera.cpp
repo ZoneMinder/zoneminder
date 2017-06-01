@@ -167,11 +167,8 @@ int FfmpegCamera::Capture( Image &image )
     Debug( 5, "Got packet from stream %d dts (%d) pts(%d)", packet.stream_index, packet.pts, packet.dts );
     // What about audio stream? Maybe someday we could do sound detection...
     if ( packet.stream_index == mVideoStreamId ) {
-#if LIBAVCODEC_VERSION_CHECK(52, 23, 0, 23, 0)
-      if (avcodec_decode_video2(mVideoCodecContext, mRawFrame, &frameComplete, &packet) < 0)
-#else
-      if (avcodec_decode_video(mVideoCodecContext, mRawFrame, &frameComplete, packet.data, packet.size) < 0)
-#endif
+      int ret = zm_avcodec_decode_video( mVideoCodecContext, mRawFrame, &frameComplete, &packet );
+      if ( ret < 0 )
         Fatal( "Unable to decode frame at frame %d", frameCount );
 
       Debug( 4, "Decoded video packet at frame %d", frameCount );
@@ -639,6 +636,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
         unsigned int packet_count = 0;
         ZMPacket *queued_packet;
 
+        // Clear all packets that predate the moment when the recording began
         packetqueue.clear_unwanted_packets( &recording, mVideoStreamId );
 
         while ( ( queued_packet = packetqueue.popPacket() ) ) {
@@ -673,7 +671,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
 
       // Buffer video packets, since we are not recording.
       // All audio packets are keyframes, so only if it's a video keyframe
-      if ( packet.stream_index == mVideoStreamId) {
+      if ( packet.stream_index == mVideoStreamId ) {
         if ( key_frame ) {
           Debug(3, "Clearing queue");
           packetqueue.clearQueue( monitor->GetPreEventCount(), mVideoStreamId );
@@ -688,18 +686,19 @@ else if ( packet.pts && video_last_pts > packet.pts ) {
         }
 #endif
       } 
-
-      if ( 
-          ( packet.stream_index != mAudioStreamId || record_audio ) 
-          &&
-          ( key_frame || packetqueue.size() )
-         ) {
-        packetqueue.queuePacket( &packet );
+ 
+      // The following lines should ensure that the queue always begins with a video keyframe
+      if ( packet.stream_index == mAudioStreamId ) {
+        if ( record_audio && packetqueue.size() ) // if it's audio, and we are doing audio, and there is already something in the queue
+          packetqueue.queuePacket( &packet );
+      } else if ( packet.stream_index == mVideoStreamId ) {
+        if ( key_frame || packetqueue.size() ) // it's a keyframe or we already have something in the queue
+          packetqueue.queuePacket( &packet );
       }
     } // end if recording or not
 
     if ( packet.stream_index == mVideoStreamId ) {
-       if ( videoStore ) {
+      if ( videoStore ) {
         //Write the packet to our video store
         int ret = videoStore->writeVideoFramePacket( &packet );
         if ( ret < 0 ) { //Less than zero and we skipped a frame

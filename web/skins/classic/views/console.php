@@ -249,26 +249,6 @@ if ( ZM_OPT_USE_AUTH ) {
             <th class="colMark"><?php echo translate('Mark') ?></th>
           </tr>
         </thead>
-        <tfoot>
-          <tr>
-            <td class="colLeftButtons" colspan="<?php echo $left_columns ?>">
-              <input type="button" value="<?php echo translate('Refresh') ?>" onclick="location.reload(true);"/>
-              <input type="button" name="addBtn" value="<?php echo translate('AddNewMonitor') ?>" onclick="addMonitor( this )"/>
-              <!-- <?php echo makePopupButton( '?view=monitor', 'zmMonitor0', 'monitor', translate('AddNewMonitor'), (canEdit( 'Monitors' ) && !$user['MonitorIds']) ) ?> -->
-              <?php echo makePopupButton( '?view=filter&amp;filter[terms][0][attr]=DateTime&amp;filter[terms][0][op]=%3c&amp;filter[terms][0][val]=now', 'zmFilter', 'filter', translate('Filters'), canView( 'Events' ) ) ?>
-            </td>
-<?php
-for ( $i = 0; $i < count($eventCounts); $i++ ) {
-  parseFilter( $eventCounts[$i]['filter'] );
-?>
-            <td class="colEvents"><?php echo makePopupLink( '?view='.$eventsView.'&amp;page=1'.$eventCounts[$i]['filter']['query'], $eventsWindow, $eventsView, $eventCounts[$i]['total'], canView( 'Events' ) ) ?></td>
-<?php
-}
-?>
-            <td class="colZones"><?php echo $zoneCount ?></td>
-            <td class="colRightButtons" colspan="<?php echo canEdit('Monitors')?2:1 ?>"><input type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editMonitor( this )" disabled="disabled"/><input type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteMonitor( this )" disabled="disabled"/></td>
-          </tr>
-        </tfoot>
         <tbody>
 <?php
 foreach( $displayMonitors as $monitor ) {
@@ -276,22 +256,22 @@ foreach( $displayMonitors as $monitor ) {
           <tr>
 <?php
     if ( !$monitor['zmc'] ) {
-      $dclass = "errorText";
+      $dclass = 'errorText';
     } else {
     // https://github.com/ZoneMinder/ZoneMinder/issues/1082
       if ( !$monitor['zma'] && $monitor['Function']!='Monitor' )
-        $dclass = "warnText";
+        $dclass = 'warnText';
       else
-        $dclass = "infoText";
+        $dclass = 'infoText';
     }
     if ( $monitor['Function'] == 'None' )
-      $fclass = "errorText";
+      $fclass = 'errorText';
     //elseif ( $monitor['Function'] == 'Monitor' )
-     //   $fclass = "warnText";
+     //   $fclass = 'warnText';
     else
-      $fclass = "infoText";
+      $fclass = 'infoText';
     if ( !$monitor['Enabled'] )
-      $fclass .= " disabledText";
+      $fclass .= ' disabledText';
     $scale = max( reScale( SCALE_BASE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
 ?>
 <?php if ( ZM_WEB_ID_ON_CONSOLE ) { ?>
@@ -345,6 +325,26 @@ echo $Server->Name();
 }
 ?>
         </tbody>
+        <tfoot>
+          <tr>
+            <td class="colLeftButtons" colspan="<?php echo $left_columns ?>">
+              <input type="button" value="<?php echo translate('Refresh') ?>" onclick="location.reload(true);"/>
+              <input type="button" name="addBtn" value="<?php echo translate('AddNewMonitor') ?>" onclick="addMonitor( this )"/>
+              <!-- <?php echo makePopupButton( '?view=monitor', 'zmMonitor0', 'monitor', translate('AddNewMonitor'), (canEdit( 'Monitors' ) && !$user['MonitorIds']) ) ?> -->
+              <?php echo makePopupButton( urlencode('?view=filter&filter[terms][0][attr]=DateTime&filter[terms][0][op]=%3c&filter[terms][0][val]=now'), 'zmFilter', 'filter', translate('Filters'), canView( 'Events' ) ) ?>
+            </td>
+<?php
+for ( $i = 0; $i < count($eventCounts); $i++ ) {
+  parseFilter( $eventCounts[$i]['filter'] );
+?>
+            <td class="colEvents"><?php echo makePopupLink( '?view='.$eventsView.'&amp;page=1'.$eventCounts[$i]['filter']['query'], $eventsWindow, $eventsView, $eventCounts[$i]['total'], canView( 'Events' ) ) ?></td>
+<?php
+}
+?>
+            <td class="colZones"><?php echo $zoneCount ?></td>
+            <td class="colRightButtons" colspan="<?php echo canEdit('Monitors')?2:1 ?>"><input type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editMonitor( this )" disabled="disabled"/><input type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteMonitor( this )" disabled="disabled"/></td>
+          </tr>
+        </tfoot>
       </table>
     </div>
     </form>

@@ -153,7 +153,7 @@ if ( !$filter_parm ) {
   sleep( START_DELAY );
 }
 
-my $filters;
+my @filters;
 my $last_action = 0;
 
 while( 1 ) {
@@ -161,14 +161,14 @@ while( 1 ) {
   if ( ($now - $last_action) > $Config{ZM_FILTER_RELOAD_DELAY} ) {
     Debug( "Reloading filters\n" );
     $last_action = $now;
-    $filters = getFilters( $filter_parm );
+    @filters = getFilters( $filter_parm );
   }
 
-  foreach my $filter ( @$filters ) {
+  foreach my $filter ( @filters ) {
     checkFilter( $filter );
   }
 
-  last if ( $filter_parm );
+  last if $filter_parm;
 
   Debug( "Sleeping for $delay seconds\n" );
   sleep( $delay );
@@ -203,19 +203,19 @@ sub getFilters {
       or Fatal( "Can't execute '$sql': ".$sth->errstr() );
   }
 FILTER: while( my $db_filter = $sth->fetchrow_hashref() ) {
-          my $filter = new ZoneMinder::Filter( $$db_filter{Id}, $db_filter );
-          Debug( "Found filter '$db_filter->{Name}'\n" );
-          my $sql = $filter->Sql();
+    my $filter = new ZoneMinder::Filter( $$db_filter{Id}, $db_filter );
+    Debug( "Found filter '$db_filter->{Name}'\n" );
+    my $sql = $filter->Sql();
 
-          if ( ! $sql ) {
-            Error( "Error parsing Sql. skipping filter '$db_filter->{Name}'\n" );
-            next FILTER;
-          }
-          push( @filters, $filter );
-        }
-        $sth->finish();
-        Debug( 'Got ' . @filters . ' filters' );
-        return( \@filters );
+    if ( ! $sql ) {
+      Error( "Error parsing Sql. skipping filter '$db_filter->{Name}'\n" );
+      next FILTER;
+    }
+    push( @filters, $filter );
+  }
+  $sth->finish();
+  Debug( 'Got ' . @filters . ' filters' );
+  return( @filters );
 }
 
 sub checkFilter {

@@ -60,7 +60,6 @@ use constant START_DELAY => 5; # How long to wait before starting
 
 @EXTRA_PERL_LIB@
 use ZoneMinder;
-require ZoneMinder::Filter;
 use DBI;
 use POSIX;
 use Time::HiRes qw/gettimeofday/;
@@ -69,29 +68,44 @@ use Getopt::Long;
 use autouse 'Pod::Usage'=>qw(pod2usage);
 use autouse 'Data::Dumper'=>qw(Dumper);
 
+my $filter_parm = '';
+my $version = 0;
+
+GetOptions(
+    'filter=s'      =>\$filter_parm,
+    'version'       =>\$version
+    ) or pod2usage(-exitstatus => -1);
+
+if ( $version ) {
+  print ZoneMinder::Base::ZM_VERSION . "\n";
+  exit(0);
+}
+
+require ZoneMinder::Filter;
+
 use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)
   ? $Config{ZM_DIR_EVENTS}
   : ($Config{ZM_PATH_WEB}.'/'.$Config{ZM_DIR_EVENTS})
   ;
 
-  logInit();
-  logSetSignal();
+logInit();
+logSetSignal();
 
-  if ( $Config{ZM_OPT_UPLOAD} ) {
+if ( $Config{ZM_OPT_UPLOAD} ) {
 # Comment these out if you don't have them and don't want to upload
 # or don't want to use that format
-    if ( $Config{ZM_UPLOAD_ARCH_FORMAT} eq 'zip' ) {
-      require Archive::Zip;
-      import Archive::Zip qw( :ERROR_CODES :CONSTANTS );
-    } else {
-      require Archive::Tar;
-    }
-    if ( $Config{ZM_UPLOAD_PROTOCOL} eq 'ftp' ) {
-      require Net::FTP;
-    } else {
-      require Net::SFTP::Foreign;
-    }
+  if ( $Config{ZM_UPLOAD_ARCH_FORMAT} eq 'zip' ) {
+    require Archive::Zip;
+    import Archive::Zip qw( :ERROR_CODES :CONSTANTS );
+  } else {
+    require Archive::Tar;
   }
+  if ( $Config{ZM_UPLOAD_PROTOCOL} eq 'ftp' ) {
+    require Net::FTP;
+  } else {
+    require Net::SFTP::Foreign;
+  }
+}
 
 if ( $Config{ZM_OPT_EMAIL} ) {
   if ( $Config{ZM_NEW_MAIL_MODULES} ) {
@@ -119,20 +133,6 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 my $delay = $Config{ZM_FILTER_EXECUTE_INTERVAL};
 my $event_id = 0;
-my $filter_parm = '';
-my $version = 0;
-
-#
-
-GetOptions(
-    'filter=s'      =>\$filter_parm,
-    'version'       =>\$version
-    ) or pod2usage(-exitstatus => -1);
-
-if ( $version ) {
-  print ZoneMinder::Base::ZM_VERSION . '\n';
-  exit(0);
-}
 
 if ( ! EVENT_PATH ) {
   Error( "No event path defined. Config was $Config{ZM_DIR_EVENTS}\n" );
@@ -330,11 +330,16 @@ sub generateVideo {
     $format = $ffmpeg_formats[0];
   }
 
-  my $command = join('',
+  my $command = join( '',
       $Config{ZM_PATH_BIN},
       '/zmvideo.pl -e ',
-      .$event->{Id},
-      ' -r ',$rate,' -s ',$scale,' -f ',$format,
+      $event->{Id},
+      ' -r ',
+      $rate,
+      ' -s ',
+      $scale,
+      ' -f ',
+      $format,
       );
   my $output = qx($command);
   chomp( $output );

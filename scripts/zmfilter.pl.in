@@ -794,7 +794,7 @@ sub sendMessage {
   my $event = shift;
 
   if ( ! $Config{ZM_FROM_EMAIL} ) {
-    Error( 'No 'from' email address defined, not sending message' );
+    Error( "No 'from' email address defined, not sending message" );
     return( 0 );
   }
   if ( ! $Config{ZM_MESSAGE_ADDRESS} ) {

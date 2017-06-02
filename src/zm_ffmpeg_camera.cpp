@@ -23,7 +23,7 @@
 
 #include "zm_ffmpeg_camera.h"
 
-extern "C"{
+extern "C" {
 #include "libavutil/time.h"
 }
 #ifndef AV_ERROR_MAX_STRING_SIZE
@@ -125,8 +125,7 @@ int FfmpegCamera::PreCapture()
   return( 0 );
 }
 
-int FfmpegCamera::Capture( Image &image )
-{
+int FfmpegCamera::Capture( Image &image ) {
   if (!mCanCapture){
     return -1;
   }
@@ -459,8 +458,7 @@ int FfmpegCamera::CloseFfmpeg(){
   av_frame_free( &mRawFrame );
 
 #if HAVE_LIBSWSCALE
-  if ( mConvertContext )
-  {
+  if ( mConvertContext ) {
     sws_freeContext( mConvertContext );
     mConvertContext = NULL;
   }
@@ -487,8 +485,7 @@ int FfmpegCamera::CloseFfmpeg(){
   return 0;
 }
 
-int FfmpegCamera::FfmpegInterruptCallback(void *ctx) 
-{ 
+int FfmpegCamera::FfmpegInterruptCallback(void *ctx) { 
   FfmpegCamera* camera = reinterpret_cast<FfmpegCamera*>(ctx);
   if (camera->mIsOpening){
     int now = time(NULL);
@@ -526,14 +523,14 @@ void *FfmpegCamera::ReopenFfmpegThreadCallback(void *ctx){
 
 //Function to handle capture and store
 int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event_file ) {
-  if (!mCanCapture){
+  if ( ! mCanCapture ) {
     return -1;
   }
   int ret;
   static char errbuf[AV_ERROR_MAX_STRING_SIZE];
   
   // If the reopen thread has a value, but mCanCapture != 0, then we have just reopened the connection to the ffmpeg device, and we can clean up the thread.
-  if (mReopenThread != 0) {
+  if ( mReopenThread != 0 ) {
     void *retval = 0;
 
     ret = pthread_join(mReopenThread, &retval);
@@ -545,7 +542,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
     mReopenThread = 0;
   }
 
-  if (mVideoCodecContext->codec_id != AV_CODEC_ID_H264) {
+  if ( mVideoCodecContext->codec_id != AV_CODEC_ID_H264 ) {
     Error( "Input stream is not h264.  The stored event file may not be viewable in browser." );
   }
 
@@ -689,7 +686,7 @@ else if ( packet.pts && video_last_pts > packet.pts ) {
  
       // The following lines should ensure that the queue always begins with a video keyframe
       if ( packet.stream_index == mAudioStreamId ) {
-Debug(2, "Have audio packet, reocrd_audio is (%d) and packetqueue.size is (%d)", record_audio, packetqueue.size() );
+//Debug(2, "Have audio packet, reocrd_audio is (%d) and packetqueue.size is (%d)", record_audio, packetqueue.size() );
         if ( record_audio && packetqueue.size() ) { 
           // if it's audio, and we are doing audio, and there is already something in the queue
           packetqueue.queuePacket( &packet );
@@ -781,8 +778,10 @@ Debug(2, "Have audio packet, reocrd_audio is (%d) and packetqueue.size is (%d)",
             return 0;
           }
         } else {
-          Debug(4, "Not recording audio packet" );
+          Debug(4, "Not doing recording of audio packet" );
         }
+      } else {
+        Debug(4, "Have audio packet, but not recording atm" );
       }
     } else {
 #if LIBAVUTIL_VERSION_CHECK(56, 23, 0, 23, 0)

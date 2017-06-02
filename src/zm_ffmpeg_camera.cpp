@@ -361,7 +361,7 @@ int FfmpegCamera::OpenFfmpeg() {
     Fatal( "Unable to open codec for video stream from %s", mPath.c_str() );
   }
 
-  if (mAudioStreamId >= 0) {
+  if ( mAudioStreamId >= 0 ) {
     mAudioCodecContext = mFormatContext->streams[mAudioStreamId]->codec;
     if ((mAudioCodec = avcodec_find_decoder(mAudioCodecContext->codec_id)) == NULL) {
       Debug(1, "Can't find codec for audio stream from %s", mPath.c_str());
@@ -434,7 +434,7 @@ int FfmpegCamera::OpenFfmpeg() {
   mCanCapture = true;
 
   return 0;
-}
+} // int FfmpegCamera::OpenFfmpeg()
 
 int FfmpegCamera::ReopenFfmpeg() {
 
@@ -689,8 +689,11 @@ else if ( packet.pts && video_last_pts > packet.pts ) {
  
       // The following lines should ensure that the queue always begins with a video keyframe
       if ( packet.stream_index == mAudioStreamId ) {
-        if ( record_audio && packetqueue.size() ) // if it's audio, and we are doing audio, and there is already something in the queue
+Debug(2, "Have audio packet, reocrd_audio is (%d) and packetqueue.size is (%d)", record_audio, packetqueue.size() );
+        if ( record_audio && packetqueue.size() ) { 
+          // if it's audio, and we are doing audio, and there is already something in the queue
           packetqueue.queuePacket( &packet );
+        }
       } else if ( packet.stream_index == mVideoStreamId ) {
         if ( key_frame || packetqueue.size() ) // it's a keyframe or we already have something in the queue
           packetqueue.queuePacket( &packet );

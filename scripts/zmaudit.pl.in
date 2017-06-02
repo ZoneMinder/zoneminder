@@ -111,6 +111,10 @@ if ( ($report + $interactive + $continuous) > 1 ) {
   pod2usage(-exitstatus => -1);
 }
 
+if ( ! exists $Config{ZM_AUDIT_MIN_AGE} ) {
+  Fatal('ZM_AUDIT_MIN_AGE is not set in config.');
+}
+
 my $dbh = zmDbConnect();
 
 chdir( EVENT_PATH );
@@ -145,12 +149,8 @@ MAIN: while( $loop ) {
     sleep 1;
   } # end if
 
-  if ( ! exists $Config{ZM_AUDIT_MIN_AGE} ) {
-    Fatal('ZM_AUDIT_MIN_AGE is not set in config.');
-  }
-
   my $db_monitors;
-  my $monitorSelectSql = "select Id from Monitors order by Id";
+  my $monitorSelectSql = 'select Id from Monitors order by Id';
   my $monitorSelectSth = $dbh->prepare_cached( $monitorSelectSql )
     or Fatal( "Can't prepare '$monitorSelectSql': ".$dbh->errstr() );
   my $eventSelectSql = 'SELECT Id, (unix_timestamp() - unix_timestamp(StartTime)) as Age

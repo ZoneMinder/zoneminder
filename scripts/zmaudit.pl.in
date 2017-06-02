@@ -185,11 +185,11 @@ MAIN: while( $loop ) {
         Debug( "Checking day dir $day_dir" );
         ( $day_dir ) = ( $day_dir =~ /^(.*)$/ ); # De-taint
         if ( ! chdir( $day_dir ) ) {
-          Error( "Can't chdir to '$$Storage{Path}/$day_dir': $!" );
+          Error( "Can't chdir to '$day_dir': $!" );
           next;
         }
         if ( ! opendir( DIR, '.' ) ) {
-          Error( "Can't open directory '$$Storage{Path}/$day_dir': $!" );
+          Error( "Can't open directory '$day_dir': $!" );
           next;
         }
 

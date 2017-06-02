@@ -104,6 +104,7 @@ mark_as_advanced(
     ZM_PERL_SEARCH_PATH 
     ZM_TARGET_DISTRO 
     ZM_CONFIG_DIR
+    ZM_CONFIG_SUBDIR
     ZM_SYSTEMD)
 
 set(ZM_RUNDIR "/var/run/zm" CACHE PATH 
@@ -137,6 +138,8 @@ set(ZM_WEB_GROUP "" CACHE STRING
 # Advanced
 set(ZM_CONFIG_DIR "/${CMAKE_INSTALL_SYSCONFDIR}" CACHE PATH 
     "Location of ZoneMinder configuration, default system config directory")
+set(ZM_CONFIG_SUBDIR "${ZM_CONFIG_DIR}/conf.d" CACHE PATH 
+    "Location of ZoneMinder configuration subfolder, default: ZM_CONFIG_DIR/conf.d")
 set(ZM_EXTRA_LIBS "" CACHE STRING 
     "A list of optional libraries, separated by semicolons, e.g. ssl;theora")
 set(ZM_MYSQL_ENGINE "InnoDB" CACHE STRING 
@@ -791,6 +794,11 @@ else(ZM_PERL_SEARCH_PATH)
 	set(EXTRA_PERL_LIB "# Include from system perl paths only")
 endif(ZM_PERL_SEARCH_PATH)
 
+# If this is an out-of-source build, copy the files we need to the binary directory
+if(NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR))
+	file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/conf.d" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/conf.d")
+endif(NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR))
+
 # Generate files from the .in files
 configure_file(zm.conf.in "${CMAKE_CURRENT_BINARY_DIR}/zm.conf" @ONLY)
 configure_file(zoneminder-config.cmake "${CMAKE_CURRENT_BINARY_DIR}/config.h" @ONLY)
@@ -837,8 +845,9 @@ else(zmconfgen_result EQUAL 0)
             "ZoneMinder configuration generator failed. Exit code: ${zmconfgen_result}")
 endif(zmconfgen_result EQUAL 0)
 
-# Install zm.conf
+# Install zm.conf and conf.d subfolder
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zm.conf" DESTINATION "${ZM_CONFIG_DIR}")
+install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/conf.d/" DESTINATION "ZM_CONFIG_SUBDIR")
 
 # Uninstall target
 configure_file(

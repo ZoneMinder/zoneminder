@@ -7,13 +7,13 @@ function updateButtons( element ) {
     var canExecute = false;
     if ( form.elements['AutoArchive'].checked )
       canExecute = true;
-    else if ( typeof ZM_OPT_FFMPEG !== "undefined" && form.elements['AutoVideo'].checked )
+    else if ( form.elements['AutoVideo'] && form.elements['AutoVideo'].checked )
       canExecute = true;
-    else if ( typeof ZM_OPT_UPLOAD !== "undefined" && form.elements['AutoUpload'].checked )
+    else if ( form.elements['AutoUpload'] && form.elements['AutoUpload'].checked )
       canExecute = true;
-    else if ( typeof ZM_OPT_EMAIL !== "undefined" && form.elements['AutoEmail'].checked )
+    else if ( form.elements['AutoEmail'] && form.elements['AutoEmail'].checked )
       canExecute = true;
-    else if ( typeof ZM_OPT_MESSAGE !== "undefined" && form.elements['AutoMessage'].checked )
+    else if ( form.elements['AutoMessage'] && form.elements['AutoMessage'].checked )
       canExecute = true;
     else if ( form.elements['AutoExecute'].checked && form.elements['AutoExecuteCmd'].value != '' )
       canExecute = true;

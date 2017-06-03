@@ -71,7 +71,9 @@ use Carp;
 
 # Load the config from the database into the symbol table
 BEGIN {
+
   # Process name, value pairs from the main config file first
+  my $config_file = ZM_CONFIG;
   process_configfile($config_file);
 
   # Search for user created config files. If one or more are found then

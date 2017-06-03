@@ -847,7 +847,7 @@ endif(zmconfgen_result EQUAL 0)
 
 # Install zm.conf and conf.d subfolder
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zm.conf" DESTINATION "${ZM_CONFIG_DIR}")
-install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/conf.d/" DESTINATION "ZM_CONFIG_SUBDIR")
+install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/conf.d/" DESTINATION "${ZM_CONFIG_SUBDIR}")
 
 # Uninstall target
 configure_file(

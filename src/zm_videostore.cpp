@@ -379,8 +379,12 @@ bool VideoStore::setup_resampler() {
 #ifdef HAVE_LIBAVRESAMPLE
   static char error_buffer[256];
 
+#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
   // Newer ffmpeg wants to keep everything separate... so have to lookup our own decoder, can't reuse the one from the camera.
   AVCodec *audio_input_codec = avcodec_find_decoder(audio_input_stream->codecpar->codec_id);
+#else
+  AVCodec *audio_input_codec = avcodec_find_decoder(audio_input_context->codec_id);
+#endif
   ret = avcodec_open2( audio_input_context, audio_input_codec, NULL );
   if ( ret < 0 ) {
     Error("Can't open input codec!");

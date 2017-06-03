@@ -280,7 +280,9 @@ rm -rf %{_docdir}/%{name}-%{version}
 %files
 %license COPYING
 %doc AUTHORS README.md distros/redhat/readme/README.%{readme_suffix} distros/redhat/readme/README.https distros/redhat/jscalendar-doc
-%config(noreplace) %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm/zm.conf
+# Always overwrite zm.conf now that ZoneMinder supports conf.d folder
+%attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm/zm.conf
+%{_sysconfdir}/zm/conf.d/
 %config(noreplace) %attr(644,root,root) %{wwwconfdir}/zoneminder.conf
 %config(noreplace) %{_sysconfdir}/logrotate.d/zoneminder
 

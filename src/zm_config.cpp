@@ -32,14 +32,14 @@
 void zmLoadConfig() {
 
   // Process name, value pairs from the main config file first
-  char configFile[PATH_MAX] = "ZM_CONFIG_SUBDIR";
+  char configFile[PATH_MAX] = ZM_CONFIG;
   process_configfile(configFile);
 
   // Search for user created config files. If one or more are found then
   // update the Config hash with those values
   DIR* configSubFolder = opendir(ZM_CONFIG_SUBDIR);
   if ( configSubFolder ) { // subfolder exists and is readable
-      char glob_pattern[PATH_MAX] = "ZM_CONFIG_SUBDIR";
+      char glob_pattern[PATH_MAX] = ZM_CONFIG_SUBDIR;
       snprintf( glob_pattern, sizeof(glob_pattern), "%s/*.conf", glob_pattern );
 
       glob_t pglob;

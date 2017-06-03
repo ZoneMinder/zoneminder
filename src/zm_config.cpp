@@ -39,8 +39,8 @@ void zmLoadConfig() {
   // update the Config hash with those values
   DIR* configSubFolder = opendir(ZM_CONFIG_SUBDIR);
   if ( configSubFolder ) { // subfolder exists and is readable
-      char glob_pattern[PATH_MAX] = ZM_CONFIG_SUBDIR;
-      snprintf( glob_pattern, sizeof(glob_pattern), "%s/*.conf", glob_pattern );
+      char glob_pattern[PATH_MAX] = "";
+      snprintf( glob_pattern, sizeof(glob_pattern), "%s/*.conf", ZM_CONFIG_SUBDIR );
 
       glob_t pglob;
       int glob_status = glob( glob_pattern, 0, 0, &pglob );

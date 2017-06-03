@@ -17,7 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # ==========================================================================
 
@@ -226,7 +226,12 @@ if ( $command =~ /^(?:start|restart)$/ )
         zmMemTidy();
         runCommand( "zmdc.pl startup" );
 
-		Info( "Starting up services" . ( $Config{ZM_SERVER_ID} ? " for server $Config{ZM_SERVER_ID}\n" : "\n" ) );
+        if ( $Config{ZM_SERVER_ID} ) {
+            Info( "Multi-server configuration detected. Starting up services for server $Config{ZM_SERVER_ID}\n");
+        } else {
+            Info( "Single server configuration detected. Starting up services." );
+        }
+
         my $sql = $Config{ZM_SERVER_ID} ? 'SELECT * FROM Monitors WHERE ServerId=?' : 'SELECT * FROM Monitors';
         my $sth = $dbh->prepare_cached( $sql )
             or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
@@ -246,10 +251,6 @@ if ( $command =~ /^(?:start|restart)$/ )
                 }
                 if ( $monitor->{Function} ne 'Monitor' )
                 {
-                    if ( $Config{ZM_OPT_FRAME_SERVER} )
-                    {
-                        runCommand( "zmdc.pl start zmf -m $monitor->{Id}" );
-                    }
                     runCommand( "zmdc.pl start zma -m $monitor->{Id}" );
                 }
                 if ( $Config{ZM_OPT_CONTROL} )

@@ -21,23 +21,23 @@ if ( !@socket_bind( $socket, $locSockFile ) )
 switch ( $_REQUEST['command'] )
 {
     case CMD_VARPLAY :
-        Debug( "Varplaying to ".$_REQUEST['rate'] );
+        Logger::Debug( "Varplaying to ".$_REQUEST['rate'] );
         $msg = pack( "lcn", MSG_CMD, $_REQUEST['command'], $_REQUEST['rate']+32768 );
         break;
     case CMD_ZOOMIN :
-        Debug( "Zooming to ".$_REQUEST['x'].",".$_REQUEST['y'] );
+        Logger::Debug( "Zooming to ".$_REQUEST['x'].",".$_REQUEST['y'] );
         $msg = pack( "lcnn", MSG_CMD, $_REQUEST['command'], $_REQUEST['x'], $_REQUEST['y'] );
         break;
     case CMD_PAN :
-        Debug( "Panning to ".$_REQUEST['x'].",".$_REQUEST['y'] );
+        Logger::Debug( "Panning to ".$_REQUEST['x'].",".$_REQUEST['y'] );
         $msg = pack( "lcnn", MSG_CMD, $_REQUEST['command'], $_REQUEST['x'], $_REQUEST['y'] );
         break;
     case CMD_SCALE :
-        Debug( "Scaling to ".$_REQUEST['scale'] );
+        Logger::Debug( "Scaling to ".$_REQUEST['scale'] );
         $msg = pack( "lcn", MSG_CMD, $_REQUEST['command'], $_REQUEST['scale'] );
         break;
     case CMD_SEEK :
-        Debug( "Seeking to ".$_REQUEST['offset'] );
+        Logger::Debug( "Seeking to ".$_REQUEST['offset'] );
         $msg = pack( "lcN", MSG_CMD, $_REQUEST['command'], $_REQUEST['offset'] );
         break;
     default :
@@ -47,12 +47,16 @@ switch ( $_REQUEST['command'] )
 
 $remSockFile = ZM_PATH_SOCKS.'/zms-'.sprintf("%06d",$_REQUEST['connkey']).'s.sock';
 $max_socket_tries = 10;
-while ( !file_exists($remSockFile) && $max_socket_tries-- ) //sometimes we are too fast for our own good, if it hasn't been setup yet give it a second.
-	usleep(200000);
+while ( !file_exists($remSockFile) && $max_socket_tries-- ) { //sometimes we are too fast for our own good, if it hasn't been setup yet give it a second.
+  usleep(200000);
+}
 
-if ( !@socket_sendto( $socket, $msg, strlen($msg), 0, $remSockFile ) )
-{
+if ( !file_exists($remSockFile) ) {
+  ajaxError("Socket $remSockFile does not exist.  This file is created by zms, and since it does not exist, either zms did not run, or zms exited early.  Please check your zms logs and ensure that CGI is enabled in apache and check that the PATH_ZMS is set correctly.  Make sure that ZM is actually recording.  If you are trying to view a live stream and the capture process (zmc) is not running then zms will exit. Please go to http://zoneminder.readthedocs.io/en/latest/faq.html#why-can-t-i-see-streamed-images-when-i-can-see-stills-in-the-zone-window-etc for more information.");
+} else {
+  if ( !@socket_sendto( $socket, $msg, strlen($msg), 0, $remSockFile ) ) {
     ajaxError( "socket_sendto( $remSockFile ) failed: ".socket_strerror(socket_last_error()) );
+  }
 }
 
 $rSockets = array( $socket );

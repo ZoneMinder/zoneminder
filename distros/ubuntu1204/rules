@@ -58,8 +58,10 @@ override_dh_auto_install:
 
 override_dh_fixperms:
 	dh_fixperms
-	## 637685
-	chmod -c o-r $(CURDIR)/debian/zoneminder/etc/zm/zm.conf
+	#
+	# As requested by the Debian Webapps Policy Manual §3.2.1
+	chown root:www-data $(CURDIR)/debian/zoneminder/etc/zm/zm.conf
+	chmod 640 $(CURDIR)/debian/zoneminder/etc/zm/zm.conf
 
 override_dh_installinit:
 	dh_installinit --no-start

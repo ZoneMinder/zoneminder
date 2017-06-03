@@ -103,7 +103,7 @@ public function beforeFilter() {
 
 			$this->Monitor->create();
 			if ($this->Monitor->save($this->request->data)) {
-				$this->daemonControl($this->Monitor->id, 'start', $this->request->data);
+				$this->daemonControl($this->Monitor->id, 'start');
 				return $this->flash(__('The monitor has been saved.'), array('action' => 'index'));
 			}
 		}
@@ -137,9 +137,18 @@ public function beforeFilter() {
 			'message' => $message,
 			'_serialize' => array('message')
 		));
-		// - restart this monitor after change
-		// We don't pass the request data as the monitor object because it may be a subset of the full monitor array
- 		$this->daemonControl( $this->Monitor->id, 'restart' );
+
+		// - restart or stop this monitor after change
+    $func = $this->Monitor->find('first', array(
+          'fields' => array('Function'),
+          'conditions' => array('Id' => $id)
+          ))['Monitor']['Function'];
+    // We don't pass the request data as the monitor object because it may be a subset of the full monitor array
+    if ( $func == 'None' ) {
+      $this->daemonControl( $this->Monitor->id, 'stop' );
+    } else {
+      $this->daemonControl( $this->Monitor->id, 'restart' );
+    }
 	}
 
 /**

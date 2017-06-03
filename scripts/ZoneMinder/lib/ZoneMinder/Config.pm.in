@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # ==========================================================================
 #
@@ -30,7 +30,6 @@ use warnings;
 
 require Exporter;
 require ZoneMinder::Base;
-require ZoneMinder::Database;
 use ZoneMinder::ConfigData qw(:all);
 
 our @ISA = qw(Exporter ZoneMinder::Base);
@@ -47,14 +46,14 @@ our @EXPORT_CONFIG = qw( %Config ); # Get populated by BEGIN
 
 our %EXPORT_TAGS = (
     functions => [ qw(
-        zmConfigLoad
-        loadConfigFromDB
-        saveConfigToDB
-    ) ],
+      zmConfigLoad
+      loadConfigFromDB
+      saveConfigToDB
+      ) ],
     constants => [ qw(
-        ZM_PID
-    ) ]
-);
+      ZM_PID
+      ) ]
+    );
 push( @{$EXPORT_TAGS{config}}, @EXPORT_CONFIG );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
 
@@ -70,9 +69,7 @@ use constant ZM_CONFIG => "@ZM_CONFIG@"; # Path to the ZoneMinder config file
 use Carp;
 
 # Load the config from the database into the symbol table
-sub zmConfigLoad {
-  %Config = ();
-
+BEGIN {
   my $config_file = ZM_CONFIG;
   open( my $CONFIG, "<", $config_file )
     or croak( "Can't open config file '$config_file': $!" );
@@ -89,7 +86,24 @@ sub zmConfigLoad {
   }
   close( $CONFIG );
 
-  my $dbh = ZoneMinder::Database::zmDbConnect() or croak( "Can't connect to db" );
+  use DBI;
+  my $socket;
+  my ( $host, $portOrSocket ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
+
+  if ( defined($portOrSocket) ) {
+    if ( $portOrSocket =~ /^\// ) {
+      $socket = ";mysql_socket=".$portOrSocket;
+    } else {
+      $socket = ";host=".$host.";port=".$portOrSocket;
+    }
+  } else {
+    $socket = ";host=".$Config{ZM_DB_HOST}; 
+  }
+  my $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
+      .$socket
+      , $Config{ZM_DB_USER}
+      , $Config{ZM_DB_PASS}
+      ) or croak( "Can't connect to db" );
   my $sql = 'select * from Config';
   my $sth = $dbh->prepare_cached( $sql ) or croak( "Can't prepare '$sql': ".$dbh->errstr() );
   my $res = $sth->execute() or croak( "Can't execute: ".$sth->errstr() );
@@ -97,7 +111,7 @@ sub zmConfigLoad {
     $Config{$config->{Name}} = $config->{Value};
   }
   $sth->finish();
-
+#$dbh->disconnect();
   if ( ! exists $Config{ZM_SERVER_ID} ) {
     $Config{ZM_SERVER_ID} = undef;
     $sth = $dbh->prepare_cached( 'SELECT * FROM Servers WHERE Name=?' );
@@ -112,10 +126,10 @@ sub zmConfigLoad {
     }
     $sth->finish();
   }
-}
+} # end BEGIN
 
 sub loadConfigFromDB {
-  print( "Loading config from DB\n" );
+  print( "Loading config from DB" );
   my $dbh = ZoneMinder::Database::zmDbConnect();
   if ( !$dbh ) {
     print( "Error: unable to load options from database: $DBI::errstr\n" );
@@ -132,7 +146,7 @@ sub loadConfigFromDB {
 #print( "Name = '$name'\n" );
     my $option = $options_hash{$name};
     if ( !$option ) {
-      warn( "No option '$name' found, removing" );
+      warn( "No option '$name' found, removing.\n" );
       next;
     }
 #next if ( $option->{category} eq 'hidden' );
@@ -146,14 +160,14 @@ sub loadConfigFromDB {
     $option_count++;;
   }
   $sth->finish();
+  print( " $option_count entries\n" );
   return( $option_count );
-}
+} # end sub loadConfigFromDB
 
 sub saveConfigToDB {
-  print( "Saving config to DB\n" );
+  print( "Saving config to DB " . @options . " entries\n" );
   my $dbh = ZoneMinder::Database::zmDbConnect();
-  if ( !$dbh )
-  {
+  if ( !$dbh ) {
     print( "Error: unable to save options to database: $DBI::errstr\n" );
     return( 0 );
   }
@@ -171,40 +185,26 @@ sub saveConfigToDB {
   $sql = "replace into Config set Id = ?, Name = ?, Value = ?, Type = ?, DefaultValue = ?, Hint = ?, Pattern = ?, Format = ?, Prompt = ?, Help = ?, Category = ?, Readonly = ?, Requires = ?";
   my $sth = $dbh->prepare_cached( $sql )
     or croak( "Can't prepare '$sql': ".$dbh->errstr() );
-  foreach my $option ( @options )
-  {
+  foreach my $option ( @options ) {
 #next if ( $option->{category} eq 'hidden' );
 #print( $option->{name}."\n" ) if ( !$option->{category} );
     $option->{db_type} = $option->{type}->{db_type};
     $option->{db_hint} = $option->{type}->{hint};
     $option->{db_pattern} = $option->{type}->{pattern};
     $option->{db_format} = $option->{type}->{format};
-    if ( $option->{db_type} eq "boolean" )
-    {
-      $option->{db_value} = ($option->{value} eq "yes")
-        ? "1"
-        : "0"
-        ;
-    }
-    else
-    {
+    if ( $option->{db_type} eq "boolean" ) {
+      $option->{db_value} = ($option->{value} eq "yes") ? "1" : "0";
+    } else {
       $option->{db_value} = $option->{value};
     }
-    if ( my $requires = $option->{requires} )
-    {
+    if ( my $requires = $option->{requires} ) {
       $option->{db_requires} = join( ";",
           map {
-          my $value = $_->{value};
-          $value = ($value eq "yes")
-          ? 1
-          : 0
-          if ( $options_hash{$_->{name}}->{db_type} eq "boolean" )
-          ; ( "$_->{name}=$value" )
+            my $value = $_->{value};
+            $value = ($value eq "yes") ? 1 : 0 if ( $options_hash{$_->{name}}->{db_type} eq "boolean" );
+            ( "$_->{name}=$value" )
           } @$requires
           );
-    }
-    else
-    {
     }
     my $res = $sth->execute(
         $option->{id},
@@ -221,15 +221,13 @@ sub saveConfigToDB {
         $option->{readonly} ? 1 : 0,
         $option->{db_requires}
         ) or croak( "Can't execute: ".$sth->errstr() );
-  }
+  } # end foreach option
   $sth->finish();
 
   $dbh->do('UNLOCK TABLES');
   $dbh->{AutoCommit} = $ac;
-}
+} # end sub saveConfigToDB
 
-1;
-__END__
 1;
 __END__
 
@@ -295,7 +293,7 @@ Copyright (C) 2001-2008  Philip Coombes
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.3 or,
-   at your option, any later version of Perl 5 you may have available.
+at your option, any later version of Perl 5 you may have available.
 
 
-   =cut
+=cut

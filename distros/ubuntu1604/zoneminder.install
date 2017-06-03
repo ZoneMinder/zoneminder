@@ -3,6 +3,7 @@ usr/bin
 usr/lib/zoneminder
 usr/share/polkit-1
 usr/share/zoneminder/db
+usr/share/zoneminder/icons
 usr/share/zoneminder/www
 
 # libzoneminder-perl files:

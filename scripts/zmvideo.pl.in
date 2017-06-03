@@ -17,7 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # ==========================================================================
 
@@ -222,6 +222,7 @@ foreach my $event_id ( @event_ids ) {
 	my $video_file = $Event->GenerateVideo( $rate, $fps, $scale,  $size, $overwrite, $format );
 	if ( $video_file ) {
 		push @video_files, $video_file;
+		print( STDOUT $video_file."\n" );
 	}
 } # end foreach event_id
 
@@ -253,9 +254,6 @@ if ( $concat_name ) {
 		Error( "Unable to generate video, check /ffmpeg.log for details");
 		exit(-1);
 	}
-	
+	print( STDOUT $video_file."\n" );
 }
-#unlink $input_file_list;
-#print( STDOUT $event->{MonitorId}.'/'.$event->{Id}.'/'.$video_file."\n" );
-#print( STDOUT $video_file."\n" );
 exit( 0 );

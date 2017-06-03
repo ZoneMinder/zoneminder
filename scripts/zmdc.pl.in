@@ -17,7 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # ==========================================================================
 
@@ -69,7 +69,7 @@ use IO::Handle;
 use autouse 'Pod::Usage'=>qw(pod2usage);
 #use Data::Dumper;
 
-use constant SOCK_FILE => $Config{ZM_PATH_SOCKS}.'/zmdc.sock';
+use constant SOCK_FILE => $Config{ZM_PATH_SOCKS}.'/zmdc'.($Config{ZM_SERVER_ID}?$Config{ZM_SERVER_ID}:'').'.sock';
 
 $| = 1;
 
@@ -78,13 +78,17 @@ $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 if ( $Config{ZM_LD_PRELOAD} ) {
   Debug("Adding ENV{LD_PRELOAD} = $Config{ZM_LD_PRELOAD}");
   $ENV{LD_PRELOAD} = $Config{ZM_LD_PRELOAD};
+  foreach my $lib ( split(/\s+/, $ENV{LD_PRELOAD} ) ) {
+    if ( ! -e $lib ) {
+      Warning("LD_PRELOAD lib $lib does not exist from LD_PRELOAD $ENV{LD_PRELOAD}.");
+    }
+  }
 }
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 my @daemons = (
     'zmc',
     'zma',
-    'zmf',
     'zmfilter.pl',
     'zmaudit.pl',
     'zmtrigger.pl',
@@ -92,7 +96,7 @@ my @daemons = (
     'zmwatch.pl',
     'zmupdate.pl',
     'zmtrack.pl',
-    'zmtelemetry.pl',
+    'zmtelemetry.pl'
 );
 
 my $command = shift @ARGV;
@@ -262,7 +266,7 @@ sub run
     killAll( 1 );
 
     socket( SERVER, PF_UNIX, SOCK_STREAM, 0 ) or Fatal( "Can't open socket: $!" );
-    unlink( main::SOCK_FILE ) or Error( "Unable to unlink " . main::SOCK_FILE );
+    unlink( main::SOCK_FILE ) or Error( "Unable to unlink " . main::SOCK_FILE .". Error message was: $!" ) if ( -e main::SOCK_FILE );
     bind( SERVER, $saddr ) or Fatal( "Can't bind to " . main::SOCK_FILE . ": $!" );
     listen( SERVER, SOMAXCONN ) or Fatal( "Can't listen: $!" );
 
@@ -374,8 +378,8 @@ sub run
         .strftime( '%y/%m/%d %H:%M:%S', localtime() )
         ."\n"
     );
-    unlink( main::SOCK_FILE );
-    unlink( ZM_PID );
+    unlink( main::SOCK_FILE ) or Error( "Unable to unlink " . main::SOCK_FILE .". Error message was: $!" ) if ( -e main::SOCK_FILE );
+    unlink( ZM_PID ) or Error( "Unable to unlink " . ZM_PID .". Error message was: $!" ) if ( -e ZM_PID );
     exit();
 }
 
@@ -760,8 +764,8 @@ sub shutdownAll
         .strftime( '%y/%m/%d %H:%M:%S', localtime() )
         ."\n"
     );
-    unlink( main::SOCK_FILE );
-    unlink( ZM_PID );
+    unlink( main::SOCK_FILE ) or Error( "Unable to unlink " . main::SOCK_FILE .". Error message was: $!" ) if ( -e main::SOCK_FILE );
+    unlink( ZM_PID ) or Error( "Unable to unlink " . ZM_PID .". Error message was: $!" ) if ( -e ZM_PID );
     close( CLIENT );
     close( SERVER );
     exit();

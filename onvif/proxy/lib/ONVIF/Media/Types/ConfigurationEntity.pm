@@ -139,7 +139,7 @@ get_/set_ methods:
 
 =item * token
 
- Token that uniquely refernces this configuration. Length up to 64 characters.
+ Token that uniquely references this configuration. Length up to 64 characters.
 
 
 

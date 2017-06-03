@@ -1585,7 +1585,7 @@ our @options = (
       this overhead is fairly small but may be noticeable on IO-constrained
       systems.
       `,
-    type        => $types{string},
+    type        => $types{boolean},
     category    => 'web',
   },
   {
@@ -3366,7 +3366,7 @@ our @options = (
   {
     name        => 'ZM_WEB_M_DEFAULT_SCALE',
     default     => '100',
-    description => q`'What the default scaling factor applied to 'live' or 'event' views is (%)`,
+    description => q`What the default scaling factor applied to 'live' or 'event' views is (%)`,
     help        => q`
       Normally ZoneMinder will display 'live' or 'event' streams in
       their native size. However if you have monitors with large
@@ -3387,7 +3387,7 @@ our @options = (
   {
     name        => 'ZM_WEB_M_DEFAULT_RATE',
     default     => '100',
-    description => 'What the default replay rate factor applied to \'event\' views is (%)',
+    description => q`What the default replay rate factor applied to 'event' views is (%)`,
     help        => q`
       Normally ZoneMinder will display 'event' streams at their
       native rate, i.e. as close to real-time as possible. However if

@@ -104,8 +104,6 @@ VOLUME /var/lib/zoneminder/images /var/lib/zoneminder/events /var/lib/mysql /var
 # To speed up configuration testing, we put it here
 ADD utils/docker /ZoneMinder/utils/docker/
 
-ENTRYPOINT /ZoneMinder/utils/docker/setup.sh && /ZoneMinder/utils/docker/start.sh &
-
-CMD bash
+CMD /ZoneMinder/utils/docker/setup.sh && /ZoneMinder/utils/docker/start.sh >/var/log/start.log 2>&1 & /bin/bash
 
 # Run example docker run -it -p 1080:80 -e PHP_TIMEZONE='Europe/Paris' -v /disk/zoneminder/events:/var/lib/zoneminder/events -v /disk/zoneminder/images:/var/lib/zoneminder/images -v /disk/zoneminder/mysql:/var/lib/mysql -v /disk/zoneminder/logs:/var/log/zm --name zoneminder zoneminder/zoneminder

@@ -38,6 +38,7 @@ if [ "$1" = "configure" ]; then
                 invoke-rc.d zoneminder stop || true
                 zmupdate.pl --nointeractive
                 zmupdate.pl --nointeractive -f
+                echo "Done Updating, starting ZoneMinder"
                 invoke-rc.d zoneminder start || true
             else
                 echo 'NOTE: mysql not running, please start mysql and run dpkg-reconfigure zoneminder when it is running.'

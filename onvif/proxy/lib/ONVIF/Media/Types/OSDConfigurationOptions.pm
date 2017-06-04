@@ -143,7 +143,7 @@ Constructor. The following data structure may be passed to new():
      FontColor =>  { # ONVIF::Media::Types::OSDColorOptions
        Color =>        { # ONVIF::Media::Types::ColorOptions
          # One of the following elements.
-         # No occurance checks yet, so be sure to pass just one...
+         # No occurrence checks yet, so be sure to pass just one...
          ColorList => ,
          ColorspaceRange =>  { # ONVIF::Media::Types::ColorspaceRange
            X =>  { # ONVIF::Media::Types::FloatRange
@@ -171,7 +171,7 @@ Constructor. The following data structure may be passed to new():
      BackgroundColor =>  { # ONVIF::Media::Types::OSDColorOptions
        Color =>        { # ONVIF::Media::Types::ColorOptions
          # One of the following elements.
-         # No occurance checks yet, so be sure to pass just one...
+         # No occurrence checks yet, so be sure to pass just one...
          ColorList => ,
          ColorspaceRange =>  { # ONVIF::Media::Types::ColorspaceRange
            X =>  { # ONVIF::Media::Types::FloatRange

@@ -2205,7 +2205,7 @@ of the corresponding class can be passed instead of the marked hash ref.
 You may pass any combination of objects, hash and list refs to these
 methods, as long as you meet the structure.
 
-List items (i.e. multiple occurences) are not displayed in the synopsis.
+List items (i.e. multiple occurrences) are not displayed in the synopsis.
 You may generally pass a list ref of hash refs (or objects) instead of a hash
 ref - this may result in invalid XML if used improperly, though. Note that
 SOAP::WSDL always expects list references at maximum depth position.
@@ -2358,7 +2358,7 @@ Returns a L<ONVIF::Device::Elements::GetSystemLogResponse|ONVIF::Device::Element
 
 =head3 GetSystemSupportInformation
 
-This operation gets arbitary device diagnostics information from the device.
+This operation gets arbitrary device diagnostics information from the device.
 
 Returns a L<ONVIF::Device::Elements::GetSystemSupportInformationResponse|ONVIF::Device::Elements::GetSystemSupportInformationResponse> object.
 
@@ -2602,7 +2602,7 @@ Returns a L<ONVIF::Device::Elements::GetHostnameResponse|ONVIF::Device::Elements
 
 =head3 SetHostname
 
-A device shall accept string formated according to RFC 1123 section 2.1 or alternatively to RFC 952, other string shall be considered as invalid strings. 
+A device shall accept string formatted according to RFC 1123 section 2.1 or alternatively to RFC 952, other string shall be considered as invalid strings.
 
 Returns a L<ONVIF::Device::Elements::SetHostnameResponse|ONVIF::Device::Elements::SetHostnameResponse> object.
 

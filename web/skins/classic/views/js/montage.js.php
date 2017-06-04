@@ -28,14 +28,14 @@ var canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
 
 var monitorData = new Array();
 <?php
-foreach ( $monitors as $monitor )
-{
+foreach ( $monitors as $monitor ) {
 ?>
 monitorData[monitorData.length] = { 
 	'id': <?php echo $monitor->Id() ?>, 
 	'connKey': <?php echo $monitor->connKey() ?>, 
 	'width': <?php echo $monitor->Width() ?>,
-	'height':<?php echo $monitor->Height() ?>
+	'height':<?php echo $monitor->Height() ?>,
+  'server_url': '<?php echo $monitor->Server()->Url().$_SERVER['PHP_SELF'] ?>'
 };
 <?php
 }

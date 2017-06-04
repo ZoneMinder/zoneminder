@@ -15,6 +15,7 @@ __PACKAGE__->__set_ref();
 use base qw(
     SOAP::WSDL::XSD::Typelib::Element
     WSDiscovery10::Types::ProbeType
+    WSDiscovery10::Types::ProbeMatchesType
 );
 
 }

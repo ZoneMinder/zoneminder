@@ -1,6 +1,8 @@
 language: cpp
 sudo: required
 dist: trusty
+git:
+  depth: 9999999
 notifications:
   irc: chat.freenode.net#zoneminder-dev
 branches:

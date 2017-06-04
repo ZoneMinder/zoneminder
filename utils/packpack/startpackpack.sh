@@ -39,6 +39,23 @@ checksanity () {
 
 }
 
+# Check key variables before calling packpack
+checkvars () {
+    if [ -z ${VERSION} ]; then
+        echo
+        echo "FATAL: VERSION variable was null. Cannot continue."
+        echo
+        exit 98
+    fi
+
+    if [ -z ${RELEASE} ]; then
+        echo
+        echo "FATAL: RELEASE variable was null. Cannot Continue"
+        echo
+        exit 98
+    fi
+}
+
 # Steps common to all builds
 commonprep () {
     mkdir -p build
@@ -116,11 +133,6 @@ installtrusty () {
 
 # This sets the naming convention for the deb packages
 setdebpkgver () {
-
-    # DEBUG
-    git describe --long --always
-    git describe --long --always | sed -n 's/^\([0-9\.]*\)-\([0-9]*\)-\([a-z0-9]*\)/\1/p'
-    git describe --long --always | sed -n 's/^\([0-9\.]*\)-\([0-9]*\)-\([a-z0-9]*\)/\2/p'
     
     # Set VERSION to x.xx.x+x e.g. 1.30.2+15
     # the last x is number of commits since release
@@ -130,11 +142,23 @@ setdebpkgver () {
     export VERSION="$zmver+$commitnum"
     export RELEASE="${DIST}"
 
+    checkvars
+    
     echo
     echo "Packpack VERSION has been set to: ${VERSION}"
     echo "Packpack RELEASE has been set to: ${RELEASE}"
     echo
 
+}
+
+# This adds an entry to the debian changelog
+setdebchangelog () {
+DATE=`date -R`
+cat <<EOF > debian/changelog
+zoneminder ($VERSION-${DIST}-1) unstable; urgency=low
+  * 
+ -- Isaac Connor <iconnor@connortechnology.com>  $DATE
+EOF
 }
 
 ################
@@ -159,6 +183,8 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
         export VERSION=$(git describe --long --always | sed -n 's/^\([0-9\.]*\)-\([0-9]*\)-\([a-z0-9]*\)/\1/p')
         export RELEASE=$(git describe --long --always | sed -n 's/^\([0-9\.]*\)-\([0-9]*\)-\([a-z0-9]*\)/\2/p')
 
+        checkvars
+        
         echo
         echo "Packpack VERSION has been set to: ${VERSION}"
         echo "Packpack RELEASE has been set to: ${RELEASE}"
@@ -204,7 +230,9 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
         else 
             ln -sfT distros/ubuntu1604 debian
         fi
-
+        
+        setdebchangelog
+        
         echo "Starting packpack..."
         packpack/packpack
 
@@ -223,6 +251,8 @@ elif [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ] && [ "${ARCH}" == "x86
 
     ln -sfT distros/ubuntu1204 debian
 
+    setdebchangelog
+    
     echo "Starting packpack..."
     packpack/packpack
 

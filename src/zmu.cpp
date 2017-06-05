@@ -371,7 +371,6 @@ int main( int argc, char *argv[] ) {
       case 'A':
         auth = optarg;
         break;
->>>>>>> master
 #if ZM_HAS_V4L
 			case 'V':
 				v4lVersion = (atoi(optarg)==1)?1:2;

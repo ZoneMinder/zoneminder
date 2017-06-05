@@ -151,6 +151,16 @@ setdebpkgver () {
 
 }
 
+# This adds an entry to the debian changelog
+setdebchangelog () {
+DATE=`date -R`
+cat <<EOF > debian/changelog
+zoneminder ($VERSION-${DIST}-1) unstable; urgency=low
+  * 
+ -- Isaac Connor <iconnor@connortechnology.com>  $DATE
+EOF
+}
+
 ################
 # MAIN PROGRAM #
 ################
@@ -220,7 +230,9 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
         else 
             ln -sfT distros/ubuntu1604 debian
         fi
-
+        
+        setdebchangelog
+        
         echo "Starting packpack..."
         packpack/packpack
 
@@ -239,6 +251,8 @@ elif [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ] && [ "${ARCH}" == "x86
 
     ln -sfT distros/ubuntu1204 debian
 
+    setdebchangelog
+    
     echo "Starting packpack..."
     packpack/packpack
 

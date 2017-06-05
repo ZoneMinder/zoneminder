@@ -29,12 +29,15 @@ class Event {
       Error('No row for Event ' . $IdOrRow );
     }
   } // end function __construct
+
   public function Storage() {
     return new Storage( isset($this->{'StorageId'}) ? $this->{'StorageId'} : NULL );
   }
+
   public function Monitor() {
     return new Monitor( isset($this->{'MonitorId'}) ? $this->{'MonitorId'} : NULL );
   }
+
   public function __call( $fn, array $args){
     if ( array_key_exists( $fn, $this ) ) {
       return $this->{$fn};
@@ -54,6 +57,7 @@ class Event {
     $Storage = $this->Storage();
     return $Storage->Path().'/'.$this->Relative_Path();
   }
+
   public function Relative_Path() {
     $event_path = '';
 
@@ -197,20 +201,26 @@ class Event {
     return( $thumbData );
   } // end function createListThumbnail
 
+  // frame is an array representing the db row for a frame.
   function getImageSrc( $frame, $scale=SCALE_BASE, $captureOnly=false, $overwrite=false ) {
     $Storage = new Storage(  isset($this->{'StorageId'}) ? $this->{'StorageId'} : NULL  );
     $Event = $this;
     $eventPath = $Event->Path();
 
-    if ( !is_array($frame) )
+    if ( $frame and ! is_array($frame) ) {
+      # Must be an Id
+      Debug("Assuming that $frame is an Id");
       $frame = array( 'FrameId'=>$frame, 'Type'=>'' );
+    }
 
-    if ( file_exists( $eventPath.'/snapshot.jpg' ) ) {
-      $captImage = "snapshot.jpg";
+    if ( ( ! $frame ) and file_exists( $eventPath.'/snapshot.jpg' ) ) {
+      # No frame specified, so look for a snapshot to use
+      $captImage = 'snapshot.jpg';
+      Debug("Frame not specified, using snapshot");
     } else {
       $captImage = sprintf( '%0'.ZM_EVENT_IMAGE_DIGITS.'d-capture.jpg', $frame['FrameId'] );
       if ( ! file_exists( $eventPath.'/'.$captImage ) ) {
-  # Generate the frame JPG
+        # Generate the frame JPG
         if ( $Event->DefaultVideo() ) {
           $videoPath = $eventPath.'/'.$Event->DefaultVideo();
 
@@ -275,8 +285,7 @@ class Event {
       }
 
       $thumbFile = $thumbPath;
-      if ( $overwrite || !file_exists( $thumbFile ) || !filesize( $thumbFile ) )
-      {
+      if ( $overwrite || ! file_exists( $thumbFile ) || ! filesize( $thumbFile ) ) {
         // Get new dimensions
         list( $imageWidth, $imageHeight ) = getimagesize( $imagePath );
         $thumbWidth = $imageWidth * $fraction;
@@ -290,7 +299,7 @@ class Event {
         if ( !imagejpeg( $thumbImage, $thumbPath ) )
           Error( "Can't create thumbnail '$thumbPath'" );
       }
-    }
+    } # Create thumbnails
 
     $imageData = array(
         'eventPath' => $eventPath,
@@ -298,7 +307,7 @@ class Event {
         'thumbPath' => $thumbPath,
         'imageFile' => $imagePath,
         'thumbFile' => $thumbFile,
-        'imageClass' => $alarmFrame?"alarm":"normal",
+        'imageClass' => $alarmFrame?'alarm':'normal',
         'isAnalImage' => $isAnalImage,
         'hasAnalImage' => $hasAnalImage,
         );

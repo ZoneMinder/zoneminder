@@ -82,28 +82,36 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   if (dsr < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__ );
 
   oc->metadata = pmetadata;
-
   output_format = oc->oformat;
+  Debug(2, "setting parameters");
 
+#if LIBAVCODEC_VERSION_CHECK(58, 0, 0, 0, 0)
+  AVCodec *codec = avcodec_find_decoder( video_input_stream->codecpar->codec_id );
+  video_output_context = avcodec_alloc_context3( codec );
+  ret = avcodec_parameters_to_context( video_output_context, video_input_stream->codecpar );
+  if ( ret < 0 ) {
+    Error( "Could not initialize stream parameteres");
+    return;
+  } else {
+    Debug(2, "Success setting parameters");
+  }
+  if ( avcodec_open2( video_output_context, codec, NULL ) < 0 ) {
+    Fatal("Unable to open video out codec\n");
+  }
+  video_output_stream = avformat_new_stream( oc, codec );
+  if (!video_output_stream) {
+    Fatal("Unable to create video out stream\n");
+  } else {
+    Debug(2, "Success creating video out stream" );
+  }
+#else
   video_output_stream = avformat_new_stream(oc, (AVCodec*)video_input_context->codec);
   if (!video_output_stream) {
     Fatal("Unable to create video out stream\n");
   } else {
     Debug(2, "Success creating video out stream" );
   }
-
   video_output_context = video_output_stream->codec;
-
-#if LIBAVCODEC_VERSION_CHECK(58, 0, 0, 0, 0)
-  Debug(2, "setting parameters");
-  ret = avcodec_parameters_to_context( video_output_context, video_input_stream->codecpar );
-  if ( ret < 0 ) {
-    Error( "Could not initialize stream parameteres");
-    return;
-  } else {
-    Debug(2, "Success getting parameters");
-  }
-#else
   ret = avcodec_copy_context(video_output_context, video_input_context );
   if (ret < 0) { 
     Fatal("Unable to copy input video context to output video context %s\n", 
@@ -145,6 +153,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   }
 
 	Monitor::Orientation orientation = monitor->getOrientation();
+    Debug(3, "Have orientation" );
   if ( orientation ) {
     if ( orientation == Monitor::ROTATE_0 ) {
 
@@ -170,6 +179,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 #endif
 
   if (audio_input_stream) {
+    Debug(3, "Have audio stream" );
     audio_input_context = audio_input_stream->codec;
 
     if ( audio_input_context->codec_id != AV_CODEC_ID_AAC ) {
@@ -187,9 +197,13 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
         Error("Unable to create audio out stream\n");
         audio_output_stream = NULL;
       } else {
+        Debug(2, "setting parameters");
         audio_output_context = audio_output_stream->codec;
-
+#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
+        ret = avcodec_parameters_to_context( audio_output_context, audio_input_stream->codecpar );
+#else
         ret = avcodec_copy_context(audio_output_context, audio_input_context);
+#endif
         if (ret < 0) {
           Error("Unable to copy audio context %s\n", av_make_error_string(ret).c_str());
           audio_output_stream = NULL;
@@ -233,7 +247,8 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   //av_dict_set(&opts, "movflags", "frag_custom+dash+delay_moov", 0);
   //av_dict_set(&opts, "movflags", "frag_custom+dash+delay_moov", 0);
   //av_dict_set(&opts, "movflags", "frag_keyframe+empty_moov+default_base_moof", 0);
-  if ((ret = avformat_write_header(oc, &opts)) < 0) {
+  if ((ret = avformat_write_header(oc, NULL)) < 0) {
+  //if ((ret = avformat_write_header(oc, &opts)) < 0) {
     Warning("Unable to set movflags to frag_custom+dash+delay_moov");
     /* Write the stream header, if any. */
     ret = avformat_write_header(oc, NULL);
@@ -262,14 +277,14 @@ VideoStore::~VideoStore(){
   if ( audio_output_codec ) {
     // Do we need to flush the outputs?  I have no idea.
     AVPacket pkt;
-    int got_packet;
+    int got_packet = 0;
     av_init_packet(&pkt);
     pkt.data = NULL;
     pkt.size = 0;
     int64_t size;
 
     while(1) {
-#if LIBAVCODEC_VERSION_CHECK(58, 0, 0, 0, 0)
+#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
       ret = avcodec_receive_packet( audio_output_context, &pkt );
 #else
       ret = avcodec_encode_audio2( audio_output_context, &pkt, NULL, &got_packet );
@@ -677,7 +692,7 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
   if ( audio_output_codec ) {
 #ifdef HAVE_LIBAVRESAMPLE
 
-#if 0
+#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
     ret = avcodec_send_packet( audio_input_context, ipkt );
     if ( ret < 0 ) {
       Error("avcodec_send_packet fail %s", av_make_error_string(ret).c_str());
@@ -696,26 +711,7 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
         input_frame->channel_layout,
         audio_output_context->refcounted_frames
         );
-
-    ret = avcodec_send_frame( audio_output_context, input_frame );
-    if ( ret < 0 ) {
-      av_frame_unref( input_frame );
-      Error("avcodec_send_frame fail(%d),  %s codec is open(%d) is_encoder(%d)", ret, av_make_error_string(ret).c_str(),
-          avcodec_is_open( audio_output_context ),
-          av_codec_is_encoder( audio_output_context->codec)
-          );
-      return 0;
-    }
-    ret = avcodec_receive_packet( audio_output_context, &opkt );
-    if ( ret < 0 ) {
-      av_frame_unref( input_frame );
-      Error("avcodec_receive_packet fail %s", av_make_error_string(ret).c_str());
-      return 0;
-    }
-    av_frame_unref( input_frame );
 #else
-
-
     /**
      * Decode the audio frame stored in the packet.
      * The input audio stream decoder is used to do this.
@@ -736,7 +732,7 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
       zm_av_packet_unref(&opkt);
       return 0;
     }
-
+#endif
     int frame_size = input_frame->nb_samples;
     Debug(4, "Frame size: %d", frame_size );
 
@@ -778,7 +774,7 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
      * Encode the audio frame and store it in the temporary packet.
      * The output audio stream encoder is used to do this.
      */
-#if LIBAVCODEC_VERSION_CHECK(58, 0, 0, 0, 0)
+#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
     if (( ret = avcodec_receive_packet( audio_output_context, &opkt )) < 0 ) {
 #else
     if (( ret = avcodec_encode_audio2( audio_output_context, &opkt, output_frame, &data_present )) < 0) {
@@ -794,7 +790,6 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
       return 0;
     }
 
-#endif
 #endif
   } else {
     av_init_packet(&opkt);

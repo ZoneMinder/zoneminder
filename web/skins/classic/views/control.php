@@ -18,35 +18,32 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView( 'Control' ) )
-{
-    $view = "error";
-    return;
+if ( !canView( 'Control' ) ) {
+  $view = 'error';
+  return;
 }
 
-$groupSql = "";
+$groupSql = '';
 if ( !empty($_REQUEST['group']) ) {
-    $row = dbFetchOne( 'SELECT * FROM Groups WHERE Id = ?', NULL, array($_REQUEST['group']) );
-    $groupSql = " and find_in_set( Id, '".$row['MonitorIds']."' )";
+  $row = dbFetchOne( 'SELECT * FROM Groups WHERE Id = ?', NULL, array($_REQUEST['group']) );
+  $groupSql = " and find_in_set( Id, '".$row['MonitorIds']."' )";
 }
 
-$mid = validInt($_REQUEST['mid']);
+$mid = !empty($_REQUEST['mid']) ? validInt($_REQUEST['mid']) : 0;
 
 $sql = "SELECT * FROM Monitors WHERE Function != 'None' AND Controllable = 1$groupSql ORDER BY Sequence";
 $mids = array();
-foreach( dbFetchAll( $sql ) as $row )
-{
-    if ( !visibleMonitor( $row['Id'] ) )
-    {
-        continue;
-    }
-    if ( empty($mid) )
-        $mid = $row['Id'];
-    $mids[$row['Id']] = $row['Name'];
+foreach( dbFetchAll( $sql ) as $row ) {
+  if ( !visibleMonitor( $row['Id'] ) ) {
+    continue;
+  }
+  if ( empty($mid) )
+    $mid = $row['Id'];
+  $mids[$row['Id']] = $row['Name'];
 }
 
 foreach ( getSkinIncludes( 'includes/control_functions.php' ) as $includeFile )
-    require_once $includeFile;
+  require_once $includeFile;
 
 $monitor = new Monitor( $mid );
 
@@ -70,7 +67,7 @@ xhtmlHeaders(__FILE__, translate('Control') );
     </div>
     <div id="content">
       <div id="ptzControls" class="ptzControls">
-<?php echo ptzControls( $monitor ) ?>
+      <?php echo ptzControls( $monitor ) ?>
       </div>
     </div>
   </div>

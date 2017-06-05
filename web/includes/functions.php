@@ -27,13 +27,14 @@ if ( version_compare( phpversion(), '4.3.0', '<') ) {
   }
 }
 
+# We are requiring these because this file is getting included from the api, which hasn't already included them.
 require_once( 'logger.php' );
 require_once( 'database.php' );
 
 function userLogin( $username, $password='', $passwordHashed=false ) {
   global $user, $cookies;
 
-  $sql = 'select * from Users where Enabled = 1';
+  $sql = 'SELECT * FROM Users WHERE Enabled = 1';
   $sql_values = NULL;
   if ( ZM_AUTH_TYPE == 'builtin' ) {
     if ( $passwordHashed ) {
@@ -323,9 +324,9 @@ function outputImageStream( $id, $src, $width, $height, $title='' ) {
 
 function getImageStream( $id, $src, $width, $height, $title='' ) {
   if ( canStreamIframe() ) {
-      return '<iframe id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" width="'. validInt($width)." height=".validInt($height).'"/>';
+      return '<iframe id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" '.($width? ' width="'. validInt($width).'"' : '').($height?' height="'.validInt($height).'"' : '' ).'/>';
   } else {
-      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" width="'. validInt($width) .'" height="'. validInt( $height ).'"/>';
+      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.($width? ' width:'. validInt($width) .'px;': '').($height ? ' height:'. validInt( $height ).'px;':'').'"/>';
   }
 }
 
@@ -357,17 +358,18 @@ function outputControlStream( $src, $width, $height, $monitor, $scale, $target )
 }
 
 function outputHelperStream( $id, $src, $width, $height, $title='' ) {
-?>
-  <applet id="<?php echo $id ?>" code="com.charliemouse.cambozola.Viewer"
-  archive="<?php echo ZM_PATH_CAMBOZOLA ?>"
-  align="middle"
-  width="<?php echo $width ?>"
-  height="<?php echo $height ?>"
-  title="<?php echo $title ?>">
-  <param name="accessories" value="none"/>
-  <param name="url" value="<?php echo $src ?>"/>
-  </applet>
-<?php
+  echo getHelperStream( $id, $src, $width, $height, $title );
+}
+function getHelperStream( $id, $src, $width, $height, $title='' ) {
+    return '<applet id="'.$id.'" code="com.charliemouse.cambozola.Viewer"
+    archive="'. ZM_PATH_CAMBOZOLA .'" 
+    align="middle"
+    width="'. $width .'"
+    height="'. $height .'"
+    title="'. $title .'">
+    <param name="accessories" value="none"/>
+    <param name="url" value="'. $src .'"/>
+    </applet>';
 }
 
 function outputImageStill( $id, $src, $width, $height, $title='' ) {
@@ -536,11 +538,11 @@ function makePopupLink( $url, $winName, $winSize, $label, $condition=1, $options
       $popupParms = "'".$url."', '".$winName."', '".$winSize."'";
 
     $string .= '<a href="'.$url.'" onclick="createPopup( '.$popupParms.' ); return( false );"'.($options?(' '.$options):'').'>';
+  } else {
+    $string .= '<a>';
   }
   $string .= $label;
-  if ( $condition ) {
-    $string .= '</a>';
-  }
+  $string .= '</a>';
   return( $string );
 }
 
@@ -703,7 +705,11 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
       default :
         {
           if ( !isset($values[$key]) || ($values[$key] != $value) ) {
-            $changes[$key] = $key . ' = '.dbEscape(trim($value));
+            if ( ! isset($value) || $value == '' ) {
+              $changes[$key] = "$key = NULL";
+            } else {
+              $changes[$key] = $key . ' = '.dbEscape(trim($value));
+            }
           }
           break;
         }
@@ -852,15 +858,15 @@ function zmcControl( $monitor, $mode=false ) {
   if ( (!defined('ZM_SERVER_ID')) or ( ZM_SERVER_ID==$monitor['ServerId'] ) ) {
     $row = NULL;
     if ( $monitor['Type'] == 'Local' ) {
-      $row = dbFetchOne( "select count(if(Function!='None',1,NULL)) as ActiveCount from Monitors where Device = ?", NULL, array($monitor['Device']) );
+      $row = dbFetchOne( "SELECT count(if(Function!='None',1,NULL)) AS ActiveCount FROM Monitors WHERE Device = ?", NULL, array($monitor['Device']) );
       $zmcArgs = '-d '.$monitor['Device'];
     } else {
-      $row = dbFetchOne( "select count(if(Function!='None',1,NULL)) as ActiveCount from Monitors where Id = ?", NULL, array($monitor['Id']) );
+      $row = dbFetchOne( "SELECT count(if(Function!='None',1,NULL)) AS ActiveCount FROM Monitors WHERE Id = ?", NULL, array($monitor['Id']) );
       $zmcArgs = '-m '.$monitor['Id'];
     }
     $activeCount = $row['ActiveCount'];
 
-    if ( !$activeCount || $mode == 'stop' ) {
+    if ( (!$activeCount) || ($mode == 'stop') ) {
       daemonControl( 'stop', 'zmc', $zmcArgs );
     } else {
       if ( $mode == 'restart' ) {
@@ -868,6 +874,24 @@ function zmcControl( $monitor, $mode=false ) {
       }
       daemonControl( 'start', 'zmc', $zmcArgs );
     }
+  } else {
+    $Server = new Server( $monitor['ServerId'] );
+
+    #$url = $Server->Url() . '/zm/api/monitors.json?auth='.generateAuthHash( $_SESSION['remoteAddr'] );
+    $url = $Server->Url() . '/zm/api/monitors.json?user='.$_SESSION['username'].'&pass='.$_SESSION['passwordHash'];
+    $data = array('Monitor[Function]' => $monitor['Function'] );
+
+    // use key 'http' even if you send the request to https://...
+    $options = array(
+        'http' => array(
+          'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+          'method'  => 'POST',
+          'content' => http_build_query($data)
+          )
+        );
+    $context  = stream_context_create($options);
+    $result = file_get_contents($url, false, $context);
+    if ($result === FALSE) { /* Handle error */ }
   }
 }
 
@@ -917,9 +941,9 @@ function daemonStatus( $daemon, $args=false ) {
 
   initDaemonStatus();
 
-  $string = "$daemon";
+  $string = $daemon;
   if ( $args )
-    $string .= " $args";
+    $string .= ' ' . $args;
   return( strpos( $daemon_status, "'$string' running" ) !== false );
 }
 
@@ -1066,6 +1090,7 @@ function viewImagePath( $path, $querySep='&amp;' ) {
 }
 
 function createListThumbnail( $event, $overwrite=false ) {
+  # Load the frame with the highest score to use as a thumbnail
   if ( !($frame = dbFetchOne( "SELECT * FROM Frames WHERE EventId=? AND Score=? ORDER BY FrameId LIMIT 1", NULL, array( $event['Id'], $event['MaxScore'] ) )) )
     return( false );
 
@@ -1084,6 +1109,10 @@ function createListThumbnail( $event, $overwrite=false ) {
   }
 
   $imageData = getImageSrc( $event, $frame, $scale, false, $overwrite );
+  if ( ! $imageData ) {
+    return ( false );
+  }
+
   $thumbData = $frame;
   $thumbData['Path'] = $imageData['thumbPath'];
   $thumbData['Width'] = (int)$thumbWidth;
@@ -1212,17 +1241,17 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
   if ( isset($filter['terms']) && count($filter['terms']) ) {
     for ( $i = 0; $i < count($filter['terms']); $i++ ) {
       if ( isset($filter['terms'][$i]['cnj']) ) {
-        $filter['query'] .= $querySep."filter[terms][$i][cnj]=".urlencode($filter['terms'][$i]['cnj']);
-        $filter['sql'] .= " ".$filter['terms'][$i]['cnj']." ";
+        $filter['query'] .= $querySep.urlencode("filter[terms][$i][cnj]").'='.urlencode($filter['terms'][$i]['cnj']);
+        $filter['sql'] .= ' '.$filter['terms'][$i]['cnj'].' ';
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][cnj]\" value=\"".htmlspecialchars($filter['terms'][$i]['cnj'])."\"/>\n";
       }
       if ( isset($filter['terms'][$i]['obr']) ) {
-        $filter['query'] .= $querySep."filter[terms][$i][obr]=".urlencode($filter['terms'][$i]['obr']);
-        $filter['sql'] .= " ".str_repeat( "(", $filter['terms'][$i]['obr'] )." ";
+        $filter['query'] .= $querySep.urlencode("filter[terms][$i][obr]").'='.urlencode($filter['terms'][$i]['obr']);
+        $filter['sql'] .= ' '.str_repeat( '(', $filter['terms'][$i]['obr'] ).' ';
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][obr]\" value=\"".htmlspecialchars($filter['terms'][$i]['obr'])."\"/>\n";
       }
       if ( isset($filter['terms'][$i]['attr']) ) {
-        $filter['query'] .= $querySep."filter[terms][$i][attr]=".urlencode($filter['terms'][$i]['attr']);
+        $filter['query'] .= $querySep.urlencode("filter[terms][$i][attr]").'='.urlencode($filter['terms'][$i]['attr']);
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][attr]\" value=\"".htmlspecialchars($filter['terms'][$i]['attr'])."\"/>\n";
         switch ( $filter['terms'][$i]['attr'] ) {
           case 'MonitorName':
@@ -1306,7 +1335,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
           case '>' :
           case '<' :
           case '<=' :
-            $filter['sql'] .= ' '.$filter['terms'][$i]['op']." $value";
+            $filter['sql'] .= ' '.$filter['terms'][$i]['op'].' '. $value;
             break;
           case '=~' :
             $filter['sql'] .= ' regexp '.$value;
@@ -1315,20 +1344,20 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
             $filter['sql'] .= ' not regexp '.$value;
             break;
           case '=[]' :
-            $filter['sql'] .= ' in ('.join( ",", $valueList ).')';
+            $filter['sql'] .= ' in ('.join( ',', $valueList ).')';
             break;
           case '![]' :
             $filter['sql'] .= ' not in ('.join( ',', $valueList ).')';
             break;
         }
 
-        $filter['query'] .= $querySep."filter[terms][$i][op]=".urlencode($filter['terms'][$i]['op']);
+        $filter['query'] .= $querySep.urlencode("filter[terms][$i][op]").'='.urlencode($filter['terms'][$i]['op']);
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][op]\" value=\"".htmlspecialchars($filter['terms'][$i]['op'])."\"/>\n";
-        $filter['query'] .= $querySep."filter[terms][$i][val]=".urlencode($filter['terms'][$i]['val']);
+        $filter['query'] .= $querySep.urlencode("filter[terms][$i][val]").'='.urlencode($filter['terms'][$i]['val']);
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][val]\" value=\"".htmlspecialchars($filter['terms'][$i]['val'])."\"/>\n";
       }
       if ( isset($filter['terms'][$i]['cbr']) ) {
-        $filter['query'] .= $querySep."filter[terms][$i][cbr]=".urlencode($filter['terms'][$i]['cbr']);
+        $filter['query'] .= $querySep.urlencode("filter[terms][$i][cbr]").'='.urlencode($filter['terms'][$i]['cbr']);
         $filter['sql'] .= ' '.str_repeat( ')', $filter['terms'][$i]['cbr'] ).' ';
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][cbr]\" value=\"".htmlspecialchars($filter['terms'][$i]['cbr'])."\"/>\n";
       }
@@ -1788,6 +1817,33 @@ function coordsToPoints( $coords ) {
   return( $points );
 }
 
+function limitPoints( &$points, $min_x, $min_y, $max_x, $max_y ) {
+  foreach ( $points as &$point ) {
+    if ( $point['x'] < $min_x ) {
+      Logger::Debug('Limiting point x'.$point['x'].' to min_x ' . $min_x );
+      $point['x'] = $min_x;
+    } else if ( $point['x'] > $max_x ) {
+      Logger::Debug('Limiting point x'.$point['x'].' to max_x ' . $max_x );
+      $point['x'] = $max_x;
+    }
+    if ( $point['y'] < $min_y ) {
+      Logger::Debug('Limiting point y'.$point['y'].' to min_y ' . $min_y );
+      $point['y'] = $min_y;
+    } else if ( $point['y'] > $max_y ) {
+      Logger::Debug('Limiting point y'.$point['y'].' to max_y ' . $max_y );
+      $point['y'] = $max_y;
+    }
+  } // end foreach point
+} // end function limitPoints( $points, $min_x, $min_y, $max_x, $max_y )
+
+function scalePoints( &$points, $scale ) {
+  foreach ( $points as &$point ) {
+    $point['x'] = reScale( $point['x'], $scale );
+    $point['y'] = reScale( $point['y'], $scale );
+  }
+}
+
+
 function getLanguages() {
   $langs = array();
   foreach ( glob('lang/*_*.php') as $file ) {
@@ -2133,24 +2189,63 @@ function validHtmlStr( $input ) {
   return( htmlspecialchars( $input, ENT_QUOTES ) );
 }
 
-function getStreamHTML( $monitor, $scale=100 ) {
+function getStreamHTML( $monitor, $options = array() ) {
+
+  if ( isset($options['scale']) ) {
+    $options['width'] = reScale( $monitor->Width(), $options['scale'] );
+    $options['height'] = reScale( $monitor->Height(), $options['scale'] );
+  }
+  if ( ! isset($options['mode'] ) ) {
+    $options['mode'] = 'stream';
+  }
+  $options['maxfps'] = ZM_WEB_VIDEO_MAXFPS;
+  if ( $monitor->StreamReplayBuffer() )
+    $options['buffer'] = $monitor->StreamReplayBuffer();
+
 //FIXME, the width and height of the image need to be scaled.
     if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
-        $streamSrc = $monitor->getStreamSrc( array( 'mode=mpeg', 'scale='.$scale, 'bitrate='.ZM_WEB_VIDEO_BITRATE, 'maxfps='.ZM_WEB_VIDEO_MAXFPS, 'format='.ZM_MPEG_LIVE_FORMAT ) );
-        return getVideoStream( 'liveStream', $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
-    } else if ( canStream() ) {
-        $streamSrc = $monitor->getStreamSrc( array( 'mode=jpeg', 'scale='.$scale, 'maxfps='.ZM_WEB_VIDEO_MAXFPS, 'buffer='.$monitor->StreamReplayBuffer() ) );
-        if ( canStreamNative() ) {
-            return getImageStream( 'liveStream', $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
-        } elseif ( canStreamApplet() ) {
-            return getHelperStream( 'liveStream', $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
-        }
-    } else {
-        $streamSrc = $monitor->getStreamSrc( array( 'mode=single', 'scale='.$scale ) );
-        Info( 'The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.');
-        return getImageStill( 'liveStream', $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
+        $streamSrc = $monitor->getStreamSrc( array( 'mode'=>'mpeg', 'scale'=>$options['scale'], 'bitrate'=>ZM_WEB_VIDEO_BITRATE, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'format'=>ZM_MPEG_LIVE_FORMAT ) );
+         return getVideoStream( 'liveStream'.$monitor->Id(), $streamSrc, $options, ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
+ } else if ( $options['mode'] == 'stream' and canStream() ) {
+    $options['mode'] = 'jpeg';
+    $streamSrc = $monitor->getStreamSrc( $options );
+
+    if ( canStreamNative() )
+      return getImageStream( 'liveStream'.$monitor->Id(), $streamSrc,
+          ( isset($options['width']) ? $options['width'] : NULL ),
+          ( isset($options['height']) ? $options['height'] : NULL ),
+          $monitor->Name()
+          );
+    elseif ( canStreamApplet() )
+      return getHelperStream( 'liveStream'.$monitor->Id(), $streamSrc,
+          ( isset($options['width']) ? $options['width'] : NULL ),
+          ( isset($options['height']) ? $options['height'] : NULL ),
+          $monitor->Name()
+          );
+  } else {
+    $streamSrc = $monitor->getStreamSrc( $options );
+    if ( $mode == 'stream' ) {
+      Info( 'The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.' );
     }
+    return getImageStill( 'liveStream'.$monitor->Id(), $streamSrc,
+          ( isset($options['width']) ? $options['width'] : NULL ),
+          ( isset($options['height']) ? $options['height'] : NULL ),
+          $monitor->Name()
+        );
+  }
 } // end function getStreamHTML
+
+function getStreamMode( ) {
+  $streamMode = '';
+  if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
+    $streamMode = 'mpeg';
+  } elseif ( canStream() ) {
+    $streamMode = 'jpeg';
+  } else {
+    $streamMode = 'single';
+    Info( 'The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.' );
+  }
+} // end function getStreamMode
 
 function folder_size($dir) {
     $size = 0;
@@ -2159,6 +2254,12 @@ function folder_size($dir) {
     }
     return $size;
 } // end function folder_size
+
+function human_filesize($bytes, $decimals = 2) {
+  $sz = 'BKMGTP';
+  $factor = floor((strlen($bytes) - 1) / 3);
+  return sprintf("%.{$decimals}f", $bytes / pow(1024, $factor)) . @$sz[$factor];
+}
 
 function csrf_startup() {
     csrf_conf('rewrite-js', 'includes/csrf/csrf-magic.js');

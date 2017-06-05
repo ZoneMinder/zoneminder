@@ -68,7 +68,7 @@ if ( isset( $_REQUEST['reload'] ) and ! $_REQUEST['reload'] ) {
 $conjunctionTypes = array(
     'and' => translate('ConjAnd'),
     'or'  => translate('ConjOr')
-);
+    );
 $obracketTypes = array(); 
 $cbracketTypes = array();
 if ( isset($_REQUEST['filter']['terms']) ) {
@@ -102,7 +102,8 @@ $attrTypes = array(
     'StorageId'   => translate('AttrStorageArea'),
     'ServerId'    => translate('AttrServer'),
     'StateId'     => translate('AttrStateId'),
-);
+    );
+
 $opTypes = array(
     '='   => translate('OpEq'),
     '!='  => translate('OpNe'),
@@ -114,15 +115,18 @@ $opTypes = array(
     '!~'  => translate('OpNotMatches'),
     '=[]' => translate('OpIn'),
     '![]' => translate('OpNotIn'),
-);
+    );
+
 $archiveTypes = array(
     '0' => translate('ArchUnarchived'),
     '1' => translate('ArchArchived')
-);
+    );
+
 $weekdays = array();
 for ( $i = 0; $i < 7; $i++ ) {
-    $weekdays[$i] = strftime( "%A", mktime( 12, 0, 0, 1, $i+1, 2001 ) );
+  $weekdays[$i] = strftime( '%A', mktime( 12, 0, 0, 1, $i+1, 2001 ) );
 }
+
 $sort_fields = array(
     'Id'          => translate('AttrId'),
     'Name'        => translate('AttrName'),
@@ -136,14 +140,16 @@ $sort_fields = array(
     'TotScore'    => translate('AttrTotalScore'),
     'AvgScore'    => translate('AttrAvgScore'),
     'MaxScore'    => translate('AttrMaxScore'),
-);
+    );
+
 $sort_dirns = array(
     '1' => translate('SortAsc'),
     '0'  => translate('SortDesc')
-);
+    );
+
 if ( empty($_REQUEST['sort_field']) ) {
   $_REQUEST['sort_field'] = ZM_WEB_EVENT_SORT_FIELD; 
-  $_REQUEST['sort_asc'] = (ZM_WEB_EVENT_SORT_ORDER == "asc");
+  $_REQUEST['sort_asc'] = (ZM_WEB_EVENT_SORT_ORDER == 'asc');
 }
 
 $hasCal = file_exists( 'tools/jscalendar/calendar.js' );
@@ -180,98 +186,108 @@ for ( $i = 0; isset($_REQUEST['filter']) && $i < count($_REQUEST['filter']['term
 ?>
             <tr>
 <?php
-    if ( $i == 0 ) {
+  if ( $i == 0 ) {
 ?>
               <td>&nbsp;</td>
 <?php
-    } else {
+  } else {
 ?>
               <td><?php echo buildSelect( "filter[terms][$i][cnj]", $conjunctionTypes ); ?></td>
 <?php
-    }
+  }
 ?>
               <td><?php if ( count($_REQUEST['filter']['terms']) > 2 ) { echo buildSelect( "filter[terms][$i][obr]", $obracketTypes ); } else { ?>&nbsp;<?php } ?></td>
               <td><?php echo buildSelect( "filter[terms][$i][attr]", $attrTypes, "clearValue( this, $i ); submitToFilter( this, 0 );" ); ?></td>
 <?php
-    if ( isset($_REQUEST['filter']['terms'][$i]['attr']) ) {
-        if ( $_REQUEST['filter']['terms'][$i]['attr'] == "Archived" ) {
+  if ( isset($_REQUEST['filter']['terms'][$i]['attr']) ) {
+    if ( $_REQUEST['filter']['terms'][$i]['attr'] == 'Archived' ) {
 ?>
               <td><?php echo translate('OpEq') ?><input type="hidden" name="filter[terms][<?php echo $i ?>][op]" value="="/></td>
               <td><?php echo buildSelect( "filter[terms][$i][val]", $archiveTypes ); ?></td>
 <?php
-        } elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "DateTime" ) {
+    } elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == 'DateTime' ) {
 ?>
               <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
-              <td><input name="filter[terms][<?php echo $i ?>][val]" id="filter[terms][<?php echo $i ?>][val]" value="<?php echo isset($_REQUEST['filter']['terms'][$i]['val'])?validHtmlStr($_REQUEST['filter']['terms'][$i]['val']):'' ?>"/><?php if ( $hasCal ) { ?><script type="text/javascript">Calendar.setup( { inputField: "filter[terms][<?php echo $i ?>][val]", ifFormat: "%Y-%m-%d %H:%M", showsTime: true, timeFormat: "24", showOthers: true, weekNumbers: false });</script><?php } ?></td>
+              <td>
+                <input name="filter[terms][<?php echo $i ?>][val]" id="filter[terms][<?php echo $i ?>][val]" value="<?php echo isset($_REQUEST['filter']['terms'][$i]['val'])?validHtmlStr($_REQUEST['filter']['terms'][$i]['val']):'' ?>"/>
+<?php if ( $hasCal ) { ?>
+                <script type="text/javascript">Calendar.setup( { inputField: "filter[terms][<?php echo $i ?>][val]", ifFormat: "%Y-%m-%d %H:%M", showsTime: true, timeFormat: "24", showOthers: true, weekNumbers: false });</script>
+<?php } ?>
+              </td>
 <?php
-        } elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "Date" ) {
+    } elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == 'Date' ) {
 ?>
               <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
-              <td><input name="filter[terms][<?php echo $i ?>][val]" id="filter[terms][<?php echo $i ?>][val]" value="<?php echo isset($_REQUEST['filter']['terms'][$i]['val'])?validHtmlStr($_REQUEST['filter']['terms'][$i]['val']):'' ?>"/><?php if ( $hasCal ) { ?><script type="text/javascript">Calendar.setup( { inputField: "filter[terms][<?php echo $i ?>][val]", ifFormat: "%Y-%m-%d", showOthers: true, weekNumbers: false });</script><?php } ?></td>
+              <td>
+                <input name="filter[terms][<?php echo $i ?>][val]" id="filter[terms][<?php echo $i ?>][val]" value="<?php echo isset($_REQUEST['filter']['terms'][$i]['val'])?validHtmlStr($_REQUEST['filter']['terms'][$i]['val']):'' ?>"/>
+<?php if ( $hasCal ) { ?>
+                <script type="text/javascript">Calendar.setup( { inputField: "filter[terms][<?php echo $i ?>][val]", ifFormat: "%Y-%m-%d", showOthers: true, weekNumbers: false });</script>
+<?php } ?>
+              </td>
 <?php
-        } elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "StateId" ) {
-            $states = array();
-            foreach ( dbFetchAll( 'SELECT Id,Name FROM States ORDER BY lower(Name) ASC' ) as $state_row ) {
-              $states[$state_row['Id']] = $state_row['Name'];
-            }
+      } elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "StateId" ) {
+        $states = array();
+        foreach ( dbFetchAll( 'SELECT Id,Name FROM States ORDER BY lower(Name) ASC' ) as $state_row ) {
+          $states[$state_row['Id']] = $state_row['Name'];
+        }
 ?>
-            <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
-            <td><?php echo buildSelect( "filter[terms][$i][val]", $states ); ?></td>
+              <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
+              <td><?php echo buildSelect( "filter[terms][$i][val]", $states ); ?></td>
 <?php
-        } elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "Weekday" ) {
+    } elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == 'Weekday' ) {
 ?>
               <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
               <td><?php echo buildSelect( "filter[terms][$i][val]", $weekdays ); ?></td>
 <?php
-        } elseif ( false && $_REQUEST['filter']['terms'][$i]['attr'] == "MonitorName" ) {
-            $monitors = array();
-            foreach ( dbFetchAll( "select Id,Name from Monitors order by Sequence asc" ) as $monitor ) {
-                if ( visibleMonitor( $monitor['Id'] ) ) {
-                    $monitors[$monitor['Name']] = $monitor['Name'];
-                }
-            }
+    } elseif ( false && $_REQUEST['filter']['terms'][$i]['attr'] == 'MonitorName' ) {
+      $monitors = array();
+      foreach ( dbFetchAll( "select Id,Name from Monitors order by Sequence asc" ) as $monitor ) {
+        if ( visibleMonitor( $monitor['Id'] ) ) {
+          $monitors[$monitor['Name']] = $monitor['Name'];
+        }
+      }
 ?>
               <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
               <td><?php echo buildSelect( "filter[terms][$i][val]", $monitors ); ?></td>
 <?php
-        } elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "ServerId" ) {
-          $servers = array();
-          $servers['ZM_SERVER_ID'] = 'Current Server';
-          foreach ( dbFetchAll( "SELECT Id,Name FROM Servers ORDER BY lower(Name) ASC" ) as $server ) {
-            $servers[$server['Id']] = $server['Name'];
-          }
+    } elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == 'ServerId' ) {
+      $servers = array();
+      $servers['ZM_SERVER_ID'] = 'Current Server';
+      foreach ( dbFetchAll( "SELECT Id,Name FROM Servers ORDER BY lower(Name) ASC" ) as $server ) {
+        $servers[$server['Id']] = $server['Name'];
+      }
 ?>
-          <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
-          <td><?php echo buildSelect( "filter[terms][$i][val]", $servers ); ?></td>
+              <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
+              <td><?php echo buildSelect( "filter[terms][$i][val]", $servers ); ?></td>
 <?php
-        } elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "StorageId" ) {
-            $storageareas = array();
-            $storageareas[0] = 'Default ' . ZM_DIR_EVENTS;
-            foreach ( dbFetchAll( "SELECT Id,Name FROM Storage ORDER BY lower(Name) ASC" ) as $storage ) {
-              $storageareas[$storage['Id']] = $storage['Name'];
-            }
+    } elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == 'StorageId' ) {
+        $storageareas = array();
+        $storageareas[0] = 'Default ' . ZM_DIR_EVENTS;
+        foreach ( dbFetchAll( "SELECT Id,Name FROM Storage ORDER BY lower(Name) ASC" ) as $storage ) {
+          $storageareas[$storage['Id']] = $storage['Name'];
+        }
 ?>
               <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
               <td><?php echo buildSelect( "filter[terms][$i][val]", $storageareas ); ?></td>
 <?php
-        } else {
+    } else {
 ?>
               <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
               <td><input name="filter[terms][<?php echo $i ?>][val]" value="<?php echo $_REQUEST['filter']['terms'][$i]['val'] ?>"/></td>
 <?php
-        }
-    } else {
+    }
+  } else {
 ?>
               <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
               <td><input name="filter[terms][<?php echo $i ?>][val]" value="<?php echo isset($_REQUEST['filter']['terms'][$i]['val'])?$_REQUEST['filter']['terms'][$i]['val']:'' ?>"/></td>
 <?php
-    }
+  }
 ?>
               <td><?php if ( count($_REQUEST['filter']['terms']) > 2 ) { echo buildSelect( "filter[terms][$i][cbr]", $cbracketTypes ); } else { ?>&nbsp;<?php } ?></td>
               <td><input type="button" onclick="addTerm( this, <?php echo $i+1 ?> )" value="+"/><?php if ( $_REQUEST['filter']['terms'] > 1 ) { ?><input type="button" onclick="delTerm( this, <?php echo $i ?> )" value="-"/><?php } ?></td>
             </tr>
 <?php
-}
+} # end foreach filter
 ?>
           </tbody>
         </table>
@@ -279,7 +295,7 @@ for ( $i = 0; isset($_REQUEST['filter']) && $i < count($_REQUEST['filter']['term
         <table id="sortTable" class="filterTable" cellspacing="0">
           <tbody>
             <tr>
-              <td><label for="sort_field"><?php echo translate('SortBy') ?></label><?php echo buildSelect( "sort_field", $sort_fields ); ?><?php echo buildSelect( "sort_asc", $sort_dirns ); ?></td>
+              <td><label for="sort_field"><?php echo translate('SortBy') ?></label><?php echo buildSelect( 'sort_field', $sort_fields ); ?><?php echo buildSelect( 'sort_asc', $sort_dirns ); ?></td>
               <td><label for="limit"><?php echo translate('LimitResultsPre') ?></label><input type="text" size="6" id="limit" name="limit" value="<?php echo isset($_REQUEST['limit'])?validInt($_REQUEST['limit']):"" ?>"/><?php echo translate('LimitResultsPost') ?></td>
             </tr>
           </tbody>
@@ -339,12 +355,18 @@ if ( ZM_OPT_MESSAGE ) {
         <div id="contentButtons">
           <input type="submit" value="<?php echo translate('Submit') ?>" onclick="submitToEvents( this );"/>
           <input type="button" name="executeButton" id="executeButton" value="<?php echo translate('Execute') ?>" onclick="executeFilter( this );"/>
-<?php if ( canEdit( 'Events' ) ) { ?>
+<?php 
+if ( canEdit( 'Events' ) ) {
+?>
           <input type="button" value="<?php echo translate('Save') ?>" onclick="saveFilter( this );"/>
-<?php } ?>
-<?php if ( canEdit( 'Events' ) && isset($dbFilter) && $dbFilter['Name'] ) { ?>
-          <input type="button" value="<?php echo translate('Delete') ?>" onclick="deleteFilter( this, <?php echo $dbFilter['Id'] ?>, '<?php echo $dbFilter['Name'] ?>' );"/>
-<?php } ?>
+<?php 
+  if ( isset($dbFilter) && $dbFilter['Name'] ) {
+ ?>
+          <input type="button" value="<?php echo translate('Delete') ?>" onclick="deleteFilter( this, '<?php echo $dbFilter['Name'] ?>' );"/>
+<?php 
+  }
+}
+?>
           <input type="button" value="<?php echo translate('Reset') ?>" onclick="submitToFilter( this, 1 );"/>
         </div>
       </form>

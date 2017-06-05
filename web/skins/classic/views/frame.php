@@ -37,7 +37,7 @@ if ( !empty($fid) ) {
   if ( !($frame = dbFetchOne( $sql, NULL, array($eid, $fid) )) )
     $frame = array( 'FrameId'=>$fid, 'Type'=>'Normal', 'Score'=>0 );
 } else {
-    $frame = dbFetchOne( 'SELECT * FROM Frames WHERE EventId = ? AND Score = ?', NULL, array( $eid, $Event->MaxScore() ) );
+  $frame = dbFetchOne( 'SELECT * FROM Frames WHERE EventId = ? AND Score = ?', NULL, array( $eid, $Event->MaxScore() ) );
 }
 $Frame = new Frame( $frame );
 
@@ -60,22 +60,27 @@ if ( isset( $_REQUEST['scale'] ) ) {
   $scale = max( reScale( SCALE_BASE, $Monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
 }
 
+$imageData = $Event->getImageSrc( $frame, $scale, 0 );
+if ( ! $imageData ) {
+  Error("No data found for Event $eid frame $fid");
+  $imageData = array();
+}
+
 $show = 'capt';
 if ( isset($_REQUEST['show']) ) {
   $show = $_REQUEST['show'];
-#} else if ( $imageData['hasAnalImage'] ) {
-  #$show = 'anal';
+} else if ( $imageData['hasAnalImage'] ) {
+  $show = 'anal';
 }
-$imageData = $Event->getImageSrc( $frame, $scale, ($show=="capt") );
 
 $imagePath = $imageData['thumbPath'];
 $eventPath = $imageData['eventPath'];
-$dImagePath = sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-diag-d.jpg", $eventPath, $Frame->FrameId() );
-$rImagePath = sprintf( "%s/%0".ZM_EVENT_IMAGE_DIGITS."d-diag-r.jpg", $eventPath, $Frame->FrameId() );
+$dImagePath = sprintf( '%s/%0'.ZM_EVENT_IMAGE_DIGITS.'d-diag-d.jpg', $eventPath, $Frame->FrameId() );
+$rImagePath = sprintf( '%s/%0'.ZM_EVENT_IMAGE_DIGITS.'d-diag-r.jpg', $eventPath, $Frame->FrameId() );
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, translate('Frame')." - ".$Event->Id()." - ".$Frame->FrameId() );
+xhtmlHeaders(__FILE__, translate('Frame').' - '.$Event->Id()." - ".$Frame->FrameId() );
 ?>
 <body>
   <div id="page">
@@ -94,13 +99,13 @@ xhtmlHeaders(__FILE__, translate('Frame')." - ".$Event->Id()." - ".$Frame->Frame
     </div>
     <div id="content">
       <p id="image">
-<?php if ( $imageData['hasAnalImage'] ) { ?>
-        <a href="?view=frame&amp;eid=<?php echo $Event->Id() ?>&amp;fid=<?php echo $Frame->FrameId() ?>&amp;scale=<?php echo $scale ?>&amp;show=<?php echo $imageData['isAnalImage']?"capt":"anal" ?>">
-<?php } ?>
-          <img id="frameImg" src="<?php echo $Frame->getImageSrc($imageData['isAnalImage']?'analyse':'capture') ?>" width="<?php echo reScale( $Event->Width(), $Event->DefaultScale(), $scale ) ?>" height="<?php echo reScale( $Event->Height(), $Event->DefaultScale(), $scale ) ?>" alt="<?php echo $Frame->EventId()."-".$Frame->FrameId() ?>" class="<?php echo $imageData['imageClass'] ?>"/>
-<?php if ( $imageData['hasAnalImage'] ) { ?>
-        </a>
-<?php } ?>
+
+<?php if ( $imageData['hasAnalImage'] ) {
+ echo sprintf('<a href="?view=frame&amp;eid=%d&amp;fid=%d&scale=%d&amp;show=%s">', $Event->Id(), $Frame->FrameId(), $scale, ( $show=='anal'?'capt':'anal' ) );
+} ?>
+<img id="frameImg" src="<?php echo $Frame->getImageSrc($show=='anal'?'analyse':'capture') ?>" width="<?php echo reScale( $Event->Width(), $Event->DefaultScale(), $scale ) ?>" height="<?php echo reScale( $Event->Height(), $Event->DefaultScale(), $scale ) ?>" alt="<?php echo $Frame->EventId()."-".$Frame->FrameId() ?>" class="<?php echo $imageData['imageClass'] ?>"/>
+<?php if ( $imageData['hasAnalImage'] ) { ?></a><?php } ?>
+
       </p>
       <p id="controls">
 <?php if ( $Frame->FrameId() > 1 ) { ?>

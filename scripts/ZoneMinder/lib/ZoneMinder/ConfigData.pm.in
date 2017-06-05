@@ -1600,7 +1600,7 @@ our @options = (
       this overhead is fairly small but may be noticeable on IO-constrained
       systems.
       `,
-    type        => $types{string},
+    type        => $types{boolean},
     category    => 'web',
   },
   {

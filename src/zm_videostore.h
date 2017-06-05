@@ -61,8 +61,10 @@ AVAudioResampleContext* resample_context;
   int64_t audio_last_dts;
 
   // These are for output, should start at zero.  We assume they do not wrap because we just aren't going to save files that big.
-  int64_t previous_pts;
-  int64_t previous_dts;
+  int64_t video_previous_pts;
+  int64_t video_previous_dts;
+  int64_t audio_previous_pts;
+  int64_t audio_previous_dts;
 
   int64_t filter_in_rescale_delta_last;
 

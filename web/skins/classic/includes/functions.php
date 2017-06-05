@@ -23,29 +23,28 @@
 $bad_views = array('monitor', 'log');
 
 function xhtmlHeaders( $file, $title ) {
-    global $css;
-    global $skin;
-    $skinCssFile = getSkinFile( 'css/'.$css.'/skin.css' );
-    $skinCssPhpFile = getSkinFile( 'css/'.$css.'/skin.css.php' );
+  global $css;
+  global $skin;
+  $skinCssFile = getSkinFile( 'css/'.$css.'/skin.css' );
+  $skinCssPhpFile = getSkinFile( 'css/'.$css.'/skin.css.php' );
 
-    $skinJsFile = getSkinFile( 'js/skin.js' );
-    $skinJsPhpFile = getSkinFile( 'js/skin.js.php' );
-    $cssJsFile = getSkinFile( 'js/'.$css.'.js' );
+  $skinJsFile = getSkinFile( 'js/skin.js' );
+  $skinJsPhpFile = getSkinFile( 'js/skin.js.php' );
+  $cssJsFile = getSkinFile( 'js/'.$css.'.js' );
 
-    $basename = basename( $file, '.php' );
-    $viewCssFile = getSkinFile( '/css/'.$css.'/views/'.$basename.'.css' );
-    $viewCssPhpFile = getSkinFile( '/css/'.$css.'/views/'.$basename.'.css.php' );
-    $viewJsFile = getSkinFile( 'views/js/'.$basename.'.js' );
-    $viewJsPhpFile = getSkinFile( 'views/js/'.$basename.'.js.php' );
+  $basename = basename( $file, '.php' );
+  $viewCssFile = getSkinFile( '/css/'.$css.'/views/'.$basename.'.css' );
+  $viewCssPhpFile = getSkinFile( '/css/'.$css.'/views/'.$basename.'.css.php' );
+  $viewJsFile = getSkinFile( 'views/js/'.$basename.'.js' );
+  $viewJsPhpFile = getSkinFile( 'views/js/'.$basename.'.js.php' );
 
-    extract( $GLOBALS, EXTR_OVERWRITE );
+  extract( $GLOBALS, EXTR_OVERWRITE );
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no">
   <title><?php echo ZM_WEB_TITLE_PREFIX ?> - <?php echo validHtmlStr($title) ?></title>
   <link rel="icon" type="image/ico" href="graphics/favicon.ico"/>
   <link rel="shortcut icon" href="graphics/favicon.ico"/>
@@ -54,17 +53,17 @@ function xhtmlHeaders( $file, $title ) {
   <link rel="stylesheet" href="css/bootstrap.min.css" type="text/css"/>
   <link rel="stylesheet" href="<?php echo $skinCssFile ?>" type="text/css" media="screen"/>
 <?php
-    if ( $viewCssFile ) {
+  if ( $viewCssFile ) {
 ?>
   <link rel="stylesheet" href="<?php echo $viewCssFile ?>" type="text/css" media="screen"/>
 <?php
-    }
-    if ( $viewCssPhpFile ) {
+  }
+  if ( $viewCssPhpFile ) {
 ?>
   <style type="text/css">
   /*<![CDATA[*/
 <?php
-        require_once( $viewCssPhpFile );
+    require_once( $viewCssPhpFile );
 ?>
   /*]]>*/
   </style>
@@ -96,8 +95,9 @@ var $j = jQuery.noConflict();
   <script src="skins/<?php echo $skin ?>/js/video.js"></script>
   <script src="./js/videojs.zoomrotate.js"></script>
   <script src="skins/<?php echo $skin ?>/js/moment.min.js"></script>
-<?php }
-      if ( $skinJsPhpFile ) {
+<?php
+  }
+  if ( $skinJsPhpFile ) {
 ?>
   <script type="text/javascript">
   //<![CDATA[
@@ -109,20 +109,20 @@ var $j = jQuery.noConflict();
   //]]>
   </script>
 <?php
-    }
-    if ( $viewJsPhpFile ) {
+  }
+  if ( $viewJsPhpFile ) {
 ?>
   <script type="text/javascript">
   //<![CDATA[
   <!--
 <?php
-        require_once( $viewJsPhpFile );
+    require_once( $viewJsPhpFile );
 ?>
   //-->
   //]]>
   </script>
 <?php
-    }
+  }
 	if ( $cssJsFile ) {
 ?>
   <script type="text/javascript" src="<?php echo $cssJsFile ?>"></script>
@@ -130,11 +130,11 @@ var $j = jQuery.noConflict();
   <script type="text/javascript" src="<?php echo $skinJsFile ?>"></script>
   <script type="text/javascript" src="js/logger.js"></script>
 <?php
-    if ( $viewJsFile ) {
+  if ( $viewJsFile ) {
 ?>
   <script type="text/javascript" src="<?php echo $viewJsFile ?>"></script>
 <?php
-    }
+  }
 ?>
 </head>
 <?php

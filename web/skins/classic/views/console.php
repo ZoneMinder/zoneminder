@@ -152,30 +152,6 @@ xhtmlHeaders( __FILE__, translate('Console') );
 <?php } ?>
           </tr>
         </thead>
-        <tfoot>
-          <tr>
-            <td class="colLeftButtons" colspan="<?php echo $left_columns ?>">
-              <input type="button" class="btn btn-primary" value="<?php echo translate('Refresh') ?>" onclick="location.reload(true);"/>
-              <input type="button" class="btn btn-primary" name="addBtn" value="<?php echo translate('AddNewMonitor') ?>" onclick="addMonitor( this )"/>
-              <!-- <?php echo makePopupButton( '?view=monitor', 'zmMonitor0', 'monitor', translate('AddNewMonitor'), (canEdit( 'Monitors' ) && !$user['MonitorIds']) ) ?> -->
-              <?php echo makePopupButton( '?view=filter&amp;filter[terms][0][attr]=DateTime&amp;filter[terms][0][op]=%3c&amp;filter[terms][0][val]=now', 'zmFilter', 'filter', translate('Filters'), canView( 'Events' ) ) ?>
-              <input class="btn btn-primary" type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editMonitor( this )" disabled="disabled"/>
-              <input class="btn btn-danger" type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteMonitor( this )" disabled="disabled"/>
-            </td>
-<?php
-      for ( $i = 0; $i < count($eventCounts); $i++ ) {
-        parseFilter( $eventCounts[$i]['filter'] );
-?>
-            <td class="colEvents"><?php echo makePopupLink( '?view='.$eventsView.'&amp;page=1'.$eventCounts[$i]['filter']['query'], $eventsWindow, $eventsView, $eventCounts[$i]['total'], canView( 'Events' ) ) ?></td>
-<?php
-      }
-?>
-            <td class="colZones"><?php echo $zoneCount ?></td>
-<?php if ( canEdit('Monitors') ) { ?>
-            <td class="colMark"></td>
-<?php } ?>
-          </tr>
-        </tfoot>
         <tbody id="consoleTableBody">
 <?php
 for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
@@ -195,7 +171,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
     if ( $monitor['Function'] == 'None' )
       $fclass = 'errorText';
     //elseif ( $monitor['Function'] == 'Monitor' )
-     //   $fclass = "warnText";
+     //   $fclass = 'warnText';
     else
       $fclass = 'infoText';
     if ( !$monitor['Enabled'] )
@@ -251,6 +227,30 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
 } # end for each monitor
 ?>
         </tbody>
+        <tfoot>
+          <tr>
+            <td class="colLeftButtons" colspan="<?php echo $left_columns ?>">
+              <input type="button" class="btn btn-primary" value="<?php echo translate('Refresh') ?>" onclick="location.reload(true);"/>
+              <input type="button" class="btn btn-primary" name="addBtn" value="<?php echo translate('AddNewMonitor') ?>" onclick="addMonitor( this )"/>
+              <!-- <?php echo makePopupButton( '?view=monitor', 'zmMonitor0', 'monitor', translate('AddNewMonitor'), (canEdit( 'Monitors' ) && !$user['MonitorIds']) ) ?> -->
+              <?php echo makePopupButton( '?view=filter&amp;filter[terms][0][attr]=DateTime&amp;filter[terms][0][op]=%3c&amp;filter[terms][0][val]=now', 'zmFilter', 'filter', translate('Filters'), canView( 'Events' ) ) ?>
+              <input class="btn btn-primary" type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editMonitor( this )" disabled="disabled"/>
+              <input class="btn btn-danger" type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteMonitor( this )" disabled="disabled"/>
+            </td>
+<?php
+      for ( $i = 0; $i < count($eventCounts); $i++ ) {
+        parseFilter( $eventCounts[$i]['filter'] );
+?>
+            <td class="colEvents"><?php echo makePopupLink( '?view='.$eventsView.'&amp;page=1'.$eventCounts[$i]['filter']['query'], $eventsWindow, $eventsView, $eventCounts[$i]['total'], canView( 'Events' ) ) ?></td>
+<?php
+      }
+?>
+            <td class="colZones"><?php echo $zoneCount ?></td>
+<?php if ( canEdit('Monitors') ) { ?>
+            <td class="colMark"></td>
+<?php } ?>
+          </tr>
+        </tfoot>
       </table>
     </div>
     </form>

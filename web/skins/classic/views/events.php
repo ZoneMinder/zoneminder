@@ -81,7 +81,7 @@ if ( !empty($page) ) {
   }
   $eventsSql .= " limit $limitStart, $limitAmount";
 } elseif ( !empty( $limit ) ) {
-  $eventsSql .= " limit 0, ".$limit;
+  $eventsSql .= ' limit 0, '.$limit;
 }
 
 $maxWidth = 0;
@@ -118,15 +118,15 @@ xhtmlHeaders(__FILE__, translate('Events') );
       <div id="headerButtons">
 <?php
 if ( $pages > 1 ) {
-    if ( !empty($page) ) {
+  if ( !empty($page) ) {
 ?>
         <a href="?view=<?php echo $view ?>&amp;page=0<?php echo $filterQuery ?><?php echo $sortQuery ?>&amp;limit=<?php echo $limit ?>"><?php echo translate('ViewAll') ?></a>
 <?php
-    } else {
+  } else {
 ?>
         <a href="?view=<?php echo $view ?>&amp;page=1<?php echo $filterQuery ?><?php echo $sortQuery ?>&amp;limit=<?php echo $limit ?>"><?php echo translate('ViewPaged') ?></a>
 <?php
-    }
+  }
 }
 ?>
         <a href="#" onclick="closeWindows();"><?php echo translate('Close') ?></a>
@@ -173,21 +173,22 @@ foreach ( $events as $event ) {
               <th class="colTotScore"><a href="<?php echo sortHeader( 'TotScore' ) ?>"><?php echo translate('TotalBrScore') ?><?php echo sortTag( 'TotScore' ) ?></a></th>
               <th class="colAvgScore"><a href="<?php echo sortHeader( 'AvgScore' ) ?>"><?php echo translate('AvgBrScore') ?><?php echo sortTag( 'AvgScore' ) ?></a></th>
               <th class="colMaxScore"><a href="<?php echo sortHeader( 'MaxScore' ) ?>"><?php echo translate('MaxBrScore') ?><?php echo sortTag( 'MaxScore' ) ?></a></th>
-<?php if ( ZM_WEB_EVENT_DISK_SPACE ) { ?>
+<?php
+    if ( ZM_WEB_EVENT_DISK_SPACE ) { ?>
               <th class="colDiskSpace"><a href="<?php echo sortHeader( 'DiskSpace' ) ?>"><?php echo translate('DiskSpace') ?><?php echo sortTag( 'DiskSpace' ) ?></a></th>
 <?php
-			}
-      if ( ZM_WEB_LIST_THUMBS ) {
+    }
+    if ( ZM_WEB_LIST_THUMBS ) {
 ?>
               <th class="colThumbnail"><?php echo translate('Thumbnail') ?></th>
 <?php
-      }
+    }
 ?>
               <th class="colMark"><input type="checkbox" name="toggleCheck" value="1" onclick="toggleCheckbox( this, 'markEids' );"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>/></th>
             </tr>
 <?php
-    }
-    $scale = max( reScale( SCALE_BASE, $event->DefaultScale(), ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
+  }
+  $scale = max( reScale( SCALE_BASE, $event->DefaultScale(), ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
 ?>
             <tr>
               <td class="colId"><?php echo makePopupLink( '?view=event&amp;eid='.$event->Id().$filterQuery.$sortQuery.'&amp;page=1', 'zmEvent', array( 'event', reScale( $event->Width(), $scale ), reScale( $event->Height(), $scale ) ), $event->Id().($event->Archived()?'*':'') ) ?></td>
@@ -201,35 +202,37 @@ foreach ( $events as $event ) {
               <td class="colTotScore"><?php echo $event->TotScore() ?></td>
               <td class="colAvgScore"><?php echo $event->AvgScore() ?></td>
               <td class="colMaxScore"><?php echo makePopupLink( '?view=frame&amp;eid='.$event->Id().'&amp;fid=0', 'zmImage', array( 'image', reScale( $event->Width(), $scale ), reScale( $event->Height(), $scale ) ), $event->MaxScore() ) ?></td>
-<?php if ( ZM_WEB_EVENT_DISK_SPACE ) { ?>
+<?php
+  if ( ZM_WEB_EVENT_DISK_SPACE ) {
+?>
               <td class="colDiskSpace"><?php echo human_filesize( $event->DiskSpace() ) ?></td>
 <?php
-		}
-    if ( ZM_WEB_LIST_THUMBS ) {
-        if ( $thumbData = $event->createListThumbnail() ) {
+  }
+  if ( ZM_WEB_LIST_THUMBS ) {
+    if ( $thumbData = $event->createListThumbnail() ) {
 ?>
               <td class="colThumbnail">
-                <?php 
-  
-                $imgSrc = '?view=image&amp;eid='.$event->Id().'&amp;fid='.$thumbData['FrameId'].'&amp;width='.$thumbData['Width'].'&amp;height='.$thumbData['Height'];
-                $streamSrc = getStreamSrc( array( "source=event", "mode=jpeg", "event=".$event->Id(), "scale=".$scale, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "replay=single") );
+<?php 
+      $imgSrc = '?view=image&amp;eid='.$event->Id().'&amp;fid='.$thumbData['FrameId'].'&amp;width='.$thumbData['Width'].'&amp;height='.$thumbData['Height'];
+      $streamSrc = getStreamSrc( array( "source=event", "mode=jpeg", "event=".$event->Id(), "scale=".$scale, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "replay=single") );
 
-                $imgHtml = '<img id="thumbnail'.$event->id().'" src="'.$imgSrc.'" alt="'. validHtmlStr('Event '.$event->Id()) .'" style="width:'. validInt($thumbData['Width']) .'px;height:'. validInt( $thumbData['Height'] ).'px;" onmouseover="this.src=\''.$streamSrc.'\';" onmouseout="this.src=\''.$imgSrc.'\';"/>';
+      $imgHtml = '<img id="thumbnail'.$event->id().'" src="'.$imgSrc.'" alt="'. validHtmlStr('Event '.$event->Id()) .'" style="width:'. validInt($thumbData['Width']) .'px;height:'. validInt( $thumbData['Height'] ).'px;" onmouseover="this.src=\''.$streamSrc.'\';" onmouseout="this.src=\''.$imgSrc.'\';"/>';
 
-                echo makePopupLink( 
-                    '?view=frame&amp;eid='.$event->Id().'&amp;fid='.$thumbData['FrameId'],
-                    'zmImage',
-                    array( 'image', reScale( $event->Width(), $scale ), reScale( $event->Height(), $scale ) ),
-                    $imgHtml
-                  );
-                ?></td>
+      echo makePopupLink( 
+          '?view=frame&amp;eid='.$event->Id().'&amp;fid='.$thumbData['FrameId'],
+          'zmImage',
+          array( 'image', reScale( $event->Width(), $scale ), reScale( $event->Height(), $scale ) ),
+          $imgHtml
+        );
+?>
+              </td>
 <?php
-        } else {
+    } else {
 ?>
               <td class="colThumbnail">&nbsp;</td>
 <?php
-        }
     }
+  } // end if ZM_WEB_LIST_THUMBS
 ?>
               <td class="colMark"><input type="checkbox" name="markEids[]" value="<?php echo $event->Id() ?>" onclick="configureButton( this, 'markEids' );"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>/></td>
             </tr>
@@ -239,14 +242,12 @@ foreach ( $events as $event ) {
           </tbody>
         </table>
 <?php
-if ( $pagination )
-{
+if ( $pagination ) {
 ?>
         <h3 class="pagination"><?php echo $pagination ?></h3>
 <?php
 }
-if ( true || canEdit( 'Events' ) )
-{
+if ( true || canEdit( 'Events' ) ) {
 ?>
         <div id="contentButtons">
           <input type="button" name="viewBtn" value="<?php echo translate('View') ?>" onclick="viewEvents( this, 'markEids' );" disabled="disabled"/>

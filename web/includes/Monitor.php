@@ -151,9 +151,9 @@ private $control_fields = array(
     return new Server( $this->{'ServerId'} );
   }
   public function __call( $fn, array $args){
-	if ( count( $args )  ) {
-		$this->{$fn} = $args[0];
-	}
+    if ( count( $args )  ) {
+      $this->{$fn} = $args[0];
+    }
     if ( array_key_exists( $fn, $this ) ) {
       return $this->{$fn};
         #array_unshift($args, $this);

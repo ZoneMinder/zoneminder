@@ -168,7 +168,6 @@ function refreshWindow() {
 
 function refreshParentWindow() {
   if ( refreshParent ) {
-alert(refreshParent);
     if ( window.opener ) {
       if ( refreshParent == true ) 
         window.opener.location.reload( true );

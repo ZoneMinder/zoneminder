@@ -190,7 +190,7 @@ foreach ( $monitors as $monitor ) {
 
 ?>
 
-            <svg class="zones" width="<?php echo $width ?>" height="<?php echo $height ?>" style="position:absolute; top: 0; left: 0; background: none;">
+            <svg class="zones" id="zones<?php echo $monitor->Id() ?>" style="position:absolute; top: 0; left: 0; background: none; width: <?php echo $width ?>px; height: <?php echo $height ?>px;">
             <?php
             foreach( array_reverse($zones) as $zone ) {
               ?>

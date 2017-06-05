@@ -111,6 +111,26 @@ function selectLayout( element ) {
     $('dynamicStyles').destroy();
   new Asset.css( cssFile, { id: 'dynamicStyles' } );
   Cookie.write( 'zmMontageLayout', $(element).get('value'), { duration: 10*365 } );
+  Cookie.write( 'zmMontageScale', '', { duration: 10*365 } );
+  $('scale').set('value', '' );
+  $('width').set('value', '');
+
+  for ( var x = 0; x < monitors.length; x++ ) {
+    var monitor = monitors[x];
+    var streamImg = document.getElementById( 'liveStream'+monitor.id );
+    if ( streamImg ) {
+      var src = streamImg.src;
+      streamImg.src='';
+      src = src.replace(/width=[\.\d]+/i,'width=0' );
+      src = src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
+      streamImg.src = src;
+      streamImg.style.width = '';
+    }
+    var zonesSVG = $('zones'+monitor.id);
+    if ( zonesSVG ) {
+      zonesSVG.style.width = '';
+    }
+  } // end foreach monitor
 }
 
 function changeWidth() {
@@ -121,7 +141,12 @@ function changeWidth() {
     /*Stream could be an applet so can't use moo tools*/ 
     var streamImg = document.getElementById( 'liveStream'+monitor.id );
     if ( streamImg ) {
-      streamImg.src = streamImg.src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
+      var src = streamImg.src;
+      streamImg.src='';
+      src = src.replace(/width=[\.\d]+/i,'width='+width );
+      src = src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
+      streamImg.src = src;
+
       streamImg.style.width = width + "px";
       streamImg.style.height = '';
     }
@@ -143,7 +168,11 @@ function changeHeight() {
     /*Stream could be an applet so can't use moo tools*/ 
     var streamImg = document.getElementById( 'liveStream'+monitor.id );
     if ( streamImg ) {
-      streamImg.src = streamImg.src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
+      var src = streamImg.src;
+      streamImg.src='';
+      src = src.replace(/height=[\.\d]+/i,'height='+height );
+      src = src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
+      streamImg.src = src;
       streamImg.style.height = height + "px";
     }
     var zonesSVG = $('zones'+monitor.id);

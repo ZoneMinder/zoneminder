@@ -36,15 +36,15 @@ if ( ZM_OPT_X10 )
   $tabs["x10"] = translate('X10');
   $tabs["misc"] = translate('Misc');
 
-  if ( isset($_REQUEST['tab']) )
+if ( isset($_REQUEST['tab']) )
   $tab = validHtmlStr($_REQUEST['tab']);
-  else
+else
   $tab = "general";
 
-  $Server = null;
-  if ( defined( 'ZM_SERVER_ID' ) ) {
-    $Server = dbFetchOne( 'SELECT * FROM Servers WHERE Id=?', NULL, array( ZM_SERVER_ID ) );
-  }
+$Server = null;
+if ( defined( 'ZM_SERVER_ID' ) ) {
+  $Server = dbFetchOne( 'SELECT * FROM Servers WHERE Id=?', NULL, array( ZM_SERVER_ID ) );
+}
 if ( ! $Server ) {
   $Server = array( 'Id' => '' );
 }

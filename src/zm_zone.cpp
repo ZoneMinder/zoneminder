@@ -111,7 +111,7 @@ void Zone::Setup(
   if ( config.record_diag_images ) {
     static char diag_path[PATH_MAX] = "";
     if ( ! diag_path[0] ) {
-      snprintf( diag_path, sizeof(diag_path), "%s/%s/diag-%d-poly.jpg", config.dir_events, monitor->Name(), id);
+      snprintf( diag_path, sizeof(diag_path), "%s/%s/diag-%d-poly.jpg", staticConfig.DIR_EVENTS.c_str(), monitor->Name(), id);
     }
     pg_image->WriteJpeg( diag_path );
   }
@@ -232,7 +232,7 @@ bool Zone::CheckAlarms( const Image *delta_image ) {
   if ( config.record_diag_images ) {
     static char diag_path[PATH_MAX] = "";
     if ( ! diag_path[0] ) {
-      snprintf( diag_path, sizeof(diag_path), "%s/%s/diag-%d-%d.jpg", config.dir_events, monitor->Name(), id, 1 );
+      snprintf( diag_path, sizeof(diag_path), "%s/%s/diag-%d-%d.jpg", staticConfig.DIR_EVENTS.c_str(), monitor->Name(), id, 1 );
     }
     diff_image->WriteJpeg( diag_path );
   }
@@ -314,7 +314,7 @@ bool Zone::CheckAlarms( const Image *delta_image ) {
     if ( config.record_diag_images ) {
       static char diag_path[PATH_MAX] = "";
       if ( !diag_path[0] ) {
-        snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-%d-%d.jpg", config.dir_events, monitor->Id(), id, 2 );
+        snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-%d-%d.jpg", staticConfig.DIR_EVENTS.c_str(), monitor->Id(), id, 2 );
       }
       diff_image->WriteJpeg( diag_path );
     }
@@ -524,7 +524,7 @@ bool Zone::CheckAlarms( const Image *delta_image ) {
       if ( config.record_diag_images ) {
         static char diag_path[PATH_MAX] = "";
         if ( !diag_path[0] ) {
-          snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-%d-%d.jpg", config.dir_events, monitor->Id(), id, 3 );
+          snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-%d-%d.jpg", staticConfig.DIR_EVENTS.c_str(), monitor->Id(), id, 3 );
         }
         diff_image->WriteJpeg( diag_path );
       }
@@ -571,7 +571,7 @@ bool Zone::CheckAlarms( const Image *delta_image ) {
       if ( config.record_diag_images ) {
         static char diag_path[PATH_MAX] = "";
         if ( !diag_path[0] ) {
-          snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-%d-%d.jpg", config.dir_events, monitor->Id(), id, 4 );
+          snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-%d-%d.jpg", staticConfig.DIR_EVENTS.c_str(), monitor->Id(), id, 4 );
         }
         diff_image->WriteJpeg( diag_path );
       }

@@ -808,13 +808,11 @@ if(ZM_ONVIF)
 endif(ZM_ONVIF)
 
 # Process distro subdirectories
-if((ZM_TARGET_DISTRO STREQUAL "fc24") OR (ZM_TARGET_DISTRO STREQUAL "fc25"))
-	add_subdirectory(distros/redhat)
-elseif((ZM_TARGET_DISTRO STREQUAL "el6") OR (ZM_TARGET_DISTRO STREQUAL "el7"))
+if((ZM_TARGET_DISTRO MATCHES "^el") OR (ZM_TARGET_DISTRO MATCHES "^fc"))
 	add_subdirectory(distros/redhat)
 elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
 	add_subdirectory(distros/opensuse)
-endif((ZM_TARGET_DISTRO STREQUAL "fc24") OR (ZM_TARGET_DISTRO STREQUAL "fc25"))
+endif((ZM_TARGET_DISTRO MATCHES "^el") OR (ZM_TARGET_DISTRO MATCHES "^fc"))
 
 # Print optional libraries detection status
 message(STATUS "Optional libraries found:${optlibsfound}")

@@ -31,7 +31,6 @@ $tabs['skins'] = translate('Display');
 $tabs['system'] = translate('System');
 $tabs['config'] = translate('Config');
 $tabs['servers'] = translate('Servers');
-$tabs['paths'] = translate('Paths');
 $tabs['web'] = translate('Web');
 $tabs['images'] = translate('Images');
 $tabs['logging'] = translate('Logging');

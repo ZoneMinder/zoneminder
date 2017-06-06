@@ -455,11 +455,13 @@ bool VideoStore::setup_resampler() {
   // Now copy them to the output stream
   audio_output_stream = avformat_new_stream( oc, audio_output_codec );
 
+#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
   ret = avcodec_parameters_from_context( audio_output_stream->codecpar, audio_output_context );
   if ( ret < 0 ) {
     Error( "Could not initialize stream parameteres");
     return false;
   } 
+#endif
 
   AVDictionary *opts = NULL;
   av_dict_set( &opts, "strict", "experimental", 0);

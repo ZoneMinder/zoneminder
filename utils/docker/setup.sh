@@ -1,5 +1,15 @@
 #!/bin/bash
 
+if [ -f "/setup.done" ]; then
+  exit 0
+fi
+
+# Set MySQL in the volume
+rm -rf /var/lib/mysql/*
+chown -R mysql:mysql /var/lib/mysql
+mysqld --initialize-insecure
+
+
 # Start MySQL
 # For Xenial the following won't start mysqld
 #/usr/bin/mysqld_safe & 
@@ -30,17 +40,19 @@ mysql -u root < db/zm_create.sql
 # Add the ZoneMinder DB user
 mysql -u root -e "grant insert,select,update,delete,lock tables,alter on zm.* to 'zmuser'@'localhost' identified by 'zmpass';"
 
-# Make ZM_LOGDIR
-mkdir /var/log/zm
-
 # Activate CGI
 a2enmod cgi
 
 # Activate modrewrite
 a2enmod rewrite
 
+# Setting timezone
+sed -i "s#;date.timezone =#date.timezone = $PHP_TIMEZONE#" /etc/php/7.0/apache2/php.ini
+
 # Shut down mysql cleanly:
 kill $(cat /var/run/mysqld/mysqld.pid)
 sleep 5
+
+touch /setup.done
 
 exit 0

@@ -46,7 +46,7 @@ private:
 #ifdef HAVE_LIBAVRESAMPLE
 AVAudioResampleContext* resample_context;
 #endif
-  uint8_t *converted_input_samples = NULL;
+  uint8_t *converted_input_samples;
     
 	const char *filename;
 	const char *format;

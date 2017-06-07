@@ -72,8 +72,8 @@ function xhtmlHeaders( $file, $title ) {
   <script type="text/javascript" src="tools/mootools/mootools-core.js"></script>
   <script type="text/javascript" src="tools/mootools/mootools-more.js"></script>
   <script type="text/javascript" src="js/mootools.ext.js"></script>
-  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery-1.11.3.js"></script>
-  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery-ui-1.11.3.js"></script>
+  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery.js"></script>
+  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery-ui.js"></script>
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
   <script type="text/javascript">
   //<![CDATA[

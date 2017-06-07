@@ -160,7 +160,7 @@ sub checkExists {
 
   my $sql = "SELECT count(*) FROM $sqltable WHERE Name = ?";
   my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
-    or die( "Can't prepare '$sql': ".$dbh->errstr() );
+    or die( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
   my $res = $sth->execute($sqlname)
     or die( "Can't execute: ".$sth->errstr() );
 

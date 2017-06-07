@@ -41,12 +41,15 @@ our @ISA = qw(Exporter ZoneMinder::Base);
 # If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
 # will save memory.
 our %EXPORT_TAGS = (
-    'functions' => [ qw(
+    functions => [ qw(
       zmDbConnect
       zmDbDisconnect
       zmDbGetMonitors
       zmDbGetMonitor
       zmDbGetMonitorAndControl
+      zmDbSelect
+      zmDbInsert
+      zmDbDelete
       ) ]
     );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
@@ -65,8 +68,6 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
-
-use Carp;
 
 our $dbh = undef;
 
@@ -184,51 +185,97 @@ sub zmDbGetMonitorAndControl {
   return( $monitor );
 }
 
+# Execute a pre-built sql select query
+sub zmDbSelect {
+  zmDbConnect();
+  my $sql = shift; 
+
+  my $sth = $dbh->prepare_cached( $sql )
+    or die( "Can't prepare '$sql': ".$dbh->errstr() );
+  my $res = $sth->execute( @_ )
+    or die( "Can't execute: ".$sth->errstr() );
+
+  my @data = $sth->fetchrow_array();
+  $sth->finish();
+
+  return @data;
+}
+
+# Can be passed either an array of name value pairs, or a hash
+sub ZmDbInsert {
+  zmDbConnect();
+  my $tablename = shift;
+  
+  my %data = @_;
+  my @columns = keys %data;
+  my @values = values %data;
+
+  my $sql = 'INSERT INTO '.$tablename.' ('.join(',', @columns ).') VALUES ('
+    .(join ', ', ('?') x @values ).')'; # Add "?" for each array element
+
+    my $sth = $dbh->prepare_cached( $sql )
+    or die( "Can't prepare '$sql': ".$dbh->errstr() );
+  my $res = $sth->execute(@values)
+    or die( "Can't execute: ".$sth->errstr() );
+  $sth->finish();
+
+  return $res;
+}
+
+# Build and execute a sql delete query
+sub ZmDbDelete {
+  zmDbConnect();
+  my $table = shift;
+
+  my %data = ( @_ == 1 ? @{$_[0]} : @_ );
+
+  my $sql = "DELETE FROM $table WHERE ".join(' AND ', map { $_ . '=?' } keys %data );
+  my $sth = $dbh->prepare_cached( $sql )
+    or die( "Can't prepare '$sql': ".$dbh->errstr() );
+  my $res = $sth->execute(values %data)
+    or die( "Can't execute: ".$sth->errstr() );
+  $sth->finish();
+
+  return $res;
+}
+
+
 1;
 __END__
-# Below is stub documentation for your module. You'd better edit it!
 
 =head1 NAME
 
-ZoneMinder::Database - Perl extension for blah blah blah
+ZoneMinder::Database
 
 =head1 SYNOPSIS
 
 use ZoneMinder::Database;
-blah blah blah
 
 =head1 DESCRIPTION
 
-Stub documentation for ZoneMinder, created by h2xs. It looks like the
-author of the extension was negligent enough to leave the stub
-unedited.
-
-Blah blah blah.
+ ZoneMinder::Database - Perl Module for interfacing with the db
 
 =head2 EXPORT
 
-None by default.
-
-
-
-=head1 SEE ALSO
-
-Mention other useful documentation such as the documentation of
-related modules or operating system documentation (such as man pages
-in UNIX), or any relevant external documentation such as RFCs or
-standards.
-
-If you have a mailing list set up for your module, mention it here.
-
-If you have a web site set up for your module, mention it here.
+functions = [
+  zmDbConnect
+  zmDbDisconnect
+  zmDbGetMonitors
+  zmDbGetMonitor
+  zmDbGetMonitorAndControl
+  zmDbSelect
+  zmDbInsert
+  zmDbDelete
+];
 
 =head1 AUTHOR
 
 Philip Coombes, E<lt>philip.coombes@zoneminder.comE<gt>
+Isaac Connor, E<lt>isaac@zoneminder.comE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2001-2008  Philip Coombes
+Copyright (C) 2001-2017  ZoneMinder LLC
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.3 or,

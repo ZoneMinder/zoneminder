@@ -102,13 +102,16 @@ GetOptions(
     'version'       =>\$version
 ) or pod2usage(-exitstatus => -1);
 
-$Config{ZM_DB_USER} = $dbUser;
-$Config{ZM_DB_PASS} = $dbPass;
 
 if ( $version ) {
   print( ZoneMinder::Base::ZM_VERSION . "\n");
   exit(0);
 }
+
+$Config{ZM_DB_USER} = $dbUser;
+$Config{ZM_DB_PASS} = $dbPass;
+zmDbConnect( 1 ); # Force reconnect with new credentials
+
 # Check to make sure commandline params make sense
 if ( ((!$help) && ($import + $export + $topreset) != 1 )) {
   print( STDERR qq/Please give only one of the following: "import", "export", or "topreset".\n/ );
@@ -151,13 +154,12 @@ if ($topreset) {
 
 # Build and execute a sql select count query
 sub checkExists {
-  my $dbh = shift;
   my $sqltable = shift;
   my $sqlname = shift;
   my $result = 0; 
 
   my $sql = "SELECT count(*) FROM $sqltable WHERE Name = ?";
-  my $sth = $dbh->prepare_cached( $sql )
+  my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
     or die( "Can't prepare '$sql': ".$dbh->errstr() );
   my $res = $sth->execute($sqlname)
     or die( "Can't execute: ".$sth->errstr() );
@@ -210,9 +212,8 @@ sub importsql {
 # Now that we've got what we were looking for,
 # compare to what is already in the dB
 
-  my $dbh = zmDbConnect();
   foreach (keys %controls) {
-    if (!checkExists($dbh,'Controls',$_)) {
+    if (!checkExists('Controls',$_)) {
 # No existing Control was found. Add new control to dB.
       zmDbQuery($controls{$_});
       push @newcontrols, $_;
@@ -230,7 +231,7 @@ sub importsql {
   }
 
   foreach (keys %monitorpresets) {
-    if (!checkExists($dbh,'MonitorPresets',$_)) {
+    if (!checkExists('MonitorPresets',$_)) {
 # No existing MonitorPreset was found.  Add new MonitorPreset to dB.
       zmDbQuery($monitorpresets{$_});
       push @newpresets, $_;
@@ -359,7 +360,7 @@ sub toPreset {
 
   my %data = map { $_, shift @data } @columns;
 
-  if (!checkExists($dbh,'MonitorPresets',$data{Name})) {
+  if (!checkExists($ZoneMinder::Database::dbh,'MonitorPresets',$data{Name})) {
 # No existing Preset was found.  Add new Preset to dB.
     print "Adding new preset: $data{Name}\n";
     zmDbInsert('MonitorPresets',\%data);

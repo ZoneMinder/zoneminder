@@ -224,11 +224,12 @@ sub ZmDbInsert {
 }
 
 # Can be passed either an array of name value pairs, or a hash
+# where must be a hash ref
 sub ZmDbUpdate {
   zmDbConnect();
   my $tablename = shift;
 
-  my %where = %{shift} if @_;
+  my %where = %{shift @_} if @_;
   my %data = ( @_ == 1 ? @{$_[0]} : @_ );
   my @columns = keys %data;
   my @values = values %data;

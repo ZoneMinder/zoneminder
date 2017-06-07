@@ -1,7 +1,10 @@
 #!/bin/bash
 
 # Start MySQL
-/usr/bin/mysqld_safe & 
+# For Xenial the following won't start mysqld
+#/usr/bin/mysqld_safe & 
+# Use this instead:
+service mysql start
 
 # Give MySQL time to wake up
 SECONDS_LEFT=120
@@ -26,6 +29,9 @@ mysql -u root < db/zm_create.sql
 
 # Add the ZoneMinder DB user
 mysql -u root -e "grant insert,select,update,delete,lock tables,alter on zm.* to 'zmuser'@'localhost' identified by 'zmpass';"
+
+# Make ZM_LOGDIR
+mkdir /var/log/zm
 
 # Activate CGI
 a2enmod cgi

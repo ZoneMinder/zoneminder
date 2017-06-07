@@ -6,9 +6,9 @@
 
 %if "%{zmuid_final}" == "nginx"
 %global with_nginx 1
-%global wwwconfdir /etc/nginx/default.d
+%global wwwconfdir %{_sysconfdir}/nginx/default.d
 %else
-%global wwwconfdir /etc/httpd/conf.d
+%global wwwconfdir %{_sysconfdir}/httpd/conf.d
 %endif
 
 %global sslcert %{_sysconfdir}/pki/tls/certs/localhost.crt
@@ -17,6 +17,11 @@
 # This will tell zoneminder's cmake process we are building against a known distro
 %global zmtargetdistro %{?rhel:el%{rhel}}%{!?rhel:fc%{fedora}}
 
+# Fedora >= 25 needs apcu backwards compatibility module
+%if 0%{?fedora} >= 25
+%global with_apcu_bc 1
+%endif
+
 # Include files for SysV init or systemd
 %if 0%{?fedora} >= 15 || 0%{?rhel} >= 7
 %global with_init_systemd 1
@@ -24,19 +29,12 @@
 %global with_init_sysv 1
 %endif
 
-# php-mysql deprecated in f25
-%if 0%{?fedora} >= 25
-%global with_php_mysqlnd 1
-%else
-%global with_php_mysql 1
-%endif
-
 %global readme_suffix %{?rhel:Redhat%{?rhel}}%{!?rhel:Fedora}
 %global _hardened_build 1
 
 Name: zoneminder
-Version: 1.30.1
-Release: 2%{?dist}
+Version: 1.30.4
+Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
 # jscalendar is LGPL (any version): http://www.dynarch.com/projects/calendar/
@@ -46,13 +44,15 @@ Group: System Environment/Daemons
 License: GPLv2+ and LGPLv2+ and MIT
 URL: http://www.zoneminder.com/
 
-Source0: https://github.com/ZoneMinder/ZoneMinder/archive/v%{version}.tar.gz#/%{name}-%{version}.tar.gz
+Source0: https://github.com/ZoneMinder/ZoneMinder/archive/%{version}.tar.gz#/zoneminder-%{version}.tar.gz
 Source1: https://github.com/FriendsOfCake/crud/archive/v%{crud_version}.tar.gz#/crud-%{crud_version}.tar.gz
 
 %{?with_init_systemd:BuildRequires: systemd-devel}
 %{?with_init_systemd:BuildRequires: mariadb-devel}
 %{?with_init_systemd:BuildRequires: perl-podlators}
+%{?with_init_systemd:BuildRequires: polkit-devel}
 %{?with_init_sysv:BuildRequires: mysql-devel}
+%{?el6:BuildRequires: epel-rpm-macros}
 BuildRequires: cmake >= 2.8.7
 BuildRequires: gnutls-devel
 BuildRequires: bzip2-devel
@@ -82,17 +82,17 @@ BuildRequires: vlc-devel
 BuildRequires: libcurl-devel
 BuildRequires: libv4l-devel
 BuildRequires: ffmpeg-devel
-BuildRequires: polkit-devel
 
 %{?with_nginx:Requires: nginx}
 %{?with_nginx:Requires: fcgiwrap}
 %{?with_nginx:Requires: php-fpm}
-%{!?with_nginx:Requires: httpd php}
+%{!?with_nginx:Requires: httpd}
 %{!?with_nginx:Requires: php}
-%{?with_php_mysqlnd:Requires: php-mysqlnd}
-%{?with_php_mysql:Requires: php-mysql}
+Requires: php-mysqli
 Requires: php-common
 Requires: php-gd
+Requires: php-pecl-apcu
+%{?with_apcu_bc:Requires: php-pecl-apcu-bc}
 Requires: cambozola
 Requires: net-tools
 Requires: psmisc
@@ -137,10 +137,9 @@ designed to support as many cameras as you can attach to your computer without
 too much degradation of performance.
 
 %prep
-%autosetup
-%autosetup -a 1
-rmdir ./web/api/app/Plugin/Crud
-mv -f crud-%{crud_version} ./web/api/app/Plugin/Crud
+%autosetup -p 1 -a 1 -n ZoneMinder-%{version}
+%{__rm} -rf ./web/api/app/Plugin/Crud
+%{__mv} -f crud-%{crud_version} ./web/api/app/Plugin/Crud
 
 # Change the following default values
 ./utils/zmeditconfigdata.sh ZM_PATH_ZMS /cgi-bin-zm/nph-zms
@@ -281,9 +280,9 @@ rm -rf %{_docdir}/%{name}-%{version}
 %files
 %license COPYING
 %doc AUTHORS README.md distros/redhat/readme/README.%{readme_suffix} distros/redhat/readme/README.https distros/redhat/jscalendar-doc
-%config(noreplace) %attr(640,root,%{zmgid_final}) /etc/zm/zm.conf
+%config(noreplace) %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm/zm.conf
 %config(noreplace) %attr(644,root,root) %{wwwconfdir}/zoneminder.conf
-%config(noreplace) /etc/logrotate.d/zoneminder
+%config(noreplace) %{_sysconfdir}/logrotate.d/zoneminder
 
 %if 0%{?with_nginx}
 %config(noreplace) %{_sysconfdir}/php-fpm.d/zoneminder.conf
@@ -292,6 +291,8 @@ rm -rf %{_docdir}/%{name}-%{version}
 %if 0%{?with_init_systemd}
 %{_tmpfilesdir}/zoneminder.conf
 %{_unitdir}/zoneminder.service
+%{_datadir}/polkit-1/actions/com.zoneminder.systemctl.policy
+%{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
 %endif
 
 %if 0%{?with_init_sysv}
@@ -304,7 +305,6 @@ rm -rf %{_docdir}/%{name}-%{version}
 %{_bindir}/zmc
 %{_bindir}/zmcontrol.pl
 %{_bindir}/zmdc.pl
-%{_bindir}/zmf
 %{_bindir}/zmfilter.pl
 %{_bindir}/zmpkg.pl
 %{_bindir}/zmtrack.pl
@@ -329,9 +329,6 @@ rm -rf %{_docdir}/%{name}-%{version}
 %{_libexecdir}/zoneminder/
 %{_datadir}/zoneminder/
 
-%{_datadir}/polkit-1/actions/com.zoneminder.systemctl.policy
-%{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
-
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/events
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/images
@@ -340,9 +337,23 @@ rm -rf %{_docdir}/%{name}-%{version}
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/temp
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/log/zoneminder
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/spool/zoneminder-upload
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) %ghost %{_localstatedir}/run/zoneminder
+%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/run/zoneminder
 
 %changelog
+* Tue May 09 2017 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.4-1
+- modify autosetup macro parameters
+- modify requirements for php-pecl-acpu-bc package
+- 1.30.4 release
+
+* Tue May 02 2017 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.3-1
+- 1.30.3 release
+
+* Thu Mar 30 2017 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.2-2
+- 1.30.2 release
+
+* Wed Feb 08 2017 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.2-1
+- Bump version for 1.30.2 release candidate 1
+
 * Wed Dec 28 2016 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.1-2 
 - Changes from rpmfusion #4393
 

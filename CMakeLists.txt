@@ -66,6 +66,24 @@ set(CMAKE_CXX_FLAGS_DEBUG "-Wall -D__STDC_CONSTANT_MACROS -g")
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
+# GCC below 6.0 doesn't support __target__("fpu=neon") attribute, required for compiling ARM Neon code, otherwise compilation fails.
+# Must use -mfpu=neon compiler flag instead, but only do that for processors that support neon, otherwise strip the neon code alltogether,
+# because passing -fmpu=neon is unsafe to processors that don't support neon
+IF(CMAKE_SYSTEM_PROCESSOR MATCHES "^arm" AND CMAKE_SYSTEM_NAME MATCHES "Linux")
+	IF(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
+		EXEC_PROGRAM(grep ARGS " neon " "/proc/cpuinfo" OUTPUT_VARIABLE neonoutput RETURN_VALUE neonresult)
+		IF(neonresult EQUAL 0)
+			set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -mfpu=neon")
+			set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -mfpu=neon")
+			set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -mfpu=neon")
+			set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -mfpu=neon")
+		ELSE(neonresult EQUAL 0)
+			add_definitions(-DZM_STRIP_NEON=1)
+			message(STATUS "ARM Neon is not available on this processor. Neon functions will be absent")
+		ENDIF(neonresult EQUAL 0)
+	ENDIF(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
+ENDIF(CMAKE_SYSTEM_PROCESSOR MATCHES "^arm" AND CMAKE_SYSTEM_NAME MATCHES "Linux")
+
 # Modules that we need:
 include (GNUInstallDirs)
 include (CheckIncludeFile)
@@ -85,7 +103,8 @@ mark_as_advanced(
     ZM_PERL_MM_PARMS 
     ZM_PERL_SEARCH_PATH 
     ZM_TARGET_DISTRO 
-    ZM_CONFIG_DIR)
+    ZM_CONFIG_DIR
+    ZM_SYSTEMD)
 
 set(ZM_RUNDIR "/var/run/zm" CACHE PATH 
     "Location of transient process files, default: /var/run/zm")
@@ -148,6 +167,8 @@ set(ZM_PERL_SEARCH_PATH "" CACHE PATH
 	installed outside Perl's default search path.")
 set(ZM_TARGET_DISTRO "" CACHE STRING 
     "Build ZoneMinder for a specific distribution.  Currently, valid names are: fc24, fc25, el6, el7, OS13, FreeBSD")
+set(ZM_SYSTEMD "OFF" CACHE BOOL 
+    "Set to ON to force building ZM with systemd support. default: OFF")
 
 # Reassign some variables if a target distro has been specified
 if((ZM_TARGET_DISTRO STREQUAL "fc24") OR (ZM_TARGET_DISTRO STREQUAL "fc25"))
@@ -204,6 +225,11 @@ set(CMAKE_EXTRA_INCLUDE_FILES
 include_directories("${CMAKE_BINARY_DIR}")
 # This is required to enable searching in lib64 (if exists), do not change
 set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS ON)
+
+# Set the systemd flag if systemd is autodetected or ZM_SYSTEMD has been set
+if(ZM_SYSTEMD OR (IS_DIRECTORY /usr/lib/systemd/system) OR (IS_DIRECTORY /lib/systemd/system))
+    set(WITH_SYSTEMD 1)
+endif(ZM_SYSTEMD OR (IS_DIRECTORY /usr/lib/systemd/system) OR (IS_DIRECTORY /lib/systemd/system))
 
 # System checks
 check_include_file("libv4l1-videodev.h" HAVE_LIBV4L1_VIDEODEV_H)
@@ -386,13 +412,13 @@ find_library(MYSQLCLIENT_LIBRARIES mysqlclient PATH_SUFFIXES mysql)
 if(MYSQLCLIENT_LIBRARIES)
 	set(HAVE_LIBMYSQLCLIENT 1)
 	list(APPEND ZM_BIN_LIBS "${MYSQLCLIENT_LIBRARIES}")
-	find_path(MYSQLCLIENT_INCLUDE_DIR mysql/mysql.h)
+	find_path(MYSQLCLIENT_INCLUDE_DIR mysql.h PATH_SUFFIXES mysql)
 	if(MYSQLCLIENT_INCLUDE_DIR)
 		include_directories("${MYSQLCLIENT_INCLUDE_DIR}")
 		set(CMAKE_REQUIRED_INCLUDES "${MYSQLCLIENT_INCLUDE_DIR}")
 	endif(MYSQLCLIENT_INCLUDE_DIR)
 	mark_as_advanced(FORCE MYSQLCLIENT_LIBRARIES MYSQLCLIENT_INCLUDE_DIR)
-	check_include_file("mysql/mysql.h" HAVE_MYSQL_H)
+	check_include_file("mysql.h" HAVE_MYSQL_H)
 	if(NOT HAVE_MYSQL_H)
 		message(FATAL_ERROR 
                     "ZoneMinder requires MySQL headers - check that MySQL development packages are installed")
@@ -401,6 +427,59 @@ else(MYSQLCLIENT_LIBRARIES)
 	message(FATAL_ERROR 
             "ZoneMinder requires mysqlclient but it was not found on your system")
 endif(MYSQLCLIENT_LIBRARIES)
+
+# x264 (using find_library and find_path)
+find_library(X264_LIBRARIES x264)
+if(X264_LIBRARIES)
+	set(HAVE_LIBX264 1)
+	list(APPEND ZM_BIN_LIBS "${X264_LIBRARIES}")
+	find_path(X264_INCLUDE_DIR x264.h)
+	if(X264_INCLUDE_DIR)
+		include_directories("${X264_INCLUDE_DIR}")
+		set(CMAKE_REQUIRED_INCLUDES "${X264_INCLUDE_DIR}")
+	endif(X264_INCLUDE_DIR)
+	mark_as_advanced(FORCE X264_LIBRARIES X264_INCLUDE_DIR)
+	check_include_files("stdint.h;x264.h" HAVE_X264_H)
+	set(optlibsfound "${optlibsfound} x264")
+else(X264_LIBRARIES)
+	set(optlibsnotfound "${optlibsnotfound} x264")
+endif(X264_LIBRARIES)
+
+# mp4v2 (using find_library and find_path)
+find_library(MP4V2_LIBRARIES mp4v2)
+if(MP4V2_LIBRARIES)
+	set(HAVE_LIBMP4V2 1)
+	list(APPEND ZM_BIN_LIBS "${MP4V2_LIBRARIES}")
+
+        # mp4v2/mp4v2.h
+	find_path(MP4V2_INCLUDE_DIR mp4v2/mp4v2.h)
+	if(MP4V2_INCLUDE_DIR)
+		include_directories("${MP4V2_INCLUDE_DIR}")
+		set(CMAKE_REQUIRED_INCLUDES "${MP4V2_INCLUDE_DIR}")
+	endif(MP4V2_INCLUDE_DIR)
+	check_include_file("mp4v2/mp4v2.h" HAVE_MP4V2_MP4V2_H)
+
+        # mp4v2.h
+	find_path(MP4V2_INCLUDE_DIR mp4v2.h)
+	if(MP4V2_INCLUDE_DIR)
+		include_directories("${MP4V2_INCLUDE_DIR}")
+		set(CMAKE_REQUIRED_INCLUDES "${MP4V2_INCLUDE_DIR}")
+	endif(MP4V2_INCLUDE_DIR)
+	check_include_file("mp4v2.h" HAVE_MP4V2_H)
+
+	# mp4.h
+	find_path(MP4V2_INCLUDE_DIR mp4.h)
+	if(MP4V2_INCLUDE_DIR)
+		include_directories("${MP4V2_INCLUDE_DIR}")
+		set(CMAKE_REQUIRED_INCLUDES "${MP4V2_INCLUDE_DIR}")
+	endif(MP4V2_INCLUDE_DIR)
+	check_include_file("mp4.h" HAVE_MP4_H)
+
+	mark_as_advanced(FORCE MP4V2_LIBRARIES MP4V2_INCLUDE_DIR)
+	set(optlibsfound "${optlibsfound} mp4v2")
+else(MP4V2_LIBRARIES)
+	set(optlibsnotfound "${optlibsnotfound} mp4v2")
+endif(MP4V2_LIBRARIES)
 
 set(PATH_FFMPEG "")
 set(OPT_FFMPEG "no")
@@ -492,6 +571,23 @@ if(NOT ZM_NO_FFMPEG)
 		set(optlibsnotfound "${optlibsnotfound} SWScale")
 	endif(SWSCALE_LIBRARIES)
 
+	# rescale (using find_library and find_path)
+	find_library(AVRESAMPLE_LIBRARIES avresample)
+	if(AVRESAMPLE_LIBRARIES)
+		set(HAVE_LIBAVRESAMPLE 1)
+		list(APPEND ZM_BIN_LIBS "${AVRESAMPLE_LIBRARIES}")
+		find_path(AVRESAMPLE_INCLUDE_DIR "libavresample/avresample.h" /usr/include/ffmpeg)
+		if(AVRESAMPLE_INCLUDE_DIR)
+			include_directories("${AVRESAMPLE_INCLUDE_DIR}")
+			set(CMAKE_REQUIRED_INCLUDES "${AVRESAMPLE_INCLUDE_DIR}")
+		endif(AVRESAMPLE_INCLUDE_DIR)
+		mark_as_advanced(FORCE AVRESAMPLE_LIBRARIES AVRESAMPLE_INCLUDE_DIR)
+		check_include_file("libavresample/avresample.h" HAVE_LIBAVRESAMPLE_AVRESAMPLE_H)
+		set(optlibsfound "${optlibsfound} AVResample")
+	else(AVRESAMPLE_LIBRARIES)
+		set(optlibsnotfound "${optlibsnotfound} AVResample")
+	endif(AVRESAMPLE_LIBRARIES)
+
 	# Find the path to the ffmpeg executable
 	find_program(FFMPEG_EXECUTABLE 
 		NAMES ffmpeg avconv
@@ -523,6 +619,13 @@ if(NOT ZM_NO_LIBVLC)
 		set(optlibsnotfound "${optlibsnotfound} libVLC")
 	endif(LIBVLC_LIBRARIES)
 endif(NOT ZM_NO_LIBVLC)
+
+find_package(Boost 1.36.0)
+if(Boost_FOUND)
+  include_directories(${Boost_INCLUDE_DIRS})
+  set(CMAKE_REQUIRED_INCLUDES "${Boost_INCLUDE_DIRS}")
+  list(APPEND ZM_BIN_LIBS "${Boost_LIBRARIES}")
+endif()
 
 # *** END OF LIBRARY CHECKS ***
 
@@ -659,12 +762,14 @@ endif(NOT ZM_WEB_GROUP)
 message(STATUS "Using web user: ${ZM_WEB_USER}")
 message(STATUS "Using web group: ${ZM_WEB_GROUP}")
 
-# Check for polkit
-find_package(Polkit)
-if(NOT POLKIT_FOUND)
-	message(FATAL_ERROR 
-            "Running ZoneMinder requires polkit. Building ZoneMinder requires the polkit development package.")
-endif(NOT POLKIT_FOUND)
+if(WITH_SYSTEMD)
+    # Check for polkit
+    find_package(Polkit)
+    if(NOT POLKIT_FOUND)
+	    message(FATAL_ERROR 
+                "Running ZoneMinder requires polkit. Building ZoneMinder requires the polkit development package.")
+    endif(NOT POLKIT_FOUND)
+endif(WITH_SYSTEMD)
 
 # Some variables that zm expects
 set(ZM_PID "${ZM_RUNDIR}/zm.pid")
@@ -749,3 +854,4 @@ if(CCACHE_FOUND)
         set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
         set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
 endif(CCACHE_FOUND)
+

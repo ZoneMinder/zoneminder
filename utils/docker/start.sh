@@ -35,7 +35,7 @@ done
 service apache2 restart
 
 # Start ZoneMinder
-/usr/local/bin/zmpkg.pl start
+/usr/local/bin/zmpkg.pl start && echo "Zone Minder started"
 
 while :
 do

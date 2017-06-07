@@ -47,8 +47,9 @@ our %EXPORT_TAGS = (
       zmDbGetMonitors
       zmDbGetMonitor
       zmDbGetMonitorAndControl
-      zmDbSelect
+      zmDbQuery
       zmDbInsert
+      zmDbUpdate
       zmDbDelete
       ) ]
     );
@@ -186,7 +187,7 @@ sub zmDbGetMonitorAndControl {
 }
 
 # Execute a pre-built sql select query
-sub zmDbSelect {
+sub zmDbQuery {
   zmDbConnect();
   my $sql = shift; 
 
@@ -222,6 +223,28 @@ sub ZmDbInsert {
   return $res;
 }
 
+# Can be passed either an array of name value pairs, or a hash
+sub ZmDbUpdate {
+  zmDbConnect();
+  my $tablename = shift;
+
+  my %where = %{shift} if @_;
+  my %data = ( @_ == 1 ? @{$_[0]} : @_ );
+  my @columns = keys %data;
+  my @values = values %data;
+
+  my $sql = 'UPDATE '.$tablename.' SET '.join(', ', map { $_ . '=?' } @columns );
+  ' WHERE ' . join(' AND ', map { $_ . '=?' } keys %where );
+
+    my $sth = $dbh->prepare_cached( $sql )
+    or die( "Can't prepare '$sql': ".$dbh->errstr() );
+  my $res = $sth->execute( @values, values %where )
+    or die( "Can't execute: ".$sth->errstr() );
+  $sth->finish();
+
+  return $res;
+}
+
 # Build and execute a sql delete query
 sub ZmDbDelete {
   zmDbConnect();
@@ -238,7 +261,6 @@ sub ZmDbDelete {
 
   return $res;
 }
-
 
 1;
 __END__
@@ -263,8 +285,9 @@ functions = [
   zmDbGetMonitors
   zmDbGetMonitor
   zmDbGetMonitorAndControl
-  zmDbSelect
+  zmDbQuery
   zmDbInsert
+  zmDbUpdate
   zmDbDelete
 ];
 

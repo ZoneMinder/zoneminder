@@ -234,8 +234,11 @@ sub ZmDbUpdate {
   my @columns = keys %data;
   my @values = values %data;
 
-  my $sql = 'UPDATE '.$tablename.' SET '.join(', ', map { $_ . '=?' } @columns )
-  ' WHERE ' . join(' AND ', map { $_ . '=?'} keys %where );
+  my $sql = join(' ',
+      'UPDATE',$tablename,
+      'SET'.join(', ', map { $_ . '=?' } @columns ),
+      'WHERE' , join(' AND ', map { $_ . '=?'} keys %where )
+      );
 
     my $sth = $dbh->prepare_cached( $sql )
     or die( "Can't prepare '$sql': ".$dbh->errstr() );

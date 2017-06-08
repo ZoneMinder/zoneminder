@@ -137,28 +137,27 @@ class Event {
 
     $streamSrc = ZM_BASE_URL.ZM_PATH_ZMS;
 
-    $args[] = 'source=event&event='.$this->{'Id'};
+    $args['source'] = 'event';
+    $args['event'] = $this->{'Id'};
 
     if ( ZM_OPT_USE_AUTH ) {
       if ( ZM_AUTH_RELAY == 'hashed' ) {
-        $args[] = 'auth='.generateAuthHash( ZM_AUTH_HASH_IPS );
+        $args['auth'] = generateAuthHash( ZM_AUTH_HASH_IPS );
       } elseif ( ZM_AUTH_RELAY == 'plain' ) {
-        $args[] = 'user='.$_SESSION['username'];
-        $args[] = 'pass='.$_SESSION['password'];
+        $args['user'] = $_SESSION['username'];
+        $args['pass'] = $_SESSION['password'];
       } elseif ( ZM_AUTH_RELAY == "none" ) {
-        $args[] = 'user='.$_SESSION['username'];
+        $args['user'] = $_SESSION['username'];
       }
     }
-    if ( !in_array( 'mode=single', $args ) && !empty($GLOBALS['connkey']) ) {
-      $args[] = 'connkey='.$GLOBALS['connkey'];
+    if ( ( (!isset($args['mode'])) or ( $args['mode'] != 'single' ) ) && !empty($GLOBALS['connkey']) ) {
+      $args['connkey'] = $GLOBALS['connkey'];
     }
     if ( ZM_RAND_STREAM ) {
-      $args[] = 'rand='.time();
+      $args['rand'] = time();
     }
 
-    if ( count($args) ) {
-      $streamSrc .= '?'.join( $querySep, $args );
-    }
+    $streamSrc .= '?'.http_build_query( $args,'', $querySep );
 
     return( $streamSrc );
   } // end function getStreamSrc

@@ -674,9 +674,6 @@ function updateProgressBar() {
       }
     } // end if
   } // end function
-  // ICON: Shouldn't have to set the width or make it visible
-  // $('progressBar').setStyle( 'width', barWidth );
-  // $('progressBar').removeClass( 'invisible' );
 } // end function updateProgressBar()
 
 function handleClick( event ) {

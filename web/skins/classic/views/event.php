@@ -131,12 +131,11 @@ if ( canEdit( 'Events' ) ) {
         <div id="archiveEvent" class="hidden"><a href="#" onclick="archiveEvent()"><?php echo translate('Archive') ?></a></div>
         <div id="unarchiveEvent" class="hidden"><a href="#" onclick="unarchiveEvent()"><?php echo translate('Unarchive') ?></a></div>
 <?php 
+} // end if can edit Events
   if ( $Event->DefaultVideo() ) { ?>
         <div id="downloadEventFile"><a href="<?php echo $Event->getStreamSrc()?>">Download MP4</a></div>
 <?php
   } // end if Event->DefaultVideo
-} // end if can edit Events
-if ( canView( 'Events' ) ) {
 ?>
         <div id="framesEvent"><a href="#" onclick="showEventFrames()"><?php echo translate('Frames') ?></a></div>
 <?php
@@ -173,10 +172,10 @@ if ( $Event->DefaultVideo() ) {
         <div id="imageFeed" <?php if ( $Event->DefaultVideo() ) { ?>class="hidden"<?php } ?> >
 <?php
 if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
-  $streamSrc = getStreamSrc( array( 'source=event', 'mode=mpeg', 'event='.$eid, 'frame='.$fid, 'scale='.$scale, 'rate='.$rate, 'bitrate='.ZM_WEB_VIDEO_BITRATE, 'maxfps='.ZM_WEB_VIDEO_MAXFPS, 'format='.ZM_MPEG_REPLAY_FORMAT, 'replay='.$replayMode ) );
-  outputVideoStream( 'evtStream', $streamSrc, reScale( $Event->Width(), $scale ), reScale( $Event->Height(), $scale ), ZM_MPEG_LIVE_FORMAT );
+  $streamSrc = $Event->getStreamSrc( array( 'mode'=>'mpeg', 'scale'=>$scale, 'rate'=>$rate, 'bitrate'=>ZM_WEB_VIDEO_BITRATE, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'format'=>ZM_MPEG_REPLAY_FORMAT, 'replay'=>$replayMode ) );
+  outputVideoStream( "evtStream", $streamSrc, reScale( $Event->Width(), $scale ), reScale( $Event->Height(), $scale ), ZM_MPEG_LIVE_FORMAT );
 } else {
-  $streamSrc = getStreamSrc( array( 'source=event', 'mode=jpeg', 'event='.$eid, 'frame='.$fid, 'scale='.$scale, 'rate='.$rate, 'maxfps='.ZM_WEB_VIDEO_MAXFPS, 'replay='.$replayMode) );
+  $streamSrc = $Event->getStreamSrc( array( 'mode'=>'jpeg', 'frame'=>$fid, 'scale'=>$scale, 'rate'=>$rate, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>$replayMode) );
   if ( canStreamNative() ) {
     outputImageStream( 'evtStream', $streamSrc, reScale( $Event->Width(), $scale ), reScale( $Event->Height(), $scale ), validHtmlStr($Event->Name()) );
   } else {
@@ -247,8 +246,7 @@ if ( $Event->SaveJPEGs() & 3 ) { // frames or analysis
         </div>
       </div>
 <?php
-} // end if SaveJPEGs() & 3 Analysis or Jpegs
-} // end if canView
+  } // end if SaveJPEGs() & 3 Analysis or Jpegs
 } // end if Event exists
 ?>
   </div><!--page-->

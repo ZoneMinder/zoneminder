@@ -38,7 +38,7 @@ $eventCounts = array(
         'title' => translate('Hour'),
         'filter' => array(
             'terms' => array(
-                array( 'attr' => "DateTime", 'op' => ">=", 'val' => "-1 hour" ),
+                array( 'attr' => 'DateTime', 'op' => '>=', 'val' => '-1 hour' ),
             )
         ),
         'total' => 0,
@@ -47,7 +47,7 @@ $eventCounts = array(
         'title' => translate('Day'),
         'filter' => array(
             'terms' => array(
-                array( 'attr' => "DateTime", 'op' => ">=", 'val' => "-1 day" ),
+                array( 'attr' => "DateTime", 'op' => '>=', 'val' => '-1 day' ),
             )
         ),
         'total' => 0,
@@ -56,7 +56,7 @@ $eventCounts = array(
         'title' => translate('Week'),
         'filter' => array(
             'terms' => array(
-                array( 'attr' => "DateTime", 'op' => ">=", 'val' => "-7 day" ),
+                array( 'attr' => "DateTime", 'op' => '>=', 'val' => '-7 day' ),
             )
         ),
         'total' => 0,
@@ -65,7 +65,7 @@ $eventCounts = array(
         'title' => translate('Month'),
         'filter' => array(
             'terms' => array(
-                array( 'attr' => "DateTime", 'op' => ">=", 'val' => "-1 month" ),
+                array( 'attr' => "DateTime", 'op' => '>=', 'val' => '-1 month' ),
             )
         ),
         'total' => 0,
@@ -74,7 +74,7 @@ $eventCounts = array(
         'title' => translate('Archived'),
         'filter' => array(
             'terms' => array(
-                array( 'attr' => "Archived", 'op' => "=", 'val' => "1" ),
+                array( 'attr' => "Archived", 'op' => '=', 'val' => '1' ),
             )
         ),
         'total' => 0,

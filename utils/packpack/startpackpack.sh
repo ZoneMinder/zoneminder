@@ -36,24 +36,46 @@ checksanity () {
         echo
         exit 1
     fi
+}
 
+# Create key variables used to assemble the package name
+createvars () {
+    # We need today's date in year/month/day format
+    thedate=$(date +%Y%m%d)
+
+    # We need the (short) commit hash of the latest commit (rpm packaging only)
+    shorthash=$(git describe --long --always | awk -F - '{print $3}')
+
+    # Grab the ZoneMinder version from the contents of the version file
+    versionfile=$(cat version)
+
+    # git the latest (short) commit hash of the version file
+    versionhash=$(git log -n1 --pretty=format:%h version)
+
+    # Number of commits since the version file was last changed
+    numcommits=$(git rev-list ${versionhash}..HEAD --count)
 }
 
 # Check key variables before calling packpack
 checkvars () {
-    if [ -z ${VERSION} ]; then
-        echo
-        echo "FATAL: VERSION variable was null. Cannot continue."
-        echo
-        exit 98
-    fi
 
-    if [ -z ${RELEASE} ]; then
-        echo
-        echo "FATAL: RELEASE variable was null. Cannot Continue"
-        echo
-        exit 98
-    fi
+    for var in $thedate $shorthash $versionfile $versionhash $numcommits; do
+        if [ -z ${var} ]; then
+            echo
+            echo "FATAL: This script was unable to determine one or more key variables. Cannot continue."
+            echo
+            echo "VARIABLE DUMP"
+            echo "-------------"
+            echo
+            echo "thedate: ${thedate}"
+            echo "shorthash: ${shorthash}"
+            echo "versionfile: ${versionfile}"
+            echo "versionhash: ${versionhash}"
+            echo "numcommits: ${numcommits}"
+            echo
+            exit 98
+        fi
+    done
 }
 
 # Steps common to all builds
@@ -131,15 +153,33 @@ installtrusty () {
     fi
 }
 
-# This sets the naming convention for the deb packages
-setdebpkgver () {
+# This sets the naming convention for the rpm packages
+setrpmpkgname () {
+
+    createvars
+
+    # Set VERSION to the contents of the version file e.g. 1.31.0
+    # Set RELEASE to 1.{number of commits}.{today's date}git{short hash of HEAD} e.g. 1.82.20170605gitg7ae0b4a
+    export VERSION="$versionfile"
+    export RELEASE="1.${numcommits}.${thedate}git${shorthash}"
+
+    checkvars
     
-    # Set VERSION to x.xx.x+x e.g. 1.30.2+15
-    # the last x is number of commits since release
-    # Creates zoneminder packages in the format: zoneminder-{version}-{release}
-    zmver=$(git describe --long --always | sed -n 's/^\([0-9\.]*\)-\([0-9]*\)-\([a-z0-9]*\)/\1/p')
-    commitnum=$(git describe --long --always | sed -n 's/^\([0-9\.]*\)-\([0-9]*\)-\([a-z0-9]*\)/\2/p')
-    export VERSION="$zmver+$commitnum"
+    echo
+    echo "Packpack VERSION has been set to: ${VERSION}"
+    echo "Packpack RELEASE has been set to: ${RELEASE}"
+    echo
+
+}
+
+# This sets the naming convention for the deb packages
+setdebpkgname () {
+
+    createvars
+
+    # Set VERSION to {zm version}~{today's date}.{number of commits} e.g. 1.31.0~20170605.82
+    # Set RELEASE to the packpack DIST variable e.g. Trusty
+    export VERSION="${versionfile}~${thedate}.${numcommits}"
     export RELEASE="${DIST}"
 
     checkvars
@@ -150,6 +190,16 @@ setdebpkgver () {
     echo
 
 }
+
+# This adds an entry to the rpm specfile changelog
+setrpmchangelog () {
+
+    export CHANGELOG_NAME="Andrew Bauer"
+    export CHANGELOG_EMAIL="zonexpertconsulting@outlook.com"
+    export CHANGELOG_TEXT="Automated, development snapshot of git ${shorthash}"
+
+}
+
 
 # This adds an entry to the debian changelog
 setdebchangelog () {
@@ -177,18 +227,7 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
     if [ "${OS}" == "el" ] || [ "${OS}" == "fedora" ]; then
         echo "Begin Redhat build..."
 
-        # Set VERSION to x.xx.x e.g. 1.30.2
-        # Set RELEASE to x where x is number of commits since release
-        # Creates zoneminder packages in the format: zoneminder-{version}-{release}
-        export VERSION=$(git describe --long --always | sed -n 's/^\([0-9\.]*\)-\([0-9]*\)-\([a-z0-9]*\)/\1/p')
-        export RELEASE=$(git describe --long --always | sed -n 's/^\([0-9\.]*\)-\([0-9]*\)-\([a-z0-9]*\)/\2/p')
-
-        checkvars
-        
-        echo
-        echo "Packpack VERSION has been set to: ${VERSION}"
-        echo "Packpack RELEASE has been set to: ${RELEASE}"
-        echo
+        setrpmpkgname
 
         ln -sfT distros/redhat rpm
 
@@ -213,6 +252,8 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
             exit 1
         fi
 
+        setrpmchangelog
+
         echo "Starting packpack..."
         packpack/packpack -f utils/packpack/redhat_package.mk redhat_package
 
@@ -220,7 +261,7 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
     elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ]; then
         echo "Begin ${OS} ${DIST} build..."
 
-        setdebpkgver
+        setdebpkgname
         movecrud
 
         if [ "${DIST}" == "trusty" ] || [ "${DIST}" == "precise" ]; then
@@ -246,7 +287,7 @@ elif [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ] && [ "${ARCH}" == "x86
     echo "Begin Ubuntu Trusty build..."
 
     commonprep
-    setdebpkgver
+    setdebpkgname
     movecrud
 
     ln -sfT distros/ubuntu1204 debian

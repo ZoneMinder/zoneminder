@@ -18,11 +18,12 @@ if ( canView( 'Events' ) ) {
           $sql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultRate,M.DefaultScale FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = ?'.monitorLimitSql();
           if ( !($event = dbFetchOne( $sql, NULL, array( $_REQUEST['id'] ) )) )
             ajaxError( 'Video Generation Failure, Unable to load event' );
-          else
+          else {
             if ( $videoFile = createVideo( $event, $_REQUEST['videoFormat'], $_REQUEST['rate'], $_REQUEST['scale'], !empty($_REQUEST['overwrite']) ) )
               ajaxResponse( array( 'response'=>$videoFile ) );
             else
               ajaxError( 'Video Generation Failed' );
+          }
         }
         $ok = true;
         break;

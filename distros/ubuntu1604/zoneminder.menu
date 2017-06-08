@@ -1,2 +1,0 @@
-?package(zoneminder):needs="x11" section="Applications/Video" title="ZoneMinder" command="/usr/bin/x-www-browser http://localhost/zm" icon="/usr/share/zoneminder/icons/16x16/icon.xpm"
-

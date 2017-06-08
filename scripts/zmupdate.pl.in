@@ -976,7 +976,7 @@ sub migratePaths {
 
     my $customConfigFile = "@ZM_CONFIG_SUBDIR@/zmcustom.conf";
 
-    if (( ! -e $customConfigFile ) && ( ZM_VERSION ge '1.31.0' )) {
+    if ( (! -e $customConfigFile ) && ( ZM_VERSION ge '1.31.0' ) && ($Config{ZM_DYN_DB_VERSION} lt '1.31.0') ) {
 
         my %customConfig; 
 

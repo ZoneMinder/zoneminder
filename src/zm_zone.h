@@ -131,14 +131,16 @@ public:
   inline const Image *AlarmImage() const { return( image ); }
   inline const Polygon &GetPolygon() const { return( polygon ); }
   inline bool Alarmed() const { return( alarmed ); }
-  inline void SetAlarm() { alarmed = true; }
-  inline void ClearAlarm() { alarmed = false; }
+	inline bool WasAlarmed() const { return( was_alarmed ); }
+	inline void SetAlarm() { was_alarmed = alarmed; alarmed = true; }
+	inline void ClearAlarm() { was_alarmed = alarmed; alarmed = false; }
   inline Coord GetAlarmCentre() const { return( alarm_centre ); }
   inline unsigned int Score() const { return( score ); }
 
   inline void ResetStats()
   {
     alarmed = false;
+		was_alarmed = false;
     pixel_diff = 0;
     alarm_pixels = 0;
     alarm_filter_pixels = 0;
@@ -170,7 +172,6 @@ public:
 
   inline const Image *getPgImage() const { return( pg_image ); }
   inline const Range *getRanges() const { return( ranges ); }
-
 };
 
 #endif // ZM_ZONE_H

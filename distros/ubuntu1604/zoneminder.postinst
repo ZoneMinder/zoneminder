@@ -44,11 +44,6 @@ if [ "$1" = "configure" ]; then
                 # Ensure zoneminder is stopped
                 deb-systemd-invoke stop zoneminder.service || exit $?
                 zmupdate.pl --nointeractive
-OLD_DIR_EVENTS=mysql -u $ZM_DB_USER --password="$ZM_DB_PASS" -h $ZM_DB_HOST -N -B $ZM_DB_NAME <<EOF
-SELECT Value FROM Config WHERE Name='ZM_DIR_EVENTS';
-EOF
-echo "Value of ZM_DIR_EVENTS is $OLD_DIR_EVENTS ";
-
                 zmupdate.pl --nointeractive -f
                 echo "Done Updating, starting ZoneMinder"
                 deb-systemd-invoke start zoneminder.service || exit $?

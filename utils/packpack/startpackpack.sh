@@ -259,7 +259,7 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
         mypid=$!
         packpack/packpack -f utils/packpack/redhat_package.mk redhat_package > buildlog.txt 2>&1
         kill $mypid
-        cat --lines 1000 buildlog.txt
+        cat -n 1000 buildlog.txt
 
     # Steps common to Debian based distros
     elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ]; then
@@ -283,7 +283,7 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
         mypid=$!
         packpack/packpack > buildlog.txt 2>&1
         kill $mypid
-        cat --lines 1000 buildlog.txt
+        cat -n 1000 buildlog.txt
         
         if [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ] && [ "${ARCH}" == "x86_64" ] && [ "${TRAVIS}" == "true" ]; then
             installtrusty
@@ -307,7 +307,7 @@ elif [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ] && [ "${ARCH}" == "x86
     mypid=$!
     packpack/packpack > buildlog.txt 2>&1
     kill $mypid
-    cat --lines 1000 buildlog.txt
+    cat -n 1000 buildlog.txt
 
     # If we are running inside Travis then attempt to install the deb we just built
     if [ "${TRAVIS}" == "true" ]; then

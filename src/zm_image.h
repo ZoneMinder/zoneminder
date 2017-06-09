@@ -14,7 +14,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 #ifndef ZM_IMAGE_H
@@ -54,7 +54,7 @@ extern imgbufcpy_fptr_t fptr_imgbufcpy;
 
 /* Should be called from Image class functions */
 inline static uint8_t* AllocBuffer(size_t p_bufsize) {
-	uint8_t* buffer = (uint8_t*)zm_mallocaligned(16,p_bufsize);
+	uint8_t* buffer = (uint8_t*)zm_mallocaligned(64,p_bufsize);
 	if(buffer == NULL)
 		Fatal("Memory allocation failed: %s",strerror(errno));
 	
@@ -122,8 +122,8 @@ protected:
 	}
 
 public:
-	enum { CHAR_HEIGHT=11, CHAR_WIDTH=6 };
-	enum { LINE_HEIGHT=CHAR_HEIGHT+0 };
+	enum { ZM_CHAR_HEIGHT=11, ZM_CHAR_WIDTH=6 };
+	enum { LINE_HEIGHT=ZM_CHAR_HEIGHT+0 };
 
 protected:
 	static bool initialised;
@@ -131,11 +131,12 @@ protected:
 	static unsigned char *y_r_table;
 	static unsigned char *y_g_table;
 	static unsigned char *y_b_table;
-	static jpeg_compress_struct *jpg_ccinfo[101];
-	static jpeg_decompress_struct *jpg_dcinfo;
+	static jpeg_compress_struct *writejpg_ccinfo[101];
+	static jpeg_compress_struct *encodejpg_ccinfo[101];
+	static jpeg_decompress_struct *readjpg_dcinfo;
+	static jpeg_decompress_struct *decodejpg_dcinfo;
 	static struct zm_error_mgr jpg_err;
 
-protected:
 	unsigned int width;
 	unsigned int height;
 	unsigned int pixels;
@@ -148,8 +149,6 @@ protected:
 	int holdbuffer; /* Hold the buffer instead of replacing it with new one */
 	char text[1024];
 
-protected:
-	static void Initialise();
 
 public:
 	Image();
@@ -157,6 +156,8 @@ public:
 	Image( int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer=0);
 	Image( const Image &p_image );
 	~Image();
+	static void Initialise();
+	static void Deinitialise();
 
 	inline unsigned int Width() const { return( width ); }
 	inline unsigned int Height() const { return( height ); }
@@ -263,6 +264,8 @@ public:
 /* Blend functions */
 void sse2_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent);
 void std_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent);
+void neon32_armv7_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent);
+void neon64_armv8_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent);
 void std_blend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent);
 
 /* Delta functions */
@@ -273,6 +276,16 @@ void std_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, 
 void std_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
 void std_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
 void std_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void neon32_armv7_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void neon32_armv7_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void neon32_armv7_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void neon32_armv7_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void neon32_armv7_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void neon64_armv8_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void neon64_armv8_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void neon64_armv8_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void neon64_armv8_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void neon64_armv8_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
 void sse2_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
 void sse2_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
 void sse2_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
@@ -292,6 +305,9 @@ void std_convert_argb_gray8(const uint8_t* col1, uint8_t* result, unsigned long 
 void std_convert_abgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
 void std_convert_yuyv_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
 void ssse3_convert_rgba_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void ssse3_convert_bgra_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void ssse3_convert_argb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void ssse3_convert_abgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
 void ssse3_convert_yuyv_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
 void zm_convert_yuyv_rgb(const uint8_t* col1, uint8_t* result, unsigned long count);
 void zm_convert_yuyv_rgba(const uint8_t* col1, uint8_t* result, unsigned long count);
@@ -308,8 +324,3 @@ void std_deinterlace_4field_rgba(uint8_t* col1, uint8_t* col2, unsigned int thre
 void std_deinterlace_4field_bgra(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height);
 void std_deinterlace_4field_argb(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height);
 void std_deinterlace_4field_abgr(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height);
-void ssse3_deinterlace_4field_gray8(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height);
-void ssse3_deinterlace_4field_rgba(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height);
-void ssse3_deinterlace_4field_bgra(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height);
-void ssse3_deinterlace_4field_argb(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height);
-void ssse3_deinterlace_4field_abgr(uint8_t* col1, uint8_t* col2, unsigned int threshold, unsigned int width, unsigned int height);

@@ -14,7 +14,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
 if ( !window.console )
@@ -46,7 +46,7 @@ function logReport( level, message, file, line )
         return;
 
     if ( arguments && arguments.callee && arguments.callee.caller && arguments.callee.caller.name )
-        message += ' - '+arguments.callee.caller.caller.name+'()'; 
+        message += ' - '+arguments.callee.caller.caller.name+'()';
 
     if ( !debugReq )
     {
@@ -115,4 +115,4 @@ window.onerror =
     function( message, url, line )
     {
         logReport( "ERR", message, url, line );
-    }
+    };

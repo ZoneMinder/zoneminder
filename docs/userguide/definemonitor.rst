@@ -46,10 +46,19 @@ Linked Monitors
     This field allows you to select other monitors on your system that act as triggers for this monitor. So if you have a camera covering one aspect of your property you can force all cameras to record while that camera detects motion or other events. You can either directly enter a comma separated list of monitor ids or click on ‘Select’ to choose a selection. Be very careful not to create circular dependencies with this feature however you will have infinitely persisting alarms which is almost certainly not what you want! To unlink monitors you can ctrl-click. 
 
 Maximum FPS 
-    On some occasions you may have one or more cameras capable of high capture rates but find that you generally do not require this performance at all times and would prefer to lighten the load on your server. This option permits you to limit the maximum capture rate to a specified value. This may allow you to have more cameras supported on your system by reducing the CPU load or to allocate video bandwidth unevenly between cameras sharing the same video device. This value is only a rough guide and the lower the value you set the less close the actual FPS may approach it especially on shared devices where it can be difficult to synchronise two or more different capture rates precisely. This option controls the maximum FPS in the circumstance where no alarm is occurring only. (Note for IP cameras: ZoneMinder has no way to set or limit the mjpeg stream the camera passes, some cams you can set this through the url string, others do not. So if you're using mjpeg feeds you must NOT throttle here at the server end, only the cam end. If you want to use this feature, the server to throttle, then you MUST use jpeg instead of mjpeg method to get picture from the camera) 
-
+    On some occasions you may have one or more cameras capable of high capture rates but find that you generally do not require this performance at all times and would prefer to lighten the load on your server. This option permits you to limit the maximum capture rate to a specified value. This may allow you to have more cameras supported on your system by reducing the CPU load or to allocate video bandwidth unevenly between cameras sharing the same video device. This value is only a rough guide and the lower the value you set the less close the actual FPS may approach it especially on shared devices where it can be difficult to synchronise two or more different capture rates precisely. This option controls the maximum FPS in the circumstance where no alarm is occurring only. 
+    
+    This feature is limited and will only work under the following conditions: 
+    
+    #. Local cameras
+    #. Remote (IP) cameras in snapshot or jpeg mode **only**
+    
+    Using this field for video streams from IP cameras will cause undesirable results when the value is equal to or less than the frame rate from the camera. Note that placing a value higher than the camera's frame rate is allowed and can help prevent cpu spikes when communication from the camera is lost.
+    
 Alarm Maximum FPS 
     If you have specified a Maximum FPS it may be that you don’t want this limitation to apply when your monitor is recording motion or other event. This setting allows you to override the Maximum FPS value if this circumstance occurs. As with the Maximum FPS setting leaving this blank implies no limit so if you have set a maximum fps in the previous option then when an alarm occurs this limit would be ignored and ZoneMinder would capture as fast as possible for the duration of the alarm, returning to the limited value after the alarm has concluded. Equally you could set this to the same, or higher (or even lower) value than Maximum FPS for more precise control over the capture rate in the event of an alarm. 
+    
+    **IMPORTANT:** This field is subject to the same limitations as the Maxium FPS field. Ignoring these limitations will produce undesriable results.
 
 Reference Image Blend %ge 
     Each analysed image in ZoneMinder is a composite of previous images and is formed by applying the current image as a certain percentage of the previous reference image. Thus, if we entered the value of 10 here, each image’s part in the reference image will diminish by a factor of 0.9 each time round. So a typical reference image will be 10% the previous image, 9% the one before that and then 8.1%, 7.2%, 6.5% and so on of the rest of the way. An image will effectively vanish around 25 images later than when it was added. This blend value is what is specified here and if higher will make slower progressing events less detectable as the reference image would change more quickly. Similarly events will be deemed to be over much sooner as the reference image adapts to the new images more quickly. In signal processing terms the higher this value the steeper the event attack and decay of the signal. It depends on your particular requirements what the appropriate value would be for you but start with 10 here and adjust it (usually down) later if necessary. 
@@ -62,11 +71,17 @@ Source Tab
 
 FFmpeg
 ^^^^^^
-
+    This is the recommended source type for most modern ip cameras.
 Source Path 
-    Use this field to enter the full URL of the stream or file. Look in Supported Hardware > Network Cameras section, how to obtain these strings that may apply to your camera. RTSP streams may be specified here. 
+    Use this field to enter the full URL of the stream or file your camera supports. This is usually an RTSP url. There are several methods to learn this:
+    
+        * Check the documentation that came with your camera
+        * Look for your camera in the hardware compatibilty list in the wiki http://wiki.zoneminder.com/Hardware_Compatibilty_List
+        * Try ZoneMinder's new ONVIF probe feature
+        * Download and install the ONVIF Device Manager onto a Windows machine https://sourceforge.net/projects/onvifdm/
+        * Use Google to find third party sites, such as ispy, which document this information
 Source Colours 
-    Specify the amount of colours in the captured image. Unlike with local cameras changing this has no controlling effect on the remote camera itself so ensure that your camera is actually capturing to this palette beforehand. 
+    Specify the amount of colours in the captured image. 32 bit is the preferred choice here. Unlike with local cameras changing this has no controlling effect on the remote camera itself so ensure that your camera is actually capturing to this palette beforehand. 
 Capture Width/Height 
     Make sure you enter here the same values as they are in the remote camera's internal setting. 
 Keep aspect ratio
@@ -76,6 +91,7 @@ Orientation
 
 LibVLC
 ^^^^^^
+    The fields for the LibVLC source type are configured the same way as the ffmpeg source type. We recommend only using this source type if issues are experienced with the ffmpeg source type.
 
 cURL
 ^^^^
@@ -88,7 +104,7 @@ Device Path/Channel
 Device Format 
     Enter the video format of the video stream. This is defined in various system files (e.g. /usr/include/linux/videodev.h) but the two most common are 0 for PAL and 1 for NTSC. 
 Capture Palette 
-    Finally for the video part of the configuration enter the colour depth. ZoneMinder supports a handful of the most common palettes, so choose one here. If in doubt try grey first, and then 24 bit colour. If neither of these work very well then YUV420P or one of the others probably will. There is a slight performance penalty when using palettes other than grey or 24 bit colour as an internal conversion is involved. These other formats are intended to be supported natively in a future version but for now if you have the choice choose one of grey or 24 bit colour. 
+    Finally for the video part of the configuration enter the colour depth. ZoneMinder supports a handful of the most common palettes, so choose one here. If in doubt try 32 bit colour first, then 24 bit colour, then grey. If none of these work very well, and your camera is local, then YUV420P or one of the others probably will. There is a slight performance penalty when using palettes other than 32, 24, or grey palettes as an internal conversion is involved. Recent versions of ZoneMinder support 32bit colour. This capture palette provides a performance boost when used on all modern Intel-based processors.
 Capture Width/Height 
     The dimensions of the video stream your camera will supply. If your camera supports several just enter the one you'll want to use for this application, you can always change it later. However I would recommend starting with no larger than 320x240 or 384x288 and then perhaps increasing and seeing how performance is affected. This size should be adequate in most cases. Some cameras are quite choosy about the sizes you can use here so unusual sizes such as 197x333 should be avoided initially. 
 Keep aspect ratio
@@ -99,8 +115,12 @@ Orientation
 Remote
 ^^^^^^
 
+Remote Protocol
+    Choices are currently HTTP and RTSP. Before RTSP became the industry standard, many ip cameras streamed directly from their web portal. If you have an ip camera that does not speak RTSP then choose HTTP here. **If you camera does speak RTSP then you should change your source type to ffmpeg instead of selecting RTSP here.** The Remote -> RTSP method is no longer being maintained and may go away at some point in the future.
+Remote Method
+    When HTTP is the Remote Protocol, your choices are Simple and Regexp. Most should choose Simple. When RTSP is the Remote Protocol, your choices are RTP/Unicast, RTP/Multicast, RTP/RTSP, RTP,RTSP,HTTP. Try each of these to determine which works with your camera. Most cameras will use either RTP/Unicast (UDP) or RTP/RTSP (TCP). 
 Remote Host/Port/Path 
-    Use these fields to enter the full URL of the camera. Basically if your camera is at http://camserver.home.net:8192/cameras/camera1.jpg then these fields will be camserver.home.net, 8192 and /cameras/camera1.jpg respectively. Leave the port at 80 if there is no special port required. If you require authentication to access your camera then add this onto the host name in the form <username>:<password>@<hostname>.com. This will usually be 24 bit colour even if the image looks black and white. Look in Supported Hardware > Network Cameras section, how to obtain these strings that may apply to your camera. 
+    Use these fields to enter the full URL of the camera. Basically if your camera is at http://camserver.home.net:8192/cameras/camera1.jpg then these fields will be camserver.home.net, 8192 and /cameras/camera1.jpg respectively. Leave the port at 80 if there is no special port required. If you require authentication to access your camera then add this onto the host name in the form <username>:<password>@<hostname>.com. This will usually be 32 or 24 bit colour even if the image looks black and white. Look in Supported Hardware > Network Cameras section, how to obtain these strings that may apply to your camera. 
 Remote Image Colours 
     Specify the amount of colours in the captured image. Unlike with local cameras changing this has no controlling effect on the remote camera itself so ensure that your camera is actually capturing to this palette beforehand. 
 Capture Width/Height 
@@ -118,7 +138,7 @@ File
 File Path 
     Enter the full path to the file to be used as the image source. 
 File Colours 
-    Specify the amount of colours in the image. Usually 24 bit colour. 
+    Specify the amount of colours in the image. Usually 32 bit colour. 
 Capture Width/Height
     As per local devices. 
 Keep aspect ratio

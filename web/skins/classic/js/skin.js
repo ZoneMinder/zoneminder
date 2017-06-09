@@ -14,7 +14,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
 //
@@ -31,11 +31,11 @@ function checkSize() {
         var h = window.outerHeight;
         var prevH = h;
         if (h > screen.availHeight)
-            h  = screen.availHeight;
+            h = screen.availHeight;
         if (w > screen.availWidth)
-            w  = screen.availWidth;
+            w = screen.availWidth;
         if (w != prevW || h != prevH)
-            window.resizeTo(w,h);
+            window.resizeTo(w, h);
     }
 }
 
@@ -56,7 +56,7 @@ function getPopupSize( tag, width, height )
     if ( popupSize.width && popupSize.height )
     {
         if ( width || height )
-            Warning( "Ignoring passed dimensions "+width+"x"+height+" when getting popup size for tag '"+tag+"'"  );
+            Warning( "Ignoring passed dimensions "+width+"x"+height+" when getting popup size for tag '"+tag+"'" );
         return( popupSize );
     }
     if ( popupSize.addWidth )
@@ -102,7 +102,12 @@ function getPopupSize( tag, width, height )
 function zmWindow()
 {
     var zmWin = window.open( 'http://www.zoneminder.com', 'ZoneMinder' );
-    zmWin.focus();
+    if ( ! zmWin ) {
+      // if popup blocking is enabled, the popup won't be defined.
+      console.log("Please disable popup blocking.");
+    } else {
+      zmWin.focus();
+    }
 }
 
 function createPopup( url, name, tag, width, height )
@@ -114,7 +119,12 @@ function createPopup( url, name, tag, width, height )
     if ( popupSize.height > 0 )
         popupDimensions += ",height="+popupSize.height;
     var popup = window.open( url, name, popupOptions+popupDimensions );
-    popup.focus();
+    if ( ! popup ) {
+      // if popup blocking is enabled, the popup won't be defined.
+      console.log("Please disable popup blocking.");
+    } else {
+      popup.focus();
+    }
 }
 
 function createEventPopup( eventId, eventFilter, width, height )
@@ -125,7 +135,12 @@ function createEventPopup( eventId, eventFilter, width, height )
     var name = 'zmEvent';
     var popupSize = getPopupSize( 'event', width, height );
     var popup = window.open( url, name, popupOptions+",width="+popupSize.width+",height="+popupSize.height );
-    popup.focus();
+    if ( ! popup ) {
+      // if popup blocking is enabled, the popup won't be defined.
+      console.log("Please disable popup blocking.");
+    } else {
+      popup.focus();
+    }
 }
 
 function createFramesPopup( eventId, width, height )
@@ -134,7 +149,12 @@ function createFramesPopup( eventId, width, height )
     var name = 'zmFrames';
     var popupSize = getPopupSize( 'frames', width, height );
     var popup = window.open( url, name, popupOptions+",width="+popupSize.width+",height="+popupSize.height );
-    popup.focus();
+    if ( ! popup ) {
+      // if popup blocking is enabled, the popup won't be defined.
+      console.log("Please disable popup blocking.");
+    } else {
+      popup.focus();
+    }
 }
 
 function createFramePopup( eventId, frameId, width, height )
@@ -143,7 +163,12 @@ function createFramePopup( eventId, frameId, width, height )
     var name = 'zmFrame';
     var popupSize = getPopupSize( 'frame', width, height );
     var popup = window.open( url, name, popupOptions+",width="+popupSize.width+",height="+popupSize.height );
-    popup.focus();
+    if ( ! popup ) {
+      // if popup blocking is enabled, the popup won't be defined.
+      console.log("Please disable popup blocking.");
+    } else {
+      popup.focus();
+    }
 }
 
 function windowToFront()
@@ -260,4 +285,39 @@ if ( focusWindow )
     windowToFront();
 }
 window.addEvent( 'domready', checkSize);
+
+function convertLabelFormat(LabelFormat, monitorName){
+	//convert label format from strftime to moment's format (modified from
+	//https://raw.githubusercontent.com/benjaminoakes/moment-strftime/master/lib/moment-strftime.js
+	//added %f and %N below (TODO: add %Q)
+	var replacements = { a: 'ddd', A: 'dddd', b: 'MMM', B: 'MMMM', d: 'DD', e: 'D', F: 'YYYY-MM-DD', H: 'HH', I: 'hh', j: 'DDDD', k: 'H', l: 'h', m: 'MM', M: 'mm', p: 'A', S: 'ss', u: 'E', w: 'd', W: 'WW', y: 'YY', Y: 'YYYY', z: 'ZZ', Z: 'z', 'f': 'SS', 'N': "["+monitorName+"]", '%': '%' };
+	var momentLabelFormat = Object.keys(replacements).reduce(function (momentFormat, key) {
+	      var value = replacements[key];
+	      return momentFormat.replace("%" + key, value);
+	}, LabelFormat);
+	return momentLabelFormat;
+}
+
+function addVideoTimingTrack(video, LabelFormat, monitorName, duration, startTime){
+	var labelFormat = convertLabelFormat(LabelFormat, monitorName);
+	var webvttformat = 'HH:mm:ss.SSS', webvttdata="WEBVTT\n\n";
+
+	startTime = moment(startTime);
+
+	var seconds = moment({s:0}), endduration = moment({s:duration});
+	while(seconds.isBefore(endduration)){
+		webvttdata += seconds.format(webvttformat) + " --> ";
+		seconds.add(1,'s');
+		webvttdata += seconds.format(webvttformat) + "\n";
+		webvttdata += startTime.format(labelFormat) + "\n\n";
+		startTime.add(1, 's');
+	}
+	var track = document.createElement('track');
+	track.kind = "captions";
+	track.srclang = "en";
+	track.label = "English";
+	track['default'] = true;
+	track.src = 'data:plain/text;charset=utf-8,'+encodeURIComponent(webvttdata);
+	video.appendChild(track);
+}
 

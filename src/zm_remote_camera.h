@@ -14,7 +14,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 #ifndef ZM_REMOTE_CAMERA_H
@@ -27,6 +27,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <arpa/inet.h>
 
 //
 // Class representing 'remote' cameras, i.e. those which are
@@ -55,7 +56,22 @@ protected:
   struct addrinfo *hp;
 
 public:
-  RemoteCamera( int p_id, const std::string &p_proto, const std::string &p_host, const std::string &p_port, const std::string &p_path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
+  RemoteCamera(
+    unsigned int p_monitor_id,
+    const std::string &p_proto,
+    const std::string &p_host,
+    const std::string &p_port,
+    const std::string &p_path,
+    int p_width,
+    int p_height,
+    int p_colours,
+    int p_brightness,
+    int p_contrast,
+    int p_hue,
+    int p_colour,
+    bool p_capture,
+    bool p_record_audio
+  );
   virtual ~RemoteCamera();
 
   const std::string &Protocol() const { return( protocol ); }
@@ -73,6 +89,7 @@ public:
   virtual int PreCapture() = 0;
   virtual int Capture( Image &image ) = 0;
   virtual int PostCapture() = 0;
+  virtual int CaptureAndRecord( Image &image, timeval recording, char* event_directory )=0;
 };
 
 #endif // ZM_REMOTE_CAMERA_H

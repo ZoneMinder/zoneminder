@@ -11,5 +11,8 @@ configure_file(app/Config/database.php.default "${CMAKE_CURRENT_BINARY_DIR}/app/
 # Configure core.php
 configure_file(app/Config/core.php.default "${CMAKE_CURRENT_BINARY_DIR}/app/Config/core.php" @ONLY)
 
-# Configure bootstrap.php
+# Configure app/Config/bootstrap.php
 configure_file(app/Config/bootstrap.php.in "${CMAKE_CURRENT_BINARY_DIR}/app/Config/bootstrap.php" @ONLY)
+
+# Configure lib/Cake/bootstrap.php
+configure_file(lib/Cake/bootstrap.php.in "${CMAKE_CURRENT_BINARY_DIR}/lib/Cake/bootstrap.php" @ONLY)

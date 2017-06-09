@@ -15,7 +15,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
 // ZoneMinder <your language> Translation by <your name>
@@ -125,8 +125,7 @@ $SLANG = array(
     'AttrMaxScore'          => 'Max. Score',
     'AttrMonitorId'         => 'Monitor Id',
     'AttrMonitorName'       => 'Monitor Name',
-    'AttrServerId'          => 'Server Id',
-    'AttrServerName'        => 'Server Name',
+    'AttrServer'            => 'Server',
     'AttrName'              => 'Name',
     'AttrNotes'             => 'Notes',
     'AttrSystemLoad'        => 'System Load',
@@ -495,6 +494,7 @@ $SLANG = array(
     'MonitorProbe'          => 'Monitor Probe',
     'Monitors'              => 'Monitors',
     'Montage'               => 'Montage',
+    'MontageReview'         => 'Montage Review',
     'Month'                 => 'Month',
     'Move'                  => 'Move',
     'MtgDefault'            => 'Default',              // Added 2013.08.15.
@@ -518,6 +518,7 @@ $SLANG = array(
     'NewUser'               => 'New User',
     'Next'                  => 'Next',
     'NoDetectedCameras'     => 'No Detected Cameras',
+    'NoDetectedProfiles'    => 'No Detected Profiles',
     'NoFramesRecorded'      => 'There are no frames recorded for this event',
     'NoGroup'               => 'No Group',
     'NoneAvailable'         => 'None available',
@@ -544,6 +545,7 @@ $SLANG = array(
     'OpNe'                  => 'not equal to',
     'OpNotIn'               => 'not in set',
     'OpNotMatches'          => 'does not match',
+    'OptionalEncoderParam'  => 'Optional Encoder Parameters',
     'OptionHelp'            => 'Option Help',
     'OptionRestartWarning'  => 'These changes may not come into effect fully\nwhile the system is running. When you have\nfinished making your changes please ensure that\nyou restart ZoneMinder.',
     'Options'               => 'Options',
@@ -584,6 +586,7 @@ $SLANG = array(
     'Protocol'              => 'Protocol',
     'Rate'                  => 'Rate',
     'RecaptchaWarning'      => 'Your reCaptcha secret key is invalid. Please correct it, or reCaptcha will not work', // added Sep 24 2015 - PP
+	'RecordAudio'			=> 'Whether to store the audio stream when saving an event.',
     'Real'                  => 'Real',
     'Record'                => 'Record',
     'RefImageBlendPct'      => 'Reference Image Blend %ge',
@@ -612,12 +615,14 @@ $SLANG = array(
     'Rewind'                => 'Rewind',
     'RotateLeft'            => 'Rotate Left',
     'RotateRight'           => 'Rotate Right',
+    'RTSPTransport'         => 'RTSP Transport Protocol',
     'RunLocalUpdate'        => 'Please run zmupdate.pl to update',
     'RunMode'               => 'Run Mode',
     'Running'               => 'Running',
     'RunState'              => 'Run State',
     'SaveAs'                => 'Save as',
     'SaveFilter'            => 'Save Filter',
+    'SaveJPEGs'             => 'Save JPEGs',
     'Save'                  => 'Save',
     'Scale'                 => 'Scale',
     'Score'                 => 'Score',
@@ -726,6 +731,7 @@ $SLANG = array(
     'VideoGenParms'         => 'Video Generation Parameters',
     'VideoGenSucceeded'     => 'Video Generation Succeeded!',
     'VideoSize'             => 'Video Size',
+    'VideoWriter'           => 'Video Writer',
     'Video'                 => 'Video',
     'ViewAll'               => 'View All',
     'ViewEvent'             => 'View Event',
@@ -823,7 +829,7 @@ $VLANG = array(
 // in to generate the correct noun form.
 //
 // In languages such as English this is fairly simple 
-// Note this still has to be used with printf etc to get the right formating
+// Note this still has to be used with printf etc to get the right formatting
 function zmVlang( $langVarArray, $count )
 {
     krsort( $langVarArray );
@@ -901,6 +907,13 @@ $OLANG = array(
 		          "\"reorder_queue_size=nnn\" Set number of packets to buffer for handling of reordered packets~~~~".
 		          "\"loglevel=debug\" Set verbosity of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
 	),
+        'OPTIONS_RTSPTrans' => array(
+		'Help' => "This sets the RTSP Transport Protocol for FFmpeg.~~ ".
+                          "TCP - Use TCP (interleaving within the RTSP control channel) as transport protocol.~~".
+                          "UDP - Use UDP as transport protocol. Higher resolution cameras have experienced some 'smearing' while using UDP, if so try TCP~~".
+                          "UDP Multicast - Use UDP Multicast as transport protocol~~".
+                          "HTTP - Use HTTP tunneling as transport protocol, which is useful for passing proxies.~~"
+	),
 	'OPTIONS_LIBVLC' => array(
 		'Help' => "Parameters in this field are passed on to libVLC. Multiple parameters can be separated by ,~~ ".
 		          "Examples (do not enter quotes)~~~~".
@@ -911,7 +924,7 @@ $OLANG = array(
 		'Help' => "Enable this option to embed EXIF data into each jpeg frame."
 	),
 	'OPTIONS_RTSPDESCRIBE' => array(
-		'Help' => "Sometimes, during the intial RTSP handshake, the camera will send an updated media URL. ".
+		'Help' => "Sometimes, during the initial RTSP handshake, the camera will send an updated media URL. ".
 		          "Enable this option to tell ZoneMinder to use this URL. Disable this option to ignore the ".
 		          "value from the camera and use the value as entered in the monitor configuration~~~~". 
 		          "Generally this should be enabled. However, there are cases where the camera can get its".

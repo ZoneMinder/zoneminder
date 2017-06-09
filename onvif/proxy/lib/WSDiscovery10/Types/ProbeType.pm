@@ -89,10 +89,11 @@ sub serialize()
   my $ident = ${ $_[0] };
   my $option_ref = $_[1];
   my $attr_str = "";
+  my %attr_hash = %{$Attribs_of{$ident}};
 
-  foreach my $attr (keys %{$Attribs_of{$ident}})
+  foreach my $attr (keys %attr_hash)
   {
-    my $value = %{$Attribs_of{$ident}}{$attr};
+    my $value = $attr_hash{$attr};
     $attr_str .= " $attr=\"$value\"";
   }
   

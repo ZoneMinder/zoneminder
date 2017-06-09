@@ -2122,13 +2122,13 @@ function validHtmlStr( $input ) {
 
 function getStreamHTML( $monitor, $options = array() ) {
 
-	if ( isset($options['scale']) and $options['scale'] ) {
-		$options['width'] = reScale( $monitor->Width(), $options['scale'] );
-		$options['height'] = reScale( $monitor->Height(), $options['scale'] );
-	}
-	if ( ! isset($options['mode'] ) ) {
-		$options['mode'] = 'stream';
-	}
+  if ( isset($options['scale']) and $options['scale'] ) {
+    $options['width'] = reScale( $monitor->Width(), $options['scale'] );
+    $options['height'] = reScale( $monitor->Height(), $options['scale'] );
+  }
+  if ( ! isset($options['mode'] ) ) {
+    $options['mode'] = 'stream';
+  }
   $options['maxfps'] = ZM_WEB_VIDEO_MAXFPS;
   if ( $monitor->StreamReplayBuffer() )
     $options['buffer'] = $monitor->StreamReplayBuffer();

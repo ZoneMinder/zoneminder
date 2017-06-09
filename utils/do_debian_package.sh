@@ -52,7 +52,9 @@ case $i in
     shift # past argument with no value
     ;;
     *)
-            # unknown option
+    # unknown option
+    read -p "Unknown option $i, continue? (Y|n)"
+    [[ $REPLY == [yY] ]] && { echo "continuing..."; } || exit 1;
     ;;
 esac
 done
@@ -61,22 +63,35 @@ DATE=`date -R`
 if [ "$TYPE" == "" ]; then
   echo "Defaulting to source build"
   TYPE="source";
+else 
+  echo "Doing $TYPE build"
 fi;
-if [ "$GITHUB_FORK" == "" ]; then
-  echo "Defaulting to ZoneMinder upstream git"
-  GITHUB_FORK="ZoneMinder"
+
+if [ "$DISTRO" == "" ]; then
+  DISTRO=`lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`;
+  echo "Defaulting to $DISTRO for distribution";
+else
+  echo "Building for $DISTRO";
 fi;
 
 # Release is a special mode...  it uploads to the release ppa and cannot have a snapshot
 if [ "$RELEASE" != "" ]; then
   if [ "$SNAPSHOT" != "" ]; then
     echo "Releases cannot have a snapshot.... exiting."
+    exit 0;
   fi
-  if [ "$GITHUB_FORK" != "" ]; then
-    echo "Releases cannot have a fork.... exiting."
+  if [ "$GITHUB_FORK" != "" ] && [ "$GITHUB_FORK" != "ZoneMinder" ]; then
+    echo "Releases cannot have a fork ($GITHUB_FORK).... exiting."
+    exit 0;
+  else
+    GITHUB_FORK="ZoneMinder";
   fi
-  BRANCH=$RELEASE
+  BRANCH="release-$RELEASE"
 else
+  if [ "$GITHUB_FORK" == "" ]; then
+    echo "Defaulting to ZoneMinder upstream git"
+    GITHUB_FORK="ZoneMinder"
+  fi;
   if [ "$SNAPSHOT" == "stable" ]; then
     if [ "$BRANCH" == "" ]; then
       BRANCH=$(git describe --tags $(git rev-list --tags --max-count=1));
@@ -99,16 +114,18 @@ if [ ! -d "${GITHUB_FORK}_zoneminder_release" ]; then
   if [ -d "${GITHUB_FORK}_ZoneMinder.git" ]; then
     echo "Using local clone ${GITHUB_FORK}_ZoneMinder.git to pull from."
     cd "${GITHUB_FORK}_ZoneMinder.git"
+    echo "git pull..."
+    git pull
     echo "git checkout $BRANCH"
     git checkout $BRANCH
     echo "git pull..."
     git pull
     cd ../
     echo "git clone ${GITHUB_FORK}_ZoneMinder.git ${GITHUB_FORK}_zoneminder_release"
-	  git clone "${GITHUB_FORK}_ZoneMinder.git" "${GITHUB_FORK}_zoneminder_release"
+    git clone "${GITHUB_FORK}_ZoneMinder.git" "${GITHUB_FORK}_zoneminder_release"
   else
     echo "git clone https://github.com/$GITHUB_FORK/ZoneMinder.git ${GITHUB_FORK}_zoneminder_release"
-	  git clone "https://github.com/$GITHUB_FORK/ZoneMinder.git" "${GITHUB_FORK}_zoneminder_release"
+    git clone "https://github.com/$GITHUB_FORK/ZoneMinder.git" "${GITHUB_FORK}_zoneminder_release"
   fi
 else
   echo "release dir already exists. Please remove it."
@@ -116,36 +133,37 @@ else
 fi;
 
 cd "${GITHUB_FORK}_zoneminder_release"
-if [ $RELEASE ]; then
-  git checkout $RELEASE
-else
   git checkout $BRANCH
-fi;
 cd ../
 
 VERSION=`cat ${GITHUB_FORK}_zoneminder_release/version`
 
 if [ $VERSION == "" ]; then
-	exit 1;
+  exit 1;
 fi;
 if [ "$SNAPSHOT" != "stable" ] && [ "$SNAPSHOT" != "" ]; then
   VERSION="$VERSION~$SNAPSHOT";
 fi;
 
-DIRECTORY="zoneminder_$VERSION-$DISTRO${PACKAGE_VERSION}";
+DIRECTORY="zoneminder_$VERSION";
 echo "Doing $TYPE release $DIRECTORY";
 mv "${GITHUB_FORK}_zoneminder_release" "$DIRECTORY.orig";
+if [ $? -ne 0 ]; then
+  echo "Error status code is: $?"
+  echo "Setting up build dir failed.";
+  exit $?;
+fi;
 cd "$DIRECTORY.orig";
 
 git submodule init
 git submodule update --init --recursive
-if [ $DISTRO == "trusty" ] || [ $DISTRO == "precise" ]; then 
-	ln -sf distros/ubuntu1204 debian
+if [ "$DISTRO" == "trusty" ] || [ "$DISTRO" == "precise" ]; then 
+  mv distros/ubuntu1204 debian
 else 
-  if [ $DISTRO == "wheezy" ]; then 
-    ln -sf distros/debian debian
+  if [ "$DISTRO" == "wheezy" ]; then 
+    mv distros/debian debian
   else 
-    ln -sf distros/ubuntu1604 debian
+    mv distros/ubuntu1604 debian
   fi;
 fi;
 
@@ -172,6 +190,13 @@ zoneminder ($VERSION-$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
  -- $AUTHOR  $DATE
 
 EOF
+cat <<EOF > debian/NEWS
+zoneminder ($VERSION-$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
+
+  * Release $VERSION
+
+ -- $AUTHOR  $DATE
+EOF
 else
 cat <<EOF > debian/changelog
 zoneminder ($VERSION-$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
@@ -179,26 +204,37 @@ zoneminder ($VERSION-$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
   * 
 
  -- $AUTHOR  $DATE
+EOF
+cat <<EOF > debian/changelog
+zoneminder ($VERSION-$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
 
+  * 
+
+ -- $AUTHOR  $DATE
 EOF
 fi;
 
-# Auto-install all ZoneMinder's depedencies using the Debian control file
-sudo apt-get install devscripts equivs
-sudo mk-build-deps -ir ./debian/control
-echo "Status: $?"
+rm -rf .git
+rm .gitignore
+cd ../
+tar zcf $DIRECTORY.orig.tar.gz $DIRECTORY.orig
+cd $DIRECTORY.orig
 
-#rm -rf .git
-#rm .gitignore
-#cd ../
-#tar zcf zoneminder_$VERSION-$DISTRO.orig.tar.gz zoneminder_$VERSION-$DISTRO-$SNAPSHOT.orig
-#cd zoneminder_$VERSION-$DISTRO-$SNAPSHOT.orig
 if [ $TYPE == "binary" ]; then
-	DEBUILD=debuild
+  # Auto-install all ZoneMinder's depedencies using the Debian control file
+  sudo apt-get install devscripts equivs
+  sudo mk-build-deps -ir ./debian/control
+  echo "Status: $?"
+  DEBUILD=debuild
 else
   if [ $TYPE == "local" ]; then
+    # Auto-install all ZoneMinder's depedencies using the Debian control file
+    sudo apt-get install devscripts equivs
+    sudo mk-build-deps -ir ./debian/control
+    echo "Status: $?"
     DEBUILD="debuild -i -us -uc -b"
   else 
+    # Source build, don't need build depends.
     DEBUILD="debuild -S -sa"
   fi;
 fi;
@@ -206,53 +242,65 @@ if [ "$DEBSIGN_KEYID" != "" ]; then
   DEBUILD="$DEBUILD -k$DEBSIGN_KEYID"
 fi
 $DEBUILD
-echo "Status: $?"
+if [ $? -ne 0 ]; then
+echo "Error status code is: $?"
+  echo "Build failed.";
+  exit $?;
+fi;
 
 cd ../
 if [ "$INTERACTIVE" != "no" ]; then
   read -p "Do you want to keep the checked out version of Zoneminder (incase you want to modify it later) [y/N]"
-  [[ $REPLY == [yY] ]] && { mv $DIRECTORY zoneminder_release; echo "The checked out copy is preserved in zoneminder_release"; } || { rm -fr $DIRECTORY; echo "The checked out copy has been deleted"; }
+  [[ $REPLY == [yY] ]] && { mv "$DIRECTORY.orig" zoneminder_release; echo "The checked out copy is preserved in zoneminder_release"; } || { rm -fr "$DIRECTORY.orig"; echo "The checked out copy has been deleted"; }
   echo "Done!"
 else 
-  rm -fr $DIRECTORY; echo "The checked out copy has been deleted";
+  rm -fr "$DIRECTORY.orig"; echo "The checked out copy has been deleted";
 fi
 
 if [ $TYPE == "binary" ]; then
   if [ "$INTERACTIVE" != "no" ]; then
-    echo "Not doing dput since it's a binary release. Do you want to install it? (Y/N)"
-    read install
-    if [ "$install" == "Y" ]; then
+    read -p "Not doing dput since it's a binary release. Do you want to install it? (Y/N)"
+    if [[ $REPLY == [yY] ]]; then
         sudo dpkg -i $DIRECTORY*.deb
+    else 
+	echo $REPLY;
     fi;
     if [ "$DISTRO" == "jessie" ]; then
-        echo "Do you want to upload this binary to zmrepo? (y/N)"
-        read install
-        if [ "$install" == "Y" ]; then
-          scp "zoneminder_*-${VERSION}-${DISTRO}*" "zmrepo@zmrepo.connortechnology.com:debian/${BRANCH}/mini-dinstall/incoming/"
+      read -p "Do you want to upload this binary to zmrepo? (y/N)"
+      if [[ $REPLY == [yY] ]]; then
+        if [ "$RELEASE" != "" ]; then
+          scp "zoneminder_${VERSION}-${DISTRO}*" "zmrepo@zmrepo.connortechnology.com:debian/stable/mini-dinstall/incoming/"
+        else
+          if [ "$BRANCH" == "" ]; then
+            scp "zoneminder_${VERSION}-${DISTRO}*" "zmrepo@zmrepo.connortechnology.com:debian/master/mini-dinstall/incoming/"
+          else
+            scp "$DIRECTORY-${DISTRO}*" "zmrepo@zmrepo.connortechnology.com:debian/${BRANCH}/mini-dinstall/incoming/"
+          fi;
         fi;
+      fi;
     fi;
   fi;
 else
   SC="zoneminder_${VERSION}-${DISTRO}${PACKAGE_VERSION}_source.changes";
-	PPA="";
-	if [ "$RELEASE" != "" ]; then
-			PPA="ppa:iconnor/zoneminder";
-	else
-		if [ "$BRANCH" == "" ]; then
-			PPA="ppa:iconnor/zoneminder-master";
-		else 
-			PPA="ppa:iconnor/zoneminder-$BRANCH";
-		fi;
-	fi;
+  PPA="";
+  if [ "$RELEASE" != "" ]; then
+      PPA="ppa:iconnor/zoneminder";
+  else
+    if [ "$BRANCH" == "" ]; then
+      PPA="ppa:iconnor/zoneminder-master";
+    else 
+      PPA="ppa:iconnor/zoneminder-$BRANCH";
+    fi;
+  fi;
 
   dput="Y";
   if [ "$INTERACTIVE" != "no" ]; then
     echo "Ready to dput $SC to $PPA ? Y/N...";
     read dput
   fi
-	if [ "$dput" == "Y" -o "$dput" == "y" ]; then
-		dput $PPA $SC
-	fi;
+  if [ "$dput" == [Yy] ]; then
+    dput $PPA $SC
+  fi;
 fi;
 
 

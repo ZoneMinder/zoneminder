@@ -1,52 +1,74 @@
 #header {
-    width: 99%;
+  width: 99%;
 }
 
 #layout {
-    margin-right: 10px;
+  margin-right: 10px;
 }
 
 #content {
-    width: 99%;
+  width: 99%;
 }
 #monitors .monitor {
   min-width: 180px;
 }
 
 #monitors .alarm {
-    color: #ff0000;
+  color: #ff0000;
 }
 
 #monitors .alert {
-    color: #ffa500;
+  color: #ffa500;
 }
 
 #monitors .imageFeed {
-    text-align: center;
-    vertical-align: middle;
+  text-align: center;
+  vertical-align: middle;
+  position: relative;
 }
 
-#monitors .imageFeed img {
-    border: 2px solid #ffffff;
+#monitors .imageFeed img ,
+#monitors .imageFeed svg {
+  border: 2px solid #ffffff;
 }
 
 #monitors .imageFeed img.idle {
-    border: 2px solid #ffffff;
+  border: 2px solid #ffffff;
 }
 
 #monitors .imageFeed img.alarm {
-    border: 2px solid #ff0000;
+  border: 2px solid #ff0000;
 }
 
 #monitors .imageFeed img.alert {
-    border: 2px solid #ffa500;
+  border: 2px solid #ffa500;
 }
 
 #monitors .monitorState {
-    margin: 2px auto;
-    text-align: center;
-    border: 0;
+  margin: 2px auto;
+  text-align: center;
+  border: 0;
 }
 #monitors .alert .monitorState {
-    border: 0;
+  border: 0;
 }
+.zones polygon {
+  fill-opacity: 0.25;
+}
+.Active {
+  stroke: #ff0000;
+  fill: #ff0000;
+}
+.Inclusive {
+  stroke: #FFA500;
+  fill: #FFA500;
+}
+.Exclusive {
+  stroke: #800080;
+  fill: #800080;
+}
+.Preclusive {
+  stroke: #0000FF;
+  fill: #0000FF;
+}
+

@@ -310,11 +310,7 @@ void VideoStream::OpenStream( ) {
 
     uint8_t *opicture_buf = (uint8_t *)av_malloc( size );
     if ( !opicture_buf ) {
-#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
       av_frame_free( &opicture );
-#else
-      av_freep( &opicture );
-#endif
       Panic( "Could not allocate opicture_buf" );
     }
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
@@ -345,11 +341,7 @@ void VideoStream::OpenStream( ) {
 #endif
       uint8_t *tmp_opicture_buf = (uint8_t *)av_malloc( size );
       if ( !tmp_opicture_buf ) {
-#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
         av_frame_free( &tmp_opicture );
-#else
-        av_freep( &tmp_opicture );
-#endif
         Panic( "Could not allocate tmp_opicture_buf" );
       }
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
@@ -491,18 +483,10 @@ VideoStream::~VideoStream( ) {
 	if ( ost ) {
 		avcodec_close( ost->codec );
 		av_free( opicture->data[0] );
-#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
 		av_frame_free( &opicture );
-#else
-		av_freep( &opicture );
-#endif
 		if ( tmp_opicture ) {
 			av_free( tmp_opicture->data[0] );
-#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
 			av_frame_free( &tmp_opicture );
-#else
-			av_freep( &tmp_opicture );
-#endif
 		}
 		av_free( video_outbuf );
 	}

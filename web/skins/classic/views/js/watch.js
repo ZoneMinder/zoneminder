@@ -30,13 +30,13 @@ function changeScale() {
 
   Cookie.write( 'zmWatchScale'+monitorId, scale, { duration: 10*365 } );
 
-  /*Stream could be an applet so can't use moo tools*/ 
+  /*Stream could be an applet so can't use moo tools*/
   var streamImg = document.getElementById('liveStream'+monitorId);
   if ( streamImg ) {
     streamImg.style.width = newWidth + "px";
     streamImg.style.height = newHeight + "px";
 
-    streamImg.src = streamImg.src.replace(/scale=\d+/i,'scale='+scale);
+    streamImg.src = streamImg.src.replace(/scale=\d+/i, 'scale='+scale);
   } else {
     console.error("No element found for liveStream.");
   }
@@ -94,6 +94,9 @@ function setAlarmState( currentAlarmState ) {
 }
 
 var streamCmdParms = "view=request&request=stream&connkey="+connKey;
+if ( auth_hash )
+  streamCmdParms += '&auth='+auth_hash;
+
 var streamCmdReq = new Request.JSON( { url: monitorUrl+thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getStreamCmdResponse } );
 var streamCmdTimer = null;
 
@@ -204,7 +207,7 @@ function getStreamCmdResponse( respObj, respText ) {
   if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
     streamCmdTimeout = streamCmdTimeout/5;
   streamCmdTimer = streamCmdQuery.delay( streamCmdTimeout );
-} 
+}
 
 function streamCmdPause( action ) {
   setButtonState( $('pauseBtn'), 'active' );
@@ -322,10 +325,12 @@ function streamCmdPan( x, y ) {
 
 function streamCmdQuery() {
   streamCmdReq.send( streamCmdParms+"&command="+CMD_QUERY );
-}       
+}
 
 var statusCmdParms = "view=request&request=status&entity=monitor&id="+monitorId+"&element[]=Status&element[]=FrameRate";
-var statusCmdReq = new Request.JSON( { url: monitorUrl+thisUrl, method: 'post', data: statusCmdParms, timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getStatusCmdResponse } );
+if ( auth_hash )
+  statusCmdParms += '&auth='+auth_hash;
+var statusCmdReq = new Request.JSON( { url: monitorUrl+thisUrl, method: 'get', data: statusCmdParms, timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getStatusCmdResponse } );
 var statusCmdTimer = null;
 
 function getStatusCmdResponse( respObj, respText ) {
@@ -337,24 +342,26 @@ function getStatusCmdResponse( respObj, respText ) {
     $('fpsValue').set( 'text', respObj.monitor.FrameRate );
     setAlarmState( respObj.monitor.Status );
   } else
-    checkStreamForErrors("getStatusCmdResponse",respObj);
+    checkStreamForErrors("getStatusCmdResponse", respObj);
 
   var statusCmdTimeout = statusRefreshTimeout;
   if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
     statusCmdTimeout = statusCmdTimeout/5;
   statusCmdTimer = statusCmdQuery.delay( statusCmdTimeout );
-} 
+}
 
 function statusCmdQuery() {
   statusCmdReq.send();
-}       
+}
 
 var alarmCmdParms = "view=request&request=alarm&id="+monitorId;
+if ( auth_hash )
+  alarmCmdParms += '&auth='+auth_hash;
 var alarmCmdReq = new Request.JSON( { url: monitorUrl+thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getAlarmCmdResponse, onTimeout: streamCmdQuery } );
 var alarmCmdFirst = true;
 
 function getAlarmCmdResponse( respObj, respText ) {
-  checkStreamForErrors("getAlarmCmdResponse",respObj);
+  checkStreamForErrors("getAlarmCmdResponse", respObj);
 }
 
 function cmdDisableAlarms() {
@@ -390,6 +397,8 @@ function deleteEvent( event, eventId ) {
 }
 
 var eventCmdParms = "view=request&request=status&entity=events&id="+monitorId+"&count="+maxDisplayEvents+"&sort=Id%20desc";
+if ( auth_hash )
+  eventCmdParms += '&auth='+auth_hash;
 var eventCmdReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, data: eventCmdParms, link: 'cancel', onSuccess: getEventCmdResponse, onTimeout: eventCmdQuery } );
 var eventCmdTimer = null;
 var eventCmdFirst = true;
@@ -480,7 +489,7 @@ function getEventCmdResponse( respObj, respText ) {
       rows.length--;
     }
   } else
-    checkStreamForErrors("getEventCmdResponse",respObj);
+    checkStreamForErrors("getEventCmdResponse", respObj);
 
   var eventCmdTimeout = eventsRefreshTimeout;
   if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
@@ -496,6 +505,8 @@ function eventCmdQuery() {
 }
 
 var controlParms = "view=request&request=control&id="+monitorId;
+if ( auth_hash )
+  controlParms += '&auth='+auth_hash;
 var controlReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getControlResponse } );
 
 function getControlResponse( respObj, respText ) {
@@ -519,7 +530,7 @@ function controlCmd( control, event, xtell, ytell ) {
     var x = xEvent.page.x - l;
     var y = xEvent.page.y - t;
 
-    if  ( xtell ) {
+    if ( xtell ) {
       var xge = parseInt( (x*100)/coords.width );
       if ( xtell == -1 )
         xge = 100 - xge;

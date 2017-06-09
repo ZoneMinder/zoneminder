@@ -18,21 +18,18 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canEdit( 'Events' ) )
-{
-    $view = "error";
+if ( !canEdit( 'Events' ) ) {
+    $view = 'error';
     return;
 }
 
-$selectName = "Id";
-$newSelectName = "newFilterName";
-foreach ( dbFetchAll( "select * from Filters order by Name" ) as $row )
-{
-    $filterNames[$row['Id']] = $row['Name'];
-    if ( $_REQUEST['Id'] == $row['Id'] )
-    {
-        $filterData = $row;
-    }
+$selectName = 'Id';
+$newSelectName = 'newFilterName';
+foreach ( dbFetchAll( 'SELECT * FROM Filters ORDER BY Name' ) as $row ) {
+  $filterNames[$row['Id']] = $row['Name'];
+  if ( $_REQUEST['Id'] == $row['Id'] ) {
+    $filterData = $row;
+  }
 }
 
 $focusWindow = true;
@@ -64,13 +61,14 @@ xhtmlHeaders(__FILE__, translate('SaveFilter') );
         <input type="hidden" name="AutoExecute" value="<?php echo requestVar( 'AutoExecute' ) ?>"/>
         <input type="hidden" name="AutoExecuteCmd" value="<?php echo requestVar( 'AutoExecuteCmd' ) ?>"/>
         <input type="hidden" name="AutoDelete" value="<?php echo requestVar( 'AutoDelete' ) ?>"/>
+        <input type="hidden" name="Id" value="<?php echo $filterData['Id'] ?>"/>
 <?php if ( count($filterNames) ) { ?>
         <p>
           <label for="<?php echo $selectName ?>"><?php echo translate('SaveAs') ?></label><?php echo buildSelect( $selectName, $filterNames ); ?><label for="<?php echo $newSelectName ?>"><?php echo translate('OrEnterNewName') ?></label><input type="text" size="32" id="<?php echo $newSelectName ?>" name="<?php echo $newSelectName ?>" value="<?php echo requestVar('filterName') ?>"/>
         </p>
 <?php } else { ?>
         <p>
-          <label for="<?php echo $newSelectName ?>"><?php echo translate('EnterNewFilterName') ?></label><input type="text" size="32" id="<?php echo $newSelectName ?>" name="<?php echo $newSelectName ?>" value="">
+          <label for="<?php echo $newSelectName ?>"><?php echo translate('EnterNewFilterName') ?></label><input type="text" id="<?php echo $newSelectName ?>" name="<?php echo $newSelectName ?>" />
         </p>
 <?php } ?>
         <p>

@@ -342,6 +342,9 @@ unsigned int zm_av_packet_ref( AVPacket *dst, AVPacket *src );
   #define zm_av_frame_alloc() avcodec_alloc_frame()
 #endif
 
+#if ! LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
+  #define av_frame_free( input_avframe ) av_freep( input_avframe )
+#endif   
 
 int check_sample_fmt(AVCodec *codec, enum AVSampleFormat sample_fmt);
 

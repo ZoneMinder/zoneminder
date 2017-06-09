@@ -41,7 +41,7 @@ our @ISA = qw(Exporter ZoneMinder::Base);
 # If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
 # will save memory.
 our %EXPORT_TAGS = (
-    'constants' => [ qw(
+    constants => [ qw(
       STATE_IDLE
       STATE_PREALARM
       STATE_ALARM
@@ -56,7 +56,7 @@ our %EXPORT_TAGS = (
       TRIGGER_ON
       TRIGGER_OFF
       ) ],
-    'functions' => [ qw(
+    functions => [ qw(
       zmMemVerify
       zmMemInvalidate
       zmMemRead
@@ -83,7 +83,7 @@ our %EXPORT_TAGS = (
     );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
 
-our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
+our @EXPORT_OK = ( @{ $EXPORT_TAGS{all} } );
 
 our @EXPORT = qw();
 
@@ -142,43 +142,43 @@ our $native = $arch/8;
 our $mem_seq = 0;
 
 our $mem_data = {
-  'shared_data' => { 'type'=>'SharedData', 'seq'=>$mem_seq++, 'contents'=> {
-    'size'             => { 'type'=>'uint32', 'seq'=>$mem_seq++ },
-    'last_write_index' => { 'type'=>'uint32', 'seq'=>$mem_seq++ },
-    'last_read_index'  => { 'type'=>'uint32', 'seq'=>$mem_seq++ },
-    'state'            => { 'type'=>'uint32', 'seq'=>$mem_seq++ },
-    'last_event'       => { 'type'=>'uint32', 'seq'=>$mem_seq++ },
-    'action'           => { 'type'=>'uint32', 'seq'=>$mem_seq++ },
-    'brightness'       => { 'type'=>'int32', 'seq'=>$mem_seq++ },
-    'hue'              => { 'type'=>'int32', 'seq'=>$mem_seq++ },
-    'colour'           => { 'type'=>'int32', 'seq'=>$mem_seq++ },
-    'contrast'         => { 'type'=>'int32', 'seq'=>$mem_seq++ },
-    'alarm_x'          => { 'type'=>'int32', 'seq'=>$mem_seq++ },
-    'alarm_y'          => { 'type'=>'int32', 'seq'=>$mem_seq++ },
-    'valid'            => { 'type'=>'uint8', 'seq'=>$mem_seq++ },
-    'active'           => { 'type'=>'uint8', 'seq'=>$mem_seq++ },
-    'signal'           => { 'type'=>'uint8', 'seq'=>$mem_seq++ },
-    'format'           => { 'type'=>'uint8', 'seq'=>$mem_seq++ },
-    'imagesize'        => { 'type'=>'uint32', 'seq'=>$mem_seq++ },
-    'epadding1'        => { 'type'=>'uint32', 'seq'=>$mem_seq++ },
-    'epadding2'        => { 'type'=>'uint32', 'seq'=>$mem_seq++ },
-    'startup_time'     => { 'type'=>'time_t64', 'seq'=>$mem_seq++ },
-    'last_write_time'  => { 'type'=>'time_t64', 'seq'=>$mem_seq++ },
-    'last_read_time'   => { 'type'=>'time_t64', 'seq'=>$mem_seq++ },
-    'control_state'    => { 'type'=>'uint8[256]', 'seq'=>$mem_seq++ },
+  shared_data => { type=>'SharedData', seq=>$mem_seq++, contents=> {
+    size             => { type=>'uint32', seq=>$mem_seq++ },
+    last_write_index => { type=>'uint32', seq=>$mem_seq++ },
+    last_read_index  => { type=>'uint32', seq=>$mem_seq++ },
+    state            => { type=>'uint32', seq=>$mem_seq++ },
+    last_event       => { type=>'uint32', seq=>$mem_seq++ },
+    action           => { type=>'uint32', seq=>$mem_seq++ },
+    brightness       => { type=>'int32', seq=>$mem_seq++ },
+    hue              => { type=>'int32', seq=>$mem_seq++ },
+    colour           => { type=>'int32', seq=>$mem_seq++ },
+    contrast         => { type=>'int32', seq=>$mem_seq++ },
+    alarm_x          => { type=>'int32', seq=>$mem_seq++ },
+    alarm_y          => { type=>'int32', seq=>$mem_seq++ },
+    valid            => { type=>'uint8', seq=>$mem_seq++ },
+    active           => { type=>'uint8', seq=>$mem_seq++ },
+    signal           => { type=>'uint8', seq=>$mem_seq++ },
+    format           => { type=>'uint8', seq=>$mem_seq++ },
+    imagesize        => { type=>'uint32', seq=>$mem_seq++ },
+    epadding1        => { type=>'uint32', seq=>$mem_seq++ },
+    epadding2        => { type=>'uint32', seq=>$mem_seq++ },
+    startup_time     => { type=>'time_t64', seq=>$mem_seq++ },
+    last_write_time  => { type=>'time_t64', seq=>$mem_seq++ },
+    last_read_time   => { type=>'time_t64', seq=>$mem_seq++ },
+    control_state    => { type=>'uint8[256]', seq=>$mem_seq++ },
   }
   },
-  'trigger_data' => { 'type'=>'TriggerData', 'seq'=>$mem_seq++, 'contents'=> {
-    'size'             => { 'type'=>'uint32', 'seq'=>$mem_seq++ },
-    'trigger_state'    => { 'type'=>'uint32', 'seq'=>$mem_seq++ },
-    'trigger_score'    => { 'type'=>'uint32', 'seq'=>$mem_seq++ },
-    'padding'          => { 'type'=>'uint32', 'seq'=>$mem_seq++ },
-    'trigger_cause'    => { 'type'=>'int8[32]', 'seq'=>$mem_seq++ },
-    'trigger_text'     => { 'type'=>'int8[256]', 'seq'=>$mem_seq++ },
-    'trigger_showtext' => { 'type'=>'int8[256]', 'seq'=>$mem_seq++ },
+  trigger_data => { type=>'TriggerData', seq=>$mem_seq++, 'contents'=> {
+    size             => { type=>'uint32', seq=>$mem_seq++ },
+    trigger_state    => { type=>'uint32', seq=>$mem_seq++ },
+    trigger_score    => { type=>'uint32', seq=>$mem_seq++ },
+    padding          => { type=>'uint32', seq=>$mem_seq++ },
+    trigger_cause    => { type=>'int8[32]', seq=>$mem_seq++ },
+    trigger_text     => { type=>'int8[256]', seq=>$mem_seq++ },
+    trigger_showtext => { type=>'int8[256]', seq=>$mem_seq++ },
   }
   },
-  'end' => { 'seq'=>$mem_seq++, 'size'=> 0 }
+  end => { seq=>$mem_seq++, size=>0 }
 };
 
 our $mem_size = 0;
@@ -420,7 +420,7 @@ sub zmMemWrite {
     } elsif ( $type =~ /^uint8\[\d+\]$/ ) {
       $data = pack( 'C'.$size, $value );
     } else {
-      Fatal( "Unexpected type '".$type."' found for '".$field."'" );
+      Fatal( "Unexpected type \"$type\" found for \"$field\"" );
     }
 
     if ( !zmMemPut( $monitor, $offset, $size, $data ) ) {

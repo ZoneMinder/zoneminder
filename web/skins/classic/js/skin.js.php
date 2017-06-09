@@ -35,8 +35,24 @@ var canViewSystem = <?php echo canView('System' )?'true':'false' ?>;
 
 var canEditGroups = <?php echo canEdit('Groups' )?'true':'false' ?>;
 
-var refreshParent = <?php echo !empty($refreshParent)?'true':'false' ?>;
+var refreshParent = <?php
+if ( ! empty($refreshParent) ) {
+  if ( $refreshParent == true ) {
+    echo 'true';
+    return;
+  } else if ( $refreshParent ) {
+    # This is to tell the parent to refresh to a specific URL
+    echo "'$refreshParent'";
+    return;
+  } 
+}
+echo 'false';
+?>;
 
 var focusWindow = <?php echo !empty($focusWindow)?'true':'false' ?>;
 
 var imagePrefix = "<?php echo viewImagePath( "", '&' ) ?>";
+
+<?php if ( ZM_OPT_USE_AUTH && ZM_AUTH_HASH_LOGINS ) { ?>
+var auth_hash = '<?php echo isset($_SESSION['AuthHash']) ? $_SESSION['AuthHash'] : ''; ?>';
+<?php } ?>

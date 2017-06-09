@@ -19,15 +19,14 @@
 //
 
 if ( !canView( 'Events' ) ) {
-    $view = 'error';
-    return;
+  $view = 'error';
+  return;
 }
 
 $eid = validInt( $_REQUEST['eid'] );
 $fid = !empty($_REQUEST['fid'])?validInt($_REQUEST['fid']):1;
 
 $Event = new Event( $eid );
-$Monitor = $Event->Monitor();
 if ( $user['MonitorIds'] ) {
   $monitor_ids = explode( ',', $user['MonitorIds'] );
   if ( count($monitor_ids) and ! in_array( $Event->MonitorId(), $monitor_ids ) ) {
@@ -35,11 +34,12 @@ if ( $user['MonitorIds'] ) {
     return;
   }
 }
+$Monitor = $Event->Monitor();
 
 if ( isset( $_REQUEST['rate'] ) )
-    $rate = validInt($_REQUEST['rate']);
+  $rate = validInt($_REQUEST['rate']);
 else
-    $rate = reScale( RATE_BASE, $Monitor->DefaultRate(), ZM_WEB_DEFAULT_RATE );
+  $rate = reScale( RATE_BASE, $Monitor->DefaultRate(), ZM_WEB_DEFAULT_RATE );
 
 if ( isset( $_REQUEST['scale'] ) ) {
   $scale = validInt($_REQUEST['scale']);
@@ -56,14 +56,14 @@ $replayModes = array(
 );
 
 if ( isset( $_REQUEST['streamMode'] ) )
-    $streamMode = validHtmlStr($_REQUEST['streamMode']);
+  $streamMode = validHtmlStr($_REQUEST['streamMode']);
 else
-    $streamMode = 'video';
+  $streamMode = 'video';
 
 if ( isset( $_REQUEST['replayMode'] ) )
-    $replayMode = validHtmlStr($_REQUEST['replayMode']);
+  $replayMode = validHtmlStr($_REQUEST['replayMode']);
 if ( isset( $_COOKIE['replayMode']) && preg_match('#^[a-z]+$#', $_COOKIE['replayMode']) )
-    $replayMode = validHtmlStr($_COOKIE['replayMode']);
+  $replayMode = validHtmlStr($_COOKIE['replayMode']);
 else {
 	$keys = array_keys( $replayModes );
 	$replayMode = array_shift( $keys );
@@ -73,10 +73,10 @@ else {
 $Zoom = 1;
 $Rotation = 0;
 if ( $Monitor->VideoWriter() == '2' ) {
-    # Passthrough
-    $Rotation = $Event->Orientation();
-    if ( in_array($Event->Orientation(),array('90','270')) )
-        $Zoom = $Event->Height()/$Event->Width();
+# Passthrough
+  $Rotation = $Event->Orientation();
+  if ( in_array($Event->Orientation(),array('90','270')) )
+    $Zoom = $Event->Height()/$Event->Width();
 }
 
 parseSort();
@@ -116,7 +116,10 @@ if ( ! $Event->Id() ) {
       <div id="menuBar1">
         <div id="scaleControl"><label for="scale"><?php echo translate('Scale') ?></label><?php echo buildSelect( "scale", $scales, "changeScale();" ); ?></div>
         <div id="replayControl"><label for="replayMode"><?php echo translate('Replay') ?></label><?php echo buildSelect( "replayMode", $replayModes, "changeReplayMode();" ); ?></div>
-        <div id="nameControl"><input type="text" id="eventName" name="eventName" value="<?php echo validHtmlStr($Event->Name()) ?>" size="16"/><input type="button" value="<?php echo translate('Rename') ?>" onclick="renameEvent()"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>/></div>
+        <div id="nameControl">
+          <input type="text" id="eventName" name="eventName" value="<?php echo validHtmlStr($Event->Name()) ?>" />
+          <input type="button" value="<?php echo translate('Rename') ?>" onclick="renameEvent()"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>/>
+        </div>
       </div>
       <div id="menuBar2">
         <div id="closeWindow"><a href="#" onclick="closeWindow();"><?php echo translate('Close') ?></a></div>
@@ -127,9 +130,12 @@ if ( canEdit( 'Events' ) ) {
         <div id="editEvent"><a href="#" onclick="editEvent()"><?php echo translate('Edit') ?></a></div>
         <div id="archiveEvent" class="hidden"><a href="#" onclick="archiveEvent()"><?php echo translate('Archive') ?></a></div>
         <div id="unarchiveEvent" class="hidden"><a href="#" onclick="unarchiveEvent()"><?php echo translate('Unarchive') ?></a></div>
-<?php
+<?php 
 } // end if can edit Events
-if ( canView( 'Events' ) ) {
+  if ( $Event->DefaultVideo() ) { ?>
+        <div id="downloadEventFile"><a href="<?php echo $Event->getStreamSrc()?>">Download MP4</a></div>
+<?php
+  } // end if Event->DefaultVideo
 ?>
         <div id="framesEvent"><a href="#" onclick="showEventFrames()"><?php echo translate('Frames') ?></a></div>
 <?php
@@ -139,21 +145,21 @@ if ( $Event->SaveJPEGs() & 3 ) { // Analysis or Jpegs
 <?php
 } // has frames or analysis
 ?>
-        <div id="videoEvent"<?php if ( $streamMode == 'video' ) { ?> class="hidden"<?php } ?>><a href="#" onclick="showVideo()"><?php echo translate('Video') ?></a></div>
-        <div id="exportEvent"><a href="#" onclick="exportEvent()"><?php echo translate('Export')  ?></a></div>
+        <div id="videoEvent"><a href="#" onclick="videoEvent();"><?php echo translate('Video') ?></a></div>
+        <div id="exportEvent"><a href="#" onclick="exportEvent();"><?php echo translate('Export') ?></a></div>
       </div>
       <div id="eventVideo" class="">
 <?php
 if ( $Event->DefaultVideo() ) {
 ?>
         <div id="videoFeed">
-          <video id="videoobj" class="video-js vjs-default-skin" width="<?php echo reScale( $Event->Width(), $scale ) ?>" height="<?php echo reScale( $Event->Height(), $scale ) ?>" data-setup='{ "controls": true, "playbackRates": [0.5, 1, 1.5, 2, 4, 8, 16, 32, 64, 128, 256], "autoplay": true, "preload": "auto", "plugins": { "zoomrotate": { "rotate": "<?php echo $Rotation ?>", "zoom": "<?php echo $Zoom ?>"}}}'>
+          <video id="videoobj" class="video-js vjs-default-skin" width="<?php echo reScale( $Event->Width(), $scale ) ?>" height="<?php echo reScale( $Event->Height(), $scale ) ?>" data-setup='{ "controls": true, "playbackRates": [0.5, 1, 1.5, 2, 4, 8, 16, 32, 64, 128, 256], "autoplay": true, "preload": "auto", "plugins": { "zoomrotate": { "zoom": "<?php echo $Zoom ?>"}}}'>
           <source src="<?php echo $Event->getStreamSrc( array( "mode=mpeg&format=h264" ) ); ?>" type="video/mp4">
           Your browser does not support the video tag.
           </video>
         </div>
         <!--script>includeVideoJs();</script-->
-        <script>
+        <script type="text/javascript">
         var LabelFormat = "<?php echo validJsStr($Monitor->LabelFormat())?>";
         var monitorName = "<?php echo validJsStr($Monitor->Name())?>";
         var duration = <?php echo $Event->Length() ?>, startTime = '<?php echo $Event->StartTime() ?>';
@@ -166,15 +172,15 @@ if ( $Event->DefaultVideo() ) {
         <div id="imageFeed" <?php if ( $Event->DefaultVideo() ) { ?>class="hidden"<?php } ?> >
 <?php
 if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
-    $streamSrc = getStreamSrc( array( "source=event", "mode=mpeg", "event=".$eid, "frame=".$fid, "scale=".$scale, "rate=".$rate, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_REPLAY_FORMAT, "replay=".$replayMode ) );
-    outputVideoStream( "evtStream", $streamSrc, reScale( $Event->Width(), $scale ), reScale( $Event->Height(), $scale ), ZM_MPEG_LIVE_FORMAT );
+  $streamSrc = $Event->getStreamSrc( array( 'mode'=>'mpeg', 'scale'=>$scale, 'rate'=>$rate, 'bitrate'=>ZM_WEB_VIDEO_BITRATE, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'format'=>ZM_MPEG_REPLAY_FORMAT, 'replay'=>$replayMode ) );
+  outputVideoStream( "evtStream", $streamSrc, reScale( $Event->Width(), $scale ), reScale( $Event->Height(), $scale ), ZM_MPEG_LIVE_FORMAT );
 } else {
-    $streamSrc = getStreamSrc( array( "source=event", "mode=jpeg", "event=".$eid, "frame=".$fid, "scale=".$scale, "rate=".$rate, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "replay=".$replayMode) );
-    if ( canStreamNative() ) {
-        outputImageStream( "evtStream", $streamSrc, reScale( $Event->Width(), $scale ), reScale( $Event->Height(), $scale ), validHtmlStr($Event->Name()) );
-    } else {
-        outputHelperStream( "evtStream", $streamSrc, reScale( $Event->Width(), $scale ), reScale( $Event->Height(), $scale ) );
-    }
+  $streamSrc = $Event->getStreamSrc( array( 'mode'=>'jpeg', 'frame'=>$fid, 'scale'=>$scale, 'rate'=>$rate, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>$replayMode) );
+  if ( canStreamNative() ) {
+    outputImageStream( 'evtStream', $streamSrc, reScale( $Event->Width(), $scale ), reScale( $Event->Height(), $scale ), validHtmlStr($Event->Name()) );
+  } else {
+    outputHelperStream( 'evtStream', $streamSrc, reScale( $Event->Width(), $scale ), reScale( $Event->Height(), $scale ) );
+  }
 } // end if stream method
 ?>
         </div>
@@ -203,7 +209,7 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
         </div>
       </div>
 <?php 
-if ($Event->SaveJPEGs() & 3) { // frames or analysis
+if ( $Event->SaveJPEGs() & 3 ) { // frames or analysis
 ?>
       <div id="eventStills" class="hidden">
         <div id="eventThumbsPanel">
@@ -240,8 +246,7 @@ if ($Event->SaveJPEGs() & 3) { // frames or analysis
         </div>
       </div>
 <?php
-} // end if SaveJPEGs() & 3 Analysis or Jpegs
-} // end if canView
+  } // end if SaveJPEGs() & 3 Analysis or Jpegs
 } // end if Event exists
 ?>
   </div><!--page-->

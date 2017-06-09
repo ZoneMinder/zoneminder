@@ -21,7 +21,12 @@
  * Primary look and feel styles
  */
 
+html {
+  height: 100%;
+}
+
 body {
+  height: 100%;
     font-family: "Open Sans", Verdana, Arial, Helvetica, sans-serif;
     font-size: 13px;
     color: #333333;
@@ -60,10 +65,12 @@ p {
 }
 
 th {
+/*
     padding: 3px;
     text-transform: uppercase;
     font-size: 0.8em;
     font-weight: 600;
+*/
 }
 
 a:link {
@@ -478,21 +485,17 @@ input[type=submit]:disabled {
 
 }
 
-/*
- * Console table for the main event table
- */
-
-#consoleTable td, #consoleTable th {
-    padding: 5px;    
-    border-bottom: 2px solid #f2f2f2;
+#options {
+  font-size:90%;
 }
 
-#consoleTable input[type=button] {
-    margin-right: 3px !important;
+#options .help-block {
+  margin-top: 0;
 }
 
-#consoleTable tfoot {
-    background-color: #f2f2f2;  
+#options .form-group {
+  margin-bottom: 20px;
+  border-bottom: 1px solid #e7e7e7;
 }
 
 .navbar{
@@ -513,7 +516,6 @@ input[type=submit]:disabled {
 .sidebar {
     position: absolute;
     top: 0;
-    bottom: 0;
     left: 0;
     z-index: 1000;
     display: block;
@@ -530,6 +532,6 @@ margin-bottom: 20px;
 margin-left: 0;
 }
 
-
-
-
+.nav-pills > li > a {
+  border-radius: 0;
+}

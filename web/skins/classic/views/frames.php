@@ -72,14 +72,11 @@ if ( count($frames) ) {
               <td class="colTimeStamp"><?php echo strftime( STRF_FMT_TIME, $frame['UnixTimeStamp'] ) ?></td>
               <td class="colTimeDelta"><?php echo number_format( $frame['Delta'], 2 ) ?></td>
 <?php
-        if ( ZM_RECORD_EVENT_STATS && ($frame['Type'] == 'Alarm') )
-        {
+        if ( ZM_RECORD_EVENT_STATS && ($frame['Type'] == 'Alarm') ) {
 ?>
               <td class="colScore"><?php echo makePopupLink( '?view=stats&amp;eid='.$Event->Id().'&amp;fid='.$frame['FrameId'], 'zmStats', 'stats', $frame['Score'] ) ?></td>
 <?php
-        }
-        else
-        {
+        } else {
 ?> 
               <td class="colScore"><?php echo $frame['Score'] ?></td>
 <?php
@@ -90,16 +87,14 @@ if ( count($frames) ) {
 (ZM_WEB_LIST_THUMB_WIDTH?'width='.ZM_WEB_LIST_THUMB_WIDTH.'&amp;':'').
 (ZM_WEB_LIST_THUMB_HEIGHT?'height='.ZM_WEB_LIST_THUMB_HEIGHT.'&amp;':'').'filename='.$Event->MonitorId().'_'.$frame['EventId'].'_'.$frame['FrameId'].'.jpg" '.
 (ZM_WEB_LIST_THUMB_WIDTH?'width="'.ZM_WEB_LIST_THUMB_WIDTH.'" ':'').
-(ZM_WEB_LIST_THUMB_HEIGHT?'height="'.ZM_WEB_LIST_THUMB_HEIGHT.'" ':'').'alt="'.$frame['FrameId'].'"/>' ) ?></td>
+(ZM_WEB_LIST_THUMB_HEIGHT?'height="'.ZM_WEB_LIST_THUMB_HEIGHT.'" ':'').' alt="'.$frame['FrameId'].'"/>' ) ?></td>
 <?php
-}    
+        }
 ?>
             </tr>
 <?php
-    }
-}
-else
-{
+    } // end foreach frame
+} else {
 ?>
             <tr>
               <td colspan="5"><?php echo translate('NoFramesRecorded') ?></td>

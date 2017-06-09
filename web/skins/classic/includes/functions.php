@@ -22,31 +22,29 @@
 // Don't load in additional JS to these views
 $bad_views = array('monitor', 'log');
 
-function xhtmlHeaders( $file, $title )
-{
-    global $css;
-    global $skin;
-    $skinCssFile = getSkinFile( 'css/'.$css.'/skin.css' );
-    $skinCssPhpFile = getSkinFile( 'css/'.$css.'/skin.css.php' );
+function xhtmlHeaders( $file, $title ) {
+  global $css;
+  global $skin;
+  $skinCssFile = getSkinFile( 'css/'.$css.'/skin.css' );
+  $skinCssPhpFile = getSkinFile( 'css/'.$css.'/skin.css.php' );
 
-    $skinJsFile = getSkinFile( 'js/skin.js' );
-    $skinJsPhpFile = getSkinFile( 'js/skin.js.php' );
-    $cssJsFile = getSkinFile( 'js/'.$css.'.js' );
+  $skinJsFile = getSkinFile( 'js/skin.js' );
+  $skinJsPhpFile = getSkinFile( 'js/skin.js.php' );
+  $cssJsFile = getSkinFile( 'js/'.$css.'.js' );
 
-    $basename = basename( $file, '.php' );
-    $viewCssFile = getSkinFile( '/css/'.$css.'/views/'.$basename.'.css' );
-    $viewCssPhpFile = getSkinFile( '/css/'.$css.'/views/'.$basename.'.css.php' );
-    $viewJsFile = getSkinFile( 'views/js/'.$basename.'.js' );
-    $viewJsPhpFile = getSkinFile( 'views/js/'.$basename.'.js.php' );
+  $basename = basename( $file, '.php' );
+  $viewCssFile = getSkinFile( '/css/'.$css.'/views/'.$basename.'.css' );
+  $viewCssPhpFile = getSkinFile( '/css/'.$css.'/views/'.$basename.'.css.php' );
+  $viewJsFile = getSkinFile( 'views/js/'.$basename.'.js' );
+  $viewJsPhpFile = getSkinFile( 'views/js/'.$basename.'.js.php' );
 
-    extract( $GLOBALS, EXTR_OVERWRITE );
+  extract( $GLOBALS, EXTR_OVERWRITE );
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no">
   <title><?php echo ZM_WEB_TITLE_PREFIX ?> - <?php echo validHtmlStr($title) ?></title>
   <link rel="icon" type="image/ico" href="graphics/favicon.ico"/>
   <link rel="shortcut icon" href="graphics/favicon.ico"/>
@@ -55,19 +53,17 @@ function xhtmlHeaders( $file, $title )
   <link rel="stylesheet" href="css/bootstrap.min.css" type="text/css"/>
   <link rel="stylesheet" href="<?php echo $skinCssFile ?>" type="text/css" media="screen"/>
 <?php
-    if ( $viewCssFile )
-    {
+  if ( $viewCssFile ) {
 ?>
   <link rel="stylesheet" href="<?php echo $viewCssFile ?>" type="text/css" media="screen"/>
 <?php
-    }
-    if ( $viewCssPhpFile )
-    {
+  }
+  if ( $viewCssPhpFile ) {
 ?>
   <style type="text/css">
   /*<![CDATA[*/
 <?php
-        require_once( $viewCssPhpFile );
+    require_once( $viewCssPhpFile );
 ?>
   /*]]>*/
   </style>
@@ -77,8 +73,6 @@ function xhtmlHeaders( $file, $title )
   <script type="text/javascript" src="tools/mootools/mootools-core.js"></script>
   <script type="text/javascript" src="tools/mootools/mootools-more.js"></script>
   <script type="text/javascript" src="js/mootools.ext.js"></script>
-<?php if ( !in_array($basename, $bad_views) ) { ?>
-  <!--<script type="text/javascript" src="js/overlay.js"></script>-->
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery-1.11.3.js"></script>
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery-ui-1.11.3.js"></script>
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
@@ -93,19 +87,17 @@ var $j = jQuery.noConflict();
   //]]>
 </script>
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/views/js/state.js"></script>
-<?php } ?>
 <?php if ( $title == 'Login' && (defined('ZM_OPT_USE_GOOG_RECAPTCHA') && ZM_OPT_USE_GOOG_RECAPTCHA) ) { ?>
   <script src='https://www.google.com/recaptcha/api.js'></script>
 <?php } else if ( $title == 'Event' ) {
 ?>
-        <link href="//vjs.zencdn.net/4.11/video-js.css" rel="stylesheet">
-        <script src="//vjs.zencdn.net/4.11/video.js"></script>
-        <script src="./js/videojs.zoomrotate.js"></script>
-        <script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.10.6/moment.min.js"></script>
+  <link href="skins/<?php echo $skin ?>/js/video-js.css" rel="stylesheet">
+  <script src="skins/<?php echo $skin ?>/js/video.js"></script>
+  <script src="./js/videojs.zoomrotate.js"></script>
+  <script src="skins/<?php echo $skin ?>/js/moment.min.js"></script>
 <?php
-    }
-    if ( $skinJsPhpFile )
-    {
+  }
+  if ( $skinJsPhpFile ) {
 ?>
   <script type="text/javascript">
   //<![CDATA[
@@ -117,21 +109,20 @@ var $j = jQuery.noConflict();
   //]]>
   </script>
 <?php
-    }
-    if ( $viewJsPhpFile )
-    {
+  }
+  if ( $viewJsPhpFile ) {
 ?>
   <script type="text/javascript">
   //<![CDATA[
   <!--
 <?php
-        require_once( $viewJsPhpFile );
+    require_once( $viewJsPhpFile );
 ?>
   //-->
   //]]>
   </script>
 <?php
-    }
+  }
 	if ( $cssJsFile ) {
 ?>
   <script type="text/javascript" src="<?php echo $cssJsFile ?>"></script>
@@ -139,12 +130,11 @@ var $j = jQuery.noConflict();
   <script type="text/javascript" src="<?php echo $skinJsFile ?>"></script>
   <script type="text/javascript" src="js/logger.js"></script>
 <?php
-    if ( $viewJsFile )
-    {
+  if ( $viewJsFile ) {
 ?>
   <script type="text/javascript" src="<?php echo $viewJsFile ?>"></script>
 <?php
-    }
+  }
 ?>
 </head>
 <?php
@@ -263,6 +253,12 @@ if ( canView( 'Stream' ) && $cycleCount > 1 ) {
   </div>
   <ul class="list-inline">
 	  <li><?php echo translate('Load') ?>: <?php echo getLoad() ?></li>
+<?php 
+  $connections = dbFetchOne( "SHOW status WHERE variable_name='threads_connected'", 'Value' );
+  $max_connections = dbFetchOne( "SHOW variables WHERE variable_name='max_connections'", 'Value' );
+  $percent_used = 100 * $connections / $max_connections;
+  echo '<li'. ( $percent_used > 90 ? ' class="warning"' : '' ).'>'.translate('DB').':'.$connections.'/'.$max_connections.'</li>';
+?>
 	  <li><?php echo translate('Storage') ?>:
 <?php
   $storage_areas = Storage::find_all();

@@ -20,7 +20,7 @@
 #include "zm.h"
 #include "zm_camera.h"
 
-Camera::Camera( unsigned int p_monitor_id, SourceType p_type, int p_width, int p_height, int p_colours, int p_subpixelorder, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio ) :
+Camera::Camera( unsigned int p_monitor_id, SourceType p_type, unsigned int p_width, unsigned int p_height, int p_colours, int p_subpixelorder, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio ) :
     monitor_id( p_monitor_id ),
     type( p_type ),
     width( p_width),
@@ -40,10 +40,10 @@ Camera::Camera( unsigned int p_monitor_id, SourceType p_type, int p_width, int p
   Debug(2,"New camera id: %d width: %d height: %d colours: %d subpixelorder: %d capture: %d",monitor_id,width,height,colours,subpixelorder,capture);
   
   /* Because many loops are unrolled and work on 16 colours/time or 4 pixels/time, we have to meet requirements */
-  if((colours == ZM_COLOUR_GRAY8 || colours == ZM_COLOUR_RGB32) && (imagesize % 16) != 0) {
-    Fatal("Image size is not multiples of 16");
-  } else if(colours == ZM_COLOUR_RGB24 && ((imagesize % 16) != 0 || (imagesize % 12) != 0)) {
-    Fatal("Image size is not multiples of 12 and 16");
+  if((colours == ZM_COLOUR_GRAY8 || colours == ZM_COLOUR_RGB32) && (imagesize % 64) != 0) {
+    Fatal("Image size is not multiples of 64");
+  } else if(colours == ZM_COLOUR_RGB24 && ((imagesize % 64) != 0 || (imagesize % 12) != 0)) {
+    Fatal("Image size is not multiples of 12 and 64");
   }
 }
 

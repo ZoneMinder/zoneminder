@@ -40,15 +40,15 @@ our @ISA = qw(Exporter ZoneMinder::Base);
 # If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
 # will save memory.
 our %EXPORT_TAGS = (
-    'functions' => [ qw(
-        zmMemKey
-        zmMemAttach
-        zmMemDetach
-        zmMemGet
-        zmMemPut
-        zmMemClean
-    ) ],
-);
+    functions => [ qw(
+      zmMemKey
+      zmMemAttach
+      zmMemDetach
+      zmMemGet
+      zmMemPut
+      zmMemClean
+      ) ],
+    );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
 
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
@@ -102,7 +102,7 @@ sub zmMemAttach {
       return ( undef );
     }
     my $MMAP;
-    if ( !open( $MMAP, "+<", $mmap_file ) ) {
+    if ( !open( $MMAP, '+<', $mmap_file ) ) {
       Error( sprintf( "Can't open memory map file '%s': $!\n", $mmap_file ) );
       return( undef );
     }
@@ -122,6 +122,7 @@ sub zmMemAttach {
 
 sub zmMemDetach {
   my $monitor = shift;
+
   if ( $monitor->{MMap} ) {
     if ( ! munmap( ${$monitor->{MMap}} ) ) {
       Warn( "Unable to munmap for monitor $$monitor{Id}\n");
@@ -174,7 +175,7 @@ sub zmMemPut {
 
 sub zmMemClean {
   Debug( "Removing memory map files\n" );
-  my $mapPath = $Config{ZM_PATH_MAP}."/zm.mmap.*";
+  my $mapPath = $Config{ZM_PATH_MAP}.'/zm.mmap.*';
   foreach my $mapFile( glob( $mapPath ) ) {
     ( $mapFile ) = $mapFile =~ /^(.+)$/;
     Debug( "Removing memory map file '$mapFile'\n" );

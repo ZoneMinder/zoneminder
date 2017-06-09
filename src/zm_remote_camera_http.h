@@ -25,14 +25,12 @@
 #include "zm_buffer.h"
 #include "zm_regexp.h"
 #include "zm_utils.h"
-#include "zm_packetqueue.h"
 
 //
 // Class representing 'http' cameras, i.e. those which are
 // accessed over a network connection using http
 //
-class RemoteCameraHttp : public RemoteCamera
-{
+class RemoteCameraHttp : public RemoteCamera {
 protected:
   std::string request;
   struct timeval timeout;
@@ -59,7 +57,7 @@ public:
   int PreCapture();
   int Capture( Image &image );
   int PostCapture();
-  int CaptureAndRecord( Image &image, bool recording, char* event_directory ) {return(0);};
+  int CaptureAndRecord( Image &image, timeval recording, char* event_directory ) {return(0);};
 };
 
 #endif // ZM_REMOTE_CAMERA_HTTP_H

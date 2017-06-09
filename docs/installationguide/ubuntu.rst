@@ -287,19 +287,19 @@ To build the latest master snapshot:
 
 ::
 
-	./do_debian_package.sh `lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`  `date +%Y%m%d`01 local master
+	./do_debian_package.sh --snapshot=NOW --branch=master --type=local
 
 
 To build the latest stable release:
 
 ::
 
-	./do_debian_package.sh `lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`  `date +%Y%m%d`01 local stable
+	./do_debian_package.sh --snapshot=stable --type=local
 
 
-Note that the ``lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'``
-part simply extracts your distribution name - like "vivid", "trusty" etc. You
-can always replace it by your distro name if you know it. As far as the script
+Note that the distribution will be guessed using ``lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'``
+which simply extracts your distribution name - like "vivid", "trusty" etc. You
+can always specify it using --distro=your distro name if you know it. As far as the script
 goes, it checks if your distro is "trusty" in which case it pulls in pre-systemd
 release configurations and if its not "trusty" it assumes its based on systemd
 and pulls in systemd related config files.
@@ -358,24 +358,6 @@ Changed Default DB User
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 If you have changed your DB login/password from zmuser/zmpass, you need to
-update these values in zm.conf and the API's database.php file.
+update these values in zm.conf.
 
 1. Edit zm.conf to change ZM_DB_USER and ZM_DB_PASS to the values you used.
-
-2. Edit databse.php which can be found in the web server folder zoneminder/www/api/app/Config
-
-There is a class there called DATABASE_CONFIG -
-change the $default array to reflect your new details. Example:
-
-::
-
-        public $default = array(
-                        'datasource' => 'Database/Mysql',
-                        'persistent' => false,
-                        'host' => 'localhost',
-                        'login' => 'mynewDBusername',
-                        'password' => 'mynewDBpassword'
-                        'database' => 'zm',
-                        'prefix' => '',
-                        //'encoding' => 'utf8',
-                );

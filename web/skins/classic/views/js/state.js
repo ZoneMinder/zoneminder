@@ -61,9 +61,6 @@ $j(document).ready(function() {
 			location.reload();
 		});
 
-
 	}
-
-
 
 });

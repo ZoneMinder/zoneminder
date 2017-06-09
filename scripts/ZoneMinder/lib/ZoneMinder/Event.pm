@@ -223,9 +223,7 @@ sub GenerateVideo {
 
     my $status = $? >> 8;
     if ( $status ) {
-      Error( "Unable to generate video, check "
-          .$event_path."/ffmpeg.log for details"
-          );
+      Error( "Unable to generate video, check $event_path/ffmpeg.log for details");
       return;
     }
 
@@ -241,6 +239,7 @@ sub GenerateVideo {
 sub delete {
   my $event = $_[0];
   Info( "Deleting event $event->{Id} from Monitor $event->{MonitorId} $event->{StartTime}\n" );
+  $ZoneMinder::Database::dbh->ping();
 # Do it individually to avoid locking up the table for new events
   my $sql = 'delete from Events where Id = ?';
   my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
@@ -269,7 +268,6 @@ sub delete {
     Debug('Not deleting frames, stats and files for speed.');
   }
 } # end sub delete
-
 
 sub delete_files {
 
@@ -331,12 +329,15 @@ sub delete_files {
 sub Storage {
   return new ZoneMinder::Storage( $_[0]{StorageId} );
 }
+
 sub check_for_in_filesystem {
   my $path = $_[0]->Path();
   if ( $path ) {
     my @files = glob( $path . '/*' );
+Debug("Checking for files for event $_[0]{Id} at $path using glob $path/* found " . scalar @files . " files");
     return 1 if @files;
   }
+Debug("Checking for files for event $_[0]{Id} at $path using glob $path/* found no files");
   return 0;
 }
 
@@ -349,49 +350,26 @@ sub age {
 
 1;
 __END__
-# Below is stub documentation for your module. You'd better edit it!
 
 =head1 NAME
 
-ZoneMinder::Database - Perl extension for blah blah blah
+ZoneMinder::Event - Perl Class for events
 
 =head1 SYNOPSIS
 
 use ZoneMinder::Event;
-blah blah blah
 
 =head1 DESCRIPTION
 
-Stub documentation for ZoneMinder, created by h2xs. It looks like the
-author of the extension was negligent enough to leave the stub
-unedited.
-
-Blah blah blah.
-
-=head2 EXPORT
-
-None by default.
-
-
-
-=head1 SEE ALSO
-
-Mention other useful documentation such as the documentation of
-related modules or operating system documentation (such as man pages
-in UNIX), or any relevant external documentation such as RFCs or
-standards.
-
-If you have a mailing list set up for your module, mention it here.
-
-If you have a web site set up for your module, mention it here.
+The Event class has everything you need to deal with events from Perl.
 
 =head1 AUTHOR
 
-Philip Coombes, E<lt>philip.coombes@zoneminder.comE<gt>
+Isaac Connor, E<lt>isaac@zoneminder.comE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2001-2008  Philip Coombes
+Copyright (C) 2001-2017  ZoneMinder LLC
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.3 or,

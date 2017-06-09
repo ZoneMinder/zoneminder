@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 //
 // ZoneMinder web export function library, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
@@ -27,7 +27,7 @@ function exportHeader( $title )
   <title><?php echo $title ?></title>
   <style type="text/css">
   <!--
-<?php include( ZM_SKIN_PATH.'/css/export.css' ); ?>
+<?php include( ZM_SKIN_PATH.'/css/'.ZM_SKIN_NAME.'/export.css' ); ?>
 	
 
 ul.tabs {
@@ -884,7 +884,7 @@ function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $expo
 			{
 				$eids = array($eids);
 			}
-			$monitorPath = 'events/';
+			$monitorPath = ZM_DIR_EVENTS."/";
 			$html_eventMaster = 'zmEventImagesMaster_'.date('Ymd_His'). '.html';
 			if ( !($fp = fopen( $monitorPath."/".$html_eventMaster, "w" )) ) Fatal( "Can't open event images export file '$html_eventMaster'" );
 			fwrite( $fp, exportEventImagesMaster( $eids ) );
@@ -892,7 +892,7 @@ function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $expo
 			$exportFileList[] = $monitorPath."/".$html_eventMaster;
 		}
 
-        $listFile = "temp/".$export_listFile;
+        $listFile = ZM_DIR_EXPORTS."/".$export_listFile;
         if ( !($fp = fopen( $listFile, "w" )) )
         {
             Fatal( "Can't open event export list file '$listFile'" );
@@ -905,7 +905,7 @@ function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $expo
         $archive = "";
         if ( $exportFormat == "tar" )
         {
-            $archive = "temp/".$export_root.".tar.gz";
+            $archive = ZM_DIR_EXPORTS."/".$export_root.".tar.gz";
             @unlink( $archive );
             $command = "tar --create --gzip --file=$archive --files-from=$listFile";
             exec( escapeshellcmd( $command ), $output, $status );
@@ -919,8 +919,7 @@ function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $expo
         }
         elseif ( $exportFormat == "zip" )
         {
-            $archive = "temp/zm_export.zip";
-            $archive = "temp/".$export_root.".zip";
+            $archive = ZM_DIR_EXPORTS."/".$export_root.".zip";
             @unlink( $archive );
             $command = "cat ".escapeshellarg($listFile)." | zip -q ".escapeshellarg($archive)." -@";
 //cat zmFileList.txt | zip -q zm_export.zip -@
@@ -942,5 +941,5 @@ function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $expo
         }
 
     }
-    return( $archive );
+    return( '?view=archive%26type='.$exportFormat );
 }

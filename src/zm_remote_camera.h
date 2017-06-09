@@ -22,7 +22,6 @@
 
 #include "zm_camera.h"
 #include "zm_rtsp_auth.h"
-#include "zm_packetqueue.h"
 
 #include <string>
 #include <sys/types.h>
@@ -90,7 +89,7 @@ public:
   virtual int PreCapture() = 0;
   virtual int Capture( Image &image ) = 0;
   virtual int PostCapture() = 0;
-  virtual int CaptureAndRecord( Image &image, bool recording, char* event_directory )=0;
+  virtual int CaptureAndRecord( Image &image, timeval recording, char* event_directory )=0;
 };
 
 #endif // ZM_REMOTE_CAMERA_H

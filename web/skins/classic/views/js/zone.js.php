@@ -1,7 +1,6 @@
 var presets = new Object();
 <?php
-foreach ( $presets as $preset )
-{
+foreach ( $presets as $preset ) {
 ?>
 presets[<?php echo $preset['Id'] ?>] = {
     'UnitsIndex': <?php echo $preset['UnitsIndex'] ?>,
@@ -38,8 +37,7 @@ var zone = {
 
 zone['Points'] = new Array();
 <?php
-for ( $i = 0; $i < count($newZone['Points']); $i++ )
-{
+for ( $i = 0; $i < count($newZone['Points']); $i++ ) {
 ?>
 zone['Points'][<?php echo $i ?>] = { 'x': <?php echo $newZone['Points'][$i]['x'] ?>, 'y': <?php echo $newZone['Points'][$i]['y'] ?> };
 <?php

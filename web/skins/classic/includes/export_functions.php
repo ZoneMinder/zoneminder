@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 //
 // ZoneMinder web export function library, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
@@ -15,7 +15,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 function exportHeader( $title )
@@ -27,7 +27,7 @@ function exportHeader( $title )
   <title><?php echo $title ?></title>
   <style type="text/css">
   <!--
-<?php include( ZM_SKIN_PATH.'/css/export.css' ); ?>
+<?php include( ZM_SKIN_PATH.'/css/'.ZM_SKIN_NAME.'/export.css' ); ?>
 	
 
 ul.tabs {
@@ -142,8 +142,6 @@ function exportEventDetail( $event, $exportFrames, $exportImages )
 
 function exportEventFrames( $event, $exportDetail, $exportImages )
 {
-    global $SLANG;
-
     $sql = "SELECT *, unix_timestamp( TimeStamp ) AS UnixTimeStamp FROM Frames WHERE EventID = ? ORDER BY FrameId";
     $frames = dbFetchAll( $sql, NULL, array( $event['Id'] ) );
 
@@ -230,8 +228,6 @@ function exportEventFrames( $event, $exportDetail, $exportImages )
 
 function exportEventImages( $event, $exportDetail, $exportFrames, $myfilelist )
 {
-    global $SLANG;
-
     ob_start();
     exportHeader( translate('Images')." ".$event['Id'] );
 	
@@ -589,7 +585,6 @@ else if (document.layers) window.onload=start_slider;
 
 function exportEventImagesMaster( $eids )
 {
-    global $SLANG;
     ob_start();
     exportHeader( translate('Images').' Master' );
 ?>
@@ -895,7 +890,7 @@ function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $expo
 			{
 				$eids = array($eids);
 			}
-			$monitorPath = 'events/';
+			$monitorPath = ZM_DIR_EVENTS."/";
 			$html_eventMaster = 'zmEventImagesMaster_'.date('Ymd_His'). '.html';
 			if ( !($fp = fopen( $monitorPath."/".$html_eventMaster, "w" )) ) Fatal( "Can't open event images export file '$html_eventMaster'" );
 			fwrite( $fp, exportEventImagesMaster( $eids ) );
@@ -903,7 +898,7 @@ function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $expo
 			$exportFileList[] = $monitorPath."/".$html_eventMaster;
 		}
 
-        $listFile = "temp/".$export_listFile;
+        $listFile = ZM_DIR_EXPORTS."/".$export_listFile;
         if ( !($fp = fopen( $listFile, "w" )) )
         {
             Fatal( "Can't open event export list file '$listFile'" );
@@ -916,7 +911,7 @@ function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $expo
         $archive = "";
         if ( $exportFormat == "tar" )
         {
-            $archive = "temp/".$export_root.".tar.gz";
+            $archive = ZM_DIR_EXPORTS."/".$export_root.".tar.gz";
             @unlink( $archive );
             $command = "tar --create --gzip --file=$archive --files-from=$listFile";
             exec( escapeshellcmd( $command ), $output, $status );
@@ -930,8 +925,7 @@ function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $expo
         }
         elseif ( $exportFormat == "zip" )
         {
-            $archive = "temp/zm_export.zip";
-            $archive = "temp/".$export_root.".zip";
+            $archive = ZM_DIR_EXPORTS."/".$export_root.".zip";
             @unlink( $archive );
             $command = "cat ".escapeshellarg($listFile)." | zip -q ".escapeshellarg($archive)." -@";
 //cat zmFileList.txt | zip -q zm_export.zip -@
@@ -953,7 +947,7 @@ function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $expo
 		}
 
     }
-    return( $archive );
+    return( '?view=archive%26type='.$exportFormat );
 }
 function mygetEventPath( $event )
 {

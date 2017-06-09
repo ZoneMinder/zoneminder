@@ -15,12 +15,11 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView( 'Monitors' ) )
-{
-    $view = "error";
+if ( !canView( 'Monitors' ) ) {
+    $view = 'error';
     return;
 }
 
@@ -34,29 +33,25 @@ $hicolor = '0x00ff00'; // Green
 $presets = array();
 $presetNames = array();
 $presetNames[0] = translate('ChoosePreset');
-$sql = "select *, Units-1 as UnitsIndex, CheckMethod-1 as CheckMethodIndex from ZonePresets order by Id asc";
-foreach( dbFetchAll( $sql ) as $preset )
-{
-    $presetNames[$preset['Id']] = $preset['Name'];
-    $presets[] = $preset;
+$sql = 'SELECT *, Units-1 AS UnitsIndex, CheckMethod-1 AS CheckMethodIndex FROM ZonePresets ORDER BY Id ASC';
+foreach( dbFetchAll( $sql ) as $preset ) {
+  $presetNames[$preset['Id']] = $preset['Name'];
+  $presets[] = $preset;
 }
 
 $optTypes = array();
-foreach ( getEnumValues( 'Zones', 'Type' ) as $optType )
-{
-    $optTypes[$optType] = $optType;
+foreach ( getEnumValues( 'Zones', 'Type' ) as $optType ) {
+  $optTypes[$optType] = $optType;
 }
 
 $optUnits = array();
-foreach ( getEnumValues( 'Zones', 'Units' ) as $optUnit )
-{
-    $optUnits[$optUnit] = $optUnit;
+foreach ( getEnumValues( 'Zones', 'Units' ) as $optUnit ) {
+  $optUnits[$optUnit] = $optUnit;
 }
 
 $optCheckMethods = array();
-foreach ( getEnumValues( 'Zones', 'CheckMethod' ) as $optCheckMethod )
-{
-    $optCheckMethods[$optCheckMethod] = $optCheckMethod;
+foreach ( getEnumValues( 'Zones', 'CheckMethod' ) as $optCheckMethod ) {
+  $optCheckMethods[$optCheckMethod] = $optCheckMethod;
 }
 
 $monitor = new Monitor( $mid );
@@ -66,17 +61,14 @@ $maxX = $monitor->Width()-1;
 $minY = 0;
 $maxY = $monitor->Height()-1;
 
-if ( !isset($newZone) )
-{
-    if ( $zid > 0 )
-    {
+if ( !isset($newZone) ) {
+    if ( $zid > 0 ) {
         $zone = dbFetchOne( 'SELECT * FROM Zones WHERE MonitorId = ? AND Id=?', NULL, array( $monitor->Id(), $zid ) );
-    }
-    else
-    {
+    } else {
         $zone = array(
-            'Name' => translate('New'),
             'Id' => 0,
+            'Name' => translate('New'),
+            'Type'  =>  'Active',
             'MonitorId' => $monitor->Id(),
             'NumCoords' => 4,
             'Coords' => sprintf( "%d,%d %d,%d, %d,%d %d,%d", $minX, $minY, $maxX, $minY, $maxX, $maxY, $minX, $maxY ),
@@ -103,17 +95,16 @@ if ( !isset($newZone) )
     $zone['AreaCoords'] = preg_replace( '/\s+/', ',', $zone['Coords'] );
 
     $newZone = $zone;
-}
+} # end if new Zone
 
-//if ( !$points )
-//{
-    //$points = $zone['Points'];
-//}
+# Ensure Zone fits within the limits of the Monitor
+limitPoints( $newZone['Points'], $minX, $minY, $maxX, $maxY );
 
 ksort( $newZone['Points'], SORT_NUMERIC );
 
 $newZone['Coords'] = pointsToCoords( $newZone['Points'] );
 $newZone['Area'] = getPolyArea( $newZone['Points'] );
+$newZone['AreaCoords'] = preg_replace( '/\s+/', ',', $newZone['Coords'] );
 $selfIntersecting = isSelfIntersecting( $newZone['Points'] );
 
 $focusWindow = true;
@@ -121,7 +112,7 @@ $connkey = generateConnKey();
 $streamSrc = '';
 $streamMode = '';
 # Have to do this here, because the .js.php references somethings figured out when generating the streamHTML
-$StreamHTML = getStreamHTML( $monitor, $scale );
+$StreamHTML = getStreamHTML( $monitor, array('scale'=>$scale) );
 
 xhtmlHeaders(__FILE__, translate('Zone') );
 ?>
@@ -161,7 +152,13 @@ xhtmlHeaders(__FILE__, translate('Zone') );
               </tr>
               <tr>
                 <th scope="row"><?php echo translate('ZoneAlarmColour') ?></th>
-                <td colspan="2"><input type="text" name="newAlarmRgbR" value="<?php echo ($newZone['AlarmRGB']>>16)&0xff ?>" size="3" onchange="limitRange( this, 0, 255 )"/>&nbsp;/&nbsp;<input type="text" name="newAlarmRgbG" value="<?php echo ($newZone['AlarmRGB']>>8)&0xff ?>" size="3" onchange="limitRange( this, 0, 255 )"/>&nbsp;/&nbsp;<input type="text" name="newAlarmRgbB" value="<?php echo $newZone['AlarmRGB']&0xff ?>" size="3" onchange="limitRange( this, 0, 255 )"/></td>
+                <td colspan="2">
+                  <input type="text" name="newAlarmRgbR" value="<?php echo ($newZone['AlarmRGB']>>16)&0xff ?>" size="3" onchange="limitRange( this, 0, 255 )"/>
+                  /
+                  <input type="text" name="newAlarmRgbG" value="<?php echo ($newZone['AlarmRGB']>>8)&0xff ?>" size="3" onchange="limitRange( this, 0, 255 )"/>
+                  /
+                  <input type="text" name="newAlarmRgbB" value="<?php echo $newZone['AlarmRGB']&0xff ?>" size="3" onchange="limitRange( this, 0, 255 )"/>
+                </td>
               </tr>
               <tr>
                 <th scope="row"><?php echo translate('CheckMethod') ?></th>
@@ -217,7 +214,22 @@ xhtmlHeaders(__FILE__, translate('Zone') );
             <div id="imageFrame" style="position: relative; width: <?php echo reScale( $monitor->Width(), $scale ) ?>px; height: <?php echo reScale( $monitor->Height(), $scale ) ?>px;">
                 <?php echo $StreamHTML; ?>
                 <svg id="zoneSVG" class="zones" style="position: absolute; top: 0; left: 0; width: <?php echo reScale( $monitor->Width(), $scale ) ?>px; height: <?php echo reScale( $monitor->Height(), $scale ) ?>px; background: none;">
-                  <polygon id="zonePoly" points="<?php echo $zone['AreaCoords'] ?>" class="<?php echo $zone['Type'] ?>"/>
+<?php
+if ( $zone['Id'] ) {
+  $other_zones = dbFetchAll( 'SELECT * FROM Zones WHERE MonitorId = ? AND Id != ?', NULL, array( $monitor->Id(), $zone['Id'] ) );
+} else {
+  $other_zones = dbFetchAll( 'SELECT * FROM Zones WHERE MonitorId = ?', NULL, array( $monitor->Id() ) );
+}
+if ( count( $other_zones ) ) {
+  $html = '';
+  foreach( $other_zones as $other_zone ) {
+    $other_zone['AreaCoords'] = preg_replace( '/\s+/', ',', $other_zone['Coords'] );
+    $html .= '<polygon id="zonePoly'.$other_zone['Id'].'" points="'. $other_zone['AreaCoords'] .'" class="'. $other_zone['Type'] .'"/>';
+  }
+  echo $html;
+}
+?>
+                  <polygon id="zonePoly" points="<?php echo $zone['AreaCoords'] ?>" class="Editing <?php echo $zone['Type'] ?>"/>
                   Sorry, your browser does not support inline SVG
                 </svg>
             </div>

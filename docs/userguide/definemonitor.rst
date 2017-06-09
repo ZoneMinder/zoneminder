@@ -71,11 +71,17 @@ Source Tab
 
 FFmpeg
 ^^^^^^
-
+    This is the recommended source type for most modern ip cameras.
 Source Path 
-    Use this field to enter the full URL of the stream or file. Look in Supported Hardware > Network Cameras section, how to obtain these strings that may apply to your camera. RTSP streams may be specified here. 
+    Use this field to enter the full URL of the stream or file your camera supports. This is usually an RTSP url. There are several methods to learn this:
+    
+        * Check the documentation that came with your camera
+        * Look for your camera in the hardware compatibilty list in the wiki http://wiki.zoneminder.com/Hardware_Compatibilty_List
+        * Try ZoneMinder's new ONVIF probe feature
+        * Download and install the ONVIF Device Manager onto a Windows machine https://sourceforge.net/projects/onvifdm/
+        * Use Google to find third party sites, such as ispy, which document this information
 Source Colours 
-    Specify the amount of colours in the captured image. Unlike with local cameras changing this has no controlling effect on the remote camera itself so ensure that your camera is actually capturing to this palette beforehand. 
+    Specify the amount of colours in the captured image. 32 bit is the preferred choice here. Unlike with local cameras changing this has no controlling effect on the remote camera itself so ensure that your camera is actually capturing to this palette beforehand. 
 Capture Width/Height 
     Make sure you enter here the same values as they are in the remote camera's internal setting. 
 Keep aspect ratio
@@ -85,6 +91,7 @@ Orientation
 
 LibVLC
 ^^^^^^
+    The fields for the LibVLC source type are configured the same way as the ffmpeg source type. We recommend only using this source type if issues are experienced with the ffmpeg source type.
 
 cURL
 ^^^^
@@ -97,7 +104,7 @@ Device Path/Channel
 Device Format 
     Enter the video format of the video stream. This is defined in various system files (e.g. /usr/include/linux/videodev.h) but the two most common are 0 for PAL and 1 for NTSC. 
 Capture Palette 
-    Finally for the video part of the configuration enter the colour depth. ZoneMinder supports a handful of the most common palettes, so choose one here. If in doubt try grey first, and then 24 bit colour. If neither of these work very well then YUV420P or one of the others probably will. There is a slight performance penalty when using palettes other than grey or 24 bit colour as an internal conversion is involved. These other formats are intended to be supported natively in a future version but for now if you have the choice choose one of grey or 24 bit colour. 
+    Finally for the video part of the configuration enter the colour depth. ZoneMinder supports a handful of the most common palettes, so choose one here. If in doubt try 32 bit colour first, then 24 bit colour, then grey. If none of these work very well, and your camera is local, then YUV420P or one of the others probably will. There is a slight performance penalty when using palettes other than 32, 24, or grey palettes as an internal conversion is involved. Recent versions of ZoneMinder support 32bit colour. This capture palette provides a performance boost when used on all modern Intel-based processors.
 Capture Width/Height 
     The dimensions of the video stream your camera will supply. If your camera supports several just enter the one you'll want to use for this application, you can always change it later. However I would recommend starting with no larger than 320x240 or 384x288 and then perhaps increasing and seeing how performance is affected. This size should be adequate in most cases. Some cameras are quite choosy about the sizes you can use here so unusual sizes such as 197x333 should be avoided initially. 
 Keep aspect ratio
@@ -108,8 +115,12 @@ Orientation
 Remote
 ^^^^^^
 
+Remote Protocol
+    Choices are currently HTTP and RTSP. Before RTSP became the industry standard, many ip cameras streamed directly from their web portal. If you have an ip camera that does not speak RTSP then choose HTTP here. **If you camera does speak RTSP then you should change your source type to ffmpeg instead of selecting RTSP here.** The Remote -> RTSP method is no longer being maintained and may go away at some point in the future.
+Remote Method
+    When HTTP is the Remote Protocol, your choices are Simple and Regexp. Most should choose Simple. When RTSP is the Remote Protocol, your choices are RTP/Unicast, RTP/Multicast, RTP/RTSP, RTP,RTSP,HTTP. Try each of these to determine which works with your camera. Most cameras will use either RTP/Unicast (UDP) or RTP/RTSP (TCP). 
 Remote Host/Port/Path 
-    Use these fields to enter the full URL of the camera. Basically if your camera is at http://camserver.home.net:8192/cameras/camera1.jpg then these fields will be camserver.home.net, 8192 and /cameras/camera1.jpg respectively. Leave the port at 80 if there is no special port required. If you require authentication to access your camera then add this onto the host name in the form <username>:<password>@<hostname>.com. This will usually be 24 bit colour even if the image looks black and white. Look in Supported Hardware > Network Cameras section, how to obtain these strings that may apply to your camera. 
+    Use these fields to enter the full URL of the camera. Basically if your camera is at http://camserver.home.net:8192/cameras/camera1.jpg then these fields will be camserver.home.net, 8192 and /cameras/camera1.jpg respectively. Leave the port at 80 if there is no special port required. If you require authentication to access your camera then add this onto the host name in the form <username>:<password>@<hostname>.com. This will usually be 32 or 24 bit colour even if the image looks black and white. Look in Supported Hardware > Network Cameras section, how to obtain these strings that may apply to your camera. 
 Remote Image Colours 
     Specify the amount of colours in the captured image. Unlike with local cameras changing this has no controlling effect on the remote camera itself so ensure that your camera is actually capturing to this palette beforehand. 
 Capture Width/Height 
@@ -127,7 +138,7 @@ File
 File Path 
     Enter the full path to the file to be used as the image source. 
 File Colours 
-    Specify the amount of colours in the image. Usually 24 bit colour. 
+    Specify the amount of colours in the image. Usually 32 bit colour. 
 Capture Width/Height
     As per local devices. 
 Keep aspect ratio

@@ -89,7 +89,7 @@ This API changes monitor 1 to Modect and Enabled
 
 ::
 
-  curl -XPOST http://server/zm/api/monitors/1.json -d "Monitor[Function]=Modect&Monitor[Enabled]:true"
+  curl -XPOST http://server/zm/api/monitors/1.json -d "Monitor[Function]=Modect&Monitor[Enabled]=1"
 
 Add a monitor
 ^^^^^^^^^^^^^^
@@ -209,7 +209,7 @@ Return a list of events for a specific monitor Id =5
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ::
 
-  curl -XGET http://server/zm/api/events/events/index/MonitorId:5.json``
+  curl -XGET http://server/zm/api/events/index/MonitorId:5.json
 
 
 Note that the same pagination logic applies if the list is too long
@@ -220,7 +220,7 @@ Return a list of events for a specific monitor within a specific date/time range
 
 ::
 
-  http://server/zm/api/events/events/index/MonitorId:5/StartTime >=:2015-05-15 18:43:56/EndTime <=:2015-05-16 18:43:56.json
+  http://server/zm/api/events/index/MonitorId:5/StartTime >=:2015-05-15 18:43:56/EndTime <=:2015-05-16 18:43:56.json
 
 
 To try this in CuRL, you need to URL escape the spaces like so:
@@ -350,5 +350,5 @@ ZM APIs have various APIs that help you in determining host (aka ZM) daemon stat
 
   curl -XGET  http://server/zm/api/host/daemonCheck.json # 1 = ZM running 0=not running
   curl -XGET  http://server/zm/api/host/getLoad.json # returns current load of ZM
-  curl -XGET  http://server/zm/api/host/getDiskPercent.json # returns in GB (not percentage), disk usage per monitor (that is,   space taken to store various event related information,images etc. per monitor) ``
+  curl -XGET  http://server/zm/api/host/getDiskPercent.json # returns in GB (not percentage), disk usage per monitor (that is,   space taken to store various event related information,images etc. per monitor)
 

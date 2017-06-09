@@ -27,11 +27,7 @@ zmfilter.pl - ZoneMinder tool to filter events
 
 =head1 SYNOPSIS
 
-<<<<<<< HEAD
 zmfilter.pl [-f <filter name>,--filter=<filter name>] [--filter_id=<filter id>] | -v, --version
-=======
-zmfilter.pl [-f <filter name>,--filter=<filter name>] | -v, --version
->>>>>>> master
 
 =head1 DESCRIPTION
 
@@ -175,10 +171,10 @@ while( 1 ) {
   if ( ($now - $last_action) > $Config{ZM_FILTER_RELOAD_DELAY} ) {
     Debug( "Reloading filters\n" );
     $last_action = $now;
-    $filters = getFilters( { Name=>$filter_name, Id=>$filter_id } );
+    @filters = getFilters( { Name=>$filter_name, Id=>$filter_id } );
   }
 
-  foreach my $filter ( @$filters ) {
+  foreach my $filter ( @filters ) {
     if ( $$filter{Concurrent} and ! ( $filter_id or $filter_name ) ) {
       my ( $proc ) = $0 =~ /(\S+)/;
       my ( $id ) = $$filter{Id} =~ /(\d+)/;
@@ -247,7 +243,7 @@ FILTER: while( my $db_filter = $sth->fetchrow_hashref() ) {
     Debug( "Got " . @filters . " filters" );
   }
 
-  return( \@filters );
+  return( @filters );
 }
 
 sub checkFilter {

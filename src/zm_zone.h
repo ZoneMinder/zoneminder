@@ -77,6 +77,7 @@ protected:
 
   // Outputs/Statistics
   bool      alarmed;
+  bool      was_alarmed;
   int        pixel_diff;
   unsigned int      alarm_pixels;
   int        alarm_filter_pixels;

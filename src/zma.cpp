@@ -14,7 +14,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 /*
@@ -133,18 +133,13 @@ int main( int argc, char *argv[] )
 
   logInit( log_id_string );
   
-  ssedetect();
+  hwcaps_detect();
 
   Monitor *monitor = Monitor::Load( id, true, Monitor::ANALYSIS );
 
   if ( monitor )
   {
     Info( "In mode %d/%d, warming up", monitor->GetFunction(), monitor->Enabled() );
-
-    if ( config.opt_frame_server )
-    {
-      Event::OpenFrameSocket( monitor->Id() );
-    }
 
     zmSetDefaultHupHandler();
     zmSetDefaultTermHandler();
@@ -168,7 +163,7 @@ int main( int argc, char *argv[] )
       if ( analysis_update_delay )
       {
         cur_time = time( 0 );
-        if ( ( cur_time - last_analysis_update_time ) > analysis_update_delay )
+        if ( (unsigned int)( cur_time - last_analysis_update_time ) > analysis_update_delay )
         {
           analysis_rate = monitor->GetAnalysisRate();
           monitor->UpdateAdaptiveSkip();

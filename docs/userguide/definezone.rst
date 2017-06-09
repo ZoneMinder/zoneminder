@@ -40,6 +40,8 @@ Type
 Preset
   The preset chooser sets sensible default values based on computational needs (fast v. best) and sensitivity (low, medium, high.)  It is not required that you select a preset, and you can alter any of the parameters after choosing a preset.  For a small number of monitors with ZoneMinder running on modern equipment, Best, high sensitivity can be chosen as a good starting point.
 
+  It is important to understand that the available presets are intended merely as a starting point. Since every camera's view is unique, they are not guaranteed to work properly in every case. Presets tend to work acceptably for indoor cameras, where the objects of interest are relatively close and there typically are few or no unwanted objects moving within the cameras view. Presets, on the other hand, tend to not work acceptably for outdoor cameras, where the field of view is typically much wider, objects of interest are farther away, and changing weather patterns can cause false triggers. For outdoor cameras in particular, you will almost certainly have to tune your motion detection zone to get desired results. Please refer to `this guide <http://www.zoneminder.com/wiki/index.php/Understanding_ZoneMinder%27s_Zoning_system_for_Dummies>`__ to learn how to do this.
+
 Units
   * Pixels - Selecting this option will allow many of the following values to be entered (or viewed) in units of pixels.
   * Percentage -  Selecting this option will allow may of the following values to be entered (or viewed) as a percentage.  The sense of the percentage values refers to the area of the zone and not the image as a whole. This makes trying to work out necessary sizes rather easier.

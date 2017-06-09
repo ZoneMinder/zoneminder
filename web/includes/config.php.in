@@ -15,15 +15,17 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
 //
 // This section contains options substituted by the zmconfig.pl utility, do not edit these directly
 //
 define( "ZM_CONFIG", "@ZM_CONFIG@" );               // Path to config file
+define( "ZM_CONFIG_SUBDIR", "@ZM_CONFIG_SUBDIR@" ); // Path to config subfolder
 // Define, and override any given in config file
 define( "ZM_VERSION", "@VERSION@" );               // Version
+define( "ZM_DIR_TEMP", "@ZM_TMPDIR@" );
 
 $configFile = ZM_CONFIG;
 $localConfigFile = basename($configFile);
@@ -35,19 +37,28 @@ if ( file_exists( $localConfigFile ) && filesize( $localConfigFile ) > 0 )
         error_log( "Warning, overriding installed $localConfigFile file with local copy" );
     $configFile = $localConfigFile;
 }
-                             
-$cfg = fopen( $configFile, "r") or die("Could not open config file.");
-while ( !feof($cfg) )
-{
-    $str = fgets( $cfg, 256 );
-    if ( preg_match( '/^\s*$/', $str ))
-        continue;
-    elseif ( preg_match( '/^\s*#/', $str ))
-        continue;
-    elseif ( preg_match( '/^\s*([^=\s]+)\s*=\s*(.*?)\s*$/', $str, $matches ))
-        define( $matches[1], $matches[2] );
+
+# Process name, value pairs from the main config file first
+$configvals = process_configfile($configFile);
+
+# Search for user created config files. If one or more are found then
+# update our config value array with those values
+$configSubFolder = ZM_CONFIG_SUBDIR;
+if ( is_dir($configSubFolder) ) {
+    if ( is_readable($configSubFolder) ) {
+        foreach ( glob("$configSubFolder/*.conf") as $filename ) {
+            $configvals = array_replace($configvals, process_configfile($filename) );
+        }
+    } else {
+        error_log( "WARNING: ZoneMinder configuration subfolder found but is not readable. Check folder permissions on $configSubFolder." );
+    }
 }
-fclose( $cfg );
+
+# Now that our array our finalized, define each key => value
+# pair in the array as a constant
+foreach( $configvals as $key => $value) {
+    define( $key, $value );
+}
 
 //
 // This section is options normally derived from other options or configuration
@@ -188,5 +199,27 @@ if ( ! defined('ZM_SERVER_ID') ) {
 	}
 }
 
+function process_configfile($configFile) {
+    if ( is_readable( $configFile ) ) {
+        $configvals = array();
+
+        $cfg = fopen( $configFile, "r") or die("Could not open config file.");
+        while ( !feof($cfg) )
+        {
+            $str = fgets( $cfg, 256 );
+            if ( preg_match( '/^\s*$/', $str ))
+                continue;
+            elseif ( preg_match( '/^\s*#/', $str ))
+                continue;
+            elseif ( preg_match( '/^\s*([^=\s]+)\s*=\s*(.*?)\s*$/', $str, $matches ))
+                $configvals[$matches[1]] = $matches[2];
+        }
+        fclose( $cfg );
+        return( $configvals );
+    } else {
+        error_log( "WARNING: ZoneMinder configuration file found but is not readable. Check file permissions on $configFile." );
+        return( false );
+    }
+}
 
 ?>

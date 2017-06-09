@@ -1,0 +1,29 @@
+HTTPS is now a requirement
+==========================
+
+This package now depends on Apache's mod_ssl package. This will automatically
+be installed along with ZoneMinder. Upon installation, the mod_ssl package
+will create a default, self-signed certificate. This is the certificate that
+ZoneMinder will use out of the box. 
+
+Since the certificate is self-signed, you will get a warning from your browser
+the first time you access the web portal. This is normal.
+
+This is not intended to be an all encompasing solution for everyone. ZoneMinder
+will work just fine over HTTPS the way it is currently configured. However,
+here are a couple of considerations you may want to take.
+
+1. Create your own certificate. The CentOS wiki has a guide that describes how
+   to do this: https://wiki.centos.org/HowTos/Https . Additionally, Googling 
+   "centos certificate" reveals many articles on the subject. Note that some
+   third party applications, such as zmNinja, will require you to create a
+   certificate different than the default certificate on your machine.
+
+2. You can turn off HTTPS entirely by simply commenting out the SSLRequireSSL
+   directives found in /etc/httpd/conf.d/zoneminder.conf. You should also
+   comment out the HTTP -> HTTPS Rewrite rule.
+
+3. Install a fully signed certificate from letsencrypt. See the Letsencrypt
+   site for more information. https://letsencrypt.org/
+   This service is totally free!
+

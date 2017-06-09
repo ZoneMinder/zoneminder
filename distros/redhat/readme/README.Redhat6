@@ -1,0 +1,161 @@
+What's New
+==========
+
+1. ***EOL NOTICE***
+   It has become increasingly difficult to maintain the ZoneMinder project such
+   that it remains compatible with EL6 distros. The version of php shipped with
+   EL6 distros and the version of ffmpeg which will build against EL6 are too
+   old. It is with regret that I must announce our plans to stop supporting
+   ZoneMinder on EL6 distros soon. Your best option is to upgrade to an EL7
+   distro or another distro with newer php & ffmpeg packages. Please note that
+   replacing core packages, such as php, will not be supported by us. You are
+   on your own should you choose to go down that path.
+
+2. ZoneMinder now uses a conf.d subfolder to process custom changes to
+   variables found in zm.conf. Changes to zm.conf will be overwritten
+   during an upgrade. Instead, create a file with a ".conf" extension under
+   th2 conf.d folder and make your changes there.
+
+3. ZoneMinder now supports recording directly to video container! This feature
+   is new and should be treated as experimental. Refer to the documentation
+   regarding how to use this feature.
+
+4. The Apache ScriptAlias has been changed from "/cgi-bin/zm/zms" to 
+   "/cgi-bin-zm/zms". This has been to done match the configuration of
+   CentOS7/Fedora and simplify the build process.
+
+   IMPORTANT: You must manually verify the value of PATH_ZMS under Options.
+   Make sure it is set to "/cgi-bin-zm/nph-zms". Failure to do so will result
+   in a broken system. You have been warned.
+
+5. This package uses the HTTPS protocol by default to access the web portal.
+   Requests using HTTP will auto-redirect to HTTPS. See README.https for
+   more information.
+
+6. The php package that ships with CentOS 6 does not support the new ZoneMinder
+   API. If you require API functionality (such as using a mobile app) then you
+   should consider an upgrade to CentOS 7 or use Fedora.
+
+New installs
+============
+
+1. Unless you are already using MySQL server, you need to ensure that
+   the server is confired to start during boot and properly secured
+   by running:
+
+     sudo yum install mysql-server
+     sudo service mysqld start
+     /usr/bin/mysql_secure_installation
+     sudo chkconfig mysqld on
+
+2. Using the password for the root account set during the previous step, you
+   will need to create the ZoneMinder database and configure a database
+   account for ZoneMinder to use:
+
+     mysql -uroot -p < /usr/share/zoneminder/db/zm_create.sql
+     mysql -uroot -p -e "grant all on zm.* to \
+                        'zmuser'@localhost identified by 'zmpass';"
+     mysqladmin -uroot -p reload
+
+   The database account credentials, zmuser/zmpass, are arbitrary. Set them to
+   anything that suits your environment.
+
+3. If you have chosen to change the zoneminder database account credentials to
+   something other than zmuser/zmpass, you must now create a config file under
+   /etc/zm/conf.d and set your credentials there. For example, create the file
+   /etc/zm/conf.d/zm-db-user.conf and add the following content to it:
+      
+      ZM_DB_USER = {username of the sql account you want to use}
+      ZM_DB_PASS = {password of the sql account you want to use}
+
+   Once the file has been saved, set proper file & ownership permissions on it:
+  
+      sudo chown root:apache *.conf
+      sudo chmod 640 *.conf 
+
+4. Edit /etc/php.ini, uncomment the date.timezone line, and add your local
+   timezone.  PHP will complain loudly if this is not set, or if it is set
+   incorrectly, and these complaints will show up in the zoneminder logging
+   system as errors
+
+   If you are not sure of the proper timezone specification to use, look at
+   http://php.net/date.timezone
+
+5. Install mod_ssl or configure /etc/httpd/conf.d/zoneminder.conf to meet your
+   needs. This package comes preconfigured for HTTPS using the default self
+   signed certificate on your system. The recommended way to complete this step
+   is to simply install mod_ssl:
+
+	sudo yum install mod_ssl
+
+   If this does not meet your needs, then read README.https to
+   learn about alternatives. When in doubt, install mod_ssl.
+
+6. Configure the web server to start automatically:
+
+     sudo chkconfig httpd on
+     sudo service httpd start
+
+7. This package will automatically configure and install an SELinux policy
+   called local_zoneminder. A copy of this policy is in the documentation
+   folder.
+   
+   It is still possible to run into SELinux issues, however. If this is case,
+   you can disable SELinux permanently by editing the following:
+   
+   /etc/selinux/conf
+   
+   Change SELINUX line from "enforcing" to "disabled". This change will not
+   take effect until a reboot, however. To avoid a reboot, execute the
+   following from the commandline:
+   
+   sudo setenforce 0
+
+8. Finally, you may start the ZoneMinder service:
+
+     sudo service zoneminder start
+
+   Then point your web browser to http://<machine name or ip>/zm
+
+Upgrades
+========
+
+1. Conf.d folder support has been added to ZoneMinder 1.31.0. Any custom
+   changes previously made to zm.conf must now be made in one or more custom
+   config files, created under the conf.d folder. Do this now. See 
+   /etc/zm/conf.d/README for details. Once you recreate any custom config changes
+   under the conf.d folder, they will remain in place indefinitely.
+
+2. Verify permissions of the zmuser account.
+
+   Over time, the database account permissions required for normal operation
+   have increased. Verify the zmuser database account has been granted all
+   permission to the ZoneMinder database:
+
+     mysql -uroot -p -e "show grants for zmuser@localhost;"
+
+   See step 2 of the Installation section to add missing permissions.
+
+3. Verify the ZoneMinder Apache configuration file in the folder 
+   /etc/httpd/conf.d. You will have a file called "zoneminder.conf" and there
+   may also be a file called "zoneminder.conf.rpmnew". If the rpmnew file
+   exists, inspect it and merge anything new in that file with zoneminder.conf.
+   Verify the SSL REquirements meet your needs. Read README.https if necessary.
+
+4. Upgrade the database before starting ZoneMinder.
+
+   Most upgrades can be performed by executing the following command:
+   
+     sudo zmupdate.pl
+
+   Recent versions of ZoneMinder don't require any parameters added to the 
+   zmupdate command. However, if ZoneMinder complains, you may need to call
+   zmupdate in the following manner:
+
+   sudo zmupdate.pl --user=root --pass=<mysql_root_pwd> --version=<from version>
+
+5. Now restart the web server then start zoneminder:
+
+        sudo service httpd restart
+	sudo service zoneminder start
+

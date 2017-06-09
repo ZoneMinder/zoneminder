@@ -1,26 +1,33 @@
+# ==========================================================================
+#
+# ZoneMinder SunEyes SP-P1802SWPTZ IP Control Protocol Module, $Date: 2017-03-19 23:00:00 +1000 (Sat, 19 March 2017) $, $Revision: 0002 $
+# Copyright (C) 2001-2008 Philip Coombes
+# Modified for use with Foscam FI8918W IP Camera by Dave Harris
+# Modified Feb 2011 by Howard Durdle (http://durdl.es/x) to:
+#      fix horizontal panning, add presets and IR on/off
+#      use Control Device field to pass username and password
+# Modified May 2014 by Arun Horne (http://arunhorne.co.uk) to:
+#      use HTTP basic auth as required by firmware 11.37.x.x upward
 # Modified on Sep 28 2015 by Bobby Billingsley
 # Changes made
 #	- Copied FI8918W.pm to SPP1802SWPTZ.pm
 #	- modified to control a SunEyes SP-P1802SWPTZ
-
-# ==========================================================================
-# ZoneMinder SunEyes SP-P1802SWPTZ IP Control Protocol Module
+# Modified on 13 March 2017 by Steve Gilvarry
+#	-Address license and copyright issues
 #
-# This program is free software; you can redistribute it and/or modify it under
-# the terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 2 of the License, or (at your option) any later
-# version.
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
 #
-# This program is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
-# details.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along with
-# this program; if not, write to the Free Software Foundation, Inc., 59 Temple
-# Place - Suite 330, Boston, MA 02111-1307, USA.
-#
-# ==========================================================================
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # This module contains the implementation of the SunEyes SP-P1802SWPTZ IP
 # camera control protocol

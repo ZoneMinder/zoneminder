@@ -14,7 +14,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 // ZoneMinder Romanian translation by Alex Ciobanu
 //
@@ -821,14 +821,6 @@ $OLANG = array(
     'CREATE_ANALYSIS_IMAGES' => array(
         'Prompt' => "Creaz&#259; imagini analizate cu marcaje ale mi&#351;c&#259;rii",
         'Help' => "Implicit, &#238;n cazul unei alarme, ZoneMinder &#238;nregistreaz&#259; at&#226;t imaginile neprelucrate c&#226;t &#351;i cele ce au fost analizate &#351;i au zone marcate unde a fost detectat&#259; mi&#351;care. Acest lucru poate fi foarte folositor la configurarea zonelor sau &#238;n analiza evenimentelor. Acest parametru permite oprirea &#238;nregistr&#259;rii imaginilor cu zone de mi&#351;care marcate."
-    ),
-    'OPT_FRAME_SERVER' => array(
-        'Prompt' => "Daemon-ul de analiz&#259; va scrie imaginile pe disc",
-        'Help' => "&#206;n unele cazuri este posibil ca viteza de scriere a unui HDD sa fie at&#226;t de mic&#259; &#238;ncat s&#259; cauzeze &#238;ncetinirea daemon-ului de analiz&#259; &#238;n special &#238;n timpul evenimentelor cu multe cadre. Activarea acestei op&#355;iuni porne&#351;te daemon-ul de cadre (zmf) care va 'primi' imaginile de la daemon-ul de analiz&#259; &#351;i le va scrie pe disc. Dac&#259; aceast&#259; transmisie e&#351;ueaz&#259; sau apar alte erori, func&#355;ia de scriere va reveni daemon-ului de analiz&#259;."
-    ),
-    'FRAME_SOCKET_SIZE' => array(
-        'Prompt' => "Specifica&#355;i dimensiunea memoriei tampon",
-        'Help' => "Pentru imaginile de dimensiuni mari capturate este posibil ca scrierea lor pe disc s&#259; e&#351;ueze deoarece cantitatea de informa&#355;ie scris&#259; este mai mare dec&#226;t memoria tampon alocat&#259;. De&#351;i imaginile sunt scrise apoi de c&#259;tre daemon-ul de analiz&#259;, se distruge obiectul daemon-ului de cadre. Pute&#355;i folosi aceast&#259; op&#355;iune pentru a specifica o memorie tampon de dimensiuni mai mari. Va trebui sa modifica&#355;i dimensiunea socket-ului tampon maxim folosind 'sysctl' (sau in /proc/sys/net/core/wmem_max) pentru a permite setarea acestei noi valori. Alternativa este s&#259; schimba&#355;i m&#259;rimea implicit&#259; a memorie tampon a sistemului, caz &#238;n care modificarea acestei valori nu mai este necesar&#259;."
     ),
     'OPT_CONTROL' => array(
         'Prompt' => "Suport camere controlabile (rotire/&#238;nclinare/zoom)",

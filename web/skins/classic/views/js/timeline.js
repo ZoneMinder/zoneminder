@@ -94,7 +94,7 @@ function previewEvent( eventId, frameId ) {
     if ( event['frames'] ) {
       if ( event['frames'][frameId] ) {
         showEventDetail( event['frames'][frameId]['html'] );
-        var imagePath = event.frames[frameId].Image.imagePath;
+        var imagePath = '/index.php?view=image&eid='+eventId+'&fid='+frameId;
         var videoName = event.DefaultVideo;
         loadEventImage( imagePath, eventId, frameId, event.Width, event.Height, event.Frames/event.Length, videoName, event.Length, event.StartTime, monitors[event.MonitorId]);
         return;
@@ -107,13 +107,13 @@ function previewEvent( eventId, frameId ) {
 function loadEventImage( imagePath, eid, fid, width, height, fps, videoName, duration, startTime, Monitor ) {
   var vid= $('preview');
   var imageSrc = $('imageSrc');
-  if(videoName) {
+  if ( videoName && vid ) {
     vid.show();
     imageSrc.hide();
-    var newsource=imagePrefix+imagePath.slice(0,imagePath.lastIndexOf('/'))+"/"+videoName;
+    var newsource=imagePath.slice(0,imagePath.lastIndexOf('/'))+"/"+videoName;
     //console.log(newsource);
     //console.log(sources[0].src.slice(-newsource.length));
-    if(newsource!=vid.currentSrc.slice(-newsource.length) || vid.readyState==0) {
+    if ( newsource != vid.currentSrc.slice(-newsource.length) || vid.readyState == 0 ) {
       //console.log("loading new");
       //it is possible to set a long source list here will that be unworkable?
       var sources = vid.getElementsByTagName('source');
@@ -126,13 +126,13 @@ function loadEventImage( imagePath, eid, fid, width, height, fps, videoName, dur
       addVideoTimingTrack(vid, Monitor.LabelFormat, Monitor.Name, duration, startTime)
         vid.currentTime = fid/fps;
     } else {
-      if(!vid.seeking)
+      if ( ! vid.seeking )
         vid.currentTime=fid/fps;
     }
   } else {
-    vid.hide();
+    if ( vid ) vid.hide();
     imageSrc.show();
-    imageSrc.setProperty( 'src', imagePrefix+imagePath );
+    imageSrc.setProperty( 'src', imagePath );
     imageSrc.removeEvent( 'click' );
     imageSrc.addEvent( 'click', showEvent.pass( [ eid, fid, width, height ] ) );
   }

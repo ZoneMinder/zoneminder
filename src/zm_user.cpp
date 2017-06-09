@@ -171,7 +171,7 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr )
 
   Debug( 1, "Attempting to authenticate user from auth string '%s'", auth );
   char sql[ZM_SQL_SML_BUFSIZ] = "";
-  snprintf( sql, sizeof(sql), "select Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds from Users where Enabled = 1" );
+  snprintf( sql, sizeof(sql), "SELECT Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds FROM Users WHERE Enabled = 1" );
 
   if ( mysql_query( &dbconn, sql ) )
   {
@@ -232,7 +232,7 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr )
       {
         sprintf( &auth_md5[2*j], "%02x", md5sum[j] );
       }
-      Debug( 1, "Checking auth_key '%s' -> auth_md5 '%s'", auth_key, auth_md5 );
+      Debug( 1, "Checking auth_key '%s' -> auth_md5 '%s' == '%s'", auth_key, auth_md5, auth );
 
       if ( !strcmp( auth, auth_md5 ) )
       {
@@ -246,5 +246,6 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr )
 #else // HAVE_DECL_MD5
   Error( "You need to build with gnutls or openssl installed to use hash based authentication" );
 #endif // HAVE_DECL_MD5
+  Debug(1, "No user found for auth_key %s", auth );
   return( 0 );
 }

@@ -100,12 +100,12 @@ App::uses('CakeLog', 'Log');
 CakeLog::config('debug', array(
 	'engine' => 'File',
 	'types' => array('notice', 'info', 'debug'),
-	'file' => '@ZM_LOGDIR@/cake_debug',
+	'file' => 'cake_debug',
 ));
 CakeLog::config('error', array(
 	'engine' => 'File',
 	'types' => array('warning', 'error', 'critical', 'alert', 'emergency'),
-	'file' => '@ZM_LOGDIR@/cake_error',
+	'file' => 'cake_error',
 ));
 CakeLog::config('custom_path', array(
     'engine' => 'File',

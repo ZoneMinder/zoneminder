@@ -139,8 +139,10 @@ if ( ! EVENT_PATH ) {
   die;
 }
 
+# In future, should not be neccessary wrt StorageAreas
 chdir( EVENT_PATH );
 
+# SHould not be neccessary... but nice to get a local var.  What if it fails?
 my $dbh = zmDbConnect();
 
 if ( $filter_parm ) {
@@ -149,7 +151,8 @@ if ( $filter_parm ) {
   Info( "Scanning for events\n" );
 }
 
-if ( !$filter_parm ) {
+if ( ! $filter_parm ) {
+  Debug("Sleeping due to start delay: " . START_DELAY . ' seconds...' );
   sleep( START_DELAY );
 }
 
@@ -182,7 +185,7 @@ sub getFilters {
   if ( $filter_name ) {
     $sql .= ' Name = ? and';
   } else {
-    $sql .= ' Background = 1 and';
+    $sql .= ' Background = 1 AND';
   }
   $sql .= '(  AutoArchive = 1
     or AutoVideo = 1

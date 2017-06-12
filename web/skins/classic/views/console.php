@@ -33,7 +33,7 @@ $eventCounts = array(
         'title' => translate('Hour'),
         'filter' => array(
             'terms' => array(
-                array( 'attr' => "DateTime", 'op' => ">=", 'val' => "-1 hour" ),
+                array( 'attr' => 'DateTime', 'op' => '>=', 'val' => '-1 hour' ),
             )
         ),
     ),
@@ -41,7 +41,7 @@ $eventCounts = array(
         'title' => translate('Day'),
         'filter' => array(
             'terms' => array(
-                array( 'attr' => "DateTime", 'op' => ">=", 'val' => "-1 day" ),
+                array( 'attr' => "DateTime", 'op' => '>=', 'val' => '-1 day' ),
             )
         ),
     ),
@@ -49,7 +49,7 @@ $eventCounts = array(
         'title' => translate('Week'),
         'filter' => array(
             'terms' => array(
-                array( 'attr' => "DateTime", 'op' => ">=", 'val' => "-7 day" ),
+                array( 'attr' => "DateTime", 'op' => '>=', 'val' => '-7 day' ),
             )
         ),
     ),
@@ -57,7 +57,7 @@ $eventCounts = array(
         'title' => translate('Month'),
         'filter' => array(
             'terms' => array(
-                array( 'attr' => "DateTime", 'op' => ">=", 'val' => "-1 month" ),
+                array( 'attr' => "DateTime", 'op' => '>=', 'val' => '-1 month' ),
             )
         ),
     ),
@@ -65,7 +65,7 @@ $eventCounts = array(
         'title' => translate('Archived'),
         'filter' => array(
             'terms' => array(
-                array( 'attr' => "Archived", 'op' => "=", 'val' => "1" ),
+                array( 'attr' => "Archived", 'op' => '=', 'val' => '1' ),
             )
         ),
     ),
@@ -115,7 +115,7 @@ for ( $i = 0; $i < count($monitors); $i++ ) {
     $counts[] = 'count(if(1'.$filter['sql'].",1,NULL)) as EventCount$j";
     $monitors[$i]['eventCounts'][$j]['filter'] = $filter;
   }
-  $sql = 'select '.join($counts,", ").' from Events as E where MonitorId = ?';
+  $sql = 'SELECT '.join($counts,', ').' FROM Events AS E WHERE MonitorId = ?';
   $counts = dbFetchOne( $sql, NULL, array($monitors[$i]['Id']) );
   if ( $monitors[$i]['Function'] != 'None' ) {
     $cycleCount++;

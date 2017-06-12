@@ -379,8 +379,12 @@ bool VideoStore::setup_resampler() {
 #ifdef HAVE_LIBAVRESAMPLE
   static char error_buffer[256];
 
+#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
   // Newer ffmpeg wants to keep everything separate... so have to lookup our own decoder, can't reuse the one from the camera.
   AVCodec *audio_input_codec = avcodec_find_decoder(audio_input_stream->codecpar->codec_id);
+#else
+  AVCodec *audio_input_codec = avcodec_find_decoder(audio_input_context->codec_id);
+#endif
   ret = avcodec_open2( audio_input_context, audio_input_codec, NULL );
   if ( ret < 0 ) {
     Error("Can't open input codec!");
@@ -451,11 +455,13 @@ bool VideoStore::setup_resampler() {
   // Now copy them to the output stream
   audio_output_stream = avformat_new_stream( oc, audio_output_codec );
 
+#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
   ret = avcodec_parameters_from_context( audio_output_stream->codecpar, audio_output_context );
   if ( ret < 0 ) {
     Error( "Could not initialize stream parameteres");
     return false;
   } 
+#endif
 
   AVDictionary *opts = NULL;
   av_dict_set( &opts, "strict", "experimental", 0);

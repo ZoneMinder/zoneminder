@@ -212,7 +212,12 @@ void Logger::initialise( const std::string &id, const Options &options ) {
 
   level( tempLevel );
 
-  mFlush = (envPtr = getenv( "LOG_FLUSH")) ? atoi( envPtr ) : false;
+  mFlush = false;
+  if (envPtr = getenv( "LOG_FLUSH")) {
+    mFlush = atoi( envPtr );
+  } else if ( config.log_debug ) {
+    mFlush = true;
+  }
 
   //mRuntime = (envPtr = getenv( "LOG_RUNTIME")) ? atoi( envPtr ) : false;
   {

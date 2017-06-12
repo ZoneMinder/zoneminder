@@ -628,17 +628,16 @@ function drawProgressBar() {
   var cells = $('progressBar').getElements( 'div' );
   var cellWidth = parseInt( eventData.Width/$$(cells).length );
   $$(cells).forEach(
-      function( cell, index )
-      {
+      function( cell, index ) {
       if ( index == 0 )
-      $(cell).setStyles( { 'left': barWidth, 'width': cellWidth, 'borderLeft': 0 } );
+        $(cell).setStyles( { 'left': barWidth, 'width': cellWidth, 'borderLeft': 0 } );
       else
-      $(cell).setStyles( { 'left': barWidth, 'width': cellWidth } );
-      var offset = parseInt((index*eventData.Length)/$$(cells).length);
-      $(cell).setProperty( 'title', '+'+secsToTime(offset)+'s' );
-      $(cell).removeEvent( 'click' );
-      $(cell).addEvent( 'click', function() { streamSeek( offset ); } );
-      barWidth += $(cell).getCoordinates().width;
+        $(cell).setStyles( { 'left': barWidth, 'width': cellWidth } );
+        var offset = parseInt((index*eventData.Length)/$$(cells).length);
+        $(cell).setProperty( 'title', '+'+secsToTime(offset)+'s' );
+        $(cell).removeEvent( 'click' );
+        $(cell).addEvent( 'click', function() { streamSeek( offset ); } );
+        barWidth += $(cell).getCoordinates().width;
       }
       );
   $('progressBar').setStyle( 'width', barWidth );
@@ -662,7 +661,7 @@ function updateProgressBar() {
         } // end if
       } // end function
     );
-    $('progressBar').setStyle( 'width', barWidth );
+    //$('progressBar').setStyle( 'width', barWidth );
     $('progressBar').removeClass( 'invisible' );
   } // end if eventData && streamStatus
 } // end function updateProgressBar()

@@ -77,10 +77,14 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     gettimeofday( &start_time, 0 );
   }
 
-  static char sql[ZM_SQL_MED_BUFSIZ];
+  unsigned int state_id = 0;
+  if ( MYSQL_ROW dbrow = zmDbFetchOne( "SELECT Id FROM States WHERE IsActive=1" ) ) {
+    state_id = atoi(dbrow[0]);
+  }
 
+  static char sql[ZM_SQL_MED_BUFSIZ];
   struct tm *stime = localtime( &start_time.tv_sec );
-  snprintf( sql, sizeof(sql), "insert into Events ( MonitorId, Name, StartTime, Width, Height, Cause, Notes, Videoed ) values ( %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s', '%d' )", monitor->Id(), start_time.tv_sec, monitor->Width(), monitor->Height(), cause.c_str(), notes.c_str(), videoEvent );
+  snprintf( sql, sizeof(sql), "insert into Events ( MonitorId, Name, StartTime, Width, Height, Cause, Notes, StateId, Videoed ) values ( %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s', '%d' )", monitor->Id(), start_time.tv_sec, monitor->Width(), monitor->Height(), cause.c_str(), notes.c_str(), state_id, videoEvent );
   if ( mysql_query( &dbconn, sql ) ) {
     Error( "Can't insert event: %s. sql was (%s)", mysql_error( &dbconn ), sql );
     exit( mysql_errno( &dbconn ) );

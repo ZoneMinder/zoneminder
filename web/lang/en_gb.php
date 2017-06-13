@@ -125,6 +125,7 @@ $SLANG = array(
     'AttrMaxScore'          => 'Max. Score',
     'AttrMonitorId'         => 'Monitor Id',
     'AttrMonitorName'       => 'Monitor Name',
+    'AttrStateId'           => 'Run State',
     'AttrServer'            => 'Server',
     'AttrName'              => 'Name',
     'AttrNotes'             => 'Notes',

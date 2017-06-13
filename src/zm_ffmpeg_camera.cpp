@@ -146,9 +146,10 @@ int FfmpegCamera::Capture( Image &image ) {
 
   int frameComplete = false;
   while ( !frameComplete ) {
+    int ret;
     int avResult = av_read_frame( mFormatContext, &packet );
+    char errbuf[AV_ERROR_MAX_STRING_SIZE];
     if ( avResult < 0 ) {
-      char errbuf[AV_ERROR_MAX_STRING_SIZE];
       av_strerror(avResult, errbuf, AV_ERROR_MAX_STRING_SIZE);
       if (
           // Check if EOF.
@@ -166,9 +167,31 @@ int FfmpegCamera::Capture( Image &image ) {
     Debug( 5, "Got packet from stream %d dts (%d) pts(%d)", packet.stream_index, packet.pts, packet.dts );
     // What about audio stream? Maybe someday we could do sound detection...
     if ( packet.stream_index == mVideoStreamId ) {
-      int ret = zm_avcodec_decode_video( mVideoCodecContext, mRawFrame, &frameComplete, &packet );
-      if ( ret < 0 )
-        Fatal( "Unable to decode frame at frame %d", frameCount );
+#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
+      ret = avcodec_send_packet( mVideoCodecContext, &packet );
+      if ( ret < 0 ) {
+        av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
+        Error( "Unable to send packet at frame %d: %s, continuing", frameCount, errbuf );
+        zm_av_packet_unref( &packet );
+        continue;
+      }
+      ret = avcodec_receive_frame( mVideoCodecContext, mRawFrame );
+      if ( ret < 0 ) {
+        av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
+        Error( "Unable to send packet at frame %d: %s, continuing", frameCount, errbuf );
+        zm_av_packet_unref( &packet );
+        continue;
+      }
+      frameComplete = 1;
+# else
+      ret = zm_avcodec_decode_video( mVideoCodecContext, mRawFrame, &frameComplete, &packet );
+      if ( ret < 0 ) {
+        av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
+        Error( "Unable to decode frame at frame %d: %s, continuing", frameCount, errbuf );
+        zm_av_packet_unref( &packet );
+        continue;
+      }
+#endif
 
       Debug( 4, "Decoded video packet at frame %d", frameCount );
 
@@ -304,10 +327,14 @@ int FfmpegCamera::OpenFfmpeg() {
   mVideoStreamId = -1;
   mAudioStreamId = -1;
   for (unsigned int i=0; i < mFormatContext->nb_streams; i++ ) {
+#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
+    if ( mFormatContext->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO ) {
+#else
 #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
     if ( mFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO ) {
 #else
     if ( mFormatContext->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO ) {
+#endif
 #endif
       if ( mVideoStreamId == -1 ) {
         mVideoStreamId = i;
@@ -317,10 +344,14 @@ int FfmpegCamera::OpenFfmpeg() {
         Debug(2, "Have another video stream." );
       }
     }
+#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
+    if ( mFormatContext->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO ) {
+#else
 #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
     if ( mFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO ) {
 #else
     if ( mFormatContext->streams[i]->codec->codec_type == CODEC_TYPE_AUDIO ) {
+#endif
 #endif
       if ( mAudioStreamId == -1 ) {
         mAudioStreamId = i;
@@ -337,7 +368,12 @@ int FfmpegCamera::OpenFfmpeg() {
   Debug ( 3, "Found video stream at index %d", mVideoStreamId );
   Debug ( 3, "Found audio stream at index %d", mAudioStreamId );
 
+#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
+  mVideoCodecContext = avcodec_alloc_context3( NULL );
+  avcodec_parameters_to_context( mVideoCodecContext, mFormatContext->streams[mVideoStreamId]->codecpar );
+#else
   mVideoCodecContext = mFormatContext->streams[mVideoStreamId]->codec;
+#endif
 	// STolen from ispy
 	//this fixes issues with rtsp streams!! woot.
 	//mVideoCodecContext->flags2 |= CODEC_FLAG2_FAST | CODEC_FLAG2_CHUNKS | CODEC_FLAG_LOW_DELAY;  // Enable faster H264 decode.
@@ -361,7 +397,12 @@ int FfmpegCamera::OpenFfmpeg() {
   }
 
   if ( mAudioStreamId >= 0 ) {
+#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
+    mAudioCodecContext = avcodec_alloc_context3( NULL );
+    avcodec_parameters_to_context( mAudioCodecContext, mFormatContext->streams[mAudioStreamId]->codecpar );
+#else
     mAudioCodecContext = mFormatContext->streams[mAudioStreamId]->codec;
+#endif
     if ((mAudioCodec = avcodec_find_decoder(mAudioCodecContext->codec_id)) == NULL) {
       Debug(1, "Can't find codec for audio stream from %s", mPath.c_str());
     } else {
@@ -576,29 +617,33 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
 
     //Video recording
     if ( recording.tv_sec ) {
-      // The directory we are recording to is no longer tied to the current event. 
-      // Need to re-init the videostore with the correct directory and start recording again
-      // for efficiency's sake, we should test for keyframe before we test for directory change...
-      if ( videoStore && key_frame && (strcmp(oldDirectory, event_file) != 0 ) ) {
-        // don't open new videostore until we're on a key frame..would this require an offset adjustment for the event as a result?...
-        // if we store our key frame location with the event will that be enough?
-        Info("Re-starting video storage module");
 
-        // I don't know if this is important or not... but I figure we might as well write this last packet out to the store before closing it.
-        // Also don't know how much it matters for audio.
-        if ( packet.stream_index == mVideoStreamId ) {
-          //Write the packet to our video store
-          int ret = videoStore->writeVideoFramePacket( &packet );
-          if ( ret < 0 ) { //Less than zero and we skipped a frame
-            Warning("Error writing last packet to videostore.");
-          }
-        } // end if video
+      uint32_t last_event_id = monitor->GetLastEventId() ;
 
-        delete videoStore;
-        videoStore = NULL;
+      if ( last_event_id != monitor->GetVideoWriterEventId() ) {
+        Debug(2, "Have change of event.  last_event(%d), our current (%d)", last_event_id, monitor->GetVideoWriterEventId() );
+
+        if ( videoStore ) {
+          Info("Re-starting video storage module");
+
+          // I don't know if this is important or not... but I figure we might as well write this last packet out to the store before closing it.
+          // Also don't know how much it matters for audio.
+          if ( packet.stream_index == mVideoStreamId ) {
+            //Write the packet to our video store
+            int ret = videoStore->writeVideoFramePacket( &packet );
+            if ( ret < 0 ) { //Less than zero and we skipped a frame
+              Warning("Error writing last packet to videostore.");
+            }
+          } // end if video
+
+          delete videoStore;
+          videoStore = NULL;
+
+          monitor->SetVideoWriterEventId( 0 );
+        } // end if videoStore
       } // end if end of recording
 
-      if ( ( ! videoStore ) && key_frame && ( packet.stream_index == mVideoStreamId ) ) {
+      if ( last_event_id and ! videoStore ) {
         //Instantiate the video storage module
 
         if (record_audio) {
@@ -627,6 +672,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
               this->getMonitor());
         } // end if record_audio
         strcpy(oldDirectory, event_file);
+        monitor->SetVideoWriterEventId( last_event_id );
 
         // Need to write out all the frames from the last keyframe?
         // No... need to write out all frames from when the event began. Due to PreEventFrames, this could be more than since the last keyframe.
@@ -664,6 +710,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
         Info("Deleting videoStore instance");
         delete videoStore;
         videoStore = NULL;
+        monitor->SetVideoWriterEventId( 0 );
       }
 
       // Buffer video packets, since we are not recording.
@@ -708,7 +755,7 @@ else if ( packet.pts && video_last_pts > packet.pts ) {
       }
       Debug(4, "about to decode video" );
       
-#if LIBAVCODEC_VERSION_CHECK(58, 0, 0, 0, 0)
+#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
       ret = avcodec_send_packet( mVideoCodecContext, &packet );
       if ( ret < 0 ) {
         av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
@@ -719,7 +766,7 @@ else if ( packet.pts && video_last_pts > packet.pts ) {
       ret = avcodec_receive_frame( mVideoCodecContext, mRawFrame );
       if ( ret < 0 ) {
         av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
-        Error( "Unable to send packet at frame %d: %s, continuing", frameCount, errbuf );
+        Debug( 1, "Unable to send packet at frame %d: %s, continuing", frameCount, errbuf );
         zm_av_packet_unref( &packet );
         continue;
       }

@@ -44,6 +44,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 #if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
   video_input_context = avcodec_alloc_context3( NULL );
   avcodec_parameters_to_context( video_input_context, video_input_stream->codecpar );
+  zm_dump_codecpar( video_input_stream->codecpar );
 #else
   video_input_context = video_input_stream->codec;
 #endif
@@ -85,6 +86,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   output_format = oc->oformat;
 
 #if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
+
   // Since we are not re-encoding, all we have to do is copy the parameters
   video_output_context = avcodec_alloc_context3( NULL );
 
@@ -94,14 +96,19 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
     Error( "Could not initialize context parameteres");
     return;
   } else {
-    Debug( 2, "Success getting parameters");
+    zm_dump_codec( video_output_context );
   }
-
+  
   video_output_stream = avformat_new_stream( oc, NULL );
   if ( ! video_output_stream ) {
     Fatal("Unable to create video out stream\n");
   } else {
     Debug(2, "Success creating video out stream" );
+  }
+
+  if ( ! video_output_context->codec_tag ) {
+    video_output_context->codec_tag = av_codec_get_tag(oc->oformat->codec_tag, video_input_context->codec_id);
+    Debug(2, "No codec_tag, setting to %d", video_output_context->codec_tag );
   }
 
   // Now copy them to the output stream
@@ -112,8 +119,8 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   } else {
     Debug(2, "Success setting parameters");
   }
+  zm_dump_codecpar( video_output_stream->codecpar );
 
-  zm_dump_stream_format( oc, 0, 0, 1 );
 #else
   video_output_stream = avformat_new_stream(oc, (AVCodec*)video_input_context->codec );
   if ( ! video_output_stream ) {
@@ -128,6 +135,15 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
         av_make_error_string(ret).c_str());
   } else {
     Debug(3, "Success copying context" );
+  }
+  if ( ! video_output_context->codec_tag ) {
+    Debug(2, "No codec_tag");
+    if (! oc->oformat->codec_tag
+        || av_codec_get_id (oc->oformat->codec_tag, video_input_context->codec_tag) == video_output_context->codec_id
+        || av_codec_get_tag(oc->oformat->codec_tag, video_input_context->codec_id) <= 0) {
+      Warning("Setting codec tag");
+      video_output_context->codec_tag = video_input_context->codec_tag;
+    }
   }
 #endif
 
@@ -146,17 +162,6 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
         video_output_context->time_base.den
         );
 
-       // WHY?
-  //video_output_context->codec_tag = 0;
-  if ( ! video_output_context->codec_tag ) {
-    Debug(2, "No codec_tag");
-    if (! oc->oformat->codec_tag
-        || av_codec_get_id (oc->oformat->codec_tag, video_input_context->codec_tag) == video_output_context->codec_id
-        || av_codec_get_tag(oc->oformat->codec_tag, video_input_context->codec_id) <= 0) {
-      Warning("Setting codec tag");
-      video_output_context->codec_tag = video_input_context->codec_tag;
-    }
-  }
 
   if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
     video_output_context->flags |= CODEC_FLAG_GLOBAL_HEADER;
@@ -218,18 +223,31 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
         Debug(2, "setting parameters");
 
 #if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
-        audio_output_context = avcodec_alloc_context3( NULL );
+        audio_output_context = avcodec_alloc_context3( audio_output_codec );
         // Copy params from inputstream to context
         ret = avcodec_parameters_to_context( audio_output_context, audio_input_stream->codecpar );
+        if (ret < 0) {
+          Error("Unable to copy audio params to context %s\n", av_make_error_string(ret).c_str());
+        }
+        ret = avcodec_parameters_from_context( audio_output_stream->codecpar, audio_output_context );
+        if (ret < 0) {
+          Error("Unable to copy audio params to stream %s\n", av_make_error_string(ret).c_str());
+        }
+
+        if ( ! audio_output_context->codec_tag ) {
+          audio_output_context->codec_tag = av_codec_get_tag(oc->oformat->codec_tag, audio_input_context->codec_id);
+          Debug(2, "Setting audio codec tag to %d", audio_output_context->codec_tag );
+        }
+
 #else
         audio_output_context = audio_output_stream->codec;
         ret = avcodec_copy_context(audio_output_context, audio_input_context);
+        audio_output_context->codec_tag = 0;
 #endif
         if (ret < 0) {
           Error("Unable to copy audio context %s\n", av_make_error_string(ret).c_str());
           audio_output_stream = NULL;
         } else {
-          audio_output_context->codec_tag = 0;
           if ( audio_output_context->channels > 1 ) {
             Warning("Audio isn't mono, changing it.");
             audio_output_context->channels = 1;
@@ -265,10 +283,10 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
     zm_dump_stream_format( oc, 1, 0, 1 );
 
   AVDictionary * opts = NULL;
-  //av_dict_set(&opts, "movflags", "frag_custom+dash+delay_moov", 0);
+  av_dict_set(&opts, "movflags", "frag_custom+dash+delay_moov", 0);
   //av_dict_set(&opts, "movflags", "frag_custom+dash+delay_moov", 0);
   //av_dict_set(&opts, "movflags", "frag_keyframe+empty_moov+default_base_moof", 0);
-  if ((ret = avformat_write_header(oc, NULL)) < 0) {
+  if ((ret = avformat_write_header( oc, &opts )) < 0) {
   //if ((ret = avformat_write_header(oc, &opts)) < 0) {
     Warning("Unable to set movflags to frag_custom+dash+delay_moov");
     /* Write the stream header, if any. */

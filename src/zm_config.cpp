@@ -161,6 +161,26 @@ void process_configfile( char* configFile) {
       staticConfig.SERVER_NAME = std::string(val_ptr);
     else if ( strcasecmp( name_ptr, "ZM_SERVER_ID" ) == 0 )
       staticConfig.SERVER_ID = atoi(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_DIR_EVENTS" ) == 0 )
+      staticConfig.DIR_EVENTS = std::string(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_DIR_IMAGES" ) == 0 )
+      staticConfig.DIR_IMAGES = std::string(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_DIR_SOUNDS" ) == 0 )
+      staticConfig.DIR_SOUNDS = std::string(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_DIR_EXPORTS" ) == 0 )
+      staticConfig.DIR_EXPORTS = std::string(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_PATH_ZMS" ) == 0 )
+      staticConfig.PATH_ZMS = std::string(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_PATH_MAP" ) == 0 )
+      staticConfig.PATH_MAP = std::string(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_PATH_SOCKS" ) == 0 )
+      staticConfig.PATH_SOCKS = std::string(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_PATH_LOGS" ) == 0 )
+      staticConfig.PATH_LOGS = std::string(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_PATH_SWAP" ) == 0 )
+      staticConfig.PATH_SWAP = std::string(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_PATH_ARP" ) == 0 )
+      staticConfig.PATH_ARP = std::string(val_ptr);
     else {
       // We ignore this now as there may be more parameters than the
       // c/c++ binaries are bothered about

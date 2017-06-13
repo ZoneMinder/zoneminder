@@ -162,6 +162,7 @@ protected:
   //sizeOf(VideoStoreData) expected to be 4104 bytes on 32bit and 64bit
   typedef struct {
     uint32_t size;
+    uint32_t current_event;
     char event_file[4096];
     timeval recording;      // used as both bool and a pointer to the timestamp when recording should begin
     //uint32_t frameNumber;
@@ -431,6 +432,9 @@ public:
   int GetOptSaveJPEGs() const { return( savejpegspref ); }
   VideoWriter GetOptVideoWriter() const { return( videowriter ); }
   const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return( &encoderparamsvec ); }
+  uint32_t GetLastEventId() const { return shared_data->last_event; }
+  uint32_t GetVideoWriterEventId() const { return video_store_data->current_event; }
+  void SetVideoWriterEventId( uint32_t p_event_id ) { video_store_data->current_event = p_event_id; }
  
   unsigned int GetPreEventCount() const { return pre_event_count; };
   State GetState() const;

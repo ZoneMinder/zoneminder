@@ -73,8 +73,8 @@ function xhtmlHeaders( $file, $title ) {
   <script type="text/javascript" src="tools/mootools/mootools-core.js"></script>
   <script type="text/javascript" src="tools/mootools/mootools-more.js"></script>
   <script type="text/javascript" src="js/mootools.ext.js"></script>
-  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery-1.11.3.js"></script>
-  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery-ui-1.11.3.js"></script>
+  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery.js"></script>
+  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery-ui.js"></script>
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
   <script type="text/javascript">
   //<![CDATA[
@@ -82,7 +82,6 @@ function xhtmlHeaders( $file, $title ) {
 var $j = jQuery.noConflict();
 // $j is now an alias to the jQuery function; creating the new alias is optional.
 
-<?php include("skins/$skin/views/js/state.js.php")?>
   //-->
   //]]>
 </script>

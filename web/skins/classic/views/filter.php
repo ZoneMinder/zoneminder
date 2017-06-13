@@ -225,11 +225,11 @@ for ( $i = 0; isset($_REQUEST['filter']) && $i < count($_REQUEST['filter']['term
 <?php } ?>
               </td>
 <?php
-      } elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == "StateId" ) {
-        $states = array();
-        foreach ( dbFetchAll( 'SELECT Id,Name FROM States ORDER BY lower(Name) ASC' ) as $state_row ) {
-          $states[$state_row['Id']] = $state_row['Name'];
-        }
+    } elseif ( $_REQUEST['filter']['terms'][$i]['attr'] == 'StateId' ) {
+      $states = array();
+      foreach ( dbFetchAll( 'SELECT Id,Name FROM States ORDER BY lower(Name) ASC' ) as $state_row ) {
+        $states[$state_row['Id']] = $state_row['Name'];
+      }
 ?>
               <td><?php echo buildSelect( "filter[terms][$i][op]", $opTypes ); ?></td>
               <td><?php echo buildSelect( "filter[terms][$i][val]", $states ); ?></td>

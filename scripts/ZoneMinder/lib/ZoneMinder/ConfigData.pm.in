@@ -443,23 +443,6 @@ our @options = (
     category    => 'system',
   },
   {
-    name        => 'ZM_DIR_EVENTS',
-    default     => 'events',
-    description => 'Directory where events are stored',
-    help        => q`
-      This is the path to the events directory where all the event
-      images and other miscellaneous files are stored. CAUTION: The
-      directory you specify here cannot be outside the web root. This
-      is a common mistake. Most users should never change this value.
-      If you intend to record events to a second disk or network
-      share, then you should mount the drive or share directly to the
-      ZoneMinder events folder or follow the instructions in the
-      ZoneMinder Wiki titled Using a dedicated Hard Drive.
-      `,
-    type        => $types{directory},
-    category    => 'paths',
-  },
-  {
     name        => 'ZM_USE_DEEP_STORAGE',
     default     => 'yes',
     description => 'Use a deep filesystem hierarchy for events',
@@ -479,68 +462,6 @@ our @options = (
       `,
     type        => $types{boolean},
     category    => 'hidden',
-  },
-  {
-    name        => 'ZM_DIR_IMAGES',
-    default     => 'images',
-    description => 'Directory where the images that the ZoneMinder client generates are stored',
-    help        => q`
-      ZoneMinder generates a myriad of images, mostly of which are
-      associated with events. For those that aren't this is where
-      they go. CAUTION: The directory you specify here cannot be
-      outside the web root. This is a common mistake. Most users
-      should never change this value. If you intend to save images to
-      a second disk or network share, then you should mount the drive
-      or share directly to the ZoneMinder images folder or follow the
-      instructions in the ZoneMinder Wiki titled Using a dedicated
-      Hard Drive.
-      `,
-    type        => $types{directory},
-    category    => 'paths',
-  },
-  {
-    name        => 'ZM_DIR_SOUNDS',
-    default     => 'sounds',
-    description => 'Directory to the sounds that the ZoneMinder client can use',
-    help        => q`
-      ZoneMinder can optionally play a sound file when an alarm is
-      detected. This indicates where to look for this file. CAUTION:
-      The directory you specify here cannot be outside the web root.
-      Most users should never change this value.
-      `,
-    type        => $types{directory},
-    category    => 'paths',
-  },
-  {
-    name        => 'ZM_DIR_EXPORTS',
-    default     => '@ZM_TMPDIR@',
-    description => 'Directory where exported archives are stored',
-    help        => q`
-      This is the path to the exports directory where exported
-      tar.gz and zip archives are stored. By default this points to
-      ZoneMinder's temp folder, which often sits in ram. Since exported
-      archives can potentially become large, it is a good idea to move
-      this folder to some other location on machines with low memory.
-      `,
-    type        => $types{directory},
-    category    => 'paths',
-  },
-  {
-    name        => 'ZM_PATH_ZMS',
-    default     => '/cgi-bin/nph-zms',
-    description => 'Web path to zms streaming server',
-    help        => q`
-      The ZoneMinder streaming server is required to send streamed
-      images to your browser. It will be installed into the cgi-bin
-      path given at configuration time. This option determines what
-      the web path to the server is rather than the local path on
-      your machine. Ordinarily the streaming server runs in
-      parser-header mode however if you experience problems with
-      streaming you can change this to non-parsed-header (nph) mode
-      by changing 'zms' to 'nph-zms'.
-      `,
-    type        => $types{rel_path},
-    category    => 'paths',
   },
   {
     name        => 'ZM_COLOUR_JPEG_FILES',
@@ -1485,83 +1406,6 @@ our @options = (
       `,
     type        => $types{boolean},
     category    => 'logging',
-  },
-  {
-    name        => 'ZM_PATH_MAP',
-    default     => '/dev/shm',
-    description => 'Path to the mapped memory files that that ZoneMinder can use',
-    help        => q`
-      ZoneMinder has historically used IPC shared memory for shared
-      data between processes. This has it's advantages and
-      limitations. This version of ZoneMinder can use an alternate
-      method, mapped memory, instead with can be enabled with the
-      --enable--mmap directive to configure. This requires less
-      system configuration and is generally more flexible. However it
-      requires each shared data segment to map onto a filesystem
-      file. This option indicates where those mapped files go. You
-      should ensure that this location has sufficient space for these
-      files and for the best performance it should be a tmpfs file
-      system or ramdisk otherwise disk access may render this method
-      slower than the regular shared memory one.
-      `,
-    type        => $types{abs_path},
-    category    => 'paths',
-  },
-  {
-    name        => 'ZM_PATH_SOCKS',
-    default     => '@ZM_SOCKDIR@',
-    description => 'Path to the various Unix domain socket files that ZoneMinder uses',
-    help        => q`
-      ZoneMinder generally uses Unix domain sockets where possible.
-      This reduces the need for port assignments and prevents
-      external applications from possibly compromising the daemons.
-      However each Unix socket requires a .sock file to be created.
-      This option indicates where those socket files go.
-      `,
-    type        => $types{abs_path},
-    category    => 'paths',
-  },
-  {
-    name        => 'ZM_PATH_LOGS',
-    default     => '@ZM_LOGDIR@',
-    description => 'Path to the various logs that the ZoneMinder daemons generate',
-    help        => q`
-      There are various daemons that are used by ZoneMinder to
-      perform various tasks. Most generate helpful log files and this
-      is where they go. They can be deleted if not required for
-      debugging.
-      `,
-    type        => $types{abs_path},
-    category    => 'paths',
-  },
-  {
-    name        => 'ZM_PATH_SWAP',
-    default     => '@ZM_TMPDIR@',
-    description => 'Path to location for temporary swap images used in streaming',
-    help        => q`
-      Buffered playback requires temporary swap images to be stored
-      for each instance of the streaming daemons. This option
-      determines where these images will be stored. The images will
-      actually be stored in sub directories beneath this location and
-      will be automatically cleaned up after a period of time.
-      `,
-    type        => $types{abs_path},
-    category    => 'paths',
-  },
-  {
-    name        => 'ZM_PATH_ARP',
-    default     => '',
-    description => 'Path to a supported ARP tool',
-    help        => q`
-      The camera probe function uses Address Resolution Protocol in
-      order to find known devices on the network. Optionally supply
-      the full path to \"ip neigh\", \"arp -a\", or any other tool on
-      your system that returns ip/mac address pairs. If this field is
-      left empty, ZoneMinder will search for the command \"arp\" and
-      attempt to use that.
-      `,
-    type        => $types{abs_path},
-    category    => 'paths',
   },
   {
     name        => 'ZM_WEB_TITLE_PREFIX',

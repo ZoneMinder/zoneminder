@@ -413,6 +413,26 @@ static void zm_log_fps(double d, const char *postfix) {
     Debug(1, "%1.0fk %s", d / 1000, postfix);
 }
 
+void zm_dump_codecpar ( const AVCodecParameters *par ) {
+  Debug(1, "Dumping codecpar codec_type(%d) codec_id(%d) codec_tag(%d) width(%d) height(%d)", 
+    par->codec_type,
+    par->codec_id,
+    par->codec_tag,
+    par->width,
+    par->height
+); 
+}
+
+void zm_dump_codec ( const AVCodecContext *codec ) {
+  Debug(1, "Dumping codecpar codec_type(%d) codec_id(%d) width(%d) height(%d)", 
+    codec->codec_type,
+    codec->codec_id,
+    codec->width,
+    codec->height
+); 
+}
+
+
 /* "user interface" functions */
 void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output) {
   char buf[256];

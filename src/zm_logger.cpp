@@ -70,7 +70,7 @@ Logger::Logger() :
   mFileLevel( NOLOG ),
   mSyslogLevel( NOLOG ),
   mEffectiveLevel( NOLOG ),
-  //mLogPath( config.path_logs ),
+  //mLogPath( staticConfig.PATH_LOGS.c_str() ),
   //mLogFile( mLogPath+"/"+mId+".log" ),
   mDbConnected( false ),
   mLogFileFP( NULL ),
@@ -577,7 +577,7 @@ void logInit( const char *name, const Logger::Options &options ) {
   if ( !Logger::smInstance )
     Logger::smInstance = new Logger();
   Logger::Options tempOptions = options;
-  tempOptions.mLogPath = config.path_logs;
+  tempOptions.mLogPath = staticConfig.PATH_LOGS.c_str();
   Logger::smInstance->initialise( name, tempOptions );
 }
 

@@ -76,7 +76,7 @@ Monitor::MonitorLink::MonitorLink( int p_id, const char *p_name ) : id( p_id ) {
 
 #if ZM_MEM_MAPPED
   map_fd = -1;
-  snprintf( mem_file, sizeof(mem_file), "%s/zm.mmap.%d", config.path_map, id );
+  snprintf( mem_file, sizeof(mem_file), "%s/zm.mmap.%d", staticConfig.PATH_MAP.c_str(), id );
 #else // ZM_MEM_MAPPED
   shm_id = 0;
 #endif // ZM_MEM_MAPPED
@@ -484,7 +484,7 @@ Monitor::Monitor(
 bool Monitor::connect() {
   Debug(3, "Connecting to monitor.  Purpose is %d", purpose ); 
 #if ZM_MEM_MAPPED
-  snprintf( mem_file, sizeof(mem_file), "%s/zm.mmap.%d", config.path_map, id );
+  snprintf( mem_file, sizeof(mem_file), "%s/zm.mmap.%d", staticConfig.PATH_MAP.c_str(), id );
   map_fd = open( mem_file, O_RDWR|O_CREAT, (mode_t)0600 );
   if ( map_fd < 0 )
     Fatal( "Can't open memory map file %s, probably not enough space free: %s", mem_file, strerror(errno) );
@@ -634,9 +634,9 @@ Monitor::~Monitor() {
     close( map_fd );
 
     if ( purpose == CAPTURE ) {
-        // How about we store this in the object on instantiation so that we don't have to do this again.
-        char mmap_path[PATH_MAX] = "";
-        snprintf( mmap_path, sizeof(mmap_path), "%s/zm.mmap.%d", config.path_map, id );
+      // How about we store this in the object on instantiation so that we don't have to do this again.
+      char mmap_path[PATH_MAX] = "";
+      snprintf( mmap_path, sizeof(mmap_path), "%s/zm.mmap.%d", staticConfig.PATH_MAP.c_str(), id );
 
       if ( unlink( mmap_path ) < 0 ) {
         Warning( "Can't unlink '%s': %s", mmap_path, strerror(errno) );

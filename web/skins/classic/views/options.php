@@ -32,7 +32,6 @@ $tabs['system'] = translate('System');
 $tabs['config'] = translate('Config');
 $tabs['servers'] = translate('Servers');
 $tabs['storage'] = translate('Storage');
-$tabs['paths'] = translate('Paths');
 $tabs['web'] = translate('Web');
 $tabs['images'] = translate('Images');
 $tabs['logging'] = translate('Logging');

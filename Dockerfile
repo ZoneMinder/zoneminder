@@ -70,6 +70,7 @@ ADD src /ZoneMinder/src/
 ADD umutils /ZoneMinder/umutils/
 ADD web /ZoneMinder/web/
 ADD cmakecacheimport.sh CMakeLists.txt version zm.conf.in zmconfgen.pl.in zmlinkcontent.sh.in zoneminder-config.cmake /ZoneMinder/
+ADD conf.d /ZoneMinder/conf.d
 
 # Change into the ZoneMinder directory
 WORKDIR /ZoneMinder

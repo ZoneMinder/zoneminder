@@ -26,17 +26,15 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-
-
 Storage::Storage() {
 	Warning("Instantiating default Storage Object. Should not happen.");
 	id = 0;
 	strcpy(name, "Default");
-  if ( config.dir_events[0] != '/' ) {
+  if ( staticConfig.DIR_EVENTS[0] != '/' ) {
     // not using an absolute path. Make it one by appending ZM_PATH_WEB
-    snprintf( path, sizeof (path), "%s/%s", staticConfig.PATH_WEB.c_str( ), config.dir_events );
+    snprintf( path, sizeof (path), "%s/%s", staticConfig.PATH_WEB.c_str( ), staticConfig.DIR_EVENTS.c_str() );
   } else {
-    strncpy(path, config.dir_events, sizeof(path) );
+    strncpy(path, staticConfig.DIR_EVENTS.c_str(), sizeof(path) );
   }
 }
 
@@ -67,11 +65,11 @@ Storage::Storage( unsigned int p_id ) {
 		}
 	}
 	if ( ! id ) {
-    if ( config.dir_events[0] != '/' ) {
+    if ( staticConfig.DIR_EVENTS[0] != '/' ) {
       // not using an absolute path. Make it one by appending ZM_PATH_WEB
-      snprintf( path, sizeof (path), "%s/%s", staticConfig.PATH_WEB.c_str( ), config.dir_events );
+      snprintf( path, sizeof (path), "%s/%s", staticConfig.PATH_WEB.c_str( ), staticConfig.DIR_EVENTS.c_str() );
     } else {
-      strncpy(path, config.dir_events, sizeof(path) );
+      strncpy(path, staticConfig.DIR_EVENTS.c_str(), sizeof(path) );
     }
 		Debug(1,"No id passed to Storage constructor.  Using default path %s instead", path );
 		strcpy(name, "Default");

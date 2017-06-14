@@ -20,39 +20,6 @@
 #ifndef ZM_THREAD_H
 #define ZM_THREAD_H
 
-// missing phread_mutex_timedlock
-//https://lists.freedesktop.org/archives/spice-devel/2010-September/001231.html
-#ifdef __APPLE__
-#include <pthread.h>
-#include <errno.h>
-#define min(a,b) (((a)<(b))?(a):(b))
-int pthread_mutex_timedlock(pthread_mutex_t *mutex, const struct timespec
-*abs_timeout)
-{
-    int pthread_rc;
-    struct timespec remaining, slept, ts;
-
-    remaining = *abs_timeout;
-    while ((pthread_rc = pthread_mutex_trylock(mutex)) == EBUSY) {
-        ts.tv_sec = 0;
-        ts.tv_nsec = (remaining.tv_sec > 0 ? 10000000 : min(remaining.tv_nsec,10000000));
-        nanosleep(&ts, &slept);
-        ts.tv_nsec -= slept.tv_nsec;
-        if (ts.tv_nsec <= remaining.tv_nsec) {
-            remaining.tv_nsec -= ts.tv_nsec;
-        }
-        else {
-            remaining.tv_sec--;
-            remaining.tv_nsec = (1000000 - (ts.tv_nsec - remaining.tv_nsec));
-        }
-        if (remaining.tv_sec < 0 || (!remaining.tv_sec && remaining.tv_nsec <= 0)) {
-            return ETIMEDOUT;
-        }
-    }
-
-    return pthread_rc;
-}
-#endif
 
 #include <unistd.h>
 #include <pthread.h>
@@ -79,6 +46,10 @@ private:
 #else 
   #ifdef __FreeBSD_kernel__
     if ( (syscall(SYS_thr_self, &tid)) < 0 ) // Thread/Process id
+  #elif defined(__APPLE__) && defined(__MACH__)
+    uint64_t tid64;
+    pthread_threadid_np(NULL, &tid64);
+    tid = (pid_t)tid64;
   # else
     tid=syscall(SYS_gettid); 
   #endif
@@ -276,7 +247,12 @@ protected:
   #ifdef __FreeBSD_kernel__
     if ( (syscall(SYS_thr_self, &tid)) < 0 ) // Thread/Process id
 
+  #elif defined(__APPLE__) && defined(__MACH__)
+    uint64_t tid64;
+    pthread_threadid_np(NULL, &tid64);
+    tid = (pid_t)tid64;
   #else
+
     tid=syscall(SYS_gettid); 
   #endif
 #endif

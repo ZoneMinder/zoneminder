@@ -29,7 +29,7 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <mysql/mysql.h>
+#include <mysql.h>
 
 #include <set>
 #include <map>

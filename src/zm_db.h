@@ -20,7 +20,7 @@
 #ifndef ZM_DB_H
 #define ZM_DB_H
 
-#include <mysql/mysql.h>
+#include <mysql.h>
 
 #ifdef __cplusplus 
 extern "C" {

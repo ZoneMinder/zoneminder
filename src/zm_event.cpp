@@ -158,11 +158,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     if ( symlink( time_path, id_file ) < 0 )
       Fatal( "Can't symlink %s -> %s: %s", id_file, path, strerror(errno));
   } else {
-<<<<<<< HEAD
     snprintf( path, sizeof(path), "%s/%d/%d", storage->Path(), monitor->Id(), id );
-=======
-    snprintf( path, sizeof(path), "%s/%d/%d", staticConfig.DIR_EVENTS.c_str(), monitor->Id(), id );
->>>>>>> master
 
     errno = 0;
     stat( path, &statbuf );
@@ -705,7 +701,6 @@ bool EventStream::loadEventData( int event_id ) {
 
   if ( config.use_deep_storage ) {
     struct tm *event_time = localtime( &event_data->start_time );
-<<<<<<< HEAD
     if ( storage_path[0] == '/' )
       snprintf( event_data->path, sizeof(event_data->path), "%s/%ld/%02d/%02d/%02d/%02d/%02d/%02d", storage_path, event_data->monitor_id, event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday, event_time->tm_hour, event_time->tm_min, event_time->tm_sec );
     else
@@ -715,17 +710,6 @@ bool EventStream::loadEventData( int event_id ) {
       snprintf( event_data->path, sizeof(event_data->path), "%s/%ld/%ld", storage_path, event_data->monitor_id, event_data->event_id );
     else
       snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%ld", staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id, event_data->event_id );
-=======
-    if ( staticConfig.DIR_EVENTS.c_str()[0] == '/' )
-      snprintf( event_data->path, sizeof(event_data->path), "%s/%ld/%02d/%02d/%02d/%02d/%02d/%02d", staticConfig.DIR_EVENTS.c_str(), event_data->monitor_id, event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday, event_time->tm_hour, event_time->tm_min, event_time->tm_sec );
-    else
-      snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%02d/%02d/%02d/%02d/%02d/%02d", staticConfig.PATH_WEB.c_str(), staticConfig.DIR_EVENTS.c_str(), event_data->monitor_id, event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday, event_time->tm_hour, event_time->tm_min, event_time->tm_sec );
-  } else {
-    if ( staticConfig.DIR_EVENTS.c_str()[0] == '/' )
-      snprintf( event_data->path, sizeof(event_data->path), "%s/%ld/%ld", staticConfig.DIR_EVENTS.c_str(), event_data->monitor_id, event_data->event_id );
-    else
-      snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%ld", staticConfig.PATH_WEB.c_str(), staticConfig.DIR_EVENTS.c_str(), event_data->monitor_id, event_data->event_id );
->>>>>>> master
   }
   event_data->frame_count = dbrow[2] == NULL ? 0 : atoi(dbrow[3]);
   event_data->duration = atof(dbrow[4]);

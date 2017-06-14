@@ -77,33 +77,33 @@ function getMonitorObject( $mid = null ) {
   } else {
     $monitor = array(
         'Id' => 0,
-        'Name' => "willbereplaced",
-        'Function' => "Monitor",
+        'Name' => 'willbereplaced',
+        'Function' => 'Monitor',
         'Enabled' => true,
-        'LinkedMonitors' => "",
-        'Type' => "",
-        'Device' => "/dev/video0",
-        'Channel' => "0",
+        'LinkedMonitors' => '',
+        'Type' => '',
+        'Device' => '/dev/video0',
+        'Channel' => '0',
         'Format' => 0x000000ff,
-        'Protocol' => "",
-        'Method' => "",
-        'Host' => "",
-        'Path' => "",
-        'Options' => "",
+        'Protocol' => '',
+        'Method' => '',
+        'Host' => '',
+        'Path' => '',
+        'Options' => '',
         'Port' => "80",
-        'User' => "",
-        'Pass' => "",
+        'User' => '',
+        'Pass' => '',
         'Colours' => 3,
         'Palette' => 0,
-        'Width' => "320",
-        'Height' => "240",
-        'Orientation' => "0",
+        'Width' => '320',
+        'Height' => '240',
+        'Orientation' => '0',
         'Deinterlacing' => 0,
         'RTSPDescribe' => 0,
-        'SaveJPEGs' => "3",
-        'VideoWriter' => "0",
+        'SaveJPEGs' => '3',
+        'VideoWriter' => '0',
         'EncoderParameters' => "# Lines beginning with # are a comment \n# For changing quality, use the crf option\n# 1 is best, 51 is worst quality\n#crf=23\n",
-        'RecordAudio' => "0",
+        'RecordAudio' => '0',
         'LabelFormat' => '%N - %d/%m/%y %H:%M:%S',
         'LabelX' => 0,
         'LabelY' => 0,
@@ -115,23 +115,23 @@ function getMonitorObject( $mid = null ) {
         'StreamReplayBuffer' => 1000,
         'AlarmFrameCount' => 1,
         'Controllable' => 0,
-        'ControlId' => "",
+        'ControlId' => '',
         'ControlType' => 0,
-        'ControlDevice' => "",
-        'ControlAddress' => "",
-        'AutoStopTimeout' => "",
+        'ControlDevice' => '',
+        'ControlAddress' => '',
+        'AutoStopTimeout' => '',
         'TrackMotion' => 0,
-        'TrackDelay' => "",
+        'TrackDelay' => '',
         'ReturnLocation' => -1,
-        'ReturnDelay' => "",
+        'ReturnDelay' => '',
         'SectionLength' => 600,
         'FrameSkip' => 0,
         'MotionFrameSkip' => 0,
         'EventPrefix' => 'Event-',
-        'AnalysisFPS' => "",
+        'AnalysisFPS' => '',
         'AnalysisUpdateDelay' => 0,
-        'MaxFPS' => "",
-        'AlarmMaxFPS' => "",
+        'MaxFPS' => '',
+        'AlarmMaxFPS' => '',
         'FPSReportInterval' => 1000,
         'RefBlendPerc' => 6,
         'AlarmRefBlendPerc' => 6,
@@ -141,7 +141,7 @@ function getMonitorObject( $mid = null ) {
         'SignalCheckColour' => '#0000c0',
         'WebColour' => 'red',
         'Exif' => '0',
-        'Triggers' => "",
+        'Triggers' => '',
         'V4LMultiBuffer'  =>  '',
         'V4LCapturesPerFrame' =>  1,
         'ServerId'  =>  $Server['Id'],
@@ -160,7 +160,7 @@ if ( isset( $_REQUEST['newMonitor'] ) ) {
     $newX10Monitor = $_REQUEST['newX10Monitor'];
 } else {
   $newMonitor = $monitor;
-  $newMonitor['Triggers'] = explode( ',', isset($monitor['Triggers'])?$monitor['Triggers']:"" );
+  $newMonitor['Triggers'] = explode( ',', isset($monitor['Triggers'])?$monitor['Triggers']:'' );
   if ( ZM_OPT_X10 )
     $newX10Monitor = $x10Monitor;
 }
@@ -239,9 +239,9 @@ $rtspFFMpegMethods = array(
     );
 
 $httpMethods = array(
-    'simple'   => "Simple",
-    'regexp'   => "Regexp",
-    'jpegTags' => "JPEG Tags"
+    'simple'   => 'Simple',
+    'regexp'   => 'Regexp',
+    'jpegTags' => 'JPEG Tags'
     );
 
 if ( !ZM_PCRE )
@@ -264,7 +264,7 @@ if ( ZM_HAS_V4L1 ) {
   $v4l1MaxChannels = 15;
   $v4l1DeviceChannels = array();
   for ( $i = 0; $i <= $v4l1MaxChannels; $i++ )
-    $v4l1DeviceChannels['$i'] = $i;
+    $v4l1DeviceChannels[$i] = $i;
 
   $v4l1LocalPalettes = array(
       translate('Grey')      => 1,
@@ -694,7 +694,7 @@ switch ( $tab ) {
               <td>
                 <select name="monitorIds" size="4" multiple="multiple" onchange="updateLinkedMonitors( this )">
 <?php
-      $monitors = dbFetchAll( "select Id,Name from Monitors order by Sequence asc" );
+      $monitors = dbFetchAll( 'select Id,Name from Monitors order by Sequence asc' );
       if ( !empty($newMonitor['LinkedMonitors']) )
         $monitorIds = array_flip( explode( ',', $newMonitor['LinkedMonitors'] ) );
       else
@@ -714,8 +714,14 @@ switch ( $tab ) {
 <?php
       if ( $newMonitor['Type'] != 'Local' && $newMonitor['Type'] != 'File' ) {
 ?>
-            <tr><td><?php echo translate('MaximumFPS') ?>&nbsp;(<?php echo makePopupLink('?view=optionhelp&amp;option=OPTIONS_MAXFPS', 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td><td><input type="text" onclick="document.getElementById('newMonitor[MaxFPS]').innerHTML= ' CAUTION: See the help text'" name="newMonitor[MaxFPS]" value="<?php echo validHtmlStr($newMonitor['MaxFPS']) ?>" size="5"/><span id="newMonitor[MaxFPS]" style="color:red"></span></td></tr>
-            <tr><td><?php echo translate('AlarmMaximumFPS') ?>&nbsp;(<?php echo makePopupLink('?view=optionhelp&amp;option=OPTIONS_MAXFPS', 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td><td><input type="text" onclick="document.getElementById('newMonitor[AlarmMaxFPS]').innerHTML= ' CAUTION: See the help text'" name="newMonitor[AlarmMaxFPS]" value="<?php echo validHtmlStr($newMonitor['AlarmMaxFPS']) ?>" size="5"/><span id="newMonitor[AlarmMaxFPS]" style="color:red"></span></td></tr>
+            <tr>
+              <td><?php echo translate('MaximumFPS') ?>&nbsp;(<?php echo makePopupLink('?view=optionhelp&amp;option=OPTIONS_MAXFPS', 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td>
+              <td><input type="text" onclick="document.getElementById('newMonitor[MaxFPS]').innerHTML= ' CAUTION: See the help text'" name="newMonitor[MaxFPS]" value="<?php echo validHtmlStr($newMonitor['MaxFPS']) ?>" size="5"/><span id="newMonitor[MaxFPS]" style="color:red"></span></td>
+            </tr>
+            <tr>
+              <td><?php echo translate('AlarmMaximumFPS') ?>&nbsp;(<?php echo makePopupLink('?view=optionhelp&amp;option=OPTIONS_MAXFPS', 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td>
+              <td><input type="text" onclick="document.getElementById('newMonitor[AlarmMaxFPS]').innerHTML= ' CAUTION: See the help text'" name="newMonitor[AlarmMaxFPS]" value="<?php echo validHtmlStr($newMonitor['AlarmMaxFPS']) ?>" size="5"/><span id="newMonitor[AlarmMaxFPS]" style="color:red"></span></td>
+            </tr>
 <?php
       } else {
 ?>

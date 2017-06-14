@@ -413,6 +413,7 @@ static void zm_log_fps(double d, const char *postfix) {
     Debug(1, "%1.0fk %s", d / 1000, postfix);
 }
 
+#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
 void zm_dump_codecpar ( const AVCodecParameters *par ) {
   Debug(1, "Dumping codecpar codec_type(%d) codec_id(%d) codec_tag(%d) width(%d) height(%d)", 
     par->codec_type,
@@ -422,6 +423,7 @@ void zm_dump_codecpar ( const AVCodecParameters *par ) {
     par->height
 ); 
 }
+#endif
 
 void zm_dump_codec ( const AVCodecContext *codec ) {
   Debug(1, "Dumping codecpar codec_type(%d) codec_id(%d) width(%d) height(%d)", 
@@ -431,7 +433,6 @@ void zm_dump_codec ( const AVCodecContext *codec ) {
     codec->height
 ); 
 }
-
 
 /* "user interface" functions */
 void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output) {

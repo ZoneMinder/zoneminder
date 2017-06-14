@@ -422,7 +422,7 @@ void Logger::logFile( const std::string &logFile ) {
 }
 
 void Logger::openFile() {
-  if ( mLogFile.size() && (mLogFileFP = fopen( mLogFile.c_str() ,"w" )) == (FILE *)NULL ) {
+  if ( mLogFile.size() && (mLogFileFP = fopen( mLogFile.c_str() ,"a" )) == (FILE *)NULL ) {
     mFileLevel = NOLOG;
     Fatal( "fopen() for %s, error = %s", mLogFile.c_str(), strerror(errno) );
   }

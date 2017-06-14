@@ -15,7 +15,9 @@ xcode-select --install
 requirement - macports (brew doesn't have polkit)
 sudo port install cmake
 sudo port install jpeg
-sudo port install mysql5
+sudo port install mysql57
+sudo port install ffmpeg
+sudo port install pcre
 
 sudo perl -MCPAN -e 'install DBI'
 sudo perl -MCPAN -e 'install DBD::mysql'
@@ -24,7 +26,7 @@ sudo perl -MCPAN -e 'install DBI'
 sudo perl -MCPAN -e 'install DBD::mysql'
 sudo perl -MCPAN -e 'install Sys::Mmap'
 sudo perl -MCPAN -e 'install Date::Manip'
-sudo perl -MCPAN -e 'install LWP::UserAgent'
+sudo port install p5.24-libwww-perl
 
 
 #### Environment used to build
@@ -41,7 +43,25 @@ InstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault
 #### Build process
 
 git submodule update --init --recursive
-cmake .
+cmake  -DCMAKE_INSTALL_PREFIX=/opt/zoneminder \
+        -DCMAKE_PREFIX_PATH=/opt/local \
+        -DCMAKE_SKIP_RPATH=ON \
+        -DCMAKE_VERBOSE_MAKEFILE=OFF \
+        -DCMAKE_COLOR_MAKEFILE=ON \
+        -DZM_RUNDIR=/var/run/zm \
+        -DZM_SOCKDIR=/var/run/zm \
+        -DZM_TMPDIR=/tmp/zm \
+        -DZM_LOGDIR=/var/log/zm \
+        -DZM_WEBDIR=/opt/zoneminder/www \
+        -DZM_CONTENTDIR=/opt/zoneminder \
+        -DZM_CGIDIR=/opt/local/zoneminder/cgi-bin \
+        -DZM_WEB_USER=_www \
+        -DZM_WEB_GROUP=_www \
+        -DCMAKE_INSTALL_SYSCONFDIR=/opt/zoneminder/etc \
+        -DZM_CONFIG_DIR=/opt/zoneminder/etc \
+        -DCMAKE_BUILD_TYPE=Debug \
+        -DMYSQLCLIENT_CONFIG_EXECUTABLE=/opt/local/lib/mysql57/bin/mysql_config
+
 
 #### Things to resolve
 *) Haven't tried make install - don't want my mac to explode - need a VM

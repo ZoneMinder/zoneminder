@@ -43,6 +43,10 @@ private:
 #else
   #ifdef __FreeBSD_kernel__
     if ( (syscall(SYS_thr_self, &tid)) < 0 ) // Thread/Process id
+  #elif defined(__APPLE__) && defined(__MACH__)
+    uint64_t tid64;
+    pthread_threadid_np(NULL, &tid64);
+    tid = (pid_t)tid64;
   #else
     tid=syscall(SYS_gettid);
   #endif

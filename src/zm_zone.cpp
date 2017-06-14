@@ -792,7 +792,7 @@ bool Zone::ParseZoneString( const char *zone_string, int &zone_id, int &colour, 
   zone_id = strtol( str, 0, 10 );
   Debug( 3, "Got zone %d from zone string", zone_id );
   if ( !ws ) {
-    delete str_ptr;
+    delete[] str_ptr;
     return( true );
   }
 
@@ -806,7 +806,7 @@ bool Zone::ParseZoneString( const char *zone_string, int &zone_id, int &colour, 
   colour = strtol( str, 0, 16 );
   Debug( 3, "Got colour %06x from zone string", colour );
   if ( !ws ) {
-    delete str_ptr;
+    delete[] str_ptr;
     return( true );
   }
   *ws = '\0';

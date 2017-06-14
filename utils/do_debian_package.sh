@@ -295,11 +295,10 @@ else
 
   dput="Y";
   if [ "$INTERACTIVE" != "no" ]; then
-    echo "Ready to dput $SC to $PPA ? Y/N...";
-    read dput
-  fi
-  if [ "$dput" == [Yy] ]; then
-    dput $PPA $SC
+    read -p "Ready to dput $SC to $PPA ? Y/N...";
+    if [[ "$REPLY" == [yY] ]]; then
+      dput $PPA $SC
+    fi;
   fi;
 fi;
 

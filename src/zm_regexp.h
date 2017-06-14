@@ -24,13 +24,7 @@
 
 #if HAVE_LIBPCRE
 
-#if HAVE_PCRE_H
 #include <pcre.h>
-#elif HAVE_PCRE_PCRE_H
-#include <pcre/pcre.h>
-#else
-#error Unable to locate pcre.h, please do 'locate pcre.h' and report location to zoneminder.com
-#endif
 
 class RegExpr
 {

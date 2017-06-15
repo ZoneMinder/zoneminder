@@ -22,7 +22,6 @@ if ( !canView( 'Events' ) ) {
   $view = 'error';
   return;
 }
-$selectName = 'Id';
 $filterNames = array( ''=>translate('ChooseFilter') );
 $dbFilter = NULL;
 
@@ -167,17 +166,22 @@ xhtmlHeaders(__FILE__, translate('EventFilter') );
       <h2><?php echo translate('EventFilter') ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
-        <input type="hidden" name="view" value="filter"/>
-        <input type="hidden" name="page" value="<?php echo requestVar( 'page' ) ?>"/>
+      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="reload" value="0"/>
-        <input type="hidden" name="execute" value="0"/>
         <input type="hidden" name="action" value=""/>
         <input type="hidden" name="subaction" value=""/>
         <input type="hidden" name="line" value=""/>
         <input type="hidden" name="object" value="filter"/>
         <hr/>
-        <div id="filterSelector"><label for="<?php echo $selectName ?>"><?php echo translate('UseFilter') ?></label><?php if ( count($filterNames) > 1 ) { echo buildSelect( $selectName, $filterNames, "submitToFilter( this, 1 );" ); } else { ?><select disabled="disabled"><option><?php echo translate('NoSavedFilters') ?></option></select><?php } ?><?php echo $backgroundStr ?></div>
+        <div id="filterSelector"><label for="<?php echo 'Id' ?>"><?php echo translate('UseFilter') ?></label>
+<?php
+if ( count($filterNames) > 1 ) {
+   echo buildSelect( 'Id', $filterNames, "submitToFilter( this, 1 );" );
+} else {
+?><select disabled="disabled"><option><?php echo translate('NoSavedFilters') ?></option></select>
+<?php
+}
+echo $backgroundStr ?></div>
         <hr/>
         <table id="fieldsTable" class="filterTable" cellspacing="0">
           <tbody>
@@ -343,7 +347,10 @@ if ( ZM_OPT_MESSAGE ) {
 ?>
             <tr>
               <td><?php echo translate('FilterExecuteEvents') ?></td>
-              <td><input type="checkbox" name="AutoExecute" value="1"<?php if ( !empty($dbFilter['AutoExecute']) ) { ?> checked="checked"<?php } ?>/><input type="text" name="AutoExecuteCmd" value="<?php echo isset($dbFilter['AutoExecuteCmd'])?$dbFilter['AutoExecuteCmd']:"" ?>" size="32" maxlength="255" onchange="updateButtons( this )"/></td>
+              <td>
+                <input type="checkbox" name="AutoExecute" value="1"<?php if ( !empty($dbFilter['AutoExecute']) ) { ?> checked="checked"<?php } ?>/>
+                <input type="text" name="AutoExecuteCmd" value="<?php echo isset($dbFilter['AutoExecuteCmd'])?$dbFilter['AutoExecuteCmd']:"" ?>" size="32" maxlength="255" onchange="updateButtons( this )"/>
+              </td>
             </tr>
             <tr>
               <td><?php echo translate('FilterDeleteEvents') ?></td>

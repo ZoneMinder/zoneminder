@@ -32,7 +32,8 @@ function clearValue( element, line ) {
 function submitToFilter( element, reload ) {
   var form = element.form;
   form.target = window.name;
-  form.view.value = 'filter';
+  form.action = thisUrl + '?view=filter';
+  form.elements['action'].value = 'submit';
   form.reload.value = reload;
   form.submit();
 }
@@ -41,9 +42,8 @@ function submitToEvents( element ) {
   var form = element.form;
   if ( validateForm( form ) ) {
     form.target = 'zmEvents';
-    form.view.value = 'events';
-    form.action.value = '';
-    form.execute.value = 0;
+    form.action = thisUrl + '?view=events';
+    form.elements['object'] = 'filter';
     form.submit();
   }
 }
@@ -52,9 +52,9 @@ function executeFilter( element ) {
   var form = element.form;
   if ( validateForm( form ) ) {
     form.target = 'zmEvents';
-    form.view.value = 'events';
-    form.action.value = 'filter';
-    form.execute.value = 1;
+    form.action = thisUrl + '?view=events';
+    form.elements['object'].value = 'filter';
+    form.elements['action'].value = 'execute';
     form.submit();
   }
 }
@@ -66,15 +66,14 @@ function saveFilter( element ) {
   createPopup( thisUrl, popupName, 'filtersave' );
 
   form.target = popupName;
-  form.view.value = 'filtersave';
+  form.action = thisUrl + '?view=filtersave';
   form.submit();
 }
 
 function deleteFilter( element, name ) {
   if ( confirm( deleteSavedFilterString+" '"+name+"'" ) ) {
     var form = element.form;
-    form.action.value = 'delete';
-    form.fid.value = name;
+    form.elements['action'].value = 'delete';
     submitToFilter( element, 1 );
   }
 }
@@ -82,20 +81,20 @@ function deleteFilter( element, name ) {
 function addTerm( element, line ) {
   var form = element.form;
   form.target = window.name;
-  form.view.value = currentView;
-  form.action.value = 'filter';
-  form.subaction.value = 'addterm';
-  form.line.value = line;
+  form.action = thisUrl + '?view='+currentView;
+  form.elements['object'].value = 'filter';
+  form.elements['action'].value = 'addterm';
+  form.elements['line'].value = line;
   form.submit();
 }
 
 function delTerm( element, line ) {
   var form = element.form;
   form.target = window.name;
-  form.view.value = currentView;
-  form.action.value = 'filter';
-  form.subaction.value = 'delterm';
-  form.line.value = line;
+  form.action = thisUrl + '?view='+currentView;
+  form.elements['object'].value = 'filter';
+  form.elements['action'].value = 'delterm';
+  form.elements['line'].value = line;
   form.submit();
 }
 

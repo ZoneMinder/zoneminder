@@ -40,7 +40,7 @@
 #cmakedefine HAVE_LIBGNUTLS 1
 #cmakedefine HAVE_GNUTLS_OPENSSL_H 1
 #cmakedefine HAVE_GNUTLS_GNUTLS_H 1
-#cmakedefine HAVE_LIBMYSQLCLIENT 1
+#cmakedefine HAVE_LIBMYSQL 1
 #cmakedefine HAVE_MYSQL_H 1
 #cmakedefine HAVE_LIBX264 1
 #cmakedefine HAVE_X264_H 1

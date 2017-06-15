@@ -1,5 +1,5 @@
 var logParms = "view=request&request=log&task=query";
-var logReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: logResponse } );
+var logReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: logResponse } );
 var logTimer = undefined;
 var logTable = undefined;
 
@@ -75,7 +75,7 @@ function logResponse( respObj ) {
                 var color = document.defaultView.getComputedStyle(row.tr, null).getPropertyValue('color');
                 var colorParts = color.match(/^rgb.*\((\d+),\s*(\d+),\s*(\d+)/);
                 rowOrigColor = '#' + parseInt(colorParts[1]).toString(16) + parseInt(colorParts[2]).toString(16) + parseInt(colorParts[3]).toString(16);
-                new Fx.Tween( row.tr, { duration: 10000, transition: Fx.Transitions.Sine } ).start( 'color', '#6495ED', rowOrigColor );
+                //new Fx.Tween( row.tr, { duration: 10000, transition: Fx.Transitions.Sine } ).start( 'color', '#6495ED', rowOrigColor );
               }
             }
         );

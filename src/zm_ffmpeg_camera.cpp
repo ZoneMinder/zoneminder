@@ -167,7 +167,7 @@ int FfmpegCamera::Capture( Image &image ) {
     Debug( 5, "Got packet from stream %d dts (%d) pts(%d)", packet.stream_index, packet.pts, packet.dts );
     // What about audio stream? Maybe someday we could do sound detection...
     if ( packet.stream_index == mVideoStreamId ) {
-#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       ret = avcodec_send_packet( mVideoCodecContext, &packet );
       if ( ret < 0 ) {
         av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
@@ -327,7 +327,7 @@ int FfmpegCamera::OpenFfmpeg() {
   mVideoStreamId = -1;
   mAudioStreamId = -1;
   for (unsigned int i=0; i < mFormatContext->nb_streams; i++ ) {
-#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     if ( mFormatContext->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO ) {
 #else
 #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
@@ -344,7 +344,7 @@ int FfmpegCamera::OpenFfmpeg() {
         Debug(2, "Have another video stream." );
       }
     }
-#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     if ( mFormatContext->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO ) {
 #else
 #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
@@ -368,7 +368,7 @@ int FfmpegCamera::OpenFfmpeg() {
   Debug ( 3, "Found video stream at index %d", mVideoStreamId );
   Debug ( 3, "Found audio stream at index %d", mAudioStreamId );
 
-#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   mVideoCodecContext = avcodec_alloc_context3( NULL );
   avcodec_parameters_to_context( mVideoCodecContext, mFormatContext->streams[mVideoStreamId]->codecpar );
 #else
@@ -397,7 +397,7 @@ int FfmpegCamera::OpenFfmpeg() {
   }
 
   if ( mAudioStreamId >= 0 ) {
-#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     mAudioCodecContext = avcodec_alloc_context3( NULL );
     avcodec_parameters_to_context( mAudioCodecContext, mFormatContext->streams[mAudioStreamId]->codecpar );
 #else
@@ -755,7 +755,7 @@ else if ( packet.pts && video_last_pts > packet.pts ) {
       }
       Debug(4, "about to decode video" );
       
-#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       ret = avcodec_send_packet( mVideoCodecContext, &packet );
       if ( ret < 0 ) {
         av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );

@@ -324,7 +324,7 @@ static av_always_inline av_const int64_t av_clip64_c(int64_t a, int64_t amin, in
 
 void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output);
 void zm_dump_codec ( const AVCodecContext *codec );
-#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
 void zm_dump_codecpar ( const AVCodecParameters *par );
 #endif
 

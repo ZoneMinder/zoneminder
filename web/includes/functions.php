@@ -1283,6 +1283,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
           case 'MaxScore':
           case 'Cause':
           case 'Notes':
+          case 'StateId':
           case 'Archived':
             $filter['sql'] .= 'E.'.$filter['terms'][$i]['attr'];
             break;

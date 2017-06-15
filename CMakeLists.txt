@@ -104,6 +104,8 @@ mark_as_advanced(
     ZM_PERL_MM_PARMS 
     ZM_PERL_SEARCH_PATH 
     ZM_TARGET_DISTRO 
+    ZM_PATH_MAP
+    ZM_PATH_ARP 
     ZM_CONFIG_DIR
     ZM_CONFIG_SUBDIR
     ZM_SYSTEMD)
@@ -136,7 +138,21 @@ set(ZM_WEB_USER "" CACHE STRING
 set(ZM_WEB_GROUP "" CACHE STRING 
     "The group apache or the local web server runs on, 
     Leave empty to be the same as the web user")
+set(ZM_DIR_EVENTS "events" CACHE PATH 
+    "Location where events are recorded to, default: events")
+set(ZM_DIR_IMAGES "events" CACHE PATH
+    "Location where images, not directly associated with events,
+     are recorded to, default: images")
+set(ZM_DIR_SOUNDS "sounds" CACHE PATH
+    "Location to look for optional sound files, default: sounds")
+set(ZM_PATH_ZMS "/cgi-bin/nph-zms" CACHE PATH
+    "Web url to zms streaming server, default: /cgi-bin/nph-zms")
+
 # Advanced
+set(ZM_PATH_MAP "/dev/shm" CACHE PATH
+    "Location to save mapped memory files, default: /dev/shm")
+set(ZM_PATH_ARP "" CACHE PATH
+    "Full path to compatible arp binary. Leave empty for automatic detection.")
 set(ZM_CONFIG_DIR "/${CMAKE_INSTALL_SYSCONFDIR}" CACHE PATH 
     "Location of ZoneMinder configuration, default system config directory")
 set(ZM_CONFIG_SUBDIR "${ZM_CONFIG_DIR}/conf.d" CACHE PATH 
@@ -184,6 +200,9 @@ if((ZM_TARGET_DISTRO MATCHES "^el") OR (ZM_TARGET_DISTRO MATCHES "^fc"))
         set(ZM_CONFIG_SUBDIR "/etc/zm/conf.d")
 	set(ZM_WEBDIR "/usr/share/zoneminder/www")
 	set(ZM_CGIDIR "/usr/libexec/zoneminder/cgi-bin")
+	set(ZM_DIR_EVENTS "/var/lib/zoneminder/events")
+	set(ZM_DIR_IMAGES "/var/lib/zoneminder/images")
+	set(ZM_PATH_ZMS "/cgi-bin-zm/nph-zms")
 elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
 	set(ZM_RUNDIR "/var/run/zoneminder")
 	set(ZM_TMPDIR "/var/run/zoneminder")

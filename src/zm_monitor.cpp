@@ -80,7 +80,7 @@ Monitor::MonitorLink::MonitorLink( int p_id, const char *p_name ) : id( p_id ) {
 
 #if ZM_MEM_MAPPED
   map_fd = -1;
-  snprintf( mem_file, sizeof(mem_file), "%s/zm.mmap.%d", config.path_map, id );
+  snprintf( mem_file, sizeof(mem_file), "%s/zm.mmap.%d", staticConfig.PATH_MAP.c_str(), id );
 #else // ZM_MEM_MAPPED
   shm_id = 0;
 #endif // ZM_MEM_MAPPED
@@ -450,7 +450,7 @@ Monitor::Monitor(
   if ( purpose == ANALYSIS ) {
     static char path[PATH_MAX];
 
-    strncpy( path, config.dir_events, sizeof(path) );
+    strncpy( path, staticConfig.DIR_EVENTS.c_str(), sizeof(path) );
 
     struct stat statbuf;
     errno = 0;
@@ -461,7 +461,7 @@ Monitor::Monitor(
       }
     }
 
-    snprintf( path, sizeof(path), "%s/%d", config.dir_events, id );
+    snprintf( path, sizeof(path), "%s/%d", staticConfig.DIR_EVENTS.c_str(), id );
 
     errno = 0;
     stat( path, &statbuf );
@@ -471,8 +471,8 @@ Monitor::Monitor(
       }
       char temp_path[PATH_MAX];
       snprintf( temp_path, sizeof(temp_path), "%d", id );
-      if ( chdir( config.dir_events ) < 0 )
-        Fatal( "Can't change directory to '%s': %s", config.dir_events, strerror(errno) );
+      if ( chdir( staticConfig.DIR_EVENTS.c_str() ) < 0 )
+        Fatal( "Can't change directory to '%s': %s", staticConfig.DIR_EVENTS.c_str(), strerror(errno) );
       if ( symlink( temp_path, name ) < 0 )
         Fatal( "Can't symlink '%s' to '%s': %s", temp_path, name, strerror(errno) );
       if ( chdir( ".." ) < 0 )
@@ -497,7 +497,7 @@ Monitor::Monitor(
 
 bool Monitor::connect() {
 #if ZM_MEM_MAPPED
-  snprintf( mem_file, sizeof(mem_file), "%s/zm.mmap.%d", config.path_map, id );
+  snprintf( mem_file, sizeof(mem_file), "%s/zm.mmap.%d", staticConfig.PATH_MAP.c_str(), id );
   map_fd = open( mem_file, O_RDWR|O_CREAT, (mode_t)0600 );
   if ( map_fd < 0 )
     Fatal( "Can't open memory map file %s, probably not enough space free: %s", mem_file, strerror(errno) );
@@ -646,7 +646,7 @@ Monitor::~Monitor() {
 
     if ( purpose == CAPTURE ) {
       char mmap_path[PATH_MAX] = "";
-      snprintf( mmap_path, sizeof(mmap_path), "%s/zm.mmap.%d", config.path_map, id );
+      snprintf( mmap_path, sizeof(mmap_path), "%s/zm.mmap.%d", staticConfig.PATH_MAP.c_str(), id );
 
       if ( unlink( mmap_path ) < 0 ) {
         Warning( "Can't unlink '%s': %s", mmap_path, strerror(errno) );
@@ -2991,7 +2991,7 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
   if ( config.record_diag_images ) {
     static char diag_path[PATH_MAX] = "";
     if ( !diag_path[0] ) {
-      snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-r.jpg", config.dir_events, id );
+      snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-r.jpg", staticConfig.DIR_EVENTS.c_str(), id );
     }
     ref_image.WriteJpeg( diag_path );
   }
@@ -3001,7 +3001,7 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
   if ( config.record_diag_images ) {
     static char diag_path[PATH_MAX] = "";
     if ( !diag_path[0] ) {
-      snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-d.jpg", config.dir_events, id );
+      snprintf( diag_path, sizeof(diag_path), "%s/%d/diag-d.jpg", staticConfig.DIR_EVENTS.c_str(), id );
     }
     delta_image.WriteJpeg( diag_path );
   }
@@ -3688,7 +3688,7 @@ void MonitorStream::runStream() {
   // 15 is the max length for the swap path suffix, /zmswap-whatever, assuming max 6 digits for monitor id
   const int max_swap_len_suffix = 15; 
 
-  int swap_path_length = strlen(config.path_swap) + 1; // +1 for NULL terminator
+  int swap_path_length = strlen(staticConfig.PATH_SWAP.c_str()) + 1; // +1 for NULL terminator
   int subfolder1_length = snprintf(NULL, 0, "/zmswap-m%d", monitor->Id() ) + 1;
   int subfolder2_length = snprintf(NULL, 0, "/zmswap-q%06d", connkey ) + 1;
   int total_swap_path_length = swap_path_length + subfolder1_length + subfolder2_length;
@@ -3699,7 +3699,7 @@ void MonitorStream::runStream() {
       Error( "Swap Path is too long. %d > %d ", total_swap_path_length+max_swap_len_suffix, PATH_MAX );
     } else {
       swap_path = (char *)malloc( total_swap_path_length+max_swap_len_suffix );
-      strncpy( swap_path, config.path_swap, swap_path_length );
+      strncpy( swap_path, staticConfig.PATH_SWAP.c_str(), swap_path_length );
 
       Debug( 3, "Checking swap path folder: %s", swap_path );
       if ( checkSwapPath( swap_path, false ) ) {

@@ -800,7 +800,6 @@ if ( !empty($action) ) {
         switch( $_REQUEST['tab'] ) {
           case 'system' :
           case 'config' :
-          case 'paths' :
             $restartWarning = true;
             break;
           case 'web' :

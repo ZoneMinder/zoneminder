@@ -70,6 +70,16 @@ struct StaticConfig
   std::string PATH_WEB;
   std::string SERVER_NAME;
   unsigned int SERVER_ID;
+  std::string DIR_EVENTS;
+  std::string DIR_IMAGES;
+  std::string DIR_SOUNDS;
+  std::string DIR_EXPORTS;
+  std::string PATH_ZMS;
+  std::string PATH_MAP;
+  std::string PATH_SOCKS;
+  std::string PATH_LOGS;
+  std::string PATH_SWAP;
+  std::string PATH_ARP;
 };
 
 extern StaticConfig staticConfig;

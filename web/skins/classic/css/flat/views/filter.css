@@ -24,3 +24,10 @@ table.filterTable {
     margin-left: 4px;
 }
 
+#actionsTable p {
+  text-align: left;
+}
+#actionsTable label {
+  width: 300px;
+  text-align: right;
+}

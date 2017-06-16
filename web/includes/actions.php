@@ -184,10 +184,10 @@ if ( !empty($action) ) {
                 Error("No new Id despite new name");
               }
             }
-            $refreshParent = '/index.php?view=filter&Id='.$_REQUEST['Id'];
           } // end if filterName or endsql
         } // end if save or execute
       } // end if canEdit(Events)
+      return;
     } // end if object == filter
       else {
 

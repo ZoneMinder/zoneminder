@@ -42,26 +42,15 @@ if ( $dbFilter ) {
     $backgroundStr = '['.strtolower(translate('Background')).']';
   if ( $dbFilter['Concurrent'] ) 
     $backgroundStr .= '['.strtolower(translate('Concurrent')).']';
-  $_REQUEST['filter'] = jsonDecode( $dbFilter['Query'] );
-  $_REQUEST['sort_field'] = isset($_REQUEST['filter']['sort_field'])?$_REQUEST['filter']['sort_field']:'DateTime';
-  $_REQUEST['sort_asc'] = isset($_REQUEST['filter']['sort_asc'])?$_REQUEST['filter']['sort_asc']:'1';
-  $_REQUEST['limit'] = isset($_REQUEST['filter']['limit'])?$_REQUEST['filter']['limit']:'';
-  unset( $_REQUEST['filter']['sort_field'] );
-  unset( $_REQUEST['filter']['sort_asc'] );
-  unset( $_REQUEST['filter']['limit'] );
-}
-
-# reload is set when the dropdown is changed. 
-if ( isset( $_REQUEST['reload'] ) and ! $_REQUEST['reload'] ) {
-  $dbFilter['AutoArchive'] = isset( $_REQUEST['AutoArchive'] );
-  $dbFilter['AutoExecute'] = isset( $_REQUEST['AutoExecute'] );
-  $dbFilter['AutoExecuteCmd'] = $_REQUEST['AutoExecuteCmd'];
-  $dbFilter['AutoEmail'] = isset( $_REQUEST['AutoEmail'] );
-  $dbFilter['AutoMessage'] = isset( $_REQUEST['AutoMessage'] );
-  $dbFilter['AutoUpload'] = isset( $_REQUEST['AutoUpload'] );
-  $dbFilter['AutoVideo'] = isset( $_REQUEST['AutoVideo'] );
-  $dbFilter['AutoDelete'] = isset( $_REQUEST['AutoDelete'] );
-  $dbFilter['Name'] = $_REQUEST['Id'];
+  if ( ! isset($_REQUEST['filter']) ) {
+    $_REQUEST['filter'] = jsonDecode( $dbFilter['Query'] );
+    $_REQUEST['sort_field'] = isset($_REQUEST['filter']['sort_field'])?$_REQUEST['filter']['sort_field']:'DateTime';
+    $_REQUEST['sort_asc'] = isset($_REQUEST['filter']['sort_asc'])?$_REQUEST['filter']['sort_asc']:'1';
+    $_REQUEST['limit'] = isset($_REQUEST['filter']['limit'])?$_REQUEST['filter']['limit']:'';
+    unset( $_REQUEST['filter']['sort_field'] );
+    unset( $_REQUEST['filter']['sort_asc'] );
+    unset( $_REQUEST['filter']['limit'] );
+  }
 }
 
 $conjunctionTypes = array(
@@ -166,23 +155,29 @@ xhtmlHeaders(__FILE__, translate('EventFilter') );
       <h2><?php echo translate('EventFilter') ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
-        <input type="hidden" name="reload" value="0"/>
-        <input type="hidden" name="action" value=""/>
-        <input type="hidden" name="subaction" value=""/>
-        <input type="hidden" name="line" value=""/>
-        <input type="hidden" name="object" value="filter"/>
+      <form name="selectForm" id="selectForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+          <input type="hidden" name="view" value="filter"/>
         <hr/>
         <div id="filterSelector"><label for="<?php echo 'Id' ?>"><?php echo translate('UseFilter') ?></label>
 <?php
 if ( count($filterNames) > 1 ) {
-   echo buildSelect( 'Id', $filterNames, "submitToFilter( this, 1 );" );
+   echo buildSelect( 'Id', $filterNames, 'this.form.submit();' );
 } else {
 ?><select disabled="disabled"><option><?php echo translate('NoSavedFilters') ?></option></select>
 <?php
 }
 echo $backgroundStr ?></div>
+      </form>
+      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+        <input type="hidden" name="Id" value="<?php echo $dbFilter['Id'] ?>"/>
+        <input type="hidden" name="action" value=""/>
+        <input type="hidden" name="line" value=""/>
+        <input type="hidden" name="object" value="filter"/>
+
         <hr/>
+        <p>
+          <label for="Name"><?php echo translate('Name') ?></label><input type="text" id="<?php echo $newSelectName ?>" name="<?php echo $newSelectName ?>" value="<?php echo $dbFilter['Name'] ?>"/>
+        </p>
         <table id="fieldsTable" class="filterTable" cellspacing="0">
           <tbody>
 <?php
@@ -300,64 +295,69 @@ for ( $i = 0; isset($_REQUEST['filter']) && $i < count($_REQUEST['filter']['term
           <tbody>
             <tr>
               <td><label for="sort_field"><?php echo translate('SortBy') ?></label><?php echo buildSelect( 'sort_field', $sort_fields ); ?><?php echo buildSelect( 'sort_asc', $sort_dirns ); ?></td>
-              <td><label for="limit"><?php echo translate('LimitResultsPre') ?></label><input type="text" size="6" id="limit" name="limit" value="<?php echo isset($_REQUEST['limit'])?validInt($_REQUEST['limit']):"" ?>"/><?php echo translate('LimitResultsPost') ?></td>
+              <td><label for="limit"><?php echo translate('LimitResultsPre') ?></label><input type="text" id="limit" name="limit" value="<?php echo isset($_REQUEST['limit'])?validInt($_REQUEST['limit']):"" ?>"/><?php echo translate('LimitResultsPost') ?></td>
             </tr>
           </tbody>
         </table>
         <hr/>
-        <table id="actionsTable" class="filterTable" cellspacing="0">
-          <tbody>
-            <tr>
-              <td><?php echo translate('FilterArchiveEvents') ?></td>
-              <td><input type="checkbox" name="AutoArchive" value="1"<?php if ( !empty($dbFilter['AutoArchive']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
-            </tr>
+        <div id="actionsTable" class="filterTable">
+            <p>
+              <label><?php echo translate('FilterArchiveEvents') ?></label>
+              <input type="checkbox" name="AutoArchive" value="1"<?php if ( !empty($dbFilter['AutoArchive']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/>
+            </p>
 <?php
 if ( ZM_OPT_FFMPEG ) {
 ?>
-            <tr>
-              <td><?php echo translate('FilterVideoEvents') ?></td>
-              <td><input type="checkbox" name="AutoVideo" value="1"<?php if ( !empty($dbFilter['AutoVideo']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
-            </tr>
+            <p>
+              <label><?php echo translate('FilterVideoEvents') ?></label>
+              <input type="checkbox" name="AutoVideo" value="1"<?php if ( !empty($dbFilter['AutoVideo']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/>
+            </p>
 <?php
 }
 if ( ZM_OPT_UPLOAD ) {
 ?>
-            <tr>
-              <td><?php echo translate('FilterUploadEvents') ?></td>
-              <td><input type="checkbox" name="AutoUpload" value="1"<?php if ( !empty($dbFilter['AutoUpload']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
-            </tr>
+            <p>
+              <label><?php echo translate('FilterUploadEvents') ?></label>
+              <input type="checkbox" name="AutoUpload" value="1"<?php if ( !empty($dbFilter['AutoUpload']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/>
+            </p>
 <?php
 }
 if ( ZM_OPT_EMAIL ) {
 ?>
-            <tr>
-              <td><?php echo translate('FilterEmailEvents') ?></td>
-              <td><input type="checkbox" name="AutoEmail" value="1"<?php if ( !empty($dbFilter['AutoEmail']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
-            </tr>
+            <p>
+              <label><?php echo translate('FilterEmailEvents') ?></label>
+              <input type="checkbox" name="AutoEmail" value="1"<?php if ( !empty($dbFilter['AutoEmail']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/>
+            </p>
 <?php
 }
 if ( ZM_OPT_MESSAGE ) {
 ?>
-            <tr>
-              <td><?php echo translate('FilterMessageEvents') ?></td>
-              <td><input type="checkbox" name="AutoMessage" value="1"<?php if ( !empty($dbFilter['AutoMessage']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
-            </tr>
+            <p>
+              <label><?php echo translate('FilterMessageEvents') ?></label>
+              <input type="checkbox" name="AutoMessage" value="1"<?php if ( !empty($dbFilter['AutoMessage']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/>
+            </p>
 <?php
 }
 ?>
-            <tr>
-              <td><?php echo translate('FilterExecuteEvents') ?></td>
-              <td>
+            <p>
+              <label><?php echo translate('FilterExecuteEvents') ?></label>
+              
                 <input type="checkbox" name="AutoExecute" value="1"<?php if ( !empty($dbFilter['AutoExecute']) ) { ?> checked="checked"<?php } ?>/>
-                <input type="text" name="AutoExecuteCmd" value="<?php echo isset($dbFilter['AutoExecuteCmd'])?$dbFilter['AutoExecuteCmd']:"" ?>" size="32" maxlength="255" onchange="updateButtons( this )"/>
-              </td>
-            </tr>
-            <tr>
-              <td><?php echo translate('FilterDeleteEvents') ?></td>
-              <td colspan="2"><input type="checkbox" name="AutoDelete" value="1"<?php if ( !empty($dbFilter['AutoDelete']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/></td>
-            </tr>
-          </tbody>
-        </table>
+                <input type="text" name="AutoExecuteCmd" value="<?php echo isset($dbFilter['AutoExecuteCmd'])?$dbFilter['AutoExecuteCmd']:"" ?>" maxlength="255" onchange="updateButtons( this )"/>
+            </p>
+            <p>
+              <label><?php echo translate('FilterDeleteEvents') ?></label>
+              <input type="checkbox" name="AutoDelete" value="1"<?php if ( !empty($dbFilter['AutoDelete']) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/>
+            </p>
+            <p>
+              <label for="background"><?php echo translate('BackgroundFilter') ?></label>
+              <input type="checkbox" id="background" name="background" value="1"<?php if ( !empty($dbFilter['Background']) ) { ?> checked="checked"<?php } ?>/>
+            </p>
+            <p>
+              <label for="concurrent"><?php echo translate('ConcurrentFilter') ?></label>
+              <input type="checkbox" id="concurrent" name="concurrent" value="1"<?php if ( !empty($dbFilter['Concurrent']) ) { ?> checked="checked"<?php } ?>/>
+            </p>
+        </div>
         <hr/>
         <div id="contentButtons">
           <input type="submit" value="<?php echo translate('Submit') ?>" onclick="submitToEvents( this );"/>

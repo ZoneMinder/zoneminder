@@ -22,7 +22,7 @@
 // Use skin.js.php for JavaScript that need pre-processing
 //
 
-var popupOptions = "resizable,scrollbars,status=no";
+var popupOptions = "resizable,scrollbars,status=no,toolbar=yes";
 
 function checkSize() {
   if (window.outerHeight) {

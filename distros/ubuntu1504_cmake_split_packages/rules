@@ -62,7 +62,11 @@ override_dh_auto_configure:
 		-DZM_CGIDIR=/usr/lib/cgi-bin \
 		-DZM_WEB_USER=www-data \
 		-DZM_WEB_GROUP=www-data \
-		-DCMAKE_INSTALL_SYSCONFDIR=etc/zm
+                -DZM_CONFIG_SUBDIR="/etc/zm/conf.d" \
+		-DZM_CONFIG_DIR="/etc/zm" \
+                -DZM_DIR_EVENTS="/var/cache/zoneminder/events"    \
+                -DZM_DIR_IMAGES="/var/cache/zoneminder/images"    \
+                -DZM_PATH_ZMS="/zm/cgi-bin/nph-zms"               
 
 override_dh_auto_test:
 	# do not run tests...

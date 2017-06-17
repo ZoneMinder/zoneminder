@@ -23,7 +23,7 @@
  */
 
 // Setup a 'default' cache configuration for use in the application.
-Cache::config('default', array('engine' => 'File'));
+Cache::config('default', array('engine' => 'Apc'));
 
 /**
  * The settings below can be used to set additional paths to models, views and controllers.
@@ -100,12 +100,16 @@ App::uses('CakeLog', 'Log');
 CakeLog::config('debug', array(
 	'engine' => 'File',
 	'types' => array('notice', 'info', 'debug'),
-	'file' => 'debug',
+	'file' => 'cake_debug',
 ));
 CakeLog::config('error', array(
 	'engine' => 'File',
 	'types' => array('warning', 'error', 'critical', 'alert', 'emergency'),
-	'file' => 'error',
+	'file' => 'cake_error',
+));
+CakeLog::config('custom_path', array(
+    'engine' => 'File',
+    'path' => '@ZM_LOGDIR@'
 ));
 
 Configure::write('ZM_CONFIG',  '@ZM_CONFIG@');

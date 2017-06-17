@@ -27,14 +27,16 @@ class Frame {
       Error("No row for Frame " . $IdOrRow );
     }
   } // end function __construct
+
   public function Storage() {
     return $this->Event()->Storage();
   }
+
   public function Event() {
     return new Event( $this->{'EventId'} );
   }
   public function __call( $fn, array $args){
-    if(isset($this->{$fn})){
+    if( array_key_exists( $fn, $this ) ) {
       return $this->{$fn};
 #array_unshift($args, $this);
 #call_user_func_array( $this->{$fn}, $args);
@@ -70,7 +72,9 @@ class Frame {
   }
 
   public function getImageSrc( $show='capture' ) {
-    return $_SERVER['PHP_SELF'].'?view=image&fid='.$this->{'Id'}.'&show='.$show;;
+    
+    return $_SERVER['PHP_SELF'].'?view=image&fid='.$this->{'FrameId'}.'&eid='.$this->{'EventId'}.'&show='.$show;
+    #return $_SERVER['PHP_SELF'].'?view=image&fid='.$this->{'Id'}.'&show='.$show.'&filename='.$this->Event()->MonitorId().'_'.$this->{'EventId'}.'_'.$this->{'FrameId'}.'.jpg';
   } // end function getImageSrc
 
 	public static function find( $parameters = array(), $limit = NULL ) {

@@ -20,28 +20,27 @@
 
 require_once('includes/Monitor.php');
 
-if ( !canView( 'Stream' ) )
-{
-    $view = "error";
-    return;
+if ( !canView( 'Stream' ) ) {
+  $view = 'error';
+  return;
 }
 
 // This is for input sanitation
 $mid = intval( $_REQUEST['mid'] ); 
 if ( ! visibleMonitor( $mid ) ) {
-    $view = "error";
-    return;
+  $view = 'error';
+  return;
 }
 
-$sql = 'SELECT C.*, M.* FROM Monitors AS M LEFT JOIN Controls AS C ON (M.ControlId = C.Id ) WHERE M.Id = ?';
 $monitor = new Monitor( $mid );
-#dbFetchOne( $sql, NULL, array( $_REQUEST['mid'] ) );
 
+#Whether to show the actual controls
 if ( isset($_REQUEST['showControls']) )
-    $showControls = validInt($_REQUEST['showControls']);
+  $showControls = validInt($_REQUEST['showControls']);
 else
-    $showControls = (canView( 'Control' ) && ($monitor->DefaultView() == 'Control'));
+  $showControls = canView( 'Control' ) && ($monitor->DefaultView() == 'Control');
 
+#Whether to show the controls button
 $showPtzControls = ( ZM_OPT_CONTROL && $monitor->Controllable() && canView( 'Control' ) );
 
 if ( isset( $_REQUEST['scale'] ) ) {
@@ -49,28 +48,12 @@ if ( isset( $_REQUEST['scale'] ) ) {
 } else if ( isset( $_COOKIE['zmWatchScale'.$mid] ) ) {
   $scale = $_COOKIE['zmWatchScale'.$mid];
 } else {
-  $scale = reScale( SCALE_BASE, $monitor->DefaultScale, ZM_WEB_DEFAULT_SCALE );
+  $scale = reScale( SCALE_BASE, $monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE );
 }
 
 $connkey = generateConnKey();
 
-if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT )
-{
-    $streamMode = "mpeg";
-    $streamSrc = $monitor->getStreamSrc( array( "mode=".$streamMode, "scale=".$scale, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_LIVE_FORMAT ) );
-}
-elseif ( canStream() )
-{
-    $streamMode = "jpeg";
-    $streamSrc = $monitor->getStreamSrc( array( "mode=".$streamMode, "scale=".$scale, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "buffer=".$monitor->StreamReplayBuffer() ) );
-}
-else
-{
-    $streamMode = "single";
-    $streamSrc = $monitor->getStreamSrc( array( "mode=".$streamMode, "scale=".$scale ) );
-    Info( "The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.");
-}
-
+$streamMode = getStreamMode();
 $showDvrControls = ( $streamMode == 'jpeg' && $monitor->StreamReplayBuffer() != 0 );
 
 noCacheHeaders();
@@ -102,8 +85,8 @@ if ( $showPtzControls )
 }
 ?>
 <?php
-if ( canView( 'Control' ) && $monitor->Type() == "Local" )
-{
+
+if ( canView( 'Control' ) && $monitor->Type() == 'Local' ) {
 ?>
           <div id="settingsControl"><?php echo makePopupLink( '?view=settings&amp;mid='.$monitor->Id(), 'zmSettings'.$monitor->Id(), 'settings', translate('Settings'), true, 'id="settingsLink"' ) ?></div>
 <?php
@@ -112,37 +95,18 @@ if ( canView( 'Control' ) && $monitor->Type() == "Local" )
           <div id="scaleControl"><?php echo translate('Scale') ?>: <?php echo buildSelect( "scale", $scales, "changeScale( this );" ); ?></div>
         </div>
       </div>
-      <div id="imageFeed">
-<?php
-if ( $streamMode == "mpeg" )
-{
-    outputVideoStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
-}
-elseif ( $streamMode == "jpeg" )
-{
-    if ( canStreamNative() )
-        outputImageStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
-    elseif ( canStreamApplet() )
-        outputHelperStream( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
-}
-else
-{
-    outputImageStill( "liveStream", $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
-}
-?>
-      </div>
+      <div id="imageFeed"><?php echo getStreamHTML( $monitor, array('scale'=>$scale) ); ?></div>
       <div id="monitorStatus">
-<?php
-if ( canEdit( 'Monitors' ) )
-{
-?>
+<?php if ( canEdit( 'Monitors' ) ) { ?>
         <div id="enableDisableAlarms"><a id="enableAlarmsLink" href="#" onclick="cmdEnableAlarms(); return( false );" class="hidden"><?php echo translate('EnableAlarms') ?></a><a id="disableAlarmsLink" href="#" onclick="cmdDisableAlarms(); return( false );" class="hidden"><?php echo translate('DisableAlarms') ?></a></div>
 <?php
 }
-if ( canEdit( 'Monitors' ) )
-{
+if ( canEdit( 'Monitors' ) ) {
 ?>
-        <div id="forceCancelAlarm"><a id="forceAlarmLink" href="#" onclick="cmdForceAlarm()" class="hidden"><?php echo translate('ForceAlarm') ?></a><a id="cancelAlarmLink" href="#" onclick="cmdCancelForcedAlarm()" class="hidden"><?php echo translate('CancelForcedAlarm') ?></a></div>
+        <div id="forceCancelAlarm">
+            <a id="forceAlarmLink" href="#" onclick="cmdForceAlarm();"><?php echo translate('ForceAlarm') ?></a>
+            <a id="cancelAlarmLink" href="#" onclick="cmdCancelForcedAlarm();" class="hidden"><?php echo translate('CancelForcedAlarm') ?></a>
+        </div>
 <?php
 }
 ?>
@@ -166,8 +130,7 @@ if ( canEdit( 'Monitors' ) )
         <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue"></span>x</span>
       </div>
 <?php
-if ( $showPtzControls )
-{
+if ( $showPtzControls ) {
     foreach ( getSkinIncludes( 'includes/control_functions.php' ) as $includeFile )
         require_once $includeFile;
 ?>
@@ -176,10 +139,9 @@ if ( $showPtzControls )
       </div>
 <?php
 }
-if ( canView( 'Events' ) )
-{
+if ( canView( 'Events' ) ) {
 ?>
-      <div id="events"<?php echo $showControls?' class="hidden"':'' ?>>
+      <div id="events">
         <table id="eventList" cellspacing="0">
           <thead>
             <tr>
@@ -198,14 +160,12 @@ if ( canView( 'Events' ) )
       </div>
 <?php
 }
-if ( ZM_WEB_SOUND_ON_ALARM )
-{
+if ( ZM_WEB_SOUND_ON_ALARM ) {
     $soundSrc = ZM_DIR_SOUNDS.'/'.ZM_WEB_ALARM_SOUND;
 ?>
       <div id="alarmSound" class="hidden">
 <?php
-    if ( ZM_WEB_USE_OBJECT_TAGS && isWindows() )
-    {
+    if ( ZM_WEB_USE_OBJECT_TAGS && isWindows() ) {
 ?>
         <object id="MediaPlayer" width="0" height="0"
           classid="CLSID:22D6F312-B0F6-11D0-94AB-0080C74C7E95"
@@ -222,9 +182,7 @@ if ( ZM_WEB_SOUND_ON_ALARM )
           </embed>
         </object>
 <?php
-    }
-    else
-    {
+    } else {
 ?>
         <embed src="<?php echo $soundSrc ?>"
           autostart="true"

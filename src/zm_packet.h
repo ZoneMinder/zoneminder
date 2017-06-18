@@ -1,4 +1,4 @@
-//ZoneMinder Packet Wrapper Class
+	//ZoneMinder Packet Wrapper Class
 //Copyright 2017 ZoneMinder LLC
 //
 //This file is part of ZoneMinder.
@@ -23,6 +23,10 @@
 extern "C" {
 #include <libavformat/avformat.h>
 }
+
+#ifdef __FreeBSD__
+#include <sys/time.h>
+#endif // __FreeBSD__
 
 class ZMPacket {
   public:

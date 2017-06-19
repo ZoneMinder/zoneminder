@@ -41,7 +41,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   video_input_stream = p_video_input_stream;
   audio_input_stream = p_audio_input_stream;
 
-#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   video_input_context = avcodec_alloc_context3( NULL );
   avcodec_parameters_to_context( video_input_context, video_input_stream->codecpar );
   zm_dump_codecpar( video_input_stream->codecpar );
@@ -85,7 +85,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   oc->metadata = pmetadata;
   output_format = oc->oformat;
 
-#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
 
   // Since we are not re-encoding, all we have to do is copy the parameters
   video_output_context = avcodec_alloc_context3( NULL );
@@ -195,7 +195,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
   if ( audio_input_stream ) {
     Debug(3, "Have audio stream" );
-#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
 
     audio_input_context = avcodec_alloc_context3( NULL );
     ret = avcodec_parameters_to_context( audio_input_context, audio_input_stream->codecpar );
@@ -222,7 +222,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
       } else {
         Debug(2, "setting parameters");
 
-#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
         audio_output_context = avcodec_alloc_context3( audio_output_codec );
         // Copy params from inputstream to context
         ret = avcodec_parameters_to_context( audio_output_context, audio_input_stream->codecpar );
@@ -325,7 +325,7 @@ VideoStore::~VideoStore(){
     int64_t size;
 
     while(1) {
-#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       ret = avcodec_receive_packet( audio_output_context, &pkt );
 #else
       ret = avcodec_encode_audio2( audio_output_context, &pkt, NULL, &got_packet );
@@ -397,7 +397,7 @@ bool VideoStore::setup_resampler() {
 #ifdef HAVE_LIBAVRESAMPLE
   static char error_buffer[256];
 
-#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   // Newer ffmpeg wants to keep everything separate... so have to lookup our own decoder, can't reuse the one from the camera.
   AVCodec *audio_input_codec = avcodec_find_decoder(audio_input_stream->codecpar->codec_id);
 #else
@@ -473,7 +473,7 @@ bool VideoStore::setup_resampler() {
   // Now copy them to the output stream
   audio_output_stream = avformat_new_stream( oc, audio_output_codec );
 
-#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   ret = avcodec_parameters_from_context( audio_output_stream->codecpar, audio_output_context );
   if ( ret < 0 ) {
     Error( "Could not initialize stream parameteres");
@@ -738,7 +738,7 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
   if ( audio_output_codec ) {
 #ifdef HAVE_LIBAVRESAMPLE
 
-#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     ret = avcodec_send_packet( audio_input_context, ipkt );
     if ( ret < 0 ) {
       Error("avcodec_send_packet fail %s", av_make_error_string(ret).c_str());
@@ -818,7 +818,7 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
      * Encode the audio frame and store it in the temporary packet.
      * The output audio stream encoder is used to do this.
      */
-#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     if (( ret = avcodec_send_frame( audio_output_context, output_frame ) ) < 0 ) {
       Error( "Could not send frame (error '%s')",
           av_make_error_string(ret).c_str());

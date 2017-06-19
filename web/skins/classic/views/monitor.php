@@ -708,7 +708,7 @@ switch ( $tab ) {
 					<td>
 						<select name="monitorIds" size="4" multiple="multiple" onchange="updateLinkedMonitors( this )">
 <?php
-			$monitors = dbFetchAll( "select Id,Name from Monitors order by Sequence asc" );
+			$monitors = dbFetchAll( 'select Id,Name from Monitors order by Sequence asc' );
 			if ( !empty($monitor->LinkedMonitors()) )
 				$monitorIds = array_flip( explode( ',', $monitor->LinkedMonitors()) );
 			else

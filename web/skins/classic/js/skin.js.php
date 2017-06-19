@@ -39,14 +39,15 @@ var refreshParent = <?php
 if ( ! empty($refreshParent) ) {
   if ( $refreshParent == true ) {
     echo 'true';
-    return;
   } else if ( $refreshParent ) {
     # This is to tell the parent to refresh to a specific URL
     echo "'$refreshParent'";
-    return;
-  } 
+  } else {
+    echo 'false';
+  }
+} else {
+  echo 'false';
 }
-echo 'false';
 ?>;
 
 var focusWindow = <?php echo !empty($focusWindow)?'true':'false' ?>;

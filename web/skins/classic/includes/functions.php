@@ -68,7 +68,7 @@ function xhtmlHeaders( $file, $title ) {
   /*]]>*/
   </style>
 <?php
-    }
+  }
 ?>
   <script type="text/javascript" src="tools/mootools/mootools-core.js"></script>
   <script type="text/javascript" src="tools/mootools/mootools-more.js"></script>
@@ -79,16 +79,19 @@ function xhtmlHeaders( $file, $title ) {
   <script type="text/javascript">
   //<![CDATA[
   <!--
-var $j = jQuery.noConflict();
-// $j is now an alias to the jQuery function; creating the new alias is optional.
+  var $j = jQuery.noConflict();
+  // $j is now an alias to the jQuery function; creating the new alias is optional.
 
   //-->
   //]]>
-</script>
+  </script>
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/views/js/state.js"></script>
-<?php if ( $title == 'Login' && (defined('ZM_OPT_USE_GOOG_RECAPTCHA') && ZM_OPT_USE_GOOG_RECAPTCHA) ) { ?>
+<?php
+  if ( $title == 'Login' && (defined('ZM_OPT_USE_GOOG_RECAPTCHA') && ZM_OPT_USE_GOOG_RECAPTCHA) ) {
+?>
   <script src='https://www.google.com/recaptcha/api.js'></script>
-<?php } else if ( $title == 'Event' ) {
+<?php
+  } else if ( $title == 'Event' ) {
 ?>
   <link href="skins/<?php echo $skin ?>/js/video-js.css" rel="stylesheet">
   <script src="skins/<?php echo $skin ?>/js/video.js"></script>
@@ -137,7 +140,7 @@ var $j = jQuery.noConflict();
 ?>
 </head>
 <?php
-}
+} // end function xhtmlHeaders( $file, $title )
 
 function getNavBarHTML() {
 
@@ -173,7 +176,6 @@ function getNavBarHTML() {
 
   $cycleWidth = $maxWidth;
   $cycleHeight = $maxHeight;
-
 
   $versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText':'';
 
@@ -215,15 +217,19 @@ function getNavBarHTML() {
 			<li><?php echo makePopupLink( '?view=filter&amp;filter[terms][0][attr]=DateTime&amp;filter[terms][0][op]=%3c&amp;filter[terms][0][val]=now', 'zmFilter', 'filter', translate('Filters'), canView( 'Events' ) ) ?></li>
 
 <?php 
-$cycleGroup = isset($_COOKIE['zmGroup'])?$_COOKIE['zmGroup']:0;
-if ( canView( 'Stream' ) && $cycleCount > 1 ) {
+  $cycleGroup = isset($_COOKIE['zmGroup'])?$_COOKIE['zmGroup']:0;
+  if ( canView( 'Stream' ) && $cycleCount > 1 ) {
 ?>
 					<li><?php echo makePopupLink( '?view=cycle&amp;group='.$cycleGroup, 'zmCycle'.$cycleGroup, array( 'cycle', $cycleWidth, $cycleHeight ), translate('Cycle'), $running ) ?></li>
 					<li><?php echo makePopupLink( '?view=montage&amp;group='.$cycleGroup, 'zmMontage'.$cycleGroup, 'montage', translate('Montage'), $running ) ?></li>
-<?php } ?>
-<?php if ( canView('Events') ) { ?>
+<?php
+   }
+  if ( canView('Events') ) {
+ ?>
 					<li><?php echo makePopupLink( '?view=montagereview&amp;group='.$cycleGroup, 'zmMontageReview'.$cycleGroup, 'montagereview', translate('MontageReview') ) ?></li>
-<?php } ?>
+<?php
+  }
+?>
 		</ul>
 
 <div class="navbar-right">
@@ -277,6 +283,6 @@ if ( canView( 'Stream' ) && $cycleCount > 1 ) {
 
 </div> <!-- End .navbar .navbar-default -->
 <?php
-return( ob_get_clean() );
-}
+  return( ob_get_clean() );
+} // end function getNavBarHTML()
 ?>

@@ -1,7 +1,25 @@
 <?php
 
 class Filter {
-  public function __construct( $IdOrRow ) {
+
+public $defaults = array(
+    'Name'            => '',
+    'AutoExecute'     =>  0,
+    'AutoExecuteCmd'  =>  0,
+    'AutoEmail'       =>  0,
+    'AutoDetail'      =>  0,
+    'AutoArchive'     =>  0,
+    'AutoVideo'       =>  0,
+    'AutoMessage'     =>  0,
+    'Background'      =>  0,
+    'Concurrent'      =>  0,
+    'limit'           =>  100,
+    'terms'           =>  array(),
+    'sort_field'      =>  ZM_WEB_EVENT_SORT_FIELD,
+    'sort_asc'        =>  (ZM_WEB_EVENT_SORT_ORDER == 'asc'),
+);
+
+  public function __construct( $IdOrRow=NULL ) {
     $row = NULL;
     if ( $IdOrRow ) {
       if ( is_integer( $IdOrRow ) or is_numeric( $IdOrRow ) ) {
@@ -25,17 +43,44 @@ class Filter {
       foreach ($row as $k => $v) {
         $this->{$k} = $v;
       }
-    } else {
-      Error('No row for Filter ' . $IdOrRow );
     }
   } // end function __construct
 
-  public function __call( $fn, array $args){
+  public function __call( $fn, array $args ) {
+    if ( count( $args )  ) {
+      $this->{$fn} = $args[0];
+    }
     if ( array_key_exists( $fn, $this ) ) {
       return $this->{$fn};
-#array_unshift($args, $this);
-#call_user_func_array( $this->{$fn}, $args);
+    } else if ( array_key_exists( $fn, $this->defaults ) ) {
+      return $this->defaults{$fn};
+    } else {
+
+      $backTrace = debug_backtrace();
+      $file = $backTrace[1]['file'];
+      $line = $backTrace[1]['line'];
+      Warning( "Unknown function call Filter->$fn from $file:$line" );
     }
+
+  }
+
+  public function terms( ) {
+    if ( func_num_args( ) ) {
+      $this->{'terms'} = func_get_arg(0);
+Warning("terms set " .   $this->{'terms'} );
+    }
+    if ( ! isset( $this->{'terms'} ) ) {
+Warning("terms not set " . array_key_exists( 'Query', $this ) );
+      if ( array_key_exists( 'Query', $this ) and $this->{'Query'} ) {
+Warning("Decoding terms not set");
+
+      $this->{'terms'} = jsonDecode( $this->{'Query'} );
+      } else {
+Warning("Defaulting terms not set");
+        $this->{'terms'} = array();
+      }
+    }
+    return $this->{'terms'};
   }
 
   public static function find_all() {
@@ -51,6 +96,24 @@ class Filter {
   public function delete() {
     dbQuery( 'DELETE FROM Filters WHERE Id = ?', array($this->{'Id'}) );
   } # end function delete()
+
+  public function set( $data ) {
+    foreach ($data as $k => $v) {
+      if ( is_array( $v ) ) {
+        $this->{$k} = $v;
+      } else if ( is_string( $v ) ) {
+        $this->{$k} = trim( $v );
+      } else if ( is_integer( $v ) ) {
+        $this->{$k} = $v;
+      } else if ( is_bool( $v ) ) {
+        $this->{$k} = $v;
+      } else {
+        Error( "Unknown type $k => $v of var " . gettype( $v ) );
+        $this->{$k} = $v;
+      }
+    }
+  }
+
 
 } # end class
 

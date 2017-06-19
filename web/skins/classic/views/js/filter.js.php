@@ -1,28 +1,29 @@
 var deleteSavedFilterString = "<?php echo translate('DeleteSavedFilter') ?>";
 function validateForm( form ) {
 <?php
-if ( isset ($_REQUEST['filter']) && count($_REQUEST['filter']['terms']) > 2 ) {
+if ( isset ($_REQUEST['filter']) && isset($_REQUEST['filter']['terms']) ) {
+  if ( count($_REQUEST['filter']['terms']) > 2 ) {
 ?>
   var bracket_count = 0;
 <?php
-for ( $i = 0; $i < count($_REQUEST['filter']['terms']); $i++ ) {
+  for ( $i = 0; $i < count($_REQUEST['filter']['terms']); $i++ ) {
 ?>
   var obr = form.elements['filter[terms][<?php echo $i ?>][obr]'];
   var cbr = form.elements['filter[terms][<?php echo $i ?>][cbr]'];
   bracket_count += parseInt(obr.options[obr.selectedIndex].value);
   bracket_count -= parseInt(cbr.options[cbr.selectedIndex].value);
 <?php
-}
+  }
 ?>
   if ( bracket_count ) {
     alert( "<?php echo translate('ErrorBrackets') ?>" );
     return( false );
   }
 <?php
-}
+  }
 ?>
 <?php
-for ( $i = 0; isset($_REQUEST['filter']) && $i < count($_REQUEST['filter']['terms']); $i++ ) {
+for ( $i = 0; $i < count($_REQUEST['filter']['terms']); $i++ ) {
 ?>
   var val = form.elements['filter[terms][<?php echo $i ?>][val]'];
   if ( val.value == '' ) {
@@ -31,6 +32,7 @@ for ( $i = 0; isset($_REQUEST['filter']) && $i < count($_REQUEST['filter']['term
   }
 <?php
 }
+} // end if isset ($_REQUEST['filter']) && isset($_REQUEST['filter']['terms'])
 ?>
   return( true );
 }

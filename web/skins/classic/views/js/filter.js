@@ -5,19 +5,19 @@ function updateButtons( element ) {
     form.elements['executeButton'].disabled = false;
   } else {
     var canExecute = false;
-    if ( form.elements['AutoArchive'].checked )
+    if ( form.elements['filter[AutoArchive]'] && form.elements['filter[AutoArchive]'].checked )
       canExecute = true;
-    else if ( form.elements['AutoVideo'] && form.elements['AutoVideo'].checked )
+    else if ( form.elements['filter[AutoVideo]'] && form.elements['filter[AutoVideo]'].checked )
       canExecute = true;
-    else if ( form.elements['AutoUpload'] && form.elements['AutoUpload'].checked )
+    else if ( form.elements['filter[AutoUpload]'] && form.elements['filter[AutoUpload]'].checked )
       canExecute = true;
-    else if ( form.elements['AutoEmail'] && form.elements['AutoEmail'].checked )
+    else if ( form.elements['filter[AutoEmail]'] && form.elements['filter[AutoEmail]'].checked )
       canExecute = true;
-    else if ( form.elements['AutoMessage'] && form.elements['AutoMessage'].checked )
+    else if ( form.elements['filter[AutoMessage]'] && form.elements['filter[AutoMessage]'].checked )
       canExecute = true;
-    else if ( form.elements['AutoExecute'].checked && form.elements['AutoExecuteCmd'].value != '' )
+    else if ( form.elements['filter[AutoExecute]'].checked && form.elements['filter[AutoExecuteCmd]'].value != '' )
       canExecute = true;
-    else if ( form.elements['AutoDelete'].checked )
+    else if ( form.elements['filter[AutoDelete]'].checked )
       canExecute = true;
     form.elements['executeButton'].disabled = !canExecute;
   }

@@ -1305,6 +1305,10 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
 function addFilterTerm( $filter, $position, $term=false ) {
   if ( $position < 0 )
     $position = 0;
+  
+  if ( ! isset( $filter['terms'] ) )
+    $filter['terms'] = array();
+
   elseif( $position > count($filter['terms']) )
     $position = count($filter['terms']);
   if ( $term && $position == 0 )

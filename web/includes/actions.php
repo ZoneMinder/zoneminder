@@ -118,11 +118,11 @@ if ( !empty($action) ) {
   if ( canView( 'Events' ) ) {
 
     if ( isset( $_REQUEST['object'] ) and ( $_REQUEST['object'] == 'filter' ) ) {
-      if ( $action == 'addterm' )
+      if ( $action == 'addterm' ) {
         $_REQUEST['filter'] = addFilterTerm( $_REQUEST['filter'], $_REQUEST['line'] );
-      elseif ( $action == 'delterm' )
+      } elseif ( $action == 'delterm' ) {
         $_REQUEST['filter'] = delFilterTerm( $_REQUEST['filter'], $_REQUEST['line'] );
-      else if ( canEdit( 'Events' ) ) {
+      } else if ( canEdit( 'Events' ) ) {
         if ( $action == 'delete' ) {
           if ( ! empty($_REQUEST['Id']) ) {
             dbQuery( 'DELETE FROM Filters WHERE Id=?', array( $_REQUEST['Id'] ) );
@@ -146,20 +146,21 @@ if ( !empty($action) ) {
 
           # endSql is only set if ! filterName... so... woulnd't this always be true
           if ( !empty($filterName) || $endSql ) {
-            $_REQUEST['filter']['sort_field'] = validStr($_REQUEST['sort_field']);
-            $_REQUEST['filter']['sort_asc'] = validStr($_REQUEST['sort_asc']);
-            $_REQUEST['filter']['limit'] = validInt($_REQUEST['limit']);
-            $sql .= ' Query = '.dbEscape(jsonEncode($_REQUEST['filter']));
-            $sql .= ', AutoArchive = '.(!empty($_REQUEST['AutoArchive']) ? 1 : 0);
-            $sql .= ', AutoVideo = '. ( !empty($_REQUEST['AutoVideo']) ? 1 : 0);
-            $sql .= ', AutoUpload = '. ( !empty($_REQUEST['AutoUpload']) ? 1 : 0);
-            $sql .= ', AutoEmail = '. ( !empty($_REQUEST['AutoEmail']) ? 1 : 0);
-            $sql .= ', AutoMessage = '. ( !empty($_REQUEST['AutoMessage']) ? 1 : 0);
-            $sql .= ', AutoExecute = '. ( !empty($_REQUEST['AutoExecute']) ? 1 : 0);
-            $sql .= ', AutoExecuteCmd = '.dbEscape($_REQUEST['AutoExecuteCmd']);
-            $sql .= ', AutoDelete = '. ( !empty($_REQUEST['AutoDelete']) ? 1 : 0);
-            $sql .= ', Background = '. ( !empty($_REQUEST['Background']) ? 1 : 0);
-            $sql .= ', Concurrent  = '. ( !empty($_REQUEST['Concurrent']) ? 1 : 0);
+            $_REQUEST['filter']['sort_field'] = validStr($_REQUEST['filter']['sort_field']);
+            $_REQUEST['filter']['sort_asc'] = validStr($_REQUEST['filter']['sort_asc']);
+            $_REQUEST['filter']['limit'] = validInt($_REQUEST['filter']['limit']);
+            $sql .= ' Name = '.dbEscape($_REQUEST['filter']['Name']);
+            $sql .= ', Query = '.dbEscape(jsonEncode($_REQUEST['filter']['terms']));
+            $sql .= ', AutoArchive = '.(!empty($_REQUEST['filter']['AutoArchive']) ? 1 : 0);
+            $sql .= ', AutoVideo = '. ( !empty($_REQUEST['filter']['AutoVideo']) ? 1 : 0);
+            $sql .= ', AutoUpload = '. ( !empty($_REQUEST['filter']['AutoUpload']) ? 1 : 0);
+            $sql .= ', AutoEmail = '. ( !empty($_REQUEST['filter']['AutoEmail']) ? 1 : 0);
+            $sql .= ', AutoMessage = '. ( !empty($_REQUEST['filter']['AutoMessage']) ? 1 : 0);
+            $sql .= ', AutoExecute = '. ( !empty($_REQUEST['filter']['AutoExecute']) ? 1 : 0);
+            $sql .= ', AutoExecuteCmd = '.dbEscape($_REQUEST['filter']['AutoExecuteCmd']);
+            $sql .= ', AutoDelete = '. ( !empty($_REQUEST['filter']['AutoDelete']) ? 1 : 0);
+            $sql .= ', Background = '. ( !empty($_REQUEST['filter']['Background']) ? 1 : 0);
+            $sql .= ', Concurrent  = '. ( !empty($_REQUEST['filter']['Concurrent']) ? 1 : 0);
 
             dbQuery( $sql. $endSql );
             if ( $filterName ) {

@@ -46,7 +46,7 @@ if [ "$1" = "configure" ]; then
                 zmupdate.pl --nointeractive
                 zmupdate.pl --nointeractive -f
                 echo "Done Updating, starting ZoneMinder"
-                deb-systemd-invoke start zoneminder.service || exit $?
+                deb-systemd-invoke restart zoneminder.service || exit $?
 
             else
                 echo 'NOTE: mysql not running, please start mysql and run dpkg-reconfigure zoneminder when it is running.'

@@ -156,7 +156,7 @@ xhtmlHeaders(__FILE__, translate('EventFilter') );
     </div>
     <div id="content">
       <form name="selectForm" id="selectForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
-          <input type="hidden" name="view" value="filter"/>
+        <input type="hidden" name="view" value="filter"/>
         <hr/>
         <div id="filterSelector"><label for="<?php echo 'Id' ?>"><?php echo translate('UseFilter') ?></label>
 <?php
@@ -166,7 +166,8 @@ if ( count($filterNames) > 1 ) {
 ?><select disabled="disabled"><option><?php echo translate('NoSavedFilters') ?></option></select>
 <?php
 }
-echo $backgroundStr ?></div>
+echo $backgroundStr ?>
+        </div>
       </form>
       <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="Id" value="<?php echo $dbFilter['Id'] ?>"/>
@@ -176,7 +177,7 @@ echo $backgroundStr ?></div>
 
         <hr/>
         <p>
-          <label for="Name"><?php echo translate('Name') ?></label><input type="text" id="<?php echo $newSelectName ?>" name="<?php echo $newSelectName ?>" value="<?php echo $dbFilter['Name'] ?>"/>
+          <label for="filter[Name]"><?php echo translate('Name') ?></label><input type="text" id="filter[Name]" name="filter[Name]" value="<?php echo $dbFilter['Name'] ?>"/>
         </p>
         <table id="fieldsTable" class="filterTable" cellspacing="0">
           <tbody>
@@ -283,13 +284,28 @@ for ( $i = 0; isset($_REQUEST['filter']) && $i < count($_REQUEST['filter']['term
   }
 ?>
               <td><?php if ( count($_REQUEST['filter']['terms']) > 2 ) { echo buildSelect( "filter[terms][$i][cbr]", $cbracketTypes ); } else { ?>&nbsp;<?php } ?></td>
-              <td><input type="button" onclick="addTerm( this, <?php echo $i+1 ?> )" value="+"/><?php if ( $_REQUEST['filter']['terms'] > 1 ) { ?><input type="button" onclick="delTerm( this, <?php echo $i ?> )" value="-"/><?php } ?></td>
+              <td>
+                <input type="button" onclick="addTerm( this, <?php echo $i+1 ?> )" value="+"/>
+<?php
+  if ( count($_REQUEST['filter']['terms']) > 1 ) {
+?>
+                <input type="button" onclick="delTerm( this, <?php echo $i ?> )" value="-"/>
+<?php
+  }
+?>            </td>
             </tr>
 <?php
 } # end foreach filter
 ?>
           </tbody>
         </table>
+<?php
+if ( count($_REQUEST['filter']['terms']) == 0 ) {
+?>
+                <input type="button" onclick="addTerm( this, 1 )" value="+"/>
+<?php
+}
+?>
         <hr/>
         <table id="sortTable" class="filterTable" cellspacing="0">
           <tbody>
@@ -351,11 +367,11 @@ if ( ZM_OPT_MESSAGE ) {
             </p>
             <p>
               <label for="background"><?php echo translate('BackgroundFilter') ?></label>
-              <input type="checkbox" id="background" name="background" value="1"<?php if ( !empty($dbFilter['Background']) ) { ?> checked="checked"<?php } ?>/>
+              <input type="checkbox" id="Background" name="Background" value="1"<?php if ( !empty($dbFilter['Background']) ) { ?> checked="checked"<?php } ?>/>
             </p>
             <p>
-              <label for="concurrent"><?php echo translate('ConcurrentFilter') ?></label>
-              <input type="checkbox" id="concurrent" name="concurrent" value="1"<?php if ( !empty($dbFilter['Concurrent']) ) { ?> checked="checked"<?php } ?>/>
+              <label for="Concurrent"><?php echo translate('ConcurrentFilter') ?></label>
+              <input type="checkbox" id="Concurrent" name="Concurrent" value="1"<?php if ( !empty($dbFilter['Concurrent']) ) { ?> checked="checked"<?php } ?>/>
             </p>
         </div>
         <hr/>

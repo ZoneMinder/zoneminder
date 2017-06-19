@@ -35,8 +35,7 @@ xhtmlHeaders(__FILE__, translate('Logout') );
         <p>
           <input type="submit" value="<?php echo translate('Logout') ?>"/>
 <?php
-if ( ZM_USER_SELF_EDIT )
-{
+if ( ZM_USER_SELF_EDIT ) {
 ?>
           <input type="button" value="<?php echo translate('Config') ?>" onclick="createPopup( '?view=user&amp;uid=<?php echo $user['Id'] ?>', 'zmUser', 'user' );"/>
 <?php

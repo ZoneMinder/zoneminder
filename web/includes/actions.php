@@ -124,29 +124,24 @@ if ( !empty($action) ) {
         $_REQUEST['filter'] = delFilterTerm( $_REQUEST['filter'], $_REQUEST['line'] );
       else if ( canEdit( 'Events' ) ) {
         if ( $action == 'delete' ) {
-          if ( !empty($_REQUEST['Id']) ) {
+          if ( ! empty($_REQUEST['Id']) ) {
             dbQuery( 'DELETE FROM Filters WHERE Id=?', array( $_REQUEST['Id'] ) );
             //$refreshParent = true;
           }
         } else if ( ( $action == 'save' ) or ( $action == 'execute' ) or ( $action == 'submit' ) ) {
-          # Execute is the same as save, but with a temp name.
     
           $sql = '';
           $endSql = '';
           $filterName = '';
-          if ( !empty($_REQUEST['execute']) ) {
-            // TempFilterName is used in event listing later on
-            $tempFilterName = $filterName = '_TempFilter'.time();
-          } elseif ( !empty($_REQUEST['newFilterName']) ) {
-            $filterName = $_REQUEST['newFilterName'];
-          }
-          if ( $filterName ) {
+          if ( $action == 'execute' or $action == 'submit' ) {
             # Replace will teplace any filter with the same Id 
             # Since we aren't specifying the Id , this is effectively an insert
-            $sql = 'REPLACE INTO Filters SET Name = '.dbEscape($filterName).',';
-          } else {
+            $sql = 'REPLACE INTO Filters SET Name = \'_TempFilter'.time().'\',';
+          } else if ( $_REQUEST['Id'] ) {
             $sql = 'UPDATE Filters SET';
-            $endSql = 'WHERE Id = '.$_REQUEST['Id'];
+            $endSql = ' WHERE Id = '.$_REQUEST['Id'];
+          } else {
+            $sql = 'INSERT INTO Filters SET';
           }
 
           # endSql is only set if ! filterName... so... woulnd't this always be true
@@ -155,26 +150,18 @@ if ( !empty($action) ) {
             $_REQUEST['filter']['sort_asc'] = validStr($_REQUEST['sort_asc']);
             $_REQUEST['filter']['limit'] = validInt($_REQUEST['limit']);
             $sql .= ' Query = '.dbEscape(jsonEncode($_REQUEST['filter']));
-            if ( !empty($_REQUEST['AutoArchive']) )
-              $sql .= ', AutoArchive = '.dbEscape($_REQUEST['AutoArchive']);
-            if ( !empty($_REQUEST['AutoVideo']) )
-              $sql .= ', AutoVideo = '.dbEscape($_REQUEST['AutoVideo']);
-            if ( !empty($_REQUEST['AutoUpload']) )
-              $sql .= ', AutoUpload = '.dbEscape($_REQUEST['AutoUpload']);
-            if ( !empty($_REQUEST['AutoEmail']) )
-              $sql .= ', AutoEmail = '.dbEscape($_REQUEST['AutoEmail']);
-            if ( !empty($_REQUEST['AutoMessage']) )
-              $sql .= ', AutoMessage = '.dbEscape($_REQUEST['AutoMessage']);
-            if ( !empty($_REQUEST['AutoExecute']) && !empty($_REQUEST['AutoExecuteCmd']) )
-              $sql .= ', AutoExecute = '.dbEscape($_REQUEST['AutoExecute']).", AutoExecuteCmd = ".dbEscape($_REQUEST['AutoExecuteCmd']);
-            if ( !empty($_REQUEST['AutoDelete']) )
-              $sql .= ', AutoDelete = '.dbEscape($_REQUEST['AutoDelete']);
-            if ( !empty($_REQUEST['background']) )
-              $sql .= ', Background = '.dbEscape($_REQUEST['background']);
-            if ( !empty($_REQUEST['concurrent']) )
-              $sql .= ', Concurrent = '.dbEscape($_REQUEST['concurrent']);
-            $sql .= $endSql;
-            dbQuery( $sql );
+            $sql .= ', AutoArchive = '.(!empty($_REQUEST['AutoArchive']) ? 1 : 0);
+            $sql .= ', AutoVideo = '. ( !empty($_REQUEST['AutoVideo']) ? 1 : 0);
+            $sql .= ', AutoUpload = '. ( !empty($_REQUEST['AutoUpload']) ? 1 : 0);
+            $sql .= ', AutoEmail = '. ( !empty($_REQUEST['AutoEmail']) ? 1 : 0);
+            $sql .= ', AutoMessage = '. ( !empty($_REQUEST['AutoMessage']) ? 1 : 0);
+            $sql .= ', AutoExecute = '. ( !empty($_REQUEST['AutoExecute']) ? 1 : 0);
+            $sql .= ', AutoExecuteCmd = '.dbEscape($_REQUEST['AutoExecuteCmd']);
+            $sql .= ', AutoDelete = '. ( !empty($_REQUEST['AutoDelete']) ? 1 : 0);
+            $sql .= ', Background = '. ( !empty($_REQUEST['Background']) ? 1 : 0);
+            $sql .= ', Concurrent  = '. ( !empty($_REQUEST['Concurrent']) ? 1 : 0);
+
+            dbQuery( $sql. $endSql );
             if ( $filterName ) {
               $filter = dbFetchOne( 'SELECT * FROM Filters WHERE Name=?', NULL, array($filterName) );
               if ( $filter ) {

@@ -19,6 +19,8 @@ if [ "$1" = "configure" ]; then
 
 	# Do this every time the package is installed or upgraded
 
+  # Ensure zoneminder is stopped
+  deb-systemd-invoke stop zoneminder.service || exit $?
 	if [ "$ZM_DB_HOST" = "localhost" ]; then
 
         if [ -e "/etc/init.d/mysql" ]; then
@@ -41,12 +43,8 @@ if [ "$1" = "configure" ]; then
                     echo "grant lock tables,alter,select,insert,update,delete,create,index on ${ZM_DB_NAME}.* to '${ZM_DB_USER}'@localhost;" | mysql --defaults-file=/etc/mysql/debian.cnf mysql
                 fi
 
-                # Ensure zoneminder is stopped
-                deb-systemd-invoke stop zoneminder.service || exit $?
                 zmupdate.pl --nointeractive
                 zmupdate.pl --nointeractive -f
-                echo "Done Updating, starting ZoneMinder"
-                deb-systemd-invoke start zoneminder.service || exit $?
 
             else
                 echo 'NOTE: mysql not running, please start mysql and run dpkg-reconfigure zoneminder when it is running.'
@@ -56,9 +54,10 @@ if [ "$1" = "configure" ]; then
         fi
 
     else
-		echo "Not doing database upgrade due to remote db server ($ZM_DB_HOST)"
+      echo "Not doing database upgrade due to remote db server ($ZM_DB_HOST)"
     fi
-
+    echo "Done Updating, starting ZoneMinder"
+    deb-systemd-invoke start zoneminder.service || exit $?
 fi
 
 #DEBHELPER#

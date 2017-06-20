@@ -126,13 +126,11 @@ if ( !empty($action) ) {
         if ( $action == 'delete' ) {
           if ( ! empty($_REQUEST['Id']) ) {
             dbQuery( 'DELETE FROM Filters WHERE Id=?', array( $_REQUEST['Id'] ) );
-            //$refreshParent = true;
           }
         } else if ( ( $action == 'save' ) or ( $action == 'execute' ) or ( $action == 'submit' ) ) {
     
           $sql = '';
           $endSql = '';
-          $filterName = '';
           if ( $action == 'execute' or $action == 'submit' ) {
             # Replace will teplace any filter with the same Id 
             # Since we aren't specifying the Id , this is effectively an insert
@@ -144,35 +142,27 @@ if ( !empty($action) ) {
             $sql = 'INSERT INTO Filters SET';
           }
 
-          # endSql is only set if ! filterName... so... woulnd't this always be true
-          if ( !empty($filterName) || $endSql ) {
-            $_REQUEST['filter']['sort_field'] = validStr($_REQUEST['filter']['sort_field']);
-            $_REQUEST['filter']['sort_asc'] = validStr($_REQUEST['filter']['sort_asc']);
-            $_REQUEST['filter']['limit'] = validInt($_REQUEST['filter']['limit']);
-            $sql .= ' Name = '.dbEscape($_REQUEST['filter']['Name']);
-            $sql .= ', Query = '.dbEscape(jsonEncode($_REQUEST['filter']['terms']));
-            $sql .= ', AutoArchive = '.(!empty($_REQUEST['filter']['AutoArchive']) ? 1 : 0);
-            $sql .= ', AutoVideo = '. ( !empty($_REQUEST['filter']['AutoVideo']) ? 1 : 0);
-            $sql .= ', AutoUpload = '. ( !empty($_REQUEST['filter']['AutoUpload']) ? 1 : 0);
-            $sql .= ', AutoEmail = '. ( !empty($_REQUEST['filter']['AutoEmail']) ? 1 : 0);
-            $sql .= ', AutoMessage = '. ( !empty($_REQUEST['filter']['AutoMessage']) ? 1 : 0);
-            $sql .= ', AutoExecute = '. ( !empty($_REQUEST['filter']['AutoExecute']) ? 1 : 0);
-            $sql .= ', AutoExecuteCmd = '.dbEscape($_REQUEST['filter']['AutoExecuteCmd']);
-            $sql .= ', AutoDelete = '. ( !empty($_REQUEST['filter']['AutoDelete']) ? 1 : 0);
-            $sql .= ', Background = '. ( !empty($_REQUEST['filter']['Background']) ? 1 : 0);
-            $sql .= ', Concurrent  = '. ( !empty($_REQUEST['filter']['Concurrent']) ? 1 : 0);
+          $_REQUEST['filter']['sort_field'] = validStr($_REQUEST['filter']['sort_field']);
+          $_REQUEST['filter']['sort_asc'] = validStr($_REQUEST['filter']['sort_asc']);
+          $_REQUEST['filter']['limit'] = validInt($_REQUEST['filter']['limit']);
+          $sql .= ' Name = '.dbEscape($_REQUEST['filter']['Name']);
+          $sql .= ', Query = '.dbEscape(jsonEncode($_REQUEST['filter']['terms']));
+          $sql .= ', AutoArchive = '.(!empty($_REQUEST['filter']['AutoArchive']) ? 1 : 0);
+          $sql .= ', AutoVideo = '. ( !empty($_REQUEST['filter']['AutoVideo']) ? 1 : 0);
+          $sql .= ', AutoUpload = '. ( !empty($_REQUEST['filter']['AutoUpload']) ? 1 : 0);
+          $sql .= ', AutoEmail = '. ( !empty($_REQUEST['filter']['AutoEmail']) ? 1 : 0);
+          $sql .= ', AutoMessage = '. ( !empty($_REQUEST['filter']['AutoMessage']) ? 1 : 0);
+          $sql .= ', AutoExecute = '. ( !empty($_REQUEST['filter']['AutoExecute']) ? 1 : 0);
+          $sql .= ', AutoExecuteCmd = '.dbEscape($_REQUEST['filter']['AutoExecuteCmd']);
+          $sql .= ', AutoDelete = '. ( !empty($_REQUEST['filter']['AutoDelete']) ? 1 : 0);
+          $sql .= ', Background = '. ( !empty($_REQUEST['filter']['Background']) ? 1 : 0);
+          $sql .= ', Concurrent  = '. ( !empty($_REQUEST['filter']['Concurrent']) ? 1 : 0);
 
-            dbQuery( $sql. $endSql );
-            if ( $filterName ) {
-              $filter = dbFetchOne( 'SELECT * FROM Filters WHERE Name=?', NULL, array($filterName) );
-              if ( $filter ) {
-                # This won't work yet because refreshparent refreshes the old filter.  Need to do a redirect instead of a refresh.
-                $_REQUEST['Id'] = $filter['Id'];
-              } else {
-                Error("No new Id despite new name");
-              }
-            }
-          } // end if filterName or endsql
+          dbQuery( $sql. $endSql );
+          if ( ! $_REQUEST['Id'] ) {
+            $_REQUEST['Id'] = dbInsertId();
+          }
+
         } // end if save or execute
       } // end if canEdit(Events)
       return;

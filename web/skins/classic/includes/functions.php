@@ -214,7 +214,7 @@ function getNavBarHTML() {
 			<li><a href="/?view=devices">Devices</a></li>
 <?php } ?>
 			<li><?php echo makePopupLink( '?view=groups', 'zmGroups', 'groups', sprintf( $CLANG['MonitorCount'], count($displayMonitors), zmVlang( $VLANG['Monitor'], count($displayMonitors) ) ).($group?' ('.$group['Name'].')':''), canView( 'Groups' ) ); ?></li>
-			<li><?php echo makePopupLink( '?view=filter&amp;filter[terms][0][attr]=DateTime&amp;filter[terms][0][op]=%3c&amp;filter[terms][0][val]=now', 'zmFilter', 'filter', translate('Filters'), canView( 'Events' ) ) ?></li>
+			<li><a href="/?view=filter">Filters</a></li>
 
 <?php 
   $cycleGroup = isset($_COOKIE['zmGroup'])?$_COOKIE['zmGroup']:0;

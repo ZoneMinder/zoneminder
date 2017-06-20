@@ -135,12 +135,7 @@ xhtmlHeaders(__FILE__, translate('EventFilter') );
 ?>
 <body>
   <div id="page">
-    <div id="header">
-      <div id="headerButtons">
-        <a href="#" onclick="closeWindow();"><?php echo translate('Close') ?></a>
-      </div>
-      <h2><?php echo translate('EventFilter') ?></h2>
-    </div>
+<?php echo $navbar = getNavBarHTML(); ?>
     <div id="content">
       <form name="selectForm" id="selectForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="filter"/>
@@ -170,7 +165,7 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
         <p>
           <label for="filter[Name]"><?php echo translate('Name') ?></label><input type="text" id="filter[Name]" name="filter[Name]" value="<?php echo $filter->Name() ?>"/>
         </p>
-        <table id="fieldsTable" class="filterTable" cellspacing="0">
+        <table id="fieldsTable" class="filterTable">
           <tbody>
 <?php
 for ( $i = 0; $i < count($terms); $i++ ) {
@@ -315,7 +310,7 @@ if ( count($terms) == 0 ) {
 }
 ?>
         <hr/>
-        <table id="sortTable" class="filterTable" cellspacing="0">
+        <table id="sortTable" class="filterTable">
           <tbody>
             <tr>
               <td>

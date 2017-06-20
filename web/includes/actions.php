@@ -128,24 +128,16 @@ if ( !empty($action) ) {
             dbQuery( 'DELETE FROM Filters WHERE Id=?', array( $_REQUEST['Id'] ) );
           }
         } else if ( ( $action == 'save' ) or ( $action == 'execute' ) or ( $action == 'submit' ) ) {
-    
-          $sql = '';
-          $endSql = '';
-          if ( $action == 'execute' or $action == 'submit' ) {
-            # Replace will teplace any filter with the same Id 
-            # Since we aren't specifying the Id , this is effectively an insert
-            $sql = 'REPLACE INTO Filters SET Name = \'_TempFilter'.time().'\',';
-          } else if ( $_REQUEST['Id'] ) {
-            $sql = 'UPDATE Filters SET';
-            $endSql = ' WHERE Id = '.$_REQUEST['Id'];
-          } else {
-            $sql = 'INSERT INTO Filters SET';
-          }
 
+          $sql = '';
           $_REQUEST['filter']['sort_field'] = validStr($_REQUEST['filter']['sort_field']);
           $_REQUEST['filter']['sort_asc'] = validStr($_REQUEST['filter']['sort_asc']);
           $_REQUEST['filter']['limit'] = validInt($_REQUEST['filter']['limit']);
-          $sql .= ' Name = '.dbEscape($_REQUEST['filter']['Name']);
+          if ( $action == 'execute' or $action == 'submit' ) {
+            $sql .= ' Name = \'_TempFilter'.time().'\'';
+          } else {
+            $sql .= ' Name = '.dbEscape($_REQUEST['filter']['Name']);
+          }
           $sql .= ', Query = '.dbEscape(jsonEncode($_REQUEST['filter']['terms']));
           $sql .= ', AutoArchive = '.(!empty($_REQUEST['filter']['AutoArchive']) ? 1 : 0);
           $sql .= ', AutoVideo = '. ( !empty($_REQUEST['filter']['AutoVideo']) ? 1 : 0);
@@ -158,8 +150,10 @@ if ( !empty($action) ) {
           $sql .= ', Background = '. ( !empty($_REQUEST['filter']['Background']) ? 1 : 0);
           $sql .= ', Concurrent  = '. ( !empty($_REQUEST['filter']['Concurrent']) ? 1 : 0);
 
-          dbQuery( $sql. $endSql );
-          if ( ! $_REQUEST['Id'] ) {
+          if ( $_REQUEST['Id'] ) {
+            dbQuery( 'UPDATE Filters SET ' . $sql. ' WHERE Id=?', array($_REQUEST['Id']) );
+          } else {
+            dbQuery( 'INSERT INTO Filters SET' . $sql );
             $_REQUEST['Id'] = dbInsertId();
           }
 

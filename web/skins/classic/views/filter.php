@@ -155,7 +155,7 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
 ?>
         </div>
       </form>
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>?view=filter">
         <input type="hidden" name="Id" value="<?php echo $filter->Id() ?>"/>
         <input type="hidden" name="action" value=""/>
         <input type="hidden" name="line" value=""/>
@@ -196,7 +196,7 @@ for ( $i = 0; $i < count($terms); $i++ ) {
   }
 ?>
               <td><?php if ( count($terms) > 2 ) { echo htmlSelect( "filter[terms][$i][obr]", $obracketTypes, $term['obr'] ); } else { ?>&nbsp;<?php } ?></td>
-              <td><?php echo htmlSelect( "filter[terms][$i][attr]", $attrTypes, $term['attr'], "clearValue( this, $i ); submitToFilter( this, 0 );" ); ?></td>
+              <td><?php echo htmlSelect( "filter[terms][$i][attr]", $attrTypes, $term['attr'], "clearValue( this, $i ); this.form.submit();" ); ?></td>
 <?php
   if ( isset($term['attr']) ) {
     if ( $term['attr'] == 'Archived' ) {

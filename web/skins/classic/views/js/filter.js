@@ -66,10 +66,10 @@ function saveFilter( element ) {
 }
 
 function deleteFilter( element, name ) {
-  if ( confirm( deleteSavedFilterString+" '"+name+"'" ) ) {
+  if ( confirm( deleteSavedFilterString+" '"+name+"'?" ) ) {
     var form = element.form;
     form.elements['action'].value = 'delete';
-    submitToFilter( element, 1 );
+    form.submit();
   }
 }
 

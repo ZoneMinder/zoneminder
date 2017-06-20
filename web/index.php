@@ -147,7 +147,6 @@ if ( ZM_OPT_USE_AUTH ) {
 
 require_once( 'includes/lang.php' );
 require_once( 'includes/functions.php' );
-require_once( 'includes/csrf/csrf-magic.php' );
 
 # Running is global but only do the daemonCheck if it is actually needed
 $running = null;
@@ -195,9 +194,10 @@ isset($view) || $view = NULL;
 isset($request) || $request = NULL;
 isset($action) || $action = NULL;
 
-if ( ZM_ENABLE_CSRF_MAGIC && $action != 'login' ) {
-    Logger::Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");
-    csrf_check();
+if ( ZM_ENABLE_CSRF_MAGIC && $action != 'login' && ! $request ) {
+  require_once( 'includes/csrf/csrf-magic.php' );
+  Logger::Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");
+  csrf_check();
 }
 
 # Need to include actions because it does auth
@@ -207,6 +207,7 @@ require_once( 'includes/actions.php' );
 if ( ZM_OPT_USE_AUTH && ! isset($user) ) {
 	Logger::Debug("Redirecting to login" );
   $view = 'login';
+  $request = null;
 }
 
 # Only one request can open the session file at a time, so let's close the session here to improve concurrency.

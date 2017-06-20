@@ -3,11 +3,12 @@
 class Filter {
 
 public $defaults = array(
+    'Id'              => null,
     'Name'            => '',
     'AutoExecute'     =>  0,
     'AutoExecuteCmd'  =>  0,
     'AutoEmail'       =>  0,
-    'AutoDetail'      =>  0,
+    'AutoDelete'      =>  0,
     'AutoArchive'     =>  0,
     'AutoVideo'       =>  0,
     'AutoMessage'     =>  0,
@@ -67,16 +68,11 @@ public $defaults = array(
   public function terms( ) {
     if ( func_num_args( ) ) {
       $this->{'terms'} = func_get_arg(0);
-Warning("terms set " .   $this->{'terms'} );
     }
     if ( ! isset( $this->{'terms'} ) ) {
-Warning("terms not set " . array_key_exists( 'Query', $this ) );
       if ( array_key_exists( 'Query', $this ) and $this->{'Query'} ) {
-Warning("Decoding terms not set");
-
-      $this->{'terms'} = jsonDecode( $this->{'Query'} );
+        $this->{'terms'} = jsonDecode( $this->{'Query'} );
       } else {
-Warning("Defaulting terms not set");
         $this->{'terms'} = array();
       }
     }

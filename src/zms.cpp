@@ -26,6 +26,7 @@
 #include "zm_signal.h"
 #include "zm_monitor.h"
 #include "zm_monitorstream.h"
+#include "zm_eventstream.h"
 
 bool ValidateAccess( User *user, int mon_id ) {
 	bool allowed = true;
@@ -48,8 +49,7 @@ bool ValidateAccess( User *user, int mon_id ) {
 	return( allowed );
 }
 
-int main( int argc, const char *argv[] )
-{
+int main( int argc, const char *argv[] ) {
 	self = argv[0];
 
 	srand( getpid() * time( 0 ) );

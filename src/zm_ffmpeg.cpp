@@ -530,3 +530,35 @@ unsigned int zm_av_packet_ref( AVPacket *dst, AVPacket *src ) {
 }
 #endif
 
+bool is_video_stream( AVStream * stream ) {
+  #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+      if ( stream->codecpar->codec_type == AVMEDIA_TYPE_VIDEO ) {
+  #else
+  #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
+      if ( stream->codec->codec_type == AVMEDIA_TYPE_VIDEO ) {
+  #else
+      if ( stream->codec->codec_type == CODEC_TYPE_VIDEO ) {
+  #endif
+  #endif
+    return true;
+  }
+  return false;
+}
+
+
+bool is_audio_stream( AVStream * stream ) {
+  #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+      if ( stream->codecpar->codec_type == AVMEDIA_TYPE_AUDIO ) {
+  #else
+  #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
+      if ( stream->codec->codec_type == AVMEDIA_TYPE_AUDIO ) {
+  #else
+      if ( stream->codec->codec_type == CODEC_TYPE_AUDIO ) {
+  #endif
+  #endif
+    return true;
+  }
+  return false;
+}
+
+

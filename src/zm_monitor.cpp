@@ -29,6 +29,7 @@
 #include "zm_signal.h"
 #include "zm_monitor.h"
 #include "zm_video.h"
+#include "zm_eventstream.h"
 #if ZM_HAS_V4L
 #include "zm_local_camera.h"
 #endif // ZM_HAS_V4L

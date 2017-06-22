@@ -353,4 +353,6 @@ unsigned int zm_av_packet_ref( AVPacket *dst, AVPacket *src );
 
 int check_sample_fmt(AVCodec *codec, enum AVSampleFormat sample_fmt);
 
+bool is_video_stream( AVStream * stream );
+bool is_audio_stream( AVStream * stream );
 #endif // ZM_FFMPEG_H

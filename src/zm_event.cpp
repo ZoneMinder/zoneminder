@@ -913,9 +913,8 @@ void EventStream::processCommand( const CmdMsg *msg ) {
             zoom = 500;
             break;
         }
-        break;
-        
         send_frame = true;
+        break;
       }
     case CMD_ZOOMOUT :
       {
@@ -1342,7 +1341,7 @@ void EventStream::runStream() {
       curr_frame_id += replay_rate>0?1:-1;
       if ( send_frame && type != STREAM_MPEG ) {
         Debug( 3, "dUs: %d", delta_us );
-        if ( usleep )
+        if ( delta_us )
           usleep( delta_us );
       }
     } else {

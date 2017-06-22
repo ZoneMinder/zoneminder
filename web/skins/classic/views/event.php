@@ -50,6 +50,7 @@ if ( isset( $_REQUEST['scale'] ) ) {
 }
 
 $replayModes = array(
+    'none'   => translate('None'),
     'single' => translate('ReplaySingle'),
     'all' => translate('ReplayAll'),
     'gapless' => translate('ReplayGapless'),
@@ -64,9 +65,9 @@ if ( isset( $_REQUEST['replayMode'] ) )
   $replayMode = validHtmlStr($_REQUEST['replayMode']);
 if ( isset( $_COOKIE['replayMode']) && preg_match('#^[a-z]+$#', $_COOKIE['replayMode']) )
   $replayMode = validHtmlStr($_COOKIE['replayMode']);
-else {
-	$keys = array_keys( $replayModes );
-	$replayMode = array_shift( $keys );
+
+if ( ( ! $replayMode ) or ( ! $replayModes[$replayMode] ) ) {
+  $replayMode = 'none';
 }
 
 // videojs zoomrotate only when direct recording
@@ -188,8 +189,8 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
           <input type="button" value="&lt;+" id="prevBtn" title="<?php echo translate('Prev') ?>" class="inactive" onclick="streamPrev( true );"/>
           <input type="button" value="&lt;&lt;" id="fastRevBtn" title="<?php echo translate('Rewind') ?>" class="inactive" disabled="disabled" onclick="streamFastRev( true );"/>
           <input type="button" value="&lt;" id="slowRevBtn" title="<?php echo translate('StepBack') ?>" class="unavail" disabled="disabled" onclick="streamSlowRev( true );"/>
-          <input type="button" value="||" id="pauseBtn" title="<?php echo translate('Pause') ?>" class="inactive" onclick="streamPause( true );"/>
-          <input type="button" value="|>" id="playBtn" title="<?php echo translate('Play') ?>" class="active" disabled="disabled" onclick="streamPlay( true );"/>
+          <input type="button" value="||" id="pauseBtn" title="<?php echo translate('Pause') ?>" class="inactive" onclick="pauseClicked();"/>
+          <input type="button" value="|>" id="playBtn" title="<?php echo translate('Play') ?>" class="active" disabled="disabled" onclick="playClicked();"/>
           <input type="button" value="&gt;" id="slowFwdBtn" title="<?php echo translate('StepForward') ?>" class="unavail" disabled="disabled" onclick="streamSlowFwd( true );"/>
           <input type="button" value="&gt;&gt;" id="fastFwdBtn" title="<?php echo translate('FastForward') ?>" class="inactive" disabled="disabled" onclick="streamFastFwd( true );"/>
           <input type="button" value="&ndash;" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="avail" onclick="streamZoomOut();"/>
@@ -209,7 +210,7 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
         </div>
       </div>
 <?php 
-if ( $Event->SaveJPEGs() & 3 ) { // frames or analysis
+  if ( $Event->SaveJPEGs() & 3 ) { // frames or analysis
 ?>
       <div id="eventStills" class="hidden">
         <div id="eventThumbsPanel">

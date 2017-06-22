@@ -4,6 +4,8 @@ function setButtonState( element, butClass ) {
   if ( element ) {
     element.className = butClass;
     element.disabled = (butClass != 'inactive');
+  } else {
+    console.log("Element was null in setButtonState");
   }
 }
 
@@ -58,16 +60,15 @@ function getCmdResponse( respObj, respText ) {
     lastEventId = eventId;
   }
   if ( streamStatus.paused == true ) {
-    console.log('paused');
-    $('modeValue').set( 'text', "Paused" );
+    $('modeValue').set( 'text', 'Paused' );
     $('rate').addClass( 'hidden' );
-    streamPause( false );
+    streamPause( );
   } else {
     console.log('playing');
     $('modeValue').set( 'text', "Replay" );
     $('rateValue').set( 'text', streamStatus.rate );
     $('rate').removeClass( 'hidden' );
-    streamPlay( false );
+    streamPlay( );
   }
   $('progressValue').set( 'text', secsToTime( parseInt(streamStatus.progress) ) );
   $('zoomValue').set( 'text', streamStatus.zoom );
@@ -90,17 +91,25 @@ function getCmdResponse( respObj, respText ) {
 
 var streamReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'chain', onSuccess: getCmdResponse } );
 
-function streamPause( action ) {
+function pauseClicked( ) {
+  streamReq.send( streamParms+"&command="+CMD_PAUSE );
+}
+
+// Called when stream becomes paused, just updates the button status
+function streamPause( ) {
   setButtonState( $('pauseBtn'), 'active' );
   setButtonState( $('playBtn'), 'inactive' );
   setButtonState( $('fastFwdBtn'), 'unavail' );
   setButtonState( $('slowFwdBtn'), 'inactive' );
   setButtonState( $('slowRevBtn'), 'inactive' );
   setButtonState( $('fastRevBtn'), 'unavail' );
-  streamReq.send( streamParms+"&command="+CMD_PAUSE );
 }
 
-function streamPlay( action ) {
+function playClicked( ) {
+  streamReq.send( streamParms+"&command="+CMD_PLAY );
+}
+
+function streamPlay( ) {
   setButtonState( $('pauseBtn'), 'inactive' );
   if (streamStatus)
     setButtonState( $('playBtn'), streamStatus.rate==1?'active':'inactive' );
@@ -108,7 +117,6 @@ function streamPlay( action ) {
   setButtonState( $('slowFwdBtn'), 'unavail' );
   setButtonState( $('slowRevBtn'), 'unavail' );
   setButtonState( $('fastRevBtn'), 'inactive' );
-  streamReq.send( streamParms+"&command="+CMD_PLAY );
 }
 
 function streamFastFwd( action ) {

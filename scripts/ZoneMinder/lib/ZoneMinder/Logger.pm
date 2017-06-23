@@ -153,7 +153,6 @@ sub new {
   ( $this->{fileName} = $0 ) =~ s|^.*/||;
   $this->{logPath} = $Config{ZM_PATH_LOGS};
   $this->{logFile} = $this->{logPath}.'/'.$this->{id}.".log";
-print "OUr logfile is at $$this{logFile}\n";
 
   $this->{trace} = 0;
 

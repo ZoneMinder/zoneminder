@@ -375,8 +375,8 @@ sub level {
     $this->{effectiveLevel} = $this->{termLevel} if ( $this->{termLevel} > $this->{effectiveLevel} );
     $this->{effectiveLevel} = $this->{databaseLevel} if ( $this->{databaseLevel} > $this->{effectiveLevel} );
     $this->{effectiveLevel} = $this->{fileLevel} if ( $this->{fileLevel} > $this->{effectiveLevel} );
-    $this->{effectiveLevel} = $this->{syslogLevel} if ( $this->{syslogLevel} > $this->{level} );
-    $this->{effectiveLevel} = $this->{level} if ( $this->{effectiveLevel} > $this->{level} );
+    $this->{effectiveLevel} = $this->{syslogLevel} if ( $this->{syslogLevel} > $this->{effectiveLevel} );
+    $this->{effectiveLevel} = $this->{level} if ( $this->{effectiveLevel} > $this->{effectiveLevel} );
   }
   return( $this->{level} );
 }

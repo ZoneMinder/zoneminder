@@ -524,6 +524,7 @@ sub openFile {
     }
   } else {
     $this->fileLevel( NOLOG );
+    $this->termLevel( INFO );
     Error( "Can't open log file '".$this->{logFile}."': $!" );
   }
 }

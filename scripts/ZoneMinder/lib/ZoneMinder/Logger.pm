@@ -41,7 +41,7 @@ our @ISA = qw(Exporter ZoneMinder::Base);
 # If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
 # will save memory.
 our %EXPORT_TAGS = (
-    'constants' => [ qw(
+    constants => [ qw(
       DEBUG
       INFO
       WARNING
@@ -50,7 +50,7 @@ our %EXPORT_TAGS = (
       PANIC
       NOLOG
       ) ],
-    'functions' => [ qw(
+    functions => [ qw(
       logInit
       logReinit
       logTerm
@@ -72,13 +72,14 @@ our %EXPORT_TAGS = (
       Panic
       ) ]
     );
-    push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
 
-    our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
+push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
 
-    our @EXPORT = qw();
+our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 
-    our $VERSION = $ZoneMinder::Base::VERSION;
+our @EXPORT = qw();
+
+our $VERSION = $ZoneMinder::Base::VERSION;
 
 # ==========================================================================
 #
@@ -86,43 +87,43 @@ our %EXPORT_TAGS = (
 #
 # ==========================================================================
 
-    use ZoneMinder::Config qw(:all);
+use ZoneMinder::Config qw(:all);
 
-    use DBI;
-    use Carp;
-    use POSIX;
-    use IO::Handle;
-    use Data::Dumper;
-    use Time::HiRes qw/gettimeofday/;
-    use Sys::Syslog;
+use DBI;
+use Carp;
+use POSIX;
+use IO::Handle;
+use Data::Dumper;
+use Time::HiRes qw/gettimeofday/;
+use Sys::Syslog;
 
-    use constant {
-      DEBUG => 1,
-            INFO => 0,
-            WARNING => -1,
-            ERROR => -2,
-            FATAL => -3,
-            PANIC => -4,
-            NOLOG => -5
-    };
+use constant {
+  DEBUG => 1,
+  INFO => 0,
+  WARNING => -1,
+  ERROR => -2,
+  FATAL => -3,
+  PANIC => -4,
+  NOLOG => -5
+};
 
 our %codes = (
-    &DEBUG => "DBG",
-    &INFO => "INF",
-    &WARNING => "WAR",
-    &ERROR => "ERR",
-    &FATAL => "FAT",
-    &PANIC => "PNC",
-    &NOLOG => "OFF"
+    &DEBUG => 'DBG',
+    &INFO => 'INF',
+    &WARNING => 'WAR',
+    &ERROR => 'ERR',
+    &FATAL => 'FAT',
+    &PANIC => 'PNC',
+    &NOLOG => 'OFF'
     );
 
 our %priorities = (
-    &DEBUG => "debug",
-    &INFO => "info",
-    &WARNING => "warning",
-    &ERROR => "err",
-    &FATAL => "err",
-    &PANIC => "err"
+    &DEBUG => 'debug',
+    &INFO => 'info',
+    &WARNING => 'warning',
+    &ERROR => 'err',
+    &FATAL => 'err',
+    &PANIC => 'err'
     );
 
 our $logger;
@@ -134,10 +135,10 @@ sub new {
 
   $this->{initialised} = undef;
 
-#$this->{id} = "zmundef";
+#$this->{id} = 'zmundef';
   ( $this->{id} ) = $0 =~ m|^(?:.*/)?([^/]+?)(?:\.[^/.]+)?$|;
   $this->{idRoot} = $this->{id};
-  $this->{idArgs} = "";
+  $this->{idArgs} = '';
 
   $this->{level} = INFO;
 if (-t STDIN) {
@@ -155,7 +156,7 @@ if (-t STDIN) {
 
   ( $this->{fileName} = $0 ) =~ s|^.*/||;
   $this->{logPath} = $Config{ZM_PATH_LOGS};
-  $this->{logFile} = $this->{logPath}."/".$this->{id}.".log";
+  $this->{logFile} = $this->{logPath}.'/'.$this->{id}.".log";
 
   $this->{trace} = 0;
 
@@ -200,7 +201,7 @@ sub initialise( @ ) {
   $this->{logPath} = $options{logPath} if ( defined($options{logPath}) );
 
   my $tempLogFile;
-  $tempLogFile = $this->{logPath}."/".$this->{id}.".log";
+  $tempLogFile = $this->{logPath}.'/'.$this->{id}.".log";
   $tempLogFile = $options{logFile} if ( defined($options{logFile}) );
   if ( my $logFile = $this->getTargettedEnv('LOG_FILE') ) {
     $tempLogFile = $logFile;
@@ -235,7 +236,6 @@ sub initialise( @ ) {
 
   my $level;
   $tempLevel = $level if ( defined($level = $this->getTargettedEnv('LOG_LEVEL')) );
-
   $tempTermLevel = $level if ( defined($level = $this->getTargettedEnv('LOG_LEVEL_TERM')) );
   $tempDatabaseLevel = $level if ( defined($level = $this->getTargettedEnv('LOG_LEVEL_DATABASE')) );
   $tempFileLevel = $level if ( defined($level = $this->getTargettedEnv('LOG_LEVEL_FILE')) );
@@ -244,9 +244,9 @@ sub initialise( @ ) {
   if ( $Config{ZM_LOG_DEBUG} ) {
     foreach my $target ( split( /\|/, $Config{ZM_LOG_DEBUG_TARGET} ) ) {
       if ( $target eq $this->{id}
-          || $target eq "_".$this->{id}
+          || $target eq '_'.$this->{id}
           || $target eq $this->{idRoot}
-          || $target eq "_".$this->{idRoot}
+          || $target eq '_'.$this->{idRoot}
           || $target eq ""
          ) {
         if ( $Config{ZM_LOG_DEBUG_LEVEL} > NOLOG ) {
@@ -275,13 +275,13 @@ sub initialise( @ ) {
 
   $this->{initialised} = !undef;
 
-  Debug( "LogOpts: level=".$codes{$this->{level}}
-      ."/".$codes{$this->{effectiveLevel}}
-      .", screen=".$codes{$this->{termLevel}}
-      .", database=".$codes{$this->{databaseLevel}}
-      .", logfile=".$codes{$this->{fileLevel}}
-      ."->".$this->{logFile}
-      .", syslog=".$codes{$this->{syslogLevel}}
+  Debug( 'LogOpts: level='.$codes{$this->{level}}
+      .'/'.$codes{$this->{effectiveLevel}}
+      .', screen='.$codes{$this->{termLevel}}
+      .', database='.$codes{$this->{databaseLevel}}
+      .', logfile='.$codes{$this->{fileLevel}}
+      .'->'.$this->{logFile}
+      .', syslog='.$codes{$this->{syslogLevel}}
       );
 }
 
@@ -326,11 +326,11 @@ sub limit {
 sub getTargettedEnv {
   my $this = shift;
   my $name = shift;
-  my $envName = $name."_".$this->{id};
+  my $envName = $name.'_'.$this->{id};
   my $value;
   $value = $ENV{$envName} if ( defined($ENV{$envName}) );
   if ( !defined($value) && $this->{id} ne $this->{idRoot} ) {
-    $envName = $name."_".$this->{idRoot};
+    $envName = $name.'_'.$this->{idRoot};
     $value = $ENV{$envName} if ( defined($ENV{$envName}) );
   }
   if ( !defined($value) ) {
@@ -379,8 +379,8 @@ sub level {
     $this->{effectiveLevel} = $this->{termLevel} if ( $this->{termLevel} > $this->{effectiveLevel} );
     $this->{effectiveLevel} = $this->{databaseLevel} if ( $this->{databaseLevel} > $this->{effectiveLevel} );
     $this->{effectiveLevel} = $this->{fileLevel} if ( $this->{fileLevel} > $this->{effectiveLevel} );
-    $this->{effectiveLevel} = $this->{syslogLevel} if ( $this->{syslogLevel} > $this->{level} );
-    $this->{effectiveLevel} = $this->{level} if ( $this->{effectiveLevel} > $this->{level} );
+    $this->{effectiveLevel} = $this->{syslogLevel} if ( $this->{syslogLevel} > $this->{effectiveLevel} );
+    $this->{effectiveLevel} = $this->{level} if ( $this->{effectiveLevel} > $this->{effectiveLevel} );
   }
   return( $this->{level} );
 }
@@ -494,7 +494,7 @@ sub syslogLevel {
 
 sub openSyslog {
   my $this = shift;
-  openlog( $this->{id}, "pid", "local1" );
+  openlog( $this->{id}, 'pid', "local1" );
 }
 
 sub closeSyslog {
@@ -527,6 +527,7 @@ sub openFile {
     }
   } else {
     $this->fileLevel( NOLOG );
+    $this->termLevel( INFO );
     Error( "Can't open log file '".$this->{logFile}."': $!" );
   }
 }
@@ -548,10 +549,8 @@ sub logPrint {
 
     my ($seconds, $microseconds) = gettimeofday();
     my $message = sprintf(
-        "%s.%06d %s[%d].%s [%s]"
-        , strftime( "%x %H:%M:%S"
-          ,localtime( $seconds )
-          )
+        '%s.%06d %s[%d].%s [%s]'
+        , strftime( '%x %H:%M:%S' ,localtime( $seconds ) )
         , $microseconds
         , $this->{id}
         , $$
@@ -568,7 +567,7 @@ sub logPrint {
     }
     print( $LOGFILE $message ) if ( $level <= $this->{fileLevel} );
     if ( $level <= $this->{databaseLevel} ) {
-      my $sql = "insert into Logs ( TimeKey, Component, Pid, Level, Code, Message, File, Line ) values ( ?, ?, ?, ?, ?, ?, ?, NULL )";
+      my $sql = 'insert into Logs ( TimeKey, Component, Pid, Level, Code, Message, File, Line ) values ( ?, ?, ?, ?, ?, ?, ?, NULL )';
       $this->{sth} = $this->{dbh}->prepare_cached( $sql );
       if ( !$this->{sth} ) {
         $this->{databaseLevel} = NOLOG;
@@ -593,7 +592,7 @@ sub logPrint {
 
 sub logInit( ;@ ) {
   my %options = @_ ? @_ : ();
-  $logger = ZoneMinder::Logger->new() if ( !$logger );
+  $logger = ZoneMinder::Logger->new() if !$logger;
   $logger->initialise( %options );
 }
 
@@ -650,14 +649,14 @@ sub logSyslogLevel {
 sub Mark {
   my $level = shift;
   $level = DEBUG unless( defined($level) );
-  my $tag = "Mark";
+  my $tag = 'Mark';
   fetch()->logPrint( $level, $tag );
 }
 
 sub Dump {
   my $var = shift;
   my $label = shift;
-  $label = "VAR" unless( defined($label) );
+  $label = 'VAR' unless( defined($label) );
   fetch()->logPrint( DEBUG, Data::Dumper->Dump( [ $var ], [ $label ] ) );
 }
 
@@ -699,10 +698,10 @@ ZoneMinder::Logger - ZoneMinder Logger module
 use ZoneMinder::Logger;
 use ZoneMinder::Logger qw(:all);
 
-logInit( "myproc", DEBUG );
+logInit( 'myproc', DEBUG );
 
-Debug( "This is what is happening" );
-Info( "Something interesting is happening" );
+Debug( 'This is what is happening' );
+Info( 'Something interesting is happening' );
 Warning( "Something might be going wrong." );
 Error( "Something has gone wrong!!" );
 Fatal( "Something has gone badly wrong, gotta stop!!" );

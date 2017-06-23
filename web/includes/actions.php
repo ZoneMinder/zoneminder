@@ -176,6 +176,7 @@ if ( !empty($action) ) {
               dbQuery( 'UPDATE Events SET Cause=?, Notes=? WHERE Id=?', array( $_REQUEST['newEvent']['Cause'], $_REQUEST['newEvent']['Notes'], $markEid ) );
               $refreshParent = true;
             }
+            $refreshParent = '/index.php?view=filter&Id='.$_REQUEST['Id'];
           }
         } elseif ( $action == 'archive' || $action == 'unarchive' ) {
           $archiveVal = ($action == 'archive')?1:0;

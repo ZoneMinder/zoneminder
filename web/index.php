@@ -149,7 +149,6 @@ else
 
 require_once( 'includes/lang.php' );
 require_once( 'includes/functions.php' );
-require_once( 'includes/csrf/csrf-magic.php' );
 
 # Add Cross domain access headers
 CORSHeaders();
@@ -178,6 +177,7 @@ isset($request) || $request = NULL;
 isset($action) || $action = NULL;
 
 if ( ZM_ENABLE_CSRF_MAGIC && $action != 'login' && $view != 'view_video' ) {
+  require_once( 'includes/csrf/csrf-magic.php' );
     Logger::Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");
     csrf_check();
 }

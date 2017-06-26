@@ -20,24 +20,13 @@
 #ifndef ZM_EVENTSTREAM_H
 #define ZM_EVENTSTREAM_H
 
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <errno.h>
-#include <limits.h>
-#include <time.h>
-#include <sys/time.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <mysql/mysql.h>
-
 #include <set>
 #include <map>
 
-#include "zm.h"
 #include "zm_image.h"
 #include "zm_stream.h"
 #include "zm_video.h"
+#include "zm_ffmpeg_input.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -80,15 +69,15 @@ class EventStream : public StreamBase {
 
     static const StreamMode DEFAULT_MODE = MODE_SINGLE;
 
-  protected:
     StreamMode mode;
     bool forceEventChange;
 
-  protected:
     int curr_frame_id;
     double curr_stream_time;
+      bool  send_frame;
 
     EventData *event_data;
+    FFmpeg_Input  *ffmpeg_input;
 
   protected:
     bool loadEventData( int event_id );
@@ -114,6 +103,7 @@ class EventStream : public StreamBase {
       input_codec_context = 0;
       input_codec = 0;
 
+      ffmpeg_input = NULL;
 
     }
     void setStreamStart( int init_event_id, unsigned int init_frame_id=0 ) {

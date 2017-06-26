@@ -168,6 +168,7 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
         <table id="fieldsTable" class="filterTable">
           <tbody>
 <?php
+var_dump($terms);
 for ( $i = 0; $i < count($terms); $i++ ) {
   $term = $terms[$i];
   if ( ! isset( $term['op'] ) )

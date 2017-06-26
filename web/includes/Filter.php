@@ -72,6 +72,9 @@ public $defaults = array(
     if ( ! isset( $this->{'terms'} ) ) {
       if ( array_key_exists( 'Query', $this ) and $this->{'Query'} ) {
         $this->{'terms'} = jsonDecode( $this->{'Query'} );
+        if ( isset( $this->{'terms'}['terms'] ) )
+          $this->{'terms'} = $this->{'terms'}['terms'];
+        
       } else {
         $this->{'terms'} = array();
       }

@@ -112,6 +112,8 @@ int main( int argc, const char *argv[] ) {
 			char *value = strtok( NULL, "=" );
       if ( !value )
         value = (char *)"";
+
+      Debug(4, "Query string parameter (%s)=(%s)", name, value );
 			if ( !strcmp( name, "source" ) ) {
 				source = !strcmp( value, "event" )?ZMS_EVENT:ZMS_MONITOR;
 			} else if ( !strcmp( name, "mode" ) ) {
@@ -187,7 +189,7 @@ int main( int argc, const char *argv[] ) {
 				if ( *auth ) {
 					user = zmLoadAuthUser( auth, config.auth_hash_ips );
         } else {
-          Debug( 1, "Need both username and password" );
+          Debug( 1, "Need both username and password if auth not specified" );
 				}
 			}
 			//else if ( strcmp( config.auth_relay, "plain" ) == 0 )

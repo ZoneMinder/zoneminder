@@ -1,13 +1,17 @@
 
 #include "zm_ffmpeg_input.h"
+#include "zm_logger.h"
+#include "zm_ffmpeg.h"
 
-void FFmpeg_Input() {
+FFmpeg_Input::FFmpeg_Input() {
   input_format_context = NULL;
   video_stream_id = -1;
   audio_stream_id = -1;
 }
+FFmpeg_Input::~FFmpeg_Input() {
+}
 
-int Open( const char *filepath ) {
+int FFmpeg_Input::Open( const char *filepath ) {
 
   int error;
 
@@ -54,18 +58,18 @@ int Open( const char *filepath ) {
 #endif
 
     /** Find a decoder for the audio stream. */
-    if (!(streams[i].codec = avcodec_find_decoder((*input_format_context)->streams[i]->codecpar->codec_id))) {
+    if (!(streams[i].codec = avcodec_find_decoder(input_format_context->streams[i]->codecpar->codec_id))) {
       Error( "Could not find input codec\n");
-      avformat_close_input(input_format_context);
+      avformat_close_input(&input_format_context);
       return AVERROR_EXIT;
     }
 
     /** Open the decoder for the audio stream to use it later. */
     if ((error = avcodec_open2( streams[i].context, streams[i].codec, NULL)) < 0) {
-      Errror( "Could not open input codec (error '%s')\n",
+      Error( "Could not open input codec (error '%s')\n",
           av_make_error_string(error).c_str() );
-      avcodec_free_context( streams[i].context );
-      avformat_close_input(input_format_context);
+      avcodec_free_context( &streams[i].context );
+      avformat_close_input(&input_format_context);
       return error;
     }
 
@@ -76,5 +80,5 @@ int Open( const char *filepath ) {
     Debug( 3, "Unable to locate audio stream in %s", filepath );
 
   return 0;
-} // end int Open( const char * filepath )
+} // end int FFmpeg::Open( const char * filepath )
 

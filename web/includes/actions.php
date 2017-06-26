@@ -138,7 +138,7 @@ if ( !empty($action) ) {
           } else {
             $sql .= ' Name = '.dbEscape($_REQUEST['filter']['Name']);
           }
-          $sql .= ', Query = '.dbEscape(jsonEncode($_REQUEST['filter']['terms']));
+          $sql .= ', Query = '.dbEscape(jsonEncode($_REQUEST['filter']));
           $sql .= ', AutoArchive = '.(!empty($_REQUEST['filter']['AutoArchive']) ? 1 : 0);
           $sql .= ', AutoVideo = '. ( !empty($_REQUEST['filter']['AutoVideo']) ? 1 : 0);
           $sql .= ', AutoUpload = '. ( !empty($_REQUEST['filter']['AutoUpload']) ? 1 : 0);

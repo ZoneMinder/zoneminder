@@ -1306,14 +1306,14 @@ function addFilterTerm( $filter, $position, $term=false ) {
   if ( $position < 0 )
     $position = 0;
   
-  if ( ! isset( $filter['terms'] ) )
-    $filter['terms'] = array();
+  if ( ! isset( $filter['Query']['terms'] ) )
+    $filter['Query']['terms'] = array();
 
-  elseif( $position > count($filter['terms']) )
-    $position = count($filter['terms']);
+  elseif( $position > count($filter['Query']['terms']) )
+    $position = count($filter['Query']['terms']);
   if ( $term && $position == 0 )
     unset( $term['cnj'] );
-  array_splice( $filter['terms'], $position, 0, array( $term?$term:array() ) );
+  array_splice( $filter['Query']['terms'], $position, 0, array( $term?$term:array() ) );
 
   return( $filter );
 }
@@ -1321,9 +1321,9 @@ function addFilterTerm( $filter, $position, $term=false ) {
 function delFilterTerm( $filter, $position ) {
   if ( $position < 0 )
     $position = 0;
-  elseif( $position >= count($filter['terms']) )
-    $position = count($filter['terms']);
-  array_splice( $filter['terms'], $position, 1 );
+  elseif( $position >= count($filter['Query']['terms']) )
+    $position = count($filter['Query']['terms']);
+  array_splice( $filter['Query']['terms'], $position, 1 );
 
   return( $filter );
 }

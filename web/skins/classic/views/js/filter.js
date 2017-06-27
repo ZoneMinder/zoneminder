@@ -25,7 +25,7 @@ function updateButtons( element ) {
 
 function clearValue( element, line ) {
   var form = element.form;
-  var val = form.elements['filter[terms]['+line+'][val]'];
+  var val = form.elements['filter[Query][terms]['+line+'][val]'];
   val.value = '';
 }
 
@@ -59,7 +59,7 @@ function executeFilter( element ) {
 function saveFilter( element ) {
   var form = element.form;
 
-  form.target = 'zmFilter';
+  //form.target = 'zmFilter';
   form.elements['action'].value = 'save';
   form.action = thisUrl + '?view=filter';
   form.submit();

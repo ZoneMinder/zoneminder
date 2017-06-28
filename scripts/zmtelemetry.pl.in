@@ -76,7 +76,7 @@ if ( $Config{ZM_TELEMETRY_DATA} or $force ) {
       Warning( 'Seconds since last check is negative! Which means that lastCheck is in the future!' );
       next;
     }
-    if ( ( ($now-$lastCheck) > $interval ) or $force ) {
+    if ( ( ($since_last_check) > $interval ) or $force ) {
       print "Collecting data to send to ZoneMinder Telemetry server.\n";
       my $dbh = zmDbConnect();
 # Build the telemetry hash

@@ -32,8 +32,8 @@
 #include <stdlib.h>
 #include <limits.h>
 
-/* Workaround for GNU/kFreeBSD */
-#if defined(__FreeBSD_kernel__)
+/* Workaround for GNU/kFreeBSD and FreeBSD */
+#if defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
 #ifndef ENODATA
 #define ENODATA ENOATTR
 #endif

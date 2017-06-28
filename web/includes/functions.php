@@ -379,7 +379,7 @@ function outputHelperStream( $id, $src, $width, $height, $title='' ) {
   echo getHelperStream( $id, $src, $width, $height, $title );
 }
 function getHelperStream( $id, $src, $width, $height, $title='' ) {
-    return '<applet id="'.$id.'" code="com.charliemouse.cambozola.Viewer"
+    return '<object type="application/x-java-applet" id="'.$id.'" code="com.charliemouse.cambozola.Viewer"
     archive="'. ZM_PATH_CAMBOZOLA .'" 
     align="middle"
     width="'. $width .'"
@@ -387,14 +387,14 @@ function getHelperStream( $id, $src, $width, $height, $title='' ) {
     title="'. $title .'">
     <param name="accessories" value="none"/>
     <param name="url" value="'. $src .'"/>
-    </applet>';
+    </object>';
 }
 
 function outputImageStill( $id, $src, $width, $height, $title='' ) {
   echo getImageStill( $id, $src, $width, $height, $title='' );
 }
 function getImageStill( $id, $src, $width, $height, $title='' ) {
-  return '<img id="'.$id.'" src="'.$src.'" alt="'.$title.'" width="'.$width.'" height="'.$height.'"/>';
+  return '<img id="'.$id.'" src="'.$src.'" alt="'.$title.'"'.(validInt($width)?' width="'.$width.'"':'').(validInt($height)?' height="'.$height.'"':'').'/>';
 }
 
 function outputControlStill( $src, $width, $height, $monitor, $scale, $target ) {
@@ -543,6 +543,7 @@ function makePopupButton( $url, $winName, $winSize, $buttonValue, $condition=1, 
 }
 
 function htmlSelect( $name, $contents, $values, $behaviours=false ) {
+Logger::Debug("htmlSelect for $name $values");
 
   $behaviourText = '';
   if ( !empty($behaviours) ) {
@@ -558,6 +559,7 @@ function htmlSelect( $name, $contents, $values, $behaviours=false ) {
   $html = "<select name=\"$name\" id=\"$name\"$behaviourText>";
   foreach ( $contents as $value=>$text ) {
     $selected = is_array( $values ) ? in_array( $value, $values ) : $value==$values;
+Logger::Debug("htmlSelect for $name $value == '$values' ? $selected");
     $html .= "<option value=\"$value\"".($selected?" selected=\"selected\"":'').">$text</option>";
   }
   $html .= '</select>';
@@ -2126,9 +2128,24 @@ function validHtmlStr( $input ) {
 
 function getStreamHTML( $monitor, $options = array() ) {
 
-  if ( isset($options['scale']) and $options['scale'] ) {
+  if ( isset($options['scale']) and $options['scale'] and ( $options['scale'] != 100 ) ) {
     $options['width'] = reScale( $monitor->Width(), $options['scale'] );
     $options['height'] = reScale( $monitor->Height(), $options['scale'] );
+  } else {
+    if ( ! isset( $options['width'] ) ) {
+      if ( $options['width'] == 100 ) {
+        $options['width'] = $monitor->Width();
+      } else {
+        $options['width'] = NULL;
+      }
+    }
+    if ( ! isset( $options['height'] ) ) {
+      if ( $options['height'] == 100 ) {
+        $options['height'] = $monitor->Height();
+      } else {
+        $options['height'] = NULL;
+      }
+    }
   }
   if ( ! isset($options['mode'] ) ) {
     $options['mode'] = 'stream';
@@ -2146,27 +2163,20 @@ function getStreamHTML( $monitor, $options = array() ) {
     $streamSrc = $monitor->getStreamSrc( $options );
 
     if ( canStreamNative() )
-      return getImageStream( 'liveStream'.$monitor->Id(), $streamSrc,
-          ( isset($options['width']) ? $options['width'] : NULL ),
-          ( isset($options['height']) ? $options['height'] : NULL ),
-          $monitor->Name()
-          );
+      return getImageStream( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], $monitor->Name());
     elseif ( canStreamApplet() )
-      return getHelperStream( 'liveStream'.$monitor->Id(), $streamSrc,
-          ( isset($options['width']) ? $options['width'] : NULL ),
-          ( isset($options['height']) ? $options['height'] : NULL ),
-          $monitor->Name()
-          );
+      // Helper, empty widths and heights really don't work.
+      return getHelperStream( 'liveStream'.$monitor->Id(), $streamSrc, 
+          $options['width'] ? $options['width'] : $monitor->Width(), 
+          $options['height'] ? $options['height'] : $monitor->Height(),
+          $monitor->Name());
   } else {
-    $streamSrc = $monitor->getStreamSrc( $options );
-    if ( $mode == 'stream' ) {
+    if ( $options['mode'] == 'stream' ) {
       Info( 'The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.' );
     }
-    return getImageStill( 'liveStream'.$monitor->Id(), $streamSrc,
-          ( isset($options['width']) ? $options['width'] : NULL ),
-          ( isset($options['height']) ? $options['height'] : NULL ),
-          $monitor->Name()
-        );
+    $options['mode'] = 'single';
+    $streamSrc = $monitor->getStreamSrc( $options );
+    return getImageStill( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], $monitor->Name());
   }
 } // end function getStreamHTML
 

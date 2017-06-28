@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 //
 // ZoneMinder web Polish language file, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes

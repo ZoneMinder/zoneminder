@@ -60,7 +60,7 @@ foreach( dbFetchAll( $sql ) as $row )
         $maxWidth = $scaleWidth;
     if ( $maxHeight < $scaleHeight )
         $maxHeight = $scaleHeight;
-    if ( ZM_OPT_CONTROL && $row['ControlId'] )
+    if ( ZM_OPT_CONTROL && $row['ControlId'] && $row['Controllable'] )
         $showControl = true;
     $row['index'] = $index++;
     $row['scaleWidth'] = $scaleWidth;

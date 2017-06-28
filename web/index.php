@@ -50,6 +50,7 @@ require_once( 'includes/config.php' );
 require_once( 'includes/logger.php' );
 require_once( 'includes/Server.php' );
 require_once( 'includes/Storage.php' );
+require_once( 'includes/Event.php' );
 require_once( 'includes/Monitor.php' );
 
 if ( isset($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] == 'on' )
@@ -105,12 +106,23 @@ if ( ! in_array( $css, $css_skins ) ) {
 }
 
 define( "ZM_BASE_PATH", dirname( $_SERVER['REQUEST_URI'] ) );
+define( "ZM_SKIN_NAME", $skin );
 define( "ZM_SKIN_PATH", "skins/$skin" );
 
 $skinBase = array(); // To allow for inheritance of skins
 if ( !file_exists( ZM_SKIN_PATH ) )
     Fatal( "Invalid skin '$skin'" );
 $skinBase[] = $skin;
+
+$currentCookieParams = session_get_cookie_params(); 
+Logger::Debug('Setting cookie parameters to lifetime('.$currentCookieParams['lifetime'].') path('.$currentCookieParams['path'].') domain ('.$currentCookieParams['domain'].') secure('.$currentCookieParams['secure'].') httpOnly(1)');
+session_set_cookie_params( 
+    $currentCookieParams["lifetime"], 
+    $currentCookieParams["path"], 
+    $currentCookieParams["domain"],
+    $currentCookieParams["secure"], 
+    true
+); 
 
 ini_set( "session.name", "ZMSESSID" );
 
@@ -158,6 +170,17 @@ if ( isset($_REQUEST['action']) )
 
 foreach ( getSkinIncludes( 'skin.php' ) as $includeFile )
     require_once $includeFile;
+
+# The only variable we really need to set is action. The others are informal.
+isset($view) || $view = NULL;
+isset($request) || $request = NULL;
+isset($action) || $action = NULL;
+
+if ( ZM_ENABLE_CSRF_MAGIC && $action != 'login' && $action != 'view_video' ) {
+  require_once( 'includes/csrf/csrf-magic.php' );
+    Logger::Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");
+    csrf_check();
+}
 
 require_once( 'includes/actions.php' );
 

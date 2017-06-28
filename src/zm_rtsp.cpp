@@ -739,8 +739,8 @@ Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d", sendKeepali
         {
           if ( buffer[0] == '$' )
           {
-          if ( buffer.size() < 4 )
-            break;
+            if ( buffer.size() < 4 )
+              break;
             unsigned char channel = buffer[1];
             unsigned short len = ntohs( *((unsigned short *)(buffer+2)) );
 

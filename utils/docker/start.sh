@@ -7,7 +7,8 @@ umount /dev/shm
 mount -t tmpfs -o rw,nosuid,nodev,noexec,relatime,size=512M tmpfs /dev/shm
 
 # Start MySQL
-/usr/bin/mysqld_safe & 
+test -e /var/run/mysqld || install -m 755 -o mysql -g root -d /var/run/mysqld
+su - mysql -s /bin/sh -c "/usr/bin/mysqld_safe > /dev/null 2>&1 &"
 
 # Ensure we shut down mysql cleanly later:
 trap close_mysql SIGTERM
@@ -34,10 +35,7 @@ done
 service apache2 restart
 
 # Start ZoneMinder
-/usr/local/bin/zmpkg.pl start
-
-# Start SSHD
-/usr/sbin/sshd
+/usr/local/bin/zmpkg.pl start && echo "Zone Minder started"
 
 while :
 do

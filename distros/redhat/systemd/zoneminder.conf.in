@@ -11,6 +11,9 @@ RewriteRule ^/?(zm)(.*) https://%{SERVER_NAME}/$1$2 [R,L]
 
 Alias /zm "@ZM_WEBDIR@"
 <Directory "@ZM_WEBDIR@">
+    # explicitly set index.php as the only directoryindex
+    DirectoryIndex disabled
+    DirectoryIndex index.php
     SSLRequireSSL
     Options -Indexes +MultiViews +FollowSymLinks
     AllowOverride All

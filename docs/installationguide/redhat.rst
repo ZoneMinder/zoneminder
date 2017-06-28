@@ -169,8 +169,6 @@ Now clone the ZoneMinder git repository:
     cd
     git clone https://github.com/ZoneMinder/ZoneMinder
     cd ZoneMinder
-    git submodule init
-    git submodule update
 
 This will create a sub-folder called ZoneMinder, which will contain the latest development.
 
@@ -180,21 +178,21 @@ We want to turn this into a tarball, but first we need to figure out what to nam
 
     ls ~/rpmbuild/SOURCES
 
-The tarball from the previsouly installed SRPM should be there. This is the name we will use.  For this example, the name is ZoneMinder-1.28.1.tar.gz.  From one folder above the local ZoneMinder git repository, execute the following:
+The tarball from the previsouly installed SRPM should be there. This is the name we will use.  For this example, the name is ZoneMinder-1.28.1.tar.gz. From the root folder of the local ZoneMinder git repository, execute the following:
 
 ::
 
-    mv ZoneMinder ZoneMinder-1.28.1
-    tar -cvzf ~/rpmbuild/SOURCES/ZoneMinder-1.28.1.tar.gz ZoneMinder-1.28.1/*
+    git archive --prefix=ZoneMinder-1.28.1/ -o ~/rpmbuild/SOURCES/zoneminder-1.28.1.tar.gz HEAD
 
-The trailing "/\*" leaves off the hidden dot "." file and folders from the git repo, which is what we want.
 Note that we are overwriting the original tarball. If you wish to keep the original tarball then create a copy prior to creating the new tarball.
 
-Now build a new src.rpm:
+From the root of the local ZoneMinder git repo, execute the following:
 
 ::
 
-    rpmbuild -bs --nodeps ~/rpmbuild/SPECS/zoneminder.el7.spec
+    rpmbuild -bs --nodeps distros/redhat/zoneminder.spec
+
+Notice we used the rpm specfile that is part of the latest master branch you just downloaded, rather than the one that may be in your ~/rpmbbuild/SOURCES folder.
 
 This step will overwrite the SRPM you originally downloaded, so you may want to back it up prior to completing this step. Note that the name of the specfile will vary slightly depending on the target distro.
 

@@ -1,24 +1,76 @@
-# ZoneMinder
+# ZoneMinder, you need the GIT repository code and submodules (git submodule update --init --recursive)
 
-FROM ubuntu:trusty
-MAINTAINER Kyle Johnson <kjohnson@gnulnx.net>
+FROM ubuntu:xenial
+MAINTAINER Markos Vakondios <mvakondios@gmail.com>
 
 # Resynchronize the package index files 
-RUN apt-get update && \
-	DEBIAN_FRONTEND=noninteractive apt-get install -y \
-	libpolkit-gobject-1-dev build-essential libmysqlclient-dev libssl-dev libbz2-dev libpcre3-dev \
-	libdbi-perl libarchive-zip-perl libdate-manip-perl libdevice-serialport-perl libmime-perl libpcre3 \
-	libwww-perl libdbd-mysql-perl libsys-mmap-perl yasm cmake libjpeg-turbo8-dev \
-	libjpeg-turbo8 libtheora-dev libvorbis-dev libvpx-dev libx264-dev libmp4v2-dev libav-tools mysql-client \
-	apache2 php5 php5-mysql apache2-mpm-prefork libapache2-mod-php5 php5-cli openssh-server \
-	mysql-server libvlc-dev libvlc5 libvlccore-dev libvlccore7 vlc-data libcurl4-openssl-dev \
-	libavformat-dev libswscale-dev libavutil-dev libavcodec-dev libavfilter-dev \
-	libavresample-dev libavdevice-dev libpostproc-dev libv4l-dev libtool libnetpbm10-dev \
-	libmime-lite-perl dh-autoreconf dpatch \
-	&& apt-get clean
+RUN apt-get update \
+	&& DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    apache2 \
+    build-essential \
+    cmake \
+    dh-autoreconf \
+    dpatch \
+    libapache2-mod-php \
+    libarchive-zip-perl \
+    libavcodec-dev \
+    libavdevice-dev \
+    libavfilter-dev \
+    libavformat-dev \
+    libavresample-dev \
+    libav-tools \
+    libavutil-dev \
+    libbz2-dev \
+    libcurl4-openssl-dev \
+    libdate-manip-perl \
+    libdbd-mysql-perl \
+    libdbi-perl \
+    libdevice-serialport-perl \
+    libjpeg-turbo8 \
+    libjpeg-turbo8-dev \
+    libmime-lite-perl \
+    libmime-perl \
+    libmp4v2-dev \
+    libmysqlclient-dev \
+    libnetpbm10-dev \
+    libpcre3 \
+    libpcre3-dev \
+    libpolkit-gobject-1-dev \
+    libpostproc-dev \
+    libssl-dev \
+    libswscale-dev \
+    libsys-mmap-perl \
+    libtheora-dev \
+    libtool \
+    libv4l-dev \
+    libvlc5 \
+    libvlccore8 \
+    libvlccore-dev \
+    libvlc-dev \
+    libvorbis-dev \
+    libvpx-dev \
+    libwww-perl \
+    libx264-dev \
+    mysql-client \
+    mysql-server \
+    php \
+    php-cli \
+    php-mysql \
+    vlc-data \
+    yasm \
+	&& rm -rf /var/lib/apt/lists/*
 
 # Copy local code into our container
-ADD . /ZoneMinder
+ADD cmake /ZoneMinder/cmake/
+ADD db /ZoneMinder/db/
+ADD misc /ZoneMinder/misc/
+ADD onvif /ZoneMinder/onvif/
+ADD scripts /ZoneMinder/scripts/
+ADD src /ZoneMinder/src/
+ADD umutils /ZoneMinder/umutils/
+ADD web /ZoneMinder/web/
+ADD cmakecacheimport.sh CMakeLists.txt version zm.conf.in zmconfgen.pl.in zmlinkcontent.sh.in zoneminder-config.cmake /ZoneMinder/
+ADD conf.d /ZoneMinder/conf.d
 
 # Change into the ZoneMinder directory
 WORKDIR /ZoneMinder
@@ -39,28 +91,20 @@ RUN ./zmlinkcontent.sh
 # Adding the start script
 ADD utils/docker/start.sh /tmp/start.sh
 
-# give files in /usr/local/share/zoneminder/
+# Settings rights for /usr/local/share/zoneminder/
 RUN chown -R www-data:www-data /usr/local/share/zoneminder/
 
-# Creating SSH privilege escalation dir
-RUN mkdir /var/run/sshd
-
 # Adding apache virtual hosts file
-ADD utils/docker/apache-vhost /etc/apache2/sites-available/000-default.conf
-ADD utils/docker/phpdate.ini /etc/php5/apache2/conf.d/25-phpdate.ini
+RUN cp misc/apache.conf /etc/apache2/sites-available/000-default.conf
 
-# Set the root passwd
-RUN echo 'root:root' | chpasswd
+# Expose http port
+EXPOSE 80
 
-# Add a user we can actually login with
-RUN useradd -m -s /bin/bash -G sudo zoneminder
-RUN echo 'zoneminder:zoneminder' | chpasswd
+VOLUME /var/lib/zoneminder/images /var/lib/zoneminder/events /var/lib/mysql /var/log/zm
 
-# Expose ssh and http ports
-EXPOSE 22 80
+# To speed up configuration testing, we put it here
+ADD utils/docker /ZoneMinder/utils/docker/
 
-# Initial database and apache setup:
-RUN "/ZoneMinder/utils/docker/setup.sh"
+CMD /ZoneMinder/utils/docker/setup.sh && /ZoneMinder/utils/docker/start.sh >/var/log/start.log 2>&1 & /bin/bash
 
-CMD ["/ZoneMinder/utils/docker/start.sh"]
-
+# Run example docker run -it -p 1080:80 -e PHP_TIMEZONE='Europe/Paris' -v /disk/zoneminder/events:/var/lib/zoneminder/events -v /disk/zoneminder/images:/var/lib/zoneminder/images -v /disk/zoneminder/mysql:/var/lib/mysql -v /disk/zoneminder/logs:/var/log/zm --name zoneminder zoneminder/zoneminder

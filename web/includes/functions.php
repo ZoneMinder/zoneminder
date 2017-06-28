@@ -543,7 +543,6 @@ function makePopupButton( $url, $winName, $winSize, $buttonValue, $condition=1, 
 }
 
 function htmlSelect( $name, $contents, $values, $behaviours=false ) {
-Logger::Debug("htmlSelect for $name $values");
 
   $behaviourText = '';
   if ( !empty($behaviours) ) {
@@ -559,7 +558,6 @@ Logger::Debug("htmlSelect for $name $values");
   $html = "<select name=\"$name\" id=\"$name\"$behaviourText>";
   foreach ( $contents as $value=>$text ) {
     $selected = is_array( $values ) ? in_array( $value, $values ) : $value==$values;
-Logger::Debug("htmlSelect for $name $value == '$values' ? $selected");
     $html .= "<option value=\"$value\"".($selected?" selected=\"selected\"":'').">$text</option>";
   }
   $html .= '</select>';

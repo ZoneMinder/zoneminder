@@ -216,7 +216,6 @@ foreach my $event_id ( @event_ids ) {
   my $Event = new ZoneMinder::Event( $$event{Id}, $event );
   my $video_file = $Event->GenerateVideo( $rate, $fps, $scale,  $size, $overwrite, $format );
   if ( $video_file ) {
-    Debug("Generated $video_file");
     push @video_files, $video_file;
     print( STDOUT $video_file."\n" );
   } else {
@@ -239,7 +238,7 @@ if ( $concat_name ) {
   close $fd;
   my $command = $Config{ZM_PATH_FFMPEG}
   . " -f concat -i $concat_list_file -c copy "
-.$Config{ZM_FFMPEG_OUTPUT_OPTIONS}
+    .$Config{ZM_FFMPEG_OUTPUT_OPTIONS}
     ." '$video_file' > $Config{ZM_PATH_LOGS}/ffmpeg_${concat_name}.log 2>&1"
     ;
   Debug( $command."\n" );

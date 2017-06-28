@@ -149,7 +149,7 @@ sub sendData {
   my $server_endpoint = $Config{ZM_TELEMETRY_SERVER_ENDPOINT};
 
   if ( $Config{ZM_UPDATE_CHECK_PROXY} ) {
-    $ua->proxy( "https", $Config{ZM_UPDATE_CHECK_PROXY} );
+    $ua->proxy( 'https', $Config{ZM_UPDATE_CHECK_PROXY} );
   }
 
   Debug("Posting telemetry data to: $server_endpoint");
@@ -166,7 +166,7 @@ sub sendData {
   my $resp_msg = $resp->decoded_content;
   my $resp_code = $resp->code;
   if ($resp->is_success) {       
-    Info("Telemetry data uploaded successfully.");
+    Info('Telemetry data uploaded successfully.');
     Debug("Telemetry server upload success response message: $resp_msg");
   } else {
     Warning("Telemetry server returned HTTP POST error code: $resp_code");

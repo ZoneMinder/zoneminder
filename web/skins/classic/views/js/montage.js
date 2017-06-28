@@ -106,31 +106,38 @@ function Monitor( monitorData ) {
 }
 
 function selectLayout( element ) {
-  var cssFile = skinPath+'/css/'+Cookie.read('zmCSS')+'/views/'+$(element).get('value');
+  layout = $(element).get('value') 
+  var cssFile = skinPath+'/css/'+Cookie.read('zmCSS')+'/views/'+layout;
   if ( $('dynamicStyles') )
     $('dynamicStyles').destroy();
   new Asset.css( cssFile, { id: 'dynamicStyles' } );
-  Cookie.write( 'zmMontageLayout', $(element).get('value'), { duration: 10*365 } );
-  Cookie.write( 'zmMontageScale', '', { duration: 10*365 } );
-  $('scale').set('value', '' );
-  $('width').set('value', '');
+  Cookie.write( 'zmMontageLayout', layout, { duration: 10*365 } );
+  if ( layout != 'montage_freeform.css' ) {
+    Cookie.write( 'zmMontageScale', '', { duration: 10*365 } );
+    $('scale').set('value', '' );
+    $('width').set('value', '');
 
-  for ( var x = 0; x < monitors.length; x++ ) {
-    var monitor = monitors[x];
-    var streamImg = document.getElementById( 'liveStream'+monitor.id );
-    if ( streamImg ) {
-      var src = streamImg.src;
-      streamImg.src='';
-      src = src.replace(/width=[\.\d]+/i,'width=0' );
-      src = src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
-      streamImg.src = src;
-      streamImg.style.width = '';
-    }
-    var zonesSVG = $('zones'+monitor.id);
-    if ( zonesSVG ) {
-      zonesSVG.style.width = '';
-    }
-  } // end foreach monitor
+    for ( var x = 0; x < monitors.length; x++ ) {
+      var monitor = monitors[x];
+      var streamImg = $( 'liveStream'+monitor.id );
+      if ( streamImg ) {
+        if ( streamImg.nodeName == 'IMG' ) {
+          var src = streamImg.src;
+          streamImg.src='';
+          src = src.replace(/width=[\.\d]+/i,'width=0' );
+          src = src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
+          streamImg.src = src;
+        } else if ( streamImg.nodeName == 'APPLET' || streamImg.nodeName == 'OBJECT' ) {
+          // APPLET's and OBJECTS need to be re-initialized
+        }
+        streamImg.style.width = '';
+      }
+      var zonesSVG = $('zones'+monitor.id);
+      if ( zonesSVG ) {
+        zonesSVG.style.width = '';
+      }
+    } // end foreach monitor
+  }
 }
 
 function changeWidth() {
@@ -139,20 +146,23 @@ function changeWidth() {
   for ( var x = 0; x < monitors.length; x++ ) {
     var monitor = monitors[x];
     /*Stream could be an applet so can't use moo tools*/ 
-    var streamImg = document.getElementById( 'liveStream'+monitor.id );
+    var streamImg = $( 'liveStream'+monitor.id );
     if ( streamImg ) {
-      var src = streamImg.src;
-      streamImg.src='';
-      src = src.replace(/width=[\.\d]+/i,'width='+width );
-      src = src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
-      streamImg.src = src;
+      if ( streamImg.nodeName == 'IMG' ) {
+        var src = streamImg.src;
+        streamImg.src='';
+        src = src.replace(/width=[\.\d]+/i,'width='+width );
+        src = src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
+        streamImg.src = src;
 
-      streamImg.style.width = width + "px";
-      streamImg.style.height = '';
+      }
+      streamImg.style.width = width? width + "px" : null;
+      //streamImg.style.height = '';
     }
     var zonesSVG = $('zones'+monitor.id);
     if ( zonesSVG ) {
-      zonesSVG.style.width = newWidth + "px";
+      
+      zonesSVG.style.width = width ? width + "px" : '100%';
     }
   }
   $('scale').set('value', '' );
@@ -166,18 +176,20 @@ function changeHeight() {
   for ( var x = 0; x < monitors.length; x++ ) {
     var monitor = monitors[x];
     /*Stream could be an applet so can't use moo tools*/ 
-    var streamImg = document.getElementById( 'liveStream'+monitor.id );
+    var streamImg = $( 'liveStream'+monitor.id );
     if ( streamImg ) {
-      var src = streamImg.src;
-      streamImg.src='';
-      src = src.replace(/height=[\.\d]+/i,'height='+height );
-      src = src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
-      streamImg.src = src;
-      streamImg.style.height = height + "px";
+      if ( streamImg.nodeName == 'IMG' ) {
+        var src = streamImg.src;
+        streamImg.src='';
+        src = src.replace(/height=[\.\d]+/i,'height='+height );
+        src = src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
+        streamImg.src = src;
+        streamImg.style.height = height ? height + "px" : null;
+      }
     }
     var zonesSVG = $('zones'+monitor.id);
     if ( zonesSVG ) {
-      zonesSVG.style.height = newHeight + "px";
+      zonesSVG.style.height = height + "px";
     }
   }
   $('scale').set('value', '' );
@@ -195,16 +207,18 @@ function changeScale() {
     /*Stream could be an applet so can't use moo tools*/
     var streamImg = document.getElementById( 'liveStream'+monitor.id );
     if ( streamImg ) {
-      var src = streamImg.src;
-      streamImg.src='';
+      if ( streamImg.nodeName == 'IMG' ) {
+        var src = streamImg.src;
+        streamImg.src='';
 
+        //src = src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
+        src = src.replace(/scale=[\.\d]+/i,'scale='+ scale );
+        src = src.replace(/width=[\.\d]+/i,'width='+newWidth );
+        src = src.replace(/height=[\.\d]+/i,'height='+newHeight );
+        streamImg.src = src;
+      }
       streamImg.style.width = newWidth + "px";
       streamImg.style.height = newHeight + "px";
-      //src = src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
-      src = src.replace(/scale=[\.\d]+/i,'scale='+ scale );
-      src = src.replace(/width=[\.\d]+/i,'width='+newWidth );
-      src = src.replace(/height=[\.\d]+/i,'height='+newHeight );
-      streamImg.src = src;
     }
     var zonesSVG = $('zones'+monitor.id);
     if ( zonesSVG ) {
@@ -227,7 +241,7 @@ function initPage() {
     var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
     monitors[i].start( delay );
   }
-  selectLayout( $('layout') );
+  selectLayout($('layout'));
 }
 
 // Kick everything off

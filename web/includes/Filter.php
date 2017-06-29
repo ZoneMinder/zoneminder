@@ -59,7 +59,8 @@ public $defaults = array(
     if ( array_key_exists( $fn, $this ) ) {
       return $this->{$fn};
     } else if ( array_key_exists( $fn, $this->defaults ) ) {
-      return $this->defaults{$fn};
+      $this->{$fn} = $this->defaults{$fn};
+      return $this->{$fn};
     } else {
 
       $backTrace = debug_backtrace();
@@ -71,29 +72,40 @@ public $defaults = array(
 
   public function terms( ) {
     if ( func_num_args( ) ) {
-      $this->{'Query'}['terms'] = func_get_arg(0);
+      $this->Query()['terms'] = func_get_arg(0);
     }
-    return $this->{'Query'}['terms'];
+    if ( isset( $this->Query()['terms'] ) ) {
+      return $this->Query()['terms'];
+    }
+    return array();
   }
 
   // The following three fields are actually stored in the Query
   public function sort_field( ) {
     if ( func_num_args( ) ) {
-      $this->{'Query'}['sort_field'] = func_get_arg(0);
+      $this->Query()['sort_field'] = func_get_arg(0);
     }
-    return $this->{'Query'}['sort_field'];
+    if ( isset( $this->Query()['sort_field'] ) ) {
+      return $this->{'Query'}['sort_field'];
+    }
+    return $this->defaults{'sort_field'};
   }
   public function sort_asc( ) {
     if ( func_num_args( ) ) {
       $this->{'Query'}['sort_asc'] = func_get_arg(0);
     }
-    return $this->{'Query'}['sort_asc'];
+    if ( isset( $this->Query()['sort_asc'] ) ) {
+      return $this->{'Query'}['sort_asc'];
+    }
+    return $this->defaults{'sort_asc'};
   }
   public function limit( ) {
     if ( func_num_args( ) ) {
       $this->{'Query'}['limit'] = func_get_arg(0);
     }
-    return $this->{'Query'}['limit'];
+    if ( isset( $this->Query()['limit'] ) )
+      return $this->{'Query'}['limit'];
+    return $this->defaults{'limit'};
   }
 
   public static function find_all() {

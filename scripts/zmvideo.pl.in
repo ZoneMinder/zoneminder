@@ -190,9 +190,7 @@ if ( $event_id ) {
   } else {
     Debug(@event_ids . " events found for $filter_name");
   }
-  $concat_name = $filter_name if ! $concat_name;
-} else {
-  Warning("Nothing to do");
+  $concat_name = $filter_name if $concat_name eq '';
 }
 
 my $sql = " SELECT (SELECT max(Delta) FROM Frames WHERE EventId=Events.Id)-(SELECT min(Delta) FROM Frames WHERE EventId=Events.Id) as FullLength,

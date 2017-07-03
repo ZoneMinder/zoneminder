@@ -98,6 +98,7 @@ while( $length && ( ! feof( $fh ) ) && ( connection_status() == 0 ) ) {
   $amount = min( 1024*16, $length );
 
   print fread( $fh, $amount );
+  ob_flush();
   $length -= $amount;
   usleep(100);
 }

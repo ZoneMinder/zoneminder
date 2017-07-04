@@ -28,7 +28,7 @@ if ( $debug ) {
 }
 
 // Use new style autoglobals where possible
-if ( version_compare( phpversion(), "4.1.0", "<") ) {
+if ( version_compare( phpversion(), '4.1.0', '<') ) {
   $_SESSION = &$HTTP_SESSION_VARS;
   $_SERVER = &$HTTP_SERVER_VARS;
 }
@@ -37,7 +37,7 @@ if ( version_compare( phpversion(), "4.1.0", "<") ) {
 if ( false ) {
   ob_start();
   phpinfo( INFO_VARIABLES );
-  $fp = fopen( "/tmp/env.html", "w" );
+  $fp = fopen( '/tmp/env.html', 'w' );
   fwrite( $fp, ob_get_contents() );
   fclose( $fp );
   ob_end_clean();
@@ -114,10 +114,10 @@ $skinBase[] = $skin;
 $currentCookieParams = session_get_cookie_params(); 
 Logger::Debug('Setting cookie parameters to lifetime('.$currentCookieParams['lifetime'].') path('.$currentCookieParams['path'].') domain ('.$currentCookieParams['domain'].') secure('.$currentCookieParams['secure'].') httpOnly(1)');
 session_set_cookie_params( 
-    $currentCookieParams["lifetime"], 
-    $currentCookieParams["path"], 
-    $currentCookieParams["domain"],
-    $currentCookieParams["secure"], 
+    $currentCookieParams['lifetime'], 
+    $currentCookieParams['path'], 
+    $currentCookieParams['domain'],
+    $currentCookieParams['secure'], 
     true
 ); 
 
@@ -205,7 +205,7 @@ require_once( 'includes/actions.php' );
 
 # If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
 if ( ZM_OPT_USE_AUTH && ! isset($user) ) {
-	Logger::Debug("Redirecting to login" );
+  Logger::Debug("Redirecting to login" );
   $view = 'login';
   $request = null;
 }

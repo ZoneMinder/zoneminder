@@ -24,8 +24,8 @@ var groupStr=<?php if($group=="") echo '""'; else echo "\"&group=$group\""; ?>;
 
 // Because we might not have time as the criteria, figure out the min/max time when we run the query
 
-$minTimeSecs = strtotime("2036-01-01 01:01:01");
-$maxTimeSecs = strtotime("1950-01-01 01:01:01");
+$minTimeSecs = strtotime('2036-01-01 01:01:01');
+$maxTimeSecs = strtotime('1950-01-01 01:01:01');
 
 // This builds the list of events that are eligible from this range
 
@@ -33,34 +33,36 @@ $index=0;
 $anyAlarms=false;
 
 foreach( dbFetchAll( $eventsSql ) as $event ) {
-    if( $minTimeSecs > $event['StartTimeSecs'])   $minTimeSecs = $event['StartTimeSecs'];
-    if( $maxTimeSecs < $event['CalcEndTimeSecs']) $maxTimeSecs = $event['CalcEndTimeSecs'];
-    echo "eMonId[$index]=" . $event['MonitorId'] . ";
-    eId[$index]=" . $event['Id'] . ";
-    eStartSecs[$index]=" . $event['StartTimeSecs'] . ";
-    eEndSecs[$index]=" . $event['CalcEndTimeSecs'] . ";
-    eventFrames[$index]=" . $event['Frames'] . ";\n";
+  if ( $minTimeSecs > $event['StartTimeSecs'] )   $minTimeSecs = $event['StartTimeSecs'];
+  if ( $maxTimeSecs < $event['CalcEndTimeSecs'] ) $maxTimeSecs = $event['CalcEndTimeSecs'];
+    echo "
+eMonId[$index]=" . $event['MonitorId'] . ";
+eId[$index]=" . $event['Id'] . ";
+eStartSecs[$index]=" . $event['StartTimeSecs'] . ";
+eEndSecs[$index]=" . $event['CalcEndTimeSecs'] . ";
+eventFrames[$index]=" . $event['Frames'] . ";
 
-    $index = $index + 1;
-    if($event['MaxScore']>0)
-        $anyAlarms = true;
-    echo "\n";
+";
+
+  $index = $index + 1;
+  if ( $event['MaxScore'] > 0 )
+    $anyAlarms = true;
 }
 
 // if there is no data set the min/max to the passed in values
-if($index == 0)  {
-  if(isset($minTime) && isset($maxTime)) {
+if ( $index == 0 ) {
+  if ( isset($minTime) && isset($maxTime) ) {
     $minTimeSecs = strtotime($minTime);
     $maxTimeSecs = strtotime($maxTime);
   } else {
     // this is the case of no passed in times AND no data -- just set something arbitrary
-    $minTimeSecs=strtotime('1950-06-01 01:01:01');  // random time so there's something to display
-    $maxTimeSecs=time() + 86400;
+    $minTimeSecs = strtotime('1950-06-01 01:01:01');  // random time so there's something to display
+    $maxTimeSecs = time() + 86400;
   }
 }
 
 // We only reset the calling time if there was no calling time
-if(!isset($minTime) || !isset($maxTime)) {
+if ( !isset($minTime) || !isset($maxTime) ) {
   $maxTime = strftime($maxTimeSecs);
   $minTime = strftime($minTimeSecs);
 } else {
@@ -82,42 +84,47 @@ $fromSecs=-1;
 $toSecs=-1;
 $maxScore=-1;
 
-if($anyAlarms) {
+if ( $anyAlarms ) {
   foreach( dbFetchAll ($frameSql) as $frame ) {
-    if($mId<0) {
-      $mId=$frame['MonitorId'];
-      $fromSecs=$frame['TimeStampSecs'];
-      $toSecs=$frame['TimeStampSecs'];
-      $maxScore=$frame['Score'];
-    } else if ($mId != $frame['MonitorId'] || $frame['TimeStampSecs'] - $toSecs > 10) {
+    if ( $mId < 0 ) {
+      $mId = $frame['MonitorId'];
+      $fromSecs = $frame['TimeStampSecs'];
+      $toSecs = $frame['TimeStampSecs'];
+      $maxScore = $frame['Score'];
+    } else if ( $mId != $frame['MonitorId'] || $frame['TimeStampSecs'] - $toSecs > 10 ) {
       // dump this one start a new
       $index++;
-      echo "  fMonId[$index]=" . $mId . ";";
-      echo "  fTimeFromSecs[$index]=" . $fromSecs . ";";
-      echo "  fTimeToSecs[$index]=" . $toSecs . ";";
-      echo "  fScore[$index]=" . $maxScore . ";\n";
-      $mId=$frame['MonitorId'];
-      $fromSecs=$frame['TimeStampSecs'];
-      $toSecs=$frame['TimeStampSecs'];
-      $maxScore=$frame['Score'];
+      echo "
+  fMonId[$index]= $mId;
+  fTimeFromSecs[$index]= $fromSecs;
+  fTimeToSecs[$index]= $toSecs;
+  fScore[$index]= $maxScore;
+";
+      $mId = $frame['MonitorId'];
+      $fromSecs = $frame['TimeStampSecs'];
+      $toSecs = $frame['TimeStampSecs'];
+      $maxScore = $frame['Score'];
     } else {
       // just add this one on
-      $toSecs=$frame['TimeStampSecs'];
-      if($maxScore < $frame['Score']) $maxScore=$frame['Score'];
+      $toSecs = $frame['TimeStampSecs'];
+      if ( $maxScore < $frame['Score'] ) $maxScore = $frame['Score'];
     }
   }
 }
-if($mId>0) {
-  echo "  fMonId[$index]=" . $mId . ";";
-  echo "  fTimeFromSecs[$index]=" . $fromSecs . ";";
-  echo "  fTimeToSecs[$index]=" . $toSecs . ";";
-  echo "  fScore[$index]=" . $maxScore . ";\n";
+if ( $mId > 0 ) {
+  echo "
+  fMonId[$index]= $mId;
+  fTimeFromSecs[$index]= $fromSecs;
+  fTimeToSecs[$index]= $toSecs;
+  fScore[$index]= $maxScore;
+";
 }
 
 echo "var maxScore=$maxScore;\n";  // used to skip frame load if we find no alarms.
 echo "var monitorName = [];\n";
 echo "var monitorLoading = [];\n";
 echo "var monitorImageObject = [];\n";
+echo "var monitorImageURL = [];\n";
 echo "var monitorLoadingStageURL = [];\n";
 echo "var monitorLoadStartTimems = [];\n";
 echo "var monitorLoadEndTimems = [];\n";
@@ -135,20 +142,17 @@ echo "var monitorPtr = []; // monitorName[monitorPtr[0]] is first monitor\n";
 $numMonitors=0;  // this array is indexed by the monitor ID for faster access later, so it may be sparse
 $avgArea=floatval(0);  // Calculations the normalizing scale
 
-foreach ($monitors as $m) {
+foreach ( $monitors as $m ) {
   $avgArea = $avgArea + floatval($m->Width() * $m->Height());
   $numMonitors++;
 }
 
-if($numMonitors>0) $avgArea= $avgArea / $numMonitors;
+if ( $numMonitors > 0 ) $avgArea = $avgArea / $numMonitors;
 
-$numMonitors=0;
-foreach ($monitors as $m) {
+$numMonitors = 0;
+foreach ( $monitors as $m ) {
     echo "  monitorLoading["         . $m->Id() . "]=false;\n";
-    echo "  monitorImageObject["     . $m->Id() . "]=new Image();\n";
-    echo "  monitorImageObject["     . $m->Id() . "].src='".$m->getStreamSrc( array('mode'=>'single','scale'=>$defaultScale) )."';\n";
-    echo "  monitorImageObject["     . $m->Id() . "].onload  = function() {imagedone(this, ".$m->Id().",true )};\n";
-    echo "  monitorImageObject["     . $m->Id() . "].onerror = function() {imagedone(this, ".$m->Id().",false )};\n";
+    echo "  monitorImageURL["     . $m->Id() . "]='".$m->getStreamSrc( array('mode'=>'single','scale'=>$defaultScale), '&' )."';\n";
     echo "  monitorLoadingStageURL[" . $m->Id() . "] = '';\n";
     echo "  monitorColour["          . $m->Id() . "]=\"" . $m->WebColour() . "\";\n";
     echo "  monitorWidth["           . $m->Id() . "]=" . $m->Width() . ";\n";
@@ -174,13 +178,13 @@ if(isset($defaultCurrentTime))
 else
   echo "var currentTimeSecs=" . ($minTimeSecs + $maxTimeSecs)/2 . ";\n";
 
-echo "var speeds=[";
+echo 'var speeds=[';
 for ($i=0; $i<count($speeds); $i++)
-  echo (($i>0)?", ":"") . $speeds[$i];
+  echo (($i>0)?', ':'') . $speeds[$i];
 echo "];\n";
 ?>
 
-var scrubAsObject=document.getElementById('scrub');
+var scrubAsObject=$('scrub');
 var cWidth;   // save canvas width
 var cHeight;  // save canvas height
 var canvas;   // global canvas definition so we don't have to keep looking it up

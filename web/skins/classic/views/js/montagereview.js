@@ -88,14 +88,18 @@ function loadImage2Monitor(monId,url) {
   } else {
     if ( monitorImageObject[monId].src == url ) return;   // do nothing if it's the same
     if ( url == 'no data' ) {
-      monitorCanvasCtx[monId].fillStyle="white";
-      monitorCanvasCtx[monId].fillRect(0,0,monitorCanvasObj[monId].width,monitorCanvasObj[monId].height);
-      var textSize=monitorCanvasObj[monId].width * 0.15;
-      var text="No Data";
-      monitorCanvasCtx[monId].font = "600 " + textSize.toString() + "px Arial";
-      monitorCanvasCtx[monId].fillStyle="black";
-      var textWidth = monitorCanvasCtx[monId].measureText(text).width;
-      monitorCanvasCtx[monId].fillText(text,monitorCanvasObj[monId].width/2 - textWidth/2,monitorCanvasObj[monId].height/2);
+      if ( !  monitorCanvasCtx[monId] ) {
+        alert("No ctx for " + monId);
+      } else {
+        monitorCanvasCtx[monId].fillStyle="white";
+        monitorCanvasCtx[monId].fillRect(0,0,monitorCanvasObj[monId].width,monitorCanvasObj[monId].height);
+        var textSize=monitorCanvasObj[monId].width * 0.15;
+        var text="No Data";
+        monitorCanvasCtx[monId].font = "600 " + textSize.toString() + "px Arial";
+        monitorCanvasCtx[monId].fillStyle="black";
+        var textWidth = monitorCanvasCtx[monId].measureText(text).width;
+        monitorCanvasCtx[monId].fillText(text,monitorCanvasObj[monId].width/2 - textWidth/2,monitorCanvasObj[monId].height/2);
+      }
     } else {
       monitorLoading[monId]=true;
       monitorLoadStartTimems[monId]=new Date().getTime();
@@ -655,38 +659,42 @@ function maxfit2(divW, divH)
 
 // >>>>>>>>>>>>>>>> Handles individual monitor clicks and navigation to the standard event/watch display
 
-function showOneMonitor(monId)  // link out to the normal view of one event's data
-{
-    // We know the monitor, need to determine the event based on current time
-    var url;
-    if(liveMode!=0) url="?view=watch&mid=" + monId.toString();
-    else
-        for(var i=0; i<eId.length; i++)
-            if(eMonId[i]==monId && currentTimeSecs >= eStartSecs[i] && currentTimeSecs <= eEndSecs[i])
-                url="?view=event&eid=" + eId[i] + '&fid=' + parseInt(Math.max(1, Math.min(eventFrames[i], eventFrames[i] * (currentTimeSecs - eStartSecs[i]) / (eEndSecs[i] - eStartSecs[i] + 1) ) ));
+function showOneMonitor(monId) {
+  // link out to the normal view of one event's data
+  // We know the monitor, need to determine the event based on current time
+  var url;
+  if ( liveMode != 0 )
+    url="?view=watch&mid=" + monId.toString();
+  else
+    for ( var i=0, len=eId.length; i<len; i++ ) {
+      if ( eMonId[i] == monId && currentTimeSecs >= eStartSecs[i] && currentTimeSecs <= eEndSecs[i] )
+        url="?view=event&eid=" + eId[i] + '&fid=' + parseInt(Math.max(1, Math.min(eventFrames[i], eventFrames[i] * (currentTimeSecs - eStartSecs[i]) / (eEndSecs[i] - eStartSecs[i] + 1) ) ));
+        break;
+    }
     createPopup(url, 'zmEvent', 'event', monitorWidth[eMonId[i]], monitorHeight[eMonId[i]]);
 }
 
-function zoom(monId,scale)
-{
-    var lastZoomMonPriorScale=monitorZoomScale[monId];
-    monitorZoomScale[monId] *= scale;
-    if(redrawScreen()==0) // failure here is probably because we zoomed too far
-    {
-        monitorZoomScale[monId]=lastZoomMonPriorScale;
-        alert("You can't zoom that far -- rolling back");
-        redrawScreen();  // put things back and hope it works
-    }
+function zoom(monId,scale) {
+  var lastZoomMonPriorScale = monitorZoomScale[monId];
+  monitorZoomScale[monId] *= scale;
+  if ( redrawScreen() == 0 ) {// failure here is probably because we zoomed too far
+    monitorZoomScale[monId] = lastZoomMonPriorScale;
+    alert("You can't zoom that far -- rolling back");
+    redrawScreen();  // put things back and hope it works
+  }
 }
 
-function clickMonitor(event,monId)
-{
-    var pos_x = event.offsetX ? (event.offsetX) : event.pageX - $("Monitor"+monId.toString()).offsetLeft;
-    var pos_y = event.offsetY ? (event.offsetY) : event.pageY - $("Monitor"+monId.toString()).offsetTop;
-    if(pos_x < $("Monitor"+monId.toString()).width/4     && pos_y < $("Monitor"+monId.toString()).height/4) zoom(monId,1.15);
-    else if(pos_x > $("Monitor"+monId.toString()).width * 3/4 && pos_y < $("Monitor"+monId.toString()).height/4) zoom(monId,1/1.15);
-    else showOneMonitor(monId);
-    return;
+function clickMonitor(event,monId) {
+  var monitor_element = $("Monitor"+monId.toString());
+  var pos_x = event.offsetX ? (event.offsetX) : event.pageX - monitor_element.offsetLeft;
+  var pos_y = event.offsetY ? (event.offsetY) : event.pageY - monitor_element.offsetTop;
+  if ( pos_x < monitor_element.width/4 && pos_y < monitor_element.height/4 )
+    zoom(monId,1.15);
+  else if ( pos_x > monitor_element.width * 3/4 && pos_y < monitor_element.height/4 )
+    zoom(monId,1/1.15);
+  else
+    showOneMonitor(monId);
+  return;
 }
 
 // >>>>>>>>> Initialization that runs on window load by being at the bottom 
@@ -694,10 +702,21 @@ function clickMonitor(event,monId)
 function initPage() {
   canvas=$("timeline");
   ctx=canvas.getContext('2d');
-  for ( var i = 0; i < monitorPtr.length; i += 1 ) {
+  for ( var i = 0, len=monitorPtr.length; i < len; i += 1 ) {
     var monId = monitorPtr[i];
+    if ( ! monId ) continue;
     monitorCanvasObj[monId] = $('Monitor'+monId );
-    monitorCanvasCtx[monId]=monitorCanvasObj[monId].getContext('2d');
+    if ( ! monitorCanvasObj[monId] ) {
+      alert("Couldn't find DOM element for Monitor"+monId + "monitorPtr.length="+len);
+    } else {
+      monitorCanvasCtx[monId]=monitorCanvasObj[monId].getContext('2d');
+      monitorImageObject[monId]=new Image();
+      monitorImageObject[monId].src = monitorImageURL[monId];
+      monitorImageObject[monId].monId = monId;
+      monitorImageObject[monId].onload = function() {imagedone(this, this.monId, true )};
+      monitorImageObject[monId].onerror = function() {imagedone(this, this.monId, false )};
+    }
+
   }
   drawGraph();
   setSpeed(speedIndex);

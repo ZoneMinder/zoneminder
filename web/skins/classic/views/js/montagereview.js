@@ -1,43 +1,44 @@
 function evaluateLoadTimes() {
-    // Only consider it a completed event if we load ALL monitors, then zero all and start again
-    var start=0;
-    var end=0;
-    if(liveMode!=1 && currentSpeed==0) return;  // don't evaluate when we are not moving as we can do nothing really fast.
-    for(var i=0; i<monitorIndex.length; i++) {
-        if( monitorName[i]>"") {
-            if( monitorLoadEndTimems[i]==0) return;   // if we have a monitor with no time yet just wait
-            if( start == 0 || start > monitorLoadStartTimems[i] ) start = monitorLoadStartTimems[i];
-            if( end   == 0 || end   < monitorLoadEndTimems[i]   ) end   = monitorLoadEndTimems[i];
-        }
-    }
-    if(start==0 || end==0) return; // we really should not get here
-    for(var i=0; i<numMonitors; i++) {
-        monitorLoadStartTimems[monitorPtr[i]]=0;
-        monitorLoadEndTimems[monitorPtr[i]]=0;
-    }
-    freeTimeLastIntervals[imageLoadTimesEvaluated++] = 1 - ((end - start)/currentDisplayInterval);
-    if( imageLoadTimesEvaluated < imageLoadTimesNeeded ) return;
-    var avgFrac=0;
-    for(var i=0; i<imageLoadTimesEvaluated; i++)
-        avgFrac += freeTimeLastIntervals[i];
-    avgFrac = avgFrac / imageLoadTimesEvaluated;
-    // The larger this is(positive) the faster we can go
-    if      (avgFrac >= 0.9)  currentDisplayInterval = (currentDisplayInterval * 0.50).toFixed(1);  // we can go much faster
-    else if (avgFrac >= 0.8)  currentDisplayInterval = (currentDisplayInterval * 0.55).toFixed(1);
-    else if (avgFrac >= 0.7)  currentDisplayInterval = (currentDisplayInterval * 0.60).toFixed(1);
-    else if (avgFrac >= 0.6)  currentDisplayInterval = (currentDisplayInterval * 0.65).toFixed(1);
-    else if (avgFrac >= 0.5)  currentDisplayInterval = (currentDisplayInterval * 0.70).toFixed(1);
-    else if (avgFrac >= 0.4)  currentDisplayInterval = (currentDisplayInterval * 0.80).toFixed(1);
-    else if (avgFrac >= 0.35) currentDisplayInterval = (currentDisplayInterval * 0.90).toFixed(1);
-    else if (avgFrac >= 0.3)  currentDisplayInterval = (currentDisplayInterval * 1.00).toFixed(1);
-    else if (avgFrac >= 0.25) currentDisplayInterval = (currentDisplayInterval * 1.20).toFixed(1);
-    else if (avgFrac >= 0.2)  currentDisplayInterval = (currentDisplayInterval * 1.50).toFixed(1);
-    else if (avgFrac >= 0.1)  currentDisplayInterval = (currentDisplayInterval * 2.00).toFixed(1);
-    else currentDisplayInterval                      = (currentDisplayInterval * 2.50).toFixed(1);
-    currentDisplayInterval=Math.min(Math.max(currentDisplayInterval, 30),10000);   // limit this from about 30fps to .1 fps
-    imageLoadTimesEvaluated=0;
-    setSpeed(speedIndex);
-    $('fps').innerHTML="Display refresh rate is " + (1000 / currentDisplayInterval).toFixed(1) + " per second, avgFrac=" + avgFrac.toFixed(3) + ".";
+  // Only consider it a completed event if we load ALL monitors, then zero all and start again
+  var start=0;
+  var end=0;
+  if ( liveMode != 1 && currentSpeed == 0 ) return;  // don't evaluate when we are not moving as we can do nothing really fast.
+  for ( var i = 0; i < monitorIndex.length; i++ ) {
+      if ( monitorName[i] > "" ) {
+          if ( monitorLoadEndTimems[i] ==0 ) return;   // if we have a monitor with no time yet just wait
+          if ( start == 0 || start > monitorLoadStartTimems[i] ) start = monitorLoadStartTimems[i];
+          if ( end   == 0 || end   < monitorLoadEndTimems[i]   ) end   = monitorLoadEndTimems[i];
+      }
+  }
+  if ( start == 0 || end == 0 ) return; // we really should not get here
+  for ( var i=0; i < numMonitors; i++ ) {
+    var monId = monitorPtr[i];
+    monitorLoadStartTimems[monId] = 0;
+    monitorLoadEndTimems[monId] = 0;
+  }
+  freeTimeLastIntervals[imageLoadTimesEvaluated++] = 1 - ((end - start)/currentDisplayInterval);
+  if( imageLoadTimesEvaluated < imageLoadTimesNeeded ) return;
+  var avgFrac=0;
+  for ( var i=0; i < imageLoadTimesEvaluated; i++ )
+    avgFrac += freeTimeLastIntervals[i];
+  avgFrac = avgFrac / imageLoadTimesEvaluated;
+  // The larger this is(positive) the faster we can go
+  if      (avgFrac >= 0.9)  currentDisplayInterval = (currentDisplayInterval * 0.50).toFixed(1);  // we can go much faster
+  else if (avgFrac >= 0.8)  currentDisplayInterval = (currentDisplayInterval * 0.55).toFixed(1);
+  else if (avgFrac >= 0.7)  currentDisplayInterval = (currentDisplayInterval * 0.60).toFixed(1);
+  else if (avgFrac >= 0.6)  currentDisplayInterval = (currentDisplayInterval * 0.65).toFixed(1);
+  else if (avgFrac >= 0.5)  currentDisplayInterval = (currentDisplayInterval * 0.70).toFixed(1);
+  else if (avgFrac >= 0.4)  currentDisplayInterval = (currentDisplayInterval * 0.80).toFixed(1);
+  else if (avgFrac >= 0.35) currentDisplayInterval = (currentDisplayInterval * 0.90).toFixed(1);
+  else if (avgFrac >= 0.3)  currentDisplayInterval = (currentDisplayInterval * 1.00).toFixed(1);
+  else if (avgFrac >= 0.25) currentDisplayInterval = (currentDisplayInterval * 1.20).toFixed(1);
+  else if (avgFrac >= 0.2)  currentDisplayInterval = (currentDisplayInterval * 1.50).toFixed(1);
+  else if (avgFrac >= 0.1)  currentDisplayInterval = (currentDisplayInterval * 2.00).toFixed(1);
+  else currentDisplayInterval                      = (currentDisplayInterval * 2.50).toFixed(1);
+  currentDisplayInterval=Math.min(Math.max(currentDisplayInterval, 30),10000);   // limit this from about 30fps to .1 fps
+  imageLoadTimesEvaluated=0;
+  setSpeed(speedIndex);
+  $('fps').innerHTML="Display refresh rate is " + (1000 / currentDisplayInterval).toFixed(1) + " per second, avgFrac=" + avgFrac.toFixed(3) + ".";
 }
 
 function SetImageSource(monId,val) {
@@ -56,39 +57,48 @@ function SetImageSource(monId,val) {
   }
 }
 
+// callback when loading an image. Will load itself to the canvas
 function imagedone(obj, monId, success) {
-    if(success) {
-        monitorCanvasCtx[monId].drawImage( monitorImageObject[monId], 0, 0, monitorCanvasObj[monId].width, monitorCanvasObj[monId].height );
-        var iconSize=(Math.max(monitorCanvasObj[monId].width, monitorCanvasObj[monId].height) * 0.10);
-        monitorCanvasCtx[monId].font = "600 " + iconSize.toString() + "px Arial";
-        monitorCanvasCtx[monId].fillStyle="white";
-        monitorCanvasCtx[monId].globalCompositeOperation="difference";
-        monitorCanvasCtx[monId].fillText("+",iconSize*0.2, iconSize*1.2);
-        monitorCanvasCtx[monId].fillText("-",monitorCanvasObj[monId].width - iconSize*1.2, iconSize*1.2);
-        monitorCanvasCtx[monId].globalCompositeOperation="source-over";
-        monitorLoadEndTimems[monId] = new Date().getTime(); // elapsed time to load
-        evaluateLoadTimes();
+  if ( success ) {
+    var monitorCanvasCtx = monitorCanvasCtx[monId];
+    var monitorCanbasObj = monitorCanvasObj[monId];
+
+console.log("drawing image for " + monId + " + width: " + monitorCanvasObj.width );
+    monitorCanvasCtx.drawImage( monitorImageObject[monId], 0, 0, monitorCanvasObj.width, monitorCanvasObj.height );
+    var iconSize=(Math.max(monitorCanvasObj.width, monitorCanvasObj.height) * 0.10);
+    monitorCanvasCtx.font = "600 " + iconSize.toString() + "px Arial";
+    monitorCanvasCtx.fillStyle="white";
+    monitorCanvasCtx.globalCompositeOperation = "difference";
+    monitorCanvasCtx.fillText("+", iconSize*0.2, iconSize*1.2);
+    monitorCanvasCtx.fillText("-", monitorCanvasObj[monId].width - iconSize*1.2, iconSize*1.2);
+    monitorCanvasCtx.globalCompositeOperation="source-over";
+    monitorLoadEndTimems[monId] = new Date().getTime(); // elapsed time to load
+    evaluateLoadTimes();
+  }
+  monitorLoading[monId]=false;
+  if ( ! success ) {
+    // if we had a failrue queue up the no-data image
+    loadImage2Monitor(monId,"no data");  // leave the staged URL if there is one, just ignore it here.
+  } else {
+    if ( monitorLoadingStageURL[monId] == "" ) {
+      // This means that there wasn't a loading image placeholder.
+      // So we weren't actually loading an image... which seems weird.
+      return;
     }
-    monitorLoading[monId]=false;
-    if(!success) {
-      // if we had a failrue queue up the no-data image
-        loadImage2Monitor(monId,"no data");  // leave the staged URL if there is one, just ignore it here.
-    } else {
-        if(monitorLoadingStageURL[monId]=="") return;
-        loadImage2Monitor(monId,monitorLoadingStageURL[monId]);
-        monitorLoadingStageURL[monId]="";
-    }
-    return;
+    loadImage2Monitor(monId,monitorLoadingStageURL[monId] );
+    monitorLoadingStageURL[monId]="";
+  }
+  return;
 }
 
-function loadImage2Monitor(monId,url) {
+function loadImage2Monitor( monId, url ) {
   if ( monitorLoading[monId] && monitorImageObject[monId].src != url ) {
     // never queue the same image twice (if it's loading it has to be defined, right?
     monitorLoadingStageURL[monId] = url;   // we don't care if we are overriting, it means it didn't change fast enough
   } else {
     if ( monitorImageObject[monId].src == url ) return;   // do nothing if it's the same
     if ( url == 'no data' ) {
-      if ( !  monitorCanvasCtx[monId] ) {
+      if ( ! monitorCanvasCtx[monId] ) {
         alert("No ctx for " + monId);
       } else {
         monitorCanvasCtx[monId].fillStyle="white";
@@ -439,222 +449,197 @@ function setLive(value)
 //vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 // The section below are to reload this program with new parameters
 
-function clicknav(minSecs,maxSecs,arch,live)  // we use the current time if we can
-{
-    var now = new Date() / 1000;
-    var minStr="";
-    var maxStr="";
-    var currentStr="";
-    if(minSecs>0)
-    {
-        if(maxSecs > now)
-            maxSecs = parseInt(now);
-        maxStr="&maxTime=" + secs2dbstr(maxSecs);
-    }
-    if(maxSecs>0)
-        minStr="&minTime=" + secs2dbstr(minSecs);
-    if(maxSecs==0 && minSecs==0)
-    {
-        minStr="&minTime=01/01/1950 12:00:00";
-        maxStr="&maxTime=12/31/2035 12:00:00";
-    }
-    var intervalStr="&displayinterval=" + currentDisplayInterval.toString();
-    if(minSecs && maxSecs)
-    {
-        if(currentTimeSecs > minSecs && currentTimeSecs < maxSecs)  // make sure time is in the new range
-        currentStr="&current=" + secs2dbstr(currentTimeSecs);
-    }
+function clicknav(minSecs,maxSecs,arch,live) {// we use the current time if we can
+  var now = new Date() / 1000;
+  var minStr="";
+  var maxStr="";
+  var currentStr="";
+  if ( minSecs > 0 ) {
+    if(maxSecs > now)
+      maxSecs = parseInt(now);
+    maxStr="&maxTime=" + secs2dbstr(maxSecs);
+  }
+  if ( maxSecs > 0 )
+    minStr="&minTime=" + secs2dbstr(minSecs);
+  if ( maxSecs == 0 && minSecs == 0 ) {
+    minStr="&minTime=01/01/1950 12:00:00";
+    maxStr="&maxTime=12/31/2035 12:00:00";
+  }
+  var intervalStr="&displayinterval=" + currentDisplayInterval.toString();
+  if ( minSecs && maxSecs ) {
+    if ( currentTimeSecs > minSecs && currentTimeSecs < maxSecs )  // make sure time is in the new range
+      currentStr="&current=" + secs2dbstr(currentTimeSecs);
+  }
 
-    var liveStr="&live=0";
-    if(live==1)
-        liveStr="&live=1";
+  var liveStr="&live=0";
+  if ( live == 1 )
+    liveStr="&live=1";
 
-    var fitStr="&fit=0";
-    if(fitMode==1)
-        fitStr="&fit=1";
+  var fitStr="&fit=0";
+  if ( fitMode == 1 )
+    fitStr="&fit=1";
 
-    var zoomStr="";
-    for(var i=0; i<numMonitors; i++)
-        if(monitorZoomScale[monitorPtr[i]] < 0.99 || monitorZoomScale[monitorPtr[i]] > 1.01)  // allow for some up/down changes and just treat as 1 of almost 1
-            zoomStr += "&z" + monitorPtr[i].toString() + "=" + monitorZoomScale[monitorPtr[i]].toFixed(2);
+  var zoomStr="";
+  for ( var i=0; i < numMonitors; i++ )
+    if ( monitorZoomScale[monitorPtr[i]] < 0.99 || monitorZoomScale[monitorPtr[i]] > 1.01 )  // allow for some up/down changes and just treat as 1 of almost 1
+      zoomStr += "&z" + monitorPtr[i].toString() + "=" + monitorZoomScale[monitorPtr[i]].toFixed(2);
 
-    var uri = "?view=" + currentView + fitStr + groupStr + minStr + maxStr + currentStr + intervalStr + liveStr + zoomStr + "&scale=" + document.getElementById("scaleslider").value + "&speed=" + speeds[document.getElementById("speedslider").value];
-    window.location=uri;
+  var uri = "?view=" + currentView + fitStr + groupStr + minStr + maxStr + currentStr + intervalStr + liveStr + zoomStr + "&scale=" + document.getElementById("scaleslider").value + "&speed=" + speeds[$j("#speedslider").value];
+  window.location = uri;
 }
 
-function lastHour()
-{
-    var now = new Date() / 1000;
-    clicknav(now - 3600 + 1, now,1,0);
+function lastHour() {
+  var now = new Date() / 1000;
+  clicknav(now - 3600 + 1, now,1,0);
 }
-function lastEight()
-{
-    var now = new Date() / 1000;
-    clicknav(now - 3600*8 + 1, now,1,0);
+function lastEight() {
+  var now = new Date() / 1000;
+  clicknav(now - 3600*8 + 1, now,1,0);
 }
-function zoomin()
-{
-    rangeTimeSecs = parseInt(rangeTimeSecs / 2);
-    minTimeSecs = parseInt(currentTimeSecs - rangeTimeSecs/2);  // this is the slider current time, we center on that
-    maxTimeSecs = parseInt(currentTimeSecs + rangeTimeSecs/2);
-    clicknav(minTimeSecs,maxTimeSecs,1,0);
+function zoomin() {
+  rangeTimeSecs = parseInt(rangeTimeSecs / 2);
+  minTimeSecs = parseInt(currentTimeSecs - rangeTimeSecs/2);  // this is the slider current time, we center on that
+  maxTimeSecs = parseInt(currentTimeSecs + rangeTimeSecs/2);
+  clicknav(minTimeSecs,maxTimeSecs,1,0);
 }
 
-function zoomout()
-{
-    rangeTimeSecs = parseInt(rangeTimeSecs * 2);
-    minTimeSecs = parseInt(currentTimeSecs - rangeTimeSecs/2);  // this is the slider current time, we center on that
-    maxTimeSecs = parseInt(currentTimeSecs + rangeTimeSecs/2);
-    clicknav(minTimeSecs,maxTimeSecs,1,0);
+function zoomout() {
+  rangeTimeSecs = parseInt(rangeTimeSecs * 2);
+  minTimeSecs = parseInt(currentTimeSecs - rangeTimeSecs/2);  // this is the slider current time, we center on that
+  maxTimeSecs = parseInt(currentTimeSecs + rangeTimeSecs/2);
+  clicknav(minTimeSecs,maxTimeSecs,1,0);
 }
-function panleft()
-{
-    minTimeSecs = parseInt(minTimeSecs - rangeTimeSecs/2);
-    maxTimeSecs = minTimeSecs + rangeTimeSecs - 1;
-    clicknav(minTimeSecs,maxTimeSecs,1,0);
+function panleft() {
+  minTimeSecs = parseInt(minTimeSecs - rangeTimeSecs/2);
+  maxTimeSecs = minTimeSecs + rangeTimeSecs - 1;
+  clicknav(minTimeSecs,maxTimeSecs,1,0);
 }
-function panright()
-{
-    minTimeSecs = parseInt(minTimeSecs + rangeTimeSecs/2);
-    maxTimeSecs = minTimeSecs + rangeTimeSecs - 1;
-    clicknav(minTimeSecs,maxTimeSecs,1,0);
+function panright() {
+  minTimeSecs = parseInt(minTimeSecs + rangeTimeSecs/2);
+  maxTimeSecs = minTimeSecs + rangeTimeSecs - 1;
+  clicknav(minTimeSecs,maxTimeSecs,1,0);
 }
-function allof()
-{
-    clicknav(0,0,1,0);
+function allof() {
+  clicknav(0,0,1,0);
 }
-function allnon()
-{
-    clicknav(0,0,0,0);
+function allnon() {
+  clicknav(0,0,0,0);
 }
 /// >>>>>>>>>>>>>>>>> handles packing different size/aspect monitors on screen    <<<<<<<<<<<<<<<<<<<<<<<<
 
-function compSize(a, b) // sort array by some size parameter  - height seems to work best.  A semi-greedy algorithm
-{
-    if      ( monitorHeight[a] * monitorWidth[a] * monitorNormalizeScale[a] * monitorZoomScale[a] * monitorNormalizeScale[a] * monitorZoomScale[a] >  monitorHeight[b] * monitorWidth[b] * monitorNormalizeScale[b] * monitorZoomScale[b] * monitorNormalizeScale[b] * monitorZoomScale[b]) return -1;
-    else if ( monitorHeight[a] * monitorWidth[a] * monitorNormalizeScale[a] * monitorZoomScale[a] * monitorNormalizeScale[a] * monitorZoomScale[a] == monitorHeight[b] * monitorWidth[b] * monitorNormalizeScale[b] * monitorZoomScale[b] * monitorNormalizeScale[b] * monitorZoomScale[b])  return 0;
-    else return 1;
+function compSize(a, b) { // sort array by some size parameter  - height seems to work best.  A semi-greedy algorithm
+  var a_value = monitorHeight[a] * monitorWidth[a] * monitorNormalizeScale[a] * monitorZoomScale[a] * monitorNormalizeScale[a] * monitorZoomScale[a];
+  var b_value = monitorHeight[b] * monitorWidth[b] * monitorNormalizeScale[b] * monitorZoomScale[b] * monitorNormalizeScale[b] * monitorZoomScale[b];
+
+  if ( a_value > b_value ) return -1;
+  else if ( a_value == b_value )  return 0;
+  else return 1;
 }
 
 
-function maxfit2(divW, divH)
-{
-    var bestFitX=[];   // how we arranged the so-far best match
-    var bestFitX2=[];
-    var bestFitY=[];
-    var bestFitY2=[];
-    var bestFitScale;
+function maxfit2(divW, divH) {
+  var bestFitX=[];   // how we arranged the so-far best match
+  var bestFitX2=[];
+  var bestFitY=[];
+  var bestFitY2=[];
+  var bestFitScale;
 
-    var minScale=0.05;
-    var maxScale=5.00;
-    var bestFitArea=0;
+  var minScale=0.05;
+  var maxScale=5.00;
+  var bestFitArea=0;
 
-    var borders=-1;
+  var borders=-1;
 
-    monitorPtr.sort(compSize);
+  monitorPtr.sort(compSize);
 
-    while(1)
-    {
-        if( maxScale - minScale < 0.01 ) break;
-        var thisScale = (maxScale + minScale) / 2;
-        var allFit=1;
-        var thisArea=0;
-        var thisX=[];  // top left
-        var thisY=[];
-        var thisX2=[];  // bottom right
-        var thisY2=[];
+  while(1) {
+    if( maxScale - minScale < 0.01 ) break;
+    var thisScale = (maxScale + minScale) / 2;
+    var allFit=1;
+    var thisArea=0;
+    var thisX=[];  // top left
+    var thisY=[];
+    var thisX2=[];  // bottom right
+    var thisY2=[];
 
-        for(var m=0; m<numMonitors; m++)
-        {
-                // this loop places each monitor (if it can)
+    for ( var m = 0; m < numMonitors; m++ ) {
+      // this loop places each monitor (if it can)
+      var monId = monitorPtr[m];
 
-                function doesItFit(x,y,w,h,d)
-                {  // does block (w,h) fit at position (x,y) relative to edge and other nodes already done (0..d)
-                   if(x+w>=divW) return 0;
-                   if(y+h>=divH) return 0;
-                   for(var i=0; i<=d; i++)
-                       if( !( thisX[i]>x+w-1 || thisX2[i] < x || thisY[i] > y+h-1 || thisY2[i] < y ) ) return 0;
-                   return 1; // it's OK
-                }
+      function doesItFit(x,y,w,h,d) {  // does block (w,h) fit at position (x,y) relative to edge and other nodes already done (0..d)
+        if(x+w>=divW) return 0;
+        if(y+h>=divH) return 0;
+        for(var i=0; i<=d; i++)
+          if( !( thisX[i]>x+w-1 || thisX2[i] < x || thisY[i] > y+h-1 || thisY2[i] < y ) ) return 0;
+        return 1; // it's OK
+      }
 
-                if(borders<=0) borders=$("Monitor"+monitorPtr[m]).getStyle("border").toInt() * 2;   // assume fixed size border, and added to both sides and top/bottom
-                // try fitting over first, then down.  Each new one must land at either upper right or lower left corner of last (try in that order)
-                // Pick the one with the smallest Y, then smallest X if Y equal
-                var fitX = 999999999;
-                var fitY = 999999999;
-                for( adjacent=0; adjacent<m; adjacent++)
-                {
-                    // try top right of adjacent
-                    if( doesItFit(thisX2[adjacent]+1, thisY[adjacent], monitorWidth[monitorPtr[m]] * thisScale * monitorNormalizeScale[monitorPtr[m]] * monitorZoomScale[monitorPtr[m]] + borders, monitorHeight[monitorPtr[m]] * thisScale * monitorNormalizeScale[monitorPtr[m]] * monitorZoomScale[monitorPtr[m]] + borders, m-1) == 1 )
-                    {
-                        if(thisY[adjacent]<fitY || ( thisY[adjacent]==fitY && thisX2[adjacent]+1 < fitX ))
-                        {
-                            fitX=thisX2[adjacent]+1;
-                            fitY=thisY[adjacent];
-                        }
-                    }
-                    // try bottom left
-                    if ( doesItFit(thisX[adjacent], thisY2[adjacent]+1, monitorWidth[monitorPtr[m]] * thisScale * monitorNormalizeScale[monitorPtr[m]] * monitorZoomScale[monitorPtr[m]] + borders, monitorHeight[monitorPtr[m]] * thisScale * monitorNormalizeScale[monitorPtr[m]] * monitorZoomScale[monitorPtr[m]] + borders, m-1) == 1 )
-                    {
-                        if(thisY2[adjacent]+1<fitY || ( thisY2[adjacent]+1 == fitY && thisX[adjacent]<fitX ))
-                        {
-                            fitX=thisX[adjacent];
-                            fitY=thisY2[adjacent]+1;
-                        }
-                    }
-                 }
-                 if(m==0) // note for teh very first one there were no adjacents so the above loop didn't run
-                 {
-                     if( doesItFit(0,0,monitorWidth[monitorPtr[m]] * thisScale * monitorNormalizeScale[monitorPtr[m]] * monitorZoomScale[monitorPtr[m]] + borders, monitorHeight[monitorPtr[m]] * thisScale * monitorNormalizeScale[monitorPtr[m]] * monitorZoomScale[monitorPtr[m]] + borders, -1) == 1 )
-                     {
-                        fitX=0;
-                        fitY=0;
-                     }
-                 }
-                 if(fitX==999999999)
-                 {
-                     allFit=0;
-                     break; // break out of monitor loop flagging we didn't fit
-                 }
-                 thisX[m] =fitX;
-                 thisX2[m]=fitX + monitorWidth[monitorPtr[m]]  * thisScale * monitorNormalizeScale[monitorPtr[m]] * monitorZoomScale[monitorPtr[m]] + borders;
-                 thisY[m] =fitY;
-                 thisY2[m]=fitY + monitorHeight[monitorPtr[m]] * thisScale * monitorNormalizeScale[monitorPtr[m]] * monitorZoomScale[monitorPtr[m]] + borders;
-                 thisArea += (thisX2[m] - thisX[m])*(thisY2[m] - thisY[m]);
+      if ( borders <= 0 )
+        borders=$("Monitor"+monId).getStyle("border").toInt() * 2;   // assume fixed size border, and added to both sides and top/bottom
+      // try fitting over first, then down.  Each new one must land at either upper right or lower left corner of last (try in that order)
+      // Pick the one with the smallest Y, then smallest X if Y equal
+      var fitX = 999999999;
+      var fitY = 999999999;
+      for ( adjacent = 0; adjacent < m; adjacent ++ ) {
+        // try top right of adjacent
+        if ( doesItFit(thisX2[adjacent]+1, thisY[adjacent], monitorWidth[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders, monitorHeight[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders, m-1) == 1 ) {
+          if ( thisY[adjacent]<fitY || ( thisY[adjacent] == fitY && thisX2[adjacent]+1 < fitX ) ) {
+            fitX = thisX2[adjacent] + 1;
+            fitY = thisY[adjacent];
+          }
         }
-        if(allFit==1)
-        {
-            minScale=thisScale;
-            if(bestFitArea<thisArea)
-            {
-                bestFitArea=thisArea;
-                bestFitX=thisX;
-                bestFitY=thisY;
-                bestFitX2=thisX2;
-                bestFitY2=thisY2;
-                bestFitScale=thisScale;
-            }
+        // try bottom left
+        if ( doesItFit(thisX[adjacent], thisY2[adjacent]+1, monitorWidth[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders, monitorHeight[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders, m-1) == 1 ) {
+          if ( thisY2[adjacent]+1 < fitY || ( thisY2[adjacent]+1 == fitY && thisX[adjacent] < fitX ) ) {
+            fitX = thisX[adjacent];
+            fitY = thisY2[adjacent] + 1;
+          }
         }
-        else // didn't fit
-        {
-            maxScale=thisScale;
+      }
+      if ( m == 0 ) { // note for the very first one there were no adjacents so the above loop didn't run
+        if ( doesItFit(0,0,monitorWidth[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders, monitorHeight[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders, -1) == 1 ) {
+          fitX = 0;
+          fitY = 0;
         }
+      }
+      if ( fitX == 999999999 ) {
+        allFit = 0;
+        break; // break out of monitor loop flagging we didn't fit
+      }
+      thisX[m] =fitX;
+      thisX2[m]=fitX + monitorWidth[monitorPtr[m]]  * thisScale * monitorNormalizeScale[monitorPtr[m]] * monitorZoomScale[monitorPtr[m]] + borders;
+      thisY[m] =fitY;
+      thisY2[m]=fitY + monitorHeight[monitorPtr[m]] * thisScale * monitorNormalizeScale[monitorPtr[m]] * monitorZoomScale[monitorPtr[m]] + borders;
+      thisArea += (thisX2[m] - thisX[m])*(thisY2[m] - thisY[m]);
     }
-    if(bestFitArea>0)   // only rearrange if we could fit -- otherwise just do nothing, let them start coming out, whatever
-    {
-        for(m=0; m<numMonitors; m++)
-        {
-            c = $("Monitor" + monitorPtr[m]);
-            c.style.position="absolute";
-            c.style.left=bestFitX[m].toString() + "px";
-            c.style.top=bestFitY[m].toString() + "px";
-            c.width = bestFitX2[m] - bestFitX[m] + 1 - borders;
-            c.height= bestFitY2[m] - bestFitY[m] + 1 - borders;
-        }
-        return 1;
+    if ( allFit == 1 ) {
+      minScale=thisScale;
+      if(bestFitArea<thisArea) {
+        bestFitArea=thisArea;
+        bestFitX=thisX;
+        bestFitY=thisY;
+        bestFitX2=thisX2;
+        bestFitY2=thisY2;
+        bestFitScale=thisScale;
+      }
+    } else {
+      // didn't fit
+      maxScale=thisScale;
     }
-    else
-        return 0;
+  }
+  if ( bestFitArea > 0 ) { // only rearrange if we could fit -- otherwise just do nothing, let them start coming out, whatever
+    for ( m = 0; m < numMonitors; m++ ) {
+      c = $("Monitor" + monitorPtr[m]);
+      c.style.position="absolute";
+      c.style.left=bestFitX[m].toString() + "px";
+      c.style.top=bestFitY[m].toString() + "px";
+      c.width = bestFitX2[m] - bestFitX[m] + 1 - borders;
+      c.height= bestFitY2[m] - bestFitY[m] + 1 - borders;
+    }
+    return 1;
+  } else {
+    return 0;
+  }
 }
 
 // >>>>>>>>>>>>>>>> Handles individual monitor clicks and navigation to the standard event/watch display
@@ -700,9 +685,9 @@ function clickMonitor(event,monId) {
 // >>>>>>>>> Initialization that runs on window load by being at the bottom 
 
 function initPage() {
-  canvas=$("timeline");
-  ctx=canvas.getContext('2d');
-  for ( var i = 0, len=monitorPtr.length; i < len; i += 1 ) {
+  canvas = $("timeline");
+  ctx = canvas.getContext('2d');
+  for ( var i = 0, len = monitorPtr.length; i < len; i += 1 ) {
     var monId = monitorPtr[i];
     if ( ! monId ) continue;
     monitorCanvasObj[monId] = $('Monitor'+monId );
@@ -716,7 +701,6 @@ function initPage() {
       monitorImageObject[monId].onload = function() {imagedone(this, this.monId, true )};
       monitorImageObject[monId].onerror = function() {imagedone(this, this.monId, false )};
     }
-
   }
   drawGraph();
   setSpeed(speedIndex);

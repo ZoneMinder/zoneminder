@@ -1,6 +1,7 @@
 
 var currentScale=<?php echo $defaultScale?>;
 var liveMode=<?php echo $initialModeIsLive?>;
+console.log("Live mode?"+liveMode);
 var fitMode=<?php echo $fitMode?>;
 var currentSpeed=<?php echo $speeds[$speedIndex]?>;  // slider scale, which is only for replay and relative to real time
 var speedIndex=<?php echo $speedIndex?>;
@@ -17,7 +18,6 @@ var eId = [];
 var eStartSecs = [];
 var eEndSecs = [];
 var eventFrames = [];            // this is going to presume all frames equal durationlength
-var zeropad = <?php echo  sprintf("\"%0" . ZM_EVENT_IMAGE_DIGITS . "d\"",0); ?>;
 var groupStr=<?php if($group=="") echo '""'; else echo "\"&group=$group\""; ?>;
 
 <?php

@@ -1,4 +1,5 @@
 etc/zm/zm.conf
+etc/zm/conf.d/*
 usr/bin
 usr/lib/zoneminder
 usr/share/polkit-1

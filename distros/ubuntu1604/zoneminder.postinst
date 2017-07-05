@@ -21,6 +21,8 @@ if [ "$1" = "configure" ]; then
   # Ensure zoneminder is stopped
   deb-systemd-invoke stop zoneminder.service || exit $?
 
+  # Ensure zoneminder is stopped
+  deb-systemd-invoke stop zoneminder.service || exit $?
 	if [ "$ZM_DB_HOST" = "localhost" ]; then
 
     if [ -e "/etc/init.d/mysql" ]; then
@@ -46,10 +48,10 @@ if [ "$1" = "configure" ]; then
         zmupdate.pl --nointeractive
         zmupdate.pl --nointeractive -f
       else
-          echo 'NOTE: mysql not running, please start mysql and run dpkg-reconfigure zoneminder when it is running.'
+        echo 'NOTE: mysql not running, please start mysql and run dpkg-reconfigure zoneminder when it is running.'
       fi
     else
-        echo 'mysql not found, assuming remote server.'
+      echo 'mysql not found, assuming remote server.'
     fi
 
   else

@@ -152,7 +152,7 @@ if ( $numMonitors > 0 ) $avgArea = $avgArea / $numMonitors;
 $numMonitors = 0;
 foreach ( $monitors as $m ) {
     echo "  monitorLoading["         . $m->Id() . "]=false;\n";
-    echo "  monitorImageURL["     . $m->Id() . "]='".$m->getStreamSrc( array('mode'=>'single','scale'=>$defaultScale), '&' )."';\n";
+    echo "  monitorImageURL["     . $m->Id() . "]='".$m->getStreamSrc( array('mode'=>'single','scale'=>$defaultScale*100), '&' )."';\n";
     echo "  monitorLoadingStageURL[" . $m->Id() . "] = '';\n";
     echo "  monitorColour["          . $m->Id() . "]=\"" . $m->WebColour() . "\";\n";
     echo "  monitorWidth["           . $m->Id() . "]=" . $m->Width() . ";\n";

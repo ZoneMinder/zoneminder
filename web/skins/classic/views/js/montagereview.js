@@ -4,11 +4,11 @@ function evaluateLoadTimes() {
   var end=0;
   if ( liveMode != 1 && currentSpeed == 0 ) return;  // don't evaluate when we are not moving as we can do nothing really fast.
   for ( var i = 0; i < monitorIndex.length; i++ ) {
-      if ( monitorName[i] > "" ) {
-          if ( monitorLoadEndTimems[i] ==0 ) return;   // if we have a monitor with no time yet just wait
-          if ( start == 0 || start > monitorLoadStartTimems[i] ) start = monitorLoadStartTimems[i];
-          if ( end   == 0 || end   < monitorLoadEndTimems[i]   ) end   = monitorLoadEndTimems[i];
-      }
+    if ( monitorName[i] > "" ) {
+      if ( monitorLoadEndTimems[i] ==0 ) return;   // if we have a monitor with no time yet just wait
+      if ( start == 0 || start > monitorLoadStartTimems[i] ) start = monitorLoadStartTimems[i];
+      if ( end   == 0 || end   < monitorLoadEndTimems[i]   ) end   = monitorLoadEndTimems[i];
+    }
   }
   if ( start == 0 || end == 0 ) return; // we really should not get here
   for ( var i=0; i < numMonitors; i++ ) {
@@ -41,15 +41,15 @@ function evaluateLoadTimes() {
   $('fps').innerHTML="Display refresh rate is " + (1000 / currentDisplayInterval).toFixed(1) + " per second, avgFrac=" + avgFrac.toFixed(3) + ".";
 }
 
-function SetImageSource(monId,val) {
+function SetImageSource( monId, val ) {
   if ( liveMode == 1 ) {
     return monitorImageObject[monId].src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
 
   } else {
-    for(var i=0, eIdlength = eId.length; i<eIdlength; i++) {
+    for ( var i=0, eIdlength = eId.length; i < eIdlength; i++ ) {
       // Search for a match 
-      if(eMonId[i]==monId && val >= eStartSecs[i] && val <= eEndSecs[i]) {
-        var frame=parseInt((val - eStartSecs[i])/(eEndSecs[i]-eStartSecs[i])*eventFrames[i])+1;
+      if ( eMonId[i] == monId && val >= eStartSecs[i] && val <= eEndSecs[i] ) {
+        var frame = parseInt((val - eStartSecs[i])/(eEndSecs[i]-eStartSecs[i])*eventFrames[i])+1;
         return "index.php?view=image&eid=" + eId[i] + '&fid='+frame + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
       }
     } // end for
@@ -57,40 +57,59 @@ function SetImageSource(monId,val) {
   }
 }
 
-// callback when loading an image. Will load itself to the canvas
-function imagedone(obj, monId, success) {
+// callback when loading an image. Will load itself to the canvas, or draw no data
+function imagedone( obj, monId, success ) {
   if ( success ) {
-    var monitorCanvasCtx = monitorCanvasCtx[monId];
-    var monitorCanbasObj = monitorCanvasObj[monId];
+    var canvasCtx = monitorCanvasCtx[monId];
+    var canvasObj = monitorCanvasObj[monId];
 
-console.log("drawing image for " + monId + " + width: " + monitorCanvasObj.width );
-    monitorCanvasCtx.drawImage( monitorImageObject[monId], 0, 0, monitorCanvasObj.width, monitorCanvasObj.height );
-    var iconSize=(Math.max(monitorCanvasObj.width, monitorCanvasObj.height) * 0.10);
-    monitorCanvasCtx.font = "600 " + iconSize.toString() + "px Arial";
-    monitorCanvasCtx.fillStyle="white";
-    monitorCanvasCtx.globalCompositeOperation = "difference";
-    monitorCanvasCtx.fillText("+", iconSize*0.2, iconSize*1.2);
-    monitorCanvasCtx.fillText("-", monitorCanvasObj[monId].width - iconSize*1.2, iconSize*1.2);
-    monitorCanvasCtx.globalCompositeOperation="source-over";
+    canvasCtx.drawImage( monitorImageObject[monId], 0, 0, canvasObj.width, canvasObj.height );
+    var iconSize=(Math.max(canvasObj.width, canvasObj.height) * 0.10);
+    canvasCtx.font = "600 " + iconSize.toString() + "px Arial";
+    canvasCtx.fillStyle = "white";
+    canvasCtx.globalCompositeOperation = "difference";
+    canvasCtx.fillText( "+", iconSize*0.2, iconSize*1.2 );
+    canvasCtx.fillText( "-", canvasObj.width - iconSize*1.2, iconSize*1.2 );
+    canvasCtx.globalCompositeOperation = "source-over";
     monitorLoadEndTimems[monId] = new Date().getTime(); // elapsed time to load
     evaluateLoadTimes();
   }
-  monitorLoading[monId]=false;
+  monitorLoading[monId] = false;
   if ( ! success ) {
     // if we had a failrue queue up the no-data image
-    loadImage2Monitor(monId,"no data");  // leave the staged URL if there is one, just ignore it here.
+    //loadImage2Monitor(monId,"no data");  // leave the staged URL if there is one, just ignore it here.
+    loadNoData( monId );
   } else {
     if ( monitorLoadingStageURL[monId] == "" ) {
+      console.log("Not showing image for " + monId );
       // This means that there wasn't a loading image placeholder.
       // So we weren't actually loading an image... which seems weird.
       return;
     }
-    loadImage2Monitor(monId,monitorLoadingStageURL[monId] );
-    monitorLoadingStageURL[monId]="";
+    //loadImage2Monitor(monId,monitorLoadingStageURL[monId] );
+    //monitorLoadingStageURL[monId]="";
   }
   return;
 }
 
+function loadNoData( monId ) {
+  if ( monId ) {
+    var canvasCtx = monitorCanvasCtx[monId];
+    var canvasObj = monitorCanvasObj[monId];
+    canvasCtx.fillStyle="white";
+    canvasCtx.fillRect(0, 0, canvasObj.width, canvasObj.height);
+    var textSize=canvasObj.width * 0.15;
+    var text="No Data";
+    canvasCtx.font = "600 " + textSize.toString() + "px Arial";
+    canvasCtx.fillStyle="black";
+    var textWidth = canvasCtx.measureText(text).width;
+    canvasCtx.fillText(text,canvasObj.width/2 - textWidth/2,canvasObj.height/2);
+  } else {
+    console.log("No monId in loadNoData");
+  }
+}
+
+// Either draws the 
 function loadImage2Monitor( monId, url ) {
   if ( monitorLoading[monId] && monitorImageObject[monId].src != url ) {
     // never queue the same image twice (if it's loading it has to be defined, right?
@@ -98,22 +117,11 @@ function loadImage2Monitor( monId, url ) {
   } else {
     if ( monitorImageObject[monId].src == url ) return;   // do nothing if it's the same
     if ( url == 'no data' ) {
-      if ( ! monitorCanvasCtx[monId] ) {
-        alert("No ctx for " + monId);
-      } else {
-        monitorCanvasCtx[monId].fillStyle="white";
-        monitorCanvasCtx[monId].fillRect(0,0,monitorCanvasObj[monId].width,monitorCanvasObj[monId].height);
-        var textSize=monitorCanvasObj[monId].width * 0.15;
-        var text="No Data";
-        monitorCanvasCtx[monId].font = "600 " + textSize.toString() + "px Arial";
-        monitorCanvasCtx[monId].fillStyle="black";
-        var textWidth = monitorCanvasCtx[monId].measureText(text).width;
-        monitorCanvasCtx[monId].fillText(text,monitorCanvasObj[monId].width/2 - textWidth/2,monitorCanvasObj[monId].height/2);
-      }
+      loadNoData( monId );
     } else {
-      monitorLoading[monId]=true;
-      monitorLoadStartTimems[monId]=new Date().getTime();
-      monitorImageObject[monId].src=url;  // starts a load but doesn't refresh yet, wait until ready
+      monitorLoading[monId] = true;
+      monitorLoadStartTimems[monId] = new Date().getTime();
+      monitorImageObject[monId].src = url;  // starts a load but doesn't refresh yet, wait until ready
     }
   }
 }
@@ -694,12 +702,12 @@ function initPage() {
     if ( ! monitorCanvasObj[monId] ) {
       alert("Couldn't find DOM element for Monitor"+monId + "monitorPtr.length="+len);
     } else {
-      monitorCanvasCtx[monId]=monitorCanvasObj[monId].getContext('2d');
-      monitorImageObject[monId]=new Image();
-      monitorImageObject[monId].src = monitorImageURL[monId];
-      monitorImageObject[monId].monId = monId;
-      monitorImageObject[monId].onload = function() {imagedone(this, this.monId, true )};
-      monitorImageObject[monId].onerror = function() {imagedone(this, this.monId, false )};
+      monitorCanvasCtx[monId] = monitorCanvasObj[monId].getContext('2d');
+      var imageObject = monitorImageObject[monId] = new Image();
+      imageObject.monId = monId;
+      imageObject.onload = function() {imagedone(this, this.monId, true )};
+      imageObject.onerror = function() {imagedone(this, this.monId, false )};
+      loadImage2Monitor( monId, monitorImageURL[monId] );
     }
   }
   drawGraph();

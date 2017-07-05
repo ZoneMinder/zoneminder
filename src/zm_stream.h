@@ -156,6 +156,8 @@ public:
   void setStreamScale( int p_scale )
   {
     scale = p_scale;
+    if ( ! scale )
+      scale = DEFAULT_SCALE;
   }
   void setStreamReplayRate( int p_rate )
   {

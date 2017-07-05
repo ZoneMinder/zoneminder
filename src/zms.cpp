@@ -48,8 +48,7 @@ bool ValidateAccess( User *user, int mon_id ) {
 	return( allowed );
 }
 
-int main( int argc, const char *argv[] )
-{
+int main( int argc, const char *argv[] ) {
 	self = argv[0];
 
 	srand( getpid() * time( 0 ) );

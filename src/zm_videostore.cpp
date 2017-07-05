@@ -618,7 +618,7 @@ int VideoStore::writeVideoFramePacket( AVPacket *ipkt ) {
   int duration;
 
   //Scale the PTS of the outgoing packet to be the correct time base
-  if (ipkt->pts != AV_NOPTS_VALUE) {
+  if ( ipkt->pts != AV_NOPTS_VALUE ) {
 
     if ( ! video_last_pts ) {
       // This is the first packet.
@@ -696,9 +696,9 @@ int VideoStore::writeVideoFramePacket( AVPacket *ipkt ) {
   }
 
   AVPacket safepkt;
-  memcpy(&safepkt, &opkt, sizeof(AVPacket));
+  memcpy( &safepkt, &opkt, sizeof(AVPacket) );
 
-Debug(1, "writing video packet pts(%d) dts(%d) duration(%d)", opkt.pts, opkt.dts, opkt.duration );
+  Debug(1, "writing video packet pts(%d) dts(%d) duration(%d)", opkt.pts, opkt.dts, opkt.duration );
   if ((opkt.data == NULL)||(opkt.size < 1)) {
     Warning("%s:%d: Mangled AVPacket: discarding frame", __FILE__, __LINE__ ); 
     dumpPacket( ipkt);
@@ -714,10 +714,14 @@ Debug(1, "writing video packet pts(%d) dts(%d) duration(%d)", opkt.pts, opkt.dts
     video_previous_dts = opkt.dts; // Unsure if av_interleaved_write_frame() clobbers opkt.dts when out of order, so storing in advance
     video_previous_pts = opkt.pts;
     ret = av_interleaved_write_frame(oc, &opkt);
-    if(ret<0){
+    if ( ret < 0 ) {
       // There's nothing we can really do if the frame is rejected, just drop it and get on with the next
       Warning("%s:%d: Writing frame [av_interleaved_write_frame()] failed: %s(%d)  ", __FILE__, __LINE__,  av_make_error_string(ret).c_str(), (ret));
       dumpPacket(&safepkt);
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+  zm_dump_codecpar( video_input_stream->codecpar );
+  zm_dump_codecpar( video_output_stream->codecpar );
+#endif
     }
   }
 

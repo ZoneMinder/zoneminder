@@ -337,13 +337,21 @@ CREATE TABLE `Monitors` (
   `Format` int(10) unsigned NOT NULL default '0',
   `V4LMultiBuffer`	tinyint(1) unsigned,
   `V4LCapturesPerFrame`	tinyint(3) unsigned,
+<<<<<<< HEAD
   `Protocol` varchar(16),
+=======
+  `Protocol` varchar(16) default '',
+>>>>>>> montagereview_rework
   `Method` varchar(16) NOT NULL default '',
   `Host` varchar(64),
   `Port` varchar(8) NOT NULL default '',
   `SubPath` varchar(64) NOT NULL default '',
   `Path` varchar(255),
+<<<<<<< HEAD
   `Options` varchar(255),
+=======
+  `Options` varchar(255) default '',
+>>>>>>> montagereview_rework
   `User` varchar(64),
   `Pass` varchar(64),
   `Width` smallint(5) unsigned NOT NULL default '0',

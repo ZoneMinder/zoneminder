@@ -31,7 +31,7 @@ function changeScale() {
   Cookie.write( 'zmWatchScale'+monitorId, scale, { duration: 10*365 } );
 
   /*Stream could be an applet so can't use moo tools*/
-  var streamImg = document.getElementById('liveStream'+monitorId);
+  var streamImg = $('#liveStream'+monitorId);
   if ( streamImg ) {
     streamImg.style.width = newWidth + "px";
     streamImg.style.height = newHeight + "px";
@@ -187,14 +187,14 @@ function getStreamCmdResponse( respObj, respText ) {
     if ( streamStatus.auth ) {
       console.log("Haev a new auth hash" + streamStatus.auth);
       // Try to reload the image stream.
-      var streamImg = document.getElementById('liveStream');
+      var streamImg = $('liveStream');
       if ( streamImg )
         streamImg.src = streamImg.src.replace( /auth=\w+/i, 'auth='+streamStatus.auth );
     } // end if haev a new auth hash
   } else {
     checkStreamForErrors("getStreamCmdResponse",respObj);//log them
     // Try to reload the image stream.
-    var streamImg = document.getElementById('liveStream'+monitorId);
+    var streamImg = $('liveStream'+monitorId);
     if ( streamImg ) {
       streamImg.src = streamImg.src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
       console.log("Changing lviestream src to " + streamImg.src);

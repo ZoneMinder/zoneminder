@@ -39,24 +39,24 @@ void zmLoadConfig() {
   // update the Config hash with those values
   DIR* configSubFolder = opendir(ZM_CONFIG_SUBDIR);
   if ( configSubFolder ) { // subfolder exists and is readable
-      char glob_pattern[PATH_MAX] = "";
-      snprintf( glob_pattern, sizeof(glob_pattern), "%s/*.conf", ZM_CONFIG_SUBDIR );
+    char glob_pattern[PATH_MAX] = "";
+    snprintf( glob_pattern, sizeof(glob_pattern), "%s/*.conf", ZM_CONFIG_SUBDIR );
 
-      glob_t pglob;
-      int glob_status = glob( glob_pattern, 0, 0, &pglob );
-      if ( glob_status != 0 ) {
-          if ( glob_status < 0 ) {
-              Error( "Can't glob '%s': %s", glob_pattern, strerror(errno) );
-          } else {
-              Debug( 1, "Can't glob '%s': %d", glob_pattern, glob_status );
-          }
+    glob_t pglob;
+    int glob_status = glob( glob_pattern, 0, 0, &pglob );
+    if ( glob_status != 0 ) {
+      if ( glob_status < 0 ) {
+        Error( "Can't glob '%s': %s", glob_pattern, strerror(errno) );
       } else {
-          for ( unsigned int i = 0; i < pglob.gl_pathc; i++ ) {
-              process_configfile(pglob.gl_pathv[i]);
-          }
-          closedir(configSubFolder);
+        Debug( 1, "Can't glob '%s': %d", glob_pattern, glob_status );
       }
-      globfree( &pglob );
+    } else {
+      for ( unsigned int i = 0; i < pglob.gl_pathc; i++ ) {
+        process_configfile(pglob.gl_pathv[i]);
+      }
+      closedir(configSubFolder);
+    }
+    globfree( &pglob );
   }
 
   zmDbConnect();

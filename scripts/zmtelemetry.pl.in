@@ -181,7 +181,7 @@ sub getUUID {
   my $uuid= "";
 
 # Verify the current UUID is valid and not nil
-  if (( $Config{ZM_TELEMETRY_UUID} =~ /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i ) && ( $Config{ZM_TELEMETRY_UUID} ne "00000000-0000-0000-0000-000000000000" )) {
+  if (( $Config{ZM_TELEMETRY_UUID} =~ /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i ) && ( $Config{ZM_TELEMETRY_UUID} ne '00000000-0000-0000-0000-000000000000' )) {
     $uuid = $Config{ZM_TELEMETRY_UUID};
   } else {
     my $sql = 'SELECT uuid()';
@@ -190,7 +190,7 @@ sub getUUID {
     $uuid = $Config{ZM_TELEMETRY_UUID} = $sth->fetchrow_array();
     $sth->finish();
 
-    $sql = "UPDATE Config set Value = ? WHERE Name = 'ZM_TELEMETRY_UUID'";
+    $sql = q`UPDATE Config set Value = ? WHERE Name = 'ZM_TELEMETRY_UUID'`;
     $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
     $res = $sth->execute( "$uuid" ) or die( "Can't execute: ".$sth->errstr() );
     $sth->finish();

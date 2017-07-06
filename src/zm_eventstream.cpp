@@ -38,11 +38,6 @@
 #include "zm_storage.h"
 #include "zm_monitor.h"
 
-<<<<<<< HEAD
-=======
-// sendfile tricks
-extern "C" {
->>>>>>> storageareas
 #include "zm_sendfile.h"
 
 bool EventStream::loadInitialEventData( int monitor_id, time_t event_time ) {
@@ -142,10 +137,7 @@ bool EventStream::loadEventData( int event_id ) {
   event_data->start_time = atoi(dbrow[3]);
   event_data->duration = atof(dbrow[4]);
   strncpy( event_data->video_file, dbrow[5], sizeof( event_data->video_file )-1 );
-<<<<<<< HEAD
   mysql_free_result( result );
-=======
->>>>>>> storageareas
 
   Storage * storage = new Storage( event_data->storage_id );
   const char *storage_path = storage->Path();

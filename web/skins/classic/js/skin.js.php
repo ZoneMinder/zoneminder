@@ -49,6 +49,13 @@ if ( ! empty($refreshParent) ) {
   echo 'false';
 }
 ?>;
+var closePopup = <?php
+if ( ( ! empty($closePopup) ) and ( $closePopup == true ) ) {
+    echo 'true';
+} else {
+  echo 'false';
+}
+?>;
 
 var focusWindow = <?php echo !empty($focusWindow)?'true':'false' ?>;
 

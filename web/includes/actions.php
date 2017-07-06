@@ -171,14 +171,13 @@ Warning("Addterm");
         } else if ( $action == 'eventdetail' ) {
           if ( !empty($_REQUEST['eid']) ) {
             dbQuery( 'UPDATE Events SET Cause=?, Notes=? WHERE Id=?', array( $_REQUEST['newEvent']['Cause'], $_REQUEST['newEvent']['Notes'], $_REQUEST['eid'] ) );
-            $refreshParent = true;
           } else {
             foreach( getAffectedIds( 'markEid' ) as $markEid ) {
               dbQuery( 'UPDATE Events SET Cause=?, Notes=? WHERE Id=?', array( $_REQUEST['newEvent']['Cause'], $_REQUEST['newEvent']['Notes'], $markEid ) );
-              $refreshParent = true;
             }
-            $refreshParent = '/index.php?view=filter&Id='.$_REQUEST['Id'];
           }
+          $refreshParent = true;
+          $closePopup = true;
         } elseif ( $action == 'archive' || $action == 'unarchive' ) {
           $archiveVal = ($action == 'archive')?1:0;
           if ( !empty($_REQUEST['eid']) ) {
@@ -186,14 +185,14 @@ Warning("Addterm");
           } else {
             foreach( getAffectedIds( 'markEid' ) as $markEid ) {
               dbQuery( 'UPDATE Events SET Archived=? WHERE Id=?', array( $archiveVal, $markEid ) );
-              $refreshParent = true;
             }
+            $refreshParent = true;
           }
         } elseif ( $action == 'delete' ) {
           foreach( getAffectedIds( 'markEid' ) as $markEid ) {
             deleteEvent( $markEid );
-            $refreshParent = true;
           }
+          $refreshParent = true;
         }
       } // end if canEdit(Events)
     } // end if filter or something else

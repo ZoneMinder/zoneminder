@@ -29,7 +29,8 @@ $eventCounts = array(
     array(
         'title' => translate('Events'),
         'filter' => array(
-            'terms' => array(
+            'Query' => array (
+              'terms' => array()
             )
         ),
         'total' => 0,
@@ -37,48 +38,58 @@ $eventCounts = array(
     array(
         'title' => translate('Hour'),
         'filter' => array(
+          'Query' => array(
             'terms' => array(
-                array( 'attr' => 'DateTime', 'op' => '>=', 'val' => '-1 hour' ),
+              array( 'attr' => 'DateTime', 'op' => '>=', 'val' => '-1 hour' ),
+              )
             )
-        ),
+          ),
         'total' => 0,
     ),
     array(
         'title' => translate('Day'),
         'filter' => array(
+          'Query' => array(
             'terms' => array(
-                array( 'attr' => "DateTime", 'op' => '>=', 'val' => '-1 day' ),
+              array( 'attr' => "DateTime", 'op' => '>=', 'val' => '-1 day' ),
+              )
             )
-        ),
+          ),
         'total' => 0,
     ),
     array(
         'title' => translate('Week'),
         'filter' => array(
+          'Query' => array(
             'terms' => array(
-                array( 'attr' => "DateTime", 'op' => '>=', 'val' => '-7 day' ),
+              array( 'attr' => "DateTime", 'op' => '>=', 'val' => '-7 day' ),
+              )
             )
-        ),
+          ),
         'total' => 0,
     ),
     array(
         'title' => translate('Month'),
         'filter' => array(
+          'Query' => array(
             'terms' => array(
-                array( 'attr' => "DateTime", 'op' => '>=', 'val' => '-1 month' ),
+              array( 'attr' => "DateTime", 'op' => '>=', 'val' => '-1 month' ),
+              )
             )
-        ),
+          ),
         'total' => 0,
     ),
     array(
         'title' => translate('Archived'),
         'filter' => array(
+          'Query' => array(
             'terms' => array(
-                array( 'attr' => "Archived", 'op' => '=', 'val' => '1' ),
+              array( 'attr' => "Archived", 'op' => '=', 'val' => '1' ),
+              )
             )
-        ),
+          ),
         'total' => 0,
-    ),
+        ),
 );
 
 $displayMonitors = NULL;
@@ -94,7 +105,7 @@ for( $i = 0; $i < count($displayMonitors); $i += 1 ) {
   $monitor['ZoneCount'] = dbFetchOne( 'select count(Id) as ZoneCount from Zones where MonitorId = ?', 'ZoneCount', array($monitor['Id']) );
   $counts = array();
   for ( $j = 0; $j < count($eventCounts); $j += 1 ) {
-    $filter = addFilterTerm( $eventCounts[$j]['filter'], count($eventCounts[$j]['filter']['terms']), array( 'cnj' => 'and', 'attr' => 'MonitorId', 'op' => '=', 'val' => $monitor['Id'] ) );
+    $filter = addFilterTerm( $eventCounts[$j]['filter'], count($eventCounts[$j]['filter']['Query']['terms']), array( 'cnj' => 'and', 'attr' => 'MonitorId', 'op' => '=', 'val' => $monitor['Id'] ) );
     parseFilter( $filter );
     $counts[] = "count(if(1".$filter['sql'].",1,NULL)) as EventCount$j";
     $monitor['eventCounts'][$j]['filter'] = $filter;

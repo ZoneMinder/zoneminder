@@ -41,6 +41,7 @@ if ( isset( $_REQUEST['showZones'] ) ) {
   }
 }
 $monitors = array();
+<<<<<<< HEAD
 $widths = array( 
   ''  => 'auto',
   160 => 160,
@@ -63,8 +64,10 @@ if ( isset( $_REQUEST['scale'] ) ) {
 } else if ( isset( $_COOKIE['zmMontageScale'] ) ) {
   $scale = $_COOKIE['zmMontageScale'];
   Logger::Debug("Setting scale from cookie to $scale");
-} else {
-  Logger::Debug("scale is $scale");
+}
+
+if ( ! $scale ) 
+  $scale = 100;
 }
 
 foreach( dbFetchAll( $sql ) as $row ) {

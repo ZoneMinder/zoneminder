@@ -253,8 +253,11 @@ if ( refreshParent ) {
 if ( focusWindow ) {
   windowToFront();
 }
+if ( closePopup ) {
+  closeWindow();
+}
 
-window.addEvent( 'domready', checkSize);
+window.addEvent( 'domready', checkSize );
 
 function convertLabelFormat(LabelFormat, monitorName){
 	//convert label format from strftime to moment's format (modified from

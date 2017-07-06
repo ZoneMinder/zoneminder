@@ -155,7 +155,7 @@ if ( $Event->DefaultVideo() ) {
 ?>
         <div id="videoFeed">
           <video id="videoobj" class="video-js vjs-default-skin" width="<?php echo reScale( $Event->Width(), $scale ) ?>" height="<?php echo reScale( $Event->Height(), $scale ) ?>" data-setup='{ "controls": true, "playbackRates": [0.5, 1, 1.5, 2, 4, 8, 16, 32, 64, 128, 256], "autoplay": true, "preload": "auto", "plugins": { "zoomrotate": { "zoom": "<?php echo $Zoom ?>"}}}'>
-          <source src="<?php echo $Event->getStreamSrc( array( "mode=mpeg&format=h264" ) ); ?>" type="video/mp4">
+          <source src="<?php echo $Event->getStreamSrc( array( 'mode'=>'mpeg','format'=>'h264' ) ); ?>" type="video/mp4">
           Your browser does not support the video tag.
           </video>
         </div>
@@ -170,7 +170,8 @@ if ( $Event->DefaultVideo() ) {
 <?php
 }  // end if DefaultVideo
 ?>
-        <div id="imageFeed" <?php if ( $Event->DefaultVideo() ) { ?>class="hidden"<?php } ?> >
+      </div><!--eventVideo-->
+      <div id="imageFeed"<?php if ( $Event->DefaultVideo() ) { ?> class="hidden"<?php } ?>>
 <?php
 if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
   $streamSrc = $Event->getStreamSrc( array( 'mode'=>'mpeg', 'scale'=>$scale, 'rate'=>$rate, 'bitrate'=>ZM_WEB_VIDEO_BITRATE, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'format'=>ZM_MPEG_REPLAY_FORMAT, 'replay'=>$replayMode ) );
@@ -184,7 +185,6 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
   }
 } // end if stream method
 ?>
-        </div>
         <p id="dvrControls">
           <input type="button" value="&lt;+" id="prevBtn" title="<?php echo translate('Prev') ?>" class="inactive" onclick="streamPrev( true );"/>
           <input type="button" value="&lt;&lt;" id="fastRevBtn" title="<?php echo translate('Rewind') ?>" class="inactive" disabled="disabled" onclick="streamFastRev( true );"/>
@@ -206,8 +206,8 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
 <?php for ( $i = 0; $i < $panelSections; $i++ ) { ?>
            <div class="progressBox" id="progressBox<?php echo $i ?>" title=""></div>
 <?php } ?>
-    </div>
-        </div>
+        </div><!--progressBar-->
+      </div><!--imageFeed-->
       </div>
 <?php 
   if ( $Event->SaveJPEGs() & 3 ) { // frames or analysis

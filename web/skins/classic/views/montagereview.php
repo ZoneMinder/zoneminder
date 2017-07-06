@@ -181,34 +181,34 @@ else
 
 $speeds=[0, 0.1, 0.25, 0.5, 0.75, 1.0, 1.5, 2, 3, 5, 10, 20, 50];
 
-if (isset($_REQUEST['speed']) )
+if ( isset($_REQUEST['speed']) )
   $defaultSpeed = validHtmlStr($_REQUEST['speed']);
 else
   $defaultSpeed = 1;
 
 $speedIndex=5; // default to 1x
-for ($i=0; $i<count($speeds); $i++) {
-  if($speeds[$i]==$defaultSpeed) {
-    $speedIndex=$i;
+for ( $i = 0; $i < count($speeds); $i++ ) {
+  if ( $speeds[$i] == $defaultSpeed ) {
+    $speedIndex = $i;
     break;
   }
 }
 
-if (isset($_REQUEST['current']) )
-  $defaultCurrentTime=validHtmlStr($_REQUEST['current']);
+if ( isset($_REQUEST['current']) )
+  $defaultCurrentTime = validHtmlStr($_REQUEST['current']);
 
 
-$initialModeIsLive=1;
-if(isset($_REQUEST['live']) && $_REQUEST['live']=='0' )
+$initialModeIsLive = 1;
+if ( isset($_REQUEST['live']) && $_REQUEST['live']=='0' )
   $initialModeIsLive=0;
 
 $initialDisplayInterval=1000;
-if(isset($_REQUEST['displayinterval']))
+if ( isset($_REQUEST['displayinterval']) )
   $initialDisplayInterval=validHtmlStr($_REQUEST['displayinterval']);
 
 $eventsSql .= ' GROUP BY E.Id,E.Name,E.StartTime,E.Length,E.Frames,E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId';
 
-if( isset($minTime) && isset($maxTime) ) {
+if ( isset($minTime) && isset($maxTime) ) {
   $minTimeSecs = strtotime($minTime);
   $maxTimeSecs = strtotime($maxTime);
   $eventsSql .= " HAVING CalcEndTimeSecs > '" . $minTimeSecs . "' AND StartTimeSecs < '" . $maxTimeSecs . "'";

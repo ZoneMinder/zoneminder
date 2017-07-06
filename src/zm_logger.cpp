@@ -70,7 +70,7 @@ Logger::Logger() :
   mFileLevel( NOLOG ),
   mSyslogLevel( NOLOG ),
   mEffectiveLevel( NOLOG ),
-  //mLogPath( config.path_logs ),
+  //mLogPath( staticConfig.PATH_LOGS.c_str() ),
   //mLogFile( mLogPath+"/"+mId+".log" ),
   mDbConnected( false ),
   mLogFileFP( NULL ),
@@ -195,7 +195,7 @@ void Logger::initialise( const std::string &id, const Options &options ) {
   level( tempLevel );
 
   mFlush = false;
-  if (envPtr = getenv( "LOG_FLUSH")) {
+  if ( (envPtr = getenv("LOG_FLUSH")) ) {
     mFlush = atoi( envPtr );
   } else if ( config.log_debug ) {
     mFlush = true;
@@ -422,7 +422,7 @@ void Logger::logFile( const std::string &logFile ) {
 }
 
 void Logger::openFile() {
-  if ( mLogFile.size() && (mLogFileFP = fopen( mLogFile.c_str() ,"w" )) == (FILE *)NULL ) {
+  if ( mLogFile.size() && (mLogFileFP = fopen( mLogFile.c_str() ,"a" )) == (FILE *)NULL ) {
     mFileLevel = NOLOG;
     Fatal( "fopen() for %s, error = %s", mLogFile.c_str(), strerror(errno) );
   }
@@ -577,7 +577,7 @@ void logInit( const char *name, const Logger::Options &options ) {
   if ( !Logger::smInstance )
     Logger::smInstance = new Logger();
   Logger::Options tempOptions = options;
-  tempOptions.mLogPath = config.path_logs;
+  tempOptions.mLogPath = staticConfig.PATH_LOGS.c_str();
   Logger::smInstance->initialise( name, tempOptions );
 }
 

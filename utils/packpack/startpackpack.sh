@@ -140,7 +140,7 @@ installtrusty () {
     pkgname="build/zoneminder_${VERSION}-${RELEASE}_amd64.deb"
 
     if [ -e $pkgname ]; then
-        sudo gdebi --non-interactive $pkgname
+        sudo gdebi --quiet --non-interactive $pkgname
         mysql -uzmuser -pzmpass zm < db/test.monitor.sql
         sudo /usr/bin/zmpkg.pl start
         sudo /usr/bin/zmfilter.pl -f purgewhenfull
@@ -255,7 +255,11 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
         setrpmchangelog
 
         echo "Starting packpack..."
-        packpack/packpack -f utils/packpack/redhat_package.mk redhat_package
+        utils/packpack/heartbeat.sh &
+        mypid=$!
+        packpack/packpack -f utils/packpack/redhat_package.mk redhat_package > buildlog.txt 2>&1
+        kill $mypid
+        tail -n 3000 buildlog.txt | grep -v ONVIF
 
     # Steps common to Debian based distros
     elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ]; then
@@ -275,8 +279,12 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
         setdebchangelog
         
         echo "Starting packpack..."
-        packpack/packpack
-
+        utils/packpack/heartbeat.sh &
+        mypid=$!
+        packpack/packpack > buildlog.txt 2>&1
+        kill $mypid
+        tail -n 3000 buildlog.txt | grep -v ONVIF
+        
         if [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ] && [ "${ARCH}" == "x86_64" ] && [ "${TRAVIS}" == "true" ]; then
             installtrusty
         fi
@@ -295,7 +303,11 @@ elif [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ] && [ "${ARCH}" == "x86
     setdebchangelog
     
     echo "Starting packpack..."
-    packpack/packpack
+    utils/packpack/heartbeat.sh &
+    mypid=$!
+    packpack/packpack > buildlog.txt 2>&1
+    kill $mypid
+    tail -n 3000 buildlog.txt | grep -v ONVIF
 
     # If we are running inside Travis then attempt to install the deb we just built
     if [ "${TRAVIS}" == "true" ]; then

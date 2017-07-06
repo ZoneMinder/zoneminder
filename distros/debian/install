@@ -6,3 +6,4 @@ usr/share/perl5/ZoneMinder.pm
 usr/share/zoneminder/db
 usr/share/zoneminder/www
 etc/zm
+etc/zm/conf.d/*

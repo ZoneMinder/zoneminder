@@ -1283,6 +1283,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
           case 'MaxScore':
           case 'Cause':
           case 'Notes':
+          case 'StateId':
           case 'Archived':
             $filter['sql'] .= 'E.'.$filter['terms'][$i]['attr'];
             break;
@@ -2137,8 +2138,7 @@ function getSkinFile( $file ) {
   return( $skinFile );
 }
 
-function getSkinIncludes( $file, $includeBase=false, $asOverride=false )
-{
+function getSkinIncludes( $file, $includeBase=false, $asOverride=false ) {
   global $skinBase;
   $skinFile = false;
   foreach ( $skinBase as $skin ) {

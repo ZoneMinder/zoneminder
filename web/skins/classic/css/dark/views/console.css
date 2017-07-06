@@ -61,12 +61,8 @@
     text-align: left;
 }
 
-#consoleTable .colOrder {
-    text-align: center;
-}
-
 #consoleTable .colMark {
-    width: 32px;
+    width: 62px;
     text-align: center;
 }
 
@@ -85,13 +81,3 @@
 #consoleTable .colLeftButtons input {
     margin-right: 24px;
 }
-
-#consoleTable .colRightButtons {
-    text-align: right;
-    padding-right: 8px;
-}
-
-#consoleTable .colRightButtons input {
-    margin: 0 8px;
-}
-

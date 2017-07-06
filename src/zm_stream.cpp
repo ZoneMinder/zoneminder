@@ -291,7 +291,7 @@ void StreamBase::openComms()
   if ( connkey > 0 )
   {
 
-		unsigned int length = snprintf( sock_path_lock, sizeof(sock_path_lock), "%s/zms-%06d.lock", config.path_socks, connkey);
+		unsigned int length = snprintf( sock_path_lock, sizeof(sock_path_lock), "%s/zms-%06d.lock", staticConfig.PATH_SOCKS.c_str(), connkey);
     if ( length >= sizeof(sock_path_lock) ) {
       Warning("Socket lock path was truncated.");
       length = sizeof(sock_path_lock)-1;
@@ -321,7 +321,7 @@ void StreamBase::openComms()
 			Debug(3, "Have socket %d", sd );
     }
 
-    length = snprintf( loc_sock_path, sizeof(loc_sock_path), "%s/zms-%06ds.sock", config.path_socks, connkey );
+    length = snprintf( loc_sock_path, sizeof(loc_sock_path), "%s/zms-%06ds.sock", staticConfig.PATH_SOCKS.c_str(), connkey );
     if ( length >= sizeof(loc_sock_path) ) {
       Warning("Socket path was truncated.");
       length = sizeof(loc_sock_path)-1;
@@ -339,7 +339,7 @@ void StreamBase::openComms()
       Fatal( "Can't bind: %s", strerror(errno) );
     }
 
-    snprintf( rem_sock_path, sizeof(rem_sock_path), "%s/zms-%06dw.sock", config.path_socks, connkey );
+    snprintf( rem_sock_path, sizeof(rem_sock_path), "%s/zms-%06dw.sock", staticConfig.PATH_SOCKS.c_str(), connkey );
     strncpy( rem_addr.sun_path, rem_sock_path, sizeof(rem_addr.sun_path) );
     rem_addr.sun_family = AF_UNIX;
   } // end if connKey > 0

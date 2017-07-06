@@ -33,7 +33,7 @@
 %global _hardened_build 1
 
 Name: zoneminder
-Version: 1.30.4
+Version: 1.31.1
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -142,9 +142,7 @@ too much degradation of performance.
 %{__mv} -f crud-%{crud_version} ./web/api/app/Plugin/Crud
 
 # Change the following default values
-./utils/zmeditconfigdata.sh ZM_PATH_ZMS /cgi-bin-zm/nph-zms
 ./utils/zmeditconfigdata.sh ZM_OPT_CAMBOZOLA yes
-./utils/zmeditconfigdata.sh ZM_PATH_SWAP /dev/shm
 ./utils/zmeditconfigdata.sh ZM_UPLOAD_FTP_LOC_DIR %{_localstatedir}/spool/zoneminder-upload
 ./utils/zmeditconfigdata.sh ZM_OPT_CONTROL yes
 ./utils/zmeditconfigdata.sh ZM_CHECK_FOR_UPDATES no

@@ -176,8 +176,8 @@ if ( !empty($action) ) {
             } else {
               Error("No new Id despite new name");
             }
+            $refreshParent = '/index.php?view=filter&Id='.$_REQUEST['Id'];
           }
-          $refreshParent = '/index.php?view=filter&Id='.$_REQUEST['Id'];
         }
       } // end if canedit events
     } // end if action == filter
@@ -800,7 +800,6 @@ if ( !empty($action) ) {
         switch( $_REQUEST['tab'] ) {
           case 'system' :
           case 'config' :
-          case 'paths' :
             $restartWarning = true;
             break;
           case 'web' :

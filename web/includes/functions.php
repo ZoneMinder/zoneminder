@@ -379,7 +379,7 @@ function outputHelperStream( $id, $src, $width, $height, $title='' ) {
   echo getHelperStream( $id, $src, $width, $height, $title );
 }
 function getHelperStream( $id, $src, $width, $height, $title='' ) {
-    return '<applet id="'.$id.'" code="com.charliemouse.cambozola.Viewer"
+    return '<object type="application/x-java-applet" id="'.$id.'" code="com.charliemouse.cambozola.Viewer"
     archive="'. ZM_PATH_CAMBOZOLA .'" 
     align="middle"
     width="'. $width .'"
@@ -387,14 +387,14 @@ function getHelperStream( $id, $src, $width, $height, $title='' ) {
     title="'. $title .'">
     <param name="accessories" value="none"/>
     <param name="url" value="'. $src .'"/>
-    </applet>';
+    </object>';
 }
 
 function outputImageStill( $id, $src, $width, $height, $title='' ) {
   echo getImageStill( $id, $src, $width, $height, $title='' );
 }
 function getImageStill( $id, $src, $width, $height, $title='' ) {
-  return '<img id="'.$id.'" src="'.$src.'" alt="'.$title.'" width="'.$width.'" height="'.$height.'"/>';
+  return '<img id="'.$id.'" src="'.$src.'" alt="'.$title.'"'.(validInt($width)?' width="'.$width.'"':'').(validInt($height)?' height="'.$height.'"':'').'/>';
 }
 
 function outputControlStill( $src, $width, $height, $monitor, $scale, $target ) {
@@ -1146,24 +1146,26 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
 
   $StorageArea = NULL;
 
-  if ( isset($filter['terms']) && count($filter['terms']) ) {
-    for ( $i = 0; $i < count($filter['terms']); $i++ ) {
-      if ( isset($filter['terms'][$i]['cnj']) ) {
-        $filter['query'] .= $querySep.urlencode("filter[terms][$i][cnj]").'='.urlencode($filter['terms'][$i]['cnj']);
-        $filter['sql'] .= ' '.$filter['terms'][$i]['cnj'].' ';
-        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][cnj]\" value=\"".htmlspecialchars($filter['terms'][$i]['cnj'])."\"/>\n";
+  $terms = $filter['Query']['terms'];
+
+  if ( isset($terms) && count($terms) ) {
+    for ( $i = 0; $i < count($terms); $i++ ) {
+      if ( isset($terms[$i]['cnj']) ) {
+        $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][cnj]").'='.urlencode($terms[$i]['cnj']);
+        $filter['sql'] .= ' '.$terms[$i]['cnj'].' ';
+        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][cnj]\" value=\"".htmlspecialchars($terms[$i]['cnj'])."\"/>\n";
       }
-      if ( isset($filter['terms'][$i]['obr']) ) {
-        $filter['query'] .= $querySep.urlencode("filter[terms][$i][obr]").'='.urlencode($filter['terms'][$i]['obr']);
-        $filter['sql'] .= ' '.str_repeat( '(', $filter['terms'][$i]['obr'] ).' ';
-        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][obr]\" value=\"".htmlspecialchars($filter['terms'][$i]['obr'])."\"/>\n";
+      if ( isset($terms[$i]['obr']) ) {
+        $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][obr]").'='.urlencode($terms[$i]['obr']);
+        $filter['sql'] .= ' '.str_repeat( '(', $terms[$i]['obr'] ).' ';
+        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][obr]\" value=\"".htmlspecialchars($terms[$i]['obr'])."\"/>\n";
       }
-      if ( isset($filter['terms'][$i]['attr']) ) {
-        $filter['query'] .= $querySep.urlencode("filter[terms][$i][attr]").'='.urlencode($filter['terms'][$i]['attr']);
-        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][attr]\" value=\"".htmlspecialchars($filter['terms'][$i]['attr'])."\"/>\n";
-        switch ( $filter['terms'][$i]['attr'] ) {
+      if ( isset($terms[$i]['attr']) ) {
+        $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][attr]").'='.urlencode($terms[$i]['attr']);
+        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][attr]\" value=\"".htmlspecialchars($terms[$i]['attr'])."\"/>\n";
+        switch ( $terms[$i]['attr'] ) {
           case 'MonitorName':
-            $filter['sql'] .= 'M.'.preg_replace( '/^Monitor/', '', $filter['terms'][$i]['attr'] );
+            $filter['sql'] .= 'M.'.preg_replace( '/^Monitor/', '', $terms[$i]['attr'] );
             break;
           case 'ServerId':
             $filter['sql'] .= 'M.ServerId';
@@ -1194,14 +1196,14 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
           case 'Notes':
           case 'StateId':
           case 'Archived':
-            $filter['sql'] .= 'E.'.$filter['terms'][$i]['attr'];
+            $filter['sql'] .= 'E.'.$terms[$i]['attr'];
             break;
           case 'DiskPercent':
             // Need to specify a storage area, so need to look through other terms looking for a storage area, else we default to ZM_EVENTS_PATH
             if ( ! $StorageArea ) {
-              for ( $j = 0; $j < count($filter['terms']); $j++ ) {
-                if ( isset($filter['terms'][$j]['attr']) and $filter['terms'][$j]['attr'] == 'StorageId' ) {
-                  $StorageArea = new Storage(  $filter['terms'][$j]['val'] );
+              for ( $j = 0; $j < count($terms); $j++ ) {
+                if ( isset($terms[$j]['attr']) and $terms[$j]['attr'] == 'StorageId' ) {
+                  $StorageArea = new Storage(  $terms[$j]['val'] );
                 }
               } // end foreach remaining term
               if ( ! $StorageArea ) $StorageArea = new Storage();
@@ -1212,9 +1214,9 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
           case 'DiskBlocks':
             // Need to specify a storage area, so need to look through other terms looking for a storage area, else we default to ZM_EVENTS_PATH
             if ( ! $StorageArea ) {
-              for ( $j = $i; $j < count($filter['terms']); $j++ ) {
-                if ( isset($filter['terms'][$i]['attr']) and $filter['terms'][$i]['attr'] == 'StorageId' ) {
-                  $StorageArea = new Storage(  $filter['terms'][$i]['val'] );
+              for ( $j = $i; $j < count($terms); $j++ ) {
+                if ( isset($terms[$i]['attr']) and $terms[$i]['attr'] == 'StorageId' ) {
+                  $StorageArea = new Storage(  $terms[$i]['val'] );
                 }
               } // end foreach remaining term
             } // end no StorageArea found yet
@@ -1225,8 +1227,8 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
             break;
         }
         $valueList = array();
-        foreach ( preg_split( '/["\'\s]*?,["\'\s]*?/', preg_replace( '/^["\']+?(.+)["\']+?$/', '$1', $filter['terms'][$i]['val'] ) ) as $value ) {
-          switch ( $filter['terms'][$i]['attr'] ) {
+        foreach ( preg_split( '/["\'\s]*?,["\'\s]*?/', preg_replace( '/^["\']+?(.+)["\']+?$/', '$1', $terms[$i]['val'] ) ) as $value ) {
+          switch ( $terms[$i]['attr'] ) {
             case 'MonitorName':
             case 'Name':
             case 'Cause':
@@ -1260,14 +1262,14 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
           $valueList[] = $value;
         }
 
-        switch ( $filter['terms'][$i]['op'] ) {
+        switch ( $terms[$i]['op'] ) {
           case '=' :
           case '!=' :
           case '>=' :
           case '>' :
           case '<' :
           case '<=' :
-            $filter['sql'] .= ' '.$filter['terms'][$i]['op'].' '. $value;
+            $filter['sql'] .= ' '.$terms[$i]['op'].' '. $value;
             break;
           case '=~' :
             $filter['sql'] .= ' regexp '.$value;
@@ -1283,15 +1285,15 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
             break;
         }
 
-        $filter['query'] .= $querySep.urlencode("filter[terms][$i][op]").'='.urlencode($filter['terms'][$i]['op']);
-        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][op]\" value=\"".htmlspecialchars($filter['terms'][$i]['op'])."\"/>\n";
-        $filter['query'] .= $querySep.urlencode("filter[terms][$i][val]").'='.urlencode($filter['terms'][$i]['val']);
-        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][val]\" value=\"".htmlspecialchars($filter['terms'][$i]['val'])."\"/>\n";
+        $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][op]").'='.urlencode($terms[$i]['op']);
+        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][op]\" value=\"".htmlspecialchars($terms[$i]['op'])."\"/>\n";
+        $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][val]").'='.urlencode($terms[$i]['val']);
+        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][val]\" value=\"".htmlspecialchars($terms[$i]['val'])."\"/>\n";
       }
-      if ( isset($filter['terms'][$i]['cbr']) ) {
-        $filter['query'] .= $querySep.urlencode("filter[terms][$i][cbr]").'='.urlencode($filter['terms'][$i]['cbr']);
-        $filter['sql'] .= ' '.str_repeat( ')', $filter['terms'][$i]['cbr'] ).' ';
-        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][cbr]\" value=\"".htmlspecialchars($filter['terms'][$i]['cbr'])."\"/>\n";
+      if ( isset($terms[$i]['cbr']) ) {
+        $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][cbr]").'='.urlencode($terms[$i]['cbr']);
+        $filter['sql'] .= ' '.str_repeat( ')', $terms[$i]['cbr'] ).' ';
+        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][cbr]\" value=\"".htmlspecialchars($terms[$i]['cbr'])."\"/>\n";
       }
     }
     if ( $filter['sql'] )
@@ -1306,14 +1308,14 @@ function addFilterTerm( $filter, $position, $term=false ) {
   if ( $position < 0 )
     $position = 0;
   
-  if ( ! isset( $filter['terms'] ) )
-    $filter['terms'] = array();
+  if ( ! isset( $filter['Query']['terms'] ) )
+    $filter['Query']['terms'] = array();
 
-  elseif( $position > count($filter['terms']) )
-    $position = count($filter['terms']);
+  elseif( $position > count($filter['Query']['terms']) )
+    $position = count($filter['Query']['terms']);
   if ( $term && $position == 0 )
     unset( $term['cnj'] );
-  array_splice( $filter['terms'], $position, 0, array( $term?$term:array() ) );
+  array_splice( $filter['Query']['terms'], $position, 0, array( $term?$term:array() ) );
 
   return( $filter );
 }
@@ -1321,9 +1323,9 @@ function addFilterTerm( $filter, $position, $term=false ) {
 function delFilterTerm( $filter, $position ) {
   if ( $position < 0 )
     $position = 0;
-  elseif( $position >= count($filter['terms']) )
-    $position = count($filter['terms']);
-  array_splice( $filter['terms'], $position, 1 );
+  elseif( $position >= count($filter['Query']['terms']) )
+    $position = count($filter['Query']['terms']);
+  array_splice( $filter['Query']['terms'], $position, 1 );
 
   return( $filter );
 }
@@ -2126,9 +2128,24 @@ function validHtmlStr( $input ) {
 
 function getStreamHTML( $monitor, $options = array() ) {
 
-  if ( isset($options['scale']) and $options['scale'] ) {
+  if ( isset($options['scale']) and $options['scale'] and ( $options['scale'] != 100 ) ) {
     $options['width'] = reScale( $monitor->Width(), $options['scale'] );
     $options['height'] = reScale( $monitor->Height(), $options['scale'] );
+  } else {
+    if ( ! isset( $options['width'] ) ) {
+      if ( $options['width'] == 100 ) {
+        $options['width'] = $monitor->Width();
+      } else {
+        $options['width'] = NULL;
+      }
+    }
+    if ( ! isset( $options['height'] ) ) {
+      if ( $options['height'] == 100 ) {
+        $options['height'] = $monitor->Height();
+      } else {
+        $options['height'] = NULL;
+      }
+    }
   }
   if ( ! isset($options['mode'] ) ) {
     $options['mode'] = 'stream';
@@ -2146,27 +2163,20 @@ function getStreamHTML( $monitor, $options = array() ) {
     $streamSrc = $monitor->getStreamSrc( $options );
 
     if ( canStreamNative() )
-      return getImageStream( 'liveStream'.$monitor->Id(), $streamSrc,
-          ( isset($options['width']) ? $options['width'] : NULL ),
-          ( isset($options['height']) ? $options['height'] : NULL ),
-          $monitor->Name()
-          );
+      return getImageStream( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], $monitor->Name());
     elseif ( canStreamApplet() )
-      return getHelperStream( 'liveStream'.$monitor->Id(), $streamSrc,
-          ( isset($options['width']) ? $options['width'] : NULL ),
-          ( isset($options['height']) ? $options['height'] : NULL ),
-          $monitor->Name()
-          );
+      // Helper, empty widths and heights really don't work.
+      return getHelperStream( 'liveStream'.$monitor->Id(), $streamSrc, 
+          $options['width'] ? $options['width'] : $monitor->Width(), 
+          $options['height'] ? $options['height'] : $monitor->Height(),
+          $monitor->Name());
   } else {
-    $streamSrc = $monitor->getStreamSrc( $options );
-    if ( $mode == 'stream' ) {
+    if ( $options['mode'] == 'stream' ) {
       Info( 'The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.' );
     }
-    return getImageStill( 'liveStream'.$monitor->Id(), $streamSrc,
-          ( isset($options['width']) ? $options['width'] : NULL ),
-          ( isset($options['height']) ? $options['height'] : NULL ),
-          $monitor->Name()
-        );
+    $options['mode'] = 'single';
+    $streamSrc = $monitor->getStreamSrc( $options );
+    return getImageStill( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], $monitor->Name());
   }
 } // end function getStreamHTML
 

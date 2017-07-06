@@ -11,7 +11,7 @@ var logCodes = new Object({
     '-4': 'PNC',
 });
 
-var minSampleTime = 1000;
+var minSampleTime = 2000;
 var maxSampleTime = 16000;
 var minLogTime = 0;
 var maxLogTime = 0;
@@ -56,11 +56,12 @@ function logResponse( respObj ) {
       try {
         respObj.logs.each(
             function( log ) {
-              if ( !maxLogTime || log.TimeKey > maxLogTime )
+              if ( ( !maxLogTime ) || ( log.TimeKey > maxLogTime ) )
                 maxLogTime = log.TimeKey;
-              if ( !minLogTime || log.TimeKey < minLogTime )
+              if ( ( !minLogTime ) || ( log.TimeKey < minLogTime ) )
                 minLogTime = log.TimeKey;
               var row = logTable.push( [{ content: log.DateTime, properties: { style: 'white-space: nowrap' }}, log.Component, log.Server, log.Pid, log.Code, log.Message, log.File, log.Line] );
+              
               delete log.Message;
               row.tr.store( 'log', log );
               if ( log.Level <= -3 )
@@ -106,8 +107,8 @@ function logResponse( respObj ) {
       logTimeout *= 2;
       if ( logTimeout > maxSampleTime )
         logTimeout = maxSampleTime;
-    }
-  }
+    } // end logs.length > 0
+  } // end if result == Ok
   logTimer = fetchNextLogs.delay( logTimeout );
 }
 

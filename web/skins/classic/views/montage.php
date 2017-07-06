@@ -41,6 +41,7 @@ if ( isset( $_REQUEST['showZones'] ) ) {
   }
 }
 $monitors = array();
+<<<<<<< HEAD
 $widths = array( 
   ''  => 'auto',
   160 => 160,
@@ -55,12 +56,19 @@ $heights = array(
   480 => 480,
 );
 
-$width_scale = $height_scale = $scale = null;
+$scale = '100';   # actual
 
-if ( isset( $_REQUEST['scale'] ) )
+if ( isset( $_REQUEST['scale'] ) ) {
   $scale = validInt($_REQUEST['scale']);
-else if ( isset( $_COOKIE['zmMontageScale'] ) )
+  Logger::Debug("Setting scale from request to $scale");
+} else if ( isset( $_COOKIE['zmMontageScale'] ) ) {
   $scale = $_COOKIE['zmMontageScale'];
+  Logger::Debug("Setting scale from cookie to $scale");
+}
+
+if ( ! $scale ) 
+  $scale = 100;
+}
 
 foreach( dbFetchAll( $sql ) as $row ) {
   if ( !visibleMonitor( $row['Id'] ) ) {
@@ -92,6 +100,7 @@ $layouts = array(
   'montage_3wide50enlarge.css' => translate('Mtg3widgrx'),
 );
 
+$layout = '';
 if ( isset($_COOKIE['zmMontageLayout']) )
   $layout = $_COOKIE['zmMontageLayout'];
 

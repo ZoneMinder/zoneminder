@@ -38,6 +38,11 @@
 #include "zm_storage.h"
 #include "zm_monitor.h"
 
+<<<<<<< HEAD
+=======
+// sendfile tricks
+extern "C" {
+>>>>>>> storageareas
 #include "zm_sendfile.h"
 
 bool EventStream::loadInitialEventData( int monitor_id, time_t event_time ) {
@@ -130,23 +135,29 @@ bool EventStream::loadEventData( int event_id ) {
   delete event_data;
   event_data = new EventData;
   event_data->event_id = event_id;
+
   event_data->monitor_id = atoi( dbrow[0] );
   event_data->storage_id = dbrow[1] ? atoi( dbrow[1] ) : 0;
   event_data->frame_count = dbrow[2] == NULL ? 0 : atoi(dbrow[2]);
   event_data->start_time = atoi(dbrow[3]);
   event_data->duration = atof(dbrow[4]);
   strncpy( event_data->video_file, dbrow[5], sizeof( event_data->video_file )-1 );
+<<<<<<< HEAD
   mysql_free_result( result );
+=======
+>>>>>>> storageareas
 
   Storage * storage = new Storage( event_data->storage_id );
   const char *storage_path = storage->Path();
 
   if ( config.use_deep_storage ) {
     struct tm *event_time = localtime( &event_data->start_time );
+
     if ( storage_path[0] == '/' )
       snprintf( event_data->path, sizeof(event_data->path), "%s/%ld/%02d/%02d/%02d/%02d/%02d/%02d", storage_path, event_data->monitor_id, event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday, event_time->tm_hour, event_time->tm_min, event_time->tm_sec );
     else
       snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%02d/%02d/%02d/%02d/%02d/%02d", staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id, event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday, event_time->tm_hour, event_time->tm_min, event_time->tm_sec );
+
   } else {
     if ( storage_path[0] == '/' )
       snprintf( event_data->path, sizeof(event_data->path), "%s/%ld/%ld", storage_path, event_data->monitor_id, event_data->event_id );
@@ -692,7 +703,7 @@ bool EventStream::sendFrame( int delta_us ) {
     if(send_raw) {
 #if HAVE_SENDFILE
       fprintf( stdout, "Content-Length: %d\r\n\r\n", (int)filestat.st_size );
-      if(zm_sendfile(fileno(stdout), fileno(fdj), 0, (int)filestat.st_size) != (int)filestat.st_size) {
+      if ( zm_sendfile(fileno(stdout), fileno(fdj), 0, (int)filestat.st_size) != (int)filestat.st_size ) {
         /* sendfile() failed, use standard way instead */
         img_buffer_size = fread( img_buffer, 1, sizeof(temp_img_buffer), fdj );
         if ( fwrite( img_buffer, img_buffer_size, 1, stdout ) != 1 ) {

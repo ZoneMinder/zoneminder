@@ -3,8 +3,8 @@
 class Filter {
 
 public $defaults = array(
-    'Id'              => null,
-    'Name'            => '',
+    'Id'              =>  null,
+    'Name'            =>  '',
     'AutoExecute'     =>  0,
     'AutoExecuteCmd'  =>  0,
     'AutoEmail'       =>  0,
@@ -15,7 +15,7 @@ public $defaults = array(
     'Background'      =>  0,
     'Concurrent'      =>  0,
     'limit'           =>  100,
-    'terms'           =>  array(),
+    'Query'           =>  array(),
     'sort_field'      =>  ZM_WEB_EVENT_SORT_FIELD,
     'sort_asc'        =>  (ZM_WEB_EVENT_SORT_ORDER == 'asc'),
 );
@@ -44,6 +44,11 @@ public $defaults = array(
       foreach ($row as $k => $v) {
         $this->{$k} = $v;
       }
+      if ( array_key_exists( 'Query', $this ) and $this->{'Query'} ) {
+        $this->{'Query'} = jsonDecode( $this->{'Query'} );
+      } else {
+        $this->{'Query'} = array();
+      }
     }
   } // end function __construct
 
@@ -54,7 +59,8 @@ public $defaults = array(
     if ( array_key_exists( $fn, $this ) ) {
       return $this->{$fn};
     } else if ( array_key_exists( $fn, $this->defaults ) ) {
-      return $this->defaults{$fn};
+      $this->{$fn} = $this->defaults{$fn};
+      return $this->{$fn};
     } else {
 
       $backTrace = debug_backtrace();
@@ -62,24 +68,44 @@ public $defaults = array(
       $line = $backTrace[1]['line'];
       Warning( "Unknown function call Filter->$fn from $file:$line" );
     }
-
   }
 
   public function terms( ) {
     if ( func_num_args( ) ) {
-      $this->{'terms'} = func_get_arg(0);
+      $this->Query()['terms'] = func_get_arg(0);
     }
-    if ( ! isset( $this->{'terms'} ) ) {
-      if ( array_key_exists( 'Query', $this ) and $this->{'Query'} ) {
-        $this->{'terms'} = jsonDecode( $this->{'Query'} );
-        if ( isset( $this->{'terms'}['terms'] ) )
-          $this->{'terms'} = $this->{'terms'}['terms'];
-        
-      } else {
-        $this->{'terms'} = array();
-      }
+    if ( isset( $this->Query()['terms'] ) ) {
+      return $this->Query()['terms'];
     }
-    return $this->{'terms'};
+    return array();
+  }
+
+  // The following three fields are actually stored in the Query
+  public function sort_field( ) {
+    if ( func_num_args( ) ) {
+      $this->Query()['sort_field'] = func_get_arg(0);
+    }
+    if ( isset( $this->Query()['sort_field'] ) ) {
+      return $this->{'Query'}['sort_field'];
+    }
+    return $this->defaults{'sort_field'};
+  }
+  public function sort_asc( ) {
+    if ( func_num_args( ) ) {
+      $this->{'Query'}['sort_asc'] = func_get_arg(0);
+    }
+    if ( isset( $this->Query()['sort_asc'] ) ) {
+      return $this->{'Query'}['sort_asc'];
+    }
+    return $this->defaults{'sort_asc'};
+  }
+  public function limit( ) {
+    if ( func_num_args( ) ) {
+      $this->{'Query'}['limit'] = func_get_arg(0);
+    }
+    if ( isset( $this->Query()['limit'] ) )
+      return $this->{'Query'}['limit'];
+    return $this->defaults{'limit'};
   }
 
   public static function find_all() {

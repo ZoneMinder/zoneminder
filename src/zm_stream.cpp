@@ -29,22 +29,18 @@
 
 #include "zm_stream.h"
 
-StreamBase::~StreamBase()
-{
+StreamBase::~StreamBase() {
 #if HAVE_LIBAVCODEC
-  if ( vid_stream )
-  {
-  delete vid_stream;
-  vid_stream = NULL;
+  if ( vid_stream ) {
+		delete vid_stream;
+		vid_stream = NULL;
   }
 #endif
   closeComms();
 }
 
-bool StreamBase::loadMonitor( int monitor_id )
-{
-  if ( !(monitor = Monitor::Load( monitor_id, false, Monitor::QUERY )) )
-  {
+bool StreamBase::loadMonitor( int monitor_id ) {
+  if ( !(monitor = Monitor::Load( monitor_id, false, Monitor::QUERY )) ) {
     Fatal( "Unable to load monitor id %d for streaming", monitor_id );
     return( false );
   }
@@ -52,42 +48,34 @@ bool StreamBase::loadMonitor( int monitor_id )
   return( true );
 }
 
-bool StreamBase::checkInitialised()
-{
-  if ( !monitor )
-  {
+bool StreamBase::checkInitialised() {
+  if ( !monitor ) {
     Fatal( "Cannot stream, not initialised" );
     return( false );
   }
   return( true );
 }
 
-void StreamBase::updateFrameRate( double fps )
-{
+void StreamBase::updateFrameRate( double fps ) {
   base_fps = fps;
   effective_fps = (base_fps*abs(replay_rate))/ZM_RATE_BASE;
   frame_mod = 1;
   Debug( 3, "FPS:%.2f, MXFPS:%.2f, BFPS:%.2f, EFPS:%.2f, FM:%d", fps, maxfps, base_fps, effective_fps, frame_mod );
   // Min frame repeat?
-  while( effective_fps > maxfps )
-  {
+  while( effective_fps > maxfps ) {
     effective_fps /= 2.0;
     frame_mod *= 2;
   }
   Debug( 3, "aEFPS:%.2f, aFM:%d", effective_fps, frame_mod );
 }
 
-bool StreamBase::checkCommandQueue()
-{
-  if ( sd >= 0 )
-  {
+bool StreamBase::checkCommandQueue() {
+  if ( sd >= 0 ) {
     CmdMsg msg;
     memset( &msg, 0, sizeof(msg) );
     int nbytes = recvfrom( sd, &msg, sizeof(msg), MSG_DONTWAIT, 0, 0 );
-    if ( nbytes < 0 )
-    {
-      if ( errno != EAGAIN )
-      {
+    if ( nbytes < 0 ) {
+      if ( errno != EAGAIN ) {
         Fatal( "recvfrom(), errno = %d, error = %s", errno, strerror(errno) );
       }
     }
@@ -95,8 +83,7 @@ bool StreamBase::checkCommandQueue()
     //{
       //Error( "Partial message received, expected %d bytes, got %d", sizeof(msg), nbytes );
     //}
-    else
-    {
+    else {
       processCommand( &msg );
       return( true );
     }
@@ -104,8 +91,7 @@ bool StreamBase::checkCommandQueue()
   return( false );
 }
 
-Image *StreamBase::prepareImage( Image *image )
-{
+Image *StreamBase::prepareImage( Image *image ) {
   static int last_scale = 0;
   static int last_zoom = 0;
   static int last_x = 0;
@@ -157,13 +143,10 @@ Image *StreamBase::prepareImage( Image *image )
   int last_send_image_width = (last_disp_image_width * last_act_mag ) / last_mag, last_send_image_height = (last_disp_image_height * last_act_mag ) / last_mag;
   Debug( 3, "Last send image width = %d, height = %d", last_send_image_width, last_send_image_height );
 
-  if ( mag != ZM_SCALE_BASE )
-  {
-    if ( act_mag != ZM_SCALE_BASE )
-    {
+  if ( mag != ZM_SCALE_BASE ) {
+    if ( act_mag != ZM_SCALE_BASE ) {
       Debug( 3, "Magnifying by %d", mag );
-      if ( !image_copied )
-      {
+      if ( !image_copied ) {
         static Image copy_image;
         copy_image.Assign( *image );
         image = &copy_image;
@@ -175,12 +158,10 @@ Image *StreamBase::prepareImage( Image *image )
 
   Debug( 3, "Real image width = %d, height = %d", image->Width(), image->Height() );
 
-  if ( disp_image_width < virt_image_width || disp_image_height < virt_image_height )
-  {
+  if ( disp_image_width < virt_image_width || disp_image_height < virt_image_height ) {
     static Box last_crop;
 
-    if ( mag != last_mag || x != last_x || y != last_y )
-    {
+    if ( mag != last_mag || x != last_x || y != last_y ) {
       Debug( 3, "Got click at %d,%d x %d", x, y, mag );
 
       //if ( !last_mag )
@@ -206,26 +187,22 @@ Image *StreamBase::prepareImage( Image *image )
       if ( lo_x < 0 )
         lo_x = 0;
       int hi_x = lo_x + (send_image_width-1);
-      if ( hi_x >= act_image_width )
-      {
+      if ( hi_x >= act_image_width ) {
         hi_x = act_image_width - 1;
         lo_x = hi_x - (send_image_width - 1);
       }
 
       int lo_y = click_y - (send_image_height/2);
-      if ( lo_y < 0 )
-        lo_y = 0;
+      if ( lo_y < 0 ) lo_y = 0;
       int hi_y = lo_y + (send_image_height-1);
-      if ( hi_y >= act_image_height )
-      {
+      if ( hi_y >= act_image_height ) {
         hi_y = act_image_height - 1;
         lo_y = hi_y - (send_image_height - 1);
       }
       last_crop = Box( lo_x, lo_y, hi_x, hi_y );
     }
     Debug( 3, "Cropping to %d,%d -> %d,%d", last_crop.LoX(), last_crop.LoY(), last_crop.HiX(), last_crop.HiY() );
-    if ( !image_copied )
-    {
+    if ( !image_copied ) {
       static Image copy_image;
       copy_image.Assign( *image );
       image = &copy_image;
@@ -241,29 +218,24 @@ Image *StreamBase::prepareImage( Image *image )
   return( image );
 }
 
-bool StreamBase::sendTextFrame( const char *frame_text )
-{
+bool StreamBase::sendTextFrame( const char *frame_text ) {
   Debug( 2, "Sending text frame '%s'", frame_text );
 
   Image image( monitor->Width(), monitor->Height(), monitor->Colours(), monitor->SubpixelOrder() );
   image.Annotate( frame_text, image.centreCoord( frame_text ) );
 
-  if ( scale != 100 )
-  {
+  if ( scale != 100 ) {
     image.Scale( scale );
   }
 #if HAVE_LIBAVCODEC
-  if ( type == STREAM_MPEG )
-  {
-    if ( !vid_stream )
-    {
+  if ( type == STREAM_MPEG ) {
+    if ( !vid_stream ) {
       vid_stream = new VideoStream( "pipe:", format, bitrate, effective_fps, image.Colours(), image.SubpixelOrder(), image.Width(), image.Height() );
       fprintf( stdout, "Content-type: %s\r\n\r\n", vid_stream->MimeType() );
       vid_stream->OpenStream();
     }
     /* double pts = */ vid_stream->EncodeFrame( image.Buffer(), image.Size() );
-  }
-  else
+  } else
 #endif // HAVE_LIBAVCODEC
   {
     static unsigned char buffer[ZM_MAX_IMAGE_SIZE];
@@ -274,8 +246,7 @@ bool StreamBase::sendTextFrame( const char *frame_text )
     fprintf( stdout, "--ZoneMinderFrame\r\n" );
     fprintf( stdout, "Content-Length: %d\r\n", n_bytes );
     fprintf( stdout, "Content-Type: image/jpeg\r\n\r\n" );
-    if ( fwrite( buffer, n_bytes, 1, stdout ) != 1 )
-    {
+    if ( fwrite( buffer, n_bytes, 1, stdout ) != 1 ) {
       Error( "Unable to send stream text frame: %s", strerror(errno) );
       return( false );
     }
@@ -286,10 +257,8 @@ bool StreamBase::sendTextFrame( const char *frame_text )
   return( true );
 }
 
-void StreamBase::openComms()
-{
-  if ( connkey > 0 )
-  {
+void StreamBase::openComms() {
+  if ( connkey > 0 ) {
 
 		unsigned int length = snprintf( sock_path_lock, sizeof(sock_path_lock), "%s/zms-%06d.lock", staticConfig.PATH_SOCKS.c_str(), connkey);
     if ( length >= sizeof(sock_path_lock) ) {
@@ -298,24 +267,19 @@ void StreamBase::openComms()
     }
 
     lock_fd = open(sock_path_lock, O_CREAT|O_WRONLY, S_IRUSR | S_IWUSR);
-    if ( lock_fd <= 0 )
-		{
+    if ( lock_fd <= 0 ) {
       Error("Unable to open sock lock file %s: %s", sock_path_lock, strerror(errno) );
       lock_fd = 0;
-		} else if ( flock(lock_fd, LOCK_EX) != 0 )
-    {
+		} else if ( flock(lock_fd, LOCK_EX) != 0 ) {
       Error("Unable to lock sock lock file %s: %s", sock_path_lock, strerror(errno) );
       close(lock_fd);
       lock_fd = 0;
-    }
-    else
-    {
+    } else {
       Debug( 1, "We have obtained a lock on %s fd: %d", sock_path_lock, lock_fd);
     }
 
     sd = socket( AF_UNIX, SOCK_DGRAM, 0 );
-    if ( sd < 0 )
-    {
+    if ( sd < 0 ) {
       Fatal( "Can't create socket: %s", strerror(errno) );
 		} else {
 			Debug(3, "Have socket %d", sd );
@@ -334,8 +298,7 @@ void StreamBase::openComms()
     strncpy( loc_addr.sun_path, loc_sock_path, sizeof(loc_addr.sun_path) );
     loc_addr.sun_family = AF_UNIX;
 		Debug(3, "Binding to %s", loc_sock_path );
-    if ( bind( sd, (struct sockaddr *)&loc_addr, strlen(loc_addr.sun_path)+sizeof(loc_addr.sun_family)+1 ) < 0 )
-    {
+    if ( bind( sd, (struct sockaddr *)&loc_addr, strlen(loc_addr.sun_path)+sizeof(loc_addr.sun_family)+1 ) < 0 ) {
       Fatal( "Can't bind: %s", strerror(errno) );
     }
 
@@ -346,21 +309,16 @@ void StreamBase::openComms()
 	Debug(3, "comms open" );
 }
 
-void StreamBase::closeComms()
-{
-  if ( connkey > 0 )
-  {
-    if ( sd >= 0 )
-    {
+void StreamBase::closeComms() {
+  if ( connkey > 0 ) {
+    if ( sd >= 0 ) {
       close( sd );
       sd = -1;
     }
-    if ( loc_sock_path[0] )
-    {
+    if ( loc_sock_path[0] ) {
       unlink( loc_sock_path );
     }
-    if (lock_fd > 0)
-    {
+    if (lock_fd > 0) {
       close(lock_fd); //close it rather than unlock it incase it got deleted.
       unlink(sock_path_lock);
     }

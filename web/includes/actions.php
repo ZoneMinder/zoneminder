@@ -119,6 +119,7 @@ if ( !empty($action) ) {
 
     if ( isset( $_REQUEST['object'] ) and ( $_REQUEST['object'] == 'filter' ) ) {
       if ( $action == 'addterm' ) {
+Warning("Addterm");
         $_REQUEST['filter'] = addFilterTerm( $_REQUEST['filter'], $_REQUEST['line'] );
       } elseif ( $action == 'delterm' ) {
         $_REQUEST['filter'] = delFilterTerm( $_REQUEST['filter'], $_REQUEST['line'] );
@@ -130,15 +131,15 @@ if ( !empty($action) ) {
         } else if ( ( $action == 'save' ) or ( $action == 'execute' ) or ( $action == 'submit' ) ) {
 
           $sql = '';
-          $_REQUEST['filter']['sort_field'] = validStr($_REQUEST['filter']['sort_field']);
-          $_REQUEST['filter']['sort_asc'] = validStr($_REQUEST['filter']['sort_asc']);
-          $_REQUEST['filter']['limit'] = validInt($_REQUEST['filter']['limit']);
+          $_REQUEST['filter']['Query']['sort_field'] = validStr($_REQUEST['filter']['Query']['sort_field']);
+          $_REQUEST['filter']['Query']['sort_asc'] = validStr($_REQUEST['filter']['Query']['sort_asc']);
+          $_REQUEST['filter']['Query']['limit'] = validInt($_REQUEST['filter']['Query']['limit']);
           if ( $action == 'execute' or $action == 'submit' ) {
             $sql .= ' Name = \'_TempFilter'.time().'\'';
           } else {
             $sql .= ' Name = '.dbEscape($_REQUEST['filter']['Name']);
           }
-          $sql .= ', Query = '.dbEscape(jsonEncode($_REQUEST['filter']));
+          $sql .= ', Query = '.dbEscape(jsonEncode($_REQUEST['filter']['Query']));
           $sql .= ', AutoArchive = '.(!empty($_REQUEST['filter']['AutoArchive']) ? 1 : 0);
           $sql .= ', AutoVideo = '. ( !empty($_REQUEST['filter']['AutoVideo']) ? 1 : 0);
           $sql .= ', AutoUpload = '. ( !empty($_REQUEST['filter']['AutoUpload']) ? 1 : 0);
@@ -170,13 +171,13 @@ if ( !empty($action) ) {
         } else if ( $action == 'eventdetail' ) {
           if ( !empty($_REQUEST['eid']) ) {
             dbQuery( 'UPDATE Events SET Cause=?, Notes=? WHERE Id=?', array( $_REQUEST['newEvent']['Cause'], $_REQUEST['newEvent']['Notes'], $_REQUEST['eid'] ) );
-            $refreshParent = true;
           } else {
             foreach( getAffectedIds( 'markEid' ) as $markEid ) {
               dbQuery( 'UPDATE Events SET Cause=?, Notes=? WHERE Id=?', array( $_REQUEST['newEvent']['Cause'], $_REQUEST['newEvent']['Notes'], $markEid ) );
-              $refreshParent = true;
             }
           }
+          $refreshParent = true;
+          $closePopup = true;
         } elseif ( $action == 'archive' || $action == 'unarchive' ) {
           $archiveVal = ($action == 'archive')?1:0;
           if ( !empty($_REQUEST['eid']) ) {
@@ -184,14 +185,14 @@ if ( !empty($action) ) {
           } else {
             foreach( getAffectedIds( 'markEid' ) as $markEid ) {
               dbQuery( 'UPDATE Events SET Archived=? WHERE Id=?', array( $archiveVal, $markEid ) );
-              $refreshParent = true;
             }
+            $refreshParent = true;
           }
         } elseif ( $action == 'delete' ) {
           foreach( getAffectedIds( 'markEid' ) as $markEid ) {
             deleteEvent( $markEid );
-            $refreshParent = true;
           }
+          $refreshParent = true;
         }
       } // end if canEdit(Events)
     } // end if filter or something else

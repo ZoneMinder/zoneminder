@@ -106,27 +106,6 @@ $archiveTypes = array(
     '1' => translate('ArchArchived')
     );
 
-
-$sort_fields = array(
-    'Id'          => translate('AttrId'),
-    'Name'        => translate('AttrName'),
-    'Cause'       => translate('AttrCause'),
-    'Notes'       => translate('AttrNotes'),
-    'MonitorName' => translate('AttrMonitorName'),
-    'DateTime'    => translate('AttrDateTime'),
-    'Length'      => translate('AttrDuration'),
-    'Frames'      => translate('AttrFrames'),
-    'AlarmFrames' => translate('AttrAlarmFrames'),
-    'TotScore'    => translate('AttrTotalScore'),
-    'AvgScore'    => translate('AttrAvgScore'),
-    'MaxScore'    => translate('AttrMaxScore'),
-    );
-
-$sort_dirns = array(
-    '1' => translate('SortAsc'),
-    '0'  => translate('SortDesc')
-    );
-
 $hasCal = file_exists( 'tools/jscalendar/calendar.js' );
 
 $focusWindow = true;
@@ -192,36 +171,36 @@ for ( $i = 0; $i < count($terms); $i++ ) {
 <?php
   } else {
 ?>
-              <td><?php echo htmlSelect( "filter[terms][$i][cnj]", $conjunctionTypes, $term['cnj'] ); ?></td>
+              <td><?php echo htmlSelect( "filter[Query][terms][$i][cnj]", $conjunctionTypes, $term['cnj'] ); ?></td>
 <?php
   }
 ?>
-              <td><?php if ( count($terms) > 2 ) { echo htmlSelect( "filter[terms][$i][obr]", $obracketTypes, $term['obr'] ); } else { ?>&nbsp;<?php } ?></td>
-              <td><?php echo htmlSelect( "filter[terms][$i][attr]", $attrTypes, $term['attr'], "clearValue( this, $i ); this.form.submit();" ); ?></td>
+              <td><?php if ( count($terms) > 2 ) { echo htmlSelect( "filter[Query][terms][$i][obr]", $obracketTypes, $term['obr'] ); } else { ?>&nbsp;<?php } ?></td>
+              <td><?php echo htmlSelect( "filter[Query][terms][$i][attr]", $attrTypes, $term['attr'], "clearValue( this, $i ); this.form.submit();" ); ?></td>
 <?php
   if ( isset($term['attr']) ) {
     if ( $term['attr'] == 'Archived' ) {
 ?>
-              <td><?php echo translate('OpEq') ?><input type="hidden" name="filter[terms][<?php echo $i ?>][op]" value="="/></td>
-              <td><?php echo htmlSelect( "filter[terms][$i][val]", $archiveTypes, $term['val'] ); ?></td>
+              <td><?php echo translate('OpEq') ?><input type="hidden" name="filter[Query][terms][<?php echo $i ?>][op]" value="="/></td>
+              <td><?php echo htmlSelect( "filter[Query][terms][$i][val]", $archiveTypes, $term['val'] ); ?></td>
 <?php
     } elseif ( $term['attr'] == 'DateTime' ) {
 ?>
-              <td><?php echo htmlSelect( "filter[terms][$i][op]", $opTypes, $term['op'] ); ?></td>
+              <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
               <td>
-                <input name="filter[terms][<?php echo $i ?>][val]" id="filter[terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr($term['val']):'' ?>"/>
+                <input name="filter[Query][terms][<?php echo $i ?>][val]" id="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr($term['val']):'' ?>"/>
 <?php if ( $hasCal ) { ?>
-                <script type="text/javascript">Calendar.setup( { inputField: "filter[terms][<?php echo $i ?>][val]", ifFormat: "%Y-%m-%d %H:%M", showsTime: true, timeFormat: "24", showOthers: true, weekNumbers: false });</script>
+                <script type="text/javascript">Calendar.setup( { inputField: "filter[Query][terms][<?php echo $i ?>][val]", ifFormat: "%Y-%m-%d %H:%M", showsTime: true, timeFormat: "24", showOthers: true, weekNumbers: false });</script>
 <?php } ?>
               </td>
 <?php
     } elseif ( $term['attr'] == 'Date' ) {
 ?>
-              <td><?php echo htmlSelect( "filter[terms][$i][op]", $opTypes, $term['op'] ); ?></td>
+              <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
               <td>
-                <input name="filter[terms][<?php echo $i ?>][val]" id="filter[terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr($term['val']):'' ?>"/>
+                <input name="filter[Query][terms][<?php echo $i ?>][val]" id="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr($term['val']):'' ?>"/>
 <?php if ( $hasCal ) { ?>
-                <script type="text/javascript">Calendar.setup( { inputField: "filter[terms][<?php echo $i ?>][val]", ifFormat: "%Y-%m-%d", showOthers: true, weekNumbers: false });</script>
+                <script type="text/javascript">Calendar.setup( { inputField: "filter[Query][terms][<?php echo $i ?>][val]", ifFormat: "%Y-%m-%d", showOthers: true, weekNumbers: false });</script>
 <?php } ?>
               </td>
 <?php
@@ -231,8 +210,8 @@ for ( $i = 0; $i < count($terms); $i++ ) {
         $states[$state_row['Id']] = $state_row['Name'];
       }
 ?>
-              <td><?php echo htmlSelect( "filter[terms][$i][op]", $opTypes, $term['op'] ); ?></td>
-              <td><?php echo htmlSelect( "filter[terms][$i][val]", $states, $term['val'] ); ?></td>
+              <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
+              <td><?php echo htmlSelect( "filter[Query][terms][$i][val]", $states, $term['val'] ); ?></td>
 <?php
     } elseif ( $term['attr'] == 'Weekday' ) {
       $weekdays = array();
@@ -240,8 +219,8 @@ for ( $i = 0; $i < count($terms); $i++ ) {
         $weekdays[$i] = strftime( '%A', mktime( 12, 0, 0, 1, $i+1, 2001 ) );
       }
 ?>
-              <td><?php echo htmlSelect( "filter[terms][$i][op]", $opTypes, $term['op'] ); ?></td>
-              <td><?php echo htmlSelect( "filter[terms][$i][val]", $weekdays, $term['val'] ); ?></td>
+              <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
+              <td><?php echo htmlSelect( "filter[Query][terms][$i][val]", $weekdays, $term['val'] ); ?></td>
 <?php
     } elseif ( false && $term['attr'] == 'MonitorName' ) {
       $monitors = array();
@@ -251,8 +230,8 @@ for ( $i = 0; $i < count($terms); $i++ ) {
         }
       }
 ?>
-              <td><?php echo htmlSelect( "filter[terms][$i][op]", $opTypes, $term['op'] ); ?></td>
-              <td><?php echo htmlSelect( "filter[terms][$i][val]", $monitors, $term['val'] ); ?></td>
+              <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
+              <td><?php echo htmlSelect( "filter[Query][terms][$i][val]", $monitors, $term['val'] ); ?></td>
 <?php
     } elseif ( $term['attr'] == 'ServerId' ) {
       $servers = array();
@@ -261,8 +240,8 @@ for ( $i = 0; $i < count($terms); $i++ ) {
         $servers[$server['Id']] = $server['Name'];
       }
 ?>
-              <td><?php echo htmlSelect( "filter[terms][$i][op]", $opTypes, $term['op'] ); ?></td>
-              <td><?php echo htmlSelect( "filter[terms][$i][val]", $servers, $term['val'] ); ?></td>
+              <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
+              <td><?php echo htmlSelect( "filter[Query][terms][$i][val]", $servers, $term['val'] ); ?></td>
 <?php
     } elseif ( $term['attr'] == 'StorageId' ) {
         $storageareas = array();
@@ -271,23 +250,23 @@ for ( $i = 0; $i < count($terms); $i++ ) {
           $storageareas[$storage['Id']] = $storage['Name'];
         }
 ?>
-              <td><?php echo htmlSelect( "filter[terms][$i][op]", $opTypes, $term['op'] ); ?></td>
-              <td><?php echo htmlSelect( "filter[terms][$i][val]", $storageareas, $term['val'] ); ?></td>
+              <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
+              <td><?php echo htmlSelect( "filter[Query][terms][$i][val]", $storageareas, $term['val'] ); ?></td>
 <?php
     } else {
 ?>
-              <td><?php echo htmlSelect( "filter[terms][$i][op]", $opTypes, $term['op'] ); ?></td>
-              <td><input name="filter[terms][<?php echo $i ?>][val]" value="<?php echo $term['val'] ?>"/></td>
+              <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
+              <td><input name="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo $term['val'] ?>"/></td>
 <?php
     }
   } else {
 ?>
-              <td><?php echo htmlSelect( "filter[terms][$i][op]", $opTypes, $term['op'] ); ?></td>
-              <td><input name="filter[terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?$term['val']:'' ?>"/></td>
+              <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
+              <td><input name="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?$term['val']:'' ?>"/></td>
 <?php
   }
 ?>
-              <td><?php if ( count($terms) > 2 ) { echo htmlSelect( "filter[terms][$i][cbr]", $cbracketTypes, $term['cbr'] ); } else { ?>&nbsp;<?php } ?></td>
+              <td><?php if ( count($terms) > 2 ) { echo htmlSelect( "filter[Query][terms][$i][cbr]", $cbracketTypes, $term['cbr'] ); } else { ?>&nbsp;<?php } ?></td>
               <td>
                 <input type="button" onclick="addTerm( this, <?php echo $i+1 ?> )" value="+"/>
 <?php
@@ -315,13 +294,33 @@ if ( count($terms) == 0 ) {
           <tbody>
             <tr>
               <td>
-                <label for="filter[sort_field]"><?php echo translate('SortBy') ?></label>
-                <?php echo htmlSelect( 'filter[sort_field]', $sort_fields, $filter->sort_field() ); ?>
-                <?php echo htmlSelect( 'filter[sort_asc]', $sort_dirns, $filter->sort_asc() ); ?>
+                <label for="filter[Query][sort_field]"><?php echo translate('SortBy') ?></label>
+                <?php
+$sort_fields = array(
+    'Id'          => translate('AttrId'),
+    'Name'        => translate('AttrName'),
+    'Cause'       => translate('AttrCause'),
+    'Notes'       => translate('AttrNotes'),
+    'MonitorName' => translate('AttrMonitorName'),
+    'DateTime'    => translate('AttrDateTime'),
+    'Length'      => translate('AttrDuration'),
+    'Frames'      => translate('AttrFrames'),
+    'AlarmFrames' => translate('AttrAlarmFrames'),
+    'TotScore'    => translate('AttrTotalScore'),
+    'AvgScore'    => translate('AttrAvgScore'),
+    'MaxScore'    => translate('AttrMaxScore'),
+    );
+echo htmlSelect( 'filter[Query][sort_field]', $sort_fields, $filter->sort_field() );
+$sort_dirns = array(
+    '1' => translate('SortAsc'),
+    '0'  => translate('SortDesc')
+    );
+echo htmlSelect( 'filter[Query][sort_asc]', $sort_dirns, $filter->sort_asc() );
+?>
               </td>
               <td>  
-                <label for="filter[limit]"><?php echo translate('LimitResultsPre') ?></label>
-                <input type="text" id="filter[limit]" name="filter[limit]" value="<?php echo (null !== $filter->limit())?validInt($filter->limit()):'' ?>"/><?php echo translate('LimitResultsPost') ?>
+                <label for="filter[Query][limit]"><?php echo translate('LimitResultsPre') ?></label>
+                <input type="text" id="filter[Query][limit]" name="filter[Query][limit]" value="<?php echo (null !== $filter->limit())?validInt($filter->limit()):'' ?>"/><?php echo translate('LimitResultsPost') ?>
               </td>
             </tr>
           </tbody>

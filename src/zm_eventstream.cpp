@@ -156,6 +156,7 @@ bool EventStream::loadEventData( int event_id ) {
     else
       snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%ld", staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id, event_data->event_id );
   }
+  delete storage; storage = NULL;
 
   updateFrameRate( (double)event_data->frame_count/event_data->duration );
 

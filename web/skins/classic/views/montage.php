@@ -41,7 +41,6 @@ if ( isset( $_REQUEST['showZones'] ) ) {
   }
 }
 $monitors = array();
-<<<<<<< HEAD
 $widths = array( 
   ''  => 'auto',
   160 => 160,
@@ -68,7 +67,6 @@ if ( isset( $_REQUEST['scale'] ) ) {
 
 if ( ! $scale ) 
   $scale = 100;
-}
 
 foreach( dbFetchAll( $sql ) as $row ) {
   if ( !visibleMonitor( $row['Id'] ) ) {
@@ -142,8 +140,8 @@ if ( $showZones ) {
       </div>
       <h2><?php echo translate('Montage') ?></h2>
       <div id="headerControl">
-        <span id="widthControl"><label><?php echo translate('Width') ?>:</label><?php echo htmlSelect( 'width', $widths, $options['width'], 'changeWidth(this);' ); ?></span>
-        <span id="heightControl"><label><?php echo translate('Height') ?>:</label><?php echo htmlSelect( 'height', $heights, $options['height'], 'changeHeight(this);' ); ?></span>
+        <span id="widthControl"><label><?php echo translate('Width') ?>:</label><?php echo htmlSelect( 'width', $widths, $options['width'], 'changeSize(this);' ); ?></span>
+        <span id="heightControl"><label><?php echo translate('Height') ?>:</label><?php echo htmlSelect( 'height', $heights, $options['height'], 'changeSize(this);' ); ?></span>
         <span id="scaleControl"><label><?php echo translate('Scale') ?>:</label><?php echo htmlSelect( 'scale', $scales, $scale, 'changeScale(this);' ); ?></span> 
         <span id="layoutControl"><label for="layout"><?php echo translate('Layout') ?>:</label><?php echo htmlSelect( 'layout', $layouts, $layout, 'selectLayout(this);' )?></span>
       </div>

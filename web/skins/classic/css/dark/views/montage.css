@@ -21,6 +21,7 @@
 
 #monitors .imageFeed img {
     border: 2px solid #999999;
+    display: block;
 }
 
 #monitors .imageFeed img.idle {

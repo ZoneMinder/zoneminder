@@ -384,6 +384,7 @@ Monitor::Monitor(
   snprintf( monitor_dir, sizeof(monitor_dir), "%s/%d", storage->Path(), id );
   struct stat statbuf;
 
+  // If we are going to actually do capture, then yes, we should stat this dir, otherwise not
   if ( stat( monitor_dir, &statbuf ) ) {
     if ( errno == ENOENT || errno == ENOTDIR ) {
       if ( mkdir( monitor_dir, 0755 ) ) {
@@ -427,21 +428,18 @@ Monitor::Monitor(
     snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "nothing");
     video_store_data->size = sizeof(VideoStoreData);
     //video_store_data->frameNumber = 0;
-  } else if ( purpose == ANALYSIS ) {
-    this->connect();
-    if ( ! mem_ptr ) exit(-1);
-    shared_data->state = IDLE;
-    shared_data->last_read_time = 0;
-    shared_data->alarm_x = -1;
-    shared_data->alarm_y = -1;
+
+  //} else if ( purpose == ANALYSIS ) {
+
+    //this->connect();
   }
 
-  if ( ( ! mem_ptr ) || ! shared_data->valid ) {
-    if ( purpose != QUERY ) {
-      Error( "Shared data not initialised by capture daemon for monitor %s", name );
-      exit( -1 );
-    }
-  }
+  //if ( ( ! mem_ptr ) || ! shared_data->valid ) {
+    //if ( purpose != QUERY ) {
+      //Error( "Shared data not initialised by capture daemon for monitor %s", name );
+      //exit( -1 );
+    //}
+  //}
 
   // Will this not happen every time a monitor is instantiated?  Seems like all the calls to the Monitor constructor pass a zero for n_zones, then load zones after..
   // In my storage areas branch, I took this out.. and didn't notice any problems.
@@ -463,8 +461,8 @@ Monitor::Monitor(
   //Set video recording flag for event start constructor and easy reference in code
   videoRecording = ((GetOptVideoWriter() == H264PASSTHROUGH) && camera->SupportsNativeVideo());
 
-  if ( purpose == ANALYSIS ) {
-
+  //if ( purpose == ANALYSIS ) {
+if ( 0 ) {
     while( shared_data->last_write_index == (unsigned int)image_buffer_count 
          && shared_data->last_write_time == 0) {
       Warning( "Waiting for capture daemon" );
@@ -472,13 +470,14 @@ Monitor::Monitor(
     }
     ref_image.Assign( width, height, camera->Colours(), camera->SubpixelOrder(), image_buffer[shared_data->last_write_index].image->Buffer(), camera->ImageSize());
 
+}
     n_linked_monitors = 0;
     linked_monitors = 0;
 
     adaptive_skip = true;
 
     ReloadLinkedMonitors( p_linked_monitors );
-  }
+  //}
 }
 
 bool Monitor::connect() {

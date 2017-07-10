@@ -70,6 +70,7 @@ possible, this should run at more or less constant speed.
 #include "zm_time.h"
 #include "zm_signal.h"
 #include "zm_monitor.h"
+#include "zm_analysis_thread.h"
 
 void Usage() {
   fprintf( stderr, "zmc -d <device_path> or -r <proto> -H <host> -P <port> -p <path> or -f <file_path> or -m <monitor_id>\n" );
@@ -238,6 +239,7 @@ int main( int argc, char *argv[] ) {
     exit( -1 );
   }
 
+  AnalysisThread **analysis_threads = new AnalysisThread *[n_monitors];
   long *capture_delays = new long[n_monitors];
   long *alarm_capture_delays = new long[n_monitors];
   long *next_delays = new long[n_monitors];
@@ -246,6 +248,15 @@ int main( int argc, char *argv[] ) {
     last_capture_times[i].tv_sec = last_capture_times[i].tv_usec = 0;
     capture_delays[i] = monitors[i]->GetCaptureDelay();
     alarm_capture_delays[i] = monitors[i]->GetAlarmCaptureDelay();
+
+    Monitor::Function function = monitors[0]->GetFunction();
+    if ( function == Monitor::MODECT || function == Monitor::MOCORD ) {
+      Debug(1, "Starting an analysis thread for monitor (%d)", monitors[i]->Id() );
+      analysis_threads[i] = new AnalysisThread( monitors[i] );
+      analysis_threads[i]->start();
+    } else {
+      analysis_threads[i] = NULL;
+    }
   }
 
   int result = 0;
@@ -309,8 +320,15 @@ int main( int argc, char *argv[] ) {
     sigprocmask( SIG_UNBLOCK, &block_set, 0 );
   } // end while ! zm_terminate
   for ( int i = 0; i < n_monitors; i++ ) {
+    if ( analysis_threads[i] ) {
+      analysis_threads[i]->stop();
+      analysis_threads[i]->join();
+      delete analysis_threads[i];
+      analysis_threads[i] = 0;
+    }
     delete monitors[i];
   }
+  delete [] analysis_threads;
   delete [] monitors;
   delete [] alarm_capture_delays;
   delete [] capture_delays;

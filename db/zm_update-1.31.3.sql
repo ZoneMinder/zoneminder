@@ -60,3 +60,18 @@ UPDATE Monitors SET StorageId = 0 WHERE StorageId IS NULL;
 ALTER TABLE Monitors MODIFY `StorageId`	smallint(5) unsigned NOT NULL default 0;
 UPDATE Events SET StorageId = 0 WHERE StorageId IS NULL;
 ALTER TABLE Events MODIFY `StorageId`	smallint(5) unsigned NOT NULL default 0;
+
+SET @s = (SELECT IF(
+  (SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE table_name = 'Events'
+  AND table_schema = DATABASE()
+  AND column_name = 'Orientation'
+  ) > 0,
+"SELECT 'Column Orientation exists in Events'",
+"ALTER TABLE `Events` ADD `Orientation`  enum('0','90','180','270','hori','vert') NOT NULL default '0' AFTER `Notes`"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+~             

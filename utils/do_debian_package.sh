@@ -259,23 +259,19 @@ fi
 
 if [ $TYPE == "binary" ]; then
   if [ "$INTERACTIVE" != "no" ]; then
-    read -p "Not doing dput since it's a binary release. Do you want to install it? (Y/N)"
+    read -p "Not doing dput since it's a binary release. Do you want to install it? (y/N)"
     if [[ $REPLY == [yY] ]]; then
         sudo dpkg -i $DIRECTORY*.deb
-    else 
-	echo $REPLY;
     fi;
-    if [ "$DISTRO" == "jessie" ]; then
-      read -p "Do you want to upload this binary to zmrepo? (y/N)"
-      if [[ $REPLY == [yY] ]]; then
-        if [ "$RELEASE" != "" ]; then
-          scp "zoneminder_${VERSION}-${DISTRO}*" "zmrepo@zmrepo.connortechnology.com:debian/stable/mini-dinstall/incoming/"
+    read -p "Do you want to upload this binary to zmrepo? (y/N)"
+    if [[ $REPLY == [yY] ]]; then
+      if [ "$RELEASE" != "" ]; then
+        scp "zoneminder_${VERSION}-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.connortechnology.com:debian/stable/mini-dinstall/incoming/"
+      else
+        if [ "$BRANCH" == "" ]; then
+          scp "zoneminder_${VERSION}-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.connortechnology.com:debian/master/mini-dinstall/incoming/"
         else
-          if [ "$BRANCH" == "" ]; then
-            scp "zoneminder_${VERSION}-${DISTRO}*" "zmrepo@zmrepo.connortechnology.com:debian/master/mini-dinstall/incoming/"
-          else
-            scp "$DIRECTORY-${DISTRO}*" "zmrepo@zmrepo.connortechnology.com:debian/${BRANCH}/mini-dinstall/incoming/"
-          fi;
+          scp "$DIRECTORY-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.connortechnology.com:debian/${BRANCH}/mini-dinstall/incoming/"
         fi;
       fi;
     fi;
@@ -295,11 +291,10 @@ else
 
   dput="Y";
   if [ "$INTERACTIVE" != "no" ]; then
-    echo "Ready to dput $SC to $PPA ? Y/N...";
-    read dput
-  fi
-  if [ "$dput" == [Yy] ]; then
-    dput $PPA $SC
+    read -p "Ready to dput $SC to $PPA ? Y/N...";
+    if [[ "$REPLY" == [yY] ]]; then
+      dput $PPA $SC
+    fi;
   fi;
 fi;
 

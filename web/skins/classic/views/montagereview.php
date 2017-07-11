@@ -116,7 +116,7 @@ if ( !empty($_REQUEST['group']) ) {
 // Note we round up just a bit on the end time as otherwise you get gaps, like 59.78 to 00 in the next second, which can give blank frames when moved through slowly.
 
 $eventsSql = '
-  SELECT E.Id,E.Name,E.StorageId,UNIX_TIMESTAMP(E.StartTime) AS StartTimeSecs,
+  SELECT E.Id,E.Name,UNIX_TIMESTAMP(E.StartTime) AS StartTimeSecs,
          CASE WHEN E.EndTime IS NULL THEN (SELECT UNIX_TIMESTAMP(DATE_ADD(E.StartTime, Interval max(Delta)+0.5 Second)) FROM Frames F WHERE F.EventId=E.Id)
               ELSE UNIX_TIMESTAMP(E.EndTime)
          END AS CalcEndTimeSecs, E.Length,

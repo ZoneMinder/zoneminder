@@ -2133,18 +2133,14 @@ function getStreamHTML( $monitor, $options = array() ) {
     $options['height'] = reScale( $monitor->Height(), $options['scale'] );
   } else {
     if ( ! isset( $options['width'] ) ) {
-      if ( $options['width'] == 100 ) {
-        $options['width'] = $monitor->Width();
-      } else {
         $options['width'] = NULL;
-      }
+    } else if ( $options['width'] == 100 ) {
+      $options['width'] = $monitor->Width();
     }
     if ( ! isset( $options['height'] ) ) {
-      if ( $options['height'] == 100 ) {
-        $options['height'] = $monitor->Height();
-      } else {
         $options['height'] = NULL;
-      }
+    } else if ( $options['height'] == 100 ) {
+      $options['height'] = $monitor->Height();
     }
   }
   if ( ! isset($options['mode'] ) ) {

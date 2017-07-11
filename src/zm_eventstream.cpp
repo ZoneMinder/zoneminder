@@ -76,8 +76,7 @@ bool EventStream::loadInitialEventData( int monitor_id, time_t event_time ) {
         //Info( "eft %d > et %d", event_data->frames[i].timestamp, event_time );
         if ( event_data->frames[i].timestamp >= event_time ) {
           curr_frame_id = i+1;
-          Debug( 3, "Set cst:%.2f", curr_stream_time );
-          Debug( 3, "Set cfid:%d", curr_frame_id );
+          Debug( 3, "Set current stream time:%.2f, current_frame_id: %d", curr_stream_time, curr_frame_id );
           break;
         }
       }
@@ -158,7 +157,6 @@ bool EventStream::loadEventData( int event_id ) {
   }
 
   updateFrameRate( (double)event_data->frame_count/event_data->duration );
-
 
   snprintf( sql, sizeof(sql), "select FrameId, unix_timestamp( `TimeStamp` ), Delta from Frames where EventId = %d order by FrameId asc", event_id );
   if ( mysql_query( &dbconn, sql ) ) {

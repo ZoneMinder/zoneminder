@@ -290,11 +290,5 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
         </tfoot>
       </table>
     </div>
-    </form>
-<?php
-if ( canEdit('System') ) {
-  include("skins/$skin/views/state.php");
-}
-?>
-</body>
-</html>
+  </form>
+<?php xhtmlFooter() ?>

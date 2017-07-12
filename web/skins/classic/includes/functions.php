@@ -211,10 +211,10 @@ function getNavBarHTML() {
 			<li><?php if ( logToDatabase() > Logger::NOLOG ) { ?> <?php echo makePopupLink( '?view=log', 'zmLog', 'log', '<span class="'.logState().'">'.translate('Log').'</span>' ) ?><?php } ?></li>
 <?php } ?>
 <?php if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
-			<li><a href="/?view=devices">Devices</a></li>
+			<li><a href="?view=devices">Devices</a></li>
 <?php } ?>
 			<li><?php echo makePopupLink( '?view=groups', 'zmGroups', 'groups', sprintf( $CLANG['MonitorCount'], count($displayMonitors), zmVlang( $VLANG['Monitor'], count($displayMonitors) ) ).($group?' ('.$group['Name'].')':''), canView( 'Groups' ) ); ?></li>
-			<li><a href="/?view=filter">Filters</a></li>
+			<li><a href="?view=filter">Filters</a></li>
 
 <?php 
   $cycleGroup = isset($_COOKIE['zmGroup'])?$_COOKIE['zmGroup']:0;

@@ -297,6 +297,7 @@ rm -rf %{_docdir}/%{name}-%{version}
 %{_unitdir}/zoneminder.service
 %{_datadir}/polkit-1/actions/com.zoneminder.systemctl.policy
 %{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
+%{_bindir}/zmsystemctl.pl
 %endif
 
 %if 0%{?with_init_sysv}
@@ -318,7 +319,6 @@ rm -rf %{_docdir}/%{name}-%{version}
 %{_bindir}/zmvideo.pl
 %{_bindir}/zmwatch.pl
 %{_bindir}/zmcamtool.pl
-%{_bindir}/zmsystemctl.pl
 %{_bindir}/zmtelemetry.pl
 %{_bindir}/zmx10.pl
 %{_bindir}/zmonvif-probe.pl

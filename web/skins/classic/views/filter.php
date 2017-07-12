@@ -405,5 +405,4 @@ if ( canEdit( 'Events' ) ) {
       </form>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

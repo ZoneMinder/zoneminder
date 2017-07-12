@@ -40,7 +40,8 @@ if ( !canEdit( 'System' ) ) {
 	          <label for="runState" class="col-sm-3 control-label">Change State</label>
 	          <div class="col-sm-9">
               <select id="runState" name="runState" class="form-control">
-<?php if ( daemonCheck() ) { ?>
+<?php 
+      if ( $running ) { ?>
                 <option value="stop" selected="selected"><?php echo translate('Stop') ?></option>
                 <option value="restart"><?php echo translate('Restart') ?></option>
 <?php } else { ?>

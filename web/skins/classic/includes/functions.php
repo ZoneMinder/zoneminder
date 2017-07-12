@@ -285,4 +285,16 @@ function getNavBarHTML() {
 <?php
   return( ob_get_clean() );
 } // end function getNavBarHTML()
+function xhtmlFooter() {
+  global $skin;
+if ( canEdit('System') ) {
+  include("skins/$skin/views/state.php");
+?>
+<?php
+}
+?>
+</body></html>
+<?php
+} // end xhtmlFooter
+
 ?>

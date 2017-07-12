@@ -34,8 +34,7 @@ require_once( $skinJsPhpFile );
   <script type="text/javascript" src="<?php echo $skinJsFile ?>"></script>
   <script type="text/javascript">
 <?php
-if ( !$debug )
-{
+if ( !$debug ) {
 ?>
     closeWindow();
 <?php

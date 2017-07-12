@@ -74,3 +74,63 @@ SET @s = (SELECT IF(
 
 PREPARE stmt FROM @s;
 EXECUTE stmt;
+
+--
+-- Update Monitors table to have an Index on ServerId
+--
+SET @s = (SELECT IF(
+  (SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.STATISTICS
+  WHERE table_name = 'Monitors'
+  AND table_schema = DATABASE()
+  AND index_name = 'Monitors_ServerId_idx'
+  ) > 0,
+"SELECT 'Monitors_ServerId Index already exists on Monitors table'",
+"CREATE INDEX `Monitors_ServerId_idx` ON `Monitors` (`ServerId`)"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+
+
+--
+-- Update Server table to have an Index on Name
+--
+SET @s = (SELECT IF(
+  (SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.STATISTICS
+  WHERE table_name = 'Servers'
+  AND table_schema = DATABASE()
+  AND index_name = 'Servers_Name_idx'
+  ) > 0,
+"SELECT 'Servers_Name Index already exists on Servers table'",
+"CREATE INDEX `Servers_Name_idx` ON `Servers` (`Name`)"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+
+
+-- ALTER TABLE Logs ALTER  Message DROP DEFAULT;
+ALTER TABLE Logs MODIFY Message TEXT NOT NULL;
+
+ALTER TABLE Config MODIFY DefaultValue TEXT;
+
+
+-- 
+-- Add an Id column and make it the primary key of the Filters table
+--
+SET @s = (SELECT IF(
+  (SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE table_name = 'Filters'
+  AND table_schema = DATABASE()
+  AND column_name = 'Id'
+  ) > 0,
+"SELECT 'Column Id exists in Filters'",
+"ALTER TABLE `Filters` DROP PRIMARY KEY, ADD `Id` int(10) unsigned NOT NULL auto_increment PRIMARY KEY FIRST, ADD KEY `Name` (`Name`);"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+

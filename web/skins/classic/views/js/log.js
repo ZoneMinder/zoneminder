@@ -1,5 +1,5 @@
 var logParms = "view=request&request=log&task=query";
-var logReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: logResponse } );
+var logReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: logResponse } );
 var logTimer = undefined;
 var logTable = undefined;
 

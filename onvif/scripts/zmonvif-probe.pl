@@ -253,13 +253,16 @@ sub profiles
  foreach  my $profile ( @{ $profiles } ) {
  
    my $token = $profile->attr()->get_token() ;
-   print $token . ", " . 
-         $profile->get_Name() . ", " .
-         $profile->get_VideoEncoderConfiguration()->get_Encoding() . ", " .
-         $profile->get_VideoEncoderConfiguration()->get_Resolution()->get_Width() . ", " .
-         $profile->get_VideoEncoderConfiguration()->get_Resolution()->get_Height() . ", " .
-         $profile->get_VideoEncoderConfiguration()->get_RateControl()->get_FrameRateLimit() .
-         ", ";
+   my $VideoEncoderConfiguration = $profile->get_VideoEncoderConfiguration();
+   print join(', ', $token, 
+         $profile->get_Name(),
+         ( $VideoEncoderConfiguration ? (
+                                         $VideoEncoderConfiguration->get_Encoding(),
+                                         $VideoEncoderConfiguration->get_Resolution()->get_Width(),
+                                         $VideoEncoderConfiguration->get_Resolution()->get_Height(),
+                                         $VideoEncoderConfiguration->get_RateControl()->get_FrameRateLimit(),
+                                        ) : () )
+       );
 
    # Specification gives conflicting values for unicast stream types, try both.
    # http://www.onvif.org/onvif/ver10/media/wsdl/media.wsdl#op.GetStreamUri

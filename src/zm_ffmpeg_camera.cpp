@@ -56,7 +56,7 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::stri
   mRawFrame = NULL;
   mFrame = NULL;
   frameCount = 0;
-  startTime=0;
+  startTime = 0;
   mIsOpening = false;
   mCanCapture = false;
   mOpenStart = 0;

@@ -32,7 +32,14 @@ $maxTimeSecs = strtotime('1950-01-01 01:01:01');
 $index=0;
 $anyAlarms=false;
 
-foreach( dbFetchAll( $eventsSql ) as $event ) {
+$result = dbQuery( $eventsSql );
+if ( ! $result ) {
+  Fatal( "SQL-ERR");
+  return;
+}
+
+while( $event = $result->fetch( PDO::FETCH_ASSOC ) ) {
+
   if ( $minTimeSecs > $event['StartTimeSecs'] )   $minTimeSecs = $event['StartTimeSecs'];
   if ( $maxTimeSecs < $event['CalcEndTimeSecs'] ) $maxTimeSecs = $event['CalcEndTimeSecs'];
     echo "
@@ -84,8 +91,9 @@ $fromSecs=-1;
 $toSecs=-1;
 $maxScore=-1;
 
-if ( $anyAlarms ) {
-  foreach( dbFetchAll ($frameSql) as $frame ) {
+if ( $anyAlarms && $result = dbQuery( $frameSql ) ) {
+
+  while( $frame = $result->fetch( PDO::FETCH_ASSOC ) ) {
     if ( $mId < 0 ) {
       $mId = $frame['MonitorId'];
       $fromSecs = $frame['TimeStampSecs'];

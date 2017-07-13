@@ -566,7 +566,7 @@ if ( $tab != 'source' || $monitor->Type()!= 'Remote' ) {
 }
 if ( $tab != 'source' || ($monitor->Type()!= 'Local' && $monitor->Type()!= 'Remote' && $monitor->Type()!= 'Ffmpeg' && $monitor->Type()!= 'Libvlc') ) {
 ?>
-      <input type="hidden" name="newMonitor[Method]" value="<?php echo validHtmlStr($monitor->Method()) ?>"/>
+      <input type="hidden" name="newMonitor[Method]" value="<?php echo validHtmlStr(null !== $monitor->Method() ? $monitor->Method() : 'rtpRtsp' ) ?>"/>
 <?php
 }
 if ( $tab != 'source' || ($monitor->Type()!= 'Ffmpeg' && $monitor->Type()!= 'Libvlc' )) {

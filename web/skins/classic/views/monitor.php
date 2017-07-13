@@ -58,7 +58,7 @@ if ( ! empty($_REQUEST['mid']) ) {
 } else {
 
   $nextId = getTableAutoInc( 'Monitors' );
-  if ( ! empty( $_REQUEST['dupId'] ) ) {
+  if ( isset( $_REQUEST['dupId'] ) ) {
     $monitor = new Monitor( $_REQUEST['dupId'] );
     if ( ZM_OPT_X10 )
       $x10Monitor = dbFetchOne( 'SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['dupId']) );

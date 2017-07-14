@@ -109,6 +109,7 @@ Requires: perl(MIME::Lite)
 Requires: perl(Net::SMTP)
 Requires: perl(Net::FTP)
 Requires: perl(LWP::Protocol::https)
+Requires: ca-certificates
 
 %{?with_init_systemd:Requires(post): systemd}
 %{?with_init_systemd:Requires(post): systemd-sysv}
@@ -162,7 +163,14 @@ too much degradation of performance.
 %make_install
 
 # Remove unwanted files and folders
-find %{buildroot} \( -name .packlist -or -name .git -or -name .gitignore -or -name .gitattributes -or -name .travis.yml \) -type f -delete > /dev/null 2>&1 || :
+find %{buildroot} \( -name .htaccess -or -name .editorconfig -or -name .packlist -or -name .git -or -name .gitignore -or -name .gitattributes -or -name .travis.yml \) -type f -delete > /dev/null 2>&1 || :
+
+# Recursively change shebang in all relevant scripts and set execute permission
+find %{buildroot}%{_datadir}/zoneminder/www/api \( -name cake -or -name cake.php \) -type f -exec sed -i 's\^#!/usr/bin/env bash$\#!/usr/bin/bash\' {} \; -exec %{__chmod} 755 {} \;
+
+# Use the system cacert file rather then the one bundled with CakePHP
+%{__rm} -f %{buildroot}%{_datadir}/zoneminder/www/api/lib/Cake/Config/cacert.pem
+%{__ln_s} ../../../../../../../..%{_sysconfdir}/pki/tls/certs/ca-bundle.crt %{buildroot}%{_datadir}/zoneminder/www/api/lib/Cake/Config/cacert.pem
 
 %post
 %if 0%{?with_init_sysv}

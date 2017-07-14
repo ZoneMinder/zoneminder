@@ -101,15 +101,17 @@ CakeLog::config('debug', array(
 	'engine' => 'File',
 	'types' => array('notice', 'info', 'debug'),
 	'file' => 'cake_debug',
+    'path' => '@ZM_LOGDIR@/'
 ));
 CakeLog::config('error', array(
 	'engine' => 'File',
 	'types' => array('warning', 'error', 'critical', 'alert', 'emergency'),
 	'file' => 'cake_error',
+    'path' => '@ZM_LOGDIR@/'
 ));
 CakeLog::config('custom_path', array(
     'engine' => 'File',
-    'path' => '@ZM_LOGDIR@'
+    'path' => '@ZM_LOGDIR@/'
 ));
 
 Configure::write('ZM_CONFIG',  '@ZM_CONFIG@');

@@ -250,19 +250,9 @@ sub profiles
 
  my $profiles = $result->get_Profiles();
 
- foreach  my $profile ( @{ $profiles } ) {
+ foreach my $profile ( @{ $profiles } ) {
  
    my $token = $profile->attr()->get_token() ;
-   my $VideoEncoderConfiguration = $profile->get_VideoEncoderConfiguration();
-   print join(', ', $token, 
-         $profile->get_Name(),
-         ( $VideoEncoderConfiguration ? (
-                                         $VideoEncoderConfiguration->get_Encoding(),
-                                         $VideoEncoderConfiguration->get_Resolution()->get_Width(),
-                                         $VideoEncoderConfiguration->get_Resolution()->get_Height(),
-                                         $VideoEncoderConfiguration->get_RateControl()->get_FrameRateLimit(),
-                                        ) : () )
-       );
 
    # Specification gives conflicting values for unicast stream types, try both.
    # http://www.onvif.org/onvif/ver10/media/wsdl/media.wsdl#op.GetStreamUri
@@ -281,9 +271,18 @@ sub profiles
    die $result if not $result;
   #  print $result . "\n";
 
-    print $result->get_MediaUri()->get_Uri() .
-          "\n";
- }
+   my $VideoEncoderConfiguration = $profile->get_VideoEncoderConfiguration();
+   print join(', ', $token, 
+         $profile->get_Name(),
+         ( $VideoEncoderConfiguration ? (
+                                         $VideoEncoderConfiguration->get_Encoding(),
+                                         $VideoEncoderConfiguration->get_Resolution()->get_Width(),
+                                         $VideoEncoderConfiguration->get_Resolution()->get_Height(),
+                                         $VideoEncoderConfiguration->get_RateControl()->get_FrameRateLimit(),
+                                        ) : () ),
+         $result->get_MediaUri()->get_Uri() ,
+       ).  "\n";
+ } # end foreach profile
 
 #
 # use message parser without schema validation ???

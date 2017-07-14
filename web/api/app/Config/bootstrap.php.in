@@ -137,7 +137,7 @@ if ( is_dir($configSubFolder) ) {
 # pair in the array as a constant
 foreach( $configvals as $key => $value) {
     define( $key, $value );
-    Configure::write( $matches[1], $matches[2] );
+    Configure::write( $key, $value );
 }
 
 function process_configfile($configFile) {

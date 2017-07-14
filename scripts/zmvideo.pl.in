@@ -27,12 +27,14 @@ zmvideo.pl - ZoneMinder Video Creation Script
 
 =head1 SYNOPSIS
 
- zmvideo.pl [ -e <event_id>,--event=<event_id> | --filter=<filter name> ] [--format <format>]
-                                             [--rate=<rate>]
-                                             [--scale=<scale>]
-                                             [--fps=<fps>]
-                                             [--size=<size>]
-                                             [--overwrite]
+ zmvideo.pl [ -e <event_id>,--event=<event_id> | --filter_name=<filter name> | --filter_id=<filter id> ] 
+            [--concat=filename]
+            [--format <format>]
+            [--rate=<rate>]
+            [--scale=<scale>]
+            [--fps=<fps>]
+            [--size=<size>]
+            [--overwrite]
 
 =head1 DESCRIPTION
 
@@ -189,23 +191,21 @@ if ( $event_id ) {
     Debug(@event_ids . " events found for $filter_name");
   }
   $concat_name = $filter_name if $concat_name eq '';
-} else {
-  Warning("Nothing to do");
 }
 
-my $sql = " SELECT max(F.Delta)-min(F.Delta) as FullLength,
-   E.*,
-   unix_timestamp(E.StartTime) as Time,
+my $sql = " SELECT (SELECT max(Delta) FROM Frames WHERE EventId=Events.Id)-(SELECT min(Delta) FROM Frames WHERE EventId=Events.Id) as FullLength,
+   Events.*,
+   unix_timestamp(Events.StartTime) as Time,
    M.Name as MonitorName,
    M.Width as MonitorWidth,
    M.Height as MonitorHeight,
    M.Palette
-   FROM Frames as F
-   INNER JOIN Events as E on F.EventId = E.Id
-   INNER JOIN Monitors as M on E.MonitorId = M.Id
-   WHERE EventId = ?
-   GROUP BY F.EventId";
+   FROM Events
+   INNER JOIN Monitors as M on Events.MonitorId = M.Id
+   WHERE Events.Id = ?
+   ";
 my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+Debug($sql);
 
 my @video_files;
 foreach my $event_id ( @event_ids ) {
@@ -237,8 +237,9 @@ if ( $concat_name ) {
   }
   close $fd;
   my $command = $Config{ZM_PATH_FFMPEG}
-  . " -f concat -i $concat_list_file -c copy "
-    ." '$video_file' > ffmpeg.log 2>&1"
+  . " -f concat -safe 0 -i $concat_list_file -c copy "
+    .$Config{ZM_FFMPEG_OUTPUT_OPTIONS}
+    ." '$video_file' > $Config{ZM_PATH_LOGS}/ffmpeg_${concat_name}.log 2>&1"
     ;
   Debug( $command."\n" );
   my $output = qx($command);
@@ -247,10 +248,10 @@ if ( $concat_name ) {
 
   unlink $concat_list_file;
   if ( $status ) {
-    Error( "Unable to generate video, check /ffmpeg.log for details");
+    Error( "Unable to generate video, check $Config{ZM_PATH_LOGS}/ffmpeg_${concat_name}.log for details");
     exit(-1);
   }
-  print( STDOUT $video_file."\n" );
+	print( STDOUT $video_file."\n" );
 }
 exit( 0 );
 

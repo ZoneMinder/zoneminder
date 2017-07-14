@@ -712,6 +712,7 @@ xhtmlHeaders(__FILE__, translate('Timeline') );
           <div id="image" class="imageHeight">
 		        <img id="imageSrc" class="imageWidth" src="graphics/transparent.gif" alt="<?php echo translate('ViewEvent') ?>" title="<?php echo translate('ViewEvent') ?>"/>
 <?php
+if ( 0 ) {
 //due to chrome bug, has to enable https://code.google.com/p/chromium/issues/detail?id=472300
 //crossorigin has to be added below to make caption work in chrome
 ?>
@@ -721,6 +722,7 @@ xhtmlHeaders(__FILE__, translate('Timeline') );
 Your browser does not support the video tag.
 			</video>
 o-->
+<?php } ?>
 
           </div>
         </div>
@@ -817,16 +819,12 @@ foreach( array_keys($monEventSlots) as $monitorId ) {
 <?php
   unset( $currEventSlots );
   $currEventSlots = &$monEventSlots[$monitorId];
-  $monitorMouseover = $mouseover;
-  if ($monitors[$monitorId]['SaveJPEGs'] == 2) {
-    $monitorMouseover = false;
-  }
   for ( $i = 0; $i < $chart['graph']['width']; $i++ ) {
     if ( isset($currEventSlots[$i]) ) {
       unset( $slot );
       $slot = &$currEventSlots[$i];
 
-      if ( $monitorMouseover ) {
+      if ( $mouseover ) {
         $behaviours = array(
             'onclick="'.getSlotShowEventBehaviour( $slot ).'"',
             'onmouseover="'.getSlotPreviewEventBehaviour( $slot ).'"'

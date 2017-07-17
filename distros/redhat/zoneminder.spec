@@ -286,12 +286,18 @@ rm -rf %{_docdir}/%{name}-%{version}
 %files
 %license COPYING
 %doc AUTHORS README.md distros/redhat/readme/README.%{readme_suffix} distros/redhat/readme/README.https distros/redhat/jscalendar-doc
+
+# We want these two folders to have "normal" read permission
+# compared to the folder contents
 %dir %{_sysconfdir}/zm
 %dir %{_sysconfdir}/zm/conf.d
+
+# Config folder contents contain sensitive info
+# and should not be readable by normal users
 %{_sysconfdir}/zm/conf.d/README
-# Always overwrite zm.conf now that ZoneMinder supports conf.d folder
-%attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm/zm.conf
+%config(noreplace) %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm/zm.conf
 %config(noreplace) %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm/conf.d/*.conf
+%ghost %{_sysconfdir}/zm/conf.d/zmcustom.conf
 
 %config(noreplace) %attr(644,root,root) %{wwwconfdir}/zoneminder.conf
 %config(noreplace) %{_sysconfdir}/logrotate.d/zoneminder

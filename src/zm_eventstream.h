@@ -122,6 +122,8 @@ class EventStream : public StreamBase {
   private:
       AVCodecContext *input_codec_context;
       AVCodec *input_codec;
+    bool send_file( const char *file_path );
+    bool send_buffer( uint8_t * buffer, int size );
 };
 
 #endif // ZM_EVENTSTREAM_H

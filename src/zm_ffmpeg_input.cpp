@@ -8,6 +8,7 @@ FFmpeg_Input::FFmpeg_Input() {
   video_stream_id = -1;
   audio_stream_id = -1;
 }
+
 FFmpeg_Input::~FFmpeg_Input() {
 }
 
@@ -82,3 +83,74 @@ int FFmpeg_Input::Open( const char *filepath ) {
   return 0;
 } // end int FFmpeg::Open( const char * filepath )
 
+AVPacket * FFmpeg_Input::read_packet() {
+  AVPacket *packet = new AVPacket();
+  if ( 0 > read_packet( packet ) ) {
+    delete packet;
+    packet = NULL;
+  }
+  return packet;
+}
+
+/* I am reserving a 0 return value to mean no error, but also no success */
+
+int FFmpeg_Input::read_packet( AVPacket *packet ) {
+  int avResult = av_read_frame( input_format_context, packet );
+  char errbuf[AV_ERROR_MAX_STRING_SIZE];
+  if ( avResult < 0 ) {
+    av_strerror(avResult, errbuf, AV_ERROR_MAX_STRING_SIZE);
+    if (
+        // Check if EOF.
+        (avResult == AVERROR_EOF || (input_format_context->pb && input_format_context->pb->eof_reached)) ||
+        // Check for Connection failure.
+        (avResult == -110)
+       ) {
+      Info( "av_read_frame returned \"%s\". Reopening stream.", errbuf );
+      //ReopenFfmpeg();
+    }
+
+    Error( "Unable to read packet from stream %d: error %d \"%s\".", packet->stream_index, avResult, errbuf );
+    return( -1 );
+  }
+  Debug( 5, "Got packet from stream %d dts (%d) pts(%d)", packet->stream_index, packet->pts, packet->dts );
+  return 1;
+}
+
+AVFrame *FFmpeg_Input::decode_packet( AVPacket *packet ) {
+  AVFrame *frame = new AVFrame();
+  if ( 0 >= decode_packet( packet, frame ) ) {
+    delete frame;
+    frame = NULL;
+  }
+  return frame;
+}
+
+int FFmpeg_Input::decode_packet( AVPacket *packet, AVFrame *frame ) {
+/* Decoding may take multiple packets. So a return value of 0 means no error, but no frame yet. */
+  char errbuf[AV_ERROR_MAX_STRING_SIZE];
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+  int ret = avcodec_send_packet( streams[packet->stream_index].context, packet );
+  if ( ret < 0 ) {
+    av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
+    Error( "Unable to send packet at frame: %s, continuing", errbuf );
+    zm_av_packet_unref( packet );
+    return ret;
+  }
+  ret = avcodec_receive_frame( streams[packet->stream_index].context, frame );
+  if ( ret < 0 ) {
+    av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
+    Error( "Unable to send packet at frame: %s, continuing", errbuf );
+    return 0;
+  }
+# else
+  int frameComplete;
+  ret = zm_avcodec_decode_video( streams[packet->stream_index].context, frame, &frameComplete, packet );
+  if ( ret < 0 ) {
+    av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
+    Error( "Unable to decode frame at frame: %s, continuing", errbuf );
+    zm_av_packet_unref( packet );
+    return 0;
+  }
+#endif
+  return 1;
+}

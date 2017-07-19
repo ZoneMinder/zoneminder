@@ -22,6 +22,11 @@ class FFmpeg_Input {
     int Open( const char *filename );
     int Close();
 
+    AVPacket *  read_packet();
+    int         read_packet( AVPacket *packet );
+    AVFrame *   decode_packet( AVPacket *packet );
+    int         decode_packet( AVPacket *packet, AVFrame *frame );
+
   private:
     typedef struct {
         AVCodecContext *context;

@@ -51,7 +51,7 @@ $eventCounts = array(
         'filter' => array(
           'Query' => array(
             'terms' => array(
-              array( 'attr' => "DateTime", 'op' => '>=', 'val' => '-1 day' ),
+              array( 'attr' => 'DateTime', 'op' => '>=', 'val' => '-1 day' ),
               )
             )
           ),
@@ -62,7 +62,7 @@ $eventCounts = array(
         'filter' => array(
           'Query' => array(
             'terms' => array(
-              array( 'attr' => "DateTime", 'op' => '>=', 'val' => '-7 day' ),
+              array( 'attr' => 'DateTime', 'op' => '>=', 'val' => '-7 day' ),
               )
             )
           ),
@@ -73,7 +73,7 @@ $eventCounts = array(
         'filter' => array(
           'Query' => array(
             'terms' => array(
-              array( 'attr' => "DateTime", 'op' => '>=', 'val' => '-1 month' ),
+              array( 'attr' => 'DateTime', 'op' => '>=', 'val' => '-1 month' ),
               )
             )
           ),
@@ -84,7 +84,7 @@ $eventCounts = array(
         'filter' => array(
           'Query' => array(
             'terms' => array(
-              array( 'attr' => "Archived", 'op' => '=', 'val' => '1' ),
+              array( 'attr' => 'Archived', 'op' => '=', 'val' => '1' ),
               )
             )
           ),
@@ -107,7 +107,7 @@ for( $i = 0; $i < count($displayMonitors); $i += 1 ) {
   for ( $j = 0; $j < count($eventCounts); $j += 1 ) {
     $filter = addFilterTerm( $eventCounts[$j]['filter'], count($eventCounts[$j]['filter']['Query']['terms']), array( 'cnj' => 'and', 'attr' => 'MonitorId', 'op' => '=', 'val' => $monitor['Id'] ) );
     parseFilter( $filter );
-    $counts[] = "count(if(1".$filter['sql'].",1,NULL)) as EventCount$j";
+    $counts[] = 'count(if(1'.$filter['sql'].",1,NULL)) as EventCount$j";
     $monitor['eventCounts'][$j]['filter'] = $filter;
   }
   $sql = 'select '.join($counts,', ').' from Events as E where MonitorId = ?';

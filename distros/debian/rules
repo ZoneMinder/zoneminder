@@ -18,7 +18,6 @@ override_dh_auto_configure:
 		-DZM_TMPDIR=/var/tmp/zm \
 		-DZM_LOGDIR=/var/log/zm \
 		-DZM_WEBDIR=/usr/share/zoneminder/www \
-		-DZM_CONTENTDIR=/var/cache/zoneminder \
 		-DZM_CGIDIR=/usr/lib/zoneminder/cgi-bin \
 		-DZM_WEB_USER=www-data \
 		-DZM_WEB_GROUP=www-data \

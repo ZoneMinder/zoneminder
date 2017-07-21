@@ -137,11 +137,11 @@ set(ZM_WEB_USER "" CACHE STRING
 set(ZM_WEB_GROUP "" CACHE STRING 
     "The group apache or the local web server runs on, 
     Leave empty to be the same as the web user")
-set(ZM_DIR_EVENTS "events" CACHE PATH 
-    "Location where events are recorded to, default: events")
-set(ZM_DIR_IMAGES "events" CACHE PATH
+set(ZM_DIR_EVENTS "${ZM_CONTENTDIR}/events" CACHE PATH 
+    "Location where events are recorded to, default: ZM_CONTENTDIR/events")
+set(ZM_DIR_IMAGES "${ZM_CONTENTDIR}/images" CACHE PATH
     "Location where images, not directly associated with events,
-     are recorded to, default: images")
+     are recorded to, default: ZM_CONTENTDIR/images")
 set(ZM_DIR_SOUNDS "sounds" CACHE PATH
     "Location to look for optional sound files, default: sounds")
 set(ZM_PATH_ZMS "/cgi-bin/nph-zms" CACHE PATH
@@ -154,7 +154,7 @@ set(ZM_PATH_ARP "" CACHE PATH
     "Full path to compatible arp binary. Leave empty for automatic detection.")
 set(ZM_CONFIG_DIR "/${CMAKE_INSTALL_SYSCONFDIR}" CACHE PATH 
     "Location of ZoneMinder configuration, default system config directory")
-set(ZM_CONFIG_SUBDIR "${ZM_CONFIG_DIR}/conf.d" CACHE PATH 
+set(ZM_CONFIG_SUBDIR "${ZM_CONFIG_DIR}/zm/conf.d" CACHE PATH 
     "Location of ZoneMinder configuration subfolder, default: ZM_CONFIG_DIR/conf.d")
 set(ZM_EXTRA_LIBS "" CACHE STRING 
     "A list of optional libraries, separated by semicolons, e.g. ssl;theora")
@@ -801,11 +801,12 @@ endif(ZM_PERL_SEARCH_PATH)
 
 # If this is an out-of-source build, copy the files we need to the binary directory
 if(NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR))
-	file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/conf.d" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/conf.d")
+	file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/conf.d" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/conf.d" PATTERN "*.in" EXCLUDE)
 endif(NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR))
 
 # Generate files from the .in files
 configure_file(zm.conf.in "${CMAKE_CURRENT_BINARY_DIR}/zm.conf" @ONLY)
+configure_file(conf.d/01-system-paths.conf.in "${CMAKE_CURRENT_BINARY_DIR}/conf.d/01-system-paths.conf" @ONLY)
 configure_file(zoneminder-config.cmake "${CMAKE_CURRENT_BINARY_DIR}/config.h" @ONLY)
 configure_file(zmconfgen.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmconfgen.pl" @ONLY)
 configure_file(zmlinkcontent.sh.in "${CMAKE_CURRENT_BINARY_DIR}/zmlinkcontent.sh" @ONLY)
@@ -850,7 +851,7 @@ endif(zmconfgen_result EQUAL 0)
 
 # Install zm.conf and conf.d subfolder
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zm.conf" DESTINATION "${ZM_CONFIG_DIR}")
-install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/conf.d/" DESTINATION "${ZM_CONFIG_SUBDIR}")
+install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/conf.d/" DESTINATION "${ZM_CONFIG_SUBDIR}" PATTERN "*.in" EXCLUDE)
 
 # Uninstall target
 configure_file(

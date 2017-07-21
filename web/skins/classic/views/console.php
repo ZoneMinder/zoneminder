@@ -203,45 +203,27 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
             <td class="colServer"><?php $Server = new Server( $monitor['ServerId'] ); echo $Server->Name(); ?></td>
 <?php
   }
-?>
-<?php
+  $source = '';
   if ( $monitor['Type'] == 'Local' ) {
-?>
-            <td class="colSource"><?php echo makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.$monitor['Device'].' ('.$monitor['Channel'].')</span>', canEdit( 'Monitors' ) ) ?></td>
-<?php
-  } elseif ( $monitor['Type'] == 'Remote' ) {
-?>
-            <td class="colSource"><?php echo makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.preg_replace( '/^.*@/', '', $monitor['Host'] ).'</span>', canEdit( 'Monitors' ) ) ?></td>
-<?php
-  } elseif ( $monitor['Type'] == 'File' ) {
-?>
-            <td class="colSource"><?php echo makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.preg_replace( '/^.*\//', '', $monitor['Path'] ).'</span>', canEdit( 'Monitors' ) ) ?></td>
-<?php
+    $source = $monitor['Device'].' ('.$monitor['Channel'].')';
+  }  elseif ( $monitor['Type'] == 'Remote' ) {
+    $source = $monitor['Host'];
+  } elseif ( $monitor['Type'] == 'File' || $monitor['Type'] == 'cURL' ) {
+    $source = preg_replace( '/^.*\//', '', $monitor['Path'] );
   } elseif ( $monitor['Type'] == 'Ffmpeg' || $monitor['Type'] == 'Libvlc' ) {
     $domain = parse_url( $monitor['Path'], PHP_URL_HOST );
-    $shortpath = $domain ? $domain : preg_replace( '/^.*\//', '', $monitor['Path'] );
-    if ( $shortpath == '' ) {
-      $shortpath = 'Monitor ' . $monitor['Id'];
-    }
-?>
-            <td class="colSource"><?php echo makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.$shortpath.'</span>', canEdit( 'Monitors' ) ) ?></td>
-<?php
-  } elseif ( $monitor['Type'] == 'cURL' ) {
-?>
-            <td class="colSource"><?php echo makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.preg_replace( '/^.*\//', '', $monitor['Path'] ).'</span>', canEdit( 'Monitors' ) ) ?></td>
-<?php
-  } else {
-?>
-            <td class="colSource">&nbsp;</td>
-<?php
+    $source = $domain ? $domain : preg_replace( '/^.*\//', '', $monitor['Path'] );
   }
-?>
-<?php
+  if ( $source == '' ) {
+    $source = 'Monitor ' . $monitor['Id'];
+  }
+  echo '<td class="colSource">'. makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.$source.'</span>', canEdit( 'Monitors' ) ).'</td>';
   if ( $show_storage_areas ) {
 ?>
             <td class="colStorage"><?php $Storage = new Storage( $monitor['StorageId'] ); echo $Storage->Name(); ?></td>
 <?php
   }
+
   for ( $i = 0; $i < count($eventCounts); $i++ ) {
 ?>
             <td class="colEvents"><?php echo makePopupLink( '?view='.$eventsView.'&amp;page=1'.$monitor['eventCounts'][$i]['filter']['query'], $eventsWindow, $eventsView, $monitor['EventCount'.$i], canView( 'Events' ) ) ?></td>

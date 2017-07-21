@@ -146,7 +146,7 @@ function process_configfile($configFile) {
   if ( is_readable( $configFile ) ) {
     $configvals = array();
 
-    $cfg = fopen( $configFile, "r") or die("Could not open config file.");
+    $cfg = fopen( $configFile, 'r') or die('Could not open config file.');
     while ( !feof($cfg) ) {
       $str = fgets( $cfg, 256 );
       if ( preg_match( '/^\s*$/', $str ))

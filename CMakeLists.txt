@@ -801,7 +801,8 @@ endif(ZM_PERL_SEARCH_PATH)
 
 # If this is an out-of-source build, copy the files we need to the binary directory
 if(NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR))
-	file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/conf.d" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/conf.d" PATTERN "*.in" EXCLUDE)
+	file(GLOB ZM_CONFD_FILES "${CMAKE_CURRENT_SOURCE_DIR}/conf.d/*.conf")
+	file(COPY ${ZM_CONFD_FILES} DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/conf.d")
 endif(NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR))
 
 # Generate files from the .in files

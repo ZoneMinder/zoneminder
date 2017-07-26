@@ -1319,14 +1319,15 @@ bool Monitor::Analyse() {
               score += motion_score;
             }
             noteSetMap[MOTION_CAUSE] = zoneSet;
-
-          }
+          } // end if motion_score
           shared_data->active = signal;
-        }
+        } // end if signal change
+
         if ( (!signal_change && signal) && n_linked_monitors > 0 ) {
           bool first_link = true;
           Event::StringSet noteSet;
           for ( int i = 0; i < n_linked_monitors; i++ ) {
+            // TODO: Shouldn't we try to connect?
             if ( linked_monitors[i]->isConnected() ) {
               if ( linked_monitors[i]->hasAlarmed() ) {
                 if ( !event ) {
@@ -1352,11 +1353,12 @@ bool Monitor::Analyse() {
         if ( (!signal_change && signal) && (function == RECORD || function == MOCORD) ) {
           if ( event ) {
             //TODO: We shouldn't have to do this every time. Not sure why it clears itself if this isn't here??
-            snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
+            //snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
               Debug( 3, "Detected new event at (%d.%d)", timestamp->tv_sec,timestamp->tv_usec );
             
             if ( section_length ) {
-              int section_mod = timestamp->tv_sec%section_length;
+              // TODO: Wouldn't this be clearer if we just did something like if now - event->start > section_length ?
+              int section_mod = timestamp->tv_sec % section_length;
               Debug( 3, "Section length (%d) Last Section Mod(%d), new section mod(%d)", section_length, last_section_mod, section_mod );
               if ( section_mod < last_section_mod ) {
                 //if ( state == IDLE || state == TAPE || event_close_mode == CLOSE_TIME ) {
@@ -1374,8 +1376,8 @@ bool Monitor::Analyse() {
               } else {
                 last_section_mod = section_mod;
               }
-            }
-          } // end if section_length
+            } // end if section_length
+          } // end if event
 
           if ( ! event ) {
 

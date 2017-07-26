@@ -255,16 +255,16 @@ echo $Server->Name();
 <?php
     }
     $source = '';
-    if ( $monitor['Type'] == "Local" ) {
+    if ( $monitor['Type'] == 'Local' ) {
       $source = $monitor['Device'].' ('.$monitor['Channel'].')';
-    }  elseif ( $monitor['Type'] == "Remote" ) {
-      $source = $monitor['Host'];
-    } elseif ( $monitor['Type'] == "File" || $monitor['Type'] == "cURL" ) {
+    }  elseif ( $monitor['Type'] == 'Remote' ) {
+      $source = preg_replace( '/^.*@/', '', $monitor['Host'] );
+    } elseif ( $monitor['Type'] == 'File' || $monitor['Type'] == 'cURL' ) {
       $source = preg_replace( '/^.*\//', '', $monitor['Path'] );
-    } elseif ( $monitor['Type'] == "Ffmpeg" || $monitor['Type'] == "Libvlc" ) {
+    } elseif ( $monitor['Type'] == 'Ffmpeg' || $monitor['Type'] == 'Libvlc' ) {
       $domain = parse_url( $monitor['Path'], PHP_URL_HOST );
       $source = $domain ? $domain : preg_replace( '/^.*\//', '', $monitor['Path'] );
-    } elseif ( $monitor['Type'] == "cURL" ) {
+    } elseif ( $monitor['Type'] == 'cURL' ) {
       
     }
     if ( $source == '' ) {

@@ -217,28 +217,31 @@ class Event {
       $captImage = 'snapshot.jpg';
       Debug("Frame not specified, using snapshot");
     } else {
-      $captImage = sprintf( '%0'.ZM_EVENT_IMAGE_DIGITS.'d-capture.jpg', $frame['FrameId'] );
+      $captImage = sprintf( '%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyze.jpg', $frame['FrameId'] );
       if ( ! file_exists( $eventPath.'/'.$captImage ) ) {
-        # Generate the frame JPG
-        if ( $Event->DefaultVideo() ) {
-          $videoPath = $eventPath.'/'.$Event->DefaultVideo();
+        $captImage = sprintf( '%0'.ZM_EVENT_IMAGE_DIGITS.'d-capture.jpg', $frame['FrameId'] );
+        if ( ! file_exists( $eventPath.'/'.$captImage ) ) {
+          # Generate the frame JPG
+          if ( $Event->DefaultVideo() ) {
+            $videoPath = $eventPath.'/'.$Event->DefaultVideo();
 
-          if ( ! file_exists( $videoPath ) ) {
-            Error("Event claims to have a video file, but it does not seem to exist at $videoPath" );
-            return '';
-          } 
-            
-          #$command ='ffmpeg -v 0 -i '.$videoPath.' -vf "select=gte(n\\,'.$frame['FrameId'].'),setpts=PTS-STARTPTS" '.$eventPath.'/'.$captImage;
-          $command ='ffmpeg -ss '. $frame['Delta'] .' -i '.$videoPath.' -frames:v 1 '.$eventPath.'/'.$captImage;
-          Logger::Debug( "Running $command" );
-          $output = array();
-          $retval = 0;
-          exec( $command, $output, $retval );
-          Logger::Debug("Retval: $retval, output: " . implode("\n", $output));
-        } else {
-          Error("Can't create frame images from video becuase there is no video file for this event (".$Event->DefaultVideo() );
-        }
-      }
+            if ( ! file_exists( $videoPath ) ) {
+              Error("Event claims to have a video file, but it does not seem to exist at $videoPath" );
+              return '';
+            } 
+              
+            #$command ='ffmpeg -v 0 -i '.$videoPath.' -vf "select=gte(n\\,'.$frame['FrameId'].'),setpts=PTS-STARTPTS" '.$eventPath.'/'.$captImage;
+            $command ='ffmpeg -ss '. $frame['Delta'] .' -i '.$videoPath.' -frames:v 1 '.$eventPath.'/'.$captImage;
+            Logger::Debug( "Running $command" );
+            $output = array();
+            $retval = 0;
+            exec( $command, $output, $retval );
+            Logger::Debug("Retval: $retval, output: " . implode("\n", $output));
+          } else {
+            Error("Can't create frame images from video becuase there is no video file for this event (".$Event->DefaultVideo() );
+          }
+        } // end if capture file exists
+      } // end if analyze file exists
     }
 
     $captPath = $eventPath.'/'.$captImage;

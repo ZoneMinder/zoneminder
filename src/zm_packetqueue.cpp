@@ -30,7 +30,7 @@ zm_packetqueue::zm_packetqueue(){
 }
 
 zm_packetqueue::~zm_packetqueue() {
-
+  clearQueue();
 }
 
 bool zm_packetqueue::queuePacket( ZMPacket* zm_packet ) {

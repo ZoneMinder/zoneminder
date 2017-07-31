@@ -270,15 +270,15 @@ int FfmpegCamera::OpenFfmpeg() {
   }
 
   // Set transport method as specified by method field, rtpUni is default
-  if (Method() == "rtpMulti") {
+  if ( Method() == "rtpMulti" ) {
     ret = av_dict_set(&opts, "rtsp_transport", "udp_multicast", 0);
-  } else if (Method() == "rtpRtsp") {
+  } else if ( Method() == "rtpRtsp" ) {
     ret = av_dict_set(&opts, "rtsp_transport", "tcp", 0);
-  } else if (Method() == "rtpRtspHttp") {
+  } else if ( Method() == "rtpRtspHttp" ) {
     ret = av_dict_set(&opts, "rtsp_transport", "http", 0);
   }
 
-  if (ret < 0) {
+  if ( ret < 0 ) {
     Warning("Could not set rtsp_transport method '%s'\n", Method().c_str());
   }
 
@@ -297,7 +297,7 @@ int FfmpegCamera::OpenFfmpeg() {
   }
 
   AVDictionaryEntry *e;
-  if ((e = av_dict_get(opts, "", NULL, AV_DICT_IGNORE_SUFFIX)) != NULL) {
+  if ( (e = av_dict_get(opts, "", NULL, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
     Warning( "Option %s not recognized by ffmpeg", e->key);
   }
 
@@ -380,7 +380,7 @@ int FfmpegCamera::OpenFfmpeg() {
 	mVideoCodecContext->flags2 |= CODEC_FLAG2_FAST | CODEC_FLAG_LOW_DELAY;
 
   // Try and get the codec from the codec context
-  if ((mVideoCodec = avcodec_find_decoder(mVideoCodecContext->codec_id)) == NULL) {
+  if ( (mVideoCodec = avcodec_find_decoder(mVideoCodecContext->codec_id)) == NULL ) {
     Fatal("Can't find codec for video stream from %s", mPath.c_str());
   } else {
     Debug(1, "Video Found decoder");
@@ -388,10 +388,10 @@ int FfmpegCamera::OpenFfmpeg() {
   // Open the codec
 #if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
   Debug ( 1, "Calling avcodec_open" );
-  if (avcodec_open(mVideoCodecContext, mVideoCodec) < 0)
+  if ( avcodec_open(mVideoCodecContext, mVideoCodec) < 0 )
 #else
     Debug ( 1, "Calling avcodec_open2" );
-  if (avcodec_open2(mVideoCodecContext, mVideoCodec, 0) < 0)
+  if ( avcodec_open2(mVideoCodecContext, mVideoCodec, 0) < 0 )
 #endif
     Fatal( "Unable to open codec for video stream from %s", mPath.c_str() );
   }
@@ -837,11 +837,9 @@ else if ( packet.pts && video_last_pts > packet.pts ) {
       Debug( 3, "Some other stream index %d", packet.stream_index );
 #endif
     }
-    //if ( videoStore ) {
       
-      // the packet contents are ref counted... when queuing, we allocate another packet and reference it with that one, so we should always need to unref here, which should not affect the queued version.
-      zm_av_packet_unref( &packet );
-    //}
+    // the packet contents are ref counted... when queuing, we allocate another packet and reference it with that one, so we should always need to unref here, which should not affect the queued version.
+    zm_av_packet_unref( &packet );
   } // end while ! frameComplete
   return (frameCount);
 } // end FfmpegCamera::CaptureAndRecord

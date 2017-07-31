@@ -189,6 +189,8 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   audio_output_codec = NULL;
   audio_input_context = NULL;
   audio_output_stream = NULL;
+  input_frame = NULL;
+  output_frame = NULL;
 #ifdef HAVE_LIBAVRESAMPLE
   resample_context = NULL;
 #endif
@@ -391,6 +393,15 @@ Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts, pkt.dts
 
   /* free the stream */
   avformat_free_context(oc);
+
+  if ( input_frame ) {
+    av_frame_free( &input_frame );
+    input_frame = NULL;
+  }
+  if ( output_frame ) {
+    av_frame_free( &output_frame );
+    output_frame = NULL;
+  }
 }
 
 bool VideoStore::setup_resampler() {
@@ -495,13 +506,13 @@ bool VideoStore::setup_resampler() {
   } 
 
   /** Create a new frame to store the audio samples. */
-  if (!(input_frame = zm_av_frame_alloc())) {
+  if ( !(input_frame = zm_av_frame_alloc()) ) {
     Error("Could not allocate input frame");
     return false;
   }
 
   /** Create a new frame to store the audio samples. */
-  if (!(output_frame = zm_av_frame_alloc())) {
+  if ( !(output_frame = zm_av_frame_alloc()) ) {
     Error("Could not allocate output frame");
     av_frame_free( &input_frame );
     return false;

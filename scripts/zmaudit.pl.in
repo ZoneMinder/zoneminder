@@ -144,15 +144,16 @@ MAIN: while( $loop ) {
   # After a long sleep, we may need to reconnect to the db
   while ( ! ( $dbh and $dbh->ping() ) ) {
     $dbh = zmDbConnect();
-
-    if ( $continuous ) {
-      Error('Unable to connect to database');
-# if we are running continuously, then just skip to the next
-# interval, otherwise we are a one off run, so wait a second and
-# retry until someone kills us.
-      sleep( $Config{ZM_AUDIT_CHECK_INTERVAL} );
-    } else {
-      Fatal('Unable to connect to database');
+    if ( ! $dbh ) {
+      if ( $continuous ) {
+        Error('Unable to connect to database');
+        # if we are running continuously, then just skip to the next
+        # interval, otherwise we are a one off run, so wait a second and
+        # retry until someone kills us.
+        sleep( $Config{ZM_AUDIT_CHECK_INTERVAL} );
+      } else {
+        Fatal('Unable to connect to database');
+      } # end if
     } # end if
   } # end while can't connect to the db
 

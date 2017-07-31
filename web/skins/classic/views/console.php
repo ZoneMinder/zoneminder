@@ -206,8 +206,8 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   $source = '';
   if ( $monitor['Type'] == 'Local' ) {
     $source = $monitor['Device'].' ('.$monitor['Channel'].')';
-  }  elseif ( $monitor['Type'] == 'Remote' ) {
-    $source = $monitor['Host'];
+  } elseif ( $monitor['Type'] == 'Remote' ) {
+    $source = preg_replace( '/^.*@/', '', $monitor['Host'] );
   } elseif ( $monitor['Type'] == 'File' || $monitor['Type'] == 'cURL' ) {
     $source = preg_replace( '/^.*\//', '', $monitor['Path'] );
   } elseif ( $monitor['Type'] == 'Ffmpeg' || $monitor['Type'] == 'Libvlc' ) {

@@ -698,13 +698,7 @@ int VideoStore::writeVideoFramePacket( AVPacket *ipkt ) {
   opkt.data = ipkt->data;
   opkt.size = ipkt->size;
 
-  // Some camera have audio on stream 0 and video on stream 1.  So when we remove the audio, video stream has to go on 0
-  if ( ipkt->stream_index > 0 and ! audio_output_stream ) {
-    Debug(1,"Setting stream index to 0 instead of %d", ipkt->stream_index );
-    opkt.stream_index = 0;
-  } else {
-    opkt.stream_index = ipkt->stream_index;
-  }
+  opkt.stream_index = video_output_stream->index;
 
   AVPacket safepkt;
   memcpy( &safepkt, &opkt, sizeof(AVPacket) );
@@ -929,8 +923,7 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
 
   // pkt.pos:  byte position in stream, -1 if unknown 
   opkt.pos = -1;
-  opkt.stream_index = ipkt->stream_index;
-  Debug(2, "Stream index is %d", opkt.stream_index );
+  opkt.stream_index = audio_output_stream->index;//ipkt->stream_index;
 
   AVPacket safepkt;
   memcpy(&safepkt, &opkt, sizeof(AVPacket));

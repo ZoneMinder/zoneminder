@@ -379,8 +379,17 @@ int FfmpegCamera::OpenFfmpeg() {
 	//mVideoCodecContext->flags2 |= CODEC_FLAG2_FAST | CODEC_FLAG2_CHUNKS | CODEC_FLAG_LOW_DELAY;  // Enable faster H264 decode.
 	mVideoCodecContext->flags2 |= CODEC_FLAG2_FAST | CODEC_FLAG_LOW_DELAY;
 
+  if ( mVideoCodecContext->codec_id == AV_CODEC_ID_H264 ) {
+    // Try to open an hwaccel codec.
+    if ( (mVideoCodec = avcodec_find_decoder_by_name("h264_vaapi")) == NULL ) { 
+      Debug(1, "Failed to find decoder (h264_vaapi)" );
+    } else {
+      Debug(1, "Success finding decoder (h264_vaapi)" );
+    }
+  } // end if h264
+
+  if ( (!mVideoCodec) and ( (mVideoCodec = avcodec_find_decoder(mVideoCodecContext->codec_id)) == NULL ) ) {
   // Try and get the codec from the codec context
-  if ( (mVideoCodec = avcodec_find_decoder(mVideoCodecContext->codec_id)) == NULL ) {
     Fatal("Can't find codec for video stream from %s", mPath.c_str());
   } else {
     Debug(1, "Video Found decoder");
@@ -388,12 +397,23 @@ int FfmpegCamera::OpenFfmpeg() {
   // Open the codec
 #if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
   Debug ( 1, "Calling avcodec_open" );
-  if ( avcodec_open(mVideoCodecContext, mVideoCodec) < 0 )
+  if ( avcodec_open(mVideoCodecContext, mVideoCodec) < 0 ){
 #else
     Debug ( 1, "Calling avcodec_open2" );
-  if ( avcodec_open2(mVideoCodecContext, mVideoCodec, 0) < 0 )
+  if ( avcodec_open2(mVideoCodecContext, mVideoCodec, &opts) < 0 ) {
 #endif
+    AVDictionaryEntry *e;
+    if ( (e = av_dict_get(opts, "", NULL, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
+      Warning( "Option %s not recognized by ffmpeg", e->key);
+    }
     Fatal( "Unable to open codec for video stream from %s", mPath.c_str() );
+  } else {
+
+    AVDictionaryEntry *e;
+    if ( (e = av_dict_get(opts, "", NULL, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
+      Warning( "Option %s not recognized by ffmpeg", e->key);
+    }
+  }
   }
 
   if ( mAudioStreamId >= 0 ) {

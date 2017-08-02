@@ -189,6 +189,8 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   audio_output_codec = NULL;
   audio_input_context = NULL;
   audio_output_stream = NULL;
+  input_frame = NULL;
+  output_frame = NULL;
 #ifdef HAVE_LIBAVRESAMPLE
   resample_context = NULL;
 #endif
@@ -391,6 +393,15 @@ Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts, pkt.dts
 
   /* free the stream */
   avformat_free_context(oc);
+
+  if ( input_frame ) {
+    av_frame_free( &input_frame );
+    input_frame = NULL;
+  }
+  if ( output_frame ) {
+    av_frame_free( &output_frame );
+    output_frame = NULL;
+  }
 }
 
 bool VideoStore::setup_resampler() {
@@ -495,13 +506,13 @@ bool VideoStore::setup_resampler() {
   } 
 
   /** Create a new frame to store the audio samples. */
-  if (!(input_frame = zm_av_frame_alloc())) {
+  if ( !(input_frame = zm_av_frame_alloc()) ) {
     Error("Could not allocate input frame");
     return false;
   }
 
   /** Create a new frame to store the audio samples. */
-  if (!(output_frame = zm_av_frame_alloc())) {
+  if ( !(output_frame = zm_av_frame_alloc()) ) {
     Error("Could not allocate output frame");
     av_frame_free( &input_frame );
     return false;
@@ -618,7 +629,7 @@ int VideoStore::writeVideoFramePacket( AVPacket *ipkt ) {
   int duration;
 
   //Scale the PTS of the outgoing packet to be the correct time base
-  if (ipkt->pts != AV_NOPTS_VALUE) {
+  if ( ipkt->pts != AV_NOPTS_VALUE ) {
 
     if ( ! video_last_pts ) {
       // This is the first packet.
@@ -687,18 +698,12 @@ int VideoStore::writeVideoFramePacket( AVPacket *ipkt ) {
   opkt.data = ipkt->data;
   opkt.size = ipkt->size;
 
-  // Some camera have audio on stream 0 and video on stream 1.  So when we remove the audio, video stream has to go on 0
-  if ( ipkt->stream_index > 0 and ! audio_output_stream ) {
-    Debug(1,"Setting stream index to 0 instead of %d", ipkt->stream_index );
-    opkt.stream_index = 0;
-  } else {
-    opkt.stream_index = ipkt->stream_index;
-  }
+  opkt.stream_index = video_output_stream->index;
 
   AVPacket safepkt;
-  memcpy(&safepkt, &opkt, sizeof(AVPacket));
+  memcpy( &safepkt, &opkt, sizeof(AVPacket) );
 
-Debug(1, "writing video packet pts(%d) dts(%d) duration(%d)", opkt.pts, opkt.dts, opkt.duration );
+  Debug(1, "writing video packet pts(%d) dts(%d) duration(%d)", opkt.pts, opkt.dts, opkt.duration );
   if ((opkt.data == NULL)||(opkt.size < 1)) {
     Warning("%s:%d: Mangled AVPacket: discarding frame", __FILE__, __LINE__ ); 
     dumpPacket( ipkt);
@@ -714,10 +719,14 @@ Debug(1, "writing video packet pts(%d) dts(%d) duration(%d)", opkt.pts, opkt.dts
     video_previous_dts = opkt.dts; // Unsure if av_interleaved_write_frame() clobbers opkt.dts when out of order, so storing in advance
     video_previous_pts = opkt.pts;
     ret = av_interleaved_write_frame(oc, &opkt);
-    if(ret<0){
+    if ( ret < 0 ) {
       // There's nothing we can really do if the frame is rejected, just drop it and get on with the next
       Warning("%s:%d: Writing frame [av_interleaved_write_frame()] failed: %s(%d)  ", __FILE__, __LINE__,  av_make_error_string(ret).c_str(), (ret));
       dumpPacket(&safepkt);
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+  zm_dump_codecpar( video_input_stream->codecpar );
+  zm_dump_codecpar( video_output_stream->codecpar );
+#endif
     }
   }
 
@@ -914,8 +923,7 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
 
   // pkt.pos:  byte position in stream, -1 if unknown 
   opkt.pos = -1;
-  opkt.stream_index = ipkt->stream_index;
-  Debug(2, "Stream index is %d", opkt.stream_index );
+  opkt.stream_index = audio_output_stream->index;//ipkt->stream_index;
 
   AVPacket safepkt;
   memcpy(&safepkt, &opkt, sizeof(AVPacket));

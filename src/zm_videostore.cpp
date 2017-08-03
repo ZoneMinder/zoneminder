@@ -326,34 +326,34 @@ VideoStore::~VideoStore(){
     pkt.size = 0;
     int64_t size;
 
-    while(1) {
+    while ( 1 ) {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       ret = avcodec_receive_packet( audio_output_context, &pkt );
 #else
       ret = avcodec_encode_audio2( audio_output_context, &pkt, NULL, &got_packet );
 #endif
-      if (ret < 0) {
+      if ( ret < 0 ) {
         Error("ERror encoding audio while flushing");
         break;
       }
 Debug(1, "Have audio encoder, need to flush it's output" );
       size += pkt.size;
-      if (!got_packet) {
+      if ( ! got_packet ) {
         break;
       }
 Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts, pkt.dts, pkt.duration );
-      if (pkt.pts != AV_NOPTS_VALUE)
+      if ( pkt.pts != AV_NOPTS_VALUE )
         pkt.pts = av_rescale_q(pkt.pts, audio_output_context->time_base, audio_output_stream->time_base);
-      if (pkt.dts != AV_NOPTS_VALUE)
+      if ( pkt.dts != AV_NOPTS_VALUE )
         pkt.dts = av_rescale_q(pkt.dts, audio_output_context->time_base, audio_output_stream->time_base);
-      if (pkt.duration > 0)
+      if ( pkt.duration > 0 )
         pkt.duration = av_rescale_q(pkt.duration, audio_output_context->time_base, audio_output_stream->time_base);
 Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts, pkt.dts, pkt.duration );
       pkt.stream_index = audio_output_stream->index;
       av_interleaved_write_frame( oc, &pkt );
       zm_av_packet_unref( &pkt );
     } // while 1
-  }
+  } // end if audio_output_codec
 
   // Flush Queues
   av_interleaved_write_frame( oc, NULL );
@@ -370,9 +370,13 @@ Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts, pkt.dts
   // What if we were only doing audio recording?
   if ( video_output_stream ) {
     avcodec_close(video_output_context);
+    av_free(video_output_context);
+    video_output_context = NULL;
   }
   if (audio_output_stream) {
     avcodec_close(audio_output_context);
+    av_free(audio_output_context);
+    audio_output_context = NULL;
 #ifdef HAVE_LIBAVRESAMPLE
     if ( resample_context ) {
       avresample_close( resample_context );

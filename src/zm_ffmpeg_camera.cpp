@@ -68,13 +68,13 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::stri
   mConvertContext = NULL;
 #endif
   /* Has to be located inside the constructor so other components such as zma will receive correct colours and subpixel order */
-  if(colours == ZM_COLOUR_RGB32) {
+  if ( colours == ZM_COLOUR_RGB32 ) {
     subpixelorder = ZM_SUBPIX_ORDER_RGBA;
     imagePixFormat = AV_PIX_FMT_RGBA;
-  } else if(colours == ZM_COLOUR_RGB24) {
+  } else if ( colours == ZM_COLOUR_RGB24 ) {
     subpixelorder = ZM_SUBPIX_ORDER_RGB;
     imagePixFormat = AV_PIX_FMT_RGB24;
-  } else if(colours == ZM_COLOUR_GRAY8) {
+  } else if ( colours == ZM_COLOUR_GRAY8 ) {
     subpixelorder = ZM_SUBPIX_ORDER_NONE;
     imagePixFormat = AV_PIX_FMT_GRAY8;
   } else {
@@ -93,6 +93,7 @@ FfmpegCamera::~FfmpegCamera() {
   if ( capture ) {
     Terminate();
   }
+  avformat_network_deinit();
 }
 
 void FfmpegCamera::Initialise() {
@@ -113,30 +114,29 @@ int FfmpegCamera::PrimeCapture() {
   mAudioStreamId = -1;
   Info( "Priming capture from %s", mPath.c_str() );
 
-  if (OpenFfmpeg() != 0){
+  if ( OpenFfmpeg() != 0 ) {
     ReopenFfmpeg();
   }
   return 0;
 }
 
-int FfmpegCamera::PreCapture()
-{
+int FfmpegCamera::PreCapture() {
   // Nothing to do here
   return( 0 );
 }
 
 int FfmpegCamera::Capture( Image &image ) {
-  if (!mCanCapture){
+  if ( ! mCanCapture ) {
     return -1;
   }
 
   // If the reopen thread has a value, but mCanCapture != 0, then we have just reopened the connection to the ffmpeg device, and we can clean up the thread.
-  if (mReopenThread != 0) {
+  if ( mReopenThread != 0 ) {
     void *retval = 0;
     int ret;
 
     ret = pthread_join(mReopenThread, &retval);
-    if (ret != 0){
+    if ( ret != 0 ) {
       Error("Could not join reopen thread.");
     }
 
@@ -216,21 +216,21 @@ int FfmpegCamera::Capture( Image &image ) {
 #endif
 
 #if HAVE_LIBSWSCALE
-        if(mConvertContext == NULL) {
+        if ( mConvertContext == NULL ) {
           mConvertContext = sws_getContext(mVideoCodecContext->width,
                                            mVideoCodecContext->height,
                                            mVideoCodecContext->pix_fmt,
                                            width, height, imagePixFormat,
                                            SWS_BICUBIC, NULL, NULL, NULL);
 
-          if(mConvertContext == NULL)
+          if ( mConvertContext == NULL )
             Fatal( "Unable to create conversion context for %s", mPath.c_str() );
         }
 
-        if (sws_scale(mConvertContext, mRawFrame->data, mRawFrame->linesize, 0, mVideoCodecContext->height, mFrame->data, mFrame->linesize) < 0)
+        if ( sws_scale(mConvertContext, mRawFrame->data, mRawFrame->linesize, 0, mVideoCodecContext->height, mFrame->data, mFrame->linesize) < 0 )
           Fatal("Unable to convert raw format %u to target format %u at frame %d", mVideoCodecContext->pix_fmt, imagePixFormat, frameCount);
 #else // HAVE_LIBSWSCALE
-        Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
+        Fatal("You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras");
 #endif // HAVE_LIBSWSCALE
 
         frameCount++;
@@ -260,12 +260,12 @@ int FfmpegCamera::OpenFfmpeg() {
   // Open the input, not necessarily a file
 #if !LIBAVFORMAT_VERSION_CHECK(53, 2, 0, 4, 0)
   Debug ( 1, "Calling av_open_input_file" );
-  if ( av_open_input_file( &mFormatContext, mPath.c_str(), NULL, 0, NULL ) !=0 )
+  if ( av_open_input_file( &mFormatContext, mPath.c_str(), NULL, 0, NULL ) != 0 )
 #else
   // Handle options
   AVDictionary *opts = 0;
   ret = av_dict_parse_string(&opts, Options().c_str(), "=", ",", 0);
-  if (ret < 0) {
+  if ( ret < 0 ) {
     Warning("Could not parse ffmpeg input options list '%s'\n", Options().c_str());
   }
 
@@ -288,7 +288,7 @@ int FfmpegCamera::OpenFfmpeg() {
   mFormatContext->interrupt_callback.callback = FfmpegInterruptCallback;
   mFormatContext->interrupt_callback.opaque = this;
 
-  if ( avformat_open_input( &mFormatContext, mPath.c_str(), NULL, &opts ) !=0 )
+  if ( avformat_open_input( &mFormatContext, mPath.c_str(), NULL, &opts ) != 0 )
 #endif
   {
     mIsOpening = false;
@@ -326,7 +326,7 @@ int FfmpegCamera::OpenFfmpeg() {
   // The one we want Might not be the first
   mVideoStreamId = -1;
   mAudioStreamId = -1;
-  for (unsigned int i=0; i < mFormatContext->nb_streams; i++ ) {
+  for ( unsigned int i=0; i < mFormatContext->nb_streams; i++ ) {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     if ( mFormatContext->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO ) {
 #else
@@ -403,7 +403,7 @@ int FfmpegCamera::OpenFfmpeg() {
 #else
     mAudioCodecContext = mFormatContext->streams[mAudioStreamId]->codec;
 #endif
-    if ((mAudioCodec = avcodec_find_decoder(mAudioCodecContext->codec_id)) == NULL) {
+    if ( (mAudioCodec = avcodec_find_decoder(mAudioCodecContext->codec_id)) == NULL ) {
       Debug(1, "Can't find codec for audio stream from %s", mPath.c_str());
     } else {
       Debug(1, "Audio Found decoder");
@@ -411,10 +411,10 @@ int FfmpegCamera::OpenFfmpeg() {
   // Open the codec
 #if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
   Debug ( 1, "Calling avcodec_open" );
-  if (avcodec_open(mAudioCodecContext, mAudioCodec) < 0)
+  if ( avcodec_open(mAudioCodecContext, mAudioCodec) < 0 )
 #else
     Debug ( 1, "Calling avcodec_open2" );
-  if (avcodec_open2(mAudioCodecContext, mAudioCodec, 0) < 0)
+  if ( avcodec_open2(mAudioCodecContext, mAudioCodec, 0) < 0 )
 #endif
     Fatal( "Unable to open codec for video stream from %s", mPath.c_str() );
     }
@@ -428,7 +428,7 @@ int FfmpegCamera::OpenFfmpeg() {
   // Allocate space for the converted video frame
   mFrame = zm_av_frame_alloc();
 
-  if(mRawFrame == NULL || mFrame == NULL)
+  if ( mRawFrame == NULL || mFrame == NULL )
     Fatal( "Unable to allocate frame for %s", mPath.c_str() );
 
   Debug ( 1, "Allocated frames" );
@@ -439,7 +439,7 @@ int FfmpegCamera::OpenFfmpeg() {
   int pSize = avpicture_get_size( imagePixFormat, width, height );
 #endif
 
-  if( (unsigned int)pSize != imagesize) {
+  if ( (unsigned int)pSize != imagesize ) {
     Fatal("Image size mismatch. Required: %d Available: %d",pSize,imagesize);
   }
 
@@ -447,11 +447,11 @@ int FfmpegCamera::OpenFfmpeg() {
 
 #if HAVE_LIBSWSCALE
   Debug ( 1, "Calling sws_isSupportedInput" );
-  if (!sws_isSupportedInput(mVideoCodecContext->pix_fmt)) {
+  if ( !sws_isSupportedInput(mVideoCodecContext->pix_fmt) ) {
     Fatal("swscale does not support the codec format: %c%c%c%c", (mVideoCodecContext->pix_fmt)&0xff, ((mVideoCodecContext->pix_fmt >> 8)&0xff), ((mVideoCodecContext->pix_fmt >> 16)&0xff), ((mVideoCodecContext->pix_fmt >> 24)&0xff));
   }
 
-  if(!sws_isSupportedOutput(imagePixFormat)) {
+  if ( !sws_isSupportedOutput(imagePixFormat) ) {
     Fatal("swscale does not support the target format: %c%c%c%c",(imagePixFormat)&0xff,((imagePixFormat>>8)&0xff),((imagePixFormat>>16)&0xff),((imagePixFormat>>24)&0xff));
   }
 
@@ -489,7 +489,7 @@ int FfmpegCamera::ReopenFfmpeg() {
   return 0;
 }
 
-int FfmpegCamera::CloseFfmpeg(){
+int FfmpegCamera::CloseFfmpeg() {
 
   Debug(2, "CloseFfmpeg called.");
 
@@ -505,12 +505,14 @@ int FfmpegCamera::CloseFfmpeg(){
   }
 #endif
 
-  if (mVideoCodecContext) {
+  if ( mVideoCodecContext ) {
     avcodec_close(mVideoCodecContext);
+    av_free(mVideoCodecContext);
     mVideoCodecContext = NULL; // Freed by av_close_input_file
   }
-  if (mAudioCodecContext) {
+  if ( mAudioCodecContext ) {
     avcodec_close(mAudioCodecContext);
+    av_free(mAudioCodecContext);
     mAudioCodecContext = NULL; // Freed by av_close_input_file
   }
 
@@ -528,9 +530,9 @@ int FfmpegCamera::CloseFfmpeg(){
 
 int FfmpegCamera::FfmpegInterruptCallback(void *ctx) { 
   FfmpegCamera* camera = reinterpret_cast<FfmpegCamera*>(ctx);
-  if (camera->mIsOpening){
+  if ( camera->mIsOpening ) {
     int now = time(NULL);
-    if ((now - camera->mOpenStart) > config.ffmpeg_open_timeout) {
+    if ( (now - camera->mOpenStart) > config.ffmpeg_open_timeout ) {
       Error ( "Open video took more than %d seconds.", config.ffmpeg_open_timeout );
       return 1;
     }
@@ -551,12 +553,12 @@ void *FfmpegCamera::ReopenFfmpegThreadCallback(void *ctx){
     // Sleep if necessary to not reconnect too fast.
     int wait = config.ffmpeg_open_timeout - (time(NULL) - camera->mOpenStart);
     wait = wait < 0 ? 0 : wait;
-    if (wait > 0){
+    if ( wait > 0 ) {
       Debug( 1, "Sleeping %d seconds before reopening stream.", wait );
       sleep(wait);
     }
 
-    if (camera->OpenFfmpeg() == 0){
+    if ( camera->OpenFfmpeg() == 0 ) {
       return NULL;
     }
   }
@@ -646,8 +648,8 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
       if ( last_event_id and ! videoStore ) {
         //Instantiate the video storage module
 
-        if (record_audio) {
-          if (mAudioStreamId == -1) {
+        if ( record_audio ) {
+          if ( mAudioStreamId == -1 ) {
             Debug(3, "Record Audio on but no audio stream found");
             videoStore = new VideoStore((const char *) event_file, "mp4",
                 mFormatContext->streams[mVideoStreamId],

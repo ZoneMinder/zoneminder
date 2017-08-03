@@ -2638,7 +2638,7 @@ our @options = (
   },
   {
     name        => 'ZM_CHECK_FOR_UPDATES',
-    default     => 'yes',
+    default     => 'no',
     description => 'Check with zoneminder.com for updated versions',
     help        => q`
       From ZoneMinder version 1.17.0 onwards new versions are

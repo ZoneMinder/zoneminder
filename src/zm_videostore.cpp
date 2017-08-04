@@ -53,7 +53,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   filename = filename_in;
   format = format_in;
 
-  Info("Opening video storage stream %s format: %s\n", filename, format);
+  Info("Opening video storage stream %s format: %s", filename, format);
 
   ret = avformat_alloc_output_context2(&oc, NULL, NULL, filename);
   if ( ret < 0 ) {
@@ -320,40 +320,44 @@ VideoStore::~VideoStore(){
   if ( audio_output_codec ) {
     // Do we need to flush the outputs?  I have no idea.
     AVPacket pkt;
-    int got_packet = 0;
     av_init_packet(&pkt);
     pkt.data = NULL;
     pkt.size = 0;
     int64_t size;
 
-    while(1) {
+    while ( 1 ) {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       ret = avcodec_receive_packet( audio_output_context, &pkt );
+      if ( ret < 0 ) {
+        Error("ERror encoding audio while flushing (%d) (%s)", ret, av_err2str( ret ) );
+        break;
+      }
 #else
+      int got_packet = 0;
       ret = avcodec_encode_audio2( audio_output_context, &pkt, NULL, &got_packet );
-#endif
-      if (ret < 0) {
-        Error("ERror encoding audio while flushing");
+      if ( ret < 0 ) {
+        Error("ERror encoding audio while flushing (%d) (%s)", ret, av_err2str( ret ) );
         break;
       }
 Debug(1, "Have audio encoder, need to flush it's output" );
-      size += pkt.size;
-      if (!got_packet) {
+      if ( ! got_packet ) {
         break;
       }
+#endif
+      size += pkt.size;
 Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts, pkt.dts, pkt.duration );
-      if (pkt.pts != AV_NOPTS_VALUE)
+      if ( pkt.pts != AV_NOPTS_VALUE )
         pkt.pts = av_rescale_q(pkt.pts, audio_output_context->time_base, audio_output_stream->time_base);
-      if (pkt.dts != AV_NOPTS_VALUE)
+      if ( pkt.dts != AV_NOPTS_VALUE )
         pkt.dts = av_rescale_q(pkt.dts, audio_output_context->time_base, audio_output_stream->time_base);
-      if (pkt.duration > 0)
+      if ( pkt.duration > 0 )
         pkt.duration = av_rescale_q(pkt.duration, audio_output_context->time_base, audio_output_stream->time_base);
 Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts, pkt.dts, pkt.duration );
       pkt.stream_index = audio_output_stream->index;
       av_interleaved_write_frame( oc, &pkt );
       zm_av_packet_unref( &pkt );
     } // while 1
-  }
+  } // end if audio_output_codec
 
   // Flush Queues
   av_interleaved_write_frame( oc, NULL );
@@ -370,9 +374,13 @@ Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts, pkt.dts
   // What if we were only doing audio recording?
   if ( video_output_stream ) {
     avcodec_close(video_output_context);
+    av_free(video_output_context);
+    video_output_context = NULL;
   }
   if (audio_output_stream) {
     avcodec_close(audio_output_context);
+    av_free(audio_output_context);
+    audio_output_context = NULL;
 #ifdef HAVE_LIBAVRESAMPLE
     if ( resample_context ) {
       avresample_close( resample_context );
@@ -527,10 +535,11 @@ bool VideoStore::setup_resampler() {
 
   // Some formats (i.e. WAV) do not produce the proper channel layout
   if ( audio_input_context->channel_layout == 0 ) {
-    Error( "Bad channel layout. Need to set it to mono.\n");
-    av_opt_set_int( resample_context, "in_channel_layout",  av_get_channel_layout( "mono" ), 0 );
+    uint64_t layout = av_get_channel_layout( "mono" );
+    av_opt_set_int( resample_context, "in_channel_layout", av_get_channel_layout( "mono" ), 0 );
+    Debug( 1, "Bad channel layout. Need to set it to mono (%d).", layout );
   } else {
-    av_opt_set_int( resample_context, "in_channel_layout",  audio_input_context->channel_layout, 0 );
+    av_opt_set_int( resample_context, "in_channel_layout", audio_input_context->channel_layout, 0 );
   }
 
   av_opt_set_int( resample_context, "in_sample_fmt",     audio_input_context->sample_fmt, 0);

@@ -53,7 +53,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   filename = filename_in;
   format = format_in;
 
-  Info("Opening video storage stream %s format: %s\n", filename, format);
+  Info("Opening video storage stream %s format: %s", filename, format);
 
   ret = avformat_alloc_output_context2(&oc, NULL, NULL, filename);
   if ( ret < 0 ) {
@@ -320,7 +320,6 @@ VideoStore::~VideoStore(){
   if ( audio_output_codec ) {
     // Do we need to flush the outputs?  I have no idea.
     AVPacket pkt;
-    int got_packet = 0;
     av_init_packet(&pkt);
     pkt.data = NULL;
     pkt.size = 0;
@@ -329,18 +328,23 @@ VideoStore::~VideoStore(){
     while ( 1 ) {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       ret = avcodec_receive_packet( audio_output_context, &pkt );
-#else
-      ret = avcodec_encode_audio2( audio_output_context, &pkt, NULL, &got_packet );
-#endif
       if ( ret < 0 ) {
-        Error("ERror encoding audio while flushing");
+        Error("ERror encoding audio while flushing (%d) (%s)", ret, av_err2str( ret ) );
+        break;
+      }
+#else
+      int got_packet = 0;
+      ret = avcodec_encode_audio2( audio_output_context, &pkt, NULL, &got_packet );
+      if ( ret < 0 ) {
+        Error("ERror encoding audio while flushing (%d) (%s)", ret, av_err2str( ret ) );
         break;
       }
 Debug(1, "Have audio encoder, need to flush it's output" );
-      size += pkt.size;
       if ( ! got_packet ) {
         break;
       }
+#endif
+      size += pkt.size;
 Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts, pkt.dts, pkt.duration );
       if ( pkt.pts != AV_NOPTS_VALUE )
         pkt.pts = av_rescale_q(pkt.pts, audio_output_context->time_base, audio_output_stream->time_base);
@@ -531,10 +535,11 @@ bool VideoStore::setup_resampler() {
 
   // Some formats (i.e. WAV) do not produce the proper channel layout
   if ( audio_input_context->channel_layout == 0 ) {
-    Error( "Bad channel layout. Need to set it to mono.\n");
-    av_opt_set_int( resample_context, "in_channel_layout",  av_get_channel_layout( "mono" ), 0 );
+    uint64_t layout = av_get_channel_layout( "mono" );
+    av_opt_set_int( resample_context, "in_channel_layout", av_get_channel_layout( "mono" ), 0 );
+    Debug( 1, "Bad channel layout. Need to set it to mono (%d).", layout );
   } else {
-    av_opt_set_int( resample_context, "in_channel_layout",  audio_input_context->channel_layout, 0 );
+    av_opt_set_int( resample_context, "in_channel_layout", audio_input_context->channel_layout, 0 );
   }
 
   av_opt_set_int( resample_context, "in_sample_fmt",     audio_input_context->sample_fmt, 0);

@@ -38,7 +38,7 @@ void zmDbConnect()
   if ( mysql_options( &dbconn, MYSQL_OPT_RECONNECT, &reconnect ) )
     Fatal( "Can't set database auto reconnect option: %s", mysql_error( &dbconn ) );
   if ( !staticConfig.DB_SSL_CA_CERT.empty() )
-    mysql_ssl_set( &mDbConnection, staticConfig.DB_SSL_CLIENT_KEY.c_str(), staticConfig.DB_SSL_CLIENT_CERT.c_str(), staticConfig.DB_SSL_CA_CERT.c_str(), NULL, NULL );
+    mysql_ssl_set( &dbconn, staticConfig.DB_SSL_CLIENT_KEY.c_str(), staticConfig.DB_SSL_CLIENT_CERT.c_str(), staticConfig.DB_SSL_CA_CERT.c_str(), NULL, NULL );
   std::string::size_type colonIndex = staticConfig.DB_HOST.find( ":" );
   if ( colonIndex == std::string::npos )
   {

@@ -63,6 +63,7 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::stri
   mReopenThread = 0;
   videoStore = NULL;
   video_last_pts = 0;
+  have_video_keyframe = false;
 
 #if HAVE_LIBSWSCALE  
   mConvertContext = NULL;
@@ -640,6 +641,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
 
           delete videoStore;
           videoStore = NULL;
+          have_video_keyframe = false;
 
           monitor->SetVideoWriterEventId( 0 );
         } // end if videoStore
@@ -692,6 +694,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
           Debug(2, "Writing queued packet stream: %d  KEY %d, remaining (%d)", avp->stream_index, avp->flags & AV_PKT_FLAG_KEY, packetqueue.size() );
           if ( avp->stream_index == mVideoStreamId ) {
             ret = videoStore->writeVideoFramePacket( avp );
+            have_video_keyframe = true;
           } else if ( avp->stream_index == mAudioStreamId ) {
             ret = videoStore->writeAudioFramePacket( avp );
           } else {
@@ -712,6 +715,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
         Info("Deleting videoStore instance");
         delete videoStore;
         videoStore = NULL;
+        have_video_keyframe = false;
         monitor->SetVideoWriterEventId( 0 );
       }
 
@@ -747,13 +751,15 @@ else if ( packet.pts && video_last_pts > packet.pts ) {
     } // end if recording or not
 
     if ( packet.stream_index == mVideoStreamId ) {
-      if ( videoStore ) {
+      if ( videoStore && ( have_video_keyframe || key_frame ) ) {
+            
         //Write the packet to our video store
         int ret = videoStore->writeVideoFramePacket( &packet );
         if ( ret < 0 ) { //Less than zero and we skipped a frame
           zm_av_packet_unref( &packet );
           return 0;
         }
+        have_video_keyframe = true;
       }
       Debug(4, "about to decode video" );
       
@@ -817,6 +823,7 @@ else if ( packet.pts && video_last_pts > packet.pts ) {
     } else if ( packet.stream_index == mAudioStreamId ) { //FIXME best way to copy all other streams
       if ( videoStore ) {
         if ( record_audio ) {
+          if ( have_video_keyframe ) {
           Debug(3, "Recording audio packet streamindex(%d) packetstreamindex(%d)", mAudioStreamId, packet.stream_index );
           //Write the packet to our video store
           //FIXME no relevance of last key frame
@@ -825,6 +832,9 @@ else if ( packet.pts && video_last_pts > packet.pts ) {
             Warning("Failure to write audio packet.");
             zm_av_packet_unref( &packet );
             return 0;
+          }
+          } else {
+            Debug(3, "Not recording audio because we don't have a bvideo keyframe yet");
           }
         } else {
           Debug(4, "Not doing recording of audio packet" );

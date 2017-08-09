@@ -42,7 +42,12 @@ function dbConnect() {
   }
 
   try {
-    $dbConn = new PDO( ZM_DB_TYPE . $socket . ';dbname='.ZM_DB_NAME, ZM_DB_USER, ZM_DB_PASS );
+    $dbOptions = array(
+      PDO::MYSQL_ATTR_SSL_CA   => ZM_DB_SSL_CA_CERT;
+      PDO::MYSQL_ATTR_SSL_KEY  => ZM_DB_SSL_CLIENT_KEY;
+      PDO::MYSQL_ATTR_SSL_CERT => ZM_DB_SSL_CLIENT_CERT;
+    )
+    $dbConn = new PDO( ZM_DB_TYPE . $socket . ';dbname='.ZM_DB_NAME, ZM_DB_USER, ZM_DB_PASS, $dbOptions );
     $dbConn->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
     $dbConn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
   } catch(PDOException $ex ) {

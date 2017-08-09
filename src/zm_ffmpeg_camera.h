@@ -78,6 +78,7 @@ class FfmpegCamera : public Camera {
     char                oldDirectory[4096];
     unsigned int        old_event_id;
     zm_packetqueue      packetqueue;
+    bool                have_video_keyframe;
 
 #if HAVE_LIBSWSCALE
     struct SwsContext   *mConvertContext;

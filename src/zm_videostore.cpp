@@ -44,7 +44,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   video_input_context = avcodec_alloc_context3( NULL );
   avcodec_parameters_to_context( video_input_context, video_input_stream->codecpar );
-  zm_dump_codecpar( video_input_stream->codecpar );
+  //zm_dump_codecpar( video_input_stream->codecpar );
 #else
   video_input_context = video_input_stream->codec;
 #endif
@@ -285,7 +285,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
     zm_dump_stream_format( oc, 1, 0, 1 );
 
   AVDictionary * opts = NULL;
-  av_dict_set(&opts, "movflags", "frag_custom+dash+delay_moov", 0);
+  //av_dict_set(&opts, "movflags", "frag_custom+dash+delay_moov", 0);
   //av_dict_set(&opts, "movflags", "frag_custom+dash+delay_moov", 0);
   //av_dict_set(&opts, "movflags", "frag_keyframe+empty_moov+default_base_moof", 0);
   if ((ret = avformat_write_header( oc, &opts )) < 0) {
@@ -308,55 +308,58 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   video_last_dts = 0;
   audio_last_pts = 0;
   audio_last_dts = 0;
-  video_previous_pts = 0;
-  video_previous_dts = 0;
-  audio_previous_pts = 0;
-  audio_previous_dts = 0;
+  video_next_pts = 0;
+  video_next_dts = 0;
+  audio_next_pts = 0;
+  audio_next_dts = 0;
 
 } // VideoStore::VideoStore
 
 
 VideoStore::~VideoStore(){
   if ( audio_output_codec ) {
-    // Do we need to flush the outputs?  I have no idea.
+    // The codec queues data.  We need to send a flush command and output whatever we get. Failures are not fatal.
     AVPacket pkt;
     av_init_packet(&pkt);
-    pkt.data = NULL;
-    pkt.size = 0;
-    int64_t size;
 
     while ( 1 ) {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+      ret = avcodec_send_frame( audio_output_context, NULL );
+      if ( ret < 0 ) {
+        Error("Error sending flush to encoder (%d) (%s)", ret, av_err2str( ret ));
+        break;
+      }
       ret = avcodec_receive_packet( audio_output_context, &pkt );
       if ( ret < 0 ) {
-        Error("ERror encoding audio while flushing (%d) (%s)", ret, av_err2str( ret ) );
+        Error("ERror encoding audio while flushing (%d) (%s)", ret, av_err2str( ret ));
         break;
       }
 #else
       int got_packet = 0;
       ret = avcodec_encode_audio2( audio_output_context, &pkt, NULL, &got_packet );
       if ( ret < 0 ) {
-        Error("ERror encoding audio while flushing (%d) (%s)", ret, av_err2str( ret ) );
+        Error("ERror encoding audio while flushing (%d) (%s)", ret, av_err2str( ret ));
         break;
       }
-Debug(1, "Have audio encoder, need to flush it's output" );
+      Debug(1, "Have audio encoder, need to flush it's output");
       if ( ! got_packet ) {
         break;
       }
 #endif
-      size += pkt.size;
-Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts, pkt.dts, pkt.duration );
-      if ( pkt.pts != AV_NOPTS_VALUE )
-        pkt.pts = av_rescale_q(pkt.pts, audio_output_context->time_base, audio_output_stream->time_base);
-      if ( pkt.dts != AV_NOPTS_VALUE )
-        pkt.dts = av_rescale_q(pkt.dts, audio_output_context->time_base, audio_output_stream->time_base);
+      Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts, pkt.dts, pkt.duration);
+      pkt.pts = audio_next_pts;
+        pkt.dts = audio_next_dts;
+
       if ( pkt.duration > 0 )
         pkt.duration = av_rescale_q(pkt.duration, audio_output_context->time_base, audio_output_stream->time_base);
-Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts, pkt.dts, pkt.duration );
+      audio_next_pts += pkt.duration;
+      audio_next_dts += pkt.duration;
+
+      Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts, pkt.dts, pkt.duration);
       pkt.stream_index = audio_output_stream->index;
       av_interleaved_write_frame( oc, &pkt );
       zm_av_packet_unref( &pkt );
-    } // while 1
+    } // while have buffered frames
   } // end if audio_output_codec
 
   // Flush Queues
@@ -513,6 +516,15 @@ bool VideoStore::setup_resampler() {
     return false;
   } 
 
+  Debug(1, "Audio output bit_rate (%d) sample_rate(%d) channels(%d) fmt(%d) layout(%d) frame_size(%d)", 
+      audio_output_context->bit_rate,
+      audio_output_context->sample_rate,
+      audio_output_context->channels,
+      audio_output_context->sample_fmt,
+      audio_output_context->channel_layout,
+      audio_output_context->frame_size
+      );
+
   /** Create a new frame to store the audio samples. */
   if ( !(input_frame = zm_av_frame_alloc()) ) {
     Error("Could not allocate input frame");
@@ -635,8 +647,22 @@ void VideoStore::dumpPacket( AVPacket *pkt ){
 int VideoStore::writeVideoFramePacket( AVPacket *ipkt ) {
   av_init_packet(&opkt);
 
-  int duration;
+  opkt.pts = video_next_pts;
+  opkt.dts = video_next_dts;
 
+  int duration;
+  if ( video_last_pts && ( ipkt->duration == AV_NOPTS_VALUE || ! ipkt->duration ) ) {
+    duration = av_rescale_q( ipkt->pts - video_last_pts, video_input_stream->time_base, video_output_stream->time_base);
+      // Video packets don't really have a duration. Audio does.
+    //opkt.duration = av_rescale_q(duration, video_input_stream->time_base, video_output_stream->time_base);
+    opkt.duration = 0;
+  } else {
+    duration = opkt.duration = av_rescale_q(ipkt->duration, video_input_stream->time_base, video_output_stream->time_base);
+  }
+  video_last_pts = ipkt->pts;
+  video_last_dts = ipkt->dts;
+
+#if 0
   //Scale the PTS of the outgoing packet to be the correct time base
   if ( ipkt->pts != AV_NOPTS_VALUE ) {
 
@@ -646,63 +672,58 @@ int VideoStore::writeVideoFramePacket( AVPacket *ipkt ) {
       Debug(2, "Starting video video_last_pts will become (%d)", ipkt->pts );
     } else {
       if ( ipkt->pts < video_last_pts ) {
-        Debug(1, "Resetting video_last_pts from (%d) to (%d)",  video_last_pts, ipkt->pts );
+        Debug(1, "Resetting video_last_pts from (%d) to (%d)",  video_last_pts, ipkt->pts);
         // wrap around, need to figure out the distance FIXME having this wrong should cause a jump, but then play ok?
-        opkt.pts = video_previous_pts + av_rescale_q( ipkt->pts, video_input_stream->time_base, video_output_stream->time_base);
+        opkt.pts = video_next_pts + av_rescale_q( ipkt->pts, video_input_stream->time_base, video_output_stream->time_base);
       } else {
-        opkt.pts = video_previous_pts + av_rescale_q( ipkt->pts - video_last_pts, video_input_stream->time_base, video_output_stream->time_base);
+        opkt.pts = video_next_pts + av_rescale_q( ipkt->pts - video_last_pts, video_input_stream->time_base, video_output_stream->time_base);
       }
     }
-    Debug(3, "opkt.pts = %d from ipkt->pts(%d) - last_pts(%d)", opkt.pts, ipkt->pts, video_last_pts );
-    duration = ipkt->pts - video_last_pts;
+    Debug(3, "opkt.pts = %d from ipkt->pts(%d) - last_pts(%d)", opkt.pts, ipkt->pts, video_last_pts);
     video_last_pts = ipkt->pts;
   } else {
     Debug(3, "opkt.pts = undef");
     opkt.pts = AV_NOPTS_VALUE;
   }
-
-  //Scale the DTS of the outgoing packet to be the correct time base
-
   // Just because the input stream wraps, doesn't mean the output needs to.  Really, if we are limiting ourselves to 10min segments I can't imagine every wrapping in the output.  So need to handle input wrap, without causing output wrap.
   if ( ! video_last_dts ) {
     // This is the first packet.
     opkt.dts = 0;
-    Debug(1, "Starting video video_last_dts will become (%d)", ipkt->dts );
+    Debug(1, "Starting video video_last_dts will become (%lu)", ipkt->dts );
     video_last_dts = ipkt->dts;
   } else {
+    //Scale the DTS of the outgoing packet to be the correct time base
+
     if ( ipkt->dts == AV_NOPTS_VALUE ) {
       // why are we using cur_dts instead of packet.dts? I think cur_dts is in AV_TIME_BASE_Q, but ipkt.dts is in video_input_stream->time_base
       if ( video_input_stream->cur_dts < video_last_dts ) {
         Debug(1, "Resetting video_last_dts from (%d) to (%d) p.dts was (%d)",  video_last_dts, video_input_stream->cur_dts, ipkt->dts );
-        opkt.dts = video_previous_dts + av_rescale_q(video_input_stream->cur_dts, AV_TIME_BASE_Q, video_output_stream->time_base);
+        opkt.dts = video_next_dts + av_rescale_q(video_input_stream->cur_dts, AV_TIME_BASE_Q, video_output_stream->time_base);
       } else {
-        opkt.dts = video_previous_dts + av_rescale_q(video_input_stream->cur_dts - video_last_dts, AV_TIME_BASE_Q, video_output_stream->time_base);
+        opkt.dts = video_next_dts + av_rescale_q(video_input_stream->cur_dts - video_last_dts, AV_TIME_BASE_Q, video_output_stream->time_base);
       }
       Debug(3, "opkt.dts = %d from video_input_stream->cur_dts(%d) - previus_dts(%d)", opkt.dts, video_input_stream->cur_dts, video_last_dts );
       video_last_dts = video_input_stream->cur_dts;
     } else {
       if ( ipkt->dts < video_last_dts ) {
         Debug(1, "Resetting video_last_dts from (%d) to (%d)",  video_last_dts, ipkt->dts );
-        opkt.dts = video_previous_dts + av_rescale_q( ipkt->dts,  video_input_stream->time_base, video_output_stream->time_base);
+        opkt.dts = video_next_dts + av_rescale_q( ipkt->dts,  video_input_stream->time_base, video_output_stream->time_base);
       } else {
-        opkt.dts = video_previous_dts + av_rescale_q( ipkt->dts - video_last_dts, video_input_stream->time_base, video_output_stream->time_base);
+        opkt.dts = video_next_dts + av_rescale_q( ipkt->dts - video_last_dts, video_input_stream->time_base, video_output_stream->time_base);
       }
       Debug(3, "opkt.dts = %d from ipkt.dts(%d) - previus_dts(%d)", opkt.dts, ipkt->dts, video_last_dts );
       video_last_dts = ipkt->dts;
     }
   }
+#endif
   if ( opkt.dts > opkt.pts ) {
     Debug( 1, "opkt.dts(%d) must be <= opkt.pts(%d). Decompression must happen before presentation.", opkt.dts, opkt.pts );
     opkt.dts = opkt.pts;
   }
 
-  if ( ipkt->duration == AV_NOPTS_VALUE ) {
-    opkt.duration = av_rescale_q( duration, video_input_stream->time_base, video_output_stream->time_base);
-  } else {
-    opkt.duration = av_rescale_q(ipkt->duration, video_input_stream->time_base, video_output_stream->time_base);
-  }
   opkt.flags = ipkt->flags;
-  opkt.pos=-1;
+  int keyframe = opkt.flags & AV_PKT_FLAG_KEY;
+  opkt.pos = -1;
 
   opkt.data = ipkt->data;
   opkt.size = ipkt->size;
@@ -712,21 +733,21 @@ int VideoStore::writeVideoFramePacket( AVPacket *ipkt ) {
   AVPacket safepkt;
   memcpy( &safepkt, &opkt, sizeof(AVPacket) );
 
-  Debug(1, "writing video packet pts(%d) dts(%d) duration(%d)", opkt.pts, opkt.dts, opkt.duration );
-  if ((opkt.data == NULL)||(opkt.size < 1)) {
+  Debug(1, "writing video packet keyframe(%d) pts(%d) dts(%d) duration(%d) ipkt.duration(%d)", keyframe, opkt.pts, opkt.dts, duration, ipkt->duration);
+  if ( (opkt.data == NULL) || (opkt.size < 1) ) {
     Warning("%s:%d: Mangled AVPacket: discarding frame", __FILE__, __LINE__ ); 
-    dumpPacket( ipkt);
+    dumpPacket(ipkt);
     dumpPacket(&opkt);
 
-  } else if ((video_previous_dts > 0) && (video_previous_dts > opkt.dts)) {
-    Warning("%s:%d: DTS out of order: %lld \u226E %lld; discarding frame", __FILE__, __LINE__, video_previous_dts, opkt.dts); 
-    video_previous_dts = opkt.dts; 
+  } else if ( (video_next_dts > 0) && (video_next_dts > opkt.dts) ) {
+    Warning("%s:%d: DTS out of order: %lld \u226E %lld; discarding frame", __FILE__, __LINE__, video_next_dts, opkt.dts); 
+    video_next_dts = opkt.dts; 
     dumpPacket(&opkt);
 
   } else {
 
-    video_previous_dts = opkt.dts; // Unsure if av_interleaved_write_frame() clobbers opkt.dts when out of order, so storing in advance
-    video_previous_pts = opkt.pts;
+    video_next_dts = opkt.dts + duration; // Unsure if av_interleaved_write_frame() clobbers opkt.dts when out of order, so storing in advance
+    video_next_pts = opkt.pts + duration;
     ret = av_interleaved_write_frame(oc, &opkt);
     if ( ret < 0 ) {
       // There's nothing we can really do if the frame is rejected, just drop it and get on with the next
@@ -873,18 +894,20 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
   }
 
   // PTS is difficult, because of the buffering of the audio packets in the resampler.  So we have to do it once we actually have a packet... 
+  // audio_last_pts is the pts of ipkt, audio_next_pts is the last pts of the output
 
   //Scale the PTS of the outgoing packet to be the correct time base
+#if 0
   if ( ipkt->pts != AV_NOPTS_VALUE ) {
     if ( ! audio_last_pts ) {
       opkt.pts = 0;
       Debug(1, "No audio_last_pts");
     } else {
       if ( audio_last_pts > ipkt->pts ) {
-        Debug(1, "Resetting audeo_start_pts from (%d) to (%d)",  audio_last_pts, ipkt->pts );
-        opkt.pts = audio_previous_pts + av_rescale_q(ipkt->pts, audio_input_stream->time_base, audio_output_stream->time_base);
+        Debug(1, "Resetting audio_start_pts from (%d) to (%d)",  audio_last_pts, ipkt->pts );
+        opkt.pts = audio_next_pts + av_rescale_q(ipkt->pts, audio_input_stream->time_base, audio_output_stream->time_base);
       } else {
-        opkt.pts = audio_previous_pts + av_rescale_q(ipkt->pts - audio_last_pts, audio_input_stream->time_base, audio_output_stream->time_base);
+        opkt.pts = audio_next_pts + av_rescale_q(ipkt->pts - audio_last_pts, audio_input_stream->time_base, audio_output_stream->time_base);
       }
       Debug(2, "audio opkt.pts = %d from ipkt->pts(%d) - last_pts(%d)", opkt.pts, ipkt->pts, audio_last_pts );
     }
@@ -893,33 +916,35 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
     Debug(2, "opkt.pts = undef");
     opkt.pts = AV_NOPTS_VALUE;
   }
+#else
+    opkt.pts = audio_next_pts;
+#endif
 
-  //Scale the DTS of the outgoing packet to be the correct time base
-  if ( ! audio_last_dts ) {
-    opkt.dts = 0;
-    
-  } else {
-    if( ipkt->dts == AV_NOPTS_VALUE ) {
+    opkt.dts = audio_next_dts;
+
+#if 0
+    if ( ipkt->dts == AV_NOPTS_VALUE ) {
       // So if the input has no dts assigned... still need an output dts... so we use cur_dts?
 
-      if ( audio_last_dts > audio_input_stream->cur_dts ) {
+      if ( audio_last_dts >= audio_input_stream->cur_dts ) {
         Debug(1, "Resetting audio_last_dts from (%d) to cur_dts (%d)", audio_last_dts, audio_input_stream->cur_dts );
-        opkt.dts = audio_previous_dts + av_rescale_q( audio_input_stream->cur_dts,  AV_TIME_BASE_Q, audio_output_stream->time_base);
+        opkt.dts = audio_next_dts + av_rescale_q( audio_input_stream->cur_dts,  AV_TIME_BASE_Q, audio_output_stream->time_base);
       } else {
-        opkt.dts = audio_previous_dts + av_rescale_q( audio_input_stream->cur_dts - audio_last_dts, AV_TIME_BASE_Q, audio_output_stream->time_base);
+        opkt.dts = audio_next_dts + av_rescale_q( audio_input_stream->cur_dts - audio_last_dts, AV_TIME_BASE_Q, audio_output_stream->time_base);
       }
       audio_last_dts = audio_input_stream->cur_dts;
       Debug(2, "opkt.dts = %d from video_input_stream->cur_dts(%d) - last_dts(%d)", opkt.dts, audio_input_stream->cur_dts, audio_last_dts );
     } else {
-      if ( audio_last_dts > ipkt->dts ) {
+      if ( audio_last_dts >= ipkt->dts ) {
         Debug(1, "Resetting audio_last_dts from (%d) to (%d)",  audio_last_dts, ipkt->dts );
-        opkt.dts = audio_previous_dts + av_rescale_q(ipkt->dts, audio_input_stream->time_base, audio_output_stream->time_base);
+        opkt.dts = audio_next_dts + av_rescale_q(ipkt->dts, audio_input_stream->time_base, audio_output_stream->time_base);
       } else {
-        opkt.dts = audio_previous_dts + av_rescale_q(ipkt->dts - audio_last_dts, audio_input_stream->time_base, audio_output_stream->time_base);
+        opkt.dts = audio_next_dts + av_rescale_q(ipkt->dts - audio_last_dts, audio_input_stream->time_base, audio_output_stream->time_base);
+        Debug(2, "opkt.dts = %d from previous(%d) + ( ipkt->dts(%d) - last_dts(%d) )", opkt.dts, audio_next_dts, ipkt->dts, audio_last_dts );
       }
-      Debug(2, "opkt.dts = %d from ipkt->dts(%d) - last_dts(%d)", opkt.dts, ipkt->dts, audio_last_dts );
     }
   }
+#endif
   audio_last_dts = ipkt->dts;
   if ( opkt.dts > opkt.pts ) {
     Debug(1,"opkt.dts(%d) must be <= opkt.pts(%d). Decompression must happen before presentation.", opkt.dts, opkt.pts );
@@ -933,13 +958,13 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
   // pkt.pos:  byte position in stream, -1 if unknown 
   opkt.pos = -1;
   opkt.stream_index = audio_output_stream->index;//ipkt->stream_index;
+  audio_next_dts = opkt.dts + opkt.duration;
+  audio_next_pts = opkt.pts + opkt.duration;
 
   AVPacket safepkt;
   memcpy(&safepkt, &opkt, sizeof(AVPacket));
-  audio_previous_dts = opkt.dts; // Unsure if av_interleaved_write_frame() clobbers opkt.dts when out of order, so storing in advance
-  audio_previous_pts = opkt.pts;
   ret = av_interleaved_write_frame(oc, &opkt);
-  if(ret!=0){
+  if ( ret != 0 ) {
     Error("Error writing audio frame packet: %s\n", av_make_error_string(ret).c_str());
     dumpPacket(&safepkt);
   } else {
@@ -948,4 +973,3 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
   zm_av_packet_unref(&opkt);
   return 0;
 } // end int VideoStore::writeAudioFramePacket( AVPacket *ipkt )
-

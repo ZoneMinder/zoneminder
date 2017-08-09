@@ -541,6 +541,18 @@ Warning("Addterm");
                 zmcControl( $monitor, 'stop' );
               }
 
+              // If fast deletes are on, then zmaudit will clean everything else up later
+              // If fast deletes are off and there are lots of events then this step may
+              // well time out before completing, in which case zmaudit will still tidy up
+              if ( !ZM_OPT_FAST_DELETE ) {
+                $markEids = dbFetchAll( 'SELECT Id FROM Events WHERE MonitorId=?', NULL, array($markMid) );
+                foreach( $markEids as $markEid )
+                  deleteEvent( $markEid );
+
+                deletePath( ZM_DIR_EVENTS.'/'.basename($monitor['Name']) );
+                deletePath( ZM_DIR_EVENTS.'/'.$monitor['Id'] ); // I'm trusting the Id.  
+              } // end if ZM_OPT_FAST_DELETE
+
               // This is the important stuff
               dbQuery( 'DELETE FROM Monitors WHERE Id = ?', array($markMid) );
               dbQuery( 'DELETE FROM Zones WHERE MonitorId = ?', array($markMid) );
@@ -549,18 +561,6 @@ Warning("Addterm");
 
               fixSequences();
 
-              // If fast deletes are on, then zmaudit will clean everything else up later
-              // If fast deletes are off and there are lots of events then this step may
-              // well time out before completing, in which case zmaudit will still tidy up
-              if ( !ZM_OPT_FAST_DELETE ) {
-                // Slight hack, we maybe should load *, but we happen to know that the deleteEvent function uses Id and StartTime.
-                $markEids = dbFetchAll( 'SELECT Id,StartTime FROM Events WHERE MonitorId=?', NULL, array($markMid) );
-                foreach( $markEids as $markEid )
-                  deleteEvent( $markEid, $markMid );
-
-                deletePath( ZM_DIR_EVENTS.'/'.basename($monitor['Name']) );
-                deletePath( ZM_DIR_EVENTS.'/'.$monitor['Id'] ); // I'm trusting the Id.  
-              } // end if ZM_OPT_FAST_DELETE
             } // end if found the monitor in the db
           } // end if canedit this monitor
         } // end foreach monitor in MarkMid

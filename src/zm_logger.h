@@ -30,8 +30,7 @@
 #endif // HAVE_SYS_SYSCALL_H
 #include <mysql/mysql.h>
 
-class Logger
-{
+class Logger {
 public:
   enum { 
     NOOPT=-6,

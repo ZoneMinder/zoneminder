@@ -112,6 +112,9 @@ Logger::Logger() :
 
 Logger::~Logger() {
   terminate();
+  for ( StringMap::iterator itr = smCodes.begin(); itr != smCodes.end(); itr ++ ) {
+      smCodes.erase( itr );
+  }
 }
 
 void Logger::initialise( const std::string &id, const Options &options ) {

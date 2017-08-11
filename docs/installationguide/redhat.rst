@@ -181,11 +181,9 @@ Copy the newly built ZoneMinder RPMs to the desired system, enable RPM Fusion as
 
 Finally, you may want to consider editing the rpmfusion repo file under /etc/yum.repos.d and placing an “exclude=zoneminder*” line into the config file.  This will prevent your system from overwriting your manually built RPM with the ZoneMinder RPM found in the repo.
 
-How to Modify the Source Prior to Build
-***************************************
-In the previous section we described how to rebuild an existing ZoneMinder SRPM. The instructions which follow show how to build the ZoneMinder git source tree into an rpm.
-
-Before attempting this part of the instructions, make sure and follow the previous instructions `Build from SRPM`_. Knowing this part works will assist in troubleshooting later should something go wrong.
+How to Create Your Own Source RPM
+*********************************
+In the previous section we described how to rebuild an existing ZoneMinder SRPM. The instructions which follow show how to build the ZoneMinder git source tree into a source rpm, which can be used in the previous section to build an rpm.
 
 Make sure git and rpmdevtools are installed:
 
@@ -217,14 +215,12 @@ Get the crud submodule tarball:
 
     spectool -f -g -R -s 1 ~/ZoneMinder/distros/redhat/zoneminder.spec
 
-At this point, you can make changes to the source code. Depending on what you want to do with those changes, you might want to create a new branch first:
+At this point, you can make changes to the source code. Depending on what you want to do with those changes, you generally want to create a new branch first:
 
 ::
 
     cd ~\ZoneMinder
     git checkout -b mynewbranch
-    
-When using git, you usually want to work out of a branch, rather than master.
 
 Again, depending on what you want to do with those changes, you may want to commit your changes:
 
@@ -240,14 +236,14 @@ Once you have made your changes, it is time to turn your work into a new tarball
 
     less ~/ZoneMinder/distros/redhat/zoneminder.spec
     
-Scroll down until you see the Version field. Note the value which will be in the format x.xx.x. Now create the tarball with the following command:
+Scroll down until you see the Version field. Note the value, which will be in the format x.xx.x. Now create the tarball with the following command:
 
 ::
 
     cd ~\ZoneMinder
     git archive --prefix=ZoneMinder-1.31.1/ -o ~/rpmbuild/SOURCES/zoneminder-1.31.1.tar.gz HEAD
 
-Replace "1.31.1" with the Version specified in the rpm specfile.
+Replace "1.31.1" with the Version shown in the rpm specfile.
 
 From the root of the local ZoneMinder git repo, execute the following:
 
@@ -263,5 +259,3 @@ This step will create a source rpm and it will tell you where it was saved. For 
     Wrote: /home/abauer/rpmbuild/SRPMS/zoneminder-1.31.1-1.fc26.src.rpm
     
 Now follow the previous instructions `Build from SRPM`_ which describe how to build that source rpm into an rpm.
-
-

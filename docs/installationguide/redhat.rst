@@ -86,14 +86,14 @@ As mentioned above, the place to get the latest ZoneMinder release is now `RPM F
 
 Note that RHEL/CentOS 7 users should use yum instead of dnf.
 
-How to Build a (Custom) ZoneMinder Package
+How to Build a Your Own ZoneMinder Package
 ------------------------------------------
 
-If you are looking to do development or the packages in zmrepo just don't suit you, then you should follow these steps to learn how to build your own ZoneMinder RPM.
+If you are looking to do development or the available packages just don't suit you, then you can follow these steps to build your own ZoneMinder RPM.
 
 Background
 **********
-The following method documents how to build ZoneMinder into an RPM package, compatible with Fedora, Redhat, CentOS, and other compatible clones. This is exactly how the RPMS in zmrepo are built.
+The following method documents how to build ZoneMinder into an RPM package, for Fedora, Redhat, CentOS, and other compatible clones. This is exactly how the RPMS in zmrepo are built.
 
 The method documented below was chosen because:
 
@@ -105,22 +105,20 @@ The method documented below was chosen because:
 
 - Troubleshooting becomes easier if we are all building ZoneMinder the same way.
 
-The build instructions below make use of a custom script called "buildzm.sh". Advanced users are encouraged to view the contents of this script. Notice that the script doesn't really do a whole lot. The goal of the script is to simply make the process a little easier for the first time user. Once you become familar with the build process, you can issue the mock commands found in the buildzm.sh script yourself if you so desire.
-
 ***IMPORTANT***
-Certain commands in these instructions require root privileges while other commands do not. Pay close attention to this. If the instructions below state to issue a command without a “sudo” prefix, then you should *not* be root while issuing the command. Getting this incorrect will result in a failed build.
+Certain commands in these instructions require root privileges while other commands do not. Pay close attention to this. If the instructions below state to issue a command without a “sudo” prefix, then you should *not* be root while issuing the command. Getting this incorrect will result in a failed build, or worse a broken system.
 
 Set Up Your Environment
 ***********************
 Before you begin, set up an rpmbuild environment by following `this guide <http://wiki.centos.org/HowTos/SetupRpmBuildEnvironment>`_ by the CentOS developers.
 
-Next, navigate to `Zmrepo <http://zmrepo.zoneminder.com/>`_, and follow the instructions to enable zmrepo on your system.  
+In addition, make sure RPM Fusion is enabled as described in the previous section `How to Install ZoneMinder`_.  
 
-With zmrepo enabled, issue the following command:
+With RPM Fusion enabled, issue the following command:
 
 ::
 
-    sudo yum install zmrepo-mock-configs mock
+    sudo yum install mock-rpmfusion-free mock
 
 
 Add your user account to the group mock:
@@ -134,9 +132,9 @@ Your build environment is now set up.
 
 Build from SRPM
 ***************
-To continue, you need a ZoneMinder SRPM.  For starters, let's use one of the SRPMS from zmrepo.  Go browse the `Zmrepo <http://zmrepo.zoneminder.com/>`_ site and choose an appropriate SRPM and place it into the ~/rpmbuild/SRPMS folder.  
+To continue, you need a ZoneMinder SRPM. If you wish to rebuild a ZoneMinder release, then browse the `RPM Fusion site <http://zmrepo.zoneminder.com/>`_. If instead you wish to rebuild the latest package from our master branch then browse the `Zmrepo site<http://zmrepo.zoneminder.com/>`_.
 
-For CentOS 7, I have chosen the following SRPM:
+For this example, I'll use one of the SRPMS from zmrepo:   
 
 ::
 
@@ -147,36 +145,35 @@ Now comes the fun part. To build ZoneMinder, issue the following command:
 
 ::
 
-    buildzm.sh zmrepo-el7-x86_64 ~/rpmbuild/SRPMS/zoneminder-1.28.1-2.el7.centos.src.rpm
+    mock -r epel-7-x86_64-rpmfusion_free ~/rpmbuild/SRPMS/zoneminder-1.28.1-2.el7.centos.src.rpm
 
 
 Want to build ZoneMinder for Fedora, instead of CentOS, from the same host?  Once you download the Fedora SRPM, issue the following:
 
 ::
 
-    buildzm.sh zmrepo-f21-x86_64 ~/rpmbuild/SRPMS/zoneminder-1.28.1-1.fc21.src.rpm
+    mock -r fedora-26-x86_64-rpmfusion_free ~/rpmbuild/SRPMS/zoneminder-1.28.1-1.fc21.src.rpm
 
-Notice that the buildzm.sh tool requires the following parameters:
+Notice that the mock tool requires the following parameters:
 
 ::
 
-    buildzm.sh MOCKCONFIG ZONEMINDER_SRPM
+    mock -r MOCKCONFIG ZONEMINDER_SRPM
 
 The list of available Mock config files are available here:
 
 ::
 
-    ls /etc/mock/zmrepo*.cfg
+    ls /etc/mock/*rpmfusion_free.cfg
 
 
 You choose the config file based on the desired distro (e.g. el6, el7, f20, f21) and basearch (e.g. x86, x86_64, arhmhfp). Notice that, when specifying the Mock config as a commandline parameter, you should leave off the ".cfg" filename extension.
 
 Installation
 ************
-Once the build completes, you will be presented with a folder containing the RPM's that were built.  Copy the newly built ZoneMinder RPM to the desired system, enable zmrepo per the instruction on the `Zmrepo <http://zmrepo.zoneminder.com/>`_
-website, and then install the rpm by issuing the appropriate yum install command. Finish the installation by following the zoneminder setup instructions in the distro specific readme file, named README.{distroname}, which will be installed into the /usr/share/doc/zoneminder* folder. 
+Once the build completes, you will be presented with a folder containing the RPMs that were built.  Copy the newly built ZoneMinder RPMs to the desired system, enable RPM Fusion as described in `How to Install ZoneMinder`_, and then install the rpm by issuing the appropriate yum/dnf install command. Finish the installation by following the zoneminder setup instructions in the distro specific readme file, named README.{distroname}, which will be installed into the /usr/share/doc/zoneminder* folder. 
 
-Finally, you may want to consider editing the zmrepo repo file under /etc/yum.repos.d and placing an “exclude=zoneminder*” line into the config file.  This will prevent your system from overwriting your manually built RPM with the ZoneMinder RPM found in the repo.
+Finally, you may want to consider editing the rpmfusion repo file under /etc/yum.repos.d and placing an “exclude=zoneminder*” line into the config file.  This will prevent your system from overwriting your manually built RPM with the ZoneMinder RPM found in the repo.
 
 How to Modify the Source Prior to Build
 ***************************************

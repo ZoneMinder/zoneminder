@@ -34,9 +34,9 @@ The following notes are based on real problems which have occurred by those who 
 
 - Be advised that you need to start with a clean system before installing ZoneMinder.
 
-- If you have previously installed ZoneMinder from-source, then your system is **NOT** clean. You must manually search for and delete all ZoneMinder related files before using zmrepo (look under /usr/local). Make uninstall helps, but it will not do this for you correctly. You **WILL** have problems if you ignore this step.
+- If you have previously installed ZoneMinder from-source, then your system is **NOT** clean. You must manually search for and delete all ZoneMinder related files first (look under /usr/local). Issuing a "make uninstall" helps, but it will not do this for you correctly. You **WILL** have problems if you ignore this step.
 
-- Unlike the Debian/Ubuntu packages, it is not necessary, and not recommended, to install a LAMP stack ahead of time.
+- Unlike Debian/Ubuntu distros, it is not necessary, and not recommended, to install a LAMP stack ahead of time.
 
 - Disable any other third party repos and uninstall any of ZoneMinder's third party dependencies, which might already be on the system, especially ffmpeg and vlc. Attempting to install dependencies yourself often causes problems.
 
@@ -45,15 +45,15 @@ The following notes are based on real problems which have occurred by those who 
 How to Install ZoneMinder
 -------------------------
 
-These instructions apply to all redhat distros and compatible clones, except for RHEL/CEntOS 6.
+These instructions apply to all redhat distros and compatible clones, except for RHEL/CentOS 6.
 
-ZoneMinder releases are now being hosted at RPM Fusion. New users should navigate the `RPM Fusion site <https://rpmfusion.org>`_ then follow the instructions to enable that repo. Note the RHEL/CentOS must also navaigate to the `EPEL Site <https://fedoraproject.org/wiki/EPEL>`_ and enable that repo as well. Once both of these repositories are enabled, install ZoneMinder from the commandline:
+ZoneMinder releases are now being hosted at RPM Fusion. New users should navigate the `RPM Fusion site <https://rpmfusion.org>`_ then follow the instructions to enable that repo. RHEL/CentOS users must also navaigate to the `EPEL Site <https://fedoraproject.org/wiki/EPEL>`_ and enable that repo as well. Once enabled, install ZoneMinder from the commandline:
 
 ::
 
     sudo dnf install zoneminder
 
-Note that RHEL/CentOS 7 users should substitute yum for dnf.
+Note that RHEL/CentOS 7 users should use yum instead of dnf.
 
 Once ZoneMinder has been installed, it is critically important that you read the README file under /usr/share/doc/zoneminder. ZoneMinder will not run without completing the steps outlined in the README.
 
@@ -63,6 +63,28 @@ How to Install ZoneMinder on RHEL/CentOS 6
 We continue to encounter build problems, caused by the age of this distro. It is unforuntate, but we can see the writing on the wall. We do not have a date set, but the end of the line for this distros is near. 
 
 Please be advised that we do not recommend any new ZoneMinder installations using CentOS 6. However, for the time being, ZoneMinder rpms will continue to be hosted at `zmrepo <https://www.zoneminder.com>`_. 
+
+How to Install Nightly Development Builds
+-----------------------------------------
+
+ZoneMinder development packages, which represent the most recent build from our master branch, are available from `zmrepo <https://www.zoneminder.com>`_. 
+
+The feedback we get from those who use these development packages is extremely helpful. However, please understand these packages are intended for testing the latest master branch only. They are not intended to be used on any production system. There will be new bugs, and new features may not be documented. This is bleeding edge, and there might be breakage. Please keep that in mind when using this repo. We know from our user forum that this can't be stated enough. 
+
+How to Change from Zmrepo to RPM Fusion
+---------------------------------------
+
+As mentioned above, the place to get the latest ZoneMinder release is now `RPM Fusion <https://rpmfusion.org>`_. If you are currently using ZoneMinder release packages from Zmrepo, then the following steps will change you over to RPM Fusion:
+
+- Navigate to the `RPM Fusion site <https://rpmfusion.org>`_ and enable RPM Fusion on your system
+- Now issue the following from the command line:
+
+::
+
+    sudo dnf remove zmrepo
+    sudo dnf update
+
+Note that RHEL/CentOS 7 users should use yum instead of dnf.
 
 How to Build a (Custom) ZoneMinder Package
 ------------------------------------------

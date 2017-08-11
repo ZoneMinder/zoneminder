@@ -132,27 +132,27 @@ Your build environment is now set up.
 
 Build from SRPM
 ***************
-To continue, you need a ZoneMinder SRPM. If you wish to rebuild a ZoneMinder release, then browse the `RPM Fusion site <http://zmrepo.zoneminder.com/>`_. If instead you wish to rebuild the latest package from our master branch then browse the `Zmrepo site <http://zmrepo.zoneminder.com/>`_.
+To continue, you need a ZoneMinder SRPM. If you wish to rebuild a ZoneMinder release, then browse the `RPM Fusion site <http://zmrepo.zoneminder.com/>`_. If instead you wish to rebuild the latest source rpm from our master branch then browse the `Zmrepo site <http://zmrepo.zoneminder.com/>`_.
 
-For this example, I'll use one of the SRPMS from zmrepo:   
+For this example, I'll use one of the source rpms from zmrepo:   
 
 ::
 
-    wget -P ~/rpmbuild/SRPMS http://zmrepo.zoneminder.com/el/7/SRPMS/zoneminder-1.28.1-2.el7.centos.src.rpm
+    wget -P ~/rpmbuild/SRPMS http://zmrepo.zoneminder.com/el/7/SRPMS/zoneminder-1.31.1-1.el7.centos.src.rpm
 
 
 Now comes the fun part. To build ZoneMinder, issue the following command:
 
 ::
 
-    mock -r epel-7-x86_64-rpmfusion_free ~/rpmbuild/SRPMS/zoneminder-1.28.1-2.el7.centos.src.rpm
+    mock -r epel-7-x86_64-rpmfusion_free ~/rpmbuild/SRPMS/zoneminder-1.31.1-1.el7.centos.src.rpm
 
 
 Want to build ZoneMinder for Fedora, instead of CentOS, from the same host?  Once you download the Fedora SRPM, issue the following:
 
 ::
 
-    mock -r fedora-26-x86_64-rpmfusion_free ~/rpmbuild/SRPMS/zoneminder-1.28.1-1.fc21.src.rpm
+    mock -r fedora-26-x86_64-rpmfusion_free ~/rpmbuild/SRPMS/zoneminder-1.31.1-1.el7.centos.src.rpm
 
 Notice that the mock tool requires the following parameters:
 

@@ -63,24 +63,24 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
         av_make_error_string(ret).c_str()
         );
   } else {
-    Debug(2, "Success allocating output context");
+    Debug(4, "Success allocating output format context");
   }
 
   //Couldn't deduce format from filename, trying from format name
-  if ( ! oc ) {
+  if ( !oc ) {
     avformat_alloc_output_context2(&oc, NULL, format, filename);
-    if (!oc) {
+    if ( !oc ) {
       Fatal("Could not create video storage stream %s as no output context"
           " could not be assigned based on filename or format %s",
           filename, format);
+    } else {
+      Debug(4, "Success alocateing output context");
     }
-  } else {
-    Debug(2, "Success alocateing output context");
-  }
+  } // end if ! oc
 
   AVDictionary *pmetadata = NULL;
   int dsr = av_dict_set(&pmetadata, "title", "Zoneminder Security Recording", 0);
-  if (dsr < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__ );
+  if ( dsr < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__ );
 
   oc->metadata = pmetadata;
   output_format = oc->oformat;
@@ -348,7 +348,7 @@ VideoStore::~VideoStore(){
 #endif
       Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts, pkt.dts, pkt.duration);
       pkt.pts = audio_next_pts;
-        pkt.dts = audio_next_dts;
+      pkt.dts = audio_next_dts;
 
       if ( pkt.duration > 0 )
         pkt.duration = av_rescale_q(pkt.duration, audio_output_context->time_base, audio_output_stream->time_base);
@@ -872,6 +872,8 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
       zm_av_packet_unref(&opkt);
       return 0;
     }
+    av_frame_unref( input_frame );
+    av_frame_unref( output_frame );
 #else
     if (( ret = avcodec_encode_audio2( audio_output_context, &opkt, output_frame, &data_present )) < 0) {
       Error( "Could not encode frame (error '%s')",

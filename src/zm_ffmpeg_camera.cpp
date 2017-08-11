@@ -271,12 +271,15 @@ int FfmpegCamera::OpenFfmpeg() {
   }
 
   // Set transport method as specified by method field, rtpUni is default
-  if ( Method() == "rtpMulti" ) {
+  const std::string method = Method();
+  if ( method == "rtpMulti" ) {
     ret = av_dict_set(&opts, "rtsp_transport", "udp_multicast", 0);
-  } else if ( Method() == "rtpRtsp" ) {
+  } else if ( method == "rtpRtsp" ) {
     ret = av_dict_set(&opts, "rtsp_transport", "tcp", 0);
-  } else if ( Method() == "rtpRtspHttp" ) {
+  } else if ( method == "rtpRtspHttp" ) {
     ret = av_dict_set(&opts, "rtsp_transport", "http", 0);
+  } else {
+    Warning("Unknown method (%s)", method);
   }
 
   if ( ret < 0 ) {
@@ -834,7 +837,7 @@ else if ( packet.pts && video_last_pts > packet.pts ) {
             return 0;
           }
           } else {
-            Debug(3, "Not recording audio because we don't have a bvideo keyframe yet");
+            Debug(3, "Not recording audio yet because we don't have a video keyframe yet");
           }
         } else {
           Debug(4, "Not doing recording of audio packet" );
@@ -848,7 +851,7 @@ else if ( packet.pts && video_last_pts > packet.pts ) {
 #else
       Debug( 3, "Some other stream index %d", packet.stream_index );
 #endif
-    }
+    } // end if is video or audio or something else
       
     // the packet contents are ref counted... when queuing, we allocate another packet and reference it with that one, so we should always need to unref here, which should not affect the queued version.
     zm_av_packet_unref( &packet );

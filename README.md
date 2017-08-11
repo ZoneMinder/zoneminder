@@ -27,8 +27,8 @@ This is the recommended method to install ZoneMinder onto your system. ZoneMinde
 
 - Ubuntu via [Iconnor's PPA](https://launchpad.net/~iconnor/+archive/ubuntu/zoneminder)
 - Debian from their [default repository](https://packages.debian.org/search?searchon=names&keywords=zoneminder) 
-- RHEL/CentOS and clones via [RPMFusion](http://rpmfusion.org)
-- Fedora via [RPMFusion](http://rpmfusion.org)
+- RHEL/CentOS and clones via [RPM Fusion](http://rpmfusion.org)
+- Fedora via [RPM Fusion](http://rpmfusion.org)
 - OpenSuse via [third party repository](http://www.zoneminder.com/wiki/index.php/Installing_using_ZoneMinder_RPMs_for_SuSE)
 - Mageia from their default repository
 

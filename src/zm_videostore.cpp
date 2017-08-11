@@ -377,12 +377,12 @@ VideoStore::~VideoStore(){
   // What if we were only doing audio recording?
   if ( video_output_stream ) {
     avcodec_close(video_output_context);
-    av_free(video_output_context);
+    //av_free(video_output_context);
     video_output_context = NULL;
   }
   if (audio_output_stream) {
     avcodec_close(audio_output_context);
-    av_free(audio_output_context);
+    //av_free(audio_output_context);
     audio_output_context = NULL;
 #ifdef HAVE_LIBAVRESAMPLE
     if ( resample_context ) {
@@ -402,9 +402,6 @@ VideoStore::~VideoStore(){
     Debug(3, "Not closing avio because we are not writing to a file.");
   }
 
-  /* free the stream */
-  avformat_free_context(oc);
-
   if ( input_frame ) {
     av_frame_free( &input_frame );
     input_frame = NULL;
@@ -413,6 +410,10 @@ VideoStore::~VideoStore(){
     av_frame_free( &output_frame );
     output_frame = NULL;
   }
+
+  /* free the stream */
+  avformat_free_context(oc);
+
 }
 
 bool VideoStore::setup_resampler() {

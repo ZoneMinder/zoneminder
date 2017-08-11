@@ -171,7 +171,13 @@ You choose the config file based on the desired distro (e.g. el6, el7, f20, f21)
 
 Installation
 ************
-Once the build completes, you will be presented with a folder containing the RPMs that were built.  Copy the newly built ZoneMinder RPMs to the desired system, enable RPM Fusion as described in `How to Install ZoneMinder`_, and then install the rpm by issuing the appropriate yum/dnf install command. Finish the installation by following the zoneminder setup instructions in the distro specific readme file, named README.{distroname}, which will be installed into the /usr/share/doc/zoneminder* folder. 
+Once the build completes, you will be presented with a message stating where the newly built rpms can be found. It will look similar to this:
+
+::
+
+    INFO: Results and/or logs in: /var/lib/mock/fedora-26-x86_64/result
+
+Copy the newly built ZoneMinder RPMs to the desired system, enable RPM Fusion as described in `How to Install ZoneMinder`_, and then install the rpm by issuing the appropriate yum/dnf install command. Finish the installation by following the zoneminder setup instructions in the distro specific readme file, named README.{distroname}, which will be installed into the /usr/share/doc/zoneminder* folder. 
 
 Finally, you may want to consider editing the rpmfusion repo file under /etc/yum.repos.d and placing an “exclude=zoneminder*” line into the config file.  This will prevent your system from overwriting your manually built RPM with the ZoneMinder RPM found in the repo.
 

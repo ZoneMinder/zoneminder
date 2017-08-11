@@ -23,30 +23,46 @@ Fedora has a short life-cycle of just 6 months. However, Fedora, and consequentl
 
 If you desire newer packages than what is available in RHEL or CentOS, you should consider using Fedora.
 
-Zmrepo – A ZoneMinder RPM Repository
-------------------------------------
+How To Avoid Known Installation Problems
+----------------------------------------
 
-Zmrepo is a turn key solution. It will install all of ZoneMinder's dependencies for you. This is the easiest and the recommended way to install ZoneMinder on any system running a Redhat based distribution. 
+The following notes are based on real problems which have occurred by those who came before you:
 
-Zmrepo supports the two most recent, major releases of each Redhat based distro.
-
-The following notes are based on real problems which have occurred:
-
-- Zmrepo assumes you have installed the underlying distribution **using the official installation media for that distro**. Third party "Spins" are not supported and may not work correctly.
+- Zmrepo assumes you have installed the underlying distribution **using the official installation media for that distro**. Third party "Spins" may not work correctly.
 
 - ZoneMinder is intended to be installed in an environment dedicated to ZoneMinder. While ZoneMinder will play well with many applications, some invariably will not. Asterisk is one such example.
 
-- Be advised that you need to start with a clean system before using zmrepo.
+- Be advised that you need to start with a clean system before installing ZoneMinder.
 
 - If you have previously installed ZoneMinder from-source, then your system is **NOT** clean. You must manually search for and delete all ZoneMinder related files before using zmrepo (look under /usr/local). Make uninstall helps, but it will not do this for you correctly. You **WILL** have problems if you ignore this step.
 
-- It is not necessary, and not recommended, to install a LAMP stack ahead of time.
+- Unlike the Debian/Ubuntu packages, it is not necessary, and not recommended, to install a LAMP stack ahead of time.
 
-- Disable other third party repos and uninstall any of ZoneMinder's third party dependencies, which might already be on the system, especially ffmpeg and vlc. Attempting to install dependencies yourself often causes problems.
+- Disable any other third party repos and uninstall any of ZoneMinder's third party dependencies, which might already be on the system, especially ffmpeg and vlc. Attempting to install dependencies yourself often causes problems.
 
 - Each ZoneMinder rpm includes a README file under /usr/share/doc. You must follow the all steps in this README file, precisely, each and every time ZoneMinder is installed or upgraded. **Failure to do so is guaranteed to result in a non-functional system.**
 
-To begin the installation of ZoneMinder on your Redhat based distro, please navigate to: http://zmrepo.zoneminder.com
+How to Install ZoneMinder
+-------------------------
+
+These instructions apply to all redhat user, except for RHEL/CEntOS 6.
+
+ZoneMinder releases are now being hosted at RPM Fusion. New users should navigate the `RPM Fusion site <https://rpmfusion.org>`_ then follow the instructions to enable that repo. Note the RHEL/CentOS must also navaigate to the `EPEL Site <https://fedoraproject.org/wiki/EPEL>`_ and enable that repo as well. Once both of these repositories are enabled, install ZoneMinder from the commandline:
+
+::
+
+    sudo dnf install zoneminder
+
+Note that RHEL/CentOS 7 users should substitute yum for dnf.
+
+Once ZoneMinder has been installed, it is critically important that you read the README file under /usr/share/doc/zoneminder. ZoneMinder will not run without completing the steps outlined in the README.
+
+How to Install ZoneMinder on RHEL/CentOS 6
+------------------------------------------
+
+We continue to encounter build problems, caused by the age of this distro. However, we can see the writing on the wall. The end of the line for this distros is near. 
+
+Please be advised that we do not recommend any new ZoneMinder installations using CentOS 6. However, for the time being, ZoneMinder rpms will continue to be hosted at `zmrepo <https://www.zoneminder.com>`_. 
 
 How to Build a (Custom) ZoneMinder Package
 ------------------------------------------

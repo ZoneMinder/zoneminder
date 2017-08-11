@@ -183,27 +183,18 @@ Finally, you may want to consider editing the rpmfusion repo file under /etc/yum
 
 How to Modify the Source Prior to Build
 ***************************************
-Before attempting this part of the instructions, make sure and follow the previous instructions for building one of the unmodified SRPMS from zmrepo. Knowing this part works will assist in troubleshooting should something go wrong.
+In the previous section we described how to rebuild an existing ZoneMinder SRPM. The instructions which follow show how to build the ZoneMinder git source tree into an rpm.
 
-These instructions may vary depending on what exactly you want to do.  The following example assumes you want to build a development snapshot from the master branch.
+Before attempting this part of the instructions, make sure and follow the previous instructions `Build from SRPM`_. Knowing this part works will assist in troubleshooting later should something go wrong.
 
-From the previous instructions, we downloaded a CentOS 7 ZoneMinder SRPM and placed it into ~/rpmbuild/SRPMS. For this example, install it onto your system:
-
-::
-
-    rpm -ivh ~/rpmbuild/SRPMS/zoneminder-1.28.1-2.el7.centos.src.rpm
-
-
-IMPORTANT: This operation must be done with your normal user account. Do *not* perform this command as root.
-
-Make sure you have git installed:
+Make sure git and rpmdevtools are installed:
 
 ::
 
-    sudo yum install git
+    sudo yum install git rpmdevtools
 
 
-Now clone the ZoneMinder git repository:
+Now clone the ZoneMinder git repository from your home folder:
 
 ::
 
@@ -211,32 +202,66 @@ Now clone the ZoneMinder git repository:
     git clone https://github.com/ZoneMinder/ZoneMinder
     cd ZoneMinder
 
-This will create a sub-folder called ZoneMinder, which will contain the latest development.
+This will create a sub-folder called ZoneMinder, which will contain the latest development source code.
 
-We want to turn this into a tarball, but first we need to figure out what to name it. Look here:
-
-::
-
-    ls ~/rpmbuild/SOURCES
-
-The tarball from the previsouly installed SRPM should be there. This is the name we will use.  For this example, the name is ZoneMinder-1.28.1.tar.gz. From the root folder of the local ZoneMinder git repository, execute the following:
+If you have previsouly cloned the ZoneMinder git repo and wish to update it to the most recent, then issue these commands instead:
 
 ::
 
-    git archive --prefix=ZoneMinder-1.28.1/ -o ~/rpmbuild/SOURCES/zoneminder-1.28.1.tar.gz HEAD
+    cd ~\ZoneMinder
+    git pull origin master
+    
+Get the crud submodule tarball:
 
-Note that we are overwriting the original tarball. If you wish to keep the original tarball then create a copy prior to creating the new tarball.
+::
+
+    spectool -f -g -R -s 1 ~/ZoneMinder/distros/redhat/zoneminder.spec
+
+At this point, you can make changes to the source code. Depending on what you want to do with those changes, you might want to create a new branch first:
+
+::
+
+    cd ~\ZoneMinder
+    git checkout -b mynewbranch
+    
+When using git, you usually want to work out of a branch, rather than master.
+
+Again, depending on what you want to do with those changes, you may want to commit your changes:
+
+::
+
+    cd ~\ZoneMinder
+    git add .
+    git commit
+
+Once you have made your changes, it is time to turn your work into a new tarball, but first we need to look in the rpm specfile:
+
+::
+
+    less ~/ZoneMinder/distros/redhat/zoneminder.spec
+    
+Scroll down until you see the Version field. Note the value which will be in the format x.xx.x. Now create the tarball with the following command:
+
+::
+
+    cd ~\ZoneMinder
+    git archive --prefix=ZoneMinder-1.31.1/ -o ~/rpmbuild/SOURCES/zoneminder-1.31.1.tar.gz HEAD
+
+Replace "1.31.1" with the Version specified in the rpm specfile.
 
 From the root of the local ZoneMinder git repo, execute the following:
 
 ::
 
+    cd ~\ZoneMinder
     rpmbuild -bs --nodeps distros/redhat/zoneminder.spec
 
-Notice we used the rpm specfile that is part of the latest master branch you just downloaded, rather than the one that may be in your ~/rpmbbuild/SOURCES folder.
+This step will create a source rpm and it will tell you where it was saved. For example:
 
-This step will overwrite the SRPM you originally downloaded, so you may want to back it up prior to completing this step. Note that the name of the specfile will vary slightly depending on the target distro.
+::
 
-You should now have a new SRPM under ~/rpmbuild/SRPMS. In our example, the SRPM is called zoneminder-1.28.1-2.el7.centos.src.rpm. Now follow the previous instructions that describe how to use the buildzm script, using ~/rpmbuild/SRPMS/zoneminder-1.28.1-2.el7.centos.src.rpm as the path to your SRPM.
+    Wrote: /home/abauer/rpmbuild/SRPMS/zoneminder-1.31.1-1.fc26.src.rpm
+    
+Now follow the previous instructions `Build from SRPM`_ which describe how to build that source rpm into an rpm.
 
 

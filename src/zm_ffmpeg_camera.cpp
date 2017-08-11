@@ -115,13 +115,20 @@ int FfmpegCamera::PrimeCapture() {
   mAudioStreamId = -1;
   Info( "Priming capture from %s", mPath.c_str() );
 
+#if THREAD
   if ( OpenFfmpeg() != 0 ) {
     ReopenFfmpeg();
   }
   return 0;
+#else
+  return OpenFfmpeg();
+#endif
 }
 
 int FfmpegCamera::PreCapture() {
+  // If Reopen was called, then ffmpeg is closed and we need to reopen it.
+  if ( ! mCanCapture )
+    return OpenFfmpeg();
   // Nothing to do here
   return( 0 );
 }
@@ -283,14 +290,18 @@ int FfmpegCamera::OpenFfmpeg() {
   }
 
   if ( ret < 0 ) {
-    Warning("Could not set rtsp_transport method '%s'\n", Method().c_str());
+    Warning("Could not set rtsp_transport method '%s'\n", method.c_str());
   }
 
-  Debug ( 1, "Calling avformat_open_input" );
+  Debug ( 1, "Calling avformat_open_input for %s", mPath.c_str() );
 
   mFormatContext = avformat_alloc_context( );
-  mFormatContext->interrupt_callback.callback = FfmpegInterruptCallback;
-  mFormatContext->interrupt_callback.opaque = this;
+  //mFormatContext->interrupt_callback.callback = FfmpegInterruptCallback;
+  //mFormatContext->interrupt_callback.opaque = this;
+  // Speed up find_stream_info
+  //FIXME can speed up initial analysis but need sensible parameters...
+  //mFormatContext->probesize = 32;
+  //mFormatContext->max_analyze_duration = 32;
 
   if ( avformat_open_input( &mFormatContext, mPath.c_str(), NULL, &opts ) != 0 )
 #endif
@@ -310,10 +321,6 @@ int FfmpegCamera::OpenFfmpeg() {
 
   Info( "Stream open %s", mPath.c_str() );
 
-  //FIXME can speed up initial analysis but need sensible parameters...
-  //mFormatContext->probesize = 32;
-  //mFormatContext->max_analyze_duration = 32;
-  // Locate stream info from avformat_open_input
 #if !LIBAVFORMAT_VERSION_CHECK(53, 6, 0, 6, 0)
   Debug ( 1, "Calling av_find_stream_info" );
   if ( av_find_stream_info( mFormatContext ) < 0 )
@@ -484,11 +491,17 @@ int FfmpegCamera::ReopenFfmpeg() {
 
   Debug(2, "ReopenFfmpeg called.");
 
+#if THREAD 
   mCanCapture = false;
-  if (pthread_create( &mReopenThread, NULL, ReopenFfmpegThreadCallback, (void*) this) != 0){
+  if ( pthread_create( &mReopenThread, NULL, ReopenFfmpegThreadCallback, (void*) this) != 0 ) {
     // Log a fatal error and exit the process.
     Fatal( "ReopenFfmpeg failed to create worker thread." );
   }
+#else
+  CloseFfmpeg();
+  OpenFfmpeg();
+
+#endif
 
   return 0;
 }
@@ -499,8 +512,14 @@ int FfmpegCamera::CloseFfmpeg() {
 
   mCanCapture = false;
 
-  av_frame_free( &mFrame );
-  av_frame_free( &mRawFrame );
+  if ( mFrame ) {
+    av_frame_free( &mFrame );
+    mFrame = NULL;
+  }
+  if ( mRawFrame ) {
+    av_frame_free( &mRawFrame );
+    mRawFrame = NULL;
+  }
 
 #if HAVE_LIBSWSCALE
   if ( mConvertContext ) {
@@ -511,12 +530,12 @@ int FfmpegCamera::CloseFfmpeg() {
 
   if ( mVideoCodecContext ) {
     avcodec_close(mVideoCodecContext);
-    av_free(mVideoCodecContext);
+    //av_free(mVideoCodecContext);
     mVideoCodecContext = NULL; // Freed by av_close_input_file
   }
   if ( mAudioCodecContext ) {
     avcodec_close(mAudioCodecContext);
-    av_free(mAudioCodecContext);
+    //av_free(mAudioCodecContext);
     mAudioCodecContext = NULL; // Freed by av_close_input_file
   }
 
@@ -533,11 +552,12 @@ int FfmpegCamera::CloseFfmpeg() {
 }
 
 int FfmpegCamera::FfmpegInterruptCallback(void *ctx) { 
+  Debug(3,"FfmpegInteruptCallback");
   FfmpegCamera* camera = reinterpret_cast<FfmpegCamera*>(ctx);
   if ( camera->mIsOpening ) {
     int now = time(NULL);
     if ( (now - camera->mOpenStart) > config.ffmpeg_open_timeout ) {
-      Error ( "Open video took more than %d seconds.", config.ffmpeg_open_timeout );
+      Error( "Open video took more than %d seconds.", config.ffmpeg_open_timeout );
       return 1;
     }
   }
@@ -546,11 +566,12 @@ int FfmpegCamera::FfmpegInterruptCallback(void *ctx) {
 }
 
 void *FfmpegCamera::ReopenFfmpegThreadCallback(void *ctx){
-  if (ctx == NULL) return NULL;
+  Debug(3,"FfmpegReopenThreadtCallback");
+  if ( ctx == NULL ) return NULL;
 
   FfmpegCamera* camera = reinterpret_cast<FfmpegCamera*>(ctx);
 
-  while (1){
+  while (1) {
     // Close current stream.
     camera->CloseFfmpeg();
 

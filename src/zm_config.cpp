@@ -288,8 +288,10 @@ Config::~Config() {
   if ( items ) {
     for ( int i = 0; i < n_items; i++ ) {
       delete items[i];
+      items[i] = NULL;
     }
     delete[] items;
+    items = NULL;
   }
 }
 

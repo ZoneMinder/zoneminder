@@ -484,7 +484,10 @@ void MonitorStream::runStream() {
 
   openComms();
 
-  checkInitialised();
+  if ( ! checkInitialised() ) {
+    Error("Not initialized");
+    return;
+  }
 
   updateFrameRate( monitor->GetFPS() );
 

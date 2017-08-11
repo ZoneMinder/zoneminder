@@ -560,7 +560,7 @@ bool Monitor::connect() {
     Debug(3,"Aligning shared memory images to the next 64 byte boundary");
     shared_images = (uint8_t*)((unsigned long)shared_images + (64 - ((unsigned long)shared_images % 64)));
   }
-  if ( purpose == CAPTURE ) {
+  if ( purpose != ANALYSIS ) {
     Debug(3, "Allocating %d image buffers", image_buffer_count );
     image_buffer = new Snapshot[image_buffer_count];
     for ( int i = 0; i < image_buffer_count; i++ ) {

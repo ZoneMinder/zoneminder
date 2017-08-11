@@ -40,7 +40,7 @@ The following notes are based on real problems which have occurred by those who 
 
 - Disable any other third party repos and uninstall any of ZoneMinder's third party dependencies, which might already be on the system, especially ffmpeg and vlc. Attempting to install dependencies yourself often causes problems.
 
-- Each ZoneMinder rpm includes a README file under /usr/share/doc. You must follow the all steps in this README file, precisely, each and every time ZoneMinder is installed or upgraded. **Failure to do so is guaranteed to result in a non-functional system.**
+- Each ZoneMinder rpm includes a README file under /usr/share/doc. You must follow all the steps in this README file, precisely, each and every time ZoneMinder is installed or upgraded. **Failure to do so is guaranteed to result in a non-functional system.**
 
 How to Install ZoneMinder
 -------------------------

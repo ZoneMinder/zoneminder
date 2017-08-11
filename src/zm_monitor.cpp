@@ -560,7 +560,6 @@ bool Monitor::connect() {
     Debug(3,"Aligning shared memory images to the next 64 byte boundary");
     shared_images = (uint8_t*)((unsigned long)shared_images + (64 - ((unsigned long)shared_images % 64)));
   }
-  if ( purpose != ANALYSIS ) {
     Debug(3, "Allocating %d image buffers", image_buffer_count );
     image_buffer = new Snapshot[image_buffer_count];
     for ( int i = 0; i < image_buffer_count; i++ ) {
@@ -574,7 +573,6 @@ bool Monitor::connect() {
       next_buffer.image = new Image( width, height, camera->Colours(), camera->SubpixelOrder());
       next_buffer.timestamp = new struct timeval;
     }
-  }
   if ( ( purpose == ANALYSIS ) && analysis_fps ) {
     // Size of pre event buffer must be greater than pre_event_count
     // if alarm_frame_count > 1, because in this case the buffer contains

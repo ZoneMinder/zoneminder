@@ -10,7 +10,7 @@ Background: RHEL, CentOS, and Clones
 
 These distributions are classified as enterprise operating systems and have a long operating lifetime of many years. By design, they will not have the latest and greatest versions of any package. Instead, stable packages are the emphasis.
 
-Replacing any core package in these distributions with a newer package from a third party is expressly verboten. The ZoneMinder development team will not do this, and neither should you. If you have the perception that you've got to have a newer version of mysql, gnome, apache, etc. then, rather than upgrade these packages, you should instead consider using a different distribution such as Fedora.
+Replacing any core package in these distributions with a newer package from a third party is expressly verboten. The ZoneMinder development team will not do this, and neither should you. If you have the perception that you've got to have a newer version of php, mysql, gnome, apache, etc. then, rather than upgrade these packages, you should instead consider using a different distribution such as Fedora.
 
 The ZoneMinder team will not provide support for systems which have had any core package replaced with a package from a third party.
 

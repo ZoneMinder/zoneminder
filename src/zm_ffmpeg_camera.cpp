@@ -643,7 +643,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
 
     int keyframe = packet.flags & AV_PKT_FLAG_KEY;
 
-    Debug( 4, "Got packet from stream %d packet pts (%d) dts(%d), key?(%d)", 
+    Debug( 4, "Got packet from stream %d packet pts (%u) dts(%u), key?(%d)", 
         packet.stream_index, packet.pts, packet.dts, 
         keyframe
         );
@@ -794,6 +794,7 @@ else if ( packet.pts && video_last_pts > packet.pts ) {
           }
           have_video_keyframe = true;
         }
+      } // end if keyframe or have_video_keyframe
 
         Debug(4, "about to decode video" );
 
@@ -854,7 +855,6 @@ else if ( packet.pts && video_last_pts > packet.pts ) {
         } else {
           Debug( 3, "Not framecomplete after av_read_frame" );
         } // end if frameComplete
-      } // end if keyframe or have_video_keyframe
     } else if ( packet.stream_index == mAudioStreamId ) { //FIXME best way to copy all other streams
       if ( videoStore ) {
         if ( record_audio ) {

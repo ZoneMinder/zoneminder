@@ -109,6 +109,7 @@ Requires: perl(MIME::Lite)
 Requires: perl(Net::SMTP)
 Requires: perl(Net::FTP)
 Requires: perl(LWP::Protocol::https)
+Requires: ca-certificates
 
 %{?with_init_systemd:Requires(post): systemd}
 %{?with_init_systemd:Requires(post): systemd-sysv}
@@ -162,7 +163,14 @@ too much degradation of performance.
 %make_install
 
 # Remove unwanted files and folders
-find %{buildroot} \( -name .packlist -or -name .git -or -name .gitignore -or -name .gitattributes -or -name .travis.yml \) -type f -delete > /dev/null 2>&1 || :
+find %{buildroot} \( -name .htaccess -or -name .editorconfig -or -name .packlist -or -name .git -or -name .gitignore -or -name .gitattributes -or -name .travis.yml \) -type f -delete > /dev/null 2>&1 || :
+
+# Recursively change shebang in all relevant scripts and set execute permission
+find %{buildroot}%{_datadir}/zoneminder/www/api \( -name cake -or -name cake.php \) -type f -exec sed -i 's\^#!/usr/bin/env bash$\#!/usr/bin/bash\' {} \; -exec %{__chmod} 755 {} \;
+
+# Use the system cacert file rather then the one bundled with CakePHP
+%{__rm} -f %{buildroot}%{_datadir}/zoneminder/www/api/lib/Cake/Config/cacert.pem
+%{__ln_s} ../../../../../../../..%{_sysconfdir}/pki/tls/certs/ca-bundle.crt %{buildroot}%{_datadir}/zoneminder/www/api/lib/Cake/Config/cacert.pem
 
 %post
 %if 0%{?with_init_sysv}
@@ -278,12 +286,18 @@ rm -rf %{_docdir}/%{name}-%{version}
 %files
 %license COPYING
 %doc AUTHORS README.md distros/redhat/readme/README.%{readme_suffix} distros/redhat/readme/README.https distros/redhat/jscalendar-doc
+
+# We want these two folders to have "normal" read permission
+# compared to the folder contents
 %dir %{_sysconfdir}/zm
 %dir %{_sysconfdir}/zm/conf.d
+
+# Config folder contents contain sensitive info
+# and should not be readable by normal users
 %{_sysconfdir}/zm/conf.d/README
-# Always overwrite zm.conf now that ZoneMinder supports conf.d folder
-%attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm/zm.conf
+%config(noreplace) %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm/zm.conf
 %config(noreplace) %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm/conf.d/*.conf
+%ghost %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm/conf.d/zmcustom.conf
 
 %config(noreplace) %attr(644,root,root) %{wwwconfdir}/zoneminder.conf
 %config(noreplace) %{_sysconfdir}/logrotate.d/zoneminder
@@ -297,6 +311,7 @@ rm -rf %{_docdir}/%{name}-%{version}
 %{_unitdir}/zoneminder.service
 %{_datadir}/polkit-1/actions/com.zoneminder.systemctl.policy
 %{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
+%{_bindir}/zmsystemctl.pl
 %endif
 
 %if 0%{?with_init_sysv}
@@ -318,7 +333,6 @@ rm -rf %{_docdir}/%{name}-%{version}
 %{_bindir}/zmvideo.pl
 %{_bindir}/zmwatch.pl
 %{_bindir}/zmcamtool.pl
-%{_bindir}/zmsystemctl.pl
 %{_bindir}/zmtelemetry.pl
 %{_bindir}/zmx10.pl
 %{_bindir}/zmonvif-probe.pl

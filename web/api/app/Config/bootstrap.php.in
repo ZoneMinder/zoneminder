@@ -101,49 +101,66 @@ CakeLog::config('debug', array(
 	'engine' => 'File',
 	'types' => array('notice', 'info', 'debug'),
 	'file' => 'cake_debug',
+    'path' => '@ZM_LOGDIR@/'
 ));
 CakeLog::config('error', array(
 	'engine' => 'File',
 	'types' => array('warning', 'error', 'critical', 'alert', 'emergency'),
 	'file' => 'cake_error',
+    'path' => '@ZM_LOGDIR@/'
 ));
 CakeLog::config('custom_path', array(
     'engine' => 'File',
-    'path' => '@ZM_LOGDIR@'
+    'path' => '@ZM_LOGDIR@/'
 ));
 
 Configure::write('ZM_CONFIG',  '@ZM_CONFIG@');
+Configure::write('ZM_CONFIG_SUBDIR',  '@ZM_CONFIG_SUBDIR@');
 Configure::write('ZM_VERSION', '@VERSION@');
 Configure::write('ZM_API_VERSION', '@API_VERSION@');
 
-loadConfigFile();
+# Process name, value pairs from the main config file first
+$configvals = process_configfile(Configure::read('ZM_CONFIG'));
 
-function loadConfigFile() {
-		        $configFile = Configure::read('ZM_CONFIG');
-		        $localConfigFile = basename($configFile);
-		        if ( file_exists( $localConfigFile ) && filesize( $localConfigFile ) > 0 )
-		        {
-		            if ( php_sapi_name() == 'cli' && empty($_SERVER['REMOTE_ADDR']) )
-		                print( "Warning, overriding installed $localConfigFile file with local copy\n" );
-		            else
-		                error_log( "Warning, overriding installed $localConfigFile file with local copy" );
-			            $configFile = $localConfigFile;
-		        }
-
-		        $cfg = fopen( $configFile, "r") or die("Could not open config file.");
-		        while ( !feof($cfg) )
-		        {
-		            $str = fgets( $cfg, 256 );
-		            if ( preg_match( '/^\s*$/', $str ))
-		                continue;
-		            elseif ( preg_match( '/^\s*#/', $str ))
-		                continue;
-		            elseif ( preg_match( '/^\s*([^=\s]+)\s*=\s*(.*?)\s*$/', $str, $matches )) {
-	                    Configure::write( $matches[1], $matches[2] );
-                      define( $matches[1], $matches[2] );
-                }
-		        }
-		        fclose( $cfg );
+# Search for user created config files. If one or more are found then
+# update our config value array with those values
+$configSubFolder = Configure::read('ZM_CONFIG_SUBDIR');
+if ( is_dir($configSubFolder) ) {
+  if ( is_readable($configSubFolder) ) {
+    foreach ( glob("$configSubFolder/*.conf") as $filename ) {
+      $configvals = array_replace($configvals, process_configfile($filename) );
+    }
+  } else {
+    error_log( "WARNING: ZoneMinder configuration subfolder found but is not readable. Check folder permissions on $configSubFolder." );
+  }
 }
 
+# Now that our array our finalized, define each key => value
+# pair in the array as a constant
+foreach( $configvals as $key => $value) {
+    define( $key, $value );
+    Configure::write( $key, $value );
+}
+
+function process_configfile($configFile) {
+  if ( is_readable( $configFile ) ) {
+    $configvals = array();
+
+    $cfg = fopen( $configFile, "r") or die("Could not open config file.");
+    while ( !feof($cfg) ) {
+      $str = fgets( $cfg, 256 );
+      if ( preg_match( '/^\s*$/', $str ))
+        continue;
+      elseif ( preg_match( '/^\s*#/', $str ))
+        continue;
+      elseif ( preg_match( '/^\s*([^=\s]+)\s*=\s*(.*?)\s*$/', $str, $matches ))
+        $configvals[$matches[1]] = $matches[2];
+    }
+    fclose( $cfg );
+    return( $configvals );
+  } else {
+    error_log( "WARNING: ZoneMinder configuration file found but is not readable. Check file permissions on $configFile." );
+    return( false );
+  }
+}
 

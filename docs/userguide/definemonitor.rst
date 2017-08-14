@@ -72,6 +72,7 @@ Source Tab
 FFmpeg
 ^^^^^^
     This is the recommended source type for most modern ip cameras.
+
 Source Path 
     Use this field to enter the full URL of the stream or file your camera supports. This is usually an RTSP url. There are several methods to learn this:
     

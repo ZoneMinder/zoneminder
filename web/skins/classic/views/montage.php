@@ -40,6 +40,16 @@ $maxHeight = 0;
 $showControl = false;
 $index = 0;
 $monitors = array();
+
+$scale = 100;
+if ( isset( $_REQUEST['scale'] ) )
+  $scale = validInt($_REQUEST['scale']);
+else if ( isset( $_COOKIE['zmMontageScale'] ) )
+  $scale = $_COOKIE['zmMontageScale'];
+
+if ( ! $scale ) 
+  $scale = 100;
+
 foreach( dbFetchAll( $sql ) as $row )
 {
     if ( !visibleMonitor( $row['Id'] ) )
@@ -47,14 +57,17 @@ foreach( dbFetchAll( $sql ) as $row )
         continue;
     }
     
+    $monitor_scale = 100;
     if ( isset( $_REQUEST['scale'] ) )
-        $scale = validInt($_REQUEST['scale']);
+      $monitor_scale = validInt($_REQUEST['scale']);
     else if ( isset( $_COOKIE['zmMontageScale'] ) )
-        $scale = $_COOKIE['zmMontageScale'];
+      $monitor_scale = $_COOKIE['zmMontageScale'];
     else
-        $scale = reScale( SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+      $monitor_scale = reScale( SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+    if ( ! $monitor_scale )
+      $monitor_scale = 100;
 
-    $scaleWidth = reScale( $row['Width'], $scale );
+    $scaleWidth = reScale( $row['Width'], $monitor_scale );
     $scaleHeight = reScale( $row['Height'], $scale );
     if ( $maxWidth < $scaleWidth )
         $maxWidth = $scaleWidth;
@@ -117,14 +130,11 @@ foreach ( $monitors as $monitor )
           <div id="monitor<?php echo $monitor->index() ?>" class="monitor idle">
             <div id="imageFeed<?php echo $monitor->index() ?>" class="imageFeed" onclick="createPopup( '?view=watch&amp;mid=<?php echo $monitor->Id() ?>', 'zmWatch<?php echo $monitor->Id() ?>', 'watch', <?php echo $monitor->scaleWidth() ?>, <?php echo $monitor->scaleHeight() ?> );">
 <?php
-if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT )
-{
-    $streamSrc = $monitor->getStreamSrc( array( "mode=mpeg", "scale=".$scale, "bitrate=".ZM_WEB_VIDEO_BITRATE, "maxfps=".ZM_WEB_VIDEO_MAXFPS, "format=".ZM_MPEG_LIVE_FORMAT ) );
+if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
+    $streamSrc = $monitor->getStreamSrc( array( 'mode'=>'mpeg', 'scale'=>$scale, 'bitrate'=>ZM_WEB_VIDEO_BITRATE, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'format'=>ZM_MPEG_LIVE_FORMAT ) );
     outputVideoStream( "liveStream".$monitor->Id(), $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), ZM_MPEG_LIVE_FORMAT );
-}
-else
-{
-    $streamSrc = $monitor->getStreamSrc( array( "mode=jpeg", "scale=".$scale, "maxfps=".ZM_WEB_VIDEO_MAXFPS ) );
+} else {
+    $streamSrc = $monitor->getStreamSrc( array( 'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS ) );
     if ( canStreamNative() )
     {
         outputImageStream( "liveStream".$monitor->Id(), $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), validHtmlStr($monitor->Name()) );

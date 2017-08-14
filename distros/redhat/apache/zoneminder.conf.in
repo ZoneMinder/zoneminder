@@ -16,7 +16,7 @@ Alias /zm "@ZM_WEBDIR@"
     DirectoryIndex index.php
     SSLRequireSSL
     Options -Indexes +MultiViews +FollowSymLinks
-    AllowOverride All
+    AllowOverride None
     <IfModule mod_authz_core.c>
        # Apache 2.4
        Require all granted
@@ -31,7 +31,7 @@ Alias /zm "@ZM_WEBDIR@"
 ScriptAlias /cgi-bin-zm "@ZM_CGIDIR@"
 <Directory "@ZM_CGIDIR@">
     SSLRequireSSL
-    AllowOverride All
+    AllowOverride None
     Options +ExecCGI +FollowSymLinks
     <IfModule mod_authz_core.c>
        # Apache 2.4
@@ -42,5 +42,30 @@ ScriptAlias /cgi-bin-zm "@ZM_CGIDIR@"
         Order deny,allow
         Allow from all
     </IfModule>
+</Directory>
+
+# For better visibility, the following directives have been migrated from the
+# default .htaccess files included with the CakePHP project.
+# Parameters not set here are inherited from the parent directive above.
+<Directory "@ZM_WEBDIR@/api">
+   RewriteEngine on
+   RewriteRule ^$ app/webroot/ [L]
+   RewriteRule (.*) app/webroot/$1 [L]
+   RewriteBase /zm/api
+</Directory>
+
+<Directory "@ZM_WEBDIR@/api/app">
+   RewriteEngine on
+   RewriteRule ^$ webroot/ [L]
+   RewriteRule (.*) webroot/$1 [L]
+   RewriteBase /zm/api
+</Directory>
+
+<Directory "@ZM_WEBDIR@/api/app/webroot">
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+    RewriteBase /zm/api
 </Directory>
 

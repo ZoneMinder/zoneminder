@@ -24,6 +24,10 @@ extern "C" {
 #include <libavformat/avformat.h>
 }
 
+#ifdef __FreeBSD__
+#include <sys/time.h>
+#endif // __FreeBSD__
+
 class ZMPacket {
   public:
   

@@ -45,6 +45,9 @@ Possible configuration options:
 	ZM_DB_NAME		Name of ZoneMinder database, default: zm
 	ZM_DB_USER		Name of ZoneMinder database user, default: zmuser
 	ZM_DB_PASS		Password of ZoneMinder database user, default: zmpass
+	ZM_DB_SSL_CA_CERT	Path to SSL CA certificate, default: empty; SSL not enabled
+	ZM_DB_SSL_CLIENT_KEY	Path to SSL client key, default: empty; SSL not enabled
+	ZM_DB_SSL_CLIENT_CERT	Path to SSL client certificate, default: empty; SSL not enabled
 	ZM_WEB_USER		The user apache or the local web server runs on. Leave empty for automatic detection. If that fails, you can use this variable to force
 	ZM_WEB_GROUP		The group apache or the local web server runs on, Leave empty to be the same as the web user
         ZM_DIR_EVENTS           Location where events are recorded to, default: ZM_CONTENTDIR/events

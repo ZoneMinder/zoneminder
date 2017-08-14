@@ -241,8 +241,13 @@ void EventStream::processCommand( const CmdMsg *msg ) {
         }
 
         // If we are in single event mode and at the last frame, replay the current event
-        if ( (mode == MODE_SINGLE) && ((unsigned int)curr_frame_id == event_data->frame_count) )
+        if ( (mode == MODE_SINGLE) && ((unsigned int)curr_frame_id == event_data->frame_count) ) {
           curr_frame_id = 1;
+          Debug(1, "Was in single_mode, and last frame, so jumping to 1st frame");
+          curr_frame_id = 1;
+        } else {
+          Debug(1, "mode is %s, current frame is %d, frame count is %d", (mode == MODE_SINGLE ? "single" : "not single" ), curr_frame_id, event_data->frame_count );
+        }
 
         replay_rate = ZM_RATE_BASE;
         break;
@@ -367,6 +372,7 @@ void EventStream::processCommand( const CmdMsg *msg ) {
             zoom = 500;
             break;
         }
+        send_frame = true;
         break;
       }
     case CMD_ZOOMOUT :
@@ -391,6 +397,7 @@ void EventStream::processCommand( const CmdMsg *msg ) {
             break;
         }
         break;
+        send_frame = true;
       }
     case CMD_PAN :
       {
@@ -432,6 +439,7 @@ void EventStream::processCommand( const CmdMsg *msg ) {
         int offset = ((unsigned char)msg->msg_data[1]<<24)|((unsigned char)msg->msg_data[2]<<16)|((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
         curr_frame_id = (int)(event_data->frame_count*offset/event_data->duration);
         Debug( 1, "Got SEEK command, to %d (new cfid: %d)", offset, curr_frame_id );
+        send_frame = true;
         break;
       }
     case CMD_QUERY :
@@ -462,7 +470,7 @@ void EventStream::processCommand( const CmdMsg *msg ) {
   status_data.rate = replay_rate;
   status_data.zoom = zoom;
   status_data.paused = paused;
-  Debug( 2, "E:%d, P:%d, p:%d R:%d, Z:%d",
+  Debug( 2, "Event:%d, Paused:%d, progress:%d Rate:%d, Zoom:%d",
     status_data.event,
     status_data.paused,
     status_data.progress,
@@ -709,10 +717,13 @@ void EventStream::runStream() {
     exit( 0 );
   }
 
-  unsigned int delta_us = 0;
   while( !zm_terminate ) {
     gettimeofday( &now, NULL );
 
+    unsigned int delta_us = 0;
+    send_frame = false;
+
+    // commands may set send_frame to true
     while(checkCommandQueue());
 
     if ( step != 0 )
@@ -754,11 +765,9 @@ void EventStream::runStream() {
         //}
         continue;
       }
-    }
 
-    // Figure out if we should send this frame
-    bool send_frame = false;
-    if ( !paused ) {
+      // Figure out if we should send this frame
+
       // If we are streaming and this frame is due to be sent
       if ( ((curr_frame_id-1)%frame_mod) == 0 ) {
         delta_us = (unsigned int)(frame_data->delta * 1000000);
@@ -772,7 +781,7 @@ void EventStream::runStream() {
       // We are paused and are just stepping forward or backward one frame
       step = 0;
       send_frame = true;
-    } else {
+    } else if ( !send_frame ) {
       // We are paused, and doing nothing
       double actual_delta_time = TV_2_FLOAT( now ) - last_frame_sent;
       if ( actual_delta_time > MAX_STREAM_DELAY ) {
@@ -792,7 +801,8 @@ void EventStream::runStream() {
       curr_frame_id += replay_rate>0?1:-1;
       if ( send_frame && type != STREAM_MPEG ) {
         Debug( 3, "dUs: %d", delta_us );
-        usleep( delta_us );
+        if ( delta_us )
+          usleep( delta_us );
       }
     } else {
       usleep( (unsigned long)((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2))) );

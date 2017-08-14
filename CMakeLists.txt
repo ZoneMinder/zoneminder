@@ -69,7 +69,22 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 # GCC below 6.0 doesn't support __target__("fpu=neon") attribute, required for compiling ARM Neon code, otherwise compilation fails.
 # Must use -mfpu=neon compiler flag instead, but only do that for processors that support neon, otherwise strip the neon code alltogether,
 # because passing -fmpu=neon is unsafe to processors that don't support neon
-IF(CMAKE_SYSTEM_PROCESSOR MATCHES "^arm" AND CMAKE_SYSTEM_NAME MATCHES "Linux")
+
+string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" ZM_SYSTEM_PROC)
+IF((ZM_SYSTEM_PROC STREQUAL "") OR (ZM_SYSTEM_PROC STREQUAL "unknown"))
+    execute_process(COMMAND uname -m OUTPUT_VARIABLE ZM_SYSTEM_PROC ERROR_VARIABLE ZM_SYSTEM_PROC_ERR)
+
+    # maybe make the following error checks fatal
+    IF(ZM_SYSTEM_PROC_ERR)
+        message(WARNING "\nAn error occurred while attempting to determine the system processor:\n${ZM_SYSTEM_PROC_ERR}")
+    ENDIF(ZM_SYSTEM_PROC_ERR)
+    IF(NOT ZM_SYSTEM_PROC)
+       message(WARNING "\nUnable to determine the system processor. This may cause a build failure.\n")
+    ENDIF(ZM_SYSTEM_PROC)
+
+ENDIF((ZM_SYSTEM_PROC STREQUAL "") OR (ZM_SYSTEM_PROC STREQUAL "unknown"))
+
+IF(ZM_SYSTEM_PROC MATCHES "^arm" AND CMAKE_SYSTEM_NAME MATCHES "Linux")
 	IF(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
 		EXEC_PROGRAM(grep ARGS " neon " "/proc/cpuinfo" OUTPUT_VARIABLE neonoutput RETURN_VALUE neonresult)
 		IF(neonresult EQUAL 0)
@@ -82,7 +97,7 @@ IF(CMAKE_SYSTEM_PROCESSOR MATCHES "^arm" AND CMAKE_SYSTEM_NAME MATCHES "Linux")
 			message(STATUS "ARM Neon is not available on this processor. Neon functions will be absent")
 		ENDIF(neonresult EQUAL 0)
 	ENDIF(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
-ENDIF(CMAKE_SYSTEM_PROCESSOR MATCHES "^arm" AND CMAKE_SYSTEM_NAME MATCHES "Linux")
+ENDIF(ZM_SYSTEM_PROC MATCHES "^arm" AND CMAKE_SYSTEM_NAME MATCHES "Linux")
 
 # Modules that we need:
 include (GNUInstallDirs)

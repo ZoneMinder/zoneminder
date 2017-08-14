@@ -70,6 +70,9 @@ class DATABASE_CONFIG {
 		'login' => ZM_DB_USER,
 		'password' => ZM_DB_PASS,
 		'database' => ZM_DB_NAME,
+		'ssl_ca' => ZM_DB_SSL_CA_CERT,
+		'ssl_key' => ZM_DB_SSL_CLIENT_KEY,
+		'ssl_cert' => ZM_DB_SSL_CLIENT_CERT,
 		'prefix' => '',
 		'encoding' => 'utf8',
 	);

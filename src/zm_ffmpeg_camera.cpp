@@ -292,7 +292,7 @@ int FfmpegCamera::OpenFfmpeg() {
   } else if ( method == "rtpRtspHttp" ) {
     ret = av_dict_set(&opts, "rtsp_transport", "http", 0);
   } else {
-    Warning("Unknown method (%s)", method);
+    Warning("Unknown method (%s)", method.c_str() );
   }
 
   if ( ret < 0 ) {

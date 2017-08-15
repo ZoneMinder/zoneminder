@@ -112,9 +112,16 @@ Logger::Logger() :
 
 Logger::~Logger() {
   terminate();
+   smCodes.clear();
+     smSyslogPriorities.clear();
+#if 0
   for ( StringMap::iterator itr = smCodes.begin(); itr != smCodes.end(); itr ++ ) {
       smCodes.erase( itr );
   }
+  for ( IntMap::iterator itr = smSyslogPriorities.begin(); itr != smSyslogPriorities.end(); itr ++ ) {
+      smSyslogPriorities.erase(itr);
+  }
+#endif
 }
 
 void Logger::initialise( const std::string &id, const Options &options ) {
@@ -417,124 +424,128 @@ void Logger::closeSyslog() {
 }
 
 void Logger::logPrint( bool hex, const char * const filepath, const int line, const int level, const char *fstring, ... ) {
-  if ( level <= mEffectiveLevel ) {
-    char            timeString[64];
-    char            logString[8192];
-    va_list         argPtr;
-    struct timeval  timeVal;
+  if ( level > mEffectiveLevel ) 
+    return;
+  char            timeString[64];
+  char            logString[8192];
+  va_list         argPtr;
+  struct timeval  timeVal;
 
-    char *filecopy = strdup(filepath);
-    const char * const file = basename(filecopy);
-    const char *classString = smCodes[level].c_str();
+  char *filecopy = strdup(filepath);
+  const char * const file = basename(filecopy);
+  const char *classString = smCodes[level].c_str();
 
-    if ( level < PANIC || level > DEBUG9 )
-      Panic( "Invalid logger level %d", level );
+  if ( level < PANIC || level > DEBUG9 )
+    Panic( "Invalid logger level %d", level );
 
-    gettimeofday( &timeVal, NULL );
+  gettimeofday( &timeVal, NULL );
 
 #if 0
-    if ( logRuntime ) {
-      static struct timeval logStart;
+  if ( logRuntime ) {
+    static struct timeval logStart;
 
-      subtractTime( &timeVal, &logStart );
+    subtractTime( &timeVal, &logStart );
 
-      snprintf( timeString, sizeof(timeString), "%ld.%03ld", timeVal.tv_sec, timeVal.tv_usec/1000 );
-    } else {
+    snprintf( timeString, sizeof(timeString), "%ld.%03ld", timeVal.tv_sec, timeVal.tv_usec/1000 );
+  } else {
 #endif
-      char *timePtr = timeString;
-      timePtr += strftime( timePtr, sizeof(timeString), "%x %H:%M:%S", localtime(&timeVal.tv_sec) );
-      snprintf( timePtr, sizeof(timeString)-(timePtr-timeString), ".%06ld", timeVal.tv_usec );
+    char *timePtr = timeString;
+    timePtr += strftime( timePtr, sizeof(timeString), "%x %H:%M:%S", localtime(&timeVal.tv_sec) );
+    snprintf( timePtr, sizeof(timeString)-(timePtr-timeString), ".%06ld", timeVal.tv_usec );
 #if 0
-    }
+  }
 #endif
 
-    pid_t tid;
+  pid_t tid;
 #ifdef __FreeBSD__
-    long lwpid;
-    thr_self(&lwpid);
-    tid = lwpid;
+  long lwpid;
+  thr_self(&lwpid);
+  tid = lwpid;
 
-    if (tid < 0 ) // Thread/Process id
+  if (tid < 0 ) // Thread/Process id
 #else
 #ifdef HAVE_SYSCALL
 #ifdef __FreeBSD_kernel__
-      if ( (syscall(SYS_thr_self, &tid)) < 0 ) // Thread/Process id
+    if ( (syscall(SYS_thr_self, &tid)) < 0 ) // Thread/Process id
 
 # else
-        // SOLARIS doesn't have SYS_gettid; don't assume
+      // SOLARIS doesn't have SYS_gettid; don't assume
 #ifdef SYS_gettid
-        if ( (tid = syscall(SYS_gettid)) < 0 ) // Thread/Process id
+      if ( (tid = syscall(SYS_gettid)) < 0 ) // Thread/Process id
 #endif // SYS_gettid
 #endif
 #endif // HAVE_SYSCALL
 #endif
-          tid = getpid(); // Process id
+        tid = getpid(); // Process id
 
-    char *logPtr = logString;
-    logPtr += snprintf( logPtr, sizeof(logString), "%s %s[%d].%s-%s/%d [", 
-        timeString,
-        mId.c_str(),
-        tid,
-        classString,
-        file,
-        line
-        );
-    char *syslogStart = logPtr;
+  char *logPtr = logString;
+  logPtr += snprintf( logPtr, sizeof(logString), "%s %s[%d].%s-%s/%d [", 
+      timeString,
+      mId.c_str(),
+      tid,
+      classString,
+      file,
+      line
+      );
+  char *syslogStart = logPtr;
 
-    va_start( argPtr, fstring );
-    if ( hex ) {
-      unsigned char *data = va_arg( argPtr, unsigned char * );
-      int len = va_arg( argPtr, int );
-      int i;
-      logPtr += snprintf( logPtr, sizeof(logString)-(logPtr-logString), "%d:", len );
-      for ( i = 0; i < len; i++ ) {
-        logPtr += snprintf( logPtr, sizeof(logString)-(logPtr-logString), " %02x", data[i] );
-      }
-    } else {
-      logPtr += vsnprintf( logPtr, sizeof(logString)-(logPtr-logString), fstring, argPtr );
+  va_start( argPtr, fstring );
+  if ( hex ) {
+    unsigned char *data = va_arg( argPtr, unsigned char * );
+    int len = va_arg( argPtr, int );
+    int i;
+    logPtr += snprintf( logPtr, sizeof(logString)-(logPtr-logString), "%d:", len );
+    for ( i = 0; i < len; i++ ) {
+      logPtr += snprintf( logPtr, sizeof(logString)-(logPtr-logString), " %02x", data[i] );
     }
-    va_end(argPtr);
-    char *syslogEnd = logPtr;
-    strncpy( logPtr, "]\n", sizeof(logString)-(logPtr-logString) );   
+  } else {
+    logPtr += vsnprintf( logPtr, sizeof(logString)-(logPtr-logString), fstring, argPtr );
+  }
+  va_end(argPtr);
+  char *syslogEnd = logPtr;
+  strncpy( logPtr, "]\n", sizeof(logString)-(logPtr-logString) );   
 
-    if ( level <= mTermLevel ) {
-      printf( "%s", logString );
-      fflush( stdout );
-    }
-    if ( level <= mFileLevel ) {
-      fprintf( mLogFileFP, "%s", logString );
+  if ( level <= mTermLevel ) {
+    puts( logString );
+    fflush( stdout );
+  }
+  if ( level <= mFileLevel ) {
+    if ( mLogFileFP ) {
+      fputs( logString, mLogFileFP );
       if ( mFlush )
         fflush( mLogFileFP );
+    } else {
+      puts("Logging to file, but file not open\n");
     }
-    *syslogEnd = '\0';
-    if ( level <= mDatabaseLevel ) {
-      char sql[ZM_SQL_MED_BUFSIZ];
-      char escapedString[(strlen(syslogStart)*2)+1];
+  }
+  *syslogEnd = '\0';
+  if ( level <= mDatabaseLevel ) {
+    char sql[ZM_SQL_MED_BUFSIZ];
+    char escapedString[(strlen(syslogStart)*2)+1];
 
-      mysql_real_escape_string( &dbconn, escapedString, syslogStart, strlen(syslogStart) );
+    mysql_real_escape_string( &dbconn, escapedString, syslogStart, strlen(syslogStart) );
 
-      snprintf( sql, sizeof(sql), "insert into Logs ( TimeKey, Component, ServerId, Pid, Level, Code, Message, File, Line ) values ( %ld.%06ld, '%s', %d, %d, %d, '%s', '%s', '%s', %d )", timeVal.tv_sec, timeVal.tv_usec, mId.c_str(), staticConfig.SERVER_ID, tid, level, classString, escapedString, file, line );
-      if ( mysql_query( &dbconn, sql ) ) {
-        Level tempDatabaseLevel = mDatabaseLevel;
-        databaseLevel( NOLOG );
-        Error( "Can't insert log entry: sql(%s) error(%s)", sql,  mysql_error( &dbconn ) );
-        databaseLevel(tempDatabaseLevel);
-      }
+    snprintf( sql, sizeof(sql), "insert into Logs ( TimeKey, Component, ServerId, Pid, Level, Code, Message, File, Line ) values ( %ld.%06ld, '%s', %d, %d, %d, '%s', '%s', '%s', %d )", timeVal.tv_sec, timeVal.tv_usec, mId.c_str(), staticConfig.SERVER_ID, tid, level, classString, escapedString, file, line );
+    if ( mysql_query( &dbconn, sql ) ) {
+      Level tempDatabaseLevel = mDatabaseLevel;
+      databaseLevel( NOLOG );
+      Error( "Can't insert log entry: sql(%s) error(%s)", sql,  mysql_error( &dbconn ) );
+      databaseLevel(tempDatabaseLevel);
     }
-    if ( level <= mSyslogLevel ) {
-      int priority = smSyslogPriorities[level];
-      //priority |= LOG_DAEMON;
-      syslog( priority, "%s [%s] [%s]", classString, mId.c_str(), syslogStart );
-    }
+  }
+  if ( level <= mSyslogLevel ) {
+    int priority = smSyslogPriorities[level];
+    //priority |= LOG_DAEMON;
+    syslog( priority, "%s [%s] [%s]", classString, mId.c_str(), syslogStart );
+  }
 
-    free(filecopy);
-    if ( level <= FATAL ) {
-      logTerm();
-      zmDbClose();
-      if ( level <= PANIC )
-        abort();
-      exit( -1 );
-    }
+  free(filecopy);
+  if ( level <= FATAL ) {
+    logTerm();
+    zmDbClose();
+    if ( level <= PANIC )
+      abort();
+    exit( -1 );
   }
 }
 
@@ -547,6 +558,8 @@ void logInit( const char *name, const Logger::Options &options ) {
 }
 
 void logTerm() {
-  if ( Logger::smInstance )
+  if ( Logger::smInstance ) {
     delete Logger::smInstance;
+    Logger::smInstance = NULL;
+  }
 }

@@ -186,6 +186,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
     }
   }
 
+  converted_input_samples = NULL;
   audio_output_codec = NULL;
   audio_input_context = NULL;
   audio_output_stream = NULL;
@@ -228,11 +229,11 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
         audio_output_context = avcodec_alloc_context3( audio_output_codec );
         // Copy params from inputstream to context
         ret = avcodec_parameters_to_context( audio_output_context, audio_input_stream->codecpar );
-        if (ret < 0) {
+        if ( ret < 0 ) {
           Error("Unable to copy audio params to context %s\n", av_make_error_string(ret).c_str());
         }
         ret = avcodec_parameters_from_context( audio_output_stream->codecpar, audio_output_context );
-        if (ret < 0) {
+        if ( ret < 0 ) {
           Error("Unable to copy audio params to stream %s\n", av_make_error_string(ret).c_str());
         }
 
@@ -324,14 +325,13 @@ VideoStore::~VideoStore(){
 
     while ( 1 ) {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-      ret = avcodec_send_frame( audio_output_context, NULL );
-      if ( ret < 0 ) {
-        Error("Error sending flush to encoder (%d) (%s)", ret, av_err2str( ret ));
-        break;
-      }
+      // Put encoder into flushing mode
+      avcodec_send_frame( audio_output_context, NULL );
       ret = avcodec_receive_packet( audio_output_context, &pkt );
       if ( ret < 0 ) {
-        Error("ERror encoding audio while flushing (%d) (%s)", ret, av_err2str( ret ));
+        if ( AVERROR_EOF != ret ) {
+          Error("ERror encoding audio while flushing (%d) (%s)", ret, av_err2str( ret ));
+        }
         break;
       }
 #else
@@ -377,17 +377,28 @@ VideoStore::~VideoStore(){
   // What if we were only doing audio recording?
   if ( video_output_stream ) {
     avcodec_close(video_output_context);
-    //av_free(video_output_context);
     video_output_context = NULL;
+    Debug(4, "Success freeing video_output_context");
   }
   if (audio_output_stream) {
     avcodec_close(audio_output_context);
-    //av_free(audio_output_context);
     audio_output_context = NULL;
 #ifdef HAVE_LIBAVRESAMPLE
     if ( resample_context ) {
       avresample_close( resample_context );
       avresample_free( &resample_context );
+    }
+    if ( input_frame ) {
+      av_frame_free( &input_frame );
+      input_frame = NULL;
+    }
+    if ( output_frame ) {
+      av_frame_free( &output_frame );
+      output_frame = NULL;
+    }
+    if ( converted_input_samples ) {
+      av_free( converted_input_samples );
+      converted_input_samples =NULL;
     }
 #endif
   }
@@ -402,18 +413,8 @@ VideoStore::~VideoStore(){
     Debug(3, "Not closing avio because we are not writing to a file.");
   }
 
-  if ( input_frame ) {
-    av_frame_free( &input_frame );
-    input_frame = NULL;
-  }
-  if ( output_frame ) {
-    av_frame_free( &output_frame );
-    output_frame = NULL;
-  }
-
   /* free the stream */
   avformat_free_context(oc);
-
 }
 
 bool VideoStore::setup_resampler() {
@@ -482,16 +483,6 @@ bool VideoStore::setup_resampler() {
   }
 
   audio_output_context->time_base = (AVRational){ 1, audio_output_context->sample_rate };
-
-
-  Debug(1, "Audio output bit_rate (%d) sample_rate(%d) channels(%d) fmt(%d) layout(%d) frame_size(%d)", 
-      audio_output_context->bit_rate,
-      audio_output_context->sample_rate,
-      audio_output_context->channels,
-      audio_output_context->sample_fmt,
-      audio_output_context->channel_layout,
-      audio_output_context->frame_size
-      );
 
   // Now copy them to the output stream
   audio_output_stream = avformat_new_stream( oc, audio_output_codec );
@@ -626,7 +617,7 @@ bool VideoStore::setup_resampler() {
     Error("Not built with libavresample library. Cannot do audio conversion to AAC");
     return false;
 #endif
-}
+} // end bool VideoStore::setup_resampler()
 
 
 void VideoStore::dumpPacket( AVPacket *pkt ){
@@ -652,14 +643,20 @@ int VideoStore::writeVideoFramePacket( AVPacket *ipkt ) {
   opkt.dts = video_next_dts;
 
   int duration;
-  if ( video_last_pts && ( ipkt->duration == AV_NOPTS_VALUE || ! ipkt->duration ) ) {
+  if ( ! video_last_pts ) {
+    duration = 0;
+  } else {
     duration = av_rescale_q( ipkt->pts - video_last_pts, video_input_stream->time_base, video_output_stream->time_base);
+    opkt.duration = 0;
+  }
+  
+//#if ( 0 && video_last_pts && ( ipkt->duration == AV_NOPTS_VALUE || ! ipkt->duration ) ) {
       // Video packets don't really have a duration. Audio does.
     //opkt.duration = av_rescale_q(duration, video_input_stream->time_base, video_output_stream->time_base);
-    opkt.duration = 0;
-  } else {
-    duration = opkt.duration = av_rescale_q(ipkt->duration, video_input_stream->time_base, video_output_stream->time_base);
-  }
+    //opkt.duration = 0;
+  //} else {
+    //duration = opkt.duration = av_rescale_q(ipkt->duration, video_input_stream->time_base, video_output_stream->time_base);
+  //}
   video_last_pts = ipkt->pts;
   video_last_dts = ipkt->dts;
 
@@ -747,7 +744,7 @@ int VideoStore::writeVideoFramePacket( AVPacket *ipkt ) {
 
   } else {
 
-    video_next_dts = opkt.dts + duration; // Unsure if av_interleaved_write_frame() clobbers opkt.dts when out of order, so storing in advance
+    video_next_dts = opkt.dts + duration;
     video_next_pts = opkt.pts + duration;
     ret = av_interleaved_write_frame(oc, &opkt);
     if ( ret < 0 ) {
@@ -776,6 +773,7 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
   }
 
   if ( audio_output_codec ) {
+    Debug(3, "Have audio codec");
 #ifdef HAVE_LIBAVRESAMPLE
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -790,12 +788,11 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
       Error("avcodec_receive_frame fail %s", av_make_error_string(ret).c_str());
       return 0;
     }
-    Debug(2, "Frame: samples(%d), format(%d), sample_rate(%d), channel layout(%d) refd(%d)", 
+    Debug(2, "Input Frame: samples(%d), format(%d), sample_rate(%d), channel layout(%d)", 
         input_frame->nb_samples,
         input_frame->format,
         input_frame->sample_rate,
-        input_frame->channel_layout,
-        audio_output_context->refcounted_frames
+        input_frame->channel_layout
         );
 #else
     /**
@@ -804,8 +801,8 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
      * If we are at the end of the file, pass an empty packet to the decoder
      * to flush it.
      */
-    if ((ret = avcodec_decode_audio4(audio_input_context, input_frame,
-            &data_present, ipkt)) < 0) {
+    if ( (ret = avcodec_decode_audio4(audio_input_context, input_frame,
+            &data_present, ipkt)) < 0 ) {
       Error( "Could not decode frame (error '%s')\n",
           av_make_error_string(ret).c_str());
       dumpPacket( ipkt );
@@ -817,8 +814,7 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
       return 0;
     }
 #endif
-    int frame_size = input_frame->nb_samples;
-    Debug(4, "Frame size: %d", frame_size );
+    int frame_size = output_frame->nb_samples;
 
     // Resample the input into the audioSampleBuffer until we proceed the whole decoded data
     if ( (ret = avresample_convert( resample_context,
@@ -830,34 +826,34 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
             input_frame->nb_samples )) < 0 ) {
       Error( "Could not resample frame (error '%s')\n",
           av_make_error_string(ret).c_str());
+      av_frame_unref( input_frame );
+      return 0;
+    }
+    av_frame_unref( input_frame );
+
+    int samples_available =  avresample_available( resample_context );
+
+    if ( samples_available < frame_size ) {
+      Debug(1, "Not enough samples yet (%d)", samples_available);
       return 0;
     }
 
-    if ( avresample_available( resample_context ) < output_frame->nb_samples ) {
-      Debug(1, "No enough samples yet");
-      return 0;
-    }
-
+    Debug(3, "Output_frame samples (%d)", output_frame->nb_samples );
     // Read a frame audio data from the resample fifo
-    if ( avresample_read( resample_context, output_frame->data, output_frame->nb_samples ) != output_frame->nb_samples ) {
+    if ( avresample_read( resample_context, output_frame->data, frame_size ) != frame_size ) {
       Warning( "Error reading resampled audio: " );
       return 0;
     }
+    Debug(2, "Frame: samples(%d), format(%d), sample_rate(%d), channel layout(%d)", 
+        output_frame->nb_samples,
+        output_frame->format,
+        output_frame->sample_rate,
+        output_frame->channel_layout
+        );
 
     av_init_packet(&opkt);
     Debug(5, "after init packet" );
 
-    /** Set a timestamp based on the sample rate for the container. */
-    //output_frame->pts = av_rescale_q( opkt.pts, audio_output_context->time_base, audio_output_stream->time_base );
-
-    // convert the packet to the codec timebase from the stream timebase
-    //Debug(3, "output_frame->pts(%d) best effort(%d)", output_frame->pts, 
-        //av_frame_get_best_effort_timestamp(output_frame)
-        //);
-    /**
-     * Encode the audio frame and store it in the temporary packet.
-     * The output audio stream encoder is used to do this.
-     */
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     if (( ret = avcodec_send_frame( audio_output_context, output_frame ) ) < 0 ) {
       Error( "Could not send frame (error '%s')",
@@ -866,14 +862,22 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
       return 0;
     }
 
-    if (( ret = avcodec_receive_packet( audio_output_context, &opkt )) < 0 ) {
-      Error( "Could not recieve packet (error '%s')",
+    //av_frame_unref( output_frame );
+
+    if ( ( ret = avcodec_receive_packet( audio_output_context, &opkt ) ) < 0 ) {
+      if ( AVERROR(EAGAIN) == ret ) {
+      // THe codec may need more samples than it has, perfectly valid
+      Debug( 3, "Could not recieve packet (error '%s')",
           av_make_error_string(ret).c_str());
+      } else {
+      Error( "Could not recieve packet (error %d = '%s')", ret,
+          av_make_error_string(ret).c_str());
+      }
       zm_av_packet_unref(&opkt);
+      av_frame_unref( input_frame );
+      //av_frame_unref( output_frame );
       return 0;
     }
-    av_frame_unref( input_frame );
-    av_frame_unref( output_frame );
 #else
     if (( ret = avcodec_encode_audio2( audio_output_context, &opkt, output_frame, &data_present )) < 0) {
       Error( "Could not encode frame (error '%s')",
@@ -921,9 +925,8 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
   }
 #else
     opkt.pts = audio_next_pts;
-#endif
-
     opkt.dts = audio_next_dts;
+#endif
 
 #if 0
     if ( ipkt->dts == AV_NOPTS_VALUE ) {
@@ -948,14 +951,20 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
     }
   }
 #endif
-  audio_last_dts = ipkt->dts;
+//audio_last_dts = ipkt->dts;
   if ( opkt.dts > opkt.pts ) {
     Debug(1,"opkt.dts(%d) must be <= opkt.pts(%d). Decompression must happen before presentation.", opkt.dts, opkt.pts );
     opkt.dts = opkt.pts;
   }
 
   // I wonder if we could just use duration instead of all the hoop jumping above?
-  opkt.duration = av_rescale_q(ipkt->duration, audio_input_stream->time_base, audio_output_stream->time_base);
+  //
+  if ( output_frame ) {
+    opkt.duration = output_frame->nb_samples;
+  } else {
+    opkt.duration = ipkt->duration;
+  }
+  //opkt.duration = av_rescale_q(ipkt->duration, audio_input_stream->time_base, audio_output_stream->time_base);
   Debug( 2, "opkt.pts (%d), opkt.dts(%d) opkt.duration = (%d)", opkt.pts, opkt.dts, opkt.duration );
 
   // pkt.pos:  byte position in stream, -1 if unknown 

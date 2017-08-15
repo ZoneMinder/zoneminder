@@ -333,7 +333,7 @@ VideoStore::~VideoStore(){
       }
       ret = avcodec_receive_packet( audio_output_context, &pkt );
       if ( ret < 0 ) {
-        if ( EOF != ret ) {
+        if ( AVERROR_EOF != ret ) {
           Error("ERror encoding audio while flushing (%d) (%s)", ret, av_err2str( ret ));
         }
         break;

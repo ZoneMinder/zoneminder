@@ -326,11 +326,7 @@ VideoStore::~VideoStore(){
     while ( 1 ) {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       // Put encoder into flushing mode
-      ret = avcodec_send_frame( audio_output_context, NULL );
-      if ( ret < 0 ) {
-        Error("Error sending flush to encoder (%d) (%s)", ret, av_err2str( ret ));
-        break;
-      }
+      avcodec_send_frame( audio_output_context, NULL );
       ret = avcodec_receive_packet( audio_output_context, &pkt );
       if ( ret < 0 ) {
         if ( AVERROR_EOF != ret ) {
@@ -869,12 +865,12 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
     //av_frame_unref( output_frame );
 
     if ( ( ret = avcodec_receive_packet( audio_output_context, &opkt ) ) < 0 ) {
-      if ( EAGAIN == ret ) {
+      if ( AVERROR(EAGAIN) == ret ) {
       // THe codec may need more samples than it has, perfectly valid
       Debug( 3, "Could not recieve packet (error '%s')",
           av_make_error_string(ret).c_str());
       } else {
-      Error( "Could not recieve packet (error '%s')",
+      Error( "Could not recieve packet (error %d = '%s')", ret,
           av_make_error_string(ret).c_str());
       }
       zm_av_packet_unref(&opkt);

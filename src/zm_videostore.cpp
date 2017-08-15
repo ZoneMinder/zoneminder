@@ -186,6 +186,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
     }
   }
 
+  converted_input_samples = NULL;
   audio_output_codec = NULL;
   audio_input_context = NULL;
   audio_output_stream = NULL;
@@ -324,16 +325,17 @@ VideoStore::~VideoStore(){
 
     while ( 1 ) {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-#if 0
+      // Put encoder into flushing mode
       ret = avcodec_send_frame( audio_output_context, NULL );
       if ( ret < 0 ) {
         Error("Error sending flush to encoder (%d) (%s)", ret, av_err2str( ret ));
         break;
       }
-#endif
       ret = avcodec_receive_packet( audio_output_context, &pkt );
       if ( ret < 0 ) {
-        Error("ERror encoding audio while flushing (%d) (%s)", ret, av_err2str( ret ));
+        if ( EOF != ret ) {
+          Error("ERror encoding audio while flushing (%d) (%s)", ret, av_err2str( ret ));
+        }
         break;
       }
 #else
@@ -380,6 +382,7 @@ VideoStore::~VideoStore(){
   if ( video_output_stream ) {
     avcodec_close(video_output_context);
     video_output_context = NULL;
+    Debug(4, "Success freeing video_output_context");
   }
   if (audio_output_stream) {
     avcodec_close(audio_output_context);

@@ -202,7 +202,7 @@ class Event {
 
   // frame is an array representing the db row for a frame.
   function getImageSrc( $frame, $scale=SCALE_BASE, $captureOnly=false, $overwrite=false ) {
-    $Storage = new Storage(  isset($this->{'StorageId'}) ? $this->{'StorageId'} : NULL  );
+    $Storage = new Storage( isset($this->{'StorageId'}) ? $this->{'StorageId'} : NULL  );
     $Event = $this;
     $eventPath = $Event->Path();
 

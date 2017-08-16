@@ -92,8 +92,10 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::stri
   }
 
   hwaccel = false;
+#if HAVE_AVUTIL_HWCONTEXT_H
   decode = { NULL };
   hwFrame = NULL;
+#endif
 
   mFormatContext = NULL;
   mVideoStreamId = -1;

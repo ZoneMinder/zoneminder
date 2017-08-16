@@ -641,13 +641,14 @@ int VideoStore::writeVideoFramePacket( AVPacket *ipkt ) {
 
   opkt.pts = video_next_pts;
   opkt.dts = video_next_dts;
+  opkt.duration = 0;
 
-  int duration;
+  unsigned int duration;
   if ( ! video_last_pts ) {
     duration = 0;
   } else {
     duration = av_rescale_q( ipkt->pts - video_last_pts, video_input_stream->time_base, video_output_stream->time_base);
-    opkt.duration = 0;
+    Debug(1, "duration calc: pts(%d) - last_pts(%d) = (%d)", ipkt->pts, video_last_pts, duration );
   }
   
 //#if ( 0 && video_last_pts && ( ipkt->duration == AV_NOPTS_VALUE || ! ipkt->duration ) ) {

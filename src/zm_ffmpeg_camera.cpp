@@ -25,6 +25,8 @@
 
 extern "C" {
 #include "libavutil/time.h"
+#include "libavutil/hwcontext.h"
+#include "libavutil/hwcontext_qsv.h"
 }
 #ifndef AV_ERROR_MAX_STRING_SIZE
 #define AV_ERROR_MAX_STRING_SIZE 64
@@ -36,6 +38,45 @@ extern "C" {
 #include <pthread.h>
 #endif
 
+
+static AVPixelFormat get_format(AVCodecContext *avctx, const enum AVPixelFormat *pix_fmts) {
+  while (*pix_fmts != AV_PIX_FMT_NONE) {
+    if (*pix_fmts == AV_PIX_FMT_QSV) {
+      DecodeContext *decode = (DecodeContext *)avctx->opaque;
+      AVHWFramesContext  *frames_ctx;
+      AVQSVFramesContext *frames_hwctx;
+      int ret;
+
+      /* create a pool of surfaces to be used by the decoder */
+      avctx->hw_frames_ctx = av_hwframe_ctx_alloc(decode->hw_device_ref);
+      if (!avctx->hw_frames_ctx)
+        return AV_PIX_FMT_NONE;
+      frames_ctx   = (AVHWFramesContext*)avctx->hw_frames_ctx->data;
+      frames_hwctx = (AVQSVFramesContext*)frames_ctx->hwctx;
+
+      frames_ctx->format            = AV_PIX_FMT_QSV;
+      frames_ctx->sw_format         = avctx->sw_pix_fmt;
+      frames_ctx->width             = FFALIGN(avctx->coded_width,  32);
+      frames_ctx->height            = FFALIGN(avctx->coded_height, 32);
+      frames_ctx->initial_pool_size = 32;
+
+      frames_hwctx->frame_type = MFX_MEMTYPE_VIDEO_MEMORY_DECODER_TARGET;
+
+      ret = av_hwframe_ctx_init(avctx->hw_frames_ctx);
+      if (ret < 0)
+        return AV_PIX_FMT_NONE;
+
+      return AV_PIX_FMT_QSV;
+    }
+
+    pix_fmts++;
+  }
+
+  Error( "The QSV pixel format not offered in get_format()");
+
+  return AV_PIX_FMT_NONE;
+}
+
 FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::string &p_method, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio ) :
   Camera( p_id, FFMPEG_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture, p_record_audio ),
   mPath( p_path ),
@@ -45,6 +86,10 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::stri
   if ( capture ) {
     Initialise();
   }
+
+  hwaccel = false;
+  decode = { NULL };
+  hwFrame = NULL;
 
   mFormatContext = NULL;
   mVideoStreamId = -1;
@@ -188,13 +233,33 @@ int FfmpegCamera::Capture( Image &image ) {
         zm_av_packet_unref( &packet );
         continue;
       }
-      ret = avcodec_receive_frame( mVideoCodecContext, mRawFrame );
-      if ( ret < 0 ) {
-        av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
-        Error( "Unable to send packet at frame %d: %s, continuing", frameCount, errbuf );
-        zm_av_packet_unref( &packet );
-        continue;
+
+      if ( hwaccel ) {
+        ret = avcodec_receive_frame( mVideoCodecContext, hwFrame );
+        if ( ret < 0 ) {
+          av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
+          Error( "Unable to send packet at frame %d: %s, continuing", frameCount, errbuf );
+          zm_av_packet_unref( &packet );
+          continue;
+        }
+        ret = av_hwframe_transfer_data(mRawFrame, hwFrame, 0);
+        if (ret < 0) {
+          av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
+          Error( "Unable to transfer frame at frame %d: %s, continuing", frameCount, errbuf );
+          zm_av_packet_unref( &packet );
+          continue;
+        }
+      } else {
+        ret = avcodec_receive_frame( mVideoCodecContext, mRawFrame );
+        if ( ret < 0 ) {
+          av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
+          Error( "Unable to send packet at frame %d: %s, continuing", frameCount, errbuf );
+          zm_av_packet_unref( &packet );
+          continue;
+        }
+
       }
+
       frameComplete = 1;
 # else
       ret = zm_avcodec_decode_video( mVideoCodecContext, mRawFrame, &frameComplete, &packet );
@@ -397,12 +462,40 @@ int FfmpegCamera::OpenFfmpeg() {
 	mVideoCodecContext->flags2 |= CODEC_FLAG2_FAST | CODEC_FLAG_LOW_DELAY;
 
   if ( mVideoCodecContext->codec_id == AV_CODEC_ID_H264 ) {
-    // Try to open an hwaccel codec.
-    if ( (mVideoCodec = avcodec_find_decoder_by_name("h264_vaapi")) == NULL ) { 
-      Debug(1, "Failed to find decoder (h264_vaapi)" );
-    } else {
-      Debug(1, "Success finding decoder (h264_vaapi)" );
+
+    //vaapi_decoder = new VAAPIDecoder();
+    //mVideoCodecContext->opaque = vaapi_decoder;
+    //mVideoCodec = vaapi_decoder->openCodec( mVideoCodecContext );
+
+    if ( ! mVideoCodec ) {
+      // Try to open an hwaccel codec.
+      if ( (mVideoCodec = avcodec_find_decoder_by_name("h264_vaapi")) == NULL ) { 
+        Debug(1, "Failed to find decoder (h264_vaapi)" );
+      } else {
+        Debug(1, "Success finding decoder (h264_vaapi)" );
+      }
     }
+    if ( ! mVideoCodec ) {
+      // Try to open an hwaccel codec.
+      if ( (mVideoCodec = avcodec_find_decoder_by_name("h264_qsv")) == NULL ) { 
+        Debug(1, "Failed to find decoder (h264_qsv)" );
+      } else {
+        Debug(1, "Success finding decoder (h264_qsv)" );
+        /* open the hardware device */
+        ret = av_hwdevice_ctx_create(&decode.hw_device_ref, AV_HWDEVICE_TYPE_QSV,
+            "auto", NULL, 0);
+        if (ret < 0) {
+          Error("Failed to open the hardware device");
+          mVideoCodec = NULL;
+        } else {
+          mVideoCodecContext->opaque      = &decode;
+          mVideoCodecContext->get_format  = get_format;
+          hwaccel = true;
+          hwFrame = zm_av_frame_alloc();
+        }
+      }
+    }
+
   } // end if h264
 
   if ( (!mVideoCodec) and ( (mVideoCodec = avcodec_find_decoder(mVideoCodecContext->codec_id)) == NULL ) ) {
@@ -433,6 +526,11 @@ int FfmpegCamera::OpenFfmpeg() {
   }
   }
 
+  if (mVideoCodecContext->hwaccel != NULL) {
+    Debug(1, "HWACCEL in use");
+  } else {
+    Debug(1, "HWACCEL not in use");
+  }
   if ( mAudioStreamId >= 0 ) {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     mAudioCodecContext = avcodec_alloc_context3( NULL );
@@ -826,13 +924,32 @@ else if ( packet.pts && video_last_pts > packet.pts ) {
           zm_av_packet_unref( &packet );
           continue;
         }
-        ret = avcodec_receive_frame( mVideoCodecContext, mRawFrame );
-        if ( ret < 0 ) {
-          av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
-          Debug( 1, "Unable to send packet at frame %d: %s, continuing", frameCount, errbuf );
-          zm_av_packet_unref( &packet );
-          continue;
+        if ( hwaccel ) {
+          ret = avcodec_receive_frame( mVideoCodecContext, hwFrame );
+          if ( ret < 0 ) {
+            av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
+            Error( "Unable to send packet at frame %d: %s, continuing", frameCount, errbuf );
+            zm_av_packet_unref( &packet );
+            continue;
+          }
+          ret = av_hwframe_transfer_data(mRawFrame, hwFrame, 0);
+          if (ret < 0) {
+            av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
+            Error( "Unable to transfer frame at frame %d: %s, continuing", frameCount, errbuf );
+            zm_av_packet_unref( &packet );
+            continue;
+          }
+        } else {
+          ret = avcodec_receive_frame( mVideoCodecContext, mRawFrame );
+          if ( ret < 0 ) {
+            av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
+            Error( "Unable to send packet at frame %d: %s, continuing", frameCount, errbuf );
+            zm_av_packet_unref( &packet );
+            continue;
+          }
+
         }
+
         frameComplete = 1;
 # else
         ret = zm_avcodec_decode_video( mVideoCodecContext, mRawFrame, &frameComplete, &packet );
@@ -910,5 +1027,7 @@ else if ( packet.pts && video_last_pts > packet.pts ) {
   } // end while ! frameComplete
   return (frameCount);
 } // end FfmpegCamera::CaptureAndRecord
+
+
 
 #endif // HAVE_LIBAVFORMAT

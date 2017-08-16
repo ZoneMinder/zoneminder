@@ -25,8 +25,10 @@
 
 extern "C" {
 #include "libavutil/time.h"
-#include "libavutil/hwcontext.h"
-#include "libavutil/hwcontext_qsv.h"
+#if HAVE_AVUTIL_HWCONTEXT_H
+	#include "libavutil/hwcontext.h"
+	#include "libavutil/hwcontext_qsv.h"
+#endif
 }
 #ifndef AV_ERROR_MAX_STRING_SIZE
 #define AV_ERROR_MAX_STRING_SIZE 64
@@ -39,6 +41,7 @@ extern "C" {
 #endif
 
 
+#if HAVE_AVUTIL_HWCONTEXT_H
 static AVPixelFormat get_format(AVCodecContext *avctx, const enum AVPixelFormat *pix_fmts) {
   while (*pix_fmts != AV_PIX_FMT_NONE) {
     if (*pix_fmts == AV_PIX_FMT_QSV) {
@@ -76,6 +79,7 @@ static AVPixelFormat get_format(AVCodecContext *avctx, const enum AVPixelFormat 
 
   return AV_PIX_FMT_NONE;
 }
+#endif
 
 FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::string &p_method, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio ) :
   Camera( p_id, FFMPEG_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture, p_record_audio ),
@@ -234,6 +238,7 @@ int FfmpegCamera::Capture( Image &image ) {
         continue;
       }
 
+#if HAVE_AVUTIL_HWCONTEXT_H
       if ( hwaccel ) {
         ret = avcodec_receive_frame( mVideoCodecContext, hwFrame );
         if ( ret < 0 ) {
@@ -250,6 +255,7 @@ int FfmpegCamera::Capture( Image &image ) {
           continue;
         }
       } else {
+#endif
         ret = avcodec_receive_frame( mVideoCodecContext, mRawFrame );
         if ( ret < 0 ) {
           av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
@@ -258,7 +264,9 @@ int FfmpegCamera::Capture( Image &image ) {
           continue;
         }
 
+#if HAVE_AVUTIL_HWCONTEXT_H
       }
+#endif
 
       frameComplete = 1;
 # else
@@ -461,6 +469,7 @@ int FfmpegCamera::OpenFfmpeg() {
 	//mVideoCodecContext->flags2 |= CODEC_FLAG2_FAST | CODEC_FLAG2_CHUNKS | CODEC_FLAG_LOW_DELAY;  // Enable faster H264 decode.
 	mVideoCodecContext->flags2 |= CODEC_FLAG2_FAST | CODEC_FLAG_LOW_DELAY;
 
+#if HAVE_AVUTIL_HWCONTEXT_H
   if ( mVideoCodecContext->codec_id == AV_CODEC_ID_H264 ) {
 
     //vaapi_decoder = new VAAPIDecoder();
@@ -497,6 +506,7 @@ int FfmpegCamera::OpenFfmpeg() {
     }
 
   } // end if h264
+#endif
 
   if ( (!mVideoCodec) and ( (mVideoCodec = avcodec_find_decoder(mVideoCodecContext->codec_id)) == NULL ) ) {
   // Try and get the codec from the codec context

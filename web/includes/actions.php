@@ -435,7 +435,7 @@ Warning("Addterm");
           # If we change anything that changes the shared mem size, zma can complain.  So let's stop first.
           zmaControl( $monitor, 'stop' );
           zmcControl( $monitor, 'stop' );
-          dbQuery( 'UPDATE Monitors SET '.implode( ", ", $changes ).' WHERE Id =?', array($mid) );
+          dbQuery( 'UPDATE Monitors SET '.implode( ', ', $changes ).' WHERE Id=?', array($mid) );
           if ( isset($changes['Name']) ) {
             $saferOldName = basename( $monitor['Name'] );
             $saferNewName = basename( $_REQUEST['newMonitor']['Name'] );
@@ -521,7 +521,7 @@ Warning("Addterm");
         zmcControl( $new_monitor, 'start' );
         zmaControl( $new_monitor, 'start' );
 
-        if ( $monitor['Controllable'] ) {
+        if ( $new_monitor['Controllable'] ) {
           require_once( 'control_functions.php' );
           sendControlCommand( $mid, 'quit' );
         } 

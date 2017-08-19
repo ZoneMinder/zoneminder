@@ -235,20 +235,24 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
         rm -rf web/api/app/Plugin/Crud
         mkdir web/api/app/Plugin/Crud
 
-        if [ "${OS}" == "el" ]; then
-            zmrepodistro=${OS}
+        # We use zmrepo to build el6 only. All other redhat distros use rpm fusion
+        if [ "${OS}" == "el" ] && [ "${DIST}" == "6" ]; then
+            baseurl="https://zmrepo.zoneminder.com/el/${DIST}/x86_64/"
+            reporpm="zmrepo"
         else
-            zmrepodistro="f"
+            baseurl="http://download1.rpmfusion.org/free/${OS}/updates/${DIST}/x86_64/"
+            reporpm="rpmfusion-free-release"
         fi
 
-        # Let repoquery determine the full url and filename of the zmrepo rpm we are interested in
-        result=`repoquery --repofrompath=zmpackpack,https://zmrepo.zoneminder.com/${zmrepodistro}/"${DIST}"/x86_64/ --repoid=zmpackpack --qf="%{location}" zmrepo 2> /dev/null`
+        # Let repoquery determine the full url and filename of the external repo rpm we are interested in
+        result=`repoquery --archlist=noarch --repofrompath=zmpackpack,${baseurl} --repoid=zmpackpack --qf="%{location}" ${reporpm} 2> /dev/null`
 
+        # Give our downloaded repo rpm a common name so redhat_package.mk can find it
         if [ -n "$result" ] && [ $? -eq 0  ]; then
-            echo "Retrieving ZMREPO rpm..."
-            curl $result > build/zmrepo.noarch.rpm
+            echo "Retrieving ${reporpm} repo rpm..."
+            curl $result > build/external-repo.noarch.rpm
         else
-            echo "ERROR: Failed to retrieve zmrepo rpm..."
+            echo "ERROR: Failed to retrieve ${reporpm} repo rpm..."
             exit 1
         fi
 

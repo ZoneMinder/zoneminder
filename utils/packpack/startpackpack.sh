@@ -213,6 +213,13 @@ EOF
 
 # start packpack, filter the output if we are running in travis
 execpackpack () {
+
+    if [ "${OS}" == "el" ] || [ "${OS}" == "fedora" ]; then
+        parms="-f utils/packpack/redhat_package.mk redhat_package"
+    else
+        parms=""
+    fi
+
     if [ "${TRAVIS}" == "true"  ]; then
         utils/packpack/heartbeat.sh &
         mypid=$!
@@ -220,7 +227,7 @@ execpackpack () {
         kill $mypid
         tail -n 3000 buildlog.txt | grep -v ONVIF
     else
-        packpack/packpack
+        packpack/packpack $parms
     fi
 }
 
@@ -261,7 +268,7 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
 
         # Give our downloaded repo rpm a common name so redhat_package.mk can find it
         if [ -n "$dlurl" ] && [ $? -eq 0  ]; then
-            echo "Retrieving ${reporpm} repo rpm..."
+            echo "Retrieving ${reporpm} repo rpm..."gd
             curl $dlurl > build/external-repo.noarch.rpm
         else
             echo "ERROR: Failed to retrieve ${reporpm} repo rpm..."

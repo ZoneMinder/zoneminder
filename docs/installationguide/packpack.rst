@@ -56,7 +56,7 @@ A freshly cloned ZoneMinder git repo already points to the most recent commit in
 
 	git checkout <releasename>
 
-Where <releasename> is one of the official ZoneMinder releases, such as 1.30.4.
+Where <releasename> is one of the official ZoneMinder releases shown on the `releases page <https://github.com/ZoneMinder/ZoneMinder/releases>`_, such as 1.30.4.
 
 **Step 5:** Build ZoneMinder
 

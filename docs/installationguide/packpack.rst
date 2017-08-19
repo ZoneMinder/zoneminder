@@ -48,7 +48,7 @@ Alternatively, if you have already cloned the repo and wish to update it, do the
         git checkout master
         git pull origin master
 
-**Step 4:** Checkout the revision of ZoneMinder you wish to build
+**Step 4:** Checkout the revision of ZoneMinder you wish to build.
 
 A freshly cloned ZoneMinder git repo already points to the lastest master branch. If this is what you desire to build then continue to the next step. If instead, you want to build a release then perform the following step.
 

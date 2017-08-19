@@ -78,7 +78,7 @@ Where <distroname> is the name of the distro you wish to build on, such as fedor
 
 Once you enter the appropriate command, go get a coffee while a ZoneMinder package is built. When the build finished, you can find the resulting packages under a subfolder called "build".
 
-Note that this will build packages with x86_64 architecture. Some distros (debian & ubuntu only at the moment) also supported on i386 architecture. You can do that by adding "ARCH=i386" parameter.
+Note that this will build packages with x86_64 architecture. This build method can also build on some distros (debian & ubuntu only at the moment) using i386 architecture. You can do that by adding "ARCH=i386" parameter.
 
 ::
 

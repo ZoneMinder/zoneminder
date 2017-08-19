@@ -86,7 +86,7 @@ As mentioned above, the place to get the latest ZoneMinder release is now `RPM F
 
 Note that RHEL/CentOS 7 users should use yum instead of dnf.
 
-How to Build a Your Own ZoneMinder Package
+How to Build Your Own ZoneMinder Package
 ------------------------------------------
 
 If you are looking to do development or the available packages just don't suit you, then you can follow these steps to build your own ZoneMinder RPM.

@@ -50,7 +50,7 @@ Alternatively, if you have already cloned the repo and wish to update it, do the
 
 **Step 4:** Checkout the revision of ZoneMinder you wish to build.
 
-A freshly cloned ZoneMinder git repo already points to the lastest master branch. If this is what you desire to build then continue to the next step. If instead, you want to build a release then perform the following step.
+A freshly cloned ZoneMinder git repo already points to the most recent commit in the master branch. If you want the latest development code then continue to the next step. If instead, you want to build a stable release then perform the following step.
 
 ::
 

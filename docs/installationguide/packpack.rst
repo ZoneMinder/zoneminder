@@ -9,7 +9,7 @@ Advantages:
 
 - Fewer steps and therefore much simpler
 - Target distro agnostic - the steps are the same regardless of the target distro
-- Host distro agnostic - the steps described here should work on an host Linux distro
+- Host distro agnostic - the steps described here should work on any host Linux distro capable of running Bash and Docker
 
 Background
 ------------------------------------

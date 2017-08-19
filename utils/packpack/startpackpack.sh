@@ -239,16 +239,15 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
         if [ "${OS}" == "el" ] && [ "${DIST}" == "6" ]; then
             baseurl="https://zmrepo.zoneminder.com/el/${DIST}/x86_64/"
             reporpm="zmrepo"
+            # Let repoquery determine the full url and filename to the latest zmrepo package
+            dlurl=`repoquery --archlist=noarch --repofrompath=zmpackpack,${baseurl} --repoid=zmpackpack --qf="%{location}" ${reporpm} 2> /dev/null`
         else
-            baseurl="http://download1.rpmfusion.org/free/${OS}/updates/${DIST}/x86_64/"
             reporpm="rpmfusion-free-release"
+            dlurl="https://download1.rpmfusion.org/free/${OS}/${reporpm}-${DIST}.noarch.rpm"
         fi
 
-        # Let repoquery determine the full url and filename of the external repo rpm we are interested in
-        result=`repoquery --archlist=noarch --repofrompath=zmpackpack,${baseurl} --repoid=zmpackpack --qf="%{location}" ${reporpm} 2> /dev/null`
-
         # Give our downloaded repo rpm a common name so redhat_package.mk can find it
-        if [ -n "$result" ] && [ $? -eq 0  ]; then
+        if [ -n "$dlurl" ] && [ $? -eq 0  ]; then
             echo "Retrieving ${reporpm} repo rpm..."
             curl $result > build/external-repo.noarch.rpm
         else

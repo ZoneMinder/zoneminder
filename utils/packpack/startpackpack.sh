@@ -211,6 +211,19 @@ zoneminder ($VERSION-${DIST}-1) unstable; urgency=low
 EOF
 }
 
+# start packpack, filter the output if we are running in travis
+execpackpack () {
+    if [ "${TRAVIS}" == "true"  ]; then
+        utils/packpack/heartbeat.sh &
+        mypid=$!
+        packpack/packpack > buildlog.txt 2>&1
+        kill $mypid
+        tail -n 3000 buildlog.txt | grep -v ONVIF
+    else
+        packpack/packpack
+    fi
+}
+
 ################
 # MAIN PROGRAM #
 ################
@@ -249,20 +262,17 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
         # Give our downloaded repo rpm a common name so redhat_package.mk can find it
         if [ -n "$dlurl" ] && [ $? -eq 0  ]; then
             echo "Retrieving ${reporpm} repo rpm..."
-            curl $result > build/external-repo.noarch.rpm
+            curl $dlurl > build/external-repo.noarch.rpm
         else
             echo "ERROR: Failed to retrieve ${reporpm} repo rpm..."
+            echo "Download url was: $dlurl"
             exit 1
         fi
 
         setrpmchangelog
 
         echo "Starting packpack..."
-        utils/packpack/heartbeat.sh &
-        mypid=$!
-        packpack/packpack -f utils/packpack/redhat_package.mk redhat_package > buildlog.txt 2>&1
-        kill $mypid
-        tail -n 3000 buildlog.txt | grep -v ONVIF
+        execpackpack
 
     # Steps common to Debian based distros
     elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ]; then
@@ -282,11 +292,7 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
         setdebchangelog
         
         echo "Starting packpack..."
-        utils/packpack/heartbeat.sh &
-        mypid=$!
-        packpack/packpack > buildlog.txt 2>&1
-        kill $mypid
-        tail -n 3000 buildlog.txt | grep -v ONVIF
+        execpackpack
         
         if [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ] && [ "${ARCH}" == "x86_64" ] && [ "${TRAVIS}" == "true" ]; then
             installtrusty
@@ -306,11 +312,7 @@ elif [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ] && [ "${ARCH}" == "x86
     setdebchangelog
     
     echo "Starting packpack..."
-    utils/packpack/heartbeat.sh &
-    mypid=$!
-    packpack/packpack > buildlog.txt 2>&1
-    kill $mypid
-    tail -n 3000 buildlog.txt | grep -v ONVIF
+    execpackpack
 
     # If we are running inside Travis then attempt to install the deb we just built
     if [ "${TRAVIS}" == "true" ]; then

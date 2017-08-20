@@ -321,21 +321,43 @@ sub Sql {
 } # end sub Sql
 
 sub getDiskPercent {
-  my $command = "df " . ($_[0] ? $_[0] : '.');
-  my $df = qx( $command );
+#RF Add quota support for user running filter - as functions.php
   my $space = -1;
-  if ( $df =~ /\s(\d+)%/ms ) {
-    $space = $1;
+  #get mountpoint
+  my $command = "stat -c %m " . ($_[0] ? $_[0] : '.');
+  my $df = qx( $command );
+    #untaint, ugly 
+  ($df) = ($df =~ /^(.*)$/gs);
+  $df = qx( quota -w -f $df );
+  if ( $df =~ /\s+(\d+)\*?\s+(\d+)\*?(\s+\d+){2}/ms ) {
+    $space = int (100 * $1 / ($2 +1));
+  } else {
+    my $command = "df " . ($_[0] ? $_[0] : '.');
+    my $df = qx( $command );
+    if ( $df =~ /\s(\d+)%/ms ) {
+	  $space = $1;
+    }
   }
   return( $space );
 }
 
 sub getDiskBlocks {
+#RF Add quota support for user running filter - as functions.php
+  my $space = -1;
+  #get mountpoint
+  my $command = "stat -c %m .";
+  my $df = qx( $command );
+  #untaint, ugly 
+  ($df) = ($df =~ /^(.*)$/gs);
+  $df = qx( quota -w -f $df );
+  if ( $df =~ /\s+(\d+)\*?\s+(\d+)\*?(\s+\d+){2}/ms ) {
+    $space = $1;
+  } else {
   my $command = "df .";
   my $df = qx( $command );
-  my $space = -1;
   if ( $df =~ /\s(\d+)\s+\d+\s+\d+%/ms ) {
-    $space = $1;
+      $space = $1;
+    }
   }
   return( $space );
 }

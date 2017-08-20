@@ -27,7 +27,6 @@ env:
   matrix:
   - OS=el DIST=6
   - OS=el DIST=7
-  - OS=fedora DIST=24
   - OS=fedora DIST=25
   - OS=ubuntu DIST=trusty
   - OS=ubuntu DIST=xenial

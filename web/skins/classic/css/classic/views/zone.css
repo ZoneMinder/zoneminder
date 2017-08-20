@@ -52,15 +52,15 @@
 }
 
 #imageFrame div {
-    background-image: url(../../../graphics/point-g.gif);
+    background-image: url(../../../graphics/point-g.png);
 }
 
 #imageFrame div.highlight {
-    background-image: url(../../../graphics/point-o.gif);
+    background-image: url(../../../graphics/point-o.png);
 }
 
 #imageFrame div.active {
-    background-image: url(../../../graphics/point-r.gif);
+    background-image: url(../../../graphics/point-r.png);
 }
 
 #zonePoints {

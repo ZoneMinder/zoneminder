@@ -226,6 +226,7 @@ protected:
 protected:
   int curr_frame_id;
   double curr_stream_time;
+  bool send_frame;          // Used as a flag whether or not to send out a frame.
 
   EventData *event_data;
 

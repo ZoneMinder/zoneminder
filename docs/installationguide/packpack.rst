@@ -29,7 +29,14 @@ Procedure
 
 **Step 2:** Install Docker.
 
-You need to have a working installation of Docker so head over to the `Docker site <https://docs.docker.com/engine/installation/>`_ and get it working. Before continuing to the next step, verify you can run the Docker "Hello World" container as a normal user.
+You need to have a working installation of Docker so head over to the `Docker site <https://docs.docker.com/engine/installation/>`_ and get it working. Before continuing to the next step, verify you can run the Docker "Hello World" container as a normal user. To run a Docker container as a normal user, issue the following:
+
+::
+
+	sudo gpasswd -a <username> docker
+	newgrp docker
+
+Where <username> is, you guessed it, the user name you log in with.
 
 **Step 3:** Git clone the ZoneMinder project.
 

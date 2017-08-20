@@ -27,7 +27,7 @@ checksanity () {
             echo
             echo "ERROR: The script cannot find the required command \"reqoquery\"."
             echo "This command is required in order to build ZoneMinder on el6."
-            echo "Please install the \"yum-utils\" then try again."
+            echo "Please install the \"yum-utils\" package then try again."
             echo
             exit 1
         fi

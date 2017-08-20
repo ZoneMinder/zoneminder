@@ -9,7 +9,7 @@
 # General sanity checks
 checksanity () {
     # Check to see if this script has access to all the commands it needs
-    for CMD in set echo curl repoquery git ln mkdir rmdir cat patch; do
+    for CMD in set echo curl git ln mkdir rmdir cat patch; do
       type $CMD 2>&1 > /dev/null
 
       if [ $? -ne 0 ]; then
@@ -20,6 +20,19 @@ checksanity () {
       fi
     done
 
+    if [ "${OS}" == "el" ] && [ "${DIST}" == "6" ]; then
+        type repoquery  2>&1 > /dev/null
+    
+        if [ $? -ne 0 ]; then
+            echo
+            echo "ERROR: The script cannot find the required command \"reqoquery\"."
+            echo "This command is required in order to build ZoneMinder on el6."
+            echo "Please install the \"yum-utils\" then try again."
+            echo
+            exit 1
+        fi
+    fi
+    
     # Verify OS & DIST environment variables have been set before calling this script
     if [ -z "${OS}" ] || [ -z "${DIST}" ]; then
         echo "ERROR: both OS and DIST environment variables must be set"

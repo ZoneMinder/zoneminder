@@ -21,7 +21,7 @@ checksanity () {
     done
 
     if [ "${OS}" == "el" ] && [ "${DIST}" == "6" ]; then
-        type repoquery  2>&1 > /dev/null
+        type repoquery 2>&1 > /dev/null
     
         if [ $? -ne 0 ]; then
             echo

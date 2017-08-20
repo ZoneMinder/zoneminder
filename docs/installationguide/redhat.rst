@@ -132,7 +132,7 @@ Your build environment is now set up.
 
 Build from SRPM
 ***************
-To continue, you need a ZoneMinder SRPM. If you wish to rebuild a ZoneMinder release, then browse the `RPM Fusion site <http://zmrepo.zoneminder.com/>`_. If instead you wish to rebuild the latest source rpm from our master branch then browse the `Zmrepo site <http://zmrepo.zoneminder.com/>`_.
+To continue, you need a ZoneMinder SRPM. If you wish to rebuild a ZoneMinder release, then browse the `RPM Fusion site <https://rpmfusion.org/>`_. If instead you wish to rebuild the latest source rpm from our master branch then browse the `Zmrepo site <http://zmrepo.zoneminder.com/>`_.
 
 For this example, I'll use one of the source rpms from zmrepo:   
 

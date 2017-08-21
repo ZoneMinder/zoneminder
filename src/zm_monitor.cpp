@@ -2941,7 +2941,7 @@ void Monitor::TimestampImage( Image *ts_image, const struct timeval *ts_time ) c
     const char *s_ptr = label_time_text;
     char *d_ptr = label_text;
     while ( *s_ptr && ((d_ptr-label_text) < (unsigned int)sizeof(label_text)) ) {
-      if ( *s_ptr == '%' ) {
+      if ( *s_ptr == config.timestamp_code_char[0] ) {
         bool found_macro = false;
         switch ( *(s_ptr+1) ) {
           case 'N' :

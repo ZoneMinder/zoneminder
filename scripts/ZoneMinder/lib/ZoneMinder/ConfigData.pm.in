@@ -701,6 +701,25 @@ our @options = (
     category    => 'config',
   },
   {
+    name        => 'ZM_TIMESTAMP_CODE_CHAR',
+    default     => '%',
+    description => 'Character to used to identify timestamp codes',
+    help        => q`
+      There are a few codes one can use to tell ZoneMinder to insert
+      data into the timestamp of each image. Traditionally, the
+      percent (%) character has been used to identify these codes since
+      the current character codes do not conflict with the strftime
+      codes, which can also be used in the timestamp. While this works
+      well for Linux, this does not work well for BSD operating systems.
+      Changing the default character to something else, such as an
+      exclamation point (!), resolves the issue. Note this only affects
+      the timestamp codes built into ZoneMinder. It has no effect on
+      the family of strftime codes one can use.
+      `,
+    type        => $types{string},
+    category    => 'config',
+  },
+  {
     name        => 'ZM_CPU_EXTENSIONS',
     default     => 'yes',
     description => 'Use advanced CPU extensions to increase performance',

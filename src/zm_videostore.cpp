@@ -623,7 +623,7 @@ bool VideoStore::setup_resampler() {
 void VideoStore::dumpPacket( AVPacket *pkt ){
   char b[10240];
 
-  snprintf(b, sizeof(b), " pts: %" PRId64 ", dts: %" PRId64 ", data: %p, size: %d, sindex: %d, dflags: %04x, s-pos: %" PRId64 ", c-duration: %" PRId64 "\n"
+  snprintf(b, sizeof(b), " pts: %" PRId64 ", dts: %" PRId64 ", data: %p, size: %d, sindex: %d, dflags: %04x, s-pos: %" PRId64 ", c-duration: %d\n"
       , pkt->pts
       , pkt->dts
       , pkt->data
@@ -643,12 +643,15 @@ int VideoStore::writeVideoFramePacket( AVPacket *ipkt ) {
   opkt.dts = video_next_dts;
   opkt.duration = 0;
 
-  unsigned int duration;
+  int duration;
   if ( ! video_last_pts ) {
     duration = 0;
   } else {
     duration = av_rescale_q( ipkt->pts - video_last_pts, video_input_stream->time_base, video_output_stream->time_base);
     Debug(1, "duration calc: pts(%d) - last_pts(%d) = (%d)", ipkt->pts, video_last_pts, duration );
+	if ( duration < 0 ) {
+		duration = ipkt->duration;
+	}
   }
   
 //#if ( 0 && video_last_pts && ( ipkt->duration == AV_NOPTS_VALUE || ! ipkt->duration ) ) {

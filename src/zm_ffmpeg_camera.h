@@ -27,9 +27,11 @@
 #include "zm_videostore.h"
 #include "zm_packetqueue.h"
 
+#if HAVE_AVUTIL_HWCONTEXT_H
 typedef struct DecodeContext {
       AVBufferRef *hw_device_ref;
 } DecodeContext;
+#endif
 //
 // Class representing 'ffmpeg' cameras, i.e. those which are
 // accessed using ffmpeg multimedia framework
@@ -55,8 +57,10 @@ class FfmpegCamera : public Camera {
     _AVPIXELFORMAT      imagePixFormat;
 
     bool hwaccel;
+#if HAVE_AVUTIL_HWCONTEXT_H
     AVFrame             *hwFrame;
     DecodeContext decode;
+#endif
 
     // Need to keep track of these because apparently the stream can start with values for pts/dts and then subsequent packets start at zero.
     int64_t audio_last_pts;

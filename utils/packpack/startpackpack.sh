@@ -236,7 +236,7 @@ execpackpack () {
     if [ "${TRAVIS}" == "true"  ]; then
         utils/packpack/heartbeat.sh &
         mypid=$!
-        packpack/packpack > buildlog.txt 2>&1
+        packpack/packpack $parms > buildlog.txt 2>&1
         kill $mypid
         tail -n 3000 buildlog.txt | grep -v ONVIF
     else

@@ -650,7 +650,6 @@ int VideoStore::writeVideoFramePacket( AVPacket *ipkt ) {
     duration = av_rescale_q( ipkt->pts - video_last_pts, video_input_stream->time_base, video_output_stream->time_base);
     Debug(1, "duration calc: pts(%d) - last_pts(%d) = (%d)", ipkt->pts, video_last_pts, duration );
 	if ( duration < 0 ) {
-		
 		duration = ipkt->duration;
 	}
   }

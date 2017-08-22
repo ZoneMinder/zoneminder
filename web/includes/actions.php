@@ -439,7 +439,7 @@ Warning("Addterm");
           if ( isset($changes['Name']) ) {
             $saferOldName = basename( $monitor['Name'] );
             $saferNewName = basename( $_REQUEST['newMonitor']['Name'] );
-            rename( ZM_DIR_EVENTS."/".$saferOldName, ZM_DIR_EVENTS."/".$saferNewName);
+            rename( ZM_DIR_EVENTS.'/'.$saferOldName, ZM_DIR_EVENTS.'/'.$saferNewName);
           }
           if ( isset($changes['Width']) || isset($changes['Height']) ) {
             $newW = $_REQUEST['newMonitor']['Width'];
@@ -493,7 +493,7 @@ Warning("Addterm");
           Error("Users with Monitors restrictions cannot create new monitors.");
         }
         $restart = true;
-      }
+      } # end if count(changes)
 
       if ( ZM_OPT_X10 ) {
         $x10Changes = getFormChanges( $x10Monitor, $_REQUEST['newX10Monitor'] );
@@ -530,8 +530,7 @@ Warning("Addterm");
         $refreshParent = true;
       } // end if restart
       $view = 'none';
-    }
-    if ( $action == 'delete' ) {
+    } elseif ( $action == 'delete' ) {
       if ( isset($_REQUEST['markMids']) && !$user['MonitorIds'] ) {
         foreach( $_REQUEST['markMids'] as $markMid ) {
           if ( canEdit( 'Monitors', $markMid ) ) {
@@ -545,7 +544,7 @@ Warning("Addterm");
               // If fast deletes are off and there are lots of events then this step may
               // well time out before completing, in which case zmaudit will still tidy up
               if ( !ZM_OPT_FAST_DELETE ) {
-                $markEids = dbFetchAll( 'SELECT Id FROM Events WHERE MonitorId=?', NULL, array($markMid) );
+                $markEids = dbFetchAll( 'SELECT Id FROM Events WHERE MonitorId=?', 'Id', array($markMid) );
                 foreach( $markEids as $markEid )
                   deleteEvent( $markEid );
 

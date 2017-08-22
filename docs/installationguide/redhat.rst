@@ -86,7 +86,7 @@ As mentioned above, the place to get the latest ZoneMinder release is now `RPM F
 
 Note that RHEL/CentOS 7 users should use yum instead of dnf.
 
-How to Build a Your Own ZoneMinder Package
+How to Build Your Own ZoneMinder Package
 ------------------------------------------
 
 If you are looking to do development or the available packages just don't suit you, then you can follow these steps to build your own ZoneMinder RPM.
@@ -132,7 +132,7 @@ Your build environment is now set up.
 
 Build from SRPM
 ***************
-To continue, you need a ZoneMinder SRPM. If you wish to rebuild a ZoneMinder release, then browse the `RPM Fusion site <http://zmrepo.zoneminder.com/>`_. If instead you wish to rebuild the latest source rpm from our master branch then browse the `Zmrepo site <http://zmrepo.zoneminder.com/>`_.
+To continue, you need a ZoneMinder SRPM. If you wish to rebuild a ZoneMinder release, then browse the `RPM Fusion site <https://rpmfusion.org/>`_. If instead you wish to rebuild the latest source rpm from our master branch then browse the `Zmrepo site <http://zmrepo.zoneminder.com/>`_.
 
 For this example, I'll use one of the source rpms from zmrepo:   
 

@@ -21,11 +21,19 @@ class FFmpeg_Input {
 
     int Open( const char *filename );
     int Close();
+    AVFrame *get_frame( int stream_id=-1 );
+    int get_video_stream_id() {
+      return video_stream_id;
+    }
+    int get_audio_stream_id() {
+      return audio_stream_id;
+    }
 
   private:
     typedef struct {
         AVCodecContext *context;
         AVCodec *codec;
+        int frame_count;
     } stream;
 
     stream streams[2];

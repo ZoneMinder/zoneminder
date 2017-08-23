@@ -131,7 +131,7 @@ class Event {
   } # end Event->delete
 
   public function getStreamSrc( $args=array(), $querySep='&amp;' ) {
-    if ( $this->{'DefaultVideo'} ) {
+    if ( $this->{'DefaultVideo'} and $args['mode'] != 'jpeg' ) {
       return ( ZM_BASE_PATH != '/' ? ZM_BASE_PATH : '' ).'/index.php?view=view_video&eid='.$this->{'Id'};
     }
 

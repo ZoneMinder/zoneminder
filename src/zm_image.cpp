@@ -22,6 +22,7 @@
 #include "zm_image.h"
 #include "zm_utils.h"
 #include "zm_rgb.h"
+#include "zm_ffmpeg.h"
 
 #include <sys/stat.h>
 #include <errno.h>
@@ -126,6 +127,46 @@ Image::Image( int p_width, int p_height, int p_colours, int p_subpixelorder, uin
     AllocImgBuffer(size);
   }
   text[0] = '\0';
+}
+
+Image::Image( const AVFrame *frame ) {
+  AVFrame *dest_frame = zm_av_frame_alloc();
+
+  width = frame->width;
+  height = frame->height;
+  pixels = width*height;
+  colours = ZM_COLOUR_RGB32;
+  subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+  size = pixels*colours;
+  buffer = 0;
+  holdbuffer = 0;
+  AllocImgBuffer(size);
+
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+  av_image_fill_arrays(dest_frame->data, dest_frame->linesize,
+      buffer, AV_PIX_FMT_RGBA, width, height, 1);
+#else
+  avpicture_fill( (AVPicture *)mFrame, buffer,
+      AV_PIX_FMT_RGBA, width, height);
+#endif
+
+#if HAVE_LIBSWSCALE
+  struct SwsContext   *mConvertContext = sws_getContext(
+      width,
+      height,
+      (AVPixelFormat)frame->format,
+      width, height,
+      AV_PIX_FMT_RGBA, SWS_BICUBIC, NULL,
+      NULL, NULL);
+  if ( mConvertContext == NULL )
+    Fatal( "Unable to create conversion context" );
+
+  if ( sws_scale(mConvertContext, frame->data, frame->linesize, 0, frame->height, dest_frame->data, dest_frame->linesize) < 0 )
+    Fatal("Unable to convert raw format %u to target format %u", frame->format, AV_PIX_FMT_RGBA);
+#else // HAVE_LIBSWSCALE
+  Fatal("You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras");
+#endif // HAVE_LIBSWSCALE
+  av_frame_free( &dest_frame );
 }
 
 Image::Image( const Image &p_image ) {

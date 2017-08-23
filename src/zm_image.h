@@ -21,8 +21,7 @@
 #define ZM_IMAGE_H
 
 #include "zm.h"
-extern "C"
-{
+extern "C" {
 #include "zm_jpeg.h"
 }
 #include "zm_rgb.h"
@@ -31,6 +30,9 @@ extern "C"
 #include "zm_poly.h"
 #include "zm_mem_utils.h"
 #include "zm_utils.h"
+
+class Image;
+#include "zm_ffmpeg.h"
 
 #include <errno.h>
 
@@ -148,12 +150,12 @@ protected:
 	int holdbuffer; /* Hold the buffer instead of replacing it with new one */
 	char text[1024];
 
-
 public:
 	Image();
 	Image( const char *filename );
 	Image( int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer=0);
 	Image( const Image &p_image );
+  Image( const AVFrame *frame );
 	~Image();
 	static void Initialise();
 	static void Deinitialise();

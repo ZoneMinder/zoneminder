@@ -76,7 +76,7 @@ public:
       const char *format_in,
       AVStream *video_in_stream,
       AVStream *audio_in_stream,
-      int64_t nStartTime,xi
+      int64_t nStartTime,
       Monitor * p_monitor);
 	~VideoStore();
 

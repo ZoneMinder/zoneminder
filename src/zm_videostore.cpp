@@ -39,8 +39,8 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   audio_in_stream = p_audio_in_stream;
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  video_in_ctx = avcodec_alloc_ctx3(NULL);
-  avcodec_parameters_to_ctx(video_in_ctx,
+  video_in_ctx = avcodec_alloc_context3(NULL);
+  avcodec_parameters_to_context(video_in_ctx,
                                 video_in_stream->codecpar);
 // zm_dump_codecpar( video_in_stream->codecpar );
 #else
@@ -53,7 +53,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
   Info("Opening video storage stream %s format: %s", filename, format);
 
-  ret = avformat_alloc_out_ctx2(&oc, NULL, NULL, filename);
+  ret = avformat_alloc_output_context2(&oc, NULL, NULL, filename);
   if (ret < 0) {
     Warning(
         "Could not create video storage stream %s as no out ctx"
@@ -65,7 +65,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
   // Couldn't deduce format from filename, trying from format name
   if (!oc) {
-    avformat_alloc_out_ctx2(&oc, NULL, format, filename);
+    avformat_alloc_output_context2(&oc, NULL, format, filename);
     if (!oc) {
       Fatal(
           "Could not create video storage stream %s as no out ctx"
@@ -87,10 +87,10 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
 
   // Since we are not re-encoding, all we have to do is copy the parameters
-  video_out_ctx = avcodec_alloc_ctx3(NULL);
+  video_out_ctx = avcodec_alloc_context3(NULL);
 
   // Copy params from instream to ctx
-  ret = avcodec_parameters_to_ctx(video_out_ctx,
+  ret = avcodec_parameters_to_context(video_out_ctx,
                                       video_in_stream->codecpar);
   if (ret < 0) {
     Error("Could not initialize ctx parameteres");
@@ -113,7 +113,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   }
 
   // Now copy them to the out stream
-  ret = avcodec_parameters_from_ctx(video_out_stream->codecpar,
+  ret = avcodec_parameters_from_context(video_out_stream->codecpar,
                                         video_out_ctx);
   if (ret < 0) {
     Error("Could not initialize stream parameteres");
@@ -202,8 +202,8 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
     Debug(3, "Have audio stream");
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
 
-    audio_in_ctx = avcodec_alloc_ctx3(NULL);
-    ret = avcodec_parameters_to_ctx(audio_in_ctx,
+    audio_in_ctx = avcodec_alloc_context3(NULL);
+    ret = avcodec_parameters_to_context(audio_in_ctx,
                                         audio_in_stream->codecpar);
 #else
     audio_in_ctx = audio_in_stream->codec;
@@ -222,7 +222,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
       Debug(3, "Got AAC");
 
       audio_out_stream =
-          avformat_new_stream(oc, reinterpret_cast<AVCodec *>audio_in_ctx->codec);
+          avformat_new_stream(oc, reinterpret_cast<const AVCodec *>(audio_in_ctx->codec));
       if (!audio_out_stream) {
         Error("Unable to create audio out stream\n");
         audio_out_stream = NULL;
@@ -230,15 +230,15 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
         Debug(2, "setting parameters");
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-        audio_out_ctx = avcodec_alloc_ctx3(audio_out_codec);
+        audio_out_ctx = avcodec_alloc_context3(audio_out_codec);
         // Copy params from instream to ctx
-        ret = avcodec_parameters_to_ctx(audio_out_ctx,
+        ret = avcodec_parameters_to_context(audio_out_ctx,
                                             audio_in_stream->codecpar);
         if (ret < 0) {
           Error("Unable to copy audio params to ctx %s\n",
                 av_make_error_string(ret).c_str());
         }
-        ret = avcodec_parameters_from_ctx(audio_out_stream->codecpar,
+        ret = avcodec_parameters_from_context(audio_out_stream->codecpar,
                                               audio_out_ctx);
         if (ret < 0) {
           Error("Unable to copy audio params to stream %s\n",
@@ -430,7 +430,7 @@ VideoStore::~VideoStore() {
   }
 
   /* free the stream */
-  avformat_free_ctx(oc);
+  avformat_free_context(oc);
 }
 
 bool VideoStore::setup_resampler() {
@@ -460,7 +460,7 @@ bool VideoStore::setup_resampler() {
   Debug(2, "Have audio out codec");
 
   // audio_out_ctx = audio_out_stream->codec;
-  audio_out_ctx = avcodec_alloc_ctx3(audio_out_codec);
+  audio_out_ctx = avcodec_alloc_context3(audio_out_codec);
 
   if (!audio_out_ctx) {
     Error("could not allocate codec ctx for AAC\n");
@@ -512,7 +512,7 @@ bool VideoStore::setup_resampler() {
   audio_out_stream = avformat_new_stream(oc, audio_out_codec);
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  ret = avcodec_parameters_from_ctx(audio_out_stream->codecpar,
+  ret = avcodec_parameters_from_context(audio_out_stream->codecpar,
                                         audio_out_ctx);
   if (ret < 0) {
     Error("Could not initialize stream parameteres");
@@ -554,7 +554,7 @@ bool VideoStore::setup_resampler() {
   }
 
   // Setup the audio resampler
-  resample_ctx = avresample_alloc_ctx();
+  resample_ctx = avresample_alloc_context();
   if (!resample_ctx) {
     Error("Could not allocate resample ctx\n");
     return false;

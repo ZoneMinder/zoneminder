@@ -405,6 +405,7 @@ void EventStream::processCommand( const CmdMsg *msg ) {
         }
         send_frame = true;
         break;
+        send_frame = true;
       }
     case CMD_PAN :
       {
@@ -785,6 +786,7 @@ void EventStream::runStream() {
       }
 
       // Figure out if we should send this frame
+
       // If we are streaming and this frame is due to be sent
       if ( ((curr_frame_id-1)%frame_mod) == 0 ) {
         delta_us = (unsigned int)(frame_data->delta * 1000000);
@@ -798,7 +800,7 @@ void EventStream::runStream() {
       // We are paused and are just stepping forward or backward one frame
       step = 0;
       send_frame = true;
-    } else {
+    } else if ( !send_frame ) {
       // We are paused, and doing nothing
       double actual_delta_time = TV_2_FLOAT( now ) - last_frame_sent;
       if ( actual_delta_time > MAX_STREAM_DELAY ) {

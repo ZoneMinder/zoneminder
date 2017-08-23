@@ -747,7 +747,11 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
   }
 
   if ( mVideoCodecContext->codec_id != AV_CODEC_ID_H264 ) {
-    Error( "Input stream is not h264.  The stored event file may not be viewable in browser." );
+    if ( mVideoCodecContext->codec_id == AV_CODEC_ID_H265 ) {
+      Debug( 1, "Input stream appears to be h265.  The stored event file may not be viewable in browser." );
+    } else {
+      Error( "Input stream is not h264.  The stored event file may not be viewable in browser." );
+    }
   }
 
   int frameComplete = false;
@@ -936,6 +940,7 @@ else if ( packet.pts && video_last_pts > packet.pts ) {
           zm_av_packet_unref( &packet );
           continue;
         }
+#if HAVE_AVUTIL_HWCONTEXT_H
         if ( hwaccel ) {
           ret = avcodec_receive_frame( mVideoCodecContext, hwFrame );
           if ( ret < 0 ) {
@@ -952,6 +957,7 @@ else if ( packet.pts && video_last_pts > packet.pts ) {
             continue;
           }
         } else {
+#endif
           ret = avcodec_receive_frame( mVideoCodecContext, mRawFrame );
           if ( ret < 0 ) {
             av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
@@ -960,7 +966,9 @@ else if ( packet.pts && video_last_pts > packet.pts ) {
             continue;
           }
 
+#if HAVE_AVUTIL_HWCONTEXT_H
         }
+#endif
 
         frameComplete = 1;
 # else

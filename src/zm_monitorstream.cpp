@@ -484,7 +484,10 @@ void MonitorStream::runStream() {
 
   openComms();
 
-  checkInitialised();
+  if ( ! checkInitialised() ) {
+    Error("Not initialized");
+    return;
+  }
 
   updateFrameRate( monitor->GetFPS() );
 
@@ -732,8 +735,9 @@ void MonitorStream::runStream() {
       if ( rmdir( swap_path ) < 0 ) {
         Error( "Can't rmdir '%s': %s", swap_path, strerror(errno) );
       }
-    }
-  }
+    } // end if checking for swap_path
+  } // end if buffered_playback
+
   if ( swap_path ) free( swap_path );
   closeComms();
 }

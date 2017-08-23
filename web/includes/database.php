@@ -18,9 +18,9 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
-define( "DB_LOG_OFF", 0 );
-define( "DB_LOG_ONLY", 1 );
-define( "DB_LOG_DEBUG", 2 );
+define( 'DB_LOG_OFF', 0 );
+define( 'DB_LOG_ONLY', 1 );
+define( 'DB_LOG_DEBUG', 2 );
 
 $GLOBALS['dbLogLevel'] = DB_LOG_OFF;
 
@@ -42,11 +42,23 @@ function dbConnect() {
   }
 
   try {
-    $dbConn = new PDO( ZM_DB_TYPE . $socket . ';dbname='.ZM_DB_NAME, ZM_DB_USER, ZM_DB_PASS );
+    $dbOptions = null;
+    if ( defined( 'ZM_DB_SSL_CA_CERT' ) and ZM_DB_SSL_CA_CERT ) {
+      $dbOptions = array(
+        PDO::MYSQL_ATTR_SSL_CA   => ZM_DB_SSL_CA_CERT,
+        PDO::MYSQL_ATTR_SSL_KEY  => ZM_DB_SSL_CLIENT_KEY,
+        PDO::MYSQL_ATTR_SSL_CERT => ZM_DB_SSL_CLIENT_CERT,
+      );
+      $dbConn = new PDO( ZM_DB_TYPE . $socket . ';dbname='.ZM_DB_NAME, ZM_DB_USER, ZM_DB_PASS, $dbOptions );
+    } else {
+      $dbConn = new PDO( ZM_DB_TYPE . $socket . ';dbname='.ZM_DB_NAME, ZM_DB_USER, ZM_DB_PASS );
+    }
+
     $dbConn->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
     $dbConn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
   } catch(PDOException $ex ) {
-    echo "Unable to connect to ZM db." . $ex->getMessage();
+    echo 'Unable to connect to ZM db.' . $ex->getMessage();
+    error_log('Unable to connect to ZM DB ' . $ex->getMessage() );
     $dbConn = null;
   }
 }
@@ -91,7 +103,7 @@ function dbError( $sql ) {
 
 function dbEscape( $string ) {
   global $dbConn;
-  if ( version_compare( phpversion(), "4.3.0", "<") )
+  if ( version_compare( phpversion(), '4.3.0', '<') )
     if ( get_magic_quotes_gpc() )
       return( $dbConn->quote( stripslashes( $string ) ) );
     else
@@ -217,7 +229,7 @@ function getTableColumns( $table, $asString=1 ) {
 }               
 
 function getTableAutoInc( $table ) {
-  $row = dbFetchOne( "show table status where Name=?", NULL, array($table) );
+  $row = dbFetchOne( 'show table status where Name=?', NULL, array($table) );
   return( $row['Auto_increment'] );
 }
 
@@ -329,11 +341,11 @@ function getTableDescription( $table, $asString=1 ) {
 }               
 
 function dbFetchMonitor( $mid ) {
-  return( dbFetchOne( "select * from Monitors where Id = ?", NULL, array($mid) ) );
+  return( dbFetchOne( 'select * from Monitors where Id = ?', NULL, array($mid) ) );
 }
 
 function dbFetchGroup( $gid ) {
-  return( dbFetchOne( "select * from Groups where Id = ?", NULL, array($gid) ) );
+  return( dbFetchOne( 'select * from Groups where Id = ?', NULL, array($gid) ) );
 }
 
 ?>

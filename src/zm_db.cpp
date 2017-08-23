@@ -27,59 +27,49 @@ MYSQL dbconn;
 
 int zmDbConnected = false;
 
-void zmDbConnect()
-{
-  if ( !mysql_init( &dbconn ) )
-  {
+void zmDbConnect() {
+  if ( zmDbConnected ) 
+    return;
+
+  if ( !mysql_init( &dbconn ) ) {
     Error( "Can't initialise database connection: %s", mysql_error( &dbconn ) );
     exit( mysql_errno( &dbconn ) );
   }
   my_bool reconnect = 1;
   if ( mysql_options( &dbconn, MYSQL_OPT_RECONNECT, &reconnect ) )
     Fatal( "Can't set database auto reconnect option: %s", mysql_error( &dbconn ) );
+  if ( !staticConfig.DB_SSL_CA_CERT.empty() )
+    mysql_ssl_set( &dbconn, staticConfig.DB_SSL_CLIENT_KEY.c_str(), staticConfig.DB_SSL_CLIENT_CERT.c_str(), staticConfig.DB_SSL_CA_CERT.c_str(), NULL, NULL );
   std::string::size_type colonIndex = staticConfig.DB_HOST.find( ":" );
-  if ( colonIndex == std::string::npos )
-  {
-    if ( !mysql_real_connect( &dbconn, staticConfig.DB_HOST.c_str(), staticConfig.DB_USER.c_str(), staticConfig.DB_PASS.c_str(), NULL, 0, NULL, 0 ) )
-    {
+  if ( colonIndex == std::string::npos ) {
+    if ( !mysql_real_connect( &dbconn, staticConfig.DB_HOST.c_str(), staticConfig.DB_USER.c_str(), staticConfig.DB_PASS.c_str(), NULL, 0, NULL, 0 ) ) {
       Error( "Can't connect to server: %s", mysql_error( &dbconn ) );
       exit( mysql_errno( &dbconn ) );
     }
-  }
-  else
-  {
+  } else {
     std::string dbHost = staticConfig.DB_HOST.substr( 0, colonIndex );
     std::string dbPortOrSocket = staticConfig.DB_HOST.substr( colonIndex+1 );
-    if ( dbPortOrSocket[0] == '/' )
-    {
-      if ( !mysql_real_connect( &dbconn, NULL, staticConfig.DB_USER.c_str(), staticConfig.DB_PASS.c_str(), NULL, 0, dbPortOrSocket.c_str(), 0 ) )
-      {
+    if ( dbPortOrSocket[0] == '/' ) {
+      if ( !mysql_real_connect( &dbconn, NULL, staticConfig.DB_USER.c_str(), staticConfig.DB_PASS.c_str(), NULL, 0, dbPortOrSocket.c_str(), 0 ) ) {
         Error( "Can't connect to server: %s", mysql_error( &dbconn ) );
         exit( mysql_errno( &dbconn ) );
       }
-
-    }
-    else
-    {
-      if ( !mysql_real_connect( &dbconn, dbHost.c_str(), staticConfig.DB_USER.c_str(), staticConfig.DB_PASS.c_str(), NULL, atoi(dbPortOrSocket.c_str()), NULL, 0 ) )
-      {
+    } else {
+      if ( !mysql_real_connect( &dbconn, dbHost.c_str(), staticConfig.DB_USER.c_str(), staticConfig.DB_PASS.c_str(), NULL, atoi(dbPortOrSocket.c_str()), NULL, 0 ) ) {
         Error( "Can't connect to server: %s", mysql_error( &dbconn ) );
         exit( mysql_errno( &dbconn ) );
       }
     }
   }
-  if ( mysql_select_db( &dbconn, staticConfig.DB_NAME.c_str() ) )
-  {
+  if ( mysql_select_db( &dbconn, staticConfig.DB_NAME.c_str() ) ) {
     Error( "Can't select database: %s", mysql_error( &dbconn ) );
     exit( mysql_errno( &dbconn ) );
   }
   zmDbConnected = true;
 }
 
-void zmDbClose()
-{
-  if ( zmDbConnected )
-  {
+void zmDbClose() {
+  if ( zmDbConnected ) {
     mysql_close( &dbconn );
     // mysql_init() call implicitly mysql_library_init() but
     // mysql_close() does not call mysql_library_end()

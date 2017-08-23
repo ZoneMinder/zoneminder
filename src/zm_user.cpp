@@ -27,16 +27,14 @@
 #include <string.h>
 #include <time.h>
 
-User::User()
-{
+User::User() {
   username[0] = password[0] = 0;
   enabled = false;
   stream = events = control = monitors = system = PERM_NONE;
   monitor_ids = 0;
 }
 
-User::User( MYSQL_ROW &dbrow )
-{
+User::User( MYSQL_ROW &dbrow ) {
   int index = 0;
   strncpy( username, dbrow[index++], sizeof(username) );
   strncpy( password, dbrow[index++], sizeof(password) );
@@ -48,22 +46,18 @@ User::User( MYSQL_ROW &dbrow )
   system = (Permission)atoi( dbrow[index++] );
   monitor_ids = 0;
   char *monitor_ids_str = dbrow[index++];
-  if ( monitor_ids_str && *monitor_ids_str )
-  {
+  if ( monitor_ids_str && *monitor_ids_str ) {
     monitor_ids = new int[strlen(monitor_ids_str)];
     int n_monitor_ids = 0;
     const char *ptr = monitor_ids_str;
-    do
-    {
+    do {
       int id = 0;
-      while( isdigit( *ptr ) )
-      {
+      while( isdigit( *ptr ) ) {
         id *= 10;
         id += *ptr-'0';
         ptr++;
       }
-      if ( id )
-      {
+      if ( id ) {
         monitor_ids[n_monitor_ids++] = id;
         if ( !*ptr )
           break;
@@ -75,21 +69,16 @@ User::User( MYSQL_ROW &dbrow )
   }
 }
 
-User::~User()
-{
+User::~User() {
   delete monitor_ids;
 }
 
-bool User::canAccess( int monitor_id )
-{
-  if ( !monitor_ids )
-  {
+bool User::canAccess( int monitor_id ) {
+  if ( !monitor_ids ) {
     return( true );
   }
-  for ( int i = 0; monitor_ids[i]; i++ )
-  {
-    if ( monitor_ids[i] == monitor_id )
-    {
+  for ( int i = 0; monitor_ids[i]; i++ ) {
+    if ( monitor_ids[i] == monitor_id ) {
       return( true );
     }
   }
@@ -98,8 +87,7 @@ bool User::canAccess( int monitor_id )
 
 // Function to load a user from username and password
 // Please note that in auth relay mode = none, password is NULL
-User *zmLoadUser( const char *username, const char *password )
-{
+User *zmLoadUser( const char *username, const char *password ) {
   char sql[ZM_SQL_SML_BUFSIZ] = "";
   char safer_username[65]; // current db username size is 32
   char safer_password[129]; // current db password size is 64
@@ -114,22 +102,20 @@ User *zmLoadUser( const char *username, const char *password )
     snprintf( sql, sizeof(sql), "select Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds from Users where Username = '%s' and Enabled = 1", safer_username );
   }
 
-  if ( mysql_query( &dbconn, sql ) )
-  {
+  if ( mysql_query( &dbconn, sql ) ) {
     Error( "Can't run query: %s", mysql_error( &dbconn ) );
     exit( mysql_errno( &dbconn ) );
   }
 
   MYSQL_RES *result = mysql_store_result( &dbconn );
-  if ( !result )
-  {
+  if ( !result ) {
     Error( "Can't use query result: %s", mysql_error( &dbconn ) );
     exit( mysql_errno( &dbconn ) );
   }
   int n_users = mysql_num_rows( result );
 
-  if ( n_users != 1 )
-  {
+  if ( n_users != 1 ) {
+    mysql_free_result( result );
     Warning( "Unable to authenticate user %s", username );
     return( 0 );
   }
@@ -145,13 +131,11 @@ User *zmLoadUser( const char *username, const char *password )
 }
 
 // Function to validate an authentication string
-User *zmLoadAuthUser( const char *auth, bool use_remote_addr )
-{
+User *zmLoadAuthUser( const char *auth, bool use_remote_addr ) {
 #if HAVE_DECL_MD5 || HAVE_DECL_GNUTLS_FINGERPRINT
 #ifdef HAVE_GCRYPT_H
   // Special initialisation for libgcrypt
-  if ( !gcry_check_version( GCRYPT_VERSION ) )
-  {
+  if ( !gcry_check_version( GCRYPT_VERSION ) ) {
     Fatal( "Unable to initialise libgcrypt" );
   }
   gcry_control( GCRYCTL_DISABLE_SECMEM, 0 );
@@ -159,11 +143,9 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr )
 #endif // HAVE_GCRYPT_H
 
   const char *remote_addr = "";
-  if ( use_remote_addr )
-  {
+  if ( use_remote_addr ) {
     remote_addr = getenv( "REMOTE_ADDR" );
-    if ( !remote_addr )
-    {
+    if ( !remote_addr ) {
       Warning( "Can't determine remote address, using null" );
       remote_addr = "";
     }
@@ -173,28 +155,25 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr )
   char sql[ZM_SQL_SML_BUFSIZ] = "";
   snprintf( sql, sizeof(sql), "SELECT Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds FROM Users WHERE Enabled = 1" );
 
-  if ( mysql_query( &dbconn, sql ) )
-  {
+  if ( mysql_query( &dbconn, sql ) ) {
     Error( "Can't run query: %s", mysql_error( &dbconn ) );
     exit( mysql_errno( &dbconn ) );
   }
 
   MYSQL_RES *result = mysql_store_result( &dbconn );
-  if ( !result )
-  {
+  if ( !result ) {
     Error( "Can't use query result: %s", mysql_error( &dbconn ) );
     exit( mysql_errno( &dbconn ) );
   }
   int n_users = mysql_num_rows( result );
 
-  if ( n_users < 1 )
-  {
+  if ( n_users < 1 ) {
+    mysql_free_result( result );
     Warning( "Unable to authenticate user" );
     return( 0 );
   }
 
-  while( MYSQL_ROW dbrow = mysql_fetch_row( result ) )
-  {
+  while( MYSQL_ROW dbrow = mysql_fetch_row( result ) ) {
     const char *user = dbrow[0];
     const char *pass = dbrow[1];
 
@@ -204,7 +183,7 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr )
     unsigned char md5sum[md5len];
 
     time_t now = time( 0 );
-    unsigned int hours =config.auth_hash_ttl;
+    unsigned int hours = config.auth_hash_ttl;
 
     if ( ! hours ) {
       Warning("No value set for ZM_AUTH_HASH_TTL. Defaulting to 2.");
@@ -234,23 +213,23 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr )
       gnutls_fingerprint( GNUTLS_DIG_MD5, &md5data, md5sum, &md5len );
 #endif
       auth_md5[0] = '\0';
-      for ( unsigned int j = 0; j < md5len; j++ )
-      {
+      for ( unsigned int j = 0; j < md5len; j++ ) {
         sprintf( &auth_md5[2*j], "%02x", md5sum[j] );
       }
       Debug( 1, "Checking auth_key '%s' -> auth_md5 '%s' == '%s'", auth_key, auth_md5, auth );
 
-      if ( !strcmp( auth, auth_md5 ) )
-      {
+      if ( !strcmp( auth, auth_md5 ) ) {
         // We have a match
         User *user = new User( dbrow );
         Debug(1, "Authenticated user '%s'", user->getUsername() );
+        mysql_free_result( result );
         return( user );
       } else {
         Debug(1, "No match for %s", auth );
       }
     }
   }
+  mysql_free_result( result );
 #else // HAVE_DECL_MD5
   Error( "You need to build with gnutls or openssl installed to use hash based authentication" );
 #endif // HAVE_DECL_MD5

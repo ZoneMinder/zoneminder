@@ -144,15 +144,16 @@ MAIN: while( $loop ) {
   # After a long sleep, we may need to reconnect to the db
   while ( ! ( $dbh and $dbh->ping() ) ) {
     $dbh = zmDbConnect();
-
-    if ( $continuous ) {
-      Error('Unable to connect to database');
-# if we are running continuously, then just skip to the next
-# interval, otherwise we are a one off run, so wait a second and
-# retry until someone kills us.
-      sleep( $Config{ZM_AUDIT_CHECK_INTERVAL} );
-    } else {
-      Fatal('Unable to connect to database');
+    if ( ! $dbh ) {
+      if ( $continuous ) {
+        Error('Unable to connect to database');
+        # if we are running continuously, then just skip to the next
+        # interval, otherwise we are a one off run, so wait a second and
+        # retry until someone kills us.
+        sleep( $Config{ZM_AUDIT_CHECK_INTERVAL} );
+      } else {
+        Fatal('Unable to connect to database');
+      } # end if
     } # end if
   } # end while can't connect to the db
 
@@ -349,7 +350,11 @@ MAIN: while( $loop ) {
       while ( my ( $db_event, $age ) = each( %$db_events ) ) {
         if ( ! defined( $fs_events->{$db_event} ) ) {
 Debug("Event $db_event is not in fs.");
-          my $Event = new ZoneMinder::Event( $db_event );
+          my $Event = ZoneMinder::Event->find_one( Id=>$db_event );
+          if ( $Event ) {
+            Debug("Event $db_event is no longer in db.  Filter probably deleted it while we were auditing.");
+            next;
+          }
           if ( ! $Event->StartTime() ) {
             Debug("Event $$Event{Id} has no start time.  deleting it.");
             if ( confirm() ) {

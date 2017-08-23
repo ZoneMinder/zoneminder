@@ -79,8 +79,8 @@ function getPopupSize( tag, width, height ) {
     popupSize.height = height;
     Error( "Got passed height but no addHeight when getting popup size for tag '"+tag+"'" );
   }
-  if ( popupSize.minHeight && popupSize.height < popupSize.minHeight ) {
-    Warning( "Adjusting to minimum height when getting popup size for tag '"+tag+"'" );
+  if ( popupSize.minHeight && ( popupSize.height < popupSize.minHeight ) ) {
+    Warning( "Adjusting to minimum height ("+popupSize.minHeight+") when getting popup size for tag '"+tag+"' because calculated height is " + popupSize.height );
     popupSize.height = popupSize.minHeight;
   }
   Debug( popupSize );
@@ -293,4 +293,3 @@ function addVideoTimingTrack(video, LabelFormat, monitorName, duration, startTim
 	track.src = 'data:plain/text;charset=utf-8,'+encodeURIComponent(webvttdata);
 	video.appendChild(track);
 }
-

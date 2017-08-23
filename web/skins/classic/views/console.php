@@ -51,7 +51,7 @@ $eventCounts = array(
         'filter' => array(
           'Query' => array(
             'terms' => array(
-              array( 'attr' => "DateTime", 'op' => '>=', 'val' => '-1 day' ),
+              array( 'attr' => 'DateTime', 'op' => '>=', 'val' => '-1 day' ),
               )
             )
           ),
@@ -62,7 +62,7 @@ $eventCounts = array(
         'filter' => array(
           'Query' => array(
             'terms' => array(
-              array( 'attr' => "DateTime", 'op' => '>=', 'val' => '-7 day' ),
+              array( 'attr' => 'DateTime', 'op' => '>=', 'val' => '-7 day' ),
               )
             )
           ),
@@ -73,7 +73,7 @@ $eventCounts = array(
         'filter' => array(
           'Query' => array(
             'terms' => array(
-              array( 'attr' => "DateTime", 'op' => '>=', 'val' => '-1 month' ),
+              array( 'attr' => 'DateTime', 'op' => '>=', 'val' => '-1 month' ),
               )
             )
           ),
@@ -84,7 +84,7 @@ $eventCounts = array(
         'filter' => array(
           'Query' => array(
             'terms' => array(
-              array( 'attr' => "Archived", 'op' => '=', 'val' => '1' ),
+              array( 'attr' => 'Archived', 'op' => '=', 'val' => '1' ),
               )
             )
           ),
@@ -107,7 +107,7 @@ for( $i = 0; $i < count($displayMonitors); $i += 1 ) {
   for ( $j = 0; $j < count($eventCounts); $j += 1 ) {
     $filter = addFilterTerm( $eventCounts[$j]['filter'], count($eventCounts[$j]['filter']['Query']['terms']), array( 'cnj' => 'and', 'attr' => 'MonitorId', 'op' => '=', 'val' => $monitor['Id'] ) );
     parseFilter( $filter );
-    $counts[] = "count(if(1".$filter['sql'].",1,NULL)) as EventCount$j";
+    $counts[] = 'count(if(1'.$filter['sql'].",1,NULL)) as EventCount$j";
     $monitor['eventCounts'][$j]['filter'] = $filter;
   }
   $sql = 'select '.join($counts,', ').' from Events as E where MonitorId = ?';
@@ -203,45 +203,27 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
             <td class="colServer"><?php $Server = new Server( $monitor['ServerId'] ); echo $Server->Name(); ?></td>
 <?php
   }
-?>
-<?php
+  $source = '';
   if ( $monitor['Type'] == 'Local' ) {
-?>
-            <td class="colSource"><?php echo makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.$monitor['Device'].' ('.$monitor['Channel'].')</span>', canEdit( 'Monitors' ) ) ?></td>
-<?php
+    $source = $monitor['Device'].' ('.$monitor['Channel'].')';
   } elseif ( $monitor['Type'] == 'Remote' ) {
-?>
-            <td class="colSource"><?php echo makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.preg_replace( '/^.*@/', '', $monitor['Host'] ).'</span>', canEdit( 'Monitors' ) ) ?></td>
-<?php
-  } elseif ( $monitor['Type'] == 'File' ) {
-?>
-            <td class="colSource"><?php echo makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.preg_replace( '/^.*\//', '', $monitor['Path'] ).'</span>', canEdit( 'Monitors' ) ) ?></td>
-<?php
+    $source = preg_replace( '/^.*@/', '', $monitor['Host'] );
+  } elseif ( $monitor['Type'] == 'File' || $monitor['Type'] == 'cURL' ) {
+    $source = preg_replace( '/^.*\//', '', $monitor['Path'] );
   } elseif ( $monitor['Type'] == 'Ffmpeg' || $monitor['Type'] == 'Libvlc' ) {
     $domain = parse_url( $monitor['Path'], PHP_URL_HOST );
-    $shortpath = $domain ? $domain : preg_replace( '/^.*\//', '', $monitor['Path'] );
-    if ( $shortpath == '' ) {
-      $shortpath = 'Monitor ' . $monitor['Id'];
-    }
-?>
-            <td class="colSource"><?php echo makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.$shortpath.'</span>', canEdit( 'Monitors' ) ) ?></td>
-<?php
-  } elseif ( $monitor['Type'] == 'cURL' ) {
-?>
-            <td class="colSource"><?php echo makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.preg_replace( '/^.*\//', '', $monitor['Path'] ).'</span>', canEdit( 'Monitors' ) ) ?></td>
-<?php
-  } else {
-?>
-            <td class="colSource">&nbsp;</td>
-<?php
+    $source = $domain ? $domain : preg_replace( '/^.*\//', '', $monitor['Path'] );
   }
-?>
-<?php
+  if ( $source == '' ) {
+    $source = 'Monitor ' . $monitor['Id'];
+  }
+  echo '<td class="colSource">'. makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.$source.'</span>', canEdit( 'Monitors' ) ).'</td>';
   if ( $show_storage_areas ) {
 ?>
             <td class="colStorage"><?php $Storage = new Storage( $monitor['StorageId'] ); echo $Storage->Name(); ?></td>
 <?php
   }
+
   for ( $i = 0; $i < count($eventCounts); $i++ ) {
 ?>
             <td class="colEvents"><?php echo makePopupLink( '?view='.$eventsView.'&amp;page=1'.$monitor['eventCounts'][$i]['filter']['query'], $eventsWindow, $eventsView, $monitor['EventCount'.$i], canView( 'Events' ) ) ?></td>
@@ -290,11 +272,5 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
         </tfoot>
       </table>
     </div>
-    </form>
-<?php
-if ( canEdit('System') ) {
-  include("skins/$skin/views/state.php");
-}
-?>
-</body>
-</html>
+  </form>
+<?php xhtmlFooter() ?>

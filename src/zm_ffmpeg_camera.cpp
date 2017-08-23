@@ -747,11 +747,15 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
   }
 
   if ( mVideoCodecContext->codec_id != AV_CODEC_ID_H264 ) {
+#ifdef AV_CODEC_ID_H265
     if ( mVideoCodecContext->codec_id == AV_CODEC_ID_H265 ) {
       Debug( 1, "Input stream appears to be h265.  The stored event file may not be viewable in browser." );
     } else {
+#endif
       Error( "Input stream is not h264.  The stored event file may not be viewable in browser." );
+#ifdef AV_CODEC_ID_H265
     }
+#endif
   }
 
   int frameComplete = false;

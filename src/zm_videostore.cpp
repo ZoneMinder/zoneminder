@@ -43,7 +43,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   video_input_context = avcodec_alloc_context3( NULL );
-  avcodec_parameters_to_context( video_input_context, video_input_stream->codecpar );
+  avcodec_parameters_to_context(video_input_context, video_input_stream->codecpar);
   //zm_dump_codecpar( video_input_stream->codecpar );
 #else
   video_input_context = video_input_stream->codec;
@@ -91,7 +91,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   video_output_context = avcodec_alloc_context3( NULL );
 
   // Copy params from inputstream to context
-  ret = avcodec_parameters_to_context( video_output_context, video_input_stream->codecpar );
+  ret = avcodec_parameters_to_context(video_output_context, video_input_stream->codecpar);
   if ( ret < 0 ) {
     Error( "Could not initialize context parameteres");
     return;
@@ -809,8 +809,8 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
             &data_present, ipkt)) < 0 ) {
       Error( "Could not decode frame (error '%s')\n",
           av_make_error_string(ret).c_str());
-      dumpPacket( ipkt );
-      av_frame_free( &input_frame );
+      dumpPacket(ipkt);
+      av_frame_free(&input_frame);
       return 0;
     }
     if ( ! data_present ) {
@@ -828,14 +828,14 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
             input_frame->data,
             0,
             input_frame->nb_samples )) < 0 ) {
-      Error( "Could not resample frame (error '%s')\n",
+      Error("Could not resample frame (error '%s')\n",
           av_make_error_string(ret).c_str());
-      av_frame_unref( input_frame );
+      av_frame_unref(input_frame);
       return 0;
     }
-    av_frame_unref( input_frame );
+    av_frame_unref(input_frame);
 
-    int samples_available =  avresample_available( resample_context );
+    int samples_available = avresample_available(resample_context);
 
     if ( samples_available < frame_size ) {
       Debug(1, "Not enough samples yet (%d)", samples_available);
@@ -844,11 +844,11 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
 
     Debug(3, "Output_frame samples (%d)", output_frame->nb_samples );
     // Read a frame audio data from the resample fifo
-    if ( avresample_read( resample_context, output_frame->data, frame_size ) != frame_size ) {
+    if ( avresample_read(resample_context, output_frame->data, frame_size) != frame_size ) {
       Warning( "Error reading resampled audio: " );
       return 0;
     }
-    Debug(2, "Frame: samples(%d), format(%d), sample_rate(%d), channel layout(%d)", 
+    Debug(2, "Frame: samples(%d), format(%d), sample_rate(%d), channel layout(%d)",
         output_frame->nb_samples,
         output_frame->format,
         output_frame->sample_rate,
@@ -859,8 +859,8 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
     Debug(5, "after init packet" );
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    if (( ret = avcodec_send_frame( audio_output_context, output_frame ) ) < 0 ) {
-      Error( "Could not send frame (error '%s')",
+    if ( (ret = avcodec_send_frame(audio_output_context, output_frame)) < 0 ) {
+      Error("Could not send frame (error '%s')",
           av_make_error_string(ret).c_str());
       zm_av_packet_unref(&opkt);
       return 0;
@@ -868,28 +868,28 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
 
     //av_frame_unref( output_frame );
 
-    if ( ( ret = avcodec_receive_packet( audio_output_context, &opkt ) ) < 0 ) {
+    if ( (ret = avcodec_receive_packet( audio_output_context, &opkt )) < 0 ) {
       if ( AVERROR(EAGAIN) == ret ) {
-      // THe codec may need more samples than it has, perfectly valid
-      Debug( 3, "Could not recieve packet (error '%s')",
-          av_make_error_string(ret).c_str());
+        // THe codec may need more samples than it has, perfectly valid
+        Debug(3, "Could not recieve packet (error '%s')",
+            av_make_error_string(ret).c_str());
       } else {
-      Error( "Could not recieve packet (error %d = '%s')", ret,
-          av_make_error_string(ret).c_str());
+        Error("Could not recieve packet (error %d = '%s')", ret,
+            av_make_error_string(ret).c_str());
       }
       zm_av_packet_unref(&opkt);
-      av_frame_unref( input_frame );
+      av_frame_unref(input_frame);
       //av_frame_unref( output_frame );
       return 0;
     }
 #else
-    if (( ret = avcodec_encode_audio2( audio_output_context, &opkt, output_frame, &data_present )) < 0) {
-      Error( "Could not encode frame (error '%s')",
+    if ( (ret = avcodec_encode_audio2(audio_output_context, &opkt, output_frame, &data_present)) < 0 ) {
+      Error("Could not encode frame (error '%s')",
           av_make_error_string(ret).c_str());
       zm_av_packet_unref(&opkt);
       return 0;
     }
-    if ( ! data_present ) {
+    if ( !data_present ) {
       Debug(2, "Not ready to output a frame yet.");
       zm_av_packet_unref(&opkt);
       return 0;
@@ -899,7 +899,7 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
 #endif
   } else {
     av_init_packet(&opkt);
-    Debug(5, "after init packet" );
+    Debug(5, "after init packet");
     opkt.data = ipkt->data;
     opkt.size = ipkt->size;
   }
@@ -957,7 +957,7 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
 #endif
 //audio_last_dts = ipkt->dts;
   if ( opkt.dts > opkt.pts ) {
-    Debug(1,"opkt.dts(%d) must be <= opkt.pts(%d). Decompression must happen before presentation.", opkt.dts, opkt.pts );
+    Debug(1, "opkt.dts(%d) must be <= opkt.pts(%d). Decompression must happen before presentation.", opkt.dts, opkt.pts);
     opkt.dts = opkt.pts;
   }
 
@@ -969,11 +969,11 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
     opkt.duration = ipkt->duration;
   }
   //opkt.duration = av_rescale_q(ipkt->duration, audio_input_stream->time_base, audio_output_stream->time_base);
-  Debug( 2, "opkt.pts (%d), opkt.dts(%d) opkt.duration = (%d)", opkt.pts, opkt.dts, opkt.duration );
+  Debug(2, "opkt.pts (%d), opkt.dts(%d) opkt.duration = (%d)", opkt.pts, opkt.dts, opkt.duration);
 
   // pkt.pos:  byte position in stream, -1 if unknown 
   opkt.pos = -1;
-  opkt.stream_index = audio_output_stream->index;//ipkt->stream_index;
+  opkt.stream_index = audio_output_stream->index;
   audio_next_dts = opkt.dts + opkt.duration;
   audio_next_pts = opkt.pts + opkt.duration;
 
@@ -984,8 +984,8 @@ int VideoStore::writeAudioFramePacket( AVPacket *ipkt ) {
     Error("Error writing audio frame packet: %s\n", av_make_error_string(ret).c_str());
     dumpPacket(&safepkt);
   } else {
-    Debug(2,"Success writing audio frame" ); 
+    Debug(2,"Success writing audio frame");
   }
   zm_av_packet_unref(&opkt);
   return 0;
-} // end int VideoStore::writeAudioFramePacket( AVPacket *ipkt )
+}  // end int VideoStore::writeAudioFramePacket( AVPacket *ipkt )

@@ -271,7 +271,7 @@ MAIN: while( $loop ) {
         } # end foreach event
         chdir( $Storage->Path() );
       } # if USE_DEEP_STORAGE
-      Debug( 'Got '.int(keys(%$fs_events))." events for monitor $monitor_dir\n" );
+      Debug( 'Got '.int(keys(%$fs_events))." filesystem events for monitor $monitor_dir\n" );
 
       #delete_empty_directories(  $monitor_dir );
     } # end foreach monitor
@@ -351,7 +351,7 @@ MAIN: while( $loop ) {
         if ( ! defined( $fs_events->{$db_event} ) ) {
 Debug("Event $db_event is not in fs.");
           my $Event = ZoneMinder::Event->find_one( Id=>$db_event );
-          if ( $Event ) {
+          if ( ! $Event ) {
             Debug("Event $db_event is no longer in db.  Filter probably deleted it while we were auditing.");
             next;
           }

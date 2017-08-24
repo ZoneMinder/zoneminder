@@ -290,7 +290,7 @@ int FfmpegCamera::Capture( Image &image ) {
 
         /* Request a writeable buffer of the target image */
         directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
-        if(directbuffer == NULL) {
+        if ( directbuffer == NULL ) {
           Error("Failed requesting writeable buffer for the captured image.");
           return (-1);
         }
@@ -304,17 +304,6 @@ int FfmpegCamera::Capture( Image &image ) {
 #endif
 
 #if HAVE_LIBSWSCALE
-        if ( mConvertContext == NULL ) {
-          mConvertContext = sws_getContext(mVideoCodecContext->width,
-                                           mVideoCodecContext->height,
-                                           mVideoCodecContext->pix_fmt,
-                                           width, height, imagePixFormat,
-                                           SWS_BICUBIC, NULL, NULL, NULL);
-
-          if ( mConvertContext == NULL )
-            Fatal( "Unable to create conversion context for %s", mPath.c_str() );
-        }
-
         if ( sws_scale(mConvertContext, mRawFrame->data, mRawFrame->linesize, 0, mVideoCodecContext->height, mFrame->data, mFrame->linesize) < 0 )
           Fatal("Unable to convert raw format %u to target format %u at frame %d", mVideoCodecContext->pix_fmt, imagePixFormat, frameCount);
 #else // HAVE_LIBSWSCALE

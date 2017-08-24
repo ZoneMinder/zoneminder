@@ -125,14 +125,14 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
 #else
   video_out_stream =
-      avformat_new_stream(oc, reinterpret_cast<AVCodec *>video_in_ctx->codec);
+      avformat_new_stream(oc, reinterpret_cast<const AVCodec *>(video_in_ctx->codec));
   if (!video_out_stream) {
     Fatal("Unable to create video out stream\n");
   } else {
     Debug(2, "Success creating video out stream");
   }
   video_out_ctx = video_out_stream->codec;
-  ret = avcodec_copy_ctx(video_out_ctx, video_in_ctx);
+  ret = avcodec_copy_context(video_out_ctx, video_in_ctx);
   if (ret < 0) {
     Fatal("Unable to copy in video ctx to out video ctx %s\n",
           av_make_error_string(ret).c_str());
@@ -254,7 +254,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
 #else
         audio_out_ctx = audio_out_stream->codec;
-        ret = avcodec_copy_ctx(audio_out_ctx, audio_in_ctx);
+        ret = avcodec_copy_context(audio_out_ctx, audio_in_ctx);
         audio_out_ctx->codec_tag = 0;
 #endif
         if (ret < 0) {

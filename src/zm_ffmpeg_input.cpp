@@ -52,15 +52,15 @@ int FFmpeg_Input::Open( const char *filepath ) {
       }
     }
 
+    streams[i].frame_count = 0;
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     streams[i].context = avcodec_alloc_context3( NULL );
     avcodec_parameters_to_context( streams[i].context, input_format_context->streams[i]->codecpar );
 #else
     streams[i].context = input_format_context->streams[i]->codec;
 #endif
-    streams[i].frame_count = 0;
 
-    if ( !(streams[i].codec = avcodec_find_decoder(input_format_context->streams[i]->codecpar->codec_id)) ) {
+    if ( !(streams[i].codec = avcodec_find_decoder(streams[i].context->codec_id)) ) {
       Error( "Could not find input codec\n");
       avformat_close_input(&input_format_context);
       return AVERROR_EXIT;
@@ -163,7 +163,7 @@ AVFrame *FFmpeg_Input::get_frame( int stream_id ) {
     ret = zm_avcodec_decode_video( streams[packet.stream_index].context, frame, &frameComplete, &packet );
     if ( ret < 0 ) {
       av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
-      Error( "Unable to decode frame at frame %d: %s, continuing", frameCount, errbuf );
+      Error( "Unable to decode frame at frame %d: %s, continuing", streams[packet.stream_index].frame_count, errbuf );
       zm_av_packet_unref( &packet );
       continue;
     }

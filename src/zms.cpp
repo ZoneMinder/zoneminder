@@ -121,6 +121,8 @@ int main( int argc, const char *argv[] ) {
         strncpy( format, value, sizeof(format) );
       } else if ( !strcmp( name, "monitor" ) ) {
         monitor_id = atoi( value );
+        if ( source == ZMS_UNKNOWN )
+          source = ZMS_MONITOR;
       } else if ( !strcmp( name, "time" ) ) {
         event_time = atoi( value );
       } else if ( !strcmp( name, "event" ) ) {

@@ -71,7 +71,9 @@ int FFmpeg_Input::Open( const char *filepath ) {
     if ((error = avcodec_open2( streams[i].context, streams[i].codec, NULL)) < 0) {
       Error( "Could not open input codec (error '%s')\n",
           av_make_error_string(error).c_str() );
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       avcodec_free_context( &streams[i].context );
+#endif
       avformat_close_input(&input_format_context);
       return error;
     }

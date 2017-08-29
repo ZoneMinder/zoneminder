@@ -146,7 +146,7 @@ Image::Image( const AVFrame *frame ) {
   av_image_fill_arrays(dest_frame->data, dest_frame->linesize,
       buffer, AV_PIX_FMT_RGBA, width, height, 1);
 #else
-  avpicture_fill( (AVPicture *)mFrame, buffer,
+  avpicture_fill( (AVPicture *)dest_frame, buffer,
       AV_PIX_FMT_RGBA, width, height);
 #endif
 

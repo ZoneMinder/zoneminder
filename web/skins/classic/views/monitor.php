@@ -58,7 +58,7 @@ if ( ! empty($_REQUEST['mid']) ) {
 } else {
 
   $nextId = getTableAutoInc( 'Monitors' );
-  if ( ! empty( $_REQUEST['dupId'] ) ) {
+  if ( isset( $_REQUEST['dupId'] ) ) {
     $monitor = new Monitor( $_REQUEST['dupId'] );
     if ( ZM_OPT_X10 )
       $x10Monitor = dbFetchOne( 'SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['dupId']) );
@@ -566,7 +566,7 @@ if ( $tab != 'source' || $monitor->Type()!= 'Remote' ) {
 }
 if ( $tab != 'source' || ($monitor->Type()!= 'Local' && $monitor->Type()!= 'Remote' && $monitor->Type()!= 'Ffmpeg' && $monitor->Type()!= 'Libvlc') ) {
 ?>
-      <input type="hidden" name="newMonitor[Method]" value="<?php echo validHtmlStr($monitor->Method()) ?>"/>
+      <input type="hidden" name="newMonitor[Method]" value="<?php echo validHtmlStr(null !== $monitor->Method() ? $monitor->Method() : 'rtpRtsp' ) ?>"/>
 <?php
 }
 if ( $tab != 'source' || ($monitor->Type()!= 'Ffmpeg' && $monitor->Type()!= 'Libvlc' )) {

@@ -21,6 +21,7 @@
 
 #include "zm_config.h"
 #include "zm_utils.h"
+#include "zm_db.h"
 
 #include <unistd.h>
 #include <stdio.h>
@@ -333,45 +334,7 @@ Logger::Level Logger::databaseLevel( Logger::Level databaseLevel ) {
     databaseLevel = limit(databaseLevel);
     if ( mDatabaseLevel != databaseLevel ) {
       if ( databaseLevel > NOLOG && mDatabaseLevel <= NOLOG ) {
-        if ( !mDbConnected ) {
-          if ( !mysql_init( &mDbConnection ) ) {
-            Fatal( "Can't initialise database connection: %s", mysql_error( &mDbConnection ) );
-            exit( mysql_errno( &mDbConnection ) );
-          }
-          my_bool reconnect = 1;
-          if ( mysql_options( &mDbConnection, MYSQL_OPT_RECONNECT, &reconnect ) )
-            Fatal( "Can't set database auto reconnect option: %s", mysql_error( &mDbConnection ) );
-          std::string::size_type colonIndex = staticConfig.DB_HOST.find( ":" );
-          if ( colonIndex == std::string::npos ) {
-            if ( !mysql_real_connect( &mDbConnection, staticConfig.DB_HOST.c_str(), staticConfig.DB_USER.c_str(), staticConfig.DB_PASS.c_str(), NULL, 0, NULL, 0 ) ) {
-              Fatal( "Can't connect to database: %s", mysql_error( &mDbConnection ) );
-              exit( mysql_errno( &mDbConnection ) );
-            }
-          } else {
-            std::string dbHost = staticConfig.DB_HOST.substr( 0, colonIndex );
-            std::string dbPortOrSocket = staticConfig.DB_HOST.substr( colonIndex+1 );
-            if ( dbPortOrSocket[0] == '/' ) {
-              if ( !mysql_real_connect( &mDbConnection, NULL, staticConfig.DB_USER.c_str(), staticConfig.DB_PASS.c_str(), NULL, 0, dbPortOrSocket.c_str(), 0 ) ) {
-                Fatal( "Can't connect to database: %s", mysql_error( &mDbConnection ) );
-                exit( mysql_errno( &mDbConnection ) );
-              }  
-            } else {
-              if ( !mysql_real_connect( &mDbConnection, dbHost.c_str(), staticConfig.DB_USER.c_str(), staticConfig.DB_PASS.c_str(), NULL, atoi(dbPortOrSocket.c_str()), NULL, 0 ) ) {
-                Fatal( "Can't connect to database: %s", mysql_error( &mDbConnection ) );
-                exit( mysql_errno( &mDbConnection ) );
-              }
-            }
-          } // end if has colon
-          unsigned long mysqlVersion = mysql_get_server_version( &mDbConnection );
-          if ( mysqlVersion < 50019 )
-            if ( mysql_options( &mDbConnection, MYSQL_OPT_RECONNECT, &reconnect ) )
-              Fatal( "Can't set database auto reconnect option: %s", mysql_error( &mDbConnection ) );
-          if ( mysql_select_db( &mDbConnection, staticConfig.DB_NAME.c_str() ) ) {
-            Fatal( "Can't select database: %s", mysql_error( &mDbConnection ) );
-            exit( mysql_errno( &mDbConnection ) );
-          }
-          mDbConnected = true;
-        } // end if ! mDbConnected
+        zmDbConnect();
       } // end if ( databaseLevel > NOLOG && mDatabaseLevel <= NOLOG )
       mDatabaseLevel = databaseLevel;
     } // end if ( mDatabaseLevel != databaseLevel )
@@ -439,10 +402,7 @@ void Logger::closeFile() {
 }
 
 void Logger::closeDatabase() {
-  if ( mDbConnected ) {
-    mysql_close( &mDbConnection );
-    mDbConnected = false;
-  }
+  
 }
 
 void Logger::openSyslog() {
@@ -548,13 +508,13 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
       char sql[ZM_SQL_MED_BUFSIZ];
       char escapedString[(strlen(syslogStart)*2)+1];
 
-      mysql_real_escape_string( &mDbConnection, escapedString, syslogStart, strlen(syslogStart) );
+      mysql_real_escape_string( &dbconn, escapedString, syslogStart, strlen(syslogStart) );
 
       snprintf( sql, sizeof(sql), "insert into Logs ( TimeKey, Component, ServerId, Pid, Level, Code, Message, File, Line ) values ( %ld.%06ld, '%s', %d, %d, %d, '%s', '%s', '%s', %d )", timeVal.tv_sec, timeVal.tv_usec, mId.c_str(), staticConfig.SERVER_ID, tid, level, classString, escapedString, file, line );
-      if ( mysql_query( &mDbConnection, sql ) ) {
+      if ( mysql_query( &dbconn, sql ) ) {
         Level tempDatabaseLevel = mDatabaseLevel;
         databaseLevel( NOLOG );
-        Error( "Can't insert log entry: sql(%s) error(%s)", sql,  mysql_error( &mDbConnection ) );
+        Error( "Can't insert log entry: sql(%s) error(%s)", sql,  mysql_error( &dbconn ) );
         databaseLevel(tempDatabaseLevel);
       }
     }
@@ -566,6 +526,8 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
 
     free(filecopy);
     if ( level <= FATAL ) {
+      logTerm();
+      zmDbClose();
       if ( level <= PANIC )
         abort();
       exit( -1 );

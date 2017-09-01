@@ -130,7 +130,7 @@ function selectLayout( element ) {
         } else if ( streamImg.nodeName == 'APPLET' || streamImg.nodeName == 'OBJECT' ) {
           // APPLET's and OBJECTS need to be re-initialized
         }
-        streamImg.style.width = '';
+        streamImg.style.width = '100%';
       }
       var zonesSVG = $('zones'+monitor.id);
       if ( zonesSVG ) {
@@ -140,37 +140,8 @@ function selectLayout( element ) {
   }
 }
 
-function changeWidth() {
+function changeSize() {
   var width = $('width').get('value');
-
-  for ( var x = 0; x < monitors.length; x++ ) {
-    var monitor = monitors[x];
-    /*Stream could be an applet so can't use moo tools*/ 
-    var streamImg = $( 'liveStream'+monitor.id );
-    if ( streamImg ) {
-      if ( streamImg.nodeName == 'IMG' ) {
-        var src = streamImg.src;
-        streamImg.src='';
-        src = src.replace(/width=[\.\d]+/i,'width='+width );
-        src = src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
-        streamImg.src = src;
-
-      }
-      streamImg.style.width = width? width + "px" : null;
-      //streamImg.style.height = '';
-    }
-    var zonesSVG = $('zones'+monitor.id);
-    if ( zonesSVG ) {
-      
-      zonesSVG.style.width = width ? width + "px" : '100%';
-    }
-  }
-  $('scale').set('value', '' );
-  Cookie.write( 'zmMontageScale', '', { duration: 10*365 } );
-  Cookie.write( 'zmMontageWidth', width, { duration: 10*365 } );
-} // end function changeWidth()
-
-function changeHeight() {
   var height = $('height').get('value');
 
   for ( var x = 0; x < monitors.length; x++ ) {
@@ -181,21 +152,27 @@ function changeHeight() {
       if ( streamImg.nodeName == 'IMG' ) {
         var src = streamImg.src;
         streamImg.src='';
+        src = src.replace(/width=[\.\d]+/i,'width='+width );
         src = src.replace(/height=[\.\d]+/i,'height='+height );
         src = src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
         streamImg.src = src;
-        streamImg.style.height = height ? height + "px" : null;
+
       }
+      streamImg.style.width = width? width + "px" : null;
+      streamImg.style.height = height ? height + "px" : null;
+      //streamImg.style.height = '';
     }
     var zonesSVG = $('zones'+monitor.id);
     if ( zonesSVG ) {
+      zonesSVG.style.width = width ? width + "px" : '100%';
       zonesSVG.style.height = height + "px";
     }
   }
   $('scale').set('value', '' );
-  Cookie.write( 'zmMontageHeight', height, { duration: 10*365 } );
   Cookie.write( 'zmMontageScale', '', { duration: 10*365 } );
-} // end function changeHeight()
+  Cookie.write( 'zmMontageWidth', width, { duration: 10*365 } );
+  Cookie.write( 'zmMontageHeight', height, { duration: 10*365 } );
+} // end function changeSize()
 
 function changeScale() {
   var scale = $('scale').get('value');

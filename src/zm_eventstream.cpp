@@ -834,7 +834,7 @@ bool EventStream::send_file( const char * filepath ) {
     return false;
   }
   bool sent = false;
-  bool size_size = false;
+  bool size_sent = false;
 
 #if HAVE_SENDFILE
   static struct stat filestat;
@@ -845,7 +845,7 @@ bool EventStream::send_file( const char * filepath ) {
   fprintf( stdout, "Content-Length: %d\r\n\r\n", (int)filestat.st_size );
   size_sent = true;
 
-  if ( ! zm_sendfile(fileno(stdout), fileno(fdj), 0, (int)filestat.st_size) != (int)filestat.st_size ) {
+  if ( zm_sendfile(fileno(stdout), fileno(fdj), 0, (int)filestat.st_size) != (int)filestat.st_size ) {
     sent = true;
   }
 #endif

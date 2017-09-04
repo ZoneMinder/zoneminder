@@ -143,11 +143,11 @@ while( 1 ) {
       if ( !defined($image_time) ) {
 # Can't read from shared data
         $restart = 1;
-        Error( "Error reading shared data for $$monitor{id} $$monitor{Name}\n");
+        Error( "Error reading shared data for $$monitor{Id} $$monitor{Name}\n");
       } elsif ( !$image_time ) {
 # We can't get the last capture time so can't be sure it's died.
         $restart = 1;
-        Error( "Error getting last capture time for $$monitor{id} $$monitor{Name}\n");
+        Error( "Error getting last capture time for $$monitor{Id} $$monitor{Name}\n");
       } else {
 
         my $max_image_delay = ( $monitor->{MaxFPS}
@@ -159,7 +159,7 @@ while( 1 ) {
         my $image_delay = $now-$image_time;
         Debug( "Monitor $monitor->{Id} last analysed $image_delay seconds ago, max is $max_image_delay\n" );
         if ( $image_delay > $max_image_delay ) {
-          Info( "Analysis daemon for $$monitor{id} $$monitor{Name} needs restarting,"
+          Info( "Analysis daemon for $$monitor{Id} $$monitor{Name} needs restarting,"
               ." time since last analysis $image_delay seconds ($now-$image_time)\n"
               );
           $restart = 1;
@@ -167,7 +167,7 @@ while( 1 ) {
       }
 
       if ( $restart ) {
-        Info( "Restarting analysis daemon for $$monitor{id} $$monitor{Name}\n");
+        Info( "Restarting analysis daemon for $$monitor{Id} $$monitor{Name}\n");
         my $command = "zmdc.pl restart zma -m ".$monitor->{Id};
         runCommand( $command );
       } # end if restart

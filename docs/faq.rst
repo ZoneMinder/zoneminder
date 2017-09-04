@@ -61,7 +61,7 @@ In *general* a good estimate of memory required would be:
 
 ::
 
-	Min Memory = 1.2 * ((image-width*image-height*image buffer size*target color space*number of cameras/8/1024/1024 ) 
+	Min Bits of Memory = 20% overhead * (image-width*image-height*image buffer size*target color space*number of cameras) 
 
 Where:
 * image-width and image-height are the width and height of images that your camera is configured for (in my case, 1280x960). This value is in the Source tab for each monitor
@@ -69,11 +69,18 @@ Where:
 * target color space is the color depth - 8bit, 24bit or 32bit. It's again in the source tab of each monitor
 The 1.2 at the start is basically adding 20% on top of the calculation to account for image/stream overheads (this is an estimate)
 
-So let's do the math. If we have 4 cameras running at 1280x960 with 32bit color space and one camera running at 640x480 with 8bit greyscale color space, the system would require:
+The math breakdown for 4 cameras running at 1280x960 capture, 50 frame buffer, 24 bit color space:
+::
+	1280*960 = 1,228,800 (bits)
+	1,228,800 * 24 = 2,359,296,000 (bits) 
+	2,359,296,000 * 50 = 5,898,240,000 (bits)
+	5,898,240,000 * 4 = 7,077,888,000 (bits)
+	7,077,888,000 / 8 = 884,736,000 (bytes)
+	884,736,000 / 1000 = 884,736 (Kilobytes)
+	884,736 / 1000 = 864 (Megabytes)
+	864 / 1000 = 0.9 (Gigabyte)
 
-``1.2 * ((1280*960*50*32*4/8/1024/1024 )  + (640 *480  *50*8/8 /1024/1024))``
-
-Or, around 900MB of memory.
+Around 900MB of memory.
 
 So if you have 2GB of memory, you should be all set. Right? **Not, really**:
 

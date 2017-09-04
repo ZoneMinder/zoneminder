@@ -48,6 +48,8 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 use Getopt::Std;
 use Data::UUID;
 
+use vars qw( $verbose $soap_version );
+
 require ONVIF::Client;
 
 require WSDiscovery10::Interfaces::WSDiscovery::WSDiscoveryPort;
@@ -77,33 +79,35 @@ sub deserialize_message {
 
 # Try deserializing response - there may be some,
 # even if transport did not succeed (got a 500 response)
-  if ( $response ) {
+  if ( ! $response ) {
+    return;
+  }
+
 # as our faults are false, returning a success marker is the only
 # reliable way of determining whether the deserializer succeeded.
 # Custom deserializers may return an empty list, or undef,
 # and $@ is not guaranteed to be undefined.
-    my ($success, $result_body, $result_header) = eval {
-      (1, $deserializer->deserialize( $response ));
-    }; 
-    if (defined $success) {
-      return wantarray
-        ? ($result_body, $result_header)
-        : $result_body;
-    }
-    elsif (blessed $@) { #}&& $@->isa('SOAP::WSDL::SOAP::Typelib::Fault11')) {
-      return $@;
-    }
-    else {
-      return $deserializer->generate_fault({
-          code => 'soap:Server',
-          role => 'urn:localhost',
-          message => "Error deserializing message: $@. \n"
-          . "Message was: \n$response"
-          });
-    }
-  };
-}
-ub interpret_messages {
+  my ($success, $result_body, $result_header) = eval {
+    (1, $deserializer->deserialize( $response ));
+  }; 
+  if (defined $success) {
+    return wantarray
+    ? ($result_body, $result_header)
+    : $result_body;
+  } elsif (blessed $@) { #}&& $@->isa('SOAP::WSDL::SOAP::Typelib::Fault11')) {
+    return $@;
+  } 
+
+  #else
+  return $deserializer->generate_fault({
+      code => 'soap:Server',
+      role => 'urn:localhost',
+      message => "Error deserializing message: $@. \n"
+      . "Message was: \n$response"
+    });
+} # end sub deserialize_message
+
+sub interpret_messages {
   my ($svc_discover, $services, @responses ) = @_;
 
   my @results;
@@ -167,6 +171,7 @@ ub interpret_messages {
 # functions
 
 sub discover {
+  my ( $soap_version ) = @_;
   my @results;
 
 ## collect all responses
@@ -246,6 +251,8 @@ sub discover {
 }
 
 sub profiles {
+  my ( $client ) = @_;
+
   my $result = $client->get_endpoint('media')->GetProfiles( { } ,, );
   die $result if not $result;
   if($verbose) {
@@ -293,7 +300,7 @@ sub profiles {
 }
 
 sub move {
-  my ($dir) = @_;
+  my ($client, $dir) = @_;
 
   my $result = $client->get_endpoint('ptz')->GetNodes( { } ,, );
 
@@ -302,6 +309,7 @@ sub move {
 } # end sub move
 
 sub metadata {
+  my ( $client ) = @_;
   my $result = $client->get_endpoint('media')->GetMetadataConfigurations( { } ,, );
   die $result if not $result;
   print $result . "\n";

@@ -20,6 +20,8 @@
 #include "zm_packet.h"
 #include "zm_ffmpeg.h"
 
+#include <sys/time.h>
+
 using namespace std;
 
 ZMPacket::ZMPacket( AVPacket *p ) {

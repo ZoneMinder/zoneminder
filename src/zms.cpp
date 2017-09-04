@@ -52,7 +52,7 @@ int main( int argc, const char *argv[] ) {
 
   srand( getpid() * time( 0 ) );
 
-  enum { ZMS_MONITOR, ZMS_EVENT } source = ZMS_MONITOR;
+  enum { ZMS_UNKNOWN, ZMS_MONITOR, ZMS_EVENT } source = ZMS_UNKNOWN;
   enum { ZMS_JPEG, ZMS_MPEG, ZMS_RAW, ZMS_ZIP, ZMS_SINGLE } mode = ZMS_JPEG;
   char format[32] = "";
   int monitor_id = 0;
@@ -121,12 +121,16 @@ int main( int argc, const char *argv[] ) {
         strncpy( format, value, sizeof(format) );
       } else if ( !strcmp( name, "monitor" ) ) {
         monitor_id = atoi( value );
+        if ( source == ZMS_UNKNOWN )
+          source = ZMS_MONITOR;
       } else if ( !strcmp( name, "time" ) ) {
         event_time = atoi( value );
       } else if ( !strcmp( name, "event" ) ) {
         event_id = strtoull( value, (char **)NULL, 10 );
+        source = ZMS_EVENT;
       } else if ( !strcmp( name, "frame" ) ) {
         frame_id = strtoull( value, (char **)NULL, 10 );
+        source = ZMS_EVENT;
       } else if ( !strcmp( name, "scale" ) ) {
         scale = atoi( value );
       } else if ( !strcmp( name, "rate" ) ) {
@@ -264,6 +268,7 @@ int main( int argc, const char *argv[] ) {
     if ( ! event_id ) {
       Fatal( "Can't view an event without specifying an event_id." );
     }
+    Debug(3,"Doing event stream scale(%d)", scale );
     EventStream stream;
     stream.setStreamScale( scale );
     stream.setStreamReplayRate( rate );
@@ -273,6 +278,7 @@ int main( int argc, const char *argv[] ) {
     if ( monitor_id && event_time ) {
       stream.setStreamStart( monitor_id, event_time );
     } else {
+      Debug(3, "Setting stream start to frame (%d)", frame_id);
       stream.setStreamStart( event_id, frame_id );
     }
     if ( mode == ZMS_JPEG ) {
@@ -291,6 +297,8 @@ int main( int argc, const char *argv[] ) {
 #endif // HAVE_LIBAVCODEC
     } // end if jpeg or mpeg
     stream.runStream();
+  } else {
+    Error("Neither a monitor or event was specified.");
   } // end if monitor or event
 
   logTerm();

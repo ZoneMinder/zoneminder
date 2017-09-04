@@ -238,6 +238,11 @@ sub GenerateVideo {
 
 sub delete {
   my $event = $_[0];
+  if ( ! ( $event->{Id} and $event->{MonitorId} and $event->{StartTime} ) ) {
+    my ( $caller, undef, $line ) = caller;
+    Warning( "Can't Delete event $event->{Id} from Monitor $event->{MonitorId} $event->{StartTime} from $caller:$line\n" );
+    return;
+  }
   Info( "Deleting event $event->{Id} from Monitor $event->{MonitorId} $event->{StartTime}\n" );
   $ZoneMinder::Database::dbh->ping();
 # Do it individually to avoid locking up the table for new events

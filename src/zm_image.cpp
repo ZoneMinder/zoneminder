@@ -22,6 +22,7 @@
 #include "zm_image.h"
 #include "zm_utils.h"
 #include "zm_rgb.h"
+#include "zm_ffmpeg.h"
 
 #include <sys/stat.h>
 #include <errno.h>
@@ -107,8 +108,7 @@ Image::Image( const char *filename ) {
   text[0] = '\0';
 }
 
-Image::Image( int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer )
-{
+Image::Image( int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer ) {
   if ( !initialised )
     Initialise();
   width = p_width;
@@ -119,21 +119,57 @@ Image::Image( int p_width, int p_height, int p_colours, int p_subpixelorder, uin
   size = pixels*colours;
   buffer = 0;
   holdbuffer = 0;
-  if ( p_buffer )
-  {
+  if ( p_buffer ) {
     allocation = size;
     buffertype = ZM_BUFTYPE_DONTFREE;
     buffer = p_buffer;
-  }
-  else
-  {
+  } else {
     AllocImgBuffer(size);
   }
   text[0] = '\0';
 }
 
-Image::Image( const Image &p_image )
-{
+Image::Image( const AVFrame *frame ) {
+  AVFrame *dest_frame = zm_av_frame_alloc();
+
+  width = frame->width;
+  height = frame->height;
+  pixels = width*height;
+  colours = ZM_COLOUR_RGB32;
+  subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+  size = pixels*colours;
+  buffer = 0;
+  holdbuffer = 0;
+  AllocImgBuffer(size);
+
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+  av_image_fill_arrays(dest_frame->data, dest_frame->linesize,
+      buffer, AV_PIX_FMT_RGBA, width, height, 1);
+#else
+  avpicture_fill( (AVPicture *)dest_frame, buffer,
+      AV_PIX_FMT_RGBA, width, height);
+#endif
+
+#if HAVE_LIBSWSCALE
+  struct SwsContext   *mConvertContext = sws_getContext(
+      width,
+      height,
+      (AVPixelFormat)frame->format,
+      width, height,
+      AV_PIX_FMT_RGBA, SWS_BICUBIC, NULL,
+      NULL, NULL);
+  if ( mConvertContext == NULL )
+    Fatal( "Unable to create conversion context" );
+
+  if ( sws_scale(mConvertContext, frame->data, frame->linesize, 0, frame->height, dest_frame->data, dest_frame->linesize) < 0 )
+    Fatal("Unable to convert raw format %u to target format %u", frame->format, AV_PIX_FMT_RGBA);
+#else // HAVE_LIBSWSCALE
+  Fatal("You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras");
+#endif // HAVE_LIBSWSCALE
+  av_frame_free( &dest_frame );
+}
+
+Image::Image( const Image &p_image ) {
   if ( !initialised )
     Initialise();
   width = p_image.width;
@@ -170,8 +206,7 @@ void Image::Deinitialise() {
       delete readjpg_dcinfo;
       readjpg_dcinfo = 0;
     }
-    if ( decodejpg_dcinfo )
-    {
+    if ( decodejpg_dcinfo ) {
       jpeg_destroy_decompress( decodejpg_dcinfo );
       delete decodejpg_dcinfo;
       decodejpg_dcinfo = 0;
@@ -186,14 +221,13 @@ void Image::Deinitialise() {
   }
 }
 
-void Image::Initialise()
-{
+void Image::Initialise() {
   /* Assign the blend pointer to function */
-  if(config.fast_image_blends) {
-    if(config.cpu_extensions && sseversion >= 20) {
+  if ( config.fast_image_blends ) {
+    if ( config.cpu_extensions && sseversion >= 20 ) {
       fptr_blend = &sse2_fastblend; /* SSE2 fast blend */
       Debug(4,"Blend: Using SSE2 fast blend function");
-    } else if(config.cpu_extensions && neonversion >= 1) {
+    } else if ( config.cpu_extensions && neonversion >= 1 ) {
 #if defined(__aarch64__)
       fptr_blend = &neon64_armv8_fastblend;  /* ARM Neon (AArch64) fast blend */
       Debug(4,"Blend: Using ARM Neon (AArch64) fast blend function");
@@ -236,8 +270,8 @@ void Image::Initialise()
   (*fptr_blend)(blend1,blend2,blendres,128,12.0);
 
   /* Compare results with expected results */
-  for(int i=0;i<128;i++) {
-    if(abs(blendexp[i] - blendres[i]) > 3) {
+  for ( int i=0; i < 128; i ++ ) {
+    if ( abs(blendexp[i] - blendres[i]) > 3 ) {
       Panic("Blend function failed self-test: Results differ from the expected results. Column %u Expected %u Got %u",i,blendexp[i],blendres[i]);
     }
   }
@@ -246,8 +280,8 @@ void Image::Initialise()
   fptr_delta8_bgr = &std_delta8_bgr;
 
   /* Assign the delta functions */
-  if(config.cpu_extensions) {
-    if(sseversion >= 35) {
+  if ( config.cpu_extensions ) {
+    if ( sseversion >= 35 ) {
       /* SSSE3 available */
       fptr_delta8_rgba = &ssse3_delta8_rgba;
       fptr_delta8_bgra = &ssse3_delta8_bgra;
@@ -255,7 +289,7 @@ void Image::Initialise()
       fptr_delta8_abgr = &ssse3_delta8_abgr;
       fptr_delta8_gray8 = &sse2_delta8_gray8;
       Debug(4,"Delta: Using SSSE3 delta functions");
-    } else if(sseversion >= 20) {
+    } else if ( sseversion >= 20 ) {
       /* SSE2 available */
       fptr_delta8_rgba = &sse2_delta8_rgba;
       fptr_delta8_bgra = &sse2_delta8_bgra;
@@ -263,7 +297,7 @@ void Image::Initialise()
       fptr_delta8_abgr = &sse2_delta8_abgr;
       fptr_delta8_gray8 = &sse2_delta8_gray8;
       Debug(4,"Delta: Using SSE2 delta functions");
-    } else if(neonversion >= 1) {
+    } else if ( neonversion >= 1 ) {
       /* ARM Neon available */
 #if defined(__aarch64__)
       fptr_delta8_rgba = &neon64_armv8_delta8_rgba;
@@ -329,8 +363,8 @@ void Image::Initialise()
   (*fptr_delta8_gray8)(delta8_1,delta8_2,delta8_gray8_res,128);
 
   /* Compare results with expected results */
-  for(int i=0;i<128;i++) {
-    if(abs(delta8_gray8_exp[i] - delta8_gray8_res[i]) > 7) {
+  for ( int i=0; i < 128; i++ ) {
+    if ( abs(delta8_gray8_exp[i] - delta8_gray8_res[i]) > 7 ) {
       Panic("Delta grayscale function failed self-test: Results differ from the expected results. Column %u Expected %u Got %u",i,delta8_gray8_exp[i],delta8_gray8_res[i]);
     }
   }
@@ -339,8 +373,8 @@ void Image::Initialise()
   (*fptr_delta8_rgba)(delta8_1,delta8_2,delta8_rgba_res,32);
 
   /* Compare results with expected results */
-  for(int i=0;i<32;i++) {
-    if(abs(delta8_rgba_exp[i] - delta8_rgba_res[i]) > 7) {
+  for ( int i=0; i < 32; i++ ) {
+    if ( abs(delta8_rgba_exp[i] - delta8_rgba_res[i]) > 7 ) {
       Panic("Delta RGBA function failed self-test: Results differ from the expected results. Column %u Expected %u Got %u",i,delta8_rgba_exp[i],delta8_rgba_res[i]);
     }
   }
@@ -359,7 +393,7 @@ void Image::Initialise()
 
 #if defined(__i386__) && !defined(__x86_64__)
   /* Use SSE2 aligned memory copy? */
-  if(config.cpu_extensions && sseversion >= 20) {
+  if ( config.cpu_extensions && sseversion >= 20 ) {
     fptr_imgbufcpy = &sse2_aligned_memcpy;
     Debug(4,"Image buffer copy: Using SSE2 aligned memcpy");
   } else {
@@ -425,24 +459,24 @@ void Image::Initialise()
 uint8_t* Image::WriteBuffer(const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder) {
   unsigned int newsize;
 
-  if(p_colours != ZM_COLOUR_GRAY8 && p_colours != ZM_COLOUR_RGB24 && p_colours != ZM_COLOUR_RGB32) {
+  if ( p_colours != ZM_COLOUR_GRAY8 && p_colours != ZM_COLOUR_RGB24 && p_colours != ZM_COLOUR_RGB32 ) {
     Error("WriteBuffer called with unexpected colours: %d",p_colours);
     return NULL;
   }
 
-  if(!p_height || !p_width) {
+  if ( !p_height || !p_width ) {
     Error("WriteBuffer called with invalid width or height: %d %d",p_width,p_height);
     return NULL;
   }
 
-  if(p_width != width || p_height != height || p_colours != colours || p_subpixelorder != subpixelorder) {
+  if ( p_width != width || p_height != height || p_colours != colours || p_subpixelorder != subpixelorder ) {
     newsize = (p_width * p_height) * p_colours;
 
-    if(buffer == NULL) {
+    if ( buffer == NULL ) {
       AllocImgBuffer(newsize);
     } else {
-      if(allocation < newsize) {
-        if(holdbuffer) {
+      if ( allocation < newsize ) {
+        if ( holdbuffer ) {
           Error("Held buffer is undersized for requested buffer");
           return NULL;
         } else {
@@ -467,30 +501,30 @@ uint8_t* Image::WriteBuffer(const unsigned int p_width, const unsigned int p_hei
 
 /* Assign an existing buffer to the image instead of copying from a source buffer. The goal is to reduce the amount of memory copying and increase efficiency and buffer reusing. */
 void Image::AssignDirect( const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder, uint8_t *new_buffer, const size_t buffer_size, const int p_buffertype) {
-  if(new_buffer == NULL) {
+  if ( new_buffer == NULL ) {
     Error("Attempt to directly assign buffer from a NULL pointer");
     return;
   }
 
-  if(!p_height || !p_width) {
+  if ( !p_height || !p_width ) {
     Error("Attempt to directly assign buffer with invalid width or height: %d %d",p_width,p_height);
     return;
   }
 
-  if(p_colours != ZM_COLOUR_GRAY8 && p_colours != ZM_COLOUR_RGB24 && p_colours != ZM_COLOUR_RGB32) {
+  if ( p_colours != ZM_COLOUR_GRAY8 && p_colours != ZM_COLOUR_RGB24 && p_colours != ZM_COLOUR_RGB32 ) {
     Error("Attempt to directly assign buffer with unexpected colours per pixel: %d",p_colours);
     return;
   }
 
   unsigned int new_buffer_size = ((p_width*p_height)*p_colours);
 
-  if(buffer_size < new_buffer_size) {
+  if ( buffer_size < new_buffer_size ) {
     Error("Attempt to directly assign buffer from an undersized buffer of size: %zu, needed %dx%d*%d colours = %zu",buffer_size, p_width, p_height, p_colours, new_buffer_size );
     return;
   }
 
-  if(holdbuffer && buffer) {
-    if(new_buffer_size > allocation) {
+  if ( holdbuffer && buffer ) {
+    if ( new_buffer_size > allocation ) {
       Error("Held buffer is undersized for assigned buffer");
       return;
     } else {
@@ -502,7 +536,7 @@ void Image::AssignDirect( const unsigned int p_width, const unsigned int p_heigh
       size = new_buffer_size; // was pixels*colours, but we already calculated it above as new_buffer_size
 
       /* Copy into the held buffer */
-      if(new_buffer != buffer)
+      if ( new_buffer != buffer )
         (*fptr_imgbufcpy)(buffer, new_buffer, size);
 
       /* Free the new buffer */
@@ -529,35 +563,35 @@ void Image::AssignDirect( const unsigned int p_width, const unsigned int p_heigh
 void Image::Assign(const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder, const uint8_t* new_buffer, const size_t buffer_size) {
   unsigned int new_size = (p_width * p_height) * p_colours;
 
-  if(new_buffer == NULL) {
+  if ( new_buffer == NULL ) {
     Error("Attempt to assign buffer from a NULL pointer");
     return;
   }
 
-  if(buffer_size < new_size) {
+  if ( buffer_size < new_size ) {
     Error("Attempt to assign buffer from an undersized buffer of size: %zu",buffer_size);
     return;
   }
 
-  if(!p_height || !p_width) {
+  if ( !p_height || !p_width ) {
     Error("Attempt to assign buffer with invalid width or height: %d %d",p_width,p_height);
     return;
   }
 
-  if(p_colours != ZM_COLOUR_GRAY8 && p_colours != ZM_COLOUR_RGB24 && p_colours != ZM_COLOUR_RGB32) {
+  if ( p_colours != ZM_COLOUR_GRAY8 && p_colours != ZM_COLOUR_RGB24 && p_colours != ZM_COLOUR_RGB32 ) {
     Error("Attempt to assign buffer with unexpected colours per pixel: %d",p_colours);
     return;
   }
 
-  if ( !buffer || p_width != width || p_height != height || p_colours != colours || p_subpixelorder != subpixelorder) {
+  if ( !buffer || p_width != width || p_height != height || p_colours != colours || p_subpixelorder != subpixelorder ) {
 
-    if (holdbuffer && buffer) {
-      if (new_size > allocation) {
+    if ( holdbuffer && buffer ) {
+      if ( new_size > allocation ) {
         Error("Held buffer is undersized for assigned buffer");
         return;
       }
     } else {
-      if(new_size > allocation || !buffer) { 
+      if ( new_size > allocation || !buffer ) { 
         DumpImgBuffer();
         AllocImgBuffer(new_size);
       }

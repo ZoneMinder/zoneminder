@@ -29,6 +29,7 @@
 #include "zm_signal.h"
 #include "zm_monitor.h"
 #include "zm_video.h"
+#include "zm_eventstream.h"
 #if ZM_HAS_V4L
 #include "zm_local_camera.h"
 #endif // ZM_HAS_V4L
@@ -397,8 +398,10 @@ Monitor::Monitor(
 
   if ( purpose == CAPTURE ) {
 
-    this->connect();
-    if ( ! mem_ptr ) exit(-1);
+    if ( ! this->connect() ) {
+      Error("unable to connect, but doing capture");
+      exit(-1);
+    }
     memset( mem_ptr, 0, mem_size );
     shared_data->size = sizeof(SharedData);
     shared_data->active = enabled;
@@ -485,38 +488,53 @@ bool Monitor::connect() {
 #if ZM_MEM_MAPPED
   snprintf( mem_file, sizeof(mem_file), "%s/zm.mmap.%d", staticConfig.PATH_MAP.c_str(), id );
   map_fd = open( mem_file, O_RDWR|O_CREAT, (mode_t)0600 );
-  if ( map_fd < 0 )
+  if ( map_fd < 0 ) {
     Fatal( "Can't open memory map file %s, probably not enough space free: %s", mem_file, strerror(errno) );
+  } else {
+    Debug(3, "Success opening mmap file at (%s)", mem_file );
+  }
 
   struct stat map_stat;
   if ( fstat( map_fd, &map_stat ) < 0 )
     Fatal( "Can't stat memory map file %s: %s, is the zmc process for this monitor running?", mem_file, strerror(errno) );
-  if ( map_stat.st_size != mem_size && purpose == CAPTURE ) {
-    // Allocate the size
-    if ( ftruncate( map_fd, mem_size ) < 0 ) {
-      Fatal( "Can't extend memory map file %s to %d bytes: %s", mem_file, mem_size, strerror(errno) );
-    }
-  } else if ( map_stat.st_size == 0 ) {
-    Error( "Got empty memory map file size %ld, is the zmc process for this monitor running?", map_stat.st_size, mem_size );
-    return false;
-  } else if ( map_stat.st_size != mem_size ) {
-    Error( "Got unexpected memory map file size %ld, expected %d", map_stat.st_size, mem_size );
-    return false;
-  } else {
-#ifdef MAP_LOCKED
-    mem_ptr = (unsigned char *)mmap( NULL, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_LOCKED, map_fd, 0 );
-    if ( mem_ptr == MAP_FAILED ) {
-      if ( errno == EAGAIN ) {
-        Debug( 1, "Unable to map file %s (%d bytes) to locked memory, trying unlocked", mem_file, mem_size );
-#endif
-        mem_ptr = (unsigned char *)mmap( NULL, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED, map_fd, 0 );
-        Debug( 1, "Mapped file %s (%d bytes) to locked memory, unlocked", mem_file, mem_size );
-#ifdef MAP_LOCKED
+
+  if ( map_stat.st_size != mem_size ) {
+    if ( purpose == CAPTURE ) {
+      // Allocate the size
+      if ( ftruncate( map_fd, mem_size ) < 0 ) {
+        Fatal( "Can't extend memory map file %s to %d bytes: %s", mem_file, mem_size, strerror(errno) );
       }
+    } else if ( map_stat.st_size == 0 ) {
+      Error( "Got empty memory map file size %ld, is the zmc process for this monitor running?", map_stat.st_size, mem_size );
+      return false;
+    } else {
+      Error( "Got unexpected memory map file size %ld, expected %d", map_stat.st_size, mem_size );
+      return false;
     }
+  }
+
+  Debug(3, "MMap file size is %ld", map_stat.st_size );
+#ifdef MAP_LOCKED
+  mem_ptr = (unsigned char *)mmap( NULL, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_LOCKED, map_fd, 0 );
+  if ( mem_ptr == MAP_FAILED ) {
+    if ( errno == EAGAIN ) {
+      Debug( 1, "Unable to map file %s (%d bytes) to locked memory, trying unlocked", mem_file, mem_size );
+
 #endif
-    if ( mem_ptr == MAP_FAILED )
-      Fatal( "Can't map file %s (%d bytes) to memory: %s(%d)", mem_file, mem_size, strerror(errno), errno );
+      mem_ptr = (unsigned char *)mmap( NULL, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED, map_fd, 0 );
+      Debug( 1, "Mapped file %s (%d bytes) to unlocked memory", mem_file, mem_size );
+#ifdef MAP_LOCKED
+    } else {
+      Error( "Unable to map file %s (%d bytes) to locked memory (%s)", mem_file, mem_size , strerror(errno) );
+    }
+  }
+#endif
+  if ( mem_ptr == MAP_FAILED )
+    Fatal( "Can't map file %s (%d bytes) to memory: %s(%d)", mem_file, mem_size, strerror(errno), errno );
+  if ( mem_ptr == NULL ) {
+    Error( "mmap gave a null address:" );
+  } else {
+    Debug(3, "mmapped to %p", mem_ptr );
   }
 #else // ZM_MEM_MAPPED
   shm_id = shmget( (config.shm_key&0xffff0000)|id, mem_size, IPC_CREAT|0700 );
@@ -535,26 +553,26 @@ bool Monitor::connect() {
   video_store_data = (VideoStoreData *)((char *)trigger_data + sizeof(TriggerData));
   struct timeval *shared_timestamps = (struct timeval *)((char *)video_store_data + sizeof(VideoStoreData));
   unsigned char *shared_images = (unsigned char *)((char *)shared_timestamps + (image_buffer_count*sizeof(struct timeval)));
+
   
-  if(((unsigned long)shared_images % 64) != 0) {
+  if ( ((unsigned long)shared_images % 64) != 0 ) {
     /* Align images buffer to nearest 64 byte boundary */
     Debug(3,"Aligning shared memory images to the next 64 byte boundary");
     shared_images = (uint8_t*)((unsigned long)shared_images + (64 - ((unsigned long)shared_images % 64)));
   }
-  Debug(3, "Allocating %d image buffers", image_buffer_count );
-  image_buffer = new Snapshot[image_buffer_count];
-  for ( int i = 0; i < image_buffer_count; i++ ) {
-    image_buffer[i].timestamp = &(shared_timestamps[i]);
-    image_buffer[i].image = new Image( width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*camera->ImageSize()]) );
-    image_buffer[i].image->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
-  }
-  if ( (deinterlacing & 0xff) == 4) {
-    /* Four field motion adaptive deinterlacing in use */
-    /* Allocate a buffer for the next image */
-    next_buffer.image = new Image( width, height, camera->Colours(), camera->SubpixelOrder());
-    next_buffer.timestamp = new struct timeval;
-  }
-
+    Debug(3, "Allocating %d image buffers", image_buffer_count );
+    image_buffer = new Snapshot[image_buffer_count];
+    for ( int i = 0; i < image_buffer_count; i++ ) {
+      image_buffer[i].timestamp = &(shared_timestamps[i]);
+      image_buffer[i].image = new Image( width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*camera->ImageSize()]) );
+      image_buffer[i].image->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
+    }
+    if ( (deinterlacing & 0xff) == 4) {
+      /* Four field motion adaptive deinterlacing in use */
+      /* Allocate a buffer for the next image */
+      next_buffer.image = new Image( width, height, camera->Colours(), camera->SubpixelOrder());
+      next_buffer.timestamp = new struct timeval;
+    }
   if ( ( purpose == ANALYSIS ) && analysis_fps ) {
     // Size of pre event buffer must be greater than pre_event_count
     // if alarm_frame_count > 1, because in this case the buffer contains
@@ -566,7 +584,7 @@ bool Monitor::connect() {
       pre_event_buffer[i].image = new Image( width, height, camera->Colours(), camera->SubpixelOrder());
     }
   }
-
+Debug(3, "Success connecting");
   return true;
 }
 
@@ -1318,14 +1336,15 @@ bool Monitor::Analyse() {
               score += motion_score;
             }
             noteSetMap[MOTION_CAUSE] = zoneSet;
-
-          }
+          } // end if motion_score
           shared_data->active = signal;
-        }
+        } // end if signal change
+
         if ( (!signal_change && signal) && n_linked_monitors > 0 ) {
           bool first_link = true;
           Event::StringSet noteSet;
           for ( int i = 0; i < n_linked_monitors; i++ ) {
+            // TODO: Shouldn't we try to connect?
             if ( linked_monitors[i]->isConnected() ) {
               if ( linked_monitors[i]->hasAlarmed() ) {
                 if ( !event ) {
@@ -1351,11 +1370,12 @@ bool Monitor::Analyse() {
         if ( (!signal_change && signal) && (function == RECORD || function == MOCORD) ) {
           if ( event ) {
             //TODO: We shouldn't have to do this every time. Not sure why it clears itself if this isn't here??
-            snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
+            //snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
               Debug( 3, "Detected new event at (%d.%d)", timestamp->tv_sec,timestamp->tv_usec );
             
             if ( section_length ) {
-              int section_mod = timestamp->tv_sec%section_length;
+              // TODO: Wouldn't this be clearer if we just did something like if now - event->start > section_length ?
+              int section_mod = timestamp->tv_sec % section_length;
               Debug( 3, "Section length (%d) Last Section Mod(%d), new section mod(%d)", section_length, last_section_mod, section_mod );
               if ( section_mod < last_section_mod ) {
                 //if ( state == IDLE || state == TAPE || event_close_mode == CLOSE_TIME ) {
@@ -1373,8 +1393,8 @@ bool Monitor::Analyse() {
               } else {
                 last_section_mod = section_mod;
               }
-            }
-          } // end if section_length
+            } // end if section_length
+          } // end if event
 
           if ( ! event ) {
 
@@ -2976,7 +2996,7 @@ void Monitor::TimestampImage( Image *ts_image, const struct timeval *ts_time ) c
     const char *s_ptr = label_time_text;
     char *d_ptr = label_text;
     while ( *s_ptr && ((d_ptr-label_text) < (unsigned int)sizeof(label_text)) ) {
-      if ( *s_ptr == '%' ) {
+      if ( *s_ptr == config.timestamp_code_char[0] ) {
         bool found_macro = false;
         switch ( *(s_ptr+1) ) {
           case 'N' :

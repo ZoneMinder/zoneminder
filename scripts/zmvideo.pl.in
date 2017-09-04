@@ -237,7 +237,7 @@ if ( $concat_name ) {
   }
   close $fd;
   my $command = $Config{ZM_PATH_FFMPEG}
-  . " -f concat -i $concat_list_file -c copy "
+  . " -f concat -safe 0 -i $concat_list_file -c copy "
     .$Config{ZM_FFMPEG_OUTPUT_OPTIONS}
     ." '$video_file' > $Config{ZM_PATH_LOGS}/ffmpeg_${concat_name}.log 2>&1"
     ;

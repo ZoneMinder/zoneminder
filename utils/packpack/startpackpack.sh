@@ -9,7 +9,7 @@
 # General sanity checks
 checksanity () {
     # Check to see if this script has access to all the commands it needs
-    for CMD in set echo curl repoquery git ln mkdir rmdir cat patch; do
+    for CMD in set echo curl git ln mkdir rmdir cat patch; do
       type $CMD 2>&1 > /dev/null
 
       if [ $? -ne 0 ]; then
@@ -20,6 +20,19 @@ checksanity () {
       fi
     done
 
+    if [ "${OS}" == "el" ] && [ "${DIST}" == "6" ]; then
+        type repoquery 2>&1 > /dev/null
+    
+        if [ $? -ne 0 ]; then
+            echo
+            echo "ERROR: The script cannot find the required command \"reqoquery\"."
+            echo "This command is required in order to build ZoneMinder on el6."
+            echo "Please install the \"yum-utils\" package then try again."
+            echo
+            exit 1
+        fi
+    fi
+    
     # Verify OS & DIST environment variables have been set before calling this script
     if [ -z "${OS}" ] || [ -z "${DIST}" ]; then
         echo "ERROR: both OS and DIST environment variables must be set"
@@ -211,6 +224,26 @@ zoneminder ($VERSION-${DIST}-1) unstable; urgency=low
 EOF
 }
 
+# start packpack, filter the output if we are running in travis
+execpackpack () {
+
+    if [ "${OS}" == "el" ] || [ "${OS}" == "fedora" ]; then
+        parms="-f utils/packpack/redhat_package.mk redhat_package"
+    else
+        parms=""
+    fi
+
+    if [ "${TRAVIS}" == "true"  ]; then
+        utils/packpack/heartbeat.sh &
+        mypid=$!
+        packpack/packpack $parms > buildlog.txt 2>&1
+        kill $mypid
+        tail -n 3000 buildlog.txt | grep -v ONVIF
+    else
+        packpack/packpack $parms
+    fi
+}
+
 ################
 # MAIN PROGRAM #
 ################
@@ -235,31 +268,31 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
         rm -rf web/api/app/Plugin/Crud
         mkdir web/api/app/Plugin/Crud
 
-        if [ "${OS}" == "el" ]; then
-            zmrepodistro=${OS}
+        # We use zmrepo to build el6 only. All other redhat distros use rpm fusion
+        if [ "${OS}" == "el" ] && [ "${DIST}" == "6" ]; then
+            baseurl="https://zmrepo.zoneminder.com/el/${DIST}/x86_64/"
+            reporpm="zmrepo"
+            # Let repoquery determine the full url and filename to the latest zmrepo package
+            dlurl=`repoquery --archlist=noarch --repofrompath=zmpackpack,${baseurl} --repoid=zmpackpack --qf="%{location}" ${reporpm} 2> /dev/null`
         else
-            zmrepodistro="f"
+            reporpm="rpmfusion-free-release"
+            dlurl="https://download1.rpmfusion.org/free/${OS}/${reporpm}-${DIST}.noarch.rpm"
         fi
 
-        # Let repoquery determine the full url and filename of the zmrepo rpm we are interested in
-        result=`repoquery --repofrompath=zmpackpack,https://zmrepo.zoneminder.com/${zmrepodistro}/"${DIST}"/x86_64/ --repoid=zmpackpack --qf="%{location}" zmrepo 2> /dev/null`
-
-        if [ -n "$result" ] && [ $? -eq 0  ]; then
-            echo "Retrieving ZMREPO rpm..."
-            curl $result > build/zmrepo.noarch.rpm
+        # Give our downloaded repo rpm a common name so redhat_package.mk can find it
+        if [ -n "$dlurl" ] && [ $? -eq 0  ]; then
+            echo "Retrieving ${reporpm} repo rpm..."gd
+            curl $dlurl > build/external-repo.noarch.rpm
         else
-            echo "ERROR: Failed to retrieve zmrepo rpm..."
+            echo "ERROR: Failed to retrieve ${reporpm} repo rpm..."
+            echo "Download url was: $dlurl"
             exit 1
         fi
 
         setrpmchangelog
 
         echo "Starting packpack..."
-        utils/packpack/heartbeat.sh &
-        mypid=$!
-        packpack/packpack -f utils/packpack/redhat_package.mk redhat_package > buildlog.txt 2>&1
-        kill $mypid
-        tail -n 3000 buildlog.txt | grep -v ONVIF
+        execpackpack
 
     # Steps common to Debian based distros
     elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ]; then
@@ -279,11 +312,7 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
         setdebchangelog
         
         echo "Starting packpack..."
-        utils/packpack/heartbeat.sh &
-        mypid=$!
-        packpack/packpack > buildlog.txt 2>&1
-        kill $mypid
-        tail -n 3000 buildlog.txt | grep -v ONVIF
+        execpackpack
         
         if [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ] && [ "${ARCH}" == "x86_64" ] && [ "${TRAVIS}" == "true" ]; then
             installtrusty
@@ -303,11 +332,7 @@ elif [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ] && [ "${ARCH}" == "x86
     setdebchangelog
     
     echo "Starting packpack..."
-    utils/packpack/heartbeat.sh &
-    mypid=$!
-    packpack/packpack > buildlog.txt 2>&1
-    kill $mypid
-    tail -n 3000 buildlog.txt | grep -v ONVIF
+    execpackpack
 
     # If we are running inside Travis then attempt to install the deb we just built
     if [ "${TRAVIS}" == "true" ]; then

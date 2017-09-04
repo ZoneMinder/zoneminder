@@ -1146,7 +1146,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
 
   $StorageArea = NULL;
 
-  $terms = $filter['Query']['terms'];
+  $terms = isset($filter['Query']) ? $filter['Query']['terms'] : NULL;
 
   if ( isset($terms) && count($terms) ) {
     for ( $i = 0; $i < count($terms); $i++ ) {

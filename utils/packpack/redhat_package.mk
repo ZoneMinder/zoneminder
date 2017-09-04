@@ -4,5 +4,5 @@
 redhat_package: redhat_bootstrap package
 
 redhat_bootstrap:
-	sudo yum install -y --nogpgcheck build/zmrepo.noarch.rpm
+	sudo yum install -y --nogpgcheck build/external-repo.noarch.rpm
 

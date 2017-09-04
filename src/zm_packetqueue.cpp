@@ -19,18 +19,17 @@
 
 #include "zm_packetqueue.h"
 #include "zm_ffmpeg.h"
+#include <sys/time.h>
 
 #define VIDEO_QUEUESIZE 200
 #define AUDIO_QUEUESIZE 50
-
-using namespace std;
 
 zm_packetqueue::zm_packetqueue(){
 
 }
 
 zm_packetqueue::~zm_packetqueue() {
-
+  clearQueue();
 }
 
 bool zm_packetqueue::queuePacket( ZMPacket* zm_packet ) {
@@ -68,7 +67,7 @@ unsigned int zm_packetqueue::clearQueue( unsigned int frames_to_keep, int stream
     return 0;
   }
 
-  list<ZMPacket *>::reverse_iterator it;
+  std::list<ZMPacket *>::reverse_iterator it;
   ZMPacket *packet = NULL;
 
   for ( it = pktQueue.rbegin(); it != pktQueue.rend() && frames_to_keep; ++it ) {
@@ -121,7 +120,7 @@ void zm_packetqueue::clear_unwanted_packets( timeval *recording_started, int mVi
 
   // Step 1 - find keyframe < recording_started.
   // Step 2 - pop packets until we get to the packet in step 2
-  list<ZMPacket *>::reverse_iterator it;
+  std::list<ZMPacket *>::reverse_iterator it;
 
   Debug(3, "Looking for keyframe after start recording stream id (%d)", mVideoStreamId );
   for ( it = pktQueue.rbegin(); it != pktQueue.rend(); ++ it ) {

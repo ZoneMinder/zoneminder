@@ -130,7 +130,7 @@ function selectLayout( element ) {
         } else if ( streamImg.nodeName == 'APPLET' || streamImg.nodeName == 'OBJECT' ) {
           // APPLET's and OBJECTS need to be re-initialized
         }
-        streamImg.style.width = '';
+        streamImg.style.width = '100%';
       }
       var zonesSVG = $('zones'+monitor.id);
       if ( zonesSVG ) {

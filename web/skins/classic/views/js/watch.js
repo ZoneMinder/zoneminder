@@ -31,7 +31,7 @@ function changeScale() {
   Cookie.write( 'zmWatchScale'+monitorId, scale, { duration: 10*365 } );
 
   /*Stream could be an applet so can't use moo tools*/
-  var streamImg = $('#liveStream'+monitorId);
+  var streamImg = $('liveStream'+monitorId);
   if ( streamImg ) {
     streamImg.style.width = newWidth + "px";
     streamImg.style.height = newHeight + "px";
@@ -197,7 +197,7 @@ function getStreamCmdResponse( respObj, respText ) {
     var streamImg = $('liveStream'+monitorId);
     if ( streamImg ) {
       streamImg.src = streamImg.src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
-      console.log("Changing lviestream src to " + streamImg.src);
+      console.log("Changing livestream src to " + streamImg.src);
     } else {
       console.log("Unable to find streamImg liveStream");
     }
@@ -357,7 +357,14 @@ function statusCmdQuery() {
 var alarmCmdParms = "view=request&request=alarm&id="+monitorId;
 if ( auth_hash )
   alarmCmdParms += '&auth='+auth_hash;
-var alarmCmdReq = new Request.JSON( { url: monitorUrl+thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getAlarmCmdResponse, onTimeout: streamCmdQuery } );
+var alarmCmdReq = new Request.JSON( {
+  url: monitorUrl+thisUrl,
+  method: 'post',
+  timeout: AJAX_TIMEOUT,
+  link: 'cancel',
+  onSuccess: getAlarmCmdResponse,
+  onTimeout: streamCmdQuery
+} );
 var alarmCmdFirst = true;
 
 function getAlarmCmdResponse( respObj, respText ) {
@@ -378,11 +385,13 @@ function cmdForceAlarm() {
 
 function cmdCancelForcedAlarm() {
   alarmCmdReq.send( alarmCmdParms+"&command=cancelForcedAlarm" );
+  return false;
 }
 
 function getActResponse( respObj, respText ) {
   if ( respObj.result == 'Ok' ) {
     if ( respObj.refreshParent ) {
+      console.log('refreshing');
       window.opener.location.reload();
     }
   }

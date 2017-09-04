@@ -59,7 +59,11 @@ xhtmlHeaders( __FILE__, $monitor->Name()." - ".translate('Feed') );
     <div id="content">
       <div id="menuBar">
         <div id="monitorName"><?php echo $monitor->Name() ?></div>
-        <div id="closeControl"><a href="#" onclick="closeWindow(); return( false );"><?php echo translate('Close') ?></a></div>
+<script type="text/javascript">
+  if ( window.opener ) {
+    document.write('<div id="closeControl"><a href="#" onclick="closeWindow(); return( false );"><?php echo translate('Close') ?></a></div>');
+  }
+</script>
         <div id="menuControls">
 <?php
 if ( canView( 'Control' ) && $monitor->Type() == 'Local' ) {

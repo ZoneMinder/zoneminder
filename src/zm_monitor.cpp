@@ -62,16 +62,6 @@
 #define MAP_LOCKED 0
 #endif
 
-std::vector<std::string> split(const std::string &s, char delim) {
-  std::vector<std::string> elems;
-  std::stringstream ss(s);
-  std::string item;
-  while(std::getline(ss, item, delim)) {
-    elems.push_back(trimSpaces(item));
-  }
-  return elems;
-}
-
 Monitor::MonitorLink::MonitorLink( int p_id, const char *p_name ) : id( p_id ) {
   strncpy( name, p_name, sizeof(name) );
 

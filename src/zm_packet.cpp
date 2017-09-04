@@ -44,3 +44,6 @@ ZMPacket::~ZMPacket() {
   zm_av_packet_unref( &packet );
 }
 
+int ZMPacket::decode( AVCodecContext *ctx ) {
+}
+

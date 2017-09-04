@@ -32,9 +32,12 @@ class ZMPacket {
   public:
   
     AVPacket packet;
+    AVFrame *frame;   // Theoretically only filled if needed.
     struct timeval timestamp;
   public:
     AVPacket *av_packet() { return &packet; }
+    AVFrame *av_frame() { return frame; }
+    int decode( AVCodecContext *ctx );
     ZMPacket( AVPacket *packet, struct timeval *timestamp );
     ZMPacket( AVPacket *packet );
     ~ZMPacket();

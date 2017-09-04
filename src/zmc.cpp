@@ -250,8 +250,8 @@ int main(int argc, char *argv[]) {
 
     Monitor::Function function = monitors[0]->GetFunction();
     if ( function == Monitor::MODECT || function == Monitor::MOCORD ) {
-      Debug(1, "Starting an analysis thread for monitor (%d)", monitors[i]->Id() );
-      analysis_threads[i] = new AnalysisThread( monitors[i] );
+      Debug(1, "Starting an analysis thread for monitor (%d)", monitors[i]->Id());
+      analysis_threads[i] = new AnalysisThread(monitors[i]);
       analysis_threads[i]->start();
     } else {
       analysis_threads[i] = NULL;

@@ -1504,6 +1504,66 @@ function getDiskBlocks() {
   return( $space );
 }
 
+function systemStats() {
+
+    $load = getLoad();
+    $diskPercent = getDiskPercent();
+    $pathMapPercent = getDiskPercent(ZM_PATH_MAP);
+    $cpus = getcpus();
+
+    $normalized_load = $load / $cpus;
+
+    # Colorize the system load stat
+    if ( $normalized_load <= 0.75 ) {
+        $htmlLoad=$load;
+    } elseif ( $normalized_load <= 0.9 ) {
+        $htmlLoad="<span style=\"color:orange;\">$load</span>";
+    } elseif ( $normalized_load <= 1.1 ) {
+        $htmlLoad="<span style=\"color:red;\">$load</span>";
+    } else {
+        $htmlLoad="<span style=\"color:red;text-decoration:blink;\">$load</span>";
+    }
+
+    # Colorize the disk space stat
+    if ( $diskPercent < 98 ) {
+        $htmlDiskPercent="$diskPercent%";
+    } elseif ( $diskPercent <= 99 ) {
+        $htmlDiskPercent="<span style=\"color:orange;\">$diskPercent%</span>";
+    } else {
+        $htmlDiskPercent="<span style=\"color:red;text-decoration:blink;\">$diskPercent%</span>";
+    }
+
+    # Colorize the PATH_MAP (usually /dev/shm) stat
+    if ( $pathMapPercent < 90 ) {
+        if ( disk_free_space(ZM_PATH_MAP) > 209715200 ) { # have to always have at least 200MiB free
+            $htmlPathMapPercent="$pathMapPercent%";
+        } else {
+            $htmlPathMapPercent="<span style=\"color:orange;\">$pathMapPercent%</span>";
+        }
+    } elseif ( $pathMapPercent < 100 ) {
+        $htmlPathMapPercent="<span style=\"color:orange;\">$pathMapPercent%</span>";
+    } else {
+        $htmlPathMapPercent="<span style=\"color:red;text-decoration:blink;\">$pathMapPercent%</span>";
+    }
+
+    $htmlString = translate('Load').": $htmlLoad - ".translate('Disk').": $htmlDiskPercent - ".ZM_PATH_MAP.": $htmlPathMapPercent";
+
+    return( $htmlString );
+}
+
+function getcpus() {
+
+    if (is_readable("/proc/cpuinfo") ) { # Works on Linux
+        preg_match_all('/^processor/m', file_get_contents('/proc/cpuinfo'), $matches); 
+        $num_cpus = count($matches[0]);
+    } else { # Works on BSD
+        $matches = explode(":", shell_exec("sysctl hw.ncpu"));
+        $num_cpus = trim($matches[1]);
+    }
+
+    return( $num_cpus );
+}
+
 // Function to fix a problem whereby the built in PHP session handling 
 // features want to put the sid as a hidden field after the form or 
 // fieldset tag, neither of which will work with strict XHTML Basic.

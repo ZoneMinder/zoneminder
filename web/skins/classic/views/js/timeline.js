@@ -94,7 +94,7 @@ function previewEvent( eventId, frameId ) {
     if ( event['frames'] ) {
       if ( event['frames'][frameId] ) {
         showEventDetail( event['frames'][frameId]['html'] );
-        var imagePath = '/index.php?view=image&eid='+eventId+'&fid='+frameId;
+        var imagePath = 'index.php?view=image&eid='+eventId+'&fid='+frameId;
         var videoName = event.DefaultVideo;
         loadEventImage( imagePath, eventId, frameId, event.Width, event.Height, event.Frames/event.Length, videoName, event.Length, event.StartTime, monitors[event.MonitorId]);
         return;

@@ -220,7 +220,7 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
         </div>
         <div id="eventImagePanel">
           <div id="eventImageFrame">
-            <img id="eventImage" src="graphics/transparent.gif" alt=""/>
+            <img id="eventImage" src="graphics/transparent.png" alt=""/>
             <div id="eventImageBar">
               <div id="eventImageClose"><input type="button" value="<?php echo translate('Close') ?>" onclick="hideEventImage()"/></div>
               <div id="eventImageStats" class="hidden"><input type="button" value="<?php echo translate('Stats') ?>" onclick="showFrameStats()"/></div>

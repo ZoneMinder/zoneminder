@@ -56,7 +56,7 @@ xhtmlHeaders(__FILE__, translate('Storage')." - ".$newStorage['Name'] );
             </tr>
             <tr>
               <th scope="row"><?php echo translate('Path') ?></th>
-              <td><input type="url" name="newStorage[Path]" value="<?php echo $newStorage['Path'] ?>"/></td>
+              <td><input type="text" name="newStorage[Path]" value="<?php echo $newStorage['Path'] ?>"/></td>
             </tr>
           </tbody>
         </table>

@@ -135,7 +135,7 @@ if ( canEdit( 'Events' ) ) {
 <?php 
 } // end if can edit Events
   if ( $Event->DefaultVideo() ) { ?>
-        <div id="downloadEventFile"><a href="<?php echo $Event->getStreamSrc()?>">Download MP4</a></div>
+        <div id="downloadEventFile"><a href="<?php echo $Event->getStreamSrc(array('mode'=>'mp4'))?>">Download MP4</a></div>
 <?php
   } // end if Event->DefaultVideo
 ?>

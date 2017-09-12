@@ -35,6 +35,7 @@ This script is used to start and stop the ZoneMinder package primarily to
 allow command line control for automatic restart on reboot (see zm script)
 
 =cut
+
 use strict;
 use bytes;
 

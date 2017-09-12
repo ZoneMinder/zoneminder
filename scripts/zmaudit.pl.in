@@ -21,32 +21,6 @@
 #
 # ==========================================================================
 
-=head1 NAME
-
-zmaudit.pl - ZoneMinder event file system and database consistency checker
-
-=head1 SYNOPSIS
-
- zmaudit.pl [-r,-report|-i,-interactive]
-
-=head1 DESCRIPTION
-
-This script checks for consistency between the event filesystem and
-the database. If events are found in one and not the other they are
-deleted (optionally). Additionally any monitor event directories that
-do not correspond to a database monitor are similarly disposed of.
-However monitors in the database that don't have a directory are left
-alone as this is valid if they are newly created and have no events
-yet.
-
-=head1 OPTIONS
-
- -c, --continuous           - Run continuously
- -i, --interactive          - Ask before applying any changes
- -r, --report               - Just report don't actually do anything
- -v, --version              - Print the installed version of ZoneMinder
-
-=cut
 use strict;
 use bytes;
 
@@ -562,3 +536,30 @@ sub deleteSwapImage {
 
 1;
 __END__
+
+=head1 NAME
+
+zmaudit.pl - ZoneMinder event file system and database consistency checker
+
+=head1 SYNOPSIS
+
+ zmaudit.pl [-r,-report|-i,-interactive]
+
+=head1 DESCRIPTION
+
+This script checks for consistency between the event filesystem and
+the database. If events are found in one and not the other they are
+deleted (optionally). Additionally any monitor event directories that
+do not correspond to a database monitor are similarly disposed of.
+However monitors in the database that don't have a directory are left
+alone as this is valid if they are newly created and have no events
+yet.
+
+=head1 OPTIONS
+
+ -c, --continuous           - Run continuously
+ -i, --interactive          - Ask before applying any changes
+ -r, --report               - Just report don't actually do anything
+ -v, --version              - Print the installed version of ZoneMinder
+
+=cut

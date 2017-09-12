@@ -710,7 +710,7 @@ xhtmlHeaders(__FILE__, translate('Timeline') );
       <div id="topPanel" class="graphWidth">
         <div id="imagePanel">
           <div id="image" class="imageHeight">
-		        <img id="imageSrc" class="imageWidth" src="graphics/transparent.gif" alt="<?php echo translate('ViewEvent') ?>" title="<?php echo translate('ViewEvent') ?>"/>
+		        <img id="imageSrc" class="imageWidth" src="graphics/transparent.png" alt="<?php echo translate('ViewEvent') ?>" title="<?php echo translate('ViewEvent') ?>"/>
 <?php
 if ( 0 ) {
 //due to chrome bug, has to enable https://code.google.com/p/chromium/issues/detail?id=472300
@@ -852,7 +852,7 @@ foreach( array_keys($monEventSlots) as $monitorId ) {
 foreach( array_keys($monEventSlots) as $monitorId ) {
 ?>
           <span class="keyEntry"><?php echo $monitors[$monitorId]['Name'] ?>
-            <img id="keyBox<?php echo $monitorId ?>" class="keyBox monitorColour<?php echo $monitorId ?>" src="graphics/transparent.gif" alt="<?php echo $monitors[$monitorId]['Name'] ?>"/>
+            <img id="keyBox<?php echo $monitorId ?>" class="keyBox monitorColour<?php echo $monitorId ?>" src="graphics/transparent.png" alt="<?php echo $monitors[$monitorId]['Name'] ?>"/>
           </span>
 <?php
 }

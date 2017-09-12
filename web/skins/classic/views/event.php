@@ -135,7 +135,7 @@ if ( canEdit( 'Events' ) ) {
 <?php 
 } // end if can edit Events
   if ( $Event->DefaultVideo() ) { ?>
-        <div id="downloadEventFile"><a href="<?php echo $Event->getStreamSrc()?>">Download MP4</a></div>
+        <div id="downloadEventFile"><a href="<?php echo $Event->getStreamSrc(array('mode'=>'mp4'))?>">Download MP4</a></div>
 <?php
   } // end if Event->DefaultVideo
 ?>
@@ -220,7 +220,7 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
         </div>
         <div id="eventImagePanel">
           <div id="eventImageFrame">
-            <img id="eventImage" src="graphics/transparent.gif" alt=""/>
+            <img id="eventImage" src="graphics/transparent.png" alt=""/>
             <div id="eventImageBar">
               <div id="eventImageClose"><input type="button" value="<?php echo translate('Close') ?>" onclick="hideEventImage()"/></div>
               <div id="eventImageStats" class="hidden"><input type="button" value="<?php echo translate('Stats') ?>" onclick="showFrameStats()"/></div>

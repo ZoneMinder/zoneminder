@@ -492,7 +492,7 @@ function clicknav(minSecs,maxSecs,arch,live) {// we use the current time if we c
     if ( monitorZoomScale[monitorPtr[i]] < 0.99 || monitorZoomScale[monitorPtr[i]] > 1.01 )  // allow for some up/down changes and just treat as 1 of almost 1
       zoomStr += "&z" + monitorPtr[i].toString() + "=" + monitorZoomScale[monitorPtr[i]].toFixed(2);
 
-  var uri = "?view=" + currentView + fitStr + groupStr + minStr + maxStr + currentStr + intervalStr + liveStr + zoomStr + "&scale=" + document.getElementById("scaleslider").value + "&speed=" + speeds[$j("#speedslider").value];
+  var uri = "?view=" + currentView + fitStr + groupStr + minStr + maxStr + currentStr + intervalStr + liveStr + zoomStr + "&scale=" + document.getElementById("scaleslider").value + "&speed=" + document.getElementById("speedslider").value;
   window.location = uri;
 }
 

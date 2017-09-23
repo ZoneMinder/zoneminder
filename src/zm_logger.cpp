@@ -112,8 +112,8 @@ Logger::Logger() :
 
 Logger::~Logger() {
   terminate();
-   smCodes.clear();
-     smSyslogPriorities.clear();
+  smCodes.clear();
+  smSyslogPriorities.clear();
 #if 0
   for ( StringMap::iterator itr = smCodes.begin(); itr != smCodes.end(); itr ++ ) {
       smCodes.erase( itr );
@@ -193,6 +193,13 @@ void Logger::initialise( const std::string &id, const Options &options ) {
         }
       }
     } // end foreach target
+  } else {
+    // if we don't have debug turned on, then the max effective log level is INFO
+    if ( tempSyslogLevel > INFO ) tempSyslogLevel = INFO;
+    if ( tempFileLevel > INFO ) tempFileLevel = INFO;
+    if ( tempTermLevel > INFO ) tempTermLevel = INFO;
+    if ( tempDatabaseLevel > INFO ) tempDatabaseLevel = INFO;
+    if ( tempLevel > INFO ) tempLevel = INFO;
   } // end if config.log_debug
 
 

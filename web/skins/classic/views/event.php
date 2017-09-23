@@ -130,8 +130,9 @@ if ( canEdit( 'Events' ) ) {
 ?>
         <div id="deleteEvent"><a href="#" onclick="deleteEvent()"><?php echo translate('Delete') ?></a></div>
         <div id="editEvent"><a href="#" onclick="editEvent()"><?php echo translate('Edit') ?></a></div>
-        <div id="archiveEvent" class="hidden"><a href="#" onclick="archiveEvent()"><?php echo translate('Archive') ?></a></div>
-        <div id="unarchiveEvent" class="hidden"><a href="#" onclick="unarchiveEvent()"><?php echo translate('Unarchive') ?></a></div>
+        <div id="archiveEvent"<?php if ( $Event->Archived == 1 ){echo " class=\"hidden\">";}else{echo ">";} ?><a href="#" onclick="archiveEvent()"><?php echo translate('Archive') ?></a></div>
+        <div id="unarchiveEvent"<?php if ( $Event->Archived == 0 ){echo " class=\"hidden\">";}else{echo">";} ?><a href="#" onclick="unarchiveEvent()"><?php echo translate('Unarchive') ?></a></div>
+</div>
 <?php 
 } // end if can edit Events
   if ( $Event->DefaultVideo() ) { ?>
@@ -220,7 +221,7 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
         </div>
         <div id="eventImagePanel">
           <div id="eventImageFrame">
-            <img id="eventImage" src="graphics/transparent.gif" alt=""/>
+            <img id="eventImage" src="graphics/transparent.png" alt=""/>
             <div id="eventImageBar">
               <div id="eventImageClose"><input type="button" value="<?php echo translate('Close') ?>" onclick="hideEventImage()"/></div>
               <div id="eventImageStats" class="hidden"><input type="button" value="<?php echo translate('Stats') ?>" onclick="showFrameStats()"/></div>

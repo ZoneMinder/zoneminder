@@ -58,6 +58,7 @@ RUN apt-get update \
     php-mysql \
     vlc-data \
     yasm \
+    zip \
 	&& rm -rf /var/lib/apt/lists/*
 
 # Copy local code into our container

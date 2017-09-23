@@ -24,10 +24,18 @@ if ( !canView( 'Stream' ) ) {
 }
 
 require_once( 'includes/Monitor.php' );
+require_once( 'includes/Group.php' );
 
 $groupSql = '';
+$group_id = null;
 if ( !empty($_REQUEST['group']) ) {
-  $row = dbFetchOne( 'SELECT * FROM Groups WHERE Id = ?', NULL, array($_REQUEST['group']) );
+  $group_id = $_REQUEST['group'];
+} elseif  ( isset( $_COOKIE['zmMontageGroup'] ) ) {
+  $group_id = $_COOKIE['zmMontageGroup'];
+}
+
+if ( $group_id ) {
+  $row = dbFetchOne( 'SELECT * FROM Groups WHERE Id = ?', NULL, array($group_id) );
   $sql = "SELECT * FROM Monitors WHERE Function != 'None' AND find_in_set( Id, '".$row['MonitorIds']."' ) ORDER BY Sequence";
 } else { 
   $sql = "SELECT * FROM Monitors WHERE Function != 'None' ORDER BY Sequence";
@@ -140,6 +148,17 @@ if ( $showZones ) {
       </div>
       <h2><?php echo translate('Montage') ?></h2>
       <div id="headerControl">
+        <span id="groupControl"><label><?php echo translate('Group') ?>:</label>
+<?php
+      $groups = array(0=>'All');
+      foreach ( Group::find_all() as $Group ) {
+        $groups[$Group->Id()] = $Group->Name();
+
+      }
+      echo htmlSelect( 'group', $groups, $group_id, 'changeGroup(this);' );
+?>
+</span>
+
         <span id="widthControl"><label><?php echo translate('Width') ?>:</label><?php echo htmlSelect( 'width', $widths, $options['width'], 'changeSize(this);' ); ?></span>
         <span id="heightControl"><label><?php echo translate('Height') ?>:</label><?php echo htmlSelect( 'height', $heights, $options['height'], 'changeSize(this);' ); ?></span>
         <span id="scaleControl"><label><?php echo translate('Scale') ?>:</label><?php echo htmlSelect( 'scale', $scales, $scale, 'changeScale(this);' ); ?></span> 

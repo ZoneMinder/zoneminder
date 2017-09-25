@@ -832,38 +832,44 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
               startTime,
               this->getMonitor());
         } // end if record_audio
-        strcpy(oldDirectory, event_file);
-        monitor->SetVideoWriterEventId( last_event_id );
+        if ( ! videoStore->open() ) {
+          delete videoStore;
+          videoStore = NULL;
 
-        // Need to write out all the frames from the last keyframe?
-        // No... need to write out all frames from when the event began. Due to PreEventFrames, this could be more than since the last keyframe.
-        unsigned int packet_count = 0;
-        ZMPacket *queued_packet;
+        } else {
+          strcpy(oldDirectory, event_file);
+          monitor->SetVideoWriterEventId( last_event_id );
 
-        // Clear all packets that predate the moment when the recording began
-        packetqueue.clear_unwanted_packets( &recording, mVideoStreamId );
+          // Need to write out all the frames from the last keyframe?
+          // No... need to write out all frames from when the event began. Due to PreEventFrames, this could be more than since the last keyframe.
+          unsigned int packet_count = 0;
+          ZMPacket *queued_packet;
 
-        while ( ( queued_packet = packetqueue.popPacket() ) ) {
-          AVPacket *avp = queued_packet->av_packet();
-            
-          packet_count += 1;
-          //Write the packet to our video store
-          Debug(2, "Writing queued packet stream: %d  KEY %d, remaining (%d)", avp->stream_index, avp->flags & AV_PKT_FLAG_KEY, packetqueue.size() );
-          if ( avp->stream_index == mVideoStreamId ) {
-            ret = videoStore->writeVideoFramePacket( avp );
-            have_video_keyframe = true;
-          } else if ( avp->stream_index == mAudioStreamId ) {
-            ret = videoStore->writeAudioFramePacket( avp );
-          } else {
-            Warning("Unknown stream id in queued packet (%d)", avp->stream_index );
-            ret = -1;
-          }
-          if ( ret < 0 ) {
-            //Less than zero and we skipped a frame
-          }
-          delete queued_packet;
-        } // end while packets in the packetqueue
-        Debug(2, "Wrote %d queued packets", packet_count );
+          // Clear all packets that predate the moment when the recording began
+          packetqueue.clear_unwanted_packets( &recording, mVideoStreamId );
+
+          while ( ( queued_packet = packetqueue.popPacket() ) ) {
+            AVPacket *avp = queued_packet->av_packet();
+
+            packet_count += 1;
+            //Write the packet to our video store
+            Debug(2, "Writing queued packet stream: %d  KEY %d, remaining (%d)", avp->stream_index, avp->flags & AV_PKT_FLAG_KEY, packetqueue.size() );
+            if ( avp->stream_index == mVideoStreamId ) {
+              ret = videoStore->writeVideoFramePacket( avp );
+              have_video_keyframe = true;
+            } else if ( avp->stream_index == mAudioStreamId ) {
+              ret = videoStore->writeAudioFramePacket( avp );
+            } else {
+              Warning("Unknown stream id in queued packet (%d)", avp->stream_index );
+              ret = -1;
+            }
+            if ( ret < 0 ) {
+              //Less than zero and we skipped a frame
+            }
+            delete queued_packet;
+          } // end while packets in the packetqueue
+          Debug(2, "Wrote %d queued packets", packet_count );
+        }
       } // end if ! was recording
 
     } else {

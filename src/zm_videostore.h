@@ -78,6 +78,7 @@ public:
       AVStream *audio_in_stream,
       int64_t nStartTime,
       Monitor * p_monitor);
+  bool  open();
 	~VideoStore();
 
   int writeVideoFramePacket( AVPacket *pkt );

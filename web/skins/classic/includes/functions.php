@@ -213,7 +213,7 @@ function getNavBarHTML() {
 <?php if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
 			<li><a href="?view=devices">Devices</a></li>
 <?php } ?>
-			<li><?php echo makePopupLink( '?view=groups', 'zmGroups', 'groups', sprintf( $CLANG['MonitorCount'], count($displayMonitors), zmVlang( $VLANG['Monitor'], count($displayMonitors) ) ).($group?' ('.$group['Name'].')':''), canView( 'Groups' ) ); ?></li>
+			<li><?php echo makePopupLink( '?view=groups', 'zmGroups', 'groups', 'Groups', canView( 'Groups' ) ); ?></li>
 			<li><a href="?view=filter">Filters</a></li>
 
 <?php 

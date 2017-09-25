@@ -981,5 +981,5 @@ void Zone::std_alarmedpixels(Image* pdiff_image, const Image* ppoly_image, unsig
   /* Store the results */
   *pixel_count = pixelsalarmed;
   *pixel_sum = pixelsdifference;
-  Debug( 7, "STORED");
+  Debug(7, "STORED pixelsalarmed(%d), pixelsdifference(%d)", pixelsalarmed, pixelsdifference);
 }

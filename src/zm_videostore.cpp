@@ -125,7 +125,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
 #else
   video_out_stream =
-      avformat_new_stream(oc, reinterpret_cast<const AVCodec *>(video_in_ctx->codec));
+      avformat_new_stream(oc, reinterpret_cast<const AVCodec *>video_in_ctx->codec);
   if (!video_out_stream) {
     Fatal("Unable to create video out stream\n");
   } else {

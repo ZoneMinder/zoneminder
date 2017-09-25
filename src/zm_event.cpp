@@ -145,7 +145,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     // Create event id symlink
     snprintf( id_file, sizeof(id_file), "%s/.%d", date_path, id );
     if ( symlink( time_path, id_file ) < 0 )
-      Fatal( "Can't symlink %s -> %s: %s", id_file, path, strerror(errno));
+      Error( "Can't symlink %s -> %s: %s", id_file, path, strerror(errno));
   } else {
     snprintf( path, sizeof(path), "%s/%d/%d", storage->Path(), monitor->Id(), id );
 
@@ -156,14 +156,14 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
         Error( "Can't mkdir %s: %s", path, strerror(errno));
       }
     }
-  } // deep storage or not
 
-  // Create empty id tag file
-  snprintf( id_file, sizeof(id_file), "%s/.%d", path, id );
-  if ( FILE *id_fp = fopen( id_file, "w" ) )
-    fclose( id_fp );
-  else
-    Fatal( "Can't fopen %s: %s", id_file, strerror(errno));
+    // Create empty id tag file
+    snprintf( id_file, sizeof(id_file), "%s/.%d", path, id );
+    if ( FILE *id_fp = fopen( id_file, "w" ) )
+      fclose( id_fp );
+    else
+      Error( "Can't fopen %s: %s", id_file, strerror(errno));
+  } // deep storage or not
 
   last_db_frame = 0;
 
@@ -262,22 +262,22 @@ void Event::createNotes( std::string &notes ) {
 int Event::sd = -1;
 
 bool Event::WriteFrameImage( Image *image, struct timeval timestamp, const char *event_file, bool alarm_frame ) {
-  Image* ImgToWrite;
-  Image* ts_image = NULL;
-
-  if ( !config.timestamp_on_capture )  // stash the image we plan to use in another pointer regardless if timestamped.
-  {
-    ts_image = new Image(*image);
-    monitor->TimestampImage( ts_image, &timestamp );
-    ImgToWrite=ts_image;
-  } else
-    ImgToWrite=image;
 
   int thisquality = ( alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality) ) ? config.jpeg_alarm_file_quality : 0 ;   // quality to use, zero is default
-  ImgToWrite->WriteJpeg( event_file, thisquality, (monitor->Exif() ? timestamp : (timeval){0,0}) ); // exif is only timestamp at present this switches on or off for write
+  bool rc;
+Debug(3, "Writing image to %s", event_file );
 
-  if(ts_image) delete(ts_image); // clean up if used.
-  return( true );
+  if ( !config.timestamp_on_capture ) {
+    // stash the image we plan to use in another pointer regardless if timestamped.
+    Image *ts_image = new Image(*image);
+    monitor->TimestampImage( ts_image, &timestamp );
+    rc = ts_image->WriteJpeg( event_file, thisquality, (monitor->Exif() ? timestamp : (timeval){0,0}) ); // exif is only timestamp at present this switches on or off for write
+    delete(ts_image);
+  } else {
+    rc = image->WriteJpeg( event_file, thisquality, (monitor->Exif() ? timestamp : (timeval){0,0}) ); // exif is only timestamp at present this switches on or off for write
+  }
+
+  return rc;
 }
 
 bool Event::WriteFrameVideo( const Image *image, const struct timeval timestamp, VideoWriter* videow ) {
@@ -483,20 +483,23 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
   static char event_file[PATH_MAX];
   snprintf( event_file, sizeof(event_file), capture_file_format, path, frames );
 
-  if ( monitor->GetOptSaveJPEGs() & 4) {
+  if ( monitor->GetOptSaveJPEGs() & 4 ) {
     //If this is the first frame, we should add a thumbnail to the event directory
-    if(frames == 10){
+    if ( frames == 10 ) {
       char snapshot_file[PATH_MAX];
       snprintf( snapshot_file, sizeof(snapshot_file), "%s/snapshot.jpg", path );
       WriteFrameImage( image, timestamp, snapshot_file );
     }
   }
-  if( monitor->GetOptSaveJPEGs() & 1) {
-    Debug( 1, "Writing capture frame %d", frames );
-    WriteFrameImage( image, timestamp, event_file );
+  if ( monitor->GetOptSaveJPEGs() & 1 ) {
+    Debug( 1, "Writing capture frame %d to %s", frames, event_file );
+    if ( ! WriteFrameImage( image, timestamp, event_file ) ) {
+      Error("Failed to write frame image");
+    }
   }
   if ( videowriter != NULL ) {
-    WriteFrameVideo( image, timestamp, videowriter );
+Debug(3, "Writing video");
+    WriteFrameVideo(image, timestamp, videowriter);
   }
 
   struct DeltaTimeval delta_time;
@@ -535,7 +538,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
         exit( mysql_errno( &dbconn ) );
       }
     }
-  }
+  } // end if db_frame
 
   end_time = timestamp;
 
@@ -551,8 +554,8 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
       snprintf( event_file, sizeof(event_file), analyse_file_format, path, frames );
 
       Debug( 1, "Writing analysis frame %d", frames );
-      if ( monitor->GetOptSaveJPEGs() & 2) {
-        WriteFrameImage( alarm_image, timestamp, event_file, true );
+      if ( monitor->GetOptSaveJPEGs() & 2 ) {
+        WriteFrameImage(alarm_image, timestamp, event_file, true);
       }
     }
   }

@@ -260,7 +260,9 @@ elseif ( $tab == "users" )
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="button" value="<?php echo translate('AddNewStorage') ?>" onclick="createPopup( '?view=storage&amp;id=0', 'zmStorage', 'storage' );"<?php if ( !canEdit( 'System' ) ) { ?> disabled="disabled"<?php } ?>/><input type="submit" name="deleteBtn" value="<?php echo translate('Delete') ?>" disabled="disabled"/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
+          <input type="button" value="<?php echo translate('AddNewStorage') ?>" onclick="createPopup( '?view=storage&amp;id=0', 'zmStorage', 'storage' );"<?php if ( !canEdit( 'System' ) ) { ?> disabled="disabled"<?php } ?>/>
+          <input type="submit" name="deleteBtn" value="<?php echo translate('Delete') ?>" disabled="disabled"/>
+          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
         </div>
       </form>
 <?php

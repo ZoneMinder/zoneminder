@@ -48,51 +48,6 @@
 // It takes very high bandwidth to the server, and a pretty fast client to keep up with the image rate.  To reduce the rate
 // change the playback slider to 0 and then it does not try to play at the same time it is scrubbing.
 //
-// Jul 23 2015 update:
-//          - Correct problem propagating selected playback speed
-//          - Change from blank monitor to specific message about no data in times with no recording
-//          - Enlarge and better center fonts on labels for lines.
-//          - Add support for monitor groups in selecting criteria from console
-//          - Fix some no-update conditions when playback was off but scale changed or refreshed.
-//          - Added translate call around buttons so as to facilitate possible translations later
-//          - Removed range from/to labels on very small graphs to keep from overlapping slider
-//          - Changed initial (from other page) position of slider to be in the middle to be more obvious
-//
-// Jul 29 2015 update
-//          - Add live mode shots from cameras via single frame pull mode
-//          - Added dynamic refresh rate based on how fast we can upload images
-//          - Closed some gaps in playback frames due to time rounding in retrieval.
-//          - Consolidated frame in-memory records to contiguous time rather than individual frame-seconds (still requires a good deal of browser memory)
-//          - Took out a lot of the integral second rounding so that it works better at subsequent replay speeds
-//
-// Jul 30 2015 update
-//          - Smoother adjustment of frame rate, fixed upper/lower limits (caching can cause runaway) (and a display, probably temporary, at the bottom)
-//          - Change to using index.php?view= instead of direct access so image access is authenticated
-//          - Add fractional speed for replay, and non-linear speed slider, and update current setting as slider moves (not when done)
-//          - Experimenting with a black background for monitors (this should be replaced with proper CSS later)
-//
-// Aug 02, 2015 update
-//          - Add max fit, make it default
-//          - Remove timeline in live mode, and restore when switched back (live button becomes toggle)
-//          - Add +/- zooms to individual monitors so you can adjust size, persist across reload buttons (only)
-//          - Change default to 1 hour and live mode (reduce workload on initial load, let people ask for huge history amounts)
-//          - Since this may be run as a standalone window for shortcuts, etc., add a "console" link to get back to the console
-//
-// August 6, 2015 update
-//          - Fix regression on linkage to events when starting and staying in live mode
-//          - Remove zoom/pan buttons in live mode as they are meaningless
-//          - Change "fit" to a button, and remove scale when fit is in use (this means fit/live has no sliders)
-//
-// August 8, 2015 update:
-//          - Optimize events query to significantly decrease load times
-//          - Consolidate frames to 10 seconds not 1 for faster load and less memory usage
-//          - Replace graphic image for no-data with text-on-canvas (faster)
-//          - Correct sorting issue related to normalized scale so biggest goes to top left more reliably
-//          - Corrections to Safari which won't support inline-flex (thanks Apple, really?!)
-//
-// August 9, 2015 updates:
-//          - Add auth tokens to zms call for those using authorization
-//
 
 if ( !canView( 'Events' ) ) {
   $view = 'error';
@@ -100,15 +55,22 @@ if ( !canView( 'Events' ) ) {
 }
 
 require_once( 'includes/Monitor.php' );
+require_once( 'includes/Group.php' );
+
+$groupSql = '';
+$group_id = null;
+if ( !empty($_REQUEST['group']) ) {
+  $group_id = $_REQUEST['group'];
+} elseif ( isset( $_COOKIE['zmMontageReviewGroup'] ) ) {
+  $group_id = $_COOKIE['zmMontageReviewGroup'];
+}
 
 # FIXME THere is no way to select group at this time.
-if ( !empty($_REQUEST['group']) ) {
-  $group = $_REQUEST['group'];
-  $row = dbFetchOne( 'SELECT * FROM Groups WHERE Id = ?', NULL, array($_REQUEST['group']) );
+if ( isset( $group_id ) and $group_id ) {
+  $row = dbFetchOne( 'SELECT * FROM Groups WHERE Id = ?', NULL, array($group_id) );
   $monitorsSql = "SELECT * FROM Monitors WHERE Function != 'None' AND find_in_set( Id, '".$row['MonitorIds']."' ) ";
 } else {
   $monitorsSql = "SELECT * FROM Monitors WHERE Function != 'None'";
-  $group = '';
 }
 
 // Note that this finds incomplete events as well, and any frame records written, but still cannot "see" to the end frame
@@ -197,14 +159,13 @@ for ( $i = 0; $i < count($speeds); $i++ ) {
 if ( isset($_REQUEST['current']) )
   $defaultCurrentTime = validHtmlStr($_REQUEST['current']);
 
-
 $initialModeIsLive = 1;
 if ( isset($_REQUEST['live']) && $_REQUEST['live']=='0' )
   $initialModeIsLive=0;
 
-$initialDisplayInterval=1000;
+$initialDisplayInterval = 1000;
 if ( isset($_REQUEST['displayinterval']) )
-  $initialDisplayInterval=validHtmlStr($_REQUEST['displayinterval']);
+  $initialDisplayInterval = validHtmlStr($_REQUEST['displayinterval']);
 
 $eventsSql .= ' GROUP BY E.Id,E.Name,E.StartTime,E.Length,E.Frames,E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId';
 
@@ -242,6 +203,17 @@ input[type=range]::-ms-tooltip {
         <a href="#" onclick="closeWindow();"><?php echo translate('Close') ?></a>
       </div>
       <h2><?php echo translate('MontageReview') ?></h2>
+      <div id="headerControl">
+        <span id="groupControl"><label><?php echo translate('Group') ?>:</label>
+<?php
+      $groups = array(0=>'All');
+      foreach ( Group::find_all() as $Group ) {
+        $groups[$Group->Id()] = $Group->Name();
+      }
+      echo htmlSelect( 'group', $groups, $group_id, 'changeGroup(this);' );
+?>
+      </span>
+    </div>
     </div>
     <div id="ScaleDiv">
         <label for="scaleslider"><?php echo translate('Scale')?></label>

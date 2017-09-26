@@ -88,6 +88,7 @@ $SLANG = array(
     'AddNewControl'         => 'Add New Control',
     'AddNewMonitor'         => 'Add New Monitor',
     'AddNewServer'          => 'Add New Server',
+    'AddNewStorage'         => 'Add New Storage',
     'AddNewUser'            => 'Add New User',
     'AddNewZone'            => 'Add New Zone',
     'Alarm'                 => 'Alarm',

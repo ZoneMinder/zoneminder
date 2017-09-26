@@ -166,13 +166,12 @@ function drawSliderOnGraph(val) {
 
         // If we have data already saved first restore it from LAST time
 
-        if(typeof underSlider !== 'undefined')
-        {
+        if(typeof underSlider !== 'undefined') {
             ctx.putImageData(underSlider,underSliderX, 0, 0, 0, sliderWidth, sliderHeight);
             underSlider=undefined;
         }
-        if(liveMode==0)  // we get rid of the slider if we switch to live (since it may not be in the "right" place)
-        {
+        if ( liveMode == 0 ) {
+          // we get rid of the slider if we switch to live (since it may not be in the "right" place)
             // Now save where we are putting it THIS time
             underSlider=ctx.getImageData(sliderX, 0, sliderWidth, sliderHeight);
             // And add in the slider'
@@ -183,13 +182,10 @@ function drawSliderOnGraph(val) {
             underSliderX=sliderX;
         }
         var o = $('scruboutput');
-        if(liveMode==1)
-        {
+        if(liveMode==1) {
             o.innerHTML="Live Feed @ " + (1000 / currentDisplayInterval).toFixed(1) + " fps";
             o.style.color="red";
-        }
-        else
-        {
+        } else {
             o.innerHTML=secs2dbstr(val);
             o.style.color="blue";
         }
@@ -492,9 +488,9 @@ function clicknav(minSecs,maxSecs,arch,live) {// we use the current time if we c
     if ( monitorZoomScale[monitorPtr[i]] < 0.99 || monitorZoomScale[monitorPtr[i]] > 1.01 )  // allow for some up/down changes and just treat as 1 of almost 1
       zoomStr += "&z" + monitorPtr[i].toString() + "=" + monitorZoomScale[monitorPtr[i]].toFixed(2);
 
-  var uri = "?view=" + currentView + fitStr + groupStr + minStr + maxStr + currentStr + intervalStr + liveStr + zoomStr + "&scale=" + document.getElementById("scaleslider").value + "&speed=" + document.getElementById("speedslider").value;
+  var uri = "?view=" + currentView + fitStr + groupStr + minStr + maxStr + currentStr + intervalStr + liveStr + zoomStr + "&scale=" + scale[$j("#scaleslider")[0].value] + "&speed=" + speeds[$j("#speedslider")[0].value];
   window.location = uri;
-}
+} // end function clickNav
 
 function lastHour() {
   var now = new Date() / 1000;
@@ -688,6 +684,14 @@ function clickMonitor(event,monId) {
   else
     showOneMonitor(monId);
   return;
+}
+
+function changeGroup() {
+  var group_id = $('group').get('value');
+  Cookie.write( 'zmMontageReviewGroup', group_id, { duration: 10*365 } );
+  var url = window.location.href;
+  url = url.replace(/group=\d+/, 'group='+group_id);
+  window.location.href = url;
 }
 
 // >>>>>>>>> Initialization that runs on window load by being at the bottom 

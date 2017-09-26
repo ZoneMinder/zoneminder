@@ -18,10 +18,9 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView( 'System' ) )
-{
-    $view = "error";
-    return;
+if ( !canView( 'System' ) ) {
+  $view = 'error';
+  return;
 }
 
 $canEdit = canEdit( 'System' );
@@ -45,9 +44,9 @@ $tabs['lowband'] = translate('LowBW');
 $tabs['users'] = translate('Users');
 
 if ( isset($_REQUEST['tab']) )
-    $tab = validHtmlStr($_REQUEST['tab']);
+  $tab = validHtmlStr($_REQUEST['tab']);
 else
-    $tab = "system";
+  $tab = 'system';
 
 $focusWindow = true;
 
@@ -55,54 +54,52 @@ xhtmlHeaders( __FILE__, translate('Options') );
 
 # Have to do this stuff up here before including header.php because fof the cookie setting
 $skin_options = array_map( 'basename', glob('skins/*',GLOB_ONLYDIR) );
-if($tab == 'skins') {
-    $current_skin = $_COOKIE['zmSkin'];
-    $reload = false;
-    if ( isset($_GET['skin-choice']) && ( $_GET['skin-choice'] != $current_skin ) ) {
-        setcookie('zmSkin',$_GET['skin-choice'], time()+3600*24*30*12*10 );
-        //header("Location: index.php?view=options&tab=skins&reset_parent=1");
-        $reload = true;
-    }
-    $current_css = $_COOKIE['zmCSS'];
-    if ( isset($_GET['css-choice']) and ( $_GET['css-choice'] != $current_css ) ) {
-        setcookie('zmCSS',$_GET['css-choice'], time()+3600*24*30*12*10 );
-        //header("Location: index.php?view=options&tab=skins&reset_parent=1");
-        $reload = true;
-    }
-    if ( $reload )
-        echo "<script type=\"text/javascript\">if(window.opener){window.opener.location.reload();}window.location.href=\"{$_SERVER['PHP_SELF']}?view={$view}&tab={$tab}\"</script>";
+if ( $tab == 'skins' ) {
+  $current_skin = $_COOKIE['zmSkin'];
+  $reload = false;
+  if ( isset($_GET['skin-choice']) && ( $_GET['skin-choice'] != $current_skin ) ) {
+    setcookie('zmSkin',$_GET['skin-choice'], time()+3600*24*30*12*10 );
+    //header("Location: index.php?view=options&tab=skins&reset_parent=1");
+    $reload = true;
+  }
+  $current_css = $_COOKIE['zmCSS'];
+  if ( isset($_GET['css-choice']) and ( $_GET['css-choice'] != $current_css ) ) {
+    setcookie('zmCSS',$_GET['css-choice'], time()+3600*24*30*12*10 );
+    //header("Location: index.php?view=options&tab=skins&reset_parent=1");
+    $reload = true;
+  }
+  if ( $reload )
+    echo "<script type=\"text/javascript\">if(window.opener){window.opener.location.reload();}window.location.href=\"{$_SERVER['PHP_SELF']}?view={$view}&tab={$tab}\"</script>";
 } # end if tab == skins
 
 ?>
 <body>
 <?php echo getNavBarHTML(); ?>
-    <div class="container-fluid">
-<div class="row">
-	<div class="col-sm-2 sidebar">
-      <ul class="nav nav-pills nav-stacked">
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-sm-2 sidebar">
+        <ul class="nav nav-pills nav-stacked">
 <?php
-foreach ( $tabs as $name=>$value )
-{
+foreach ( $tabs as $name=>$value ) {
 ?>
         <li<?php echo $tab == $name ? ' class="active"' : '' ?>><a href="?view=<?php echo $view ?>&amp;tab=<?php echo $name ?>"><?php echo $value ?></a></li>
 <?php
 }
 ?>
-      </ul>
-	</div>
-
-	<div class="col-sm-10 col-sm-offset-2">
-      <div id="options">
+        </ul>
+      </div>
+      <div class="col-sm-10 col-sm-offset-2">
+        <div id="options">
 <?php 
-if($tab == 'skins') {
+if ( $tab == 'skins' ) {
 ?>
-	<form name="optionsForm" class="form-horizontal" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
-        <input type="hidden" name="view" value="<?php echo $view ?>"/>
-        <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
-<div class="form-group">
-					<label for="skin-choice" class="col-sm-3 control-label">ZM_SKIN</label>
-					<div class="col-sm-6">
-					<select name="skin-choice" class="form-control">
+          <form name="optionsForm" class="form-horizontal" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+            <input type="hidden" name="view" value="<?php echo $view ?>"/>
+            <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
+            <div class="form-group">
+              <label for="skin-choice" class="col-sm-3 control-label">ZM_SKIN</label>
+              <div class="col-sm-6">
+              <select name="skin-choice" class="form-control">
 						<?php
 							foreach($skin_options as $dir) {
 								echo '<option value="'.$dir.'" '.($current_skin==$dir ? 'SELECTED="SELECTED"' : '').'>'.$dir.'</option>';
@@ -132,9 +129,7 @@ if($tab == 'skins') {
      </form>
 	
       <?php
-}
-elseif ( $tab == "users" )
-{
+} else if ( $tab == 'users' ) {
 ?>
       <form name="userForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
@@ -159,24 +154,20 @@ elseif ( $tab == "users" )
           </thead>
           <tbody>
 <?php
-    $sql = "select * from Monitors order by Sequence asc";
+    $sql = 'select * from Monitors order by Sequence asc';
     $monitors = array();
-    foreach( dbFetchAll( $sql ) as $monitor )
-    {
-        $monitors[$monitor['Id']] = $monitor;
+    foreach( dbFetchAll( $sql ) as $monitor ) {
+      $monitors[$monitor['Id']] = $monitor;
     }
 
-    $sql = "select * from Users";
-    foreach( dbFetchAll( $sql ) as $row )
-    {
-        $userMonitors = array();
-        if ( !empty($row['MonitorIds']) )
-        {
-            foreach ( explode( ",", $row['MonitorIds'] ) as $monitorId )
-            {
-                $userMonitors[] = $monitors[$monitorId]['Name'];
-            }
+    $sql = 'select * from Users';
+    foreach( dbFetchAll( $sql ) as $row ) {
+      $userMonitors = array();
+      if ( !empty($row['MonitorIds']) ) {
+        foreach ( explode( ',', $row['MonitorIds'] ) as $monitorId ) {
+          $userMonitors[] = $monitors[$monitorId]['Name'];
         }
+      }
 ?>
             <tr>
               <td class="colUsername"><?php echo makePopupLink( '?view=user&amp;uid='.$row['Id'], 'zmUser', 'user', validHtmlStr($row['Username']).($user['Username']==$row['Username']?"*":""), $canEdit ) ?></td>
@@ -289,33 +280,25 @@ elseif ( $tab == "users" )
               <label for="<?php echo $name ?>" class="col-sm-3 control-label"><?php echo $shortName ?></label>
               <div class="col-sm-6">
 <?php   
-        if ( $value['Type'] == "boolean" )
-        {
+        if ( $value['Type'] == "boolean" ) {
 ?>
               <input type="checkbox" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="1"<?php if ( $value['Value'] ) { ?> checked="checked"<?php } ?><?php echo $canEdit?'':' disabled="disabled"' ?>/>
 <?php
-        }
-        elseif ( preg_match( "/\|/", $value['Hint'] ) )
-        {
+        } elseif ( preg_match( "/\|/", $value['Hint'] ) ) {
 ?>
 <?php
             $options = explode( '|', $value['Hint'] );
-            if ( count( $options ) > 3 )
-            {
+            if ( count( $options ) > 3 ) {
 ?>
                 <select class="form-control" name="newConfig[<?php echo $name ?>]"<?php echo $canEdit?'':' disabled="disabled"' ?>>
 <?php
-                foreach ( $options as $option )
-                {
-                    if ( preg_match( '/^([^=]+)=(.+)$/', $option, $matches ) )
-                    {
-                        $optionLabel = $matches[1];
-                        $optionValue = $matches[2];
-                    }
-                    else
-                    {
-                        $optionLabel = $optionValue = $option;
-                    }
+                foreach ( $options as $option ) {
+                  if ( preg_match( '/^([^=]+)=(.+)$/', $option, $matches ) ) {
+                    $optionLabel = $matches[1];
+                    $optionValue = $matches[2];
+                  } else {
+                    $optionLabel = $optionValue = $option;
+                  }
 ?>
                   <option value="<?php echo $optionValue ?>"<?php if ( $value['Value'] == $optionValue ) { echo ' selected="selected"'; } ?>><?php echo htmlspecialchars($optionLabel) ?></option>
 <?php
@@ -323,18 +306,12 @@ elseif ( $tab == "users" )
 ?>
                 </select>
 <?php
-            }
-            else
-            {
-                foreach ( $options as $option )
-                {
-                    if ( preg_match( '/^([^=]+)=(.+)$/', $option ) )
-                    {
+            } else {
+                foreach ( $options as $option ) {
+                    if ( preg_match( '/^([^=]+)=(.+)$/', $option ) ) {
                         $optionLabel = $matches[1];
                         $optionValue = $matches[2];
-                    }
-                    else
-                    {
+                    } else {
                         $optionLabel = $optionValue = $option;
                     }
 ?>

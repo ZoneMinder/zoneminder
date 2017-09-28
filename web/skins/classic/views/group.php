@@ -18,26 +18,22 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canEdit( 'Groups' ) )
-{
-    $view = "error";
-    return;
+if ( !canEdit( 'Groups' ) ) {
+  $view = 'error';
+  return;
 }
 
-if ( !empty($_REQUEST['gid']) )
-{
-    $newGroup = dbFetchGroup( $_REQUEST['gid'] );
-}
-else
-{
-    $newGroup = array(
-        "Id" => "",
-        "Name" => "New Group",
-        "MonitorIds" => ""
-    );
+if ( !empty($_REQUEST['gid']) ) {
+  $newGroup = dbFetchGroup( $_REQUEST['gid'] );
+} else {
+  $newGroup = array(
+    'Id' => '',
+    'Name' => 'New Group',
+    'MonitorIds' => ''
+  );
 }
 
-xhtmlHeaders( __FILE__, translate('Group')." - ".$newGroup['Name'] );
+xhtmlHeaders( __FILE__, translate('Group').' - '.$newGroup['Name'] );
 ?>
 <body>
   <div id="page">
@@ -49,28 +45,41 @@ xhtmlHeaders( __FILE__, translate('Group')." - ".$newGroup['Name'] );
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value="group"/>
         <input type="hidden" name="gid" value="<?php echo $newGroup['Id'] ?>"/>
-        <table id="contentTable" class="major" cellspacing="0">
+        <table id="contentTable" class="major">
           <tbody>
             <tr>
               <th scope="row"><?php echo translate('Name') ?></th>
               <td><input type="text" name="newGroup[Name]" value="<?php echo validHtmlStr($newGroup['Name']) ?>"/></td>
             </tr>
             <tr>
-              <th scope="row"><?php echo translate('MonitorIds') ?></th>
+              <th scope="row"><?php echo translate('ParentGroup') ?></th>
+              <td>
+                <select name="newGroup[ParentId][]"><option value="">None</option>
+<?php
+  $groups = dbFetchAll( 'SELECT Id,Name from Groups WHERE Id!=? ORDER BY Name', null, array($newGroup['Id']) );
+  foreach ( $groups as $group ) {
+?>
+                  <option value="<?php echo $group['Id'] ?>"<?php if ( $group['Id'] == $newGroup['ParentId'] ) { ?> selected="selected"<?php } ?> onclick="configureButtons(this);"><?php echo validHtmlStr($group['Name']) ?></option>
+<?php
+  }
+?>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <th scope="row"><?php echo translate('Monitor') ?></th>
               <td>
                 <select name="newGroup[MonitorIds][]" size="4" multiple="multiple">
 <?php
-    $monitors = dbFetchAll( "select Id,Name from Monitors order by Sequence asc" );
-    $monitorIds = array_flip( explode( ',', $newGroup['MonitorIds'] ) );
-    foreach ( $monitors as $monitor )
-    {
-        if ( visibleMonitor( $monitor['Id'] ) )
-        {
+  $monitors = dbFetchAll( 'SELECT Id,Name FROM Monitors ORDER BY Sequence ASC' );
+  $monitorIds = array_flip( explode( ',', $newGroup['MonitorIds'] ) );
+  foreach ( $monitors as $monitor ) {
+    if ( visibleMonitor( $monitor['Id'] ) ) {
 ?>
-                  <option value="<?php echo $monitor['Id'] ?>"<?php if ( array_key_exists( $monitor['Id'], $monitorIds ) ) { ?> selected="selected"<?php } ?> onclick="configureButtons( this );"><?php echo validHtmlStr($monitor['Name']) ?></option>
+                  <option value="<?php echo $monitor['Id'] ?>"<?php if ( array_key_exists( $monitor['Id'], $monitorIds ) ) { ?> selected="selected"<?php } ?> onclick="configureButtons(this);"><?php echo validHtmlStr($monitor['Name']) ?></option>
 <?php
-        }
     }
+  }
 ?>
                 </select>
               </td>

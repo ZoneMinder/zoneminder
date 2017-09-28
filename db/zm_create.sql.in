@@ -264,6 +264,7 @@ DROP TABLE IF EXISTS `Groups`;
 CREATE TABLE `Groups` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `Name` varchar(64) NOT NULL default '',
+  `ParentId` int(10) unsigned,
   `MonitorIds` tinytext NOT NULL,
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;

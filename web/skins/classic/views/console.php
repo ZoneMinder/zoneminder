@@ -19,106 +19,80 @@
 //
 
 $servers = Server::find_all();
-require_once('includes/Storage.php');
 $storage_areas = Storage::find_all();
 $show_storage_areas = count($storage_areas) > 1 and canEdit( 'System' ) ? 1 : 0;
 if ( $running == null ) 
   $running = daemonCheck();
 
 $eventCounts = array(
-    array(
-        'title' => translate('Events'),
-        'filter' => array(
-            'Query' => array (
-              'terms' => array()
-            )
-        ),
-        'total' => 0,
+  array(
+    'title' => translate('Events'),
+    'filter' => array(
+      'Query' => array (
+        'terms' => array()
+      )
     ),
-    array(
-        'title' => translate('Hour'),
-        'filter' => array(
-          'Query' => array(
-            'terms' => array(
-              array( 'attr' => 'DateTime', 'op' => '>=', 'val' => '-1 hour' ),
-              )
-            )
-          ),
-        'total' => 0,
+    'total' => 0,
+  ),
+  array(
+    'title' => translate('Hour'),
+    'filter' => array(
+      'Query' => array(
+        'terms' => array(
+          array( 'attr' => 'DateTime', 'op' => '>=', 'val' => '-1 hour' ),
+        )
+      )
     ),
-    array(
-        'title' => translate('Day'),
-        'filter' => array(
-          'Query' => array(
-            'terms' => array(
-              array( 'attr' => 'DateTime', 'op' => '>=', 'val' => '-1 day' ),
-              )
-            )
-          ),
-        'total' => 0,
+    'total' => 0,
+  ),
+  array(
+    'title' => translate('Day'),
+    'filter' => array(
+      'Query' => array(
+        'terms' => array(
+          array( 'attr' => 'DateTime', 'op' => '>=', 'val' => '-1 day' ),
+        )
+      )
     ),
-    array(
-        'title' => translate('Week'),
-        'filter' => array(
-          'Query' => array(
-            'terms' => array(
-              array( 'attr' => 'DateTime', 'op' => '>=', 'val' => '-7 day' ),
-              )
-            )
-          ),
-        'total' => 0,
+    'total' => 0,
+  ),
+  array(
+    'title' => translate('Week'),
+    'filter' => array(
+      'Query' => array(
+        'terms' => array(
+          array( 'attr' => 'DateTime', 'op' => '>=', 'val' => '-7 day' ),
+        )
+      )
     ),
-    array(
-        'title' => translate('Month'),
-        'filter' => array(
-          'Query' => array(
-            'terms' => array(
-              array( 'attr' => 'DateTime', 'op' => '>=', 'val' => '-1 month' ),
-              )
-            )
-          ),
-        'total' => 0,
+    'total' => 0,
+  ),
+  array(
+    'title' => translate('Month'),
+    'filter' => array(
+      'Query' => array(
+        'terms' => array(
+          array( 'attr' => 'DateTime', 'op' => '>=', 'val' => '-1 month' ),
+        )
+      )
     ),
-    array(
-        'title' => translate('Archived'),
-        'filter' => array(
-          'Query' => array(
-            'terms' => array(
-              array( 'attr' => 'Archived', 'op' => '=', 'val' => '1' ),
-              )
-            )
-          ),
-        'total' => 0,
-        ),
+    'total' => 0,
+  ),
+  array(
+    'title' => translate('Archived'),
+    'filter' => array(
+      'Query' => array(
+        'terms' => array(
+          array( 'attr' => 'Archived', 'op' => '=', 'val' => '1' ),
+        )
+      )
+    ),
+    'total' => 0,
+  ),
 );
 
-$displayMonitors = NULL;
 
-# Also populates displayMonitors
 $navbar = getNavBarHTML();
-$zoneCount = 0;
-
-for( $i = 0; $i < count($displayMonitors); $i += 1 ) {
-  $monitor = $displayMonitors[$i];
-  $monitor['zmc'] = zmcStatus( $monitor );
-  $monitor['zma'] = zmaStatus( $monitor );
-  $monitor['ZoneCount'] = dbFetchOne( 'select count(Id) as ZoneCount from Zones where MonitorId = ?', 'ZoneCount', array($monitor['Id']) );
-  $counts = array();
-  for ( $j = 0; $j < count($eventCounts); $j += 1 ) {
-    $filter = addFilterTerm( $eventCounts[$j]['filter'], count($eventCounts[$j]['filter']['Query']['terms']), array( 'cnj' => 'and', 'attr' => 'MonitorId', 'op' => '=', 'val' => $monitor['Id'] ) );
-    parseFilter( $filter );
-    $counts[] = 'count(if(1'.$filter['sql'].",1,NULL)) as EventCount$j";
-    $monitor['eventCounts'][$j]['filter'] = $filter;
-  }
-  $sql = 'select '.join($counts,', ').' from Events as E where MonitorId = ?';
-  $counts = dbFetchOne( $sql, NULL, array($monitor['Id']) );
-  if ( $counts )
-    $displayMonitors[$i] = $monitor = array_merge( $monitor, $counts );
-  for ( $j = 0; $j < count($eventCounts); $j += 1 ) {
-    $eventCounts[$j]['total'] += $monitor['EventCount'.$j];
-  }
-  $zoneCount += $monitor['ZoneCount'];
-}
 
 noCacheHeaders();
 
@@ -137,6 +111,97 @@ xhtmlHeaders( __FILE__, translate('Console') );
     <input type="hidden" name="action" value=""/>
 
     <?php echo $navbar ?>
+    <div class="controlHeader">
+      <span id="groupControl"><label><?php echo translate('Group') ?>:</label>
+<?php
+  $group_id = 0;
+  if ( isset($_REQUEST['group']) ) {
+    $group_id = $_REQUEST['group'];
+  } else if ( isset($_COOKIE['zmGroup'] ) ) {
+    $group_id = $_COOKIE['zmGroup'];
+  }
+  $subgroup_id = 0;
+  if ( isset($_REQUEST['subgroup']) ) {
+    $subgroup_id = $_REQUEST['subgroup'];
+  } else if ( isset($_COOKIE['zmSubGroup'] ) ) {
+    $subgroup_id = $_COOKIE['zmSubGroup'];
+  }
+
+  $groups = array(0=>'All');
+  foreach ( Group::find_all( array('ParentId'=>null) ) as $Group ) {
+    $groups[$Group->Id()] = $Group->Name();
+  }
+  echo htmlSelect( 'group', $groups, $group_id, 'changeGroup(this);' );
+  $groups = array(0=>'All');
+  if ( $group_id ) {
+    foreach ( Group::find_all( array('ParentId'=>$group_id) ) as $Group ) {
+      $groups[$Group->Id()] = $Group->Name();
+    }
+  }
+  echo htmlSelect( 'subgroup', $groups, $subgroup_id, 'changeSubGroup(this);' );
+
+  $group = NULL;
+  if ( $group_id ) {
+	  if ( $group = dbFetchOne( 'SELECT MonitorIds FROM Groups WHERE Id = ?', NULL, array($group_id) ) )
+		  $groupIds = array_flip(explode( ',', $group['MonitorIds'] ));
+    if ( $subgroup_id ) {
+      if ( $group = dbFetchOne( 'SELECT MonitorIds FROM Groups WHERE Id = ?', NULL, array($subgroup_id) ) )
+        $groupIds = array_merge( $groupIds, array_flip(explode( ',', $group['MonitorIds'] ) ) );
+    } else {
+      foreach ( dbFetchAll( 'SELECT MonitorIds FROM Groups WHERE ParentId = ?', NULL, array($group_id) ) as $group )
+        $groupIds = array_merge( $groupIds, array_flip(explode( ',', $group['MonitorIds'] ) ) );
+    }
+  }
+
+  $maxWidth = 0;
+  $maxHeight = 0;
+  # Used to determine if the Cycle button should be made available
+  $monitors = dbFetchAll( 'SELECT * FROM Monitors ORDER BY Sequence ASC' );
+  $displayMonitors = array();
+  for ( $i = 0; $i < count($monitors); $i++ ) {
+    if ( !visibleMonitor( $monitors[$i]['Id'] ) ) {
+      continue;
+    }
+    if ( $group && !empty($groupIds) && !array_key_exists( $monitors[$i]['Id'], $groupIds ) ) {
+      continue;
+    }
+    if ( $monitors[$i]['Function'] != 'None' ) {
+      $scaleWidth = reScale( $monitors[$i]['Width'], $monitors[$i]['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+      $scaleHeight = reScale( $monitors[$i]['Height'], $monitors[$i]['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+      if ( $maxWidth < $scaleWidth ) $maxWidth = $scaleWidth;
+      if ( $maxHeight < $scaleHeight ) $maxHeight = $scaleHeight;
+    }
+    $displayMonitors[] = $monitors[$i];
+  }
+
+  $cycleWidth = $maxWidth;
+  $cycleHeight = $maxHeight;
+$zoneCount = 0;
+
+for( $i = 0; $i < count($displayMonitors); $i += 1 ) {
+  $monitor = $displayMonitors[$i];
+  $monitor['zmc'] = zmcStatus( $monitor );
+  $monitor['zma'] = zmaStatus( $monitor );
+  $monitor['ZoneCount'] = dbFetchOne( 'select count(Id) as ZoneCount from Zones where MonitorId = ?', 'ZoneCount', array($monitor['Id']) );
+  $counts = array();
+  for ( $j = 0; $j < count($eventCounts); $j += 1 ) {
+    $filter = addFilterTerm( $eventCounts[$j]['filter'], count($eventCounts[$j]['filter']['Query']['terms']), array( 'cnj' => 'and', 'attr' => 'MonitorId', 'op' => '=', 'val' => $monitor['Id'] ) );
+    parseFilter( $filter );
+    $counts[] = 'count(if(1'.$filter['sql'].",1,NULL)) as EventCount$j";
+    $monitor['eventCounts'][$j]['filter'] = $filter;
+  }
+  $sql = 'SELECt '.join($counts,', ').' from Events as E where MonitorId = ?';
+  $counts = dbFetchOne( $sql, NULL, array($monitor['Id']) );
+  if ( $counts )
+    $displayMonitors[$i] = $monitor = array_merge( $monitor, $counts );
+  for ( $j = 0; $j < count($eventCounts); $j += 1 ) {
+    $eventCounts[$j]['total'] += $monitor['EventCount'.$j];
+  }
+  $zoneCount += $monitor['ZoneCount'];
+}
+?>
+</span>
+    </div>
 
     <div class="container-fluid">
       <table class="table table-striped table-hover table-condensed" id="consoleTable">
@@ -249,8 +314,8 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
         <tfoot>
           <tr>
             <td class="colLeftButtons" colspan="<?php echo $left_columns ?>">
-              <input type="button" class="btn btn-primary" value="<?php echo translate('Refresh') ?>" onclick="location.reload(true);"/>
-              <input type="button" class="btn btn-primary" name="addBtn" value="<?php echo translate('AddNewMonitor') ?>" onclick="addMonitor( this )"/>
+              <input type="button" value="<?php echo translate('Refresh') ?>" onclick="location.reload(true);"/>
+              <input type="button" name="addBtn" value="<?php echo translate('AddNewMonitor') ?>" onclick="addMonitor( this )"/>
               <!-- <?php echo makePopupButton( '?view=monitor', 'zmMonitor0', 'monitor', translate('AddNewMonitor'), (canEdit( 'Monitors' ) && !$user['MonitorIds']) ) ?> -->
               <?php echo makePopupButton( '?view=filter&amp;filter[terms][0][attr]=DateTime&amp;filter[terms][0][op]=%3c&amp;filter[terms][0][val]=now', 'zmFilter', 'filter', translate('Filters'), canView( 'Events' ) ) ?>
               <input type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editMonitor( this )" disabled="disabled"/>

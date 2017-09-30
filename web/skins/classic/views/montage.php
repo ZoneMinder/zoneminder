@@ -18,28 +18,43 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView( 'Stream' ) ) {
+if ( !canView('Stream') ) {
   $view = 'error';
   return;
 }
 
-require_once( 'includes/Monitor.php' );
-require_once( 'includes/Group.php' );
-
-$groupSql = '';
-$group_id = null;
-if ( !empty($_REQUEST['group']) ) {
+$group_id = 0;
+if ( isset($_REQUEST['group']) ) {
   $group_id = $_REQUEST['group'];
-} elseif  ( isset( $_COOKIE['zmMontageGroup'] ) ) {
-  $group_id = $_COOKIE['zmMontageGroup'];
+} else if ( isset($_COOKIE['zmGroup'] ) ) {
+  $group_id = $_COOKIE['zmGroup'];
 }
 
-if ( $group_id ) {
-  $row = dbFetchOne( 'SELECT * FROM Groups WHERE Id = ?', NULL, array($group_id) );
-  $sql = "SELECT * FROM Monitors WHERE Function != 'None' AND find_in_set( Id, '".$row['MonitorIds']."' ) ORDER BY Sequence";
-} else { 
-  $sql = "SELECT * FROM Monitors WHERE Function != 'None' ORDER BY Sequence";
+$subgroup_id = 0;
+if ( isset($_REQUEST['subgroup']) ) {
+  $subgroup_id = $_REQUEST['subgroup'];
+} else if ( isset($_COOKIE['zmSubGroup'] ) ) {
+  $subgroup_id = $_COOKIE['zmSubGroup'];
 }
+$groupIds = null;
+if ( $group_id ) {
+  $groupIds = array();
+  if ( $group = dbFetchOne( 'SELECT MonitorIds FROM Groups WHERE Id = ?', NULL, array($group_id) ) )
+    if ( $group['MonitorIds'] )
+      $groupIds = explode( ',', $group['MonitorIds'] );
+  if ( $subgroup_id ) {
+    if ( $group = dbFetchOne( 'SELECT MonitorIds FROM Groups WHERE Id = ?', NULL, array($subgroup_id) ) )
+      if ( $group['MonitorIds'] )
+        $groupIds = array_merge( $groupIds, explode( ',', $group['MonitorIds'] ) );
+  } else {
+    foreach ( dbFetchAll( 'SELECT MonitorIds FROM Groups WHERE ParentId = ?', NULL, array($group_id) ) as $group )
+      if ( $group['MonitorIds'] )
+        $groupIds = array_merge( $groupIds, explode( ',', $group['MonitorIds'] ) );
+  }
+}
+$groupSql = '';
+if ( $groupIds )
+  $groupSql = " and find_in_set( Id, '".implode( ',', $groupIds )."' )";
 
 $showControl = false;
 $showZones = false;
@@ -76,6 +91,7 @@ if ( isset( $_REQUEST['scale'] ) ) {
 if ( ! $scale ) 
   $scale = 100;
 
+$sql = "SELECT * FROM Monitors WHERE Function != 'None'$groupSql ORDER BY Sequence";
 foreach( dbFetchAll( $sql ) as $row ) {
   if ( !visibleMonitor( $row['Id'] ) ) {
     continue;
@@ -126,6 +142,7 @@ xhtmlHeaders(__FILE__, translate('Montage') );
 ?>
 <body>
   <div id="page">
+<?php echo getNavBarHTML() ?>
     <div id="header">
       <div id="headerButtons">
 <?php
@@ -150,12 +167,18 @@ if ( $showZones ) {
       <div id="headerControl">
         <span id="groupControl"><label><?php echo translate('Group') ?>:</label>
 <?php
-      $groups = array(0=>'All');
-      foreach ( Group::find_all() as $Group ) {
-        $groups[$Group->Id()] = $Group->Name();
-
-      }
-      echo htmlSelect( 'group', $groups, $group_id, 'changeGroup(this);' );
+$groups = array(0=>'All');
+foreach ( Group::find_all( array('ParentId'=>null) ) as $Group ) {
+  $groups[$Group->Id()] = $Group->Name();
+}
+echo htmlSelect( 'group', $groups, $group_id, 'changeGroup(this);' );
+$groups = array(0=>'All');
+if ( $group_id ) {
+  foreach ( Group::find_all( array('ParentId'=>$group_id) ) as $Group ) {
+    $groups[$Group->Id()] = $Group->Name();
+  }
+}
+echo htmlSelect( 'subgroup', $groups, $subgroup_id, 'changeSubGroup(this);' );
 ?>
 </span>
 

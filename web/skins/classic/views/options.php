@@ -18,10 +18,9 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView( 'System' ) )
-{
-    $view = "error";
-    return;
+if ( !canView( 'System' ) ) {
+  $view = 'error';
+  return;
 }
 
 $canEdit = canEdit( 'System' );
@@ -45,9 +44,9 @@ $tabs['lowband'] = translate('LowBW');
 $tabs['users'] = translate('Users');
 
 if ( isset($_REQUEST['tab']) )
-    $tab = validHtmlStr($_REQUEST['tab']);
+  $tab = validHtmlStr($_REQUEST['tab']);
 else
-    $tab = "system";
+  $tab = 'system';
 
 $focusWindow = true;
 
@@ -55,7 +54,7 @@ xhtmlHeaders( __FILE__, translate('Options') );
 
 # Have to do this stuff up here before including header.php because fof the cookie setting
 $skin_options = array_map( 'basename', glob('skins/*',GLOB_ONLYDIR) );
-if($tab == 'skins') {
+if ( $tab == 'skins' ) {
     $current_skin = $_COOKIE['zmSkin'];
     $reload = false;
     if ( isset($_GET['skin-choice']) && ( $_GET['skin-choice'] != $current_skin ) ) {
@@ -76,45 +75,42 @@ if($tab == 'skins') {
 ?>
 <body>
 <?php echo getNavBarHTML(); ?>
-    <div class="container-fluid">
-<div class="row">
-	<div class="col-sm-2 sidebar">
-      <ul class="nav nav-pills nav-stacked">
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-sm-2 sidebar">
+        <ul class="nav nav-pills nav-stacked">
 <?php
-foreach ( $tabs as $name=>$value )
-{
+foreach ( $tabs as $name=>$value ) {
 ?>
-        <li<?php echo $tab == $name ? ' class="active"' : '' ?>><a href="?view=<?php echo $view ?>&amp;tab=<?php echo $name ?>"><?php echo $value ?></a></li>
+          <li<?php echo $tab == $name ? ' class="active"' : '' ?>><a href="?view=<?php echo $view ?>&amp;tab=<?php echo $name ?>"><?php echo $value ?></a></li>
 <?php
 }
 ?>
-      </ul>
-	</div>
-
-	<div class="col-sm-10 col-sm-offset-2">
-      <div id="options">
+        </ul>
+      </div>
+      <div class="col-sm-10 col-sm-offset-2">
+        <div id="options">
 <?php 
-if($tab == 'skins') {
+if ( $tab == 'skins' ) {
 ?>
-	<form name="optionsForm" class="form-horizontal" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
-        <input type="hidden" name="view" value="<?php echo $view ?>"/>
-        <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
+          <form name="optionsForm" class="form-horizontal" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+            <input type="hidden" name="view" value="<?php echo $view ?>"/>
+            <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
+            <div class="form-group">
+              <label for="skin-choice" class="col-sm-3 control-label">SKIN</label>
+              <div class="col-sm-6">
+                <select name="skin-choice" class="form-control">
+              <?php
+                foreach($skin_options as $dir) {
+                  echo '<option value="'.$dir.'" '.($current_skin==$dir ? 'SELECTED="SELECTED"' : '').'>'.$dir.'</option>';
+                }
+              ?>
+                </select>
+                <span class="help-block"><?php echo translate('SkinDescription'); ?></span>
+              </div>
+            </div>
 <div class="form-group">
-					<label for="skin-choice" class="col-sm-3 control-label">ZM_SKIN</label>
-					<div class="col-sm-6">
-					<select name="skin-choice" class="form-control">
-						<?php
-							foreach($skin_options as $dir) {
-								echo '<option value="'.$dir.'" '.($current_skin==$dir ? 'SELECTED="SELECTED"' : '').'>'.$dir.'</option>';
-							}
-						?>
-					</select>
-					<span class="help-block"><?php echo translate('SkinDescription'); ?></span>
-					</div>
-</div>
-
-<div class="form-group">
-					<label for="css-choice" class="col-sm-3 control-label">ZM_CSS</label>
+					<label for="css-choice" class="col-sm-3 control-label">CSS</label>
 					<div class="col-sm-6">
 					<select name="css-choice" class="form-control">
 						<?php

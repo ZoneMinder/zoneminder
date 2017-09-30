@@ -29,6 +29,7 @@ if ( !empty($_REQUEST['gid']) ) {
   $newGroup = array(
     'Id' => '',
     'Name' => 'New Group',
+    'ParentId'  =>  '',
     'MonitorIds' => ''
   );
 }
@@ -54,12 +55,12 @@ xhtmlHeaders( __FILE__, translate('Group').' - '.$newGroup['Name'] );
             <tr>
               <th scope="row"><?php echo translate('ParentGroup') ?></th>
               <td>
-                <select name="newGroup[ParentId][]"><option value="">None</option>
+                <select name="newGroup[ParentId]" onchange="configureButtons(this);"><option value="">None</option>
 <?php
   $groups = dbFetchAll( 'SELECT Id,Name from Groups WHERE Id!=? ORDER BY Name', null, array($newGroup['Id']) );
   foreach ( $groups as $group ) {
 ?>
-                  <option value="<?php echo $group['Id'] ?>"<?php if ( $group['Id'] == $newGroup['ParentId'] ) { ?> selected="selected"<?php } ?> onclick="configureButtons(this);"><?php echo validHtmlStr($group['Name']) ?></option>
+                  <option value="<?php echo $group['Id'] ?>"<?php if ( $group['Id'] == $newGroup['ParentId'] ) { ?> selected="selected"<?php } ?>><?php echo validHtmlStr($group['Name']) ?></option>
 <?php
   }
 ?>
@@ -69,14 +70,14 @@ xhtmlHeaders( __FILE__, translate('Group').' - '.$newGroup['Name'] );
             <tr>
               <th scope="row"><?php echo translate('Monitor') ?></th>
               <td>
-                <select name="newGroup[MonitorIds][]" size="4" multiple="multiple">
+                <select name="newGroup[MonitorIds][]" size="4" multiple="multiple" onchange="configureButtons(this);">
 <?php
   $monitors = dbFetchAll( 'SELECT Id,Name FROM Monitors ORDER BY Sequence ASC' );
   $monitorIds = array_flip( explode( ',', $newGroup['MonitorIds'] ) );
   foreach ( $monitors as $monitor ) {
     if ( visibleMonitor( $monitor['Id'] ) ) {
 ?>
-                  <option value="<?php echo $monitor['Id'] ?>"<?php if ( array_key_exists( $monitor['Id'], $monitorIds ) ) { ?> selected="selected"<?php } ?> onclick="configureButtons(this);"><?php echo validHtmlStr($monitor['Name']) ?></option>
+                  <option value="<?php echo $monitor['Id'] ?>"<?php if ( array_key_exists( $monitor['Id'], $monitorIds ) ) { ?> selected="selected"<?php } ?>><?php echo validHtmlStr($monitor['Name']) ?></option>
 <?php
     }
   }

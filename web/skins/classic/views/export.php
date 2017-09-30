@@ -18,17 +18,12 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView( 'Events' ) )
-{
-    $view = "error";
-    return;
+if ( !canView( 'Events' ) ) {
+  $view = 'error';
+  return;
 }
 
-# Must re-start session because we close it now in index.php to improve concurrency
-session_start();
-
-if ( isset($_SESSION['export']) )
-{
+if ( isset($_SESSION['export']) ) {
     if ( isset($_SESSION['export']['detail']) )
         $_REQUEST['exportDetail'] = $_SESSION['export']['detail'];
     if ( isset($_SESSION['export']['frames']) )

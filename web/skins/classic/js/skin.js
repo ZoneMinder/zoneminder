@@ -293,3 +293,14 @@ function addVideoTimingTrack(video, LabelFormat, monitorName, duration, startTim
 	track.src = 'data:plain/text;charset=utf-8,'+encodeURIComponent(webvttdata);
 	video.appendChild(track);
 }
+
+function changeGroup() {
+  var group_id = $('group').get('value');
+  Cookie.write( 'zmGroup', group_id, { duration: 10*365 } );
+  window.location = window.location;
+}
+function changeSubGroup() {
+  var subgroup_id = $('subgroup').get('value');
+  Cookie.write( 'zmSubGroup', subgroup_id, { duration: 10*365 } );
+  window.location = window.location;
+}

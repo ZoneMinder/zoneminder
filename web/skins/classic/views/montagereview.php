@@ -54,24 +54,48 @@ if ( !canView( 'Events' ) ) {
   return;
 }
 
-require_once( 'includes/Monitor.php' );
-require_once( 'includes/Group.php' );
-
-$groupSql = '';
-$group_id = null;
-if ( !empty($_REQUEST['group']) ) {
+$group_id = 0;
+if ( isset($_REQUEST['group']) ) {
   $group_id = $_REQUEST['group'];
-} elseif ( isset( $_COOKIE['zmMontageReviewGroup'] ) ) {
-  $group_id = $_COOKIE['zmMontageReviewGroup'];
+} else if ( isset($_COOKIE['zmGroup'] ) ) {
+  $group_id = $_COOKIE['zmGroup'];
 }
 
-# FIXME THere is no way to select group at this time.
-if ( isset( $group_id ) and $group_id ) {
-  $row = dbFetchOne( 'SELECT * FROM Groups WHERE Id = ?', NULL, array($group_id) );
-  $monitorsSql = "SELECT * FROM Monitors WHERE Function != 'None' AND find_in_set( Id, '".$row['MonitorIds']."' ) ";
-} else {
-  $monitorsSql = "SELECT * FROM Monitors WHERE Function != 'None'";
+$subgroup_id = 0;
+if ( isset($_REQUEST['subgroup']) ) {
+  $subgroup_id = $_REQUEST['subgroup'];
+} else if ( isset($_COOKIE['zmSubGroup'] ) ) {
+  $subgroup_id = $_COOKIE['zmSubGroup'];
 }
+$groupIds = null;
+if ( $group_id ) {
+  $groupIds = array();
+  if ( $group = dbFetchOne( 'SELECT MonitorIds FROM Groups WHERE Id = ?', NULL, array($group_id) ) )
+    if ( $group['MonitorIds'] )
+      $groupIds = explode( ',', $group['MonitorIds'] );
+  if ( $subgroup_id ) {
+    if ( $group = dbFetchOne( 'SELECT MonitorIds FROM Groups WHERE Id = ?', NULL, array($subgroup_id) ) )
+      if ( $group['MonitorIds'] )
+        $groupIds = array_merge( $groupIds, explode( ',', $group['MonitorIds'] ) );
+  } else {
+    foreach ( dbFetchAll( 'SELECT MonitorIds FROM Groups WHERE ParentId = ?', NULL, array($group_id) ) as $group )
+      if ( $group['MonitorIds'] )
+        $groupIds = array_merge( $groupIds, explode( ',', $group['MonitorIds'] ) );
+  }
+}
+$groupSql = '';
+if ( $groupIds )
+  $groupSql = " and find_in_set( Id, '".implode( ',', $groupIds )."' )";
+
+session_start();
+foreach ( array('minTime','maxTime') as $var ) {
+if ( isset( $_REQUEST[$var] ) ) {
+  $_SESSION[$var] = $_REQUEST[$var];
+}
+}
+session_write_close();
+
+$monitorsSql = "SELECT * FROM Monitors WHERE Function != 'None'$groupSql";
 
 // Note that this finds incomplete events as well, and any frame records written, but still cannot "see" to the end frame
 // if the bulk record has not been written - to be able to include more current frames reduce bulk frame sizes (event size can be large)
@@ -131,6 +155,7 @@ if ( (strtotime($maxTime) - strtotime($minTime))/(365*24*3600) > 30 ) {
   $minTime = null;
   $maxTime = null;
 }
+
 
 $fitMode=1;
 if (isset($_REQUEST['fit']) && $_REQUEST['fit']=='0' )
@@ -198,59 +223,70 @@ input[type=range]::-ms-tooltip {
 </style>
 <body>
   <div id="page">
+<?php echo getNavBarHTML() ?>
+<form action="<?php echo $_SERVER['PHP_SELF'] ?>" method="get">
+<input type="hidden" name="view" value="montagereview"/>
     <div id="header">
-      <div id="headerButtons">
-        <a href="#" onclick="closeWindow();"><?php echo translate('Close') ?></a>
-      </div>
-      <h2><?php echo translate('MontageReview') ?></h2>
       <div id="headerControl">
         <span id="groupControl"><label><?php echo translate('Group') ?>:</label>
 <?php
       $groups = array(0=>'All');
-      foreach ( Group::find_all() as $Group ) {
+      foreach ( Group::find_all(array('ParentId'=>null)) as $Group ) {
         $groups[$Group->Id()] = $Group->Name();
       }
       echo htmlSelect( 'group', $groups, $group_id, 'changeGroup(this);' );
+      $groups = array(0=>'All');
+      if ( $group_id ) {
+        foreach ( Group::find_all( array('ParentId'=>$group_id) ) as $Group ) {
+          $groups[$Group->Id()] = $Group->Name();
+        }
+      }
+      echo htmlSelect( 'subgroup', $groups, $subgroup_id, 'changeSubGroup(this);' );
 ?>
       </span>
+      <div id="DateTimeDiv">
+        <input type="datetime-local" name="minTime" id="minTime" value="<?php echo preg_replace('/ /', 'T', $minTime ) ?>" onchange="changeDateTime(this);"> to 
+        <input type="datetime-local" name="maxTime" id="maxTime" value="<?php echo preg_replace('/ /', 'T', $maxTime ) ?>" onchange="changeDateTime(this);">
+      </div>
+      <div id="ScaleDiv">
+          <label for="scaleslider"><?php echo translate('Scale')?></label>
+          <input id="scaleslider" type="range" min="0.1" max="1.0" value="<?php echo $defaultScale ?>" step="0.10" onchange="setScale(this.value);" oninput="showScale(this.value);"/>
+          <span id="scaleslideroutput"><?php echo number_format((float)$defaultScale,2,'.','')?> x</span>
+      </div>
+      <div id="SpeedDiv">
+          <label for="speedslider"><?php echo translate('Speed') ?></label>
+          <input id="speedslider" type="range" min="0" max="<?php echo count($speeds)-1?>" value="<?php echo $speedIndex ?>" step="1" onchange="setSpeed(this.value);" oninput="showSpeed(this.value);"/>
+          <span id="speedslideroutput"><?php echo $speeds[$speedIndex] ?> fps</span>
+      </div>
+      <div style="display: inline-flex; border: 1px solid black; flex-flow: row wrap;">
+          <button type="button" id="panleft"   onclick="panleft();"         >&lt; <?php echo translate('Pan') ?></button>
+          <button type="button" id="zoomin"    onclick="zoomin();"           ><?php echo translate('In +') ?></button>
+          <button type="button" id="zoomout"   onclick="zoomout();"          ><?php echo translate('Out -') ?></button>
+          <button type="button" id="lasteight" onclick="lastEight();"        ><?php echo translate('8 Hour') ?></button>
+          <button type="button" id="lasthour"  onclick="lastHour();"         ><?php echo translate('1 Hour') ?></button>
+          <button type="button" id="allof"     onclick="allof();"            ><?php echo translate('All Events') ?></button>
+          <button type="button" id="live"      onclick="setLive(1-liveMode);"><?php echo translate('Live') ?></button>
+          <button type="button" id="fit"       onclick="setFit(1-fitMode);"  ><?php echo translate('Fit') ?></button>
+          <button type="button" id="panright"  onclick="panright();"         ><?php echo translate('Pan') ?> &gt;</button>
+      </div>
+      <div id="timelinediv">
+          <canvas id="timeline" onmousemove="mmove(event);" ontouchmove="tmove(event);" onmousedown="mdown(event);" onmouseup="mup(event);" onmouseout="mout(event);"></canvas>
+          <span id="scrubleft"></span>
+          <span id="scrubright"></span>
+          <span id="scruboutput"></span>
+      </div>
     </div>
-    </div>
-    <div id="ScaleDiv">
-        <label for="scaleslider"><?php echo translate('Scale')?></label>
-        <input id="scaleslider" type="range" min="0.1" max="1.0" value="<?php echo $defaultScale ?>" step="0.10" onchange="setScale(this.value);" oninput="showScale(this.value);"/>
-        <span id="scaleslideroutput"><?php echo number_format((float)$defaultScale,2,'.','')?> x</span>
-    </div>
-    <div id="SpeedDiv">
-        <label for="speedslider"><?php echo translate('Speed') ?></label>
-        <input id="speedslider" type="range" min="0" max="<?php echo count($speeds)-1?>" value="<?php echo $speedIndex ?>" step="1" onchange="setSpeed(this.value);" oninput="showSpeed(this.value);"/>
-        <span id="speedslideroutput"><?php echo $speeds[$speedIndex] ?> fps</span>
-    </div>
-    <div style="display: inline-flex; border: 1px solid black; flex-flow: row wrap;">
-        <button type="button" id="panleft"   onclick="panleft();"         >&lt; <?php echo translate('Pan') ?></button>
-        <button type="button" id="zoomin"    onclick="zoomin();"           ><?php echo translate('In +') ?></button>
-        <button type="button" id="zoomout"   onclick="zoomout();"          ><?php echo translate('Out -') ?></button>
-        <button type="button" id="lasteight" onclick="lastEight();"        ><?php echo translate('8 Hour') ?></button>
-        <button type="button" id="lasthour"  onclick="lastHour();"         ><?php echo translate('1 Hour') ?></button>
-        <button type="button" id="allof"     onclick="allof();"            ><?php echo translate('All Events') ?></button>
-        <button type="button" id="live"      onclick="setLive(1-liveMode);"><?php echo translate('Live') ?></button>
-        <button type="button" id="fit"       onclick="setFit(1-fitMode);"  ><?php echo translate('Fit') ?></button>
-        <button type="button" id="panright"  onclick="panright();"         ><?php echo translate('Pan') ?> &gt;</button>
-    </div>
-    <div id="timelinediv">
-        <canvas id="timeline" onmousemove="mmove(event);" ontouchmove="tmove(event);" onmousedown="mdown(event);" onmouseup="mup(event);" onmouseout="mout(event);"></canvas>
-        <span id="scrubleft"></span>
-        <span id="scrubright"></span>
-        <span id="scruboutput"></span>
-    </div>
-<div id="monitors">
+  </div>
+</form>
+  <div id="monitors">
 <?php
-// Monitor images - these had to be loaded after the monitors used were determined (after loading events)
-foreach ($monitors as $m) {
-  echo '<canvas width="' . $m->Width() * $defaultScale . 'px" height="'  . $m->Height() * $defaultScale . 'px" id="Monitor' . $m->Id() . '" style="border:3px solid ' . $m->WebColour() . '" onclick="clickMonitor(event,' . $m->Id() . ')">No Canvas Support!!</canvas>';
-}
+  // Monitor images - these had to be loaded after the monitors used were determined (after loading events)
+  foreach ($monitors as $m) {
+    echo '<canvas width="' . $m->Width() * $defaultScale . 'px" height="'  . $m->Height() * $defaultScale . 'px" id="Monitor' . $m->Id() . '" style="border:3px solid ' . $m->WebColour() . '" onclick="clickMonitor(event,' . $m->Id() . ')">No Canvas Support!!</canvas>';
+  }
 ?>
-</div>
-<p id="fps">evaluating fps</p>
+  </div>
+  <p id="fps">evaluating fps</p>
 
 </div>
 </body>

@@ -5,6 +5,7 @@ class Group {
 public $defaults = array(
     'Id'              =>  null,
     'Name'            =>  '',
+    'ParentId'        =>  null,
     'MonitorIds'      =>  '',
 );
 
@@ -53,10 +54,27 @@ public $defaults = array(
     }
   }
 
-  public static function find_all() {
+  public static function find_all( $parameters = null ) {
     $filters = array();
-    $result = dbQuery( 'SELECT * FROM Groups ORDER BY Name');
-    $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Group' );
+    $sql = 'SELECT * FROM Groups ';
+    $values = array();
+
+    if ( $parameters ) {
+      $fields = array();
+      $sql .= 'WHERE ';
+      foreach ( $parameters as $field => $value ) {
+        if ( $value == null ) {
+          $fields[] = $field.' IS NULL';
+        } else {
+          $fields[] = $field.'=?';
+          $values[] = $value;
+        }
+      }
+      $sql .= implode(' AND ', $fields );
+    }
+    $sql .= ' ORDER BY Name';
+    $result = dbQuery($sql, $values);
+    $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Group');
     foreach ( $results as $row => $obj ) {
       $filters[] = $obj;
     }
@@ -83,6 +101,6 @@ public $defaults = array(
       }
     }
   }
-} # end class
+} # end class Group
 
 ?>

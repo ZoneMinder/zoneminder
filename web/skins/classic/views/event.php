@@ -199,6 +199,13 @@ if ( $Event->DefaultVideo() ) {
           });
         });
         </script>
+
+      <p id="replayAllCountDown"></p>
+      <p id="dvrControlsVjs" class="dvrControls">
+        <input type="button" value="&lt;+" id="prevBtnVjs" title="<?php echo translate('Prev') ?>" class="active" onclick="streamPrev( true );"/>
+        <input type="button" value="+&gt;" id="nextBtnVjs" title="<?php echo translate('Next') ?>" class="active" onclick="streamNext( true );"/>
+      </p>
+
 <?php
 }  // end if DefaultVideo
 ?>

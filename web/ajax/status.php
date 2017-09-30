@@ -367,7 +367,7 @@ function getNearEvents() {
   else
     $midSql = '';
 
-  $sql = "select E.Id as Id from Events as E inner join Monitors as M on E.MonitorId = M.Id where $sortColumn ".($sortOrder=='asc'?'<=':'>=')." '".$event[$_REQUEST['sort_field']]."'".$_REQUEST['filter']['sql'].$midSql." order by $sortColumn ".($sortOrder=='asc'?'desc':'asc');
+  $sql = "select E.Id as Id, E.StartTime as StartTime from Events as E inner join Monitors as M on E.MonitorId = M.Id where $sortColumn ".($sortOrder=='asc'?'<=':'>=')." '".$event[$_REQUEST['sort_field']]."'".$_REQUEST['filter']['sql'].$midSql." order by $sortColumn ".($sortOrder=='asc'?'desc':'asc');
   $result = dbQuery( $sql );
   while ( $id = dbFetchNext( $result, 'Id' ) ) {
     if ( $id == $eventId ) {
@@ -376,7 +376,7 @@ function getNearEvents() {
     }
   }
 
-  $sql = "select E.Id as Id from Events as E inner join Monitors as M on E.MonitorId = M.Id where $sortColumn ".($sortOrder=='asc'?'>=':'<=')." '".$event[$_REQUEST['sort_field']]."'".$_REQUEST['filter']['sql'].$midSql." order by $sortColumn $sortOrder";
+  $sql = "select E.Id as Id, E.StartTime as StartTime from Events as E inner join Monitors as M on E.MonitorId = M.Id where $sortColumn ".($sortOrder=='asc'?'>=':'<=')." '".$event[$_REQUEST['sort_field']]."'".$_REQUEST['filter']['sql'].$midSql." order by $sortColumn $sortOrder";
   $result = dbQuery( $sql );
   while ( $id = dbFetchNext( $result, 'Id' ) ) {
     if ( $id == $eventId ) {
@@ -388,6 +388,8 @@ function getNearEvents() {
   $result = array( 'EventId'=>$eventId );
   $result['PrevEventId'] = empty($prevEvent)?0:$prevEvent['Id'];
   $result['NextEventId'] = empty($nextEvent)?0:$nextEvent['Id'];
+  $result['PrevEventStartTime'] = empty($prevEvent)?0:$prevEvent['StartTime'];
+  $result['NextEventStartTime'] = empty($nextEvent)?0:$nextEvent['StartTime'];
   $result['PrevEventDefVideoPath'] = empty($prevEvent)?0:(getEventDefaultVideoPath($prevEvent));
   $result['NextEventDefVideoPath'] = empty($nextEvent)?0:(getEventDefaultVideoPath($nextEvent));
   return( $result );

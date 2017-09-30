@@ -1,5 +1,36 @@
 var vid = null;
 
+function vjsReplay(endTime) {
+  var video = videojs('videoobj').ready(function(){
+    var player = this;
+    player.on('ended', function() {
+      switch(replayMode.value) {
+        case 'none':
+          break;
+        case 'single':
+          player.play();
+          break;
+        case 'all':
+//          nextEventStartTime.getTime() is a mootools workaround, highjacks Date.parse
+          var gapDuration = (new Date().getTime()) + (nextEventStartTime.getTime() - endTime);
+          var x = setInterval(function() {
+            var now = new Date().getTime();
+            var remainder = new Date(Math.round(gapDuration - now)).toISOString().substr(11,8);;
+            $j("#replayAllCountDown").html(remainder + " to next event.");
+            if (remainder < 0) {
+              clearInterval(x);
+              streamNext( true );
+            }
+          }, 1000);
+          break;
+        case 'gapless':
+          streamNext( true );
+          break;
+      }
+    });
+  });
+}
+
 function setButtonState( element, butClass ) {
   if ( element ) {
     element.className = butClass;

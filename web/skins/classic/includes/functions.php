@@ -46,8 +46,15 @@ function xhtmlHeaders( $file, $title ) {
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title><?php echo ZM_WEB_TITLE_PREFIX ?> - <?php echo validHtmlStr($title) ?></title>
-  <link rel="icon" type="image/ico" href="graphics/favicon.ico"/>
-  <link rel="shortcut icon" href="graphics/favicon.ico"/>
+<?php
+if ( file_exists( "skins/$skin/css/$css/images/favicon.ico" ) ) {
+  echo "<link rel=\"icon\" type=\"image/ico\" href=\"skins/$skin/css/graphics/favicon.ico\"/>";
+  echo "<link rel=\"shortcut icon\" href=\"skins/$skin/css/graphics/favicon.ico\"/>";
+} else {
+  echo '<link rel="icon" type="image/ico" href="graphics/favicon.ico"/>';
+  echo '<link rel="shortcut icon" href="graphics/favicon.ico"/>';
+}
+?>
   <link rel="stylesheet" href="css/reset.css" type="text/css"/>
   <link rel="stylesheet" href="css/overlay.css" type="text/css"/>
   <link rel="stylesheet" href="css/bootstrap.min.css" type="text/css"/>

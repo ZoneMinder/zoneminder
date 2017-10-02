@@ -30,7 +30,6 @@ function xhtmlHeaders( $file, $title ) {
 
   $skinJsFile = getSkinFile( 'js/skin.js' );
   $skinJsPhpFile = getSkinFile( 'js/skin.js.php' );
-  $cssJsFile = getSkinFile( 'js/classic.js' );
   $cssJsFile = getSkinFile( 'js/'.$css.'.js' );
 
   $basename = basename( $file, '.php' );
@@ -136,6 +135,10 @@ if ( file_exists( "skins/$skin/css/$css/images/favicon.ico" ) ) {
 	if ( $cssJsFile ) {
 ?>
   <script type="text/javascript" src="<?php echo $cssJsFile ?>"></script>
+<?php
+} else {
+?>
+  <script type="text/javascript" src="skins/classic/js/classic.js"></script>
 <?php } ?>
   <script type="text/javascript" src="<?php echo $skinJsFile ?>"></script>
   <script type="text/javascript" src="js/logger.js"></script>
@@ -219,7 +222,7 @@ function getNavBarHTML() {
 	</div> <!-- End .container-fluid -->
 	<div class="container-fluid">
   <div class="pull-left">
-    <?php echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', $bwArray[$_COOKIE['zmBandwidth']], ($user && $user['MaxBandwidth'] != 'low' ) ) ?> <?php echo translate('BandwidthHead') ?>
+    <?php echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', $bwArray[$_COOKIE['zmBandwidth']] . ' ' . translate('BandwidthHead'), ($user && $user['MaxBandwidth'] != 'low' ) ) ?>
   </div>
   <div class="pull-right">
 	  <?php echo makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="'.$versionClass.'">v'.ZM_VERSION.'</span>', canEdit( 'System' ) ) ?>

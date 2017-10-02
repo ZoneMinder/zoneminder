@@ -161,9 +161,7 @@ if ( $showZones ) {
 <?php
 }
 ?>
-        <a href="#" onclick="closeWindow()"><?php echo translate('Close') ?></a>
       </div>
-      <h2><?php echo translate('Montage') ?></h2>
       <div id="headerControl">
         <span id="groupControl"><label><?php echo translate('Group') ?>:</label>
 <?php

@@ -101,16 +101,13 @@ function zmWindow() {
 }
 
 function createPopup( url, name, tag, width, height ) {
-alert(url);
   var popupSize = getPopupSize( tag, width, height );
-alert(popupSize);
   var popupDimensions = "";
   if ( popupSize.width > 0 )
     popupDimensions += ",width="+popupSize.width;
   if ( popupSize.height > 0 )
     popupDimensions += ",height="+popupSize.height;
-alert(url);
-  //var popup = window.open( url, name, popupOptions+popupDimensions );
+  var popup = window.open( url, name, popupOptions+popupDimensions );
   if ( ! popup ) {
     // if popup blocking is enabled, the popup won't be defined.
     console.log("Please disable popup blocking.");

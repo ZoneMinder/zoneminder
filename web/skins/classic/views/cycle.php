@@ -133,5 +133,4 @@ xhtmlHeaders(__FILE__, translate('CycleWatch') );
       </div>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

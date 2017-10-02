@@ -264,5 +264,4 @@ foreach ( $monitors as $monitor ) {
       </div>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

@@ -284,5 +284,4 @@ xhtmlHeaders(__FILE__, translate('MontageReview') );
   <p id="fps">evaluating fps</p>
 
 </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

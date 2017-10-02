@@ -30,6 +30,7 @@ function xhtmlHeaders( $file, $title ) {
 
   $skinJsFile = getSkinFile( 'js/skin.js' );
   $skinJsPhpFile = getSkinFile( 'js/skin.js.php' );
+  $cssJsFile = getSkinFile( 'js/classic.js' );
   $cssJsFile = getSkinFile( 'js/'.$css.'.js' );
 
   $basename = basename( $file, '.php' );

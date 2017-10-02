@@ -311,8 +311,8 @@ function getNearEventsResponse( respObj, respText ) {
   if ( prevEventBtn ) prevEventBtn.disabled = !prevEventId;
   var nextEventBtn = $('nextEventBtn');
   if ( nextEventBtn ) nextEventBtn.disabled = !nextEventId;
-  if (prevEventId == 0) $j('#prevBtnVjs').prop('disabled', true);
-  if (nextEventId == 0) $j('#nextBtnVjs').prop('disabled', true);
+  if (prevEventId == 0) $j('#prevBtnVjs').prop('disabled', true).attr('class', 'unavail');
+  if (nextEventId == 0) $j('#nextBtnVjs').prop('disabled', true).attr('class', 'unavail');
 }
 
 var nearEventsReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getNearEventsResponse } );

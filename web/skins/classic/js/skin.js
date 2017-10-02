@@ -45,7 +45,7 @@ function newWindow( url, name, width, height ) {
 }
 
 function getPopupSize( tag, width, height ) {
-  if ( ! popupSizes ) {
+  if ( typeof popupSizes == 'undefined' ) {
     Error( "Can't find any window sizes" );
     return( { 'width': 0, 'height': 0 } );
   }

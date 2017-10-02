@@ -177,8 +177,8 @@ foreach ( $monitors as $m ) {
     $numMonitors += 1;
 }
 echo "var numMonitors = $numMonitors;\n";
-echo "var minTimeSecs="     . $minTimeSecs . ";\n";
-echo "var maxTimeSecs="     . $maxTimeSecs . ";\n";
+echo "var minTimeSecs='"     . $minTimeSecs . "';\n";
+echo "var maxTimeSecs='"     . $maxTimeSecs . "';\n";
 echo "var rangeTimeSecs="   . ( $maxTimeSecs - $minTimeSecs + 1) . ";\n";
 if(isset($defaultCurrentTime))
   echo "var currentTimeSecs=" . strtotime($defaultCurrentTime) . ";\n";

@@ -145,6 +145,7 @@ function xhtmlHeaders( $file, $title ) {
 function getNavBarHTML() {
   $versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText':'';
 
+
   ob_start();
   global $running;
   if ( $running == null )
@@ -152,6 +153,7 @@ function getNavBarHTML() {
   $status = $running?translate('Running'):translate('Stopped');
   global $user;
   global $bwArray;
+  global $view;
 ?>
 <div class="navbar navbar-inverse navbar-static-top">
 	<div class="container-fluid">

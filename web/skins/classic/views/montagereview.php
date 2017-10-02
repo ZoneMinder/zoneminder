@@ -139,8 +139,9 @@ if ( ! empty( $user['MonitorIds'] ) ) {
 
 
 if ( !isset($_REQUEST['minTime']) && !isset($_REQUEST['maxTime']) ) {
-  $maxTime = strftime("%c",time());
-  $minTime = strftime("%c",time() - 3600);
+  $time = time();
+  $maxTime = strftime("%FT%T",$time);
+  $minTime = strftime("%FT%T",$time - 3600);
 }
 if ( isset($_REQUEST['minTime']) )
   $minTime = validHtmlStr($_REQUEST['minTime']);
@@ -155,7 +156,6 @@ if ( (strtotime($maxTime) - strtotime($minTime))/(365*24*3600) > 30 ) {
   $minTime = null;
   $maxTime = null;
 }
-
 
 $fitMode=1;
 if (isset($_REQUEST['fit']) && $_REQUEST['fit']=='0' )
@@ -216,11 +216,6 @@ foreach( dbFetchAll( $monitorsSql ) as $row ) {
 
 xhtmlHeaders(__FILE__, translate('MontageReview') );
 ?>
-<style>
-input[type=range]::-ms-tooltip {
-    display: none;
-}
-</style>
 <body>
   <div id="page">
 <?php echo getNavBarHTML() ?>
@@ -282,7 +277,7 @@ input[type=range]::-ms-tooltip {
 <?php
   // Monitor images - these had to be loaded after the monitors used were determined (after loading events)
   foreach ($monitors as $m) {
-    echo '<canvas width="' . $m->Width() * $defaultScale . 'px" height="'  . $m->Height() * $defaultScale . 'px" id="Monitor' . $m->Id() . '" style="border:3px solid ' . $m->WebColour() . '" onclick="clickMonitor(event,' . $m->Id() . ')">No Canvas Support!!</canvas>';
+    echo '<canvas width="' . $m->Width() * $defaultScale . '" height="'  . $m->Height() * $defaultScale . '" id="Monitor' . $m->Id() . '" style="border:3px solid ' . $m->WebColour() . '" onclick="clickMonitor(event,' . $m->Id() . ')">No Canvas Support!!</canvas>';
   }
 ?>
   </div>

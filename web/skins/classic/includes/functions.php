@@ -143,13 +143,9 @@ function xhtmlHeaders( $file, $title ) {
 } // end function xhtmlHeaders( $file, $title )
 
 function getNavBarHTML() {
-
-
   $versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText':'';
 
   ob_start();
-  global $CLANG;
-  global $VLANG;
   global $running;
   if ( $running == null )
     $running = daemonCheck();
@@ -179,19 +175,19 @@ function getNavBarHTML() {
 <?php if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
 			<li><a href="?view=devices">Devices</a></li>
 <?php } ?>
-<li><a href="?view=groups"><?php echo translate('Groups') ?></a></li>
-      <li><a href="?view=filter"><?php echo translate('Filters') ?></a></li>
+<li><a href="?view=groups"<?php echo $view=='groups'?' class="selected"':''?>><?php echo translate('Groups') ?></a></li>
+      <li><a href="?view=filter"<?php echo $view=='filter'?' class="selected"':''?>><?php echo translate('Filters') ?></a></li>
 
 <?php 
   if ( canView( 'Stream' ) ) {
 ?>
-  <li><a href="?view=cycle"><?php echo translate('Cycle') ?></a></li>
-      <li><a href="?view=montage"><?php echo translate('Montage') ?></a></li>
+  <li><a href="?view=cycle"<?php echo $view=='cycle'?' class="selected"':''?>><?php echo translate('Cycle') ?></a></li>
+      <li><a href="?view=montage"<?php echo $view=='montage'?' class="selected"':''?>><?php echo translate('Montage') ?></a></li>
 <?php
    }
   if ( canView('Events') ) {
  ?>
-   <li><a href="?view=montagereview"><?php echo translate('MontageReview')?></a></li>
+   <li><a href="?view=montagereview"<?php echo $view=='montagereview'?' class="selected"':''?>><?php echo translate('MontageReview')?></a></li>
 <?php
   }
 ?>

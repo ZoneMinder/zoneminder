@@ -31,7 +31,6 @@ $j(document).ready(function() {
 	// Save a new state
 	$j("#btnSave").click(function() {
 		StateStuff( 'save', undefined, $j("#newState").val() );
-		
 	});
 
 	// Change state
@@ -53,7 +52,7 @@ $j(document).ready(function() {
 
 		$j.ajax({
 			type: 'POST',
-			url: '/index.php',
+			url: thisUrl,
 			data: formData,
 			dataType: 'html',
 			enocde: true

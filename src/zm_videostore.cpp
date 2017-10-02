@@ -125,7 +125,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
 #else
   video_out_stream =
-      avformat_new_stream(oc, reinterpret_cast<AVCodec *>(video_in_ctx->codec));
+      avformat_new_stream(oc,(const AVCodec *)(video_in_ctx->codec));
   if (!video_out_stream) {
     Fatal("Unable to create video out stream\n");
   } else {
@@ -222,7 +222,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
       Debug(3, "Got AAC");
 
       audio_out_stream =
-          avformat_new_stream(oc, reinterpret_cast<const AVCodec *>(audio_in_ctx->codec));
+          avformat_new_stream(oc, (const AVCodec *)(audio_in_ctx->codec));
       if (!audio_out_stream) {
         Error("Unable to create audio out stream\n");
         audio_out_stream = NULL;

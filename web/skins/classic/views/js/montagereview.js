@@ -289,16 +289,10 @@ function drawGraph()
     return;
 }
 
-function redrawScreen()
-{
-    if(fitMode==0) // if we fit, then monitors were absolutely positioned already (or will be) otherwise release them to float
-    {
-        for(var i=0; i<numMonitors; i++)
-            monitorCanvasObj[monitorPtr[i]].style.position="";
-        $('monitors').setStyle('height',"auto");
-    }
-    if(liveMode==1) // if we are not in live view switch to history -- this has to come before fit in case we re-establish the timeline
-    {
+function redrawScreen() {
+    if ( liveMode == 1 ) {
+    // if we are not in live view switch to history -- this has to come before fit in case we re-establish the timeline
+        $('DateTimeDiv').style.display="none";
         $('SpeedDiv').style.display="none";
         $('timelinediv').style.display="none";
         $('live').innerHTML="History";
@@ -307,9 +301,9 @@ function redrawScreen()
         $('panleft').style.display="none";
         $('panright').style.display="none";
 
-    }
-    else  // switch out of liveview mode
-    {
+    } else  {
+    // switch out of liveview mode
+        $('DateTimeDiv').style.display="inline";
         $('SpeedDiv').style.display="inline";
         $('SpeedDiv').style.display="inline-flex";
         $('timelinediv').style.display=null;
@@ -324,8 +318,7 @@ function redrawScreen()
         $('panright').style.display="inline-flex";
     }
 
-    if(fitMode==1)
-    {
+    if ( fitMode == 1 ) {
         $('ScaleDiv').style.display="none";
         $('fit').innerHTML="Scale";
         var vh=window.innerHeight;
@@ -335,9 +328,12 @@ function redrawScreen()
         $('monitors').setStyle('height',mh.toString() + "px");  // leave a small gap at bottom
         if(maxfit2($('monitors').getSize().x,$('monitors').getSize().y) == 0)   /// if we fail to fix we back out of fit mode -- ??? This may need some better handling
             fitMode=1-fitMode;
-    }
-    else  // switch out of fit mode
-    {
+    } else {
+      // switch out of fit mode
+      // if we fit, then monitors were absolutely positioned already (or will be) otherwise release them to float
+        for( var i=0; i<numMonitors; i++ )
+            monitorCanvasObj[monitorPtr[i]].style.position="";
+        $('monitors').setStyle('height',"auto");
         $('ScaleDiv').style.display="inline";
         $('ScaleDiv').style.display="inline-flex";
         $('fit').innerHTML="Fit";
@@ -349,15 +345,13 @@ function redrawScreen()
 }
 
 
-function outputUpdate(val)
-{
-    drawSliderOnGraph(val);
-    for(var i=0; i<numMonitors; i++)
-    {
-            loadImage2Monitor(monitorPtr[i],SetImageSource(monitorPtr[i],val));
-    }
-    var currentTimeMS = new Date(val*1000);
-    currentTimeSecs=val;
+function outputUpdate(val) {
+  drawSliderOnGraph(val);
+  for(var i=0; i<numMonitors; i++) {
+    loadImage2Monitor(monitorPtr[i],SetImageSource(monitorPtr[i],val));
+  }
+  var currentTimeMS = new Date(val*1000);
+  currentTimeSecs=val;
 }
 
 
@@ -398,16 +392,18 @@ function mmove(event) {
   }
 }
 
-function secs2dbstr (s)
-{
-    var st = (new Date(s * 1000)).format("%Y-%m-%d %H:%M:%S");
-    return st;
+function secs2inputstr (s) {
+  var st = (new Date(s * 1000)).format("%Y-%m-%dT%H:%M:%S");
+  return st;
+}
+function secs2dbstr (s) {
+  var st = (new Date(s * 1000)).format("%Y-%m-%d %H:%M:%S");
+  return st;
 }
 
-function setFit(value)
-{
-    fitMode=value;
-    redrawScreen();
+function setFit(value) {
+  fitMode=value;
+  redrawScreen();
 }
 
 function showScale(newscale) // updates slider only
@@ -455,19 +451,22 @@ function setLive(value)
 
 function clicknav(minSecs,maxSecs,arch,live) {// we use the current time if we can
   var now = new Date() / 1000;
-  var minStr="";
-  var maxStr="";
-  var currentStr="";
+  var minStr = "";
+  var maxStr = "";
+  var currentStr = "";
   if ( minSecs > 0 ) {
     if(maxSecs > now)
       maxSecs = parseInt(now);
-    maxStr="&maxTime=" + secs2dbstr(maxSecs);
+    maxStr="&maxTime=" + secs2inputstr(maxSecs);
+    $('maxTime').value = secs2inputstr(maxSecs);
   }
-  if ( maxSecs > 0 )
-    minStr="&minTime=" + secs2dbstr(minSecs);
+  if ( minSecs > 0 ) {
+    $('minTime').value = secs2inputstr(minSecs);
+    minStr="&minTime=" + secs2inputstr(minSecs);
+  }
   if ( maxSecs == 0 && minSecs == 0 ) {
-    minStr="&minTime=01/01/1950 12:00:00";
-    maxStr="&maxTime=12/31/2035 12:00:00";
+    minStr="&minTime=01/01/1950T12:00:00";
+    maxStr="&maxTime=12/31/2035T12:00:00";
   }
   var intervalStr="&displayinterval=" + currentDisplayInterval.toString();
   if ( minSecs && maxSecs ) {
@@ -488,7 +487,7 @@ function clicknav(minSecs,maxSecs,arch,live) {// we use the current time if we c
     if ( monitorZoomScale[monitorPtr[i]] < 0.99 || monitorZoomScale[monitorPtr[i]] > 1.01 )  // allow for some up/down changes and just treat as 1 of almost 1
       zoomStr += "&z" + monitorPtr[i].toString() + "=" + monitorZoomScale[monitorPtr[i]].toFixed(2);
 
-  var uri = "?view=" + currentView + fitStr + groupStr + minStr + maxStr + currentStr + intervalStr + liveStr + zoomStr + "&scale=" + scale[$j("#scaleslider")[0].value] + "&speed=" + speeds[$j("#speedslider")[0].value];
+  var uri = "?view=" + currentView + fitStr + groupStr + minStr + maxStr + currentStr + intervalStr + liveStr + zoomStr + "&scale=" + $j("#scaleslider")[0].value + "&speed=" + speeds[$j("#speedslider")[0].value];
   window.location = uri;
 } // end function clickNav
 
@@ -686,12 +685,8 @@ function clickMonitor(event,monId) {
   return;
 }
 
-function changeGroup() {
-  var group_id = $('group').get('value');
-  Cookie.write( 'zmMontageReviewGroup', group_id, { duration: 10*365 } );
-  var url = window.location.href;
-  url = url.replace(/group=\d+/, 'group='+group_id);
-  window.location.href = url;
+function changeDateTime(e) {
+  e.form.submit();
 }
 
 // >>>>>>>>> Initialization that runs on window load by being at the bottom 

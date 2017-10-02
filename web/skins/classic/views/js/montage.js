@@ -209,12 +209,6 @@ function changeScale() {
   Cookie.write( 'zmMontageHeight', '', { duration: 10*365 } );
 }
 
-function changeGroup() {
-  var group_id = $('group').get('value');
-  Cookie.write( 'zmMontageGroup', group_id, { duration: 10*365 } );
-  window.location = window.location;
-}
-
 var monitors = new Array();
 function initPage() {
   for ( var i = 0; i < monitorData.length; i++ ) {

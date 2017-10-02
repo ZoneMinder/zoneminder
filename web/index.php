@@ -48,6 +48,7 @@ require_once( 'includes/logger.php' );
 require_once( 'includes/Server.php' );
 require_once( 'includes/Storage.php' );
 require_once( 'includes/Event.php' );
+require_once( 'includes/Group.php' );
 require_once( 'includes/Monitor.php' );
 
 if ( isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on' ) {
@@ -194,7 +195,7 @@ isset($view) || $view = NULL;
 isset($request) || $request = NULL;
 isset($action) || $action = NULL;
 
-if ( ZM_ENABLE_CSRF_MAGIC && $action != 'login' && $view != 'view_video' && $view != 'video' && $request != 'control' ) {
+if ( ZM_ENABLE_CSRF_MAGIC && $action != 'login' && $view != 'view_video' && $view != 'video' && $request != 'control' && $view != 'frames') {
   require_once( 'includes/csrf/csrf-magic.php' );
   Logger::Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");
   csrf_check();

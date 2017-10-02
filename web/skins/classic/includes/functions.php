@@ -143,47 +143,9 @@ function xhtmlHeaders( $file, $title ) {
 } // end function xhtmlHeaders( $file, $title )
 
 function getNavBarHTML() {
-
-  $group = NULL;
-  if ( ! empty($_COOKIE['zmGroup']) ) {
-	  if ( $group = dbFetchOne( 'select * from Groups where Id = ?', NULL, array($_COOKIE['zmGroup'])) )
-		  $groupIds = array_flip(explode( ',', $group['MonitorIds'] ));
-  }
-
-  $maxWidth = 0;
-  $maxHeight = 0;
-  # Used to determine if the Cycle button should be made available
-  $cycleCount = 0;
-  $monitors = dbFetchAll( "select * from Monitors order by Sequence asc" );
-  global $displayMonitors;
-  $displayMonitors = array();
-  for ( $i = 0; $i < count($monitors); $i++ ) {
-    if ( !visibleMonitor( $monitors[$i]['Id'] ) ) {
-      continue;
-    }
-    if ( $group && !empty($groupIds) && !array_key_exists( $monitors[$i]['Id'], $groupIds ) ) {
-      continue;
-    }
-    if ( $monitors[$i]['Function'] != 'None' ) {
-      $cycleCount++;
-      $scaleWidth = reScale( $monitors[$i]['Width'], $monitors[$i]['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
-      $scaleHeight = reScale( $monitors[$i]['Height'], $monitors[$i]['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
-      if ( $maxWidth < $scaleWidth ) $maxWidth = $scaleWidth;
-      if ( $maxHeight < $scaleHeight ) $maxHeight = $scaleHeight;
-    }
-    $displayMonitors[] = $monitors[$i];
-  }
-
-  $cycleWidth = $maxWidth;
-  $cycleHeight = $maxHeight;
-
   $versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText':'';
 
   ob_start();
-  global $CLANG;
-  global $VLANG;
-  global $CLANG;
-  global $VLANG;
   global $running;
   if ( $running == null )
     $running = daemonCheck();
@@ -213,20 +175,19 @@ function getNavBarHTML() {
 <?php if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
 			<li><a href="?view=devices">Devices</a></li>
 <?php } ?>
-			<li><?php echo makePopupLink( '?view=groups', 'zmGroups', 'groups', 'Groups', canView( 'Groups' ) ); ?></li>
-			<li><a href="?view=filter">Filters</a></li>
+<li><a href="?view=groups"<?php echo $view=='groups'?' class="selected"':''?>><?php echo translate('Groups') ?></a></li>
+      <li><a href="?view=filter"<?php echo $view=='filter'?' class="selected"':''?>><?php echo translate('Filters') ?></a></li>
 
 <?php 
-  $cycleGroup = isset($_COOKIE['zmGroup'])?$_COOKIE['zmGroup']:0;
-  if ( canView( 'Stream' ) && $cycleCount > 1 ) {
+  if ( canView( 'Stream' ) ) {
 ?>
-					<li><?php echo makePopupLink( '?view=cycle&amp;group='.$cycleGroup, 'zmCycle'.$cycleGroup, array( 'cycle', $cycleWidth, $cycleHeight ), translate('Cycle'), $running ) ?></li>
-					<li><?php echo makePopupLink( '?view=montage&amp;group='.$cycleGroup, 'zmMontage'.$cycleGroup, 'montage', translate('Montage'), $running ) ?></li>
+  <li><a href="?view=cycle"<?php echo $view=='cycle'?' class="selected"':''?>><?php echo translate('Cycle') ?></a></li>
+      <li><a href="?view=montage"<?php echo $view=='montage'?' class="selected"':''?>><?php echo translate('Montage') ?></a></li>
 <?php
    }
   if ( canView('Events') ) {
  ?>
-					<li><?php echo makePopupLink( '?view=montagereview&amp;group='.$cycleGroup, 'zmMontageReview'.$cycleGroup, 'montagereview', translate('MontageReview') ) ?></li>
+   <li><a href="?view=montagereview"<?php echo $view=='montagereview'?' class="selected"':''?>><?php echo translate('MontageReview')?></a></li>
 <?php
   }
 ?>

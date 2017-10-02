@@ -104,7 +104,7 @@ if ( ! $Event->Id() ) {
 } else {
 ?>
       <div id="dataBar">
-        <table id="dataTable" class="major" cellspacing="0">
+        <table id="dataTable" class="major">
           <tr>
             <td><span id="dataId" title="<?php echo translate('Id') ?>"><?php echo $Event->Id() ?></span></td>
             <td><span id="dataCause" title="<?php echo $Event->Notes()?validHtmlStr($Event->Notes()):translate('AttrCause') ?>"><?php echo validHtmlStr($Event->Cause()) ?></span></td>
@@ -126,12 +126,12 @@ if ( ! $Event->Id() ) {
       <div id="menuBar2">
         <div id="closeWindow"><a href="#" onclick="closeWindow();"><?php echo translate('Close') ?></a></div>
 <?php
-if ( canEdit( 'Events' ) ) {
+if ( canEdit('Events') ) {
 ?>
         <div id="deleteEvent"><a href="#" onclick="deleteEvent()"><?php echo translate('Delete') ?></a></div>
         <div id="editEvent"><a href="#" onclick="editEvent()"><?php echo translate('Edit') ?></a></div>
-        <div id="archiveEvent"<?php if ( $Event->Archived == 1 ){echo " class=\"hidden\">";}else{echo ">";} ?><a href="#" onclick="archiveEvent()"><?php echo translate('Archive') ?></a></div>
-        <div id="unarchiveEvent"<?php if ( $Event->Archived == 0 ){echo " class=\"hidden\">";}else{echo">";} ?><a href="#" onclick="unarchiveEvent()"><?php echo translate('Unarchive') ?></a></div>
+        <div id="archiveEvent"<?php echo $Event->Archived == 1 ? ' class="hidden"' : ''  ?>><a href="#" onclick="archiveEvent()"><?php echo translate('Archive') ?></a></div>
+        <div id="unarchiveEvent"<?php echo $Event->Archived == 0 ? ' class="hidden"' : '' ?>><a href="#" onclick="unarchiveEvent()"><?php echo translate('Unarchive') ?></a></div>
 <?php 
 } // end if can edit Events
   if ( $Event->DefaultVideo() ) { ?>

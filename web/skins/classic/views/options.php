@@ -82,7 +82,7 @@ if ( $tab == 'skins' ) {
 <?php
 foreach ( $tabs as $name=>$value ) {
 ?>
-        <li<?php echo $tab == $name ? ' class="active"' : '' ?>><a href="?view=<?php echo $view ?>&amp;tab=<?php echo $name ?>"><?php echo $value ?></a></li>
+          <li<?php echo $tab == $name ? ' class="active"' : '' ?>><a href="?view=<?php echo $view ?>&amp;tab=<?php echo $name ?>"><?php echo $value ?></a></li>
 <?php
 }
 ?>
@@ -97,36 +97,35 @@ if ( $tab == 'skins' ) {
             <input type="hidden" name="view" value="<?php echo $view ?>"/>
             <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
             <div class="form-group">
-              <label for="skin-choice" class="col-sm-3 control-label">ZM_SKIN</label>
+              <label for="skin-choice" class="col-sm-3 control-label">SKIN</label>
               <div class="col-sm-6">
-              <select name="skin-choice" class="form-control">
-						<?php
-							foreach($skin_options as $dir) {
-								echo '<option value="'.$dir.'" '.($current_skin==$dir ? 'SELECTED="SELECTED"' : '').'>'.$dir.'</option>';
-							}
-						?>
-					</select>
-					<span class="help-block"><?php echo translate('SkinDescription'); ?></span>
-					</div>
-</div>
-
-<div class="form-group">
-					<label for="css-choice" class="col-sm-3 control-label">ZM_CSS</label>
-					<div class="col-sm-6">
-					<select name="css-choice" class="form-control">
-						<?php
-							foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDIR) ) as $dir) {
-								echo '<option value="'.$dir.'" '.($current_css==$dir ? 'SELECTED="SELECTED"' : '').'>'.$dir.'</option>';
-							}
-						?>
-					</select>
-					<span class="help-block"><?php echo translate('CSSDescription'); ?></span>
-					</div>
-</div>
-        <div id="contentButtons">
-          <input type="submit" class="btn btn-primary btn-lg" value="<?php echo translate('Save') ?>"<?php echo $canEdit?'':' disabled="disabled"' ?>/>
-        </div>
-     </form>
+                <select name="skin-choice" class="form-control">
+<?php
+foreach($skin_options as $dir) {
+  echo '<option value="'.$dir.'" '.($current_skin==$dir ? 'SELECTED="SELECTED"' : '').'>'.$dir.'</option>';
+}
+?>
+                </select>
+                <span class="help-block"><?php echo translate('SkinDescription'); ?></span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="css-choice" class="col-sm-3 control-label">CSS</label>
+              <div class="col-sm-6">
+                <select name="css-choice" class="form-control">
+<?php
+foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDIR) ) as $dir) {
+  echo '<option value="'.$dir.'" '.($current_css==$dir ? 'SELECTED="SELECTED"' : '').'>'.$dir.'</option>';
+}
+?>
+                </select>
+                <span class="help-block"><?php echo translate('CSSDescription'); ?></span>
+              </div>
+            </div>
+            <div id="contentButtons">
+              <input type="submit" class="btn btn-primary btn-lg" value="<?php echo translate('Save') ?>"<?php echo $canEdit?'':' disabled="disabled"' ?>/>
+            </div>
+         </form>
 	
       <?php
 } else if ( $tab == 'users' ) {

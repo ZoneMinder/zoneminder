@@ -1,4 +1,3 @@
-var currGroup = "<?php echo isset($_REQUEST['group'])?validJsStr($_REQUEST['group']):'' ?>";
 var nextMid = "<?php echo isset($nextMid)?$nextMid:'' ?>";
 var mode = "<?php echo $mode ?>";
 

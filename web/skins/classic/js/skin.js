@@ -45,6 +45,10 @@ function newWindow( url, name, width, height ) {
 }
 
 function getPopupSize( tag, width, height ) {
+  if ( ! popupSizes ) {
+    Error( "Can't find any window sizes" );
+    return( { 'width': 0, 'height': 0 } );
+  }
   var popupSize = Object.clone( popupSizes[tag] );
   if ( !popupSize ) {
     Error( "Can't find window size for tag '"+tag+"'" );
@@ -83,7 +87,6 @@ function getPopupSize( tag, width, height ) {
     Warning( "Adjusting to minimum height ("+popupSize.minHeight+") when getting popup size for tag '"+tag+"' because calculated height is " + popupSize.height );
     popupSize.height = popupSize.minHeight;
   }
-  Debug( popupSize );
   return( popupSize );
 }
 
@@ -98,13 +101,16 @@ function zmWindow() {
 }
 
 function createPopup( url, name, tag, width, height ) {
+alert(url);
   var popupSize = getPopupSize( tag, width, height );
+alert(popupSize);
   var popupDimensions = "";
   if ( popupSize.width > 0 )
     popupDimensions += ",width="+popupSize.width;
   if ( popupSize.height > 0 )
     popupDimensions += ",height="+popupSize.height;
-  var popup = window.open( url, name, popupOptions+popupDimensions );
+alert(url);
+  //var popup = window.open( url, name, popupOptions+popupDimensions );
   if ( ! popup ) {
     // if popup blocking is enabled, the popup won't be defined.
     console.log("Please disable popup blocking.");

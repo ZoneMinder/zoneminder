@@ -169,7 +169,7 @@ if ( $Event->DefaultVideo() ) {
         addVideoTimingTrack(document.getElementById('videoobj'), LabelFormat, monitorName, duration, startTime);
 
         nearEventsQuery( eventData.Id );
-        vjsReplay(<?php echo (strtotime($Event->StartTime()) + $Event->LEngth())*1000 ?>);
+        vjsReplay(<?php echo (strtotime($Event->StartTime()) + $Event->Length())*1000 ?>);
         </script>
 
       <p id="replayAllCountDown"></p>

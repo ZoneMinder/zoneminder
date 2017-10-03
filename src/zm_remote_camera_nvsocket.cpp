@@ -117,7 +117,7 @@ int RemoteCameraNVSocket::Connect() {
       Warning("Can't connect to remote camera mid: %d at %s: %s", monitor_id, buf, strerror(errno) );
       continue;
     }
-
+    Debug(1,"Connected to nvsocket mid: %d at %s: %s", monitor_id, buf, strerror(errno) );
     /* If we got here, we must have connected successfully */
     break;
   }
@@ -284,56 +284,16 @@ struct image_def image_def;
 }
 
 int RemoteCameraNVSocket::Capture( Image &image ) {
-  int content_length = GetResponse();
-  if ( content_length == 0 ) {
+  if ( SendRequest("GetNextImage") < 0 ) {
     Warning( "Unable to capture image, retrying" );
     return( 1 );
   }
-  if ( content_length < 0 ) {
-    Error( "Unable to get response, disconnecting" );
-    Disconnect();
-    return( -1 );
+  if ( Read( sd, buffer, imagesize ) < imagesize ) {
+    Warning( "Unable to capture image, retrying" );
+    return( 1 );
   }
-  switch( format ) {
-    case JPEG :
-      {
-        if ( !image.DecodeJpeg( buffer.extract( content_length ), content_length, colours, subpixelorder ) )
-        {
-          Error( "Unable to decode jpeg" );
-          Disconnect();
-          return( -1 );
-        }
-        break;
-      }
-    case X_RGB :
-      {
-        if ( content_length != (long)image.Size() )
-        {
-          Error( "Image length mismatch, expected %d bytes, content length was %d", image.Size(), content_length );
-          Disconnect();
-          return( -1 );
-        }
-        image.Assign( width, height, colours, subpixelorder, buffer, imagesize );
-        break;
-      }
-    case X_RGBZ :
-      {
-        if ( !image.Unzip( buffer.extract( content_length ), content_length ) )
-        {
-          Error( "Unable to unzip RGB image" );
-          Disconnect();
-          return( -1 );
-        }
-        image.Assign( width, height, colours, subpixelorder, buffer, imagesize );
-        break;
-      }
-    default :
-      {
-        Error( "Unexpected image format encountered" );
-        Disconnect();
-        return( -1 );
-      }
-  }
+
+  image.Assign( width, height, colours, subpixelorder, buffer, imagesize );
   return( 0 );
 }
 

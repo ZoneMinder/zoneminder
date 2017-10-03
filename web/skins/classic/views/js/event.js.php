@@ -33,8 +33,8 @@ var eventData = {
     Length: '<?php echo $Event->Length() ?>'
 };
 
-var filterQuery = '<?php echo isset($filterQuery)?validJsStr($filterQuery):'' ?>';
-var sortQuery = '<?php echo isset($sortQuery)?validJsStr($sortQuery):'' ?>';
+var filterQuery = '<?php echo isset($filterQuery)?validJsStr(htmlspecialchars_decode($filterQuery)):'' ?>';
+var sortQuery = '<?php echo isset($sortQuery)?validJsStr(htmlspecialchars_decode($sortQuery)):'' ?>';
 
 var scale = <?php echo $scale ?>;
 var canEditEvents = <?php echo canEdit( 'Events' )?'true':'false' ?>;

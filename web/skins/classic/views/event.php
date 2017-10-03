@@ -167,7 +167,17 @@ if ( $Event->DefaultVideo() ) {
         var duration = <?php echo $Event->Length() ?>, startTime = '<?php echo $Event->StartTime() ?>';
 
         addVideoTimingTrack(document.getElementById('videoobj'), LabelFormat, monitorName, duration, startTime);
+
+        nearEventsQuery( eventData.Id );
+        vjsReplay(<?php echo (strtotime($Event->StartTime()) + $Event->Length())*1000 ?>);
         </script>
+
+      <p id="replayAllCountDown"></p>
+      <p id="dvrControlsVjs" class="dvrControls">
+        <input type="button" value="&lt;+" id="prevBtnVjs" title="<?php echo translate('Prev') ?>" class="active" onclick="streamPrev( true );"/>
+        <input type="button" value="+&gt;" id="nextBtnVjs" title="<?php echo translate('Next') ?>" class="active" onclick="streamNext( true );"/>
+      </p>
+
 <?php
 }  // end if DefaultVideo
 ?>
@@ -186,7 +196,7 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
   }
 } // end if stream method
 ?>
-        <p id="dvrControls">
+        <p id="dvrControls" class="dvrControls">
           <input type="button" value="&lt;+" id="prevBtn" title="<?php echo translate('Prev') ?>" class="inactive" onclick="streamPrev( true );"/>
           <input type="button" value="&lt;&lt;" id="fastRevBtn" title="<?php echo translate('Rewind') ?>" class="inactive" disabled="disabled" onclick="streamFastRev( true );"/>
           <input type="button" value="&lt;" id="slowRevBtn" title="<?php echo translate('StepBack') ?>" class="unavail" disabled="disabled" onclick="streamSlowRev( true );"/>

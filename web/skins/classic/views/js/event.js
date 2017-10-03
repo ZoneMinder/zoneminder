@@ -1,5 +1,36 @@
 var vid = null;
 
+function vjsReplay(endTime) {
+  var video = videojs('videoobj').ready(function(){
+    var player = this;
+    player.on('ended', function() {
+      switch(replayMode.value) {
+        case 'none':
+          break;
+        case 'single':
+          player.play();
+          break;
+        case 'all':
+//          nextEventStartTime.getTime() is a mootools workaround, highjacks Date.parse
+          var gapDuration = (new Date().getTime()) + (nextEventStartTime.getTime() - endTime);
+          var x = setInterval(function() {
+            var now = new Date().getTime();
+            var remainder = new Date(Math.round(gapDuration - now)).toISOString().substr(11,8);;
+            $j("#replayAllCountDown").html(remainder + " to next event.");
+            if (remainder < 0) {
+              clearInterval(x);
+              streamNext( true );
+            }
+          }, 1000);
+          break;
+        case 'gapless':
+          streamNext( true );
+          break;
+      }
+    });
+  });
+}
+
 function setButtonState( element, butClass ) {
   if ( element ) {
     element.className = butClass;
@@ -164,13 +195,23 @@ function streamFastRev( action ) {
 }
 
 function streamPrev( action ) {
-  if ( action )
+  if ( action ) {
+    if ( vid ) {
+      location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
+      return;
+    }
     streamReq.send( streamParms+"&command="+CMD_PREV );
+  }
 }
 
 function streamNext( action ) {
-  if ( action )
+  if ( action ) {
+    if ( vid ) {
+      location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
+      return;
+    }
     streamReq.send( streamParms+"&command="+CMD_NEXT );
+  }
 }
 
 function streamZoomIn( x, y ) {
@@ -251,6 +292,8 @@ function eventQuery( eventId ) {
 
 var prevEventId = 0;
 var nextEventId = 0;
+var prevEventStartTime = 0;
+var nextEventStartTime = 0;
 var PrevEventDefVideoPath = "";
 var NextEventDefVideoPath = "";
 
@@ -259,6 +302,8 @@ function getNearEventsResponse( respObj, respText ) {
     return;
   prevEventId = respObj.nearevents.PrevEventId;
   nextEventId = respObj.nearevents.NextEventId;
+  prevEventStartTime = Date.parse(respObj.nearevents.PrevEventStartTime);
+  nextEventStartTime = Date.parse(respObj.nearevents.NextEventStartTime);
   PrevEventDefVideoPath = respObj.nearevents.PrevEventDefVideoPath;
   NextEventDefVideoPath = respObj.nearevents.NextEventDefVideoPath;
 
@@ -266,12 +311,14 @@ function getNearEventsResponse( respObj, respText ) {
   if ( prevEventBtn ) prevEventBtn.disabled = !prevEventId;
   var nextEventBtn = $('nextEventBtn');
   if ( nextEventBtn ) nextEventBtn.disabled = !nextEventId;
+  if (prevEventId == 0) $j('#prevBtnVjs').prop('disabled', true).attr('class', 'unavail');
+  if (nextEventId == 0) $j('#nextBtnVjs').prop('disabled', true).attr('class', 'unavail');
 }
 
 var nearEventsReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getNearEventsResponse } );
 
 function nearEventsQuery( eventId ) {
-  var parms = "view=request&request=status&entity=nearevents&id="+eventId;
+  var parms = "view=request&request=status&entity=nearevents&id="+eventId+filterQuery+sortQuery;
   nearEventsReq.send( parms );
 }
 

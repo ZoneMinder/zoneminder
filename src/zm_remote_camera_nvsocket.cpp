@@ -97,35 +97,40 @@ void RemoteCameraNVSocket::Initialise() {
 }
 
 int RemoteCameraNVSocket::Connect() {
-  struct addrinfo *p;
+  //struct addrinfo *p;
+struct sockaddr_in servaddr;
+    bzero( &servaddr, sizeof(servaddr));
+    servaddr.sin_family      = AF_INET;
+    servaddr.sin_addr.s_addr = htons(INADDR_ANY);
+    servaddr.sin_port        = htons(atoi(port.c_str()));
 
-  for(p = hp; p != NULL; p = p->ai_next) {
-    sd = socket( p->ai_family, p->ai_socktype, p->ai_protocol );
+
+    sd = socket(AF_INET, SOCK_STREAM, 0);
+  //for(p = hp; p != NULL; p = p->ai_next) {
+    //sd = socket( p->ai_family, p->ai_socktype, p->ai_protocol );
     if ( sd < 0 ) {
       Warning("Can't create socket: %s", strerror(errno) );
-      continue;
+      //continue;
+	return -1;
     }
 
-    if ( connect( sd, p->ai_addr, p->ai_addrlen ) < 0 ) {
+    //if ( connect( sd, p->ai_addr, p->ai_addrlen ) < 0 ) {
+    if ( connect( sd, (struct sockaddr *)&servaddr , sizeof(servaddr) ) < 0 ) {
       close(sd);
       sd = -1;
-      char buf[sizeof(struct in6_addr)];
-      struct sockaddr_in *addr;
-      addr = (struct sockaddr_in *)p->ai_addr; 
-      inet_ntop( AF_INET, &(addr->sin_addr), buf, INET6_ADDRSTRLEN );
 
-      Warning("Can't connect to remote camera mid: %d at %s: %s", monitor_id, buf, strerror(errno) );
-      continue;
-    }
-    Debug(1,"Connected to nvsocket mid: %d at %s: %s", monitor_id, buf, strerror(errno) );
+      Warning("Can't connect to socket mid: %d : %s", monitor_id, strerror(errno) );
+	return -1;
+      //continue;
+    //}
     /* If we got here, we must have connected successfully */
-    break;
+    //break;
   }
 
-  if ( p == NULL ) {
-    Error("Unable to connect to the remote camera, aborting");
-    return( -1 );
-  }
+  //if ( p == NULL ) {
+    //Error("Unable to connect to the remote camera, aborting");
+    //return( -1 );
+  //}
 
   Debug( 3, "Connected to host, socket = %d", sd );
   return( sd );

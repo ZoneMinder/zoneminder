@@ -1,3 +1,20 @@
+.alarmCue {
+    background-color: #222222;
+    height: 1.5em;
+    text-align: left;
+    margin: 0 auto 0 auto;
+}
+
+.alarmCue span {
+    background-color:red;
+    height: 1.5em;
+    display: inline-block;
+}
+
+span.noneCue {
+    background: none;
+}
+
 #dataBar {
     width: 100%;
     margin: 2px auto;
@@ -11,6 +28,10 @@
 #dataBar #dataTable td {
     text-align: center;
     padding: 2px;
+}
+
+#eventVideo {
+   display: inline-block;
 }
 
 #menuBar1 {

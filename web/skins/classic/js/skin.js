@@ -297,13 +297,8 @@ function addVideoTimingTrack(video, LabelFormat, monitorName, duration, startTim
 	video.appendChild(track);
 }
 
-function changeGroup() {
-  var group_id = $('group').get('value');
-  Cookie.write( 'zmGroup', group_id, { duration: 10*365 } );
-  window.location = window.location;
-}
-function changeSubGroup() {
-  var subgroup_id = $('subgroup').get('value');
-  Cookie.write( 'zmSubGroup', subgroup_id, { duration: 10*365 } );
+function changeGroup( e, depth ) {
+  var group_id = $('group'+depth).get('value');
+  Cookie.write( 'zmGroup'+depth, group_id, { duration: 10*365 } );
   window.location = window.location;
 }

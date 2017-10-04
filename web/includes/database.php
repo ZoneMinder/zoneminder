@@ -127,7 +127,10 @@ function dbQuery( $sql, $params=NULL ) {
     } else {
       $result = $dbConn->query( $sql );
     }
-    //Warning("SQL: $sql");
+    if ( $params )
+    Warning("SQL: $sql" . implode(',',$params));
+    else
+    Warning("SQL: $sql" );
   } catch(PDOException $e) {
     Fatal( "SQL-ERR '".$e->getMessage()."', statement was '".$sql."'" );
   }

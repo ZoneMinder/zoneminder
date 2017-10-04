@@ -65,6 +65,11 @@ public $defaults = array(
       foreach ( $parameters as $field => $value ) {
         if ( $value == null ) {
           $fields[] = $field.' IS NULL';
+        } else if ( is_array( $value ) ) {
+          $func = function(){return '?';};
+          $fields[] = $field.' IN ('.implode(',', array_map( $func, $value ) ). ')';
+          $values += $value;
+
         } else {
           $fields[] = $field.'=?';
           $values[] = $value;
@@ -101,6 +106,19 @@ public $defaults = array(
       }
     }
   }
+  public function depth( $new = null ) {
+    if ( isset($new) ) {
+      $this->{'depth'} = $new;
+    }
+    if ( ! array_key_exists( 'depth', $this ) or ( $this->{'depth'} == null ) ) {
+      $this->{'depth'} = 1;
+      if ( $this->{'ParentId'} != null ) {
+        $Parent = new Group( $this->{'ParentId'} );
+        $this->{'depth'} += $Parent->depth();
+      }
+    }
+    return $this->{'depth'};
+  } // end public function depth
 } # end class Group
 
 ?>

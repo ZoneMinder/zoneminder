@@ -24,47 +24,80 @@ if ( !canEdit( 'Groups' ) ) {
 }
 
 if ( !empty($_REQUEST['gid']) ) {
-  $newGroup = dbFetchGroup( $_REQUEST['gid'] );
+  $newGroup = new Group( $_REQUEST['gid'] );
 } else {
-  $newGroup = array(
-    'Id' => '',
-    'Name' => 'New Group',
-    'ParentId'  =>  '',
-    'MonitorIds' => ''
-  );
+  $newGroup = new Group();
 }
 
-xhtmlHeaders( __FILE__, translate('Group').' - '.$newGroup['Name'] );
+xhtmlHeaders( __FILE__, translate('Group').' - '.$newGroup->Name() );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?php echo translate('Group') ?> - <?php echo $newGroup['Name'] ?></h2>
+      <h2><?php echo translate('Group') ?> - <?php echo $newGroup->Name() ?></h2>
     </div>
     <div id="content">
       <form name="groupForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value="group"/>
-        <input type="hidden" name="gid" value="<?php echo $newGroup['Id'] ?>"/>
+        <input type="hidden" name="gid" value="<?php echo $newGroup->Id() ?>"/>
         <table id="contentTable" class="major">
           <tbody>
             <tr>
               <th scope="row"><?php echo translate('Name') ?></th>
-              <td><input type="text" name="newGroup[Name]" value="<?php echo validHtmlStr($newGroup['Name']) ?>"/></td>
+              <td><input type="text" name="newGroup[Name]" value="<?php echo validHtmlStr($newGroup->Name()) ?>"/></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('ParentGroup') ?></th>
               <td>
-                <select name="newGroup[ParentId]" onchange="configureButtons(this);"><option value="">None</option>
 <?php
-  $groups = dbFetchAll( 'SELECT Id,Name from Groups WHERE Id!=? ORDER BY Name', null, array($newGroup['Id']) );
-  foreach ( $groups as $group ) {
-?>
-                  <option value="<?php echo $group['Id'] ?>"<?php if ( $group['Id'] == $newGroup['ParentId'] ) { ?> selected="selected"<?php } ?>><?php echo validHtmlStr($group['Name']) ?></option>
-<?php
+$Groups = array();
+foreach ( Group::find_all( ) as $Group ) {
+  $Groups[$Group->Id()] = $Group;
+}
+
+# This  array is indexed by parent_id
+$children = array();
+
+foreach ( $Groups as $id=>$Group ) {
+  if ( $Group->ParentId() != null ) {
+    if ( ! isset( $children[$Group->ParentId()] ) )
+      $children[$Group->ParentId()] = array();
+    $children[$Group->ParentId()][] = $Group;
   }
+}
+
+function get_Id( $G ) {
+  return $G->Id();
+}
+
+function get_children($Group) {
+  global $children;
+
+  $kids = array();
+  if ( isset( $children[$Group->Id()] ) ) {
+    $kids += array_map( 'get_Id', $children[$Group->Id()] );
+    foreach ( $children[$Group->Id()] as $G ) {
+      foreach ( get_children($G) as $id ) {
+        $kids[] = $id;
+      }
+    }
+  }
+  return $kids;
+}
+
+$kids = get_children($newGroup);
+$kids[] = $newGroup->Id();
+function get_question_marks() {
+  return '?';
+}
+$options = array('','None');
+foreach ( dbFetchAll( 'SELECT Id,Name from Groups WHERE Id NOT IN ('.implode(',',array_map('get_question_marks', $kids )).') ORDER BY Name', null, $kids ) as $option ) {
+  $options[] = $option['Id'];
+  $options[] = $option['Name'];
+}
+echo htmlSelect( 'newGroup[ParentId]', $options, $newGroup->ParentId(), array('onchange'=>'configureButtons(this);' ));
 ?>
-                </select>
               </td>
             </tr>
             <tr>
@@ -73,7 +106,7 @@ xhtmlHeaders( __FILE__, translate('Group').' - '.$newGroup['Name'] );
                 <select name="newGroup[MonitorIds][]" size="4" multiple="multiple" onchange="configureButtons(this);">
 <?php
   $monitors = dbFetchAll( 'SELECT Id,Name FROM Monitors ORDER BY Sequence ASC' );
-  $monitorIds = array_flip( explode( ',', $newGroup['MonitorIds'] ) );
+  $monitorIds = array_flip( explode( ',', $newGroup->MonitorIds() ) );
   foreach ( $monitors as $monitor ) {
     if ( visibleMonitor( $monitor['Id'] ) ) {
 ?>
@@ -88,7 +121,7 @@ xhtmlHeaders( __FILE__, translate('Group').' - '.$newGroup['Name'] );
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="submit" name="saveBtn" value="<?php echo translate('Save') ?>" disabled="disabled" />
+        <input type="submit" name="saveBtn" value="<?php echo translate('Save') ?>"<?php $newGroup->Id() ? '' : ' disabled="disabled"'?>/>
           <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
         </div>
       </form>

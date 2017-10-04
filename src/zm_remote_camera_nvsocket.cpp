@@ -97,35 +97,40 @@ void RemoteCameraNVSocket::Initialise() {
 }
 
 int RemoteCameraNVSocket::Connect() {
-  struct addrinfo *p;
+  //struct addrinfo *p;
+struct sockaddr_in servaddr;
+    bzero( &servaddr, sizeof(servaddr));
+    servaddr.sin_family      = AF_INET;
+    servaddr.sin_addr.s_addr = htons(INADDR_ANY);
+    servaddr.sin_port        = htons(atoi(port.c_str()));
 
-  for(p = hp; p != NULL; p = p->ai_next) {
-    sd = socket( p->ai_family, p->ai_socktype, p->ai_protocol );
+
+    sd = socket(AF_INET, SOCK_STREAM, 0);
+  //for(p = hp; p != NULL; p = p->ai_next) {
+    //sd = socket( p->ai_family, p->ai_socktype, p->ai_protocol );
     if ( sd < 0 ) {
       Warning("Can't create socket: %s", strerror(errno) );
-      continue;
+      //continue;
+	return -1;
     }
 
-    if ( connect( sd, p->ai_addr, p->ai_addrlen ) < 0 ) {
+    //if ( connect( sd, p->ai_addr, p->ai_addrlen ) < 0 ) {
+    if ( connect( sd, (struct sockaddr *)&servaddr , sizeof(servaddr) ) < 0 ) {
       close(sd);
       sd = -1;
-      char buf[sizeof(struct in6_addr)];
-      struct sockaddr_in *addr;
-      addr = (struct sockaddr_in *)p->ai_addr; 
-      inet_ntop( AF_INET, &(addr->sin_addr), buf, INET6_ADDRSTRLEN );
 
-      Warning("Can't connect to remote camera mid: %d at %s: %s", monitor_id, buf, strerror(errno) );
-      continue;
-    }
-
+      Warning("Can't connect to socket mid: %d : %s", monitor_id, strerror(errno) );
+	return -1;
+      //continue;
+    //}
     /* If we got here, we must have connected successfully */
-    break;
+    //break;
   }
 
-  if ( p == NULL ) {
-    Error("Unable to connect to the remote camera, aborting");
-    return( -1 );
-  }
+  //if ( p == NULL ) {
+    //Error("Unable to connect to the remote camera, aborting");
+    //return( -1 );
+  //}
 
   Debug( 3, "Connected to host, socket = %d", sd );
   return( sd );
@@ -284,56 +289,16 @@ struct image_def image_def;
 }
 
 int RemoteCameraNVSocket::Capture( Image &image ) {
-  int content_length = GetResponse();
-  if ( content_length == 0 ) {
+  if ( SendRequest("GetNextImage") < 0 ) {
     Warning( "Unable to capture image, retrying" );
     return( 1 );
   }
-  if ( content_length < 0 ) {
-    Error( "Unable to get response, disconnecting" );
-    Disconnect();
-    return( -1 );
+  if ( Read( sd, buffer, imagesize ) < imagesize ) {
+    Warning( "Unable to capture image, retrying" );
+    return( 1 );
   }
-  switch( format ) {
-    case JPEG :
-      {
-        if ( !image.DecodeJpeg( buffer.extract( content_length ), content_length, colours, subpixelorder ) )
-        {
-          Error( "Unable to decode jpeg" );
-          Disconnect();
-          return( -1 );
-        }
-        break;
-      }
-    case X_RGB :
-      {
-        if ( content_length != (long)image.Size() )
-        {
-          Error( "Image length mismatch, expected %d bytes, content length was %d", image.Size(), content_length );
-          Disconnect();
-          return( -1 );
-        }
-        image.Assign( width, height, colours, subpixelorder, buffer, imagesize );
-        break;
-      }
-    case X_RGBZ :
-      {
-        if ( !image.Unzip( buffer.extract( content_length ), content_length ) )
-        {
-          Error( "Unable to unzip RGB image" );
-          Disconnect();
-          return( -1 );
-        }
-        image.Assign( width, height, colours, subpixelorder, buffer, imagesize );
-        break;
-      }
-    default :
-      {
-        Error( "Unexpected image format encountered" );
-        Disconnect();
-        return( -1 );
-      }
-  }
+
+  image.Assign( width, height, colours, subpixelorder, buffer, imagesize );
   return( 0 );
 }
 

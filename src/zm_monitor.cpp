@@ -35,6 +35,7 @@
 #endif // ZM_HAS_V4L
 #include "zm_remote_camera.h"
 #include "zm_remote_camera_http.h"
+#include "zm_remote_camera_nvsocket.h"
 #if HAVE_LIBAVFORMAT
 #include "zm_remote_camera_rtsp.h"
 #endif // HAVE_LIBAVFORMAT
@@ -2653,6 +2654,22 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
 #else // ZM_HAS_V4L
     Fatal( "You must have video4linux libraries and headers installed to use local analog or USB cameras for monitor %d", id );
 #endif // ZM_HAS_V4L
+  } else if ( type == "NVSocket" ) {
+      camera = new RemoteCameraNVSocket(
+        id,
+        host.c_str(),
+        port.c_str(),
+        path.c_str(),
+        width,
+        height,
+        colours,
+        brightness,
+        contrast,
+        hue,
+        colour,
+        purpose==CAPTURE,
+        record_audio
+      );
   } else if ( type == "Remote" ) {
     if ( protocol == "http" ) {
       camera = new RemoteCameraHttp(

@@ -164,12 +164,10 @@ public $defaults = array(
         if ( $group['MonitorIds'] )
           $groupIds = explode( ',', $group['MonitorIds'] );
 
-      Warning("Group ids" . implode(',',$groupIds) );
         foreach ( dbFetchAll( 'SELECT MonitorIds FROM Groups WHERE ParentId = ?', NULL, array($group_id) ) as $group )
           if ( $group['MonitorIds'] )
             $groupIds = array_merge( $groupIds,  explode( ',', $group['MonitorIds'] ) );
       }
-      Warning("Group ids" . implode(',',$groupIds) );
       $groupSql = " find_in_set( Id, '".implode( ',', $groupIds )."' )";
     }
     return $groupSql;

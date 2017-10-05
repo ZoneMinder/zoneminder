@@ -182,7 +182,8 @@ if ( $Event->DefaultVideo() ) {
 }  // end if DefaultVideo
 ?>
       </div><!--eventVideo-->
-      <div id="imageFeed"<?php if ( $Event->DefaultVideo() ) { ?> class="hidden"<?php } ?>>
+<?php if (!$Event->DefaultVideo()) { ?>
+      <div id="imageFeed">
 <?php
 if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
   $streamSrc = $Event->getStreamSrc( array( 'mode'=>'mpeg', 'scale'=>$scale, 'rate'=>$rate, 'bitrate'=>ZM_WEB_VIDEO_BITRATE, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'format'=>ZM_MPEG_REPLAY_FORMAT, 'replay'=>$replayMode ) );
@@ -220,6 +221,7 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
         </div><!--progressBar-->
       </div><!--imageFeed-->
       </div>
+<?php } /*end if !DefaultVideo*/ ?>
 <?php 
   if ( $Event->SaveJPEGs() & 3 ) { // frames or analysis
 ?>

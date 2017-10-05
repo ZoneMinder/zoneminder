@@ -174,10 +174,13 @@ private $control_fields = array(
   public function getStreamSrc( $args, $querySep='&amp;' ) {
     if ( isset($this->{'ServerId'}) and $this->{'ServerId'} ) {
       $Server = new Server( $this->{'ServerId'} );
-      $streamSrc = ZM_BASE_PROTOCOL.'://'.$Server->Hostname().ZM_PATH_ZMS;
+      $streamSrc = ZM_BASE_PROTOCOL.'://'.$Server->Hostname();
     } else {
-      $streamSrc = ZM_BASE_URL.ZM_PATH_ZMS;
+      $streamSrc = ZM_BASE_URL;
     }
+    if ( ZM_MIN_STREAMING_PORT )
+      $streamSrc .= ':'. (ZM_MIN_STREAMING_PORT+$this->{'Id'});
+    $streamSrc .= ZM_PATH_ZMS;
 
     $args['monitor'] = $this->{'Id'};
 

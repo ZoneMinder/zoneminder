@@ -114,60 +114,21 @@ xhtmlHeaders( __FILE__, translate('Console') );
     <div class="controlHeader">
       <span id="groupControl"><label><?php echo translate('Group') ?>:</label>
 <?php
-
-
-  # This will end up with the group_id of the deepest selection
-  $group_id = 0;
-  $depth = 0;
-  $groups = array();
-  $parent_group_ids = null;
-  while(1) {
-
-    $Groups = Group::find_all( array('ParentId'=>$parent_group_ids) );
-    if ( ! count( $Groups ) )
-      break;
-
-    $parent_group_ids = array();
-    $selected_group_id = 0;
-    if ( isset($_REQUEST['group'.$depth]) and $_REQUEST['group'.$depth] > 0 ) {
-      $selected_group_id = $group_id = $_REQUEST['group'.$depth];
-    } else if ( isset($_COOKIE['zmGroup'.$depth] ) and $_COOKIE['zmGroup'.$depth] > 0 ) {
-      $selected_group_id = $group_id = $_COOKIE['zmGroup'.$depth];
-    }
-
-    foreach ( $Groups as $Group ) { 
-      if ( ! isset( $groups[$depth] ) ) {
-        $groups[$depth] = array(0=>'All');
-      }
-      $groups[$depth][$Group->Id()] = $Group->Name();
-      if ( $selected_group_id and ( $selected_group_id == $Group->Id() ) )
-        $parent_group_ids[] = $Group->Id();
-    }
-
-    echo htmlSelect( 'group'.$depth, $groups[$depth], $selected_group_id, "changeGroup(this,$depth);" );
-    if ( ! count($parent_group_ids) ) break;
-    $depth += 1;
-  }
-
-  $groupSql = '';
-  if ( $group_id ) {
-    if ( $group = dbFetchOne( 'SELECT MonitorIds FROM Groups WHERE Id = ?', NULL, array($group_id) ) ) {
-      $groupIds = array();
-      if ( $group['MonitorIds'] ) 
-        $groupIds = explode( ',', $group['MonitorIds'] );
-
-      foreach ( dbFetchAll( 'SELECT MonitorIds FROM Groups WHERE ParentId = ?', NULL, array($group_id) ) as $group )
-        if ( $group['MonitorIds'] )
-          $groupIds += explode( ',', $group['MonitorIds'] );
-    }
-    $groupSql = " WHERE find_in_set( Id, '".implode( ',', $groupIds )."' )";
-  }
+# This will end up with the group_id of the deepest selection
+$group_id = Group::get_group_dropdowns();
+$groupSql = Group::get_group_sql( $group_id );
+?>
+</span>
+<span id="monitorControl"><label><?php echo translate('Monitor') ?>:</label>
+<?php
 
   $maxWidth = 0;
   $maxHeight = 0;
   # Used to determine if the Cycle button should be made available
-  $monitors = dbFetchAll( "SELECT * FROM Monitors$groupSql ORDER BY Sequence ASC" );
+  $monitors = dbFetchAll( 'SELECT * FROM Monitors'.($groupSql?' WHERE '.$groupSql:'').' ORDER BY Sequence ASC' );
   $displayMonitors = array();
+  $monitors_dropdown = array(''=>'All');
+
   for ( $i = 0; $i < count($monitors); $i++ ) {
     if ( !visibleMonitor( $monitors[$i]['Id'] ) ) {
       continue;
@@ -179,11 +140,20 @@ xhtmlHeaders( __FILE__, translate('Console') );
       if ( $maxHeight < $scaleHeight ) $maxHeight = $scaleHeight;
     }
     $displayMonitors[] = $monitors[$i];
+    $monitors_dropdown[$monitors[$i]['Id']] = $monitors[$i]['Name'];
   }
+
+  $monitor_id = 0;
+  if ( isset( $_REQUEST['monitor_id'] ) ) {
+    $monitor_id = $_REQUEST['monitor_id'];
+  } else if ( isset($_COOKIE['zmMonitorId']) ) {
+    $monitor_id = $_COOKIE['zmMonitorId'];
+  }
+  echo htmlSelect( 'monitor_id', $monitors_dropdown, $monitor_id, array('onchange'=>'changeMonitor(this);') );
 
   $cycleWidth = $maxWidth;
   $cycleHeight = $maxHeight;
-$zoneCount = 0;
+  $zoneCount = 0;
 
 for( $i = 0; $i < count($displayMonitors); $i += 1 ) {
   $monitor = $displayMonitors[$i];

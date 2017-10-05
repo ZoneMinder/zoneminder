@@ -23,39 +23,6 @@ if ( !canView('Stream') ) {
   return;
 }
 
-$group_id = 0;
-if ( isset($_REQUEST['group']) ) {
-  $group_id = $_REQUEST['group'];
-} else if ( isset($_COOKIE['zmGroup'] ) ) {
-  $group_id = $_COOKIE['zmGroup'];
-}
-
-$subgroup_id = 0;
-if ( isset($_REQUEST['subgroup']) ) {
-  $subgroup_id = $_REQUEST['subgroup'];
-} else if ( isset($_COOKIE['zmSubGroup'] ) ) {
-  $subgroup_id = $_COOKIE['zmSubGroup'];
-}
-$groupIds = null;
-if ( $group_id ) {
-  $groupIds = array();
-  if ( $group = dbFetchOne( 'SELECT MonitorIds FROM Groups WHERE Id = ?', NULL, array($group_id) ) )
-    if ( $group['MonitorIds'] )
-      $groupIds = explode( ',', $group['MonitorIds'] );
-  if ( $subgroup_id ) {
-    if ( $group = dbFetchOne( 'SELECT MonitorIds FROM Groups WHERE Id = ?', NULL, array($subgroup_id) ) )
-      if ( $group['MonitorIds'] )
-        $groupIds = array_merge( $groupIds, explode( ',', $group['MonitorIds'] ) );
-  } else {
-    foreach ( dbFetchAll( 'SELECT MonitorIds FROM Groups WHERE ParentId = ?', NULL, array($group_id) ) as $group )
-      if ( $group['MonitorIds'] )
-        $groupIds = array_merge( $groupIds, explode( ',', $group['MonitorIds'] ) );
-  }
-}
-$groupSql = '';
-if ( $groupIds )
-  $groupSql = " and find_in_set( Id, '".implode( ',', $groupIds )."' )";
-
 $showControl = false;
 $showZones = false;
 if ( isset( $_REQUEST['showZones'] ) ) {
@@ -63,7 +30,6 @@ if ( isset( $_REQUEST['showZones'] ) ) {
     $showZones = true;
   }
 }
-$monitors = array();
 $widths = array( 
   ''  => 'auto',
   160 => 160,
@@ -91,27 +57,6 @@ if ( isset( $_REQUEST['scale'] ) ) {
 if ( ! $scale ) 
   $scale = 100;
 
-$sql = "SELECT * FROM Monitors WHERE Function != 'None'$groupSql ORDER BY Sequence";
-foreach( dbFetchAll( $sql ) as $row ) {
-  if ( !visibleMonitor( $row['Id'] ) ) {
-    continue;
-  }
-
-  $row['Scale'] = $scale;
-  $row['PopupScale'] = reScale( SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
-
-  if ( ZM_OPT_CONTROL && $row['ControlId'] && $row['Controllable'] )
-    $showControl = true;
-  $row['connKey'] = generateConnKey();
-  $monitors[] = new Monitor( $row );
-  if ( ! isset( $widths[$row['Width']] ) ) {
-    $widths[$row['Width']] = $row['Width'];
-  }
-  if ( ! isset( $heights[$row['Height']] ) ) {
-    $heights[$row['Height']] = $row['Height'];
-  }
-} # end foreach Monitor
-
 $focusWindow = true;
 
 $layouts = array(
@@ -138,11 +83,42 @@ else
 if ( $scale ) 
   $options['scale'] = $scale;
 
+ob_start();
+# This will end up with the group_id of the deepest selection
+$group_id = Group::get_group_dropdowns();
+$group_dropdowns = ob_get_contents();
+ob_end_clean();
+
+$groupSql = Group::get_group_sql( $group_id );
+$monitors = array();
+$sql = "SELECT * FROM Monitors WHERE Function != 'None'";
+if ( $groupSql ) { $sql .= ' AND ' . $groupSql; };
+$sql .= 'ORDER BY Sequence';
+foreach( dbFetchAll( $sql ) as $row ) {
+  if ( !visibleMonitor( $row['Id'] ) ) {
+    continue;
+  }
+
+  $row['Scale'] = $scale;
+  $row['PopupScale'] = reScale( SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+
+  if ( ZM_OPT_CONTROL && $row['ControlId'] && $row['Controllable'] )
+    $showControl = true;
+  $row['connKey'] = generateConnKey();
+  $monitors[] = new Monitor( $row );
+  if ( ! isset( $widths[$row['Width']] ) ) {
+    $widths[$row['Width']] = $row['Width'];
+  }
+  if ( ! isset( $heights[$row['Height']] ) ) {
+    $heights[$row['Height']] = $row['Height'];
+  }
+} # end foreach Monitor
+
 xhtmlHeaders(__FILE__, translate('Montage') );
 ?>
 <body>
   <div id="page">
-<?php echo getNavBarHTML() ?>
+    <?php echo getNavBarHTML() ?>
     <div id="header">
       <div id="headerButtons">
 <?php
@@ -165,21 +141,9 @@ if ( $showZones ) {
       <div id="headerControl">
         <span id="groupControl"><label><?php echo translate('Group') ?>:</label>
 <?php
-$groups = array(0=>'All');
-foreach ( Group::find_all( array('ParentId'=>null) ) as $Group ) {
-  $groups[$Group->Id()] = $Group->Name();
-}
-echo htmlSelect( 'group', $groups, $group_id, 'changeGroup(this);' );
-$groups = array(0=>'All');
-if ( $group_id ) {
-  foreach ( Group::find_all( array('ParentId'=>$group_id) ) as $Group ) {
-    $groups[$Group->Id()] = $Group->Name();
-  }
-}
-echo htmlSelect( 'subgroup', $groups, $subgroup_id, 'changeSubGroup(this);' );
+echo $group_dropdowns;
 ?>
-</span>
-
+        </span>
         <span id="widthControl"><label><?php echo translate('Width') ?>:</label><?php echo htmlSelect( 'width', $widths, $options['width'], 'changeSize(this);' ); ?></span>
         <span id="heightControl"><label><?php echo translate('Height') ?>:</label><?php echo htmlSelect( 'height', $heights, $options['height'], 'changeSize(this);' ); ?></span>
         <span id="scaleControl"><label><?php echo translate('Scale') ?>:</label><?php echo htmlSelect( 'scale', $scales, $scale, 'changeScale(this);' ); ?></span> 
@@ -190,7 +154,7 @@ echo htmlSelect( 'subgroup', $groups, $subgroup_id, 'changeSubGroup(this);' );
       <div id="monitors">
 <?php
 foreach ( $monitors as $monitor ) {
-    $connkey = $monitor->connKey(); // Minor hack
+  $connkey = $monitor->connKey(); // Minor hack
 ?>
         <div id="monitorFrame<?php echo $monitor->Id() ?>" class="monitorFrame" title="<?php echo $monitor->Id() . ' ' .$monitor->Name() ?>">
           <div id="monitor<?php echo $monitor->Id() ?>" class="monitor idle">

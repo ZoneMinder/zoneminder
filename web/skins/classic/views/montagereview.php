@@ -54,38 +54,13 @@ if ( !canView( 'Events' ) ) {
   return;
 }
 
-$group_id = 0;
-if ( isset($_REQUEST['group']) ) {
-  $group_id = $_REQUEST['group'];
-} else if ( isset($_COOKIE['zmGroup'] ) ) {
-  $group_id = $_COOKIE['zmGroup'];
-}
+ob_start();
+# This will end up with the group_id of the deepest selection
+$group_id = Group::get_group_dropdowns();
+$group_dropdowns = ob_get_contents();
+ob_end_clean();
 
-$subgroup_id = 0;
-if ( isset($_REQUEST['subgroup']) ) {
-  $subgroup_id = $_REQUEST['subgroup'];
-} else if ( isset($_COOKIE['zmSubGroup'] ) ) {
-  $subgroup_id = $_COOKIE['zmSubGroup'];
-}
-$groupIds = null;
-if ( $group_id ) {
-  $groupIds = array();
-  if ( $group = dbFetchOne( 'SELECT MonitorIds FROM Groups WHERE Id = ?', NULL, array($group_id) ) )
-    if ( $group['MonitorIds'] )
-      $groupIds = explode( ',', $group['MonitorIds'] );
-  if ( $subgroup_id ) {
-    if ( $group = dbFetchOne( 'SELECT MonitorIds FROM Groups WHERE Id = ?', NULL, array($subgroup_id) ) )
-      if ( $group['MonitorIds'] )
-        $groupIds = array_merge( $groupIds, explode( ',', $group['MonitorIds'] ) );
-  } else {
-    foreach ( dbFetchAll( 'SELECT MonitorIds FROM Groups WHERE ParentId = ?', NULL, array($group_id) ) as $group )
-      if ( $group['MonitorIds'] )
-        $groupIds = array_merge( $groupIds, explode( ',', $group['MonitorIds'] ) );
-  }
-}
-$groupSql = '';
-if ( $groupIds )
-  $groupSql = " and find_in_set( Id, '".implode( ',', $groupIds )."' )";
+$groupSql = Group::get_group_sql( $group_id );
 
 session_start();
 foreach ( array('minTime','maxTime') as $var ) {
@@ -95,7 +70,7 @@ if ( isset( $_REQUEST[$var] ) ) {
 }
 session_write_close();
 
-$monitorsSql = "SELECT * FROM Monitors WHERE Function != 'None'$groupSql";
+$monitorsSql = "SELECT * FROM Monitors WHERE Function != 'None'" . ( $groupSql ? ' AND ' . $groupSql : '');
 
 // Note that this finds incomplete events as well, and any frame records written, but still cannot "see" to the end frame
 // if the bulk record has not been written - to be able to include more current frames reduce bulk frame sizes (event size can be large)
@@ -127,9 +102,9 @@ $frameSql = '
 // This program only calls itself with the time range involved -- it does all monitors (the user can see, in the called group) all the time
 
 if ( ! empty( $user['MonitorIds'] ) ) {
-    $eventsSql   .= ' AND M.Id IN ('.$user['MonitorIds'].')';
-    $monitorsSql .= ' AND Id IN ('.$user['MonitorIds'].')';
-    $frameSql    .= ' AND E.MonitorId IN ('.$user['MonitorIds'].')';
+  $eventsSql   .= ' AND M.Id IN ('.$user['MonitorIds'].')';
+  $monitorsSql .= ' AND Id IN ('.$user['MonitorIds'].')';
+  $frameSql    .= ' AND E.MonitorId IN ('.$user['MonitorIds'].')';
 }
 
 // Parse input parameters -- note for future, validate/clean up better in case we don't get called from self.
@@ -224,20 +199,7 @@ xhtmlHeaders(__FILE__, translate('MontageReview') );
     <div id="header">
       <div id="headerControl">
         <span id="groupControl"><label><?php echo translate('Group') ?>:</label>
-<?php
-      $groups = array(0=>'All');
-      foreach ( Group::find_all(array('ParentId'=>null)) as $Group ) {
-        $groups[$Group->Id()] = $Group->Name();
-      }
-      echo htmlSelect( 'group', $groups, $group_id, 'changeGroup(this);' );
-      $groups = array(0=>'All');
-      if ( $group_id ) {
-        foreach ( Group::find_all( array('ParentId'=>$group_id) ) as $Group ) {
-          $groups[$Group->Id()] = $Group->Name();
-        }
-      }
-      echo htmlSelect( 'subgroup', $groups, $subgroup_id, 'changeSubGroup(this);' );
-?>
+        <?php echo $group_dropdowns; ?>
       </span>
       <div id="DateTimeDiv">
         <input type="datetime-local" name="minTime" id="minTime" value="<?php echo preg_replace('/ /', 'T', $minTime ) ?>" onchange="changeDateTime(this);"> to 
@@ -254,15 +216,15 @@ xhtmlHeaders(__FILE__, translate('MontageReview') );
           <span id="speedslideroutput"><?php echo $speeds[$speedIndex] ?> fps</span>
       </div>
       <div style="display: inline-flex; border: 1px solid black; flex-flow: row wrap;">
-          <button type="button" id="panleft"   onclick="panleft();"         >&lt; <?php echo translate('Pan') ?></button>
-          <button type="button" id="zoomin"    onclick="zoomin();"           ><?php echo translate('In +') ?></button>
-          <button type="button" id="zoomout"   onclick="zoomout();"          ><?php echo translate('Out -') ?></button>
-          <button type="button" id="lasteight" onclick="lastEight();"        ><?php echo translate('8 Hour') ?></button>
-          <button type="button" id="lasthour"  onclick="lastHour();"         ><?php echo translate('1 Hour') ?></button>
-          <button type="button" id="allof"     onclick="allof();"            ><?php echo translate('All Events') ?></button>
+          <button type="button" id="panleft"   onclick="click_panleft();"         >&lt; <?php echo translate('Pan') ?></button>
+          <button type="button" id="zoomin"    onclick="click_zoomin();"           ><?php echo translate('In +') ?></button>
+          <button type="button" id="zoomout"   onclick="click_zoomout();"          ><?php echo translate('Out -') ?></button>
+          <button type="button" id="lasteight" onclick="click_lastEight();"        ><?php echo translate('8 Hour') ?></button>
+          <button type="button" id="lasthour"  onclick="click_lastHour();"         ><?php echo translate('1 Hour') ?></button>
+          <button type="button" id="allof"     onclick="click_all_events();"            ><?php echo translate('All Events') ?></button>
           <button type="button" id="live"      onclick="setLive(1-liveMode);"><?php echo translate('Live') ?></button>
           <button type="button" id="fit"       onclick="setFit(1-fitMode);"  ><?php echo translate('Fit') ?></button>
-          <button type="button" id="panright"  onclick="panright();"         ><?php echo translate('Pan') ?> &gt;</button>
+          <button type="button" id="panright"  onclick="click_panright();"         ><?php echo translate('Pan') ?> &gt;</button>
       </div>
       <div id="timelinediv">
           <canvas id="timeline" onmousemove="mmove(event);" ontouchmove="tmove(event);" onmousedown="mdown(event);" onmouseup="mup(event);" onmouseout="mout(event);"></canvas>

@@ -423,13 +423,12 @@ function setScale(newscale) // makes actual change
     currentScale=newscale;
 }
 
-function showSpeed(val) // updates slider only
-{
-    $('speedslideroutput').innerHTML = parseFloat(speeds[val]).toFixed(2).toString() + " x";
+function showSpeed(val) {
+  // updates slider only
+  $('speedslideroutput').innerHTML = parseFloat(speeds[val]).toFixed(2).toString() + " x";
 }
 
-function setSpeed(val)   // Note parameter is the index not the speed
-{
+function setSpeed(val) {  // Note parameter is the index not the speed
     var t;
     if(liveMode==1) return;  // we shouldn't actually get here but just in case
     currentSpeed=parseFloat(speeds[val]);
@@ -439,8 +438,7 @@ function setSpeed(val)   // Note parameter is the index not the speed
     if( timerInterval != currentDisplayInterval || currentSpeed == 0 )  timerFire(); // if the timer isn't firing we need to trigger it to update
 }
 
-function setLive(value)
-{
+function setLive(value) {
     liveMode=value;
     redrawScreen();
 }
@@ -491,38 +489,38 @@ function clicknav(minSecs,maxSecs,arch,live) {// we use the current time if we c
   window.location = uri;
 } // end function clickNav
 
-function lastHour() {
+function click_lastHour() {
   var now = new Date() / 1000;
   clicknav(now - 3600 + 1, now,1,0);
 }
-function lastEight() {
+function click_lastEight() {
   var now = new Date() / 1000;
   clicknav(now - 3600*8 + 1, now,1,0);
 }
-function zoomin() {
+function click_zoomin() {
   rangeTimeSecs = parseInt(rangeTimeSecs / 2);
   minTimeSecs = parseInt(currentTimeSecs - rangeTimeSecs/2);  // this is the slider current time, we center on that
   maxTimeSecs = parseInt(currentTimeSecs + rangeTimeSecs/2);
   clicknav(minTimeSecs,maxTimeSecs,1,0);
 }
 
-function zoomout() {
+function click_zoomout() {
   rangeTimeSecs = parseInt(rangeTimeSecs * 2);
   minTimeSecs = parseInt(currentTimeSecs - rangeTimeSecs/2);  // this is the slider current time, we center on that
   maxTimeSecs = parseInt(currentTimeSecs + rangeTimeSecs/2);
   clicknav(minTimeSecs,maxTimeSecs,1,0);
 }
-function panleft() {
+function click_panleft() {
   minTimeSecs = parseInt(minTimeSecs - rangeTimeSecs/2);
   maxTimeSecs = minTimeSecs + rangeTimeSecs - 1;
   clicknav(minTimeSecs,maxTimeSecs,1,0);
 }
-function panright() {
+function click_panright() {
   minTimeSecs = parseInt(minTimeSecs + rangeTimeSecs/2);
   maxTimeSecs = minTimeSecs + rangeTimeSecs - 1;
   clicknav(minTimeSecs,maxTimeSecs,1,0);
 }
-function allof() {
+function click_all_events() {
   clicknav(0,0,1,0);
 }
 function allnon() {

@@ -45,7 +45,7 @@ xhtmlHeaders( __FILE__, translate('Group').' - '.$newGroup->Name() );
           <tbody>
             <tr>
               <th scope="row"><?php echo translate('Name') ?></th>
-              <td><input type="text" name="newGroup[Name]" value="<?php echo validHtmlStr($newGroup->Name()) ?>"/></td>
+              <td><input type="text" name="newGroup[Name]" value="<?php echo validHtmlStr($newGroup->Name()) ?>" oninput="configureButtons(this);"/></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('ParentGroup') ?></th>

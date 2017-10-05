@@ -154,6 +154,7 @@ if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
 } // end function xhtmlHeaders( $file, $title )
 
 function getNavBarHTML() {
+
   $versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText':'';
 
 
@@ -166,6 +167,12 @@ function getNavBarHTML() {
   global $bwArray;
   global $view;
 ?>
+<noscript>
+<div style="background-color:red;color:white;font-size:x-large;">
+ZoneMinder requires Javascript. Please enable Javascript in your browser for this site.
+</div>
+</noscript>
+
 <div class="navbar navbar-inverse navbar-static-top">
 	<div class="container-fluid">
 		<div class="navbar-header">

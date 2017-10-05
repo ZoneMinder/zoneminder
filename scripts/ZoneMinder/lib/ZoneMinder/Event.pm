@@ -348,7 +348,12 @@ Debug("Checking for files for event $_[0]{Id} at $path using glob $path/* found 
 
 sub age {
   if ( ! $_[0]{age} ) {
-    $_[0]{age} = (time() - ($^T - ((-M $_[0]->Path() ) * 24*60*60)));
+    if ( -e $_[0]->Path() ) { 
+      # $^T is the time the program began running. -M is program start time - file modification time in days
+      $_[0]{age} = (time() - ($^T - ((-M $_[0]->Path() ) * 24*60*60)));
+    } else {
+      Warning($_[0]->Path() . ' does not appear to exist.');
+    }
   }
   return $_[0]{age};
 }

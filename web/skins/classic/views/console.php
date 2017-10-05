@@ -20,6 +20,11 @@
 
 $servers = Server::find_all();
 $storage_areas = Storage::find_all();
+$StorageById = array();
+foreach ( $storage_areas as $S ) {
+  $StorageById[$S->Id()] = $S;
+}
+
 $show_storage_areas = count($storage_areas) > 1 and canEdit( 'System' ) ? 1 : 0;
 if ( $running == null ) 
   $running = daemonCheck();
@@ -122,14 +127,25 @@ $groupSql = Group::get_group_sql( $group_id );
 <span id="monitorControl"><label><?php echo translate('Monitor') ?>:</label>
 <?php
 
+  $monitor_id = 0;
+  if ( isset( $_REQUEST['monitor_id'] ) ) {
+    $monitor_id = $_REQUEST['monitor_id'];
+  } else if ( isset($_COOKIE['zmMonitorId']) ) {
+    $monitor_id = $_COOKIE['zmMonitorId'];
+  }
+
   $maxWidth = 0;
   $maxHeight = 0;
   # Used to determine if the Cycle button should be made available
+
   $monitors = dbFetchAll( 'SELECT * FROM Monitors'.($groupSql?' WHERE '.$groupSql:'').' ORDER BY Sequence ASC' );
   $displayMonitors = array();
   $monitors_dropdown = array(''=>'All');
 
   for ( $i = 0; $i < count($monitors); $i++ ) {
+    if ( $monitor_id and ( $monitors[$i]['Id'] != $monitor_id ) ) {
+      continue;
+    }
     if ( !visibleMonitor( $monitors[$i]['Id'] ) ) {
       continue;
     }
@@ -143,12 +159,6 @@ $groupSql = Group::get_group_sql( $group_id );
     $monitors_dropdown[$monitors[$i]['Id']] = $monitors[$i]['Name'];
   }
 
-  $monitor_id = 0;
-  if ( isset( $_REQUEST['monitor_id'] ) ) {
-    $monitor_id = $_REQUEST['monitor_id'];
-  } else if ( isset($_COOKIE['zmMonitorId']) ) {
-    $monitor_id = $_COOKIE['zmMonitorId'];
-  }
   echo htmlSelect( 'monitor_id', $monitors_dropdown, $monitor_id, array('onchange'=>'changeMonitor(this);') );
 
   $cycleWidth = $maxWidth;
@@ -201,7 +211,7 @@ for( $i = 0; $i < count($displayMonitors); $i += 1 ) {
 <?php } ?>
             <th class="colZones"><a href="<?php echo $_SERVER['PHP_SELF'] ?>?view=zones_overview"><?php echo translate('Zones') ?></a></th>
 <?php if ( canEdit('Monitors') ) { ?>
-            <th class="colMark"><?php echo translate('Mark') ?></th>
+            <th class="colMark"><input type="checkbox" name="toggleCheck" value="1" onclick="toggleCheckbox( this, 'markMids[]' );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/> <?php echo translate('All') ?></th>
 <?php } ?>
           </tr>
         </thead>
@@ -262,7 +272,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   echo '<td class="colSource">'. makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.$source.'</span>', canEdit( 'Monitors' ) ).'</td>';
   if ( $show_storage_areas ) {
 ?>
-            <td class="colStorage"><?php $Storage = new Storage( $monitor['StorageId'] ); echo $Storage->Name(); ?></td>
+            <td class="colStorage"><?php if ( isset( $StorageById[ $monitor['StorageId'] ] ) ) { echo $StorageById[ $monitor['StorageId'] ]->Name(); } ?></td>
 <?php
   }
 

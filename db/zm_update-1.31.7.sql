@@ -1,1 +1,1 @@
-ALTER TABLE Groups MODIFY `MonitorIds` text NOT NULL default '';
+ALTER TABLE Groups MODIFY `MonitorIds` text NOT NULL;
